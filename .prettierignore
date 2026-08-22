@@ -1,0 +1,6 @@
+dist
+coverage
+android
+ios
+node_modules
+*.min.js
