@@ -10,11 +10,13 @@
     "test:unit": "vitest",
     "build-only": "vite build",
     "type-check": "vue-tsc --build",
-    "lint": "eslint .",
+    "lint": "run-s lint:oxlint lint:eslint",
     "lint:oxlint": "oxlint . --fix",
     "lint:eslint": "eslint . --fix --cache",
     "format": "prettier --write --experimental-cli src/",
-    "prepare": "husky"
+    "prepare": "husky",
+    "cap:sync": "vite build && npx cap sync",
+    "cap:open:android": "npx cap open android"
   },
   "lint-staged": {
     "*.{ts,vue}": [
