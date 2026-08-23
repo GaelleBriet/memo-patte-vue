@@ -15,8 +15,9 @@
     "lint:eslint": "eslint . --fix --cache",
     "format": "prettier --write --experimental-cli src/",
     "prepare": "husky",
-    "cap:sync": "vite build && npx cap sync",
-    "cap:open:android": "npx cap open android"
+    "dev:mobile": "cap run android -l --host=localhost --port=5173 --forwardPorts=5173:5173",
+    "cap:sync": "vite build && cap sync",
+    "cap:open:android": "cap open android"
   },
   "lint-staged": {
     "*.{ts,vue}": [
