@@ -1,6 +1,6 @@
 import { fileURLToPath } from 'node:url'
 import { mergeConfig, defineConfig, configDefaults } from 'vitest/config'
-import viteConfig from './vite.config'
+import viteConfig from './vite.config.ts'
 
 export default mergeConfig(
   viteConfig,
@@ -9,6 +9,12 @@ export default mergeConfig(
       environment: 'jsdom',
       exclude: [...configDefaults.exclude, 'e2e/**'],
       root: fileURLToPath(new URL('./', import.meta.url)),
+      setupFiles: ['./vitest.setup.ts'],
+      server: {
+        deps: {
+          inline: ['vuetify'],
+        },
+      },
     },
   }),
 )
