@@ -13,6 +13,6 @@ jobs:
     steps:
       - name: Ping Supabase pour éviter la pause automatique
         run: |
-          curl -sf "${{ secrets.SUPABASE_URL }}/rest/v1/" \
+          curl -sf "${{ secrets.SUPABASE_URL }}/auth/v1/settings" \
             -H "apikey: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}" \
             -o /dev/null
