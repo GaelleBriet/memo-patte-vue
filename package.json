@@ -17,7 +17,7 @@
     "format": "prettier --write --experimental-cli src/",
     "check": "run-s format lint type-check test:unit:run build",
     "prepare": "husky",
-    "dev:mobile": "cap run android -l --host=localhost --port=5173 --forwardPorts=5173:5173",
+    "dev:mobile": "cap run android -l --host=localhost --port=5173 --forwardPorts=5173:5173 --no-sync",
     "cap:sync": "vite build && cap sync",
     "cap:open:android": "cap open android"
   },

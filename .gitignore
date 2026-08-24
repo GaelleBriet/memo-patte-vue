@@ -38,9 +38,7 @@ coverage/
 # ESLint cache (généré par `lint:eslint --cache`)
 .eslintcache
 
-# Capacitor / Android
-android/
-ios/
+# Capacitor
 .capacitor/
 
 # Local tooling
