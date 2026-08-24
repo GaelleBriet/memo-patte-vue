@@ -10,7 +10,7 @@ export default createVuetify({
       light: {
         colors: {
           primary: '#0F766E', // teal — à ajuster selon tes maquettes
-          secondary: '#134E4A',
+          secondary: '#1B4A52FF',
           surface: '#F8FAFC',
           error: '#DC2626',
           warning: '#D97706',

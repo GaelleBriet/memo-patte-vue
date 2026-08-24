@@ -1,0 +1,19 @@
+name: supabase-keep-alive
+
+on:
+  schedule:
+    # Lundi et jeudi — large marge sous le seuil de pause auto (7 jours d'inactivité)
+    # du plan Free Supabase (decisions-log.md 21/08).
+    - cron: '0 6 * * 1,4'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase pour éviter la pause automatique
+        run: |
+          curl -sf "${{ secrets.SUPABASE_URL }}/rest/v1/" \
+            -H "apikey: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}" \
+            -o /dev/null
