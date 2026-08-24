@@ -31,6 +31,30 @@ export default defineConfigWithVueTs(
   // Désactive les règles qui conflictent avec Prettier
   skipFormatting,
 
+  // Accès direct à SQLite/Supabase interdit hors de core/ et des repositories
+  {
+    name: 'app/repository-only-data-access',
+    files: ['src/**/*.{ts,vue}'],
+    ignores: ['src/core/**', '**/*.repository.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: '@supabase/supabase-js',
+              message: "Import interdit hors de core/supabase/ ou d'un repository (cf. CLAUDE.md).",
+            },
+            {
+              name: '@capacitor-community/sqlite',
+              message: "Import interdit hors de core/db/ ou d'un repository (cf. CLAUDE.md).",
+            },
+          ],
+        },
+      ],
+    },
+  },
+
   // Règles projet MémoPatte
   {
     name: 'app/memo-patte-rules',
