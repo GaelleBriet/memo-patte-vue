@@ -50,6 +50,12 @@ export default defineConfigWithVueTs(
               message: "Import interdit hors de core/db/ ou d'un repository (cf. CLAUDE.md).",
             },
           ],
+          patterns: [
+            {
+              group: ['**/core/supabase/*', '**/core/db/*', '@/core/supabase/*', '@/core/db/*'],
+              message: 'Utilise un repository, pas le client directement (cf. CLAUDE.md).',
+            },
+          ],
         },
       ],
     },
