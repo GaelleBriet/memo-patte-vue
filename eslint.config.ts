@@ -3,6 +3,7 @@ import { defineConfigWithVueTs, vueTsConfigs } from '@vue/eslint-config-typescri
 import pluginVue from 'eslint-plugin-vue'
 import pluginVitest from '@vitest/eslint-plugin'
 import pluginOxlint from 'eslint-plugin-oxlint'
+import pluginVueI18n from '@intlify/eslint-plugin-vue-i18n'
 import skipFormatting from 'eslint-config-prettier/flat'
 
 export default defineConfigWithVueTs(
@@ -27,6 +28,22 @@ export default defineConfigWithVueTs(
 
   // Oxlint
   ...pluginOxlint.buildFromOxlintConfigFile('.oxlintrc.json'),
+
+  {
+    name: 'app/vue-i18n-rules',
+    files: ['**/*.{vue,ts,mts,tsx}'],
+    plugins: { '@intlify/vue-i18n': pluginVueI18n },
+    settings: {
+      'vue-i18n': {
+        localeDir: './src/core/i18n/locales/*.ts',
+        messageSyntaxVersion: '^11.0.0',
+      },
+    },
+    rules: {
+      '@intlify/vue-i18n/no-missing-keys': 'error',
+      '@intlify/vue-i18n/no-raw-text': 'warn',
+    },
+  },
 
   // Désactive les règles qui conflictent avec Prettier
   skipFormatting,
