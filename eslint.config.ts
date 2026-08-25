@@ -35,7 +35,7 @@ export default defineConfigWithVueTs(
     plugins: { '@intlify/vue-i18n': pluginVueI18n },
     settings: {
       'vue-i18n': {
-        localeDir: './src/core/i18n/locales/*.ts',
+        localeDir: './src/core/i18n/locales/*.json',
         messageSyntaxVersion: '^11.0.0',
       },
     },
