@@ -23,6 +23,11 @@ export default defineConfig({
     },
   },
   server: {
+    // Épinglé pour le live reload Android (`pnpm dev:mobile`) : `adb reverse`
+    // se connecte en IPv4 sur 127.0.0.1, et Node 26 fait résoudre `localhost`
+    // en IPv6 d'abord ; strictPort évite que Vite glisse sur 5174 en silence.
+    host: '127.0.0.1',
     port: 5173,
+    strictPort: true,
   },
 })
