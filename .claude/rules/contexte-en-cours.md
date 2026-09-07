@@ -1,0 +1,6 @@
+# Contexte en cours (à mettre à jour à chaque lot)
+
+- 2026-09-07 : outillage aligné sur Node 26 (`.nvmrc`, `engines`, CI via `setup-node` qui lit `.nvmrc`), pnpm épinglé par `packageManager`. Ticket #90 quasi clos (reste l’évaluation de pnpm 11) ; #82 Auto Backup quasi clos (reste le test sur appareil)
+- Premier lot de tickets livré en PR : #10 service notifications (alarmes inexactes, `POST_NOTIFICATIONS` en contexte), #14 table `animal` + `core/db` (migrations versionnées, suppression logique via `deleted_at`), #70 design system v2 (palette, polices fontsource, icônes Material Symbols SVG, palette système `error` / `warning` / `success` distincte des urgences). Tickets suivants conseillés : #33 navigation, #15 / #16 écrans animaux, #19 à #21 vaccins
+- Intégration à ne pas oublier : l’écran de priming (#11) doit appeler `requestPermission()` avant le premier `scheduleReminder()`, sinon le plugin demande la permission tout seul. Le plugin SQLite ajoute `USE_BIOMETRIC` / `USE_FINGERPRINT` au manifest : à retirer ou justifier avant le Play Store
+- Points administratifs Play Store reportés par Gaelle (adresse publique, date de création du compte, durées de rétention) : consignés dans `docs/technical/conformite-play-store-rgpd.md` §4, à ressortir à l’épic 11 ou aux tickets #86 / #88, pas avant

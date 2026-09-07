@@ -149,13 +149,7 @@ Hors scope :
 - **Demander avant de trancher** : quand un ticket ou les docs laissent un trou produit, design ou modèle de données (suppression logique ou physique, couleur hors maquette, colonne de synchro…), poser la question avec une recommandation, sa raison et l’alternative écartée, puis attendre la réponse. Ne jamais implémenter un choix puis le présenter « à valider »
 - Le ticket GitHub est la spec : ses critères d’acceptation cochés, rien de plus
 - Tests d’abord (TDD) : le test qui échoue, puis le code, puis le refactor
-
-## Collaboration avec Gaelle (mis à jour le 2026-09-07)
-
-- Gaelle développe seule, en vibe coding, en français et au tutoiement. Elle attend des recommandations argumentées (raison + alternative), pas des réponses sèches
-- Ce fichier est la seule mémoire qui suit le dépôt d’un poste à l’autre : toute consigne durable se consigne ici, les décisions produit dans `docs/product/decisions-log.md`
-- Travail par tickets en parallèle : un agent par ticket, chacun dans un worktree git isolé sur sa branche dédiée ; un second agent relit le diff contre les critères du ticket avant toute PR ; les tickets d’un même lot ne touchent pas les mêmes fichiers (un seul touche `package.json`)
-- Points administratifs Play Store reportés par Gaelle (adresse publique, date de création du compte, durées de rétention) : consignés dans `docs/technical/conformite-play-store-rgpd.md` §4, à ressortir à l’épic 11 ou aux tickets #86 / #88, pas avant
+- Les consignes de collaboration (style de travail, flux tickets/agents, contexte en cours) vivent dans `.claude/rules/`, versionné : c’est là qu’une nouvelle consigne durable se consigne
 
 ## Git - règles (mises à jour le 2026-09-07)
 
