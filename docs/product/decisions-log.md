@@ -331,7 +331,8 @@ Règle d'or ajoutée à `05-monetisation.md` : on ne verrouille jamais
 rétroactivement ce que l'utilisateur a déjà, ce qui laisse la place
 à une fonctionnalité payante nouvelle en v2 sans trahir la promesse.
 — Écarté : export PDF, qui reste en v2 (fonction distincte, mise en
-page). Ticket rédigé dans `docs/tickets-v2/issue-export-new.md`.
+page). Ticket GitHub #80 (`feat(settings): export des données en
+JSON et CSV`, 10.3, épic 10).
 Restent **à trancher** (recommandations de la même lecture, non
 validées) : refus du modèle hybride gratuit/annuel/à vie proposé par
 la recherche au profit de l'achat unique déjà acté ; timing du mur
@@ -357,3 +358,8 @@ interdits : tout commit ou push sur `main`, la création de PR, le
 merge, le tag, la réécriture d'historique. Les PR restent créées et
 mergées par Gaelle. — Raison : fluidifier le vibe coding sans perdre
 le contrôle de l'intégration. Consigné dans `CLAUDE.md`.
+
+2026-09-07 — Suppression de `docs/tickets-v2/` : les corps de tickets
+étaient tous déjà appliqués sur GitHub (vérifié issue par issue), et
+GitHub est la seule source de vérité des tickets. Plus aucun ticket
+ne sera rédigé dans la doc.
