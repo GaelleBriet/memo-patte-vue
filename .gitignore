@@ -58,8 +58,12 @@ docs/product/02-customer-discovery/entretiens/*
 # Skills locaux (CLAUDE.md, lui, est versionné : plusieurs machines)
 **/skills/
 
-# Claude Code (config locale à la machine, pas à versionner)
-.claude/
+# Claude Code : .claude/rules/ (consignes projet) et .claude/settings.json (permissions
+# partagées) sont versionnés pour suivre le dépôt d'un poste à l'autre ; tout le reste
+# du dossier (settings.local.json, worktrees, caches) reste local à la machine
+.claude/*
+!.claude/rules/
+!.claude/settings.json
 
 # Fichiers parasites Windows/WSL (métadonnée ajoutée par l'explorateur
 # Windows aux fichiers téléchargés/copiés)
