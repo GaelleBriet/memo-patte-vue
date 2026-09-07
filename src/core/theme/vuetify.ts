@@ -40,11 +40,23 @@ const light = {
     'up-to-date': '#D8EFDC',
     'on-up-to-date': '#2B6339',
 
-    // Les maquettes ne définissent pas d'accent générique distinct :
-    // les rôles Vuetify reprennent les couleurs d'urgence correspondantes.
-    error: '#C0453D',
-    warning: '#D38D38',
-    success: '#5C8664',
+    // Rôles système Vuetify (erreurs de formulaire, alertes, confirmations).
+    // Hors maquette : palette dédiée, volontairement distincte des urgences
+    // métier ci-dessus — une erreur de saisie n'est pas un vaccin en retard.
+    // Décision du 2026-09-07. `info` et `secondary` ne sont pas définis, faute
+    // d'usage. Tous les couples texte / fond dépassent 4,5:1 (WCAG AA).
+    error: '#B3261E',
+    'on-error': '#FFFFFF',
+    'error-container': '#F9DEDC',
+    'on-error-container': '#410E0B',
+    warning: '#8A5A00',
+    'on-warning': '#FFFFFF',
+    'warning-container': '#FFE8C2',
+    'on-warning-container': '#4A2E00',
+    success: '#2E6B3F',
+    'on-success': '#FFFFFF',
+    'success-container': '#D5EEDB',
+    'on-success-container': '#0F3A1D',
   },
 }
 
