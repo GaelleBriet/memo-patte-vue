@@ -55,13 +55,13 @@ describe('reminderNotificationId', () => {
     expect(reminderNotificationId(rabies.key)).toBe(reminderNotificationId(rabies.key))
   })
 
-  it('renvoie un entier positif tenant sur 32 bits signés', () => {
+  it('renvoie un entier strictement positif tenant sur 32 bits signés', () => {
     const keys = ['', 'a', rabies.key, dewormer.key, 'weight:3', 'é🐶']
 
     for (const key of keys) {
       const id = reminderNotificationId(key)
       expect(Number.isInteger(id)).toBe(true)
-      expect(id).toBeGreaterThanOrEqual(0)
+      expect(id).toBeGreaterThan(0)
       expect(id).toBeLessThanOrEqual(2147483647)
     }
   })
@@ -71,7 +71,10 @@ describe('reminderNotificationId', () => {
       Array.from({ length: 500 }, (_, index) => `treatment:${index}`),
     )
 
-    expect(new Set(keys.map(reminderNotificationId)).size).toBe(keys.length)
+    const ids = keys.map(reminderNotificationId)
+
+    expect(new Set(ids).size).toBe(keys.length)
+    expect(Math.min(...ids)).toBeGreaterThan(0)
   })
 })
 
