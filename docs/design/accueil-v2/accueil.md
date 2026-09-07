@@ -197,9 +197,9 @@ jour où un besoin apparaît.
 mises en avant, `Inter` (400→800) pour tout le reste, `Material Symbols
 Outlined` pour les icônes.
 
-⚠️ Le thème Vuetify actuel (`src/core/theme/vuetify.ts`) utilise encore
-`primary: #0F766E` et l'icon set `mdi`. L'alignement sur ces tokens (et le choix
-mdi vs Material Symbols) n'est pas encore ticketé.
+Depuis le 2026-09-07, le thème Vuetify (`src/core/theme/vuetify.ts`) reprend ces
+tokens : palette, polices auto-hébergées et jeu d'icônes Material Symbols
+Outlined en SVG.
 
 ## Règles de design conservées de la v1
 
