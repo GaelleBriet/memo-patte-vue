@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Auto Backup Android (API 23-30) — voir docs/technical/auto-backup-android.md
+  Seule la base SQLite (carnets, rappels) est sauvegardée sur le Drive de
+  l'utilisateur. Les photos (files/photos/), le stockage du WebView (session
+  Supabase, localStorage) et les préférences Capacitor (drapeau compte Plus)
+  sont exclus : trop lourds ou propres à l'appareil.
+-->
+<full-backup-content>
+    <include domain="database" path="." />
+    <exclude domain="file" path="photos/" />
+    <exclude domain="root" path="app_webview/" />
+    <exclude domain="sharedpref" path="CapacitorStorage.xml" />
+</full-backup-content>
