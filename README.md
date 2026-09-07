@@ -44,12 +44,35 @@ principes :
 
 ## Développement
 
+Le projet utilise **pnpm** (version épinglée par `packageManager` dans `package.json`)
+et **Node 26** (`.nvmrc`, lu par la CI et par [fnm](https://github.com/Schniz/fnm)).
+Pour Android : JDK 21, le SDK Android (platform 36) et `adb`.
+
 ```bash
-npm install
-npm run dev          # développement web
-npx cap sync         # synchronisation Capacitor
-npx cap run android  # lancement sur Android
+fnm use                          # ou : fnm install, la première fois
+pnpm install --frozen-lockfile
+cp .env.example .env             # clés Supabase, fichier jamais versionné
+
+pnpm dev                         # développement web (Vite)
+pnpm dev:mobile                  # build + install sur le téléphone, hot reload via adb
+pnpm cap:sync                    # build de prod + synchronisation Capacitor
+pnpm cap:open:android            # ouvre le projet dans Android Studio
 ```
+
+Avant de committer :
+
+```bash
+pnpm lint                        # oxlint + eslint, avec --fix
+pnpm type-check                  # vue-tsc
+pnpm test:unit:run               # vitest
+pnpm build                       # type-check + build de prod (dist/)
+pnpm check                       # tout ça d'un coup, plus le formatage
+```
+
+Ces vérifications tournent aussi dans les hooks Husky (`pre-commit`, `pre-push`) et dans la CI sur chaque PR.
+
+Installation sur une nouvelle machine, débogage Chrome DevTools, pièges connus :
+voir [`docs/technical/commandes-utiles.md`](docs/technical/commandes-utiles.md).
 
 ## Conventions
 

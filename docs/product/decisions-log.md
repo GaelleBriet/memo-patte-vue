@@ -477,3 +477,14 @@ Reportés volontairement après le code, à reprendre avant publication :
 affichage de l'adresse postale sur Play pour un compte personnel, date
 de création du compte Play (test fermé 12 × 14 jours), durées de
 conservation (12 mois sauvegarde, 13 mois analytics).
+
+2026-09-07 — Les rôles Vuetify `error`, `warning` et `success` reçoivent
+une palette dédiée, distincte des couleurs d'urgence métier `overdue`,
+`today` et `soon`. — Raison : une erreur de saisie n'est pas un vaccin en
+retard, et les deux peuvent apparaître sur le même écran ; réutiliser la
+même teinte brouillerait la lecture de l'urgence, qui doit se faire en
+moins d'une seconde. Valeurs et contrastes (tous ≥ 4,5:1, WCAG AA) dans
+`docs/design/accueil-v2/accueil.md`, section « Rôles système (hors
+maquette) ». — Alternative écartée : garder l'alias des couleurs
+d'urgence, retenu faute de mieux à l'implémentation de #70. `info` et
+`secondary` restent non définis, faute d'usage.

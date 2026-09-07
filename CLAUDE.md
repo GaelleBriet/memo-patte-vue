@@ -146,13 +146,17 @@ Hors scope :
 - Respecter strictement l’architecture et les conventions
 - En cas de doute sur une décision produit, se référer à `docs/technical/01-architecture-v2.md` et à `docs/product/decisions-log.md`
 - Ne jamais inventer de nouvelles règles métier
+- **Demander avant de trancher** : quand un ticket ou les docs laissent un trou produit, design ou modèle de données (suppression logique ou physique, couleur hors maquette, colonne de synchro…), poser la question avec une recommandation, sa raison et l’alternative écartée, puis attendre la réponse. Ne jamais implémenter un choix puis le présenter « à valider »
+- Le ticket GitHub est la spec : ses critères d’acceptation cochés, rien de plus
+- Tests d’abord (TDD) : le test qui échoue, puis le code, puis le refactor
+- Les consignes de collaboration (style de travail, flux tickets/agents, contexte en cours) vivent dans `.claude/rules/`, versionné : c’est là qu’une nouvelle consigne durable se consigne
 
 ## Git - règles (mises à jour le 2026-09-07)
 
 - Tu **peux** committer et pousser toi-même, **uniquement sur une branche dédiée** (`feat/...`, `fix/...`, `chore/...`, `docs/...`), jamais sur `main`.
 - **Jamais** de `git commit` ni de `git push` sur `main` (ni `HEAD:main`, ni `--force`, ni `--all`).
-- Les **Pull Requests restent du ressort de l’humain** : tu ne crées pas de PR, tu ne merges pas, tu ne tagues pas.
+- **Pull Requests** : tu ouvres une PR uniquement quand Gaelle le demande explicitement dans la conversation (« ouvre la PR », « avec leurs PR »), avec un corps qui résume le quoi, le vérifié et les points à garder en tête. Tu ne merges jamais, tu ne tagues jamais : l’intégration reste à Gaelle.
 - Ne **jamais** réécrire l’historique d’une branche déjà poussée (`reset --hard`, `rebase`, `push --force`).
 - Messages au format Conventional Commits (`feat:`, `fix:`, `chore:`, `docs:`…), en français comme le reste du dépôt.
 - Les hooks Husky (lint-staged, commitlint, lint + type-check au push) doivent passer : ne jamais les contourner avec `--no-verify`.
-- Après un push, indiquer la branche et résumer les commits pour que l’humain ouvre la PR.
+- Après un push, indiquer la branche et résumer les commits (et l’URL de la PR si elle a été ouverte).
