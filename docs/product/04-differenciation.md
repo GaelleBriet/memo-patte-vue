@@ -43,7 +43,7 @@ confirmés dans `03-pain-points.md`.
   lourd, cohérent avec l'objectif portfolio (montrer une réflexion
   UX, pas juste du code).
 
-### 4. Modèle de prix "confiance" : règles annoncées dès l'installation, jamais de changement rétroactif, pas d'abonnement
+### 4. Modèle de prix "confiance" : tout le local est gratuit, seul le cloud est payant, jamais de données otages
 - Pain point adressé : modèle payant perçu comme abusif / freemium
   qui bascule brutalement (Medika, 11Pets, entretien Gaelle).
 - Réalisable en solo : c'est un choix de règles commerciales, pas
@@ -57,6 +57,13 @@ confirmés dans `03-pain-points.md`.
   modèle, cas 11pets) et la preuve vérifiable de la règle « jamais
   de changement rétroactif ». Coût quasi nul (sérialisation de
   SQLite), aucun serveur impliqué.
+- Reformulation du 2026-09-07 : « pas d'abonnement » devient « jamais
+  de fonction locale derrière un abonnement ». MémoPatte Plus (annuel
+  ou à vie) ne vend que le cloud : sauvegarde, restauration,
+  multi-appareil, photos, PDF. Ce qui vit sur le téléphone reste
+  gratuit et illimité, ce qui répond aux mêmes pain points (Medika,
+  11Pets, entretien Gaelle) sans interdire un revenu récurrent qui
+  suit exactement le coût. Détail dans `05-monetisation.md`.
 
 ## Différenciants étudiés et écartés
 
@@ -85,8 +92,8 @@ confirmés dans `03-pain-points.md`.
 
 ## Principe directeur retenu (proposition)
 "Le carnet de santé qui ne vous laisse jamais rien oublier — même
-avec plusieurs animaux, même hors-ligne — sans jamais changer les
-règles du jeu sur le prix."
+avec plusieurs animaux, même hors-ligne — gratuit sur votre
+téléphone, et sans jamais changer les règles du jeu sur le prix."
 
 Cette formulation répond à la question du persona (désorganisation
 perso vs gestion multi-animaux) sans trancher entre les deux :

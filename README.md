@@ -17,12 +17,12 @@ principes :
   locales et ne dépendent d’aucune connexion internet.
 - **Vue consolidée multi-animaux** — un seul écran d’accueil pour
   tous vos animaux et leurs prochaines échéances.
-- **Données protégées** — un compte est requis pour que l’historique
-  de santé ne soit jamais perdu, même en cas de changement de téléphone.
-- **Prix transparent** — achat unique annoncé dès l’installation,
-  jamais d’abonnement ni de palier qui change après coup.
-- **Données jamais otages** — export libre (JSON, CSV) de tout
-  l’historique, quel que soit l’état d’achat.
+- **Gratuit sur votre téléphone, sans compte** — animaux illimités,
+  rappels, poids, export libre (JSON, CSV). Seul le cloud est payant :
+  MémoPatte Plus (annuel ou à vie) ajoute la sauvegarde, la
+  restauration, le multi-appareil, les photos et l’export PDF.
+- **Données jamais otages** — rien de ce qui est saisi n’est jamais
+  verrouillé, avec ou sans Plus.
 
 ## Stack technique
 
@@ -38,7 +38,7 @@ principes :
 ## Architecture données
 
 - **SQLite** = source principale pour l’UI et le mode hors-ligne
-- **Supabase** = authentification + synchronisation + backup
+- **Supabase** = authentification + synchronisation + backup (comptes Plus)
 - Les notifications sont locales, mais les données qui permettent
   de les reprogrammer sont persistées et synchronisées
 

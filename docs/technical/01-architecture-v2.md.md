@@ -14,10 +14,10 @@ Statut : proposition à valider.
 ## Principes directeurs
 
 - **Offline-first** : l’application doit fonctionner pleinement sans réseau (lecture, écriture, rappels).
-- **Compte obligatoire** : un compte est requis pour garantir qu’aucune donnée de santé animale ne soit jamais perdue.
+- **Compte optionnel, lié à Plus** (décision du 2026-09-07, remplace « compte obligatoire ») : l'app est complète sans compte ; le compte n'existe que pour la sauvegarde cloud, la restauration et le multi-appareil de MémoPatte Plus.
 - **Source de vérité double** :
   - Locale (SQLite) → ce que l’utilisateur voit et utilise au quotidien.
-  - Cloud (Supabase) → backup + synchronisation + authentification.
+  - Cloud (Supabase) → backup + synchronisation + authentification, **pour les comptes Plus uniquement**.
 - **Feature-first** : organisation du code par fonctionnalité métier.
 - **Simplicité** : architecture lisible et prévisible pour le vibe coding avec Claude.
 
@@ -56,7 +56,8 @@ Supabase (Postgres + Auth)
 
 - Toute écriture se fait d’abord en local (SQLite).
 - La synchronisation vers Supabase se déclenche dès que le réseau est disponible (avec debounce).
-- Au premier lancement sur un nouvel appareil : restauration depuis Supabase si un compte existe.
+- Au premier lancement sur un nouvel appareil : restauration depuis Supabase si un compte Plus existe ; sinon, l'Auto Backup Android (`android:allowBackup`, ≤ 25 Mo, base SQLite incluse, photos exclues) restaure les données locales sans serveur.
+- À la souscription Plus : envoi complet de la base locale vers le compte (pas de réconciliation, le local fait foi).
 - Les notifications locales sont toujours gérées depuis les données locales.
 
 ## Structure des dossiers
@@ -94,10 +95,11 @@ src/
 
 ## Authentification & compte
 
-- Compte obligatoire dès le premier lancement (ou juste après l’onboarding minimal).
-- Méthodes : email + mot de passe et/ou Google / Apple (via Supabase Auth).
-- Message clair à l’utilisateur :
-> « Un compte est nécessaire pour que tes carnets de santé ne soient jamais perdus, même si tu changes de téléphone. »
+- Compte **optionnel**, proposé uniquement sur l'écran MémoPatte Plus, jamais au premier lancement.
+- Méthodes : email + mot de passe et Google (via Supabase Auth).
+- La garde de navigation ne conditionne jamais l'accès aux données locales ; la session Supabase ne sert qu'à la synchronisation.
+- Message sur l'écran Plus :
+> « Android sauvegarde déjà tes carnets sur ton Drive. Avec Plus, MémoPatte les garde aussi en sécurité, avec les photos, et les retrouve sur tous tes appareils. »
 
 ## Notifications
 
@@ -108,12 +110,13 @@ src/
 
 ## Monétisation
 
-- Achat unique in-app (inchangé).
-- Le compte n’est pas lié à l’achat : l’achat débloque les fonctionnalités, le compte protège les données.
+- Gratuit = tout le local (animaux illimités, rappels, poids, export JSON/CSV). Plus = tout le cloud (compte, sauvegarde, restauration, multi-appareil, photos) + export PDF.
+- Deux produits Play Billing pour le même contenu : abonnement annuel 7,99 € et achat non consommable « à vie » 24,99 €.
+- L'état Plus est stocké localement (avec vérification Play au lancement) ; un utilisateur dont l'abonnement expire garde tout en local et perd seulement la sync.
 
 ## Ce qui reste à trancher
 
-- Moment exact de la demande de compte (immédiat vs après création du premier animal).
-- Stratégie exacte de keep-alive Supabase Free (cron simple recommandé).
-- Prix exact de l’achat unique (fourchette 7,99 € – 14 €).
-
+- Plugin Capacitor de billing compatible Capacitor 8 (ticket 9.0).
+- Stratégie exacte de keep-alive Supabase Free (cron simple recommandé, déjà en place).
+- Comportement à l'expiration de l'abonnement (délai de grâce Play, message).
+- Exclusion des photos de l'Auto Backup Android (règles `fullBackupContent`).

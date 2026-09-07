@@ -363,3 +363,29 @@ le contrôle de l'intégration. Consigné dans `CLAUDE.md`.
 étaient tous déjà appliqués sur GitHub (vérifié issue par issue), et
 GitHub est la seule source de vérité des tickets. Plus aucun ticket
 ne sera rédigé dans la doc.
+
+2026-09-07 — **Monétisation v1 : « tout le local est gratuit, seul le
+cloud est payant ».** Remplace l'achat unique du 2026-08-11 et le
+compte obligatoire du 2026-08-21. MémoPatte (gratuit, sans compte) :
+animaux illimités, vaccins, traitements, poids, rappels hors-ligne,
+accueil consolidé, export JSON/CSV, Auto Backup Android sans photos.
+MémoPatte Plus (7,99 €/an ou 24,99 € à vie, même contenu) : compte,
+sauvegarde cloud Supabase, restauration, multi-appareil, photos
+sauvegardées, export PDF (déplacé de v2 vers Plus v1). — Raison : le
+coût suit le revenu (un gratuit ne touche jamais Supabase), aucun
+différenciant n'est cassé (pas de limite d'animaux, rappels complets,
+export libre), l'annuel paie un service qui tourne vraiment, la base
+gratuite permanente nourrit le bouche-à-oreille. Assumé : la promesse
+« aucune donnée jamais perdue » devient une promesse Plus ; pour les
+gratuits, Auto Backup Android + export libre + rappel doux. —
+Alternatives écartées : app payante avec essai 30 jours puis lecture
+seule (base gratuite qui s'éteint) ; v1 entièrement gratuite avec
+monétisation en v2 (Gaelle veut couvrir Supabase dès la v1) ; hybride
+« 1-2 animaux gratuits » (pain point 11pets/Animoo). — Conséquences :
+le compte n'est plus demandé au premier lancement (rouvre le
+2026-08-25) ; à la souscription, envoi complet de la base locale vers
+le compte ; « jamais d'abonnement » devient « jamais de fonction
+locale derrière un abonnement ». Non tranché : import JSON (v1 ou
+v1.1), comportement à l'expiration de l'abonnement. Tickets à
+retoucher : épic 1 (#6 à #8), #40, #41, #43 à #47, #48 ; tickets à
+créer : export PDF (Plus), Auto Backup Android, écran Plus.

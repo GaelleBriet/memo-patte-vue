@@ -43,7 +43,7 @@ réel sera probablement marginal, quel que soit le modèle retenu. La
 monétisation ne doit pas être le critère de succès principal de ce
 projet (voir `00-vision.md`), le revenu freelance reste la priorité.
 
-## Décision
+## Décision initiale du 2026-08-11 (remplacée le 2026-09-07, conservée pour l'historique)
 Achat unique, prix annoncé clairement dès l'installation, qui
 débloque l'app en entier — pas de palier caché, pas de limite
 artificielle sur le nombre d'animaux.
@@ -89,3 +89,51 @@ Non tranché à ce stade : le montant exact du prix. À fixer plus
 près du lancement, avec 7,99€ (Medika) comme point de repère bas et
 13,99€/an-équivalent (Medika en abonnement) comme plafond haut à ne
 pas dépasser pour un achat unique.
+
+## Décision du 2026-09-07 : gratuit = local, Plus = cloud
+
+Validée par Gaelle après lecture de `recherche-globale.md` et
+discussion des trois chemins possibles (app payante avec essai, v1
+entièrement gratuite, hybride avec le cloud comme verrou).
+
+**Règle** : tout ce qui vit sur le téléphone est gratuit, tout ce
+qui passe par le cloud est dans MémoPatte Plus.
+
+| | MémoPatte (gratuit, sans compte) | MémoPatte Plus |
+|---|---|---|
+| Animaux illimités, vaccins, traitements, poids, rappels hors-ligne, accueil consolidé | oui | oui |
+| Export JSON/CSV | oui | oui |
+| Sauvegarde | Auto Backup Android (best effort, sans photos) | cloud Supabase garanti, restauration à la demande |
+| Plusieurs appareils, photos sauvegardées | non | oui |
+| Export PDF | non | oui |
+| v2 : fiche pet-sitter partageable, documents | non | oui |
+
+**Paiement** : 7,99 €/an ou 24,99 € à vie, même contenu. L'annuel
+finance le seul coût récurrent réel (Supabase) ; le « à vie » sert
+les personnes qui refusent l'abonnement et vaut environ trois ans
+d'annuel, puisqu'il ne finance pas le récurrent.
+
+**Pourquoi ce modèle plutôt que l'achat unique du 11 août** :
+- Le coût suit le revenu : un utilisateur gratuit ne touche jamais
+  Supabase, donc coûte zéro quel que soit leur nombre. Le tier
+  gratuit Supabase tient longtemps ; s'il faut passer à Pro
+  (~25 $/mois), une cinquantaine d'abonnés annuels le couvrent.
+- Aucun différenciant n'est cassé : pas de limite d'animaux, rappels
+  complets, export libre. Le seul verrou est un service qui tourne
+  vraiment, pas une fonction locale déguisée.
+- Une base gratuite permanente et complète nourrit le bouche-à-oreille,
+  seul levier sans budget d'acquisition.
+- Ça s'explique en une phrase sur l'écran Plus et la fiche Play Store.
+
+**Ce qui est assumé** : la promesse « aucune donnée jamais perdue »
+devient une promesse Plus. Pour les gratuits, l'Auto Backup Android
+et l'export libre couvrent l'essentiel sans serveur, et un rappel
+doux à exporter ou passer Plus est prévu après quelques semaines.
+
+**Alternatives écartées le 2026-09-07** :
+- App payante avec essai de 30 jours puis lecture seule : revenu dès
+  la v1, mais la base gratuite s'éteint après un mois.
+- V1 entièrement gratuite, monétisation en v2 seulement : refusée,
+  Gaelle veut pouvoir couvrir les frais Supabase dès la v1.
+- Hybride « gratuit 1-2 animaux » de la recherche : reproduit le pain
+  point 11pets/Animoo.

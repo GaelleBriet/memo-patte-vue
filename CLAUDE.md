@@ -13,7 +13,7 @@ Différenciants produits (non négociables) :
 1. Rappels ultra-fiables, y compris hors-ligne
 2. Vue consolidée multi-animaux dès l’accueil
 3. Saisie rapide (2 taps maximum)
-4. Modèle de prix confiance : achat unique, règles claires dès l’installation, données jamais otages (export libre JSON/CSV)
+4. Modèle de prix confiance : tout le local est gratuit, seul le cloud est payant (MémoPatte Plus, annuel ou à vie), données jamais otages (export libre JSON/CSV)
 
 ## Stack imposé
 
@@ -32,7 +32,7 @@ Différenciants produits (non négociables) :
 ## Architecture données (très important)
 
 - **SQLite** = source principale pour l’UI et le mode hors-ligne
-- **Supabase** = source de vérité cloud + authentification + synchronisation
+- **Supabase** = source de vérité cloud + authentification + synchronisation, **pour les comptes Plus uniquement**
 - Toute écriture se fait d’abord en local, puis est synchronisée
 - Les notifications sont locales, mais les données qui permettent de les reprogrammer sont persistées (SQLite + Supabase)
 - Après restauration des données, l’app doit pouvoir reconstruire toutes les notifications locales
@@ -88,40 +88,45 @@ src/
 
 ## Authentification
 
-- Compte obligatoire
-- L’utilisateur doit comprendre clairement pourquoi un compte est demandé :
-
-> « Un compte est nécessaire pour que tes carnets de santé ne soient jamais perdus. »
+- Compte **optionnel**, lié à MémoPatte Plus : jamais demandé au premier lancement, proposé sur l’écran Plus
+- L’app est complète sans compte ; la session Supabase ne conditionne que la synchronisation, jamais l’accès aux données locales
+- L’utilisateur doit comprendre ce qu’Android sauvegarde déjà et ce que Plus garantit en plus
 
 ## Ce que tu ne dois jamais faire
 
 - Proposer Tailwind
 - Proposer de supprimer SQLite
 - Proposer un mode cloud-only
-- Créer des features hors scope (Documents, Finances, export PDF, partage, NAC, etc.) — l’export **JSON/CSV** est, lui, dans le scope v1 (voir `docs/product/06-mvp-scope.md`)
+- Créer des features hors scope (Documents, Finances, partage, NAC, etc.) — l’export **JSON/CSV** (gratuit) et l’export **PDF** (Plus) sont, eux, dans le scope v1 (voir `docs/product/06-mvp-scope.md`)
 - Mettre de la logique métier dans les composants Vue
 - Hardcoder du texte (tout doit passer par i18n)
+- Mettre une fonction locale, ou une limite d’animaux, derrière un paywall : seul le cloud est payant
 
 ## Scope v1 (rappel)
 
-Inclus :
+Gratuit, sans compte :
 
-- Profils animaux (chien/chat)
+- Profils animaux (chien/chat), sans limite de nombre
 - Vaccins + rappels
 - Traitements (vermifuges/antiparasitaires) + rappels
 - Suivi de poids
 - Vue consolidée multi-animaux
-- Compte obligatoire + sync
-- Achat unique
-- Export des données (JSON, CSV) depuis Paramètres, accessible quel que soit l’état d’achat
+- Export des données (JSON, CSV) depuis Paramètres
+- Auto Backup Android (sans photos)
+
+MémoPatte Plus (7,99 €/an ou 24,99 € à vie) :
+
+- Compte + sauvegarde cloud Supabase + restauration
+- Même carnet sur plusieurs appareils
+- Photos sauvegardées
+- Export PDF
 
 Hors scope :
 
-- Partage
-- Export PDF
+- Partage entre utilisateurs, fiche pet-sitter (v2, côté Plus)
 - Documents / Finances
 - Espèces autres que chien/chat
-- Abonnement / freemium
+- Publicité, affiliation, limite d’animaux, fonction locale payante
 
 ## Méthode de travail
 
