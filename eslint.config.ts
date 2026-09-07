@@ -48,11 +48,12 @@ export default defineConfigWithVueTs(
   // Désactive les règles qui conflictent avec Prettier
   skipFormatting,
 
-  // Accès direct à SQLite/Supabase interdit hors de core/ et des repositories
+  // Accès direct à SQLite/Supabase interdit hors de core/ et des repositories.
+  // Les tests d'un repository sont exemptés : ils lui injectent un client de base en mémoire.
   {
     name: 'app/repository-only-data-access',
     files: ['src/**/*.{ts,vue}'],
-    ignores: ['src/core/**', '**/*.repository.ts'],
+    ignores: ['src/core/**', '**/*.repository.ts', '**/*.repository.spec.ts'],
     rules: {
       'no-restricted-imports': [
         'error',

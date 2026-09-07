@@ -1,0 +1,54 @@
+// @vitest-environment node
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+const plugin = vi.hoisted(() => ({
+  addUpgradeStatement: vi.fn<() => Promise<void>>(),
+  createConnection: vi.fn<() => Promise<{ open: () => Promise<void> }>>(),
+}))
+
+vi.mock('@capacitor-community/sqlite', () => ({
+  CapacitorSQLite: {},
+  SQLiteConnection: class {
+    addUpgradeStatement = plugin.addUpgradeStatement
+    createConnection = plugin.createConnection
+  },
+}))
+
+/** Connexion factice : seul `open()` est appelé par `openDatabase()`. */
+function fakeConnection() {
+  return { open: vi.fn<() => Promise<void>>().mockResolvedValue(undefined) }
+}
+
+/** Recharge `sqlite.ts` pour repartir d'un cache de connexion vide. */
+async function importSqlite() {
+  vi.resetModules()
+  return import('../sqlite')
+}
+
+describe('getDb', () => {
+  beforeEach(() => {
+    plugin.addUpgradeStatement.mockReset().mockResolvedValue(undefined)
+    plugin.createConnection.mockReset()
+  })
+
+  it("n'ouvre la base qu'une fois et partage le même client", async () => {
+    plugin.createConnection.mockResolvedValue(fakeConnection())
+    const { getDb } = await importSqlite()
+
+    const [first, second] = await Promise.all([getDb(), getDb()])
+
+    expect(first).toBe(second)
+    expect(plugin.createConnection).toHaveBeenCalledTimes(1)
+  })
+
+  it('ne met pas en cache une ouverture échouée et réessaie à l’appel suivant', async () => {
+    plugin.createConnection
+      .mockRejectedValueOnce(new Error('base indisponible'))
+      .mockResolvedValueOnce(fakeConnection())
+    const { getDb } = await importSqlite()
+
+    await expect(getDb()).rejects.toThrow('base indisponible')
+    await expect(getDb()).resolves.toBeDefined()
+    expect(plugin.createConnection).toHaveBeenCalledTimes(2)
+  })
+})

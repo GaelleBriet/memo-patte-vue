@@ -57,6 +57,7 @@ Supabase (Postgres + Auth)
 - Toute écriture se fait d’abord en local (SQLite).
 - La synchronisation vers Supabase se déclenche dès que le réseau est disponible (avec debounce).
 - Multi-appareil (Plus) : chaque ligne synchronisable porte un UUID généré localement et un `updated_at` ; le pull applique les lignes distantes plus récentes, la modification la plus récente gagne, pas de fusion champ par champ.
+- Suppression logique : supprimer une entrée renseigne `deleted_at` (ISO 8601 UTC) au lieu d'effacer la ligne, pour que la suppression se propage aux autres appareils comme n'importe quelle modification. Les lignes marquées sont invisibles pour l'UI ; leur purge définitive, une fois la suppression synchronisée, reste à définir.
 - Au premier lancement sur un nouvel appareil : restauration depuis Supabase si un compte Plus existe ; sinon, l'Auto Backup Android (`android:allowBackup`, ≤ 25 Mo, base SQLite incluse, photos exclues) restaure les données locales sans serveur.
 - À la souscription Plus : envoi complet de la base locale vers le compte (pas de réconciliation, le local fait foi).
 - Les notifications locales sont toujours gérées depuis les données locales.
