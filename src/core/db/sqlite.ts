@@ -18,9 +18,16 @@ let connecting: Promise<DbClient> | null = null
  *
  * Seul `core/db/` connaît `@capacitor-community/sqlite` : les repositories
  * reçoivent ce client et ne dépendent que de l'interface `DbClient`.
+ *
+ * Une ouverture qui échoue n'est pas mise en cache : l'appel suivant réessaie,
+ * sans quoi un échec au démarrage rendrait l'app inutilisable jusqu'au
+ * prochain lancement.
  */
 export function getDb(): Promise<DbClient> {
-  connecting ??= openDatabase()
+  connecting ??= openDatabase().catch((error: unknown) => {
+    connecting = null
+    throw error
+  })
   return connecting
 }
 
