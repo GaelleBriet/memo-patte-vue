@@ -1,5 +1,8 @@
 {
   "permissions": {
     "allow": ["Bash(gh pr create *)"]
+  },
+  "attribution": {
+    "sessionUrl": false
   }
 }
