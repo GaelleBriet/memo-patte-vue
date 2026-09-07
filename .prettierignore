@@ -4,3 +4,5 @@ android
 ios
 node_modules
 *.min.js
+# Doc produit/design : rédigée à la main (Obsidian), ne pas reformater
+docs
