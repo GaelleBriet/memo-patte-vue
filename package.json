@@ -36,7 +36,7 @@
     "@capacitor/core": "^8.5.0",
     "@capacitor/local-notifications": "^8.3.1",
     "@mdi/font": "^7.4.47",
-    "@supabase/supabase-js": "^2.112.3",
+    "@supabase/supabase-js": "^2.115.0",
     "date-fns": "^4.4.0",
     "pinia": "^4.0.2",
     "vue": "^3.5.40",
