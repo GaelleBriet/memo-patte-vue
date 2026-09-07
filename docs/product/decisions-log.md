@@ -454,3 +454,26 @@ RLS de la sync). Le choix est réversible : les achats vivent chez
 Google, changer de prestataire se résume à un plugin et un webhook.
 Reste à faire avant tout code de l'épic 9 : un build Gradle avec le
 plugin sur une machine équipée du SDK Android.
+
+2026-09-07 — Trois derniers points tranchés par Gaelle avant le code :
+1) **Icônes : Material Symbols Outlined en SVG, icône par icône**
+(`@material-symbols/svg-400`, jeu Vuetify personnalisé), `@mdi/font`
+retiré. — Raison : fidélité aux maquettes v2 (icônes `vaccines`,
+`pest_control`, `monitor_weight` sans équivalent mdi), bundle limité aux
+icônes utilisées, rien chargé depuis Google Fonts à l'exécution. —
+Écarté : garder mdi et retraduire (infidèle), la police Material
+Symbols complète (plusieurs Mo). #70 n'a plus de point bloquant.
+2) **Expiration de l'abonnement** : grâce = accès conservé + bannière
+paiement unique ; expiré ou account hold = sync coupée, local intact,
+bannière unique, « Réactiver Plus » dans Paramètres ; cloud conservé
+tant que le compte existe, purgé après 12 mois sans sync avec email un
+mois avant (durée à confirmer en 11.7). Détail dans #43.
+3) **Rappel doux vers Plus** : déclencheurs de valeur (première photo,
+deuxième animal ou dixième entrée, premier export) plus un seul
+déclencheur temporel à 30 jours ; un rappel par déclencheur, 30 jours
+minimum entre deux, jamais modal, « Ne plus me le proposer » définitif.
+Détail dans #45.
+Reportés volontairement après le code, à reprendre avant publication :
+affichage de l'adresse postale sur Play pour un compte personnel, date
+de création du compte Play (test fermé 12 × 14 jours), durées de
+conservation (12 mois sauvegarde, 13 mois analytics).

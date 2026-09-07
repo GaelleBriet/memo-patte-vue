@@ -87,8 +87,7 @@ toute discussion technique.
 - **Statistiques ou graphiques avancés** au-delà d’un historique de poids simple
 
 ## Non tranché, à clarifier avant de coder
-- Comportement exact si l'abonnement annuel expire (délai de grâce Play, message, données locales intactes dans tous les cas).
-- Déclencheurs et fréquence du rappel doux vers Plus.
+- (plus rien de bloquant : expiration et rappel doux tranchés le 2026-09-07, voir #43 et #45)
 
 Tranché le 2026-09-07 : langues de la v1 = **français et anglais** (l'i18n est déjà en place, l'anglais est une traduction, pas une fonctionnalité).
 

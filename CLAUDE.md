@@ -84,6 +84,7 @@ src/
 
 - Utiliser exclusivement Vuetify 4
 - Respecter le design system défini dans core/theme et styles/
+- Icônes : Material Symbols Outlined en SVG icône par icône (`@material-symbols/svg-400`), jeu Vuetify `ms`, déclarées dans core/theme uniquement ; jamais `@mdi/font` ni la police complète
 - Réutiliser les composants partagés (SurfaceCard, GradientAppBar, AnimalChipSelector, DueStatusChip, etc.)
 - Ne jamais recréer un composant qui existe déjà dans shared/
 
