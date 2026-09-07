@@ -1,3 +1,5 @@
+@use './tokens' as tokens;
+
 html,
 body,
 #app {
@@ -6,6 +8,7 @@ body,
 }
 
 body {
-  font-family: 'Roboto', system-ui, sans-serif;
-  background: #f8fafc;
+  font-family: tokens.$font-family-body;
+  background: rgb(var(--v-theme-background));
+  color: rgb(var(--v-theme-on-background));
 }

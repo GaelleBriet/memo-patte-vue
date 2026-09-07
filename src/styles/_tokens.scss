@@ -1,0 +1,73 @@
+// Tokens de design — maquettes v2 (docs/design/accueil-v2/accueil.md et
+// docs/design/carnet-v2/carnet.md). Valeurs reprises telles quelles.
+//
+// La palette sémantique du thème (fond, surface, pétrole, urgences) est
+// déclarée dans `src/core/theme/vuetify.ts` et s'utilise via les classes
+// Vuetify (`bg-surface`, `text-overdue`…) ou `rgb(var(--v-theme-overdue))`.
+// Ce fichier ne contient que ce qui n'a pas sa place dans la palette Vuetify :
+// la géométrie récurrente et les couleurs de détail (filets, bordures, textes
+// secondaires, badges).
+//
+// Usage dans un composant :
+//   <style scoped lang="scss">
+//   @use '@/styles/tokens' as tokens;
+//   .carte { border-radius: tokens.$radius-card; }
+//   </style>
+
+// ---------------------------------------------------------------------------
+// Typographie
+// ---------------------------------------------------------------------------
+
+$font-family-body:
+  'Inter Variable',
+  'Inter',
+  system-ui,
+  -apple-system,
+  'Segoe UI',
+  sans-serif;
+$font-family-heading:
+  'Space Grotesk Variable', 'Space Grotesk', 'Inter Variable', system-ui, sans-serif;
+
+// ---------------------------------------------------------------------------
+// Couleurs de détail
+// ---------------------------------------------------------------------------
+
+$color-card-border: #ece9e5; // Bordure carte
+$color-divider: #efece8; // Filet de séparation
+$color-text-secondary: #68625c; // Texte secondaire
+$color-text-meta: #79736d; // Texte méta / compteur
+$color-on-primary-subtitle: #b9d0d1; // Sous-titre sur pétrole
+
+// Badges du Carnet
+$color-badge-up-to-date-bg: #dff3e2;
+$color-badge-up-to-date-text: #2f5437;
+$color-badge-overdue-bg: #ffe3df;
+$color-badge-overdue-text: #972622;
+$color-badge-frequency-bg: #f2f0ec;
+$color-badge-frequency-text: #5c5751;
+$color-badge-frequency-border: #e7e4df;
+
+// ---------------------------------------------------------------------------
+// Rayons
+// ---------------------------------------------------------------------------
+
+$radius-card: 22px; // Carte de rappels / de section
+$radius-tile: 18px; // Tuile d'action rapide, bouton plein largeur
+
+// ---------------------------------------------------------------------------
+// Hauteurs et tailles récurrentes
+// ---------------------------------------------------------------------------
+
+$height-header: 158px; // Header pétrole
+$height-list-row: 76px; // Ligne de liste (minimum)
+$height-add-row: 52px; // Dernière ligne « Ajouter … » d'une carte
+$height-chip: 42px; // Chip animal (et chip « + »)
+$height-quick-tile: 78px; // Tuile d'action rapide
+
+$size-chip-avatar: 32px; // Avatar rond dans une chip
+$size-header-avatar: 56px; // Avatar rond du header Carnet
+$size-status-dot: 46px; // Pastille « Tout est à jour »
+
+$width-urgency-bar: 3px; // Barre d'urgence verticale d'une ligne
+$offset-chips: -21px; // Débord des chips sur le header
+$padding-bottom-nav: 22px; // Zone de gestes Android sous la bottom nav
