@@ -8,7 +8,7 @@ Ce que le projet attend et qui n'est pas là par défaut. Les outils agents (Cla
 sont gérés à part par le kit `agent-skills-kit` (`bash scripts/doctor.sh`).
 
 ```bash
-# 1. Node : le projet demande 22 (.nvmrc) ou >= 24.12 ; Node 26 du système convient.
+# 1. Node : le projet demande 26 (.nvmrc, aligné sur @types/node 26 et la CI) ; minimum 24.12 (engines).
 #    Optionnel, pour coller à la CI : fnm lit .nvmrc
 sudo pacman -S --needed fnm && fnm install && fnm use
 
