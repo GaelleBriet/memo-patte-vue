@@ -33,4 +33,13 @@ describe('thème Vuetify', () => {
     expect(couleurs?.today).toBe('#D38D38')
     expect(couleurs?.soon).toBe('#5C8664')
   })
+
+  it('distingue la pastille « tout est à jour » de la couleur « bientôt »', () => {
+    const couleurs = vuetify.theme.themes.value.light?.colors
+
+    expect(couleurs?.['up-to-date']).toBe('#D8EFDC')
+    expect(couleurs?.['on-up-to-date']).toBe('#2B6339')
+    expect(couleurs?.['up-to-date']).not.toBe(couleurs?.['soon-container'])
+    expect(couleurs?.['on-up-to-date']).not.toBe(couleurs?.['on-soon-container'])
+  })
 })

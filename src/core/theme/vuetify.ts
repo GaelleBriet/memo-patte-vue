@@ -35,6 +35,11 @@ const light = {
     'soon-container': '#EDF7EE',
     'on-soon-container': '#265331',
 
+    // Pastille « Tout est à jour » : vert distinct de « Bientôt », pas de barre
+    // d'urgence associée — juste un fond et la couleur de son icône.
+    'up-to-date': '#D8EFDC',
+    'on-up-to-date': '#2B6339',
+
     // Les maquettes ne définissent pas d'accent générique distinct :
     // les rôles Vuetify reprennent les couleurs d'urgence correspondantes.
     error: '#C0453D',
