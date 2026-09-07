@@ -65,6 +65,10 @@ en Billing 7 est donc **disqualifié d'office**.
 Sources par colonne : registre npm des quatre paquets (JSON `https://registry.npmjs.org/<paquet>`,
 revérifié par curl le 2026-09-07) ; détails dans les sections 3.x.
 
+Ajout du 2026-09-07 à la demande de Gaelle : **Adapty** (`@adapty/capacitor`), même famille que
+RevenueCat (SaaS d'abonnements avec backend), comparé en §3.6 ; le volet « données personnelles
+chez l'intermédiaire » des trois options SaaS/plugin est en §4.5.
+
 ---
 
 ## 3. Options une par une
@@ -210,6 +214,34 @@ d'être maintenu.
 
 ---
 
+### 3.6 `@adapty/capacitor` (Adapty)
+
+Ajouté le 2026-09-07. Même catégorie que RevenueCat : SDK + backend qui valide les achats,
+calcule le statut et expose un « access level » unique (équivalent de l'entitlement).
+
+| Point | Constat | Source (consultée le 2026-09-07) |
+|---|---|---|
+| Version `latest` / date | 4.1.1 / 2026-09-01 (4.1.0 le 2026-08-28, 3.17.1 le 2026-06-10) | registre npm `@adapty/capacitor` |
+| `peerDependencies` | `@capacitor/core >=8.0.0` ; « Capacitor 8 : `@adapty/capacitor` 3.16.0 et plus » ; « Capacitor 6 et moins non supportés » | registre npm ; README GitHub `adaptyteam/AdaptySDK-Capacitor` ; docs `sdk-installation-capacitor` |
+| Licence / dépôt | MIT ; 30 stars, 0 issue ouverte, 0 fork (dépôt jeune) | README GitHub |
+| Android | minSdk 24 ; « Adapty Capacitor SDK works with Google Play Billing Library v8 » | docs `sdk-installation-capacitor` |
+| Produits | « One-time purchases and lifetime subscriptions supported » ; abonnements, essais, upgrades | README GitHub |
+| Un même droit pour les deux produits | ✅ « access level » (par défaut `premium`) accordé par n'importe quel produit qui y est rattaché | docs Adapty (access levels) |
+| Statut | ✅ côté backend : actif, date d'expiration, renouvellement, grâce (à confirmer sur Android, non testé) | docs Adapty |
+| Vie privée dans le SDK | Options d'activation : `ipAddressCollectionDisabled: true`, `android.adIdCollectionDisabled: true` ; désactivation de l'IP aussi possible dans le dashboard | docs `sdk-installation-capacitor` ; docs Android |
+| Tarif | Plan Pro : « Gratuit tant que vous gagnez moins de $5K/mois », puis « 1 % du revenu mensuel » ; webhooks, analytics, paywall builder inclus. Plan Enterprise sur devis, seul à offrir « Résidence des données (US ou UE) » | adapty.io/fr/pricing |
+| Dépendance à un tiers | **oui** (SaaS obligatoire) | — |
+| Non vérifié | Le SDK Capacitor 4.x a un mois ; aucune compilation faite dans ce dépôt ; version AGP du plugin non lue ; comportement grâce/hold sur Android non testé | — |
+
+**Différence avec RevenueCat** : périmètre identique pour MémoPatte (deux produits, un droit
+unique, statut, restauration, webhooks), seuil gratuit deux fois plus haut (5 000 $ contre
+2 500 $), dépôt Capacitor beaucoup plus jeune et moins utilisé (30 stars contre plusieurs
+centaines), et surtout **hébergement aux États-Unis par défaut** avec résidence UE réservée au
+plan Enterprise (§4.5). Adapty est aussi orienté « paywall builder » et tests A/B, dont
+MémoPatte n'a pas besoin en v1.
+
+---
+
 ## 4. Vérification côté serveur
 
 ### 4.1 Est-ce nécessaire pour MémoPatte ?
@@ -285,6 +317,42 @@ Supabase ne documente **aucun** exemple Google Play / achats in-app (la liste
 [examples](https://supabase.com/docs/guides/functions/examples) n'en contient pas) ; tout est à
 écrire. Estimation : 2 à 4 jours, plus la configuration GCP (projet, API, compte de service,
 Pub/Sub, topic dans Play Console).
+
+---
+
+### 4.5 Ce que les intermédiaires stockent (RGPD)
+
+Question de Gaelle du 2026-09-07 : « RevenueCat et Adapty vont stocker des données du coup ? »
+Oui. Dès qu'un SDK de ce type est activé, l'appareil envoie à leur backend un identifiant
+d'utilisateur, le jeton d'achat Google, l'état de l'abonnement et des informations d'appareil.
+Ils deviennent **sous-traitants** au sens de l'art. 28 RGPD, à ajouter à la politique de
+confidentialité (§3.1 de `conformite-play-store-rgpd.md`) et au formulaire Data safety.
+
+| | RevenueCat | Adapty | Capgo native-purchases |
+|---|---|---|---|
+| Société | RevenueCat, Inc. (États-Unis) | Adapty Tech Inc. (Delaware, États-Unis) | plugin seul, aucun backend |
+| Données d'utilisateurs finaux reçues | « User ID of the end user in your app », « Apple receipt file; and Google purchase token », « Last seen time », « device type, operating system » | « Technical Information », « Identifiers », « Usage Data » : IP, identifiants d'appareil, événements in-app, montants et dates de transaction ; identifiant publicitaire Android (AAID) si non désactivé | rien ne quitte l'appareil vers un tiers ; seul Google Play voit l'achat |
+| Hébergement | « stored securely on Amazon Web Services ("AWS") in the USA » ; sous-traitants ultérieurs listés tous aux États-Unis (AWS, Snowflake, Cloudflare, Google, OpenAI, Anthropic…) | « Amazon Web Services (Seattle, USA) » et « OVH US (Reston, Virginia) » ; résidence UE **uniquement en plan Enterprise** | — |
+| Transfert hors UE | Clauses contractuelles types (SCC 2021/914) dans le DPA ; pas de mention du Data Privacy Framework trouvée | SCC (module 2) dans le DPA + certification EU-US Data Privacy Framework annoncée dans la politique de confidentialité | aucun |
+| DPA | « forms part of the Customer Agreement… Terms of Use » : incorporé aux CGU, rien à signer | « incorporated into and forms part of Adapty Terms of Service » : idem | sans objet |
+| Conservation | destruction ou restitution « upon Customer's request » à la fin du contrat ; la politique de confidentialité évoque une conservation jusqu'à « six years » pour litiges | « as per the contractual terms… deleted upon contract termination » | — |
+| Réglages pour minimiser | passer l'UUID Supabase comme `appUserID` (pas l'email) | `ipAddressCollectionDisabled: true`, `android.adIdCollectionDisabled: true`, identifiant = UUID Supabase | — |
+| Certifications | SOC 2 Type II | SOC 2 (annoncé) | — |
+
+Sources : revenuecat.com/privacy, revenuecat.com/dpa, revenuecat.com/security-and-compliance ;
+adapty.io/privacy, adapty.io/data-processing-agreement, adapty.io/fr/pricing ; toutes
+consultées le 2026-09-07.
+
+**Lecture RGPD.** Un transfert vers les États-Unis n'est pas interdit : il est licite avec des
+clauses contractuelles types, et plus confortable encore si le prestataire est certifié au Data
+Privacy Framework (décision d'adéquation de la Commission du 10 juillet 2023). Les deux
+services sont donc utilisables, à trois conditions : le mentionner dans la politique de
+confidentialité comme sous-traitant hébergé aux États-Unis avec le mécanisme de transfert,
+ne leur envoyer qu'un identifiant technique (jamais l'email), et couper la collecte d'IP et
+d'identifiant publicitaire quand l'option existe. Le point le moins confortable est chez
+RevenueCat : liste de sous-traitants ultérieurs longue (dont des fournisseurs d'IA) et pas de
+DPF trouvé. Le seul choix qui **n'ajoute aucun sous-traitant** est Capgo : l'achat n'est connu
+que de Google, qui est déjà dans la politique en tant que marchand.
 
 ---
 
@@ -373,6 +441,16 @@ conditions. Le plugin est sain et gratuit ; le prix à payer est la construction
 (§4.4) — sans elle, l'app sait seulement « l'abonnement est présent ou non », ce qui reste
 conforme au comportement Google (accès en grâce, blocage en hold/expiré) mais ne permet ni
 d'afficher la date de renouvellement ni de prévenir d'un problème de paiement.
+
+**Adapty** (§3.6) : équivalent fonctionnel de RevenueCat avec un seuil gratuit plus haut, mais
+un SDK Capacitor beaucoup plus jeune et des données hébergées aux États-Unis sans option UE hors
+Enterprise. À retenir si RevenueCat devait être écarté pour une raison contractuelle, pas comme
+premier choix.
+
+**Lecture après la question RGPD du 2026-09-07** : si Gaelle préfère ne déclarer aucun
+sous-traitant supplémentaire, Capgo devient l'option principale, avec la limite assumée
+« l'app fait confiance au téléphone » (§4.1) ; RevenueCat ou Adapty deviennent une évolution
+possible si Plus se vend.
 
 Troisième voie, non retenue : `capacitor-plugin-cdv-purchase` + iaptic gratuit — techniquement
 viable, mais plugin Capacitor natif trop jeune et API trop lourde pour deux produits.
