@@ -168,13 +168,38 @@ donné pour l'implémentation Vuetify/SCSS.
 | Bientôt — badge fond / texte | `oklch(96.6% 0.016 150)` / `oklch(40% 0.075 150)` | `#EDF7EE` / `#265331` |
 | Pastille « tout est à jour » | `oklch(93% 0.035 150)` / `oklch(45% 0.09 150)` | `#D8EFDC` / `#2B6339` |
 
+### Rôles système (hors maquette)
+
+Les rôles Vuetify `error`, `warning` et `success` servent aux erreurs de
+formulaire, aux alertes et aux confirmations. Ils ont leur propre palette et ne
+réutilisent **pas** les couleurs d'urgence ci-dessus : une erreur de saisie
+n'est pas un vaccin en retard, et les deux peuvent apparaître sur le même écran.
+Décision du 2026-09-07.
+
+| Rôle | fond | texte (`on-*`) |
+|---|---|---|
+| `error` | `#B3261E` | `#FFFFFF` |
+| `error-container` | `#F9DEDC` | `#410E0B` |
+| `warning` | `#8A5A00` | `#FFFFFF` |
+| `warning-container` | `#FFE8C2` | `#4A2E00` |
+| `success` | `#2E6B3F` | `#FFFFFF` |
+| `success-container` | `#D5EEDB` | `#0F3A1D` |
+
+Les six couples dépassent 4,5:1 (WCAG AA) : de 5,93:1 pour `on-warning` sur
+`warning` à 12,77:1 pour `on-error-container` sur `error-container`. Les trois
+teintes pleines restent aussi lisibles en texte sur le fond d'écran crème
+(≥ 5,37:1) et sur la surface carte (≥ 5,79:1).
+
+`info` et `secondary` ne sont pas définis : aucun usage à ce jour, à trancher le
+jour où un besoin apparaît.
+
 **Typographie** : `Space Grotesk` (500/600/700) pour les titres et les valeurs
 mises en avant, `Inter` (400→800) pour tout le reste, `Material Symbols
 Outlined` pour les icônes.
 
-⚠️ Le thème Vuetify actuel (`src/core/theme/vuetify.ts`) utilise encore
-`primary: #0F766E` et l'icon set `mdi`. L'alignement sur ces tokens (et le choix
-mdi vs Material Symbols) n'est pas encore ticketé.
+Depuis le 2026-09-07, le thème Vuetify (`src/core/theme/vuetify.ts`) reprend ces
+tokens : palette, polices auto-hébergées et jeu d'icônes Material Symbols
+Outlined en SVG.
 
 ## Règles de design conservées de la v1
 

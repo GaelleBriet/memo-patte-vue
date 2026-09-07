@@ -1,6 +1,7 @@
-/* Tokens de design (à enrichir plus tard) */
-$font-family: 'Roboto', sans-serif;
+@use './tokens' as tokens;
 
 @use 'vuetify/settings' with (
-  $color-pack: false
+  $color-pack: false,
+  $body-font-family: tokens.$font-family-body,
+  $heading-font-family: tokens.$font-family-heading
 );

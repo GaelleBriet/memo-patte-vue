@@ -67,11 +67,40 @@ export default defineConfigWithVueTs(
               name: '@capacitor-community/sqlite',
               message: "Import interdit hors de core/db/ ou d'un repository (cf. CLAUDE.md).",
             },
+            {
+              name: '@capacitor/local-notifications',
+              message:
+                'Import interdit hors de core/notifications/ : utilise notifications.service (cf. CLAUDE.md).',
+            },
           ],
           patterns: [
             {
               group: ['**/core/supabase/*', '**/core/db/*', '@/core/supabase/*', '@/core/db/*'],
               message: 'Utilise un repository, pas le client directement (cf. CLAUDE.md).',
+            },
+          ],
+        },
+      ],
+    },
+  },
+
+  // Le plugin de notifications reste interdit là où le bloc précédent ne s'applique pas
+  // (tout core/ et les repositories) : seul core/notifications/ peut l'importer.
+  // Bloc séparé et sans recouvrement avec le précédent, car en flat config deux blocs
+  // qui déclarent la même règle sur un même fichier s'écrasent au lieu de se cumuler.
+  {
+    name: 'app/notifications-service-only',
+    files: ['src/core/**/*.{ts,vue}', 'src/**/*.repository.ts'],
+    ignores: ['src/core/notifications/**'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: '@capacitor/local-notifications',
+              message:
+                'Import interdit hors de core/notifications/ : utilise notifications.service (cf. CLAUDE.md).',
             },
           ],
         },
