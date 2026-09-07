@@ -67,7 +67,7 @@ revérifié par curl le 2026-09-07) ; détails dans les sections 3.x.
 
 Ajout du 2026-09-07 à la demande de Gaelle : **Adapty** (`@adapty/capacitor`), même famille que
 RevenueCat (SaaS d'abonnements avec backend), comparé en §3.6 ; le volet « données personnelles
-chez l'intermédiaire » des trois options SaaS/plugin est en §4.5.
+chez l'intermédiaire » des trois options SaaS/plugin est en §4.5. **Purchasely** (français, hébergé en UE) est étudié en §3.7 et écarté : pas de plugin Capacitor, pas d'offre gratuite.
 
 ---
 
@@ -239,6 +239,26 @@ unique, statut, restauration, webhooks), seuil gratuit deux fois plus haut (5 00
 centaines), et surtout **hébergement aux États-Unis par défaut** avec résidence UE réservée au
 plan Enterprise (§4.5). Adapty est aussi orienté « paywall builder » et tests A/B, dont
 MémoPatte n'a pas besoin en v1.
+
+---
+
+### 3.7 Purchasely
+
+Ajouté le 2026-09-07 à la demande de Gaelle. Purchasely est une plateforme française
+d'abonnements et de paywalls no-code.
+
+| Point | Constat | Source (consultée le 2026-09-07) |
+|---|---|---|
+| Société / hébergement | « Purchasely, a simplified joint-stock company… registered office located at 17, chemin des loriots, 93230 Romainville » ; données chez « Amazon Web Services, EUROPE region / Amazon Web Services EMEA SARL » ; DPO nommé ; DPA disponible | purchasely.com/privacy-policy |
+| SDK pour ce projet | **Aucun plugin Capacitor.** Il existe `@purchasely/cordova-plugin-purchasely` (latest 6.0.1, licence ISC, mots-clés `ecosystem:cordova` uniquement, `cordova-android >= 12`). Capacitor sait charger des plugins Cordova, mais ce n'est ni documenté ni supporté par Purchasely, et les plugins Cordova sont la voie la plus fragile dans Capacitor 8 | registre npm ; docs.purchasely.com (« A mobile SDK (iOS, Android, and bridges) ») |
+| Tarif | **Pas de plan gratuit ni d'essai** (« Free version not included », « Free trial not available », « Contact vendor for pricing ») ; un agrégateur cite un plan « Signature » à 1 800 $ sans périodicité vérifiable ; la page pricing officielle ne montre qu'un bouton « Talk to Sales » | capterra.com ; purchasely.com/pricing |
+| Cible | Éditeurs établis : paywall builder no-code, tests A/B, parcours d'abonnement | purchasely.com |
+
+**Verdict** : le meilleur profil RGPD du comparatif (société française, hébergement AWS Europe,
+DPO), mais **écarté** pour MémoPatte : pas de plugin Capacitor, pas d'offre gratuite ni de
+tarif public, produit dimensionné pour des éditeurs avec équipe commerciale. À retenir comme
+référence de ce qu'un acteur européen propose, si la question de l'hébergement UE devenait
+bloquante à plus grande échelle.
 
 ---
 
