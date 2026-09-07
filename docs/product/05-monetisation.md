@@ -48,6 +48,16 @@ Achat unique, prix annoncé clairement dès l'installation, qui
 débloque l'app en entier — pas de palier caché, pas de limite
 artificielle sur le nombre d'animaux.
 
+Règle d'or ajoutée le 2026-09-07 (après lecture de
+`recherche-globale.md`) : **on ne verrouille jamais rétroactivement
+ce que l'utilisateur a déjà**. Les données saisies restent lisibles
+et exportables (JSON, CSV) quel que soit l'état d'achat, et une
+fonctionnalité déjà incluse ne repasse jamais derrière un paywall.
+Cette formulation laisse la porte ouverte à une fonctionnalité
+payante *nouvelle* en v2 (ex. stockage de documents), sans trahir
+la promesse : c'est le piège 11pets, contourné par la règle plutôt
+que par l'interdiction de toute évolution.
+
 Raisons :
 - Découle directement du différenciant retenu dans
   `04-differenciation.md` ("modèle de prix confiance... pas

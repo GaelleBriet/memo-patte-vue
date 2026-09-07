@@ -313,3 +313,47 @@ ne sont pas carrées, l'illustration déborde de la zone de sécurité des 66 %,
 background est un squircle détouré sur blanc (coins blancs après masquage) et le
 foreground garde un halo de détourage. Ces quatre points doivent être corrigés
 avant l'intégration Android, sinon l'icône sera rognée ou cerclée de blanc.
+
+2026-09-07 — Reprise du projet après une pause. Lecture critique de
+`docs/product/recherche-globale.md` (benchmark tarifaire FR/US, avis
+utilisateurs, segment B2B) au regard des décisions déjà actées. Une
+seule recommandation reprise : **l'export libre des données (JSON +
+CSV) entre dans le scope v1**, rattaché au différenciant n°4, qui
+devient « prix confiance + données jamais otages ». — Raison : c'est
+la réponse directe au pain point n°1 documenté du secteur (données
+perdues ou verrouillées après changement de modèle, cas 11pets),
+elle coûte un ticket (sérialisation de SQLite, aucun serveur) et
+rend vérifiable la promesse « jamais de changement rétroactif ».
+Nuance par rapport au 2026-08-21 : l'export avait été écarté comme
+*mécanisme de sauvegarde* (le compte joue ce rôle) ; il est retenu
+ici comme *preuve de portabilité*, les deux décisions coexistent.
+Règle d'or ajoutée à `05-monetisation.md` : on ne verrouille jamais
+rétroactivement ce que l'utilisateur a déjà, ce qui laisse la place
+à une fonctionnalité payante nouvelle en v2 sans trahir la promesse.
+— Écarté : export PDF, qui reste en v2 (fonction distincte, mise en
+page). Ticket rédigé dans `docs/tickets-v2/issue-export-new.md`.
+Restent **à trancher** (recommandations de la même lecture, non
+validées) : refus du modèle hybride gratuit/annuel/à vie proposé par
+la recherche au profit de l'achat unique déjà acté ; timing du mur
+d'achat (proposition : essai complet puis lecture seule + export) ;
+montant du prix (proposition : 9,99 €) ; fiche d'urgence, scan IA
+et B2B maintenus hors v1.
+
+2026-09-07 — La documentation (`docs/product`, `docs/design`,
+`docs/technical`, `docs/tickets-v2`) et `CLAUDE.md` sont désormais
+versionnés dans le dépôt. — Raison : travail sur plusieurs machines,
+et la doc fait partie du portfolio (recherche produit → code). —
+Restent hors dépôt : les notes d'entretien nominatives
+(`02-customer-discovery/entretiens/`, dépôt public, personnes
+privées), les bundles HTML interactifs des maquettes (> 1 Mo,
+générés ; les PNG et les specs suffisent), et l'empreinte SHA-1 du
+keystore debug retirée de `google-oauth-setup.md`. `docs/` est
+ajouté à `.prettierignore` pour que lint-staged ne reformate pas les
+fichiers Obsidian.
+
+2026-09-07 — Politique git assouplie pour l'agent : Claude peut
+committer et pousser lui-même **sur une branche dédiée**. Restent
+interdits : tout commit ou push sur `main`, la création de PR, le
+merge, le tag, la réécriture d'historique. Les PR restent créées et
+mergées par Gaelle. — Raison : fluidifier le vibe coding sans perdre
+le contrôle de l'intégration. Consigné dans `CLAUDE.md`.

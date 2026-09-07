@@ -17,6 +17,7 @@ toute discussion technique.
 - [x] Scope MVP validé par Gaelle → seulement à ce moment le projet
       peut passer en phase technique
 - [x] Mise à jour majeure du 2026-08-21 : compte obligatoire + architecture hybride (SQLite local + Supabase)
+- [x] Mise à jour du 2026-09-07 : export JSON/CSV ajouté au scope v1 (portabilité des données, différenciant n°4)
 
 ## Dans le scope v1
 
@@ -57,10 +58,17 @@ toute discussion technique.
 - Achat unique in-app, prix affiché clairement avant l’achat, débloque l’app en entier.
 - Le compte n’est pas lié à l’achat : l’achat débloque les fonctionnalités, le compte protège les données.
 
+### Portabilité des données (différenciant n°4, ajouté le 2026-09-07)
+- Export de l'intégralité des données de l'utilisateur (animaux, vaccins, traitements, poids, rappels) en **JSON** (fichier unique, ré-importable à terme) et en **CSV** (un fichier par table, lisible dans un tableur).
+- Accessible depuis l'écran Paramètres, en 2 taps, **quel que soit l'état d'achat** : c'est la preuve concrète de la règle « jamais de verrouillage rétroactif » de `05-monetisation.md`.
+- Généré localement depuis SQLite, partagé via la feuille de partage Android (aucun serveur impliqué).
+- Import depuis un export : pas en v1 (le compte + la sync couvrent la restauration).
+
 ## Explicitement hors scope v1
 
 - **Partage du carnet (pet-sitter, famille)** 
-- **Export PDF** - **Suivi des chaleurs / stérilisation** 
+- **Export PDF** (mise en page pour le vétérinaire) — à ne pas confondre avec l'export JSON/CSV, qui est dans le scope
+- **Suivi des chaleurs / stérilisation**
 - **Espèces au-delà de chien/chat** (NAC, chevaux, etc.) 
 - **Sync multi-appareil en temps réel / collaboration multi-compte** (la synchronisation actuelle est un backup + restauration, pas une collaboration live) 
 - **Téléconsultation vétérinaire, e-commerce, réseau social** 

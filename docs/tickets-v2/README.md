@@ -38,6 +38,7 @@ for n in 15 16 17 33 34 36 37 48 50 54; do gh issue edit $n --body-file "docs/de
 | [#50](https://github.com/GaelleBriet/memo-patte-vue/issues/50) | chore(release): icône, splash screen, nom affiché | sources `logos/` ; couches adaptatives ; splash pétrole ; **4 défauts à corriger** |
 | [#54](https://github.com/GaelleBriet/memo-patte-vue/issues/54) | chore(release): fiche Play Store | icône 512 × 512 à produire depuis `logos/icone.png` |
 | [#70](https://github.com/GaelleBriet/memo-patte-vue/issues/70) *(nouveau)* | chore(theme): aligner le design system sur les maquettes v2 | ticket créé — palette, polices, icônes, tokens SCSS ; bloquant pour #36 et #17 |
+| *(à créer)* | feat(settings): export des données en JSON et CSV | ticket **10.2**, décision du 2026-09-07 (différenciant n°4, données jamais otages) ; corps dans [`issue-export-new.md`](issue-export-new.md) |
 
 ## Ticket ajouté : alignement du design system
 

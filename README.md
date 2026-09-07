@@ -21,6 +21,8 @@ principes :
   de santé ne soit jamais perdu, même en cas de changement de téléphone.
 - **Prix transparent** — achat unique annoncé dès l’installation,
   jamais d’abonnement ni de palier qui change après coup.
+- **Données jamais otages** — export libre (JSON, CSV) de tout
+  l’historique, quel que soit l’état d’achat.
 
 ## Stack technique
 

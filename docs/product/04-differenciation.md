@@ -49,6 +49,14 @@ confirmés dans `03-pain-points.md`.
 - Réalisable en solo : c'est un choix de règles commerciales, pas
   une contrainte technique. Cohérent avec `05-monetisation.md` qui
   pointait déjà ce risque avant même les entretiens.
+- Complément du 2026-09-07 (issu de `recherche-globale.md`, volet
+  2A) : la promesse s'étend aux données. L'utilisateur peut à tout
+  moment exporter l'intégralité de son historique en JSON et CSV,
+  quel que soit son état d'achat. C'est la réponse directe au pain
+  point n°1 du secteur (données prises en otage après changement de
+  modèle, cas 11pets) et la preuve vérifiable de la règle « jamais
+  de changement rétroactif ». Coût quasi nul (sérialisation de
+  SQLite), aucun serveur impliqué.
 
 ## Différenciants étudiés et écartés
 
@@ -62,7 +70,10 @@ confirmés dans `03-pain-points.md`.
 - **Export PDF** : valorisé (Medika, ZOOVET, Animoo) mais déjà
   proposé par plusieurs concurrents, pas un vrai vide sur le marché
   → candidat feature secondaire (v2), pas un pilier de
-  différenciation.
+  différenciation. Mise à jour 2026-09-07 : l'export **PDF** reste
+  en v2 (mise en page, usage véto) ; l'export **JSON/CSV** est
+  retenu en v1 au titre du différenciant n°4 (portabilité), ce
+  n'est pas la même fonctionnalité.
 - **Couverture NAC / espèces exotiques** : déjà couvert par DogCat
   et Medika → écarté.
 - **Suivi des chaleurs / stérilisation** : mentionné dans
@@ -86,4 +97,6 @@ d'animaux en lui-même.
 ## Statut
 Différenciants et principe directeur validés par Gaelle le
 2026-08-11, y compris l'arbitrage sur le partage pet-sitter/famille
-(exclu du MVP, candidat v2).
+(exclu du MVP, candidat v2). Extension du différenciant n°4 à la
+portabilité des données (export JSON/CSV) validée par Gaelle le
+2026-09-07.
