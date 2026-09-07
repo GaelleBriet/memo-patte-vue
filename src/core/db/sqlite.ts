@@ -1,0 +1,54 @@
+import {
+  CapacitorSQLite,
+  SQLiteConnection,
+  type SQLiteDBConnection,
+} from '@capacitor-community/sqlite'
+import type { DbClient, SqlParam } from './db-client'
+import { DATABASE_VERSION, migrations } from './migrations'
+
+/** Nom du fichier de base locale (Android uniquement, pas de support web). */
+export const DATABASE_NAME = 'memopatte'
+
+const sqlite = new SQLiteConnection(CapacitorSQLite)
+
+let connecting: Promise<DbClient> | null = null
+
+/**
+ * Ouvre (une seule fois) la base locale et renvoie le `DbClient` partagé.
+ *
+ * Seul `core/db/` connaît `@capacitor-community/sqlite` : les repositories
+ * reçoivent ce client et ne dépendent que de l'interface `DbClient`.
+ */
+export function getDb(): Promise<DbClient> {
+  connecting ??= openDatabase()
+  return connecting
+}
+
+async function openDatabase(): Promise<DbClient> {
+  await sqlite.addUpgradeStatement(DATABASE_NAME, migrations)
+  const connection = await sqlite.createConnection(
+    DATABASE_NAME,
+    false,
+    'no-encryption',
+    DATABASE_VERSION,
+    false,
+  )
+  await connection.open()
+  return toDbClient(connection)
+}
+
+function toDbClient(connection: SQLiteDBConnection): DbClient {
+  return {
+    async run(sql, params = []) {
+      const result = await connection.run(sql, params)
+      return result.changes?.changes ?? 0
+    },
+    async query<T>(sql: string, params: SqlParam[] = []) {
+      const result = await connection.query(sql, params)
+      return (result.values ?? []) as T[]
+    },
+    async execute(sql) {
+      await connection.execute(sql)
+    },
+  }
+}
