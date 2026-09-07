@@ -39,6 +39,7 @@ describe('migrations', () => {
       'photo_path',
       'created_at',
       'updated_at',
+      'deleted_at',
     ])
     expect(columns.get('id')?.pk).toBe(1)
     expect(columns.get('name')?.notnull).toBe(1)
@@ -47,6 +48,9 @@ describe('migrations', () => {
     expect(columns.get('updated_at')?.notnull).toBe(1)
     expect(columns.get('initial_weight_kg')?.type).toBe('REAL')
     expect(columns.get('breed')?.notnull).toBe(0)
+    // Suppression logique : la colonne doit rester nullable (NULL = animal vivant).
+    expect(columns.get('deleted_at')?.notnull).toBe(0)
+    expect(columns.get('deleted_at')?.type).toBe('TEXT')
 
     db.close()
   })

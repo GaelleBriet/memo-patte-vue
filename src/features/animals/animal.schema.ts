@@ -29,6 +29,11 @@ export const animalSchema = animalInputSchema.extend({
   /** Horodatages ISO 8601 UTC, `updatedAt` sert d'arbitre à la synchronisation Plus. */
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
+  /**
+   * Suppression logique : `null` tant que l'animal existe, date ISO 8601 UTC
+   * sinon. Les suppressions doivent pouvoir se propager entre appareils Plus.
+   */
+  deletedAt: z.iso.datetime().nullable(),
 })
 
 /** Ce que l'appelant fournit : les champs facultatifs peuvent être omis. */

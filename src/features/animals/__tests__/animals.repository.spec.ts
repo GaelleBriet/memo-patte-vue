@@ -103,6 +103,79 @@ describe('animalsRepository', () => {
     expect((await repository.list()).map((animal) => animal.id)).toEqual([vasco.id])
   })
 
+  it('conserve la ligne supprimée en base avec deleted_at et updated_at renseignés', async () => {
+    vi.useFakeTimers({ now: new Date('2026-03-01T10:00:00.000Z') })
+    try {
+      const miette = await repository.create({ name: 'Miette', species: 'cat' })
+      vi.advanceTimersByTime(60_000)
+
+      await repository.remove(miette.id)
+
+      const rows = await db.query<{ id: string; deleted_at: string | null; updated_at: string }>(
+        'SELECT id, deleted_at, updated_at FROM animal WHERE id = ?',
+        [miette.id],
+      )
+      expect(rows).toEqual([
+        {
+          id: miette.id,
+          deleted_at: '2026-03-01T10:01:00.000Z',
+          updated_at: '2026-03-01T10:01:00.000Z',
+        },
+      ])
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('expose deletedAt à null tant que l’animal n’est pas supprimé', async () => {
+    const created = await repository.create({ name: 'Miette', species: 'cat' })
+
+    expect(created.deletedAt).toBeNull()
+    await expect(repository.getById(created.id)).resolves.toMatchObject({ deletedAt: null })
+  })
+
+  it('ne casse rien quand on supprime un identifiant inconnu', async () => {
+    const miette = await repository.create({ name: 'Miette', species: 'cat' })
+
+    await expect(repository.remove('inconnu')).resolves.toBeUndefined()
+
+    expect((await repository.list()).map((animal) => animal.id)).toEqual([miette.id])
+  })
+
+  it('ne ressuscite pas un animal supprimé lors d’une mise à jour', async () => {
+    const miette = await repository.create({ name: 'Miette', species: 'cat' })
+    await repository.remove(miette.id)
+
+    await expect(
+      repository.update(miette.id, { name: 'Miette la seconde', species: 'cat' }),
+    ).rejects.toThrow(`Animal introuvable : ${miette.id}`)
+
+    const rows = await db.query<{ name: string; deleted_at: string | null }>(
+      'SELECT name, deleted_at FROM animal WHERE id = ?',
+      [miette.id],
+    )
+    expect(rows[0]?.name).toBe('Miette')
+    expect(rows[0]?.deleted_at).not.toBeNull()
+    await expect(repository.getById(miette.id)).resolves.toBeNull()
+  })
+
+  it('supprimer deux fois le même animal ne change pas la date de suppression', async () => {
+    const miette = await repository.create({ name: 'Miette', species: 'cat' })
+    await repository.remove(miette.id)
+    const [first] = await db.query<{ deleted_at: string }>(
+      'SELECT deleted_at FROM animal WHERE id = ?',
+      [miette.id],
+    )
+
+    await repository.remove(miette.id)
+
+    const [second] = await db.query<{ deleted_at: string }>(
+      'SELECT deleted_at FROM animal WHERE id = ?',
+      [miette.id],
+    )
+    expect(second?.deleted_at).toBe(first?.deleted_at)
+  })
+
   it('rejette une espèce interdite avant d’atteindre la base', async () => {
     await expect(
       repository.create({
