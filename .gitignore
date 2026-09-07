@@ -68,3 +68,7 @@ docs/product/02-customer-discovery/entretiens/*
 # Fichiers parasites Windows/WSL (métadonnée ajoutée par l'explorateur
 # Windows aux fichiers téléchargés/copiés)
 *:Zone.Identifier
+
+# Lockfiles d'autres gestionnaires : le projet est sur pnpm (pnpm-lock.yaml)
+package-lock.json
+yarn.lock

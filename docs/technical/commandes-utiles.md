@@ -88,6 +88,20 @@ pnpm dev:mobile
 `--forwardPorts` lance automatiquement `adb reverse` pour que le téléphone puisse atteindre le `localhost` de la machine
 — pas besoin de connaître l'IP de ta machine sur le réseau, ni de config manuelle dans `capacitor.config.ts`.
 
+**Pièges connus (2026-09-07)** :
+
+- « Page web non disponible » sur le téléphone alors que le build passe : Vite n'écoute pas là où
+  `adb reverse` se connecte. `vite.config.ts` épingle donc `host: 127.0.0.1`, `port: 5173`,
+  `strictPort: true` : adb se connecte en IPv4, Node 26 fait résoudre `localhost` en IPv6 d'abord, et
+  sans `strictPort` Vite glisse sur 5174 en silence si le port est pris. Vérifie que `pnpm dev` affiche bien
+  `Local: http://127.0.0.1:5173/`.
+- `No matching variant of project :capacitor-android … No variants exist` au build Gradle :
+  `android/capacitor.settings.gradle` (généré, versionné) pointe vers les chemins du store **pnpm**
+  (`node_modules/.pnpm/…`). Un `node_modules` installé par npm ne les a pas. `preinstall` refuse désormais
+  `npm install` ; si ça arrive quand même : `rm -rf node_modules package-lock.json && pnpm install --frozen-lockfile`.
+- Après un bump de `@capacitor/*` ou d'un plugin Capacitor (Dependabot), ces chemins changent : lance
+  `pnpm cap:sync` une fois pour régénérer `capacitor.settings.gradle`, car `dev:mobile` tourne avec `--no-sync`.
+
 ## 3. Inspecter l'app avec Chrome DevTools (optionnel)
 
 Utile pour voir la console JS, le réseau, inspecter le DOM — pendant que l'app tourne sur le téléphone (avec ou sans live-reload, ça marche dans les deux cas). Ce n'est **pas** un troisième mode de lancement, juste un outil de debug branché sur ce qui tourne déjà.
