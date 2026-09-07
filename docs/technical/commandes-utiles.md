@@ -2,6 +2,56 @@
 
 Aide-mémoire pour lancer le projet. Toujours avec `pnpm`.
 
+## 0. Nouvelle machine Linux (CachyOS / Arch) — 2026-09-07
+
+Ce que le projet attend et qui n'est pas là par défaut. Les outils agents (Claude Code, Orca, kit de skills)
+sont gérés à part par le kit `agent-skills-kit` (`bash scripts/doctor.sh`).
+
+```bash
+# 1. Node : le projet demande 22 (.nvmrc) ou >= 24.12 ; Node 26 du système convient.
+#    Optionnel, pour coller à la CI : fnm lit .nvmrc
+sudo pacman -S --needed fnm && fnm install && fnm use
+
+# 2. pnpm (déjà fait) puis dépendances
+sudo pacman -S --needed pnpm
+pnpm install --frozen-lockfile
+
+# 3. JDK 21 et sélection comme java par défaut
+sudo pacman -S --needed jdk21-openjdk
+sudo archlinux-java set java-21-openjdk
+java -version            # doit afficher 21
+
+# 4. adb + règles udev pour voir le téléphone en USB (pas de usbipd : Linux natif)
+sudo pacman -S --needed android-tools android-udev
+sudo usermod -aG adbusers "$USER"   # puis se déconnecter / reconnecter
+adb devices              # le téléphone doit apparaître "device" après acceptation sur l'écran
+
+# 5. SDK Android (platform 36, build-tools, platform-tools). Le plus simple : Android Studio (AUR),
+#    son assistant installe le SDK dans ~/Android/Sdk, chemin déjà attendu par ANDROID_HOME
+paru -S android-studio   # ou yay
+#    Sans Android Studio : cmdline-tools puis
+#    sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+
+# 6. Vérification : premier build debug
+pnpm build && pnpm cap:sync
+cd android && ./gradlew assembleDebug && cd ..
+```
+
+Points propres à un changement de machine :
+
+- **Nouveau keystore debug = nouveau SHA-1.** Il est créé au premier build. Le SHA-1 de cette machine doit
+  être ajouté à l'identifiant Android dans Google Cloud Console (ticket #65), sinon « Continuer avec Google »
+  échouera en silence :
+  ```bash
+  keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android -keypass android
+  ```
+- `ANDROID_HOME` / `ANDROID_SDK_ROOT` sont déjà exportés vers `~/Android/Sdk` ; `android/local.properties`
+  n'est pas nécessaire tant que la variable pointe sur un SDK réel.
+- `gh auth login -h github.com` (fait), et le fichier `.env` local à recréer depuis `.env.example`
+  avec les clés Supabase (jamais versionné).
+- Chrome DevTools : `chrome://inspect/#devices` fonctionne directement, la manipulation `adb tcpip` de la
+  section 3 ne concernait que WSL.
+
 ## 1. Dev web
 
 ```bash
@@ -18,12 +68,9 @@ Deux choses tournent en parallèle : le serveur Vite et l'app Android
 - Le device passé à WSL via `usbipd list` (`usbipd attach --wsl --busid <id> --auto-attach` côté Windows si pas déjà 
   fait)
 - `adb devices` (dans WSL) doit lister ton téléphone
-- **JDK 21 installé** — le build Gradle Android en a besoin (`@capacitor/android` compile en ciblant Java 21) :
-  ```bash
-  sudo apt install openjdk-21-jdk
-  ```
-  Pas besoin d'en faire le JDK par défaut du système (`update-alternatives`) : `android/gradle.properties` pointe
-  directement dessus via `org.gradle.java.home=/usr/lib/jvm/java-21-openjdk-amd64`.
+- **JDK 21 installé et sélectionné** — le build Gradle Android en a besoin (`@capacitor/android` compile en
+  ciblant Java 21). Gradle lit `JAVA_HOME` ou le java par défaut du système ; `android/gradle.properties` ne
+  fixe plus de chemin (il était propre à l'ancienne machine WSL). Voir §0 pour l'installation selon l'OS.
 
 **Terminal 1** serveur Vite :
 

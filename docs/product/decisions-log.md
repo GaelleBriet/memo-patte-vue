@@ -432,3 +432,25 @@ Billing Library 8 vérifiés, entitlement unique pour l'annuel et le
 « à vie », statut et restauration gérés, gratuit à l'échelle du projet),
 repli `@capgo/native-purchases` + vérification maison sur Supabase.
 **Choix non encore acté par Gaelle.**
+
+2026-09-07 — Billing : **RevenueCat** (`@revenuecat/purchases-capacitor`)
+retenu par Gaelle après comparaison avec Capgo, Adapty, Purchasely et
+l'option Stripe. — Raison : le seul pont mature vers Play Billing qui
+couvre les deux produits sous un droit unique, avec statut, restauration
+et vérification serveur incluses ; Adapty est équivalent mais son SDK
+Capacitor a un mois ; Capgo laisse l'app faire confiance au téléphone
+sans date d'expiration ; Purchasely n'a ni plugin Capacitor ni offre
+gratuite ; Stripe imposerait d'être marchand (TVA OSS, litiges) pour
+aucune économie de commission. — RGPD : RevenueCat est un sous-traitant
+hébergé aux États-Unis sous clauses contractuelles types, pseudonymisé
+au maximum (UUID Supabase seul, pas d'email, pas d'identifiant
+publicitaire ni d'IP), initialisé uniquement à l'ouverture de l'écran
+Plus pour qu'un utilisateur gratuit ne génère jamais de donnée chez
+lui ; ajouté à la politique de confidentialité et à Data safety (#86),
+supprimé avec le compte (#87). Pas d'intégration serveur RevenueCat →
+PostHog, qui contournerait le consentement (#66). — Tickets : #43 acté,
+#44, #45 mis à jour, #89 créé (9.5, webhook → `plus_entitlements`,
+RLS de la sync). Le choix est réversible : les achats vivent chez
+Google, changer de prestataire se résume à un plugin et un webhook.
+Reste à faire avant tout code de l'épic 9 : un build Gradle avec le
+plugin sur une machine équipée du SDK Android.

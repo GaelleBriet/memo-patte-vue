@@ -378,6 +378,7 @@ Nous ne traitons **aucune donnée de santé humaine** : les informations de sant
 |---|---|---|---|
 | Supabase, Inc. | Hébergement du compte, de la base de données et des photos Plus | Union européenne (AWS, région [Paris (eu-west-3) / Francfort (eu-central-1)]) | Contrat de sous-traitance (DPA) — supabase.com/legal/dpa |
 | PostHog, Inc. | Statistiques d'utilisation (si consenties) | PostHog Cloud EU (Francfort, Allemagne) | Contrat de sous-traitance (DPA) |
+| RevenueCat, Inc. | Vérification des achats et statut de l'abonnement MémoPatte Plus (reçoit un identifiant technique et le jeton d'achat Google, jamais votre email) | États-Unis (AWS) | Contrat de sous-traitance (DPA) et clauses contractuelles types de la Commission européenne — revenuecat.com/dpa |
 | Google (Google Play / Google Commerce Limited) | Vente et facturation de MémoPatte Plus, connexion « Se connecter avec Google » (si choisie) | Selon les conditions de Google | Google agit pour son propre compte ; nous ne recevons pas vos données bancaires. Politique : policies.google.com/privacy |
 
 Aucune donnée n'est vendue ni transmise à des annonceurs. Aucun transfert hors de l'UE n'est organisé par nos soins ; les prestataires ci-dessus peuvent recourir à des sous-traitants ultérieurs listés sur leurs sites (supabase.com/legal/customer-resources/subprocessor-list, posthog.com/subprocessors), encadrés par des clauses contractuelles types le cas échéant.
@@ -440,7 +441,7 @@ Cette politique peut évoluer. La date de mise à jour figure en tête ; en cas 
 | App info and performance › **Diagnostics** | ☐ | C, Opt (si activés) | (idem) | idem | Analytics |
 | **Device or other IDs** | ☐ | C, Opt (`$device_id`/identifiant d'installation) | (idem) | **C, Opt** | Analytics |
 | Location (approximate / precise) | ☐ | ☐ (IP écartée côté projet ; ne pas cocher si « Discard client IP data » est actif) | ☐ | ☐ | — |
-| Financial info › Purchase history | ☐ | ☐ | ☐ (géré par Google Play, MémoPatte ne stocke qu'un jeton d'achat : à assimiler à *User IDs*) | ☐ | — (voir §4) |
+| Financial info › Purchase history | ☐ | ☐ | C, Opt (historique d'achats Plus conservé chez RevenueCat, décision du 2026-09-07) | **C, Opt** | App functionality |
 | Health and fitness › **Health info** | ☐ | ☐ | ☐ | **☐** — définition Google : « Information about a **user's** health » ; santé animale ≠ santé de l'utilisateur | — |
 | Contacts, Calendar, Messages, Audio, Files & docs, Web browsing | ☐ | ☐ | ☐ | ☐ | — |
 

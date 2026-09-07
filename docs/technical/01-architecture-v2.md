@@ -122,6 +122,8 @@ src/
 - Gratuit = tout le local (animaux illimités, rappels, poids, export JSON/CSV). Plus = tout le cloud (compte, sauvegarde, restauration, multi-appareil, photos) + export PDF.
 - Deux produits Play Billing pour le même contenu : abonnement annuel 7,99 € et achat non consommable « à vie » 24,99 €.
 - L'état Plus est stocké localement (avec vérification Play au lancement) ; un utilisateur dont l'abonnement expire garde tout en local et perd seulement la sync.
+- Pont vers Play Billing : `@revenuecat/purchases-capacitor` (décision du 2026-09-07, comparatif dans `billing-plugins-capacitor.md`). Règles : SDK initialisé uniquement à l'ouverture de l'écran Plus ou si un droit Plus est déjà connu ; identifiant = UUID Supabase, jamais l'email ; aucune collecte d'identifiant publicitaire ni d'IP ; produit à vie déclaré non consommable ; pas d'intégration serveur vers PostHog.
+- Côté serveur : webhook RevenueCat → Edge Function → table `plus_entitlements` ; les RLS d'écriture de la sync et du Storage exigent un droit actif.
 
 ## Ce qui reste à trancher
 
