@@ -1,10 +1,11 @@
 import 'vuetify/styles'
-import '@mdi/font/css/materialdesignicons.css'
 // Polices auto-hébergées : rien n'est chargé depuis Google Fonts à l'exécution.
 import '@fontsource-variable/inter'
 import '@fontsource-variable/space-grotesk'
 import { createVuetify } from 'vuetify'
-import { aliases, mdi } from 'vuetify/iconsets/mdi'
+
+import MsIcon from './MsIcon.vue'
+import { msAliases } from './icons'
 
 /**
  * Palette du thème clair — maquettes v2, tables « Tokens » de
@@ -48,8 +49,8 @@ export default createVuetify({
     themes: { light },
   },
   icons: {
-    defaultSet: 'mdi',
-    aliases,
-    sets: { mdi },
+    defaultSet: 'ms',
+    aliases: msAliases,
+    sets: { ms: { component: MsIcon } },
   },
 })

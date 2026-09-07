@@ -1,8 +1,28 @@
 import { describe, it, expect } from 'vitest'
+import { mount } from '@vue/test-utils'
+import { VIcon } from 'vuetify/components'
 
 import vuetify from '../vuetify'
 
 describe('thème Vuetify', () => {
+  it('rend un <svg> pour « ms:pets »', () => {
+    const wrapper = mount(VIcon, {
+      props: { icon: 'ms:pets' },
+      global: { plugins: [vuetify] },
+    })
+
+    expect(wrapper.find('svg').exists()).toBe(true)
+  })
+
+  it('rend un <svg> pour un alias interne de Vuetify', () => {
+    const wrapper = mount(VIcon, {
+      props: { icon: '$close' },
+      global: { plugins: [vuetify] },
+    })
+
+    expect(wrapper.find('svg').exists()).toBe(true)
+  })
+
   it('expose la palette des maquettes v2', () => {
     const couleurs = vuetify.theme.themes.value.light?.colors
 

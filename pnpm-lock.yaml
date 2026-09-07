@@ -26,9 +26,9 @@ importers:
       '@fontsource-variable/space-grotesk':
         specifier: ^5.3.0
         version: 5.3.0
-      '@mdi/font':
-        specifier: ^7.4.47
-        version: 7.4.47
+      '@material-symbols/svg-400':
+        specifier: ^0.47.1
+        version: 0.47.1
       '@supabase/supabase-js':
         specifier: ^2.115.0
         version: 2.115.0
@@ -631,8 +631,8 @@ packages:
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
 
-  '@mdi/font@7.4.47':
-    resolution: {integrity: sha512-43MtGpd585SNzHZPcYowu/84Vz2a2g31TvPMTm9uTiCSWzaheQySUcSyUH/46fPnuPQWof2yd0pGBtzee/IQWw==}
+  '@material-symbols/svg-400@0.47.1':
+    resolution: {integrity: sha512-kpK/2tlHqNvEq6hcqkpJqxfYhZjd/eQGDOsIGA4Q6YrahV8XmAuJwUEFcQGX0+TaZwWuoFmtpKEihTcw9waOJg==}
 
   '@nodelib/fs.scandir@2.1.5':
     resolution: {integrity: sha512-vq24Bq3ym5HEQm2NKCr3yXDwjc7vTsEThRDnkp2DK9p1uqLR+DHurm/NOTo0KG7HYHU7eppKZj3MyqYuMBf62g==}
@@ -3760,7 +3760,7 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
 
-  '@mdi/font@7.4.47': {}
+  '@material-symbols/svg-400@0.47.1': {}
 
   '@nodelib/fs.scandir@2.1.5':
     dependencies:
