@@ -387,5 +387,7 @@ le compte n'est plus demandé au premier lancement (rouvre le
 le compte ; « jamais d'abonnement » devient « jamais de fonction
 locale derrière un abonnement ». Non tranché : import JSON (v1 ou
 v1.1), comportement à l'expiration de l'abonnement. Tickets à
-retoucher : épic 1 (#6 à #8), #40, #41, #43 à #47, #48 ; tickets à
-créer : export PDF (Plus), Auto Backup Android, écran Plus.
+retoucher : épic 1 (#6 à #8), #40, #41, #43 à #47, #48 (fait le
+2026-09-07, #45 devient l'écran Plus) ; tickets créés : #81 export PDF
+(10.4), #82 Auto Backup Android (0.4), #83 envoi initial des données
+locales à la souscription (8.6).
