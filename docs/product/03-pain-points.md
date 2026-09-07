@@ -53,7 +53,9 @@ entretiens. À lire avec cette limite en tête.
   positionnement produit) — aucun recoupement trouvé côté entretiens
   ou autres avis.
 
-## Point non tranché
+## Point non tranché (clos le 2026-09-07)
+Clos : `04-differenciation.md` répond aux deux profils sans choisir (fiabilité + clarté du prix), et le modèle du 2026-09-07 rend le multi-animaux gratuit et illimité pour tout le monde. Texte d'origine conservé ci-dessous.
+
 Le nombre d'animaux seul ne semble pas être le pain (Émilie, 8
 animaux, ne rapporte aucune difficulté). Le signal le plus net porte
 sur l'absence de vue consolidée une fois qu'un outil est en place,

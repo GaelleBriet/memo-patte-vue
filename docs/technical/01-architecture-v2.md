@@ -56,6 +56,7 @@ Supabase (Postgres + Auth)
 
 - Toute écriture se fait d’abord en local (SQLite).
 - La synchronisation vers Supabase se déclenche dès que le réseau est disponible (avec debounce).
+- Multi-appareil (Plus) : chaque ligne synchronisable porte un UUID généré localement et un `updated_at` ; le pull applique les lignes distantes plus récentes, la modification la plus récente gagne, pas de fusion champ par champ.
 - Au premier lancement sur un nouvel appareil : restauration depuis Supabase si un compte Plus existe ; sinon, l'Auto Backup Android (`android:allowBackup`, ≤ 25 Mo, base SQLite incluse, photos exclues) restaure les données locales sans serveur.
 - À la souscription Plus : envoi complet de la base locale vers le compte (pas de réconciliation, le local fait foi).
 - Les notifications locales sont toujours gérées depuis les données locales.
@@ -100,6 +101,14 @@ src/
 - La garde de navigation ne conditionne jamais l'accès aux données locales ; la session Supabase ne sert qu'à la synchronisation.
 - Message sur l'écran Plus :
 > « Android sauvegarde déjà tes carnets sur ton Drive. Avec Plus, MémoPatte les garde aussi en sécurité, avec les photos, et les retrouve sur tous tes appareils. »
+
+## Photos des animaux
+
+- Une photo par animal, recadrée et compressée côté app avant écriture (max 1024 px de côté, JPEG qualité ~80, ordre de grandeur 100-200 Ko).
+- Stockage local : `files/photos/<animalId>.jpg` via Capacitor Filesystem (`Directory.Data`). Ce chemin est **exclu** de l'Auto Backup Android (`docs/technical/auto-backup-android.md`) ; la base SQLite ne stocke que le nom du fichier.
+- Plus : bucket Supabase Storage **privé** `animal-photos`, objet `<user_id>/<animal_id>.jpg`. Politiques RLS sur `storage.objects` : lecture, écriture et suppression uniquement si le premier segment du chemin est `auth.uid()`. Le tier gratuit Supabase offre 1 Go, soit plusieurs milliers de photos.
+- La photo suit la file de synchronisation comme les autres entités (8.1, 8.2) : envoi à la souscription (8.6), rapatriement à la restauration (8.3), pull si modifiée sur un autre appareil.
+- Suppression de compte : effacer les objets du dossier `<user_id>/` avant l'utilisateur Auth.
 
 ## Notifications
 

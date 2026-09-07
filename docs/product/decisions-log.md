@@ -391,3 +391,20 @@ retoucher : épic 1 (#6 à #8), #40, #41, #43 à #47, #48 (fait le
 2026-09-07, #45 devient l'écran Plus) ; tickets créés : #81 export PDF
 (10.4), #82 Auto Backup Android (0.4), #83 envoi initial des données
 locales à la souscription (8.6).
+
+2026-09-07 — Compléments à la décision monétisation, validés par Gaelle :
+**multi-appareil dans Plus dès la v1** (implique un pull dans la sync,
+#39 révisé : UUID + `updated_at` par ligne, la modification la plus
+récente gagne, pas de temps réel) ; **import JSON en v1** (#84, 10.5,
+filet gratuit pour qui n'a pas Plus) ; **langues v1 = français et
+anglais** (l'i18n est déjà en place). — Photos : convention
+`files/photos/` exclue de l'Auto Backup Android, bucket Supabase
+Storage privé `animal-photos` avec RLS par utilisateur (#85, 8.7),
+détail dans `docs/technical/01-architecture-v2.md`. Règles Auto Backup
+écrites dans `android/app/src/main/res/xml/` et documentées dans
+`docs/technical/auto-backup-android.md` (#82 reste ouvert pour la
+vérification sur appareil). — Ménage doc : `01-architecture-v2.md.md`
+renommé, point persona de `03-pain-points.md` clos, ligne de prix
+obsolète de `05-monetisation.md` marquée, index `docs/design/README.md`
+créé. Restent à trancher : comportement à l'expiration de
+l'abonnement, déclencheurs du rappel doux vers Plus, jeu d'icônes (#70).

@@ -85,10 +85,8 @@ Options écartées :
 - **Publicité, affiliation, vente de données** : déjà écartés plus
   haut, aucune raison de revenir dessus.
 
-Non tranché à ce stade : le montant exact du prix. À fixer plus
-près du lancement, avec 7,99€ (Medika) comme point de repère bas et
-13,99€/an-équivalent (Medika en abonnement) comme plafond haut à ne
-pas dépasser pour un achat unique.
+*(Obsolète depuis le 2026-09-07 : le montant était laissé ouvert, il est
+fixé dans la décision ci-dessous.)*
 
 ## Décision du 2026-09-07 : gratuit = local, Plus = cloud
 

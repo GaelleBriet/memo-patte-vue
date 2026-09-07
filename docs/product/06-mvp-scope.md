@@ -26,7 +26,7 @@ toute discussion technique.
 - Compte **optionnel**, créé uniquement au moment de souscrire MémoPatte Plus.
 - Sans compte, l'app est complète et fonctionne entièrement en local (SQLite). Aucune fonctionnalité locale n'est conditionnée au compte.
 - Filets de sécurité gratuits, sans serveur : **Auto Backup Android** (sauvegarde automatique des données de l'app sur le Drive de l'utilisateur, ≤ 25 Mo, photos exclues, restaurée à la réinstallation) et **export JSON/CSV** libre.
-- Avec Plus : compte (email + mot de passe ou Google), sauvegarde cloud garantie sur Supabase, restauration à la demande sur un nouvel appareil, même carnet sur plusieurs appareils, photos sauvegardées.
+- Avec Plus : compte (email + mot de passe ou Google), sauvegarde cloud garantie sur Supabase, restauration à la demande sur un nouvel appareil, **même carnet sur plusieurs appareils** (confirmé le 2026-09-07 : push + pull, la modification la plus récente gagne, pas de temps réel), photos sauvegardées.
 - À la souscription, les données locales existantes sont envoyées intégralement vers le compte (envoi complet, pas de réconciliation).
 - Message clair sur l'écran Plus : ce que fait Android tout seul, ce que Plus garantit en plus.
 
@@ -65,7 +65,7 @@ toute discussion technique.
 - Export de l'intégralité des données de l'utilisateur (animaux, vaccins, traitements, poids, rappels) en **JSON** (fichier unique, ré-importable à terme) et en **CSV** (un fichier par table, lisible dans un tableur).
 - Accessible depuis l'écran Paramètres, en 2 taps, **quel que soit l'état d'achat** : c'est la preuve concrète de la règle « jamais de verrouillage rétroactif » de `05-monetisation.md`.
 - Généré localement depuis SQLite, partagé via la feuille de partage Android (aucun serveur impliqué).
-- Import depuis un export JSON : filet de restauration manuel pour les utilisateurs gratuits, bon marché une fois l'export fait (même schéma). Candidat v1.1, non tranché.
+- Import depuis un export JSON (**v1**, décidé le 2026-09-07) : filet de restauration manuel pour les utilisateurs gratuits, même schéma que l'export. Remplace ou fusionne, jamais d'écrasement silencieux.
 
 ## Explicitement hors scope v1
 
@@ -80,9 +80,10 @@ toute discussion technique.
 - **Statistiques ou graphiques avancés** au-delà d’un historique de poids simple
 
 ## Non tranché, à clarifier avant de coder
-- Import JSON en v1 ou v1.1.
 - Comportement exact si l'abonnement annuel expire (délai de grâce Play, message, données locales intactes dans tous les cas).
-- Langue(s) de l’app : v1 en français uniquement (à confirmer).
+- Déclencheurs et fréquence du rappel doux vers Plus.
+
+Tranché le 2026-09-07 : langues de la v1 = **français et anglais** (l'i18n est déjà en place, l'anglais est une traduction, pas une fonctionnalité).
 
 ## Critère de sortie de cette phase
 Ce fichier doit être rempli et les cases ci-dessus cochées avant

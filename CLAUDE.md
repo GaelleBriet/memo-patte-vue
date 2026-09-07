@@ -36,6 +36,7 @@ Différenciants produits (non négociables) :
 - Toute écriture se fait d’abord en local, puis est synchronisée
 - Les notifications sont locales, mais les données qui permettent de les reprogrammer sont persistées (SQLite + Supabase)
 - Après restauration des données, l’app doit pouvoir reconstruire toutes les notifications locales
+- Les photos d’animaux vivent dans `files/photos/` (Capacitor Filesystem, `Directory.Data`), jamais ailleurs : c’est le chemin exclu de l’Auto Backup Android
 
 ## Structure des dossiers (obligatoire)
 
@@ -67,7 +68,7 @@ src/
 - Aucun import croisé entre features (sauf via shared/ ou core/)
 - Les repositories sont les seuls autorisés à parler à SQLite et Supabase
 - Les stores Pinia ne contiennent aucune requête directe
-- Tout texte visible passe par vue-i18n
+- Tout texte visible passe par vue-i18n (FR source, EN livré en v1)
 
 ## Conventions de code
 
@@ -111,13 +112,14 @@ Gratuit, sans compte :
 - Traitements (vermifuges/antiparasitaires) + rappels
 - Suivi de poids
 - Vue consolidée multi-animaux
-- Export des données (JSON, CSV) depuis Paramètres
+- Export des données (JSON, CSV) et import JSON depuis Paramètres
 - Auto Backup Android (sans photos)
+- Interface en français et en anglais (vue-i18n, FR source)
 
 MémoPatte Plus (7,99 €/an ou 24,99 € à vie) :
 
 - Compte + sauvegarde cloud Supabase + restauration
-- Même carnet sur plusieurs appareils
+- Même carnet sur plusieurs appareils (push + pull, la modification la plus récente gagne)
 - Photos sauvegardées
 - Export PDF
 
