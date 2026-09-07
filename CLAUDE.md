@@ -130,6 +130,15 @@ Hors scope :
 - Espèces autres que chien/chat
 - Publicité, affiliation, limite d’animaux, fonction locale payante
 
+## Conformité et permissions (voir `docs/technical/conformite-play-store-rgpd.md`)
+
+- Aucun événement analytics avant le consentement explicite ; PostHog sur EU Cloud, jamais de contenu de carnet dans les événements
+- Photos via le Photo Picker Android : ne jamais déclarer `READ_MEDIA_IMAGES` / `READ_MEDIA_VIDEO`
+- Rappels en alarmes inexactes : ne jamais déclarer `USE_EXACT_ALARM` ni demander `SCHEDULE_EXACT_ALARM`
+- `POST_NOTIFICATIONS` demandée en contexte (premier rappel), jamais au lancement
+- Clé `service_role` Supabase : uniquement dans les Edge Functions, jamais dans l'app ni dans le dépôt
+- Toute table Plus référence `auth.users(id)` avec `on delete cascade`
+
 ## Méthode de travail
 
 - Toujours proposer le code le plus simple et lisible possible

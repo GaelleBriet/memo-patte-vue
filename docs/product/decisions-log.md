@@ -408,3 +408,27 @@ renommé, point persona de `03-pain-points.md` clos, ligne de prix
 obsolète de `05-monetisation.md` marquée, index `docs/design/README.md`
 créé. Restent à trancher : comportement à l'expiration de
 l'abonnement, déclencheurs du rappel doux vers Plus, jeu d'icônes (#70).
+
+2026-09-07 — Conformité Google Play et RGPD : recherche documentée
+dans `docs/technical/conformite-play-store-rgpd.md` (politique de
+confidentialité rédigée, tableau Data safety, procédure de suppression
+de compte, check-list avant publication). Conclusions retenues : la
+santé animale n'est ni « Health info » au sens Play ni donnée de santé
+au sens de l'art. 9 RGPD ; pas d'AIPD ; registre des traitements à
+tenir malgré la micro-entreprise ; PostHog en opt-in strict sur EU
+Cloud ; Supabase en région UE avec RLS partout ; suppression de compte
+obligatoire dès que Plus existe. — Tickets créés : #86 (11.6, politique,
+page de suppression, déclarations Play Console), #87 (1.6, suppression
+du compte via Edge Function), #88 (11.7, registre, DPA, paramétrage
+prestataires). Exigences ajoutées à #10, #45, #47, #48, #66, #67.
+Non vérifié, à trancher avant publication : affichage de l'adresse
+postale sur Play pour un compte personnel, date de création du compte
+Play (test fermé 12 × 14 jours), durées de conservation.
+
+2026-09-07 — Plugins de billing : comparatif documenté dans
+`docs/technical/billing-plugins-capacitor.md` et résumé dans #43.
+Recommandation : `@revenuecat/purchases-capacitor` (Capacitor 8 et
+Billing Library 8 vérifiés, entitlement unique pour l'annuel et le
+« à vie », statut et restauration gérés, gratuit à l'échelle du projet),
+repli `@capgo/native-purchases` + vérification maison sur Supabase.
+**Choix non encore acté par Gaelle.**

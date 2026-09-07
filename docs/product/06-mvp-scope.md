@@ -67,6 +67,13 @@ toute discussion technique.
 - Généré localement depuis SQLite, partagé via la feuille de partage Android (aucun serveur impliqué).
 - Import depuis un export JSON (**v1**, décidé le 2026-09-07) : filet de restauration manuel pour les utilisateurs gratuits, même schéma que l'export. Remplace ou fusionne, jamais d'écrasement silencieux.
 
+### Conformité (ajouté le 2026-09-07)
+- Politique de confidentialité publiée (GitHub Pages) et liée dans l'app ; page web de suppression de compte ; Data safety et déclarations Play Console (#86).
+- Suppression du compte Plus depuis l'app, Edge Function côté Supabase (#87).
+- Registre des traitements, DPA Supabase et PostHog, prestataires en région UE (#88).
+- Consentement analytics opt-in avant toute initialisation PostHog (#67) ; aucune permission média large (Photo Picker), pas d'alarmes exactes.
+- Référence : `docs/technical/conformite-play-store-rgpd.md`.
+
 ## Explicitement hors scope v1
 
 - **Partage du carnet (pet-sitter, famille)** 
