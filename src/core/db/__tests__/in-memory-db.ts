@@ -42,6 +42,19 @@ function toDbClient(database: Database): InMemoryDb {
       database.run(sql, params)
       return database.getRowsModified()
     },
+    async runMany(statements) {
+      if (statements.length === 0) return
+      database.exec('BEGIN')
+      try {
+        for (const { sql, params = [] } of statements) {
+          database.run(sql, params)
+        }
+        database.exec('COMMIT')
+      } catch (error) {
+        rollback(database, error)
+        throw error
+      }
+    },
     async query<T>(sql: string, params: SqlParam[] = []) {
       const statement = database.prepare(sql)
       try {
@@ -61,5 +74,14 @@ function toDbClient(database: Database): InMemoryDb {
     close() {
       database.close()
     },
+  }
+}
+
+/** Un rollback raté laisse peut-être une transaction ouverte : plus grave que l'échec d'origine. */
+function rollback(database: Database, cause: unknown): void {
+  try {
+    database.exec('ROLLBACK')
+  } catch (error) {
+    throw new Error(error instanceof Error ? error.message : String(error), { cause })
   }
 }

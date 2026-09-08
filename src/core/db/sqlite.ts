@@ -40,6 +40,12 @@ function toDbClient(connection: SQLiteDBConnection): DbClient {
       const result = await connection.run(sql, params)
       return result.changes?.changes ?? 0
     },
+    async runMany(statements) {
+      if (statements.length === 0) return
+      await connection.executeSet(
+        statements.map(({ sql, params = [] }) => ({ statement: sql, values: params })),
+      )
+    },
     async query<T>(sql: string, params: SqlParam[] = []) {
       const result = await connection.query(sql, params)
       return (result.values ?? []) as T[]
