@@ -663,3 +663,37 @@ installée n'était encore en version 1, une migration v2 n'aurait mis à
 jour aucun appareil réel. — Alternative écartée : une migration v2, qui
 aurait laissé une entrée vide dans l'historique du schéma. La règle
 reste inchangée pour la suite : une version publiée ne se modifie plus.
+
+2026-09-08 — **Un service de cas d'usage peut orchestrer les repositories
+de plusieurs features** (`xxx.service.ts`, placé dans la feature qui
+porte le cas d'usage) ; un composant, un store ou un repository, jamais.
+La cascade logique de suppression (#102) vivra donc dans
+`src/features/animals/animal-deletion.service.ts`, et chaque repository
+enfant gagnera un `markDeletedByAnimal()` : il reste le seul à écrire
+dans sa table, le service n'écrit aucun SQL. — Raison : l'interdiction
+absolue d'import croisé ne laissait que des mauvaises sorties pour une
+app d'un seul dev, jamais destinée à être découpée en paquets — un
+`core/` qui dépend des features, ou une interface de contrat dans
+`shared/` avec du câblage dans `main.ts` pour ce qui est un appel de
+fonction. La règle qui paie vraiment — un seul fichier connaît les
+colonnes d'une table — est conservée et rendue explicite. —
+Alternatives écartées : le trigger SQLite `AFTER UPDATE ON animal`,
+impossible à oublier mais invisible depuis `src/` et difficile à
+tester ; et la jointure `deleted_at IS NULL` à chaque lecture, déjà
+écartée le même jour.
+
+2026-09-08 — **`DbClient` recevra `runMany(statements)`, pas un
+`transaction(fn)` à callback** (ticket #111). — Raison : le plugin
+enveloppe déjà chaque appel dans sa propre transaction (`transaction`
+vaut `true` par défaut sur `run`, `execute` et `executeSet`) ; ce qui
+manque n'est pas la transaction mais le moyen d'y faire tenir plusieurs
+écritures, et `executeSet` fait exactement ça. L'appelant ne tenant
+jamais une transaction ouverte, il ne peut pas oublier de la fermer, et
+la question des transactions imbriquées ne se pose pas. Les usages
+connus (#102, #84, #40, #38) sont tous des paquets d'écritures connues
+d'avance. — Alternatives écartées : le `transaction(fn)` des ORM, qui
+imposerait un garde-fou ou des `SAVEPOINT` (SQLite ne fait pas de
+transactions imbriquées) pour un besoin de lecture au milieu qu'aucun
+ticket n'a aujourd'hui ; et `begin()` / `commit()` / `rollback()` nus,
+seul cas où un `catch` qui oublie le rollback laisse la base en
+transaction ouverte.
