@@ -16,8 +16,10 @@ const tabs = [
 /**
  * Hauteur totale de la barre : la rangée d'onglets de 56 px (défaut Vuetify)
  * plus la zone de gestes Android de 22 px (`$padding-bottom-nav` de
- * `src/styles/_tokens.scss`, appliquée en padding ci-dessous). Le layout de
- * `VApp` décale `VMain` de cette hauteur : rien ne passe sous la barre.
+ * `src/styles/_tokens.scss`, appliquée en padding ci-dessous). Tout est en
+ * `box-sizing: border-box` : le filet supérieur d'1 px est compris dans ces
+ * 78 px, la rangée visible fait donc 55 px. Le layout de `VApp` décale `VMain`
+ * de cette hauteur : rien ne passe sous la barre.
  */
 const barHeight = 56 + 22
 </script>
@@ -51,13 +53,14 @@ const barHeight = 56 + 22
 }
 
 .bottom-navigation :deep(.v-btn) {
-  font-weight: 500;
   letter-spacing: normal;
 }
 
-// Onglet inactif : gris chaud. L'onglet actif prend le pétrole (`color`).
+// Onglet inactif : gris chaud, libellé en 500. L'onglet actif prend le pétrole
+// (`color`). Les deux règles s'excluent, elles ne dépendent pas de leur ordre.
 .bottom-navigation :deep(.v-btn:not(.v-btn--selected)) {
   color: tokens.$color-text-secondary;
+  font-weight: 500;
 }
 
 .bottom-navigation :deep(.v-btn--selected) {
