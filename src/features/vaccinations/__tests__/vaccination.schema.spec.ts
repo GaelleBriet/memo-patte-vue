@@ -57,4 +57,20 @@ describe('vaccinationInputSchema', () => {
       false,
     )
   })
+
+  /**
+   * Un vaccin en retard — échéance dépassée — est le cas central du produit :
+   * l'échéance ne doit jamais être contrainte au futur, contrairement à la date
+   * de dernière injection qui, elle, ne peut pas être future.
+   */
+  it('accepte une échéance passée, y compris hier', () => {
+    const hier = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10)
+    expect(vaccinationInputSchema.safeParse({ ...validInput, dueDate: '2020-01-15' }).success).toBe(
+      true,
+    )
+    expect(vaccinationInputSchema.safeParse({ ...validInput, dueDate: hier }).success).toBe(true)
+    expect(vaccinationInputSchema.parse({ ...validInput, dueDate: '2020-01-15' }).dueDate).toBe(
+      '2020-01-15',
+    )
+  })
 })

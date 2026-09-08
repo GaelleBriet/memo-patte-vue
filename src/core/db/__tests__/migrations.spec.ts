@@ -88,7 +88,53 @@ describe('migrations', () => {
       to: string
       on_delete: string
     }>('PRAGMA foreign_key_list(vaccination)')
-    expect(foreignKeys).toMatchObject([{ table: 'animal', from: 'animal_id', to: 'id' }])
+    // `ON DELETE CASCADE` : une purge éventuelle d'un animal emporte ses vaccins
+    // plutôt que de laisser des lignes orphelines.
+    expect(foreignKeys).toMatchObject([
+      { table: 'animal', from: 'animal_id', to: 'id', on_delete: 'CASCADE' },
+    ])
+
+    db.close()
+  })
+
+  it('indexe les vaccins par animal', async () => {
+    const db = await createSqlJsDbClient()
+
+    await applyMigrations(db)
+
+    const indexes = await db.query<{ name: string }>('PRAGMA index_list(vaccination)')
+    expect(indexes.map((index) => index.name)).toContain('idx_vaccination_animal_id')
+    const indexedColumns = await db.query<{ name: string }>(
+      'PRAGMA index_info(idx_vaccination_animal_id)',
+    )
+    expect(indexedColumns.map((column) => column.name)).toEqual(['animal_id'])
+
+    db.close()
+  })
+
+  it('ajoute la table vaccination à une base déjà en version 1', async () => {
+    const db = await createSqlJsDbClient()
+    // Appareil déjà installé : seule la v1 a été jouée, la table animal existe
+    // avec ses données, et `vaccination` n'existe pas encore.
+    const [firstMigration] = migrations
+    for (const statement of firstMigration?.statements ?? []) {
+      await db.execute(statement)
+    }
+    await db.execute('PRAGMA user_version = 1')
+    await db.run(
+      `INSERT INTO animal (id, name, species, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?)`,
+      ['a1', 'Miette', 'cat', '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z'],
+    )
+
+    await applyMigrations(db)
+
+    const [version] = await db.query<{ user_version: number }>('PRAGMA user_version')
+    expect(version?.user_version).toBe(DATABASE_VERSION)
+    expect([...(await tableColumns(db, 'vaccination')).keys()]).toContain('animal_id')
+    // La migration ne touche pas aux données déjà présentes.
+    const animals = await db.query<{ name: string }>('SELECT name FROM animal')
+    expect(animals).toEqual([{ name: 'Miette' }])
 
     db.close()
   })
