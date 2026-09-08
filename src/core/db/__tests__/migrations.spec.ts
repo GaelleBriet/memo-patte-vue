@@ -55,6 +55,67 @@ describe('migrations', () => {
     db.close()
   })
 
+  it('crée la table vaccination rattachée à animal', async () => {
+    const db = await createSqlJsDbClient()
+
+    await applyMigrations(db)
+
+    const columns = await tableColumns(db, 'vaccination')
+    expect([...columns.keys()]).toEqual([
+      'id',
+      'animal_id',
+      'name',
+      'last_injection_date',
+      'due_date',
+      'created_at',
+      'updated_at',
+      'deleted_at',
+    ])
+    expect(columns.get('id')?.pk).toBe(1)
+    expect(columns.get('animal_id')?.notnull).toBe(1)
+    expect(columns.get('name')?.notnull).toBe(1)
+    expect(columns.get('last_injection_date')?.notnull).toBe(1)
+    expect(columns.get('created_at')?.notnull).toBe(1)
+    expect(columns.get('updated_at')?.notnull).toBe(1)
+    // Échéance facultative : un vaccin peut être consigné sans prochain rappel.
+    expect(columns.get('due_date')?.notnull).toBe(0)
+    // Suppression logique : la colonne doit rester nullable (NULL = vaccin actif).
+    expect(columns.get('deleted_at')?.notnull).toBe(0)
+
+    const foreignKeys = await db.query<{
+      table: string
+      from: string
+      to: string
+      on_delete: string
+    }>('PRAGMA foreign_key_list(vaccination)')
+    expect(foreignKeys).toMatchObject([{ table: 'animal', from: 'animal_id', to: 'id' }])
+
+    db.close()
+  })
+
+  it('refuse un vaccin rattaché à un animal inexistant', async () => {
+    const db = await createSqlJsDbClient()
+    await applyMigrations(db)
+    await db.execute('PRAGMA foreign_keys = ON')
+
+    await expect(
+      db.run(
+        `INSERT INTO vaccination (id, animal_id, name, last_injection_date, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [
+          'v1',
+          'inconnu',
+          'CHPPi',
+          '2025-06-12',
+          '2026-01-01T00:00:00.000Z',
+          '2026-01-01T00:00:00.000Z',
+        ],
+      ),
+    ).rejects.toThrow(/FOREIGN KEY constraint failed/)
+
+    db.close()
+  })
+
   it('porte la base à la version courante et ne rejoue rien au second appel', async () => {
     const db = await createSqlJsDbClient()
 
