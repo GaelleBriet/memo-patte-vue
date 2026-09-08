@@ -12,7 +12,15 @@ export default defineConfigWithVueTs(
     files: ['**/*.{vue,ts,mts,tsx}'],
   },
 
-  globalIgnores(['**/dist/**', '**/dist-ssr/**', '**/coverage/**', '**/android/**', '**/ios/**']),
+  globalIgnores([
+    '**/dist/**',
+    '**/dist-ssr/**',
+    '**/coverage/**',
+    '**/android/**',
+    '**/ios/**',
+    // Les worktrees vivent dans le dépôt : sans ça, chaque outil relit une copie de src/.
+    '**/.claude/worktrees/**',
+  ]),
 
   // Vue : recommended (plus strict que essential)
   ...pluginVue.configs['flat/recommended'],
