@@ -52,3 +52,48 @@ describe('getDb', () => {
     expect(plugin.createConnection).toHaveBeenCalledTimes(2)
   })
 })
+
+describe('runMany', () => {
+  function connectionWithExecuteSet() {
+    return {
+      open: vi.fn<() => Promise<void>>().mockResolvedValue(undefined),
+      executeSet: vi.fn<() => Promise<void>>().mockResolvedValue(undefined),
+    }
+  }
+
+  beforeEach(() => {
+    plugin.addUpgradeStatement.mockReset().mockResolvedValue(undefined)
+    plugin.createConnection.mockReset()
+  })
+
+  it('passe le lot à `executeSet`, qui le pose dans une seule transaction', async () => {
+    const connection = connectionWithExecuteSet()
+    plugin.createConnection.mockResolvedValue(connection)
+    const { getDb } = await importSqlite()
+
+    const db = await getDb()
+    await db.runMany([
+      { sql: 'UPDATE animal SET deleted_at = ? WHERE id = ?', params: ['maintenant', 'a-1'] },
+      { sql: 'DELETE FROM vaccination' },
+    ])
+
+    expect(connection.executeSet).toHaveBeenCalledWith([
+      {
+        statement: 'UPDATE animal SET deleted_at = ? WHERE id = ?',
+        values: ['maintenant', 'a-1'],
+      },
+      { statement: 'DELETE FROM vaccination', values: [] },
+    ])
+  })
+
+  it('ne touche pas au plugin pour un lot vide', async () => {
+    const connection = connectionWithExecuteSet()
+    plugin.createConnection.mockResolvedValue(connection)
+    const { getDb } = await importSqlite()
+
+    const db = await getDb()
+    await expect(db.runMany([])).resolves.toBeUndefined()
+
+    expect(connection.executeSet).not.toHaveBeenCalled()
+  })
+})
