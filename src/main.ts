@@ -5,7 +5,12 @@ import App from './App.vue'
 import router from './router'
 import vuetify from '@/core/theme/vuetify'
 import i18n from '@/core/i18n'
+import { getAnimalsRepository } from '@/features/animals/animals.repository'
+import { provideAnimalsRepository } from '@/features/animals/animals.store'
 import '@/styles/main.scss'
+
+// Branche les stores sur leurs repositories : eux seuls ouvrent la base locale.
+provideAnimalsRepository(getAnimalsRepository)
 
 const app = createApp(App)
 
