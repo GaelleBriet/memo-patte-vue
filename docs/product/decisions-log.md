@@ -488,3 +488,45 @@ moins d'une seconde. Valeurs et contrastes (tous ≥ 4,5:1, WCAG AA) dans
 maquette) ». — Alternative écartée : garder l'alias des couleurs
 d'urgence, retenu faute de mieux à l'implémentation de #70. `info` et
 `secondary` restent non définis, faute d'usage.
+
+2026-09-08 — **Chaque logique est testée là où elle vit**, pas dans un
+module générique de calcul de dates. Le ticket 2.4 (#13) est fermé : son
+critère « tests sur la logique de calcul des dates de rappel » ne pouvait
+pas être satisfait dans `core/notifications`, qui reçoit un `Reminder`
+déjà daté et dont le service est par ailleurs couvert par 12 tests (mock
+du plugin Capacitor inclus, livrés avec 2.1). Ce critère devient un
+critère d'acceptation explicite de 4.5 (#23, échéance d'un vaccin) et de
+5.5 (#28, échéance récurrente et reprogrammation après une prise). —
+Raison : le calcul dépend du domaine (une échéance de vaccin et une
+fréquence de vermifuge n'ont pas la même règle), le factoriser dans
+`core/` reviendrait à inventer une règle métier que la spec ne donne
+pas. — Alternative écartée : garder #13 ouvert comme rappel jusqu'à ce
+que le calcul existe, ce qui aurait laissé un ticket sans travail
+réalisable pendant deux épics.
+
+2026-09-08 — **La photo d'animal sort du ticket 3.2** (#15, création de
+profil) vers un ticket dédié 3.7 (#101) : Photo Picker Android sans
+`READ_MEDIA_IMAGES`, copie sous `files/photos/` en `Directory.Data`,
+suppression de l'ancien fichier au remplacement, redimensionnement avant
+écriture. La colonne `animal.photo_path` et le champ Zod `photoPath`
+existent déjà depuis 3.1, il n'y a pas de migration. Sans photo, le
+dégradé de couleur par animal prévu par les maquettes v2 reste le rendu
+par défaut. — Raison : c'est un travail de permissions et de système de
+fichiers, qui se vérifie sur appareil réel comme #82 ; le garder dans
+3.2 en aurait fait le plus gros ticket de l'épic et aurait bloqué 3.3 et
+3.4, qui n'attendent que la liste des animaux. — Alternative écartée :
+tout livrer dans 3.2.
+
+2026-09-08 — **Un store Pinia `animals.store.ts`** (3.6, #100) devient le
+seul point de consommation de `animals.repository.ts` côté UI : liste des
+animaux vivants, animal sélectionné partagé entre l'accueil (filtre,
+`null` = tous les animaux) et le Carnet (toujours un animal actif),
+états de chargement et d'erreur pour que l'état vide A5 ne clignote pas
+au démarrage. — Raison : 3.2, 3.3, 3.4, 7.2 et 7.4 ont tous besoin de la
+même liste ; sans ce ticket, le premier écran livré imposait sa forme aux
+quatre autres. — Alternative écartée : laisser 3.2 créer le store au
+passage. Les stores des épics 4, 5 et 6 ne sont **pas** créés par
+symétrie : `01-architecture-v2.md` ne prescrit pas un store par feature,
+et c'est le Carnet (3.4, #17) — premier écran à afficher vaccins,
+traitements et poids ensemble — qui dira s'il faut un store par domaine
+ou un seul store « carnet de l'animal consulté ».
