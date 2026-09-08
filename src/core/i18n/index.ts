@@ -9,7 +9,7 @@ declare module 'vue-i18n' {
 }
 
 export default createI18n<{ message: MessageSchema }, 'fr'>({
-  legacy: false, // Composition API (`useI18n()`) uniquement, cf. CLAUDE.md
+  legacy: false,
   locale: 'fr',
   fallbackLocale: 'fr',
   messages: { fr },

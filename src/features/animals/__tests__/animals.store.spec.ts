@@ -228,7 +228,6 @@ describe('useAnimalsStore', () => {
 })
 
 interface FakeAnimalsRepository {
-  /** Ajoute un animal sans passer par le store, pour préparer un cas de test. */
   seed(input: AnimalInput): Animal
   getById: Mock<AnimalsRepository['getById']>
   list: Mock<AnimalsRepository['list']>
@@ -237,10 +236,7 @@ interface FakeAnimalsRepository {
   remove: Mock<AnimalsRepository['remove']>
 }
 
-/**
- * Repository doublé : même contrat que `animals.repository.ts` (liste des
- * animaux vivants triée par nom, suppression logique), sans SQLite.
- */
+// Même contrat que `animals.repository.ts`, sans SQLite.
 function createFakeRepository(): FakeAnimalsRepository {
   const animals: Animal[] = []
 

@@ -53,11 +53,8 @@ describe('BottomNavigation', () => {
   it("pose une barre pleine largeur et claire sur le bas de l'écran", () => {
     const { nav } = mountNavigation()
 
-    // Repère de navigation, pas un `header` : c'est la nav globale de l'app.
     expect(nav().element.tagName).toBe('NAV')
-    // Fond crème de la maquette v2 (`surface`), pas la pilule sombre de la v1.
     expect(nav().classes()).toContain('bg-surface')
-    // Pleine largeur : les deux onglets se partagent toute la barre, à plat.
     expect(nav().classes()).toContain('v-bottom-navigation--grow')
     expect(nav().classes()).toContain('elevation-0')
   })
@@ -65,9 +62,7 @@ describe('BottomNavigation', () => {
   it('réserve la zone de gestes Android sous les onglets', () => {
     const { nav } = mountNavigation()
 
-    // 56 px de rangée d'onglets (filet supérieur compris) + 22 px de zone de
-    // gestes (`$padding-bottom-nav`). Vuetify pose cette hauteur en style inline
-    // et s'en sert pour décaler `VMain`.
+    // 56 px d'onglets plus les 22 px de `$padding-bottom-nav`.
     expect(nav().attributes('style')).toContain('height: 78px')
   })
 
@@ -75,9 +70,8 @@ describe('BottomNavigation', () => {
     const { tabAt } = mountNavigation()
     await flushPromises()
 
-    // Sélection Vuetify (l'onglet actif), puis sa couleur : pétrole (`primary`).
     // Le gris chaud de l'onglet inactif vient du style scopé, hors de portée de
-    // jsdom : on vérifie ici qu'il ne prend pas le pétrole.
+    // jsdom : on vérifie seulement qu'il ne prend pas le pétrole.
     expect(tabAt(0).classes()).toContain('v-btn--selected')
     expect(tabAt(0).classes()).toContain('text-primary')
     expect(tabAt(0).attributes('aria-current')).toBe('page')

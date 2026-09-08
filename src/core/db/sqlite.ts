@@ -6,23 +6,13 @@ import {
 import type { DbClient, SqlParam } from './db-client'
 import { DATABASE_VERSION, migrations } from './migrations'
 
-/** Nom du fichier de base locale (Android uniquement, pas de support web). */
 export const DATABASE_NAME = 'memopatte'
 
 const sqlite = new SQLiteConnection(CapacitorSQLite)
 
 let connecting: Promise<DbClient> | null = null
 
-/**
- * Ouvre (une seule fois) la base locale et renvoie le `DbClient` partagé.
- *
- * Seul `core/db/` connaît `@capacitor-community/sqlite` : les repositories
- * reçoivent ce client et ne dépendent que de l'interface `DbClient`.
- *
- * Une ouverture qui échoue n'est pas mise en cache : l'appel suivant réessaie,
- * sans quoi un échec au démarrage rendrait l'app inutilisable jusqu'au
- * prochain lancement.
- */
+/** Ouverture ratée non mise en cache : l'appel suivant doit pouvoir réessayer. */
 export function getDb(): Promise<DbClient> {
   connecting ??= openDatabase().catch((error: unknown) => {
     connecting = null

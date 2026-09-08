@@ -2,7 +2,6 @@ import type { DbClient } from '@/core/db/db-client'
 import { getDb } from '@/core/db/sqlite'
 import { animalInputSchema, type Animal, type AnimalInput } from './animal.schema'
 
-/** Ligne brute de la table `animal` (colonnes en snake_case). */
 interface AnimalRow {
   id: string
   name: string
@@ -37,16 +36,6 @@ function toAnimal(row: AnimalRow): Animal {
   }
 }
 
-/**
- * Seul point d'accès à la table `animal`.
- *
- * Le client de base est injecté : l'application lui passe `getDb()`
- * (`core/db/sqlite.ts`), les tests une base sql.js en mémoire.
- *
- * La suppression est logique (`deleted_at`) : la ligne survit pour que la
- * synchronisation Plus puisse propager la suppression aux autres appareils,
- * mais un animal supprimé est invisible pour tout le reste de l'application.
- */
 export function createAnimalsRepository(db: DbClient) {
   async function getById(id: string): Promise<Animal | null> {
     const rows = await db.query<AnimalRow>(
@@ -94,7 +83,6 @@ export function createAnimalsRepository(db: DbClient) {
       return animal
     },
 
-    /** Un animal supprimé est traité comme inexistant : la mise à jour échoue. */
     async update(id: string, input: AnimalInput): Promise<Animal> {
       const data = animalInputSchema.parse(input)
       const updatedAt = new Date().toISOString()
@@ -127,10 +115,7 @@ export function createAnimalsRepository(db: DbClient) {
       return animal
     },
 
-    /**
-     * Marque l'animal comme supprimé. Sans effet sur un identifiant inconnu ou
-     * sur un animal déjà supprimé (la date de suppression initiale est gardée).
-     */
+    /** Sans effet sur un animal inconnu ou déjà supprimé : la date initiale est gardée. */
     async remove(id: string): Promise<void> {
       const deletedAt = new Date().toISOString()
       await db.run(
@@ -145,19 +130,7 @@ export type AnimalsRepository = ReturnType<typeof createAnimalsRepository>
 
 let repository: Promise<AnimalsRepository> | null = null
 
-/**
- * Repository branché sur la base locale, construit à la première demande.
- *
- * C'est le point de composition du feature : ce fichier est, avec `core/`, le
- * seul autorisé à ouvrir la base (cf. CLAUDE.md et la règle ESLint
- * `app/repository-only-data-access`). `main.ts` le passe au store via
- * `provideAnimalsRepository`, et les repositories suivants se brancheront de
- * la même façon.
- *
- * Une ouverture ratée n'est pas mise en cache : sans cette remise à `null`, la
- * promesse rejetée serait resservie indéfiniment et annulerait le réessai
- * prévu par `getDb()`.
- */
+/** Ouverture ratée non mise en cache : `getDb()` doit pouvoir réessayer. */
 export function getAnimalsRepository(): Promise<AnimalsRepository> {
   repository ??= getDb()
     .then(createAnimalsRepository)

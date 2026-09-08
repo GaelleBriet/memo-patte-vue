@@ -9,12 +9,7 @@ export interface InMemoryDb extends DbClient {
   close(): void
 }
 
-/**
- * `DbClient` de test adossé à sql.js (SQLite compilé en WebAssembly), en mémoire.
- *
- * Il permet de vérifier les migrations et les repositories sur un vrai moteur
- * SQL, sans Capacitor ni appareil Android.
- */
+/** Vrai moteur SQL (sql.js, en mémoire), sans Capacitor ni appareil Android. */
 export async function createSqlJsDbClient(): Promise<InMemoryDb> {
   const SQL = await initSqlJs({ locateFile: (file) => require.resolve(`sql.js/dist/${file}`) })
   return toDbClient(new SQL.Database())
@@ -27,13 +22,7 @@ export async function createInMemoryDb(): Promise<InMemoryDb> {
   return db
 }
 
-/**
- * Applique les migrations non encore jouées, en suivant `PRAGMA user_version`.
- *
- * Reproduit le comportement de `addUpgradeStatement` du plugin Capacitor, que
- * l'on ne peut pas exécuter hors d'un appareil : appeler cette fonction deux
- * fois de suite ne rejoue rien.
- */
+/** Reproduit `addUpgradeStatement`, injouable hors appareil : deux appels ne rejouent rien. */
 export async function applyMigrations(db: DbClient): Promise<void> {
   const [version] = await db.query<{ user_version: number }>('PRAGMA user_version')
   const currentVersion = version?.user_version ?? 0

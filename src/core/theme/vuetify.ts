@@ -7,12 +7,6 @@ import { createVuetify } from 'vuetify'
 import MsIcon from './MsIcon.vue'
 import { msAliases } from './icons'
 
-/**
- * Palette du thème clair — maquettes v2, tables « Tokens » de
- * `docs/design/accueil-v2/accueil.md` et `docs/design/carnet-v2/carnet.md`.
- * Les couleurs de détail (filets, bordures, badges) et la géométrie sont dans
- * `src/styles/_tokens.scss`.
- */
 const light = {
   dark: false,
   colors: {
@@ -35,16 +29,12 @@ const light = {
     'soon-container': '#EDF7EE',
     'on-soon-container': '#265331',
 
-    // Pastille « Tout est à jour » : vert distinct de « Bientôt », pas de barre
-    // d'urgence associée — juste un fond et la couleur de son icône.
+    // Pastille « Tout est à jour » : vert distinct de « Bientôt », sans barre d'urgence.
     'up-to-date': '#D8EFDC',
     'on-up-to-date': '#2B6339',
 
-    // Rôles système Vuetify (erreurs de formulaire, alertes, confirmations).
-    // Hors maquette : palette dédiée, volontairement distincte des urgences
-    // métier ci-dessus — une erreur de saisie n'est pas un vaccin en retard.
-    // Décision du 2026-09-07. `info` et `secondary` ne sont pas définis, faute
-    // d'usage. Tous les couples texte / fond dépassent 4,5:1 (WCAG AA).
+    // Rôles système Vuetify, volontairement distincts des urgences métier :
+    // une erreur de saisie n'est pas un vaccin en retard.
     error: '#B3261E',
     'on-error': '#FFFFFF',
     'error-container': '#F9DEDC',

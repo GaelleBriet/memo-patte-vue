@@ -11,10 +11,6 @@ const MIETTE = '11111111-1111-4111-8111-111111111111'
 const VASCO = '22222222-2222-4222-8222-222222222222'
 const ANIMAL_INCONNU = '33333333-3333-4333-8333-333333333333'
 
-/**
- * Insère un animal directement en base : les features ne s'importent pas entre
- * elles, la fixture passe donc par du SQL et non par le repository animaux.
- */
 async function seedAnimal(db: InMemoryDb, id: string, name: string) {
   await db.run(
     `INSERT INTO animal (id, name, species, created_at, updated_at)
@@ -121,12 +117,6 @@ describe('vaccinationsRepository', () => {
     }
   })
 
-  /**
-   * Décision du 2026-09-08 : le rattachement à l'animal est figé à la création.
-   * `animalId` est absent du type d'entrée de `update` — d'où le
-   * `@ts-expect-error` : le compilateur refuse déjà de le passer, et même forcé,
-   * il ne doit pas déplacer le vaccin.
-   */
   it('ne déplace pas un vaccin vers un autre animal', async () => {
     const rage = await repository.create({
       animalId: MIETTE,

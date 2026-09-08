@@ -219,13 +219,11 @@ describe('getAnimalsRepository', () => {
     vi.mocked(getDb).mockRejectedValueOnce(new Error('base indisponible'))
     await expect(getAnimalsRepository()).rejects.toThrow('base indisponible')
 
-    // Sans remise à null du cache, ce second appel renverrait la promesse rejetée
-    // et annulerait le réessai voulu par `getDb()` (cf. core/db/sqlite.ts).
+    // Sans remise à `null` du cache, ce second appel resservirait le rejet.
     vi.mocked(getDb).mockResolvedValueOnce(db)
     const repository = await getAnimalsRepository()
     await expect(repository.list()).resolves.toEqual([])
 
-    // La base n'est ouverte qu'une fois : l'appel suivant rend le même repository.
     await expect(getAnimalsRepository()).resolves.toBe(repository)
     expect(getDb).toHaveBeenCalledTimes(2)
   })
