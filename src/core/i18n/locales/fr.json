@@ -1,6 +1,10 @@
 {
+  "nav": {
+    "ariaLabel": "Navigation principale",
+    "home": "Accueil",
+    "animals": "Carnet"
+  },
   "home": {
-    "title": "MémoPatte",
-    "placeholder": "Écran d'accueil (placeholder)"
+    "title": "MémoPatte"
   }
 }
