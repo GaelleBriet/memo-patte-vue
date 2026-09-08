@@ -488,3 +488,171 @@ moins d'une seconde. Valeurs et contrastes (tous ≥ 4,5:1, WCAG AA) dans
 maquette) ». — Alternative écartée : garder l'alias des couleurs
 d'urgence, retenu faute de mieux à l'implémentation de #70. `info` et
 `secondary` restent non définis, faute d'usage.
+
+2026-09-08 — **Chaque logique est testée là où elle vit**, pas dans un
+module générique de calcul de dates. Le ticket 2.4 (#13) est fermé : son
+critère « tests sur la logique de calcul des dates de rappel » ne pouvait
+pas être satisfait dans `core/notifications`, qui reçoit un `Reminder`
+déjà daté et dont le service est par ailleurs couvert par 12 tests (mock
+du plugin Capacitor inclus, livrés avec 2.1). Ce critère devient un
+critère d'acceptation explicite de 4.5 (#23, échéance d'un vaccin) et de
+5.5 (#28, échéance récurrente et reprogrammation après une prise). —
+Raison : le calcul dépend du domaine (une échéance de vaccin et une
+fréquence de vermifuge n'ont pas la même règle), le factoriser dans
+`core/` reviendrait à inventer une règle métier que la spec ne donne
+pas. — Alternative écartée : garder #13 ouvert comme rappel jusqu'à ce
+que le calcul existe, ce qui aurait laissé un ticket sans travail
+réalisable pendant deux épics.
+
+2026-09-08 — **La photo d'animal sort du ticket 3.2** (#15, création de
+profil) vers un ticket dédié 3.7 (#101) : Photo Picker Android sans
+`READ_MEDIA_IMAGES`, copie sous `files/photos/` en `Directory.Data`,
+suppression de l'ancien fichier au remplacement, redimensionnement avant
+écriture. La colonne `animal.photo_path` et le champ Zod `photoPath`
+existent déjà depuis 3.1, il n'y a pas de migration. Sans photo, le
+dégradé de couleur par animal prévu par les maquettes v2 reste le rendu
+par défaut. — Raison : c'est un travail de permissions et de système de
+fichiers, qui se vérifie sur appareil réel comme #82 ; le garder dans
+3.2 en aurait fait le plus gros ticket de l'épic et aurait bloqué 3.3 et
+3.4, qui n'attendent que la liste des animaux. — Alternative écartée :
+tout livrer dans 3.2.
+
+2026-09-08 — **Un store Pinia `animals.store.ts`** (3.6, #100) devient le
+seul point de consommation de `animals.repository.ts` côté UI : liste des
+animaux vivants, animal sélectionné partagé entre l'accueil (filtre,
+`null` = tous les animaux) et le Carnet (toujours un animal actif),
+états de chargement et d'erreur pour que l'état vide A5 ne clignote pas
+au démarrage. — Raison : 3.2, 3.3, 3.4, 7.2 et 7.4 ont tous besoin de la
+même liste ; sans ce ticket, le premier écran livré imposait sa forme aux
+quatre autres. — Alternative écartée : laisser 3.2 créer le store au
+passage. Les stores des épics 4, 5 et 6 ne sont **pas** créés par
+symétrie : `01-architecture-v2.md` ne prescrit pas un store par feature,
+et c'est le Carnet (3.4, #17) — premier écran à afficher vaccins,
+traitements et poids ensemble — qui dira s'il faut un store par domaine
+ou un seul store « carnet de l'animal consulté ».
+
+2026-09-08 — **Quatre décisions prises par Gaelle à l'issue du lot 2**,
+chacune posée en question avec recommandation avant d'être implémentée.
+
+1) **Palette des dégradés d'avatar : six entrées.** Les deux relevées au
+pixel sur les maquettes v2 (Milo fauve `#D1A378 → #C58D63`, Luna gris
+ardoise `#B8BEC6 → #A2A9B3`) plus quatre construites sur la même
+géométrie — deux tons voisins d'une teinte douce, clair vers foncé,
+angle 160° : rosé, olive, bleu, mauve. — Raison : le scope v1 ne limite
+pas le nombre d'animaux, et au-delà de deux, des avatars identiques
+annulent l'intérêt du dégradé, qui sert à distinguer d'un coup d'œil. —
+Alternative écartée : n'expédier que les deux dégradés de la maquette et
+faire tourner la palette dessus, plus fidèle mais deux animaux auraient
+pu être visuellement identiques dans la rangée de chips. Les valeurs
+vivent dans `src/shared/animal-avatar-gradient.ts` ; aucun test ne fige
+de valeur hexadécimale, la palette reste donc modifiable à une constante
+près.
+
+2) **La suppression d'un animal marque aussi son carnet.**
+`animals.remove()` marquera les vaccins, puis les traitements et les
+pesées, avec `deleted_at`, dans une transaction. — Raison : c'est la
+seule option qui rende la propagation Plus correcte. Sans elle, le
+tombstone de l'animal se propage mais pas celui de ses enfants, et le
+jour où une purge effacerait physiquement les animaux tombstonés, le
+`ON DELETE CASCADE` supprimerait des lignes `vaccination` que le cloud
+tient encore pour vivantes — résurrection au prochain pull. — Alternative
+écartée : une jointure sur `deleted_at IS NULL` à chaque lecture, moins
+coûteuse aujourd'hui mais que chaque futur écran devrait penser à
+écrire, en laissant le cloud incohérent. À implémenter dans 3.3 (#16),
+pas dans 4.1 (#19) : le comportement appartient au repository des
+animaux.
+
+3) **Contrat du store animals : `load()` ne lève pas, les écritures
+lèvent.** `create`, `update` et `remove` propagent leur erreur ; `load()`
+la range dans `store.error` pour une bannière. — Raison : TypeScript
+n'oblige jamais à lire une valeur de retour, donc
+`await store.create(input); router.back()` compilait et naviguait sur un
+échec ; et `error` étant un état global, deux opérations en vol
+pouvaient faire afficher l'erreur de l'autre. Les écrans de formulaire
+ont de toute façon besoin d'un `try/catch` pour rester sur le
+formulaire. — Alternative écartée : garder les quatre actions
+non-levantes, qui évitait tout `try/catch` mais laissait passer les
+échecs d'écriture silencieusement.
+
+4) **Point de composition des repositories : une fabrique paresseuse
+dans le repository, appelée depuis `main.ts`.** `getAnimalsRepository()`
+est exportée par `animals.repository.ts` — seul fichier avec `core/` que
+la règle ESLint `app/repository-only-data-access` autorise à ouvrir la
+base — et `main.ts` appelle `provideAnimalsRepository(...)`. — Raison :
+la composition reste là où l'architecture la place, le store ne connaît
+que le type de son repository, et les tests gardent leur double. —
+Alternative écartée : un registre de repositories dans `core/db/`, qui
+ferait connaître les features à `core/`, à rebours de l'architecture.
+Ce motif vaut pour les quatre repositories suivants. Piège à ne pas
+reproduire : mémoïser `getDb().then(...)` mettrait en cache une promesse
+**rejetée** et annulerait le réessai documenté de `sqlite.ts:29` — le
+cache doit revenir à `null` sur rejet.
+
+2026-09-08 — **Six dernières décisions du lot 2**, posées une par une à
+Gaelle après les revues croisées.
+
+5) **Le rattachement d'un vaccin à son animal est figé à la création.**
+`animal_id` sort du `SET` de `vaccinations.repository.update`, et
+`animalId` est exclu du type d'entrée (`vaccinationUpdateSchema`), pour
+que le compilateur refuse le champ au lieu de l'avaler. — Raison : la
+capacité n'était pas demandée par le ticket 4.1, et elle rendrait
+incohérent un rappel déjà programmé quand 4.4 (#22) branchera les
+notifications — le rappel resterait attaché à l'ancien animal. Corriger
+une saisie sur le mauvais animal coûte deux taps (supprimer, recréer),
+ce qui reste dans le différenciant « saisie rapide ». — Alternative
+écartée : garder le déplacement avec un test, et charger #22 de
+reprogrammer le rappel. Le type d'entrée est exclu plutôt que documenté
+« ignoré » parce que le formulaire de 4.2 (#20) se construira sur ces
+types : un champ présent dans le type serait apparu dans l'écran.
+
+6) **`AnimalChipSelector` garde son décalage à cheval, mais sans
+conditions cachées.** Le composant crée son propre contexte de
+formatage pour que sa marge négative ne puisse plus fusionner avec celle
+du parent, et rend son empilement explicite au lieu de compter sur
+l'absence de contexte chez le header. — Raison : le composant est utilisé
+à l'identique sur l'accueil et le Carnet ; sortir le décalage vers les
+écrans le dupliquerait, et le premier qui l'oublierait casserait la
+maquette. On supprime les conditions cachées plutôt que de les déplacer.
+— Alternative écartée : confier le décalage aux écrans appelants.
+
+7) **`mandatory` reste à `true`, c'est le JSDoc qui est corrigé.** Le
+composant ne promet plus « il y a toujours un animal actif » mais « la
+désélection est impossible ; c'est à l'écran de fournir un animal
+actif ». — Raison : dans Vuetify 4, seul `'force'` sélectionne d'office
+le premier élément ; l'employer ferait choisir l'animal consulté par un
+composant de `shared/` qui ne connaît rien au métier, soit une décision
+produit déguisée en détail technique. Le Carnet, lui, sait toujours quel
+animal il consulte. — Alternatives écartées : passer à `'force'`, ou
+ajouter un avertissement console en développement.
+
+8) **La zone de gestes Android reste définie dans `_tokens.scss`.**
+`$padding-bottom-nav: 22px` demeure la source ; le TypeScript de la
+bottom nav la recopie, avec le commentaire qui relie les deux. — Raison :
+Vuetify fait `Number(props.height)` et s'en sert pour décaler `VMain`,
+donc le total doit exister comme nombre JS — la recopie est inévitable,
+seul son domicile est en jeu. `_tokens.scss` est le domicile documenté
+de la géométrie, et cette valeur reviendra ailleurs (marges basses,
+feuilles modales) : la loger dans un composant la rendrait introuvable.
+— Alternative écartée : faire du TS la source et supprimer le token. À ne
+surtout pas faire : garder le token **sans** l'utiliser, ce qui rendrait
+la duplication silencieuse.
+
+9) **`PRAGMA foreign_keys = ON` sera activé explicitement** dans
+`openDatabase()` (ticket #103). — Raison : le plugin l'active déjà de
+lui-même à chaque ouverture (`Database.java:282-284`, avant
+`onUpgrade`), donc la contrainte est réellement appliquée aujourd'hui —
+mais la garantie est empruntée à un détail d'implémentation qu'une
+montée de version pourrait retirer en silence, et le code de production
+est la seule des deux couches à ne pas la déclarer (les tests, eux,
+activent le PRAGMA à la main). — Alternative écartée : un simple
+commentaire documentant la dépendance.
+
+10) **Le poids du chunk d'entrée est assumé jusqu'à mesure sur
+appareil.** Brancher le store fait entrer `@capacitor-community/sqlite`
+dans le bundle initial : 268 → 364 kB (97 → 124 kB gzip). — Raison :
+dans une app Capacitor le bundle est local, pas téléchargé — le surcoût
+est du temps de parse, pas du réseau — et l'app a besoin de SQLite dès
+le premier écran. Optimiser sans mesure serait deviner. À vérifier avec
+les autres tests sur appareil (#82, zone de gestes). — Alternative
+écartée : un import différé dans `main.ts`, qui aurait été recopié par
+les quatre repositories suivants sans qu'on sache s'il sert.

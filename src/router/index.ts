@@ -8,6 +8,12 @@ const router = createRouter({
       name: 'home',
       component: () => import('@/features/home/HomeView.vue'),
     },
+    {
+      // Onglet « Carnet » de la bottom navigation.
+      path: '/animals',
+      name: 'animals',
+      component: () => import('@/features/animals/AnimalsView.vue'),
+    },
   ],
 })
 

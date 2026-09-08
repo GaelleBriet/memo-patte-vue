@@ -35,6 +35,27 @@ export const migrations: DbMigration[] = [
       );`,
     ],
   },
+  {
+    toVersion: 2,
+    statements: [
+      `CREATE TABLE IF NOT EXISTS vaccination (
+        id TEXT PRIMARY KEY NOT NULL,
+        -- Un vaccin appartient toujours à un animal ; la purge éventuelle d'un
+        -- animal emporte ses vaccins plutôt que de laisser des lignes orphelines.
+        animal_id TEXT NOT NULL REFERENCES animal(id) ON DELETE CASCADE,
+        name TEXT NOT NULL,
+        -- Dates ISO 8601 locales (yyyy-MM-dd) : l'échéance reste facultative,
+        -- un vaccin peut être consigné sans prochain rappel connu.
+        last_injection_date TEXT NOT NULL,
+        due_date TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        -- Suppression logique (ISO 8601 UTC) : NULL tant que le vaccin existe.
+        deleted_at TEXT
+      );`,
+      `CREATE INDEX IF NOT EXISTS idx_vaccination_animal_id ON vaccination (animal_id);`,
+    ],
+  },
 ]
 
 /** Version cible de la base : la plus haute version connue des migrations. */

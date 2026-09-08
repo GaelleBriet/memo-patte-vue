@@ -1,4 +1,9 @@
 {
+  "nav": {
+    "ariaLabel": "Navigation principale",
+    "home": "Accueil",
+    "animals": "Carnet"
+  },
   "animals": {
     "chipSelector": {
       "label": "Animaux",
@@ -7,7 +12,6 @@
     }
   },
   "home": {
-    "title": "MémoPatte",
-    "placeholder": "Écran d'accueil (placeholder)"
+    "title": "MémoPatte"
   }
 }
