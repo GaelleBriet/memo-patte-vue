@@ -16,6 +16,16 @@ export const vaccinationInputSchema = z.object({
   dueDate: z.iso.date().nullable().default(null),
 })
 
+/**
+ * Ce qu'une modification peut changer : tout sauf le rattachement à l'animal.
+ *
+ * Décision du 2026-09-08 : le rattachement est figé à la création. Déplacer un
+ * vaccin d'un animal à l'autre rendrait incohérent un rappel déjà programmé
+ * (#22), et corriger une saisie sur le mauvais animal se fait en supprimant
+ * puis recréant, en deux taps.
+ */
+export const vaccinationUpdateSchema = vaccinationInputSchema.omit({ animalId: true })
+
 /** Vaccin tel qu'il est persisté : identité et horodatages en plus. */
 export const vaccinationSchema = vaccinationInputSchema.extend({
   id: z.uuid(),
@@ -31,4 +41,6 @@ export const vaccinationSchema = vaccinationInputSchema.extend({
 
 /** Ce que l'appelant fournit : les champs facultatifs peuvent être omis. */
 export type VaccinationInput = z.input<typeof vaccinationInputSchema>
+/** Ce qu'une modification accepte : `animalId` en est absent, et non ignoré. */
+export type VaccinationUpdateInput = z.input<typeof vaccinationUpdateSchema>
 export type Vaccination = z.output<typeof vaccinationSchema>

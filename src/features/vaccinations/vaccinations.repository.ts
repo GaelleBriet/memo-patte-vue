@@ -1,8 +1,10 @@
 import type { DbClient } from '@/core/db/db-client'
 import {
   vaccinationInputSchema,
+  vaccinationUpdateSchema,
   type Vaccination,
   type VaccinationInput,
+  type VaccinationUpdateInput,
 } from './vaccination.schema'
 
 /** Ligne brute de la table `vaccination` (colonnes en snake_case). */
@@ -95,16 +97,21 @@ export function createVaccinationsRepository(db: DbClient) {
       return vaccination
     },
 
-    /** Un vaccin supprimé est traité comme inexistant : la mise à jour échoue. */
-    async update(id: string, input: VaccinationInput): Promise<Vaccination> {
-      const data = vaccinationInputSchema.parse(input)
+    /**
+     * Un vaccin supprimé est traité comme inexistant : la mise à jour échoue.
+     *
+     * `animal_id` reste hors du `SET` : le rattachement est figé à la création
+     * (cf. `vaccinationUpdateSchema`).
+     */
+    async update(id: string, input: VaccinationUpdateInput): Promise<Vaccination> {
+      const data = vaccinationUpdateSchema.parse(input)
       const updatedAt = new Date().toISOString()
 
       const changes = await db.run(
         `UPDATE vaccination
-         SET animal_id = ?, name = ?, last_injection_date = ?, due_date = ?, updated_at = ?
+         SET name = ?, last_injection_date = ?, due_date = ?, updated_at = ?
          WHERE id = ? AND ${NOT_DELETED}`,
-        [data.animalId, data.name, data.lastInjectionDate, data.dueDate, updatedAt, id],
+        [data.name, data.lastInjectionDate, data.dueDate, updatedAt, id],
       )
 
       if (changes === 0) {

@@ -102,7 +102,6 @@ describe('vaccinationsRepository', () => {
       vi.advanceTimersByTime(60_000)
 
       const updated = await repository.update(created.id, {
-        animalId: MIETTE,
         name: 'CHPPiL',
         lastInjectionDate: '2026-02-10',
       })
@@ -122,10 +121,34 @@ describe('vaccinationsRepository', () => {
     }
   })
 
+  /**
+   * Décision du 2026-09-08 : le rattachement à l'animal est figé à la création.
+   * `animalId` est absent du type d'entrée de `update` — d'où le
+   * `@ts-expect-error` : le compilateur refuse déjà de le passer, et même forcé,
+   * il ne doit pas déplacer le vaccin.
+   */
+  it('ne déplace pas un vaccin vers un autre animal', async () => {
+    const rage = await repository.create({
+      animalId: MIETTE,
+      name: 'Rage',
+      lastInjectionDate: '2024-03-01',
+    })
+
+    const updated = await repository.update(rage.id, {
+      name: 'Rage renouvelée',
+      lastInjectionDate: '2026-03-01',
+      // @ts-expect-error le rattachement est figé : `animalId` n'est pas modifiable
+      animalId: VASCO,
+    })
+
+    expect(updated.animalId).toBe(MIETTE)
+    expect((await repository.listByAnimal(MIETTE)).map((v) => v.id)).toEqual([rage.id])
+    await expect(repository.listByAnimal(VASCO)).resolves.toEqual([])
+  })
+
   it('échoue à mettre à jour un vaccin inexistant', async () => {
     await expect(
       repository.update('inconnu', {
-        animalId: MIETTE,
         name: 'CHPPi',
         lastInjectionDate: '2025-06-12',
       }),
@@ -200,7 +223,6 @@ describe('vaccinationsRepository', () => {
 
     await expect(
       repository.update(rage.id, {
-        animalId: MIETTE,
         name: 'Rage renouvelée',
         lastInjectionDate: '2026-03-01',
       }),
