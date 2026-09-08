@@ -4,6 +4,13 @@ updates:
     directory: '/'
     schedule:
       interval: 'weekly'
+    groups:
+      # Les paquets Capacitor doivent monter ensemble : core, cli et android
+      # désalignés cassent `cap sync`.
+      capacitor:
+        patterns:
+          - '@capacitor/*'
+          - '@capacitor-community/*'
 
   - package-ecosystem: 'github-actions'
     directory: '/'
