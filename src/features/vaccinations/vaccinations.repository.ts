@@ -7,7 +7,6 @@ import {
   type VaccinationUpdateInput,
 } from './vaccination.schema'
 
-/** Ligne brute de la table `vaccination` (colonnes en snake_case). */
 interface VaccinationRow {
   id: string
   animal_id: string
@@ -38,16 +37,6 @@ function toVaccination(row: VaccinationRow): Vaccination {
   }
 }
 
-/**
- * Seul point d'accès à la table `vaccination`.
- *
- * Le client de base est injecté : l'application lui passe `getDb()`
- * (`core/db/sqlite.ts`), les tests une base sql.js en mémoire.
- *
- * La suppression est logique (`deleted_at`) : la ligne survit pour que la
- * synchronisation Plus puisse propager la suppression aux autres appareils,
- * mais un vaccin supprimé est invisible pour tout le reste de l'application.
- */
 export function createVaccinationsRepository(db: DbClient) {
   async function getById(id: string): Promise<Vaccination | null> {
     const rows = await db.query<VaccinationRow>(
@@ -61,7 +50,6 @@ export function createVaccinationsRepository(db: DbClient) {
   return {
     getById,
 
-    /** Vaccins d'un animal, injection la plus récente en tête. */
     async listByAnimal(animalId: string): Promise<Vaccination[]> {
       const rows = await db.query<VaccinationRow>(
         `SELECT ${COLUMNS} FROM vaccination
@@ -97,12 +85,7 @@ export function createVaccinationsRepository(db: DbClient) {
       return vaccination
     },
 
-    /**
-     * Un vaccin supprimé est traité comme inexistant : la mise à jour échoue.
-     *
-     * `animal_id` reste hors du `SET` : le rattachement est figé à la création
-     * (cf. `vaccinationUpdateSchema`).
-     */
+    /** `animal_id` reste hors du `SET` : le rattachement est figé à la création. */
     async update(id: string, input: VaccinationUpdateInput): Promise<Vaccination> {
       const data = vaccinationUpdateSchema.parse(input)
       const updatedAt = new Date().toISOString()
@@ -125,10 +108,7 @@ export function createVaccinationsRepository(db: DbClient) {
       return vaccination
     },
 
-    /**
-     * Marque le vaccin comme supprimé. Sans effet sur un identifiant inconnu ou
-     * sur un vaccin déjà supprimé (la date de suppression initiale est gardée).
-     */
+    /** Sans effet sur un vaccin inconnu ou déjà supprimé : la date initiale est gardée. */
     async remove(id: string): Promise<void> {
       const deletedAt = new Date().toISOString()
       await db.run(
