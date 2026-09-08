@@ -26,7 +26,6 @@ function chip(wrapper: VueWrapper, index: number): DOMWrapper<Element> {
   return trouvee
 }
 
-/** Sélections émises par le composant, dans l'ordre. */
 function selectionsEmises(wrapper: VueWrapper): unknown[] {
   return (wrapper.emitted('update:selectedId') ?? []).map(([valeur]) => valeur)
 }
@@ -37,7 +36,7 @@ function derniereSelection(wrapper: VueWrapper): unknown {
   return emises[emises.length - 1]
 }
 
-/** `#RRGGBB` → `rgb(r, g, b)`, la forme que jsdom écrit dans l'attribut `style`. */
+// jsdom réécrit les hexadécimaux en `rgb()` dans l'attribut `style`.
 function enRgb(css: string): string {
   return css.replace(/#([0-9a-f]{6})/gi, (_, hex: string) => {
     const canal = (index: number) => Number.parseInt(hex.slice(index, index + 2), 16)
@@ -134,7 +133,6 @@ describe('AnimalChipSelector', () => {
 
     expect(wrapper.find('.animal-chip__avatar img').exists()).toBe(false)
     expect(wrapper.find('.animal-chip__avatar').attributes('style')).toContain(
-      // jsdom réécrit les hexadécimaux en `rgb()` dans l'attribut `style`.
       enRgb(animalAvatarGradientCss(MILO.id)),
     )
   })

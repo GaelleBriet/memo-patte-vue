@@ -8,21 +8,8 @@ import AnimalChipSelector from '../AnimalChipSelector.vue'
 import i18n from '@/core/i18n'
 import vuetify from '@/core/theme/vuetify'
 
-/**
- * Vitest tourne avec `css: false` : rien n'applique jamais les styles du
- * composant. On compile donc son bloc `<style>`, et on le vérifie de deux
- * façons, qui ne couvrent pas la même chose :
- *
- * - `getComputedStyle` sur le composant monté, feuille injectée : ne prouve
- *   quelque chose que pour une propriété dont la valeur diffère de celle par
- *   défaut. La feuille Vuetify n'étant pas chargée ici, `margin: 0` ou
- *   `padding-block: 0` y seraient vrais même sans nos déclarations ;
- * - lecture du CSS compilé : c'est là qu'on vérifie ce qui neutralise une
- *   déclaration de Vuetify, ainsi que la règle `:deep(…)`, que sass laisse
- *   littérale et que jsdom écarte donc comme sélecteur invalide.
- *
- * Aucune des deux ne mesure la géométrie : jsdom ne fait pas de mise en page.
- */
+// Vitest tourne avec `css: false` : ces tests compilent le bloc `<style>` et
+// vérifient des déclarations, jamais la géométrie — jsdom ne met pas en page.
 const COMPOSANT = resolve(process.cwd(), 'src/shared/AnimalChipSelector.vue')
 const DOSSIER_STYLES = resolve(process.cwd(), 'src/styles')
 
@@ -52,7 +39,6 @@ afterAll(() => {
   feuille.remove()
 })
 
-/** Valeur déclarée pour une propriété dans le CSS compilé, `undefined` sinon. */
 function declaration(selecteur: string, propriete: string): string | undefined {
   for (const regle of css.matchAll(/([^{}]+)\{([^}]*)\}/g)) {
     if (regle[1]!.trim().replace(/\s+/g, ' ') !== selecteur) continue
@@ -63,7 +49,7 @@ function declaration(selecteur: string, propriete: string): string | undefined {
   return undefined
 }
 
-/** jsdom sérialise le zéro tantôt `0`, tantôt `0px` : on compare des nombres. */
+// jsdom sérialise le zéro tantôt `0`, tantôt `0px` : on compare des nombres.
 function px(valeur: string): number {
   return Number.parseFloat(valeur)
 }

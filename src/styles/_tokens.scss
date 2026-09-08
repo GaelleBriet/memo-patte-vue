@@ -1,22 +1,7 @@
-// Tokens de design — maquettes v2 (docs/design/accueil-v2/accueil.md et
-// docs/design/carnet-v2/carnet.md). Valeurs reprises telles quelles.
-//
-// La palette sémantique du thème (fond, surface, pétrole, urgences) est
-// déclarée dans `src/core/theme/vuetify.ts` et s'utilise via les classes
-// Vuetify (`bg-surface`, `text-overdue`…) ou `rgb(var(--v-theme-overdue))`.
-// Ce fichier ne contient que ce qui n'a pas sa place dans la palette Vuetify :
-// la géométrie récurrente et les couleurs de détail (filets, bordures, textes
-// secondaires, badges).
-//
-// Usage dans un composant :
-//   <style scoped lang="scss">
-//   @use '@/styles/tokens' as tokens;
-//   .carte { border-radius: tokens.$radius-card; }
-//   </style>
+// La palette sémantique du thème vit dans `src/core/theme/vuetify.ts` : ici, la
+// géométrie récurrente et les couleurs de détail qui n'y ont pas leur place.
 
-// ---------------------------------------------------------------------------
 // Typographie
-// ---------------------------------------------------------------------------
 
 $font-family-body:
   'Inter Variable',
@@ -28,9 +13,7 @@ $font-family-body:
 $font-family-heading:
   'Space Grotesk Variable', 'Space Grotesk', 'Inter Variable', system-ui, sans-serif;
 
-// ---------------------------------------------------------------------------
 // Couleurs de détail
-// ---------------------------------------------------------------------------
 
 $color-card-border: #ece9e5; // Bordure carte
 $color-divider: #efece8; // Filet de séparation
@@ -47,16 +30,12 @@ $color-badge-frequency-bg: #f2f0ec;
 $color-badge-frequency-text: #5c5751;
 $color-badge-frequency-border: #e7e4df;
 
-// ---------------------------------------------------------------------------
 // Rayons
-// ---------------------------------------------------------------------------
 
 $radius-card: 22px; // Carte de rappels / de section
 $radius-tile: 18px; // Tuile d'action rapide, bouton plein largeur
 
-// ---------------------------------------------------------------------------
 // Hauteurs et tailles récurrentes
-// ---------------------------------------------------------------------------
 
 $height-header: 158px; // Header pétrole
 $height-list-row: 76px; // Ligne de liste (minimum)
