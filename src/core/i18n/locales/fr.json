@@ -1,4 +1,11 @@
 {
+  "animals": {
+    "chipSelector": {
+      "label": "Animaux",
+      "add": "Ajouter un animal",
+      "photoAlt": "Photo de {name}"
+    }
+  },
   "home": {
     "title": "MémoPatte",
     "placeholder": "Écran d'accueil (placeholder)"
