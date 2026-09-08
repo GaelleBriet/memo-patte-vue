@@ -65,8 +65,8 @@ src/
 
 ### Règles strictes de structure
 
-- Aucun import croisé entre features (sauf via shared/ ou core/)
-- Les repositories sont les seuls autorisés à parler à SQLite et Supabase
+- Aucun import croisé entre features, à une exception près : un **service de cas d'usage** (`xxx.service.ts`, placé dans la feature qui porte le cas d'usage) peut importer les repositories d'autres features pour les orchestrer — un composant, un store ou un repository, jamais. Tout le reste passe par `shared/` ou `core/`
+- Les repositories sont les seuls autorisés à parler à SQLite et Supabase, et chacun reste le seul à écrire dans sa table : un service qui orchestre appelle leurs méthodes, il n'écrit pas de SQL
 - Les stores Pinia ne contiennent aucune requête directe
 - Tout texte visible passe par vue-i18n (FR source, EN livré en v1)
 
@@ -77,6 +77,7 @@ src/
   - Composants : PascalCase
   - Stores : xxx.store.ts
   - Repositories : xxx.repository.ts
+  - Services de cas d'usage : xxx.service.ts
 - Zod pour toutes les validations de formulaires
 - **Commentaires : le défaut, c'est pas de commentaire.** Le code et les tests disent ce que fait le programme ; un commentaire ne se justifie que pour un _pourquoi_ indéduisible, et tient alors en une phrase. La raison d'une décision va dans `docs/product/decisions-log.md` ou dans la PR, jamais dans le code. Détail et exemples : `.claude/rules/commentaires.md`
 - Conventional Commits (feat:, fix:, chore:, etc.)
