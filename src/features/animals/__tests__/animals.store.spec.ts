@@ -80,7 +80,7 @@ describe('useAnimalsStore', () => {
     const created = await store.create({ name: 'Vasco', species: 'dog' })
 
     expect(repository.create).toHaveBeenCalledWith({ name: 'Vasco', species: 'dog' })
-    expect(created?.name).toBe('Vasco')
+    expect(created.name).toBe('Vasco')
     expect(store.animals.map((animal) => animal.name)).toEqual(['Vasco'])
   })
 
@@ -95,7 +95,7 @@ describe('useAnimalsStore', () => {
       name: 'Miette la seconde',
       species: 'cat',
     })
-    expect(updated?.name).toBe('Miette la seconde')
+    expect(updated.name).toBe('Miette la seconde')
     expect(store.animals.map((animal) => animal.name)).toEqual(['Miette la seconde'])
   })
 
@@ -105,7 +105,7 @@ describe('useAnimalsStore', () => {
     const store = useAnimalsStore()
     await store.load()
 
-    await expect(store.remove(miette.id)).resolves.toBe(true)
+    await store.remove(miette.id)
 
     expect(repository.remove).toHaveBeenCalledWith(miette.id)
     expect(store.animals.map((animal) => animal.name)).toEqual(['Vasco'])
@@ -149,16 +149,56 @@ describe('useAnimalsStore', () => {
     expect(store.animals).toEqual([])
   })
 
-  it('renvoie null et garde la liste intacte quand une création échoue', async () => {
+  it('propage l’erreur d’une création et garde la liste intacte', async () => {
     repository.seed({ name: 'Miette', species: 'cat' })
     const store = useAnimalsStore()
     await store.load()
     repository.create.mockRejectedValueOnce(new Error('nom invalide'))
 
-    await expect(store.create({ name: '', species: 'dog' })).resolves.toBeNull()
+    await expect(store.create({ name: '', species: 'dog' })).rejects.toThrow('nom invalide')
 
-    expect(store.error?.message).toBe('nom invalide')
     expect(store.animals.map((animal) => animal.name)).toEqual(['Miette'])
+    expect(store.isLoading).toBe(false)
+  })
+
+  it('propage l’erreur d’une mise à jour et d’une suppression', async () => {
+    const miette = repository.seed({ name: 'Miette', species: 'cat' })
+    const store = useAnimalsStore()
+    await store.load()
+
+    repository.update.mockRejectedValueOnce(new Error('animal introuvable'))
+    await expect(store.update(miette.id, { name: 'Miette', species: 'cat' })).rejects.toThrow(
+      'animal introuvable',
+    )
+
+    repository.remove.mockRejectedValueOnce(new Error('base verrouillée'))
+    await expect(store.remove(miette.id)).rejects.toThrow('base verrouillée')
+
+    expect(store.animals.map((animal) => animal.name)).toEqual(['Miette'])
+    expect(store.isLoading).toBe(false)
+  })
+
+  it('laisse la bannière de chargement intacte quand une écriture échoue', async () => {
+    repository.list.mockRejectedValueOnce(new Error('base indisponible'))
+    const store = useAnimalsStore()
+    await store.load()
+    repository.create.mockRejectedValueOnce(new Error('nom invalide'))
+
+    await expect(store.create({ name: '', species: 'dog' })).rejects.toThrow('nom invalide')
+
+    // `error` ne raconte que l'histoire de la liste : l'échec d'écriture est parti à l'appelant.
+    expect(store.error?.message).toBe('base indisponible')
+  })
+
+  it('efface la bannière de chargement dès qu’une écriture réussit', async () => {
+    repository.list.mockRejectedValueOnce(new Error('base indisponible'))
+    const store = useAnimalsStore()
+    await store.load()
+
+    await store.create({ name: 'Vasco', species: 'dog' })
+
+    expect(store.error).toBeNull()
+    expect(store.animals.map((animal) => animal.name)).toEqual(['Vasco'])
   })
 
   it('nomme le câblage manquant quand aucun repository n’est injecté', async () => {
@@ -166,13 +206,16 @@ describe('useAnimalsStore', () => {
     const store = useAnimalsStore()
 
     await expect(store.load()).resolves.toBe(false)
-
     // Le message doit désigner le câblage oublié, pas un « x is not a function ».
     expect(store.error?.message).toContain('provideAnimalsRepository')
     expect(store.hasLoaded).toBe(false)
+
+    await expect(store.create({ name: 'Vasco', species: 'dog' })).rejects.toThrow(
+      'provideAnimalsRepository',
+    )
   })
 
-  it('efface l’erreur précédente dès qu’une opération réussit', async () => {
+  it('efface l’erreur précédente dès qu’un chargement réussit', async () => {
     repository.list.mockRejectedValueOnce(new Error('base indisponible'))
     const store = useAnimalsStore()
     await store.load()

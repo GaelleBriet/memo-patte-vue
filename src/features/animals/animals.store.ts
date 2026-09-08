@@ -5,18 +5,19 @@ import type { AnimalsRepository } from './animals.repository'
 
 /**
  * Fournit le repository au store : l'application injecte celui qui parle à
- * SQLite, les tests un double en mémoire.
+ * SQLite (`getAnimalsRepository`), les tests un double en mémoire.
  */
 export type AnimalsRepositoryProvider = () => AnimalsRepository | Promise<AnimalsRepository>
 
 let provider: AnimalsRepositoryProvider | null = null
 
 /**
- * Branche le store sur son repository, une fois au démarrage de l'application.
+ * Branche le store sur son repository, une fois au démarrage de l'application
+ * (`main.ts`). Passer `null` le débranche.
  *
  * Le store ne construit pas son repository lui-même : seuls `core/db/` et les
  * repositories ont le droit d'ouvrir la base (cf. CLAUDE.md et la règle ESLint
- * `app/repository-only-data-access`). Passer `null` débranche le store.
+ * `app/repository-only-data-access`).
  */
 export function provideAnimalsRepository(next: AnimalsRepositoryProvider | null): void {
   provider = next
@@ -30,9 +31,19 @@ export function provideAnimalsRepository(next: AnimalsRepositoryProvider | null)
  * Il délègue, puis relit la liste pour rester aligné sur le filtrage et l'ordre
  * du repository (animaux vivants, triés par nom).
  *
- * Les actions ne lèvent jamais : une erreur du repository est rangée dans
- * `error` et l'appelant la reconnaît au retour (`null` ou `false`), pour qu'un
- * échec de base ne casse pas l'écran qui l'a déclenché.
+ * Deux contrats d'erreur, décidés le 2026-09-08 :
+ *
+ * - `load()` ne lève pas. C'est un appel au montage : l'écran veut afficher une
+ *   bannière, pas encadrer son `onMounted` d'un `try/catch`. L'échec se lit
+ *   dans `error`.
+ * - `create()`, `update()` et `remove()` lèvent. TypeScript n'oblige jamais à
+ *   lire une valeur de retour : `await store.create(input); router.back()`
+ *   compilait et naviguait sur un échec. Et `error` est un état global : avec
+ *   deux opérations en vol, l'écran risquait d'afficher l'erreur de l'autre.
+ *   Les écrans de formulaire ont de toute façon leur `try/catch` pour rester
+ *   sur le formulaire.
+ *
+ * `error` ne raconte donc qu'une histoire : celle de la liste affichée.
  */
 export const useAnimalsStore = defineStore('animals', () => {
   /** Animaux vivants, dans l'ordre donné par le repository (nom, casse ignorée). */
@@ -43,32 +54,36 @@ export const useAnimalsStore = defineStore('animals', () => {
   const isLoading = ref(false)
   /** Vrai dès qu'un chargement a abouti : distingue « pas encore chargé » de « aucun animal ». */
   const hasLoaded = ref(false)
-  /** Dernière erreur du repository, remise à `null` au début de l'opération suivante. */
+  /** Échec du dernier chargement de la liste. Les écritures lèvent, elles ne passent pas par ici. */
   const error = ref<Error | null>(null)
 
   const selectedAnimal = computed(
     () => animals.value.find((animal) => animal.id === selectedAnimalId.value) ?? null,
   )
 
-  /** Exécute une opération puis relit la liste ; toute erreur atterrit dans `error`. */
-  async function run<T>(
-    operation: (repository: AnimalsRepository) => Promise<T>,
-  ): Promise<T | null> {
-    isLoading.value = true
+  function requireRepository(): Promise<AnimalsRepository> {
+    if (!provider) {
+      throw new Error('Repository des animaux absent : appelle provideAnimalsRepository().')
+    }
+    return Promise.resolve(provider())
+  }
+
+  /** Relit la liste : le seul moment où l'état affiché redevient sain, donc où `error` s'efface. */
+  async function refresh(repository: AnimalsRepository): Promise<void> {
+    animals.value = await repository.list()
+    hasLoaded.value = true
+    forgetSelectionIfGone()
     error.value = null
+  }
+
+  /** Exécute une écriture puis rafraîchit la liste ; l'erreur revient à l'appelant. */
+  async function write<T>(operation: (repository: AnimalsRepository) => Promise<T>): Promise<T> {
+    isLoading.value = true
     try {
-      if (!provider) {
-        throw new Error('Repository des animaux absent : appelle provideAnimalsRepository().')
-      }
-      const repository = await provider()
+      const repository = await requireRepository()
       const result = await operation(repository)
-      animals.value = await repository.list()
-      hasLoaded.value = true
-      forgetSelectionIfGone()
+      await refresh(repository)
       return result
-    } catch (cause) {
-      error.value = cause instanceof Error ? cause : new Error(String(cause))
-      return null
     } finally {
       isLoading.value = false
     }
@@ -89,28 +104,33 @@ export const useAnimalsStore = defineStore('animals', () => {
     hasLoaded,
     error,
 
-    /** Charge (ou recharge) la liste. Renvoie `false` si le repository a échoué. */
+    /** Charge (ou recharge) la liste. Ne lève pas : renvoie `false` et renseigne `error`. */
     async load(): Promise<boolean> {
-      return (await run(async () => true)) ?? false
-    },
-
-    /** Crée un animal et rafraîchit la liste. Renvoie `null` en cas d'échec. */
-    async create(input: AnimalInput): Promise<Animal | null> {
-      return run((repository) => repository.create(input))
-    },
-
-    /** Met à jour un animal et rafraîchit la liste. Renvoie `null` en cas d'échec. */
-    async update(id: string, input: AnimalInput): Promise<Animal | null> {
-      return run((repository) => repository.update(id, input))
-    },
-
-    /** Supprime (logiquement) un animal et rafraîchit la liste. */
-    async remove(id: string): Promise<boolean> {
-      const removed = await run(async (repository) => {
-        await repository.remove(id)
+      isLoading.value = true
+      try {
+        await refresh(await requireRepository())
         return true
-      })
-      return removed ?? false
+      } catch (cause) {
+        error.value = cause instanceof Error ? cause : new Error(String(cause))
+        return false
+      } finally {
+        isLoading.value = false
+      }
+    },
+
+    /** Crée un animal et rafraîchit la liste. Lève si le repository échoue. */
+    async create(input: AnimalInput): Promise<Animal> {
+      return write((repository) => repository.create(input))
+    },
+
+    /** Met à jour un animal et rafraîchit la liste. Lève si le repository échoue. */
+    async update(id: string, input: AnimalInput): Promise<Animal> {
+      return write((repository) => repository.update(id, input))
+    },
+
+    /** Supprime (logiquement) un animal et rafraîchit la liste. Lève si le repository échoue. */
+    async remove(id: string): Promise<void> {
+      await write((repository) => repository.remove(id))
     },
 
     /** Change l'animal courant ; `null` signifie « tous les animaux ». */
