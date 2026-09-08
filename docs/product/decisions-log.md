@@ -587,3 +587,72 @@ Ce motif vaut pour les quatre repositories suivants. Piège à ne pas
 reproduire : mémoïser `getDb().then(...)` mettrait en cache une promesse
 **rejetée** et annulerait le réessai documenté de `sqlite.ts:29` — le
 cache doit revenir à `null` sur rejet.
+
+2026-09-08 — **Six dernières décisions du lot 2**, posées une par une à
+Gaelle après les revues croisées.
+
+5) **Le rattachement d'un vaccin à son animal est figé à la création.**
+`animal_id` sort du `SET` de `vaccinations.repository.update`, et
+`animalId` est exclu du type d'entrée (`vaccinationUpdateSchema`), pour
+que le compilateur refuse le champ au lieu de l'avaler. — Raison : la
+capacité n'était pas demandée par le ticket 4.1, et elle rendrait
+incohérent un rappel déjà programmé quand 4.4 (#22) branchera les
+notifications — le rappel resterait attaché à l'ancien animal. Corriger
+une saisie sur le mauvais animal coûte deux taps (supprimer, recréer),
+ce qui reste dans le différenciant « saisie rapide ». — Alternative
+écartée : garder le déplacement avec un test, et charger #22 de
+reprogrammer le rappel. Le type d'entrée est exclu plutôt que documenté
+« ignoré » parce que le formulaire de 4.2 (#20) se construira sur ces
+types : un champ présent dans le type serait apparu dans l'écran.
+
+6) **`AnimalChipSelector` garde son décalage à cheval, mais sans
+conditions cachées.** Le composant crée son propre contexte de
+formatage pour que sa marge négative ne puisse plus fusionner avec celle
+du parent, et rend son empilement explicite au lieu de compter sur
+l'absence de contexte chez le header. — Raison : le composant est utilisé
+à l'identique sur l'accueil et le Carnet ; sortir le décalage vers les
+écrans le dupliquerait, et le premier qui l'oublierait casserait la
+maquette. On supprime les conditions cachées plutôt que de les déplacer.
+— Alternative écartée : confier le décalage aux écrans appelants.
+
+7) **`mandatory` reste à `true`, c'est le JSDoc qui est corrigé.** Le
+composant ne promet plus « il y a toujours un animal actif » mais « la
+désélection est impossible ; c'est à l'écran de fournir un animal
+actif ». — Raison : dans Vuetify 4, seul `'force'` sélectionne d'office
+le premier élément ; l'employer ferait choisir l'animal consulté par un
+composant de `shared/` qui ne connaît rien au métier, soit une décision
+produit déguisée en détail technique. Le Carnet, lui, sait toujours quel
+animal il consulte. — Alternatives écartées : passer à `'force'`, ou
+ajouter un avertissement console en développement.
+
+8) **La zone de gestes Android reste définie dans `_tokens.scss`.**
+`$padding-bottom-nav: 22px` demeure la source ; le TypeScript de la
+bottom nav la recopie, avec le commentaire qui relie les deux. — Raison :
+Vuetify fait `Number(props.height)` et s'en sert pour décaler `VMain`,
+donc le total doit exister comme nombre JS — la recopie est inévitable,
+seul son domicile est en jeu. `_tokens.scss` est le domicile documenté
+de la géométrie, et cette valeur reviendra ailleurs (marges basses,
+feuilles modales) : la loger dans un composant la rendrait introuvable.
+— Alternative écartée : faire du TS la source et supprimer le token. À ne
+surtout pas faire : garder le token **sans** l'utiliser, ce qui rendrait
+la duplication silencieuse.
+
+9) **`PRAGMA foreign_keys = ON` sera activé explicitement** dans
+`openDatabase()` (ticket #103). — Raison : le plugin l'active déjà de
+lui-même à chaque ouverture (`Database.java:282-284`, avant
+`onUpgrade`), donc la contrainte est réellement appliquée aujourd'hui —
+mais la garantie est empruntée à un détail d'implémentation qu'une
+montée de version pourrait retirer en silence, et le code de production
+est la seule des deux couches à ne pas la déclarer (les tests, eux,
+activent le PRAGMA à la main). — Alternative écartée : un simple
+commentaire documentant la dépendance.
+
+10) **Le poids du chunk d'entrée est assumé jusqu'à mesure sur
+appareil.** Brancher le store fait entrer `@capacitor-community/sqlite`
+dans le bundle initial : 268 → 364 kB (97 → 124 kB gzip). — Raison :
+dans une app Capacitor le bundle est local, pas téléchargé — le surcoût
+est du temps de parse, pas du réseau — et l'app a besoin de SQLite dès
+le premier écran. Optimiser sans mesure serait deviner. À vérifier avec
+les autres tests sur appareil (#82, zone de gestes). — Alternative
+écartée : un import différé dans `main.ts`, qui aurait été recopié par
+les quatre repositories suivants sans qu'on sache s'il sert.
