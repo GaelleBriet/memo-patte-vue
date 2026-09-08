@@ -1,8 +1,17 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ZodError } from 'zod'
+import type { DbClient } from '@/core/db/db-client'
 import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory-db'
-import { createAnimalsRepository, type AnimalsRepository } from '../animals.repository'
+import { getDb } from '@/core/db/sqlite'
+import {
+  createAnimalsRepository,
+  getAnimalsRepository,
+  type AnimalsRepository,
+} from '../animals.repository'
+
+// La fabrique est le seul code testé ici qui ouvre la base : on lui substitue `getDb`.
+vi.mock('@/core/db/sqlite', () => ({ getDb: vi.fn<() => Promise<DbClient>>() }))
 
 describe('animalsRepository', () => {
   let db: InMemoryDb
@@ -192,5 +201,32 @@ describe('animalsRepository', () => {
       ZodError,
     )
     await expect(repository.list()).resolves.toEqual([])
+  })
+})
+
+describe('getAnimalsRepository', () => {
+  let db: InMemoryDb
+
+  beforeEach(async () => {
+    db = await createInMemoryDb()
+  })
+
+  afterEach(() => {
+    db.close()
+  })
+
+  it('ne met pas en cache une ouverture ratée, puis réutilise celle qui réussit', async () => {
+    vi.mocked(getDb).mockRejectedValueOnce(new Error('base indisponible'))
+    await expect(getAnimalsRepository()).rejects.toThrow('base indisponible')
+
+    // Sans remise à null du cache, ce second appel renverrait la promesse rejetée
+    // et annulerait le réessai voulu par `getDb()` (cf. core/db/sqlite.ts).
+    vi.mocked(getDb).mockResolvedValueOnce(db)
+    const repository = await getAnimalsRepository()
+    await expect(repository.list()).resolves.toEqual([])
+
+    // La base n'est ouverte qu'une fois : l'appel suivant rend le même repository.
+    await expect(getAnimalsRepository()).resolves.toBe(repository)
+    expect(getDb).toHaveBeenCalledTimes(2)
   })
 })
