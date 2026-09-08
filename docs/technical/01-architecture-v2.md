@@ -90,8 +90,8 @@ src/
 
 ### Règles strictes
 
-- Aucun import croisé entre features (sauf via shared/ ou core/).
-- Les repositories sont les seuls autorisés à parler à SQLite et à Supabase.
+- Aucun import croisé entre features, à une exception près : un **service de cas d'usage** (`xxx.service.ts`, placé dans la feature qui porte le cas d'usage) peut importer les repositories d'autres features pour les orchestrer — un composant, un store ou un repository, jamais. Tout le reste passe par `shared/` ou `core/`.
+- Les repositories sont les seuls autorisés à parler à SQLite et à Supabase, et chacun reste le seul à écrire dans sa table : un service qui orchestre appelle leurs méthodes, il n'écrit pas de SQL.
 - Les stores Pinia ne contiennent aucune requête SQL/API directe.
 - Tout texte visible passe par vue-i18n.
 
