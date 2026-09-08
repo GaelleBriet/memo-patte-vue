@@ -113,11 +113,10 @@ $gap-chips: 10px;
 // fusionnerait avec la marge haute du conteneur (margin collapsing) et
 // remonterait tout le parent au lieu de chevaucher le header.
 //
-// Empilement rendu explicite : le composant se pose devant un header non
-// positionné ou en `z-index` auto / 0. `isolation: isolate` garantit en plus
-// qu'il se peint d'un bloc — aucun descendant (survol Vuetify, anneau de
-// sélection) ne peut s'en échapper. Un header qui remonterait son propre
-// `z-index` reste l'affaire de l'écran, pas du composant.
+// Le `z-index` pose le composant devant un header non positionné ou en
+// `z-index` auto / 0 ; un header qui remonterait le sien reste l'affaire de
+// l'écran. `isolation` ne sert qu'à garder le contexte d'empilement si ce
+// `z-index` disparaît un jour.
 .animal-chip-selector {
   display: flow-root;
   position: relative;
