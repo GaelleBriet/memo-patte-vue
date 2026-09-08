@@ -656,3 +656,10 @@ le premier écran. Optimiser sans mesure serait deviner. À vérifier avec
 les autres tests sur appareil (#82, zone de gestes). — Alternative
 écartée : un import différé dans `main.ts`, qui aurait été recopié par
 les quatre repositories suivants sans qu'on sache s'il sert.
+
+2026-09-08 — **La version 1 des migrations a été amendée** (ajout de
+`animal.deleted_at`) au lieu d'ajouter une v2. — Raison : aucune base
+installée n'était encore en version 1, une migration v2 n'aurait mis à
+jour aucun appareil réel. — Alternative écartée : une migration v2, qui
+aurait laissé une entrée vide dans l'historique du schéma. La règle
+reste inchangée pour la suite : une version publiée ne se modifie plus.
