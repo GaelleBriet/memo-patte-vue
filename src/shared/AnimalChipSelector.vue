@@ -58,6 +58,7 @@ function onSelect(value: unknown) {
       class="animal-chip-selector__group"
       :model-value="selectedId ?? undefined"
       :mandatory="mode === 'switch'"
+      role="group"
       :aria-label="t('animals.chipSelector.label')"
       variant="flat"
       base-color="surface"
@@ -96,6 +97,11 @@ function onSelect(value: unknown) {
 <style scoped lang="scss">
 @use '@/styles/tokens' as tokens;
 
+// Écart entre chips, mesuré sur la maquette v2 de l'accueil (≈ 17 px image au
+// ratio 1,74, soit 10 px CSS), identique entre deux chips animal et avant la
+// chip « + ». Local au composant : c'est le seul endroit qui l'utilise.
+$gap-chips: 10px;
+
 .animal-chip-selector {
   // À cheval sur le header pétrole et le contenu clair : la rangée est posée
   // juste après le header et remonte de la moitié de sa hauteur (maquettes v2,
@@ -105,29 +111,44 @@ function onSelect(value: unknown) {
   margin-top: tokens.$offset-chips;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: $gap-chips;
   padding-inline: 20px;
 }
 
 // Le conteneur interne de VSlideGroup défile déjà horizontalement sans barre
-// visible. Il ne doit pas s'étirer, pour que la chip « + » reste collée à la
-// dernière chip animal quand la rangée n'est pas pleine.
+// visible (`scrollbar-width: none`). Il ne doit pas s'étirer, pour que la chip
+// « + » reste collée à la dernière chip animal quand la rangée n'est pas pleine.
+//
+// VChipGroup ajoute par défaut `padding: 4px 0` et, sur chaque chip,
+// `margin: 4px 8px 4px 0` : la rangée ferait 58 px de haut au lieu de 42, et le
+// débord sous le header (`$offset-chips`, calculé sur 42 px) serait faux. On les
+// neutralise et on repasse par un `gap` uniforme, mesuré sur la maquette.
+// Ces règles ne sont pas layerisées, elles l'emportent donc sur
+// `@layer vuetify-components` quelle que soit leur spécificité.
 .animal-chip-selector__group {
   flex: 0 1 auto;
   min-width: 0;
+  padding-block: 0;
+
+  :deep(.v-slide-group__content) {
+    gap: $gap-chips;
+  }
 }
 
-// Cercle à bordure pointillée (maquettes v2, §2), à la même hauteur que les chips.
+// Cercle à bordure pointillée (maquettes v2, §2), à la même hauteur que les
+// chips. Trait relevé sur la maquette : 1 px, ≈ 22 % de pétrole sur la surface.
 .animal-chip-selector__add {
   flex: 0 0 auto;
   width: tokens.$height-chip;
   height: tokens.$height-chip;
-  border: 2px dashed rgba(var(--v-theme-primary), 0.32);
+  border: 1px dashed rgba(var(--v-theme-primary), 0.22);
   color: rgb(var(--v-theme-primary));
 }
 
 .animal-chip {
   height: tokens.$height-chip;
+  // Neutralise `margin: 4px 8px 4px 0` que VChipGroup pose sur chaque chip.
+  margin: 0;
   padding-inline: 5px 16px;
   border: 1px solid tokens.$color-card-border;
   font-family: tokens.$font-family-body;
@@ -135,6 +156,10 @@ function onSelect(value: unknown) {
   font-weight: 700;
 }
 
+// Remplacer `selected-class` écarte aussi la règle Vuetify qui pose un voile
+// `--v-activated-opacity` sur `.v-chip--selected` : c'est ce qui rend le fond
+// exactement `primary` (#01383E), comme la maquette. À garder en tête si la
+// classe de sélection change un jour.
 .animal-chip--selected {
   border-color: transparent;
   // Anneau clair de 2 px : la chip pétrole reste détachée du header pétrole.

@@ -56,6 +56,16 @@ describe('AnimalChipSelector', () => {
     expect(wrapper.find('.animal-chip-selector__add').exists()).toBe(true)
   })
 
+  it('expose la rangée comme un groupe nommé', () => {
+    const wrapper = monter()
+
+    // Sans `role`, l'`aria-label` posé sur le <div> racine de VSlideGroup n'est
+    // pas annoncé par les technologies d'assistance.
+    const groupe = wrapper.find('.animal-chip-selector__group')
+    expect(groupe.attributes('role')).toBe('group')
+    expect(groupe.attributes('aria-label')).toBe('Animaux')
+  })
+
   it('émet le clic sur la chip « + »', async () => {
     const wrapper = monter()
 
@@ -69,6 +79,13 @@ describe('AnimalChipSelector', () => {
 
     expect(chip(wrapper, 1).classes()).toContain('animal-chip--selected')
     expect(chip(wrapper, 0).classes()).not.toContain('animal-chip--selected')
+  })
+
+  it('donne à la chip active le fond pétrole, aux autres le fond crème', () => {
+    const wrapper = monter({ selectedId: 'luna' })
+
+    expect(chip(wrapper, 1).classes()).toContain('bg-primary')
+    expect(chip(wrapper, 0).classes()).toContain('bg-surface')
   })
 
   it('émet l’animal choisi quand on clique une chip inactive', async () => {
