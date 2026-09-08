@@ -530,3 +530,60 @@ symétrie : `01-architecture-v2.md` ne prescrit pas un store par feature,
 et c'est le Carnet (3.4, #17) — premier écran à afficher vaccins,
 traitements et poids ensemble — qui dira s'il faut un store par domaine
 ou un seul store « carnet de l'animal consulté ».
+
+2026-09-08 — **Quatre décisions prises par Gaelle à l'issue du lot 2**,
+chacune posée en question avec recommandation avant d'être implémentée.
+
+1) **Palette des dégradés d'avatar : six entrées.** Les deux relevées au
+pixel sur les maquettes v2 (Milo fauve `#D1A378 → #C58D63`, Luna gris
+ardoise `#B8BEC6 → #A2A9B3`) plus quatre construites sur la même
+géométrie — deux tons voisins d'une teinte douce, clair vers foncé,
+angle 160° : rosé, olive, bleu, mauve. — Raison : le scope v1 ne limite
+pas le nombre d'animaux, et au-delà de deux, des avatars identiques
+annulent l'intérêt du dégradé, qui sert à distinguer d'un coup d'œil. —
+Alternative écartée : n'expédier que les deux dégradés de la maquette et
+faire tourner la palette dessus, plus fidèle mais deux animaux auraient
+pu être visuellement identiques dans la rangée de chips. Les valeurs
+vivent dans `src/shared/animal-avatar-gradient.ts` ; aucun test ne fige
+de valeur hexadécimale, la palette reste donc modifiable à une constante
+près.
+
+2) **La suppression d'un animal marque aussi son carnet.**
+`animals.remove()` marquera les vaccins, puis les traitements et les
+pesées, avec `deleted_at`, dans une transaction. — Raison : c'est la
+seule option qui rende la propagation Plus correcte. Sans elle, le
+tombstone de l'animal se propage mais pas celui de ses enfants, et le
+jour où une purge effacerait physiquement les animaux tombstonés, le
+`ON DELETE CASCADE` supprimerait des lignes `vaccination` que le cloud
+tient encore pour vivantes — résurrection au prochain pull. — Alternative
+écartée : une jointure sur `deleted_at IS NULL` à chaque lecture, moins
+coûteuse aujourd'hui mais que chaque futur écran devrait penser à
+écrire, en laissant le cloud incohérent. À implémenter dans 3.3 (#16),
+pas dans 4.1 (#19) : le comportement appartient au repository des
+animaux.
+
+3) **Contrat du store animals : `load()` ne lève pas, les écritures
+lèvent.** `create`, `update` et `remove` propagent leur erreur ; `load()`
+la range dans `store.error` pour une bannière. — Raison : TypeScript
+n'oblige jamais à lire une valeur de retour, donc
+`await store.create(input); router.back()` compilait et naviguait sur un
+échec ; et `error` étant un état global, deux opérations en vol
+pouvaient faire afficher l'erreur de l'autre. Les écrans de formulaire
+ont de toute façon besoin d'un `try/catch` pour rester sur le
+formulaire. — Alternative écartée : garder les quatre actions
+non-levantes, qui évitait tout `try/catch` mais laissait passer les
+échecs d'écriture silencieusement.
+
+4) **Point de composition des repositories : une fabrique paresseuse
+dans le repository, appelée depuis `main.ts`.** `getAnimalsRepository()`
+est exportée par `animals.repository.ts` — seul fichier avec `core/` que
+la règle ESLint `app/repository-only-data-access` autorise à ouvrir la
+base — et `main.ts` appelle `provideAnimalsRepository(...)`. — Raison :
+la composition reste là où l'architecture la place, le store ne connaît
+que le type de son repository, et les tests gardent leur double. —
+Alternative écartée : un registre de repositories dans `core/db/`, qui
+ferait connaître les features à `core/`, à rebours de l'architecture.
+Ce motif vaut pour les quatre repositories suivants. Piège à ne pas
+reproduire : mémoïser `getDb().then(...)` mettrait en cache une promesse
+**rejetée** et annulerait le réessai documenté de `sqlite.ts:29` — le
+cache doit revenir à `null` sur rejet.
