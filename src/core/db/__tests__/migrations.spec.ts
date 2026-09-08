@@ -88,8 +88,7 @@ describe('migrations', () => {
       to: string
       on_delete: string
     }>('PRAGMA foreign_key_list(vaccination)')
-    // `ON DELETE CASCADE` : une purge éventuelle d'un animal emporte ses vaccins
-    // plutôt que de laisser des lignes orphelines.
+    // Une purge d'animal emporte ses vaccins plutôt que de laisser des orphelins.
     expect(foreignKeys).toMatchObject([
       { table: 'animal', from: 'animal_id', to: 'id', on_delete: 'CASCADE' },
     ])
@@ -114,8 +113,7 @@ describe('migrations', () => {
 
   it('ajoute la table vaccination à une base déjà en version 1', async () => {
     const db = await createSqlJsDbClient()
-    // Appareil déjà installé : seule la v1 a été jouée, la table animal existe
-    // avec ses données, et `vaccination` n'existe pas encore.
+    // Appareil déjà installé : seule la v1 a été jouée, avec ses données.
     const [firstMigration] = migrations
     for (const statement of firstMigration?.statements ?? []) {
       await db.execute(statement)

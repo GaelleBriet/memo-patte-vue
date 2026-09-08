@@ -1,14 +1,4 @@
-/**
- * Migrations versionnées de la base locale `memopatte`.
- *
- * Chaque évolution du schéma ajoute une entrée avec un `toVersion` incrémenté :
- * on ne modifie jamais une version déjà publiée. La liste est passée telle
- * quelle à `addUpgradeStatement` du plugin SQLite (cf. `sqlite.ts`).
- *
- * Exception assumée : la version 1 a été amendée (ajout de `animal.deleted_at`)
- * avant toute release — aucune base installée n'est encore en version 1, une
- * migration v2 n'aurait donc mis à jour aucun appareil réel.
- */
+/** Une version déjà publiée ne se modifie plus : toute évolution ajoute un `toVersion`. */
 export interface DbMigration {
   toVersion: number
   statements: string[]
@@ -58,7 +48,6 @@ export const migrations: DbMigration[] = [
   },
 ]
 
-/** Version cible de la base : la plus haute version connue des migrations. */
 export const DATABASE_VERSION = migrations.reduce(
   (highest, migration) => Math.max(highest, migration.toVersion),
   0,

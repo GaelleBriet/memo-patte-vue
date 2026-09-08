@@ -14,12 +14,12 @@ vi.mock('@capacitor-community/sqlite', () => ({
   },
 }))
 
-/** Connexion factice : seul `open()` est appelé par `openDatabase()`. */
+// Seul `open()` est appelé par `openDatabase()`.
 function fakeConnection() {
   return { open: vi.fn<() => Promise<void>>().mockResolvedValue(undefined) }
 }
 
-/** Recharge `sqlite.ts` pour repartir d'un cache de connexion vide. */
+// Recharger le module est le seul moyen de repartir d'un cache de connexion vide.
 async function importSqlite() {
   vi.resetModules()
   return import('../sqlite')

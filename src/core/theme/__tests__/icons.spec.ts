@@ -4,7 +4,6 @@ import { mount } from '@vue/test-utils'
 import MsIcon from '../MsIcon.vue'
 import { getMsIconPath, msAliases, msIcons } from '../icons'
 
-// Liste initiale des icônes reprise des maquettes v2 (ticket #70).
 const iconesDesMaquettes = [
   'vaccines',
   'medication',
