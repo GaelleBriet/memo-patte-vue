@@ -161,13 +161,14 @@ describe('useAnimalsStore', () => {
     expect(store.animals.map((animal) => animal.name)).toEqual(['Miette'])
   })
 
-  it('signale l’absence de repository sans faire planter le store', async () => {
+  it('nomme le câblage manquant quand aucun repository n’est injecté', async () => {
     provideAnimalsRepository(null)
     const store = useAnimalsStore()
 
     await expect(store.load()).resolves.toBe(false)
 
-    expect(store.error).toBeInstanceOf(Error)
+    // Le message doit désigner le câblage oublié, pas un « x is not a function ».
+    expect(store.error?.message).toContain('provideAnimalsRepository')
     expect(store.hasLoaded).toBe(false)
   })
 
