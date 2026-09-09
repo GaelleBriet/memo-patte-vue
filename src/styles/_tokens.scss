@@ -30,10 +30,25 @@ $color-badge-frequency-bg: #f2f0ec;
 $color-badge-frequency-text: #5c5751;
 $color-badge-frequency-border: #e7e4df;
 
+// Formulaires (écrans poussés : animal, vaccin, traitement)
+$color-field-surface: #fefcf9; // Surface d'un champ
+$color-field-border: #dbd7d1; // Bordure d'un champ
+$color-segmented-border: #cecac3; // Bordure d'un segmented control
+$color-field-label: #5c5751; // Label au-dessus d'un champ
+$color-hint: #857f79; // Mention « Optionnel », hint, légende
+$color-placeholder: #97918a; // Placeholder d'un champ
+$color-segment-inactive: #3e3630; // Texte d'un segment non sélectionné
+$color-actions-surface: #fcfaf7; // Fond de la barre d'actions
+$color-actions-border: #ece9e5; // Bordure barre d'actions / top bar scrollée
+$color-field-suffix: #413933; // Suffixe d'unité (« kg »)
+$color-disabled-surface: #e1ddd8; // Bouton désactivé, fond
+$color-disabled-text: #6e6862; // Bouton désactivé, texte
+
 // Rayons
 
 $radius-card: 22px; // Carte de rappels / de section
 $radius-tile: 18px; // Tuile d'action rapide, bouton plein largeur
+$radius-field: 14px; // Champ de formulaire
 
 // Hauteurs et tailles récurrentes
 
@@ -42,6 +57,8 @@ $height-list-row: 76px; // Ligne de liste (minimum)
 $height-add-row: 52px; // Dernière ligne « Ajouter … » d'une carte
 $height-chip: 42px; // Chip animal (et chip « + »)
 $height-quick-tile: 78px; // Tuile d'action rapide
+$height-field: 52px; // Champ de formulaire
+$height-segmented: 48px; // Segmented control d'un formulaire
 
 $size-chip-avatar: 32px; // Avatar rond dans une chip
 $size-header-avatar: 56px; // Avatar rond du header Carnet
