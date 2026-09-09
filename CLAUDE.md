@@ -66,6 +66,7 @@ src/
 ### Règles strictes de structure
 
 - Aucun import croisé entre features, à une exception près : un **service de cas d'usage** (`xxx.service.ts`, placé dans la feature qui porte le cas d'usage) peut importer les repositories d'autres features pour les orchestrer — un composant, un store ou un repository, jamais. Tout le reste passe par `shared/` ou `core/`
+- Un **écran composite** (Carnet, Accueil) assemble plusieurs domaines : il importe les **composants de section** des autres features (`VaccinationsSection.vue`, `WeightSection.vue`…), et chaque section n’utilise que le store de sa feature. C’est la seule forme d’import croisé permise à un composant ; les sections ne s’importent jamais entre elles, et la logique commune à plusieurs écrans (rappels, âge, courbe de poids) vit dans `shared/`
 - Les repositories sont les seuls autorisés à parler à SQLite et Supabase, et chacun reste le seul à écrire dans sa table : un service qui orchestre appelle leurs méthodes, il n'écrit pas de SQL
 - Les stores Pinia ne contiennent aucune requête directe
 - Tout texte visible passe par vue-i18n (FR source, EN livré en v1)
