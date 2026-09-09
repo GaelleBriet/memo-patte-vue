@@ -3,11 +3,26 @@ import { addDays, format } from 'date-fns'
 import { describe, expect, it } from 'vitest'
 
 import {
+  animalFormValuesFrom,
   emptyAnimalFormValues,
   todayIsoDate,
   validateAnimalForm,
   type AnimalFormValues,
 } from '../animal-form'
+import type { Animal } from '../animal.schema'
+
+const MILO: Animal = {
+  id: '11111111-1111-4111-8111-111111111111',
+  name: 'Milo',
+  species: 'dog',
+  breed: null,
+  birthDate: null,
+  initialWeightKg: null,
+  photoPath: null,
+  createdAt: '2026-09-09T09:00:00.000Z',
+  updatedAt: '2026-09-09T09:00:00.000Z',
+  deletedAt: null,
+}
 
 function valeurs(surcharges: Partial<AnimalFormValues> = {}): AnimalFormValues {
   return { ...emptyAnimalFormValues(), name: 'Milo', species: 'dog', ...surcharges }
@@ -37,6 +52,67 @@ describe('emptyAnimalFormValues', () => {
       breed: '',
       birthDate: '',
       initialWeightKg: '',
+    })
+  })
+})
+
+describe('animalFormValuesFrom', () => {
+  it('pré-remplit les cinq champs depuis un animal, le poids en texte', () => {
+    expect(
+      animalFormValuesFrom({
+        ...MILO,
+        breed: 'Labrador',
+        birthDate: '2023-03-12',
+        initialWeightKg: 8.5,
+      }),
+    ).toEqual({
+      name: 'Milo',
+      species: 'dog',
+      breed: 'Labrador',
+      birthDate: '2023-03-12',
+      initialWeightKg: '8.5',
+    })
+  })
+
+  it('rend un champ optionnel absent comme un champ vide', () => {
+    expect(animalFormValuesFrom(MILO)).toEqual({
+      name: 'Milo',
+      species: 'dog',
+      breed: '',
+      birthDate: '',
+      initialWeightKg: '',
+    })
+  })
+
+  it('fait l’aller-retour null → champ vide → null sans jamais produire la chaîne vide', () => {
+    const resultat = validateAnimalForm(animalFormValuesFrom(MILO))
+
+    if (!resultat.success) throw new Error('Validation refusée')
+
+    expect(resultat.data.breed).toBeNull()
+    expect(resultat.data.birthDate).toBeNull()
+    expect(resultat.data.initialWeightKg).toBeNull()
+  })
+
+  it('conserve les valeurs renseignées au fil de l’aller-retour', () => {
+    const resultat = validateAnimalForm(
+      animalFormValuesFrom({
+        ...MILO,
+        breed: 'Labrador',
+        birthDate: '2023-03-12',
+        initialWeightKg: 8.5,
+      }),
+    )
+
+    if (!resultat.success) throw new Error('Validation refusée')
+
+    expect(resultat.data).toEqual({
+      name: 'Milo',
+      species: 'dog',
+      breed: 'Labrador',
+      birthDate: '2023-03-12',
+      initialWeightKg: 8.5,
+      photoPath: null,
     })
   })
 })

@@ -1,4 +1,4 @@
-import { mount, type VueWrapper } from '@vue/test-utils'
+import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest'
 
@@ -23,12 +23,28 @@ const MILO: Animal = {
   deletedAt: null,
 }
 
+const MILO_COMPLET: Animal = {
+  ...MILO,
+  breed: 'Labrador',
+  birthDate: '2023-03-12',
+  initialWeightKg: 8.5,
+}
+
+let load: MockInstance
 let create: MockInstance<(input: AnimalInput) => Promise<Animal>>
+let update: MockInstance<(id: string, input: AnimalInput) => Promise<Animal>>
 let push: MockInstance
 
 beforeEach(async () => {
   setActivePinia(createPinia())
-  create = vi.spyOn(useAnimalsStore(), 'create').mockResolvedValue(MILO)
+  const animals = useAnimalsStore()
+  load = vi.spyOn(animals, 'load').mockImplementation(async () => {
+    animals.animals = [MILO_COMPLET]
+    animals.hasLoaded = true
+    return true
+  })
+  create = vi.spyOn(animals, 'create').mockResolvedValue(MILO)
+  update = vi.spyOn(animals, 'update').mockResolvedValue(MILO)
   await router.push({ name: 'animal-new' })
   push = vi.spyOn(router, 'push').mockResolvedValue()
 })
@@ -44,6 +60,20 @@ function monter() {
     global: { plugins: [vuetify, i18n, router] },
     attachTo: document.body,
   })
+}
+
+async function monterEdition(id = MILO.id) {
+  const wrapper = mount(AnimalFormView, {
+    props: { id },
+    global: { plugins: [vuetify, i18n, router] },
+    attachTo: document.body,
+  })
+  await flushPromises()
+  return wrapper
+}
+
+function valeur(wrapper: VueWrapper, id: string): string {
+  return (champ(wrapper, id).element as HTMLInputElement).value
 }
 
 function champ(wrapper: VueWrapper, id: string) {
@@ -241,6 +271,131 @@ describe('AnimalFormView — écriture', () => {
   })
 })
 
+describe('AnimalFormView — édition (état F2)', () => {
+  it('titre « Modifier Milo », bouton « Enregistrer », champs pré-remplis', async () => {
+    const wrapper = await monterEdition()
+
+    expect(wrapper.get('.animal-form__title').text()).toBe('Modifier Milo')
+    expect(wrapper.get('.animal-form__submit').text()).toBe('Enregistrer')
+    expect(valeur(wrapper, 'animal-name')).toBe('Milo')
+    expect(especes(wrapper)[0]!.attributes('aria-checked')).toBe('true')
+    expect(especes(wrapper)[1]!.attributes('aria-checked')).toBe('false')
+    expect(valeur(wrapper, 'animal-breed')).toBe('Labrador')
+    expect(valeur(wrapper, 'animal-birth-date')).toBe('2023-03-12')
+    expect(valeur(wrapper, 'animal-weight')).toBe('8.5')
+  })
+
+  it('charge les animaux avant de chercher celui de la route', async () => {
+    await monterEdition()
+
+    expect(load).toHaveBeenCalledOnce()
+  })
+
+  it('affiche vide un champ optionnel à null', async () => {
+    load.mockImplementation(async () => {
+      const animals = useAnimalsStore()
+      animals.animals = [MILO]
+      animals.hasLoaded = true
+      return true
+    })
+    const wrapper = await monterEdition()
+
+    expect(valeur(wrapper, 'animal-breed')).toBe('')
+    expect(valeur(wrapper, 'animal-birth-date')).toBe('')
+    expect(valeur(wrapper, 'animal-weight')).toBe('')
+  })
+
+  it('garde le titre d’origine pendant qu’on retape le nom', async () => {
+    const wrapper = await monterEdition()
+
+    await champ(wrapper, 'animal-name').setValue('Milou')
+
+    expect(wrapper.get('.animal-form__title').text()).toBe('Modifier Milo')
+  })
+
+  it('met à jour par le store avec l’identifiant de la route, jamais par create', async () => {
+    const wrapper = await monterEdition()
+    await champ(wrapper, 'animal-name').setValue('Milou')
+    await champ(wrapper, 'animal-weight').setValue('9')
+
+    await soumettre(wrapper)
+    await flushPromises()
+
+    expect(update).toHaveBeenCalledExactlyOnceWith(MILO.id, {
+      name: 'Milou',
+      species: 'dog',
+      breed: 'Labrador',
+      birthDate: '2023-03-12',
+      initialWeightKg: 9,
+      photoPath: null,
+    })
+    expect(create).not.toHaveBeenCalled()
+    expect(push).toHaveBeenCalledWith({ name: 'animals' })
+  })
+
+  it('renvoie null, jamais la chaîne vide, pour un champ resté vide (aller-retour)', async () => {
+    load.mockImplementation(async () => {
+      const animals = useAnimalsStore()
+      animals.animals = [MILO]
+      animals.hasLoaded = true
+      return true
+    })
+    const wrapper = await monterEdition()
+
+    await soumettre(wrapper)
+    await flushPromises()
+
+    expect(update).toHaveBeenCalledExactlyOnceWith(MILO.id, {
+      name: 'Milo',
+      species: 'dog',
+      breed: null,
+      birthDate: null,
+      initialWeightKg: null,
+      photoPath: null,
+    })
+  })
+
+  it('bascule sur « Enregistrement… » pendant l’écriture', async () => {
+    let terminer: (animal: Animal) => void = () => {}
+    update.mockReturnValueOnce(
+      new Promise<Animal>((resolve) => {
+        terminer = resolve
+      }),
+    )
+    const wrapper = await monterEdition()
+
+    await soumettre(wrapper)
+
+    expect(wrapper.get('.animal-form__submit').text()).toBe('Enregistrement…')
+    expect(wrapper.get('.animal-form__submit').attributes('disabled')).toBeDefined()
+
+    terminer(MILO)
+    await flushPromises()
+  })
+
+  it('revient au Carnet sans rien écrire quand on annule', async () => {
+    const wrapper = await monterEdition()
+    await champ(wrapper, 'animal-name').setValue('Milou')
+
+    await wrapper.get('.animal-form__cancel').trigger('click')
+
+    expect(update).not.toHaveBeenCalled()
+    expect(push).toHaveBeenCalledWith({ name: 'animals' })
+  })
+
+  it('prévient et n’autorise pas l’envoi quand l’animal est introuvable', async () => {
+    const wrapper = await monterEdition('33333333-3333-4333-8333-333333333333')
+
+    expect(wrapper.get('.animal-form__save-error').text()).toBe('Cet animal est introuvable.')
+    expect(wrapper.get('.animal-form__submit').attributes('disabled')).toBeDefined()
+
+    await soumettre(wrapper)
+
+    expect(update).not.toHaveBeenCalled()
+    expect(create).not.toHaveBeenCalled()
+  })
+})
+
 describe('AnimalFormView — envoi en cours (état F4)', () => {
   it('désactive les deux boutons et bascule le libellé pendant l’écriture', async () => {
     let terminer: (animal: Animal) => void = () => {}
@@ -302,5 +457,22 @@ describe('AnimalFormView — top bar au scroll (état F5)', () => {
     await zone.trigger('scroll')
 
     expect(wrapper.get('.animal-form__topbar').classes()).toContain('animal-form__topbar--scrolled')
+  })
+})
+
+describe('AnimalFormView — routes', () => {
+  it('garde la création sur /animals/new, sans prop', () => {
+    const route = router.resolve('/animals/new')
+
+    expect(route.name).toBe('animal-new')
+    expect(route.params).toEqual({})
+  })
+
+  it('ouvre l’édition depuis l’identifiant de l’animal, passé en prop', () => {
+    const route = router.resolve(`/animals/${MILO.id}/edit`)
+
+    expect(route.name).toBe('animal-edit')
+    expect(route.params).toEqual({ id: MILO.id })
+    expect(route.matched[0]?.props.default).toBe(true)
   })
 })
