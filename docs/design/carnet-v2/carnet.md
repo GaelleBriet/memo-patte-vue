@@ -4,7 +4,6 @@ tags:
   - memo-patte
   - carnet
 ---
-
 # Écran Carnet (profil animal) — maquette v2 (référence)
 
 Maquette de référence : `MémoPatte v2 - Carnet.png` (capture) et
@@ -66,11 +65,16 @@ Titre « Vaccins », puis une carte unique (rayon 22 px) contenant :
 
 - une ligne par vaccin (hauteur ≥ 76 px, filet de séparation) :
     - barre verticale de 3 px à gauche, **corail si en retard, transparente
-      sinon**
+      sinon** (y compris pour un vaccin sans échéance)
     - nom du vaccin (15,5 px, 700)
-    - détail en dessous (12,5 px) : `Échéance passée`, `Valide jusqu'au 12/2026`
-    - badge à droite : icône `error` + `En retard` (fond `#FFE3DF`), ou icône
-      `check` + `À jour` (fond `#DFF3E2`)
+    - détail en dessous (12,5 px) : `Échéance passée`, `Valide jusqu'au
+      12/2026`, ou **`Pas de rappel programmé`** si `due_date` est `NULL`
+    - badge à droite : icône `error` + `En retard` (fond `#FFE3DF`), icône
+      `check` + `À jour` (fond `#DFF3E2`), ou **`Pas de rappel`** sans icône
+      si `due_date` est `NULL` — même style neutre que le badge de fréquence
+      des traitements. Décision du 2026-09-09 : un vaccin consigné sans
+      prochain rappel connu (cas prévu par le schéma) ne doit tomber ni dans
+      « À jour » ni dans « En retard », les deux étant faux dans ce cas
 - en dernière ligne de la carte, séparée par un filet : icône `add` +
   **« Ajouter un vaccin »** (pétrole, 13,5 px, 700), hauteur 52 px.
 
@@ -141,6 +145,10 @@ Spécifiques au Carnet :
 | Badge « À jour » fond / texte | `oklch(94.5% 0.03 150)` / `oklch(41% 0.065 150)` | `#DFF3E2` / `#2F5437` |
 | Badge « En retard » fond / texte | `oklch(94.5% 0.04 27)` / `oklch(45% 0.15 27)` | `#FFE3DF` / `#972622` |
 | Badge de fréquence fond / texte / bordure | `oklch(95.5% 0.006 78)` / `oklch(46% 0.012 70)` / `oklch(92% 0.008 78)` | `#F2F0EC` / `#5C5751` / `#E7E4DF` |
+
+Le badge « Pas de rappel » (vaccin sans `due_date`) réutilise exactement le
+style du badge de fréquence ci-dessus, sans icône. Pas de nouveau token à
+créer.
 
 ## Contraintes conservées de la v1
 
