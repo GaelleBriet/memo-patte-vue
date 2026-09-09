@@ -1,7 +1,7 @@
 import { format } from 'date-fns'
 import type { z } from 'zod'
 
-import { animalInputSchema, type AnimalSpecies } from './animal.schema'
+import { animalInputSchema, type Animal, type AnimalSpecies } from './animal.schema'
 
 export interface AnimalFormValues {
   name: string
@@ -27,6 +27,16 @@ export type AnimalFormResult =
 
 export function emptyAnimalFormValues(): AnimalFormValues {
   return { name: '', species: null, breed: '', birthDate: '', initialWeightKg: '' }
+}
+
+export function animalFormValuesFrom(animal: Animal): AnimalFormValues {
+  return {
+    name: animal.name,
+    species: animal.species,
+    breed: animal.breed ?? '',
+    birthDate: animal.birthDate ?? '',
+    initialWeightKg: animal.initialWeightKg === null ? '' : String(animal.initialWeightKg),
+  }
 }
 
 export function todayIsoDate(): string {
