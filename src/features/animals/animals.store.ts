@@ -1,14 +1,22 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import type { Animal, AnimalInput } from './animal.schema'
+import { animalDeletionService, type AnimalDeletionService } from './animal-deletion.service'
 import type { AnimalsRepository } from './animals.repository'
 
 export type AnimalsRepositoryProvider = () => AnimalsRepository | Promise<AnimalsRepository>
+export type AnimalDeletionServiceProvider = () => AnimalDeletionService
 
 let provider: AnimalsRepositoryProvider | null = null
+let deletionProvider: AnimalDeletionServiceProvider = () => animalDeletionService
 
 export function provideAnimalsRepository(next: AnimalsRepositoryProvider | null): void {
   provider = next
+}
+
+/** `null` rétablit le service réel, branché sur la base locale. */
+export function provideAnimalDeletionService(next: AnimalDeletionServiceProvider | null): void {
+  deletionProvider = next ?? (() => animalDeletionService)
 }
 
 export const useAnimalsStore = defineStore('animals', () => {
@@ -90,7 +98,7 @@ export const useAnimalsStore = defineStore('animals', () => {
     },
 
     async remove(id: string): Promise<void> {
-      await write((repository) => repository.remove(id))
+      await write(() => deletionProvider().remove(id))
     },
 
     select(id: string | null): void {

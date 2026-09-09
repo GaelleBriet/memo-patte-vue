@@ -61,7 +61,12 @@ export default defineConfigWithVueTs(
   {
     name: 'app/repository-only-data-access',
     files: ['src/**/*.{ts,vue}'],
-    ignores: ['src/core/**', '**/*.repository.ts', '**/*.repository.spec.ts'],
+    ignores: [
+      'src/core/**',
+      '**/*.repository.ts',
+      '**/*.repository.spec.ts',
+      '**/*.service.spec.ts',
+    ],
     rules: {
       'no-restricted-imports': [
         'error',
