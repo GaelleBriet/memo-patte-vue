@@ -7,7 +7,7 @@ export type ReminderSource = {
   id: string
   animalId: string
   label: string
-  /** Date civile `yyyy-MM-dd` ; `null` = pas de rappel programmé, jamais listé à l'accueil. */
+  /** Date civile `yyyy-MM-dd` ; `null` = pas de rappel programmé, jamais listé comme rappel. */
   dueDate: string | null
 }
 
