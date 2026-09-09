@@ -2,19 +2,30 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 import type { Animal, AnimalInput } from '../animal.schema'
+import type { AnimalDeletionService } from '../animal-deletion.service'
 import type { AnimalsRepository } from '../animals.repository'
-import { provideAnimalsRepository, useAnimalsStore } from '../animals.store'
+import {
+  provideAnimalDeletionService,
+  provideAnimalsRepository,
+  useAnimalsStore,
+} from '../animals.store'
 
 let repository: FakeAnimalsRepository
+let deletion: { remove: Mock<AnimalDeletionService['remove']> }
 
 beforeEach(() => {
   setActivePinia(createPinia())
   repository = createFakeRepository()
+  deletion = {
+    remove: vi.fn<AnimalDeletionService['remove']>(async (id) => repository.markDeleted(id)),
+  }
   provideAnimalsRepository(() => repository)
+  provideAnimalDeletionService(() => deletion)
 })
 
 afterEach(() => {
   provideAnimalsRepository(null)
+  provideAnimalDeletionService(null)
 })
 
 describe('useAnimalsStore', () => {
@@ -107,7 +118,8 @@ describe('useAnimalsStore', () => {
 
     await store.remove(miette.id)
 
-    expect(repository.remove).toHaveBeenCalledWith(miette.id)
+    expect(deletion.remove).toHaveBeenCalledWith(miette.id)
+    expect(repository.remove).not.toHaveBeenCalled()
     expect(store.animals.map((animal) => animal.name)).toEqual(['Vasco'])
   })
 
@@ -171,7 +183,7 @@ describe('useAnimalsStore', () => {
       'animal introuvable',
     )
 
-    repository.remove.mockRejectedValueOnce(new Error('base verrouillée'))
+    deletion.remove.mockRejectedValueOnce(new Error('base verrouillée'))
     await expect(store.remove(miette.id)).rejects.toThrow('base verrouillée')
 
     expect(store.animals.map((animal) => animal.name)).toEqual(['Miette'])
@@ -229,6 +241,7 @@ describe('useAnimalsStore', () => {
 
 interface FakeAnimalsRepository {
   seed(input: AnimalInput): Animal
+  markDeleted(id: string): void
   getById: Mock<AnimalsRepository['getById']>
   list: Mock<AnimalsRepository['list']>
   create: Mock<AnimalsRepository['create']>
@@ -267,8 +280,14 @@ function createFakeRepository(): FakeAnimalsRepository {
     return animal
   }
 
+  function markDeleted(id: string): void {
+    const animal = animals.find((candidate) => candidate.id === id)
+    if (animal) animal.deletedAt = new Date().toISOString()
+  }
+
   return {
     seed,
+    markDeleted,
     getById: vi.fn<AnimalsRepository['getById']>(
       async (id) => living().find((animal) => animal.id === id) ?? null,
     ),
@@ -281,9 +300,6 @@ function createFakeRepository(): FakeAnimalsRepository {
       animals[index] = updated
       return updated
     }),
-    remove: vi.fn<AnimalsRepository['remove']>(async (id) => {
-      const animal = animals.find((candidate) => candidate.id === id)
-      if (animal) animal.deletedAt = new Date().toISOString()
-    }),
+    remove: vi.fn<AnimalsRepository['remove']>(async (id) => markDeleted(id)),
   }
 }
