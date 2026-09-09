@@ -61,6 +61,25 @@ export const migrations: DbMigration[] = [
       `CREATE INDEX IF NOT EXISTS idx_weight_entry_animal_id ON weight_entry (animal_id);`,
     ],
   },
+  {
+    toVersion: 4,
+    statements: [
+      `CREATE TABLE IF NOT EXISTS treatment (
+        id TEXT PRIMARY KEY NOT NULL,
+        animal_id TEXT NOT NULL REFERENCES animal(id) ON DELETE CASCADE,
+        name TEXT NOT NULL,
+        type TEXT NOT NULL CHECK (type IN ('deworming', 'antiparasitic')),
+        frequency_value INTEGER NOT NULL CHECK (frequency_value > 0),
+        frequency_unit TEXT NOT NULL CHECK (frequency_unit IN ('day', 'week', 'month')),
+        last_dose_date TEXT NOT NULL,
+        next_due_date TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        deleted_at TEXT
+      );`,
+      `CREATE INDEX IF NOT EXISTS idx_treatment_animal_id ON treatment (animal_id);`,
+    ],
+  },
 ]
 
 export const DATABASE_VERSION = migrations.reduce(
