@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Pétrole de la maquette v2 (docs/design/accueil-v2/accueil.md) : fond d'icône et de splash. -->
+    <color name="petrole">#01383E</color>
+</resources>

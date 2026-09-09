@@ -1,0 +1,4 @@
+# Paramètres pnpm (pnpm ≥ 10.34 ne lit plus le champ "pnpm" de package.json).
+# sharp (dépendance de @capacitor/assets) doit compiler son binaire à l'installation.
+onlyBuiltDependencies:
+  - sharp
