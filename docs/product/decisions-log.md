@@ -697,3 +697,64 @@ transactions imbriquées) pour un besoin de lecture au milieu qu'aucun
 ticket n'a aujourd'hui ; et `begin()` / `commit()` / `rollback()` nus,
 seul cas où un `catch` qui oublie le rollback laisse la base en
 transaction ouverte.
+
+2026-09-09 — **La maquette donne la vision complète de l'écran, le ticket
+dit ce qu'on construit.** Le formulaire animal (#15) est livré sans le
+cercle photo que montre `animal.md`, la photo étant le sujet de #101. —
+Raison : rien à l'écran ne doit mentir ; un bouton inerte ou un sélecteur
+sans persistance serait pire que l'absence. — Alternative écartée : le
+cercle vide non cliquable comme réservation d'espace.
+
+2026-09-09 — **Un vaccin sans échéance porte le badge « Pas de rappel »**
+(neutre, sans icône) et la ligne « Pas de rappel programmé ». Le Carnet ne
+gagne pas d'état « À venir » : il dit la validité (À jour / En retard),
+l'Accueil dit l'urgence au jour près. — Raison : `due_date` peut être
+`NULL` par construction, et ni « À jour » ni « En retard » n'est vrai dans
+ce cas ; dupliquer l'urgence sur le Carnet l'aurait dite en moins précis.
+— Alternative écartée : un troisième badge « À venir » demandé par le
+texte initial de #21, réaligné sur la maquette.
+
+2026-09-09 — **Pas d'écran « liste des animaux » (#16 requalifié)** : les
+chips de l'Accueil et du Carnet sont la liste, un tap ouvre le profil,
+l'état vide est A5. — Raison : la bottom nav n'a que deux onglets et cet
+écran n'y a aucune place ; les Paramètres seraient le pire endroit pour
+l'objet central de l'app. — Alternative gardée en réserve : une entrée
+« Tous mes animaux » en fin de rangée de chips, si le débordement se
+constate après #36.
+
+2026-09-09 — **La cascade de suppression se fait par constructeurs
+d'instruction** : chaque repository enfant expose
+`markDeletedByAnimalStatement(animalId, deletedAt)` sans l'exécuter,
+`animals.remove(id, cascade, deletedAt)` joue le tout dans un `runMany`,
+et `animal-deletion.service.ts` fixe la date unique et orchestre. —
+Raison : un service n'importe pas `core/db` (ESLint) et un repository
+n'écrit pas dans la table d'un autre ; c'est le seul découpage qui donne
+une transaction sans casser l'une des deux règles. — Alternative écartée :
+le service appelant `runMany` lui-même.
+
+2026-09-09 — **La fréquence d'un traitement est un couple valeur + unité**
+(`day` / `week` / `month`), deux types seulement (`deworming`,
+`antiparasitic`), et `next_due_date` est **stockée**, calculée par le
+repository à chaque écriture. — Raison : quatre semaines ne font pas un
+mois (29/03 contre 01/04 pour la même dernière prise), un enum de libellés
+aurait figé la liste des produits, et l'accueil comme les notifications
+doivent lire l'échéance sans recalculer. — Alternative écartée : un enum
+`mensuel | trimestriel | …` avec table de conversion.
+
+2026-09-09 — **Un store Pinia par domaine** (`vaccinations.store.ts`,
+puis `weight`, `treatments`), même contrat qu'`animals.store.ts`
+(`load` ne lève pas, les écritures lèvent). — Raison : un store « carnet »
+unique aurait couplé trois épics et le Carnet est le seul écran à les
+réunir. — Alternative écartée : le store carnet, question laissée ouverte
+depuis le lot 2.
+
+2026-09-09 — **L'échéance d'un vaccin est saisie, optionnelle, jamais
+calculée.** Le ticket #20 disait « calculée ou saisie » ; rien ne permet
+de la calculer (pas de fréquence sur un vaccin). — Alternative écartée :
+inventer une règle de rappel par nom de vaccin.
+
+2026-09-09 — **Un vaccin, une pesée, un traitement ne changent jamais
+d'animal** : les schémas d'édition retirent `animalId`, les formulaires
+n'ont aucun sélecteur d'animal, l'animal vient de la route et s'affiche
+comme un fait. — Raison : décision prise pour les vaccins le 2026-09-08,
+étendue à l'identique pour ne pas avoir trois comportements.
