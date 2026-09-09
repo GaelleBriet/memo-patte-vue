@@ -21,7 +21,7 @@ $color-text-secondary: #68625c; // Texte secondaire
 $color-text-meta: #79736d; // Texte méta / compteur
 $color-on-primary-subtitle: #b9d0d1; // Sous-titre sur pétrole
 
-// Badges du Carnet
+// Carnet
 $color-badge-up-to-date-bg: #dff3e2;
 $color-badge-up-to-date-text: #2f5437;
 $color-badge-overdue-bg: #ffe3df;
@@ -29,6 +29,12 @@ $color-badge-overdue-text: #972622;
 $color-badge-frequency-bg: #f2f0ec;
 $color-badge-frequency-text: #5c5751;
 $color-badge-frequency-border: #e7e4df;
+$color-delta-up: $color-badge-up-to-date-text; // Delta de poids positif
+$color-delta-down: #5a544d; // Delta de poids négatif
+$color-delta-flat: #736e67; // Delta nul, première pesée
+$color-chart-icon: #798a8b; // Icône « une seule pesée »
+$color-chart-value: #2f2722; // Valeur au-dessus d'un point de courbe
+$color-header-avatar-border: rgb(255 255 255 / 70%); // Bordure claire de l'avatar du header
 
 // Formulaires (écrans poussés : animal, vaccin, traitement)
 $color-field-surface: #fefcf9; // Surface d'un champ

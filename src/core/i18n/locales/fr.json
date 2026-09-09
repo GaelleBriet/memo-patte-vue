@@ -50,6 +50,31 @@
         "notFound": "Cet animal est introuvable.",
         "save": "L’animal n’a pas pu être enregistré. Réessaie."
       }
+    },
+    "age": {
+      "year": "{n} an | {n} ans",
+      "month": "{n} mois",
+      "week": "moins d’une semaine | {n} semaine | {n} semaines"
+    },
+    "carnet": {
+      "back": "Retour",
+      "edit": "Modifier la fiche",
+      "subtitleSeparator": " · ",
+      "stats": {
+        "weight": "Poids",
+        "reminders": "Rappels",
+        "treatments": "Traitements",
+        "noValue": "—",
+        "noWeight": "Aucune pesée",
+        "firstWeight": "Première pesée",
+        "overdue": "en retard",
+        "upcoming": "à venir",
+        "ongoing": "en cours"
+      },
+      "welcome": {
+        "title": "Bienvenue sur MémoPatte",
+        "create": "Créer mon premier animal"
+      }
     }
   },
   "vaccinations": {
@@ -83,6 +108,55 @@
         "notFound": "Ce vaccin est introuvable.",
         "save": "Le vaccin n’a pas pu être enregistré. Réessaie."
       }
+    },
+    "section": {
+      "title": "Vaccins",
+      "empty": "Aucun vaccin enregistré",
+      "add": "Ajouter un vaccin",
+      "status": {
+        "overdue": "En retard",
+        "upToDate": "À jour",
+        "none": "Pas de rappel"
+      },
+      "detail": {
+        "overdue": "Échéance passée",
+        "validUntil": "Valide jusqu’au {month}",
+        "none": "Pas de rappel programmé"
+      }
+    }
+  },
+  "treatments": {
+    "type": {
+      "deworming": "Vermifuge",
+      "antiparasitic": "Antiparasitaire"
+    },
+    "frequency": {
+      "day": "Tous les jours | Tous les {n} jours",
+      "week": "Toutes les semaines | Toutes les {n} semaines",
+      "month": "Tous les mois | Tous les {n} mois"
+    },
+    "section": {
+      "title": "Traitements en cours",
+      "empty": "Aucun traitement en cours",
+      "nextDose": {
+        "overdue": "Prochaine dose en retard · {n} j",
+        "today": "Prochaine dose aujourd’hui",
+        "tomorrow": "Prochaine dose demain",
+        "later": "Prochaine dose dans {n} jours"
+      }
+    }
+  },
+  "weight": {
+    "unit": "kg",
+    "delta": {
+      "vs": "{delta} kg vs {month}",
+      "first": "Première pesée · {date}"
+    },
+    "section": {
+      "title": "Suivi de poids",
+      "empty": "Aucune pesée enregistrée",
+      "single": "Ajoute une nouvelle pesée pour voir l’évolution.",
+      "chartLabel": "Évolution du poids"
     }
   },
   "home": {
