@@ -71,6 +71,12 @@
         "upcoming": "à venir",
         "ongoing": "en cours"
       },
+      "loading": "Ouverture du carnet…",
+      "error": {
+        "title": "Impossible d’ouvrir le carnet.",
+        "text": "La base locale n’a pas répondu. Tes données sont intactes.",
+        "retry": "Réessayer"
+      },
       "welcome": {
         "title": "Bienvenue sur MémoPatte",
         "create": "Créer mon premier animal"

@@ -59,6 +59,13 @@ describe('CarnetView — contrat de style', () => {
     expect(declaration('.carnet-stat + .carnet-stat', 'border-left')).toBe('1px solid #efece8')
   })
 
+  it('donne au bouton « Réessayer » la forme du bouton principal des formulaires', () => {
+    expect(declaration('.carnet-welcome__create, .carnet-error__retry', 'height')).toBe('52px')
+    expect(declaration('.carnet-welcome__create, .carnet-error__retry', 'border-radius')).toBe(
+      '999px',
+    )
+  })
+
   it('ne colore que la colonne Rappels en retard, en corail', () => {
     expect(declaration('.carnet-stat__value', 'color')).toBeUndefined()
     expect(declaration('.carnet-stat--overdue .carnet-stat__value', 'color')).toBe(
