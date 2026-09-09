@@ -116,8 +116,11 @@ export function createAnimalsRepository(db: DbClient) {
     },
 
     /** Sans effet sur un animal inconnu ou déjà supprimé : la date initiale est gardée. */
-    async remove(id: string, cascade: SqlStatement[] = []): Promise<void> {
-      const deletedAt = new Date().toISOString()
+    async remove(
+      id: string,
+      cascade: SqlStatement[] = [],
+      deletedAt: string = new Date().toISOString(),
+    ): Promise<void> {
       await db.runMany([
         {
           sql: `UPDATE animal SET deleted_at = ?, updated_at = ? WHERE id = ? AND ${NOT_DELETED}`,

@@ -209,6 +209,20 @@ describe('animalsRepository', () => {
       expect(rows).toEqual([{ deleted_at: '2026-03-01T10:00:00.000Z' }])
     })
 
+    it('prend la date de suppression fournie par l’appelant', async () => {
+      const miette = await repository.create({ name: 'Miette', species: 'cat' })
+
+      await repository.remove(miette.id, [], '2026-03-01T10:00:00.000Z')
+
+      const rows = await db.query<{ deleted_at: string | null; updated_at: string }>(
+        'SELECT deleted_at, updated_at FROM animal WHERE id = ?',
+        [miette.id],
+      )
+      expect(rows).toEqual([
+        { deleted_at: '2026-03-01T10:00:00.000Z', updated_at: '2026-03-01T10:00:00.000Z' },
+      ])
+    })
+
     it('ne marque pas l’animal quand une instruction de la cascade échoue', async () => {
       const miette = await repository.create({ name: 'Miette', species: 'cat' })
 
