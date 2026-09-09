@@ -5,6 +5,24 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.14](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.13...memo-patte-v0.1.14) (2026-09-09)
+
+
+### ✨ Fonctionnalités
+
+* **animals:** écran Carnet, profil détaillé de l'animal consulté ([0c9ba7a](https://github.com/GaelleBriet/memo-patte-vue/commit/0c9ba7a691c72f940abeb6b1b339866dfd588d19))
+* **animals:** écran Carnet, profil détaillé de l'animal consulté ([#17](https://github.com/GaelleBriet/memo-patte-vue/issues/17)) ([278d393](https://github.com/GaelleBriet/memo-patte-vue/commit/278d3939d4f463c48e1cbdf0359b0af6ecb3d19b))
+* **carnet:** ligne d'erreur discrète quand une section ne peut pas charger ([143bb2d](https://github.com/GaelleBriet/memo-patte-vue/commit/143bb2d36da291b6ddd49f3f402941823d363658))
+* **carnet:** sections Vaccins, Traitements en cours et Suivi de poids ([497a886](https://github.com/GaelleBriet/memo-patte-vue/commit/497a88617553fdd1928a7f3d3398cbc73de2bf30))
+* **shared:** modules purs âge, format kg, courbe de poids et résumé de pesées ([402f837](https://github.com/GaelleBriet/memo-patte-vue/commit/402f8373bc7d814bb65f60fe590bde25e80e656b))
+* **theme:** icône show_chart, tokens et libellés du Carnet ([99195a6](https://github.com/GaelleBriet/memo-patte-vue/commit/99195a672bb85604119dd1d26de575dc12d627ee))
+
+
+### 🐛 Corrections
+
+* **animals:** la colonne Rappels compte les retards dès qu'il y en a, sinon les rappels à venir ([6d9e53d](https://github.com/GaelleBriet/memo-patte-vue/commit/6d9e53d7bb6dbab381e0bb4727034316f2cd0f64))
+* **animals:** marquer aussi les traitements à la suppression d'un animal ([#102](https://github.com/GaelleBriet/memo-patte-vue/issues/102)) ([34345b3](https://github.com/GaelleBriet/memo-patte-vue/commit/34345b35deddd4aaf9263a04586e8a6a2294fb9c))
+
 ## [0.1.13](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.12...memo-patte-v0.1.13) (2026-09-09)
 
 
