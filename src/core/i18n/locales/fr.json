@@ -48,6 +48,39 @@
       }
     }
   },
+  "vaccinations": {
+    "form": {
+      "title": "Nouveau vaccin",
+      "editTitle": "Modifier {name}",
+      "forAnimal": "Pour {name}",
+      "back": "Retour",
+      "required": "*",
+      "optional": "Optionnel",
+      "name": {
+        "label": "Nom du vaccin",
+        "placeholder": "Ex. Rage"
+      },
+      "lastInjectionDate": {
+        "label": "Date d’injection"
+      },
+      "dueDate": {
+        "label": "Prochaine échéance"
+      },
+      "cancel": "Annuler",
+      "submit": "Créer",
+      "submitting": "Création…",
+      "save": "Enregistrer",
+      "saving": "Enregistrement…",
+      "errors": {
+        "name": "Le nom du vaccin est obligatoire.",
+        "lastInjectionDate": "La date d’injection est obligatoire.",
+        "lastInjectionDateFuture": "La date d’injection ne peut pas être dans le futur.",
+        "dueDate": "La date d’échéance est invalide.",
+        "notFound": "Ce vaccin est introuvable.",
+        "save": "Le vaccin n’a pas pu être enregistré. Réessaie."
+      }
+    }
+  },
   "home": {
     "title": "MémoPatte"
   }
