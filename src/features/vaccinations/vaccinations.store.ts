@@ -2,7 +2,13 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
 import type { Vaccination, VaccinationInput, VaccinationUpdateInput } from './vaccination.schema'
-import type { VaccinationsRepository } from './vaccinations.repository'
+import type { VaccinationsRepository as FullVaccinationsRepository } from './vaccinations.repository'
+
+// Le store ne dépend que de ce qu'il appelle : la cascade de suppression (#102) n'est pas son affaire.
+type VaccinationsRepository = Pick<
+  FullVaccinationsRepository,
+  'getById' | 'listByAnimal' | 'create' | 'update' | 'remove'
+>
 
 export type VaccinationsRepositoryProvider = () =>
   VaccinationsRepository | Promise<VaccinationsRepository>
