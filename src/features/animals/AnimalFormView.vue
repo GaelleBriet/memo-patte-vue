@@ -235,23 +235,6 @@ async function submit(): Promise<void> {
 <style scoped lang="scss">
 @use '@/styles/tokens' as tokens;
 
-$color-field-surface: #fefcf9;
-$color-field-border: #dbd7d1;
-$color-segmented-border: #cecac3;
-$color-field-label: #5c5751;
-$color-hint: #857f79;
-$color-placeholder: #97918a;
-$color-segment-inactive: #3e3630;
-$color-actions-surface: #fcfaf7;
-$color-actions-border: #ece9e5;
-$color-weight-suffix: #413933;
-$color-disabled-surface: #e1ddd8;
-$color-disabled-text: #6e6862;
-
-$height-field: 52px;
-$height-segmented: 48px;
-$radius-field: 14px;
-
 .animal-form {
   display: flex;
   flex-direction: column;
@@ -278,7 +261,7 @@ $radius-field: 14px;
 }
 
 .animal-form__topbar--scrolled {
-  border-bottom-color: $color-actions-border;
+  border-bottom-color: tokens.$color-actions-border;
   box-shadow: 0 1px 3px rgb(30 25 20 / 6%);
 }
 
@@ -309,7 +292,7 @@ $radius-field: 14px;
   justify-content: space-between;
   gap: 8px;
   margin-bottom: 6px;
-  color: $color-field-label;
+  color: tokens.$color-field-label;
   font-size: 12.5px;
   font-weight: 600;
 }
@@ -319,13 +302,13 @@ $radius-field: 14px;
 }
 
 .animal-form__optional {
-  color: $color-hint;
+  color: tokens.$color-hint;
   font-weight: 500;
 }
 
 .animal-form__input :deep(.v-field) {
-  border-radius: $radius-field;
-  background: $color-field-surface;
+  border-radius: tokens.$radius-field;
+  background: tokens.$color-field-surface;
   font-size: 15px;
 }
 
@@ -333,7 +316,7 @@ $radius-field: 14px;
   --v-field-border-width: 1px;
   --v-field-border-opacity: 1;
 
-  color: $color-field-border;
+  color: tokens.$color-field-border;
 }
 
 .animal-form__input :deep(.v-field--focused .v-field__outline),
@@ -342,17 +325,17 @@ $radius-field: 14px;
 }
 
 .animal-form__input :deep(.v-field__input) {
-  min-height: $height-field;
+  min-height: tokens.$height-field;
   padding-block: 0;
 }
 
 .animal-form__input :deep(input::placeholder) {
-  color: $color-placeholder;
+  color: tokens.$color-placeholder;
   opacity: 1;
 }
 
 .animal-form__input--number :deep(.v-text-field__suffix) {
-  color: $color-weight-suffix;
+  color: tokens.$color-field-suffix;
   font-size: 15px;
   font-weight: 600;
 }
@@ -382,8 +365,8 @@ $radius-field: 14px;
 
 .animal-form__species {
   width: 100%;
-  height: $height-segmented;
-  border: 1px solid $color-segmented-border;
+  height: tokens.$height-segmented;
+  border: 1px solid tokens.$color-segmented-border;
   border-radius: 999px;
   overflow: hidden;
 }
@@ -393,7 +376,7 @@ $radius-field: 14px;
   height: 100%;
   gap: 6px;
   border-radius: 0;
-  color: $color-segment-inactive;
+  color: tokens.$color-segment-inactive;
   font-size: 15px;
   font-weight: 600;
   letter-spacing: normal;
@@ -417,8 +400,8 @@ $radius-field: 14px;
 .animal-form__actions {
   flex: 0 0 auto;
   padding: 12px 20px 30px;
-  background: $color-actions-surface;
-  border-top: 1px solid $color-actions-border;
+  background: tokens.$color-actions-surface;
+  border-top: 1px solid tokens.$color-actions-border;
 }
 
 .animal-form__buttons {
@@ -444,8 +427,8 @@ $radius-field: 14px;
 
 .animal-form__submit:disabled,
 .animal-form__submit.v-btn--disabled {
-  background: $color-disabled-surface;
-  color: $color-disabled-text;
+  background: tokens.$color-disabled-surface;
+  color: tokens.$color-disabled-text;
 }
 
 .animal-form__save-error {
