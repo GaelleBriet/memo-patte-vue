@@ -12,6 +12,7 @@
     },
     "form": {
       "title": "Nouvel animal",
+      "editTitle": "Modifier {name}",
       "back": "Retour",
       "required": "*",
       "optional": "Optionnel",
@@ -39,11 +40,14 @@
       "cancel": "Annuler",
       "submit": "Créer",
       "submitting": "Création…",
+      "save": "Enregistrer",
+      "saving": "Enregistrement…",
       "errors": {
         "name": "Le nom est obligatoire.",
         "species": "Choisis une espèce.",
         "birthDate": "La date de naissance ne peut pas être dans le futur.",
         "initialWeightKg": "Le poids doit être supérieur à 0 kg.",
+        "notFound": "Cet animal est introuvable.",
         "save": "L’animal n’a pas pu être enregistré. Réessaie."
       }
     }
