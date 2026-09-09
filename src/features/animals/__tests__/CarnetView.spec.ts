@@ -1,10 +1,20 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
-import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest'
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+  type Mock,
+  type MockInstance,
+} from 'vitest'
 
 import CarnetView from '../CarnetView.vue'
 import type { Animal } from '../animal.schema'
-import { useAnimalsStore } from '../animals.store'
+import { provideAnimalsRepository, useAnimalsStore } from '../animals.store'
+import type { AnimalsRepository } from '../animals.repository'
 import i18n from '@/core/i18n'
 import router from '@/router'
 import vuetify from '@/core/theme/vuetify'
@@ -354,13 +364,71 @@ describe('CarnetView — sans animal', () => {
 
     expect(push).toHaveBeenCalledWith({ name: 'animal-new' })
   })
+})
 
-  it('n’affiche rien tant que la liste n’est pas chargée', async () => {
-    load.mockReturnValueOnce(new Promise(() => {}))
+describe('CarnetView — chargement et erreur', () => {
+  let list: Mock<AnimalsRepository['list']>
+
+  beforeEach(() => {
+    load.mockRestore()
+    load = vi.spyOn(store, 'load')
+    list = vi.fn<AnimalsRepository['list']>()
+    provideAnimalsRepository(() => ({
+      list,
+      getById: vi.fn<AnimalsRepository['getById']>(),
+      create: vi.fn<AnimalsRepository['create']>(),
+      update: vi.fn<AnimalsRepository['update']>(),
+      remove: vi.fn<AnimalsRepository['remove']>(),
+    }))
+  })
+
+  afterEach(() => {
+    provideAnimalsRepository(null)
+  })
+
+  it('montre le squelette du header et un indicateur tant que la liste n’est pas chargée', async () => {
+    list.mockReturnValue(new Promise(() => {}))
     const wrapper = await monter()
 
+    expect(wrapper.get('.carnet-header').find('.carnet-header__name').exists()).toBe(false)
+    expect(
+      wrapper.get('.carnet-loading').findComponent({ name: 'VProgressCircular' }).exists(),
+    ).toBe(true)
     expect(wrapper.find('.carnet-welcome').exists()).toBe(false)
+    expect(wrapper.find('.carnet-error').exists()).toBe(false)
+  })
+
+  it('affiche l’état d’erreur, pas « Bienvenue », quand l’ouverture échoue', async () => {
+    list.mockRejectedValue(new Error('SQLite indisponible'))
+    const wrapper = await monter()
+
+    expect(wrapper.get('.carnet-error__title').text()).toBe('Impossible d’ouvrir le carnet.')
+    expect(wrapper.get('.carnet-error__retry').text()).toBe('Réessayer')
+    expect(wrapper.find('.carnet-welcome').exists()).toBe(false)
+    expect(wrapper.find('.carnet-loading').exists()).toBe(false)
     expect(wrapper.find('.carnet-header').exists()).toBe(false)
+  })
+
+  it('relance le chargement sur « Réessayer » et bascule sur l’animal quand il réussit', async () => {
+    list.mockRejectedValueOnce(new Error('SQLite indisponible')).mockResolvedValueOnce([MILO])
+    const wrapper = await monter()
+    expect(load).toHaveBeenCalledTimes(1)
+
+    await wrapper.get('.carnet-error__retry').trigger('click')
+    await flushPromises()
+
+    expect(load).toHaveBeenCalledTimes(2)
+    expect(wrapper.find('.carnet-error').exists()).toBe(false)
+    expect(wrapper.get('.carnet-header__name').text()).toBe('Milo')
+  })
+
+  it('ne souhaite la bienvenue qu’après un chargement réussi et vide', async () => {
+    list.mockResolvedValue([])
+    const wrapper = await monter()
+
+    expect(wrapper.get('.carnet-welcome__title').text()).toBe('Bienvenue sur MémoPatte')
+    expect(wrapper.find('.carnet-error').exists()).toBe(false)
+    expect(wrapper.find('.carnet-loading').exists()).toBe(false)
   })
 })
 

@@ -28,7 +28,11 @@ const treatmentsSummary = ref<TreatmentsSummary>({ total: 0, overdue: 0, ongoing
 const weightSummary = ref<WeightSectionSummary>(null)
 
 const animal = computed(() => animals.selectedAnimal)
-const isEmpty = computed(() => animals.hasLoaded && animals.animals.length === 0)
+const isLoading = computed(() => !animals.hasLoaded && animals.error === null)
+const hasError = computed(() => animals.error !== null)
+const isEmpty = computed(
+  () => animals.hasLoaded && animals.animals.length === 0 && animals.error === null,
+)
 
 const chips = computed<AnimalChipItem[]>(() =>
   animals.animals.map((item) => ({ id: item.id, name: item.name })),
@@ -164,6 +168,22 @@ function createAnimal(): void {
       </div>
     </template>
 
+    <template v-else-if="isLoading">
+      <header class="carnet-header" aria-hidden="true" />
+      <div class="carnet-loading" role="status" :aria-label="t('animals.carnet.loading')">
+        <v-progress-circular indeterminate color="primary" :size="32" :width="3" />
+      </div>
+    </template>
+
+    <div v-else-if="hasError" class="carnet-error" role="alert">
+      <v-icon class="carnet-error__icon" icon="ms:error" size="48" />
+      <h1 class="carnet-error__title">{{ t('animals.carnet.error.title') }}</h1>
+      <p class="carnet-error__text">{{ t('animals.carnet.error.text') }}</p>
+      <v-btn class="carnet-error__retry" variant="flat" color="primary" @click="animals.load()">
+        {{ t('animals.carnet.error.retry') }}
+      </v-btn>
+    </div>
+
     <div v-else-if="isEmpty" class="carnet-welcome">
       <v-icon class="carnet-welcome__icon" icon="ms:pets" size="48" />
       <h1 class="carnet-welcome__title">{{ t('animals.carnet.welcome.title') }}</h1>
@@ -295,7 +315,14 @@ function createAnimal(): void {
   margin-top: 26px;
 }
 
-.carnet-welcome {
+.carnet-loading {
+  display: flex;
+  justify-content: center;
+  padding-top: 64px;
+}
+
+.carnet-welcome,
+.carnet-error {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -304,18 +331,27 @@ function createAnimal(): void {
   text-align: center;
 }
 
-.carnet-welcome__icon {
+.carnet-welcome__icon,
+.carnet-error__icon {
   color: rgb(var(--v-theme-primary));
 }
 
-.carnet-welcome__title {
+.carnet-welcome__title,
+.carnet-error__title {
   margin: 0;
   font-family: tokens.$font-family-heading;
   font-size: 24px;
   font-weight: 700;
 }
 
-.carnet-welcome__create {
+.carnet-error__text {
+  margin: -6px 0 0;
+  color: tokens.$color-text-secondary;
+  font-size: 14px;
+}
+
+.carnet-welcome__create,
+.carnet-error__retry {
   height: 52px;
   padding-inline: 28px;
   border-radius: 999px;
