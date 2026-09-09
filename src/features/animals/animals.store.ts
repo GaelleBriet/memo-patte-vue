@@ -104,5 +104,9 @@ export const useAnimalsStore = defineStore('animals', () => {
     select(id: string | null): void {
       selectedAnimalId.value = id
     },
+
+    byId(id: string): Animal | null {
+      return animals.value.find((animal) => animal.id === id) ?? null
+    },
   }
 })

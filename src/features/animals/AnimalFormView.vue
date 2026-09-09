@@ -1,16 +1,21 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
 import {
+  animalFormValuesFrom,
   emptyAnimalFormValues,
   todayIsoDate,
   validateAnimalForm,
   type AnimalFormErrors,
 } from './animal-form'
-import { ANIMAL_SPECIES, type AnimalSpecies } from './animal.schema'
+import { ANIMAL_SPECIES, type Animal, type AnimalSpecies } from './animal.schema'
 import { useAnimalsStore } from './animals.store'
+
+const props = defineProps<{
+  id?: string
+}>()
 
 const { t } = useI18n()
 const router = useRouter()
@@ -18,10 +23,39 @@ const animals = useAnimalsStore()
 
 const values = ref(emptyAnimalFormValues())
 const errors = ref<AnimalFormErrors>({})
+const existing = ref<Animal | null>(null)
+const notFound = ref(false)
 const saveFailed = ref(false)
 const isSubmitting = ref(false)
 const isScrolled = ref(false)
 const maxBirthDate = todayIsoDate()
+
+const isEdit = computed(() => props.id !== undefined)
+const title = computed(() =>
+  existing.value
+    ? t('animals.form.editTitle', { name: existing.value.name })
+    : t('animals.form.title'),
+)
+const submitLabel = computed(() => {
+  if (isSubmitting.value) {
+    return isEdit.value ? t('animals.form.saving') : t('animals.form.submitting')
+  }
+  return isEdit.value ? t('animals.form.save') : t('animals.form.submit')
+})
+const errorMessage = computed(() => {
+  if (notFound.value) return t('animals.form.errors.notFound')
+  if (saveFailed.value) return t('animals.form.errors.save')
+  return null
+})
+
+onMounted(async () => {
+  if (props.id === undefined) return
+
+  if (!animals.hasLoaded) await animals.load()
+  existing.value = animals.byId(props.id)
+  notFound.value = existing.value === null
+  if (existing.value) values.value = animalFormValuesFrom(existing.value)
+})
 
 function backToAnimals(): void {
   void router.push({ name: 'animals' })
@@ -38,7 +72,7 @@ function selectSpecies(value: unknown): void {
 }
 
 async function submit(): Promise<void> {
-  if (isSubmitting.value) return
+  if (isSubmitting.value || notFound.value) return
 
   const result = validateAnimalForm(values.value)
   errors.value = result.success ? {} : result.errors
@@ -48,7 +82,11 @@ async function submit(): Promise<void> {
   saveFailed.value = false
 
   try {
-    await animals.create(result.data)
+    if (props.id !== undefined) {
+      await animals.update(props.id, result.data)
+    } else {
+      await animals.create(result.data)
+    }
     backToAnimals()
   } catch {
     saveFailed.value = true
@@ -70,7 +108,7 @@ async function submit(): Promise<void> {
           :aria-label="t('animals.form.back')"
           @click="backToAnimals"
         />
-        <h1 class="animal-form__title">{{ t('animals.form.title') }}</h1>
+        <h1 class="animal-form__title">{{ title }}</h1>
       </header>
 
       <div class="animal-form__fields">
@@ -198,8 +236,8 @@ async function submit(): Promise<void> {
     </div>
 
     <footer class="animal-form__actions">
-      <p v-if="saveFailed" class="animal-form__save-error" role="alert">
-        {{ t('animals.form.errors.save') }}
+      <p v-if="errorMessage" class="animal-form__save-error" role="alert">
+        {{ errorMessage }}
       </p>
       <div class="animal-form__buttons">
         <v-btn
@@ -215,7 +253,7 @@ async function submit(): Promise<void> {
           class="animal-form__submit"
           variant="flat"
           color="primary"
-          :disabled="isSubmitting"
+          :disabled="isSubmitting || notFound"
           @click="submit"
         >
           <v-progress-circular
@@ -225,7 +263,7 @@ async function submit(): Promise<void> {
             :size="18"
             :width="2"
           />
-          {{ isSubmitting ? t('animals.form.submitting') : t('animals.form.submit') }}
+          {{ submitLabel }}
         </v-btn>
       </div>
     </footer>
