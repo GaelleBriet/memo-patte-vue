@@ -7,6 +7,8 @@ import vuetify from '@/core/theme/vuetify'
 import i18n from '@/core/i18n'
 import { getAnimalsRepository } from '@/features/animals/animals.repository'
 import { provideAnimalsRepository } from '@/features/animals/animals.store'
+import { getTreatmentsRepository } from '@/features/treatments/treatments.repository'
+import { provideTreatmentsRepository } from '@/features/treatments/treatments.store'
 import { getVaccinationsRepository } from '@/features/vaccinations/vaccinations.repository'
 import { provideVaccinationsRepository } from '@/features/vaccinations/vaccinations.store'
 import { getWeightRepository } from '@/features/weight/weight.repository'
@@ -16,6 +18,7 @@ import '@/styles/main.scss'
 provideAnimalsRepository(getAnimalsRepository)
 provideVaccinationsRepository(getVaccinationsRepository)
 provideWeightRepository(getWeightRepository)
+provideTreatmentsRepository(getTreatmentsRepository)
 
 const app = createApp(App)
 
