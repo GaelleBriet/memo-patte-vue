@@ -1,4 +1,5 @@
-import type { DbClient } from '@/core/db/db-client'
+import type { DbClient, SqlStatement } from '@/core/db/db-client'
+import { getDb } from '@/core/db/sqlite'
 import {
   vaccinationInputSchema,
   vaccinationUpdateSchema,
@@ -116,7 +117,28 @@ export function createVaccinationsRepository(db: DbClient) {
         [deletedAt, deletedAt, id],
       )
     },
+
+    /** Instruction fournie sans être exécutée : la suppression d'un animal la joue dans sa transaction. */
+    markDeletedByAnimalStatement(animalId: string, deletedAt: string): SqlStatement {
+      return {
+        sql: `UPDATE vaccination SET deleted_at = ?, updated_at = ? WHERE animal_id = ? AND ${NOT_DELETED}`,
+        params: [deletedAt, deletedAt, animalId],
+      }
+    },
   }
 }
 
 export type VaccinationsRepository = ReturnType<typeof createVaccinationsRepository>
+
+let repository: Promise<VaccinationsRepository> | null = null
+
+/** Ouverture ratée non mise en cache : `getDb()` doit pouvoir réessayer. */
+export function getVaccinationsRepository(): Promise<VaccinationsRepository> {
+  repository ??= getDb()
+    .then(createVaccinationsRepository)
+    .catch((cause: unknown) => {
+      repository = null
+      throw cause
+    })
+  return repository
+}

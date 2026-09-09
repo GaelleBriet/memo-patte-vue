@@ -1,11 +1,17 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ZodError } from 'zod'
+import type { DbClient } from '@/core/db/db-client'
 import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory-db'
+import { getDb } from '@/core/db/sqlite'
 import {
   createVaccinationsRepository,
+  getVaccinationsRepository,
   type VaccinationsRepository,
 } from '../vaccinations.repository'
+
+// La fabrique est le seul code testé ici qui ouvre la base : on lui substitue `getDb`.
+vi.mock('@/core/db/sqlite', () => ({ getDb: vi.fn<() => Promise<DbClient>>() }))
 
 const MIETTE = '11111111-1111-4111-8111-111111111111'
 const VASCO = '22222222-2222-4222-8222-222222222222'
@@ -279,5 +285,85 @@ describe('vaccinationsRepository', () => {
 
     const rows = await db.query<{ id: string }>('SELECT id FROM vaccination')
     expect(rows).toEqual([])
+  })
+  describe('markDeletedByAnimalStatement', () => {
+    it('construit l’instruction sans l’exécuter', async () => {
+      const rage = await repository.create({
+        animalId: MIETTE,
+        name: 'Rage',
+        lastInjectionDate: '2024-03-01',
+      })
+
+      const statement = repository.markDeletedByAnimalStatement(MIETTE, '2026-03-01T10:00:00.000Z')
+
+      expect(statement).toEqual({
+        sql: 'UPDATE vaccination SET deleted_at = ?, updated_at = ? WHERE animal_id = ? AND deleted_at IS NULL',
+        params: ['2026-03-01T10:00:00.000Z', '2026-03-01T10:00:00.000Z', MIETTE],
+      })
+      await expect(repository.getById(rage.id)).resolves.toEqual(rage)
+    })
+
+    it('exécutée via runMany, marque les vaccins de l’animal sans toucher aux autres', async () => {
+      const rage = await repository.create({
+        animalId: MIETTE,
+        name: 'Rage',
+        lastInjectionDate: '2024-03-01',
+      })
+      const chppi = await repository.create({
+        animalId: VASCO,
+        name: 'CHPPi',
+        lastInjectionDate: '2025-11-02',
+      })
+      const dejaSupprime = await repository.create({
+        animalId: MIETTE,
+        name: 'Typhus',
+        lastInjectionDate: '2025-09-12',
+      })
+      await repository.remove(dejaSupprime.id)
+
+      await db.runMany([
+        repository.markDeletedByAnimalStatement(MIETTE, '2026-03-01T10:00:00.000Z'),
+      ])
+
+      await expect(repository.listByAnimal(MIETTE)).resolves.toEqual([])
+      await expect(repository.getById(chppi.id)).resolves.toEqual(chppi)
+      const rows = await db.query<{ id: string; deleted_at: string | null; updated_at: string }>(
+        'SELECT id, deleted_at, updated_at FROM vaccination WHERE animal_id = ?',
+        [MIETTE],
+      )
+      expect(rows.find((row) => row.id === rage.id)).toEqual({
+        id: rage.id,
+        deleted_at: '2026-03-01T10:00:00.000Z',
+        updated_at: '2026-03-01T10:00:00.000Z',
+      })
+      expect(rows.find((row) => row.id === dejaSupprime.id)?.deleted_at).not.toBe(
+        '2026-03-01T10:00:00.000Z',
+      )
+    })
+  })
+})
+
+describe('getVaccinationsRepository', () => {
+  let db: InMemoryDb
+
+  beforeEach(async () => {
+    db = await createInMemoryDb()
+  })
+
+  afterEach(() => {
+    db.close()
+  })
+
+  it('ne met pas en cache une ouverture ratée, puis réutilise celle qui réussit', async () => {
+    vi.mocked(getDb).mockRejectedValueOnce(new Error('base indisponible'))
+    await expect(getVaccinationsRepository()).rejects.toThrow('base indisponible')
+
+    // Sans remise à `null` du cache, ce second appel resservirait le rejet.
+    vi.mocked(getDb).mockResolvedValueOnce(db)
+    const repository = await getVaccinationsRepository()
+    await expect(repository.listByAnimal(MIETTE)).resolves.toEqual([])
+
+    await expect(getVaccinationsRepository()).resolves.toBe(repository)
+    expect(getDb).toHaveBeenCalledTimes(2)
   })
 })
