@@ -46,6 +46,21 @@ export const migrations: DbMigration[] = [
       `CREATE INDEX IF NOT EXISTS idx_vaccination_animal_id ON vaccination (animal_id);`,
     ],
   },
+  {
+    toVersion: 3,
+    statements: [
+      `CREATE TABLE IF NOT EXISTS weight_entry (
+        id TEXT PRIMARY KEY NOT NULL,
+        animal_id TEXT NOT NULL REFERENCES animal(id) ON DELETE CASCADE,
+        weight_kg REAL NOT NULL,
+        measured_on TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        deleted_at TEXT
+      );`,
+      `CREATE INDEX IF NOT EXISTS idx_weight_entry_animal_id ON weight_entry (animal_id);`,
+    ],
+  },
 ]
 
 export const DATABASE_VERSION = migrations.reduce(
