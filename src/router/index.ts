@@ -13,6 +13,11 @@ const router = createRouter({
       name: 'animals',
       component: () => import('@/features/animals/AnimalsView.vue'),
     },
+    {
+      path: '/animals/new',
+      name: 'animal-new',
+      component: () => import('@/features/animals/AnimalFormView.vue'),
+    },
   ],
 })
 
