@@ -7,7 +7,7 @@ export type ReminderSource = {
   id: string
   animalId: string
   label: string
-  /** Date civile `yyyy-MM-dd` ; `null` = pas de rappel programmé, jamais listé à l'accueil. */
+  /** Date civile `yyyy-MM-dd` ; `null` = pas de rappel programmé, jamais listé comme rappel. */
   dueDate: string | null
 }
 
@@ -65,3 +65,6 @@ export function buildReminders(
     overdue: reminders.filter((reminder) => reminder.status === 'overdue').length,
   }
 }
+
+/** Ce qu'un écran composite a besoin de savoir d'une section : combien de rappels, combien en retard. */
+export type ReminderCounts = Pick<RemindersSummary, 'total' | 'overdue'>

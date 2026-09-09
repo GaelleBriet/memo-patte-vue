@@ -2,6 +2,7 @@ import {
   getVaccinationsRepository,
   type VaccinationsRepository,
 } from '@/features/vaccinations/vaccinations.repository'
+import { getTreatmentsRepository } from '@/features/treatments/treatments.repository'
 import { getWeightRepository } from '@/features/weight/weight.repository'
 import { getAnimalsRepository, type AnimalsRepository } from './animals.repository'
 
@@ -35,4 +36,5 @@ export type AnimalDeletionService = ReturnType<typeof createAnimalDeletionServic
 export const animalDeletionService = createAnimalDeletionService(getAnimalsRepository, [
   getVaccinationsRepository,
   getWeightRepository,
+  getTreatmentsRepository,
 ])

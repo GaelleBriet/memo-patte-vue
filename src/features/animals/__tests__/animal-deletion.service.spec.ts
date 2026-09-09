@@ -6,6 +6,10 @@ import {
   createVaccinationsRepository,
   type VaccinationsRepository,
 } from '@/features/vaccinations/vaccinations.repository'
+import {
+  createTreatmentsRepository,
+  type TreatmentsRepository,
+} from '@/features/treatments/treatments.repository'
 import { createWeightRepository, type WeightRepository } from '@/features/weight/weight.repository'
 import { getDb } from '@/core/db/sqlite'
 import {
@@ -27,6 +31,7 @@ describe('animalDeletionService', () => {
   let animals: AnimalsRepository
   let vaccinations: VaccinationsRepository
   let weight: WeightRepository
+  let treatments: TreatmentsRepository
   let service: AnimalDeletionService
 
   beforeEach(async () => {
@@ -35,7 +40,11 @@ describe('animalDeletionService', () => {
     animals = createAnimalsRepository(db)
     vaccinations = createVaccinationsRepository(db)
     weight = createWeightRepository(db)
-    service = createAnimalDeletionService(() => animals, [() => vaccinations, () => weight])
+    treatments = createTreatmentsRepository(db)
+    service = createAnimalDeletionService(
+      () => animals,
+      [() => vaccinations, () => weight, () => treatments],
+    )
   })
 
   afterEach(() => {
@@ -123,6 +132,39 @@ describe('animalDeletionService', () => {
       { deleted_at: '2026-03-01T10:01:00.000Z', updated_at: '2026-03-01T10:01:00.000Z' },
     ])
     await expect(weight.listByAnimal(vasco.id)).resolves.toEqual([vascoEntry])
+  })
+
+  it('marque les traitements de l’animal avec la même date, sans toucher ceux des autres', async () => {
+    vi.useFakeTimers({ now: new Date('2026-03-01T10:00:00.000Z') })
+    const miette = await animals.create({ name: 'Miette', species: 'cat' })
+    const vasco = await animals.create({ name: 'Vasco', species: 'dog' })
+    await treatments.create({
+      animalId: miette.id,
+      name: 'Milbemax',
+      type: 'deworming',
+      frequency: { value: 3, unit: 'month' },
+      lastDoseDate: '2026-01-10',
+    })
+    const vascoTreatment = await treatments.create({
+      animalId: vasco.id,
+      name: 'Bravecto',
+      type: 'antiparasitic',
+      frequency: { value: 3, unit: 'month' },
+      lastDoseDate: '2026-01-10',
+    })
+    vi.advanceTimersByTime(60_000)
+
+    await service.remove(miette.id)
+
+    await expect(treatments.listByAnimal(miette.id)).resolves.toEqual([])
+    await expect(
+      db.query<Tombstone>('SELECT deleted_at, updated_at FROM treatment WHERE animal_id = ?', [
+        miette.id,
+      ]),
+    ).resolves.toEqual([
+      { deleted_at: '2026-03-01T10:01:00.000Z', updated_at: '2026-03-01T10:01:00.000Z' },
+    ])
+    await expect(treatments.listByAnimal(vasco.id)).resolves.toEqual([vascoTreatment])
   })
 
   it('laisse intacts les autres animaux et leurs vaccins', async () => {
@@ -235,7 +277,7 @@ describe('animalDeletionService', () => {
     expect(vaccinationCount?.n).toBe(2)
   })
 
-  it('branche par défaut les vaccins et les pesées sur la base locale', async () => {
+  it('branche par défaut les vaccins, les pesées et les traitements sur la base locale', async () => {
     vi.mocked(getDb).mockResolvedValue(db)
     const miette = await animals.create({ name: 'Miette', species: 'cat' })
     await vaccinations.create({
@@ -244,6 +286,13 @@ describe('animalDeletionService', () => {
       lastInjectionDate: '2024-03-01',
     })
     await weight.create({ animalId: miette.id, weightKg: 4.1, measuredOn: '2026-01-10' })
+    await treatments.create({
+      animalId: miette.id,
+      name: 'Milbemax',
+      type: 'deworming',
+      frequency: { value: 3, unit: 'month' },
+      lastDoseDate: '2026-01-10',
+    })
 
     await animalDeletionService.remove(miette.id)
 
@@ -252,6 +301,11 @@ describe('animalDeletionService', () => {
     await expect(vaccinationTombstones(miette.id)).resolves.toEqual([animal])
     await expect(
       db.query<Tombstone>('SELECT deleted_at, updated_at FROM weight_entry WHERE animal_id = ?', [
+        miette.id,
+      ]),
+    ).resolves.toEqual([animal])
+    await expect(
+      db.query<Tombstone>('SELECT deleted_at, updated_at FROM treatment WHERE animal_id = ?', [
         miette.id,
       ]),
     ).resolves.toEqual([animal])

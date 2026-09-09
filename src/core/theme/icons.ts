@@ -14,6 +14,7 @@ import pestControl from '@material-symbols/svg-400/outlined/pest_control.svg?raw
 import pets from '@material-symbols/svg-400/outlined/pets.svg?raw'
 import schedule from '@material-symbols/svg-400/outlined/schedule.svg?raw'
 import settings from '@material-symbols/svg-400/outlined/settings.svg?raw'
+import showChart from '@material-symbols/svg-400/outlined/show_chart.svg?raw'
 import today from '@material-symbols/svg-400/outlined/today.svg?raw'
 import vaccines from '@material-symbols/svg-400/outlined/vaccines.svg?raw'
 
@@ -131,6 +132,7 @@ export const msIcons = {
   search,
   settings,
   shift,
+  show_chart: showChart,
   space_bar: spaceBar,
   star,
   star_fill: starFill,
