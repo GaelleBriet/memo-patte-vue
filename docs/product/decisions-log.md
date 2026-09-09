@@ -758,3 +758,36 @@ d'animal** : les schémas d'édition retirent `animalId`, les formulaires
 n'ont aucun sélecteur d'animal, l'animal vient de la route et s'affiche
 comme un fait. — Raison : décision prise pour les vaccins le 2026-09-08,
 étendue à l'identique pour ne pas avoir trois comportements.
+
+2026-09-09 — **Un écran composite (Carnet, Accueil) importe les
+composants de section des autres features ; chaque section n'utilise
+que son propre store.** — Raison : la règle « aucun import croisé »
+n'avait d'exception que pour les services orchestrant des repositories,
+et un écran qui réunit vaccins, traitements et poids ne peut pas exister
+sans en importer quelque chose ; faire porter la lecture par des
+sections propriétaires de leur store garde le couplage à un seul
+endroit, l'écran. — Alternative écartée : une feature `carnet/` à part,
+qui aurait le même besoin d'imports sans le dire.
+
+2026-09-09 — **La logique commune à plusieurs écrans vit dans
+`shared/`** : `reminders.ts` (statuts d'échéance) y déménage depuis
+`features/home/`, rejoint par `animal-age.ts` et `weight-chart.ts`. —
+Raison : le Carnet et l'Accueil calculent les mêmes statuts ; dupliquer
+la règle des quatre statuts serait la faire diverger. — Alternative
+écartée : la laisser dans `home/` et l'importer depuis `animals/`,
+import croisé qu'aucune règle ne couvre.
+
+2026-09-09 — **Pas de contrôle mort** : une ligne ou un lien dont la
+destination n'existe pas encore (« Voir l'historique » avant #31,
+« Ajouter une pesée » avant #30) n'est pas rendu, même si la maquette le
+montre ; la PR documente l'écart. — Raison : un bouton qui ne fait rien
+est un bug pour la personne qui l'utilise, pas un état intermédiaire. —
+Alternative écartée : rendre le contrôle inerte ou grisé.
+
+2026-09-09 — **L'icône adaptative est calibrée en dp, pas en pourcentage
+du canevas source.** `@capacitor/assets` génère des couches de 192 px
+insérées à 16,7 %, donc le canevas correspond aux 72 dp visibles ; la
+contrainte retenue est « aucun pixel hors du cercle de 66 dp ». —
+Raison : « 66 % de 1024 » aurait donné une patte à 44 % de l'icône
+finale, et le masque cercle est le plus sévère. — Alternative écartée :
+remplir la seule boîte de 66 dp, 7 % plus grand mais rogné sur cercle.
