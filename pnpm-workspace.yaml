@@ -2,3 +2,7 @@
 # sharp (dépendance de @capacitor/assets) doit compiler son binaire à l'installation.
 onlyBuiltDependencies:
   - sharp
+
+# Le wasm doit venir du sql.js figé dans le bundle de jeep-sqlite 2.8.0 (#152)
+overrides:
+  jeep-sqlite>sql.js: 1.11.0

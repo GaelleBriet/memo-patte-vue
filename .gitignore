@@ -41,6 +41,9 @@ coverage/
 # Capacitor
 .capacitor/
 
+# Copié par `postinstall` depuis sql.js pour la prévisualisation navigateur (#152)
+public/assets/sql-wasm.wasm
+
 # Local tooling
 .husky/_
 .cache/

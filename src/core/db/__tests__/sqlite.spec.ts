@@ -2,13 +2,16 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const plugin = vi.hoisted(() => ({
+  initWebStore: vi.fn<() => Promise<void>>(),
   addUpgradeStatement: vi.fn<() => Promise<void>>(),
   createConnection:
     vi.fn<() => Promise<{ open: () => Promise<void>; execute: () => Promise<void> }>>(),
 }))
 
+vi.mock('@capacitor/core', () => ({ Capacitor: { getPlatform: () => 'android' } }))
+
 vi.mock('@capacitor-community/sqlite', () => ({
-  CapacitorSQLite: {},
+  CapacitorSQLite: { initWebStore: plugin.initWebStore },
   SQLiteConnection: class {
     addUpgradeStatement = plugin.addUpgradeStatement
     createConnection = plugin.createConnection
@@ -30,8 +33,18 @@ async function importSqlite() {
 
 describe('getDb', () => {
   beforeEach(() => {
+    plugin.initWebStore.mockReset()
     plugin.addUpgradeStatement.mockReset().mockResolvedValue(undefined)
     plugin.createConnection.mockReset()
+  })
+
+  it("sur Android, n'ouvre jamais le store web", async () => {
+    plugin.createConnection.mockResolvedValue(fakeConnection())
+    const { getDb } = await importSqlite()
+
+    await getDb()
+
+    expect(plugin.initWebStore).not.toHaveBeenCalled()
   })
 
   it("n'ouvre la base qu'une fois et partage le même client", async () => {
