@@ -4,6 +4,9 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+overrides:
+  jeep-sqlite>sql.js: 1.11.0
+
 importers:
 
   .:
@@ -35,6 +38,9 @@ importers:
       date-fns:
         specifier: ^4.4.0
         version: 4.4.0
+      jeep-sqlite:
+        specifier: ^2.8.0
+        version: 2.8.0
       pinia:
         specifier: ^4.0.2
         version: 4.0.3(@vue/devtools-api@8.2.1)(typescript@6.0.3)(vue@3.5.41(typescript@6.0.3))
@@ -3046,6 +3052,9 @@ packages:
     resolution: {integrity: sha512-UcjcJOWknrNkF6PLX83qcHM6KHgVKNkV62Y8a5uYDVv9ydGQVwAHMKqHdJje1VTWpljG0WYpCDhrCdAOYH4TWg==}
     engines: {node: '>= 10.x'}
 
+  sql.js@1.11.0:
+    resolution: {integrity: sha512-GsLUDU3vhOo14Pd5ME0y2te49JQyby6HuoCuadevEV+CGgTUjmYRrm7B7lhRyzOgrmcWmspUfyjNb6sOAEqdsA==}
+
   sql.js@1.14.2:
     resolution: {integrity: sha512-3ZGPovObMFrdw79zrUHbfdE/DLIsy8jdNdssmMSQuRAymedU6q84asPt0kgiqrdMYlPegDItiIMfmIXzZnYFcw==}
 
@@ -5887,7 +5896,7 @@ snapshots:
       browser-fs-access: 0.35.0
       jszip: 3.10.1
       localforage: 1.10.0
-      sql.js: 1.14.2
+      sql.js: 1.11.0
 
   jiti@2.6.1: {}
 
@@ -6598,6 +6607,8 @@ snapshots:
   source-map-js@1.2.1: {}
 
   split2@4.2.0: {}
+
+  sql.js@1.11.0: {}
 
   sql.js@1.14.2: {}
 
