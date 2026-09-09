@@ -185,6 +185,46 @@ describe('animalsRepository', () => {
     expect(second?.deleted_at).toBe(first?.deleted_at)
   })
 
+  describe('remove avec cascade', () => {
+    it('applique les instructions de la cascade dans la même transaction', async () => {
+      const miette = await repository.create({ name: 'Miette', species: 'cat' })
+      await db.run(
+        `INSERT INTO vaccination (id, animal_id, name, last_injection_date, created_at, updated_at)
+         VALUES ('v1', ?, 'Rage', '2024-03-01', '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z')`,
+        [miette.id],
+      )
+
+      await repository.remove(miette.id, [
+        {
+          sql: 'UPDATE vaccination SET deleted_at = ? WHERE animal_id = ?',
+          params: ['2026-03-01T10:00:00.000Z', miette.id],
+        },
+      ])
+
+      await expect(repository.getById(miette.id)).resolves.toBeNull()
+      const rows = await db.query<{ deleted_at: string | null }>(
+        'SELECT deleted_at FROM vaccination WHERE id = ?',
+        ['v1'],
+      )
+      expect(rows).toEqual([{ deleted_at: '2026-03-01T10:00:00.000Z' }])
+    })
+
+    it('ne marque pas l’animal quand une instruction de la cascade échoue', async () => {
+      const miette = await repository.create({ name: 'Miette', species: 'cat' })
+
+      await expect(
+        repository.remove(miette.id, [{ sql: 'UPDATE table_inexistante SET deleted_at = 1' }]),
+      ).rejects.toThrow(/no such table/)
+
+      await expect(repository.getById(miette.id)).resolves.toEqual(miette)
+      const rows = await db.query<{ deleted_at: string | null }>(
+        'SELECT deleted_at FROM animal WHERE id = ?',
+        [miette.id],
+      )
+      expect(rows).toEqual([{ deleted_at: null }])
+    })
+  })
+
   it('rejette une espèce interdite avant d’atteindre la base', async () => {
     await expect(
       repository.create({

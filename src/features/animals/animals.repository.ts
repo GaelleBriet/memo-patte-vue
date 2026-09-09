@@ -1,4 +1,4 @@
-import type { DbClient } from '@/core/db/db-client'
+import type { DbClient, SqlStatement } from '@/core/db/db-client'
 import { getDb } from '@/core/db/sqlite'
 import { animalInputSchema, type Animal, type AnimalInput } from './animal.schema'
 
@@ -116,12 +116,15 @@ export function createAnimalsRepository(db: DbClient) {
     },
 
     /** Sans effet sur un animal inconnu ou déjà supprimé : la date initiale est gardée. */
-    async remove(id: string): Promise<void> {
+    async remove(id: string, cascade: SqlStatement[] = []): Promise<void> {
       const deletedAt = new Date().toISOString()
-      await db.run(
-        `UPDATE animal SET deleted_at = ?, updated_at = ? WHERE id = ? AND ${NOT_DELETED}`,
-        [deletedAt, deletedAt, id],
-      )
+      await db.runMany([
+        {
+          sql: `UPDATE animal SET deleted_at = ?, updated_at = ? WHERE id = ? AND ${NOT_DELETED}`,
+          params: [deletedAt, deletedAt, id],
+        },
+        ...cascade,
+      ])
     },
   }
 }
