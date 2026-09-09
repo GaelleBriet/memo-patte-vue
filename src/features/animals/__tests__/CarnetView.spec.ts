@@ -293,23 +293,31 @@ describe('CarnetView — bandeau de stats', () => {
     expect(stat(wrapper, 0)).toMatchObject({ value: '24,5 kg', sub: 'Première pesée' })
   })
 
-  it('compte les rappels vaccins et traitements de l’animal, et passe en corail dès un retard', async () => {
+  it('compte les retards, vaccins et traitements confondus, en corail, dès qu’il y en a un', async () => {
     vaccinations = [vaccination(MILO.id, '2026-09-01'), vaccination(MILO.id, null)]
     treatments = [treatment(MILO.id, '2026-09-24'), treatment(LUNA.id, '2026-09-01')]
     const wrapper = await monter()
 
-    expect(stat(wrapper, 1)).toMatchObject({ value: '2', sub: 'en retard' })
+    expect(stat(wrapper, 1)).toMatchObject({ value: '1', sub: 'en retard' })
     expect(stat(wrapper, 1).column.classes()).toContain('carnet-stat--overdue')
     expect(stat(wrapper, 2)).toMatchObject({ value: '1', sub: 'en cours' })
   })
 
-  it('reste neutre quand les rappels sont tous à venir', async () => {
-    vaccinations = [vaccination(MILO.id, '2026-12-12')]
+  it('compte les rappels à venir, en neutre, quand rien n’est en retard', async () => {
+    vaccinations = [vaccination(MILO.id, '2026-12-12'), vaccination(MILO.id, null)]
     treatments = [treatment(MILO.id, '2026-09-09')]
     const wrapper = await monter()
 
     expect(stat(wrapper, 1)).toMatchObject({ value: '2', sub: 'à venir' })
     expect(stat(wrapper, 1).column.classes()).not.toContain('carnet-stat--overdue')
+  })
+
+  it('ne compte que les retards dès qu’il y en a, pas les rappels à venir avec', async () => {
+    vaccinations = [vaccination(MILO.id, '2026-09-01'), vaccination(MILO.id, '2026-12-12')]
+    treatments = [treatment(MILO.id, '2026-09-02'), treatment(MILO.id, '2026-09-24')]
+    const wrapper = await monter()
+
+    expect(stat(wrapper, 1)).toMatchObject({ value: '2', sub: 'en retard' })
   })
 
   it('suit l’animal consulté', async () => {

@@ -60,14 +60,15 @@ const weightStat = computed(() => {
   }
 })
 
+// Dès qu'il y a un retard, la colonne ne compte plus que les retards : un « 2 en retard »
+// pour un seul retard sur deux rappels mentirait.
 const remindersStat = computed(() => {
   const total = vaccinationsSummary.value.total + treatmentsSummary.value.total
   const overdue = vaccinationsSummary.value.overdue + treatmentsSummary.value.overdue
-  return {
-    value: String(total),
-    sub: t(overdue > 0 ? 'animals.carnet.stats.overdue' : 'animals.carnet.stats.upcoming'),
-    isOverdue: overdue > 0,
+  if (overdue > 0) {
+    return { value: String(overdue), sub: t('animals.carnet.stats.overdue'), isOverdue: true }
   }
+  return { value: String(total), sub: t('animals.carnet.stats.upcoming'), isOverdue: false }
 })
 
 onMounted(() => {
