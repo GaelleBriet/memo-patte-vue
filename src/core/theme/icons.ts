@@ -3,6 +3,7 @@ import type { IconAliases } from 'vuetify'
 // Icônes des écrans (maquettes v2)
 import add from '@material-symbols/svg-400/outlined/add.svg?raw'
 import arrowBack from '@material-symbols/svg-400/outlined/arrow_back.svg?raw'
+import calendarMonth from '@material-symbols/svg-400/outlined/calendar_month.svg?raw'
 import check from '@material-symbols/svg-400/outlined/check.svg?raw'
 import edit from '@material-symbols/svg-400/outlined/edit.svg?raw'
 import error from '@material-symbols/svg-400/outlined/error.svg?raw'
@@ -88,6 +89,7 @@ export const msIcons = {
   attach_file: attachFile,
   backspace,
   cached,
+  calendar_month: calendarMonth,
   calendar_today: calendarToday,
   cancel,
   check,
