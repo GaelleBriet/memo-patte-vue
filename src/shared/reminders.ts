@@ -65,3 +65,6 @@ export function buildReminders(
     overdue: reminders.filter((reminder) => reminder.status === 'overdue').length,
   }
 }
+
+/** Ce qu'un écran composite a besoin de savoir d'une section : combien de rappels, combien en retard. */
+export type ReminderCounts = Pick<RemindersSummary, 'total' | 'overdue'>
