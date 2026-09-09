@@ -19,6 +19,12 @@ const router = createRouter({
       component: () => import('@/features/animals/AnimalFormView.vue'),
     },
     {
+      path: '/animals/:id/edit',
+      name: 'animal-edit',
+      component: () => import('@/features/animals/AnimalFormView.vue'),
+      props: true,
+    },
+    {
       path: '/animals/:animalId/vaccinations/new',
       name: 'vaccination-new',
       component: () => import('@/features/vaccinations/VaccinationFormView.vue'),

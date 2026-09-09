@@ -269,13 +269,16 @@ function createFakeRepository(): FakeVaccinationsRepository {
     update: vi.fn<VaccinationsRepository['update']>(async (id, input) => {
       const current = living().find((vaccination) => vaccination.id === id)
       if (!current) throw new Error(`Vaccin introuvable : ${id}`)
-      Object.assign(current, {
+      // Un nouvel objet, comme le ferait une relecture SQL : muter en place cacherait un store qui ne relit pas.
+      const next = {
+        ...current,
         name: input.name,
         lastInjectionDate: input.lastInjectionDate,
         dueDate: input.dueDate ?? null,
         updatedAt: new Date().toISOString(),
-      })
-      return current
+      }
+      vaccinations[vaccinations.indexOf(current)] = next
+      return next
     }),
     remove: vi.fn<VaccinationsRepository['remove']>(async (id) => {
       const vaccination = living().find((candidate) => candidate.id === id)

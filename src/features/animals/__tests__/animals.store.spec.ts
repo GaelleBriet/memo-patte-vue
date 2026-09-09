@@ -137,6 +137,15 @@ describe('useAnimalsStore', () => {
     expect(store.selectedAnimal).toBeNull()
   })
 
+  it('retrouve un animal par identifiant, null pour un inconnu', async () => {
+    const miette = repository.seed({ name: 'Miette', species: 'cat' })
+    const store = useAnimalsStore()
+    await store.load()
+
+    expect(store.byId(miette.id)?.name).toBe('Miette')
+    expect(store.byId('33333333-3333-4333-8333-333333333333')).toBeNull()
+  })
+
   it('oublie la sélection quand l’animal sélectionné disparaît de la liste', async () => {
     const miette = repository.seed({ name: 'Miette', species: 'cat' })
     const store = useAnimalsStore()
