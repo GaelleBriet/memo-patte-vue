@@ -3,7 +3,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const plugin = vi.hoisted(() => ({
   addUpgradeStatement: vi.fn<() => Promise<void>>(),
-  createConnection: vi.fn<() => Promise<{ open: () => Promise<void> }>>(),
+  createConnection:
+    vi.fn<() => Promise<{ open: () => Promise<void>; execute: () => Promise<void> }>>(),
 }))
 
 vi.mock('@capacitor-community/sqlite', () => ({
@@ -14,9 +15,11 @@ vi.mock('@capacitor-community/sqlite', () => ({
   },
 }))
 
-// Seul `open()` est appelé par `openDatabase()`.
 function fakeConnection() {
-  return { open: vi.fn<() => Promise<void>>().mockResolvedValue(undefined) }
+  return {
+    open: vi.fn<() => Promise<void>>().mockResolvedValue(undefined),
+    execute: vi.fn<() => Promise<void>>().mockResolvedValue(undefined),
+  }
 }
 
 // Recharger le module est le seul moyen de repartir d'un cache de connexion vide.
@@ -56,7 +59,7 @@ describe('getDb', () => {
 describe('runMany', () => {
   function connectionWithExecuteSet() {
     return {
-      open: vi.fn<() => Promise<void>>().mockResolvedValue(undefined),
+      ...fakeConnection(),
       executeSet: vi.fn<() => Promise<void>>().mockResolvedValue(undefined),
     }
   }
