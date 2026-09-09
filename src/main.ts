@@ -9,10 +9,13 @@ import { getAnimalsRepository } from '@/features/animals/animals.repository'
 import { provideAnimalsRepository } from '@/features/animals/animals.store'
 import { getVaccinationsRepository } from '@/features/vaccinations/vaccinations.repository'
 import { provideVaccinationsRepository } from '@/features/vaccinations/vaccinations.store'
+import { getWeightRepository } from '@/features/weight/weight.repository'
+import { provideWeightRepository } from '@/features/weight/weight.store'
 import '@/styles/main.scss'
 
 provideAnimalsRepository(getAnimalsRepository)
 provideVaccinationsRepository(getVaccinationsRepository)
+provideWeightRepository(getWeightRepository)
 
 const app = createApp(App)
 
