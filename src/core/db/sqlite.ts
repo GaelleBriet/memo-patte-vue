@@ -31,6 +31,7 @@ async function openDatabase(): Promise<DbClient> {
     false,
   )
   await connection.open()
+  await connection.execute('PRAGMA foreign_keys = ON;')
   return toDbClient(connection)
 }
 
