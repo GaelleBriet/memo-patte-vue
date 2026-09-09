@@ -69,3 +69,71 @@ depuis `foreground.png` une fois nettoyé.
 
 L'icône haute résolution attendue par Google Play est un **PNG 32 bits de
 512 × 512**. `icone.png` (1254 × 1254) sert de source, il faut la redimensionner.
+
+## Fichiers dérivés (ticket #50)
+
+Les sources ci-dessus ne sont jamais modifiées. Les fichiers corrigés vivent dans
+`resources/` à la racine (convention `@capacitor/assets`), les ressources Android
+dans `android/app/src/main/res/`.
+
+| Fichier `resources/` | Contenu |
+|---|---|
+| `icon-foreground.png` | 1024 × 1024 RGBA, illustration nettoyée, centrée dans la zone de sécurité |
+| `icon-monochrome.png` | 1024 × 1024 RGBA, silhouette blanche (alpha seul) pour l'icône thématisée |
+| `icon-background.png` | 1024 × 1024, aplat pétrole `#01383E` plein bord |
+| `icon-only.png` | 1024 × 1024, aplat pétrole + illustration à 80 % (icône à plat, Play Store 512 px) |
+| `splash.png`, `splash-dark.png` | 2732 × 2732, pétrole + illustration centrée (identiques : le splash est pétrole dans les deux thèmes) |
+
+### Régénérer
+
+```sh
+python3 scripts/build-icon-resources.py          # sources -> resources/ (Python 3, Pillow, numpy)
+pnpm exec capacitor-assets generate --android    # resources/ -> mipmaps + splash Android
+git checkout android/app/src/main/AndroidManifest.xml android/app/src/main/res/mipmap-anydpi-v26/
+for d in ldpi:36 mdpi:48 hdpi:72 xhdpi:96 xxhdpi:144 xxxhdpi:192; do
+  magick resources/icon-monochrome.png -resize ${d#*:}x${d#*:} -define png:color-type=6 \
+    android/app/src/main/res/mipmap-${d%:*}/ic_launcher_monochrome.png
+done
+```
+
+Le `git checkout` restaure ce que `capacitor-assets` réécrit sans raison : le
+manifest (simple reformatage) et les deux `ic_launcher*.xml`, maintenus à la main
+(background en `@color/ic_launcher_background` plein bord au lieu du PNG inséré,
+couche `<monochrome>`). `capacitor-assets` ne génère pas la couche monochrome :
+la boucle `magick` la produit aux tailles 48 dp.
+
+### Corrections appliquées par `scripts/build-icon-resources.py`
+
+1. **Canevas carré.** `foreground.png` et `monochrome.png` (1312 × 1199) sont
+   recadrés sur leur boîte englobante puis centrés sur 1024 × 1024 transparent.
+2. **Zone de sécurité.** `capacitor-assets` insère les couches avec un `inset`
+   de 16,7 % : le canevas 1024 px correspond aux 72 dp visibles de l'icône
+   adaptative (108 dp). L'illustration est réduite pour que sa boîte englobante
+   tienne dans 66 dp **et** qu'aucun pixel ne sorte du cercle de 66 dp (masque
+   circulaire). Résultat : foreground 61,4 × 57,7 dp, monochrome 56,5 × 54,8 dp
+   (sa silhouette est plus large en bas à gauche que l'illustration couleur).
+3. **Background plein bord.** Aplat `#01383E`, et l'icône adaptative référence
+   une couleur (`values/colors.xml`, `petrole`) plutôt qu'un PNG inséré : le
+   fond couvre les 108 dp, parallaxe comprise.
+4. **Halo de détourage.** Les poussières (pixels d'alpha ≤ 6 loin de
+   l'illustration, 56 606 px) sont retirées ; les pixels semi-transparents,
+   composés sur blanc à l'export, sont dé-composés
+   (`F = (C − (1 − α)·255) / α`). Sur les pixels de bord (α ≤ 128), la
+   luminance moyenne composée sur pétrole passe de 54,6 à 50,6 (pétrole = 44,7),
+   le 95ᵉ centile de 106,5 à 92,8.
+
+### Splash screen
+
+- Android < 12 : `drawable*/splash.png` générés (thème `AppTheme.NoActionBarLaunch`,
+  `android:background`).
+- Android 12+ : `windowSplashScreenBackground` = `@color/petrole` et
+  `windowSplashScreenAnimatedIcon` = `@mipmap/ic_launcher`, déclarés dans
+  `values/styles.xml` ; `Theme.SplashScreen` (androidx core-splashscreen) les
+  transmet aux attributs système dans sa variante `values-v31`. L'icône adaptative
+  étant pétrole + illustration, le splash système affiche l'illustration seule sur
+  fond pétrole.
+
+### Nom affiché
+
+`appName` de `capacitor.config.ts` et `app_name` de `values/strings.xml` valent
+tous deux « MémoPatte » ; rien à changer.

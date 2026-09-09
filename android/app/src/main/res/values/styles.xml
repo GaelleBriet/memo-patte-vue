@@ -16,7 +16,15 @@
     </style>
 
 
+    <!--
+        Splash screen. Android < 12 : le drawable `splash` (PNG générés par @capacitor/assets).
+        Android 12+ : le splash système lit `windowSplashScreenBackground` et
+        `windowSplashScreenAnimatedIcon`, que Theme.SplashScreen (androidx core-splashscreen)
+        transmet aux attributs `android:` dans sa variante values-v31.
+    -->
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
         <item name="android:background">@drawable/splash</item>
+        <item name="windowSplashScreenBackground">@color/petrole</item>
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
     </style>
 </resources>
