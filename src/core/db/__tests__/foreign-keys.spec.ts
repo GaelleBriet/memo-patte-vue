@@ -8,6 +8,8 @@ const plugin = vi.hoisted(() => ({
   createConnection: vi.fn<() => Promise<unknown>>(),
 }))
 
+vi.mock('@capacitor/core', () => ({ Capacitor: { getPlatform: () => 'android' } }))
+
 vi.mock('@capacitor-community/sqlite', () => ({
   CapacitorSQLite: {},
   SQLiteConnection: class {

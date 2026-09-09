@@ -5,6 +5,7 @@ import {
 } from '@capacitor-community/sqlite'
 import type { DbClient, SqlParam } from './db-client'
 import { DATABASE_VERSION, migrations } from './migrations'
+import { prepareWebSqlite } from './web-sqlite'
 
 export const DATABASE_NAME = 'memopatte'
 
@@ -22,6 +23,7 @@ export function getDb(): Promise<DbClient> {
 }
 
 async function openDatabase(): Promise<DbClient> {
+  await prepareWebSqlite()
   await sqlite.addUpgradeStatement(DATABASE_NAME, migrations)
   const connection = await sqlite.createConnection(
     DATABASE_NAME,
