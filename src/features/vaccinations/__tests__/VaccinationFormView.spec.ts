@@ -350,3 +350,21 @@ describe('VaccinationFormView — top bar au scroll', () => {
     )
   })
 })
+
+describe('VaccinationFormView — routes', () => {
+  it('ouvre la création depuis l’animal de l’URL, en lui passant l’identifiant en prop', () => {
+    const route = router.resolve(`/animals/${MILO.id}/vaccinations/new`)
+
+    expect(route.name).toBe('vaccination-new')
+    expect(route.params).toEqual({ animalId: MILO.id })
+    expect(route.matched[0]?.props.default).toBe(true)
+  })
+
+  it('ouvre l’édition depuis l’identifiant du vaccin, sans animal dans l’URL', () => {
+    const route = router.resolve(`/vaccinations/${RAGE.id}/edit`)
+
+    expect(route.name).toBe('vaccination-edit')
+    expect(route.params).toEqual({ id: RAGE.id })
+    expect(route.matched[0]?.props.default).toBe(true)
+  })
+})
