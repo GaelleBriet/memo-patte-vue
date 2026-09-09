@@ -1,5 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    Icône adaptative (Android 8+). Les PNG des couches sont générés par
+    `capacitor-assets generate` (voir docs/design/logos/logos.md,
+    « Fichiers dérivés ») ; ce fichier est maintenu à la main : background en couleur
+    plein bord (pas de PNG inséré) et couche monochrome pour l'icône thématisée Android 13+.
+-->
 <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
-    <background android:drawable="@color/ic_launcher_background"/>
-    <foreground android:drawable="@mipmap/ic_launcher_foreground"/>
+    <background android:drawable="@color/ic_launcher_background" />
+    <foreground>
+        <inset android:drawable="@mipmap/ic_launcher_foreground" android:inset="16.7%" />
+    </foreground>
+    <monochrome>
+        <inset android:drawable="@mipmap/ic_launcher_monochrome" android:inset="16.7%" />
+    </monochrome>
 </adaptive-icon>
