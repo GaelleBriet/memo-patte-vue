@@ -27,10 +27,13 @@ const emit = defineEmits<{
 const { t } = useI18n()
 const store = useWeightStore()
 
-// Pendant un chargement, le store porte déjà le nouvel animal mais encore l'ancienne liste.
-const entries = computed(() =>
-  store.animalId === props.animalId && !store.isLoading ? store.entries : [],
+// Pendant un chargement, ou après un échec, le store porte déjà le nouvel animal mais encore l'ancienne liste.
+const entries = computed(() => (isCurrent.value ? store.entries : []))
+
+const isCurrent = computed(
+  () => store.animalId === props.animalId && !store.isLoading && store.error === null,
 )
+const hasError = computed(() => store.animalId === props.animalId && store.error !== null)
 
 const summary = computed<WeightSectionSummary>(() => weightSummary(entries.value))
 const chart = computed(() => buildWeightChart(entries.value))
@@ -84,6 +87,9 @@ watch(summary, (value) => emit('summary', value), { immediate: true })
       </p>
     </div>
 
+    <p v-else-if="hasError" class="section-card__empty weight-section__error">
+      {{ t('weight.section.error') }}
+    </p>
     <p v-else class="section-card__empty weight-section__empty">
       {{ t('weight.section.empty') }}
     </p>

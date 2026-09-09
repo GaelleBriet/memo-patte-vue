@@ -122,7 +122,8 @@
         "overdue": "Échéance passée",
         "validUntil": "Valide jusqu’au {month}",
         "none": "Pas de rappel programmé"
-      }
+      },
+      "error": "Impossible de charger les vaccins."
     }
   },
   "treatments": {
@@ -143,7 +144,8 @@
         "today": "Prochaine dose aujourd’hui",
         "tomorrow": "Prochaine dose demain",
         "later": "Prochaine dose dans {n} jours"
-      }
+      },
+      "error": "Impossible de charger les traitements."
     }
   },
   "weight": {
@@ -156,7 +158,8 @@
       "title": "Suivi de poids",
       "empty": "Aucune pesée enregistrée",
       "single": "Ajoute une nouvelle pesée pour voir l’évolution.",
-      "chartLabel": "Évolution du poids"
+      "chartLabel": "Évolution du poids",
+      "error": "Impossible de charger les pesées."
     }
   },
   "home": {

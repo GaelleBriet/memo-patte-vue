@@ -202,6 +202,33 @@ describe('VaccinationsSection — état vide et ajout', () => {
   })
 })
 
+describe('VaccinationsSection — chargement en échec', () => {
+  it('dit que les vaccins n’ont pas pu être chargés, sans état vide, résumé à zéro', async () => {
+    listByAnimal.mockRejectedValueOnce(new Error('base fermée'))
+    const wrapper = await monter()
+
+    expect(wrapper.get('.vaccinations-section__error').text()).toBe(
+      'Impossible de charger les vaccins.',
+    )
+    expect(wrapper.find('.vaccinations-section__empty').exists()).toBe(false)
+    expect(wrapper.findAll('.vaccination-row')).toHaveLength(0)
+    const summaries = wrapper.emitted('summary') ?? []
+    expect(summaries[summaries.length - 1]).toEqual([{ total: 0, overdue: 0 }])
+  })
+
+  it('ne montre pas la liste d’un autre animal quand le chargement du suivant échoue', async () => {
+    vaccinations = [vaccination({ name: 'Rage' })]
+    const wrapper = await monter()
+    listByAnimal.mockRejectedValueOnce(new Error('base fermée'))
+
+    await wrapper.setProps({ animalId: LUNA })
+    await flushPromises()
+
+    expect(wrapper.findAll('.vaccination-row')).toHaveLength(0)
+    expect(wrapper.find('.vaccinations-section__error').exists()).toBe(true)
+  })
+})
+
 describe('VaccinationsSection — résumé pour le bandeau', () => {
   it('remonte le nombre de rappels et de retards une fois chargé', async () => {
     vaccinations = [

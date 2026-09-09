@@ -28,10 +28,13 @@ const emit = defineEmits<{
 const { t } = useI18n()
 const store = useTreatmentsStore()
 
-// Pendant un chargement, le store porte déjà le nouvel animal mais encore l'ancienne liste.
-const treatments = computed(() =>
-  store.animalId === props.animalId && !store.isLoading ? store.treatments : [],
+// Pendant un chargement, ou après un échec, le store porte déjà le nouvel animal mais encore l'ancienne liste.
+const treatments = computed(() => (isCurrent.value ? store.treatments : []))
+
+const isCurrent = computed(
+  () => store.animalId === props.animalId && !store.isLoading && store.error === null,
 )
+const hasError = computed(() => store.animalId === props.animalId && store.error !== null)
 
 const reminders = computed(() =>
   buildReminders(
@@ -115,7 +118,10 @@ watch(summary, (value) => emit('summary', value), { immediate: true })
       <span class="treatment-row__frequency">{{ row.frequency }}</span>
     </div>
 
-    <p v-if="rows.length === 0" class="section-card__empty treatments-section__empty">
+    <p v-if="hasError" class="section-card__empty treatments-section__error">
+      {{ t('treatments.section.error') }}
+    </p>
+    <p v-else-if="rows.length === 0" class="section-card__empty treatments-section__empty">
       {{ t('treatments.section.empty') }}
     </p>
   </SectionCard>

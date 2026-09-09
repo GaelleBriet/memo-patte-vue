@@ -41,10 +41,13 @@ const BADGE_LABELS: Record<VaccinationStatus, string> = {
   none: 'vaccinations.section.status.none',
 }
 
-// Pendant un chargement, le store porte déjà le nouvel animal mais encore l'ancienne liste.
-const vaccinations = computed(() =>
-  store.animalId === props.animalId && !store.isLoading ? store.vaccinations : [],
+// Pendant un chargement, ou après un échec, le store porte déjà le nouvel animal mais encore l'ancienne liste.
+const vaccinations = computed(() => (isCurrent.value ? store.vaccinations : []))
+
+const isCurrent = computed(
+  () => store.animalId === props.animalId && !store.isLoading && store.error === null,
 )
+const hasError = computed(() => store.animalId === props.animalId && store.error !== null)
 
 const rows = computed(() =>
   vaccinations.value.map((vaccination) => {
@@ -118,7 +121,10 @@ watch(summary, (value) => emit('summary', value), { immediate: true })
       </span>
     </div>
 
-    <p v-if="rows.length === 0" class="section-card__empty vaccinations-section__empty">
+    <p v-if="hasError" class="section-card__empty vaccinations-section__error">
+      {{ t('vaccinations.section.error') }}
+    </p>
+    <p v-else-if="rows.length === 0" class="section-card__empty vaccinations-section__empty">
       {{ t('vaccinations.section.empty') }}
     </p>
 

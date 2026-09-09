@@ -186,6 +186,21 @@ describe('TreatmentsSection — état vide', () => {
   })
 })
 
+describe('TreatmentsSection — chargement en échec', () => {
+  it('dit que les traitements n’ont pas pu être chargés, sans état vide, résumé à zéro', async () => {
+    listByAnimal.mockRejectedValueOnce(new Error('base fermée'))
+    const wrapper = await monter()
+
+    expect(wrapper.get('.treatments-section__error').text()).toBe(
+      'Impossible de charger les traitements.',
+    )
+    expect(wrapper.find('.treatments-section__empty').exists()).toBe(false)
+    expect(wrapper.findAll('.treatment-row')).toHaveLength(0)
+    const summaries = wrapper.emitted('summary') ?? []
+    expect(summaries[summaries.length - 1]).toEqual([{ total: 0, overdue: 0, ongoing: 0 }])
+  })
+})
+
 describe('TreatmentsSection — résumé pour le bandeau', () => {
   it('remonte les rappels, les retards et le nombre en cours', async () => {
     treatments = [

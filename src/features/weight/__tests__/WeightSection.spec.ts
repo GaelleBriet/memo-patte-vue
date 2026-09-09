@@ -179,6 +179,19 @@ describe('WeightSection — état vide et lignes non livrées', () => {
   })
 })
 
+describe('WeightSection — chargement en échec', () => {
+  it('dit que les pesées n’ont pas pu être chargées, sans état vide, résumé null', async () => {
+    listByAnimal.mockRejectedValueOnce(new Error('base fermée'))
+    const wrapper = await monter()
+
+    expect(wrapper.get('.weight-section__error').text()).toBe('Impossible de charger les pesées.')
+    expect(wrapper.find('.weight-section__empty').exists()).toBe(false)
+    expect(wrapper.find('.weight-section__current').exists()).toBe(false)
+    const summaries = wrapper.emitted('summary') ?? []
+    expect(summaries[summaries.length - 1]).toEqual([null])
+  })
+})
+
 describe('WeightSection — résumé pour le bandeau', () => {
   it('remonte la dernière pesée et son delta une fois chargé', async () => {
     entries = [entry(24, '2026-08-05'), entry(24.5, '2026-11-08')]
