@@ -101,6 +101,16 @@ describe('VaccinationsSection — chargement', () => {
     expect(listByAnimal).toHaveBeenLastCalledWith(LUNA)
     expect(ligne(wrapper, 0).get('.vaccination-row__name').text()).toBe('Typhus')
   })
+  it('n’affiche pas la liste de l’animal précédent pendant le chargement du suivant', async () => {
+    vaccinations = [vaccination({ name: 'Rage' })]
+    const wrapper = await monter()
+    listByAnimal.mockReturnValueOnce(new Promise(() => {}))
+
+    await wrapper.setProps({ animalId: LUNA })
+    await flushPromises()
+
+    expect(wrapper.findAll('.vaccination-row')).toHaveLength(0)
+  })
 })
 
 describe('VaccinationsSection — lignes et badges', () => {

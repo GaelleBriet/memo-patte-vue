@@ -87,6 +87,16 @@ describe('TreatmentsSection — chargement', () => {
     expect(listByAnimal).toHaveBeenLastCalledWith(LUNA)
     expect(ligne(wrapper).get('.treatment-row__name').text()).toBe('Milbemax')
   })
+  it('n’affiche pas la liste de l’animal précédent pendant le chargement du suivant', async () => {
+    treatments = [treatment()]
+    const wrapper = await monter()
+    listByAnimal.mockReturnValueOnce(new Promise(() => {}))
+
+    await wrapper.setProps({ animalId: LUNA })
+    await flushPromises()
+
+    expect(wrapper.findAll('.treatment-row')).toHaveLength(0)
+  })
 })
 
 describe('TreatmentsSection — lignes', () => {

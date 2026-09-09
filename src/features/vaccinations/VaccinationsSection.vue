@@ -41,8 +41,10 @@ const BADGE_LABELS: Record<VaccinationStatus, string> = {
   none: 'vaccinations.section.status.none',
 }
 
-// Le store garde la liste du dernier animal chargé : on ne montre jamais celle d'un autre.
-const vaccinations = computed(() => (store.animalId === props.animalId ? store.vaccinations : []))
+// Pendant un chargement, le store porte déjà le nouvel animal mais encore l'ancienne liste.
+const vaccinations = computed(() =>
+  store.animalId === props.animalId && !store.isLoading ? store.vaccinations : [],
+)
 
 const rows = computed(() =>
   vaccinations.value.map((vaccination) => {

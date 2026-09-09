@@ -28,8 +28,10 @@ const emit = defineEmits<{
 const { t } = useI18n()
 const store = useTreatmentsStore()
 
-// Le store garde la liste du dernier animal chargé : on ne montre jamais celle d'un autre.
-const treatments = computed(() => (store.animalId === props.animalId ? store.treatments : []))
+// Pendant un chargement, le store porte déjà le nouvel animal mais encore l'ancienne liste.
+const treatments = computed(() =>
+  store.animalId === props.animalId && !store.isLoading ? store.treatments : [],
+)
 
 const reminders = computed(() =>
   buildReminders(

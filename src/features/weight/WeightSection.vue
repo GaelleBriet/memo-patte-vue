@@ -27,8 +27,10 @@ const emit = defineEmits<{
 const { t } = useI18n()
 const store = useWeightStore()
 
-// Le store garde la liste du dernier animal chargé : on ne montre jamais celle d'un autre.
-const entries = computed(() => (store.animalId === props.animalId ? store.entries : []))
+// Pendant un chargement, le store porte déjà le nouvel animal mais encore l'ancienne liste.
+const entries = computed(() =>
+  store.animalId === props.animalId && !store.isLoading ? store.entries : [],
+)
 
 const summary = computed<WeightSectionSummary>(() => weightSummary(entries.value))
 const chart = computed(() => buildWeightChart(entries.value))

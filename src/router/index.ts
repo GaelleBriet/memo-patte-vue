@@ -11,7 +11,7 @@ const router = createRouter({
     {
       path: '/animals',
       name: 'animals',
-      component: () => import('@/features/animals/AnimalsView.vue'),
+      component: () => import('@/features/animals/CarnetView.vue'),
     },
     {
       path: '/animals/new',

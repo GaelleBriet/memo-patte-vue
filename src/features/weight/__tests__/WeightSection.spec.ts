@@ -72,6 +72,16 @@ describe('WeightSection — chargement', () => {
     expect(listByAnimal).toHaveBeenLastCalledWith(LUNA)
     expect(wrapper.get('.weight-section__current').text()).toBe('4,2')
   })
+  it('n’affiche pas les pesées de l’animal précédent pendant le chargement du suivant', async () => {
+    entries = [entry(24.5, '2026-11-08')]
+    const wrapper = await monter()
+    listByAnimal.mockReturnValueOnce(new Promise(() => {}))
+
+    await wrapper.setProps({ animalId: LUNA })
+    await flushPromises()
+
+    expect(wrapper.find('.weight-section__current').exists()).toBe(false)
+  })
 })
 
 describe('WeightSection — poids actuel et delta', () => {
