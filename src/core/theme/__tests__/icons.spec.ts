@@ -15,6 +15,7 @@ const iconesDesMaquettes = [
   'settings',
   'edit',
   'arrow_back',
+  'calendar_month',
   'home',
   'pets',
   'add',

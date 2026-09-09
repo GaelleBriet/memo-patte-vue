@@ -9,6 +9,43 @@
       "label": "Animaux",
       "add": "Ajouter un animal",
       "photoAlt": "Photo de {name}"
+    },
+    "form": {
+      "title": "Nouvel animal",
+      "back": "Retour",
+      "required": "*",
+      "optional": "Optionnel",
+      "name": {
+        "label": "Nom",
+        "placeholder": "Ex. Milo"
+      },
+      "species": {
+        "label": "Espèce",
+        "dog": "Chien",
+        "cat": "Chat"
+      },
+      "breed": {
+        "label": "Race",
+        "placeholder": "Ex. Labrador"
+      },
+      "birthDate": {
+        "label": "Date de naissance"
+      },
+      "initialWeightKg": {
+        "label": "Poids initial",
+        "placeholder": "0,0",
+        "suffix": "kg"
+      },
+      "cancel": "Annuler",
+      "submit": "Créer",
+      "submitting": "Création…",
+      "errors": {
+        "name": "Le nom est obligatoire.",
+        "species": "Choisis une espèce.",
+        "birthDate": "La date de naissance ne peut pas être dans le futur.",
+        "initialWeightKg": "Le poids doit être supérieur à 0 kg.",
+        "save": "L’animal n’a pas pu être enregistré. Réessaie."
+      }
     }
   },
   "home": {
