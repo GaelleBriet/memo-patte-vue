@@ -5,6 +5,13 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.15](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.14...memo-patte-v0.1.15) (2026-09-09)
+
+
+### 🐛 Corrections
+
+* **carnet:** états de chargement et d'erreur, jamais d'écran blanc ([3bf7470](https://github.com/GaelleBriet/memo-patte-vue/commit/3bf74703f5762c3396e1c74f4874fce6d678a513))
+
 ## [0.1.14](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.13...memo-patte-v0.1.14) (2026-09-09)
 
 
