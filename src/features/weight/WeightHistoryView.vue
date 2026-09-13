@@ -27,6 +27,8 @@ const isScrolled = ref(false)
 const CHART_OPTIONS = { width: 320, height: 150, paddingTop: 22 }
 
 const animal = computed(() => animals.byId(props.animalId))
+// Supprimé ou lien périmé : rien à consulter ni à ajouter.
+const isNotFound = computed(() => animals.hasLoaded && animal.value === null)
 
 const { entries, isLoading, isReady, hasError, reload } = useWeightEntries(() => props.animalId)
 
@@ -93,81 +95,90 @@ function backToAnimals(): void {
       </header>
 
       <div class="weight-history__content">
-        <section v-if="history.current && headline" class="weight-history__summary">
-          <p class="weight-history__current-label">{{ t('weight.history.current') }}</p>
-          <p class="weight-history__headline">
-            <span class="weight-history__current">{{ formatKg(history.current.weightKg) }}</span>
-            <span class="weight-history__unit">{{ t('weight.unit') }}</span>
-          </p>
-          <p class="weight-history__delta" :class="`weight-history__delta--${headline.trend}`">
-            {{ headline.text }}
-          </p>
-        </section>
-
-        <div v-if="chart" class="section-card__card weight-history__chart">
-          <WeightSparkline :chart="chart" />
-        </div>
-        <p v-else-if="history.state === 'single'" class="section-card__card weight-history__single">
-          <v-icon icon="ms:show_chart" size="22" />
-          <span>{{ t('weight.section.single') }}</span>
+        <p v-if="isNotFound" class="section-card__card weight-history__not-found" role="alert">
+          {{ t('animals.form.errors.notFound') }}
         </p>
 
-        <SectionCard
-          v-if="history.rows.length > 0"
-          class="weight-history__list"
-          :title="t('weight.history.list')"
-        >
-          <ul class="weight-history__rows">
-            <li v-for="row in history.rows" :key="row.id" class="weight-history__row">
-              <span class="weight-history__row-date">{{ formatLongDate(row.measuredOn) }}</span>
-              <span
-                class="weight-history__row-delta"
-                :class="row.delta ? `weight-history__delta--${row.delta.trend}` : null"
-                >{{
-                  row.delta
-                    ? t('weight.delta.value', { delta: formatKgDelta(row.delta.deltaKg) })
-                    : ''
-                }}</span
-              >
-              <span class="weight-history__row-value">
-                {{ t('weight.history.value', { weight: formatKg(row.weightKg) }) }}
-              </span>
-            </li>
-          </ul>
-        </SectionCard>
+        <template v-else>
+          <section v-if="history.current && headline" class="weight-history__summary">
+            <p class="weight-history__current-label">{{ t('weight.history.current') }}</p>
+            <p class="weight-history__headline">
+              <span class="weight-history__current">{{ formatKg(history.current.weightKg) }}</span>
+              <span class="weight-history__unit">{{ t('weight.unit') }}</span>
+            </p>
+            <p class="weight-history__delta" :class="`weight-history__delta--${headline.trend}`">
+              {{ headline.text }}
+            </p>
+          </section>
 
-        <div v-else-if="isLoading" class="weight-history__loading">
-          <v-progress-circular indeterminate color="primary" :size="32" :width="3" />
-        </div>
-
-        <div v-else-if="hasError" class="section-card__card weight-history__error" role="alert">
-          <p class="weight-history__error-text">{{ t('weight.section.error') }}</p>
-          <v-btn class="weight-history__retry" variant="flat" color="primary" @click="reload">
-            {{ t('animals.carnet.error.retry') }}
-          </v-btn>
-        </div>
-
-        <div v-else-if="isReady" class="section-card__card">
-          <p class="section-card__empty weight-history__empty">
-            {{ t('weight.section.empty') }}
-          </p>
-          <button
-            type="button"
-            class="section-card__add weight-history__empty-add"
-            @click="isSheetOpen = true"
+          <div v-if="chart" class="section-card__card weight-history__chart">
+            <WeightSparkline :chart="chart" />
+          </div>
+          <p
+            v-else-if="history.state === 'single'"
+            class="section-card__card weight-history__single"
           >
-            <v-icon icon="ms:add" size="20" />
-            <span>{{ t('weight.section.add') }}</span>
-          </button>
-        </div>
+            <v-icon icon="ms:show_chart" size="22" />
+            <span>{{ t('weight.section.single') }}</span>
+          </p>
 
-        <p v-if="history.initialWeightKg !== null" class="weight-history__initial">
-          {{ t('weight.history.initial', { weight: formatKg(history.initialWeightKg) }) }}
-        </p>
+          <SectionCard
+            v-if="history.rows.length > 0"
+            class="weight-history__list"
+            :title="t('weight.history.list')"
+          >
+            <ul class="weight-history__rows">
+              <li v-for="row in history.rows" :key="row.id" class="weight-history__row">
+                <span class="weight-history__row-date">{{ formatLongDate(row.measuredOn) }}</span>
+                <span
+                  class="weight-history__row-delta"
+                  :class="row.delta ? `weight-history__delta--${row.delta.trend}` : null"
+                  >{{
+                    row.delta
+                      ? t('weight.delta.value', { delta: formatKgDelta(row.delta.deltaKg) })
+                      : ''
+                  }}</span
+                >
+                <span class="weight-history__row-value">
+                  {{ t('weight.history.value', { weight: formatKg(row.weightKg) }) }}
+                </span>
+              </li>
+            </ul>
+          </SectionCard>
+
+          <div v-else-if="isLoading" class="weight-history__loading">
+            <v-progress-circular indeterminate color="primary" :size="32" :width="3" />
+          </div>
+
+          <div v-else-if="hasError" class="section-card__card weight-history__error" role="alert">
+            <p class="weight-history__error-text">{{ t('weight.section.error') }}</p>
+            <v-btn class="weight-history__retry" variant="flat" color="primary" @click="reload">
+              {{ t('animals.carnet.error.retry') }}
+            </v-btn>
+          </div>
+
+          <div v-else-if="isReady" class="section-card__card">
+            <p class="section-card__empty weight-history__empty">
+              {{ t('weight.section.empty') }}
+            </p>
+            <button
+              type="button"
+              class="section-card__add weight-history__empty-add"
+              @click="isSheetOpen = true"
+            >
+              <v-icon icon="ms:add" size="20" />
+              <span>{{ t('weight.section.add') }}</span>
+            </button>
+          </div>
+
+          <p v-if="history.initialWeightKg !== null" class="weight-history__initial">
+            {{ t('weight.history.initial', { weight: formatKg(history.initialWeightKg) }) }}
+          </p>
+        </template>
       </div>
     </div>
 
-    <footer v-if="history.rows.length > 0" class="weight-history__actions">
+    <footer v-if="!isNotFound && history.rows.length > 0" class="weight-history__actions">
       <v-btn
         class="weight-history__add"
         variant="flat"
@@ -260,6 +271,7 @@ function backToAnimals(): void {
 .weight-history__chart,
 .weight-history__single,
 .weight-history__error,
+.weight-history__not-found,
 .weight-history__content > .section-card__card,
 .weight-history__initial {
   margin-inline: 20px;
@@ -269,6 +281,7 @@ function backToAnimals(): void {
 .weight-history__single,
 .weight-history__error,
 .weight-history__initial,
+.weight-history__not-found,
 .weight-history__empty {
   margin-block: 0;
 }
@@ -334,6 +347,12 @@ function backToAnimals(): void {
     flex: 0 0 auto;
     color: tokens.$color-chart-icon;
   }
+}
+
+.weight-history__not-found {
+  padding: 16px 20px;
+  color: tokens.$color-text-secondary;
+  font-size: 14.5px;
 }
 
 .weight-history__loading {

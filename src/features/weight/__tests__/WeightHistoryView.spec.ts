@@ -413,6 +413,30 @@ describe('WeightHistoryView — chargement', () => {
   })
 })
 
+describe('WeightHistoryView — animal introuvable', () => {
+  it('le dit, sans poids, liste, ligne d’ajout ni bouton fixe', async () => {
+    animals = []
+    entries = [...HISTORIQUE_MILO]
+    const wrapper = await monter()
+
+    expect(wrapper.get('.weight-history__not-found').text()).toBe('Cet animal est introuvable.')
+    expect(wrapper.get('.weight-history__title').text()).toBe('Suivi de poids')
+    expect(wrapper.find('.weight-history__subtitle').exists()).toBe(false)
+    expect(wrapper.find('.weight-history__current').exists()).toBe(false)
+    expect(wrapper.find('.weight-history__row').exists()).toBe(false)
+    expect(wrapper.find('.weight-history__empty-add').exists()).toBe(false)
+    expect(wrapper.find('.weight-history__add').exists()).toBe(false)
+    expect(wrapper.find('.weight-history__initial').exists()).toBe(false)
+  })
+
+  it('attend la liste des animaux avant de conclure', async () => {
+    loadAnimals.mockImplementationOnce(() => new Promise(() => {}))
+    const wrapper = await monter()
+
+    expect(wrapper.find('.weight-history__not-found').exists()).toBe(false)
+  })
+})
+
 describe('WeightHistoryView — route', () => {
   it('ouvre l’écran depuis l’animal de l’URL, en lui passant l’identifiant en prop', async () => {
     const route = router.resolve(`/animals/${MILO.id}/weight`)
