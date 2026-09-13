@@ -54,6 +54,14 @@ watch(
   { immediate: true },
 )
 
+// Une chip choisie contredirait un « Choisis un animal. » encore affiché.
+watch(
+  () => values.value.animalId,
+  (animalId) => {
+    if (animalId !== null) delete errors.value.animalId
+  },
+)
+
 function close(): void {
   open.value = false
 }
@@ -326,9 +334,16 @@ async function submit(): Promise<void> {
   color: tokens.$color-field-border;
 }
 
-.weight-sheet__input .v-field--focused .v-field__outline,
+.weight-sheet__input .v-field--focused .v-field__outline {
+  --v-field-border-width: 2px;
+
+  color: rgb(var(--v-theme-primary));
+}
+
 .weight-sheet__input .v-field--error .v-field__outline {
   --v-field-border-width: 2px;
+
+  color: rgb(var(--v-theme-error));
 }
 
 .weight-sheet__input .v-field__input {
@@ -341,9 +356,11 @@ async function submit(): Promise<void> {
   opacity: 1;
 }
 
+// Vuetify n'affiche le suffixe qu'une fois le champ actif : la maquette veut « kg » dès l'ouverture.
 .weight-sheet__input .v-text-field__suffix {
   color: tokens.$color-field-suffix;
   font-weight: 700;
+  opacity: 1;
 }
 
 // L'indicateur natif est rendu transparent puis étiré sous l'icône

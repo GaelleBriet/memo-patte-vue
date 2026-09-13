@@ -205,6 +205,17 @@ describe('WeightSheet — sans animal (P2)', () => {
     })
   })
 
+  it('efface « Choisis un animal. » dès qu’un animal est choisi, sans attendre l’envoi', async () => {
+    await monter(null)
+    await soumettre()
+    expect(messages()).toContain('Choisis un animal.')
+
+    feuille().querySelectorAll<HTMLElement>('.animal-chip')[0]?.click()
+    await flushPromises()
+
+    expect(messages()).not.toContain('Choisis un animal.')
+  })
+
   it('la croix ferme la feuille', async () => {
     const wrapper = await monter(null)
 
