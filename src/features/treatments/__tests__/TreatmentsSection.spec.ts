@@ -178,12 +178,6 @@ describe('TreatmentsSection — état vide', () => {
     expect(wrapper.get('.treatments-section__empty').text()).toBe('Aucun traitement en cours')
     expect(wrapper.findAll('.treatment-row')).toHaveLength(0)
   })
-
-  it('n’offre pas encore de ligne d’ajout : le formulaire traitement n’existe pas', async () => {
-    const wrapper = await monter()
-
-    expect(wrapper.find('.treatments-section__add').exists()).toBe(false)
-  })
 })
 
 describe('TreatmentsSection — chargement en échec', () => {
@@ -211,5 +205,24 @@ describe('TreatmentsSection — résumé pour le bandeau', () => {
 
     const summaries = wrapper.emitted('summary') ?? []
     expect(summaries[summaries.length - 1]).toEqual([{ total: 2, overdue: 1, ongoing: 2 }])
+  })
+})
+
+describe('TreatmentsSection — ajout', () => {
+  it('termine la carte par « Ajouter un traitement », même sans traitement', async () => {
+    const wrapper = await monter()
+
+    const ajout = wrapper.get('.section-card__add')
+    expect(ajout.text()).toBe('Ajouter un traitement')
+    expect(ajout.element.tagName).toBe('BUTTON')
+  })
+
+  it('ouvre le formulaire de création pour l’animal affiché', async () => {
+    const push = vi.spyOn(router, 'push').mockResolvedValue()
+    const wrapper = await monter()
+
+    await wrapper.get('.section-card__add').trigger('click')
+
+    expect(push).toHaveBeenCalledWith({ name: 'treatment-new', params: { animalId: MILO } })
   })
 })
