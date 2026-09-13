@@ -12,7 +12,7 @@ import appRouter from '@/router'
 
 // Routeur de test : la barre ne dépend que des noms de route. Le vrai routeur charge
 // l'écran Carnet à la navigation, donc tout SQLite, et le test expirait sous charge.
-const Empty = defineComponent({ render: () => null })
+const Empty = { render: () => null }
 const router = createRouter({
   history: createMemoryHistory(),
   routes: [
