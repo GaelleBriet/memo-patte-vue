@@ -1,15 +1,18 @@
 <script setup lang="ts">
 import { format } from 'date-fns'
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
 import illustration from '@/assets/brand-illustration.png'
 import { useAnimalsStore } from '@/features/animals/animals.store'
+import WeightSheet from '@/features/weight/WeightSheet.vue'
 import AnimalChipSelector, { type AnimalChipItem } from '@/shared/AnimalChipSelector.vue'
 import { buildReminders } from '@/shared/reminders'
+import AnimalPickerSheet from './AnimalPickerSheet.vue'
 import { useHomeStore } from './home.store'
 import { overdueBanner, reminderRows, scopeCounter, upToDateText } from './home-summary'
+import { quickActionAnimalId } from './quick-actions'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -60,6 +63,31 @@ onMounted(() => {
   animals.select(null)
   load()
 })
+
+type FormRoute = 'treatment-new' | 'vaccination-new'
+
+const pendingForm = ref<FormRoute | null>(null)
+const isPickerOpen = ref(false)
+const isWeightSheetOpen = ref(false)
+
+function openForm(name: FormRoute): void {
+  const animalId = quickActionAnimalId({
+    selectedId: animals.selectedAnimalId,
+    animalIds: animals.animals.map((animal) => animal.id),
+  })
+  if (animalId !== null) {
+    void router.push({ name, params: { animalId } })
+    return
+  }
+  pendingForm.value = name
+  isPickerOpen.value = true
+}
+
+function onAnimalPicked(animalId: string): void {
+  if (pendingForm.value === null) return
+  void router.push({ name: pendingForm.value, params: { animalId } })
+  pendingForm.value = null
+}
 
 function createAnimal(): void {
   void router.push({ name: 'animal-new' })
@@ -149,6 +177,45 @@ function openCarnet(): void {
           </button>
         </div>
       </section>
+
+      <section class="home-quick-actions">
+        <h2 class="home-quick-actions__title">{{ t('home.quickActions.title') }}</h2>
+        <div class="home-quick-actions__grid">
+          <v-card
+            tag="button"
+            type="button"
+            class="home-quick-tile"
+            variant="flat"
+            @click="openForm('treatment-new')"
+          >
+            <v-icon class="home-quick-tile__icon" icon="ms:medication" size="24" />
+            <span class="home-quick-tile__label">{{ t('home.quickActions.treatment') }}</span>
+          </v-card>
+          <v-card
+            tag="button"
+            type="button"
+            class="home-quick-tile"
+            variant="flat"
+            @click="openForm('vaccination-new')"
+          >
+            <v-icon class="home-quick-tile__icon" icon="ms:vaccines" size="24" />
+            <span class="home-quick-tile__label">{{ t('home.quickActions.vaccination') }}</span>
+          </v-card>
+          <v-card
+            tag="button"
+            type="button"
+            class="home-quick-tile"
+            variant="flat"
+            @click="isWeightSheetOpen = true"
+          >
+            <v-icon class="home-quick-tile__icon" icon="ms:monitor_weight" size="24" />
+            <span class="home-quick-tile__label">{{ t('home.quickActions.weight') }}</span>
+          </v-card>
+        </div>
+      </section>
+
+      <AnimalPickerSheet v-model="isPickerOpen" :animals="chips" @pick="onAnimalPicked" />
+      <WeightSheet v-model="isWeightSheetOpen" :animal-id="animals.selectedAnimalId" />
     </template>
 
     <div v-else-if="isLoading" class="home-loading" role="status" :aria-label="t('home.loading')">
@@ -380,6 +447,50 @@ function openCarnet(): void {
   &:focus-visible {
     color: rgb(var(--v-theme-primary-darken-1));
   }
+}
+
+.home-quick-actions {
+  padding-inline: 20px;
+  margin-top: 36px;
+}
+
+.home-quick-actions__title {
+  margin: 0 0 12px;
+  font-family: tokens.$font-family-heading;
+  font-size: 21px;
+  font-weight: 600;
+}
+
+.home-quick-actions__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.home-quick-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: tokens.$height-quick-tile;
+  padding: 12px;
+  border: 1px solid tokens.$color-card-border;
+  border-radius: tokens.$radius-tile;
+  background: rgb(var(--v-theme-surface));
+  color: rgb(var(--v-theme-on-surface));
+  font-family: inherit;
+  text-align: start;
+}
+
+.home-quick-tile__icon {
+  color: rgb(var(--v-theme-primary));
+}
+
+.home-quick-tile__label {
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.25;
 }
 
 .home-loading {

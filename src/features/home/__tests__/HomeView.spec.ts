@@ -11,6 +11,7 @@ import {
   type MockInstance,
 } from 'vitest'
 
+import AnimalPickerSheet from '../AnimalPickerSheet.vue'
 import HomeView from '../HomeView.vue'
 import type { HomeReminderSource, HomeRemindersService } from '../home-reminders.service'
 import { provideHomeRemindersService, useHomeStore } from '../home.store'
@@ -19,6 +20,7 @@ import router from '@/router'
 import vuetify from '@/core/theme/vuetify'
 import type { Animal } from '@/features/animals/animal.schema'
 import { useAnimalsStore } from '@/features/animals/animals.store'
+import WeightSheet from '@/features/weight/WeightSheet.vue'
 import AnimalChipSelector from '@/shared/AnimalChipSelector.vue'
 
 const TODAY = new Date('2026-09-09T12:00:00')
@@ -409,5 +411,150 @@ describe('HomeView — A5 premier lancement, aucun animal', () => {
     await wrapper.get('.home-welcome__create').trigger('click')
 
     expect(push).toHaveBeenCalledWith({ name: 'animal-new' })
+  })
+})
+
+describe('HomeView — Actions rapides', () => {
+  beforeEach(() => {
+    // jsdom ne fournit pas `visualViewport`, que VDialog écoute pour suivre le clavier.
+    vi.stubGlobal('visualViewport', {
+      addEventListener() {},
+      removeEventListener() {},
+      width: 412,
+      height: 915,
+      offsetTop: 0,
+    })
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    document.body.innerHTML = ''
+  })
+
+  function tuiles(wrapper: ReturnType<typeof mount>) {
+    return wrapper.findAll('.home-quick-tile').map((tuile) => ({
+      label: tuile.get('.home-quick-tile__label').text(),
+      icon: tuile.findComponent({ name: 'VIcon' }).props('icon'),
+    }))
+  }
+
+  async function taper(wrapper: ReturnType<typeof mount>, index: number) {
+    await wrapper.findAll('.home-quick-tile')[index]!.trigger('click')
+    await flushPromises()
+  }
+
+  async function selectionner(wrapper: ReturnType<typeof mount>, index: number) {
+    await wrapper.findAll('.animal-chip')[index]!.trigger('click')
+    await flushPromises()
+  }
+
+  it('affiche trois tuiles sous « À faire » sur A1, icône puis libellé', async () => {
+    sources = [CHPPIL_MILO_RETARD]
+    const wrapper = await monter()
+
+    expect(wrapper.get('.home-quick-actions__title').text()).toBe('Actions rapides')
+    expect(tuiles(wrapper)).toEqual([
+      { label: 'Nouveau traitement', icon: 'ms:medication' },
+      { label: 'Rappel de vaccin', icon: 'ms:vaccines' },
+      { label: 'Ajouter un poids', icon: 'ms:monitor_weight' },
+    ])
+    const sections = wrapper.findAll('section').map((section) => section.classes()[0])
+    expect(sections).toEqual(['home-todo', 'home-quick-actions'])
+  })
+
+  it('reste présente sur A2, A3 et A4', async () => {
+    sources = [CHPPIL_MILO_RETARD]
+    const wrapper = await monter()
+    await selectionner(wrapper, 0)
+    expect(wrapper.findAll('.home-quick-tile')).toHaveLength(3)
+
+    await selectionner(wrapper, 1)
+    expect(wrapper.find('.home-up-to-date').exists()).toBe(true)
+    expect(wrapper.findAll('.home-quick-tile')).toHaveLength(3)
+
+    sources = []
+    const a4 = await monter()
+    expect(a4.find('.home-up-to-date').exists()).toBe(true)
+    expect(a4.findAll('.home-quick-tile')).toHaveLength(3)
+  })
+
+  it('est absente sur A5', async () => {
+    animals = []
+    const wrapper = await monter()
+
+    expect(wrapper.find('.home-quick-actions').exists()).toBe(false)
+    expect(wrapper.findComponent(WeightSheet).exists()).toBe(false)
+  })
+
+  it('ouvre le formulaire traitement de l’animal sélectionné en un tap', async () => {
+    const wrapper = await monter()
+    await selectionner(wrapper, 1)
+
+    await taper(wrapper, 0)
+
+    expect(push).toHaveBeenCalledWith({ name: 'treatment-new', params: { animalId: LUNA.id } })
+    expect(wrapper.getComponent(AnimalPickerSheet).props('modelValue')).toBe(false)
+  })
+
+  it('ouvre le formulaire vaccin du seul animal du foyer sans rien demander', async () => {
+    animals = [MILO]
+    const wrapper = await monter()
+
+    await taper(wrapper, 1)
+
+    expect(push).toHaveBeenCalledWith({ name: 'vaccination-new', params: { animalId: MILO.id } })
+    expect(wrapper.getComponent(AnimalPickerSheet).props('modelValue')).toBe(false)
+  })
+
+  it('demande l’animal quand plusieurs et aucun sélectionné, puis ouvre son formulaire', async () => {
+    const wrapper = await monter()
+
+    await taper(wrapper, 1)
+
+    const picker = wrapper.getComponent(AnimalPickerSheet)
+    expect(push).not.toHaveBeenCalled()
+    expect(picker.props('modelValue')).toBe(true)
+    expect(picker.props('animals')).toEqual([
+      { id: MILO.id, name: 'Milo' },
+      { id: LUNA.id, name: 'Luna' },
+    ])
+
+    picker.vm.$emit('pick', LUNA.id)
+    await flushPromises()
+
+    expect(push).toHaveBeenCalledWith({ name: 'vaccination-new', params: { animalId: LUNA.id } })
+  })
+
+  it('mène au formulaire traitement depuis la feuille de choix', async () => {
+    const wrapper = await monter()
+
+    await taper(wrapper, 0)
+    wrapper.getComponent(AnimalPickerSheet).vm.$emit('pick', MILO.id)
+    await flushPromises()
+
+    expect(push).toHaveBeenCalledWith({ name: 'treatment-new', params: { animalId: MILO.id } })
+  })
+
+  it('ouvre la feuille de pesée sans animal quand aucun n’est sélectionné', async () => {
+    const wrapper = await monter()
+    const sheet = wrapper.getComponent(WeightSheet)
+    expect(sheet.props('modelValue')).toBe(false)
+
+    await taper(wrapper, 2)
+
+    expect(sheet.props('modelValue')).toBe(true)
+    expect(sheet.props('animalId')).toBeNull()
+    expect(wrapper.getComponent(AnimalPickerSheet).props('modelValue')).toBe(false)
+  })
+
+  it('ouvre la feuille de pesée pour l’animal sélectionné', async () => {
+    const wrapper = await monter()
+    await selectionner(wrapper, 0)
+
+    await taper(wrapper, 2)
+
+    const sheet = wrapper.getComponent(WeightSheet)
+    expect(sheet.props('modelValue')).toBe(true)
+    expect(sheet.props('animalId')).toBe(MILO.id)
   })
 })
