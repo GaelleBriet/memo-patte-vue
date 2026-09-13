@@ -21,7 +21,6 @@ export const useHomeStore = defineStore('home', () => {
   const isLoading = ref(false)
   /** Distingue « pas encore chargé » de « aucun rappel ». */
   const hasLoaded = ref(false)
-  /** Échec du dernier chargement. */
   const error = ref<Error | null>(null)
 
   return {

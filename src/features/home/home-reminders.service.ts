@@ -11,18 +11,15 @@ import type { ReminderSource } from '@/shared/reminders'
 
 type Provider<T> = () => T | Promise<T>
 
-/** Une source de rappel de l'accueil, avec le type du traitement pour choisir icône et libellé. */
 export type HomeReminderSource = ReminderSource & {
   treatmentType: TreatmentType | null
 }
 
-/** Le service ne dépend que de ce qu'il appelle. */
 export function createHomeRemindersService(
   vaccinations: Provider<Pick<VaccinationsRepository, 'listAll'>>,
   treatments: Provider<Pick<TreatmentsRepository, 'listAll'>>,
 ) {
   return {
-    /** Vaccins puis traitements, tous animaux : le tri par urgence est l'affaire de `buildReminders`. */
     async listSources(): Promise<HomeReminderSource[]> {
       const [vaccinationsRepository, treatmentsRepository] = await Promise.all([
         vaccinations(),

@@ -70,7 +70,6 @@ export function createTreatmentsRepository(db: DbClient) {
       return rows.map(toTreatment)
     },
 
-    /** Tous les animaux confondus, pour l'accueil : l'ordre par urgence est l'affaire de `buildReminders`. */
     async listAll(): Promise<Treatment[]> {
       const rows = await db.query<TreatmentRow>(
         `SELECT ${COLUMNS} FROM treatment

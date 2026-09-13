@@ -1,16 +1,13 @@
 import type { HomeReminderSource } from './home-reminders.service'
 import type { Reminder, ReminderStatus } from '@/shared/reminders'
 
-/** La fonction `t` de vue-i18n, réduite à ce que ce module utilise : clé, paramètres nommés, pluriel. */
 export type Translate = (key: string, named?: Record<string, unknown>, plural?: number) => string
 
 export type ScopeCounterInput = {
   total: number
-  /** Prénom de l'animal sélectionné, `null` en vue globale. */
   animalName: string | null
 }
 
-/** `3 rappels` en vue globale, `Milo · 2 rappels` ou `Milo` seul avec un animal ; rien si vue globale vide. */
 export function scopeCounter(
   t: Translate,
   { total, animalName }: ScopeCounterInput,
@@ -52,7 +49,6 @@ export function dueBadge(t: Translate, reminder: Reminder): DueBadge {
 
 type Typed = Pick<HomeReminderSource, 'kind' | 'label' | 'treatmentType'>
 
-/** Un vaccin s'annonce par son nom, un traitement par son type : le produit reste au Carnet. */
 export function reminderTitle(t: Translate, source: Typed): string {
   if (source.kind === 'vaccination') return t('home.reminder.vaccination', { name: source.label })
   return t(`home.reminder.${source.treatmentType ?? 'deworming'}`)
@@ -65,7 +61,6 @@ export function reminderIcon(source: Typed): string {
 
 export type UpToDateInput = {
   animalName: string | null
-  /** Prénoms de tous les animaux du foyer, dans l'ordre de la liste. */
   allNames: string[]
 }
 
@@ -88,7 +83,6 @@ export type ReminderRow = {
 
 export type ReminderRowsOptions = {
   animalNames: ReadonlyMap<string, string>
-  /** Faux quand un animal est sélectionné : la chip porte déjà son nom. */
   showAnimal: boolean
 }
 

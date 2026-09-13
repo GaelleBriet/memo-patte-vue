@@ -61,7 +61,6 @@ export function createVaccinationsRepository(db: DbClient) {
       return rows.map(toVaccination)
     },
 
-    /** Tous les animaux confondus, pour l'accueil : l'ordre par urgence est l'affaire de `buildReminders`. */
     async listAll(): Promise<Vaccination[]> {
       const rows = await db.query<VaccinationRow>(
         `SELECT ${COLUMNS} FROM vaccination

@@ -175,8 +175,6 @@ function openCarnet(): void {
   background: rgb(var(--v-theme-background));
 }
 
-// Header
-
 .home-header {
   display: flex;
   flex-direction: column;
@@ -201,8 +199,6 @@ function openCarnet(): void {
   font-size: 13.5px;
   font-weight: 500;
 }
-
-// À faire
 
 .home-todo {
   padding-inline: 20px;
@@ -243,8 +239,6 @@ function openCarnet(): void {
   font-size: 13.5px;
   font-weight: 700;
 }
-
-// Carte de rappels : une seule surface, une ligne par rappel
 
 .home-reminders {
   overflow: hidden;
@@ -337,8 +331,6 @@ function openCarnet(): void {
   color: rgb(var(--v-theme-on-soon-container));
 }
 
-// Tout est à jour
-
 .home-up-to-date__row {
   display: flex;
   align-items: center;
@@ -390,8 +382,6 @@ function openCarnet(): void {
   }
 }
 
-// Chargement et erreur
-
 .home-loading {
   display: flex;
   justify-content: center;
@@ -432,8 +422,6 @@ function openCarnet(): void {
   font-weight: 700;
   letter-spacing: normal;
 }
-
-// Premier lancement : écran plein, sans header, la bottom nav reste visible
 
 .home-welcome {
   display: flex;
