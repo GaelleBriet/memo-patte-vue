@@ -9,6 +9,7 @@ import { useWeightStore } from '../weight.store'
 import type { Animal } from '@/features/animals/animal.schema'
 import { useAnimalsStore } from '@/features/animals/animals.store'
 import i18n from '@/core/i18n'
+import { getMsIconPath } from '@/core/theme/icons'
 import vuetify from '@/core/theme/vuetify'
 
 const MILO: Animal = {
@@ -330,6 +331,18 @@ describe('WeightSheet — revalidation après envoi', () => {
       expect(feuille().querySelector(`#${idErreur}`)?.classList).toContain('weight-sheet__error')
       expect(champ(id).getAttribute('aria-invalid')).toBe('true')
     }
+  })
+})
+
+describe('WeightSheet — message d’erreur', () => {
+  it('précède le message de l’icône d’erreur remplie', async () => {
+    await monter(MILO.id)
+
+    await soumettre()
+
+    expect(feuille().querySelector('.weight-sheet__error path')?.getAttribute('d')).toBe(
+      getMsIconPath('error_fill')?.path,
+    )
   })
 })
 

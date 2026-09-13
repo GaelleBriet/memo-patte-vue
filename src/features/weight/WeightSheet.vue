@@ -129,7 +129,7 @@ async function submit(): Promise<void> {
           :animals="chips"
         />
         <p v-if="errors.animalId" class="weight-sheet__error">
-          <v-icon icon="ms:error" size="16" />
+          <v-icon icon="ms:error_fill" size="16" />
           <span>{{ t(errors.animalId) }}</span>
         </p>
       </div>
@@ -159,7 +159,7 @@ async function submit(): Promise<void> {
             :suffix="t('weight.unit')"
           />
           <p v-if="errors.weightKg" :id="weightErrorId" class="weight-sheet__error">
-            <v-icon icon="ms:error" size="16" />
+            <v-icon icon="ms:error_fill" size="16" />
             <span>{{ t(errors.weightKg) }}</span>
           </p>
         </div>
@@ -187,7 +187,7 @@ async function submit(): Promise<void> {
             :error="Boolean(errors.measuredOn)"
           />
           <p v-if="errors.measuredOn" :id="dateErrorId" class="weight-sheet__error">
-            <v-icon icon="ms:error" size="16" />
+            <v-icon icon="ms:error_fill" size="16" />
             <span>{{ t(errors.measuredOn) }}</span>
           </p>
         </div>

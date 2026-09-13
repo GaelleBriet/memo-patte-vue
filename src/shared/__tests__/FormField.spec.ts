@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { defineComponent, h } from 'vue'
 
 import FormField from '../form/FormField.vue'
+import { getMsIconPath } from '@/core/theme/icons'
 import i18n from '@/core/i18n'
 import vuetify from '@/core/theme/vuetify'
 
@@ -58,6 +59,14 @@ describe('FormField — erreur', () => {
     const erreur = wrapper.get('.form-field__error')
     expect(erreur.text()).toBe('Le nom est obligatoire.')
     expect(erreur.find('.v-icon').exists()).toBe(true)
+  })
+
+  it('précède le message de l’icône d’erreur remplie', () => {
+    const wrapper = monter({ controlId: 'animal-name', error: 'Le nom est obligatoire.' })
+
+    expect(wrapper.get('.form-field__error path').attributes('d')).toBe(
+      getMsIconPath('error_fill')?.path,
+    )
   })
 
   it('ne rend aucun message sans erreur', () => {
