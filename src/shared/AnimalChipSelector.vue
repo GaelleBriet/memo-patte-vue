@@ -134,7 +134,9 @@ $gap-chips: 10px;
   color: rgb(var(--v-theme-primary));
 }
 
+// L'avatar est un contenu libre du slot `prepend`, que la marge de VChip ne vise pas.
 .animal-chip {
+  gap: tokens.$gap-chip-avatar;
   height: tokens.$height-chip;
   margin: 0;
   padding-inline: 5px 16px;
@@ -146,9 +148,12 @@ $gap-chips: 10px;
 
 // Revenir à `selected-class` par défaut réactiverait le voile
 // `--v-activated-opacity` de Vuetify, et le fond ne serait plus `primary`.
+// L'anneau reste dans la chip, par-dessus sa bordure : dessiné dehors, il serait
+// coupé par l'`overflow: hidden` de VSlideGroup, et changer la largeur de la
+// bordure décalerait les chips voisines à chaque sélection.
 .animal-chip--selected {
-  border-color: transparent;
-  box-shadow: 0 0 0 2px rgb(var(--v-theme-background));
+  outline: tokens.$width-chip-ring solid tokens.$color-chip-ring;
+  outline-offset: -(tokens.$width-chip-ring);
 }
 
 .animal-chip__avatar {
@@ -158,6 +163,10 @@ $gap-chips: 10px;
   width: tokens.$size-chip-avatar;
   height: tokens.$size-chip-avatar;
   border-radius: 50%;
+  // Le contour se peint par-dessus la photo, et son retrait laisse un liseré de
+  // l'avatar au bord : c'est lui qui détache le filet clair de la chip crème.
+  outline: tokens.$width-chip-avatar-ring solid tokens.$color-chip-ring;
+  outline-offset: -(tokens.$width-chip-avatar-ring + 0.5px);
   background-size: cover;
 
   img {

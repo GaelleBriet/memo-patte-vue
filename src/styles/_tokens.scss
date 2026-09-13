@@ -62,6 +62,10 @@ $height-header: 158px; // Header pétrole
 $height-list-row: 76px; // Ligne de liste (minimum)
 $height-add-row: 52px; // Dernière ligne « Ajouter … » d'une carte
 $height-chip: 42px; // Chip animal (et chip « + »)
+$width-chip-ring: 2px; // Anneau clair de la chip animal sélectionnée, dans ses 42 px
+$width-chip-avatar-ring: 1px; // Filet clair autour de l'avatar d'une chip, dans ses 32 px
+$gap-chip-avatar: 10px; // Entre l'avatar et le prénom d'une chip
+$color-chip-ring: #f9f4ee; // Anneau de la chip sélectionnée et filet de l'avatar
 $height-quick-tile: 78px; // Tuile d'action rapide
 $height-field: 52px; // Champ de formulaire
 $height-segmented: 48px; // Segmented control d'un formulaire

@@ -124,4 +124,25 @@ describe('AnimalChipSelector — contrat de style', () => {
 
     wrapper.unmount()
   })
+
+  it('dessine l’anneau clair de 2 px à l’intérieur de la chip sélectionnée', () => {
+    // Un `box-shadow` extérieur est coupé par l'`overflow: hidden` de VSlideGroup :
+    // l'anneau doit tenir dans les 42 px de la chip, par-dessus sa bordure.
+    expect(declaration('.animal-chip--selected', 'outline')).toBe('2px solid #f9f4ee')
+    expect(declaration('.animal-chip--selected', 'outline-offset')).toBe('-2px')
+    expect(declaration('.animal-chip--selected', 'box-shadow')).toBeUndefined()
+  })
+
+  it('laisse 10 px entre l’avatar et le prénom', () => {
+    // La marge du slot `prepend` de VChip ne s'applique pas à un contenu libre.
+    expect(declaration('.animal-chip', 'gap')).toBe('10px')
+  })
+
+  it('cercle l’avatar d’un filet clair, dans ses 32 px et par-dessus la photo', () => {
+    // Un demi-pixel de retrait en plus laisse voir le bord de l'avatar autour du
+    // filet : sans ce liseré, le filet se confond avec la chip crème.
+    expect(declaration('.animal-chip__avatar', 'width')).toBe('32px')
+    expect(declaration('.animal-chip__avatar', 'outline')).toBe('1px solid #f9f4ee')
+    expect(declaration('.animal-chip__avatar', 'outline-offset')).toBe('-1.5px')
+  })
 })
