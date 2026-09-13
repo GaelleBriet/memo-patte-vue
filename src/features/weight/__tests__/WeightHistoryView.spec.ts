@@ -16,7 +16,7 @@ import WeightHistoryView from '../WeightHistoryView.vue'
 import WeightSheet from '../WeightSheet.vue'
 import type { WeightEntry } from '../weight.schema'
 import type { WeightRepository } from '../weight.repository'
-import { provideWeightRepository } from '../weight.store'
+import { provideWeightRepository, useWeightStore } from '../weight.store'
 import type { Animal } from '@/features/animals/animal.schema'
 import { useAnimalsStore } from '@/features/animals/animals.store'
 import i18n from '@/core/i18n'
@@ -62,6 +62,7 @@ const HISTORIQUE_MILO = [
 let entries: WeightEntry[]
 let animals: Animal[]
 let listByAnimal: Mock<WeightRepository['listByAnimal']>
+let create: Mock<WeightRepository['create']>
 let loadAnimals: MockInstance
 let push: MockInstance
 let routeur: Router
@@ -75,9 +76,10 @@ beforeEach(async () => {
   listByAnimal = vi.fn<WeightRepository['listByAnimal']>(async (animalId) =>
     entries.filter((item) => item.animalId === animalId),
   )
+  create = vi.fn<WeightRepository['create']>()
   provideWeightRepository(() => ({
     listByAnimal,
-    create: vi.fn<WeightRepository['create']>(),
+    create,
     update: vi.fn<WeightRepository['update']>(),
     remove: vi.fn<WeightRepository['remove']>(),
   }))
@@ -146,6 +148,20 @@ describe('WeightHistoryView — top bar', () => {
     expect(wrapper.get('.weight-history__topbar').classes()).toContain(
       'weight-history__topbar--scrolled',
     )
+  })
+
+  it('suit l’animal de la route : un nouvel identifiant recharge ses pesées', async () => {
+    const luna: Animal = { ...MILO, id: '33333333-3333-4333-8333-333333333333', name: 'Luna' }
+    animals = [MILO, luna]
+    entries = [...HISTORIQUE_MILO, entry(4.2, '2026-08-01', luna.id)]
+    const wrapper = await monter()
+
+    await wrapper.setProps({ animalId: luna.id })
+    await flushPromises()
+
+    expect(listByAnimal).toHaveBeenLastCalledWith(luna.id)
+    expect(wrapper.get('.weight-history__subtitle').text()).toBe('Luna')
+    expect(wrapper.get('.weight-history__current').text()).toBe('4,2')
   })
 
   it('revient au Carnet par la flèche retour', async () => {
@@ -250,6 +266,23 @@ describe('WeightHistoryView — H1 historique complet', () => {
 
     expect(sheet.props('modelValue')).toBe(true)
     expect(sheet.props('animalId')).toBe(MILO.id)
+  })
+})
+
+describe('WeightHistoryView — pendant une écriture', () => {
+  it('garde le poids actuel, les lignes et le bouton fixe pendant l’enregistrement', async () => {
+    entries = [...HISTORIQUE_MILO]
+    const wrapper = await monter()
+    create.mockReturnValueOnce(new Promise(() => {}))
+
+    void useWeightStore().create({ animalId: MILO.id, weightKg: 25, measuredOn: '2026-11-20' })
+    await flushPromises()
+
+    expect(useWeightStore().isLoading).toBe(true)
+    expect(wrapper.get('.weight-history__current').text()).toBe('24,5')
+    expect(wrapper.findAll('.weight-history__row')).toHaveLength(6)
+    expect(wrapper.find('.weight-history__add').exists()).toBe(true)
+    expect(wrapper.find('.weight-history__loading').exists()).toBe(false)
   })
 })
 

@@ -7,7 +7,7 @@ import WeightSection from '../WeightSection.vue'
 import WeightSheet from '../WeightSheet.vue'
 import type { WeightEntry } from '../weight.schema'
 import type { WeightRepository } from '../weight.repository'
-import { provideWeightRepository } from '../weight.store'
+import { provideWeightRepository, useWeightStore } from '../weight.store'
 import i18n from '@/core/i18n'
 import vuetify from '@/core/theme/vuetify'
 
@@ -268,6 +268,22 @@ describe('WeightSection — ajouter une pesée', () => {
     )
     expect(wrapper.get('.weight-section__current').text()).toBe('24,5')
     expect(wrapper.getComponent(WeightSheet).props('modelValue')).toBe(false)
+  })
+})
+
+describe('WeightSection — pendant une écriture', () => {
+  it('garde la carte affichée pendant l’enregistrement d’une pesée', async () => {
+    entries = [entry(23.6, '2026-06-05'), entry(24.5, '2026-11-08')]
+    const wrapper = await monter()
+    create.mockReturnValueOnce(new Promise(() => {}))
+
+    void useWeightStore().create({ animalId: MILO, weightKg: 25, measuredOn: '2026-11-20' })
+    await flushPromises()
+
+    expect(useWeightStore().isLoading).toBe(true)
+    expect(wrapper.get('.weight-section__current').text()).toBe('24,5')
+    expect(wrapper.find('.weight-sparkline').exists()).toBe(true)
+    expect(wrapper.find('.weight-section__empty').exists()).toBe(false)
   })
 })
 

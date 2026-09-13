@@ -5,7 +5,7 @@ import { useRouter } from 'vue-router'
 
 import WeightSheet from './WeightSheet.vue'
 import { weightHistory, type WeightHeadline, type WeightTrend } from './weight-history'
-import { useWeightStore } from './weight.store'
+import { useWeightEntries } from './use-weight-entries'
 import { useAnimalsStore } from '@/features/animals/animals.store'
 import SectionCard from '@/shared/SectionCard.vue'
 import WeightSparkline from '@/shared/WeightSparkline.vue'
@@ -19,7 +19,6 @@ const props = defineProps<{
 const { t } = useI18n()
 const router = useRouter()
 const animals = useAnimalsStore()
-const store = useWeightStore()
 
 const isSheetOpen = ref(false)
 const isScrolled = ref(false)
@@ -29,17 +28,11 @@ const CHART_OPTIONS = { width: 320, height: 150, paddingTop: 22 }
 
 const animal = computed(() => animals.byId(props.animalId))
 
-// Pendant un chargement, ou après un échec, le store peut porter la liste d'un autre animal.
-const isCurrent = computed(
-  () => store.animalId === props.animalId && store.hasLoaded && !store.isLoading && !store.error,
-)
-const hasError = computed(() => store.animalId === props.animalId && store.error !== null)
+const { entries, isReady, hasError } = useWeightEntries(() => props.animalId)
 
-const history = computed(() =>
-  weightHistory(isCurrent.value ? store.entries : [], animal.value?.initialWeightKg ?? null),
-)
+const history = computed(() => weightHistory(entries.value, animal.value?.initialWeightKg ?? null))
 const chart = computed(() =>
-  history.value.state === 'full' ? buildWeightChart(store.entries, CHART_OPTIONS) : null,
+  history.value.state === 'full' ? buildWeightChart(entries.value, CHART_OPTIONS) : null,
 )
 
 const headline = computed(() =>
@@ -67,7 +60,6 @@ function describeHeadline(value: WeightHeadline): { text: string; trend: WeightT
 
 onMounted(() => {
   if (!animals.hasLoaded) void animals.load()
-  void store.loadForAnimal(props.animalId)
 })
 
 function onScroll(event: Event): void {
@@ -148,7 +140,7 @@ function backToAnimals(): void {
           {{ t('weight.section.error') }}
         </p>
 
-        <div v-else-if="isCurrent" class="section-card__card">
+        <div v-else-if="isReady" class="section-card__card">
           <p class="section-card__empty weight-history__empty">
             {{ t('weight.section.empty') }}
           </p>

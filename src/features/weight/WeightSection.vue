@@ -11,7 +11,7 @@ import { useI18n } from 'vue-i18n'
 
 import WeightSheet from './WeightSheet.vue'
 import { weightSummary, type WeightDelta } from './weight-summary'
-import { useWeightStore } from './weight.store'
+import { useWeightEntries } from './use-weight-entries'
 import SectionCard from '@/shared/SectionCard.vue'
 import WeightSparkline from '@/shared/WeightSparkline.vue'
 import { formatKg, formatKgDelta, formatLongDate, formatMonth } from '@/shared/format'
@@ -26,17 +26,10 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
-const store = useWeightStore()
 
 const isSheetOpen = ref(false)
 
-// Pendant un chargement, ou après un échec, le store porte déjà le nouvel animal mais encore l'ancienne liste.
-const entries = computed(() => (isCurrent.value ? store.entries : []))
-
-const isCurrent = computed(
-  () => store.animalId === props.animalId && !store.isLoading && store.error === null,
-)
-const hasError = computed(() => store.animalId === props.animalId && store.error !== null)
+const { entries, hasError } = useWeightEntries(() => props.animalId)
 
 const summary = computed<WeightSectionSummary>(() => weightSummary(entries.value))
 const chart = computed(() => buildWeightChart(entries.value))
@@ -60,14 +53,6 @@ function describeDelta(value: WeightDelta): { text: string; trend: 'up' | 'down'
     trend: value.trend,
   }
 }
-
-watch(
-  () => props.animalId,
-  (animalId) => {
-    void store.loadForAnimal(animalId)
-  },
-  { immediate: true },
-)
 
 watch(summary, (value) => emit('summary', value), { immediate: true })
 </script>
