@@ -1,23 +1,23 @@
 <script lang="ts">
-export interface SegmentedOption {
-  value: string
+export interface SegmentedOption<T extends string = string> {
+  value: T
   label: string
 }
 </script>
 
-<script setup lang="ts">
-defineProps<{
-  modelValue: string | null
-  options: readonly SegmentedOption[]
-  labelledby?: string
+<script setup lang="ts" generic="T extends string">
+const props = defineProps<{
+  modelValue: T | null
+  options: readonly SegmentedOption<T>[]
+  labelId?: string
 }>()
 
 const emit = defineEmits<{
-  'update:modelValue': [value: string | null]
+  'update:modelValue': [value: T | null]
 }>()
 
 function select(value: unknown): void {
-  emit('update:modelValue', typeof value === 'string' ? value : null)
+  emit('update:modelValue', props.options.find((option) => option.value === value)?.value ?? null)
 }
 </script>
 
@@ -25,7 +25,7 @@ function select(value: unknown): void {
   <v-btn-toggle
     class="form-segmented"
     role="radiogroup"
-    :aria-labelledby="labelledby"
+    :aria-labelledby="labelId"
     divided
     variant="flat"
     base-color="surface"

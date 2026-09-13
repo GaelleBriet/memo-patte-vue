@@ -7,11 +7,11 @@ import vuetify from '@/core/theme/vuetify'
 const OPTIONS = [
   { value: 'dog', label: 'Chien' },
   { value: 'cat', label: 'Chat' },
-]
+] as const
 
-function monter(modelValue: string | null = null) {
+function monter(modelValue: 'dog' | 'cat' | null = null) {
   return mount(FormSegmented, {
-    props: { modelValue, options: OPTIONS, labelledby: 'animal-species-label' },
+    props: { modelValue, options: OPTIONS, labelId: 'animal-species-label' },
     global: { plugins: [vuetify] },
   })
 }
@@ -61,6 +61,14 @@ describe('FormSegmented', () => {
     const wrapper = monter('dog')
 
     await options(wrapper)[0]!.trigger('click')
+
+    expect(wrapper.emitted('update:modelValue')).toEqual([[null]])
+  })
+
+  it('n’émet jamais une valeur absente des options', async () => {
+    const wrapper = monter('dog')
+
+    wrapper.findComponent({ name: 'VBtnToggle' }).vm.$emit('update:modelValue', 'lapin')
 
     expect(wrapper.emitted('update:modelValue')).toEqual([[null]])
   })

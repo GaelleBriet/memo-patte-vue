@@ -10,7 +10,7 @@ import {
   validateAnimalForm,
   type AnimalFormErrors,
 } from './animal-form'
-import { ANIMAL_SPECIES, type Animal, type AnimalSpecies } from './animal.schema'
+import { ANIMAL_SPECIES, type Animal } from './animal.schema'
 import { useAnimalsStore } from './animals.store'
 import FormField from '@/shared/form/FormField.vue'
 import FormScreen from '@/shared/form/FormScreen.vue'
@@ -67,12 +67,6 @@ onMounted(async () => {
 
 function backToAnimals(): void {
   void router.push({ name: 'animals' })
-}
-
-function selectSpecies(value: string | null): void {
-  values.value.species = ANIMAL_SPECIES.includes(value as AnimalSpecies)
-    ? (value as AnimalSpecies)
-    : null
 }
 
 async function submit(): Promise<void> {
@@ -138,11 +132,10 @@ async function submit(): Promise<void> {
       :error="errors.species ? t(errors.species) : null"
     >
       <FormSegmented
+        v-model="values.species"
         class="animal-form__species"
-        :model-value="values.species"
         :options="speciesOptions"
-        labelledby="animal-species-label"
-        @update:model-value="selectSpecies"
+        label-id="animal-species-label"
       />
     </FormField>
 

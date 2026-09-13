@@ -10,12 +10,7 @@ import {
   validateTreatmentForm,
   type TreatmentFormErrors,
 } from './treatment-form'
-import {
-  FREQUENCY_UNITS,
-  TREATMENT_TYPES,
-  type Treatment,
-  type TreatmentType,
-} from './treatment.schema'
+import { FREQUENCY_UNITS, TREATMENT_TYPES, type Treatment } from './treatment.schema'
 import { useTreatmentsStore } from './treatments.store'
 import { useAnimalsStore } from '@/features/animals/animals.store'
 import { formatLongDate } from '@/shared/format'
@@ -102,12 +97,6 @@ function backToAnimals(): void {
   void router.push({ name: 'animals' })
 }
 
-function selectType(value: string | null): void {
-  values.value.type = TREATMENT_TYPES.includes(value as TreatmentType)
-    ? (value as TreatmentType)
-    : null
-}
-
 async function submit(): Promise<void> {
   if (isSubmitting.value || notFound.value) return
 
@@ -171,12 +160,7 @@ async function submit(): Promise<void> {
       required
       :error="errors.type ? t(errors.type) : null"
     >
-      <FormSegmented
-        :model-value="values.type"
-        :options="typeOptions"
-        labelledby="treatment-type-label"
-        @update:model-value="selectType"
-      />
+      <FormSegmented v-model="values.type" :options="typeOptions" label-id="treatment-type-label" />
     </FormField>
 
     <FormField
