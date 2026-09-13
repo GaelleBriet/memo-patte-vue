@@ -81,11 +81,11 @@ function champ(wrapper: VueWrapper, id: string) {
 }
 
 function especes(wrapper: VueWrapper) {
-  return wrapper.findAll('.animal-form__species button')
+  return wrapper.findAll('.form-segmented button')
 }
 
 function messages(wrapper: VueWrapper): string[] {
-  return wrapper.findAll('.animal-form__error').map((noeud) => noeud.text())
+  return wrapper.findAll('.form-field__error').map((noeud) => noeud.text())
 }
 
 async function remplirMinimum(wrapper: VueWrapper) {
@@ -94,7 +94,7 @@ async function remplirMinimum(wrapper: VueWrapper) {
 }
 
 async function soumettre(wrapper: VueWrapper) {
-  await wrapper.get('.animal-form__submit').trigger('click')
+  await wrapper.get('.form-screen__submit').trigger('click')
   await wrapper.vm.$nextTick()
 }
 
@@ -102,14 +102,14 @@ describe('AnimalFormView — structure', () => {
   it('affiche le titre « Nouvel animal » et la flèche de retour', () => {
     const wrapper = monter()
 
-    expect(wrapper.get('.animal-form__title').text()).toBe('Nouvel animal')
-    expect(wrapper.get('.animal-form__back').html()).toContain('animal-form__back')
+    expect(wrapper.get('.form-screen__title').text()).toBe('Nouvel animal')
+    expect(wrapper.get('.form-screen__back').html()).toContain('form-screen__back')
   })
 
   it('commence au champ Nom : la photo est hors du périmètre de l’écran', () => {
     const wrapper = monter()
 
-    const premier = wrapper.get('.animal-form__fields').element.querySelector('label')
+    const premier = wrapper.get('.form-screen__fields').element.querySelector('label')
     expect(premier?.textContent).toContain('Nom')
     expect(wrapper.find('.animal-form__photo').exists()).toBe(false)
   })
@@ -117,15 +117,15 @@ describe('AnimalFormView — structure', () => {
   it('rend les cinq champs du schéma, et rien d’autre', () => {
     const wrapper = monter()
 
-    expect(wrapper.findAll('.animal-form__field')).toHaveLength(5)
+    expect(wrapper.findAll('.form-field')).toHaveLength(5)
     expect(wrapper.findAll('select')).toHaveLength(0)
   })
 
   it('marque le nom et l’espèce comme obligatoires, les trois autres comme optionnels', () => {
     const wrapper = monter()
 
-    expect(wrapper.findAll('.animal-form__required')).toHaveLength(2)
-    expect(wrapper.findAll('.animal-form__optional')).toHaveLength(3)
+    expect(wrapper.findAll('.form-field__required')).toHaveLength(2)
+    expect(wrapper.findAll('.form-field__optional')).toHaveLength(3)
   })
 })
 
@@ -135,7 +135,7 @@ describe('AnimalFormView — sélecteur d’espèce', () => {
 
     expect(especes(wrapper)).toHaveLength(2)
     expect(especes(wrapper).map((bouton) => bouton.text())).toEqual(['Chien', 'Chat'])
-    expect(wrapper.get('.animal-form__species').attributes('role')).toBe('radiogroup')
+    expect(wrapper.get('.form-segmented').attributes('role')).toBe('radiogroup')
   })
 
   it('ne préselectionne aucune espèce', () => {
@@ -264,7 +264,7 @@ describe('AnimalFormView — écriture', () => {
     const wrapper = monter()
     await remplirMinimum(wrapper)
 
-    await wrapper.get('.animal-form__cancel').trigger('click')
+    await wrapper.get('.form-screen__cancel').trigger('click')
 
     expect(create).not.toHaveBeenCalled()
     expect(push).toHaveBeenCalledWith({ name: 'animals' })
@@ -275,8 +275,8 @@ describe('AnimalFormView — édition (état F2)', () => {
   it('titre « Modifier Milo », bouton « Enregistrer », champs pré-remplis', async () => {
     const wrapper = await monterEdition()
 
-    expect(wrapper.get('.animal-form__title').text()).toBe('Modifier Milo')
-    expect(wrapper.get('.animal-form__submit').text()).toBe('Enregistrer')
+    expect(wrapper.get('.form-screen__title').text()).toBe('Modifier Milo')
+    expect(wrapper.get('.form-screen__submit').text()).toBe('Enregistrer')
     expect(valeur(wrapper, 'animal-name')).toBe('Milo')
     expect(especes(wrapper)[0]!.attributes('aria-checked')).toBe('true')
     expect(especes(wrapper)[1]!.attributes('aria-checked')).toBe('false')
@@ -310,7 +310,7 @@ describe('AnimalFormView — édition (état F2)', () => {
 
     await champ(wrapper, 'animal-name').setValue('Milou')
 
-    expect(wrapper.get('.animal-form__title').text()).toBe('Modifier Milo')
+    expect(wrapper.get('.form-screen__title').text()).toBe('Modifier Milo')
   })
 
   it('met à jour par le store avec l’identifiant de la route, jamais par create', async () => {
@@ -366,8 +366,8 @@ describe('AnimalFormView — édition (état F2)', () => {
 
     await soumettre(wrapper)
 
-    expect(wrapper.get('.animal-form__submit').text()).toBe('Enregistrement…')
-    expect(wrapper.get('.animal-form__submit').attributes('disabled')).toBeDefined()
+    expect(wrapper.get('.form-screen__submit').text()).toBe('Enregistrement…')
+    expect(wrapper.get('.form-screen__submit').attributes('disabled')).toBeDefined()
 
     terminer(MILO)
     await flushPromises()
@@ -377,7 +377,7 @@ describe('AnimalFormView — édition (état F2)', () => {
     const wrapper = await monterEdition()
     await champ(wrapper, 'animal-name').setValue('Milou')
 
-    await wrapper.get('.animal-form__cancel').trigger('click')
+    await wrapper.get('.form-screen__cancel').trigger('click')
 
     expect(update).not.toHaveBeenCalled()
     expect(push).toHaveBeenCalledWith({ name: 'animals' })
@@ -386,8 +386,8 @@ describe('AnimalFormView — édition (état F2)', () => {
   it('prévient et n’autorise pas l’envoi quand l’animal est introuvable', async () => {
     const wrapper = await monterEdition('33333333-3333-4333-8333-333333333333')
 
-    expect(wrapper.get('.animal-form__save-error').text()).toBe('Cet animal est introuvable.')
-    expect(wrapper.get('.animal-form__submit').attributes('disabled')).toBeDefined()
+    expect(wrapper.get('.form-screen__save-error').text()).toBe('Cet animal est introuvable.')
+    expect(wrapper.get('.form-screen__submit').attributes('disabled')).toBeDefined()
 
     await soumettre(wrapper)
 
@@ -409,9 +409,9 @@ describe('AnimalFormView — envoi en cours (état F4)', () => {
 
     await soumettre(wrapper)
 
-    expect(wrapper.get('.animal-form__submit').text()).toBe('Création…')
-    expect(wrapper.get('.animal-form__submit').attributes('disabled')).toBeDefined()
-    expect(wrapper.get('.animal-form__cancel').attributes('disabled')).toBeDefined()
+    expect(wrapper.get('.form-screen__submit').text()).toBe('Création…')
+    expect(wrapper.get('.form-screen__submit').attributes('disabled')).toBeDefined()
+    expect(wrapper.get('.form-screen__cancel').attributes('disabled')).toBeDefined()
 
     terminer(MILO)
     await wrapper.vm.$nextTick()
@@ -436,10 +436,10 @@ describe('AnimalFormView — envoi en cours (état F4)', () => {
     await soumettre(wrapper)
     await wrapper.vm.$nextTick()
 
-    expect(wrapper.get('.animal-form__save-error').text()).toBe(
+    expect(wrapper.get('.form-screen__save-error').text()).toBe(
       'L’animal n’a pas pu être enregistré. Réessaie.',
     )
-    expect(wrapper.get('.animal-form__submit').attributes('disabled')).toBeUndefined()
+    expect(wrapper.get('.form-screen__submit').attributes('disabled')).toBeUndefined()
     expect(push).not.toHaveBeenCalled()
   })
 })
@@ -447,16 +447,16 @@ describe('AnimalFormView — envoi en cours (état F4)', () => {
 describe('AnimalFormView — top bar au scroll (état F5)', () => {
   it('pose la bordure de la top bar dès que le contenu défile', async () => {
     const wrapper = monter()
-    const zone = wrapper.get('.animal-form__scroll')
+    const zone = wrapper.get('.form-screen__scroll')
 
-    expect(wrapper.get('.animal-form__topbar').classes()).not.toContain(
-      'animal-form__topbar--scrolled',
+    expect(wrapper.get('.form-screen__topbar').classes()).not.toContain(
+      'form-screen__topbar--scrolled',
     )
 
     Object.defineProperty(zone.element, 'scrollTop', { value: 12, configurable: true })
     await zone.trigger('scroll')
 
-    expect(wrapper.get('.animal-form__topbar').classes()).toContain('animal-form__topbar--scrolled')
+    expect(wrapper.get('.form-screen__topbar').classes()).toContain('form-screen__topbar--scrolled')
   })
 })
 

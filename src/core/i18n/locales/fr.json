@@ -13,9 +13,6 @@
     "form": {
       "title": "Nouvel animal",
       "editTitle": "Modifier {name}",
-      "back": "Retour",
-      "required": "*",
-      "optional": "Optionnel",
       "name": {
         "label": "Nom",
         "placeholder": "Ex. Milo"
@@ -37,7 +34,6 @@
         "placeholder": "0,0",
         "suffix": "kg"
       },
-      "cancel": "Annuler",
       "submit": "Créer",
       "submitting": "Création…",
       "save": "Enregistrer",
