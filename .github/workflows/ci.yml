@@ -35,3 +35,6 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+      - name: Pas de fixtures de dev dans le build
+        run: pnpm test:build

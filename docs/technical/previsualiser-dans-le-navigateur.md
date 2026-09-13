@@ -44,8 +44,8 @@ est commun, c'est le **jeu de données de départ**, choisi sur le serveur Vite 
 - Les dates du carnet de démo sont **relatives à aujourd'hui** (CHPPi en retard de 45 jours, Rage à jour…) :
   ce sont les statuts de la maquette qui sont reproduits, pas ses libellés au mot près
 - `pnpm preview` sert un build de production : `import.meta.env.DEV` y est faux, donc **pas de fixtures**.
-  C'est voulu, et un test (`fixtures-absent-du-build.spec.ts`, lent : il lance un vrai build) vérifie
-  qu'aucune trace du carnet de démo ne part en prod
+  C'est voulu, et `pnpm test:build` (lancé par la CI après le build) lit le `dist/` produit et échoue si une
+  trace du carnet de démo y est partie : `pnpm build-only && pnpm test:build`
 
 ## Ce qui marche
 
