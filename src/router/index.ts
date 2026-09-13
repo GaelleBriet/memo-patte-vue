@@ -37,6 +37,12 @@ const router = createRouter({
       props: true,
     },
     {
+      path: '/animals/:animalId/weight',
+      name: 'weight-history',
+      component: () => import('@/features/weight/WeightHistoryView.vue'),
+      props: true,
+    },
+    {
       path: '/animals/:animalId/treatments/new',
       name: 'treatment-new',
       component: () => import('@/features/treatments/TreatmentFormView.vue'),

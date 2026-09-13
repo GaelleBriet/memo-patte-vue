@@ -1,0 +1,400 @@
+<script setup lang="ts">
+import { computed, onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
+
+import WeightSheet from './WeightSheet.vue'
+import { weightHistory, type WeightHeadline, type WeightTrend } from './weight-history'
+import { useWeightStore } from './weight.store'
+import { useAnimalsStore } from '@/features/animals/animals.store'
+import SectionCard from '@/shared/SectionCard.vue'
+import WeightSparkline from '@/shared/WeightSparkline.vue'
+import { formatKg, formatKgDelta, formatLongDate, formatMonth } from '@/shared/format'
+import { buildWeightChart } from '@/shared/weight-chart'
+
+const props = defineProps<{
+  animalId: string
+}>()
+
+const { t } = useI18n()
+const router = useRouter()
+const animals = useAnimalsStore()
+const store = useWeightStore()
+
+const isSheetOpen = ref(false)
+const isScrolled = ref(false)
+
+// Courbe plus haute que celle du Carnet : c'est le sujet de l'écran.
+const CHART_OPTIONS = { width: 320, height: 150, paddingTop: 22 }
+
+const animal = computed(() => animals.byId(props.animalId))
+
+// Pendant un chargement, ou après un échec, le store peut porter la liste d'un autre animal.
+const isCurrent = computed(
+  () => store.animalId === props.animalId && store.hasLoaded && !store.isLoading && !store.error,
+)
+const hasError = computed(() => store.animalId === props.animalId && store.error !== null)
+
+const history = computed(() =>
+  weightHistory(isCurrent.value ? store.entries : [], animal.value?.initialWeightKg ?? null),
+)
+const chart = computed(() =>
+  history.value.state === 'full' ? buildWeightChart(store.entries, CHART_OPTIONS) : null,
+)
+
+const headline = computed(() =>
+  history.value.headline ? describeHeadline(history.value.headline) : null,
+)
+
+function describeHeadline(value: WeightHeadline): { text: string; trend: WeightTrend } {
+  if (value.kind === 'first') {
+    return {
+      text: t('weight.delta.first', { date: formatLongDate(value.measuredOn) }),
+      trend: 'flat',
+    }
+  }
+  if (value.kind === 'flat') {
+    return { text: t('weight.delta.value', { delta: formatKgDelta(0) }), trend: 'flat' }
+  }
+  return {
+    text: t('weight.delta.vs', {
+      delta: formatKgDelta(value.deltaKg),
+      month: formatMonth(value.previousMeasuredOn),
+    }),
+    trend: value.trend,
+  }
+}
+
+onMounted(() => {
+  if (!animals.hasLoaded) void animals.load()
+  void store.loadForAnimal(props.animalId)
+})
+
+function onScroll(event: Event): void {
+  isScrolled.value = (event.target as HTMLElement).scrollTop > 2
+}
+
+function backToAnimals(): void {
+  void router.push({ name: 'animals' })
+}
+</script>
+
+<template>
+  <div class="weight-history">
+    <div class="weight-history__scroll" @scroll="onScroll">
+      <header
+        class="weight-history__topbar"
+        :class="{ 'weight-history__topbar--scrolled': isScrolled }"
+      >
+        <v-btn
+          class="weight-history__back"
+          icon="ms:arrow_back"
+          variant="text"
+          color="primary"
+          :aria-label="t('weight.history.back')"
+          @click="backToAnimals"
+        />
+        <div class="weight-history__heading">
+          <h1 class="weight-history__title">{{ t('weight.history.title') }}</h1>
+          <p v-if="animal" class="weight-history__subtitle">{{ animal.name }}</p>
+        </div>
+      </header>
+
+      <div class="weight-history__content">
+        <section v-if="history.current && headline" class="weight-history__summary">
+          <p class="weight-history__current-label">{{ t('weight.history.current') }}</p>
+          <p class="weight-history__headline">
+            <span class="weight-history__current">{{ formatKg(history.current.weightKg) }}</span>
+            <span class="weight-history__unit">{{ t('weight.unit') }}</span>
+          </p>
+          <p class="weight-history__delta" :class="`weight-history__delta--${headline.trend}`">
+            {{ headline.text }}
+          </p>
+        </section>
+
+        <div v-if="chart" class="section-card__card weight-history__chart">
+          <WeightSparkline :chart="chart" />
+        </div>
+        <p v-else-if="history.state === 'single'" class="section-card__card weight-history__single">
+          <v-icon icon="ms:show_chart" size="22" />
+          <span>{{ t('weight.section.single') }}</span>
+        </p>
+
+        <SectionCard
+          v-if="history.rows.length > 0"
+          class="weight-history__list"
+          :title="t('weight.history.list')"
+        >
+          <ul class="weight-history__rows">
+            <li v-for="row in history.rows" :key="row.id" class="weight-history__row">
+              <span class="weight-history__row-date">{{ formatLongDate(row.measuredOn) }}</span>
+              <span
+                class="weight-history__row-delta"
+                :class="row.delta ? `weight-history__delta--${row.delta.trend}` : null"
+                >{{
+                  row.delta
+                    ? t('weight.delta.value', { delta: formatKgDelta(row.delta.deltaKg) })
+                    : ''
+                }}</span
+              >
+              <span class="weight-history__row-value">
+                {{ t('weight.history.value', { weight: formatKg(row.weightKg) }) }}
+              </span>
+            </li>
+          </ul>
+        </SectionCard>
+
+        <p v-else-if="hasError" class="section-card__card weight-history__error">
+          {{ t('weight.section.error') }}
+        </p>
+
+        <div v-else-if="isCurrent" class="section-card__card">
+          <p class="section-card__empty weight-history__empty">
+            {{ t('weight.section.empty') }}
+          </p>
+          <button
+            type="button"
+            class="section-card__add weight-history__empty-add"
+            @click="isSheetOpen = true"
+          >
+            <v-icon icon="ms:add" size="20" />
+            <span>{{ t('weight.section.add') }}</span>
+          </button>
+        </div>
+
+        <p v-if="history.initialWeightKg !== null" class="weight-history__initial">
+          {{ t('weight.history.initial', { weight: formatKg(history.initialWeightKg) }) }}
+        </p>
+      </div>
+    </div>
+
+    <footer v-if="history.rows.length > 0" class="weight-history__actions">
+      <v-btn
+        class="weight-history__add"
+        variant="flat"
+        color="primary"
+        prepend-icon="ms:add"
+        block
+        @click="isSheetOpen = true"
+      >
+        {{ t('weight.section.add') }}
+      </v-btn>
+    </footer>
+
+    <WeightSheet v-model="isSheetOpen" :animal-id="animalId" />
+  </div>
+</template>
+
+<style scoped lang="scss">
+@use '@/styles/tokens' as tokens;
+
+.weight-history {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  background: rgb(var(--v-theme-background));
+}
+
+.weight-history__scroll {
+  flex: 1 1 auto;
+  overflow-y: auto;
+}
+
+.weight-history__topbar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  background: rgb(var(--v-theme-background));
+  border-bottom: 1px solid transparent;
+}
+
+.weight-history__topbar--scrolled {
+  border-bottom-color: tokens.$color-actions-border;
+  box-shadow: 0 1px 3px rgb(30 25 20 / 6%);
+}
+
+.weight-history__back {
+  flex: 0 0 auto;
+  width: 48px;
+  height: 48px;
+}
+
+.weight-history__heading {
+  min-width: 0;
+}
+
+.weight-history__title {
+  overflow: hidden;
+  font-family: tokens.$font-family-heading;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.weight-history__subtitle {
+  overflow: hidden;
+  color: tokens.$color-text-secondary;
+  font-size: 12.5px;
+  font-weight: 500;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.weight-history__content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 16px 0 24px;
+}
+
+.weight-history__summary,
+.weight-history__chart,
+.weight-history__single,
+.weight-history__error,
+.weight-history__content > .section-card__card,
+.weight-history__initial {
+  margin-inline: 20px;
+}
+
+.weight-history__current-label {
+  color: tokens.$color-text-meta;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.weight-history__headline {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.weight-history__current {
+  font-family: tokens.$font-family-heading;
+  font-size: 44px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.weight-history__unit {
+  color: tokens.$color-field-suffix;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.weight-history__delta {
+  margin-top: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.weight-history__delta--up {
+  color: tokens.$color-delta-up;
+}
+
+.weight-history__delta--down {
+  color: tokens.$color-delta-down;
+}
+
+.weight-history__delta--flat {
+  color: tokens.$color-delta-flat;
+}
+
+.weight-history__chart {
+  padding: 20px 20px 16px;
+}
+
+.weight-history__single {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 20px;
+  color: tokens.$color-text-secondary;
+  font-size: 13.5px;
+  font-weight: 500;
+
+  :deep(.v-icon) {
+    flex: 0 0 auto;
+    color: tokens.$color-chart-icon;
+  }
+}
+
+.weight-history__error {
+  padding: 16px 20px;
+  color: tokens.$color-text-secondary;
+  font-size: 14.5px;
+}
+
+.weight-history__list {
+  // `SectionCard` porte déjà sa marge latérale.
+  margin: 0;
+}
+
+.weight-history__rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.weight-history__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: tokens.$height-weight-row;
+  padding-inline: 20px;
+}
+
+.weight-history__row + .weight-history__row {
+  border-top: 1px solid tokens.$color-divider;
+}
+
+.weight-history__row-date {
+  flex: 1 1 auto;
+  color: tokens.$color-weight-row-date;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.weight-history__row-delta {
+  flex: 0 0 auto;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.weight-history__row-value {
+  flex: 0 0 auto;
+  min-width: 64px;
+  font-size: 16px;
+  font-weight: 700;
+  text-align: end;
+}
+
+.weight-history__initial {
+  margin-top: -8px;
+  color: tokens.$color-delta-flat;
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.weight-history__actions {
+  flex: 0 0 auto;
+  padding: 12px 20px;
+  background: tokens.$color-actions-surface;
+  border-top: 1px solid tokens.$color-actions-border;
+}
+
+.weight-history__add {
+  height: 52px;
+  border-radius: 999px;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: normal;
+}
+</style>
