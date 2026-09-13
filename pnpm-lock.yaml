@@ -30,8 +30,8 @@ importers:
         specifier: ^5.3.0
         version: 5.3.0
       '@material-symbols/svg-400':
-        specifier: ^0.47.1
-        version: 0.47.1
+        specifier: ^0.47.2
+        version: 0.47.2
       '@supabase/supabase-js':
         specifier: ^2.115.0
         version: 2.115.0
@@ -687,8 +687,8 @@ packages:
   '@keyv/serialize@1.1.1':
     resolution: {integrity: sha512-dXn3FZhPv0US+7dtJsIi2R+c7qWYiReoEh5zUntWCf4oSpMNib8FDhSoed6m3QyZdx5hK7iLFkYk3rNxwt8vTA==}
 
-  '@material-symbols/svg-400@0.47.1':
-    resolution: {integrity: sha512-kpK/2tlHqNvEq6hcqkpJqxfYhZjd/eQGDOsIGA4Q6YrahV8XmAuJwUEFcQGX0+TaZwWuoFmtpKEihTcw9waOJg==}
+  '@material-symbols/svg-400@0.47.2':
+    resolution: {integrity: sha512-OCKG/jxhd3rymUzu2ay8sX+/1uTITy2rKfy67skFLeQN+srzxgPBG6MeXCPn5Kw9XFBEQSkinvc29SawnuFFcQ==}
 
   '@nodelib/fs.scandir@2.1.5':
     resolution: {integrity: sha512-vq24Bq3ym5HEQm2NKCr3yXDwjc7vTsEThRDnkp2DK9p1uqLR+DHurm/NOTo0KG7HYHU7eppKZj3MyqYuMBf62g==}
@@ -4392,7 +4392,7 @@ snapshots:
 
   '@keyv/serialize@1.1.1': {}
 
-  '@material-symbols/svg-400@0.47.1': {}
+  '@material-symbols/svg-400@0.47.2': {}
 
   '@nodelib/fs.scandir@2.1.5':
     dependencies:
