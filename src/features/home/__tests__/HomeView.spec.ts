@@ -462,6 +462,16 @@ describe('HomeView — Actions rapides', () => {
     expect(sections).toEqual(['home-todo', 'home-quick-actions'])
   })
 
+  it('rend chaque tuile comme un bouton natif, sans élément de bloc à l’intérieur', async () => {
+    const wrapper = await monter()
+
+    for (const tuile of wrapper.findAll('.home-quick-tile')) {
+      expect(tuile.element.tagName).toBe('BUTTON')
+      expect(tuile.attributes('type')).toBe('button')
+      expect(tuile.find('div').exists()).toBe(false)
+    }
+  })
+
   it('reste présente sur A2, A3 et A4', async () => {
     sources = [CHPPIL_MILO_RETARD]
     const wrapper = await monter()

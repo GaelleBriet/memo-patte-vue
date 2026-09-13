@@ -181,36 +181,18 @@ function openCarnet(): void {
       <section class="home-quick-actions">
         <h2 class="home-quick-actions__title">{{ t('home.quickActions.title') }}</h2>
         <div class="home-quick-actions__grid">
-          <v-card
-            tag="button"
-            type="button"
-            class="home-quick-tile"
-            variant="flat"
-            @click="openForm('treatment-new')"
-          >
+          <button type="button" class="home-quick-tile" @click="openForm('treatment-new')">
             <v-icon class="home-quick-tile__icon" icon="ms:medication" size="24" />
             <span class="home-quick-tile__label">{{ t('home.quickActions.treatment') }}</span>
-          </v-card>
-          <v-card
-            tag="button"
-            type="button"
-            class="home-quick-tile"
-            variant="flat"
-            @click="openForm('vaccination-new')"
-          >
+          </button>
+          <button type="button" class="home-quick-tile" @click="openForm('vaccination-new')">
             <v-icon class="home-quick-tile__icon" icon="ms:vaccines" size="24" />
             <span class="home-quick-tile__label">{{ t('home.quickActions.vaccination') }}</span>
-          </v-card>
-          <v-card
-            tag="button"
-            type="button"
-            class="home-quick-tile"
-            variant="flat"
-            @click="isWeightSheetOpen = true"
-          >
+          </button>
+          <button type="button" class="home-quick-tile" @click="isWeightSheetOpen = true">
             <v-icon class="home-quick-tile__icon" icon="ms:monitor_weight" size="24" />
             <span class="home-quick-tile__label">{{ t('home.quickActions.weight') }}</span>
-          </v-card>
+          </button>
         </div>
       </section>
 
@@ -481,6 +463,12 @@ function openCarnet(): void {
   color: rgb(var(--v-theme-on-surface));
   font-family: inherit;
   text-align: start;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid rgb(var(--v-theme-primary));
+    outline-offset: 2px;
+  }
 }
 
 .home-quick-tile__icon {
