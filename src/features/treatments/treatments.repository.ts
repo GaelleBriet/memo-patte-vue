@@ -70,6 +70,16 @@ export function createTreatmentsRepository(db: DbClient) {
       return rows.map(toTreatment)
     },
 
+    /** Tous les animaux confondus, pour l'accueil : l'ordre par urgence est l'affaire de `buildReminders`. */
+    async listAll(): Promise<Treatment[]> {
+      const rows = await db.query<TreatmentRow>(
+        `SELECT ${COLUMNS} FROM treatment
+         WHERE ${NOT_DELETED}
+         ORDER BY animal_id, next_due_date, created_at`,
+      )
+      return rows.map(toTreatment)
+    },
+
     async create(input: TreatmentInput): Promise<Treatment> {
       const data = treatmentInputSchema.parse(input)
       const now = new Date().toISOString()
