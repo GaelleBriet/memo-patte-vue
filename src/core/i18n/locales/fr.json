@@ -170,5 +170,11 @@
   },
   "home": {
     "title": "MémoPatte"
+  },
+  "form": {
+    "back": "Retour",
+    "cancel": "Annuler",
+    "required": "*",
+    "optional": "Optionnel"
   }
 }
