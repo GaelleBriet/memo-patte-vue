@@ -1,0 +1,282 @@
+<script setup lang="ts">
+import { computed, onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
+
+import {
+  emptyTreatmentFormValues,
+  nextDoseDate,
+  treatmentFormValuesFrom,
+  validateTreatmentForm,
+  type TreatmentFormErrors,
+} from './treatment-form'
+import {
+  FREQUENCY_UNITS,
+  TREATMENT_TYPES,
+  type Treatment,
+  type TreatmentType,
+} from './treatment.schema'
+import { useTreatmentsStore } from './treatments.store'
+import { useAnimalsStore } from '@/features/animals/animals.store'
+import { formatLongDate } from '@/shared/format'
+import { todayIsoDate } from '@/shared/form/form-dates'
+import FormField from '@/shared/form/FormField.vue'
+import FormScreen from '@/shared/form/FormScreen.vue'
+import FormSegmented from '@/shared/form/FormSegmented.vue'
+
+const props = defineProps<{
+  animalId?: string
+  id?: string
+}>()
+
+const { t } = useI18n()
+const router = useRouter()
+const animals = useAnimalsStore()
+const treatments = useTreatmentsStore()
+
+const values = ref(emptyTreatmentFormValues())
+const errors = ref<TreatmentFormErrors>({})
+const existing = ref<Treatment | null>(null)
+const notFound = ref(false)
+const saveFailed = ref(false)
+const isSubmitting = ref(false)
+const maxLastDoseDate = todayIsoDate()
+
+const isEdit = computed(() => props.id !== undefined)
+const targetAnimalId = computed(() => existing.value?.animalId ?? props.animalId ?? null)
+const animalName = computed(
+  () => animals.animals.find((animal) => animal.id === targetAnimalId.value)?.name ?? null,
+)
+const title = computed(() =>
+  existing.value
+    ? t('treatments.form.editTitle', { name: existing.value.name })
+    : t('treatments.form.title'),
+)
+const subtitle = computed(() =>
+  animalName.value ? t('treatments.form.forAnimal', { name: animalName.value }) : null,
+)
+const submitLabel = computed(() => {
+  if (isSubmitting.value) {
+    return isEdit.value ? t('treatments.form.saving') : t('treatments.form.submitting')
+  }
+  return isEdit.value ? t('treatments.form.save') : t('treatments.form.submit')
+})
+const errorMessage = computed(() => {
+  if (notFound.value) return t('treatments.form.errors.notFound')
+  if (saveFailed.value) return t('treatments.form.errors.save')
+  return null
+})
+const typeOptions = computed(() =>
+  TREATMENT_TYPES.map((type) => ({ value: type, label: t(`treatments.type.${type}`) })),
+)
+const unitCount = computed(() => {
+  const count = Number(values.value.frequencyValue)
+  return Number.isInteger(count) && count > 0 ? count : 1
+})
+const unitOptions = computed(() =>
+  FREQUENCY_UNITS.map((unit) => ({
+    value: unit,
+    title: t(`treatments.form.frequency.unit.${unit}`, unitCount.value),
+  })),
+)
+const nextDose = computed(() => {
+  const date = nextDoseDate(values.value)
+  return date ? t('treatments.form.nextDose', { date: formatLongDate(date) }) : null
+})
+
+onMounted(async () => {
+  if (props.id !== undefined) {
+    existing.value = await treatments.getById(props.id)
+    notFound.value = existing.value === null
+    if (existing.value) values.value = treatmentFormValuesFrom(existing.value)
+  }
+  if (!animals.hasLoaded) await animals.load()
+})
+
+function requireAnimalId(): string {
+  if (props.animalId === undefined) throw new Error('Formulaire traitement ouvert sans animal.')
+  return props.animalId
+}
+
+function backToAnimals(): void {
+  void router.push({ name: 'animals' })
+}
+
+function selectType(value: string | null): void {
+  values.value.type = TREATMENT_TYPES.includes(value as TreatmentType)
+    ? (value as TreatmentType)
+    : null
+}
+
+async function submit(): Promise<void> {
+  if (isSubmitting.value || notFound.value) return
+
+  const result = validateTreatmentForm(values.value)
+  errors.value = result.success ? {} : result.errors
+  if (!result.success) return
+
+  isSubmitting.value = true
+  saveFailed.value = false
+
+  try {
+    if (props.id !== undefined) {
+      await treatments.update(props.id, result.data)
+    } else {
+      await treatments.create({ animalId: requireAnimalId(), ...result.data })
+    }
+    backToAnimals()
+  } catch {
+    saveFailed.value = true
+  } finally {
+    isSubmitting.value = false
+  }
+}
+</script>
+
+<template>
+  <FormScreen
+    class="treatment-form"
+    :title="title"
+    :subtitle="subtitle"
+    :submit-label="submitLabel"
+    :is-submitting="isSubmitting"
+    :disabled="notFound"
+    :error-message="errorMessage"
+    @cancel="backToAnimals"
+    @submit="submit"
+  >
+    <FormField
+      class="treatment-form__field--name"
+      :label="t('treatments.form.name.label')"
+      control-id="treatment-name"
+      required
+      :error="errors.name ? t(errors.name) : null"
+    >
+      <v-text-field
+        id="treatment-name"
+        v-model="values.name"
+        class="form-field__input"
+        variant="outlined"
+        hide-details
+        aria-required="true"
+        :error="Boolean(errors.name)"
+        :placeholder="t('treatments.form.name.placeholder')"
+      />
+    </FormField>
+
+    <FormField
+      class="treatment-form__field--type"
+      :label="t('treatments.form.type.label')"
+      label-id="treatment-type-label"
+      required
+      :error="errors.type ? t(errors.type) : null"
+    >
+      <FormSegmented
+        :model-value="values.type"
+        :options="typeOptions"
+        labelledby="treatment-type-label"
+        @update:model-value="selectType"
+      />
+    </FormField>
+
+    <FormField
+      class="treatment-form__field--frequency"
+      :label="t('treatments.form.frequency.label')"
+      label-id="treatment-frequency-label"
+      required
+      :error="errors.frequency ? t(errors.frequency) : null"
+    >
+      <div
+        class="treatment-form__frequency"
+        role="group"
+        aria-labelledby="treatment-frequency-label"
+      >
+        <span class="treatment-form__every">{{ t('treatments.form.frequency.every') }}</span>
+        <v-text-field
+          id="treatment-frequency-value"
+          v-model="values.frequencyValue"
+          class="form-field__input form-field__input--number treatment-form__frequency-value"
+          type="number"
+          inputmode="numeric"
+          min="1"
+          step="1"
+          variant="outlined"
+          hide-details
+          aria-required="true"
+          :error="Boolean(errors.frequency)"
+        />
+        <v-select
+          id="treatment-frequency-unit"
+          v-model="values.frequencyUnit"
+          class="form-field__input treatment-form__unit"
+          :items="unitOptions"
+          variant="outlined"
+          hide-details
+          :error="Boolean(errors.frequency)"
+        />
+      </div>
+    </FormField>
+
+    <FormField
+      class="treatment-form__field--last-dose-date"
+      :label="t('treatments.form.lastDoseDate.label')"
+      control-id="treatment-last-dose-date"
+      required
+      :error="errors.lastDoseDate ? t(errors.lastDoseDate) : null"
+    >
+      <v-text-field
+        id="treatment-last-dose-date"
+        v-model="values.lastDoseDate"
+        class="form-field__input form-field__input--date"
+        type="date"
+        :max="maxLastDoseDate"
+        variant="outlined"
+        hide-details
+        aria-required="true"
+        append-inner-icon="ms:calendar_month"
+        :error="Boolean(errors.lastDoseDate)"
+      />
+    </FormField>
+
+    <p v-if="nextDose" class="treatment-form__next-dose">
+      <v-icon icon="ms:schedule" size="18" />
+      <span>{{ nextDose }}</span>
+    </p>
+  </FormScreen>
+</template>
+
+<style scoped lang="scss">
+@use '@/styles/tokens' as tokens;
+
+.treatment-form__frequency {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.treatment-form__every {
+  flex: 0 0 auto;
+  color: tokens.$color-field-suffix;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.treatment-form__frequency-value {
+  flex: 0 0 84px;
+}
+
+.treatment-form__unit {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.treatment-form__next-dose {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: -6px 0 0;
+  color: rgb(var(--v-theme-primary));
+  font-size: 14px;
+  font-weight: 600;
+}
+</style>

@@ -36,6 +36,18 @@ const router = createRouter({
       component: () => import('@/features/vaccinations/VaccinationFormView.vue'),
       props: true,
     },
+    {
+      path: '/animals/:animalId/treatments/new',
+      name: 'treatment-new',
+      component: () => import('@/features/treatments/TreatmentFormView.vue'),
+      props: true,
+    },
+    {
+      path: '/treatments/:id/edit',
+      name: 'treatment-edit',
+      component: () => import('@/features/treatments/TreatmentFormView.vue'),
+      props: true,
+    },
   ],
 })
 
