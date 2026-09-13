@@ -1,6 +1,7 @@
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest'
+import { createMemoryHistory, createRouter, type Router } from 'vue-router'
 
 import TreatmentFormView from '../TreatmentFormView.vue'
 import type { Treatment, TreatmentInput, TreatmentUpdateInput } from '../treatment.schema'
@@ -11,6 +12,17 @@ import i18n from '@/core/i18n'
 import router from '@/router'
 import vuetify from '@/core/theme/vuetify'
 import { todayIsoDate } from '@/shared/form/form-dates'
+
+// Le vrai routeur ne sert qu'aux tests de routes (`resolve`) : naviguer avec lui chargerait
+// le graphe du Carnet et SQLite à chaque test.
+const Vide = { render: () => null }
+
+function routeurMemoire(): Router {
+  return createRouter({
+    history: createMemoryHistory(),
+    routes: [{ path: '/animals', name: 'animals', component: Vide }],
+  })
+}
 
 const MILO: Animal = {
   id: '11111111-1111-4111-8111-111111111111',
@@ -43,6 +55,7 @@ let create: MockInstance<(input: TreatmentInput) => Promise<Treatment>>
 let update: MockInstance<(id: string, input: TreatmentUpdateInput) => Promise<Treatment>>
 let getById: MockInstance<(id: string) => Promise<Treatment | null>>
 let push: MockInstance
+let routeur: Router
 
 beforeEach(async () => {
   setActivePinia(createPinia())
@@ -56,8 +69,9 @@ beforeEach(async () => {
   create = vi.spyOn(treatments, 'create').mockResolvedValue(BRAVECTO)
   update = vi.spyOn(treatments, 'update').mockResolvedValue(BRAVECTO)
   getById = vi.spyOn(treatments, 'getById').mockResolvedValue(BRAVECTO)
-  await router.push({ name: 'animals' })
-  push = vi.spyOn(router, 'push').mockResolvedValue()
+  routeur = routeurMemoire()
+  await routeur.push('/animals')
+  push = vi.spyOn(routeur, 'push').mockResolvedValue()
 })
 
 afterEach(() => {
@@ -67,7 +81,7 @@ afterEach(() => {
 async function monterCreation(animalId = MILO.id) {
   const wrapper = mount(TreatmentFormView, {
     props: { animalId },
-    global: { plugins: [vuetify, i18n, router] },
+    global: { plugins: [vuetify, i18n, routeur] },
     attachTo: document.body,
   })
   await flushPromises()
@@ -77,7 +91,7 @@ async function monterCreation(animalId = MILO.id) {
 async function monterEdition(id = BRAVECTO.id) {
   const wrapper = mount(TreatmentFormView, {
     props: { id },
-    global: { plugins: [vuetify, i18n, router] },
+    global: { plugins: [vuetify, i18n, routeur] },
     attachTo: document.body,
   })
   await flushPromises()

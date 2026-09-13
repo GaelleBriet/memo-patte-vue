@@ -1,6 +1,7 @@
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest'
+import { createMemoryHistory, createRouter, type Router } from 'vue-router'
 
 import AnimalFormView from '../AnimalFormView.vue'
 import { todayIsoDate } from '../animal-form'
@@ -9,6 +10,20 @@ import { useAnimalsStore } from '../animals.store'
 import i18n from '@/core/i18n'
 import router from '@/router'
 import vuetify from '@/core/theme/vuetify'
+
+// Le vrai routeur ne sert qu'aux tests de routes (`resolve`) : naviguer avec lui chargerait
+// le graphe du Carnet et SQLite à chaque test.
+const Vide = { render: () => null }
+
+function routeurMemoire(): Router {
+  return createRouter({
+    history: createMemoryHistory(),
+    routes: [
+      { path: '/animals', name: 'animals', component: Vide },
+      { path: '/animals/new', name: 'animal-new', component: Vide },
+    ],
+  })
+}
 
 const MILO: Animal = {
   id: '11111111-1111-4111-8111-111111111111',
@@ -34,6 +49,7 @@ let load: MockInstance
 let create: MockInstance<(input: AnimalInput) => Promise<Animal>>
 let update: MockInstance<(id: string, input: AnimalInput) => Promise<Animal>>
 let push: MockInstance
+let routeur: Router
 
 beforeEach(async () => {
   setActivePinia(createPinia())
@@ -45,19 +61,18 @@ beforeEach(async () => {
   })
   create = vi.spyOn(animals, 'create').mockResolvedValue(MILO)
   update = vi.spyOn(animals, 'update').mockResolvedValue(MILO)
-  await router.push({ name: 'animal-new' })
-  push = vi.spyOn(router, 'push').mockResolvedValue()
+  routeur = routeurMemoire()
+  await routeur.push('/animals/new')
+  push = vi.spyOn(routeur, 'push').mockResolvedValue()
 })
 
-// `router` est un singleton partagé : sans restauration, l'espion de `push`
-// cumulerait les appels d'un test à l'autre.
 afterEach(() => {
   vi.restoreAllMocks()
 })
 
 function monter() {
   return mount(AnimalFormView, {
-    global: { plugins: [vuetify, i18n, router] },
+    global: { plugins: [vuetify, i18n, routeur] },
     attachTo: document.body,
   })
 }
@@ -65,7 +80,7 @@ function monter() {
 async function monterEdition(id = MILO.id) {
   const wrapper = mount(AnimalFormView, {
     props: { id },
-    global: { plugins: [vuetify, i18n, router] },
+    global: { plugins: [vuetify, i18n, routeur] },
     attachTo: document.body,
   })
   await flushPromises()

@@ -1,6 +1,7 @@
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest'
+import { createMemoryHistory, createRouter, type Router } from 'vue-router'
 
 import VaccinationFormView from '../VaccinationFormView.vue'
 import { todayIsoDate } from '../vaccination-form'
@@ -11,6 +12,17 @@ import { useAnimalsStore } from '@/features/animals/animals.store'
 import i18n from '@/core/i18n'
 import router from '@/router'
 import vuetify from '@/core/theme/vuetify'
+
+// Le vrai routeur ne sert qu'aux tests de routes (`resolve`) : naviguer avec lui chargerait
+// le graphe du Carnet et SQLite à chaque test.
+const Vide = { render: () => null }
+
+function routeurMemoire(): Router {
+  return createRouter({
+    history: createMemoryHistory(),
+    routes: [{ path: '/animals', name: 'animals', component: Vide }],
+  })
+}
 
 const MILO: Animal = {
   id: '11111111-1111-4111-8111-111111111111',
@@ -41,6 +53,7 @@ let create: MockInstance<(input: VaccinationInput) => Promise<Vaccination>>
 let update: MockInstance<(id: string, input: VaccinationUpdateInput) => Promise<Vaccination>>
 let getById: MockInstance<(id: string) => Promise<Vaccination | null>>
 let push: MockInstance
+let routeur: Router
 
 beforeEach(async () => {
   setActivePinia(createPinia())
@@ -54,8 +67,9 @@ beforeEach(async () => {
   create = vi.spyOn(vaccinations, 'create').mockResolvedValue(RAGE)
   update = vi.spyOn(vaccinations, 'update').mockResolvedValue(RAGE)
   getById = vi.spyOn(vaccinations, 'getById').mockResolvedValue(RAGE)
-  await router.push({ name: 'animals' })
-  push = vi.spyOn(router, 'push').mockResolvedValue()
+  routeur = routeurMemoire()
+  await routeur.push('/animals')
+  push = vi.spyOn(routeur, 'push').mockResolvedValue()
 })
 
 afterEach(() => {
@@ -65,7 +79,7 @@ afterEach(() => {
 async function monterCreation(animalId = MILO.id) {
   const wrapper = mount(VaccinationFormView, {
     props: { animalId },
-    global: { plugins: [vuetify, i18n, router] },
+    global: { plugins: [vuetify, i18n, routeur] },
     attachTo: document.body,
   })
   await flushPromises()
@@ -75,7 +89,7 @@ async function monterCreation(animalId = MILO.id) {
 async function monterEdition(id = RAGE.id) {
   const wrapper = mount(VaccinationFormView, {
     props: { id },
-    global: { plugins: [vuetify, i18n, router] },
+    global: { plugins: [vuetify, i18n, routeur] },
     attachTo: document.body,
   })
   await flushPromises()
