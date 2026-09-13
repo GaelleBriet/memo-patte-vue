@@ -112,16 +112,20 @@ async function submit(): Promise<void> {
       required
       :error="errors.name ? t(errors.name) : null"
     >
-      <v-text-field
-        id="animal-name"
-        v-model="values.name"
-        class="form-field__input"
-        variant="outlined"
-        hide-details
-        aria-required="true"
-        :error="Boolean(errors.name)"
-        :placeholder="t('animals.form.name.placeholder')"
-      />
+      <template #default="{ describedby, invalid }">
+        <v-text-field
+          id="animal-name"
+          v-model="values.name"
+          :aria-describedby="describedby"
+          :aria-invalid="invalid"
+          class="form-field__input"
+          variant="outlined"
+          hide-details
+          aria-required="true"
+          :error="invalid"
+          :placeholder="t('animals.form.name.placeholder')"
+        />
+      </template>
     </FormField>
 
     <FormField
@@ -131,12 +135,16 @@ async function submit(): Promise<void> {
       required
       :error="errors.species ? t(errors.species) : null"
     >
-      <FormSegmented
-        v-model="values.species"
-        class="animal-form__species"
-        :options="speciesOptions"
-        label-id="animal-species-label"
-      />
+      <template #default="{ describedby, invalid }">
+        <FormSegmented
+          v-model="values.species"
+          :aria-describedby="describedby"
+          :aria-invalid="invalid"
+          class="animal-form__species"
+          :options="speciesOptions"
+          label-id="animal-species-label"
+        />
+      </template>
     </FormField>
 
     <FormField
@@ -160,17 +168,21 @@ async function submit(): Promise<void> {
       control-id="animal-birth-date"
       :error="errors.birthDate ? t(errors.birthDate) : null"
     >
-      <v-text-field
-        id="animal-birth-date"
-        v-model="values.birthDate"
-        class="form-field__input form-field__input--date"
-        type="date"
-        :max="maxBirthDate"
-        variant="outlined"
-        hide-details
-        append-inner-icon="ms:calendar_month"
-        :error="Boolean(errors.birthDate)"
-      />
+      <template #default="{ describedby, invalid }">
+        <v-text-field
+          id="animal-birth-date"
+          v-model="values.birthDate"
+          :aria-describedby="describedby"
+          :aria-invalid="invalid"
+          class="form-field__input form-field__input--date"
+          type="date"
+          :max="maxBirthDate"
+          variant="outlined"
+          hide-details
+          append-inner-icon="ms:calendar_month"
+          :error="invalid"
+        />
+      </template>
     </FormField>
 
     <FormField
@@ -179,19 +191,23 @@ async function submit(): Promise<void> {
       control-id="animal-weight"
       :error="errors.initialWeightKg ? t(errors.initialWeightKg) : null"
     >
-      <v-text-field
-        id="animal-weight"
-        v-model="values.initialWeightKg"
-        class="form-field__input form-field__input--number"
-        type="number"
-        inputmode="decimal"
-        step="0.1"
-        variant="outlined"
-        hide-details
-        :error="Boolean(errors.initialWeightKg)"
-        :placeholder="t('animals.form.initialWeightKg.placeholder')"
-        :suffix="t('animals.form.initialWeightKg.suffix')"
-      />
+      <template #default="{ describedby, invalid }">
+        <v-text-field
+          id="animal-weight"
+          v-model="values.initialWeightKg"
+          :aria-describedby="describedby"
+          :aria-invalid="invalid"
+          class="form-field__input form-field__input--number"
+          type="number"
+          inputmode="decimal"
+          step="0.1"
+          variant="outlined"
+          hide-details
+          :error="invalid"
+          :placeholder="t('animals.form.initialWeightKg.placeholder')"
+          :suffix="t('animals.form.initialWeightKg.suffix')"
+        />
+      </template>
     </FormField>
   </FormScreen>
 </template>

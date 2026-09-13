@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useId } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 defineProps<{
@@ -12,6 +13,7 @@ defineProps<{
 }>()
 
 const { t } = useI18n()
+const errorId = useId()
 </script>
 
 <template>
@@ -28,8 +30,8 @@ const { t } = useI18n()
       </span>
       <span v-else class="form-field__optional">{{ t('form.optional') }}</span>
     </component>
-    <slot />
-    <p v-if="error" class="form-field__error">
+    <slot :describedby="error ? errorId : undefined" :invalid="Boolean(error)" />
+    <p v-if="error" :id="errorId" class="form-field__error">
       <v-icon icon="ms:error" size="16" />
       <span>{{ error }}</span>
     </p>

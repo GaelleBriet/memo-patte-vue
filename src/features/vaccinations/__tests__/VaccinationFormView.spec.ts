@@ -380,3 +380,27 @@ describe('VaccinationFormView — routes', () => {
     expect(route.matched[0]?.props.default).toBe(true)
   })
 })
+
+function expectLie(wrapper: VueWrapper, controle: string, champ: string) {
+  const idErreur = wrapper.get(`${champ} .form-field__error`).attributes('id')
+
+  expect(idErreur).toBeTruthy()
+  expect(wrapper.get(controle).attributes('aria-describedby')).toBe(idErreur)
+  expect(wrapper.get(controle).attributes('aria-invalid')).toBe('true')
+}
+
+describe('VaccinationFormView — accessibilité des erreurs', () => {
+  it('relie chaque contrôle en erreur à son message et le marque invalide', async () => {
+    const wrapper = await monterCreation()
+
+    await soumettre(wrapper)
+
+    expectLie(wrapper, '#vaccination-name', '.vaccination-form__field--name')
+    expectLie(
+      wrapper,
+      '#vaccination-last-injection-date',
+      '.vaccination-form__field--last-injection-date',
+    )
+    expect(wrapper.get('#vaccination-due-date').attributes('aria-invalid')).toBe('false')
+  })
+})

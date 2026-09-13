@@ -432,3 +432,52 @@ describe('TreatmentFormView — routes', () => {
     expect(route.matched[0]?.props.default).toBe(true)
   })
 })
+
+function expectLie(wrapper: VueWrapper, controle: string, champ: string) {
+  const idErreur = wrapper.get(`${champ} .form-field__error`).attributes('id')
+
+  expect(idErreur).toBeTruthy()
+  expect(wrapper.get(controle).attributes('aria-describedby')).toBe(idErreur)
+  expect(wrapper.get(controle).attributes('aria-invalid')).toBe('true')
+}
+
+describe('TreatmentFormView — accessibilité des erreurs', () => {
+  it('relie chaque contrôle en erreur à son message et le marque invalide', async () => {
+    const wrapper = await monterCreation()
+
+    await soumettre(wrapper)
+
+    expect(messages(wrapper)).toHaveLength(4)
+    expectLie(wrapper, '#treatment-name', '.treatment-form__field--name')
+    expectLie(
+      wrapper,
+      '.treatment-form__field--type .form-segmented',
+      '.treatment-form__field--type',
+    )
+    expectLie(wrapper, '#treatment-frequency-value', '.treatment-form__field--frequency')
+    expectLie(wrapper, '#treatment-last-dose-date', '.treatment-form__field--last-dose-date')
+  })
+
+  it('nomme le champ nombre par le libellé « Fréquence » et le mot de liaison', async () => {
+    const wrapper = await monterCreation()
+
+    const ids = champ(wrapper, 'treatment-frequency-value')
+      .attributes('aria-labelledby')!
+      .split(' ')
+    expect(ids).toHaveLength(2)
+    expect(wrapper.get(`#${ids[0]}`).text()).toContain('Fréquence')
+    expect(wrapper.get(`#${ids[1]}`).text()).toBe('Tous les')
+  })
+
+  it('annonce la prochaine dose dans une région polie, présente avant même l’aperçu', async () => {
+    const wrapper = await monterCreation()
+    const region = wrapper.get('[aria-live="polite"]')
+
+    expect(region.text()).toBe('')
+
+    await champ(wrapper, 'treatment-frequency-value').setValue('3')
+    await champ(wrapper, 'treatment-last-dose-date').setValue('2026-06-24')
+
+    expect(wrapper.get('[aria-live="polite"]').text()).toBe('Prochaine dose le 24 sept. 2026')
+  })
+})

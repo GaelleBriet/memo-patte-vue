@@ -121,16 +121,20 @@ async function submit(): Promise<void> {
       required
       :error="errors.name ? t(errors.name) : null"
     >
-      <v-text-field
-        id="vaccination-name"
-        v-model="values.name"
-        class="form-field__input"
-        variant="outlined"
-        hide-details
-        aria-required="true"
-        :error="Boolean(errors.name)"
-        :placeholder="t('vaccinations.form.name.placeholder')"
-      />
+      <template #default="{ describedby, invalid }">
+        <v-text-field
+          id="vaccination-name"
+          v-model="values.name"
+          :aria-describedby="describedby"
+          :aria-invalid="invalid"
+          class="form-field__input"
+          variant="outlined"
+          hide-details
+          aria-required="true"
+          :error="invalid"
+          :placeholder="t('vaccinations.form.name.placeholder')"
+        />
+      </template>
     </FormField>
 
     <FormField
@@ -140,18 +144,22 @@ async function submit(): Promise<void> {
       required
       :error="errors.lastInjectionDate ? t(errors.lastInjectionDate) : null"
     >
-      <v-text-field
-        id="vaccination-last-injection-date"
-        v-model="values.lastInjectionDate"
-        class="form-field__input form-field__input--date"
-        type="date"
-        :max="maxInjectionDate"
-        variant="outlined"
-        hide-details
-        aria-required="true"
-        append-inner-icon="ms:calendar_month"
-        :error="Boolean(errors.lastInjectionDate)"
-      />
+      <template #default="{ describedby, invalid }">
+        <v-text-field
+          id="vaccination-last-injection-date"
+          v-model="values.lastInjectionDate"
+          :aria-describedby="describedby"
+          :aria-invalid="invalid"
+          class="form-field__input form-field__input--date"
+          type="date"
+          :max="maxInjectionDate"
+          variant="outlined"
+          hide-details
+          aria-required="true"
+          append-inner-icon="ms:calendar_month"
+          :error="invalid"
+        />
+      </template>
     </FormField>
 
     <FormField
@@ -160,16 +168,20 @@ async function submit(): Promise<void> {
       control-id="vaccination-due-date"
       :error="errors.dueDate ? t(errors.dueDate) : null"
     >
-      <v-text-field
-        id="vaccination-due-date"
-        v-model="values.dueDate"
-        class="form-field__input form-field__input--date"
-        type="date"
-        variant="outlined"
-        hide-details
-        append-inner-icon="ms:calendar_month"
-        :error="Boolean(errors.dueDate)"
-      />
+      <template #default="{ describedby, invalid }">
+        <v-text-field
+          id="vaccination-due-date"
+          v-model="values.dueDate"
+          :aria-describedby="describedby"
+          :aria-invalid="invalid"
+          class="form-field__input form-field__input--date"
+          type="date"
+          variant="outlined"
+          hide-details
+          append-inner-icon="ms:calendar_month"
+          :error="invalid"
+        />
+      </template>
     </FormField>
   </FormScreen>
 </template>

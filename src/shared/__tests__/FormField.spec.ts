@@ -1,5 +1,6 @@
 import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
+import { defineComponent, h } from 'vue'
 
 import FormField from '../form/FormField.vue'
 import i18n from '@/core/i18n'
@@ -63,5 +64,40 @@ describe('FormField — erreur', () => {
     const wrapper = monter({ controlId: 'animal-name', error: null })
 
     expect(wrapper.find('.form-field__error').exists()).toBe(false)
+  })
+})
+
+describe('FormField — liaison du contrôle à son erreur', () => {
+  const CONTROLE =
+    '<template #default="{ describedby, invalid }"><input id="animal-name" :aria-describedby="describedby" :aria-invalid="invalid" /></template>'
+
+  it('relie le contrôle au message d’erreur et le marque invalide', () => {
+    const wrapper = monter({ controlId: 'animal-name', error: 'Le nom est obligatoire.' }, CONTROLE)
+
+    const idErreur = wrapper.get('.form-field__error').attributes('id')
+    expect(idErreur).toBeTruthy()
+    expect(wrapper.get('#animal-name').attributes('aria-describedby')).toBe(idErreur)
+    expect(wrapper.get('#animal-name').attributes('aria-invalid')).toBe('true')
+  })
+
+  it('ne décrit rien et ne marque pas invalide sans erreur', () => {
+    const wrapper = monter({ controlId: 'animal-name', error: null }, CONTROLE)
+
+    expect(wrapper.get('#animal-name').attributes('aria-describedby')).toBeUndefined()
+    expect(wrapper.get('#animal-name').attributes('aria-invalid')).toBe('false')
+  })
+
+  it('donne à chaque champ un identifiant d’erreur distinct', () => {
+    const Deux = defineComponent({
+      setup: () => () => [
+        h(FormField, { label: 'Nom', error: 'a' }, { default: () => h('input') }),
+        h(FormField, { label: 'Race', error: 'b' }, { default: () => h('input') }),
+      ],
+    })
+    const wrapper = mount(Deux, { global: { plugins: [vuetify, i18n] } })
+
+    const ids = wrapper.findAll('.form-field__error').map((erreur) => erreur.attributes('id'))
+    expect(ids).toHaveLength(2)
+    expect(ids[0]).not.toBe(ids[1])
   })
 })

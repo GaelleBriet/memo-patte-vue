@@ -491,3 +491,24 @@ describe('AnimalFormView — routes', () => {
     expect(route.matched[0]?.props.default).toBe(true)
   })
 })
+
+function expectLie(wrapper: VueWrapper, controle: string, champ: string) {
+  const idErreur = wrapper.get(`${champ} .form-field__error`).attributes('id')
+
+  expect(idErreur).toBeTruthy()
+  expect(wrapper.get(controle).attributes('aria-describedby')).toBe(idErreur)
+  expect(wrapper.get(controle).attributes('aria-invalid')).toBe('true')
+}
+
+describe('AnimalFormView — accessibilité des erreurs', () => {
+  it('relie chaque contrôle en erreur à son message et le marque invalide', async () => {
+    const wrapper = monter()
+
+    await soumettre(wrapper)
+
+    expectLie(wrapper, '#animal-name', '.animal-form__field--name')
+    expectLie(wrapper, '.form-segmented', '.animal-form__field--species')
+    expect(wrapper.get('#animal-weight').attributes('aria-invalid')).toBe('false')
+    expect(wrapper.get('#animal-weight').attributes('aria-describedby')).toBeUndefined()
+  })
+})

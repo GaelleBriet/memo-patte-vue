@@ -141,16 +141,20 @@ async function submit(): Promise<void> {
       required
       :error="errors.name ? t(errors.name) : null"
     >
-      <v-text-field
-        id="treatment-name"
-        v-model="values.name"
-        class="form-field__input"
-        variant="outlined"
-        hide-details
-        aria-required="true"
-        :error="Boolean(errors.name)"
-        :placeholder="t('treatments.form.name.placeholder')"
-      />
+      <template #default="{ describedby, invalid }">
+        <v-text-field
+          id="treatment-name"
+          v-model="values.name"
+          class="form-field__input"
+          variant="outlined"
+          hide-details
+          aria-required="true"
+          :aria-describedby="describedby"
+          :aria-invalid="invalid"
+          :error="invalid"
+          :placeholder="t('treatments.form.name.placeholder')"
+        />
+      </template>
     </FormField>
 
     <FormField
@@ -160,7 +164,15 @@ async function submit(): Promise<void> {
       required
       :error="errors.type ? t(errors.type) : null"
     >
-      <FormSegmented v-model="values.type" :options="typeOptions" label-id="treatment-type-label" />
+      <template #default="{ describedby, invalid }">
+        <FormSegmented
+          v-model="values.type"
+          :options="typeOptions"
+          label-id="treatment-type-label"
+          :aria-describedby="describedby"
+          :aria-invalid="invalid"
+        />
+      </template>
     </FormField>
 
     <FormField
@@ -170,35 +182,42 @@ async function submit(): Promise<void> {
       required
       :error="errors.frequency ? t(errors.frequency) : null"
     >
-      <div
-        class="treatment-form__frequency"
-        role="group"
-        aria-labelledby="treatment-frequency-label"
-      >
-        <span class="treatment-form__every">{{ t('treatments.form.frequency.every') }}</span>
-        <v-text-field
-          id="treatment-frequency-value"
-          v-model="values.frequencyValue"
-          class="form-field__input form-field__input--number treatment-form__frequency-value"
-          type="number"
-          inputmode="numeric"
-          min="1"
-          step="1"
-          variant="outlined"
-          hide-details
-          aria-required="true"
-          :error="Boolean(errors.frequency)"
-        />
-        <v-select
-          id="treatment-frequency-unit"
-          v-model="values.frequencyUnit"
-          class="form-field__input treatment-form__unit"
-          :items="unitOptions"
-          variant="outlined"
-          hide-details
-          :error="Boolean(errors.frequency)"
-        />
-      </div>
+      <template #default="{ describedby, invalid }">
+        <div
+          class="treatment-form__frequency"
+          role="group"
+          aria-labelledby="treatment-frequency-label"
+        >
+          <span id="treatment-frequency-every" class="treatment-form__every">
+            {{ t('treatments.form.frequency.every') }}
+          </span>
+          <v-text-field
+            id="treatment-frequency-value"
+            v-model="values.frequencyValue"
+            class="form-field__input form-field__input--number treatment-form__frequency-value"
+            type="number"
+            inputmode="numeric"
+            min="1"
+            step="1"
+            variant="outlined"
+            hide-details
+            aria-required="true"
+            aria-labelledby="treatment-frequency-label treatment-frequency-every"
+            :aria-describedby="describedby"
+            :aria-invalid="invalid"
+            :error="invalid"
+          />
+          <v-select
+            id="treatment-frequency-unit"
+            v-model="values.frequencyUnit"
+            class="form-field__input treatment-form__unit"
+            :items="unitOptions"
+            variant="outlined"
+            hide-details
+            :error="invalid"
+          />
+        </div>
+      </template>
     </FormField>
 
     <FormField
@@ -208,24 +227,30 @@ async function submit(): Promise<void> {
       required
       :error="errors.lastDoseDate ? t(errors.lastDoseDate) : null"
     >
-      <v-text-field
-        id="treatment-last-dose-date"
-        v-model="values.lastDoseDate"
-        class="form-field__input form-field__input--date"
-        type="date"
-        :max="maxLastDoseDate"
-        variant="outlined"
-        hide-details
-        aria-required="true"
-        append-inner-icon="ms:calendar_month"
-        :error="Boolean(errors.lastDoseDate)"
-      />
+      <template #default="{ describedby, invalid }">
+        <v-text-field
+          id="treatment-last-dose-date"
+          v-model="values.lastDoseDate"
+          class="form-field__input form-field__input--date"
+          type="date"
+          :max="maxLastDoseDate"
+          variant="outlined"
+          hide-details
+          aria-required="true"
+          append-inner-icon="ms:calendar_month"
+          :aria-describedby="describedby"
+          :aria-invalid="invalid"
+          :error="invalid"
+        />
+      </template>
     </FormField>
 
-    <p v-if="nextDose" class="treatment-form__next-dose">
-      <v-icon icon="ms:schedule" size="18" />
-      <span>{{ nextDose }}</span>
-    </p>
+    <div aria-live="polite">
+      <p v-if="nextDose" class="treatment-form__next-dose">
+        <v-icon icon="ms:schedule" size="18" />
+        <span>{{ nextDose }}</span>
+      </p>
+    </div>
   </FormScreen>
 </template>
 
