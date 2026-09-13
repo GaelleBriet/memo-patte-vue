@@ -1,8 +1,9 @@
-import { flushPromises, mount } from '@vue/test-utils'
+import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 
 import WeightSection from '../WeightSection.vue'
+import WeightSheet from '../WeightSheet.vue'
 import type { WeightEntry } from '../weight.schema'
 import type { WeightRepository } from '../weight.repository'
 import { provideWeightRepository } from '../weight.store'
@@ -26,32 +27,50 @@ function entry(weightKg: number, measuredOn: string, animalId = MILO): WeightEnt
 
 let entries: WeightEntry[]
 let listByAnimal: Mock<WeightRepository['listByAnimal']>
+let create: Mock<WeightRepository['create']>
+let wrapper: VueWrapper | null = null
 
 beforeEach(() => {
+  // jsdom ne fournit pas `visualViewport`, que la feuille de pesée (VDialog) écoute.
+  vi.stubGlobal('visualViewport', { addEventListener() {}, removeEventListener() {} })
   setActivePinia(createPinia())
   entries = []
   listByAnimal = vi.fn<WeightRepository['listByAnimal']>(async (animalId) =>
     entries.filter((item) => item.animalId === animalId),
   )
+  create = vi.fn<WeightRepository['create']>(async (input) => {
+    const created = { ...entry(input.weightKg, input.measuredOn, input.animalId) }
+    entries = [...entries, created]
+    return created
+  })
   provideWeightRepository(() => ({
     listByAnimal,
-    create: vi.fn<WeightRepository['create']>(),
+    create,
     update: vi.fn<WeightRepository['update']>(),
     remove: vi.fn<WeightRepository['remove']>(),
   }))
 })
 
 afterEach(() => {
+  wrapper?.unmount()
+  wrapper = null
+  document.body.innerHTML = ''
   provideWeightRepository(null)
+  vi.unstubAllGlobals()
 })
 
 async function monter(animalId = MILO) {
-  const wrapper = mount(WeightSection, {
+  wrapper = mount(WeightSection, {
     props: { animalId },
     global: { plugins: [vuetify, i18n] },
+    attachTo: document.body,
   })
   await flushPromises()
   return wrapper
+}
+
+function feuille(): HTMLElement | null {
+  return document.body.querySelector<HTMLElement>('.weight-sheet__panel')
 }
 
 describe('WeightSection — chargement', () => {
@@ -170,12 +189,56 @@ describe('WeightSection — état vide et lignes non livrées', () => {
     expect(wrapper.find('.weight-sparkline').exists()).toBe(false)
   })
 
-  it('n’offre ni « Voir l’historique » ni « Ajouter une pesée » : leurs écrans n’existent pas', async () => {
+  it('n’offre pas « Voir l’historique » : son écran n’existe pas', async () => {
     entries = [entry(23.6, '2026-06-05'), entry(24.5, '2026-11-08')]
     const wrapper = await monter()
 
     expect(wrapper.find('.weight-section__history').exists()).toBe(false)
-    expect(wrapper.find('.weight-section__add').exists()).toBe(false)
+  })
+})
+
+describe('WeightSection — ajouter une pesée', () => {
+  it('termine la carte par « Ajouter une pesée », même sans pesée', async () => {
+    const wrapper = await monter()
+    const ajout = wrapper.get('.section-card__add')
+
+    expect(ajout.text()).toBe('Ajouter une pesée')
+    expect(ajout.classes()).toContain('weight-section__add')
+    expect(wrapper.findAll('.section-card__add')).toHaveLength(1)
+    expect(feuille()).toBeNull()
+  })
+
+  it('ouvre la feuille de pesée fermée par défaut, pour l’animal courant', async () => {
+    const wrapper = await monter()
+    const sheet = wrapper.getComponent(WeightSheet)
+    expect(sheet.props('modelValue')).toBe(false)
+
+    await wrapper.get('.weight-section__add').trigger('click')
+    await flushPromises()
+
+    expect(sheet.props('modelValue')).toBe(true)
+    expect(sheet.props('animalId')).toBe(MILO)
+    expect(feuille()).not.toBeNull()
+  })
+
+  it('met la carte à jour et ferme la feuille une fois la pesée enregistrée', async () => {
+    const wrapper = await monter()
+    await wrapper.get('.weight-section__add').trigger('click')
+    await flushPromises()
+
+    const poids = feuille()?.querySelector<HTMLInputElement>('#weight-sheet-kg')
+    if (!poids) throw new Error('Champ poids absent')
+    poids.value = '24,5'
+    poids.dispatchEvent(new Event('input', { bubbles: true }))
+    await flushPromises()
+    feuille()?.querySelector<HTMLButtonElement>('.weight-sheet__submit')?.click()
+    await flushPromises()
+
+    expect(create).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ animalId: MILO, weightKg: 24.5 }),
+    )
+    expect(wrapper.get('.weight-section__current').text()).toBe('24,5')
+    expect(wrapper.getComponent(WeightSheet).props('modelValue')).toBe(false)
   })
 })
 

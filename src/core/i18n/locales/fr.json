@@ -200,11 +200,77 @@
       "empty": "Aucune pesée enregistrée",
       "single": "Ajoute une nouvelle pesée pour voir l’évolution.",
       "chartLabel": "Évolution du poids",
-      "error": "Impossible de charger les pesées."
+      "error": "Impossible de charger les pesées.",
+      "add": "Ajouter une pesée"
+    },
+    "form": {
+      "title": "Ajouter une pesée",
+      "forAnimal": "Pour {name}",
+      "close": "Fermer",
+      "required": "*",
+      "animal": {
+        "label": "Animal"
+      },
+      "weightKg": {
+        "label": "Poids",
+        "placeholder": "0,0"
+      },
+      "measuredOn": {
+        "label": "Date de la pesée"
+      },
+      "submit": "Enregistrer",
+      "submitting": "Enregistrement…",
+      "errors": {
+        "animalId": "Choisis un animal.",
+        "weightKg": "Le poids doit être supérieur à 0 kg.",
+        "measuredOn": "La date est obligatoire.",
+        "measuredOnFuture": "La date ne peut pas être dans le futur.",
+        "save": "La pesée n’a pas pu être enregistrée. Réessaie."
+      }
     }
   },
   "home": {
-    "title": "MémoPatte"
+    "title": "MémoPatte",
+    "header": {
+      "household": "Ton foyer"
+    },
+    "loading": "Ouverture de l’accueil…",
+    "error": {
+      "title": "Impossible d’ouvrir l’accueil.",
+      "text": "La base locale n’a pas répondu. Tes données sont intactes.",
+      "retry": "Réessayer"
+    },
+    "todo": {
+      "title": "À faire",
+      "count": "{n} rappel | {n} rappels",
+      "scoped": "{name} · {count}",
+      "overdueBanner": "{n} rappel en retard | {n} rappels en retard"
+    },
+    "reminder": {
+      "vaccination": "Vaccin {name}",
+      "deworming": "Vermifuge",
+      "antiparasitic": "Antiparasitaire"
+    },
+    "due": {
+      "overdue": "En retard · {n} j",
+      "today": "Aujourd’hui",
+      "tomorrow": "Demain",
+      "later": "Dans {n} jour | Dans {n} jours"
+    },
+    "upToDate": {
+      "title": "Tout est à jour",
+      "forAnimal": "Aucun rappel à venir pour {name}.",
+      "forOne": "{name} n’a aucun rappel à venir.",
+      "forMany": "{names} n’ont aucun rappel à venir.",
+      "namesSeparator": ", ",
+      "namesLast": " et ",
+      "add": "Ajouter un vaccin ou un traitement"
+    },
+    "welcome": {
+      "title": "Bienvenue sur MémoPatte",
+      "text": "Le carnet de santé de tes animaux, toujours à jour.",
+      "create": "Créer mon premier animal"
+    }
   },
   "form": {
     "back": "Retour",

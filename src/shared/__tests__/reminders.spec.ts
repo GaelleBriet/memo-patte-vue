@@ -166,6 +166,12 @@ describe('buildReminders', () => {
         daysUntil: 0,
       })
     })
+    it('conserve les champs propres à l’appelant', () => {
+      const { reminders } = buildReminders([{ ...source(), treatmentType: 'deworming' as const }], {
+        today: TODAY,
+      })
+      expect(reminders[0]?.treatmentType).toBe('deworming')
+    })
   })
 
   describe('indépendance à l’horloge', () => {
