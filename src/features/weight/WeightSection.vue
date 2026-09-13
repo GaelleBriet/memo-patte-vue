@@ -6,9 +6,10 @@ export type WeightSectionSummary = WeightSummary | null
 </script>
 
 <script setup lang="ts">
-import { computed, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
+import WeightSheet from './WeightSheet.vue'
 import { weightSummary, type WeightDelta } from './weight-summary'
 import { useWeightStore } from './weight.store'
 import SectionCard from '@/shared/SectionCard.vue'
@@ -26,6 +27,8 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const store = useWeightStore()
+
+const isSheetOpen = ref(false)
 
 // Pendant un chargement, ou après un échec, le store porte déjà le nouvel animal mais encore l'ancienne liste.
 const entries = computed(() => (isCurrent.value ? store.entries : []))
@@ -93,6 +96,13 @@ watch(summary, (value) => emit('summary', value), { immediate: true })
     <p v-else class="section-card__empty weight-section__empty">
       {{ t('weight.section.empty') }}
     </p>
+
+    <button type="button" class="section-card__add weight-section__add" @click="isSheetOpen = true">
+      <v-icon icon="ms:add" size="20" />
+      <span>{{ t('weight.section.add') }}</span>
+    </button>
+
+    <WeightSheet v-model="isSheetOpen" :animal-id="animalId" />
   </SectionCard>
 </template>
 

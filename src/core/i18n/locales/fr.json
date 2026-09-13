@@ -165,7 +165,33 @@
       "empty": "Aucune pesée enregistrée",
       "single": "Ajoute une nouvelle pesée pour voir l’évolution.",
       "chartLabel": "Évolution du poids",
-      "error": "Impossible de charger les pesées."
+      "error": "Impossible de charger les pesées.",
+      "add": "Ajouter une pesée"
+    },
+    "form": {
+      "title": "Ajouter une pesée",
+      "forAnimal": "Pour {name}",
+      "close": "Fermer",
+      "required": "*",
+      "animal": {
+        "label": "Animal"
+      },
+      "weightKg": {
+        "label": "Poids",
+        "placeholder": "0,0"
+      },
+      "measuredOn": {
+        "label": "Date de la pesée"
+      },
+      "submit": "Enregistrer",
+      "submitting": "Enregistrement…",
+      "errors": {
+        "animalId": "Choisis un animal.",
+        "weightKg": "Le poids doit être supérieur à 0 kg.",
+        "measuredOn": "La date est obligatoire.",
+        "measuredOnFuture": "La date ne peut pas être dans le futur.",
+        "save": "La pesée n’a pas pu être enregistrée. Réessaie."
+      }
     }
   },
   "home": {
