@@ -45,6 +45,6 @@ if (failures.length > 0) {
   process.exit(1)
 }
 
-console.log(
-  `✓ Aucune trace des fixtures de développement dans ${files.length} fichiers de ${ASSETS}`,
+process.stdout.write(
+  `✓ Aucune trace des fixtures de développement dans ${files.length} fichiers de ${ASSETS}\n`,
 )
