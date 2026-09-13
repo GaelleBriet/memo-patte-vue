@@ -78,6 +78,13 @@ watch(summary, (value) => emit('summary', value), { immediate: true })
       <div class="weight-section__headline">
         <span class="weight-section__current">{{ current }}</span>
         <span class="weight-section__unit">{{ t('weight.unit') }}</span>
+        <router-link
+          class="weight-section__history"
+          :to="{ name: 'weight-history', params: { animalId } }"
+        >
+          <span>{{ t('weight.history.link') }}</span>
+          <v-icon icon="ms:chevron_right" size="18" />
+        </router-link>
       </div>
       <p class="weight-section__delta" :class="`weight-section__delta--${delta.trend}`">
         {{ delta.text }}
@@ -130,6 +137,18 @@ watch(summary, (value) => emit('summary', value), { immediate: true })
   color: tokens.$color-field-suffix;
   font-size: 15px;
   font-weight: 600;
+}
+
+.weight-section__history {
+  display: inline-flex;
+  align-items: center;
+  align-self: center;
+  gap: 2px;
+  margin-inline-start: auto;
+  color: rgb(var(--v-theme-primary));
+  font-size: 13.5px;
+  font-weight: 700;
+  text-decoration: none;
 }
 
 .weight-section__delta {
