@@ -343,13 +343,14 @@ describe('HomeView — A3 animal sélectionné, aucun rappel', () => {
     expect(wrapper.get('.home-up-to-date__text').text()).toBe('Aucun rappel à venir pour Milo.')
   })
 
-  it('mène au formulaire de vaccin de l’animal sélectionné par le lien texte', async () => {
+  it('ouvre le Carnet de l’animal sélectionné par le lien texte', async () => {
     const wrapper = await monterSurMilo()
 
     expect(wrapper.get('.home-up-to-date__add').text()).toBe('Ajouter un vaccin ou un traitement')
     await wrapper.get('.home-up-to-date__add').trigger('click')
 
-    expect(push).toHaveBeenCalledWith({ name: 'vaccination-new', params: { animalId: MILO.id } })
+    expect(animalsStore.selectedAnimalId).toBe(MILO.id)
+    expect(push).toHaveBeenCalledWith({ name: 'animals' })
   })
 })
 
@@ -371,12 +372,13 @@ describe('HomeView — A4 tous les animaux, aucun rappel', () => {
     expect(wrapper.find('.home-up-to-date').exists()).toBe(true)
   })
 
-  it('mène au formulaire de vaccin du premier animal par le lien texte', async () => {
+  it('ouvre le Carnet du premier animal par le lien texte', async () => {
     const wrapper = await monter()
 
     await wrapper.get('.home-up-to-date__add').trigger('click')
 
-    expect(push).toHaveBeenCalledWith({ name: 'vaccination-new', params: { animalId: MILO.id } })
+    expect(animalsStore.selectedAnimalId).toBe(MILO.id)
+    expect(push).toHaveBeenCalledWith({ name: 'animals' })
   })
 })
 

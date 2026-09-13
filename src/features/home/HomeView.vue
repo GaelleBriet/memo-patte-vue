@@ -82,10 +82,11 @@ function createAnimal(): void {
   void router.push({ name: 'animal-new' })
 }
 
-// L'animal sélectionné, sinon le premier : le formulaire de vaccin exige un animal.
-function addReminder(): void {
+function openCarnet(): void {
   const animalId = animals.selectedAnimalId ?? animals.animals[0]?.id
-  if (animalId) void router.push({ name: 'vaccination-new', params: { animalId } })
+  if (!animalId) return
+  animals.select(animalId)
+  void router.push({ name: 'animals' })
 }
 </script>
 
@@ -166,7 +167,7 @@ function addReminder(): void {
                 <p class="home-up-to-date__text">{{ upToDate }}</p>
               </div>
             </div>
-            <button type="button" class="home-up-to-date__add" @click="addReminder">
+            <button type="button" class="home-up-to-date__add" @click="openCarnet">
               <v-icon icon="ms:add" size="20" />
               <span>{{ t('home.upToDate.add') }}</span>
             </button>
