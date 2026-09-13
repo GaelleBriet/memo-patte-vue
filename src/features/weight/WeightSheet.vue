@@ -126,6 +126,8 @@ async function submit(): Promise<void> {
           v-model:selected-id="values.animalId"
           class="weight-sheet__animals"
           mode="switch"
+          hide-add
+          inline
           :animals="chips"
         />
         <p v-if="errors.animalId" class="weight-sheet__error">
@@ -331,17 +333,6 @@ async function submit(): Promise<void> {
 
 .weight-sheet__required {
   color: rgb(var(--v-theme-primary));
-}
-
-// Le sélecteur partagé déborde sur un header et propose un « + » : ni l'un ni
-// l'autre n'ont de sens dans une feuille.
-.weight-sheet__animals .animal-chip-selector__row {
-  margin-top: 0;
-  padding-inline: 0;
-}
-
-.weight-sheet__animals .animal-chip-selector__add {
-  display: none;
 }
 
 .weight-sheet__input .v-field {

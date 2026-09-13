@@ -154,4 +154,30 @@ describe('AnimalChipSelector', () => {
     expect(wrapper.findAll('.animal-chip')).toHaveLength(0)
     expect(wrapper.find('.animal-chip-selector__add').exists()).toBe(true)
   })
+
+  it('masque la chip « + » avec `hideAdd`, sans toucher aux chips animaux', () => {
+    const wrapper = monter({ hideAdd: true })
+
+    expect(wrapper.find('.animal-chip-selector__add').exists()).toBe(false)
+    expect(wrapper.findAll('.animal-chip')).toHaveLength(2)
+  })
+
+  it('garde les chips sélectionnables quand la chip « + » est masquée', async () => {
+    const wrapper = monter({ hideAdd: true, mode: 'filter', selectedId: 'milo' })
+
+    await chip(wrapper, 0).trigger('click')
+    expect(derniereSelection(wrapper)).toBeNull()
+
+    await chip(wrapper, 1).trigger('click')
+    expect(derniereSelection(wrapper)).toBe('luna')
+  })
+
+  it('déborde sur le header par défaut, et plus du tout en variante `inline`', () => {
+    expect(monter().find('.animal-chip-selector').classes()).not.toContain(
+      'animal-chip-selector--inline',
+    )
+    expect(monter({ inline: true }).find('.animal-chip-selector').classes()).toContain(
+      'animal-chip-selector--inline',
+    )
+  })
 })

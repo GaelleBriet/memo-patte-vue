@@ -54,13 +54,14 @@ function px(valeur: string): number {
   return Number.parseFloat(valeur)
 }
 
-function monter() {
+function monter(props: Record<string, unknown> = {}) {
   return mount(AnimalChipSelector, {
     props: {
       animals: [
         { id: 'milo', name: 'Milo' },
         { id: 'luna', name: 'Luna' },
       ],
+      ...props,
     },
     global: { plugins: [vuetify, i18n] },
     attachTo: document.body,
@@ -111,5 +112,63 @@ describe('AnimalChipSelector — contrat de style', () => {
     expect(window.getComputedStyle(wrapper.get('.animal-chip').element).height).toBe('42px')
 
     wrapper.unmount()
+  })
+
+  it('variante `inline` : ni débord sur un header, ni marge latérale propre', () => {
+    const wrapper = monter({ inline: true })
+    const rangee = window.getComputedStyle(wrapper.get('.animal-chip-selector__row').element)
+
+    expect(px(rangee.marginTop)).toBe(0)
+    expect(px(rangee.paddingLeft)).toBe(0)
+    expect(px(rangee.paddingRight)).toBe(0)
+
+    wrapper.unmount()
+  })
+
+  it('dessine l’anneau clair de 2 px à l’intérieur de la chip sélectionnée, sans `outline`', () => {
+    // Un `box-shadow` extérieur est coupé par l'`overflow: hidden` de VSlideGroup ;
+    // bordure de 1 px + ombre intérieure laisse un liseré sombre dans les arrondis.
+    // L'anneau est donc une bordure de 2 px, dont le padding rend le pixel gagné.
+    expect(declaration('.animal-chip', 'border')).toBe('1px solid #ece9e5')
+    expect(declaration('.animal-chip', 'padding-inline')).toBe('5px 16px')
+    expect(declaration('.animal-chip--selected', 'border-width')).toBe('2px')
+    expect(declaration('.animal-chip--selected', 'border-color')).toBe('#f9f4ee')
+    expect(declaration('.animal-chip--selected', 'padding-inline')).toBe('4px 15px')
+    expect(declaration('.animal-chip--selected', 'box-shadow')).toBeUndefined()
+    expect(declaration('.animal-chip--selected', 'outline')).toBeUndefined()
+  })
+
+  it('ne dessine ni contour ni voile de focus sur une chip (app tactile, la sélection suffit)', () => {
+    expect(declaration('.animal-chip:focus-visible', 'outline')).toBe('none')
+    expect(declaration('.animal-chip :deep(.v-chip__overlay)', 'display')).toBe('none')
+  })
+
+  it('garde la même largeur de chip, sélectionnée ou non', () => {
+    // jsdom ne déplie pas `padding-inline` : on additionne les déclarations.
+    const somme = (valeurs: string) =>
+      valeurs
+        .split(/\s+/)
+        .map(px)
+        .reduce((total, valeur) => total + valeur, 0)
+    const bordure = px(declaration('.animal-chip', 'border')!)
+    const nonSelectionnee = 2 * bordure + somme(declaration('.animal-chip', 'padding-inline')!)
+    const selectionnee =
+      2 * px(declaration('.animal-chip--selected', 'border-width')!) +
+      somme(declaration('.animal-chip--selected', 'padding-inline')!)
+
+    expect(selectionnee).toBe(nonSelectionnee)
+  })
+
+  it('laisse 10 px entre l’avatar et le prénom', () => {
+    // La marge du slot `prepend` de VChip ne s'applique pas à un contenu libre.
+    expect(declaration('.animal-chip', 'gap')).toBe('10px')
+  })
+
+  it('cercle l’avatar d’un filet clair, dans ses 32 px et par-dessus la photo', () => {
+    // Un demi-pixel de retrait en plus laisse voir le bord de l'avatar autour du
+    // filet : sans ce liseré, le filet se confond avec la chip crème.
+    expect(declaration('.animal-chip__avatar', 'width')).toBe('32px')
+    expect(declaration('.animal-chip__avatar', 'outline')).toBe('1px solid #f9f4ee')
+    expect(declaration('.animal-chip__avatar', 'outline-offset')).toBe('-1.5px')
   })
 })

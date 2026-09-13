@@ -172,6 +172,14 @@ describe('WeightSheet — animal identifié (P1)', () => {
 })
 
 describe('WeightSheet — sans animal (P2)', () => {
+  it('pose le sélecteur sans chip « + » ni débord de header', async () => {
+    await monter(null)
+
+    const selecteur = feuille().querySelector('.weight-sheet__field--animal .animal-chip-selector')
+    expect(selecteur?.classList).toContain('animal-chip-selector--inline')
+    expect(selecteur?.querySelector('.animal-chip-selector__add')).toBeNull()
+  })
+
   it('affiche la croix et le sélecteur, sans sous-titre', async () => {
     await monter(null)
 
