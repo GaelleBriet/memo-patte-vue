@@ -76,3 +76,33 @@ export function upToDateText(t: Translate, { animalName, allNames }: UpToDateInp
   const names = [head, allNames.at(-1)].join(t('home.upToDate.namesLast'))
   return t('home.upToDate.forMany', { names })
 }
+
+export type ReminderRow = {
+  id: string
+  status: ReminderStatus
+  icon: string
+  title: string
+  animalName: string | null
+  badge: DueBadge
+}
+
+export type ReminderRowsOptions = {
+  animalNames: ReadonlyMap<string, string>
+  /** Faux quand un animal est sélectionné : la chip porte déjà son nom. */
+  showAnimal: boolean
+}
+
+export function reminderRows(
+  t: Translate,
+  reminders: Reminder<HomeReminderSource>[],
+  { animalNames, showAnimal }: ReminderRowsOptions,
+): ReminderRow[] {
+  return reminders.map((reminder) => ({
+    id: reminder.id,
+    status: reminder.status,
+    icon: reminderIcon(reminder),
+    title: reminderTitle(t, reminder),
+    animalName: showAnimal ? (animalNames.get(reminder.animalId) ?? null) : null,
+    badge: dueBadge(t, reminder),
+  }))
+}

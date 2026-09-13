@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
+import type { HomeReminderSource } from '../home-reminders.service'
 import {
   dueBadge,
   overdueBanner,
   reminderIcon,
+  reminderRows,
   reminderTitle,
   scopeCounter,
   upToDateText,
@@ -130,5 +132,48 @@ describe('upToDateText', () => {
     expect(upToDateText(t, { animalName: null, allNames: ['Milo'] })).toBe(
       'Milo n’a aucun rappel à venir.',
     )
+  })
+})
+
+describe('reminderRows', () => {
+  const names = new Map([
+    ['milo', 'Milo'],
+    ['luna', 'Luna'],
+  ])
+
+  const reminders: Reminder<HomeReminderSource>[] = [
+    { ...reminder(), treatmentType: null },
+    {
+      ...reminder({ kind: 'treatment', id: 't1', animalId: 'luna', label: 'Milbemax' }),
+      status: 'today',
+      daysUntil: 0,
+      treatmentType: 'deworming',
+    },
+  ]
+
+  it('compose titre, icône, animal et badge de chaque ligne', () => {
+    expect(reminderRows(t, reminders, { animalNames: names, showAnimal: true })).toEqual([
+      {
+        id: 'v1',
+        status: 'overdue',
+        icon: 'ms:vaccines',
+        title: 'Vaccin CHPPiL',
+        animalName: 'Milo',
+        badge: { text: 'En retard · 2 j', icon: null },
+      },
+      {
+        id: 't1',
+        status: 'today',
+        icon: 'ms:medication',
+        title: 'Vermifuge',
+        animalName: 'Luna',
+        badge: { text: 'Aujourd’hui', icon: 'ms:today' },
+      },
+    ])
+  })
+
+  it('masque le nom de l’animal quand un animal est sélectionné', () => {
+    const rows = reminderRows(t, reminders, { animalNames: names, showAnimal: false })
+    expect(rows.map((row) => row.animalName)).toEqual([null, null])
   })
 })

@@ -9,14 +9,7 @@ import { useAnimalsStore } from '@/features/animals/animals.store'
 import AnimalChipSelector, { type AnimalChipItem } from '@/shared/AnimalChipSelector.vue'
 import { buildReminders } from '@/shared/reminders'
 import { useHomeStore } from './home.store'
-import {
-  dueBadge,
-  overdueBanner,
-  reminderIcon,
-  reminderTitle,
-  scopeCounter,
-  upToDateText,
-} from './home-summary'
+import { overdueBanner, reminderRows, scopeCounter, upToDateText } from './home-summary'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -40,22 +33,12 @@ const summary = computed(() =>
   buildReminders(home.sources, { today, animalId: animals.selectedAnimalId ?? undefined }),
 )
 
-const rows = computed(() => {
-  const sourcesById = new Map(home.sources.map((source) => [source.id, source]))
-  return summary.value.reminders.map((reminder) => {
-    const source = sourcesById.get(reminder.id) ?? { ...reminder, treatmentType: null }
-    return {
-      id: reminder.id,
-      status: reminder.status,
-      icon: reminderIcon(source),
-      title: reminderTitle(t, source),
-      // Redondant quand un animal est sélectionné : la chip le dit déjà.
-      animalName:
-        selectedName.value === null ? (animals.byId(reminder.animalId)?.name ?? null) : null,
-      badge: dueBadge(t, reminder),
-    }
-  })
-})
+const rows = computed(() =>
+  reminderRows(t, summary.value.reminders, {
+    animalNames: new Map(animals.animals.map((animal) => [animal.id, animal.name])),
+    showAnimal: selectedName.value === null,
+  }),
+)
 
 const counter = computed(() =>
   scopeCounter(t, { total: summary.value.total, animalName: selectedName.value }),

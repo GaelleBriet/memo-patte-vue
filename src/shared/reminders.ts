@@ -13,7 +13,7 @@ export type ReminderSource = {
 
 export type ReminderStatus = 'overdue' | 'today' | 'tomorrow' | 'later'
 
-export type Reminder = Omit<ReminderSource, 'dueDate'> & {
+export type Reminder<T extends ReminderSource = ReminderSource> = Omit<T, 'dueDate'> & {
   dueDate: string
   status: ReminderStatus
   /** Négatif en retard, 0 aujourd'hui. */
@@ -26,8 +26,8 @@ export type BuildRemindersOptions = {
   animalId?: string
 }
 
-export type RemindersSummary = {
-  reminders: Reminder[]
+export type RemindersSummary<T extends ReminderSource = ReminderSource> = {
+  reminders: Reminder<T>[]
   total: number
   overdue: number
 }
@@ -39,16 +39,16 @@ function toStatus(daysUntil: number): ReminderStatus {
   return 'later'
 }
 
-function compare(a: Reminder, b: Reminder): number {
+function compare(a: Reminder<ReminderSource>, b: Reminder<ReminderSource>): number {
   return a.daysUntil - b.daysUntil || a.label.localeCompare(b.label) || a.id.localeCompare(b.id)
 }
 
-export function buildReminders(
-  sources: ReminderSource[],
+export function buildReminders<T extends ReminderSource>(
+  sources: T[],
   { today, animalId }: BuildRemindersOptions,
-): RemindersSummary {
+): RemindersSummary<T> {
   const todayDate = parseISO(today)
-  const reminders: Reminder[] = []
+  const reminders: Reminder<T>[] = []
 
   for (const source of sources) {
     if (source.dueDate === null) continue
