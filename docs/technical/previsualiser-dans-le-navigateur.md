@@ -7,13 +7,53 @@ un appareil, ni Gaelle ni un agent n'ayant à lancer un émulateur pour vérifie
 ## Lancer
 
 ```bash
-pnpm dev            # http://127.0.0.1:5173
+pnpm dev            # http://127.0.0.1:5173, base vide
+pnpm dev:data       # idem, avec le carnet de démo Milo + Luna
 pnpm build && pnpm preview
 ```
 
 Rien d'autre à faire : `pnpm install` copie `sql-wasm.wasm` dans `public/assets/` (script `postinstall`),
 et `src/core/db/web-sqlite.ts` charge le composant `jeep-sqlite` au premier accès à la base, seulement
 quand `Capacitor.getPlatform()` vaut `web`.
+
+## Les fixtures : un point de départ commun au navigateur et au téléphone
+
+Le navigateur (IndexedDB) et le téléphone (SQLite natif) sont deux stockages séparés et le resteront. Ce qui
+est commun, c'est le **jeu de données de départ**, choisi sur le serveur Vite :
+
+| Commande          | Effet                                                                   |
+| ----------------- | ----------------------------------------------------------------------- |
+| `pnpm dev`        | serveur **sans** fixtures : l'app démarre à vide                        |
+| `pnpm dev:data`   | serveur **avec** fixtures : carnet de démo Milo + Luna                  |
+| `pnpm dev:mobile` | inchangé : déploie l'app sur le téléphone, qui suit le serveur en cours |
+
+- `pnpm dev:mobile` ne démarre pas le serveur (`cap run -l` pointe seulement la WebView vers lui) : c'est
+  la commande `dev` ou `dev:data` lancée à côté qui décide du jeu de données, et **le téléphone suit**.
+  Pour changer de jeu sur le téléphone, pas besoin de redéployer : arrêter le serveur, relancer avec
+  l'autre commande, la WebView se reconnecte et recharge
+- `pnpm dev:data` pose `VITE_FIXTURES=maquettes-<horodatage>` : un jeton **unique par démarrage**. À chaque
+  chargement de page, `src/core/dev/fixtures.ts` le compare à celui mémorisé en `localStorage`
+  (`memo-patte:fixtures-token`) : différent → base vidée (toutes les tables, lignes supprimées comprises),
+  peuplée si le mode est `maquettes`, jeton mémorisé ; identique → rien
+- Donc chaque `pnpm dev:data` repart d'un état de démo connu, et **un F5 ne détruit jamais rien** : ce
+  qu'on saisit à la main pendant une session survit aux rechargements, y compris pour tester la persistance
+- Sans variable (`pnpm dev`), le jeton mémorisé vaut `empty` : le premier chargement après un `dev:data`
+  vide la base, les suivants ne touchent plus à rien
+- **Attention au tout premier `pnpm dev`** sur un navigateur (ou un téléphone) qui n'a encore jamais vu les
+  fixtures : aucun jeton n'est mémorisé, donc **la base est vidée une fois**, y compris ce qu'on y aurait
+  saisi avant l'arrivée des fixtures. C'est voulu : chaque environnement part d'un état connu. Pour garder
+  une base existante, poser à la main `memo-patte:fixtures-token` = `empty` dans le `localStorage`
+  (DevTools → Application) avant de relancer
+- Le navigateur et le téléphone ont chacun leur `localStorage` : chacun applique le mode de son côté, sur
+  sa propre base
+- Les dates du carnet de démo sont **relatives à aujourd'hui** (CHPPi en retard de 45 jours, Rage à jour…) :
+  ce sont les statuts de la maquette qui sont reproduits, pas ses libellés au mot près
+- `pnpm preview` sert un build de production : `import.meta.env.DEV` y est faux, donc **pas de fixtures**.
+  C'est voulu, et `pnpm test:build` (lancé par la CI après le build) lit le `dist/` produit et échoue si une
+  trace des fixtures y est partie : `pnpm build-only && pnpm test:build`. Il cherche des marqueurs techniques
+  (un chunk `fixtures`/`demo-carnet`, `memo-patte:fixtures-token`, et `DEMO_CARNET_MARKER` =
+  `memo-patte:demo-carnet`, lu à l'exécution par les fixtures), jamais les noms de démo : un placeholder
+  légitime comme « Ex. Milo » les reprend
 
 ## Ce qui marche
 
@@ -34,7 +74,8 @@ Ces appels échouent avec « Not implemented on web » : c'est attendu, pas un b
 
 - Elle est propre au navigateur et à l'origine (`127.0.0.1:5173`) : Chrome et Firefox n'ont pas la même,
   et `pnpm preview` (port 4173) a la sienne. Rien n'est partagé avec l'appareil Android
-- Pour repartir de zéro : DevTools → Application → IndexedDB → `jeepSqliteStore` → supprimer, puis recharger
+- Pour repartir de zéro : relancer `pnpm dev` ou `pnpm dev:data` (voir les fixtures ci-dessus) ; à la main,
+  DevTools → Application → IndexedDB → `jeepSqliteStore` → supprimer, puis recharger
 - Pour inspecter les tables : l'extension Chrome « Jeep SQLite Browser » (liée dans le README du plugin)
 
 ## Comment c'est branché

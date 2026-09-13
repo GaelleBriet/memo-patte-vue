@@ -27,4 +27,12 @@ app.use(router)
 app.use(vuetify)
 app.use(i18n)
 
+// Fixtures de développement (`pnpm dev:data`) : import dynamique derrière
+// `import.meta.env.DEV`, le module tombe au build. Avant le montage, pour que
+// les stores lisent une base déjà prête ; un échec ne bloque pas l'app.
+if (import.meta.env.DEV) {
+  const { applyDevFixtures } = await import('@/core/dev/fixtures')
+  await applyDevFixtures()
+}
+
 app.mount('#app')

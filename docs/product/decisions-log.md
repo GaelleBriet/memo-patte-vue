@@ -791,3 +791,17 @@ contrainte retenue est « aucun pixel hors du cercle de 66 dp ». —
 Raison : « 66 % de 1024 » aurait donné une patte à 44 % de l'icône
 finale, et le masque cercle est le plus sévère. — Alternative écartée :
 remplir la seule boîte de 66 dp, 7 % plus grand mais rogné sur cercle.
+
+2026-09-13 — **`core/dev/` importe les repositories des features**, seule
+exception à « `core/` ne dépend pas des features » (écarté le 2026-09-08
+pour la cascade de suppression). Les fixtures de développement (#157)
+orchestrent les quatre repositories pour peupler le carnet de démo, sans
+appartenir à aucune feature ; la règle ESLint
+`app/core-independent-of-features` interdit l'import partout ailleurs
+dans `core/`. — Raison : le module est importé derrière
+`import.meta.env.DEV` et ne part jamais en production (`pnpm test:build`
+le vérifie en CI) ; l'argument du 2026-09-08 porte sur le code livré, pas
+sur un outil de dev. Le ticket place le module dans `core/dev/`. —
+Alternative écartée : `app/dev/`, qui aurait évité l'exception de nom
+mais dispersé les outils transverses hors de `core/` sans changer la
+dépendance réelle vers les features.
