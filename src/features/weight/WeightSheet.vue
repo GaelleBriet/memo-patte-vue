@@ -94,7 +94,13 @@ async function submit(): Promise<void> {
 </script>
 
 <template>
-  <v-bottom-sheet v-model="open" class="weight-sheet" content-class="weight-sheet__content">
+  <!-- Pendant l'écriture, un tap sur le voile ne ferme pas : un échec doit rester lisible. -->
+  <v-bottom-sheet
+    v-model="open"
+    class="weight-sheet"
+    content-class="weight-sheet__content"
+    :persistent="isSubmitting"
+  >
     <div class="weight-sheet__panel">
       <button
         type="button"

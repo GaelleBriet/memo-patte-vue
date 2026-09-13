@@ -106,10 +106,21 @@ async function soumettre() {
   await flushPromises()
 }
 
+// Vuetify ferme sur « mousedown puis click » hors du contenu, traité au tick suivant.
+async function taperLeVoile() {
+  const voile = document.body.querySelector<HTMLElement>('.weight-sheet .v-overlay__scrim')
+  if (!voile) throw new Error('Voile absent')
+  voile.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))
+  voile.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+  await new Promise((resolve) => setTimeout(resolve, 0))
+  await flushPromises()
+}
+
 async function monter(animalId?: string | null) {
   wrapper = mount(WeightSheet, {
     props: { modelValue: true, animalId, 'onUpdate:modelValue': () => {} },
-    global: { plugins: [vuetify, i18n] },
+    // Transitions réelles : sans elles, le voile de Vuetify ne reconnaît pas le tap qui le vise.
+    global: { plugins: [vuetify, i18n], stubs: { transition: false } },
     attachTo: document.body,
   })
   await flushPromises()
@@ -307,6 +318,33 @@ describe('WeightSheet — enregistrement (P4)', () => {
 
     terminer(PESEE)
     await flushPromises()
+  })
+
+  it('ne se ferme pas sur un tap du voile pendant l’écriture, mais se ferme hors écriture', async () => {
+    let terminer: (entry: WeightEntry) => void = () => {}
+    create.mockReturnValueOnce(
+      new Promise<WeightEntry>((resolve) => {
+        terminer = resolve
+      }),
+    )
+    const wrapper = await monter(MILO.id)
+    await saisir('weight-sheet-kg', '24,7')
+    await soumettre()
+
+    await taperLeVoile()
+    expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+
+    terminer(PESEE)
+    await flushPromises()
+    expect(wrapper.emitted('update:modelValue')).toEqual([[false]])
+  })
+
+  it('se ferme sur un tap du voile hors écriture', async () => {
+    const wrapper = await monter(MILO.id)
+
+    await taperLeVoile()
+
+    expect(wrapper.emitted('update:modelValue')).toEqual([[false]])
   })
 
   it('n’écrit qu’une fois même si on tape deux fois sur « Enregistrer »', async () => {
