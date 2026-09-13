@@ -1,8 +1,10 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { HomeReminderSource } from '../home-reminders.service'
+import type { HomeReminderSource, HomeRemindersService } from '../home-reminders.service'
 import { provideHomeRemindersService, useHomeStore } from '../home.store'
+
+type ListSources = HomeRemindersService['listSources']
 
 const RAGE: HomeReminderSource = {
   kind: 'vaccination',
@@ -32,7 +34,7 @@ describe('homeStore', () => {
   })
 
   it('charge les sources depuis le service', async () => {
-    provideHomeRemindersService(() => ({ listSources: vi.fn(async () => [RAGE]) }))
+    provideHomeRemindersService(() => ({ listSources: vi.fn<ListSources>(async () => [RAGE]) }))
     const store = useHomeStore()
 
     await expect(store.load()).resolves.toBe(true)
@@ -45,7 +47,7 @@ describe('homeStore', () => {
 
   it('ne lève pas en cas d’échec : renseigne error et renvoie false', async () => {
     provideHomeRemindersService(() => ({
-      listSources: vi.fn(async () => Promise.reject(new Error('base indisponible'))),
+      listSources: vi.fn<ListSources>(() => Promise.reject(new Error('base indisponible'))),
     }))
     const store = useHomeStore()
 
@@ -59,7 +61,9 @@ describe('homeStore', () => {
   it('efface l’erreur quand un rechargement réussit', async () => {
     let fail = true
     provideHomeRemindersService(() => ({
-      listSources: vi.fn(async () => (fail ? Promise.reject(new Error('boom')) : [RAGE])),
+      listSources: vi.fn<ListSources>(() =>
+        fail ? Promise.reject(new Error('boom')) : Promise.resolve([RAGE]),
+      ),
     }))
     const store = useHomeStore()
 

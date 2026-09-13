@@ -34,8 +34,8 @@ const BRAVECTO: Treatment = {
 
 function service(vaccinations: Vaccination[], treatments: Treatment[]) {
   return createHomeRemindersService(
-    () => ({ listAll: vi.fn(async () => vaccinations) }),
-    async () => ({ listAll: vi.fn(async () => treatments) }),
+    () => ({ listAll: vi.fn<() => Promise<Vaccination[]>>(async () => vaccinations) }),
+    async () => ({ listAll: vi.fn<() => Promise<Treatment[]>>(async () => treatments) }),
   )
 }
 
@@ -75,8 +75,12 @@ describe('homeRemindersService', () => {
 
   it('propage l’échec d’un repository', async () => {
     const failing = createHomeRemindersService(
-      () => ({ listAll: vi.fn(async () => Promise.reject(new Error('base indisponible'))) }),
-      () => ({ listAll: vi.fn(async () => []) }),
+      () => ({
+        listAll: vi.fn<() => Promise<Vaccination[]>>(() =>
+          Promise.reject(new Error('base indisponible')),
+        ),
+      }),
+      () => ({ listAll: vi.fn<() => Promise<Treatment[]>>(async () => []) }),
     )
 
     await expect(failing.listSources()).rejects.toThrow('base indisponible')
