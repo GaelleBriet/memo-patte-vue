@@ -21,4 +21,9 @@ describe('quickActionAnimalId — animal visé par une action rapide', () => {
   it('laisse le choix quand le foyer est vide', () => {
     expect(quickActionAnimalId({ selectedId: null, animalIds: [] })).toBeNull()
   })
+
+  it('passe à la règle suivante quand la sélection n’est plus dans le foyer', () => {
+    expect(quickActionAnimalId({ selectedId: LUNA, animalIds: [MILO] })).toBe(MILO)
+    expect(quickActionAnimalId({ selectedId: 'disparu', animalIds: [MILO, LUNA] })).toBeNull()
+  })
 })
