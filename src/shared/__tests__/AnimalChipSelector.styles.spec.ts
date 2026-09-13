@@ -125,12 +125,34 @@ describe('AnimalChipSelector — contrat de style', () => {
     wrapper.unmount()
   })
 
-  it('dessine l’anneau clair de 2 px à l’intérieur de la chip sélectionnée', () => {
-    // Un `box-shadow` extérieur est coupé par l'`overflow: hidden` de VSlideGroup :
-    // l'anneau doit tenir dans les 42 px de la chip, par-dessus sa bordure.
-    expect(declaration('.animal-chip--selected', 'outline')).toBe('2px solid #f9f4ee')
-    expect(declaration('.animal-chip--selected', 'outline-offset')).toBe('-2px')
+  it('dessine l’anneau clair de 2 px à l’intérieur de la chip sélectionnée, sans `outline`', () => {
+    // Un `box-shadow` extérieur est coupé par l'`overflow: hidden` de VSlideGroup ;
+    // un `outline` masquerait l'anneau de focus clavier du navigateur ; bordure de
+    // 1 px + ombre intérieure laisse un liseré sombre entre les deux dans les arrondis.
+    // L'anneau est donc une bordure de 2 px, dont le padding rend le pixel gagné.
+    expect(declaration('.animal-chip', 'border')).toBe('1px solid #ece9e5')
+    expect(declaration('.animal-chip', 'padding-inline')).toBe('5px 16px')
+    expect(declaration('.animal-chip--selected', 'border-width')).toBe('2px')
+    expect(declaration('.animal-chip--selected', 'border-color')).toBe('#f9f4ee')
+    expect(declaration('.animal-chip--selected', 'padding-inline')).toBe('4px 15px')
     expect(declaration('.animal-chip--selected', 'box-shadow')).toBeUndefined()
+    expect(declaration('.animal-chip--selected', 'outline')).toBeUndefined()
+  })
+
+  it('garde la même largeur de chip, sélectionnée ou non', () => {
+    // jsdom ne déplie pas `padding-inline` : on additionne les déclarations.
+    const somme = (valeurs: string) =>
+      valeurs
+        .split(/\s+/)
+        .map(px)
+        .reduce((total, valeur) => total + valeur, 0)
+    const bordure = px(declaration('.animal-chip', 'border')!)
+    const nonSelectionnee = 2 * bordure + somme(declaration('.animal-chip', 'padding-inline')!)
+    const selectionnee =
+      2 * px(declaration('.animal-chip--selected', 'border-width')!) +
+      somme(declaration('.animal-chip--selected', 'padding-inline')!)
+
+    expect(selectionnee).toBe(nonSelectionnee)
   })
 
   it('laisse 10 px entre l’avatar et le prénom', () => {

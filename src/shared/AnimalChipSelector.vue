@@ -93,6 +93,9 @@ function onSelect(value: unknown) {
 @use '@/styles/tokens' as tokens;
 
 $gap-chips: 10px;
+$width-chip-border: 1px;
+$padding-chip-start: 5px;
+$padding-chip-end: 16px;
 
 // Le `z-index` ne passe devant qu'un header non positionné : un header qui
 // remonterait le sien reste l'affaire de l'écran.
@@ -139,8 +142,8 @@ $gap-chips: 10px;
   gap: tokens.$gap-chip-avatar;
   height: tokens.$height-chip;
   margin: 0;
-  padding-inline: 5px 16px;
-  border: 1px solid tokens.$color-card-border;
+  padding-inline: $padding-chip-start $padding-chip-end;
+  border: $width-chip-border solid tokens.$color-card-border;
   font-family: tokens.$font-family-body;
   font-size: 14px;
   font-weight: 700;
@@ -148,12 +151,17 @@ $gap-chips: 10px;
 
 // Revenir à `selected-class` par défaut réactiverait le voile
 // `--v-activated-opacity` de Vuetify, et le fond ne serait plus `primary`.
-// L'anneau reste dans la chip, par-dessus sa bordure : dessiné dehors, il serait
-// coupé par l'`overflow: hidden` de VSlideGroup, et changer la largeur de la
-// bordure décalerait les chips voisines à chaque sélection.
+// L'anneau reste dans la chip : dessiné dehors, il serait coupé par l'`overflow:
+// hidden` de VSlideGroup ; en `outline`, il masquerait l'anneau de focus clavier ;
+// en bordure de 1 px + ombre intérieure, un liseré sombre sépare les deux dans les
+// arrondis. La bordure passe donc à 2 px et le padding rend le pixel gagné de
+// chaque côté : la chip garde sa largeur, les voisines ne bougent pas.
 .animal-chip--selected {
-  outline: tokens.$width-chip-ring solid tokens.$color-chip-ring;
-  outline-offset: -(tokens.$width-chip-ring);
+  $grow: tokens.$width-chip-ring - $width-chip-border;
+
+  border-width: tokens.$width-chip-ring;
+  border-color: tokens.$color-chip-ring;
+  padding-inline: ($padding-chip-start - $grow) ($padding-chip-end - $grow);
 }
 
 .animal-chip__avatar {
