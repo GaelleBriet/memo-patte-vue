@@ -73,3 +73,12 @@ $size-status-dot: 46px; // Pastille « Tout est à jour » (couleurs : `up-to-da
 $width-urgency-bar: 3px; // Barre d'urgence verticale d'une ligne
 $offset-chips: -21px; // Débord des chips sur le header
 $padding-bottom-nav: 22px; // Zone de gestes Android sous la bottom nav
+
+// Feuille modale (pesée)
+$color-overlay-scrim: rgb(
+  20 26 26
+); // Fond assombri derrière une feuille (opacité : `$opacity-overlay-scrim`)
+$opacity-overlay-scrim: 0.46;
+$color-sheet-handle: #c1bdb7; // Poignée de glissement d'une feuille
+$radius-sheet: 24px; // Coins hauts d'une feuille modale
+$shadow-sheet: 0 -6px 24px rgb(30 25 20 / 14%); // Ombre portée vers le haut d'une feuille
