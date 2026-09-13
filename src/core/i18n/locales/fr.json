@@ -147,7 +147,11 @@
       },
       "frequency": {
         "label": "Fréquence",
-        "every": "Tous les",
+        "every": {
+          "day": "Tous les",
+          "week": "Toutes les",
+          "month": "Tous les"
+        },
         "unit": {
           "day": "jour | jours",
           "week": "semaine | semaines",

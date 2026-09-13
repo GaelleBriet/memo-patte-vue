@@ -189,7 +189,7 @@ async function submit(): Promise<void> {
           aria-labelledby="treatment-frequency-label"
         >
           <span id="treatment-frequency-every" class="treatment-form__every">
-            {{ t('treatments.form.frequency.every') }}
+            {{ t(`treatments.form.frequency.every.${values.frequencyUnit}`) }}
           </span>
           <v-text-field
             id="treatment-frequency-value"

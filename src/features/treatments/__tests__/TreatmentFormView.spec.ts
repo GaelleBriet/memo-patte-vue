@@ -176,6 +176,21 @@ describe('TreatmentFormView — structure', () => {
     expect(unite(wrapper).text()).toContain('mois')
   })
 
+  it('accorde le mot de liaison à l’unité : « Toutes les 2 semaines »', async () => {
+    const wrapper = await monterCreation()
+    await champ(wrapper, 'treatment-frequency-value').setValue('2')
+
+    expect(wrapper.get('#treatment-frequency-every').text()).toBe('Tous les')
+
+    await unite(wrapper).setValue('week')
+
+    expect(wrapper.get('#treatment-frequency-every').text()).toBe('Toutes les')
+
+    await unite(wrapper).setValue('day')
+
+    expect(wrapper.get('#treatment-frequency-every').text()).toBe('Tous les')
+  })
+
   it('accorde l’unité au nombre saisi', async () => {
     const wrapper = await monterCreation()
     await champ(wrapper, 'treatment-frequency-value').setValue('2')
