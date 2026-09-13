@@ -73,7 +73,8 @@ src/
 │   ├── sync/               # Logique de synchronisation local ↔ cloud
 │   ├── notifications/      # Service notifications locales
 │   ├── i18n/
-│   └── theme/              # Vuetify + tokens SCSS
+│   ├── theme/              # Vuetify + tokens SCSS
+│   └── dev/                # Fixtures de développement, jamais en production
 ├── features/
 │   ├── animals/
 │   ├── vaccinations/
@@ -87,6 +88,8 @@ src/
 └── styles/                 # settings.scss, overrides, etc.
 
 ```
+
+`core/dev/` contient les fixtures de développement : le carnet de démo des maquettes (Milo + Luna, dates relatives à aujourd'hui), peuplé via les repositories quand le serveur est lancé avec `pnpm dev:data`. Le module est importé dynamiquement derrière `import.meta.env.DEV` dans `main.ts` : il tombe au build et un test le prouve. Il orchestre plusieurs repositories sans appartenir à aucune feature, d'où sa place dans `core/`.
 
 ### Règles strictes
 

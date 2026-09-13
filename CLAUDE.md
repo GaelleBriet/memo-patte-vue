@@ -49,7 +49,8 @@ src/
 │   ├── sync/
 │   ├── notifications/
 │   ├── i18n/
-│   └── theme/
+│   ├── theme/
+│   └── dev/
 ├── features/
 │   ├── animals/
 │   ├── vaccinations/
@@ -62,6 +63,8 @@ src/
 ├── shared/
 └── styles/
 ```
+
+`core/dev/` contient les fixtures de développement (`pnpm dev:data`, carnet de démo Milo + Luna peuplé via les repositories) ; importé derrière `import.meta.env.DEV` uniquement, il ne part jamais en production.
 
 ### Règles strictes de structure
 
