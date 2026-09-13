@@ -129,6 +129,9 @@ watch(summary, (value) => emit('summary', value), { immediate: true })
   align-items: center;
   align-self: center;
   gap: 2px;
+  // Zone de tap de 48 px ; les marges négatives rendent la hauteur gagnée, le rendu ne bouge pas.
+  min-height: 48px;
+  margin-block: -14px;
   margin-inline-start: auto;
   color: rgb(var(--v-theme-primary));
   font-size: 13.5px;
