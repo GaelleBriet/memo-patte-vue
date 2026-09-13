@@ -5,6 +5,46 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.16](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.15...memo-patte-v0.1.16) (2026-09-13)
+
+
+### ✨ Fonctionnalités
+
+* **db:** remise à zéro physique de toutes les tables pour les outils de dev ([b0c0df4](https://github.com/GaelleBriet/memo-patte-vue/commit/b0c0df45f64f327c212d85ac91f4c8d78e9df0b4))
+* **dev:** jeu de fixtures Milo + Luna piloté par VITE_FIXTURES ([ee6ffe6](https://github.com/GaelleBriet/memo-patte-vue/commit/ee6ffe63c7a94b6578921f8aaf4e873ed2f5d17d))
+* **dev:** scripts dev / dev:data et application des fixtures avant le montage ([7c3bf9d](https://github.com/GaelleBriet/memo-patte-vue/commit/7c3bf9d3c4fb3ae21e6116de9f56d33099151267))
+* **home:** écran d'accueil conforme à la maquette v2 (5 états) ([5f19b15](https://github.com/GaelleBriet/memo-patte-vue/commit/5f19b157b619b2ff7e6560f962e75cda9c4ed19b))
+* **home:** écran d'accueil conforme à la maquette v2 (5 états) ([8a948f0](https://github.com/GaelleBriet/memo-patte-vue/commit/8a948f0940095123b05b2bc2d89a478189741574)), closes [#36](https://github.com/GaelleBriet/memo-patte-vue/issues/36)
+* **home:** libellés et compteurs de l'accueil ([8420ead](https://github.com/GaelleBriet/memo-patte-vue/commit/8420eadff113de2df6ec8192711bfc3f93a07aba))
+* **home:** service et store des rappels de l'accueil ([618903e](https://github.com/GaelleBriet/memo-patte-vue/commit/618903e360f33179a7676d1b3e7afcbbf5ece741))
+* **rappels:** lister vaccins et traitements de tous les animaux ([fe57828](https://github.com/GaelleBriet/memo-patte-vue/commit/fe578289a3fae566605f0c3aee425649f1a88dd1))
+* **shared:** relier chaque contrôle de formulaire à son message d'erreur ([620ef9a](https://github.com/GaelleBriet/memo-patte-vue/commit/620ef9aa36afd79218def91ef20467db61b8d618))
+* **treatments:** choisir l'unité de fréquence par boutons sur sa propre ligne ([f56676e](https://github.com/GaelleBriet/memo-patte-vue/commit/f56676edb5693f2d7f6bbd46a3bfc28dccecb0e0))
+* **treatments:** écran d'ajout et d'édition d'un traitement ([0075863](https://github.com/GaelleBriet/memo-patte-vue/commit/0075863266c5fe1c5a9feea5927ccf452ff6c521))
+* **treatments:** formulaire d'ajout et d'édition d'un traitement ([d53afb4](https://github.com/GaelleBriet/memo-patte-vue/commit/d53afb4dc02feb949c3f97e4bfc9eab16eda9583))
+* **treatments:** ligne « ajouter un traitement » dans la carte du carnet ([f34b82b](https://github.com/GaelleBriet/memo-patte-vue/commit/f34b82b2ee141d1585fd1fda38b9586934d9ff73))
+* **treatments:** logique du formulaire traitement et aperçu de la prochaine dose ([6bfb57a](https://github.com/GaelleBriet/memo-patte-vue/commit/6bfb57a728e3d0999b8b77561e3ada9a281b201d))
+* **weight:** feuille modale de saisie rapide d'une pesée ([eff3d74](https://github.com/GaelleBriet/memo-patte-vue/commit/eff3d7435c3800bfc3c82df66e09552d718dfba4))
+* **weight:** ligne « Ajouter une pesée » dans la carte du Carnet ([4efd5a1](https://github.com/GaelleBriet/memo-patte-vue/commit/4efd5a12a8ee464f3d650692b3c5415ab9c33427))
+* **weight:** saisie rapide d'une pesée (feuille modale) ([d0c14da](https://github.com/GaelleBriet/memo-patte-vue/commit/d0c14dad89a48e4426a1509c29a42d3eb83ee396))
+* **weight:** validation du formulaire de pesée ([eb411cd](https://github.com/GaelleBriet/memo-patte-vue/commit/eb411cd430684c9c1fc5f91c5e742d9e4f13d3eb))
+
+
+### 🐛 Corrections
+
+* **build:** contrôler le dist sur des marqueurs techniques, pas des noms de démo ([04c9802](https://github.com/GaelleBriet/memo-patte-vue/commit/04c9802ca8eefe84f4582a78a0d051ceb814fa8f))
+* **dev:** rythme annuel propre pour le CHPPi de démo ([5301298](https://github.com/GaelleBriet/memo-patte-vue/commit/5301298a21e3da29a0cd131b7fccaf349d374909))
+* **home:** ne plus afficher de header pétrole vide pendant le chargement ([78077a3](https://github.com/GaelleBriet/memo-patte-vue/commit/78077a3c5be1b79a368cdf57484de32a38cfb80a))
+* **home:** ouvrir l'accueil sur tous les animaux à chaque arrivée ([8e2f7ce](https://github.com/GaelleBriet/memo-patte-vue/commit/8e2f7ce89e9603c4001666494f045941ecb05b54))
+* **home:** ouvrir le Carnet depuis « Ajouter un vaccin ou un traitement » ([575e366](https://github.com/GaelleBriet/memo-patte-vue/commit/575e3665e65a41aebfdda4e261edafe5aad12bec))
+* **shared:** garder la hauteur de la top bar d'un formulaire sans sous-titre ([cde6b83](https://github.com/GaelleBriet/memo-patte-vue/commit/cde6b83eabeed1cf945354c4680056b05a93403c))
+* **treatments:** accorder « tous les » / « toutes les » à l'unité de fréquence ([c520096](https://github.com/GaelleBriet/memo-patte-vue/commit/c52009697db2b1824bad9fe0ce30b831fa300142))
+* **weight:** borne de date recalculée à chaque ouverture de la feuille ([54bd4a8](https://github.com/GaelleBriet/memo-patte-vue/commit/54bd4a8e2ba7e4e7d82c79e51f1dbcb969c59121))
+* **weight:** focus sur le poids à l'ouverture quand l'animal est connu ([68f624a](https://github.com/GaelleBriet/memo-patte-vue/commit/68f624abca0bd696c57a98f6b24a34b8198891db))
+* **weight:** le voile ne ferme pas la feuille pendant l'enregistrement ([83add45](https://github.com/GaelleBriet/memo-patte-vue/commit/83add45e690c9425e20a0aea16c83e79f2f25f67))
+* **weight:** suffixe kg visible, bordures focus et erreur, erreur animal effacée au choix ([cd26d32](https://github.com/GaelleBriet/memo-patte-vue/commit/cd26d329c2fc640a2094f71f8e8a6f6f4e12e765))
+* **weight:** zone de tap de 44 px pour la poignée de la feuille ([0c137f9](https://github.com/GaelleBriet/memo-patte-vue/commit/0c137f9f7060e6b1296f9ac7e51332ee6270c505))
+
 ## [0.1.15](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.14...memo-patte-v0.1.15) (2026-09-09)
 
 
