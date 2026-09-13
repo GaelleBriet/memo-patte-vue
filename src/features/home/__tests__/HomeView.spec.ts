@@ -443,6 +443,16 @@ describe('HomeView — Actions rapides', () => {
     await flushPromises()
   }
 
+  // La feuille de choix est téléportée hors du composant : on clique dans le document.
+  async function choisir(nom: string) {
+    const ligne = [
+      ...document.body.querySelectorAll<HTMLElement>('.animal-picker-sheet__animal'),
+    ].find((element) => element.textContent?.trim() === nom)
+    if (!ligne) throw new Error(`Ligne ${nom} absente de la feuille`)
+    ligne.click()
+    await flushPromises()
+  }
+
   async function selectionner(wrapper: ReturnType<typeof mount>, index: number) {
     await wrapper.findAll('.animal-chip')[index]!.trigger('click')
     await flushPromises()
@@ -529,8 +539,7 @@ describe('HomeView — Actions rapides', () => {
       { id: LUNA.id, name: 'Luna' },
     ])
 
-    picker.vm.$emit('pick', LUNA.id)
-    await flushPromises()
+    await choisir('Luna')
 
     expect(push).toHaveBeenCalledWith({ name: 'vaccination-new', params: { animalId: LUNA.id } })
   })
@@ -539,8 +548,7 @@ describe('HomeView — Actions rapides', () => {
     const wrapper = await monter()
 
     await taper(wrapper, 0)
-    wrapper.getComponent(AnimalPickerSheet).vm.$emit('pick', MILO.id)
-    await flushPromises()
+    await choisir('Milo')
 
     expect(push).toHaveBeenCalledWith({ name: 'treatment-new', params: { animalId: MILO.id } })
   })
