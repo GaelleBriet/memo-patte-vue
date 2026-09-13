@@ -59,7 +59,8 @@ function select(value: unknown): void {
   overflow: hidden;
 }
 
-.form-segmented :deep(.v-btn) {
+// Pas de `:deep(.v-btn)` : sa spécificité surclasserait la couleur de l'option cochée.
+.form-segmented__option {
   flex: 1 1 0;
   height: 100%;
   gap: 6px;
@@ -71,7 +72,7 @@ function select(value: unknown): void {
 }
 
 .form-segmented__option--selected {
-  color: rgb(var(--v-theme-background));
+  color: tokens.$color-on-primary;
   font-weight: 700;
 }
 </style>

@@ -302,6 +302,53 @@ describe('TreatmentFormView — validation', () => {
   })
 })
 
+describe('TreatmentFormView — revalidation après envoi', () => {
+  it('n’affiche aucune erreur pendant la saisie avant tout envoi', async () => {
+    const wrapper = await monterCreation()
+
+    await champ(wrapper, 'treatment-name').setValue('B')
+    await champ(wrapper, 'treatment-last-dose-date').setValue('2999-01-01')
+
+    expect(messages(wrapper)).toEqual([])
+    expect(champ(wrapper, 'treatment-last-dose-date').attributes('aria-invalid')).toBe('false')
+  })
+
+  it('efface l’erreur d’un champ dès qu’il est corrigé, sans nouvel envoi', async () => {
+    const wrapper = await monterCreation()
+    await soumettre(wrapper)
+
+    await champ(wrapper, 'treatment-name').setValue('Bravecto')
+
+    expect(messages(wrapper)).toEqual([
+      'Choisis un type.',
+      'Indique une fréquence.',
+      'La date est obligatoire.',
+    ])
+    expect(champ(wrapper, 'treatment-name').attributes('aria-invalid')).toBe('false')
+    expect(champ(wrapper, 'treatment-name').attributes('aria-describedby')).toBeUndefined()
+  })
+
+  it('efface toutes les erreurs une fois les quatre champs remplis, sans rien écrire', async () => {
+    const wrapper = await monterCreation()
+    await soumettre(wrapper)
+
+    await remplirMinimum(wrapper)
+
+    expect(messages(wrapper)).toEqual([])
+    expect(create).not.toHaveBeenCalled()
+  })
+
+  it('change le message quand le motif de l’erreur change', async () => {
+    const wrapper = await monterCreation()
+    await soumettre(wrapper)
+
+    await champ(wrapper, 'treatment-last-dose-date').setValue('2999-01-01')
+
+    expect(messages(wrapper)).toContain('La date ne peut pas être dans le futur.')
+    expect(messages(wrapper)).not.toContain('La date est obligatoire.')
+  })
+})
+
 describe('TreatmentFormView — création', () => {
   it('écrit par le store avec l’animal de la route et la fréquence en couple', async () => {
     const wrapper = await monterCreation()
