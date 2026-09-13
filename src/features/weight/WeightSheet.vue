@@ -27,7 +27,8 @@ const values = ref(emptyWeightFormValues(props.animalId ?? null))
 const errors = ref<WeightFormErrors>({})
 const saveFailed = ref(false)
 const isSubmitting = ref(false)
-const maxDate = todayIsoDate()
+// Recalculée à chaque ouverture : la feuille reste montée avec la carte, parfois au-delà de minuit.
+const maxDate = ref(todayIsoDate())
 const weightInput = ref<{ focus: () => void } | null>(null)
 
 const needsAnimal = computed(() => !props.animalId)
@@ -47,6 +48,7 @@ watch(
   open,
   (isOpen) => {
     if (!isOpen) return
+    maxDate.value = todayIsoDate()
     values.value = emptyWeightFormValues(props.animalId ?? null)
     errors.value = {}
     saveFailed.value = false

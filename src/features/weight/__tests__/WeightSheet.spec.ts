@@ -340,6 +340,23 @@ describe('WeightSheet — enregistrement (P4)', () => {
 })
 
 describe('WeightSheet — réouverture', () => {
+  it('recale la date et sa borne sur le jour de l’ouverture, pas du montage', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 8, 13, 23, 59))
+    const wrapper = await monter(MILO.id)
+    expect(champ('weight-sheet-date').getAttribute('max')).toBe('2026-09-13')
+
+    await wrapper.setProps({ modelValue: false })
+    await flushPromises()
+    vi.setSystemTime(new Date(2026, 8, 14, 0, 1))
+    await wrapper.setProps({ modelValue: true })
+    await flushPromises()
+
+    expect(champ('weight-sheet-date').getAttribute('max')).toBe('2026-09-14')
+    expect(champ('weight-sheet-date').value).toBe('2026-09-14')
+    vi.useRealTimers()
+  })
+
   it('repart d’un formulaire vierge à chaque ouverture', async () => {
     const wrapper = await monter(MILO.id)
     await saisir('weight-sheet-kg', '0')
