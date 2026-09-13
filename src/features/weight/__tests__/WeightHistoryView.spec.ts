@@ -132,6 +132,22 @@ describe('WeightHistoryView — top bar', () => {
     expect(listByAnimal).toHaveBeenCalledExactlyOnceWith(MILO.id)
   })
 
+  it('borde la top bar dès que le contenu défile', async () => {
+    entries = [...HISTORIQUE_MILO]
+    const wrapper = await monter()
+    const scroll = wrapper.get('.weight-history__scroll')
+    expect(wrapper.get('.weight-history__topbar').classes()).not.toContain(
+      'weight-history__topbar--scrolled',
+    )
+
+    scroll.element.scrollTop = 40
+    await scroll.trigger('scroll')
+
+    expect(wrapper.get('.weight-history__topbar').classes()).toContain(
+      'weight-history__topbar--scrolled',
+    )
+  })
+
   it('revient au Carnet par la flèche retour', async () => {
     const wrapper = await monter()
 

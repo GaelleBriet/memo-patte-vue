@@ -191,7 +191,8 @@ function backToAnimals(): void {
 .weight-history {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  // Hauteur de la fenêtre moins la bottom nav : le bouton d'ajout reste visible, seul le contenu défile.
+  height: calc(100dvh - var(--v-layout-top, 0px) - var(--v-layout-bottom, 0px));
   overflow: hidden;
   background: rgb(var(--v-theme-background));
 }
@@ -233,6 +234,7 @@ function backToAnimals(): void {
   font-family: tokens.$font-family-heading;
   font-size: 22px;
   font-weight: 700;
+  margin: 0;
   line-height: 1.2;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -240,6 +242,7 @@ function backToAnimals(): void {
 
 .weight-history__subtitle {
   overflow: hidden;
+  margin: 0;
   color: tokens.$color-text-secondary;
   font-size: 12.5px;
   font-weight: 500;
@@ -263,6 +266,14 @@ function backToAnimals(): void {
   margin-inline: 20px;
 }
 
+.weight-history__current-label,
+.weight-history__single,
+.weight-history__error,
+.weight-history__initial,
+.weight-history__empty {
+  margin-block: 0;
+}
+
 .weight-history__current-label {
   color: tokens.$color-text-meta;
   font-size: 11.5px;
@@ -273,7 +284,7 @@ function backToAnimals(): void {
   display: flex;
   align-items: baseline;
   gap: 8px;
-  margin-top: 4px;
+  margin: 4px 0 0;
 }
 
 .weight-history__current {
@@ -290,7 +301,7 @@ function backToAnimals(): void {
 }
 
 .weight-history__delta {
-  margin-top: 8px;
+  margin: 8px 0 0;
   font-size: 13px;
   font-weight: 600;
 }
@@ -377,7 +388,6 @@ function backToAnimals(): void {
 }
 
 .weight-history__initial {
-  margin-top: -8px;
   color: tokens.$color-delta-flat;
   font-size: 12.5px;
   font-weight: 500;
