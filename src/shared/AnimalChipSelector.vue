@@ -160,7 +160,7 @@ $padding-chip-end: 16px;
   $grow: tokens.$width-chip-ring - $width-chip-border;
 
   border-width: tokens.$width-chip-ring;
-  border-color: tokens.$color-chip-ring;
+  border-color: tokens.$color-on-primary;
   padding-inline: ($padding-chip-start - $grow) ($padding-chip-end - $grow);
 }
 
@@ -173,7 +173,7 @@ $padding-chip-end: 16px;
   border-radius: 50%;
   // Le contour se peint par-dessus la photo, et son retrait laisse un liseré de
   // l'avatar au bord : c'est lui qui détache le filet clair de la chip crème.
-  outline: tokens.$width-chip-avatar-ring solid tokens.$color-chip-ring;
+  outline: tokens.$width-chip-avatar-ring solid tokens.$color-on-primary;
   outline-offset: -(tokens.$width-chip-avatar-ring + 0.5px);
   background-size: cover;
 
