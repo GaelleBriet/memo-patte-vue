@@ -94,7 +94,7 @@ describe('useFormValidation', () => {
   })
 
   it('ne recalcule pas la validation avant le premier envoi', () => {
-    const espion = vi.fn(valider)
+    const espion = vi.fn<typeof valider>(valider)
     const values = ref<Valeurs>({ name: '', weight: '' })
     const { errors } = useFormValidation(values, espion)
 
