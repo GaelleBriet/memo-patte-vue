@@ -72,6 +72,7 @@ src/
 - Un **écran composite** (Carnet, Accueil) assemble plusieurs domaines : il importe les **composants de section** des autres features (`VaccinationsSection.vue`, `WeightSection.vue`…), et chaque section n’utilise que le store de sa feature. C’est la seule forme d’import croisé permise à un composant ; les sections ne s’importent jamais entre elles, et la logique commune à plusieurs écrans (rappels, âge, courbe de poids) vit dans `shared/`
 - Les repositories sont les seuls autorisés à parler à SQLite et Supabase, et chacun reste le seul à écrire dans sa table : un service qui orchestre appelle leurs méthodes, il n'écrit pas de SQL
 - Les stores Pinia ne contiennent aucune requête directe
+- `core/` ne dépend jamais des features, à une exception près : `core/dev/` importe leurs repositories pour peupler le carnet de démo (outil de dev, jamais en production ; règle ESLint `app/core-independent-of-features`)
 - Tout texte visible passe par vue-i18n (FR source, EN livré en v1)
 
 ## Conventions de code

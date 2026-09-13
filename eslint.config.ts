@@ -6,6 +6,18 @@ import pluginOxlint from 'eslint-plugin-oxlint'
 import pluginVueI18n from '@intlify/eslint-plugin-vue-i18n'
 import skipFormatting from 'eslint-config-prettier/flat'
 
+const NOTIFICATIONS_PLUGIN_RESTRICTION = {
+  name: '@capacitor/local-notifications',
+  message:
+    'Import interdit hors de core/notifications/ : utilise notifications.service (cf. CLAUDE.md).',
+}
+
+const FEATURES_RESTRICTION = {
+  group: ['@/features/**', '**/features/**'],
+  message:
+    'core/ ne dépend pas des features, sauf core/dev/ (cf. CLAUDE.md et decisions-log du 2026-09-13).',
+}
+
 export default defineConfigWithVueTs(
   {
     name: 'app/files-to-lint',
@@ -97,27 +109,39 @@ export default defineConfigWithVueTs(
     },
   },
 
-  // Le plugin de notifications reste interdit là où le bloc précédent ne s'applique pas
-  // (tout core/ et les repositories) : seul core/notifications/ peut l'importer.
-  // Bloc séparé et sans recouvrement avec le précédent, car en flat config deux blocs
-  // qui déclarent la même règle sur un même fichier s'écrasent au lieu de se cumuler.
+  // Là où le bloc précédent ne s'applique pas (tout core/ et les repositories), deux
+  // interdits restent : le plugin de notifications hors de core/notifications/, et
+  // core/ qui dépend des features, hors de core/dev/ (exception consignée le
+  // 2026-09-13 dans docs/product/decisions-log.md).
+  // Blocs séparés et sans recouvrement, car en flat config deux blocs qui déclarent
+  // la même règle sur un même fichier s'écrasent au lieu de se cumuler.
   {
-    name: 'app/notifications-service-only',
-    files: ['src/core/**/*.{ts,vue}', 'src/**/*.repository.ts'],
-    ignores: ['src/core/notifications/**'],
+    name: 'app/core-independent-of-features',
+    files: ['src/core/**/*.{ts,vue}'],
+    ignores: ['src/core/notifications/**', 'src/core/dev/**'],
     rules: {
       'no-restricted-imports': [
         'error',
         {
-          paths: [
-            {
-              name: '@capacitor/local-notifications',
-              message:
-                'Import interdit hors de core/notifications/ : utilise notifications.service (cf. CLAUDE.md).',
-            },
-          ],
+          paths: [NOTIFICATIONS_PLUGIN_RESTRICTION],
+          patterns: [FEATURES_RESTRICTION],
         },
       ],
+    },
+  },
+  {
+    name: 'app/core-notifications-independent-of-features',
+    files: ['src/core/notifications/**/*.{ts,vue}'],
+    rules: {
+      'no-restricted-imports': ['error', { patterns: [FEATURES_RESTRICTION] }],
+    },
+  },
+  {
+    name: 'app/notifications-service-only',
+    files: ['src/core/dev/**/*.{ts,vue}', 'src/**/*.repository.ts'],
+    ignores: ['src/core/notifications/**'],
+    rules: {
+      'no-restricted-imports': ['error', { paths: [NOTIFICATIONS_PLUGIN_RESTRICTION] }],
     },
   },
 
