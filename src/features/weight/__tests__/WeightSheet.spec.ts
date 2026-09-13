@@ -283,6 +283,56 @@ describe('WeightSheet — validation (P3)', () => {
   })
 })
 
+describe('WeightSheet — revalidation après envoi', () => {
+  it('n’affiche aucune erreur pendant la saisie avant tout envoi', async () => {
+    await monter(MILO.id)
+
+    await saisir('weight-sheet-kg', '0')
+
+    expect(messages()).toEqual([])
+    expect(champ('weight-sheet-kg').getAttribute('aria-invalid')).toBe('false')
+  })
+
+  it('efface l’erreur du poids dès qu’il est corrigé, sans nouvel envoi', async () => {
+    await monter(MILO.id)
+    await saisir('weight-sheet-kg', '0')
+    await soumettre()
+
+    await saisir('weight-sheet-kg', '24,7')
+
+    expect(messages()).toEqual([])
+    expect(champ('weight-sheet-kg').getAttribute('aria-invalid')).toBe('false')
+    expect(champ('weight-sheet-kg').getAttribute('aria-describedby')).toBeNull()
+    expect(create).not.toHaveBeenCalled()
+  })
+
+  it('change le message quand le motif de l’erreur change', async () => {
+    await monter(MILO.id)
+    await saisir('weight-sheet-kg', '24,7')
+    await saisir('weight-sheet-date', '')
+    await soumettre()
+    expect(messages()).toEqual(['La date est obligatoire.'])
+
+    await saisir('weight-sheet-date', '2999-01-01')
+
+    expect(messages()).toEqual(['La date ne peut pas être dans le futur.'])
+  })
+
+  it('relie chaque champ en erreur à son message et le marque invalide', async () => {
+    await monter(MILO.id)
+    await saisir('weight-sheet-date', '')
+
+    await soumettre()
+
+    for (const id of ['weight-sheet-kg', 'weight-sheet-date']) {
+      const idErreur = champ(id).getAttribute('aria-describedby')
+      expect(idErreur).toBeTruthy()
+      expect(feuille().querySelector(`#${idErreur}`)?.classList).toContain('weight-sheet__error')
+      expect(champ(id).getAttribute('aria-invalid')).toBe('true')
+    }
+  })
+})
+
 describe('WeightSheet — enregistrement (P4)', () => {
   it('écrit par le store avec l’animal du contexte puis ferme la feuille', async () => {
     const wrapper = await monter(MILO.id)
