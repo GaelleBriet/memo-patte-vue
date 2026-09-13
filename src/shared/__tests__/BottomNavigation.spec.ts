@@ -2,12 +2,24 @@ import { describe, it, expect, beforeEach } from 'vitest'
 
 import { defineComponent, h } from 'vue'
 import { mount, flushPromises } from '@vue/test-utils'
+import { createMemoryHistory, createRouter } from 'vue-router'
 import { VApp } from 'vuetify/components'
 
 import BottomNavigation from '../BottomNavigation.vue'
 import vuetify from '@/core/theme/vuetify'
 import i18n from '@/core/i18n'
-import router from '@/router'
+import appRouter from '@/router'
+
+// Routeur de test : la barre ne dépend que des noms de route. Le vrai routeur charge
+// l'écran Carnet à la navigation, donc tout SQLite, et le test expirait sous charge.
+const Empty = { render: () => null }
+const router = createRouter({
+  history: createMemoryHistory(),
+  routes: [
+    { path: '/', name: 'home', component: Empty },
+    { path: '/animals', name: 'animals', component: Empty },
+  ],
+})
 
 // `VBottomNavigation` s'enregistre dans le layout de `VApp` : il lui faut cet hôte.
 const Host = defineComponent({
@@ -30,6 +42,11 @@ function mountNavigation() {
 }
 
 describe('BottomNavigation', () => {
+  it("cible des routes qui existent dans le routeur de l'app", () => {
+    expect(appRouter.hasRoute('home')).toBe(true)
+    expect(appRouter.hasRoute('animals')).toBe(true)
+  })
+
   beforeEach(async () => {
     await router.replace('/')
     await router.isReady()
