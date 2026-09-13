@@ -72,7 +72,7 @@ function select(value: unknown): void {
 }
 
 .form-segmented__option--selected {
-  color: tokens.$color-segment-selected;
+  color: tokens.$color-on-primary;
   font-weight: 700;
 }
 </style>
