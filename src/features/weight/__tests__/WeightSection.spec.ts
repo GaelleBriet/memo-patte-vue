@@ -1,12 +1,13 @@
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
+import { createMemoryHistory, createRouter, type Router } from 'vue-router'
 
 import WeightSection from '../WeightSection.vue'
 import WeightSheet from '../WeightSheet.vue'
 import type { WeightEntry } from '../weight.schema'
 import type { WeightRepository } from '../weight.repository'
-import { provideWeightRepository } from '../weight.store'
+import { provideWeightRepository, useWeightStore } from '../weight.store'
 import i18n from '@/core/i18n'
 import vuetify from '@/core/theme/vuetify'
 
@@ -29,11 +30,21 @@ let entries: WeightEntry[]
 let listByAnimal: Mock<WeightRepository['listByAnimal']>
 let create: Mock<WeightRepository['create']>
 let wrapper: VueWrapper | null = null
+let routeur: Router
+
+const Vide = { render: () => null }
 
 beforeEach(() => {
   // jsdom ne fournit pas `visualViewport`, que la feuille de pesée (VDialog) écoute.
   vi.stubGlobal('visualViewport', { addEventListener() {}, removeEventListener() {} })
   setActivePinia(createPinia())
+  routeur = createRouter({
+    history: createMemoryHistory(),
+    routes: [
+      { path: '/animals', name: 'animals', component: Vide },
+      { path: '/animals/:animalId/weight', name: 'weight-history', component: Vide },
+    ],
+  })
   entries = []
   listByAnimal = vi.fn<WeightRepository['listByAnimal']>(async (animalId) =>
     entries.filter((item) => item.animalId === animalId),
@@ -62,7 +73,7 @@ afterEach(() => {
 async function monter(animalId = MILO) {
   wrapper = mount(WeightSection, {
     props: { animalId },
-    global: { plugins: [vuetify, i18n] },
+    global: { plugins: [vuetify, i18n, routeur] },
     attachTo: document.body,
   })
   await flushPromises()
@@ -180,7 +191,7 @@ describe('WeightSection — courbe', () => {
   })
 })
 
-describe('WeightSection — état vide et lignes non livrées', () => {
+describe('WeightSection — état vide', () => {
   it('garde le titre et dit « Aucune pesée enregistrée » (C2)', async () => {
     const wrapper = await monter()
 
@@ -188,9 +199,27 @@ describe('WeightSection — état vide et lignes non livrées', () => {
     expect(wrapper.find('.weight-section__current').exists()).toBe(false)
     expect(wrapper.find('.weight-sparkline').exists()).toBe(false)
   })
+})
 
-  it('n’offre pas « Voir l’historique » : son écran n’existe pas', async () => {
+describe('WeightSection — voir l’historique', () => {
+  it('mène au suivi de poids de l’animal, à droite du poids actuel', async () => {
     entries = [entry(23.6, '2026-06-05'), entry(24.5, '2026-11-08')]
+    const wrapper = await monter()
+
+    const lien = wrapper.get('.weight-section__headline .weight-section__history')
+    expect(lien.text()).toBe('Voir l’historique')
+    expect(lien.find('svg').exists()).toBe(true)
+    expect(lien.attributes('href')).toBe(`/animals/${MILO}/weight`)
+  })
+
+  it('s’offre dès la première pesée', async () => {
+    entries = [entry(24.5, '2026-11-08')]
+    const wrapper = await monter()
+
+    expect(wrapper.find('.weight-section__history').exists()).toBe(true)
+  })
+
+  it('reste absent sans pesée', async () => {
     const wrapper = await monter()
 
     expect(wrapper.find('.weight-section__history').exists()).toBe(false)
@@ -239,6 +268,22 @@ describe('WeightSection — ajouter une pesée', () => {
     )
     expect(wrapper.get('.weight-section__current').text()).toBe('24,5')
     expect(wrapper.getComponent(WeightSheet).props('modelValue')).toBe(false)
+  })
+})
+
+describe('WeightSection — pendant une écriture', () => {
+  it('garde la carte affichée pendant l’enregistrement d’une pesée', async () => {
+    entries = [entry(23.6, '2026-06-05'), entry(24.5, '2026-11-08')]
+    const wrapper = await monter()
+    create.mockReturnValueOnce(new Promise(() => {}))
+
+    void useWeightStore().create({ animalId: MILO, weightKg: 25, measuredOn: '2026-11-20' })
+    await flushPromises()
+
+    expect(useWeightStore().isLoading).toBe(true)
+    expect(wrapper.get('.weight-section__current').text()).toBe('24,5')
+    expect(wrapper.find('.weight-sparkline').exists()).toBe(true)
+    expect(wrapper.find('.weight-section__empty').exists()).toBe(false)
   })
 })
 

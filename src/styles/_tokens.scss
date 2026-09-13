@@ -37,6 +37,10 @@ $color-chart-icon: #798a8b; // Icône « une seule pesée »
 $color-chart-value: #2f2722; // Valeur au-dessus d'un point de courbe
 $color-header-avatar-border: rgb(255 255 255 / 70%); // Bordure claire de l'avatar du header
 
+// Suivi de poids (écran poussé, historique des pesées)
+$color-weight-row-date: #342c26; // Date d'une ligne de la liste des pesées
+$height-weight-row: 56px; // Ligne de la liste des pesées
+
 // Formulaires (écrans poussés : animal, vaccin, traitement)
 $color-field-surface: #fefcf9; // Surface d'un champ
 $color-field-border: #dbd7d1; // Bordure d'un champ

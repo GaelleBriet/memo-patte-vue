@@ -11,7 +11,7 @@ import { useI18n } from 'vue-i18n'
 
 import WeightSheet from './WeightSheet.vue'
 import { weightSummary, type WeightDelta } from './weight-summary'
-import { useWeightStore } from './weight.store'
+import { useWeightEntries } from './use-weight-entries'
 import SectionCard from '@/shared/SectionCard.vue'
 import WeightSparkline from '@/shared/WeightSparkline.vue'
 import { formatKg, formatKgDelta, formatLongDate, formatMonth } from '@/shared/format'
@@ -26,17 +26,10 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
-const store = useWeightStore()
 
 const isSheetOpen = ref(false)
 
-// Pendant un chargement, ou après un échec, le store porte déjà le nouvel animal mais encore l'ancienne liste.
-const entries = computed(() => (isCurrent.value ? store.entries : []))
-
-const isCurrent = computed(
-  () => store.animalId === props.animalId && !store.isLoading && store.error === null,
-)
-const hasError = computed(() => store.animalId === props.animalId && store.error !== null)
+const { entries, hasError } = useWeightEntries(() => props.animalId)
 
 const summary = computed<WeightSectionSummary>(() => weightSummary(entries.value))
 const chart = computed(() => buildWeightChart(entries.value))
@@ -61,14 +54,6 @@ function describeDelta(value: WeightDelta): { text: string; trend: 'up' | 'down'
   }
 }
 
-watch(
-  () => props.animalId,
-  (animalId) => {
-    void store.loadForAnimal(animalId)
-  },
-  { immediate: true },
-)
-
 watch(summary, (value) => emit('summary', value), { immediate: true })
 </script>
 
@@ -78,6 +63,13 @@ watch(summary, (value) => emit('summary', value), { immediate: true })
       <div class="weight-section__headline">
         <span class="weight-section__current">{{ current }}</span>
         <span class="weight-section__unit">{{ t('weight.unit') }}</span>
+        <router-link
+          class="weight-section__history"
+          :to="{ name: 'weight-history', params: { animalId } }"
+        >
+          <span>{{ t('weight.history.link') }}</span>
+          <v-icon icon="ms:chevron_right" size="18" />
+        </router-link>
       </div>
       <p class="weight-section__delta" :class="`weight-section__delta--${delta.trend}`">
         {{ delta.text }}
@@ -130,6 +122,21 @@ watch(summary, (value) => emit('summary', value), { immediate: true })
   color: tokens.$color-field-suffix;
   font-size: 15px;
   font-weight: 600;
+}
+
+.weight-section__history {
+  display: inline-flex;
+  align-items: center;
+  align-self: center;
+  gap: 2px;
+  // Zone de tap de 48 px ; les marges négatives rendent la hauteur gagnée, le rendu ne bouge pas.
+  min-height: 48px;
+  margin-block: -14px;
+  margin-inline-start: auto;
+  color: rgb(var(--v-theme-primary));
+  font-size: 13.5px;
+  font-weight: 700;
+  text-decoration: none;
 }
 
 .weight-section__delta {

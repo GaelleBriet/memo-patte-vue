@@ -193,7 +193,8 @@
     "unit": "kg",
     "delta": {
       "vs": "{delta} kg vs {month}",
-      "first": "Première pesée · {date}"
+      "first": "Première pesée · {date}",
+      "value": "{delta} kg"
     },
     "section": {
       "title": "Suivi de poids",
@@ -202,6 +203,15 @@
       "chartLabel": "Évolution du poids",
       "error": "Impossible de charger les pesées.",
       "add": "Ajouter une pesée"
+    },
+    "history": {
+      "title": "Suivi de poids",
+      "back": "Retour",
+      "current": "Poids actuel",
+      "list": "Toutes les pesées",
+      "value": "{weight} kg",
+      "initial": "Poids à l’arrivée : {weight} kg",
+      "link": "Voir l’historique"
     },
     "form": {
       "title": "Ajouter une pesée",
