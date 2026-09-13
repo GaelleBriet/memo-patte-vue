@@ -47,10 +47,10 @@ export function buildDemoCarnet(today: Date): DemoAnimal[] {
         initialWeightKg: 8.5,
       },
       vaccinations: [
-        // En retard : échéance dépassée de 45 jours.
+        // En retard : rappel annuel, échéance dépassée de 45 jours.
         {
           name: 'CHPPi',
-          lastInjectionDate: day(subMonths(today, 13)),
+          lastInjectionDate: day(subMonths(subDays(today, 45), 12)),
           dueDate: day(subDays(today, 45)),
         },
         // À jour : encore dix mois de validité.

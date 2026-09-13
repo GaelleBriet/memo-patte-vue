@@ -58,6 +58,8 @@ describe('buildDemoCarnet', () => {
 
     expect(vaccinationStatus(chppi?.dueDate ?? null, today)).toBe('overdue')
     expect(differenceInCalendarDays(TODAY, parseISO(chppi?.dueDate as string))).toBe(45)
+    expect(chppi?.lastInjectionDate).toBe('2025-07-30')
+    expect(chppi?.dueDate).toBe('2026-07-30')
     expect(vaccinationStatus(rage?.dueDate ?? null, today)).toBe('up-to-date')
   })
 
