@@ -84,3 +84,7 @@ $opacity-overlay-scrim: 0.46;
 $color-sheet-handle: #c1bdb7; // Poignée de glissement d'une feuille
 $radius-sheet: 24px; // Coins hauts d'une feuille modale
 $shadow-sheet: 0 -6px 24px rgb(30 25 20 / 14%); // Ombre portée vers le haut d'une feuille
+
+// Accueil (actions rapides)
+$height-picker-row: 60px; // Ligne d'animal de la feuille « Pour quel animal ? »
+$size-picker-avatar: 40px; // Avatar rond d'une ligne de cette feuille

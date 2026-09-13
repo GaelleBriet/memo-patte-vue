@@ -79,7 +79,7 @@ describe('BottomNavigation', () => {
   it('réserve la zone de gestes Android sous les onglets', () => {
     const { nav } = mountNavigation()
 
-    // 56 px d'onglets plus les 22 px de `$padding-bottom-nav`.
+    // `$height-bottom-nav` (56 px) plus `$padding-bottom-nav` (22 px).
     expect(nav().attributes('style')).toContain('height: 78px')
   })
 

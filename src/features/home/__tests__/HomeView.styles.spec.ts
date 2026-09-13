@@ -105,4 +105,13 @@ describe('HomeView — contrat de style', () => {
     expect(declaration('.home-welcome__create', 'width')).toBe('100%')
     expect(declaration('.home-welcome__create', 'border-radius')).toBe('18px')
   })
+
+  it('range les actions rapides en trois tuiles de largeur égale, arrondies à 18 px', () => {
+    expect(declaration('.home-quick-actions__grid', 'grid-template-columns')).toBe(
+      'repeat(3, minmax(0, 1fr))',
+    )
+    expect(declaration('.home-quick-tile', 'border-radius')).toBe('18px')
+    expect(declaration('.home-quick-tile', 'min-height')).toBe('78px')
+    expect(declaration('.home-quick-tile', 'flex-direction')).toBe('column')
+  })
 })
