@@ -39,6 +39,11 @@ est commun, c'est le **jeu de données de départ**, choisi sur le serveur Vite 
   qu'on saisit à la main pendant une session survit aux rechargements, y compris pour tester la persistance
 - Sans variable (`pnpm dev`), le jeton mémorisé vaut `empty` : le premier chargement après un `dev:data`
   vide la base, les suivants ne touchent plus à rien
+- **Attention au tout premier `pnpm dev`** sur un navigateur (ou un téléphone) qui n'a encore jamais vu les
+  fixtures : aucun jeton n'est mémorisé, donc **la base est vidée une fois**, y compris ce qu'on y aurait
+  saisi avant l'arrivée des fixtures. C'est voulu : chaque environnement part d'un état connu. Pour garder
+  une base existante, poser à la main `memo-patte:fixtures-token` = `empty` dans le `localStorage`
+  (DevTools → Application) avant de relancer
 - Le navigateur et le téléphone ont chacun leur `localStorage` : chacun applique le mode de son côté, sur
   sa propre base
 - Les dates du carnet de démo sont **relatives à aujourd'hui** (CHPPi en retard de 45 jours, Rage à jour…) :
