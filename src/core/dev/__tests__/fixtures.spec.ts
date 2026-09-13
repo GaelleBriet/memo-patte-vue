@@ -11,6 +11,7 @@ vi.mock('@/core/db/sqlite', () => ({
   }),
 }))
 
+import { DEMO_CARNET_MARKER } from '../demo-carnet'
 import {
   applyDevFixtures,
   applyFixtures,
@@ -238,6 +239,8 @@ describe('applyDevFixtures', () => {
 
     expect(error).toHaveBeenCalledOnce()
     expect(String(error.mock.calls[0]?.[0])).toMatch(/fixtures/i)
+    // Le marqueur doit être lu à l'exécution : c'est lui que `pnpm test:build` cherche dans le bundle.
+    expect(String(error.mock.calls[0]?.[0])).toContain(DEMO_CARNET_MARKER)
     expect(error.mock.calls[0]?.[1]).toEqual(new Error('ouverture de la base impossible'))
   })
 })

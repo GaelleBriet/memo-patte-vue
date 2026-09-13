@@ -50,7 +50,10 @@ est commun, c'est le **jeu de données de départ**, choisi sur le serveur Vite 
   ce sont les statuts de la maquette qui sont reproduits, pas ses libellés au mot près
 - `pnpm preview` sert un build de production : `import.meta.env.DEV` y est faux, donc **pas de fixtures**.
   C'est voulu, et `pnpm test:build` (lancé par la CI après le build) lit le `dist/` produit et échoue si une
-  trace du carnet de démo y est partie : `pnpm build-only && pnpm test:build`
+  trace des fixtures y est partie : `pnpm build-only && pnpm test:build`. Il cherche des marqueurs techniques
+  (un chunk `fixtures`/`demo-carnet`, `memo-patte:fixtures-token`, et `DEMO_CARNET_MARKER` =
+  `memo-patte:demo-carnet`, lu à l'exécution par les fixtures), jamais les noms de démo : un placeholder
+  légitime comme « Ex. Milo » les reprend
 
 ## Ce qui marche
 

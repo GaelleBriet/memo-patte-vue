@@ -22,6 +22,14 @@ export interface DemoAnimal {
   weights: Omit<WeightEntryInput, 'animalId'>[]
 }
 
+/**
+ * Marqueur propre au carnet de démo, introuvable ailleurs dans l'app : `pnpm test:build`
+ * le cherche dans `dist/` plutôt que des noms (Milo, Bravecto…) qu'un placeholder
+ * légitime peut reprendre. Il doit rester lu à l'exécution pour ne pas être éliminé
+ * du bundle si le module fuyait en production.
+ */
+export const DEMO_CARNET_MARKER = 'memo-patte:demo-carnet'
+
 const DATE_FORMAT = 'yyyy-MM-dd'
 
 function day(date: Date): string {

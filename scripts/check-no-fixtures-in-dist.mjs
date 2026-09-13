@@ -7,10 +7,13 @@ import { join, relative } from 'node:path'
 const DIST = 'dist'
 const ASSETS = join(DIST, 'assets')
 
-/** Placeholder du formulaire animal (`fr.json`) : la seule occurrence légitime de « Milo » en prod. */
-const LEGITIMATE_MILO = 'Ex. Milo'
-const DEMO_MARKERS = ['Luna', 'CHPPi', 'Bravecto', 'Milbemax', 'memo-patte:fixtures-token']
-const DEMO_CHUNK = /fixtures|demo-carnet/
+/**
+ * Marqueurs techniques uniquement, jamais les noms du carnet de démo : un placeholder
+ * légitime (« Ex. Milo », « Ex. Bravecto ») les reprend. `memo-patte:demo-carnet` est
+ * `DEMO_CARNET_MARKER` (`src/core/dev/demo-carnet.ts`), lu à l'exécution par les fixtures.
+ */
+const DEV_MARKERS = ['memo-patte:demo-carnet', 'memo-patte:fixtures-token']
+const DEV_CHUNK = /fixtures|demo-carnet/
 
 if (!existsSync(ASSETS)) {
   console.error(`✗ ${ASSETS} introuvable : lancer \`pnpm build-only\` avant \`pnpm test:build\`.`)
@@ -24,13 +27,10 @@ const files = readdirSync(ASSETS, { withFileTypes: true, recursive: true })
 const failures = []
 for (const file of files) {
   const name = relative(DIST, file)
-  if (DEMO_CHUNK.test(name)) failures.push(`${name} : chunk des fixtures présent dans le build`)
+  if (DEV_CHUNK.test(name)) failures.push(`${name} : chunk des fixtures présent dans le build`)
 
   const content = readFileSync(file, 'utf8')
-  const strayMilo = content.split('Milo').length - content.split(LEGITIMATE_MILO).length
-  if (strayMilo > 0)
-    failures.push(`${name} : « Milo » trouvé ${strayMilo} fois hors « ${LEGITIMATE_MILO} »`)
-  for (const marker of DEMO_MARKERS) {
+  for (const marker of DEV_MARKERS) {
     if (content.includes(marker)) failures.push(`${name} : « ${marker} » trouvé`)
   }
 }

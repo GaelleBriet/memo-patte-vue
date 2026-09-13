@@ -11,7 +11,7 @@ import {
   type VaccinationsRepository,
 } from '@/features/vaccinations/vaccinations.repository'
 import { getWeightRepository, type WeightRepository } from '@/features/weight/weight.repository'
-import { buildDemoCarnet } from './demo-carnet'
+import { buildDemoCarnet, DEMO_CARNET_MARKER } from './demo-carnet'
 
 /**
  * Fixtures de développement : un point de départ commun entre `pnpm dev`
@@ -116,6 +116,6 @@ export async function applyDevFixtures(): Promise<void> {
       repositories: { animals, vaccinations, treatments, weight },
     })
   } catch (error) {
-    console.error('Fixtures de développement non appliquées :', error)
+    console.error(`[${DEMO_CARNET_MARKER}] Fixtures de développement non appliquées :`, error)
   }
 }
