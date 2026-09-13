@@ -96,6 +96,10 @@ describe('HomeView — contrat de style', () => {
     expect(declaration('.home-up-to-date__dot', 'color')).toBe('rgb(var(--v-theme-on-up-to-date))')
   })
 
+  it('centre la bienvenue dans la hauteur laissée par la bottom nav', () => {
+    expect(declaration('.home-welcome', 'min-height')).toBe('calc(100dvh - 78px)')
+  })
+
   it('donne à l’illustration 150 px et au bouton de bienvenue la pleine largeur arrondie à 18 px', () => {
     expect(declaration('.home-welcome__illustration', 'width')).toBe('150px')
     expect(declaration('.home-welcome__create', 'width')).toBe('100%')

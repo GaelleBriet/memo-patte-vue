@@ -445,7 +445,7 @@ function openCarnet(): void {
   align-items: center;
   justify-content: center;
   gap: 18px;
-  min-height: calc(100dvh - #{56px + tokens.$padding-bottom-nav});
+  min-height: calc(100dvh - #{tokens.$height-bottom-nav + tokens.$padding-bottom-nav});
   padding: 32px 28px;
   text-align: center;
 }
