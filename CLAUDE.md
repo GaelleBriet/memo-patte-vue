@@ -153,7 +153,7 @@ Hors scope :
 - Respecter strictement l’architecture et les conventions
 - En cas de doute sur une décision produit, se référer à `docs/technical/01-architecture-v2.md` et à `docs/product/decisions-log.md`
 - Ne jamais inventer de nouvelles règles métier
-- **Demander avant de trancher** : quand un ticket ou les docs laissent un trou produit, design ou modèle de données (suppression logique ou physique, couleur hors maquette, colonne de synchro…), poser la question avec une recommandation, sa raison et l’alternative écartée, puis attendre la réponse. Ne jamais implémenter un choix puis le présenter « à valider »
+- **Demander avant de trancher** : quand un ticket ou les docs laissent un trou produit, design ou modèle de données (suppression logique ou physique, couleur hors maquette, colonne de synchro…), poser la question avec une recommandation, sa raison et l’alternative écartée, puis attendre la réponse. Ne jamais implémenter un choix puis le présenter « à valider ». Exception : en mode autonomie accordé par Gaelle, les choix de bonnes pratiques se tranchent et se consignent dans son journal (voir `.claude/rules/collaboration.md`)
 - Le ticket GitHub est la spec : ses critères d’acceptation cochés, rien de plus
 - Tests d’abord (TDD) : le test qui échoue, puis le code, puis le refactor
 - Les consignes de collaboration (style de travail, flux tickets/agents, contexte en cours) vivent dans `.claude/rules/`, versionné : c’est là qu’une nouvelle consigne durable se consigne

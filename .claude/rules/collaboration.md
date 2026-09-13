@@ -1,7 +1,8 @@
-# Collaboration avec Gaelle (mis à jour le 2026-09-07)
+# Collaboration avec Gaelle (mis à jour le 2026-09-13)
 
 - Gaelle développe seule, en vibe coding, en français et au tutoiement. Elle attend des recommandations argumentées (raison + alternative), pas des réponses sèches
 - **Demander avant de trancher** : quand un ticket ou les docs laissent un trou produit, design ou modèle de données (suppression logique ou physique, couleur hors maquette, colonne de synchro…), poser la question avec une recommandation, sa raison et l’alternative écartée, puis attendre la réponse. Ne jamais implémenter un choix puis le présenter « à valider »
+- **Mode autonomie** (accordé par Gaelle le 2026-09-13, « tu peux prendre des décisions tant qu'elles sont de l'ordre des bonnes pratiques, cohérentes ») : quand Gaelle a lancé une session en autonomie, les choix de bonnes pratiques, de cohérence et de maintenabilité se tranchent sans l'attendre, **à condition** d'être consignés au fil de l'eau dans son journal des décisions autonomes (hors dépôt, dans son coffre de notes) : décision, raison, alternative écartée, comment revenir dessus. Une décision validée passe ensuite dans `docs/product/decisions-log.md`. Restent des questions à poser, même en autonomie : un vrai choix produit (prix, périmètre, texte vu par l'utilisateur sans maquette qui change le sens), une perte de données, une action irréversible. Un relecteur ne signale donc pas comme écart une décision de bonnes pratiques consignée au journal
 - Le ticket GitHub est la spec : ses critères d’acceptation cochés, rien de plus. Tests d’abord (TDD)
 - Ce dossier `.claude/rules/` est versionné : c’est la mémoire qui suit le dépôt d’un poste à l’autre. Toute consigne durable se consigne ici ; les décisions produit dans `docs/product/decisions-log.md`
 - Le dépôt est public : aucune note nominative d’entretien, aucune clé, aucune adresse personnelle dans ces fichiers
