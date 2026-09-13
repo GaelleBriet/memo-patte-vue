@@ -1,7 +1,8 @@
-import { format } from 'date-fns'
 import type { z } from 'zod'
 
 import { animalInputSchema, type Animal, type AnimalSpecies } from './animal.schema'
+
+export { todayIsoDate } from '@/shared/form/form-dates'
 
 export interface AnimalFormValues {
   name: string
@@ -37,10 +38,6 @@ export function animalFormValuesFrom(animal: Animal): AnimalFormValues {
     birthDate: animal.birthDate ?? '',
     initialWeightKg: animal.initialWeightKg === null ? '' : String(animal.initialWeightKg),
   }
-}
-
-export function todayIsoDate(): string {
-  return format(new Date(), 'yyyy-MM-dd')
 }
 
 function textOrNull(value: string): string | null {

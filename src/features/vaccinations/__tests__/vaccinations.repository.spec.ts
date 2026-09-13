@@ -79,6 +79,23 @@ describe('vaccinationsRepository', () => {
     expect(names).toEqual(['Typhus', 'Rage'])
   })
 
+  it('liste les vaccins de tous les animaux, sans les supprimés', async () => {
+    await repository.create({ animalId: MIETTE, name: 'Rage', lastInjectionDate: '2024-03-01' })
+    const typhus = await repository.create({
+      animalId: MIETTE,
+      name: 'Typhus',
+      lastInjectionDate: '2025-09-12',
+    })
+    await repository.create({ animalId: VASCO, name: 'CHPPi', lastInjectionDate: '2025-11-02' })
+    await repository.remove(typhus.id)
+
+    const all = await repository.listAll()
+    expect(all.map((vaccination) => [vaccination.animalId, vaccination.name])).toEqual([
+      [MIETTE, 'Rage'],
+      [VASCO, 'CHPPi'],
+    ])
+  })
+
   it('départage deux vaccins de même date par nom, sans tenir compte de la casse', async () => {
     await repository.create({ animalId: MIETTE, name: 'typhus', lastInjectionDate: '2025-09-12' })
     await repository.create({ animalId: MIETTE, name: 'Rage', lastInjectionDate: '2025-09-12' })

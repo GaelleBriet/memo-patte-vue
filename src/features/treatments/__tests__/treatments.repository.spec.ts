@@ -131,6 +131,19 @@ describe('treatmentsRepository', () => {
     expect(names).toEqual(['Bimensuel', 'Mensuel', 'Trimestriel'])
   })
 
+  it('liste les traitements de tous les animaux, sans les supprimés', async () => {
+    await repository.create({ ...bravecto, name: 'Trimestriel' })
+    const removed = await repository.create({ ...bravecto, name: 'Supprimé' })
+    await repository.create({ ...bravecto, animalId: VASCO, name: 'Vasco' })
+    await repository.remove(removed.id)
+
+    const all = await repository.listAll()
+    expect(all.map((treatment) => [treatment.animalId, treatment.name])).toEqual([
+      [MIETTE, 'Trimestriel'],
+      [VASCO, 'Vasco'],
+    ])
+  })
+
   it('départage deux échéances identiques par date de saisie, pas par ordre d’insertion', async () => {
     vi.useFakeTimers({ now: new Date('2026-03-01T10:01:00.000Z') })
     await repository.create({ ...bravecto, name: 'Second' })

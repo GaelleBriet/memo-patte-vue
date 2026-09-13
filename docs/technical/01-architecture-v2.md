@@ -73,7 +73,8 @@ src/
 │   ├── sync/               # Logique de synchronisation local ↔ cloud
 │   ├── notifications/      # Service notifications locales
 │   ├── i18n/
-│   └── theme/              # Vuetify + tokens SCSS
+│   ├── theme/              # Vuetify + tokens SCSS
+│   └── dev/                # Fixtures de développement, jamais en production
 ├── features/
 │   ├── animals/
 │   ├── vaccinations/
@@ -88,12 +89,15 @@ src/
 
 ```
 
+`core/dev/` contient les fixtures de développement : le carnet de démo des maquettes (Milo + Luna, dates relatives à aujourd'hui), peuplé via les repositories quand le serveur est lancé avec `pnpm dev:data`. Le module est importé dynamiquement derrière `import.meta.env.DEV` dans `main.ts` : il tombe au build et un test le prouve. Il orchestre plusieurs repositories sans appartenir à aucune feature, d'où sa place dans `core/`.
+
 ### Règles strictes
 
 - Aucun import croisé entre features, à une exception près : un **service de cas d'usage** (`xxx.service.ts`, placé dans la feature qui porte le cas d'usage) peut importer les repositories d'autres features pour les orchestrer — un composant, un store ou un repository, jamais. Tout le reste passe par `shared/` ou `core/`.
 - Un **écran composite** (Carnet, Accueil) assemble plusieurs domaines : il importe les **composants de section** des autres features (`VaccinationsSection.vue`, `WeightSection.vue`…), et chaque section n’utilise que le store de sa feature. C’est la seule forme d’import croisé permise à un composant ; les sections ne s’importent jamais entre elles, et la logique commune à plusieurs écrans (rappels, âge, courbe de poids) vit dans `shared/`.
 - Les repositories sont les seuls autorisés à parler à SQLite et à Supabase, et chacun reste le seul à écrire dans sa table : un service qui orchestre appelle leurs méthodes, il n'écrit pas de SQL.
 - Les stores Pinia ne contiennent aucune requête SQL/API directe.
+- `core/` ne dépend jamais des features, à une exception près : `core/dev/` importe leurs repositories pour peupler le carnet de démo. C'est un outil de développement qui ne part jamais en production ; la règle ESLint `app/core-independent-of-features` interdit l'import partout ailleurs dans `core/`.
 - Tout texte visible passe par vue-i18n.
 
 ## Authentification & compte

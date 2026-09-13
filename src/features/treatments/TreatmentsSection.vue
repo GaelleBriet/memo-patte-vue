@@ -10,6 +10,7 @@ export type TreatmentsSummary = ReminderCounts & {
 <script setup lang="ts">
 import { computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
 
 import { useTreatmentsStore } from './treatments.store'
 import SectionCard from '@/shared/SectionCard.vue'
@@ -26,6 +27,7 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+const router = useRouter()
 const store = useTreatmentsStore()
 
 // Pendant un chargement, ou après un échec, le store porte déjà le nouvel animal mais encore l'ancienne liste.
@@ -90,6 +92,10 @@ function nextDoseOf(reminder: Reminder | undefined): string | null {
   }
 }
 
+function addTreatment(): void {
+  void router.push({ name: 'treatment-new', params: { animalId: props.animalId } })
+}
+
 watch(
   () => props.animalId,
   (animalId) => {
@@ -124,6 +130,11 @@ watch(summary, (value) => emit('summary', value), { immediate: true })
     <p v-else-if="rows.length === 0" class="section-card__empty treatments-section__empty">
       {{ t('treatments.section.empty') }}
     </p>
+
+    <button type="button" class="section-card__add treatments-section__add" @click="addTreatment">
+      <v-icon icon="ms:add" size="20" />
+      <span>{{ t('treatments.section.add') }}</span>
+    </button>
   </SectionCard>
 </template>
 

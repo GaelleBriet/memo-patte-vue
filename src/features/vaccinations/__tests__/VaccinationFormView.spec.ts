@@ -1,6 +1,7 @@
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest'
+import { createMemoryHistory, createRouter, type Router } from 'vue-router'
 
 import VaccinationFormView from '../VaccinationFormView.vue'
 import { todayIsoDate } from '../vaccination-form'
@@ -11,6 +12,17 @@ import { useAnimalsStore } from '@/features/animals/animals.store'
 import i18n from '@/core/i18n'
 import router from '@/router'
 import vuetify from '@/core/theme/vuetify'
+
+// Le vrai routeur ne sert qu'aux tests de routes (`resolve`) : naviguer avec lui chargerait
+// le graphe du Carnet et SQLite à chaque test.
+const Vide = { render: () => null }
+
+function routeurMemoire(): Router {
+  return createRouter({
+    history: createMemoryHistory(),
+    routes: [{ path: '/animals', name: 'animals', component: Vide }],
+  })
+}
 
 const MILO: Animal = {
   id: '11111111-1111-4111-8111-111111111111',
@@ -41,6 +53,7 @@ let create: MockInstance<(input: VaccinationInput) => Promise<Vaccination>>
 let update: MockInstance<(id: string, input: VaccinationUpdateInput) => Promise<Vaccination>>
 let getById: MockInstance<(id: string) => Promise<Vaccination | null>>
 let push: MockInstance
+let routeur: Router
 
 beforeEach(async () => {
   setActivePinia(createPinia())
@@ -54,8 +67,9 @@ beforeEach(async () => {
   create = vi.spyOn(vaccinations, 'create').mockResolvedValue(RAGE)
   update = vi.spyOn(vaccinations, 'update').mockResolvedValue(RAGE)
   getById = vi.spyOn(vaccinations, 'getById').mockResolvedValue(RAGE)
-  await router.push({ name: 'animals' })
-  push = vi.spyOn(router, 'push').mockResolvedValue()
+  routeur = routeurMemoire()
+  await routeur.push('/animals')
+  push = vi.spyOn(routeur, 'push').mockResolvedValue()
 })
 
 afterEach(() => {
@@ -65,7 +79,7 @@ afterEach(() => {
 async function monterCreation(animalId = MILO.id) {
   const wrapper = mount(VaccinationFormView, {
     props: { animalId },
-    global: { plugins: [vuetify, i18n, router] },
+    global: { plugins: [vuetify, i18n, routeur] },
     attachTo: document.body,
   })
   await flushPromises()
@@ -75,7 +89,7 @@ async function monterCreation(animalId = MILO.id) {
 async function monterEdition(id = RAGE.id) {
   const wrapper = mount(VaccinationFormView, {
     props: { id },
-    global: { plugins: [vuetify, i18n, router] },
+    global: { plugins: [vuetify, i18n, routeur] },
     attachTo: document.body,
   })
   await flushPromises()
@@ -87,7 +101,7 @@ function champ(wrapper: VueWrapper, id: string) {
 }
 
 function messages(wrapper: VueWrapper): string[] {
-  return wrapper.findAll('.vaccination-form__error').map((noeud) => noeud.text())
+  return wrapper.findAll('.form-field__error').map((noeud) => noeud.text())
 }
 
 async function remplirMinimum(wrapper: VueWrapper) {
@@ -96,7 +110,7 @@ async function remplirMinimum(wrapper: VueWrapper) {
 }
 
 async function soumettre(wrapper: VueWrapper) {
-  await wrapper.get('.vaccination-form__submit').trigger('click')
+  await wrapper.get('.form-screen__submit').trigger('click')
   await flushPromises()
 }
 
@@ -104,9 +118,9 @@ describe('VaccinationFormView — structure', () => {
   it('affiche « Nouveau vaccin », la flèche de retour et l’animal en sous-titre', async () => {
     const wrapper = await monterCreation()
 
-    expect(wrapper.get('.vaccination-form__title').text()).toBe('Nouveau vaccin')
-    expect(wrapper.get('.vaccination-form__subtitle').text()).toBe('Pour Milo')
-    expect(wrapper.find('.vaccination-form__back').exists()).toBe(true)
+    expect(wrapper.get('.form-screen__title').text()).toBe('Nouveau vaccin')
+    expect(wrapper.get('.form-screen__subtitle').text()).toBe('Pour Milo')
+    expect(wrapper.find('.form-screen__back').exists()).toBe(true)
   })
 
   it('charge les animaux pour nommer celui de la route', async () => {
@@ -118,7 +132,7 @@ describe('VaccinationFormView — structure', () => {
   it('rend les trois champs du schéma, et rien d’autre', async () => {
     const wrapper = await monterCreation()
 
-    expect(wrapper.findAll('.vaccination-form__field')).toHaveLength(3)
+    expect(wrapper.findAll('.form-field')).toHaveLength(3)
     expect(wrapper.findAll('select')).toHaveLength(0)
   })
 
@@ -137,8 +151,8 @@ describe('VaccinationFormView — structure', () => {
   it('marque le nom et la date d’injection obligatoires, l’échéance optionnelle', async () => {
     const wrapper = await monterCreation()
 
-    expect(wrapper.findAll('.vaccination-form__required')).toHaveLength(2)
-    expect(wrapper.findAll('.vaccination-form__optional')).toHaveLength(1)
+    expect(wrapper.findAll('.form-field__required')).toHaveLength(2)
+    expect(wrapper.findAll('.form-field__optional')).toHaveLength(1)
   })
 
   it('borne la date d’injection à aujourd’hui, jamais l’échéance', async () => {
@@ -228,7 +242,7 @@ describe('VaccinationFormView — création', () => {
     const wrapper = await monterCreation()
     await remplirMinimum(wrapper)
 
-    await wrapper.get('.vaccination-form__cancel').trigger('click')
+    await wrapper.get('.form-screen__cancel').trigger('click')
 
     expect(create).not.toHaveBeenCalled()
     expect(push).toHaveBeenCalledWith({ name: 'animals' })
@@ -240,8 +254,8 @@ describe('VaccinationFormView — édition', () => {
     const wrapper = await monterEdition()
 
     expect(getById).toHaveBeenCalledWith(RAGE.id)
-    expect(wrapper.get('.vaccination-form__title').text()).toBe('Modifier Rage')
-    expect(wrapper.get('.vaccination-form__subtitle').text()).toBe('Pour Milo')
+    expect(wrapper.get('.form-screen__title').text()).toBe('Modifier Rage')
+    expect(wrapper.get('.form-screen__subtitle').text()).toBe('Pour Milo')
     expect((champ(wrapper, 'vaccination-name').element as HTMLInputElement).value).toBe('Rage')
     expect(
       (champ(wrapper, 'vaccination-last-injection-date').element as HTMLInputElement).value,
@@ -249,7 +263,7 @@ describe('VaccinationFormView — édition', () => {
     expect((champ(wrapper, 'vaccination-due-date').element as HTMLInputElement).value).toBe(
       '2027-03-12',
     )
-    expect(wrapper.get('.vaccination-form__submit').text()).toBe('Enregistrer')
+    expect(wrapper.get('.form-screen__submit').text()).toBe('Enregistrer')
   })
 
   it('garde le titre d’origine pendant qu’on retape le nom', async () => {
@@ -257,7 +271,7 @@ describe('VaccinationFormView — édition', () => {
 
     await champ(wrapper, 'vaccination-name').setValue('Rage (rappel)')
 
-    expect(wrapper.get('.vaccination-form__title').text()).toBe('Modifier Rage')
+    expect(wrapper.get('.form-screen__title').text()).toBe('Modifier Rage')
   })
 
   it('met à jour par le store avec l’identifiant de la route, sans animal', async () => {
@@ -279,8 +293,8 @@ describe('VaccinationFormView — édition', () => {
     getById.mockResolvedValueOnce(null)
     const wrapper = await monterEdition()
 
-    expect(wrapper.get('.vaccination-form__save-error').text()).toBe('Ce vaccin est introuvable.')
-    expect(wrapper.get('.vaccination-form__submit').attributes('disabled')).toBeDefined()
+    expect(wrapper.get('.form-screen__save-error').text()).toBe('Ce vaccin est introuvable.')
+    expect(wrapper.get('.form-screen__submit').attributes('disabled')).toBeDefined()
   })
 })
 
@@ -297,9 +311,9 @@ describe('VaccinationFormView — envoi en cours', () => {
 
     await soumettre(wrapper)
 
-    expect(wrapper.get('.vaccination-form__submit').text()).toBe('Création…')
-    expect(wrapper.get('.vaccination-form__submit').attributes('disabled')).toBeDefined()
-    expect(wrapper.get('.vaccination-form__cancel').attributes('disabled')).toBeDefined()
+    expect(wrapper.get('.form-screen__submit').text()).toBe('Création…')
+    expect(wrapper.get('.form-screen__submit').attributes('disabled')).toBeDefined()
+    expect(wrapper.get('.form-screen__cancel').attributes('disabled')).toBeDefined()
 
     terminer(RAGE)
     await flushPromises()
@@ -311,8 +325,8 @@ describe('VaccinationFormView — envoi en cours', () => {
     await remplirMinimum(wrapper)
 
     // Deux taps dans le même tick : le bouton n'est pas encore rendu désactivé.
-    void wrapper.get('.vaccination-form__submit').trigger('click')
-    void wrapper.get('.vaccination-form__submit').trigger('click')
+    void wrapper.get('.form-screen__submit').trigger('click')
+    void wrapper.get('.form-screen__submit').trigger('click')
     await flushPromises()
 
     expect(create).toHaveBeenCalledOnce()
@@ -325,10 +339,10 @@ describe('VaccinationFormView — envoi en cours', () => {
 
     await soumettre(wrapper)
 
-    expect(wrapper.get('.vaccination-form__save-error').text()).toBe(
+    expect(wrapper.get('.form-screen__save-error').text()).toBe(
       'Le vaccin n’a pas pu être enregistré. Réessaie.',
     )
-    expect(wrapper.get('.vaccination-form__submit').attributes('disabled')).toBeUndefined()
+    expect(wrapper.get('.form-screen__submit').attributes('disabled')).toBeUndefined()
     expect(push).not.toHaveBeenCalled()
   })
 })
@@ -336,18 +350,16 @@ describe('VaccinationFormView — envoi en cours', () => {
 describe('VaccinationFormView — top bar au scroll', () => {
   it('pose la bordure de la top bar dès que le contenu défile', async () => {
     const wrapper = await monterCreation()
-    const zone = wrapper.get('.vaccination-form__scroll')
+    const zone = wrapper.get('.form-screen__scroll')
 
-    expect(wrapper.get('.vaccination-form__topbar').classes()).not.toContain(
-      'vaccination-form__topbar--scrolled',
+    expect(wrapper.get('.form-screen__topbar').classes()).not.toContain(
+      'form-screen__topbar--scrolled',
     )
 
     Object.defineProperty(zone.element, 'scrollTop', { value: 12, configurable: true })
     await zone.trigger('scroll')
 
-    expect(wrapper.get('.vaccination-form__topbar').classes()).toContain(
-      'vaccination-form__topbar--scrolled',
-    )
+    expect(wrapper.get('.form-screen__topbar').classes()).toContain('form-screen__topbar--scrolled')
   })
 })
 
@@ -366,5 +378,29 @@ describe('VaccinationFormView — routes', () => {
     expect(route.name).toBe('vaccination-edit')
     expect(route.params).toEqual({ id: RAGE.id })
     expect(route.matched[0]?.props.default).toBe(true)
+  })
+})
+
+function expectLie(wrapper: VueWrapper, controle: string, champ: string) {
+  const idErreur = wrapper.get(`${champ} .form-field__error`).attributes('id')
+
+  expect(idErreur).toBeTruthy()
+  expect(wrapper.get(controle).attributes('aria-describedby')).toBe(idErreur)
+  expect(wrapper.get(controle).attributes('aria-invalid')).toBe('true')
+}
+
+describe('VaccinationFormView — accessibilité des erreurs', () => {
+  it('relie chaque contrôle en erreur à son message et le marque invalide', async () => {
+    const wrapper = await monterCreation()
+
+    await soumettre(wrapper)
+
+    expectLie(wrapper, '#vaccination-name', '.vaccination-form__field--name')
+    expectLie(
+      wrapper,
+      '#vaccination-last-injection-date',
+      '.vaccination-form__field--last-injection-date',
+    )
+    expect(wrapper.get('#vaccination-due-date').attributes('aria-invalid')).toBe('false')
   })
 })

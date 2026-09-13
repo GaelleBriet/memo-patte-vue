@@ -61,6 +61,15 @@ export function createVaccinationsRepository(db: DbClient) {
       return rows.map(toVaccination)
     },
 
+    async listAll(): Promise<Vaccination[]> {
+      const rows = await db.query<VaccinationRow>(
+        `SELECT ${COLUMNS} FROM vaccination
+         WHERE ${NOT_DELETED}
+         ORDER BY animal_id, last_injection_date DESC, name COLLATE NOCASE`,
+      )
+      return rows.map(toVaccination)
+    },
+
     async create(input: VaccinationInput): Promise<Vaccination> {
       const data = vaccinationInputSchema.parse(input)
       const now = new Date().toISOString()

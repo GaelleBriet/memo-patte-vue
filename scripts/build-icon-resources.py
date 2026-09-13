@@ -26,6 +26,7 @@ from PIL import Image, ImageFilter
 ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / "docs" / "design" / "logos"
 OUT = ROOT / "resources"
+ASSETS = ROOT / "src" / "assets"
 
 PETROLE = (0x01, 0x38, 0x3E)
 ICON = 1024
@@ -34,6 +35,7 @@ SAFE_PX = round(ICON * SAFE_DP / VIEWPORT_DP)  # 939 px
 FLAT_RATIO = 0.80  # icône à plat (aucun masque) : illustration à 80 % du côté
 SPLASH = 2732  # taille attendue par @capacitor/assets, recadrée par densité
 SPLASH_ILLU = 720  # plus grande dimension de l'illustration sur le splash
+BRAND_WIDTH = 300  # illustration de bienvenue : 150 px CSS en densité 2
 
 
 def clean_alpha(alpha: np.ndarray, opening: int = 9, margin: int = 9):
@@ -129,6 +131,12 @@ def main() -> None:
     splash.alpha_composite(place(fg_clean, SPLASH, SPLASH_ILLU))
     splash.convert("RGB").save(OUT / "splash.png")
     splash.convert("RGB").save(OUT / "splash-dark.png")
+
+    ASSETS.mkdir(exist_ok=True)
+    brand = fg_clean.crop(bbox(np.array(fg_clean)[:, :, 3]))
+    brand = brand.resize((BRAND_WIDTH, round(brand.height * BRAND_WIDTH / brand.width)), Image.LANCZOS)
+    brand.save(ASSETS / "brand-illustration.png", optimize=True)
+    print(f"brand-illustration: {brand.size[0]}x{brand.size[1]} {brand.mode}")
 
     for name in ("icon-background", "icon-foreground", "icon-monochrome", "icon-only", "splash", "splash-dark"):
         report(name, Image.open(OUT / f"{name}.png"))
