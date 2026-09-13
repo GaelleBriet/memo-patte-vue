@@ -149,4 +149,26 @@ describe('FormSegmented — contrat de style', () => {
     expect(declaration(css, '.form-segmented', 'border')).toBe('1px solid #cecac3')
     expect(declaration(css, '.form-segmented', 'border-radius')).toBe('999px')
   })
+
+  it('écrit l’option cochée en blanc cassé et les autres dans la teinte inactive', () => {
+    expect(declaration(css, '.form-segmented__option', 'color')).toBe('#3e3630')
+    expect(declaration(css, '.form-segmented__option--selected', 'color')).toBe('#f9f4ee')
+  })
+
+  it('déclare l’option cochée après l’option de base, à spécificité égale', () => {
+    const selecteurs = [...css.matchAll(/([^{}]+)\{/g)].map((regle) => regle[1]!.trim())
+
+    expect(selecteurs.indexOf('.form-segmented__option')).toBeGreaterThanOrEqual(0)
+    expect(selecteurs.indexOf('.form-segmented__option--selected')).toBeGreaterThan(
+      selecteurs.indexOf('.form-segmented__option'),
+    )
+  })
+
+  it('ne pose la couleur du texte sur aucun sélecteur qui surclasserait l’option cochée', () => {
+    const reglesColorees = [...css.matchAll(/([^{}]+)\{([^}]*)\}/g)]
+      .filter((regle) => /(?:^|;)\s*color:/.test(regle[2]!))
+      .map((regle) => regle[1]!.trim())
+
+    expect(reglesColorees).toEqual(['.form-segmented__option', '.form-segmented__option--selected'])
+  })
 })

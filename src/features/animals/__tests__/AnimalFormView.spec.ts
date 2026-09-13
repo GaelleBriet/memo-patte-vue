@@ -220,6 +220,52 @@ describe('AnimalFormView — validation', () => {
   })
 })
 
+describe('AnimalFormView — revalidation après envoi', () => {
+  it('n’affiche aucune erreur pendant la saisie avant tout envoi', async () => {
+    const wrapper = monter()
+
+    await champ(wrapper, 'animal-weight').setValue('0')
+
+    expect(messages(wrapper)).toEqual([])
+    expect(champ(wrapper, 'animal-weight').attributes('aria-invalid')).toBe('false')
+  })
+
+  it('efface l’erreur d’un champ dès qu’il est corrigé, sans nouvel envoi', async () => {
+    const wrapper = monter()
+    await soumettre(wrapper)
+
+    await especes(wrapper)[1]!.trigger('click')
+
+    expect(messages(wrapper)).toEqual(['Le nom est obligatoire.'])
+    expect(wrapper.get('.form-segmented').attributes('aria-invalid')).toBe('false')
+    expect(wrapper.get('.form-segmented').attributes('aria-describedby')).toBeUndefined()
+  })
+
+  it('efface toutes les erreurs une fois le formulaire rempli, sans rien écrire', async () => {
+    const wrapper = monter()
+    await soumettre(wrapper)
+
+    await remplirMinimum(wrapper)
+
+    expect(messages(wrapper)).toEqual([])
+    expect(create).not.toHaveBeenCalled()
+  })
+
+  it('fait apparaître l’erreur d’un champ rendu invalide après l’envoi', async () => {
+    const wrapper = monter()
+    await remplirMinimum(wrapper)
+    await champ(wrapper, 'animal-weight').setValue('0')
+    await soumettre(wrapper)
+
+    await champ(wrapper, 'animal-weight').setValue('8,5')
+    expect(messages(wrapper)).toEqual([])
+
+    await champ(wrapper, 'animal-weight').setValue('0')
+    expect(messages(wrapper)).toEqual(['Le poids doit être supérieur à 0 kg.'])
+    expect(champ(wrapper, 'animal-weight').attributes('aria-invalid')).toBe('true')
+  })
+})
+
 describe('AnimalFormView — écriture', () => {
   it('écrit par le store, jamais par le repository', async () => {
     const wrapper = monter()
