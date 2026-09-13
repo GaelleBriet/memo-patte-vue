@@ -4,7 +4,7 @@ import { computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
-import illustration from '@/assets/icon-foreground.png'
+import illustration from '@/assets/brand-illustration.png'
 import { useAnimalsStore } from '@/features/animals/animals.store'
 import AnimalChipSelector, { type AnimalChipItem } from '@/shared/AnimalChipSelector.vue'
 import { buildReminders } from '@/shared/reminders'
@@ -76,11 +76,7 @@ function openCarnet(): void {
 <template>
   <div class="home">
     <div v-if="isWelcome" class="home-welcome">
-      <img
-        class="home-welcome__illustration"
-        :src="illustration"
-        :alt="t('home.welcome.illustration')"
-      />
+      <img class="home-welcome__illustration" :src="illustration" alt="" />
       <h1 class="home-welcome__title">{{ t('home.welcome.title') }}</h1>
       <p class="home-welcome__text">{{ t('home.welcome.text') }}</p>
       <v-btn
@@ -452,7 +448,7 @@ function openCarnet(): void {
 
 .home-welcome__illustration {
   width: 150px;
-  height: 150px;
+  height: auto;
   margin-bottom: 8px;
 }
 

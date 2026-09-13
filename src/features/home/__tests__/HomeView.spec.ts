@@ -392,7 +392,10 @@ describe('HomeView — A5 premier lancement, aucun animal', () => {
     expect(wrapper.find('.home-header').exists()).toBe(false)
     expect(wrapper.findComponent(AnimalChipSelector).exists()).toBe(false)
     expect(wrapper.find('.home-todo').exists()).toBe(false)
-    expect(wrapper.get('.home-welcome__illustration').attributes('src')).toBeTruthy()
+    expect(wrapper.get('.home-welcome__illustration').attributes('src')).toContain(
+      'brand-illustration',
+    )
+    expect(wrapper.get('.home-welcome__illustration').attributes('alt')).toBe('')
     expect(wrapper.get('.home-welcome__title').text()).toBe('Bienvenue sur MémoPatte')
     expect(wrapper.get('.home-welcome__text').text()).toBe(
       'Le carnet de santé de tes animaux, toujours à jour.',
