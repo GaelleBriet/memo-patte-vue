@@ -375,22 +375,41 @@ describe('WeightHistoryView — H3 aucune pesée', () => {
 })
 
 describe('WeightHistoryView — chargement', () => {
-  it('ne montre ni état vide ni pesées pendant le chargement', async () => {
+  it('montre un indicateur de chargement, ni état vide ni pesées', async () => {
     listByAnimal.mockReturnValueOnce(new Promise(() => {}))
     const wrapper = await monter()
 
+    expect(wrapper.find('.weight-history__loading .v-progress-circular').exists()).toBe(true)
     expect(wrapper.find('.weight-history__empty').exists()).toBe(false)
     expect(wrapper.find('.weight-history__current').exists()).toBe(false)
     expect(wrapper.find('.weight-history__add').exists()).toBe(false)
   })
 
-  it('dit que les pesées n’ont pas pu être chargées, sans état vide', async () => {
+  it('dit que les pesées n’ont pas pu être chargées, sans état vide ni indicateur', async () => {
     listByAnimal.mockRejectedValueOnce(new Error('base fermée'))
     const wrapper = await monter()
 
-    expect(wrapper.get('.weight-history__error').text()).toBe('Impossible de charger les pesées.')
+    expect(wrapper.get('.weight-history__error-text').text()).toBe(
+      'Impossible de charger les pesées.',
+    )
+    expect(wrapper.find('.weight-history__loading').exists()).toBe(false)
     expect(wrapper.find('.weight-history__empty').exists()).toBe(false)
     expect(wrapper.find('.weight-history__add').exists()).toBe(false)
+  })
+
+  it('réessaie le chargement depuis le message d’échec', async () => {
+    entries = [...HISTORIQUE_MILO]
+    listByAnimal.mockRejectedValueOnce(new Error('base fermée'))
+    const wrapper = await monter()
+
+    const bouton = wrapper.get('.weight-history__retry')
+    expect(bouton.text()).toBe('Réessayer')
+    await bouton.trigger('click')
+    await flushPromises()
+
+    expect(listByAnimal).toHaveBeenCalledTimes(2)
+    expect(wrapper.find('.weight-history__error').exists()).toBe(false)
+    expect(wrapper.findAll('.weight-history__row')).toHaveLength(6)
   })
 })
 

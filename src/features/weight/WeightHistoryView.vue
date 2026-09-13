@@ -28,7 +28,7 @@ const CHART_OPTIONS = { width: 320, height: 150, paddingTop: 22 }
 
 const animal = computed(() => animals.byId(props.animalId))
 
-const { entries, isReady, hasError } = useWeightEntries(() => props.animalId)
+const { entries, isLoading, isReady, hasError, reload } = useWeightEntries(() => props.animalId)
 
 const history = computed(() => weightHistory(entries.value, animal.value?.initialWeightKg ?? null))
 const chart = computed(() =>
@@ -136,9 +136,16 @@ function backToAnimals(): void {
           </ul>
         </SectionCard>
 
-        <p v-else-if="hasError" class="section-card__card weight-history__error">
-          {{ t('weight.section.error') }}
-        </p>
+        <div v-else-if="isLoading" class="weight-history__loading">
+          <v-progress-circular indeterminate color="primary" :size="32" :width="3" />
+        </div>
+
+        <div v-else-if="hasError" class="section-card__card weight-history__error" role="alert">
+          <p class="weight-history__error-text">{{ t('weight.section.error') }}</p>
+          <v-btn class="weight-history__retry" variant="flat" color="primary" @click="reload">
+            {{ t('animals.carnet.error.retry') }}
+          </v-btn>
+        </div>
 
         <div v-else-if="isReady" class="section-card__card">
           <p class="section-card__empty weight-history__empty">
@@ -329,10 +336,30 @@ function backToAnimals(): void {
   }
 }
 
+.weight-history__loading {
+  display: flex;
+  justify-content: center;
+  padding-block: 32px;
+}
+
 .weight-history__error {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
   padding: 16px 20px;
+}
+
+.weight-history__error-text {
+  margin: 0;
   color: tokens.$color-text-secondary;
   font-size: 14.5px;
+}
+
+.weight-history__retry {
+  border-radius: 999px;
+  font-weight: 700;
+  letter-spacing: normal;
 }
 
 .weight-history__list {
