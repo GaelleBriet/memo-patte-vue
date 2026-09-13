@@ -143,6 +143,12 @@ describe('WeightSheet — animal identifié (P1)', () => {
     expect(feuille().querySelectorAll('button.v-btn')).toHaveLength(1)
   })
 
+  it('place le focus sur le champ Poids dès l’ouverture : deux taps, pas trois', async () => {
+    await monter(MILO.id)
+
+    expect(document.activeElement).toBe(champ('weight-sheet-kg'))
+  })
+
   it('offre une poignée qui ferme la feuille', async () => {
     const wrapper = await monter(MILO.id)
 
@@ -175,6 +181,13 @@ describe('WeightSheet — sans animal (P2)', () => {
     expect(feuille().querySelector('.weight-sheet__fields--locked')).not.toBeNull()
     expect(champ('weight-sheet-kg').disabled).toBe(true)
     expect(champ('weight-sheet-date').disabled).toBe(true)
+  })
+
+  it('ne pose le focus sur aucun champ verrouillé', async () => {
+    await monter(null)
+
+    expect(document.activeElement).not.toBe(champ('weight-sheet-kg'))
+    expect(document.activeElement).not.toBe(champ('weight-sheet-date'))
   })
 
   it('refuse l’envoi sans animal : « Choisis un animal. »', async () => {

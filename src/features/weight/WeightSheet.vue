@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import {
@@ -28,6 +28,7 @@ const errors = ref<WeightFormErrors>({})
 const saveFailed = ref(false)
 const isSubmitting = ref(false)
 const maxDate = todayIsoDate()
+const weightInput = ref<{ focus: () => void } | null>(null)
 
 const needsAnimal = computed(() => !props.animalId)
 const isLocked = computed(() => needsAnimal.value && values.value.animalId === null)
@@ -50,6 +51,9 @@ watch(
     errors.value = {}
     saveFailed.value = false
     if (!animals.hasLoaded) void animals.load()
+    // Animal connu : le clavier s'ouvre sur le poids, la saisie tient en deux taps.
+    // Sans animal, les champs sont verrouillés : rien à focaliser.
+    if (!needsAnimal.value) void nextTick(() => weightInput.value?.focus())
   },
   { immediate: true },
 )
@@ -143,6 +147,7 @@ async function submit(): Promise<void> {
           </label>
           <v-text-field
             id="weight-sheet-kg"
+            ref="weightInput"
             v-model="values.weightKg"
             class="weight-sheet__input"
             variant="outlined"
