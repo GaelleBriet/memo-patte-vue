@@ -23,8 +23,12 @@ withDefaults(
   defineProps<{
     animals: readonly AnimalChipItem[]
     mode?: AnimalChipSelectorMode
+    /** Masque la chip « + » : un formulaire choisit parmi les animaux existants. */
+    hideAdd?: boolean
+    /** Rangée posée dans un contenu (feuille, formulaire) : ni débord sur un header, ni marge latérale. */
+    inline?: boolean
   }>(),
-  { mode: 'filter' },
+  { mode: 'filter', hideAdd: false, inline: false },
 )
 
 defineEmits<{
@@ -41,7 +45,7 @@ function onSelect(value: unknown) {
 </script>
 
 <template>
-  <div class="animal-chip-selector">
+  <div class="animal-chip-selector" :class="{ 'animal-chip-selector--inline': inline }">
     <div class="animal-chip-selector__row">
       <v-chip-group
         class="animal-chip-selector__group"
@@ -73,6 +77,7 @@ function onSelect(value: unknown) {
       </v-chip-group>
 
       <v-btn
+        v-if="!hideAdd"
         class="animal-chip-selector__add"
         icon="ms:add"
         variant="flat"
@@ -104,6 +109,11 @@ $gap-chips: 10px;
   align-items: center;
   gap: $gap-chips;
   padding-inline: 20px;
+}
+
+.animal-chip-selector--inline .animal-chip-selector__row {
+  margin-top: 0;
+  padding-inline: 0;
 }
 
 .animal-chip-selector__group {

@@ -54,13 +54,14 @@ function px(valeur: string): number {
   return Number.parseFloat(valeur)
 }
 
-function monter() {
+function monter(props: Record<string, unknown> = {}) {
   return mount(AnimalChipSelector, {
     props: {
       animals: [
         { id: 'milo', name: 'Milo' },
         { id: 'luna', name: 'Luna' },
       ],
+      ...props,
     },
     global: { plugins: [vuetify, i18n] },
     attachTo: document.body,
@@ -109,6 +110,17 @@ describe('AnimalChipSelector — contrat de style', () => {
     const wrapper = monter()
 
     expect(window.getComputedStyle(wrapper.get('.animal-chip').element).height).toBe('42px')
+
+    wrapper.unmount()
+  })
+
+  it('variante `inline` : ni débord sur un header, ni marge latérale propre', () => {
+    const wrapper = monter({ inline: true })
+    const rangee = window.getComputedStyle(wrapper.get('.animal-chip-selector__row').element)
+
+    expect(px(rangee.marginTop)).toBe(0)
+    expect(px(rangee.paddingLeft)).toBe(0)
+    expect(px(rangee.paddingRight)).toBe(0)
 
     wrapper.unmount()
   })

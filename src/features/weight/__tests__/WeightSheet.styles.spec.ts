@@ -48,3 +48,9 @@ describe('WeightSheet — contrat de style de la poignée', () => {
     expect(declaration('.weight-sheet__handle::before', 'background')).toBe('#c1bdb7')
   })
 })
+
+describe('WeightSheet — sélecteur d’animal', () => {
+  it('ne surcharge pas le CSS du sélecteur partagé : ses props suffisent', () => {
+    expect(css).not.toContain('animal-chip-selector')
+  })
+})
