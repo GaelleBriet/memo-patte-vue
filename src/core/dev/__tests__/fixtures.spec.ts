@@ -1,6 +1,10 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { DbClient } from '@/core/db/db-client'
+import type { AnimalsRepository } from '@/features/animals/animals.repository'
+import type { TreatmentsRepository } from '@/features/treatments/treatments.repository'
+import type { VaccinationsRepository } from '@/features/vaccinations/vaccinations.repository'
+import type { WeightRepository } from '@/features/weight/weight.repository'
 import {
   applyDevFixtures,
   applyFixtures,
@@ -21,21 +25,29 @@ function createFakeStorage(initial: Record<string, string> = {}) {
 
 function createFakeDb(): DbClient {
   return {
-    run: vi.fn(async () => 0),
-    runMany: vi.fn(async () => {}),
-    query: vi.fn(async () => []),
-    execute: vi.fn(async () => {}),
+    run: vi.fn<DbClient['run']>(async () => 0),
+    runMany: vi.fn<DbClient['runMany']>(async () => {}),
+    query: vi.fn<(sql: string) => Promise<never[]>>(async () => []),
+    execute: vi.fn<DbClient['execute']>(async () => {}),
   }
 }
 
 let nextId = 0
+/** Chaque `create` rend son entrée avec un identifiant, seul champ que le module relit. */
+function fakeCreate<Create extends (input: never) => Promise<unknown>>(prefix: string) {
+  return vi.fn<Create>((async (input: object) => ({
+    ...input,
+    id: `${prefix}-${++nextId}`,
+  })) as unknown as Create)
+}
+
 function createFakeRepositories(): FixturesRepositories {
   return {
-    animals: { create: vi.fn(async (input) => ({ ...input, id: `animal-${++nextId}` })) },
-    vaccinations: { create: vi.fn(async (input) => ({ ...input, id: `vaccination-${++nextId}` })) },
-    treatments: { create: vi.fn(async (input) => ({ ...input, id: `treatment-${++nextId}` })) },
-    weight: { create: vi.fn(async (input) => ({ ...input, id: `weight-${++nextId}` })) },
-  } as unknown as FixturesRepositories
+    animals: { create: fakeCreate<AnimalsRepository['create']>('animal') },
+    vaccinations: { create: fakeCreate<VaccinationsRepository['create']>('vaccination') },
+    treatments: { create: fakeCreate<TreatmentsRepository['create']>('treatment') },
+    weight: { create: fakeCreate<WeightRepository['create']>('weight') },
+  }
 }
 
 function deletedTables(db: DbClient): string[] {
