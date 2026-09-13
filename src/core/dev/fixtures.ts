@@ -74,6 +74,8 @@ export async function applyFixtures({
 
   // Mémorisé en dernier : un échec plus haut laisse l'ancien jeton, et le
   // prochain chargement réessaie au lieu de croire la base prête.
+  // Si `setItem` lève (stockage plein ou bloqué), la base est déjà prête mais le
+  // jeton n'est pas gardé : le prochain chargement la remet à zéro et la repeuple.
   storage.setItem(FIXTURES_STORAGE_KEY, requested)
   return seed ? 'seeded' : 'reset'
 }
