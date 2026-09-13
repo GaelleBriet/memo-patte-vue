@@ -5,6 +5,45 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.17](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.16...memo-patte-v0.1.17) (2026-09-13)
+
+
+### ✨ Fonctionnalités
+
+* **home:** choisir l'animal visé par une action rapide ([3303270](https://github.com/GaelleBriet/memo-patte-vue/commit/330327012497144c1c006613b1def9518a7d8fef))
+* **home:** feuille « Pour quel animal ? » des actions rapides ([395263c](https://github.com/GaelleBriet/memo-patte-vue/commit/395263c78eb41218d29779ba314b49edfac90e04))
+* **home:** section Actions rapides ([059a9f1](https://github.com/GaelleBriet/memo-patte-vue/commit/059a9f1b3cf91035bd3a616a02b41ef881869aaf))
+* **home:** section Actions rapides sur l'accueil ([da9e45f](https://github.com/GaelleBriet/memo-patte-vue/commit/da9e45f50bba4a3cbe50f615ff4d21ff69f38851))
+* **shared:** composable de validation qui revalide après le premier envoi ([33b1e45](https://github.com/GaelleBriet/memo-patte-vue/commit/33b1e45db7555743362ee6a90f20d230bc6fa88c))
+* **weight:** dire qu'un animal est introuvable sur le suivi de poids ([bdf07ce](https://github.com/GaelleBriet/memo-patte-vue/commit/bdf07ce7434443d895e1866dd4fd43b72010a479))
+* **weight:** écran « Suivi de poids » ([#31](https://github.com/GaelleBriet/memo-patte-vue/issues/31)) ([1217bb1](https://github.com/GaelleBriet/memo-patte-vue/commit/1217bb1a5d3f2baf14768f6677b22d7707ad9e4e))
+* **weight:** écran « Suivi de poids » ([#31](https://github.com/GaelleBriet/memo-patte-vue/issues/31)) ([eeda0ef](https://github.com/GaelleBriet/memo-patte-vue/commit/eeda0ef17d89b0992bdbccd13ba20c753d4b55d4))
+* **weight:** indicateur de chargement et bouton Réessayer sur le suivi de poids ([0db9b1c](https://github.com/GaelleBriet/memo-patte-vue/commit/0db9b1cff4909be4d2c08c98b6b8d1b4946508d0))
+* **weight:** lien « Voir l'historique » dans la carte poids du Carnet ([f47f3c9](https://github.com/GaelleBriet/memo-patte-vue/commit/f47f3c950bfaeef803e0714dede0899cf68f9279))
+* **weight:** module pur de l'historique de poids ([26aa740](https://github.com/GaelleBriet/memo-patte-vue/commit/26aa740846bb88da0c1911b989a419d7b09cda24))
+
+
+### 🐛 Corrections
+
+* **animals:** effacer l'erreur d'un champ dès qu'il est corrigé ([57db844](https://github.com/GaelleBriet/memo-patte-vue/commit/57db844d005273c47f0dbe35a9a87728be3642cb))
+* **home:** ignorer une sélection absente du foyer pour les actions rapides ([44196bb](https://github.com/GaelleBriet/memo-patte-vue/commit/44196bb13b84d429223bdb3f9bab0c65b9be56b9))
+* **home:** tuiles d'action rapide en boutons natifs ([52f7048](https://github.com/GaelleBriet/memo-patte-vue/commit/52f7048fd8fd24baf300b5a01370f5441f072eb8))
+* **shared:** anneau de chip en bordure, focus clavier de nouveau visible ([861fd4f](https://github.com/GaelleBriet/memo-patte-vue/commit/861fd4f0b29462166b5da8c2d9ad6ccea2848b2d))
+* **shared:** anneau, filet d'avatar et espacement des chips animaux ([859ecd1](https://github.com/GaelleBriet/memo-patte-vue/commit/859ecd154911b2f5505ab5c02cb82894bef3317f))
+* **shared:** chips animaux conformes à la maquette, props hideAdd et inline ([b548204](https://github.com/GaelleBriet/memo-patte-vue/commit/b548204ef8e4957816b86bf3cbe94ac58e223e0e))
+* **shared:** erreurs de formulaire effacées à la correction, option cochée lisible ([cd23a72](https://github.com/GaelleBriet/memo-patte-vue/commit/cd23a72b93d7c86f540faa731389b88bf4d2d9d8))
+* **shared:** icône d'erreur remplie sous les champs, comme la maquette ([fceb5ca](https://github.com/GaelleBriet/memo-patte-vue/commit/fceb5cad2f33883c7d14573e6163b83921a159b1))
+* **shared:** ni contour ni voile de focus sur les chips animaux ([a1595af](https://github.com/GaelleBriet/memo-patte-vue/commit/a1595aff07fa49f1fc4b416c759d75bf1a37270a))
+* **shared:** onglet actif de la barre du bas sans fond gris ([7fdf6f6](https://github.com/GaelleBriet/memo-patte-vue/commit/7fdf6f66a4083488f33b4965944ce6d685423b76))
+* **shared:** retirer le voile gris des onglets de la barre du bas ([3d00906](https://github.com/GaelleBriet/memo-patte-vue/commit/3d00906fd55280ce7efdcf63f2c9caa6220af9bb)), closes [#169](https://github.com/GaelleBriet/memo-patte-vue/issues/169)
+* **shared:** texte et coche blanc cassé sur l'option cochée du sélecteur à boutons ([587fa48](https://github.com/GaelleBriet/memo-patte-vue/commit/587fa480af1acf0d60fd9b9bb6b8686432e9a859))
+* **treatments:** effacer l'erreur d'un champ dès qu'il est corrigé ([684dd65](https://github.com/GaelleBriet/memo-patte-vue/commit/684dd6534d98e623e5b3579552c40c57d6b628e1))
+* **vaccinations:** effacer l'erreur d'un champ dès qu'il est corrigé ([e35192a](https://github.com/GaelleBriet/memo-patte-vue/commit/e35192abee2a5eea0a49cfbd3ba0773fb86fa46e))
+* **weight:** borner le suivi de poids à la fenêtre pour garder le bouton d'ajout visible ([d559631](https://github.com/GaelleBriet/memo-patte-vue/commit/d559631720d62d2ce779bea9970f9915378444bf))
+* **weight:** effacer l'erreur d'un champ de la feuille pesée dès qu'il est corrigé ([0c74109](https://github.com/GaelleBriet/memo-patte-vue/commit/0c7410993fd98265462ae49a45bc5ead29350229))
+* **weight:** garder les pesées affichées pendant une écriture ([6538655](https://github.com/GaelleBriet/memo-patte-vue/commit/6538655fb401221572f0edf2bafd84e9e8f4512e))
+* **weight:** zone de tap de 48 px pour « Voir l'historique » ([f3848b1](https://github.com/GaelleBriet/memo-patte-vue/commit/f3848b109d0440ca2418b37e15025a2a7f714860))
+
 ## [0.1.16](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.15...memo-patte-v0.1.16) (2026-09-13)
 
 
