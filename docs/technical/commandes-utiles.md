@@ -99,8 +99,10 @@ pnpm dev:mobile
   `android/capacitor.settings.gradle` (généré, versionné) pointe vers les chemins du store **pnpm**
   (`node_modules/.pnpm/…`). Un `node_modules` installé par npm ne les a pas. `preinstall` refuse désormais
   `npm install` ; si ça arrive quand même : `rm -rf node_modules package-lock.json && pnpm install --frozen-lockfile`.
-- Après un bump de `@capacitor/*` ou d'un plugin Capacitor (Dependabot), ces chemins changent : lance
-  `pnpm cap:sync` une fois pour régénérer `capacitor.settings.gradle`, car `dev:mobile` tourne avec `--no-sync`.
+- Après un bump de `@capacitor/*` ou d'un plugin Capacitor (groupe Dependabot `capacitor`), ces chemins changent :
+  lance `pnpm cap:sync` une fois pour régénérer `capacitor.settings.gradle`, **puis commite le fichier** (c'est
+  un geste manuel après le merge, Dependabot ne peut pas le faire), car `dev:mobile` tourne avec `--no-sync`.
+  Sinon la dérive revient à chaque bump (vu sur #147 : `main` pointait encore vers 8.5.0 après la montée 8.5.1).
 
 ## 3. Inspecter l'app avec Chrome DevTools (optionnel)
 
