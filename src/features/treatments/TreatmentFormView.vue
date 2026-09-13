@@ -10,7 +10,12 @@ import {
   validateTreatmentForm,
   type TreatmentFormErrors,
 } from './treatment-form'
-import { FREQUENCY_UNITS, TREATMENT_TYPES, type Treatment } from './treatment.schema'
+import {
+  FREQUENCY_UNITS,
+  TREATMENT_TYPES,
+  type FrequencyUnit,
+  type Treatment,
+} from './treatment.schema'
 import { useTreatmentsStore } from './treatments.store'
 import { useAnimalsStore } from '@/features/animals/animals.store'
 import { formatLongDate } from '@/shared/format'
@@ -71,7 +76,7 @@ const unitCount = computed(() => {
 const unitOptions = computed(() =>
   FREQUENCY_UNITS.map((unit) => ({
     value: unit,
-    title: t(`treatments.form.frequency.unit.${unit}`, unitCount.value),
+    label: t(`treatments.form.frequency.unit.${unit}`, unitCount.value),
   })),
 )
 const nextDose = computed(() => {
@@ -95,6 +100,10 @@ function requireAnimalId(): string {
 
 function backToAnimals(): void {
   void router.push({ name: 'animals' })
+}
+
+function selectUnit(unit: FrequencyUnit | null): void {
+  if (unit) values.value.frequencyUnit = unit
 }
 
 async function submit(): Promise<void> {
@@ -188,33 +197,33 @@ async function submit(): Promise<void> {
           role="group"
           aria-labelledby="treatment-frequency-label"
         >
-          <span id="treatment-frequency-every" class="treatment-form__every">
-            {{ t(`treatments.form.frequency.every.${values.frequencyUnit}`) }}
-          </span>
-          <v-text-field
-            id="treatment-frequency-value"
-            v-model="values.frequencyValue"
-            class="form-field__input form-field__input--number treatment-form__frequency-value"
-            type="number"
-            inputmode="numeric"
-            min="1"
-            step="1"
-            variant="outlined"
-            hide-details
-            aria-required="true"
-            aria-labelledby="treatment-frequency-label treatment-frequency-every"
-            :aria-describedby="describedby"
-            :aria-invalid="invalid"
-            :error="invalid"
-          />
-          <v-select
-            id="treatment-frequency-unit"
-            v-model="values.frequencyUnit"
-            class="form-field__input treatment-form__unit"
-            :items="unitOptions"
-            variant="outlined"
-            hide-details
-            :error="invalid"
+          <div class="treatment-form__frequency-row">
+            <span id="treatment-frequency-every" class="treatment-form__every">
+              {{ t(`treatments.form.frequency.every.${values.frequencyUnit}`) }}
+            </span>
+            <v-text-field
+              id="treatment-frequency-value"
+              v-model="values.frequencyValue"
+              class="form-field__input form-field__input--number treatment-form__frequency-value"
+              type="number"
+              inputmode="numeric"
+              min="1"
+              step="1"
+              variant="outlined"
+              hide-details
+              aria-required="true"
+              aria-labelledby="treatment-frequency-label treatment-frequency-every"
+              :aria-describedby="describedby"
+              :aria-invalid="invalid"
+              :error="invalid"
+            />
+          </div>
+          <FormSegmented
+            class="treatment-form__unit"
+            :model-value="values.frequencyUnit"
+            :options="unitOptions"
+            label-id="treatment-frequency-label"
+            @update:model-value="selectUnit"
           />
         </div>
       </template>
@@ -259,6 +268,12 @@ async function submit(): Promise<void> {
 
 .treatment-form__frequency {
   display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.treatment-form__frequency-row {
+  display: flex;
   align-items: center;
   gap: 10px;
 }
@@ -272,11 +287,6 @@ async function submit(): Promise<void> {
 
 .treatment-form__frequency-value {
   flex: 0 0 84px;
-}
-
-.treatment-form__unit {
-  flex: 1 1 auto;
-  min-width: 0;
 }
 
 .treatment-form__next-dose {

@@ -107,11 +107,22 @@ function valeur(wrapper: VueWrapper, id: string): string {
 }
 
 function types(wrapper: VueWrapper) {
-  return wrapper.findAll('.form-segmented button')
+  return wrapper.findAll('.treatment-form__field--type .form-segmented button')
 }
 
-function unite(wrapper: VueWrapper) {
-  return wrapper.findComponent({ name: 'VSelect' })
+const UNITES = ['day', 'week', 'month'] as const
+
+function unites(wrapper: VueWrapper) {
+  return wrapper.findAll('.treatment-form__unit button')
+}
+
+function uniteCochee(wrapper: VueWrapper): string | undefined {
+  const index = unites(wrapper).findIndex((bouton) => bouton.attributes('aria-checked') === 'true')
+  return UNITES[index]
+}
+
+async function choisirUnite(wrapper: VueWrapper, unit: (typeof UNITES)[number]) {
+  await unites(wrapper)[UNITES.indexOf(unit)]!.trigger('click')
 }
 
 function messages(wrapper: VueWrapper): string[] {
@@ -152,7 +163,7 @@ describe('TreatmentFormView — structure', () => {
     const wrapper = await monterCreation()
 
     expect(wrapper.find('.animal-chip-selector').exists()).toBe(false)
-    expect(wrapper.findAll('[role="radiogroup"]')).toHaveLength(1)
+    expect(wrapper.findAll('[role="radiogroup"]')).toHaveLength(2)
   })
 
   it('propose vermifuge et antiparasitaire en choix exclusifs, aucun présélectionné', async () => {
@@ -172,8 +183,30 @@ describe('TreatmentFormView — structure', () => {
     expect(wrapper.get('.treatment-form__frequency').text()).toContain('Tous les')
     expect(nombre.attributes('inputmode')).toBe('numeric')
     expect(nombre.attributes('min')).toBe('1')
-    expect(unite(wrapper).props('modelValue')).toBe('month')
-    expect(unite(wrapper).text()).toContain('mois')
+    expect(uniteCochee(wrapper)).toBe('month')
+  })
+
+  it('choisit l’unité parmi trois boutons sur leur propre ligne, jamais dans un select', async () => {
+    const wrapper = await monterCreation()
+
+    expect(wrapper.findComponent({ name: 'VSelect' }).exists()).toBe(false)
+    expect(wrapper.findAll('select')).toHaveLength(0)
+    expect(unites(wrapper)).toHaveLength(3)
+    expect(wrapper.get('.treatment-form__unit').attributes('role')).toBe('radiogroup')
+    expect(wrapper.find('.treatment-form__frequency-row .treatment-form__unit').exists()).toBe(
+      false,
+    )
+    expect(wrapper.find('.treatment-form__frequency-row #treatment-frequency-value').exists()).toBe(
+      true,
+    )
+  })
+
+  it('garde l’unité cochée quand on la retape : une fréquence a toujours une unité', async () => {
+    const wrapper = await monterCreation()
+
+    await choisirUnite(wrapper, 'month')
+
+    expect(uniteCochee(wrapper)).toBe('month')
   })
 
   it('accorde le mot de liaison à l’unité : « Toutes les 2 semaines »', async () => {
@@ -182,26 +215,24 @@ describe('TreatmentFormView — structure', () => {
 
     expect(wrapper.get('#treatment-frequency-every').text()).toBe('Tous les')
 
-    await unite(wrapper).setValue('week')
+    await choisirUnite(wrapper, 'week')
 
     expect(wrapper.get('#treatment-frequency-every').text()).toBe('Toutes les')
 
-    await unite(wrapper).setValue('day')
+    await choisirUnite(wrapper, 'day')
 
     expect(wrapper.get('#treatment-frequency-every').text()).toBe('Tous les')
   })
 
-  it('accorde l’unité au nombre saisi', async () => {
+  it('accorde les libellés d’unité au nombre saisi', async () => {
     const wrapper = await monterCreation()
     await champ(wrapper, 'treatment-frequency-value').setValue('2')
-    await unite(wrapper).setValue('week')
 
-    expect(unite(wrapper).text()).toContain('semaines')
+    expect(unites(wrapper).map((bouton) => bouton.text())).toEqual(['jours', 'semaines', 'mois'])
 
     await champ(wrapper, 'treatment-frequency-value').setValue('1')
 
-    expect(unite(wrapper).text()).toContain('semaine')
-    expect(unite(wrapper).text()).not.toContain('semaines')
+    expect(unites(wrapper).map((bouton) => bouton.text())).toEqual(['jour', 'semaine', 'mois'])
   })
 
   it('borne la date de la dernière prise à aujourd’hui', async () => {
@@ -228,7 +259,7 @@ describe('TreatmentFormView — aperçu de la prochaine dose', () => {
 
     expect(wrapper.get('.treatment-form__next-dose').text()).toBe('Prochaine dose le 24 sept. 2026')
 
-    await unite(wrapper).setValue('week')
+    await choisirUnite(wrapper, 'week')
 
     expect(wrapper.get('.treatment-form__next-dose').text()).toBe('Prochaine dose le 15 juil. 2026')
   })
@@ -291,7 +322,7 @@ describe('TreatmentFormView — création', () => {
   it('envoie l’unité choisie dans le sélecteur', async () => {
     const wrapper = await monterCreation()
     await remplirMinimum(wrapper)
-    await unite(wrapper).setValue('day')
+    await choisirUnite(wrapper, 'day')
 
     await soumettre(wrapper)
 
@@ -330,7 +361,7 @@ describe('TreatmentFormView — édition', () => {
     expect(valeur(wrapper, 'treatment-name')).toBe('Bravecto')
     expect(types(wrapper)[1]!.attributes('aria-checked')).toBe('true')
     expect(valeur(wrapper, 'treatment-frequency-value')).toBe('3')
-    expect(unite(wrapper).props('modelValue')).toBe('month')
+    expect(uniteCochee(wrapper)).toBe('month')
     expect(valeur(wrapper, 'treatment-last-dose-date')).toBe('2026-06-24')
     expect(wrapper.get('.treatment-form__next-dose').text()).toBe('Prochaine dose le 24 sept. 2026')
     expect(wrapper.get('.form-screen__submit').text()).toBe('Enregistrer')
