@@ -72,7 +72,11 @@ function load(): void {
   void Promise.all([animals.load(), home.load()])
 }
 
-onMounted(load)
+// Le Carnet laisse un animal sélectionné dans le store partagé : l'accueil s'ouvre toujours sur tous.
+onMounted(() => {
+  animals.select(null)
+  load()
+})
 
 function createAnimal(): void {
   void router.push({ name: 'animal-new' })

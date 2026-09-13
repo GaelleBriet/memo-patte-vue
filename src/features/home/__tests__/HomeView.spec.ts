@@ -244,6 +244,28 @@ describe('HomeView — A1 tous les animaux, avec rappels', () => {
 
     expect(wrapper.get('.home-overdue-banner').text()).toBe('2 rappels en retard')
   })
+  it('arrive toujours sur la vue de tous les animaux, même si le Carnet en a sélectionné un', async () => {
+    animalsStore.select(LUNA.id)
+    const wrapper = await monter()
+
+    expect(animalsStore.selectedAnimalId).toBeNull()
+    expect(wrapper.get('.home-todo__counter').text()).toBe('3 rappels')
+    expect(rows(wrapper).map((row) => row.animal)).toEqual(['Milo', 'Luna', 'Milo'])
+  })
+
+  it('affiche les nouvelles sources quand on remonte l’accueil', async () => {
+    const premier = await monter()
+    premier.unmount()
+    sources = [
+      ...sources,
+      source({ id: 'v5', animalId: LUNA.id, label: 'Rage', dueDate: '2026-09-10' }),
+    ]
+
+    const wrapper = await monter()
+
+    expect(listSources).toHaveBeenCalledTimes(2)
+    expect(wrapper.get('.home-todo__counter').text()).toBe('4 rappels')
+  })
 })
 
 describe('HomeView — A2 animal sélectionné, avec rappels', () => {
@@ -275,9 +297,11 @@ describe('HomeView — A2 animal sélectionné, avec rappels', () => {
     ])
   })
 
-  it('respecte une sélection déjà faite dans le store', async () => {
-    animalsStore.select(LUNA.id)
+  it('filtre sur Luna sans bandeau quand elle n’a pas de retard', async () => {
     const wrapper = await monter()
+
+    await wrapper.findAll('.animal-chip')[1]!.trigger('click')
+    await flushPromises()
 
     expect(wrapper.get('.home-todo__counter').text()).toBe('Luna · 1 rappel')
     expect(wrapper.find('.home-overdue-banner').exists()).toBe(false)
@@ -285,9 +309,10 @@ describe('HomeView — A2 animal sélectionné, avec rappels', () => {
   })
 
   it('revient à tous les animaux au second tap sur la chip active', async () => {
-    animalsStore.select(MILO.id)
     const wrapper = await monter()
 
+    await wrapper.findAll('.animal-chip')[0]!.trigger('click')
+    await flushPromises()
     await wrapper.findAll('.animal-chip')[0]!.trigger('click')
     await flushPromises()
 
@@ -299,11 +324,17 @@ describe('HomeView — A2 animal sélectionné, avec rappels', () => {
 describe('HomeView — A3 animal sélectionné, aucun rappel', () => {
   beforeEach(() => {
     sources = [VERMIFUGE_LUNA_AUJOURDHUI]
-    animalsStore.select(MILO.id)
   })
 
-  it('n’écrit que le prénom en compteur et l’état « Tout est à jour » nominatif', async () => {
+  async function monterSurMilo() {
     const wrapper = await monter()
+    await wrapper.findAll('.animal-chip')[0]!.trigger('click')
+    await flushPromises()
+    return wrapper
+  }
+
+  it('n’écrit que le prénom en compteur et l’état « Tout est à jour » nominatif', async () => {
+    const wrapper = await monterSurMilo()
 
     expect(wrapper.get('.home-todo__counter').text()).toBe('Milo')
     expect(wrapper.find('.home-reminders').exists()).toBe(false)
@@ -313,7 +344,7 @@ describe('HomeView — A3 animal sélectionné, aucun rappel', () => {
   })
 
   it('mène au formulaire de vaccin de l’animal sélectionné par le lien texte', async () => {
-    const wrapper = await monter()
+    const wrapper = await monterSurMilo()
 
     expect(wrapper.get('.home-up-to-date__add').text()).toBe('Ajouter un vaccin ou un traitement')
     await wrapper.get('.home-up-to-date__add').trigger('click')
