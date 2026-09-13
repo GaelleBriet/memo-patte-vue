@@ -13,9 +13,6 @@
     "form": {
       "title": "Nouvel animal",
       "editTitle": "Modifier {name}",
-      "back": "Retour",
-      "required": "*",
-      "optional": "Optionnel",
       "name": {
         "label": "Nom",
         "placeholder": "Ex. Milo"
@@ -37,7 +34,6 @@
         "placeholder": "0,0",
         "suffix": "kg"
       },
-      "cancel": "Annuler",
       "submit": "Créer",
       "submitting": "Création…",
       "save": "Enregistrer",
@@ -88,9 +84,6 @@
       "title": "Nouveau vaccin",
       "editTitle": "Modifier {name}",
       "forAnimal": "Pour {name}",
-      "back": "Retour",
-      "required": "*",
-      "optional": "Optionnel",
       "name": {
         "label": "Nom du vaccin",
         "placeholder": "Ex. Rage"
@@ -101,7 +94,6 @@
       "dueDate": {
         "label": "Prochaine échéance"
       },
-      "cancel": "Annuler",
       "submit": "Créer",
       "submitting": "Création…",
       "save": "Enregistrer",
@@ -142,9 +134,52 @@
       "week": "Toutes les semaines | Toutes les {n} semaines",
       "month": "Tous les mois | Tous les {n} mois"
     },
+    "form": {
+      "title": "Nouveau traitement",
+      "editTitle": "Modifier {name}",
+      "forAnimal": "Pour {name}",
+      "name": {
+        "label": "Nom",
+        "placeholder": "Ex. Bravecto"
+      },
+      "type": {
+        "label": "Type"
+      },
+      "frequency": {
+        "label": "Fréquence",
+        "every": {
+          "day": "Tous les",
+          "week": "Toutes les",
+          "month": "Tous les"
+        },
+        "unit": {
+          "day": "jour | jours",
+          "week": "semaine | semaines",
+          "month": "mois"
+        }
+      },
+      "lastDoseDate": {
+        "label": "Date de la dernière prise"
+      },
+      "nextDose": "Prochaine dose le {date}",
+      "submit": "Ajouter",
+      "submitting": "Ajout…",
+      "save": "Enregistrer",
+      "saving": "Enregistrement…",
+      "errors": {
+        "name": "Le nom est obligatoire.",
+        "type": "Choisis un type.",
+        "frequency": "Indique une fréquence.",
+        "lastDoseDate": "La date est obligatoire.",
+        "lastDoseDateFuture": "La date ne peut pas être dans le futur.",
+        "notFound": "Ce traitement est introuvable.",
+        "save": "Le traitement n’a pas pu être enregistré. Réessaie."
+      }
+    },
     "section": {
       "title": "Traitements en cours",
       "empty": "Aucun traitement en cours",
+      "add": "Ajouter un traitement",
       "nextDose": {
         "overdue": "Prochaine dose en retard · {n} j",
         "today": "Prochaine dose aujourd’hui",
@@ -236,5 +271,11 @@
       "text": "Le carnet de santé de tes animaux, toujours à jour.",
       "create": "Créer mon premier animal"
     }
+  },
+  "form": {
+    "back": "Retour",
+    "cancel": "Annuler",
+    "required": "*",
+    "optional": "Optionnel"
   }
 }
