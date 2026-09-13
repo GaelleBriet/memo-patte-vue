@@ -246,27 +246,44 @@ async function submit(): Promise<void> {
 }
 
 .weight-sheet__panel {
-  padding: 8px 20px 24px;
+  padding: 0 20px 24px;
 }
 
+// Zone de tap de 44 px de haut ; la pilule visible (36 × 4) reste à 12 px du bord.
 .weight-sheet__handle {
+  // Au-dessus du titre qui remonte sous elle : les 44 px restent tous tapables.
+  position: relative;
+  z-index: 1;
   display: block;
-  width: 36px;
-  height: 4px;
+  width: 96px;
+  height: 44px;
   margin: 0 auto;
   padding: 0;
   border: 0;
-  border-radius: 999px;
-  background: tokens.$color-sheet-handle;
+  background: transparent;
   cursor: pointer;
 }
 
+.weight-sheet__handle::before {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  width: 36px;
+  height: 4px;
+  border-radius: 999px;
+  background: tokens.$color-sheet-handle;
+  content: '';
+  transform: translateX(-50%);
+}
+
+// La zone de tap de la poignée descend sous la pilule : le titre remonte d'autant
+// pour garder 18 px entre la pilule et lui.
 .weight-sheet__header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 8px;
-  margin-top: 18px;
+  margin-top: -10px;
 }
 
 .weight-sheet__heading {
