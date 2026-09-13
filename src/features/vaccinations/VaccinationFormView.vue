@@ -8,13 +8,13 @@ import {
   todayIsoDate,
   validateVaccinationForm,
   vaccinationFormValuesFrom,
-  type VaccinationFormErrors,
 } from './vaccination-form'
 import type { Vaccination } from './vaccination.schema'
 import { useVaccinationsStore } from './vaccinations.store'
 import { useAnimalsStore } from '@/features/animals/animals.store'
 import FormField from '@/shared/form/FormField.vue'
 import FormScreen from '@/shared/form/FormScreen.vue'
+import { useFormValidation } from '@/shared/form/use-form-validation'
 
 const props = defineProps<{
   animalId?: string
@@ -27,7 +27,7 @@ const animals = useAnimalsStore()
 const vaccinations = useVaccinationsStore()
 
 const values = ref(emptyVaccinationFormValues())
-const errors = ref<VaccinationFormErrors>({})
+const { errors, validate } = useFormValidation(values, validateVaccinationForm)
 const existing = ref<Vaccination | null>(null)
 const notFound = ref(false)
 const saveFailed = ref(false)
@@ -80,8 +80,7 @@ function backToAnimals(): void {
 async function submit(): Promise<void> {
   if (isSubmitting.value || notFound.value) return
 
-  const result = validateVaccinationForm(values.value)
-  errors.value = result.success ? {} : result.errors
+  const result = validate()
   if (!result.success) return
 
   isSubmitting.value = true

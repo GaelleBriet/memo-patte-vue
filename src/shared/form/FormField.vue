@@ -32,7 +32,7 @@ const errorId = useId()
     </component>
     <slot :describedby="error ? errorId : undefined" :invalid="Boolean(error)" />
     <p v-if="error" :id="errorId" class="form-field__error">
-      <v-icon icon="ms:error" size="16" />
+      <v-icon icon="ms:error_fill" size="16" />
       <span>{{ error }}</span>
     </p>
   </div>

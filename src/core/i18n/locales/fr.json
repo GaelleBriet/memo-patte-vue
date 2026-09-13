@@ -276,6 +276,16 @@
       "namesLast": " et ",
       "add": "Ajouter un vaccin ou un traitement"
     },
+    "quickActions": {
+      "title": "Actions rapides",
+      "treatment": "Nouveau traitement",
+      "vaccination": "Rappel de vaccin",
+      "weight": "Ajouter un poids",
+      "picker": {
+        "title": "Pour quel animal ?",
+        "close": "Fermer"
+      }
+    },
     "welcome": {
       "title": "Bienvenue sur MémoPatte",
       "text": "Le carnet de santé de tes animaux, toujours à jour.",

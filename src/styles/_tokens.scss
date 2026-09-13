@@ -19,6 +19,7 @@ $color-card-border: #ece9e5; // Bordure carte
 $color-divider: #efece8; // Filet de séparation
 $color-text-secondary: #68625c; // Texte secondaire
 $color-text-meta: #79736d; // Texte méta / compteur
+$color-on-primary: #f9f4ee; // Texte, coche et anneau clairs sur pétrole
 $color-on-primary-subtitle: #b9d0d1; // Sous-titre sur pétrole
 
 // Carnet
@@ -66,6 +67,9 @@ $height-header: 158px; // Header pétrole
 $height-list-row: 76px; // Ligne de liste (minimum)
 $height-add-row: 52px; // Dernière ligne « Ajouter … » d'une carte
 $height-chip: 42px; // Chip animal (et chip « + »)
+$width-chip-ring: 2px; // Anneau clair de la chip animal sélectionnée, bordure comprise, dans ses 42 px
+$width-chip-avatar-ring: 1px; // Filet clair autour de l'avatar d'une chip, dans ses 32 px
+$gap-chip-avatar: 10px; // Entre l'avatar et le prénom d'une chip
 $height-quick-tile: 78px; // Tuile d'action rapide
 $height-field: 52px; // Champ de formulaire
 $height-segmented: 48px; // Segmented control d'un formulaire
@@ -87,3 +91,7 @@ $opacity-overlay-scrim: 0.46;
 $color-sheet-handle: #c1bdb7; // Poignée de glissement d'une feuille
 $radius-sheet: 24px; // Coins hauts d'une feuille modale
 $shadow-sheet: 0 -6px 24px rgb(30 25 20 / 14%); // Ombre portée vers le haut d'une feuille
+
+// Accueil (actions rapides)
+$height-picker-row: 60px; // Ligne d'animal de la feuille « Pour quel animal ? »
+$size-picker-avatar: 40px; // Avatar rond d'une ligne de cette feuille

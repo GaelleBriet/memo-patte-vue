@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 
+import { heightBottomNav, paddingBottomNav } from '@/core/theme/layout-tokens'
+
 const { t } = useI18n()
 
 const tabs = [
@@ -8,9 +10,9 @@ const tabs = [
   { route: 'animals', icon: 'ms:pets', label: 'nav.animals' },
 ] as const
 
-// 56 px d'onglets plus les 22 px de `$padding-bottom-nav` : Vuetify fait
-// `Number(props.height)` pour décaler `VMain`, un `calc()` donnerait `NaN`.
-const barHeight = 56 + 22
+// Onglets plus zone de gestes : Vuetify fait `Number(props.height)` pour décaler
+// `VMain`, un `calc()` donnerait `NaN`, d'où les tokens en nombre.
+const barHeight = heightBottomNav + paddingBottomNav
 </script>
 
 <template>
@@ -41,6 +43,12 @@ const barHeight = 56 + 22
 
 .bottom-navigation :deep(.v-btn) {
   letter-spacing: normal;
+}
+
+// Pas de voile Vuetify sur un onglet (sélection, survol, focus) : la maquette n'en
+// montre aucun. Le ripple reste le retour au tap, l'anneau `:focus-visible` celui du clavier.
+.bottom-navigation :deep(.v-btn__overlay) {
+  display: none;
 }
 
 .bottom-navigation :deep(.v-btn:not(.v-btn--selected)) {

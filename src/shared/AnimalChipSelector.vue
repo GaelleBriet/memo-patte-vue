@@ -23,8 +23,12 @@ withDefaults(
   defineProps<{
     animals: readonly AnimalChipItem[]
     mode?: AnimalChipSelectorMode
+    /** Masque la chip « + » : un formulaire choisit parmi les animaux existants. */
+    hideAdd?: boolean
+    /** Rangée posée dans un contenu (feuille, formulaire) : ni débord sur un header, ni marge latérale. */
+    inline?: boolean
   }>(),
-  { mode: 'filter' },
+  { mode: 'filter', hideAdd: false, inline: false },
 )
 
 defineEmits<{
@@ -41,7 +45,7 @@ function onSelect(value: unknown) {
 </script>
 
 <template>
-  <div class="animal-chip-selector">
+  <div class="animal-chip-selector" :class="{ 'animal-chip-selector--inline': inline }">
     <div class="animal-chip-selector__row">
       <v-chip-group
         class="animal-chip-selector__group"
@@ -73,6 +77,7 @@ function onSelect(value: unknown) {
       </v-chip-group>
 
       <v-btn
+        v-if="!hideAdd"
         class="animal-chip-selector__add"
         icon="ms:add"
         variant="flat"
@@ -88,6 +93,9 @@ function onSelect(value: unknown) {
 @use '@/styles/tokens' as tokens;
 
 $gap-chips: 10px;
+$width-chip-border: 1px;
+$padding-chip-start: 5px;
+$padding-chip-end: 16px;
 
 // Le `z-index` ne passe devant qu'un header non positionné : un header qui
 // remonterait le sien reste l'affaire de l'écran.
@@ -104,6 +112,11 @@ $gap-chips: 10px;
   align-items: center;
   gap: $gap-chips;
   padding-inline: 20px;
+}
+
+.animal-chip-selector--inline .animal-chip-selector__row {
+  margin-top: 0;
+  padding-inline: 0;
 }
 
 .animal-chip-selector__group {
@@ -124,11 +137,13 @@ $gap-chips: 10px;
   color: rgb(var(--v-theme-primary));
 }
 
+// L'avatar est un contenu libre du slot `prepend`, que la marge de VChip ne vise pas.
 .animal-chip {
+  gap: tokens.$gap-chip-avatar;
   height: tokens.$height-chip;
   margin: 0;
-  padding-inline: 5px 16px;
-  border: 1px solid tokens.$color-card-border;
+  padding-inline: $padding-chip-start $padding-chip-end;
+  border: $width-chip-border solid tokens.$color-card-border;
   font-family: tokens.$font-family-body;
   font-size: 14px;
   font-weight: 700;
@@ -136,9 +151,26 @@ $gap-chips: 10px;
 
 // Revenir à `selected-class` par défaut réactiverait le voile
 // `--v-activated-opacity` de Vuetify, et le fond ne serait plus `primary`.
+// L'anneau reste dans la chip : dessiné dehors, il serait coupé par l'`overflow:
+// hidden` de VSlideGroup ; en bordure de 1 px + ombre intérieure, un liseré sombre
+// sépare les deux dans les arrondis. La bordure passe donc à 2 px et le padding rend
+// le pixel gagné de chaque côté : la chip garde sa largeur, les voisines ne bougent pas.
 .animal-chip--selected {
-  border-color: transparent;
-  box-shadow: 0 0 0 2px rgb(var(--v-theme-background));
+  $grow: tokens.$width-chip-ring - $width-chip-border;
+
+  border-width: tokens.$width-chip-ring;
+  border-color: tokens.$color-on-primary;
+  padding-inline: ($padding-chip-start - $grow) ($padding-chip-end - $grow);
+}
+
+.animal-chip:focus-visible {
+  outline: none;
+}
+
+// App tactile : la chip pétrole dit déjà laquelle est active, et TalkBack dessine
+// son propre cadre de focus, hors CSS.
+.animal-chip :deep(.v-chip__overlay) {
+  display: none;
 }
 
 .animal-chip__avatar {
@@ -148,6 +180,10 @@ $gap-chips: 10px;
   width: tokens.$size-chip-avatar;
   height: tokens.$size-chip-avatar;
   border-radius: 50%;
+  // Le contour se peint par-dessus la photo, et son retrait laisse un liseré de
+  // l'avatar au bord : c'est lui qui détache le filet clair de la chip crème.
+  outline: tokens.$width-chip-avatar-ring solid tokens.$color-on-primary;
+  outline-offset: -(tokens.$width-chip-avatar-ring + 0.5px);
   background-size: cover;
 
   img {

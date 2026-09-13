@@ -203,6 +203,50 @@ describe('VaccinationFormView — validation', () => {
   })
 })
 
+describe('VaccinationFormView — revalidation après envoi', () => {
+  it('n’affiche aucune erreur pendant la saisie avant tout envoi', async () => {
+    const wrapper = await monterCreation()
+
+    await champ(wrapper, 'vaccination-last-injection-date').setValue('2999-01-01')
+
+    expect(messages(wrapper)).toEqual([])
+    expect(champ(wrapper, 'vaccination-last-injection-date').attributes('aria-invalid')).toBe(
+      'false',
+    )
+  })
+
+  it('efface l’erreur d’un champ dès qu’il est corrigé, sans nouvel envoi', async () => {
+    const wrapper = await monterCreation()
+    await soumettre(wrapper)
+
+    await champ(wrapper, 'vaccination-name').setValue('Rage')
+
+    expect(messages(wrapper)).toEqual(['La date d’injection est obligatoire.'])
+    expect(champ(wrapper, 'vaccination-name').attributes('aria-invalid')).toBe('false')
+    expect(champ(wrapper, 'vaccination-name').attributes('aria-describedby')).toBeUndefined()
+  })
+
+  it('efface toutes les erreurs une fois le formulaire rempli, sans rien écrire', async () => {
+    const wrapper = await monterCreation()
+    await soumettre(wrapper)
+
+    await remplirMinimum(wrapper)
+
+    expect(messages(wrapper)).toEqual([])
+    expect(create).not.toHaveBeenCalled()
+  })
+
+  it('change le message quand le motif de l’erreur change', async () => {
+    const wrapper = await monterCreation()
+    await soumettre(wrapper)
+
+    await champ(wrapper, 'vaccination-last-injection-date').setValue('2999-01-01')
+
+    expect(messages(wrapper)).toContain('La date d’injection ne peut pas être dans le futur.')
+    expect(messages(wrapper)).not.toContain('La date d’injection est obligatoire.')
+  })
+})
+
 describe('VaccinationFormView — création', () => {
   it('écrit par le store avec l’animal de la route', async () => {
     const wrapper = await monterCreation()

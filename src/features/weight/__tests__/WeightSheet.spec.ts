@@ -9,6 +9,7 @@ import { useWeightStore } from '../weight.store'
 import type { Animal } from '@/features/animals/animal.schema'
 import { useAnimalsStore } from '@/features/animals/animals.store'
 import i18n from '@/core/i18n'
+import { getMsIconPath } from '@/core/theme/icons'
 import vuetify from '@/core/theme/vuetify'
 
 const MILO: Animal = {
@@ -171,6 +172,14 @@ describe('WeightSheet — animal identifié (P1)', () => {
 })
 
 describe('WeightSheet — sans animal (P2)', () => {
+  it('pose le sélecteur sans chip « + » ni débord de header', async () => {
+    await monter(null)
+
+    const selecteur = feuille().querySelector('.weight-sheet__field--animal .animal-chip-selector')
+    expect(selecteur?.classList).toContain('animal-chip-selector--inline')
+    expect(selecteur?.querySelector('.animal-chip-selector__add')).toBeNull()
+  })
+
   it('affiche la croix et le sélecteur, sans sous-titre', async () => {
     await monter(null)
 
@@ -280,6 +289,68 @@ describe('WeightSheet — validation (P3)', () => {
     await soumettre()
 
     expect(messages()).toEqual([])
+  })
+})
+
+describe('WeightSheet — revalidation après envoi', () => {
+  it('n’affiche aucune erreur pendant la saisie avant tout envoi', async () => {
+    await monter(MILO.id)
+
+    await saisir('weight-sheet-kg', '0')
+
+    expect(messages()).toEqual([])
+    expect(champ('weight-sheet-kg').getAttribute('aria-invalid')).toBe('false')
+  })
+
+  it('efface l’erreur du poids dès qu’il est corrigé, sans nouvel envoi', async () => {
+    await monter(MILO.id)
+    await saisir('weight-sheet-kg', '0')
+    await soumettre()
+
+    await saisir('weight-sheet-kg', '24,7')
+
+    expect(messages()).toEqual([])
+    expect(champ('weight-sheet-kg').getAttribute('aria-invalid')).toBe('false')
+    expect(champ('weight-sheet-kg').getAttribute('aria-describedby')).toBeNull()
+    expect(create).not.toHaveBeenCalled()
+  })
+
+  it('change le message quand le motif de l’erreur change', async () => {
+    await monter(MILO.id)
+    await saisir('weight-sheet-kg', '24,7')
+    await saisir('weight-sheet-date', '')
+    await soumettre()
+    expect(messages()).toEqual(['La date est obligatoire.'])
+
+    await saisir('weight-sheet-date', '2999-01-01')
+
+    expect(messages()).toEqual(['La date ne peut pas être dans le futur.'])
+  })
+
+  it('relie chaque champ en erreur à son message et le marque invalide', async () => {
+    await monter(MILO.id)
+    await saisir('weight-sheet-date', '')
+
+    await soumettre()
+
+    for (const id of ['weight-sheet-kg', 'weight-sheet-date']) {
+      const idErreur = champ(id).getAttribute('aria-describedby')
+      expect(idErreur).toBeTruthy()
+      expect(feuille().querySelector(`#${idErreur}`)?.classList).toContain('weight-sheet__error')
+      expect(champ(id).getAttribute('aria-invalid')).toBe('true')
+    }
+  })
+})
+
+describe('WeightSheet — message d’erreur', () => {
+  it('précède le message de l’icône d’erreur remplie', async () => {
+    await monter(MILO.id)
+
+    await soumettre()
+
+    expect(feuille().querySelector('.weight-sheet__error path')?.getAttribute('d')).toBe(
+      getMsIconPath('error_fill')?.path,
+    )
   })
 })
 

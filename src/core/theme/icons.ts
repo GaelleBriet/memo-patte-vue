@@ -7,6 +7,7 @@ import calendarMonth from '@material-symbols/svg-400/outlined/calendar_month.svg
 import check from '@material-symbols/svg-400/outlined/check.svg?raw'
 import edit from '@material-symbols/svg-400/outlined/edit.svg?raw'
 import error from '@material-symbols/svg-400/outlined/error.svg?raw'
+import errorFill from '@material-symbols/svg-400/outlined/error-fill.svg?raw'
 import home from '@material-symbols/svg-400/outlined/home.svg?raw'
 import medication from '@material-symbols/svg-400/outlined/medication.svg?raw'
 import monitorWeight from '@material-symbols/svg-400/outlined/monitor_weight.svg?raw'
@@ -104,6 +105,7 @@ export const msIcons = {
   colorize,
   edit,
   error,
+  error_fill: errorFill,
   first_page: firstPage,
   fullscreen,
   fullscreen_exit: fullscreenExit,

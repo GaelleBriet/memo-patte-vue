@@ -1,16 +1,12 @@
 <script setup lang="ts">
-import { computed, nextTick, ref, watch } from 'vue'
+import { computed, nextTick, ref, useId, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
-import {
-  emptyWeightFormValues,
-  todayIsoDate,
-  validateWeightForm,
-  type WeightFormErrors,
-} from './weight-form'
+import { emptyWeightFormValues, todayIsoDate, validateWeightForm } from './weight-form'
 import { useWeightStore } from './weight.store'
 import { useAnimalsStore } from '@/features/animals/animals.store'
 import AnimalChipSelector, { type AnimalChipItem } from '@/shared/AnimalChipSelector.vue'
+import { useFormValidation } from '@/shared/form/use-form-validation'
 
 const props = defineProps<{
   /** Animal déjà identifié par le contexte d'ouverture (Carnet) ; `null` ou absent : à choisir. */
@@ -24,7 +20,9 @@ const animals = useAnimalsStore()
 const weight = useWeightStore()
 
 const values = ref(emptyWeightFormValues(props.animalId ?? null))
-const errors = ref<WeightFormErrors>({})
+const { errors, validate, reset } = useFormValidation(values, validateWeightForm)
+const weightErrorId = useId()
+const dateErrorId = useId()
 const saveFailed = ref(false)
 const isSubmitting = ref(false)
 // Recalculée à chaque ouverture : la feuille reste montée avec la carte, parfois au-delà de minuit.
@@ -50,7 +48,7 @@ watch(
     if (!isOpen) return
     maxDate.value = todayIsoDate()
     values.value = emptyWeightFormValues(props.animalId ?? null)
-    errors.value = {}
+    reset()
     saveFailed.value = false
     if (!animals.hasLoaded) void animals.load()
     // Animal connu : le clavier s'ouvre sur le poids, la saisie tient en deux taps.
@@ -60,14 +58,6 @@ watch(
   { immediate: true },
 )
 
-// Une chip choisie contredirait un « Choisis un animal. » encore affiché.
-watch(
-  () => values.value.animalId,
-  (animalId) => {
-    if (animalId !== null) delete errors.value.animalId
-  },
-)
-
 function close(): void {
   open.value = false
 }
@@ -75,8 +65,7 @@ function close(): void {
 async function submit(): Promise<void> {
   if (isSubmitting.value) return
 
-  const result = validateWeightForm(values.value)
-  errors.value = result.success ? {} : result.errors
+  const result = validate()
   if (!result.success) return
 
   isSubmitting.value = true
@@ -137,10 +126,12 @@ async function submit(): Promise<void> {
           v-model:selected-id="values.animalId"
           class="weight-sheet__animals"
           mode="switch"
+          hide-add
+          inline
           :animals="chips"
         />
         <p v-if="errors.animalId" class="weight-sheet__error">
-          <v-icon icon="ms:error" size="16" />
+          <v-icon icon="ms:error_fill" size="16" />
           <span>{{ t(errors.animalId) }}</span>
         </p>
       </div>
@@ -162,13 +153,15 @@ async function submit(): Promise<void> {
             hide-details
             inputmode="decimal"
             aria-required="true"
+            :aria-describedby="errors.weightKg ? weightErrorId : undefined"
+            :aria-invalid="Boolean(errors.weightKg)"
             :disabled="isLocked"
             :error="Boolean(errors.weightKg)"
             :placeholder="t('weight.form.weightKg.placeholder')"
             :suffix="t('weight.unit')"
           />
-          <p v-if="errors.weightKg" class="weight-sheet__error">
-            <v-icon icon="ms:error" size="16" />
+          <p v-if="errors.weightKg" :id="weightErrorId" class="weight-sheet__error">
+            <v-icon icon="ms:error_fill" size="16" />
             <span>{{ t(errors.weightKg) }}</span>
           </p>
         </div>
@@ -190,11 +183,13 @@ async function submit(): Promise<void> {
             hide-details
             aria-required="true"
             append-inner-icon="ms:calendar_month"
+            :aria-describedby="errors.measuredOn ? dateErrorId : undefined"
+            :aria-invalid="Boolean(errors.measuredOn)"
             :disabled="isLocked"
             :error="Boolean(errors.measuredOn)"
           />
-          <p v-if="errors.measuredOn" class="weight-sheet__error">
-            <v-icon icon="ms:error" size="16" />
+          <p v-if="errors.measuredOn" :id="dateErrorId" class="weight-sheet__error">
+            <v-icon icon="ms:error_fill" size="16" />
             <span>{{ t(errors.measuredOn) }}</span>
           </p>
         </div>
@@ -338,17 +333,6 @@ async function submit(): Promise<void> {
 
 .weight-sheet__required {
   color: rgb(var(--v-theme-primary));
-}
-
-// Le sélecteur partagé déborde sur un header et propose un « + » : ni l'un ni
-// l'autre n'ont de sens dans une feuille.
-.weight-sheet__animals .animal-chip-selector__row {
-  margin-top: 0;
-  padding-inline: 0;
-}
-
-.weight-sheet__animals .animal-chip-selector__add {
-  display: none;
 }
 
 .weight-sheet__input .v-field {

@@ -8,13 +8,13 @@ import {
   emptyAnimalFormValues,
   todayIsoDate,
   validateAnimalForm,
-  type AnimalFormErrors,
 } from './animal-form'
 import { ANIMAL_SPECIES, type Animal } from './animal.schema'
 import { useAnimalsStore } from './animals.store'
 import FormField from '@/shared/form/FormField.vue'
 import FormScreen from '@/shared/form/FormScreen.vue'
 import FormSegmented from '@/shared/form/FormSegmented.vue'
+import { useFormValidation } from '@/shared/form/use-form-validation'
 
 const props = defineProps<{
   id?: string
@@ -25,7 +25,7 @@ const router = useRouter()
 const animals = useAnimalsStore()
 
 const values = ref(emptyAnimalFormValues())
-const errors = ref<AnimalFormErrors>({})
+const { errors, validate } = useFormValidation(values, validateAnimalForm)
 const existing = ref<Animal | null>(null)
 const notFound = ref(false)
 const saveFailed = ref(false)
@@ -72,8 +72,7 @@ function backToAnimals(): void {
 async function submit(): Promise<void> {
   if (isSubmitting.value || notFound.value) return
 
-  const result = validateAnimalForm(values.value)
-  errors.value = result.success ? {} : result.errors
+  const result = validate()
   if (!result.success) return
 
   isSubmitting.value = true
