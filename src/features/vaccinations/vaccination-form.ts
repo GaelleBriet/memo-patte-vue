@@ -1,7 +1,8 @@
-import { format } from 'date-fns'
 import type { z } from 'zod'
 
 import { vaccinationUpdateSchema, type Vaccination } from './vaccination.schema'
+
+export { todayIsoDate } from '@/shared/form/form-dates'
 
 export interface VaccinationFormValues {
   name: string
@@ -34,10 +35,6 @@ export function vaccinationFormValuesFrom(vaccination: Vaccination): Vaccination
     lastInjectionDate: vaccination.lastInjectionDate,
     dueDate: vaccination.dueDate ?? '',
   }
-}
-
-export function todayIsoDate(): string {
-  return format(new Date(), 'yyyy-MM-dd')
 }
 
 function textOrNull(value: string): string | null {

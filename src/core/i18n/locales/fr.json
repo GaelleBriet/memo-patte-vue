@@ -84,9 +84,6 @@
       "title": "Nouveau vaccin",
       "editTitle": "Modifier {name}",
       "forAnimal": "Pour {name}",
-      "back": "Retour",
-      "required": "*",
-      "optional": "Optionnel",
       "name": {
         "label": "Nom du vaccin",
         "placeholder": "Ex. Rage"
@@ -97,7 +94,6 @@
       "dueDate": {
         "label": "Prochaine échéance"
       },
-      "cancel": "Annuler",
       "submit": "Créer",
       "submitting": "Création…",
       "save": "Enregistrer",
