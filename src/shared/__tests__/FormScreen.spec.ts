@@ -33,6 +33,15 @@ describe('FormScreen — top bar', () => {
     expect(wrapper.get('.form-screen__subtitle').text()).toBe('Pour Milo')
   })
 
+  it('ne resserre l’interligne du titre que lorsqu’un sous-titre l’accompagne', () => {
+    expect(monter().get('.form-screen__heading').classes()).not.toContain(
+      'form-screen__heading--with-subtitle',
+    )
+    expect(monter({ subtitle: 'Pour Milo' }).get('.form-screen__heading').classes()).toContain(
+      'form-screen__heading--with-subtitle',
+    )
+  })
+
   it('garde la classe passée par l’écran sur sa racine', () => {
     const wrapper = monter()
 

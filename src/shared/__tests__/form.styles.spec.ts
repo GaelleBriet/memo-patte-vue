@@ -56,6 +56,13 @@ describe('FormScreen — contrat de style', () => {
     )
   })
 
+  it('garde la hauteur de ligne par défaut du titre seul, 1.2 avec un sous-titre', () => {
+    expect(declaration(css, '.form-screen__title', 'line-height')).toBeUndefined()
+    expect(
+      declaration(css, '.form-screen__heading--with-subtitle .form-screen__title', 'line-height'),
+    ).toBe('1.2')
+  })
+
   it('garde la zone de tap de 48 px sur la flèche de retour', () => {
     expect(declaration(css, '.form-screen__back', 'width')).toBe('48px')
     expect(declaration(css, '.form-screen__back', 'height')).toBe('48px')

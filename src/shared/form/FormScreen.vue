@@ -36,7 +36,10 @@ function onScroll(event: Event): void {
           :aria-label="t('form.back')"
           @click="emit('cancel')"
         />
-        <div class="form-screen__heading">
+        <div
+          class="form-screen__heading"
+          :class="{ 'form-screen__heading--with-subtitle': Boolean(subtitle) }"
+        >
           <h1 class="form-screen__title">{{ title }}</h1>
           <p v-if="subtitle" class="form-screen__subtitle">{{ subtitle }}</p>
         </div>
@@ -130,9 +133,12 @@ function onScroll(event: Event): void {
   font-family: tokens.$font-family-heading;
   font-size: 22px;
   font-weight: 700;
-  line-height: 1.2;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+.form-screen__heading--with-subtitle .form-screen__title {
+  line-height: 1.2;
 }
 
 .form-screen__subtitle {
