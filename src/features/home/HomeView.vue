@@ -94,83 +94,79 @@ function openCarnet(): void {
       </v-btn>
     </div>
 
-    <template v-else>
-      <header class="home-header" :aria-hidden="!isReady">
-        <div v-if="isReady" class="home-header__brand">
-          <h1 class="home-header__title">{{ t('home.title') }}</h1>
-          <p class="home-header__subtitle">{{ t('home.header.household') }}</p>
-        </div>
+    <template v-else-if="isReady">
+      <header class="home-header">
+        <h1 class="home-header__title">{{ t('home.title') }}</h1>
+        <p class="home-header__subtitle">{{ t('home.header.household') }}</p>
       </header>
 
-      <template v-if="isReady">
-        <AnimalChipSelector
-          v-model:selected-id="animals.selectedAnimalId"
-          :animals="chips"
-          mode="filter"
-          @add="createAnimal"
-        />
+      <AnimalChipSelector
+        v-model:selected-id="animals.selectedAnimalId"
+        :animals="chips"
+        mode="filter"
+        @add="createAnimal"
+      />
 
-        <section class="home-todo">
-          <div class="home-todo__heading">
-            <h2 class="home-todo__title">{{ t('home.todo.title') }}</h2>
-            <span v-if="counter" class="home-todo__counter">{{ counter }}</span>
+      <section class="home-todo">
+        <div class="home-todo__heading">
+          <h2 class="home-todo__title">{{ t('home.todo.title') }}</h2>
+          <span v-if="counter" class="home-todo__counter">{{ counter }}</span>
+        </div>
+
+        <div v-if="banner" class="home-overdue-banner" role="status">
+          <v-icon icon="ms:error" size="20" />
+          <span>{{ banner }}</span>
+        </div>
+
+        <div v-if="rows.length > 0" class="home-reminders">
+          <div
+            v-for="row in rows"
+            :key="row.id"
+            class="reminder-row"
+            :class="`reminder-row--${row.status}`"
+          >
+            <v-icon class="reminder-row__icon" :icon="row.icon" size="24" />
+            <div class="reminder-row__text">
+              <p class="reminder-row__title">{{ row.title }}</p>
+              <p v-if="row.animalName" class="reminder-row__animal">{{ row.animalName }}</p>
+            </div>
+            <span class="reminder-row__badge">
+              <v-icon v-if="row.badge.icon" :icon="row.badge.icon" size="16" />
+              <span>{{ row.badge.text }}</span>
+            </span>
           </div>
+        </div>
 
-          <div v-if="banner" class="home-overdue-banner" role="status">
-            <v-icon icon="ms:error" size="20" />
-            <span>{{ banner }}</span>
-          </div>
-
-          <div v-if="rows.length > 0" class="home-reminders">
-            <div
-              v-for="row in rows"
-              :key="row.id"
-              class="reminder-row"
-              :class="`reminder-row--${row.status}`"
-            >
-              <v-icon class="reminder-row__icon" :icon="row.icon" size="24" />
-              <div class="reminder-row__text">
-                <p class="reminder-row__title">{{ row.title }}</p>
-                <p v-if="row.animalName" class="reminder-row__animal">{{ row.animalName }}</p>
-              </div>
-              <span class="reminder-row__badge">
-                <v-icon v-if="row.badge.icon" :icon="row.badge.icon" size="16" />
-                <span>{{ row.badge.text }}</span>
-              </span>
+        <div v-else class="home-up-to-date">
+          <div class="home-up-to-date__row">
+            <span class="home-up-to-date__dot">
+              <v-icon icon="ms:check" size="24" />
+            </span>
+            <div>
+              <p class="home-up-to-date__title">{{ t('home.upToDate.title') }}</p>
+              <p class="home-up-to-date__text">{{ upToDate }}</p>
             </div>
           </div>
-
-          <div v-else class="home-up-to-date">
-            <div class="home-up-to-date__row">
-              <span class="home-up-to-date__dot">
-                <v-icon icon="ms:check" size="24" />
-              </span>
-              <div>
-                <p class="home-up-to-date__title">{{ t('home.upToDate.title') }}</p>
-                <p class="home-up-to-date__text">{{ upToDate }}</p>
-              </div>
-            </div>
-            <button type="button" class="home-up-to-date__add" @click="openCarnet">
-              <v-icon icon="ms:add" size="20" />
-              <span>{{ t('home.upToDate.add') }}</span>
-            </button>
-          </div>
-        </section>
-      </template>
-
-      <div v-else-if="isLoading" class="home-loading" role="status" :aria-label="t('home.loading')">
-        <v-progress-circular indeterminate color="primary" :size="32" :width="3" />
-      </div>
-
-      <div v-else class="home-error" role="alert">
-        <v-icon class="home-error__icon" icon="ms:error" size="48" />
-        <h2 class="home-error__title">{{ t('home.error.title') }}</h2>
-        <p class="home-error__text">{{ t('home.error.text') }}</p>
-        <v-btn class="home-error__retry" variant="flat" color="primary" @click="load">
-          {{ t('home.error.retry') }}
-        </v-btn>
-      </div>
+          <button type="button" class="home-up-to-date__add" @click="openCarnet">
+            <v-icon icon="ms:add" size="20" />
+            <span>{{ t('home.upToDate.add') }}</span>
+          </button>
+        </div>
+      </section>
     </template>
+
+    <div v-else-if="isLoading" class="home-loading" role="status" :aria-label="t('home.loading')">
+      <v-progress-circular indeterminate color="primary" :size="32" :width="3" />
+    </div>
+
+    <div v-else class="home-error" role="alert">
+      <v-icon class="home-error__icon" icon="ms:error" size="48" />
+      <h1 class="home-error__title">{{ t('home.error.title') }}</h1>
+      <p class="home-error__text">{{ t('home.error.text') }}</p>
+      <v-btn class="home-error__retry" variant="flat" color="primary" @click="load">
+        {{ t('home.error.retry') }}
+      </v-btn>
+    </div>
   </div>
 </template>
 

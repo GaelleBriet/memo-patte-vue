@@ -127,13 +127,12 @@ describe('HomeView — chargement et erreur', () => {
     expect(listSources).toHaveBeenCalledOnce()
   })
 
-  it('affiche un indicateur tant que rien n’est chargé, sous un header vide', async () => {
+  it('affiche un indicateur sur fond neutre tant que rien n’est chargé, sans header pétrole', async () => {
     loadAnimals.mockImplementation(() => new Promise(() => {}))
     const wrapper = await monter()
 
     expect(wrapper.find('.home-loading').exists()).toBe(true)
-    expect(wrapper.find('.home-header').exists()).toBe(true)
-    expect(wrapper.find('.home-header__title').exists()).toBe(false)
+    expect(wrapper.find('.home-header').exists()).toBe(false)
   })
 
   it('propose de réessayer quand la base ne répond pas, et relance les deux chargements', async () => {
@@ -144,7 +143,7 @@ describe('HomeView — chargement et erreur', () => {
     const wrapper = await monter()
 
     expect(wrapper.find('.home-error').exists()).toBe(true)
-    expect(wrapper.find('.home-header__title').exists()).toBe(false)
+    expect(wrapper.find('.home-header').exists()).toBe(false)
     expect(wrapper.find('.home-welcome').exists()).toBe(false)
 
     await wrapper.get('.home-error__retry').trigger('click')
