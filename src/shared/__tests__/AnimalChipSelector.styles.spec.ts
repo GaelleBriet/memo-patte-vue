@@ -127,8 +127,7 @@ describe('AnimalChipSelector — contrat de style', () => {
 
   it('dessine l’anneau clair de 2 px à l’intérieur de la chip sélectionnée, sans `outline`', () => {
     // Un `box-shadow` extérieur est coupé par l'`overflow: hidden` de VSlideGroup ;
-    // un `outline` masquerait l'anneau de focus clavier du navigateur ; bordure de
-    // 1 px + ombre intérieure laisse un liseré sombre entre les deux dans les arrondis.
+    // bordure de 1 px + ombre intérieure laisse un liseré sombre dans les arrondis.
     // L'anneau est donc une bordure de 2 px, dont le padding rend le pixel gagné.
     expect(declaration('.animal-chip', 'border')).toBe('1px solid #ece9e5')
     expect(declaration('.animal-chip', 'padding-inline')).toBe('5px 16px')
@@ -137,6 +136,11 @@ describe('AnimalChipSelector — contrat de style', () => {
     expect(declaration('.animal-chip--selected', 'padding-inline')).toBe('4px 15px')
     expect(declaration('.animal-chip--selected', 'box-shadow')).toBeUndefined()
     expect(declaration('.animal-chip--selected', 'outline')).toBeUndefined()
+  })
+
+  it('ne dessine ni contour ni voile de focus sur une chip (app tactile, la sélection suffit)', () => {
+    expect(declaration('.animal-chip:focus-visible', 'outline')).toBe('none')
+    expect(declaration('.animal-chip :deep(.v-chip__overlay)', 'display')).toBe('none')
   })
 
   it('garde la même largeur de chip, sélectionnée ou non', () => {

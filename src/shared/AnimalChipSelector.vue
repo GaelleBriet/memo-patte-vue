@@ -152,16 +152,25 @@ $padding-chip-end: 16px;
 // Revenir à `selected-class` par défaut réactiverait le voile
 // `--v-activated-opacity` de Vuetify, et le fond ne serait plus `primary`.
 // L'anneau reste dans la chip : dessiné dehors, il serait coupé par l'`overflow:
-// hidden` de VSlideGroup ; en `outline`, il masquerait l'anneau de focus clavier ;
-// en bordure de 1 px + ombre intérieure, un liseré sombre sépare les deux dans les
-// arrondis. La bordure passe donc à 2 px et le padding rend le pixel gagné de
-// chaque côté : la chip garde sa largeur, les voisines ne bougent pas.
+// hidden` de VSlideGroup ; en bordure de 1 px + ombre intérieure, un liseré sombre
+// sépare les deux dans les arrondis. La bordure passe donc à 2 px et le padding rend
+// le pixel gagné de chaque côté : la chip garde sa largeur, les voisines ne bougent pas.
 .animal-chip--selected {
   $grow: tokens.$width-chip-ring - $width-chip-border;
 
   border-width: tokens.$width-chip-ring;
   border-color: tokens.$color-on-primary;
   padding-inline: ($padding-chip-start - $grow) ($padding-chip-end - $grow);
+}
+
+.animal-chip:focus-visible {
+  outline: none;
+}
+
+// App tactile : la chip pétrole dit déjà laquelle est active, et TalkBack dessine
+// son propre cadre de focus, hors CSS.
+.animal-chip :deep(.v-chip__overlay) {
+  display: none;
 }
 
 .animal-chip__avatar {
