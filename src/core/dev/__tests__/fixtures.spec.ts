@@ -5,6 +5,12 @@ import type { AnimalsRepository } from '@/features/animals/animals.repository'
 import type { TreatmentsRepository } from '@/features/treatments/treatments.repository'
 import type { VaccinationsRepository } from '@/features/vaccinations/vaccinations.repository'
 import type { WeightRepository } from '@/features/weight/weight.repository'
+vi.mock('@/core/db/sqlite', () => ({
+  getDb: vi.fn<() => Promise<DbClient>>(async () => {
+    throw new Error('ouverture de la base impossible')
+  }),
+}))
+
 import {
   applyDevFixtures,
   applyFixtures,
@@ -227,10 +233,11 @@ describe('applyDevFixtures', () => {
     vi.stubGlobal('localStorage', createFakeStorage())
     const error = vi.spyOn(console, 'error').mockImplementation(() => {})
 
-    // Sans plugin Capacitor ni navigateur, l'ouverture de la base échoue forcément.
+    // `getDb` est remplacé en tête de fichier par une ouverture qui rejette.
     await expect(applyDevFixtures()).resolves.toBeUndefined()
 
     expect(error).toHaveBeenCalledOnce()
     expect(String(error.mock.calls[0]?.[0])).toMatch(/fixtures/i)
+    expect(error.mock.calls[0]?.[1]).toEqual(new Error('ouverture de la base impossible'))
   })
 })
