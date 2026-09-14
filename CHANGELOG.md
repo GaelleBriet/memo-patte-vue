@@ -5,6 +5,28 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.18](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.17...memo-patte-v0.1.18) (2026-09-14)
+
+
+### 🐛 Corrections
+
+* **app:** rafraîchir l'accueil et le Carnet au retour au premier plan ([2e25322](https://github.com/GaelleBriet/memo-patte-vue/commit/2e25322fa3be901d6dd6ced8ffb076ab276a7521)), closes [#168](https://github.com/GaelleBriet/memo-patte-vue/issues/168)
+* **app:** rafraîchir les écrans au retour au premier plan ([3c89a01](https://github.com/GaelleBriet/memo-patte-vue/commit/3c89a014ca2d13a899d161a95fb8ceaa8e574df4))
+* **carnet:** réafficher la liste après une écriture qui suit un chargement en échec ([071aec2](https://github.com/GaelleBriet/memo-patte-vue/commit/071aec2b4b11cbbcb7b9ee296d4464918f5bbac9))
+* **carnet:** relire vaccins, traitements et pesées au retour sans vider l'affichage ([9baad53](https://github.com/GaelleBriet/memo-patte-vue/commit/9baad530757b5747b788a0544b6f6e0134a369a5))
+* **ci:** keep-alive Supabase qui exécute une requête Postgres ([7f3e138](https://github.com/GaelleBriet/memo-patte-vue/commit/7f3e1384384abfc8c5aea0155e110c50479d17f9))
+* **ci:** keep-alive Supabase qui exécute une requête Postgres ([f7af078](https://github.com/GaelleBriet/memo-patte-vue/commit/f7af078567dbd146d3ba2e88767f82f164dc5c52))
+* **db:** ne pas rouvrir une connexion retrouvée déjà ouverte ([d738318](https://github.com/GaelleBriet/memo-patte-vue/commit/d738318aef483456163ab4a57f59e65583eb2b88)), closes [#196](https://github.com/GaelleBriet/memo-patte-vue/issues/196)
+* **db:** rouvrir la base après un rechargement de la WebView ([b463879](https://github.com/GaelleBriet/memo-patte-vue/commit/b463879957a7c59ec077da89a1544bbfd8aa8f6f))
+* **db:** rouvrir la base après un rechargement de la WebView ([6d77009](https://github.com/GaelleBriet/memo-patte-vue/commit/6d77009d1fdbcd0a76f765ce9651ae817a1d411c)), closes [#196](https://github.com/GaelleBriet/memo-patte-vue/issues/196)
+* **shared:** bordure rouge sur un champ de formulaire en erreur ([185d2dc](https://github.com/GaelleBriet/memo-patte-vue/commit/185d2dc6d48e9fd0834249e9e17a836d3d987a79))
+* **shared:** bordure rouge sur un champ de formulaire en erreur ([2791d18](https://github.com/GaelleBriet/memo-patte-vue/commit/2791d18c7681c026951e6fa8ec5d876e248ea705)), closes [#184](https://github.com/GaelleBriet/memo-patte-vue/issues/184)
+* **shared:** borner l'écran poussé à la zone utile de v-main ([9b3d074](https://github.com/GaelleBriet/memo-patte-vue/commit/9b3d0745db4bf7fc099b3274f9266d2f87c93f2f)), closes [#185](https://github.com/GaelleBriet/memo-patte-vue/issues/185)
+* **shared:** écran poussé partagé borné à la zone utile de v-main ([fb9294d](https://github.com/GaelleBriet/memo-patte-vue/commit/fb9294dd7accfc8357f3d4fd68fc0cec7deaa3e4))
+* **shared:** garder le champ focalisé sous la top bar d'un écran poussé ([25fee4b](https://github.com/GaelleBriet/memo-patte-vue/commit/25fee4b2e90b6a71c8b456e86a28091214a9fc6e)), closes [#185](https://github.com/GaelleBriet/memo-patte-vue/issues/185)
+* **shared:** pas de bordure rouge sur un champ désactivé en erreur ([5af70b9](https://github.com/GaelleBriet/memo-patte-vue/commit/5af70b9f96f64fd71885c3da79e74e814e0620ff)), closes [#184](https://github.com/GaelleBriet/memo-patte-vue/issues/184)
+* **stores:** ignorer la réponse d'un chargement dépassé par un autre animal ([430118e](https://github.com/GaelleBriet/memo-patte-vue/commit/430118e5078baa3b119aa382895b77370d525edd))
+
 ## [0.1.17](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.16...memo-patte-v0.1.17) (2026-09-13)
 
 
