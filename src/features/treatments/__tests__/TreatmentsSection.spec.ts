@@ -108,6 +108,9 @@ describe('TreatmentsSection — lignes', () => {
     expect(row.get('.treatment-row__name').text()).toBe('Bravecto')
     expect(row.get('.treatment-row__type').text()).toBe('Antiparasitaire')
     expect(row.get('.treatment-row__frequency').text()).toBe('Tous les 3 mois')
+    expect(row.get('.treatment-row__frequency').classes()).toEqual(
+      expect.arrayContaining(['due-status-chip', 'due-status-chip--none']),
+    )
   })
 
   it('traduit le type vermifuge', async () => {

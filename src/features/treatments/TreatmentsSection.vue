@@ -13,6 +13,7 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
 import { useTreatmentsStore } from './treatments.store'
+import DueStatusChip from '@/shared/DueStatusChip.vue'
 import SectionCard from '@/shared/SectionCard.vue'
 import { useAnimalScopedLoad } from '@/shared/use-animal-scoped-load'
 import { buildReminders, type Reminder, type ReminderStatus } from '@/shared/reminders'
@@ -123,7 +124,7 @@ watch(summary, (value) => emit('summary', value), { immediate: true })
           {{ row.nextDose }}
         </p>
       </div>
-      <span class="treatment-row__frequency">{{ row.frequency }}</span>
+      <DueStatusChip class="treatment-row__frequency" status="none" :label="row.frequency" />
     </div>
 
     <p v-if="hasError" class="section-card__empty treatments-section__error">
@@ -175,17 +176,5 @@ watch(summary, (value) => emit('summary', value), { immediate: true })
 .treatment-row__next-dose--overdue {
   color: rgb(var(--v-theme-overdue));
   font-weight: 700;
-}
-
-.treatment-row__frequency {
-  flex: 0 0 auto;
-  padding: 6px 12px;
-  border: 1px solid tokens.$color-badge-frequency-border;
-  border-radius: 999px;
-  background: tokens.$color-badge-frequency-bg;
-  color: tokens.$color-badge-frequency-text;
-  font-size: 12.5px;
-  font-weight: 600;
-  white-space: nowrap;
 }
 </style>

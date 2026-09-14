@@ -12,6 +12,7 @@ import { useRouter } from 'vue-router'
 
 import { vaccinationStatus, type VaccinationStatus } from './vaccination-status'
 import { useVaccinationsStore } from './vaccinations.store'
+import DueStatusChip from '@/shared/DueStatusChip.vue'
 import SectionCard from '@/shared/SectionCard.vue'
 import { useAnimalScopedLoad } from '@/shared/use-animal-scoped-load'
 import { buildReminders } from '@/shared/reminders'
@@ -117,10 +118,12 @@ watch(summary, (value) => emit('summary', value), { immediate: true })
         <p class="vaccination-row__name">{{ row.name }}</p>
         <p class="vaccination-row__detail">{{ row.detail }}</p>
       </div>
-      <span class="vaccination-row__badge" :class="`vaccination-row__badge--${row.status}`">
-        <v-icon v-if="row.icon" :icon="row.icon" size="16" />
-        <span>{{ row.badge }}</span>
-      </span>
+      <DueStatusChip
+        class="vaccination-row__badge"
+        :status="row.status"
+        :label="row.badge"
+        :icon="row.icon"
+      />
     </div>
 
     <p v-if="hasError" class="section-card__empty vaccinations-section__error">
@@ -159,34 +162,5 @@ watch(summary, (value) => emit('summary', value), { immediate: true })
   margin: 2px 0 0;
   color: tokens.$color-text-secondary;
   font-size: 12.5px;
-}
-
-.vaccination-row__badge {
-  display: inline-flex;
-  flex: 0 0 auto;
-  align-items: center;
-  gap: 4px;
-  padding: 6px 12px;
-  border-radius: 999px;
-  font-size: 12.5px;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.vaccination-row__badge--overdue {
-  background: tokens.$color-badge-overdue-bg;
-  color: tokens.$color-badge-overdue-text;
-}
-
-.vaccination-row__badge--up-to-date {
-  background: tokens.$color-badge-up-to-date-bg;
-  color: tokens.$color-badge-up-to-date-text;
-}
-
-.vaccination-row__badge--none {
-  border: 1px solid tokens.$color-badge-frequency-border;
-  background: tokens.$color-badge-frequency-bg;
-  color: tokens.$color-badge-frequency-text;
-  font-weight: 600;
 }
 </style>
