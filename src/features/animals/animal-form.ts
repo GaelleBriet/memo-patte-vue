@@ -2,8 +2,6 @@ import type { z } from 'zod'
 
 import { animalInputSchema, type Animal, type AnimalSpecies } from './animal.schema'
 
-export { todayIsoDate } from '@/shared/form/form-dates'
-
 export interface AnimalFormValues {
   name: string
   species: AnimalSpecies | null

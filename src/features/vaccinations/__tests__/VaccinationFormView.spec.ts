@@ -4,7 +4,6 @@ import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } fr
 import { createMemoryHistory, createRouter, type Router } from 'vue-router'
 
 import VaccinationFormView from '../VaccinationFormView.vue'
-import { todayIsoDate } from '../vaccination-form'
 import type { Vaccination, VaccinationInput, VaccinationUpdateInput } from '../vaccination.schema'
 import { useVaccinationsStore } from '../vaccinations.store'
 import type { Animal } from '@/features/animals/animal.schema'
@@ -13,6 +12,7 @@ import { simulateWebResume } from '@/core/app-lifecycle/__tests__/simulate-resum
 import i18n from '@/core/i18n'
 import router from '@/router'
 import vuetify from '@/core/theme/vuetify'
+import { todayIsoDate } from '@/shared/form/form-dates'
 
 // Le vrai routeur ne sert qu'aux tests de routes (`resolve`) : naviguer avec lui chargerait
 // le graphe du Carnet et SQLite à chaque test.

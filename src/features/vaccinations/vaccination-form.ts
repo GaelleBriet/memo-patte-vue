@@ -2,8 +2,6 @@ import type { z } from 'zod'
 
 import { vaccinationUpdateSchema, type Vaccination } from './vaccination.schema'
 
-export { todayIsoDate } from '@/shared/form/form-dates'
-
 export interface VaccinationFormValues {
   name: string
   lastInjectionDate: string
