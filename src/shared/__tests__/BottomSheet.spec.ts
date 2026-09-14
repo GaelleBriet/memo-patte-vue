@@ -136,6 +136,12 @@ describe('BottomSheet — nom accessible', () => {
 })
 
 describe('BottomSheet — patron', () => {
+  it('n’ajoute pas de repère banner à la page', async () => {
+    await monter({ subtitle: 'Pour Milo', showClose: true })
+
+    expect(dialogue().querySelector('header, [role="banner"]')).toBeNull()
+  })
+
   it('garde la classe de l’appelant, pose le contenu et la poignée libellée', async () => {
     await monter()
 
@@ -173,6 +179,19 @@ describe('BottomSheet — patron', () => {
 })
 
 describe('BottomSheet — retour du focus', () => {
+  it('rend le focus au déclencheur d’une feuille montée déjà ouverte', async () => {
+    const declencheur = document.createElement('button')
+    document.body.append(declencheur)
+    declencheur.focus()
+    const feuille = await monter()
+    element('.bottom-sheet__handle').focus()
+
+    await feuille.setProps({ modelValue: false })
+    await flushPromises()
+
+    expect(document.activeElement).toBe(declencheur)
+  })
+
   it('rend le focus au bouton qui l’a ouverte, après la poignée', async () => {
     await monterEcran()
     const ouvrir = element('.ouvrir')

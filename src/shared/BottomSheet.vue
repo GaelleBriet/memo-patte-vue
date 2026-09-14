@@ -25,20 +25,24 @@ const titleId = useId()
 // Pilotée par v-model, la feuille n'a pas d'activateur Vuetify pour lui rendre le focus.
 let opener: HTMLElement | null = null
 
-watch(open, async (isOpen) => {
-  if (isOpen) {
-    const active = document.activeElement
-    opener = active instanceof HTMLElement && active !== document.body ? active : null
-    return
-  }
+watch(
+  open,
+  async (isOpen) => {
+    if (isOpen) {
+      const active = document.activeElement
+      opener = active instanceof HTMLElement && active !== document.body ? active : null
+      return
+    }
 
-  const returnTo = opener
-  opener = null
-  await nextTick()
-  if (open.value) return
-  const target = returnTo?.isConnected ? returnTo : props.focusFallback
-  target?.focus({ preventScroll: true })
-})
+    const returnTo = opener
+    opener = null
+    await nextTick()
+    if (open.value) return
+    const target = returnTo?.isConnected ? returnTo : props.focusFallback
+    target?.focus({ preventScroll: true })
+  },
+  { immediate: true },
+)
 
 function close(): void {
   open.value = false
@@ -56,7 +60,7 @@ function close(): void {
     <div class="bottom-sheet__panel">
       <button type="button" class="bottom-sheet__handle" :aria-label="closeLabel" @click="close" />
 
-      <header class="bottom-sheet__header">
+      <div class="bottom-sheet__header">
         <div class="bottom-sheet__heading">
           <h2 :id="titleId" class="bottom-sheet__title">{{ title }}</h2>
           <p v-if="subtitle" class="bottom-sheet__subtitle">{{ subtitle }}</p>
@@ -69,7 +73,7 @@ function close(): void {
           :aria-label="closeLabel"
           @click="close"
         />
-      </header>
+      </div>
 
       <slot />
     </div>

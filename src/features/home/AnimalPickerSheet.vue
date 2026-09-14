@@ -21,12 +21,8 @@ const open = defineModel<boolean>({ default: false })
 
 const { t } = useI18n()
 
-function close(): void {
-  open.value = false
-}
-
 function pick(animalId: string): void {
-  close()
+  open.value = false
   emit('pick', animalId)
 }
 </script>
