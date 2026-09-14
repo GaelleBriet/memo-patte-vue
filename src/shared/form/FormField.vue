@@ -40,6 +40,7 @@ const errorId = useId()
 
 <style scoped lang="scss">
 @use '@/styles/tokens' as tokens;
+@use '@/shared/form/field-outline' as field;
 
 .form-field__label {
   display: flex;
@@ -69,16 +70,8 @@ const errorId = useId()
   font-size: 15px;
 }
 
-.form-field :deep(.form-field__input .v-field__outline) {
-  --v-field-border-width: 1px;
-  --v-field-border-opacity: 1;
-
-  color: tokens.$color-field-border;
-}
-
-.form-field :deep(.form-field__input .v-field--focused .v-field__outline),
-.form-field :deep(.form-field__input .v-field--error .v-field__outline) {
-  --v-field-border-width: 2px;
+.form-field :deep(.form-field__input) {
+  @include field.outline;
 }
 
 .form-field :deep(.form-field__input .v-field__input) {

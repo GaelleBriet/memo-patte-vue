@@ -21,6 +21,7 @@ const weight = useWeightStore()
 
 const values = ref(emptyWeightFormValues(props.animalId ?? null))
 const { errors, validate, reset } = useFormValidation(values, validateWeightForm)
+const animalErrorId = useId()
 const weightErrorId = useId()
 const dateErrorId = useId()
 const saveFailed = ref(false)
@@ -124,13 +125,14 @@ async function submit(): Promise<void> {
         </p>
         <AnimalChipSelector
           v-model:selected-id="values.animalId"
-          class="weight-sheet__animals"
           mode="switch"
           hide-add
           inline
           :animals="chips"
+          :describedby="errors.animalId ? animalErrorId : undefined"
+          :invalid="Boolean(errors.animalId)"
         />
-        <p v-if="errors.animalId" class="weight-sheet__error">
+        <p v-if="errors.animalId" :id="animalErrorId" class="weight-sheet__error">
           <v-icon icon="ms:error_fill" size="16" />
           <span>{{ t(errors.animalId) }}</span>
         </p>
@@ -221,6 +223,7 @@ async function submit(): Promise<void> {
 
 <style lang="scss">
 @use '@/styles/tokens' as tokens;
+@use '@/shared/form/field-outline' as field;
 
 // Non scopé : la feuille est téléportée hors du composant, et le voile comme le
 // conteneur appartiennent à Vuetify.
@@ -341,23 +344,8 @@ async function submit(): Promise<void> {
   font-size: 15px;
 }
 
-.weight-sheet__input .v-field__outline {
-  --v-field-border-width: 1px;
-  --v-field-border-opacity: 1;
-
-  color: tokens.$color-field-border;
-}
-
-.weight-sheet__input .v-field--focused .v-field__outline {
-  --v-field-border-width: 2px;
-
-  color: rgb(var(--v-theme-primary));
-}
-
-.weight-sheet__input .v-field--error .v-field__outline {
-  --v-field-border-width: 2px;
-
-  color: rgb(var(--v-theme-error));
+.weight-sheet__input {
+  @include field.outline;
 }
 
 .weight-sheet__input .v-field__input {
