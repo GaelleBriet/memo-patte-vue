@@ -5,6 +5,19 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.19](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.18...memo-patte-v0.1.19) (2026-09-14)
+
+
+### 🐛 Corrections
+
+* **a11y:** nom accessible et retour du focus sur les feuilles modales ([89d3afd](https://github.com/GaelleBriet/memo-patte-vue/commit/89d3afd9a2d36595ba2a08527d4a0884b8269a89))
+* **forms:** date maximale recalculée au changement de jour ([74cc988](https://github.com/GaelleBriet/memo-patte-vue/commit/74cc9885a099bd73cd3d3b34bbe068e444fd1c0f))
+* **forms:** date maximale recalculée au retour au premier plan ([033a816](https://github.com/GaelleBriet/memo-patte-vue/commit/033a8163aa423416e8a12f2b4dc007fafb45df8e)), closes [#190](https://github.com/GaelleBriet/memo-patte-vue/issues/190)
+* **home:** l'Accueil vide ne défile plus ([ae4e7e1](https://github.com/GaelleBriet/memo-patte-vue/commit/ae4e7e12e668fe752fc49210e1e78176377af86c))
+* **home:** la bienvenue remplit l'écran sans défiler de 24 px ([5f2d666](https://github.com/GaelleBriet/memo-patte-vue/commit/5f2d66603cb4c728110e78e06070172206e0e4f8))
+* **shared:** nommer les feuilles modales par leur titre et rendre le focus à leur bouton d'ouverture ([e62700a](https://github.com/GaelleBriet/memo-patte-vue/commit/e62700aaa48ef2578702a1561b6a65dbef0a26e7)), closes [#181](https://github.com/GaelleBriet/memo-patte-vue/issues/181)
+* **shared:** pas de repère banner dans la feuille modale, déclencheur capturé dès le montage ([6d63ced](https://github.com/GaelleBriet/memo-patte-vue/commit/6d63cedaeae7042882d9ffd4a282dec6500eeef8))
+
 ## [0.1.18](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.17...memo-patte-v0.1.18) (2026-09-14)
 
 
