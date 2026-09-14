@@ -3,14 +3,15 @@ import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest'
 
 import WeightSheet from '../WeightSheet.vue'
-import { todayIsoDate } from '../weight-form'
 import type { WeightEntry, WeightEntryInput } from '../weight.schema'
 import { useWeightStore } from '../weight.store'
 import type { Animal } from '@/features/animals/animal.schema'
 import { useAnimalsStore } from '@/features/animals/animals.store'
+import { simulateWebResume } from '@/core/app-lifecycle/__tests__/simulate-resume'
 import i18n from '@/core/i18n'
 import { getMsIconPath } from '@/core/theme/icons'
 import vuetify from '@/core/theme/vuetify'
+import { todayIsoDate } from '@/shared/form/form-dates'
 
 const MILO: Animal = {
   id: '11111111-1111-4111-8111-111111111111',
@@ -223,8 +224,23 @@ describe('WeightSheet — sans animal (P2)', () => {
 
     await soumettre()
 
-    expect(messages()).toContain('Choisis un animal.')
+    expect(messages()).toEqual(['Choisis un animal.'])
     expect(create).not.toHaveBeenCalled()
+  })
+
+  it('une fois l’animal choisi, les erreurs du poids suivent la validation', async () => {
+    await monter(null)
+    await soumettre()
+
+    feuille().querySelectorAll<HTMLElement>('.animal-chip')[0]?.click()
+    await flushPromises()
+
+    expect(messages()).toEqual(['Le poids doit être supérieur à 0 kg.'])
+    expect(champ('weight-sheet-kg').getAttribute('aria-invalid')).toBe('true')
+
+    await saisir('weight-sheet-kg', '24,7')
+
+    expect(messages()).toEqual([])
   })
 
   it('relie le sélecteur d’animal à « Choisis un animal. » et le marque invalide', async () => {
@@ -475,6 +491,10 @@ describe('WeightSheet — enregistrement (P4)', () => {
 })
 
 describe('WeightSheet — réouverture', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
   it('recale la date et sa borne sur le jour de l’ouverture, pas du montage', async () => {
     vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(new Date(2026, 8, 13, 23, 59))
@@ -489,7 +509,20 @@ describe('WeightSheet — réouverture', () => {
 
     expect(champ('weight-sheet-date').getAttribute('max')).toBe('2026-09-14')
     expect(champ('weight-sheet-date').value).toBe('2026-09-14')
-    vi.useRealTimers()
+  })
+
+  it('recale la borne de date au retour au premier plan, feuille ouverte', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 8, 13, 23, 59))
+    await monter(MILO.id)
+    expect(champ('weight-sheet-date').getAttribute('max')).toBe('2026-09-13')
+
+    vi.setSystemTime(new Date(2026, 8, 14, 0, 1))
+    simulateWebResume()
+    await flushPromises()
+
+    expect(champ('weight-sheet-date').getAttribute('max')).toBe('2026-09-14')
+    expect(champ('weight-sheet-date').value).toBe('2026-09-13')
   })
 
   it('repart d’un formulaire vierge à chaque ouverture', async () => {
