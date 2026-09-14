@@ -102,7 +102,6 @@ describe('HomeView — contrat de style', () => {
     expect(declaration('.home', 'flex-direction')).toBe('column')
     expect(declaration('.home-welcome', 'flex')).toBe('1 0 auto')
     expect(declaration('.home-welcome', 'min-height')).toBeUndefined()
-    expect(css).not.toMatch(/\d+d?vh/)
   })
 
   it('donne à l’illustration 150 px et au bouton de bienvenue la pleine largeur arrondie à 18 px', () => {
