@@ -805,3 +805,12 @@ sur un outil de dev. Le ticket place le module dans `core/dev/`. —
 Alternative écartée : `app/dev/`, qui aurait évité l'exception de nom
 mais dispersé les outils transverses hors de `core/` sans changer la
 dépendance réelle vers les features.
+
+2026-09-14 — **Le keep-alive Supabase exécute une requête Postgres.** Le
+workflow appelle la fonction `public.keep_alive()` (`select 1`, sans lecture
+de données) via `POST /rest/v1/rpc/keep_alive`, au lieu de `/auth/v1/settings`.
+— Raison : le ping de la configuration Auth a réussi les 31/08, 07/09 et
+10/09, et le projet s'est pourtant mis en pause avant le 14/09 ; il ne
+touche pas la base, qui n'a encore aucune table (#187). — Alternative
+écartée : interroger une vraie table, qui n'existe pas encore et qu'il
+faudrait exposer à `anon`.
