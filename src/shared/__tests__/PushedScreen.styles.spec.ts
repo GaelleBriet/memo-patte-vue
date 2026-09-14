@@ -47,6 +47,12 @@ describe('PushedScreen — contrat de style', () => {
     expect(declaration(css, '.pushed-screen', 'overflow')).toBe('hidden')
   })
 
+  it('décale le défilement vers un champ focalisé de la hauteur de la top bar', () => {
+    expect(declaration(css, '.pushed-screen__scroll', 'scroll-padding-top')).toBe(
+      'var(--pushed-screen-topbar-height, 0px)',
+    )
+  })
+
   it('empile une zone défilante et une barre du bas fixe', () => {
     expect(declaration(css, '.pushed-screen', 'flex-direction')).toBe('column')
     expect(declaration(css, '.pushed-screen__scroll', 'overflow-y')).toBe('auto')
@@ -112,5 +118,20 @@ describe('PushedScreen — contrat de style', () => {
   it('donne à la barre du bas sa surface et sa bordure', () => {
     expect(declaration(css, '.pushed-screen__actions', 'background')).toBe('#fcfaf7')
     expect(declaration(css, '.pushed-screen__actions', 'border-top')).toBe('1px solid #ece9e5')
+  })
+})
+
+describe('Écrans poussés — la hauteur reste à PushedScreen', () => {
+  it('le suivi de poids ne redéfinit pas de hauteur', () => {
+    const sfc = readFileSync(
+      resolve(process.cwd(), 'src/features/weight/WeightHistoryView.vue'),
+      'utf8',
+    )
+    const bloc = /<style[^>]*lang="scss">([\s\S]*?)<\/style>/.exec(sfc)?.[1] ?? ''
+    const scss = bloc.replace("@use '@/styles/tokens' as tokens;", "@use 'tokens' as tokens;")
+    const css = compileString(scss, { loadPaths: [DOSSIER_STYLES] }).css
+
+    expect(declaration(css, '.weight-history', 'height')).toBeUndefined()
+    expect(css).not.toMatch(/100d?vh/)
   })
 })

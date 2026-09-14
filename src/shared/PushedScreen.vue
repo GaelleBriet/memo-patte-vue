@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
 
 withDefaults(
   defineProps<{
@@ -22,6 +22,22 @@ defineSlots<{
 }>()
 
 const isScrolled = ref(false)
+const topbar = ref<HTMLElement | null>(null)
+const topbarHeight = ref(0)
+let observer: ResizeObserver | null = null
+
+onMounted(() => {
+  if (!topbar.value) return
+  const element = topbar.value
+  observer = new ResizeObserver(() => {
+    topbarHeight.value = Math.ceil(element.getBoundingClientRect().height)
+  })
+  observer.observe(element)
+})
+
+onBeforeUnmount(() => {
+  observer?.disconnect()
+})
 
 function onScroll(event: Event): void {
   isScrolled.value = (event.target as HTMLElement).scrollTop > 2
@@ -30,8 +46,13 @@ function onScroll(event: Event): void {
 
 <template>
   <div class="pushed-screen">
-    <div class="pushed-screen__scroll" @scroll="onScroll">
+    <div
+      class="pushed-screen__scroll"
+      :style="{ '--pushed-screen-topbar-height': `${topbarHeight}px` }"
+      @scroll="onScroll"
+    >
       <header
+        ref="topbar"
         class="pushed-screen__topbar"
         :class="{ 'pushed-screen__topbar--scrolled': isScrolled }"
       >
@@ -86,6 +107,8 @@ function onScroll(event: Event): void {
 .pushed-screen__scroll {
   flex: 1 1 auto;
   overflow-y: auto;
+  // Hauteur mesurée de la top bar collée : un champ focalisé s'arrête sous elle, pas dessous.
+  scroll-padding-top: var(--pushed-screen-topbar-height, 0px);
 }
 
 .pushed-screen__topbar {

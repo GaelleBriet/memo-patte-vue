@@ -1,5 +1,5 @@
 import { mount } from '@vue/test-utils'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import PushedScreen from '../PushedScreen.vue'
 import vuetify from '@/core/theme/vuetify'
@@ -105,5 +105,41 @@ describe('PushedScreen — barre du bas', () => {
 
   it('n’affiche aucune barre sans slot actions', () => {
     expect(monter().find('.pushed-screen__actions').exists()).toBe(false)
+  })
+})
+
+describe('PushedScreen — champ ramené en vue', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('réserve sous la top bar sa hauteur mesurée, pour qu’un champ focalisé ne passe pas dessous', async () => {
+    let signaler: () => void = () => {}
+    let observee: Element | null = null
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        constructor(rappel: () => void) {
+          signaler = rappel
+        }
+        observe(cible: Element) {
+          observee = cible
+        }
+        disconnect() {}
+      },
+    )
+    const wrapper = monter()
+    const topbar = wrapper.get('.pushed-screen__topbar').element
+
+    expect(observee).toBe(topbar)
+    vi.spyOn(topbar, 'getBoundingClientRect').mockReturnValue({ height: 75.4 } as DOMRect)
+    signaler()
+    await wrapper.vm.$nextTick()
+
+    expect(
+      (wrapper.get('.pushed-screen__scroll').element as HTMLElement).style.getPropertyValue(
+        '--pushed-screen-topbar-height',
+      ),
+    ).toBe('76px')
   })
 })
