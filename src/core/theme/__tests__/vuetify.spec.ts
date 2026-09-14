@@ -53,7 +53,10 @@ describe('thème Vuetify', () => {
     expect(couleurs?.['overdue-container']).toBe('#FFE3DF')
     expect(couleurs?.['on-overdue-container']).toBe('#972622')
     expect(
-      contraste(couleurs!['on-overdue-container']!, couleurs!['overdue-container']!),
+      contraste(
+        String(couleurs?.['on-overdue-container']),
+        String(couleurs?.['overdue-container']),
+      ),
     ).toBeGreaterThanOrEqual(4.5)
   })
 
