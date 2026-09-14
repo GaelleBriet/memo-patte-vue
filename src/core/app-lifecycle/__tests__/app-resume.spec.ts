@@ -4,7 +4,7 @@ import { mount } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 import { defineComponent, h } from 'vue'
 
-import { onAppResume } from '../app-resume'
+import { onAppResume, useAppResume } from '../app-resume'
 import { useForegroundRefresh } from '../use-foreground-refresh'
 import { simulateWebResume } from './simulate-resume'
 
@@ -15,6 +15,17 @@ vi.mock('@capacitor/app', () => ({
 }))
 
 const addListener = App.addListener as unknown as Mock<AddResumeListener>
+
+function withSetup(setup: () => void) {
+  return mount(
+    defineComponent({
+      setup() {
+        setup()
+        return () => h('p')
+      },
+    }),
+  )
+}
 
 afterEach(() => {
   vi.restoreAllMocks()
@@ -103,6 +114,19 @@ describe('onAppResume — natif', () => {
     stop()
   })
 
+  it('ne laisse pas de rejet non géré si le plugin refuse l’écoute', async () => {
+    addListener.mockRejectedValueOnce(new Error('plugin absent'))
+    const unhandled = vi.fn<(reason: unknown) => void>()
+    process.on('unhandledRejection', unhandled)
+
+    const stop = onAppResume(vi.fn<() => void>())
+    stop()
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    process.off('unhandledRejection', unhandled)
+    expect(unhandled).not.toHaveBeenCalled()
+  })
+
   it('retire l’écoute du plugin quand le dernier abonné part', async () => {
     const stopFirst = onAppResume(vi.fn<() => void>())
     const stopSecond = onAppResume(vi.fn<() => void>())
@@ -116,21 +140,27 @@ describe('onAppResume — natif', () => {
   })
 })
 
+describe('useAppResume', () => {
+  it('appelle le rappel au retour et se désabonne au démontage', () => {
+    const callback = vi.fn<() => void>()
+    const wrapper = withSetup(() => useAppResume(callback))
+
+    simulateWebResume()
+    expect(callback).toHaveBeenCalledOnce()
+
+    wrapper.unmount()
+    simulateWebResume()
+    expect(callback).toHaveBeenCalledOnce()
+  })
+})
+
 describe('useForegroundRefresh', () => {
   function mountWith(reload: () => void) {
-    let today = ''
-    const wrapper = mount(
-      defineComponent({
-        setup() {
-          const refresh = useForegroundRefresh(reload)
-          return () => {
-            today = refresh.today.value
-            return h('p', refresh.today.value)
-          }
-        },
-      }),
-    )
-    return { wrapper, today: () => today }
+    let today!: ReturnType<typeof useForegroundRefresh>['today']
+    const wrapper = withSetup(() => {
+      today = useForegroundRefresh(reload).today
+    })
+    return { wrapper, today: () => today.value }
   }
 
   it('recalcule la date du jour et relit les données au retour au premier plan', async () => {

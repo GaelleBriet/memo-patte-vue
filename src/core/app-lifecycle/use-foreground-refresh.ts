@@ -1,7 +1,7 @@
 import { format } from 'date-fns'
-import { onScopeDispose, readonly, ref, type Ref } from 'vue'
+import { readonly, ref, type Ref } from 'vue'
 
-import { onAppResume } from './app-resume'
+import { useAppResume } from './app-resume'
 
 function currentIsoDate(): string {
   return format(new Date(), 'yyyy-MM-dd')
@@ -14,11 +14,10 @@ function currentIsoDate(): string {
 export function useForegroundRefresh(reload: () => void): { today: Readonly<Ref<string>> } {
   const today = ref(currentIsoDate())
 
-  const stop = onAppResume(() => {
+  useAppResume(() => {
     today.value = currentIsoDate()
     reload()
   })
-  onScopeDispose(stop)
 
   return { today: readonly(today) }
 }

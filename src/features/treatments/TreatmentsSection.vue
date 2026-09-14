@@ -14,6 +14,7 @@ import { useRouter } from 'vue-router'
 
 import { useTreatmentsStore } from './treatments.store'
 import SectionCard from '@/shared/SectionCard.vue'
+import { useAnimalScopedLoad } from '@/shared/use-animal-scoped-load'
 import { buildReminders, type Reminder, type ReminderStatus } from '@/shared/reminders'
 
 const props = defineProps<{
@@ -30,11 +31,17 @@ const { t } = useI18n()
 const router = useRouter()
 const store = useTreatmentsStore()
 
-// Pendant un chargement, ou après un échec, le store porte déjà le nouvel animal mais encore l'ancienne liste.
+// Au changement d'animal, ou après un échec, le store porte déjà le nouvel animal mais encore l'ancienne liste.
 const treatments = computed(() => (isCurrent.value ? store.treatments : []))
 
+const { loadedFor } = useAnimalScopedLoad(
+  () => props.animalId,
+  (id) => store.loadForAnimal(id),
+)
+
 const isCurrent = computed(
-  () => store.animalId === props.animalId && !store.isLoading && store.error === null,
+  () =>
+    loadedFor.value === props.animalId && store.animalId === props.animalId && store.error === null,
 )
 const hasError = computed(() => store.animalId === props.animalId && store.error !== null)
 
@@ -95,14 +102,6 @@ function nextDoseOf(reminder: Reminder | undefined): string | null {
 function addTreatment(): void {
   void router.push({ name: 'treatment-new', params: { animalId: props.animalId } })
 }
-
-watch(
-  () => props.animalId,
-  (animalId) => {
-    void store.loadForAnimal(animalId)
-  },
-  { immediate: true },
-)
 
 watch(summary, (value) => emit('summary', value), { immediate: true })
 </script>

@@ -1,5 +1,6 @@
 import { App } from '@capacitor/app'
 import { Capacitor } from '@capacitor/core'
+import { onScopeDispose } from 'vue'
 
 type Listener = () => void
 
@@ -17,8 +18,8 @@ function onVisibilityChange(): void {
 // En natif, seul `resume` suit l'activité Android ; visibilitychange dépend de la WebView et doublonnerait.
 function attach(): () => void {
   if (Capacitor.isNativePlatform()) {
-    const handle = App.addListener('resume', notify)
-    return () => void handle.then((listener) => listener.remove())
+    const handle = App.addListener('resume', notify).catch(() => null)
+    return () => void handle.then((listener) => listener?.remove())
   }
   document.addEventListener('visibilitychange', onVisibilityChange)
   return () => document.removeEventListener('visibilitychange', onVisibilityChange)
@@ -36,4 +37,9 @@ export function onAppResume(listener: Listener): () => void {
       detach = null
     }
   }
+}
+
+/** `onAppResume` lié à la vie du composant appelant. */
+export function useAppResume(listener: Listener): void {
+  onScopeDispose(onAppResume(listener))
 }
