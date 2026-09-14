@@ -29,5 +29,8 @@ export default defineConfig({
     host: '127.0.0.1',
     port: 5173,
     strictPort: true,
+    // Un build Gradle écrit dans `android/…/build` : sans ça, chaque build recharge
+    // la page de l'app en live reload.
+    watch: { ignored: ['**/android/**', '**/ios/**'] },
   },
 })

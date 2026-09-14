@@ -65,6 +65,21 @@ describe('AnimalChipSelector', () => {
     expect(groupe.attributes('aria-label')).toBe('Animaux')
   })
 
+  it('marque le groupe invalide et le relie au message d’erreur de l’écran', () => {
+    const wrapper = monter({ invalid: true, describedby: 'erreur-animal' })
+
+    const groupe = wrapper.get('.animal-chip-selector__group')
+    expect(groupe.attributes('aria-invalid')).toBe('true')
+    expect(groupe.attributes('aria-describedby')).toBe('erreur-animal')
+  })
+
+  it('ne marque pas le groupe invalide sans erreur', () => {
+    const groupe = monter().get('.animal-chip-selector__group')
+
+    expect(groupe.attributes('aria-invalid')).toBeUndefined()
+    expect(groupe.attributes('aria-describedby')).toBeUndefined()
+  })
+
   it('émet le clic sur la chip « + »', async () => {
     const wrapper = monter()
 

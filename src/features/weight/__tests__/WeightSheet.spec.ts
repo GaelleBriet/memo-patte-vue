@@ -219,6 +219,24 @@ describe('WeightSheet — sans animal (P2)', () => {
     expect(create).not.toHaveBeenCalled()
   })
 
+  it('relie le sélecteur d’animal à « Choisis un animal. » et le marque invalide', async () => {
+    await monter(null)
+    const groupe = () => feuille().querySelector('.animal-chip-selector__group')!
+
+    await soumettre()
+
+    const idErreur = groupe().getAttribute('aria-describedby')
+    expect(idErreur).toBeTruthy()
+    expect(feuille().querySelector(`#${idErreur}`)?.textContent?.trim()).toBe('Choisis un animal.')
+    expect(groupe().getAttribute('aria-invalid')).toBe('true')
+
+    feuille().querySelectorAll<HTMLElement>('.animal-chip')[0]?.click()
+    await flushPromises()
+
+    expect(groupe().getAttribute('aria-invalid')).toBeNull()
+    expect(groupe().getAttribute('aria-describedby')).toBeNull()
+  })
+
   it('libère les champs une fois un animal choisi et enregistre pour lui', async () => {
     await monter(null)
 
