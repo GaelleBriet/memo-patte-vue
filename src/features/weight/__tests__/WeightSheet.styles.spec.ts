@@ -1,21 +1,15 @@
 // @vitest-environment node
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { pathToFileURL } from 'node:url'
 import { beforeAll, describe, expect, it } from 'vitest'
 import { compileString } from 'sass'
+
+import { aliasSrc } from '@/shared/__tests__/sass-alias'
 
 // Vitest tourne avec `css: false` et jsdom ne met pas en page : ces tests compilent
 // le bloc `<style>` et vérifient des déclarations, jamais la géométrie rendue.
 const COMPOSANT = resolve(process.cwd(), 'src/features/weight/WeightSheet.vue')
 const CHAMP_PARTAGE = resolve(process.cwd(), 'src/shared/form/FormField.vue')
-const DOSSIER_SRC = resolve(process.cwd(), 'src')
-
-// L'alias `@/` est résolu par Vite, pas par sass.
-const aliasSrc = {
-  findFileUrl: (url: string) =>
-    url.startsWith('@/') ? pathToFileURL(resolve(DOSSIER_SRC, url.slice(2))) : null,
-}
 
 function blocStyle(fichier: string): string {
   const bloc = /<style[^>]*lang="scss">([\s\S]*?)<\/style>/.exec(readFileSync(fichier, 'utf8'))?.[1]
@@ -84,9 +78,15 @@ describe('WeightSheet — bordure des champs', () => {
     )
   })
 
-  it('passe la bordure en rouge système en erreur', () => {
+  it('passe la bordure en rouge système en erreur, sauf sur un champ verrouillé', () => {
+    expect(
+      declaration(
+        '.weight-sheet__input .v-field--error:not(.v-field--disabled) .v-field__outline',
+        'color',
+      ),
+    ).toBe('rgb(var(--v-theme-error))')
     expect(declaration('.weight-sheet__input .v-field--error .v-field__outline', 'color')).toBe(
-      'rgb(var(--v-theme-error))',
+      undefined,
     )
   })
 })

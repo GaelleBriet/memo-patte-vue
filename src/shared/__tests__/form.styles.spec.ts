@@ -1,19 +1,12 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { pathToFileURL } from 'node:url'
 import { compileString } from 'sass'
 import { describe, expect, it } from 'vitest'
 
+import { aliasSrc } from './sass-alias'
+
 // Vitest tourne avec `css: false` : ce fichier compile les blocs `<style>` des
 // composants du patron et vérifie des déclarations, jamais la géométrie.
-const DOSSIER_SRC = resolve(process.cwd(), 'src')
-
-// L'alias `@/` est résolu par Vite, pas par sass.
-const aliasSrc = {
-  findFileUrl: (url: string) =>
-    url.startsWith('@/') ? pathToFileURL(resolve(DOSSIER_SRC, url.slice(2))) : null,
-}
-
 function cssDe(composant: string): string {
   const sfc = readFileSync(resolve(process.cwd(), 'src/shared/form', composant), 'utf8')
   const bloc = /<style[^>]*lang="scss">([\s\S]*?)<\/style>/.exec(sfc)?.[1]
@@ -117,6 +110,7 @@ describe('FormField — contrat de style', () => {
 
   describe('bordure du champ', () => {
     const CHAMP = '.form-field :deep(.form-field__input)'
+    const ERREUR = `${CHAMP} .v-field--error:not(.v-field--disabled) .v-field__outline`
 
     it('pose une bordure de 1 px grise au repos', () => {
       expect(declaration(css, `${CHAMP} .v-field__outline`, '--v-field-border-width')).toBe('1px')
@@ -131,10 +125,14 @@ describe('FormField — contrat de style', () => {
     })
 
     it('passe la bordure en rouge système en erreur, de la même épaisseur qu’au focus', () => {
-      const erreur = `${CHAMP} .v-field--error .v-field__outline`
+      expect(declaration(css, ERREUR, 'color')).toBe('rgb(var(--v-theme-error))')
+      expect(declaration(css, ERREUR, '--v-field-border-width')).toBe('2px')
+    })
 
-      expect(declaration(css, erreur, 'color')).toBe('rgb(var(--v-theme-error))')
-      expect(declaration(css, erreur, '--v-field-border-width')).toBe('2px')
+    it('laisse sa bordure de repos à un champ désactivé en erreur, comme Vuetify', () => {
+      expect(
+        declaration(css, `${CHAMP} .v-field--error .v-field__outline`, 'color'),
+      ).toBeUndefined()
     })
 
     it('garde le rouge sur un champ en erreur qui a le focus', () => {
@@ -142,7 +140,7 @@ describe('FormField — contrat de style', () => {
         regle[1]!.trim().replace(/\s+/g, ' '),
       )
 
-      expect(selecteurs.indexOf(`${CHAMP} .v-field--error .v-field__outline`)).toBeGreaterThan(
+      expect(selecteurs.indexOf(ERREUR)).toBeGreaterThan(
         selecteurs.indexOf(`${CHAMP} .v-field--focused .v-field__outline`),
       )
     })

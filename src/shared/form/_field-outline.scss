@@ -17,7 +17,7 @@
   }
 
   // Après le focus : un champ en erreur qui a le focus reste rouge.
-  .v-field--error .v-field__outline {
+  .v-field--error:not(.v-field--disabled) .v-field__outline {
     --v-field-border-width: 2px;
 
     color: rgb(var(--v-theme-error));
