@@ -74,7 +74,7 @@ afterEach(() => {
 
 // La feuille est téléportée hors du composant : on interroge le document.
 function feuille(): HTMLElement {
-  const element = document.body.querySelector<HTMLElement>('.weight-sheet__panel')
+  const element = document.body.querySelector<HTMLElement>('.weight-sheet .bottom-sheet__panel')
   if (!element) throw new Error('Feuille absente du document')
   return element
 }
@@ -132,10 +132,18 @@ describe('WeightSheet — animal identifié (P1)', () => {
   it('titre, sous-titre « Pour Milo », ni croix ni sélecteur', async () => {
     await monter(MILO.id)
 
-    expect(texte('.weight-sheet__title')).toBe('Ajouter une pesée')
-    expect(texte('.weight-sheet__subtitle')).toBe('Pour Milo')
-    expect(feuille().querySelector('.weight-sheet__close')).toBeNull()
+    expect(texte('.bottom-sheet__title')).toBe('Ajouter une pesée')
+    expect(texte('.bottom-sheet__subtitle')).toBe('Pour Milo')
+    expect(feuille().querySelector('.bottom-sheet__close')).toBeNull()
     expect(feuille().querySelector('.animal-chip-selector')).toBeNull()
+  })
+
+  it('se nomme par son titre pour les lecteurs d’écran', async () => {
+    await monter(MILO.id)
+
+    const dialogue = document.body.querySelector('.weight-sheet[role="dialog"]')
+    const titre = document.getElementById(dialogue?.getAttribute('aria-labelledby') ?? '')
+    expect(titre?.textContent?.trim()).toBe('Ajouter une pesée')
   })
 
   it('offre le poids en décimal avec « kg », la date pré-remplie à aujourd’hui et bornée', async () => {
@@ -164,7 +172,7 @@ describe('WeightSheet — animal identifié (P1)', () => {
   it('offre une poignée qui ferme la feuille', async () => {
     const wrapper = await monter(MILO.id)
 
-    feuille().querySelector<HTMLButtonElement>('.weight-sheet__handle')?.click()
+    feuille().querySelector<HTMLButtonElement>('.bottom-sheet__handle')?.click()
     await flushPromises()
 
     expect(wrapper.emitted('update:modelValue')).toEqual([[false]])
@@ -184,8 +192,8 @@ describe('WeightSheet — sans animal (P2)', () => {
     await monter(null)
 
     expect(loadAnimals).toHaveBeenCalledOnce()
-    expect(feuille().querySelector('.weight-sheet__subtitle')).toBeNull()
-    expect(feuille().querySelector('.weight-sheet__close')).not.toBeNull()
+    expect(feuille().querySelector('.bottom-sheet__subtitle')).toBeNull()
+    expect(feuille().querySelector('.bottom-sheet__close')).not.toBeNull()
     expect(texte('.weight-sheet__field--animal .weight-sheet__label span')).toBe('Animal')
     expect(
       feuille().querySelector('.weight-sheet__field--animal .weight-sheet__required'),
@@ -270,7 +278,7 @@ describe('WeightSheet — sans animal (P2)', () => {
   it('la croix ferme la feuille', async () => {
     const wrapper = await monter(null)
 
-    feuille().querySelector<HTMLButtonElement>('.weight-sheet__close')?.click()
+    feuille().querySelector<HTMLButtonElement>('.bottom-sheet__close')?.click()
     await flushPromises()
 
     expect(wrapper.emitted('update:modelValue')).toEqual([[false]])

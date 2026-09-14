@@ -2,6 +2,7 @@
 import { useI18n } from 'vue-i18n'
 
 import { animalAvatarGradientCss } from '@/shared/animal-avatar-gradient'
+import BottomSheet from '@/shared/BottomSheet.vue'
 
 export type AnimalPickerItem = {
   id: string
@@ -31,94 +32,28 @@ function pick(animalId: string): void {
 </script>
 
 <template>
-  <v-bottom-sheet
+  <BottomSheet
     v-model="open"
     class="animal-picker-sheet"
-    content-class="animal-picker-sheet__content"
+    :title="t('home.quickActions.picker.title')"
+    :close-label="t('home.quickActions.picker.close')"
   >
-    <div class="animal-picker-sheet__panel">
-      <button
-        type="button"
-        class="animal-picker-sheet__handle"
-        :aria-label="t('home.quickActions.picker.close')"
-        @click="close"
-      />
-
-      <h2 class="animal-picker-sheet__title">{{ t('home.quickActions.picker.title') }}</h2>
-
-      <ul class="animal-picker-sheet__list">
-        <li v-for="animal in animals" :key="animal.id">
-          <button type="button" class="animal-picker-sheet__animal" @click="pick(animal.id)">
-            <span
-              class="animal-picker-sheet__avatar"
-              :style="{ backgroundImage: animalAvatarGradientCss(animal.id) }"
-            />
-            <span class="animal-picker-sheet__name">{{ animal.name }}</span>
-          </button>
-        </li>
-      </ul>
-    </div>
-  </v-bottom-sheet>
+    <ul class="animal-picker-sheet__list">
+      <li v-for="animal in animals" :key="animal.id">
+        <button type="button" class="animal-picker-sheet__animal" @click="pick(animal.id)">
+          <span
+            class="animal-picker-sheet__avatar"
+            :style="{ backgroundImage: animalAvatarGradientCss(animal.id) }"
+          />
+          <span class="animal-picker-sheet__name">{{ animal.name }}</span>
+        </button>
+      </li>
+    </ul>
+  </BottomSheet>
 </template>
 
 <style lang="scss">
 @use '@/styles/tokens' as tokens;
-
-// Non scopé : la feuille est téléportée hors du composant, et le voile comme le
-// conteneur appartiennent à Vuetify. Même patron que la feuille de pesée.
-.animal-picker-sheet {
-  --v-overlay-opacity: #{tokens.$opacity-overlay-scrim};
-
-  .v-overlay__scrim {
-    background: tokens.$color-overlay-scrim;
-  }
-}
-
-.animal-picker-sheet__content {
-  margin: 0;
-  overflow: visible;
-  border-radius: tokens.$radius-sheet tokens.$radius-sheet 0 0;
-  background: rgb(var(--v-theme-background));
-  box-shadow: tokens.$shadow-sheet;
-}
-
-.animal-picker-sheet__panel {
-  padding: 0 20px 24px;
-}
-
-// Zone de tap de 44 px de haut ; la pilule visible (36 × 4) reste à 12 px du bord.
-.animal-picker-sheet__handle {
-  position: relative;
-  z-index: 1;
-  display: block;
-  width: 96px;
-  height: 44px;
-  margin: 0 auto;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  cursor: pointer;
-}
-
-.animal-picker-sheet__handle::before {
-  position: absolute;
-  top: 12px;
-  left: 50%;
-  width: 36px;
-  height: 4px;
-  border-radius: 999px;
-  background: tokens.$color-sheet-handle;
-  content: '';
-  transform: translateX(-50%);
-}
-
-.animal-picker-sheet__title {
-  margin: -10px 0 0;
-  font-family: tokens.$font-family-heading;
-  font-size: 20px;
-  font-weight: 700;
-  line-height: 1.2;
-}
 
 .animal-picker-sheet__list {
   margin: 14px 0 0;

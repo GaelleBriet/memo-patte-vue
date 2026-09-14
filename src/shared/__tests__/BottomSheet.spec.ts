@@ -1,0 +1,259 @@
+import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { defineComponent, h, ref } from 'vue'
+
+import BottomSheet from '../BottomSheet.vue'
+import vuetify from '@/core/theme/vuetify'
+
+let wrapper: VueWrapper | null = null
+
+beforeEach(() => {
+  // jsdom ne fournit pas `visualViewport`, que VDialog écoute pour suivre le clavier.
+  vi.stubGlobal('visualViewport', {
+    addEventListener() {},
+    removeEventListener() {},
+    width: 412,
+    height: 915,
+    offsetTop: 0,
+  })
+})
+
+afterEach(() => {
+  wrapper?.unmount()
+  wrapper = null
+  document.body.innerHTML = ''
+  vi.restoreAllMocks()
+  vi.unstubAllGlobals()
+})
+
+type Props = InstanceType<typeof BottomSheet>['$props']
+
+async function monter(props: Partial<Props> = {}) {
+  wrapper = mount(BottomSheet, {
+    props: {
+      modelValue: true,
+      title: 'Pour quel animal ?',
+      closeLabel: 'Fermer',
+      'onUpdate:modelValue': (value: boolean) => wrapper?.setProps({ modelValue: value }),
+      ...props,
+    },
+    slots: { default: '<p class="contenu">Contenu</p>' },
+    attrs: { class: 'ma-feuille' },
+    global: { plugins: [vuetify], stubs: { transition: false } },
+    attachTo: document.body,
+  })
+  await flushPromises()
+  return wrapper
+}
+
+// Écran hôte : un bouton ouvre la feuille, comme une tuile ou « Ajouter une pesée ».
+const Ecran = defineComponent({
+  props: { avecRepere: { type: Boolean, default: false } },
+  setup(props, { expose }) {
+    const open = ref(false)
+    const openerVisible = ref(true)
+    const repere = ref<HTMLElement | null>(null)
+    expose({ open, openerVisible })
+    return () =>
+      h('div', [
+        openerVisible.value
+          ? h('button', { class: 'ouvrir', onClick: () => (open.value = true) }, 'Ouvrir')
+          : null,
+        h('button', { class: 'repere', ref: repere }, 'Repère'),
+        h(
+          BottomSheet,
+          {
+            modelValue: open.value,
+            'onUpdate:modelValue': (value: boolean) => (open.value = value),
+            title: 'Ajouter une pesée',
+            closeLabel: 'Fermer',
+            focusFallback: props.avecRepere ? repere.value : null,
+          },
+          () => h('button', { class: 'dans-la-feuille' }, 'Choix'),
+        ),
+      ])
+  },
+})
+
+type EcranExpose = { open: boolean; openerVisible: boolean }
+
+async function monterEcran(avecRepere = false) {
+  wrapper = mount(Ecran, {
+    props: { avecRepere },
+    global: { plugins: [vuetify], stubs: { transition: false } },
+    attachTo: document.body,
+  })
+  await flushPromises()
+  return wrapper
+}
+
+// jsdom ne donne pas le focus au clic : on le pose comme le ferait le tap.
+async function ouvrirDepuis(bouton: HTMLElement) {
+  bouton.focus()
+  bouton.click()
+  await flushPromises()
+  document.body.querySelector<HTMLElement>('.dans-la-feuille')?.focus()
+}
+
+function element(selecteur: string): HTMLElement {
+  const trouve = document.body.querySelector<HTMLElement>(selecteur)
+  if (!trouve) throw new Error(`${selecteur} absent du document`)
+  return trouve
+}
+
+function dialogue(): HTMLElement {
+  return element('.bottom-sheet[role="dialog"]')
+}
+
+describe('BottomSheet — nom accessible', () => {
+  it('nomme le dialogue par son titre h2', async () => {
+    await monter()
+
+    const id = dialogue().getAttribute('aria-labelledby')
+    expect(id).toBeTruthy()
+    const titre = document.getElementById(id!)
+    expect(titre?.tagName).toBe('H2')
+    expect(titre?.textContent?.trim()).toBe('Pour quel animal ?')
+  })
+
+  it('donne un id distinct à chaque feuille', async () => {
+    const feuille = (title: string) =>
+      h(BottomSheet, { modelValue: true, title, closeLabel: 'Fermer' }, () => null)
+    wrapper = mount(
+      defineComponent(() => () => h('div', [feuille('Première'), feuille('Seconde')])),
+      { global: { plugins: [vuetify], stubs: { transition: false } }, attachTo: document.body },
+    )
+    await flushPromises()
+
+    const ids = [...document.body.querySelectorAll('[role="dialog"]')].map((d) =>
+      d.getAttribute('aria-labelledby'),
+    )
+    expect(ids.map((id) => document.getElementById(id!)?.textContent)).toEqual([
+      'Première',
+      'Seconde',
+    ])
+  })
+})
+
+describe('BottomSheet — patron', () => {
+  it('garde la classe de l’appelant, pose le contenu et la poignée libellée', async () => {
+    await monter()
+
+    expect(dialogue().classList).toContain('ma-feuille')
+    expect(element('.bottom-sheet__panel .contenu').textContent).toBe('Contenu')
+    expect(element('.bottom-sheet__handle').getAttribute('aria-label')).toBe('Fermer')
+  })
+
+  it('n’affiche ni sous-titre ni croix par défaut', async () => {
+    await monter()
+
+    expect(document.body.querySelector('.bottom-sheet__subtitle')).toBeNull()
+    expect(document.body.querySelector('.bottom-sheet__close')).toBeNull()
+  })
+
+  it('affiche le sous-titre et la croix libellée sur demande', async () => {
+    await monter({ subtitle: 'Pour Milo', showClose: true })
+
+    expect(element('.bottom-sheet__subtitle').textContent?.trim()).toBe('Pour Milo')
+    expect(element('.bottom-sheet__close').getAttribute('aria-label')).toBe('Fermer')
+  })
+
+  it('se ferme par la poignée et par la croix', async () => {
+    const feuille = await monter({ showClose: true })
+
+    element('.bottom-sheet__handle').click()
+    await flushPromises()
+    await feuille.setProps({ modelValue: true })
+    await flushPromises()
+    element('.bottom-sheet__close').click()
+    await flushPromises()
+
+    expect(feuille.emitted('update:modelValue')).toEqual([[false], [false]])
+  })
+})
+
+describe('BottomSheet — retour du focus', () => {
+  it('rend le focus au bouton qui l’a ouverte, après la poignée', async () => {
+    await monterEcran()
+    const ouvrir = element('.ouvrir')
+    await ouvrirDepuis(ouvrir)
+
+    element('.bottom-sheet__handle').click()
+    await flushPromises()
+
+    expect(document.activeElement).toBe(ouvrir)
+  })
+
+  it('rend le focus sans faire défiler l’écran', async () => {
+    await monterEcran()
+    const ouvrir = element('.ouvrir')
+    await ouvrirDepuis(ouvrir)
+    const focus = vi.spyOn(ouvrir, 'focus')
+
+    element('.bottom-sheet__handle').click()
+    await flushPromises()
+
+    expect(focus).toHaveBeenCalledExactlyOnceWith({ preventScroll: true })
+  })
+
+  it('rend le focus après Échap', async () => {
+    await monterEcran()
+    const ouvrir = element('.ouvrir')
+    await ouvrirDepuis(ouvrir)
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
+    await flushPromises()
+
+    expect(document.activeElement).toBe(ouvrir)
+  })
+
+  it('rend le focus après un tap sur le voile', async () => {
+    await monterEcran()
+    const ouvrir = element('.ouvrir')
+    await ouvrirDepuis(ouvrir)
+
+    // Vuetify ferme sur « mousedown puis click » hors du contenu, traité au tick suivant.
+    const voile = element('.bottom-sheet .v-overlay__scrim')
+    voile.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))
+    voile.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    await flushPromises()
+
+    expect(document.activeElement).toBe(ouvrir)
+  })
+
+  it('rend le focus quand l’appelant la ferme, après un enregistrement ou un choix', async () => {
+    const ecran = await monterEcran()
+    const ouvrir = element('.ouvrir')
+    await ouvrirDepuis(ouvrir)
+
+    ;(ecran.vm as unknown as EcranExpose).open = false
+    await flushPromises()
+
+    expect(document.activeElement).toBe(ouvrir)
+  })
+
+  it('se replie sur le repère de l’écran quand le bouton d’ouverture a disparu', async () => {
+    const ecran = await monterEcran(true)
+    await ouvrirDepuis(element('.ouvrir'))
+
+    const vm = ecran.vm as unknown as EcranExpose
+    vm.openerVisible = false
+    vm.open = false
+    await flushPromises()
+
+    expect(document.activeElement).toBe(element('.repere'))
+  })
+
+  it('ne pose le focus nulle part sans bouton d’ouverture ni repère', async () => {
+    const ecran = await monterEcran()
+    await ouvrirDepuis(element('.ouvrir'))
+
+    const vm = ecran.vm as unknown as EcranExpose
+    vm.openerVisible = false
+    vm.open = false
+    await flushPromises()
+
+    expect(document.activeElement).not.toBe(element('.repere'))
+  })
+})
