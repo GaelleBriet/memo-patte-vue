@@ -27,8 +27,12 @@ withDefaults(
     hideAdd?: boolean
     /** Rangée posée dans un contenu (feuille, formulaire) : ni débord sur un header, ni marge latérale. */
     inline?: boolean
+    /** Marque le groupe invalide pour les lecteurs d'écran (formulaire en erreur). */
+    invalid?: boolean
+    /** Identifiant du message d'erreur qui décrit le groupe. */
+    describedby?: string
   }>(),
-  { mode: 'filter', hideAdd: false, inline: false },
+  { mode: 'filter', hideAdd: false, inline: false, invalid: false, describedby: undefined },
 )
 
 defineEmits<{
@@ -53,6 +57,8 @@ function onSelect(value: unknown) {
         :mandatory="mode === 'switch'"
         role="group"
         :aria-label="t('animals.chipSelector.label')"
+        :aria-invalid="invalid || undefined"
+        :aria-describedby="describedby"
         variant="flat"
         base-color="surface"
         color="primary"

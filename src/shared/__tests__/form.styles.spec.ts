@@ -1,11 +1,18 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
+import { pathToFileURL } from 'node:url'
 import { compileString } from 'sass'
 import { describe, expect, it } from 'vitest'
 
 // Vitest tourne avec `css: false` : ce fichier compile les blocs `<style>` des
 // composants du patron et vérifie des déclarations, jamais la géométrie.
-const DOSSIER_STYLES = resolve(process.cwd(), 'src/styles')
+const DOSSIER_SRC = resolve(process.cwd(), 'src')
+
+// L'alias `@/` est résolu par Vite, pas par sass.
+const aliasSrc = {
+  findFileUrl: (url: string) =>
+    url.startsWith('@/') ? pathToFileURL(resolve(DOSSIER_SRC, url.slice(2))) : null,
+}
 
 function cssDe(composant: string): string {
   const sfc = readFileSync(resolve(process.cwd(), 'src/shared/form', composant), 'utf8')
@@ -13,9 +20,7 @@ function cssDe(composant: string): string {
 
   if (!bloc) throw new Error(`bloc <style lang="scss"> introuvable dans ${composant}`)
 
-  const scss = bloc.replace("@use '@/styles/tokens' as tokens;", "@use 'tokens' as tokens;")
-
-  return compileString(scss, { loadPaths: [DOSSIER_STYLES] }).css
+  return compileString(bloc, { importers: [aliasSrc] }).css
 }
 
 function declaration(css: string, selecteur: string, propriete: string): string | undefined {
@@ -102,15 +107,45 @@ describe('FormField — contrat de style', () => {
       '#fefcf9',
     )
     expect(
-      declaration(css, '.form-field :deep(.form-field__input .v-field__outline)', 'color'),
-    ).toBe('#dbd7d1')
-    expect(
       declaration(css, '.form-field :deep(.form-field__input .v-field__input)', 'min-height'),
     ).toBe('52px')
   })
 
   it('affiche l’erreur dans le rôle système error, jamais dans une couleur d’urgence', () => {
     expect(declaration(css, '.form-field__error', 'color')).toBe('rgb(var(--v-theme-error))')
+  })
+
+  describe('bordure du champ', () => {
+    const CHAMP = '.form-field :deep(.form-field__input)'
+
+    it('pose une bordure de 1 px grise au repos', () => {
+      expect(declaration(css, `${CHAMP} .v-field__outline`, '--v-field-border-width')).toBe('1px')
+      expect(declaration(css, `${CHAMP} .v-field__outline`, 'color')).toBe('#dbd7d1')
+    })
+
+    it('passe la bordure en pétrole au focus, sur 2 px', () => {
+      const focus = `${CHAMP} .v-field--focused .v-field__outline`
+
+      expect(declaration(css, focus, 'color')).toBe('rgb(var(--v-theme-primary))')
+      expect(declaration(css, focus, '--v-field-border-width')).toBe('2px')
+    })
+
+    it('passe la bordure en rouge système en erreur, de la même épaisseur qu’au focus', () => {
+      const erreur = `${CHAMP} .v-field--error .v-field__outline`
+
+      expect(declaration(css, erreur, 'color')).toBe('rgb(var(--v-theme-error))')
+      expect(declaration(css, erreur, '--v-field-border-width')).toBe('2px')
+    })
+
+    it('garde le rouge sur un champ en erreur qui a le focus', () => {
+      const selecteurs = [...css.matchAll(/([^{}]+)\{/g)].map((regle) =>
+        regle[1]!.trim().replace(/\s+/g, ' '),
+      )
+
+      expect(selecteurs.indexOf(`${CHAMP} .v-field--error .v-field__outline`)).toBeGreaterThan(
+        selecteurs.indexOf(`${CHAMP} .v-field--focused .v-field__outline`),
+      )
+    })
   })
 
   it('étire l’indicateur natif du champ date sous l’icône calendrier', () => {

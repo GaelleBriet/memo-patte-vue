@@ -1,0 +1,25 @@
+@use '@/styles/tokens' as tokens;
+
+// Vuetify 4 range ses couleurs d'état dans `@layer vuetify-components` : le gris
+// posé ici, hors couche, les écrase, d'où le focus et l'erreur reposés.
+@mixin outline {
+  .v-field__outline {
+    --v-field-border-width: 1px;
+    --v-field-border-opacity: 1;
+
+    color: tokens.$color-field-border;
+  }
+
+  .v-field--focused .v-field__outline {
+    --v-field-border-width: 2px;
+
+    color: rgb(var(--v-theme-primary));
+  }
+
+  // Après le focus : un champ en erreur qui a le focus reste rouge.
+  .v-field--error .v-field__outline {
+    --v-field-border-width: 2px;
+
+    color: rgb(var(--v-theme-error));
+  }
+}
