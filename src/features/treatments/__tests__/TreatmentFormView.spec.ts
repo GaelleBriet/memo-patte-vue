@@ -8,6 +8,7 @@ import type { Treatment, TreatmentInput, TreatmentUpdateInput } from '../treatme
 import { useTreatmentsStore } from '../treatments.store'
 import type { Animal } from '@/features/animals/animal.schema'
 import { useAnimalsStore } from '@/features/animals/animals.store'
+import { simulateWebResume } from '@/core/app-lifecycle/__tests__/simulate-resume'
 import i18n from '@/core/i18n'
 import router from '@/router'
 import vuetify from '@/core/theme/vuetify'
@@ -76,6 +77,7 @@ beforeEach(async () => {
 
 afterEach(() => {
   vi.restoreAllMocks()
+  vi.useRealTimers()
 })
 
 async function monterCreation(animalId = MILO.id) {
@@ -572,5 +574,24 @@ describe('TreatmentFormView — accessibilité des erreurs', () => {
     await champ(wrapper, 'treatment-last-dose-date').setValue('2026-06-24')
 
     expect(wrapper.get('[aria-live="polite"]').text()).toBe('Prochaine dose le 24 sept. 2026')
+  })
+})
+
+describe('TreatmentFormView — changement de jour', () => {
+  it('accepte la date du nouveau jour après un retour au premier plan', async () => {
+    vi.useFakeTimers({ now: new Date('2026-09-09T23:30:00'), toFake: ['Date'] })
+    const wrapper = await monterCreation()
+
+    vi.setSystemTime(new Date('2026-09-10T08:00:00'))
+    simulateWebResume()
+    await wrapper.vm.$nextTick()
+    expect(champ(wrapper, 'treatment-last-dose-date').attributes('max')).toBe('2026-09-10')
+
+    await remplirMinimum(wrapper)
+    await champ(wrapper, 'treatment-last-dose-date').setValue('2026-09-10')
+    await soumettre(wrapper)
+
+    expect(messages(wrapper)).toEqual([])
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({ lastDoseDate: '2026-09-10' }))
   })
 })

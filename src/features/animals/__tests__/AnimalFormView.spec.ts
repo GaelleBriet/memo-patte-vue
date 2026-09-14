@@ -4,12 +4,13 @@ import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } fr
 import { createMemoryHistory, createRouter, type Router } from 'vue-router'
 
 import AnimalFormView from '../AnimalFormView.vue'
-import { todayIsoDate } from '../animal-form'
 import type { Animal, AnimalInput } from '../animal.schema'
 import { useAnimalsStore } from '../animals.store'
+import { simulateWebResume } from '@/core/app-lifecycle/__tests__/simulate-resume'
 import i18n from '@/core/i18n'
 import router from '@/router'
 import vuetify from '@/core/theme/vuetify'
+import { todayIsoDate } from '@/shared/form/form-dates'
 
 // Le vrai routeur ne sert qu'aux tests de routes (`resolve`) : naviguer avec lui chargerait
 // le graphe du Carnet et SQLite à chaque test.
@@ -68,6 +69,7 @@ beforeEach(async () => {
 
 afterEach(() => {
   vi.restoreAllMocks()
+  vi.useRealTimers()
 })
 
 function monter() {
@@ -558,5 +560,24 @@ describe('AnimalFormView — accessibilité des erreurs', () => {
     expectLie(wrapper, '.form-segmented', '.animal-form__field--species')
     expect(wrapper.get('#animal-weight').attributes('aria-invalid')).toBe('false')
     expect(wrapper.get('#animal-weight').attributes('aria-describedby')).toBeUndefined()
+  })
+})
+
+describe('AnimalFormView — changement de jour', () => {
+  it('accepte la date du nouveau jour après un retour au premier plan', async () => {
+    vi.useFakeTimers({ now: new Date('2026-09-09T23:30:00'), toFake: ['Date'] })
+    const wrapper = monter()
+
+    vi.setSystemTime(new Date('2026-09-10T08:00:00'))
+    simulateWebResume()
+    await wrapper.vm.$nextTick()
+    expect(champ(wrapper, 'animal-birth-date').attributes('max')).toBe('2026-09-10')
+
+    await remplirMinimum(wrapper)
+    await champ(wrapper, 'animal-birth-date').setValue('2026-09-10')
+    await soumettre(wrapper)
+
+    expect(messages(wrapper)).toEqual([])
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({ birthDate: '2026-09-10' }))
   })
 })

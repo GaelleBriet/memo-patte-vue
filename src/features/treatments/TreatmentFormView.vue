@@ -16,9 +16,9 @@ import {
   type Treatment,
 } from './treatment.schema'
 import { useTreatmentsStore } from './treatments.store'
+import { useToday } from '@/core/app-lifecycle/use-today'
 import { useAnimalsStore } from '@/features/animals/animals.store'
 import { formatLongDate } from '@/shared/format'
-import { todayIsoDate } from '@/shared/form/form-dates'
 import FormField from '@/shared/form/FormField.vue'
 import FormScreen from '@/shared/form/FormScreen.vue'
 import FormSegmented from '@/shared/form/FormSegmented.vue'
@@ -40,7 +40,7 @@ const existing = ref<Treatment | null>(null)
 const notFound = ref(false)
 const saveFailed = ref(false)
 const isSubmitting = ref(false)
-const maxLastDoseDate = todayIsoDate()
+const maxLastDoseDate = useToday()
 
 const isEdit = computed(() => props.id !== undefined)
 const targetAnimalId = computed(() => existing.value?.animalId ?? props.animalId ?? null)
