@@ -85,6 +85,7 @@ async function importFresh() {
 function fakeConnection() {
   return {
     open: vi.fn<() => Promise<void>>().mockResolvedValue(undefined),
+    isDBOpen: vi.fn<() => Promise<{ result?: boolean }>>().mockResolvedValue({ result: false }),
     execute: vi.fn<() => Promise<void>>().mockResolvedValue(undefined),
   }
 }

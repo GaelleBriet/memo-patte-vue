@@ -26,7 +26,9 @@ async function openDatabase(): Promise<DbClient> {
   await prepareWebSqlite()
   await sqlite.addUpgradeStatement(DATABASE_NAME, migrations)
   const connection = await connect()
-  await connection.open()
+  // Une connexion retrouvée peut être déjà ouverte : la rouvrir laisserait une
+  // poignée native orpheline sur Android.
+  if ((await connection.isDBOpen()).result !== true) await connection.open()
   await connection.execute('PRAGMA foreign_keys = ON;')
   return toDbClient(connection)
 }

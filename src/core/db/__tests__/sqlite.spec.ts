@@ -38,6 +38,7 @@ function resetPlugin() {
 function fakeConnection() {
   return {
     open: vi.fn<() => Promise<void>>().mockResolvedValue(undefined),
+    isDBOpen: vi.fn<() => Promise<{ result?: boolean }>>().mockResolvedValue({ result: false }),
     execute: vi.fn<() => Promise<void>>().mockResolvedValue(undefined),
   }
 }
@@ -51,22 +52,29 @@ async function importSqlite() {
 describe('getDb', () => {
   beforeEach(resetPlugin)
 
-  it('vérifie la cohérence JS / natif avant de créer la connexion', async () => {
-    plugin.createConnection.mockResolvedValue(fakeConnection())
+  it('ouvre la base quand une connexion native a survécu au rechargement de la WebView', async () => {
+    // Faux natif : la connexion héritée refuse toute création tant que la
+    // vérification de cohérence (côté JS vide) ne l'a pas fermée.
+    let nativeConnectionAlive = true
+    plugin.checkConnectionsConsistency.mockImplementation(() => {
+      nativeConnectionAlive = false
+      return Promise.resolve({ result: false })
+    })
+    plugin.createConnection.mockImplementation(() =>
+      nativeConnectionAlive
+        ? Promise.reject(new Error('CreateConnection: Connection memopatte already exists'))
+        : Promise.resolve(fakeConnection()),
+    )
     const { getDb } = await importSqlite()
 
-    await getDb()
-
-    // Après un rechargement de la WebView, la connexion native survit : la
-    // vérification de cohérence la ferme pour que la création ne soit pas refusée.
-    expect(plugin.checkConnectionsConsistency).toHaveBeenCalled()
-    expect(plugin.checkConnectionsConsistency.mock.invocationCallOrder[0]).toBeLessThan(
-      plugin.createConnection.mock.invocationCallOrder[0]!,
-    )
+    await expect(getDb()).resolves.toBeDefined()
   })
 
   it('réutilise la connexion quand JS et natif la connaissent tous les deux', async () => {
-    const connection = fakeConnection()
+    const connection = {
+      ...fakeConnection(),
+      isDBOpen: vi.fn<() => Promise<{ result?: boolean }>>().mockResolvedValue({ result: true }),
+    }
     plugin.checkConnectionsConsistency.mockResolvedValue({ result: true })
     plugin.isConnection.mockResolvedValue({ result: true })
     plugin.retrieveConnection.mockResolvedValue(connection)
@@ -74,8 +82,10 @@ describe('getDb', () => {
 
     await expect(getDb()).resolves.toBeDefined()
 
+    expect(plugin.retrieveConnection).toHaveBeenCalledWith('memopatte', false)
     expect(plugin.createConnection).not.toHaveBeenCalled()
-    expect(connection.open).toHaveBeenCalled()
+    // Rouvrir une base déjà ouverte laisserait une poignée native orpheline sur Android.
+    expect(connection.open).not.toHaveBeenCalled()
   })
 
   it("sur Android, n'ouvre jamais le store web", async () => {

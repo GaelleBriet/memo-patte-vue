@@ -26,6 +26,7 @@ vi.mock('@capacitor-community/sqlite', () => ({
 function sqlJsConnection(engine: InMemoryDb) {
   return {
     open: () => applyMigrations(engine),
+    isDBOpen: () => Promise.resolve({ result: false }),
     execute: (sql: string) => engine.execute(sql),
     run: async (sql: string, values: SqlParam[]) => ({
       changes: { changes: await engine.run(sql, values) },
