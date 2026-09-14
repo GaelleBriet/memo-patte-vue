@@ -4,14 +4,15 @@ import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } fr
 import { createMemoryHistory, createRouter, type Router } from 'vue-router'
 
 import VaccinationFormView from '../VaccinationFormView.vue'
-import { todayIsoDate } from '../vaccination-form'
 import type { Vaccination, VaccinationInput, VaccinationUpdateInput } from '../vaccination.schema'
 import { useVaccinationsStore } from '../vaccinations.store'
 import type { Animal } from '@/features/animals/animal.schema'
 import { useAnimalsStore } from '@/features/animals/animals.store'
+import { simulateWebResume } from '@/core/app-lifecycle/__tests__/simulate-resume'
 import i18n from '@/core/i18n'
 import router from '@/router'
 import vuetify from '@/core/theme/vuetify'
+import { todayIsoDate } from '@/shared/form/form-dates'
 
 // Le vrai routeur ne sert qu'aux tests de routes (`resolve`) : naviguer avec lui chargerait
 // le graphe du Carnet et SQLite à chaque test.
@@ -74,6 +75,7 @@ beforeEach(async () => {
 
 afterEach(() => {
   vi.restoreAllMocks()
+  vi.useRealTimers()
 })
 
 async function monterCreation(animalId = MILO.id) {
@@ -448,5 +450,27 @@ describe('VaccinationFormView — accessibilité des erreurs', () => {
       '.vaccination-form__field--last-injection-date',
     )
     expect(wrapper.get('#vaccination-due-date').attributes('aria-invalid')).toBe('false')
+  })
+})
+
+describe('VaccinationFormView — changement de jour', () => {
+  it('accepte la date du nouveau jour après un retour au premier plan', async () => {
+    vi.useFakeTimers({ now: new Date('2026-09-09T23:30:00'), toFake: ['Date'] })
+    const wrapper = await monterCreation()
+
+    vi.setSystemTime(new Date('2026-09-10T08:00:00'))
+    simulateWebResume()
+    await wrapper.vm.$nextTick()
+    const injection = champ(wrapper, 'vaccination-last-injection-date')
+    expect(injection.attributes('max')).toBe('2026-09-10')
+
+    await champ(wrapper, 'vaccination-name').setValue('Rage')
+    await injection.setValue('2026-09-10')
+    await soumettre(wrapper)
+
+    expect(messages(wrapper)).toEqual([])
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({ lastInjectionDate: '2026-09-10' }),
+    )
   })
 })

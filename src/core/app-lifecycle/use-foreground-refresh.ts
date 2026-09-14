@@ -1,23 +1,15 @@
-import { format } from 'date-fns'
-import { readonly, ref, type Ref } from 'vue'
+import type { Ref } from 'vue'
 
 import { useAppResume } from './app-resume'
-
-function currentIsoDate(): string {
-  return format(new Date(), 'yyyy-MM-dd')
-}
+import { useToday } from './use-today'
 
 /**
  * Date civile du jour (`yyyy-MM-dd`), recalculée à chaque retour au premier plan,
  * où `reload` est aussi appelé. L'abonnement suit la vie du composant appelant.
  */
 export function useForegroundRefresh(reload: () => void): { today: Readonly<Ref<string>> } {
-  const today = ref(currentIsoDate())
+  const today = useToday()
+  useAppResume(reload)
 
-  useAppResume(() => {
-    today.value = currentIsoDate()
-    reload()
-  })
-
-  return { today: readonly(today) }
+  return { today }
 }

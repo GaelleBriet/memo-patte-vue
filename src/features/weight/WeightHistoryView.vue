@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, useTemplateRef, type ComponentPublicInstance } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
@@ -22,6 +22,8 @@ const router = useRouter()
 const animals = useAnimalsStore()
 
 const isSheetOpen = ref(false)
+// La première pesée remplace la carte vide par le bouton fixe : c'est lui qui reprend le focus.
+const addButton = useTemplateRef<ComponentPublicInstance>('addButton')
 
 // Courbe plus haute que celle du Carnet : c'est le sujet de l'écran.
 const CHART_OPTIONS = { width: 320, height: 150, paddingTop: 22 }
@@ -158,12 +160,17 @@ function backToAnimals(): void {
         </p>
       </template>
 
-      <WeightSheet v-model="isSheetOpen" :animal-id="animalId" />
+      <WeightSheet
+        v-model="isSheetOpen"
+        :animal-id="animalId"
+        :focus-fallback="addButton?.$el ?? null"
+      />
     </div>
 
     <template v-if="!isNotFound && history.rows.length > 0" #actions>
       <div class="weight-history__actions">
         <v-btn
+          ref="addButton"
           class="weight-history__add"
           variant="flat"
           color="primary"

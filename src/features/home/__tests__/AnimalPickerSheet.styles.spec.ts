@@ -38,18 +38,6 @@ function declaration(selecteur: string, propriete: string): string | undefined {
 }
 
 describe('AnimalPickerSheet — contrat de style', () => {
-  it('reprend le patron de la feuille de pesée : coins hauts de 24 px et voile', () => {
-    expect(declaration('.animal-picker-sheet__content', 'border-radius')).toBe('24px 24px 0 0')
-    expect(declaration('.animal-picker-sheet .v-overlay__scrim', 'background')).toBe(
-      'rgb(20, 26, 26)',
-    )
-  })
-
-  it('dessine une pilule de poignée de 36 × 4 px', () => {
-    expect(declaration('.animal-picker-sheet__handle::before', 'width')).toBe('36px')
-    expect(declaration('.animal-picker-sheet__handle::before', 'height')).toBe('4px')
-  })
-
   it('donne un avatar rond de 40 px à chaque ligne', () => {
     expect(declaration('.animal-picker-sheet__avatar', 'width')).toBe('40px')
     expect(declaration('.animal-picker-sheet__avatar', 'border-radius')).toBe('50%')

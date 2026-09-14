@@ -6,6 +6,7 @@ import { defineComponent, h } from 'vue'
 
 import { onAppResume, useAppResume } from '../app-resume'
 import { useForegroundRefresh } from '../use-foreground-refresh'
+import { useToday } from '../use-today'
 import { simulateWebResume } from './simulate-resume'
 
 type AddResumeListener = (event: string, callback: () => void) => Promise<PluginListenerHandle>
@@ -186,5 +187,23 @@ describe('useForegroundRefresh', () => {
     simulateWebResume()
 
     expect(reload).not.toHaveBeenCalled()
+  })
+})
+
+describe('useToday', () => {
+  it('suit la date du jour après un changement de jour et un retour au premier plan', async () => {
+    vi.useFakeTimers({ now: new Date('2026-09-09T23:30:00'), toFake: ['Date'] })
+    let today!: ReturnType<typeof useToday>
+    const wrapper = withSetup(() => {
+      today = useToday()
+    })
+    expect(today.value).toBe('2026-09-09')
+
+    vi.setSystemTime(new Date('2026-09-10T08:00:00'))
+    simulateWebResume()
+    await wrapper.vm.$nextTick()
+
+    expect(today.value).toBe('2026-09-10')
+    wrapper.unmount()
   })
 })

@@ -388,6 +388,33 @@ describe('WeightHistoryView — H3 aucune pesée', () => {
   })
 })
 
+describe('WeightHistoryView — retour du focus', () => {
+  it('rend le focus au bouton fixe quand la première pesée remplace la carte vide', async () => {
+    create.mockImplementationOnce(async (input) => {
+      const created = entry(input.weightKg, input.measuredOn)
+      entries = [created]
+      return created
+    })
+    const wrapper = await monter()
+    const ligne = wrapper.get<HTMLButtonElement>('.weight-history__empty-add').element
+    ligne.focus()
+    ligne.click()
+    await flushPromises()
+
+    const feuille = document.body.querySelector<HTMLElement>('.weight-sheet')
+    const poids = feuille?.querySelector<HTMLInputElement>('#weight-sheet-kg')
+    if (!poids) throw new Error('Champ poids absent')
+    poids.value = '24,5'
+    poids.dispatchEvent(new Event('input', { bubbles: true }))
+    await flushPromises()
+    feuille?.querySelector<HTMLButtonElement>('.weight-sheet__submit')?.click()
+    await flushPromises()
+
+    expect(wrapper.find('.weight-history__empty-add').exists()).toBe(false)
+    expect(document.activeElement).toBe(wrapper.get('.weight-history__add').element)
+  })
+})
+
 describe('WeightHistoryView — chargement', () => {
   it('montre un indicateur de chargement, ni état vide ni pesées', async () => {
     listByAnimal.mockReturnValueOnce(new Promise(() => {}))

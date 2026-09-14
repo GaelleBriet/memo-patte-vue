@@ -5,11 +5,11 @@ import { describe, expect, it } from 'vitest'
 import {
   animalFormValuesFrom,
   emptyAnimalFormValues,
-  todayIsoDate,
   validateAnimalForm,
   type AnimalFormValues,
 } from '../animal-form'
 import type { Animal } from '../animal.schema'
+import { todayIsoDate } from '@/shared/form/form-dates'
 
 const MILO: Animal = {
   id: '11111111-1111-4111-8111-111111111111',

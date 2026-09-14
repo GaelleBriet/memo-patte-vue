@@ -587,6 +587,25 @@ describe('HomeView — Actions rapides', () => {
     expect(push).toHaveBeenCalledWith({ name: 'treatment-new', params: { animalId: MILO.id } })
   })
 
+  it('rend le focus à la tuile quand la feuille de choix se ferme par sa poignée', async () => {
+    vi.stubGlobal('visualViewport', { addEventListener() {}, removeEventListener() {} })
+    const wrapper = mount(HomeView, {
+      global: { plugins: [vuetify, i18n, router] },
+      attachTo: document.body,
+    })
+    mounted.push(wrapper)
+    await flushPromises()
+    const tuile = wrapper.findAll<HTMLButtonElement>('.home-quick-tile')[1]!.element
+    tuile.focus()
+    tuile.click()
+    await flushPromises()
+
+    document.body.querySelector<HTMLElement>('.animal-picker-sheet .bottom-sheet__handle')!.click()
+    await flushPromises()
+
+    expect(document.activeElement).toBe(tuile)
+  })
+
   it('ouvre la feuille de pesée sans animal quand aucun n’est sélectionné', async () => {
     const wrapper = await monter()
     const sheet = wrapper.getComponent(WeightSheet)

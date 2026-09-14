@@ -4,12 +4,12 @@ import { describe, expect, it } from 'vitest'
 
 import {
   emptyVaccinationFormValues,
-  todayIsoDate,
   validateVaccinationForm,
   vaccinationFormValuesFrom,
   type VaccinationFormValues,
 } from '../vaccination-form'
 import type { Vaccination } from '../vaccination.schema'
+import { todayIsoDate } from '@/shared/form/form-dates'
 
 function valeurs(surcharges: Partial<VaccinationFormValues> = {}): VaccinationFormValues {
   return {
