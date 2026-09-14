@@ -31,46 +31,13 @@ function declaration(css: string, selecteur: string, propriete: string): string 
 describe('FormScreen — contrat de style', () => {
   const css = cssDe('FormScreen.vue')
 
-  it('empile une zone défilante et une barre d’actions fixe', () => {
-    expect(declaration(css, '.form-screen', 'flex-direction')).toBe('column')
-    expect(declaration(css, '.form-screen', 'height')).toBe('100%')
-    expect(declaration(css, '.form-screen__scroll', 'overflow-y')).toBe('auto')
-    expect(declaration(css, '.form-screen__actions', 'flex')).toBe('0 0 auto')
+  it('laisse la hauteur et la top bar à PushedScreen', () => {
+    expect(declaration(css, '.form-screen', 'height')).toBeUndefined()
+    expect(declaration(css, '.form-screen__topbar', 'position')).toBeUndefined()
   })
 
-  it('colle la top bar en haut du contenu défilant, sans bandeau pétrole', () => {
-    expect(declaration(css, '.form-screen__topbar', 'position')).toBe('sticky')
-    expect(declaration(css, '.form-screen__topbar', 'top')).toBe('0')
-    expect(declaration(css, '.form-screen__topbar', 'background')).toBe(
-      'rgb(var(--v-theme-background))',
-    )
-  })
-
-  it('ne pose bordure et ombre qu’une fois le contenu défilé', () => {
-    expect(declaration(css, '.form-screen__topbar', 'border-bottom')).toBe('1px solid transparent')
-    expect(declaration(css, '.form-screen__topbar--scrolled', 'border-bottom-color')).toBe(
-      '#ece9e5',
-    )
-    expect(declaration(css, '.form-screen__topbar--scrolled', 'box-shadow')).toBe(
-      '0 1px 3px rgba(30, 25, 20, 0.06)',
-    )
-  })
-
-  it('garde la hauteur de ligne par défaut du titre seul, 1.2 avec un sous-titre', () => {
-    expect(declaration(css, '.form-screen__title', 'line-height')).toBeUndefined()
-    expect(
-      declaration(css, '.form-screen__heading--with-subtitle .form-screen__title', 'line-height'),
-    ).toBe('1.2')
-  })
-
-  it('garde la zone de tap de 48 px sur la flèche de retour', () => {
-    expect(declaration(css, '.form-screen__back', 'width')).toBe('48px')
-    expect(declaration(css, '.form-screen__back', 'height')).toBe('48px')
-  })
-
-  it('garde la barre d’actions et sa zone de gestes', () => {
-    expect(declaration(css, '.form-screen__actions', 'background')).toBe('#fcfaf7')
-    expect(declaration(css, '.form-screen__actions', 'border-top')).toBe('1px solid #ece9e5')
+  it('garde la marge des champs et la zone de gestes sous les boutons', () => {
+    expect(declaration(css, '.form-screen__fields', 'padding')).toBe('12px 20px 24px')
     expect(declaration(css, '.form-screen__actions', 'padding')).toBe('12px 20px 30px')
   })
 

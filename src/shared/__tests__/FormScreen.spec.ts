@@ -17,50 +17,38 @@ function monter(props: Partial<Props> = {}, slot = '<p class="contenu">Champs</p
   })
 }
 
-describe('FormScreen — top bar', () => {
-  it('affiche le titre, la flèche « Retour » et rend le slot dans la zone des champs', () => {
+describe('FormScreen — écran poussé', () => {
+  it('s’appuie sur PushedScreen : titre, flèche « Retour » et champs dans la zone défilante', () => {
     const wrapper = monter()
 
-    expect(wrapper.get('.form-screen__title').text()).toBe('Nouvel animal')
-    expect(wrapper.get('.form-screen__back').attributes('aria-label')).toBe('Retour')
-    expect(wrapper.get('.form-screen__fields .contenu').text()).toBe('Champs')
-    expect(wrapper.find('.form-screen__subtitle').exists()).toBe(false)
+    expect(wrapper.get('.pushed-screen__title').text()).toBe('Nouvel animal')
+    expect(wrapper.get('.pushed-screen__back').attributes('aria-label')).toBe('Retour')
+    expect(wrapper.get('.pushed-screen__scroll .form-screen__fields .contenu').text()).toBe(
+      'Champs',
+    )
+    expect(wrapper.find('.pushed-screen__subtitle').exists()).toBe(false)
   })
 
-  it('affiche le sous-titre quand il est fourni', () => {
-    const wrapper = monter({ subtitle: 'Pour Milo' })
+  it('transmet le sous-titre, dans le ton hint', () => {
+    const sousTitre = monter({ subtitle: 'Pour Milo' }).get('.pushed-screen__subtitle')
 
-    expect(wrapper.get('.form-screen__subtitle').text()).toBe('Pour Milo')
-  })
-
-  it('ne resserre l’interligne du titre que lorsqu’un sous-titre l’accompagne', () => {
-    expect(monter().get('.form-screen__heading').classes()).not.toContain(
-      'form-screen__heading--with-subtitle',
-    )
-    expect(monter({ subtitle: 'Pour Milo' }).get('.form-screen__heading').classes()).toContain(
-      'form-screen__heading--with-subtitle',
-    )
+    expect(sousTitre.text()).toBe('Pour Milo')
+    expect(sousTitre.classes()).not.toContain('pushed-screen__subtitle--secondary')
   })
 
   it('garde la classe passée par l’écran sur sa racine', () => {
     const wrapper = monter()
 
+    expect(wrapper.classes()).toContain('pushed-screen')
     expect(wrapper.classes()).toContain('form-screen')
     expect(wrapper.classes()).toContain('animal-form')
   })
 
-  it('pose la bordure de la top bar dès que le contenu défile', async () => {
+  it('place les boutons dans la barre du bas, hors de la zone défilante', () => {
     const wrapper = monter()
-    const zone = wrapper.get('.form-screen__scroll')
 
-    expect(wrapper.get('.form-screen__topbar').classes()).not.toContain(
-      'form-screen__topbar--scrolled',
-    )
-
-    Object.defineProperty(zone.element, 'scrollTop', { value: 12, configurable: true })
-    await zone.trigger('scroll')
-
-    expect(wrapper.get('.form-screen__topbar').classes()).toContain('form-screen__topbar--scrolled')
+    expect(wrapper.find('.pushed-screen__actions .form-screen__submit').exists()).toBe(true)
+    expect(wrapper.find('.pushed-screen__scroll .form-screen__submit').exists()).toBe(false)
   })
 })
 
@@ -68,7 +56,7 @@ describe('FormScreen — actions', () => {
   it('émet cancel depuis la flèche et depuis « Annuler »', async () => {
     const wrapper = monter()
 
-    await wrapper.get('.form-screen__back').trigger('click')
+    await wrapper.get('.pushed-screen__back').trigger('click')
     await wrapper.get('.form-screen__cancel').trigger('click')
 
     expect(wrapper.emitted('cancel')).toHaveLength(2)
