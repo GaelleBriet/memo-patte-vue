@@ -54,11 +54,11 @@ describe('useAnimalScopedLoad', () => {
     expect(api().loadedFor.value).toBe(MILO)
   })
 
-  it('ne marque rien de chargé après un échec', async () => {
+  it('marque l’animal chargé même après un échec : c’est l’erreur du store qui masque la liste', async () => {
     const { api } = mountWith(vi.fn<Load>(async () => false))
     await flushPromises()
 
-    expect(api().loadedFor.value).toBeNull()
+    expect(api().loadedFor.value).toBe(MILO)
     expect(api().isLoading.value).toBe(false)
   })
 

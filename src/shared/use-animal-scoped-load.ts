@@ -4,8 +4,8 @@ import { useAppResume } from '@/core/app-lifecycle/app-resume'
 
 /**
  * Charge la liste d'un animal à chaque changement d'animal et à chaque retour au premier plan.
- * `loadedFor` ne change qu'au changement d'animal ou à la fin d'un chargement : relire le même
- * animal laisse donc sa liste affichée jusqu'au remplacement.
+ * `loadedFor` : dernier animal dont le chargement est terminé, réussi ou non (l'erreur se lit
+ * dans le store). Relire le même animal laisse donc sa liste affichée jusqu'au remplacement.
  */
 export function useAnimalScopedLoad(
   animalId: () => string,
@@ -18,16 +18,16 @@ export function useAnimalScopedLoad(
     const id = animalId()
     if (loadedFor.value !== id) loadedFor.value = null
     loadingFor.value = id
-    const ok = await load(id)
+    await load(id)
     if (animalId() !== id) return
     loadingFor.value = null
-    loadedFor.value = ok ? id : null
+    loadedFor.value = id
   }
 
   watch(animalId, () => void reload(), { immediate: true })
   useAppResume(() => void reload())
 
-  /** Vrai tant qu'aucune liste de cet animal n'est affichable. */
+  /** Vrai tant qu'aucun chargement de cet animal n'est terminé. */
   const isLoading = computed(() => loadingFor.value !== null && loadedFor.value !== animalId())
 
   return { loadedFor: readonly(loadedFor), isLoading, reload }

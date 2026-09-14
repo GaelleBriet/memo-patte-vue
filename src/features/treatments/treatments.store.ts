@@ -73,7 +73,10 @@ export const useTreatmentsStore = defineStore('treatments', () => {
     hasLoaded,
     error,
 
-    /** Ne lève pas : renvoie `false` et renseigne `error`. */
+    /**
+     * Ne lève pas : renvoie `false` et renseigne `error`. Renvoie aussi `true` quand la réponse
+     * est ignorée parce qu'un autre animal a été demandé entre-temps.
+     */
     async loadForAnimal(id: string): Promise<boolean> {
       isLoading.value = true
       animalId.value = id

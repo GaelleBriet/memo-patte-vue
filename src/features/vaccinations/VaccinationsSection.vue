@@ -54,7 +54,10 @@ const isCurrent = computed(
   () =>
     loadedFor.value === props.animalId && store.animalId === props.animalId && store.error === null,
 )
-const hasError = computed(() => store.animalId === props.animalId && store.error !== null)
+const hasError = computed(
+  () =>
+    loadedFor.value === props.animalId && store.animalId === props.animalId && store.error !== null,
+)
 
 const rows = computed(() =>
   vaccinations.value.map((vaccination) => {

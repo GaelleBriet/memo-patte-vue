@@ -6,7 +6,7 @@ import { defineComponent, h, ref } from 'vue'
 import { useWeightEntries } from '../use-weight-entries'
 import type { WeightEntry } from '../weight.schema'
 import type { WeightRepository } from '../weight.repository'
-import { provideWeightRepository } from '../weight.store'
+import { provideWeightRepository, useWeightStore } from '../weight.store'
 import { simulateWebResume } from '@/core/app-lifecycle/__tests__/simulate-resume'
 
 const MILO = '11111111-1111-4111-8111-111111111111'
@@ -36,7 +36,11 @@ beforeEach(() => {
   )
   provideWeightRepository(() => ({
     listByAnimal,
-    create: vi.fn<WeightRepository['create']>(),
+    create: vi.fn<WeightRepository['create']>(async (input) => {
+      const created = { ...entry(input.animalId, input.weightKg), measuredOn: input.measuredOn }
+      entries = [...entries, created]
+      return created
+    }),
     update: vi.fn<WeightRepository['update']>(),
     remove: vi.fn<WeightRepository['remove']>(),
   }))
@@ -75,6 +79,19 @@ describe('useWeightEntries', () => {
     expect(api().entries.value.map((item) => item.weightKg)).toEqual([24.5])
     expect(api().isLoading.value).toBe(false)
     expect(api().isReady.value).toBe(true)
+  })
+
+  it('affiche la pesée ajoutée après un chargement en échec', async () => {
+    entries = []
+    listByAnimal.mockRejectedValueOnce(new Error('base fermée'))
+    const { api } = await monter()
+    expect(api().hasError.value).toBe(true)
+
+    await useWeightStore().create({ animalId: MILO, weightKg: 25, measuredOn: '2026-09-09' })
+    await flushPromises()
+
+    expect(api().hasError.value).toBe(false)
+    expect(api().entries.value.map((item) => item.weightKg)).toEqual([25])
   })
 
   it('relit les pesées au retour au premier plan', async () => {
