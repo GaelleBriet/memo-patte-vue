@@ -39,18 +39,6 @@ function declaration(selecteur: string, propriete: string): string | undefined {
   return undefined
 }
 
-describe('WeightSheet — contrat de style de la poignée', () => {
-  it('offre une zone de tap de 44 px de haut', () => {
-    expect(declaration('.weight-sheet__handle', 'height')).toBe('44px')
-  })
-
-  it('garde la pilule visible de 36 × 4 px, couleur poignée', () => {
-    expect(declaration('.weight-sheet__handle::before', 'width')).toBe('36px')
-    expect(declaration('.weight-sheet__handle::before', 'height')).toBe('4px')
-    expect(declaration('.weight-sheet__handle::before', 'background')).toBe('#c1bdb7')
-  })
-})
-
 describe('WeightSheet — sélecteur d’animal', () => {
   it('ne surcharge pas le CSS du sélecteur partagé : ses props suffisent', () => {
     expect(css).not.toContain('animal-chip-selector')

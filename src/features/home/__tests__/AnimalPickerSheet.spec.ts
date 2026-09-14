@@ -49,7 +49,9 @@ async function monter(modelValue = true) {
 
 // La feuille est téléportée hors du composant : on interroge le document.
 function feuille(): HTMLElement {
-  const element = document.body.querySelector<HTMLElement>('.animal-picker-sheet__panel')
+  const element = document.body.querySelector<HTMLElement>(
+    '.animal-picker-sheet .bottom-sheet__panel',
+  )
   if (!element) throw new Error('Feuille absente du document')
   return element
 }
@@ -62,13 +64,13 @@ describe('AnimalPickerSheet', () => {
   it('reste fermée tant qu’on ne l’ouvre pas', async () => {
     await monter(false)
 
-    expect(document.body.querySelector('.animal-picker-sheet__panel')).toBeNull()
+    expect(document.body.querySelector('.animal-picker-sheet .bottom-sheet__panel')).toBeNull()
   })
 
   it('demande pour quel animal et liste les animaux avec leur avatar', async () => {
     await monter()
 
-    expect(feuille().querySelector('.animal-picker-sheet__title')?.textContent?.trim()).toBe(
+    expect(feuille().querySelector('.bottom-sheet__title')?.textContent?.trim()).toBe(
       'Pour quel animal ?',
     )
     expect(lignes().map((ligne) => ligne.textContent?.trim())).toEqual(['Milo', 'Luna'])
@@ -80,10 +82,18 @@ describe('AnimalPickerSheet', () => {
     const wrapper = await monter()
 
     expect(feuille().textContent).not.toContain('Annuler')
-    feuille().querySelector<HTMLElement>('.animal-picker-sheet__handle')!.click()
+    feuille().querySelector<HTMLElement>('.bottom-sheet__handle')!.click()
     await flushPromises()
 
     expect(wrapper.emitted('update:modelValue')).toEqual([[false]])
+  })
+
+  it('se nomme par son titre pour les lecteurs d’écran', async () => {
+    await monter()
+
+    const dialogue = document.body.querySelector('.animal-picker-sheet[role="dialog"]')
+    const titre = document.getElementById(dialogue?.getAttribute('aria-labelledby') ?? '')
+    expect(titre?.textContent?.trim()).toBe('Pour quel animal ?')
   })
 
   it('émet l’animal choisi et se ferme au tap sur une ligne', async () => {
