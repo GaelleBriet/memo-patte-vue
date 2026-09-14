@@ -18,7 +18,8 @@ const light = {
     primary: '#01383E', // Pétrole (header, actif, boutons)
     'primary-darken-1': '#012A2F', // Pétrole foncé (hover lien)
 
-    // Urgences : une couleur de barre, plus un couple fond / texte (bandeau retard, badges Aujourd'hui et Bientôt).
+    // Urgences : barre + couple fond / texte (bandeau retard ; badges Aujourd'hui / Bientôt via today / soon).
+    // Le badge « En retard » utilise `$color-badge-overdue-*` (tokens SCSS).
     overdue: '#C0453D',
     'overdue-container': '#FFF0ED',
     'on-overdue-container': '#971B1A',
