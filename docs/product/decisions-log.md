@@ -815,8 +815,10 @@ touche pas la base, qui n'a encore aucune table (#187). — Alternative
 écartée : interroger une vraie table, qui n'existe pas encore et qu'il
 faudrait exposer à `anon`.
 
-2026-09-14 — **Une seule teinte pour le badge « En retard »** : `#FFE3DF` /
-`#972622`, celle du Carnet, reprise à l'accueil par `shared/DueStatusChip`
-(#167). — Raison : un même statut ne doit pas avoir deux couleurs ;
-`#FFF0ED` jugé trop clair. — Alternative écartée : garder un badge pâle à
-l'accueil et plein au Carnet.
+2026-09-14 — **Une seule teinte de retard dans toute l'app** : `#FFE3DF` /
+`#972622`, celle du Carnet, pour le badge « En retard » (`shared/DueStatusChip`)
+et le bandeau « N rappels en retard » de l'accueil (#167). Le thème la porte
+seul (`overdue-container` / `on-overdue-container`), sans copie dans les tokens
+SCSS. — Raison : un même statut ne doit pas avoir deux couleurs ; `#FFF0ED`
+jugé trop clair. — Alternative écartée : garder un badge et un bandeau pâles à
+l'accueil, un badge plein au Carnet.

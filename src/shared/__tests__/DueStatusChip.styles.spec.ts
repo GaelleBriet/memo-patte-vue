@@ -36,9 +36,13 @@ describe('DueStatusChip — contrat de style', () => {
     expect(declaration(css, '.due-status-chip', 'white-space')).toBe('nowrap')
   })
 
-  it('peint « En retard » avec la teinte du Carnet, partout', () => {
-    expect(declaration(css, '.due-status-chip--overdue', 'background')).toBe('#ffe3df')
-    expect(declaration(css, '.due-status-chip--overdue', 'color')).toBe('#972622')
+  it('peint « En retard » avec la teinte de retard du thème, comme le bandeau de l’accueil', () => {
+    expect(declaration(css, '.due-status-chip--overdue', 'background')).toBe(
+      'rgb(var(--v-theme-overdue-container))',
+    )
+    expect(declaration(css, '.due-status-chip--overdue', 'color')).toBe(
+      'rgb(var(--v-theme-on-overdue-container))',
+    )
   })
 
   it('peint « À jour » en vert Carnet', () => {

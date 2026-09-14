@@ -36,8 +36,8 @@ defineProps<{
 }
 
 .due-status-chip--overdue {
-  background: tokens.$color-badge-overdue-bg;
-  color: tokens.$color-badge-overdue-text;
+  background: rgb(var(--v-theme-overdue-container));
+  color: rgb(var(--v-theme-on-overdue-container));
 }
 
 .due-status-chip--today {

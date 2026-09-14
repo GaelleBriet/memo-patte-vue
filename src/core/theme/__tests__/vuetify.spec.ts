@@ -4,6 +4,19 @@ import { VIcon } from 'vuetify/components'
 
 import vuetify from '../vuetify'
 
+function luminance(hex: string): number {
+  const [r, g, b] = [1, 3, 5].map((i) => {
+    const c = parseInt(hex.slice(i, i + 2), 16) / 255
+    return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
+  })
+  return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!
+}
+
+function contraste(texte: string, fond: string): number {
+  const [clair, sombre] = [luminance(texte), luminance(fond)].sort((a, b) => b - a)
+  return (clair! + 0.05) / (sombre! + 0.05)
+}
+
 describe('thème Vuetify', () => {
   it('rend un <svg> pour « ms:pets »', () => {
     const wrapper = mount(VIcon, {
@@ -32,6 +45,16 @@ describe('thème Vuetify', () => {
     expect(couleurs?.overdue).toBe('#C0453D')
     expect(couleurs?.today).toBe('#D38D38')
     expect(couleurs?.soon).toBe('#5C8664')
+  })
+
+  it('donne une seule teinte au retard, bandeau et badge, lisible en AA', () => {
+    const couleurs = vuetify.theme.themes.value.light?.colors
+
+    expect(couleurs?.['overdue-container']).toBe('#FFE3DF')
+    expect(couleurs?.['on-overdue-container']).toBe('#972622')
+    expect(
+      contraste(couleurs!['on-overdue-container']!, couleurs!['overdue-container']!),
+    ).toBeGreaterThanOrEqual(4.5)
   })
 
   it('distingue la pastille « tout est à jour » de la couleur « bientôt »', () => {
