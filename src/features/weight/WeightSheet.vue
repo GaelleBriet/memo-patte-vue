@@ -6,11 +6,14 @@ import { emptyWeightFormValues, todayIsoDate, validateWeightForm } from './weigh
 import { useWeightStore } from './weight.store'
 import { useAnimalsStore } from '@/features/animals/animals.store'
 import AnimalChipSelector, { type AnimalChipItem } from '@/shared/AnimalChipSelector.vue'
+import BottomSheet from '@/shared/BottomSheet.vue'
 import { useFormValidation } from '@/shared/form/use-form-validation'
 
 const props = defineProps<{
   /** Animal déjà identifié par le contexte d'ouverture (Carnet) ; `null` ou absent : à choisir. */
   animalId?: string | null
+  /** Reçoit le focus à la fermeture si le contrôle qui a ouvert la feuille a disparu. */
+  focusFallback?: HTMLElement | null
 }>()
 
 const open = defineModel<boolean>({ default: false })
@@ -32,9 +35,10 @@ const weightInput = ref<{ focus: () => void } | null>(null)
 
 const needsAnimal = computed(() => !props.animalId)
 const isLocked = computed(() => needsAnimal.value && values.value.animalId === null)
-const animalName = computed(() =>
-  props.animalId ? (animals.byId(props.animalId)?.name ?? null) : null,
-)
+const subtitle = computed(() => {
+  const name = props.animalId ? animals.byId(props.animalId)?.name : null
+  return name ? t('weight.form.forAnimal', { name }) : null
+})
 const chips = computed<AnimalChipItem[]>(() =>
   animals.animals.map((animal) => ({ id: animal.id, name: animal.name })),
 )
@@ -59,10 +63,6 @@ watch(
   { immediate: true },
 )
 
-function close(): void {
-  open.value = false
-}
-
 async function submit(): Promise<void> {
   if (isSubmitting.value) return
 
@@ -74,7 +74,7 @@ async function submit(): Promise<void> {
 
   try {
     await weight.create(result.data)
-    close()
+    open.value = false
   } catch {
     saveFailed.value = true
   } finally {
@@ -85,231 +85,123 @@ async function submit(): Promise<void> {
 
 <template>
   <!-- Pendant l'écriture, un tap sur le voile ne ferme pas : un échec doit rester lisible. -->
-  <v-bottom-sheet
+  <BottomSheet
     v-model="open"
     class="weight-sheet"
-    content-class="weight-sheet__content"
+    :title="t('weight.form.title')"
+    :subtitle="subtitle"
+    :close-label="t('weight.form.close')"
+    :show-close="needsAnimal"
     :persistent="isSubmitting"
+    :focus-fallback="focusFallback"
   >
-    <div class="weight-sheet__panel">
-      <button
-        type="button"
-        class="weight-sheet__handle"
-        :aria-label="t('weight.form.close')"
-        @click="close"
+    <div v-if="needsAnimal" class="weight-sheet__field weight-sheet__field--animal">
+      <p class="weight-sheet__label">
+        <span>{{ t('weight.form.animal.label') }}</span>
+        <span class="weight-sheet__required" aria-hidden="true">
+          {{ t('weight.form.required') }}
+        </span>
+      </p>
+      <AnimalChipSelector
+        v-model:selected-id="values.animalId"
+        mode="switch"
+        hide-add
+        inline
+        :animals="chips"
+        :describedby="errors.animalId ? animalErrorId : undefined"
+        :invalid="Boolean(errors.animalId)"
       />
+      <p v-if="errors.animalId" :id="animalErrorId" class="weight-sheet__error">
+        <v-icon icon="ms:error_fill" size="16" />
+        <span>{{ t(errors.animalId) }}</span>
+      </p>
+    </div>
 
-      <header class="weight-sheet__header">
-        <div class="weight-sheet__heading">
-          <h2 class="weight-sheet__title">{{ t('weight.form.title') }}</h2>
-          <p v-if="animalName" class="weight-sheet__subtitle">
-            {{ t('weight.form.forAnimal', { name: animalName }) }}
-          </p>
-        </div>
-        <v-btn
-          v-if="needsAnimal"
-          class="weight-sheet__close"
-          icon="ms:close"
-          variant="text"
-          :aria-label="t('weight.form.close')"
-          @click="close"
-        />
-      </header>
-
-      <div v-if="needsAnimal" class="weight-sheet__field weight-sheet__field--animal">
-        <p class="weight-sheet__label">
-          <span>{{ t('weight.form.animal.label') }}</span>
+    <div class="weight-sheet__fields" :class="{ 'weight-sheet__fields--locked': isLocked }">
+      <div class="weight-sheet__field weight-sheet__field--kg">
+        <label class="weight-sheet__label" for="weight-sheet-kg">
+          <span>{{ t('weight.form.weightKg.label') }}</span>
           <span class="weight-sheet__required" aria-hidden="true">
             {{ t('weight.form.required') }}
           </span>
-        </p>
-        <AnimalChipSelector
-          v-model:selected-id="values.animalId"
-          mode="switch"
-          hide-add
-          inline
-          :animals="chips"
-          :describedby="errors.animalId ? animalErrorId : undefined"
-          :invalid="Boolean(errors.animalId)"
+        </label>
+        <v-text-field
+          id="weight-sheet-kg"
+          ref="weightInput"
+          v-model="values.weightKg"
+          class="weight-sheet__input"
+          variant="outlined"
+          hide-details
+          inputmode="decimal"
+          aria-required="true"
+          :aria-describedby="errors.weightKg ? weightErrorId : undefined"
+          :aria-invalid="Boolean(errors.weightKg)"
+          :disabled="isLocked"
+          :error="Boolean(errors.weightKg)"
+          :placeholder="t('weight.form.weightKg.placeholder')"
+          :suffix="t('weight.unit')"
         />
-        <p v-if="errors.animalId" :id="animalErrorId" class="weight-sheet__error">
+        <p v-if="errors.weightKg" :id="weightErrorId" class="weight-sheet__error">
           <v-icon icon="ms:error_fill" size="16" />
-          <span>{{ t(errors.animalId) }}</span>
+          <span>{{ t(errors.weightKg) }}</span>
         </p>
       </div>
 
-      <div class="weight-sheet__fields" :class="{ 'weight-sheet__fields--locked': isLocked }">
-        <div class="weight-sheet__field weight-sheet__field--kg">
-          <label class="weight-sheet__label" for="weight-sheet-kg">
-            <span>{{ t('weight.form.weightKg.label') }}</span>
-            <span class="weight-sheet__required" aria-hidden="true">
-              {{ t('weight.form.required') }}
-            </span>
-          </label>
-          <v-text-field
-            id="weight-sheet-kg"
-            ref="weightInput"
-            v-model="values.weightKg"
-            class="weight-sheet__input"
-            variant="outlined"
-            hide-details
-            inputmode="decimal"
-            aria-required="true"
-            :aria-describedby="errors.weightKg ? weightErrorId : undefined"
-            :aria-invalid="Boolean(errors.weightKg)"
-            :disabled="isLocked"
-            :error="Boolean(errors.weightKg)"
-            :placeholder="t('weight.form.weightKg.placeholder')"
-            :suffix="t('weight.unit')"
-          />
-          <p v-if="errors.weightKg" :id="weightErrorId" class="weight-sheet__error">
-            <v-icon icon="ms:error_fill" size="16" />
-            <span>{{ t(errors.weightKg) }}</span>
-          </p>
-        </div>
-
-        <div class="weight-sheet__field weight-sheet__field--date">
-          <label class="weight-sheet__label" for="weight-sheet-date">
-            <span>{{ t('weight.form.measuredOn.label') }}</span>
-            <span class="weight-sheet__required" aria-hidden="true">
-              {{ t('weight.form.required') }}
-            </span>
-          </label>
-          <v-text-field
-            id="weight-sheet-date"
-            v-model="values.measuredOn"
-            class="weight-sheet__input weight-sheet__input--date"
-            type="date"
-            :max="maxDate"
-            variant="outlined"
-            hide-details
-            aria-required="true"
-            append-inner-icon="ms:calendar_month"
-            :aria-describedby="errors.measuredOn ? dateErrorId : undefined"
-            :aria-invalid="Boolean(errors.measuredOn)"
-            :disabled="isLocked"
-            :error="Boolean(errors.measuredOn)"
-          />
-          <p v-if="errors.measuredOn" :id="dateErrorId" class="weight-sheet__error">
-            <v-icon icon="ms:error_fill" size="16" />
-            <span>{{ t(errors.measuredOn) }}</span>
-          </p>
-        </div>
-      </div>
-
-      <p v-if="saveFailed" class="weight-sheet__save-error" role="alert">
-        {{ t('weight.form.errors.save') }}
-      </p>
-
-      <v-btn
-        class="weight-sheet__submit"
-        variant="flat"
-        color="primary"
-        :disabled="isSubmitting"
-        @click="submit"
-      >
-        <v-progress-circular
-          v-if="isSubmitting"
-          class="weight-sheet__spinner"
-          indeterminate
-          :size="18"
-          :width="2"
+      <div class="weight-sheet__field weight-sheet__field--date">
+        <label class="weight-sheet__label" for="weight-sheet-date">
+          <span>{{ t('weight.form.measuredOn.label') }}</span>
+          <span class="weight-sheet__required" aria-hidden="true">
+            {{ t('weight.form.required') }}
+          </span>
+        </label>
+        <v-text-field
+          id="weight-sheet-date"
+          v-model="values.measuredOn"
+          class="weight-sheet__input weight-sheet__input--date"
+          type="date"
+          :max="maxDate"
+          variant="outlined"
+          hide-details
+          aria-required="true"
+          append-inner-icon="ms:calendar_month"
+          :aria-describedby="errors.measuredOn ? dateErrorId : undefined"
+          :aria-invalid="Boolean(errors.measuredOn)"
+          :disabled="isLocked"
+          :error="Boolean(errors.measuredOn)"
         />
-        {{ submitLabel }}
-      </v-btn>
+        <p v-if="errors.measuredOn" :id="dateErrorId" class="weight-sheet__error">
+          <v-icon icon="ms:error_fill" size="16" />
+          <span>{{ t(errors.measuredOn) }}</span>
+        </p>
+      </div>
     </div>
-  </v-bottom-sheet>
+
+    <p v-if="saveFailed" class="weight-sheet__save-error" role="alert">
+      {{ t('weight.form.errors.save') }}
+    </p>
+
+    <v-btn
+      class="weight-sheet__submit"
+      variant="flat"
+      color="primary"
+      :disabled="isSubmitting"
+      @click="submit"
+    >
+      <v-progress-circular
+        v-if="isSubmitting"
+        class="weight-sheet__spinner"
+        indeterminate
+        :size="18"
+        :width="2"
+      />
+      {{ submitLabel }}
+    </v-btn>
+  </BottomSheet>
 </template>
 
 <style lang="scss">
 @use '@/styles/tokens' as tokens;
 @use '@/shared/form/field-outline' as field;
-
-// Non scopé : la feuille est téléportée hors du composant, et le voile comme le
-// conteneur appartiennent à Vuetify.
-.weight-sheet {
-  --v-overlay-opacity: #{tokens.$opacity-overlay-scrim};
-
-  .v-overlay__scrim {
-    background: tokens.$color-overlay-scrim;
-  }
-}
-
-.weight-sheet__content {
-  margin: 0;
-  overflow: visible;
-  border-radius: tokens.$radius-sheet tokens.$radius-sheet 0 0;
-  background: rgb(var(--v-theme-background));
-  box-shadow: tokens.$shadow-sheet;
-}
-
-.weight-sheet__panel {
-  padding: 0 20px 24px;
-}
-
-// Zone de tap de 44 px de haut ; la pilule visible (36 × 4) reste à 12 px du bord.
-.weight-sheet__handle {
-  // Au-dessus du titre qui remonte sous elle : les 44 px restent tous tapables.
-  position: relative;
-  z-index: 1;
-  display: block;
-  width: 96px;
-  height: 44px;
-  margin: 0 auto;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  cursor: pointer;
-}
-
-.weight-sheet__handle::before {
-  position: absolute;
-  top: 12px;
-  left: 50%;
-  width: 36px;
-  height: 4px;
-  border-radius: 999px;
-  background: tokens.$color-sheet-handle;
-  content: '';
-  transform: translateX(-50%);
-}
-
-// La zone de tap de la poignée descend sous la pilule : le titre remonte d'autant
-// pour garder 18 px entre la pilule et lui.
-.weight-sheet__header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 8px;
-  margin-top: -10px;
-}
-
-.weight-sheet__heading {
-  min-width: 0;
-}
-
-.weight-sheet__title {
-  margin: 0;
-  font-family: tokens.$font-family-heading;
-  font-size: 20px;
-  font-weight: 700;
-  line-height: 1.2;
-}
-
-.weight-sheet__subtitle {
-  margin: 4px 0 0;
-  color: tokens.$color-text-secondary;
-  font-size: 14px;
-  font-weight: 500;
-}
-
-.weight-sheet__close {
-  flex: 0 0 auto;
-  width: 44px;
-  height: 44px;
-  margin: -8px -8px 0 0;
-  color: tokens.$color-segment-inactive;
-}
 
 .weight-sheet__field {
   margin-top: 18px;

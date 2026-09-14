@@ -81,7 +81,7 @@ async function monter(animalId = MILO) {
 }
 
 function feuille(): HTMLElement | null {
-  return document.body.querySelector<HTMLElement>('.weight-sheet__panel')
+  return document.body.querySelector<HTMLElement>('.weight-sheet .bottom-sheet__panel')
 }
 
 describe('WeightSection — chargement', () => {
@@ -268,6 +268,26 @@ describe('WeightSection — ajouter une pesée', () => {
     )
     expect(wrapper.get('.weight-section__current').text()).toBe('24,5')
     expect(wrapper.getComponent(WeightSheet).props('modelValue')).toBe(false)
+  })
+})
+
+describe('WeightSection — retour du focus', () => {
+  it('rend le focus à « Ajouter une pesée » une fois la pesée enregistrée', async () => {
+    const wrapper = await monter()
+    const ajout = wrapper.get<HTMLButtonElement>('.weight-section__add').element
+    ajout.focus()
+    ajout.click()
+    await flushPromises()
+
+    const poids = feuille()?.querySelector<HTMLInputElement>('#weight-sheet-kg')
+    if (!poids) throw new Error('Champ poids absent')
+    poids.value = '24,5'
+    poids.dispatchEvent(new Event('input', { bubbles: true }))
+    await flushPromises()
+    feuille()?.querySelector<HTMLButtonElement>('.weight-sheet__submit')?.click()
+    await flushPromises()
+
+    expect(document.activeElement).toBe(ajout)
   })
 })
 
