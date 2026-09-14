@@ -117,8 +117,8 @@ describe('AnimalFormView — structure', () => {
   it('affiche le titre « Nouvel animal » et la flèche de retour', () => {
     const wrapper = monter()
 
-    expect(wrapper.get('.form-screen__title').text()).toBe('Nouvel animal')
-    expect(wrapper.get('.form-screen__back').html()).toContain('form-screen__back')
+    expect(wrapper.get('.pushed-screen__title').text()).toBe('Nouvel animal')
+    expect(wrapper.get('.pushed-screen__back').html()).toContain('pushed-screen__back')
   })
 
   it('commence au champ Nom : la photo est hors du périmètre de l’écran', () => {
@@ -336,7 +336,7 @@ describe('AnimalFormView — édition (état F2)', () => {
   it('titre « Modifier Milo », bouton « Enregistrer », champs pré-remplis', async () => {
     const wrapper = await monterEdition()
 
-    expect(wrapper.get('.form-screen__title').text()).toBe('Modifier Milo')
+    expect(wrapper.get('.pushed-screen__title').text()).toBe('Modifier Milo')
     expect(wrapper.get('.form-screen__submit').text()).toBe('Enregistrer')
     expect(valeur(wrapper, 'animal-name')).toBe('Milo')
     expect(especes(wrapper)[0]!.attributes('aria-checked')).toBe('true')
@@ -371,7 +371,7 @@ describe('AnimalFormView — édition (état F2)', () => {
 
     await champ(wrapper, 'animal-name').setValue('Milou')
 
-    expect(wrapper.get('.form-screen__title').text()).toBe('Modifier Milo')
+    expect(wrapper.get('.pushed-screen__title').text()).toBe('Modifier Milo')
   })
 
   it('met à jour par le store avec l’identifiant de la route, jamais par create', async () => {
@@ -508,16 +508,18 @@ describe('AnimalFormView — envoi en cours (état F4)', () => {
 describe('AnimalFormView — top bar au scroll (état F5)', () => {
   it('pose la bordure de la top bar dès que le contenu défile', async () => {
     const wrapper = monter()
-    const zone = wrapper.get('.form-screen__scroll')
+    const zone = wrapper.get('.pushed-screen__scroll')
 
-    expect(wrapper.get('.form-screen__topbar').classes()).not.toContain(
-      'form-screen__topbar--scrolled',
+    expect(wrapper.get('.pushed-screen__topbar').classes()).not.toContain(
+      'pushed-screen__topbar--scrolled',
     )
 
     Object.defineProperty(zone.element, 'scrollTop', { value: 12, configurable: true })
     await zone.trigger('scroll')
 
-    expect(wrapper.get('.form-screen__topbar').classes()).toContain('form-screen__topbar--scrolled')
+    expect(wrapper.get('.pushed-screen__topbar').classes()).toContain(
+      'pushed-screen__topbar--scrolled',
+    )
   })
 })
 

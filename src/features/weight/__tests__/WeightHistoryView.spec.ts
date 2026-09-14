@@ -123,8 +123,22 @@ describe('WeightHistoryView — top bar', () => {
   it('titre « Suivi de poids » avec le prénom de l’animal en dessous', async () => {
     const wrapper = await monter()
 
-    expect(wrapper.get('.weight-history__title').text()).toBe('Suivi de poids')
-    expect(wrapper.get('.weight-history__subtitle').text()).toBe('Milo')
+    expect(wrapper.get('.pushed-screen__title').text()).toBe('Suivi de poids')
+    expect(wrapper.get('.pushed-screen__subtitle').text()).toBe('Milo')
+    expect(wrapper.get('.pushed-screen__subtitle').classes()).toContain(
+      'pushed-screen__subtitle--secondary',
+    )
+    expect(wrapper.get('.pushed-screen__heading').classes()).toContain(
+      'pushed-screen__heading--compact',
+    )
+  })
+
+  it('s’appuie sur l’écran poussé partagé, bouton d’ajout dans sa barre du bas', async () => {
+    entries = [...HISTORIQUE_MILO]
+    const wrapper = await monter()
+
+    expect(wrapper.classes()).toEqual(expect.arrayContaining(['pushed-screen', 'weight-history']))
+    expect(wrapper.find('.pushed-screen__actions .weight-history__add').exists()).toBe(true)
   })
 
   it('charge les animaux s’ils ne le sont pas, et les pesées de l’animal de l’URL', async () => {
@@ -137,16 +151,16 @@ describe('WeightHistoryView — top bar', () => {
   it('borde la top bar dès que le contenu défile', async () => {
     entries = [...HISTORIQUE_MILO]
     const wrapper = await monter()
-    const scroll = wrapper.get('.weight-history__scroll')
-    expect(wrapper.get('.weight-history__topbar').classes()).not.toContain(
-      'weight-history__topbar--scrolled',
+    const scroll = wrapper.get('.pushed-screen__scroll')
+    expect(wrapper.get('.pushed-screen__topbar').classes()).not.toContain(
+      'pushed-screen__topbar--scrolled',
     )
 
     scroll.element.scrollTop = 40
     await scroll.trigger('scroll')
 
-    expect(wrapper.get('.weight-history__topbar').classes()).toContain(
-      'weight-history__topbar--scrolled',
+    expect(wrapper.get('.pushed-screen__topbar').classes()).toContain(
+      'pushed-screen__topbar--scrolled',
     )
   })
 
@@ -160,14 +174,14 @@ describe('WeightHistoryView — top bar', () => {
     await flushPromises()
 
     expect(listByAnimal).toHaveBeenLastCalledWith(luna.id)
-    expect(wrapper.get('.weight-history__subtitle').text()).toBe('Luna')
+    expect(wrapper.get('.pushed-screen__subtitle').text()).toBe('Luna')
     expect(wrapper.get('.weight-history__current').text()).toBe('4,2')
   })
 
   it('revient au Carnet par la flèche retour', async () => {
     const wrapper = await monter()
 
-    await wrapper.get('.weight-history__back').trigger('click')
+    await wrapper.get('.pushed-screen__back').trigger('click')
 
     expect(push).toHaveBeenCalledExactlyOnceWith({ name: 'animals' })
   })
@@ -420,8 +434,8 @@ describe('WeightHistoryView — animal introuvable', () => {
     const wrapper = await monter()
 
     expect(wrapper.get('.weight-history__not-found').text()).toBe('Cet animal est introuvable.')
-    expect(wrapper.get('.weight-history__title').text()).toBe('Suivi de poids')
-    expect(wrapper.find('.weight-history__subtitle').exists()).toBe(false)
+    expect(wrapper.get('.pushed-screen__title').text()).toBe('Suivi de poids')
+    expect(wrapper.find('.pushed-screen__subtitle').exists()).toBe(false)
     expect(wrapper.find('.weight-history__current').exists()).toBe(false)
     expect(wrapper.find('.weight-history__row').exists()).toBe(false)
     expect(wrapper.find('.weight-history__empty-add').exists()).toBe(false)
