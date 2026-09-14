@@ -17,6 +17,9 @@ importers:
       '@capacitor/android':
         specifier: ^8.5.1
         version: 8.5.1(@capacitor/core@8.5.1)
+      '@capacitor/app':
+        specifier: ^8.1.1
+        version: 8.1.1(@capacitor/core@8.5.1)
       '@capacitor/core':
         specifier: ^8.5.1
         version: 8.5.1
@@ -367,6 +370,11 @@ packages:
     resolution: {integrity: sha512-o8fUIPDSEASeXHHrDz26WU7OlyiRb+QqtI9KFdnLS1jUL77o5iGrvegibaZX8rWpiCyDJ6jlUhhhHlfeq3ou9A==}
     peerDependencies:
       '@capacitor/core': ^8.5.0
+
+  '@capacitor/app@8.1.1':
+    resolution: {integrity: sha512-xM2ZTX5jK60tFtmjsmJv+Cdj1Qsb6NcavkqmdEnCPQBeya9oKhamZJxYOnQNj1ZvcJM7sWfG6BEtSLx42pisbA==}
+    peerDependencies:
+      '@capacitor/core': '>=8.0.0'
 
   '@capacitor/assets@3.0.5':
     resolution: {integrity: sha512-ohz/OUq61Y1Fc6aVSt0uDrUdeOA7oTH4pkWDbv/8I3UrPjH7oPkzYhShuDRUjekNp9RBi198VSFdt0CetpEOzw==}
@@ -3919,6 +3927,10 @@ snapshots:
       jeep-sqlite: 2.8.0
 
   '@capacitor/android@8.5.1(@capacitor/core@8.5.1)':
+    dependencies:
+      '@capacitor/core': 8.5.1
+
+  '@capacitor/app@8.1.1(@capacitor/core@8.5.1)':
     dependencies:
       '@capacitor/core': 8.5.1
 
