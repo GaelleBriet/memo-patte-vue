@@ -15,6 +15,7 @@ import CarnetView from '../CarnetView.vue'
 import type { Animal } from '../animal.schema'
 import { provideAnimalsRepository, useAnimalsStore } from '../animals.store'
 import type { AnimalsRepository } from '../animals.repository'
+import { simulateWebResume } from '@/core/app-lifecycle/__tests__/simulate-resume'
 import i18n from '@/core/i18n'
 import router from '@/router'
 import vuetify from '@/core/theme/vuetify'
@@ -141,7 +142,11 @@ beforeEach(async () => {
   push = vi.spyOn(router, 'push').mockResolvedValue()
 })
 
+// Un Carnet resté monté écouterait encore le retour au premier plan des tests suivants.
+const mounted: ReturnType<typeof mount>[] = []
+
 afterEach(() => {
+  mounted.splice(0).forEach((wrapper) => wrapper.unmount())
   provideVaccinationsRepository(null)
   provideTreatmentsRepository(null)
   provideWeightRepository(null)
@@ -151,6 +156,7 @@ afterEach(() => {
 
 async function monter() {
   const wrapper = mount(CarnetView, { global: { plugins: [vuetify, i18n, router] } })
+  mounted.push(wrapper)
   await flushPromises()
   return wrapper
 }
@@ -339,6 +345,32 @@ describe('CarnetView — bandeau de stats', () => {
     await flushPromises()
 
     expect(stat(wrapper, 2).value).toBe('1')
+  })
+})
+
+describe('CarnetView — retour au premier plan', () => {
+  it('passe une dose du jour en retard quand l’app revient le lendemain', async () => {
+    treatments = [treatment(MILO.id, '2026-09-09')]
+    const wrapper = await monter()
+    expect(wrapper.get('.treatment-row__next-dose').text()).toBe('Prochaine dose aujourd’hui')
+
+    vi.setSystemTime(new Date('2026-09-10T08:00:00'))
+    simulateWebResume()
+    await flushPromises()
+
+    expect(wrapper.get('.treatment-row__next-dose').text()).toBe('Prochaine dose en retard · 1 j')
+    expect(stat(wrapper, 1)).toMatchObject({ value: '1', sub: 'en retard' })
+  })
+
+  it('relit la liste des animaux en gardant l’animal consulté', async () => {
+    const wrapper = await monter()
+    await wrapper.findAll('.animal-chip')[1]!.trigger('click')
+
+    simulateWebResume()
+    await flushPromises()
+
+    expect(load).toHaveBeenCalledTimes(2)
+    expect(store.selectedAnimalId).toBe(LUNA.id)
   })
 })
 

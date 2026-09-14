@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { format } from 'date-fns'
 import { computed, onMounted, ref, watchEffect } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
 import { useAnimalsStore } from './animals.store'
+import { useForegroundRefresh } from '@/core/app-lifecycle/use-foreground-refresh'
 import TreatmentsSection, {
   type TreatmentsSummary,
 } from '@/features/treatments/TreatmentsSection.vue'
@@ -21,7 +21,7 @@ const { t } = useI18n()
 const router = useRouter()
 const animals = useAnimalsStore()
 
-const today = format(new Date(), 'yyyy-MM-dd')
+const { today } = useForegroundRefresh(() => void animals.load())
 
 const vaccinationsSummary = ref<VaccinationsSummary>({ total: 0, overdue: 0 })
 const treatmentsSummary = ref<TreatmentsSummary>({ total: 0, overdue: 0, ongoing: 0 })
@@ -40,7 +40,7 @@ const chips = computed<AnimalChipItem[]>(() =>
 
 const subtitle = computed(() => {
   if (!animal.value) return null
-  const age = animalAge(animal.value.birthDate, today)
+  const age = animalAge(animal.value.birthDate, today.value)
   const parts = [animal.value.breed, age && t(`animals.age.${age.unit}`, age.value)]
   const text = parts.filter(Boolean).join(t('animals.carnet.subtitleSeparator'))
   return text || null
