@@ -118,9 +118,9 @@ describe('VaccinationFormView — structure', () => {
   it('affiche « Nouveau vaccin », la flèche de retour et l’animal en sous-titre', async () => {
     const wrapper = await monterCreation()
 
-    expect(wrapper.get('.form-screen__title').text()).toBe('Nouveau vaccin')
-    expect(wrapper.get('.form-screen__subtitle').text()).toBe('Pour Milo')
-    expect(wrapper.find('.form-screen__back').exists()).toBe(true)
+    expect(wrapper.get('.pushed-screen__title').text()).toBe('Nouveau vaccin')
+    expect(wrapper.get('.pushed-screen__subtitle').text()).toBe('Pour Milo')
+    expect(wrapper.find('.pushed-screen__back').exists()).toBe(true)
   })
 
   it('charge les animaux pour nommer celui de la route', async () => {
@@ -298,8 +298,8 @@ describe('VaccinationFormView — édition', () => {
     const wrapper = await monterEdition()
 
     expect(getById).toHaveBeenCalledWith(RAGE.id)
-    expect(wrapper.get('.form-screen__title').text()).toBe('Modifier Rage')
-    expect(wrapper.get('.form-screen__subtitle').text()).toBe('Pour Milo')
+    expect(wrapper.get('.pushed-screen__title').text()).toBe('Modifier Rage')
+    expect(wrapper.get('.pushed-screen__subtitle').text()).toBe('Pour Milo')
     expect((champ(wrapper, 'vaccination-name').element as HTMLInputElement).value).toBe('Rage')
     expect(
       (champ(wrapper, 'vaccination-last-injection-date').element as HTMLInputElement).value,
@@ -315,7 +315,7 @@ describe('VaccinationFormView — édition', () => {
 
     await champ(wrapper, 'vaccination-name').setValue('Rage (rappel)')
 
-    expect(wrapper.get('.form-screen__title').text()).toBe('Modifier Rage')
+    expect(wrapper.get('.pushed-screen__title').text()).toBe('Modifier Rage')
   })
 
   it('met à jour par le store avec l’identifiant de la route, sans animal', async () => {
@@ -394,16 +394,18 @@ describe('VaccinationFormView — envoi en cours', () => {
 describe('VaccinationFormView — top bar au scroll', () => {
   it('pose la bordure de la top bar dès que le contenu défile', async () => {
     const wrapper = await monterCreation()
-    const zone = wrapper.get('.form-screen__scroll')
+    const zone = wrapper.get('.pushed-screen__scroll')
 
-    expect(wrapper.get('.form-screen__topbar').classes()).not.toContain(
-      'form-screen__topbar--scrolled',
+    expect(wrapper.get('.pushed-screen__topbar').classes()).not.toContain(
+      'pushed-screen__topbar--scrolled',
     )
 
     Object.defineProperty(zone.element, 'scrollTop', { value: 12, configurable: true })
     await zone.trigger('scroll')
 
-    expect(wrapper.get('.form-screen__topbar').classes()).toContain('form-screen__topbar--scrolled')
+    expect(wrapper.get('.pushed-screen__topbar').classes()).toContain(
+      'pushed-screen__topbar--scrolled',
+    )
   })
 })
 

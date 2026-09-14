@@ -145,9 +145,9 @@ describe('TreatmentFormView — structure', () => {
   it('affiche « Nouveau traitement », la flèche de retour et l’animal en sous-titre', async () => {
     const wrapper = await monterCreation()
 
-    expect(wrapper.get('.form-screen__title').text()).toBe('Nouveau traitement')
-    expect(wrapper.get('.form-screen__subtitle').text()).toBe('Pour Milo')
-    expect(wrapper.find('.form-screen__back').exists()).toBe(true)
+    expect(wrapper.get('.pushed-screen__title').text()).toBe('Nouveau traitement')
+    expect(wrapper.get('.pushed-screen__subtitle').text()).toBe('Pour Milo')
+    expect(wrapper.find('.pushed-screen__back').exists()).toBe(true)
     expect(loadAnimals).toHaveBeenCalledOnce()
   })
 
@@ -403,8 +403,8 @@ describe('TreatmentFormView — édition', () => {
     const wrapper = await monterEdition()
 
     expect(getById).toHaveBeenCalledWith(BRAVECTO.id)
-    expect(wrapper.get('.form-screen__title').text()).toBe('Modifier Bravecto')
-    expect(wrapper.get('.form-screen__subtitle').text()).toBe('Pour Milo')
+    expect(wrapper.get('.pushed-screen__title').text()).toBe('Modifier Bravecto')
+    expect(wrapper.get('.pushed-screen__subtitle').text()).toBe('Pour Milo')
     expect(valeur(wrapper, 'treatment-name')).toBe('Bravecto')
     expect(types(wrapper)[1]!.attributes('aria-checked')).toBe('true')
     expect(valeur(wrapper, 'treatment-frequency-value')).toBe('3')
@@ -419,7 +419,7 @@ describe('TreatmentFormView — édition', () => {
 
     await champ(wrapper, 'treatment-name').setValue('Bravecto Plus')
 
-    expect(wrapper.get('.form-screen__title').text()).toBe('Modifier Bravecto')
+    expect(wrapper.get('.pushed-screen__title').text()).toBe('Modifier Bravecto')
   })
 
   it('met à jour par le store avec l’identifiant de la route, sans animal', async () => {
