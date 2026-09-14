@@ -25,16 +25,22 @@ export function getDb(): Promise<DbClient> {
 async function openDatabase(): Promise<DbClient> {
   await prepareWebSqlite()
   await sqlite.addUpgradeStatement(DATABASE_NAME, migrations)
-  const connection = await sqlite.createConnection(
-    DATABASE_NAME,
-    false,
-    'no-encryption',
-    DATABASE_VERSION,
-    false,
-  )
+  const connection = await connect()
   await connection.open()
   await connection.execute('PRAGMA foreign_keys = ON;')
   return toDbClient(connection)
+}
+
+/**
+ * La connexion native survit à un rechargement de la WebView (live reload, WebView
+ * relancée par le système) alors que le côté JS repart à vide : `createConnection`
+ * serait refusé. La vérification de cohérence ferme les connexions natives orphelines.
+ */
+async function connect(): Promise<SQLiteDBConnection> {
+  const isConsistent = (await sqlite.checkConnectionsConsistency()).result === true
+  const isKnown = (await sqlite.isConnection(DATABASE_NAME, false)).result === true
+  if (isConsistent && isKnown) return sqlite.retrieveConnection(DATABASE_NAME, false)
+  return sqlite.createConnection(DATABASE_NAME, false, 'no-encryption', DATABASE_VERSION, false)
 }
 
 function toDbClient(connection: SQLiteDBConnection): DbClient {

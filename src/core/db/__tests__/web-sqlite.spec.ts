@@ -25,6 +25,9 @@ vi.mock('@capacitor-community/sqlite', () => ({
   SQLiteConnection: class {
     addUpgradeStatement = plugin.addUpgradeStatement
     createConnection = plugin.createConnection
+    // Aucune connexion native héritée d'un rechargement de la WebView.
+    checkConnectionsConsistency = () => Promise.resolve({ result: false })
+    isConnection = () => Promise.resolve({ result: false })
   },
 }))
 

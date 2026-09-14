@@ -6,6 +6,10 @@ const plugin = vi.hoisted(() => ({
   addUpgradeStatement: vi.fn<() => Promise<void>>(),
   createConnection:
     vi.fn<() => Promise<{ open: () => Promise<void>; execute: () => Promise<void> }>>(),
+  checkConnectionsConsistency: vi.fn<() => Promise<{ result?: boolean }>>(),
+  isConnection: vi.fn<() => Promise<{ result?: boolean }>>(),
+  retrieveConnection:
+    vi.fn<() => Promise<{ open: () => Promise<void>; execute: () => Promise<void> }>>(),
 }))
 
 vi.mock('@capacitor/core', () => ({ Capacitor: { getPlatform: () => 'android' } }))
@@ -15,8 +19,21 @@ vi.mock('@capacitor-community/sqlite', () => ({
   SQLiteConnection: class {
     addUpgradeStatement = plugin.addUpgradeStatement
     createConnection = plugin.createConnection
+    checkConnectionsConsistency = plugin.checkConnectionsConsistency
+    isConnection = plugin.isConnection
+    retrieveConnection = plugin.retrieveConnection
   },
 }))
+
+function resetPlugin() {
+  plugin.initWebStore.mockReset()
+  plugin.addUpgradeStatement.mockReset().mockResolvedValue(undefined)
+  plugin.createConnection.mockReset()
+  // Par défaut : aucune connexion connue, ni côté JS ni côté natif.
+  plugin.checkConnectionsConsistency.mockReset().mockResolvedValue({ result: false })
+  plugin.isConnection.mockReset().mockResolvedValue({ result: false })
+  plugin.retrieveConnection.mockReset()
+}
 
 function fakeConnection() {
   return {
@@ -32,10 +49,33 @@ async function importSqlite() {
 }
 
 describe('getDb', () => {
-  beforeEach(() => {
-    plugin.initWebStore.mockReset()
-    plugin.addUpgradeStatement.mockReset().mockResolvedValue(undefined)
-    plugin.createConnection.mockReset()
+  beforeEach(resetPlugin)
+
+  it('vérifie la cohérence JS / natif avant de créer la connexion', async () => {
+    plugin.createConnection.mockResolvedValue(fakeConnection())
+    const { getDb } = await importSqlite()
+
+    await getDb()
+
+    // Après un rechargement de la WebView, la connexion native survit : la
+    // vérification de cohérence la ferme pour que la création ne soit pas refusée.
+    expect(plugin.checkConnectionsConsistency).toHaveBeenCalled()
+    expect(plugin.checkConnectionsConsistency.mock.invocationCallOrder[0]).toBeLessThan(
+      plugin.createConnection.mock.invocationCallOrder[0]!,
+    )
+  })
+
+  it('réutilise la connexion quand JS et natif la connaissent tous les deux', async () => {
+    const connection = fakeConnection()
+    plugin.checkConnectionsConsistency.mockResolvedValue({ result: true })
+    plugin.isConnection.mockResolvedValue({ result: true })
+    plugin.retrieveConnection.mockResolvedValue(connection)
+    const { getDb } = await importSqlite()
+
+    await expect(getDb()).resolves.toBeDefined()
+
+    expect(plugin.createConnection).not.toHaveBeenCalled()
+    expect(connection.open).toHaveBeenCalled()
   })
 
   it("sur Android, n'ouvre jamais le store web", async () => {
@@ -77,10 +117,7 @@ describe('runMany', () => {
     }
   }
 
-  beforeEach(() => {
-    plugin.addUpgradeStatement.mockReset().mockResolvedValue(undefined)
-    plugin.createConnection.mockReset()
-  })
+  beforeEach(resetPlugin)
 
   it('passe le lot à `executeSet`, qui le pose dans une seule transaction', async () => {
     const connection = connectionWithExecuteSet()
