@@ -222,6 +222,8 @@ function openCarnet(): void {
 @use '@/styles/tokens' as tokens;
 
 .home {
+  display: flex;
+  flex-direction: column;
   min-height: 100%;
   padding-bottom: 24px;
   background: rgb(var(--v-theme-background));
@@ -527,11 +529,11 @@ function openCarnet(): void {
 
 .home-welcome {
   display: flex;
+  flex: 1 0 auto;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 18px;
-  min-height: calc(100dvh - #{tokens.$height-bottom-nav + tokens.$padding-bottom-nav});
   padding: 32px 28px;
   text-align: center;
 }
