@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { format } from 'date-fns'
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
+import { useForegroundRefresh } from '@/core/app-lifecycle/use-foreground-refresh'
 import illustration from '@/assets/brand-illustration.png'
 import { useAnimalsStore } from '@/features/animals/animals.store'
 import WeightSheet from '@/features/weight/WeightSheet.vue'
@@ -19,7 +19,7 @@ const router = useRouter()
 const animals = useAnimalsStore()
 const home = useHomeStore()
 
-const today = format(new Date(), 'yyyy-MM-dd')
+const { today } = useForegroundRefresh(load)
 
 const hasError = computed(() => animals.error !== null || home.error !== null)
 const isReady = computed(() => animals.hasLoaded && home.hasLoaded && !hasError.value)
@@ -33,7 +33,10 @@ const chips = computed<AnimalChipItem[]>(() =>
 const selectedName = computed(() => animals.selectedAnimal?.name ?? null)
 
 const summary = computed(() =>
-  buildReminders(home.sources, { today, animalId: animals.selectedAnimalId ?? undefined }),
+  buildReminders(home.sources, {
+    today: today.value,
+    animalId: animals.selectedAnimalId ?? undefined,
+  }),
 )
 
 const rows = computed(() =>

@@ -15,6 +15,7 @@ import AnimalPickerSheet from '../AnimalPickerSheet.vue'
 import HomeView from '../HomeView.vue'
 import type { HomeReminderSource, HomeRemindersService } from '../home-reminders.service'
 import { provideHomeRemindersService, useHomeStore } from '../home.store'
+import { simulateWebResume } from '@/core/app-lifecycle/__tests__/simulate-resume'
 import i18n from '@/core/i18n'
 import router from '@/router'
 import vuetify from '@/core/theme/vuetify'
@@ -98,14 +99,21 @@ beforeEach(async () => {
   push = vi.spyOn(router, 'push').mockResolvedValue()
 })
 
+// Un accueil resté monté écouterait encore le retour au premier plan des tests suivants.
+const mounted: ReturnType<typeof mount>[] = []
+
 afterEach(() => {
+  mounted.splice(0).forEach((wrapper) => wrapper.unmount())
+  document.body.innerHTML = ''
   provideHomeRemindersService(null)
   vi.restoreAllMocks()
+  vi.unstubAllGlobals()
   vi.useRealTimers()
 })
 
 async function monter() {
   const wrapper = mount(HomeView, { global: { plugins: [vuetify, i18n, router] } })
+  mounted.push(wrapper)
   await flushPromises()
   return wrapper
 }
@@ -269,6 +277,37 @@ describe('HomeView — A1 tous les animaux, avec rappels', () => {
   })
 })
 
+describe('HomeView — retour au premier plan', () => {
+  it('passe un rappel du jour en retard quand l’app revient le lendemain', async () => {
+    sources = [VERMIFUGE_LUNA_AUJOURDHUI]
+    const wrapper = await monter()
+    expect(rows(wrapper)[0]).toMatchObject({ badge: 'Aujourd’hui' })
+
+    vi.setSystemTime(new Date('2026-09-10T08:00:00'))
+    simulateWebResume()
+    await flushPromises()
+
+    expect(rows(wrapper)[0]).toMatchObject({
+      badge: 'En retard · 1 j',
+      status: 'reminder-row--overdue',
+    })
+  })
+
+  it('relit les animaux et les rappels sans réinitialiser le filtre', async () => {
+    const wrapper = await monter()
+    await wrapper.findAll('.animal-chip')[1]!.trigger('click')
+    sources = [VERMIFUGE_LUNA_AUJOURDHUI]
+
+    simulateWebResume()
+    await flushPromises()
+
+    expect(loadAnimals).toHaveBeenCalledTimes(2)
+    expect(listSources).toHaveBeenCalledTimes(2)
+    expect(animalsStore.selectedAnimalId).toBe(LUNA.id)
+    expect(rows(wrapper)).toHaveLength(1)
+  })
+})
+
 describe('HomeView — A2 animal sélectionné, avec rappels', () => {
   beforeEach(() => {
     sources = [ANTIPARASITAIRE_MILO_3J, VERMIFUGE_LUNA_AUJOURDHUI, CHPPIL_MILO_RETARD]
@@ -424,11 +463,6 @@ describe('HomeView — Actions rapides', () => {
       height: 915,
       offsetTop: 0,
     })
-  })
-
-  afterEach(() => {
-    vi.unstubAllGlobals()
-    document.body.innerHTML = ''
   })
 
   function tuiles(wrapper: ReturnType<typeof mount>) {

@@ -15,6 +15,7 @@ import CarnetView from '../CarnetView.vue'
 import type { Animal } from '../animal.schema'
 import { provideAnimalsRepository, useAnimalsStore } from '../animals.store'
 import type { AnimalsRepository } from '../animals.repository'
+import { simulateWebResume } from '@/core/app-lifecycle/__tests__/simulate-resume'
 import i18n from '@/core/i18n'
 import router from '@/router'
 import vuetify from '@/core/theme/vuetify'
@@ -97,6 +98,9 @@ let treatments: Treatment[]
 let weights: WeightEntry[]
 let load: MockInstance
 let push: MockInstance
+let listVaccinations: Mock<VaccinationsRepository['listByAnimal']>
+let listTreatments: Mock<TreatmentsRepository['listByAnimal']>
+let listWeights: Mock<WeightRepository['listByAnimal']>
 
 beforeEach(async () => {
   vi.useFakeTimers({ now: TODAY, toFake: ['Date'] })
@@ -111,28 +115,31 @@ beforeEach(async () => {
     store.hasLoaded = true
     return true
   })
+  listVaccinations = vi.fn<VaccinationsRepository['listByAnimal']>(async (id) =>
+    vaccinations.filter((v) => v.animalId === id),
+  )
+  listTreatments = vi.fn<TreatmentsRepository['listByAnimal']>(async (id) =>
+    treatments.filter((t) => t.animalId === id),
+  )
+  listWeights = vi.fn<WeightRepository['listByAnimal']>(async (id) =>
+    weights.filter((w) => w.animalId === id),
+  )
   provideVaccinationsRepository(() => ({
-    listByAnimal: vi.fn<VaccinationsRepository['listByAnimal']>(async (id) =>
-      vaccinations.filter((v) => v.animalId === id),
-    ),
+    listByAnimal: listVaccinations,
     getById: vi.fn<VaccinationsRepository['getById']>(),
     create: vi.fn<VaccinationsRepository['create']>(),
     update: vi.fn<VaccinationsRepository['update']>(),
     remove: vi.fn<VaccinationsRepository['remove']>(),
   }))
   provideTreatmentsRepository(() => ({
-    listByAnimal: vi.fn<TreatmentsRepository['listByAnimal']>(async (id) =>
-      treatments.filter((t) => t.animalId === id),
-    ),
+    listByAnimal: listTreatments,
     getById: vi.fn<TreatmentsRepository['getById']>(),
     create: vi.fn<TreatmentsRepository['create']>(),
     update: vi.fn<TreatmentsRepository['update']>(),
     remove: vi.fn<TreatmentsRepository['remove']>(),
   }))
   provideWeightRepository(() => ({
-    listByAnimal: vi.fn<WeightRepository['listByAnimal']>(async (id) =>
-      weights.filter((w) => w.animalId === id),
-    ),
+    listByAnimal: listWeights,
     create: vi.fn<WeightRepository['create']>(),
     update: vi.fn<WeightRepository['update']>(),
     remove: vi.fn<WeightRepository['remove']>(),
@@ -141,7 +148,11 @@ beforeEach(async () => {
   push = vi.spyOn(router, 'push').mockResolvedValue()
 })
 
+// Un Carnet resté monté écouterait encore le retour au premier plan des tests suivants.
+const mounted: ReturnType<typeof mount>[] = []
+
 afterEach(() => {
+  mounted.splice(0).forEach((wrapper) => wrapper.unmount())
   provideVaccinationsRepository(null)
   provideTreatmentsRepository(null)
   provideWeightRepository(null)
@@ -151,6 +162,7 @@ afterEach(() => {
 
 async function monter() {
   const wrapper = mount(CarnetView, { global: { plugins: [vuetify, i18n, router] } })
+  mounted.push(wrapper)
   await flushPromises()
   return wrapper
 }
@@ -339,6 +351,56 @@ describe('CarnetView — bandeau de stats', () => {
     await flushPromises()
 
     expect(stat(wrapper, 2).value).toBe('1')
+  })
+})
+
+describe('CarnetView — retour au premier plan', () => {
+  it('passe une dose du jour en retard quand l’app revient le lendemain', async () => {
+    treatments = [treatment(MILO.id, '2026-09-09')]
+    const wrapper = await monter()
+    expect(wrapper.get('.treatment-row__next-dose').text()).toBe('Prochaine dose aujourd’hui')
+
+    vi.setSystemTime(new Date('2026-09-10T08:00:00'))
+    simulateWebResume()
+    await flushPromises()
+
+    expect(wrapper.get('.treatment-row__next-dose').text()).toBe('Prochaine dose en retard · 1 j')
+    expect(stat(wrapper, 1)).toMatchObject({ value: '1', sub: 'en retard' })
+  })
+
+  it('relit vaccins, traitements et pesées sans vider les lignes pendant la relecture', async () => {
+    vaccinations = [vaccination(MILO.id, '2026-12-12')]
+    treatments = [treatment(MILO.id, '2026-09-24')]
+    weights = [weight(MILO.id, 24.5, '2026-09-01')]
+    const wrapper = await monter()
+    listVaccinations.mockClear()
+    listTreatments.mockClear()
+    listWeights.mockClear()
+    listVaccinations.mockReturnValueOnce(new Promise(() => {}))
+    listTreatments.mockReturnValueOnce(new Promise(() => {}))
+    listWeights.mockReturnValueOnce(new Promise(() => {}))
+
+    simulateWebResume()
+    await flushPromises()
+
+    expect(listVaccinations).toHaveBeenCalledExactlyOnceWith(MILO.id)
+    expect(listTreatments).toHaveBeenCalledExactlyOnceWith(MILO.id)
+    expect(listWeights).toHaveBeenCalledExactlyOnceWith(MILO.id)
+    expect(wrapper.findAll('.vaccination-row')).toHaveLength(1)
+    expect(wrapper.find('.vaccinations-section__empty').exists()).toBe(false)
+    expect(wrapper.findAll('.treatment-row')).toHaveLength(1)
+    expect(stat(wrapper, 0).value).toBe('24,5 kg')
+  })
+
+  it('relit la liste des animaux en gardant l’animal consulté', async () => {
+    const wrapper = await monter()
+    await wrapper.findAll('.animal-chip')[1]!.trigger('click')
+
+    simulateWebResume()
+    await flushPromises()
+
+    expect(load).toHaveBeenCalledTimes(2)
+    expect(store.selectedAnimalId).toBe(LUNA.id)
   })
 })
 

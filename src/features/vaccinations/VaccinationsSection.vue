@@ -13,6 +13,7 @@ import { useRouter } from 'vue-router'
 import { vaccinationStatus, type VaccinationStatus } from './vaccination-status'
 import { useVaccinationsStore } from './vaccinations.store'
 import SectionCard from '@/shared/SectionCard.vue'
+import { useAnimalScopedLoad } from '@/shared/use-animal-scoped-load'
 import { buildReminders } from '@/shared/reminders'
 
 const props = defineProps<{
@@ -41,13 +42,22 @@ const BADGE_LABELS: Record<VaccinationStatus, string> = {
   none: 'vaccinations.section.status.none',
 }
 
-// Pendant un chargement, ou après un échec, le store porte déjà le nouvel animal mais encore l'ancienne liste.
+// Au changement d'animal, ou après un échec, le store porte déjà le nouvel animal mais encore l'ancienne liste.
 const vaccinations = computed(() => (isCurrent.value ? store.vaccinations : []))
 
-const isCurrent = computed(
-  () => store.animalId === props.animalId && !store.isLoading && store.error === null,
+const { loadedFor } = useAnimalScopedLoad(
+  () => props.animalId,
+  (id) => store.loadForAnimal(id),
 )
-const hasError = computed(() => store.animalId === props.animalId && store.error !== null)
+
+const isCurrent = computed(
+  () =>
+    loadedFor.value === props.animalId && store.animalId === props.animalId && store.error === null,
+)
+const hasError = computed(
+  () =>
+    loadedFor.value === props.animalId && store.animalId === props.animalId && store.error !== null,
+)
 
 const rows = computed(() =>
   vaccinations.value.map((vaccination) => {
@@ -88,14 +98,6 @@ function detailOf(status: VaccinationStatus, dueDate: string | null): string {
 function addVaccination(): void {
   void router.push({ name: 'vaccination-new', params: { animalId: props.animalId } })
 }
-
-watch(
-  () => props.animalId,
-  (animalId) => {
-    void store.loadForAnimal(animalId)
-  },
-  { immediate: true },
-)
 
 watch(summary, (value) => emit('summary', value), { immediate: true })
 </script>

@@ -26,6 +26,66 @@ function pesee(animalId = MILO, surcharges: Partial<WeightEntryInput> = {}): Wei
 }
 
 describe('useWeightStore', () => {
+  it('garde la liste du dernier animal demandé quand la réponse du précédent arrive après', async () => {
+    repository.seed(pesee(LUNA))
+    let finishMilo: (items: WeightEntry[]) => void = () => {}
+    repository.listByAnimal.mockReturnValueOnce(
+      new Promise<WeightEntry[]>((resolve) => {
+        finishMilo = resolve
+      }),
+    )
+    const store = useWeightStore()
+
+    const milo = store.loadForAnimal(MILO)
+    await store.loadForAnimal(LUNA)
+    finishMilo([])
+    await milo
+
+    expect(store.animalId).toBe(LUNA)
+    expect(store.entries).toHaveLength(1)
+    expect(store.entries[0]?.animalId).toBe(LUNA)
+  })
+
+  it('garde le dernier animal demandé quand le repository du précédent s’ouvre après', async () => {
+    repository.seed(pesee(LUNA))
+    let openFirst: () => void = () => {}
+    let calls = 0
+    provideWeightRepository(() => {
+      calls += 1
+      if (calls > 1) return repository
+      return new Promise((resolve) => {
+        openFirst = () => resolve(repository)
+      })
+    })
+    const store = useWeightStore()
+
+    const milo = store.loadForAnimal(MILO)
+    await store.loadForAnimal(LUNA)
+    openFirst()
+    await milo
+
+    expect(store.animalId).toBe(LUNA)
+    expect(store.entries[0]?.animalId).toBe(LUNA)
+  })
+
+  it('ignore l’échec d’un chargement dépassé par celui d’un autre animal', async () => {
+    let failMilo: (cause: Error) => void = () => {}
+    repository.listByAnimal.mockReturnValueOnce(
+      new Promise<WeightEntry[]>((_resolve, reject) => {
+        failMilo = reject
+      }),
+    )
+    const store = useWeightStore()
+
+    const milo = store.loadForAnimal(MILO)
+    await store.loadForAnimal(LUNA)
+    failMilo(new Error('base fermée'))
+    await milo
+
+    expect(store.animalId).toBe(LUNA)
+    expect(store.error).toBeNull()
+  })
+
   it('part d’un état « pas encore chargé », sans pesée ni erreur', () => {
     const store = useWeightStore()
 

@@ -35,8 +35,10 @@ export const useWeightStore = defineStore('weight', () => {
   }
 
   async function refresh(repository: WeightRepository, id: string): Promise<void> {
-    animalId.value = id
-    entries.value = await repository.listByAnimal(id)
+    const list = await repository.listByAnimal(id)
+    // Un chargement lancé entre-temps pour un autre animal a priorité sur cette réponse.
+    if (animalId.value !== id) return
+    entries.value = list
     hasLoaded.value = true
     error.value = null
   }
@@ -67,13 +69,18 @@ export const useWeightStore = defineStore('weight', () => {
     hasLoaded,
     error,
 
-    /** Ne lève pas : renvoie `false` et renseigne `error`. */
+    /**
+     * Ne lève pas : renvoie `false` et renseigne `error`. Renvoie aussi `true` quand la réponse
+     * est ignorée parce qu'un autre animal a été demandé entre-temps.
+     */
     async loadForAnimal(id: string): Promise<boolean> {
       isLoading.value = true
+      animalId.value = id
       try {
         await refresh(await requireRepository(), id)
         return true
       } catch (cause) {
+        if (animalId.value !== id) return false
         error.value = cause instanceof Error ? cause : new Error(String(cause))
         return false
       } finally {

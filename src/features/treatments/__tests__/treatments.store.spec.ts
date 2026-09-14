@@ -33,6 +33,66 @@ function vermifuge(animalId = MILO, surcharges: Partial<TreatmentInput> = {}): T
 }
 
 describe('useTreatmentsStore', () => {
+  it('garde la liste du dernier animal demandé quand la réponse du précédent arrive après', async () => {
+    repository.seed(vermifuge(LUNA))
+    let finishMilo: (items: Treatment[]) => void = () => {}
+    repository.listByAnimal.mockReturnValueOnce(
+      new Promise<Treatment[]>((resolve) => {
+        finishMilo = resolve
+      }),
+    )
+    const store = useTreatmentsStore()
+
+    const milo = store.loadForAnimal(MILO)
+    await store.loadForAnimal(LUNA)
+    finishMilo([])
+    await milo
+
+    expect(store.animalId).toBe(LUNA)
+    expect(store.treatments).toHaveLength(1)
+    expect(store.treatments[0]?.animalId).toBe(LUNA)
+  })
+
+  it('garde le dernier animal demandé quand le repository du précédent s’ouvre après', async () => {
+    repository.seed(vermifuge(LUNA))
+    let openFirst: () => void = () => {}
+    let calls = 0
+    provideTreatmentsRepository(() => {
+      calls += 1
+      if (calls > 1) return repository
+      return new Promise((resolve) => {
+        openFirst = () => resolve(repository)
+      })
+    })
+    const store = useTreatmentsStore()
+
+    const milo = store.loadForAnimal(MILO)
+    await store.loadForAnimal(LUNA)
+    openFirst()
+    await milo
+
+    expect(store.animalId).toBe(LUNA)
+    expect(store.treatments[0]?.animalId).toBe(LUNA)
+  })
+
+  it('ignore l’échec d’un chargement dépassé par celui d’un autre animal', async () => {
+    let failMilo: (cause: Error) => void = () => {}
+    repository.listByAnimal.mockReturnValueOnce(
+      new Promise<Treatment[]>((_resolve, reject) => {
+        failMilo = reject
+      }),
+    )
+    const store = useTreatmentsStore()
+
+    const milo = store.loadForAnimal(MILO)
+    await store.loadForAnimal(LUNA)
+    failMilo(new Error('base fermée'))
+    await milo
+
+    expect(store.animalId).toBe(LUNA)
+    expect(store.error).toBeNull()
+  })
+
   it('part d’un état « pas encore chargé », sans traitement ni erreur', () => {
     const store = useTreatmentsStore()
 

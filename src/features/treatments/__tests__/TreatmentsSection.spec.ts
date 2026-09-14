@@ -181,6 +181,18 @@ describe('TreatmentsSection — état vide', () => {
 })
 
 describe('TreatmentsSection — chargement en échec', () => {
+  it('n’affiche pas l’erreur de l’animal précédent pendant le chargement du suivant', async () => {
+    listByAnimal.mockRejectedValueOnce(new Error('base fermée'))
+    const wrapper = await monter()
+    expect(wrapper.find('.treatments-section__error').exists()).toBe(true)
+    listByAnimal.mockReturnValueOnce(new Promise(() => {}))
+
+    await wrapper.setProps({ animalId: LUNA })
+    await flushPromises()
+
+    expect(wrapper.find('.treatments-section__error').exists()).toBe(false)
+  })
+
   it('dit que les traitements n’ont pas pu être chargés, sans état vide, résumé à zéro', async () => {
     listByAnimal.mockRejectedValueOnce(new Error('base fermée'))
     const wrapper = await monter()
