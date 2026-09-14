@@ -48,14 +48,11 @@ describe('HomeView — contrat de style', () => {
     expect(declaration('.home-header__subtitle', 'font-size')).toBe('13.5px')
   })
 
-  it('arrondit la carte de rappels à 22 px et sépare les lignes d’un filet', () => {
-    expect(declaration('.home-reminders', 'border-radius')).toBe('22px')
-    expect(declaration('.reminder-row', 'min-height')).toBe('76px')
-    expect(declaration('.reminder-row + .reminder-row', 'border-top')).toBe('1px solid #efece8')
+  it('écarte l’icône du texte de 14 px dans une ligne de rappel', () => {
+    expect(declaration('.reminder-row', 'gap')).toBe('14px')
   })
 
-  it('colore la barre d’urgence de 3 px selon le statut', () => {
-    expect(declaration('.reminder-row::before', 'width')).toBe('3px')
+  it('colore la barre d’urgence selon le statut', () => {
     expect(declaration('.reminder-row--overdue::before', 'background')).toBe(
       'rgb(var(--v-theme-overdue))',
     )
@@ -65,18 +62,6 @@ describe('HomeView — contrat de style', () => {
     expect(
       declaration('.reminder-row--tomorrow::before, .reminder-row--later::before', 'background'),
     ).toBe('rgb(var(--v-theme-soon))')
-  })
-
-  it('peint le badge d’échéance avec le couple fond / texte de son urgence', () => {
-    expect(declaration('.reminder-row--overdue .reminder-row__badge', 'background')).toBe(
-      'rgb(var(--v-theme-overdue-container))',
-    )
-    expect(declaration('.reminder-row--overdue .reminder-row__badge', 'color')).toBe(
-      'rgb(var(--v-theme-on-overdue-container))',
-    )
-    expect(declaration('.reminder-row--today .reminder-row__badge', 'background')).toBe(
-      'rgb(var(--v-theme-today-container))',
-    )
   })
 
   it('peint le bandeau retard en rose pâle', () => {

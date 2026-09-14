@@ -161,12 +161,18 @@ donné pour l'implémentation Vuetify/SCSS.
 | Texte méta / compteur | `oklch(56% 0.012 70)` | `#79736D` |
 | Sous-titre sur pétrole | `oklch(84% 0.025 202)` | `#B9D0D1` |
 | Retard — barre | `oklch(56% 0.16 27)` | `#C0453D` |
-| Retard — badge fond / texte | `oklch(96.6% 0.018 27)` / `oklch(44% 0.16 27)` | `#FFF0ED` / `#971B1A` |
+| Retard — badge et bandeau fond / texte | `oklch(94.5% 0.04 27)` / `oklch(45% 0.15 27)` | `#FFE3DF` / `#972622` |
 | Aujourd'hui — barre | `oklch(70% 0.13 68)` | `#D38D38` |
 | Aujourd'hui — badge fond / texte | `oklch(96.8% 0.022 75)` / `oklch(45% 0.12 62)` | `#FDF3E5` / `#834200` |
 | Bientôt — barre | `oklch(58% 0.07 150)` | `#5C8664` |
 | Bientôt — badge fond / texte | `oklch(96.6% 0.016 150)` / `oklch(40% 0.075 150)` | `#EDF7EE` / `#265331` |
 | Pastille « tout est à jour » | `oklch(93% 0.035 150)` / `oklch(45% 0.09 150)` | `#D8EFDC` / `#2B6339` |
+
+Le badge « En retard » et le bandeau « N rappels en retard » reprennent la
+teinte du Carnet (`#FFE3DF` / `#972622`, contraste 6,6:1), portée par le thème
+(`overdue-container` / `on-overdue-container`) ; le badge est rendu par
+`shared/DueStatusChip`. Décision de Gaelle du 2026-09-14, qui remplace
+`#FFF0ED` / `#971B1A`.
 
 ### Rôles système (hors maquette)
 

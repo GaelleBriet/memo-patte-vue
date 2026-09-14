@@ -8,6 +8,8 @@ import illustration from '@/assets/brand-illustration.png'
 import { useAnimalsStore } from '@/features/animals/animals.store'
 import WeightSheet from '@/features/weight/WeightSheet.vue'
 import AnimalChipSelector, { type AnimalChipItem } from '@/shared/AnimalChipSelector.vue'
+import DueStatusChip from '@/shared/DueStatusChip.vue'
+import SectionCard from '@/shared/SectionCard.vue'
 import { buildReminders } from '@/shared/reminders'
 import AnimalPickerSheet from './AnimalPickerSheet.vue'
 import { useHomeStore } from './home.store'
@@ -134,22 +136,35 @@ function openCarnet(): void {
         @add="createAnimal"
       />
 
-      <section class="home-todo">
-        <div class="home-todo__heading">
-          <h2 class="home-todo__title">{{ t('home.todo.title') }}</h2>
-          <span v-if="counter" class="home-todo__counter">{{ counter }}</span>
-        </div>
+      <SectionCard class="home-todo" :title="t('home.todo.title')" :counter="counter">
+        <template #intro>
+          <div v-if="banner" class="home-overdue-banner" role="status">
+            <v-icon icon="ms:error" size="20" />
+            <span>{{ banner }}</span>
+          </div>
 
-        <div v-if="banner" class="home-overdue-banner" role="status">
-          <v-icon icon="ms:error" size="20" />
-          <span>{{ banner }}</span>
-        </div>
+          <div v-if="rows.length === 0" class="home-up-to-date">
+            <div class="home-up-to-date__row">
+              <span class="home-up-to-date__dot">
+                <v-icon icon="ms:check" size="24" />
+              </span>
+              <div>
+                <p class="home-up-to-date__title">{{ t('home.upToDate.title') }}</p>
+                <p class="home-up-to-date__text">{{ upToDate }}</p>
+              </div>
+            </div>
+            <button type="button" class="home-up-to-date__add" @click="openCarnet">
+              <v-icon icon="ms:add" size="20" />
+              <span>{{ t('home.upToDate.add') }}</span>
+            </button>
+          </div>
+        </template>
 
-        <div v-if="rows.length > 0" class="home-reminders">
+        <template v-if="rows.length > 0" #default>
           <div
             v-for="row in rows"
             :key="row.id"
-            class="reminder-row"
+            class="section-card__row reminder-row"
             :class="`reminder-row--${row.status}`"
           >
             <v-icon class="reminder-row__icon" :icon="row.icon" size="24" />
@@ -157,29 +172,15 @@ function openCarnet(): void {
               <p class="reminder-row__title">{{ row.title }}</p>
               <p v-if="row.animalName" class="reminder-row__animal">{{ row.animalName }}</p>
             </div>
-            <span class="reminder-row__badge">
-              <v-icon v-if="row.badge.icon" :icon="row.badge.icon" size="16" />
-              <span>{{ row.badge.text }}</span>
-            </span>
+            <DueStatusChip
+              class="reminder-row__badge"
+              :status="row.status"
+              :label="row.badge.text"
+              :icon="row.badge.icon"
+            />
           </div>
-        </div>
-
-        <div v-else class="home-up-to-date">
-          <div class="home-up-to-date__row">
-            <span class="home-up-to-date__dot">
-              <v-icon icon="ms:check" size="24" />
-            </span>
-            <div>
-              <p class="home-up-to-date__title">{{ t('home.upToDate.title') }}</p>
-              <p class="home-up-to-date__text">{{ upToDate }}</p>
-            </div>
-          </div>
-          <button type="button" class="home-up-to-date__add" @click="openCarnet">
-            <v-icon icon="ms:add" size="20" />
-            <span>{{ t('home.upToDate.add') }}</span>
-          </button>
-        </div>
-      </section>
+        </template>
+      </SectionCard>
 
       <section class="home-quick-actions">
         <h2 class="home-quick-actions__title">{{ t('home.quickActions.title') }}</h2>
@@ -255,30 +256,7 @@ function openCarnet(): void {
 }
 
 .home-todo {
-  padding-inline: 20px;
   margin-top: 26px;
-}
-
-.home-todo__heading {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-.home-todo__title {
-  margin: 0;
-  font-family: tokens.$font-family-heading;
-  font-size: 21px;
-  font-weight: 700;
-}
-
-.home-todo__counter {
-  color: tokens.$color-text-meta;
-  font-size: 13px;
-  font-weight: 500;
-  white-space: nowrap;
 }
 
 .home-overdue-banner {
@@ -294,32 +272,8 @@ function openCarnet(): void {
   font-weight: 700;
 }
 
-.home-reminders {
-  overflow: hidden;
-  border: 1px solid tokens.$color-card-border;
-  border-radius: tokens.$radius-card;
-  background: rgb(var(--v-theme-surface));
-}
-
 .reminder-row {
-  display: flex;
-  position: relative;
-  align-items: center;
   gap: 14px;
-  min-height: tokens.$height-list-row;
-  padding: 14px 20px;
-}
-
-.reminder-row + .reminder-row {
-  border-top: 1px solid tokens.$color-divider;
-}
-
-.reminder-row::before {
-  position: absolute;
-  inset-block: 0;
-  inset-inline-start: 0;
-  width: tokens.$width-urgency-bar;
-  content: '';
 }
 
 .reminder-row--overdue::before {
@@ -355,34 +309,6 @@ function openCarnet(): void {
   margin: 2px 0 0;
   color: tokens.$color-text-secondary;
   font-size: 13px;
-}
-
-.reminder-row__badge {
-  display: inline-flex;
-  flex: 0 0 auto;
-  align-items: center;
-  gap: 4px;
-  padding: 6px 12px;
-  border-radius: 999px;
-  font-size: 12.5px;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.reminder-row--overdue .reminder-row__badge {
-  background: rgb(var(--v-theme-overdue-container));
-  color: rgb(var(--v-theme-on-overdue-container));
-}
-
-.reminder-row--today .reminder-row__badge {
-  background: rgb(var(--v-theme-today-container));
-  color: rgb(var(--v-theme-on-today-container));
-}
-
-.reminder-row--tomorrow .reminder-row__badge,
-.reminder-row--later .reminder-row__badge {
-  background: rgb(var(--v-theme-soon-container));
-  color: rgb(var(--v-theme-on-soon-container));
 }
 
 .home-up-to-date__row {
