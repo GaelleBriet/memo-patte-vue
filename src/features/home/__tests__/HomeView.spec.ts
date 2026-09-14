@@ -207,15 +207,15 @@ describe('HomeView — A1 tous les animaux, avec rappels', () => {
   it('compte les rappels de tous les animaux et signale le retard', async () => {
     const wrapper = await monter()
 
-    expect(wrapper.get('.home-todo__title').text()).toBe('À faire')
-    expect(wrapper.get('.home-todo__counter').text()).toBe('3 rappels')
+    expect(wrapper.get('.home-todo .section-card__title').text()).toBe('À faire')
+    expect(wrapper.get('.home-todo .section-card__counter').text()).toBe('3 rappels')
     expect(wrapper.get('.home-overdue-banner').text()).toBe('1 rappel en retard')
   })
 
   it('liste les rappels dans une seule carte, du plus urgent au moins urgent, avec le nom de l’animal', async () => {
     const wrapper = await monter()
 
-    expect(wrapper.findAll('.home-reminders')).toHaveLength(1)
+    expect(wrapper.findAll('.home-todo .section-card__card')).toHaveLength(1)
     expect(rows(wrapper)).toEqual([
       {
         title: 'Vaccin CHPPiL',
@@ -230,6 +230,20 @@ describe('HomeView — A1 tous les animaux, avec rappels', () => {
         badge: 'Dans 3 jours',
         status: 'reminder-row--later',
       },
+    ])
+  })
+
+  it('affiche l’échéance avec le badge partagé, variante du statut et icône de la maquette', async () => {
+    const wrapper = await monter()
+
+    const badges = wrapper.findAll('.reminder-row .due-status-chip').map((badge) => ({
+      variant: [...badge.classes()].find((name) => name.startsWith('due-status-chip--')),
+      icon: badge.find('svg').exists(),
+    }))
+    expect(badges).toEqual([
+      { variant: 'due-status-chip--overdue', icon: false },
+      { variant: 'due-status-chip--today', icon: true },
+      { variant: 'due-status-chip--later', icon: true },
     ])
   })
 
@@ -258,7 +272,7 @@ describe('HomeView — A1 tous les animaux, avec rappels', () => {
     const wrapper = await monter()
 
     expect(animalsStore.selectedAnimalId).toBeNull()
-    expect(wrapper.get('.home-todo__counter').text()).toBe('3 rappels')
+    expect(wrapper.get('.home-todo .section-card__counter').text()).toBe('3 rappels')
     expect(rows(wrapper).map((row) => row.animal)).toEqual(['Milo', 'Luna', 'Milo'])
   })
 
@@ -273,7 +287,7 @@ describe('HomeView — A1 tous les animaux, avec rappels', () => {
     const wrapper = await monter()
 
     expect(listSources).toHaveBeenCalledTimes(2)
-    expect(wrapper.get('.home-todo__counter').text()).toBe('4 rappels')
+    expect(wrapper.get('.home-todo .section-card__counter').text()).toBe('4 rappels')
   })
 })
 
@@ -320,7 +334,7 @@ describe('HomeView — A2 animal sélectionné, avec rappels', () => {
     await flushPromises()
 
     expect(animalsStore.selectedAnimalId).toBe(MILO.id)
-    expect(wrapper.get('.home-todo__counter').text()).toBe('Milo · 2 rappels')
+    expect(wrapper.get('.home-todo .section-card__counter').text()).toBe('Milo · 2 rappels')
     expect(rows(wrapper)).toEqual([
       {
         title: 'Vaccin CHPPiL',
@@ -343,7 +357,7 @@ describe('HomeView — A2 animal sélectionné, avec rappels', () => {
     await wrapper.findAll('.animal-chip')[1]!.trigger('click')
     await flushPromises()
 
-    expect(wrapper.get('.home-todo__counter').text()).toBe('Luna · 1 rappel')
+    expect(wrapper.get('.home-todo .section-card__counter').text()).toBe('Luna · 1 rappel')
     expect(wrapper.find('.home-overdue-banner').exists()).toBe(false)
     expect(rows(wrapper)).toHaveLength(1)
   })
@@ -357,7 +371,7 @@ describe('HomeView — A2 animal sélectionné, avec rappels', () => {
     await flushPromises()
 
     expect(animalsStore.selectedAnimalId).toBeNull()
-    expect(wrapper.get('.home-todo__counter').text()).toBe('3 rappels')
+    expect(wrapper.get('.home-todo .section-card__counter').text()).toBe('3 rappels')
   })
 })
 
@@ -376,8 +390,8 @@ describe('HomeView — A3 animal sélectionné, aucun rappel', () => {
   it('n’écrit que le prénom en compteur et l’état « Tout est à jour » nominatif', async () => {
     const wrapper = await monterSurMilo()
 
-    expect(wrapper.get('.home-todo__counter').text()).toBe('Milo')
-    expect(wrapper.find('.home-reminders').exists()).toBe(false)
+    expect(wrapper.get('.home-todo .section-card__counter').text()).toBe('Milo')
+    expect(wrapper.find('.home-todo .section-card__card').exists()).toBe(false)
     expect(wrapper.find('.home-overdue-banner').exists()).toBe(false)
     expect(wrapper.get('.home-up-to-date__title').text()).toBe('Tout est à jour')
     expect(wrapper.get('.home-up-to-date__text').text()).toBe('Aucun rappel à venir pour Milo.')
@@ -398,8 +412,8 @@ describe('HomeView — A4 tous les animaux, aucun rappel', () => {
   it('liste les animaux dans le sous-texte, sans compteur', async () => {
     const wrapper = await monter()
 
-    expect(wrapper.find('.home-todo__counter').exists()).toBe(false)
-    expect(wrapper.find('.home-reminders').exists()).toBe(false)
+    expect(wrapper.find('.home-todo .section-card__counter').exists()).toBe(false)
+    expect(wrapper.find('.home-todo .section-card__card').exists()).toBe(false)
     expect(wrapper.get('.home-up-to-date__text').text()).toBe(
       'Milo et Luna n’ont aucun rappel à venir.',
     )
@@ -502,7 +516,9 @@ describe('HomeView — Actions rapides', () => {
       { label: 'Rappel de vaccin', icon: 'ms:vaccines' },
       { label: 'Ajouter un poids', icon: 'ms:monitor_weight' },
     ])
-    const sections = wrapper.findAll('section').map((section) => section.classes()[0])
+    const sections = wrapper
+      .findAll('section')
+      .map((section) => section.classes().find((name) => name.startsWith('home-')))
     expect(sections).toEqual(['home-todo', 'home-quick-actions'])
   })
 

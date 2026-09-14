@@ -1,13 +1,18 @@
 <script setup lang="ts">
 defineProps<{
   title: string
+  counter?: string | null
 }>()
 </script>
 
 <template>
   <section class="section-card">
-    <h2 class="section-card__title">{{ title }}</h2>
-    <div class="section-card__card">
+    <div class="section-card__heading">
+      <h2 class="section-card__title">{{ title }}</h2>
+      <span v-if="counter" class="section-card__counter">{{ counter }}</span>
+    </div>
+    <slot name="intro" />
+    <div v-if="$slots.default" class="section-card__card">
       <slot />
     </div>
   </section>
@@ -22,11 +27,26 @@ defineProps<{
   padding-inline: 20px;
 }
 
+.section-card__heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
 .section-card__title {
-  margin: 0 0 12px;
+  margin: 0;
   font-family: tokens.$font-family-heading;
   font-size: 21px;
   font-weight: 700;
+}
+
+.section-card__counter {
+  color: tokens.$color-text-meta;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
 }
 
 .section-card__card {
