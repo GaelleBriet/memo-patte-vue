@@ -1,7 +1,7 @@
-import { format } from 'date-fns'
 import type { z } from 'zod'
 
 import { weightEntryInputSchema } from './weight.schema'
+import { todayIsoDate } from '@/shared/form/form-dates'
 
 export interface WeightFormValues {
   /** `null` tant que l'animal n'est ni donné par le contexte ni choisi dans la feuille. */
@@ -24,10 +24,6 @@ export type WeightFormErrors = Partial<Record<WeightFormErrorField, string>>
 export type WeightFormResult =
   | { success: true; data: z.output<typeof weightEntryInputSchema> }
   | { success: false; errors: WeightFormErrors }
-
-export function todayIsoDate(): string {
-  return format(new Date(), 'yyyy-MM-dd')
-}
 
 /** La date est pré-remplie à aujourd'hui : la feuille tient sa promesse des deux taps. */
 export function emptyWeightFormValues(animalId: string | null = null): WeightFormValues {
@@ -52,6 +48,9 @@ function errorKeyFor(field: WeightFormErrorField, issue: z.core.$ZodIssue): stri
 }
 
 export function validateWeightForm(values: WeightFormValues): WeightFormResult {
+  // Sans animal, la feuille verrouille le poids et la date : leurs erreurs ne pourraient pas être corrigées.
+  if (values.animalId === null) return { success: false, errors: { animalId: ERROR_KEYS.animalId } }
+
   const result = weightEntryInputSchema.safeParse({
     animalId: values.animalId,
     weightKg: numberOrNull(values.weightKg),

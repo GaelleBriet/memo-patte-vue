@@ -2,12 +2,8 @@
 import { addDays, format } from 'date-fns'
 import { describe, expect, it } from 'vitest'
 
-import {
-  emptyWeightFormValues,
-  todayIsoDate,
-  validateWeightForm,
-  type WeightFormValues,
-} from '../weight-form'
+import { emptyWeightFormValues, validateWeightForm, type WeightFormValues } from '../weight-form'
+import { todayIsoDate } from '@/shared/form/form-dates'
 
 const MILO = '11111111-1111-4111-8111-111111111111'
 
@@ -42,12 +38,6 @@ describe('emptyWeightFormValues', () => {
 
   it('garde l’animal fourni par le contexte d’ouverture', () => {
     expect(emptyWeightFormValues(MILO).animalId).toBe(MILO)
-  })
-})
-
-describe('todayIsoDate', () => {
-  it('rend la date du jour au format du champ date natif', () => {
-    expect(todayIsoDate()).toBe(format(new Date(), 'yyyy-MM-dd'))
   })
 })
 
@@ -101,11 +91,16 @@ describe('validateWeightForm — date', () => {
 })
 
 describe('validateWeightForm — plusieurs erreurs', () => {
-  it('signale l’animal, le poids et la date en même temps', () => {
-    expect(erreurs({ animalId: null, weightKg: '0', measuredOn: '' })).toEqual({
-      animalId: 'weight.form.errors.animalId',
+  it('signale le poids et la date en même temps', () => {
+    expect(erreurs({ weightKg: '0', measuredOn: '' })).toEqual({
       weightKg: 'weight.form.errors.weightKg',
       measuredOn: 'weight.form.errors.measuredOn',
+    })
+  })
+
+  it('sans animal, ne signale que l’animal : le poids et la date ne sont pas encore saisissables', () => {
+    expect(erreurs({ animalId: null, weightKg: '0', measuredOn: '' })).toEqual({
+      animalId: 'weight.form.errors.animalId',
     })
   })
 })

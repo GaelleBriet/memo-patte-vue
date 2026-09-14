@@ -2,11 +2,13 @@
 import { computed, nextTick, ref, useId, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
-import { emptyWeightFormValues, todayIsoDate, validateWeightForm } from './weight-form'
+import { emptyWeightFormValues, validateWeightForm } from './weight-form'
 import { useWeightStore } from './weight.store'
+import { useToday } from '@/core/app-lifecycle/use-today'
 import { useAnimalsStore } from '@/features/animals/animals.store'
 import AnimalChipSelector, { type AnimalChipItem } from '@/shared/AnimalChipSelector.vue'
 import BottomSheet from '@/shared/BottomSheet.vue'
+import { todayIsoDate } from '@/shared/form/form-dates'
 import { useFormValidation } from '@/shared/form/use-form-validation'
 
 const props = defineProps<{
@@ -29,8 +31,12 @@ const weightErrorId = useId()
 const dateErrorId = useId()
 const saveFailed = ref(false)
 const isSubmitting = ref(false)
-// Recalculée à chaque ouverture : la feuille reste montée avec la carte, parfois au-delà de minuit.
-const maxDate = ref(todayIsoDate())
+const today = useToday()
+// Feuille gardée montée : la borne se recale aussi à chaque ouverture, même sans retour au premier plan.
+const maxDate = ref(today.value)
+watch(today, (day) => {
+  maxDate.value = day
+})
 const weightInput = ref<{ focus: () => void } | null>(null)
 
 const needsAnimal = computed(() => !props.animalId)
