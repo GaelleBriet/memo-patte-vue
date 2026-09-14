@@ -134,6 +134,5 @@ src/
 ## Ce qui reste à trancher
 
 - Plugin Capacitor de billing compatible Capacitor 8 (ticket 9.0).
-- Stratégie exacte de keep-alive Supabase Free (cron simple recommandé, déjà en place).
 - Comportement à l'expiration de l'abonnement (délai de grâce Play, message).
 - Exclusion des photos de l'Auto Backup Android (règles `fullBackupContent`).
