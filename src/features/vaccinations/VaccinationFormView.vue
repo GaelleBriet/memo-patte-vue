@@ -5,12 +5,12 @@ import { useRouter } from 'vue-router'
 
 import {
   emptyVaccinationFormValues,
-  todayIsoDate,
   validateVaccinationForm,
   vaccinationFormValuesFrom,
 } from './vaccination-form'
 import type { Vaccination } from './vaccination.schema'
 import { useVaccinationsStore } from './vaccinations.store'
+import { useToday } from '@/core/app-lifecycle/use-today'
 import { useAnimalsStore } from '@/features/animals/animals.store'
 import FormField from '@/shared/form/FormField.vue'
 import FormScreen from '@/shared/form/FormScreen.vue'
@@ -32,7 +32,7 @@ const existing = ref<Vaccination | null>(null)
 const notFound = ref(false)
 const saveFailed = ref(false)
 const isSubmitting = ref(false)
-const maxInjectionDate = todayIsoDate()
+const maxInjectionDate = useToday()
 
 const isEdit = computed(() => props.id !== undefined)
 const targetAnimalId = computed(() => existing.value?.animalId ?? props.animalId ?? null)

@@ -3,14 +3,10 @@ import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
-import {
-  animalFormValuesFrom,
-  emptyAnimalFormValues,
-  todayIsoDate,
-  validateAnimalForm,
-} from './animal-form'
+import { animalFormValuesFrom, emptyAnimalFormValues, validateAnimalForm } from './animal-form'
 import { ANIMAL_SPECIES, type Animal } from './animal.schema'
 import { useAnimalsStore } from './animals.store'
+import { useToday } from '@/core/app-lifecycle/use-today'
 import FormField from '@/shared/form/FormField.vue'
 import FormScreen from '@/shared/form/FormScreen.vue'
 import FormSegmented from '@/shared/form/FormSegmented.vue'
@@ -30,7 +26,7 @@ const existing = ref<Animal | null>(null)
 const notFound = ref(false)
 const saveFailed = ref(false)
 const isSubmitting = ref(false)
-const maxBirthDate = todayIsoDate()
+const maxBirthDate = useToday()
 
 const isEdit = computed(() => props.id !== undefined)
 const title = computed(() =>
