@@ -491,6 +491,10 @@ describe('WeightSheet — enregistrement (P4)', () => {
 })
 
 describe('WeightSheet — réouverture', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
   it('recale la date et sa borne sur le jour de l’ouverture, pas du montage', async () => {
     vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(new Date(2026, 8, 13, 23, 59))
@@ -505,7 +509,6 @@ describe('WeightSheet — réouverture', () => {
 
     expect(champ('weight-sheet-date').getAttribute('max')).toBe('2026-09-14')
     expect(champ('weight-sheet-date').value).toBe('2026-09-14')
-    vi.useRealTimers()
   })
 
   it('recale la borne de date au retour au premier plan, feuille ouverte', async () => {
@@ -519,7 +522,7 @@ describe('WeightSheet — réouverture', () => {
     await flushPromises()
 
     expect(champ('weight-sheet-date').getAttribute('max')).toBe('2026-09-14')
-    vi.useRealTimers()
+    expect(champ('weight-sheet-date').value).toBe('2026-09-13')
   })
 
   it('repart d’un formulaire vierge à chaque ouverture', async () => {
