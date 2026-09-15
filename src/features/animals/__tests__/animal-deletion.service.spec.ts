@@ -12,7 +12,7 @@ import {
 } from '@/features/treatments/treatments.repository'
 import { createWeightRepository, type WeightRepository } from '@/features/weight/weight.repository'
 import { getDb } from '@/core/db/sqlite'
-import { cancelReminder, listScheduled, type ScheduledReminder } from '@/core/notifications'
+import { cancelReminders, listScheduled, type ScheduledReminder } from '@/core/notifications'
 import {
   createFakeNotifications,
   type FakeNotifications,
@@ -26,7 +26,7 @@ import { createAnimalsRepository, type AnimalsRepository } from '../animals.repo
 
 vi.mock('@/core/db/sqlite', () => ({ getDb: vi.fn<() => Promise<DbClient>>() }))
 vi.mock('@/core/notifications', () => ({
-  cancelReminder: vi.fn<(key: string) => Promise<void>>().mockResolvedValue(),
+  cancelReminders: vi.fn<(keys: string[]) => Promise<void>>().mockResolvedValue(),
   listScheduled: vi.fn<() => Promise<ScheduledReminder[]>>().mockResolvedValue([]),
 }))
 
@@ -288,7 +288,7 @@ describe('animalDeletionService', () => {
 
     await expect(failing.remove(miette.id)).rejects.toThrow(/no such table/)
 
-    expect(notifications.cancelReminder).not.toHaveBeenCalled()
+    expect(notifications.cancelReminders).not.toHaveBeenCalled()
   })
 
   it('ne change aucune date déjà posée lors d’une seconde suppression', async () => {
@@ -373,7 +373,7 @@ describe('animalDeletionService', () => {
 
     await animalDeletionService.remove(miette.id)
 
-    expect(vi.mocked(cancelReminder)).toHaveBeenCalledWith(key)
+    expect(vi.mocked(cancelReminders)).toHaveBeenCalledExactlyOnceWith([key])
     const animal = await animalTombstone(miette.id)
     expect(animal?.deleted_at).toEqual(expect.any(String))
     await expect(vaccinationTombstones(miette.id)).resolves.toEqual([animal])

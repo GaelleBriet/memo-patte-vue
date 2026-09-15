@@ -56,7 +56,10 @@ describe('replaceDueReminders', () => {
     expect([...notifications.pending.keys()].sort()).toEqual(
       [`treatment:${OTHER}:2026-09-20:due`, DUE.key].sort(),
     )
-    expect(notifications.cancelReminder.mock.invocationCallOrder.at(-1)).toBeLessThan(
+    expect(notifications.cancelReminders.mock.calls).toEqual([
+      [[`treatment:${ID}:2026-09-20:due`, `treatment:${ID}:2026-10-20:overdue`]],
+    ])
+    expect(notifications.cancelReminders.mock.invocationCallOrder.at(-1)).toBeLessThan(
       notifications.scheduleReminders.mock.invocationCallOrder[0]!,
     )
   })
@@ -132,7 +135,7 @@ describe('replaceDueReminders', () => {
 })
 
 describe('cancelDueReminders', () => {
-  it('retire tous les rappels de chaque entrée, même sans permission', async () => {
+  it('retire en un seul appel tous les rappels de chaque entrée, même sans permission', async () => {
     notifications.checkPermission.mockResolvedValue(false)
     seed(
       `vaccination:${ID}:2026-10-15:before`,
@@ -147,6 +150,7 @@ describe('cancelDueReminders', () => {
     ])
 
     expect([...notifications.pending.keys()]).toEqual([`treatment:${ID}:2026-09-20:due`])
+    expect(notifications.cancelReminders).toHaveBeenCalledOnce()
   })
 
   it('ne lève pas quand le plugin échoue', async () => {
@@ -178,14 +182,14 @@ describe('enqueueReminderTask', () => {
     const syncing = enqueueReminderTask(synced)
 
     await vi.waitFor(() => expect(notifications.checkPermission).toHaveBeenCalled())
-    expect(notifications.cancelReminder).not.toHaveBeenCalled()
+    expect(notifications.cancelReminders).not.toHaveBeenCalled()
     expect(synced).not.toHaveBeenCalled()
 
     release()
     await Promise.all([replacing, cancelling, syncing])
 
     expect(notifications.scheduleReminders.mock.invocationCallOrder[0]).toBeLessThan(
-      notifications.cancelReminder.mock.invocationCallOrder[0]!,
+      notifications.cancelReminders.mock.invocationCallOrder[0]!,
     )
     expect(synced).toHaveBeenCalledOnce()
   })

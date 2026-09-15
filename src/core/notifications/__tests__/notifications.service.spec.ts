@@ -4,7 +4,7 @@ import { LocalNotifications } from '@capacitor/local-notifications'
 import type { Channel, LocalNotificationsPlugin } from '@capacitor/local-notifications'
 
 import {
-  cancelReminder,
+  cancelReminders,
   checkPermission,
   listScheduled,
   requestPermission,
@@ -228,13 +228,22 @@ describe('scheduleReminders', () => {
   )
 })
 
-describe('cancelReminder', () => {
-  it('annule la notification dérivée de la clé', async () => {
-    await cancelReminder(dewormer.key)
+describe('cancelReminders', () => {
+  it('annule en un seul appel les notifications dérivées des clés', async () => {
+    await cancelReminders([rabies.key, dewormer.key])
 
-    expect(cancel).toHaveBeenCalledWith({
-      notifications: [{ id: reminderNotificationId(dewormer.key) }],
+    expect(cancel).toHaveBeenCalledExactlyOnceWith({
+      notifications: [
+        { id: reminderNotificationId(rabies.key) },
+        { id: reminderNotificationId(dewormer.key) },
+      ],
     })
+  })
+
+  it('n’appelle pas le plugin pour une liste vide', async () => {
+    await cancelReminders([])
+
+    expect(cancel).not.toHaveBeenCalled()
   })
 })
 

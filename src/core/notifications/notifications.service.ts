@@ -46,9 +46,12 @@ export async function scheduleReminder(reminder: Reminder): Promise<void> {
   await scheduleOnRemindersChannel([reminder])
 }
 
-/** Sans effet si aucun rappel ne porte cette clé. */
-export async function cancelReminder(key: string): Promise<void> {
-  await LocalNotifications.cancel({ notifications: [{ id: reminderNotificationId(key) }] })
+/** Un seul appel au plugin pour toute la liste ; sans effet pour une clé sans rappel. */
+export async function cancelReminders(keys: string[]): Promise<void> {
+  if (keys.length === 0) return
+  await LocalNotifications.cancel({
+    notifications: keys.map((key) => ({ id: reminderNotificationId(key) })),
+  })
 }
 
 export async function listScheduled(): Promise<ScheduledReminder[]> {

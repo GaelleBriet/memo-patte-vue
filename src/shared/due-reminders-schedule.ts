@@ -6,7 +6,7 @@ import { dueReminderPrefix, parseReminderKey, type DueReminderEntry } from './du
 
 export type ReminderNotifications = Pick<
   typeof notifications,
-  'checkPermission' | 'scheduleReminders' | 'cancelReminder' | 'rescheduleAll' | 'listScheduled'
+  'checkPermission' | 'scheduleReminders' | 'cancelReminders' | 'rescheduleAll' | 'listScheduled'
 >
 
 export const reminderNotifications: ReminderNotifications = notifications
@@ -77,7 +77,7 @@ function warn(cause: unknown): void {
   console.warn('Rappels non mis à jour :', cause)
 }
 
-type CancelPort = Pick<ReminderNotifications, 'cancelReminder' | 'listScheduled'>
+type CancelPort = Pick<ReminderNotifications, 'cancelReminders' | 'listScheduled'>
 
 /** Le plugin peut rendre l'heure en texte : `new Date` accepte les deux formes. */
 export function pendingTime({ at }: ScheduledReminder): number | null {
@@ -90,14 +90,14 @@ async function cancelPending(
   entries: DueReminderEntry[],
 ): Promise<ScheduledReminder[]> {
   const prefixes = entries.map(dueReminderPrefix)
-  const matches = ({ key }: ScheduledReminder) =>
+  const matches = (key: string | undefined): key is string =>
     key !== undefined && prefixes.some((prefix) => key.startsWith(prefix))
   const pending = await port.listScheduled()
-  for (const { key } of pending.filter(matches))
-    if (key !== undefined) await port.cancelReminder(key)
+  const cancelled = pending.map(({ key }) => key).filter(matches)
+  if (cancelled.length > 0) await port.cancelReminders(cancelled)
   const now = Date.now()
   return pending.filter(
-    (reminder) => !matches(reminder) && (pendingTime(reminder) ?? now + 1) > now,
+    (reminder) => !matches(reminder.key) && (pendingTime(reminder) ?? now + 1) > now,
   )
 }
 
