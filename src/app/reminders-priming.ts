@@ -1,3 +1,5 @@
+import { Capacitor } from '@capacitor/core'
+import { format, parseISO, subDays } from 'date-fns'
 import type { Router } from 'vue-router'
 
 import { todayIsoDate } from '@/core/app-lifecycle/today-iso-date'
@@ -14,6 +16,7 @@ import {
   getVaccinationsRepository,
   type VaccinationsRepository,
 } from '@/features/vaccinations/vaccinations.repository'
+import { DAYS_OVERDUE } from '@/shared/due-reminders'
 import { primingRouteFrom } from '@/shared/notification-priming'
 
 type Provider<T> = () => T | Promise<T>
@@ -24,7 +27,10 @@ export type CarnetDueDates = {
   treatments: Pick<Treatment, 'animalId' | 'deletedAt'>[]
 }
 
-/** Un traitement compte toujours : ses rappels suivent la fréquence, même quand sa dernière échéance est passée. */
+/**
+ * Un vaccin compte tant que sa relance est programmée ; un traitement toujours, ses rappels suivant
+ * la fréquence même quand sa dernière échéance est passée.
+ */
 export function hasUpcomingDueDates(
   { animals, vaccinations, treatments }: CarnetDueDates,
   today: string,
@@ -32,18 +38,22 @@ export function hasUpcomingDueDates(
   const activeAnimals = new Set(
     animals.filter((animal) => animal.deletedAt === null).map((animal) => animal.id),
   )
+  const lastRemindedDueDate = format(subDays(parseISO(today), DAYS_OVERDUE), 'yyyy-MM-dd')
   const isActive = (entry: { animalId: string; deletedAt: string | null }) =>
     entry.deletedAt === null && activeAnimals.has(entry.animalId)
 
   return (
     vaccinations.some(
       (vaccination) =>
-        isActive(vaccination) && vaccination.dueDate !== null && vaccination.dueDate >= today,
+        isActive(vaccination) &&
+        vaccination.dueDate !== null &&
+        vaccination.dueDate >= lastRemindedDueDate,
     ) || treatments.some(isActive)
   )
 }
 
 export type RemindersPrimingDependencies = {
+  isNativePlatform: () => boolean
   shouldShowPriming: () => Promise<boolean>
   animals: Provider<Pick<AnimalsRepository, 'list'>>
   vaccinations: Provider<Pick<VaccinationsRepository, 'listAll'>>
@@ -54,6 +64,7 @@ export type RemindersPrimingDependencies = {
 export type PromptNotificationsIfReminders = (router: Router, from: string) => Promise<boolean>
 
 export function createRemindersPriming({
+  isNativePlatform,
   shouldShowPriming,
   animals,
   vaccinations,
@@ -62,7 +73,7 @@ export function createRemindersPriming({
 }: RemindersPrimingDependencies): PromptNotificationsIfReminders {
   return async (router, from) => {
     try {
-      if (!(await shouldShowPriming())) return false
+      if (!isNativePlatform() || !(await shouldShowPriming())) return false
 
       const [animalsRepository, vaccinationsRepository, treatmentsRepository] = await Promise.all([
         animals(),
@@ -93,9 +104,10 @@ export function createRemindersPriming({
 
 /**
  * Remplace l'écran `from` par l'écran d'explication quand la permission n'a jamais été demandée et
- * que le carnet a une échéance à venir. Sans effet si l'on a quitté `from` entre-temps ; ne lève jamais.
+ * que le carnet a une échéance à venir, sur appareil seulement. Sans effet si l'on a quitté `from` entre-temps ; ne lève jamais.
  */
 export const promptNotificationsIfReminders = createRemindersPriming({
+  isNativePlatform: () => Capacitor.isNativePlatform(),
   shouldShowPriming,
   animals: getAnimalsRepository,
   vaccinations: getVaccinationsRepository,

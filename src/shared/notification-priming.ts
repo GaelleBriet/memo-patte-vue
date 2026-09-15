@@ -1,4 +1,4 @@
-import type { RouteLocationRaw, Router } from 'vue-router'
+import type { RouteLocationRaw } from 'vue-router'
 
 import { shouldShowPriming } from '@/core/notifications/permission'
 
@@ -6,6 +6,7 @@ export type ReminderKind = 'vaccination' | 'treatment'
 
 const PRIMING_ROUTE = 'notifications-priming'
 const DEFAULT_RETURN_ROUTE = 'animals'
+const RETURN_ROUTES: readonly string[] = ['home', 'settings', 'animals']
 
 export async function routeAfterReminderSaved(saved: {
   hasDueDate: boolean
@@ -23,17 +24,13 @@ export async function routeAfterReminderSaved(saved: {
   return { name: DEFAULT_RETURN_ROUTE }
 }
 
-/** `from` : nom d'une route sans paramètre, où l'écran d'explication ramènera. */
+/** `from` : `home`, `settings` ou `animals`, où l'écran d'explication ramènera. */
 export function primingRouteFrom(from: string): RouteLocationRaw {
   return { name: PRIMING_ROUTE, query: { from } }
 }
 
-export function primingReturnRoute(
-  from: unknown,
-  router: Pick<Router, 'hasRoute'>,
-): RouteLocationRaw {
-  if (typeof from === 'string' && from !== PRIMING_ROUTE && router.hasRoute(from)) {
-    return { name: from }
+export function primingReturnRoute(from: unknown): RouteLocationRaw {
+  return {
+    name: typeof from === 'string' && RETURN_ROUTES.includes(from) ? from : DEFAULT_RETURN_ROUTE,
   }
-  return { name: DEFAULT_RETURN_ROUTE }
 }

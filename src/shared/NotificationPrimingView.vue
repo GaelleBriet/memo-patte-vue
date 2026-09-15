@@ -15,7 +15,7 @@ const props = defineProps<{
 
 const { t } = useI18n()
 const router = useRouter()
-const returnRoute = primingReturnRoute(useRoute().query.from, router)
+const returnRoute = primingReturnRoute(useRoute().query.from)
 const isRequesting = ref(false)
 
 const personalBenefit = computed(() => {

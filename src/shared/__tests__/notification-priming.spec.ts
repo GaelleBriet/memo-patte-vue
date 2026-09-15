@@ -52,15 +52,17 @@ describe('routeAfterReminderSaved', () => {
 
 describe('primingReturnRoute', () => {
   it('revient à l’écran d’origine quand il est nommé', () => {
-    expect(primingReturnRoute('home', router)).toEqual({ name: 'home' })
-    expect(primingReturnRoute('settings', router)).toEqual({ name: 'settings' })
+    expect(primingReturnRoute('home')).toEqual({ name: 'home' })
+    expect(primingReturnRoute('settings')).toEqual({ name: 'settings' })
+    expect(primingReturnRoute('animals')).toEqual({ name: 'animals' })
   })
 
   it('revient au Carnet sans origine, avec une origine inconnue ou l’écran lui-même', () => {
-    expect(primingReturnRoute(undefined, router)).toEqual({ name: 'animals' })
-    expect(primingReturnRoute('inconnu', router)).toEqual({ name: 'animals' })
-    expect(primingReturnRoute(['home'], router)).toEqual({ name: 'animals' })
-    expect(primingReturnRoute('notifications-priming', router)).toEqual({ name: 'animals' })
+    expect(primingReturnRoute(undefined)).toEqual({ name: 'animals' })
+    expect(primingReturnRoute('inconnu')).toEqual({ name: 'animals' })
+    expect(primingReturnRoute('animal-edit')).toEqual({ name: 'animals' })
+    expect(primingReturnRoute(['home'])).toEqual({ name: 'animals' })
+    expect(primingReturnRoute('notifications-priming')).toEqual({ name: 'animals' })
   })
 })
 

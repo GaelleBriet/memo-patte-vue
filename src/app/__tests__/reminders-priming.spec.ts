@@ -76,12 +76,21 @@ describe('hasUpcomingDueDates', () => {
     )
   })
 
-  it('est faux quand les vaccins n’ont qu’une échéance passée ou pas d’échéance', () => {
+  it('est vrai pour un vaccin en retard dont la relance est encore programmée', () => {
+    expect(
+      hasUpcomingDueDates(
+        { animals: [MILO], vaccinations: [vaccination('2026-09-12')], treatments: [] },
+        TODAY,
+      ),
+    ).toBe(true)
+  })
+
+  it('est faux quand les vaccins n’ont qu’une échéance dont la relance est passée, ou aucune', () => {
     expect(
       hasUpcomingDueDates(
         {
           animals: [MILO],
-          vaccinations: [vaccination('2026-09-14'), vaccination(null)],
+          vaccinations: [vaccination('2026-09-11'), vaccination(null)],
           treatments: [],
         },
         TODAY,
@@ -134,9 +143,11 @@ describe('promptNotificationsIfReminders', () => {
   let vaccinations: Vaccination[]
   let treatments: Treatment[]
   let listAll: ReturnType<typeof vi.fn<() => Promise<Vaccination[]>>>
+  let isNativePlatform: boolean
 
   function prompt(from: string) {
     return createRemindersPriming({
+      isNativePlatform: () => isNativePlatform,
       shouldShowPriming,
       animals: () => ({ list: async () => [MILO] }),
       vaccinations: () => ({ listAll }),
@@ -148,6 +159,7 @@ describe('promptNotificationsIfReminders', () => {
   beforeEach(async () => {
     router = routeur()
     await router.push('/')
+    isNativePlatform = true
     shouldShowPriming = vi.fn<() => Promise<boolean>>().mockResolvedValue(true)
     vaccinations = [vaccination('2026-10-01')]
     treatments = []
@@ -163,6 +175,15 @@ describe('promptNotificationsIfReminders', () => {
 
     expect(router.currentRoute.value.name).toBe('notifications-priming')
     expect(router.currentRoute.value.query).toEqual({ from: 'home' })
+  })
+
+  it('ne propose rien dans le navigateur, sans rien demander ni lire', async () => {
+    isNativePlatform = false
+
+    expect(await prompt('home')).toBe(false)
+    expect(shouldShowPriming).not.toHaveBeenCalled()
+    expect(listAll).not.toHaveBeenCalled()
+    expect(router.currentRoute.value.name).toBe('home')
   })
 
   it('ne propose rien sans échéance à venir', async () => {
