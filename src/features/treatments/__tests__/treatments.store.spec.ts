@@ -3,22 +3,37 @@ import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 
 import type { Treatment, TreatmentInput } from '../treatment.schema'
+import type { TreatmentRemindersService } from '../treatment-reminders.service'
 import type { TreatmentsRepository } from '../treatments.repository'
-import { provideTreatmentsRepository, useTreatmentsStore } from '../treatments.store'
+import {
+  provideTreatmentRemindersService,
+  provideTreatmentsRepository,
+  useTreatmentsStore,
+} from '../treatments.store'
 
 const MILO = '11111111-1111-4111-8111-111111111111'
 const LUNA = '33333333-3333-4333-8333-333333333333'
 
 let repository: FakeTreatmentsRepository
+let reminders: {
+  reschedule: Mock<TreatmentRemindersService['reschedule']>
+  cancel: Mock<TreatmentRemindersService['cancel']>
+}
 
 beforeEach(() => {
   setActivePinia(createPinia())
   repository = createFakeRepository()
   provideTreatmentsRepository(() => repository)
+  reminders = {
+    reschedule: vi.fn<TreatmentRemindersService['reschedule']>().mockResolvedValue(),
+    cancel: vi.fn<TreatmentRemindersService['cancel']>().mockResolvedValue(),
+  }
+  provideTreatmentRemindersService(() => reminders)
 })
 
 afterEach(() => {
   provideTreatmentsRepository(null)
+  provideTreatmentRemindersService(null)
 })
 
 function vermifuge(animalId = MILO, surcharges: Partial<TreatmentInput> = {}): TreatmentInput {
@@ -250,6 +265,49 @@ describe('useTreatmentsStore', () => {
 
     expect(repository.remove).toHaveBeenCalledWith(seme.id)
     expect(store.treatments.map((treatment) => treatment.name)).toEqual(['Bravecto'])
+  })
+
+  it('programme les rappels du traitement créé sur sa prochaine échéance', async () => {
+    const store = useTreatmentsStore()
+
+    const created = await store.create(vermifuge())
+
+    expect(reminders.reschedule).toHaveBeenCalledWith(created)
+  })
+
+  it('reprogramme les rappels quand une nouvelle prise déplace l’échéance', async () => {
+    const seme = repository.seed(vermifuge())
+    const store = useTreatmentsStore()
+
+    const updated = await store.update(seme.id, { ...vermifuge(), lastDoseDate: '2026-06-12' })
+
+    expect(reminders.reschedule).toHaveBeenCalledWith(updated)
+    expect(reminders.reschedule.mock.calls[0]?.[0].nextDueDate).not.toBe(seme.nextDueDate)
+  })
+
+  it('annule les rappels du traitement supprimé, après l’écriture en base', async () => {
+    const seme = repository.seed(vermifuge())
+    const store = useTreatmentsStore()
+
+    await store.remove(seme.id)
+
+    expect(reminders.cancel).toHaveBeenCalledWith(seme.id)
+    expect(repository.remove.mock.invocationCallOrder[0]).toBeLessThan(
+      reminders.cancel.mock.invocationCallOrder[0]!,
+    )
+  })
+
+  it('ne touche pas aux rappels quand l’écriture échoue', async () => {
+    const seme = repository.seed(vermifuge())
+    const store = useTreatmentsStore()
+    repository.update.mockRejectedValueOnce(new Error('traitement introuvable'))
+    repository.remove.mockRejectedValueOnce(new Error('base verrouillée'))
+
+    await expect(store.update(seme.id, vermifuge())).rejects.toThrow('traitement introuvable')
+    await expect(store.remove(seme.id)).rejects.toThrow('base verrouillée')
+
+    expect(reminders.reschedule).not.toHaveBeenCalled()
+    expect(reminders.cancel).not.toHaveBeenCalled()
   })
 
   it('propage l’erreur d’une création et garde la liste intacte', async () => {

@@ -200,6 +200,20 @@
       "error": "Impossible de charger les traitements."
     }
   },
+  "reminders": {
+    "vaccination": {
+      "beforeTitle": "Vaccin {name} de {animal} dans {days} jours",
+      "beforeBody": "Pense à prendre rendez-vous chez le vétérinaire.",
+      "dueTitle": "Vaccin {name} de {animal} aujourd’hui",
+      "dueBody": "Note l’injection dans MémoPatte une fois faite."
+    },
+    "treatment": {
+      "beforeTitle": "{type} {name} de {animal} dans {days} jours",
+      "beforeBody": "Vérifie qu’il te reste une dose.",
+      "dueTitle": "{type} {name} de {animal} aujourd’hui",
+      "dueBody": "Note la prise dans MémoPatte pour programmer la suivante."
+    }
+  },
   "weight": {
     "unit": "kg",
     "delta": {

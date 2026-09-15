@@ -200,6 +200,20 @@
       "error": "Couldn’t load treatments."
     }
   },
+  "reminders": {
+    "vaccination": {
+      "beforeTitle": "{name} vaccine for {animal} in {days} days",
+      "beforeBody": "Remember to book a vet appointment.",
+      "dueTitle": "{name} vaccine for {animal} today",
+      "dueBody": "Log the shot in MémoPatte once it’s done."
+    },
+    "treatment": {
+      "beforeTitle": "{type} {name} for {animal} in {days} days",
+      "beforeBody": "Check you still have a dose on hand.",
+      "dueTitle": "{type} {name} for {animal} today",
+      "dueBody": "Log the dose in MémoPatte to schedule the next one."
+    }
+  },
   "weight": {
     "unit": "kg",
     "delta": {

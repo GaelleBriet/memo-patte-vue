@@ -1,6 +1,10 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
+import {
+  vaccinationRemindersService,
+  type VaccinationRemindersService,
+} from './vaccination-reminders.service'
 import type { Vaccination, VaccinationInput, VaccinationUpdateInput } from './vaccination.schema'
 import type { VaccinationsRepository as FullVaccinationsRepository } from './vaccinations.repository'
 
@@ -17,6 +21,17 @@ let provider: VaccinationsRepositoryProvider | null = null
 
 export function provideVaccinationsRepository(next: VaccinationsRepositoryProvider | null): void {
   provider = next
+}
+
+type VaccinationReminders = Pick<VaccinationRemindersService, 'reschedule' | 'cancel'>
+
+let remindersProvider: () => VaccinationReminders = () => vaccinationRemindersService
+
+/** `null` rétablit le service réel. */
+export function provideVaccinationRemindersService(
+  next: (() => VaccinationReminders) | null,
+): void {
+  remindersProvider = next ?? (() => vaccinationRemindersService)
 }
 
 export const useVaccinationsStore = defineStore('vaccinations', () => {
@@ -97,21 +112,32 @@ export const useVaccinationsStore = defineStore('vaccinations', () => {
 
     async create(input: VaccinationInput): Promise<Vaccination> {
       return write(
-        (repository) => repository.create(input),
+        async (repository) => {
+          const created = await repository.create(input)
+          await remindersProvider().reschedule(created)
+          return created
+        },
         (created) => created.animalId,
       )
     },
 
     async update(id: string, input: VaccinationUpdateInput): Promise<Vaccination> {
       return write(
-        (repository) => repository.update(id, input),
+        async (repository) => {
+          const updated = await repository.update(id, input)
+          await remindersProvider().reschedule(updated)
+          return updated
+        },
         (updated) => updated.animalId,
       )
     },
 
     async remove(id: string): Promise<void> {
       await write(
-        (repository) => repository.remove(id),
+        async (repository) => {
+          await repository.remove(id)
+          await remindersProvider().cancel(id)
+        },
         () => animalId.value,
       )
     },
