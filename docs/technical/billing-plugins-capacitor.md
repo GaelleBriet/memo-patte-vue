@@ -537,15 +537,26 @@ peut annuler un achat si l'app passe en arrière-plan pendant le flux — la doc
 `pnpm cap:open:android` → Build → vérifier qu'aucune erreur Gradle n'apparaît (c'est le test qui
 avait manqué côté Flutter).
 
-Côté Vue/TypeScript, un store Pinia `plus` avec :
+**Livré par #44** (`src/features/purchase/`) :
 
-- `configure({ apiKey, appUserID: session.user.id })` au démarrage (ou `logIn` après connexion) ;
-- `getOfferings()` → `current.availablePackages` → `product.priceString` pour l'écran Plus (9.2) ;
-- `purchasePackage({ aPackage })` → `customerInfo.entitlements.active['plus']` ;
-- `getCustomerInfo()` au lancement et `App.addListener('resume')` ; `addCustomerInfoUpdateListener` ;
-- `restorePurchases()` derrière un bouton Réglages ;
-- mapping vers `lifetime | active | grace | expired | none` (§5.3) via `expirationDate === null`,
-  `isActive`, `billingIssueDetectedAt`.
+- **Clé** : la clé API publique Google Play de RevenueCat (`goog_…`) se pose dans
+  `VITE_REVENUECAT_GOOGLE_KEY` du `.env` local, jamais commité (`.env.example` la laisse vide).
+  Sans clé, ou dans le navigateur de dev, le service est « indisponible » : aucune offre, achat,
+  vérification et restauration refusés par une `BillingError` de raison `unavailable`.
+- `billing.service.ts` est le seul à charger le plugin, par import dynamique (chunk séparé).
+  `configure` n'est appelé qu'à la première demande, avec
+  `automaticDeviceIdentifierCollectionEnabled: false` ; aucun `collectDeviceIdentifiers` ni
+  `setAttributes`. `logIn(appUserID)` attend l'UUID Supabase.
+- Offres lues dans l'offering courante par identifiant de package (`$rc_monthly`, `$rc_annual`,
+  `$rc_lifetime`). Un achat annulé par l'utilisateur rend `{ kind: 'cancelled' }`, pas une erreur.
+- Statut `none | monthly | annual | lifetime` + `expiresAt`, calculé depuis
+  `entitlements.active.plus` (grâce = actif, expiré = `none`) : base plan `monthly`/`annual`,
+  sinon durée de la période ; pas d'expiration = à vie.
+- `purchase.store.ts` persiste le statut dans `localStorage` (`memopatte.plus.status`) ;
+  `main.ts` ne revérifie au lancement que si un statut Plus est déjà connu, un gratuit ne contacte
+  jamais RevenueCat.
+- Reste à brancher : l'écran Plus (#45), la revérification au retour au premier plan, le passage
+  de `grace` à l'UI (`billingIssueDetectedAt`, bandeau du §5.3).
 
 Côté Supabase : Edge Function `revenuecat-webhook` (secret `REVENUECAT_WEBHOOK_AUTH`), table
 `plus_entitlements`, policies RLS de la sync conditionnées à `expires_at > now()` ou

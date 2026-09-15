@@ -114,7 +114,8 @@ L'annuel est l'offre mise en avant (≈ 44 % d'économie par rapport au
 mensuel) ; le « à vie » sert les personnes qui refusent l'abonnement
 et vaut environ trois ans d'annuel, puisqu'il ne finance pas le
 récurrent. Les trois produits donnent le même droit `plus` dans
-RevenueCat.
+RevenueCat. Configuration Play et RevenueCat, emplacement de la clé et
+service de l'app : `docs/technical/billing-plugins-capacitor.md` §7.
 
 **Pourquoi ce modèle plutôt que l'achat unique du 11 août** :
 - Le coût suit le revenu : un utilisateur gratuit ne touche jamais
