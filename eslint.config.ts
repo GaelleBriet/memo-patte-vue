@@ -14,6 +14,32 @@ const NOTIFICATIONS_PLUGIN_RESTRICTION = {
     'Import interdit hors de core/notifications/ : utilise notifications.service (cf. CLAUDE.md).',
 }
 
+const LOCALE_FILES = 'src/core/i18n/locales/*.json'
+
+const VUE_I18N_SETTINGS = {
+  'vue-i18n': { localeDir: `./${LOCALE_FILES}`, messageSyntaxVersion: '^11.0.0' },
+}
+
+const VUE_I18N_JSON_PARSER = pluginVueI18n.configs['flat/base'].find(
+  (config) => config.name === '@intlify/vue-i18n:base:setup:json',
+)?.languageOptions
+
+// Clés construites à l'exécution (gabarit ou table de correspondance) : invisibles pour no-unused-keys.
+const DYNAMIC_I18N_KEYS = [
+  '/^nav\\.(home|animals)$/',
+  '/^animals\\.form\\.species\\.(dog|cat)$/',
+  '/^animals\\.age\\.(year|month|week)$/',
+  '/^animals\\.form\\.errors\\.(name|species|birthDate|initialWeightKg)$/',
+  '/^vaccinations\\.form\\.errors\\.(name|lastInjectionDate|lastInjectionDateFuture|dueDate)$/',
+  '/^treatments\\.form\\.errors\\.(name|type|frequency|lastDoseDate|lastDoseDateFuture)$/',
+  '/^weight\\.form\\.errors\\.(animalId|weightKg|measuredOn|measuredOnFuture)$/',
+  '/^vaccinations\\.section\\.status\\.(overdue|upToDate|none)$/',
+  '/^treatments\\.type\\.(deworming|antiparasitic)$/',
+  '/^treatments\\.(frequency|form\\.frequency\\.every|form\\.frequency\\.unit)\\.(day|week|month)$/',
+  '/^home\\.reminder\\.(deworming|antiparasitic)$/',
+  '/^home\\.due\\.(overdue|today|tomorrow|later)$/',
+]
+
 const FEATURES_RESTRICTION = {
   group: ['@/features/**', '**/features/**'],
   message:
@@ -92,15 +118,18 @@ export default defineConfigWithVueTs(
     name: 'app/vue-i18n-rules',
     files: ['**/*.{vue,ts,mts,tsx}'],
     plugins: { '@intlify/vue-i18n': pluginVueI18n },
-    settings: {
-      'vue-i18n': {
-        localeDir: './src/core/i18n/locales/*.json',
-        messageSyntaxVersion: '^11.0.0',
-      },
-    },
+    settings: VUE_I18N_SETTINGS,
     rules: {
       '@intlify/vue-i18n/no-missing-keys': 'error',
-      '@intlify/vue-i18n/no-raw-text': 'warn',
+      '@intlify/vue-i18n/no-raw-text': [
+        'error',
+        {
+          ignorePattern: '^[\\s\\d.,:;·/%—…*+×()#&-]*$',
+          attributes: {
+            '/.+/': ['title', 'aria-label', 'alt', 'placeholder', 'label', 'text', 'hint'],
+          },
+        },
+      ],
     },
   },
 
@@ -229,6 +258,23 @@ export default defineConfigWithVueTs(
       'no-console': ['warn', { allow: ['warn', 'error'] }],
       'prefer-const': 'error',
       eqeqeq: ['error', 'always'],
+    },
+  },
+
+  // En dernier : le bloc app/memo-patte-rules, sans `files`, s'applique aussi aux JSON.
+  {
+    name: 'app/vue-i18n-locales',
+    files: [LOCALE_FILES],
+    plugins: { '@intlify/vue-i18n': pluginVueI18n },
+    languageOptions: VUE_I18N_JSON_PARSER,
+    settings: VUE_I18N_SETTINGS,
+    rules: {
+      '@typescript-eslint/consistent-type-imports': 'off',
+      '@intlify/vue-i18n/valid-message-syntax': 'error',
+      '@intlify/vue-i18n/no-unused-keys': [
+        'error',
+        { src: './src', extensions: ['.ts', '.vue'], ignores: DYNAMIC_I18N_KEYS },
+      ],
     },
   },
 )

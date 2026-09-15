@@ -1,9 +1,25 @@
+import { rmSync } from 'node:fs'
+import { join, resolve } from 'node:path'
 import { fileURLToPath, URL } from 'node:url'
 
-import { defineConfig } from 'vite'
+import { defineConfig, type Plugin } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import vueDevTools from 'vite-plugin-vue-devtools'
 import vuetify from 'vite-plugin-vuetify'
+
+function dropWebSqliteWasmFromBuild(): Plugin {
+  let outDir = ''
+  return {
+    name: 'memo-patte:drop-web-sqlite-wasm',
+    apply: 'build',
+    configResolved(config) {
+      outDir = resolve(config.root, config.build.outDir)
+    },
+    closeBundle() {
+      rmSync(join(outDir, 'assets', 'sql-wasm.wasm'), { force: true })
+    },
+  }
+}
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -16,6 +32,7 @@ export default defineConfig({
         configFile: 'src/styles/settings.scss',
       },
     }),
+    dropWebSqliteWasmFromBuild(),
   ],
   resolve: {
     alias: {
