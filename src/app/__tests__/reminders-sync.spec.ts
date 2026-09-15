@@ -12,7 +12,12 @@ import {
   createFakeNotifications,
   type FakeNotifications,
 } from '@/shared/__tests__/fake-notifications'
-import { enqueueReminderTask, MAX_SCHEDULED_REMINDERS } from '@/shared/due-reminders-schedule'
+import {
+  enqueueReminderTask,
+  MAX_SCHEDULED_REMINDERS,
+  replaceDueReminders,
+} from '@/shared/due-reminders-schedule'
+import type { Reminder } from '@/core/notifications'
 import { createRemindersSync, installRemindersSync } from '../reminders-sync'
 
 const STAMP = '2026-09-01T09:00:00.000Z'
@@ -122,14 +127,42 @@ describe('syncAllReminders', () => {
     ])
   })
 
+  it('ne touche à rien quand les rappels en attente sont déjà ceux à programmer', async () => {
+    listVaccinations.mockResolvedValue([
+      vaccination('22222222-2222-4222-8222-222222222222', MILO.id, '2026-10-15'),
+    ])
+    await sync()()
+    notifications.rescheduleAll.mockClear()
+
+    await sync()()
+
+    expect(notifications.rescheduleAll).not.toHaveBeenCalled()
+  })
+
+  it('reprogramme quand un texte en attente diffère', async () => {
+    listVaccinations.mockResolvedValue([
+      vaccination('22222222-2222-4222-8222-222222222222', MILO.id, '2026-10-15'),
+    ])
+    await sync()()
+    notifications.rescheduleAll.mockClear()
+    list.mockResolvedValue([{ ...MILO, name: 'Milou' }, LUNA])
+
+    await sync()()
+
+    expect(notifications.rescheduleAll).toHaveBeenCalledOnce()
+  })
+
   it('ignore les entrées dont l’animal n’est plus en base', async () => {
     listVaccinations.mockResolvedValue([
       vaccination('22222222-2222-4222-8222-222222222222', GONE, '2026-10-15'),
     ])
+    const stale = 'vaccination:22222222-2222-4222-8222-222222222222:2026-10-15:due'
+    notifications.pending.set(stale, { key: stale, title: '', body: '', at: new Date(2026, 9, 15) })
 
     await sync()()
 
     expect(notifications.rescheduleAll).toHaveBeenCalledWith([])
+    expect(notifications.pending.size).toBe(0)
   })
 
   it('garde au plus 400 rappels, les plus proches d’abord', async () => {
@@ -178,6 +211,9 @@ describe('syncAllReminders', () => {
         }),
     )
 
+    listVaccinations.mockResolvedValue([
+      vaccination('22222222-2222-4222-8222-222222222222', MILO.id, '2026-10-15'),
+    ])
     const syncing = sync()()
     await Promise.resolve()
     expect(notifications.checkPermission).not.toHaveBeenCalled()
@@ -241,6 +277,32 @@ describe('installRemindersSync', () => {
     expect(grantListeners.size).toBe(0)
   })
 
+  it('branche la synchro complète demandée quand le plafond est atteint', async () => {
+    const syncAll = vi.fn<() => Promise<void>>().mockResolvedValue()
+    const uninstall = installRemindersSync(syncAll, noGrant)
+    syncAll.mockClear()
+    const pending = new Map<string, Reminder>()
+    for (let index = 0; index < MAX_SCHEDULED_REMINDERS; index += 1) {
+      const key = `vaccination:${index}:x:due`
+      pending.set(key, { key, title: '', body: '', at: new Date(2099, 0, 1) })
+    }
+    notifications.pending.clear()
+    for (const [key, value] of pending) notifications.pending.set(key, value)
+
+    await replaceDueReminders(notifications, { kind: 'treatment', id: MILBEMAX.id }, () => [
+      {
+        key: `treatment:${MILBEMAX.id}:2026-10-15:due`,
+        title: '',
+        body: '',
+        at: new Date(2098, 0, 1),
+      },
+    ])
+    await enqueueReminderTask(async () => {})
+
+    expect(syncAll).toHaveBeenCalledOnce()
+    uninstall()
+  })
+
   it('synchronise au démarrage puis à chaque retour au premier plan', () => {
     const syncAll = vi.fn<() => Promise<void>>().mockResolvedValue()
 
@@ -277,4 +339,28 @@ it('resynchronise après la modification d’un animal, pour que son prénom sui
   uninstall()
   await useAnimalsStore().update(MILO.id, { name: 'Milou', species: 'dog' })
   expect(syncAll).toHaveBeenCalledOnce()
+})
+
+it('ne resynchronise pas quand la modification d’un animal échoue', async () => {
+  setActivePinia(createPinia())
+  provideAnimalsRepository(
+    () =>
+      ({
+        getById: async () => MILO,
+        update: async () => {
+          throw new Error('base verrouillée')
+        },
+        list: async () => [MILO],
+      }) as unknown as AnimalsRepository,
+  )
+  const syncAll = vi.fn<() => Promise<void>>().mockResolvedValue()
+  const uninstall = installRemindersSync(syncAll, noGrant)
+  syncAll.mockClear()
+
+  await expect(
+    useAnimalsStore().update(MILO.id, { name: 'Milou', species: 'dog' }),
+  ).rejects.toThrow('base verrouillée')
+
+  expect(syncAll).not.toHaveBeenCalled()
+  uninstall()
 })

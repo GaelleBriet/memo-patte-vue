@@ -1,9 +1,16 @@
 // @vitest-environment node
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import i18n from '@/core/i18n'
 import type { TreatmentFrequency } from '../treatment.schema'
+import { addFrequency } from '../treatment-frequency'
+import type * as TreatmentFrequencyModule from '../treatment-frequency'
 import { treatmentReminders } from '../treatment-reminders'
+
+vi.mock('../treatment-frequency', async (importOriginal) => {
+  const original = await importOriginal<typeof TreatmentFrequencyModule>()
+  return { addFrequency: vi.fn<typeof original.addFrequency>(original.addFrequency) }
+})
 
 const t = i18n.global.t
 const ID = '44444444-4444-4444-8444-444444444444'
@@ -93,6 +100,30 @@ describe('treatmentReminders', () => {
     ])
     expect(result).toHaveLength(26)
     expect(result.at(-1)).toBe('2026-11-11:overdue')
+  })
+
+  it('programme le premier cycle d’un traitement toutes les 12 semaines, au-delà de 60 jours', () => {
+    expect(slots('2026-12-08', NOW, { value: 12, unit: 'week' })).toEqual([
+      '2026-12-08:before',
+      '2026-12-08:due',
+      '2026-12-08:overdue',
+    ])
+  })
+
+  it('ne programme pas une relance qui tomberait après la prise suivante, tous les deux jours', () => {
+    const result = slots('2026-09-16', NOW, { value: 2, unit: 'day' })
+
+    expect(result.every((slot) => slot.endsWith(':due'))).toBe(true)
+    expect(result).toHaveLength(30)
+  })
+
+  it('saute directement au premier cycle utile d’un traitement oublié depuis des années', () => {
+    vi.mocked(addFrequency).mockClear()
+
+    const result = slots('2016-09-15', NOW, { value: 1, unit: 'day' })
+
+    expect(result[0]).toBe('2026-09-16:due')
+    expect(vi.mocked(addFrequency).mock.calls.length).toBeLessThan(80)
   })
 
   it('passe aux rappels de juin quand la prise de mai n’est pas notée', () => {

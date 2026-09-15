@@ -1,4 +1,4 @@
-import { addDays, compareAsc, isAfter, parseISO, set } from 'date-fns'
+import { addDays, compareAsc, format, isAfter, parseISO, set } from 'date-fns'
 
 import type { Reminder } from '@/core/notifications'
 import type { ReminderKind } from './reminders'
@@ -14,7 +14,7 @@ export type Translate = (key: string, named: Record<string, unknown>) => string
 export const DAYS_BEFORE_DUE = 3
 export const DAYS_OVERDUE = 3
 
-/** Le plafond d'alarmes Android (~500) interdit de tout programmer : la synchro suivante remplit la suite. */
+/** Horizon des cycles suivants d'un traitement, sous le plafond d'alarmes Android (~500). */
 export const REMINDER_WINDOW_DAYS = 60
 
 const REMINDER_HOUR = 9
@@ -45,9 +45,27 @@ export function dueReminderSpan(dueDate: string): { first: Date; last: Date } {
   return { first: at(dueDate, OFFSETS.before), last: at(dueDate, OFFSETS.overdue) }
 }
 
+/** Vrai tant que le rappel du jour même n'a pas sonné. */
+export function isDueUpcoming(dueDate: string, now: Date): boolean {
+  return isAfter(at(dueDate, OFFSETS.due), now)
+}
+
+/** Un rappel qui tombe sur l'échéance voisine ou la dépasse ferait doublon avec elle. */
+function spillsOverNeighbour(
+  moment: DueReminderMoment,
+  day: string,
+  previous: string | undefined,
+  next: string | undefined,
+): boolean {
+  if (moment === 'overdue') return next !== undefined && day >= next
+  if (moment === 'before') return previous !== undefined && day <= previous
+  return false
+}
+
 /**
- * Rappels des échéances dans les 60 jours à venir, à 9 h heure locale : trois jours avant, le jour
- * même et trois jours après. Triés dans le temps, un seul par instant.
+ * Rappels des échéances, à 9 h heure locale : trois jours avant, le jour même et trois jours après.
+ * La première échéance à venir est toujours programmée ; les suivantes, dans les 60 jours seulement.
+ * Triés dans le temps, un seul par instant.
  */
 export function dueReminders(
   entry: DueReminderEntry,
@@ -56,12 +74,20 @@ export function dueReminders(
   now: Date,
 ): Reminder[] {
   const windowEnd = reminderWindowEnd(now)
+  const dates = [...new Set(dueDates)].sort()
+  const firstUpcoming = dates.find((dueDate) => isDueUpcoming(dueDate, now))
   const byInstant = new Map<number, { moment: DueReminderMoment; reminder: Reminder }>()
 
-  for (const dueDate of dueDates) {
+  dates.forEach((dueDate, index) => {
     for (const moment of Object.keys(OFFSETS) as DueReminderMoment[]) {
       const when = at(dueDate, OFFSETS[moment])
-      if (!isAfter(when, now) || isAfter(when, windowEnd)) continue
+      if (!isAfter(when, now)) continue
+      if (dueDate !== firstUpcoming && isAfter(when, windowEnd)) continue
+      if (
+        spillsOverNeighbour(moment, format(when, 'yyyy-MM-dd'), dates[index - 1], dates[index + 1])
+      ) {
+        continue
+      }
       const kept = byInstant.get(when.getTime())
       if (kept && PRIORITY[kept.moment] <= PRIORITY[moment]) continue
       byInstant.set(when.getTime(), {
@@ -73,7 +99,7 @@ export function dueReminders(
         },
       })
     }
-  }
+  })
 
   return [...byInstant.values()]
     .map(({ reminder }) => reminder)

@@ -4,6 +4,7 @@ import {
   onNotificationPermissionGranted,
   reminderNotificationId,
   type Reminder,
+  type ScheduledReminder,
 } from '@/core/notifications'
 import { getAnimalsRepository, type AnimalsRepository } from '@/features/animals/animals.repository'
 import { useAnimalsStore } from '@/features/animals/animals.store'
@@ -22,6 +23,8 @@ import {
   earliestReminders,
   enqueueReminderTask,
   MAX_SCHEDULED_REMINDERS,
+  pendingTime,
+  provideFullReminderSync,
   reminderNotifications,
   type ReminderNotifications,
 } from '@/shared/due-reminders-schedule'
@@ -40,11 +43,27 @@ function warnOnIdCollisions(reminders: Reminder[]): void {
   }
 }
 
+function fingerprint(key: string | undefined, time: number | null, title: string, body: string) {
+  return JSON.stringify([key, time, title, body])
+}
+
+function isAlreadyScheduled(pending: ScheduledReminder[], wanted: Reminder[]): boolean {
+  if (pending.length !== wanted.length) return false
+  const scheduled = new Set(
+    pending.map((reminder) =>
+      fingerprint(reminder.key, pendingTime(reminder), reminder.title, reminder.body),
+    ),
+  )
+  return wanted.every(({ key, at, title, body }) =>
+    scheduled.has(fingerprint(key, at.getTime(), title, body)),
+  )
+}
+
 export type RemindersSyncDependencies = {
   animals: Provider<Pick<AnimalsRepository, 'list'>>
   vaccinations: Provider<Pick<VaccinationsRepository, 'listAll'>>
   treatments: Provider<Pick<TreatmentsRepository, 'listAll'>>
-  notifications: Pick<ReminderNotifications, 'checkPermission' | 'rescheduleAll'>
+  notifications: Pick<ReminderNotifications, 'checkPermission' | 'rescheduleAll' | 'listScheduled'>
   t: Translate
   now: () => Date
 }
@@ -86,7 +105,9 @@ export function createRemindersSync({
       ]
       warnOnIdCollisions(reminders)
 
-      await notifications.rescheduleAll(earliestReminders(reminders, MAX_SCHEDULED_REMINDERS))
+      const wanted = earliestReminders(reminders, MAX_SCHEDULED_REMINDERS)
+      if (isAlreadyScheduled(await notifications.listScheduled(), wanted)) return
+      await notifications.rescheduleAll(wanted)
     } catch (cause) {
       console.warn('Rappels non reconstruits :', cause)
     }
@@ -111,6 +132,7 @@ export function installRemindersSync(
   sync: () => Promise<void> = syncAllReminders,
   onPermissionGranted: typeof onNotificationPermissionGranted = onNotificationPermissionGranted,
 ): () => void {
+  provideFullReminderSync(sync)
   void sync()
   const stopResume = onAppResume(() => void sync())
   const stopGranted = onPermissionGranted(() => void sync())
@@ -118,6 +140,7 @@ export function installRemindersSync(
     if (name === 'update') after(() => void sync())
   })
   return () => {
+    provideFullReminderSync(null)
     stopResume()
     stopGranted()
     stopAnimalUpdates()

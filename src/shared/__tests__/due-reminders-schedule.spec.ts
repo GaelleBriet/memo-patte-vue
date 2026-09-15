@@ -6,6 +6,7 @@ import {
   cancelDueReminders,
   enqueueReminderTask,
   MAX_SCHEDULED_REMINDERS,
+  provideFullReminderSync,
   replaceDueReminders,
 } from '../due-reminders-schedule'
 import { createFakeNotifications, type FakeNotifications } from './fake-notifications'
@@ -28,10 +29,18 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.restoreAllMocks()
+  provideFullReminderSync(null)
 })
 
 function seed(...keys: string[]): void {
   for (const key of keys) notifications.pending.set(key, reminder(key))
+}
+
+function seedMany(count: number, at: Date): void {
+  for (let index = 0; index < count; index += 1) {
+    const key = `vaccination:${index}:x:due`
+    notifications.pending.set(key, reminder(key, at))
+  }
 }
 
 describe('replaceDueReminders', () => {
@@ -71,6 +80,36 @@ describe('replaceDueReminders', () => {
 
     expect(notifications.scheduleReminder.mock.calls).toEqual([[before]])
     expect(notifications.pending.size).toBe(MAX_SCHEDULED_REMINDERS)
+  })
+
+  it('ne compte pas dans le plafond les rappels en attente déjà passés', async () => {
+    seedMany(MAX_SCHEDULED_REMINDERS, new Date(2020, 0, 1, 9))
+
+    await replaceDueReminders(notifications, { kind: 'treatment', id: ID }, () => [DUE])
+
+    expect(notifications.scheduleReminder.mock.calls).toEqual([[DUE]])
+  })
+
+  it('demande une synchro complète quand le plafond écarte un rappel plus proche que les programmés', async () => {
+    const fullSync = vi.fn<() => Promise<void>>().mockResolvedValue()
+    provideFullReminderSync(fullSync)
+    seedMany(MAX_SCHEDULED_REMINDERS, new Date(2099, 0, 1, 9))
+
+    await replaceDueReminders(notifications, { kind: 'treatment', id: ID }, () => [DUE])
+
+    expect(notifications.scheduleReminder).not.toHaveBeenCalled()
+    expect(fullSync).toHaveBeenCalledOnce()
+  })
+
+  it('ne demande pas de synchro complète quand le rappel écarté est plus lointain que les programmés', async () => {
+    const fullSync = vi.fn<() => Promise<void>>().mockResolvedValue()
+    provideFullReminderSync(fullSync)
+    seedMany(MAX_SCHEDULED_REMINDERS, new Date(2099, 0, 1, 9))
+    const farther = reminder(`treatment:${ID}:2100-01-01:due`, new Date(2100, 0, 1, 9))
+
+    await replaceDueReminders(notifications, { kind: 'treatment', id: ID }, () => [farther])
+
+    expect(fullSync).not.toHaveBeenCalled()
   })
 
   it('ne lève pas quand le plugin échoue', async () => {

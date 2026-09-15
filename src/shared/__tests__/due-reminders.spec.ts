@@ -5,7 +5,8 @@ import { dueReminderPrefix, dueReminders, type DueReminderTexts } from '../due-r
 
 const ID = '22222222-2222-4222-8222-222222222222'
 const ENTRY = { kind: 'vaccination', id: ID } as const
-const NOW = new Date(2026, 8, 15, 12)
+/** Construite à l'appel : le fuseau n'est forcé qu'une fois les tests lancés. */
+const NOW = () => new Date(2026, 8, 15, 12)
 
 const texts: DueReminderTexts = (moment) => ({ title: `titre ${moment}`, body: `corps ${moment}` })
 
@@ -38,7 +39,7 @@ describe('dueReminderPrefix', () => {
 
 describe('dueReminders', () => {
   it('programme trois jours avant, le jour même et trois jours après, à 9 h heure locale', () => {
-    expect(reminders(['2026-10-15'], NOW)).toEqual([
+    expect(reminders(['2026-10-15'], NOW())).toEqual([
       {
         key: `vaccination:${ID}:2026-10-15:before`,
         title: 'titre before',
@@ -61,7 +62,7 @@ describe('dueReminders', () => {
   })
 
   it('ne programme rien sans échéance', () => {
-    expect(reminders([], NOW)).toEqual([])
+    expect(reminders([], NOW())).toEqual([])
   })
 
   it('saute le rappel de trois jours avant quand l’échéance tombe dans deux jours', () => {
@@ -87,14 +88,45 @@ describe('dueReminders', () => {
     expect(reminders(['2026-09-12'], new Date(2026, 8, 15, 9))).toEqual([])
   })
 
-  it('ne programme que dans les 60 jours à venir', () => {
-    expect(slots(reminders(['2026-11-14'], NOW))).toEqual(['2026-11-14:before', '2026-11-14:due'])
-    expect(slots(reminders(['2026-11-15'], NOW))).toEqual(['2026-11-15:before'])
-    expect(reminders(['2026-11-18'], NOW)).toEqual([])
+  it('programme toujours la première échéance à venir, même à huit mois', () => {
+    expect(slots(reminders(['2027-05-15'], NOW()))).toEqual([
+      '2027-05-15:before',
+      '2027-05-15:due',
+      '2027-05-15:overdue',
+    ])
+  })
+
+  it('ne programme les échéances suivantes que dans les 60 jours à venir', () => {
+    expect(slots(reminders(['2026-10-15', '2026-11-14', '2026-12-14'], NOW()))).toEqual([
+      '2026-10-15:before',
+      '2026-10-15:due',
+      '2026-10-15:overdue',
+      '2026-11-14:before',
+      '2026-11-14:due',
+    ])
+  })
+
+  it('ne borne pas l’échéance à venir quand la précédente attend encore sa relance', () => {
+    expect(slots(reminders(['2026-09-14', '2026-12-14'], NOW()))).toEqual([
+      '2026-09-14:overdue',
+      '2026-12-14:before',
+      '2026-12-14:due',
+      '2026-12-14:overdue',
+    ])
+  })
+
+  it('ignore la relance et le rappel avant qui débordent sur le cycle voisin, tous les deux jours', () => {
+    expect(slots(reminders(['2026-09-20', '2026-09-22', '2026-09-24'], NOW()))).toEqual([
+      '2026-09-20:before',
+      '2026-09-20:due',
+      '2026-09-22:due',
+      '2026-09-24:due',
+      '2026-09-24:overdue',
+    ])
   })
 
   it('programme chaque échéance, triées dans le temps', () => {
-    expect(slots(reminders(['2026-10-08', '2026-10-01'], NOW))).toEqual([
+    expect(slots(reminders(['2026-10-08', '2026-10-01'], NOW()))).toEqual([
       '2026-10-01:before',
       '2026-10-01:due',
       '2026-10-01:overdue',
@@ -105,7 +137,7 @@ describe('dueReminders', () => {
   })
 
   it('ne sonne qu’une fois quand deux rappels tombent à la même heure, le jour même d’abord', () => {
-    expect(slots(reminders(['2026-10-01', '2026-10-04'], NOW))).toEqual([
+    expect(slots(reminders(['2026-10-01', '2026-10-04'], NOW()))).toEqual([
       '2026-10-01:before',
       '2026-10-01:due',
       '2026-10-04:due',
@@ -114,7 +146,7 @@ describe('dueReminders', () => {
   })
 
   it('préfère la relance au rappel de trois jours avant à la même heure', () => {
-    expect(slots(reminders(['2026-10-01', '2026-10-07'], NOW))).toEqual([
+    expect(slots(reminders(['2026-10-01', '2026-10-07'], NOW()))).toEqual([
       '2026-10-01:before',
       '2026-10-01:due',
       '2026-10-01:overdue',

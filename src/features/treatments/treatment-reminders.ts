@@ -1,4 +1,10 @@
-import { isAfter } from 'date-fns'
+import {
+  differenceInCalendarDays,
+  differenceInCalendarMonths,
+  isAfter,
+  parseISO,
+  subDays,
+} from 'date-fns'
 
 import type { Reminder } from '@/core/notifications'
 import type { Animal } from '@/features/animals/animal.schema'
@@ -7,6 +13,7 @@ import {
   DAYS_OVERDUE,
   dueReminderSpan,
   dueReminders,
+  isDueUpcoming,
   reminderWindowEnd,
   type DueReminderTexts,
   type Translate,
@@ -19,19 +26,34 @@ type RemindedTreatment = Pick<
   'id' | 'name' | 'type' | 'frequency' | 'nextDueDate' | 'deletedAt'
 >
 
+/** Un cycle sous-estimé suffit : les cycles déjà passés sont ensuite sautés un à un. */
+function firstUsefulCycle(nextDueDate: string, frequency: TreatmentFrequency, now: Date): number {
+  const since = subDays(now, DAYS_OVERDUE + 1)
+  const start = parseISO(nextDueDate)
+  const elapsed =
+    frequency.unit === 'month'
+      ? differenceInCalendarMonths(since, start)
+      : differenceInCalendarDays(since, start) / (frequency.unit === 'week' ? 7 : 1)
+  return Math.max(0, Math.floor(elapsed / frequency.value) - 1)
+}
+
 /**
- * Échéances dont un rappel tombe dans la fenêtre, en continuant au rythme de la fréquence quand les
- * prises ne sont pas notées. Chaque cycle part de `nextDueDate` : enchaîner les mois ferait dériver
- * un 31 vers le 28.
+ * Échéances à programmer quand les prises ne sont pas notées : la dernière manquée si sa relance est
+ * à venir, la première à venir, puis les suivantes jusqu'à la première hors fenêtre, gardée comme
+ * voisine. Chaque cycle part de `nextDueDate` : enchaîner les mois ferait dériver un 31 vers le 28.
  */
 function occurrenceDates(nextDueDate: string, frequency: TreatmentFrequency, now: Date): string[] {
   const windowEnd = reminderWindowEnd(now)
   const dates: string[] = []
-  for (let cycle = 0; ; cycle += 1) {
+  let upcomingSeen = false
+  for (let cycle = firstUsefulCycle(nextDueDate, frequency, now); ; cycle += 1) {
     const dueDate = addFrequency(nextDueDate, { ...frequency, value: frequency.value * cycle })
     const { first, last } = dueReminderSpan(dueDate)
-    if (isAfter(first, windowEnd)) return dates
-    if (isAfter(last, now)) dates.push(dueDate)
+    if (!isAfter(last, now)) continue
+    dates.push(dueDate)
+    if (!isDueUpcoming(dueDate, now)) continue
+    if (upcomingSeen && isAfter(first, windowEnd)) return dates
+    upcomingSeen = true
   }
 }
 

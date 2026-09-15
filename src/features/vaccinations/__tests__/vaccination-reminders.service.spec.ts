@@ -82,10 +82,14 @@ describe('vaccinationRemindersService', () => {
     expect(notifications.scheduleReminder).not.toHaveBeenCalled()
   })
 
-  it('ne programme rien quand l’échéance tombe au-delà de la fenêtre de 60 jours', async () => {
-    await service.reschedule({ ...CHPPI, dueDate: '2027-10-15' })
+  it('programme les trois rappels d’un vaccin dont l’échéance est dans huit mois', async () => {
+    await service.reschedule({ ...CHPPI, dueDate: '2027-05-15' })
 
-    expect(notifications.scheduleReminder).not.toHaveBeenCalled()
+    expect([...notifications.pending.keys()]).toEqual([
+      `vaccination:${CHPPI.id}:2027-05-15:before`,
+      `vaccination:${CHPPI.id}:2027-05-15:due`,
+      `vaccination:${CHPPI.id}:2027-05-15:overdue`,
+    ])
   })
 
   it('ne programme rien quand l’animal n’existe plus', async () => {

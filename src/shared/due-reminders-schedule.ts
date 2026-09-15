@@ -1,7 +1,7 @@
-import { compareAsc } from 'date-fns'
+import { compareAsc, isAfter } from 'date-fns'
 
 import * as notifications from '@/core/notifications'
-import type { Reminder } from '@/core/notifications'
+import type { Reminder, ScheduledReminder } from '@/core/notifications'
 import { dueReminderPrefix, type DueReminderEntry } from './due-reminders'
 
 export type ReminderNotifications = Pick<
@@ -15,6 +15,12 @@ export const reminderNotifications: ReminderNotifications = notifications
 export const MAX_SCHEDULED_REMINDERS = 400
 
 let queue: Promise<unknown> = Promise.resolve()
+let fullSync: (() => Promise<void>) | null = null
+
+/** Synchro complète appelée quand le plafond empêche de programmer un rappel plus proche. */
+export function provideFullReminderSync(next: (() => Promise<void>) | null): void {
+  fullSync = next
+}
 
 /** File unique : une synchro complète et une écriture ne s'entrelacent jamais chez le plugin. */
 export function enqueueReminderTask<T>(task: () => Promise<T>): Promise<T> {
@@ -33,15 +39,33 @@ function warn(cause: unknown): void {
 
 type CancelPort = Pick<ReminderNotifications, 'cancelReminder' | 'listScheduled'>
 
-/** Renvoie le nombre de rappels encore en attente après l'annulation. */
-async function cancelPending(port: CancelPort, entries: DueReminderEntry[]): Promise<number> {
+/** Le plugin peut rendre l'heure en texte : `new Date` accepte les deux formes. */
+export function pendingTime({ at }: ScheduledReminder): number | null {
+  return at === undefined ? null : new Date(at).getTime()
+}
+
+/** Renvoie les rappels encore en attente et à venir après l'annulation. */
+async function cancelPending(
+  port: CancelPort,
+  entries: DueReminderEntry[],
+): Promise<ScheduledReminder[]> {
   const prefixes = entries.map(dueReminderPrefix)
+  const matches = ({ key }: ScheduledReminder) =>
+    key !== undefined && prefixes.some((prefix) => key.startsWith(prefix))
   const pending = await port.listScheduled()
-  const doomed = pending.flatMap(({ key }) =>
-    key !== undefined && prefixes.some((prefix) => key.startsWith(prefix)) ? [key] : [],
+  for (const { key } of pending.filter(matches))
+    if (key !== undefined) await port.cancelReminder(key)
+  const now = Date.now()
+  return pending.filter(
+    (reminder) => !matches(reminder) && (pendingTime(reminder) ?? now + 1) > now,
   )
-  for (const key of doomed) await port.cancelReminder(key)
-  return pending.length - doomed.length
+}
+
+function pushesOutFartherPending(reminder: Reminder, pending: ScheduledReminder[]): boolean {
+  return pending.some((scheduled) => {
+    const time = pendingTime(scheduled)
+    return time !== null && isAfter(time, reminder.at)
+  })
 }
 
 /**
@@ -58,10 +82,10 @@ export function replaceDueReminders(
       const remaining = await cancelPending(port, [entry])
       if (!(await port.checkPermission())) return
       const reminders = await build()
-      const room = MAX_SCHEDULED_REMINDERS - remaining
-      for (const reminder of earliestReminders(reminders, room)) {
-        await port.scheduleReminder(reminder)
-      }
+      const kept = earliestReminders(reminders, MAX_SCHEDULED_REMINDERS - remaining.length)
+      for (const reminder of kept) await port.scheduleReminder(reminder)
+      const firstLeftOut = earliestReminders(reminders, reminders.length)[kept.length]
+      if (firstLeftOut && pushesOutFartherPending(firstLeftOut, remaining)) void fullSync?.()
     } catch (cause) {
       warn(cause)
     }
