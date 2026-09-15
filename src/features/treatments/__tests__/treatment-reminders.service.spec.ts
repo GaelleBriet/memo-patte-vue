@@ -59,11 +59,18 @@ describe('treatmentRemindersService', () => {
     await service.reschedule(MILBEMAX)
 
     expect(getById).toHaveBeenCalledWith(LUNA.id)
-    expect(notifications.scheduleReminder.mock.calls.map(([reminder]) => reminder.at)).toEqual([
-      new Date(2026, 9, 12, 9),
-      new Date(2026, 9, 15, 9),
-      new Date(2026, 9, 18, 9),
-    ])
+    expect(
+      notifications.scheduleReminders.mock.calls.flatMap(([reminders]) =>
+        reminders.map((reminder) => reminder.at),
+      ),
+    ).toEqual([new Date(2026, 9, 12, 9), new Date(2026, 9, 15, 9), new Date(2026, 9, 18, 9)])
+  })
+
+  it('programme tous les rappels d’un traitement hebdomadaire en un seul appel au plugin', async () => {
+    await service.reschedule({ ...MILBEMAX, frequency: { value: 1, unit: 'week' } })
+
+    expect(notifications.scheduleReminders).toHaveBeenCalledOnce()
+    expect(notifications.scheduleReminders.mock.calls[0]![0].length).toBeGreaterThan(10)
   })
 
   it('ne lit pas la base sans permission', async () => {
@@ -72,7 +79,7 @@ describe('treatmentRemindersService', () => {
     await service.reschedule(MILBEMAX)
 
     expect(getById).not.toHaveBeenCalled()
-    expect(notifications.scheduleReminder).not.toHaveBeenCalled()
+    expect(notifications.scheduleReminders).not.toHaveBeenCalled()
   })
 
   it('retire tous les rappels programmés d’un traitement supprimé, et les siens seulement', async () => {
