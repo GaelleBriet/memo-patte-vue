@@ -5,6 +5,25 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.22](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.21...memo-patte-v0.1.22) (2026-09-15)
+
+
+### ✨ Fonctionnalités
+
+* **animals:** gérer la photo par appui long sur l'avatar du Carnet ([47b96ec](https://github.com/GaelleBriet/memo-patte-vue/commit/47b96eccf0acfbf0c1935812ffc5cb9fd57e2fd2))
+* **animals:** photo de profil via le Photo Picker Android ([9faf42f](https://github.com/GaelleBriet/memo-patte-vue/commit/9faf42fadfb9e1b59122be8c33fc06dfa0293b22))
+* **animals:** photo de profil via le Photo Picker Android ([12a405c](https://github.com/GaelleBriet/memo-patte-vue/commit/12a405cc992bdffb440302256b1dd9d68ac0c6b1)), closes [#101](https://github.com/GaelleBriet/memo-patte-vue/issues/101)
+
+
+### 🐛 Corrections
+
+* **animals:** forcer le sélecteur de photo en sélection unique ([6af9dc2](https://github.com/GaelleBriet/memo-patte-vue/commit/6af9dc24ca76d40a02cfad9094b72e04a522181c))
+* **animals:** libellé « Gérer la photo de {name} » sur l'avatar du Carnet ([fe9ba5c](https://github.com/GaelleBriet/memo-patte-vue/commit/fe9ba5c1cf9cfb03f512788529f70a24348ffa6a))
+* **animals:** ouvrir la feuille photo au clavier et lui rendre le focus de l'avatar ([9416831](https://github.com/GaelleBriet/memo-patte-vue/commit/9416831b33b5638da0a1d12b1320eb9eeb900d14))
+* **animals:** photo absente après restauration, double tap et copie en cache ([d8530fb](https://github.com/GaelleBriet/memo-patte-vue/commit/d8530fb5d8e256fa12947eccaf5f56e8ced06283))
+* **i18n:** garder le texte vide autorisé, comme alt="" décoratif ([9d3897a](https://github.com/GaelleBriet/memo-patte-vue/commit/9d3897a0f80384a684cd8a4a9029513a21fa03af))
+* **i18n:** tolérer chiffres et ponctuation seuls, fermer les motifs de clés dynamiques ([d5f6d13](https://github.com/GaelleBriet/memo-patte-vue/commit/d5f6d13c277ca4feb813dae09f2b2db95f60cfd7))
+
 ## [0.1.21](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.20...memo-patte-v0.1.21) (2026-09-15)
 
 
