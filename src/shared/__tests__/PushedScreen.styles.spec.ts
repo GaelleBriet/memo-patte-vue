@@ -13,7 +13,7 @@ function cssDeLEcran(): string {
 
   if (!bloc) throw new Error('bloc <style lang="scss"> introuvable dans PushedScreen.vue')
 
-  const scss = bloc.replace("@use '@/styles/tokens' as tokens;", "@use 'tokens' as tokens;")
+  const scss = bloc.replaceAll("@use '@/styles/", "@use '")
 
   return compileString(scss, { loadPaths: [DOSSIER_STYLES] }).css
 }
@@ -128,7 +128,7 @@ describe('Écrans poussés — la hauteur reste à PushedScreen', () => {
       'utf8',
     )
     const bloc = /<style[^>]*lang="scss">([\s\S]*?)<\/style>/.exec(sfc)?.[1] ?? ''
-    const scss = bloc.replace("@use '@/styles/tokens' as tokens;", "@use 'tokens' as tokens;")
+    const scss = bloc.replaceAll("@use '@/styles/", "@use '")
     const css = compileString(scss, { loadPaths: [DOSSIER_STYLES] }).css
 
     expect(declaration(css, '.weight-history', 'height')).toBeUndefined()

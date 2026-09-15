@@ -178,6 +178,7 @@ defineExpose({ pickFile })
 
 <style lang="scss">
 @use '@/styles/tokens' as tokens;
+@use '@/styles/tap-target' as tap;
 
 .import-sheet__file-input,
 .import-sheet__group-label {
@@ -281,5 +282,7 @@ defineExpose({ pickFile })
   font-weight: 700;
   letter-spacing: normal;
   text-transform: none;
+
+  @include tap.tap-target;
 }
 </style>

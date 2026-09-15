@@ -71,6 +71,7 @@ const { t } = useI18n()
 
 <style scoped lang="scss">
 @use '@/styles/tokens' as tokens;
+@use '@/styles/tap-target' as tap;
 
 .form-screen__fields {
   display: flex;
@@ -92,6 +93,8 @@ const { t } = useI18n()
 .form-screen__cancel {
   flex: 0 0 auto;
   letter-spacing: normal;
+
+  @include tap.tap-target;
 }
 
 .form-screen__submit {

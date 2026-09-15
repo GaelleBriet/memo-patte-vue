@@ -136,6 +136,15 @@ $color-photo-dashed: #a2bdc0;
   font-weight: 600;
   letter-spacing: 0;
   text-transform: none;
+
+  // Vers le bas seulement : au-dessus, la légende appartient au bouton photo.
+  &::before {
+    position: absolute;
+    top: 0;
+    inset-inline: 0;
+    height: tokens.$size-tap-target;
+    content: '';
+  }
 }
 
 .animal-photo__error {

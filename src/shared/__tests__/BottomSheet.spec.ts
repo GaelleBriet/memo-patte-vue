@@ -192,6 +192,32 @@ describe('BottomSheet — patron', () => {
   })
 })
 
+describe('BottomSheet — ordre de lecture', () => {
+  it('fait lire le titre et le contenu avant la poignée, dessinée en haut', async () => {
+    await monter()
+
+    const lus = [...element('.bottom-sheet__panel').children].map((enfant) => enfant.className)
+    expect(lus.indexOf('bottom-sheet__header')).toBeLessThan(lus.indexOf('contenu'))
+    expect(lus.at(-1)).toBe('bottom-sheet__handle')
+  })
+
+  it('n’annonce pas deux « Fermer » quand la croix est affichée', async () => {
+    await monter({ showClose: true })
+
+    const poignee = element('.bottom-sheet__handle')
+    expect(poignee.getAttribute('aria-hidden')).toBe('true')
+    expect(poignee.getAttribute('tabindex')).toBe('-1')
+  })
+
+  it('garde la poignée annoncée quand elle est le seul moyen de fermer', async () => {
+    await monter()
+
+    const poignee = element('.bottom-sheet__handle')
+    expect(poignee.getAttribute('aria-hidden')).toBeNull()
+    expect(poignee.getAttribute('tabindex')).toBeNull()
+  })
+})
+
 describe('BottomSheet — retour du focus', () => {
   it('rend le focus au déclencheur d’une feuille montée déjà ouverte', async () => {
     const declencheur = document.createElement('button')

@@ -94,6 +94,7 @@ onScopeDispose(onBackButton(later))
 
 <style scoped lang="scss">
 @use '@/styles/tokens' as tokens;
+@use '@/styles/tap-target' as tap;
 
 .notification-priming {
   display: flex;
@@ -187,5 +188,7 @@ onScopeDispose(onBackButton(later))
   font-size: 15px;
   font-weight: 700;
   letter-spacing: normal;
+
+  @include tap.tap-target;
 }
 </style>
