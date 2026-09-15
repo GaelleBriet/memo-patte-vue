@@ -318,7 +318,8 @@
     "welcome": {
       "title": "Bienvenue sur MémoPatte",
       "text": "Le carnet de santé de tes animaux, toujours à jour.",
-      "create": "Créer mon premier animal"
+      "create": "Créer mon premier animal",
+      "import": "Importer un export MémoPatte"
     }
   },
   "form": {

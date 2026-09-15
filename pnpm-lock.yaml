@@ -44,6 +44,9 @@ importers:
       '@material-symbols/svg-400':
         specifier: ^0.47.2
         version: 0.47.2
+      '@revenuecat/purchases-capacitor':
+        specifier: ^13.5.1
+        version: 13.5.1(@capacitor/core@8.5.1)
       '@supabase/supabase-js':
         specifier: ^2.115.0
         version: 2.115.0
@@ -994,6 +997,14 @@ packages:
 
   '@prettier/plugin-xml@2.2.0':
     resolution: {integrity: sha512-UWRmygBsyj4bVXvDiqSccwT1kmsorcwQwaIy30yVh8T+Gspx4OlC0shX1y+ZuwXZvgnafmpRYKks0bAu9urJew==}
+
+  '@revenuecat/purchases-capacitor@13.5.1':
+    resolution: {integrity: sha512-df3T+l2bgM//qCWai/reEz/ZitKnuClaUD0E/5Fy63NrH4EOBhRKCmcqsKjR8LgnDUSp2WqV99qin13ytXhAIA==}
+    peerDependencies:
+      '@capacitor/core': '>=8.0.0'
+
+  '@revenuecat/purchases-typescript-internal-esm@18.36.1':
+    resolution: {integrity: sha512-EYpNfQenkZLrChjHpPDWXiV9OHY3Pc5ZYfjeN+BCxZheMJk3llyDLQWJuP6uxLd2ZWo0gshvZ5hIZfhBqHaTqA==}
 
   '@rolldown/binding-android-arm-eabi@1.2.8':
     resolution: {integrity: sha512-tN5aztYkKCte4i5SIrrz5yK/HMjEuCqCSCJa418jOV8tZ1cBY3YF2otxB1ktPxzsLA1BeTqwapK0bfjxNvHJVw==}
@@ -4700,6 +4711,13 @@ snapshots:
     dependencies:
       '@xml-tools/parser': 1.0.11
       prettier: 3.9.5
+
+  '@revenuecat/purchases-capacitor@13.5.1(@capacitor/core@8.5.1)':
+    dependencies:
+      '@capacitor/core': 8.5.1
+      '@revenuecat/purchases-typescript-internal-esm': 18.36.1
+
+  '@revenuecat/purchases-typescript-internal-esm@18.36.1': {}
 
   '@rolldown/binding-android-arm-eabi@1.2.8':
     optional: true

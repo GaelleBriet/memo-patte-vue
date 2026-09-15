@@ -318,7 +318,8 @@
     "welcome": {
       "title": "Welcome to MémoPatte",
       "text": "Your pets’ health record, always up to date.",
-      "create": "Add my first pet"
+      "create": "Add my first pet",
+      "import": "Import a MémoPatte export"
     }
   },
   "form": {
