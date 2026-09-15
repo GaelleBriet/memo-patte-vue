@@ -838,3 +838,13 @@ l'entité racine et « on ne cloisonne pas trop » ; la règle décrit le code
 existant sans déplacement de fichier. — Alternative écartée : déplacer les
 écrans composites et services dans `src/app/`, plus de fichiers bougés pour
 la même dépendance réelle.
+
+2026-09-15 — **La SQLite du navigateur ne part plus dans l'APK** (#156) :
+l'import de `jeep-sqlite` est gardé par `import.meta.env.DEV`, et un plugin
+Vite de build retire `sql-wasm.wasm` de `dist/` ; `pnpm test:build` échoue
+s'ils reviennent. `pnpm preview` n'a donc plus de base. — Raison : ~960 Ko
+jamais chargés sur Android, et une seule condition compile le chunk hors du
+bundle sans toucher au build natif. — Alternative écartée : sortir le wasm de
+`public/` pour le servir par un middleware Vite de dev, et le chunk par
+`build.rollupOptions.external` ou un `define` de plateforme : un déplacement
+de fichier et plus de configuration pour le même résultat.

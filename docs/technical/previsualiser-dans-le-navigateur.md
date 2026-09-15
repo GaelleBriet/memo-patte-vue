@@ -9,12 +9,16 @@ un appareil, ni Gaelle ni un agent n'ayant à lancer un émulateur pour vérifie
 ```bash
 pnpm dev            # http://127.0.0.1:5173, base vide
 pnpm dev:data       # idem, avec le carnet de démo Milo + Luna
-pnpm build && pnpm preview
 ```
 
 Rien d'autre à faire : `pnpm install` copie `sql-wasm.wasm` dans `public/assets/` (script `postinstall`),
 et `src/core/db/web-sqlite.ts` charge le composant `jeep-sqlite` au premier accès à la base, seulement
-quand `Capacitor.getPlatform()` vaut `web`.
+quand `Capacitor.getPlatform()` vaut `web` **et** que l'app tourne sous le serveur de dev.
+
+La prévisualisation n'existe que sous `pnpm dev` / `pnpm dev:data` : `pnpm preview` sert le build de
+production, qui n'embarque pas la SQLite du navigateur (voir « Hors du build de production » plus bas). Il
+affiche les écrans, mais tout accès à la base y rejette avec « SQLite web indisponible hors du serveur de
+dev ».
 
 ## Les fixtures : un point de départ commun au navigateur et au téléphone
 
@@ -48,8 +52,8 @@ est commun, c'est le **jeu de données de départ**, choisi sur le serveur Vite 
   sa propre base
 - Les dates du carnet de démo sont **relatives à aujourd'hui** (CHPPi en retard de 45 jours, Rage à jour…) :
   ce sont les statuts de la maquette qui sont reproduits, pas ses libellés au mot près
-- `pnpm preview` sert un build de production : `import.meta.env.DEV` y est faux, donc **pas de fixtures**.
-  C'est voulu, et `pnpm test:build` (lancé par la CI après le build) lit le `dist/` produit et échoue si une
+- `pnpm preview` sert un build de production : `import.meta.env.DEV` y est faux, donc **pas de fixtures**
+  (ni de base, voir plus haut). C'est voulu, et `pnpm test:build` (lancé par la CI après le build) lit le `dist/` produit et échoue si une
   trace des fixtures y est partie : `pnpm build-only && pnpm test:build`. Il cherche des marqueurs techniques
   (un chunk `fixtures`/`demo-carnet`, `memo-patte:fixtures-token`, et `DEMO_CARNET_MARKER` =
   `memo-patte:demo-carnet`, lu à l'exécution par les fixtures), jamais les noms de démo : un placeholder
@@ -72,17 +76,17 @@ Ces appels échouent avec « Not implemented on web » : c'est attendu, pas un b
 
 ## La base IndexedDB
 
-- Elle est propre au navigateur et à l'origine (`127.0.0.1:5173`) : Chrome et Firefox n'ont pas la même,
-  et `pnpm preview` (port 4173) a la sienne. Rien n'est partagé avec l'appareil Android
+- Elle est propre au navigateur et à l'origine (`127.0.0.1:5173`) : Chrome et Firefox n'ont pas la même.
+  Rien n'est partagé avec l'appareil Android
 - Pour repartir de zéro : relancer `pnpm dev` ou `pnpm dev:data` (voir les fixtures ci-dessus) ; à la main,
   DevTools → Application → IndexedDB → `jeepSqliteStore` → supprimer, puis recharger
 - Pour inspecter les tables : l'extension Chrome « Jeep SQLite Browser » (liée dans le README du plugin)
 
 ## Comment c'est branché
 
-- `src/core/db/web-sqlite.ts` : sur `web`, import dynamique de `jeep-sqlite/loader`, `<jeep-sqlite autoSave>`
-  ajouté au `body`, puis `CapacitorSQLite.initWebStore()`. Sur Android la fonction rend la main tout de suite
-  et le chargeur n'est jamais importé
+- `src/core/db/web-sqlite.ts` : sur `web` et sous le serveur de dev, import dynamique de `jeep-sqlite/loader`,
+  `<jeep-sqlite autoSave>` ajouté au `body`, puis `CapacitorSQLite.initWebStore()`. Sur Android la fonction
+  rend la main tout de suite et le chargeur n'est jamais importé
 - Garde-fou : si le composant n'est pas enregistré après le chargement, `getDb()` rejette avec
   « SQLite web indisponible : jeep-sqlite non chargé » au lieu d'attendre indéfiniment (le plugin, lui,
   fait `await customElements.whenDefined('jeep-sqlite')` sans délai)
@@ -94,3 +98,23 @@ Ces appels échouent avec « Not implemented on web » : c'est attendu, pas un b
   devDependency `sql.js` des tests, elle, reste libre de monter de version
 - À la montée de version de `jeep-sqlite` : vérifier la version de `sql.js` qu'il embarque et ajuster
   l'override, puis relancer `pnpm install`
+
+## Hors du build de production
+
+`jeep-sqlite` (chunk de ~292 Ko, plus son chargeur de ~16 Ko) et `sql-wasm.wasm` (~652 Ko) ne servent qu'au
+navigateur. Sans précaution, `vite build` les écrit dans `dist/` et `cap sync` les copie dans l'APK, où ils ne
+sont jamais chargés (#156). Deux mécanismes les en sortent :
+
+- **Le chunk** : l'import de `jeep-sqlite/loader` est gardé par `import.meta.env.DEV`. En production, Vite
+  remplace la condition par `false` et l'import disparaît du bundle ; sur le web, `prepareWebSqlite()` rejette
+  alors explicitement au lieu de laisser le plugin attendre `jeep-sqlite` indéfiniment
+- **Le wasm** : Vite copie tout `public/` dans `dist/` sans exclusion possible. Le plugin
+  `memo-patte:drop-web-sqlite-wasm` de `vite.config.ts`, actif au build seulement, supprime
+  `dist/assets/sql-wasm.wasm` une fois le build écrit. Le serveur de dev, lui, le sert toujours depuis
+  `public/assets/`
+
+`pnpm test:build` (lancé par la CI après le build) échoue si l'un des deux revient : fichier `*.wasm` ou nom
+contenant `jeep-sqlite` dans `dist/`, ou chaîne `sql-wasm.wasm` dans un fichier JS. Il ne cherche pas
+`jeep-sqlite` dans le contenu : le plugin SQLite web, lui légitime dans le build, cite ce nom.
+
+Mesure sur l'APK debug (build Gradle propre) : APK −453 Ko (fichiers retirés : ~960 Ko non compressés).
