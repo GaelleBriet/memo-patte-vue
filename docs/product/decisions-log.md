@@ -903,3 +903,18 @@ offre qui ne vend que le cloud. — Alternatives écartées : 1,49 / 14,99 / 39,
 seulement 16 % moins cher que le mensuel, haut de fourchette pour une offre qui
 ne vend que le cloud face à des concurrents francophones gratuits) ;
 0,99 / 7,99 / 24,99.
+
+2026-09-15 — **Passe accessibilité (#51) : textes secondaires portés au contraste
+AA, bordures de contrôle assombries sans aller jusqu'à 3:1, aucun texte sous
+12 px, focus sur le premier champ en erreur.** `$color-hint` et `$color-text-meta`
+passent à `#736E67` (4,58:1 sur le fond), `$color-placeholder` à `#77716A`
+(4,71:1). Les bordures gardent leur teinte chaude, assombries jusqu'à 2:1 environ :
+champ `#B6ADA1`, sélecteur à boutons `#B4ADA3`, pastille radio `#B9B4AE`, avec un
+plancher de 2:1 testé. Barre du bas, stats du Carnet, « Poids actuel », mois et
+valeurs de la courbe passent à 12 px. Après un envoi refusé, le focus va au
+premier champ en erreur, qui lit son message. — Raison : décision de Gaelle ;
+un texte lisible par tous est un minimum avant publication, mais des bordures à
+3:1 durciraient le rendu doux des maquettes alors que le label et la surface du
+champ l'identifient déjà. — Alternatives écartées : bordures à 3:1 (`#908A84`,
+rendu trop marqué) ; garder les tailles de maquette sous 12 px ; laisser le focus
+sur le bouton d'envoi (rien n'annonce l'erreur au lecteur d'écran).

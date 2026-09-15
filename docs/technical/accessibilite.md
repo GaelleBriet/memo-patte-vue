@@ -1,7 +1,8 @@
 # Accessibilité et responsive (ticket #51)
 
 Passe faite avant publication, le 2026-09-15, sur le carnet de démo (`pnpm dev:data`), plus un
-animal sans rappel pour les états « Tout est à jour » et sections vides. Mesures dans Chromium headless (émulation mobile), pas encore sur appareil : voir « Reste à vérifier ».
+animal sans rappel pour les états « Tout est à jour » et sections vides.
+Mesures dans Chromium headless (émulation mobile), pas encore sur appareil : voir « Reste à vérifier ».
 
 Référentiel : WCAG 2.2 niveau AA pour les contrastes (4,5:1 texte courant, 3:1 texte ≥ 24 px ou
 ≥ 18,66 px gras, 3:1 composants d'interface et icônes porteuses de sens) ; zone de tap de 48 dp
@@ -16,17 +17,30 @@ puis recoupés avec les tokens. Le texte principal hérite de l'opacité « haut
 Les paires conformes sont verrouillées par `src/core/theme/__tests__/contrast.spec.ts`, qui lit
 `_tokens.scss` et le thème Vuetify : une couleur modifiée qui passe sous le seuil fait échouer le test.
 
-### Paires non conformes (couleur à trancher par Gaelle)
+### Corrigé le 2026-09-15 (décision de Gaelle, voir `docs/product/decisions-log.md`)
 
-| Élément | Texte / fond | Taille | Ratio | Seuil | Proposition | Ratio proposé |
-| --- | --- | --- | --- | --- | --- | --- |
-| Sous-titre des formulaires (« Pour Milo »), « Optionnel », légende « Ajouter une photo » — `$color-hint` | `#857F79` / `#F9F3E9` | 12,5 px | 3,58 | 4,5 | `#736E67` (déjà `$color-delta-flat`, maquette poids) | 4,58 |
-| Compteur de section (« 5 rappels »), libellés des stats du Carnet, « Poids actuel » — `$color-text-meta` | `#79736D` / `#F9F3E9` | 11,5–13 px | 4,24 | 4,5 | `#736E67` | 4,58 |
-| Placeholder d'un champ — `$color-placeholder` | `#97918A` / `#FEFCF9` | 15 px | 3,05 | 4,5 | `#77716A` (reste plus clair que la saisie) | 4,71 |
-| Bordure d'un champ — `$color-field-border` (seule limite visible du champ, crème sur crème) | `#DBD7D1` / `#F9F3E9` | UI | 1,30 | 3 | `#908A84` | 3,09 |
-| Bordure du sélecteur à boutons — `$color-segmented-border` | `#CECAC3` / `#F9F3E9` | UI | 1,48 | 3 | `#908A84` | 3,09 |
-| Pastille radio non cochée (export) — `$color-radio-border` | `#C1BDB7` / `#FEFCF9` | UI | 1,83 | 3 | `#948E88` | 3,16 |
-| Barre d'urgence « Aujourd'hui » — `today` | `#D38D38` / `#FEFCF9` | UI | 2,69 | 3 | aucune : le badge texte porte l'information, la barre est redondante | — |
+| Élément | Token | Avant | Après |
+| --- | --- | --- | --- |
+| Sous-titre des formulaires (« Pour Milo »), « Optionnel », légende « Ajouter une photo » | `$color-hint` | `#857F79` sur `#F9F3E9` : 3,58 | `#736E67` : 4,58 |
+| Compteur de section, libellés des stats du Carnet, « Poids actuel » | `$color-text-meta` | `#79736D` sur `#F9F3E9` : 4,24 | `#736E67` : 4,58 |
+| Placeholder d'un champ | `$color-placeholder` | `#97918A` sur `#FEFCF9` : 3,05 | `#77716A` : 4,71 |
+
+### Bordures de contrôle, volontairement sous 3:1
+
+Assombries « avec douceur » : même teinte, luminosité baissée jusqu'à 2:1 environ sur leur fond réel,
+sans aller jusqu'aux 3:1 de WCAG 1.4.11 pour garder le rendu doux des maquettes. Le test impose un
+plancher de 2:1 pour qu'elles ne repâlissent pas.
+
+| Élément | Token | Fond | Avant | Après |
+| --- | --- | --- | --- | --- |
+| Bordure d'un champ | `$color-field-border` | `#F9F3E9` | `#DBD7D1` : 1,30 | `#B6ADA1` : 2,01 |
+| Bordure du sélecteur à boutons | `$color-segmented-border` | `#F9F3E9` | `#CECAC3` : 1,48 | `#B4ADA3` : 2,01 |
+| Pastille radio non cochée (export) | `$color-radio-border` | `#FEFCF9` | `#C1BDB7` : 1,83 | `#B9B4AE` : 2,01 |
+
+### Non conforme, laissé tel quel
+
+Barre d'urgence « Aujourd'hui » (`today`, `#D38D38` sur `#FEFCF9`) : 2,69 pour 3 attendus. Le badge texte
+porte l'information, la barre est redondante.
 
 Exemptés (WCAG 1.4.3 ne s'applique pas aux contrôles inactifs), listés pour mémoire :
 
@@ -56,12 +70,14 @@ photo (`#A2BDC0` 1,80, `#90ABAD` 2,38 ; le bouton est nommé par sa légende), p
 | Badge « À jour » | `#2F5437` / `#DFF3E2` | 7,39 |
 | Badge de fréquence, « Pas de rappel » | `#5C5751` / `#F2F0EC` | 6,28 |
 | Coche « Tout est à jour » (icône) | `#2B6339` / `#D8EFDC` | 5,87 |
-| Stat « en retard » (11,5 px gras) / fond | `#C0453D` / `#F9F3E9` | 4,57 |
+| Stat « en retard » (12 px gras) / fond | `#C0453D` / `#F9F3E9` | 4,57 |
 | Prochaine dose en retard / carte | `#C0453D` / `#FEFCF9` | 4,93 |
 | Prochaine dose aujourd'hui / carte | `#834200` / `#FEFCF9` | 7,47 |
 | Barres d'urgence retard, bientôt / carte | `#C0453D`, `#5C8664` / `#FEFCF9` | 4,93 / 4,06 |
 | Texte secondaire / fond, carte, carte cochée, bandeau | `#68625C` / `#F9F3E9`, `#FEFCF9`, `#DCF0F1`, `#F2F0EC` | 5,45 / 5,88 / 5,09 / 5,29 |
-| Texte méta sur carte (prochaine dose, mois de la courbe) | `#79736D` / `#FEFCF9` | 4,57 |
+| Texte méta sur carte et sur le fond (prochaine dose, mois, compteur, stats) | `#736E67` / `#FEFCF9`, `#F9F3E9` | 4,94 / 4,58 |
+| Sous-titre hint, « Optionnel » / fond | `#736E67` / `#F9F3E9` | 4,58 |
+| Placeholder / champ | `#77716A` / `#FEFCF9` | 4,71 |
 | Label de champ | `#5C5751` / `#F9F3E9` | 6,48 |
 | Suffixe « kg », « Tous les » / champ, fond | `#413933` / `#FEFCF9`, `#F9F3E9` | 11,04 / 10,24 |
 | Segment non coché | `#3E3630` / `#FEFCF9` | 11,55 |
@@ -106,15 +122,17 @@ Reste sous 48 px : options du sélecteur à boutons (espèce, type, unité), 46 
 
 ## 3. Tailles de police
 
-Textes sous 12 px, non modifiés (changement visible, tailles de maquette) — à trancher :
+Passés à 12 px le 2026-09-15 (décision de Gaelle) :
 
-| Texte | Taille | Proposition |
+| Texte | Avant | Après |
 | --- | --- | --- |
 | Libellés de la barre du bas (« Accueil », « Carnet », défaut Vuetify 0,6875rem) | 11 px | 12 px |
-| Libellés et sous-libellés des stats du Carnet (maquette carnet.md) | 11,5 px | 12 px |
-| « Poids actuel » (maquette poids.md) | 11,5 px | 12 px |
+| Libellés et sous-libellés des stats du Carnet | 11,5 px | 12 px |
+| « Poids actuel » | 11,5 px | 12 px |
 | Mois sous la courbe | 11,5 px | 12 px |
-| Valeurs au-dessus de la courbe du suivi de poids (SVG mis à l'échelle) | 11,3 px rendus | 12 px rendus |
+| Valeurs au-dessus de la courbe (SVG mis à l'échelle de sa carte) | 11 unités, 9,6 à 12,1 px rendus selon la largeur | 12 px rendus à toute largeur |
+
+La taille des valeurs est recalculée par `WeightSparkline` depuis la largeur rendue du SVG.
 
 Police système agrandie, simulée à 130 % (toutes les tailles de police calculées multipliées, comme le
 zoom texte de la WebView Android) à 360 × 640 et 412 × 915. Corrigé, sans effet à 100 % :
