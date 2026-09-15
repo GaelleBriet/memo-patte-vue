@@ -120,6 +120,24 @@ describe('lecture des tokens SCSS', () => {
     expect(tokens['color-delta-up']).toBe(tokens['color-badge-up-to-date-text'])
   })
 
+  it('refuse un alias vers un token absent ou dans un format non lu', () => {
+    expect(() => scssColorTokens('$a: $b;\n$b: rgba(0 0 0 / 50%);')).toThrow(
+      'couleur inconnue : $b',
+    )
+    expect(() => scssColorTokens('$a: $absent;')).toThrow('couleur inconnue : $absent')
+  })
+
+  it('lit aussi un token hexadécimal court', () => {
+    expect(scssColorTokens('$a: #fff;\n$b: $a;')).toEqual({ a: '#FFF', b: '#FFF' })
+  })
+
+  it('refuse de calculer un contraste sur une couleur non reconnue', () => {
+    expect(() => contrastRatio('rgba(0, 0, 0, 0.5)', '#FFFFFF')).toThrow(
+      'couleur inconnue : rgba(0, 0, 0, 0.5)',
+    )
+    expect(() => contrastRatio('#FFFFFF', '')).toThrow('couleur inconnue : ')
+  })
+
   it('calcule le rapport de contraste WCAG', () => {
     expect(contrastRatio('#000', '#FFFFFF')).toBeCloseTo(21, 5)
     expect(contrastRatio('#857F79', '#F9F3E9')).toBeCloseTo(3.58, 2)
