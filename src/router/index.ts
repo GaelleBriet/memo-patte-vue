@@ -54,6 +54,15 @@ const router = createRouter({
       component: () => import('@/features/treatments/TreatmentFormView.vue'),
       props: true,
     },
+    {
+      path: '/notifications/priming',
+      name: 'notifications-priming',
+      component: () => import('@/shared/NotificationPrimingView.vue'),
+      props: (route) => ({
+        animalName: typeof route.query.animalName === 'string' ? route.query.animalName : '',
+        kind: route.query.kind === 'treatment' ? 'treatment' : 'vaccination',
+      }),
+    },
   ],
 })
 

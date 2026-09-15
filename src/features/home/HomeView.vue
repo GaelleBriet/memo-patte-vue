@@ -4,6 +4,8 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
 import { useForegroundRefresh } from '@/core/app-lifecycle/use-foreground-refresh'
+import { openNotificationSettings } from '@/core/notifications/permission'
+import { useNotificationPermission } from '@/core/notifications/use-notification-permission'
 import { usePhotoUrls } from '@/core/photos/use-photo-urls'
 import illustration from '@/assets/brand-illustration.png'
 import { useAnimalsStore } from '@/features/animals/animals.store'
@@ -23,6 +25,8 @@ const animals = useAnimalsStore()
 const home = useHomeStore()
 
 const { today } = useForegroundRefresh(load)
+const { status: notificationPermission } = useNotificationPermission()
+const areRemindersOff = computed(() => notificationPermission.value === 'disabled')
 
 const hasError = computed(() => animals.error !== null || home.error !== null)
 const isReady = computed(() => animals.hasLoaded && home.hasLoaded && !hasError.value)
@@ -141,6 +145,17 @@ function openCarnet(): void {
         mode="filter"
         @add="createAnimal"
       />
+
+      <div v-if="areRemindersOff" class="home-reminders-off">
+        <v-icon class="home-reminders-off__icon" icon="ms:notifications_off" size="19" />
+        <div class="home-reminders-off__text">
+          <p class="home-reminders-off__title">{{ t('notifications.disabled.title') }}</p>
+          <button type="button" class="home-reminders-off__link" @click="openNotificationSettings">
+            <span>{{ t('notifications.disabled.openSettings') }}</span>
+            <v-icon icon="ms:chevron_right" size="16" />
+          </button>
+        </div>
+      </div>
 
       <SectionCard class="home-todo" :title="t('home.todo.title')" :counter="counter">
         <template #intro>
@@ -263,6 +278,62 @@ function openCarnet(): void {
 
 .home-todo {
   margin-top: 26px;
+}
+
+.home-reminders-off {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 20px 0;
+  padding: 9px 16px;
+  border: 1px solid tokens.$color-reminders-off-border;
+  border-radius: 14px;
+  background: tokens.$color-reminders-off-surface;
+}
+
+.home-reminders-off__icon {
+  flex: 0 0 auto;
+  color: tokens.$color-text-secondary;
+}
+
+.home-reminders-off__title {
+  margin: 0;
+  color: tokens.$color-reminders-off-text;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.home-reminders-off__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-top: 3px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: rgb(var(--v-theme-primary));
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+
+  // Toute la surface du bandeau répond au tap, pas seulement la ligne de lien.
+  &::after {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    content: '';
+  }
+
+  &:focus-visible {
+    outline: none;
+    color: rgb(var(--v-theme-primary-darken-1));
+  }
+}
+
+.home-reminders-off + .home-todo {
+  margin-top: 22px;
 }
 
 .home-overdue-banner {

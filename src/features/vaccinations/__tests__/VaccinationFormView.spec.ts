@@ -13,6 +13,11 @@ import i18n from '@/core/i18n'
 import router from '@/router'
 import vuetify from '@/core/theme/vuetify'
 import { todayIsoDate } from '@/core/app-lifecycle/today-iso-date'
+import { shouldShowPriming } from '@/core/notifications/permission'
+
+vi.mock('@/core/notifications/permission', () => ({
+  shouldShowPriming: vi.fn<() => Promise<boolean>>(async () => false),
+}))
 
 // Le vrai routeur ne sert qu'aux tests de routes (`resolve`) : naviguer avec lui chargerait
 // le graphe du Carnet et SQLite à chaque test.
@@ -292,6 +297,58 @@ describe('VaccinationFormView — création', () => {
 
     expect(create).not.toHaveBeenCalled()
     expect(push).toHaveBeenCalledWith({ name: 'animals' })
+  })
+})
+
+describe('VaccinationFormView — écran d’explication des notifications', () => {
+  it('y passe après un vaccin avec échéance quand la permission n’a jamais été demandée', async () => {
+    vi.mocked(shouldShowPriming).mockResolvedValueOnce(true)
+    const wrapper = await monterCreation()
+    await remplirMinimum(wrapper)
+    await champ(wrapper, 'vaccination-due-date').setValue('2027-03-12')
+
+    await soumettre(wrapper)
+
+    expect(push).toHaveBeenCalledExactlyOnceWith({
+      name: 'notifications-priming',
+      query: { animalName: 'Milo', kind: 'vaccination' },
+    })
+  })
+
+  it('y passe aussi après la modification d’un vaccin avec échéance', async () => {
+    vi.mocked(shouldShowPriming).mockResolvedValueOnce(true)
+    const wrapper = await monterEdition()
+
+    await soumettre(wrapper)
+
+    expect(push).toHaveBeenCalledExactlyOnceWith({
+      name: 'notifications-priming',
+      query: { animalName: 'Milo', kind: 'vaccination' },
+    })
+  })
+
+  it('revient au Carnet sans rien vérifier pour un vaccin sans échéance', async () => {
+    vi.mocked(shouldShowPriming).mockClear()
+    const wrapper = await monterCreation()
+    await remplirMinimum(wrapper)
+
+    await soumettre(wrapper)
+
+    expect(shouldShowPriming).not.toHaveBeenCalled()
+    expect(push).toHaveBeenCalledExactlyOnceWith({ name: 'animals' })
+  })
+
+  it('n’y passe pas quand l’enregistrement échoue', async () => {
+    vi.mocked(shouldShowPriming).mockClear()
+    create.mockRejectedValueOnce(new Error('disque plein'))
+    const wrapper = await monterCreation()
+    await remplirMinimum(wrapper)
+    await champ(wrapper, 'vaccination-due-date').setValue('2027-03-12')
+
+    await soumettre(wrapper)
+
+    expect(shouldShowPriming).not.toHaveBeenCalled()
+    expect(push).not.toHaveBeenCalled()
   })
 })
 
