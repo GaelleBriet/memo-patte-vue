@@ -9,11 +9,18 @@ import {
   provideAnimalsRepository,
   useAnimalsStore,
 } from '../animals.store'
+import { deletePhoto, savePhoto } from '@/core/photos/photo-storage'
+
+vi.mock('@/core/photos/photo-storage', () => ({
+  savePhoto: vi.fn<(base64: string) => Promise<string>>(async () => 'milo.jpg'),
+  deletePhoto: vi.fn<(name: string) => Promise<void>>(async () => {}),
+}))
 
 let repository: FakeAnimalsRepository
 let deletion: { remove: Mock<AnimalDeletionService['remove']> }
 
 beforeEach(() => {
+  vi.clearAllMocks()
   setActivePinia(createPinia())
   repository = createFakeRepository()
   deletion = {
@@ -90,7 +97,11 @@ describe('useAnimalsStore', () => {
 
     const created = await store.create({ name: 'Vasco', species: 'dog' })
 
-    expect(repository.create).toHaveBeenCalledWith({ name: 'Vasco', species: 'dog' })
+    expect(repository.create).toHaveBeenCalledWith({
+      name: 'Vasco',
+      species: 'dog',
+      photoPath: null,
+    })
     expect(created.name).toBe('Vasco')
     expect(store.animals.map((animal) => animal.name)).toEqual(['Vasco'])
   })
@@ -105,9 +116,41 @@ describe('useAnimalsStore', () => {
     expect(repository.update).toHaveBeenCalledWith(miette.id, {
       name: 'Miette la seconde',
       species: 'cat',
+      photoPath: null,
     })
     expect(updated.name).toBe('Miette la seconde')
     expect(store.animals.map((animal) => animal.name)).toEqual(['Miette la seconde'])
+  })
+
+  it('crée un animal avec sa photo, dont seul le nom de fichier est persisté', async () => {
+    const store = useAnimalsStore()
+
+    const created = await store.create(
+      { name: 'Milo', species: 'dog' },
+      { kind: 'replace', base64: 'TUlMTw==' },
+    )
+
+    expect(savePhoto).toHaveBeenCalledWith('TUlMTw==')
+    expect(created.photoPath).toBe('milo.jpg')
+  })
+
+  it('garde la photo d’un animal mis à jour sans toucher à sa photo', async () => {
+    const milo = repository.seed({ name: 'Milo', species: 'dog', photoPath: 'milo.jpg' })
+    const store = useAnimalsStore()
+
+    const updated = await store.update(milo.id, { name: 'Milou', species: 'dog', photoPath: null })
+
+    expect(updated.photoPath).toBe('milo.jpg')
+    expect(deletePhoto).not.toHaveBeenCalled()
+  })
+
+  it('laisse le fichier de la photo en place quand l’animal est supprimé', async () => {
+    const milo = repository.seed({ name: 'Milo', species: 'dog', photoPath: 'milo.jpg' })
+    const store = useAnimalsStore()
+
+    await store.remove(milo.id)
+
+    expect(deletePhoto).not.toHaveBeenCalled()
   })
 
   it('supprime un animal et rafraîchit la liste', async () => {

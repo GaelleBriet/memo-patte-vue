@@ -11,6 +11,20 @@ import i18n from '@/core/i18n'
 import router from '@/router'
 import vuetify from '@/core/theme/vuetify'
 import { todayIsoDate } from '@/core/app-lifecycle/today-iso-date'
+import { pickPhoto, type PickedPhoto } from '@/core/photos/photo-picker'
+import { photoDisplayUrl } from '@/core/photos/photo-storage'
+import { forgetPhotoUrls } from '@/core/photos/use-photo-urls'
+
+vi.mock('@/core/photos/photo-picker', () => ({
+  pickPhoto: vi.fn<() => Promise<PickedPhoto | null>>(),
+}))
+vi.mock('@/core/photos/photo-storage', () => ({
+  savePhoto: vi.fn<(base64: string) => Promise<string>>(),
+  deletePhoto: vi.fn<(name: string) => Promise<void>>(),
+  photoDisplayUrl: vi.fn<(name: string) => Promise<string>>(async (name) => `url:${name}`),
+}))
+
+const choisirPhoto = vi.mocked(pickPhoto)
 
 // Le vrai routeur ne sert qu'aux tests de routes (`resolve`) : naviguer avec lui chargerait
 // le graphe du Carnet et SQLite à chaque test.
@@ -53,6 +67,8 @@ let push: MockInstance
 let routeur: Router
 
 beforeEach(async () => {
+  choisirPhoto.mockReset()
+  forgetPhotoUrls()
   setActivePinia(createPinia())
   const animals = useAnimalsStore()
   load = vi.spyOn(animals, 'load').mockImplementation(async () => {
@@ -121,14 +137,6 @@ describe('AnimalFormView — structure', () => {
 
     expect(wrapper.get('.pushed-screen__title').text()).toBe('Nouvel animal')
     expect(wrapper.get('.pushed-screen__back').html()).toContain('pushed-screen__back')
-  })
-
-  it('commence au champ Nom : la photo est hors du périmètre de l’écran', () => {
-    const wrapper = monter()
-
-    const premier = wrapper.get('.form-screen__fields').element.querySelector('label')
-    expect(premier?.textContent).toContain('Nom')
-    expect(wrapper.find('.animal-form__photo').exists()).toBe(false)
   })
 
   it('rend les cinq champs du schéma, et rien d’autre', () => {
@@ -292,6 +300,7 @@ describe('AnimalFormView — écriture', () => {
         birthDate: null,
         initialWeightKg: null,
       }),
+      { kind: 'keep' },
     )
   })
 
@@ -310,6 +319,7 @@ describe('AnimalFormView — écriture', () => {
         birthDate: '2023-03-12',
         initialWeightKg: 8.5,
       }),
+      { kind: 'keep' },
     )
   })
 
@@ -384,14 +394,18 @@ describe('AnimalFormView — édition (état F2)', () => {
     await soumettre(wrapper)
     await flushPromises()
 
-    expect(update).toHaveBeenCalledExactlyOnceWith(MILO.id, {
-      name: 'Milou',
-      species: 'dog',
-      breed: 'Labrador',
-      birthDate: '2023-03-12',
-      initialWeightKg: 9,
-      photoPath: null,
-    })
+    expect(update).toHaveBeenCalledExactlyOnceWith(
+      MILO.id,
+      {
+        name: 'Milou',
+        species: 'dog',
+        breed: 'Labrador',
+        birthDate: '2023-03-12',
+        initialWeightKg: 9,
+        photoPath: null,
+      },
+      { kind: 'keep' },
+    )
     expect(create).not.toHaveBeenCalled()
     expect(push).toHaveBeenCalledWith({ name: 'animals' })
   })
@@ -408,14 +422,18 @@ describe('AnimalFormView — édition (état F2)', () => {
     await soumettre(wrapper)
     await flushPromises()
 
-    expect(update).toHaveBeenCalledExactlyOnceWith(MILO.id, {
-      name: 'Milo',
-      species: 'dog',
-      breed: null,
-      birthDate: null,
-      initialWeightKg: null,
-      photoPath: null,
-    })
+    expect(update).toHaveBeenCalledExactlyOnceWith(
+      MILO.id,
+      {
+        name: 'Milo',
+        species: 'dog',
+        breed: null,
+        birthDate: null,
+        initialWeightKg: null,
+        photoPath: null,
+      },
+      { kind: 'keep' },
+    )
   })
 
   it('bascule sur « Enregistrement… » pendant l’écriture', async () => {
@@ -578,6 +596,152 @@ describe('AnimalFormView — changement de jour', () => {
     await soumettre(wrapper)
 
     expect(messages(wrapper)).toEqual([])
-    expect(create).toHaveBeenCalledWith(expect.objectContaining({ birthDate: '2026-09-10' }))
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({ birthDate: '2026-09-10' }), {
+      kind: 'keep',
+    })
+  })
+})
+
+describe('AnimalFormView — photo (§2)', () => {
+  const MILO_EN_PHOTO: Animal = { ...MILO_COMPLET, photoPath: 'milo.jpg' }
+
+  function photo(wrapper: VueWrapper) {
+    return wrapper.get('.animal-photo')
+  }
+
+  async function avecMiloEnPhoto() {
+    load.mockImplementation(async () => {
+      const animals = useAnimalsStore()
+      animals.animals = [MILO_EN_PHOTO]
+      animals.hasLoaded = true
+      return true
+    })
+    const wrapper = await monterEdition()
+    await flushPromises()
+    return wrapper
+  }
+
+  it('s’affiche avant le nom, vide, avec la légende « Ajouter une photo »', () => {
+    const wrapper = monter()
+
+    const premier = wrapper.get('.form-screen__fields').element.firstElementChild
+    expect(premier?.classList.contains('animal-photo')).toBe(true)
+    expect(photo(wrapper).find('img').exists()).toBe(false)
+    expect(photo(wrapper).get('.animal-photo__caption').text()).toBe('Ajouter une photo')
+    expect(wrapper.find('.animal-photo__remove').exists()).toBe(false)
+  })
+
+  it('montre la photo choisie et l’envoie à la création', async () => {
+    choisirPhoto.mockResolvedValue({
+      base64: 'TUlMTw==',
+      previewUrl: 'data:image/jpeg;base64,TUlMTw==',
+    })
+    const wrapper = monter()
+    await remplirMinimum(wrapper)
+
+    await wrapper.get('.animal-photo__pick').trigger('click')
+    await flushPromises()
+
+    expect(photo(wrapper).get('img').attributes('src')).toBe('data:image/jpeg;base64,TUlMTw==')
+    expect(photo(wrapper).get('.animal-photo__caption').text()).toBe('Changer la photo')
+
+    await soumettre(wrapper)
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({ name: 'Milo' }), {
+      kind: 'replace',
+      base64: 'TUlMTw==',
+    })
+  })
+
+  it('ne change rien quand le sélecteur est fermé sans choix', async () => {
+    choisirPhoto.mockResolvedValue(null)
+    const wrapper = monter()
+    await remplirMinimum(wrapper)
+
+    await wrapper.get('.animal-photo__pick').trigger('click')
+    await flushPromises()
+    await soumettre(wrapper)
+
+    expect(photo(wrapper).find('img').exists()).toBe(false)
+    expect(create).toHaveBeenCalledWith(expect.anything(), { kind: 'keep' })
+  })
+
+  it('signale une photo illisible sans toucher au reste du formulaire', async () => {
+    choisirPhoto.mockRejectedValue(new Error('Not implemented'))
+    const wrapper = monter()
+
+    await wrapper.get('.animal-photo__pick').trigger('click')
+    await flushPromises()
+
+    expect(photo(wrapper).get('[role="alert"]').text()).toBe(
+      'La photo n’a pas pu être chargée. Réessaie.',
+    )
+    expect(photo(wrapper).find('img').exists()).toBe(false)
+  })
+
+  it('en édition, affiche la photo enregistrée et la garde si on n’y touche pas', async () => {
+    const wrapper = await avecMiloEnPhoto()
+
+    expect(photo(wrapper).get('img').attributes('src')).toBe('url:milo.jpg')
+    expect(photo(wrapper).get('.animal-photo__caption').text()).toBe('Changer la photo')
+
+    await soumettre(wrapper)
+    await flushPromises()
+
+    expect(update).toHaveBeenCalledWith(MILO.id, expect.anything(), { kind: 'keep' })
+  })
+
+  it('en édition, « Retirer la photo » revient au cercle vide et retire la photo', async () => {
+    const wrapper = await avecMiloEnPhoto()
+
+    await wrapper.get('.animal-photo__remove').trigger('click')
+
+    expect(photo(wrapper).find('img').exists()).toBe(false)
+    expect(wrapper.find('.animal-photo__remove').exists()).toBe(false)
+
+    await soumettre(wrapper)
+    await flushPromises()
+
+    expect(update).toHaveBeenCalledWith(MILO.id, expect.anything(), { kind: 'remove' })
+  })
+
+  it('pendant le choix, désactive la photo et Enregistrer : ni second sélecteur, ni envoi sans photo', async () => {
+    let terminer: (photo: PickedPhoto | null) => void = () => {}
+    choisirPhoto.mockReturnValue(new Promise((resolve) => (terminer = resolve)))
+    const wrapper = monter()
+    await remplirMinimum(wrapper)
+
+    await wrapper.get('.animal-photo__pick').trigger('click')
+    await wrapper.get('.animal-photo__pick').trigger('click')
+    await soumettre(wrapper)
+
+    expect(choisirPhoto).toHaveBeenCalledOnce()
+    expect(wrapper.get('.animal-photo__pick').attributes('disabled')).toBeDefined()
+    expect(wrapper.get('.form-screen__submit').attributes('disabled')).toBeDefined()
+    expect(create).not.toHaveBeenCalled()
+
+    terminer({ base64: 'TUlMTw==', previewUrl: 'data:image/jpeg;base64,TUlMTw==' })
+    await flushPromises()
+
+    expect(wrapper.get('.animal-photo__pick').attributes('disabled')).toBeUndefined()
+    expect(wrapper.get('.form-screen__submit').attributes('disabled')).toBeUndefined()
+  })
+
+  it('réactive la photo et Enregistrer après un choix en échec', async () => {
+    choisirPhoto.mockRejectedValue(new Error('Not implemented'))
+    const wrapper = monter()
+
+    await wrapper.get('.animal-photo__pick').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.get('.animal-photo__pick').attributes('disabled')).toBeUndefined()
+    expect(wrapper.get('.form-screen__submit').attributes('disabled')).toBeUndefined()
+  })
+
+  it('en édition, une photo absente du disque (restauration) laisse le cercle vide', async () => {
+    vi.mocked(photoDisplayUrl).mockRejectedValueOnce(new Error('File does not exist'))
+    const wrapper = await avecMiloEnPhoto()
+
+    expect(photo(wrapper).find('img').exists()).toBe(false)
+    expect(photo(wrapper).get('.animal-photo__caption').text()).toBe('Ajouter une photo')
   })
 })

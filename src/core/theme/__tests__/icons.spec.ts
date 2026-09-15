@@ -20,6 +20,7 @@ const iconesDesMaquettes = [
   'pets',
   'add',
   'monitor_weight',
+  'photo_camera',
 ] as const
 
 describe('registre d’icônes Material Symbols', () => {

@@ -13,6 +13,11 @@
     "form": {
       "title": "Nouvel animal",
       "editTitle": "Modifier {name}",
+      "photo": {
+        "add": "Ajouter une photo",
+        "change": "Changer la photo",
+        "remove": "Retirer la photo"
+      },
       "name": {
         "label": "Nom",
         "placeholder": "Ex. Milo"
@@ -44,7 +49,8 @@
         "birthDate": "La date de naissance ne peut pas être dans le futur.",
         "initialWeightKg": "Le poids doit être supérieur à 0 kg.",
         "notFound": "Cet animal est introuvable.",
-        "save": "L’animal n’a pas pu être enregistré. Réessaie."
+        "save": "L’animal n’a pas pu être enregistré. Réessaie.",
+        "photo": "La photo n’a pas pu être chargée. Réessaie."
       }
     },
     "age": {
@@ -55,6 +61,11 @@
     "carnet": {
       "back": "Retour",
       "edit": "Modifier la fiche",
+      "photo": {
+        "avatarLabel": "Gérer la photo de {name}",
+        "sheetTitle": "Photo de {name}",
+        "close": "Fermer"
+      },
       "subtitleSeparator": " · ",
       "stats": {
         "weight": "Poids",

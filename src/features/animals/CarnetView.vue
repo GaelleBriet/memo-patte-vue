@@ -3,8 +3,11 @@ import { computed, onMounted, ref, watchEffect } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
+import AnimalPhotoSheet from './AnimalPhotoSheet.vue'
 import { useAnimalsStore } from './animals.store'
+import { useAnimalPhotoActions } from './use-animal-photo-actions'
 import { useForegroundRefresh } from '@/core/app-lifecycle/use-foreground-refresh'
+import { usePhotoUrls } from '@/core/photos/use-photo-urls'
 import TreatmentsSection, {
   type TreatmentsSummary,
 } from '@/features/treatments/TreatmentsSection.vue'
@@ -34,9 +37,30 @@ const isEmpty = computed(
   () => animals.hasLoaded && animals.animals.length === 0 && animals.error === null,
 )
 
+const photoUrl = usePhotoUrls(() => animals.animals.map((item) => item.photoPath))
+
 const chips = computed<AnimalChipItem[]>(() =>
-  animals.animals.map((item) => ({ id: item.id, name: item.name })),
+  animals.animals.map((item) => ({
+    id: item.id,
+    name: item.name,
+    photoUrl: photoUrl(item.photoPath),
+  })),
 )
+const headerPhotoUrl = computed(() => photoUrl(animal.value?.photoPath ?? null))
+
+const isPhotoSheetOpen = ref(false)
+const photoActions = useAnimalPhotoActions(animal)
+
+function openPhotoSheet(event: Event): void {
+  const avatar = event.currentTarget as HTMLElement
+  avatar.focus({ preventScroll: true })
+  photoActions.error.value = null
+  isPhotoSheetOpen.value = true
+}
+
+async function applyPhoto(action: () => Promise<boolean>): Promise<void> {
+  if (await action()) isPhotoSheetOpen.value = false
+}
 
 const subtitle = computed(() => {
   if (!animal.value) return null
@@ -112,8 +136,17 @@ function createAnimal(): void {
         <div class="carnet-header__identity">
           <span
             class="carnet-header__avatar"
+            role="button"
+            tabindex="0"
+            aria-haspopup="dialog"
+            :aria-label="t('animals.carnet.photo.avatarLabel', { name: animal.name })"
             :style="{ backgroundImage: animalAvatarGradientCss(animal.id) }"
-          />
+            @contextmenu.prevent="openPhotoSheet"
+            @keydown.enter.prevent="openPhotoSheet"
+            @keydown.space.prevent="openPhotoSheet"
+          >
+            <img v-if="headerPhotoUrl" :src="headerPhotoUrl" alt="" />
+          </span>
           <div class="carnet-header__text">
             <h1 class="carnet-header__name">{{ animal.name }}</h1>
             <p v-if="subtitle" class="carnet-header__subtitle">{{ subtitle }}</p>
@@ -127,6 +160,16 @@ function createAnimal(): void {
           />
         </div>
       </header>
+
+      <AnimalPhotoSheet
+        v-model="isPhotoSheetOpen"
+        :name="animal.name"
+        :has-photo="headerPhotoUrl !== null"
+        :busy="photoActions.isBusy.value"
+        :error="photoActions.error.value ? t(photoActions.error.value) : null"
+        @change="applyPhoto(photoActions.changePhoto)"
+        @remove="applyPhoto(photoActions.removePhoto)"
+      />
 
       <AnimalChipSelector
         v-model:selected-id="animals.selectedAnimalId"
@@ -228,12 +271,27 @@ function createAnimal(): void {
 
 .carnet-header__avatar {
   display: block;
+  overflow: hidden;
   flex: 0 0 auto;
   width: tokens.$size-header-avatar;
   height: tokens.$size-header-avatar;
   border: 2px solid tokens.$color-header-avatar-border;
   border-radius: 50%;
   background-size: cover;
+  -webkit-touch-callout: none;
+  user-select: none;
+
+  &:focus-visible {
+    outline: none;
+  }
+
+  img {
+    pointer-events: none;
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
 }
 
 .carnet-header__text {

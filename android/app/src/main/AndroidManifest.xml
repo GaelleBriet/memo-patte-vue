@@ -57,4 +57,12 @@
     <uses-permission
         android:name="android.permission.USE_EXACT_ALARM"
         tools:node="remove" />
+
+    <!-- Photos via le Photo Picker système : aucun accès aux médias, même si un plugin venait à le déclarer. -->
+    <uses-permission
+        android:name="android.permission.READ_MEDIA_IMAGES"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.READ_MEDIA_VIDEO"
+        tools:node="remove" />
 </manifest>

@@ -4,9 +4,13 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
 import { animalFormValuesFrom, emptyAnimalFormValues, validateAnimalForm } from './animal-form'
+import type { PhotoChange } from './animal-photo.service'
 import { ANIMAL_SPECIES, type Animal } from './animal.schema'
+import AnimalPhotoField from './AnimalPhotoField.vue'
 import { useAnimalsStore } from './animals.store'
 import { useToday } from '@/core/app-lifecycle/use-today'
+import { pickPhoto } from '@/core/photos/photo-picker'
+import { usePhotoUrls } from '@/core/photos/use-photo-urls'
 import FormField from '@/shared/form/FormField.vue'
 import FormScreen from '@/shared/form/FormScreen.vue'
 import FormSegmented from '@/shared/form/FormSegmented.vue'
@@ -27,6 +31,17 @@ const notFound = ref(false)
 const saveFailed = ref(false)
 const isSubmitting = ref(false)
 const { today: maxBirthDate } = useToday()
+const photo = ref<PhotoChange>({ kind: 'keep' })
+const pickedPreview = ref<string | null>(null)
+const photoFailed = ref(false)
+const isPicking = ref(false)
+const photoUrl = usePhotoUrls(() => [existing.value?.photoPath ?? null])
+
+const shownPhotoUrl = computed(() => {
+  if (photo.value.kind === 'replace') return pickedPreview.value
+  if (photo.value.kind === 'remove') return null
+  return photoUrl(existing.value?.photoPath ?? null)
+})
 
 const isEdit = computed(() => props.id !== undefined)
 const title = computed(() =>
@@ -65,8 +80,30 @@ function backToAnimals(): void {
   void router.push({ name: 'animals' })
 }
 
+async function choosePhoto(): Promise<void> {
+  if (isPicking.value) return
+  isPicking.value = true
+  photoFailed.value = false
+  try {
+    const picked = await pickPhoto()
+    if (!picked) return
+    photo.value = { kind: 'replace', base64: picked.base64 }
+    pickedPreview.value = picked.previewUrl
+  } catch {
+    photoFailed.value = true
+  } finally {
+    isPicking.value = false
+  }
+}
+
+function removePhoto(): void {
+  photo.value = { kind: 'remove' }
+  pickedPreview.value = null
+  photoFailed.value = false
+}
+
 async function submit(): Promise<void> {
-  if (isSubmitting.value || notFound.value) return
+  if (isSubmitting.value || notFound.value || isPicking.value) return
 
   const result = validate()
   if (!result.success) return
@@ -76,9 +113,9 @@ async function submit(): Promise<void> {
 
   try {
     if (props.id !== undefined) {
-      await animals.update(props.id, result.data)
+      await animals.update(props.id, result.data, photo.value)
     } else {
-      await animals.create(result.data)
+      await animals.create(result.data, photo.value)
     }
     backToAnimals()
   } catch {
@@ -95,11 +132,19 @@ async function submit(): Promise<void> {
     :title="title"
     :submit-label="submitLabel"
     :is-submitting="isSubmitting"
-    :disabled="notFound"
+    :disabled="notFound || isPicking"
     :error-message="errorMessage"
     @cancel="backToAnimals"
     @submit="submit"
   >
+    <AnimalPhotoField
+      :photo-url="shownPhotoUrl"
+      :error="photoFailed ? t('animals.form.errors.photo') : null"
+      :disabled="isSubmitting || notFound || isPicking"
+      @pick="choosePhoto"
+      @remove="removePhoto"
+    />
+
     <FormField
       class="animal-form__field--name"
       :label="t('animals.form.name.label')"
