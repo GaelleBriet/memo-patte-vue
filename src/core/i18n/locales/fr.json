@@ -341,6 +341,10 @@
       "later": "Plus tard",
       "enabled": "Rappels activés"
     },
+    "channel": {
+      "name": "Rappels",
+      "description": "Rappels de vaccins et de traitements de tes animaux"
+    },
     "disabled": {
       "title": "Les rappels sont désactivés",
       "openSettings": "Activer dans les réglages"
