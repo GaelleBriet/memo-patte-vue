@@ -1,4 +1,5 @@
 import { Camera, MediaTypeSelection } from '@capacitor/camera'
+import { Directory, Filesystem } from '@capacitor/filesystem'
 
 import { squareJpegBase64 } from './image-resize'
 
@@ -18,9 +19,27 @@ function isCancellation(cause: unknown): boolean {
   return code === ANDROID_CANCELLED_CODE || /cancel/i.test(cause.message)
 }
 
+function withoutScheme(uri: string): string {
+  return uri.replace(/^file:\/\//, '')
+}
+
+// Le plugin copie la photo choisie dans le cache de l'app et ne la supprime jamais.
+async function discardPluginCopy(uri: string | undefined): Promise<void> {
+  if (!uri) return
+  try {
+    const cache = await Filesystem.getUri({ path: '', directory: Directory.Cache })
+    if (withoutScheme(uri).startsWith(withoutScheme(cache.uri))) {
+      await Filesystem.deleteFile({ path: uri })
+    }
+  } catch {
+    // Le système vide le cache de lui-même : un échec ici ne doit pas bloquer le choix.
+  }
+}
+
 /** Photo Picker système, sans permission de lecture des médias. `null` si rien n'est choisi. */
 export async function pickPhoto(): Promise<PickedPhoto | null> {
   let webPath: string | undefined
+  let uri: string | undefined
 
   try {
     const { results } = await Camera.chooseFromGallery({
@@ -30,13 +49,21 @@ export async function pickPhoto(): Promise<PickedPhoto | null> {
       webUseInput: true,
     })
     webPath = results[0]?.webPath
+    uri = results[0]?.uri
   } catch (cause) {
     if (isCancellation(cause)) return null
     throw cause
   }
 
-  if (!webPath) return null
+  if (!webPath) {
+    await discardPluginCopy(uri)
+    return null
+  }
 
-  const base64 = await squareJpegBase64(webPath, PHOTO_SIZE_PX)
-  return { base64, previewUrl: `data:image/jpeg;base64,${base64}` }
+  try {
+    const base64 = await squareJpegBase64(webPath, PHOTO_SIZE_PX)
+    return { base64, previewUrl: `data:image/jpeg;base64,${base64}` }
+  } finally {
+    await discardPluginCopy(uri)
+  }
 }

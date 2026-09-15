@@ -12,6 +12,7 @@ import router from '@/router'
 import vuetify from '@/core/theme/vuetify'
 import { todayIsoDate } from '@/core/app-lifecycle/today-iso-date'
 import { pickPhoto, type PickedPhoto } from '@/core/photos/photo-picker'
+import { photoDisplayUrl } from '@/core/photos/photo-storage'
 import { forgetPhotoUrls } from '@/core/photos/use-photo-urls'
 
 vi.mock('@/core/photos/photo-picker', () => ({
@@ -701,5 +702,46 @@ describe('AnimalFormView — photo (§2)', () => {
     await flushPromises()
 
     expect(update).toHaveBeenCalledWith(MILO.id, expect.anything(), { kind: 'remove' })
+  })
+
+  it('pendant le choix, désactive la photo et Enregistrer : ni second sélecteur, ni envoi sans photo', async () => {
+    let terminer: (photo: PickedPhoto | null) => void = () => {}
+    choisirPhoto.mockReturnValue(new Promise((resolve) => (terminer = resolve)))
+    const wrapper = monter()
+    await remplirMinimum(wrapper)
+
+    await wrapper.get('.animal-photo__pick').trigger('click')
+    await wrapper.get('.animal-photo__pick').trigger('click')
+    await soumettre(wrapper)
+
+    expect(choisirPhoto).toHaveBeenCalledOnce()
+    expect(wrapper.get('.animal-photo__pick').attributes('disabled')).toBeDefined()
+    expect(wrapper.get('.form-screen__submit').attributes('disabled')).toBeDefined()
+    expect(create).not.toHaveBeenCalled()
+
+    terminer({ base64: 'TUlMTw==', previewUrl: 'data:image/jpeg;base64,TUlMTw==' })
+    await flushPromises()
+
+    expect(wrapper.get('.animal-photo__pick').attributes('disabled')).toBeUndefined()
+    expect(wrapper.get('.form-screen__submit').attributes('disabled')).toBeUndefined()
+  })
+
+  it('réactive la photo et Enregistrer après un choix en échec', async () => {
+    choisirPhoto.mockRejectedValue(new Error('Not implemented'))
+    const wrapper = monter()
+
+    await wrapper.get('.animal-photo__pick').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.get('.animal-photo__pick').attributes('disabled')).toBeUndefined()
+    expect(wrapper.get('.form-screen__submit').attributes('disabled')).toBeUndefined()
+  })
+
+  it('en édition, une photo absente du disque (restauration) laisse le cercle vide', async () => {
+    vi.mocked(photoDisplayUrl).mockRejectedValueOnce(new Error('File does not exist'))
+    const wrapper = await avecMiloEnPhoto()
+
+    expect(photo(wrapper).find('img').exists()).toBe(false)
+    expect(photo(wrapper).get('.animal-photo__caption').text()).toBe('Ajouter une photo')
   })
 })

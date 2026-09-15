@@ -27,12 +27,12 @@ export async function deletePhoto(name: string): Promise<void> {
   await Filesystem.deleteFile({ path: photoPath(name), directory: Directory.Data })
 }
 
-// Le Filesystem web vit dans IndexedDB : aucune URL ne le sert, il faut relire l'octet.
+/** Rejette si le fichier manque, par exemple après une restauration Auto Backup qui exclut les photos. */
 export async function photoDisplayUrl(name: string): Promise<string> {
   const options = { path: photoPath(name), directory: Directory.Data }
 
   if (Capacitor.isNativePlatform()) {
-    const { uri } = await Filesystem.getUri(options)
+    const { uri } = await Filesystem.stat(options)
     return Capacitor.convertFileSrc(uri)
   }
 

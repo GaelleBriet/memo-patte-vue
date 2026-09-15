@@ -11,14 +11,14 @@ vi.mock('@capacitor/filesystem', async (importOriginal) => ({
   Filesystem: {
     writeFile: vi.fn<FilesystemPlugin['writeFile']>(),
     deleteFile: vi.fn<FilesystemPlugin['deleteFile']>(),
-    getUri: vi.fn<FilesystemPlugin['getUri']>(),
+    stat: vi.fn<FilesystemPlugin['stat']>(),
     readFile: vi.fn<FilesystemPlugin['readFile']>(),
   },
 }))
 
 const writeFile = vi.mocked(Filesystem.writeFile)
 const deleteFile = vi.mocked(Filesystem.deleteFile)
-const getUri = vi.mocked(Filesystem.getUri)
+const stat = vi.mocked(Filesystem.stat)
 const readFile = vi.mocked(Filesystem.readFile)
 
 beforeEach(() => {
@@ -79,16 +79,32 @@ describe('photoDisplayUrl', () => {
     vi.spyOn(Capacitor, 'convertFileSrc').mockImplementation(
       (uri) => `https://localhost/_capacitor_file_${uri.replace('file://', '')}`,
     )
-    getUri.mockResolvedValue({ uri: 'file:///data/user/0/app/files/photos/abc.jpg' })
+    stat.mockResolvedValue({
+      uri: 'file:///data/user/0/app/files/photos/abc.jpg',
+      type: 'file',
+      size: 3,
+      ctime: 0,
+      mtime: 0,
+      name: 'abc.jpg',
+    })
 
     const url = await photoDisplayUrl('abc.jpg')
 
-    expect(getUri).toHaveBeenCalledExactlyOnceWith({
+    expect(stat).toHaveBeenCalledExactlyOnceWith({
       path: 'photos/abc.jpg',
       directory: Directory.Data,
     })
     expect(url).toBe('https://localhost/_capacitor_file_/data/user/0/app/files/photos/abc.jpg')
     expect(readFile).not.toHaveBeenCalled()
+  })
+
+  it('sur Android, rejette une photo absente du disque au lieu de rendre une URL cassée', async () => {
+    vi.spyOn(Capacitor, 'isNativePlatform').mockReturnValue(true)
+    const convert = vi.spyOn(Capacitor, 'convertFileSrc')
+    stat.mockRejectedValue(new Error('File does not exist'))
+
+    await expect(photoDisplayUrl('restauree.jpg')).rejects.toThrow('File does not exist')
+    expect(convert).not.toHaveBeenCalled()
   })
 
   it('dans le navigateur, relit le fichier en data URL', async () => {

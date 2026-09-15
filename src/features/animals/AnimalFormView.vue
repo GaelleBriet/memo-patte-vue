@@ -34,6 +34,7 @@ const { today: maxBirthDate } = useToday()
 const photo = ref<PhotoChange>({ kind: 'keep' })
 const pickedPreview = ref<string | null>(null)
 const photoFailed = ref(false)
+const isPicking = ref(false)
 const photoUrl = usePhotoUrls(() => [existing.value?.photoPath ?? null])
 
 const shownPhotoUrl = computed(() => {
@@ -80,6 +81,8 @@ function backToAnimals(): void {
 }
 
 async function choosePhoto(): Promise<void> {
+  if (isPicking.value) return
+  isPicking.value = true
   photoFailed.value = false
   try {
     const picked = await pickPhoto()
@@ -88,6 +91,8 @@ async function choosePhoto(): Promise<void> {
     pickedPreview.value = picked.previewUrl
   } catch {
     photoFailed.value = true
+  } finally {
+    isPicking.value = false
   }
 }
 
@@ -98,7 +103,7 @@ function removePhoto(): void {
 }
 
 async function submit(): Promise<void> {
-  if (isSubmitting.value || notFound.value) return
+  if (isSubmitting.value || notFound.value || isPicking.value) return
 
   const result = validate()
   if (!result.success) return
@@ -127,7 +132,7 @@ async function submit(): Promise<void> {
     :title="title"
     :submit-label="submitLabel"
     :is-submitting="isSubmitting"
-    :disabled="notFound"
+    :disabled="notFound || isPicking"
     :error-message="errorMessage"
     @cancel="backToAnimals"
     @submit="submit"
@@ -135,7 +140,7 @@ async function submit(): Promise<void> {
     <AnimalPhotoField
       :photo-url="shownPhotoUrl"
       :error="photoFailed ? t('animals.form.errors.photo') : null"
-      :disabled="isSubmitting || notFound"
+      :disabled="isSubmitting || notFound || isPicking"
       @pick="choosePhoto"
       @remove="removePhoto"
     />
