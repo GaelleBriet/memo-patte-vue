@@ -598,6 +598,28 @@ describe('CarnetView — photo depuis l’avatar du header', () => {
     expect(feuille()).toBeNull()
   })
 
+  it.each(['enter', 'space'])('ouvre la feuille à la touche %s sur l’avatar', async (touche) => {
+    const wrapper = await monterAttache()
+
+    await wrapper.get('.carnet-header__avatar').trigger(`keydown.${touche}`)
+    await flushPromises()
+
+    expect(feuille()).not.toBeNull()
+  })
+
+  it('rend le focus à l’avatar à la fermeture, même si l’appui long ne l’avait pas déplacé', async () => {
+    const wrapper = await monterAttache()
+    const chip = wrapper.findAll<HTMLElement>('.animal-chip')[1]!.element
+    chip.focus()
+    expect(document.activeElement).toBe(chip)
+
+    await appuiLong(wrapper)
+    document.body.querySelector<HTMLElement>('.animal-photo-sheet .bottom-sheet__handle')!.click()
+    await flushPromises()
+
+    expect(document.activeElement).toBe(wrapper.get('.carnet-header__avatar').element)
+  })
+
   it('sans photo, l’appui long propose seulement « Ajouter une photo »', async () => {
     const wrapper = await monterAttache()
 

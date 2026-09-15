@@ -51,7 +51,9 @@ const headerPhotoUrl = computed(() => photoUrl(animal.value?.photoPath ?? null))
 const isPhotoSheetOpen = ref(false)
 const photoActions = useAnimalPhotoActions(animal)
 
-function openPhotoSheet(): void {
+function openPhotoSheet(event: Event): void {
+  const avatar = event.currentTarget as HTMLElement
+  avatar.focus({ preventScroll: true })
   photoActions.error.value = null
   isPhotoSheetOpen.value = true
 }
@@ -140,6 +142,8 @@ function createAnimal(): void {
             :aria-label="t('animals.carnet.photo.avatarLabel', { name: animal.name })"
             :style="{ backgroundImage: animalAvatarGradientCss(animal.id) }"
             @contextmenu.prevent="openPhotoSheet"
+            @keydown.enter.prevent="openPhotoSheet"
+            @keydown.space.prevent="openPhotoSheet"
           >
             <img v-if="headerPhotoUrl" :src="headerPhotoUrl" alt="" />
           </span>
