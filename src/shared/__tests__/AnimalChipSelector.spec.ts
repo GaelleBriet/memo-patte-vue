@@ -88,6 +88,14 @@ describe('AnimalChipSelector', () => {
     expect(wrapper.emitted('add')).toHaveLength(1)
   })
 
+  it('annonce chaque chip comme un bouton à bascule, pressé quand l’animal est choisi', () => {
+    const wrapper = monter({ selectedId: 'luna' })
+
+    expect(chip(wrapper, 0).attributes('role')).toBe('button')
+    expect(chip(wrapper, 0).attributes('aria-pressed')).toBe('false')
+    expect(chip(wrapper, 1).attributes('aria-pressed')).toBe('true')
+  })
+
   it('marque la chip sélectionnée', () => {
     const wrapper = monter({ selectedId: 'luna' })
 

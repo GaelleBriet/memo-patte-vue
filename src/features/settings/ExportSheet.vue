@@ -60,7 +60,9 @@ async function submit(): Promise<void> {
     :persistent="isPreparing"
     :focus-fallback="focusFallback"
   >
-    <p :id="groupLabelId" class="export-sheet__group-label">{{ t('settings.export.formats') }}</p>
+    <p :id="groupLabelId" class="export-sheet__group-label" aria-hidden="true">
+      {{ t('settings.export.formats') }}
+    </p>
     <ChoiceCards
       v-model="selected"
       :choices="formats"

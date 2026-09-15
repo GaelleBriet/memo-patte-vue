@@ -65,7 +65,14 @@ function onSelect(value: unknown) {
         selected-class="animal-chip--selected"
         @update:model-value="onSelect"
       >
-        <v-chip v-for="animal in animals" :key="animal.id" class="animal-chip" :value="animal.id">
+        <v-chip
+          v-for="animal in animals"
+          :key="animal.id"
+          class="animal-chip"
+          :value="animal.id"
+          role="button"
+          :aria-pressed="selectedId === animal.id"
+        >
           <template #prepend>
             <span
               class="animal-chip__avatar"

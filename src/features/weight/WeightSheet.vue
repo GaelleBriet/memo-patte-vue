@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, ref, useId, watch } from 'vue'
+import { computed, nextTick, ref, useId, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import { emptyWeightFormValues, validateWeightForm } from './weight-form'
@@ -8,6 +8,7 @@ import { useToday } from '@/core/app-lifecycle/use-today'
 import { useAnimalsStore } from '@/features/animals/animals.store'
 import AnimalChipSelector, { type AnimalChipItem } from '@/shared/AnimalChipSelector.vue'
 import BottomSheet from '@/shared/BottomSheet.vue'
+import { focusFirstInvalid } from '@/shared/form/focus-first-invalid'
 import { useFormValidation } from '@/shared/form/use-form-validation'
 
 const props = defineProps<{
@@ -32,6 +33,7 @@ const saveFailed = ref(false)
 const isSubmitting = ref(false)
 const { today, refresh: refreshToday } = useToday()
 const weightInput = ref<{ focus: () => void } | null>(null)
+const fields = useTemplateRef<HTMLElement>('fields')
 
 const needsAnimal = computed(() => !props.animalId)
 const isLocked = computed(() => needsAnimal.value && values.value.animalId === null)
@@ -67,7 +69,12 @@ async function submit(): Promise<void> {
   if (isSubmitting.value) return
 
   const result = validate()
-  if (!result.success) return
+  if (!result.success) {
+    await nextTick()
+    const panel = fields.value?.parentElement
+    if (panel) focusFirstInvalid(panel)
+    return
+  }
 
   isSubmitting.value = true
   saveFailed.value = false
@@ -117,7 +124,11 @@ async function submit(): Promise<void> {
       </p>
     </div>
 
-    <div class="weight-sheet__fields" :class="{ 'weight-sheet__fields--locked': isLocked }">
+    <div
+      ref="fields"
+      class="weight-sheet__fields"
+      :class="{ 'weight-sheet__fields--locked': isLocked }"
+    >
       <div class="weight-sheet__field weight-sheet__field--kg">
         <label class="weight-sheet__label" for="weight-sheet-kg">
           <span>{{ t('weight.form.weightKg.label') }}</span>

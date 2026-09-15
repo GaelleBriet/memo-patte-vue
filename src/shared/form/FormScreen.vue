@@ -1,7 +1,9 @@
 <script setup lang="ts">
+import { nextTick, useTemplateRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import PushedScreen from '@/shared/PushedScreen.vue'
+import { focusFirstInvalid } from './focus-first-invalid'
 
 defineProps<{
   title: string
@@ -18,6 +20,13 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+const fields = useTemplateRef<HTMLElement>('fields')
+
+async function submit(): Promise<void> {
+  emit('submit')
+  await nextTick()
+  if (fields.value) focusFirstInvalid(fields.value)
+}
 </script>
 
 <template>
@@ -28,7 +37,7 @@ const { t } = useI18n()
     :back-label="t('form.back')"
     @back="emit('cancel')"
   >
-    <div class="form-screen__fields">
+    <div ref="fields" class="form-screen__fields">
       <slot />
     </div>
 
@@ -52,7 +61,7 @@ const { t } = useI18n()
             variant="flat"
             color="primary"
             :disabled="isSubmitting || disabled"
-            @click="emit('submit')"
+            @click="submit"
           >
             <v-progress-circular
               v-if="isSubmitting"

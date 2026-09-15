@@ -1,5 +1,6 @@
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
+import { defineComponent, h, ref } from 'vue'
 
 import FormScreen from '../form/FormScreen.vue'
 import i18n from '@/core/i18n'
@@ -101,5 +102,29 @@ describe('FormScreen — actions', () => {
     const wrapper = monter()
 
     expect(wrapper.find('.form-screen__save-error').exists()).toBe(false)
+  })
+
+  it('amène le lecteur d’écran sur le premier champ refusé après un envoi invalide', async () => {
+    const soumis = ref(false)
+    const wrapper = mount(
+      defineComponent(
+        () => () =>
+          h(
+            FormScreen,
+            { title: 'Nouvel animal', submitLabel: 'Créer', onSubmit: () => (soumis.value = true) },
+            () => [
+              h('input', { id: 'valide', 'aria-invalid': 'false' }),
+              h('input', { id: 'refuse', 'aria-invalid': String(soumis.value) }),
+            ],
+          ),
+      ),
+      { global: { plugins: [vuetify, i18n] }, attachTo: document.body },
+    )
+
+    await wrapper.get('.form-screen__submit').trigger('click')
+    await flushPromises()
+
+    expect(document.activeElement?.id).toBe('refuse')
+    wrapper.unmount()
   })
 })
