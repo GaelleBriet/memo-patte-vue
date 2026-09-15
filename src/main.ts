@@ -10,6 +10,7 @@ import vuetify from '@/core/theme/vuetify'
 import i18n, { applyLocale, detectLocale } from '@/core/i18n'
 import { getAnimalsRepository } from '@/features/animals/animals.repository'
 import { provideAnimalsRepository } from '@/features/animals/animals.store'
+import { useAuthStore } from '@/features/auth/auth.store'
 import { usePurchaseStore } from '@/features/purchase/purchase.store'
 import { getTreatmentsRepository } from '@/features/treatments/treatments.repository'
 import { provideTreatmentsRepository } from '@/features/treatments/treatments.store'
@@ -46,3 +47,4 @@ app.mount('#app')
 installRemindersSync()
 installLaunchPriming(router)
 void usePurchaseStore().verifyKnownStatus()
+void useAuthStore().restore()
