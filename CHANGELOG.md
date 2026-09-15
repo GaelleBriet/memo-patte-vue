@@ -5,6 +5,13 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.21](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.20...memo-patte-v0.1.21) (2026-09-15)
+
+
+### 🐛 Corrections
+
+* **lint:** imports relatifs et dossier seul entre features interdits, spec de lint accéléré ([19308e0](https://github.com/GaelleBriet/memo-patte-vue/commit/19308e0f044f61b73d5d9b744df16e0c1327c76a))
+
 ## [0.1.20](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.19...memo-patte-v0.1.20) (2026-09-14)
 
 
