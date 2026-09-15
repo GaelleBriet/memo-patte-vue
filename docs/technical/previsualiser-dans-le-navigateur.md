@@ -117,5 +117,4 @@ sont jamais chargés (#156). Deux mécanismes les en sortent :
 contenant `jeep-sqlite` dans `dist/`, ou chaîne `sql-wasm.wasm` dans un fichier JS. Il ne cherche pas
 `jeep-sqlite` dans le contenu : le plugin SQLite web, lui légitime dans le build, cite ce nom.
 
-Mesure sur l'APK debug (build Gradle propre) : 17 239 965 → 16 787 136 octets, soit ~960 Ko de fichiers en
-moins avant compression.
+Mesure sur l'APK debug (build Gradle propre) : APK −453 Ko (fichiers retirés : ~960 Ko non compressés).
