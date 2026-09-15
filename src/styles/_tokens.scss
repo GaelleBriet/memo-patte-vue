@@ -18,7 +18,7 @@ $font-family-heading:
 $color-card-border: #ece9e5; // Bordure carte
 $color-divider: #efece8; // Filet de séparation
 $color-text-secondary: #68625c; // Texte secondaire
-$color-text-meta: #79736d; // Texte méta / compteur
+$color-text-meta: #736e67; // Texte méta / compteur
 $color-on-primary: #f9f4ee; // Texte, coche et anneau clairs sur pétrole
 $color-on-primary-subtitle: #b9d0d1; // Sous-titre sur pétrole
 
@@ -41,11 +41,11 @@ $height-weight-row: 56px; // Ligne de la liste des pesées
 
 // Formulaires (écrans poussés : animal, vaccin, traitement)
 $color-field-surface: #fefcf9; // Surface d'un champ
-$color-field-border: #dbd7d1; // Bordure d'un champ
-$color-segmented-border: #cecac3; // Bordure d'un segmented control
+$color-field-border: #b6ada1; // Bordure d'un champ
+$color-segmented-border: #b4ada3; // Bordure d'un segmented control
 $color-field-label: #5c5751; // Label au-dessus d'un champ
-$color-hint: #857f79; // Mention « Optionnel », hint, légende
-$color-placeholder: #97918a; // Placeholder d'un champ
+$color-hint: #736e67; // Mention « Optionnel », hint, légende
+$color-placeholder: #77716a; // Placeholder d'un champ
 $color-segment-inactive: #3e3630; // Texte d'un segment non sélectionné
 $color-actions-surface: #fcfaf7; // Fond de la barre d'actions
 $color-actions-border: #ece9e5; // Bordure barre d'actions / top bar scrollée
@@ -109,5 +109,5 @@ $color-settings-row-disabled: #9a948d; // Libellé et puce d'une ligne désactiv
 $color-settings-chevron: #857f79; // Chevron d'une ligne qui ouvre une destination
 $height-export-choice: 64px; // Carte de choix de format
 $color-choice-selected-surface: #dcf0f1; // Fond d'une carte de choix cochée
-$color-radio-border: #c1bdb7; // Pastille radio non cochée
+$color-radio-border: #b9b4ae; // Pastille radio non cochée
 $size-import-error-badge: 56px; // Pastille d'icône d'une erreur d'import

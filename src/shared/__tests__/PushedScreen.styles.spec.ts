@@ -104,7 +104,7 @@ describe('PushedScreen — contrat de style', () => {
   })
 
   it('distingue le sous-titre hint (600) du sous-titre en texte secondaire (500)', () => {
-    expect(declaration(css, '.pushed-screen__subtitle', 'color')).toBe('#857f79')
+    expect(declaration(css, '.pushed-screen__subtitle', 'color')).toBe('#736e67')
     expect(declaration(css, '.pushed-screen__subtitle', 'font-weight')).toBe('600')
     expect(declaration(css, '.pushed-screen__subtitle--secondary', 'color')).toBe('#68625c')
     expect(declaration(css, '.pushed-screen__subtitle--secondary', 'font-weight')).toBe('500')

@@ -81,7 +81,7 @@ describe('FormField — contrat de style', () => {
 
     it('pose une bordure de 1 px grise au repos', () => {
       expect(declaration(css, `${CHAMP} .v-field__outline`, '--v-field-border-width')).toBe('1px')
-      expect(declaration(css, `${CHAMP} .v-field__outline`, 'color')).toBe('#dbd7d1')
+      expect(declaration(css, `${CHAMP} .v-field__outline`, 'color')).toBe('#b6ada1')
     })
 
     it('passe la bordure en pétrole au focus, sur 2 px', () => {
@@ -146,7 +146,7 @@ describe('FormSegmented — contrat de style', () => {
 
   it('fait du sélecteur une pilule bordée de 48 px', () => {
     expect(declaration(css, '.form-segmented', 'height')).toBe('48px')
-    expect(declaration(css, '.form-segmented', 'border')).toBe('1px solid #cecac3')
+    expect(declaration(css, '.form-segmented', 'border')).toBe('1px solid #b4ada3')
     expect(declaration(css, '.form-segmented', 'border-radius')).toBe('999px')
   })
 

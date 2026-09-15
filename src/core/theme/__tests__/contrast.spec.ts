@@ -62,6 +62,14 @@ const pairs: [element: string, foreground: string, background: string, minimum: 
     TEXT,
   ],
   ['Texte méta sur une carte (prochaine dose, mois)', '$color-text-meta', 'surface', TEXT],
+  [
+    'Compteur de section, stats du Carnet, « Poids actuel »',
+    '$color-text-meta',
+    'background',
+    TEXT,
+  ],
+  ['Sous-titre des formulaires, « Optionnel », légende photo', '$color-hint', 'background', TEXT],
+  ['Placeholder d’un champ', '$color-placeholder', '$color-field-surface', TEXT],
   ['Label de champ', '$color-field-label', 'background', TEXT],
   ['Suffixe d’unité dans un champ', '$color-field-suffix', '$color-field-surface', TEXT],
   ['Unité, « Tous les » sur le fond', '$color-field-suffix', 'background', TEXT],
@@ -112,6 +120,23 @@ describe('contrastes des paires de couleurs réellement utilisées (WCAG AA)', (
     const onPrimary = vuetify.theme.computedThemes.value.light!.colors['on-primary']
 
     expect(contrastRatio(String(onPrimary), color('primary'))).toBeGreaterThanOrEqual(TEXT)
+  })
+})
+
+// Décision du 2026-09-15 : bordures assombries sans aller jusqu'à 3:1, pour garder la douceur des
+// maquettes ; ce plancher les empêche de repâlir.
+const BORDER_FLOOR = 2
+const borders: [element: string, border: string, background: string][] = [
+  ['Bordure d’un champ', '$color-field-border', 'background'],
+  ['Bordure du sélecteur à boutons', '$color-segmented-border', 'background'],
+  ['Pastille radio non cochée', '$color-radio-border', 'surface'],
+]
+
+describe('bordures de contrôle, volontairement sous 3:1', () => {
+  it.each(borders)('%s : %s sur %s', (_element, border, background) => {
+    const ratio = contrastRatio(color(border), color(background))
+    expect(ratio).toBeGreaterThanOrEqual(BORDER_FLOOR)
+    expect(ratio).toBeLessThan(LARGE_TEXT_OR_UI)
   })
 })
 
