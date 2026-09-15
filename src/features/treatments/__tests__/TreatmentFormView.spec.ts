@@ -12,7 +12,7 @@ import { simulateWebResume } from '@/core/app-lifecycle/__tests__/simulate-resum
 import i18n from '@/core/i18n'
 import router from '@/router'
 import vuetify from '@/core/theme/vuetify'
-import { todayIsoDate } from '@/shared/form/form-dates'
+import { todayIsoDate } from '@/core/app-lifecycle/today-iso-date'
 
 // Le vrai routeur ne sert qu'aux tests de routes (`resolve`) : naviguer avec lui chargerait
 // le graphe du Carnet et SQLite à chaque test.

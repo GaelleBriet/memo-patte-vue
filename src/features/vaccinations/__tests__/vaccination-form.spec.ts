@@ -9,7 +9,7 @@ import {
   type VaccinationFormValues,
 } from '../vaccination-form'
 import type { Vaccination } from '../vaccination.schema'
-import { todayIsoDate } from '@/shared/form/form-dates'
+import { todayIsoDate } from '@/core/app-lifecycle/today-iso-date'
 
 function valeurs(surcharges: Partial<VaccinationFormValues> = {}): VaccinationFormValues {
   return {
@@ -64,12 +64,6 @@ describe('vaccinationFormValuesFrom', () => {
 
   it('rend une échéance absente comme un champ vide', () => {
     expect(vaccinationFormValuesFrom(rage).dueDate).toBe('')
-  })
-})
-
-describe('todayIsoDate', () => {
-  it('rend la date du jour au format du champ date natif', () => {
-    expect(todayIsoDate()).toBe(format(new Date(), 'yyyy-MM-dd'))
   })
 })
 

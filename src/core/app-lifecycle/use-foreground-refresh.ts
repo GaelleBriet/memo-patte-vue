@@ -8,7 +8,7 @@ import { useToday } from './use-today'
  * où `reload` est aussi appelé. L'abonnement suit la vie du composant appelant.
  */
 export function useForegroundRefresh(reload: () => void): { today: Readonly<Ref<string>> } {
-  const today = useToday()
+  const { today } = useToday()
   useAppResume(reload)
 
   return { today }

@@ -1,7 +1,7 @@
 import type { z } from 'zod'
 
 import { weightEntryInputSchema } from './weight.schema'
-import { todayIsoDate } from '@/shared/form/form-dates'
+import { todayIsoDate } from '@/core/app-lifecycle/today-iso-date'
 
 export interface WeightFormValues {
   /** `null` tant que l'animal n'est ni donné par le contexte ni choisi dans la feuille. */

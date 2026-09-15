@@ -26,7 +26,7 @@ const existing = ref<Animal | null>(null)
 const notFound = ref(false)
 const saveFailed = ref(false)
 const isSubmitting = ref(false)
-const maxBirthDate = useToday()
+const { today: maxBirthDate } = useToday()
 
 const isEdit = computed(() => props.id !== undefined)
 const title = computed(() =>

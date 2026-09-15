@@ -40,7 +40,7 @@ const existing = ref<Treatment | null>(null)
 const notFound = ref(false)
 const saveFailed = ref(false)
 const isSubmitting = ref(false)
-const maxLastDoseDate = useToday()
+const { today: maxLastDoseDate } = useToday()
 
 const isEdit = computed(() => props.id !== undefined)
 const targetAnimalId = computed(() => existing.value?.animalId ?? props.animalId ?? null)
