@@ -13,9 +13,13 @@ Le code de référence est `src/features/settings/export-format.ts`, couvert par
   (`deleted_at` renseigné) ne sont pas exportées, et la colonne `deletedAt` n'apparaît pas.
   L'export ne porte donc **aucune pierre tombale** : un import (#84) ne peut pas propager une
   suppression, une donnée absente du fichier n'est pas une donnée supprimée.
-- Le fichier est écrit dans le cache de l'app (`Directory.Cache`, sous-dossier `exports/`, vidé à
-  chaque export) puis remis par la feuille de partage Android (`@capacitor/share`, via le
-  `FileProvider` de l'app). Aucune permission de stockage n'est demandée.
+- Le fichier est écrit dans le cache de l'app (`Directory.Cache`, sous-dossier `exports/`) puis
+  remis par la feuille de partage Android (`@capacitor/share`, via le `FileProvider` de l'app, qui
+  n'ouvre que ce sous-dossier). Aucune permission de stockage n'est demandée.
+- Le dossier est vidé avant chaque écriture et au lancement de l'app, jamais juste après un partage
+  accepté : le partage rend la main quand MémoPatte revient au premier plan, alors que Gmail, Drive
+  ou Quick Share lisent l'URI après coup — effacer tout de suite enverrait une pièce jointe vide.
+  Un partage annulé ou en échec, lui, est effacé sur-le-champ : aucune appli n'a reçu l'URI.
 - Les photos ne sont **jamais** incluses : le JSON cite leur nom de fichier, le CSV les ignore.
 
 ## JSON — `memopatte-export-AAAA-MM-JJ.json`
