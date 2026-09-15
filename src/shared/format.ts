@@ -1,5 +1,9 @@
 import { format, parseISO } from 'date-fns'
-import { fr } from 'date-fns/locale'
+import { enUS, fr } from 'date-fns/locale'
+
+import { currentLocale } from '@/core/i18n'
+
+const DATE_LOCALES = { fr, en: enUS }
 
 const MINUS = '−'
 
@@ -7,9 +11,13 @@ function roundToDecimal(value: number): number {
   return Math.round(value * 10) / 10
 }
 
-/** Une décimale, virgule française : `24,5`, jamais `24.5` ni `24,50`. */
+/** Une décimale au séparateur de la langue : `24,5` en français, `24.5` en anglais. */
 export function formatKg(value: number): string {
-  return roundToDecimal(value).toFixed(1).replace('.', ',')
+  return new Intl.NumberFormat(currentLocale(), {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+    useGrouping: false,
+  }).format(roundToDecimal(value))
 }
 
 /** `+0,5`, `−0,3`, ou `±0,0` quand rien ne bouge à la décimale près. */
@@ -19,18 +27,19 @@ export function formatKgDelta(delta: number): string {
   return `${rounded > 0 ? '+' : MINUS}${formatKg(Math.abs(rounded))}`
 }
 
-/** `août`, `septembre` — pour « vs août ». */
+/** `août` / `August` — pour « vs août ». */
 export function formatMonth(isoDate: string): string {
-  return format(parseISO(isoDate), 'MMMM', { locale: fr })
+  return format(parseISO(isoDate), 'MMMM', { locale: DATE_LOCALES[currentLocale()] })
 }
 
-/** `Juin`, `Juil.`, `Sept.` — libellés sous une courbe. */
+/** `Juin`, `Juil.`, `Sept.` / `Jun`, `Jul`, `Sep` — libellés sous une courbe. */
 export function formatMonthShort(isoDate: string): string {
-  const month = format(parseISO(isoDate), 'MMM', { locale: fr })
-  return month.charAt(0).toLocaleUpperCase('fr') + month.slice(1)
+  const locale = currentLocale()
+  const month = format(parseISO(isoDate), 'MMM', { locale: DATE_LOCALES[locale] })
+  return month.charAt(0).toLocaleUpperCase(locale) + month.slice(1)
 }
 
-/** `8 nov. 2026`. */
+/** `8 nov. 2026` / `Nov 8, 2026`. */
 export function formatLongDate(isoDate: string): string {
-  return format(parseISO(isoDate), 'd MMM yyyy', { locale: fr })
+  return format(parseISO(isoDate), 'PP', { locale: DATE_LOCALES[currentLocale()] })
 }

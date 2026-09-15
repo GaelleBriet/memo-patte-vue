@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 import { formatKg, formatKgDelta, formatLongDate, formatMonth, formatMonthShort } from '../format'
+import { applyLocale } from '@/core/i18n'
 
 describe('formatKg', () => {
   it('garde une décimale avec la virgule française', () => {
@@ -11,6 +12,10 @@ describe('formatKg', () => {
   it('arrondit à la décimale, jamais deux', () => {
     expect(formatKg(23.64)).toBe('23,6')
     expect(formatKg(23.66)).toBe('23,7')
+  })
+
+  it('ne groupe pas les milliers', () => {
+    expect(formatKg(1234.5)).toBe('1234,5')
   })
 })
 
@@ -46,5 +51,27 @@ describe('mois et dates', () => {
 
   it('écrit une date complète courte', () => {
     expect(formatLongDate('2026-11-08')).toBe('8 nov. 2026')
+  })
+})
+
+describe('en anglais', () => {
+  afterEach(() => applyLocale('fr'))
+
+  it('suit la langue courante pour les poids', () => {
+    applyLocale('en')
+
+    expect(formatKg(24.5)).toBe('24.5')
+    expect(formatKg(24)).toBe('24.0')
+    expect(formatKg(1234.5)).toBe('1234.5')
+    expect(formatKgDelta(-0.3)).toBe('−0.3')
+    expect(formatKgDelta(0)).toBe('±0.0')
+  })
+
+  it('suit la langue courante pour les mois et les dates', () => {
+    applyLocale('en')
+
+    expect(formatMonth('2026-08-14')).toBe('August')
+    expect(formatMonthShort('2026-09-05')).toBe('Sep')
+    expect(formatLongDate('2026-11-08')).toBe('Nov 8, 2026')
   })
 })
