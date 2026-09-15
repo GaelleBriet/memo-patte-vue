@@ -137,7 +137,8 @@ export default defineConfigWithVueTs(
   skipFormatting,
 
   // Accès direct à SQLite/Supabase interdit hors de core/ et des repositories.
-  // Les tests d'un repository sont exemptés : ils lui injectent un client de base en mémoire.
+  // Les tests qui montent de vrais repositories sur une base en mémoire sont exemptés,
+  // repérés par le suffixe `.integration.spec.ts` en plus des tests de repository et de service.
   {
     name: 'app/repository-only-data-access',
     files: ['src/**/*.{ts,vue}'],
@@ -146,6 +147,7 @@ export default defineConfigWithVueTs(
       '**/*.repository.ts',
       '**/*.repository.spec.ts',
       '**/*.service.spec.ts',
+      '**/*.integration.spec.ts',
     ],
     rules: {
       'no-restricted-imports': [
