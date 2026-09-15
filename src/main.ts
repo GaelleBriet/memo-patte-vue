@@ -3,6 +3,7 @@ import { createPinia } from 'pinia'
 
 import App from './App.vue'
 import router from './router'
+import { installLaunchPriming } from '@/app/reminders-priming'
 import { installRemindersSync } from '@/app/reminders-sync'
 import { installBackButton } from '@/core/app-lifecycle/back-button'
 import vuetify from '@/core/theme/vuetify'
@@ -42,3 +43,4 @@ if (import.meta.env.DEV) {
 
 app.mount('#app')
 installRemindersSync()
+installLaunchPriming(router)
