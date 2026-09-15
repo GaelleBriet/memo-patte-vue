@@ -96,4 +96,36 @@ describe('deliverExportFile', () => {
       'disque plein',
     )
   })
+
+  it('ne laisse pas le carnet dans le cache une fois le partage terminé', async () => {
+    await deliverExportFile({ name: 'a.json', content: '{}' }, 'x')
+
+    expect(Filesystem.rmdir).toHaveBeenCalledTimes(2)
+    expect(vi.mocked(Share.share).mock.invocationCallOrder[0]!).toBeLessThan(
+      vi.mocked(Filesystem.rmdir).mock.invocationCallOrder[1]!,
+    )
+  })
+
+  it('ne laisse pas le carnet dans le cache quand le partage est annulé', async () => {
+    vi.mocked(Share.share).mockRejectedValueOnce(new Error('Share canceled'))
+
+    await deliverExportFile({ name: 'a.json', content: '{}' }, 'x')
+
+    expect(Filesystem.rmdir).toHaveBeenCalledTimes(2)
+  })
+
+  it('ne laisse pas le carnet dans le cache quand le partage échoue', async () => {
+    vi.mocked(Share.share).mockRejectedValueOnce(new Error('Activity not found'))
+
+    await expect(deliverExportFile({ name: 'a.json', content: '{}' }, 'x')).rejects.toThrow(
+      'Activity not found',
+    )
+    expect(Filesystem.rmdir).toHaveBeenCalledTimes(2)
+  })
+
+  it('renvoie « shared » même si l’effacement échoue', async () => {
+    vi.mocked(Filesystem.rmdir).mockResolvedValueOnce().mockRejectedValueOnce(new Error('occupé'))
+
+    await expect(deliverExportFile({ name: 'a.json', content: '{}' }, 'x')).resolves.toBe('shared')
+  })
 })

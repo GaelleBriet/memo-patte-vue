@@ -19,10 +19,14 @@ function toBase64(bytes: Uint8Array): string {
   return btoa(binary)
 }
 
-async function writeToCache(file: ExportFile): Promise<string> {
+async function clearExports(): Promise<void> {
   await Filesystem.rmdir({ path: EXPORTS_DIR, directory: Directory.Cache, recursive: true }).catch(
     () => undefined,
   )
+}
+
+async function writeToCache(file: ExportFile): Promise<string> {
+  await clearExports()
   const path = `${EXPORTS_DIR}/${file.name}`
   const { uri } =
     typeof file.content === 'string'
@@ -53,5 +57,7 @@ export async function deliverExportFile(
   } catch (cause) {
     if (cause instanceof Error && SHARE_CANCELED.test(cause.message)) return 'cancelled'
     throw cause
+  } finally {
+    await clearExports()
   }
 }
