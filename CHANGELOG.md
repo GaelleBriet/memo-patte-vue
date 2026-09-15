@@ -5,6 +5,19 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.25](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.24...memo-patte-v0.1.25) (2026-09-15)
+
+
+### ✨ Fonctionnalités
+
+* **notifications:** rappels des vaccins et traitements (J-3, jour J, relance J+3) ([89b5188](https://github.com/GaelleBriet/memo-patte-vue/commit/89b51880c38b8edf6db9d4873c1d1dc0f3009d5e))
+* **notifications:** synchroniser les rappels dès que la permission est accordée ([4ede26d](https://github.com/GaelleBriet/memo-patte-vue/commit/4ede26d3949321a9886927d531d9e97592b8205d))
+
+
+### 🐛 Corrections
+
+* **notifications:** première échéance toujours programmée et correctifs de re-revue ([f1df3be](https://github.com/GaelleBriet/memo-patte-vue/commit/f1df3bee6b11d6212f7b405f52671f82510d9bfb))
+
 ## [0.1.24](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.23...memo-patte-v0.1.24) (2026-09-15)
 
 
