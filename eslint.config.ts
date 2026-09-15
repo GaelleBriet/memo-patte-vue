@@ -271,6 +271,7 @@ export default defineConfigWithVueTs(
     rules: {
       '@typescript-eslint/consistent-type-imports': 'off',
       '@intlify/vue-i18n/valid-message-syntax': 'error',
+      '@intlify/vue-i18n/no-missing-keys-in-other-locales': 'error',
       '@intlify/vue-i18n/no-unused-keys': [
         'error',
         { src: './src', extensions: ['.ts', '.vue'], ignores: DYNAMIC_I18N_KEYS },

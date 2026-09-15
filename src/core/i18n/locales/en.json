@@ -1,0 +1,312 @@
+{
+  "nav": {
+    "ariaLabel": "Main navigation",
+    "home": "Home",
+    "animals": "Records"
+  },
+  "animals": {
+    "chipSelector": {
+      "label": "Pets",
+      "add": "Add a pet",
+      "photoAlt": "Photo of {name}"
+    },
+    "form": {
+      "title": "New pet",
+      "editTitle": "Edit {name}",
+      "photo": {
+        "add": "Add a photo",
+        "change": "Change photo",
+        "remove": "Remove photo"
+      },
+      "name": {
+        "label": "Name",
+        "placeholder": "e.g. Milo"
+      },
+      "species": {
+        "label": "Species",
+        "dog": "Dog",
+        "cat": "Cat"
+      },
+      "breed": {
+        "label": "Breed",
+        "placeholder": "e.g. Labrador"
+      },
+      "birthDate": {
+        "label": "Date of birth"
+      },
+      "initialWeightKg": {
+        "label": "Starting weight",
+        "placeholder": "0.0",
+        "suffix": "kg"
+      },
+      "submit": "Create",
+      "submitting": "Creating…",
+      "save": "Save",
+      "saving": "Saving…",
+      "errors": {
+        "name": "Name is required.",
+        "species": "Choose a species.",
+        "birthDate": "Date of birth can’t be in the future.",
+        "initialWeightKg": "Weight must be more than 0 kg.",
+        "notFound": "We can’t find this pet.",
+        "save": "Couldn’t save this pet. Try again.",
+        "photo": "Couldn’t load the photo. Try again."
+      }
+    },
+    "age": {
+      "year": "{n} year | {n} years",
+      "month": "{n} month | {n} months",
+      "week": "less than a week | {n} week | {n} weeks"
+    },
+    "carnet": {
+      "back": "Back",
+      "edit": "Edit profile",
+      "photo": {
+        "avatarLabel": "Manage {name}’s photo",
+        "sheetTitle": "{name}’s photo",
+        "close": "Close"
+      },
+      "subtitleSeparator": " · ",
+      "stats": {
+        "weight": "Weight",
+        "reminders": "Reminders",
+        "treatments": "Treatments",
+        "noValue": "—",
+        "noWeight": "No weigh-ins",
+        "firstWeight": "First weigh-in",
+        "overdue": "overdue",
+        "upcoming": "upcoming",
+        "ongoing": "active"
+      },
+      "loading": "Opening health record…",
+      "error": {
+        "title": "Couldn’t open the health record.",
+        "text": "The local database didn’t respond. Your data is safe.",
+        "retry": "Try again"
+      },
+      "welcome": {
+        "title": "Welcome to MémoPatte",
+        "create": "Add my first pet"
+      }
+    }
+  },
+  "vaccinations": {
+    "form": {
+      "title": "New vaccine",
+      "editTitle": "Edit {name}",
+      "forAnimal": "For {name}",
+      "name": {
+        "label": "Vaccine name",
+        "placeholder": "e.g. Rabies"
+      },
+      "lastInjectionDate": {
+        "label": "Vaccination date"
+      },
+      "dueDate": {
+        "label": "Next due date"
+      },
+      "submit": "Create",
+      "submitting": "Creating…",
+      "save": "Save",
+      "saving": "Saving…",
+      "errors": {
+        "name": "Vaccine name is required.",
+        "lastInjectionDate": "Vaccination date is required.",
+        "lastInjectionDateFuture": "Vaccination date can’t be in the future.",
+        "dueDate": "Due date isn’t valid.",
+        "notFound": "We can’t find this vaccine.",
+        "save": "Couldn’t save this vaccine. Try again."
+      }
+    },
+    "section": {
+      "title": "Vaccines",
+      "empty": "No vaccines yet",
+      "add": "Add a vaccine",
+      "status": {
+        "overdue": "Overdue",
+        "upToDate": "Up to date",
+        "none": "No reminder"
+      },
+      "detail": {
+        "overdue": "Past due",
+        "validUntil": "Valid until {month}",
+        "none": "No reminder set"
+      },
+      "error": "Couldn’t load vaccines."
+    }
+  },
+  "treatments": {
+    "type": {
+      "deworming": "Dewormer",
+      "antiparasitic": "Flea & tick"
+    },
+    "frequency": {
+      "day": "Every day | Every {n} days",
+      "week": "Every week | Every {n} weeks",
+      "month": "Every month | Every {n} months"
+    },
+    "form": {
+      "title": "New treatment",
+      "editTitle": "Edit {name}",
+      "forAnimal": "For {name}",
+      "name": {
+        "label": "Name",
+        "placeholder": "e.g. Bravecto"
+      },
+      "type": {
+        "label": "Type"
+      },
+      "frequency": {
+        "label": "Frequency",
+        "every": {
+          "day": "Every",
+          "week": "Every",
+          "month": "Every"
+        },
+        "unit": {
+          "day": "day | days",
+          "week": "week | weeks",
+          "month": "month | months"
+        }
+      },
+      "lastDoseDate": {
+        "label": "Date of last dose"
+      },
+      "nextDose": "Next dose on {date}",
+      "submit": "Add",
+      "submitting": "Adding…",
+      "save": "Save",
+      "saving": "Saving…",
+      "errors": {
+        "name": "Name is required.",
+        "type": "Choose a type.",
+        "frequency": "Enter a frequency.",
+        "lastDoseDate": "Date is required.",
+        "lastDoseDateFuture": "Date can’t be in the future.",
+        "notFound": "We can’t find this treatment.",
+        "save": "Couldn’t save this treatment. Try again."
+      }
+    },
+    "section": {
+      "title": "Active treatments",
+      "empty": "No active treatments",
+      "add": "Add a treatment",
+      "nextDose": {
+        "overdue": "Next dose overdue · {n}d",
+        "today": "Next dose today",
+        "tomorrow": "Next dose tomorrow",
+        "later": "Next dose in {n} days"
+      },
+      "error": "Couldn’t load treatments."
+    }
+  },
+  "weight": {
+    "unit": "kg",
+    "delta": {
+      "vs": "{delta} kg vs. {month}",
+      "first": "First weigh-in · {date}",
+      "value": "{delta} kg"
+    },
+    "section": {
+      "title": "Weight tracking",
+      "empty": "No weigh-ins yet",
+      "single": "Add another weigh-in to see the trend.",
+      "chartLabel": "Weight trend",
+      "error": "Couldn’t load weigh-ins.",
+      "add": "Add a weigh-in"
+    },
+    "history": {
+      "title": "Weight tracking",
+      "back": "Back",
+      "current": "Current weight",
+      "list": "All weigh-ins",
+      "value": "{weight} kg",
+      "initial": "Starting weight: {weight} kg",
+      "link": "View history"
+    },
+    "form": {
+      "title": "Add a weigh-in",
+      "forAnimal": "For {name}",
+      "close": "Close",
+      "required": "*",
+      "animal": {
+        "label": "Pet"
+      },
+      "weightKg": {
+        "label": "Weight",
+        "placeholder": "0.0"
+      },
+      "measuredOn": {
+        "label": "Weigh-in date"
+      },
+      "submit": "Save",
+      "submitting": "Saving…",
+      "errors": {
+        "animalId": "Choose a pet.",
+        "weightKg": "Weight must be more than 0 kg.",
+        "measuredOn": "Date is required.",
+        "measuredOnFuture": "Date can’t be in the future.",
+        "save": "Couldn’t save this weigh-in. Try again."
+      }
+    }
+  },
+  "home": {
+    "title": "MémoPatte",
+    "header": {
+      "household": "Your household"
+    },
+    "loading": "Loading…",
+    "error": {
+      "title": "Couldn’t open the home screen.",
+      "text": "The local database didn’t respond. Your data is safe.",
+      "retry": "Try again"
+    },
+    "todo": {
+      "title": "To do",
+      "count": "{n} reminder | {n} reminders",
+      "scoped": "{name} · {count}",
+      "overdueBanner": "{n} overdue reminder | {n} overdue reminders"
+    },
+    "reminder": {
+      "vaccination": "{name}",
+      "deworming": "Dewormer",
+      "antiparasitic": "Flea & tick"
+    },
+    "due": {
+      "overdue": "Overdue · {n}d",
+      "today": "Today",
+      "tomorrow": "Tomorrow",
+      "later": "In {n} day | In {n} days"
+    },
+    "upToDate": {
+      "title": "All up to date",
+      "forAnimal": "No upcoming reminders for {name}.",
+      "forOne": "{name} has no upcoming reminders.",
+      "forMany": "{names} have no upcoming reminders.",
+      "namesSeparator": ", ",
+      "namesLast": " and ",
+      "add": "Add a vaccine or treatment"
+    },
+    "quickActions": {
+      "title": "Quick actions",
+      "treatment": "New treatment",
+      "vaccination": "Vaccine reminder",
+      "weight": "Log weight",
+      "picker": {
+        "title": "Which pet?",
+        "close": "Close"
+      }
+    },
+    "welcome": {
+      "title": "Welcome to MémoPatte",
+      "text": "Your pets’ health record, always up to date.",
+      "create": "Add my first pet"
+    }
+  },
+  "form": {
+    "back": "Back",
+    "cancel": "Cancel",
+    "required": "*",
+    "optional": "Optional"
+  }
+}
