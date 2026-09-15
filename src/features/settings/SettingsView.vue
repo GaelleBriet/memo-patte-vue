@@ -116,6 +116,7 @@ function goHome(): void {
           </span>
           <v-switch
             id="settings-analytics"
+            role="switch"
             class="settings-row__switch"
             :model-value="shareAnalytics"
             color="primary"

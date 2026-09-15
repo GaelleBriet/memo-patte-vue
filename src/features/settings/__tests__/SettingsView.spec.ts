@@ -155,6 +155,12 @@ describe('SettingsView', () => {
       )
     })
 
+    it('annonce l’interrupteur comme un interrupteur aux lecteurs d’écran', async () => {
+      const wrapper = await monter()
+
+      expect(interrupteur(wrapper).attributes('role')).toBe('switch')
+    })
+
     it.each([
       [false, 'désactivé'],
       [true, 'activé'],
