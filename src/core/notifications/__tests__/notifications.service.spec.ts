@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { LocalNotifications } from '@capacitor/local-notifications'
-import type { LocalNotificationsPlugin } from '@capacitor/local-notifications'
+import type { Channel, LocalNotificationsPlugin } from '@capacitor/local-notifications'
 
 import {
   cancelReminder,
@@ -13,6 +13,7 @@ import {
   scheduleReminders,
 } from '../notifications.service'
 import { reminderNotificationId, type Reminder } from '../reminder'
+import { REMINDERS_CHANNEL_ID } from '../reminders-channel'
 
 vi.mock('@capacitor/local-notifications', () => ({
   LocalNotifications: {
@@ -21,6 +22,8 @@ vi.mock('@capacitor/local-notifications', () => ({
     getPending: vi.fn<LocalNotificationsPlugin['getPending']>(),
     checkPermissions: vi.fn<LocalNotificationsPlugin['checkPermissions']>(),
     requestPermissions: vi.fn<LocalNotificationsPlugin['requestPermissions']>(),
+    createChannel: vi.fn<LocalNotificationsPlugin['createChannel']>(),
+    listChannels: vi.fn<LocalNotificationsPlugin['listChannels']>(),
   },
 }))
 
@@ -29,6 +32,8 @@ const cancel = vi.mocked(LocalNotifications.cancel)
 const getPending = vi.mocked(LocalNotifications.getPending)
 const checkPermissions = vi.mocked(LocalNotifications.checkPermissions)
 const requestPermissions = vi.mocked(LocalNotifications.requestPermissions)
+const createChannel = vi.mocked(LocalNotifications.createChannel)
+const listChannels = vi.mocked(LocalNotifications.listChannels)
 
 const rabies: Reminder = {
   key: 'vaccination:11111111-1111-4111-8111-111111111111',
@@ -50,7 +55,18 @@ beforeEach(() => {
   cancel.mockResolvedValue()
   getPending.mockResolvedValue({ notifications: [] })
   checkPermissions.mockResolvedValue({ display: 'granted' })
+  createChannel.mockResolvedValue()
+  listChannels.mockResolvedValue({ channels: [] })
 })
+
+function remindersChannelImportance(importance: Channel['importance']): void {
+  listChannels.mockResolvedValue({
+    channels: [
+      { id: 'default', name: 'Default', importance: 3 },
+      { id: REMINDERS_CHANNEL_ID, name: 'Rappels', importance },
+    ],
+  })
+}
 
 const NOT_GRANTED = ['prompt', 'prompt-with-rationale', 'denied'] as const
 
@@ -94,10 +110,30 @@ describe('scheduleReminder', () => {
           body: rabies.body,
           schedule: { at: rabies.at, allowWhileIdle: true },
           isExactNotification: false,
+          channelId: REMINDERS_CHANNEL_ID,
           extra: { key: rabies.key },
         },
       ],
     })
+  })
+
+  it('crée le canal « Rappels » avant de programmer', async () => {
+    await scheduleReminder(rabies)
+
+    expect(createChannel).toHaveBeenCalledWith(
+      expect.objectContaining({ id: REMINDERS_CHANNEL_ID, name: 'Rappels', importance: 3 }),
+    )
+    expect(createChannel.mock.invocationCallOrder[0] ?? Infinity).toBeLessThan(
+      schedule.mock.invocationCallOrder[0] ?? 0,
+    )
+  })
+
+  it('programme quand même là où les canaux n’existent pas', async () => {
+    createChannel.mockRejectedValue(new Error('Not implemented on web.'))
+
+    await scheduleReminder(rabies)
+
+    expect(schedule).toHaveBeenCalledOnce()
   })
 
   it('ne programme jamais d’alarme exacte', async () => {
@@ -121,9 +157,28 @@ describe('scheduleReminder sans permission', () => {
       expect(requestPermissions).not.toHaveBeenCalled()
     },
   )
+
+  it('ne programme rien quand le canal des rappels est coupé dans les réglages', async () => {
+    remindersChannelImportance(0)
+
+    await scheduleReminder(rabies)
+
+    expect(schedule).not.toHaveBeenCalled()
+  })
 })
 
 describe('scheduleReminders', () => {
+  it('crée le canal « Rappels » avant de programmer', async () => {
+    await scheduleReminders([rabies, dewormer])
+
+    expect(createChannel).toHaveBeenCalledWith(
+      expect.objectContaining({ id: REMINDERS_CHANNEL_ID }),
+    )
+    expect(createChannel.mock.invocationCallOrder[0] ?? Infinity).toBeLessThan(
+      schedule.mock.invocationCallOrder[0] ?? 0,
+    )
+  })
+
   it('programme tous les rappels en un seul appel au plugin, après une seule vérification', async () => {
     await scheduleReminders([rabies, dewormer])
 
@@ -136,6 +191,7 @@ describe('scheduleReminders', () => {
           body: rabies.body,
           schedule: { at: rabies.at, allowWhileIdle: true },
           isExactNotification: false,
+          channelId: REMINDERS_CHANNEL_ID,
           extra: { key: rabies.key },
         },
         {
@@ -144,6 +200,7 @@ describe('scheduleReminders', () => {
           body: dewormer.body,
           schedule: { at: dewormer.at, allowWhileIdle: true },
           isExactNotification: false,
+          channelId: REMINDERS_CHANNEL_ID,
           extra: { key: dewormer.key },
         },
       ],
@@ -236,6 +293,7 @@ describe('rescheduleAll', () => {
           body: rabies.body,
           schedule: { at: rabies.at, allowWhileIdle: true },
           isExactNotification: false,
+          channelId: REMINDERS_CHANNEL_ID,
           extra: { key: rabies.key },
         },
         {
@@ -244,6 +302,7 @@ describe('rescheduleAll', () => {
           body: dewormer.body,
           schedule: { at: dewormer.at, allowWhileIdle: true },
           isExactNotification: false,
+          channelId: REMINDERS_CHANNEL_ID,
           extra: { key: dewormer.key },
         },
       ],
@@ -275,6 +334,14 @@ describe('rescheduleAll sans permission', () => {
       expect(requestPermissions).not.toHaveBeenCalled()
     },
   )
+
+  it('ne reprogramme rien quand le canal des rappels est coupé', async () => {
+    remindersChannelImportance(0)
+
+    await rescheduleAll([rabies])
+
+    expect(schedule).not.toHaveBeenCalled()
+  })
 })
 
 describe('permissions', () => {
@@ -286,6 +353,35 @@ describe('permissions', () => {
     await expect(checkPermission()).resolves.toBe(false)
 
     expect(requestPermissions).not.toHaveBeenCalled()
+  })
+
+  it('checkPermission est faux quand le canal des rappels est coupé', async () => {
+    remindersChannelImportance(0)
+
+    await expect(checkPermission()).resolves.toBe(false)
+  })
+
+  it('checkPermission reste vrai quand le canal est actif ou pas encore créé', async () => {
+    remindersChannelImportance(2)
+    await expect(checkPermission()).resolves.toBe(true)
+
+    listChannels.mockResolvedValue({
+      channels: [{ id: 'default', name: 'Default', importance: 0 }],
+    })
+    await expect(checkPermission()).resolves.toBe(true)
+  })
+
+  it('checkPermission s’en tient à la permission là où les canaux n’existent pas', async () => {
+    listChannels.mockRejectedValue(new Error('Not implemented on web.'))
+
+    await expect(checkPermission()).resolves.toBe(true)
+  })
+
+  it('requestPermission est faux quand le canal des rappels est coupé', async () => {
+    requestPermissions.mockResolvedValue({ display: 'granted' })
+    remindersChannelImportance(0)
+
+    await expect(requestPermission()).resolves.toBe(false)
   })
 
   it('requestPermission renvoie un booléen depuis display === granted', async () => {

@@ -12,6 +12,7 @@ vi.mock('@capacitor/local-notifications', () => ({
   LocalNotifications: {
     checkPermissions: vi.fn<LocalNotificationsPlugin['checkPermissions']>(),
     requestPermissions: vi.fn<LocalNotificationsPlugin['requestPermissions']>(),
+    listChannels: vi.fn<LocalNotificationsPlugin['listChannels']>(),
   },
 }))
 
@@ -22,9 +23,16 @@ vi.mock('capacitor-native-settings', async (importOriginal) => ({
 
 const checkPermissions = vi.mocked(LocalNotifications.checkPermissions)
 const requestPermissions = vi.mocked(LocalNotifications.requestPermissions)
+const listChannels = vi.mocked(LocalNotifications.listChannels)
 const openAndroid = vi.mocked(NativeSettings.openAndroid)
 
 let permission: typeof PermissionModule
+
+function remindersChannelMuted(muted: boolean): void {
+  listChannels.mockResolvedValue({
+    channels: [{ id: 'reminders', name: 'Rappels', importance: muted ? 0 : 3 }],
+  })
+}
 
 function osPermission(display: PermissionStatus['display']): void {
   checkPermissions.mockResolvedValue({ display })
@@ -47,6 +55,7 @@ beforeEach(async () => {
   osPermission('prompt')
   requestPermissions.mockResolvedValue({ display: 'granted' })
   openAndroid.mockResolvedValue({ status: true })
+  listChannels.mockResolvedValue({ channels: [] })
 })
 
 afterEach(() => {
@@ -57,6 +66,20 @@ afterEach(() => {
 describe('getNotificationPermissionStatus', () => {
   it('annonce « granted » quand le système a accordé la permission', async () => {
     osPermission('granted')
+
+    expect(await permission.getNotificationPermissionStatus()).toBe('granted')
+  })
+
+  it('annonce « disabled » quand seul le canal des rappels est coupé', async () => {
+    osPermission('granted')
+    remindersChannelMuted(true)
+
+    expect(await permission.getNotificationPermissionStatus()).toBe('disabled')
+  })
+
+  it('annonce « granted » là où les canaux n’existent pas', async () => {
+    osPermission('granted')
+    listChannels.mockRejectedValue(new Error('Not implemented on web.'))
 
     expect(await permission.getNotificationPermissionStatus()).toBe('granted')
   })
@@ -167,6 +190,21 @@ describe('onNotificationPermissionGranted', () => {
     await vi.waitFor(() => expect(checkPermissions).toHaveBeenCalled())
 
     osPermission('granted')
+    simulateWebResume()
+
+    await vi.waitFor(() => expect(listener).toHaveBeenCalledOnce())
+  })
+
+  it('prévient quand le canal des rappels est réactivé, au retour au premier plan', async () => {
+    const listener = vi.fn<() => void>()
+    osPermission('granted')
+    remindersChannelMuted(true)
+    permission.onNotificationPermissionGranted(listener)
+    await vi.waitFor(() => expect(listChannels).toHaveBeenCalled())
+    await permission.getNotificationPermissionStatus()
+    expect(listener).not.toHaveBeenCalled()
+
+    remindersChannelMuted(false)
     simulateWebResume()
 
     await vi.waitFor(() => expect(listener).toHaveBeenCalledOnce())

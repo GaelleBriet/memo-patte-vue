@@ -341,6 +341,10 @@
       "later": "Not now",
       "enabled": "Reminders on"
     },
+    "channel": {
+      "name": "Reminders",
+      "description": "Vaccination and treatment reminders for your pets"
+    },
     "disabled": {
       "title": "Reminders are off",
       "openSettings": "Turn on in settings"
