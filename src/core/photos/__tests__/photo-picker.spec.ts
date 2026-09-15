@@ -54,6 +54,7 @@ describe('pickPhoto', () => {
       expect.objectContaining({
         mediaType: MediaTypeSelection.Photo,
         allowMultipleSelection: false,
+        limit: 1,
         editable: 'no',
         webUseInput: true,
       }),

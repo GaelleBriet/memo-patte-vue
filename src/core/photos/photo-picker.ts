@@ -45,6 +45,8 @@ export async function pickPhoto(): Promise<PickedPhoto | null> {
     const { results } = await Camera.chooseFromGallery({
       mediaType: MediaTypeSelection.Photo,
       allowMultipleSelection: false,
+      // Android lance le sélecteur simple dès que `limit` vaut 1, même si l'autre option se perdait.
+      limit: 1,
       editable: 'no',
       webUseInput: true,
     })
