@@ -54,6 +54,8 @@ Supabase (Postgres + Auth)
 
 ### Règles de synchronisation
 
+Mise en œuvre détaillée (colonnes, schéma Postgres, RLS, file d'attente, lots) : `proposition-sync.md`.
+
 - Toute écriture se fait d’abord en local (SQLite).
 - La synchronisation vers Supabase se déclenche dès que le réseau est disponible (avec debounce).
 - Multi-appareil (Plus) : chaque ligne synchronisable porte un UUID généré localement et un `updated_at` ; le pull applique les lignes distantes plus récentes, la modification la plus récente gagne, pas de fusion champ par champ.
