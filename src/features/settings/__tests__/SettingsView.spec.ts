@@ -31,6 +31,16 @@ vi.mock('../data-import.service', async (importOriginal) => ({
 
 vi.mock('@/app/reminders-priming', () => ({ promptNotificationsIfReminders }))
 
+const consent = vi.hoisted(() => ({ granted: false }))
+const optIn = vi.hoisted(() => vi.fn<() => Promise<void>>())
+const optOut = vi.hoisted(() => vi.fn<() => Promise<void>>())
+
+vi.mock('@/core/analytics', () => ({
+  hasConsent: () => consent.granted,
+  optIn,
+  optOut,
+}))
+
 const MILO: Animal = {
   id: '11111111-1111-4111-8111-111111111111',
   name: 'Milo',
@@ -54,6 +64,9 @@ beforeEach(async () => {
   hasLocalData.mockReset()
   importData.mockReset()
   promptNotificationsIfReminders.mockClear()
+  consent.granted = false
+  optIn.mockReset().mockImplementation(async () => void (consent.granted = true))
+  optOut.mockReset().mockImplementation(async () => void (consent.granted = false))
   setActivePinia(createPinia())
   animalsStore = useAnimalsStore()
   animals = [MILO]
@@ -114,14 +127,73 @@ describe('SettingsView', () => {
     expect(push).toHaveBeenCalledWith({ name: 'home' })
   })
 
-  it('ne livre que les sections dont la destination existe : Mes données et À propos', async () => {
+  it('ne livre que les sections dont la destination existe : Mes données, Confidentialité et À propos', async () => {
     const wrapper = await monter()
 
     expect(wrapper.findAll('.section-card__title').map((title) => title.text())).toEqual([
       'Mes données',
+      'Confidentialité',
       'À propos',
     ])
-    expect(wrapper.text()).not.toMatch(/Plus|Compte|PDF|Confidentialité/)
+    expect(wrapper.text()).not.toMatch(/Plus|Compte|PDF|Politique/)
+  })
+
+  describe('Confidentialité', () => {
+    function interrupteur(wrapper: VueWrapper) {
+      return wrapper.get<HTMLInputElement>('.settings-row--analytics input[type="checkbox"]')
+    }
+
+    it('nomme l’interrupteur des statistiques par son libellé', async () => {
+      const wrapper = await monter()
+      const input = interrupteur(wrapper)
+
+      expect(wrapper.get('.settings-row--analytics').text()).toContain(
+        'Statistiques d’usage anonymes',
+      )
+      expect([...input.element.labels!].map((label) => label.textContent?.trim())).toContain(
+        'Statistiques d’usage anonymes',
+      )
+    })
+
+    it.each([
+      [false, 'désactivé'],
+      [true, 'activé'],
+    ])('reflète le consentement enregistré (%s → %s)', async (granted) => {
+      consent.granted = granted
+      const wrapper = await monter()
+
+      expect(interrupteur(wrapper).element.checked).toBe(granted)
+    })
+
+    it('active les statistiques dès que l’interrupteur passe à oui', async () => {
+      const wrapper = await monter()
+
+      await interrupteur(wrapper).setValue(true)
+
+      expect(optIn).toHaveBeenCalledOnce()
+      expect(optOut).not.toHaveBeenCalled()
+      expect(interrupteur(wrapper).element.checked).toBe(true)
+    })
+
+    it('bascule aussi d’un tap sur le libellé, toute la ligne servant de zone de tap', async () => {
+      const wrapper = await monter()
+
+      await wrapper.get('.settings-row--analytics .settings-row__label').trigger('click')
+
+      expect(optIn).toHaveBeenCalledOnce()
+      expect(interrupteur(wrapper).element.checked).toBe(true)
+    })
+
+    it('les coupe dès que l’interrupteur passe à non', async () => {
+      consent.granted = true
+      const wrapper = await monter()
+
+      await interrupteur(wrapper).setValue(false)
+
+      expect(optOut).toHaveBeenCalledOnce()
+      expect(optIn).not.toHaveBeenCalled()
+      expect(interrupteur(wrapper).element.checked).toBe(false)
+    })
   })
 
   it('charge les animaux s’ils ne le sont pas encore', async () => {

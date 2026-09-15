@@ -334,6 +334,14 @@ onRefuse()  => posthog.opt_out_capturing()   // état par défaut, on ne fait ri
 
 Références : `opt_out_capturing_by_default: true` puis `posthog.opt_in_capturing()` « when users grant consent » (<https://posthog.com/docs/privacy/data-collection>). Côté projet PostHog : activer « Discard client IP data », fixer la rétention, ne **jamais** appeler `identify()` avec l'email (utiliser au plus l'UUID Supabase, ou rester anonyme), exclure les écrans où figurent des données saisies (`ph-no-capture` si autocapture réactivé).
 
+#### État dans l'app (2026-09-15, #66 et #67)
+
+- `src/core/analytics/` est le seul point d'accès à `posthog-js` (build `posthog-js/no-external` : aucun script distant). La réponse à la question est notée dans `localStorage` (`memopatte.analytics.consent`), propre à l'appareil comme le stockage du WebView. PostHog n'est importé (import dynamique, chunk séparé) et initialisé qu'avec une clé `VITE_POSTHOG_KEY` **et** l'accord : sans clé, tout est sans effet.
+- Options d'init : celles ci-dessus, plus `capture_pageleave`, heatmaps, dead clicks, exceptions, performance, rageclick, referrer et paramètres de campagne désactivés ; sondages, product tours, conversations, expériences et `/flags` coupés. L'accord n'émet pas d'événement `$opt_in`. `ip` n'a plus d'effet dans posthog-js (option dépréciée) : « Discard client IP data » côté projet reste **obligatoire**. `property_denylist: ['$ip']` n'a pas été retenu : l'IP est lue par le serveur sur la requête, pas envoyée en propriété.
+- Retrait : `opt_out_capturing()` ; avec `opt_out_persistence_by_default`, PostHog efface alors son stockage (`distinct_id` compris).
+- Écran « Avant de commencer » au premier lancement, avant toute initialisation, deux boutons de même taille ; interrupteur « Statistiques d'usage anonymes » dans Paramètres → Confidentialité. Vérifié dans Chromium (onglet réseau) : aucune requête PostHog avant l'accord ni sans clé ; après l'accord et un événement explicite, une seule requête vers `https://eu.i.posthog.com/e/`.
+- **Reste à faire** : lien vers la politique de confidentialité depuis l'écran et depuis Confidentialité, quand la page existera (#86) ; organisation PostHog EU, DPA, rétention (§3.4 A et B).
+
 ---
 
 ## 3. Livrables prêts à l'emploi
@@ -494,7 +502,7 @@ Contenu minimal de la page `supprimer-mon-compte.html` (exigences Google : nom d
 10. `targetSdkVersion 36` ; plugin de facturation avec PBL ≥ 7 ; `queryPurchasesAsync` au lancement ; acquittement des achats < 3 jours ; gestion des états (grâce = accès, hold = coupure).
 11. Manifest : `POST_NOTIFICATIONS` ; **pas** de `READ_MEDIA_IMAGES`/`READ_MEDIA_VIDEO`, pas d'`USE_EXACT_ALARM` ; vérifier le manifest fusionné.
 12. Écran Plus : prix, périodicité, renouvellement automatique, mention « app utilisable gratuitement », lien « Gérer mon abonnement » (Play Subscription Center), lien CGU/politique.
-13. Écran de consentement analytics in-app (action positive, avant init), interrupteur dans Paramètres.
+13. Écran de consentement analytics in-app (action positive, avant init), interrupteur dans Paramètres. *(Fait le 2026-09-15, #67 ; lien vers la politique à ajouter avec #86.)*
 14. Paramètres > Confidentialité : lien/texte de la politique ; Paramètres > Compte : « Supprimer mon compte » ; Paramètres > Exporter (JSON/CSV).
 15. Mention « réservé aux 18 ans et plus » dans les CGU / création de compte.
 

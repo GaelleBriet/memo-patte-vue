@@ -107,6 +107,9 @@ $color-reminders-off-text: #47413c; // Première ligne de ce bandeau
 $height-settings-row: 58px; // Ligne d'une carte de réglages (minimum)
 $color-settings-row-disabled: #9a948d; // Libellé et puce d'une ligne désactivée
 $color-settings-chevron: #857f79; // Chevron d'une ligne qui ouvre une destination
+$color-switch-track-off: #dbd7d0; // Piste d'un interrupteur désactivé (maquette oklch(88% 0.01 78))
+$color-switch-thumb: #ffffff; // Pastille d'un interrupteur
+$shadow-switch-thumb: 0 1px 3px rgb(30 25 20 / 25%); // Relief de la pastille blanche d'un interrupteur
 $height-export-choice: 64px; // Carte de choix de format
 $color-choice-selected-surface: #dcf0f1; // Fond d'une carte de choix cochée
 $color-radio-border: #b9b4ae; // Pastille radio non cochée

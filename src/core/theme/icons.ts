@@ -21,6 +21,7 @@ import notificationsOff from '@material-symbols/svg-400/outlined/notifications_o
 import pestControl from '@material-symbols/svg-400/outlined/pest_control.svg?raw'
 import pets from '@material-symbols/svg-400/outlined/pets.svg?raw'
 import photoCamera from '@material-symbols/svg-400/outlined/photo_camera.svg?raw'
+import queryStats from '@material-symbols/svg-400/outlined/query_stats.svg?raw'
 import schedule from '@material-symbols/svg-400/outlined/schedule.svg?raw'
 import settings from '@material-symbols/svg-400/outlined/settings.svg?raw'
 import showChart from '@material-symbols/svg-400/outlined/show_chart.svg?raw'
@@ -144,6 +145,7 @@ export const msIcons = {
   pets,
   photo_camera: photoCamera,
   play_arrow: playArrow,
+  query_stats: queryStats,
   radio_button_checked: radioButtonChecked,
   radio_button_unchecked: radioButtonUnchecked,
   remove,

@@ -6,6 +6,7 @@ import { useRouter } from 'vue-router'
 import ExportSheet from './ExportSheet.vue'
 import ImportSheet from './ImportSheet.vue'
 import { promptNotificationsIfReminders } from '@/app/reminders-priming'
+import { hasConsent, optIn, optOut } from '@/core/analytics'
 import { useAnimalsStore } from '@/features/animals/animals.store'
 import PushedScreen from '@/shared/PushedScreen.vue'
 import SectionCard from '@/shared/SectionCard.vue'
@@ -18,6 +19,7 @@ const appVersion = import.meta.env.VITE_APP_VERSION
 const isExportSheetOpen = ref(false)
 const importSheet = useTemplateRef('importSheet')
 const isImporting = ref(false)
+const shareAnalytics = ref(hasConsent())
 
 const hasLoadFailed = computed(() => animals.error !== null)
 const hasNothingToExport = computed(() => animals.hasLoaded && animals.animals.length === 0)
@@ -35,6 +37,11 @@ onMounted(() => {
 function onImported(): void {
   void animals.load()
   void promptNotificationsIfReminders(router, 'settings')
+}
+
+function onShareAnalyticsChange(enabled: boolean | null): void {
+  shareAnalytics.value = enabled === true
+  void (shareAnalytics.value ? optIn() : optOut())
 }
 
 function goHome(): void {
@@ -101,6 +108,26 @@ function goHome(): void {
         </button>
       </SectionCard>
 
+      <SectionCard :title="t('settings.privacy.title')">
+        <label class="settings-row settings-row--analytics" for="settings-analytics">
+          <v-icon class="settings-row__icon" icon="ms:query_stats" size="22" />
+          <span class="settings-row__text">
+            <span class="settings-row__label">{{ t('settings.privacy.analytics') }}</span>
+          </span>
+          <v-switch
+            id="settings-analytics"
+            class="settings-row__switch"
+            :model-value="shareAnalytics"
+            color="primary"
+            inset
+            size="small"
+            hide-details
+            density="compact"
+            @update:model-value="onShareAnalyticsChange"
+          />
+        </label>
+      </SectionCard>
+
       <SectionCard :title="t('settings.about.title')">
         <div class="settings-row settings-row--version">
           <span class="settings-row__text">
@@ -140,7 +167,8 @@ function goHome(): void {
   text-align: start;
 }
 
-button.settings-row {
+button.settings-row,
+label.settings-row {
   cursor: pointer;
 
   &:focus-visible {
@@ -191,6 +219,30 @@ button.settings-row {
 
 .settings-row--busy {
   cursor: progress;
+}
+
+.settings-row__switch {
+  flex: 0 0 auto;
+  --v-switch-inset-thumb-off-scale: 1;
+
+  :deep(.v-switch__track) {
+    min-width: 44px;
+    background-color: tokens.$color-switch-track-off;
+    opacity: 1;
+  }
+
+  :deep(.v-selection-control--dirty .v-switch__track) {
+    background-color: rgb(var(--v-theme-primary));
+  }
+
+  :deep(.v-switch__thumb) {
+    background-color: tokens.$color-switch-thumb;
+    box-shadow: tokens.$shadow-switch-thumb;
+  }
+
+  :deep(.v-selection-control__input::before) {
+    display: none;
+  }
 }
 
 .settings-row__value {
