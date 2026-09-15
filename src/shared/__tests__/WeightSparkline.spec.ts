@@ -1,5 +1,7 @@
 import { mount } from '@vue/test-utils'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+
+import { nextTick } from 'vue'
 
 import WeightSparkline from '../WeightSparkline.vue'
 import { buildWeightChart } from '../weight-chart'
@@ -17,6 +19,11 @@ const CHART = buildWeightChart(
 function monter() {
   return mount(WeightSparkline, { props: { chart: CHART }, global: { plugins: [i18n] } })
 }
+
+afterEach(() => {
+  vi.unstubAllGlobals()
+  vi.restoreAllMocks()
+})
 
 describe('WeightSparkline', () => {
   it('dessine un svg aux dimensions du tracé, sans axe ni grille', () => {
@@ -47,6 +54,28 @@ describe('WeightSparkline', () => {
       'Août',
       'Nov.',
     ])
+  })
+
+  it('écrit les valeurs à 12 px à l’écran, quelle que soit la largeur rendue du SVG', async () => {
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        constructor(private readonly callback: () => void) {}
+        observe() {
+          this.callback()
+        }
+        disconnect() {}
+      },
+    )
+    vi.spyOn(SVGElement.prototype, 'getBoundingClientRect').mockReturnValue({
+      width: 250,
+    } as DOMRect)
+
+    const wrapper = monter()
+    await nextTick()
+
+    const tailles = wrapper.findAll('.weight-sparkline__value').map((v) => v.attributes('style'))
+    expect(tailles).toEqual(Array(3).fill('font-size: 14.4px;'))
   })
 
   it('nomme le graphique pour les lecteurs d’écran', () => {

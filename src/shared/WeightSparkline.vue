@@ -1,9 +1,10 @@
 <script setup lang="ts">
+import { computed, onBeforeUnmount, onMounted, ref, useTemplateRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import type { WeightChart } from './weight-chart'
 
-defineProps<{
+const props = defineProps<{
   chart: WeightChart
 }>()
 
@@ -11,11 +12,35 @@ const { t } = useI18n()
 
 const VALUE_OFFSET = 10
 const POINT_RADIUS = 4
+const VALUE_FONT_PX = 12
+
+const svg = useTemplateRef<SVGSVGElement>('svg')
+const renderedWidth = ref(0)
+let observer: ResizeObserver | null = null
+
+// Le SVG s'étire à sa carte : la taille en unités du tracé est corrigée pour rester à 12 px à l'écran.
+const valueFontSize = computed(() =>
+  renderedWidth.value > 0
+    ? (VALUE_FONT_PX * props.chart.width) / renderedWidth.value
+    : VALUE_FONT_PX,
+)
+
+onMounted(() => {
+  const element = svg.value
+  if (!element) return
+  observer = new ResizeObserver(() => {
+    renderedWidth.value = element.getBoundingClientRect().width
+  })
+  observer.observe(element)
+})
+
+onBeforeUnmount(() => observer?.disconnect())
 </script>
 
 <template>
   <figure class="weight-sparkline">
     <svg
+      ref="svg"
       class="weight-sparkline__svg"
       :viewBox="`0 0 ${chart.width} ${chart.height}`"
       role="img"
@@ -29,6 +54,7 @@ const POINT_RADIUS = 4
           :x="point.x"
           :y="point.y - VALUE_OFFSET"
           text-anchor="middle"
+          :style="{ fontSize: `${valueFontSize}px` }"
         >
           {{ point.valueLabel }}
         </text>
@@ -71,7 +97,6 @@ const POINT_RADIUS = 4
 .weight-sparkline__value {
   fill: tokens.$color-chart-value;
   font-family: tokens.$font-family-body;
-  font-size: 11px;
   font-weight: 600;
 }
 
@@ -80,7 +105,7 @@ const POINT_RADIUS = 4
   justify-content: space-between;
   margin-top: 4px;
   color: tokens.$color-text-meta;
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 500;
 }
 </style>

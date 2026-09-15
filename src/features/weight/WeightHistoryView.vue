@@ -217,7 +217,7 @@ function backToAnimals(): void {
 
 .weight-history__current-label {
   color: tokens.$color-text-meta;
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 600;
 }
 

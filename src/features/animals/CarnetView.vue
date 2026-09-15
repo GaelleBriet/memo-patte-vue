@@ -341,7 +341,7 @@ function createAnimal(): void {
 
 .carnet-stat__label {
   color: tokens.$color-text-meta;
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 600;
 }
 
@@ -356,7 +356,7 @@ function createAnimal(): void {
 .carnet-stat__sub {
   margin: 4px 0 0;
   color: tokens.$color-text-secondary;
-  font-size: 11.5px;
+  font-size: 12px;
 }
 
 .carnet-stat--overdue .carnet-stat__value {
