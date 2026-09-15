@@ -24,11 +24,23 @@ import { useAnimalsStore } from '@/features/animals/animals.store'
 import WeightSheet from '@/features/weight/WeightSheet.vue'
 import AnimalChipSelector from '@/shared/AnimalChipSelector.vue'
 import { forgetPhotoUrls } from '@/core/photos/use-photo-urls'
+import {
+  getNotificationPermissionStatus,
+  openNotificationSettings,
+  type NotificationPermissionStatus,
+} from '@/core/notifications/permission'
 
 vi.mock('@/core/photos/photo-storage', () => ({
   savePhoto: vi.fn<(base64: string) => Promise<string>>(),
   deletePhoto: vi.fn<(name: string) => Promise<void>>(),
   photoDisplayUrl: vi.fn<(name: string) => Promise<string>>(async (name) => `url:${name}`),
+}))
+
+vi.mock('@/core/notifications/permission', () => ({
+  getNotificationPermissionStatus: vi.fn<() => Promise<NotificationPermissionStatus>>(
+    async () => 'granted',
+  ),
+  openNotificationSettings: vi.fn<() => Promise<void>>(async () => {}),
 }))
 
 const TODAY = new Date('2026-09-09T12:00:00')
@@ -340,6 +352,74 @@ describe('HomeView — retour au premier plan', () => {
     expect(listSources).toHaveBeenCalledTimes(2)
     expect(animalsStore.selectedAnimalId).toBe(LUNA.id)
     expect(rows(wrapper)).toHaveLength(1)
+  })
+})
+
+describe('HomeView — rappels désactivés', () => {
+  const permissionStatus = vi.mocked(getNotificationPermissionStatus)
+
+  afterEach(() => {
+    permissionStatus.mockResolvedValue('granted')
+  })
+
+  it('n’affiche aucun bandeau quand les rappels sont actifs', async () => {
+    const wrapper = await monter()
+
+    expect(wrapper.find('.home-reminders-off').exists()).toBe(false)
+  })
+
+  it.each<NotificationPermissionStatus>(['unasked', 'unavailable'])(
+    'n’affiche aucun bandeau tant que l’état est « %s »',
+    async (status) => {
+      permissionStatus.mockResolvedValue(status)
+      const wrapper = await monter()
+
+      expect(wrapper.find('.home-reminders-off').exists()).toBe(false)
+    },
+  )
+
+  it('affiche le bandeau au-dessus de « À faire » quand les rappels sont désactivés (R1)', async () => {
+    permissionStatus.mockResolvedValue('disabled')
+    sources = [ANTIPARASITAIRE_MILO_3J]
+    const wrapper = await monter()
+
+    const banner = wrapper.get('.home-reminders-off')
+    expect(banner.text()).toContain('Les rappels sont désactivés')
+    expect(banner.get('.home-reminders-off__link').text()).toBe('Activer dans les réglages')
+    const todo = wrapper.get('.home-todo').element
+    expect(banner.element.compareDocumentPosition(todo)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
+  })
+
+  it('le garde au-dessus de la bannière de retard (R2)', async () => {
+    permissionStatus.mockResolvedValue('disabled')
+    sources = [CHPPIL_MILO_RETARD]
+    const wrapper = await monter()
+
+    const overdue = wrapper.get('.home-overdue-banner').element
+    expect(wrapper.get('.home-reminders-off').element.compareDocumentPosition(overdue)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    )
+  })
+
+  it('ouvre les réglages de notifications de l’app', async () => {
+    permissionStatus.mockResolvedValue('disabled')
+    const wrapper = await monter()
+
+    await wrapper.get('.home-reminders-off__link').trigger('click')
+
+    expect(openNotificationSettings).toHaveBeenCalledOnce()
+  })
+
+  it('disparaît au retour des réglages quand la permission a été accordée', async () => {
+    permissionStatus.mockResolvedValue('disabled')
+    const wrapper = await monter()
+    expect(wrapper.find('.home-reminders-off').exists()).toBe(true)
+
+    permissionStatus.mockResolvedValue('granted')
+    simulateWebResume()
+    await flushPromises()
+
+    expect(wrapper.find('.home-reminders-off').exists()).toBe(false)
   })
 })
 

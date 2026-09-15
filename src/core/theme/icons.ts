@@ -11,6 +11,8 @@ import errorFill from '@material-symbols/svg-400/outlined/error-fill.svg?raw'
 import home from '@material-symbols/svg-400/outlined/home.svg?raw'
 import medication from '@material-symbols/svg-400/outlined/medication.svg?raw'
 import monitorWeight from '@material-symbols/svg-400/outlined/monitor_weight.svg?raw'
+import notificationsActive from '@material-symbols/svg-400/outlined/notifications_active.svg?raw'
+import notificationsOff from '@material-symbols/svg-400/outlined/notifications_off.svg?raw'
 import pestControl from '@material-symbols/svg-400/outlined/pest_control.svg?raw'
 import pets from '@material-symbols/svg-400/outlined/pets.svg?raw'
 import photoCamera from '@material-symbols/svg-400/outlined/photo_camera.svg?raw'
@@ -123,6 +125,8 @@ export const msIcons = {
   medication,
   menu,
   monitor_weight: monitorWeight,
+  notifications_active: notificationsActive,
+  notifications_off: notificationsOff,
   palette,
   pause,
   pest_control: pestControl,

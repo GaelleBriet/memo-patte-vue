@@ -4,7 +4,16 @@ export {
   cancelReminder,
   checkPermission,
   listScheduled,
-  requestPermission,
   rescheduleAll,
   scheduleReminder,
 } from './notifications.service'
+export type { NotificationPermissionStatus } from './permission'
+export {
+  getNotificationPermissionStatus,
+  onNotificationPermissionGranted,
+  openNotificationSettings,
+  postponePriming,
+  requestAfterPriming,
+  shouldShowPriming,
+} from './permission'
+export { useNotificationPermission } from './use-notification-permission'

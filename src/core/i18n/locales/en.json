@@ -308,5 +308,24 @@
     "cancel": "Cancel",
     "required": "*",
     "optional": "Optional"
+  },
+  "notifications": {
+    "priming": {
+      "title": "Never miss a reminder",
+      "subtitle": "Turn on notifications to hear in time about your pets’ vaccines and treatments.",
+      "benefits": {
+        "vaccination": "We’ll let you know before {name}’s vaccine is due",
+        "treatment": "We’ll let you know before {name}’s treatment is due",
+        "offline": "Works even offline",
+        "onlyYours": "Only for the reminders you save"
+      },
+      "enable": "Turn on reminders",
+      "later": "Not now",
+      "enabled": "Reminders on"
+    },
+    "disabled": {
+      "title": "Reminders are off",
+      "openSettings": "Turn on in settings"
+    }
   }
 }

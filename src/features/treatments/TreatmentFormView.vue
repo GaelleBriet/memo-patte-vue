@@ -23,6 +23,7 @@ import FormField from '@/shared/form/FormField.vue'
 import FormScreen from '@/shared/form/FormScreen.vue'
 import FormSegmented from '@/shared/form/FormSegmented.vue'
 import { useFormValidation } from '@/shared/form/use-form-validation'
+import { routeAfterReminderSaved } from '@/shared/notification-priming'
 
 const props = defineProps<{
   animalId?: string
@@ -121,7 +122,13 @@ async function submit(): Promise<void> {
     } else {
       await treatments.create({ animalId: requireAnimalId(), ...result.data })
     }
-    backToAnimals()
+    void router.push(
+      await routeAfterReminderSaved({
+        hasDueDate: true,
+        animalName: animalName.value,
+        kind: 'treatment',
+      }),
+    )
   } catch {
     saveFailed.value = true
   } finally {

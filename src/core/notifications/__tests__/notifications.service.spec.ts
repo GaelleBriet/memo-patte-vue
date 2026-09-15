@@ -48,7 +48,10 @@ beforeEach(() => {
   schedule.mockResolvedValue({ notifications: [] })
   cancel.mockResolvedValue()
   getPending.mockResolvedValue({ notifications: [] })
+  checkPermissions.mockResolvedValue({ display: 'granted' })
 })
+
+const NOT_GRANTED = ['prompt', 'prompt-with-rationale', 'denied'] as const
 
 describe('reminderNotificationId', () => {
   it('renvoie le même identifiant pour la même clé', () => {
@@ -103,6 +106,20 @@ describe('scheduleReminder', () => {
     expect(notification?.isExactNotification).toBe(false)
     expect(notification?.isExactMandatory).toBeUndefined()
   })
+})
+
+describe('scheduleReminder sans permission', () => {
+  it.each(NOT_GRANTED)(
+    'ne programme rien quand la permission est « %s », pour ne jamais ouvrir la popup système',
+    async (display) => {
+      checkPermissions.mockResolvedValue({ display })
+
+      await scheduleReminder(rabies)
+
+      expect(schedule).not.toHaveBeenCalled()
+      expect(requestPermissions).not.toHaveBeenCalled()
+    },
+  )
 })
 
 describe('cancelReminder', () => {
@@ -194,6 +211,22 @@ describe('rescheduleAll', () => {
     expect(cancel).not.toHaveBeenCalled()
     expect(schedule).not.toHaveBeenCalled()
   })
+})
+
+describe('rescheduleAll sans permission', () => {
+  it.each(NOT_GRANTED)(
+    'annule l’existant sans rien programmer quand la permission est « %s »',
+    async (display) => {
+      checkPermissions.mockResolvedValue({ display })
+      getPending.mockResolvedValue({ notifications: [{ id: 1, title: 'Ancien', body: 'Ancien' }] })
+
+      await rescheduleAll([rabies])
+
+      expect(cancel).toHaveBeenCalledWith({ notifications: [{ id: 1 }] })
+      expect(schedule).not.toHaveBeenCalled()
+      expect(requestPermissions).not.toHaveBeenCalled()
+    },
+  )
 })
 
 describe('permissions', () => {
