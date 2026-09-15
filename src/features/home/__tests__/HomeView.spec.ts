@@ -208,6 +208,16 @@ describe('HomeView — A1 tous les animaux, avec rappels', () => {
     expect(wrapper.get('.home-header__subtitle').text()).toBe('Ton foyer')
   })
 
+  it('ouvre les Paramètres depuis l’icône du header', async () => {
+    const wrapper = await monter()
+    const settings = wrapper.get('.home-header .home-header__settings')
+
+    expect(settings.attributes('aria-label')).toBe('Paramètres')
+    await settings.trigger('click')
+
+    expect(push).toHaveBeenCalledWith({ name: 'settings' })
+  })
+
   it('rend les chips en mode filtre, sans sélection', async () => {
     const wrapper = await monter()
 

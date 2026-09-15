@@ -349,5 +349,38 @@
       "title": "Les rappels sont désactivés",
       "openSettings": "Activer dans les réglages"
     }
+  },
+  "settings": {
+    "open": "Paramètres",
+    "title": "Paramètres",
+    "data": {
+      "title": "Mes données",
+      "export": "Exporter mes données",
+      "exportEmpty": "Rien à exporter pour l’instant",
+      "loadError": "La base locale n’a pas répondu. Touche pour réessayer."
+    },
+    "about": {
+      "title": "À propos",
+      "version": "Version"
+    },
+    "export": {
+      "title": "Exporter tes données",
+      "subtitle": "Choisis un format.",
+      "close": "Fermer",
+      "formats": "Format d’export",
+      "json": {
+        "label": "JSON",
+        "description": "Pour réimporter dans MémoPatte"
+      },
+      "csv": {
+        "label": "CSV",
+        "description": "Pour un tableur"
+      },
+      "submit": "Exporter",
+      "preparing": "Préparation…",
+      "shareTitle": "Partager via",
+      "success": "Données exportées",
+      "error": "L’export n’a pas pu être préparé. Réessaie."
+    }
   }
 }

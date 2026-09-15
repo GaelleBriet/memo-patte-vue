@@ -1,4 +1,4 @@
-import { rmSync } from 'node:fs'
+import { readFileSync, rmSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { fileURLToPath, URL } from 'node:url'
 
@@ -21,6 +21,8 @@ function dropWebSqliteWasmFromBuild(): Plugin {
   }
 }
 
+const { version } = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8'))
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
@@ -34,6 +36,10 @@ export default defineConfig({
     }),
     dropWebSqliteWasmFromBuild(),
   ],
+  define: {
+    // Version release-please : `versionName` d'Android n'est pas tenu à jour.
+    'import.meta.env.VITE_APP_VERSION': JSON.stringify(version),
+  },
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),

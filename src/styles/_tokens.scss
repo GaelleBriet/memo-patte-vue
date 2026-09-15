@@ -101,3 +101,11 @@ $color-priming-icon-surface: #b9e4e7; // Pastille de l'icône de l'écran d'expl
 $color-reminders-off-surface: #f2f0ec; // Fond du bandeau « rappels désactivés »
 $color-reminders-off-border: #e1ddd8; // Bordure de ce bandeau
 $color-reminders-off-text: #47413c; // Première ligne de ce bandeau
+
+// Paramètres (lignes de réglage, feuille d'export)
+$height-settings-row: 58px; // Ligne d'une carte de réglages (minimum)
+$color-settings-row-disabled: #9a948d; // Libellé et puce d'une ligne désactivée
+$color-settings-chevron: #857f79; // Chevron d'une ligne qui ouvre une destination
+$height-export-choice: 64px; // Carte de choix de format
+$color-choice-selected-surface: #dcf0f1; // Fond d'une carte de choix cochée
+$color-radio-border: #c1bdb7; // Pastille radio non cochée

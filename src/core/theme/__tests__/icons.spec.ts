@@ -21,6 +21,9 @@ const iconesDesMaquettes = [
   'add',
   'monitor_weight',
   'photo_camera',
+  'ios_share',
+  'description',
+  'table',
 ] as const
 
 describe('registre d’icônes Material Symbols', () => {

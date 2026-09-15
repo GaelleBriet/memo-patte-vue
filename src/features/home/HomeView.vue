@@ -108,6 +108,10 @@ function createAnimal(): void {
   void router.push({ name: 'animal-new' })
 }
 
+function openSettings(): void {
+  void router.push({ name: 'settings' })
+}
+
 function openCarnet(): void {
   const animalId = animals.selectedAnimalId ?? animals.animals[0]?.id
   if (!animalId) return
@@ -135,6 +139,13 @@ function openCarnet(): void {
 
     <template v-else-if="isReady">
       <header class="home-header">
+        <v-btn
+          class="home-header__settings"
+          icon="ms:settings"
+          variant="text"
+          :aria-label="t('settings.open')"
+          @click="openSettings"
+        />
         <h1 class="home-header__title">{{ t('home.title') }}</h1>
         <p class="home-header__subtitle">{{ t('home.header.household') }}</p>
       </header>
@@ -252,12 +263,22 @@ function openCarnet(): void {
 }
 
 .home-header {
+  position: relative;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
   height: tokens.$height-header;
   padding: 0 20px 36px;
   background: rgb(var(--v-theme-primary));
+  color: rgb(var(--v-theme-background));
+}
+
+.home-header__settings {
+  position: absolute;
+  top: 4px;
+  right: 12px;
+  width: 48px;
+  height: 48px;
   color: rgb(var(--v-theme-background));
 }
 
