@@ -1,6 +1,12 @@
 import type { Reminder } from '@/core/notifications'
 import type { Animal } from '@/features/animals/animal.schema'
-import { DAYS_BEFORE_DUE, dueReminders, type Translate } from '@/shared/due-reminders'
+import {
+  DAYS_BEFORE_DUE,
+  DAYS_OVERDUE,
+  dueReminders,
+  type DueReminderTexts,
+  type Translate,
+} from '@/shared/due-reminders'
 import type { Vaccination } from './vaccination.schema'
 
 type RemindedVaccination = Pick<Vaccination, 'id' | 'name' | 'dueDate' | 'deletedAt'>
@@ -14,18 +20,29 @@ export function vaccinationReminders(
   if (vaccination.deletedAt !== null || animal === null || animal.deletedAt !== null) return []
 
   const named = { name: vaccination.name, animal: animal.name, days: DAYS_BEFORE_DUE }
+  const texts: DueReminderTexts = (moment) => {
+    switch (moment) {
+      case 'before':
+        return {
+          title: t('reminders.vaccination.beforeTitle', named),
+          body: t('reminders.vaccination.beforeBody', {}),
+        }
+      case 'due':
+        return {
+          title: t('reminders.vaccination.dueTitle', named),
+          body: t('reminders.vaccination.dueBody', {}),
+        }
+      case 'overdue':
+        return {
+          title: t('reminders.vaccination.overdueTitle', { ...named, days: DAYS_OVERDUE }),
+          body: t('reminders.vaccination.overdueBody', {}),
+        }
+    }
+  }
+
   return dueReminders(
     { kind: 'vaccination', id: vaccination.id, dueDate: vaccination.dueDate },
-    (moment) =>
-      moment === 'before'
-        ? {
-            title: t('reminders.vaccination.beforeTitle', named),
-            body: t('reminders.vaccination.beforeBody', {}),
-          }
-        : {
-            title: t('reminders.vaccination.dueTitle', named),
-            body: t('reminders.vaccination.dueBody', {}),
-          },
+    texts,
     now,
   )
 }

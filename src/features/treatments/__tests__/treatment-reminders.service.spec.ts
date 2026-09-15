@@ -62,10 +62,12 @@ describe('treatmentRemindersService', () => {
     expect(notifications.cancelReminder.mock.calls.flat()).toEqual([
       `treatment:${MILBEMAX.id}:before`,
       `treatment:${MILBEMAX.id}:due`,
+      `treatment:${MILBEMAX.id}:overdue`,
     ])
     expect(notifications.scheduleReminder.mock.calls.map(([reminder]) => reminder.at)).toEqual([
       new Date(2026, 9, 12, 9),
       new Date(2026, 9, 15, 9),
+      new Date(2026, 9, 18, 9),
     ])
   })
 
@@ -78,12 +80,13 @@ describe('treatmentRemindersService', () => {
     expect(notifications.scheduleReminder).not.toHaveBeenCalled()
   })
 
-  it('annule les deux rappels d’un traitement supprimé', async () => {
+  it('annule les rappels d’un traitement supprimé', async () => {
     await service.cancel(MILBEMAX.id)
 
     expect(notifications.cancelReminder.mock.calls.flat()).toEqual([
       `treatment:${MILBEMAX.id}:before`,
       `treatment:${MILBEMAX.id}:due`,
+      `treatment:${MILBEMAX.id}:overdue`,
     ])
   })
 })

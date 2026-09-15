@@ -205,13 +205,17 @@
       "beforeTitle": "Vaccin {name} de {animal} dans {days} jours",
       "beforeBody": "Pense à prendre rendez-vous chez le vétérinaire.",
       "dueTitle": "Vaccin {name} de {animal} aujourd’hui",
-      "dueBody": "Note l’injection dans MémoPatte une fois faite."
+      "dueBody": "Note le vaccin dans MémoPatte une fois fait.",
+      "overdueTitle": "Vaccin {name} de {animal} en retard de {days} jours",
+      "overdueBody": "Prends rendez-vous chez le vétérinaire, puis note le vaccin dans MémoPatte."
     },
     "treatment": {
       "beforeTitle": "{type} {name} de {animal} dans {days} jours",
       "beforeBody": "Vérifie qu’il te reste une dose.",
       "dueTitle": "{type} {name} de {animal} aujourd’hui",
-      "dueBody": "Note la prise dans MémoPatte pour programmer la suivante."
+      "dueBody": "Note la prise dans MémoPatte pour programmer la suivante.",
+      "overdueTitle": "{type} {name} de {animal} en retard de {days} jours",
+      "overdueBody": "Pense à donner la dose, puis note la prise dans MémoPatte."
     }
   },
   "weight": {

@@ -60,17 +60,19 @@ describe('vaccinationRemindersService', () => {
     expect(notifications.cancelReminder.mock.calls.flat()).toEqual([
       `vaccination:${CHPPI.id}:before`,
       `vaccination:${CHPPI.id}:due`,
+      `vaccination:${CHPPI.id}:overdue`,
     ])
     expect(notifications.scheduleReminder.mock.calls.map(([reminder]) => reminder.title)).toEqual([
       'Vaccin CHPPi de Milo dans 3 jours',
       'Vaccin CHPPi de Milo aujourd’hui',
+      'Vaccin CHPPi de Milo en retard de 3 jours',
     ])
   })
 
   it('annule sans reprogrammer quand le rappel du vaccin est retiré', async () => {
     await service.reschedule({ ...CHPPI, dueDate: null })
 
-    expect(notifications.cancelReminder).toHaveBeenCalledTimes(2)
+    expect(notifications.cancelReminder).toHaveBeenCalledTimes(3)
     expect(notifications.scheduleReminder).not.toHaveBeenCalled()
   })
 
@@ -97,12 +99,13 @@ describe('vaccinationRemindersService', () => {
     expect(notifications.scheduleReminder).not.toHaveBeenCalled()
   })
 
-  it('annule les deux rappels d’un vaccin supprimé', async () => {
+  it('annule les rappels d’un vaccin supprimé', async () => {
     await service.cancel(CHPPI.id)
 
     expect(notifications.cancelReminder.mock.calls.flat()).toEqual([
       `vaccination:${CHPPI.id}:before`,
       `vaccination:${CHPPI.id}:due`,
+      `vaccination:${CHPPI.id}:overdue`,
     ])
   })
 })

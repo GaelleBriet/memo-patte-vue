@@ -15,7 +15,7 @@ afterEach(() => {
 })
 
 describe('vaccinationReminders', () => {
-  it('produit les deux rappels du vaccin avec le nom du vaccin et le prénom de l’animal', () => {
+  it('produit les trois rappels du vaccin avec le nom du vaccin et le prénom de l’animal', () => {
     expect(vaccinationReminders(t, CHPPI, MILO, NOW)).toEqual([
       {
         key: `vaccination:${ID}:before`,
@@ -26,8 +26,14 @@ describe('vaccinationReminders', () => {
       {
         key: `vaccination:${ID}:due`,
         title: 'Vaccin CHPPi de Milo aujourd’hui',
-        body: 'Note l’injection dans MémoPatte une fois faite.',
+        body: 'Note le vaccin dans MémoPatte une fois fait.',
         at: new Date(2026, 9, 15, 9),
+      },
+      {
+        key: `vaccination:${ID}:overdue`,
+        title: 'Vaccin CHPPi de Milo en retard de 3 jours',
+        body: 'Prends rendez-vous chez le vétérinaire, puis note le vaccin dans MémoPatte.',
+        at: new Date(2026, 9, 18, 9),
       },
     ])
   })
@@ -35,12 +41,18 @@ describe('vaccinationReminders', () => {
   it('traduit les rappels en anglais', () => {
     i18n.global.locale.value = 'en'
 
-    const [before, due] = vaccinationReminders(t, CHPPI, MILO, NOW)
+    const [before, due, overdue] = vaccinationReminders(t, CHPPI, MILO, NOW)
 
     expect(before?.title).toBe('CHPPi vaccine for Milo in 3 days')
     expect(before?.body).toBe('Remember to book a vet appointment.')
     expect(due?.title).toBe('CHPPi vaccine for Milo today')
-    expect(due?.body).toBe('Log the shot in MémoPatte once it’s done.')
+    expect(due?.body).toBe('Log the vaccine in MémoPatte once it’s done.')
+    expect(overdue?.title).toBe('CHPPi vaccine for Milo is 3 days overdue')
+    expect(overdue?.body).toBe('Book a vet appointment, then log the vaccine in MémoPatte.')
+  })
+
+  it('ne se répète pas : une fois la relance passée, plus rien pour cette échéance', () => {
+    expect(vaccinationReminders(t, { ...CHPPI, dueDate: '2026-09-12' }, MILO, NOW)).toEqual([])
   })
 
   it('ne produit rien pour un vaccin sans rappel', () => {

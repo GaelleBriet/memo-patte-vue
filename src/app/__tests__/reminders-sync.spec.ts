@@ -110,8 +110,10 @@ describe('syncAllReminders', () => {
       notifications.rescheduleAll.mock.calls[0]?.[0].map(({ key, title }) => [key, title]),
     ).toEqual([
       [`treatment:${MILBEMAX.id}:due`, 'Vermifuge Milbemax de Luna aujourd’hui'],
+      [`treatment:${MILBEMAX.id}:overdue`, 'Vermifuge Milbemax de Luna en retard de 3 jours'],
       [`vaccination:${chppi.id}:before`, 'Vaccin CHPPi de Milo dans 3 jours'],
       [`vaccination:${chppi.id}:due`, 'Vaccin CHPPi de Milo aujourd’hui'],
+      [`vaccination:${chppi.id}:overdue`, 'Vaccin CHPPi de Milo en retard de 3 jours'],
     ])
   })
 
@@ -126,7 +128,7 @@ describe('syncAllReminders', () => {
   })
 
   it('garde au plus 400 rappels, les plus proches d’abord', async () => {
-    const count = MAX_SCHEDULED_REMINDERS / 2 + 1
+    const count = Math.ceil(MAX_SCHEDULED_REMINDERS / 3) + 1
     listVaccinations.mockResolvedValue(
       Array.from({ length: count }, (_, index) =>
         vaccination(uuid(index), MILO.id, index === 0 ? '2026-11-10' : '2026-10-15'),

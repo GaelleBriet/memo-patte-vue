@@ -252,8 +252,10 @@ describe('animalDeletionService', () => {
     expect(notifications.cancelReminder.mock.calls.flat()).toEqual([
       `vaccination:${rage.id}:before`,
       `vaccination:${rage.id}:due`,
+      `vaccination:${rage.id}:overdue`,
       `treatment:${milbemax.id}:before`,
       `treatment:${milbemax.id}:due`,
+      `treatment:${milbemax.id}:overdue`,
     ])
   })
 

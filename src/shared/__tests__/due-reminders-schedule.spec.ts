@@ -32,15 +32,16 @@ afterEach(() => {
 })
 
 describe('replaceDueReminders', () => {
-  it('annule les deux rappels de l’entrée puis programme les nouveaux', async () => {
+  it('annule les rappels de l’entrée puis programme les nouveaux', async () => {
     await replaceDueReminders(notifications, { kind: 'vaccination', id: ID }, () => [DUE])
 
     expect(notifications.cancelReminder.mock.calls).toEqual([
       [`vaccination:${ID}:before`],
       [`vaccination:${ID}:due`],
+      [`vaccination:${ID}:overdue`],
     ])
     expect(notifications.scheduleReminder.mock.calls).toEqual([[DUE]])
-    expect(notifications.cancelReminder.mock.invocationCallOrder[1]).toBeLessThan(
+    expect(notifications.cancelReminder.mock.invocationCallOrder[2]).toBeLessThan(
       notifications.scheduleReminder.mock.invocationCallOrder[0]!,
     )
   })
@@ -94,8 +95,10 @@ describe('cancelDueReminders', () => {
     expect(notifications.cancelReminder.mock.calls.flat()).toEqual([
       `vaccination:${ID}:before`,
       `vaccination:${ID}:due`,
+      `vaccination:${ID}:overdue`,
       `treatment:${OTHER}:before`,
       `treatment:${OTHER}:due`,
+      `treatment:${OTHER}:overdue`,
     ])
   })
 
@@ -134,7 +137,7 @@ describe('enqueueReminderTask', () => {
     await Promise.all([replacing, cancelling, syncing])
 
     expect(notifications.scheduleReminder.mock.invocationCallOrder[0]).toBeLessThan(
-      notifications.cancelReminder.mock.invocationCallOrder[2]!,
+      notifications.cancelReminder.mock.invocationCallOrder[3]!,
     )
     expect(synced).toHaveBeenCalledOnce()
   })
