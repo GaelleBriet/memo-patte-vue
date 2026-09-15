@@ -29,7 +29,11 @@ let replace: MockInstance
 beforeEach(async () => {
   routeur = createRouter({
     history: createMemoryHistory(),
-    routes: [{ path: '/animals', name: 'animals', component: Vide }],
+    routes: [
+      { path: '/', name: 'home', component: Vide },
+      { path: '/animals', name: 'animals', component: Vide },
+      { path: '/notifications/priming', name: 'notifications-priming', component: Vide },
+    ],
   })
   await routeur.push('/animals')
   replace = vi.spyOn(routeur, 'replace').mockResolvedValue()
@@ -156,5 +160,38 @@ describe('NotificationPrimingView — réponses', () => {
     wrapper.unmount()
 
     expect(release).toHaveBeenCalledOnce()
+  })
+})
+
+describe('NotificationPrimingView — écran d’origine', () => {
+  beforeEach(async () => {
+    await routeur.push({ name: 'notifications-priming', query: { from: 'home' } })
+  })
+
+  it('« Activer les rappels » ramène à l’écran d’où l’on vient', async () => {
+    const wrapper = monter({ animalName: '' })
+
+    await wrapper.get('.notification-priming__enable').trigger('click')
+    await flushPromises()
+
+    expect(replace).toHaveBeenCalledWith({ name: 'home' })
+  })
+
+  it('« Plus tard » ramène à l’écran d’où l’on vient', async () => {
+    const wrapper = monter({ animalName: '' })
+
+    await wrapper.get('.notification-priming__later').trigger('click')
+    await flushPromises()
+
+    expect(replace).toHaveBeenCalledWith({ name: 'home' })
+  })
+
+  it('le retour Android ramène à l’écran d’où l’on vient', async () => {
+    monter({ animalName: '' })
+
+    backButton.mock.calls[0]![0]()
+    await flushPromises()
+
+    expect(replace).toHaveBeenCalledWith({ name: 'home' })
   })
 })
