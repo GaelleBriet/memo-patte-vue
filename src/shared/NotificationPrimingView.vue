@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { computed, onScopeDispose, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 import { onBackButton } from '@/core/app-lifecycle/back-button'
 import { postponePriming, requestAfterPriming } from '@/core/notifications/permission'
+import { primingReturnRoute } from './notification-priming'
 import { showToast } from './toast'
 
 const props = defineProps<{
@@ -14,6 +15,7 @@ const props = defineProps<{
 
 const { t } = useI18n()
 const router = useRouter()
+const returnRoute = primingReturnRoute(useRoute().query.from)
 const isRequesting = ref(false)
 
 const personalBenefit = computed(() => {
@@ -29,8 +31,8 @@ const benefits = computed(() => [
   t('notifications.priming.benefits.onlyYours'),
 ])
 
-function backToAnimals(): void {
-  void router.replace({ name: 'animals' })
+function goBack(): void {
+  void router.replace(returnRoute)
 }
 
 async function enable(): Promise<void> {
@@ -38,13 +40,13 @@ async function enable(): Promise<void> {
   isRequesting.value = true
   const granted = await requestAfterPriming()
   if (granted) showToast(t('notifications.priming.enabled'))
-  backToAnimals()
+  goBack()
 }
 
 function later(): void {
   if (isRequesting.value) return
   postponePriming()
-  backToAnimals()
+  goBack()
 }
 
 onScopeDispose(onBackButton(later))
