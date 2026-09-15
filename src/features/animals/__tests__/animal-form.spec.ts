@@ -9,7 +9,7 @@ import {
   type AnimalFormValues,
 } from '../animal-form'
 import type { Animal } from '../animal.schema'
-import { todayIsoDate } from '@/shared/form/form-dates'
+import { todayIsoDate } from '@/core/app-lifecycle/today-iso-date'
 
 const MILO: Animal = {
   id: '11111111-1111-4111-8111-111111111111',
@@ -114,12 +114,6 @@ describe('animalFormValuesFrom', () => {
       initialWeightKg: 8.5,
       photoPath: null,
     })
-  })
-})
-
-describe('todayIsoDate', () => {
-  it('rend la date du jour au format du champ date natif', () => {
-    expect(todayIsoDate()).toBe(format(new Date(), 'yyyy-MM-dd'))
   })
 })
 

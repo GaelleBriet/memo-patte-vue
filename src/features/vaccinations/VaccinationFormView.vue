@@ -32,7 +32,7 @@ const existing = ref<Vaccination | null>(null)
 const notFound = ref(false)
 const saveFailed = ref(false)
 const isSubmitting = ref(false)
-const maxInjectionDate = useToday()
+const { today: maxInjectionDate } = useToday()
 
 const isEdit = computed(() => props.id !== undefined)
 const targetAnimalId = computed(() => existing.value?.animalId ?? props.animalId ?? null)

@@ -11,7 +11,7 @@ import { simulateWebResume } from '@/core/app-lifecycle/__tests__/simulate-resum
 import i18n from '@/core/i18n'
 import { getMsIconPath } from '@/core/theme/icons'
 import vuetify from '@/core/theme/vuetify'
-import { todayIsoDate } from '@/shared/form/form-dates'
+import { todayIsoDate } from '@/core/app-lifecycle/today-iso-date'
 
 const MILO: Animal = {
   id: '11111111-1111-4111-8111-111111111111',
