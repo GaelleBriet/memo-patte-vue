@@ -106,16 +106,21 @@ qui passe par le cloud est dans MémoPatte Plus.
 | Export PDF | non | oui |
 | v2 : fiche pet-sitter partageable, documents | non | oui |
 
-**Paiement** : 7,99 €/an ou 24,99 € à vie, même contenu. L'annuel
-finance le seul coût récurrent réel (Supabase) ; le « à vie » sert
-les personnes qui refusent l'abonnement et vaut environ trois ans
-d'annuel, puisqu'il ne finance pas le récurrent.
+**Paiement** (prix mis à jour le 2026-09-15) : 1,49 €/mois, 9,99 €/an
+ou 29,99 € à vie, même contenu. Les abonnements financent le seul coût
+récurrent réel (Supabase) et sont annulables à tout moment dans Google
+Play, l'accès restant ouvert jusqu'à la fin de la période payée.
+L'annuel est l'offre mise en avant (≈ 44 % d'économie par rapport au
+mensuel) ; le « à vie » sert les personnes qui refusent l'abonnement
+et vaut environ trois ans d'annuel, puisqu'il ne finance pas le
+récurrent. Les trois produits donnent le même droit `plus` dans
+RevenueCat.
 
 **Pourquoi ce modèle plutôt que l'achat unique du 11 août** :
 - Le coût suit le revenu : un utilisateur gratuit ne touche jamais
   Supabase, donc coûte zéro quel que soit leur nombre. Le tier
   gratuit Supabase tient longtemps ; s'il faut passer à Pro
-  (~25 $/mois), une cinquantaine d'abonnés annuels le couvrent.
+  (~25 $/mois), une quarantaine d'abonnés annuels le couvrent.
 - Aucun différenciant n'est cassé : pas de limite d'animaux, rappels
   complets, export libre. Le seul verrou est un service qui tourne
   vraiment, pas une fonction locale déguisée.
