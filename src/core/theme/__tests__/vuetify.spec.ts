@@ -3,19 +3,7 @@ import { mount } from '@vue/test-utils'
 import { VIcon } from 'vuetify/components'
 
 import vuetify from '../vuetify'
-
-function luminance(hex: string): number {
-  const [r, g, b] = [1, 3, 5].map((i) => {
-    const c = parseInt(hex.slice(i, i + 2), 16) / 255
-    return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
-  })
-  return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!
-}
-
-function contraste(texte: string, fond: string): number {
-  const [clair, sombre] = [luminance(texte), luminance(fond)].sort((a, b) => b - a)
-  return (clair! + 0.05) / (sombre! + 0.05)
-}
+import { contrastRatio } from './contrast'
 
 describe('thème Vuetify', () => {
   it('rend un <svg> pour « ms:pets »', () => {
@@ -53,7 +41,7 @@ describe('thème Vuetify', () => {
     expect(couleurs?.['overdue-container']).toBe('#FFE3DF')
     expect(couleurs?.['on-overdue-container']).toBe('#972622')
     expect(
-      contraste(
+      contrastRatio(
         String(couleurs?.['on-overdue-container']),
         String(couleurs?.['overdue-container']),
       ),
