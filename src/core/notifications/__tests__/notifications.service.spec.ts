@@ -10,6 +10,7 @@ import {
   requestPermission,
   rescheduleAll,
   scheduleReminder,
+  scheduleReminders,
 } from '../notifications.service'
 import { reminderNotificationId, type Reminder } from '../reminder'
 import { REMINDERS_CHANNEL_ID } from '../reminders-channel'
@@ -164,6 +165,53 @@ describe('scheduleReminder sans permission', () => {
 
     expect(schedule).not.toHaveBeenCalled()
   })
+})
+
+describe('scheduleReminders', () => {
+  it('programme tous les rappels en un seul appel au plugin, après une seule vérification', async () => {
+    await scheduleReminders([rabies, dewormer])
+
+    expect(checkPermissions).toHaveBeenCalledOnce()
+    expect(schedule).toHaveBeenCalledExactlyOnceWith({
+      notifications: [
+        {
+          id: reminderNotificationId(rabies.key),
+          title: rabies.title,
+          body: rabies.body,
+          schedule: { at: rabies.at, allowWhileIdle: true },
+          isExactNotification: false,
+          extra: { key: rabies.key },
+        },
+        {
+          id: reminderNotificationId(dewormer.key),
+          title: dewormer.title,
+          body: dewormer.body,
+          schedule: { at: dewormer.at, allowWhileIdle: true },
+          isExactNotification: false,
+          extra: { key: dewormer.key },
+        },
+      ],
+    })
+  })
+
+  it('n’appelle pas le plugin pour une liste vide', async () => {
+    await scheduleReminders([])
+
+    expect(checkPermissions).not.toHaveBeenCalled()
+    expect(schedule).not.toHaveBeenCalled()
+  })
+
+  it.each(NOT_GRANTED)(
+    'ne programme rien quand la permission est « %s », pour ne jamais ouvrir la popup système',
+    async (display) => {
+      checkPermissions.mockResolvedValue({ display })
+
+      await scheduleReminders([rabies, dewormer])
+
+      expect(schedule).not.toHaveBeenCalled()
+      expect(requestPermissions).not.toHaveBeenCalled()
+    },
+  )
 })
 
 describe('cancelReminder', () => {

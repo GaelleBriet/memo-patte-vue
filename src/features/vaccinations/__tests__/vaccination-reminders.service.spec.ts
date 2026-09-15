@@ -65,7 +65,11 @@ describe('vaccinationRemindersService', () => {
       `vaccination:${CHPPI.id}:2026-10-15:due`,
       `vaccination:${CHPPI.id}:2026-10-15:overdue`,
     ])
-    expect(notifications.scheduleReminder.mock.calls.map(([reminder]) => reminder.title)).toEqual([
+    expect(
+      notifications.scheduleReminders.mock.calls.flatMap(([reminders]) =>
+        reminders.map((reminder) => reminder.title),
+      ),
+    ).toEqual([
       'Vaccin CHPPi de Milo dans 3 jours',
       'Vaccin CHPPi de Milo aujourd’hui',
       'Vaccin CHPPi de Milo en retard de 3 jours',
@@ -79,7 +83,7 @@ describe('vaccinationRemindersService', () => {
     await service.reschedule({ ...CHPPI, dueDate: null })
 
     expect(notifications.pending.size).toBe(0)
-    expect(notifications.scheduleReminder).not.toHaveBeenCalled()
+    expect(notifications.scheduleReminders).not.toHaveBeenCalled()
   })
 
   it('programme les trois rappels d’un vaccin dont l’échéance est dans huit mois', async () => {
@@ -97,7 +101,7 @@ describe('vaccinationRemindersService', () => {
 
     await service.reschedule(CHPPI)
 
-    expect(notifications.scheduleReminder).not.toHaveBeenCalled()
+    expect(notifications.scheduleReminders).not.toHaveBeenCalled()
   })
 
   it('ne lit pas la base sans permission', async () => {
@@ -106,7 +110,7 @@ describe('vaccinationRemindersService', () => {
     await service.reschedule(CHPPI)
 
     expect(getById).not.toHaveBeenCalled()
-    expect(notifications.scheduleReminder).not.toHaveBeenCalled()
+    expect(notifications.scheduleReminders).not.toHaveBeenCalled()
   })
 
   it('annule les rappels d’un vaccin supprimé', async () => {

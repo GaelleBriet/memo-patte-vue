@@ -6,6 +6,7 @@ export {
   listScheduled,
   rescheduleAll,
   scheduleReminder,
+  scheduleReminders,
 } from './notifications.service'
 export type { NotificationPermissionStatus } from './permission'
 export {

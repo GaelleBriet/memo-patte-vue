@@ -79,3 +79,9 @@ export async function requestPermission(): Promise<boolean> {
 
   return remindersGranted(display)
 }
+
+/** Un seul appel au plugin pour toute la liste ; sans permission accordée, ne programme rien. */
+export async function scheduleReminders(reminders: Reminder[]): Promise<void> {
+  if (reminders.length === 0 || !(await checkPermission())) return
+  await LocalNotifications.schedule({ notifications: reminders.map(toPluginNotification) })
+}

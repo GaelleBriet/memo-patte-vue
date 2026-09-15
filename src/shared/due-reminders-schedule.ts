@@ -6,7 +6,7 @@ import { dueReminderPrefix, type DueReminderEntry } from './due-reminders'
 
 export type ReminderNotifications = Pick<
   typeof notifications,
-  'checkPermission' | 'scheduleReminder' | 'cancelReminder' | 'rescheduleAll' | 'listScheduled'
+  'checkPermission' | 'scheduleReminders' | 'cancelReminder' | 'rescheduleAll' | 'listScheduled'
 >
 
 export const reminderNotifications: ReminderNotifications = notifications
@@ -83,7 +83,7 @@ export function replaceDueReminders(
       if (!(await port.checkPermission())) return
       const reminders = await build()
       const kept = earliestReminders(reminders, MAX_SCHEDULED_REMINDERS - remaining.length)
-      for (const reminder of kept) await port.scheduleReminder(reminder)
+      if (kept.length > 0) await port.scheduleReminders(kept)
       const firstLeftOut = earliestReminders(reminders, reminders.length)[kept.length]
       if (firstLeftOut && pushesOutFartherPending(firstLeftOut, remaining)) void fullSync?.()
     } catch (cause) {
