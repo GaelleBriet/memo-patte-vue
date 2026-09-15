@@ -268,7 +268,7 @@
       "overdueBanner": "{n} overdue reminder | {n} overdue reminders"
     },
     "reminder": {
-      "vaccination": "{name} vaccine",
+      "vaccination": "{name}",
       "deworming": "Dewormer",
       "antiparasitic": "Flea & tick"
     },

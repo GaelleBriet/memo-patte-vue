@@ -56,3 +56,17 @@ describe('pluriels anglais', () => {
     expect(t('home.todo.count', { n: 1 }, 1)).toBe('1 reminder')
   })
 })
+
+describe('rappels de vaccin', () => {
+  afterEach(() => applyLocale('fr'))
+
+  it('gardent en anglais le nom saisi, sans « vaccine » redoublé', () => {
+    expect(i18n.global.t('home.reminder.vaccination', { name: 'Rage' })).toBe('Vaccin Rage')
+
+    applyLocale('en')
+
+    expect(i18n.global.t('home.reminder.vaccination', { name: 'Rabies vaccine' })).toBe(
+      'Rabies vaccine',
+    )
+  })
+})
