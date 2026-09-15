@@ -26,7 +26,7 @@
 4. [Ce que je n'ai pas pu vérifier](#4-ce-que-je-nai-pas-pu-vérifier)
 5. [Index des sources](#5-index-des-sources)
 
-Rappel du modèle produit (donné, non remis en cause) : app Android Capacitor 8 + Vue 3, carnet de santé chiens/chats, **gratuite et complète en local (SQLite), sans compte**. « MémoPatte Plus » (abonnement annuel 7,99 € ou achat unique à vie 24,99 €, via Google Play Billing) ajoute un compte Supabase Auth (email + mot de passe, Google), sauvegarde cloud Supabase (Postgres + Storage, région Europe), restauration, multi-appareil, photos sauvegardées, export PDF. Auto Backup Android actif pour les gratuits. Analytics PostHog avec consentement explicite (épic 12). Export JSON/CSV pour tous. Pas de pub, pas de vente de données.
+Rappel du modèle produit (donné, non remis en cause) : app Android Capacitor 8 + Vue 3, carnet de santé chiens/chats, **gratuite et complète en local (SQLite), sans compte**. « MémoPatte Plus » (abonnement mensuel 1,49 €, abonnement annuel 9,99 € ou achat unique à vie 29,99 €, via Google Play Billing ; prix du 2026-09-15) ajoute un compte Supabase Auth (email + mot de passe, Google), sauvegarde cloud Supabase (Postgres + Storage, région Europe), restauration, multi-appareil, photos sauvegardées, export PDF. Auto Backup Android actif pour les gratuits. Analytics PostHog avec consentement explicite (épic 12). Export JSON/CSV pour tous. Pas de pub, pas de vente de données.
 
 ---
 
@@ -119,7 +119,7 @@ Subscriptions policy : vous devez divulguer clairement « your offer terms, the 
 
 Pratiques interdites citées : abonnement mensuel « without informing users of automatic monthly charges » ; plan annuel « prominently displaying monthly pricing breakdowns » ; « Incompletely localized pricing and terms » ; SKU trompeurs type « Free Trial » ; clics multiples provoquant un abonnement accidentel.
 
-→ **Écran Plus de MémoPatte** : afficher côte à côte « 7,99 €/an, renouvellement automatique chaque année, annulable à tout moment dans Google Play » et « 24,99 € une fois, à vie, sans renouvellement », préciser que **l'app est utilisable gratuitement sans abonnement**, prix localisé (Google Play fournit la devise). Pas de prix « au mois » pour l'annuel.
+→ **Écran Plus de MémoPatte** : afficher côte à côte « 1,49 €/mois, renouvellement automatique chaque mois, annulable à tout moment dans Google Play », « 9,99 €/an, renouvellement automatique chaque année, annulable à tout moment dans Google Play » et « 29,99 € une fois, à vie, sans renouvellement », préciser que **l'app est utilisable gratuitement sans abonnement**, prix localisé (Google Play fournit la devise). Pas de prix « au mois » pour l'annuel : l'économie par rapport au mensuel se dit en pourcentage, sans ramener l'annuel à un prix mensuel.
 
 #### Offre « à vie »
 
@@ -142,7 +142,7 @@ Subscriptions policy : « Subscriptions must provide sustained or recurring valu
 |---|---|---|
 | Grace period | « By default, all auto-renewing base plans have grace period enabled. » ; « Specifying lengths less than the default values may reduce the number of subscriptions recovered » ; durée configurable dans Play Console (« You can specify the length of the grace period, during which the user retains subscription entitlement »). Silent grace period minimum : **1 jour (24 h)** même si réglé à 0. | Activée par défaut, durée configurable (les valeurs exactes proposées dans la console n'apparaissent pas dans la page d'aide : §4). |
 | Account hold | « By default, all auto-renewing base plans and installment plans have account hold enabled and the lengths are automatically calculated. The calculation will be 60 days minus any grace period duration. » ; « The total of account hold and grace period durations must total 30 days or more. » | Par défaut 60 j − grâce ; désactivable ; minimum combiné 30 j. |
-| Pause | « between one week and three months […] annual subscriptions and free trials cannot be paused ». | **Non applicable** à l'annuel de MémoPatte. |
+| Pause | « between one week and three months […] annual subscriptions and free trials cannot be paused ». | **Non applicable** à l'annuel ; possible sur le base plan mensuel, non tranché. |
 | Resubscribe | Option de base plan : « users can repurchase an expired auto-renewing subscription in the Play Store ». | À activer. |
 
 Ce que **l'app doit faire** par état (Lifecycle) :
@@ -501,7 +501,7 @@ Contenu minimal de la page `supprimer-mon-compte.html` (exigences Google : nom d
 **D. Play Console**
 16. Publier la politique et la page de suppression sur GitHub Pages ; saisir les deux URL (Store listing > Privacy policy ; App content > Data safety > Data deletion).
 17. Remplir Data safety selon §3.2 ; Ads : « no » ; Target audience : 18+ ; Content rating (IARC) ; Health apps declaration : non concerné ; App access : compte de test Plus + License testing ; Financial features / Government : non.
-18. Produits : abonnement annuel (base plan auto-renouvelable, grâce + account hold par défaut, resubscribe activé) et produit unique non consommable « à vie », prix localisés.
+18. Produits : abonnement avec deux base plans auto-renouvelables, mensuel et annuel (grâce + account hold par défaut, resubscribe activé) et produit unique non consommable « à vie », prix localisés.
 19. Si compte personnel créé après le 13/11/2023 : test fermé avec ≥ 12 testeurs opt-in pendant ≥ 14 jours, puis demande d'accès production.
 20. Vérification finale des informations d'identité affichées (nom, email, téléphone, adresse) et de leur cohérence avec la politique.
 

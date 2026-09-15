@@ -391,6 +391,8 @@ retoucher : épic 1 (#6 à #8), #40, #41, #43 à #47, #48 (fait le
 2026-09-07, #45 devient l'écran Plus) ; tickets créés : #81 export PDF
 (10.4), #82 Auto Backup Android (0.4), #83 envoi initial des données
 locales à la souscription (8.6).
+Prix remplacés le 2026-09-15 : 1,49 €/mois, 9,99 €/an ou 29,99 € à vie (voir
+l'entrée « MémoPatte Plus en trois offres »).
 
 2026-09-07 — Compléments à la décision monétisation, validés par Gaelle :
 **multi-appareil dans Plus dès la v1** (implique un pull dans la sync,
@@ -884,3 +886,20 @@ plafond d'alarmes d'Android (~500) au-delà duquel le plugin fait planter l'app.
 — Alternatives écartées : une relance seule, sans poursuivre les cycles d'un
 traitement non noté (il se tairait après la première prise oubliée) ; rien
 après l'échéance (un oubli passe inaperçu).
+
+2026-09-15 — **MémoPatte Plus en trois offres au même contenu : abonnement
+mensuel 1,49 €/mois, abonnement annuel 9,99 €/an, achat non consommable « à vie »
+29,99 €.** Remplace « 7,99 €/an ou 24,99 € à vie » du 2026-09-07. Les abonnements
+Google Play sont annulables à tout moment, l'accès restant ouvert jusqu'à la fin
+de la période payée. L'annuel est l'offre mise en avant (≈ 44 % d'économie par
+rapport au mensuel), le « à vie » vaut environ trois ans d'annuel. Les trois
+produits donnent le même entitlement RevenueCat `plus`
+(`@revenuecat/purchases-capacitor`, choisi le même jour). Le reste du modèle ne
+change pas : local gratuit sans compte ni limite, Plus = cloud + export PDF, pas
+d'essai, pas de paywall bloquant, expiration = sync coupée, local intact. —
+Raison : décision de Gaelle ; l'écart avec le mensuel doit rester assez net pour
+que l'annuel soit le choix évident, sans monter en haut de fourchette pour une
+offre qui ne vend que le cloud. — Alternatives écartées : 1,49 / 14,99 / 39,99 (annuel
+seulement 16 % moins cher que le mensuel, haut de fourchette pour une offre qui
+ne vend que le cloud face à des concurrents francophones gratuits) ;
+0,99 / 7,99 / 24,99.

@@ -58,8 +58,8 @@ confirmés dans `03-pain-points.md`.
   de changement rétroactif ». Coût quasi nul (sérialisation de
   SQLite), aucun serveur impliqué.
 - Reformulation du 2026-09-07 : « pas d'abonnement » devient « jamais
-  de fonction locale derrière un abonnement ». MémoPatte Plus (annuel
-  ou à vie) ne vend que le cloud : sauvegarde, restauration,
+  de fonction locale derrière un abonnement ». MémoPatte Plus (mensuel,
+  annuel ou à vie) ne vend que le cloud : sauvegarde, restauration,
   multi-appareil, photos, PDF. Ce qui vit sur le téléphone reste
   gratuit et illimité, ce qui répond aux mêmes pain points (Medika,
   11Pets, entretien Gaelle) sans interdire un revenu récurrent qui
