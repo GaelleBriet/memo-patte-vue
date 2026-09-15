@@ -10,7 +10,11 @@ const LEGACY_RULE = 'no-restricted-imports'
 let eslint: ESLint
 
 beforeAll(() => {
-  eslint = new ESLint({ cwd: ROOT })
+  eslint = new ESLint({
+    cwd: ROOT,
+    ruleFilter: ({ ruleId }) => ruleId.endsWith('no-restricted-imports'),
+    overrideConfig: { languageOptions: { parserOptions: { projectService: false } } },
+  })
 }, 30_000)
 
 async function restrictedImports(filePath: string, imports: string[]) {
@@ -20,6 +24,7 @@ async function restrictedImports(filePath: string, imports: string[]) {
     : `${statements}\n`
   const [result] = await eslint.lintText(code, { filePath: `${ROOT}/${filePath}` })
   const messages = result?.messages ?? []
+  expect(messages.filter((m) => m.fatal)).toEqual([])
   return {
     feature: messages.filter((m) => m.ruleId === FEATURE_RULE).length,
     legacy: messages.filter((m) => m.ruleId === LEGACY_RULE).length,
@@ -33,6 +38,22 @@ describe('imports entre features', { timeout: 30_000 }, () => {
     ])
 
     expect(result.feature).toBe(1)
+  })
+
+  it('interdit les imports relatifs vers une autre feature et le dossier seul', async () => {
+    const result = await restrictedImports('src/features/home/HomeView.vue', [
+      '../weight/weight.store',
+      '../../features/weight/WeightSheet.vue',
+      '@/features/weight',
+    ])
+
+    expect(result.feature).toBe(3)
+  })
+
+  it('autorise un import relatif dans sa propre feature', async () => {
+    const result = await restrictedImports('src/features/home/HomeView.vue', ['./home.store'])
+
+    expect(result.feature).toBe(0)
   })
 
   it('autorise sa propre feature, le store et les types des animaux', async () => {

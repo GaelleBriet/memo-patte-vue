@@ -38,6 +38,7 @@ function featureImportsRule(feature: string, allowedElsewhere: string[] = []): L
           {
             group: [
               '@/features/*/**',
+              '../**',
               `!@/features/${feature}/**`,
               '!@/features/animals/animals.store',
               '!@/features/animals/animal.schema',
@@ -45,6 +46,10 @@ function featureImportsRule(feature: string, allowedElsewhere: string[] = []): L
             ],
             message:
               'Import interdit depuis une autre feature : passe par shared/ ou core/ (cf. CLAUDE.md, « Règles strictes de structure »).',
+          },
+          {
+            regex: '^@/features/[^/]+/?$',
+            message: 'Importe un module précis de la feature, pas son dossier.',
           },
         ],
       },
