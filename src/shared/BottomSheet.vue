@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import { nextTick, useId, watch } from 'vue'
+import { nextTick, onScopeDispose, useId, watch } from 'vue'
+
+import { onBackButton } from '@/core/app-lifecycle/back-button'
 
 const props = withDefaults(
   defineProps<{
@@ -24,11 +26,23 @@ const titleId = useId()
 
 // Pilotée par v-model, la feuille n'a pas d'activateur Vuetify pour lui rendre le focus.
 let opener: HTMLElement | null = null
+let releaseBackButton: (() => void) | null = null
+
+function releaseBack(): void {
+  releaseBackButton?.()
+  releaseBackButton = null
+}
+
+onScopeDispose(releaseBack)
 
 watch(
   open,
   async (isOpen) => {
+    releaseBack()
     if (isOpen) {
+      releaseBackButton = onBackButton(() => {
+        if (!props.persistent) close()
+      })
       const active = document.activeElement
       opener = active instanceof HTMLElement && active !== document.body ? active : null
       return

@@ -3,6 +3,7 @@ import { createPinia } from 'pinia'
 
 import App from './App.vue'
 import router from './router'
+import { installBackButton } from '@/core/app-lifecycle/back-button'
 import vuetify from '@/core/theme/vuetify'
 import i18n from '@/core/i18n'
 import { getAnimalsRepository } from '@/features/animals/animals.repository'
@@ -26,6 +27,8 @@ app.use(createPinia())
 app.use(router)
 app.use(vuetify)
 app.use(i18n)
+
+installBackButton()
 
 // Fixtures de développement (`pnpm dev:data`) : import dynamique derrière
 // `import.meta.env.DEV`, le module tombe au build. Avant le montage, pour que
