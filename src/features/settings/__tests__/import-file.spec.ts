@@ -73,19 +73,33 @@ describe('parseExportFile', () => {
         ;(document.weightEntries as Record<string, unknown>[])[0]!.measuredOn = '24/12/2025'
       }),
     ],
+  ])('refuse %s comme un fichier qui n’est pas un export MémoPatte', (_, text) => {
+    expect(parseExportFile(text)).toEqual({ ok: false, reason: 'invalid' })
+  })
+
+  it.each([
     [
-      'une pesée qui ferait exploser la courbe de poids',
+      'une pesée hors bornes',
       withDocument((document) => {
         ;(document.weightEntries as Record<string, unknown>[])[0]!.weightKg = 1e308
       }),
     ],
     [
-      'un poids initial qui ferait exploser la courbe de poids',
+      'un poids initial hors bornes',
       withDocument((document) => {
-        ;(document.animals as Record<string, unknown>[])[0]!.initialWeightKg = 1e308
+        ;(document.animals as Record<string, unknown>[])[0]!.initialWeightKg = 201
       }),
     ],
-  ])('refuse %s comme un fichier qui n’est pas un export MémoPatte', (_, text) => {
+  ])('dit pourquoi il refuse %s, plutôt que « ce n’est pas un export »', (_, text) => {
+    expect(parseExportFile(text)).toEqual({ ok: false, reason: 'outOfRange' })
+  })
+
+  it('reste « pas un export » quand le poids hors bornes n’est pas le seul défaut', () => {
+    const text = withDocument((document) => {
+      ;(document.animals as Record<string, unknown>[])[0]!.initialWeightKg = 201
+      ;(document.animals as Record<string, unknown>[])[0]!.species = 'rabbit'
+    })
+
     expect(parseExportFile(text)).toEqual({ ok: false, reason: 'invalid' })
   })
 

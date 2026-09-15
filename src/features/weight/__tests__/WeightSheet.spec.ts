@@ -258,7 +258,7 @@ describe('WeightSheet — sans animal (P2)', () => {
 
     await soumettre()
 
-    expect(messages()).toEqual(['Le poids doit être inférieur à 200 kg.'])
+    expect(messages()).toEqual(['Le poids doit être de 200 kg maximum.'])
   })
 
   it('relie le sélecteur d’animal à « Choisis un animal. » et le marque invalide', async () => {

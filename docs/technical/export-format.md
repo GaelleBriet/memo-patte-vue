@@ -126,8 +126,12 @@ Code de référence : `src/features/settings/data-import.service.ts` (validation
   - fichier de plus de 10 Mo (refusé sans être lu), pas du JSON, pas d'entier `schemaVersion`,
     champ obligatoire absent ou mal formé → « Ce fichier n'est pas un export MémoPatte. » ;
   - mêmes règles que les formulaires, reprises de leurs schémas : nom non vide, espèce, type et
-    fréquence de traitement, poids positif, date de naissance, de dernière injection, de dernière
-    prise et de pesée jamais dans le futur ;
+    fréquence de traitement, poids strictement positif et de 200 kg au plus (poids initial comme
+    pesée), date de naissance, de dernière injection, de dernière prise et de pesée jamais dans le
+    futur ;
+  - un fichier dont le seul défaut est un poids au-delà de 200 kg est refusé avec un motif à part,
+    « Ce fichier contient un poids hors limites : 200 kg maximum. », pour ne pas laisser croire que
+    le fichier n'est pas un export MémoPatte ;
   - UUID pour les identifiants, instants ISO 8601 en UTC (`Z`) uniquement, textes libres limités à
     200 caractères, espaces de bord retirées, race vide lue comme absente ;
   - `schemaVersion` supérieur à celui que l'app connaît → « Cet export vient d'une version plus

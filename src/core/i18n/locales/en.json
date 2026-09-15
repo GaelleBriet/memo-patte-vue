@@ -48,7 +48,7 @@
         "species": "Choose a species.",
         "birthDate": "Date of birth can’t be in the future.",
         "initialWeightKg": "Weight must be more than 0 kg.",
-        "initialWeightKgMax": "Weight must be under 200 kg.",
+        "initialWeightKgMax": "Weight must be at most 200 kg.",
         "notFound": "We can’t find this pet.",
         "save": "Couldn’t save this pet. Try again.",
         "photo": "Couldn’t load the photo. Try again."
@@ -265,7 +265,7 @@
       "errors": {
         "animalId": "Choose a pet.",
         "weightKg": "Weight must be more than 0 kg.",
-        "weightKgMax": "Weight must be under 200 kg.",
+        "weightKgMax": "Weight must be at most 200 kg.",
         "measuredOn": "Date is required.",
         "measuredOnFuture": "Date can’t be in the future.",
         "save": "Couldn’t save this weigh-in. Try again."
@@ -408,6 +408,7 @@
       "errors": {
         "invalid": "This file isn’t a MémoPatte export.",
         "newer": "This export comes from a newer version of the app.",
+        "outOfRange": "This file has a weight beyond the limit: at most 200 kg.",
         "failed": "The import didn’t go through. Your data hasn’t changed."
       },
       "confirm": {
