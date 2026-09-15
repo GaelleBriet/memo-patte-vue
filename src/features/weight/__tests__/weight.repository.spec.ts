@@ -350,3 +350,87 @@ describe('weightRepository', () => {
     })
   })
 })
+
+describe('weightRepository — import', () => {
+  const IMPORTE = {
+    id: '44444444-4444-4444-8444-444444444444',
+    animalId: MIETTE,
+    weightKg: 4.25,
+    measuredOn: '2025-12-24',
+    createdAt: '2026-01-10T08:15:00.000Z',
+    updatedAt: '2026-01-10T08:15:00.000Z',
+  }
+
+  let db: InMemoryDb
+  let repository: WeightRepository
+
+  beforeEach(async () => {
+    db = await createInMemoryDb()
+    await db.execute('PRAGMA foreign_keys = ON')
+    await seedAnimal(db, MIETTE, 'Miette')
+    await seedAnimal(db, VASCO, 'Vasco')
+    repository = createWeightRepository(db)
+  })
+
+  afterEach(() => {
+    db.close()
+  })
+
+  it('insère une pesée importée avec son identifiant et ses dates d’origine', async () => {
+    await db.runMany([repository.restoreStatement(IMPORTE, false)])
+
+    await expect(repository.getById(IMPORTE.id)).resolves.toEqual({ ...IMPORTE, deletedAt: null })
+  })
+
+  it('écrase une pesée existante, même supprimée, et la rend visible', async () => {
+    await db.runMany([repository.restoreStatement(IMPORTE, false)])
+    await repository.remove(IMPORTE.id)
+    const importe = {
+      ...IMPORTE,
+      animalId: VASCO,
+      weightKg: 12,
+      updatedAt: '2026-09-15T08:00:00.000Z',
+    }
+
+    await db.runMany([repository.restoreStatement(importe, true)])
+
+    await expect(repository.getById(IMPORTE.id)).resolves.toEqual({ ...importe, deletedAt: null })
+  })
+
+  it('liste les versions de toutes les lignes, supprimées comprises', async () => {
+    const vivante = await repository.create({
+      animalId: VASCO,
+      weightKg: 9,
+      measuredOn: '2026-03-01',
+    })
+    await db.runMany([repository.restoreStatement(IMPORTE, false)])
+    await repository.remove(IMPORTE.id)
+
+    const versions = await repository.listVersions()
+
+    expect(versions).toHaveLength(2)
+    expect(versions).toContainEqual({
+      id: vivante.id,
+      animalId: VASCO,
+      updatedAt: vivante.updatedAt,
+      deletedAt: null,
+    })
+    expect(versions.find(({ id }) => id === IMPORTE.id)?.deletedAt).not.toBeNull()
+  })
+
+  it('marque toutes les pesées encore visibles', async () => {
+    await db.runMany([
+      repository.restoreStatement(IMPORTE, false),
+      repository.markAllDeletedStatement('2030-01-01T09:00:00.000Z'),
+    ])
+
+    await expect(repository.listVersions()).resolves.toEqual([
+      {
+        id: IMPORTE.id,
+        animalId: MIETTE,
+        updatedAt: '2030-01-01T09:00:00.000Z',
+        deletedAt: '2030-01-01T09:00:00.000Z',
+      },
+    ])
+  })
+})

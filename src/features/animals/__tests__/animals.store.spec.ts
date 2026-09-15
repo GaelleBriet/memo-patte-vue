@@ -299,6 +299,10 @@ interface FakeAnimalsRepository {
   create: Mock<AnimalsRepository['create']>
   update: Mock<AnimalsRepository['update']>
   remove: Mock<AnimalsRepository['remove']>
+  listVersions: Mock<AnimalsRepository['listVersions']>
+  markAllDeletedStatement: Mock<AnimalsRepository['markAllDeletedStatement']>
+  restoreStatement: Mock<AnimalsRepository['restoreStatement']>
+  runImport: Mock<AnimalsRepository['runImport']>
 }
 
 // Même contrat que `animals.repository.ts`, sans SQLite.
@@ -353,5 +357,9 @@ function createFakeRepository(): FakeAnimalsRepository {
       return updated
     }),
     remove: vi.fn<AnimalsRepository['remove']>(async (id) => markDeleted(id)),
+    listVersions: vi.fn<AnimalsRepository['listVersions']>(),
+    markAllDeletedStatement: vi.fn<AnimalsRepository['markAllDeletedStatement']>(),
+    restoreStatement: vi.fn<AnimalsRepository['restoreStatement']>(),
+    runImport: vi.fn<AnimalsRepository['runImport']>(),
   }
 }

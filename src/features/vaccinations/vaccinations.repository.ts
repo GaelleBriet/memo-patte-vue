@@ -19,6 +19,9 @@ interface VaccinationRow {
   deleted_at: string | null
 }
 
+export type VaccinationVersion = Pick<Vaccination, 'id' | 'animalId' | 'updatedAt' | 'deletedAt'>
+export type RestoredVaccination = Omit<Vaccination, 'deletedAt'>
+
 const COLUMNS =
   'id, animal_id, name, last_injection_date, due_date, created_at, updated_at, deleted_at'
 
@@ -133,6 +136,41 @@ export function createVaccinationsRepository(db: DbClient) {
         sql: `UPDATE vaccination SET deleted_at = ?, updated_at = ? WHERE animal_id = ? AND ${NOT_DELETED}`,
         params: [deletedAt, deletedAt, animalId],
       }
+    },
+
+    /** Lignes supprimées comprises : l'import compare les versions avant d'écrire. */
+    async listVersions(): Promise<VaccinationVersion[]> {
+      const rows = await db.query<VaccinationRow>(`SELECT ${COLUMNS} FROM vaccination`)
+      return rows.map(({ id, animal_id, updated_at, deleted_at }) => ({
+        id,
+        animalId: animal_id,
+        updatedAt: updated_at,
+        deletedAt: deleted_at,
+      }))
+    },
+
+    markAllDeletedStatement(deletedAt: string): SqlStatement {
+      return {
+        sql: `UPDATE vaccination SET deleted_at = ?, updated_at = ? WHERE ${NOT_DELETED}`,
+        params: [deletedAt, deletedAt],
+      }
+    },
+
+    /** Reprend l'identifiant et les dates du fichier importé, et rend la ligne visible. */
+    restoreStatement(vaccination: RestoredVaccination, exists: boolean): SqlStatement {
+      const { id, animalId, name, lastInjectionDate, dueDate, createdAt, updatedAt } = vaccination
+      return exists
+        ? {
+            sql: `UPDATE vaccination
+                  SET animal_id = ?, name = ?, last_injection_date = ?, due_date = ?,
+                      created_at = ?, updated_at = ?, deleted_at = NULL
+                  WHERE id = ?`,
+            params: [animalId, name, lastInjectionDate, dueDate, createdAt, updatedAt, id],
+          }
+        : {
+            sql: `INSERT INTO vaccination (${COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?, NULL)`,
+            params: [id, animalId, name, lastInjectionDate, dueDate, createdAt, updatedAt],
+          }
     },
   }
 }

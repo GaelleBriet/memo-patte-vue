@@ -357,6 +357,7 @@
       "title": "My data",
       "export": "Export my data",
       "exportEmpty": "Nothing to export yet",
+      "import": "Import a MémoPatte export",
       "loadError": "The local database didn’t respond. Tap to try again."
     },
     "about": {
@@ -381,6 +382,35 @@
       "shareTitle": "Share via",
       "success": "Data exported",
       "error": "The export couldn’t be prepared. Try again."
+    },
+    "import": {
+      "title": "Import an export",
+      "subtitle": "Data already exists on this device.",
+      "close": "Close",
+      "modes": "Import mode",
+      "merge": {
+        "label": "Merge",
+        "description": "Adds what’s missing, keeps your current data."
+      },
+      "replace": {
+        "label": "Replace",
+        "description": "Replaces all your current data."
+      },
+      "submit": "Continue",
+      "importing": "Importing…",
+      "success": "Data imported",
+      "pickAnother": "Choose another file",
+      "errors": {
+        "invalid": "This file isn’t a MémoPatte export.",
+        "newer": "This export comes from a newer version of the app.",
+        "failed": "The import didn’t go through. Your data hasn’t changed."
+      },
+      "confirm": {
+        "title": "Replace all your data?",
+        "body": "This will permanently delete the current data on this device. It can’t be undone.",
+        "cancel": "Cancel",
+        "submit": "Replace"
+      }
     }
   }
 }

@@ -25,6 +25,9 @@ interface TreatmentRow {
   deleted_at: string | null
 }
 
+export type TreatmentVersion = Pick<Treatment, 'id' | 'animalId' | 'updatedAt' | 'deletedAt'>
+export type RestoredTreatment = Omit<Treatment, 'deletedAt'>
+
 const COLUMNS =
   'id, animal_id, name, type, frequency_value, frequency_unit, last_dose_date, next_due_date, created_at, updated_at, deleted_at'
 
@@ -156,6 +159,52 @@ export function createTreatmentsRepository(db: DbClient) {
         sql: `UPDATE treatment SET deleted_at = ?, updated_at = ? WHERE animal_id = ? AND ${NOT_DELETED}`,
         params: [deletedAt, deletedAt, animalId],
       }
+    },
+
+    /** Lignes supprimées comprises : l'import compare les versions avant d'écrire. */
+    async listVersions(): Promise<TreatmentVersion[]> {
+      const rows = await db.query<TreatmentRow>(`SELECT ${COLUMNS} FROM treatment`)
+      return rows.map(({ id, animal_id, updated_at, deleted_at }) => ({
+        id,
+        animalId: animal_id,
+        updatedAt: updated_at,
+        deletedAt: deleted_at,
+      }))
+    },
+
+    markAllDeletedStatement(deletedAt: string): SqlStatement {
+      return {
+        sql: `UPDATE treatment SET deleted_at = ?, updated_at = ? WHERE ${NOT_DELETED}`,
+        params: [deletedAt, deletedAt],
+      }
+    },
+
+    /** Reprend l'identifiant, l'échéance et les dates du fichier importé, et rend la ligne visible. */
+    restoreStatement(treatment: RestoredTreatment, exists: boolean): SqlStatement {
+      const values = [
+        treatment.animalId,
+        treatment.name,
+        treatment.type,
+        treatment.frequency.value,
+        treatment.frequency.unit,
+        treatment.lastDoseDate,
+        treatment.nextDueDate,
+        treatment.createdAt,
+        treatment.updatedAt,
+      ]
+      return exists
+        ? {
+            sql: `UPDATE treatment
+                  SET animal_id = ?, name = ?, type = ?, frequency_value = ?, frequency_unit = ?,
+                      last_dose_date = ?, next_due_date = ?, created_at = ?, updated_at = ?,
+                      deleted_at = NULL
+                  WHERE id = ?`,
+            params: [...values, treatment.id],
+          }
+        : {
+            sql: `INSERT INTO treatment (${COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)`,
+            params: [treatment.id, ...values],
+          }
     },
   }
 }

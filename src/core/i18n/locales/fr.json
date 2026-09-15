@@ -357,6 +357,7 @@
       "title": "Mes données",
       "export": "Exporter mes données",
       "exportEmpty": "Rien à exporter pour l’instant",
+      "import": "Importer un export MémoPatte",
       "loadError": "La base locale n’a pas répondu. Touche pour réessayer."
     },
     "about": {
@@ -381,6 +382,35 @@
       "shareTitle": "Partager via",
       "success": "Données exportées",
       "error": "L’export n’a pas pu être préparé. Réessaie."
+    },
+    "import": {
+      "title": "Importer un export",
+      "subtitle": "Des données existent déjà sur cet appareil.",
+      "close": "Fermer",
+      "modes": "Mode d’import",
+      "merge": {
+        "label": "Fusionner",
+        "description": "Ajoute ce qui manque, garde tes données actuelles."
+      },
+      "replace": {
+        "label": "Remplacer",
+        "description": "Remplace toutes tes données actuelles."
+      },
+      "submit": "Continuer",
+      "importing": "Import…",
+      "success": "Données importées",
+      "pickAnother": "Choisir un autre fichier",
+      "errors": {
+        "invalid": "Ce fichier n’est pas un export MémoPatte.",
+        "newer": "Cet export vient d’une version plus récente de l’app.",
+        "failed": "L’import n’a pas abouti. Tes données n’ont pas changé."
+      },
+      "confirm": {
+        "title": "Remplacer toutes tes données ?",
+        "body": "Cette action supprimera définitivement les données actuelles de l’appareil. Elle est irréversible.",
+        "cancel": "Annuler",
+        "submit": "Remplacer"
+      }
     }
   }
 }

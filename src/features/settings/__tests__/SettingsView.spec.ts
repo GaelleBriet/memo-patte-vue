@@ -3,7 +3,9 @@ import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest'
 
 import ExportSheet from '../ExportSheet.vue'
+import type * as DataImport from '../data-import.service'
 import SettingsView from '../SettingsView.vue'
+import { importFixtureJson } from './import-fixture'
 import i18n from '@/core/i18n'
 import vuetify from '@/core/theme/vuetify'
 import router from '@/router'
@@ -13,6 +15,21 @@ import { useAnimalsStore } from '@/features/animals/animals.store'
 vi.mock('../data-export.service', () => ({
   dataExportService: { exportData: vi.fn<() => Promise<'shared'>>() },
 }))
+
+const hasLocalData = vi.hoisted(() => vi.fn<() => Promise<boolean>>())
+const importData = vi.hoisted(() => vi.fn<() => Promise<void>>())
+const promptNotificationsIfReminders = vi.hoisted(() =>
+  vi.fn<(router: unknown, from: string) => Promise<boolean>>(async () => false),
+)
+
+type DataImportModule = typeof DataImport
+
+vi.mock('../data-import.service', async (importOriginal) => ({
+  ...(await importOriginal<DataImportModule>()),
+  dataImportService: { hasLocalData, importData },
+}))
+
+vi.mock('@/app/reminders-priming', () => ({ promptNotificationsIfReminders }))
 
 const MILO: Animal = {
   id: '11111111-1111-4111-8111-111111111111',
@@ -34,6 +51,9 @@ let push: MockInstance
 let wrapper: VueWrapper | null = null
 
 beforeEach(async () => {
+  hasLocalData.mockReset()
+  importData.mockReset()
+  promptNotificationsIfReminders.mockClear()
   setActivePinia(createPinia())
   animalsStore = useAnimalsStore()
   animals = [MILO]
@@ -70,6 +90,16 @@ async function monter() {
   return wrapper
 }
 
+async function importer(wrapper: VueWrapper) {
+  const input = wrapper.get<HTMLInputElement>('input[type="file"]').element
+  Object.defineProperty(input, 'files', {
+    configurable: true,
+    value: [new File([importFixtureJson()], 'export.json', { type: 'application/json' })],
+  })
+  input.dispatchEvent(new Event('change'))
+  await flushPromises()
+}
+
 function ligneExport(wrapper: VueWrapper) {
   return wrapper.get('.settings-row--export')
 }
@@ -91,7 +121,7 @@ describe('SettingsView', () => {
       'Mes données',
       'À propos',
     ])
-    expect(wrapper.text()).not.toMatch(/Plus|Compte|Importer|PDF|Confidentialité/)
+    expect(wrapper.text()).not.toMatch(/Plus|Compte|PDF|Confidentialité/)
   })
 
   it('charge les animaux s’ils ne le sont pas encore', async () => {
@@ -162,6 +192,70 @@ describe('SettingsView', () => {
     expect(loadAnimals).toHaveBeenCalledTimes(2)
     expect(wrapper.getComponent(ExportSheet).props('modelValue')).toBe(false)
     expect(ligneExport(wrapper).text()).toBe('Exporter mes données')
+  })
+
+  it.each([
+    ['avec des animaux', [MILO]],
+    ['sans animal', []],
+  ])(
+    'ouvre le sélecteur de fichier depuis « Importer un export MémoPatte », %s',
+    async (_, liste) => {
+      animals = liste
+      const wrapper = await monter()
+      const lignes = wrapper.findAll('.settings-row').map((row) => row.text())
+      const ligne = wrapper.get('.settings-row--import')
+      const click = vi
+        .spyOn(wrapper.get('input[type="file"]').element as HTMLInputElement, 'click')
+        .mockImplementation(() => undefined)
+
+      expect(lignes.indexOf('Importer un export MémoPatte')).toBe(
+        lignes.findIndex((texte) => texte.startsWith('Exporter mes données')) + 1,
+      )
+      expect(ligne.attributes('disabled')).toBeUndefined()
+      await ligne.trigger('click')
+
+      expect(click).toHaveBeenCalledOnce()
+    },
+  )
+
+  it('montre l’import en cours sur la ligne et bloque un second tap', async () => {
+    animals = []
+    hasLocalData.mockResolvedValue(false)
+    let finish!: () => void
+    importData.mockImplementation(() => new Promise<void>((resolve) => (finish = resolve)))
+    const wrapper = await monter()
+
+    await importer(wrapper)
+
+    const ligne = wrapper.get('.settings-row--import')
+    expect(ligne.attributes('disabled')).toBeDefined()
+    expect(ligne.text()).toContain('Import…')
+    finish()
+    await flushPromises()
+    expect(wrapper.get('.settings-row--import').attributes('disabled')).toBeUndefined()
+  })
+
+  it('après un import réussi, recharge les animaux et propose l’explication des rappels', async () => {
+    hasLocalData.mockResolvedValue(false)
+    importData.mockResolvedValue()
+    const wrapper = await monter()
+    loadAnimals.mockClear()
+
+    await importer(wrapper)
+
+    expect(loadAnimals).toHaveBeenCalledOnce()
+    expect(promptNotificationsIfReminders).toHaveBeenCalledWith(router, 'settings')
+  })
+
+  it('ne propose pas l’explication des rappels après un import raté', async () => {
+    hasLocalData.mockResolvedValue(false)
+    importData.mockRejectedValue(new Error('disque plein'))
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+    const wrapper = await monter()
+
+    await importer(wrapper)
+
+    expect(promptNotificationsIfReminders).not.toHaveBeenCalled()
   })
 
   it('affiche la version de l’app lue dans package.json', async () => {

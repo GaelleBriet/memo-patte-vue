@@ -5,12 +5,15 @@ import add from '@material-symbols/svg-400/outlined/add.svg?raw'
 import arrowBack from '@material-symbols/svg-400/outlined/arrow_back.svg?raw'
 import calendarMonth from '@material-symbols/svg-400/outlined/calendar_month.svg?raw'
 import check from '@material-symbols/svg-400/outlined/check.svg?raw'
+import deleteSweep from '@material-symbols/svg-400/outlined/delete_sweep.svg?raw'
 import description from '@material-symbols/svg-400/outlined/description.svg?raw'
+import download from '@material-symbols/svg-400/outlined/download.svg?raw'
 import edit from '@material-symbols/svg-400/outlined/edit.svg?raw'
 import error from '@material-symbols/svg-400/outlined/error.svg?raw'
 import errorFill from '@material-symbols/svg-400/outlined/error-fill.svg?raw'
 import home from '@material-symbols/svg-400/outlined/home.svg?raw'
 import iosShare from '@material-symbols/svg-400/outlined/ios_share.svg?raw'
+import merge from '@material-symbols/svg-400/outlined/merge.svg?raw'
 import medication from '@material-symbols/svg-400/outlined/medication.svg?raw'
 import monitorWeight from '@material-symbols/svg-400/outlined/monitor_weight.svg?raw'
 import notificationsActive from '@material-symbols/svg-400/outlined/notifications_active.svg?raw'
@@ -109,7 +112,9 @@ export const msIcons = {
   circle,
   close,
   colorize,
+  delete_sweep: deleteSweep,
   description,
+  download,
   edit,
   error,
   error_fill: errorFill,
@@ -128,6 +133,7 @@ export const msIcons = {
   keyboard_return: keyboardReturn,
   last_page: lastPage,
   medication,
+  merge,
   menu,
   monitor_weight: monitorWeight,
   notifications_active: notificationsActive,

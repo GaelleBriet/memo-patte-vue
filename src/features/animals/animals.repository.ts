@@ -15,6 +15,9 @@ interface AnimalRow {
   deleted_at: string | null
 }
 
+export type AnimalVersion = Pick<Animal, 'id' | 'photoPath' | 'updatedAt' | 'deletedAt'>
+export type RestoredAnimal = Omit<Animal, 'deletedAt'>
+
 const COLUMNS =
   'id, name, species, breed, birth_date, initial_weight_kg, photo_path, created_at, updated_at, deleted_at'
 
@@ -128,6 +131,55 @@ export function createAnimalsRepository(db: DbClient) {
         },
         ...cascade,
       ])
+    },
+
+    /** Lignes supprimées comprises : l'import compare les versions avant d'écrire. */
+    async listVersions(): Promise<AnimalVersion[]> {
+      const rows = await db.query<AnimalRow>(`SELECT ${COLUMNS} FROM animal`)
+      return rows.map(({ id, photo_path, updated_at, deleted_at }) => ({
+        id,
+        photoPath: photo_path,
+        updatedAt: updated_at,
+        deletedAt: deleted_at,
+      }))
+    },
+
+    markAllDeletedStatement(deletedAt: string): SqlStatement {
+      return {
+        sql: `UPDATE animal SET deleted_at = ?, updated_at = ? WHERE ${NOT_DELETED}`,
+        params: [deletedAt, deletedAt],
+      }
+    },
+
+    /** Reprend l'identifiant et les dates du fichier importé, et rend la ligne visible. */
+    restoreStatement(animal: RestoredAnimal, exists: boolean): SqlStatement {
+      const values = [
+        animal.name,
+        animal.species,
+        animal.breed,
+        animal.birthDate,
+        animal.initialWeightKg,
+        animal.photoPath,
+        animal.createdAt,
+        animal.updatedAt,
+      ]
+      return exists
+        ? {
+            sql: `UPDATE animal
+                  SET name = ?, species = ?, breed = ?, birth_date = ?, initial_weight_kg = ?,
+                      photo_path = ?, created_at = ?, updated_at = ?, deleted_at = NULL
+                  WHERE id = ?`,
+            params: [...values, animal.id],
+          }
+        : {
+            sql: `INSERT INTO animal (${COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)`,
+            params: [animal.id, ...values],
+          }
+    },
+
+    /** Joue en une transaction les instructions d'import de l'animal et de son carnet. */
+    async runImport(statements: SqlStatement[]): Promise<void> {
+      await db.runMany(statements)
     },
   }
 }
