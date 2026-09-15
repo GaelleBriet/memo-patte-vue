@@ -57,8 +57,17 @@ describe('replaceDueReminders', () => {
       [`treatment:${OTHER}:2026-09-20:due`, DUE.key].sort(),
     )
     expect(notifications.cancelReminder.mock.invocationCallOrder.at(-1)).toBeLessThan(
-      notifications.scheduleReminder.mock.invocationCallOrder[0]!,
+      notifications.scheduleReminders.mock.invocationCallOrder[0]!,
     )
+  })
+
+  it('programme tous les nouveaux rappels de l’entrée en un seul appel', async () => {
+    const before = reminder(`treatment:${ID}:2026-10-15:before`, new Date(2026, 9, 12, 9))
+
+    await replaceDueReminders(notifications, { kind: 'treatment', id: ID }, () => [DUE, before])
+
+    expect(notifications.scheduleReminders).toHaveBeenCalledOnce()
+    expect(notifications.scheduleReminders.mock.calls[0]![0]).toEqual([before, DUE])
   })
 
   it('ne programme rien sans permission et ne construit pas les rappels', async () => {
@@ -68,7 +77,7 @@ describe('replaceDueReminders', () => {
     await replaceDueReminders(notifications, { kind: 'treatment', id: ID }, build)
 
     expect(build).not.toHaveBeenCalled()
-    expect(notifications.scheduleReminder).not.toHaveBeenCalled()
+    expect(notifications.scheduleReminders).not.toHaveBeenCalled()
   })
 
   it('ne dépasse pas le plafond de rappels en attente, en gardant les plus proches', async () => {
@@ -78,7 +87,7 @@ describe('replaceDueReminders', () => {
 
     await replaceDueReminders(notifications, { kind: 'treatment', id: ID }, () => [DUE, before])
 
-    expect(notifications.scheduleReminder.mock.calls).toEqual([[before]])
+    expect(notifications.scheduleReminders.mock.calls).toEqual([[[before]]])
     expect(notifications.pending.size).toBe(MAX_SCHEDULED_REMINDERS)
   })
 
@@ -87,7 +96,7 @@ describe('replaceDueReminders', () => {
 
     await replaceDueReminders(notifications, { kind: 'treatment', id: ID }, () => [DUE])
 
-    expect(notifications.scheduleReminder.mock.calls).toEqual([[DUE]])
+    expect(notifications.scheduleReminders.mock.calls).toEqual([[[DUE]]])
   })
 
   it('demande une synchro complète quand le plafond écarte un rappel plus proche que les programmés', async () => {
@@ -97,7 +106,7 @@ describe('replaceDueReminders', () => {
 
     await replaceDueReminders(notifications, { kind: 'treatment', id: ID }, () => [DUE])
 
-    expect(notifications.scheduleReminder).not.toHaveBeenCalled()
+    expect(notifications.scheduleReminders).not.toHaveBeenCalled()
     expect(fullSync).toHaveBeenCalledOnce()
   })
 
@@ -113,7 +122,7 @@ describe('replaceDueReminders', () => {
   })
 
   it('ne lève pas quand le plugin échoue', async () => {
-    notifications.scheduleReminder.mockRejectedValue(new Error('plugin'))
+    notifications.scheduleReminders.mockRejectedValue(new Error('plugin'))
 
     await expect(
       replaceDueReminders(notifications, { kind: 'treatment', id: ID }, () => [DUE]),
@@ -175,7 +184,7 @@ describe('enqueueReminderTask', () => {
     release()
     await Promise.all([replacing, cancelling, syncing])
 
-    expect(notifications.scheduleReminder.mock.invocationCallOrder[0]).toBeLessThan(
+    expect(notifications.scheduleReminders.mock.invocationCallOrder[0]).toBeLessThan(
       notifications.cancelReminder.mock.invocationCallOrder[0]!,
     )
     expect(synced).toHaveBeenCalledOnce()
