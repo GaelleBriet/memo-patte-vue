@@ -36,5 +36,5 @@ jobs:
       - name: Build
         run: pnpm build
 
-      - name: Pas de fixtures de dev dans le build
+      - name: Pas d'outils de dev dans le build (fixtures, SQLite du navigateur)
         run: pnpm test:build

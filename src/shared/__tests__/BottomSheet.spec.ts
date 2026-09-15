@@ -1,9 +1,23 @@
+import { App, type BackButtonListenerEvent } from '@capacitor/app'
+import { Capacitor, type PluginListenerHandle } from '@capacitor/core'
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 import { defineComponent, h, ref } from 'vue'
 
 import BottomSheet from '../BottomSheet.vue'
+import { installBackButton } from '@/core/app-lifecycle/back-button'
 import vuetify from '@/core/theme/vuetify'
+
+type BackListener = (event: BackButtonListenerEvent) => void
+
+vi.mock('@capacitor/app', () => ({
+  App: {
+    addListener: vi.fn<(event: string, callback: BackListener) => Promise<PluginListenerHandle>>(
+      async () => ({ remove: async () => {} }),
+    ),
+    minimizeApp: vi.fn<() => Promise<void>>(async () => {}),
+  },
+}))
 
 let wrapper: VueWrapper | null = null
 
@@ -274,5 +288,103 @@ describe('BottomSheet — retour du focus', () => {
     await flushPromises()
 
     expect(document.activeElement).not.toBe(element('.repere'))
+  })
+})
+
+describe('BottomSheet — bouton retour Android', () => {
+  let desinstaller: () => void
+
+  beforeEach(() => {
+    vi.spyOn(Capacitor, 'isNativePlatform').mockReturnValue(true)
+    ;(App.addListener as unknown as Mock).mockClear()
+    desinstaller = installBackButton()
+  })
+
+  afterEach(() => desinstaller())
+
+  function retour(): void {
+    const appel = (App.addListener as unknown as Mock).mock.calls.at(-1)
+    if (!appel) throw new Error('écouteur backButton absent')
+    ;(appel[1] as BackListener)({ canGoBack: true })
+  }
+
+  it('ferme la feuille ouverte sans quitter l’écran et rend le focus au déclencheur', async () => {
+    const back = vi.spyOn(window.history, 'back').mockImplementation(() => {})
+    const ecran = await monterEcran()
+    const ouvrir = element('.ouvrir')
+    await ouvrirDepuis(ouvrir)
+
+    retour()
+    await flushPromises()
+
+    expect((ecran.vm as unknown as EcranExpose).open).toBe(false)
+    expect(back).not.toHaveBeenCalled()
+    expect(document.activeElement).toBe(ouvrir)
+  })
+
+  it('reste ouverte et ne navigue pas pendant une opération en cours', async () => {
+    const back = vi.spyOn(window.history, 'back').mockImplementation(() => {})
+    const feuille = await monter({ persistent: true })
+
+    retour()
+    await flushPromises()
+
+    expect(feuille.emitted('update:modelValue')).toBeUndefined()
+    expect(back).not.toHaveBeenCalled()
+  })
+
+  it('laisse le retour à l’écran précédent une fois la feuille fermée', async () => {
+    const back = vi.spyOn(window.history, 'back').mockImplementation(() => {})
+    const feuille = await monter()
+
+    await feuille.setProps({ modelValue: false })
+    await flushPromises()
+    retour()
+
+    expect(back).toHaveBeenCalledOnce()
+  })
+
+  it('laisse le retour à l’écran précédent quand la feuille ouverte est démontée', async () => {
+    const back = vi.spyOn(window.history, 'back').mockImplementation(() => {})
+    const feuille = await monter()
+
+    feuille.unmount()
+    wrapper = null
+    retour()
+
+    expect(back).toHaveBeenCalledOnce()
+  })
+
+  it('ferme d’abord la dernière feuille ouverte', async () => {
+    const premiere = ref(true)
+    const seconde = ref(false)
+    const feuille = (title: string, open: typeof premiere) =>
+      h(
+        BottomSheet,
+        {
+          modelValue: open.value,
+          'onUpdate:modelValue': (value: boolean) => (open.value = value),
+          title,
+          closeLabel: 'Fermer',
+        },
+        () => null,
+      )
+    wrapper = mount(
+      defineComponent(
+        () => () => h('div', [feuille('Seconde', seconde), feuille('Première', premiere)]),
+      ),
+      { global: { plugins: [vuetify], stubs: { transition: false } }, attachTo: document.body },
+    )
+    await flushPromises()
+    seconde.value = true
+    await flushPromises()
+
+    retour()
+    await flushPromises()
+    expect([premiere.value, seconde.value]).toEqual([true, false])
+
+    retour()
+    await flushPromises()
+    expect(premiere.value).toBe(false)
   })
 })
