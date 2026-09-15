@@ -30,7 +30,6 @@ const weightErrorId = useId()
 const dateErrorId = useId()
 const saveFailed = ref(false)
 const isSubmitting = ref(false)
-// Feuille gardée montée : la borne se recale aussi à chaque ouverture, même sans retour au premier plan.
 const { today, refresh: refreshToday } = useToday()
 const weightInput = ref<{ focus: () => void } | null>(null)
 

@@ -193,17 +193,17 @@ describe('useForegroundRefresh', () => {
 describe('useToday', () => {
   it('suit la date du jour après un changement de jour et un retour au premier plan', async () => {
     vi.useFakeTimers({ now: new Date('2026-09-09T23:30:00'), toFake: ['Date'] })
-    let today!: ReturnType<typeof useToday>['today']
+    let result!: ReturnType<typeof useToday>
     const wrapper = withSetup(() => {
-      ;({ today } = useToday())
+      result = useToday()
     })
-    expect(today.value).toBe('2026-09-09')
+    expect(result.today.value).toBe('2026-09-09')
 
     vi.setSystemTime(new Date('2026-09-10T08:00:00'))
     simulateWebResume()
     await wrapper.vm.$nextTick()
 
-    expect(today.value).toBe('2026-09-10')
+    expect(result.today.value).toBe('2026-09-10')
     wrapper.unmount()
   })
 

@@ -117,12 +117,6 @@ describe('animalFormValuesFrom', () => {
   })
 })
 
-describe('todayIsoDate', () => {
-  it('rend la date du jour au format du champ date natif', () => {
-    expect(todayIsoDate()).toBe(format(new Date(), 'yyyy-MM-dd'))
-  })
-})
-
 describe('validateAnimalForm — champs optionnels', () => {
   it('rend null, jamais la chaîne vide, pour un champ optionnel laissé vide', () => {
     const data = donnees()

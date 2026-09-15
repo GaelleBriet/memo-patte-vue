@@ -67,12 +67,6 @@ describe('vaccinationFormValuesFrom', () => {
   })
 })
 
-describe('todayIsoDate', () => {
-  it('rend la date du jour au format du champ date natif', () => {
-    expect(todayIsoDate()).toBe(format(new Date(), 'yyyy-MM-dd'))
-  })
-})
-
 describe('validateVaccinationForm — données', () => {
   it('ne contient jamais d’animal : il vient de la route ou du vaccin existant', () => {
     expect(donnees()).not.toHaveProperty('animalId')
