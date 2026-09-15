@@ -26,6 +26,14 @@ describe('routeAfterReminderSaved', () => {
     })
   })
 
+  it('n’envoie pas de prénom vide quand l’animal n’est pas résolu', async () => {
+    shouldShow.mockResolvedValue(true)
+
+    expect(
+      await routeAfterReminderSaved({ hasDueDate: true, animalName: null, kind: 'treatment' }),
+    ).toEqual({ name: 'notifications-priming', query: { kind: 'treatment' } })
+  })
+
   it('revient au Carnet quand l’écran a déjà eu sa réponse ou que la permission est accordée', async () => {
     shouldShow.mockResolvedValue(false)
 

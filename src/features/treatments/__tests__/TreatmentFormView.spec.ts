@@ -419,6 +419,19 @@ describe('TreatmentFormView — écran d’explication des notifications', () =>
     })
   })
 
+  it('n’envoie pas de prénom quand l’animal de la route est introuvable', async () => {
+    vi.mocked(shouldShowPriming).mockResolvedValueOnce(true)
+    const wrapper = await monterCreation('99999999-9999-4999-8999-999999999999')
+    await remplirMinimum(wrapper)
+
+    await soumettre(wrapper)
+
+    expect(push).toHaveBeenCalledExactlyOnceWith({
+      name: 'notifications-priming',
+      query: { kind: 'treatment' },
+    })
+  })
+
   it('revient au Carnet quand l’écran a déjà eu sa réponse', async () => {
     const wrapper = await monterCreation()
     await remplirMinimum(wrapper)

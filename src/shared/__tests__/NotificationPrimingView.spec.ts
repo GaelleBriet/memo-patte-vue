@@ -73,6 +73,15 @@ describe('NotificationPrimingView — contenu', () => {
     )
   })
 
+  it('retire la puce personnalisée quand le prénom de l’animal est inconnu', () => {
+    const wrapper = monter({ animalName: '' })
+
+    expect(wrapper.findAll('li').map((item) => item.text())).toEqual([
+      'Ça marche même hors ligne',
+      'Seulement pour les rappels que tu enregistres',
+    ])
+  })
+
   it('ne demande rien au système à l’affichage', () => {
     monter()
 

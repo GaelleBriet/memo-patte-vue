@@ -96,7 +96,7 @@ async function submit(): Promise<void> {
     void router.push(
       await routeAfterReminderSaved({
         hasDueDate: result.data.dueDate !== null,
-        animalName: animalName.value ?? '',
+        animalName: animalName.value,
         kind: 'vaccination',
       }),
     )

@@ -327,6 +327,20 @@ describe('VaccinationFormView — écran d’explication des notifications', () 
     })
   })
 
+  it('n’envoie pas de prénom quand l’animal de la route est introuvable', async () => {
+    vi.mocked(shouldShowPriming).mockResolvedValueOnce(true)
+    const wrapper = await monterCreation('99999999-9999-4999-8999-999999999999')
+    await remplirMinimum(wrapper)
+    await champ(wrapper, 'vaccination-due-date').setValue('2027-03-12')
+
+    await soumettre(wrapper)
+
+    expect(push).toHaveBeenCalledExactlyOnceWith({
+      name: 'notifications-priming',
+      query: { kind: 'vaccination' },
+    })
+  })
+
   it('revient au Carnet sans rien vérifier pour un vaccin sans échéance', async () => {
     vi.mocked(shouldShowPriming).mockClear()
     const wrapper = await monterCreation()

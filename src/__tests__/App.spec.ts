@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { nextTick } from 'vue'
 
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import App from '../App.vue'
 import vuetify from '@/core/theme/vuetify'
 import i18n from '@/core/i18n'
@@ -44,6 +44,8 @@ describe('App', () => {
     expect(document.body.querySelector('.app-toast')?.textContent).toContain('Rappels activés')
     dismissToast()
     wrapper.unmount()
+    // Le démontage de l'overlay lit encore `visualViewport` : on le laisse finir avant de retirer le stub.
+    await flushPromises()
     vi.unstubAllGlobals()
   })
 })

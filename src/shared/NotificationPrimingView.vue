@@ -16,10 +16,15 @@ const { t } = useI18n()
 const router = useRouter()
 const isRequesting = ref(false)
 
-const benefits = computed(() => [
-  props.kind === 'treatment'
+const personalBenefit = computed(() => {
+  if (!props.animalName) return null
+  return props.kind === 'treatment'
     ? t('notifications.priming.benefits.treatment', { name: props.animalName })
-    : t('notifications.priming.benefits.vaccination', { name: props.animalName }),
+    : t('notifications.priming.benefits.vaccination', { name: props.animalName })
+})
+
+const benefits = computed(() => [
+  ...(personalBenefit.value ? [personalBenefit.value] : []),
   t('notifications.priming.benefits.offline'),
   t('notifications.priming.benefits.onlyYours'),
 ])

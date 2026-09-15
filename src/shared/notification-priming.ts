@@ -6,13 +6,15 @@ export type ReminderKind = 'vaccination' | 'treatment'
 
 export async function routeAfterReminderSaved(saved: {
   hasDueDate: boolean
-  animalName: string
+  animalName: string | null
   kind: ReminderKind
 }): Promise<RouteLocationRaw> {
   if (saved.hasDueDate && (await shouldShowPriming())) {
     return {
       name: 'notifications-priming',
-      query: { animalName: saved.animalName, kind: saved.kind },
+      query: saved.animalName
+        ? { animalName: saved.animalName, kind: saved.kind }
+        : { kind: saved.kind },
     }
   }
   return { name: 'animals' }
