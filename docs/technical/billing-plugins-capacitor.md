@@ -420,6 +420,10 @@ la sync ») :
 | `hold` / `expired`        | non        | bandeau « Plus est arrêté ; tes données restent sur ce téléphone » + bouton « Réactiver » (écran Plus) + « Restaurer mes achats »       |
 | `none`                    | non        | écran Plus proposé, jamais imposé (#43)                                                                                                 |
 
+État livré par #44 : seuls `none`, `monthly`, `annual` et `lifetime` sont calculés et stockés ;
+`grace` et `expired` ne sont pas des statuts stockés pour l'instant (une grâce se lit active, une
+échéance passée se lit `none`). À ajouter avec #45 si le bandeau le demande.
+
 Règles : ne jamais effacer ni verrouiller les données locales ; ne pas supprimer côté Supabase à
 l'expiration (garder la sauvegarde un délai à décider, à consigner dans decisions-log) ; revérifier
 le statut à chaque lancement et à chaque retour au premier plan (Google : appeler
