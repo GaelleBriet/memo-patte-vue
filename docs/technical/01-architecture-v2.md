@@ -105,6 +105,7 @@ src/
 - Compte **optionnel**, proposé uniquement sur l'écran MémoPatte Plus, jamais au premier lancement.
 - Méthodes : email + mot de passe et Google (via Supabase Auth).
 - La garde de navigation ne conditionne jamais l'accès aux données locales ; la session Supabase ne sert qu'à la synchronisation.
+- Session Supabase et drapeau « cet appareil a un compte Plus » dans le localStorage de la WebView (exclu d'Auto Backup) ; le client Supabase n'est chargé qu'à la première opération d'un compte, jamais au lancement d'un appareil sans drapeau. Seule une déconnexion explicite efface le drapeau (`features/auth/`).
 - Message sur l'écran Plus :
 > « Android sauvegarde déjà tes carnets sur ton Drive. Avec Plus, MémoPatte les garde aussi en sécurité, avec les photos, et les retrouve sur tous tes appareils. »
 
