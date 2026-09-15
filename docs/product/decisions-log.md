@@ -848,3 +848,21 @@ bundle sans toucher au build natif. — Alternative écartée : sortir le wasm d
 `public/` pour le servir par un middleware Vite de dev, et le chunk par
 `build.rollupOptions.external` ou un `define` de plateforme : un déplacement
 de fichier et plus de configuration pour le même résultat.
+
+2026-09-15 — **Deux notifications par échéance, à 9 h : trois jours avant et le
+jour même** (vaccins et traitements, #22, #27). — Raison : trois jours laissent le
+temps de prendre rendez-vous chez le vétérinaire, le jour même rattrape un oubli ;
+l'écran d'explication promet « on te prévient avant le rappel ». Les alarmes
+restent inexactes (conformité Play Store) : l'heure peut glisser de quelques
+minutes. — Alternatives écartées : une seule notification le jour même (souvent
+trop tard pour un vaccin) ; un délai réglable dans les Paramètres (option absente
+des maquettes).
+
+2026-09-15 — **Maquettes notifications et Paramètres validées**
+(`docs/design/notifs-rappels-parametres/`) : écran d'explication plein écran avant
+la popup système, bandeau neutre « Les rappels sont désactivés » au-dessus de
+« À faire » sur l'Accueil, Paramètres en écran poussé depuis l'icône du header. Les
+sections Paramètres sans destination existante (MémoPatte Plus, Compte, Export PDF,
+Confidentialité) arrivent avec leurs tickets. — Raison : un contrôle qui ne mène
+nulle part est un bug (décision du 2026-09-09). — Alternative écartée : afficher
+tout l'écran de la maquette avec des entrées inertes.
