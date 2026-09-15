@@ -5,6 +5,15 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.20](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.19...memo-patte-v0.1.20) (2026-09-14)
+
+
+### 🐛 Corrections
+
+* **theme:** une seule teinte de retard, bandeau de l'accueil compris ([7dfc1c4](https://github.com/GaelleBriet/memo-patte-vue/commit/7dfc1c4a2c474790f50034664f4846d37287ddea))
+* **weight:** feuille pesée sans animal, seule l'erreur d'animal s'affiche ([30f6e81](https://github.com/GaelleBriet/memo-patte-vue/commit/30f6e814b1388c12a31bd7e9b8b4d1d3b7a7dd1f))
+* **weight:** feuille pesée sans animal, seule l'erreur du sélecteur s'affiche ([8e6ddea](https://github.com/GaelleBriet/memo-patte-vue/commit/8e6ddead40a2fde6fa7ac7cfb7d349730a3d7efc)), closes [#192](https://github.com/GaelleBriet/memo-patte-vue/issues/192)
+
 ## [0.1.19](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.18...memo-patte-v0.1.19) (2026-09-14)
 
 
