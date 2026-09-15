@@ -4,7 +4,6 @@ export {
   cancelReminder,
   checkPermission,
   listScheduled,
-  requestPermission,
   rescheduleAll,
   scheduleReminder,
 } from './notifications.service'

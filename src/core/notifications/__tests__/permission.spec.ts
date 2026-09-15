@@ -199,6 +199,26 @@ describe('onNotificationPermissionGranted', () => {
     expect(listener).toHaveBeenCalledOnce()
   })
 
+  it('ignore une lecture partie avant l’accord, qui ne doit pas provoquer un second appel', async () => {
+    const listener = vi.fn<() => void>()
+    osPermission('denied')
+    permission.onNotificationPermissionGranted(listener)
+    await permission.getNotificationPermissionStatus()
+    let answerStaleRead!: (status: PermissionStatus) => void
+    checkPermissions.mockImplementationOnce(
+      () => new Promise((resolve) => (answerStaleRead = resolve)),
+    )
+    const staleRead = permission.getNotificationPermissionStatus()
+
+    await permission.requestAfterPriming()
+    answerStaleRead({ display: 'denied' })
+    await staleRead
+    osPermission('granted')
+    await permission.getNotificationPermissionStatus()
+
+    expect(listener).toHaveBeenCalledOnce()
+  })
+
   it('cesse de prévenir après désinscription', async () => {
     const listener = vi.fn<() => void>()
     const stop = permission.onNotificationPermissionGranted(listener)

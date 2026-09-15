@@ -15,6 +15,8 @@ const PRIMING_ANSWERED_KEY = 'memopatte.notifications.primingAnswered'
 
 const grantedListeners = new Set<Listener>()
 let lastGranted: boolean | null = null
+// Incrémenté à chaque réponse de la popup : une lecture partie avant ne fait plus foi.
+let requestGeneration = 0
 let detachResume: (() => void) | null = null
 
 function isPrimingAnswered(): boolean {
@@ -42,6 +44,7 @@ function recordGranted(granted: boolean): void {
 }
 
 export async function getNotificationPermissionStatus(): Promise<NotificationPermissionStatus> {
+  const startedAt = requestGeneration
   let display: string
   try {
     ;({ display } = await LocalNotifications.checkPermissions())
@@ -49,7 +52,7 @@ export async function getNotificationPermissionStatus(): Promise<NotificationPer
     return 'unavailable'
   }
 
-  recordGranted(display === 'granted')
+  if (startedAt === requestGeneration) recordGranted(display === 'granted')
   if (display === 'granted') return 'granted'
   if (display === 'denied' || isPrimingAnswered()) return 'disabled'
   return 'unasked'
@@ -72,6 +75,7 @@ export async function requestAfterPriming(): Promise<boolean> {
     granted = false
   }
 
+  requestGeneration += 1
   recordGranted(granted)
   return granted
 }

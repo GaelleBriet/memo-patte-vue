@@ -32,8 +32,10 @@ function toScheduledReminder(notification: PendingLocalNotificationSchema): Sche
   }
 }
 
-/** Remplace le rappel de même clé s'il existe déjà. */
+/** Remplace le rappel de même clé s'il existe déjà ; sans permission accordée, ne programme rien. */
 export async function scheduleReminder(reminder: Reminder): Promise<void> {
+  // Sur Android 13+, `schedule()` ouvrirait la popup système sans l'écran d'explication.
+  if (!(await checkPermission())) return
   await LocalNotifications.schedule({ notifications: [toPluginNotification(reminder)] })
 }
 
@@ -48,7 +50,7 @@ export async function listScheduled(): Promise<ScheduledReminder[]> {
   return notifications.map(toScheduledReminder)
 }
 
-/** Annule tout ce qui est en attente, y compris les rappels d'une session précédente. */
+/** Annule tout ce qui est en attente, y compris d'une session précédente ; sans permission accordée, ne reprogramme rien. */
 export async function rescheduleAll(reminders: Reminder[]): Promise<void> {
   const { notifications: pending } = await LocalNotifications.getPending()
 
@@ -56,7 +58,7 @@ export async function rescheduleAll(reminders: Reminder[]): Promise<void> {
     await LocalNotifications.cancel({ notifications: pending.map(({ id }) => ({ id })) })
   }
 
-  if (reminders.length > 0) {
+  if (reminders.length > 0 && (await checkPermission())) {
     await LocalNotifications.schedule({ notifications: reminders.map(toPluginNotification) })
   }
 }
