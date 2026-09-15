@@ -15,8 +15,14 @@ const animals = useAnimalsStore()
 const appVersion = import.meta.env.VITE_APP_VERSION
 const isExportSheetOpen = ref(false)
 
+const hasLoadFailed = computed(() => animals.error !== null)
 const hasNothingToExport = computed(() => animals.hasLoaded && animals.animals.length === 0)
 const canExport = computed(() => animals.hasLoaded && animals.animals.length > 0)
+
+function onExportRow(): void {
+  if (hasLoadFailed.value) void animals.load()
+  else isExportSheetOpen.value = true
+}
 
 onMounted(() => {
   if (!animals.hasLoaded) void animals.load()
@@ -39,14 +45,17 @@ function goHome(): void {
         <button
           type="button"
           class="settings-row settings-row--export"
-          :class="{ 'settings-row--disabled': !canExport }"
-          :disabled="!canExport"
-          @click="isExportSheetOpen = true"
+          :class="{ 'settings-row--disabled': !canExport && !hasLoadFailed }"
+          :disabled="!canExport && !hasLoadFailed"
+          @click="onExportRow"
         >
           <v-icon class="settings-row__icon" icon="ms:ios_share" size="22" />
           <span class="settings-row__text">
             <span class="settings-row__label">{{ t('settings.data.export') }}</span>
-            <span v-if="hasNothingToExport" class="settings-row__hint">
+            <span v-if="hasLoadFailed" class="settings-row__hint settings-row__hint--error">
+              {{ t('settings.data.loadError') }}
+            </span>
+            <span v-else-if="hasNothingToExport" class="settings-row__hint">
               {{ t('settings.data.exportEmpty') }}
             </span>
           </span>
@@ -130,6 +139,10 @@ button.settings-row {
   margin-top: 2px;
   color: tokens.$color-text-secondary;
   font-size: 13px;
+}
+
+.settings-row__hint--error {
+  color: rgb(var(--v-theme-error));
 }
 
 .settings-row__chevron {

@@ -352,7 +352,8 @@
     "data": {
       "title": "Mes données",
       "export": "Exporter mes données",
-      "exportEmpty": "Rien à exporter pour l’instant"
+      "exportEmpty": "Rien à exporter pour l’instant",
+      "loadError": "La base locale n’a pas répondu. Touche pour réessayer."
     },
     "about": {
       "title": "À propos",

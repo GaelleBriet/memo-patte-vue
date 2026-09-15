@@ -139,6 +139,31 @@ describe('SettingsView', () => {
     expect(ligne.text()).toBe('Exporter mes données')
   })
 
+  it('signale un échec de lecture des animaux et relance le chargement au tap', async () => {
+    loadAnimals.mockImplementation(async () => {
+      animalsStore.error = new Error('base indisponible')
+      return false
+    })
+    const wrapper = await monter()
+    const ligne = ligneExport(wrapper)
+
+    expect(ligne.attributes('disabled')).toBeUndefined()
+    expect(ligne.text()).toContain('La base locale n’a pas répondu. Touche pour réessayer.')
+
+    loadAnimals.mockImplementation(async () => {
+      animalsStore.animals = animals
+      animalsStore.hasLoaded = true
+      animalsStore.error = null
+      return true
+    })
+    await ligne.trigger('click')
+    await flushPromises()
+
+    expect(loadAnimals).toHaveBeenCalledTimes(2)
+    expect(wrapper.getComponent(ExportSheet).props('modelValue')).toBe(false)
+    expect(ligneExport(wrapper).text()).toBe('Exporter mes données')
+  })
+
   it('affiche la version de l’app lue dans package.json', async () => {
     const wrapper = await monter()
     const version = wrapper.get('.settings-row--version')

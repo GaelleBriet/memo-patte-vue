@@ -352,7 +352,8 @@
     "data": {
       "title": "My data",
       "export": "Export my data",
-      "exportEmpty": "Nothing to export yet"
+      "exportEmpty": "Nothing to export yet",
+      "loadError": "The local database didn’t respond. Tap to try again."
     },
     "about": {
       "title": "About",

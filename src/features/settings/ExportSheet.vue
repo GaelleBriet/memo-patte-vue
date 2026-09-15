@@ -184,6 +184,10 @@ async function submit(): Promise<void> {
   background: rgb(var(--v-theme-primary));
 }
 
+.export-sheet__spinner {
+  margin-inline-end: 8px;
+}
+
 .export-sheet__error {
   margin: 12px 0 0;
   color: rgb(var(--v-theme-error));
@@ -193,7 +197,6 @@ async function submit(): Promise<void> {
 
 .export-sheet__submit {
   width: 100%;
-  gap: 8px;
   height: 52px;
   margin-top: 22px;
   border-radius: 999px;
