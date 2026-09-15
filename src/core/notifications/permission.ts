@@ -1,11 +1,12 @@
-import { Capacitor } from '@capacitor/core'
+import { Capacitor, type PermissionState } from '@capacitor/core'
 import { LocalNotifications } from '@capacitor/local-notifications'
 import { AndroidSettings, NativeSettings } from 'capacitor-native-settings'
 
 import { onAppResume } from '@/core/app-lifecycle/app-resume'
 import { requestPermission } from './notifications.service'
+import { remindersGranted } from './reminders-channel'
 
-/** `disabled` : l'écran d'explication a eu sa réponse, ou le système a coupé les notifications. */
+/** `disabled` : l'écran d'explication a eu sa réponse, ou le système a coupé les notifications ou le canal des rappels. */
 export type NotificationPermissionStatus = 'granted' | 'disabled' | 'unasked' | 'unavailable'
 
 type Listener = () => void
@@ -45,16 +46,18 @@ function recordGranted(granted: boolean): void {
 
 export async function getNotificationPermissionStatus(): Promise<NotificationPermissionStatus> {
   const startedAt = requestGeneration
-  let display: string
+  let display: PermissionState
   try {
     ;({ display } = await LocalNotifications.checkPermissions())
   } catch {
     return 'unavailable'
   }
 
-  if (startedAt === requestGeneration) recordGranted(display === 'granted')
-  if (display === 'granted') return 'granted'
-  if (display === 'denied' || isPrimingAnswered()) return 'disabled'
+  const granted = await remindersGranted(display)
+
+  if (startedAt === requestGeneration) recordGranted(granted)
+  if (granted) return 'granted'
+  if (display === 'granted' || display === 'denied' || isPrimingAnswered()) return 'disabled'
   return 'unasked'
 }
 
