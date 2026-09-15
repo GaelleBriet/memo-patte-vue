@@ -15,8 +15,11 @@ const ASSETS = join(DIST, 'assets')
 const DEV_MARKERS = ['memo-patte:demo-carnet', 'memo-patte:fixtures-token']
 const DEV_CHUNK = /fixtures|demo-carnet/
 
-/** Pas `jeep-sqlite` : le plugin SQLite web, légitime dans le build, cite ce nom. */
-const WEB_SQLITE_MARKERS = ['sql-wasm.wasm']
+/**
+ * Pas `jeep-sqlite` : le plugin SQLite web, légitime dans le build, cite ce nom.
+ * `parseWasmPath` est un watcher du composant, propre au chunk `loader-*.js` de jeep-sqlite.
+ */
+const WEB_SQLITE_MARKERS = ['sql-wasm.wasm', 'parseWasmPath']
 const WEB_SQLITE_FILE = /jeep-sqlite|\.wasm$/
 
 if (!existsSync(ASSETS)) {
