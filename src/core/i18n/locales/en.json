@@ -115,6 +115,7 @@
         "lastInjectionDateFuture": "Vaccination date can’t be in the future.",
         "dueDate": "Due date isn’t valid.",
         "notFound": "We can’t find this vaccine.",
+        "load": "Couldn’t load this vaccine. Try again.",
         "save": "Couldn’t save this vaccine. Try again."
       }
     },
@@ -184,6 +185,7 @@
         "lastDoseDate": "Date is required.",
         "lastDoseDateFuture": "Date can’t be in the future.",
         "notFound": "We can’t find this treatment.",
+        "load": "Couldn’t load this treatment. Try again.",
         "save": "Couldn’t save this treatment. Try again."
       }
     },

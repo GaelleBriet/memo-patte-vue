@@ -115,6 +115,7 @@
         "lastInjectionDateFuture": "La date d’injection ne peut pas être dans le futur.",
         "dueDate": "La date d’échéance est invalide.",
         "notFound": "Ce vaccin est introuvable.",
+        "load": "Ce vaccin n’a pas pu être chargé. Réessaie.",
         "save": "Le vaccin n’a pas pu être enregistré. Réessaie."
       }
     },
@@ -184,6 +185,7 @@
         "lastDoseDate": "La date est obligatoire.",
         "lastDoseDateFuture": "La date ne peut pas être dans le futur.",
         "notFound": "Ce traitement est introuvable.",
+        "load": "Ce traitement n’a pas pu être chargé. Réessaie.",
         "save": "Le traitement n’a pas pu être enregistré. Réessaie."
       }
     },
