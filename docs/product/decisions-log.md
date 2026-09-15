@@ -857,6 +857,8 @@ restent inexactes (conformité Play Store) : l'heure peut glisser de quelques
 minutes. — Alternatives écartées : une seule notification le jour même (souvent
 trop tard pour un vaccin) ; un délai réglable dans les Paramètres (option absente
 des maquettes).
+Complétée le 2026-09-15 : une relance à J+3 s'ajoute aux deux notifications (voir
+l'entrée « Relance à J+3 et traitements au rythme de leur fréquence »).
 
 2026-09-15 — **Maquettes notifications et Paramètres validées**
 (`docs/design/notifs-rappels-parametres/`) : écran d'explication plein écran avant
@@ -866,3 +868,19 @@ sections Paramètres sans destination existante (MémoPatte Plus, Compte, Export
 Confidentialité) arrivent avec leurs tickets. — Raison : un contrôle qui ne mène
 nulle part est un bug (décision du 2026-09-09). — Alternative écartée : afficher
 tout l'écran de la maquette avec des entrées inertes.
+
+2026-09-15 — **Relance à J+3 et traitements au rythme de leur fréquence**
+(#22, #27). Chaque échéance reçoit une relance unique trois jours après, à 9 h
+heure locale, puis plus rien. Un traitement dont la prise n'est pas notée
+continue de sonner sur les échéances suivantes, calculées depuis `nextDueDate`
+et la fréquence ; `nextDueDate` n'est pas modifiée en base, l'échéance affichée
+reste la vraie. La première échéance à venir de chaque vaccin ou traitement est
+toujours programmée, quelle que soit sa distance ; les cycles suivants d'un
+traitement ne le sont que sur 60 jours, 400 rappels au plus, les plus proches
+d'abord, et chaque synchro remplit la suite. — Raison : décision de Gaelle ; un
+rappel manqué sans relance ne se rattrape pas, et un traitement doit rester
+fiable même quand l'app n'est pas rouverte (différenciant n° 1), sous le
+plafond d'alarmes d'Android (~500) au-delà duquel le plugin fait planter l'app.
+— Alternatives écartées : une relance seule, sans poursuivre les cycles d'un
+traitement non noté (il se tairait après la première prise oubliée) ; rien
+après l'échéance (un oubli passe inaperçu).
