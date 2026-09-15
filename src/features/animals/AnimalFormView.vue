@@ -77,7 +77,7 @@ onMounted(async () => {
 })
 
 function backToAnimals(): void {
-  void router.push({ name: 'animals' })
+  void router.replace({ name: 'animals' })
 }
 
 async function choosePhoto(): Promise<void> {
@@ -115,7 +115,8 @@ async function submit(): Promise<void> {
     if (props.id !== undefined) {
       await animals.update(props.id, result.data, photo.value)
     } else {
-      await animals.create(result.data, photo.value)
+      const created = await animals.create(result.data, photo.value)
+      animals.select(created.id)
     }
     backToAnimals()
   } catch {
