@@ -326,5 +326,24 @@
     "cancel": "Annuler",
     "required": "*",
     "optional": "Optionnel"
+  },
+  "notifications": {
+    "priming": {
+      "title": "Ne rate plus aucun rappel",
+      "subtitle": "Active les notifications pour être prévenu à temps des vaccins et traitements de tes animaux.",
+      "benefits": {
+        "vaccination": "On te prévient avant le rappel de vaccin de {name}",
+        "treatment": "On te prévient avant le rappel de traitement de {name}",
+        "offline": "Ça marche même hors ligne",
+        "onlyYours": "Seulement pour les rappels que tu enregistres"
+      },
+      "enable": "Activer les rappels",
+      "later": "Plus tard",
+      "enabled": "Rappels activés"
+    },
+    "disabled": {
+      "title": "Les rappels sont désactivés",
+      "openSettings": "Activer dans les réglages"
+    }
   }
 }

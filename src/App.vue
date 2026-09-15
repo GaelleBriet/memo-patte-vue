@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppToast from '@/shared/AppToast.vue'
 import BottomNavigation from '@/shared/BottomNavigation.vue'
 </script>
 
@@ -8,5 +9,6 @@ import BottomNavigation from '@/shared/BottomNavigation.vue'
       <router-view />
     </v-main>
     <BottomNavigation />
+    <AppToast />
   </v-app>
 </template>

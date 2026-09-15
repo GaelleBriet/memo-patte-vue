@@ -15,6 +15,7 @@ import { useAnimalsStore } from '@/features/animals/animals.store'
 import FormField from '@/shared/form/FormField.vue'
 import FormScreen from '@/shared/form/FormScreen.vue'
 import { useFormValidation } from '@/shared/form/use-form-validation'
+import { routeAfterReminderSaved } from '@/shared/notification-priming'
 
 const props = defineProps<{
   animalId?: string
@@ -92,7 +93,13 @@ async function submit(): Promise<void> {
     } else {
       await vaccinations.create({ animalId: requireAnimalId(), ...result.data })
     }
-    backToAnimals()
+    void router.push(
+      await routeAfterReminderSaved({
+        hasDueDate: result.data.dueDate !== null,
+        animalName: animalName.value,
+        kind: 'vaccination',
+      }),
+    )
   } catch {
     saveFailed.value = true
   } finally {
