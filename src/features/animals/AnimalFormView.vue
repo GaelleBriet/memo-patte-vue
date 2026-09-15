@@ -77,7 +77,7 @@ onMounted(async () => {
 })
 
 function backToAnimals(): void {
-  void router.push({ name: 'animals' })
+  void router.replace({ name: 'animals' })
 }
 
 async function choosePhoto(): Promise<void> {

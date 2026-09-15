@@ -105,7 +105,7 @@ function selectTargetAnimal(): void {
 
 function backToAnimals(): void {
   selectTargetAnimal()
-  void router.push({ name: 'animals' })
+  void router.replace({ name: 'animals' })
 }
 
 function selectUnit(unit: FrequencyUnit | null): void {
@@ -128,7 +128,7 @@ async function submit(): Promise<void> {
       await treatments.create({ animalId: requireAnimalId(), ...result.data })
     }
     selectTargetAnimal()
-    void router.push(
+    void router.replace(
       await routeAfterReminderSaved({
         hasDueDate: true,
         animalName: animalName.value,

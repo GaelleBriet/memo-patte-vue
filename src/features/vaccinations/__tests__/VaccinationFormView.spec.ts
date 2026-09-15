@@ -30,6 +30,28 @@ function routeurMemoire(): Router {
   })
 }
 
+function routeurAvecPile(formulaire: { path: string; name: string }): Router {
+  return createRouter({
+    history: createMemoryHistory(),
+    routes: [
+      { path: '/animals', name: 'animals', component: Vide },
+      { ...formulaire, component: Vide },
+      { path: '/notifications/priming', name: 'notifications-priming', component: Vide },
+    ],
+  })
+}
+
+async function retourAndroid(): Promise<void> {
+  const arrive = new Promise<void>((resolve) => {
+    const retirer = routeur.afterEach(() => {
+      retirer()
+      resolve()
+    })
+  })
+  routeur.back()
+  await arrive
+}
+
 const MILO: Animal = {
   id: '11111111-1111-4111-8111-111111111111',
   name: 'Milo',
@@ -58,7 +80,7 @@ let loadAnimals: MockInstance
 let create: MockInstance<(input: VaccinationInput) => Promise<Vaccination>>
 let update: MockInstance<(id: string, input: VaccinationUpdateInput) => Promise<Vaccination>>
 let getById: MockInstance<(id: string) => Promise<Vaccination | null>>
-let push: MockInstance
+let replace: MockInstance
 let routeur: Router
 
 beforeEach(async () => {
@@ -75,7 +97,7 @@ beforeEach(async () => {
   getById = vi.spyOn(vaccinations, 'getById').mockResolvedValue(RAGE)
   routeur = routeurMemoire()
   await routeur.push('/animals')
-  push = vi.spyOn(routeur, 'push').mockResolvedValue()
+  replace = vi.spyOn(routeur, 'replace').mockResolvedValue()
 })
 
 afterEach(() => {
@@ -286,7 +308,7 @@ describe('VaccinationFormView — création', () => {
 
     await soumettre(wrapper)
 
-    expect(push).toHaveBeenCalledWith({ name: 'animals' })
+    expect(replace).toHaveBeenCalledWith({ name: 'animals' })
   })
 
   it('revient au Carnet sans rien écrire quand on annule', async () => {
@@ -296,7 +318,7 @@ describe('VaccinationFormView — création', () => {
     await wrapper.get('.form-screen__cancel').trigger('click')
 
     expect(create).not.toHaveBeenCalled()
-    expect(push).toHaveBeenCalledWith({ name: 'animals' })
+    expect(replace).toHaveBeenCalledWith({ name: 'animals' })
   })
 })
 
@@ -309,7 +331,7 @@ describe('VaccinationFormView — écran d’explication des notifications', () 
 
     await soumettre(wrapper)
 
-    expect(push).toHaveBeenCalledExactlyOnceWith({
+    expect(replace).toHaveBeenCalledExactlyOnceWith({
       name: 'notifications-priming',
       query: { animalName: 'Milo', kind: 'vaccination' },
     })
@@ -321,7 +343,7 @@ describe('VaccinationFormView — écran d’explication des notifications', () 
 
     await soumettre(wrapper)
 
-    expect(push).toHaveBeenCalledExactlyOnceWith({
+    expect(replace).toHaveBeenCalledExactlyOnceWith({
       name: 'notifications-priming',
       query: { animalName: 'Milo', kind: 'vaccination' },
     })
@@ -335,7 +357,7 @@ describe('VaccinationFormView — écran d’explication des notifications', () 
 
     await soumettre(wrapper)
 
-    expect(push).toHaveBeenCalledExactlyOnceWith({
+    expect(replace).toHaveBeenCalledExactlyOnceWith({
       name: 'notifications-priming',
       query: { kind: 'vaccination' },
     })
@@ -349,7 +371,7 @@ describe('VaccinationFormView — écran d’explication des notifications', () 
     await soumettre(wrapper)
 
     expect(shouldShowPriming).not.toHaveBeenCalled()
-    expect(push).toHaveBeenCalledExactlyOnceWith({ name: 'animals' })
+    expect(replace).toHaveBeenCalledExactlyOnceWith({ name: 'animals' })
   })
 
   it('n’y passe pas quand l’enregistrement échoue', async () => {
@@ -362,7 +384,7 @@ describe('VaccinationFormView — écran d’explication des notifications', () 
     await soumettre(wrapper)
 
     expect(shouldShowPriming).not.toHaveBeenCalled()
-    expect(push).not.toHaveBeenCalled()
+    expect(replace).not.toHaveBeenCalled()
   })
 })
 
@@ -372,7 +394,7 @@ describe('VaccinationFormView — retour sur l’animal du formulaire', () => {
   function selectionAuPush(): () => string | null {
     const animals = useAnimalsStore()
     let selection: string | null = null
-    push.mockImplementation(async () => {
+    replace.mockImplementation(async () => {
       selection = animals.selectedAnimalId
     })
     return () => selection
@@ -386,7 +408,7 @@ describe('VaccinationFormView — retour sur l’animal du formulaire', () => {
 
     await soumettre(wrapper)
 
-    expect(push).toHaveBeenCalledExactlyOnceWith({ name: 'animals' })
+    expect(replace).toHaveBeenCalledExactlyOnceWith({ name: 'animals' })
     expect(selection()).toBe(MILO.id)
   })
 
@@ -410,7 +432,7 @@ describe('VaccinationFormView — retour sur l’animal du formulaire', () => {
 
     await soumettre(wrapper)
 
-    expect(push).toHaveBeenCalledExactlyOnceWith(
+    expect(replace).toHaveBeenCalledExactlyOnceWith(
       expect.objectContaining({ name: 'notifications-priming' }),
     )
     expect(selection()).toBe(MILO.id)
@@ -435,6 +457,53 @@ describe('VaccinationFormView — retour sur l’animal du formulaire', () => {
     await soumettre(wrapper)
 
     expect(useAnimalsStore().selectedAnimalId).toBe(AUTRE_ANIMAL)
+  })
+})
+
+describe('VaccinationFormView — pile de navigation', () => {
+  beforeEach(async () => {
+    replace.mockRestore()
+    routeur = routeurAvecPile({
+      path: '/animals/:animalId/vaccinations/new',
+      name: 'vaccination-new',
+    })
+    await routeur.push('/animals')
+    await routeur.push(`/animals/${MILO.id}/vaccinations/new`)
+  })
+
+  it('ne rouvre pas le formulaire au retour après l’enregistrement', async () => {
+    const wrapper = await monterCreation()
+    await remplirMinimum(wrapper)
+    await soumettre(wrapper)
+    expect(routeur.currentRoute.value.name).toBe('animals')
+
+    await retourAndroid()
+
+    expect(routeur.currentRoute.value.name).toBe('animals')
+  })
+
+  it('ne rouvre pas le formulaire au retour après l’écran d’explication des notifications', async () => {
+    vi.mocked(shouldShowPriming).mockResolvedValueOnce(true)
+    const wrapper = await monterCreation()
+    await remplirMinimum(wrapper)
+    await champ(wrapper, 'vaccination-due-date').setValue('2027-03-12')
+    await soumettre(wrapper)
+    expect(routeur.currentRoute.value.name).toBe('notifications-priming')
+    await routeur.replace({ name: 'animals' })
+
+    await retourAndroid()
+
+    expect(routeur.currentRoute.value.name).toBe('animals')
+  })
+
+  it('ne rouvre pas le formulaire au retour après une annulation', async () => {
+    const wrapper = await monterCreation()
+    await wrapper.get('.form-screen__cancel').trigger('click')
+    await flushPromises()
+
+    await retourAndroid()
+
+    expect(routeur.currentRoute.value.name).toBe('animals')
   })
 })
 
@@ -475,7 +544,7 @@ describe('VaccinationFormView — édition', () => {
       dueDate: null,
     })
     expect(create).not.toHaveBeenCalled()
-    expect(push).toHaveBeenCalledWith({ name: 'animals' })
+    expect(replace).toHaveBeenCalledWith({ name: 'animals' })
   })
 
   it('prévient et n’autorise pas l’envoi quand le vaccin est introuvable', async () => {
@@ -532,7 +601,7 @@ describe('VaccinationFormView — envoi en cours', () => {
       'Le vaccin n’a pas pu être enregistré. Réessaie.',
     )
     expect(wrapper.get('.form-screen__submit').attributes('disabled')).toBeUndefined()
-    expect(push).not.toHaveBeenCalled()
+    expect(replace).not.toHaveBeenCalled()
   })
 })
 

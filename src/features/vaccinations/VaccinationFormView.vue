@@ -80,7 +80,7 @@ function selectTargetAnimal(): void {
 
 function backToAnimals(): void {
   selectTargetAnimal()
-  void router.push({ name: 'animals' })
+  void router.replace({ name: 'animals' })
 }
 
 async function submit(): Promise<void> {
@@ -99,7 +99,7 @@ async function submit(): Promise<void> {
       await vaccinations.create({ animalId: requireAnimalId(), ...result.data })
     }
     selectTargetAnimal()
-    void router.push(
+    void router.replace(
       await routeAfterReminderSaved({
         hasDueDate: result.data.dueDate !== null,
         animalName: animalName.value,

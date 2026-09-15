@@ -40,6 +40,28 @@ function routeurMemoire(): Router {
   })
 }
 
+function routeurAvecPile(formulaire: { path: string; name: string }): Router {
+  return createRouter({
+    history: createMemoryHistory(),
+    routes: [
+      { path: '/animals', name: 'animals', component: Vide },
+      { ...formulaire, component: Vide },
+      { path: '/notifications/priming', name: 'notifications-priming', component: Vide },
+    ],
+  })
+}
+
+async function retourAndroid(): Promise<void> {
+  const arrive = new Promise<void>((resolve) => {
+    const retirer = routeur.afterEach(() => {
+      retirer()
+      resolve()
+    })
+  })
+  routeur.back()
+  await arrive
+}
+
 const MILO: Animal = {
   id: '11111111-1111-4111-8111-111111111111',
   name: 'Milo',
@@ -63,7 +85,7 @@ const MILO_COMPLET: Animal = {
 let load: MockInstance
 let create: MockInstance<(input: AnimalInput) => Promise<Animal>>
 let update: MockInstance<(id: string, input: AnimalInput) => Promise<Animal>>
-let push: MockInstance
+let replace: MockInstance
 let routeur: Router
 
 beforeEach(async () => {
@@ -80,7 +102,7 @@ beforeEach(async () => {
   update = vi.spyOn(animals, 'update').mockResolvedValue(MILO)
   routeur = routeurMemoire()
   await routeur.push('/animals/new')
-  push = vi.spyOn(routeur, 'push').mockResolvedValue()
+  replace = vi.spyOn(routeur, 'replace').mockResolvedValue()
 })
 
 afterEach(() => {
@@ -330,14 +352,14 @@ describe('AnimalFormView — écriture', () => {
     await soumettre(wrapper)
     await wrapper.vm.$nextTick()
 
-    expect(push).toHaveBeenCalledWith({ name: 'animals' })
+    expect(replace).toHaveBeenCalledWith({ name: 'animals' })
   })
 
   it('sélectionne l’animal créé pour l’afficher au retour sur le Carnet', async () => {
     const animals = useAnimalsStore()
     animals.select('33333333-3333-4333-8333-333333333333')
     let selectionAuPush: string | null = null
-    push.mockImplementation(async () => {
+    replace.mockImplementation(async () => {
       selectionAuPush = animals.selectedAnimalId
     })
     const wrapper = monter()
@@ -346,7 +368,7 @@ describe('AnimalFormView — écriture', () => {
     await soumettre(wrapper)
     await flushPromises()
 
-    expect(push).toHaveBeenCalledExactlyOnceWith({ name: 'animals' })
+    expect(replace).toHaveBeenCalledExactlyOnceWith({ name: 'animals' })
     expect(selectionAuPush).toBe(MILO.id)
   })
 
@@ -357,7 +379,38 @@ describe('AnimalFormView — écriture', () => {
     await wrapper.get('.form-screen__cancel').trigger('click')
 
     expect(create).not.toHaveBeenCalled()
-    expect(push).toHaveBeenCalledWith({ name: 'animals' })
+    expect(replace).toHaveBeenCalledWith({ name: 'animals' })
+  })
+})
+
+describe('AnimalFormView — pile de navigation', () => {
+  beforeEach(async () => {
+    replace.mockRestore()
+    routeur = routeurAvecPile({ path: '/animals/new', name: 'animal-new' })
+    await routeur.push('/animals')
+    await routeur.push('/animals/new')
+  })
+
+  it('ne rouvre pas le formulaire au retour après la création', async () => {
+    const wrapper = monter()
+    await remplirMinimum(wrapper)
+    await soumettre(wrapper)
+    await flushPromises()
+    expect(routeur.currentRoute.value.name).toBe('animals')
+
+    await retourAndroid()
+
+    expect(routeur.currentRoute.value.name).toBe('animals')
+  })
+
+  it('ne rouvre pas le formulaire au retour après une annulation', async () => {
+    const wrapper = monter()
+    await wrapper.get('.form-screen__cancel').trigger('click')
+    await flushPromises()
+
+    await retourAndroid()
+
+    expect(routeur.currentRoute.value.name).toBe('animals')
   })
 })
 
@@ -424,7 +477,7 @@ describe('AnimalFormView — édition (état F2)', () => {
       { kind: 'keep' },
     )
     expect(create).not.toHaveBeenCalled()
-    expect(push).toHaveBeenCalledWith({ name: 'animals' })
+    expect(replace).toHaveBeenCalledWith({ name: 'animals' })
   })
 
   it('renvoie null, jamais la chaîne vide, pour un champ resté vide (aller-retour)', async () => {
@@ -478,7 +531,7 @@ describe('AnimalFormView — édition (état F2)', () => {
     await wrapper.get('.form-screen__cancel').trigger('click')
 
     expect(update).not.toHaveBeenCalled()
-    expect(push).toHaveBeenCalledWith({ name: 'animals' })
+    expect(replace).toHaveBeenCalledWith({ name: 'animals' })
   })
 
   it('prévient et n’autorise pas l’envoi quand l’animal est introuvable', async () => {
@@ -538,7 +591,7 @@ describe('AnimalFormView — envoi en cours (état F4)', () => {
       'L’animal n’a pas pu être enregistré. Réessaie.',
     )
     expect(wrapper.get('.form-screen__submit').attributes('disabled')).toBeUndefined()
-    expect(push).not.toHaveBeenCalled()
+    expect(replace).not.toHaveBeenCalled()
   })
 })
 
