@@ -145,8 +145,9 @@ Corrigé :
 - **Toast** : la région `role="status"` de Vuetify naît avec le message, et une région créée déjà remplie
   n'est pas toujours annoncée. `AppToast` garde une région masquée visuellement, présente dès le
   lancement, et cache la sienne aux lecteurs d'écran pour éviter la double annonce ;
-- **Chips animal** : elles étaient lues comme de simples textes, sans rôle ni état. Chaque chip est un
-  bouton à bascule (`aria-pressed`) ;
+- **Chips animal** : elles étaient lues comme de simples textes, sans rôle ni état. Sur l'accueil (filtre
+  désélectionnable), chaque chip est un bouton à bascule (`aria-pressed`) ; sur le Carnet et la feuille
+  pesée (un animal toujours choisi), un bouton radio dans un `radiogroup` (`aria-checked`) ;
 - **Ordre de lecture des feuilles** : la poignée « Fermer » était lue avant le titre. Elle est désormais
   dernière dans le DOM (toujours dessinée en haut) et masquée aux lecteurs d'écran quand la croix est
   affichée, qui porte déjà « Fermer » ;
@@ -157,7 +158,7 @@ Corrigé :
 
 ## Reste à vérifier sur appareil
 
-- TalkBack : annonce du toast, lecture des chips (« Milo, bouton, activé »), ordre de lecture d'une
+- TalkBack : annonce du toast, lecture des chips (bouton à bascule sur l'accueil, radio sur le Carnet et la feuille pesée), ordre de lecture d'une
   feuille ouverte, focus sur le premier champ en erreur après un envoi refusé ;
 - Paramètres Android « Taille de police » au maximum et « Taille d'affichage » agrandie : la simulation ne
   reproduit pas exactement le zoom texte de la WebView (hauteurs de ligne en px, icônes) ;

@@ -55,7 +55,7 @@ function onSelect(value: unknown) {
         class="animal-chip-selector__group"
         :model-value="selectedId ?? undefined"
         :mandatory="mode === 'switch'"
-        role="group"
+        :role="mode === 'switch' ? 'radiogroup' : 'group'"
         :aria-label="t('animals.chipSelector.label')"
         :aria-invalid="invalid || undefined"
         :aria-describedby="describedby"
@@ -70,8 +70,9 @@ function onSelect(value: unknown) {
           :key="animal.id"
           class="animal-chip"
           :value="animal.id"
-          role="button"
-          :aria-pressed="selectedId === animal.id"
+          :role="mode === 'switch' ? 'radio' : 'button'"
+          :aria-checked="mode === 'switch' ? selectedId === animal.id : undefined"
+          :aria-pressed="mode === 'filter' ? selectedId === animal.id : undefined"
         >
           <template #prepend>
             <span
