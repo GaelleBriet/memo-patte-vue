@@ -13,6 +13,7 @@ import medication from '@material-symbols/svg-400/outlined/medication.svg?raw'
 import monitorWeight from '@material-symbols/svg-400/outlined/monitor_weight.svg?raw'
 import pestControl from '@material-symbols/svg-400/outlined/pest_control.svg?raw'
 import pets from '@material-symbols/svg-400/outlined/pets.svg?raw'
+import photoCamera from '@material-symbols/svg-400/outlined/photo_camera.svg?raw'
 import schedule from '@material-symbols/svg-400/outlined/schedule.svg?raw'
 import settings from '@material-symbols/svg-400/outlined/settings.svg?raw'
 import showChart from '@material-symbols/svg-400/outlined/show_chart.svg?raw'
@@ -126,6 +127,7 @@ export const msIcons = {
   pause,
   pest_control: pestControl,
   pets,
+  photo_camera: photoCamera,
   play_arrow: playArrow,
   radio_button_checked: radioButtonChecked,
   radio_button_unchecked: radioButtonUnchecked,

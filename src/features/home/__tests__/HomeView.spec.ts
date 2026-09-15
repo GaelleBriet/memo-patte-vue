@@ -23,6 +23,13 @@ import type { Animal } from '@/features/animals/animal.schema'
 import { useAnimalsStore } from '@/features/animals/animals.store'
 import WeightSheet from '@/features/weight/WeightSheet.vue'
 import AnimalChipSelector from '@/shared/AnimalChipSelector.vue'
+import { forgetPhotoUrls } from '@/core/photos/use-photo-urls'
+
+vi.mock('@/core/photos/photo-storage', () => ({
+  savePhoto: vi.fn<(base64: string) => Promise<string>>(),
+  deletePhoto: vi.fn<(name: string) => Promise<void>>(),
+  photoDisplayUrl: vi.fn<(name: string) => Promise<string>>(async (name) => `url:${name}`),
+}))
 
 const TODAY = new Date('2026-09-09T12:00:00')
 
@@ -83,6 +90,7 @@ let push: MockInstance
 
 beforeEach(async () => {
   vi.useFakeTimers({ now: TODAY, toFake: ['Date'] })
+  forgetPhotoUrls()
   setActivePinia(createPinia())
   animalsStore = useAnimalsStore()
   animals = [MILO, LUNA]
@@ -194,6 +202,19 @@ describe('HomeView — A1 tous les animaux, avec rappels', () => {
     expect(wrapper.findAll('.animal-chip').map((chip) => chip.text())).toEqual(['Milo', 'Luna'])
     expect(wrapper.getComponent(AnimalChipSelector).props('mode')).toBe('filter')
     expect(wrapper.getComponent(AnimalChipSelector).props('selectedId')).toBeNull()
+  })
+
+  it('passe la photo de chaque animal à sa chip, null sans photo', async () => {
+    animals = [{ ...MILO, photoPath: 'milo.jpg' }, LUNA]
+
+    const wrapper = await monter()
+
+    expect(
+      wrapper
+        .getComponent(AnimalChipSelector)
+        .props('animals')
+        .map((chip) => chip.photoUrl),
+    ).toEqual(['url:milo.jpg', null])
   })
 
   it('mène au formulaire de création en un tap sur la chip « + »', async () => {
@@ -585,8 +606,8 @@ describe('HomeView — Actions rapides', () => {
     expect(push).not.toHaveBeenCalled()
     expect(picker.props('modelValue')).toBe(true)
     expect(picker.props('animals')).toEqual([
-      { id: MILO.id, name: 'Milo' },
-      { id: LUNA.id, name: 'Luna' },
+      { id: MILO.id, name: 'Milo', photoUrl: null },
+      { id: LUNA.id, name: 'Luna', photoUrl: null },
     ])
 
     await choisir('Luna')

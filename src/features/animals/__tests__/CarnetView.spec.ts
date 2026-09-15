@@ -32,6 +32,13 @@ import type { WeightEntry } from '@/features/weight/weight.schema'
 import type { WeightRepository } from '@/features/weight/weight.repository'
 import { provideWeightRepository } from '@/features/weight/weight.store'
 import WeightSection from '@/features/weight/WeightSection.vue'
+import { forgetPhotoUrls } from '@/core/photos/use-photo-urls'
+
+vi.mock('@/core/photos/photo-storage', () => ({
+  savePhoto: vi.fn<(base64: string) => Promise<string>>(),
+  deletePhoto: vi.fn<(name: string) => Promise<void>>(),
+  photoDisplayUrl: vi.fn<(name: string) => Promise<string>>(async (name) => `url:${name}`),
+}))
 
 const TODAY = new Date('2026-09-09T12:00:00')
 
@@ -104,6 +111,7 @@ let listWeights: Mock<WeightRepository['listByAnimal']>
 
 beforeEach(async () => {
   vi.useFakeTimers({ now: TODAY, toFake: ['Date'] })
+  forgetPhotoUrls()
   setActivePinia(createPinia())
   store = useAnimalsStore()
   animals = [MILO, LUNA]
@@ -236,6 +244,25 @@ describe('CarnetView — header', () => {
     expect(wrapper.get('.carnet-header__name').text()).toBe('Milo')
     expect(wrapper.get('.carnet-header__subtitle').text()).toBe('Golden retriever · 4 ans')
     expect(wrapper.get('.carnet-header__avatar').attributes('style')).toContain('linear-gradient')
+  })
+
+  it('sans photo, n’affiche que le dégradé', async () => {
+    const wrapper = await monter()
+
+    expect(wrapper.find('.carnet-header__avatar img').exists()).toBe(false)
+    expect(wrapper.getComponent(AnimalChipSelector).props('animals')[0]?.photoUrl).toBeNull()
+  })
+
+  it('affiche la photo de l’animal dans l’avatar du header et dans sa chip', async () => {
+    animals = [{ ...MILO, photoPath: 'milo.jpg' }, LUNA]
+
+    const wrapper = await monter()
+
+    expect(wrapper.get('.carnet-header__avatar img').attributes('src')).toBe('url:milo.jpg')
+    expect(wrapper.getComponent(AnimalChipSelector).props('animals')).toEqual([
+      { id: MILO.id, name: 'Milo', photoUrl: 'url:milo.jpg' },
+      { id: LUNA.id, name: 'Luna', photoUrl: null },
+    ])
   })
 
   it('passe la date du jour aux sections', async () => {

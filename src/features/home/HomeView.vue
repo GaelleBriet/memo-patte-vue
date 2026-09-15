@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
 import { useForegroundRefresh } from '@/core/app-lifecycle/use-foreground-refresh'
+import { usePhotoUrls } from '@/core/photos/use-photo-urls'
 import illustration from '@/assets/brand-illustration.png'
 import { useAnimalsStore } from '@/features/animals/animals.store'
 import WeightSheet from '@/features/weight/WeightSheet.vue'
@@ -28,8 +29,13 @@ const isReady = computed(() => animals.hasLoaded && home.hasLoaded && !hasError.
 const isLoading = computed(() => !isReady.value && !hasError.value)
 const isWelcome = computed(() => isReady.value && animals.animals.length === 0)
 
+const photoUrl = usePhotoUrls(() => animals.animals.map((item) => item.photoPath))
 const chips = computed<AnimalChipItem[]>(() =>
-  animals.animals.map((item) => ({ id: item.id, name: item.name })),
+  animals.animals.map((item) => ({
+    id: item.id,
+    name: item.name,
+    photoUrl: photoUrl(item.photoPath),
+  })),
 )
 
 const selectedName = computed(() => animals.selectedAnimal?.name ?? null)

@@ -5,6 +5,7 @@ import { useRouter } from 'vue-router'
 
 import { useAnimalsStore } from './animals.store'
 import { useForegroundRefresh } from '@/core/app-lifecycle/use-foreground-refresh'
+import { usePhotoUrls } from '@/core/photos/use-photo-urls'
 import TreatmentsSection, {
   type TreatmentsSummary,
 } from '@/features/treatments/TreatmentsSection.vue'
@@ -34,9 +35,16 @@ const isEmpty = computed(
   () => animals.hasLoaded && animals.animals.length === 0 && animals.error === null,
 )
 
+const photoUrl = usePhotoUrls(() => animals.animals.map((item) => item.photoPath))
+
 const chips = computed<AnimalChipItem[]>(() =>
-  animals.animals.map((item) => ({ id: item.id, name: item.name })),
+  animals.animals.map((item) => ({
+    id: item.id,
+    name: item.name,
+    photoUrl: photoUrl(item.photoPath),
+  })),
 )
+const headerPhotoUrl = computed(() => photoUrl(animal.value?.photoPath ?? null))
 
 const subtitle = computed(() => {
   if (!animal.value) return null
@@ -113,7 +121,9 @@ function createAnimal(): void {
           <span
             class="carnet-header__avatar"
             :style="{ backgroundImage: animalAvatarGradientCss(animal.id) }"
-          />
+          >
+            <img v-if="headerPhotoUrl" :src="headerPhotoUrl" alt="" />
+          </span>
           <div class="carnet-header__text">
             <h1 class="carnet-header__name">{{ animal.name }}</h1>
             <p v-if="subtitle" class="carnet-header__subtitle">{{ subtitle }}</p>
@@ -228,12 +238,20 @@ function createAnimal(): void {
 
 .carnet-header__avatar {
   display: block;
+  overflow: hidden;
   flex: 0 0 auto;
   width: tokens.$size-header-avatar;
   height: tokens.$size-header-avatar;
   border: 2px solid tokens.$color-header-avatar-border;
   border-radius: 50%;
   background-size: cover;
+
+  img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
 }
 
 .carnet-header__text {
