@@ -292,6 +292,22 @@ describe('syncAllReminders', () => {
     expect(notifications.rescheduleAll).not.toHaveBeenCalled()
   })
 
+  it('réessaie à la synchro suivante quand la programmation a échoué', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    listVaccinations.mockResolvedValue([
+      vaccination('22222222-2222-4222-8222-222222222222', MILO.id, '2026-10-15'),
+    ])
+    notifications.rescheduleAll.mockRejectedValueOnce(new Error('quota d’alarmes'))
+
+    await sync()()
+    expect(notifications.pending.size).toBe(0)
+
+    await sync()()
+
+    expect(notifications.rescheduleAll).toHaveBeenCalledTimes(2)
+    expect(notifications.pending.size).toBe(3)
+  })
+
   it('ne lève pas quand la base ou le plugin échoue', async () => {
     vi.spyOn(console, 'warn').mockImplementation(() => {})
     list.mockRejectedValue(new Error('base indisponible'))

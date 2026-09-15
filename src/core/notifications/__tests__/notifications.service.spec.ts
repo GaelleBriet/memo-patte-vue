@@ -9,6 +9,7 @@ import {
   listScheduled,
   requestPermission,
   rescheduleAll,
+  SCHEDULE_BATCH_SIZE,
   scheduleReminder,
   scheduleReminders,
 } from '../notifications.service'
@@ -274,7 +275,7 @@ describe('listScheduled', () => {
 })
 
 describe('rescheduleAll', () => {
-  it('annule les notifications en attente puis reprogramme la liste fournie', async () => {
+  it('programme la liste fournie puis annule ce qu’elle ne reprend pas', async () => {
     getPending.mockResolvedValue({
       notifications: [
         { id: 1, title: 'Ancien', body: 'Ancien' },
@@ -307,8 +308,8 @@ describe('rescheduleAll', () => {
         },
       ],
     })
-    expect(cancel.mock.invocationCallOrder[0] ?? 0).toBeLessThan(
-      schedule.mock.invocationCallOrder[0] ?? 0,
+    expect(schedule.mock.invocationCallOrder[0] ?? 0).toBeLessThan(
+      cancel.mock.invocationCallOrder[0] ?? 0,
     )
   })
 
@@ -317,6 +318,58 @@ describe('rescheduleAll', () => {
 
     expect(cancel).not.toHaveBeenCalled()
     expect(schedule).not.toHaveBeenCalled()
+  })
+
+  it('garde en place une notification déjà en attente que la liste reprend', async () => {
+    getPending.mockResolvedValue({
+      notifications: [
+        { id: reminderNotificationId(rabies.key), title: 'Ancien', body: 'Ancien' },
+        { id: 7, title: 'Ancien', body: 'Ancien' },
+      ],
+    })
+
+    await rescheduleAll([rabies])
+
+    expect(cancel).toHaveBeenCalledExactlyOnceWith({ notifications: [{ id: 7 }] })
+  })
+
+  it('programme par lots, pour ne pas dépasser la taille d’une transaction native', async () => {
+    const reminders = Array.from({ length: SCHEDULE_BATCH_SIZE * 2 + 1 }, (_, index) => ({
+      ...rabies,
+      key: `vaccination:${index}`,
+    }))
+
+    await rescheduleAll(reminders)
+
+    expect(schedule).toHaveBeenCalledTimes(3)
+    expect(
+      schedule.mock.calls.flatMap(([{ notifications }]) => notifications).map(({ id }) => id),
+    ).toEqual(reminders.map(({ key }) => reminderNotificationId(key)))
+  })
+
+  it('n’annule rien et se signale quand la programmation échoue', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    getPending.mockResolvedValue({ notifications: [{ id: 1, title: 'Ancien', body: 'Ancien' }] })
+    schedule.mockRejectedValue(new Error('quota d’alarmes'))
+
+    await expect(rescheduleAll([rabies])).rejects.toThrow('quota d’alarmes')
+
+    expect(cancel).not.toHaveBeenCalled()
+    expect(warn).toHaveBeenCalled()
+  })
+
+  it('garde les lots déjà programmés quand un lot suivant échoue', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const reminders = Array.from({ length: SCHEDULE_BATCH_SIZE + 1 }, (_, index) => ({
+      ...rabies,
+      key: `vaccination:${index}`,
+    }))
+    schedule.mockResolvedValueOnce({ notifications: [] }).mockRejectedValue(new Error('plugin'))
+
+    await expect(rescheduleAll(reminders)).rejects.toThrow('plugin')
+
+    expect(schedule).toHaveBeenCalledTimes(2)
+    expect(cancel).not.toHaveBeenCalled()
   })
 })
 
