@@ -282,3 +282,99 @@ describe('getAnimalsRepository', () => {
     expect(getDb).toHaveBeenCalledTimes(2)
   })
 })
+
+describe('animalsRepository — import', () => {
+  const IMPORTE = {
+    id: '44444444-4444-4444-8444-444444444444',
+    name: 'Luna',
+    species: 'cat',
+    breed: 'Européen',
+    birthDate: '2019-03-02',
+    initialWeightKg: 3.8,
+    photoPath: null,
+    createdAt: '2026-01-10T08:00:00.000Z',
+    updatedAt: '2026-02-01T08:00:00.000Z',
+  } as const
+
+  let db: InMemoryDb
+  let repository: AnimalsRepository
+
+  beforeEach(async () => {
+    db = await createInMemoryDb()
+    await db.execute('PRAGMA foreign_keys = ON')
+    repository = createAnimalsRepository(db)
+  })
+
+  afterEach(() => {
+    db.close()
+  })
+
+  it('insère un animal importé avec son identifiant et ses dates d’origine', async () => {
+    await repository.runImport([repository.restoreStatement(IMPORTE, false)])
+
+    await expect(repository.getById(IMPORTE.id)).resolves.toEqual({ ...IMPORTE, deletedAt: null })
+  })
+
+  it('écrase un animal existant, même supprimé, et le rend visible', async () => {
+    await repository.runImport([repository.restoreStatement(IMPORTE, false)])
+    await repository.remove(IMPORTE.id)
+    const importe = {
+      ...IMPORTE,
+      name: 'Luna II',
+      species: 'dog',
+      photoPath: 'luna.jpg',
+      updatedAt: '2026-09-15T08:00:00.000Z',
+    } as const
+
+    await repository.runImport([repository.restoreStatement(importe, true)])
+
+    await expect(repository.getById(IMPORTE.id)).resolves.toEqual({ ...importe, deletedAt: null })
+  })
+
+  it('liste les versions de toutes les lignes, photo comprise, supprimées comprises', async () => {
+    const vivant = await repository.create({ name: 'Milo', species: 'dog', photoPath: 'milo.jpg' })
+    await repository.runImport([repository.restoreStatement(IMPORTE, false)])
+    await repository.remove(IMPORTE.id)
+
+    const versions = await repository.listVersions()
+
+    expect(versions).toHaveLength(2)
+    expect(versions).toContainEqual({
+      id: vivant.id,
+      photoPath: 'milo.jpg',
+      updatedAt: vivant.updatedAt,
+      deletedAt: null,
+    })
+    expect(versions.find(({ id }) => id === IMPORTE.id)?.deletedAt).not.toBeNull()
+  })
+
+  it('marque tous les animaux encore visibles', async () => {
+    await repository.runImport([
+      repository.restoreStatement(IMPORTE, false),
+      repository.markAllDeletedStatement('2030-01-01T09:00:00.000Z'),
+    ])
+
+    await expect(repository.list()).resolves.toEqual([])
+    await expect(repository.listVersions()).resolves.toEqual([
+      {
+        id: IMPORTE.id,
+        photoPath: null,
+        updatedAt: '2030-01-01T09:00:00.000Z',
+        deletedAt: '2030-01-01T09:00:00.000Z',
+      },
+    ])
+  })
+
+  it('n’écrit rien quand une instruction de l’import échoue', async () => {
+    const orpheline = {
+      sql: `INSERT INTO vaccination (id, animal_id, name, last_injection_date, created_at, updated_at)
+            VALUES ('v', 'animal-absent', 'Rage', '2025-01-01', 'x', 'x')`,
+    }
+
+    await expect(
+      repository.runImport([repository.restoreStatement(IMPORTE, false), orpheline]),
+    ).rejects.toThrow(/FOREIGN KEY/)
+
+    await expect(repository.listVersions()).resolves.toEqual([])
+  })
+})

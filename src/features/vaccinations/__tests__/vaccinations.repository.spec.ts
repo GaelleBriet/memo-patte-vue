@@ -360,6 +360,96 @@ describe('vaccinationsRepository', () => {
   })
 })
 
+describe('vaccinationsRepository — import', () => {
+  const IMPORTE = {
+    id: '44444444-4444-4444-8444-444444444444',
+    animalId: MIETTE,
+    name: 'Typhus',
+    lastInjectionDate: '2025-09-12',
+    dueDate: '2026-09-12',
+    createdAt: '2025-09-12T08:00:00.000Z',
+    updatedAt: '2025-09-12T08:00:00.000Z',
+  }
+
+  let db: InMemoryDb
+  let repository: VaccinationsRepository
+
+  beforeEach(async () => {
+    db = await createInMemoryDb()
+    await db.execute('PRAGMA foreign_keys = ON')
+    await seedAnimal(db, MIETTE, 'Miette')
+    await seedAnimal(db, VASCO, 'Vasco')
+    repository = createVaccinationsRepository(db)
+  })
+
+  afterEach(() => {
+    db.close()
+  })
+
+  it('insère un vaccin importé avec son identifiant et ses dates d’origine', async () => {
+    await db.runMany([repository.restoreStatement(IMPORTE, false)])
+
+    await expect(repository.getById(IMPORTE.id)).resolves.toEqual({ ...IMPORTE, deletedAt: null })
+  })
+
+  it('écrase un vaccin existant, même supprimé, et le rend visible', async () => {
+    await db.runMany([repository.restoreStatement(IMPORTE, false)])
+    await repository.remove(IMPORTE.id)
+    const importe = {
+      ...IMPORTE,
+      animalId: VASCO,
+      name: 'CHPPiL',
+      dueDate: null,
+      updatedAt: '2026-09-15T08:00:00.000Z',
+    }
+
+    await db.runMany([repository.restoreStatement(importe, true)])
+
+    await expect(repository.getById(IMPORTE.id)).resolves.toEqual({ ...importe, deletedAt: null })
+  })
+
+  it('liste les versions de toutes les lignes, supprimées comprises', async () => {
+    const vivant = await repository.create({
+      animalId: VASCO,
+      name: 'Rage',
+      lastInjectionDate: '2025-01-01',
+    })
+    await db.runMany([repository.restoreStatement(IMPORTE, false)])
+    await repository.remove(IMPORTE.id)
+
+    const versions = await repository.listVersions()
+
+    expect(versions).toHaveLength(2)
+    expect(versions).toContainEqual({
+      id: vivant.id,
+      animalId: VASCO,
+      updatedAt: vivant.updatedAt,
+      deletedAt: null,
+    })
+    expect(versions.find((version) => version.id === IMPORTE.id)?.deletedAt).not.toBeNull()
+  })
+
+  it('marque tous les vaccins encore visibles, sans changer la date des déjà supprimés', async () => {
+    await db.runMany([repository.restoreStatement(IMPORTE, false)])
+    const autre = await repository.create({
+      animalId: VASCO,
+      name: 'Rage',
+      lastInjectionDate: '2025-01-01',
+    })
+    await repository.remove(autre.id)
+    const avant = (await repository.listVersions()).find(({ id }) => id === autre.id)
+
+    await db.runMany([repository.markAllDeletedStatement('2030-01-01T09:00:00.000Z')])
+
+    const versions = await repository.listVersions()
+    expect(versions.find(({ id }) => id === IMPORTE.id)).toMatchObject({
+      deletedAt: '2030-01-01T09:00:00.000Z',
+      updatedAt: '2030-01-01T09:00:00.000Z',
+    })
+    expect(versions.find(({ id }) => id === autre.id)).toEqual(avant)
+  })
+})
+
 describe('getVaccinationsRepository', () => {
   let db: InMemoryDb
 

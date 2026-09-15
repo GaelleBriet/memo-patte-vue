@@ -414,3 +414,87 @@ describe('treatmentsRepository', () => {
     })
   })
 })
+
+describe('treatmentsRepository — import', () => {
+  const IMPORTE = {
+    id: '44444444-4444-4444-8444-444444444444',
+    animalId: MIETTE,
+    name: 'Milbémax',
+    type: 'deworming',
+    frequency: { value: 3, unit: 'month' },
+    lastDoseDate: '2026-06-15',
+    nextDueDate: '2026-09-15',
+    createdAt: '2026-01-10T08:10:00.000Z',
+    updatedAt: '2026-06-15T08:10:00.000Z',
+  } as const
+
+  let db: InMemoryDb
+  let repository: TreatmentsRepository
+
+  beforeEach(async () => {
+    db = await createInMemoryDb()
+    await db.execute('PRAGMA foreign_keys = ON')
+    await seedAnimal(db, MIETTE, 'Miette')
+    await seedAnimal(db, VASCO, 'Vasco')
+    repository = createTreatmentsRepository(db)
+  })
+
+  afterEach(() => {
+    db.close()
+  })
+
+  it('insère un traitement importé avec son échéance et ses dates d’origine', async () => {
+    await db.runMany([repository.restoreStatement(IMPORTE, false)])
+
+    await expect(repository.getById(IMPORTE.id)).resolves.toEqual({ ...IMPORTE, deletedAt: null })
+  })
+
+  it('écrase un traitement existant, même supprimé, et le rend visible', async () => {
+    await db.runMany([repository.restoreStatement(IMPORTE, false)])
+    await repository.remove(IMPORTE.id)
+    const importe = {
+      ...IMPORTE,
+      animalId: VASCO,
+      type: 'antiparasitic',
+      frequency: { value: 2, unit: 'week' },
+      updatedAt: '2026-09-15T08:00:00.000Z',
+    } as const
+
+    await db.runMany([repository.restoreStatement(importe, true)])
+
+    await expect(repository.getById(IMPORTE.id)).resolves.toEqual({ ...importe, deletedAt: null })
+  })
+
+  it('liste les versions de toutes les lignes, supprimées comprises', async () => {
+    const vivant = await repository.create(bravecto)
+    await db.runMany([repository.restoreStatement(IMPORTE, false)])
+    await repository.remove(IMPORTE.id)
+
+    const versions = await repository.listVersions()
+
+    expect(versions).toHaveLength(2)
+    expect(versions).toContainEqual({
+      id: vivant.id,
+      animalId: MIETTE,
+      updatedAt: vivant.updatedAt,
+      deletedAt: null,
+    })
+    expect(versions.find(({ id }) => id === IMPORTE.id)?.deletedAt).not.toBeNull()
+  })
+
+  it('marque tous les traitements encore visibles', async () => {
+    await db.runMany([
+      repository.restoreStatement(IMPORTE, false),
+      repository.markAllDeletedStatement('2030-01-01T09:00:00.000Z'),
+    ])
+
+    await expect(repository.listVersions()).resolves.toEqual([
+      {
+        id: IMPORTE.id,
+        animalId: MIETTE,
+        updatedAt: '2030-01-01T09:00:00.000Z',
+        deletedAt: '2030-01-01T09:00:00.000Z',
+      },
+    ])
+  })
+})

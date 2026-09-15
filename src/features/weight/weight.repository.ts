@@ -18,6 +18,9 @@ interface WeightEntryRow {
   deleted_at: string | null
 }
 
+export type WeightEntryVersion = Pick<WeightEntry, 'id' | 'animalId' | 'updatedAt' | 'deletedAt'>
+export type RestoredWeightEntry = Omit<WeightEntry, 'deletedAt'>
+
 const COLUMNS = 'id, animal_id, weight_kg, measured_on, created_at, updated_at, deleted_at'
 
 /** Les pesées supprimées restent en base pour la synchronisation, jamais pour l'UI. */
@@ -121,6 +124,41 @@ export function createWeightRepository(db: DbClient) {
         sql: `UPDATE weight_entry SET deleted_at = ?, updated_at = ? WHERE animal_id = ? AND ${NOT_DELETED}`,
         params: [deletedAt, deletedAt, animalId],
       }
+    },
+
+    /** Lignes supprimées comprises : l'import compare les versions avant d'écrire. */
+    async listVersions(): Promise<WeightEntryVersion[]> {
+      const rows = await db.query<WeightEntryRow>(`SELECT ${COLUMNS} FROM weight_entry`)
+      return rows.map(({ id, animal_id, updated_at, deleted_at }) => ({
+        id,
+        animalId: animal_id,
+        updatedAt: updated_at,
+        deletedAt: deleted_at,
+      }))
+    },
+
+    markAllDeletedStatement(deletedAt: string): SqlStatement {
+      return {
+        sql: `UPDATE weight_entry SET deleted_at = ?, updated_at = ? WHERE ${NOT_DELETED}`,
+        params: [deletedAt, deletedAt],
+      }
+    },
+
+    /** Reprend l'identifiant et les dates du fichier importé, et rend la ligne visible. */
+    restoreStatement(entry: RestoredWeightEntry, exists: boolean): SqlStatement {
+      const { id, animalId, weightKg, measuredOn, createdAt, updatedAt } = entry
+      return exists
+        ? {
+            sql: `UPDATE weight_entry
+                  SET animal_id = ?, weight_kg = ?, measured_on = ?, created_at = ?, updated_at = ?,
+                      deleted_at = NULL
+                  WHERE id = ?`,
+            params: [animalId, weightKg, measuredOn, createdAt, updatedAt, id],
+          }
+        : {
+            sql: `INSERT INTO weight_entry (${COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, NULL)`,
+            params: [id, animalId, weightKg, measuredOn, createdAt, updatedAt],
+          }
     },
   }
 }
