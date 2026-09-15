@@ -28,13 +28,16 @@ const VUE_I18N_JSON_PARSER = pluginVueI18n.configs['flat/base'].find(
 const DYNAMIC_I18N_KEYS = [
   '/^nav\\.(home|animals)$/',
   '/^animals\\.form\\.species\\.(dog|cat)$/',
-  '/^animals\\.age\\./',
-  '/^(animals|vaccinations|treatments|weight)\\.form\\.errors\\.(?!save$|notFound$)/',
-  '/^vaccinations\\.section\\.status\\./',
-  '/^treatments\\.(type|frequency)\\./',
-  '/^treatments\\.form\\.frequency\\.(every|unit)\\./',
+  '/^animals\\.age\\.(year|month|week)$/',
+  '/^animals\\.form\\.errors\\.(name|species|birthDate|initialWeightKg)$/',
+  '/^vaccinations\\.form\\.errors\\.(name|lastInjectionDate|lastInjectionDateFuture|dueDate)$/',
+  '/^treatments\\.form\\.errors\\.(name|type|frequency|lastDoseDate|lastDoseDateFuture)$/',
+  '/^weight\\.form\\.errors\\.(animalId|weightKg|measuredOn|measuredOnFuture)$/',
+  '/^vaccinations\\.section\\.status\\.(overdue|upToDate|none)$/',
+  '/^treatments\\.type\\.(deworming|antiparasitic)$/',
+  '/^treatments\\.(frequency|form\\.frequency\\.every|form\\.frequency\\.unit)\\.(day|week|month)$/',
   '/^home\\.reminder\\.(deworming|antiparasitic)$/',
-  '/^home\\.due\\./',
+  '/^home\\.due\\.(overdue|today|tomorrow|later)$/',
 ]
 
 const FEATURES_RESTRICTION = {
@@ -121,6 +124,7 @@ export default defineConfigWithVueTs(
       '@intlify/vue-i18n/no-raw-text': [
         'error',
         {
+          ignorePattern: '^[\\s\\d.,:;·/%—…*+×()#&-]+$',
           attributes: {
             '/.+/': ['title', 'aria-label', 'alt', 'placeholder', 'label', 'text', 'hint'],
           },
