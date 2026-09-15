@@ -78,8 +78,8 @@ describe('ExportSheet', () => {
     )
     expect(
       choix().map((option) => [
-        option.querySelector('.export-sheet__choice-label')?.textContent?.trim(),
-        option.querySelector('.export-sheet__choice-description')?.textContent?.trim(),
+        option.querySelector('.choice-cards__label')?.textContent?.trim(),
+        option.querySelector('.choice-cards__description')?.textContent?.trim(),
       ]),
     ).toEqual([
       ['JSON', 'Pour réimporter dans MémoPatte'],

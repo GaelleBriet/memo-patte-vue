@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, useTemplateRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
 import ExportSheet from './ExportSheet.vue'
+import ImportSheet from './ImportSheet.vue'
 import { useAnimalsStore } from '@/features/animals/animals.store'
 import PushedScreen from '@/shared/PushedScreen.vue'
 import SectionCard from '@/shared/SectionCard.vue'
@@ -14,6 +15,7 @@ const animals = useAnimalsStore()
 
 const appVersion = import.meta.env.VITE_APP_VERSION
 const isExportSheetOpen = ref(false)
+const importSheet = useTemplateRef('importSheet')
 
 const hasLoadFailed = computed(() => animals.error !== null)
 const hasNothingToExport = computed(() => animals.hasLoaded && animals.animals.length === 0)
@@ -66,6 +68,17 @@ function goHome(): void {
             size="20"
           />
         </button>
+        <button
+          type="button"
+          class="settings-row settings-row--import"
+          @click="importSheet?.pickFile()"
+        >
+          <v-icon class="settings-row__icon" icon="ms:download" size="22" />
+          <span class="settings-row__text">
+            <span class="settings-row__label">{{ t('settings.data.import') }}</span>
+          </span>
+          <v-icon class="settings-row__chevron" icon="ms:chevron_right" size="20" />
+        </button>
       </SectionCard>
 
       <SectionCard :title="t('settings.about.title')">
@@ -79,6 +92,7 @@ function goHome(): void {
     </div>
 
     <ExportSheet v-model="isExportSheetOpen" />
+    <ImportSheet ref="importSheet" />
   </PushedScreen>
 </template>
 

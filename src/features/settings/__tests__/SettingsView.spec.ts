@@ -14,6 +14,13 @@ vi.mock('../data-export.service', () => ({
   dataExportService: { exportData: vi.fn<() => Promise<'shared'>>() },
 }))
 
+vi.mock('../data-import.service', () => ({
+  dataImportService: {
+    hasLocalData: vi.fn<() => Promise<boolean>>(),
+    importData: vi.fn<() => Promise<void>>(),
+  },
+}))
+
 const MILO: Animal = {
   id: '11111111-1111-4111-8111-111111111111',
   name: 'Milo',
@@ -91,7 +98,7 @@ describe('SettingsView', () => {
       'Mes données',
       'À propos',
     ])
-    expect(wrapper.text()).not.toMatch(/Plus|Compte|Importer|PDF|Confidentialité/)
+    expect(wrapper.text()).not.toMatch(/Plus|Compte|PDF|Confidentialité/)
   })
 
   it('charge les animaux s’ils ne le sont pas encore', async () => {
@@ -163,6 +170,30 @@ describe('SettingsView', () => {
     expect(wrapper.getComponent(ExportSheet).props('modelValue')).toBe(false)
     expect(ligneExport(wrapper).text()).toBe('Exporter mes données')
   })
+
+  it.each([
+    ['avec des animaux', [MILO]],
+    ['sans animal', []],
+  ])(
+    'ouvre le sélecteur de fichier depuis « Importer un export MémoPatte », %s',
+    async (_, liste) => {
+      animals = liste
+      const wrapper = await monter()
+      const lignes = wrapper.findAll('.settings-row').map((row) => row.text())
+      const ligne = wrapper.get('.settings-row--import')
+      const click = vi
+        .spyOn(wrapper.get('input[type="file"]').element as HTMLInputElement, 'click')
+        .mockImplementation(() => undefined)
+
+      expect(lignes.indexOf('Importer un export MémoPatte')).toBe(
+        lignes.findIndex((texte) => texte.startsWith('Exporter mes données')) + 1,
+      )
+      expect(ligne.attributes('disabled')).toBeUndefined()
+      await ligne.trigger('click')
+
+      expect(click).toHaveBeenCalledOnce()
+    },
+  )
 
   it('affiche la version de l’app lue dans package.json', async () => {
     const wrapper = await monter()

@@ -2,6 +2,7 @@
 import { computed, ref, useId, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
+import ChoiceCards from './ChoiceCards.vue'
 import type { ExportFormat } from './export-format'
 import { useDataExport } from './use-data-export'
 import BottomSheet from '@/shared/BottomSheet.vue'
@@ -60,26 +61,12 @@ async function submit(): Promise<void> {
     :focus-fallback="focusFallback"
   >
     <p :id="groupLabelId" class="export-sheet__group-label">{{ t('settings.export.formats') }}</p>
-    <div class="export-sheet__choices" role="radiogroup" :aria-labelledby="groupLabelId">
-      <button
-        v-for="format in formats"
-        :key="format.value"
-        type="button"
-        role="radio"
-        class="export-sheet__choice"
-        :class="{ 'export-sheet__choice--selected': selected === format.value }"
-        :aria-checked="selected === format.value"
-        :disabled="isPreparing"
-        @click="selected = format.value"
-      >
-        <v-icon class="export-sheet__choice-icon" :icon="format.icon" size="22" />
-        <span class="export-sheet__choice-text">
-          <span class="export-sheet__choice-label">{{ format.label }}</span>
-          <span class="export-sheet__choice-description">{{ format.description }}</span>
-        </span>
-        <span class="export-sheet__radio" aria-hidden="true" />
-      </button>
-    </div>
+    <ChoiceCards
+      v-model="selected"
+      :choices="formats"
+      :labelledby="groupLabelId"
+      :disabled="isPreparing"
+    />
 
     <p v-if="hasFailed" class="export-sheet__error" role="alert">
       {{ t('settings.export.error') }}
@@ -114,74 +101,6 @@ async function submit(): Promise<void> {
   overflow: hidden;
   clip-path: inset(50%);
   white-space: nowrap;
-}
-
-.export-sheet__choices {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin-top: 18px;
-}
-
-.export-sheet__choice {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  width: 100%;
-  min-height: tokens.$height-export-choice;
-  padding: 12px 18px;
-  border: 1px solid tokens.$color-card-border;
-  border-radius: tokens.$radius-field;
-  background: rgb(var(--v-theme-surface));
-  color: rgb(var(--v-theme-on-surface));
-  font-family: inherit;
-  text-align: start;
-  cursor: pointer;
-
-  &:focus-visible {
-    outline: none;
-  }
-}
-
-.export-sheet__choice--selected {
-  border: 1.5px solid rgb(var(--v-theme-primary));
-  background: tokens.$color-choice-selected-surface;
-}
-
-.export-sheet__choice-icon {
-  flex: 0 0 auto;
-  color: rgb(var(--v-theme-primary));
-}
-
-.export-sheet__choice-text {
-  display: flex;
-  flex: 1 1 auto;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.export-sheet__choice-label {
-  font-size: 15px;
-  font-weight: 700;
-}
-
-.export-sheet__choice-description {
-  margin-top: 2px;
-  color: tokens.$color-text-secondary;
-  font-size: 13px;
-}
-
-.export-sheet__radio {
-  flex: 0 0 auto;
-  width: 24px;
-  height: 24px;
-  border: 1.5px solid tokens.$color-radio-border;
-  border-radius: 50%;
-}
-
-.export-sheet__choice--selected .export-sheet__radio {
-  border-color: rgb(var(--v-theme-primary));
-  background: rgb(var(--v-theme-primary));
 }
 
 .export-sheet__spinner {

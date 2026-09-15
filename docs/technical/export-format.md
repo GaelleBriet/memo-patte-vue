@@ -1,6 +1,7 @@
 # Format d'export des données (#80)
 
-Contrat entre l'export (Paramètres → « Exporter mes données ») et le futur import (#84).
+Contrat entre l'export (Paramètres → « Exporter mes données ») et l'import (#84, section
+[Import](#import--importer-un-export-mémopatte)).
 Le code de référence est `src/features/settings/export-format.ts`, couvert par
 `src/features/settings/__tests__/export-format.spec.ts`.
 
@@ -109,6 +110,43 @@ reconstruit les rappels depuis `vaccinations` et `treatments`.
 | `animalId` | UUID                              |
 | `name`     | texte                             |
 | `dueDate`  | `AAAA-MM-JJ`                      |
+
+## Import — « Importer un export MémoPatte »
+
+Code de référence : `src/features/settings/import-format.ts` (lecture et validation Zod) et
+`src/features/settings/data-import.service.ts` (écriture).
+
+- **Sélection du fichier** : `<input type="file">` de la WebView, que Capacitor confie au
+  sélecteur de documents Android (`ACTION_GET_CONTENT`). Le fichier est lu par une permission
+  temporaire accordée par le système : aucune permission de stockage, aucun plugin.
+- **Validation**, avant toute écriture :
+  - pas du JSON, pas d'entier `schemaVersion`, champ obligatoire absent ou mal formé
+    (UUID, date civile, instant ISO, énumération) → « Ce fichier n'est pas un export MémoPatte. » ;
+  - `schemaVersion` supérieur à celui que l'app connaît → « Cet export vient d'une version plus
+    récente de l'app. », vérifié avant le reste du contenu ;
+  - identifiant en double dans une table, ou entrée dont l'`animalId` n'est pas dans `animals[]`
+    → fichier refusé en entier (même message que le premier cas) : l'import est tout ou rien ;
+  - champs inconnus ignorés, `reminders[]` jamais lu.
+- **Base locale sans animal visible** : import direct, en mode « remplacer » (rien de visible à
+  perdre, et un animal supprimé avant l'import redevient visible).
+- **Base avec des données** : choix explicite.
+  - **Fusionner** — par identifiant : une entrée absente de l'appareil est ajoutée ; présente des
+    deux côtés, la version au `updatedAt` le plus récent gagne (à égalité, l'appareil garde la
+    sienne), comme la synchronisation Plus. Une suppression locale est une modification : un animal
+    supprimé après l'export reste supprimé, et les entrées du fichier rattachées à un animal qui
+    reste supprimé ne sont pas importées.
+  - **Remplacer**, après confirmation — toutes les lignes visibles sont marquées supprimées
+    (suppression logique, `deleted_at` et `updated_at` à l'heure de l'import, pour que la
+    synchronisation Plus propage la suppression), puis toutes les entrées du fichier sont écrites
+    telles quelles, identifiants et dates d'origine compris.
+- **Transaction** : chaque repository fournit ses instructions (`markAllDeletedStatement`,
+  `restoreStatement`), jouées ensemble par `animalsRepository.runImport` en une seule transaction.
+  Un échec n'écrit rien.
+- **Photos** : `photoPath` reprend `photoFileName` seulement si ce fichier existe dans
+  `files/photos/` ; sinon l'animal garde la photo déjà présente sur l'appareil pour ce même
+  identifiant, ou prend le placeholder.
+- **Après l'écriture** : synchronisation complète des rappels (`syncAllReminders`, file unique des
+  notifications) et rechargement des animaux ; les autres écrans relisent la base à leur ouverture.
 
 ## CSV — `memopatte-export-AAAA-MM-JJ.zip`
 
