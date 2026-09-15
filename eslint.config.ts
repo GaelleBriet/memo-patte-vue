@@ -124,7 +124,7 @@ export default defineConfigWithVueTs(
       '@intlify/vue-i18n/no-raw-text': [
         'error',
         {
-          ignorePattern: '^[\\s\\d.,:;·/%—…*+×()#&-]+$',
+          ignorePattern: '^[\\s\\d.,:;·/%—…*+×()#&-]*$',
           attributes: {
             '/.+/': ['title', 'aria-label', 'alt', 'placeholder', 'label', 'text', 'hint'],
           },
