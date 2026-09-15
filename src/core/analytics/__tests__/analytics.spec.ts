@@ -5,14 +5,26 @@ import {
   createAnalytics,
   POSTHOG_EU_HOST,
   type AnalyticsDependencies,
+  type AnalyticsStorage,
   type PostHogClient,
 } from '../analytics'
 
-function memoryStorage(): Pick<Storage, 'getItem' | 'setItem'> {
+type TestEvents = {
+  app_opened: null
+  vaccination_added: { species: 'dog' | 'cat' }
+}
+
+function memoryStorage(): AnalyticsStorage & { keys(): string[] } {
   const values = new Map<string, string>()
   return {
     getItem: (key) => values.get(key) ?? null,
     setItem: (key, value) => void values.set(key, value),
+    removeItem: (key) => void values.delete(key),
+    key: (index) => [...values.keys()][index] ?? null,
+    get length() {
+      return values.size
+    },
+    keys: () => [...values.keys()],
   }
 }
 
@@ -22,15 +34,16 @@ function fakePostHog() {
     capture: vi.fn<PostHogClient['capture']>(),
     opt_in_capturing: vi.fn<PostHogClient['opt_in_capturing']>(),
     opt_out_capturing: vi.fn<PostHogClient['opt_out_capturing']>(),
+    reset: vi.fn<PostHogClient['reset']>(),
   }
 }
 
-let storage: Pick<Storage, 'getItem' | 'setItem'>
+let storage: ReturnType<typeof memoryStorage>
 let posthog: ReturnType<typeof fakePostHog>
 let loadPostHog: ReturnType<typeof vi.fn<() => Promise<PostHogClient>>>
 
 function analytics(overrides: Partial<AnalyticsDependencies> = {}) {
-  return createAnalytics({
+  return createAnalytics<TestEvents>({
     apiKey: 'phc_test',
     apiHost: undefined,
     storage,
@@ -70,12 +83,16 @@ describe('consentement', () => {
   })
 
   it('reste utilisable quand le stockage lève', async () => {
-    const broken = {
-      getItem: () => {
-        throw new Error('bloqué')
-      },
-      setItem: () => {
-        throw new Error('bloqué')
+    const fail = () => {
+      throw new Error('bloqué')
+    }
+    const broken: AnalyticsStorage = {
+      getItem: fail,
+      setItem: fail,
+      removeItem: fail,
+      key: fail,
+      get length(): number {
+        return fail()
       },
     }
     const module = analytics({ storage: broken })
@@ -83,6 +100,8 @@ describe('consentement', () => {
     expect(module.consentStatus()).toBe('unanswered')
     await expect(module.optIn()).resolves.toBeUndefined()
     expect(module.hasConsent()).toBe(true)
+    await expect(module.optOut()).resolves.toBeUndefined()
+    expect(module.hasConsent()).toBe(false)
   })
 })
 
@@ -91,7 +110,7 @@ describe('sans consentement', () => {
     const module = analytics()
 
     await module.initAnalytics()
-    module.track('vaccination_added')
+    module.track('app_opened')
 
     expect(loadPostHog).not.toHaveBeenCalled()
   })
@@ -101,7 +120,7 @@ describe('sans consentement', () => {
 
     await module.optOut()
     await module.initAnalytics()
-    module.track('vaccination_added')
+    module.track('app_opened')
 
     expect(loadPostHog).not.toHaveBeenCalled()
   })
@@ -113,7 +132,7 @@ describe('sans clé PostHog', () => {
 
     await module.optIn()
     await module.initAnalytics()
-    module.track('vaccination_added')
+    module.track('app_opened')
     await module.optOut()
 
     expect(loadPostHog).not.toHaveBeenCalled()
@@ -199,10 +218,40 @@ describe('changement d’avis', () => {
     await module.optIn()
 
     await module.optOut()
-    module.track('vaccination_added')
+    module.track('app_opened')
 
     expect(posthog.opt_out_capturing).toHaveBeenCalledTimes(1)
     expect(posthog.capture).not.toHaveBeenCalled()
+  })
+
+  it('repart d’un identifiant neuf : réinitialise PostHog juste après le retrait', async () => {
+    const module = analytics()
+    await module.optIn()
+
+    await module.optOut()
+    await module.optIn()
+
+    expect(posthog.reset).toHaveBeenCalledWith(true)
+    const [optOutOrder] = posthog.opt_out_capturing.mock.invocationCallOrder
+    const [resetOrder] = posthog.reset.mock.invocationCallOrder
+    const [, secondOptInOrder] = posthog.opt_in_capturing.mock.invocationCallOrder
+    expect(optOutOrder).toBeLessThan(resetOrder!)
+    expect(resetOrder).toBeLessThan(secondOptInOrder!)
+  })
+
+  it('efface les traces PostHog laissées par une session précédente quand il n’est pas chargé', async () => {
+    storage.setItem(ANALYTICS_CONSENT_KEY, 'granted')
+    storage.setItem('ph_phc_test_posthog', '{"distinct_id":"ancien"}')
+    storage.setItem('__ph_opt_in_out_phc_test', '1')
+    storage.setItem('memopatte.notifications.primingAnswered', 'true')
+
+    await analytics({ apiKey: '' }).optOut()
+
+    expect(storage.keys().sort()).toEqual([
+      ANALYTICS_CONSENT_KEY,
+      'memopatte.notifications.primingAnswered',
+    ])
+    expect(storage.getItem(ANALYTICS_CONSENT_KEY)).toBe('denied')
   })
 
   it('réactive la capture sans recharger PostHog', async () => {
@@ -227,7 +276,7 @@ describe('changement d’avis', () => {
     const refusing = module.optOut()
     finishLoading(posthog)
     await Promise.all([accepting, refusing])
-    module.track('vaccination_added')
+    module.track('app_opened')
 
     expect(posthog.opt_in_capturing).not.toHaveBeenCalled()
     expect(posthog.capture).not.toHaveBeenCalled()
@@ -239,11 +288,35 @@ describe('changement d’avis', () => {
     const module = analytics()
 
     await expect(module.optIn()).resolves.toBeUndefined()
-    module.track('vaccination_added')
+    module.track('app_opened')
     await module.initAnalytics()
 
     expect(loadPostHog).toHaveBeenCalledTimes(2)
     expect(posthog.init).toHaveBeenCalledTimes(1)
     warn.mockRestore()
+  })
+})
+
+describe('catalogue d’événements', () => {
+  it('refuse un événement hors catalogue et une propriété à valeur libre', () => {
+    const module = analytics()
+
+    // @ts-expect-error événement absent du catalogue
+    module.track('animal_renamed')
+    // @ts-expect-error valeur hors de l’union fermée
+    module.track('vaccination_added', { species: 'Milo' })
+    // @ts-expect-error propriété absente de l’événement
+    module.track('vaccination_added', { species: 'dog', name: 'Milo' })
+
+    const libre = createAnalytics<{ animal_added: { name: string } }>({
+      apiKey: '',
+      apiHost: undefined,
+      storage,
+      loadPostHog,
+    })
+    // @ts-expect-error une valeur `string` ouverte ne peut rien recevoir
+    libre.track('animal_added', { name: 'Milo' })
+
+    expect(posthog.capture).not.toHaveBeenCalled()
   })
 })
