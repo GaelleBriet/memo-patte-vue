@@ -8,7 +8,6 @@ import { useToday } from '@/core/app-lifecycle/use-today'
 import { useAnimalsStore } from '@/features/animals/animals.store'
 import AnimalChipSelector, { type AnimalChipItem } from '@/shared/AnimalChipSelector.vue'
 import BottomSheet from '@/shared/BottomSheet.vue'
-import { todayIsoDate } from '@/shared/form/form-dates'
 import { useFormValidation } from '@/shared/form/use-form-validation'
 
 const props = defineProps<{
@@ -31,12 +30,8 @@ const weightErrorId = useId()
 const dateErrorId = useId()
 const saveFailed = ref(false)
 const isSubmitting = ref(false)
-const today = useToday()
 // Feuille gardée montée : la borne se recale aussi à chaque ouverture, même sans retour au premier plan.
-const maxDate = ref(today.value)
-watch(today, (day) => {
-  maxDate.value = day
-})
+const { today, refresh: refreshToday } = useToday()
 const weightInput = ref<{ focus: () => void } | null>(null)
 
 const needsAnimal = computed(() => !props.animalId)
@@ -57,7 +52,7 @@ watch(
   open,
   (isOpen) => {
     if (!isOpen) return
-    maxDate.value = todayIsoDate()
+    refreshToday()
     values.value = emptyWeightFormValues(props.animalId ?? null)
     reset()
     saveFailed.value = false
@@ -165,7 +160,7 @@ async function submit(): Promise<void> {
           v-model="values.measuredOn"
           class="weight-sheet__input weight-sheet__input--date"
           type="date"
-          :max="maxDate"
+          :max="today"
           variant="outlined"
           hide-details
           aria-required="true"

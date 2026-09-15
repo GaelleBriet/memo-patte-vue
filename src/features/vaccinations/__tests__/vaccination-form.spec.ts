@@ -9,7 +9,7 @@ import {
   type VaccinationFormValues,
 } from '../vaccination-form'
 import type { Vaccination } from '../vaccination.schema'
-import { todayIsoDate } from '@/shared/form/form-dates'
+import { todayIsoDate } from '@/core/app-lifecycle/today-iso-date'
 
 function valeurs(surcharges: Partial<VaccinationFormValues> = {}): VaccinationFormValues {
   return {

@@ -10,7 +10,7 @@ import {
   type TreatmentFormValues,
 } from '../treatment-form'
 import type { Treatment } from '../treatment.schema'
-import { todayIsoDate } from '@/shared/form/form-dates'
+import { todayIsoDate } from '@/core/app-lifecycle/today-iso-date'
 
 const BRAVECTO: Treatment = {
   id: '22222222-2222-4222-8222-222222222222',
