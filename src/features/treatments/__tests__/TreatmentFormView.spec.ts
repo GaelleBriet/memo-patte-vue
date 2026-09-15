@@ -454,6 +454,77 @@ describe('TreatmentFormView — écran d’explication des notifications', () =>
   })
 })
 
+describe('TreatmentFormView — retour sur l’animal du formulaire', () => {
+  const AUTRE_ANIMAL = '33333333-3333-4333-8333-333333333333'
+
+  function selectionAuPush(): () => string | null {
+    const animals = useAnimalsStore()
+    let selection: string | null = null
+    push.mockImplementation(async () => {
+      selection = animals.selectedAnimalId
+    })
+    return () => selection
+  }
+
+  it('sélectionne l’animal du traitement créé avant de revenir au Carnet', async () => {
+    useAnimalsStore().select(AUTRE_ANIMAL)
+    const selection = selectionAuPush()
+    const wrapper = await monterCreation()
+    await remplirMinimum(wrapper)
+
+    await soumettre(wrapper)
+
+    expect(push).toHaveBeenCalledExactlyOnceWith({ name: 'animals' })
+    expect(selection()).toBe(MILO.id)
+  })
+
+  it('sélectionne l’animal du traitement modifié, pris dans le traitement et non dans la route', async () => {
+    useAnimalsStore().select(AUTRE_ANIMAL)
+    const selection = selectionAuPush()
+    const wrapper = await monterEdition()
+
+    await soumettre(wrapper)
+
+    expect(selection()).toBe(MILO.id)
+  })
+
+  it('sélectionne l’animal avant de passer par l’écran d’explication des notifications', async () => {
+    vi.mocked(shouldShowPriming).mockResolvedValueOnce(true)
+    useAnimalsStore().select(AUTRE_ANIMAL)
+    const selection = selectionAuPush()
+    const wrapper = await monterCreation()
+    await remplirMinimum(wrapper)
+
+    await soumettre(wrapper)
+
+    expect(push).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ name: 'notifications-priming' }),
+    )
+    expect(selection()).toBe(MILO.id)
+  })
+
+  it('sélectionne l’animal du formulaire quand on annule', async () => {
+    useAnimalsStore().select(AUTRE_ANIMAL)
+    const selection = selectionAuPush()
+    const wrapper = await monterCreation()
+
+    await wrapper.get('.form-screen__cancel').trigger('click')
+
+    expect(selection()).toBe(MILO.id)
+  })
+
+  it('garde la sélection quand l’enregistrement échoue', async () => {
+    create.mockRejectedValueOnce(new Error('disque plein'))
+    useAnimalsStore().select(AUTRE_ANIMAL)
+    const wrapper = await monterCreation()
+    await remplirMinimum(wrapper)
+
+    await soumettre(wrapper)
+
+    expect(useAnimalsStore().selectedAnimalId).toBe(AUTRE_ANIMAL)
+  })
+})
+
 describe('TreatmentFormView — édition', () => {
   it('titre « Modifier Bravecto », animal en sous-titre, champs pré-remplis', async () => {
     const wrapper = await monterEdition()

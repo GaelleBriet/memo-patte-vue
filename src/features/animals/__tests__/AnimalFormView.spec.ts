@@ -333,6 +333,23 @@ describe('AnimalFormView — écriture', () => {
     expect(push).toHaveBeenCalledWith({ name: 'animals' })
   })
 
+  it('sélectionne l’animal créé pour l’afficher au retour sur le Carnet', async () => {
+    const animals = useAnimalsStore()
+    animals.select('33333333-3333-4333-8333-333333333333')
+    let selectionAuPush: string | null = null
+    push.mockImplementation(async () => {
+      selectionAuPush = animals.selectedAnimalId
+    })
+    const wrapper = monter()
+    await remplirMinimum(wrapper)
+
+    await soumettre(wrapper)
+    await flushPromises()
+
+    expect(push).toHaveBeenCalledExactlyOnceWith({ name: 'animals' })
+    expect(selectionAuPush).toBe(MILO.id)
+  })
+
   it('revient au Carnet sans rien écrire quand on annule', async () => {
     const wrapper = monter()
     await remplirMinimum(wrapper)
