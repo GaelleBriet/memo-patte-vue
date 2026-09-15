@@ -5,6 +5,41 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.26](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.25...memo-patte-v0.1.26) (2026-09-15)
+
+
+### ✨ Fonctionnalités
+
+* **home:** importer un export depuis l'écran de bienvenue ([ed3b202](https://github.com/GaelleBriet/memo-patte-vue/commit/ed3b202b49e0ae270ee834c36cabcbb781e867f0))
+* **home:** importer un export depuis l'écran de bienvenue ([a502202](https://github.com/GaelleBriet/memo-patte-vue/commit/a5022026b70dbecd2094a4cdd93454e7247c5973))
+* **notifications:** écran d'explication au lancement quand le carnet a des échéances ([70f6177](https://github.com/GaelleBriet/memo-patte-vue/commit/70f6177f57065fca2bd269eb2be752e206219789))
+* **notifications:** proposer l'explication au lancement si des échéances arrivent ([ab4cfcd](https://github.com/GaelleBriet/memo-patte-vue/commit/ab4cfcdd3296167e184b02791925b7e6b29c05ec))
+* **repositories:** versions, suppression globale et restauration pour l'import ([16d21a7](https://github.com/GaelleBriet/memo-patte-vue/commit/16d21a7b99c904794d83b370457e4e64ed1ad536))
+* **settings:** écran Paramètres et export des données en JSON et CSV ([a4f30b3](https://github.com/GaelleBriet/memo-patte-vue/commit/a4f30b3e1d85a44800f99f86c45070de4973e7f3))
+* **settings:** écran Paramètres et export des données en JSON et CSV ([26918a6](https://github.com/GaelleBriet/memo-patte-vue/commit/26918a6a53763f5c80818bb929274f898794bb60)), closes [#80](https://github.com/GaelleBriet/memo-patte-vue/issues/80) [#48](https://github.com/GaelleBriet/memo-patte-vue/issues/48)
+* **settings:** importer un export JSON MémoPatte (fusionner ou remplacer) ([09920d5](https://github.com/GaelleBriet/memo-patte-vue/commit/09920d59ce2d4ee991319d2b69d68ba5ce9b4246))
+* **settings:** importer un export JSON MémoPatte, en fusion ou en remplacement ([d29044b](https://github.com/GaelleBriet/memo-patte-vue/commit/d29044b60755cddc20dc22a85963a97a172a3a21)), closes [#84](https://github.com/GaelleBriet/memo-patte-vue/issues/84)
+
+
+### 🐛 Corrections
+
+* **a11y:** annonces du toast, état des chips et focus sur le champ refusé ([36c90e4](https://github.com/GaelleBriet/memo-patte-vue/commit/36c90e403f75a6bab116dab9adb58e549ab63c11))
+* **carnet:** quitter les formulaires par replace pour que le retour ne les rouvre pas ([d61d590](https://github.com/GaelleBriet/memo-patte-vue/commit/d61d5903bb40959fccf2036c0cf8fc957589d0c0)), closes [#226](https://github.com/GaelleBriet/memo-patte-vue/issues/226)
+* **carnet:** revenir sur l'animal concerné après un enregistrement ([0e5037c](https://github.com/GaelleBriet/memo-patte-vue/commit/0e5037c8ada3c32e2c7eca884319f5de447e1501))
+* **carnet:** revenir sur l'animal du formulaire après un vaccin, un traitement ou un ajout ([ef387e3](https://github.com/GaelleBriet/memo-patte-vue/commit/ef387e318f3ca3dabae282c863fcf8eac32eb088)), closes [#226](https://github.com/GaelleBriet/memo-patte-vue/issues/226)
+* **notifications:** canal « Rappels » dédié et coupure du canal traitée comme désactivée ([e7e7cb8](https://github.com/GaelleBriet/memo-patte-vue/commit/e7e7cb8c4c568d006c692dc02f591874569faa83)), closes [#225](https://github.com/GaelleBriet/memo-patte-vue/issues/225)
+* **notifications:** canal Android « Rappels » et détection d'un canal coupé ([abcb091](https://github.com/GaelleBriet/memo-patte-vue/commit/abcb091ed8210e9e09e5591ba810278cd8b747b0))
+* **notifications:** limiter l'explication au lancement à l'appareil ([eb1a22f](https://github.com/GaelleBriet/memo-patte-vue/commit/eb1a22f0f3df9751d2f894418da6d8f6483a3cea))
+* **notifications:** passer par le canal « Rappels » dans scheduleReminders ([6cb3cf6](https://github.com/GaelleBriet/memo-patte-vue/commit/6cb3cf699dbc667e7683bc465d3e0c2f0aa97d9f))
+* **settings:** dates d'import, validation stricte, carnet restauré et explication des rappels ([f2df70b](https://github.com/GaelleBriet/memo-patte-vue/commit/f2df70bb814f5181fbbb2f274aced8fe7a97ae65))
+* **settings:** neutraliser les formules de tableur dans le CSV exporté ([d419459](https://github.com/GaelleBriet/memo-patte-vue/commit/d419459ae1bb52be20049972c7d7cf7f90dc9143))
+* **settings:** signaler l'échec de lecture des animaux et écarter le spinner d'export ([416c377](https://github.com/GaelleBriet/memo-patte-vue/commit/416c3776a342b84cb94a50a9f12803821ee0c647))
+* **shared:** chips en boutons radio quand un animal est toujours choisi ([1d04858](https://github.com/GaelleBriet/memo-patte-vue/commit/1d04858c6a7bc48794b26622bdf70705d541c7ad))
+* **shared:** zones de tap de 48 px sans changement de rendu ([915d8c5](https://github.com/GaelleBriet/memo-patte-vue/commit/915d8c520a0da0f00ded2710abe9b04d87e5db9c))
+* **theme:** textes secondaires au contraste AA et bordures de contrôle assombries ([a24b716](https://github.com/GaelleBriet/memo-patte-vue/commit/a24b716f0bbbd4c5e48615e5b9a37504b0068d37))
+* **ui:** aucun texte sous 12 px, valeurs de la courbe comprises ([67e4450](https://github.com/GaelleBriet/memo-patte-vue/commit/67e4450ad375911867f813ed173ad257bf3e0611))
+* **ui:** textes agrandis par la police système sans débordement ([fa89f05](https://github.com/GaelleBriet/memo-patte-vue/commit/fa89f05911d680f0397908ee165cd03532581cbd))
+
 ## [0.1.25](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.24...memo-patte-v0.1.25) (2026-09-15)
 
 
