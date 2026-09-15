@@ -68,6 +68,15 @@ describe('parseExportFile', () => {
       }),
     ],
     [
+      'une fréquence de traitement démesurée',
+      withDocument((document) => {
+        ;(document.treatments as Record<string, unknown>[])[0]!.frequency = {
+          value: 10_000_000,
+          unit: 'month',
+        }
+      }),
+    ],
+    [
       'une date civile invalide',
       withDocument((document) => {
         ;(document.weightEntries as Record<string, unknown>[])[0]!.measuredOn = '24/12/2025'

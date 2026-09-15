@@ -10,8 +10,11 @@ export type TreatmentType = z.output<typeof treatmentTypeSchema>
 export const frequencyUnitSchema = z.enum(FREQUENCY_UNITS)
 export type FrequencyUnit = z.output<typeof frequencyUnitSchema>
 
+/** Plafond volontairement large : au-delà, les dates calculées sortent de la plage de `Date`. */
+export const MAX_FREQUENCY_VALUE = 365
+
 export const treatmentFrequencySchema = z.object({
-  value: z.number().int().positive(),
+  value: z.number().int().positive().max(MAX_FREQUENCY_VALUE),
   unit: frequencyUnitSchema,
 })
 export type TreatmentFrequency = z.output<typeof treatmentFrequencySchema>

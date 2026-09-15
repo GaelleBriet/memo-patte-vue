@@ -212,6 +212,7 @@ describe('TreatmentFormView — structure', () => {
     expect(wrapper.get('.treatment-form__frequency').text()).toContain('Tous les')
     expect(nombre.attributes('inputmode')).toBe('numeric')
     expect(nombre.attributes('min')).toBe('1')
+    expect(nombre.attributes('max')).toBe('365')
     expect(uniteCochee(wrapper)).toBe('month')
   })
 

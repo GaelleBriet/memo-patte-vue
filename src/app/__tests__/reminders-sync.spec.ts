@@ -202,6 +202,28 @@ describe('syncAllReminders', () => {
     expect(last).toBeLessThan(new Date(2026, 10, 7, 9).getTime())
   })
 
+  it('saute la ligne dont les rappels ne se calculent pas, sans perdre les autres', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const chppi = vaccination('22222222-2222-4222-8222-222222222222', MILO.id, '2026-10-15')
+    listVaccinations.mockResolvedValue([chppi])
+    listTreatments.mockResolvedValue([
+      { ...MILBEMAX, frequency: { value: 10_000_000, unit: 'month' } },
+    ])
+
+    await sync()()
+
+    expect(notifications.rescheduleAll.mock.calls[0]?.[0].map(({ key }) => key)).toEqual([
+      `vaccination:${chppi.id}:2026-10-15:before`,
+      `vaccination:${chppi.id}:2026-10-15:due`,
+      `vaccination:${chppi.id}:2026-10-15:overdue`,
+    ])
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('traitement'),
+      MILBEMAX.id,
+      expect.anything(),
+    )
+  })
+
   it('attend son tour dans la file des opérations de rappel', async () => {
     let release: () => void = () => {}
     const pending = enqueueReminderTask(
