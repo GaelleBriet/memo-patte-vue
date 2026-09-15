@@ -53,7 +53,7 @@ est commun, c'est le **jeu de données de départ**, choisi sur le serveur Vite 
 - Les dates du carnet de démo sont **relatives à aujourd'hui** (CHPPi en retard de 45 jours, Rage à jour…) :
   ce sont les statuts de la maquette qui sont reproduits, pas ses libellés au mot près
 - `pnpm preview` sert un build de production : `import.meta.env.DEV` y est faux, donc **pas de fixtures**
-  (ni de base, voir plus haut). C'est voulu, et `pnpm test:build` (lancé par la CI après le build) lit le `dist/` produit et échoue si une
+  (ni de base, voir plus haut). C'est voulu, et `pnpm test:build` (`scripts/check-no-dev-tools-in-dist.mjs`, lancé par la CI après le build) lit le `dist/` produit et échoue si une
   trace des fixtures y est partie : `pnpm build-only && pnpm test:build`. Il cherche des marqueurs techniques
   (un chunk `fixtures`/`demo-carnet`, `memo-patte:fixtures-token`, et `DEMO_CARNET_MARKER` =
   `memo-patte:demo-carnet`, lu à l'exécution par les fixtures), jamais les noms de démo : un placeholder
@@ -113,8 +113,10 @@ sont jamais chargés (#156). Deux mécanismes les en sortent :
   `dist/assets/sql-wasm.wasm` une fois le build écrit. Le serveur de dev, lui, le sert toujours depuis
   `public/assets/`
 
-`pnpm test:build` (lancé par la CI après le build) échoue si l'un des deux revient : fichier `*.wasm` ou nom
-contenant `jeep-sqlite` dans `dist/`, ou chaîne `sql-wasm.wasm` dans un fichier JS. Il ne cherche pas
-`jeep-sqlite` dans le contenu : le plugin SQLite web, lui légitime dans le build, cite ce nom.
+`pnpm test:build` (`scripts/check-no-dev-tools-in-dist.mjs`, lancé par la CI après le build) échoue si l'un
+des deux revient : fichier `*.wasm` ou nom contenant `jeep-sqlite` dans `dist/`, chaîne `sql-wasm.wasm` dans un
+fichier JS, ou `parseWasmPath`, propre au chargeur de jeep-sqlite (chunk `loader-*.js`, qui ne porte pas le nom
+du composant). Il ne cherche pas `jeep-sqlite` dans le contenu : le plugin SQLite web, lui légitime dans le
+build, cite ce nom.
 
 Mesure sur l'APK debug (build Gradle propre) : APK −453 Ko (fichiers retirés : ~960 Ko non compressés).
