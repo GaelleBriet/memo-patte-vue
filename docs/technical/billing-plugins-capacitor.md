@@ -4,8 +4,9 @@ Recherche menée le **2026-09-07** contre des sources primaires (registre npm, d
 RevenueCat / Capgo / Fovea, docs Google Play Billing, docs Supabase). Toutes les URL citées ont été
 consultées ce jour-là ; les faits non vérifiables sont regroupés en fin de document.
 
-Besoin : vendre **MémoPatte Plus** sous deux formes pour le même contenu — abonnement annuel
-(7,99 €) et achat non consommable « à vie » (24,99 €) — sur Android uniquement, depuis une app
+Besoin : vendre **MémoPatte Plus** sous trois formes pour le même contenu — abonnement mensuel
+(1,49 €), abonnement annuel (9,99 €) et achat non consommable « à vie » (29,99 €), prix du
+2026-09-15 — sur Android uniquement, depuis une app
 Capacitor 8 / Vue 3, développeuse solo, budget zéro. Fonctions attendues : lister les offres avec
 prix localisé, acheter, connaître le statut (actif / expiré / à vie / aucun), restaurer, revérifier
 au lancement, gérer expiration et période de grâce.
@@ -436,13 +437,13 @@ utilisateur). Configurer la grâce à la valeur par défaut Play (la doc avertit
 Arguments :
 
 1. C'est la seule option qui couvre *toute* la liste de besoins de #43 sans code serveur à
-   inventer : l'entitlement `plus` est accordé indifféremment par l'abonnement annuel et par le
+   inventer : l'entitlement `plus` est accordé indifféremment par l'abonnement mensuel, l'annuel et le
    non consommable, `getCustomerInfo()` donne actif/expiré/à vie/grâce, `restorePurchases()`
    fonctionne, la validation Play et les RTDN sont gérés.
 2. Compatibilité Capacitor 8 / AGP 8.13 vérifiée dans le code du plugin (compileSdk 36, minSdk 24,
    AGP 8.13.2), Capacitor 8 supporté depuis décembre 2025, fix AGP 9 déjà livré ; Billing 8.3.0
    conforme à l'exigence Google du 31/08/2026.
-3. Gratuit à l'échelle du projet (2 500 $ de MTR/mois ≈ 300 abonnements annuels *par mois*), et
+3. Gratuit à l'échelle du projet (2 500 $ de MTR/mois ≈ 250 abonnements annuels *par mois*), et
    le webhook vers une Edge Function Supabase est la façon la plus simple d'alimenter la table
    d'entitlements qui gate la sync.
 4. Portfolio : intégration d'un outil standard de l'industrie, avec dashboard et événements
@@ -490,15 +491,15 @@ Le plugin maison est écarté (§3.5).
    including the internal test track ») ; les produits ne peuvent être créés qu'une fois une
    version avec la Billing Library téléversée.
 3. Produit ponctuel : **Monetize with Play > Products > In-app products > Create product** ;
-   id en minuscule/chiffre, titre ≤ 55 caractères, description ≤ 200, prix 24,99 € ; **Activate**
+   id en minuscule/chiffre, titre ≤ 55 caractères, description ≤ 200, prix 29,99 € ; **Activate**
    — [answer/1153481](https://support.google.com/googleplay/android-developer/answer/1153481).
    Proposition d'identifiant : `memopatte_plus_lifetime`.
 4. Abonnement : **Monetize with Play > Products > Subscriptions > Create subscription** (id ≤ 40
-   caractères) puis **Add base plan** avec période **Yearly**, renouvellement automatique, prix
-   7,99 €, grâce laissée par défaut, account hold automatique ; **Activate** —
-   [answer/140504](https://support.google.com/googleplay/android-developer/answer/140504).
-   Proposition : abonnement `memopatte_plus`, base plan `annual` → identifiant RevenueCat
-   `memopatte_plus:annual` ([android-products](https://www.revenuecat.com/docs/getting-started/entitlements/android-products)).
+   caractères) puis deux **Add base plan**, renouvellement automatique, grâce laissée par défaut,
+   account hold automatique : période **Monthly** à 1,49 € et période **Yearly** à 9,99 € ;
+   **Activate** — [answer/140504](https://support.google.com/googleplay/android-developer/answer/140504).
+   Proposition : abonnement `memopatte_plus`, base plans `monthly` et `annual` → identifiants
+   RevenueCat `memopatte_plus:monthly` et `memopatte_plus:annual` ([android-products](https://www.revenuecat.com/docs/getting-started/entitlements/android-products)).
 5. Testeurs de licence : **Settings > License testing**, liste d'e-mails (compte Google différent
    du compte développeur) — [answer/6062777](https://support.google.com/googleplay/android-developer/answer/6062777).
 6. Compte de service (pour RevenueCat ou pour Supabase) : GCP → activer « Google Play Android
@@ -515,8 +516,9 @@ Le plugin maison est écarté (§3.5).
 ### 7.2 Dashboard RevenueCat
 
 Projet → app Android (package `com.gaellebriet.memopatte`, upload de la clé JSON) → produits
-`memopatte_plus:annual` et `memopatte_plus_lifetime` (**Non-consumable**) → entitlement `plus`
-rattaché aux deux → offering `default` avec deux packages (`$rc_annual`, `$rc_lifetime`) → clé API
+`memopatte_plus:monthly`, `memopatte_plus:annual` et `memopatte_plus_lifetime` (**Non-consumable**)
+→ entitlement `plus` rattaché aux trois → offering `default` avec trois packages (`$rc_monthly`,
+`$rc_annual`, `$rc_lifetime`) → clé API
 publique Google Play.
 
 ### 7.3 Projet
@@ -559,7 +561,7 @@ Source : [billing/test](https://developer.android.com/google/play/billing/test).
   que le compte Google soit testeur. Un AAB doit tout de même exister sur une piste (étape 7.1.2).
 - Instruments de test : « Test instrument, always approves », « always declines », « Slow test
   card », « approves then charges back ».
-- Renouvellements accélérés : **abonnement annuel → renouvellement toutes les ~30 minutes**, grâce
+- Renouvellements accélérés : **abonnement mensuel → renouvellement toutes les ~5 minutes, annuel → toutes les ~30 minutes**, grâce
   → 5 min, account hold → 10 min. Scénario complet grâce → hold → expiré testable en moins d'une
   heure avec la carte « always declines » après un premier achat.
 - Play Billing Lab (`com.google.android.apps.play.billingtestcompanion`) pour forcer les

@@ -13,7 +13,7 @@ Différenciants produits (non négociables) :
 1. Rappels ultra-fiables, y compris hors-ligne
 2. Vue consolidée multi-animaux dès l’accueil
 3. Saisie rapide (2 taps maximum)
-4. Modèle de prix confiance : tout le local est gratuit, seul le cloud est payant (MémoPatte Plus, annuel ou à vie), données jamais otages (export libre JSON/CSV)
+4. Modèle de prix confiance : tout le local est gratuit, seul le cloud est payant (MémoPatte Plus, mensuel, annuel ou à vie), données jamais otages (export libre JSON/CSV)
 
 ## Stack imposé
 
@@ -126,7 +126,7 @@ Gratuit, sans compte :
 - Auto Backup Android (sans photos)
 - Interface en français et en anglais (vue-i18n, FR source)
 
-MémoPatte Plus (7,99 €/an ou 24,99 € à vie) :
+MémoPatte Plus (1,49 €/mois, 9,99 €/an ou 29,99 € à vie) :
 
 - Compte + sauvegarde cloud Supabase + restauration
 - Même carnet sur plusieurs appareils (push + pull, la modification la plus récente gagne)
