@@ -3,6 +3,7 @@ import { createPinia } from 'pinia'
 
 import App from './App.vue'
 import router from './router'
+import { installRemindersSync } from '@/app/reminders-sync'
 import { installBackButton } from '@/core/app-lifecycle/back-button'
 import vuetify from '@/core/theme/vuetify'
 import i18n, { applyLocale, detectLocale } from '@/core/i18n'
@@ -40,3 +41,4 @@ if (import.meta.env.DEV) {
 }
 
 app.mount('#app')
+installRemindersSync()

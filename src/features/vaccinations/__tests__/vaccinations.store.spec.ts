@@ -3,22 +3,37 @@ import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 
 import type { Vaccination, VaccinationInput } from '../vaccination.schema'
+import type { VaccinationRemindersService } from '../vaccination-reminders.service'
 import type { VaccinationsRepository } from '../vaccinations.repository'
-import { provideVaccinationsRepository, useVaccinationsStore } from '../vaccinations.store'
+import {
+  provideVaccinationRemindersService,
+  provideVaccinationsRepository,
+  useVaccinationsStore,
+} from '../vaccinations.store'
 
 const MILO = '11111111-1111-4111-8111-111111111111'
 const LUNA = '33333333-3333-4333-8333-333333333333'
 
 let repository: FakeVaccinationsRepository
+let reminders: {
+  reschedule: Mock<VaccinationRemindersService['reschedule']>
+  cancel: Mock<VaccinationRemindersService['cancel']>
+}
 
 beforeEach(() => {
   setActivePinia(createPinia())
   repository = createFakeRepository()
   provideVaccinationsRepository(() => repository)
+  reminders = {
+    reschedule: vi.fn<VaccinationRemindersService['reschedule']>().mockResolvedValue(),
+    cancel: vi.fn<VaccinationRemindersService['cancel']>().mockResolvedValue(),
+  }
+  provideVaccinationRemindersService(() => reminders)
 })
 
 afterEach(() => {
   provideVaccinationsRepository(null)
+  provideVaccinationRemindersService(null)
 })
 
 function rage(animalId = MILO, surcharges: Partial<VaccinationInput> = {}): VaccinationInput {
@@ -222,6 +237,52 @@ describe('useVaccinationsStore', () => {
 
     expect(repository.remove).toHaveBeenCalledWith(seme.id)
     expect(store.vaccinations.map((vaccination) => vaccination.name)).toEqual(['Leptospirose'])
+  })
+
+  it('programme les rappels du vaccin créé', async () => {
+    const store = useVaccinationsStore()
+
+    const created = await store.create(rage(MILO, { dueDate: '2027-03-12' }))
+
+    expect(reminders.reschedule).toHaveBeenCalledWith(created)
+  })
+
+  it('reprogramme les rappels du vaccin modifié', async () => {
+    const seme = repository.seed(rage())
+    const store = useVaccinationsStore()
+
+    const updated = await store.update(seme.id, {
+      name: 'Rage',
+      lastInjectionDate: '2026-03-12',
+      dueDate: '2027-03-12',
+    })
+
+    expect(reminders.reschedule).toHaveBeenCalledWith(updated)
+  })
+
+  it('annule les rappels du vaccin supprimé, après l’écriture en base', async () => {
+    const seme = repository.seed(rage())
+    const store = useVaccinationsStore()
+
+    await store.remove(seme.id)
+
+    expect(reminders.cancel).toHaveBeenCalledWith(seme.id)
+    expect(repository.remove.mock.invocationCallOrder[0]).toBeLessThan(
+      reminders.cancel.mock.invocationCallOrder[0]!,
+    )
+  })
+
+  it('ne touche pas aux rappels quand l’écriture échoue', async () => {
+    const seme = repository.seed(rage())
+    const store = useVaccinationsStore()
+    repository.create.mockRejectedValueOnce(new Error('nom invalide'))
+    repository.remove.mockRejectedValueOnce(new Error('base verrouillée'))
+
+    await expect(store.create(rage())).rejects.toThrow('nom invalide')
+    await expect(store.remove(seme.id)).rejects.toThrow('base verrouillée')
+
+    expect(reminders.reschedule).not.toHaveBeenCalled()
+    expect(reminders.cancel).not.toHaveBeenCalled()
   })
 
   it('propage l’erreur d’une création et garde la liste intacte', async () => {

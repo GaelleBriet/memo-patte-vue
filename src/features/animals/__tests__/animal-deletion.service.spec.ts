@@ -12,6 +12,11 @@ import {
 } from '@/features/treatments/treatments.repository'
 import { createWeightRepository, type WeightRepository } from '@/features/weight/weight.repository'
 import { getDb } from '@/core/db/sqlite'
+import { cancelReminder, listScheduled, type ScheduledReminder } from '@/core/notifications'
+import {
+  createFakeNotifications,
+  type FakeNotifications,
+} from '@/shared/__tests__/fake-notifications'
 import {
   animalDeletionService,
   createAnimalDeletionService,
@@ -20,6 +25,10 @@ import {
 import { createAnimalsRepository, type AnimalsRepository } from '../animals.repository'
 
 vi.mock('@/core/db/sqlite', () => ({ getDb: vi.fn<() => Promise<DbClient>>() }))
+vi.mock('@/core/notifications', () => ({
+  cancelReminder: vi.fn<(key: string) => Promise<void>>().mockResolvedValue(),
+  listScheduled: vi.fn<() => Promise<ScheduledReminder[]>>().mockResolvedValue([]),
+}))
 
 interface Tombstone {
   deleted_at: string | null
@@ -33,6 +42,7 @@ describe('animalDeletionService', () => {
   let weight: WeightRepository
   let treatments: TreatmentsRepository
   let service: AnimalDeletionService
+  let notifications: FakeNotifications
 
   beforeEach(async () => {
     db = await createInMemoryDb()
@@ -41,9 +51,11 @@ describe('animalDeletionService', () => {
     vaccinations = createVaccinationsRepository(db)
     weight = createWeightRepository(db)
     treatments = createTreatmentsRepository(db)
+    notifications = createFakeNotifications()
     service = createAnimalDeletionService(
       () => animals,
       [() => vaccinations, () => weight, () => treatments],
+      { vaccinations: () => vaccinations, treatments: () => treatments, notifications },
     )
   })
 
@@ -204,6 +216,7 @@ describe('animalDeletionService', () => {
           }),
         }),
       ],
+      { vaccinations: () => vaccinations, treatments: () => treatments, notifications },
     )
 
     await expect(failing.remove(miette.id)).rejects.toThrow(/no such table/)
@@ -214,6 +227,68 @@ describe('animalDeletionService', () => {
     await expect(vaccinationTombstones(miette.id)).resolves.toEqual([
       { deleted_at: null, updated_at: rage.updatedAt },
     ])
+  })
+
+  it('annule les rappels des vaccins et traitements de l’animal, et d’eux seuls', async () => {
+    const miette = await animals.create({ name: 'Miette', species: 'cat' })
+    const vasco = await animals.create({ name: 'Vasco', species: 'dog' })
+    const rage = await vaccinations.create({
+      animalId: miette.id,
+      name: 'Rage',
+      lastInjectionDate: '2024-03-01',
+      dueDate: '2027-03-01',
+    })
+    const milbemax = await treatments.create({
+      animalId: miette.id,
+      name: 'Milbemax',
+      type: 'deworming',
+      frequency: { value: 3, unit: 'month' },
+      lastDoseDate: '2026-01-10',
+    })
+    const chppi = await vaccinations.create({
+      animalId: vasco.id,
+      name: 'CHPPi',
+      lastInjectionDate: '2025-11-02',
+      dueDate: '2026-11-02',
+    })
+    const kept = `vaccination:${chppi.id}:2026-11-02:due`
+    for (const key of [
+      `vaccination:${rage.id}:2027-03-01:before`,
+      `treatment:${milbemax.id}:2026-04-10:due`,
+      `treatment:${milbemax.id}:2026-07-10:overdue`,
+      kept,
+    ]) {
+      notifications.pending.set(key, { key, title: '', body: '', at: new Date() })
+    }
+
+    await service.remove(miette.id)
+
+    expect([...notifications.pending.keys()]).toEqual([kept])
+  })
+
+  it('garde les rappels quand la suppression échoue', async () => {
+    const miette = await animals.create({ name: 'Miette', species: 'cat' })
+    await vaccinations.create({
+      animalId: miette.id,
+      name: 'Rage',
+      lastInjectionDate: '2024-03-01',
+      dueDate: '2027-03-01',
+    })
+    const failing = createAnimalDeletionService(
+      () => animals,
+      [
+        () => ({
+          markDeletedByAnimalStatement: () => ({
+            sql: 'UPDATE table_inexistante SET deleted_at = 1',
+          }),
+        }),
+      ],
+      { vaccinations: () => vaccinations, treatments: () => treatments, notifications },
+    )
+
+    await expect(failing.remove(miette.id)).rejects.toThrow(/no such table/)
+
+    expect(notifications.cancelReminder).not.toHaveBeenCalled()
   })
 
   it('ne change aucune date déjà posée lors d’une seconde suppression', async () => {
@@ -277,7 +352,7 @@ describe('animalDeletionService', () => {
     expect(vaccinationCount?.n).toBe(2)
   })
 
-  it('branche par défaut les vaccins, les pesées et les traitements sur la base locale', async () => {
+  it('branche par défaut la base locale et les rappels', async () => {
     vi.mocked(getDb).mockResolvedValue(db)
     const miette = await animals.create({ name: 'Miette', species: 'cat' })
     await vaccinations.create({
@@ -286,16 +361,19 @@ describe('animalDeletionService', () => {
       lastInjectionDate: '2024-03-01',
     })
     await weight.create({ animalId: miette.id, weightKg: 4.1, measuredOn: '2026-01-10' })
-    await treatments.create({
+    const milbemax = await treatments.create({
       animalId: miette.id,
       name: 'Milbemax',
       type: 'deworming',
       frequency: { value: 3, unit: 'month' },
       lastDoseDate: '2026-01-10',
     })
+    const key = `treatment:${milbemax.id}:2026-04-10:due`
+    vi.mocked(listScheduled).mockResolvedValue([{ id: 1, key, title: '', body: '' }])
 
     await animalDeletionService.remove(miette.id)
 
+    expect(vi.mocked(cancelReminder)).toHaveBeenCalledWith(key)
     const animal = await animalTombstone(miette.id)
     expect(animal?.deleted_at).toEqual(expect.any(String))
     await expect(vaccinationTombstones(miette.id)).resolves.toEqual([animal])
