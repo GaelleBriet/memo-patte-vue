@@ -5,8 +5,9 @@ import type { Animal } from '@/features/animals/animal.schema'
 import {
   DAYS_BEFORE_DUE,
   DAYS_OVERDUE,
-  dueAt,
+  dueReminderSpan,
   dueReminders,
+  reminderWindowEnd,
   type DueReminderTexts,
   type Translate,
 } from '@/shared/due-reminders'
@@ -18,24 +19,20 @@ type RemindedTreatment = Pick<
   'id' | 'name' | 'type' | 'frequency' | 'nextDueDate' | 'deletedAt'
 >
 
-type ScheduledOccurrence = { dueDate: string; missedDueDate?: string }
-
 /**
- * Première échéance encore à venir quand les prises ne sont pas notées, et celle manquée juste avant.
- * Chaque cycle part de `nextDueDate` : enchaîner les mois ferait dériver un 31 vers le 28.
+ * Échéances dont un rappel tombe dans la fenêtre, en continuant au rythme de la fréquence quand les
+ * prises ne sont pas notées. Chaque cycle part de `nextDueDate` : enchaîner les mois ferait dériver
+ * un 31 vers le 28.
  */
-function scheduledOccurrence(
-  nextDueDate: string,
-  frequency: TreatmentFrequency,
-  now: Date,
-): ScheduledOccurrence {
-  let missedDueDate: string | undefined
-  let dueDate = nextDueDate
-  for (let cycle = 1; !isAfter(dueAt(dueDate), now); cycle += 1) {
-    missedDueDate = dueDate
-    dueDate = addFrequency(nextDueDate, { ...frequency, value: frequency.value * cycle })
+function occurrenceDates(nextDueDate: string, frequency: TreatmentFrequency, now: Date): string[] {
+  const windowEnd = reminderWindowEnd(now)
+  const dates: string[] = []
+  for (let cycle = 0; ; cycle += 1) {
+    const dueDate = addFrequency(nextDueDate, { ...frequency, value: frequency.value * cycle })
+    const { first, last } = dueReminderSpan(dueDate)
+    if (isAfter(first, windowEnd)) return dates
+    if (isAfter(last, now)) dates.push(dueDate)
   }
-  return { dueDate, missedDueDate }
 }
 
 export function treatmentReminders(
@@ -73,11 +70,8 @@ export function treatmentReminders(
   }
 
   return dueReminders(
-    {
-      kind: 'treatment',
-      id: treatment.id,
-      ...scheduledOccurrence(treatment.nextDueDate, treatment.frequency, now),
-    },
+    { kind: 'treatment', id: treatment.id },
+    occurrenceDates(treatment.nextDueDate, treatment.frequency, now),
     texts,
     now,
   )

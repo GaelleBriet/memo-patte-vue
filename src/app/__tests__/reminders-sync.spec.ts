@@ -109,11 +109,14 @@ describe('syncAllReminders', () => {
     expect(
       notifications.rescheduleAll.mock.calls[0]?.[0].map(({ key, title }) => [key, title]),
     ).toEqual([
-      [`treatment:${MILBEMAX.id}:due`, 'Vermifuge Milbemax de Luna aujourd’hui'],
-      [`treatment:${MILBEMAX.id}:overdue`, 'Vermifuge Milbemax de Luna en retard de 3 jours'],
-      [`vaccination:${chppi.id}:before`, 'Vaccin CHPPi de Milo dans 3 jours'],
-      [`vaccination:${chppi.id}:due`, 'Vaccin CHPPi de Milo aujourd’hui'],
-      [`vaccination:${chppi.id}:overdue`, 'Vaccin CHPPi de Milo en retard de 3 jours'],
+      [`treatment:${MILBEMAX.id}:2026-09-17:due`, 'Vermifuge Milbemax de Luna aujourd’hui'],
+      [
+        `treatment:${MILBEMAX.id}:2026-09-17:overdue`,
+        'Vermifuge Milbemax de Luna en retard de 3 jours',
+      ],
+      [`vaccination:${chppi.id}:2026-10-15:before`, 'Vaccin CHPPi de Milo dans 3 jours'],
+      [`vaccination:${chppi.id}:2026-10-15:due`, 'Vaccin CHPPi de Milo aujourd’hui'],
+      [`vaccination:${chppi.id}:2026-10-15:overdue`, 'Vaccin CHPPi de Milo en retard de 3 jours'],
     ])
   })
 
@@ -139,10 +142,29 @@ describe('syncAllReminders', () => {
 
     const scheduled = notifications.rescheduleAll.mock.calls[0]?.[0] ?? []
     expect(scheduled).toHaveLength(MAX_SCHEDULED_REMINDERS)
-    expect(scheduled.map(({ key }) => key)).not.toContain(`vaccination:${uuid(0)}:due`)
+    expect(scheduled.map(({ key }) => key)).not.toContain(`vaccination:${uuid(0)}:2026-11-10:due`)
     expect(scheduled.map(({ at }) => at.getTime())).toEqual(
       scheduled.map(({ at }) => at.getTime()).sort((a, b) => a - b),
     )
+  })
+
+  it('respecte le plafond avec beaucoup de traitements hebdomadaires, les plus proches d’abord', async () => {
+    listTreatments.mockResolvedValue(
+      Array.from({ length: 20 }, (_, index) => ({
+        ...MILBEMAX,
+        id: uuid(index),
+        frequency: { value: 1, unit: 'week' as const },
+        nextDueDate: index === 0 ? '2026-11-10' : '2026-09-16',
+      })),
+    )
+
+    await sync()()
+
+    const scheduled = notifications.rescheduleAll.mock.calls[0]?.[0] ?? []
+    expect(scheduled).toHaveLength(MAX_SCHEDULED_REMINDERS)
+    const last = Math.max(...scheduled.map(({ at }) => at.getTime()))
+    expect(scheduled.some(({ key }) => key.startsWith(`treatment:${uuid(0)}:`))).toBe(false)
+    expect(last).toBeLessThan(new Date(2026, 10, 7, 9).getTime())
   })
 
   it('attend son tour dans la file des opérations de rappel', async () => {

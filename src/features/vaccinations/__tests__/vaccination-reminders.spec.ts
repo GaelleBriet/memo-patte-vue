@@ -18,19 +18,19 @@ describe('vaccinationReminders', () => {
   it('produit les trois rappels du vaccin avec le nom du vaccin et le prénom de l’animal', () => {
     expect(vaccinationReminders(t, CHPPI, MILO, NOW)).toEqual([
       {
-        key: `vaccination:${ID}:before`,
+        key: `vaccination:${ID}:2026-10-15:before`,
         title: 'Vaccin CHPPi de Milo dans 3 jours',
         body: 'Pense à prendre rendez-vous chez le vétérinaire.',
         at: new Date(2026, 9, 12, 9),
       },
       {
-        key: `vaccination:${ID}:due`,
+        key: `vaccination:${ID}:2026-10-15:due`,
         title: 'Vaccin CHPPi de Milo aujourd’hui',
         body: 'Note le vaccin dans MémoPatte une fois fait.',
         at: new Date(2026, 9, 15, 9),
       },
       {
-        key: `vaccination:${ID}:overdue`,
+        key: `vaccination:${ID}:2026-10-15:overdue`,
         title: 'Vaccin CHPPi de Milo en retard de 3 jours',
         body: 'Prends rendez-vous chez le vétérinaire, puis note le vaccin dans MémoPatte.',
         at: new Date(2026, 9, 18, 9),

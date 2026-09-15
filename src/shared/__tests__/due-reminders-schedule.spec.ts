@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { Reminder, ScheduledReminder } from '@/core/notifications'
+import type { Reminder } from '@/core/notifications'
 import {
   cancelDueReminders,
   enqueueReminderTask,
@@ -13,12 +13,11 @@ import { createFakeNotifications, type FakeNotifications } from './fake-notifica
 const ID = '22222222-2222-4222-8222-222222222222'
 const OTHER = '33333333-3333-4333-8333-333333333333'
 
-const DUE: Reminder = {
-  key: `vaccination:${ID}:due`,
-  title: 'titre',
-  body: 'corps',
-  at: new Date(2026, 9, 15, 9),
+function reminder(key: string, at = new Date(2026, 9, 15, 9)): Reminder {
+  return { key, title: 'titre', body: 'corps', at }
 }
+
+const DUE = reminder(`treatment:${ID}:2026-10-15:due`)
 
 let notifications: FakeNotifications
 
@@ -31,17 +30,24 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-describe('replaceDueReminders', () => {
-  it('annule les rappels de l’entrée puis programme les nouveaux', async () => {
-    await replaceDueReminders(notifications, { kind: 'vaccination', id: ID }, () => [DUE])
+function seed(...keys: string[]): void {
+  for (const key of keys) notifications.pending.set(key, reminder(key))
+}
 
-    expect(notifications.cancelReminder.mock.calls).toEqual([
-      [`vaccination:${ID}:before`],
-      [`vaccination:${ID}:due`],
-      [`vaccination:${ID}:overdue`],
-    ])
-    expect(notifications.scheduleReminder.mock.calls).toEqual([[DUE]])
-    expect(notifications.cancelReminder.mock.invocationCallOrder[2]).toBeLessThan(
+describe('replaceDueReminders', () => {
+  it('retire tous les rappels en attente de l’entrée, et d’elle seule, puis programme les nouveaux', async () => {
+    seed(
+      `treatment:${ID}:2026-09-20:due`,
+      `treatment:${ID}:2026-10-20:overdue`,
+      `treatment:${OTHER}:2026-09-20:due`,
+    )
+
+    await replaceDueReminders(notifications, { kind: 'treatment', id: ID }, () => [DUE])
+
+    expect([...notifications.pending.keys()].sort()).toEqual(
+      [`treatment:${OTHER}:2026-09-20:due`, DUE.key].sort(),
+    )
+    expect(notifications.cancelReminder.mock.invocationCallOrder.at(-1)).toBeLessThan(
       notifications.scheduleReminder.mock.invocationCallOrder[0]!,
     )
   })
@@ -50,60 +56,53 @@ describe('replaceDueReminders', () => {
     notifications.checkPermission.mockResolvedValue(false)
     const build = vi.fn<() => Reminder[]>(() => [DUE])
 
-    await replaceDueReminders(notifications, { kind: 'vaccination', id: ID }, build)
+    await replaceDueReminders(notifications, { kind: 'treatment', id: ID }, build)
 
     expect(build).not.toHaveBeenCalled()
     expect(notifications.scheduleReminder).not.toHaveBeenCalled()
   })
 
   it('ne dépasse pas le plafond de rappels en attente, en gardant les plus proches', async () => {
-    const pending: ScheduledReminder[] = Array.from(
-      { length: MAX_SCHEDULED_REMINDERS - 1 },
-      (_, id) => ({ id, title: '', body: '' }),
-    )
-    notifications.listScheduled.mockResolvedValue(pending)
-    const before: Reminder = {
-      ...DUE,
-      key: `vaccination:${ID}:before`,
-      at: new Date(2026, 9, 12, 9),
-    }
+    seed(...Array.from({ length: MAX_SCHEDULED_REMINDERS - 1 }, (_, i) => `vaccination:${i}:x:due`))
+    seed(`treatment:${ID}:2026-09-20:due`)
+    const before = reminder(`treatment:${ID}:2026-10-15:before`, new Date(2026, 9, 12, 9))
 
-    await replaceDueReminders(notifications, { kind: 'vaccination', id: ID }, () => [DUE, before])
+    await replaceDueReminders(notifications, { kind: 'treatment', id: ID }, () => [DUE, before])
 
     expect(notifications.scheduleReminder.mock.calls).toEqual([[before]])
+    expect(notifications.pending.size).toBe(MAX_SCHEDULED_REMINDERS)
   })
 
   it('ne lève pas quand le plugin échoue', async () => {
     notifications.scheduleReminder.mockRejectedValue(new Error('plugin'))
 
     await expect(
-      replaceDueReminders(notifications, { kind: 'vaccination', id: ID }, () => [DUE]),
+      replaceDueReminders(notifications, { kind: 'treatment', id: ID }, () => [DUE]),
     ).resolves.toBeUndefined()
     expect(console.warn).toHaveBeenCalled()
   })
 })
 
 describe('cancelDueReminders', () => {
-  it('annule les rappels de chaque entrée, même sans permission', async () => {
+  it('retire tous les rappels de chaque entrée, même sans permission', async () => {
     notifications.checkPermission.mockResolvedValue(false)
+    seed(
+      `vaccination:${ID}:2026-10-15:before`,
+      `treatment:${OTHER}:2026-09-20:due`,
+      `treatment:${OTHER}:2026-09-27:due`,
+      `treatment:${ID}:2026-09-20:due`,
+    )
 
     await cancelDueReminders(notifications, [
       { kind: 'vaccination', id: ID },
       { kind: 'treatment', id: OTHER },
     ])
 
-    expect(notifications.cancelReminder.mock.calls.flat()).toEqual([
-      `vaccination:${ID}:before`,
-      `vaccination:${ID}:due`,
-      `vaccination:${ID}:overdue`,
-      `treatment:${OTHER}:before`,
-      `treatment:${OTHER}:due`,
-      `treatment:${OTHER}:overdue`,
-    ])
+    expect([...notifications.pending.keys()]).toEqual([`treatment:${ID}:2026-09-20:due`])
   })
 
   it('ne lève pas quand le plugin échoue', async () => {
-    notifications.cancelReminder.mockRejectedValue(new Error('plugin'))
+    notifications.listScheduled.mockRejectedValue(new Error('plugin'))
 
     await expect(
       cancelDueReminders(notifications, [{ kind: 'treatment', id: ID }]),
@@ -117,9 +116,10 @@ describe('enqueueReminderTask', () => {
     const blocked = new Promise<void>((resolve) => {
       release = resolve
     })
+    seed(`treatment:${OTHER}:2026-09-20:due`)
     const replacing = replaceDueReminders(
       notifications,
-      { kind: 'vaccination', id: ID },
+      { kind: 'treatment', id: ID },
       async () => {
         await blocked
         return [DUE]
@@ -130,14 +130,14 @@ describe('enqueueReminderTask', () => {
     const syncing = enqueueReminderTask(synced)
 
     await vi.waitFor(() => expect(notifications.checkPermission).toHaveBeenCalled())
-    expect(notifications.cancelReminder).not.toHaveBeenCalledWith(`treatment:${OTHER}:due`)
+    expect(notifications.cancelReminder).not.toHaveBeenCalled()
     expect(synced).not.toHaveBeenCalled()
 
     release()
     await Promise.all([replacing, cancelling, syncing])
 
     expect(notifications.scheduleReminder.mock.invocationCallOrder[0]).toBeLessThan(
-      notifications.cancelReminder.mock.invocationCallOrder[3]!,
+      notifications.cancelReminder.mock.invocationCallOrder[0]!,
     )
     expect(synced).toHaveBeenCalledOnce()
   })

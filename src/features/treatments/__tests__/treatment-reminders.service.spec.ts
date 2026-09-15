@@ -59,11 +59,6 @@ describe('treatmentRemindersService', () => {
     await service.reschedule(MILBEMAX)
 
     expect(getById).toHaveBeenCalledWith(LUNA.id)
-    expect(notifications.cancelReminder.mock.calls.flat()).toEqual([
-      `treatment:${MILBEMAX.id}:before`,
-      `treatment:${MILBEMAX.id}:due`,
-      `treatment:${MILBEMAX.id}:overdue`,
-    ])
     expect(notifications.scheduleReminder.mock.calls.map(([reminder]) => reminder.at)).toEqual([
       new Date(2026, 9, 12, 9),
       new Date(2026, 9, 15, 9),
@@ -80,13 +75,14 @@ describe('treatmentRemindersService', () => {
     expect(notifications.scheduleReminder).not.toHaveBeenCalled()
   })
 
-  it('annule les rappels d’un traitement supprimé', async () => {
+  it('retire tous les rappels programmés d’un traitement supprimé, et les siens seulement', async () => {
+    await service.reschedule({ ...MILBEMAX, frequency: { value: 1, unit: 'week' } })
+    const other = `treatment:55555555-5555-4555-8555-555555555555:2026-10-01:due`
+    notifications.pending.set(other, { key: other, title: '', body: '', at: new Date() })
+    expect(notifications.pending.size).toBeGreaterThan(10)
+
     await service.cancel(MILBEMAX.id)
 
-    expect(notifications.cancelReminder.mock.calls.flat()).toEqual([
-      `treatment:${MILBEMAX.id}:before`,
-      `treatment:${MILBEMAX.id}:due`,
-      `treatment:${MILBEMAX.id}:overdue`,
-    ])
+    expect([...notifications.pending.keys()]).toEqual([other])
   })
 })

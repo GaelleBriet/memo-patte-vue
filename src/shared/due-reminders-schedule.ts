@@ -2,7 +2,7 @@ import { compareAsc } from 'date-fns'
 
 import * as notifications from '@/core/notifications'
 import type { Reminder } from '@/core/notifications'
-import { dueReminderKeys, type DueReminderEntry } from './due-reminders'
+import { dueReminderPrefix, type DueReminderEntry } from './due-reminders'
 
 export type ReminderNotifications = Pick<
   typeof notifications,
@@ -31,10 +31,17 @@ function warn(cause: unknown): void {
   console.warn('Rappels non mis à jour :', cause)
 }
 
-type CancelPort = Pick<ReminderNotifications, 'cancelReminder'>
+type CancelPort = Pick<ReminderNotifications, 'cancelReminder' | 'listScheduled'>
 
-async function cancelKeys(port: CancelPort, entry: DueReminderEntry): Promise<void> {
-  for (const key of dueReminderKeys(entry)) await port.cancelReminder(key)
+/** Renvoie le nombre de rappels encore en attente après l'annulation. */
+async function cancelPending(port: CancelPort, entries: DueReminderEntry[]): Promise<number> {
+  const prefixes = entries.map(dueReminderPrefix)
+  const pending = await port.listScheduled()
+  const doomed = pending.flatMap(({ key }) =>
+    key !== undefined && prefixes.some((prefix) => key.startsWith(prefix)) ? [key] : [],
+  )
+  for (const key of doomed) await port.cancelReminder(key)
+  return pending.length - doomed.length
 }
 
 /**
@@ -48,11 +55,10 @@ export function replaceDueReminders(
 ): Promise<void> {
   return enqueueReminderTask(async () => {
     try {
-      await cancelKeys(port, entry)
+      const remaining = await cancelPending(port, [entry])
       if (!(await port.checkPermission())) return
       const reminders = await build()
-      if (reminders.length === 0) return
-      const room = MAX_SCHEDULED_REMINDERS - (await port.listScheduled()).length
+      const room = MAX_SCHEDULED_REMINDERS - remaining
       for (const reminder of earliestReminders(reminders, room)) {
         await port.scheduleReminder(reminder)
       }
@@ -66,7 +72,7 @@ export function replaceDueReminders(
 export function cancelDueReminders(port: CancelPort, entries: DueReminderEntry[]): Promise<void> {
   return enqueueReminderTask(async () => {
     try {
-      for (const entry of entries) await cancelKeys(port, entry)
+      await cancelPending(port, entries)
     } catch (cause) {
       warn(cause)
     }

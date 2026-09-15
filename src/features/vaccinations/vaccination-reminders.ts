@@ -40,9 +40,6 @@ export function vaccinationReminders(
     }
   }
 
-  return dueReminders(
-    { kind: 'vaccination', id: vaccination.id, dueDate: vaccination.dueDate },
-    texts,
-    now,
-  )
+  const dueDates = vaccination.dueDate === null ? [] : [vaccination.dueDate]
+  return dueReminders({ kind: 'vaccination', id: vaccination.id }, dueDates, texts, now)
 }

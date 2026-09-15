@@ -54,13 +54,16 @@ beforeEach(() => {
 
 describe('vaccinationRemindersService', () => {
   it('reprogramme les rappels du vaccin avec le prénom de son animal', async () => {
+    const stale = `vaccination:${CHPPI.id}:2026-09-20:due`
+    notifications.pending.set(stale, { key: stale, title: '', body: '', at: new Date() })
+
     await service.reschedule(CHPPI)
 
     expect(getById).toHaveBeenCalledWith(MILO.id)
-    expect(notifications.cancelReminder.mock.calls.flat()).toEqual([
-      `vaccination:${CHPPI.id}:before`,
-      `vaccination:${CHPPI.id}:due`,
-      `vaccination:${CHPPI.id}:overdue`,
+    expect([...notifications.pending.keys()]).toEqual([
+      `vaccination:${CHPPI.id}:2026-10-15:before`,
+      `vaccination:${CHPPI.id}:2026-10-15:due`,
+      `vaccination:${CHPPI.id}:2026-10-15:overdue`,
     ])
     expect(notifications.scheduleReminder.mock.calls.map(([reminder]) => reminder.title)).toEqual([
       'Vaccin CHPPi de Milo dans 3 jours',
@@ -70,9 +73,12 @@ describe('vaccinationRemindersService', () => {
   })
 
   it('annule sans reprogrammer quand le rappel du vaccin est retiré', async () => {
+    const stale = `vaccination:${CHPPI.id}:2026-10-15:due`
+    notifications.pending.set(stale, { key: stale, title: '', body: '', at: new Date() })
+
     await service.reschedule({ ...CHPPI, dueDate: null })
 
-    expect(notifications.cancelReminder).toHaveBeenCalledTimes(3)
+    expect(notifications.pending.size).toBe(0)
     expect(notifications.scheduleReminder).not.toHaveBeenCalled()
   })
 
@@ -100,12 +106,11 @@ describe('vaccinationRemindersService', () => {
   })
 
   it('annule les rappels d’un vaccin supprimé', async () => {
+    await service.reschedule(CHPPI)
+
     await service.cancel(CHPPI.id)
 
-    expect(notifications.cancelReminder.mock.calls.flat()).toEqual([
-      `vaccination:${CHPPI.id}:before`,
-      `vaccination:${CHPPI.id}:due`,
-      `vaccination:${CHPPI.id}:overdue`,
-    ])
+    expect(notifications.cancelReminder).toHaveBeenCalledTimes(3)
+    expect(notifications.pending.size).toBe(0)
   })
 })

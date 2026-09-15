@@ -23,7 +23,7 @@ export type AnimalRecordRepository = Pick<VaccinationsRepository, 'markDeletedBy
 export type AnimalRemindersDependencies = {
   vaccinations: Provider<Pick<VaccinationsRepository, 'listByAnimal'>>
   treatments: Provider<Pick<TreatmentsRepository, 'listByAnimal'>>
-  notifications: Pick<ReminderNotifications, 'cancelReminder'>
+  notifications: Pick<ReminderNotifications, 'cancelReminder' | 'listScheduled'>
 }
 
 export function createAnimalDeletionService(

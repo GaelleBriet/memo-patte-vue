@@ -23,33 +23,30 @@ afterEach(() => {
   i18n.global.locale.value = 'fr'
 })
 
-function planned(
-  nextDueDate: string,
-  now: Date,
-  frequency: TreatmentFrequency = MONTHLY,
-): [string, Date][] {
-  return treatmentReminders(t, { ...MILBEMAX, nextDueDate, frequency }, LUNA, now).map(
-    ({ key, at }) => [key.split(':')[2]!, at],
+/** `yyyy-MM-dd:moment` de chaque rappel programmé. */
+function slots(nextDueDate: string, now: Date, frequency: TreatmentFrequency = MONTHLY): string[] {
+  return treatmentReminders(t, { ...MILBEMAX, nextDueDate, frequency }, LUNA, now).map(({ key }) =>
+    key.slice(`treatment:${ID}:`.length),
   )
 }
 
 describe('treatmentReminders', () => {
-  it('produit les trois rappels de la prochaine prise avec le type, le nom et l’animal', () => {
-    expect(treatmentReminders(t, MILBEMAX, LUNA, NOW)).toEqual([
+  it('produit les rappels de l’échéance avec le type, le nom et l’animal', () => {
+    expect(treatmentReminders(t, MILBEMAX, LUNA, NOW).slice(0, 3)).toEqual([
       {
-        key: `treatment:${ID}:before`,
+        key: `treatment:${ID}:2026-10-15:before`,
         title: 'Vermifuge Milbemax de Luna dans 3 jours',
         body: 'Vérifie qu’il te reste une dose.',
         at: new Date(2026, 9, 12, 9),
       },
       {
-        key: `treatment:${ID}:due`,
+        key: `treatment:${ID}:2026-10-15:due`,
         title: 'Vermifuge Milbemax de Luna aujourd’hui',
         body: 'Note la prise dans MémoPatte pour programmer la suivante.',
         at: new Date(2026, 9, 15, 9),
       },
       {
-        key: `treatment:${ID}:overdue`,
+        key: `treatment:${ID}:2026-10-15:overdue`,
         title: 'Vermifuge Milbemax de Luna en retard de 3 jours',
         body: 'Pense à donner la dose, puis note la prise dans MémoPatte.',
         at: new Date(2026, 9, 18, 9),
@@ -71,59 +68,74 @@ describe('treatmentReminders', () => {
     expect(overdue?.body).toBe('Remember to give the dose, then log it in MémoPatte.')
   })
 
+  it('programme tous les cycles qui tombent dans les 60 jours', () => {
+    expect(slots('2026-10-15', NOW)).toEqual([
+      '2026-10-15:before',
+      '2026-10-15:due',
+      '2026-10-15:overdue',
+      '2026-11-15:before',
+    ])
+  })
+
+  it('programme toutes les semaines d’un traitement hebdomadaire sur 60 jours', () => {
+    const result = slots('2026-09-16', NOW, { value: 1, unit: 'week' })
+
+    expect(result.filter((slot) => slot.endsWith(':due'))).toEqual([
+      '2026-09-16:due',
+      '2026-09-23:due',
+      '2026-09-30:due',
+      '2026-10-07:due',
+      '2026-10-14:due',
+      '2026-10-21:due',
+      '2026-10-28:due',
+      '2026-11-04:due',
+      '2026-11-11:due',
+    ])
+    expect(result).toHaveLength(26)
+    expect(result.at(-1)).toBe('2026-11-11:overdue')
+  })
+
   it('passe aux rappels de juin quand la prise de mai n’est pas notée', () => {
-    expect(planned('2026-05-15', new Date(2026, 4, 20, 12))).toEqual([
-      ['before', new Date(2026, 5, 12, 9)],
-      ['due', new Date(2026, 5, 15, 9)],
-      ['overdue', new Date(2026, 5, 18, 9)],
+    expect(slots('2026-05-15', new Date(2026, 4, 20, 12)).slice(0, 3)).toEqual([
+      '2026-06-15:before',
+      '2026-06-15:due',
+      '2026-06-15:overdue',
     ])
   })
 
   it('relance d’abord la prise manquée tant que ses trois jours de retard sont à venir', () => {
-    expect(planned('2026-05-15', new Date(2026, 4, 16, 12))).toEqual([
-      ['overdue', new Date(2026, 4, 18, 9)],
-      ['before', new Date(2026, 5, 12, 9)],
-      ['due', new Date(2026, 5, 15, 9)],
-    ])
-  })
-
-  it('traite une prise du jour passée 9 h comme manquée', () => {
-    expect(planned('2026-05-15', new Date(2026, 4, 15, 10))[0]).toEqual([
-      'overdue',
-      new Date(2026, 4, 18, 9),
+    expect(slots('2026-05-15', new Date(2026, 4, 16, 12)).slice(0, 2)).toEqual([
+      '2026-05-15:overdue',
+      '2026-06-15:before',
     ])
   })
 
   it('rattrape plusieurs cycles manqués sans dériver en fin de mois', () => {
-    expect(planned('2026-01-31', new Date(2026, 4, 2, 12))).toEqual([
-      ['overdue', new Date(2026, 4, 3, 9)],
-      ['before', new Date(2026, 4, 28, 9)],
-      ['due', new Date(2026, 4, 31, 9)],
+    expect(slots('2026-01-31', new Date(2026, 4, 2, 12))).toEqual([
+      '2026-04-30:overdue',
+      '2026-05-31:before',
+      '2026-05-31:due',
+      '2026-05-31:overdue',
+      '2026-06-30:before',
+      '2026-06-30:due',
     ])
   })
 
   it('cale une échéance du 31 sur le 30 du mois suivant', () => {
-    expect(planned('2026-05-31', new Date(2026, 5, 1, 12))).toEqual([
-      ['overdue', new Date(2026, 5, 3, 9)],
-      ['before', new Date(2026, 5, 27, 9)],
-      ['due', new Date(2026, 5, 30, 9)],
-    ])
+    expect(slots('2026-05-31', new Date(2026, 5, 1, 12))).toContain('2026-06-30:due')
   })
 
-  it('suit une fréquence en jours', () => {
-    expect(planned('2026-09-01', NOW, { value: 10, unit: 'day' })).toEqual([
-      ['before', new Date(2026, 8, 18, 9)],
-      ['due', new Date(2026, 8, 21, 9)],
-      ['overdue', new Date(2026, 8, 24, 9)],
-    ])
-  })
+  it('ne sonne qu’une fois par jour pour un traitement quotidien', () => {
+    const result = treatmentReminders(
+      t,
+      { ...MILBEMAX, nextDueDate: '2026-09-16', frequency: { value: 1, unit: 'day' } },
+      LUNA,
+      NOW,
+    )
 
-  it('suit une fréquence en semaines', () => {
-    expect(planned('2026-09-01', new Date(2026, 8, 16, 12), { value: 2, unit: 'week' })).toEqual([
-      ['overdue', new Date(2026, 8, 18, 9)],
-      ['before', new Date(2026, 8, 26, 9)],
-      ['due', new Date(2026, 8, 29, 9)],
-    ])
+    expect(result).toHaveLength(60)
+    expect(result.every(({ key }) => key.endsWith(':due'))).toBe(true)
+    expect(new Set(result.map(({ at }) => at.getTime())).size).toBe(60)
   })
 
   it('ne produit rien pour un traitement supprimé', () => {
