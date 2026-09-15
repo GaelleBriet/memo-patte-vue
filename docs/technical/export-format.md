@@ -10,6 +10,8 @@ Le code de référence est `src/features/settings/export-format.ts`, couvert par
   ne dépend ni du compte ni de MémoPatte Plus.
 - Il contient les données **visibles dans l'app** : les lignes supprimées logiquement
   (`deleted_at` renseigné) ne sont pas exportées, et la colonne `deletedAt` n'apparaît pas.
+  L'export ne porte donc **aucune pierre tombale** : un import (#84) ne peut pas propager une
+  suppression, une donnée absente du fichier n'est pas une donnée supprimée.
 - Le fichier est écrit dans le cache de l'app (`Directory.Cache`, sous-dossier `exports/`, vidé à
   chaque export) puis remis par la feuille de partage Android (`@capacitor/share`, via le
   `FileProvider` de l'app). Aucune permission de stockage n'est demandée.
@@ -34,7 +36,7 @@ Date du nom de fichier : jour local de l'export. Encodage UTF-8, sans BOM, inden
 
 | Champ           | Type                   | Sens                                                                 |
 | --------------- | ---------------------- | -------------------------------------------------------------------- |
-| `schemaVersion` | entier                 | Version du contrat. Toute rupture (champ retiré, renommé, sens changé) l'incrémente ; un ajout optionnel non |
+| `schemaVersion` | entier                 | Version du contrat. Toute rupture (champ retiré, renommé, sens changé) l'incrémente ; un ajout de champ optionnel ne l'incrémente pas |
 | `exportedAt`    | ISO 8601 UTC           | Instant de l'export                                                  |
 | `appVersion`    | texte                  | Version de l'app (`package.json`) qui a produit le fichier           |
 
@@ -117,6 +119,10 @@ se réimporte.
   LibreOffice en français).
 - Un champ qui contient `;`, `"` ou un retour à la ligne est entouré de `"`, les `"` intérieurs
   doublés (RFC 4180).
+- **Injection de formule neutralisée** (recommandation OWASP « CSV Injection ») : une cellule texte
+  qui commence par `=`, `+`, `-`, `@`, une tabulation ou un retour chariot est préfixée par `'`
+  (ex. `'=HYPERLINK(…)`), pour qu'un tableur l'affiche au lieu de l'exécuter. Les nombres et les
+  dates ne sont jamais préfixés, et le JSON garde la valeur d'origine.
 - Valeur absente : cellule vide. Dates civiles `AAAA-MM-JJ`, instants ISO 8601 UTC.
 - Nombres décimaux avec une **virgule** (`4,25`), lisibles comme nombres par un tableur français.
 - En-têtes identiques aux noms de champs du JSON, pour qu'une colonne se retrouve d'un format à
