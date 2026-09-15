@@ -1,6 +1,10 @@
 import { onAppResume } from '@/core/app-lifecycle/app-resume'
 import i18n from '@/core/i18n'
-import { reminderNotificationId, type Reminder } from '@/core/notifications'
+import {
+  onNotificationPermissionGranted,
+  reminderNotificationId,
+  type Reminder,
+} from '@/core/notifications'
 import { getAnimalsRepository, type AnimalsRepository } from '@/features/animals/animals.repository'
 import { useAnimalsStore } from '@/features/animals/animals.store'
 import { treatmentReminders } from '@/features/treatments/treatment-reminders'
@@ -100,17 +104,22 @@ export const syncAllReminders = createRemindersSync({
 })
 
 /**
- * Rattrape une permission accordée depuis les réglages, reconstruit après une restauration,
+ * Synchronise dès que la permission est accordée, reconstruit après une restauration,
  * remplit la fenêtre de rappels et reprend le prénom d'un animal modifié. Pinia doit être actif.
  */
-export function installRemindersSync(sync: () => Promise<void> = syncAllReminders): () => void {
+export function installRemindersSync(
+  sync: () => Promise<void> = syncAllReminders,
+  onPermissionGranted: typeof onNotificationPermissionGranted = onNotificationPermissionGranted,
+): () => void {
   void sync()
   const stopResume = onAppResume(() => void sync())
+  const stopGranted = onPermissionGranted(() => void sync())
   const stopAnimalUpdates = useAnimalsStore().$onAction(({ name, after }) => {
     if (name === 'update') after(() => void sync())
   })
   return () => {
     stopResume()
+    stopGranted()
     stopAnimalUpdates()
   }
 }

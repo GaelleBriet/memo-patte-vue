@@ -90,6 +90,8 @@ afterEach(() => {
   provideAnimalsRepository(null)
 })
 
+const noGrant = () => () => {}
+
 function uuid(index: number): string {
   return `00000000-0000-4000-8000-${String(index).padStart(12, '0')}`
 }
@@ -221,10 +223,28 @@ describe('installRemindersSync', () => {
     setActivePinia(createPinia())
   })
 
+  it('synchronise tout quand la permission est accordée, jusqu’à la désinstallation', () => {
+    const syncAll = vi.fn<() => Promise<void>>().mockResolvedValue()
+    const grantListeners = new Set<() => void>()
+    const onGranted = (listener: () => void) => {
+      grantListeners.add(listener)
+      return () => grantListeners.delete(listener)
+    }
+
+    const uninstall = installRemindersSync(syncAll, onGranted)
+    syncAll.mockClear()
+
+    for (const listener of grantListeners) listener()
+    expect(syncAll).toHaveBeenCalledOnce()
+
+    uninstall()
+    expect(grantListeners.size).toBe(0)
+  })
+
   it('synchronise au démarrage puis à chaque retour au premier plan', () => {
     const syncAll = vi.fn<() => Promise<void>>().mockResolvedValue()
 
-    const uninstall = installRemindersSync(syncAll)
+    const uninstall = installRemindersSync(syncAll, noGrant)
     expect(syncAll).toHaveBeenCalledTimes(1)
 
     simulateWebResume()
@@ -248,7 +268,7 @@ it('resynchronise après la modification d’un animal, pour que son prénom sui
       }) as unknown as AnimalsRepository,
   )
   const syncAll = vi.fn<() => Promise<void>>().mockResolvedValue()
-  const uninstall = installRemindersSync(syncAll)
+  const uninstall = installRemindersSync(syncAll, noGrant)
   syncAll.mockClear()
 
   await useAnimalsStore().update(MILO.id, { name: 'Milou', species: 'dog' })
