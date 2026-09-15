@@ -345,5 +345,37 @@
       "title": "Reminders are off",
       "openSettings": "Turn on in settings"
     }
+  },
+  "settings": {
+    "open": "Settings",
+    "title": "Settings",
+    "data": {
+      "title": "My data",
+      "export": "Export my data",
+      "exportEmpty": "Nothing to export yet"
+    },
+    "about": {
+      "title": "About",
+      "version": "Version"
+    },
+    "export": {
+      "title": "Export your data",
+      "subtitle": "Choose a format.",
+      "close": "Close",
+      "formats": "Export format",
+      "json": {
+        "label": "JSON",
+        "description": "To re-import into MémoPatte"
+      },
+      "csv": {
+        "label": "CSV",
+        "description": "For a spreadsheet"
+      },
+      "submit": "Export",
+      "preparing": "Preparing…",
+      "shareTitle": "Share via",
+      "success": "Data exported",
+      "error": "The export couldn’t be prepared. Try again."
+    }
   }
 }

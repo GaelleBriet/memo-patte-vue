@@ -63,6 +63,11 @@ const router = createRouter({
         kind: route.query.kind === 'treatment' ? 'treatment' : 'vaccination',
       }),
     },
+    {
+      path: '/settings',
+      name: 'settings',
+      component: () => import('@/features/settings/SettingsView.vue'),
+    },
   ],
 })
 

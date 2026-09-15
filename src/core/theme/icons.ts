@@ -5,10 +5,12 @@ import add from '@material-symbols/svg-400/outlined/add.svg?raw'
 import arrowBack from '@material-symbols/svg-400/outlined/arrow_back.svg?raw'
 import calendarMonth from '@material-symbols/svg-400/outlined/calendar_month.svg?raw'
 import check from '@material-symbols/svg-400/outlined/check.svg?raw'
+import description from '@material-symbols/svg-400/outlined/description.svg?raw'
 import edit from '@material-symbols/svg-400/outlined/edit.svg?raw'
 import error from '@material-symbols/svg-400/outlined/error.svg?raw'
 import errorFill from '@material-symbols/svg-400/outlined/error-fill.svg?raw'
 import home from '@material-symbols/svg-400/outlined/home.svg?raw'
+import iosShare from '@material-symbols/svg-400/outlined/ios_share.svg?raw'
 import medication from '@material-symbols/svg-400/outlined/medication.svg?raw'
 import monitorWeight from '@material-symbols/svg-400/outlined/monitor_weight.svg?raw'
 import notificationsActive from '@material-symbols/svg-400/outlined/notifications_active.svg?raw'
@@ -19,6 +21,7 @@ import photoCamera from '@material-symbols/svg-400/outlined/photo_camera.svg?raw
 import schedule from '@material-symbols/svg-400/outlined/schedule.svg?raw'
 import settings from '@material-symbols/svg-400/outlined/settings.svg?raw'
 import showChart from '@material-symbols/svg-400/outlined/show_chart.svg?raw'
+import table from '@material-symbols/svg-400/outlined/table.svg?raw'
 import today from '@material-symbols/svg-400/outlined/today.svg?raw'
 import vaccines from '@material-symbols/svg-400/outlined/vaccines.svg?raw'
 
@@ -106,6 +109,7 @@ export const msIcons = {
   circle,
   close,
   colorize,
+  description,
   edit,
   error,
   error_fill: errorFill,
@@ -115,6 +119,7 @@ export const msIcons = {
   home,
   indeterminate_check_box: indeterminateCheckBox,
   info,
+  ios_share: iosShare,
   keyboard_arrow_down: keyboardArrowDown,
   keyboard_arrow_up: keyboardArrowUp,
   keyboard_command_key: keyboardCommandKey,
@@ -145,6 +150,7 @@ export const msIcons = {
   star,
   star_fill: starFill,
   star_half: starHalf,
+  table,
   today,
   unfold_more: unfoldMore,
   upload,
