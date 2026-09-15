@@ -584,7 +584,7 @@ describe('CarnetView — photo depuis l’avatar du header', () => {
     const wrapper = await monterAttache()
 
     const avatar = wrapper.get('.carnet-header__avatar')
-    expect(avatar.attributes('aria-label')).toBe('Photo de Milo, appui long pour la gérer')
+    expect(avatar.attributes('aria-label')).toBe('Gérer la photo de Milo')
     expect(avatar.attributes('aria-haspopup')).toBe('dialog')
     expect(avatar.attributes('tabindex')).toBe('0')
   })
