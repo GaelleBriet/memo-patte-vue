@@ -5,6 +5,21 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.23](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.22...memo-patte-v0.1.23) (2026-09-15)
+
+
+### ✨ Fonctionnalités
+
+* **i18n:** interface en anglais selon la langue du système ([3311597](https://github.com/GaelleBriet/memo-patte-vue/commit/33115973931b1d22b14256f3a2d2ee002fd50f4b))
+* **i18n:** interface en anglais selon la langue du système ([77f7c69](https://github.com/GaelleBriet/memo-patte-vue/commit/77f7c6948e5a114202ded9f4aec263ef7156f30a))
+
+
+### 🐛 Corrections
+
+* **app:** le bouton retour Android ferme la feuille ouverte au lieu de quitter l'écran ([1312be9](https://github.com/GaelleBriet/memo-patte-vue/commit/1312be99dc3f9c76bf609b24d430a057a67a9abf))
+* **app:** le retour Android ferme la feuille ouverte au lieu de quitter l'écran ([4081035](https://github.com/GaelleBriet/memo-patte-vue/commit/4081035169661a7322e369cdc3e4e20d9decff0c))
+* **i18n:** nom du vaccin tel que saisi dans les rappels en anglais ([76c8333](https://github.com/GaelleBriet/memo-patte-vue/commit/76c8333733aec2690fbb53b9147b63c98b676841))
+
 ## [0.1.22](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.21...memo-patte-v0.1.22) (2026-09-15)
 
 
