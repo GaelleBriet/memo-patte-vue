@@ -42,6 +42,40 @@ describe('usePurchaseStore', () => {
     expect(usePurchaseStore().status).toEqual(ANNUAL)
   })
 
+  describe('abonnement dont la date d’expiration est passée', () => {
+    const LAPSED: PlusStatus = { plan: 'monthly', expiresAt: '2026-09-01T10:00:00Z' }
+
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-09-15T10:00:00Z') })
+      writeStoredPlusStatus(LAPSED)
+    })
+
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    it('se lit « aucun » sans effacer le statut enregistré', () => {
+      expect(usePurchaseStore().status).toEqual(NO_PLUS)
+      expect(readStoredPlusStatus()).toEqual(LAPSED)
+    })
+
+    it('reste revérifié au lancement, pour retrouver un renouvellement', async () => {
+      const renewed: PlusStatus = { plan: 'monthly', expiresAt: '2026-10-01T10:00:00Z' }
+      service.fetchStatus.mockResolvedValueOnce(renewed)
+      const store = usePurchaseStore()
+
+      await store.verifyKnownStatus()
+
+      expect(store.status).toEqual(renewed)
+    })
+  })
+
+  it('expose la disponibilité des achats', () => {
+    service.isAvailable.mockReturnValueOnce(false)
+
+    expect(usePurchaseStore().available).toBe(false)
+  })
+
   describe('verifyKnownStatus', () => {
     it('ne contacte pas le store pour un utilisateur gratuit', async () => {
       await usePurchaseStore().verifyKnownStatus()
@@ -55,6 +89,26 @@ describe('usePurchaseStore', () => {
       const store = usePurchaseStore()
 
       await store.verifyKnownStatus()
+
+      expect(store.status).toEqual(LIFETIME)
+      expect(readStoredPlusStatus()).toEqual(LIFETIME)
+    })
+
+    it('n’écrase pas le statut d’une action plus récente', async () => {
+      writeStoredPlusStatus(ANNUAL)
+      let answer: (status: PlusStatus) => void = () => {}
+      service.fetchStatus.mockReturnValueOnce(
+        new Promise((resolve) => {
+          answer = resolve
+        }),
+      )
+      service.restore.mockResolvedValueOnce(LIFETIME)
+      const store = usePurchaseStore()
+
+      const verification = store.verifyKnownStatus()
+      await store.restore()
+      answer(NO_PLUS)
+      await verification
 
       expect(store.status).toEqual(LIFETIME)
       expect(readStoredPlusStatus()).toEqual(LIFETIME)
