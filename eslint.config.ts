@@ -1,3 +1,5 @@
+import { readdirSync } from 'node:fs'
+import type { Linter } from 'eslint'
 import { globalIgnores } from 'eslint/config'
 import { defineConfigWithVueTs, vueTsConfigs } from '@vue/eslint-config-typescript'
 import pluginVue from 'eslint-plugin-vue'
@@ -16,6 +18,38 @@ const FEATURES_RESTRICTION = {
   group: ['@/features/**', '**/features/**'],
   message:
     'core/ ne dépend pas des features, sauf core/dev/ (cf. CLAUDE.md et decisions-log du 2026-09-13).',
+}
+
+const FEATURES = readdirSync(new URL('./src/features', import.meta.url), { withFileTypes: true })
+  .filter((entry) => entry.isDirectory() && entry.name !== '__tests__')
+  .map((entry) => entry.name)
+
+const COMPOSITE_SCREENS = [
+  { feature: 'animals', file: 'src/features/animals/CarnetView.vue' },
+  { feature: 'home', file: 'src/features/home/HomeView.vue' },
+]
+
+function featureImportsRule(feature: string, allowedElsewhere: string[] = []): Linter.RulesRecord {
+  return {
+    '@typescript-eslint/no-restricted-imports': [
+      'error',
+      {
+        patterns: [
+          {
+            group: [
+              '@/features/*/**',
+              `!@/features/${feature}/**`,
+              '!@/features/animals/animals.store',
+              '!@/features/animals/animal.schema',
+              ...allowedElsewhere.map((pattern) => `!${pattern}`),
+            ],
+            message:
+              'Import interdit depuis une autre feature : passe par shared/ ou core/ (cf. CLAUDE.md, « Règles strictes de structure »).',
+          },
+        ],
+      },
+    ],
+  }
 }
 
 export default defineConfigWithVueTs(
@@ -144,6 +178,24 @@ export default defineConfigWithVueTs(
       'no-restricted-imports': ['error', { paths: [NOTIFICATIONS_PLUGIN_RESTRICTION] }],
     },
   },
+
+  // Règle distincte de no-restricted-imports pour se cumuler avec les interdits ci-dessus.
+  ...FEATURES.map((feature) => ({
+    name: `app/feature-imports/${feature}`,
+    files: [`src/features/${feature}/**/*.{ts,vue}`],
+    ignores: ['**/__tests__/**'],
+    rules: featureImportsRule(feature),
+  })),
+  ...FEATURES.map((feature) => ({
+    name: `app/feature-imports/${feature}-services`,
+    files: [`src/features/${feature}/**/*.service.ts`],
+    rules: featureImportsRule(feature, ['@/features/*/*.repository', '@/features/*/*.schema']),
+  })),
+  ...COMPOSITE_SCREENS.map(({ feature, file }) => ({
+    name: `app/feature-imports/${file}`,
+    files: [file],
+    rules: featureImportsRule(feature, ['@/features/*/*Section.vue', '@/features/*/*Sheet.vue']),
+  })),
 
   // Règles projet MémoPatte
   {

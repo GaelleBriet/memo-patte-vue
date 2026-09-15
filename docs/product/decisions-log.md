@@ -822,3 +822,19 @@ seul (`overdue-container` / `on-overdue-container`), sans copie dans les tokens
 SCSS. — Raison : un même statut ne doit pas avoir deux couleurs ; `#FFF0ED`
 jugé trop clair. — Alternative écartée : garder un badge et un bandeau pâles à
 l'accueil, un badge plein au Carnet.
+
+2026-09-15 — **Imports entre features : trois exceptions écrites et
+vérifiées par ESLint** (#205). Toute feature importe le store et les types
+de `features/animals` ; un écran composite (`CarnetView`, `HomeView`)
+importe les sections **et les feuilles** d'autres features ; un service de
+cas d'usage importe leurs repositories **et leurs schémas**. La règle
+`app/feature-imports` s'appuie sur `@typescript-eslint/no-restricted-imports`
+pour se cumuler aux interdits d'accès aux données portés par
+`no-restricted-imports` ; sections et feuilles sont reconnues à leur nom
+(`*Section.vue`, `*Sheet.vue`) ; les specs ne sont pas contrôlées, car un
+spec d'écran composite monte les vraies sections et doit fournir leurs
+repositories. — Raison : décision de Gaelle du 2026-09-14, l'animal est
+l'entité racine et « on ne cloisonne pas trop » ; la règle décrit le code
+existant sans déplacement de fichier. — Alternative écartée : déplacer les
+écrans composites et services dans `src/app/`, plus de fichiers bougés pour
+la même dépendance réelle.
