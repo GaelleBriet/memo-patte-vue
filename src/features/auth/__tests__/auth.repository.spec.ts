@@ -94,6 +94,9 @@ function fakeAuthServer() {
     goOffline: () => {
       offline = true
     },
+    goOnline: () => {
+      offline = false
+    },
   }
 }
 
@@ -101,6 +104,13 @@ let storage: MemoryStorage
 let server: ReturnType<typeof fakeAuthServer>
 let loadClient: () => Promise<SupabaseClient>
 let repository: AuthRepository
+
+function supabaseClient(auth: { autoRefreshToken?: boolean } = {}): SupabaseClient {
+  return createClient('https://memopatte-test.supabase.co', 'sb_publishable_test', {
+    global: { fetch: server.fetch },
+    auth: { storage, storageKey: AUTH_STORAGE_KEY, ...auth },
+  })
+}
 
 function storeSession(body: ReturnType<typeof sessionBody>): void {
   storage.setItem(AUTH_STORAGE_KEY, JSON.stringify(body))
@@ -115,10 +125,7 @@ beforeEach(() => {
   vi.stubGlobal('localStorage', storage)
   server = fakeAuthServer()
   loadClient = vi.fn<() => Promise<SupabaseClient>>(async () =>
-    createClient('https://memopatte-test.supabase.co', 'sb_publishable_test', {
-      global: { fetch: server.fetch },
-      auth: { storage, storageKey: AUTH_STORAGE_KEY, autoRefreshToken: false },
-    }),
+    supabaseClient({ autoRefreshToken: false }),
   )
   repository = createAuthRepository({ loadClient })
   vi.spyOn(console, 'warn').mockImplementation(() => {})
@@ -267,6 +274,28 @@ describe('createAuthRepository', () => {
       expect(storedSessionKeys()).toContain(AUTH_STORAGE_KEY)
     })
 
+    it('redevient active d’elle-même au retour du réseau', async () => {
+      vi.useFakeTimers()
+      const autoRefreshing = createAuthRepository({ loadClient: async () => supabaseClient() })
+      const listener = vi.fn<(session: AuthSession | null) => void>()
+      autoRefreshing.onSessionChange(listener)
+      storeSession(sessionBody(USER_ID, -60))
+      server.goOffline()
+      const check = autoRefreshing.restoreSession()
+      await vi.advanceTimersByTimeAsync(SUPABASE_RETRY_WINDOW_MS)
+      await expect(check).resolves.toEqual({ kind: 'needs-refresh' })
+
+      server.goOnline()
+      server.on('token:refresh_token', () => json(200, sessionBody()))
+      await vi.advanceTimersByTimeAsync(3 * SUPABASE_RETRY_WINDOW_MS)
+
+      expect(listener).toHaveBeenLastCalledWith({ userId: USER_ID })
+      await expect(autoRefreshing.restoreSession()).resolves.toEqual({
+        kind: 'active',
+        session: { userId: USER_ID },
+      })
+    })
+
     it('demande une reconnexion quand Supabase refuse le jeton de rafraîchissement', async () => {
       storeSession(sessionBody(USER_ID, -60))
       server.on('token:refresh_token', apiError(400, 'refresh_token_not_found'))
@@ -289,6 +318,23 @@ describe('createAuthRepository', () => {
         session: { userId: USER_ID },
       })
       expect(server.calls).toContain('token:refresh_token')
+    })
+
+    it('garde une session encore valide dont le rafraîchissement est refusé', async () => {
+      storeSession(sessionBody())
+      server.on('token:refresh_token', apiError(400, 'refresh_token_already_used'))
+
+      await expect(repository.refreshSession()).resolves.toEqual({
+        kind: 'active',
+        session: { userId: USER_ID },
+      })
+    })
+
+    it('demande une reconnexion quand le rafraîchissement d’une session expirée est refusé', async () => {
+      storeSession(sessionBody(USER_ID, -60))
+      server.on('token:refresh_token', apiError(400, 'refresh_token_not_found'))
+
+      await expect(repository.refreshSession()).resolves.toEqual({ kind: 'needs-sign-in' })
     })
 
     it('reste à rafraîchir hors ligne', async () => {
@@ -332,8 +378,46 @@ describe('createAuthRepository', () => {
       await signingOut
 
       expect(storedSessionKeys()).toEqual([])
+      server.goOnline()
+      server.on('token:refresh_token', () => json(200, sessionBody()))
       await vi.advanceTimersByTimeAsync(SUPABASE_RETRY_WINDOW_MS)
+      expect(server.calls.filter((call) => call === 'token:refresh_token').length).toBeGreaterThan(
+        1,
+      )
       expect(storedSessionKeys()).toEqual([])
+    })
+
+    it('efface aussi les vérifieurs PKCE en attente', async () => {
+      vi.useFakeTimers()
+      storeSession(sessionBody(USER_ID, -60))
+      storage.setItem(
+        `${AUTH_STORAGE_KEY}-flows-code-verifier`,
+        JSON.stringify(['flow-a', 'flow-b']),
+      )
+      storage.setItem(`${AUTH_STORAGE_KEY}-flow-flow-a-code-verifier`, 'a')
+      storage.setItem(`${AUTH_STORAGE_KEY}-flow-flow-b-code-verifier`, 'b')
+      storage.setItem(`${AUTH_STORAGE_KEY}-code-verifier`, 'ancien')
+      server.goOffline()
+
+      const signingOut = repository.signOut()
+      await vi.advanceTimersByTimeAsync(SIGN_OUT_TIMEOUT_MS)
+      await signingOut
+
+      expect(storedSessionKeys()).toEqual([])
+    })
+
+    it('ne lève pas quand le stockage refuse l’effacement', async () => {
+      vi.useFakeTimers()
+      storeSession(sessionBody(USER_ID, -60))
+      server.goOffline()
+      vi.spyOn(storage, 'removeItem').mockImplementation(() => {
+        throw new DOMException('bloqué', 'SecurityError')
+      })
+
+      const signingOut = repository.signOut()
+      await vi.advanceTimersByTimeAsync(SIGN_OUT_TIMEOUT_MS)
+
+      await expect(signingOut).resolves.toBeUndefined()
     })
 
     it('n’invalide que la session de cet appareil', async () => {

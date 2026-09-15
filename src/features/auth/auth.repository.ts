@@ -64,9 +64,31 @@ function checkOf(session: Session | null, error: AuthError | null): SessionCheck
   return isRetryable(error) ? { kind: 'needs-refresh' } : { kind: 'needs-sign-in' }
 }
 
+function pendingPkceFlowIds(): string[] {
+  try {
+    const index: unknown = JSON.parse(
+      localStorage.getItem(`${AUTH_STORAGE_KEY}-flows-code-verifier`) ?? '[]',
+    )
+    return Array.isArray(index) ? index.filter((id) => typeof id === 'string') : []
+  } catch {
+    return []
+  }
+}
+
 function forgetStoredSession(): void {
-  for (const suffix of ['', '-user', '-code-verifier']) {
-    localStorage.removeItem(AUTH_STORAGE_KEY + suffix)
+  const keys = [
+    ...pendingPkceFlowIds().map((id) => `${AUTH_STORAGE_KEY}-flow-${id}-code-verifier`),
+    `${AUTH_STORAGE_KEY}-flows-code-verifier`,
+    `${AUTH_STORAGE_KEY}-code-verifier`,
+    `${AUTH_STORAGE_KEY}-user`,
+    AUTH_STORAGE_KEY,
+  ]
+  for (const key of keys) {
+    try {
+      localStorage.removeItem(key)
+    } catch (cause) {
+      console.warn('Session non effacée de l’appareil :', cause)
+    }
   }
 }
 
@@ -143,8 +165,11 @@ export function createAuthRepository({
     },
 
     async refreshSession() {
-      const { data, error } = await (await client()).auth.refreshSession()
-      return checkOf(data.session, error)
+      const supabase = await client()
+      const { data, error } = await supabase.auth.refreshSession()
+      if (data.session || isRetryable(error)) return checkOf(data.session, error)
+      const current = await supabase.auth.getSession()
+      return checkOf(current.data.session, current.error)
     },
 
     onSessionChange(listener) {
