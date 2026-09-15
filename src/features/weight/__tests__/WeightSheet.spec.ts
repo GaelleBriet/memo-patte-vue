@@ -252,6 +252,15 @@ describe('WeightSheet — sans animal (P2)', () => {
     expect(messages()).toEqual([])
   })
 
+  it('dit la borne haute quand le poids saisi sort de l’échelle', async () => {
+    await monter(MILO.id)
+    await saisir('weight-sheet-kg', '2000')
+
+    await soumettre()
+
+    expect(messages()).toEqual(['Le poids doit être inférieur à 200 kg.'])
+  })
+
   it('relie le sélecteur d’animal à « Choisis un animal. » et le marque invalide', async () => {
     await monter(null)
     const groupe = () => feuille().querySelector('.animal-chip-selector__group')!

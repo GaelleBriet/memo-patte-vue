@@ -48,6 +48,7 @@
         "species": "Choisis une espèce.",
         "birthDate": "La date de naissance ne peut pas être dans le futur.",
         "initialWeightKg": "Le poids doit être supérieur à 0 kg.",
+        "initialWeightKgMax": "Le poids doit être inférieur à 200 kg.",
         "notFound": "Cet animal est introuvable.",
         "save": "L’animal n’a pas pu être enregistré. Réessaie.",
         "photo": "La photo n’a pas pu être chargée. Réessaie."
@@ -264,6 +265,7 @@
       "errors": {
         "animalId": "Choisis un animal.",
         "weightKg": "Le poids doit être supérieur à 0 kg.",
+        "weightKgMax": "Le poids doit être inférieur à 200 kg.",
         "measuredOn": "La date est obligatoire.",
         "measuredOnFuture": "La date ne peut pas être dans le futur.",
         "save": "La pesée n’a pas pu être enregistrée. Réessaie."

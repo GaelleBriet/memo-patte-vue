@@ -39,6 +39,16 @@ describe('animalInputSchema', () => {
     expect(animalInputSchema.safeParse({ ...validInput, initialWeightKg: null }).success).toBe(true)
   })
 
+  it('rejette un poids initial hors de toute échelle animale', () => {
+    expect(animalInputSchema.safeParse({ ...validInput, initialWeightKg: 1e308 }).success).toBe(
+      false,
+    )
+    expect(animalInputSchema.safeParse({ ...validInput, initialWeightKg: 200.5 }).success).toBe(
+      false,
+    )
+    expect(animalInputSchema.safeParse({ ...validInput, initialWeightKg: 200 }).success).toBe(true)
+  })
+
   it('rejette une date de naissance dans le futur ou mal formée', () => {
     expect(animalInputSchema.safeParse({ ...validInput, birthDate: '2099-01-01' }).success).toBe(
       false,

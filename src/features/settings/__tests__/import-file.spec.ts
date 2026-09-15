@@ -73,6 +73,18 @@ describe('parseExportFile', () => {
         ;(document.weightEntries as Record<string, unknown>[])[0]!.measuredOn = '24/12/2025'
       }),
     ],
+    [
+      'une pesée qui ferait exploser la courbe de poids',
+      withDocument((document) => {
+        ;(document.weightEntries as Record<string, unknown>[])[0]!.weightKg = 1e308
+      }),
+    ],
+    [
+      'un poids initial qui ferait exploser la courbe de poids',
+      withDocument((document) => {
+        ;(document.animals as Record<string, unknown>[])[0]!.initialWeightKg = 1e308
+      }),
+    ],
   ])('refuse %s comme un fichier qui n’est pas un export MémoPatte', (_, text) => {
     expect(parseExportFile(text)).toEqual({ ok: false, reason: 'invalid' })
   })
