@@ -165,7 +165,7 @@ describe('syncAllReminders', () => {
     expect(notifications.pending.size).toBe(0)
   })
 
-  it('garde au plus 400 rappels, les plus proches d’abord', async () => {
+  it('garde au plus 400 rappels : le jour même de chaque première échéance, puis les plus proches', async () => {
     const count = Math.ceil(MAX_SCHEDULED_REMINDERS / 3) + 1
     listVaccinations.mockResolvedValue(
       Array.from({ length: count }, (_, index) =>
@@ -176,14 +176,16 @@ describe('syncAllReminders', () => {
     await sync()()
 
     const scheduled = notifications.rescheduleAll.mock.calls[0]?.[0] ?? []
+    const keys = scheduled.map(({ key }) => key)
     expect(scheduled).toHaveLength(MAX_SCHEDULED_REMINDERS)
-    expect(scheduled.map(({ key }) => key)).not.toContain(`vaccination:${uuid(0)}:2026-11-10:due`)
+    expect(keys).toContain(`vaccination:${uuid(0)}:2026-11-10:due`)
+    expect(keys).not.toContain(`vaccination:${uuid(0)}:2026-11-10:overdue`)
     expect(scheduled.map(({ at }) => at.getTime())).toEqual(
       scheduled.map(({ at }) => at.getTime()).sort((a, b) => a - b),
     )
   })
 
-  it('respecte le plafond avec beaucoup de traitements hebdomadaires, les plus proches d’abord', async () => {
+  it('respecte le plafond avec beaucoup de traitements hebdomadaires, sans perdre l’échéance lointaine', async () => {
     listTreatments.mockResolvedValue(
       Array.from({ length: 20 }, (_, index) => ({
         ...MILBEMAX,
@@ -197,9 +199,13 @@ describe('syncAllReminders', () => {
 
     const scheduled = notifications.rescheduleAll.mock.calls[0]?.[0] ?? []
     expect(scheduled).toHaveLength(MAX_SCHEDULED_REMINDERS)
-    const last = Math.max(...scheduled.map(({ at }) => at.getTime()))
-    expect(scheduled.some(({ key }) => key.startsWith(`treatment:${uuid(0)}:`))).toBe(false)
-    expect(last).toBeLessThan(new Date(2026, 10, 7, 9).getTime())
+    expect(
+      scheduled.map(({ key }) => key).filter((key) => key.startsWith(`treatment:${uuid(0)}:`)),
+    ).toEqual([
+      `treatment:${uuid(0)}:2026-11-10:before`,
+      `treatment:${uuid(0)}:2026-11-10:due`,
+      `treatment:${uuid(0)}:2026-11-10:overdue`,
+    ])
   })
 
   it('saute la ligne dont les rappels ne se calculent pas, sans perdre les autres', async () => {
@@ -222,6 +228,25 @@ describe('syncAllReminders', () => {
       MILBEMAX.id,
       expect.anything(),
     )
+  })
+
+  it('programme la première échéance de chaque entrée, même lointaine, avant de remplir au plus proche', async () => {
+    const rage = vaccination('22222222-2222-4222-8222-222222222222', MILO.id, '2027-05-15')
+    listVaccinations.mockResolvedValue([rage])
+    listTreatments.mockResolvedValue(
+      Array.from({ length: 10 }, (_, index) => ({
+        ...MILBEMAX,
+        id: uuid(index),
+        frequency: { value: 1, unit: 'day' as const },
+        nextDueDate: '2026-09-16',
+      })),
+    )
+
+    await sync()()
+
+    const scheduled = notifications.rescheduleAll.mock.calls[0]?.[0] ?? []
+    expect(scheduled).toHaveLength(MAX_SCHEDULED_REMINDERS)
+    expect(scheduled.map(({ key }) => key)).toContain(`vaccination:${rage.id}:2027-05-15:due`)
   })
 
   it('attend son tour dans la file des opérations de rappel', async () => {

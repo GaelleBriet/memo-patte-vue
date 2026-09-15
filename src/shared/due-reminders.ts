@@ -28,8 +28,30 @@ const OFFSETS: Record<DueReminderMoment, number> = {
   overdue: DAYS_OVERDUE,
 }
 
+const MOMENTS = Object.keys(OFFSETS) as DueReminderMoment[]
+
 export function dueReminderPrefix({ kind, id }: DueReminderEntry): string {
   return `${kind}:${id}:`
+}
+
+export type ParsedReminderKey = {
+  /** `kind:id` de l'entrée, sans l'échéance ni le moment. */
+  entry: string
+  dueDate: string
+  moment: DueReminderMoment
+}
+
+/** Lecture inverse de la clé posée par `dueReminders` ; `null` pour toute autre forme. */
+export function parseReminderKey(key: string): ParsedReminderKey | null {
+  const parts = key.split(':')
+  const [kind, id, dueDate, moment] = parts
+
+  if (parts.length !== 4 || kind === undefined || id === undefined || dueDate === undefined) {
+    return null
+  }
+  if (moment === undefined || !(MOMENTS as string[]).includes(moment)) return null
+
+  return { entry: `${kind}:${id}`, dueDate, moment: moment as DueReminderMoment }
 }
 
 function at(dueDate: string, offsetDays: number): Date {
@@ -79,7 +101,7 @@ export function dueReminders(
   const byInstant = new Map<number, { moment: DueReminderMoment; reminder: Reminder }>()
 
   dates.forEach((dueDate, index) => {
-    for (const moment of Object.keys(OFFSETS) as DueReminderMoment[]) {
+    for (const moment of MOMENTS) {
       const when = at(dueDate, OFFSETS[moment])
       if (!isAfter(when, now)) continue
       if (dueDate !== firstUpcoming && isAfter(when, windowEnd)) continue

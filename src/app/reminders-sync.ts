@@ -20,12 +20,12 @@ import {
 } from '@/features/vaccinations/vaccinations.repository'
 import type { Translate } from '@/shared/due-reminders'
 import {
-  earliestReminders,
   enqueueReminderTask,
   MAX_SCHEDULED_REMINDERS,
   pendingTime,
   provideFullReminderSync,
   reminderNotifications,
+  remindersWithinCap,
   type ReminderNotifications,
 } from '@/shared/due-reminders-schedule'
 
@@ -122,7 +122,7 @@ export function createRemindersSync({
       ]
       warnOnIdCollisions(reminders)
 
-      const wanted = earliestReminders(reminders, MAX_SCHEDULED_REMINDERS)
+      const wanted = remindersWithinCap(reminders, MAX_SCHEDULED_REMINDERS)
       if (isAlreadyScheduled(await notifications.listScheduled(), wanted)) return
       await notifications.rescheduleAll(wanted)
     } catch (cause) {

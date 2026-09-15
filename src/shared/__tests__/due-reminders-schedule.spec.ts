@@ -80,14 +80,14 @@ describe('replaceDueReminders', () => {
     expect(notifications.scheduleReminders).not.toHaveBeenCalled()
   })
 
-  it('ne dépasse pas le plafond de rappels en attente, en gardant les plus proches', async () => {
+  it('ne dépasse pas le plafond de rappels en attente, en gardant le jour de l’échéance', async () => {
     seed(...Array.from({ length: MAX_SCHEDULED_REMINDERS - 1 }, (_, i) => `vaccination:${i}:x:due`))
     seed(`treatment:${ID}:2026-09-20:due`)
     const before = reminder(`treatment:${ID}:2026-10-15:before`, new Date(2026, 9, 12, 9))
 
     await replaceDueReminders(notifications, { kind: 'treatment', id: ID }, () => [DUE, before])
 
-    expect(notifications.scheduleReminders.mock.calls).toEqual([[[before]]])
+    expect(notifications.scheduleReminders.mock.calls).toEqual([[[DUE]]])
     expect(notifications.pending.size).toBe(MAX_SCHEDULED_REMINDERS)
   })
 
