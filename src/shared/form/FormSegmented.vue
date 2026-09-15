@@ -62,6 +62,8 @@ function select(value: unknown): void {
 // Pas de `:deep(.v-btn)` : sa spécificité surclasserait la couleur de l'option cochée.
 .form-segmented__option {
   flex: 1 1 0;
+  // Parts égales tant que les libellés tiennent ; un libellé agrandi prend sa place.
+  min-width: min-content;
   height: 100%;
   gap: 6px;
   border-radius: 0;

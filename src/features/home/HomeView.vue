@@ -400,6 +400,7 @@ function openCarnet(): void {
 
 .reminder-row__title {
   margin: 0;
+  overflow-wrap: anywhere;
   font-size: 15.5px;
   font-weight: 700;
 }
