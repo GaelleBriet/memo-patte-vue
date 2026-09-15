@@ -918,3 +918,25 @@ un texte lisible par tous est un minimum avant publication, mais des bordures à
 champ l'identifient déjà. — Alternatives écartées : bordures à 3:1 (`#908A84`,
 rendu trop marqué) ; garder les tailles de maquette sous 12 px ; laisser le focus
 sur le bouton d'envoi (rien n'annonce l'erreur au lecteur d'écran).
+
+2026-09-15 — **Import d'un export depuis l'écran de bienvenue (#239).** Sous
+« Créer mon premier animal », un lien texte discret « Importer un export
+MémoPatte » ouvre directement le sélecteur de documents et suit le même parcours
+que dans les Paramètres : validation, import direct puisque la base est vide,
+toast, puis écran d'explication des rappels si le carnet importé a des échéances.
+L'Accueil réutilise la feuille d'import des Paramètres, sans la dupliquer. —
+Raison : décision de Gaelle ; l'écran de bienvenue n'a ni header ni accès aux
+Paramètres, et quelqu'un qui change de téléphone ne doit pas créer un faux animal
+pour retrouver son carnet. — Alternatives écartées : un bouton secondaire de même
+poids que la création (détourne le premier lancement de la plupart des gens) ;
+un accès aux Paramètres sur l'écran de bienvenue (deux taps de plus, import
+difficile à trouver).
+
+2026-09-15 — **Les rappels respectent le réglage Android de l'utilisateur sur
+l'écran verrouillé : la visibilité du canal n'est pas forcée.** Le contenu d'un
+rappel (nom de l'animal, soin) s'affiche ou se masque sur l'écran verrouillé selon
+ce que l'utilisateur a choisi dans Android. — Raison : décision de Gaelle ; c'est
+un réglage de confidentialité qui appartient à l'utilisateur, et le système le
+propose déjà. — Alternatives écartées : forcer une visibilité publique (expose le
+carnet sans l'accord de l'utilisateur) ou privée (masque un rappel que
+l'utilisateur veut lire d'un coup d'œil).

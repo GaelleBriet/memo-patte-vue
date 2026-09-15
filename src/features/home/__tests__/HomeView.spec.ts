@@ -20,6 +20,8 @@ import i18n from '@/core/i18n'
 import router from '@/router'
 import vuetify from '@/core/theme/vuetify'
 import type { Animal } from '@/features/animals/animal.schema'
+import type * as DataImport from '@/features/settings/data-import.service'
+import { importFixtureJson } from '@/features/settings/__tests__/import-fixture'
 import { useAnimalsStore } from '@/features/animals/animals.store'
 import WeightSheet from '@/features/weight/WeightSheet.vue'
 import AnimalChipSelector from '@/shared/AnimalChipSelector.vue'
@@ -42,6 +44,19 @@ vi.mock('@/core/notifications/permission', () => ({
   ),
   openNotificationSettings: vi.fn<() => Promise<void>>(async () => {}),
 }))
+
+const hasLocalData = vi.hoisted(() => vi.fn<() => Promise<boolean>>(async () => false))
+const importData = vi.hoisted(() => vi.fn<() => Promise<void>>(async () => {}))
+const promptNotificationsIfReminders = vi.hoisted(() =>
+  vi.fn<(router: unknown, from: string) => Promise<boolean>>(async () => false),
+)
+
+vi.mock('@/features/settings/data-import.service', async (importOriginal) => ({
+  ...(await importOriginal<typeof DataImport>()),
+  dataImportService: { hasLocalData, importData },
+}))
+
+vi.mock('@/app/reminders-priming', () => ({ promptNotificationsIfReminders }))
 
 const TODAY = new Date('2026-09-09T12:00:00')
 
@@ -575,6 +590,90 @@ describe('HomeView — A5 premier lancement, aucun animal', () => {
     await wrapper.get('.home-welcome__create').trigger('click')
 
     expect(push).toHaveBeenCalledWith({ name: 'animal-new' })
+  })
+
+  describe('import d’un export', () => {
+    beforeEach(() => {
+      hasLocalData.mockClear()
+      importData.mockReset().mockResolvedValue()
+      promptNotificationsIfReminders.mockClear()
+      vi.stubGlobal('visualViewport', {
+        addEventListener() {},
+        removeEventListener() {},
+        width: 412,
+        height: 915,
+        offsetTop: 0,
+      })
+    })
+
+    async function monterAttache() {
+      const wrapper = mount(HomeView, {
+        global: { plugins: [vuetify, i18n, router] },
+        attachTo: document.body,
+      })
+      mounted.push(wrapper)
+      await flushPromises()
+      return wrapper
+    }
+
+    async function choisirFichier(wrapper: ReturnType<typeof mount>, content: string) {
+      const input = wrapper.get<HTMLInputElement>('input[type="file"]').element
+      Object.defineProperty(input, 'files', {
+        configurable: true,
+        value: [new File([content], 'memopatte-export.json', { type: 'application/json' })],
+      })
+      input.dispatchEvent(new Event('change'))
+      await flushPromises()
+    }
+
+    it('ouvre directement le sélecteur de documents depuis le lien sous le bouton', async () => {
+      const wrapper = await monterAttache()
+      const input = wrapper.get<HTMLInputElement>('input[type="file"]').element
+      const click = vi.spyOn(input, 'click').mockImplementation(() => undefined)
+
+      const lien = wrapper.get('.home-welcome__import')
+      expect(lien.text()).toBe('Importer un export MémoPatte')
+      expect(lien.element.tagName).toBe('BUTTON')
+      expect(wrapper.get('.home-welcome__create').element.nextElementSibling === lien.element).toBe(
+        true,
+      )
+      await lien.trigger('click')
+
+      expect(click).toHaveBeenCalledOnce()
+      expect(push).not.toHaveBeenCalled()
+    })
+
+    it('affiche le carnet importé puis propose l’explication des rappels depuis l’accueil', async () => {
+      const wrapper = await monterAttache()
+      loadAnimals.mockClear()
+      listSources.mockClear()
+      animals = [MILO]
+      const prompt = promptNotificationsIfReminders.mockImplementation(async () => {
+        expect(wrapper.find('.home-welcome').exists()).toBe(false)
+        return false
+      })
+
+      await choisirFichier(wrapper, importFixtureJson())
+
+      expect(importData).toHaveBeenCalledWith(expect.anything(), 'replace')
+      expect(loadAnimals).toHaveBeenCalledOnce()
+      expect(listSources).toHaveBeenCalledOnce()
+      expect(wrapper.find('.home-header').exists()).toBe(true)
+      expect(prompt).toHaveBeenCalledWith(router, 'home')
+    })
+
+    it('explique un fichier refusé dans la feuille, sans quitter la bienvenue', async () => {
+      const wrapper = await monterAttache()
+
+      await choisirFichier(wrapper, 'pas du JSON')
+
+      expect(
+        document.body.querySelector('.import-sheet.v-overlay--active [role="alert"]')?.textContent,
+      ).toContain('Ce fichier n’est pas un export MémoPatte.')
+      expect(wrapper.find('.home-welcome').exists()).toBe(true)
+      expect(importData).not.toHaveBeenCalled()
+      expect(promptNotificationsIfReminders).not.toHaveBeenCalled()
+    })
   })
 })
 

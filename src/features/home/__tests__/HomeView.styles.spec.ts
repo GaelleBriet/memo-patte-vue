@@ -95,6 +95,13 @@ describe('HomeView — contrat de style', () => {
     expect(declaration('.home-welcome__create', 'border-radius')).toBe('18px')
   })
 
+  it('donne au lien d’import une zone de tap de 48 px, sans contour de focus', () => {
+    expect(declaration('.home-welcome__import', 'position')).toBe('relative')
+    expect(declaration('.home-welcome__import::before', 'width')).toBe('max(100%, 48px)')
+    expect(declaration('.home-welcome__import::before', 'height')).toBe('max(100%, 48px)')
+    expect(declaration('.home-welcome__import:focus-visible', 'outline')).toBe('none')
+  })
+
   it('range les actions rapides en trois tuiles de largeur égale, arrondies à 18 px', () => {
     expect(declaration('.home-quick-actions__grid', 'grid-template-columns')).toBe(
       'repeat(3, minmax(0, 1fr))',
