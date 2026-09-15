@@ -160,11 +160,12 @@ Hors scope :
 - Tests d’abord (TDD) : le test qui échoue, puis le code, puis le refactor
 - Les consignes de collaboration (style de travail, flux tickets/agents, contexte en cours) vivent dans `.claude/rules/`, versionné : c’est là qu’une nouvelle consigne durable se consigne
 
-## Git - règles (mises à jour le 2026-09-08)
+## Git - règles (mises à jour le 2026-09-15)
 
 - Tu **peux** committer et pousser toi-même, **uniquement sur une branche dédiée** (`feat/...`, `fix/...`, `chore/...`, `docs/...`), jamais sur `main`.
-- **Jamais** de `git commit` ni de `git push` sur `main` (ni `HEAD:main`, ni `--force`, ni `--all`).
-- **Pull Requests** : tu ouvres la PR **toi-même, sans demander**, dès qu’une branche est prête — critères d’acceptation du ticket satisfaits, les quatre commandes vertes (`pnpm lint && pnpm type-check && pnpm exec vitest run && pnpm build-only`), diff relu. Corps au format **Quoi / Vérifié / Points à garder en tête** ; toute décision prise faute de précision dans le ticket y est listée, mais elle a d’abord été posée en question à Gaelle. Une branche dont une question reste sans réponse **n’est pas prête** : elle attend, sans PR. Tu ne merges jamais, tu ne tagues jamais, tu ne touches pas à la PR de quelqu’un d’autre (ni Dependabot, ni release-please) : l’intégration reste à Gaelle.
+- **Jamais** de `git commit` ni de `git push` sur `main` (ni `HEAD:main`, ni `--force`, ni `--all`) : `main` ne change que par le merge d’une PR.
+- **Pull Requests** : tu ouvres la PR **toi-même, sans demander**, dès qu’une branche est prête — critères d’acceptation du ticket satisfaits, les quatre commandes vertes (`pnpm lint && pnpm type-check && pnpm exec vitest run && pnpm build-only`), diff relu. Corps au format **Quoi / Vérifié / Points à garder en tête** ; toute décision prise faute de précision dans le ticket y est listée, et elle a d’abord été posée en question à Gaelle ou consignée dans son journal en mode autonomie. Une branche dont une question reste sans réponse **n’est pas prête** : elle attend, sans PR.
+- **Merge** (accordé par Gaelle le 2026-09-15, pour ce projet uniquement) : tu merges **toi-même tes PR**, en chef de projet et lead dev, quand les quatre conditions sont réunies — revue propre (Critical / Important corrigés), intégration du lot vérifiée dans un worktree jetable, branche à jour avec `main` (`gh pr update-branch`, jamais de rebase), CI verte sur le dernier commit (`main` n’est pas protégée : c’est à toi de l’attendre). Merge commit (`gh pr merge --merge`), une PR à la fois, puis vérification de `main` avant la suivante. Tu ne tagues jamais et tu ne merges pas la PR de quelqu’un d’autre (Dependabot, release-please) : celles-là restent à Gaelle.
 - Ne **jamais** réécrire l’historique d’une branche déjà poussée (`reset --hard`, `rebase`, `push --force`).
 - Messages au format Conventional Commits (`feat:`, `fix:`, `chore:`, `docs:`…), en français comme le reste du dépôt.
 - Les hooks Husky (lint-staged, commitlint, lint + type-check au push) doivent passer : ne jamais les contourner avec `--no-verify`.
