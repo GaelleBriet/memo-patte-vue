@@ -99,8 +99,13 @@ function requireAnimalId(): string {
   return props.animalId
 }
 
+function selectTargetAnimal(): void {
+  if (targetAnimalId.value !== null) animals.select(targetAnimalId.value)
+}
+
 function backToAnimals(): void {
-  void router.push({ name: 'animals' })
+  selectTargetAnimal()
+  void router.replace({ name: 'animals' })
 }
 
 function selectUnit(unit: FrequencyUnit | null): void {
@@ -122,7 +127,8 @@ async function submit(): Promise<void> {
     } else {
       await treatments.create({ animalId: requireAnimalId(), ...result.data })
     }
-    void router.push(
+    selectTargetAnimal()
+    void router.replace(
       await routeAfterReminderSaved({
         hasDueDate: true,
         animalName: animalName.value,
