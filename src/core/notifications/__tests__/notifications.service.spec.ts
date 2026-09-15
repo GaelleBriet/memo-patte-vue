@@ -168,6 +168,17 @@ describe('scheduleReminder sans permission', () => {
 })
 
 describe('scheduleReminders', () => {
+  it('crée le canal « Rappels » avant de programmer', async () => {
+    await scheduleReminders([rabies, dewormer])
+
+    expect(createChannel).toHaveBeenCalledWith(
+      expect.objectContaining({ id: REMINDERS_CHANNEL_ID }),
+    )
+    expect(createChannel.mock.invocationCallOrder[0] ?? Infinity).toBeLessThan(
+      schedule.mock.invocationCallOrder[0] ?? 0,
+    )
+  })
+
   it('programme tous les rappels en un seul appel au plugin, après une seule vérification', async () => {
     await scheduleReminders([rabies, dewormer])
 
@@ -180,6 +191,7 @@ describe('scheduleReminders', () => {
           body: rabies.body,
           schedule: { at: rabies.at, allowWhileIdle: true },
           isExactNotification: false,
+          channelId: REMINDERS_CHANNEL_ID,
           extra: { key: rabies.key },
         },
         {
@@ -188,6 +200,7 @@ describe('scheduleReminders', () => {
           body: dewormer.body,
           schedule: { at: dewormer.at, allowWhileIdle: true },
           isExactNotification: false,
+          channelId: REMINDERS_CHANNEL_ID,
           extra: { key: dewormer.key },
         },
       ],

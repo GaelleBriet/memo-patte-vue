@@ -34,12 +34,16 @@ function toScheduledReminder(notification: PendingLocalNotificationSchema): Sche
   }
 }
 
+async function scheduleOnRemindersChannel(reminders: Reminder[]): Promise<void> {
+  await ensureRemindersChannel()
+  await LocalNotifications.schedule({ notifications: reminders.map(toPluginNotification) })
+}
+
 /** Remplace le rappel de même clé s'il existe déjà ; sans permission accordée, ne programme rien. */
 export async function scheduleReminder(reminder: Reminder): Promise<void> {
   // Sur Android 13+, `schedule()` ouvrirait la popup système sans l'écran d'explication.
   if (!(await checkPermission())) return
-  await ensureRemindersChannel()
-  await LocalNotifications.schedule({ notifications: [toPluginNotification(reminder)] })
+  await scheduleOnRemindersChannel([reminder])
 }
 
 /** Sans effet si aucun rappel ne porte cette clé. */
@@ -62,8 +66,7 @@ export async function rescheduleAll(reminders: Reminder[]): Promise<void> {
   }
 
   if (reminders.length > 0 && (await checkPermission())) {
-    await ensureRemindersChannel()
-    await LocalNotifications.schedule({ notifications: reminders.map(toPluginNotification) })
+    await scheduleOnRemindersChannel(reminders)
   }
 }
 
@@ -83,5 +86,5 @@ export async function requestPermission(): Promise<boolean> {
 /** Un seul appel au plugin pour toute la liste ; sans permission accordée, ne programme rien. */
 export async function scheduleReminders(reminders: Reminder[]): Promise<void> {
   if (reminders.length === 0 || !(await checkPermission())) return
-  await LocalNotifications.schedule({ notifications: reminders.map(toPluginNotification) })
+  await scheduleOnRemindersChannel(reminders)
 }
