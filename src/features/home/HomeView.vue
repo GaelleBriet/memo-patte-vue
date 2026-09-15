@@ -1,14 +1,16 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, useTemplateRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
+import { promptNotificationsIfReminders } from '@/app/reminders-priming'
 import { useForegroundRefresh } from '@/core/app-lifecycle/use-foreground-refresh'
 import { openNotificationSettings } from '@/core/notifications/permission'
 import { useNotificationPermission } from '@/core/notifications/use-notification-permission'
 import { usePhotoUrls } from '@/core/photos/use-photo-urls'
 import illustration from '@/assets/brand-illustration.png'
 import { useAnimalsStore } from '@/features/animals/animals.store'
+import ImportSheet from '@/features/settings/ImportSheet.vue'
 import WeightSheet from '@/features/weight/WeightSheet.vue'
 import AnimalChipSelector, { type AnimalChipItem } from '@/shared/AnimalChipSelector.vue'
 import DueStatusChip from '@/shared/DueStatusChip.vue'
@@ -69,14 +71,14 @@ const upToDate = computed(() =>
   }),
 )
 
-function load(): void {
-  void Promise.all([animals.load(), home.load()])
+function load(): Promise<unknown> {
+  return Promise.all([animals.load(), home.load()])
 }
 
 // Le Carnet laisse un animal sélectionné dans le store partagé : l'accueil s'ouvre toujours sur tous.
 onMounted(() => {
   animals.select(null)
-  load()
+  void load()
 })
 
 type FormRoute = 'treatment-new' | 'vaccination-new'
@@ -102,6 +104,14 @@ function onAnimalPicked(animalId: string): void {
   if (pendingForm.value === null) return
   void router.push({ name: pendingForm.value, params: { animalId } })
   pendingForm.value = null
+}
+
+const importSheet = useTemplateRef('importSheet')
+const isImporting = ref(false)
+
+async function onImported(): Promise<void> {
+  await load()
+  await promptNotificationsIfReminders(router, 'home')
 }
 
 function createAnimal(): void {
@@ -135,6 +145,15 @@ function openCarnet(): void {
       >
         {{ t('home.welcome.create') }}
       </v-btn>
+      <button
+        type="button"
+        class="home-welcome__import"
+        :disabled="isImporting"
+        :aria-busy="isImporting"
+        @click="importSheet?.pickFile()"
+      >
+        {{ t('home.welcome.import') }}
+      </button>
     </div>
 
     <template v-else-if="isReady">
@@ -244,10 +263,12 @@ function openCarnet(): void {
       <v-icon class="home-error__icon" icon="ms:error" size="48" />
       <h1 class="home-error__title">{{ t('home.error.title') }}</h1>
       <p class="home-error__text">{{ t('home.error.text') }}</p>
-      <v-btn class="home-error__retry" variant="flat" color="primary" @click="load">
+      <v-btn class="home-error__retry" variant="flat" color="primary" @click="load()">
         {{ t('home.error.retry') }}
       </v-btn>
     </div>
+
+    <ImportSheet ref="importSheet" v-model:busy="isImporting" @imported="onImported" />
   </div>
 </template>
 
@@ -597,5 +618,28 @@ function openCarnet(): void {
   font-size: 16px;
   font-weight: 700;
   letter-spacing: normal;
+}
+
+.home-welcome__import {
+  position: relative;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: rgb(var(--v-theme-primary));
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+
+  @include tap.tap-target;
+
+  &:hover {
+    color: rgb(var(--v-theme-primary-darken-1));
+  }
+
+  &:focus-visible {
+    outline: none;
+    color: rgb(var(--v-theme-primary-darken-1));
+  }
 }
 </style>
