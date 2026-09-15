@@ -80,6 +80,17 @@ describe('dueReminders', () => {
     expect(reminders('2026-09-01', new Date(2026, 8, 15, 8))).toEqual([])
   })
 
+  it('ne programme que dans les 60 jours à venir', () => {
+    const now = new Date(2026, 8, 15, 12)
+
+    expect(reminders('2026-11-14', now).map(({ key }) => key)).toEqual([
+      `vaccination:${ID}:before`,
+      `vaccination:${ID}:due`,
+    ])
+    expect(reminders('2026-11-15', now).map(({ key }) => key)).toEqual([`vaccination:${ID}:before`])
+    expect(reminders('2026-11-18', now)).toEqual([])
+  })
+
   it('reste à 9 h locale quand le passage à l’heure d’été tombe entre les deux rappels', () => {
     const result = reminders('2026-03-30', new Date(2026, 2, 1))
 

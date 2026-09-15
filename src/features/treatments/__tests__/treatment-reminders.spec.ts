@@ -11,7 +11,7 @@ const MILBEMAX = {
   id: ID,
   name: 'Milbemax',
   type: 'deworming' as const,
-  nextDueDate: '2026-12-15',
+  nextDueDate: '2026-10-15',
   deletedAt: null,
 }
 const NOW = new Date(2026, 8, 15, 12)
@@ -27,13 +27,13 @@ describe('treatmentReminders', () => {
         key: `treatment:${ID}:before`,
         title: 'Vermifuge Milbemax de Luna dans 3 jours',
         body: 'Vérifie qu’il te reste une dose.',
-        at: new Date(2026, 11, 12, 9),
+        at: new Date(2026, 9, 12, 9),
       },
       {
         key: `treatment:${ID}:due`,
         title: 'Vermifuge Milbemax de Luna aujourd’hui',
         body: 'Note la prise dans MémoPatte pour programmer la suivante.',
-        at: new Date(2026, 11, 15, 9),
+        at: new Date(2026, 9, 15, 9),
       },
     ])
   })

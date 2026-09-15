@@ -1,14 +1,18 @@
+import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { simulateWebResume } from '@/core/app-lifecycle/__tests__/simulate-resume'
 import i18n from '@/core/i18n'
 import type { Animal } from '@/features/animals/animal.schema'
+import type { AnimalsRepository } from '@/features/animals/animals.repository'
+import { provideAnimalsRepository, useAnimalsStore } from '@/features/animals/animals.store'
 import type { Treatment } from '@/features/treatments/treatment.schema'
 import type { Vaccination } from '@/features/vaccinations/vaccination.schema'
 import {
   createFakeNotifications,
   type FakeNotifications,
 } from '@/shared/__tests__/fake-notifications'
+import { enqueueReminderTask, MAX_SCHEDULED_REMINDERS } from '@/shared/due-reminders-schedule'
 import { createRemindersSync, installRemindersSync } from '../reminders-sync'
 
 const STAMP = '2026-09-01T09:00:00.000Z'
@@ -83,7 +87,12 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.restoreAllMocks()
+  provideAnimalsRepository(null)
 })
+
+function uuid(index: number): string {
+  return `00000000-0000-4000-8000-${String(index).padStart(12, '0')}`
+}
 
 describe('syncAllReminders', () => {
   it('reconstruit d’un bloc les rappels de tous les vaccins et traitements en base', async () => {
@@ -100,9 +109,9 @@ describe('syncAllReminders', () => {
     expect(
       notifications.rescheduleAll.mock.calls[0]?.[0].map(({ key, title }) => [key, title]),
     ).toEqual([
+      [`treatment:${MILBEMAX.id}:due`, 'Vermifuge Milbemax de Luna aujourd’hui'],
       [`vaccination:${chppi.id}:before`, 'Vaccin CHPPi de Milo dans 3 jours'],
       [`vaccination:${chppi.id}:due`, 'Vaccin CHPPi de Milo aujourd’hui'],
-      [`treatment:${MILBEMAX.id}:due`, 'Vermifuge Milbemax de Luna aujourd’hui'],
     ])
   })
 
@@ -114,6 +123,55 @@ describe('syncAllReminders', () => {
     await sync()()
 
     expect(notifications.rescheduleAll).toHaveBeenCalledWith([])
+  })
+
+  it('garde au plus 400 rappels, les plus proches d’abord', async () => {
+    const count = MAX_SCHEDULED_REMINDERS / 2 + 1
+    listVaccinations.mockResolvedValue(
+      Array.from({ length: count }, (_, index) =>
+        vaccination(uuid(index), MILO.id, index === 0 ? '2026-11-10' : '2026-10-15'),
+      ),
+    )
+
+    await sync()()
+
+    const scheduled = notifications.rescheduleAll.mock.calls[0]?.[0] ?? []
+    expect(scheduled).toHaveLength(MAX_SCHEDULED_REMINDERS)
+    expect(scheduled.map(({ key }) => key)).not.toContain(`vaccination:${uuid(0)}:due`)
+    expect(scheduled.map(({ at }) => at.getTime())).toEqual(
+      scheduled.map(({ at }) => at.getTime()).sort((a, b) => a - b),
+    )
+  })
+
+  it('attend son tour dans la file des opérations de rappel', async () => {
+    let release: () => void = () => {}
+    const pending = enqueueReminderTask(
+      () =>
+        new Promise<void>((resolve) => {
+          release = resolve
+        }),
+    )
+
+    const syncing = sync()()
+    await Promise.resolve()
+    expect(notifications.checkPermission).not.toHaveBeenCalled()
+
+    release()
+    await Promise.all([pending, syncing])
+    expect(notifications.rescheduleAll).toHaveBeenCalledOnce()
+  })
+
+  it('signale deux clés qui tombent sur le même identifiant de notification', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const chppi = vaccination('22222222-2222-4222-8222-222222222222', MILO.id, '2026-10-15')
+    listVaccinations.mockResolvedValue([chppi, chppi])
+
+    await sync()()
+
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('identifiant'),
+      expect.stringContaining(`vaccination:${chppi.id}`),
+    )
   })
 
   it('ne fait rien sans permission : ni lecture, ni annulation', async () => {
@@ -135,6 +193,10 @@ describe('syncAllReminders', () => {
 })
 
 describe('installRemindersSync', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
   it('synchronise au démarrage puis à chaque retour au premier plan', () => {
     const syncAll = vi.fn<() => Promise<void>>().mockResolvedValue()
 
@@ -148,4 +210,27 @@ describe('installRemindersSync', () => {
     simulateWebResume()
     expect(syncAll).toHaveBeenCalledTimes(2)
   })
+})
+
+it('resynchronise après la modification d’un animal, pour que son prénom suive', async () => {
+  setActivePinia(createPinia())
+  const renamed = { ...MILO, name: 'Milou' }
+  provideAnimalsRepository(
+    () =>
+      ({
+        getById: async () => MILO,
+        update: async () => renamed,
+        list: async () => [renamed],
+      }) as unknown as AnimalsRepository,
+  )
+  const syncAll = vi.fn<() => Promise<void>>().mockResolvedValue()
+  const uninstall = installRemindersSync(syncAll)
+  syncAll.mockClear()
+
+  await useAnimalsStore().update(MILO.id, { name: 'Milou', species: 'dog' })
+  expect(syncAll).toHaveBeenCalledOnce()
+
+  uninstall()
+  await useAnimalsStore().update(MILO.id, { name: 'Milou', species: 'dog' })
+  expect(syncAll).toHaveBeenCalledOnce()
 })

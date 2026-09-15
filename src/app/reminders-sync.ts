@@ -1,6 +1,8 @@
 import { onAppResume } from '@/core/app-lifecycle/app-resume'
 import i18n from '@/core/i18n'
+import { reminderNotificationId, type Reminder } from '@/core/notifications'
 import { getAnimalsRepository, type AnimalsRepository } from '@/features/animals/animals.repository'
+import { useAnimalsStore } from '@/features/animals/animals.store'
 import { treatmentReminders } from '@/features/treatments/treatment-reminders'
 import {
   getTreatmentsRepository,
@@ -12,9 +14,27 @@ import {
   type VaccinationsRepository,
 } from '@/features/vaccinations/vaccinations.repository'
 import type { Translate } from '@/shared/due-reminders'
-import { reminderNotifications, type ReminderNotifications } from '@/shared/due-reminders-schedule'
+import {
+  earliestReminders,
+  enqueueReminderTask,
+  MAX_SCHEDULED_REMINDERS,
+  reminderNotifications,
+  type ReminderNotifications,
+} from '@/shared/due-reminders-schedule'
 
 type Provider<T> = () => T | Promise<T>
+
+function warnOnIdCollisions(reminders: Reminder[]): void {
+  const keysById = new Map<number, string>()
+  for (const { key } of reminders) {
+    const id = reminderNotificationId(key)
+    const other = keysById.get(id)
+    if (other !== undefined) {
+      console.warn('Rappels : identifiant de notification en double', `${other} / ${key}`)
+    }
+    keysById.set(id, key)
+  }
+}
 
 export type RemindersSyncDependencies = {
   animals: Provider<Pick<AnimalsRepository, 'list'>>
@@ -33,7 +53,9 @@ export function createRemindersSync({
   t,
   now,
 }: RemindersSyncDependencies): () => Promise<void> {
-  return async function syncAllReminders() {
+  return () => enqueueReminderTask(syncAllReminders)
+
+  async function syncAllReminders(): Promise<void> {
     try {
       if (!(await notifications.checkPermission())) return
 
@@ -50,14 +72,17 @@ export function createRemindersSync({
       const animalsById = new Map(animalRows.map((animal) => [animal.id, animal]))
       const at = now()
 
-      await notifications.rescheduleAll([
+      const reminders = [
         ...vaccinationRows.flatMap((vaccination) =>
           vaccinationReminders(t, vaccination, animalsById.get(vaccination.animalId) ?? null, at),
         ),
         ...treatmentRows.flatMap((treatment) =>
           treatmentReminders(t, treatment, animalsById.get(treatment.animalId) ?? null, at),
         ),
-      ])
+      ]
+      warnOnIdCollisions(reminders)
+
+      await notifications.rescheduleAll(earliestReminders(reminders, MAX_SCHEDULED_REMINDERS))
     } catch (cause) {
       console.warn('Rappels non reconstruits :', cause)
     }
@@ -74,8 +99,18 @@ export const syncAllReminders = createRemindersSync({
   now: () => new Date(),
 })
 
-/** Rattrape une permission accordée depuis les réglages et reconstruit après une restauration. */
+/**
+ * Rattrape une permission accordée depuis les réglages, reconstruit après une restauration,
+ * remplit la fenêtre de rappels et reprend le prénom d'un animal modifié. Pinia doit être actif.
+ */
 export function installRemindersSync(sync: () => Promise<void> = syncAllReminders): () => void {
   void sync()
-  return onAppResume(() => void sync())
+  const stopResume = onAppResume(() => void sync())
+  const stopAnimalUpdates = useAnimalsStore().$onAction(({ name, after }) => {
+    if (name === 'update') after(() => void sync())
+  })
+  return () => {
+    stopResume()
+    stopAnimalUpdates()
+  }
 }

@@ -74,6 +74,12 @@ describe('vaccinationRemindersService', () => {
     expect(notifications.scheduleReminder).not.toHaveBeenCalled()
   })
 
+  it('ne programme rien quand l’échéance tombe au-delà de la fenêtre de 60 jours', async () => {
+    await service.reschedule({ ...CHPPI, dueDate: '2027-10-15' })
+
+    expect(notifications.scheduleReminder).not.toHaveBeenCalled()
+  })
+
   it('ne programme rien quand l’animal n’existe plus', async () => {
     getById.mockResolvedValue(null)
 

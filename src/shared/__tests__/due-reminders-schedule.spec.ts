@@ -1,8 +1,13 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { Reminder } from '@/core/notifications'
-import { cancelDueReminders, replaceDueReminders } from '../due-reminders-schedule'
+import type { Reminder, ScheduledReminder } from '@/core/notifications'
+import {
+  cancelDueReminders,
+  enqueueReminderTask,
+  MAX_SCHEDULED_REMINDERS,
+  replaceDueReminders,
+} from '../due-reminders-schedule'
 import { createFakeNotifications, type FakeNotifications } from './fake-notifications'
 
 const ID = '22222222-2222-4222-8222-222222222222'
@@ -50,6 +55,23 @@ describe('replaceDueReminders', () => {
     expect(notifications.scheduleReminder).not.toHaveBeenCalled()
   })
 
+  it('ne dépasse pas le plafond de rappels en attente, en gardant les plus proches', async () => {
+    const pending: ScheduledReminder[] = Array.from(
+      { length: MAX_SCHEDULED_REMINDERS - 1 },
+      (_, id) => ({ id, title: '', body: '' }),
+    )
+    notifications.listScheduled.mockResolvedValue(pending)
+    const before: Reminder = {
+      ...DUE,
+      key: `vaccination:${ID}:before`,
+      at: new Date(2026, 9, 12, 9),
+    }
+
+    await replaceDueReminders(notifications, { kind: 'vaccination', id: ID }, () => [DUE, before])
+
+    expect(notifications.scheduleReminder.mock.calls).toEqual([[before]])
+  })
+
   it('ne lève pas quand le plugin échoue', async () => {
     notifications.scheduleReminder.mockRejectedValue(new Error('plugin'))
 
@@ -83,5 +105,47 @@ describe('cancelDueReminders', () => {
     await expect(
       cancelDueReminders(notifications, [{ kind: 'treatment', id: ID }]),
     ).resolves.toBeUndefined()
+  })
+})
+
+describe('enqueueReminderTask', () => {
+  it('joue les opérations de rappel l’une après l’autre, dans l’ordre d’arrivée', async () => {
+    let release: () => void = () => {}
+    const blocked = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    const replacing = replaceDueReminders(
+      notifications,
+      { kind: 'vaccination', id: ID },
+      async () => {
+        await blocked
+        return [DUE]
+      },
+    )
+    const cancelling = cancelDueReminders(notifications, [{ kind: 'treatment', id: OTHER }])
+    const synced = vi.fn<() => Promise<void>>().mockResolvedValue()
+    const syncing = enqueueReminderTask(synced)
+
+    await vi.waitFor(() => expect(notifications.checkPermission).toHaveBeenCalled())
+    expect(notifications.cancelReminder).not.toHaveBeenCalledWith(`treatment:${OTHER}:due`)
+    expect(synced).not.toHaveBeenCalled()
+
+    release()
+    await Promise.all([replacing, cancelling, syncing])
+
+    expect(notifications.scheduleReminder.mock.invocationCallOrder[0]).toBeLessThan(
+      notifications.cancelReminder.mock.invocationCallOrder[2]!,
+    )
+    expect(synced).toHaveBeenCalledOnce()
+  })
+
+  it('poursuit la file après une tâche en échec', async () => {
+    const failing = enqueueReminderTask(() => Promise.reject(new Error('plugin')))
+    const next = vi.fn<() => Promise<void>>().mockResolvedValue()
+
+    await expect(failing).rejects.toThrow('plugin')
+    await enqueueReminderTask(next)
+
+    expect(next).toHaveBeenCalledOnce()
   })
 })

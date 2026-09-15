@@ -32,8 +32,8 @@ const MILBEMAX: Treatment = {
   name: 'Milbemax',
   type: 'deworming',
   frequency: { value: 3, unit: 'month' },
-  lastDoseDate: '2026-09-15',
-  nextDueDate: '2026-12-15',
+  lastDoseDate: '2026-07-15',
+  nextDueDate: '2026-10-15',
   createdAt: '2026-09-01T09:00:00.000Z',
   updatedAt: '2026-09-01T09:00:00.000Z',
   deletedAt: null,
@@ -64,8 +64,8 @@ describe('treatmentRemindersService', () => {
       `treatment:${MILBEMAX.id}:due`,
     ])
     expect(notifications.scheduleReminder.mock.calls.map(([reminder]) => reminder.at)).toEqual([
-      new Date(2026, 11, 12, 9),
-      new Date(2026, 11, 15, 9),
+      new Date(2026, 9, 12, 9),
+      new Date(2026, 9, 15, 9),
     ])
   })
 
