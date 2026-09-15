@@ -5,6 +5,21 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.24](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.23...memo-patte-v0.1.24) (2026-09-15)
+
+
+### ✨ Fonctionnalités
+
+* **notifications:** écran d'explication avant la permission et bandeau « rappels désactivés » ([4076778](https://github.com/GaelleBriet/memo-patte-vue/commit/4076778c6046fb43024f4173bd5ee5fbdffa719a))
+* **notifications:** écran d'explication avant la popup système et bandeau « rappels désactivés » ([b1b8088](https://github.com/GaelleBriet/memo-patte-vue/commit/b1b808830cc2240eab13fe2a5223d06302134916)), closes [#11](https://github.com/GaelleBriet/memo-patte-vue/issues/11) [#12](https://github.com/GaelleBriet/memo-patte-vue/issues/12)
+* **notifications:** état de la permission, demande après explication et abonnement à l'accord ([3e5421c](https://github.com/GaelleBriet/memo-patte-vue/commit/3e5421c9a80040104798e081852704a7eba28a34))
+
+
+### 🐛 Corrections
+
+* **notifications:** ne rien programmer sans permission et ignorer une lecture dépassée ([1c10118](https://github.com/GaelleBriet/memo-patte-vue/commit/1c101189b25892a28729b92e4d4997edaac5b66b))
+* **notifications:** pas de puce « … de » sans prénom et spec App sans erreur non gérée ([08783a3](https://github.com/GaelleBriet/memo-patte-vue/commit/08783a31d86e3e29a477e65a7b4faaf19ac1a710))
+
 ## [0.1.23](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.22...memo-patte-v0.1.23) (2026-09-15)
 
 
