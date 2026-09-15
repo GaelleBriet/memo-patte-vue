@@ -61,6 +61,11 @@
     "carnet": {
       "back": "Retour",
       "edit": "Modifier la fiche",
+      "photo": {
+        "avatarLabel": "Photo de {name}, appui long pour la gérer",
+        "sheetTitle": "Photo de {name}",
+        "close": "Fermer"
+      },
       "subtitleSeparator": " · ",
       "stats": {
         "weight": "Poids",

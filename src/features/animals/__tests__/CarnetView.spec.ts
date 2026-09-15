@@ -11,6 +11,7 @@ import {
   type MockInstance,
 } from 'vitest'
 
+import AnimalPhotoSheet from '../AnimalPhotoSheet.vue'
 import CarnetView from '../CarnetView.vue'
 import type { Animal } from '../animal.schema'
 import { provideAnimalsRepository, useAnimalsStore } from '../animals.store'
@@ -32,7 +33,14 @@ import type { WeightEntry } from '@/features/weight/weight.schema'
 import type { WeightRepository } from '@/features/weight/weight.repository'
 import { provideWeightRepository } from '@/features/weight/weight.store'
 import WeightSection from '@/features/weight/WeightSection.vue'
+import { pickPhoto, type PickedPhoto } from '@/core/photos/photo-picker'
 import { forgetPhotoUrls } from '@/core/photos/use-photo-urls'
+
+vi.mock('@/core/photos/photo-picker', () => ({
+  pickPhoto: vi.fn<() => Promise<PickedPhoto | null>>(),
+}))
+
+const choisirPhoto = vi.mocked(pickPhoto)
 
 vi.mock('@/core/photos/photo-storage', () => ({
   savePhoto: vi.fn<(base64: string) => Promise<string>>(),
@@ -526,5 +534,139 @@ describe('CarnetView — route', () => {
     const route = router.resolve('/animals')
 
     expect(route.name).toBe('animals')
+  })
+})
+
+describe('CarnetView — photo depuis l’avatar du header', () => {
+  beforeEach(() => {
+    choisirPhoto.mockReset()
+    vi.stubGlobal('visualViewport', {
+      addEventListener() {},
+      removeEventListener() {},
+      width: 412,
+      height: 915,
+      offsetTop: 0,
+    })
+  })
+
+  afterEach(() => {
+    mounted.splice(0).forEach((wrapper) => wrapper.unmount())
+    document.body.innerHTML = ''
+    vi.unstubAllGlobals()
+  })
+
+  async function monterAttache() {
+    const wrapper = mount(CarnetView, {
+      global: { plugins: [vuetify, i18n, router] },
+      attachTo: document.body,
+    })
+    mounted.push(wrapper)
+    await flushPromises()
+    return wrapper
+  }
+
+  function feuille(): HTMLElement | null {
+    return document.body.querySelector<HTMLElement>('.animal-photo-sheet .bottom-sheet__panel')
+  }
+
+  function actionsDeLaFeuille(): string[] {
+    return [...(feuille()?.querySelectorAll('.animal-photo-sheet__action') ?? [])].map((action) =>
+      action.textContent!.trim(),
+    )
+  }
+
+  async function appuiLong(wrapper: ReturnType<typeof mount>) {
+    await wrapper.get('.carnet-header__avatar').trigger('contextmenu')
+    await flushPromises()
+  }
+
+  it('annonce l’action aux lecteurs d’écran sur l’avatar', async () => {
+    const wrapper = await monterAttache()
+
+    const avatar = wrapper.get('.carnet-header__avatar')
+    expect(avatar.attributes('aria-label')).toBe('Photo de Milo, appui long pour la gérer')
+    expect(avatar.attributes('aria-haspopup')).toBe('dialog')
+    expect(avatar.attributes('tabindex')).toBe('0')
+  })
+
+  it('un toucher simple sur l’avatar n’ouvre rien', async () => {
+    const wrapper = await monterAttache()
+
+    await wrapper.get('.carnet-header__avatar').trigger('click')
+    await flushPromises()
+
+    expect(feuille()).toBeNull()
+  })
+
+  it('sans photo, l’appui long propose seulement « Ajouter une photo »', async () => {
+    const wrapper = await monterAttache()
+
+    await appuiLong(wrapper)
+
+    expect(feuille()).not.toBeNull()
+    expect(actionsDeLaFeuille()).toEqual(['Ajouter une photo'])
+  })
+
+  it('avec une photo, l’appui long propose de la changer ou de la retirer', async () => {
+    animals = [{ ...MILO, photoPath: 'milo.jpg' }, LUNA]
+    const wrapper = await monterAttache()
+
+    await appuiLong(wrapper)
+
+    expect(actionsDeLaFeuille()).toEqual(['Changer la photo', 'Retirer la photo'])
+  })
+
+  it('« Retirer la photo » enregistre aussitôt puis referme la feuille', async () => {
+    animals = [{ ...MILO, photoPath: 'milo.jpg' }, LUNA]
+    const update = vi.spyOn(store, 'update').mockResolvedValue(MILO)
+    const wrapper = await monterAttache()
+    await appuiLong(wrapper)
+
+    feuille()!.querySelectorAll<HTMLElement>('.animal-photo-sheet__action')[1]!.click()
+    await flushPromises()
+
+    expect(update).toHaveBeenCalledWith(MILO.id, expect.anything(), { kind: 'remove' })
+    expect(wrapper.getComponent(AnimalPhotoSheet).props('modelValue')).toBe(false)
+  })
+
+  it('« Ajouter une photo » enregistre la photo choisie', async () => {
+    choisirPhoto.mockResolvedValue({ base64: 'TUlMTw==', previewUrl: 'data:,' })
+    const update = vi.spyOn(store, 'update').mockResolvedValue(MILO)
+    const wrapper = await monterAttache()
+    await appuiLong(wrapper)
+
+    feuille()!.querySelector<HTMLElement>('.animal-photo-sheet__action')!.click()
+    await flushPromises()
+
+    expect(update).toHaveBeenCalledWith(MILO.id, expect.anything(), {
+      kind: 'replace',
+      base64: 'TUlMTw==',
+    })
+  })
+
+  it('garde la feuille ouverte avec le message du formulaire si la photo est illisible', async () => {
+    choisirPhoto.mockRejectedValue(new Error('Not implemented'))
+    const wrapper = await monterAttache()
+    await appuiLong(wrapper)
+
+    feuille()!.querySelector<HTMLElement>('.animal-photo-sheet__action')!.click()
+    await flushPromises()
+
+    expect(feuille()!.querySelector('[role="alert"]')?.textContent?.trim()).toBe(
+      'La photo n’a pas pu être chargée. Réessaie.',
+    )
+  })
+
+  it('désactive les actions pendant le choix', async () => {
+    choisirPhoto.mockReturnValue(new Promise(() => {}))
+    const wrapper = await monterAttache()
+    await appuiLong(wrapper)
+
+    feuille()!.querySelector<HTMLElement>('.animal-photo-sheet__action')!.click()
+    await flushPromises()
+
+    expect(feuille()!.querySelector('.animal-photo-sheet__action')!.hasAttribute('disabled')).toBe(
+      true,
+    )
   })
 })

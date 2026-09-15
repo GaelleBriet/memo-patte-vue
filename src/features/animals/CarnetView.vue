@@ -3,7 +3,9 @@ import { computed, onMounted, ref, watchEffect } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
+import AnimalPhotoSheet from './AnimalPhotoSheet.vue'
 import { useAnimalsStore } from './animals.store'
+import { useAnimalPhotoActions } from './use-animal-photo-actions'
 import { useForegroundRefresh } from '@/core/app-lifecycle/use-foreground-refresh'
 import { usePhotoUrls } from '@/core/photos/use-photo-urls'
 import TreatmentsSection, {
@@ -45,6 +47,18 @@ const chips = computed<AnimalChipItem[]>(() =>
   })),
 )
 const headerPhotoUrl = computed(() => photoUrl(animal.value?.photoPath ?? null))
+
+const isPhotoSheetOpen = ref(false)
+const photoActions = useAnimalPhotoActions(animal)
+
+function openPhotoSheet(): void {
+  photoActions.error.value = null
+  isPhotoSheetOpen.value = true
+}
+
+async function applyPhoto(action: () => Promise<boolean>): Promise<void> {
+  if (await action()) isPhotoSheetOpen.value = false
+}
 
 const subtitle = computed(() => {
   if (!animal.value) return null
@@ -120,7 +134,12 @@ function createAnimal(): void {
         <div class="carnet-header__identity">
           <span
             class="carnet-header__avatar"
+            role="button"
+            tabindex="0"
+            aria-haspopup="dialog"
+            :aria-label="t('animals.carnet.photo.avatarLabel', { name: animal.name })"
             :style="{ backgroundImage: animalAvatarGradientCss(animal.id) }"
+            @contextmenu.prevent="openPhotoSheet"
           >
             <img v-if="headerPhotoUrl" :src="headerPhotoUrl" alt="" />
           </span>
@@ -137,6 +156,16 @@ function createAnimal(): void {
           />
         </div>
       </header>
+
+      <AnimalPhotoSheet
+        v-model="isPhotoSheetOpen"
+        :name="animal.name"
+        :has-photo="headerPhotoUrl !== null"
+        :busy="photoActions.isBusy.value"
+        :error="photoActions.error.value ? t(photoActions.error.value) : null"
+        @change="applyPhoto(photoActions.changePhoto)"
+        @remove="applyPhoto(photoActions.removePhoto)"
+      />
 
       <AnimalChipSelector
         v-model:selected-id="animals.selectedAnimalId"
@@ -245,8 +274,15 @@ function createAnimal(): void {
   border: 2px solid tokens.$color-header-avatar-border;
   border-radius: 50%;
   background-size: cover;
+  -webkit-touch-callout: none;
+  user-select: none;
+
+  &:focus-visible {
+    outline: none;
+  }
 
   img {
+    pointer-events: none;
     display: block;
     width: 100%;
     height: 100%;
