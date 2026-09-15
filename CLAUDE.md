@@ -68,8 +68,10 @@ src/
 
 ### Règles strictes de structure
 
-- Aucun import croisé entre features, à une exception près : un **service de cas d'usage** (`xxx.service.ts`, placé dans la feature qui porte le cas d'usage) peut importer les repositories d'autres features pour les orchestrer — un composant, un store ou un repository, jamais. Tout le reste passe par `shared/` ou `core/`
-- Un **écran composite** (Carnet, Accueil) assemble plusieurs domaines : il importe les **composants de section** des autres features (`VaccinationsSection.vue`, `WeightSection.vue`…), et chaque section n’utilise que le store de sa feature. C’est la seule forme d’import croisé permise à un composant ; les sections ne s’importent jamais entre elles, et la logique commune à plusieurs écrans (rappels, âge, courbe de poids) vit dans `shared/`
+- Aucun import croisé entre features, à trois exceptions près (règle ESLint `app/feature-imports`) ; tout le reste passe par `shared/` ou `core/` :
+  - **données des animaux** : toute feature peut importer le store et les types de `features/animals` (`animals.store`, `animal.schema`), entité racine du carnet
+  - **écran composite** (Carnet, Accueil) : il assemble plusieurs domaines et importe les **composants de section** (`VaccinationsSection.vue`, `WeightSection.vue`…) **et les feuilles** (`WeightSheet.vue`…) des autres features. Chaque section n’utilise que le store de sa feature ; les sections ne s’importent jamais entre elles, et la logique commune à plusieurs écrans (rappels, âge, courbe de poids) vit dans `shared/`
+  - **service de cas d'usage** (`xxx.service.ts`, placé dans la feature qui porte le cas d'usage) : il importe les **repositories** d'autres features **et leurs types / schémas** pour les orchestrer — un composant, un store ou un repository, jamais
 - Les repositories sont les seuls autorisés à parler à SQLite et Supabase, et chacun reste le seul à écrire dans sa table : un service qui orchestre appelle leurs méthodes, il n'écrit pas de SQL
 - Les stores Pinia ne contiennent aucune requête directe
 - `core/` ne dépend jamais des features, à une exception près : `core/dev/` importe leurs repositories pour peupler le carnet de démo (outil de dev, jamais en production ; règle ESLint `app/core-independent-of-features`)
