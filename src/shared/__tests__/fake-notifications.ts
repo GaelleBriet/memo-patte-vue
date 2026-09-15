@@ -5,7 +5,7 @@ import type { ReminderNotifications } from '../due-reminders-schedule'
 
 export type FakeNotifications = {
   checkPermission: Mock<() => Promise<boolean>>
-  scheduleReminder: Mock<(reminder: Reminder) => Promise<void>>
+  scheduleReminders: Mock<(reminders: Reminder[]) => Promise<void>>
   cancelReminder: Mock<(key: string) => Promise<void>>
   rescheduleAll: Mock<(reminders: Reminder[]) => Promise<void>>
   listScheduled: Mock<() => Promise<ScheduledReminder[]>>
@@ -20,8 +20,8 @@ export function createFakeNotifications(): FakeNotifications & ReminderNotificat
   return {
     pending,
     checkPermission: vi.fn<() => Promise<boolean>>().mockResolvedValue(true),
-    scheduleReminder: vi.fn<(reminder: Reminder) => Promise<void>>(async (reminder) => {
-      pending.set(reminder.key, reminder)
+    scheduleReminders: vi.fn<(reminders: Reminder[]) => Promise<void>>(async (reminders) => {
+      for (const reminder of reminders) pending.set(reminder.key, reminder)
     }),
     cancelReminder: vi.fn<(key: string) => Promise<void>>(async (key) => {
       pending.delete(key)
