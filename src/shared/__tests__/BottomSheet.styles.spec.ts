@@ -39,8 +39,8 @@ describe('BottomSheet — contrat de style', () => {
     expect(declaration('.bottom-sheet .v-overlay__scrim', 'background')).toBe('rgb(20, 26, 26)')
   })
 
-  it('offre une poignée tapable sur 44 px de haut', () => {
-    expect(declaration('.bottom-sheet__handle', 'height')).toBe('44px')
+  it('offre une poignée tapable sur 48 px de haut', () => {
+    expect(declaration('.bottom-sheet__handle', 'height')).toBe('48px')
   })
 
   it('dessine la pilule de 36 × 4 px, couleur poignée', () => {
@@ -49,8 +49,9 @@ describe('BottomSheet — contrat de style', () => {
     expect(declaration('.bottom-sheet__handle::before', 'background')).toBe('#c1bdb7')
   })
 
-  it('remonte l’en-tête sous la zone de tap de la poignée', () => {
-    expect(declaration('.bottom-sheet__header', 'margin-top')).toBe('-10px')
+  it('pose le titre à 34 px du bord, sous la zone de tap de la poignée', () => {
+    expect(declaration('.bottom-sheet__panel', 'padding')).toBe('34px 20px 24px')
+    expect(declaration('.bottom-sheet__header', 'margin-top')).toBeUndefined()
   })
 })
 

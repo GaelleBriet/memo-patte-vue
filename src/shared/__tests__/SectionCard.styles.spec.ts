@@ -37,7 +37,7 @@ describe('SectionCard — contrat de style', () => {
   })
 
   it('écrit le compteur en texte méta de 13 px', () => {
-    expect(declaration(css, '.section-card__counter', 'color')).toBe('#79736d')
+    expect(declaration(css, '.section-card__counter', 'color')).toBe('#736e67')
     expect(declaration(css, '.section-card__counter', 'font-size')).toBe('13px')
     expect(declaration(css, '.section-card__counter', 'font-weight')).toBe('500')
     expect(declaration(css, '.section-card__counter', 'white-space')).toBe('nowrap')

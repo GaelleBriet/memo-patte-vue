@@ -1,0 +1,15 @@
+@use './tokens' as tokens;
+
+// Porte la zone de tap à 48 px au moins, centrée, sans rien dessiner : l'élément
+// doit être positionné et laisser déborder son `::before`.
+@mixin tap-target {
+  &::before {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: max(100%, #{tokens.$size-tap-target});
+    height: max(100%, #{tokens.$size-tap-target});
+    content: '';
+    transform: translate(-50%, -50%);
+  }
+}

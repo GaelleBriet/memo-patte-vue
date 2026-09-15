@@ -127,7 +127,9 @@ defineExpose({ pickFile })
     </template>
 
     <template v-else>
-      <p :id="groupLabelId" class="import-sheet__group-label">{{ t('settings.import.modes') }}</p>
+      <p :id="groupLabelId" class="import-sheet__group-label" aria-hidden="true">
+        {{ t('settings.import.modes') }}
+      </p>
       <ChoiceCards
         v-model="selected"
         :choices="modes"
@@ -178,6 +180,7 @@ defineExpose({ pickFile })
 
 <style lang="scss">
 @use '@/styles/tokens' as tokens;
+@use '@/styles/tap-target' as tap;
 
 .import-sheet__file-input,
 .import-sheet__group-label {
@@ -281,5 +284,7 @@ defineExpose({ pickFile })
   font-weight: 700;
   letter-spacing: normal;
   text-transform: none;
+
+  @include tap.tap-target;
 }
 </style>

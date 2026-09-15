@@ -42,6 +42,7 @@ const barHeight = heightBottomNav + paddingBottomNav
 }
 
 .bottom-navigation :deep(.v-btn) {
+  font-size: 12px;
   letter-spacing: normal;
 }
 

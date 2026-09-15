@@ -54,4 +54,20 @@ describe('AppToast', () => {
     expect(toastMessage.value).toBeNull()
     wrapper.unmount()
   })
+
+  it('garde sa région annoncée en place avant le message, pour que TalkBack le lise', async () => {
+    const wrapper = mountToast()
+    const region = document.body.querySelector('[role="status"]')
+    expect(region?.getAttribute('aria-live')).toBe('polite')
+
+    showToast('Pesée enregistrée')
+    await nextTick()
+
+    expect(region?.textContent).toContain('Pesée enregistrée')
+    const annoncees = [...document.body.querySelectorAll('[role="status"]')].filter(
+      (element) => !element.closest('[aria-hidden="true"]'),
+    )
+    expect(annoncees).toEqual([region])
+    wrapper.unmount()
+  })
 })

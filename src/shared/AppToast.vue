@@ -16,6 +16,8 @@ const isOpen = computed({
 </script>
 
 <template>
+  <p class="app-toast__live" role="status" aria-live="polite">{{ toastMessage }}</p>
+  <!-- Annoncé par la région ci-dessus, déjà en place : celle de Vuetify naît avec le message. -->
   <v-snackbar
     v-model="isOpen"
     class="app-toast"
@@ -23,6 +25,7 @@ const isOpen = computed({
     location="bottom"
     :offset="heightBottomNav + paddingBottomNav + GAP_ABOVE_BOTTOM_NAV"
     rounded="lg"
+    :content-props="{ 'aria-hidden': 'true' }"
   >
     <span class="app-toast__content">
       <v-icon icon="ms:check_circle" size="20" />
@@ -40,6 +43,15 @@ const isOpen = computed({
   border-radius: tokens.$radius-toast;
   background: tokens.$color-toast-surface;
   color: tokens.$color-on-primary;
+}
+
+.app-toast__live {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 .app-toast__content {

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, ref, useId, watch } from 'vue'
+import { computed, nextTick, ref, useId, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import { emptyWeightFormValues, validateWeightForm } from './weight-form'
@@ -8,6 +8,7 @@ import { useToday } from '@/core/app-lifecycle/use-today'
 import { useAnimalsStore } from '@/features/animals/animals.store'
 import AnimalChipSelector, { type AnimalChipItem } from '@/shared/AnimalChipSelector.vue'
 import BottomSheet from '@/shared/BottomSheet.vue'
+import { focusFirstInvalid } from '@/shared/form/focus-first-invalid'
 import { useFormValidation } from '@/shared/form/use-form-validation'
 
 const props = defineProps<{
@@ -32,6 +33,7 @@ const saveFailed = ref(false)
 const isSubmitting = ref(false)
 const { today, refresh: refreshToday } = useToday()
 const weightInput = ref<{ focus: () => void } | null>(null)
+const form = useTemplateRef<HTMLElement>('form')
 
 const needsAnimal = computed(() => !props.animalId)
 const isLocked = computed(() => needsAnimal.value && values.value.animalId === null)
@@ -67,7 +69,11 @@ async function submit(): Promise<void> {
   if (isSubmitting.value) return
 
   const result = validate()
-  if (!result.success) return
+  if (!result.success) {
+    await nextTick()
+    if (form.value) focusFirstInvalid(form.value)
+    return
+  }
 
   isSubmitting.value = true
   saveFailed.value = false
@@ -95,84 +101,86 @@ async function submit(): Promise<void> {
     :persistent="isSubmitting"
     :focus-fallback="focusFallback"
   >
-    <div v-if="needsAnimal" class="weight-sheet__field weight-sheet__field--animal">
-      <p class="weight-sheet__label">
-        <span>{{ t('weight.form.animal.label') }}</span>
-        <span class="weight-sheet__required" aria-hidden="true">
-          {{ t('weight.form.required') }}
-        </span>
-      </p>
-      <AnimalChipSelector
-        v-model:selected-id="values.animalId"
-        mode="switch"
-        hide-add
-        inline
-        :animals="chips"
-        :describedby="errors.animalId ? animalErrorId : undefined"
-        :invalid="Boolean(errors.animalId)"
-      />
-      <p v-if="errors.animalId" :id="animalErrorId" class="weight-sheet__error">
-        <v-icon icon="ms:error_fill" size="16" />
-        <span>{{ t(errors.animalId) }}</span>
-      </p>
-    </div>
-
-    <div class="weight-sheet__fields" :class="{ 'weight-sheet__fields--locked': isLocked }">
-      <div class="weight-sheet__field weight-sheet__field--kg">
-        <label class="weight-sheet__label" for="weight-sheet-kg">
-          <span>{{ t('weight.form.weightKg.label') }}</span>
+    <div ref="form">
+      <div v-if="needsAnimal" class="weight-sheet__field weight-sheet__field--animal">
+        <p class="weight-sheet__label">
+          <span>{{ t('weight.form.animal.label') }}</span>
           <span class="weight-sheet__required" aria-hidden="true">
             {{ t('weight.form.required') }}
           </span>
-        </label>
-        <v-text-field
-          id="weight-sheet-kg"
-          ref="weightInput"
-          v-model="values.weightKg"
-          class="weight-sheet__input"
-          variant="outlined"
-          hide-details
-          inputmode="decimal"
-          aria-required="true"
-          :aria-describedby="errors.weightKg ? weightErrorId : undefined"
-          :aria-invalid="Boolean(errors.weightKg)"
-          :disabled="isLocked"
-          :error="Boolean(errors.weightKg)"
-          :placeholder="t('weight.form.weightKg.placeholder')"
-          :suffix="t('weight.unit')"
+        </p>
+        <AnimalChipSelector
+          v-model:selected-id="values.animalId"
+          mode="switch"
+          hide-add
+          inline
+          :animals="chips"
+          :describedby="errors.animalId ? animalErrorId : undefined"
+          :invalid="Boolean(errors.animalId)"
         />
-        <p v-if="errors.weightKg" :id="weightErrorId" class="weight-sheet__error">
+        <p v-if="errors.animalId" :id="animalErrorId" class="weight-sheet__error">
           <v-icon icon="ms:error_fill" size="16" />
-          <span>{{ t(errors.weightKg) }}</span>
+          <span>{{ t(errors.animalId) }}</span>
         </p>
       </div>
 
-      <div class="weight-sheet__field weight-sheet__field--date">
-        <label class="weight-sheet__label" for="weight-sheet-date">
-          <span>{{ t('weight.form.measuredOn.label') }}</span>
-          <span class="weight-sheet__required" aria-hidden="true">
-            {{ t('weight.form.required') }}
-          </span>
-        </label>
-        <v-text-field
-          id="weight-sheet-date"
-          v-model="values.measuredOn"
-          class="weight-sheet__input weight-sheet__input--date"
-          type="date"
-          :max="today"
-          variant="outlined"
-          hide-details
-          aria-required="true"
-          append-inner-icon="ms:calendar_month"
-          :aria-describedby="errors.measuredOn ? dateErrorId : undefined"
-          :aria-invalid="Boolean(errors.measuredOn)"
-          :disabled="isLocked"
-          :error="Boolean(errors.measuredOn)"
-        />
-        <p v-if="errors.measuredOn" :id="dateErrorId" class="weight-sheet__error">
-          <v-icon icon="ms:error_fill" size="16" />
-          <span>{{ t(errors.measuredOn) }}</span>
-        </p>
+      <div class="weight-sheet__fields" :class="{ 'weight-sheet__fields--locked': isLocked }">
+        <div class="weight-sheet__field weight-sheet__field--kg">
+          <label class="weight-sheet__label" for="weight-sheet-kg">
+            <span>{{ t('weight.form.weightKg.label') }}</span>
+            <span class="weight-sheet__required" aria-hidden="true">
+              {{ t('weight.form.required') }}
+            </span>
+          </label>
+          <v-text-field
+            id="weight-sheet-kg"
+            ref="weightInput"
+            v-model="values.weightKg"
+            class="weight-sheet__input"
+            variant="outlined"
+            hide-details
+            inputmode="decimal"
+            aria-required="true"
+            :aria-describedby="errors.weightKg ? weightErrorId : undefined"
+            :aria-invalid="Boolean(errors.weightKg)"
+            :disabled="isLocked"
+            :error="Boolean(errors.weightKg)"
+            :placeholder="t('weight.form.weightKg.placeholder')"
+            :suffix="t('weight.unit')"
+          />
+          <p v-if="errors.weightKg" :id="weightErrorId" class="weight-sheet__error">
+            <v-icon icon="ms:error_fill" size="16" />
+            <span>{{ t(errors.weightKg) }}</span>
+          </p>
+        </div>
+
+        <div class="weight-sheet__field weight-sheet__field--date">
+          <label class="weight-sheet__label" for="weight-sheet-date">
+            <span>{{ t('weight.form.measuredOn.label') }}</span>
+            <span class="weight-sheet__required" aria-hidden="true">
+              {{ t('weight.form.required') }}
+            </span>
+          </label>
+          <v-text-field
+            id="weight-sheet-date"
+            v-model="values.measuredOn"
+            class="weight-sheet__input weight-sheet__input--date"
+            type="date"
+            :max="today"
+            variant="outlined"
+            hide-details
+            aria-required="true"
+            append-inner-icon="ms:calendar_month"
+            :aria-describedby="errors.measuredOn ? dateErrorId : undefined"
+            :aria-invalid="Boolean(errors.measuredOn)"
+            :disabled="isLocked"
+            :error="Boolean(errors.measuredOn)"
+          />
+          <p v-if="errors.measuredOn" :id="dateErrorId" class="weight-sheet__error">
+            <v-icon icon="ms:error_fill" size="16" />
+            <span>{{ t(errors.measuredOn) }}</span>
+          </p>
+        </div>
       </div>
     </div>
 

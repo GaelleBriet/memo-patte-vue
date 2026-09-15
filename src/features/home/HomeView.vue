@@ -253,6 +253,7 @@ function openCarnet(): void {
 
 <style scoped lang="scss">
 @use '@/styles/tokens' as tokens;
+@use '@/styles/tap-target' as tap;
 
 .home {
   display: flex;
@@ -399,6 +400,7 @@ function openCarnet(): void {
 
 .reminder-row__title {
   margin: 0;
+  overflow-wrap: anywhere;
   font-size: 15.5px;
   font-weight: 700;
 }
@@ -441,6 +443,7 @@ function openCarnet(): void {
 }
 
 .home-up-to-date__add {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -453,6 +456,8 @@ function openCarnet(): void {
   font-size: 15px;
   font-weight: 700;
   cursor: pointer;
+
+  @include tap.tap-target;
 
   &:hover,
   &:focus-visible {

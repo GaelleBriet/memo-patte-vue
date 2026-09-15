@@ -154,6 +154,7 @@ watch(summary, (value) => emit('summary', value), { immediate: true })
 
 .vaccination-row__name {
   margin: 0;
+  overflow-wrap: anywhere;
   font-size: 15.5px;
   font-weight: 700;
 }

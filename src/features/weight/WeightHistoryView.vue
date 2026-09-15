@@ -187,6 +187,7 @@ function backToAnimals(): void {
 
 <style scoped lang="scss">
 @use '@/styles/tokens' as tokens;
+@use '@/styles/tap-target' as tap;
 
 .weight-history__content {
   display: flex;
@@ -216,7 +217,7 @@ function backToAnimals(): void {
 
 .weight-history__current-label {
   color: tokens.$color-text-meta;
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 600;
 }
 
@@ -307,6 +308,8 @@ function backToAnimals(): void {
   border-radius: 999px;
   font-weight: 700;
   letter-spacing: normal;
+
+  @include tap.tap-target;
 }
 
 .weight-history__list {

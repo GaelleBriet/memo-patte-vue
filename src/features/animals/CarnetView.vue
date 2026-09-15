@@ -301,7 +301,9 @@ function createAnimal(): void {
 
 .carnet-header__name {
   overflow: hidden;
-  margin: 0;
+  // Place des jambages quand la police système est agrandie, sans décaler le sous-titre.
+  margin: 0 0 -0.15em;
+  padding-bottom: 0.15em;
   font-family: tokens.$font-family-heading;
   font-size: 25px;
   font-weight: 700;
@@ -339,7 +341,7 @@ function createAnimal(): void {
 
 .carnet-stat__label {
   color: tokens.$color-text-meta;
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 600;
 }
 
@@ -354,7 +356,7 @@ function createAnimal(): void {
 .carnet-stat__sub {
   margin: 4px 0 0;
   color: tokens.$color-text-secondary;
-  font-size: 11.5px;
+  font-size: 12px;
 }
 
 .carnet-stat--overdue .carnet-stat__value {

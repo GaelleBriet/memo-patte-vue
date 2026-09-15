@@ -55,7 +55,7 @@ function onSelect(value: unknown) {
         class="animal-chip-selector__group"
         :model-value="selectedId ?? undefined"
         :mandatory="mode === 'switch'"
-        role="group"
+        :role="mode === 'switch' ? 'radiogroup' : 'group'"
         :aria-label="t('animals.chipSelector.label')"
         :aria-invalid="invalid || undefined"
         :aria-describedby="describedby"
@@ -65,7 +65,15 @@ function onSelect(value: unknown) {
         selected-class="animal-chip--selected"
         @update:model-value="onSelect"
       >
-        <v-chip v-for="animal in animals" :key="animal.id" class="animal-chip" :value="animal.id">
+        <v-chip
+          v-for="animal in animals"
+          :key="animal.id"
+          class="animal-chip"
+          :value="animal.id"
+          :role="mode === 'switch' ? 'radio' : 'button'"
+          :aria-checked="mode === 'switch' ? selectedId === animal.id : undefined"
+          :aria-pressed="mode === 'filter' ? selectedId === animal.id : undefined"
+        >
           <template #prepend>
             <span
               class="animal-chip__avatar"
@@ -97,11 +105,14 @@ function onSelect(value: unknown) {
 
 <style scoped lang="scss">
 @use '@/styles/tokens' as tokens;
+@use '@/styles/tap-target' as tap;
 
 $gap-chips: 10px;
 $width-chip-border: 1px;
 $padding-chip-start: 5px;
 $padding-chip-end: 16px;
+// La rangée défilante rogne ce qui dépasse : elle gagne de quoi laisser passer la zone de tap des chips.
+$tap-overflow-chip: (tokens.$size-tap-target - tokens.$height-chip) * 0.5;
 
 // Le `z-index` ne passe devant qu'un header non positionné : un header qui
 // remonterait le sien reste l'affaire de l'écran.
@@ -129,9 +140,11 @@ $padding-chip-end: 16px;
   flex: 0 1 auto;
   min-width: 0;
   padding-block: 0;
+  margin-block: -$tap-overflow-chip;
 
   :deep(.v-slide-group__content) {
     gap: $gap-chips;
+    padding-block: $tap-overflow-chip;
   }
 }
 
@@ -141,18 +154,23 @@ $padding-chip-end: 16px;
   height: tokens.$height-chip;
   border: 1px dashed rgba(var(--v-theme-primary), 0.22);
   color: rgb(var(--v-theme-primary));
+
+  @include tap.tap-target;
 }
 
 // L'avatar est un contenu libre du slot `prepend`, que la marge de VChip ne vise pas.
 .animal-chip {
   gap: tokens.$gap-chip-avatar;
   height: tokens.$height-chip;
+  overflow: visible;
   margin: 0;
   padding-inline: $padding-chip-start $padding-chip-end;
   border: $width-chip-border solid tokens.$color-card-border;
   font-family: tokens.$font-family-body;
   font-size: 14px;
   font-weight: 700;
+
+  @include tap.tap-target;
 }
 
 // Revenir à `selected-class` par défaut réactiverait le voile

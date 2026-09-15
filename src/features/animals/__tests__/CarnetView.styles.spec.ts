@@ -14,7 +14,7 @@ function cssDuComposant(): string {
 
   if (!bloc) throw new Error('bloc <style scoped lang="scss"> introuvable')
 
-  const scss = bloc.replace("@use '@/styles/tokens' as tokens;", "@use 'tokens' as tokens;")
+  const scss = bloc.replaceAll("@use '@/styles/", "@use '")
 
   return compileString(scss, { loadPaths: [DOSSIER_STYLES] }).css
 }

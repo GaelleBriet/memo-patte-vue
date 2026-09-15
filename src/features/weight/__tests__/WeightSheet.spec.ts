@@ -228,6 +228,15 @@ describe('WeightSheet — sans animal (P2)', () => {
     expect(create).not.toHaveBeenCalled()
   })
 
+  it('sans animal choisi, amène le lecteur d’écran sur le sélecteur refusé', async () => {
+    await monter(null)
+
+    await soumettre()
+
+    const selecteur = feuille().querySelector('.animal-chip-selector__group')
+    expect(selecteur?.contains(document.activeElement)).toBe(true)
+  })
+
   it('une fois l’animal choisi, les erreurs du poids suivent la validation', async () => {
     await monter(null)
     await soumettre()
@@ -320,6 +329,17 @@ describe('WeightSheet — validation (P3)', () => {
     await soumettre()
 
     expect(messages()).toEqual(['La date est obligatoire.'])
+  })
+
+  it('amène le lecteur d’écran sur le champ refusé : la date effacée', async () => {
+    await monter(MILO.id)
+    await saisir('weight-sheet-kg', '24,7')
+    await saisir('weight-sheet-date', '')
+    champ('weight-sheet-kg').focus()
+
+    await soumettre()
+
+    expect(document.activeElement).toBe(champ('weight-sheet-date'))
   })
 
   it('efface les messages dès que le formulaire redevient valide', async () => {

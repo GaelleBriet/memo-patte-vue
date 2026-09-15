@@ -72,8 +72,6 @@ function close(): void {
     :aria-labelledby="titleId"
   >
     <div class="bottom-sheet__panel">
-      <button type="button" class="bottom-sheet__handle" :aria-label="closeLabel" @click="close" />
-
       <div class="bottom-sheet__header">
         <div class="bottom-sheet__heading">
           <h2 :id="titleId" class="bottom-sheet__title">{{ title }}</h2>
@@ -90,12 +88,23 @@ function close(): void {
       </div>
 
       <slot />
+
+      <!-- Dessinée en haut, lue en dernier : le titre s'annonce d'abord, et la croix suffit quand elle est là. -->
+      <button
+        type="button"
+        class="bottom-sheet__handle"
+        :aria-label="closeLabel"
+        :aria-hidden="showClose || undefined"
+        :tabindex="showClose ? -1 : undefined"
+        @click="close"
+      />
     </div>
   </v-bottom-sheet>
 </template>
 
 <style lang="scss">
 @use '@/styles/tokens' as tokens;
+@use '@/styles/tap-target' as tap;
 
 // Non scopé : la feuille est téléportée hors du composant, et le voile comme le
 // conteneur appartiennent à Vuetify.
@@ -115,19 +124,22 @@ function close(): void {
   box-shadow: tokens.$shadow-sheet;
 }
 
+// Le titre commence à 34 px du bord : la pilule à 12 px, 18 px sous elle.
 .bottom-sheet__panel {
-  padding: 0 20px 24px;
+  position: relative;
+  padding: 34px 20px 24px;
 }
 
-// Zone de tap de 44 px de haut ; la pilule visible (36 × 4) reste à 12 px du bord.
+// La pilule visible (36 × 4) reste à 12 px du bord ; la zone de tap descend sur le titre.
 .bottom-sheet__handle {
-  // Au-dessus du titre qui remonte sous elle : les 44 px restent tous tapables.
-  position: relative;
+  position: absolute;
+  top: 0;
+  inset-inline: 0;
   z-index: 1;
   display: block;
   width: 96px;
-  height: 44px;
-  margin: 0 auto;
+  height: tokens.$size-tap-target;
+  margin-inline: auto;
   padding: 0;
   border: 0;
   background: transparent;
@@ -146,14 +158,11 @@ function close(): void {
   transform: translateX(-50%);
 }
 
-// La zone de tap de la poignée descend sous la pilule : le titre remonte d'autant
-// pour garder 18 px entre la pilule et lui.
 .bottom-sheet__header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 8px;
-  margin-top: -10px;
 }
 
 .bottom-sheet__heading {
@@ -181,5 +190,7 @@ function close(): void {
   height: 44px;
   margin: -8px -8px 0 0;
   color: tokens.$color-segment-inactive;
+
+  @include tap.tap-target;
 }
 </style>

@@ -88,6 +88,28 @@ describe('AnimalChipSelector', () => {
     expect(wrapper.emitted('add')).toHaveLength(1)
   })
 
+  it('filtre : annonce chaque chip comme un bouton à bascule, pressé quand l’animal est choisi', () => {
+    const wrapper = monter({ mode: 'filter', selectedId: 'luna' })
+
+    expect(wrapper.get('.animal-chip-selector__group').attributes('role')).toBe('group')
+    expect(chip(wrapper, 0).attributes('role')).toBe('button')
+    expect(chip(wrapper, 0).attributes('aria-pressed')).toBe('false')
+    expect(chip(wrapper, 1).attributes('aria-pressed')).toBe('true')
+    expect(chip(wrapper, 1).attributes('aria-checked')).toBeUndefined()
+  })
+
+  it('switch : un animal toujours choisi, annoncé comme un groupe de boutons radio', () => {
+    const wrapper = monter({ mode: 'switch', selectedId: 'luna' })
+
+    const groupe = wrapper.get('.animal-chip-selector__group')
+    expect(groupe.attributes('role')).toBe('radiogroup')
+    expect(groupe.attributes('aria-label')).toBe('Animaux')
+    expect(chip(wrapper, 0).attributes('role')).toBe('radio')
+    expect(chip(wrapper, 0).attributes('aria-checked')).toBe('false')
+    expect(chip(wrapper, 1).attributes('aria-checked')).toBe('true')
+    expect(chip(wrapper, 1).attributes('aria-pressed')).toBeUndefined()
+  })
+
   it('marque la chip sélectionnée', () => {
     const wrapper = monter({ selectedId: 'luna' })
 
