@@ -5,6 +5,7 @@ import { useRouter } from 'vue-router'
 
 import ExportSheet from './ExportSheet.vue'
 import ImportSheet from './ImportSheet.vue'
+import { promptNotificationsIfReminders } from '@/app/reminders-priming'
 import { useAnimalsStore } from '@/features/animals/animals.store'
 import PushedScreen from '@/shared/PushedScreen.vue'
 import SectionCard from '@/shared/SectionCard.vue'
@@ -16,6 +17,7 @@ const animals = useAnimalsStore()
 const appVersion = import.meta.env.VITE_APP_VERSION
 const isExportSheetOpen = ref(false)
 const importSheet = useTemplateRef('importSheet')
+const isImporting = ref(false)
 
 const hasLoadFailed = computed(() => animals.error !== null)
 const hasNothingToExport = computed(() => animals.hasLoaded && animals.animals.length === 0)
@@ -29,6 +31,11 @@ function onExportRow(): void {
 onMounted(() => {
   if (!animals.hasLoaded) void animals.load()
 })
+
+function onImported(): void {
+  void animals.load()
+  void promptNotificationsIfReminders(router, 'settings')
+}
 
 function goHome(): void {
   void router.push({ name: 'home' })
@@ -71,13 +78,26 @@ function goHome(): void {
         <button
           type="button"
           class="settings-row settings-row--import"
+          :class="{ 'settings-row--busy': isImporting }"
+          :disabled="isImporting"
+          :aria-busy="isImporting"
           @click="importSheet?.pickFile()"
         >
           <v-icon class="settings-row__icon" icon="ms:download" size="22" />
           <span class="settings-row__text">
             <span class="settings-row__label">{{ t('settings.data.import') }}</span>
+            <span v-if="isImporting" class="settings-row__hint" role="status">
+              {{ t('settings.import.importing') }}
+            </span>
           </span>
-          <v-icon class="settings-row__chevron" icon="ms:chevron_right" size="20" />
+          <v-progress-circular
+            v-if="isImporting"
+            class="settings-row__spinner"
+            indeterminate
+            :size="18"
+            :width="2"
+          />
+          <v-icon v-else class="settings-row__chevron" icon="ms:chevron_right" size="20" />
         </button>
       </SectionCard>
 
@@ -92,7 +112,7 @@ function goHome(): void {
     </div>
 
     <ExportSheet v-model="isExportSheetOpen" />
-    <ImportSheet ref="importSheet" />
+    <ImportSheet ref="importSheet" v-model:busy="isImporting" @imported="onImported" />
   </PushedScreen>
 </template>
 
@@ -162,6 +182,15 @@ button.settings-row {
 .settings-row__chevron {
   flex: 0 0 auto;
   color: tokens.$color-settings-chevron;
+}
+
+.settings-row__spinner {
+  flex: 0 0 auto;
+  color: rgb(var(--v-theme-primary));
+}
+
+.settings-row--busy {
+  cursor: progress;
 }
 
 .settings-row__value {

@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createDataExportService } from '../data-export.service'
 import { createDataImportService, type DataImportDependencies } from '../data-import.service'
 import type { ExportData } from '../export-format'
-import { CHPPIL_ID, IMPORT_FIXTURE, LUNA_ID, MILO_ID } from './import-fixture'
+import { CHPPIL_ID, IMPORT_FIXTURE, LUNA_ID, MILO_ID, MILO_WEIGHT_ID } from './import-fixture'
 import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory-db'
 import { createAnimalsRepository } from '@/features/animals/animals.repository'
 import { createTreatmentsRepository } from '@/features/treatments/treatments.repository'
@@ -124,8 +124,64 @@ describe('data-import.service', () => {
 
       await expect(repositories.animals.getById(LUNA_ID)).resolves.toMatchObject({
         photoPath: 'locale.jpg',
-        updatedAt: IMPORT_FIXTURE.animals[0]!.updatedAt,
       })
+    })
+
+    it('n’attribue pas une photo déjà utilisée par un autre animal', async () => {
+      const { service } = setup({ photoExists: async () => true })
+      const rex = await repositories.animals.create({
+        name: 'Rex',
+        species: 'dog',
+        photoPath: LUNA_PHOTO,
+      })
+      const memePhoto: ExportData = {
+        ...IMPORT_FIXTURE,
+        animals: IMPORT_FIXTURE.animals.map((animal) => ({ ...animal, photoFileName: LUNA_PHOTO })),
+      }
+
+      await service.importData(memePhoto, 'merge')
+
+      const photos = (await repositories.animals.list()).map(({ id, photoPath }) => [id, photoPath])
+      expect(photos).toEqual([
+        [LUNA_ID, null],
+        [MILO_ID, null],
+        [rex.id, LUNA_PHOTO],
+      ])
+    })
+
+    it('ne donne une même photo du fichier qu’à un seul animal', async () => {
+      const { service } = setup({ photoExists: async () => true })
+      const memePhoto: ExportData = {
+        ...IMPORT_FIXTURE,
+        animals: IMPORT_FIXTURE.animals.map((animal) => ({ ...animal, photoFileName: LUNA_PHOTO })),
+      }
+
+      await service.importData(memePhoto, 'replace')
+
+      const photos = (await repositories.animals.list()).map(({ photoPath }) => photoPath)
+      expect(photos).toEqual([LUNA_PHOTO, null])
+    })
+  })
+
+  describe('dates', () => {
+    it('une entrée nouvelle garde ses dates, une entrée déjà présente prend la date de l’import', async () => {
+      const { service } = setup()
+      await service.importData(IMPORT_FIXTURE, 'replace')
+      await expect(carnet()).resolves.toEqual(withoutPhotos(IMPORT_FIXTURE))
+
+      await service.importData(IMPORT_FIXTURE, 'replace')
+
+      const data = await carnet()
+      const rows = [
+        ...data.animals,
+        ...data.vaccinations,
+        ...data.treatments,
+        ...data.weightEntries,
+      ]
+      expect(rows.every(({ updatedAt }) => updatedAt === NOW.toISOString())).toBe(true)
+      expect(data.animals.map(({ createdAt }) => createdAt)).toEqual(
+        IMPORT_FIXTURE.animals.map(({ createdAt }) => createdAt),
+      )
     })
   })
 
@@ -166,7 +222,36 @@ describe('data-import.service', () => {
       await expect(repositories.animals.getById(MILO_ID)).resolves.toEqual(miloModifie)
       await expect(repositories.vaccinations.getById(CHPPIL_ID)).resolves.toMatchObject({
         name: 'CHPPiL + rage',
+        createdAt: IMPORT_FIXTURE.vaccinations[0]!.createdAt,
+        updatedAt: NOW.toISOString(),
       })
+    })
+
+    it('restaure le carnet supprimé avec un animal que le fichier rend à nouveau visible', async () => {
+      const { service } = setup()
+      await service.importData(IMPORT_FIXTURE, 'replace')
+      await repositories.weight.remove(MILO_WEIGHT_ID)
+      const deletedAt = '2026-09-10T00:00:00.000Z'
+      await repositories.animals.remove(
+        MILO_ID,
+        [
+          repositories.vaccinations.markDeletedByAnimalStatement(MILO_ID, deletedAt),
+          repositories.weight.markDeletedByAnimalStatement(MILO_ID, deletedAt),
+        ],
+        deletedAt,
+      )
+      const miloPlusRecent: ExportData = {
+        ...IMPORT_FIXTURE,
+        animals: IMPORT_FIXTURE.animals.map((animal) =>
+          animal.id === MILO_ID ? { ...animal, updatedAt: '2026-09-12T00:00:00.000Z' } : animal,
+        ),
+      }
+
+      await service.importData(miloPlusRecent, 'merge')
+
+      await expect(repositories.animals.getById(MILO_ID)).resolves.not.toBeNull()
+      await expect(repositories.vaccinations.getById(CHPPIL_ID)).resolves.not.toBeNull()
+      await expect(repositories.weight.getById(MILO_WEIGHT_ID)).resolves.toBeNull()
     })
 
     it('laisse supprimé un animal effacé après l’export, et n’importe pas son carnet', async () => {
@@ -198,7 +283,11 @@ describe('data-import.service', () => {
 
       await service.importData(IMPORT_FIXTURE, 'replace')
 
-      await expect(carnet()).resolves.toEqual(withoutPhotos(IMPORT_FIXTURE))
+      const data = await carnet()
+      expect(data.animals.map(({ id, name }) => [id, name])).toEqual([
+        [LUNA_ID, 'Luna'],
+        [MILO_ID, 'Milo'],
+      ])
       const rexVersion = (await repositories.animals.listVersions()).find(({ id }) => id === rex.id)
       expect(rexVersion?.deletedAt).toBe(NOW.toISOString())
       const vaccins = await repositories.vaccinations.listVersions()
@@ -207,14 +296,21 @@ describe('data-import.service', () => {
     })
   })
 
-  it('n’écrit rien et ne touche pas aux rappels si l’écriture échoue', async () => {
+  it('n’écrit rien et ne touche pas aux rappels si une contrainte de la base casse', async () => {
     const { service, syncReminders } = setup()
     const rex = await repositories.animals.create({ name: 'Rex', species: 'dog' })
-    vi.spyOn(repositories.animals, 'runImport').mockRejectedValueOnce(new Error('disque plein'))
+    const refuseParLaBase = {
+      ...IMPORT_FIXTURE,
+      animals: [
+        ...IMPORT_FIXTURE.animals,
+        { ...IMPORT_FIXTURE.animals[1]!, id: crypto.randomUUID(), species: 'rabbit' },
+      ],
+    } as unknown as ExportData
 
-    await expect(service.importData(IMPORT_FIXTURE, 'replace')).rejects.toThrow('disque plein')
+    await expect(service.importData(refuseParLaBase, 'replace')).rejects.toThrow(/CHECK/)
 
     await expect(repositories.animals.list()).resolves.toEqual([rex])
+    await expect(repositories.animals.listVersions()).resolves.toHaveLength(1)
     expect(syncReminders).not.toHaveBeenCalled()
   })
 })

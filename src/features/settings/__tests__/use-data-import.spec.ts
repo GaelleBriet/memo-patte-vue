@@ -86,6 +86,33 @@ describe('useDataImport', () => {
     expect(importData).not.toHaveBeenCalled()
   })
 
+  it('refuse un fichier de plus de 10 Mo sans le lire', async () => {
+    const text = vi.fn<() => Promise<string>>()
+    const flow = setup()
+
+    await flow.selectFile({ size: 10 * 1024 * 1024 + 1, text } as unknown as File)
+
+    expect(text).not.toHaveBeenCalled()
+    expect(flow.error.value).toBe('invalid')
+  })
+
+  it('reste occupé pendant tout un import direct et ignore un second fichier', async () => {
+    hasLocalData.mockResolvedValue(false)
+    let finish!: () => void
+    importData.mockImplementation(() => new Promise<void>((resolve) => (finish = resolve)))
+    const flow = setup()
+
+    const pending = flow.selectFile(fichier(importFixtureJson()))
+    expect(flow.isImporting.value).toBe(true)
+    await flow.selectFile(fichier(importFixtureJson()))
+    await vi.waitFor(() => expect(importData).toHaveBeenCalledOnce())
+    finish()
+    await pending
+
+    expect(importData).toHaveBeenCalledOnce()
+    expect(flow.isImporting.value).toBe(false)
+  })
+
   it('signale un échec d’écriture et ne prévient pas d’un import', async () => {
     importData.mockRejectedValue(new Error('disque plein'))
     const flow = setup()

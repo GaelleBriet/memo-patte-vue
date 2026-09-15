@@ -5,22 +5,26 @@ import { useI18n } from 'vue-i18n'
 import ChoiceCards from './ChoiceCards.vue'
 import type { ImportMode } from './data-import.service'
 import { useDataImport } from './use-data-import'
-import { useAnimalsStore } from '@/features/animals/animals.store'
 import BottomSheet from '@/shared/BottomSheet.vue'
 import { showToast } from '@/shared/toast'
+
+const emit = defineEmits<{ imported: [] }>()
 
 /** Les anciens Android typent un `.json` en octet-stream ou en texte : sans eux, le fichier serait grisé. */
 const ACCEPTED_TYPES = '.json,application/json,application/octet-stream,text/plain'
 
+const busy = defineModel<boolean>('busy', { default: false })
+
 const { t } = useI18n()
-const animals = useAnimalsStore()
 const fileInput = useTemplateRef<HTMLInputElement>('fileInput')
 
 const { step, error, isImporting, selectFile, choose, confirmReplace, cancelReplace, close } =
   useDataImport(undefined, () => {
-    void animals.load()
     showToast(t('settings.import.success'))
+    emit('imported')
   })
+
+watch(isImporting, (value) => (busy.value = value))
 
 const modes = computed(() => [
   {

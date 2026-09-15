@@ -1,26 +1,27 @@
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
-import { createPinia, setActivePinia } from 'pinia'
-import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import type * as DataImport from '../data-import.service'
 import type { DataImportService } from '../data-import.service'
 import ImportSheet from '../ImportSheet.vue'
 import { IMPORT_FIXTURE, importFixtureJson } from './import-fixture'
 import i18n from '@/core/i18n'
 import vuetify from '@/core/theme/vuetify'
-import { useAnimalsStore } from '@/features/animals/animals.store'
 import { dismissToast, toastMessage } from '@/shared/toast'
 
 const hasLocalData = vi.hoisted(() => vi.fn<() => Promise<boolean>>())
 const importData = vi.hoisted(() => vi.fn<DataImportService['importData']>())
 
-vi.mock('../data-import.service', () => ({ dataImportService: { hasLocalData, importData } }))
+type DataImportModule = typeof DataImport
+
+vi.mock('../data-import.service', async (importOriginal) => ({
+  ...(await importOriginal<DataImportModule>()),
+  dataImportService: { hasLocalData, importData },
+}))
 
 let wrapper: VueWrapper<InstanceType<typeof ImportSheet>> | null = null
-let loadAnimals: MockInstance
 
 beforeEach(() => {
-  setActivePinia(createPinia())
-  loadAnimals = vi.spyOn(useAnimalsStore(), 'load').mockResolvedValue(true)
   hasLocalData.mockReset().mockResolvedValue(true)
   importData.mockReset().mockResolvedValue(undefined)
   dismissToast()
@@ -105,16 +106,23 @@ describe('ImportSheet', () => {
     expect(feuille()).toBeNull()
   })
 
-  it('importe directement dans une base vide, puis recharge les animaux', async () => {
+  it('importe directement dans une base vide, signale l’écriture puis prévient', async () => {
     hasLocalData.mockResolvedValue(false)
+    let finish!: () => void
+    importData.mockImplementation(() => new Promise<void>((resolve) => (finish = resolve)))
     await monter()
 
     await choisirFichier(importFixtureJson())
+    expect(wrapper!.emitted('update:busy')).toEqual([[true]])
+
+    finish()
+    await flushPromises()
 
     expect(importData).toHaveBeenCalledWith(IMPORT_FIXTURE, 'replace')
     expect(feuille()).toBeNull()
     expect(toastMessage.value).toBe('Données importées')
-    expect(loadAnimals).toHaveBeenCalled()
+    expect(wrapper!.emitted('imported')).toHaveLength(1)
+    expect(wrapper!.emitted('update:busy')).toEqual([[true], [false]])
   })
 
   it('propose fusionner ou remplacer, Continuer grisé tant que rien n’est choisi', async () => {
@@ -205,5 +213,6 @@ describe('ImportSheet', () => {
       'L’import n’a pas abouti. Tes données n’ont pas changé.',
     )
     expect(toastMessage.value).toBeNull()
+    expect(wrapper!.emitted('imported')).toBeUndefined()
   })
 })

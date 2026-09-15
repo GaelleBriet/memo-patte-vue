@@ -1,8 +1,14 @@
 import { ref } from 'vue'
 
-import { dataImportService, type DataImportService, type ImportMode } from './data-import.service'
+import {
+  dataImportService,
+  MAX_IMPORT_FILE_BYTES,
+  parseExportFile,
+  type DataImportService,
+  type ImportFileError,
+  type ImportMode,
+} from './data-import.service'
 import type { ExportData } from './export-format'
-import { parseExportFile, type ImportFileError } from './import-format'
 
 export type ImportStep = 'idle' | 'choice' | 'confirm' | 'error'
 export type ImportError = ImportFileError | 'failed'
@@ -23,7 +29,6 @@ export function useDataImport(
   }
 
   async function write(data: ExportData, mode: ImportMode): Promise<void> {
-    isImporting.value = true
     try {
       await service.importData(data, mode)
       pending = null
@@ -32,14 +37,22 @@ export function useDataImport(
     } catch (cause) {
       console.warn('Import impossible :', cause)
       fail('failed')
+    }
+  }
+
+  async function busy(task: () => Promise<void>): Promise<void> {
+    if (isImporting.value) return
+    isImporting.value = true
+    try {
+      await task()
     } finally {
       isImporting.value = false
     }
   }
 
-  async function selectFile(file: File): Promise<void> {
-    if (isImporting.value) return
+  async function readAndImport(file: File): Promise<void> {
     error.value = null
+    if (file.size > MAX_IMPORT_FILE_BYTES) return fail('invalid')
     let text: string
     try {
       text = await file.text()
@@ -63,19 +76,25 @@ export function useDataImport(
     step.value = 'choice'
   }
 
+  function selectFile(file: File): Promise<void> {
+    return busy(() => readAndImport(file))
+  }
+
   async function choose(mode: ImportMode): Promise<void> {
     if (isImporting.value || pending === null || step.value !== 'choice') return
     if (mode === 'replace') {
       step.value = 'confirm'
       return
     }
-    await write(pending, 'merge')
+    const data = pending
+    await busy(() => write(data, 'merge'))
   }
 
   async function confirmReplace(): Promise<void> {
     if (isImporting.value || pending === null || step.value !== 'confirm') return
+    const data = pending
     step.value = 'choice'
-    await write(pending, 'replace')
+    await busy(() => write(data, 'replace'))
   }
 
   function cancelReplace(): void {
