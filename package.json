@@ -13,7 +13,7 @@
     "test:unit": "vitest",
     "test:unit:run": "vitest run",
     "build-only": "vite build",
-    "test:build": "node scripts/check-no-fixtures-in-dist.mjs",
+    "test:build": "node scripts/check-no-dev-tools-in-dist.mjs",
     "type-check": "vue-tsc --build",
     "lint": "run-s lint:oxlint lint:eslint",
     "lint:oxlint": "oxlint . --fix",
