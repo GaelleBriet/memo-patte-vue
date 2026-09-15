@@ -135,6 +135,29 @@ describe('toCsvTables', () => {
     ])
   })
 
+  it('neutralise une formule de tableur dans un champ texte, jamais dans un nombre ou une date', () => {
+    const data = {
+      ...EXPORT_FIXTURE,
+      animals: [
+        { ...EXPORT_FIXTURE.animals[1]!, name: '=HYPERLINK("x")', breed: '+33 croisé' },
+        { ...EXPORT_FIXTURE.animals[0]!, name: '-Luna', breed: '@home' },
+      ],
+      weightEntries: [{ ...EXPORT_FIXTURE.weightEntries[0]!, weightKg: -1 }],
+      vaccinations: [
+        { ...EXPORT_FIXTURE.vaccinations[0]!, name: '\tRage' },
+        { ...EXPORT_FIXTURE.vaccinations[1]!, name: '\rToux' },
+      ],
+    }
+    const tables = toCsvTables(data)
+
+    expect(lines(tables['animaux.csv'])[1]).toContain(`;"'=HYPERLINK(""x"")";dog;'+33 croisé;`)
+    expect(lines(tables['animaux.csv'])[2]).toContain(";'-Luna;cat;'@home;2019-03-02;3,8;")
+    expect(lines(tables['poids.csv'])[1]).toMatch(/;2025-12-24;-1$/)
+    expect(tables['vaccins.csv']).toContain(";'\tRage;")
+    expect(tables['vaccins.csv']).toContain(`;"'\rToux";`)
+    expect(JSON.parse(toJsonExport(data, META)).animals[0].name).toBe('=HYPERLINK("x")')
+  })
+
   it('protège un retour à la ligne dans un champ libre', () => {
     const data = {
       ...EXPORT_FIXTURE,
@@ -149,7 +172,6 @@ describe('buildExportFile', () => {
     const file = buildExportFile('json', EXPORT_FIXTURE, META)
 
     expect(file.name).toBe('memopatte-export-2026-09-15.json')
-    expect(file.mimeType).toBe('application/json')
     expect(file.content).toBe(toJsonExport(EXPORT_FIXTURE, META))
   })
 
@@ -157,7 +179,6 @@ describe('buildExportFile', () => {
     const file = buildExportFile('csv', EXPORT_FIXTURE, META)
 
     expect(file.name).toBe('memopatte-export-2026-09-15.zip')
-    expect(file.mimeType).toBe('application/zip')
     expect(file.content).toBeInstanceOf(Uint8Array)
 
     const entries = unzipSync(file.content as Uint8Array)

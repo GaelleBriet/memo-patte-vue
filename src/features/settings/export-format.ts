@@ -71,7 +71,6 @@ export type ExportMeta = {
 
 export type ExportFile = {
   name: string
-  mimeType: string
   content: string | Uint8Array
 }
 
@@ -127,11 +126,14 @@ type CsvValue = string | number | null
 const UTF8_BOM = '\uFEFF'
 const CSV_SEPARATOR = ';'
 const CSV_NEEDS_QUOTES = /[;"\r\n]/
+/** Un tableur exécuterait ces cellules comme des formules (injection CSV, OWASP). */
+const CSV_FORMULA_START = /^[=+\-@\t\r]/
 
 function csvCell(value: CsvValue): string {
   if (value === null) return ''
   if (typeof value === 'number') return String(value).replace('.', ',')
-  return CSV_NEEDS_QUOTES.test(value) ? `"${value.replaceAll('"', '""')}"` : value
+  const text = CSV_FORMULA_START.test(value) ? `'${value}` : value
+  return CSV_NEEDS_QUOTES.test(text) ? `"${text.replaceAll('"', '""')}"` : text
 }
 
 function csv(header: string[], rows: CsvValue[][]): string {
@@ -232,12 +234,12 @@ export function buildExportFile(
   const name = exportFileName(exportFormat, meta.exportedAt)
 
   if (exportFormat === 'json') {
-    return { name, mimeType: 'application/json', content: toJsonExport(data, meta) }
+    return { name, content: toJsonExport(data, meta) }
   }
 
   const entries: Zippable = {}
   for (const [fileName, content] of Object.entries(toCsvTables(data))) {
     entries[fileName] = [strToU8(content), { mtime: meta.exportedAt }]
   }
-  return { name, mimeType: 'application/zip', content: zipSync(entries) }
+  return { name, content: zipSync(entries) }
 }

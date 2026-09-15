@@ -31,7 +31,7 @@ describe('deliverExportFile', () => {
   it('écrit un JSON en UTF-8 dans le cache de l’app puis ouvre la feuille de partage', async () => {
     await expect(
       deliverExportFile(
-        { name: 'memopatte-export-2026-09-15.json', mimeType: 'application/json', content: '{}' },
+        { name: 'memopatte-export-2026-09-15.json', content: '{}' },
         'Partager via',
       ),
     ).resolves.toBe('shared')
@@ -53,7 +53,6 @@ describe('deliverExportFile', () => {
     await deliverExportFile(
       {
         name: 'memopatte-export-2026-09-15.zip',
-        mimeType: 'application/zip',
         content: new Uint8Array([0x50, 0x4b, 0x03, 0x04]),
       },
       'Partager via',
@@ -70,10 +69,7 @@ describe('deliverExportFile', () => {
   it('efface les exports précédents avant d’écrire, même s’il n’y en a aucun', async () => {
     vi.mocked(Filesystem.rmdir).mockRejectedValueOnce(new Error('Folder does not exist.'))
 
-    await deliverExportFile(
-      { name: 'a.json', mimeType: 'application/json', content: '{}' },
-      'Partager via',
-    )
+    await deliverExportFile({ name: 'a.json', content: '{}' }, 'Partager via')
 
     expect(Filesystem.rmdir).toHaveBeenCalledWith({
       path: 'exports',
@@ -88,16 +84,16 @@ describe('deliverExportFile', () => {
   it('renvoie « cancelled » quand la feuille de partage est fermée sans choix', async () => {
     vi.mocked(Share.share).mockRejectedValueOnce(new Error('Share canceled'))
 
-    await expect(
-      deliverExportFile({ name: 'a.json', mimeType: 'application/json', content: '{}' }, 'x'),
-    ).resolves.toBe('cancelled')
+    await expect(deliverExportFile({ name: 'a.json', content: '{}' }, 'x')).resolves.toBe(
+      'cancelled',
+    )
   })
 
   it('lève sur toute autre erreur', async () => {
     vi.mocked(Filesystem.writeFile).mockRejectedValueOnce(new Error('disque plein'))
 
-    await expect(
-      deliverExportFile({ name: 'a.json', mimeType: 'application/json', content: '{}' }, 'x'),
-    ).rejects.toThrow('disque plein')
+    await expect(deliverExportFile({ name: 'a.json', content: '{}' }, 'x')).rejects.toThrow(
+      'disque plein',
+    )
   })
 })
