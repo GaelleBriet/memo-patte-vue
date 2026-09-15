@@ -1,6 +1,6 @@
-// Vérifie qu'aucune trace des fixtures de développement (`src/core/dev/`) ne part
-// en production. Lit le `dist/` déjà produit par `pnpm build` / `pnpm build-only`,
-// sans relancer de build : `pnpm build-only && pnpm test:build`.
+// Vérifie qu'aucun outil de développement ne part en production : ni les fixtures
+// (`src/core/dev/`), ni la SQLite du navigateur (`jeep-sqlite`, `sql-wasm.wasm`).
+// Lit le `dist/` déjà produit, sans relancer de build : `pnpm build-only && pnpm test:build`.
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join, relative } from 'node:path'
 
@@ -15,36 +15,45 @@ const ASSETS = join(DIST, 'assets')
 const DEV_MARKERS = ['memo-patte:demo-carnet', 'memo-patte:fixtures-token']
 const DEV_CHUNK = /fixtures|demo-carnet/
 
+/** Pas `jeep-sqlite` : le plugin SQLite web, légitime dans le build, cite ce nom. */
+const WEB_SQLITE_MARKERS = ['sql-wasm.wasm']
+const WEB_SQLITE_FILE = /jeep-sqlite|\.wasm$/
+
 if (!existsSync(ASSETS)) {
   console.error(`✗ ${ASSETS} introuvable : lancer \`pnpm build-only\` avant \`pnpm test:build\`.`)
   process.exit(1)
 }
 
-const files = readdirSync(ASSETS, { withFileTypes: true, recursive: true })
-  .filter((entry) => entry.isFile() && /\.(js|css)$/.test(entry.name))
+const allFiles = readdirSync(DIST, { withFileTypes: true, recursive: true })
+  .filter((entry) => entry.isFile())
   .map((entry) => join(entry.parentPath, entry.name))
 
+const codeFiles = allFiles.filter((file) => file.startsWith(ASSETS) && /\.(js|css)$/.test(file))
+
 const failures = []
-for (const file of files) {
+for (const file of allFiles) {
+  const name = relative(DIST, file)
+  if (WEB_SQLITE_FILE.test(name)) failures.push(`${name} : SQLite du navigateur dans le build`)
+}
+
+for (const file of codeFiles) {
   const name = relative(DIST, file)
   if (DEV_CHUNK.test(name)) failures.push(`${name} : chunk des fixtures présent dans le build`)
 
   const content = readFileSync(file, 'utf8')
-  for (const marker of DEV_MARKERS) {
+  for (const marker of [...DEV_MARKERS, ...WEB_SQLITE_MARKERS]) {
     if (content.includes(marker)) failures.push(`${name} : « ${marker} » trouvé`)
   }
 }
 
-if (files.length === 0) failures.push(`${ASSETS} : aucun fichier .js ou .css à vérifier`)
+if (codeFiles.length === 0) failures.push(`${ASSETS} : aucun fichier .js ou .css à vérifier`)
 
 if (failures.length > 0) {
-  console.error(
-    '✗ Des traces des fixtures de développement sont parties dans le build de production :',
-  )
+  console.error('✗ Des outils de développement sont partis dans le build de production :')
   for (const failure of failures) console.error(`  - ${failure}`)
   process.exit(1)
 }
 
 process.stdout.write(
-  `✓ Aucune trace des fixtures de développement dans ${files.length} fichiers de ${ASSETS}\n`,
+  `✓ Ni fixtures ni SQLite du navigateur dans les ${allFiles.length} fichiers de ${DIST}\n`,
 )

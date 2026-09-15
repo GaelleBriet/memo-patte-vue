@@ -3,9 +3,12 @@ import { CapacitorSQLite } from '@capacitor-community/sqlite'
 
 const JEEP_SQLITE = 'jeep-sqlite'
 
-/** Outil de prévisualisation `pnpm dev` : sans effet ailleurs que sur la plateforme `web`. */
+/** Outil de prévisualisation `pnpm dev` : sans effet hors du web, rejette sur le web hors du serveur de dev. */
 export async function prepareWebSqlite(): Promise<void> {
   if (Capacitor.getPlatform() !== 'web') return
+  if (!import.meta.env.DEV) {
+    throw new Error('SQLite web indisponible hors du serveur de dev')
+  }
 
   const { defineCustomElements } = await import('jeep-sqlite/loader')
   await defineCustomElements(window)

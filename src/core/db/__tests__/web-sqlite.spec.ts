@@ -101,6 +101,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals()
+  vi.unstubAllEnvs()
   document.body.innerHTML = ''
 })
 
@@ -140,6 +141,27 @@ describe('prepareWebSqlite', () => {
     await withinDelay(prepareWebSqlite())
 
     expect(document.querySelectorAll('jeep-sqlite')).toHaveLength(1)
+  })
+
+  it('hors du serveur de dev, rejette sur le web sans charger jeep-sqlite', async () => {
+    platform.current = 'web'
+    vi.stubEnv('DEV', false)
+    loader.defineCustomElements.mockImplementation(async () => registerJeepSqlite())
+    const { prepareWebSqlite } = await importFresh()
+
+    await expect(withinDelay(prepareWebSqlite())).rejects.toThrow(
+      'SQLite web indisponible hors du serveur de dev',
+    )
+    expect(loader.defineCustomElements).not.toHaveBeenCalled()
+    expect(plugin.initWebStore).not.toHaveBeenCalled()
+  })
+
+  it('hors du serveur de dev, ne fait toujours rien sur Android', async () => {
+    vi.stubEnv('DEV', false)
+    const { prepareWebSqlite } = await importFresh()
+
+    await expect(prepareWebSqlite()).resolves.toBeUndefined()
+    expect(loader.defineCustomElements).not.toHaveBeenCalled()
   })
 
   it("rejette explicitement, sans attendre, si le chargeur n'a pas enregistré jeep-sqlite", async () => {
