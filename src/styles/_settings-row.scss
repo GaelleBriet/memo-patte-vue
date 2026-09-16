@@ -34,6 +34,15 @@ a.settings-row {
   border-top: 1px solid tokens.$color-divider;
 }
 
+// Libellé long, qui passe à la ligne : l'icône et le chevron se calent sur la première.
+.settings-row--multiline {
+  align-items: flex-start;
+
+  .settings-row__chevron {
+    margin-top: 1px;
+  }
+}
+
 .settings-row__icon {
   flex: 0 0 auto;
   color: rgb(var(--v-theme-primary));

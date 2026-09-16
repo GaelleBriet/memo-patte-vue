@@ -160,17 +160,14 @@ describe('SettingsView', () => {
       expect(wrapper.find('.settings-row--plus-discover').exists()).toBe(false)
     })
 
-    it('range « Gérer mon abonnement » dans Confidentialité, sous les statistiques', async () => {
+    it('range « Gérer mon abonnement » dans MémoPatte Plus, et non dans Confidentialité', async () => {
       writeStoredPlusStatus({ plan: 'annual', expiresAt: '2027-09-14T10:00:00Z' })
       const wrapper = await monter()
-      const ligne = wrapper.get('.settings-row--manage-subscription')
-      const carte = ligne.element.closest('.section-card')
-      const lignes = [...carte!.querySelectorAll('.settings-row')]
+      const carte = wrapper
+        .get('.settings-row--manage-subscription')
+        .element.closest('.section-card')
 
-      expect(carte?.querySelector('.section-card__title')?.textContent).toBe('Confidentialité')
-      expect(lignes.indexOf(ligne.element)).toBe(
-        lignes.findIndex((row) => row.classList.contains('settings-row--analytics')) + 1,
-      )
+      expect(carte?.querySelector('.section-card__title')?.textContent).toBe('MémoPatte Plus')
     })
   })
 
@@ -195,6 +192,15 @@ describe('SettingsView', () => {
       const wrapper = await monter()
 
       expect(interrupteur(wrapper).attributes('role')).toBe('switch')
+    })
+
+    it('ne pose aucun voile sous le doigt pendant l’appui', async () => {
+      const wrapper = await monter()
+      const zone = wrapper.get('.settings-row--analytics .v-selection-control__input')
+
+      await zone.trigger('mousedown')
+
+      expect(zone.find('.v-ripple__container').exists()).toBe(false)
     })
 
     it.each([

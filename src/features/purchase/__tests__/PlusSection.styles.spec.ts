@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
+import { pathToFileURL } from 'node:url'
 import { compileString } from 'sass'
 import { describe, expect, it } from 'vitest'
 
@@ -14,18 +15,32 @@ function declaration(css: string, selecteur: string, propriete: string): string 
   return undefined
 }
 
-describe('PlusSection — contrat de style', () => {
-  it('étend la zone de tap de « Réactiver Plus » à tout le bandeau', () => {
-    const sfc = readFileSync(
-      resolve(process.cwd(), 'src/features/purchase/PlusSection.vue'),
-      'utf8',
-    )
-    const bloc = /<style[^>]*lang="scss">([\s\S]*?)<\/style>/.exec(sfc)![1]!
-    const css = compileString(bloc, { importers: [aliasSrc] }).css
+function styleCompile(chemin: string): string {
+  const fichier = resolve(process.cwd(), chemin)
+  const source = readFileSync(fichier, 'utf8')
+  const bloc = chemin.endsWith('.vue')
+    ? /<style[^>]*lang="scss">([\s\S]*?)<\/style>/.exec(source)![1]!
+    : source
+  return compileString(bloc, { importers: [aliasSrc], url: pathToFileURL(fichier) }).css
+}
 
-    expect(declaration(css, '.plus-paused', 'position')).toBe('relative')
-    expect(declaration(css, '.plus-paused__action::after', 'position')).toBe('absolute')
-    expect(declaration(css, '.plus-paused__action::after', 'inset')).toBe('0')
-    expect(declaration(css, '.plus-paused__action:focus-visible', 'outline')).toBe('none')
+describe('PlusSection — contrat de style', () => {
+  it('teinte le bandeau « en pause » comme la maquette, et non en gris', () => {
+    const css = styleCompile('src/features/purchase/PlusSection.vue')
+
+    expect(declaration(css, '.plus-paused', 'background')).toBe('#def1f2')
+    expect(declaration(css, '.plus-paused', 'border')).toBe('1px solid #b4d5d7')
+  })
+
+  it('cale l’icône du bandeau sur la première ligne de texte', () => {
+    const css = styleCompile('src/features/purchase/PlusSection.vue')
+
+    expect(declaration(css, '.plus-paused__body', 'align-items')).toBe('flex-start')
+  })
+
+  it('cale l’icône d’une ligne de réglage à libellé long sur sa première ligne', () => {
+    const css = styleCompile('src/styles/_settings-row.scss')
+
+    expect(declaration(css, '.settings-row--multiline', 'align-items')).toBe('flex-start')
   })
 })

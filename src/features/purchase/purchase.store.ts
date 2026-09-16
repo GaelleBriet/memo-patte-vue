@@ -7,21 +7,24 @@ import {
   type PlusOffer,
   type PurchaseOutcome,
 } from './billing.service'
-import { NO_PLUS, type PlusStatus } from './plus-status'
-import { readStoredPlusStatus, writeStoredPlusStatus } from './plus-status-storage'
+import { NO_PLUS, subscriptionOf, type PlusStatus, type SubscriptionPlan } from './plus-status'
+import {
+  readStoredPlusStatus,
+  writeStoredPlusStatus,
+  type StoredPlusStatus,
+} from './plus-status-storage'
 
 export const usePurchaseStore = defineStore('purchase', () => {
-  const stored = ref<PlusStatus>(readStoredPlusStatus())
+  const stored = ref<StoredPlusStatus>(readStoredPlusStatus())
   /** Une échéance passée se lit « aucun » ; le stocké reste, pour retrouver un renouvellement. */
   const status = computed<PlusStatus>(() => {
-    const { expiresAt } = stored.value
-    return expiresAt !== null && Date.parse(expiresAt) <= Date.now() ? NO_PLUS : stored.value
+    const { plan, expiresAt } = stored.value
+    return expiresAt !== null && Date.parse(expiresAt) <= Date.now() ? NO_PLUS : { plan, expiresAt }
   })
-  /** Plan d'un abonnement échu, que `status` lit déjà « aucun » : de quoi écrire « expiré ». */
-  const expiredPlan = computed<PaidPlan | null>(() => {
-    const { plan } = stored.value
-    return status.value.plan === 'none' && plan !== 'none' ? plan : null
-  })
+  /** Abonnement échu, que `status` lit déjà « aucun » : de quoi écrire « expiré ». */
+  const expiredPlan = computed<SubscriptionPlan | null>(() =>
+    status.value.plan === 'none' ? stored.value.lastSubscription : null,
+  )
   const available = billingService.isAvailable()
   const offers = ref<PlusOffer[]>([])
   /** Échec du dernier chargement des offres : les autres actions lèvent. */
@@ -31,8 +34,11 @@ export const usePurchaseStore = defineStore('purchase', () => {
 
   function record(next: PlusStatus): PlusStatus {
     generation += 1
-    stored.value = next
-    writeStoredPlusStatus(next)
+    stored.value = {
+      ...next,
+      lastSubscription: next.plan === 'none' ? stored.value.lastSubscription : subscriptionOf(next),
+    }
+    writeStoredPlusStatus(stored.value)
     return next
   }
 
@@ -43,9 +49,9 @@ export const usePurchaseStore = defineStore('purchase', () => {
     offers,
     error,
 
-    /** Sans statut Plus connu, ne contacte pas RevenueCat. Ne lève pas. */
+    /** Sans droit payant connu, même échu, ne contacte pas RevenueCat. Ne lève pas. */
     async verifyKnownStatus(): Promise<boolean> {
-      if (stored.value.plan === 'none') return true
+      if (stored.value.plan === 'none' && stored.value.lastSubscription === null) return true
       const startedAt = generation
       try {
         const next = await billingService.fetchStatus()

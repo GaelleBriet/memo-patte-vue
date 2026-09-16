@@ -287,6 +287,13 @@ describe('PlusView — offres indisponibles', () => {
     expect(wrapper.find('.plus__restore').exists()).toBe(false)
   })
 
+  it('n’annonce pas « trois façons de payer » quand il n’y en a aucune', async () => {
+    service.isAvailable.mockReturnValue(false)
+    service.listOffers.mockResolvedValue([])
+
+    expect((await monter()).find('.plus__offers-title').exists()).toBe(false)
+  })
+
   it('propose de réessayer quand le store a répondu par une erreur', async () => {
     service.listOffers.mockRejectedValueOnce(new BillingError('failed'))
     const wrapper = await monter()

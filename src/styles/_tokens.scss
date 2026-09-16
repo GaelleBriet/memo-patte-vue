@@ -103,6 +103,11 @@ $color-reminders-off-surface: #f2f0ec; // Fond du bandeau « rappels désactivé
 $color-reminders-off-border: #e1ddd8; // Bordure de ce bandeau
 $color-reminders-off-text: #47413c; // Première ligne de ce bandeau
 
+// Bandeau d'information teinté (sauvegarde en pause…)
+$color-notice-surface: #def1f2; // Fond d'un bandeau d'information
+$color-notice-border: #b4d5d7; // Bordure de ce bandeau
+$radius-notice: 16px; // Coins de ce bandeau
+
 // Paramètres (lignes de réglage, feuille d'export)
 $height-settings-row: 58px; // Ligne d'une carte de réglages (minimum)
 $color-settings-row-disabled: #9a948d; // Libellé et puce d'une ligne désactivée

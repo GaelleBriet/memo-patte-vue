@@ -8,7 +8,6 @@ import ImportSheet from './ImportSheet.vue'
 import { promptNotificationsIfReminders } from '@/app/reminders-priming'
 import { hasConsent, optIn, optOut } from '@/core/analytics'
 import { useAnimalsStore } from '@/features/animals/animals.store'
-import ManageSubscriptionSection from '@/features/purchase/ManageSubscriptionSection.vue'
 import PlusSection from '@/features/purchase/PlusSection.vue'
 import PushedScreen from '@/shared/PushedScreen.vue'
 import SectionCard from '@/shared/SectionCard.vue'
@@ -128,10 +127,10 @@ function goHome(): void {
             size="small"
             hide-details
             density="compact"
+            :ripple="false"
             @update:model-value="onShareAnalyticsChange"
           />
         </label>
-        <ManageSubscriptionSection />
       </SectionCard>
 
       <SectionCard :title="t('settings.about.title')">

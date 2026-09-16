@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
+import ManageSubscriptionSection from './ManageSubscriptionSection.vue'
 import { usePurchaseStore } from './purchase.store'
 import { formatNumericDate } from '@/shared/format'
 import SectionCard from '@/shared/SectionCard.vue'
@@ -56,119 +57,115 @@ async function restore(): Promise<void> {
 </script>
 
 <template>
-  <SectionCard :title="t('plus.title')">
-    <template #intro>
-      <div v-if="isPaused" class="plus-paused" role="status">
+  <div class="plus-section">
+    <div v-if="isPaused" class="plus-paused" role="status">
+      <p class="plus-paused__body">
         <v-icon class="plus-paused__icon" icon="ms:cloud_off" size="19" />
-        <div class="plus-paused__text">
-          <p class="plus-paused__body">{{ t('plus.settings.paused.body') }}</p>
-          <button type="button" class="plus-paused__action" @click="openPlus">
-            <span>{{ t('plus.settings.paused.action') }}</span>
-            <v-icon icon="ms:chevron_right" size="16" />
-          </button>
-        </div>
-      </div>
-    </template>
-
-    <button
-      v-if="canDiscover"
-      type="button"
-      class="settings-row settings-row--plus-discover"
-      @click="openPlus"
-    >
-      <v-icon class="settings-row__icon" icon="ms:workspace_premium" size="22" />
-      <span class="settings-row__text">
-        <span class="settings-row__label">{{ t('plus.settings.discover') }}</span>
-        <span class="settings-row__hint">{{ t('plus.settings.discoverHint') }}</span>
-      </span>
-      <v-icon class="settings-row__chevron" icon="ms:chevron_right" size="20" />
-    </button>
-    <div v-else-if="statusHint" class="settings-row settings-row--plus-status">
-      <v-icon class="settings-row__icon" icon="ms:workspace_premium" size="22" />
-      <span class="settings-row__text">
-        <span class="settings-row__label">{{ t('plus.title') }}</span>
-        <span class="settings-row__hint">{{ statusHint }}</span>
-      </span>
+        <span>{{ t('plus.settings.paused.body') }}</span>
+      </p>
+      <v-btn class="plus-paused__action" variant="flat" color="primary" @click="openPlus">
+        {{ t('plus.settings.paused.action') }}
+      </v-btn>
     </div>
 
-    <button
-      v-if="canRestore"
-      type="button"
-      class="settings-row settings-row--plus-restore"
-      :class="{ 'settings-row--busy': isRestoring }"
-      :disabled="isRestoring"
-      :aria-busy="isRestoring"
-      @click="restore"
-    >
-      <v-icon class="settings-row__icon" icon="ms:settings_backup_restore" size="22" />
-      <span class="settings-row__text">
-        <span class="settings-row__label">{{ t('plus.restore.action') }}</span>
-        <span v-if="isRestoring" class="settings-row__hint" role="status">
-          {{ t('plus.restore.busy') }}
+    <SectionCard :title="t('plus.title')">
+      <button
+        v-if="canDiscover"
+        type="button"
+        class="settings-row settings-row--plus-discover"
+        @click="openPlus"
+      >
+        <v-icon class="settings-row__icon" icon="ms:workspace_premium" size="22" />
+        <span class="settings-row__text">
+          <span class="settings-row__label">{{ t('plus.settings.discover') }}</span>
+          <span class="settings-row__hint">{{ t('plus.settings.discoverHint') }}</span>
         </span>
-      </span>
-      <v-progress-circular
-        v-if="isRestoring"
-        class="settings-row__spinner"
-        indeterminate
-        :size="18"
-        :width="2"
-      />
-    </button>
-  </SectionCard>
+        <v-icon class="settings-row__chevron" icon="ms:chevron_right" size="20" />
+      </button>
+      <button
+        v-else-if="statusHint"
+        type="button"
+        class="settings-row settings-row--plus-status"
+        @click="openPlus"
+      >
+        <v-icon class="settings-row__icon" icon="ms:workspace_premium" size="22" />
+        <span class="settings-row__text">
+          <span class="settings-row__label">{{ t('plus.title') }}</span>
+          <span class="settings-row__hint">{{ statusHint }}</span>
+        </span>
+        <v-icon class="settings-row__chevron" icon="ms:chevron_right" size="20" />
+      </button>
+
+      <ManageSubscriptionSection />
+
+      <button
+        v-if="canRestore"
+        type="button"
+        class="settings-row settings-row--plus-restore"
+        :class="{ 'settings-row--busy': isRestoring }"
+        :disabled="isRestoring"
+        :aria-busy="isRestoring"
+        @click="restore"
+      >
+        <v-icon class="settings-row__icon" icon="ms:settings_backup_restore" size="22" />
+        <span class="settings-row__text">
+          <span class="settings-row__label">{{ t('plus.restore.action') }}</span>
+          <span v-if="isRestoring" class="settings-row__hint" role="status">
+            {{ t('plus.restore.busy') }}
+          </span>
+        </span>
+        <v-progress-circular
+          v-if="isRestoring"
+          class="settings-row__spinner"
+          indeterminate
+          :size="18"
+          :width="2"
+        />
+      </button>
+    </SectionCard>
+  </div>
 </template>
 
 <style scoped lang="scss">
 @use '@/styles/tokens' as tokens;
 
-.plus-paused {
-  position: relative;
+.plus-section {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.plus-paused {
+  margin-inline: 20px;
+  padding: 14px 16px;
+  border: 1px solid tokens.$color-notice-border;
+  border-radius: tokens.$radius-notice;
+  background: tokens.$color-notice-surface;
+}
+
+.plus-paused__body {
+  display: flex;
+  align-items: flex-start;
   gap: 12px;
-  margin-bottom: 14px;
-  padding: 9px 16px;
-  border: 1px solid tokens.$color-reminders-off-border;
-  border-radius: 14px;
-  background: tokens.$color-reminders-off-surface;
+  margin: 0;
+  color: rgb(var(--v-theme-on-surface));
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.4;
 }
 
 .plus-paused__icon {
   flex: 0 0 auto;
-  color: tokens.$color-text-secondary;
-}
-
-.plus-paused__body {
-  margin: 0;
-  color: tokens.$color-reminders-off-text;
-  font-size: 13px;
-  font-weight: 700;
+  color: rgb(var(--v-theme-primary));
 }
 
 .plus-paused__action {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  margin-top: 3px;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: rgb(var(--v-theme-primary));
-  font-family: inherit;
-  font-size: 12.5px;
+  width: 100%;
+  height: 44px;
+  margin-top: 12px;
+  border-radius: 999px;
+  font-size: 15px;
   font-weight: 700;
-  cursor: pointer;
-
-  // Tout le bandeau répond au tap, bien au-delà des 48 px de la ligne de lien.
-  &::after {
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    content: '';
-  }
-
-  &:focus-visible {
-    outline: none;
-  }
+  letter-spacing: normal;
 }
 </style>
