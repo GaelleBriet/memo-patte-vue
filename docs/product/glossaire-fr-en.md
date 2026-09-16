@@ -44,6 +44,7 @@ et une relecture s'y réfère plutôt que de rouvrir le débat.
 | Foyer                    | your pets                        | household                                 | « household » est administratif là où le français est chaleureux         |
 | Plus tard (bouton)       | Not now                          | Later                                     |                                                                         |
 | Réessayer                | Try again                        | Retry                                     |                                                                         |
+| Créer (bouton)           | Create                           | Add, Save                                 | les trois formulaires en création ; « Save » est réservé à l'édition     |
 
 ## Ton
 

@@ -160,6 +160,7 @@
       },
       "frequency": {
         "label": "Frequency",
+        "placeholder": "1",
         "every": {
           "day": "Every",
           "week": "Every",
@@ -175,8 +176,8 @@
         "label": "Date of last dose"
       },
       "nextDose": "Next dose on {date}",
-      "submit": "Add",
-      "submitting": "Adding…",
+      "submit": "Create",
+      "submitting": "Creating…",
       "save": "Save",
       "saving": "Saving…",
       "errors": {
@@ -206,11 +207,11 @@
   },
   "reminders": {
     "vaccination": {
-      "beforeTitle": "{name} vaccine for {animal} in {days} days",
+      "beforeTitle": "{name} for {animal} in {days} days",
       "beforeBody": "Remember to book a vet appointment.",
-      "dueTitle": "{name} vaccine for {animal} today",
+      "dueTitle": "{name} for {animal} today",
       "dueBody": "Log the vaccine in MémoPatte once it’s done.",
-      "overdueTitle": "{name} vaccine for {animal} is {days} days overdue",
+      "overdueTitle": "{name} for {animal} is {days} days overdue",
       "overdueBody": "Book a vet appointment, then log the vaccine in MémoPatte."
     },
     "treatment": {

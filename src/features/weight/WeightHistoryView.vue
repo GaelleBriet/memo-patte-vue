@@ -77,7 +77,6 @@ function backToAnimals(): void {
     :title="t('weight.history.title')"
     :subtitle="animal?.name"
     subtitle-tone="secondary"
-    compact
     :back-label="t('weight.history.back')"
     @back="backToAnimals"
   >

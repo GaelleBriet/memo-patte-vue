@@ -85,22 +85,23 @@ describe('PushedScreen — contrat de style', () => {
     expect(
       declaration(
         css,
-        '.pushed-screen__heading--with-subtitle .pushed-screen__title',
+        '.pushed-screen__topbar--with-subtitle .pushed-screen__title',
         'line-height',
       ),
     ).toBe('1.2')
   })
 
-  it('laisse les marges par défaut du titre et du sous-titre, retirées en mode compact', () => {
-    expect(declaration(css, '.pushed-screen__title', 'margin')).toBeUndefined()
-    expect(declaration(css, '.pushed-screen__subtitle', 'margin')).toBeUndefined()
-    expect(
-      declaration(
-        css,
-        '.pushed-screen__heading--compact .pushed-screen__title, .pushed-screen__heading--compact .pushed-screen__subtitle',
-        'margin',
-      ),
-    ).toBe('0')
+  it('pose lui-même l’écart titre / sous-titre, que le flex ne fusionne plus', () => {
+    expect(declaration(css, '.pushed-screen__title', 'margin-block')).toBe('0')
+    expect(declaration(css, '.pushed-screen__subtitle', 'margin')).toBe('2px 0 0 52px')
+    expect(css).not.toContain('--compact')
+  })
+
+  it('met la flèche sur la ligne du titre et indente le sous-titre sous lui', () => {
+    expect(declaration(css, '.pushed-screen__topbar', 'flex-direction')).toBe('column')
+    expect(declaration(css, '.pushed-screen__line', 'display')).toBe('flex')
+    expect(declaration(css, '.pushed-screen__line', 'align-items')).toBe('center')
+    expect(declaration(css, '.pushed-screen__subtitle', 'margin')).toContain('52px')
   })
 
   it('distingue le sous-titre hint (600) du sous-titre en texte secondaire (500)', () => {

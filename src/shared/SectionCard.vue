@@ -85,6 +85,9 @@ defineProps<{
 }
 
 .section-card__empty {
+  // Les sections rendent l'état vide dans un `<p>`, dont les marges par défaut
+  // gonflaient la carte d'une trentaine de pixels.
+  margin: 0;
   min-height: tokens.$height-add-row;
   color: tokens.$color-text-secondary;
   font-size: 14.5px;

@@ -230,6 +230,7 @@ async function submit(): Promise<void> {
               class="form-field__input form-field__input--number treatment-form__frequency-value"
               type="number"
               inputmode="numeric"
+              :placeholder="t('treatments.form.frequency.placeholder')"
               min="1"
               :max="MAX_FREQUENCY_VALUE"
               step="1"

@@ -45,8 +45,8 @@ const errorId = useId()
 .form-field__label {
   display: flex;
   align-items: baseline;
-  justify-content: space-between;
-  gap: 8px;
+  justify-content: flex-start;
+  gap: 6px;
   margin-bottom: 6px;
   color: tokens.$color-field-label;
   font-size: 12.5px;
@@ -58,6 +58,7 @@ const errorId = useId()
 }
 
 .form-field__optional {
+  margin-inline-start: auto;
   color: tokens.$color-hint;
   font-weight: 500;
 }
@@ -84,6 +85,11 @@ const errorId = useId()
   opacity: 1;
 }
 
+.form-field :deep(.form-field__input--date .v-field__append-inner .v-icon) {
+  color: rgb(var(--v-theme-primary));
+  font-size: 21px;
+}
+
 // L'indicateur natif est rendu transparent puis étiré sous l'icône
 // `calendar_month` : taper l'icône ouvre le sélecteur natif, sans JavaScript.
 .form-field :deep(.form-field__input--date input::-webkit-calendar-picker-indicator) {
@@ -95,7 +101,10 @@ const errorId = useId()
   cursor: pointer;
 }
 
+// Vuetify masque le suffixe tant que le champ n'est ni rempli ni focalisé ; la
+// maquette montre « kg » dès l'arrivée sur le formulaire.
 .form-field :deep(.form-field__input--number .v-text-field__suffix) {
+  opacity: 1;
   color: tokens.$color-field-suffix;
   font-size: 15px;
   font-weight: 600;

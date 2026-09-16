@@ -49,6 +49,11 @@ describe('BottomNavigation — contrat de style', () => {
     expect(css).not.toContain('v-ripple')
   })
 
+  it('partage toute la largeur entre les deux onglets, sans bord mort', () => {
+    expect(declaration(css, '.bottom-navigation :deep(.v-btn)', 'max-width')).toBe('none')
+    expect(declaration(css, '.bottom-navigation :deep(.v-btn)', 'flex')).toBe('1 1 0')
+  })
+
   it("garde l'onglet inactif en gris chaud 500 et l'actif en 700", () => {
     expect(
       declaration(css, '.bottom-navigation :deep(.v-btn:not(.v-btn--selected))', 'font-weight'),

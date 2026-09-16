@@ -42,11 +42,11 @@ describe('PushedScreen — top bar', () => {
     const avec = monter({ subtitle: 'Milo' })
 
     expect(avec.get('.pushed-screen__subtitle').text()).toBe('Milo')
-    expect(sans.get('.pushed-screen__heading').classes()).not.toContain(
-      'pushed-screen__heading--with-subtitle',
+    expect(sans.get('.pushed-screen__topbar').classes()).not.toContain(
+      'pushed-screen__topbar--with-subtitle',
     )
-    expect(avec.get('.pushed-screen__heading').classes()).toContain(
-      'pushed-screen__heading--with-subtitle',
+    expect(avec.get('.pushed-screen__topbar').classes()).toContain(
+      'pushed-screen__topbar--with-subtitle',
     )
   })
 
@@ -59,15 +59,6 @@ describe('PushedScreen — top bar', () => {
         .get('.pushed-screen__subtitle')
         .classes(),
     ).toContain('pushed-screen__subtitle--secondary')
-  })
-
-  it('ne serre le bloc titre, marges retirées, que sur demande', () => {
-    expect(monter().get('.pushed-screen__heading').classes()).not.toContain(
-      'pushed-screen__heading--compact',
-    )
-    expect(monter({ compact: true }).get('.pushed-screen__heading').classes()).toContain(
-      'pushed-screen__heading--compact',
-    )
   })
 
   it('garde la classe passée par l’écran sur sa racine', () => {

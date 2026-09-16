@@ -128,9 +128,6 @@ describe('WeightHistoryView — top bar', () => {
     expect(wrapper.get('.pushed-screen__subtitle').classes()).toContain(
       'pushed-screen__subtitle--secondary',
     )
-    expect(wrapper.get('.pushed-screen__heading').classes()).toContain(
-      'pushed-screen__heading--compact',
-    )
   })
 
   it('s’appuie sur l’écran poussé partagé, bouton d’ajout dans sa barre du bas', async () => {

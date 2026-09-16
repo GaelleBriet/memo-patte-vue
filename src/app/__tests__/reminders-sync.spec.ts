@@ -121,9 +121,9 @@ describe('syncAllReminders', () => {
         `treatment:${MILBEMAX.id}:2026-09-17:overdue`,
         'Vermifuge Milbemax de Luna en retard de 3 jours',
       ],
-      [`vaccination:${chppi.id}:2026-10-15:before`, 'Vaccin CHPPi de Milo dans 3 jours'],
-      [`vaccination:${chppi.id}:2026-10-15:due`, 'Vaccin CHPPi de Milo aujourd’hui'],
-      [`vaccination:${chppi.id}:2026-10-15:overdue`, 'Vaccin CHPPi de Milo en retard de 3 jours'],
+      [`vaccination:${chppi.id}:2026-10-15:before`, 'CHPPi de Milo dans 3 jours'],
+      [`vaccination:${chppi.id}:2026-10-15:due`, 'CHPPi de Milo aujourd’hui'],
+      [`vaccination:${chppi.id}:2026-10-15:overdue`, 'CHPPi de Milo en retard de 3 jours'],
     ])
   })
 
