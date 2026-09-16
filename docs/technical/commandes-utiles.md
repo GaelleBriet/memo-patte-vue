@@ -218,8 +218,11 @@ qui le télécharge dans le cache pnpm le temps de la commande :
 
 ```bash
 python3 scripts/build-icon-resources.py   # sources -> resources/ (Python 3, Pillow, numpy)
-pnpm assets:android                       # pnpm dlx @capacitor/assets@3 generate --android
+pnpm assets:android                       # pnpm --allow-build=sharp dlx @capacitor/assets@3.0.5 generate --android
 ```
+
+`--allow-build=sharp` n'est pas décoratif : `pnpm dlx` installe hors du projet et ne lit donc pas
+`pnpm-workspace.yaml`. Sans ce drapeau, `sharp` ne compile pas son binaire et la génération échoue.
 
 La suite du geste (restauration des fichiers réécrits sans raison, couche monochrome) est dans
 `docs/design/logos/logos.md`, section « Régénérer ».
