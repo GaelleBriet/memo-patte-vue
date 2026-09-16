@@ -327,7 +327,7 @@ describe('TreatmentFormView — validation', () => {
 
     await soumettre(wrapper)
 
-    expect(messages(wrapper)).toEqual(['La fréquence ne peut pas dépasser 365.'])
+    expect(messages(wrapper)).toEqual(['La fréquence doit être de 365 maximum.'])
     expect(update).not.toHaveBeenCalled()
   })
 
@@ -646,6 +646,31 @@ describe('TreatmentFormView — édition', () => {
     const wrapper = await monterEdition()
 
     expect(wrapper.get('.form-screen__save-error').text()).toBe('Ce traitement est introuvable.')
+    expect(wrapper.get('.form-screen__submit').attributes('disabled')).toBeDefined()
+
+    await soumettre(wrapper)
+
+    expect(update).not.toHaveBeenCalled()
+  })
+
+  it('prévient et n’écrase rien quand la fiche n’a pas pu être lue', async () => {
+    getById.mockRejectedValueOnce(new Error('base verrouillée'))
+    const wrapper = await monterEdition()
+
+    expect(wrapper.get('.form-screen__save-error').text()).toBe(
+      'Ce traitement n’a pas pu être chargé. Réessaie.',
+    )
+    expect(wrapper.get('.form-screen__submit').attributes('disabled')).toBeDefined()
+
+    await soumettre(wrapper)
+
+    expect(update).not.toHaveBeenCalled()
+  })
+
+  it('n’enregistre pas tant que la fiche n’est pas chargée', async () => {
+    getById.mockReturnValueOnce(new Promise<Treatment>(() => {}))
+    const wrapper = await monterEdition()
+
     expect(wrapper.get('.form-screen__submit').attributes('disabled')).toBeDefined()
 
     await soumettre(wrapper)

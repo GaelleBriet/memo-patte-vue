@@ -2,7 +2,7 @@ import { Directory, Encoding, Filesystem } from '@capacitor/filesystem'
 import { Share } from '@capacitor/share'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { deliverExportFile } from '../export-delivery'
+import { clearExports, deliverExportFile } from '../export-delivery'
 
 vi.mock('@capacitor/filesystem', () => ({
   Directory: { Cache: 'CACHE' },
@@ -95,5 +95,55 @@ describe('deliverExportFile', () => {
     await expect(deliverExportFile({ name: 'a.json', content: '{}' }, 'x')).rejects.toThrow(
       'disque plein',
     )
+  })
+
+  // Le partage rend la main quand l'app revient au premier plan, pas quand le destinataire a fini
+  // de lire l'URI : Gmail, Drive ou Quick Share enverraient une pièce jointe vide.
+  it('laisse le fichier en place après un partage accepté', async () => {
+    await deliverExportFile({ name: 'a.json', content: '{}' }, 'x')
+
+    expect(Filesystem.rmdir).toHaveBeenCalledOnce()
+    expect(vi.mocked(Filesystem.rmdir).mock.invocationCallOrder[0]!).toBeLessThan(
+      vi.mocked(Filesystem.writeFile).mock.invocationCallOrder[0]!,
+    )
+  })
+
+  it('ne laisse pas le carnet dans le cache quand le partage est annulé', async () => {
+    vi.mocked(Share.share).mockRejectedValueOnce(new Error('Share canceled'))
+
+    await deliverExportFile({ name: 'a.json', content: '{}' }, 'x')
+
+    expect(Filesystem.rmdir).toHaveBeenCalledTimes(2)
+  })
+
+  it('ne laisse pas le carnet dans le cache quand le partage échoue', async () => {
+    vi.mocked(Share.share).mockRejectedValueOnce(new Error('Activity not found'))
+
+    await expect(deliverExportFile({ name: 'a.json', content: '{}' }, 'x')).rejects.toThrow(
+      'Activity not found',
+    )
+    expect(Filesystem.rmdir).toHaveBeenCalledTimes(2)
+  })
+
+  it('renvoie « cancelled » même si l’effacement échoue', async () => {
+    vi.mocked(Share.share).mockRejectedValueOnce(new Error('Share canceled'))
+    vi.mocked(Filesystem.rmdir).mockResolvedValueOnce().mockRejectedValueOnce(new Error('occupé'))
+
+    await expect(deliverExportFile({ name: 'a.json', content: '{}' }, 'x')).resolves.toBe(
+      'cancelled',
+    )
+  })
+})
+
+describe('clearExports', () => {
+  it('vide le dossier des exports, même vide ou absent', async () => {
+    vi.mocked(Filesystem.rmdir).mockRejectedValueOnce(new Error('Folder does not exist.'))
+
+    await expect(clearExports()).resolves.toBeUndefined()
+    expect(Filesystem.rmdir).toHaveBeenCalledExactlyOnceWith({
+      path: 'exports',
+      directory: Directory.Cache,
+      recursive: true,
+    })
   })
 })

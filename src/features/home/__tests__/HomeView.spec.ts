@@ -669,7 +669,7 @@ describe('HomeView — A5 premier lancement, aucun animal', () => {
 
       expect(
         document.body.querySelector('.import-sheet.v-overlay--active [role="alert"]')?.textContent,
-      ).toContain('Ce fichier n’est pas un export MémoPatte')
+      ).toContain('Ce fichier n’est pas un export MémoPatte.')
       expect(wrapper.find('.home-welcome').exists()).toBe(true)
       expect(importData).not.toHaveBeenCalled()
       expect(promptNotificationsIfReminders).not.toHaveBeenCalled()

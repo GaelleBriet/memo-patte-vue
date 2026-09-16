@@ -21,6 +21,12 @@ vi.mock('../data-import.service', async (importOriginal) => ({
 
 let wrapper: VueWrapper<InstanceType<typeof ImportSheet>> | null = null
 
+function exportAvecPoidsHorsBornes(): string {
+  const document = JSON.parse(importFixtureJson()) as Record<string, unknown>
+  ;(document.weightEntries as Record<string, unknown>[])[0]!.weightKg = 1e308
+  return JSON.stringify(document)
+}
+
 beforeEach(() => {
   hasLocalData.mockReset().mockResolvedValue(true)
   importData.mockReset().mockResolvedValue(undefined)
@@ -187,11 +193,12 @@ describe('ImportSheet', () => {
   })
 
   it.each([
-    [
-      'pas du JSON',
-      'Ce fichier n’est pas un export MémoPatte, ou une de ses valeurs est hors limites.',
-    ],
+    ['pas du JSON', 'Ce fichier n’est pas un export MémoPatte.'],
     [JSON.stringify({ schemaVersion: 2 }), 'Cet export vient d’une version plus récente de l’app.'],
+    [
+      exportAvecPoidsHorsBornes(),
+      'Ce fichier contient une valeur hors limites : 200 kg maximum pour un poids, 365 pour une fréquence.',
+    ],
   ])('explique un fichier refusé et propose d’en choisir un autre', async (content, message) => {
     await monter()
 

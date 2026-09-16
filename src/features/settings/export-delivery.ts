@@ -5,7 +5,7 @@ import type { ExportFile } from './export-format'
 
 export type DeliveryOutcome = 'shared' | 'cancelled'
 
-const EXPORTS_DIR = 'exports'
+export const EXPORTS_DIR = 'exports'
 
 /** Message de rejet du plugin Android quand la feuille de partage est fermée. */
 const SHARE_CANCELED = /cancel/i
@@ -19,10 +19,18 @@ function toBase64(bytes: Uint8Array): string {
   return btoa(binary)
 }
 
-async function writeToCache(file: ExportFile): Promise<string> {
+/**
+ * Vide le dossier d'exports du cache : avant chaque écriture et au lancement de l'app. Un partage
+ * accepté ne peut pas l'effacer lui-même, le destinataire lit l'URI après que l'app a rendu la main.
+ */
+export async function clearExports(): Promise<void> {
   await Filesystem.rmdir({ path: EXPORTS_DIR, directory: Directory.Cache, recursive: true }).catch(
     () => undefined,
   )
+}
+
+async function writeToCache(file: ExportFile): Promise<string> {
+  await clearExports()
   const path = `${EXPORTS_DIR}/${file.name}`
   const { uri } =
     typeof file.content === 'string'
@@ -51,6 +59,7 @@ export async function deliverExportFile(
     await Share.share({ files: [uri], dialogTitle })
     return 'shared'
   } catch (cause) {
+    await clearExports()
     if (cause instanceof Error && SHARE_CANCELED.test(cause.message)) return 'cancelled'
     throw cause
   }
