@@ -113,6 +113,41 @@ describe('VaccinationsSection — chargement', () => {
   })
 })
 
+describe('VaccinationsSection — ordre des lignes', () => {
+  function noms(wrapper: ReturnType<typeof mount>): string[] {
+    return wrapper.findAll('.vaccination-row__name').map((row) => row.text())
+  }
+
+  it('met les vaccins en retard en tête, du plus ancien au plus récent', async () => {
+    vaccinations = [
+      vaccination({ name: 'Rage', dueDate: '2026-12-12' }),
+      vaccination({ name: 'CHPPi', dueDate: '2026-09-08' }),
+      vaccination({ name: 'Leptospirose', dueDate: '2026-07-01' }),
+    ]
+
+    expect(noms(await monter())).toEqual(['Leptospirose', 'CHPPi', 'Rage'])
+  })
+
+  it('range les vaccins à jour par échéance croissante', async () => {
+    vaccinations = [
+      vaccination({ name: 'Rage', dueDate: '2027-01-10' }),
+      vaccination({ name: 'Typhus', dueDate: '2026-11-02' }),
+    ]
+
+    expect(noms(await monter())).toEqual(['Typhus', 'Rage'])
+  })
+
+  it('renvoie en fin de liste un vaccin sans rappel programmé', async () => {
+    vaccinations = [
+      vaccination({ name: 'Toux du chenil', dueDate: null }),
+      vaccination({ name: 'Rage', dueDate: '2027-01-10' }),
+      vaccination({ name: 'CHPPi', dueDate: '2026-09-08' }),
+    ]
+
+    expect(noms(await monter())).toEqual(['CHPPi', 'Rage', 'Toux du chenil'])
+  })
+})
+
 describe('VaccinationsSection — lignes et badges', () => {
   it('marque un vaccin en retard : barre corail, « Échéance passée », badge error', async () => {
     vaccinations = [vaccination({ name: 'CHPPi', dueDate: '2026-09-08' })]
