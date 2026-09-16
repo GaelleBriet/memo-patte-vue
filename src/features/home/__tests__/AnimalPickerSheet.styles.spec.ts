@@ -42,4 +42,15 @@ describe('AnimalPickerSheet — contrat de style', () => {
     expect(declaration('.animal-picker-sheet__avatar', 'width')).toBe('40px')
     expect(declaration('.animal-picker-sheet__avatar', 'border-radius')).toBe('50%')
   })
+
+  // `--v-theme-primary` vaut « 1,56,62 » : la syntaxe `rgb(var() / %)` refuse ces virgules
+  // et le navigateur jette la déclaration, sans rien signaler.
+  it('teinte la ligne appuyée avec une couleur que le navigateur sait calculer', () => {
+    expect(
+      declaration(
+        '.animal-picker-sheet__animal:hover, .animal-picker-sheet__animal:focus-visible',
+        'background',
+      ),
+    ).toBe('rgba(var(--v-theme-primary), 0.06)')
+  })
 })
