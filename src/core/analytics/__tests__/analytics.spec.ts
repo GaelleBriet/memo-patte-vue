@@ -254,6 +254,25 @@ describe('changement d’avis', () => {
     expect(storage.getItem(ANALYTICS_CONSENT_KEY)).toBe('denied')
   })
 
+  it('efface les clés PostHog du stockage au retrait, une fois le SDK chargé', async () => {
+    const module = analytics()
+    await module.optIn()
+    storage.setItem('ph_phc_test_posthog', '{"distinct_id":"moi"}')
+    storage.setItem('__ph_opt_in_out_phc_test', '1')
+    storage.setItem('memopatte.notifications.primingAnswered', 'true')
+    const removeItem = vi.spyOn(storage, 'removeItem')
+
+    await module.optOut()
+
+    expect(storage.keys().sort()).toEqual([
+      ANALYTICS_CONSENT_KEY,
+      'memopatte.notifications.primingAnswered',
+    ])
+    const [resetOrder] = posthog.reset.mock.invocationCallOrder
+    const [firstRemovalOrder] = removeItem.mock.invocationCallOrder
+    expect(resetOrder).toBeLessThan(firstRemovalOrder!)
+  })
+
   it('réactive la capture sans recharger PostHog', async () => {
     const module = analytics()
     await module.optIn()

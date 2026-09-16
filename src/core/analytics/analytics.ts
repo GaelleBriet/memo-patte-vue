@@ -144,10 +144,12 @@ export function createAnalytics<E extends EventCatalog>({
     async optOut() {
       writeStatus('denied')
       const posthog = client ?? (loading ? await loading : null)
-      if (!posthog) return removePostHogStorage()
-      posthog.opt_out_capturing()
-      // Après le retrait : avant, `reset()` couperait la capture en cours et PostHog avertirait.
-      posthog.reset(true)
+      if (posthog) {
+        posthog.opt_out_capturing()
+        // Après le retrait : avant, `reset()` couperait la capture en cours et PostHog avertirait.
+        posthog.reset(true)
+      }
+      removePostHogStorage()
     },
 
     hasConsent: () => status === 'granted',
