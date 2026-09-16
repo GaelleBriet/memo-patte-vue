@@ -38,6 +38,12 @@ const DYNAMIC_I18N_KEYS = [
   '/^treatments\\.(frequency|form\\.frequency\\.every|form\\.frequency\\.unit)\\.(day|week|month)$/',
   '/^home\\.reminder\\.(deworming|antiparasitic)$/',
   '/^home\\.due\\.(overdue|today|tomorrow|later)$/',
+  '/^plus\\.benefits\\.(backup|devices|photos|pdf)$/',
+  '/^plus\\.free\\.(animals|reminders|weight|export)$/',
+  '/^plus\\.comparison\\.(backup|photos|restore)\\.(label|android|plus)$/',
+  '/^plus\\.offers\\.(monthly|annual|lifetime)\\.(label|price|terms|submit)$/',
+  '/^plus\\.member\\.(monthly|annual|lifetime)$/',
+  '/^plus\\.(success|cancelled|failed)\\.(title|body)$/',
 ]
 
 const FEATURES_RESTRICTION = {

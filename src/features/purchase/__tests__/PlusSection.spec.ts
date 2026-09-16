@@ -1,7 +1,6 @@
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { defineComponent } from 'vue'
 
 import { BillingError, billingService, type BillingService } from '../billing.service'
 import PlusSection from '../PlusSection.vue'
@@ -34,14 +33,6 @@ const EXPIRED: PlusStatus = { plan: 'annual', expiresAt: '2026-09-01T10:00:00Z' 
 
 let wrapper: VueWrapper | null = null
 
-function livrerEcranPlus(): void {
-  router.addRoute({
-    path: '/plus',
-    name: 'plus',
-    component: defineComponent({ render: () => null }),
-  })
-}
-
 beforeEach(() => {
   vi.clearAllMocks()
   service.isAvailable.mockReturnValue(true)
@@ -53,13 +44,13 @@ beforeEach(() => {
 afterEach(() => {
   wrapper?.unmount()
   wrapper = null
-  if (router.hasRoute('plus')) router.removeRoute('plus')
   dismissToast()
   vi.useRealTimers()
   vi.unstubAllGlobals()
 })
 
 async function monter() {
+  await router.push('/')
   wrapper = mount(PlusSection, { global: { plugins: [vuetify, i18n, router] } })
   await flushPromises()
   return wrapper
@@ -70,9 +61,7 @@ function statut(wrapper: VueWrapper) {
 }
 
 describe('PlusSection — utilisateur gratuit', () => {
-  it('mène à l’écran Plus, avec ce qu’il apporte', async () => {
-    livrerEcranPlus()
-    const push = vi.spyOn(router, 'push').mockResolvedValue()
+  it('mène à l’écran Plus livré par le routeur, avec ce qu’il apporte', async () => {
     const wrapper = await monter()
 
     const ligne = wrapper.get('.settings-row--plus-discover')
@@ -82,20 +71,15 @@ describe('PlusSection — utilisateur gratuit', () => {
 
     await ligne.trigger('click')
 
-    expect(push).toHaveBeenCalledWith({ name: 'plus' })
+    await vi.waitFor(() => expect(router.currentRoute.value.path).toBe('/plus'))
   })
 
-  it('n’affiche pas d’entrée vers un écran Plus qui n’existe pas encore', async () => {
-    const wrapper = await monter()
-
-    expect(wrapper.find('.settings-row--plus-discover').exists()).toBe(false)
-  })
-
-  it('disparaît entièrement quand il ne reste aucune ligne à proposer', async () => {
+  it('reste présentable sans achat possible sur cet appareil', async () => {
     service.isAvailable.mockReturnValue(false)
     const wrapper = await monter()
 
-    expect(wrapper.find('.section-card').exists()).toBe(false)
+    expect(wrapper.find('.settings-row--plus-discover').exists()).toBe(true)
+    expect(wrapper.find('.settings-row--plus-restore').exists()).toBe(false)
   })
 })
 
@@ -121,7 +105,6 @@ describe('PlusSection — statut de l’abonnement', () => {
   })
 
   it('annonce un abonnement expiré plutôt que de proposer la découverte', async () => {
-    livrerEcranPlus()
     writeStoredPlusStatus(EXPIRED)
     const wrapper = await monter()
 
@@ -130,7 +113,6 @@ describe('PlusSection — statut de l’abonnement', () => {
   })
 
   it('ne propose ni découverte ni restauration à un abonné', async () => {
-    livrerEcranPlus()
     writeStoredPlusStatus(ANNUAL)
     const wrapper = await monter()
 

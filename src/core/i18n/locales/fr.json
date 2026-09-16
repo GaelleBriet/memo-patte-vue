@@ -359,29 +359,6 @@
   "settings": {
     "open": "Paramètres",
     "title": "Paramètres",
-    "plus": {
-      "title": "MémoPatte Plus",
-      "discover": "Découvrir MémoPatte Plus",
-      "discoverHint": "Sauvegarde cloud, export PDF, plusieurs appareils",
-      "status": {
-        "monthly": "Plus mensuel jusqu’au {date}",
-        "annual": "Plus annuel jusqu’au {date}",
-        "lifetime": "Plus à vie",
-        "expiredMonthly": "Plus mensuel — expiré",
-        "expiredAnnual": "Plus annuel — expiré"
-      },
-      "restore": {
-        "action": "Restaurer mon achat",
-        "busy": "Restauration…",
-        "restored": "Ton achat est restauré.",
-        "none": "Aucun achat à restaurer sur ce compte Google.",
-        "failed": "La restauration n’a pas abouti. Réessaie."
-      },
-      "manage": {
-        "action": "Gérer mon abonnement",
-        "store": "Google Play"
-      }
-    },
     "data": {
       "title": "Mes données",
       "export": "Exporter mes données",
@@ -455,6 +432,114 @@
       "changeMind": "Tu peux changer d’avis à tout moment dans Paramètres → Confidentialité.",
       "refuse": "Refuser",
       "accept": "Accepter"
+    }
+  },
+  "plus": {
+    "title": "MémoPatte Plus",
+    "headline": "Garde tes carnets en sécurité, partout",
+    "subtitle": "Le local reste gratuit et sans limite. Plus ajoute la sauvegarde cloud.",
+    "benefits": {
+      "backup": "Sauvegarde garantie dans le cloud",
+      "devices": "Le même carnet sur tous tes appareils",
+      "photos": "Tes photos sauvegardées aussi",
+      "pdf": "Export PDF complet"
+    },
+    "free": {
+      "title": "Déjà inclus gratuitement, sans compte",
+      "animals": "Animaux illimités",
+      "reminders": "Rappels illimités",
+      "weight": "Suivi de poids illimité",
+      "export": "Export JSON et CSV"
+    },
+    "comparison": {
+      "title": "Ce qu’Android fait déjà, ce que Plus garantit",
+      "android": "Android (gratuit)",
+      "plus": "MémoPatte Plus",
+      "backup": {
+        "label": "Sauvegarde automatique",
+        "android": "Oui, au mieux (best effort)",
+        "plus": "Oui, garantie"
+      },
+      "photos": {
+        "label": "Photos sauvegardées",
+        "android": "Non",
+        "plus": "Oui"
+      },
+      "restore": {
+        "label": "Restauration sur nouvel appareil",
+        "android": "Pas garantie",
+        "plus": "Garantie"
+      }
+    },
+    "offers": {
+      "title": "Trois façons de payer, même contenu",
+      "best": "Meilleure offre",
+      "monthly": {
+        "label": "Mensuel",
+        "price": "{price}/mois",
+        "terms": "Renouvellement automatique chaque mois. Sans engagement, annulable à tout moment.",
+        "submit": "Continuer avec Plus mensuel — {price}"
+      },
+      "annual": {
+        "label": "Plus annuel",
+        "price": "{price}/an",
+        "saving": "≈ 44 % d’économie vs mensuel",
+        "terms": "Renouvellement automatique chaque année. Annulable à tout moment dans Google Play — accès conservé jusqu’à la fin de la période payée.",
+        "submit": "Continuer avec Plus annuel — {price}"
+      },
+      "lifetime": {
+        "label": "À vie",
+        "price": "{price}",
+        "terms": "Paiement unique, pour toujours.",
+        "submit": "Continuer avec Plus à vie — {price}"
+      },
+      "unavailable": "Les offres Google Play ne sont pas disponibles pour l’instant.",
+      "retry": "Réessayer"
+    },
+    "member": {
+      "title": "Tu es déjà dans Plus",
+      "monthly": "Abonnement mensuel actif.",
+      "annual": "Abonnement annuel actif.",
+      "lifetime": "Accès à vie, sans renouvellement."
+    },
+    "terms": {
+      "free": "MémoPatte est utilisable gratuitement sans abonnement.",
+      "prices": "Prix affichés par Google Play, dans ta devise.",
+      "local": "Si tu arrêtes Plus, tes carnets restent sur ton téléphone.",
+      "manage": "Gérer mon abonnement · Google Play"
+    },
+    "restore": {
+      "action": "Restaurer mon achat",
+      "busy": "Restauration…",
+      "restored": "Ton achat est restauré.",
+      "none": "Aucun achat à restaurer sur ce compte Google.",
+      "failed": "La restauration n’a pas abouti. Réessaie."
+    },
+    "success": {
+      "title": "Bienvenue dans Plus",
+      "body": "La sauvegarde de ton carnet arrive très vite.",
+      "back": "Retour aux paramètres"
+    },
+    "cancelled": {
+      "title": "Achat non abouti",
+      "body": "Aucun paiement n’a été effectué. Réessaie quand tu veux, rien n’a changé pour toi."
+    },
+    "failed": {
+      "title": "L’achat n’a pas abouti",
+      "body": "Aucun paiement n’a été effectué. Réessaie dans un instant, rien n’a changé pour toi."
+    },
+    "retry": "Réessayer",
+    "later": "Plus tard",
+    "settings": {
+      "discover": "Découvrir MémoPatte Plus",
+      "discoverHint": "Sauvegarde cloud, export PDF, plusieurs appareils",
+      "status": {
+        "monthly": "Plus mensuel jusqu’au {date}",
+        "annual": "Plus annuel jusqu’au {date}",
+        "lifetime": "Plus à vie",
+        "expiredMonthly": "Plus mensuel — expiré",
+        "expiredAnnual": "Plus annuel — expiré"
+      }
     }
   }
 }

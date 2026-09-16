@@ -42,8 +42,7 @@ describe('ManageSubscriptionSection', () => {
     writeStoredPlusStatus(status)
     const lien = monter().get('a.settings-row--manage-subscription')
 
-    expect(lien.text()).toContain('Gérer mon abonnement')
-    expect(lien.text()).toContain('Google Play')
+    expect(lien.text()).toContain('Gérer mon abonnement · Google Play')
     expect(lien.attributes('href')).toBe('https://play.google.com/store/account/subscriptions')
     expect(lien.attributes('target')).toBe('_blank')
     expect(lien.attributes('rel')).toContain('noopener')

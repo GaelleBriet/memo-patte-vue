@@ -22,8 +22,7 @@ const isSubscribed = computed(() => ['monthly', 'annual'].includes(purchase.stat
   >
     <v-icon class="settings-row__icon" icon="ms:credit_card" size="22" />
     <span class="settings-row__text">
-      <span class="settings-row__label">{{ t('settings.plus.manage.action') }}</span>
-      <span class="settings-row__hint">{{ t('settings.plus.manage.store') }}</span>
+      <span class="settings-row__label">{{ t('plus.terms.manage') }}</span>
     </span>
     <v-icon class="settings-row__chevron" icon="ms:open_in_new" size="20" />
   </a>

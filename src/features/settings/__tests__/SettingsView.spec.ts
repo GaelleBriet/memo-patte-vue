@@ -130,29 +130,34 @@ describe('SettingsView', () => {
     expect(push).toHaveBeenCalledWith({ name: 'home' })
   })
 
-  it('ne livre que les sections dont la destination existe : Mes données, Confidentialité et À propos', async () => {
+  it('ne livre que les sections dont la destination existe : Plus, Mes données, Confidentialité et À propos', async () => {
     const wrapper = await monter()
 
     expect(wrapper.findAll('.section-card__title').map((title) => title.text())).toEqual([
+      'MémoPatte Plus',
       'Mes données',
       'Confidentialité',
       'À propos',
     ])
-    expect(wrapper.text()).not.toMatch(/Plus|Compte|PDF|Politique/)
+    expect(wrapper.text()).not.toMatch(/déjà abonné|Compte|Export PDF|Politique/)
   })
 
   describe('MémoPatte Plus', () => {
-    it('ouvre l’écran sur le statut Plus, avant les autres sections', async () => {
+    it('ouvre l’écran sur la découverte de Plus, avant les autres sections', async () => {
+      const wrapper = await monter()
+
+      expect(wrapper.get('.section-card__title').text()).toBe('MémoPatte Plus')
+      expect(wrapper.get('.settings-row--plus-discover').text()).toContain(
+        'Découvrir MémoPatte Plus',
+      )
+    })
+
+    it('annonce le statut à qui est déjà dans Plus', async () => {
       writeStoredPlusStatus({ plan: 'lifetime', expiresAt: null })
       const wrapper = await monter()
 
-      expect(wrapper.findAll('.section-card__title').map((title) => title.text())).toEqual([
-        'MémoPatte Plus',
-        'Mes données',
-        'Confidentialité',
-        'À propos',
-      ])
       expect(wrapper.get('.settings-row--plus-status').text()).toContain('Plus à vie')
+      expect(wrapper.find('.settings-row--plus-discover').exists()).toBe(false)
     })
 
     it('range « Gérer mon abonnement » dans Confidentialité, sous les statistiques', async () => {

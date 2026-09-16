@@ -12,28 +12,26 @@ const { t } = useI18n()
 const router = useRouter()
 const purchase = usePurchaseStore()
 
-const hasPlusScreen = router.hasRoute('plus')
 const isRestoring = ref(false)
 
 const statusHint = computed<string | null>(() => {
   const expired = purchase.expiredPlan
   if (expired !== null) {
     return expired === 'monthly'
-      ? t('settings.plus.status.expiredMonthly')
-      : t('settings.plus.status.expiredAnnual')
+      ? t('plus.settings.status.expiredMonthly')
+      : t('plus.settings.status.expiredAnnual')
   }
   const { plan, expiresAt } = purchase.status
-  if (plan === 'lifetime') return t('settings.plus.status.lifetime')
+  if (plan === 'lifetime') return t('plus.settings.status.lifetime')
   if (expiresAt === null) return null
   const date = formatNumericDate(expiresAt)
   return plan === 'monthly'
-    ? t('settings.plus.status.monthly', { date })
-    : t('settings.plus.status.annual', { date })
+    ? t('plus.settings.status.monthly', { date })
+    : t('plus.settings.status.annual', { date })
 })
 
-const canDiscover = computed(() => hasPlusScreen && statusHint.value === null)
+const canDiscover = computed(() => statusHint.value === null)
 const canRestore = computed(() => purchase.available && purchase.status.plan === 'none')
-const hasRows = computed(() => canDiscover.value || statusHint.value !== null || canRestore.value)
 
 function openPlus(): void {
   void router.push({ name: 'plus' })
@@ -43,13 +41,9 @@ async function restore(): Promise<void> {
   isRestoring.value = true
   try {
     const status = await purchase.restore()
-    showToast(
-      status.plan === 'none'
-        ? t('settings.plus.restore.none')
-        : t('settings.plus.restore.restored'),
-    )
+    showToast(status.plan === 'none' ? t('plus.restore.none') : t('plus.restore.restored'))
   } catch {
-    showToast(t('settings.plus.restore.failed'))
+    showToast(t('plus.restore.failed'))
   } finally {
     isRestoring.value = false
   }
@@ -57,7 +51,7 @@ async function restore(): Promise<void> {
 </script>
 
 <template>
-  <SectionCard v-if="hasRows" :title="t('settings.plus.title')">
+  <SectionCard :title="t('plus.title')">
     <button
       v-if="canDiscover"
       type="button"
@@ -66,15 +60,15 @@ async function restore(): Promise<void> {
     >
       <v-icon class="settings-row__icon" icon="ms:workspace_premium" size="22" />
       <span class="settings-row__text">
-        <span class="settings-row__label">{{ t('settings.plus.discover') }}</span>
-        <span class="settings-row__hint">{{ t('settings.plus.discoverHint') }}</span>
+        <span class="settings-row__label">{{ t('plus.settings.discover') }}</span>
+        <span class="settings-row__hint">{{ t('plus.settings.discoverHint') }}</span>
       </span>
       <v-icon class="settings-row__chevron" icon="ms:chevron_right" size="20" />
     </button>
     <div v-else-if="statusHint" class="settings-row settings-row--plus-status">
       <v-icon class="settings-row__icon" icon="ms:workspace_premium" size="22" />
       <span class="settings-row__text">
-        <span class="settings-row__label">{{ t('settings.plus.title') }}</span>
+        <span class="settings-row__label">{{ t('plus.title') }}</span>
         <span class="settings-row__hint">{{ statusHint }}</span>
       </span>
     </div>
@@ -90,9 +84,9 @@ async function restore(): Promise<void> {
     >
       <v-icon class="settings-row__icon" icon="ms:settings_backup_restore" size="22" />
       <span class="settings-row__text">
-        <span class="settings-row__label">{{ t('settings.plus.restore.action') }}</span>
+        <span class="settings-row__label">{{ t('plus.restore.action') }}</span>
         <span v-if="isRestoring" class="settings-row__hint">
-          {{ t('settings.plus.restore.busy') }}
+          {{ t('plus.restore.busy') }}
         </span>
       </span>
       <v-progress-circular
