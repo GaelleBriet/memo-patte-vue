@@ -36,7 +36,7 @@ function answer(accepted: boolean): void {
       </v-btn>
       <v-btn
         class="analytics-consent__choice analytics-consent__accept"
-        variant="flat"
+        variant="outlined"
         color="primary"
         @click="answer(true)"
       >
@@ -97,13 +97,14 @@ function answer(accepted: boolean): void {
 .analytics-consent__choice {
   flex: 1 1 0;
   height: 52px;
+  border-width: 1.5px;
   border-radius: 999px;
   font-size: 16px;
   font-weight: 700;
   letter-spacing: normal;
-}
 
-.analytics-consent__refuse {
-  border-width: 1.5px;
+  :deep(.v-btn__overlay) {
+    display: none;
+  }
 }
 </style>

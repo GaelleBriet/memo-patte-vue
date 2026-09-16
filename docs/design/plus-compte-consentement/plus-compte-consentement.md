@@ -34,6 +34,7 @@ Tickets : #45 (écran Plus + rappel doux), #6 (connexion / inscription), #87 (su
 ## Consentement (A1, A2)
 
 - A1 écran « Avant de commencer » au premier lancement : ce qui est mesuré (écrans consultés, actions comme « vaccin ajouté »), jamais le contenu du carnet ni le nom des animaux, hébergé en Europe, modifiable dans Paramètres → Confidentialité ; boutons « Refuser » et « Accepter » de même taille
+- Livré le 2026-09-16 (#67) avec les **deux boutons au même style** (contour pétrole, même taille) et non contour + plein comme la capture : décision de Gaelle, alignée sur « refuser est aussi facile qu'accepter » et sur la prudence CNIL
 - A2 Paramètres → Confidentialité : « Politique de confidentialité », interrupteur « Statistiques d'usage anonymes »
 
 ## Paramètres (S1 à S9)

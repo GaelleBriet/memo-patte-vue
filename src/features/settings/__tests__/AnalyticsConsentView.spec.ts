@@ -49,13 +49,23 @@ describe('AnalyticsConsentView', () => {
     ])
   })
 
-  it('propose Refuser et Accepter côte à côte, de même taille', () => {
+  it('propose Refuser et Accepter côte à côte, du même style', () => {
     const wrapper = monter()
     const boutons = wrapper.findAll('.analytics-consent__actions .v-btn')
 
     expect(boutons.map((bouton) => bouton.text())).toEqual(['Refuser', 'Accepter'])
-    expect(boutons[0]!.classes()).toContain('analytics-consent__choice')
-    expect(boutons[1]!.classes()).toContain('analytics-consent__choice')
+    const styles = boutons.map((bouton) =>
+      bouton
+        .classes()
+        .filter((classe) => classe.startsWith('v-btn--') || classe.startsWith('text-'))
+        .sort(),
+    )
+    expect(styles[0]).toEqual(styles[1])
+    expect(styles[0]).toContain('v-btn--variant-outlined')
+    expect(boutons.map((bouton) => bouton.classes())).toEqual([
+      expect.arrayContaining(['analytics-consent__choice']),
+      expect.arrayContaining(['analytics-consent__choice']),
+    ])
   })
 
   it('n’active rien avant une réponse', () => {
