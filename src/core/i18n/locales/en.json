@@ -419,5 +419,95 @@
         "submit": "Replace"
       }
     }
+  },
+  "plus": {
+    "title": "MémoPatte Plus",
+    "headline": "Keep your records safe, everywhere",
+    "subtitle": "Local stays free and unlimited. Plus adds cloud backup.",
+    "benefits": {
+      "backup": "Guaranteed cloud backup",
+      "devices": "The same records on all your devices",
+      "photos": "Your photos backed up too",
+      "pdf": "Full PDF export"
+    },
+    "free": {
+      "title": "Already included for free, without an account",
+      "animals": "Unlimited pets",
+      "reminders": "Unlimited reminders",
+      "weight": "Unlimited weight tracking",
+      "export": "JSON and CSV export"
+    },
+    "comparison": {
+      "title": "What Android already does, what Plus guarantees",
+      "android": "Android (free)",
+      "plus": "MémoPatte Plus",
+      "backup": {
+        "label": "Automatic backup",
+        "android": "Yes, best effort",
+        "plus": "Yes, guaranteed"
+      },
+      "photos": {
+        "label": "Your photos",
+        "android": "No",
+        "plus": "Yes, backed up"
+      },
+      "devices": {
+        "label": "Several devices",
+        "android": "No",
+        "plus": "Yes"
+      },
+      "restore": {
+        "label": "Restore on demand",
+        "android": "No",
+        "plus": "Yes"
+      }
+    },
+    "offers": {
+      "title": "Choose your plan",
+      "recommended": "Recommended",
+      "monthly": {
+        "label": "Monthly",
+        "price": "{price}/month",
+        "terms": "Renews automatically every month, cancel any time in Google Play."
+      },
+      "annual": {
+        "label": "Plus yearly",
+        "price": "{price}/year",
+        "terms": "Renews automatically every year, cancel any time in Google Play."
+      },
+      "lifetime": {
+        "label": "Lifetime",
+        "price": "{price} once",
+        "terms": "One-off payment, forever. No renewal."
+      },
+      "submit": "Continue",
+      "unavailable": "Google Play offers aren’t available right now.",
+      "retry": "Try again"
+    },
+    "terms": {
+      "free": "MémoPatte can be used for free without a subscription.",
+      "local": "If you stop Plus, your records stay on your phone.",
+      "manage": "Manage my subscription"
+    },
+    "restore": {
+      "action": "Restore my purchase",
+      "none": "No purchase to restore on this Google account.",
+      "failed": "The restore didn’t go through. Try again."
+    },
+    "success": {
+      "title": "Welcome to Plus",
+      "body": "Records backed up. You’re all set.",
+      "back": "Back to settings"
+    },
+    "cancelled": {
+      "title": "Purchase not completed",
+      "body": "No payment was taken. Try again whenever you like, nothing has changed for you."
+    },
+    "failed": {
+      "title": "The purchase didn’t go through",
+      "body": "No payment was taken. Try again in a moment, nothing has changed for you."
+    },
+    "retry": "Try again",
+    "later": "Later"
   }
 }

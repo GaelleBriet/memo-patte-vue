@@ -67,6 +67,11 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('@/features/settings/SettingsView.vue'),
   },
   {
+    path: '/plus',
+    name: 'plus',
+    component: () => import('@/features/purchase/PlusView.vue'),
+  },
+  {
     path: '/:pathMatch(.*)*',
     redirect: { name: 'home' },
   },
