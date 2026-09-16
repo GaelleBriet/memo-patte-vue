@@ -80,11 +80,12 @@ function stop(): void {
 @use '@/styles/tokens' as tokens;
 
 .plus-nudge {
+  position: relative;
   display: flex;
   align-items: flex-start;
   gap: 12px;
   margin-inline: tokens.$padding-section-inline;
-  padding: 14px 8px 8px 14px;
+  padding: 14px 14px 6px;
   border: 1px solid tokens.$color-notice-border;
   border-radius: tokens.$radius-notice;
   background: tokens.$color-notice-surface;
@@ -109,6 +110,7 @@ function stop(): void {
 
 .plus-nudge__title {
   margin: 0;
+  padding-inline-end: 38px;
   color: tokens.$color-notice-text;
   font-size: 14px;
   font-weight: 700;
@@ -126,13 +128,18 @@ function stop(): void {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  margin-block: -4px -6px;
   margin-inline-start: -10px;
 }
 
 .plus-nudge__discover,
 .plus-nudge__stop {
+  cursor: pointer;
   min-height: 48px;
   padding-inline: 10px;
+  border: 0;
+  background: transparent;
+  font-family: inherit;
   font-size: 13.5px;
   text-align: start;
 
@@ -151,13 +158,17 @@ function stop(): void {
 }
 
 .plus-nudge__close {
+  cursor: pointer;
+  position: absolute;
+  inset-block-start: 3px;
+  inset-inline-end: 3px;
   display: flex;
-  flex: 0 0 auto;
   align-items: center;
   justify-content: center;
   width: 48px;
   height: 48px;
-  margin-top: -10px;
+  border: 0;
+  background: transparent;
   color: tokens.$color-text-meta;
 
   &:focus-visible {
