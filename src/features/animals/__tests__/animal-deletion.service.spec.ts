@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 import type { DbClient } from '@/core/db/db-client'
 import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory-db'
 import {
@@ -13,6 +13,7 @@ import {
 import { createWeightRepository, type WeightRepository } from '@/features/weight/weight.repository'
 import { getDb } from '@/core/db/sqlite'
 import { cancelReminders, listScheduled, type ScheduledReminder } from '@/core/notifications'
+import { deletePhoto, type PhotoStorage } from '@/core/photos/photo-storage'
 import {
   createFakeNotifications,
   type FakeNotifications,
@@ -29,6 +30,9 @@ vi.mock('@/core/notifications', () => ({
   cancelReminders: vi.fn<(keys: string[]) => Promise<void>>().mockResolvedValue(),
   listScheduled: vi.fn<() => Promise<ScheduledReminder[]>>().mockResolvedValue([]),
 }))
+vi.mock('@/core/photos/photo-storage', () => ({
+  deletePhoto: vi.fn<PhotoStorage['deletePhoto']>().mockResolvedValue(),
+}))
 
 interface Tombstone {
   deleted_at: string | null
@@ -43,6 +47,7 @@ describe('animalDeletionService', () => {
   let treatments: TreatmentsRepository
   let service: AnimalDeletionService
   let notifications: FakeNotifications
+  let photos: { deletePhoto: Mock<PhotoStorage['deletePhoto']> }
 
   beforeEach(async () => {
     db = await createInMemoryDb()
@@ -52,10 +57,12 @@ describe('animalDeletionService', () => {
     weight = createWeightRepository(db)
     treatments = createTreatmentsRepository(db)
     notifications = createFakeNotifications()
+    photos = { deletePhoto: vi.fn<PhotoStorage['deletePhoto']>().mockResolvedValue() }
     service = createAnimalDeletionService(
       () => animals,
       [() => vaccinations, () => weight, () => treatments],
       { vaccinations: () => vaccinations, treatments: () => treatments, notifications },
+      photos,
     )
   })
 
@@ -217,6 +224,7 @@ describe('animalDeletionService', () => {
         }),
       ],
       { vaccinations: () => vaccinations, treatments: () => treatments, notifications },
+      photos,
     )
 
     await expect(failing.remove(miette.id)).rejects.toThrow(/no such table/)
@@ -284,11 +292,93 @@ describe('animalDeletionService', () => {
         }),
       ],
       { vaccinations: () => vaccinations, treatments: () => treatments, notifications },
+      photos,
     )
 
     await expect(failing.remove(miette.id)).rejects.toThrow(/no such table/)
 
     expect(notifications.cancelReminders).not.toHaveBeenCalled()
+  })
+
+  it('efface la copie de la photo de l’animal', async () => {
+    const miette = await animals.create({
+      name: 'Miette',
+      species: 'cat',
+      photoPath: '2f5b0d18-0f3a-4c11-9a7e-1d2c3b4a5e6f.jpg',
+    })
+
+    await service.remove(miette.id)
+
+    expect(photos.deletePhoto).toHaveBeenCalledExactlyOnceWith(
+      '2f5b0d18-0f3a-4c11-9a7e-1d2c3b4a5e6f.jpg',
+    )
+  })
+
+  it('n’efface aucun fichier quand l’animal n’a pas de photo', async () => {
+    const miette = await animals.create({ name: 'Miette', species: 'cat' })
+
+    await service.remove(miette.id)
+
+    expect(photos.deletePhoto).not.toHaveBeenCalled()
+  })
+
+  it('supprime l’animal même si le fichier est déjà absent', async () => {
+    const miette = await animals.create({
+      name: 'Miette',
+      species: 'cat',
+      photoPath: 'absente.jpg',
+    })
+    const rage = await vaccinations.create({
+      animalId: miette.id,
+      name: 'Rage',
+      lastInjectionDate: '2024-03-01',
+      dueDate: '2027-03-01',
+    })
+    const key = `vaccination:${rage.id}:2027-03-01:due`
+    notifications.pending.set(key, { key, title: '', body: '', at: new Date() })
+    photos.deletePhoto.mockRejectedValue(new Error('File does not exist'))
+
+    await expect(service.remove(miette.id)).resolves.toBeUndefined()
+
+    await expect(animals.getById(miette.id)).resolves.toBeNull()
+    expect([...notifications.pending.keys()]).toEqual([])
+  })
+
+  it('garde la photo quand la cascade échoue', async () => {
+    const miette = await animals.create({
+      name: 'Miette',
+      species: 'cat',
+      photoPath: 'gardee.jpg',
+    })
+    const failing = createAnimalDeletionService(
+      () => animals,
+      [
+        () => ({
+          markDeletedByAnimalStatement: () => ({
+            sql: 'UPDATE table_inexistante SET deleted_at = 1',
+          }),
+        }),
+      ],
+      { vaccinations: () => vaccinations, treatments: () => treatments, notifications },
+      photos,
+    )
+
+    await expect(failing.remove(miette.id)).rejects.toThrow(/no such table/)
+
+    expect(photos.deletePhoto).not.toHaveBeenCalled()
+  })
+
+  it('n’efface pas deux fois le fichier d’un animal déjà supprimé', async () => {
+    const miette = await animals.create({
+      name: 'Miette',
+      species: 'cat',
+      photoPath: 'unique.jpg',
+    })
+    await service.remove(miette.id)
+
+    await service.remove(miette.id)
+
+    expect(photos.deletePhoto).toHaveBeenCalledExactlyOnceWith('unique.jpg')
   })
 
   it('ne change aucune date déjà posée lors d’une seconde suppression', async () => {
@@ -354,7 +444,11 @@ describe('animalDeletionService', () => {
 
   it('branche par défaut la base locale et les rappels', async () => {
     vi.mocked(getDb).mockResolvedValue(db)
-    const miette = await animals.create({ name: 'Miette', species: 'cat' })
+    const miette = await animals.create({
+      name: 'Miette',
+      species: 'cat',
+      photoPath: 'branchee.jpg',
+    })
     await vaccinations.create({
       animalId: miette.id,
       name: 'Rage',
@@ -374,6 +468,7 @@ describe('animalDeletionService', () => {
     await animalDeletionService.remove(miette.id)
 
     expect(vi.mocked(cancelReminders)).toHaveBeenCalledExactlyOnceWith([key])
+    expect(vi.mocked(deletePhoto)).toHaveBeenCalledExactlyOnceWith('branchee.jpg')
     const animal = await animalTombstone(miette.id)
     expect(animal?.deleted_at).toEqual(expect.any(String))
     await expect(vaccinationTombstones(miette.id)).resolves.toEqual([animal])
