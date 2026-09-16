@@ -67,11 +67,11 @@ describe('treatmentReminders', () => {
 
     const [before, due, overdue] = treatmentReminders(t, bravecto, LUNA, NOW)
 
-    expect(before?.title).toBe('Flea & tick Bravecto for Luna in 3 days')
+    expect(before?.title).toBe('Bravecto (Parasite control) for Luna in 3 days')
     expect(before?.body).toBe('Check you still have a dose on hand.')
-    expect(due?.title).toBe('Flea & tick Bravecto for Luna today')
+    expect(due?.title).toBe('Bravecto (Parasite control) for Luna today')
     expect(due?.body).toBe('Log the dose in MémoPatte to schedule the next one.')
-    expect(overdue?.title).toBe('Flea & tick Bravecto for Luna is 3 days overdue')
+    expect(overdue?.title).toBe('Bravecto (Parasite control) for Luna is 3 days overdue')
     expect(overdue?.body).toBe('Remember to give the dose, then log it in MémoPatte.')
   })
 
