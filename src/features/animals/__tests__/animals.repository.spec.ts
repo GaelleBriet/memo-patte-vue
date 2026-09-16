@@ -57,13 +57,27 @@ describe('animalsRepository', () => {
     await expect(repository.getById('inconnu')).resolves.toBeNull()
   })
 
-  it('liste les animaux triés par nom, sans tenir compte de la casse', async () => {
+  it('liste les animaux dans leur ordre de création', async () => {
+    vi.useFakeTimers({ now: new Date('2026-03-01T10:00:00.000Z') })
     await repository.create({ name: 'vasco', species: 'dog' })
+    vi.advanceTimersByTime(1000)
     await repository.create({ name: 'Miette', species: 'cat' })
+    vi.advanceTimersByTime(1000)
     await repository.create({ name: 'Abricot', species: 'cat' })
+    vi.useRealTimers()
 
     const names = (await repository.list()).map((animal) => animal.name)
-    expect(names).toEqual(['Abricot', 'Miette', 'vasco'])
+    expect(names).toEqual(['vasco', 'Miette', 'Abricot'])
+  })
+
+  it('départage par nom deux animaux créés dans la même milliseconde (import)', async () => {
+    vi.useFakeTimers({ now: new Date('2026-03-01T10:00:00.000Z') })
+    await repository.create({ name: 'vasco', species: 'dog' })
+    await repository.create({ name: 'Abricot', species: 'cat' })
+    vi.useRealTimers()
+
+    const names = (await repository.list()).map((animal) => animal.name)
+    expect(names).toEqual(['Abricot', 'vasco'])
   })
 
   it('renvoie une liste vide quand la base est vide', async () => {
