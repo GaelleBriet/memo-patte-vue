@@ -47,3 +47,18 @@ Tickets : #45 (écran Plus + rappel doux), #6 (connexion / inscription), #87 (su
 1. **Écran de bienvenue après le consentement (A1)** : la maquette le montre sur fond pétrole avec « Commencer », alors que l'écran de bienvenue livré (A5, `accueil-v2`) est sur fond crème avec l'illustration et « Créer mon premier animal ». Proposition : garder A5 tel quel et n'ajouter que l'écran de consentement avant.
 2. **« Gérer mon abonnement »** : décidé le 2026-09-15 pour le mensuel comme pour l'annuel.
 3. Défauts de rendu de la maquette (textes qui se chevauchent dans les listes « Déjà inclus » et « Ce qui sera supprimé », titres coupés) : non reproduits.
+
+## Relevés de textes (ajoutés le 2026-09-16)
+
+- `releve-textes-plus.png` — tous les textes des planches P1 à P5 de l'écran Plus, y compris les
+  conditions par offre, le badge « Meilleure offre », les libellés de bouton et le pied de page.
+- `releve-textes-parametres.png` — tous les textes des planches S1 à S9 des Paramètres, feuilles
+  d'export et d'import et dialogues compris.
+- `rappel-doux-R1-R3.png` — le rappel doux vers Plus (#45) : carte en tête de liste du Carnet,
+  jamais sur l'Accueil pour rester à distance du bandeau des rappels en retard, jamais modale,
+  refermable, une seule à la fois, avec « Ne plus me le proposer » qui l'écarte pour toujours.
+  Trois déclencheurs : première photo, deuxième animal ou dixième entrée, premier export.
+
+Ces relevés font foi pour les textes français ; les captures d'écran, plus anciennes, peuvent
+montrer un état antérieur (par exemple le bouton plein de l'écran de consentement, remplacé par
+deux boutons de même style le 2026-09-16).
