@@ -24,7 +24,7 @@ defineProps<{
 // Non scopé : les lignes de la carte (`section-card__row`, `__empty`, `__add`)
 // sont rendues par les sections qui remplissent le slot.
 .section-card {
-  padding-inline: 20px;
+  padding-inline: tokens.$padding-section-inline;
 }
 
 .section-card__heading {

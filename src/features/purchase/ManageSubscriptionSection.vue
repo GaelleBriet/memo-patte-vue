@@ -14,7 +14,7 @@ const isSubscribed = computed(() => ['monthly', 'annual'].includes(purchase.stat
 <template>
   <a
     v-if="isSubscribed"
-    class="settings-row settings-row--manage-subscription"
+    class="settings-row settings-row--multiline settings-row--manage-subscription"
     :href="MANAGE_SUBSCRIPTIONS_URL"
     target="_blank"
     rel="noopener"

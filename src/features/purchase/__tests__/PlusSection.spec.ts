@@ -6,6 +6,7 @@ import { BillingError, billingService, type BillingService } from '../billing.se
 import PlusSection from '../PlusSection.vue'
 import { NO_PLUS, type PlusStatus } from '../plus-status'
 import { writeStoredPlusStatus } from '../plus-status-storage'
+import { usePurchaseStore } from '../purchase.store'
 import { memoryStorage } from './billing-fixture'
 import i18n from '@/core/i18n'
 import vuetify from '@/core/theme/vuetify'
@@ -30,6 +31,12 @@ const ANNUAL: PlusStatus = { plan: 'annual', expiresAt: '2027-09-14T10:00:00Z' }
 const MONTHLY: PlusStatus = { plan: 'monthly', expiresAt: '2026-10-14T10:00:00Z' }
 const LIFETIME: PlusStatus = { plan: 'lifetime', expiresAt: null }
 const EXPIRED: PlusStatus = { plan: 'annual', expiresAt: '2026-09-01T10:00:00Z' }
+const CONFIRMED_EXPIRED = {
+  plan: 'none',
+  expiresAt: null,
+  lastSubscription: 'annual',
+  subscriptionEndedAt: '2026-09-11T10:00:00Z',
+} as const
 
 let wrapper: VueWrapper | null = null
 
@@ -112,6 +119,29 @@ describe('PlusSection — statut de l’abonnement', () => {
     expect(wrapper.find('.settings-row--plus-discover').exists()).toBe(false)
   })
 
+  it('mène à l’écran Plus depuis la ligne de statut, comme la maquette', async () => {
+    writeStoredPlusStatus(ANNUAL)
+    const wrapper = await monter()
+    const ligne = wrapper.get('.settings-row--plus-status')
+
+    expect(ligne.find('.settings-row__chevron').exists()).toBe(true)
+    await ligne.trigger('click')
+
+    await vi.waitFor(() => expect(router.currentRoute.value.path).toBe('/plus'))
+  })
+
+  it('range « Gérer mon abonnement » dans la section Plus, sous le statut', async () => {
+    writeStoredPlusStatus(ANNUAL)
+    const wrapper = await monter()
+    const lignes = wrapper.findAll('.settings-row')
+    const rang = (modificateur: string) => lignes.findIndex((ligne) => ligne.classes(modificateur))
+
+    expect(wrapper.get('.settings-row--manage-subscription').text()).toContain(
+      'Gérer mon abonnement · Google Play',
+    )
+    expect(rang('settings-row--manage-subscription')).toBe(rang('settings-row--plus-status') + 1)
+  })
+
   it('tient d’un abonnement payant sans échéance connue qu’il est actif', async () => {
     writeStoredPlusStatus({ plan: 'annual', expiresAt: null })
 
@@ -141,6 +171,43 @@ describe('PlusSection — sauvegarde en pause', () => {
     await bandeau.get('.plus-paused__action').trigger('click')
 
     await vi.waitFor(() => expect(router.currentRoute.value.path).toBe('/plus'))
+  })
+
+  it('se pose au-dessus du titre de la section', async () => {
+    writeStoredPlusStatus(EXPIRED)
+    const wrapper = await monter()
+    const bandeau = wrapper.get('.plus-paused').element
+    const titre = wrapper.get('.section-card__title').element
+
+    expect(bandeau.compareDocumentPosition(titre) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('reste affiché une fois l’expiration confirmée par Google Play', async () => {
+    writeStoredPlusStatus(CONFIRMED_EXPIRED)
+    const wrapper = await monter()
+
+    expect(wrapper.find('.plus-paused').exists()).toBe(true)
+    expect(statut(wrapper)).toContain('Plus annuel — expiré')
+  })
+
+  it('laisse place à la découverte de Plus 30 jours après la fin de l’abonnement', async () => {
+    writeStoredPlusStatus({ ...CONFIRMED_EXPIRED, subscriptionEndedAt: '2026-08-17T10:00:00Z' })
+    const wrapper = await monter()
+
+    expect(wrapper.find('.plus-paused').exists()).toBe(false)
+    expect(wrapper.get('.settings-row--plus-discover').text()).toContain('Découvrir MémoPatte Plus')
+  })
+
+  it('disparaît dès que Plus est réactivé', async () => {
+    writeStoredPlusStatus(CONFIRMED_EXPIRED)
+    service.restore.mockResolvedValue(ANNUAL)
+    const wrapper = await monter()
+
+    await usePurchaseStore().restore()
+    await flushPromises()
+
+    expect(wrapper.find('.plus-paused').exists()).toBe(false)
+    expect(statut(wrapper)).toContain('Plus annuel jusqu’au 14/09/2027')
   })
 
   it('ne propose pas de restaurer un achat tant que Plus est en pause', async () => {

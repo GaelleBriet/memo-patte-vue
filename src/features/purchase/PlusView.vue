@@ -204,7 +204,9 @@ async function restore(): Promise<void> {
       </section>
 
       <section class="plus__offers">
-        <h3 id="plus-offers-title" class="plus__offers-title">{{ t('plus.offers.title') }}</h3>
+        <h3 v-if="offers.length > 0" id="plus-offers-title" class="plus__offers-title">
+          {{ t('plus.offers.title') }}
+        </h3>
 
         <div v-if="offers.length > 0" role="radiogroup" aria-labelledby="plus-offers-title">
           <button
@@ -477,8 +479,10 @@ async function restore(): Promise<void> {
   margin-top: 12px;
 }
 
+// `rgba(…, alpha)` et non `rgb(… / alpha)` : le thème livre « 1,56,62 », que la
+// syntaxe à barre oblique rejette, et la bordure retombait alors sur `currentColor`.
 .plus-offer--best {
-  border-color: rgb(var(--v-theme-primary) / 35%);
+  border-color: rgba(var(--v-theme-primary), 0.18);
 }
 
 .plus-offer--selected {
@@ -534,12 +538,20 @@ async function restore(): Promise<void> {
 .plus__submit,
 .plus__retry-offers {
   width: 100%;
-  height: 52px;
+  height: auto;
+  min-height: 52px;
   margin-top: 18px;
+  padding-block: 12px;
   border-radius: 999px;
   font-size: 16px;
   font-weight: 700;
   letter-spacing: normal;
+}
+
+// Le libellé porte le prix rendu par Google Play : aucune devise ne doit déborder.
+.plus__submit :deep(.v-btn__content) {
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .plus__terms {

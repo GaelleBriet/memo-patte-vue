@@ -960,3 +960,27 @@ sur plusieurs semaines. — Alternatives écartées : monter en pnpm 11 maintena
 (migration non vérifiable localement, pour zéro gain fonctionnel) ; monter en
 pnpm 12, où un réglage inconnu de `pnpm-workspace.yaml` fait désormais échouer la
 commande. **À rouvrir quand la page des écosystèmes supportés listera pnpm 11.**
+
+2026-09-16 — **« Gérer mon abonnement · Google Play » vit dans la section
+MémoPatte Plus, pas dans Confidentialité.** — Raison : décision de Gaelle ; c'est
+une action d'abonnement, elle se lit à côté du statut Plus et de « Restaurer mon
+achat », et le relevé de textes la range avec le compte, qui n'existe pas encore.
+— Alternative écartée : la laisser dans Confidentialité comme le relevé, où elle
+voisine les statistiques d'usage, sans rapport.
+
+2026-09-16 — **Le souvenir d'un abonnement échu s'efface au bout de 30 jours.**
+Une fois l'expiration confirmée par Google Play, le bandeau « Ta sauvegarde cloud
+est en pause » reste affiché 30 jours, puis l'app oublie : retour à « Découvrir
+MémoPatte Plus », et plus aucun appel à Google Play au lancement pour cet
+utilisateur. Un utilisateur qui n'a jamais payé ne voit jamais le bandeau ; une
+réactivation, un achat à vie ou une connexion à un autre compte effacent le
+souvenir tout de suite. Le délai court depuis la fin réelle de l'abonnement quand
+elle est connue, sinon depuis la confirmation de Google Play. L'oubli se fait à la
+lecture de la préférence locale, pas par une purge écrite : le comportement est le
+même et il n'y a pas d'écriture au lancement. — Raison : décision de Gaelle ; au
+bout d'un mois, quelqu'un qui n'a pas renouvelé a choisi, et lui rappeler
+indéfiniment qu'il a laissé tomber Plus est du harcèlement commercial ; l'appel au
+store à chaque lancement n'a plus de contrepartie. — Alternatives écartées : garder
+le souvenir pour toujours (bandeau permanent, appel réseau à vie) ; l'effacer dès
+la confirmation d'expiration (l'utilisateur ne saurait jamais que sa sauvegarde
+s'est arrêtée).
