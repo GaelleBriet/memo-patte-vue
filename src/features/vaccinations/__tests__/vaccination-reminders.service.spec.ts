@@ -118,7 +118,7 @@ describe('vaccinationRemindersService', () => {
 
     await service.cancel(CHPPI.id)
 
-    expect(notifications.cancelReminder).toHaveBeenCalledTimes(3)
+    expect(notifications.cancelReminders.mock.calls[0]?.[0]).toHaveLength(3)
     expect(notifications.pending.size).toBe(0)
   })
 })

@@ -20,12 +20,12 @@ import {
 } from '@/features/vaccinations/vaccinations.repository'
 import type { Translate } from '@/shared/due-reminders'
 import {
-  earliestReminders,
   enqueueReminderTask,
   MAX_SCHEDULED_REMINDERS,
   pendingTime,
   provideFullReminderSync,
   reminderNotifications,
+  remindersWithinCap,
   type ReminderNotifications,
 } from '@/shared/due-reminders-schedule'
 
@@ -41,6 +41,23 @@ function warnOnIdCollisions(reminders: Reminder[]): void {
     }
     keysById.set(id, key)
   }
+}
+
+/** Une ligne dont les rappels ne se calculent pas ne doit pas priver l'appareil de tous les autres. */
+function remindersOf<T extends { id: string }>(
+  label: string,
+  rows: T[],
+  build: (row: T) => Reminder[],
+): Reminder[] {
+  const reminders: Reminder[] = []
+  for (const row of rows) {
+    try {
+      reminders.push(...build(row))
+    } catch (cause) {
+      console.warn(`Rappels du ${label} ignorés :`, row.id, cause)
+    }
+  }
+  return reminders
 }
 
 function fingerprint(key: string | undefined, time: number | null, title: string, body: string) {
@@ -96,16 +113,16 @@ export function createRemindersSync({
       const at = now()
 
       const reminders = [
-        ...vaccinationRows.flatMap((vaccination) =>
+        ...remindersOf('vaccin', vaccinationRows, (vaccination) =>
           vaccinationReminders(t, vaccination, animalsById.get(vaccination.animalId) ?? null, at),
         ),
-        ...treatmentRows.flatMap((treatment) =>
+        ...remindersOf('traitement', treatmentRows, (treatment) =>
           treatmentReminders(t, treatment, animalsById.get(treatment.animalId) ?? null, at),
         ),
       ]
       warnOnIdCollisions(reminders)
 
-      const wanted = earliestReminders(reminders, MAX_SCHEDULED_REMINDERS)
+      const wanted = remindersWithinCap(reminders, MAX_SCHEDULED_REMINDERS)
       if (isAlreadyScheduled(await notifications.listScheduled(), wanted)) return
       await notifications.rescheduleAll(wanted)
     } catch (cause) {

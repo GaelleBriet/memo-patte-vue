@@ -90,6 +90,15 @@ describe('parseExportFile', () => {
         ;(document.animals as Record<string, unknown>[])[0]!.initialWeightKg = 201
       }),
     ],
+    [
+      'une fréquence de traitement hors bornes',
+      withDocument((document) => {
+        ;(document.treatments as Record<string, unknown>[])[0]!.frequency = {
+          value: 10_000_000,
+          unit: 'month',
+        }
+      }),
+    ],
   ])('dit pourquoi il refuse %s, plutôt que « ce n’est pas un export »', (_, text) => {
     expect(parseExportFile(text)).toEqual({ ok: false, reason: 'outOfRange' })
   })

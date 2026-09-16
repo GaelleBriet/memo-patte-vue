@@ -183,6 +183,7 @@
         "name": "Name is required.",
         "type": "Choose a type.",
         "frequency": "Enter a frequency.",
+        "frequencyMax": "Frequency must be at most 365.",
         "lastDoseDate": "Date is required.",
         "lastDoseDateFuture": "Date can’t be in the future.",
         "notFound": "We can’t find this treatment.",
@@ -408,7 +409,7 @@
       "errors": {
         "invalid": "This file isn’t a MémoPatte export.",
         "newer": "This export comes from a newer version of the app.",
-        "outOfRange": "This file has a weight beyond the limit: at most 200 kg.",
+        "outOfRange": "This file has a value beyond the limits: at most 200 kg for a weight, 365 for a frequency.",
         "failed": "The import didn’t go through. Your data hasn’t changed."
       },
       "confirm": {

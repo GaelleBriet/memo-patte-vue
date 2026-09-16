@@ -212,6 +212,7 @@ describe('TreatmentFormView — structure', () => {
     expect(wrapper.get('.treatment-form__frequency').text()).toContain('Tous les')
     expect(nombre.attributes('inputmode')).toBe('numeric')
     expect(nombre.attributes('min')).toBe('1')
+    expect(nombre.attributes('max')).toBe('365')
     expect(uniteCochee(wrapper)).toBe('month')
   })
 
@@ -318,6 +319,16 @@ describe('TreatmentFormView — validation', () => {
 
     expect(messages(wrapper)).toEqual(['La date ne peut pas être dans le futur.'])
     expect(create).not.toHaveBeenCalled()
+  })
+
+  it('dit le plafond en rouvrant une ligne dont la fréquence le dépasse', async () => {
+    getById.mockResolvedValue({ ...BRAVECTO, frequency: { value: 10_000_000, unit: 'month' } })
+    const wrapper = await monterEdition()
+
+    await soumettre(wrapper)
+
+    expect(messages(wrapper)).toEqual(['La fréquence doit être de 365 maximum.'])
+    expect(update).not.toHaveBeenCalled()
   })
 
   it('efface les messages dès que le formulaire redevient valide', async () => {

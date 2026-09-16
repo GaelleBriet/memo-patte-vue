@@ -11,6 +11,7 @@ import {
 } from './treatment-form'
 import {
   FREQUENCY_UNITS,
+  MAX_FREQUENCY_VALUE,
   TREATMENT_TYPES,
   type FrequencyUnit,
   type Treatment,
@@ -230,6 +231,7 @@ async function submit(): Promise<void> {
               type="number"
               inputmode="numeric"
               min="1"
+              :max="MAX_FREQUENCY_VALUE"
               step="1"
               variant="outlined"
               hide-details

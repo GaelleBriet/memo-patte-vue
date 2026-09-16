@@ -112,14 +112,19 @@ function parseJson(text: string): unknown {
   }
 }
 
-const WEIGHT_FIELDS = new Set(['weightKg', 'initialWeightKg'])
+const BOUNDED_FIELDS = [['weightKg'], ['initialWeightKg'], ['frequency', 'value']]
+
+function endsWith(path: PropertyKey[], suffix: string[]): boolean {
+  return suffix.every((segment, index) => path[path.length - suffix.length + index] === segment)
+}
 
 function refusalReason(error: z.ZodError): ImportFileError {
-  const onlyWeightsTooBig = error.issues.every(
-    (issue) => issue.code === 'too_big' && WEIGHT_FIELDS.has(String(issue.path.at(-1))),
+  const onlyBoundsExceeded = error.issues.every(
+    (issue) =>
+      issue.code === 'too_big' && BOUNDED_FIELDS.some((suffix) => endsWith(issue.path, suffix)),
   )
 
-  return onlyWeightsTooBig ? 'outOfRange' : 'invalid'
+  return onlyBoundsExceeded ? 'outOfRange' : 'invalid'
 }
 
 export function parseExportFile(text: string): ParsedExportFile {
