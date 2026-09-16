@@ -4,31 +4,48 @@ import { ESLint } from 'eslint'
 import { beforeAll, describe, expect, it } from 'vitest'
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url))
-const FEATURE_RULE = '@typescript-eslint/no-restricted-imports'
-const LEGACY_RULE = 'no-restricted-imports'
+const FEATURE_RULES = [
+  '@typescript-eslint/no-restricted-imports',
+  'app/no-restricted-dynamic-feature-imports',
+]
+const LEGACY_RULES = ['no-restricted-imports', 'app/no-restricted-dynamic-imports']
 
 let eslint: ESLint
 
 beforeAll(() => {
   eslint = new ESLint({
     cwd: ROOT,
-    ruleFilter: ({ ruleId }) => ruleId.endsWith('no-restricted-imports'),
+    ruleFilter: ({ ruleId }) => ruleId.includes('no-restricted'),
     overrideConfig: { languageOptions: { parserOptions: { projectService: false } } },
   })
 }, 30_000)
 
-async function restrictedImports(filePath: string, imports: string[]) {
-  const statements = imports.map((source, i) => `import * as m${i} from '${source}'`).join('\n')
+async function lintImports(filePath: string, statements: string[]) {
+  const body = statements.join('\n')
   const code = filePath.endsWith('.vue')
-    ? `<script setup lang="ts">\n${statements}\n</script>\n`
-    : `${statements}\n`
+    ? `<script setup lang="ts">\n${body}\n</script>\n`
+    : `${body}\n`
   const [result] = await eslint.lintText(code, { filePath: `${ROOT}/${filePath}` })
   const messages = result?.messages ?? []
   expect(messages.filter((m) => m.fatal)).toEqual([])
   return {
-    feature: messages.filter((m) => m.ruleId === FEATURE_RULE).length,
-    legacy: messages.filter((m) => m.ruleId === LEGACY_RULE).length,
+    feature: messages.filter((m) => FEATURE_RULES.includes(m.ruleId ?? '')).length,
+    legacy: messages.filter((m) => LEGACY_RULES.includes(m.ruleId ?? '')).length,
   }
+}
+
+async function restrictedImports(filePath: string, imports: string[]) {
+  return lintImports(
+    filePath,
+    imports.map((source, i) => `import * as m${i} from '${source}'`),
+  )
+}
+
+async function restrictedDynamicImports(filePath: string, imports: string[]) {
+  return lintImports(
+    filePath,
+    imports.map((source, i) => `const m${i} = () => import('${source}')`),
+  )
 }
 
 describe('imports entre features', { timeout: 30_000 }, () => {
@@ -57,13 +74,26 @@ describe('imports entre features', { timeout: 30_000 }, () => {
   })
 
   it('autorise sa propre feature, le store et les types des animaux', async () => {
-    const result = await restrictedImports('src/features/weight/WeightHistoryView.vue', [
-      '@/features/weight/weight.store',
-      '@/features/animals/animals.store',
-      '@/features/animals/animal.schema',
+    const result = await lintImports('src/features/weight/WeightHistoryView.vue', [
+      "import * as m0 from '@/features/weight/weight.store'",
+      "import { useAnimalsStore } from '@/features/animals/animals.store'",
+      "import * as m2 from '@/features/animals/animal.schema'",
     ])
 
     expect(result.feature).toBe(0)
+  })
+
+  it("des animaux, n'autorise que la lecture du store", async () => {
+    const other = await lintImports('src/features/weight/WeightHistoryView.vue', [
+      "import { provideAnimalsRepository } from '@/features/animals/animals.store'",
+      "import * as m1 from '@/features/animals/animals.store'",
+    ])
+    const own = await lintImports('src/features/animals/AnimalFormView.vue', [
+      "import { provideAnimalsRepository } from '@/features/animals/animals.store'",
+    ])
+
+    expect(other.feature).toBe(2)
+    expect(own.feature).toBe(0)
   })
 
   it('interdit les autres modules des animaux', async () => {
@@ -157,6 +187,69 @@ describe('imports entre features', { timeout: 30_000 }, () => {
     const result = await restrictedImports('src/features/weight/weight.repository.ts', [
       '@/features/treatments/treatments.store',
       '@capacitor/local-notifications',
+    ])
+
+    expect(result).toEqual({ feature: 1, legacy: 1 })
+  })
+})
+
+describe('imports dynamiques', { timeout: 30_000 }, () => {
+  it("interdit le store d'une autre feature", async () => {
+    const result = await restrictedDynamicImports('src/features/weight/WeightHistoryView.vue', [
+      '@/features/vaccinations/vaccinations.store',
+      '../home/home.store',
+      '@/features/vaccinations',
+    ])
+
+    expect(result.feature).toBe(3)
+  })
+
+  it("interdit l'accès direct aux données depuis une feature", async () => {
+    const result = await restrictedDynamicImports('src/features/weight/WeightHistoryView.vue', [
+      '@/core/db/sqlite',
+      '@/core/supabase/client',
+      '@capacitor-community/sqlite',
+      '@capacitor/local-notifications',
+    ])
+
+    expect(result.legacy).toBe(4)
+  })
+
+  it('interdit à core/ de dépendre des features', async () => {
+    const analytics = await restrictedDynamicImports('src/core/analytics/index.ts', [
+      '@/features/animals/animals.store',
+    ])
+    const notifications = await restrictedDynamicImports('src/core/notifications/reminder.ts', [
+      '@/features/animals/animals.store',
+    ])
+
+    expect(analytics.legacy).toBe(1)
+    expect(notifications.legacy).toBe(1)
+  })
+
+  it('autorise ce que les imports statiques autorisent', async () => {
+    const view = await restrictedDynamicImports('src/features/weight/WeightHistoryView.vue', [
+      './weight.store',
+      '@/features/animals/animals.store',
+      '@/shared/reminders',
+    ])
+    const service = await restrictedDynamicImports('src/features/purchase/billing.service.ts', [
+      '@revenuecat/purchases-capacitor',
+      '@/features/animals/animals.repository',
+    ])
+    const dev = await restrictedDynamicImports('src/core/dev/fixtures.ts', [
+      '@/features/animals/animals.repository',
+    ])
+
+    expect(view).toEqual({ feature: 0, legacy: 0 })
+    expect(service).toEqual({ feature: 0, legacy: 0 })
+    expect(dev).toEqual({ feature: 0, legacy: 0 })
+  })
+
+  it('ne signale pas deux fois un même import statique', async () => {
+    const result = await restrictedImports('src/features/weight/WeightHistoryView.vue', [
+      '@/features/vaccinations/vaccinations.store',
+      '@/core/db/sqlite',
     ])
 
     expect(result).toEqual({ feature: 1, legacy: 1 })
