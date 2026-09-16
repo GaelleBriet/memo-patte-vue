@@ -30,8 +30,12 @@ const service = vi.mocked(billingService)
 const ANNUAL: PlusStatus = { plan: 'annual', expiresAt: '2027-09-01T10:00:00Z' }
 const LIFETIME: PlusStatus = { plan: 'lifetime', expiresAt: null }
 
-function stored(status: PlusStatus, lastSubscription: StoredPlusStatus['lastSubscription'] = null) {
-  return { ...status, lastSubscription }
+function stored(
+  status: PlusStatus,
+  lastSubscription: StoredPlusStatus['lastSubscription'] = null,
+  subscriptionEndedAt: string | null = null,
+) {
+  return { ...status, lastSubscription, subscriptionEndedAt }
 }
 
 beforeEach(() => {
@@ -65,7 +69,7 @@ describe('usePurchaseStore', () => {
 
     it('se lit « aucun » sans effacer le statut enregistré', () => {
       expect(usePurchaseStore().status).toEqual(NO_PLUS)
-      expect(readStoredPlusStatus()).toEqual(stored(LAPSED, 'monthly'))
+      expect(readStoredPlusStatus()).toEqual(stored(LAPSED, 'monthly', LAPSED.expiresAt))
     })
 
     it('reste revérifié au lancement, pour retrouver un renouvellement', async () => {
@@ -102,7 +106,32 @@ describe('usePurchaseStore', () => {
 
       expect(store.status).toEqual(NO_PLUS)
       expect(store.expiredPlan).toBe('monthly')
-      expect(readStoredPlusStatus()).toEqual(stored(NO_PLUS, 'monthly'))
+      expect(readStoredPlusStatus()).toEqual(stored(NO_PLUS, 'monthly', LAPSED.expiresAt))
+    })
+
+    it('rappelle Google Play au lancement suivant, tant que le souvenir tient', async () => {
+      service.fetchStatus.mockResolvedValue(NO_PLUS)
+      await usePurchaseStore().verifyKnownStatus()
+
+      setActivePinia(createPinia())
+      const relance = usePurchaseStore()
+      await relance.verifyKnownStatus()
+
+      expect(service.fetchStatus).toHaveBeenCalledTimes(2)
+      expect(relance.expiredPlan).toBe('monthly')
+    })
+
+    it('oublie l’abonnement 30 jours après sa fin, et cesse d’appeler Google Play', async () => {
+      service.fetchStatus.mockResolvedValue(NO_PLUS)
+      await usePurchaseStore().verifyKnownStatus()
+      vi.setSystemTime(new Date('2026-10-01T10:00:00Z'))
+
+      setActivePinia(createPinia())
+      const relance = usePurchaseStore()
+      await relance.verifyKnownStatus()
+
+      expect(service.fetchStatus).toHaveBeenCalledOnce()
+      expect(relance.expiredPlan).toBeNull()
     })
 
     it('oublie le plan échu dès que Plus est réactivé', async () => {
@@ -115,6 +144,30 @@ describe('usePurchaseStore', () => {
 
       expect(store.expiredPlan).toBeNull()
       expect(readStoredPlusStatus()).toEqual(stored(ANNUAL, 'annual'))
+    })
+
+    it('oublie le plan échu dès qu’un achat à vie est connu', async () => {
+      service.fetchStatus.mockResolvedValueOnce(NO_PLUS)
+      service.purchase.mockResolvedValueOnce({ kind: 'purchased', status: LIFETIME })
+      const store = usePurchaseStore()
+      await store.verifyKnownStatus()
+
+      await store.purchase('lifetime')
+
+      expect(store.expiredPlan).toBeNull()
+      expect(readStoredPlusStatus()).toEqual(stored(LIFETIME))
+    })
+
+    it('ne lègue pas le souvenir du compte quitté au compte qui se connecte', async () => {
+      service.fetchStatus.mockResolvedValueOnce(NO_PLUS)
+      service.logIn.mockResolvedValueOnce(NO_PLUS)
+      const store = usePurchaseStore()
+      await store.verifyKnownStatus()
+
+      await store.logIn('0f8fad5b-d9cb-469f-a165-70867728950e')
+
+      expect(store.expiredPlan).toBeNull()
+      expect(readStoredPlusStatus()).toEqual(NO_STORED_PLUS)
     })
   })
 
@@ -182,7 +235,8 @@ describe('usePurchaseStore', () => {
       expect(readStoredPlusStatus()).toEqual(stored(LIFETIME))
     })
 
-    it('passe à « aucun » un abonnement expiré', async () => {
+    it('passe à « aucun » un droit retiré avant son échéance, et date le souvenir du jour', async () => {
+      vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-09-16T10:00:00Z') })
       writeStoredPlusStatus(ANNUAL)
       service.fetchStatus.mockResolvedValueOnce(NO_PLUS)
       const store = usePurchaseStore()
@@ -190,7 +244,8 @@ describe('usePurchaseStore', () => {
       await store.verifyKnownStatus()
 
       expect(store.status).toEqual(NO_PLUS)
-      expect(readStoredPlusStatus()).toEqual(stored(NO_PLUS, 'annual'))
+      expect(readStoredPlusStatus()).toEqual(stored(NO_PLUS, 'annual', '2026-09-16T10:00:00.000Z'))
+      vi.useRealTimers()
     })
 
     it('garde le statut connu quand la vérification échoue, sans lever', async () => {
@@ -203,6 +258,30 @@ describe('usePurchaseStore', () => {
 
       expect(store.status).toEqual(ANNUAL)
       expect(readStoredPlusStatus()).toEqual(stored(ANNUAL, 'annual'))
+    })
+
+    it('oublie le plan échu dès qu’un achat à vie est connu', async () => {
+      service.fetchStatus.mockResolvedValueOnce(NO_PLUS)
+      service.purchase.mockResolvedValueOnce({ kind: 'purchased', status: LIFETIME })
+      const store = usePurchaseStore()
+      await store.verifyKnownStatus()
+
+      await store.purchase('lifetime')
+
+      expect(store.expiredPlan).toBeNull()
+      expect(readStoredPlusStatus()).toEqual(stored(LIFETIME))
+    })
+
+    it('ne lègue pas le souvenir du compte quitté au compte qui se connecte', async () => {
+      service.fetchStatus.mockResolvedValueOnce(NO_PLUS)
+      service.logIn.mockResolvedValueOnce(NO_PLUS)
+      const store = usePurchaseStore()
+      await store.verifyKnownStatus()
+
+      await store.logIn('0f8fad5b-d9cb-469f-a165-70867728950e')
+
+      expect(store.expiredPlan).toBeNull()
+      expect(readStoredPlusStatus()).toEqual(NO_STORED_PLUS)
     })
   })
 

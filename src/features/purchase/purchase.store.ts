@@ -9,10 +9,23 @@ import {
 } from './billing.service'
 import { NO_PLUS, subscriptionOf, type PlusStatus, type SubscriptionPlan } from './plus-status'
 import {
+  NO_STORED_PLUS,
   readStoredPlusStatus,
   writeStoredPlusStatus,
   type StoredPlusStatus,
 } from './plus-status-storage'
+
+function remember(next: PlusStatus, previous: StoredPlusStatus): StoredPlusStatus {
+  if (next.plan !== 'none')
+    return { ...next, lastSubscription: subscriptionOf(next), subscriptionEndedAt: null }
+  const { lastSubscription, subscriptionEndedAt } = previous
+  return {
+    ...next,
+    lastSubscription,
+    subscriptionEndedAt:
+      lastSubscription === null ? null : (subscriptionEndedAt ?? new Date().toISOString()),
+  }
+}
 
 export const usePurchaseStore = defineStore('purchase', () => {
   const stored = ref<StoredPlusStatus>(readStoredPlusStatus())
@@ -32,12 +45,9 @@ export const usePurchaseStore = defineStore('purchase', () => {
 
   let generation = 0
 
-  function record(next: PlusStatus): PlusStatus {
+  function record(next: PlusStatus, previous = stored.value): PlusStatus {
     generation += 1
-    stored.value = {
-      ...next,
-      lastSubscription: next.plan === 'none' ? stored.value.lastSubscription : subscriptionOf(next),
-    }
+    stored.value = remember(next, previous)
     writeStoredPlusStatus(stored.value)
     return next
   }
@@ -85,8 +95,9 @@ export const usePurchaseStore = defineStore('purchase', () => {
       return record(await billingService.restore())
     },
 
+    /** Le souvenir d'abonnement appartient au compte quitté : le nouveau repart de zéro. */
     async logIn(appUserID: string): Promise<PlusStatus> {
-      return record(await billingService.logIn(appUserID))
+      return record(await billingService.logIn(appUserID), NO_STORED_PLUS)
     },
   }
 })

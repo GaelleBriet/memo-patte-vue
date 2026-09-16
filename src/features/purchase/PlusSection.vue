@@ -132,11 +132,11 @@ async function restore(): Promise<void> {
 .plus-section {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: tokens.$gap-settings-sections;
 }
 
 .plus-paused {
-  margin-inline: 20px;
+  margin-inline: tokens.$padding-section-inline;
   padding: 14px 16px;
   border: 1px solid tokens.$color-notice-border;
   border-radius: tokens.$radius-notice;
@@ -148,7 +148,7 @@ async function restore(): Promise<void> {
   align-items: flex-start;
   gap: 12px;
   margin: 0;
-  color: rgb(var(--v-theme-on-surface));
+  color: tokens.$color-notice-text;
   font-size: 13px;
   font-weight: 700;
   line-height: 1.4;

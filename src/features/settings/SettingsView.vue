@@ -154,7 +154,7 @@ function goHome(): void {
 .settings__content {
   display: flex;
   flex-direction: column;
-  gap: 26px;
+  gap: tokens.$gap-settings-sections;
   padding-block: 12px 32px;
 }
 

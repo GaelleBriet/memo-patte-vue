@@ -31,7 +31,12 @@ const ANNUAL: PlusStatus = { plan: 'annual', expiresAt: '2027-09-14T10:00:00Z' }
 const MONTHLY: PlusStatus = { plan: 'monthly', expiresAt: '2026-10-14T10:00:00Z' }
 const LIFETIME: PlusStatus = { plan: 'lifetime', expiresAt: null }
 const EXPIRED: PlusStatus = { plan: 'annual', expiresAt: '2026-09-01T10:00:00Z' }
-const CONFIRMED_EXPIRED = { plan: 'none', expiresAt: null, lastSubscription: 'annual' } as const
+const CONFIRMED_EXPIRED = {
+  plan: 'none',
+  expiresAt: null,
+  lastSubscription: 'annual',
+  subscriptionEndedAt: '2026-09-11T10:00:00Z',
+} as const
 
 let wrapper: VueWrapper | null = null
 
@@ -129,14 +134,12 @@ describe('PlusSection — statut de l’abonnement', () => {
     writeStoredPlusStatus(ANNUAL)
     const wrapper = await monter()
     const lignes = wrapper.findAll('.settings-row')
+    const rang = (modificateur: string) => lignes.findIndex((ligne) => ligne.classes(modificateur))
 
     expect(wrapper.get('.settings-row--manage-subscription').text()).toContain(
       'Gérer mon abonnement · Google Play',
     )
-    expect(lignes.map((ligne) => ligne.classes()).map((classes) => classes[1])).toEqual([
-      'settings-row--plus-status',
-      'settings-row--multiline',
-    ])
+    expect(rang('settings-row--manage-subscription')).toBe(rang('settings-row--plus-status') + 1)
   })
 
   it('tient d’un abonnement payant sans échéance connue qu’il est actif', async () => {
@@ -185,6 +188,14 @@ describe('PlusSection — sauvegarde en pause', () => {
 
     expect(wrapper.find('.plus-paused').exists()).toBe(true)
     expect(statut(wrapper)).toContain('Plus annuel — expiré')
+  })
+
+  it('laisse place à la découverte de Plus 30 jours après la fin de l’abonnement', async () => {
+    writeStoredPlusStatus({ ...CONFIRMED_EXPIRED, subscriptionEndedAt: '2026-08-17T10:00:00Z' })
+    const wrapper = await monter()
+
+    expect(wrapper.find('.plus-paused').exists()).toBe(false)
+    expect(wrapper.get('.settings-row--plus-discover').text()).toContain('Découvrir MémoPatte Plus')
   })
 
   it('disparaît dès que Plus est réactivé', async () => {
