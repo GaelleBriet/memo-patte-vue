@@ -7,7 +7,7 @@ import {
 } from './vaccination-reminders.service'
 import type { Vaccination, VaccinationInput, VaccinationUpdateInput } from './vaccination.schema'
 import type { VaccinationsRepository as FullVaccinationsRepository } from './vaccinations.repository'
-import { recordPlusNudgeSignal } from '@/shared/plus-nudge-signals'
+import { recordUsageSignal } from '@/shared/usage-signals'
 
 // Le store ne dépend que de ce qu'il appelle : la cascade de suppression (#102) n'est pas son affaire.
 type VaccinationsRepository = Pick<
@@ -120,7 +120,7 @@ export const useVaccinationsStore = defineStore('vaccinations', () => {
         },
         (vaccination) => vaccination.animalId,
       )
-      recordPlusNudgeSignal('entry')
+      recordUsageSignal('entry')
       return created
     },
 

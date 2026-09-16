@@ -3,7 +3,7 @@ import { ref } from 'vue'
 
 import type { WeightEntry, WeightEntryInput, WeightEntryUpdateInput } from './weight.schema'
 import type { WeightRepository as FullWeightRepository } from './weight.repository'
-import { recordPlusNudgeSignal } from '@/shared/plus-nudge-signals'
+import { recordUsageSignal } from '@/shared/usage-signals'
 
 // Le store ne dépend que de ce qu'il appelle : la cascade de suppression (#102) n'est pas son affaire.
 type WeightRepository = Pick<FullWeightRepository, 'listByAnimal' | 'create' | 'update' | 'remove'>
@@ -94,7 +94,7 @@ export const useWeightStore = defineStore('weight', () => {
         (repository) => repository.create(input),
         (entry) => entry.animalId,
       )
-      recordPlusNudgeSignal('entry')
+      recordUsageSignal('entry')
       return created
     },
 

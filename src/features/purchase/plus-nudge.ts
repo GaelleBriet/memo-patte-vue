@@ -1,13 +1,15 @@
 import { differenceInCalendarDays, parseISO } from 'date-fns'
 import { z } from 'zod'
 
-import { readPlusNudgeSignals, type PlusNudgeSignals } from '@/shared/plus-nudge-signals'
+import { readUsageSignals, type UsageSignals } from '@/shared/usage-signals'
 
 export const PLUS_NUDGE_STORAGE_KEY = 'memopatte.plus.nudge'
 
 export const PLUS_NUDGE_SPACING_DAYS = 30
 
 export const PLUS_NUDGE_ENTRIES = 10
+
+export const PLUS_NUDGE_ANIMALS = 2
 
 export const PLUS_NUDGE_TRIGGERS = ['firstPhoto', 'carnetValue', 'firstExport'] as const
 
@@ -19,6 +21,8 @@ export type PlusNudgeState = {
   stopped: boolean
 }
 
+export type CarnetSize = { animals: number }
+
 const NO_PLUS_NUDGE: PlusNudgeState = { shown: [], lastShownAt: null, stopped: false }
 
 const stateSchema = z.object({
@@ -27,13 +31,14 @@ const stateSchema = z.object({
   stopped: z.boolean().optional(),
 })
 
-function reached(signals: PlusNudgeSignals, trigger: PlusNudgeTrigger): boolean {
-  if (trigger === 'firstPhoto') return signals.photo >= 1
-  if (trigger === 'carnetValue') return signals.animal >= 2 || signals.entry >= PLUS_NUDGE_ENTRIES
-  return signals.export >= 1
+/** Repli quand `localStorage` refuse d'écrire : un refus tient au moins la session. */
+let session: PlusNudgeState | null = null
+
+export function forgetPlusNudgeSession(): void {
+  session = null
 }
 
-export function readPlusNudgeState(): PlusNudgeState {
+function fromStorage(): PlusNudgeState {
   try {
     const raw = localStorage.getItem(PLUS_NUDGE_STORAGE_KEY)
     if (raw === null) return NO_PLUS_NUDGE
@@ -44,10 +49,16 @@ export function readPlusNudgeState(): PlusNudgeState {
   }
 }
 
+export function readPlusNudgeState(): PlusNudgeState {
+  return session ?? fromStorage()
+}
+
 function write(state: PlusNudgeState): void {
   try {
     localStorage.setItem(PLUS_NUDGE_STORAGE_KEY, JSON.stringify(state))
+    session = null
   } catch (cause) {
+    session = state
     console.warn('Rappel MémoPatte Plus non enregistré :', cause)
   }
 }
@@ -65,9 +76,23 @@ export function stopPlusNudges(): void {
   write({ ...readPlusNudgeState(), stopped: true })
 }
 
+/** `undefined` : moment de valeur pas atteint. Sinon sa date, `null` quand elle est inconnue. */
+function reachedAt(
+  trigger: PlusNudgeTrigger,
+  signals: UsageSignals,
+  carnet: CarnetSize,
+): string | null | undefined {
+  if (trigger === 'firstPhoto') return signals.photo.count >= 1 ? signals.photo.lastAt : undefined
+  if (trigger === 'firstExport')
+    return signals.export.count >= 1 ? signals.export.lastAt : undefined
+  if (signals.entry.count >= PLUS_NUDGE_ENTRIES) return signals.entry.lastAt
+  return carnet.animals >= PLUS_NUDGE_ANIMALS ? null : undefined
+}
+
 export function pendingPlusNudge(
   state: PlusNudgeState,
-  signals: PlusNudgeSignals,
+  signals: UsageSignals,
+  carnet: CarnetSize,
   now: Date,
 ): PlusNudgeTrigger | null {
   if (state.stopped) return null
@@ -76,13 +101,23 @@ export function pendingPlusNudge(
     differenceInCalendarDays(now, parseISO(state.lastShownAt)) < PLUS_NUDGE_SPACING_DAYS
   )
     return null
-  return (
-    PLUS_NUDGE_TRIGGERS.find(
-      (trigger) => !state.shown.includes(trigger) && reached(signals, trigger),
-    ) ?? null
-  )
+
+  const candidates = PLUS_NUDGE_TRIGGERS.filter((trigger) => !state.shown.includes(trigger))
+    .map((trigger) => ({ trigger, at: reachedAt(trigger, signals, carnet) }))
+    .filter((candidate) => candidate.at !== undefined)
+
+  // Le moment de valeur le plus frais parle le premier ; sans date connue, il passe après.
+  return candidates.sort((a, b) => (b.at ?? '').localeCompare(a.at ?? ''))[0]?.trigger ?? null
 }
 
-export function nextPlusNudge(now = new Date()): PlusNudgeTrigger | null {
-  return pendingPlusNudge(readPlusNudgeState(), readPlusNudgeSignals(), now)
+/** Une horloge qui recule gèlerait les rappels jusqu'à la date déjà écrite. */
+function withSaneClock(state: PlusNudgeState, now: Date): PlusNudgeState {
+  if (state.lastShownAt === null || parseISO(state.lastShownAt) <= now) return state
+  const corrected = { ...state, lastShownAt: now.toISOString() }
+  write(corrected)
+  return corrected
+}
+
+export function nextPlusNudge(carnet: CarnetSize, now = new Date()): PlusNudgeTrigger | null {
+  return pendingPlusNudge(withSaneClock(readPlusNudgeState(), now), readUsageSignals(), carnet, now)
 }

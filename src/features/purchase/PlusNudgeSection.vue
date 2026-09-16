@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, useId } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
@@ -10,6 +10,8 @@ import {
   type PlusNudgeTrigger,
 } from './plus-nudge'
 import { usePurchaseStore } from './purchase.store'
+
+const props = defineProps<{ animalCount: number }>()
 
 const ICONS: Record<PlusNudgeTrigger, string> = {
   firstPhoto: 'ms:photo_camera',
@@ -22,12 +24,14 @@ const router = useRouter()
 const purchase = usePurchaseStore()
 
 const trigger = ref<PlusNudgeTrigger | null>(null)
+const titleId = useId()
 
 // Le compteur des trente jours part de l'affichage : sans ça, un rappel ignoré en bloquerait
 // un autre indéfiniment.
 onMounted(() => {
   if (!purchase.available || purchase.status.plan !== 'none') return
-  const next = nextPlusNudge()
+  if (purchase.expiredPlan !== null) return
+  const next = nextPlusNudge({ animals: props.animalCount })
   if (next === null) return
   markPlusNudgeShown(next)
   trigger.value = next
@@ -49,21 +53,21 @@ function stop(): void {
 </script>
 
 <template>
-  <aside v-if="trigger" class="plus-nudge" :aria-label="t('plus.title')">
+  <aside v-if="trigger" class="plus-nudge" :aria-labelledby="titleId">
     <span class="plus-nudge__icon">
       <v-icon :icon="ICONS[trigger]" size="20" />
     </span>
     <div class="plus-nudge__text">
-      <p class="plus-nudge__title">{{ t(`plus.nudge.${trigger}.title`) }}</p>
+      <p :id="titleId" class="plus-nudge__title">{{ t(`plus.nudge.${trigger}.title`) }}</p>
       <p class="plus-nudge__body">{{ t(`plus.nudge.${trigger}.body`) }}</p>
-      <div class="plus-nudge__actions">
-        <button type="button" class="plus-nudge__discover" @click="discover">
-          {{ t('plus.nudge.discover') }}
-        </button>
-        <button type="button" class="plus-nudge__stop" @click="stop">
-          {{ t('plus.nudge.stop') }}
-        </button>
-      </div>
+    </div>
+    <div class="plus-nudge__actions">
+      <button type="button" class="plus-nudge__discover" @click="discover">
+        {{ t('plus.nudge.discover') }}
+      </button>
+      <button type="button" class="plus-nudge__stop" @click="stop">
+        {{ t('plus.nudge.stop') }}
+      </button>
     </div>
     <button
       type="button"
@@ -81,7 +85,8 @@ function stop(): void {
 
 .plus-nudge {
   position: relative;
-  display: flex;
+  display: grid;
+  grid-template-columns: auto 1fr;
   align-items: flex-start;
   gap: 12px;
   margin-inline: tokens.$padding-section-inline;
@@ -93,7 +98,6 @@ function stop(): void {
 
 .plus-nudge__icon {
   display: flex;
-  flex: 0 0 auto;
   align-items: center;
   justify-content: center;
   width: 36px;
@@ -104,13 +108,13 @@ function stop(): void {
 }
 
 .plus-nudge__text {
-  flex: 1 1 auto;
   min-width: 0;
 }
 
 .plus-nudge__title {
   margin: 0;
-  padding-inline-end: 38px;
+  // La croix occupe 51 px du bord droit de la carte : le titre ne passe pas dessous.
+  padding-inline-end: 51px;
   color: tokens.$color-notice-text;
   font-size: 14px;
   font-weight: 700;
@@ -124,11 +128,13 @@ function stop(): void {
   line-height: 1.35;
 }
 
+// Hors de la colonne de texte : les deux libellés tiennent sur une ligne jusqu'à 320 px.
 .plus-nudge__actions {
+  grid-column: 1 / -1;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  margin-block: -4px -6px;
+  margin-block: -8px -6px;
   margin-inline-start: -10px;
 }
 

@@ -7,7 +7,7 @@ import {
 } from './treatment-reminders.service'
 import type { Treatment, TreatmentInput, TreatmentUpdateInput } from './treatment.schema'
 import type { TreatmentsRepository as FullTreatmentsRepository } from './treatments.repository'
-import { recordPlusNudgeSignal } from '@/shared/plus-nudge-signals'
+import { recordUsageSignal } from '@/shared/usage-signals'
 
 // Le store ne dépend que de ce qu'il appelle : la cascade de suppression (#102) n'est pas son affaire.
 type TreatmentsRepository = Pick<
@@ -119,7 +119,7 @@ export const useTreatmentsStore = defineStore('treatments', () => {
         },
         (treatment) => treatment.animalId,
       )
-      recordPlusNudgeSignal('entry')
+      recordUsageSignal('entry')
       return created
     },
 

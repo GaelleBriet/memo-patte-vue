@@ -22,6 +22,7 @@ const iconesDesMaquettes = [
   'monitor_weight',
   'photo_camera',
   'ios_share',
+  'star_shine',
   'description',
   'table',
 ] as const

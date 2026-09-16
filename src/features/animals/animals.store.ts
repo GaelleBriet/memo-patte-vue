@@ -4,7 +4,7 @@ import type { Animal, AnimalInput } from './animal.schema'
 import { animalDeletionService, type AnimalDeletionService } from './animal-deletion.service'
 import { animalPhotoService, type PhotoChange } from './animal-photo.service'
 import type { AnimalsRepository } from './animals.repository'
-import { recordPlusNudgeSignal } from '@/shared/plus-nudge-signals'
+import { recordUsageSignal } from '@/shared/usage-signals'
 
 export type AnimalsRepositoryProvider = () => AnimalsRepository | Promise<AnimalsRepository>
 export type AnimalDeletionServiceProvider = () => AnimalDeletionService
@@ -97,8 +97,7 @@ export const useAnimalsStore = defineStore('animals', () => {
       const animal = await write((repository) =>
         animalPhotoService.create(repository, input, photo),
       )
-      recordPlusNudgeSignal('animal')
-      if (photo.kind === 'replace') recordPlusNudgeSignal('photo')
+      if (photo.kind === 'replace') recordUsageSignal('photo')
       return animal
     },
 
@@ -107,7 +106,7 @@ export const useAnimalsStore = defineStore('animals', () => {
       const animal = await write((repository) =>
         animalPhotoService.update(repository, id, input, photo),
       )
-      if (photo.kind === 'replace') recordPlusNudgeSignal('photo')
+      if (photo.kind === 'replace') recordUsageSignal('photo')
       return animal
     },
 

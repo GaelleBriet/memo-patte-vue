@@ -198,7 +198,7 @@ function createAnimal(): void {
       </dl>
 
       <div class="carnet__sections">
-        <PlusNudgeSection />
+        <PlusNudgeSection :animal-count="animals.animals.length" />
         <VaccinationsSection
           :animal-id="animal.id"
           :today="today"
