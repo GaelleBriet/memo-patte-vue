@@ -179,10 +179,12 @@ export function createTreatmentsRepository(db: DbClient) {
       }
     },
 
-    /** Reprend l'identifiant, l'échéance et les dates du fichier importé, et rend la ligne visible. */
+    /**
+     * Reprend l'échéance et les dates du fichier importé et rend la ligne visible, sans la changer
+     * d'animal.
+     */
     restoreStatement(treatment: RestoredTreatment, exists: boolean): SqlStatement {
       const values = [
-        treatment.animalId,
         treatment.name,
         treatment.type,
         treatment.frequency.value,
@@ -195,7 +197,7 @@ export function createTreatmentsRepository(db: DbClient) {
       return exists
         ? {
             sql: `UPDATE treatment
-                  SET animal_id = ?, name = ?, type = ?, frequency_value = ?, frequency_unit = ?,
+                  SET name = ?, type = ?, frequency_value = ?, frequency_unit = ?,
                       last_dose_date = ?, next_due_date = ?, created_at = ?, updated_at = ?,
                       deleted_at = NULL
                   WHERE id = ?`,
@@ -203,7 +205,7 @@ export function createTreatmentsRepository(db: DbClient) {
           }
         : {
             sql: `INSERT INTO treatment (${COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)`,
-            params: [treatment.id, ...values],
+            params: [treatment.id, treatment.animalId, ...values],
           }
     },
   }

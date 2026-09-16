@@ -166,6 +166,28 @@ function byId<T extends { id: string }>(rows: T[]): Map<string, T> {
   return new Map(rows.map((row) => [row.id, row]))
 }
 
+type ImportEntity = 'vaccination' | 'treatment' | 'weightEntry'
+type Attached = { id: string; animalId: string }
+
+/** Le rattachement est figé à la création : un fichier qui déplace une entrée est incohérent. */
+function refuseReattached(data: ExportData, local: Record<ImportEntity, Attached[]>): void {
+  const tables = [
+    ['vaccination', data.vaccinations],
+    ['treatment', data.treatments],
+    ['weightEntry', data.weightEntries],
+  ] as const
+
+  for (const [entity, rows] of tables) {
+    const known = byId(local[entity])
+    for (const row of rows) {
+      const existing = known.get(row.id)
+      if (existing !== undefined && existing.animalId !== row.animalId) {
+        throw new Error(`Import refusé : une entrée (${entity}) change d'animal.`)
+      }
+    }
+  }
+}
+
 export function createDataImportService({
   animals,
   vaccinations,
@@ -214,6 +236,12 @@ export function createDataImportService({
             weightRepository.markAllDeletedStatement(importedAt),
           ]
         : []
+
+      refuseReattached(data, {
+        vaccination: vaccinationVersions,
+        treatment: treatmentVersions,
+        weightEntry: weightVersions,
+      })
 
       const localAnimals = byId(animalVersions)
       const photoOwners = new Map(

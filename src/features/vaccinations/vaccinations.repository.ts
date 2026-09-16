@@ -156,16 +156,16 @@ export function createVaccinationsRepository(db: DbClient) {
       }
     },
 
-    /** Reprend l'identifiant et les dates du fichier importé, et rend la ligne visible. */
+    /** Reprend les dates du fichier importé et rend la ligne visible, sans la changer d'animal. */
     restoreStatement(vaccination: RestoredVaccination, exists: boolean): SqlStatement {
       const { id, animalId, name, lastInjectionDate, dueDate, createdAt, updatedAt } = vaccination
       return exists
         ? {
             sql: `UPDATE vaccination
-                  SET animal_id = ?, name = ?, last_injection_date = ?, due_date = ?,
+                  SET name = ?, last_injection_date = ?, due_date = ?,
                       created_at = ?, updated_at = ?, deleted_at = NULL
                   WHERE id = ?`,
-            params: [animalId, name, lastInjectionDate, dueDate, createdAt, updatedAt, id],
+            params: [name, lastInjectionDate, dueDate, createdAt, updatedAt, id],
           }
         : {
             sql: `INSERT INTO vaccination (${COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?, NULL)`,

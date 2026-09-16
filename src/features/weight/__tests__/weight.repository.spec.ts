@@ -387,7 +387,6 @@ describe('weightRepository — import', () => {
     await repository.remove(IMPORTE.id)
     const importe = {
       ...IMPORTE,
-      animalId: VASCO,
       weightKg: 12,
       updatedAt: '2026-09-15T08:00:00.000Z',
     }
@@ -395,6 +394,16 @@ describe('weightRepository — import', () => {
     await db.runMany([repository.restoreStatement(importe, true)])
 
     await expect(repository.getById(IMPORTE.id)).resolves.toEqual({ ...importe, deletedAt: null })
+  })
+
+  it('ne déplace pas une pesée existante vers l’animal du fichier', async () => {
+    await db.runMany([repository.restoreStatement(IMPORTE, false)])
+
+    await db.runMany([repository.restoreStatement({ ...IMPORTE, animalId: VASCO }, true)])
+
+    await expect(repository.getById(IMPORTE.id)).resolves.toMatchObject({
+      animalId: IMPORTE.animalId,
+    })
   })
 
   it('liste les versions de toutes les lignes, supprimées comprises', async () => {

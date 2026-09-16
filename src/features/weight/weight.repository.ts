@@ -144,16 +144,16 @@ export function createWeightRepository(db: DbClient) {
       }
     },
 
-    /** Reprend l'identifiant et les dates du fichier importé, et rend la ligne visible. */
+    /** Reprend les dates du fichier importé et rend la ligne visible, sans la changer d'animal. */
     restoreStatement(entry: RestoredWeightEntry, exists: boolean): SqlStatement {
       const { id, animalId, weightKg, measuredOn, createdAt, updatedAt } = entry
       return exists
         ? {
             sql: `UPDATE weight_entry
-                  SET animal_id = ?, weight_kg = ?, measured_on = ?, created_at = ?, updated_at = ?,
+                  SET weight_kg = ?, measured_on = ?, created_at = ?, updated_at = ?,
                       deleted_at = NULL
                   WHERE id = ?`,
-            params: [animalId, weightKg, measuredOn, createdAt, updatedAt, id],
+            params: [weightKg, measuredOn, createdAt, updatedAt, id],
           }
         : {
             sql: `INSERT INTO weight_entry (${COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, NULL)`,
