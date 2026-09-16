@@ -7,6 +7,7 @@ import {
   enqueueReminderTask,
   MAX_SCHEDULED_REMINDERS,
   provideFullReminderSync,
+  remindersWithinCap,
   replaceDueReminders,
 } from '../due-reminders-schedule'
 import { createFakeNotifications, type FakeNotifications } from './fake-notifications'
@@ -42,6 +43,29 @@ function seedMany(count: number, at: Date): void {
     notifications.pending.set(key, reminder(key, at))
   }
 }
+
+describe('remindersWithinCap', () => {
+  it('réserve la première échéance à venir de chaque entrée, jamais une suivante', () => {
+    const first = reminder(`treatment:${ID}:2026-11-10:due`, new Date(2026, 10, 10, 9))
+    const second = reminder(`treatment:${ID}:2026-12-10:due`, new Date(2026, 11, 10, 9))
+    const others = Array.from({ length: 5 }, (_, index) =>
+      reminder(`vaccination:${index}:2026-09-20:due`, new Date(2026, 8, 20 + index, 9)),
+    )
+
+    const kept = remindersWithinCap([first, second, ...others], others.length + 1)
+
+    expect(kept.map(({ key }) => key)).toContain(first.key)
+    expect(kept.map(({ key }) => key)).not.toContain(second.key)
+  })
+
+  it('remplit la place restante par les rappels les plus proches', () => {
+    const due = reminder(`treatment:${ID}:2026-12-10:due`, new Date(2026, 11, 10, 9))
+    const near = reminder(`treatment:${ID}:2026-12-10:before`, new Date(2026, 11, 7, 9))
+    const far = reminder(`treatment:${ID}:2026-12-10:overdue`, new Date(2026, 11, 13, 9))
+
+    expect(remindersWithinCap([far, due, near], 2)).toEqual([near, due])
+  })
+})
 
 describe('replaceDueReminders', () => {
   it('retire tous les rappels en attente de l’entrée, et d’elle seule, puis programme les nouveaux', async () => {
@@ -110,6 +134,18 @@ describe('replaceDueReminders', () => {
     await replaceDueReminders(notifications, { kind: 'treatment', id: ID }, () => [DUE])
 
     expect(notifications.scheduleReminders).not.toHaveBeenCalled()
+    expect(fullSync).toHaveBeenCalledOnce()
+  })
+
+  it('demande une synchro complète pour un rappel écarté plus proche que ceux en attente, même programmé plus tard', async () => {
+    const fullSync = vi.fn<() => Promise<void>>().mockResolvedValue()
+    provideFullReminderSync(fullSync)
+    seedMany(MAX_SCHEDULED_REMINDERS - 1, new Date(2026, 9, 14, 9))
+    const before = reminder(`treatment:${ID}:2026-10-15:before`, new Date(2026, 9, 12, 9))
+
+    await replaceDueReminders(notifications, { kind: 'treatment', id: ID }, () => [DUE, before])
+
+    expect(notifications.scheduleReminders.mock.calls).toEqual([[[DUE]]])
     expect(fullSync).toHaveBeenCalledOnce()
   })
 
