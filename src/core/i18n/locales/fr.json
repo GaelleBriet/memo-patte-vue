@@ -359,6 +359,29 @@
   "settings": {
     "open": "Paramètres",
     "title": "Paramètres",
+    "plus": {
+      "title": "MémoPatte Plus",
+      "discover": "Découvrir MémoPatte Plus",
+      "discoverHint": "Sauvegarde cloud, export PDF, plusieurs appareils",
+      "status": {
+        "monthly": "Plus mensuel jusqu’au {date}",
+        "annual": "Plus annuel jusqu’au {date}",
+        "lifetime": "Plus à vie",
+        "expiredMonthly": "Plus mensuel — expiré",
+        "expiredAnnual": "Plus annuel — expiré"
+      },
+      "restore": {
+        "action": "Restaurer mon achat",
+        "busy": "Restauration…",
+        "restored": "Ton achat est restauré.",
+        "none": "Aucun achat à restaurer sur ce compte Google.",
+        "failed": "La restauration n’a pas abouti. Réessaie."
+      },
+      "manage": {
+        "action": "Gérer mon abonnement",
+        "store": "Google Play"
+      }
+    },
     "data": {
       "title": "Mes données",
       "export": "Exporter mes données",

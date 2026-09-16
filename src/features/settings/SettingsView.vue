@@ -8,6 +8,8 @@ import ImportSheet from './ImportSheet.vue'
 import { promptNotificationsIfReminders } from '@/app/reminders-priming'
 import { hasConsent, optIn, optOut } from '@/core/analytics'
 import { useAnimalsStore } from '@/features/animals/animals.store'
+import ManageSubscriptionSection from '@/features/purchase/ManageSubscriptionSection.vue'
+import PlusSection from '@/features/purchase/PlusSection.vue'
 import PushedScreen from '@/shared/PushedScreen.vue'
 import SectionCard from '@/shared/SectionCard.vue'
 
@@ -57,6 +59,8 @@ function goHome(): void {
     @back="goHome"
   >
     <div class="settings__content">
+      <PlusSection />
+
       <SectionCard :title="t('settings.data.title')">
         <button
           type="button"
@@ -127,6 +131,7 @@ function goHome(): void {
             @update:model-value="onShareAnalyticsChange"
           />
         </label>
+        <ManageSubscriptionSection />
       </SectionCard>
 
       <SectionCard :title="t('settings.about.title')">
@@ -145,14 +150,17 @@ function goHome(): void {
 </template>
 
 <style scoped lang="scss">
-@use '@/styles/tokens' as tokens;
-
 .settings__content {
   display: flex;
   flex-direction: column;
   gap: 26px;
   padding-block: 12px 32px;
 }
+</style>
+
+<!-- Non scopé : les lignes sont aussi rendues par les sections des autres features. -->
+<style lang="scss">
+@use '@/styles/tokens' as tokens;
 
 .settings-row {
   display: flex;
@@ -168,8 +176,13 @@ function goHome(): void {
   text-align: start;
 }
 
+a.settings-row {
+  text-decoration: none;
+}
+
 button.settings-row,
-label.settings-row {
+label.settings-row,
+a.settings-row {
   cursor: pointer;
 
   &:focus-visible {

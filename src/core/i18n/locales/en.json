@@ -359,6 +359,29 @@
   "settings": {
     "open": "Settings",
     "title": "Settings",
+    "plus": {
+      "title": "MémoPatte Plus",
+      "discover": "Discover MémoPatte Plus",
+      "discoverHint": "Cloud backup, PDF export, several devices",
+      "status": {
+        "monthly": "Monthly Plus until {date}",
+        "annual": "Annual Plus until {date}",
+        "lifetime": "Lifetime Plus",
+        "expiredMonthly": "Monthly Plus — expired",
+        "expiredAnnual": "Annual Plus — expired"
+      },
+      "restore": {
+        "action": "Restore my purchase",
+        "busy": "Restoring…",
+        "restored": "Your purchase is restored.",
+        "none": "No purchase to restore on this Google account.",
+        "failed": "The restore didn’t go through. Try again."
+      },
+      "manage": {
+        "action": "Manage my subscription",
+        "store": "Google Play"
+      }
+    },
     "data": {
       "title": "My data",
       "export": "Export my data",
