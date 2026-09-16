@@ -4,7 +4,7 @@ import type {
   ExportTreatment,
   ExportVaccination,
   ExportWeightEntry,
-} from './export-format'
+} from './carnet-data'
 
 export type ImportMode = 'merge' | 'replace'
 

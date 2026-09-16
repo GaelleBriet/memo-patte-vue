@@ -18,7 +18,7 @@ import {
   MILO_ID,
   MILO_WEIGHT_ID,
   TYPHUS_ID,
-} from './import-fixture'
+} from '@/features/settings/__tests__/import-fixture'
 
 const IMPORTED_AT = '2026-09-15T10:00:00.000Z'
 const LUNA_PHOTO = IMPORT_FIXTURE.animals[0]!.photoFileName!

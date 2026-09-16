@@ -1,53 +1,12 @@
 import { format } from 'date-fns'
 import { strToU8, zipSync, type Zippable } from 'fflate'
 
+import type { ExportData } from '@/shared/carnet-data'
+
 /** Contrat documenté dans `docs/technical/export-format.md` : toute rupture incrémente la version. */
 export const EXPORT_SCHEMA_VERSION = 1
 
 export type ExportFormat = 'json' | 'csv'
-
-export type ExportAnimal = {
-  id: string
-  name: string
-  species: 'dog' | 'cat'
-  breed: string | null
-  birthDate: string | null
-  initialWeightKg: number | null
-  photoFileName: string | null
-  createdAt: string
-  updatedAt: string
-}
-
-export type ExportVaccination = {
-  id: string
-  animalId: string
-  name: string
-  lastInjectionDate: string
-  dueDate: string | null
-  createdAt: string
-  updatedAt: string
-}
-
-export type ExportTreatment = {
-  id: string
-  animalId: string
-  name: string
-  type: 'deworming' | 'antiparasitic'
-  frequency: { value: number; unit: 'day' | 'week' | 'month' }
-  lastDoseDate: string
-  nextDueDate: string
-  createdAt: string
-  updatedAt: string
-}
-
-export type ExportWeightEntry = {
-  id: string
-  animalId: string
-  weightKg: number
-  measuredOn: string
-  createdAt: string
-  updatedAt: string
-}
 
 export type ExportReminder = {
   kind: 'vaccination' | 'treatment'
@@ -55,13 +14,6 @@ export type ExportReminder = {
   animalId: string
   name: string
   dueDate: string
-}
-
-export type ExportData = {
-  animals: ExportAnimal[]
-  vaccinations: ExportVaccination[]
-  treatments: ExportTreatment[]
-  weightEntries: ExportWeightEntry[]
 }
 
 export type ExportMeta = {
