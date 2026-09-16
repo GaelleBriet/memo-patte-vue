@@ -10,10 +10,22 @@ import {
 import { PLUS_STATUS_STORAGE_KEY } from '@/features/purchase/plus-status-storage'
 import { readUsageSignals, USAGE_SIGNALS_STORAGE_KEY } from '@/shared/usage-signals'
 
-import { clearDeviceAccountState } from '../device-account-state.service'
+import {
+  clearDeviceAccountState,
+  clearSignedOutAccountState,
+} from '../device-account-state.service'
 import { memoryStorage, type MemoryStorage } from './auth-fixture'
 
+const UNRELATED_KEYS = [ANALYTICS_CONSENT_KEY, 'memopatte.notifications.primingAnswered']
+
 let storage: MemoryStorage
+
+function writeDeviceState(): void {
+  storage.setItem(PLUS_STATUS_STORAGE_KEY, '{"plan":"annual","expiresAt":null}')
+  storage.setItem(USAGE_SIGNALS_STORAGE_KEY, '{"photo":{"count":3,"lastAt":null}}')
+  storage.setItem(PLUS_NUDGE_STORAGE_KEY, '{"stopped":true}')
+  for (const key of UNRELATED_KEYS) storage.setItem(key, 'peu importe')
+}
 
 beforeEach(() => {
   storage = memoryStorage()
@@ -25,20 +37,25 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
+describe('clearSignedOutAccountState', () => {
+  it('n’efface que les compteurs d’usage', () => {
+    writeDeviceState()
+
+    clearSignedOutAccountState()
+
+    expect(storage.keys().sort()).toEqual(
+      [PLUS_STATUS_STORAGE_KEY, PLUS_NUDGE_STORAGE_KEY, ...UNRELATED_KEYS].sort(),
+    )
+  })
+})
+
 describe('clearDeviceAccountState', () => {
-  it('efface le statut Plus, les signaux d’usage et les rappels, et rien d’autre', () => {
-    storage.setItem(PLUS_STATUS_STORAGE_KEY, '{"plan":"annual","expiresAt":null}')
-    storage.setItem(USAGE_SIGNALS_STORAGE_KEY, '{"photo":{"count":3,"lastAt":null}}')
-    storage.setItem(PLUS_NUDGE_STORAGE_KEY, '{"shown":["firstPhoto"]}')
-    storage.setItem(ANALYTICS_CONSENT_KEY, 'granted')
-    storage.setItem('memopatte.notifications.primingAnswered', 'true')
+  it('efface le statut Plus, les rappels et les compteurs d’usage, et rien d’autre', () => {
+    writeDeviceState()
 
     clearDeviceAccountState()
 
-    expect(storage.keys().sort()).toEqual([
-      ANALYTICS_CONSENT_KEY,
-      'memopatte.notifications.primingAnswered',
-    ])
+    expect(storage.keys().sort()).toEqual([...UNRELATED_KEYS].sort())
   })
 
   it('oublie aussi ce que le stockage n’a pas pu retenir', () => {

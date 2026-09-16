@@ -9,7 +9,7 @@ import {
   type SessionCheck,
   type SignUpOutcome,
 } from './auth.repository'
-import { clearDeviceAccountState } from './device-account-state.service'
+import { clearDeviceAccountState, clearSignedOutAccountState } from './device-account-state.service'
 import {
   clearPlusAccount,
   readPlusAccount,
@@ -87,13 +87,13 @@ export const useAuthStore = defineStore('auth', () => {
       record(await authRepository.signIn(email, password))
     },
 
-    /** Efface la session et l'état lié au compte ; le carnet local reste. */
+    /** Efface la session et les compteurs du compte ; le carnet local et l'achat restent. */
     async signOut(): Promise<void> {
       await authRepository.signOut()
       generation += 1
       account.value = null
       clearPlusAccount()
-      clearDeviceAccountState()
+      clearSignedOutAccountState()
       sessionState.value = 'none'
     },
   }

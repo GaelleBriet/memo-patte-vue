@@ -238,8 +238,7 @@ export default defineConfigWithVueTs(
     rules: featureImportsRule(feature, [
       '@/features/*/*.repository',
       '@/features/*/*.schema',
-      '@/features/*/*-storage',
-      '@/features/*/plus-nudge',
+      '@/features/*/*.service',
     ]),
   })),
   ...COMPOSITE_SCREENS.map(({ feature, file }) => ({

@@ -4,7 +4,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { ANALYTICS_CONSENT_KEY } from '@/core/analytics/analytics'
 import { PLUS_NUDGE_STORAGE_KEY } from '@/features/purchase/plus-nudge'
-import { PLUS_STATUS_STORAGE_KEY } from '@/features/purchase/plus-status-storage'
+import {
+  PLUS_STATUS_STORAGE_KEY,
+  readStoredPlusStatus,
+  writeStoredPlusStatus,
+} from '@/features/purchase/plus-status-storage'
+import { usePurchaseStore } from '@/features/purchase/purchase.store'
 import { USAGE_SIGNALS_STORAGE_KEY } from '@/shared/usage-signals'
 
 import { AccountError } from '../account-error'
@@ -337,14 +342,29 @@ describe('useAuthStore', () => {
       expect(readPlusAccount()).toBeNull()
     })
 
-    it('efface l’état d’appareil lié au compte, et rien d’autre', async () => {
+    it('efface les compteurs d’usage, sans toucher à l’achat ni à la préférence de rappel', async () => {
       writePlusAccount({ userId: USER_ID })
       writeDeviceState()
       const store = useAuthStore()
 
       await store.signOut()
 
-      expect(remainingDeviceState()).toEqual(UNRELATED_KEYS)
+      expect(remainingDeviceState()).toEqual([
+        PLUS_STATUS_STORAGE_KEY,
+        PLUS_NUDGE_STORAGE_KEY,
+        ...UNRELATED_KEYS,
+      ])
+    })
+
+    it('laisse l’abonné dans Plus après la déconnexion', async () => {
+      writePlusAccount({ userId: USER_ID })
+      writeStoredPlusStatus({ plan: 'annual', expiresAt: '2027-09-14T10:00:00Z' })
+      const purchase = usePurchaseStore()
+
+      await useAuthStore().signOut()
+
+      expect(purchase.status.plan).toBe('annual')
+      expect(readStoredPlusStatus().plan).toBe('annual')
     })
 
     it('ignore la fin de session que Supabase signale pendant la déconnexion', async () => {
