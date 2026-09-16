@@ -283,13 +283,16 @@ describe('syncAllReminders', () => {
     )
   })
 
-  it('ne fait rien sans permission : ni lecture, ni annulation', async () => {
+  it('annule ce qui reste programmé quand la permission n’est plus accordée, sans lire le carnet', async () => {
+    const stale = 'vaccination:22222222-2222-4222-8222-222222222222:2026-10-15:due'
+    notifications.pending.set(stale, { key: stale, title: '', body: '', at: new Date(2026, 9, 15) })
     notifications.checkPermission.mockResolvedValue(false)
 
     await sync()()
 
     expect(list).not.toHaveBeenCalled()
-    expect(notifications.rescheduleAll).not.toHaveBeenCalled()
+    expect(notifications.rescheduleAll).toHaveBeenCalledExactlyOnceWith([])
+    expect(notifications.pending.size).toBe(0)
   })
 
   it('réessaie à la synchro suivante quand la programmation a échoué', async () => {

@@ -69,8 +69,8 @@ function batches(reminders: Reminder[]): Reminder[][] {
 /**
  * Annule ce que la liste ne reprend pas, y compris d'une session précédente, puis la programme par
  * lots. Dans cet ordre, l'appareil ne porte jamais l'ancien et le nouveau à la fois, et un échec
- * laisse en place les rappels toujours voulus sans se dire à jour. Sans permission accordée,
- * ne reprogramme rien.
+ * laisse en place les rappels toujours voulus sans se dire à jour. Sur une liste vide ou sans
+ * permission accordée, annule tout sans rien reprogrammer.
  */
 export async function rescheduleAll(reminders: Reminder[]): Promise<void> {
   const { notifications: pending } = await LocalNotifications.getPending()
