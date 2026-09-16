@@ -54,6 +54,13 @@ Supabase (Postgres + Auth)
 
 ### Règles de synchronisation
 
+> **Cible, pas état des lieux (au 2026-09-16).** Rien de cette section n'est implémenté : le projet
+> Supabase ne contient aucune table, seulement la fonction `keep_alive()`. Les règles ci-dessous
+> sont l'intention d'origine ; la version détaillée, avec les décisions qui restent à prendre, vit
+> dans `proposition-sync.md` (PR #248). En cas de divergence, c'est la proposition qui fait foi :
+> la note du ticket #39 (« pull par `updated_at` ») y est par exemple corrigée, et la purge des
+> lignes supprimées y est tranchée plutôt que laissée « à définir ».
+
 - Toute écriture se fait d’abord en local (SQLite).
 - La synchronisation vers Supabase se déclenche dès que le réseau est disponible (avec debounce).
 - Multi-appareil (Plus) : chaque ligne synchronisable porte un UUID généré localement et un `updated_at` ; le pull applique les lignes distantes plus récentes, la modification la plus récente gagne, pas de fusion champ par champ.
