@@ -65,4 +65,15 @@
     <uses-permission
         android:name="android.permission.READ_MEDIA_VIDEO"
         tools:node="remove" />
+
+    <!--
+        Apportées par androidx.biometric, dépendance transitive du plugin SQLite : aucun
+        déverrouillage biométrique dans MémoPatte (cf. conformite-play-store-rgpd.md §1.5).
+    -->
+    <uses-permission
+        android:name="android.permission.USE_BIOMETRIC"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.USE_FINGERPRINT"
+        tools:node="remove" />
 </manifest>

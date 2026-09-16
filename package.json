@@ -14,6 +14,7 @@
     "test:unit:run": "vitest run",
     "build-only": "vite build",
     "test:build": "node scripts/check-no-dev-tools-in-dist.mjs",
+    "test:manifest": "node scripts/check-android-manifest.mjs",
     "type-check": "vue-tsc --build",
     "lint": "run-s lint:oxlint lint:eslint",
     "lint:oxlint": "oxlint . --fix",
