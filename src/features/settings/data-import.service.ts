@@ -22,7 +22,7 @@ import { weightEntryInputSchema } from '@/features/weight/weight.schema'
 import { getWeightRepository, type WeightRepository } from '@/features/weight/weight.repository'
 import { EXPORT_SCHEMA_VERSION, type ExportAnimal, type ExportData } from './export-format'
 
-export type ImportFileError = 'invalid' | 'newer'
+export type ImportFileError = 'invalid' | 'newer' | 'outOfRange'
 
 export type ParsedExportFile =
   { ok: true; data: ExportData } | { ok: false; reason: ImportFileError }
@@ -112,6 +112,21 @@ function parseJson(text: string): unknown {
   }
 }
 
+const BOUNDED_FIELDS = [['weightKg'], ['initialWeightKg'], ['frequency', 'value']]
+
+function endsWith(path: PropertyKey[], suffix: string[]): boolean {
+  return suffix.every((segment, index) => path[path.length - suffix.length + index] === segment)
+}
+
+function refusalReason(error: z.ZodError): ImportFileError {
+  const onlyBoundsExceeded = error.issues.every(
+    (issue) =>
+      issue.code === 'too_big' && BOUNDED_FIELDS.some((suffix) => endsWith(issue.path, suffix)),
+  )
+
+  return onlyBoundsExceeded ? 'outOfRange' : 'invalid'
+}
+
 export function parseExportFile(text: string): ParsedExportFile {
   const document = parseJson(text)
 
@@ -120,7 +135,7 @@ export function parseExportFile(text: string): ParsedExportFile {
   if (version.data.schemaVersion > EXPORT_SCHEMA_VERSION) return { ok: false, reason: 'newer' }
 
   const file = exportFileSchema.safeParse(document)
-  if (!file.success) return { ok: false, reason: 'invalid' }
+  if (!file.success) return { ok: false, reason: refusalReason(file.error) }
 
   const { animals, vaccinations, treatments, weightEntries } = file.data
   return { ok: true, data: { animals, vaccinations, treatments, weightEntries } }

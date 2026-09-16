@@ -29,10 +29,10 @@ const DYNAMIC_I18N_KEYS = [
   '/^nav\\.(home|animals)$/',
   '/^animals\\.form\\.species\\.(dog|cat)$/',
   '/^animals\\.age\\.(year|month|week)$/',
-  '/^animals\\.form\\.errors\\.(name|species|birthDate|initialWeightKg)$/',
+  '/^animals\\.form\\.errors\\.(name|species|birthDate|initialWeightKg|initialWeightKgMax)$/',
   '/^vaccinations\\.form\\.errors\\.(name|lastInjectionDate|lastInjectionDateFuture|dueDate)$/',
-  '/^treatments\\.form\\.errors\\.(name|type|frequency|lastDoseDate|lastDoseDateFuture)$/',
-  '/^weight\\.form\\.errors\\.(animalId|weightKg|measuredOn|measuredOnFuture)$/',
+  '/^treatments\\.form\\.errors\\.(name|type|frequency|frequencyMax|lastDoseDate|lastDoseDateFuture)$/',
+  '/^weight\\.form\\.errors\\.(animalId|weightKg|weightKgMax|measuredOn|measuredOnFuture)$/',
   '/^vaccinations\\.section\\.status\\.(overdue|upToDate|none)$/',
   '/^treatments\\.type\\.(deworming|antiparasitic)$/',
   '/^treatments\\.(frequency|form\\.frequency\\.every|form\\.frequency\\.unit)\\.(day|week|month)$/',
@@ -137,7 +137,8 @@ export default defineConfigWithVueTs(
   skipFormatting,
 
   // Accès direct à SQLite/Supabase interdit hors de core/ et des repositories.
-  // Les tests d'un repository sont exemptés : ils lui injectent un client de base en mémoire.
+  // Les tests qui montent de vrais repositories sur une base en mémoire sont exemptés,
+  // repérés par le suffixe `.integration.spec.ts` en plus des tests de repository et de service.
   {
     name: 'app/repository-only-data-access',
     files: ['src/**/*.{ts,vue}'],
@@ -146,6 +147,7 @@ export default defineConfigWithVueTs(
       '**/*.repository.ts',
       '**/*.repository.spec.ts',
       '**/*.service.spec.ts',
+      '**/*.integration.spec.ts',
     ],
     rules: {
       'no-restricted-imports': [

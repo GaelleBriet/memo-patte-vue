@@ -48,6 +48,7 @@
         "species": "Choose a species.",
         "birthDate": "Date of birth can’t be in the future.",
         "initialWeightKg": "Weight must be more than 0 kg.",
+        "initialWeightKgMax": "Weight must be at most 200 kg.",
         "notFound": "We can’t find this pet.",
         "save": "Couldn’t save this pet. Try again.",
         "photo": "Couldn’t load the photo. Try again."
@@ -115,6 +116,7 @@
         "lastInjectionDateFuture": "Vaccination date can’t be in the future.",
         "dueDate": "Due date isn’t valid.",
         "notFound": "We can’t find this vaccine.",
+        "load": "Couldn’t load this vaccine. Try again.",
         "save": "Couldn’t save this vaccine. Try again."
       }
     },
@@ -181,9 +183,11 @@
         "name": "Name is required.",
         "type": "Choose a type.",
         "frequency": "Enter a frequency.",
+        "frequencyMax": "Frequency must be at most 365.",
         "lastDoseDate": "Date is required.",
         "lastDoseDateFuture": "Date can’t be in the future.",
         "notFound": "We can’t find this treatment.",
+        "load": "Couldn’t load this treatment. Try again.",
         "save": "Couldn’t save this treatment. Try again."
       }
     },
@@ -262,6 +266,7 @@
       "errors": {
         "animalId": "Choose a pet.",
         "weightKg": "Weight must be more than 0 kg.",
+        "weightKgMax": "Weight must be at most 200 kg.",
         "measuredOn": "Date is required.",
         "measuredOnFuture": "Date can’t be in the future.",
         "save": "Couldn’t save this weigh-in. Try again."
@@ -408,6 +413,7 @@
       "errors": {
         "invalid": "This file isn’t a MémoPatte export.",
         "newer": "This export comes from a newer version of the app.",
+        "outOfRange": "This file has a value beyond the limits: at most 200 kg for a weight, 365 for a frequency.",
         "failed": "The import didn’t go through. Your data hasn’t changed."
       },
       "confirm": {

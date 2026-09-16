@@ -12,7 +12,9 @@ import vuetify from '@/core/theme/vuetify'
 import i18n, { applyLocale, detectLocale } from '@/core/i18n'
 import { getAnimalsRepository } from '@/features/animals/animals.repository'
 import { provideAnimalsRepository } from '@/features/animals/animals.store'
+import { useAuthStore } from '@/features/auth/auth.store'
 import { usePurchaseStore } from '@/features/purchase/purchase.store'
+import { clearExports } from '@/features/settings/export-delivery'
 import { getTreatmentsRepository } from '@/features/treatments/treatments.repository'
 import { provideTreatmentsRepository } from '@/features/treatments/treatments.store'
 import { getVaccinationsRepository } from '@/features/vaccinations/vaccinations.repository'
@@ -38,6 +40,7 @@ app.use(i18n)
 applyLocale(detectLocale(navigator.languages))
 
 installBackButton()
+void clearExports()
 
 // Fixtures de développement (`pnpm dev:data`) : import dynamique derrière
 // `import.meta.env.DEV`, le module tombe au build. Avant le montage, pour que
@@ -51,3 +54,4 @@ app.mount('#app')
 installRemindersSync()
 installLaunchPriming(router)
 void usePurchaseStore().verifyKnownStatus()
+void useAuthStore().restore()

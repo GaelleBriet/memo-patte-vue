@@ -190,6 +190,12 @@ describe('validateAnimalForm — poids initial', () => {
       'animals.form.errors.initialWeightKg',
     )
   })
+
+  it('refuse un poids au-delà de l’échelle, avec un message distinct', () => {
+    expect(erreurs({ initialWeightKg: '2000' }).initialWeightKg).toBe(
+      'animals.form.errors.initialWeightKgMax',
+    )
+  })
 })
 
 describe('validateAnimalForm — date de naissance', () => {

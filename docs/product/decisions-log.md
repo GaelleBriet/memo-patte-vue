@@ -940,3 +940,23 @@ un réglage de confidentialité qui appartient à l'utilisateur, et le système 
 propose déjà. — Alternatives écartées : forcer une visibilité publique (expose le
 carnet sans l'accord de l'utilisateur) ou privée (masque un rappel que
 l'utilisateur veut lire d'un coup d'œil).
+
+2026-09-16 — **Outillage (#90) : on reste en pnpm 10.34.5, malgré la clôture de
+la demande de support pnpm 11 chez Dependabot.** Node (`.nvmrc` 26.8.1,
+`engines.node >=24.12.0`) et les quatre actions GitHub (`actions/checkout@v7`,
+`actions/setup-node@v7`, `pnpm/action-setup@v6`, `googleapis/release-please-action@v5`)
+sont déjà chacun sur la dernière majeure disponible : rien à monter.
+`dependabot-core#14794` a été fermée le 2026-09-15 et un support est arrivé le
+2026-07-29 (`dependabot-core#15710`, pnpm 11.17.0 embarqué), mais il est annoncé
+comme beta et la page officielle des écosystèmes supportés liste toujours
+pnpm v7 à v10. — Raison : pnpm 11 n'est pas un changement de numéro, c'est une
+migration — `onlyBuiltDependencies` est supprimé au profit de `allowBuilds`, dont
+dépend la compilation de `sharp` pour `@capacitor/assets` ; `minimumReleaseAge`
+passe à un jour et `blockExoticSubdeps` à `true` par défaut ; `.npmrc` est
+réservé à l'authentification et au registre ; le lockfile change de format. Rien
+de tout cela ne se vérifie ici : le comportement qui compte, Dependabot ouvrant
+ses PR hebdomadaires contre un lockfile pnpm 11, ne s'observe que sur le dépôt et
+sur plusieurs semaines. — Alternatives écartées : monter en pnpm 11 maintenant
+(migration non vérifiable localement, pour zéro gain fonctionnel) ; monter en
+pnpm 12, où un réglage inconnu de `pnpm-workspace.yaml` fait désormais échouer la
+commande. **À rouvrir quand la page des écosystèmes supportés listera pnpm 11.**

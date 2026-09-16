@@ -31,6 +31,8 @@ const values = ref(emptyVaccinationFormValues())
 const { errors, validate } = useFormValidation(values, validateVaccinationForm)
 const existing = ref<Vaccination | null>(null)
 const notFound = ref(false)
+const isLoading = ref(props.id !== undefined)
+const loadFailed = ref(false)
 const saveFailed = ref(false)
 const isSubmitting = ref(false)
 const { today: maxInjectionDate } = useToday()
@@ -56,15 +58,23 @@ const submitLabel = computed(() => {
 })
 const errorMessage = computed(() => {
   if (notFound.value) return t('vaccinations.form.errors.notFound')
+  if (loadFailed.value) return t('vaccinations.form.errors.load')
   if (saveFailed.value) return t('vaccinations.form.errors.save')
   return null
 })
+const canSave = computed(() => !isLoading.value && !notFound.value && !loadFailed.value)
 
 onMounted(async () => {
   if (props.id !== undefined) {
-    existing.value = await vaccinations.getById(props.id)
-    notFound.value = existing.value === null
-    if (existing.value) values.value = vaccinationFormValuesFrom(existing.value)
+    try {
+      existing.value = await vaccinations.getById(props.id)
+      notFound.value = existing.value === null
+      if (existing.value) values.value = vaccinationFormValuesFrom(existing.value)
+    } catch {
+      loadFailed.value = true
+    } finally {
+      isLoading.value = false
+    }
   }
   if (!animals.hasLoaded) await animals.load()
 })
@@ -84,7 +94,7 @@ function backToAnimals(): void {
 }
 
 async function submit(): Promise<void> {
-  if (isSubmitting.value || notFound.value) return
+  if (isSubmitting.value || !canSave.value) return
 
   const result = validate()
   if (!result.success) return
@@ -121,7 +131,7 @@ async function submit(): Promise<void> {
     :subtitle="subtitle"
     :submit-label="submitLabel"
     :is-submitting="isSubmitting"
-    :disabled="notFound"
+    :disabled="!canSave"
     :error-message="errorMessage"
     @cancel="backToAnimals"
     @submit="submit"

@@ -2,11 +2,11 @@ import { compareAsc, isAfter } from 'date-fns'
 
 import * as notifications from '@/core/notifications'
 import type { Reminder, ScheduledReminder } from '@/core/notifications'
-import { dueReminderPrefix, type DueReminderEntry } from './due-reminders'
+import { dueReminderPrefix, parseReminderKey, type DueReminderEntry } from './due-reminders'
 
 export type ReminderNotifications = Pick<
   typeof notifications,
-  'checkPermission' | 'scheduleReminders' | 'cancelReminder' | 'rescheduleAll' | 'listScheduled'
+  'checkPermission' | 'scheduleReminders' | 'cancelReminders' | 'rescheduleAll' | 'listScheduled'
 >
 
 export const reminderNotifications: ReminderNotifications = notifications
@@ -29,15 +29,55 @@ export function enqueueReminderTask<T>(task: () => Promise<T>): Promise<T> {
   return run
 }
 
-export function earliestReminders(reminders: Reminder[], limit: number): Reminder[] {
-  return [...reminders].sort((a, b) => compareAsc(a.at, b.at)).slice(0, Math.max(limit, 0))
+const FIRST_DUE = 0
+const FIRST_SPAN = 1
+const LATER = 2
+
+/** Échéance à venir la plus proche de chaque entrée, d'après les rappels du jour même. */
+function firstUpcomingByEntry(reminders: Reminder[]): Map<string, string> {
+  const first = new Map<string, string>()
+
+  for (const { key } of reminders) {
+    const parsed = parseReminderKey(key)
+    if (parsed === null || parsed.moment !== 'due') continue
+    const known = first.get(parsed.entry)
+    if (known === undefined || parsed.dueDate < known) first.set(parsed.entry, parsed.dueDate)
+  }
+
+  return first
+}
+
+function rankOf(reminder: Reminder, first: Map<string, string>): number {
+  const parsed = parseReminderKey(reminder.key)
+  if (parsed === null || first.get(parsed.entry) !== parsed.dueDate) return LATER
+
+  return parsed.moment === 'due' ? FIRST_DUE : FIRST_SPAN
+}
+
+/**
+ * Rappels tenant sous le plafond, triés dans le temps : la première échéance à venir de chaque
+ * entrée passe avant le reste, si lointaine soit-elle, puis les plus proches remplissent la place.
+ */
+export function remindersWithinCap(reminders: Reminder[], limit: number): Reminder[] {
+  const byDate = [...reminders].sort((a, b) => compareAsc(a.at, b.at))
+  const max = Math.max(limit, 0)
+  if (byDate.length <= max) return byDate
+
+  const first = firstUpcomingByEntry(byDate)
+
+  return byDate
+    .map((reminder, order) => ({ reminder, order, rank: rankOf(reminder, first) }))
+    .sort((a, b) => a.rank - b.rank || a.order - b.order)
+    .slice(0, max)
+    .sort((a, b) => a.order - b.order)
+    .map(({ reminder }) => reminder)
 }
 
 function warn(cause: unknown): void {
   console.warn('Rappels non mis à jour :', cause)
 }
 
-type CancelPort = Pick<ReminderNotifications, 'cancelReminder' | 'listScheduled'>
+type CancelPort = Pick<ReminderNotifications, 'cancelReminders' | 'listScheduled'>
 
 /** Le plugin peut rendre l'heure en texte : `new Date` accepte les deux formes. */
 export function pendingTime({ at }: ScheduledReminder): number | null {
@@ -50,14 +90,14 @@ async function cancelPending(
   entries: DueReminderEntry[],
 ): Promise<ScheduledReminder[]> {
   const prefixes = entries.map(dueReminderPrefix)
-  const matches = ({ key }: ScheduledReminder) =>
+  const matches = (key: string | undefined): key is string =>
     key !== undefined && prefixes.some((prefix) => key.startsWith(prefix))
   const pending = await port.listScheduled()
-  for (const { key } of pending.filter(matches))
-    if (key !== undefined) await port.cancelReminder(key)
+  const cancelled = pending.map(({ key }) => key).filter(matches)
+  if (cancelled.length > 0) await port.cancelReminders(cancelled)
   const now = Date.now()
   return pending.filter(
-    (reminder) => !matches(reminder) && (pendingTime(reminder) ?? now + 1) > now,
+    (reminder) => !matches(reminder.key) && (pendingTime(reminder) ?? now + 1) > now,
   )
 }
 
@@ -82,9 +122,11 @@ export function replaceDueReminders(
       const remaining = await cancelPending(port, [entry])
       if (!(await port.checkPermission())) return
       const reminders = await build()
-      const kept = earliestReminders(reminders, MAX_SCHEDULED_REMINDERS - remaining.length)
+      const kept = remindersWithinCap(reminders, MAX_SCHEDULED_REMINDERS - remaining.length)
       if (kept.length > 0) await port.scheduleReminders(kept)
-      const firstLeftOut = earliestReminders(reminders, reminders.length)[kept.length]
+      const [firstLeftOut] = reminders
+        .filter((reminder) => !kept.includes(reminder))
+        .sort((a, b) => compareAsc(a.at, b.at))
       if (firstLeftOut && pushesOutFartherPending(firstLeftOut, remaining)) void fullSync?.()
     } catch (cause) {
       warn(cause)
