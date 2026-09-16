@@ -44,6 +44,7 @@ const repository = vi.mocked(authRepository)
 const billing = vi.mocked(billingService)
 
 const ANNUAL: PlusStatus = { plan: 'annual', expiresAt: '2027-09-01T10:00:00Z' }
+const LAPSED_AT = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString()
 
 let stop: () => void = () => {}
 
@@ -79,16 +80,43 @@ describe('l’achat suit le compte connecté', () => {
     expect(billing.logIn).toHaveBeenCalledExactlyOnceWith(USER_ID)
   })
 
+  it('garde l’abonnement échu de l’appareil à la première connexion', async () => {
+    writeStoredPlusStatus({ plan: 'annual', expiresAt: LAPSED_AT })
+    const purchase = usePurchaseStore()
+    install()
+
+    await signedIn(USER_ID)
+
+    expect(billing.logIn).toHaveBeenCalledExactlyOnceWith(USER_ID)
+    expect(purchase.expiredPlan).toBe('annual')
+    expect(readStoredPlusStatus().lastSubscription).toBe('annual')
+  })
+
   it('remet la mémoire du store d’accord avec le stockage au changement de compte', async () => {
-    writeStoredPlusStatus(ANNUAL)
+    billing.logIn.mockResolvedValueOnce(ANNUAL)
     const purchase = usePurchaseStore()
     install()
     await signedIn(USER_ID)
-    expect(purchase.status).toEqual(NO_PLUS)
+    expect(purchase.status).toEqual(ANNUAL)
 
     await signedIn(OTHER_USER_ID)
 
     expect(billing.logIn).toHaveBeenLastCalledWith(OTHER_USER_ID)
+    expect(purchase.status).toEqual(NO_PLUS)
+    expect(purchase.expiredPlan).toBeNull()
+    expect(readStoredPlusStatus()).toEqual(NO_STORED_PLUS)
+  })
+
+  it('ne lègue rien au compte suivant quand le store ne répond pas', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    billing.logIn.mockResolvedValueOnce(ANNUAL)
+    const purchase = usePurchaseStore()
+    install()
+    await signedIn(USER_ID)
+    billing.logIn.mockRejectedValueOnce(new Error('réseau'))
+
+    await signedIn(OTHER_USER_ID)
+
     expect(purchase.status).toEqual(NO_PLUS)
     expect(readStoredPlusStatus()).toEqual(NO_STORED_PLUS)
   })

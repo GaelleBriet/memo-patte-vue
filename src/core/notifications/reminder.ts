@@ -40,10 +40,8 @@ function nextNotificationId(id: number): number {
 }
 
 /**
- * Identifiants natifs des rappels voulus, face à ceux déjà posés sur l'appareil. Une clé déjà
- * programmée garde le sien, c'est ce qui rend la synchronisation idempotente ; une clé nouvelle
- * sonde depuis son empreinte jusqu'à un identifiant libre, faute de quoi deux clés d'empreinte
- * égale se recouvriraient.
+ * Une clé déjà programmée garde son identifiant, d'où l'idempotence ; une clé nouvelle sonde
+ * depuis son empreinte jusqu'à un libre, faute de quoi deux empreintes égales se recouvriraient.
  */
 export function assignReminderIds(
   reminders: readonly Reminder[],

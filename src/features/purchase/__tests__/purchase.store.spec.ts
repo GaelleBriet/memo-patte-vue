@@ -159,7 +159,18 @@ describe('usePurchaseStore', () => {
       expect(readStoredPlusStatus()).toEqual(stored(LIFETIME))
     })
 
-    it('ne lègue pas le souvenir du compte quitté au compte qui se connecte', async () => {
+    it('ne lègue pas le souvenir du compte quitté au compte qui prend la main', async () => {
+      service.fetchStatus.mockResolvedValueOnce(NO_PLUS)
+      const store = usePurchaseStore()
+      await store.verifyKnownStatus()
+
+      store.reset()
+
+      expect(store.expiredPlan).toBeNull()
+      expect(readStoredPlusStatus()).toEqual(NO_STORED_PLUS)
+    })
+
+    it('garde le souvenir de l’abonnement de l’appareil quand un compte se connecte', async () => {
       service.fetchStatus.mockResolvedValueOnce(NO_PLUS)
       service.logIn.mockResolvedValueOnce(NO_PLUS)
       const store = usePurchaseStore()
@@ -167,8 +178,8 @@ describe('usePurchaseStore', () => {
 
       await store.logIn('0f8fad5b-d9cb-469f-a165-70867728950e')
 
-      expect(store.expiredPlan).toBeNull()
-      expect(readStoredPlusStatus()).toEqual(NO_STORED_PLUS)
+      expect(store.expiredPlan).not.toBeNull()
+      expect(readStoredPlusStatus()).not.toEqual(NO_STORED_PLUS)
     })
   })
 
@@ -291,13 +302,12 @@ describe('usePurchaseStore', () => {
       expect(readStoredPlusStatus()).toEqual(stored(LIFETIME))
     })
 
-    it('ne lègue pas le souvenir du compte quitté au compte qui se connecte', async () => {
+    it('ne lègue pas le souvenir du compte quitté au compte qui prend la main', async () => {
       service.fetchStatus.mockResolvedValueOnce(NO_PLUS)
-      service.logIn.mockResolvedValueOnce(NO_PLUS)
       const store = usePurchaseStore()
       await store.verifyKnownStatus()
 
-      await store.logIn('0f8fad5b-d9cb-469f-a165-70867728950e')
+      store.reset()
 
       expect(store.expiredPlan).toBeNull()
       expect(readStoredPlusStatus()).toEqual(NO_STORED_PLUS)
