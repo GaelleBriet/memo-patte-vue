@@ -7,9 +7,8 @@ withDefaults(
     backLabel: string
     subtitle?: string | null
     subtitleTone?: 'hint' | 'secondary'
-    compact?: boolean
   }>(),
-  { subtitle: null, subtitleTone: 'hint', compact: false },
+  { subtitle: null, subtitleTone: 'hint' },
 )
 
 const emit = defineEmits<{
@@ -54,32 +53,29 @@ function onScroll(event: Event): void {
       <header
         ref="topbar"
         class="pushed-screen__topbar"
-        :class="{ 'pushed-screen__topbar--scrolled': isScrolled }"
+        :class="{
+          'pushed-screen__topbar--scrolled': isScrolled,
+          'pushed-screen__topbar--with-subtitle': Boolean(subtitle),
+        }"
       >
-        <v-btn
-          class="pushed-screen__back"
-          icon="ms:arrow_back"
-          variant="text"
-          color="primary"
-          :aria-label="backLabel"
-          @click="emit('back')"
-        />
-        <div
-          class="pushed-screen__heading"
-          :class="{
-            'pushed-screen__heading--with-subtitle': Boolean(subtitle),
-            'pushed-screen__heading--compact': compact,
-          }"
-        >
+        <div class="pushed-screen__line">
+          <v-btn
+            class="pushed-screen__back"
+            icon="ms:arrow_back"
+            variant="text"
+            color="primary"
+            :aria-label="backLabel"
+            @click="emit('back')"
+          />
           <h1 class="pushed-screen__title">{{ title }}</h1>
-          <p
-            v-if="subtitle"
-            class="pushed-screen__subtitle"
-            :class="{ 'pushed-screen__subtitle--secondary': subtitleTone === 'secondary' }"
-          >
-            {{ subtitle }}
-          </p>
         </div>
+        <p
+          v-if="subtitle"
+          class="pushed-screen__subtitle"
+          :class="{ 'pushed-screen__subtitle--secondary': subtitleTone === 'secondary' }"
+        >
+          {{ subtitle }}
+        </p>
       </header>
 
       <slot />
@@ -111,16 +107,24 @@ function onScroll(event: Event): void {
   scroll-padding-top: var(--pushed-screen-topbar-height, 0px);
 }
 
+$gap-back: 4px;
+
 .pushed-screen__topbar {
   position: sticky;
   top: 0;
   z-index: 2;
   display: flex;
-  align-items: center;
-  gap: 4px;
+  flex-direction: column;
   padding: 6px 12px;
   background: rgb(var(--v-theme-background));
   border-bottom: 1px solid transparent;
+}
+
+.pushed-screen__line {
+  display: flex;
+  align-items: center;
+  gap: $gap-back;
+  min-width: 0;
 }
 
 .pushed-screen__topbar--scrolled {
@@ -128,17 +132,19 @@ function onScroll(event: Event): void {
   box-shadow: 0 1px 3px rgb(30 25 20 / 6%);
 }
 
+$size-back: 48px;
+
 .pushed-screen__back {
   flex: 0 0 auto;
-  width: 48px;
-  height: 48px;
+  width: $size-back;
+  height: $size-back;
 }
 
-.pushed-screen__heading {
-  min-width: 0;
-}
-
+// Le titre et le sous-titre sont sur deux lignes flex, dont les marges ne se
+// fusionnent plus : l'écart se pose ici, comme sur les headers Accueil et Carnet.
 .pushed-screen__title {
+  margin-block: 0;
+  min-width: 0;
   overflow: hidden;
   font-family: tokens.$font-family-heading;
   font-size: 22px;
@@ -147,16 +153,13 @@ function onScroll(event: Event): void {
   text-overflow: ellipsis;
 }
 
-.pushed-screen__heading--with-subtitle .pushed-screen__title {
+.pushed-screen__topbar--with-subtitle .pushed-screen__title {
   line-height: 1.2;
 }
 
-.pushed-screen__heading--compact .pushed-screen__title,
-.pushed-screen__heading--compact .pushed-screen__subtitle {
-  margin: 0;
-}
-
 .pushed-screen__subtitle {
+  // Aligné sous le titre, pas sous la flèche, comme sur la maquette du suivi de poids.
+  margin: 2px 0 0 $size-back + $gap-back;
   overflow: hidden;
   color: tokens.$color-hint;
   font-size: 12.5px;
