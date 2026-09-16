@@ -466,8 +466,8 @@
     },
     "errors": {
       "emailTaken": "An account already exists with this email address.",
-      "invalidCredentials": "Incorrect password. Try again.",
-      "weakPassword": "Choose a password of at least 8 characters.",
+      "invalidCredentials": "Incorrect email or password. Try again.",
+      "weakPassword": "This password is too weak. Choose a longer or less common one.",
       "emailNotConfirmed": "Your email address is not confirmed yet. Open the link we sent you, then try again.",
       "offline": "No internet connection. Check your network and try again.",
       "unknown": "Something went wrong. Try again in a moment."

@@ -183,7 +183,7 @@ describe('SignInView', () => {
   })
 
   it.each([
-    ['invalid-credentials', 'Mot de passe incorrect. Réessaie.'],
+    ['invalid-credentials', 'E-mail ou mot de passe incorrect. Réessaie.'],
     ['offline', 'Pas de connexion internet. Vérifie ton réseau et réessaie.'],
     [
       'email-not-confirmed',
@@ -202,6 +202,20 @@ describe('SignInView', () => {
     expect(erreur.attributes('role')).toBe('alert')
     expect(replace).not.toHaveBeenCalled()
     expect(wrapper.find('#sign-in-email').exists()).toBe(true)
+  })
+
+  it('dit pourquoi quand Supabase refuse un mot de passe que la validation locale a laissé passer', async () => {
+    repository.signUp.mockRejectedValue(new AccountError('weak-password'))
+    const wrapper = await monter()
+
+    await basculer(wrapper)
+    await saisir(wrapper, 'sophie.martin@example.com', 'motdepasse')
+    await envoyer(wrapper)
+
+    expect(repository.signUp).toHaveBeenCalledOnce()
+    expect(wrapper.get('.sign-in__error').text()).toBe(
+      'Ce mot de passe est trop faible. Choisis-en un plus long ou moins courant.',
+    )
   })
 
   it('signale une adresse déjà utilisée à l’inscription', async () => {

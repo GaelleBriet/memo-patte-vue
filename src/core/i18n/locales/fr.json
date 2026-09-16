@@ -466,8 +466,8 @@
     },
     "errors": {
       "emailTaken": "Un compte existe déjà avec cette adresse e-mail.",
-      "invalidCredentials": "Mot de passe incorrect. Réessaie.",
-      "weakPassword": "Choisis un mot de passe d’au moins 8 caractères.",
+      "invalidCredentials": "E-mail ou mot de passe incorrect. Réessaie.",
+      "weakPassword": "Ce mot de passe est trop faible. Choisis-en un plus long ou moins courant.",
       "emailNotConfirmed": "Ton adresse e-mail n’est pas encore confirmée. Ouvre le lien reçu par e-mail, puis réessaie.",
       "offline": "Pas de connexion internet. Vérifie ton réseau et réessaie.",
       "unknown": "Quelque chose s’est mal passé. Réessaie dans un instant."
