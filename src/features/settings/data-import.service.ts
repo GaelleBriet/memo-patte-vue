@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 import { syncAllReminders } from '@/app/reminders-sync'
-import { photoDisplayUrl } from '@/core/photos/photo-storage'
+import { photoExists } from '@/core/photos/photo-storage'
 import { animalInputSchema, animalSpeciesSchema } from '@/features/animals/animal.schema'
 import { getAnimalsRepository, type AnimalsRepository } from '@/features/animals/animals.repository'
 import { treatmentInputSchema, treatmentTypeSchema } from '@/features/treatments/treatment.schema'
@@ -16,12 +16,23 @@ import {
 } from '@/features/vaccinations/vaccinations.repository'
 import { weightEntryInputSchema } from '@/features/weight/weight.schema'
 import { getWeightRepository, type WeightRepository } from '@/features/weight/weight.repository'
-import { EXPORT_SCHEMA_VERSION, type ExportAnimal, type ExportData } from './export-format'
-import { buildImportPlan, type ImportMode, type PlannedWrite } from './import-plan'
+import { EXPORT_SCHEMA_VERSION } from './export-format'
+import type { ExportAnimal, ExportData } from '@/shared/carnet-data'
+import { buildImportPlan, type ImportMode, type PlannedWrite } from '@/shared/import-plan'
 
 export type { ImportMode }
 
 export type ImportFileError = 'invalid' | 'newer' | 'outOfRange'
+
+/** Incohérence que seule la base locale révèle : réessayer le même fichier n'y changerait rien. */
+export type ImportRefusal = 'reattached'
+
+export class ImportRefusedError extends Error {
+  constructor(readonly reason: ImportRefusal) {
+    super(reason)
+    this.name = 'ImportRefusedError'
+  }
+}
 
 export type ParsedExportFile =
   { ok: true; data: ExportData } | { ok: false; reason: ImportFileError }
@@ -215,9 +226,7 @@ export function createDataImportService({
         importedAt,
       })
 
-      if (!result.ok) {
-        throw new Error(`Import refusé : une entrée (${result.reattached.entity}) change d'animal.`)
-      }
+      if (!result.ok) throw new ImportRefusedError('reattached')
 
       const { plan } = result
       const write = <T>(
@@ -251,11 +260,7 @@ export const dataImportService = createDataImportService({
   vaccinations: getVaccinationsRepository,
   treatments: getTreatmentsRepository,
   weight: getWeightRepository,
-  photoExists: (fileName) =>
-    photoDisplayUrl(fileName).then(
-      () => true,
-      () => false,
-    ),
+  photoExists,
   syncReminders: syncAllReminders,
   now: () => new Date(),
 })

@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { createDataExportService } from '../data-export.service'
 import { createDataImportService, type DataImportDependencies } from '../data-import.service'
-import type { ExportData } from '../export-format'
+import type { ExportData } from '@/shared/carnet-data'
 import {
   CHPPIL_ID,
   IMPORT_FIXTURE,
@@ -184,7 +184,9 @@ describe('data-import.service', () => {
           ),
         }
 
-        await expect(service.importData(deplace, mode)).rejects.toThrow(/change d'animal/)
+        await expect(service.importData(deplace, mode)).rejects.toMatchObject({
+          reason: 'reattached',
+        })
 
         await expect(repositories.vaccinations.getById(CHPPIL_ID)).resolves.toMatchObject({
           animalId: MILO_ID,
