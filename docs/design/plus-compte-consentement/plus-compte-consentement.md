@@ -15,7 +15,7 @@ Tickets : #45 (écran Plus + rappel doux), #6 (connexion / inscription), #87 (su
 
 ## Plus (P1 à P5, rappels doux R1 à R3)
 
-- Écran poussé « MémoPatte Plus » : icône, titre « Garde tes carnets en sécurité, partout », sous-titre « Le local reste gratuit et sans limite. Plus ajoute la sauvegarde cloud. », quatre bénéfices (sauvegarde garantie dans le cloud, le même carnet sur tous tes appareils, tes photos sauvegardées aussi, export PDF complet), carte « Déjà inclus gratuitement, sans compte », comparatif « Ce qu'Android fait déjà, ce que Plus garantit », puis **trois offres** : Mensuel 1,49 €, Plus annuel 9,99 € (mise en avant), À vie 29,99 € (« Paiement unique, pour toujours. »)
+- Écran poussé « MémoPatte Plus » : icône, titre « Garde tes carnets en sécurité, partout », sous-titre « Le local reste gratuit et sans limite. Plus ajoute la sauvegarde cloud. », quatre bénéfices (sauvegarde garantie dans le cloud, le même carnet sur tous tes appareils, tes photos sauvegardées aussi, export PDF complet), carte « Déjà inclus gratuitement, sans compte », comparatif « Ce qu'Android fait déjà, ce que Plus garantit », puis **trois offres**, dans cet ordre : Plus annuel 9,99 € (mise en avant, badge « Meilleure offre »), Mensuel 1,49 €, À vie 29,99 € (« Paiement unique, pour toujours. »). Le relevé de textes des planches (2026-09-16) fait foi sur les libellés et sur cet ordre, qui corrige la première version de cette description.
 - P3 feuille Google Play simulée, P4 « Bienvenue dans Plus » (carnet sauvegardé), P5 « Achat non abouti » (« Aucun paiement n'a été effectué. Réessaie quand tu veux, rien n'a changé pour toi. », Réessayer / Plus tard)
 - Rappel doux : un par déclencheur, un seul à la fois, « Ne plus me le proposer » l'écarte pour toujours
 

@@ -5,8 +5,10 @@ import add from '@material-symbols/svg-400/outlined/add.svg?raw'
 import arrowBack from '@material-symbols/svg-400/outlined/arrow_back.svg?raw'
 import calendarMonth from '@material-symbols/svg-400/outlined/calendar_month.svg?raw'
 import check from '@material-symbols/svg-400/outlined/check.svg?raw'
+import cloudDone from '@material-symbols/svg-400/outlined/cloud_done.svg?raw'
 import deleteSweep from '@material-symbols/svg-400/outlined/delete_sweep.svg?raw'
 import description from '@material-symbols/svg-400/outlined/description.svg?raw'
+import devices from '@material-symbols/svg-400/outlined/devices.svg?raw'
 import download from '@material-symbols/svg-400/outlined/download.svg?raw'
 import edit from '@material-symbols/svg-400/outlined/edit.svg?raw'
 import error from '@material-symbols/svg-400/outlined/error.svg?raw'
@@ -21,6 +23,7 @@ import notificationsOff from '@material-symbols/svg-400/outlined/notifications_o
 import pestControl from '@material-symbols/svg-400/outlined/pest_control.svg?raw'
 import pets from '@material-symbols/svg-400/outlined/pets.svg?raw'
 import photoCamera from '@material-symbols/svg-400/outlined/photo_camera.svg?raw'
+import pictureAsPdf from '@material-symbols/svg-400/outlined/picture_as_pdf.svg?raw'
 import queryStats from '@material-symbols/svg-400/outlined/query_stats.svg?raw'
 import schedule from '@material-symbols/svg-400/outlined/schedule.svg?raw'
 import settings from '@material-symbols/svg-400/outlined/settings.svg?raw'
@@ -28,6 +31,7 @@ import showChart from '@material-symbols/svg-400/outlined/show_chart.svg?raw'
 import table from '@material-symbols/svg-400/outlined/table.svg?raw'
 import today from '@material-symbols/svg-400/outlined/today.svg?raw'
 import vaccines from '@material-symbols/svg-400/outlined/vaccines.svg?raw'
+import workspacePremium from '@material-symbols/svg-400/outlined/workspace_premium.svg?raw'
 
 // Icônes nécessaires aux alias internes de Vuetify
 import arrowDownward from '@material-symbols/svg-400/outlined/arrow_downward.svg?raw'
@@ -112,9 +116,11 @@ export const msIcons = {
   chevron_right: chevronRight,
   circle,
   close,
+  cloud_done: cloudDone,
   colorize,
   delete_sweep: deleteSweep,
   description,
+  devices,
   download,
   edit,
   error,
@@ -144,6 +150,7 @@ export const msIcons = {
   pest_control: pestControl,
   pets,
   photo_camera: photoCamera,
+  picture_as_pdf: pictureAsPdf,
   play_arrow: playArrow,
   query_stats: queryStats,
   radio_button_checked: radioButtonChecked,
@@ -168,6 +175,7 @@ export const msIcons = {
   volume_off: volumeOff,
   volume_up: volumeUp,
   warning,
+  workspace_premium: workspacePremium,
 } as const
 
 export type MsIconName = keyof typeof msIcons
