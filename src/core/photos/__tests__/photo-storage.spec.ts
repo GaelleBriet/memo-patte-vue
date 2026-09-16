@@ -4,7 +4,7 @@ import { Capacitor } from '@capacitor/core'
 import { Directory, Filesystem, type FilesystemPlugin } from '@capacitor/filesystem'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { deletePhoto, photoDisplayUrl, savePhoto } from '../photo-storage'
+import { deletePhoto, photoDisplayUrl, photoExists, savePhoto } from '../photo-storage'
 
 vi.mock('@capacitor/filesystem', async (importOriginal) => ({
   ...(await importOriginal<typeof FilesystemModule>()),
@@ -118,5 +118,27 @@ describe('photoDisplayUrl', () => {
       directory: Directory.Data,
     })
     expect(url).toBe('data:image/jpeg;base64,QUJD')
+  })
+})
+
+describe('photoExists', () => {
+  it('se contente d’un stat, sans lire le fichier', async () => {
+    stat.mockResolvedValue({ uri: 'file:///data/photos/abc.jpg' } as Awaited<
+      ReturnType<FilesystemPlugin['stat']>
+    >)
+
+    await expect(photoExists('abc.jpg')).resolves.toBe(true)
+    expect(stat).toHaveBeenCalledExactlyOnceWith({
+      path: 'photos/abc.jpg',
+      directory: Directory.Data,
+    })
+    expect(readFile).not.toHaveBeenCalled()
+  })
+
+  it('répond faux pour un fichier absent comme pour un nom invalide', async () => {
+    stat.mockRejectedValue(new Error('File does not exist'))
+
+    await expect(photoExists('absente.jpg')).resolves.toBe(false)
+    await expect(photoExists('../secrets.txt')).resolves.toBe(false)
   })
 })
