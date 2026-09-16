@@ -81,6 +81,15 @@ const COMPOSITE_SCREENS = [
   { feature: 'settings', file: 'src/features/settings/SettingsView.vue' },
 ]
 
+// Exception actée le 2026-09-16 (decisions-log) : toute feature lit le store des
+// animaux et son schéma, rien de plus — d'où `useAnimalsStore` seul autorisé.
+const ANIMALS_STORE_READ_ONLY = {
+  group: ['@/features/animals/animals.store'],
+  allowImportNames: ['useAnimalsStore'],
+  message:
+    'Des animaux, une autre feature ne lit que useAnimalsStore et animal.schema (cf. CLAUDE.md, « Règles strictes de structure »).',
+}
+
 function featureImportsRule(feature: string, allowedElsewhere: string[] = []): Linter.RulesRecord {
   return restrictFeatureImports({
     patterns: [
@@ -96,6 +105,7 @@ function featureImportsRule(feature: string, allowedElsewhere: string[] = []): L
         message:
           'Import interdit depuis une autre feature : passe par shared/ ou core/ (cf. CLAUDE.md, « Règles strictes de structure »).',
       },
+      ...(feature === 'animals' ? [] : [ANIMALS_STORE_READ_ONLY]),
       {
         regex: '^@/features/[^/]+/?$',
         message: 'Importe un module précis de la feature, pas son dossier.',

@@ -1050,6 +1050,22 @@ préférence, pas de l'état de compte. — Alternative écartée : tout effacer
 déconnexion comme le demandait le ticket (le risque « le compte suivant hérite »
 n'existe qu'au changement de compte, où l'effacement complet reste en place).
 
+2026-09-16 — **L'exception « données des animaux » est actée, pas supprimée (#295), et
+resserrée à la lecture.** Toute feature peut importer `useAnimalsStore` et
+`animal.schema` ; `provideAnimalsRepository` et les autres modules de
+`features/animals` restent interdits, et la règle ESLint le dit maintenant nommément
+(`allowImportNames: ['useAnimalsStore']`). Six fichiers de quatre features s'en
+servent, plus `app/reminders-sync.ts` ; tous n'appellent que `load`, `select`,
+`byId`, `animals`, `selectedAnimal`, `hasLoaded`, `error`. — Raison : l'animal est le
+pivot du modèle, tout écran qui affiche un vaccin, une pesée ou un traitement a
+besoin de son nom et de la sélection courante ; l'exception vivait dans
+`eslint.config.ts` sans être écrite nulle part. — Alternative écartée : un
+`useAnimals()` en lecture seule dans `shared/`, qui ajouterait une couche
+d'indirection sans rien garantir de plus (elle exposerait le même store). — Pour
+revenir dessus : retirer les deux négations et le motif `useAnimalsStore` de
+`featureImportsRule` dans `eslint.config.ts`, la ligne de CLAUDE.md, et remonter
+l'accès dans `shared/`.
+
 2026-09-16 — **Les imports dynamiques sont couverts par une règle maison qui délègue à
 `no-restricted-imports` (#294), pas par oxlint.** `tools/eslint/dynamic-imports.ts`
 réutilise la règle d'ESLint et lui passe les nœuds `ImportExpression` qu'elle ne

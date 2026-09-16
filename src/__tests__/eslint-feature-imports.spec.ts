@@ -74,13 +74,26 @@ describe('imports entre features', { timeout: 30_000 }, () => {
   })
 
   it('autorise sa propre feature, le store et les types des animaux', async () => {
-    const result = await restrictedImports('src/features/weight/WeightHistoryView.vue', [
-      '@/features/weight/weight.store',
-      '@/features/animals/animals.store',
-      '@/features/animals/animal.schema',
+    const result = await lintImports('src/features/weight/WeightHistoryView.vue', [
+      "import * as m0 from '@/features/weight/weight.store'",
+      "import { useAnimalsStore } from '@/features/animals/animals.store'",
+      "import * as m2 from '@/features/animals/animal.schema'",
     ])
 
     expect(result.feature).toBe(0)
+  })
+
+  it("des animaux, n'autorise que la lecture du store", async () => {
+    const other = await lintImports('src/features/weight/WeightHistoryView.vue', [
+      "import { provideAnimalsRepository } from '@/features/animals/animals.store'",
+      "import * as m1 from '@/features/animals/animals.store'",
+    ])
+    const own = await lintImports('src/features/animals/AnimalFormView.vue', [
+      "import { provideAnimalsRepository } from '@/features/animals/animals.store'",
+    ])
+
+    expect(other.feature).toBe(2)
+    expect(own.feature).toBe(0)
   })
 
   it('interdit les autres modules des animaux', async () => {
