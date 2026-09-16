@@ -43,3 +43,8 @@ export function formatMonthShort(isoDate: string): string {
 export function formatLongDate(isoDate: string): string {
   return format(parseISO(isoDate), 'PP', { locale: DATE_LOCALES[currentLocale()] })
 }
+
+/** `08/11/2026` / `11/08/2026`. */
+export function formatNumericDate(isoDate: string): string {
+  return format(parseISO(isoDate), 'P', { locale: DATE_LOCALES[currentLocale()] })
+}

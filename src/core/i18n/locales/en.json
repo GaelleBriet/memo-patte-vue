@@ -510,6 +510,8 @@
     },
     "restore": {
       "action": "Restore my purchase",
+      "busy": "Restoring…",
+      "restored": "You’re back in Plus.",
       "none": "No purchase to restore on this Google account.",
       "failed": "The restore didn’t go through. Try again."
     },
@@ -527,6 +529,21 @@
       "body": "No payment was taken. Try again in a moment, nothing has changed for you."
     },
     "retry": "Try again",
-    "later": "Later"
+    "later": "Later",
+    "settings": {
+      "discover": "Discover MémoPatte Plus",
+      "discoverHint": "Cloud backup, PDF export, several devices",
+      "status": {
+        "monthly": "Monthly Plus until {date}",
+        "annual": "Annual Plus until {date}",
+        "lifetime": "Lifetime Plus",
+        "expiredMonthly": "Monthly Plus — expired",
+        "expiredAnnual": "Annual Plus — expired"
+      },
+      "paused": {
+        "body": "Your cloud backup is paused. Your records stay on your phone.",
+        "action": "Reactivate Plus"
+      }
+    }
   }
 }

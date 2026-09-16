@@ -17,6 +17,11 @@ export const usePurchaseStore = defineStore('purchase', () => {
     const { expiresAt } = stored.value
     return expiresAt !== null && Date.parse(expiresAt) <= Date.now() ? NO_PLUS : stored.value
   })
+  /** Plan d'un abonnement échu, que `status` lit déjà « aucun » : de quoi écrire « expiré ». */
+  const expiredPlan = computed<PaidPlan | null>(() => {
+    const { plan } = stored.value
+    return status.value.plan === 'none' && plan !== 'none' ? plan : null
+  })
   const available = billingService.isAvailable()
   const offers = ref<PlusOffer[]>([])
   /** Échec du dernier chargement des offres : les autres actions lèvent. */
@@ -33,6 +38,7 @@ export const usePurchaseStore = defineStore('purchase', () => {
 
   return {
     status,
+    expiredPlan,
     available,
     offers,
     error,

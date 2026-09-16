@@ -1,0 +1,174 @@
+<script setup lang="ts">
+import { computed, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
+
+import { usePurchaseStore } from './purchase.store'
+import { formatNumericDate } from '@/shared/format'
+import SectionCard from '@/shared/SectionCard.vue'
+import { showToast } from '@/shared/toast'
+
+const { t } = useI18n()
+const router = useRouter()
+const purchase = usePurchaseStore()
+
+const isRestoring = ref(false)
+
+const statusHint = computed<string | null>(() => {
+  const expired = purchase.expiredPlan
+  if (expired !== null) {
+    return expired === 'monthly'
+      ? t('plus.settings.status.expiredMonthly')
+      : t('plus.settings.status.expiredAnnual')
+  }
+  const { plan, expiresAt } = purchase.status
+  if (plan === 'none') return null
+  if (plan === 'lifetime') return t('plus.settings.status.lifetime')
+  if (expiresAt === null)
+    return plan === 'monthly' ? t('plus.member.monthly') : t('plus.member.annual')
+  const date = formatNumericDate(expiresAt)
+  return plan === 'monthly'
+    ? t('plus.settings.status.monthly', { date })
+    : t('plus.settings.status.annual', { date })
+})
+
+const isPaused = computed(() => purchase.expiredPlan !== null)
+const canDiscover = computed(() => statusHint.value === null)
+const canRestore = computed(
+  () => purchase.available && purchase.status.plan === 'none' && !isPaused.value,
+)
+
+function openPlus(): void {
+  void router.push({ name: 'plus' })
+}
+
+async function restore(): Promise<void> {
+  isRestoring.value = true
+  try {
+    const status = await purchase.restore()
+    showToast(status.plan === 'none' ? t('plus.restore.none') : t('plus.restore.restored'))
+  } catch {
+    showToast(t('plus.restore.failed'))
+  } finally {
+    isRestoring.value = false
+  }
+}
+</script>
+
+<template>
+  <SectionCard :title="t('plus.title')">
+    <template #intro>
+      <div v-if="isPaused" class="plus-paused" role="status">
+        <v-icon class="plus-paused__icon" icon="ms:cloud_off" size="19" />
+        <div class="plus-paused__text">
+          <p class="plus-paused__body">{{ t('plus.settings.paused.body') }}</p>
+          <button type="button" class="plus-paused__action" @click="openPlus">
+            <span>{{ t('plus.settings.paused.action') }}</span>
+            <v-icon icon="ms:chevron_right" size="16" />
+          </button>
+        </div>
+      </div>
+    </template>
+
+    <button
+      v-if="canDiscover"
+      type="button"
+      class="settings-row settings-row--plus-discover"
+      @click="openPlus"
+    >
+      <v-icon class="settings-row__icon" icon="ms:workspace_premium" size="22" />
+      <span class="settings-row__text">
+        <span class="settings-row__label">{{ t('plus.settings.discover') }}</span>
+        <span class="settings-row__hint">{{ t('plus.settings.discoverHint') }}</span>
+      </span>
+      <v-icon class="settings-row__chevron" icon="ms:chevron_right" size="20" />
+    </button>
+    <div v-else-if="statusHint" class="settings-row settings-row--plus-status">
+      <v-icon class="settings-row__icon" icon="ms:workspace_premium" size="22" />
+      <span class="settings-row__text">
+        <span class="settings-row__label">{{ t('plus.title') }}</span>
+        <span class="settings-row__hint">{{ statusHint }}</span>
+      </span>
+    </div>
+
+    <button
+      v-if="canRestore"
+      type="button"
+      class="settings-row settings-row--plus-restore"
+      :class="{ 'settings-row--busy': isRestoring }"
+      :disabled="isRestoring"
+      :aria-busy="isRestoring"
+      @click="restore"
+    >
+      <v-icon class="settings-row__icon" icon="ms:settings_backup_restore" size="22" />
+      <span class="settings-row__text">
+        <span class="settings-row__label">{{ t('plus.restore.action') }}</span>
+        <span v-if="isRestoring" class="settings-row__hint" role="status">
+          {{ t('plus.restore.busy') }}
+        </span>
+      </span>
+      <v-progress-circular
+        v-if="isRestoring"
+        class="settings-row__spinner"
+        indeterminate
+        :size="18"
+        :width="2"
+      />
+    </button>
+  </SectionCard>
+</template>
+
+<style scoped lang="scss">
+@use '@/styles/tokens' as tokens;
+
+.plus-paused {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding: 9px 16px;
+  border: 1px solid tokens.$color-reminders-off-border;
+  border-radius: 14px;
+  background: tokens.$color-reminders-off-surface;
+}
+
+.plus-paused__icon {
+  flex: 0 0 auto;
+  color: tokens.$color-text-secondary;
+}
+
+.plus-paused__body {
+  margin: 0;
+  color: tokens.$color-reminders-off-text;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.plus-paused__action {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-top: 3px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: rgb(var(--v-theme-primary));
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+
+  // Tout le bandeau répond au tap, bien au-delà des 48 px de la ligne de lien.
+  &::after {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    content: '';
+  }
+
+  &:focus-visible {
+    outline: none;
+  }
+}
+</style>

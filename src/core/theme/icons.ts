@@ -6,6 +6,8 @@ import arrowBack from '@material-symbols/svg-400/outlined/arrow_back.svg?raw'
 import calendarMonth from '@material-symbols/svg-400/outlined/calendar_month.svg?raw'
 import check from '@material-symbols/svg-400/outlined/check.svg?raw'
 import cloudDone from '@material-symbols/svg-400/outlined/cloud_done.svg?raw'
+import cloudOff from '@material-symbols/svg-400/outlined/cloud_off.svg?raw'
+import creditCard from '@material-symbols/svg-400/outlined/credit_card.svg?raw'
 import deleteSweep from '@material-symbols/svg-400/outlined/delete_sweep.svg?raw'
 import description from '@material-symbols/svg-400/outlined/description.svg?raw'
 import devices from '@material-symbols/svg-400/outlined/devices.svg?raw'
@@ -20,6 +22,7 @@ import medication from '@material-symbols/svg-400/outlined/medication.svg?raw'
 import monitorWeight from '@material-symbols/svg-400/outlined/monitor_weight.svg?raw'
 import notificationsActive from '@material-symbols/svg-400/outlined/notifications_active.svg?raw'
 import notificationsOff from '@material-symbols/svg-400/outlined/notifications_off.svg?raw'
+import openInNew from '@material-symbols/svg-400/outlined/open_in_new.svg?raw'
 import pestControl from '@material-symbols/svg-400/outlined/pest_control.svg?raw'
 import pets from '@material-symbols/svg-400/outlined/pets.svg?raw'
 import photoCamera from '@material-symbols/svg-400/outlined/photo_camera.svg?raw'
@@ -27,6 +30,7 @@ import pictureAsPdf from '@material-symbols/svg-400/outlined/picture_as_pdf.svg?
 import queryStats from '@material-symbols/svg-400/outlined/query_stats.svg?raw'
 import schedule from '@material-symbols/svg-400/outlined/schedule.svg?raw'
 import settings from '@material-symbols/svg-400/outlined/settings.svg?raw'
+import settingsBackupRestore from '@material-symbols/svg-400/outlined/settings_backup_restore.svg?raw'
 import showChart from '@material-symbols/svg-400/outlined/show_chart.svg?raw'
 import table from '@material-symbols/svg-400/outlined/table.svg?raw'
 import today from '@material-symbols/svg-400/outlined/today.svg?raw'
@@ -117,7 +121,9 @@ export const msIcons = {
   circle,
   close,
   cloud_done: cloudDone,
+  cloud_off: cloudOff,
   colorize,
+  credit_card: creditCard,
   delete_sweep: deleteSweep,
   description,
   devices,
@@ -145,6 +151,7 @@ export const msIcons = {
   monitor_weight: monitorWeight,
   notifications_active: notificationsActive,
   notifications_off: notificationsOff,
+  open_in_new: openInNew,
   palette,
   pause,
   pest_control: pestControl,
@@ -159,6 +166,7 @@ export const msIcons = {
   schedule,
   search,
   settings,
+  settings_backup_restore: settingsBackupRestore,
   shift,
   show_chart: showChart,
   space_bar: spaceBar,

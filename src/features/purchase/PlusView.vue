@@ -4,13 +4,13 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
 import type { PaidPlan, PlusOffer } from './billing.service'
+import { MANAGE_SUBSCRIPTIONS_URL } from './google-play'
 import { usePurchaseStore } from './purchase.store'
 import PushedScreen from '@/shared/PushedScreen.vue'
 import { showToast } from '@/shared/toast'
 
 type Phase = 'offers' | 'purchasing' | 'restoring' | 'success' | 'cancelled' | 'failed'
 
-const MANAGE_SUBSCRIPTIONS_URL = 'https://play.google.com/store/account/subscriptions'
 const PLAN_ORDER = ['annual', 'monthly', 'lifetime'] as const satisfies readonly PaidPlan[]
 
 const BENEFITS = [

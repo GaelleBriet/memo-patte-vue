@@ -11,6 +11,8 @@ import vuetify from '@/core/theme/vuetify'
 import router from '@/router'
 import type { Animal } from '@/features/animals/animal.schema'
 import { useAnimalsStore } from '@/features/animals/animals.store'
+import { memoryStorage } from '@/features/purchase/__tests__/billing-fixture'
+import { writeStoredPlusStatus } from '@/features/purchase/plus-status-storage'
 
 vi.mock('../data-export.service', () => ({
   dataExportService: { exportData: vi.fn<() => Promise<'shared'>>() },
@@ -77,6 +79,7 @@ beforeEach(async () => {
   })
   await router.push({ name: 'settings' })
   push = vi.spyOn(router, 'push').mockResolvedValue()
+  vi.stubGlobal('localStorage', memoryStorage())
   vi.stubGlobal('visualViewport', {
     addEventListener() {},
     removeEventListener() {},
@@ -127,15 +130,48 @@ describe('SettingsView', () => {
     expect(push).toHaveBeenCalledWith({ name: 'home' })
   })
 
-  it('ne livre que les sections dont la destination existe : Mes données, Confidentialité et À propos', async () => {
+  it('ne livre que les sections dont la destination existe : Plus, Mes données, Confidentialité et À propos', async () => {
     const wrapper = await monter()
 
     expect(wrapper.findAll('.section-card__title').map((title) => title.text())).toEqual([
+      'MémoPatte Plus',
       'Mes données',
       'Confidentialité',
       'À propos',
     ])
-    expect(wrapper.text()).not.toMatch(/Plus|Compte|PDF|Politique/)
+    expect(wrapper.text()).not.toMatch(/déjà abonné|Compte|Export PDF|Politique/)
+  })
+
+  describe('MémoPatte Plus', () => {
+    it('ouvre l’écran sur la découverte de Plus, avant les autres sections', async () => {
+      const wrapper = await monter()
+
+      expect(wrapper.get('.section-card__title').text()).toBe('MémoPatte Plus')
+      expect(wrapper.get('.settings-row--plus-discover').text()).toContain(
+        'Découvrir MémoPatte Plus',
+      )
+    })
+
+    it('annonce le statut à qui est déjà dans Plus', async () => {
+      writeStoredPlusStatus({ plan: 'lifetime', expiresAt: null })
+      const wrapper = await monter()
+
+      expect(wrapper.get('.settings-row--plus-status').text()).toContain('Plus à vie')
+      expect(wrapper.find('.settings-row--plus-discover').exists()).toBe(false)
+    })
+
+    it('range « Gérer mon abonnement » dans Confidentialité, sous les statistiques', async () => {
+      writeStoredPlusStatus({ plan: 'annual', expiresAt: '2027-09-14T10:00:00Z' })
+      const wrapper = await monter()
+      const ligne = wrapper.get('.settings-row--manage-subscription')
+      const carte = ligne.element.closest('.section-card')
+      const lignes = [...carte!.querySelectorAll('.settings-row')]
+
+      expect(carte?.querySelector('.section-card__title')?.textContent).toBe('Confidentialité')
+      expect(lignes.indexOf(ligne.element)).toBe(
+        lignes.findIndex((row) => row.classList.contains('settings-row--analytics')) + 1,
+      )
+    })
   })
 
   describe('Confidentialité', () => {

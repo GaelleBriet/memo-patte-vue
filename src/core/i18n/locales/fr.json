@@ -510,6 +510,8 @@
     },
     "restore": {
       "action": "Restaurer mon achat",
+      "busy": "Restauration…",
+      "restored": "Te voilà de retour dans Plus.",
       "none": "Aucun achat à restaurer sur ce compte Google.",
       "failed": "La restauration n’a pas abouti. Réessaie."
     },
@@ -527,6 +529,21 @@
       "body": "Aucun paiement n’a été effectué. Réessaie dans un instant, rien n’a changé pour toi."
     },
     "retry": "Réessayer",
-    "later": "Plus tard"
+    "later": "Plus tard",
+    "settings": {
+      "discover": "Découvrir MémoPatte Plus",
+      "discoverHint": "Sauvegarde cloud, export PDF, plusieurs appareils",
+      "status": {
+        "monthly": "Plus mensuel jusqu’au {date}",
+        "annual": "Plus annuel jusqu’au {date}",
+        "lifetime": "Plus à vie",
+        "expiredMonthly": "Plus mensuel — expiré",
+        "expiredAnnual": "Plus annuel — expiré"
+      },
+      "paused": {
+        "body": "Ta sauvegarde cloud est en pause. Tes carnets restent sur ton téléphone.",
+        "action": "Réactiver Plus"
+      }
+    }
   }
 }
