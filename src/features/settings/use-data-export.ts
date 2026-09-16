@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { dataExportService, type DataExportService } from './data-export.service'
 import type { DeliveryOutcome } from './export-delivery'
 import type { ExportFormat } from './export-format'
+import { recordPlusNudgeSignal } from '@/shared/plus-nudge-signals'
 
 export type ExportRunOutcome = DeliveryOutcome | 'failed' | 'busy'
 
@@ -15,7 +16,9 @@ export function useDataExport(service: Pick<DataExportService, 'exportData'> = d
     isPreparing.value = true
     hasFailed.value = false
     try {
-      return await service.exportData(format)
+      const outcome = await service.exportData(format)
+      if (outcome === 'shared') recordPlusNudgeSignal('export')
+      return outcome
     } catch (cause) {
       console.warn('Export impossible :', cause)
       hasFailed.value = true

@@ -7,6 +7,7 @@ import {
 } from './treatment-reminders.service'
 import type { Treatment, TreatmentInput, TreatmentUpdateInput } from './treatment.schema'
 import type { TreatmentsRepository as FullTreatmentsRepository } from './treatments.repository'
+import { recordPlusNudgeSignal } from '@/shared/plus-nudge-signals'
 
 // Le store ne dépend que de ce qu'il appelle : la cascade de suppression (#102) n'est pas son affaire.
 type TreatmentsRepository = Pick<
@@ -110,14 +111,16 @@ export const useTreatmentsStore = defineStore('treatments', () => {
     },
 
     async create(input: TreatmentInput): Promise<Treatment> {
-      return write(
+      const created = await write(
         async (repository) => {
-          const created = await repository.create(input)
-          await remindersProvider().reschedule(created)
-          return created
+          const treatment = await repository.create(input)
+          await remindersProvider().reschedule(treatment)
+          return treatment
         },
-        (created) => created.animalId,
+        (treatment) => treatment.animalId,
       )
+      recordPlusNudgeSignal('entry')
+      return created
     },
 
     async update(id: string, input: TreatmentUpdateInput): Promise<Treatment> {

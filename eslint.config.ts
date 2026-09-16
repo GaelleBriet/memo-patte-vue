@@ -43,6 +43,7 @@ const DYNAMIC_I18N_KEYS = [
   '/^plus\\.comparison\\.(backup|photos|restore)\\.(label|android|plus)$/',
   '/^plus\\.offers\\.(monthly|annual|lifetime)\\.(label|price|terms|submit)$/',
   '/^plus\\.member\\.(monthly|annual|lifetime)$/',
+  '/^plus\\.nudge\\.(firstPhoto|carnetValue|firstExport)\\.(title|body)$/',
   '/^plus\\.(success|cancelled|failed)\\.(title|body)$/',
 ]
 
