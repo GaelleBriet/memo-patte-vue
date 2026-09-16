@@ -409,6 +409,22 @@ describe('rescheduleAll sans permission', () => {
 
     expect(schedule).not.toHaveBeenCalled()
   })
+
+  it('annule tout ce qui reste sur une liste vide, sans consulter la permission', async () => {
+    getPending.mockResolvedValue({
+      notifications: [
+        { id: 1, title: 'Ancien', body: 'Ancien' },
+        { id: 2, title: 'Ancien', body: 'Ancien' },
+      ],
+    })
+
+    await rescheduleAll([])
+
+    expect(cancel).toHaveBeenCalledExactlyOnceWith({ notifications: [{ id: 1 }, { id: 2 }] })
+    expect(schedule).not.toHaveBeenCalled()
+    expect(checkPermissions).not.toHaveBeenCalled()
+    expect(requestPermissions).not.toHaveBeenCalled()
+  })
 })
 
 describe('permissions', () => {

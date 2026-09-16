@@ -136,6 +136,36 @@ describe('appareil restauré, aucune notification programmée', () => {
     ])
   })
 
+  it('annule ce qui reste programmé quand les rappels ne sont plus accordés, et reprogramme dès qu’ils le redeviennent', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const milo = await seedAnimal('Milo', 'dog')
+    await repositories.vaccinations.create({
+      animalId: milo.id,
+      name: 'CHPPi',
+      lastInjectionDate: '2025-10-15',
+      dueDate: '2026-10-15',
+    })
+
+    uninstall = installRemindersSync(restoredDevice(), () => () => {})
+    await settled()
+    const afterLaunch = scheduledKeys()
+    expect(afterLaunch).toHaveLength(3)
+
+    notifications.checkPermission.mockResolvedValue(false)
+    simulateWebResume()
+    await settled()
+
+    expect(notifications.pending.size).toBe(0)
+    expect(notifications.scheduleReminders).not.toHaveBeenCalled()
+    expect(warn).not.toHaveBeenCalled()
+
+    notifications.checkPermission.mockResolvedValue(true)
+    simulateWebResume()
+    await settled()
+
+    expect(scheduledKeys()).toEqual(afterLaunch)
+  })
+
   it('ne reprogramme rien au retour au premier plan : ni doublon, ni rappel perdu', async () => {
     const milo = await seedAnimal('Milo', 'dog')
     await repositories.vaccinations.create({

@@ -97,7 +97,10 @@ export function createRemindersSync({
 
   async function syncAllReminders(): Promise<void> {
     try {
-      if (!(await notifications.checkPermission())) return
+      if (!(await notifications.checkPermission())) {
+        await notifications.rescheduleAll([])
+        return
+      }
 
       const [animalsRepository, vaccinationsRepository, treatmentsRepository] = await Promise.all([
         animals(),
@@ -131,7 +134,7 @@ export function createRemindersSync({
   }
 }
 
-/** Reconstruit tous les rappels depuis la base ; ne lève jamais et ne fait rien sans permission. */
+/** Reconstruit tous les rappels depuis la base ; ne lève jamais, et annule tout sans permission. */
 export const syncAllReminders = createRemindersSync({
   animals: getAnimalsRepository,
   vaccinations: getVaccinationsRepository,
