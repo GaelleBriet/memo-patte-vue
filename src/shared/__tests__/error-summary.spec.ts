@@ -34,6 +34,24 @@ describe('errorSummary', () => {
     expect(errorSummary(error)).toBe('AccountError offline')
   })
 
+  it('ne descend pas dans la cause, où le corps de la réponse se cache aussi', () => {
+    const error = Object.assign(new Error('Échec du compte'), {
+      name: 'AccountError',
+      reason: 'unknown',
+      cause: Object.assign(new Error('Email sophie.martin@example.com not confirmed'), {
+        name: 'AuthApiError',
+        body: { msg: 'sophie.martin@example.com' },
+      }),
+    })
+
+    expect(errorSummary(error)).toBe('AccountError unknown')
+  })
+
+  it('ignore un champ vide plutôt que de rendre une trace vide', () => {
+    expect(errorSummary({ name: '', code: '', status: 0 })).toBe('0')
+    expect(errorSummary({ name: '' })).toBe('erreur sans nom')
+  })
+
   it('nomme le type de ce qui n’est pas un objet', () => {
     expect(errorSummary('sophie.martin@example.com')).toBe('string')
     expect(errorSummary(undefined)).toBe('undefined')

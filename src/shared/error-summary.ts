@@ -5,7 +5,7 @@ export function errorSummary(cause: unknown): string {
   if (typeof cause !== 'object' || cause === null) return typeof cause
   const fields = cause as Record<string, unknown>
   const parts = LOGGED_FIELDS.map((field) => fields[field]).filter(
-    (value) => typeof value === 'string' || typeof value === 'number',
+    (value) => typeof value === 'number' || (typeof value === 'string' && value !== ''),
   )
   return parts.length > 0 ? parts.join(' ') : 'erreur sans nom'
 }

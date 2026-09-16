@@ -471,10 +471,11 @@ describe('createAuthRepository', () => {
       ])
     })
 
-    it('retombe sur la révocation locale au bout du délai, sans faire attendre plus longtemps', async () => {
+    it('rend la main au bout d’un seul délai, les deux révocations comprises', async () => {
       vi.useFakeTimers()
+      storeSession(sessionBody())
       const client = stubClient()
-      client.signOut.mockReturnValueOnce(new Promise(() => {}))
+      client.signOut.mockReturnValue(new Promise(() => {}))
 
       const signingOut = createAuthRepository({ loadClient: async () => client.supabase }).signOut()
       await vi.advanceTimersByTimeAsync(SIGN_OUT_TIMEOUT_MS)
@@ -484,6 +485,7 @@ describe('createAuthRepository', () => {
         'global',
         'local',
       ])
+      expect(storedSessionKeys()).toEqual([])
     })
   })
 

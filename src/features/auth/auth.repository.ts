@@ -56,6 +56,14 @@ function accountErrorFrom(cause: unknown): AccountError {
   return new AccountError((code && REASONS_BY_CODE[code]) || 'unknown', { cause })
 }
 
+type Revocation = { ok: true } | { ok: false; trace: string }
+
+const REVOKED: Revocation = { ok: true }
+
+function failedRevocation(cause: unknown): Revocation {
+  return { ok: false, trace: errorSummary(cause) }
+}
+
 function sessionOf(session: Session): AuthSession {
   return { userId: session.user.id }
 }
@@ -143,21 +151,24 @@ export function createAuthRepository({
       }),
 
     async signOut() {
-      const revoke = (scope: 'global' | 'local') =>
+      const revoke = (scope: 'global' | 'local'): Promise<Revocation> =>
         client()
           .then((supabase) => supabase.auth.signOut({ scope }))
           .then(
-            ({ error }) => (error ? errorSummary(error) : null),
-            (cause: unknown) => errorSummary(cause),
+            ({ error }) => (error ? failedRevocation(error) : REVOKED),
+            (cause: unknown) => failedRevocation(cause),
           )
       let timer: ReturnType<typeof setTimeout> | undefined
       // Un seul délai pour les deux tentatives : la seconde n'ajoute jamais d'attente à la première.
-      const timeout = new Promise<string>((resolve) => {
-        timer = setTimeout(() => resolve('délai dépassé'), SIGN_OUT_TIMEOUT_MS)
+      const timeout = new Promise<Revocation>((resolve) => {
+        timer = setTimeout(
+          () => resolve({ ok: false, trace: 'délai dépassé' }),
+          SIGN_OUT_TIMEOUT_MS,
+        )
       })
-      const failure = await Promise.race([revoke('global'), timeout])
-      if (failure) {
-        console.warn('Session non invalidée auprès de Supabase :', failure)
+      const outcome = await Promise.race([revoke('global'), timeout])
+      if (!outcome.ok) {
+        console.warn('Session non invalidée auprès de Supabase :', outcome.trace)
         await Promise.race([revoke('local'), timeout])
         forgetStoredSession()
       }
