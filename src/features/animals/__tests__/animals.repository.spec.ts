@@ -70,14 +70,14 @@ describe('animalsRepository', () => {
     expect(names).toEqual(['vasco', 'Miette', 'Abricot'])
   })
 
-  it('départage par nom deux animaux créés dans la même milliseconde (import)', async () => {
+  it('départage par nom, sans tenir compte de la casse, à création identique (import)', async () => {
     vi.useFakeTimers({ now: new Date('2026-03-01T10:00:00.000Z') })
-    await repository.create({ name: 'vasco', species: 'dog' })
-    await repository.create({ name: 'Abricot', species: 'cat' })
+    await repository.create({ name: 'Vasco', species: 'dog' })
+    await repository.create({ name: 'abricot', species: 'cat' })
     vi.useRealTimers()
 
     const names = (await repository.list()).map((animal) => animal.name)
-    expect(names).toEqual(['Abricot', 'vasco'])
+    expect(names).toEqual(['abricot', 'Vasco'])
   })
 
   it('renvoie une liste vide quand la base est vide', async () => {

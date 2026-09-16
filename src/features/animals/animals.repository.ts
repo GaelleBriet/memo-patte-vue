@@ -52,7 +52,6 @@ export function createAnimalsRepository(db: DbClient) {
   return {
     getById,
 
-    /** Ordre de création : la chip de l'animal principal ne bouge jamais de place. */
     async list(): Promise<Animal[]> {
       const rows = await db.query<AnimalRow>(
         `SELECT ${COLUMNS} FROM animal WHERE ${NOT_DELETED}
