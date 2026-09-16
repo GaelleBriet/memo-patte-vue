@@ -366,6 +366,10 @@
       "import": "Import a MémoPatte export",
       "loadError": "The local database didn’t respond. Tap to try again."
     },
+    "privacy": {
+      "title": "Privacy",
+      "analytics": "Anonymous usage statistics"
+    },
     "about": {
       "title": "About",
       "version": "Version"
@@ -420,6 +424,16 @@
       }
     }
   },
+  "analytics": {
+    "consent": {
+      "title": "Before you start",
+      "measured": "With your consent, MémoPatte collects anonymous usage statistics to improve the app: the screens you view and actions such as “vaccine added”.",
+      "never": "Never the content of your records, never your pets’ names. This data is hosted in Europe.",
+      "changeMind": "You can change your mind at any time in Settings → Privacy.",
+      "refuse": "Decline",
+      "accept": "Accept"
+    }
+  },
   "plus": {
     "title": "MémoPatte Plus",
     "headline": "Keep your records safe, everywhere",
@@ -447,47 +461,52 @@
         "plus": "Yes, guaranteed"
       },
       "photos": {
-        "label": "Your photos",
-        "android": "No",
-        "plus": "Yes, backed up"
-      },
-      "devices": {
-        "label": "Several devices",
+        "label": "Photos backed up",
         "android": "No",
         "plus": "Yes"
       },
       "restore": {
-        "label": "Restore on demand",
-        "android": "No",
-        "plus": "Yes"
+        "label": "Restore on a new device",
+        "android": "Not guaranteed",
+        "plus": "Guaranteed"
       }
     },
     "offers": {
-      "title": "Choose your plan",
-      "recommended": "Recommended",
+      "title": "Three ways to pay, same content",
+      "best": "Best value",
       "monthly": {
         "label": "Monthly",
         "price": "{price}/month",
-        "terms": "Renews automatically every month, cancel any time in Google Play."
+        "terms": "Renews automatically every month. No commitment, cancel any time.",
+        "submit": "Continue with Plus monthly — {price}"
       },
       "annual": {
         "label": "Plus yearly",
         "price": "{price}/year",
-        "terms": "Renews automatically every year, cancel any time in Google Play."
+        "saving": "≈ 44% cheaper than monthly",
+        "terms": "Renews automatically every year. Cancel any time in Google Play — access kept until the end of the paid period.",
+        "submit": "Continue with Plus yearly — {price}"
       },
       "lifetime": {
         "label": "Lifetime",
-        "price": "{price} once",
-        "terms": "One-off payment, forever. No renewal."
+        "price": "{price}",
+        "terms": "One-off payment, forever.",
+        "submit": "Continue with Plus lifetime — {price}"
       },
-      "submit": "Continue",
       "unavailable": "Google Play offers aren’t available right now.",
       "retry": "Try again"
     },
+    "member": {
+      "title": "You’re already in Plus",
+      "monthly": "Monthly subscription active.",
+      "annual": "Yearly subscription active.",
+      "lifetime": "Lifetime access, no renewal."
+    },
     "terms": {
       "free": "MémoPatte can be used for free without a subscription.",
+      "prices": "Prices shown by Google Play, in your currency.",
       "local": "If you stop Plus, your records stay on your phone.",
-      "manage": "Manage my subscription"
+      "manage": "Manage my subscription · Google Play"
     },
     "restore": {
       "action": "Restore my purchase",
@@ -496,7 +515,7 @@
     },
     "success": {
       "title": "Welcome to Plus",
-      "body": "Records backed up. You’re all set.",
+      "body": "Your records will be backed up very soon.",
       "back": "Back to settings"
     },
     "cancelled": {

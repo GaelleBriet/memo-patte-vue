@@ -4,8 +4,8 @@ import type { IconAliases } from 'vuetify'
 import add from '@material-symbols/svg-400/outlined/add.svg?raw'
 import arrowBack from '@material-symbols/svg-400/outlined/arrow_back.svg?raw'
 import calendarMonth from '@material-symbols/svg-400/outlined/calendar_month.svg?raw'
-import cloudDone from '@material-symbols/svg-400/outlined/cloud_done.svg?raw'
 import check from '@material-symbols/svg-400/outlined/check.svg?raw'
+import cloudDone from '@material-symbols/svg-400/outlined/cloud_done.svg?raw'
 import deleteSweep from '@material-symbols/svg-400/outlined/delete_sweep.svg?raw'
 import description from '@material-symbols/svg-400/outlined/description.svg?raw'
 import devices from '@material-symbols/svg-400/outlined/devices.svg?raw'
@@ -24,6 +24,7 @@ import pestControl from '@material-symbols/svg-400/outlined/pest_control.svg?raw
 import pets from '@material-symbols/svg-400/outlined/pets.svg?raw'
 import photoCamera from '@material-symbols/svg-400/outlined/photo_camera.svg?raw'
 import pictureAsPdf from '@material-symbols/svg-400/outlined/picture_as_pdf.svg?raw'
+import queryStats from '@material-symbols/svg-400/outlined/query_stats.svg?raw'
 import schedule from '@material-symbols/svg-400/outlined/schedule.svg?raw'
 import settings from '@material-symbols/svg-400/outlined/settings.svg?raw'
 import showChart from '@material-symbols/svg-400/outlined/show_chart.svg?raw'
@@ -151,6 +152,7 @@ export const msIcons = {
   photo_camera: photoCamera,
   picture_as_pdf: pictureAsPdf,
   play_arrow: playArrow,
+  query_stats: queryStats,
   radio_button_checked: radioButtonChecked,
   radio_button_unchecked: radioButtonUnchecked,
   remove,

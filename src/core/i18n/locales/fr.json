@@ -366,6 +366,10 @@
       "import": "Importer un export MémoPatte",
       "loadError": "La base locale n’a pas répondu. Touche pour réessayer."
     },
+    "privacy": {
+      "title": "Confidentialité",
+      "analytics": "Statistiques d’usage anonymes"
+    },
     "about": {
       "title": "À propos",
       "version": "Version"
@@ -420,6 +424,16 @@
       }
     }
   },
+  "analytics": {
+    "consent": {
+      "title": "Avant de commencer",
+      "measured": "Avec ton accord, MémoPatte mesure des statistiques d’usage anonymes pour améliorer l’app : les écrans consultés et des actions comme « vaccin ajouté ».",
+      "never": "Jamais le contenu de ton carnet, jamais le nom de tes animaux. Ces données sont hébergées en Europe.",
+      "changeMind": "Tu peux changer d’avis à tout moment dans Paramètres → Confidentialité.",
+      "refuse": "Refuser",
+      "accept": "Accepter"
+    }
+  },
   "plus": {
     "title": "MémoPatte Plus",
     "headline": "Garde tes carnets en sécurité, partout",
@@ -447,47 +461,52 @@
         "plus": "Oui, garantie"
       },
       "photos": {
-        "label": "Tes photos",
-        "android": "Non",
-        "plus": "Oui, sauvegardées"
-      },
-      "devices": {
-        "label": "Plusieurs appareils",
+        "label": "Photos sauvegardées",
         "android": "Non",
         "plus": "Oui"
       },
       "restore": {
-        "label": "Restauration à la demande",
-        "android": "Non",
-        "plus": "Oui"
+        "label": "Restauration sur nouvel appareil",
+        "android": "Pas garantie",
+        "plus": "Garantie"
       }
     },
     "offers": {
-      "title": "Choisis ton offre",
-      "recommended": "Recommandé",
+      "title": "Trois façons de payer, même contenu",
+      "best": "Meilleure offre",
       "monthly": {
         "label": "Mensuel",
         "price": "{price}/mois",
-        "terms": "Renouvellement automatique chaque mois, annulable à tout moment dans Google Play."
+        "terms": "Renouvellement automatique chaque mois. Sans engagement, annulable à tout moment.",
+        "submit": "Continuer avec Plus mensuel — {price}"
       },
       "annual": {
         "label": "Plus annuel",
         "price": "{price}/an",
-        "terms": "Renouvellement automatique chaque année, annulable à tout moment dans Google Play."
+        "saving": "≈ 44 % d’économie vs mensuel",
+        "terms": "Renouvellement automatique chaque année. Annulable à tout moment dans Google Play — accès conservé jusqu’à la fin de la période payée.",
+        "submit": "Continuer avec Plus annuel — {price}"
       },
       "lifetime": {
         "label": "À vie",
-        "price": "{price} une fois",
-        "terms": "Paiement unique, pour toujours. Sans renouvellement."
+        "price": "{price}",
+        "terms": "Paiement unique, pour toujours.",
+        "submit": "Continuer avec Plus à vie — {price}"
       },
-      "submit": "Continuer",
       "unavailable": "Les offres Google Play ne sont pas disponibles pour l’instant.",
       "retry": "Réessayer"
     },
+    "member": {
+      "title": "Tu es déjà dans Plus",
+      "monthly": "Abonnement mensuel actif.",
+      "annual": "Abonnement annuel actif.",
+      "lifetime": "Accès à vie, sans renouvellement."
+    },
     "terms": {
       "free": "MémoPatte est utilisable gratuitement sans abonnement.",
+      "prices": "Prix affichés par Google Play, dans ta devise.",
       "local": "Si tu arrêtes Plus, tes carnets restent sur ton téléphone.",
-      "manage": "Gérer mon abonnement"
+      "manage": "Gérer mon abonnement · Google Play"
     },
     "restore": {
       "action": "Restaurer mon achat",
@@ -496,7 +515,7 @@
     },
     "success": {
       "title": "Bienvenue dans Plus",
-      "body": "Carnet sauvegardé. Tu es tranquille.",
+      "body": "La sauvegarde de ton carnet arrive très vite.",
       "back": "Retour aux paramètres"
     },
     "cancelled": {

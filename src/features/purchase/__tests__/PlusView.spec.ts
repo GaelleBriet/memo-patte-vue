@@ -10,6 +10,7 @@ import {
   type PlusOffer,
 } from '../billing.service'
 import { NO_PLUS, type PlusStatus } from '../plus-status'
+import { writeStoredPlusStatus } from '../plus-status-storage'
 import PlusView from '../PlusView.vue'
 import i18n from '@/core/i18n'
 import vuetify from '@/core/theme/vuetify'
@@ -42,7 +43,7 @@ const ANNUEL: PlusStatus = { plan: 'annual', expiresAt: '2027-09-01T10:00:00Z' }
 const Vide = { render: () => null }
 
 let routeur: Router
-let push: MockInstance
+let back: MockInstance
 let wrapper: VueWrapper | null = null
 
 beforeEach(async () => {
@@ -59,7 +60,7 @@ beforeEach(async () => {
     ],
   })
   await routeur.push('/plus')
-  push = vi.spyOn(routeur, 'push').mockResolvedValue()
+  back = vi.spyOn(routeur, 'back').mockImplementation(() => {})
 })
 
 afterEach(() => {
@@ -101,7 +102,7 @@ describe('PlusView — ouverture', () => {
 
     await wrapper.get('.pushed-screen__back').trigger('click')
 
-    expect(push).toHaveBeenCalledWith({ name: 'settings' })
+    expect(back).toHaveBeenCalled()
   })
 })
 
@@ -139,10 +140,18 @@ describe('PlusView — contenu', () => {
     expect(wrapper.get('.plus__comparison-title').text()).toBe(
       'Ce qu’Android fait déjà, ce que Plus garantit',
     )
-    const premiere = wrapper.get('.plus__comparison-row')
-    expect(premiere.get('.plus__comparison-label').text()).toBe('Sauvegarde automatique')
-    expect(premiere.get('.plus__comparison-android').text()).toBe('Oui, au mieux (best effort)')
-    expect(premiere.get('.plus__comparison-plus').text()).toBe('Oui, garantie')
+    const lignes = wrapper.findAll('.plus__comparison-row')
+    expect(
+      lignes.map((ligne) => [
+        ligne.get('.plus__comparison-label').text(),
+        ligne.get('.plus__comparison-android').text(),
+        ligne.get('.plus__comparison-plus').text(),
+      ]),
+    ).toEqual([
+      ['Sauvegarde automatique', 'Oui, au mieux (best effort)', 'Oui, garantie'],
+      ['Photos sauvegardées', 'Non', 'Oui'],
+      ['Restauration sur nouvel appareil', 'Pas garantie', 'Garantie'],
+    ])
   })
 })
 
@@ -153,7 +162,7 @@ describe('PlusView — offres', () => {
     expect(offres(wrapper).map((offre) => offre.get('.plus-offer__price').text())).toEqual([
       '$1.99/mois',
       '$12.99/an',
-      '$34.99 une fois',
+      '$34.99',
     ])
     expect(wrapper.text()).not.toContain('1,49')
     expect(wrapper.text()).not.toContain('9,99')
@@ -176,10 +185,28 @@ describe('PlusView — offres', () => {
     const conditions = offres(wrapper).map((offre) => offre.get('.plus-offer__terms').text())
 
     expect(conditions).toEqual([
-      'Renouvellement automatique chaque mois, annulable à tout moment dans Google Play.',
-      'Renouvellement automatique chaque année, annulable à tout moment dans Google Play.',
-      'Paiement unique, pour toujours. Sans renouvellement.',
+      'Renouvellement automatique chaque mois. Sans engagement, annulable à tout moment.',
+      'Renouvellement automatique chaque année. Annulable à tout moment dans Google Play — accès conservé jusqu’à la fin de la période payée.',
+      'Paiement unique, pour toujours.',
     ])
+  })
+
+  it('annonce l’économie de l’annuel en pourcentage, jamais en prix mensuel', async () => {
+    const wrapper = await monter()
+
+    expect(wrapper.findAll('.plus-offer__saving').map((item) => item.text())).toEqual([
+      '≈ 44 % d’économie vs mensuel',
+    ])
+  })
+
+  it('nomme l’offre et son prix sur le bouton d’achat', async () => {
+    const wrapper = await monter()
+
+    expect(wrapper.get('.plus__submit').text()).toBe('Continuer avec Plus annuel — $12.99/an')
+
+    await offres(wrapper)[2]!.trigger('click')
+
+    expect(wrapper.get('.plus__submit').text()).toBe('Continuer avec Plus à vie — $34.99')
   })
 
   it('met l’offre annuelle en avant et la présélectionne', async () => {
@@ -187,8 +214,9 @@ describe('PlusView — offres', () => {
     const [mensuel, annuel, aVie] = offres(wrapper)
 
     expect(annuel!.classes()).toEqual(
-      expect.arrayContaining(['plus-offer--selected', 'plus-offer--recommended']),
+      expect.arrayContaining(['plus-offer--selected', 'plus-offer--best']),
     )
+    expect(annuel!.get('.plus-offer__badge').text()).toBe('Meilleure offre')
     expect(annuel!.attributes('aria-checked')).toBe('true')
     expect(mensuel!.classes()).not.toContain('plus-offer--selected')
     expect(aVie!.classes()).not.toContain('plus-offer--selected')
@@ -202,11 +230,14 @@ describe('PlusView — mentions obligatoires', () => {
     expect(wrapper.get('.plus__terms-free').text()).toBe(
       'MémoPatte est utilisable gratuitement sans abonnement.',
     )
+    expect(wrapper.get('.plus__terms-prices').text()).toBe(
+      'Prix affichés par Google Play, dans ta devise.',
+    )
     expect(wrapper.get('.plus__terms-local').text()).toBe(
       'Si tu arrêtes Plus, tes carnets restent sur ton téléphone.',
     )
     const gerer = wrapper.get('.plus__manage')
-    expect(gerer.text()).toBe('Gérer mon abonnement')
+    expect(gerer.text()).toBe('Gérer mon abonnement · Google Play')
     expect(gerer.attributes('href')).toBe('https://play.google.com/store/account/subscriptions')
   })
 
@@ -216,6 +247,25 @@ describe('PlusView — mentions obligatoires', () => {
     expect(wrapper.findAll('a').map((lien) => lien.attributes('href'))).toEqual([
       'https://play.google.com/store/account/subscriptions',
     ])
+  })
+})
+
+describe('PlusView — déjà abonné', () => {
+  it('montre son statut au lieu de l’argumentaire, sans rien redemander', async () => {
+    writeStoredPlusStatus(ANNUEL)
+    const wrapper = await monter()
+
+    expect(wrapper.get('.plus-member__status').text()).toBe('Abonnement annuel actif.')
+    expect(offres(wrapper)).toHaveLength(0)
+    expect(wrapper.find('.plus__headline').exists()).toBe(false)
+    expect(wrapper.get('.plus-member__manage').attributes('href')).toBe(
+      'https://play.google.com/store/account/subscriptions',
+    )
+    expect(service.listOffers).not.toHaveBeenCalled()
+
+    await wrapper.get('.plus-member__close').trigger('click')
+
+    expect(back).toHaveBeenCalled()
   })
 })
 
@@ -234,7 +284,7 @@ describe('PlusView — offres indisponibles', () => {
     expect(wrapper.get('.plus__headline').isVisible()).toBe(true)
     expect(wrapper.findAll('.plus__benefit')).toHaveLength(4)
     expect(wrapper.get('.plus__terms-free').isVisible()).toBe(true)
-    expect(wrapper.get('.plus__restore').isVisible()).toBe(true)
+    expect(wrapper.find('.plus__restore').exists()).toBe(false)
   })
 
   it('propose de réessayer quand le store a répondu par une erreur', async () => {
@@ -294,11 +344,14 @@ describe('PlusView — achat', () => {
     await flushPromises()
 
     expect(wrapper.get('.plus-outcome__title').text()).toBe('Bienvenue dans Plus')
-    expect(wrapper.get('.plus-outcome__body').text()).toBe('Carnet sauvegardé. Tu es tranquille.')
+    // #83 : « Carnet sauvegardé. Tu es tranquille. » ne se dira qu'une fois l'envoi initial livré.
+    expect(wrapper.get('.plus-outcome__body').text()).toBe(
+      'La sauvegarde de ton carnet arrive très vite.',
+    )
 
     await wrapper.get('.plus-outcome__primary').trigger('click')
 
-    expect(push).toHaveBeenCalledWith({ name: 'settings' })
+    expect(back).toHaveBeenCalled()
   })
 
   it('accueille l’achat annulé sans culpabiliser, et laisse revenir aux offres', async () => {
@@ -332,7 +385,7 @@ describe('PlusView — achat', () => {
 
     await wrapper.get('.plus-outcome__secondary').trigger('click')
 
-    expect(push).toHaveBeenCalledWith({ name: 'settings' })
+    expect(back).toHaveBeenCalled()
   })
 })
 
@@ -357,6 +410,28 @@ describe('PlusView — restauration', () => {
 
     expect(toastMessage.value).toBe('Aucun achat à restaurer sur ce compte Google.')
     expect(offres(wrapper)).toHaveLength(3)
+  })
+
+  it('ne se laisse pas relancer tant qu’elle est en vol', async () => {
+    let rendre: (status: PlusStatus) => void = () => {}
+    service.restore.mockReturnValue(
+      new Promise((resolve) => {
+        rendre = resolve
+      }),
+    )
+    const wrapper = await monter()
+
+    await wrapper.get('.plus__restore').trigger('click')
+
+    expect(wrapper.get('.plus__restore').classes()).toContain('v-btn--loading')
+    expect(wrapper.get('.plus__submit').attributes('disabled')).toBeDefined()
+
+    await wrapper.get('.plus__restore').trigger('click')
+
+    expect(service.restore).toHaveBeenCalledTimes(1)
+
+    rendre(NO_PLUS)
+    await flushPromises()
   })
 
   it('le dit quand la restauration échoue', async () => {

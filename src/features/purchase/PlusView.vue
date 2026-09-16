@@ -3,12 +3,12 @@ import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
-import type { PaidPlan } from './billing.service'
+import type { PaidPlan, PlusOffer } from './billing.service'
 import { usePurchaseStore } from './purchase.store'
 import PushedScreen from '@/shared/PushedScreen.vue'
 import { showToast } from '@/shared/toast'
 
-type Phase = 'offers' | 'purchasing' | 'success' | 'cancelled' | 'failed'
+type Phase = 'offers' | 'purchasing' | 'restoring' | 'success' | 'cancelled' | 'failed'
 
 const MANAGE_SUBSCRIPTIONS_URL = 'https://play.google.com/store/account/subscriptions'
 const PLAN_ORDER = ['monthly', 'annual', 'lifetime'] as const satisfies readonly PaidPlan[]
@@ -21,7 +21,7 @@ const BENEFITS = [
 ] as const
 
 const FREE_ITEMS = ['animals', 'reminders', 'weight', 'export'] as const
-const COMPARISON_ROWS = ['backup', 'photos', 'devices', 'restore'] as const
+const COMPARISON_ROWS = ['backup', 'photos', 'restore'] as const
 
 const { t } = useI18n()
 const router = useRouter()
@@ -33,11 +33,28 @@ const selected = ref<PaidPlan>('annual')
 const offers = computed(() =>
   PLAN_ORDER.flatMap((plan) => purchase.offers.filter((offer) => offer.plan === plan)),
 )
+const isMember = computed(() => purchase.status.plan !== 'none')
 const canRetryOffers = computed(() => purchase.available && offers.value.length === 0)
-const isBusy = computed(() => phase.value === 'purchasing')
+const isPurchasing = computed(() => phase.value === 'purchasing')
+const isRestoring = computed(() => phase.value === 'restoring')
+const isBusy = computed(() => isPurchasing.value || isRestoring.value)
 const isDone = computed(() => ['success', 'cancelled', 'failed'].includes(phase.value))
+const selectedOffer = computed(
+  () => offers.value.find((offer) => offer.plan === selected.value) ?? null,
+)
+const submitLabel = computed(() => {
+  const offer = selectedOffer.value
+  if (!offer) return ''
+  return t(`plus.offers.${offer.plan}.submit`, { price: priceOf(offer) })
+})
 
-onMounted(() => void loadOffers())
+function priceOf(offer: PlusOffer): string {
+  return t(`plus.offers.${offer.plan}.price`, { price: offer.priceString })
+}
+
+onMounted(() => {
+  if (!isMember.value) void loadOffers()
+})
 
 async function loadOffers(): Promise<void> {
   await purchase.loadOffers()
@@ -47,7 +64,7 @@ async function loadOffers(): Promise<void> {
 }
 
 function close(): void {
-  void router.push({ name: 'settings' })
+  router.back()
 }
 
 async function buy(): Promise<void> {
@@ -68,11 +85,17 @@ function leaveOutcome(): void {
 
 async function restore(): Promise<void> {
   if (isBusy.value) return
+  phase.value = 'restoring'
   try {
     const status = await purchase.restore()
-    if (status.plan === 'none') showToast(t('plus.restore.none'))
-    else phase.value = 'success'
+    if (status.plan === 'none') {
+      phase.value = 'offers'
+      showToast(t('plus.restore.none'))
+    } else {
+      phase.value = 'success'
+    }
   } catch {
+    phase.value = 'offers'
     showToast(t('plus.restore.failed'))
   }
 }
@@ -85,6 +108,7 @@ async function restore(): Promise<void> {
         <v-icon :icon="phase === 'success' ? 'ms:check_circle' : 'ms:info'" size="40" />
       </span>
       <h2 class="plus-outcome__title">{{ t(`plus.${phase}.title`) }}</h2>
+      <!-- #83 : rétablir « Envoi de ton carnet vers le cloud… » puis « Carnet sauvegardé. Tu es tranquille. » -->
       <p class="plus-outcome__body">{{ t(`plus.${phase}.body`) }}</p>
 
       <v-btn
@@ -103,6 +127,27 @@ async function restore(): Promise<void> {
         @click="close"
       >
         {{ t('plus.later') }}
+      </v-btn>
+    </div>
+
+    <div v-else-if="isMember" class="plus-member">
+      <span class="plus-member__icon">
+        <v-icon icon="ms:workspace_premium" size="40" />
+      </span>
+      <h2 class="plus-member__title">{{ t('plus.member.title') }}</h2>
+      <p class="plus-member__status">{{ t(`plus.member.${purchase.status.plan}`) }}</p>
+
+      <a
+        class="plus-member__manage"
+        :href="MANAGE_SUBSCRIPTIONS_URL"
+        target="_blank"
+        rel="noopener"
+      >
+        {{ t('plus.terms.manage') }}
+        <v-icon icon="ms:open_in_new" size="16" />
+      </a>
+      <v-btn class="plus-member__close" variant="outlined" color="primary" @click="close">
+        {{ t('plus.success.back') }}
       </v-btn>
     </div>
 
@@ -134,21 +179,25 @@ async function restore(): Promise<void> {
 
       <section class="plus__card plus__comparison">
         <h3 class="plus__comparison-title">{{ t('plus.comparison.title') }}</h3>
-        <table class="plus__comparison-table">
-          <thead>
-            <tr class="plus__comparison-head">
-              <td class="plus__comparison-corner"></td>
-              <th scope="col">{{ t('plus.comparison.android') }}</th>
-              <th scope="col">{{ t('plus.comparison.plus') }}</th>
+        <table class="plus__comparison-table" role="table">
+          <thead role="rowgroup">
+            <tr class="plus__comparison-head" role="row">
+              <td class="plus__comparison-corner" role="cell"></td>
+              <th role="columnheader" scope="col">{{ t('plus.comparison.android') }}</th>
+              <th role="columnheader" scope="col">{{ t('plus.comparison.plus') }}</th>
             </tr>
           </thead>
-          <tbody>
-            <tr v-for="row in COMPARISON_ROWS" :key="row" class="plus__comparison-row">
-              <th scope="row" class="plus__comparison-label">
+          <tbody role="rowgroup">
+            <tr v-for="row in COMPARISON_ROWS" :key="row" class="plus__comparison-row" role="row">
+              <th role="rowheader" scope="row" class="plus__comparison-label">
                 {{ t(`plus.comparison.${row}.label`) }}
               </th>
-              <td class="plus__comparison-android">{{ t(`plus.comparison.${row}.android`) }}</td>
-              <td class="plus__comparison-plus">{{ t(`plus.comparison.${row}.plus`) }}</td>
+              <td role="cell" class="plus__comparison-android">
+                {{ t(`plus.comparison.${row}.android`) }}
+              </td>
+              <td role="cell" class="plus__comparison-plus">
+                {{ t(`plus.comparison.${row}.plus`) }}
+              </td>
             </tr>
           </tbody>
         </table>
@@ -166,7 +215,7 @@ async function restore(): Promise<void> {
             class="plus-offer"
             :class="{
               'plus-offer--selected': selected === offer.plan,
-              'plus-offer--recommended': offer.plan === 'annual',
+              'plus-offer--best': offer.plan === 'annual',
             }"
             :aria-checked="selected === offer.plan"
             :disabled="isBusy"
@@ -175,11 +224,12 @@ async function restore(): Promise<void> {
             <span class="plus-offer__head">
               <span class="plus-offer__label">{{ t(`plus.offers.${offer.plan}.label`) }}</span>
               <span v-if="offer.plan === 'annual'" class="plus-offer__badge">
-                {{ t('plus.offers.recommended') }}
+                {{ t('plus.offers.best') }}
               </span>
             </span>
-            <span class="plus-offer__price">
-              {{ t(`plus.offers.${offer.plan}.price`, { price: offer.priceString }) }}
+            <span class="plus-offer__price">{{ priceOf(offer) }}</span>
+            <span v-if="offer.plan === 'annual'" class="plus-offer__saving">
+              {{ t('plus.offers.annual.saving') }}
             </span>
             <span class="plus-offer__terms">{{ t(`plus.offers.${offer.plan}.terms`) }}</span>
           </button>
@@ -192,11 +242,11 @@ async function restore(): Promise<void> {
           class="plus__submit"
           variant="flat"
           color="primary"
-          :loading="isBusy"
+          :loading="isPurchasing"
           :disabled="isBusy"
           @click="buy"
         >
-          {{ t('plus.offers.submit') }}
+          {{ submitLabel }}
         </v-btn>
         <v-btn
           v-else-if="canRetryOffers"
@@ -211,6 +261,7 @@ async function restore(): Promise<void> {
 
       <div class="plus__terms">
         <p class="plus__terms-free">{{ t('plus.terms.free') }}</p>
+        <p class="plus__terms-prices">{{ t('plus.terms.prices') }}</p>
         <p class="plus__terms-local">{{ t('plus.terms.local') }}</p>
         <a class="plus__manage" :href="MANAGE_SUBSCRIPTIONS_URL" target="_blank" rel="noopener">
           {{ t('plus.terms.manage') }}
@@ -219,9 +270,11 @@ async function restore(): Promise<void> {
       </div>
 
       <v-btn
+        v-if="purchase.available"
         class="plus__restore"
         variant="text"
         color="primary"
+        :loading="isRestoring"
         :disabled="isBusy"
         @click="restore"
       >
@@ -424,7 +477,7 @@ async function restore(): Promise<void> {
   margin-top: 12px;
 }
 
-.plus-offer--recommended {
+.plus-offer--best {
   border-color: rgb(var(--v-theme-primary) / 35%);
 }
 
@@ -456,6 +509,12 @@ async function restore(): Promise<void> {
 .plus-offer__price {
   font-family: tokens.$font-family-heading;
   font-size: 20px;
+  font-weight: 700;
+}
+
+.plus-offer__saving {
+  color: rgb(var(--v-theme-primary));
+  font-size: 12.5px;
   font-weight: 700;
 }
 
@@ -497,6 +556,7 @@ async function restore(): Promise<void> {
 }
 
 .plus__manage {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -516,6 +576,68 @@ async function restore(): Promise<void> {
   letter-spacing: normal;
 
   @include tap.tap-target;
+}
+
+.plus-member {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 70vh;
+  padding: 32px 24px;
+  text-align: center;
+}
+
+.plus-member__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 88px;
+  height: 88px;
+  margin-bottom: 24px;
+  border-radius: 50%;
+  background: tokens.$color-priming-icon-surface;
+  color: rgb(var(--v-theme-primary));
+}
+
+.plus-member__title {
+  margin: 0;
+  font-family: tokens.$font-family-heading;
+  font-size: 23px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.plus-member__status {
+  margin: 10px 0 0;
+  color: tokens.$color-text-secondary;
+  font-size: 14.5px;
+  line-height: 1.55;
+}
+
+.plus-member__manage {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 24px;
+  color: rgb(var(--v-theme-primary));
+  font-weight: 700;
+  text-decoration: none;
+
+  @include tap.tap-target;
+}
+
+.plus-member__close {
+  width: 100%;
+  max-width: 320px;
+  height: 52px;
+  margin-top: 20px;
+  border-radius: 999px;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: normal;
 }
 
 .plus-outcome {

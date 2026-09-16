@@ -3,8 +3,10 @@ import { createPinia } from 'pinia'
 
 import App from './App.vue'
 import router from './router'
+import { installConsentGate } from '@/app/analytics-consent'
 import { installLaunchPriming } from '@/app/reminders-priming'
 import { installRemindersSync } from '@/app/reminders-sync'
+import { initAnalytics } from '@/core/analytics'
 import { installBackButton } from '@/core/app-lifecycle/back-button'
 import vuetify from '@/core/theme/vuetify'
 import i18n, { applyLocale, detectLocale } from '@/core/i18n'
@@ -27,6 +29,9 @@ provideWeightRepository(getWeightRepository)
 provideTreatmentsRepository(getTreatmentsRepository)
 
 const app = createApp(App)
+
+installConsentGate(router)
+void initAnalytics()
 
 app.use(createPinia())
 app.use(router)
