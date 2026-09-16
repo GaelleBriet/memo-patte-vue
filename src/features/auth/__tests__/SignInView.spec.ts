@@ -6,7 +6,7 @@ import { createMemoryHistory, createRouter, type Router } from 'vue-router'
 import { AccountError } from '../account-error'
 import { authRepository, type AuthRepository } from '../auth.repository'
 import SignInView from '../SignInView.vue'
-import { memoryStorage, USER_ID } from './auth-fixture'
+import { memoryStorage, USER_ID, type MemoryStorage } from './auth-fixture'
 import i18n from '@/core/i18n'
 import vuetify from '@/core/theme/vuetify'
 
@@ -26,6 +26,7 @@ const Vide = { render: () => null }
 
 let routeur: Router
 let replace: MockInstance
+let stockage: MemoryStorage
 
 function routeurMemoire(): Router {
   return createRouter({
@@ -66,7 +67,8 @@ async function basculer(wrapper: VueWrapper): Promise<void> {
 
 beforeEach(() => {
   vi.clearAllMocks()
-  vi.stubGlobal('localStorage', memoryStorage())
+  stockage = memoryStorage()
+  vi.stubGlobal('localStorage', stockage)
   setActivePinia(createPinia())
   routeur = routeurMemoire()
 })
@@ -276,11 +278,95 @@ describe('SignInView', () => {
     const ecrit = traces.flatMap((trace) => trace.mock.calls.flat()).join(' ')
     expect(ecrit).not.toContain('sophie.martin@example.com')
     expect(ecrit).not.toContain('motdepasse')
+    expect(stockage.keys()).toEqual([])
   })
 
-  it('ne propose pas encore la connexion Google, faute de configuration native', async () => {
+  it('ne porte que ses deux boutons : ni Google ni « Oublié ? » avant la configuration native', async () => {
     const wrapper = await monter()
 
-    expect(wrapper.text()).not.toContain('Google')
+    expect(wrapper.findAll('.sign-in__panel .v-btn').map((bouton) => bouton.text())).toEqual([
+      'Se connecter',
+      'Créer un compte',
+    ])
+    expect(wrapper.findAll('.sign-in__panel a')).toEqual([])
+  })
+
+  it('oublie l’erreur du serveur en basculant de formulaire', async () => {
+    repository.signIn.mockRejectedValue(new AccountError('invalid-credentials'))
+    const wrapper = await monter()
+
+    await saisir(wrapper, 'sophie.martin@example.com', 'motdepasse')
+    await envoyer(wrapper)
+    expect(wrapper.find('.sign-in__error').exists()).toBe(true)
+
+    await basculer(wrapper)
+
+    expect(wrapper.find('.sign-in__error').exists()).toBe(false)
+  })
+
+  it('pose le focus sur le bandeau d’erreur du serveur', async () => {
+    repository.signIn.mockRejectedValue(new AccountError('offline'))
+    const wrapper = await monter()
+
+    await saisir(wrapper, 'sophie.martin@example.com', 'motdepasse')
+    await envoyer(wrapper)
+
+    expect(document.activeElement).toBe(wrapper.get('.sign-in__error').element)
+  })
+
+  it('garde l’adresse et efface le mot de passe au retour depuis la boîte mail', async () => {
+    repository.signUp.mockResolvedValue({ kind: 'confirmation-pending' })
+    const wrapper = await monter()
+
+    await basculer(wrapper)
+    await saisir(wrapper, 'sophie.martin@example.com', 'motdepasse')
+    await envoyer(wrapper)
+    await wrapper.get('.sign-in__confirmation-back').trigger('click')
+
+    expect((wrapper.get('#sign-in-email').element as HTMLInputElement).value).toBe(
+      'sophie.martin@example.com',
+    )
+    expect((wrapper.get('#sign-in-password').element as HTMLInputElement).value).toBe('')
+  })
+
+  describe('écran quitté pendant l’appel réseau', () => {
+    function suspendre<T>(resultat: T): { promesse: Promise<T>; terminer: () => void } {
+      let terminer = (): void => {}
+      const promesse = new Promise<T>((resolve) => {
+        terminer = () => resolve(resultat)
+      })
+      return { promesse, terminer: () => terminer() }
+    }
+
+    it('ne ramène plus au parcours d’origine quand la connexion aboutit après coup', async () => {
+      const { promesse, terminer } = suspendre({ userId: USER_ID })
+      repository.signIn.mockReturnValue(promesse)
+      const wrapper = await monter()
+      await saisir(wrapper, 'sophie.martin@example.com', 'motdepasse')
+      await envoyer(wrapper)
+
+      wrapper.unmount()
+      terminer()
+      await flushPromises()
+
+      expect(replace).not.toHaveBeenCalled()
+    })
+
+    it('n’écrit rien quand l’inscription aboutit après coup', async () => {
+      const { promesse, terminer } = suspendre({ kind: 'confirmation-pending' } as const)
+      repository.signUp.mockReturnValue(promesse)
+      const wrapper = await monter()
+      await basculer(wrapper)
+      await saisir(wrapper, 'sophie.martin@example.com', 'motdepasse')
+      await envoyer(wrapper)
+
+      wrapper.unmount()
+      terminer()
+      await flushPromises()
+
+      expect(replace).not.toHaveBeenCalled()
+      expect(stockage.keys()).toEqual([])
+      expect(document.body.textContent).not.toContain('Vérifie ta boîte mail')
+    })
   })
 })

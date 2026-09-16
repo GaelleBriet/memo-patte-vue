@@ -577,6 +577,8 @@
     "settings": {
       "discover": "Découvrir MémoPatte Plus",
       "discoverHint": "Sauvegarde cloud, export PDF, plusieurs appareils",
+      "alreadySubscribed": "Je suis déjà abonné",
+      "alreadySubscribedHint": "Retrouve ton carnet sauvegardé sur un autre appareil",
       "status": {
         "monthly": "Plus mensuel jusqu’au {date}",
         "annual": "Plus annuel jusqu’au {date}",

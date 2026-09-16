@@ -21,8 +21,6 @@ export type SignInFormErrors = Partial<Record<'email' | 'password', string>>
 export type SignInFormResult =
   { success: true; data: SignInFormValues } | { success: false; errors: SignInFormErrors }
 
-// La longueur minimale ne s'applique qu'à l'inscription : un compte plus ancien peut
-// avoir un mot de passe plus court, et c'est Supabase qui le vérifie à la connexion.
 function schemaFor(mode: SignInMode) {
   return z.object({
     email: z.string().trim().min(1).pipe(z.email()),

@@ -26,6 +26,7 @@ Tickets : #45 (écran Plus + rappel doux), #6 (connexion / inscription), #87 (su
 - Erreurs : « Un compte existe déjà avec cette adresse e-mail. », « Mot de passe incorrect. Réessaie. », mot de passe trop court, « La connexion avec Google a échoué. Réessaie. », « Pas de connexion internet. Vérifie ton réseau et réessaie. »
 - C4 « Connexion en cours… », C5 « Mot de passe oublié » → « E-mail envoyé » + « Retour à la connexion »
 - Livré le 2026-09-16 (#6) avec **« E-mail ou mot de passe incorrect. Réessaie. »** au lieu du « Mot de passe incorrect. Réessaie. » de la planche : décision de Gaelle, Supabase renvoie la même erreur pour une adresse inconnue et pour un mot de passe faux (anti-énumération), le texte de la maquette mentait donc une fois sur deux
+- Livré le 2026-09-16 (#6) **sans « Continuer avec Google », sans son séparateur « ou » et sans « Oublié ? »** : les trois dépendent du lien de retour dans l'app (#65) et auraient été des boutons morts. L'inscription mène à un écran « Vérifie ta boîte mail » (la confirmation d'e-mail est obligatoire), qui n'a pas de planche
 
 ## Suppression du compte (D1 à D6)
 

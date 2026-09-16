@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, ref, useTemplateRef } from 'vue'
+import { computed, nextTick, onUnmounted, ref, useTemplateRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 
@@ -7,16 +7,17 @@ import { AccountError } from './account-error'
 import { accountErrorKey } from './account-error-message'
 import { useAuthStore } from './auth.store'
 import { emptySignInFormValues, validateSignInForm, type SignInMode } from './sign-in-form'
-import { signInReturnRoute } from './sign-in-return'
 import { focusFirstInvalid } from '@/shared/form/focus-first-invalid'
 import FormField from '@/shared/form/FormField.vue'
 import { useFormValidation } from '@/shared/form/use-form-validation'
 import PushedScreen from '@/shared/PushedScreen.vue'
+import { signInReturnRoute } from '@/shared/sign-in-route'
 
 const { t } = useI18n()
 const router = useRouter()
 const auth = useAuthStore()
-const returnRoute = signInReturnRoute(useRoute().query.from)
+const route = useRoute()
+const returnRoute = computed(() => signInReturnRoute(route.query.from))
 
 const mode = ref<SignInMode>('sign-in')
 const values = ref(emptySignInFormValues())
@@ -27,6 +28,12 @@ const isSubmitting = ref(false)
 const failureKey = ref<string | null>(null)
 const awaitingConfirmationFor = ref<string | null>(null)
 const fields = useTemplateRef<HTMLElement>('fields')
+const errorBanner = useTemplateRef<HTMLElement>('errorBanner')
+
+let isMounted = true
+onUnmounted(() => {
+  isMounted = false
+})
 
 const isSignUp = computed(() => mode.value === 'sign-up')
 const title = computed(() => (isSignUp.value ? t('auth.signUp.title') : t('auth.signIn.title')))
@@ -45,7 +52,7 @@ const toggleAction = computed(() =>
 const passwordAutocomplete = computed(() => (isSignUp.value ? 'new-password' : 'current-password'))
 
 function leave(): void {
-  void router.replace(returnRoute)
+  void router.replace(returnRoute.value)
 }
 
 function toggleMode(): void {
@@ -55,11 +62,17 @@ function toggleMode(): void {
 }
 
 function backToSignIn(): void {
+  values.value = { ...emptySignInFormValues(), email: awaitingConfirmationFor.value ?? '' }
   awaitingConfirmationFor.value = null
   mode.value = 'sign-in'
-  values.value = emptySignInFormValues()
   failureKey.value = null
   reset()
+}
+
+async function reportFailure(cause: unknown): Promise<void> {
+  failureKey.value = accountErrorKey(cause instanceof AccountError ? cause.reason : 'unknown')
+  await nextTick()
+  errorBanner.value?.focus()
 }
 
 async function submit(): Promise<void> {
@@ -72,30 +85,37 @@ async function submit(): Promise<void> {
     return
   }
 
+  const { email, password } = result.data
   isSubmitting.value = true
   failureKey.value = null
 
   try {
+    let toConfirm = false
     if (isSignUp.value) {
-      const outcome = await auth.signUp(result.data.email, result.data.password)
-      if (outcome === 'confirmation-pending') {
-        awaitingConfirmationFor.value = result.data.email
-        return
-      }
+      toConfirm = (await auth.signUp(email, password)) === 'confirmation-pending'
     } else {
-      await auth.signIn(result.data.email, result.data.password)
+      await auth.signIn(email, password)
     }
-    leave()
-  } catch (cause) {
-    failureKey.value = accountErrorKey(cause instanceof AccountError ? cause.reason : 'unknown')
-  } finally {
+    if (!isMounted) return
     isSubmitting.value = false
+    if (toConfirm) awaitingConfirmationFor.value = email
+    else leave()
+  } catch (cause) {
+    if (!isMounted) return
+    isSubmitting.value = false
+    await reportFailure(cause)
   }
 }
 </script>
 
 <template>
-  <PushedScreen class="sign-in" :title="title" :back-label="t('form.back')" @back="leave">
+  <PushedScreen
+    class="sign-in"
+    :title="title"
+    :back-label="t('form.back')"
+    :aria-busy="isSubmitting"
+    @back="leave"
+  >
     <div v-if="awaitingConfirmationFor" class="sign-in__confirmation">
       <span class="sign-in__confirmation-icon" aria-hidden="true">
         <v-icon icon="ms:mark_email_unread" size="44" />
@@ -123,7 +143,7 @@ async function submit(): Promise<void> {
       <p class="sign-in__intro">{{ t('auth.intro') }}</p>
 
       <form class="sign-in__form" novalidate @submit.prevent="submit">
-        <p v-if="failureKey" class="sign-in__error" role="alert">
+        <p v-if="failureKey" ref="errorBanner" class="sign-in__error" role="alert" tabindex="-1">
           <v-icon icon="ms:error" size="18" aria-hidden="true" />
           <span>{{ t(failureKey) }}</span>
         </p>
@@ -226,6 +246,10 @@ async function submit(): Promise<void> {
   font-weight: 600;
   line-height: 1.4;
 
+  &:focus {
+    outline: none;
+  }
+
   .v-icon {
     flex: 0 0 auto;
     margin-top: 1px;
@@ -277,6 +301,7 @@ async function submit(): Promise<void> {
   justify-content: center;
   gap: 18px;
   min-height: 60vh;
+  min-height: 60dvh;
   padding: 32px 24px;
 }
 
@@ -291,6 +316,7 @@ async function submit(): Promise<void> {
   align-items: center;
   justify-content: center;
   min-height: 60vh;
+  min-height: 60dvh;
   padding: 32px 24px;
   text-align: center;
 }

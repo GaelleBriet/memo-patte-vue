@@ -577,6 +577,8 @@
     "settings": {
       "discover": "Discover MémoPatte Plus",
       "discoverHint": "Cloud backup, PDF export, several devices",
+      "alreadySubscribed": "I already subscribed",
+      "alreadySubscribedHint": "Get back the records you saved on another device",
       "status": {
         "monthly": "Monthly Plus until {date}",
         "annual": "Annual Plus until {date}",
