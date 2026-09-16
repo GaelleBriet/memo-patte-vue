@@ -5,6 +5,7 @@ import { useRouter } from 'vue-router'
 
 import ManageSubscriptionSection from './ManageSubscriptionSection.vue'
 import { usePurchaseStore } from './purchase.store'
+import { authAvailable } from '@/shared/auth-available'
 import { formatNumericDate } from '@/shared/format'
 import SectionCard from '@/shared/SectionCard.vue'
 import { signInRoute } from '@/shared/sign-in-route'
@@ -39,6 +40,7 @@ const canDiscover = computed(() => statusHint.value === null)
 const canRestore = computed(
   () => purchase.available && purchase.status.plan === 'none' && !isPaused.value,
 )
+const canSignIn = computed(() => canDiscover.value && authAvailable())
 
 function openPlus(): void {
   void router.push({ name: 'plus' })
@@ -129,7 +131,7 @@ async function restore(): Promise<void> {
       </button>
 
       <button
-        v-if="canDiscover"
+        v-if="canSignIn"
         type="button"
         class="settings-row settings-row--plus-sign-in"
         @click="openSignIn"

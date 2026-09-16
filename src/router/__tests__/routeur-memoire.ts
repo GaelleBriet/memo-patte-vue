@@ -14,6 +14,7 @@ function sansEcran(route: RouteRecordRaw): RouteRecordRaw {
     name: route.name,
     props: route.props,
     meta: route.meta,
+    beforeEnter: route.beforeEnter,
     component: Vide,
   }
 }

@@ -1,7 +1,15 @@
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { routeurMemoire } from './routeur-memoire'
 import { routes } from '@/router'
+
+const authAvailable = vi.hoisted(() => vi.fn<() => boolean>(() => true))
+
+vi.mock('@/shared/auth-available', () => ({ authAvailable }))
+
+beforeEach(() => {
+  authAvailable.mockReturnValue(true)
+})
 
 describe('routeur', () => {
   it('ramène à l’accueil une adresse qui ne correspond à aucun écran', async () => {
@@ -26,6 +34,23 @@ describe('routeur', () => {
 
     expect(vues).toEqual(['home'])
     expect(routeur.currentRoute.value.name).toBe('settings')
+  })
+
+  it('ouvre la connexion quand Supabase est configuré', async () => {
+    const routeur = routeurMemoire()
+
+    await routeur.push('/sign-in')
+
+    expect(routeur.currentRoute.value.name).toBe('sign-in')
+  })
+
+  it('renvoie vers MémoPatte Plus quand Supabase n’est pas configuré', async () => {
+    authAvailable.mockReturnValue(false)
+    const routeur = routeurMemoire()
+
+    await routeur.push('/sign-in')
+
+    expect(routeur.currentRoute.value.name).toBe('plus')
   })
 
   it('ne déclare écrans racine que l’accueil et le carnet', () => {
