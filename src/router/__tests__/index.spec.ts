@@ -9,7 +9,13 @@ const Vide = { render: () => null }
 function sansEcran(route: RouteRecordRaw): RouteRecordRaw {
   if (!('component' in route)) return route
 
-  return { path: route.path, name: route.name, props: route.props, component: Vide }
+  return {
+    path: route.path,
+    name: route.name,
+    props: route.props,
+    meta: route.meta,
+    component: Vide,
+  }
 }
 
 function routeurMemoire() {
@@ -39,5 +45,11 @@ describe('routeur', () => {
 
     expect(vues).toEqual(['home'])
     expect(routeur.currentRoute.value.name).toBe('settings')
+  })
+
+  it('ne déclare écrans racine que l’accueil et le carnet', () => {
+    const racines = routes.filter((route) => route.meta?.rootScreen).map((route) => route.name)
+
+    expect(racines).toEqual(['home', 'animals'])
   })
 })

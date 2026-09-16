@@ -2,12 +2,24 @@ import { mount } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { nextTick } from 'vue'
 
+import { VSnackbar } from 'vuetify/components'
+
 import AppToast from '../AppToast.vue'
 import { dismissToast, showToast, toastMessage } from '../toast'
+import { heightBottomNav, paddingBottomNav } from '@/core/theme/layout-tokens'
 import vuetify from '@/core/theme/vuetify'
 
 function mountToast() {
   return mount(AppToast, { global: { plugins: [vuetify] }, attachTo: document.body })
+}
+
+// `offset` n'est pas déclarée par `VSnackbar`, qui la relaie à son overlay : elle passe par `$attrs`.
+function offsetDuToast(aboveBottomNav: boolean): unknown {
+  const wrapper = mount(AppToast, { props: { aboveBottomNav }, global: { plugins: [vuetify] } })
+  const offset = wrapper.getComponent(VSnackbar).vm.$attrs.offset
+  wrapper.unmount()
+
+  return offset
 }
 
 beforeEach(() => {
@@ -69,5 +81,13 @@ describe('AppToast', () => {
     )
     expect(annoncees).toEqual([region])
     wrapper.unmount()
+  })
+
+  it('se pose au-dessus de la bottom navigation quand elle est là', () => {
+    expect(offsetDuToast(true)).toBe(heightBottomNav + paddingBottomNav + 12)
+  })
+
+  it('ne garde que la zone de gestes sous lui sur un écran sans bottom navigation', () => {
+    expect(offsetDuToast(false)).toBe(paddingBottomNav + 12)
   })
 })
