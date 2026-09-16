@@ -2,11 +2,32 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { ANALYTICS_CONSENT_KEY } from '@/core/analytics/analytics'
+import { PLUS_NUDGE_STORAGE_KEY } from '@/features/purchase/plus-nudge'
+import {
+  PLUS_STATUS_STORAGE_KEY,
+  readStoredPlusStatus,
+  writeStoredPlusStatus,
+} from '@/features/purchase/plus-status-storage'
+import { usePurchaseStore } from '@/features/purchase/purchase.store'
+import { USAGE_SIGNALS_STORAGE_KEY } from '@/shared/usage-signals'
+
 import { AccountError } from '../account-error'
 import { authRepository, type AuthRepository, type AuthSession } from '../auth.repository'
 import { useAuthStore } from '../auth.store'
 import { readPlusAccount, writePlusAccount } from '../plus-account-storage'
 import { memoryStorage, OTHER_USER_ID, USER_ID } from './auth-fixture'
+
+const ACCOUNT_KEYS = [PLUS_STATUS_STORAGE_KEY, PLUS_NUDGE_STORAGE_KEY, USAGE_SIGNALS_STORAGE_KEY]
+const UNRELATED_KEYS = [ANALYTICS_CONSENT_KEY, 'memopatte.notifications.primingAnswered']
+
+function writeDeviceState(): void {
+  for (const key of [...ACCOUNT_KEYS, ...UNRELATED_KEYS]) localStorage.setItem(key, '{}')
+}
+
+function remainingDeviceState(): string[] {
+  return [...ACCOUNT_KEYS, ...UNRELATED_KEYS].filter((key) => localStorage.getItem(key) !== null)
+}
 
 vi.mock('../auth.repository', () => ({
   authRepository: {
@@ -105,6 +126,23 @@ describe('useAuthStore', () => {
 
       expect(store.sessionState).toBe('needs-sign-in')
       expect(readPlusAccount()).toEqual({ userId: USER_ID })
+    })
+
+    it('ne laisse pas l’adresse de l’erreur Supabase dans les traces', async () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      repository.restoreSession.mockRejectedValueOnce(
+        Object.assign(new Error('Email sophie.martin@example.com not found'), {
+          name: 'AuthApiError',
+          code: 'user_not_found',
+          status: 400,
+        }),
+      )
+
+      await useAuthStore().restore()
+
+      const trace = warn.mock.calls.flat().join(' ')
+      expect(trace).not.toContain('sophie.martin@example.com')
+      expect(trace).toContain('user_not_found')
     })
 
     it('ne lève pas quand la restauration échoue', async () => {
@@ -224,6 +262,27 @@ describe('useAuthStore', () => {
       expect(readPlusAccount()).toEqual({ userId: OTHER_USER_ID })
     })
 
+    it('efface l’état d’appareil quand un autre compte prend la main', async () => {
+      writePlusAccount({ userId: USER_ID })
+      writeDeviceState()
+      repository.signIn.mockResolvedValueOnce({ userId: OTHER_USER_ID })
+      const store = useAuthStore()
+
+      await store.signIn('autre@example.com', 'secret-123')
+
+      expect(remainingDeviceState()).toEqual(UNRELATED_KEYS)
+    })
+
+    it('garde l’achat déjà fait sur l’appareil à la première connexion', async () => {
+      writeDeviceState()
+      repository.signIn.mockResolvedValueOnce({ userId: USER_ID })
+      const store = useAuthStore()
+
+      await store.signIn('gaelle@example.com', 'secret-123')
+
+      expect(remainingDeviceState()).toEqual([...ACCOUNT_KEYS, ...UNRELATED_KEYS])
+    })
+
     it('lève la raison de l’échec sans écrire de drapeau', async () => {
       repository.signIn.mockRejectedValueOnce(new AccountError('invalid-credentials'))
       const store = useAuthStore()
@@ -270,9 +329,8 @@ describe('useAuthStore', () => {
   })
 
   describe('signOut', () => {
-    it('invalide la session et efface le drapeau, sans toucher au reste de l’appareil', async () => {
+    it('invalide la session et efface le drapeau', async () => {
       writePlusAccount({ userId: USER_ID })
-      localStorage.setItem('memopatte.plus.status', '{"plan":"annual"}')
       const store = useAuthStore()
 
       await store.signOut()
@@ -282,7 +340,31 @@ describe('useAuthStore', () => {
       expect(store.userId).toBeNull()
       expect(store.sessionState).toBe('none')
       expect(readPlusAccount()).toBeNull()
-      expect(localStorage.getItem('memopatte.plus.status')).not.toBeNull()
+    })
+
+    it('efface les compteurs d’usage, sans toucher à l’achat ni à la préférence de rappel', async () => {
+      writePlusAccount({ userId: USER_ID })
+      writeDeviceState()
+      const store = useAuthStore()
+
+      await store.signOut()
+
+      expect(remainingDeviceState()).toEqual([
+        PLUS_STATUS_STORAGE_KEY,
+        PLUS_NUDGE_STORAGE_KEY,
+        ...UNRELATED_KEYS,
+      ])
+    })
+
+    it('laisse l’abonné dans Plus après la déconnexion', async () => {
+      writePlusAccount({ userId: USER_ID })
+      writeStoredPlusStatus({ plan: 'annual', expiresAt: '2027-09-14T10:00:00Z' })
+      const purchase = usePurchaseStore()
+
+      await useAuthStore().signOut()
+
+      expect(purchase.status.plan).toBe('annual')
+      expect(readStoredPlusStatus().plan).toBe('annual')
     })
 
     it('ignore la fin de session que Supabase signale pendant la déconnexion', async () => {

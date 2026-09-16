@@ -14,6 +14,7 @@ import {
   writeStoredPlusStatus,
   type StoredPlusStatus,
 } from './plus-status-storage'
+import { errorSummary } from '@/shared/error-summary'
 
 function remember(next: PlusStatus, previous: StoredPlusStatus): StoredPlusStatus {
   if (next.plan !== 'none')
@@ -68,7 +69,7 @@ export const usePurchaseStore = defineStore('purchase', () => {
         if (generation === startedAt) record(next)
         return true
       } catch (cause) {
-        console.warn('Statut Plus non revérifié :', cause)
+        console.warn('Statut Plus non revérifié :', errorSummary(cause))
         return false
       }
     },

@@ -35,6 +35,14 @@ export function readUsageSignals(): UsageSignals {
   }
 }
 
+export function clearUsageSignals(): void {
+  try {
+    localStorage.removeItem(USAGE_SIGNALS_STORAGE_KEY)
+  } catch (cause) {
+    console.warn('Signaux d’usage non effacés :', cause)
+  }
+}
+
 export function recordUsageSignal(signal: UsageSignal): void {
   const signals = readUsageSignals()
   const next: UsageSignals = {

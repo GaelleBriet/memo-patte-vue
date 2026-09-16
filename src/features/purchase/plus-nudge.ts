@@ -53,6 +53,15 @@ export function readPlusNudgeState(): PlusNudgeState {
   return session ?? fromStorage()
 }
 
+export function clearPlusNudgeState(): void {
+  forgetPlusNudgeSession()
+  try {
+    localStorage.removeItem(PLUS_NUDGE_STORAGE_KEY)
+  } catch (cause) {
+    console.warn('Rappel MémoPatte Plus non effacé :', cause)
+  }
+}
+
 function write(state: PlusNudgeState): void {
   try {
     localStorage.setItem(PLUS_NUDGE_STORAGE_KEY, JSON.stringify(state))

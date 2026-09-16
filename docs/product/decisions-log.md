@@ -1036,3 +1036,16 @@ Raison : la planche C1 montre « CHPPi · En retard » avant « Rage · À jour 
 carte suivait jusqu'ici l'ordre du repository (dernière injection d'abord), ce qui
 pouvait enterrer un retard sous des vaccins à jour. — Alternative écartée : garder
 l'ordre de saisie et compter sur la seule barre corail pour signaler le retard.
+
+2026-09-16 — **La déconnexion garde l'achat Plus et la préférence « Ne plus me
+proposer Plus » ; seul le changement de compte efface tout (#287).** `signOut()`
+efface le compte enregistré et les compteurs d'usage ; `memopatte.plus.status` et
+`memopatte.plus.nudge` restent. L'effacement complet a lieu dans `record()`, quand
+un autre `userId` prend la main sur l'appareil. — Raison : décision de Gaelle ;
+l'abonnement appartient au compte Google Play de l'appareil, pas au compte
+MémoPatte, et `verifyKnownStatus()` court-circuite sur « aucun droit connu » : un
+statut effacé n'était jamais revérifié, l'abonné repartait « gratuit » jusqu'à ce
+qu'il pense à « Restaurer mon achat ». « Ne plus me proposer Plus » est une
+préférence, pas de l'état de compte. — Alternative écartée : tout effacer à la
+déconnexion comme le demandait le ticket (le risque « le compte suivant hérite »
+n'existe qu'au changement de compte, où l'effacement complet reste en place).

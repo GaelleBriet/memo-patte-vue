@@ -33,6 +33,10 @@ vi.mock('../data-import.service', async (importOriginal) => ({
 
 vi.mock('@/app/reminders-priming', () => ({ promptNotificationsIfReminders }))
 
+const authAvailable = vi.hoisted(() => vi.fn<() => boolean>(() => true))
+
+vi.mock('@/shared/auth-available', () => ({ authAvailable }))
+
 const consent = vi.hoisted(() => ({ granted: false }))
 const optIn = vi.hoisted(() => vi.fn<() => Promise<void>>())
 const optOut = vi.hoisted(() => vi.fn<() => Promise<void>>())
@@ -66,6 +70,7 @@ beforeEach(async () => {
   hasLocalData.mockReset()
   importData.mockReset()
   promptNotificationsIfReminders.mockClear()
+  authAvailable.mockReturnValue(true)
   consent.granted = false
   optIn.mockReset().mockImplementation(async () => void (consent.granted = true))
   optOut.mockReset().mockImplementation(async () => void (consent.granted = false))
@@ -174,6 +179,15 @@ describe('SettingsView', () => {
       writeStoredPlusStatus({ plan: 'lifetime', expiresAt: null })
       const wrapper = await monter()
 
+      expect(wrapper.find('.settings-row--plus-sign-in').exists()).toBe(false)
+    })
+
+    it('ne propose pas la connexion sans configuration Supabase', async () => {
+      authAvailable.mockReturnValue(false)
+
+      const wrapper = await monter()
+
+      expect(wrapper.find('.settings-row--plus-discover').exists()).toBe(true)
       expect(wrapper.find('.settings-row--plus-sign-in').exists()).toBe(false)
     })
 

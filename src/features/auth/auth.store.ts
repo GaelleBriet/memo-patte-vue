@@ -1,12 +1,15 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 
+import { errorSummary } from '@/shared/error-summary'
+
 import {
   authRepository,
   type AuthSession,
   type SessionCheck,
   type SignUpOutcome,
 } from './auth.repository'
+import { clearDeviceAccountState, clearSignedOutAccountState } from './device-account-state.service'
 import {
   clearPlusAccount,
   readPlusAccount,
@@ -27,6 +30,7 @@ export const useAuthStore = defineStore('auth', () => {
   function record(session: AuthSession): void {
     generation += 1
     if (account.value?.userId !== session.userId) {
+      if (account.value) clearDeviceAccountState()
       account.value = { userId: session.userId }
       writePlusAccount(account.value)
     }
@@ -40,7 +44,7 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       result = await request()
     } catch (cause) {
-      console.warn('Session Plus non vérifiée :', cause)
+      console.warn('Session Plus non vérifiée :', errorSummary(cause))
       result = { kind: 'needs-refresh' }
     }
     if (generation !== startedAt || !account.value) return false
@@ -83,12 +87,13 @@ export const useAuthStore = defineStore('auth', () => {
       record(await authRepository.signIn(email, password))
     },
 
-    /** Efface la session et le drapeau ; les données locales restent. */
+    /** Efface la session et les compteurs du compte ; le carnet local et l'achat restent. */
     async signOut(): Promise<void> {
       await authRepository.signOut()
       generation += 1
       account.value = null
       clearPlusAccount()
+      clearSignedOutAccountState()
       sessionState.value = 'none'
     },
   }

@@ -1,5 +1,7 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 
+import { authAvailable } from '@/shared/auth-available'
+
 declare module 'vue-router' {
   interface RouteMeta {
     /** Écran racine de la bottom navigation. Absent, l'écran est poussé et la barre disparaît. */
@@ -84,6 +86,7 @@ export const routes: RouteRecordRaw[] = [
     path: '/sign-in',
     name: 'sign-in',
     component: () => import('@/features/auth/SignInView.vue'),
+    beforeEnter: () => authAvailable() || { name: 'plus' },
   },
   {
     path: '/analytics/consent',
