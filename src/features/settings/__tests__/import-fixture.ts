@@ -1,4 +1,5 @@
-import { toJsonExport, type ExportData } from '../export-format'
+import { toJsonExport } from '../export-format'
+import type { ExportData } from '@/shared/carnet-data'
 
 export const MILO_ID = '11111111-1111-4111-8111-111111111111'
 export const LUNA_ID = '33333333-3333-4333-8333-333333333333'

@@ -117,7 +117,10 @@ reconstruit les rappels depuis `vaccinations` et `treatments`.
 
 ## Import — « Importer un export MémoPatte »
 
-Code de référence : `src/features/settings/data-import.service.ts` (validation Zod et écriture).
+Code de référence : `src/features/settings/data-import.service.ts` (validation Zod et écriture) et
+`src/shared/import-plan.ts` (module pur : entrées du fichier + état local → écritures à jouer,
+réutilisable par la synchronisation Plus). Les types de lignes partagés vivent dans
+`src/shared/carnet-data.ts`.
 
 - **Sélection du fichier** : `<input type="file">` de la WebView, que Capacitor confie au
   sélecteur de documents Android (`ACTION_GET_CONTENT`). Le fichier est lu par une permission
@@ -153,6 +156,16 @@ Code de référence : `src/features/settings/data-import.service.ts` (validation
   - **Remplacer**, après confirmation — toutes les lignes visibles sont marquées supprimées
     (suppression logique, `deleted_at` et `updated_at` à l'heure de l'import, pour que la
     synchronisation Plus propage la suppression), puis toutes les entrées du fichier sont écrites.
+- **Rattachement figé** : un vaccin, un traitement, une pesée ne changent jamais d'animal (décision
+  du 2026-09-09), y compris par import. Une entrée du fichier dont l'identifiant existe déjà sur
+  l'appareil **sous un autre animal** fait refuser l'import en entier, sans rien écrire — comme un
+  identifiant en double, le fichier est incohérent. Le motif est distinct d'une panne d'écriture —
+  « Ce fichier rattache une entrée de ton carnet à un autre animal. » — pour que l'utilisateur ne
+  réessaie pas indéfiniment. L'invariant est aussi porté par le SQL : `restoreStatement` laisse
+  `animal_id` hors du `SET` de son `UPDATE`.
+- **Échéance d'un traitement** : `nextDueDate` du fichier est reprise **telle quelle**, jamais
+  recalculée depuis `lastDoseDate` et `frequency` — la ligne voyage entière, comme elle le fera dans
+  la synchronisation Plus.
 - **Dates** : une entrée écrite qui n'existait pas sur l'appareil garde son `createdAt` et son
   `updatedAt` d'origine. Une entrée qui existait déjà, même supprimée, garde le `createdAt` du
   fichier et prend l'heure de l'import comme `updatedAt` : la synchronisation « la plus récente

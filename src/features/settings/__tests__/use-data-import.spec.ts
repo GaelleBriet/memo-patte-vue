@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { DataImportService, ImportMode } from '../data-import.service'
+import { ImportRefusedError, type DataImportService, type ImportMode } from '../data-import.service'
 import { useDataImport } from '../use-data-import'
 import { IMPORT_FIXTURE, importFixtureJson } from './import-fixture'
 
@@ -111,6 +111,18 @@ describe('useDataImport', () => {
 
     expect(importData).toHaveBeenCalledOnce()
     expect(flow.isImporting.value).toBe(false)
+  })
+
+  it('signale un fichier qui déplace une entrée, sans le confondre avec une panne', async () => {
+    importData.mockRejectedValue(new ImportRefusedError('reattached'))
+    const flow = setup()
+    await flow.selectFile(fichier(importFixtureJson()))
+
+    await flow.choose('merge')
+
+    expect(flow.step.value).toBe('error')
+    expect(flow.error.value).toBe('reattached')
+    expect(console.warn).not.toHaveBeenCalled()
   })
 
   it('signale un échec d’écriture et ne prévient pas d’un import', async () => {

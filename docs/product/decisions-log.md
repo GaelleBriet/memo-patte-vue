@@ -1076,3 +1076,31 @@ violation n'est signalée que par un seul linter. — Alternative écartée : ox
 visite bien `ImportExpression`, mais dont la configuration est un JSON statique : il
 aurait fallu y recopier toute la matrice et accepter un double diagnostic sur les
 imports statiques.
+
+2026-09-16 — **Un fichier d'import qui rattache une entrée à un autre animal est
+refusé en entier** (#293). Le rattachement d'un vaccin, d'un traitement ou d'une
+pesée est figé à la création (2026-09-09) ; un export édité à la main pouvait
+pourtant les déplacer, `restoreStatement` mettant `animal_id` dans son `SET`.
+L'import s'arrête désormais avant toute écriture, avec un motif d'erreur dédié
+(« Ce fichier rattache une entrée de ton carnet à un autre animal. »), et
+`animal_id` sort du `SET` des trois `restoreStatement`. — Raison : c'est déjà le
+traitement des deux autres incohérences de fichier (identifiant en double,
+`animalId` orphelin), un déplacement ne peut pas naître d'un usage normal de
+l'app, et la synchronisation rejouera ces mêmes instructions (le pull « n'a pas à
+gérer de déplacement »). — Alternative écartée : ignorer la seule entrée fautive
+et importer le reste, c'est-à-dire appliquer à moitié un fichier incohérent sans
+que rien ne le dise. — Pour revenir dessus : retirer le contrôle
+`findReattached` de `shared/import-plan.ts` et remettre `animal_id` au `SET`.
+
+2026-09-16 — **L'échéance d'un traitement importée fait foi, elle n'est jamais
+recalculée** (#293), tranché par Gaelle. `nextDueDate` du fichier est écrite telle
+quelle, sans être comparée à `lastDoseDate` + `frequency`. — Raison : la ligne
+voyage entière, exactement ce que fera la synchronisation Plus, donc import et
+pull se comportent à l'identique ; et l'app ne réécrit jamais en silence une
+donnée que l'utilisateur a exportée. Pour tout fichier produit par MémoPatte les
+deux comportements coïncident, le repository calculant l'échéance à chaque
+écriture. — Alternatives écartées : recalculer à l'import, qui ferait de l'import
+le seul endroit qui corrige une valeur sans le dire et divergerait de la synchro ;
+refuser le fichier en cas d'écart, qui rejetterait des exports valides si la règle
+de calcul évoluait. — Conséquence assumée : un fichier édité à la main peut dater
+un rappel n'importe quand, `nextDueDate` n'étant bornée que par son format.
