@@ -32,3 +32,40 @@ export function reminderNotificationId(key: string): number {
   // `>>> 0` ramène le hash signé de `Math.imul` dans les entiers non signés.
   return ((hash >>> 0) % MAX_INT32) + 1
 }
+
+export type IdentifiedReminder = { reminder: Reminder; id: number }
+
+function nextNotificationId(id: number): number {
+  return id === MAX_INT32 ? 1 : id + 1
+}
+
+/**
+ * Identifiants natifs des rappels voulus, face à ceux déjà posés sur l'appareil. Une clé déjà
+ * programmée garde le sien, c'est ce qui rend la synchronisation idempotente ; une clé nouvelle
+ * sonde depuis son empreinte jusqu'à un identifiant libre, faute de quoi deux clés d'empreinte
+ * égale se recouvriraient.
+ */
+export function assignReminderIds(
+  reminders: readonly Reminder[],
+  scheduledIds: ReadonlyMap<string, number>,
+): IdentifiedReminder[] {
+  const used = new Set(scheduledIds.values())
+  const assigned = new Map<string, number>()
+
+  for (const { key } of reminders) {
+    const known = scheduledIds.get(key)
+    if (known !== undefined) assigned.set(key, known)
+  }
+
+  function idOf(key: string): number {
+    const known = assigned.get(key)
+    if (known !== undefined) return known
+    let id = reminderNotificationId(key)
+    while (used.has(id)) id = nextNotificationId(id)
+    used.add(id)
+    assigned.set(key, id)
+    return id
+  }
+
+  return reminders.map((reminder) => ({ reminder, id: idOf(reminder.key) }))
+}

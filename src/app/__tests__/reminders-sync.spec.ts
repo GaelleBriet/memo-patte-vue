@@ -270,19 +270,6 @@ describe('syncAllReminders', () => {
     expect(notifications.rescheduleAll).toHaveBeenCalledOnce()
   })
 
-  it('signale deux clés qui tombent sur le même identifiant de notification', async () => {
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
-    const chppi = vaccination('22222222-2222-4222-8222-222222222222', MILO.id, '2026-10-15')
-    listVaccinations.mockResolvedValue([chppi, chppi])
-
-    await sync()()
-
-    expect(warn).toHaveBeenCalledWith(
-      expect.stringContaining('identifiant'),
-      expect.stringContaining(`vaccination:${chppi.id}`),
-    )
-  })
-
   it('annule ce qui reste programmé quand la permission n’est plus accordée, sans lire le carnet', async () => {
     const stale = 'vaccination:22222222-2222-4222-8222-222222222222:2026-10-15:due'
     notifications.pending.set(stale, { key: stale, title: '', body: '', at: new Date(2026, 9, 15) })
