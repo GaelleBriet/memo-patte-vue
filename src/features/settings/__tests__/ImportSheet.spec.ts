@@ -197,7 +197,7 @@ describe('ImportSheet', () => {
     [JSON.stringify({ schemaVersion: 2 }), 'Cet export vient d’une version plus récente de l’app.'],
     [
       exportAvecPoidsHorsBornes(),
-      'Ce fichier contient une valeur hors limites : 200 kg maximum pour un poids, 365 pour une fréquence.',
+      'Ce fichier contient une valeur hors limites : 200 kg maximum pour un poids, 365 pour une fréquence.',
     ],
   ])('explique un fichier refusé et propose d’en choisir un autre', async (content, message) => {
     await monter()

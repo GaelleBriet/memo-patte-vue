@@ -101,7 +101,7 @@
         "placeholder": "e.g. Rabies"
       },
       "lastInjectionDate": {
-        "label": "Vaccination date"
+        "label": "Injection date"
       },
       "dueDate": {
         "label": "Next due date"
@@ -112,8 +112,8 @@
       "saving": "Saving…",
       "errors": {
         "name": "Vaccine name is required.",
-        "lastInjectionDate": "Vaccination date is required.",
-        "lastInjectionDateFuture": "Vaccination date can’t be in the future.",
+        "lastInjectionDate": "Injection date is required.",
+        "lastInjectionDateFuture": "Injection date can’t be in the future.",
         "dueDate": "Due date isn’t valid.",
         "notFound": "We can’t find this vaccine.",
         "load": "Couldn’t load this vaccine. Try again.",
@@ -130,7 +130,7 @@
         "none": "No reminder"
       },
       "detail": {
-        "overdue": "Past due",
+        "overdue": "Due date has passed",
         "validUntil": "Valid until {month}",
         "none": "No reminder set"
       },
@@ -140,7 +140,7 @@
   "treatments": {
     "type": {
       "deworming": "Dewormer",
-      "antiparasitic": "Flea & tick"
+      "antiparasitic": "Parasite control"
     },
     "frequency": {
       "day": "Every day | Every {n} days",
@@ -214,11 +214,11 @@
       "overdueBody": "Book a vet appointment, then log the vaccine in MémoPatte."
     },
     "treatment": {
-      "beforeTitle": "{type} {name} for {animal} in {days} days",
+      "beforeTitle": "{name} ({type}) for {animal} in {days} days",
       "beforeBody": "Check you still have a dose on hand.",
-      "dueTitle": "{type} {name} for {animal} today",
+      "dueTitle": "{name} ({type}) for {animal} today",
       "dueBody": "Log the dose in MémoPatte to schedule the next one.",
-      "overdueTitle": "{type} {name} for {animal} is {days} days overdue",
+      "overdueTitle": "{name} ({type}) for {animal} is {days} days overdue",
       "overdueBody": "Remember to give the dose, then log it in MémoPatte."
     }
   },
@@ -243,7 +243,7 @@
       "current": "Current weight",
       "list": "All weigh-ins",
       "value": "{weight} kg",
-      "initial": "Starting weight: {weight} kg",
+      "initial": "Weight on arrival: {weight} kg",
       "link": "View history"
     },
     "form": {
@@ -276,9 +276,9 @@
   "home": {
     "title": "MémoPatte",
     "header": {
-      "household": "Your household"
+      "household": "Your pets"
     },
-    "loading": "Loading…",
+    "loading": "Opening home…",
     "error": {
       "title": "Couldn’t open the home screen.",
       "text": "The local database didn’t respond. Your data is safe.",
@@ -293,7 +293,7 @@
     "reminder": {
       "vaccination": "{name}",
       "deworming": "Dewormer",
-      "antiparasitic": "Flea & tick"
+      "antiparasitic": "Parasite control"
     },
     "due": {
       "overdue": "Overdue · {n}d",
@@ -314,7 +314,7 @@
       "title": "Quick actions",
       "treatment": "New treatment",
       "vaccination": "Vaccine reminder",
-      "weight": "Log weight",
+      "weight": "Add a weigh-in",
       "picker": {
         "title": "Which pet?",
         "close": "Close"
@@ -336,7 +336,7 @@
   "notifications": {
     "priming": {
       "title": "Never miss a reminder",
-      "subtitle": "Turn on notifications to hear in time about your pets’ vaccines and treatments.",
+      "subtitle": "Turn on notifications to get a heads-up before your pets’ vaccines and treatments are due.",
       "benefits": {
         "vaccination": "We’ll let you know before {name}’s vaccine is due",
         "treatment": "We’ll let you know before {name}’s treatment is due",
@@ -349,7 +349,7 @@
     },
     "channel": {
       "name": "Reminders",
-      "description": "Vaccination and treatment reminders for your pets"
+      "description": "Vaccine and treatment reminders for your pets"
     },
     "disabled": {
       "title": "Reminders are off",
@@ -394,7 +394,7 @@
       "error": "The export couldn’t be prepared. Try again."
     },
     "import": {
-      "title": "Import an export",
+      "title": "Import a MémoPatte export",
       "subtitle": "Data already exists on this device.",
       "close": "Close",
       "modes": "Import mode",
@@ -427,15 +427,15 @@
   "analytics": {
     "consent": {
       "title": "Before you start",
-      "measured": "With your consent, MémoPatte collects anonymous usage statistics to improve the app: the screens you view and actions such as “vaccine added”.",
-      "never": "Never the content of your records, never your pets’ names. This data is hosted in Europe.",
+      "measured": "With your consent, MémoPatte measures anonymous usage statistics to improve the app: the screens you view and actions such as “vaccine added”.",
+      "never": "Never the content of your health record, never your pets’ names. This data is hosted in Europe.",
       "changeMind": "You can change your mind at any time in Settings → Privacy.",
       "refuse": "Decline",
       "accept": "Accept"
     }
   },
   "auth": {
-    "intro": "A MémoPatte account keeps your records safe in the cloud and lets you find them on all your devices.",
+    "intro": "A MémoPatte account keeps your health records safe in the cloud and on every device you use.",
     "signIn": {
       "title": "Sign in",
       "submit": "Sign in",
@@ -459,7 +459,7 @@
     "form": {
       "errors": {
         "emailRequired": "Enter your email address.",
-        "emailInvalid": "This email address is not valid.",
+        "emailInvalid": "This email address isn’t valid.",
         "passwordRequired": "Enter your password.",
         "passwordTooShort": "Choose a password of at least 8 characters."
       }
@@ -468,23 +468,23 @@
       "emailTaken": "An account already exists with this email address.",
       "invalidCredentials": "Incorrect email or password. Try again.",
       "weakPassword": "This password is too weak. Choose a longer or less common one.",
-      "emailNotConfirmed": "Your email address is not confirmed yet. Open the link we sent you, then try again.",
+      "emailNotConfirmed": "Your email address isn’t confirmed yet. Open the link we sent you, then try again.",
       "offline": "No internet connection. Check your network and try again.",
       "unknown": "Something went wrong. Try again in a moment."
     },
     "confirmation": {
       "title": "Check your inbox",
-      "message": "We have just sent a confirmation link to {email}. Open it to activate your account, then come back here to sign in.",
+      "message": "We’ve just sent a confirmation link to {email}. Open it to activate your account, then come back here to sign in.",
       "back": "Back to sign in"
     }
   },
   "plus": {
     "title": "MémoPatte Plus",
-    "headline": "Keep your records safe, everywhere",
-    "subtitle": "Local stays free and unlimited. Plus adds cloud backup.",
+    "headline": "Keep your health records safe, everywhere",
+    "subtitle": "Everything on your phone stays free and unlimited. Plus adds cloud backup.",
     "benefits": {
       "backup": "Guaranteed cloud backup",
-      "devices": "The same records on all your devices",
+      "devices": "The same health record on all your devices",
       "photos": "Your photos backed up too",
       "pdf": "Full PDF export"
     },
@@ -522,46 +522,46 @@
         "label": "Monthly",
         "price": "{price}/month",
         "terms": "Renews automatically every month. No commitment, cancel any time.",
-        "submit": "Continue with Plus monthly — {price}"
+        "submit": "Continue with Monthly Plus — {price}"
       },
       "annual": {
-        "label": "Plus yearly",
+        "label": "Annual Plus",
         "price": "{price}/year",
         "saving": "≈ 44% cheaper than monthly",
         "terms": "Renews automatically every year. Cancel any time in Google Play — access kept until the end of the paid period.",
-        "submit": "Continue with Plus yearly — {price}"
+        "submit": "Continue with Annual Plus — {price}"
       },
       "lifetime": {
         "label": "Lifetime",
         "price": "{price}",
-        "terms": "One-off payment, forever.",
-        "submit": "Continue with Plus lifetime — {price}"
+        "terms": "One-time payment, yours forever.",
+        "submit": "Continue with Lifetime Plus — {price}"
       },
       "unavailable": "Google Play offers aren’t available right now.",
       "retry": "Try again"
     },
     "member": {
-      "title": "You’re already in Plus",
+      "title": "You’re already a Plus member",
       "monthly": "Monthly subscription active.",
-      "annual": "Yearly subscription active.",
+      "annual": "Annual subscription active.",
       "lifetime": "Lifetime access, no renewal."
     },
     "terms": {
       "free": "MémoPatte can be used for free without a subscription.",
       "prices": "Prices shown by Google Play, in your currency.",
-      "local": "If you stop Plus, your records stay on your phone.",
+      "local": "If you stop Plus, your health records stay on your phone.",
       "manage": "Manage my subscription · Google Play"
     },
     "restore": {
       "action": "Restore my purchase",
       "busy": "Restoring…",
-      "restored": "You’re back in Plus.",
+      "restored": "Welcome back to Plus.",
       "none": "No purchase to restore on this Google account.",
       "failed": "The restore didn’t go through. Try again."
     },
     "success": {
       "title": "Welcome to Plus",
-      "body": "Your records will be backed up very soon.",
+      "body": "Your health record will be backed up very soon.",
       "back": "Back to settings"
     },
     "cancelled": {
@@ -573,12 +573,12 @@
       "body": "No payment was taken. Try again in a moment, nothing has changed for you."
     },
     "retry": "Try again",
-    "later": "Later",
+    "later": "Not now",
     "settings": {
-      "discover": "Discover MémoPatte Plus",
-      "discoverHint": "Cloud backup, PDF export, several devices",
-      "alreadySubscribed": "I already subscribed",
-      "alreadySubscribedHint": "Get back the records you saved on another device",
+      "discover": "Explore MémoPatte Plus",
+      "discoverHint": "Cloud backup, PDF export, multiple devices",
+      "alreadySubscribed": "I’m already subscribed",
+      "alreadySubscribedHint": "Restore the health record you backed up on another device",
       "status": {
         "monthly": "Monthly Plus until {date}",
         "annual": "Annual Plus until {date}",
@@ -587,7 +587,7 @@
         "expiredAnnual": "Annual Plus — expired"
       },
       "paused": {
-        "body": "Your cloud backup is paused. Your records stay on your phone.",
+        "body": "Your cloud backup is paused. Your health records stay on your phone.",
         "action": "Reactivate Plus"
       }
     },
@@ -600,12 +600,12 @@
         "body": "MémoPatte Plus keeps it safe too."
       },
       "carnetValue": {
-        "title": "Your records are starting to be precious",
-        "body": "Keep them safe with MémoPatte Plus."
+        "title": "Your health record is worth protecting now",
+        "body": "Keep it safe with MémoPatte Plus."
       },
       "firstExport": {
         "title": "Your export is ready",
-        "body": "With Plus, no need to think about it: everything is saved on its own."
+        "body": "With Plus, you don’t have to think about it: everything backs up automatically."
       }
     }
   }

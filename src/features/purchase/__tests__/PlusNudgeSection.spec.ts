@@ -92,7 +92,7 @@ describe('PlusNudgeSection', () => {
 
     expect(wrapper.get('.plus-nudge__title').text()).toBe('Ton export est prêt')
     expect(wrapper.get('.plus-nudge__body').text()).toBe(
-      'Avec Plus, plus besoin d’y penser : tout se sauvegarde seul.',
+      'Avec Plus, plus besoin d’y penser : tout se sauvegarde seul.',
     )
   })
 

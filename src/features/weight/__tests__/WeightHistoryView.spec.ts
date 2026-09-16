@@ -264,7 +264,7 @@ describe('WeightHistoryView — H1 historique complet', () => {
   it('affiche le poids à l’arrivée sous la liste', async () => {
     const wrapper = await monter()
 
-    expect(wrapper.get('.weight-history__initial').text()).toBe('Poids à l’arrivée : 8,5 kg')
+    expect(wrapper.get('.weight-history__initial').text()).toBe('Poids à l’arrivée : 8,5 kg')
   })
 
   it('offre le bouton fixe « Ajouter une pesée », qui ouvre la feuille pour cet animal', async () => {
@@ -346,7 +346,7 @@ describe('WeightHistoryView — H2 une seule pesée', () => {
 
     expect(lignes).toHaveLength(1)
     expect(lignes[0]!.get('.weight-history__row-delta').text()).toBe('')
-    expect(wrapper.get('.weight-history__initial').text()).toBe('Poids à l’arrivée : 8,5 kg')
+    expect(wrapper.get('.weight-history__initial').text()).toBe('Poids à l’arrivée : 8,5 kg')
     expect(wrapper.find('.weight-history__add').exists()).toBe(true)
   })
 })
@@ -366,7 +366,7 @@ describe('WeightHistoryView — H3 aucune pesée', () => {
   it('garde le poids à l’arrivée', async () => {
     const wrapper = await monter()
 
-    expect(wrapper.get('.weight-history__initial').text()).toBe('Poids à l’arrivée : 8,5 kg')
+    expect(wrapper.get('.weight-history__initial').text()).toBe('Poids à l’arrivée : 8,5 kg')
   })
 
   it('ouvre la feuille depuis la ligne d’ajout de la carte vide', async () => {

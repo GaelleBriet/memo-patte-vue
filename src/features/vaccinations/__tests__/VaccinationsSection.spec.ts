@@ -15,7 +15,7 @@ import VaccinationsSection from '../VaccinationsSection.vue'
 import type { Vaccination } from '../vaccination.schema'
 import type { VaccinationsRepository } from '../vaccinations.repository'
 import { provideVaccinationsRepository } from '../vaccinations.store'
-import i18n from '@/core/i18n'
+import i18n, { applyLocale } from '@/core/i18n'
 import router from '@/router'
 import vuetify from '@/core/theme/vuetify'
 
@@ -134,11 +134,24 @@ describe('VaccinationsSection — lignes et badges', () => {
     const row = ligne(wrapper, 0)
 
     expect(row.classes()).not.toContain('vaccination-row--overdue')
-    expect(row.get('.vaccination-row__detail').text()).toBe('Valide jusqu’au 12/2026')
+    expect(row.get('.vaccination-row__detail').text()).toBe('Valide jusqu’à déc. 2026')
     const badge = row.get('.vaccination-row__badge')
     expect(badge.classes()).toContain('due-status-chip--up-to-date')
     expect(badge.text()).toBe('À jour')
     expect(badge.find('svg').exists()).toBe(true)
+  })
+
+  it('dit le mois de validité dans la langue affichée', async () => {
+    vaccinations = [vaccination({ dueDate: '2026-12-12' })]
+    applyLocale('en')
+
+    try {
+      const wrapper = await monter()
+
+      expect(ligne(wrapper, 0).get('.vaccination-row__detail').text()).toBe('Valid until Dec 2026')
+    } finally {
+      applyLocale('fr')
+    }
   })
 
   it('reste « À jour » le jour même de l’échéance', async () => {

@@ -96,6 +96,7 @@ src/
 - Icônes : Material Symbols Outlined en SVG icône par icône (`@material-symbols/svg-400`), jeu Vuetify `ms`, déclarées dans core/theme uniquement ; jamais `@mdi/font` ni la police complète
 - Réutiliser les composants partagés (SurfaceCard, GradientAppBar, AnimalChipSelector, DueStatusChip, FormScreen, FormField, FormSegmented, etc.)
 - Ne jamais recréer un composant qui existe déjà dans shared/
+- Tout texte nouveau suit le glossaire FR→EN (`docs/product/glossaire-fr-en.md`) : terme retenu, ton, typographie
 
 ## Authentification
 

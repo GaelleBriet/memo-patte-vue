@@ -87,7 +87,7 @@ describe('SignInView', () => {
       'Un compte MémoPatte sert à garder tes carnets en sécurité dans le cloud et à les retrouver sur tous tes appareils.',
     )
     expect(wrapper.get('.sign-in__submit').text()).toBe('Se connecter')
-    expect(wrapper.get('.sign-in__toggle').text()).toBe('Pas encore de compte ? Créer un compte')
+    expect(wrapper.get('.sign-in__toggle').text()).toBe('Pas encore de compte ? Créer un compte')
   })
 
   it('étiquette les champs et adapte le clavier', async () => {
@@ -110,7 +110,7 @@ describe('SignInView', () => {
 
     expect(wrapper.get('h1').text()).toBe('Inscription')
     expect(wrapper.get('.sign-in__submit').text()).toBe('Créer mon compte')
-    expect(wrapper.get('.sign-in__toggle').text()).toBe('Déjà un compte ? Se connecter')
+    expect(wrapper.get('.sign-in__toggle').text()).toBe('Déjà un compte ? Se connecter')
     expect(wrapper.get('#sign-in-password').attributes('autocomplete')).toBe('new-password')
 
     await basculer(wrapper)
