@@ -8,6 +8,7 @@ import { useAnimalsStore } from './animals.store'
 import { useAnimalPhotoActions } from './use-animal-photo-actions'
 import { useForegroundRefresh } from '@/core/app-lifecycle/use-foreground-refresh'
 import { usePhotoUrls } from '@/core/photos/use-photo-urls'
+import PlusNudgeSection from '@/features/purchase/PlusNudgeSection.vue'
 import TreatmentsSection, {
   type TreatmentsSummary,
 } from '@/features/treatments/TreatmentsSection.vue'
@@ -197,6 +198,7 @@ function createAnimal(): void {
       </dl>
 
       <div class="carnet__sections">
+        <PlusNudgeSection :animal-count="animals.animals.length" />
         <VaccinationsSection
           :animal-id="animal.id"
           :today="today"

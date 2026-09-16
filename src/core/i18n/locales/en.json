@@ -590,6 +590,23 @@
         "body": "Your cloud backup is paused. Your records stay on your phone.",
         "action": "Reactivate Plus"
       }
+    },
+    "nudge": {
+      "discover": "Learn more",
+      "stop": "Don’t suggest this again",
+      "close": "Dismiss this reminder",
+      "firstPhoto": {
+        "title": "This photo isn’t in the Android backup",
+        "body": "MémoPatte Plus keeps it safe too."
+      },
+      "carnetValue": {
+        "title": "Your records are starting to be precious",
+        "body": "Keep them safe with MémoPatte Plus."
+      },
+      "firstExport": {
+        "title": "Your export is ready",
+        "body": "With Plus, no need to think about it: everything is saved on its own."
+      }
     }
   }
 }

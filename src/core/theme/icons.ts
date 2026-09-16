@@ -33,6 +33,7 @@ import schedule from '@material-symbols/svg-400/outlined/schedule.svg?raw'
 import settings from '@material-symbols/svg-400/outlined/settings.svg?raw'
 import settingsBackupRestore from '@material-symbols/svg-400/outlined/settings_backup_restore.svg?raw'
 import showChart from '@material-symbols/svg-400/outlined/show_chart.svg?raw'
+import starShine from '@material-symbols/svg-400/outlined/star_shine.svg?raw'
 import table from '@material-symbols/svg-400/outlined/table.svg?raw'
 import today from '@material-symbols/svg-400/outlined/today.svg?raw'
 import vaccines from '@material-symbols/svg-400/outlined/vaccines.svg?raw'
@@ -171,6 +172,7 @@ export const msIcons = {
   settings_backup_restore: settingsBackupRestore,
   shift,
   show_chart: showChart,
+  star_shine: starShine,
   space_bar: spaceBar,
   star,
   star_fill: starFill,

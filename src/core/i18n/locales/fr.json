@@ -590,6 +590,23 @@
         "body": "Ta sauvegarde cloud est en pause. Tes carnets restent sur ton téléphone.",
         "action": "Réactiver Plus"
       }
+    },
+    "nudge": {
+      "discover": "Découvrir",
+      "stop": "Ne plus me le proposer",
+      "close": "Fermer ce rappel",
+      "firstPhoto": {
+        "title": "Cette photo n’est pas dans la sauvegarde Android",
+        "body": "MémoPatte Plus la met à l’abri, elle aussi."
+      },
+      "carnetValue": {
+        "title": "Ton carnet commence à valoir de l’or",
+        "body": "Mets-le à l’abri avec MémoPatte Plus."
+      },
+      "firstExport": {
+        "title": "Ton export est prêt",
+        "body": "Avec Plus, plus besoin d’y penser : tout se sauvegarde seul."
+      }
     }
   }
 }

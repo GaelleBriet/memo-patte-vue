@@ -984,3 +984,18 @@ store à chaque lancement n'a plus de contrepartie. — Alternatives écartées 
 le souvenir pour toujours (bandeau permanent, appel réseau à vie) ; l'effacer dès
 la confirmation d'expiration (l'utilisateur ne saurait jamais que sa sauvegarde
 s'est arrêtée).
+
+2026-09-16 — **Le rappel doux vers MémoPatte Plus s'en tient aux trois moments de
+valeur de la maquette, sans déclencheur temporel.** Première photo ajoutée,
+deuxième animal ou dixième entrée, premier export : une carte en tête de la liste
+du Carnet, jamais sur l'Accueil pour rester à distance du bandeau des rappels en
+retard. Jamais modale, une seule à la fois, un rappel par déclencheur, jamais deux
+à moins de 30 jours d'écart, et « Ne plus me le proposer » coupe définitivement.
+Rien ne s'affiche pour un abonné Plus, ni pour un ancien abonné dont l'abonnement
+a expiré — celui-là a déjà le bandeau « Ta sauvegarde cloud est en pause » dans les
+Paramètres. — Raison : décision de Gaelle ; un rappel qui tombe au bout de 30 jours
+d'installation arrive sans raison, alors que les trois autres arrivent au moment où
+l'utilisateur voit lui-même la valeur de son carnet, et deux sollicitations
+commerciales dans le même écran seraient du harcèlement. — Alternative écartée :
+ajouter « 30 jours après l'installation » comme quatrième rappel, tel que le
+proposait le ticket 9.2.
