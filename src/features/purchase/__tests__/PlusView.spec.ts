@@ -160,8 +160,8 @@ describe('PlusView — offres', () => {
     const wrapper = await monter()
 
     expect(offres(wrapper).map((offre) => offre.get('.plus-offer__price').text())).toEqual([
-      '$1.99/mois',
       '$12.99/an',
+      '$1.99/mois',
       '$34.99',
     ])
     expect(wrapper.text()).not.toContain('1,49')
@@ -169,13 +169,13 @@ describe('PlusView — offres', () => {
     expect(wrapper.text()).not.toContain('29,99')
   })
 
-  it('range les offres du mensuel au à vie quel que soit l’ordre de l’offering', async () => {
+  it('met l’annuel en tête quel que soit l’ordre de l’offering', async () => {
     service.listOffers.mockResolvedValue([...OFFRES].reverse())
     const wrapper = await monter()
 
     expect(offres(wrapper).map((offre) => offre.get('.plus-offer__label').text())).toEqual([
-      'Mensuel',
       'Plus annuel',
+      'Mensuel',
       'À vie',
     ])
   })
@@ -185,8 +185,8 @@ describe('PlusView — offres', () => {
     const conditions = offres(wrapper).map((offre) => offre.get('.plus-offer__terms').text())
 
     expect(conditions).toEqual([
-      'Renouvellement automatique chaque mois. Sans engagement, annulable à tout moment.',
       'Renouvellement automatique chaque année. Annulable à tout moment dans Google Play — accès conservé jusqu’à la fin de la période payée.',
+      'Renouvellement automatique chaque mois. Sans engagement, annulable à tout moment.',
       'Paiement unique, pour toujours.',
     ])
   })
@@ -211,7 +211,7 @@ describe('PlusView — offres', () => {
 
   it('met l’offre annuelle en avant et la présélectionne', async () => {
     const wrapper = await monter()
-    const [mensuel, annuel, aVie] = offres(wrapper)
+    const [annuel, mensuel, aVie] = offres(wrapper)
 
     expect(annuel!.classes()).toEqual(
       expect.arrayContaining(['plus-offer--selected', 'plus-offer--best']),

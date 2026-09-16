@@ -11,7 +11,7 @@ import { showToast } from '@/shared/toast'
 type Phase = 'offers' | 'purchasing' | 'restoring' | 'success' | 'cancelled' | 'failed'
 
 const MANAGE_SUBSCRIPTIONS_URL = 'https://play.google.com/store/account/subscriptions'
-const PLAN_ORDER = ['monthly', 'annual', 'lifetime'] as const satisfies readonly PaidPlan[]
+const PLAN_ORDER = ['annual', 'monthly', 'lifetime'] as const satisfies readonly PaidPlan[]
 
 const BENEFITS = [
   { key: 'backup', icon: 'ms:cloud_done' },
