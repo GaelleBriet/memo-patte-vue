@@ -1,5 +1,18 @@
 apply plugin: 'com.android.application'
 
+import groovy.json.JsonSlurper
+
+def appVersionName = new JsonSlurper().parse(rootProject.file('../package.json')).version
+def appVersionMatch = appVersionName =~ /^(\d+)\.(\d+)\.(\d+)/
+if (!appVersionMatch) {
+    throw new GradleException("Version « ${appVersionName} » illisible dans package.json (attendu major.minor.patch)")
+}
+def (appMajor, appMinor, appPatch) = (1..3).collect { appVersionMatch[0][it] as int }
+if (appMinor > 999 || appPatch > 999) {
+    throw new GradleException("Version ${appVersionName} : minor et patch doivent rester sous 1000 pour que versionCode reste croissant")
+}
+def appVersionCode = appMajor * 1000000 + appMinor * 1000 + appPatch
+
 android {
     namespace = "com.gaellebriet.memopatte"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -7,8 +20,8 @@ android {
         applicationId "com.gaellebriet.memopatte"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode appVersionCode
+        versionName appVersionName
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

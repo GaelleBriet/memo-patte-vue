@@ -152,3 +152,35 @@ Après un `pnpm build`, ou avant d'ouvrir Android Studio pour un build de prod /
 pnpm cap:sync           # build + copie le web build + synchronise les plugins natifs
 pnpm cap:open:android   # ouvre le projet dans Android Studio
 ```
+
+## 6. Contrôler le manifest fusionné avant un upload Play
+
+Les plugins et leurs dépendances transitives ajoutent des permissions au manifest final : `androidx.biometric`
+(tirée par `@capacitor-community/sqlite`) apportait `USE_BIOMETRIC` et `USE_FINGERPRINT`, retirées depuis avec
+`tools:node="remove"`. `pnpm test:manifest` compare les permissions et les `uses-feature` du manifest **fusionné**
+à la liste blanche commentée de `scripts/check-android-manifest.mjs`, et échoue dès qu'une permission apparaît,
+disparaît ou n'est pas justifiée.
+
+```bash
+pnpm cap:sync
+cd android && ./gradlew :app:processDebugManifest && cd ..
+pnpm test:manifest              # variante debug par défaut
+pnpm test:manifest release      # après ./gradlew :app:processReleaseManifest
+```
+
+Le manifest fusionné est un produit de Gradle : **la commande ne tourne pas en CI**, qui n'a pas le SDK Android.
+C'est un contrôle local, à passer avant chaque upload sur la Play Console (check-list §3.4 point 11 de
+`conformite-play-store-rgpd.md`).
+
+Permissions attendues à ce jour : `INTERNET` et `POST_NOTIFICATIONS` (notre manifest),
+`RECEIVE_BOOT_COMPLETED` et `WAKE_LOCK` (`@capacitor/local-notifications`, indispensables pour reprogrammer les
+rappels après un redémarrage), `ACCESS_NETWORK_STATE` (RevenueCat), `com.android.vending.BILLING` (Play Billing)
+et la permission de signature `DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` d'`androidx.core`. Aucun `uses-feature` :
+la photo passe par le Photo Picker système, jamais par la caméra déclarée comme fonctionnalité requise.
+
+## 7. Version de l'app
+
+`android/app/build.gradle` lit `package.json` (piloté par release-please) : `versionName` reprend la version telle
+quelle et `versionCode` vaut `major × 1 000 000 + minor × 1 000 + patch` (0.1.26 → `1026`). Le build échoue si
+`minor` ou `patch` atteint 1000, borne qui garantit que le code reste strictement croissant. Rien à mettre à jour
+à la main avant un upload.
