@@ -1,26 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { createMemoryHistory, createRouter, type RouteRecordRaw } from 'vue-router'
 
+import { routeurMemoire } from './routeur-memoire'
 import { routes } from '@/router'
-
-// Composants bouchonnés : la table des routes se teste sans charger les écrans réels ni SQLite.
-const Vide = { render: () => null }
-
-function sansEcran(route: RouteRecordRaw): RouteRecordRaw {
-  if (!('component' in route)) return route
-
-  return {
-    path: route.path,
-    name: route.name,
-    props: route.props,
-    meta: route.meta,
-    component: Vide,
-  }
-}
-
-function routeurMemoire() {
-  return createRouter({ history: createMemoryHistory(), routes: routes.map(sansEcran) })
-}
 
 describe('routeur', () => {
   it('ramène à l’accueil une adresse qui ne correspond à aucun écran', async () => {

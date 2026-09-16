@@ -54,7 +54,7 @@ function answer(accepted: boolean): void {
   flex-direction: column;
   min-height: calc(100vh - var(--v-layout-top, 0px) - var(--v-layout-bottom, 0px));
   min-height: calc(100dvh - var(--v-layout-top, 0px) - var(--v-layout-bottom, 0px));
-  padding: 48px 24px 24px;
+  padding: 48px 24px 30px;
   background: rgb(var(--v-theme-background));
 }
 

@@ -1,30 +1,30 @@
 import { describe, it, expect, vi } from 'vitest'
 import { nextTick } from 'vue'
-import { createMemoryHistory, createRouter, type RouteRecordRaw } from 'vue-router'
+import type { RouteLocationRaw } from 'vue-router'
 
 import { flushPromises, mount } from '@vue/test-utils'
 import App from '../App.vue'
 import vuetify from '@/core/theme/vuetify'
 import i18n from '@/core/i18n'
-import router, { routes } from '@/router'
+import router from '@/router'
+import { routeurMemoire } from '@/router/__tests__/routeur-memoire'
+import AppToast from '@/shared/AppToast.vue'
 import { dismissToast, showToast } from '@/shared/toast'
 
-// Écrans bouchonnés : la coquille se teste sans charger les vues réelles ni SQLite.
-const Vide = { render: () => null }
+const ECRANS_RACINE = [{ name: 'home' }, { name: 'animals' }] as const
 
-function sansEcran(route: RouteRecordRaw): RouteRecordRaw {
-  if (!('component' in route)) return route
+const ECRANS_POUSSES = [
+  { name: 'settings' },
+  { name: 'plus' },
+  { name: 'animal-new' },
+  { name: 'weight-history', params: { animalId: '11111111-1111-4111-8111-111111111111' } },
+  { name: 'notifications-priming' },
+  { name: 'analytics-consent' },
+] as const
 
-  return { path: route.path, name: route.name, meta: route.meta, component: Vide }
-}
-
-function routeurMemoire() {
-  return createRouter({ history: createMemoryHistory(), routes: routes.map(sansEcran) })
-}
-
-async function monteSur(nom: string) {
+async function monteSur(cible: RouteLocationRaw) {
   const routeur = routeurMemoire()
-  await routeur.replace({ name: nom })
+  await routeur.replace(cible)
   const wrapper = mount(App, { global: { plugins: [vuetify, i18n, routeur] } })
   await flushPromises()
 
@@ -42,20 +42,17 @@ describe('App', () => {
     expect(wrapper.find('.v-application').exists()).toBe(true)
   })
 
-  it.each(['home', 'animals'])('rend la bottom navigation sur l’écran racine %s', async (nom) => {
-    const wrapper = await monteSur(nom)
+  it.each(ECRANS_RACINE)('rend la bottom navigation sur l’écran racine $name', async (cible) => {
+    const wrapper = await monteSur(cible)
 
     expect(wrapper.find('.v-bottom-navigation').exists()).toBe(true)
   })
 
-  it.each(['settings', 'plus', 'animal-new', 'notifications-priming', 'analytics-consent'])(
-    'masque la bottom navigation sur l’écran poussé %s',
-    async (nom) => {
-      const wrapper = await monteSur(nom)
+  it.each(ECRANS_POUSSES)('masque la bottom navigation sur l’écran poussé $name', async (cible) => {
+    const wrapper = await monteSur(cible)
 
-      expect(wrapper.find('.v-bottom-navigation').exists()).toBe(false)
-    },
-  )
+    expect(wrapper.find('.v-bottom-navigation').exists()).toBe(false)
+  })
 
   it('masque la bottom navigation dès la navigation vers un écran poussé', async () => {
     const routeur = routeurMemoire()
@@ -67,6 +64,28 @@ describe('App', () => {
     await flushPromises()
 
     expect(wrapper.find('.v-bottom-navigation').exists()).toBe(false)
+  })
+
+  it('rend la bottom navigation au retour sur un écran racine', async () => {
+    const routeur = routeurMemoire()
+    await routeur.replace({ name: 'home' })
+    const wrapper = mount(App, { global: { plugins: [vuetify, i18n, routeur] } })
+    await routeur.push({ name: 'settings' })
+    await flushPromises()
+
+    routeur.back()
+    await flushPromises()
+
+    expect(wrapper.find('.v-bottom-navigation').exists()).toBe(true)
+  })
+
+  it.each([
+    [{ name: 'home' } as const, true],
+    [{ name: 'settings' } as const, false],
+  ])('dit au toast si la bottom navigation est sous lui (%o)', async (cible, attendu) => {
+    const wrapper = await monteSur(cible)
+
+    expect(wrapper.getComponent(AppToast).props('aboveBottomNav')).toBe(attendu)
   })
 
   it('héberge le toast partagé, qui survit aux changements de route', async () => {
