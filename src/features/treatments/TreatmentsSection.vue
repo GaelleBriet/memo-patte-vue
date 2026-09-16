@@ -151,7 +151,7 @@ watch(summary, (value) => emit('summary', value), { immediate: true })
 
 .treatment-row__name {
   margin: 0;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
   font-size: 15.5px;
   font-weight: 700;
 }

@@ -9,6 +9,7 @@ import { computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
+import type { Vaccination } from './vaccination.schema'
 import { vaccinationStatus, type VaccinationStatus } from './vaccination-status'
 import { useVaccinationsStore } from './vaccinations.store'
 import DueStatusChip from '@/shared/DueStatusChip.vue'
@@ -61,7 +62,7 @@ const hasError = computed(
 )
 
 const rows = computed(() =>
-  vaccinations.value.map((vaccination) => {
+  [...vaccinations.value].sort(parEcheance).map((vaccination) => {
     const status = vaccinationStatus(vaccination.dueDate, props.today)
     return {
       id: vaccination.id,
@@ -73,6 +74,17 @@ const rows = computed(() =>
     }
   }),
 )
+
+/**
+ * Le plus urgent en tête, comme sur l'accueil : une échéance passée est plus petite
+ * que les autres, et un vaccin sans rappel programmé n'est jamais urgent.
+ */
+function parEcheance(a: Vaccination, b: Vaccination): number {
+  if (a.dueDate === null || b.dueDate === null) {
+    return Number(a.dueDate === null) - Number(b.dueDate === null)
+  }
+  return a.dueDate.localeCompare(b.dueDate)
+}
 
 const summary = computed<VaccinationsSummary>(() => {
   const { total, overdue } = buildReminders(
@@ -152,7 +164,7 @@ watch(summary, (value) => emit('summary', value), { immediate: true })
 
 .vaccination-row__name {
   margin: 0;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
   font-size: 15.5px;
   font-weight: 700;
 }

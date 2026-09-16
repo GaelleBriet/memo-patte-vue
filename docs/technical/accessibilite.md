@@ -138,7 +138,9 @@ Police système agrandie, simulée à 130 % (toutes les tailles de police calcul
 zoom texte de la WebView Android) à 360 × 640 et 412 × 915. Corrigé, sans effet à 100 % :
 
 - titre d'une ligne de rappel, de vaccin ou de traitement : un mot trop long pour la colonne débordait sous
-  le badge ; il passe à la ligne (`overflow-wrap: anywhere`) ;
+  le badge ; il passe à la ligne (`overflow-wrap: break-word`, corrigé le 2026-09-16 : `anywhere` ramenait
+  la largeur minimale du titre à zéro et coupait « Antiparasitaire » en deux dès 360 px, à 100 % ;
+  `row-title-wrap.styles.spec.ts` verrouille les trois composants) ;
 - option du sélecteur à boutons : « Antiparasitaire » était rogné ; une option garde au moins la largeur
   de son libellé ;
 - prénom du header du Carnet : les jambages étaient rognés par le `overflow: hidden` de l'ellipse.
