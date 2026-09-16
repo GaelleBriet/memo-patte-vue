@@ -131,7 +131,7 @@
       },
       "detail": {
         "overdue": "Échéance passée",
-        "validUntil": "Valide jusqu’au {month}",
+        "validUntil": "Valide jusqu’à {month}",
         "none": "Pas de rappel programmé"
       },
       "error": "Impossible de charger les vaccins."

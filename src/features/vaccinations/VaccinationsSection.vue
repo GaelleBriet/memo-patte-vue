@@ -5,7 +5,6 @@ export type VaccinationsSummary = ReminderCounts
 </script>
 
 <script setup lang="ts">
-import { format, parseISO } from 'date-fns'
 import { computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
@@ -14,6 +13,7 @@ import { vaccinationStatus, type VaccinationStatus } from './vaccination-status'
 import { useVaccinationsStore } from './vaccinations.store'
 import DueStatusChip from '@/shared/DueStatusChip.vue'
 import SectionCard from '@/shared/SectionCard.vue'
+import { formatMonthYear } from '@/shared/format'
 import { useAnimalScopedLoad } from '@/shared/use-animal-scoped-load'
 import { buildReminders } from '@/shared/reminders'
 
@@ -91,9 +91,7 @@ const summary = computed<VaccinationsSummary>(() => {
 function detailOf(status: VaccinationStatus, dueDate: string | null): string {
   if (status === 'overdue') return t('vaccinations.section.detail.overdue')
   if (status === 'none' || dueDate === null) return t('vaccinations.section.detail.none')
-  return t('vaccinations.section.detail.validUntil', {
-    month: format(parseISO(dueDate), 'MM/yyyy'),
-  })
+  return t('vaccinations.section.detail.validUntil', { month: formatMonthYear(dueDate) })
 }
 
 function addVaccination(): void {
