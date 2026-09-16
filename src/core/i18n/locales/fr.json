@@ -511,7 +511,7 @@
     "restore": {
       "action": "Restaurer mon achat",
       "busy": "Restauration…",
-      "restored": "Ton achat est restauré.",
+      "restored": "Te voilà de retour dans Plus.",
       "none": "Aucun achat à restaurer sur ce compte Google.",
       "failed": "La restauration n’a pas abouti. Réessaie."
     },

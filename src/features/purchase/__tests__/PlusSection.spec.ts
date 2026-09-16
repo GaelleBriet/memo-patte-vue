@@ -144,7 +144,7 @@ describe('PlusSection — restaurer mon achat', () => {
 
     expect(service.restore).toHaveBeenCalledOnce()
     expect(statut(wrapper)).toContain('Plus annuel jusqu’au 14/09/2027')
-    expect(toastMessage.value).toBe('Ton achat est restauré.')
+    expect(toastMessage.value).toBe('Te voilà de retour dans Plus.')
   })
 
   it('montre la restauration en cours et bloque un second tap', async () => {

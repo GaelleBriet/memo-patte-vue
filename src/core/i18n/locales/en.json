@@ -511,7 +511,7 @@
     "restore": {
       "action": "Restore my purchase",
       "busy": "Restoring…",
-      "restored": "Your purchase is restored.",
+      "restored": "You’re back in Plus.",
       "none": "No purchase to restore on this Google account.",
       "failed": "The restore didn’t go through. Try again."
     },
