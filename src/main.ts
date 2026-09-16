@@ -13,6 +13,7 @@ import i18n, { applyLocale, detectLocale } from '@/core/i18n'
 import { getAnimalsRepository } from '@/features/animals/animals.repository'
 import { provideAnimalsRepository } from '@/features/animals/animals.store'
 import { useAuthStore } from '@/features/auth/auth.store'
+import { installPlusAccountLink } from '@/features/purchase/plus-account-link.service'
 import { usePurchaseStore } from '@/features/purchase/purchase.store'
 import { clearExports } from '@/features/settings/export-delivery'
 import { getTreatmentsRepository } from '@/features/treatments/treatments.repository'
@@ -54,4 +55,5 @@ app.mount('#app')
 installRemindersSync()
 installLaunchPriming(router)
 void usePurchaseStore().verifyKnownStatus()
+installPlusAccountLink(() => useAuthStore().userId)
 void useAuthStore().restore()

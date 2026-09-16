@@ -22,6 +22,7 @@ vi.mock('../billing.service', async (importOriginal) => ({
     fetchStatus: vi.fn<BillingService['fetchStatus']>(),
     restore: vi.fn<BillingService['restore']>(),
     logIn: vi.fn<BillingService['logIn']>(),
+    logOut: vi.fn<BillingService['logOut']>(),
   },
 }))
 
@@ -158,7 +159,18 @@ describe('usePurchaseStore', () => {
       expect(readStoredPlusStatus()).toEqual(stored(LIFETIME))
     })
 
-    it('ne lègue pas le souvenir du compte quitté au compte qui se connecte', async () => {
+    it('ne lègue pas le souvenir du compte quitté au compte qui prend la main', async () => {
+      service.fetchStatus.mockResolvedValueOnce(NO_PLUS)
+      const store = usePurchaseStore()
+      await store.verifyKnownStatus()
+
+      store.reset()
+
+      expect(store.expiredPlan).toBeNull()
+      expect(readStoredPlusStatus()).toEqual(NO_STORED_PLUS)
+    })
+
+    it('garde le souvenir de l’abonnement de l’appareil quand un compte se connecte', async () => {
       service.fetchStatus.mockResolvedValueOnce(NO_PLUS)
       service.logIn.mockResolvedValueOnce(NO_PLUS)
       const store = usePurchaseStore()
@@ -166,8 +178,8 @@ describe('usePurchaseStore', () => {
 
       await store.logIn('0f8fad5b-d9cb-469f-a165-70867728950e')
 
-      expect(store.expiredPlan).toBeNull()
-      expect(readStoredPlusStatus()).toEqual(NO_STORED_PLUS)
+      expect(store.expiredPlan).not.toBeNull()
+      expect(readStoredPlusStatus()).not.toEqual(NO_STORED_PLUS)
     })
   })
 
@@ -290,13 +302,12 @@ describe('usePurchaseStore', () => {
       expect(readStoredPlusStatus()).toEqual(stored(LIFETIME))
     })
 
-    it('ne lègue pas le souvenir du compte quitté au compte qui se connecte', async () => {
+    it('ne lègue pas le souvenir du compte quitté au compte qui prend la main', async () => {
       service.fetchStatus.mockResolvedValueOnce(NO_PLUS)
-      service.logIn.mockResolvedValueOnce(NO_PLUS)
       const store = usePurchaseStore()
       await store.verifyKnownStatus()
 
-      await store.logIn('0f8fad5b-d9cb-469f-a165-70867728950e')
+      store.reset()
 
       expect(store.expiredPlan).toBeNull()
       expect(readStoredPlusStatus()).toEqual(NO_STORED_PLUS)
@@ -366,5 +377,42 @@ describe('usePurchaseStore', () => {
     await store.logIn('0f8fad5b-d9cb-469f-a165-70867728950e')
     expect(store.status).toEqual(LIFETIME)
     expect(readStoredPlusStatus()).toEqual(stored(LIFETIME))
+  })
+
+  describe('logOut', () => {
+    it('détache l’app-user quand aucun droit payant n’est connu', async () => {
+      await usePurchaseStore().logOut()
+
+      expect(service.logOut).toHaveBeenCalledOnce()
+    })
+
+    it('ne détache pas un abonné : le nouvel anonyme n’a pas son achat', async () => {
+      writeStoredPlusStatus(ANNUAL)
+      const store = usePurchaseStore()
+
+      await store.logOut()
+
+      expect(service.logOut).not.toHaveBeenCalled()
+      expect(store.status).toEqual(ANNUAL)
+    })
+
+    it('ne détache pas non plus un abonnement échu, qu’un renouvellement peut ramener', async () => {
+      writeStoredPlusStatus({ plan: 'annual', expiresAt: '2026-09-01T10:00:00Z' })
+      const store = usePurchaseStore()
+
+      await store.logOut()
+
+      expect(service.logOut).not.toHaveBeenCalled()
+      expect(store.expiredPlan).toBe('annual')
+    })
+
+    it('laisse le statut enregistré intact', async () => {
+      const store = usePurchaseStore()
+
+      await store.logOut()
+
+      expect(store.status).toEqual(NO_PLUS)
+      expect(readStoredPlusStatus()).toEqual(NO_STORED_PLUS)
+    })
   })
 })

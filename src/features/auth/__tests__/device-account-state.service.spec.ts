@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { ANALYTICS_CONSENT_KEY } from '@/core/analytics/analytics'
@@ -30,6 +31,7 @@ function writeDeviceState(): void {
 beforeEach(() => {
   storage = memoryStorage()
   vi.stubGlobal('localStorage', storage)
+  setActivePinia(createPinia())
 })
 
 afterEach(() => {

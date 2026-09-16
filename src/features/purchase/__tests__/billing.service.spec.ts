@@ -22,6 +22,7 @@ vi.mock('@revenuecat/purchases-capacitor', () => ({
     getCustomerInfo: vi.fn<PurchasesPlugin['getCustomerInfo']>(),
     restorePurchases: vi.fn<PurchasesPlugin['restorePurchases']>(),
     logIn: vi.fn<PurchasesPlugin['logIn']>(),
+    logOut: vi.fn<PurchasesPlugin['logOut']>(),
     collectDeviceIdentifiers: vi.fn<PurchasesPlugin['collectDeviceIdentifiers']>(),
     setAttributes: vi.fn<PurchasesPlugin['setAttributes']>(),
   },
@@ -70,6 +71,7 @@ describe('billing indisponible', () => {
       service.fetchStatus(),
       service.restore(),
       service.logIn('0f8fad5b-d9cb-469f-a165-70867728950e'),
+      service.logOut(),
     ]) {
       await expect(attempt).rejects.toMatchObject({ name: 'BillingError', reason: 'unavailable' })
     }
@@ -212,5 +214,12 @@ describe('statut, restauration et compte', () => {
 
     await expect(nativeService(API_KEY).logIn(userId)).resolves.toMatchObject({ plan: 'annual' })
     expect(plugin.logIn).toHaveBeenCalledWith({ appUserID: userId })
+  })
+
+  it('logOut détache l’app-user sans rapporter le statut du nouvel anonyme', async () => {
+    plugin.logOut.mockResolvedValueOnce({ customerInfo: customerInfo(null) })
+
+    await expect(nativeService(API_KEY).logOut()).resolves.toBeUndefined()
+    expect(plugin.logOut).toHaveBeenCalledOnce()
   })
 })

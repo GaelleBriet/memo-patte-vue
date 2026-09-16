@@ -1,5 +1,4 @@
 export type { Reminder, ScheduledReminder } from './reminder'
-export { reminderNotificationId } from './reminder'
 export {
   cancelReminders,
   checkPermission,

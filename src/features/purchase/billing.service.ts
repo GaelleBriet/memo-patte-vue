@@ -38,6 +38,8 @@ export type BillingService = {
   restore(): Promise<PlusStatus>
   /** `appUserID` : l'UUID du compte Supabase, jamais l'email. */
   logIn(appUserID: string): Promise<PlusStatus>
+  /** Repart d'un utilisateur anonyme, sans les achats du précédent. */
+  logOut(): Promise<void>
 }
 
 export type BillingDependencies = {
@@ -149,6 +151,11 @@ export function createBillingService({
     restore: () => withPlugin((plugin) => statusOf(plugin.restorePurchases())),
 
     logIn: (appUserID) => withPlugin((plugin) => statusOf(plugin.logIn({ appUserID }))),
+
+    logOut: () =>
+      withPlugin(async (plugin) => {
+        await plugin.logOut()
+      }),
   }
 }
 

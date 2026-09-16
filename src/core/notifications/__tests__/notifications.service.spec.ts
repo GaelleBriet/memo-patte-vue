@@ -49,6 +49,9 @@ const dewormer: Reminder = {
   at: new Date('2026-11-15T08:30:00.000Z'),
 }
 
+/** Deux clés dont l'empreinte FNV-1a coïncide, trouvées par balayage. */
+const COLLIDING_KEYS = ['vaccination:162789', 'vaccination:379192'] as const
+
 beforeEach(() => {
   vi.clearAllMocks()
   schedule.mockResolvedValue({ notifications: [] })
@@ -228,20 +231,84 @@ describe('scheduleReminders', () => {
 })
 
 describe('cancelReminders', () => {
-  it('annule en un seul appel les notifications dérivées des clés', async () => {
-    await cancelReminders([rabies.key, dewormer.key])
-
-    expect(cancel).toHaveBeenCalledExactlyOnceWith({
+  it('annule en un seul appel les notifications en attente pour ces clés', async () => {
+    getPending.mockResolvedValue({
       notifications: [
-        { id: reminderNotificationId(rabies.key) },
-        { id: reminderNotificationId(dewormer.key) },
+        { id: 12, title: rabies.title, body: rabies.body, extra: { key: rabies.key } },
+        { id: 34, title: dewormer.title, body: dewormer.body, extra: { key: dewormer.key } },
       ],
     })
+
+    await cancelReminders([rabies.key, dewormer.key])
+
+    expect(cancel).toHaveBeenCalledExactlyOnceWith({ notifications: [{ id: 12 }, { id: 34 }] })
+  })
+
+  it('n’annule rien pour une clé sans rappel en attente', async () => {
+    await cancelReminders([rabies.key])
+
+    expect(cancel).not.toHaveBeenCalled()
   })
 
   it('n’appelle pas le plugin pour une liste vide', async () => {
     await cancelReminders([])
 
+    expect(getPending).not.toHaveBeenCalled()
+    expect(cancel).not.toHaveBeenCalled()
+  })
+})
+
+describe('clés dont l’empreinte coïncide', () => {
+  const [first, second] = COLLIDING_KEYS
+
+  function reminderOf(key: string): Reminder {
+    return { ...rabies, key }
+  }
+
+  function scheduledIds(): number[] {
+    return schedule.mock.calls.flatMap(([{ notifications }]) => notifications).map(({ id }) => id)
+  }
+
+  it('part bien d’une collision d’empreinte', () => {
+    expect(reminderNotificationId(first)).toBe(reminderNotificationId(second))
+  })
+
+  it('donne deux identifiants distincts aux deux rappels', async () => {
+    await rescheduleAll([reminderOf(first), reminderOf(second)])
+
+    expect(new Set(scheduledIds()).size).toBe(2)
+  })
+
+  it('ne réutilise pas l’identifiant d’une notification déjà en attente', async () => {
+    getPending.mockResolvedValue({
+      notifications: [
+        {
+          id: reminderNotificationId(first),
+          title: 'Autre',
+          body: 'Autre',
+          extra: { key: first },
+        },
+      ],
+    })
+
+    await scheduleReminders([reminderOf(second)])
+
+    expect(scheduledIds()).not.toContain(reminderNotificationId(first))
+  })
+
+  it('garde d’une synchro à l’autre l’identifiant d’une clé déjà programmée', async () => {
+    await rescheduleAll([reminderOf(first), reminderOf(second)])
+    const [firstId, secondId] = scheduledIds()
+    getPending.mockResolvedValue({
+      notifications: [
+        { id: secondId ?? 0, title: rabies.title, body: rabies.body, extra: { key: second } },
+      ],
+    })
+    schedule.mockClear()
+
+    await rescheduleAll([reminderOf(second), reminderOf(first)])
+
+    expect(scheduledIds()).toEqual([secondId, firstId])
     expect(cancel).not.toHaveBeenCalled()
   })
 })

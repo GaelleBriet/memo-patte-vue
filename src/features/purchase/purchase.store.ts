@@ -96,9 +96,24 @@ export const usePurchaseStore = defineStore('purchase', () => {
       return record(await billingService.restore())
     },
 
-    /** Le souvenir d'abonnement appartient au compte quitté : le nouveau repart de zéro. */
+    /** L'appareil garde son droit : seul `reset()` solde le souvenir du compte quitté. */
     async logIn(appUserID: string): Promise<PlusStatus> {
-      return record(await billingService.logIn(appUserID), NO_STORED_PLUS)
+      return record(await billingService.logIn(appUserID))
+    },
+
+    /** Le compte quitté n'emporte ni son droit ni le souvenir de son abonnement. */
+    reset(): void {
+      record(NO_PLUS, NO_STORED_PLUS)
+    },
+
+    /**
+     * Détache l'app-user RevenueCat, et laisse le statut enregistré intact : l'achat est celui de
+     * l'appareil. Sans effet tant qu'un droit payant est connu, même échu, car l'utilisateur
+     * anonyme créé à sa place n'a aucun achat et la revérification effacerait ce droit.
+     */
+    async logOut(): Promise<void> {
+      if (stored.value.plan !== 'none' || stored.value.lastSubscription !== null) return
+      await billingService.logOut()
     },
   }
 })

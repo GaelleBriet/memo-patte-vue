@@ -2,7 +2,6 @@ import { onAppResume } from '@/core/app-lifecycle/app-resume'
 import i18n from '@/core/i18n'
 import {
   onNotificationPermissionGranted,
-  reminderNotificationId,
   type Reminder,
   type ScheduledReminder,
 } from '@/core/notifications'
@@ -30,18 +29,6 @@ import {
 } from '@/shared/due-reminders-schedule'
 
 type Provider<T> = () => T | Promise<T>
-
-function warnOnIdCollisions(reminders: Reminder[]): void {
-  const keysById = new Map<number, string>()
-  for (const { key } of reminders) {
-    const id = reminderNotificationId(key)
-    const other = keysById.get(id)
-    if (other !== undefined) {
-      console.warn('Rappels : identifiant de notification en double', `${other} / ${key}`)
-    }
-    keysById.set(id, key)
-  }
-}
 
 /** Une ligne dont les rappels ne se calculent pas ne doit pas priver l'appareil de tous les autres. */
 function remindersOf<T extends { id: string }>(
@@ -123,7 +110,6 @@ export function createRemindersSync({
           treatmentReminders(t, treatment, animalsById.get(treatment.animalId) ?? null, at),
         ),
       ]
-      warnOnIdCollisions(reminders)
 
       const wanted = remindersWithinCap(reminders, MAX_SCHEDULED_REMINDERS)
       if (isAlreadyScheduled(await notifications.listScheduled(), wanted)) return
