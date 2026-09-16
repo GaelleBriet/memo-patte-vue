@@ -41,7 +41,11 @@ const barHeight = heightBottomNav + paddingBottomNav
   padding-bottom: tokens.$padding-bottom-nav;
 }
 
+// Vuetify plafonne un onglet à 168 px : à deux onglets, il resterait un bord mort
+// de chaque côté de la barre, que la maquette n'a pas.
 .bottom-navigation :deep(.v-btn) {
+  flex: 1 1 0;
+  max-width: none;
   font-size: 12px;
   letter-spacing: normal;
 }
