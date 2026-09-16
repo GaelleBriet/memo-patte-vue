@@ -7,6 +7,7 @@ import {
   type TreatmentsRepository,
 } from '@/features/treatments/treatments.repository'
 import { getWeightRepository } from '@/features/weight/weight.repository'
+import { deletePhoto, type PhotoStorage } from '@/core/photos/photo-storage'
 import type { DueReminderEntry } from '@/shared/due-reminders'
 import {
   cancelDueReminders,
@@ -30,6 +31,7 @@ export function createAnimalDeletionService(
   animals: Provider<AnimalsRepository>,
   records: Provider<AnimalRecordRepository>[],
   reminders: AnimalRemindersDependencies,
+  photos: Pick<PhotoStorage, 'deletePhoto'>,
 ) {
   async function remindedEntries(animalId: string): Promise<DueReminderEntry[]> {
     const [vaccinationsRepository, treatmentsRepository] = await Promise.all([
@@ -46,20 +48,36 @@ export function createAnimalDeletionService(
     ]
   }
 
+  async function forgetPhoto(name: string | null): Promise<void> {
+    if (name === null) return
+    try {
+      await photos.deletePhoto(name)
+    } catch {
+      // Un fichier orphelin ne vaut pas l'échec d'une suppression déjà en base.
+    }
+  }
+
   return {
-    /** Marque l'animal et tout son carnet en une transaction, avec une seule date, puis annule ses rappels. */
+    /**
+     * Marque l'animal et tout son carnet en une transaction, avec une seule date,
+     * puis efface la copie de sa photo et annule ses rappels.
+     */
     async remove(animalId: string): Promise<void> {
       const deletedAt = new Date().toISOString()
       const [animalsRepository, ...recordRepositories] = await Promise.all([
         animals(),
         ...records.map((record) => record()),
       ])
-      // Lu avant la transaction : une fois supprimées, les entrées ne sont plus listées.
-      const reminded = await remindedEntries(animalId)
+      // Lus avant la transaction : une fois supprimés, l'animal et ses entrées ne sont plus lus.
+      const [animal, reminded] = await Promise.all([
+        animalsRepository.getById(animalId),
+        remindedEntries(animalId),
+      ])
       const cascade = recordRepositories.map((repository) =>
         repository.markDeletedByAnimalStatement(animalId, deletedAt),
       )
       await animalsRepository.remove(animalId, cascade, deletedAt)
+      await forgetPhoto(animal?.photoPath ?? null)
       await cancelDueReminders(reminders.notifications, reminded)
     },
   }
@@ -75,4 +93,5 @@ export const animalDeletionService = createAnimalDeletionService(
     treatments: getTreatmentsRepository,
     notifications: reminderNotifications,
   },
+  { deletePhoto },
 )
