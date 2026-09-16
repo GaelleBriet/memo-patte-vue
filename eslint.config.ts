@@ -44,6 +44,8 @@ const DYNAMIC_I18N_KEYS = [
   '/^plus\\.offers\\.(monthly|annual|lifetime)\\.(label|price|terms|submit)$/',
   '/^plus\\.member\\.(monthly|annual|lifetime)$/',
   '/^plus\\.(success|cancelled|failed)\\.(title|body)$/',
+  '/^auth\\.form\\.errors\\.(emailRequired|emailInvalid|passwordRequired|passwordTooShort)$/',
+  '/^auth\\.errors\\.(emailTaken|invalidCredentials|weakPassword|emailNotConfirmed|offline|unknown)$/',
 ]
 
 const FEATURES_RESTRICTION = {
