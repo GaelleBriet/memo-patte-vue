@@ -1012,8 +1012,8 @@ rangée bouge toute seule entre deux ouvertures de l'app).
 2026-09-16 — **On n'affiche jamais le mot « vaccin » devant le nom saisi, ni en
 français ni en anglais (#282).** `home.reminder.vaccination` rend le nom seul, et
 les titres de notification `reminders.vaccination.*` perdent eux aussi le type, dans
-les deux langues. Le type reste porté par l'icône de la ligne sur l'Accueil et par
-le canal de rappel côté système. Écart assumé à la maquette de l'Accueil, qui montre
+les deux langues. Le type reste porté par l'icône de la ligne sur l'Accueil.
+Écart assumé à la maquette de l'Accueil, qui montre
 « Vaccin CHPPiL ». — Raison : décision de Gaelle ; la plupart des gens saisissent
 déjà « Vaccin antirabique » ou « Rabies vaccine », et le préfixe donnait « Vaccin
 Vaccin antirabique ». — Alternatives écartées : garder le préfixe et retirer le mot
@@ -1027,3 +1027,12 @@ Raison : exigence du ticket #67 ; un consentement analytics n'est libre que si l
 refus est aussi facile à donner que l'accord, et un bouton plein face à un bouton
 fade est précisément le dark pattern que le RGPD vise. — Alternative écartée :
 suivre la maquette (refus visuellement dévalué, consentement contestable).
+
+2026-09-16 — **La carte Vaccins du Carnet est triée par échéance, la plus urgente en
+tête.** Le départage est celui de `buildReminders` (échéance, puis nom, puis
+identifiant) : deux vaccins de même échéance tombent donc dans le même ordre sur
+l'Accueil et sur le Carnet. Un vaccin sans rappel programmé va en fin de liste. —
+Raison : la planche C1 montre « CHPPi · En retard » avant « Rage · À jour », et la
+carte suivait jusqu'ici l'ordre du repository (dernière injection d'abord), ce qui
+pouvait enterrer un retard sous des vaccins à jour. — Alternative écartée : garder
+l'ordre de saisie et compter sur la seule barre corail pour signaler le retard.
