@@ -554,6 +554,31 @@ describe('VaccinationFormView — édition', () => {
     expect(wrapper.get('.form-screen__save-error').text()).toBe('Ce vaccin est introuvable.')
     expect(wrapper.get('.form-screen__submit').attributes('disabled')).toBeDefined()
   })
+
+  it('prévient et n’écrase rien quand la fiche n’a pas pu être lue', async () => {
+    getById.mockRejectedValueOnce(new Error('base verrouillée'))
+    const wrapper = await monterEdition()
+
+    expect(wrapper.get('.form-screen__save-error').text()).toBe(
+      'Ce vaccin n’a pas pu être chargé. Réessaie.',
+    )
+    expect(wrapper.get('.form-screen__submit').attributes('disabled')).toBeDefined()
+
+    await soumettre(wrapper)
+
+    expect(update).not.toHaveBeenCalled()
+  })
+
+  it('n’enregistre pas tant que la fiche n’est pas chargée', async () => {
+    getById.mockReturnValueOnce(new Promise<Vaccination>(() => {}))
+    const wrapper = await monterEdition()
+
+    expect(wrapper.get('.form-screen__submit').attributes('disabled')).toBeDefined()
+
+    await soumettre(wrapper)
+
+    expect(update).not.toHaveBeenCalled()
+  })
 })
 
 describe('VaccinationFormView — envoi en cours', () => {

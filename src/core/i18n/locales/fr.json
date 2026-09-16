@@ -48,6 +48,7 @@
         "species": "Choisis une espèce.",
         "birthDate": "La date de naissance ne peut pas être dans le futur.",
         "initialWeightKg": "Le poids doit être supérieur à 0 kg.",
+        "initialWeightKgMax": "Le poids doit être de 200 kg maximum.",
         "notFound": "Cet animal est introuvable.",
         "save": "L’animal n’a pas pu être enregistré. Réessaie.",
         "photo": "La photo n’a pas pu être chargée. Réessaie."
@@ -115,6 +116,7 @@
         "lastInjectionDateFuture": "La date d’injection ne peut pas être dans le futur.",
         "dueDate": "La date d’échéance est invalide.",
         "notFound": "Ce vaccin est introuvable.",
+        "load": "Ce vaccin n’a pas pu être chargé. Réessaie.",
         "save": "Le vaccin n’a pas pu être enregistré. Réessaie."
       }
     },
@@ -184,6 +186,7 @@
         "lastDoseDate": "La date est obligatoire.",
         "lastDoseDateFuture": "La date ne peut pas être dans le futur.",
         "notFound": "Ce traitement est introuvable.",
+        "load": "Ce traitement n’a pas pu être chargé. Réessaie.",
         "save": "Le traitement n’a pas pu être enregistré. Réessaie."
       }
     },
@@ -262,6 +265,7 @@
       "errors": {
         "animalId": "Choisis un animal.",
         "weightKg": "Le poids doit être supérieur à 0 kg.",
+        "weightKgMax": "Le poids doit être de 200 kg maximum.",
         "measuredOn": "La date est obligatoire.",
         "measuredOnFuture": "La date ne peut pas être dans le futur.",
         "save": "La pesée n’a pas pu être enregistrée. Réessaie."
@@ -404,6 +408,7 @@
       "errors": {
         "invalid": "Ce fichier n’est pas un export MémoPatte.",
         "newer": "Cet export vient d’une version plus récente de l’app.",
+        "outOfRange": "Ce fichier contient un poids hors limites : 200 kg maximum.",
         "failed": "L’import n’a pas abouti. Tes données n’ont pas changé."
       },
       "confirm": {

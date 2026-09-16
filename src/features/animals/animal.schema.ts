@@ -1,6 +1,8 @@
 import { isFuture, parseISO } from 'date-fns'
 import { z } from 'zod'
 
+import { MAX_WEIGHT_KG } from '@/shared/weight-bounds'
+
 export const ANIMAL_SPECIES = ['dog', 'cat'] as const
 
 export const animalSpeciesSchema = z.enum(ANIMAL_SPECIES)
@@ -15,7 +17,7 @@ export const animalInputSchema = z.object({
     .refine((value) => !isFuture(parseISO(value)))
     .nullable()
     .default(null),
-  initialWeightKg: z.number().positive().nullable().default(null),
+  initialWeightKg: z.number().positive().max(MAX_WEIGHT_KG).nullable().default(null),
   /** Nom de fichier sous `files/photos/`, jamais un chemin ni une URL. */
   photoPath: z.string().trim().min(1).nullable().default(null),
 })
