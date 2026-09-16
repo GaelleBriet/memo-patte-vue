@@ -366,6 +366,10 @@
       "import": "Importer un export MémoPatte",
       "loadError": "La base locale n’a pas répondu. Touche pour réessayer."
     },
+    "privacy": {
+      "title": "Confidentialité",
+      "analytics": "Statistiques d’usage anonymes"
+    },
     "about": {
       "title": "À propos",
       "version": "Version"
@@ -418,6 +422,16 @@
         "cancel": "Annuler",
         "submit": "Remplacer"
       }
+    }
+  },
+  "analytics": {
+    "consent": {
+      "title": "Avant de commencer",
+      "measured": "Avec ton accord, MémoPatte mesure des statistiques d’usage anonymes pour améliorer l’app : les écrans consultés et des actions comme « vaccin ajouté ».",
+      "never": "Jamais le contenu de ton carnet, jamais le nom de tes animaux. Ces données sont hébergées en Europe.",
+      "changeMind": "Tu peux changer d’avis à tout moment dans Paramètres → Confidentialité.",
+      "refuse": "Refuser",
+      "accept": "Accepter"
     }
   }
 }

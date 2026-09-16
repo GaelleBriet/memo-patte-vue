@@ -366,6 +366,10 @@
       "import": "Import a MémoPatte export",
       "loadError": "The local database didn’t respond. Tap to try again."
     },
+    "privacy": {
+      "title": "Privacy",
+      "analytics": "Anonymous usage statistics"
+    },
     "about": {
       "title": "About",
       "version": "Version"
@@ -418,6 +422,16 @@
         "cancel": "Cancel",
         "submit": "Replace"
       }
+    }
+  },
+  "analytics": {
+    "consent": {
+      "title": "Before you start",
+      "measured": "With your consent, MémoPatte collects anonymous usage statistics to improve the app: the screens you view and actions such as “vaccine added”.",
+      "never": "Never the content of your records, never your pets’ names. This data is hosted in Europe.",
+      "changeMind": "You can change your mind at any time in Settings → Privacy.",
+      "refuse": "Decline",
+      "accept": "Accept"
     }
   }
 }

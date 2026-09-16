@@ -67,6 +67,11 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('@/features/settings/SettingsView.vue'),
   },
   {
+    path: '/analytics/consent',
+    name: 'analytics-consent',
+    component: () => import('@/features/settings/AnalyticsConsentView.vue'),
+  },
+  {
     path: '/:pathMatch(.*)*',
     redirect: { name: 'home' },
   },
