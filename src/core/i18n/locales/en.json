@@ -434,6 +434,50 @@
       "accept": "Accept"
     }
   },
+  "auth": {
+    "intro": "A MémoPatte account keeps your records safe in the cloud and lets you find them on all your devices.",
+    "signIn": {
+      "title": "Sign in",
+      "submit": "Sign in",
+      "loading": "Signing in…",
+      "toggle": "No account yet?",
+      "toggleAction": "Create an account"
+    },
+    "signUp": {
+      "title": "Sign up",
+      "submit": "Create my account",
+      "loading": "Creating your account…",
+      "toggle": "Already have an account?",
+      "toggleAction": "Sign in"
+    },
+    "email": {
+      "label": "Email address"
+    },
+    "password": {
+      "label": "Password"
+    },
+    "form": {
+      "errors": {
+        "emailRequired": "Enter your email address.",
+        "emailInvalid": "This email address is not valid.",
+        "passwordRequired": "Enter your password.",
+        "passwordTooShort": "Choose a password of at least 8 characters."
+      }
+    },
+    "errors": {
+      "emailTaken": "An account already exists with this email address.",
+      "invalidCredentials": "Incorrect email or password. Try again.",
+      "weakPassword": "This password is too weak. Choose a longer or less common one.",
+      "emailNotConfirmed": "Your email address is not confirmed yet. Open the link we sent you, then try again.",
+      "offline": "No internet connection. Check your network and try again.",
+      "unknown": "Something went wrong. Try again in a moment."
+    },
+    "confirmation": {
+      "title": "Check your inbox",
+      "message": "We have just sent a confirmation link to {email}. Open it to activate your account, then come back here to sign in.",
+      "back": "Back to sign in"
+    }
+  },
   "plus": {
     "title": "MémoPatte Plus",
     "headline": "Keep your records safe, everywhere",
@@ -533,6 +577,8 @@
     "settings": {
       "discover": "Discover MémoPatte Plus",
       "discoverHint": "Cloud backup, PDF export, several devices",
+      "alreadySubscribed": "I already subscribed",
+      "alreadySubscribedHint": "Get back the records you saved on another device",
       "status": {
         "monthly": "Monthly Plus until {date}",
         "annual": "Annual Plus until {date}",

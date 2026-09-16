@@ -139,7 +139,7 @@ describe('SettingsView', () => {
       'Confidentialité',
       'À propos',
     ])
-    expect(wrapper.text()).not.toMatch(/déjà abonné|Compte|Export PDF|Politique/)
+    expect(wrapper.text()).not.toMatch(/Compte|Export PDF|Politique/)
   })
 
   describe('MémoPatte Plus', () => {
@@ -158,6 +158,23 @@ describe('SettingsView', () => {
 
       expect(wrapper.get('.settings-row--plus-status').text()).toContain('Plus à vie')
       expect(wrapper.find('.settings-row--plus-discover').exists()).toBe(false)
+    })
+
+    it('ouvre la connexion depuis « Je suis déjà abonné », et revient ici après', async () => {
+      const wrapper = await monter()
+      const ligne = wrapper.get('.settings-row--plus-sign-in')
+
+      expect(ligne.text()).toContain('Je suis déjà abonné')
+      await ligne.trigger('click')
+
+      expect(push).toHaveBeenCalledWith({ name: 'sign-in', query: { from: 'settings' } })
+    })
+
+    it('ne propose pas la connexion à qui est déjà dans Plus', async () => {
+      writeStoredPlusStatus({ plan: 'lifetime', expiresAt: null })
+      const wrapper = await monter()
+
+      expect(wrapper.find('.settings-row--plus-sign-in').exists()).toBe(false)
     })
 
     it('range « Gérer mon abonnement » dans MémoPatte Plus, et non dans Confidentialité', async () => {

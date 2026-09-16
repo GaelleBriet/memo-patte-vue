@@ -81,6 +81,11 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('@/features/purchase/PlusView.vue'),
   },
   {
+    path: '/sign-in',
+    name: 'sign-in',
+    component: () => import('@/features/auth/SignInView.vue'),
+  },
+  {
     path: '/analytics/consent',
     name: 'analytics-consent',
     component: () => import('@/features/settings/AnalyticsConsentView.vue'),
