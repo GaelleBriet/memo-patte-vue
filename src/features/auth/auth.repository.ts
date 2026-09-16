@@ -1,6 +1,7 @@
 import type { AuthError, Session, SupabaseClient } from '@supabase/supabase-js'
 
 import { AUTH_STORAGE_KEY } from '@/core/supabase/auth-storage'
+import { errorSummary } from '@/shared/error-summary'
 
 import { AccountError, type AccountErrorReason } from './account-error'
 
@@ -87,7 +88,7 @@ function forgetStoredSession(): void {
     try {
       localStorage.removeItem(key)
     } catch (cause) {
-      console.warn('Session non effacée de l’appareil :', cause)
+      console.warn('Session non effacée de l’appareil :', errorSummary(cause))
     }
   }
 }
@@ -146,13 +147,13 @@ export function createAuthRepository({
         client()
           .then((supabase) => supabase.auth.signOut({ scope }))
           .then(
-            ({ error }) => error,
-            (cause: unknown) => cause ?? 'failed',
+            ({ error }) => (error ? errorSummary(error) : null),
+            (cause: unknown) => errorSummary(cause),
           )
       let timer: ReturnType<typeof setTimeout> | undefined
       // Un seul délai pour les deux tentatives : la seconde n'ajoute jamais d'attente à la première.
-      const timeout = new Promise<'timeout'>((resolve) => {
-        timer = setTimeout(() => resolve('timeout'), SIGN_OUT_TIMEOUT_MS)
+      const timeout = new Promise<string>((resolve) => {
+        timer = setTimeout(() => resolve('délai dépassé'), SIGN_OUT_TIMEOUT_MS)
       })
       const failure = await Promise.race([revoke('global'), timeout])
       if (failure) {

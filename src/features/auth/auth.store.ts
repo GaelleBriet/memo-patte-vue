@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 
+import { errorSummary } from '@/shared/error-summary'
+
 import {
   authRepository,
   type AuthSession,
@@ -42,7 +44,7 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       result = await request()
     } catch (cause) {
-      console.warn('Session Plus non vérifiée :', cause)
+      console.warn('Session Plus non vérifiée :', errorSummary(cause))
       result = { kind: 'needs-refresh' }
     }
     if (generation !== startedAt || !account.value) return false

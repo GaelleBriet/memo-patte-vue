@@ -443,6 +443,22 @@ describe('createAuthRepository', () => {
       )
     })
 
+    it('ne journalise que le nom, le code et le statut de l’échec', async () => {
+      const client = stubClient()
+      client.signOut.mockResolvedValue({
+        error: Object.assign(new AuthError('Email sophie.martin@example.com not found', 422), {
+          code: 'user_not_found',
+          body: { msg: 'sophie.martin@example.com' },
+        }),
+      })
+
+      await createAuthRepository({ loadClient: async () => client.supabase }).signOut()
+
+      const trace = vi.mocked(console.warn).mock.calls.flat().join(' ')
+      expect(trace).not.toContain('sophie.martin@example.com')
+      expect(trace).toContain('user_not_found')
+    })
+
     it('retombe sur la révocation locale quand la révocation globale échoue', async () => {
       const client = stubClient()
       client.signOut.mockResolvedValueOnce({ error: new AuthError('panne') })

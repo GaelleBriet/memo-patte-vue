@@ -260,6 +260,24 @@ describe('usePurchaseStore', () => {
       expect(readStoredPlusStatus()).toEqual(stored(ANNUAL, 'annual'))
     })
 
+    it('ne laisse pas le corps de l’erreur dans les traces', async () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      writeStoredPlusStatus(ANNUAL)
+      service.fetchStatus.mockRejectedValueOnce(
+        Object.assign(new Error('Email sophie.martin@example.com not found'), {
+          name: 'AuthApiError',
+          code: 'user_not_found',
+          status: 400,
+        }),
+      )
+
+      await usePurchaseStore().verifyKnownStatus()
+
+      const trace = warn.mock.calls.flat().join(' ')
+      expect(trace).not.toContain('sophie.martin@example.com')
+      expect(trace).toContain('user_not_found')
+    })
+
     it('oublie le plan échu dès qu’un achat à vie est connu', async () => {
       service.fetchStatus.mockResolvedValueOnce(NO_PLUS)
       service.purchase.mockResolvedValueOnce({ kind: 'purchased', status: LIFETIME })

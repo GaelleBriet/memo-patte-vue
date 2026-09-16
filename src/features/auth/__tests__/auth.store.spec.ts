@@ -123,6 +123,23 @@ describe('useAuthStore', () => {
       expect(readPlusAccount()).toEqual({ userId: USER_ID })
     })
 
+    it('ne laisse pas l’adresse de l’erreur Supabase dans les traces', async () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      repository.restoreSession.mockRejectedValueOnce(
+        Object.assign(new Error('Email sophie.martin@example.com not found'), {
+          name: 'AuthApiError',
+          code: 'user_not_found',
+          status: 400,
+        }),
+      )
+
+      await useAuthStore().restore()
+
+      const trace = warn.mock.calls.flat().join(' ')
+      expect(trace).not.toContain('sophie.martin@example.com')
+      expect(trace).toContain('user_not_found')
+    })
+
     it('ne lève pas quand la restauration échoue', async () => {
       vi.spyOn(console, 'warn').mockImplementation(() => {})
       repository.restoreSession.mockRejectedValueOnce(new Error('client indisponible'))
