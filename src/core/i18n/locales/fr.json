@@ -243,7 +243,7 @@
       "current": "Poids actuel",
       "list": "Toutes les pesées",
       "value": "{weight} kg",
-      "initial": "Poids à l’arrivée : {weight} kg",
+      "initial": "Poids à l’arrivée : {weight} kg",
       "link": "Voir l’historique"
     },
     "form": {
@@ -316,7 +316,7 @@
       "vaccination": "Rappel de vaccin",
       "weight": "Ajouter un poids",
       "picker": {
-        "title": "Pour quel animal ?",
+        "title": "Pour quel animal ?",
         "close": "Fermer"
       }
     },
@@ -413,7 +413,7 @@
       "errors": {
         "invalid": "Ce fichier n’est pas un export MémoPatte.",
         "newer": "Cet export vient d’une version plus récente de l’app.",
-        "outOfRange": "Ce fichier contient une valeur hors limites : 200 kg maximum pour un poids, 365 pour une fréquence.",
+        "outOfRange": "Ce fichier contient une valeur hors limites : 200 kg maximum pour un poids, 365 pour une fréquence.",
         "failed": "L’import n’a pas abouti. Tes données n’ont pas changé."
       },
       "confirm": {
@@ -427,7 +427,7 @@
   "analytics": {
     "consent": {
       "title": "Avant de commencer",
-      "measured": "Avec ton accord, MémoPatte mesure des statistiques d’usage anonymes pour améliorer l’app : les écrans consultés et des actions comme « vaccin ajouté ».",
+      "measured": "Avec ton accord, MémoPatte mesure des statistiques d’usage anonymes pour améliorer l’app : les écrans consultés et des actions comme « vaccin ajouté ».",
       "never": "Jamais le contenu de ton carnet, jamais le nom de tes animaux. Ces données sont hébergées en Europe.",
       "changeMind": "Tu peux changer d’avis à tout moment dans Paramètres → Confidentialité.",
       "refuse": "Refuser",
@@ -440,14 +440,14 @@
       "title": "Connexion",
       "submit": "Se connecter",
       "loading": "Connexion en cours…",
-      "toggle": "Pas encore de compte ?",
+      "toggle": "Pas encore de compte ?",
       "toggleAction": "Créer un compte"
     },
     "signUp": {
       "title": "Inscription",
       "submit": "Créer mon compte",
       "loading": "Création du compte en cours…",
-      "toggle": "Déjà un compte ?",
+      "toggle": "Déjà un compte ?",
       "toggleAction": "Se connecter"
     },
     "email": {
@@ -527,7 +527,7 @@
       "annual": {
         "label": "Plus annuel",
         "price": "{price}/an",
-        "saving": "≈ 44 % d’économie vs mensuel",
+        "saving": "≈ 44 % d’économie vs mensuel",
         "terms": "Renouvellement automatique chaque année. Annulable à tout moment dans Google Play — accès conservé jusqu’à la fin de la période payée.",
         "submit": "Continuer avec Plus annuel — {price}"
       },
@@ -605,7 +605,7 @@
       },
       "firstExport": {
         "title": "Ton export est prêt",
-        "body": "Avec Plus, plus besoin d’y penser : tout se sauvegarde seul."
+        "body": "Avec Plus, plus besoin d’y penser : tout se sauvegarde seul."
       }
     }
   }

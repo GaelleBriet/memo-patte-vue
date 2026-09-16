@@ -195,7 +195,7 @@ describe('PlusView — offres', () => {
     const wrapper = await monter()
 
     expect(wrapper.findAll('.plus-offer__saving').map((item) => item.text())).toEqual([
-      '≈ 44 % d’économie vs mensuel',
+      '≈ 44 % d’économie vs mensuel',
     ])
   })
 

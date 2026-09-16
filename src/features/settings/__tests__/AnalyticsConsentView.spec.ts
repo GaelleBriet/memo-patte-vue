@@ -43,7 +43,7 @@ describe('AnalyticsConsentView', () => {
 
     expect(wrapper.get('h1').text()).toBe('Avant de commencer')
     expect(wrapper.findAll('p').map((paragraph) => paragraph.text())).toEqual([
-      'Avec ton accord, MémoPatte mesure des statistiques d’usage anonymes pour améliorer l’app : les écrans consultés et des actions comme « vaccin ajouté ».',
+      'Avec ton accord, MémoPatte mesure des statistiques d’usage anonymes pour améliorer l’app : les écrans consultés et des actions comme « vaccin ajouté ».',
       'Jamais le contenu de ton carnet, jamais le nom de tes animaux. Ces données sont hébergées en Europe.',
       'Tu peux changer d’avis à tout moment dans Paramètres → Confidentialité.',
     ])
