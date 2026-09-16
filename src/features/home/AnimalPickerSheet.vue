@@ -81,7 +81,7 @@ function pick(animalId: string): void {
 
   &:hover,
   &:focus-visible {
-    background: rgb(var(--v-theme-primary) / 6%);
+    background: rgba(var(--v-theme-primary), 0.06);
   }
 }
 

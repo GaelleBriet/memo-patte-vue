@@ -363,7 +363,7 @@ function backToAnimals(): void {
 }
 
 .weight-history__actions {
-  padding: 12px 20px;
+  padding: 12px 20px 30px;
 }
 
 .weight-history__add {

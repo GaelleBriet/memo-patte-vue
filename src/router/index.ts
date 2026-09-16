@@ -1,15 +1,24 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 
+declare module 'vue-router' {
+  interface RouteMeta {
+    /** Écran racine de la bottom navigation. Absent, l'écran est poussé et la barre disparaît. */
+    rootScreen?: boolean
+  }
+}
+
 export const routes: RouteRecordRaw[] = [
   {
     path: '/',
     name: 'home',
     component: () => import('@/features/home/HomeView.vue'),
+    meta: { rootScreen: true },
   },
   {
     path: '/animals',
     name: 'animals',
     component: () => import('@/features/animals/CarnetView.vue'),
+    meta: { rootScreen: true },
   },
   {
     path: '/animals/new',
