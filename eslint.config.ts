@@ -235,7 +235,12 @@ export default defineConfigWithVueTs(
   ...FEATURES.map((feature) => ({
     name: `app/feature-imports/${feature}-services`,
     files: [`src/features/${feature}/**/*.service.ts`],
-    rules: featureImportsRule(feature, ['@/features/*/*.repository', '@/features/*/*.schema']),
+    rules: featureImportsRule(feature, [
+      '@/features/*/*.repository',
+      '@/features/*/*.schema',
+      '@/features/*/*-storage',
+      '@/features/*/plus-nudge',
+    ]),
   })),
   ...COMPOSITE_SCREENS.map(({ feature, file }) => ({
     name: `app/feature-imports/${file}`,

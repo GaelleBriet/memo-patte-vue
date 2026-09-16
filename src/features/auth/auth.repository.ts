@@ -142,21 +142,25 @@ export function createAuthRepository({
       }),
 
     async signOut() {
-      const invalidation = client()
-        .then((supabase) => supabase.auth.signOut({ scope: 'local' }))
-        .then(
-          ({ error }) => error,
-          (cause: unknown) => cause ?? 'failed',
-        )
+      const revoke = (scope: 'global' | 'local') =>
+        client()
+          .then((supabase) => supabase.auth.signOut({ scope }))
+          .then(
+            ({ error }) => error,
+            (cause: unknown) => cause ?? 'failed',
+          )
       let timer: ReturnType<typeof setTimeout> | undefined
+      // Un seul délai pour les deux tentatives : la seconde n'ajoute jamais d'attente à la première.
       const timeout = new Promise<'timeout'>((resolve) => {
         timer = setTimeout(() => resolve('timeout'), SIGN_OUT_TIMEOUT_MS)
       })
-      const failure = await Promise.race([invalidation, timeout])
+      const failure = await Promise.race([revoke('global'), timeout])
+      if (failure) {
+        console.warn('Session non invalidée auprès de Supabase :', failure)
+        await Promise.race([revoke('local'), timeout])
+        forgetStoredSession()
+      }
       clearTimeout(timer)
-      if (!failure) return
-      console.warn('Session non invalidée auprès de Supabase :', failure)
-      forgetStoredSession()
     },
 
     async restoreSession() {

@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { createClient, type SupabaseClient } from '@supabase/supabase-js'
+import { AuthError, createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { AUTH_STORAGE_KEY } from '@/core/supabase/auth-storage'
@@ -118,6 +118,19 @@ function storeSession(body: ReturnType<typeof sessionBody>): void {
 
 function storedSessionKeys(): string[] {
   return storage.keys().filter((key) => key.startsWith(AUTH_STORAGE_KEY))
+}
+
+function stubClient() {
+  const signOut = vi.fn<SupabaseClient['auth']['signOut']>(async () => ({ error: null }))
+  return {
+    signOut,
+    supabase: {
+      auth: {
+        onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }),
+        signOut,
+      },
+    } as unknown as SupabaseClient,
+  }
 }
 
 beforeEach(() => {
@@ -420,14 +433,41 @@ describe('createAuthRepository', () => {
       await expect(signingOut).resolves.toBeUndefined()
     })
 
-    it('n’invalide que la session de cet appareil', async () => {
+    it('révoque le jeton de rafraîchissement, pas seulement sur cet appareil', async () => {
       storeSession(sessionBody())
 
       await repository.signOut()
 
       expect(server.urls.find((url) => url.pathname.endsWith('/logout'))?.search).toBe(
-        '?scope=local',
+        '?scope=global',
       )
+    })
+
+    it('retombe sur la révocation locale quand la révocation globale échoue', async () => {
+      const client = stubClient()
+      client.signOut.mockResolvedValueOnce({ error: new AuthError('panne') })
+
+      await createAuthRepository({ loadClient: async () => client.supabase }).signOut()
+
+      expect(client.signOut.mock.calls.map(([options]) => options?.scope)).toEqual([
+        'global',
+        'local',
+      ])
+    })
+
+    it('retombe sur la révocation locale au bout du délai, sans faire attendre plus longtemps', async () => {
+      vi.useFakeTimers()
+      const client = stubClient()
+      client.signOut.mockReturnValueOnce(new Promise(() => {}))
+
+      const signingOut = createAuthRepository({ loadClient: async () => client.supabase }).signOut()
+      await vi.advanceTimersByTimeAsync(SIGN_OUT_TIMEOUT_MS)
+
+      await expect(signingOut).resolves.toBeUndefined()
+      expect(client.signOut.mock.calls.map(([options]) => options?.scope)).toEqual([
+        'global',
+        'local',
+      ])
     })
   })
 

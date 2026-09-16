@@ -7,6 +7,7 @@ import {
   type SessionCheck,
   type SignUpOutcome,
 } from './auth.repository'
+import { clearDeviceAccountState } from './device-account-state.service'
 import {
   clearPlusAccount,
   readPlusAccount,
@@ -27,6 +28,7 @@ export const useAuthStore = defineStore('auth', () => {
   function record(session: AuthSession): void {
     generation += 1
     if (account.value?.userId !== session.userId) {
+      if (account.value) clearDeviceAccountState()
       account.value = { userId: session.userId }
       writePlusAccount(account.value)
     }
@@ -83,12 +85,13 @@ export const useAuthStore = defineStore('auth', () => {
       record(await authRepository.signIn(email, password))
     },
 
-    /** Efface la session et le drapeau ; les données locales restent. */
+    /** Efface la session et l'état lié au compte ; le carnet local reste. */
     async signOut(): Promise<void> {
       await authRepository.signOut()
       generation += 1
       account.value = null
       clearPlusAccount()
+      clearDeviceAccountState()
       sessionState.value = 'none'
     },
   }

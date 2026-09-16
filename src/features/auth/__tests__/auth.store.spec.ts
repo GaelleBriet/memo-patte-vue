@@ -2,11 +2,27 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { ANALYTICS_CONSENT_KEY } from '@/core/analytics/analytics'
+import { PLUS_NUDGE_STORAGE_KEY } from '@/features/purchase/plus-nudge'
+import { PLUS_STATUS_STORAGE_KEY } from '@/features/purchase/plus-status-storage'
+import { USAGE_SIGNALS_STORAGE_KEY } from '@/shared/usage-signals'
+
 import { AccountError } from '../account-error'
 import { authRepository, type AuthRepository, type AuthSession } from '../auth.repository'
 import { useAuthStore } from '../auth.store'
 import { readPlusAccount, writePlusAccount } from '../plus-account-storage'
 import { memoryStorage, OTHER_USER_ID, USER_ID } from './auth-fixture'
+
+const ACCOUNT_KEYS = [PLUS_STATUS_STORAGE_KEY, PLUS_NUDGE_STORAGE_KEY, USAGE_SIGNALS_STORAGE_KEY]
+const UNRELATED_KEYS = [ANALYTICS_CONSENT_KEY, 'memopatte.notifications.primingAnswered']
+
+function writeDeviceState(): void {
+  for (const key of [...ACCOUNT_KEYS, ...UNRELATED_KEYS]) localStorage.setItem(key, '{}')
+}
+
+function remainingDeviceState(): string[] {
+  return [...ACCOUNT_KEYS, ...UNRELATED_KEYS].filter((key) => localStorage.getItem(key) !== null)
+}
 
 vi.mock('../auth.repository', () => ({
   authRepository: {
@@ -224,6 +240,27 @@ describe('useAuthStore', () => {
       expect(readPlusAccount()).toEqual({ userId: OTHER_USER_ID })
     })
 
+    it('efface l’état d’appareil quand un autre compte prend la main', async () => {
+      writePlusAccount({ userId: USER_ID })
+      writeDeviceState()
+      repository.signIn.mockResolvedValueOnce({ userId: OTHER_USER_ID })
+      const store = useAuthStore()
+
+      await store.signIn('autre@example.com', 'secret-123')
+
+      expect(remainingDeviceState()).toEqual(UNRELATED_KEYS)
+    })
+
+    it('garde l’achat déjà fait sur l’appareil à la première connexion', async () => {
+      writeDeviceState()
+      repository.signIn.mockResolvedValueOnce({ userId: USER_ID })
+      const store = useAuthStore()
+
+      await store.signIn('gaelle@example.com', 'secret-123')
+
+      expect(remainingDeviceState()).toEqual([...ACCOUNT_KEYS, ...UNRELATED_KEYS])
+    })
+
     it('lève la raison de l’échec sans écrire de drapeau', async () => {
       repository.signIn.mockRejectedValueOnce(new AccountError('invalid-credentials'))
       const store = useAuthStore()
@@ -270,9 +307,8 @@ describe('useAuthStore', () => {
   })
 
   describe('signOut', () => {
-    it('invalide la session et efface le drapeau, sans toucher au reste de l’appareil', async () => {
+    it('invalide la session et efface le drapeau', async () => {
       writePlusAccount({ userId: USER_ID })
-      localStorage.setItem('memopatte.plus.status', '{"plan":"annual"}')
       const store = useAuthStore()
 
       await store.signOut()
@@ -282,7 +318,16 @@ describe('useAuthStore', () => {
       expect(store.userId).toBeNull()
       expect(store.sessionState).toBe('none')
       expect(readPlusAccount()).toBeNull()
-      expect(localStorage.getItem('memopatte.plus.status')).not.toBeNull()
+    })
+
+    it('efface l’état d’appareil lié au compte, et rien d’autre', async () => {
+      writePlusAccount({ userId: USER_ID })
+      writeDeviceState()
+      const store = useAuthStore()
+
+      await store.signOut()
+
+      expect(remainingDeviceState()).toEqual(UNRELATED_KEYS)
     })
 
     it('ignore la fin de session que Supabase signale pendant la déconnexion', async () => {

@@ -70,3 +70,11 @@ export function writeStoredPlusStatus(status: WritablePlusStatus): void {
     console.warn('Statut Plus non enregistré :', cause)
   }
 }
+
+export function clearStoredPlusStatus(): void {
+  try {
+    localStorage.removeItem(PLUS_STATUS_STORAGE_KEY)
+  } catch (cause) {
+    console.warn('Statut Plus non effacé :', cause)
+  }
+}
