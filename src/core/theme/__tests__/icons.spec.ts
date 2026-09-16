@@ -24,6 +24,7 @@ const iconesDesMaquettes = [
   'ios_share',
   'description',
   'table',
+  'mark_email_unread',
 ] as const
 
 describe('registre d’icônes Material Symbols', () => {
