@@ -38,3 +38,45 @@ jobs:
 
       - name: Pas d'outils de dev dans le build (fixtures, SQLite du navigateur)
         run: pnpm test:build
+
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+
+      # JDK 21 : `android/app/capacitor.build.gradle` compile en ciblant Java 21.
+      - uses: actions/setup-java@v6
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'gradle'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build web + cap sync
+        run: pnpm cap:sync
+
+      # `capacitor.settings.gradle` est généré et versionné, et ses chemins portent le numéro
+      # de version des paquets Capacitor : sans ce contrôle, une montée du groupe Dependabot
+      # garde la CI verte et casse `dev:mobile --no-sync` (incident #147).
+      - name: Projet natif à jour après cap sync
+        run: |
+          git diff --exit-code -- android || {
+            echo "::error::android/ a changé après 'pnpm cap:sync'. Lance 'pnpm cap:sync' en local et commite le diff (voir docs/technical/commandes-utiles.md §2)."
+            exit 1
+          }
+
+      - name: Build Android (debug)
+        working-directory: android
+        run: ./gradlew :app:assembleDebug --no-daemon
+
+      - name: Permissions du manifest fusionné
+        run: pnpm test:manifest

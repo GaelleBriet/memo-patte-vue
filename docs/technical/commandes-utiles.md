@@ -103,6 +103,8 @@ pnpm dev:mobile
   lance `pnpm cap:sync` une fois pour régénérer `capacitor.settings.gradle`, **puis commite le fichier** (c'est
   un geste manuel après le merge, Dependabot ne peut pas le faire), car `dev:mobile` tourne avec `--no-sync`.
   Sinon la dérive revient à chaque bump (vu sur #147 : `main` pointait encore vers 8.5.0 après la montée 8.5.1).
+  Le job `android` de la CI (§8) refait `pnpm cap:sync` et échoue si `android/` bouge : une PR qui laisse la
+  dérive reste rouge jusqu'à ce que le fichier régénéré y soit commité.
 
 ## 3. Inspecter l'app avec Chrome DevTools (optionnel)
 
@@ -168,8 +170,8 @@ pnpm test:manifest              # variante debug par défaut
 pnpm test:manifest release      # après ./gradlew :app:processReleaseManifest
 ```
 
-Le manifest fusionné est un produit de Gradle : **la commande ne tourne pas en CI**, qui n'a pas le SDK Android.
-C'est un contrôle local, à passer avant chaque upload sur la Play Console (check-list §3.4 point 11 de
+Le job `android` de la CI (§8) fait tourner la variante `debug` sur chaque PR. La variante `release` reste un
+contrôle local, à passer avant chaque upload sur la Play Console (check-list §3.4 point 11 de
 `conformite-play-store-rgpd.md`).
 
 Permissions attendues à ce jour : `INTERNET` et `POST_NOTIFICATIONS` (notre manifest),
@@ -184,3 +186,26 @@ la photo passe par le Photo Picker système, jamais par la caméra déclarée co
 quelle et `versionCode` vaut `major × 1 000 000 + minor × 1 000 + patch` (0.1.26 → `1026`). Le build échoue si
 `minor` ou `patch` atteint 1000, borne qui garantit que le code reste strictement croissant. Rien à mettre à jour
 à la main avant un upload.
+
+## 8. Ce que fait la CI
+
+`.github/workflows/ci.yml` lance deux jobs en parallèle sur chaque PR vers `main` et sur chaque push sur `main`.
+
+| Job       | Ce qu'il fait                                                                                                     |
+| --------- | ----------------------------------------------------------------------------------------------------------------- |
+| `ci`      | `lint`, `type-check`, `vitest run`, `build`, `test:build`                                                           |
+| `android` | `cap:sync`, contrôle que `android/` n'a pas bougé, `./gradlew :app:assembleDebug`, `test:manifest` (variante debug) |
+
+Le job `android` tourne sur **toutes** les PR, sans filtre de chemins : il est parallèle au job `ci`, le dépôt est
+public (minutes Actions gratuites), et un filtre à tenir à jour aurait le même mode de défaillance silencieux que
+celui qui a motivé le ticket #260 — une CI verte qui ne construit rien.
+
+Reproduire le job `android` en local :
+
+```bash
+pnpm install --frozen-lockfile
+pnpm cap:sync
+git diff --exit-code -- android    # doit être vide
+cd android && ./gradlew :app:assembleDebug && cd ..
+pnpm test:manifest
+```
