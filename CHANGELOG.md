@@ -5,6 +5,28 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.28](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.27...memo-patte-v0.1.28) (2026-09-16)
+
+
+### ✨ Fonctionnalités
+
+* **purchase:** rattacher l'achat au compte Supabase à la connexion ([3d4e88e](https://github.com/GaelleBriet/memo-patte-vue/commit/3d4e88e8586b09bedc6a13c82d0a973698665f7b))
+
+
+### 🐛 Corrections
+
+* collisions d'identifiant de rappel et rattachement de l'achat au compte ([400e344](https://github.com/GaelleBriet/memo-patte-vue/commit/400e34456a6833e52167922e5b9d64a14c85445b))
+* **import:** figer le rattachement à l'animal et rendre l'échéance explicite ([79e24f3](https://github.com/GaelleBriet/memo-patte-vue/commit/79e24f3cae1bf0f8f4ae92a168cc2a96fbd70043))
+* **import:** un motif d'erreur dédié au fichier qui déplace une entrée ([938a899](https://github.com/GaelleBriet/memo-patte-vue/commit/938a899a65aa0bdb67764d38dfbb2a30ca5ed9d1))
+* **notifications:** résoudre les collisions d'identifiant au lieu de les signaler ([a4c4316](https://github.com/GaelleBriet/memo-patte-vue/commit/a4c4316439a5932fa7d9eaaf0b760ba9f3949553))
+* **purchase:** ne solder le souvenir d'abonnement qu'au changement de compte ([7e64cc7](https://github.com/GaelleBriet/memo-patte-vue/commit/7e64cc7b993d666b0089d49f5433ed3c81261033))
+* **settings:** refuser un import qui déplace une entrée, et extraire le plan d'import ([195875b](https://github.com/GaelleBriet/memo-patte-vue/commit/195875b899964149b3082a71b52d2c571f6d3753))
+
+
+### ⚡ Performance
+
+* **photos:** sonder l'existence d'une photo par stat, sans lire le fichier ([5e1b59d](https://github.com/GaelleBriet/memo-patte-vue/commit/5e1b59d220d99e5c751e42de19a59272a995812e))
+
 ## [0.1.27](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.26...memo-patte-v0.1.27) (2026-09-16)
 
 
