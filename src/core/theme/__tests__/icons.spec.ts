@@ -25,6 +25,7 @@ const iconesDesMaquettes = [
   'star_shine',
   'description',
   'table',
+  'mark_email_unread',
 ] as const
 
 describe('registre d’icônes Material Symbols', () => {

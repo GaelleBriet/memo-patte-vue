@@ -434,6 +434,50 @@
       "accept": "Accepter"
     }
   },
+  "auth": {
+    "intro": "Un compte MémoPatte sert à garder tes carnets en sécurité dans le cloud et à les retrouver sur tous tes appareils.",
+    "signIn": {
+      "title": "Connexion",
+      "submit": "Se connecter",
+      "loading": "Connexion en cours…",
+      "toggle": "Pas encore de compte ?",
+      "toggleAction": "Créer un compte"
+    },
+    "signUp": {
+      "title": "Inscription",
+      "submit": "Créer mon compte",
+      "loading": "Création du compte en cours…",
+      "toggle": "Déjà un compte ?",
+      "toggleAction": "Se connecter"
+    },
+    "email": {
+      "label": "Adresse e-mail"
+    },
+    "password": {
+      "label": "Mot de passe"
+    },
+    "form": {
+      "errors": {
+        "emailRequired": "Saisis ton adresse e-mail.",
+        "emailInvalid": "Cette adresse e-mail n’est pas valide.",
+        "passwordRequired": "Saisis ton mot de passe.",
+        "passwordTooShort": "Choisis un mot de passe d’au moins 8 caractères."
+      }
+    },
+    "errors": {
+      "emailTaken": "Un compte existe déjà avec cette adresse e-mail.",
+      "invalidCredentials": "E-mail ou mot de passe incorrect. Réessaie.",
+      "weakPassword": "Ce mot de passe est trop faible. Choisis-en un plus long ou moins courant.",
+      "emailNotConfirmed": "Ton adresse e-mail n’est pas encore confirmée. Ouvre le lien reçu par e-mail, puis réessaie.",
+      "offline": "Pas de connexion internet. Vérifie ton réseau et réessaie.",
+      "unknown": "Quelque chose s’est mal passé. Réessaie dans un instant."
+    },
+    "confirmation": {
+      "title": "Vérifie ta boîte mail",
+      "message": "On vient d’envoyer un lien de confirmation à {email}. Ouvre-le pour activer ton compte, puis reviens te connecter ici.",
+      "back": "Retour à la connexion"
+    }
+  },
   "plus": {
     "title": "MémoPatte Plus",
     "headline": "Garde tes carnets en sécurité, partout",
@@ -533,6 +577,8 @@
     "settings": {
       "discover": "Découvrir MémoPatte Plus",
       "discoverHint": "Sauvegarde cloud, export PDF, plusieurs appareils",
+      "alreadySubscribed": "Je suis déjà abonné",
+      "alreadySubscribedHint": "Retrouve ton carnet sauvegardé sur un autre appareil",
       "status": {
         "monthly": "Plus mensuel jusqu’au {date}",
         "annual": "Plus annuel jusqu’au {date}",

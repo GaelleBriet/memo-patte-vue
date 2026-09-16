@@ -17,6 +17,7 @@ import error from '@material-symbols/svg-400/outlined/error.svg?raw'
 import errorFill from '@material-symbols/svg-400/outlined/error-fill.svg?raw'
 import home from '@material-symbols/svg-400/outlined/home.svg?raw'
 import iosShare from '@material-symbols/svg-400/outlined/ios_share.svg?raw'
+import markEmailUnread from '@material-symbols/svg-400/outlined/mark_email_unread.svg?raw'
 import merge from '@material-symbols/svg-400/outlined/merge.svg?raw'
 import medication from '@material-symbols/svg-400/outlined/medication.svg?raw'
 import monitorWeight from '@material-symbols/svg-400/outlined/monitor_weight.svg?raw'
@@ -146,6 +147,7 @@ export const msIcons = {
   keyboard_option_key: keyboardOptionKey,
   keyboard_return: keyboardReturn,
   last_page: lastPage,
+  mark_email_unread: markEmailUnread,
   medication,
   merge,
   menu,

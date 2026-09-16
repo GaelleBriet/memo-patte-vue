@@ -7,6 +7,7 @@ import ManageSubscriptionSection from './ManageSubscriptionSection.vue'
 import { usePurchaseStore } from './purchase.store'
 import { formatNumericDate } from '@/shared/format'
 import SectionCard from '@/shared/SectionCard.vue'
+import { signInRoute } from '@/shared/sign-in-route'
 import { showToast } from '@/shared/toast'
 
 const { t } = useI18n()
@@ -41,6 +42,10 @@ const canRestore = computed(
 
 function openPlus(): void {
   void router.push({ name: 'plus' })
+}
+
+function openSignIn(): void {
+  void router.push(signInRoute('settings'))
 }
 
 async function restore(): Promise<void> {
@@ -121,6 +126,20 @@ async function restore(): Promise<void> {
           :size="18"
           :width="2"
         />
+      </button>
+
+      <button
+        v-if="canDiscover"
+        type="button"
+        class="settings-row settings-row--plus-sign-in"
+        @click="openSignIn"
+      >
+        <v-icon class="settings-row__icon" icon="ms:devices" size="22" />
+        <span class="settings-row__text">
+          <span class="settings-row__label">{{ t('plus.settings.alreadySubscribed') }}</span>
+          <span class="settings-row__hint">{{ t('plus.settings.alreadySubscribedHint') }}</span>
+        </span>
+        <v-icon class="settings-row__chevron" icon="ms:chevron_right" size="20" />
       </button>
     </SectionCard>
   </div>

@@ -45,6 +45,8 @@ const DYNAMIC_I18N_KEYS = [
   '/^plus\\.member\\.(monthly|annual|lifetime)$/',
   '/^plus\\.nudge\\.(firstPhoto|carnetValue|firstExport)\\.(title|body)$/',
   '/^plus\\.(success|cancelled|failed)\\.(title|body)$/',
+  '/^auth\\.form\\.errors\\.(emailRequired|emailInvalid|passwordRequired|passwordTooShort)$/',
+  '/^auth\\.errors\\.(emailTaken|invalidCredentials|weakPassword|emailNotConfirmed|offline|unknown)$/',
 ]
 
 const FEATURES_RESTRICTION = {
