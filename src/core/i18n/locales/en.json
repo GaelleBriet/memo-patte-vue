@@ -181,6 +181,7 @@
         "name": "Name is required.",
         "type": "Choose a type.",
         "frequency": "Enter a frequency.",
+        "frequencyMax": "Frequency can’t be more than 365.",
         "lastDoseDate": "Date is required.",
         "lastDoseDateFuture": "Date can’t be in the future.",
         "notFound": "We can’t find this treatment.",
@@ -402,7 +403,7 @@
       "success": "Data imported",
       "pickAnother": "Choose another file",
       "errors": {
-        "invalid": "This file isn’t a MémoPatte export.",
+        "invalid": "This file isn’t a MémoPatte export, or one of its values is out of range.",
         "newer": "This export comes from a newer version of the app.",
         "failed": "The import didn’t go through. Your data hasn’t changed."
       },

@@ -26,6 +26,7 @@ const ERROR_KEYS = {
 } as const
 
 const FUTURE_DOSE_KEY = 'treatments.form.errors.lastDoseDateFuture'
+const FREQUENCY_MAX_KEY = 'treatments.form.errors.frequencyMax'
 
 export type TreatmentFormErrorField = keyof typeof ERROR_KEYS
 export type TreatmentFormErrors = Partial<Record<TreatmentFormErrorField, string>>
@@ -61,6 +62,7 @@ function isErrorField(field: string): field is TreatmentFormErrorField {
 // Le seul `refine` du schéma est la borne « pas dans le futur » : c'est lui qui émet `custom`.
 function errorKeyFor(field: TreatmentFormErrorField, issue: z.core.$ZodIssue): string {
   if (field === 'lastDoseDate' && issue.code === 'custom') return FUTURE_DOSE_KEY
+  if (field === 'frequency' && issue.code === 'too_big') return FREQUENCY_MAX_KEY
 
   return ERROR_KEYS[field]
 }

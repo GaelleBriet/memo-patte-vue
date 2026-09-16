@@ -181,6 +181,7 @@
         "name": "Le nom est obligatoire.",
         "type": "Choisis un type.",
         "frequency": "Indique une fréquence.",
+        "frequencyMax": "La fréquence ne peut pas dépasser 365.",
         "lastDoseDate": "La date est obligatoire.",
         "lastDoseDateFuture": "La date ne peut pas être dans le futur.",
         "notFound": "Ce traitement est introuvable.",
@@ -402,7 +403,7 @@
       "success": "Données importées",
       "pickAnother": "Choisir un autre fichier",
       "errors": {
-        "invalid": "Ce fichier n’est pas un export MémoPatte.",
+        "invalid": "Ce fichier n’est pas un export MémoPatte, ou une de ses valeurs est hors limites.",
         "newer": "Cet export vient d’une version plus récente de l’app.",
         "failed": "L’import n’a pas abouti. Tes données n’ont pas changé."
       },

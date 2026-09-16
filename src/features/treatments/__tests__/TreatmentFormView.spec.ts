@@ -321,6 +321,16 @@ describe('TreatmentFormView — validation', () => {
     expect(create).not.toHaveBeenCalled()
   })
 
+  it('dit le plafond en rouvrant une ligne dont la fréquence le dépasse', async () => {
+    getById.mockResolvedValue({ ...BRAVECTO, frequency: { value: 10_000_000, unit: 'month' } })
+    const wrapper = await monterEdition()
+
+    await soumettre(wrapper)
+
+    expect(messages(wrapper)).toEqual(['La fréquence ne peut pas dépasser 365.'])
+    expect(update).not.toHaveBeenCalled()
+  })
+
   it('efface les messages dès que le formulaire redevient valide', async () => {
     const wrapper = await monterCreation()
     await soumettre(wrapper)

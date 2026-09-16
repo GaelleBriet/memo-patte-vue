@@ -187,7 +187,10 @@ describe('ImportSheet', () => {
   })
 
   it.each([
-    ['pas du JSON', 'Ce fichier n’est pas un export MémoPatte.'],
+    [
+      'pas du JSON',
+      'Ce fichier n’est pas un export MémoPatte, ou une de ses valeurs est hors limites.',
+    ],
     [JSON.stringify({ schemaVersion: 2 }), 'Cet export vient d’une version plus récente de l’app.'],
   ])('explique un fichier refusé et propose d’en choisir un autre', async (content, message) => {
     await monter()
