@@ -7,6 +7,22 @@ import pluginVitest from '@vitest/eslint-plugin'
 import pluginOxlint from 'eslint-plugin-oxlint'
 import pluginVueI18n from '@intlify/eslint-plugin-vue-i18n'
 import skipFormatting from 'eslint-config-prettier/flat'
+import dynamicImports from './tools/eslint/dynamic-imports.ts'
+
+// Chaque interdit d'import est posé deux fois : la règle d'ESLint pour les
+// déclarations, la nôtre pour `import()` qu'elle ne visite pas.
+function restrictImports(options: object): Linter.RulesRecord {
+  const entry: Linter.RuleEntry = ['error', options]
+  return { 'no-restricted-imports': entry, 'app/no-restricted-dynamic-imports': entry }
+}
+
+function restrictFeatureImports(options: object): Linter.RulesRecord {
+  const entry: Linter.RuleEntry = ['error', options]
+  return {
+    '@typescript-eslint/no-restricted-imports': entry,
+    'app/no-restricted-dynamic-feature-imports': entry,
+  }
+}
 
 const NOTIFICATIONS_PLUGIN_RESTRICTION = {
   name: '@capacitor/local-notifications',
@@ -66,37 +82,33 @@ const COMPOSITE_SCREENS = [
 ]
 
 function featureImportsRule(feature: string, allowedElsewhere: string[] = []): Linter.RulesRecord {
-  return {
-    '@typescript-eslint/no-restricted-imports': [
-      'error',
+  return restrictFeatureImports({
+    patterns: [
       {
-        patterns: [
-          {
-            group: [
-              '@/features/*/**',
-              '../**',
-              `!@/features/${feature}/**`,
-              '!@/features/animals/animals.store',
-              '!@/features/animals/animal.schema',
-              ...allowedElsewhere.map((pattern) => `!${pattern}`),
-            ],
-            message:
-              'Import interdit depuis une autre feature : passe par shared/ ou core/ (cf. CLAUDE.md, « Règles strictes de structure »).',
-          },
-          {
-            regex: '^@/features/[^/]+/?$',
-            message: 'Importe un module précis de la feature, pas son dossier.',
-          },
+        group: [
+          '@/features/*/**',
+          '../**',
+          `!@/features/${feature}/**`,
+          '!@/features/animals/animals.store',
+          '!@/features/animals/animal.schema',
+          ...allowedElsewhere.map((pattern) => `!${pattern}`),
         ],
+        message:
+          'Import interdit depuis une autre feature : passe par shared/ ou core/ (cf. CLAUDE.md, « Règles strictes de structure »).',
+      },
+      {
+        regex: '^@/features/[^/]+/?$',
+        message: 'Importe un module précis de la feature, pas son dossier.',
       },
     ],
-  }
+  })
 }
 
 export default defineConfigWithVueTs(
   {
     name: 'app/files-to-lint',
     files: ['**/*.{vue,ts,mts,tsx}'],
+    plugins: { app: dynamicImports },
   },
 
   globalIgnores([
@@ -159,34 +171,29 @@ export default defineConfigWithVueTs(
       '**/*.service.spec.ts',
       '**/*.integration.spec.ts',
     ],
-    rules: {
-      'no-restricted-imports': [
-        'error',
+    rules: restrictImports({
+      paths: [
         {
-          paths: [
-            {
-              name: '@supabase/supabase-js',
-              message: "Import interdit hors de core/supabase/ ou d'un repository (cf. CLAUDE.md).",
-            },
-            {
-              name: '@capacitor-community/sqlite',
-              message: "Import interdit hors de core/db/ ou d'un repository (cf. CLAUDE.md).",
-            },
-            {
-              name: '@capacitor/local-notifications',
-              message:
-                'Import interdit hors de core/notifications/ : utilise notifications.service (cf. CLAUDE.md).',
-            },
-          ],
-          patterns: [
-            {
-              group: ['**/core/supabase/*', '**/core/db/*', '@/core/supabase/*', '@/core/db/*'],
-              message: 'Utilise un repository, pas le client directement (cf. CLAUDE.md).',
-            },
-          ],
+          name: '@supabase/supabase-js',
+          message: "Import interdit hors de core/supabase/ ou d'un repository (cf. CLAUDE.md).",
+        },
+        {
+          name: '@capacitor-community/sqlite',
+          message: "Import interdit hors de core/db/ ou d'un repository (cf. CLAUDE.md).",
+        },
+        {
+          name: '@capacitor/local-notifications',
+          message:
+            'Import interdit hors de core/notifications/ : utilise notifications.service (cf. CLAUDE.md).',
         },
       ],
-    },
+      patterns: [
+        {
+          group: ['**/core/supabase/*', '**/core/db/*', '@/core/supabase/*', '@/core/db/*'],
+          message: 'Utilise un repository, pas le client directement (cf. CLAUDE.md).',
+        },
+      ],
+    }),
   },
 
   // Là où le bloc précédent ne s'applique pas (tout core/ et les repositories), deux
@@ -199,30 +206,21 @@ export default defineConfigWithVueTs(
     name: 'app/core-independent-of-features',
     files: ['src/core/**/*.{ts,vue}'],
     ignores: ['src/core/notifications/**', 'src/core/dev/**'],
-    rules: {
-      'no-restricted-imports': [
-        'error',
-        {
-          paths: [NOTIFICATIONS_PLUGIN_RESTRICTION],
-          patterns: [FEATURES_RESTRICTION],
-        },
-      ],
-    },
+    rules: restrictImports({
+      paths: [NOTIFICATIONS_PLUGIN_RESTRICTION],
+      patterns: [FEATURES_RESTRICTION],
+    }),
   },
   {
     name: 'app/core-notifications-independent-of-features',
     files: ['src/core/notifications/**/*.{ts,vue}'],
-    rules: {
-      'no-restricted-imports': ['error', { patterns: [FEATURES_RESTRICTION] }],
-    },
+    rules: restrictImports({ patterns: [FEATURES_RESTRICTION] }),
   },
   {
     name: 'app/notifications-service-only',
     files: ['src/core/dev/**/*.{ts,vue}', 'src/**/*.repository.ts'],
     ignores: ['src/core/notifications/**'],
-    rules: {
-      'no-restricted-imports': ['error', { paths: [NOTIFICATIONS_PLUGIN_RESTRICTION] }],
-    },
+    rules: restrictImports({ paths: [NOTIFICATIONS_PLUGIN_RESTRICTION] }),
   },
 
   // Règle distincte de no-restricted-imports pour se cumuler avec les interdits ci-dessus.

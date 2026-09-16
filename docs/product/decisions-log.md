@@ -1049,3 +1049,14 @@ qu'il pense à « Restaurer mon achat ». « Ne plus me proposer Plus » est une
 préférence, pas de l'état de compte. — Alternative écartée : tout effacer à la
 déconnexion comme le demandait le ticket (le risque « le compte suivant hérite »
 n'existe qu'au changement de compte, où l'effacement complet reste en place).
+
+2026-09-16 — **Les imports dynamiques sont couverts par une règle maison qui délègue à
+`no-restricted-imports` (#294), pas par oxlint.** `tools/eslint/dynamic-imports.ts`
+réutilise la règle d'ESLint et lui passe les nœuds `ImportExpression` qu'elle ne
+visite pas ; elle est posée sous deux noms, à côté de chaque interdit existant. —
+Raison : les motifs restent écrits une seule fois, dans `eslint.config.ts`, où la
+matrice par feature est construite à partir du contenu de `src/features/` ; et une
+violation n'est signalée que par un seul linter. — Alternative écartée : oxlint, qui
+visite bien `ImportExpression`, mais dont la configuration est un JSON statique : il
+aurait fallu y recopier toute la matrice et accepter un double diagnostic sur les
+imports statiques.
