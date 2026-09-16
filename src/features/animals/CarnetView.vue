@@ -319,6 +319,7 @@ function createAnimal(): void {
   margin: 2px 0 0;
   color: tokens.$color-on-primary-subtitle;
   font-size: 13.5px;
+  font-weight: 500;
   white-space: nowrap;
   text-overflow: ellipsis;
 }

@@ -66,6 +66,13 @@ describe('WeightSheet — bordure des champs', () => {
     )
   })
 
+  it('peint l’icône du champ date en pétrole, comme le champ date partagé', () => {
+    const icone = '.weight-sheet__input--date .v-field__append-inner .v-icon'
+
+    expect(declaration(icone, 'color')).toBe('rgb(var(--v-theme-primary))')
+    expect(declaration(icone, 'font-size')).toBe('21px')
+  })
+
   it('passe la bordure en rouge système en erreur, sauf sur un champ verrouillé', () => {
     expect(
       declaration(

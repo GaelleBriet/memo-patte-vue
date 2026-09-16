@@ -48,8 +48,9 @@ describe('CarnetView — contrat de style', () => {
     expect(declaration('.carnet-header__avatar', 'border')).toContain('2px solid')
   })
 
-  it('écrit le sous-titre dans la teinte claire sur pétrole', () => {
+  it('écrit le sous-titre dans la teinte claire sur pétrole, en 500 comme sur l’accueil', () => {
     expect(declaration('.carnet-header__subtitle', 'color')).toBe('#b9d0d1')
+    expect(declaration('.carnet-header__subtitle', 'font-weight')).toBe('500')
   })
 
   it('aligne trois colonnes de stats séparées par des filets, sans cadre', () => {

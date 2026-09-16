@@ -680,7 +680,7 @@ describe('TreatmentFormView — édition', () => {
 })
 
 describe('TreatmentFormView — envoi en cours', () => {
-  it('désactive les deux boutons et bascule sur « Ajout… » pendant l’écriture', async () => {
+  it('désactive les deux boutons et bascule sur « Création… » pendant l’écriture', async () => {
     let terminer: (treatment: Treatment) => void = () => {}
     create.mockReturnValueOnce(
       new Promise<Treatment>((resolve) => {
@@ -692,12 +692,18 @@ describe('TreatmentFormView — envoi en cours', () => {
 
     await soumettre(wrapper)
 
-    expect(wrapper.get('.form-screen__submit').text()).toBe('Ajout…')
+    expect(wrapper.get('.form-screen__submit').text()).toBe('Création…')
     expect(wrapper.get('.form-screen__submit').attributes('disabled')).toBeDefined()
     expect(wrapper.get('.form-screen__cancel').attributes('disabled')).toBeDefined()
 
     terminer(BRAVECTO)
     await flushPromises()
+  })
+
+  it('montre un exemple de fréquence dans le champ nombre vide', async () => {
+    const wrapper = await monterCreation()
+
+    expect(wrapper.get('#treatment-frequency-value').attributes('placeholder')).toBe('1')
   })
 
   it('bascule sur « Enregistrement… » en édition', async () => {
@@ -709,7 +715,7 @@ describe('TreatmentFormView — envoi en cours', () => {
     expect(wrapper.get('.form-screen__submit').text()).toBe('Enregistrement…')
   })
 
-  it('n’écrit qu’une fois même si on tape deux fois sur « Ajouter »', async () => {
+  it('n’écrit qu’une fois même si on tape deux fois sur « Créer »', async () => {
     create.mockReturnValueOnce(new Promise<Treatment>(() => {}))
     const wrapper = await monterCreation()
     await remplirMinimum(wrapper)

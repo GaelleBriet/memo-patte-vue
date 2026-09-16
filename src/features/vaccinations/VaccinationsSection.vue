@@ -9,7 +9,7 @@ import { computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
-import { vaccinationStatus, type VaccinationStatus } from './vaccination-status'
+import { byDueDate, vaccinationStatus, type VaccinationStatus } from './vaccination-status'
 import { useVaccinationsStore } from './vaccinations.store'
 import DueStatusChip from '@/shared/DueStatusChip.vue'
 import SectionCard from '@/shared/SectionCard.vue'
@@ -61,7 +61,7 @@ const hasError = computed(
 )
 
 const rows = computed(() =>
-  vaccinations.value.map((vaccination) => {
+  [...vaccinations.value].sort(byDueDate).map((vaccination) => {
     const status = vaccinationStatus(vaccination.dueDate, props.today)
     return {
       id: vaccination.id,
@@ -145,6 +145,16 @@ watch(summary, (value) => emit('summary', value), { immediate: true })
 <style scoped lang="scss">
 @use '@/styles/tokens' as tokens;
 
+// Sous 380 px, un nom d'un seul mot long et son badge ne tiennent pas côte à côte :
+// le badge passe dessous plutôt que le mot soit coupé en deux.
+.vaccination-row {
+  flex-wrap: wrap;
+}
+
+.vaccination-row__badge {
+  margin-inline-start: auto;
+}
+
 .vaccination-row__text {
   flex: 1 1 auto;
   min-width: 0;
@@ -152,7 +162,7 @@ watch(summary, (value) => emit('summary', value), { immediate: true })
 
 .vaccination-row__name {
   margin: 0;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
   font-size: 15.5px;
   font-weight: 700;
 }

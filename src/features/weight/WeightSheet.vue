@@ -265,6 +265,11 @@ async function submit(): Promise<void> {
   opacity: 1;
 }
 
+.weight-sheet__input--date .v-field__append-inner .v-icon {
+  color: rgb(var(--v-theme-primary));
+  font-size: 21px;
+}
+
 // L'indicateur natif est rendu transparent puis étiré sous l'icône
 // `calendar_month` : taper l'icône ouvre le sélecteur natif, sans JavaScript.
 .weight-sheet__input--date input::-webkit-calendar-picker-indicator {

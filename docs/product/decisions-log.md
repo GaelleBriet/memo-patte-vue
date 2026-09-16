@@ -999,3 +999,40 @@ l'utilisateur voit lui-même la valeur de son carnet, et deux sollicitations
 commerciales dans le même écran seraient du harcèlement. — Alternative écartée :
 ajouter « 30 jours après l'installation » comme quatrième rappel, tel que le
 proposait le ticket 9.2.
+
+2026-09-16 — **Les chips d'animaux suivent l'ordre de création, sur l'Accueil comme
+sur le Carnet.** `animals.repository.list()` trie par `created_at`, et départage par
+nom deux animaux créés dans la même milliseconde, cas d'un import. — Raison :
+décision de Gaelle ; l'animal principal, presque toujours créé en premier, garde sa
+place en tête et se tape sans regarder, alors que l'ordre alphabétique le déplaçait
+à chaque nouvel animal. — Alternatives écartées : l'ordre alphabétique (la première
+chip change quand on ajoute un animal) ; le dernier animal consulté en tête (la
+rangée bouge toute seule entre deux ouvertures de l'app).
+
+2026-09-16 — **On n'affiche jamais le mot « vaccin » devant le nom saisi, ni en
+français ni en anglais (#282).** `home.reminder.vaccination` rend le nom seul, et
+les titres de notification `reminders.vaccination.*` perdent eux aussi le type, dans
+les deux langues. Le type reste porté par l'icône de la ligne sur l'Accueil.
+Écart assumé à la maquette de l'Accueil, qui montre
+« Vaccin CHPPiL ». — Raison : décision de Gaelle ; la plupart des gens saisissent
+déjà « Vaccin antirabique » ou « Rabies vaccine », et le préfixe donnait « Vaccin
+Vaccin antirabique ». — Alternatives écartées : garder le préfixe et retirer le mot
+à la saisie (on corrige ce que l'utilisateur a écrit) ; ne corriger que le français
+(les deux langues divergeaient depuis le 2026-09-15).
+
+2026-09-16 — **Sur l'écran de consentement, « Refuser » et « Accepter » ont le même
+poids visuel.** Les deux sont des boutons à contour pétrole, côte à côte et de même
+largeur ; écart assumé à la planche A1, qui donne « Accepter » en plein pétrole. —
+Raison : exigence du ticket #67 ; un consentement analytics n'est libre que si le
+refus est aussi facile à donner que l'accord, et un bouton plein face à un bouton
+fade est précisément le dark pattern que le RGPD vise. — Alternative écartée :
+suivre la maquette (refus visuellement dévalué, consentement contestable).
+
+2026-09-16 — **La carte Vaccins du Carnet est triée par échéance, la plus urgente en
+tête.** Le départage est celui de `buildReminders` (échéance, puis nom, puis
+identifiant) : deux vaccins de même échéance tombent donc dans le même ordre sur
+l'Accueil et sur le Carnet. Un vaccin sans rappel programmé va en fin de liste. —
+Raison : la planche C1 montre « CHPPi · En retard » avant « Rage · À jour », et la
+carte suivait jusqu'ici l'ordre du repository (dernière injection d'abord), ce qui
+pouvait enterrer un retard sous des vaccins à jour. — Alternative écartée : garder
+l'ordre de saisie et compter sur la seule barre corail pour signaler le retard.

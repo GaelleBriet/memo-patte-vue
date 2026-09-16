@@ -160,6 +160,7 @@
       },
       "frequency": {
         "label": "Fréquence",
+        "placeholder": "1",
         "every": {
           "day": "Tous les",
           "week": "Toutes les",
@@ -175,8 +176,8 @@
         "label": "Date de la dernière prise"
       },
       "nextDose": "Prochaine dose le {date}",
-      "submit": "Ajouter",
-      "submitting": "Ajout…",
+      "submit": "Créer",
+      "submitting": "Création…",
       "save": "Enregistrer",
       "saving": "Enregistrement…",
       "errors": {
@@ -206,11 +207,11 @@
   },
   "reminders": {
     "vaccination": {
-      "beforeTitle": "Vaccin {name} de {animal} dans {days} jours",
+      "beforeTitle": "{name} de {animal} dans {days} jours",
       "beforeBody": "Pense à prendre rendez-vous chez le vétérinaire.",
-      "dueTitle": "Vaccin {name} de {animal} aujourd’hui",
+      "dueTitle": "{name} de {animal} aujourd’hui",
       "dueBody": "Note le vaccin dans MémoPatte une fois fait.",
-      "overdueTitle": "Vaccin {name} de {animal} en retard de {days} jours",
+      "overdueTitle": "{name} de {animal} en retard de {days} jours",
       "overdueBody": "Prends rendez-vous chez le vétérinaire, puis note le vaccin dans MémoPatte."
     },
     "treatment": {
@@ -291,7 +292,7 @@
       "overdueBanner": "{n} rappel en retard | {n} rappels en retard"
     },
     "reminder": {
-      "vaccination": "Vaccin {name}",
+      "vaccination": "{name}",
       "deworming": "Vermifuge",
       "antiparasitic": "Antiparasitaire"
     },

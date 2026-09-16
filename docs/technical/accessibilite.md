@@ -138,7 +138,12 @@ Police système agrandie, simulée à 130 % (toutes les tailles de police calcul
 zoom texte de la WebView Android) à 360 × 640 et 412 × 915. Corrigé, sans effet à 100 % :
 
 - titre d'une ligne de rappel, de vaccin ou de traitement : un mot trop long pour la colonne débordait sous
-  le badge ; il passe à la ligne (`overflow-wrap: anywhere`) ;
+  le badge ; il passe à la ligne (`overflow-wrap: anywhere`). **Repris le 2026-09-16** : la cause du
+  débordement n'était pas la valeur d'`overflow-wrap` mais le `min-width: 0` de la colonne de titre, qui
+  autorise le flex à la comprimer sous la largeur de son plus long mot — « Antiparasitaire » se coupait
+  donc en deux dès 360 px, à 100 %. La ligne passe en `flex-wrap: wrap`, le badge descend sous le titre
+  quand la place manque, et `overflow-wrap` passe à `break-word` pour ne plus couper un mot qui tient sur
+  sa ligne. `row-title-wrap.styles.spec.ts` verrouille les trois déclarations sur les trois composants ;
 - option du sélecteur à boutons : « Antiparasitaire » était rogné ; une option garde au moins la largeur
   de son libellé ;
 - prénom du header du Carnet : les jambages étaient rognés par le `overflow: hidden` de l'ellipse.
