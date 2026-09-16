@@ -100,5 +100,15 @@ export const usePurchaseStore = defineStore('purchase', () => {
     async logIn(appUserID: string): Promise<PlusStatus> {
       return record(await billingService.logIn(appUserID), NO_STORED_PLUS)
     },
+
+    /**
+     * Détache l'app-user RevenueCat, et laisse le statut enregistré intact : l'achat est celui de
+     * l'appareil. Sans effet tant qu'un droit payant est connu, même échu, car l'utilisateur
+     * anonyme créé à sa place n'a aucun achat et la revérification effacerait ce droit.
+     */
+    async logOut(): Promise<void> {
+      if (stored.value.plan !== 'none' || stored.value.lastSubscription !== null) return
+      await billingService.logOut()
+    },
   }
 })
