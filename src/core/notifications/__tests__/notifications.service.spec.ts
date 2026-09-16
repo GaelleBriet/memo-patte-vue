@@ -10,7 +10,6 @@ import {
   requestPermission,
   rescheduleAll,
   SCHEDULE_BATCH_SIZE,
-  scheduleReminder,
   scheduleReminders,
 } from '../notifications.service'
 import { reminderNotificationId, type Reminder } from '../reminder'
@@ -99,9 +98,9 @@ describe('reminderNotificationId', () => {
   })
 })
 
-describe('scheduleReminder', () => {
+describe('scheduleReminders, un rappel', () => {
   it('convertit un Reminder en notification du plugin', async () => {
-    await scheduleReminder(rabies)
+    await scheduleReminders([rabies])
 
     expect(schedule).toHaveBeenCalledWith({
       notifications: [
@@ -119,7 +118,7 @@ describe('scheduleReminder', () => {
   })
 
   it('crée le canal « Rappels » avant de programmer', async () => {
-    await scheduleReminder(rabies)
+    await scheduleReminders([rabies])
 
     expect(createChannel).toHaveBeenCalledWith(
       expect.objectContaining({ id: REMINDERS_CHANNEL_ID, name: 'Rappels', importance: 3 }),
@@ -132,13 +131,13 @@ describe('scheduleReminder', () => {
   it('programme quand même là où les canaux n’existent pas', async () => {
     createChannel.mockRejectedValue(new Error('Not implemented on web.'))
 
-    await scheduleReminder(rabies)
+    await scheduleReminders([rabies])
 
     expect(schedule).toHaveBeenCalledOnce()
   })
 
   it('ne programme jamais d’alarme exacte', async () => {
-    await scheduleReminder(rabies)
+    await scheduleReminders([rabies])
 
     const notification = schedule.mock.calls[0]?.[0].notifications[0]
     expect(notification?.isExactNotification).toBe(false)
@@ -146,13 +145,13 @@ describe('scheduleReminder', () => {
   })
 })
 
-describe('scheduleReminder sans permission', () => {
+describe('scheduleReminders sans permission, un rappel', () => {
   it.each(NOT_GRANTED)(
     'ne programme rien quand la permission est « %s », pour ne jamais ouvrir la popup système',
     async (display) => {
       checkPermissions.mockResolvedValue({ display })
 
-      await scheduleReminder(rabies)
+      await scheduleReminders([rabies])
 
       expect(schedule).not.toHaveBeenCalled()
       expect(requestPermissions).not.toHaveBeenCalled()
@@ -162,7 +161,7 @@ describe('scheduleReminder sans permission', () => {
   it('ne programme rien quand le canal des rappels est coupé dans les réglages', async () => {
     remindersChannelImportance(0)
 
-    await scheduleReminder(rabies)
+    await scheduleReminders([rabies])
 
     expect(schedule).not.toHaveBeenCalled()
   })
@@ -284,7 +283,7 @@ describe('listScheduled', () => {
 })
 
 describe('rescheduleAll', () => {
-  it('programme la liste fournie puis annule ce qu’elle ne reprend pas', async () => {
+  it('annule ce que la liste ne reprend pas avant de la programmer', async () => {
     getPending.mockResolvedValue({
       notifications: [
         { id: 1, title: 'Ancien', body: 'Ancien' },
@@ -317,8 +316,8 @@ describe('rescheduleAll', () => {
         },
       ],
     })
-    expect(schedule.mock.invocationCallOrder[0] ?? 0).toBeLessThan(
-      cancel.mock.invocationCallOrder[0] ?? 0,
+    expect(cancel.mock.invocationCallOrder[0] ?? 0).toBeLessThan(
+      schedule.mock.invocationCallOrder[0] ?? 0,
     )
   })
 
@@ -351,19 +350,25 @@ describe('rescheduleAll', () => {
     await rescheduleAll(reminders)
 
     expect(schedule).toHaveBeenCalledTimes(3)
+    expect(createChannel).toHaveBeenCalledOnce()
     expect(
       schedule.mock.calls.flatMap(([{ notifications }]) => notifications).map(({ id }) => id),
     ).toEqual(reminders.map(({ key }) => reminderNotificationId(key)))
   })
 
-  it('n’annule rien et se signale quand la programmation échoue', async () => {
+  it('n’annule que l’obsolète et se signale quand la programmation échoue', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
-    getPending.mockResolvedValue({ notifications: [{ id: 1, title: 'Ancien', body: 'Ancien' }] })
+    getPending.mockResolvedValue({
+      notifications: [
+        { id: reminderNotificationId(rabies.key), title: 'Ancien', body: 'Ancien' },
+        { id: 1, title: 'Ancien', body: 'Ancien' },
+      ],
+    })
     schedule.mockRejectedValue(new Error('quota d’alarmes'))
 
     await expect(rescheduleAll([rabies])).rejects.toThrow('quota d’alarmes')
 
-    expect(cancel).not.toHaveBeenCalled()
+    expect(cancel).toHaveBeenCalledExactlyOnceWith({ notifications: [{ id: 1 }] })
     expect(warn).toHaveBeenCalled()
   })
 

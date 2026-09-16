@@ -39,13 +39,6 @@ async function scheduleOnRemindersChannel(reminders: Reminder[]): Promise<void> 
   await LocalNotifications.schedule({ notifications: reminders.map(toPluginNotification) })
 }
 
-/** Remplace le rappel de même clé s'il existe déjà ; sans permission accordée, ne programme rien. */
-export async function scheduleReminder(reminder: Reminder): Promise<void> {
-  // Sur Android 13+, `schedule()` ouvrirait la popup système sans l'écran d'explication.
-  if (!(await checkPermission())) return
-  await scheduleOnRemindersChannel([reminder])
-}
-
 /** Un seul appel au plugin pour toute la liste ; sans effet pour une clé sans rappel. */
 export async function cancelReminders(keys: string[]): Promise<void> {
   if (keys.length === 0) return
@@ -74,32 +67,32 @@ function batches(reminders: Reminder[]): Reminder[][] {
 }
 
 /**
- * Programme la liste par lots, puis annule ce qu'elle ne reprend pas, y compris d'une session
- * précédente. Un échec laisse donc les rappels en place et se propage : rien ne se dit à jour.
- * Sans permission accordée, ne reprogramme rien.
+ * Annule ce que la liste ne reprend pas, y compris d'une session précédente, puis la programme par
+ * lots. Dans cet ordre, l'appareil ne porte jamais l'ancien et le nouveau à la fois, et un échec
+ * laisse en place les rappels toujours voulus sans se dire à jour. Sans permission accordée,
+ * ne reprogramme rien.
  */
 export async function rescheduleAll(reminders: Reminder[]): Promise<void> {
   const { notifications: pending } = await LocalNotifications.getPending()
-  const scheduled = new Set<number>()
+  const granted = reminders.length > 0 && (await checkPermission())
+  const wanted = new Set(granted ? reminders.map(({ key }) => reminderNotificationId(key)) : [])
+  const obsolete = pending.filter(({ id }) => !wanted.has(id))
 
-  try {
-    if (reminders.length > 0 && (await checkPermission())) {
-      for (const batch of batches(reminders)) {
-        await scheduleOnRemindersChannel(batch)
-        for (const { key } of batch) scheduled.add(reminderNotificationId(key))
-      }
-    }
-  } catch (cause) {
-    console.warn(
-      `Rappels : ${scheduled.size} programmés sur ${reminders.length}, rien annulé`,
-      cause,
-    )
-    throw cause
-  }
-
-  const obsolete = pending.filter(({ id }) => !scheduled.has(id))
   if (obsolete.length > 0) {
     await LocalNotifications.cancel({ notifications: obsolete.map(({ id }) => ({ id })) })
+  }
+  if (!granted) return
+
+  let scheduled = 0
+  try {
+    await ensureRemindersChannel()
+    for (const batch of batches(reminders)) {
+      await LocalNotifications.schedule({ notifications: batch.map(toPluginNotification) })
+      scheduled += batch.length
+    }
+  } catch (cause) {
+    console.warn(`Rappels : ${scheduled} programmés sur ${reminders.length}`, cause)
+    throw cause
   }
 }
 
