@@ -158,15 +158,19 @@ function openCarnet(): void {
 
     <template v-else-if="isReady">
       <header class="home-header">
-        <v-btn
-          class="home-header__settings"
-          icon="ms:settings"
-          variant="text"
-          :aria-label="t('settings.open')"
-          @click="openSettings"
-        />
-        <h1 class="home-header__title">{{ t('home.title') }}</h1>
-        <p class="home-header__subtitle">{{ t('home.header.household') }}</p>
+        <div class="home-header__line">
+          <div class="home-header__text">
+            <h1 class="home-header__title">{{ t('home.title') }}</h1>
+            <p class="home-header__subtitle">{{ t('home.header.household') }}</p>
+          </div>
+          <v-btn
+            class="home-header__settings"
+            icon="ms:settings"
+            variant="text"
+            :aria-label="t('settings.open')"
+            @click="openSettings"
+          />
+        </div>
       </header>
 
       <AnimalChipSelector
@@ -237,15 +241,15 @@ function openCarnet(): void {
         <h2 class="home-quick-actions__title">{{ t('home.quickActions.title') }}</h2>
         <div class="home-quick-actions__grid">
           <button type="button" class="home-quick-tile" @click="openForm('treatment-new')">
-            <v-icon class="home-quick-tile__icon" icon="ms:medication" size="24" />
+            <v-icon class="home-quick-tile__icon" icon="ms:medication" size="22" />
             <span class="home-quick-tile__label">{{ t('home.quickActions.treatment') }}</span>
           </button>
           <button type="button" class="home-quick-tile" @click="openForm('vaccination-new')">
-            <v-icon class="home-quick-tile__icon" icon="ms:vaccines" size="24" />
+            <v-icon class="home-quick-tile__icon" icon="ms:vaccines" size="22" />
             <span class="home-quick-tile__label">{{ t('home.quickActions.vaccination') }}</span>
           </button>
           <button type="button" class="home-quick-tile" @click="isWeightSheetOpen = true">
-            <v-icon class="home-quick-tile__icon" icon="ms:monitor_weight" size="24" />
+            <v-icon class="home-quick-tile__icon" icon="ms:monitor_weight" size="22" />
             <span class="home-quick-tile__label">{{ t('home.quickActions.weight') }}</span>
           </button>
         </div>
@@ -295,12 +299,24 @@ function openCarnet(): void {
   color: rgb(var(--v-theme-background));
 }
 
+.home-header__line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.home-header__text {
+  min-width: 0;
+}
+
 .home-header__settings {
-  position: absolute;
-  top: 4px;
-  right: 12px;
+  flex: 0 0 auto;
   width: 48px;
   height: 48px;
+  // Rend les 12 px que la zone de tap ajoute autour du glyphe : l'icône s'aligne
+  // sur le bord droit du contenu, pas sur celui de sa cible.
+  margin-inline-end: -12px;
   color: rgb(var(--v-theme-background));
 }
 
@@ -393,7 +409,14 @@ function openCarnet(): void {
 }
 
 .reminder-row {
+  // Sous 380 px, un titre d'un seul mot long et un badge d'échéance ne tiennent
+  // pas côte à côte : le badge passe dessous plutôt que le mot soit coupé en deux.
+  flex-wrap: wrap;
   gap: 14px;
+}
+
+.reminder-row__badge {
+  margin-inline-start: auto;
 }
 
 .reminder-row--overdue::before {
@@ -421,7 +444,9 @@ function openCarnet(): void {
 
 .reminder-row__title {
   margin: 0;
-  overflow-wrap: anywhere;
+  // `anywhere` ramenait la largeur minimale du titre à zéro : la colonne cédait au
+  // badge et coupait « Antiparasitaire » en deux dès 360 px.
+  overflow-wrap: break-word;
   font-size: 15.5px;
   font-weight: 700;
 }
@@ -495,7 +520,7 @@ function openCarnet(): void {
   margin: 0 0 12px;
   font-family: tokens.$font-family-heading;
   font-size: 21px;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .home-quick-actions__grid {
@@ -509,9 +534,9 @@ function openCarnet(): void {
   flex-direction: column;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 8px;
+  gap: 6px;
   min-height: tokens.$height-quick-tile;
-  padding: 12px;
+  padding: 10px;
   border: 1px solid tokens.$color-card-border;
   border-radius: tokens.$radius-tile;
   background: rgb(var(--v-theme-surface));
@@ -533,7 +558,7 @@ function openCarnet(): void {
 .home-quick-tile__label {
   font-size: 13px;
   font-weight: 500;
-  line-height: 1.25;
+  line-height: 1.2;
 }
 
 .home-loading {
