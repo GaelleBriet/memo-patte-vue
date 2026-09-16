@@ -68,6 +68,32 @@ describe('usePurchaseStore', () => {
 
       expect(store.status).toEqual(renewed)
     })
+
+    it('nomme le plan échu, pour dire « expiré » plutôt que « gratuit »', () => {
+      expect(usePurchaseStore().expiredPlan).toBe('monthly')
+    })
+
+    it('oublie le plan échu dès qu’un renouvellement est connu', async () => {
+      service.fetchStatus.mockResolvedValueOnce({
+        plan: 'monthly',
+        expiresAt: '2026-10-01T10:00:00Z',
+      })
+      const store = usePurchaseStore()
+
+      await store.verifyKnownStatus()
+
+      expect(store.expiredPlan).toBeNull()
+    })
+  })
+
+  it.each([
+    ['un utilisateur qui n’a jamais payé', NO_PLUS],
+    ['un abonnement en cours', ANNUAL],
+    ['un achat à vie', LIFETIME],
+  ])('ne rapporte aucun plan échu pour %s', (_, status) => {
+    writeStoredPlusStatus(status)
+
+    expect(usePurchaseStore().expiredPlan).toBeNull()
   })
 
   it('expose la disponibilité des achats', () => {
