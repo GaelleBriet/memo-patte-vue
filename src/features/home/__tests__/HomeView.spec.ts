@@ -276,7 +276,7 @@ describe('HomeView — A1 tous les animaux, avec rappels', () => {
     expect(wrapper.findAll('.home-todo .section-card__card')).toHaveLength(1)
     expect(rows(wrapper)).toEqual([
       {
-        title: 'Vaccin CHPPiL',
+        title: 'CHPPiL',
         animal: 'Milo',
         badge: 'En retard · 2 j',
         status: 'reminder-row--overdue',
@@ -463,7 +463,7 @@ describe('HomeView — A2 animal sélectionné, avec rappels', () => {
     expect(wrapper.get('.home-todo .section-card__counter').text()).toBe('Milo · 2 rappels')
     expect(rows(wrapper)).toEqual([
       {
-        title: 'Vaccin CHPPiL',
+        title: 'CHPPiL',
         animal: null,
         badge: 'En retard · 2 j',
         status: 'reminder-row--overdue',

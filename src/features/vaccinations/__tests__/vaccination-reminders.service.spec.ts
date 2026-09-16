@@ -70,9 +70,9 @@ describe('vaccinationRemindersService', () => {
         reminders.map((reminder) => reminder.title),
       ),
     ).toEqual([
-      'Vaccin CHPPi de Milo dans 3 jours',
-      'Vaccin CHPPi de Milo aujourd’hui',
-      'Vaccin CHPPi de Milo en retard de 3 jours',
+      'CHPPi de Milo dans 3 jours',
+      'CHPPi de Milo aujourd’hui',
+      'CHPPi de Milo en retard de 3 jours',
     ])
   })
 

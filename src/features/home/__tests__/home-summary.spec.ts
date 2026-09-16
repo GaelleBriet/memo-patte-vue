@@ -89,9 +89,9 @@ describe('dueBadge', () => {
 })
 
 describe('reminderTitle et reminderIcon', () => {
-  it('nomme un vaccin par son nom, précédé de « Vaccin »', () => {
+  it('nomme un vaccin par le nom saisi, sans préfixe de type', () => {
     const source = reminder()
-    expect(reminderTitle(t, { ...source, treatmentType: null })).toBe('Vaccin CHPPiL')
+    expect(reminderTitle(t, { ...source, treatmentType: null })).toBe('CHPPiL')
     expect(reminderIcon({ ...source, treatmentType: null })).toBe('ms:vaccines')
   })
 
@@ -157,7 +157,7 @@ describe('reminderRows', () => {
         id: 'v1',
         status: 'overdue',
         icon: 'ms:vaccines',
-        title: 'Vaccin CHPPiL',
+        title: 'CHPPiL',
         animalName: 'Milo',
         badge: { text: 'En retard · 2 j', icon: null },
       },
