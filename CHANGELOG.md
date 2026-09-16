@@ -5,6 +5,42 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.27](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.26...memo-patte-v0.1.27) (2026-09-16)
+
+
+### ✨ Fonctionnalités
+
+* **auth:** session persistante et drapeau « compte Plus sur l'appareil » ([04b0bc0](https://github.com/GaelleBriet/memo-patte-vue/commit/04b0bc05449cea1acb59ac555b19ad0acec11e1a))
+* **auth:** session persistante et drapeau compte Plus ([0a6d38c](https://github.com/GaelleBriet/memo-patte-vue/commit/0a6d38c8caf9f661676d29f6d02cab62eaf586c2))
+* **purchase:** service billing RevenueCat et statut Plus ([7f6f95b](https://github.com/GaelleBriet/memo-patte-vue/commit/7f6f95b64bcddf3ea317b0274a250735031e13e4))
+* **purchase:** service billing RevenueCat et statut Plus persisté ([15c9db9](https://github.com/GaelleBriet/memo-patte-vue/commit/15c9db959216c773c8155f067758e9568fad5b26))
+
+
+### 🐛 Corrections
+
+* **auth:** effacement complet de la session et rafraîchissement refusé relu ([d67f56b](https://github.com/GaelleBriet/memo-patte-vue/commit/d67f56b5d84abd8335821886265b3f0ce7477800))
+* **forms:** signaler une fiche illisible et bloquer l'enregistrement ([8a745b3](https://github.com/GaelleBriet/memo-patte-vue/commit/8a745b352a6406bb1ee652a084805e0e6c56bbde)), closes [#255](https://github.com/GaelleBriet/memo-patte-vue/issues/255)
+* **notifications:** annuler l'obsolète avant de programmer, jamais les deux à la fois ([7e900e1](https://github.com/GaelleBriet/memo-patte-vue/commit/7e900e1fac767bcecdbd1388c4d5b0dc026fa70b))
+* **notifications:** désarmer les rappels quand la permission est retirée ([e16616a](https://github.com/GaelleBriet/memo-patte-vue/commit/e16616a5bc3796eadd9a7c8ae0d56b7db7a65aa0))
+* **notifications:** fiabilité de la reconstruction des rappels ([6f9fcd1](https://github.com/GaelleBriet/memo-patte-vue/commit/6f9fcd1e37a7f94248cec20943238b98b5fd0411))
+* **notifications:** programmer par lots avant d'annuler, un échec ne vide plus les rappels ([921ea4c](https://github.com/GaelleBriet/memo-patte-vue/commit/921ea4c8d0b01108af2bd495f1f32982ca4eecd7))
+* **notifications:** réserver la première échéance de chaque entrée sous le plafond ([0f61509](https://github.com/GaelleBriet/memo-patte-vue/commit/0f61509da72dd92b4f77565e7b1979c6909633ee))
+* **notifications:** une ligne de traitement invalide ne casse plus tous les rappels ([ecc62c9](https://github.com/GaelleBriet/memo-patte-vue/commit/ecc62c9bd96d55c12bb295774705096177f71ecf))
+* **purchase:** échéance passée lue « aucun », disponibilité exposée, revérification tardive ignorée ([e08546a](https://github.com/GaelleBriet/memo-patte-vue/commit/e08546a88afa90d6ad093e656dc72d1538b1b005))
+* **rappels:** annuler les rappels programmés quand la permission n'est plus accordée ([8b1579b](https://github.com/GaelleBriet/memo-patte-vue/commit/8b1579be470d68c9922ad7b754e093d647a6d224)), closes [#265](https://github.com/GaelleBriet/memo-patte-vue/issues/265)
+* robustesse des formulaires, de l'export partagé, du routeur et des bornes de poids ([7593290](https://github.com/GaelleBriet/memo-patte-vue/commit/75932906eda6b09af6f7e94bfc1dd8672ce187c7))
+* **router:** ramener à l'accueil toute adresse inconnue ([1b92640](https://github.com/GaelleBriet/memo-patte-vue/commit/1b92640c15facb26f29cc43d9de52af6c8110884)), closes [#257](https://github.com/GaelleBriet/memo-patte-vue/issues/257)
+* **settings:** dire pourquoi un import est refusé quand un poids sort des bornes ([0e4d7bc](https://github.com/GaelleBriet/memo-patte-vue/commit/0e4d7bc004f01bf3d2f555276d661932f5bcd498)), closes [#258](https://github.com/GaelleBriet/memo-patte-vue/issues/258)
+* **settings:** effacer l'export du cache après partage et restreindre le FileProvider ([4d2b205](https://github.com/GaelleBriet/memo-patte-vue/commit/4d2b2054ee64b06aa2e5b4538728f749ac54ac0d)), closes [#256](https://github.com/GaelleBriet/memo-patte-vue/issues/256)
+* **settings:** garder l'export partagé jusqu'au lancement suivant ([10aa66b](https://github.com/GaelleBriet/memo-patte-vue/commit/10aa66b6aa43da164a6ec7e1403bf909812b3624)), closes [#256](https://github.com/GaelleBriet/memo-patte-vue/issues/256)
+* **treatments:** dire le plafond de fréquence au lieu de la croire absente ([02e2ad8](https://github.com/GaelleBriet/memo-patte-vue/commit/02e2ad86264dbe0ea217d6b473301b04d5eb3868))
+* **validation:** borner le poids à 200 kg à la saisie comme à l'import ([abe304d](https://github.com/GaelleBriet/memo-patte-vue/commit/abe304d483d69fe8b08f35d9061de230228d2d70)), closes [#258](https://github.com/GaelleBriet/memo-patte-vue/issues/258)
+
+
+### ⚡ Performance
+
+* **notifications:** annuler les rappels d'une entrée en un seul appel natif ([e0f07ac](https://github.com/GaelleBriet/memo-patte-vue/commit/e0f07acf77624f1bf0a31a966490b28264a44a1b))
+
 ## [0.1.26](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.25...memo-patte-v0.1.26) (2026-09-15)
 
 
