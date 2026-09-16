@@ -165,9 +165,12 @@ describe('SettingsView', () => {
       const wrapper = await monter()
       const ligne = wrapper.get('.settings-row--manage-subscription')
       const carte = ligne.element.closest('.section-card')
+      const lignes = [...carte!.querySelectorAll('.settings-row')]
 
       expect(carte?.querySelector('.section-card__title')?.textContent).toBe('Confidentialité')
-      expect([...carte!.querySelectorAll('.settings-row')].indexOf(ligne.element)).toBe(1)
+      expect(lignes.indexOf(ligne.element)).toBe(
+        lignes.findIndex((row) => row.classList.contains('settings-row--analytics')) + 1,
+      )
     })
   })
 

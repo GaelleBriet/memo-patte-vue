@@ -150,89 +150,13 @@ function goHome(): void {
 </template>
 
 <style scoped lang="scss">
+@use '@/styles/tokens' as tokens;
+
 .settings__content {
   display: flex;
   flex-direction: column;
   gap: 26px;
   padding-block: 12px 32px;
-}
-</style>
-
-<!-- Non scopé : les lignes sont aussi rendues par les sections des autres features. -->
-<style lang="scss">
-@use '@/styles/tokens' as tokens;
-
-.settings-row {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  width: 100%;
-  min-height: tokens.$height-settings-row;
-  padding: 12px 20px;
-  border: 0;
-  background: transparent;
-  color: rgb(var(--v-theme-on-surface));
-  font-family: inherit;
-  text-align: start;
-}
-
-a.settings-row {
-  text-decoration: none;
-}
-
-button.settings-row,
-label.settings-row,
-a.settings-row {
-  cursor: pointer;
-
-  &:focus-visible {
-    outline: none;
-  }
-}
-
-.settings-row + .settings-row {
-  border-top: 1px solid tokens.$color-divider;
-}
-
-.settings-row__icon {
-  flex: 0 0 auto;
-  color: rgb(var(--v-theme-primary));
-}
-
-.settings-row__text {
-  display: flex;
-  flex: 1 1 auto;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.settings-row__label {
-  font-size: 15px;
-  font-weight: 600;
-}
-
-.settings-row__hint {
-  margin-top: 2px;
-  color: tokens.$color-text-secondary;
-  font-size: 13px;
-}
-
-.settings-row__hint--error {
-  color: rgb(var(--v-theme-error));
-}
-
-.settings-row__chevron {
-  flex: 0 0 auto;
-  color: tokens.$color-settings-chevron;
-}
-
-.settings-row__spinner {
-  flex: 0 0 auto;
-  color: rgb(var(--v-theme-primary));
-}
-
-.settings-row--busy {
-  cursor: progress;
 }
 
 .settings-row__switch {
@@ -256,21 +180,6 @@ a.settings-row {
 
   :deep(.v-selection-control__input::before) {
     display: none;
-  }
-}
-
-.settings-row__value {
-  color: tokens.$color-text-secondary;
-  font-size: 14px;
-  font-weight: 500;
-}
-
-.settings-row--disabled {
-  cursor: default;
-
-  .settings-row__icon,
-  .settings-row__label {
-    color: tokens.$color-settings-row-disabled;
   }
 }
 </style>

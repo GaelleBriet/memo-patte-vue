@@ -2,9 +2,8 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 
+import { MANAGE_SUBSCRIPTIONS_URL } from './google-play'
 import { usePurchaseStore } from './purchase.store'
-
-const MANAGE_SUBSCRIPTIONS_URL = 'https://play.google.com/store/account/subscriptions'
 
 const { t } = useI18n()
 const purchase = usePurchaseStore()

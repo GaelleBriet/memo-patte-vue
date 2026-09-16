@@ -22,16 +22,21 @@ const statusHint = computed<string | null>(() => {
       : t('plus.settings.status.expiredAnnual')
   }
   const { plan, expiresAt } = purchase.status
+  if (plan === 'none') return null
   if (plan === 'lifetime') return t('plus.settings.status.lifetime')
-  if (expiresAt === null) return null
+  if (expiresAt === null)
+    return plan === 'monthly' ? t('plus.member.monthly') : t('plus.member.annual')
   const date = formatNumericDate(expiresAt)
   return plan === 'monthly'
     ? t('plus.settings.status.monthly', { date })
     : t('plus.settings.status.annual', { date })
 })
 
+const isPaused = computed(() => purchase.expiredPlan !== null)
 const canDiscover = computed(() => statusHint.value === null)
-const canRestore = computed(() => purchase.available && purchase.status.plan === 'none')
+const canRestore = computed(
+  () => purchase.available && purchase.status.plan === 'none' && !isPaused.value,
+)
 
 function openPlus(): void {
   void router.push({ name: 'plus' })
@@ -52,6 +57,19 @@ async function restore(): Promise<void> {
 
 <template>
   <SectionCard :title="t('plus.title')">
+    <template #intro>
+      <div v-if="isPaused" class="plus-paused" role="status">
+        <v-icon class="plus-paused__icon" icon="ms:cloud_off" size="19" />
+        <div class="plus-paused__text">
+          <p class="plus-paused__body">{{ t('plus.settings.paused.body') }}</p>
+          <button type="button" class="plus-paused__action" @click="openPlus">
+            <span>{{ t('plus.settings.paused.action') }}</span>
+            <v-icon icon="ms:chevron_right" size="16" />
+          </button>
+        </div>
+      </div>
+    </template>
+
     <button
       v-if="canDiscover"
       type="button"
@@ -85,7 +103,7 @@ async function restore(): Promise<void> {
       <v-icon class="settings-row__icon" icon="ms:settings_backup_restore" size="22" />
       <span class="settings-row__text">
         <span class="settings-row__label">{{ t('plus.restore.action') }}</span>
-        <span v-if="isRestoring" class="settings-row__hint">
+        <span v-if="isRestoring" class="settings-row__hint" role="status">
           {{ t('plus.restore.busy') }}
         </span>
       </span>
@@ -99,3 +117,58 @@ async function restore(): Promise<void> {
     </button>
   </SectionCard>
 </template>
+
+<style scoped lang="scss">
+@use '@/styles/tokens' as tokens;
+
+.plus-paused {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding: 9px 16px;
+  border: 1px solid tokens.$color-reminders-off-border;
+  border-radius: 14px;
+  background: tokens.$color-reminders-off-surface;
+}
+
+.plus-paused__icon {
+  flex: 0 0 auto;
+  color: tokens.$color-text-secondary;
+}
+
+.plus-paused__body {
+  margin: 0;
+  color: tokens.$color-reminders-off-text;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.plus-paused__action {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-top: 3px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: rgb(var(--v-theme-primary));
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+
+  // Tout le bandeau répond au tap, bien au-delà des 48 px de la ligne de lien.
+  &::after {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    content: '';
+  }
+
+  &:focus-visible {
+    outline: none;
+  }
+}
+</style>

@@ -539,6 +539,10 @@
         "lifetime": "Plus à vie",
         "expiredMonthly": "Plus mensuel — expiré",
         "expiredAnnual": "Plus annuel — expiré"
+      },
+      "paused": {
+        "body": "Ta sauvegarde cloud est en pause. Tes carnets restent sur ton téléphone.",
+        "action": "Réactiver Plus"
       }
     }
   }

@@ -6,6 +6,7 @@ import arrowBack from '@material-symbols/svg-400/outlined/arrow_back.svg?raw'
 import calendarMonth from '@material-symbols/svg-400/outlined/calendar_month.svg?raw'
 import check from '@material-symbols/svg-400/outlined/check.svg?raw'
 import cloudDone from '@material-symbols/svg-400/outlined/cloud_done.svg?raw'
+import cloudOff from '@material-symbols/svg-400/outlined/cloud_off.svg?raw'
 import creditCard from '@material-symbols/svg-400/outlined/credit_card.svg?raw'
 import deleteSweep from '@material-symbols/svg-400/outlined/delete_sweep.svg?raw'
 import description from '@material-symbols/svg-400/outlined/description.svg?raw'
@@ -120,6 +121,7 @@ export const msIcons = {
   circle,
   close,
   cloud_done: cloudDone,
+  cloud_off: cloudOff,
   colorize,
   credit_card: creditCard,
   delete_sweep: deleteSweep,

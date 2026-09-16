@@ -539,6 +539,10 @@
         "lifetime": "Lifetime Plus",
         "expiredMonthly": "Monthly Plus — expired",
         "expiredAnnual": "Annual Plus — expired"
+      },
+      "paused": {
+        "body": "Your cloud backup is paused. Your records stay on your phone.",
+        "action": "Reactivate Plus"
       }
     }
   }

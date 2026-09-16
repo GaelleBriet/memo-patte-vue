@@ -112,12 +112,51 @@ describe('PlusSection — statut de l’abonnement', () => {
     expect(wrapper.find('.settings-row--plus-discover').exists()).toBe(false)
   })
 
+  it('tient d’un abonnement payant sans échéance connue qu’il est actif', async () => {
+    writeStoredPlusStatus({ plan: 'annual', expiresAt: null })
+
+    expect(statut(await monter())).toContain('Abonnement annuel actif.')
+  })
+
   it('ne propose ni découverte ni restauration à un abonné', async () => {
     writeStoredPlusStatus(ANNUAL)
     const wrapper = await monter()
 
     expect(wrapper.find('.settings-row--plus-discover').exists()).toBe(false)
     expect(wrapper.find('.settings-row--plus-restore').exists()).toBe(false)
+  })
+})
+
+describe('PlusSection — sauvegarde en pause', () => {
+  it('explique la pause et ramène à l’écran Plus, sans alarmer', async () => {
+    writeStoredPlusStatus(EXPIRED)
+    const wrapper = await monter()
+    const bandeau = wrapper.get('.plus-paused')
+
+    expect(bandeau.text()).toContain(
+      'Ta sauvegarde cloud est en pause. Tes carnets restent sur ton téléphone.',
+    )
+    expect(bandeau.attributes('role')).toBe('status')
+
+    await bandeau.get('.plus-paused__action').trigger('click')
+
+    await vi.waitFor(() => expect(router.currentRoute.value.path).toBe('/plus'))
+  })
+
+  it('ne propose pas de restaurer un achat tant que Plus est en pause', async () => {
+    writeStoredPlusStatus(EXPIRED)
+
+    expect((await monter()).find('.settings-row--plus-restore').exists()).toBe(false)
+  })
+
+  it.each([
+    ['un utilisateur gratuit', NO_PLUS],
+    ['un abonnement en cours', ANNUAL],
+    ['un achat à vie', LIFETIME],
+  ])('ne met aucun bandeau devant %s', async (_, status) => {
+    writeStoredPlusStatus(status)
+
+    expect((await monter()).find('.plus-paused').exists()).toBe(false)
   })
 })
 
@@ -128,7 +167,6 @@ describe('PlusSection — restaurer mon achat', () => {
 
   it('reste caché quand les achats ne sont pas disponibles sur cet appareil', async () => {
     service.isAvailable.mockReturnValue(false)
-    writeStoredPlusStatus(EXPIRED)
     const wrapper = await monter()
 
     expect(wrapper.find('.settings-row--plus-restore').exists()).toBe(false)
@@ -153,10 +191,12 @@ describe('PlusSection — restaurer mon achat', () => {
     const wrapper = await monter()
 
     await ligneRestaurer(wrapper).trigger('click')
+    await ligneRestaurer(wrapper).trigger('click')
 
+    expect(service.restore).toHaveBeenCalledOnce()
     expect(ligneRestaurer(wrapper).attributes('disabled')).toBeDefined()
     expect(ligneRestaurer(wrapper).attributes('aria-busy')).toBe('true')
-    expect(ligneRestaurer(wrapper).text()).toContain('Restauration…')
+    expect(ligneRestaurer(wrapper).get('[role="status"]').text()).toBe('Restauration…')
 
     finish(NO_PLUS)
     await flushPromises()
