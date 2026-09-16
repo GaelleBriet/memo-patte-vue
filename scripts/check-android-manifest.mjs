@@ -1,5 +1,5 @@
 // Compare les permissions et fonctionnalités du manifest Android *fusionné* à la liste
-// blanche ci-dessous. Le manifest fusionné n'existe qu'après un build Gradle, donc pas en CI :
+// blanche ci-dessous. Le manifest fusionné n'existe qu'après un build Gradle :
 // `pnpm cap:sync && cd android && ./gradlew :app:processDebugManifest && cd .. && pnpm test:manifest`
 // (cf. docs/technical/commandes-utiles.md).
 import { readdirSync, readFileSync } from 'node:fs'
