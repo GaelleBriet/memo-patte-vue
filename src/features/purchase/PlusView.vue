@@ -479,8 +479,10 @@ async function restore(): Promise<void> {
   margin-top: 12px;
 }
 
+// `rgba(…, alpha)` et non `rgb(… / alpha)` : le thème livre « 1,56,62 », que la
+// syntaxe à barre oblique rejette, et la bordure retombait alors sur `currentColor`.
 .plus-offer--best {
-  border-color: rgb(var(--v-theme-primary) / 18%);
+  border-color: rgba(var(--v-theme-primary), 0.18);
 }
 
 .plus-offer--selected {

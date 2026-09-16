@@ -28,6 +28,14 @@ describe('PlusView — contrat de style', () => {
     expect(declaration(css, '.plus__manage', 'position')).toBe('relative')
   })
 
+  it('borde l’offre annuelle non cochée sans la faire passer pour cochée', () => {
+    const css = styleCompile()
+
+    expect(declaration(css, '.plus-offer--best', 'border-color')).toBe(
+      'rgba(var(--v-theme-primary), 0.18)',
+    )
+  })
+
   it('laisse le bouton d’achat grandir plutôt que déborder, quel que soit le prix', () => {
     const css = styleCompile()
 
