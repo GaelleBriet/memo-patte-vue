@@ -96,6 +96,28 @@ describe('imports entre features', { timeout: 30_000 }, () => {
     expect(own.feature).toBe(0)
   })
 
+  it('autorise sa propre feature et le statut Plus', async () => {
+    const result = await lintImports('src/features/weight/WeightHistoryView.vue', [
+      "import * as m0 from '@/features/weight/weight.store'",
+      "import { usePurchaseStore } from '@/features/purchase/purchase.store'",
+    ])
+
+    expect(result.feature).toBe(0)
+  })
+
+  it("du statut Plus, n'autorise que la lecture du store", async () => {
+    const other = await lintImports('src/features/weight/WeightHistoryView.vue', [
+      "import { billingService } from '@/features/purchase/purchase.store'",
+      "import * as m1 from '@/features/purchase/purchase.store'",
+    ])
+    const own = await lintImports('src/features/purchase/PlusView.vue', [
+      "import * as m0 from '@/features/purchase/purchase.store'",
+    ])
+
+    expect(other.feature).toBe(2)
+    expect(own.feature).toBe(0)
+  })
+
   it('interdit les autres modules des animaux', async () => {
     const result = await restrictedImports('src/features/treatments/TreatmentFormView.vue', [
       '@/features/animals/animals.repository',
@@ -116,6 +138,18 @@ describe('imports entre features', { timeout: 30_000 }, () => {
 
     expect(home.feature).toBe(0)
     expect(carnet.feature).toBe(0)
+  })
+
+  it('autorise un écran composite à lire le statut Plus', async () => {
+    const carnet = await lintImports('src/features/animals/CarnetView.vue', [
+      "import { usePurchaseStore } from '@/features/purchase/purchase.store'",
+    ])
+    const settings = await lintImports('src/features/settings/SettingsView.vue', [
+      "import { usePurchaseStore } from '@/features/purchase/purchase.store'",
+    ])
+
+    expect(carnet.feature).toBe(0)
+    expect(settings.feature).toBe(0)
   })
 
   it("interdit à un écran composite le store d'une autre feature", async () => {

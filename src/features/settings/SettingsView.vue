@@ -1,24 +1,31 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, useTemplateRef } from 'vue'
+import { computed, defineAsyncComponent, onMounted, ref, useTemplateRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
 import ExportSheet from './ExportSheet.vue'
 import ImportSheet from './ImportSheet.vue'
+import type { PdfExportAnimal } from './PdfExportSheet.vue'
+
+const PdfExportSheet = defineAsyncComponent(() => import('./PdfExportSheet.vue'))
 import { promptNotificationsIfReminders } from '@/app/reminders-priming'
 import { hasConsent, optIn, optOut } from '@/core/analytics'
 import { useAnimalsStore } from '@/features/animals/animals.store'
 import AccountSection from '@/features/auth/AccountSection.vue'
 import PlusSection from '@/features/purchase/PlusSection.vue'
+import { usePurchaseStore } from '@/features/purchase/purchase.store'
 import PushedScreen from '@/shared/PushedScreen.vue'
 import SectionCard from '@/shared/SectionCard.vue'
 
 const { t } = useI18n()
 const router = useRouter()
 const animals = useAnimalsStore()
+const purchase = usePurchaseStore()
 
 const appVersion = import.meta.env.VITE_APP_VERSION
 const isExportSheetOpen = ref(false)
+const isPdfExportSheetOpen = ref(false)
+const hasOpenedPdfExportSheet = ref(false)
 const importSheet = useTemplateRef('importSheet')
 const isImporting = ref(false)
 const shareAnalytics = ref(hasConsent())
@@ -26,10 +33,25 @@ const shareAnalytics = ref(hasConsent())
 const hasLoadFailed = computed(() => animals.error !== null)
 const hasNothingToExport = computed(() => animals.hasLoaded && animals.animals.length === 0)
 const canExport = computed(() => animals.hasLoaded && animals.animals.length > 0)
+const isFreePlan = computed(() => purchase.status.plan === 'none')
+const pdfExportAnimals = computed<PdfExportAnimal[]>(() =>
+  animals.animals.map((animal) => ({ id: animal.id, name: animal.name, species: animal.species })),
+)
 
 function onExportRow(): void {
   if (hasLoadFailed.value) void animals.load()
   else isExportSheetOpen.value = true
+}
+
+function onExportPdfRow(): void {
+  if (hasLoadFailed.value) {
+    void animals.load()
+  } else if (isFreePlan.value) {
+    void router.push({ name: 'plus' })
+  } else {
+    hasOpenedPdfExportSheet.value = true
+    isPdfExportSheetOpen.value = true
+  }
 }
 
 onMounted(() => {
@@ -79,6 +101,33 @@ function goHome(): void {
             </span>
             <span v-else-if="hasNothingToExport" class="settings-row__hint">
               {{ t('settings.data.exportEmpty') }}
+            </span>
+          </span>
+          <v-icon
+            v-if="canExport"
+            class="settings-row__chevron"
+            icon="ms:chevron_right"
+            size="20"
+          />
+        </button>
+        <button
+          type="button"
+          class="settings-row settings-row--export-pdf"
+          :class="{ 'settings-row--disabled': !canExport && !hasLoadFailed }"
+          :disabled="!canExport && !hasLoadFailed"
+          @click="onExportPdfRow"
+        >
+          <v-icon class="settings-row__icon" icon="ms:picture_as_pdf" size="22" />
+          <span class="settings-row__text">
+            <span class="settings-row__label">{{ t('settings.data.exportPdf') }}</span>
+            <span v-if="hasLoadFailed" class="settings-row__hint settings-row__hint--error">
+              {{ t('settings.data.loadError') }}
+            </span>
+            <span v-else-if="hasNothingToExport" class="settings-row__hint">
+              {{ t('settings.data.exportEmpty') }}
+            </span>
+            <span v-else-if="isFreePlan" class="settings-row__hint">
+              {{ t('settings.data.exportPdfPlus') }}
             </span>
           </span>
           <v-icon
@@ -147,6 +196,11 @@ function goHome(): void {
     </div>
 
     <ExportSheet v-model="isExportSheetOpen" />
+    <PdfExportSheet
+      v-if="hasOpenedPdfExportSheet"
+      v-model="isPdfExportSheetOpen"
+      :animals="pdfExportAnimals"
+    />
     <ImportSheet ref="importSheet" v-model:busy="isImporting" @imported="onImported" />
   </PushedScreen>
 </template>

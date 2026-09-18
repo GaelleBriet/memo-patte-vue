@@ -50,6 +50,12 @@ export async function photoDisplayUrl(name: string): Promise<string> {
   return `data:image/jpeg;base64,${String(data)}`
 }
 
+/** Toujours en base64, y compris natif : jsPDF ne sait pas dessiner une URI capacitor://. */
+export async function photoBase64DataUrl(name: string): Promise<string> {
+  const { data } = await Filesystem.readFile({ path: photoPath(name), directory: Directory.Data })
+  return `data:image/jpeg;base64,${String(data)}`
+}
+
 export interface PhotoStorage {
   savePhoto: typeof savePhoto
   deletePhoto: typeof deletePhoto

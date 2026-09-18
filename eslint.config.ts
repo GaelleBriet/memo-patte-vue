@@ -50,6 +50,7 @@ const DYNAMIC_I18N_KEYS = [
   '/^treatments\\.form\\.errors\\.(name|type|frequency|frequencyMax|lastDoseDate|lastDoseDateFuture)$/',
   '/^weight\\.form\\.errors\\.(animalId|weightKg|weightKgMax|measuredOn|measuredOnFuture)$/',
   '/^vaccinations\\.section\\.status\\.(overdue|upToDate|none)$/',
+  '/^settings\\.pdf\\.status\\.(overdue|upToDate|none)$/',
   '/^treatments\\.type\\.(deworming|antiparasitic)$/',
   '/^treatments\\.(frequency|form\\.frequency\\.every|form\\.frequency\\.unit)\\.(day|week|month)$/',
   '/^home\\.reminder\\.(deworming|antiparasitic)$/',
@@ -90,6 +91,15 @@ const ANIMALS_STORE_READ_ONLY = {
     'Des animaux, une autre feature ne lit que useAnimalsStore et animal.schema (cf. CLAUDE.md, « Règles strictes de structure »).',
 }
 
+// Exception actée au ticket #81 (decisions-log) : le statut Plus se lit au même
+// titre que l'entité animal — d'où `usePurchaseStore` seul autorisé.
+const PURCHASE_STORE_READ_ONLY = {
+  group: ['@/features/purchase/purchase.store'],
+  allowImportNames: ['usePurchaseStore'],
+  message:
+    'Du statut Plus, une autre feature ne lit que usePurchaseStore (cf. CLAUDE.md, « Règles strictes de structure »).',
+}
+
 function featureImportsRule(feature: string, allowedElsewhere: string[] = []): Linter.RulesRecord {
   return restrictFeatureImports({
     patterns: [
@@ -100,12 +110,14 @@ function featureImportsRule(feature: string, allowedElsewhere: string[] = []): L
           `!@/features/${feature}/**`,
           '!@/features/animals/animals.store',
           '!@/features/animals/animal.schema',
+          '!@/features/purchase/purchase.store',
           ...allowedElsewhere.map((pattern) => `!${pattern}`),
         ],
         message:
           'Import interdit depuis une autre feature : passe par shared/ ou core/ (cf. CLAUDE.md, « Règles strictes de structure »).',
       },
       ...(feature === 'animals' ? [] : [ANIMALS_STORE_READ_ONLY]),
+      ...(feature === 'purchase' ? [] : [PURCHASE_STORE_READ_ONLY]),
       {
         regex: '^@/features/[^/]+/?$',
         message: 'Importe un module précis de la feature, pas son dossier.',

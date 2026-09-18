@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } fr
 
 import ExportSheet from '../ExportSheet.vue'
 import type * as DataImport from '../data-import.service'
+import PdfExportSheet from '../PdfExportSheet.vue'
 import SettingsView from '../SettingsView.vue'
 import { importFixtureJson } from './import-fixture'
 import i18n from '@/core/i18n'
@@ -125,6 +126,10 @@ async function importer(wrapper: VueWrapper) {
 
 function ligneExport(wrapper: VueWrapper) {
   return wrapper.get('.settings-row--export')
+}
+
+function lignePdf(wrapper: VueWrapper) {
+  return wrapper.get('.settings-row--export-pdf')
 }
 
 describe('SettingsView', () => {
@@ -363,6 +368,72 @@ describe('SettingsView', () => {
     expect(ligneExport(wrapper).text()).toBe('Exporter mes données')
   })
 
+  describe('Exporter en PDF', () => {
+    it('ouvre la feuille PDF pour un compte Plus', async () => {
+      writeStoredPlusStatus({ plan: 'lifetime', expiresAt: null })
+      const wrapper = await monter()
+      const ligne = lignePdf(wrapper)
+
+      expect(ligne.text()).toBe('Exporter en PDF')
+      expect(ligne.attributes('disabled')).toBeUndefined()
+      expect(wrapper.findComponent(PdfExportSheet).exists()).toBe(false)
+
+      await ligne.trigger('click')
+      await flushPromises()
+
+      expect(wrapper.getComponent(PdfExportSheet).props('modelValue')).toBe(true)
+      expect(wrapper.getComponent(PdfExportSheet).props('animals')).toEqual([
+        { id: MILO.id, name: 'Milo', species: 'dog' },
+      ])
+    })
+
+    it('renvoie vers MémoPatte Plus sans compte, sans ouvrir la feuille', async () => {
+      const wrapper = await monter()
+      const ligne = lignePdf(wrapper)
+
+      expect(ligne.text()).toContain('Fonction MémoPatte Plus')
+
+      await ligne.trigger('click')
+
+      expect(push).toHaveBeenCalledWith({ name: 'plus' })
+      expect(wrapper.findComponent(PdfExportSheet).exists()).toBe(false)
+    })
+
+    it('désactive la ligne sans animal, avec « Rien à exporter pour l’instant »', async () => {
+      writeStoredPlusStatus({ plan: 'lifetime', expiresAt: null })
+      animals = []
+      const wrapper = await monter()
+      const ligne = lignePdf(wrapper)
+
+      expect(ligne.attributes('disabled')).toBeDefined()
+      expect(ligne.text()).toContain('Rien à exporter pour l’instant')
+    })
+
+    it('signale un échec de lecture des animaux et relance le chargement au tap', async () => {
+      loadAnimals.mockImplementation(async () => {
+        animalsStore.error = new Error('base indisponible')
+        return false
+      })
+      const wrapper = await monter()
+      const ligne = lignePdf(wrapper)
+
+      expect(ligne.attributes('disabled')).toBeUndefined()
+      expect(ligne.text()).toContain('La base locale n’a pas répondu. Touche pour réessayer.')
+
+      loadAnimals.mockImplementation(async () => {
+        animalsStore.animals = animals
+        animalsStore.hasLoaded = true
+        animalsStore.error = null
+        return true
+      })
+      await ligne.trigger('click')
+      await flushPromises()
+
+      expect(loadAnimals).toHaveBeenCalledTimes(2)
+      expect(wrapper.findComponent(PdfExportSheet).exists()).toBe(false)
+    })
+  })
+
   it.each([
     ['avec des animaux', [MILO]],
     ['sans animal', []],
@@ -378,7 +449,7 @@ describe('SettingsView', () => {
         .mockImplementation(() => undefined)
 
       expect(lignes.indexOf('Importer un export MémoPatte')).toBe(
-        lignes.findIndex((texte) => texte.startsWith('Exporter mes données')) + 1,
+        lignes.findIndex((texte) => texte.startsWith('Exporter mes données')) + 2,
       )
       expect(ligne.attributes('disabled')).toBeUndefined()
       await ligne.trigger('click')

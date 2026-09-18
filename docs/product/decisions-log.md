@@ -1125,3 +1125,59 @@ dans `notification-priming.ts` : l'importer depuis `core/analytics` aurait tiré
 `core/notifications/permission.ts` (donc `@capacitor/local-notifications`) dans le
 chunk chargé au démarrage — un essai de build l'a fait passer à 233 Ko avant
 correction. — Pour revenir dessus : retirer les deux clés de `postHogConfig()`.
+
+2026-09-18 — **Quatre décisions prises en autonomie pour le ticket #81 (export PDF
+du carnet, Plus)**, consignées ici faute de session d'autonomie déclarée par
+Gaelle en cours pour les recueillir ailleurs.
+
+1) **Bibliothèque PDF : `jsPDF`.** — Raison : ses polices standard (Helvetica,
+encodage WinAnsi) couvrent les caractères accentués français sans embarquer de
+fichier de police, contrairement à `pdfmake` dont le rendu correct exige de
+charger sa table `vfs_fonts` (plusieurs centaines de Ko à plus d'1 Mo pour un jeu
+complet) ; le tracé de la courbe de poids est fait à la main avec les primitives
+vectorielles de `jsPDF` (`line`, `circle`) à partir de `shared/weight-chart.ts`
+déjà utilisé par `WeightSparkline.vue`, sans bibliothèque de graphique
+supplémentaire. — Mesuré : le chunk `PdfExportSheet` (jsPDF inclus) pèse 400 Ko
+(129 Ko gzip) au build. `jsPDF` référence `html2canvas` pour sa méthode `.html()`
+(non utilisée ici) via un `import()` dynamique déjà isolé par Vite dans son propre
+chunk, jamais chargé. Le reste du poids est assumé jusqu'à mesure sur appareil
+(écrans Carnet et Paramètres, tous deux visités par un compte gratuit), dans le
+même esprit que le 2026-09-08 pour `@capacitor-community/sqlite` : optimiser sans
+mesure serait deviner. — Alternative écartée : `pdfmake`, au rendu plus riche
+mais plus lourd pour ce besoin, et un tracé de courbe en `<canvas>` converti en
+image, qui aurait ajouté une étape de rendu DOM à une génération par ailleurs
+synchrone.
+
+2) **Depuis Paramètres, un seul animal exporte directement ; plusieurs animaux
+ouvrent un sélecteur.** La feuille `PdfExportSheet.vue` réutilise `ChoiceCards.vue`
+(déjà au service de l'import JSON/CSV) pour choisir l'animal quand il y en a
+plus d'un, et saute cette étape sinon. — Raison : le ticket ne précise pas ce
+point, resté hors du scope maquette (l'export PDF a rejoint le v1 après le gel
+des maquettes, 2026-09-07) ; réutiliser un composant déjà éprouvé pour le même
+usage (choisir une option avant de lancer un export) respecte « saisie rapide »
+sans inventer de nouvelle identité visuelle. — Alternative écartée : toujours
+afficher le sélecteur, même à un seul animal, plus uniforme mais un tap de plus
+pour le cas le plus courant (un seul animal).
+
+3) **Depuis le Carnet, une icône dans l'en-tête ouvre directement l'export du seul
+animal consulté**, à côté du crayon d'édition existant, avec le même style de
+bouton (`v-btn icon variant="text"`). — Raison : le ticket demande un point
+d'entrée depuis le Carnet (3.4) sans le maquetter — comme l'écran Paramètres
+lui-même (2026-09-07) — et l'icône reprend un bouton déjà présent au même endroit
+plutôt que d'inventer un nouvel emplacement. — Alternative écartée : une ligne
+dans une liste d'actions du Carnet, qui n'existe pas aujourd'hui et aurait
+demandé de construire un emplacement pour un seul usage.
+
+4) **Nouvelle exception d'architecture : le statut Plus se lit comme l'entité
+animal.** `usePurchaseStore` (seul, comme `useAnimalsStore`) devient importable
+par toute feature ; `eslint.config.ts` porte la même forme que l'exception du
+2026-09-16 (`PURCHASE_STORE_READ_ONLY`), testée dans
+`eslint-feature-imports.spec.ts`. — Raison : sans elle, aucun écran hors de
+`features/purchase` ne peut savoir si le compte est Plus pour gater une
+fonctionnalité payante — exactement le rôle que joue déjà l'exception animaux
+pour le contenu du carnet — et l'export PDF est la première fonctionnalité v1 à
+en avoir besoin. — Alternative écartée : un composant `*Section.vue` ou
+`*Sheet.vue` intermédiaire qui envelopperait chaque bouton gaté d'un slot, plus
+de code pour le même accès en lecture seule. — Pour revenir dessus : retirer
+`PURCHASE_STORE_READ_ONLY` et la ligne `'!@/features/purchase/purchase.store'`
+de `featureImportsRule` dans `eslint.config.ts`.
