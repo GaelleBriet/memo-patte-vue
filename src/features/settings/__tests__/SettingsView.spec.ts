@@ -11,6 +11,8 @@ import vuetify from '@/core/theme/vuetify'
 import router from '@/router'
 import type { Animal } from '@/features/animals/animal.schema'
 import { useAnimalsStore } from '@/features/animals/animals.store'
+import { USER_ID } from '@/features/auth/__tests__/auth-fixture'
+import { writePlusAccount } from '@/features/auth/plus-account-storage'
 import { memoryStorage } from '@/features/purchase/__tests__/billing-fixture'
 import { writeStoredPlusStatus } from '@/features/purchase/plus-status-storage'
 
@@ -199,6 +201,22 @@ describe('SettingsView', () => {
         .element.closest('.section-card')
 
       expect(carte?.querySelector('.section-card__title')?.textContent).toBe('MémoPatte Plus')
+    })
+  })
+
+  describe('Compte', () => {
+    it('range Compte juste après MémoPatte Plus quand un compte existe', async () => {
+      writePlusAccount({ userId: USER_ID })
+      const wrapper = await monter()
+
+      expect(wrapper.findAll('.section-card__title').map((title) => title.text())).toEqual([
+        'MémoPatte Plus',
+        'Compte',
+        'Mes données',
+        'Confidentialité',
+        'À propos',
+      ])
+      expect(wrapper.get('.settings-row--sign-out').text()).toBe('Se déconnecter')
     })
   })
 
