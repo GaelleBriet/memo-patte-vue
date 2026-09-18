@@ -123,4 +123,17 @@ describe('AccountSection — avec un compte Plus', () => {
 
     expect(wrapper.find('.section-card').exists()).toBe(false)
   })
+
+  it('ignore un double-clic rapide sur la confirmation', async () => {
+    await monter()
+
+    await wrapper!.get('.settings-row--sign-out').trigger('click')
+    const bouton = boutonDuDialogue('.sign-out-confirm__submit')
+    bouton!.click()
+    bouton!.click()
+    await flushPromises()
+    await vi.waitFor(() => expect(repository.signOut).toHaveBeenCalledOnce())
+
+    expect(repository.signOut).toHaveBeenCalledTimes(1)
+  })
 })

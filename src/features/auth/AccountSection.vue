@@ -12,11 +12,18 @@ const router = useRouter()
 const auth = useAuthStore()
 
 const isConfirmOpen = ref(false)
+const isProcessing = ref(false)
 
 async function signOut(): Promise<void> {
+  if (isProcessing.value) return
+  isProcessing.value = true
   isConfirmOpen.value = false
-  await auth.signOut()
-  await router.push(signInRoute('settings'))
+  try {
+    await auth.signOut()
+    await router.push(signInRoute('settings'))
+  } finally {
+    isProcessing.value = false
+  }
 }
 </script>
 
@@ -48,7 +55,13 @@ async function signOut(): Promise<void> {
           >
             {{ t('settings.account.signOut.confirm.cancel') }}
           </v-btn>
-          <v-btn class="sign-out-confirm__submit" variant="flat" color="error" @click="signOut">
+          <v-btn
+            class="sign-out-confirm__submit"
+            variant="flat"
+            color="error"
+            :disabled="isProcessing"
+            @click="signOut"
+          >
             {{ t('settings.account.signOut.confirm.submit') }}
           </v-btn>
         </div>
