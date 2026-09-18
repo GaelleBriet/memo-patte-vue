@@ -2,8 +2,15 @@ import { createAnalytics, type AnalyticsStorage } from './analytics'
 
 export type { ConsentStatus } from './analytics'
 
-/** Événements de l'app, noms et valeurs fermés ; le catalogue se remplit avec #68. */
-export type AppAnalyticsEvents = Record<never, never>
+/** Événements de l'app, noms et valeurs fermés. */
+export type AppAnalyticsEvents = {
+  $pageview: null
+  animal_created: { species: 'dog' | 'cat' }
+  vaccination_created: { species: 'dog' | 'cat' }
+  treatment_created: { species: 'dog' | 'cat' }
+  weight_added: { species: 'dog' | 'cat' }
+  purchase_completed: { plan: 'monthly' | 'annual' | 'lifetime' }
+}
 
 function browserStorage(): AnalyticsStorage {
   return {
@@ -24,4 +31,5 @@ const analytics = createAnalytics<AppAnalyticsEvents>({
   loadPostHog: async () => (await import('posthog-js/no-external')).default,
 })
 
-export const { initAnalytics, track, optIn, optOut, hasConsent, consentStatus } = analytics
+export const { initAnalytics, track, identify, reset, optIn, optOut, hasConsent, consentStatus } =
+  analytics

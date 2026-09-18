@@ -32,6 +32,7 @@ function fakePostHog() {
   return {
     init: vi.fn<PostHogClient['init']>(),
     capture: vi.fn<PostHogClient['capture']>(),
+    identify: vi.fn<PostHogClient['identify']>(),
     opt_in_capturing: vi.fn<PostHogClient['opt_in_capturing']>(),
     opt_out_capturing: vi.fn<PostHogClient['opt_out_capturing']>(),
     reset: vi.fn<PostHogClient['reset']>(),
@@ -313,6 +314,40 @@ describe('changement d’avis', () => {
     expect(loadPostHog).toHaveBeenCalledTimes(2)
     expect(posthog.init).toHaveBeenCalledTimes(1)
     warn.mockRestore()
+  })
+})
+
+describe('identify et reset', () => {
+  it('n’identifie ni ne réinitialise sans accord, même avec une clé', async () => {
+    const module = analytics()
+
+    module.identify('user-1')
+    module.reset()
+    await module.initAnalytics()
+
+    expect(posthog.identify).not.toHaveBeenCalled()
+    expect(posthog.reset).not.toHaveBeenCalled()
+  })
+
+  it('identifie l’utilisateur une fois l’accord donné et PostHog chargé', async () => {
+    storage.setItem(ANALYTICS_CONSENT_KEY, 'granted')
+    const module = analytics()
+    await module.initAnalytics()
+
+    module.identify('user-1')
+
+    expect(posthog.identify).toHaveBeenCalledWith('user-1')
+  })
+
+  it('réinitialise l’identité sans désactiver la capture', async () => {
+    storage.setItem(ANALYTICS_CONSENT_KEY, 'granted')
+    const module = analytics()
+    await module.initAnalytics()
+
+    module.reset()
+
+    expect(posthog.reset).toHaveBeenCalledWith()
+    expect(posthog.opt_out_capturing).not.toHaveBeenCalled()
   })
 })
 

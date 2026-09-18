@@ -14,7 +14,7 @@ export type TrackArguments<E extends EventCatalog, K extends keyof E> = E[K] ext
 
 export type PostHogClient = Pick<
   PostHog,
-  'init' | 'capture' | 'opt_in_capturing' | 'opt_out_capturing' | 'reset'
+  'init' | 'capture' | 'identify' | 'opt_in_capturing' | 'opt_out_capturing' | 'reset'
 >
 
 export type AnalyticsStorage = Pick<
@@ -34,6 +34,10 @@ export interface Analytics<E extends EventCatalog> {
   initAnalytics(): Promise<void>
   /** Sans effet sans clé ou sans accord. */
   track<K extends keyof E & string>(event: K, ...args: TrackArguments<E, K>): void
+  /** Sans effet sans clé ou sans accord. */
+  identify(distinctId: string): void
+  /** Sans effet sans clé ou sans accord. */
+  reset(): void
   optIn(): Promise<void>
   optOut(): Promise<void>
   hasConsent(): boolean
@@ -134,6 +138,14 @@ export function createAnalytics<E extends EventCatalog>({
 
     track(event, ...[properties]) {
       if (status === 'granted') client?.capture(event, properties)
+    },
+
+    identify(distinctId) {
+      if (status === 'granted') client?.identify(distinctId)
+    },
+
+    reset() {
+      if (status === 'granted') client?.reset()
     },
 
     async optIn() {

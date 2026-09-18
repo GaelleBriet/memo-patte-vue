@@ -5,13 +5,34 @@ import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vite
 import type { WeightEntry, WeightEntryInput } from '../weight.schema'
 import type { WeightRepository } from '../weight.repository'
 import { provideWeightRepository, useWeightStore } from '../weight.store'
+import { track } from '@/core/analytics'
+import type { Animal } from '@/features/animals/animal.schema'
+import { useAnimalsStore } from '@/features/animals/animals.store'
+
+vi.mock('@/core/analytics', () => ({
+  track: vi.fn<(event: string, properties?: Record<string, unknown>) => void>(),
+}))
 
 const MILO = '11111111-1111-4111-8111-111111111111'
 const LUNA = '33333333-3333-4333-8333-333333333333'
 
+const MILO_ANIMAL: Animal = {
+  id: MILO,
+  name: 'Milo',
+  species: 'dog',
+  breed: null,
+  birthDate: null,
+  initialWeightKg: null,
+  photoPath: null,
+  createdAt: '2026-09-09T09:00:00.000Z',
+  updatedAt: '2026-09-09T09:00:00.000Z',
+  deletedAt: null,
+}
+
 let repository: FakeWeightRepository
 
 beforeEach(() => {
+  vi.mocked(track).mockClear()
   setActivePinia(createPinia())
   repository = createFakeRepository()
   provideWeightRepository(() => repository)
@@ -171,6 +192,23 @@ describe('useWeightStore', () => {
     expect(repository.create).toHaveBeenCalledWith(pesee(MILO))
     expect(created.weightKg).toBe(12.4)
     expect(store.entries.map((entry) => entry.weightKg)).toEqual([12.4])
+  })
+
+  it('transmet la création aux statistiques, avec l’espèce de l’animal', async () => {
+    useAnimalsStore().animals = [MILO_ANIMAL]
+    const store = useWeightStore()
+
+    await store.create(pesee(MILO))
+
+    expect(track).toHaveBeenCalledExactlyOnceWith('weight_added', { species: 'dog' })
+  })
+
+  it('ne transmet rien aux statistiques quand l’animal est inconnu du store', async () => {
+    const store = useWeightStore()
+
+    await store.create(pesee(MILO))
+
+    expect(track).not.toHaveBeenCalled()
   })
 
   it('crée une pesée pour un animal jamais chargé sans relire une liste', async () => {
