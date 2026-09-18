@@ -360,6 +360,18 @@
   "settings": {
     "open": "Paramètres",
     "title": "Paramètres",
+    "account": {
+      "title": "Compte",
+      "signOut": {
+        "action": "Se déconnecter",
+        "confirm": {
+          "title": "Se déconnecter ?",
+          "body": "Ton carnet reste sur cet appareil. Seule la synchronisation s’arrête.",
+          "cancel": "Annuler",
+          "submit": "Se déconnecter"
+        }
+      }
+    },
     "data": {
       "title": "Mes données",
       "export": "Exporter mes données",

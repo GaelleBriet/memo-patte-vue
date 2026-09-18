@@ -505,7 +505,12 @@ function openCarnet(): void {
 
   @include tap.tap-target;
 
-  &:hover,
+  @media (hover: hover) {
+    &:hover {
+      color: rgb(var(--v-theme-primary-darken-1));
+    }
+  }
+
   &:focus-visible {
     color: rgb(var(--v-theme-primary-darken-1));
   }
@@ -658,8 +663,10 @@ function openCarnet(): void {
 
   @include tap.tap-target;
 
-  &:hover {
-    color: rgb(var(--v-theme-primary-darken-1));
+  @media (hover: hover) {
+    &:hover {
+      color: rgb(var(--v-theme-primary-darken-1));
+    }
   }
 
   &:focus-visible {

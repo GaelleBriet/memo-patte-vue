@@ -79,7 +79,12 @@ function pick(animalId: string): void {
   text-align: start;
   cursor: pointer;
 
-  &:hover,
+  @media (hover: hover) {
+    &:hover {
+      background: rgba(var(--v-theme-primary), 0.06);
+    }
+  }
+
   &:focus-visible {
     background: rgba(var(--v-theme-primary), 0.06);
   }

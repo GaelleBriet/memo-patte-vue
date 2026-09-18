@@ -8,6 +8,7 @@ import ImportSheet from './ImportSheet.vue'
 import { promptNotificationsIfReminders } from '@/app/reminders-priming'
 import { hasConsent, optIn, optOut } from '@/core/analytics'
 import { useAnimalsStore } from '@/features/animals/animals.store'
+import AccountSection from '@/features/auth/AccountSection.vue'
 import PlusSection from '@/features/purchase/PlusSection.vue'
 import PushedScreen from '@/shared/PushedScreen.vue'
 import SectionCard from '@/shared/SectionCard.vue'
@@ -59,6 +60,8 @@ function goHome(): void {
   >
     <div class="settings__content">
       <PlusSection />
+
+      <AccountSection />
 
       <SectionCard :title="t('settings.data.title')">
         <button
