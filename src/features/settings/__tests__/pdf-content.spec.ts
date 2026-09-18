@@ -26,7 +26,7 @@ const DATA: ExportData = {
       breed: null,
       birthDate: null,
       initialWeightKg: null,
-      photoFileName: null,
+      photoFileName: 'luna.jpg',
       createdAt: '2026-01-01T00:00:00.000Z',
       updatedAt: '2026-01-01T00:00:00.000Z',
     },
@@ -108,6 +108,7 @@ describe('buildCarnetPdfContent', () => {
       species: 'dog',
       breed: 'Labrador',
       birthDate: '2020-05-01',
+      photoFileName: null,
     })
     expect(content.vaccinations.map((row) => row.name)).toEqual(['Rage', 'Toux de chenil'])
     expect(content.treatments).toHaveLength(1)
@@ -143,6 +144,13 @@ describe('buildCarnetPdfContent', () => {
 
     const luna = buildCarnetPdfContent(DATA, OTHER_ANIMAL_ID, TODAY)!
     expect(luna.weightChart).toBeNull()
+  })
+
+  it('reprend le nom de fichier de la photo quand il existe', () => {
+    expect(buildCarnetPdfContent(DATA, ANIMAL_ID, TODAY)!.animal.photoFileName).toBeNull()
+    expect(buildCarnetPdfContent(DATA, OTHER_ANIMAL_ID, TODAY)!.animal.photoFileName).toBe(
+      'luna.jpg',
+    )
   })
 })
 

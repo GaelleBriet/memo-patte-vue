@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watchEffect } from 'vue'
+import { computed, defineAsyncComponent, onMounted, ref, watchEffect } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
@@ -10,7 +10,9 @@ import { useForegroundRefresh } from '@/core/app-lifecycle/use-foreground-refres
 import { usePhotoUrls } from '@/core/photos/use-photo-urls'
 import PlusNudgeSection from '@/features/purchase/PlusNudgeSection.vue'
 import { usePurchaseStore } from '@/features/purchase/purchase.store'
-import PdfExportSheet, { type PdfExportAnimal } from '@/features/settings/PdfExportSheet.vue'
+import type { PdfExportAnimal } from '@/features/settings/PdfExportSheet.vue'
+
+const PdfExportSheet = defineAsyncComponent(() => import('@/features/settings/PdfExportSheet.vue'))
 import TreatmentsSection, {
   type TreatmentsSummary,
 } from '@/features/treatments/TreatmentsSection.vue'
@@ -56,6 +58,7 @@ const isPhotoSheetOpen = ref(false)
 const photoActions = useAnimalPhotoActions(animal)
 
 const isPdfExportSheetOpen = ref(false)
+const hasOpenedPdfExportSheet = ref(false)
 const pdfExportAnimals = computed<PdfExportAnimal[]>(() =>
   animal.value
     ? [{ id: animal.value.id, name: animal.value.name, species: animal.value.species }]
@@ -63,8 +66,12 @@ const pdfExportAnimals = computed<PdfExportAnimal[]>(() =>
 )
 
 function onExportPdf(): void {
-  if (purchase.status.plan === 'none') void router.push({ name: 'plus' })
-  else isPdfExportSheetOpen.value = true
+  if (purchase.status.plan === 'none') {
+    void router.push({ name: 'plus' })
+  } else {
+    hasOpenedPdfExportSheet.value = true
+    isPdfExportSheetOpen.value = true
+  }
 }
 
 function openPhotoSheet(event: Event): void {
@@ -184,7 +191,11 @@ function createAnimal(): void {
         </div>
       </header>
 
-      <PdfExportSheet v-model="isPdfExportSheetOpen" :animals="pdfExportAnimals" />
+      <PdfExportSheet
+        v-if="hasOpenedPdfExportSheet"
+        v-model="isPdfExportSheetOpen"
+        :animals="pdfExportAnimals"
+      />
 
       <AnimalPhotoSheet
         v-model="isPhotoSheetOpen"

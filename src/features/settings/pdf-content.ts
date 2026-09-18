@@ -1,6 +1,6 @@
 import { format } from 'date-fns'
 
-import { buildReminders } from '@/shared/reminders'
+import { buildReminders, type ReminderKind } from '@/shared/reminders'
 import { buildWeightChart, type WeightChart } from '@/shared/weight-chart'
 import type { ExportData } from '@/shared/carnet-data'
 
@@ -31,6 +31,7 @@ export type CarnetPdfContent = {
     species: 'dog' | 'cat'
     breed: string | null
     birthDate: string | null
+    photoFileName: string | null
   }
   generatedOn: string
   vaccinations: PdfVaccinationRow[]
@@ -39,12 +40,11 @@ export type CarnetPdfContent = {
   weightChart: WeightChart | null
 }
 
-function dueState(dueDate: string | null, today: string): PdfDueState {
+function dueState(dueDate: string | null, today: string, kind: ReminderKind): PdfDueState {
   if (dueDate === null) return 'none'
-  const { overdue } = buildReminders(
-    [{ kind: 'vaccination', id: '', animalId: '', label: '', dueDate }],
-    { today },
-  )
+  const { overdue } = buildReminders([{ kind, id: '', animalId: '', label: '', dueDate }], {
+    today,
+  })
   return overdue > 0 ? 'overdue' : 'upToDate'
 }
 
@@ -69,7 +69,7 @@ export function buildCarnetPdfContent(
       name: item.name,
       lastInjectionDate: item.lastInjectionDate,
       dueDate: item.dueDate,
-      state: dueState(item.dueDate, today),
+      state: dueState(item.dueDate, today, 'vaccination'),
     }))
     .sort(byDueDateAscending)
 
@@ -79,7 +79,7 @@ export function buildCarnetPdfContent(
       name: item.name,
       lastDoseDate: item.lastDoseDate,
       nextDueDate: item.nextDueDate,
-      state: dueState(item.nextDueDate, today),
+      state: dueState(item.nextDueDate, today, 'treatment'),
     }))
     .sort((a, b) => a.nextDueDate.localeCompare(b.nextDueDate))
 
@@ -94,6 +94,7 @@ export function buildCarnetPdfContent(
       species: animal.species,
       breed: animal.breed,
       birthDate: animal.birthDate,
+      photoFileName: animal.photoFileName,
     },
     generatedOn: today,
     vaccinations,

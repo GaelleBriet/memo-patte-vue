@@ -358,9 +358,10 @@ describe('SettingsView', () => {
 
       expect(ligne.text()).toBe('Exporter en PDF')
       expect(ligne.attributes('disabled')).toBeUndefined()
-      expect(wrapper.getComponent(PdfExportSheet).props('modelValue')).toBe(false)
+      expect(wrapper.findComponent(PdfExportSheet).exists()).toBe(false)
 
       await ligne.trigger('click')
+      await flushPromises()
 
       expect(wrapper.getComponent(PdfExportSheet).props('modelValue')).toBe(true)
       expect(wrapper.getComponent(PdfExportSheet).props('animals')).toEqual([
@@ -377,7 +378,7 @@ describe('SettingsView', () => {
       await ligne.trigger('click')
 
       expect(push).toHaveBeenCalledWith({ name: 'plus' })
-      expect(wrapper.getComponent(PdfExportSheet).props('modelValue')).toBe(false)
+      expect(wrapper.findComponent(PdfExportSheet).exists()).toBe(false)
     })
 
     it('désactive la ligne sans animal, avec « Rien à exporter pour l’instant »', async () => {
@@ -411,7 +412,7 @@ describe('SettingsView', () => {
       await flushPromises()
 
       expect(loadAnimals).toHaveBeenCalledTimes(2)
-      expect(wrapper.getComponent(PdfExportSheet).props('modelValue')).toBe(false)
+      expect(wrapper.findComponent(PdfExportSheet).exists()).toBe(false)
     })
   })
 

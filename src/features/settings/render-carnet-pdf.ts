@@ -8,6 +8,7 @@ const PAGE_WIDTH_MM = 210
 const MARGIN_MM = 18
 const CONTENT_WIDTH_MM = PAGE_WIDTH_MM - 2 * MARGIN_MM
 const CHART_HEIGHT_MM = 45
+const PHOTO_SIZE_MM = 24
 
 const STATE_LABEL_KEYS: Record<PdfDueState, string> = {
   overdue: 'settings.pdf.status.overdue',
@@ -19,10 +20,29 @@ function speciesLabelKey(species: 'dog' | 'cat'): string {
   return `animals.form.species.${species}`
 }
 
-export function renderCarnetPdf(content: CarnetPdfContent, appVersion: string): Uint8Array {
+export function renderCarnetPdf(
+  content: CarnetPdfContent,
+  appVersion: string,
+  photoDataUrl: string | null,
+): Uint8Array {
   const t = i18n.global.t
   const doc = new jsPDF({ unit: 'mm', format: 'a4' })
   let y = MARGIN_MM
+
+  if (photoDataUrl) {
+    try {
+      doc.addImage(
+        photoDataUrl,
+        'JPEG',
+        PAGE_WIDTH_MM - MARGIN_MM - PHOTO_SIZE_MM,
+        MARGIN_MM,
+        PHOTO_SIZE_MM,
+        PHOTO_SIZE_MM,
+      )
+    } catch {
+      /* Photo corrompue ou illisible : le PDF reste généré sans elle. */
+    }
+  }
 
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(18)
@@ -164,14 +184,14 @@ function renderWeightSection(
     }
 
     y = originY + CHART_HEIGHT_MM + 10
-  } else {
-    for (const entry of content.weightEntries) {
-      doc.text(formatNumericDate(entry.measuredOn), MARGIN_MM, y)
-      doc.text(`${formatKg(entry.weightKg)} ${t('weight.unit')}`, MARGIN_MM + 40, y)
-      y += 6.5
-    }
-    y += 5
   }
+
+  for (const entry of content.weightEntries) {
+    doc.text(formatNumericDate(entry.measuredOn), MARGIN_MM, y)
+    doc.text(`${formatKg(entry.weightKg)} ${t('weight.unit')}`, MARGIN_MM + 40, y)
+    y += 6.5
+  }
+  y += 5
 
   return y
 }

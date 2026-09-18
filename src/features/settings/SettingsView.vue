@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, useTemplateRef } from 'vue'
+import { computed, defineAsyncComponent, onMounted, ref, useTemplateRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
 import ExportSheet from './ExportSheet.vue'
 import ImportSheet from './ImportSheet.vue'
-import PdfExportSheet, { type PdfExportAnimal } from './PdfExportSheet.vue'
+import type { PdfExportAnimal } from './PdfExportSheet.vue'
+
+const PdfExportSheet = defineAsyncComponent(() => import('./PdfExportSheet.vue'))
 import { promptNotificationsIfReminders } from '@/app/reminders-priming'
 import { hasConsent, optIn, optOut } from '@/core/analytics'
 import { useAnimalsStore } from '@/features/animals/animals.store'
@@ -22,6 +24,7 @@ const purchase = usePurchaseStore()
 const appVersion = import.meta.env.VITE_APP_VERSION
 const isExportSheetOpen = ref(false)
 const isPdfExportSheetOpen = ref(false)
+const hasOpenedPdfExportSheet = ref(false)
 const importSheet = useTemplateRef('importSheet')
 const isImporting = ref(false)
 const shareAnalytics = ref(hasConsent())
@@ -45,6 +48,7 @@ function onExportPdfRow(): void {
   } else if (isFreePlan.value) {
     void router.push({ name: 'plus' })
   } else {
+    hasOpenedPdfExportSheet.value = true
     isPdfExportSheetOpen.value = true
   }
 }
@@ -189,7 +193,11 @@ function goHome(): void {
     </div>
 
     <ExportSheet v-model="isExportSheetOpen" />
-    <PdfExportSheet v-model="isPdfExportSheetOpen" :animals="pdfExportAnimals" />
+    <PdfExportSheet
+      v-if="hasOpenedPdfExportSheet"
+      v-model="isPdfExportSheetOpen"
+      :animals="pdfExportAnimals"
+    />
     <ImportSheet ref="importSheet" v-model:busy="isImporting" @imported="onImported" />
   </PushedScreen>
 </template>

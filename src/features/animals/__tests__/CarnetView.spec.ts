@@ -326,9 +326,10 @@ describe('CarnetView — header', () => {
       writeStoredPlusStatus({ plan: 'lifetime', expiresAt: null })
       const wrapper = await monter()
 
-      expect(wrapper.getComponent(PdfExportSheet).props('modelValue')).toBe(false)
+      expect(wrapper.findComponent(PdfExportSheet).exists()).toBe(false)
 
       await wrapper.get('.carnet-header__export-pdf').trigger('click')
+      await flushPromises()
 
       expect(wrapper.getComponent(PdfExportSheet).props('modelValue')).toBe(true)
       expect(wrapper.getComponent(PdfExportSheet).props('animals')).toEqual([
@@ -342,7 +343,7 @@ describe('CarnetView — header', () => {
       await wrapper.get('.carnet-header__export-pdf').trigger('click')
 
       expect(push).toHaveBeenCalledWith({ name: 'plus' })
-      expect(wrapper.getComponent(PdfExportSheet).props('modelValue')).toBe(false)
+      expect(wrapper.findComponent(PdfExportSheet).exists()).toBe(false)
     })
   })
 
