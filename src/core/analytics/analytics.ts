@@ -1,5 +1,7 @@
 import type { PostHog, PostHogConfig } from 'posthog-js'
 
+import { ANIMAL_NAME_QUERY_PARAM } from '@/shared/animal-name-query-param'
+
 export type ConsentStatus = 'granted' | 'denied' | 'unanswered'
 
 /** Nom d'événement → propriétés, ou `null` pour un événement sans propriété. */
@@ -70,6 +72,8 @@ function postHogConfig(apiHost: string): Partial<PostHogConfig> {
     disable_web_experiments: true,
     disable_external_dependency_loading: true,
     advanced_disable_flags: true,
+    mask_personal_data_properties: true,
+    custom_personal_data_properties: [ANIMAL_NAME_QUERY_PARAM],
   }
 }
 

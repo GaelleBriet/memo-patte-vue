@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { ANIMAL_NAME_QUERY_PARAM } from '@/shared/animal-name-query-param'
+
 import {
   ANALYTICS_CONSENT_KEY,
   createAnalytics,
@@ -162,6 +164,8 @@ describe('avec la clé et l’accord', () => {
       disable_surveys: true,
       disable_external_dependency_loading: true,
       advanced_disable_flags: true,
+      mask_personal_data_properties: true,
+      custom_personal_data_properties: [ANIMAL_NAME_QUERY_PARAM],
     })
     expect(POSTHOG_EU_HOST).toBe('https://eu.i.posthog.com')
   })
