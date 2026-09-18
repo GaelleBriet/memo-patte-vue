@@ -35,6 +35,9 @@ import { provideWeightRepository } from '@/features/weight/weight.store'
 import WeightSection from '@/features/weight/WeightSection.vue'
 import { pickPhoto, type PickedPhoto } from '@/core/photos/photo-picker'
 import { forgetPhotoUrls } from '@/core/photos/use-photo-urls'
+import { memoryStorage } from '@/features/purchase/__tests__/billing-fixture'
+import { writeStoredPlusStatus } from '@/features/purchase/plus-status-storage'
+import PdfExportSheet from '@/features/settings/PdfExportSheet.vue'
 
 vi.mock('@/core/photos/photo-picker', () => ({
   pickPhoto: vi.fn<() => Promise<PickedPhoto | null>>(),
@@ -162,6 +165,14 @@ beforeEach(async () => {
   }))
   await router.push({ name: 'animals' })
   push = vi.spyOn(router, 'push').mockResolvedValue()
+  vi.stubGlobal('localStorage', memoryStorage())
+  vi.stubGlobal('visualViewport', {
+    addEventListener() {},
+    removeEventListener() {},
+    width: 412,
+    height: 915,
+    offsetTop: 0,
+  })
 })
 
 // Un Carnet resté monté écouterait encore le retour au premier plan des tests suivants.
@@ -173,6 +184,7 @@ afterEach(() => {
   provideTreatmentsRepository(null)
   provideWeightRepository(null)
   vi.restoreAllMocks()
+  vi.unstubAllGlobals()
   vi.useRealTimers()
 })
 
@@ -307,6 +319,31 @@ describe('CarnetView — header', () => {
     await wrapper.get('.carnet-header__edit').trigger('click')
 
     expect(push).toHaveBeenCalledWith({ name: 'animal-edit', params: { id: MILO.id } })
+  })
+
+  describe('export PDF depuis l’icône du Carnet', () => {
+    it('ouvre la feuille pour le seul animal consulté, pour un compte Plus', async () => {
+      writeStoredPlusStatus({ plan: 'lifetime', expiresAt: null })
+      const wrapper = await monter()
+
+      expect(wrapper.getComponent(PdfExportSheet).props('modelValue')).toBe(false)
+
+      await wrapper.get('.carnet-header__export-pdf').trigger('click')
+
+      expect(wrapper.getComponent(PdfExportSheet).props('modelValue')).toBe(true)
+      expect(wrapper.getComponent(PdfExportSheet).props('animals')).toEqual([
+        { id: MILO.id, name: 'Milo', species: 'dog' },
+      ])
+    })
+
+    it('renvoie vers MémoPatte Plus sans compte, sans ouvrir la feuille', async () => {
+      const wrapper = await monter()
+
+      await wrapper.get('.carnet-header__export-pdf').trigger('click')
+
+      expect(push).toHaveBeenCalledWith({ name: 'plus' })
+      expect(wrapper.getComponent(PdfExportSheet).props('modelValue')).toBe(false)
+    })
   })
 
   it('revient à l’accueil par la flèche', async () => {

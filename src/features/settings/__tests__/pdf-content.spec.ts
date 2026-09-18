@@ -1,0 +1,161 @@
+import { describe, expect, it } from 'vitest'
+
+import { buildCarnetPdfContent, pdfExportFileName } from '../pdf-content'
+import type { ExportData } from '@/shared/carnet-data'
+
+const ANIMAL_ID = '11111111-1111-4111-8111-111111111111'
+const OTHER_ANIMAL_ID = '22222222-2222-4222-8222-222222222222'
+
+const DATA: ExportData = {
+  animals: [
+    {
+      id: ANIMAL_ID,
+      name: 'Milo',
+      species: 'dog',
+      breed: 'Labrador',
+      birthDate: '2020-05-01',
+      initialWeightKg: 25,
+      photoFileName: null,
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    },
+    {
+      id: OTHER_ANIMAL_ID,
+      name: 'Luna',
+      species: 'cat',
+      breed: null,
+      birthDate: null,
+      initialWeightKg: null,
+      photoFileName: null,
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    },
+  ],
+  vaccinations: [
+    {
+      id: 'v-overdue',
+      animalId: ANIMAL_ID,
+      name: 'Rage',
+      lastInjectionDate: '2025-01-01',
+      dueDate: '2026-01-01',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    },
+    {
+      id: 'v-none',
+      animalId: ANIMAL_ID,
+      name: 'Toux de chenil',
+      lastInjectionDate: '2025-06-01',
+      dueDate: null,
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    },
+    {
+      id: 'v-other-animal',
+      animalId: OTHER_ANIMAL_ID,
+      name: 'Typhus',
+      lastInjectionDate: '2026-01-01',
+      dueDate: '2027-01-01',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    },
+  ],
+  treatments: [
+    {
+      id: 't-upcoming',
+      animalId: ANIMAL_ID,
+      name: 'Milbémax',
+      type: 'deworming',
+      frequency: { value: 3, unit: 'month' },
+      lastDoseDate: '2026-06-01',
+      nextDueDate: '2026-09-01',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    },
+  ],
+  weightEntries: [
+    {
+      id: 'w-2',
+      animalId: ANIMAL_ID,
+      weightKg: 26,
+      measuredOn: '2026-06-01',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    },
+    {
+      id: 'w-1',
+      animalId: ANIMAL_ID,
+      weightKg: 25,
+      measuredOn: '2026-01-01',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    },
+  ],
+}
+
+const TODAY = '2026-07-01'
+
+describe('buildCarnetPdfContent', () => {
+  it('renvoie null pour un animal inconnu', () => {
+    expect(buildCarnetPdfContent(DATA, 'introuvable', TODAY)).toBeNull()
+  })
+
+  it("ne retient que les lignes de l'animal demandé", () => {
+    const content = buildCarnetPdfContent(DATA, ANIMAL_ID, TODAY)!
+
+    expect(content.animal).toEqual({
+      name: 'Milo',
+      species: 'dog',
+      breed: 'Labrador',
+      birthDate: '2020-05-01',
+    })
+    expect(content.vaccinations.map((row) => row.name)).toEqual(['Rage', 'Toux de chenil'])
+    expect(content.treatments).toHaveLength(1)
+    expect(content.weightEntries).toHaveLength(2)
+  })
+
+  it('classe chaque échéance en retard, à jour ou sans rappel', () => {
+    const content = buildCarnetPdfContent(DATA, ANIMAL_ID, TODAY)!
+
+    const rage = content.vaccinations.find((row) => row.name === 'Rage')!
+    const kennel = content.vaccinations.find((row) => row.name === 'Toux de chenil')!
+    expect(rage.state).toBe('overdue')
+    expect(kennel.state).toBe('none')
+    expect(content.treatments[0]!.state).toBe('upToDate')
+  })
+
+  it('trie les échéances par date, les rappels absents en dernier', () => {
+    const content = buildCarnetPdfContent(DATA, ANIMAL_ID, TODAY)!
+
+    expect(content.vaccinations.map((row) => row.name)).toEqual(['Rage', 'Toux de chenil'])
+  })
+
+  it('trie les pesées par date de mesure', () => {
+    const content = buildCarnetPdfContent(DATA, ANIMAL_ID, TODAY)!
+
+    expect(content.weightEntries.map((row) => row.measuredOn)).toEqual(['2026-01-01', '2026-06-01'])
+  })
+
+  it('construit une courbe de poids dès deux pesées, aucune sous deux', () => {
+    const content = buildCarnetPdfContent(DATA, ANIMAL_ID, TODAY)!
+    expect(content.weightChart).not.toBeNull()
+    expect(content.weightChart!.points).toHaveLength(2)
+
+    const luna = buildCarnetPdfContent(DATA, OTHER_ANIMAL_ID, TODAY)!
+    expect(luna.weightChart).toBeNull()
+  })
+})
+
+describe('pdfExportFileName', () => {
+  it("compose un nom de fichier à partir du nom de l'animal et de la date", () => {
+    expect(pdfExportFileName('Milo', new Date('2026-07-01T10:00:00Z'))).toBe(
+      'memopatte-milo-2026-07-01.pdf',
+    )
+  })
+
+  it('retire les accents et la ponctuation du nom', () => {
+    expect(pdfExportFileName("Néo l'énergique !", new Date('2026-07-01T10:00:00Z'))).toBe(
+      'memopatte-neo-l-energique-2026-07-01.pdf',
+    )
+  })
+})

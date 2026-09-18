@@ -62,6 +62,7 @@
     "carnet": {
       "back": "Retour",
       "edit": "Modifier la fiche",
+      "exportPdf": "Exporter le carnet en PDF",
       "photo": {
         "avatarLabel": "Gérer la photo de {name}",
         "sheetTitle": "Photo de {name}",
@@ -364,6 +365,8 @@
       "title": "Mes données",
       "export": "Exporter mes données",
       "exportEmpty": "Rien à exporter pour l’instant",
+      "exportPdf": "Exporter en PDF",
+      "exportPdfPlus": "Fonction MémoPatte Plus",
       "import": "Importer un export MémoPatte",
       "loadError": "La base locale n’a pas répondu. Touche pour réessayer."
     },
@@ -424,6 +427,41 @@
         "cancel": "Annuler",
         "submit": "Remplacer"
       }
+    },
+    "pdf": {
+      "sheet": {
+        "title": "Exporter en PDF",
+        "subtitleOne": "Un document sera préparé pour {name}.",
+        "subtitlePick": "Choisis l’animal à exporter.",
+        "close": "Fermer",
+        "pickAnimalLabel": "Animal",
+        "submit": "Exporter",
+        "preparing": "Préparation…",
+        "error": "Le PDF n’a pas pu être préparé. Réessaie."
+      },
+      "shareTitle": "Partager via",
+      "success": "PDF exporté",
+      "status": {
+        "overdue": "En retard",
+        "upToDate": "À jour",
+        "none": "Pas de rappel"
+      },
+      "identity": {
+        "birthDate": "Date de naissance : {date}"
+      },
+      "vaccinations": {
+        "title": "Vaccins",
+        "empty": "Aucun vaccin enregistré."
+      },
+      "treatments": {
+        "title": "Traitements",
+        "empty": "Aucun traitement enregistré."
+      },
+      "weight": {
+        "title": "Poids",
+        "empty": "Aucune pesée enregistrée."
+      },
+      "footer": "Généré le {date} — MémoPatte {version}"
     }
   },
   "analytics": {

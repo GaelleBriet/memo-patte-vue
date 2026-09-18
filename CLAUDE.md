@@ -68,8 +68,9 @@ src/
 
 ### Règles strictes de structure
 
-- Aucun import croisé entre features, à trois exceptions près (règle ESLint `app/feature-imports`) ; tout le reste passe par `shared/` ou `core/` :
+- Aucun import croisé entre features, à quatre exceptions près (règle ESLint `app/feature-imports`) ; tout le reste passe par `shared/` ou `core/` :
   - **données des animaux** : toute feature **lit** l'entité racine du carnet, et rien de plus — `useAnimalsStore` seul de `animals.store` (jamais `provideAnimalsRepository`) et les types de `animal.schema` ; aucun autre module de `features/animals` (décision du 2026-09-16)
+  - **statut Plus** : toute feature **lit** `usePurchaseStore` seul de `purchase.store`, rien de plus, pour gater une fonctionnalité payante (décision du 2026-09-18, ticket #81)
   - **écran composite** (Carnet, Accueil) : il assemble plusieurs domaines et importe les **composants de section** (`VaccinationsSection.vue`, `WeightSection.vue`…) **et les feuilles** (`WeightSheet.vue`…) des autres features. Chaque section n’utilise que le store de sa feature ; les sections ne s’importent jamais entre elles, et la logique commune à plusieurs écrans (rappels, âge, courbe de poids) vit dans `shared/`
   - **service de cas d'usage** (`xxx.service.ts`, placé dans la feature qui porte le cas d'usage) : il importe les **repositories** d'autres features **et leurs types / schémas** pour les orchestrer — un composant, un store ou un repository, jamais
 - Les repositories sont les seuls autorisés à parler à SQLite et Supabase, et chacun reste le seul à écrire dans sa table : un service qui orchestre appelle leurs méthodes, il n'écrit pas de SQL
