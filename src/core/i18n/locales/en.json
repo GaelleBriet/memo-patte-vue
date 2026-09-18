@@ -361,6 +361,18 @@
   "settings": {
     "open": "Settings",
     "title": "Settings",
+    "account": {
+      "title": "Account",
+      "signOut": {
+        "action": "Sign out",
+        "confirm": {
+          "title": "Sign out?",
+          "body": "Your health records stay on this device. Only sync stops.",
+          "cancel": "Cancel",
+          "submit": "Sign out"
+        }
+      }
+    },
     "data": {
       "title": "My data",
       "export": "Export my data",

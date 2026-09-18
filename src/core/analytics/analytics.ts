@@ -1,5 +1,7 @@
 import type { PostHog, PostHogConfig } from 'posthog-js'
 
+import { ANIMAL_NAME_QUERY_PARAM } from '@/shared/animal-name-query-param'
+
 export type ConsentStatus = 'granted' | 'denied' | 'unanswered'
 
 /** Nom d'événement → propriétés, ou `null` pour un événement sans propriété. */
@@ -14,7 +16,7 @@ export type TrackArguments<E extends EventCatalog, K extends keyof E> = E[K] ext
 
 export type PostHogClient = Pick<
   PostHog,
-  'init' | 'capture' | 'opt_in_capturing' | 'opt_out_capturing' | 'reset'
+  'init' | 'capture' | 'identify' | 'opt_in_capturing' | 'opt_out_capturing' | 'reset'
 >
 
 export type AnalyticsStorage = Pick<
@@ -34,6 +36,10 @@ export interface Analytics<E extends EventCatalog> {
   initAnalytics(): Promise<void>
   /** Sans effet sans clé ou sans accord. */
   track<K extends keyof E & string>(event: K, ...args: TrackArguments<E, K>): void
+  /** Sans effet sans clé ou sans accord. */
+  identify(distinctId: string): void
+  /** Sans effet sans clé ou sans accord. */
+  reset(): void
   optIn(): Promise<void>
   optOut(): Promise<void>
   hasConsent(): boolean
@@ -66,6 +72,8 @@ function postHogConfig(apiHost: string): Partial<PostHogConfig> {
     disable_web_experiments: true,
     disable_external_dependency_loading: true,
     advanced_disable_flags: true,
+    mask_personal_data_properties: true,
+    custom_personal_data_properties: [ANIMAL_NAME_QUERY_PARAM],
   }
 }
 
@@ -134,6 +142,14 @@ export function createAnalytics<E extends EventCatalog>({
 
     track(event, ...[properties]) {
       if (status === 'granted') client?.capture(event, properties)
+    },
+
+    identify(distinctId) {
+      if (status === 'granted') client?.identify(distinctId)
+    },
+
+    reset() {
+      if (status === 'granted') client?.reset()
     },
 
     async optIn() {

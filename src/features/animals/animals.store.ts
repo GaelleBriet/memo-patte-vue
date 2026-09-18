@@ -4,6 +4,7 @@ import type { Animal, AnimalInput } from './animal.schema'
 import { animalDeletionService, type AnimalDeletionService } from './animal-deletion.service'
 import { animalPhotoService, type PhotoChange } from './animal-photo.service'
 import type { AnimalsRepository } from './animals.repository'
+import { track } from '@/core/analytics'
 import { recordUsageSignal } from '@/shared/usage-signals'
 
 export type AnimalsRepositoryProvider = () => AnimalsRepository | Promise<AnimalsRepository>
@@ -98,6 +99,7 @@ export const useAnimalsStore = defineStore('animals', () => {
         animalPhotoService.create(repository, input, photo),
       )
       if (photo.kind === 'replace') recordUsageSignal('photo')
+      track('animal_created', { species: animal.species })
       return animal
     },
 

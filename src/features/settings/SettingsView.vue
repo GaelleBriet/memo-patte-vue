@@ -11,6 +11,7 @@ const PdfExportSheet = defineAsyncComponent(() => import('./PdfExportSheet.vue')
 import { promptNotificationsIfReminders } from '@/app/reminders-priming'
 import { hasConsent, optIn, optOut } from '@/core/analytics'
 import { useAnimalsStore } from '@/features/animals/animals.store'
+import AccountSection from '@/features/auth/AccountSection.vue'
 import PlusSection from '@/features/purchase/PlusSection.vue'
 import { usePurchaseStore } from '@/features/purchase/purchase.store'
 import PushedScreen from '@/shared/PushedScreen.vue'
@@ -81,6 +82,8 @@ function goHome(): void {
   >
     <div class="settings__content">
       <PlusSection />
+
+      <AccountSection />
 
       <SectionCard :title="t('settings.data.title')">
         <button
