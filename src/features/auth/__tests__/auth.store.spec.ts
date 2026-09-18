@@ -2,6 +2,7 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { identify, reset as resetAnalytics } from '@/core/analytics'
 import { ANALYTICS_CONSENT_KEY } from '@/core/analytics/analytics'
 import { PLUS_NUDGE_STORAGE_KEY } from '@/features/purchase/plus-nudge'
 import {
@@ -28,6 +29,11 @@ function writeDeviceState(): void {
 function remainingDeviceState(): string[] {
   return [...ACCOUNT_KEYS, ...UNRELATED_KEYS].filter((key) => localStorage.getItem(key) !== null)
 }
+
+vi.mock('@/core/analytics', () => ({
+  identify: vi.fn<(distinctId: string) => void>(),
+  reset: vi.fn<() => void>(),
+}))
 
 vi.mock('../auth.repository', () => ({
   authRepository: {
@@ -252,6 +258,14 @@ describe('useAuthStore', () => {
       expect(readPlusAccount()).toEqual({ userId: USER_ID })
     })
 
+    it('identifie le compte auprès des statistiques', async () => {
+      repository.signIn.mockResolvedValueOnce({ userId: USER_ID })
+
+      await useAuthStore().signIn('gaelle@example.com', 'secret-123')
+
+      expect(identify).toHaveBeenCalledWith(USER_ID)
+    })
+
     it('remplace le compte enregistré par celui qui se connecte', async () => {
       writePlusAccount({ userId: USER_ID })
       repository.signIn.mockResolvedValueOnce({ userId: OTHER_USER_ID })
@@ -307,6 +321,14 @@ describe('useAuthStore', () => {
       expect(readPlusAccount()).toEqual({ userId: USER_ID })
     })
 
+    it('identifie le compte auprès des statistiques quand la session s’ouvre', async () => {
+      repository.signUp.mockResolvedValueOnce({ kind: 'signed-in', session: { userId: USER_ID } })
+
+      await useAuthStore().signUp('gaelle@example.com', 'secret-123')
+
+      expect(identify).toHaveBeenCalledWith(USER_ID)
+    })
+
     it('n’écrit rien tant que l’e-mail n’est pas confirmé', async () => {
       repository.signUp.mockResolvedValueOnce({ kind: 'confirmation-pending' })
       const store = useAuthStore()
@@ -340,6 +362,14 @@ describe('useAuthStore', () => {
       expect(store.userId).toBeNull()
       expect(store.sessionState).toBe('none')
       expect(readPlusAccount()).toBeNull()
+    })
+
+    it('réinitialise l’identité auprès des statistiques', async () => {
+      writePlusAccount({ userId: USER_ID })
+
+      await useAuthStore().signOut()
+
+      expect(resetAnalytics).toHaveBeenCalledOnce()
     })
 
     it('efface les compteurs d’usage, sans toucher à l’achat ni à la préférence de rappel', async () => {

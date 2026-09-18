@@ -1104,3 +1104,24 @@ le seul endroit qui corrige une valeur sans le dire et divergerait de la synchro
 refuser le fichier en cas d'écart, qui rejetterait des exports valides si la règle
 de calcul évoluait. — Conséquence assumée : un fichier édité à la main peut dater
 un rappel n'importe quand, `nextDueDate` n'étant bornée que par son format.
+
+2026-09-18 — **Masquage de `animalName` dans les URL envoyées à PostHog**, trouvé
+en revue robustesse/sécurité du lot analytics (#68/#69). PostHog enrichit chaque
+`capture()`, y compris le nouveau `$pageview`, avec `$current_url` lu sur
+`location.href` ; or `shared/notification-priming.ts` route vers l'écran de
+priming avec `?animalName=<nom>` en query après création d'un vaccin/traitement,
+donc le nom réel d'un animal partait en clair vers PostHog EU Cloud. Corrigé par
+`mask_personal_data_properties: true` + `custom_personal_data_properties:
+['animalName']` dans `postHogConfig()` (`core/analytics/analytics.ts`) — mécanisme
+documenté de posthog-js, qui remplace la valeur du paramètre par `<masked>` dans
+`$current_url` sans désactiver la propriété. — Raison : viole directement CLAUDE.md
+(« jamais de contenu de carnet dans les événements ») ; `capture_pageview: false`
+ne coupe que le pageview automatique du SDK, pas cet enrichissement sur les
+captures manuelles. — Alternative écartée : un `before_send` maison qui retire la
+query string de `$current_url`/`$referrer`, plus de code pour un besoin déjà
+couvert par une option native. Le nom du paramètre (`ANIMAL_NAME_QUERY_PARAM`) vit
+dans `shared/animal-name-query-param.ts`, un module sans dépendance, plutôt que
+dans `notification-priming.ts` : l'importer depuis `core/analytics` aurait tiré
+`core/notifications/permission.ts` (donc `@capacitor/local-notifications`) dans le
+chunk chargé au démarrage — un essai de build l'a fait passer à 233 Ko avant
+correction. — Pour revenir dessus : retirer les deux clés de `postHogConfig()`.

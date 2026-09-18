@@ -14,6 +14,7 @@ import {
   writeStoredPlusStatus,
   type StoredPlusStatus,
 } from './plus-status-storage'
+import { track } from '@/core/analytics'
 import { errorSummary } from '@/shared/error-summary'
 
 function remember(next: PlusStatus, previous: StoredPlusStatus): StoredPlusStatus {
@@ -88,7 +89,10 @@ export const usePurchaseStore = defineStore('purchase', () => {
 
     async purchase(plan: PaidPlan): Promise<PurchaseOutcome> {
       const outcome = await billingService.purchase(plan)
-      if (outcome.kind === 'purchased') record(outcome.status)
+      if (outcome.kind === 'purchased') {
+        record(outcome.status)
+        track('purchase_completed', { plan })
+      }
       return outcome
     },
 

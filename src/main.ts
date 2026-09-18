@@ -4,6 +4,7 @@ import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
 import { installConsentGate } from '@/app/analytics-consent'
+import { installPageviewTracking } from '@/app/analytics-pageview'
 import { installLaunchPriming } from '@/app/reminders-priming'
 import { installRemindersSync } from '@/app/reminders-sync'
 import { initAnalytics } from '@/core/analytics'
@@ -32,6 +33,7 @@ provideTreatmentsRepository(getTreatmentsRepository)
 const app = createApp(App)
 
 installConsentGate(router)
+installPageviewTracking(router)
 void initAnalytics()
 
 app.use(createPinia())

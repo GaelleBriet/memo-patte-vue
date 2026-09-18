@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 
+import { identify, reset as resetAnalytics } from '@/core/analytics'
 import { errorSummary } from '@/shared/error-summary'
 
 import {
@@ -33,6 +34,7 @@ export const useAuthStore = defineStore('auth', () => {
       if (account.value) clearDeviceAccountState()
       account.value = { userId: session.userId }
       writePlusAccount(account.value)
+      identify(session.userId)
     }
     sessionState.value = 'active'
   }
@@ -95,6 +97,7 @@ export const useAuthStore = defineStore('auth', () => {
       clearPlusAccount()
       clearSignedOutAccountState()
       sessionState.value = 'none'
+      resetAnalytics()
     },
   }
 })

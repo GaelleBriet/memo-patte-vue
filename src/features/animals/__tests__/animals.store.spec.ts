@@ -9,7 +9,12 @@ import {
   provideAnimalsRepository,
   useAnimalsStore,
 } from '../animals.store'
+import { track } from '@/core/analytics'
 import { deletePhoto, savePhoto } from '@/core/photos/photo-storage'
+
+vi.mock('@/core/analytics', () => ({
+  track: vi.fn<(event: string, properties?: Record<string, unknown>) => void>(),
+}))
 
 vi.mock('@/core/photos/photo-storage', () => ({
   savePhoto: vi.fn<(base64: string) => Promise<string>>(async () => 'milo.jpg'),
@@ -104,6 +109,14 @@ describe('useAnimalsStore', () => {
     })
     expect(created.name).toBe('Vasco')
     expect(store.animals.map((animal) => animal.name)).toEqual(['Vasco'])
+  })
+
+  it('transmet la création aux statistiques, sans le nom de l’animal', async () => {
+    const store = useAnimalsStore()
+
+    await store.create({ name: 'Vasco', species: 'dog' })
+
+    expect(track).toHaveBeenCalledExactlyOnceWith('animal_created', { species: 'dog' })
   })
 
   it('met à jour un animal et rafraîchit la liste', async () => {

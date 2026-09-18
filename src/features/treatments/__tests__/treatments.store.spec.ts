@@ -10,9 +10,29 @@ import {
   provideTreatmentsRepository,
   useTreatmentsStore,
 } from '../treatments.store'
+import { track } from '@/core/analytics'
+import type { Animal } from '@/features/animals/animal.schema'
+import { useAnimalsStore } from '@/features/animals/animals.store'
+
+vi.mock('@/core/analytics', () => ({
+  track: vi.fn<(event: string, properties?: Record<string, unknown>) => void>(),
+}))
 
 const MILO = '11111111-1111-4111-8111-111111111111'
 const LUNA = '33333333-3333-4333-8333-333333333333'
+
+const MILO_ANIMAL: Animal = {
+  id: MILO,
+  name: 'Milo',
+  species: 'dog',
+  breed: null,
+  birthDate: null,
+  initialWeightKg: null,
+  photoPath: null,
+  createdAt: '2026-09-09T09:00:00.000Z',
+  updatedAt: '2026-09-09T09:00:00.000Z',
+  deletedAt: null,
+}
 
 let repository: FakeTreatmentsRepository
 let reminders: {
@@ -21,6 +41,7 @@ let reminders: {
 }
 
 beforeEach(() => {
+  vi.mocked(track).mockClear()
   setActivePinia(createPinia())
   repository = createFakeRepository()
   provideTreatmentsRepository(() => repository)
@@ -210,6 +231,23 @@ describe('useTreatmentsStore', () => {
     expect(repository.create).toHaveBeenCalledWith(vermifuge(MILO))
     expect(created.name).toBe('Milbemax')
     expect(store.treatments.map((treatment) => treatment.name)).toEqual(['Milbemax'])
+  })
+
+  it('transmet la création aux statistiques, avec l’espèce de l’animal', async () => {
+    useAnimalsStore().animals = [MILO_ANIMAL]
+    const store = useTreatmentsStore()
+
+    await store.create(vermifuge(MILO))
+
+    expect(track).toHaveBeenCalledExactlyOnceWith('treatment_created', { species: 'dog' })
+  })
+
+  it('ne transmet rien aux statistiques quand l’animal est inconnu du store', async () => {
+    const store = useTreatmentsStore()
+
+    await store.create(vermifuge(MILO))
+
+    expect(track).not.toHaveBeenCalled()
   })
 
   it('crée un traitement pour un animal jamais chargé sans relire une liste', async () => {

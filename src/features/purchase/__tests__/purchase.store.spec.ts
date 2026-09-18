@@ -12,6 +12,11 @@ import {
 } from '../plus-status-storage'
 import { usePurchaseStore } from '../purchase.store'
 import { memoryStorage } from './billing-fixture'
+import { track } from '@/core/analytics'
+
+vi.mock('@/core/analytics', () => ({
+  track: vi.fn<(event: string, properties?: Record<string, unknown>) => void>(),
+}))
 
 vi.mock('../billing.service', async (importOriginal) => ({
   ...(await importOriginal<object>()),
@@ -350,6 +355,14 @@ describe('usePurchaseStore', () => {
       expect(readStoredPlusStatus()).toEqual(stored(LIFETIME))
     })
 
+    it('transmet l’achat aux statistiques, avec le plan choisi', async () => {
+      service.purchase.mockResolvedValueOnce({ kind: 'purchased', status: LIFETIME })
+
+      await usePurchaseStore().purchase('lifetime')
+
+      expect(track).toHaveBeenCalledExactlyOnceWith('purchase_completed', { plan: 'lifetime' })
+    })
+
     it('ne change rien quand l’achat est annulé', async () => {
       service.purchase.mockResolvedValueOnce({ kind: 'cancelled' })
       const store = usePurchaseStore()
@@ -357,6 +370,7 @@ describe('usePurchaseStore', () => {
       await expect(store.purchase('annual')).resolves.toEqual({ kind: 'cancelled' })
 
       expect(store.status).toEqual(NO_PLUS)
+      expect(track).not.toHaveBeenCalled()
     })
 
     it('lève en cas d’échec', async () => {
