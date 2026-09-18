@@ -46,12 +46,15 @@ describe('AnimalPickerSheet — contrat de style', () => {
   // `--v-theme-primary` vaut « 1,56,62 » : la syntaxe `rgb(var() / %)` refuse ces virgules
   // et le navigateur jette la déclaration, sans rien signaler.
   it('teinte la ligne appuyée avec une couleur que le navigateur sait calculer', () => {
-    const fond = declaration(
-      '.animal-picker-sheet__animal:hover, .animal-picker-sheet__animal:focus-visible',
-      'background',
-    )
+    const focusVisible = declaration('.animal-picker-sheet__animal:focus-visible', 'background')
+    const hover =
+      /@media \(hover: hover\) \{\s*\.animal-picker-sheet__animal:hover \{\s*background:\s*([^;]+);/.exec(
+        css,
+      )?.[1]
 
-    expect(fond).toMatch(/^rgba\(var\(--v-theme-primary\),/)
-    expect(fond).not.toMatch(/\//)
+    for (const fond of [focusVisible, hover]) {
+      expect(fond).toMatch(/^rgba\(var\(--v-theme-primary\),/)
+      expect(fond).not.toMatch(/\//)
+    }
   })
 })
