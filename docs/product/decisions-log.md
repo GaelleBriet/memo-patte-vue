@@ -1006,3 +1006,16 @@ lisible pris isolément, mais cinq repositories à trois mutations chacun plus l
 services, et la connaissance de la synchro se répand dans toutes les features. —
 Pour revenir dessus : retirer les huit triggers et le `WHEN`, appeler la mise en
 file explicitement depuis chaque repository.
+
+2026-09-19 — **Épic sync, décision §7-4 tranchée avec Gaelle (suppression contre
+modification) : la reco est retenue.** Aucun cas particulier : une suppression est
+une modification comme une autre, elle écrit `deleted_at` **et** `updated_at`, donc
+« la plus récente gagne » s'applique telle quelle — une modification postérieure à
+une suppression fait réapparaître la ligne sur un autre appareil, une suppression
+postérieure l'emporte. — Raison : une seule règle à comprendre et à tester, déjà
+celle de l'import JSON ; cohérence entre les deux mécanismes plutôt que deux
+modèles mentaux. — Alternative écartée : la pierre tombale l'emporte toujours,
+plus rassurant sur le papier, mais une suppression faite par erreur (ou par
+confusion) depuis un autre appareil deviendrait irréversible, sans recours. — Pour
+revenir dessus : dans la logique d'application du pull, traiter `deleted_at` non
+nul comme prioritaire sur toute comparaison d'`updated_at`.

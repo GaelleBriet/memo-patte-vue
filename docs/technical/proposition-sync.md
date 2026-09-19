@@ -367,7 +367,8 @@ confidentialité doit nommer une région précise.
    features. Un trigger avait été écarté le 2026-09-08 pour la cascade ; la raison d'alors (« logique
    métier invisible depuis `src/` ») ne vaut pas pour de la plomberie déclarée dans `migrations.ts`.
 
-4. **Suppression contre modification : aucun cas particulier ?** _Reco_ : aucun — la suppression est
+4. **Suppression contre modification : aucun cas particulier ?** _Tranché le 2026-09-19 avec Gaelle,
+   la reco est retenue._ _Reco_ : aucun — la suppression est
    une modification, la plus récente gagne, donc une modification postérieure fait réapparaître une
    ligne supprimée sur un autre appareil. _Raison_ : une seule règle à comprendre et à tester, déjà
    celle de l'import JSON. _Alternative écartée_ : la pierre tombale l'emporte toujours — plus
