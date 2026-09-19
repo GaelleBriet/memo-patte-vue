@@ -940,3 +940,28 @@ un réglage de confidentialité qui appartient à l'utilisateur, et le système 
 propose déjà. — Alternatives écartées : forcer une visibilité publique (expose le
 carnet sans l'accord de l'utilisateur) ou privée (masque un rappel que
 l'utilisateur veut lire d'un coup d'œil).
+
+2026-09-19 — **Trois garde-fous manquants trouvés en relisant
+`docs/technical/proposition-sync.md` avant tranchage, tous corrigés dans le
+document.** (1) Le trigger SQLite de remplissage de `sync_outbox` faisait
+`ON CONFLICT DO NOTHING` : une deuxième modification pendant qu'une ligne était
+déjà en file n'avançait pas `queued_at`, donc la garde de fin d'entrée (§3.3) ne
+pouvait pas détecter qu'une valeur plus récente restait à envoyer, et supprimait
+l'entrée après un acquittement qui ne portait que sur l'ancienne. (2) L'`upsert`
+du push n'avait aucune garde comparant les horodatages avant d'écraser : un
+appareil resté longtemps hors-ligne pouvait régresser une ligne déjà mise à jour
+par un autre appareil, valeur que récupérerait telle quelle un appareil
+restaurant pour la première fois. (3) L'application du pull en local n'était
+décrite qu'en prose (« remplace la ligne locale »), sans garantie que comparaison
+et écriture se fassent dans la même instruction — une modification locale
+survenue pendant l'attente réseau d'un cycle pouvait être écrasée par le lot en
+cours d'application. — Raison, commune aux trois : toute écriture qui peut entrer
+en concurrence avec une autre doit comparer et écrire en une seule instruction
+SQL (`on conflict … do update … where excluded.updated_at > table.updated_at` ;
+trigger en `on conflict … do update set queued_at = excluded.queued_at`), jamais
+lecture puis décision puis écriture séparées. — Pas d'alternative pesée : ce ne
+sont pas des choix produit mais des extraits qui ne faisaient pas encore ce que
+le texte autour décrivait déjà (« la plus récente gagne »). — Pour revenir
+dessus : retirer les `where` ajoutés au push et au pull, et remettre
+`ON CONFLICT DO NOTHING` sur le trigger (`git revert` du commit qui introduit ce
+correctif).

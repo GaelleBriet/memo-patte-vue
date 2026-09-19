@@ -112,6 +112,34 @@ l'appel une fois par requête au lieu d'une fois par ligne.
 (`docs/technical/export-format.md`). Les instants sont des chaînes ISO 8601 UTC : la comparaison de
 chaînes suffit, pas de parsing.
 
+**La comparaison et l'écriture ne font qu'une seule instruction, dans les deux sens.** Une lecture en
+JS suivie d'une décision puis d'une écriture séparée laisse une fenêtre où une autre écriture peut se
+glisser entre les deux. Le même garde-fou s'applique au pull et au push :
+
+```sql
+-- Pull, en local (SQLite) : une ligne plus ancienne que celle déjà en base ne l'écrase pas
+insert into animal (id, name, …, updated_at, deleted_at)
+values (:id, :name, …, :updated_at, :deleted_at)
+on conflict (id) do update set
+  name = excluded.name, …, updated_at = excluded.updated_at, deleted_at = excluded.deleted_at
+where excluded.updated_at > animal.updated_at;
+
+-- Push, côté serveur (Postgres) : un appareil resté longtemps hors-ligne ne peut pas régresser
+-- une ligne plus récente déjà arrivée d'un autre appareil
+insert into public.animal (user_id, id, name, …, updated_at, deleted_at)
+values (:user_id, :id, :name, …, :updated_at, :deleted_at)
+on conflict (user_id, id) do update set
+  name = excluded.name, …, updated_at = excluded.updated_at, deleted_at = excluded.deleted_at
+where excluded.updated_at > public.animal.updated_at;
+```
+
+Sans le `where` du push, l'appareil resté hors-ligne écraserait silencieusement la valeur plus récente
+du serveur. Les appareils qui ont déjà la bonne valeur en local s'en sortiraient au pull suivant (leur
+propre comparaison la rejette), mais un appareil qui restaure pour la première fois récupérerait la
+valeur régressée, sans rien en local pour la corriger. Sans le `where` du pull, une modification locale
+survenue pendant l'attente réseau d'un cycle pourrait être écrasée par le lot qui arrive, construit
+avant cette modification. Même schéma pour les trois autres tables.
+
 **Suppression contre modification : aucun cas particulier.** Une suppression *est* une modification —
 elle écrit `deleted_at` **et** `updated_at`. Donc une modification postérieure à une suppression fait
 réapparaître la ligne, une suppression postérieure l'emporte (§7-4).
@@ -127,10 +155,11 @@ restent supprimées (§7-5).
 
 `sync_outbox` ne stocke pas de charge utile, seulement « la ligne X de la table Y est à renvoyer ».
 Au push, on relit la ligne courante et on l'envoie en `upsert`. Trois conséquences gratuites : trois
-modifications successives du même animal ne font qu'une entrée (clé primaire, insertion en
-`ON CONFLICT DO NOTHING`) ; l'ordre entre deux modifications d'une même ligne n'existe plus, donc ne
-peut pas se perdre ; rejouer une entrée est sans effet. Un journal d'opérations n'apporterait que des
-états intermédiaires dont « la plus récente gagne » ne fait rien, au prix d'une compaction à écrire.
+modifications successives du même animal ne font qu'une entrée, dont l'horodatage suit toujours la
+dernière (clé primaire, §3.2) ; l'ordre entre deux modifications d'une même ligne n'existe plus, donc
+ne peut pas se perdre ; rejouer une entrée est sans effet. Un journal d'opérations n'apporterait que
+des états intermédiaires dont « la plus récente gagne » ne fait rien, au prix d'une compaction à
+écrire.
 
 ### 3.2 Alimentation : des triggers SQLite
 
@@ -139,12 +168,19 @@ CREATE TRIGGER animal_outbox AFTER INSERT ON animal
 WHEN (SELECT enabled FROM sync_state WHERE id = 1) = 1
 BEGIN
   INSERT INTO sync_outbox (entity, entity_id, queued_at)
-  VALUES ('animal', NEW.id, NEW.updated_at) ON CONFLICT DO NOTHING;
+  VALUES ('animal', NEW.id, NEW.updated_at)
+  ON CONFLICT (entity, entity_id) DO UPDATE SET queued_at = excluded.queued_at;
 END;
 ```
 
 (et le même en `AFTER UPDATE`, pour les quatre tables — huit triggers, déclarés dans
 `src/core/db/migrations.ts`.)
+
+**`DO UPDATE`, pas `DO NOTHING`.** Une ligne déjà en file qui change une deuxième fois doit avancer
+`queued_at` — sinon la garde de fin d'entrée (§3.3) ne peut pas voir qu'une nouvelle modification est
+arrivée pendant qu'un push était en vol, et supprimerait l'entrée après un acquittement qui ne portait
+que sur l'ancienne valeur : la nouvelle resterait en local sans repartir, jusqu'à un edit ultérieur sur
+cette même ligne.
 
 Le `WHEN` fait porter à la base elle-même la garantie qu'un utilisateur gratuit ne remplit rien.
 Déconnexion et expiration se traitent alors en deux instructions, sans toucher aux données :
@@ -165,7 +201,8 @@ Déconnexion et expiration se traitent alors en deux instructions, sans toucher 
   « sérialisation de la file » de #42 : reconstruire le service sur la même base et vérifier que les
   entrées partent toujours.
 - **Fin d'entrée** : on ne la supprime qu'après acquittement **et** si son `queued_at` n'a pas bougé
-  depuis la lecture — sinon une modification survenue pendant la requête serait perdue.
+  depuis la lecture (§3.2) — sinon une modification survenue pendant la requête resterait en attente,
+  l'entrée est gardée pour repartir au prochain cycle.
 
 ### 3.4 Le piège du ping-pong
 
