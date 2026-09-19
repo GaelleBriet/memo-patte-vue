@@ -5,6 +5,27 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.29](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.28...memo-patte-v0.1.29) (2026-09-18)
+
+
+### ✨ Fonctionnalités
+
+* **analytics:** événements métier et tests ([c4316b9](https://github.com/GaelleBriet/memo-patte-vue/commit/c4316b966d53a3bba006a501d98009ed19e9f1af))
+* **analytics:** pageview et événements métier, identify/reset au compte ([88be656](https://github.com/GaelleBriet/memo-patte-vue/commit/88be656b8572293d5b0daa29a8d8436e21c0c5c3))
+* **settings:** déconnexion du compte Plus ([e1032fd](https://github.com/GaelleBriet/memo-patte-vue/commit/e1032fd7ee761e5eb9fc466adf5ad1b8078bdd8d))
+* **settings:** déconnexion du compte Plus ([6069247](https://github.com/GaelleBriet/memo-patte-vue/commit/606924759579cc4ef756e52d8395787f0b74a490))
+* **settings:** export PDF du carnet d'un animal (Plus) ([3ab49af](https://github.com/GaelleBriet/memo-patte-vue/commit/3ab49aff07896af3412d49054756fe7a6eb5d094))
+* **settings:** export PDF du carnet d'un animal (Plus) ([9c4bddc](https://github.com/GaelleBriet/memo-patte-vue/commit/9c4bddcd9bb7a16c96f7fcc8d843a6013273eeda))
+
+
+### 🐛 Corrections
+
+* **analytics:** masquer animalName dans les URL envoyées à PostHog ([7bdb8e6](https://github.com/GaelleBriet/memo-patte-vue/commit/7bdb8e65009bd8c9b0fbdc2232b85d02ecd00492))
+* **auth:** ignorer un double-clic sur la confirmation de déconnexion ([b08b8d8](https://github.com/GaelleBriet/memo-patte-vue/commit/b08b8d8ab671018758392fd8a1e2fd36a3a1bbf9))
+* **settings:** photo, tableau+courbe et chargement paresseux du PDF ([cec5138](https://github.com/GaelleBriet/memo-patte-vue/commit/cec5138bdd342b528545948a1a9c1e67538ee329))
+* **ui:** garder les états de survol derrière [@media](https://github.com/media) (hover: hover) ([35604fd](https://github.com/GaelleBriet/memo-patte-vue/commit/35604fdd6df83639f050d07b2705380731b9e632))
+* **ui:** garder les états de survol derrière [@media](https://github.com/media) (hover: hover) ([82eddc3](https://github.com/GaelleBriet/memo-patte-vue/commit/82eddc3d6e2217c7254469befab38511a8fcb448))
+
 ## [0.1.28](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.27...memo-patte-v0.1.28) (2026-09-16)
 
 
