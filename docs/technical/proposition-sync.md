@@ -344,8 +344,10 @@ confidentialité doit nommer une région précise.
 
 ## 7. Décisions à trancher
 
-1. **Deux horodatages plutôt qu'un.** _Reco_ : garder `updated_at` (horloge de l'appareil, arbitre le
-   conflit) et ajouter `server_updated_at` (horloge Postgres, curseur du pull). _Raison_ : un curseur
+1. **Deux horodatages plutôt qu'un.** _Tranché le 2026-09-19 avec Gaelle, la reco est retenue_ (détail
+   des alternatives considérées dans `docs/product/decisions-log.md`). _Reco_ : garder `updated_at`
+   (horloge de l'appareil, arbitre le conflit) et ajouter `server_updated_at` (horloge Postgres,
+   curseur du pull). _Raison_ : un curseur
    assis sur l'horloge d'un appareil rate définitivement les lignes d'un téléphone en retard, sans
    aucun signal. _Alternative écartée_ : le `updated_at` unique que suppose la note de #39 — une
    colonne de moins, contre une perte de données silencieuse dès qu'une horloge est mal réglée.

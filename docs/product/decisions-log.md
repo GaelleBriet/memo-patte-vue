@@ -965,3 +965,18 @@ le texte autour décrivait déjà (« la plus récente gagne »). — Pour reven
 dessus : retirer les `where` ajoutés au push et au pull, et remettre
 `ON CONFLICT DO NOTHING` sur le trigger (`git revert` du commit qui introduit ce
 correctif).
+
+2026-09-19 — **Épic sync, décision §7-1 tranchée avec Gaelle (deux horodatages) : la
+reco de `docs/technical/proposition-sync.md` est retenue.** `updated_at` (horloge de
+l'appareil) arbitre le conflit, `server_updated_at` (horloge Postgres, posée par
+trigger) sert seul de curseur de pull. — Raison : un curseur assis sur l'horloge d'un
+appareil rate définitivement les lignes d'un téléphone en retard, sans aucun signal.
+Deux pistes plus lourdes ont été considérées et écartées pendant la revue : une
+horloge logique hybride (HLC) ou des vecteurs de version régleraient aussi le
+problème sans dépendre d'une horloge de référence, mais demandent à chaque appareil
+de maintenir un état supplémentaire — complexité sans usage réel pour un compte et
+une poignée d'appareils. — Alternative écartée : le `updated_at` unique que suppose
+la note de #39, une colonne de moins mais silencieusement faux dès qu'une horloge
+d'appareil dérive. — Pour revenir dessus : retirer `server_updated_at` et son
+trigger, refaire le pull sur `updated_at` seul, en connaissance de la perte de
+données silencieuse que ça réintroduit.
