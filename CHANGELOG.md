@@ -5,6 +5,13 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.31](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.30...memo-patte-v0.1.31) (2026-09-19)
+
+
+### 🐛 Corrections
+
+* **sync:** garde-fous d'écriture atomique pour le push, le pull et la file ([177df38](https://github.com/GaelleBriet/memo-patte-vue/commit/177df383c723dd56eae8321a718b410f8ba98a9b))
+
 ## [0.1.30](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.29...memo-patte-v0.1.30) (2026-09-19)
 
 
