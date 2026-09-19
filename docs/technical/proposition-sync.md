@@ -358,7 +358,8 @@ confidentialité doit nommer une région précise.
    l'utilisateur ne peut plus jamais la modifier. _Alternative écartée_ : refuser l'écriture — il
    serait bloqué sans comprendre pourquoi, et sans recours depuis l'app.
 
-3. **Où la file se remplit.** _Reco_ : des triggers SQLite conditionnés par `sync_state.enabled`.
+3. **Où la file se remplit.** _Tranché le 2026-09-19 avec Gaelle, la reco est retenue._ _Reco_ : des
+   triggers SQLite conditionnés par `sync_state.enabled`.
    _Raison_ : aucun chemin d'écriture ne peut être oublié (cascade, import, fixtures), et le CA
    « sans compte, aucune entrée » est garanti par la base elle-même. _Alternative écartée_ : un appel
    explicite dans chaque repository — plus lisible pris isolément, mais cinq repositories, trois

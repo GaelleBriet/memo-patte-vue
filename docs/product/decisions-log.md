@@ -991,3 +991,18 @@ l'écriture — plus strict, mais l'utilisateur se retrouverait bloqué sans com
 pourquoi ni pouvoir s'en sortir depuis l'app, l'horloge du téléphone n'étant pas
 quelque chose qu'on pense à vérifier. — Pour revenir dessus : retirer la clause
 d'écrêtage du trigger `before insert or update` (§1.3).
+
+2026-09-19 — **Épic sync, décision §7-3 tranchée avec Gaelle (où remplir
+`sync_outbox`) : la reco est retenue.** Des triggers SQLite (`AFTER INSERT`/
+`AFTER UPDATE` sur les quatre tables), conditionnés par `sync_state.enabled`,
+déclarés dans `src/core/db/migrations.ts`. — Raison : aucun chemin d'écriture ne
+peut être oublié (cascade, import, fixtures), et le critère « sans compte, aucune
+entrée » est garanti par la base elle-même plutôt que par une discipline de code à
+maintenir. Un trigger avait été écarté le 2026-09-08 pour la cascade de
+suppression ; la raison d'alors (logique métier invisible depuis `src/`) ne vaut
+pas ici, c'est de la plomberie déclarée dans `migrations.ts`, pas une règle
+métier. — Alternative écartée : un appel explicite dans chaque repository — plus
+lisible pris isolément, mais cinq repositories à trois mutations chacun plus les
+services, et la connaissance de la synchro se répand dans toutes les features. —
+Pour revenir dessus : retirer les huit triggers et le `WHEN`, appeler la mise en
+file explicitement depuis chaque repository.
