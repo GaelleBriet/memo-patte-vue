@@ -9,11 +9,11 @@ import {
   getAnimalsRepository,
   type AnimalsRepository,
 } from '@/features/animals/repository/animals.repository'
-import type { Treatment } from '@/features/treatments/treatment.schema'
+import type { Treatment } from '@/features/treatments/schema/treatment.schema'
 import {
   getTreatmentsRepository,
   type TreatmentsRepository,
-} from '@/features/treatments/treatments.repository'
+} from '@/features/treatments/repository/treatments.repository'
 import type { Vaccination } from '@/features/vaccinations/schema/vaccination.schema'
 import {
   getVaccinationsRepository,

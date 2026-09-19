@@ -4,9 +4,9 @@ import { ref } from 'vue'
 import {
   treatmentRemindersService,
   type TreatmentRemindersService,
-} from './treatment-reminders.service'
-import type { Treatment, TreatmentInput, TreatmentUpdateInput } from './treatment.schema'
-import type { TreatmentsRepository as FullTreatmentsRepository } from './treatments.repository'
+} from '../service/treatment-reminders.service'
+import type { Treatment, TreatmentInput, TreatmentUpdateInput } from '../schema/treatment.schema'
+import type { TreatmentsRepository as FullTreatmentsRepository } from '../repository/treatments.repository'
 import { track } from '@/core/analytics'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import { recordUsageSignal } from '@/shared/utils/usage-signals'

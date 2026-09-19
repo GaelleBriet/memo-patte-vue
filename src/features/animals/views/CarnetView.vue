@@ -15,7 +15,7 @@ import type { PdfExportAnimal } from '@/features/settings/PdfExportSheet.vue'
 const PdfExportSheet = defineAsyncComponent(() => import('@/features/settings/PdfExportSheet.vue'))
 import TreatmentsSection, {
   type TreatmentsSummary,
-} from '@/features/treatments/TreatmentsSection.vue'
+} from '@/features/treatments/views/TreatmentsSection.vue'
 import VaccinationsSection, {
   type VaccinationsSummary,
 } from '@/features/vaccinations/views/VaccinationsSection.vue'

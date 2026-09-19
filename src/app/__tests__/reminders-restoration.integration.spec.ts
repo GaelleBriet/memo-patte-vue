@@ -5,7 +5,7 @@ import { simulateWebResume } from '@/core/app-lifecycle/__tests__/simulate-resum
 import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory-db'
 import i18n from '@/core/i18n'
 import { createAnimalsRepository } from '@/features/animals/repository/animals.repository'
-import { createTreatmentsRepository } from '@/features/treatments/treatments.repository'
+import { createTreatmentsRepository } from '@/features/treatments/repository/treatments.repository'
 import { createVaccinationsRepository } from '@/features/vaccinations/repository/vaccinations.repository'
 import {
   createFakeNotifications,

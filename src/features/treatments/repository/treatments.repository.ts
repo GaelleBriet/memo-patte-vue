@@ -1,6 +1,6 @@
 import type { DbClient, SqlStatement } from '@/core/db/db-client'
 import { getDb } from '@/core/db/sqlite'
-import { addFrequency } from './treatment-frequency'
+import { addFrequency } from '../logic/treatment-frequency'
 import {
   treatmentInputSchema,
   treatmentUpdateSchema,
@@ -9,7 +9,7 @@ import {
   type TreatmentInput,
   type TreatmentType,
   type TreatmentUpdateInput,
-} from './treatment.schema'
+} from '../schema/treatment.schema'
 
 interface TreatmentRow {
   id: string

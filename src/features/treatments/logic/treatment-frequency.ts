@@ -1,5 +1,5 @@
 import { addDays, addMonths, addWeeks, format, parseISO } from 'date-fns'
-import type { TreatmentFrequency } from './treatment.schema'
+import type { TreatmentFrequency } from '../schema/treatment.schema'
 
 const DATE_FORMAT = 'yyyy-MM-dd'
 

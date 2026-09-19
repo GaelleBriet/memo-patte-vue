@@ -1,8 +1,8 @@
-import type { TreatmentType } from '@/features/treatments/treatment.schema'
+import type { TreatmentType } from '@/features/treatments/schema/treatment.schema'
 import {
   getTreatmentsRepository,
   type TreatmentsRepository,
-} from '@/features/treatments/treatments.repository'
+} from '@/features/treatments/repository/treatments.repository'
 import {
   getVaccinationsRepository,
   type VaccinationsRepository,

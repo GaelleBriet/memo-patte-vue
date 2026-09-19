@@ -2,7 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { DbClient } from '@/core/db/db-client'
 import type { AnimalsRepository } from '@/features/animals/repository/animals.repository'
-import type { TreatmentsRepository } from '@/features/treatments/treatments.repository'
+import type { TreatmentsRepository } from '@/features/treatments/repository/treatments.repository'
 import type { VaccinationsRepository } from '@/features/vaccinations/repository/vaccinations.repository'
 import type { WeightRepository } from '@/features/weight/weight.repository'
 vi.mock('@/core/db/sqlite', () => ({

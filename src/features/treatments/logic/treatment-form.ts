@@ -8,7 +8,7 @@ import {
   type FrequencyUnit,
   type Treatment,
   type TreatmentType,
-} from './treatment.schema'
+} from '../schema/treatment.schema'
 
 export interface TreatmentFormValues {
   name: string

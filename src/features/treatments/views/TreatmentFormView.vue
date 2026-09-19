@@ -8,15 +8,15 @@ import {
   nextDoseDate,
   treatmentFormValuesFrom,
   validateTreatmentForm,
-} from './treatment-form'
+} from '../logic/treatment-form'
 import {
   FREQUENCY_UNITS,
   MAX_FREQUENCY_VALUE,
   TREATMENT_TYPES,
   type FrequencyUnit,
   type Treatment,
-} from './treatment.schema'
-import { useTreatmentsStore } from './treatments.store'
+} from '../schema/treatment.schema'
+import { useTreatmentsStore } from '../store/treatments.store'
 import { useToday } from '@/core/app-lifecycle/use-today'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import { formatLongDate } from '@/shared/utils/format'

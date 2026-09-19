@@ -1,6 +1,6 @@
 import { addMonths, format, subDays, subMonths, subYears } from 'date-fns'
 import type { AnimalInput } from '@/features/animals/schema/animal.schema'
-import type { TreatmentInput } from '@/features/treatments/treatment.schema'
+import type { TreatmentInput } from '@/features/treatments/schema/treatment.schema'
 import type { VaccinationInput } from '@/features/vaccinations/schema/vaccination.schema'
 import type { WeightEntryInput } from '@/features/weight/weight.schema'
 

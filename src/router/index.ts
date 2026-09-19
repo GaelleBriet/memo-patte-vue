@@ -54,13 +54,13 @@ export const routes: RouteRecordRaw[] = [
   {
     path: '/animals/:animalId/treatments/new',
     name: 'treatment-new',
-    component: () => import('@/features/treatments/TreatmentFormView.vue'),
+    component: () => import('@/features/treatments/views/TreatmentFormView.vue'),
     props: true,
   },
   {
     path: '/treatments/:id/edit',
     name: 'treatment-edit',
-    component: () => import('@/features/treatments/TreatmentFormView.vue'),
+    component: () => import('@/features/treatments/views/TreatmentFormView.vue'),
     props: true,
   },
   {

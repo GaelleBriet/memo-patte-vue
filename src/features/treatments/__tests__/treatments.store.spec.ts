@@ -2,14 +2,14 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 
-import type { Treatment, TreatmentInput } from '../treatment.schema'
-import type { TreatmentRemindersService } from '../treatment-reminders.service'
-import type { TreatmentsRepository } from '../treatments.repository'
+import type { Treatment, TreatmentInput } from '../schema/treatment.schema'
+import type { TreatmentRemindersService } from '../service/treatment-reminders.service'
+import type { TreatmentsRepository } from '../repository/treatments.repository'
 import {
   provideTreatmentRemindersService,
   provideTreatmentsRepository,
   useTreatmentsStore,
-} from '../treatments.store'
+} from '../store/treatments.store'
 import { track } from '@/core/analytics'
 import type { Animal } from '@/features/animals/schema/animal.schema'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'

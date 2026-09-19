@@ -10,11 +10,11 @@ import {
   type AnimalsRepository,
 } from '@/features/animals/repository/animals.repository'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
-import { treatmentReminders } from '@/features/treatments/treatment-reminders'
+import { treatmentReminders } from '@/features/treatments/logic/treatment-reminders'
 import {
   getTreatmentsRepository,
   type TreatmentsRepository,
-} from '@/features/treatments/treatments.repository'
+} from '@/features/treatments/repository/treatments.repository'
 import { vaccinationReminders } from '@/features/vaccinations/logic/vaccination-reminders'
 import {
   getVaccinationsRepository,

@@ -14,7 +14,7 @@ import {
 } from './import-fixture'
 import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory-db'
 import { createAnimalsRepository } from '@/features/animals/repository/animals.repository'
-import { createTreatmentsRepository } from '@/features/treatments/treatments.repository'
+import { createTreatmentsRepository } from '@/features/treatments/repository/treatments.repository'
 import { createVaccinationsRepository } from '@/features/vaccinations/repository/vaccinations.repository'
 import { createWeightRepository } from '@/features/weight/weight.repository'
 

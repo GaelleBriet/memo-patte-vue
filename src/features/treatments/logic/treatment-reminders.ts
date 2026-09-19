@@ -19,7 +19,7 @@ import {
   type Translate,
 } from '@/shared/domain/due-reminders'
 import { addFrequency } from './treatment-frequency'
-import type { Treatment, TreatmentFrequency } from './treatment.schema'
+import type { Treatment, TreatmentFrequency } from '../schema/treatment.schema'
 
 type RemindedTreatment = Pick<
   Treatment,

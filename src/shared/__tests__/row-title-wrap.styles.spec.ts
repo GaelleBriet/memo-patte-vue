@@ -44,7 +44,7 @@ const LISTES = [
     badge: '.vaccination-row__badge',
   },
   {
-    fichier: 'src/features/treatments/TreatmentsSection.vue',
+    fichier: 'src/features/treatments/views/TreatmentsSection.vue',
     ligne: '.treatment-row',
     titre: '.treatment-row__name',
     badge: '.treatment-row__frequency',

@@ -5,7 +5,7 @@ import {
 import {
   getTreatmentsRepository,
   type TreatmentsRepository,
-} from '@/features/treatments/treatments.repository'
+} from '@/features/treatments/repository/treatments.repository'
 import { getWeightRepository } from '@/features/weight/weight.repository'
 import { deletePhoto, type PhotoStorage } from '@/core/photos/photo-storage'
 import type { DueReminderEntry } from '@/shared/domain/due-reminders'

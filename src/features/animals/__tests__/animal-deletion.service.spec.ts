@@ -9,7 +9,7 @@ import {
 import {
   createTreatmentsRepository,
   type TreatmentsRepository,
-} from '@/features/treatments/treatments.repository'
+} from '@/features/treatments/repository/treatments.repository'
 import { createWeightRepository, type WeightRepository } from '@/features/weight/weight.repository'
 import { getDb } from '@/core/db/sqlite'
 import { cancelReminders, listScheduled, type ScheduledReminder } from '@/core/notifications'

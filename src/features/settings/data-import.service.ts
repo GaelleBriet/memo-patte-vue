@@ -7,11 +7,14 @@ import {
   getAnimalsRepository,
   type AnimalsRepository,
 } from '@/features/animals/repository/animals.repository'
-import { treatmentInputSchema, treatmentTypeSchema } from '@/features/treatments/treatment.schema'
+import {
+  treatmentInputSchema,
+  treatmentTypeSchema,
+} from '@/features/treatments/schema/treatment.schema'
 import {
   getTreatmentsRepository,
   type TreatmentsRepository,
-} from '@/features/treatments/treatments.repository'
+} from '@/features/treatments/repository/treatments.repository'
 import { vaccinationInputSchema } from '@/features/vaccinations/schema/vaccination.schema'
 import {
   getVaccinationsRepository,

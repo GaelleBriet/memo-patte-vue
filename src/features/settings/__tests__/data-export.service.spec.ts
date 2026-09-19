@@ -5,7 +5,7 @@ import { createDataExportService, type DataExportDependencies } from '../data-ex
 import type { ExportFile } from '../export-format'
 import { EXPORT_FIXTURE, LUNA_ID, MILO_ID } from './export-fixture'
 import type { Animal } from '@/features/animals/schema/animal.schema'
-import type { Treatment } from '@/features/treatments/treatment.schema'
+import type { Treatment } from '@/features/treatments/schema/treatment.schema'
 import type { Vaccination } from '@/features/vaccinations/schema/vaccination.schema'
 import type { WeightEntry } from '@/features/weight/weight.schema'
 

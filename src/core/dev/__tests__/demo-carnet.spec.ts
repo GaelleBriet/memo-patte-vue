@@ -2,7 +2,7 @@
 import { differenceInCalendarDays, differenceInYears, format, parseISO } from 'date-fns'
 import { describe, expect, it } from 'vitest'
 import { animalInputSchema } from '@/features/animals/schema/animal.schema'
-import { treatmentInputSchema } from '@/features/treatments/treatment.schema'
+import { treatmentInputSchema } from '@/features/treatments/schema/treatment.schema'
 import { vaccinationStatus } from '@/features/vaccinations/logic/vaccination-status'
 import { vaccinationInputSchema } from '@/features/vaccinations/schema/vaccination.schema'
 import { weightEntryInputSchema } from '@/features/weight/weight.schema'
