@@ -1182,6 +1182,165 @@ de code pour le même accès en lecture seule. — Pour revenir dessus : retirer
 `PURCHASE_STORE_READ_ONLY` et la ligne `'!@/features/purchase/purchase.store'`
 de `featureImportsRule` dans `eslint.config.ts`.
 
+2026-09-19 — **Trois garde-fous manquants trouvés en relisant
+`docs/technical/proposition-sync.md` avant tranchage, tous corrigés dans le
+document.** (1) Le trigger SQLite de remplissage de `sync_outbox` faisait
+`ON CONFLICT DO NOTHING` : une deuxième modification pendant qu'une ligne était
+déjà en file n'avançait pas `queued_at`, donc la garde de fin d'entrée (§3.3) ne
+pouvait pas détecter qu'une valeur plus récente restait à envoyer, et supprimait
+l'entrée après un acquittement qui ne portait que sur l'ancienne. (2) L'`upsert`
+du push n'avait aucune garde comparant les horodatages avant d'écraser : un
+appareil resté longtemps hors-ligne pouvait régresser une ligne déjà mise à jour
+par un autre appareil, valeur que récupérerait telle quelle un appareil
+restaurant pour la première fois. (3) L'application du pull en local n'était
+décrite qu'en prose (« remplace la ligne locale »), sans garantie que comparaison
+et écriture se fassent dans la même instruction — une modification locale
+survenue pendant l'attente réseau d'un cycle pouvait être écrasée par le lot en
+cours d'application. — Raison, commune aux trois : toute écriture qui peut entrer
+en concurrence avec une autre doit comparer et écrire en une seule instruction
+SQL (`on conflict … do update … where excluded.updated_at > table.updated_at` ;
+trigger en `on conflict … do update set queued_at = excluded.queued_at`), jamais
+lecture puis décision puis écriture séparées. — Pas d'alternative pesée : ce ne
+sont pas des choix produit mais des extraits qui ne faisaient pas encore ce que
+le texte autour décrivait déjà (« la plus récente gagne »). — Pour revenir
+dessus : retirer les `where` ajoutés au push et au pull, et remettre
+`ON CONFLICT DO NOTHING` sur le trigger (`git revert` du commit qui introduit ce
+correctif).
+
+2026-09-19 — **Épic sync, décision §7-1 tranchée avec Gaelle (deux horodatages) : la
+reco de `docs/technical/proposition-sync.md` est retenue.** `updated_at` (horloge de
+l'appareil) arbitre le conflit, `server_updated_at` (horloge Postgres, posée par
+trigger) sert seul de curseur de pull. — Raison : un curseur assis sur l'horloge d'un
+appareil rate définitivement les lignes d'un téléphone en retard, sans aucun signal.
+Deux pistes plus lourdes ont été considérées et écartées pendant la revue : une
+horloge logique hybride (HLC) ou des vecteurs de version régleraient aussi le
+problème sans dépendre d'une horloge de référence, mais demandent à chaque appareil
+de maintenir un état supplémentaire — complexité sans usage réel pour un compte et
+une poignée d'appareils. — Alternative écartée : le `updated_at` unique que suppose
+la note de #39, une colonne de moins mais silencieusement faux dès qu'une horloge
+d'appareil dérive. — Pour revenir dessus : retirer `server_updated_at` et son
+trigger, refaire le pull sur `updated_at` seul, en connaissance de la perte de
+données silencieuse que ça réintroduit.
+
+2026-09-19 — **Épic sync, décision §7-2 tranchée avec Gaelle (horloge d'appareil
+partie dans le futur) : la reco est retenue.** Un trigger Postgres ramène à `now()`
+tout `updated_at` reçu à plus de 24 h dans le futur. — Raison : sans ça, une ligne
+datée par erreur loin dans le futur (horloge d'appareil déréglée) gagnerait pour
+toujours face à « la plus récente gagne », et plus aucune modification depuis un
+autre appareil ne pourrait jamais la faire évoluer. — Alternative écartée : refuser
+l'écriture — plus strict, mais l'utilisateur se retrouverait bloqué sans comprendre
+pourquoi ni pouvoir s'en sortir depuis l'app, l'horloge du téléphone n'étant pas
+quelque chose qu'on pense à vérifier. — Pour revenir dessus : retirer la clause
+d'écrêtage du trigger `before insert or update` (§1.3).
+
+2026-09-19 — **Épic sync, décision §7-3 tranchée avec Gaelle (où remplir
+`sync_outbox`) : la reco est retenue.** Des triggers SQLite (`AFTER INSERT`/
+`AFTER UPDATE` sur les quatre tables), conditionnés par `sync_state.enabled`,
+déclarés dans `src/core/db/migrations.ts`. — Raison : aucun chemin d'écriture ne
+peut être oublié (cascade, import, fixtures), et le critère « sans compte, aucune
+entrée » est garanti par la base elle-même plutôt que par une discipline de code à
+maintenir. Un trigger avait été écarté le 2026-09-08 pour la cascade de
+suppression ; la raison d'alors (logique métier invisible depuis `src/`) ne vaut
+pas ici, c'est de la plomberie déclarée dans `migrations.ts`, pas une règle
+métier. — Alternative écartée : un appel explicite dans chaque repository — plus
+lisible pris isolément, mais cinq repositories à trois mutations chacun plus les
+services, et la connaissance de la synchro se répand dans toutes les features. —
+Pour revenir dessus : retirer les huit triggers et le `WHEN`, appeler la mise en
+file explicitement depuis chaque repository.
+
+2026-09-19 — **Épic sync, décision §7-4 tranchée avec Gaelle (suppression contre
+modification) : la reco est retenue.** Aucun cas particulier : une suppression est
+une modification comme une autre, elle écrit `deleted_at` **et** `updated_at`, donc
+« la plus récente gagne » s'applique telle quelle — une modification postérieure à
+une suppression fait réapparaître la ligne sur un autre appareil, une suppression
+postérieure l'emporte. — Raison : une seule règle à comprendre et à tester, déjà
+celle de l'import JSON ; cohérence entre les deux mécanismes plutôt que deux
+modèles mentaux. — Alternative écartée : la pierre tombale l'emporte toujours,
+plus rassurant sur le papier, mais une suppression faite par erreur (ou par
+confusion) depuis un autre appareil deviendrait irréversible, sans recours. — Pour
+revenir dessus : dans la logique d'application du pull, traiter `deleted_at` non
+nul comme prioritaire sur toute comparaison d'`updated_at`.
+
+2026-09-19 — **Épic sync, décision §7-5 tranchée avec Gaelle (un animal qui
+réapparaît ramène-t-il son carnet) : la reco est retenue.** Oui, avec la règle déjà
+écrite pour l'import : les lignes (vaccins, traitements, poids) portant exactement
+le même `deleted_at` que l'animal reviennent avec lui ; celles supprimées
+séparément, avec un `deleted_at` différent, restent supprimées. — Raison : import
+et synchronisation doivent se comporter à l'identique, sinon deux modèles mentaux
+à maintenir pour la même situation. — Alternative écartée : l'animal revient vide —
+plus simple à coder (pas de comparaison de `deleted_at` entre lignes), mais la
+cascade de suppression deviendrait une perte définitive du carnet même quand
+l'animal lui-même revient. — Pour revenir dessus : à la réapparition d'un animal,
+ne pas comparer le `deleted_at` des lignes enfants, les laisser supprimées.
+
+2026-09-19 — **Épic sync, décision §7-6 tranchée avec Gaelle (« Remplacer » à la
+restauration) : la reco est retenue.** Effacement physique des lignes locales,
+puis pull complet — pas de pierre tombale. — Raison : ces lignes n'ont jamais
+quitté l'appareil, leur pierre tombale n'aurait aucun destinataire à synchroniser
+et ne ferait qu'encombrer le compte cloud sans objet. — Alternative écartée : la
+pierre tombale comme à l'import, cohérente avec #84, mais remplit le cloud de
+lignes mortes pour rien. Dans les deux cas, action irréversible : confirmation
+explicite à l'écran avant d'effacer. — Pour revenir dessus : marquer `deleted_at`
+au lieu de supprimer physiquement avant le pull complet.
+
+2026-09-19 — **Épic sync, décision §7-7 tranchée avec Gaelle (rétention du cloud
+après expiration) : la reco est retenue, confirme le point laissé « à confirmer
+en 11.7 » par l'entrée du 2026-09-07 (point 2, « purgé après 12 mois sans sync »).**
+Rétention de **12 mois après l'expiration du dernier droit Plus**, pas 12 mois
+sans synchronisation : lecture maintenue pendant ce délai (la restauration marche
+encore), écriture coupée dès l'expiration, un email un mois avant l'échéance. La
+durée est affichée à l'utilisateur. — Raison : le déclencheur est vérifiable côté
+serveur seul, sans dépendre qu'un appareil se reconnecte pour faire avancer un
+compteur ; c'est aussi déjà ce que dit la politique de confidentialité, donc les
+deux documents s'accordent maintenant. — Alternative écartée : « 12 mois sans
+sync » (version du 2026-09-07) — plus généreux dans l'esprit, mais un utilisateur
+qui réinstalle sans se reconnecter verrait son délai courir en réalité, sans rien
+pour l'en informer. — Pour revenir dessus : recalculer la purge sur la dernière
+date de synchronisation plutôt que sur la date d'expiration du droit Plus, et
+mettre à jour la politique de confidentialité en conséquence.
+
+2026-09-19 — **Épic sync, décision §7-8 tranchée avec Gaelle (`@capacitor/network`)
+: la reco est retenue.** Ajouter la dépendance pour détecter le retour du réseau.
+— Raison : `navigator.onLine` dans une WebView Android ne détecte ni portail
+captif ni sortie de mode Doze ; sans le plugin, la reprise après un retour de
+réseau dépend du seul backoff (jusqu'à 15 minutes d'attente avant qu'un cycle ne
+reparte de lui-même). — Alternative écartée : s'en passer — une dépendance et un
+`cap sync` de moins, mais la synchronisation aurait l'air en panne juste après le
+retour du réseau. — Pour revenir dessus : retirer la dépendance et le listener,
+laisser le seul backoff gérer la reprise.
+
+2026-09-19 — **Épic sync, décision §7-9 tranchée avec Gaelle (chemin des photos
+dans le bucket) : la reco est retenue.** `<user_id>/<nom du fichier local>` — le
+nom local est déjà un UUID propre à la photo. — Raison : le chemin se déduit
+d'`animal.photo_path` seul, sans colonne supplémentaire ; une photo remplacée
+devient un objet différent, donc aucun cache périmé à invalider. — Alternative
+écartée : `<user_id>/<animal_id>.jpg`, ce que suppose le ticket #85 — jamais
+d'objet orphelin puisque lié à l'animal, mais `photo_path` contient aujourd'hui un
+UUID propre à la photo et pas l'`animal_id`, donc il aurait fallu une colonne
+`photo_uploaded_at` en plus pour savoir si l'objet distant est à jour, et un objet
+écrasé peut rester affiché depuis le cache. — Pour revenir dessus : renommer le
+chemin des objets Storage vers `<user_id>/<animal_id>.jpg` et ajouter la colonne
+`photo_uploaded_at`.
+
+2026-09-19 — **Épic sync, décision §7-10 tranchée avec Gaelle (purge des pierres
+tombales) : la reco est retenue.** Aucune purge, ni en local ni côté serveur, en
+v1. — Raison : le volume est dérisoire (quelques lignes par animal supprimé), et
+toute purge crée un risque réel de résurrection — un appareil resté longtemps
+hors-ligne avec une modification en attente pourrait faire réapparaître une ligne
+déjà purgée ailleurs, scénario déjà identifié le 2026-09-08. Ferme le « reste à
+définir » de `docs/technical/01-architecture-v2.md`. — Alternative écartée :
+purger au-delà de 90 jours — gagne quelques kilo-octets de stockage contre ce
+risque de résurrection. — Pour revenir dessus : ajouter une purge programmée
+au-delà d'un seuil, en acceptant le risque de résurrection identifié.
+
+2026-09-19 — **Épic sync : les dix décisions de `docs/technical/proposition-sync.md`
+§7 sont toutes tranchées avec Gaelle** (voir les dix entrées ci-dessus, §7-1 à
+§7-10), en plus des trois garde-fous d'écriture atomique corrigés le même jour.
+Le document passe au statut « architecture validée ». — Reste hors de ce
+document, non commencé : toute l'implémentation (lots A à E du §6), qui dépend
+notamment d'un projet Supabase encore sans table (#187) et des clés RevenueCat/
+PostHog encore à fournir par Gaelle.
+
 2026-09-19 — **Deux décisions prises en réorganisant `features/*` et `shared/`
 par rôle technique** (demande de Gaelle après lecture de `features/animals/` et
 `shared/` dans son IDE, schéma/service/repository/store/vues/composables à plat
