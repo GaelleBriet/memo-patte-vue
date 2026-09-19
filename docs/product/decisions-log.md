@@ -1031,3 +1031,13 @@ plus simple à coder (pas de comparaison de `deleted_at` entre lignes), mais la
 cascade de suppression deviendrait une perte définitive du carnet même quand
 l'animal lui-même revient. — Pour revenir dessus : à la réapparition d'un animal,
 ne pas comparer le `deleted_at` des lignes enfants, les laisser supprimées.
+
+2026-09-19 — **Épic sync, décision §7-6 tranchée avec Gaelle (« Remplacer » à la
+restauration) : la reco est retenue.** Effacement physique des lignes locales,
+puis pull complet — pas de pierre tombale. — Raison : ces lignes n'ont jamais
+quitté l'appareil, leur pierre tombale n'aurait aucun destinataire à synchroniser
+et ne ferait qu'encombrer le compte cloud sans objet. — Alternative écartée : la
+pierre tombale comme à l'import, cohérente avec #84, mais remplit le cloud de
+lignes mortes pour rien. Dans les deux cas, action irréversible : confirmation
+explicite à l'écran avant d'effacer. — Pour revenir dessus : marquer `deleted_at`
+au lieu de supprimer physiquement avant le pull complet.

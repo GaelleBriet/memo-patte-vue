@@ -381,7 +381,8 @@ confidentialité doit nommer une région précise.
    l'identique, sinon deux modèles mentaux. _Alternative écartée_ : l'animal revient vide — plus
    simple à coder, mais la cascade deviendrait une perte définitive.
 
-6. **« Remplacer » à la restauration : effacement physique ou pierre tombale ?** _Reco_ : effacement
+6. **« Remplacer » à la restauration : effacement physique ou pierre tombale ?** _Tranché le
+   2026-09-19 avec Gaelle, la reco est retenue._ _Reco_ : effacement
    physique des lignes locales, puis pull complet. _Raison_ : ces lignes n'ont jamais quitté
    l'appareil, leur pierre tombale n'a aucun destinataire et ne ferait qu'encombrer le compte.
    _Alternative écartée_ : la pierre tombale comme à l'import — cohérent avec #84, mais remplit le
