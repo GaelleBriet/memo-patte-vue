@@ -5,6 +5,14 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.30](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.29...memo-patte-v0.1.30) (2026-09-19)
+
+
+### ✨ Fonctionnalités
+
+* **settings:** authorize automated merging of Claude's own PRs in me… ([1beba43](https://github.com/GaelleBriet/memo-patte-vue/commit/1beba435007a5dbabdc7b4dc5601133ec46f063a))
+* **settings:** authorize automated merging of Claude's own PRs in memo-patte-vue ([487f43c](https://github.com/GaelleBriet/memo-patte-vue/commit/487f43c98dba4cdc343541df95ea25aa8a1b2aae))
+
 ## [0.1.29](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.28...memo-patte-v0.1.29) (2026-09-18)
 
 
