@@ -1,6 +1,8 @@
 # Proposition — synchronisation Plus (épic 8)
 
-Statut : **proposition à valider**. Aucun code applicatif, les extraits ci-dessous illustrent.
+Statut : **architecture validée le 2026-09-19** — les dix décisions de §7 sont tranchées avec Gaelle,
+plus trois garde-fous d'écriture atomique corrigés en cours de revue le même jour (§2, §3.2). Aucun
+code applicatif, les extraits ci-dessous illustrent : reste à démarrer l'implémentation (lots du §6).
 Tickets couverts : #38 (8.1), #39 (8.2), #40 (8.3), #41 (8.4), #42 (8.5), #83 (8.6), #85 (8.7),
 #89 (9.5).
 
@@ -8,7 +10,8 @@ Déjà acté, non rediscuté ici : offline-first, Supabase en région UE, « la 
 récente gagne » au niveau ligne, pas de temps réel, pas de fusion champ par champ, suppression
 logique par `deleted_at`, un utilisateur gratuit ne touche jamais Supabase.
 
-Les questions ouvertes sont regroupées en §7 : elles ne sont **pas** tranchées ici.
+Les dix décisions de §7 sont tranchées (2026-09-19) ; chacune porte la date et pointe vers son entrée
+dans `docs/product/decisions-log.md`.
 
 ## 1. Modèle de données
 
@@ -414,7 +417,8 @@ confidentialité doit nommer une région précise.
    orphelin, mais il faut une colonne `photo_uploaded_at` pour savoir si l'objet distant est à jour,
    et un objet écrasé peut rester affiché depuis le cache.
 
-10. **Purger les pierres tombales ?** _Reco_ : non, ni en local ni côté serveur, en v1. _Raison_ : le
+10. **Purger les pierres tombales ?** _Tranché le 2026-09-19 avec Gaelle, la reco est retenue._ _Reco_ :
+    non, ni en local ni côté serveur, en v1. _Raison_ : le
     volume est dérisoire (quelques lignes par animal supprimé) et toute purge crée le risque qu'un
     appareil resté longtemps hors ligne ressuscite une ligne — le scénario déjà identifié le
     2026-09-08. _Alternative écartée_ : purger au-delà de 90 jours — gagne quelques kilo-octets contre

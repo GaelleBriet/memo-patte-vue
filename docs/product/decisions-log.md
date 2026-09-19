@@ -1080,3 +1080,22 @@ UUID propre à la photo et pas l'`animal_id`, donc il aurait fallu une colonne
 écrasé peut rester affiché depuis le cache. — Pour revenir dessus : renommer le
 chemin des objets Storage vers `<user_id>/<animal_id>.jpg` et ajouter la colonne
 `photo_uploaded_at`.
+
+2026-09-19 — **Épic sync, décision §7-10 tranchée avec Gaelle (purge des pierres
+tombales) : la reco est retenue.** Aucune purge, ni en local ni côté serveur, en
+v1. — Raison : le volume est dérisoire (quelques lignes par animal supprimé), et
+toute purge crée un risque réel de résurrection — un appareil resté longtemps
+hors-ligne avec une modification en attente pourrait faire réapparaître une ligne
+déjà purgée ailleurs, scénario déjà identifié le 2026-09-08. Ferme le « reste à
+définir » de `docs/technical/01-architecture-v2.md`. — Alternative écartée :
+purger au-delà de 90 jours — gagne quelques kilo-octets de stockage contre ce
+risque de résurrection. — Pour revenir dessus : ajouter une purge programmée
+au-delà d'un seuil, en acceptant le risque de résurrection identifié.
+
+2026-09-19 — **Épic sync : les dix décisions de `docs/technical/proposition-sync.md`
+§7 sont toutes tranchées avec Gaelle** (voir les dix entrées ci-dessus, §7-1 à
+§7-10), en plus des trois garde-fous d'écriture atomique corrigés le même jour.
+Le document passe au statut « architecture validée ». — Reste hors de ce
+document, non commencé : toute l'implémentation (lots A à E du §6), qui dépend
+notamment d'un projet Supabase encore sans table (#187) et des clés RevenueCat/
+PostHog encore à fournir par Gaelle.
