@@ -980,3 +980,14 @@ la note de #39, une colonne de moins mais silencieusement faux dès qu'une horlo
 d'appareil dérive. — Pour revenir dessus : retirer `server_updated_at` et son
 trigger, refaire le pull sur `updated_at` seul, en connaissance de la perte de
 données silencieuse que ça réintroduit.
+
+2026-09-19 — **Épic sync, décision §7-2 tranchée avec Gaelle (horloge d'appareil
+partie dans le futur) : la reco est retenue.** Un trigger Postgres ramène à `now()`
+tout `updated_at` reçu à plus de 24 h dans le futur. — Raison : sans ça, une ligne
+datée par erreur loin dans le futur (horloge d'appareil déréglée) gagnerait pour
+toujours face à « la plus récente gagne », et plus aucune modification depuis un
+autre appareil ne pourrait jamais la faire évoluer. — Alternative écartée : refuser
+l'écriture — plus strict, mais l'utilisateur se retrouverait bloqué sans comprendre
+pourquoi ni pouvoir s'en sortir depuis l'app, l'horloge du téléphone n'étant pas
+quelque chose qu'on pense à vérifier. — Pour revenir dessus : retirer la clause
+d'écrêtage du trigger `before insert or update` (§1.3).

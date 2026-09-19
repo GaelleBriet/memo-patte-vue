@@ -352,7 +352,8 @@ confidentialité doit nommer une région précise.
    aucun signal. _Alternative écartée_ : le `updated_at` unique que suppose la note de #39 — une
    colonne de moins, contre une perte de données silencieuse dès qu'une horloge est mal réglée.
 
-2. **Écrêter une date future côté serveur.** _Reco_ : un trigger ramène à `now()` tout `updated_at` à
+2. **Écrêter une date future côté serveur.** _Tranché le 2026-09-19 avec Gaelle, la reco est retenue._
+   _Reco_ : un trigger ramène à `now()` tout `updated_at` à
    plus de 24 h dans le futur. _Raison_ : sinon une ligne datée 2030 gagne pour toujours et
    l'utilisateur ne peut plus jamais la modifier. _Alternative écartée_ : refuser l'écriture — il
    serait bloqué sans comprendre pourquoi, et sans recours depuis l'app.
