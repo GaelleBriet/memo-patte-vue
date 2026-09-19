@@ -374,7 +374,8 @@ confidentialité doit nommer une région précise.
    celle de l'import JSON. _Alternative écartée_ : la pierre tombale l'emporte toujours — plus
    rassurant, mais une suppression faite par erreur depuis un autre appareil devient irréversible.
 
-5. **Un animal qui réapparaît ramène-t-il son carnet ?** _Reco_ : oui, avec la règle déjà écrite pour
+5. **Un animal qui réapparaît ramène-t-il son carnet ?** _Tranché le 2026-09-19 avec Gaelle, la reco
+   est retenue._ _Reco_ : oui, avec la règle déjà écrite pour
    l'import — les lignes portant exactement le même `deleted_at` que l'animal reviennent avec lui,
    les autres restent supprimées. _Raison_ : import et synchronisation doivent se comporter à
    l'identique, sinon deux modèles mentaux. _Alternative écartée_ : l'animal revient vide — plus

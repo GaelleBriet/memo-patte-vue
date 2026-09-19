@@ -1019,3 +1019,15 @@ plus rassurant sur le papier, mais une suppression faite par erreur (ou par
 confusion) depuis un autre appareil deviendrait irréversible, sans recours. — Pour
 revenir dessus : dans la logique d'application du pull, traiter `deleted_at` non
 nul comme prioritaire sur toute comparaison d'`updated_at`.
+
+2026-09-19 — **Épic sync, décision §7-5 tranchée avec Gaelle (un animal qui
+réapparaît ramène-t-il son carnet) : la reco est retenue.** Oui, avec la règle déjà
+écrite pour l'import : les lignes (vaccins, traitements, poids) portant exactement
+le même `deleted_at` que l'animal reviennent avec lui ; celles supprimées
+séparément, avec un `deleted_at` différent, restent supprimées. — Raison : import
+et synchronisation doivent se comporter à l'identique, sinon deux modèles mentaux
+à maintenir pour la même situation. — Alternative écartée : l'animal revient vide —
+plus simple à coder (pas de comparaison de `deleted_at` entre lignes), mais la
+cascade de suppression deviendrait une perte définitive du carnet même quand
+l'animal lui-même revient. — Pour revenir dessus : à la réapparition d'un animal,
+ne pas comparer le `deleted_at` des lignes enfants, les laisser supprimées.
