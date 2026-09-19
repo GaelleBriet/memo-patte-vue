@@ -1067,3 +1067,16 @@ reparte de lui-même). — Alternative écartée : s'en passer — une dépendan
 `cap sync` de moins, mais la synchronisation aurait l'air en panne juste après le
 retour du réseau. — Pour revenir dessus : retirer la dépendance et le listener,
 laisser le seul backoff gérer la reprise.
+
+2026-09-19 — **Épic sync, décision §7-9 tranchée avec Gaelle (chemin des photos
+dans le bucket) : la reco est retenue.** `<user_id>/<nom du fichier local>` — le
+nom local est déjà un UUID propre à la photo. — Raison : le chemin se déduit
+d'`animal.photo_path` seul, sans colonne supplémentaire ; une photo remplacée
+devient un objet différent, donc aucun cache périmé à invalider. — Alternative
+écartée : `<user_id>/<animal_id>.jpg`, ce que suppose le ticket #85 — jamais
+d'objet orphelin puisque lié à l'animal, mais `photo_path` contient aujourd'hui un
+UUID propre à la photo et pas l'`animal_id`, donc il aurait fallu une colonne
+`photo_uploaded_at` en plus pour savoir si l'objet distant est à jour, et un objet
+écrasé peut rester affiché depuis le cache. — Pour revenir dessus : renommer le
+chemin des objets Storage vers `<user_id>/<animal_id>.jpg` et ajouter la colonne
+`photo_uploaded_at`.

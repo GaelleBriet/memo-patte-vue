@@ -406,7 +406,8 @@ confidentialité doit nommer une région précise.
    passer — une dépendance et un `cap sync` de moins, contre une synchronisation qui a l'air en panne
    juste après que le réseau est revenu.
 
-9. **Chemin des photos dans le bucket.** _Reco_ : `<user_id>/<nom du fichier local>` — le nom local
+9. **Chemin des photos dans le bucket.** _Tranché le 2026-09-19 avec Gaelle, la reco est retenue._
+   _Reco_ : `<user_id>/<nom du fichier local>` — le nom local
    est déjà un UUID. _Raison_ : le chemin se déduit de `animal.photo_path` seul, sans colonne
    supplémentaire, et une photo remplacée est un objet différent, donc aucun cache périmé à
    invalider. _Alternative écartée_ : `<user_id>/<animal_id>.jpg`, ce que dit #85 — jamais d'objet
