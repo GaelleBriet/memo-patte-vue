@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { animalAge } from '../animal-age'
+import { animalAge } from '../domain/animal-age'
 
 const TODAY = '2026-09-09'
 

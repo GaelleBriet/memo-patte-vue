@@ -1,17 +1,17 @@
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import PdfExportSheet, { type PdfExportAnimal } from '../PdfExportSheet.vue'
-import type { PdfExportOutcome } from '../pdf-export.service'
+import PdfExportSheet, { type PdfExportAnimal } from '../views/PdfExportSheet.vue'
+import type { PdfExportOutcome } from '../service/pdf-export.service'
 import i18n from '@/core/i18n'
 import vuetify from '@/core/theme/vuetify'
-import { dismissToast, toastMessage } from '@/shared/toast'
+import { dismissToast, toastMessage } from '@/shared/utils/toast'
 
 const exportAnimalCarnetPdf = vi.hoisted(() =>
   vi.fn<(animalId: string) => Promise<PdfExportOutcome>>(),
 )
 
-vi.mock('../pdf-export.service', () => ({
+vi.mock('../service/pdf-export.service', () => ({
   pdfExportService: { exportAnimalCarnetPdf },
 }))
 

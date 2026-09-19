@@ -2,12 +2,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import i18n from '@/core/i18n'
-import type { TreatmentFrequency } from '../treatment.schema'
-import { addFrequency } from '../treatment-frequency'
-import type * as TreatmentFrequencyModule from '../treatment-frequency'
-import { treatmentReminders } from '../treatment-reminders'
+import type { TreatmentFrequency } from '../schema/treatment.schema'
+import { addFrequency } from '../logic/treatment-frequency'
+import type * as TreatmentFrequencyModule from '../logic/treatment-frequency'
+import { treatmentReminders } from '../logic/treatment-reminders'
 
-vi.mock('../treatment-frequency', async (importOriginal) => {
+vi.mock('../logic/treatment-frequency', async (importOriginal) => {
   const original = await importOriginal<typeof TreatmentFrequencyModule>()
   return { addFrequency: vi.fn<typeof original.addFrequency>(original.addFrequency) }
 })

@@ -2,7 +2,11 @@
 import { addDays, format } from 'date-fns'
 import { describe, expect, it } from 'vitest'
 
-import { emptyWeightFormValues, validateWeightForm, type WeightFormValues } from '../weight-form'
+import {
+  emptyWeightFormValues,
+  validateWeightForm,
+  type WeightFormValues,
+} from '../logic/weight-form'
 import { todayIsoDate } from '@/core/app-lifecycle/today-iso-date'
 
 const MILO = '11111111-1111-4111-8111-111111111111'

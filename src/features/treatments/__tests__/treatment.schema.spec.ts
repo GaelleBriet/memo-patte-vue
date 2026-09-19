@@ -5,7 +5,7 @@ import {
   treatmentInputSchema,
   treatmentSchema,
   treatmentUpdateSchema,
-} from '../treatment.schema'
+} from '../schema/treatment.schema'
 
 const validInput = {
   animalId: '11111111-1111-4111-8111-111111111111',

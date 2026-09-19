@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import type { DataExportService } from '../data-export.service'
-import { useDataExport } from '../use-data-export'
+import type { DataExportService } from '../service/data-export.service'
+import { useDataExport } from '../composables/use-data-export'
 
 function deferred<T>() {
   let resolve!: (value: T) => void

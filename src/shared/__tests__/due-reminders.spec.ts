@@ -6,7 +6,7 @@ import {
   dueReminders,
   parseReminderKey,
   type DueReminderTexts,
-} from '../due-reminders'
+} from '../domain/due-reminders'
 
 const ID = '22222222-2222-4222-8222-222222222222'
 const ENTRY = { kind: 'vaccination', id: ID } as const

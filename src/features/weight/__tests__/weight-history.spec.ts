@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { weightHistory } from '../weight-history'
+import { weightHistory } from '../logic/weight-history'
 
 let sequence = 0
 

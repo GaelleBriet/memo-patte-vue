@@ -5,7 +5,7 @@ import { routes } from '@/router'
 
 const authAvailable = vi.hoisted(() => vi.fn<() => boolean>(() => true))
 
-vi.mock('@/shared/auth-available', () => ({ authAvailable }))
+vi.mock('@/shared/utils/auth-available', () => ({ authAvailable }))
 
 beforeEach(() => {
   authAvailable.mockReturnValue(true)

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { signInReturnRoute, signInRoute } from '../sign-in-route'
+import { signInReturnRoute, signInRoute } from '../utils/sign-in-route'
 import { routes } from '@/router'
 
 describe('signInRoute', () => {

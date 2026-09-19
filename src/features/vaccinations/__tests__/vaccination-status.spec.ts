@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { byDueDate, vaccinationStatus } from '../vaccination-status'
+import { byDueDate, vaccinationStatus } from '../logic/vaccination-status'
 
 const TODAY = '2026-09-09'
 

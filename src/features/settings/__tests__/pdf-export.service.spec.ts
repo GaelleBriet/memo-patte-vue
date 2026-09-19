@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { createPdfExportService, type PdfExportDependencies } from '../pdf-export.service'
-import type { DeliveryOutcome } from '../export-delivery'
-import type { CarnetPdfContent } from '../pdf-content'
+import { createPdfExportService, type PdfExportDependencies } from '../service/pdf-export.service'
+import type { DeliveryOutcome } from '../logic/export-delivery'
+import type { CarnetPdfContent } from '../logic/pdf-content'
 import { EXPORT_FIXTURE, LUNA_ID, MILO_ID } from './export-fixture'
 
 const NOW = new Date('2026-09-15T10:30:00')

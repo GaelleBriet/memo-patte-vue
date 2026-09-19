@@ -1,7 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { ImportRefusedError, type DataImportService, type ImportMode } from '../data-import.service'
-import { useDataImport } from '../use-data-import'
+import {
+  ImportRefusedError,
+  type DataImportService,
+  type ImportMode,
+} from '../service/data-import.service'
+import { useDataImport } from '../composables/use-data-import'
 import { IMPORT_FIXTURE, importFixtureJson } from './import-fixture'
 
 const hasLocalData = vi.fn<() => Promise<boolean>>()

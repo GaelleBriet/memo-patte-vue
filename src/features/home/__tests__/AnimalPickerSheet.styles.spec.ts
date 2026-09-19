@@ -6,7 +6,7 @@ import { compileString } from 'sass'
 
 // Vitest tourne avec `css: false` et jsdom ne met pas en page : ces tests compilent
 // le bloc `<style>` et vérifient des déclarations, jamais la géométrie rendue.
-const COMPOSANT = resolve(process.cwd(), 'src/features/home/AnimalPickerSheet.vue')
+const COMPOSANT = resolve(process.cwd(), 'src/features/home/views/AnimalPickerSheet.vue')
 const DOSSIER_STYLES = resolve(process.cwd(), 'src/styles')
 
 function cssDuComposant(): string {

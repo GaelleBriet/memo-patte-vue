@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { weightEntryInputSchema, weightEntryUpdateSchema } from '../weight.schema'
+import { weightEntryInputSchema, weightEntryUpdateSchema } from '../schema/weight.schema'
 
 const validInput = {
   animalId: '11111111-1111-4111-8111-111111111111',

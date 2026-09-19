@@ -3,16 +3,16 @@ import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { memoryStorage } from './billing-fixture'
-import { billingService, type BillingService } from '../billing.service'
-import { forgetPlusNudgeSession, readPlusNudgeState } from '../plus-nudge'
-import PlusNudgeSection from '../PlusNudgeSection.vue'
-import { writeStoredPlusStatus } from '../plus-status-storage'
+import { billingService, type BillingService } from '../service/billing.service'
+import { forgetPlusNudgeSession, readPlusNudgeState } from '../logic/plus-nudge'
+import PlusNudgeSection from '../views/PlusNudgeSection.vue'
+import { writeStoredPlusStatus } from '../logic/plus-status-storage'
 import i18n from '@/core/i18n'
 import vuetify from '@/core/theme/vuetify'
 import router from '@/router'
-import { recordUsageSignal } from '@/shared/usage-signals'
+import { recordUsageSignal } from '@/shared/utils/usage-signals'
 
-vi.mock('../billing.service', async (importOriginal) => ({
+vi.mock('../service/billing.service', async (importOriginal) => ({
   ...(await importOriginal<object>()),
   billingService: {
     isAvailable: vi.fn<BillingService['isAvailable']>(() => true),

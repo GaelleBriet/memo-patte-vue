@@ -8,7 +8,7 @@ import {
   createVaccinationsRepository,
   getVaccinationsRepository,
   type VaccinationsRepository,
-} from '../vaccinations.repository'
+} from '../repository/vaccinations.repository'
 
 // La fabrique est le seul code testé ici qui ouvre la base : on lui substitue `getDb`.
 vi.mock('@/core/db/sqlite', () => ({ getDb: vi.fn<() => Promise<DbClient>>() }))

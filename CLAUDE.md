@@ -66,6 +66,8 @@ src/
 
 `core/dev/` contient les fixtures de développement (`pnpm dev:data`, carnet de démo Milo + Luna peuplé via les repositories) ; importé derrière `import.meta.env.DEV` uniquement, il ne part jamais en production.
 
+Chaque `features/<nom>/` range son contenu par rôle technique, en sous-dossiers plats créés seulement s'ils ont un fichier à contenir : `store/` (`xxx.store.ts`), `repository/` (`xxx.repository.ts`), `service/` (`*.service.ts`), `schema/` (`*.schema.ts`), `composables/` (`use-*.ts`), `views/` (tous les `.vue`, écrans et sous-composants confondus), `logic/` (le reste des `.ts` propres à la feature) ; `__tests__/` ne bouge pas. `shared/` suit le même principe avec `components/`, `composables/`, `domain/` (logique métier MémoPatte : rappel, poids, animal, carnet), `utils/` (générique, sans connaissance métier) ; `form/` et `__tests__/` gardent leur organisation existante.
+
 ### Règles strictes de structure
 
 - Aucun import croisé entre features, à quatre exceptions près (règle ESLint `app/feature-imports`) ; tout le reste passe par `shared/` ou `core/` :

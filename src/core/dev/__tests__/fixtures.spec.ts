@@ -1,10 +1,10 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { DbClient } from '@/core/db/db-client'
-import type { AnimalsRepository } from '@/features/animals/animals.repository'
-import type { TreatmentsRepository } from '@/features/treatments/treatments.repository'
-import type { VaccinationsRepository } from '@/features/vaccinations/vaccinations.repository'
-import type { WeightRepository } from '@/features/weight/weight.repository'
+import type { AnimalsRepository } from '@/features/animals/repository/animals.repository'
+import type { TreatmentsRepository } from '@/features/treatments/repository/treatments.repository'
+import type { VaccinationsRepository } from '@/features/vaccinations/repository/vaccinations.repository'
+import type { WeightRepository } from '@/features/weight/repository/weight.repository'
 vi.mock('@/core/db/sqlite', () => ({
   getDb: vi.fn<() => Promise<DbClient>>(async () => {
     throw new Error('ouverture de la base impossible')

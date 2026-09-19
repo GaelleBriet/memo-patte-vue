@@ -1,7 +1,7 @@
 import { mount } from '@vue/test-utils'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import PushedScreen from '../PushedScreen.vue'
+import PushedScreen from '../components/PushedScreen.vue'
 import vuetify from '@/core/theme/vuetify'
 
 type Props = InstanceType<typeof PushedScreen>['$props']

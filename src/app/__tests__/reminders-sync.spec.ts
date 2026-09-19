@@ -3,11 +3,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { simulateWebResume } from '@/core/app-lifecycle/__tests__/simulate-resume'
 import i18n from '@/core/i18n'
-import type { Animal } from '@/features/animals/animal.schema'
-import type { AnimalsRepository } from '@/features/animals/animals.repository'
-import { provideAnimalsRepository, useAnimalsStore } from '@/features/animals/animals.store'
-import type { Treatment } from '@/features/treatments/treatment.schema'
-import type { Vaccination } from '@/features/vaccinations/vaccination.schema'
+import type { Animal } from '@/features/animals/schema/animal.schema'
+import type { AnimalsRepository } from '@/features/animals/repository/animals.repository'
+import { provideAnimalsRepository, useAnimalsStore } from '@/features/animals/store/animals.store'
+import type { Treatment } from '@/features/treatments/schema/treatment.schema'
+import type { Vaccination } from '@/features/vaccinations/schema/vaccination.schema'
 import {
   createFakeNotifications,
   type FakeNotifications,
@@ -16,7 +16,7 @@ import {
   enqueueReminderTask,
   MAX_SCHEDULED_REMINDERS,
   replaceDueReminders,
-} from '@/shared/due-reminders-schedule'
+} from '@/shared/domain/due-reminders-schedule'
 import type { Reminder } from '@/core/notifications'
 import { createRemindersSync, installRemindersSync } from '../reminders-sync'
 

@@ -2,22 +2,22 @@ import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest'
 
-import ExportSheet from '../ExportSheet.vue'
-import type * as DataImport from '../data-import.service'
-import PdfExportSheet from '../PdfExportSheet.vue'
-import SettingsView from '../SettingsView.vue'
+import ExportSheet from '../views/ExportSheet.vue'
+import type * as DataImport from '../service/data-import.service'
+import PdfExportSheet from '../views/PdfExportSheet.vue'
+import SettingsView from '../views/SettingsView.vue'
 import { importFixtureJson } from './import-fixture'
 import i18n from '@/core/i18n'
 import vuetify from '@/core/theme/vuetify'
 import router from '@/router'
-import type { Animal } from '@/features/animals/animal.schema'
-import { useAnimalsStore } from '@/features/animals/animals.store'
+import type { Animal } from '@/features/animals/schema/animal.schema'
+import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import { USER_ID } from '@/features/auth/__tests__/auth-fixture'
-import { writePlusAccount } from '@/features/auth/plus-account-storage'
+import { writePlusAccount } from '@/features/auth/logic/plus-account-storage'
 import { memoryStorage } from '@/features/purchase/__tests__/billing-fixture'
-import { writeStoredPlusStatus } from '@/features/purchase/plus-status-storage'
+import { writeStoredPlusStatus } from '@/features/purchase/logic/plus-status-storage'
 
-vi.mock('../data-export.service', () => ({
+vi.mock('../service/data-export.service', () => ({
   dataExportService: { exportData: vi.fn<() => Promise<'shared'>>() },
 }))
 
@@ -29,7 +29,7 @@ const promptNotificationsIfReminders = vi.hoisted(() =>
 
 type DataImportModule = typeof DataImport
 
-vi.mock('../data-import.service', async (importOriginal) => ({
+vi.mock('../service/data-import.service', async (importOriginal) => ({
   ...(await importOriginal<DataImportModule>()),
   dataImportService: { hasLocalData, importData },
 }))
@@ -38,7 +38,7 @@ vi.mock('@/app/reminders-priming', () => ({ promptNotificationsIfReminders }))
 
 const authAvailable = vi.hoisted(() => vi.fn<() => boolean>(() => true))
 
-vi.mock('@/shared/auth-available', () => ({ authAvailable }))
+vi.mock('@/shared/utils/auth-available', () => ({ authAvailable }))
 
 const consent = vi.hoisted(() => ({ granted: false }))
 const optIn = vi.hoisted(() => vi.fn<() => Promise<void>>())

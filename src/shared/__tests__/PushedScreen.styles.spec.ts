@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest'
 const DOSSIER_STYLES = resolve(process.cwd(), 'src/styles')
 
 function cssDeLEcran(): string {
-  const sfc = readFileSync(resolve(process.cwd(), 'src/shared/PushedScreen.vue'), 'utf8')
+  const sfc = readFileSync(resolve(process.cwd(), 'src/shared/components/PushedScreen.vue'), 'utf8')
   const bloc = /<style[^>]*lang="scss">([\s\S]*?)<\/style>/.exec(sfc)?.[1]
 
   if (!bloc) throw new Error('bloc <style lang="scss"> introuvable dans PushedScreen.vue')
@@ -125,7 +125,7 @@ describe('PushedScreen — contrat de style', () => {
 describe('Écrans poussés — la hauteur reste à PushedScreen', () => {
   it('le suivi de poids ne redéfinit pas de hauteur', () => {
     const sfc = readFileSync(
-      resolve(process.cwd(), 'src/features/weight/WeightHistoryView.vue'),
+      resolve(process.cwd(), 'src/features/weight/views/WeightHistoryView.vue'),
       'utf8',
     )
     const bloc = /<style[^>]*lang="scss">([\s\S]*?)<\/style>/.exec(sfc)?.[1] ?? ''

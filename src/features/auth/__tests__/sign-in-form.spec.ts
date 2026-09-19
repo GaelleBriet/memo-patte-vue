@@ -1,7 +1,11 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
 
-import { emptySignInFormValues, MIN_PASSWORD_LENGTH, validateSignInForm } from '../sign-in-form'
+import {
+  emptySignInFormValues,
+  MIN_PASSWORD_LENGTH,
+  validateSignInForm,
+} from '../logic/sign-in-form'
 
 describe('validateSignInForm', () => {
   it('rend l’adresse nettoyée et le mot de passe tel quel', () => {

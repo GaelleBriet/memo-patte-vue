@@ -5,7 +5,7 @@ import { beforeAll, describe, expect, it } from 'vitest'
 
 // Vitest tourne avec `css: false` : ce fichier compile le bloc `<style>` et
 // vérifie des déclarations, jamais la géométrie — jsdom ne met pas en page.
-const COMPOSANT = resolve(process.cwd(), 'src/features/home/HomeView.vue')
+const COMPOSANT = resolve(process.cwd(), 'src/features/home/views/HomeView.vue')
 const DOSSIER_STYLES = resolve(process.cwd(), 'src/styles')
 
 function cssDuComposant(): string {

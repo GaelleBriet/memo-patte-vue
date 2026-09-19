@@ -4,19 +4,23 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { identify, reset as resetAnalytics } from '@/core/analytics'
 import { ANALYTICS_CONSENT_KEY } from '@/core/analytics/analytics'
-import { PLUS_NUDGE_STORAGE_KEY } from '@/features/purchase/plus-nudge'
+import { PLUS_NUDGE_STORAGE_KEY } from '@/features/purchase/logic/plus-nudge'
 import {
   PLUS_STATUS_STORAGE_KEY,
   readStoredPlusStatus,
   writeStoredPlusStatus,
-} from '@/features/purchase/plus-status-storage'
-import { usePurchaseStore } from '@/features/purchase/purchase.store'
-import { USAGE_SIGNALS_STORAGE_KEY } from '@/shared/usage-signals'
+} from '@/features/purchase/logic/plus-status-storage'
+import { usePurchaseStore } from '@/features/purchase/store/purchase.store'
+import { USAGE_SIGNALS_STORAGE_KEY } from '@/shared/utils/usage-signals'
 
-import { AccountError } from '../account-error'
-import { authRepository, type AuthRepository, type AuthSession } from '../auth.repository'
-import { useAuthStore } from '../auth.store'
-import { readPlusAccount, writePlusAccount } from '../plus-account-storage'
+import { AccountError } from '../logic/account-error'
+import {
+  authRepository,
+  type AuthRepository,
+  type AuthSession,
+} from '../repository/auth.repository'
+import { useAuthStore } from '../store/auth.store'
+import { readPlusAccount, writePlusAccount } from '../logic/plus-account-storage'
 import { memoryStorage, OTHER_USER_ID, USER_ID } from './auth-fixture'
 
 const ACCOUNT_KEYS = [PLUS_STATUS_STORAGE_KEY, PLUS_NUDGE_STORAGE_KEY, USAGE_SIGNALS_STORAGE_KEY]
@@ -35,7 +39,7 @@ vi.mock('@/core/analytics', () => ({
   reset: vi.fn<() => void>(),
 }))
 
-vi.mock('../auth.repository', () => ({
+vi.mock('../repository/auth.repository', () => ({
   authRepository: {
     signUp: vi.fn<AuthRepository['signUp']>(),
     signIn: vi.fn<AuthRepository['signIn']>(),

@@ -22,7 +22,7 @@ function styleCompile(chemin: string): string {
   return compileString(bloc, { importers: [aliasSrc], url: pathToFileURL(fichier) }).css
 }
 
-const CSS = styleCompile('src/features/purchase/PlusNudgeSection.vue')
+const CSS = styleCompile('src/features/purchase/views/PlusNudgeSection.vue')
 
 describe('PlusNudgeSection — contrat de style', () => {
   it('teinte la carte comme la maquette', () => {

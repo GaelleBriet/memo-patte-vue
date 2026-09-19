@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { vaccinationInputSchema } from '../vaccination.schema'
+import { vaccinationInputSchema } from '../schema/vaccination.schema'
 
 const validInput = {
   animalId: '11111111-1111-4111-8111-111111111111',

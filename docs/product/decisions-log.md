@@ -1340,3 +1340,50 @@ Le document passe au statut « architecture validée ». — Reste hors de ce
 document, non commencé : toute l'implémentation (lots A à E du §6), qui dépend
 notamment d'un projet Supabase encore sans table (#187) et des clés RevenueCat/
 PostHog encore à fournir par Gaelle.
+
+2026-09-19 — **Deux décisions prises en réorganisant `features/*` et `shared/`
+par rôle technique** (demande de Gaelle après lecture de `features/animals/` et
+`shared/` dans son IDE, schéma/service/repository/store/vues/composables à plat
+dans un seul dossier).
+
+1) **Convention de sous-dossiers par rôle technique dans chaque
+`features/<nom>/`** : `store/` (`xxx.store.ts`), `repository/`
+(`xxx.repository.ts`), `service/` (`*.service.ts`), `schema/` (`*.schema.ts`),
+`composables/` (`use-*.ts`), `views/` (tous les `.vue`, écrans et
+sous-composants confondus), `logic/` (le reste des `.ts` propres à la feature,
+fourre-tout assumé), `__tests__/` inchangé. `shared/` suit le même principe
+avec `components/`, `composables/`, `domain/` (logique métier MémoPatte),
+`utils/` (générique, sans connaissance métier) ; `form/` et `__tests__/`
+gardent leur organisation existante. — Raison : `store/repository/service/vues`
+était la demande explicite de Gaelle sur l'exemple `animals/` ; étendue aux
+sept autres features et aux catégories `schema/composables/logic` pour rester
+cohérent partout plutôt que de n'organiser qu'un dossier. — Alternative
+écartée : un découpage par concept dans `shared/` calqué sur `form/` (un
+dossier par patron réutilisable plutôt que par rôle technique) — écarté pour
+garder une seule règle simple et prévisible dans tout le dépôt plutôt que deux
+logiques différentes selon le dossier. — Pour revenir dessus : purement
+mécanique (fichiers déplacés par `git mv`, imports mis à jour), `git revert`
+des commits du lot `chore/reorganisation-dossiers-par-role`.
+
+2) **Dans `featureImportsRule` (`eslint.config.ts`) : `'../**'` devient
+`'../../**'`, et chaque exception vers un chemin imbriqué excepte aussi son
+dossier intermédiaire, pas seulement le fichier** (`!@/features/animals/store`
+en plus de `!@/features/animals/store/animals.store`, symétriquement pour
+`animals/schema`, `purchase/store`, et les globs `repository`/`schema`/
+`service`/`views` de la variante « services » et des écrans composites). —
+Raison : une fois une feature répartie en sous-dossiers, un fichier de
+`views/` qui importe un fichier de `schema/` de la MÊME feature utilise
+forcément `../schema/...` (un niveau) ; l'ancienne règle bloquait tout import
+relatif commençant par `..`, qu'il reste dans la feature ou parte vers une
+autre, une confusion qu'elle ne faisait pas tant que chaque feature était
+plate. Seul un import relatif à deux niveaux ou plus quitte réellement une
+feature (`../../<autre-feature>/...`), d'où le nouveau seuil. Pour les
+exceptions par chemin exact, le moteur `ignore` que `no-restricted-imports`
+utilise applique la règle gitignore : impossible de réinclure un fichier si
+son dossier parent reste exclu par une règle plus générale ailleurs dans le
+même `group` — d'où le dossier intermédiaire excepté en plus du fichier,
+vérifié à la main avant d'écrire la règle définitive. — Alternative écartée :
+garder chaque feature à plat pour éviter la question, contraire à la demande
+de Gaelle. — Pour revenir dessus : remettre `'../**'` et retirer les négations
+de dossier intermédiaire ; nécessaire seulement si la structure redevient
+plate.

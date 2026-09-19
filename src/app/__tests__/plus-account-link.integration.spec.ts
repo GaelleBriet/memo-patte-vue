@@ -3,20 +3,20 @@ import { createPinia, setActivePinia } from 'pinia'
 import { nextTick } from 'vue'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { authRepository, type AuthRepository } from '@/features/auth/auth.repository'
-import { useAuthStore } from '@/features/auth/auth.store'
+import { authRepository, type AuthRepository } from '@/features/auth/repository/auth.repository'
+import { useAuthStore } from '@/features/auth/store/auth.store'
 import { memoryStorage, OTHER_USER_ID, USER_ID } from '@/features/auth/__tests__/auth-fixture'
-import { billingService, type BillingService } from '@/features/purchase/billing.service'
-import { installPlusAccountLink } from '@/features/purchase/plus-account-link.service'
-import { NO_PLUS, type PlusStatus } from '@/features/purchase/plus-status'
+import { billingService, type BillingService } from '@/features/purchase/service/billing.service'
+import { installPlusAccountLink } from '@/features/purchase/service/plus-account-link.service'
+import { NO_PLUS, type PlusStatus } from '@/features/purchase/logic/plus-status'
 import {
   NO_STORED_PLUS,
   readStoredPlusStatus,
   writeStoredPlusStatus,
-} from '@/features/purchase/plus-status-storage'
-import { usePurchaseStore } from '@/features/purchase/purchase.store'
+} from '@/features/purchase/logic/plus-status-storage'
+import { usePurchaseStore } from '@/features/purchase/store/purchase.store'
 
-vi.mock('@/features/auth/auth.repository', () => ({
+vi.mock('@/features/auth/repository/auth.repository', () => ({
   authRepository: {
     signUp: vi.fn<AuthRepository['signUp']>(),
     signIn: vi.fn<AuthRepository['signIn']>(),
@@ -27,7 +27,7 @@ vi.mock('@/features/auth/auth.repository', () => ({
   },
 }))
 
-vi.mock('@/features/purchase/billing.service', async (importOriginal) => ({
+vi.mock('@/features/purchase/service/billing.service', async (importOriginal) => ({
   ...(await importOriginal<object>()),
   billingService: {
     isAvailable: vi.fn<BillingService['isAvailable']>(() => true),

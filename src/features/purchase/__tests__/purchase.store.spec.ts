@@ -2,15 +2,15 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { BillingError, billingService, type BillingService } from '../billing.service'
-import { NO_PLUS, type PlusStatus } from '../plus-status'
+import { BillingError, billingService, type BillingService } from '../service/billing.service'
+import { NO_PLUS, type PlusStatus } from '../logic/plus-status'
 import {
   NO_STORED_PLUS,
   readStoredPlusStatus,
   writeStoredPlusStatus,
   type StoredPlusStatus,
-} from '../plus-status-storage'
-import { usePurchaseStore } from '../purchase.store'
+} from '../logic/plus-status-storage'
+import { usePurchaseStore } from '../store/purchase.store'
 import { memoryStorage } from './billing-fixture'
 import { track } from '@/core/analytics'
 
@@ -18,7 +18,7 @@ vi.mock('@/core/analytics', () => ({
   track: vi.fn<(event: string, properties?: Record<string, unknown>) => void>(),
 }))
 
-vi.mock('../billing.service', async (importOriginal) => ({
+vi.mock('../service/billing.service', async (importOriginal) => ({
   ...(await importOriginal<object>()),
   billingService: {
     isAvailable: vi.fn<BillingService['isAvailable']>(() => true),

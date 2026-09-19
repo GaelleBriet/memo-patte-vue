@@ -5,7 +5,7 @@ import { mount, flushPromises } from '@vue/test-utils'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import { VApp } from 'vuetify/components'
 
-import BottomNavigation from '../BottomNavigation.vue'
+import BottomNavigation from '../components/BottomNavigation.vue'
 import vuetify from '@/core/theme/vuetify'
 import i18n from '@/core/i18n'
 import appRouter from '@/router'

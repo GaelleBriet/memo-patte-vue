@@ -2,17 +2,17 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 
-import type { Vaccination, VaccinationInput } from '../vaccination.schema'
-import type { VaccinationRemindersService } from '../vaccination-reminders.service'
-import type { VaccinationsRepository } from '../vaccinations.repository'
+import type { Vaccination, VaccinationInput } from '../schema/vaccination.schema'
+import type { VaccinationRemindersService } from '../service/vaccination-reminders.service'
+import type { VaccinationsRepository } from '../repository/vaccinations.repository'
 import {
   provideVaccinationRemindersService,
   provideVaccinationsRepository,
   useVaccinationsStore,
-} from '../vaccinations.store'
+} from '../store/vaccinations.store'
 import { track } from '@/core/analytics'
-import type { Animal } from '@/features/animals/animal.schema'
-import { useAnimalsStore } from '@/features/animals/animals.store'
+import type { Animal } from '@/features/animals/schema/animal.schema'
+import { useAnimalsStore } from '@/features/animals/store/animals.store'
 
 vi.mock('@/core/analytics', () => ({
   track: vi.fn<(event: string, properties?: Record<string, unknown>) => void>(),

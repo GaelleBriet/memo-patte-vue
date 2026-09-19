@@ -8,7 +8,7 @@ import { aliasSrc } from '@/shared/__tests__/sass-alias'
 
 // Vitest tourne avec `css: false` et jsdom ne met pas en page : ces tests compilent
 // le bloc `<style>` et vérifient des déclarations, jamais la géométrie rendue.
-const COMPOSANT = resolve(process.cwd(), 'src/features/weight/WeightSheet.vue')
+const COMPOSANT = resolve(process.cwd(), 'src/features/weight/views/WeightSheet.vue')
 const CHAMP_PARTAGE = resolve(process.cwd(), 'src/shared/form/FormField.vue')
 
 function blocStyle(fichier: string): string {

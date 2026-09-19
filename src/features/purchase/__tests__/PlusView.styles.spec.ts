@@ -15,7 +15,10 @@ function declaration(css: string, selecteur: string, propriete: string): string 
 }
 
 function styleCompile(): string {
-  const sfc = readFileSync(resolve(process.cwd(), 'src/features/purchase/PlusView.vue'), 'utf8')
+  const sfc = readFileSync(
+    resolve(process.cwd(), 'src/features/purchase/views/PlusView.vue'),
+    'utf8',
+  )
   const bloc = /<style[^>]*lang="scss">([\s\S]*?)<\/style>/.exec(sfc)![1]!
   return compileString(bloc, { importers: [aliasSrc] }).css
 }

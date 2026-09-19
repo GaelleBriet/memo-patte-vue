@@ -1,15 +1,15 @@
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import ExportSheet from '../ExportSheet.vue'
-import type { DeliveryOutcome } from '../export-delivery'
+import ExportSheet from '../views/ExportSheet.vue'
+import type { DeliveryOutcome } from '../logic/export-delivery'
 import i18n from '@/core/i18n'
 import vuetify from '@/core/theme/vuetify'
-import { dismissToast, toastMessage } from '@/shared/toast'
+import { dismissToast, toastMessage } from '@/shared/utils/toast'
 
 const exportData = vi.hoisted(() => vi.fn<(format: 'json' | 'csv') => Promise<DeliveryOutcome>>())
 
-vi.mock('../data-export.service', () => ({ dataExportService: { exportData } }))
+vi.mock('../service/data-export.service', () => ({ dataExportService: { exportData } }))
 
 let wrapper: VueWrapper | null = null
 

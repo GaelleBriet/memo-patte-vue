@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildWeightChart } from '../weight-chart'
+import { buildWeightChart } from '../domain/weight-chart'
 
 const MILO = [
   { weightKg: 23.6, measuredOn: '2026-06-05' },

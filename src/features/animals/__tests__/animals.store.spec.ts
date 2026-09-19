@@ -1,14 +1,14 @@
 // @vitest-environment node
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
-import type { Animal, AnimalInput } from '../animal.schema'
-import type { AnimalDeletionService } from '../animal-deletion.service'
-import type { AnimalsRepository } from '../animals.repository'
+import type { Animal, AnimalInput } from '../schema/animal.schema'
+import type { AnimalDeletionService } from '../service/animal-deletion.service'
+import type { AnimalsRepository } from '../repository/animals.repository'
 import {
   provideAnimalDeletionService,
   provideAnimalsRepository,
   useAnimalsStore,
-} from '../animals.store'
+} from '../store/animals.store'
 import { track } from '@/core/analytics'
 import { deletePhoto, savePhoto } from '@/core/photos/photo-storage'
 

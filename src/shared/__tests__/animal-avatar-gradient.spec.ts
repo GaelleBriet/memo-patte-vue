@@ -4,7 +4,7 @@ import {
   ANIMAL_AVATAR_GRADIENTS,
   animalAvatarGradient,
   animalAvatarGradientCss,
-} from '../animal-avatar-gradient'
+} from '../domain/animal-avatar-gradient'
 
 describe('animalAvatarGradient', () => {
   it('rend le même dégradé pour un même identifiant', () => {

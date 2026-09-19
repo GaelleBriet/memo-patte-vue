@@ -32,19 +32,19 @@ function declaration(feuille: string, selecteur: string, propriete: string): str
  */
 const LISTES = [
   {
-    fichier: 'src/features/home/HomeView.vue',
+    fichier: 'src/features/home/views/HomeView.vue',
     ligne: '.reminder-row',
     titre: '.reminder-row__title',
     badge: '.reminder-row__badge',
   },
   {
-    fichier: 'src/features/vaccinations/VaccinationsSection.vue',
+    fichier: 'src/features/vaccinations/views/VaccinationsSection.vue',
     ligne: '.vaccination-row',
     titre: '.vaccination-row__name',
     badge: '.vaccination-row__badge',
   },
   {
-    fichier: 'src/features/treatments/TreatmentsSection.vue',
+    fichier: 'src/features/treatments/views/TreatmentsSection.vue',
     ligne: '.treatment-row',
     titre: '.treatment-row__name',
     badge: '.treatment-row__frequency',
