@@ -8,16 +8,16 @@ import {
   billingService,
   type BillingService,
   type PlusOffer,
-} from '../billing.service'
-import { NO_PLUS, type PlusStatus } from '../plus-status'
-import { writeStoredPlusStatus } from '../plus-status-storage'
-import PlusView from '../PlusView.vue'
+} from '../service/billing.service'
+import { NO_PLUS, type PlusStatus } from '../logic/plus-status'
+import { writeStoredPlusStatus } from '../logic/plus-status-storage'
+import PlusView from '../views/PlusView.vue'
 import i18n from '@/core/i18n'
 import vuetify from '@/core/theme/vuetify'
-import { dismissToast, toastMessage } from '@/shared/toast'
+import { dismissToast, toastMessage } from '@/shared/utils/toast'
 import { memoryStorage } from './billing-fixture'
 
-vi.mock('../billing.service', async (importOriginal) => ({
+vi.mock('../service/billing.service', async (importOriginal) => ({
   ...(await importOriginal<object>()),
   billingService: {
     isAvailable: vi.fn<BillingService['isAvailable']>(() => true),

@@ -2,7 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ZodError } from 'zod'
 import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory-db'
-import { createWeightRepository, type WeightRepository } from '../weight.repository'
+import { createWeightRepository, type WeightRepository } from '../repository/weight.repository'
 
 const MIETTE = '11111111-1111-4111-8111-111111111111'
 const VASCO = '22222222-2222-4222-8222-222222222222'

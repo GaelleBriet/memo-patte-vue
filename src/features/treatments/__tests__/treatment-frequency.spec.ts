@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { addFrequency } from '../treatment-frequency'
+import { addFrequency } from '../logic/treatment-frequency'
 
 describe('addFrequency', () => {
   it('ajoute des jours', () => {

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { ANIMAL_NAME_QUERY_PARAM } from '@/shared/animal-name-query-param'
+import { ANIMAL_NAME_QUERY_PARAM } from '@/shared/utils/animal-name-query-param'
 
 import {
   ANALYTICS_CONSENT_KEY,

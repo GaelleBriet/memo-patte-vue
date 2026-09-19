@@ -1,6 +1,6 @@
 import type { PostHog, PostHogConfig } from 'posthog-js'
 
-import { ANIMAL_NAME_QUERY_PARAM } from '@/shared/animal-name-query-param'
+import { ANIMAL_NAME_QUERY_PARAM } from '@/shared/utils/animal-name-query-param'
 
 export type ConsentStatus = 'granted' | 'denied' | 'unanswered'
 

@@ -4,13 +4,13 @@ import { afterAll, beforeAll, describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { compileString } from 'sass'
 
-import AnimalChipSelector from '../AnimalChipSelector.vue'
+import AnimalChipSelector from '../components/AnimalChipSelector.vue'
 import i18n from '@/core/i18n'
 import vuetify from '@/core/theme/vuetify'
 
 // Vitest tourne avec `css: false` : ces tests compilent le bloc `<style>` et
 // vérifient des déclarations, jamais la géométrie — jsdom ne met pas en page.
-const COMPOSANT = resolve(process.cwd(), 'src/shared/AnimalChipSelector.vue')
+const COMPOSANT = resolve(process.cwd(), 'src/shared/components/AnimalChipSelector.vue')
 const DOSSIER_STYLES = resolve(process.cwd(), 'src/styles')
 
 function cssDuComposant(): string {

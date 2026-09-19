@@ -1,13 +1,16 @@
 import { unzipSync } from 'fflate'
 import { describe, expect, it, vi } from 'vitest'
 
-import { createDataExportService, type DataExportDependencies } from '../data-export.service'
-import type { ExportFile } from '../export-format'
+import {
+  createDataExportService,
+  type DataExportDependencies,
+} from '../service/data-export.service'
+import type { ExportFile } from '../logic/export-format'
 import { EXPORT_FIXTURE, LUNA_ID, MILO_ID } from './export-fixture'
-import type { Animal } from '@/features/animals/animal.schema'
-import type { Treatment } from '@/features/treatments/treatment.schema'
-import type { Vaccination } from '@/features/vaccinations/vaccination.schema'
-import type { WeightEntry } from '@/features/weight/weight.schema'
+import type { Animal } from '@/features/animals/schema/animal.schema'
+import type { Treatment } from '@/features/treatments/schema/treatment.schema'
+import type { Vaccination } from '@/features/vaccinations/schema/vaccination.schema'
+import type { WeightEntry } from '@/features/weight/schema/weight.schema'
 
 const NOW = new Date('2026-09-15T10:30:00')
 

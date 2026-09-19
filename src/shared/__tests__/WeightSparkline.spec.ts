@@ -3,8 +3,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { nextTick } from 'vue'
 
-import WeightSparkline from '../WeightSparkline.vue'
-import { buildWeightChart } from '../weight-chart'
+import WeightSparkline from '../components/WeightSparkline.vue'
+import { buildWeightChart } from '../domain/weight-chart'
 import i18n from '@/core/i18n'
 
 const CHART = buildWeightChart(

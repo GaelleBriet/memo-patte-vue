@@ -1,7 +1,7 @@
 import { vi, type Mock } from 'vitest'
 
 import type { Reminder, ScheduledReminder } from '@/core/notifications'
-import type { ReminderNotifications } from '../due-reminders-schedule'
+import type { ReminderNotifications } from '../domain/due-reminders-schedule'
 
 export type FakeNotifications = {
   checkPermission: Mock<() => Promise<boolean>>

@@ -8,8 +8,8 @@ import {
   treatmentFormValuesFrom,
   validateTreatmentForm,
   type TreatmentFormValues,
-} from '../treatment-form'
-import type { Treatment } from '../treatment.schema'
+} from '../logic/treatment-form'
+import type { Treatment } from '../schema/treatment.schema'
 import { todayIsoDate } from '@/core/app-lifecycle/today-iso-date'
 
 const BRAVECTO: Treatment = {

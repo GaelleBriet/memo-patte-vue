@@ -2,7 +2,7 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent, h, ref } from 'vue'
 
-import { useAnimalScopedLoad } from '../use-animal-scoped-load'
+import { useAnimalScopedLoad } from '../composables/use-animal-scoped-load'
 import { simulateWebResume } from '@/core/app-lifecycle/__tests__/simulate-resume'
 
 const MILO = '11111111-1111-4111-8111-111111111111'

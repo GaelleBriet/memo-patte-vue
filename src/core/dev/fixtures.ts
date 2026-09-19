@@ -1,16 +1,22 @@
 import { clearAllTables } from '@/core/db/clear-all-tables'
 import type { DbClient } from '@/core/db/db-client'
 import { getDb } from '@/core/db/sqlite'
-import { getAnimalsRepository, type AnimalsRepository } from '@/features/animals/animals.repository'
+import {
+  getAnimalsRepository,
+  type AnimalsRepository,
+} from '@/features/animals/repository/animals.repository'
 import {
   getTreatmentsRepository,
   type TreatmentsRepository,
-} from '@/features/treatments/treatments.repository'
+} from '@/features/treatments/repository/treatments.repository'
 import {
   getVaccinationsRepository,
   type VaccinationsRepository,
-} from '@/features/vaccinations/vaccinations.repository'
-import { getWeightRepository, type WeightRepository } from '@/features/weight/weight.repository'
+} from '@/features/vaccinations/repository/vaccinations.repository'
+import {
+  getWeightRepository,
+  type WeightRepository,
+} from '@/features/weight/repository/weight.repository'
 import { buildDemoCarnet, DEMO_CARNET_MARKER } from './demo-carnet'
 
 /**

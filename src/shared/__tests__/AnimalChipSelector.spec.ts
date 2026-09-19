@@ -2,9 +2,9 @@ import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 import type { DOMWrapper, VueWrapper } from '@vue/test-utils'
 
-import AnimalChipSelector from '../AnimalChipSelector.vue'
-import type { AnimalChipItem } from '../AnimalChipSelector.vue'
-import { animalAvatarGradientCss } from '../animal-avatar-gradient'
+import AnimalChipSelector from '../components/AnimalChipSelector.vue'
+import type { AnimalChipItem } from '../components/AnimalChipSelector.vue'
+import { animalAvatarGradientCss } from '../domain/animal-avatar-gradient'
 import i18n from '@/core/i18n'
 import vuetify from '@/core/theme/vuetify'
 

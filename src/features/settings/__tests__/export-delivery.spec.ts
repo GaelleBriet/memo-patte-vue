@@ -2,7 +2,7 @@ import { Directory, Encoding, Filesystem } from '@capacitor/filesystem'
 import { Share } from '@capacitor/share'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { clearExports, deliverExportFile } from '../export-delivery'
+import { clearExports, deliverExportFile } from '../logic/export-delivery'
 
 vi.mock('@capacitor/filesystem', () => ({
   Directory: { Cache: 'CACHE' },

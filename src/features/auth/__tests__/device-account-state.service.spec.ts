@@ -7,14 +7,14 @@ import {
   markPlusNudgeShown,
   readPlusNudgeState,
   PLUS_NUDGE_STORAGE_KEY,
-} from '@/features/purchase/plus-nudge'
-import { PLUS_STATUS_STORAGE_KEY } from '@/features/purchase/plus-status-storage'
-import { readUsageSignals, USAGE_SIGNALS_STORAGE_KEY } from '@/shared/usage-signals'
+} from '@/features/purchase/logic/plus-nudge'
+import { PLUS_STATUS_STORAGE_KEY } from '@/features/purchase/logic/plus-status-storage'
+import { readUsageSignals, USAGE_SIGNALS_STORAGE_KEY } from '@/shared/utils/usage-signals'
 
 import {
   clearDeviceAccountState,
   clearSignedOutAccountState,
-} from '../device-account-state.service'
+} from '../service/device-account-state.service'
 import { memoryStorage, type MemoryStorage } from './auth-fixture'
 
 const UNRELATED_KEYS = [ANALYTICS_CONSENT_KEY, 'memopatte.notifications.primingAnswered']

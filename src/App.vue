@@ -2,8 +2,8 @@
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 
-import AppToast from '@/shared/AppToast.vue'
-import BottomNavigation from '@/shared/BottomNavigation.vue'
+import AppToast from '@/shared/components/AppToast.vue'
+import BottomNavigation from '@/shared/components/BottomNavigation.vue'
 
 const route = useRoute()
 

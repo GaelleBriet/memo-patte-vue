@@ -4,8 +4,8 @@ import { nextTick } from 'vue'
 
 import { VSnackbar } from 'vuetify/components'
 
-import AppToast from '../AppToast.vue'
-import { dismissToast, showToast, toastMessage } from '../toast'
+import AppToast from '../components/AppToast.vue'
+import { dismissToast, showToast, toastMessage } from '../utils/toast'
 import { heightBottomNav, paddingBottomNav } from '@/core/theme/layout-tokens'
 import vuetify from '@/core/theme/vuetify'
 

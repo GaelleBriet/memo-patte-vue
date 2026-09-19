@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
 
-import { accountErrorKey } from '../account-error-message'
+import { accountErrorKey } from '../logic/account-error-message'
 
 describe('accountErrorKey', () => {
   it('donne un message à chaque raison typée du repository', () => {

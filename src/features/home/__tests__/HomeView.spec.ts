@@ -11,20 +11,20 @@ import {
   type MockInstance,
 } from 'vitest'
 
-import AnimalPickerSheet from '../AnimalPickerSheet.vue'
-import HomeView from '../HomeView.vue'
-import type { HomeReminderSource, HomeRemindersService } from '../home-reminders.service'
-import { provideHomeRemindersService, useHomeStore } from '../home.store'
+import AnimalPickerSheet from '../views/AnimalPickerSheet.vue'
+import HomeView from '../views/HomeView.vue'
+import type { HomeReminderSource, HomeRemindersService } from '../service/home-reminders.service'
+import { provideHomeRemindersService, useHomeStore } from '../store/home.store'
 import { simulateWebResume } from '@/core/app-lifecycle/__tests__/simulate-resume'
 import i18n from '@/core/i18n'
 import router from '@/router'
 import vuetify from '@/core/theme/vuetify'
-import type { Animal } from '@/features/animals/animal.schema'
-import type * as DataImport from '@/features/settings/data-import.service'
+import type { Animal } from '@/features/animals/schema/animal.schema'
+import type * as DataImport from '@/features/settings/service/data-import.service'
 import { importFixtureJson } from '@/features/settings/__tests__/import-fixture'
-import { useAnimalsStore } from '@/features/animals/animals.store'
-import WeightSheet from '@/features/weight/WeightSheet.vue'
-import AnimalChipSelector from '@/shared/AnimalChipSelector.vue'
+import { useAnimalsStore } from '@/features/animals/store/animals.store'
+import WeightSheet from '@/features/weight/views/WeightSheet.vue'
+import AnimalChipSelector from '@/shared/components/AnimalChipSelector.vue'
 import { forgetPhotoUrls } from '@/core/photos/use-photo-urls'
 import {
   getNotificationPermissionStatus,
@@ -52,7 +52,7 @@ const promptNotificationsIfReminders = vi.hoisted(() =>
   vi.fn<(router: unknown, from: string) => Promise<boolean>>(async () => false),
 )
 
-vi.mock('@/features/settings/data-import.service', async (importOriginal) => ({
+vi.mock('@/features/settings/service/data-import.service', async (importOriginal) => ({
   ...(await importOriginal<typeof DataImport>()),
   dataImportService: { hasLocalData, importData },
 }))

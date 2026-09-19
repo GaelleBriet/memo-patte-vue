@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
 
-import { NO_PLUS, plusStatusFrom } from '../plus-status'
+import { NO_PLUS, plusStatusFrom } from '../logic/plus-status'
 import { customerInfo, entitlement, LIFETIME } from './billing-fixture'
 
 describe('plusStatusFrom', () => {

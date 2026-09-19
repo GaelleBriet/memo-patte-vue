@@ -4,14 +4,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { simulateWebResume } from '@/core/app-lifecycle/__tests__/simulate-resume'
 import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory-db'
 import i18n from '@/core/i18n'
-import { createAnimalsRepository } from '@/features/animals/animals.repository'
-import { createTreatmentsRepository } from '@/features/treatments/treatments.repository'
-import { createVaccinationsRepository } from '@/features/vaccinations/vaccinations.repository'
+import { createAnimalsRepository } from '@/features/animals/repository/animals.repository'
+import { createTreatmentsRepository } from '@/features/treatments/repository/treatments.repository'
+import { createVaccinationsRepository } from '@/features/vaccinations/repository/vaccinations.repository'
 import {
   createFakeNotifications,
   type FakeNotifications,
 } from '@/shared/__tests__/fake-notifications'
-import { enqueueReminderTask, MAX_SCHEDULED_REMINDERS } from '@/shared/due-reminders-schedule'
+import {
+  enqueueReminderTask,
+  MAX_SCHEDULED_REMINDERS,
+} from '@/shared/domain/due-reminders-schedule'
 import { createRemindersSync, installRemindersSync } from '../reminders-sync'
 
 const NOW = new Date(2026, 8, 15, 12)

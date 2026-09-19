@@ -3,11 +3,15 @@ import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest'
 import { createMemoryHistory, createRouter, type Router } from 'vue-router'
 
-import VaccinationFormView from '../VaccinationFormView.vue'
-import type { Vaccination, VaccinationInput, VaccinationUpdateInput } from '../vaccination.schema'
-import { useVaccinationsStore } from '../vaccinations.store'
-import type { Animal } from '@/features/animals/animal.schema'
-import { useAnimalsStore } from '@/features/animals/animals.store'
+import VaccinationFormView from '../views/VaccinationFormView.vue'
+import type {
+  Vaccination,
+  VaccinationInput,
+  VaccinationUpdateInput,
+} from '../schema/vaccination.schema'
+import { useVaccinationsStore } from '../store/vaccinations.store'
+import type { Animal } from '@/features/animals/schema/animal.schema'
+import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import { simulateWebResume } from '@/core/app-lifecycle/__tests__/simulate-resume'
 import i18n from '@/core/i18n'
 import router from '@/router'

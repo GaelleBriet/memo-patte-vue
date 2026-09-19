@@ -6,7 +6,7 @@ import {
   PLUS_ACCOUNT_STORAGE_KEY,
   readPlusAccount,
   writePlusAccount,
-} from '../plus-account-storage'
+} from '../logic/plus-account-storage'
 import { memoryStorage, USER_ID } from './auth-fixture'
 
 beforeEach(() => {

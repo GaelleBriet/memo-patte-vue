@@ -1,10 +1,10 @@
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import AnimalPickerSheet from '../AnimalPickerSheet.vue'
+import AnimalPickerSheet from '../views/AnimalPickerSheet.vue'
 import i18n from '@/core/i18n'
 import vuetify from '@/core/theme/vuetify'
-import { animalAvatarGradientCss } from '@/shared/animal-avatar-gradient'
+import { animalAvatarGradientCss } from '@/shared/domain/animal-avatar-gradient'
 
 const MILO = { id: '11111111-1111-4111-8111-111111111111', name: 'Milo' }
 const LUNA = { id: '33333333-3333-4333-8333-333333333333', name: 'Luna' }

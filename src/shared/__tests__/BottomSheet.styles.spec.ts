@@ -20,7 +20,7 @@ function css(fichier: string): string {
 let feuille: string
 
 beforeAll(() => {
-  feuille = css('src/shared/BottomSheet.vue')
+  feuille = css('src/shared/components/BottomSheet.vue')
 })
 
 function declaration(selecteur: string, propriete: string): string | undefined {
@@ -56,14 +56,14 @@ describe('BottomSheet — contrat de style', () => {
 })
 
 describe('Feuilles modales — le patron reste à BottomSheet', () => {
-  it.each(['src/features/weight/WeightSheet.vue', 'src/features/home/AnimalPickerSheet.vue'])(
-    '%s ne recopie ni voile, ni poignée, ni coins',
-    (fichier) => {
-      const styles = css(fichier)
+  it.each([
+    'src/features/weight/views/WeightSheet.vue',
+    'src/features/home/views/AnimalPickerSheet.vue',
+  ])('%s ne recopie ni voile, ni poignée, ni coins', (fichier) => {
+    const styles = css(fichier)
 
-      expect(styles).not.toContain('v-overlay__scrim')
-      expect(styles).not.toContain('__handle')
-      expect(styles).not.toContain('border-radius: 24px 24px 0 0')
-    },
-  )
+    expect(styles).not.toContain('v-overlay__scrim')
+    expect(styles).not.toContain('__handle')
+    expect(styles).not.toContain('border-radius: 24px 24px 0 0')
+  })
 })

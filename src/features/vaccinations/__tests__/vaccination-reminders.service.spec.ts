@@ -2,16 +2,16 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import i18n from '@/core/i18n'
-import type { Animal } from '@/features/animals/animal.schema'
+import type { Animal } from '@/features/animals/schema/animal.schema'
 import {
   createFakeNotifications,
   type FakeNotifications,
 } from '@/shared/__tests__/fake-notifications'
-import type { Vaccination } from '../vaccination.schema'
+import type { Vaccination } from '../schema/vaccination.schema'
 import {
   createVaccinationRemindersService,
   type VaccinationRemindersService,
-} from '../vaccination-reminders.service'
+} from '../service/vaccination-reminders.service'
 
 const MILO: Animal = {
   id: '11111111-1111-4111-8111-111111111111',

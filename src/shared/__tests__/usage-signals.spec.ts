@@ -6,7 +6,7 @@ import {
   USAGE_SIGNALS_STORAGE_KEY,
   readUsageSignals,
   recordUsageSignal,
-} from '../usage-signals'
+} from '../utils/usage-signals'
 
 const NOW = new Date('2026-09-16T10:00:00Z')
 

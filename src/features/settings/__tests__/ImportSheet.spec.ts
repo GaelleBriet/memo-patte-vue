@@ -1,20 +1,20 @@
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type * as DataImport from '../data-import.service'
-import type { DataImportService } from '../data-import.service'
-import ImportSheet from '../ImportSheet.vue'
+import type * as DataImport from '../service/data-import.service'
+import type { DataImportService } from '../service/data-import.service'
+import ImportSheet from '../views/ImportSheet.vue'
 import { IMPORT_FIXTURE, importFixtureJson } from './import-fixture'
 import i18n from '@/core/i18n'
 import vuetify from '@/core/theme/vuetify'
-import { dismissToast, toastMessage } from '@/shared/toast'
+import { dismissToast, toastMessage } from '@/shared/utils/toast'
 
 const hasLocalData = vi.hoisted(() => vi.fn<() => Promise<boolean>>())
 const importData = vi.hoisted(() => vi.fn<DataImportService['importData']>())
 
 type DataImportModule = typeof DataImport
 
-vi.mock('../data-import.service', async (importOriginal) => ({
+vi.mock('../service/data-import.service', async (importOriginal) => ({
   ...(await importOriginal<DataImportModule>()),
   dataImportService: { hasLocalData, importData },
 }))

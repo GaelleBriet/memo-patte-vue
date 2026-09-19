@@ -8,7 +8,7 @@ import {
   type LocalAnimal,
   type LocalCarnet,
   type LocalEntry,
-} from '../import-plan'
+} from '../domain/import-plan'
 import {
   CHPPIL_ID,
   IMPORT_FIXTURE,

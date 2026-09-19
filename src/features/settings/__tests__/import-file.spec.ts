@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { parseExportFile } from '../data-import.service'
+import { parseExportFile } from '../service/data-import.service'
 import { IMPORT_FIXTURE, importFixtureJson, LUNA_ID, MILO_ID } from './import-fixture'
 
 function withDocument(change: (document: Record<string, unknown>) => void): string {

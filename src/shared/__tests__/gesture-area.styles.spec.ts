@@ -45,12 +45,12 @@ function paddingBas(feuille: string, selecteur: string): number {
 describe('zone de gestes sous le dernier élément d’un écran poussé', () => {
   it.each([
     ['src/shared/form/FormScreen.vue', '.form-screen__actions'],
-    ['src/features/weight/WeightHistoryView.vue', '.weight-history__actions'],
-    ['src/features/purchase/PlusView.vue', '.plus__content'],
-    ['src/features/settings/SettingsView.vue', '.settings__content'],
-    ['src/features/settings/AnalyticsConsentView.vue', '.analytics-consent'],
-    ['src/shared/NotificationPrimingView.vue', '.notification-priming'],
-    ['src/shared/BottomSheet.vue', '.bottom-sheet__panel'],
+    ['src/features/weight/views/WeightHistoryView.vue', '.weight-history__actions'],
+    ['src/features/purchase/views/PlusView.vue', '.plus__content'],
+    ['src/features/settings/views/SettingsView.vue', '.settings__content'],
+    ['src/features/settings/views/AnalyticsConsentView.vue', '.analytics-consent'],
+    ['src/shared/components/NotificationPrimingView.vue', '.notification-priming'],
+    ['src/shared/components/BottomSheet.vue', '.bottom-sheet__panel'],
   ])('%s — %s', (fichier, selecteur) => {
     expect(paddingBas(css(fichier), selecteur)).toBeGreaterThanOrEqual(paddingBottomNav)
   })

@@ -77,15 +77,15 @@ const FEATURES = readdirSync(new URL('./src/features', import.meta.url), { withF
   .map((entry) => entry.name)
 
 const COMPOSITE_SCREENS = [
-  { feature: 'animals', file: 'src/features/animals/CarnetView.vue' },
-  { feature: 'home', file: 'src/features/home/HomeView.vue' },
-  { feature: 'settings', file: 'src/features/settings/SettingsView.vue' },
+  { feature: 'animals', file: 'src/features/animals/views/CarnetView.vue' },
+  { feature: 'home', file: 'src/features/home/views/HomeView.vue' },
+  { feature: 'settings', file: 'src/features/settings/views/SettingsView.vue' },
 ]
 
 // Exception actée le 2026-09-16 (decisions-log) : toute feature lit le store des
 // animaux et son schéma, rien de plus — d'où `useAnimalsStore` seul autorisé.
 const ANIMALS_STORE_READ_ONLY = {
-  group: ['@/features/animals/animals.store'],
+  group: ['@/features/animals/store/animals.store'],
   allowImportNames: ['useAnimalsStore'],
   message:
     'Des animaux, une autre feature ne lit que useAnimalsStore et animal.schema (cf. CLAUDE.md, « Règles strictes de structure »).',
@@ -94,7 +94,7 @@ const ANIMALS_STORE_READ_ONLY = {
 // Exception actée au ticket #81 (decisions-log) : le statut Plus se lit au même
 // titre que l'entité animal — d'où `usePurchaseStore` seul autorisé.
 const PURCHASE_STORE_READ_ONLY = {
-  group: ['@/features/purchase/purchase.store'],
+  group: ['@/features/purchase/store/purchase.store'],
   allowImportNames: ['usePurchaseStore'],
   message:
     'Du statut Plus, une autre feature ne lit que usePurchaseStore (cf. CLAUDE.md, « Règles strictes de structure »).',
@@ -106,11 +106,16 @@ function featureImportsRule(feature: string, allowedElsewhere: string[] = []): L
       {
         group: [
           '@/features/*/**',
-          '../**',
+          '../../**',
           `!@/features/${feature}/**`,
-          '!@/features/animals/animals.store',
-          '!@/features/animals/animal.schema',
-          '!@/features/purchase/purchase.store',
+          // Dossier intermédiaire excepté en plus du fichier : sémantique gitignore
+          // du moteur `ignore` (cf. decisions-log du 2026-09-19).
+          '!@/features/animals/store',
+          '!@/features/animals/store/animals.store',
+          '!@/features/animals/schema',
+          '!@/features/animals/schema/animal.schema',
+          '!@/features/purchase/store',
+          '!@/features/purchase/store/purchase.store',
           ...allowedElsewhere.map((pattern) => `!${pattern}`),
         ],
         message:
@@ -256,15 +261,22 @@ export default defineConfigWithVueTs(
     name: `app/feature-imports/${feature}-services`,
     files: [`src/features/${feature}/**/*.service.ts`],
     rules: featureImportsRule(feature, [
-      '@/features/*/*.repository',
-      '@/features/*/*.schema',
-      '@/features/*/*.service',
+      '@/features/*/repository',
+      '@/features/*/repository/*.repository',
+      '@/features/*/schema',
+      '@/features/*/schema/*.schema',
+      '@/features/*/service',
+      '@/features/*/service/*.service',
     ]),
   })),
   ...COMPOSITE_SCREENS.map(({ feature, file }) => ({
     name: `app/feature-imports/${file}`,
     files: [file],
-    rules: featureImportsRule(feature, ['@/features/*/*Section.vue', '@/features/*/*Sheet.vue']),
+    rules: featureImportsRule(feature, [
+      '@/features/*/views',
+      '@/features/*/views/*Section.vue',
+      '@/features/*/views/*Sheet.vue',
+    ]),
   })),
 
   // Règles projet MémoPatte

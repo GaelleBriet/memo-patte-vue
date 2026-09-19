@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest'
 import { aliasSrc } from './sass-alias'
 
 function cssDeLaCarte(): string {
-  const sfc = readFileSync(resolve(process.cwd(), 'src/shared/SectionCard.vue'), 'utf8')
+  const sfc = readFileSync(resolve(process.cwd(), 'src/shared/components/SectionCard.vue'), 'utf8')
   const bloc = /<style[^>]*lang="scss">([\s\S]*?)<\/style>/.exec(sfc)?.[1]
 
   if (!bloc) throw new Error('bloc <style lang="scss"> introuvable dans SectionCard.vue')

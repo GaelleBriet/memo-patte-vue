@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { weightSummary } from '../weight-summary'
+import { weightSummary } from '../logic/weight-summary'
 
 function entry(weightKg: number, measuredOn: string) {
   return { weightKg, measuredOn }

@@ -4,20 +4,23 @@ import type { Router } from 'vue-router'
 
 import { todayIsoDate } from '@/core/app-lifecycle/today-iso-date'
 import { shouldShowPriming } from '@/core/notifications'
-import type { Animal } from '@/features/animals/animal.schema'
-import { getAnimalsRepository, type AnimalsRepository } from '@/features/animals/animals.repository'
-import type { Treatment } from '@/features/treatments/treatment.schema'
+import type { Animal } from '@/features/animals/schema/animal.schema'
+import {
+  getAnimalsRepository,
+  type AnimalsRepository,
+} from '@/features/animals/repository/animals.repository'
+import type { Treatment } from '@/features/treatments/schema/treatment.schema'
 import {
   getTreatmentsRepository,
   type TreatmentsRepository,
-} from '@/features/treatments/treatments.repository'
-import type { Vaccination } from '@/features/vaccinations/vaccination.schema'
+} from '@/features/treatments/repository/treatments.repository'
+import type { Vaccination } from '@/features/vaccinations/schema/vaccination.schema'
 import {
   getVaccinationsRepository,
   type VaccinationsRepository,
-} from '@/features/vaccinations/vaccinations.repository'
-import { DAYS_OVERDUE } from '@/shared/due-reminders'
-import { primingRouteFrom } from '@/shared/notification-priming'
+} from '@/features/vaccinations/repository/vaccinations.repository'
+import { DAYS_OVERDUE } from '@/shared/domain/due-reminders'
+import { primingRouteFrom } from '@/shared/domain/notification-priming'
 
 type Provider<T> = () => T | Promise<T>
 

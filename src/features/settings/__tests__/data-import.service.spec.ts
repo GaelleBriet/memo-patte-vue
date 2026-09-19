@@ -1,9 +1,12 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { createDataExportService } from '../data-export.service'
-import { createDataImportService, type DataImportDependencies } from '../data-import.service'
-import type { ExportData } from '@/shared/carnet-data'
+import { createDataExportService } from '../service/data-export.service'
+import {
+  createDataImportService,
+  type DataImportDependencies,
+} from '../service/data-import.service'
+import type { ExportData } from '@/shared/domain/carnet-data'
 import {
   CHPPIL_ID,
   IMPORT_FIXTURE,
@@ -13,10 +16,10 @@ import {
   MILO_WEIGHT_ID,
 } from './import-fixture'
 import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory-db'
-import { createAnimalsRepository } from '@/features/animals/animals.repository'
-import { createTreatmentsRepository } from '@/features/treatments/treatments.repository'
-import { createVaccinationsRepository } from '@/features/vaccinations/vaccinations.repository'
-import { createWeightRepository } from '@/features/weight/weight.repository'
+import { createAnimalsRepository } from '@/features/animals/repository/animals.repository'
+import { createTreatmentsRepository } from '@/features/treatments/repository/treatments.repository'
+import { createVaccinationsRepository } from '@/features/vaccinations/repository/vaccinations.repository'
+import { createWeightRepository } from '@/features/weight/repository/weight.repository'
 
 const NOW = new Date('2026-09-15T10:00:00.000Z')
 const LUNA_PHOTO = IMPORT_FIXTURE.animals[0]!.photoFileName!

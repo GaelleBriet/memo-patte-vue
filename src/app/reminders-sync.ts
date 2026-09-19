@@ -5,19 +5,22 @@ import {
   type Reminder,
   type ScheduledReminder,
 } from '@/core/notifications'
-import { getAnimalsRepository, type AnimalsRepository } from '@/features/animals/animals.repository'
-import { useAnimalsStore } from '@/features/animals/animals.store'
-import { treatmentReminders } from '@/features/treatments/treatment-reminders'
+import {
+  getAnimalsRepository,
+  type AnimalsRepository,
+} from '@/features/animals/repository/animals.repository'
+import { useAnimalsStore } from '@/features/animals/store/animals.store'
+import { treatmentReminders } from '@/features/treatments/logic/treatment-reminders'
 import {
   getTreatmentsRepository,
   type TreatmentsRepository,
-} from '@/features/treatments/treatments.repository'
-import { vaccinationReminders } from '@/features/vaccinations/vaccination-reminders'
+} from '@/features/treatments/repository/treatments.repository'
+import { vaccinationReminders } from '@/features/vaccinations/logic/vaccination-reminders'
 import {
   getVaccinationsRepository,
   type VaccinationsRepository,
-} from '@/features/vaccinations/vaccinations.repository'
-import type { Translate } from '@/shared/due-reminders'
+} from '@/features/vaccinations/repository/vaccinations.repository'
+import type { Translate } from '@/shared/domain/due-reminders'
 import {
   enqueueReminderTask,
   MAX_SCHEDULED_REMINDERS,
@@ -26,7 +29,7 @@ import {
   reminderNotifications,
   remindersWithinCap,
   type ReminderNotifications,
-} from '@/shared/due-reminders-schedule'
+} from '@/shared/domain/due-reminders-schedule'
 
 type Provider<T> = () => T | Promise<T>
 

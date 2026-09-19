@@ -5,12 +5,15 @@ import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory
 import {
   createVaccinationsRepository,
   type VaccinationsRepository,
-} from '@/features/vaccinations/vaccinations.repository'
+} from '@/features/vaccinations/repository/vaccinations.repository'
 import {
   createTreatmentsRepository,
   type TreatmentsRepository,
-} from '@/features/treatments/treatments.repository'
-import { createWeightRepository, type WeightRepository } from '@/features/weight/weight.repository'
+} from '@/features/treatments/repository/treatments.repository'
+import {
+  createWeightRepository,
+  type WeightRepository,
+} from '@/features/weight/repository/weight.repository'
 import { getDb } from '@/core/db/sqlite'
 import { cancelReminders, listScheduled, type ScheduledReminder } from '@/core/notifications'
 import { deletePhoto, type PhotoStorage } from '@/core/photos/photo-storage'
@@ -22,8 +25,8 @@ import {
   animalDeletionService,
   createAnimalDeletionService,
   type AnimalDeletionService,
-} from '../animal-deletion.service'
-import { createAnimalsRepository, type AnimalsRepository } from '../animals.repository'
+} from '../service/animal-deletion.service'
+import { createAnimalsRepository, type AnimalsRepository } from '../repository/animals.repository'
 
 vi.mock('@/core/db/sqlite', () => ({ getDb: vi.fn<() => Promise<DbClient>>() }))
 vi.mock('@/core/notifications', () => ({

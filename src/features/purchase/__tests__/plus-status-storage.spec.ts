@@ -6,7 +6,7 @@ import {
   PLUS_STATUS_STORAGE_KEY,
   readStoredPlusStatus,
   writeStoredPlusStatus,
-} from '../plus-status-storage'
+} from '../logic/plus-status-storage'
 import { memoryStorage } from './billing-fixture'
 
 beforeEach(() => {

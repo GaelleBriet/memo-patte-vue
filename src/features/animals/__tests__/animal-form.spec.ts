@@ -7,8 +7,8 @@ import {
   emptyAnimalFormValues,
   validateAnimalForm,
   type AnimalFormValues,
-} from '../animal-form'
-import type { Animal } from '../animal.schema'
+} from '../logic/animal-form'
+import type { Animal } from '../schema/animal.schema'
 import { todayIsoDate } from '@/core/app-lifecycle/today-iso-date'
 
 const MILO: Animal = {

@@ -1,0 +1,130 @@
+import { defineStore } from 'pinia'
+import { computed, ref } from 'vue'
+import type { Animal, AnimalInput } from '../schema/animal.schema'
+import {
+  animalDeletionService,
+  type AnimalDeletionService,
+} from '../service/animal-deletion.service'
+import { animalPhotoService, type PhotoChange } from '../service/animal-photo.service'
+import type { AnimalsRepository } from '../repository/animals.repository'
+import { track } from '@/core/analytics'
+import { recordUsageSignal } from '@/shared/utils/usage-signals'
+
+export type AnimalsRepositoryProvider = () => AnimalsRepository | Promise<AnimalsRepository>
+export type AnimalDeletionServiceProvider = () => AnimalDeletionService
+
+const KEEP_PHOTO: PhotoChange = { kind: 'keep' }
+
+let provider: AnimalsRepositoryProvider | null = null
+let deletionProvider: AnimalDeletionServiceProvider = () => animalDeletionService
+
+export function provideAnimalsRepository(next: AnimalsRepositoryProvider | null): void {
+  provider = next
+}
+
+/** `null` rétablit le service réel, branché sur la base locale. */
+export function provideAnimalDeletionService(next: AnimalDeletionServiceProvider | null): void {
+  deletionProvider = next ?? (() => animalDeletionService)
+}
+
+export const useAnimalsStore = defineStore('animals', () => {
+  const animals = ref<Animal[]>([])
+  /** `null` signifie « tous les animaux ». */
+  const selectedAnimalId = ref<string | null>(null)
+  /** Vrai pendant toute opération, chargement comme écriture. */
+  const isLoading = ref(false)
+  /** Distingue « pas encore chargé » de « aucun animal ». */
+  const hasLoaded = ref(false)
+  /** Échec du dernier chargement : les écritures lèvent, elles ne passent pas par ici. */
+  const error = ref<Error | null>(null)
+
+  const selectedAnimal = computed(
+    () => animals.value.find((animal) => animal.id === selectedAnimalId.value) ?? null,
+  )
+
+  function requireRepository(): Promise<AnimalsRepository> {
+    if (!provider) {
+      throw new Error('Repository des animaux absent : appelle provideAnimalsRepository().')
+    }
+    return Promise.resolve(provider())
+  }
+
+  // Relire la liste est le seul moment où l'état affiché redevient sain.
+  async function refresh(repository: AnimalsRepository): Promise<void> {
+    animals.value = await repository.list()
+    hasLoaded.value = true
+    forgetSelectionIfGone()
+    error.value = null
+  }
+
+  async function write<T>(operation: (repository: AnimalsRepository) => Promise<T>): Promise<T> {
+    isLoading.value = true
+    try {
+      const repository = await requireRepository()
+      const result = await operation(repository)
+      await refresh(repository)
+      return result
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  function forgetSelectionIfGone(): void {
+    if (selectedAnimal.value === null) {
+      selectedAnimalId.value = null
+    }
+  }
+
+  return {
+    animals,
+    selectedAnimalId,
+    selectedAnimal,
+    isLoading,
+    hasLoaded,
+    error,
+
+    /** Ne lève pas : renvoie `false` et renseigne `error`. */
+    async load(): Promise<boolean> {
+      isLoading.value = true
+      try {
+        await refresh(await requireRepository())
+        return true
+      } catch (cause) {
+        error.value = cause instanceof Error ? cause : new Error(String(cause))
+        return false
+      } finally {
+        isLoading.value = false
+      }
+    },
+
+    async create(input: AnimalInput, photo: PhotoChange = KEEP_PHOTO): Promise<Animal> {
+      const animal = await write((repository) =>
+        animalPhotoService.create(repository, input, photo),
+      )
+      if (photo.kind === 'replace') recordUsageSignal('photo')
+      track('animal_created', { species: animal.species })
+      return animal
+    },
+
+    /** Sans `photo`, la photo en place est gardée quel que soit `input.photoPath`. */
+    async update(id: string, input: AnimalInput, photo: PhotoChange = KEEP_PHOTO): Promise<Animal> {
+      const animal = await write((repository) =>
+        animalPhotoService.update(repository, id, input, photo),
+      )
+      if (photo.kind === 'replace') recordUsageSignal('photo')
+      return animal
+    },
+
+    async remove(id: string): Promise<void> {
+      await write(() => deletionProvider().remove(id))
+    },
+
+    select(id: string | null): void {
+      selectedAnimalId.value = id
+    },
+
+    byId(id: string): Animal | null {
+      return animals.value.find((animal) => animal.id === id) ?? null
+    },
+  }
+})

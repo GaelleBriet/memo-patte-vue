@@ -7,7 +7,7 @@ import {
   formatMonthShort,
   formatMonthYear,
   formatNumericDate,
-} from '../format'
+} from '../utils/format'
 import { applyLocale } from '@/core/i18n'
 
 describe('formatKg', () => {

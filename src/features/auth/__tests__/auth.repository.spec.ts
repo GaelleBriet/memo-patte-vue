@@ -4,14 +4,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { AUTH_STORAGE_KEY } from '@/core/supabase/auth-storage'
 
-import { AccountError } from '../account-error'
+import { AccountError } from '../logic/account-error'
 import {
   authRepository,
   createAuthRepository,
   SIGN_OUT_TIMEOUT_MS,
   type AuthRepository,
   type AuthSession,
-} from '../auth.repository'
+} from '../repository/auth.repository'
 import { memoryStorage, OTHER_USER_ID, USER_ID, type MemoryStorage } from './auth-fixture'
 
 const clientModule = vi.hoisted(() => ({ evaluated: vi.fn<() => void>() }))

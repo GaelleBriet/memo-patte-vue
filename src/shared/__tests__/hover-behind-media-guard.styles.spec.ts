@@ -19,15 +19,15 @@ function sansBlocsHoverMedia(feuille: string): string {
 
 const REGLES = [
   {
-    fichier: 'src/features/home/AnimalPickerSheet.vue',
+    fichier: 'src/features/home/views/AnimalPickerSheet.vue',
     selecteur: '.animal-picker-sheet__animal',
   },
   {
-    fichier: 'src/features/home/HomeView.vue',
+    fichier: 'src/features/home/views/HomeView.vue',
     selecteur: '.home-up-to-date__add',
   },
   {
-    fichier: 'src/features/home/HomeView.vue',
+    fichier: 'src/features/home/views/HomeView.vue',
     selecteur: '.home-welcome__import',
   },
 ] as const

@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { authAvailable } from '../auth-available'
+import { authAvailable } from '../utils/auth-available'
 
 afterEach(() => {
   vi.unstubAllEnvs()

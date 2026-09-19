@@ -9,7 +9,7 @@ import {
   provideFullReminderSync,
   remindersWithinCap,
   replaceDueReminders,
-} from '../due-reminders-schedule'
+} from '../domain/due-reminders-schedule'
 import { createFakeNotifications, type FakeNotifications } from './fake-notifications'
 
 const ID = '22222222-2222-4222-8222-222222222222'

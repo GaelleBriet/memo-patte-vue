@@ -2,16 +2,16 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import i18n from '@/core/i18n'
-import type { Animal } from '@/features/animals/animal.schema'
+import type { Animal } from '@/features/animals/schema/animal.schema'
 import {
   createFakeNotifications,
   type FakeNotifications,
 } from '@/shared/__tests__/fake-notifications'
-import type { Treatment } from '../treatment.schema'
+import type { Treatment } from '../schema/treatment.schema'
 import {
   createTreatmentRemindersService,
   type TreatmentRemindersService,
-} from '../treatment-reminders.service'
+} from '../service/treatment-reminders.service'
 
 const LUNA: Animal = {
   id: '33333333-3333-4333-8333-333333333333',
