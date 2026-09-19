@@ -7,7 +7,7 @@ import type { Animal } from '@/features/animals/schema/animal.schema'
 import type { AnimalsRepository } from '@/features/animals/repository/animals.repository'
 import { provideAnimalsRepository, useAnimalsStore } from '@/features/animals/store/animals.store'
 import type { Treatment } from '@/features/treatments/treatment.schema'
-import type { Vaccination } from '@/features/vaccinations/vaccination.schema'
+import type { Vaccination } from '@/features/vaccinations/schema/vaccination.schema'
 import {
   createFakeNotifications,
   type FakeNotifications,

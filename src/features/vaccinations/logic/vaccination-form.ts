@@ -1,6 +1,6 @@
 import type { z } from 'zod'
 
-import { vaccinationUpdateSchema, type Vaccination } from './vaccination.schema'
+import { vaccinationUpdateSchema, type Vaccination } from '../schema/vaccination.schema'
 
 export interface VaccinationFormValues {
   name: string

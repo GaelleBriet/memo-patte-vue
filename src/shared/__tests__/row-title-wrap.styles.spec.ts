@@ -38,7 +38,7 @@ const LISTES = [
     badge: '.reminder-row__badge',
   },
   {
-    fichier: 'src/features/vaccinations/VaccinationsSection.vue',
+    fichier: 'src/features/vaccinations/views/VaccinationsSection.vue',
     ligne: '.vaccination-row',
     titre: '.vaccination-row__name',
     badge: '.vaccination-row__badge',

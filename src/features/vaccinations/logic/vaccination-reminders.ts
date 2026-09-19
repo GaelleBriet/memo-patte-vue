@@ -7,7 +7,7 @@ import {
   type DueReminderTexts,
   type Translate,
 } from '@/shared/domain/due-reminders'
-import type { Vaccination } from './vaccination.schema'
+import type { Vaccination } from '../schema/vaccination.schema'
 
 type RemindedVaccination = Pick<Vaccination, 'id' | 'name' | 'dueDate' | 'deletedAt'>
 

@@ -10,7 +10,7 @@ import {
 import {
   getVaccinationsRepository,
   type VaccinationsRepository,
-} from '@/features/vaccinations/vaccinations.repository'
+} from '@/features/vaccinations/repository/vaccinations.repository'
 import { getWeightRepository, type WeightRepository } from '@/features/weight/weight.repository'
 import { deliverExportFile, type DeliveryOutcome } from './export-delivery'
 import { buildExportFile, type ExportFile, type ExportFormat } from './export-format'

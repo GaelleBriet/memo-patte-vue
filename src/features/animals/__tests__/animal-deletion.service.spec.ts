@@ -5,7 +5,7 @@ import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory
 import {
   createVaccinationsRepository,
   type VaccinationsRepository,
-} from '@/features/vaccinations/vaccinations.repository'
+} from '@/features/vaccinations/repository/vaccinations.repository'
 import {
   createTreatmentsRepository,
   type TreatmentsRepository,

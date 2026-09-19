@@ -7,9 +7,9 @@ import {
   emptyVaccinationFormValues,
   validateVaccinationForm,
   vaccinationFormValuesFrom,
-} from './vaccination-form'
-import type { Vaccination } from './vaccination.schema'
-import { useVaccinationsStore } from './vaccinations.store'
+} from '../logic/vaccination-form'
+import type { Vaccination } from '../schema/vaccination.schema'
+import { useVaccinationsStore } from '../store/vaccinations.store'
 import { useToday } from '@/core/app-lifecycle/use-today'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import FormField from '@/shared/form/FormField.vue'

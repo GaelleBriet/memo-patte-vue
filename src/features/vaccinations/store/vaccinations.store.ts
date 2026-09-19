@@ -4,9 +4,13 @@ import { ref } from 'vue'
 import {
   vaccinationRemindersService,
   type VaccinationRemindersService,
-} from './vaccination-reminders.service'
-import type { Vaccination, VaccinationInput, VaccinationUpdateInput } from './vaccination.schema'
-import type { VaccinationsRepository as FullVaccinationsRepository } from './vaccinations.repository'
+} from '../service/vaccination-reminders.service'
+import type {
+  Vaccination,
+  VaccinationInput,
+  VaccinationUpdateInput,
+} from '../schema/vaccination.schema'
+import type { VaccinationsRepository as FullVaccinationsRepository } from '../repository/vaccinations.repository'
 import { track } from '@/core/analytics'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import { recordUsageSignal } from '@/shared/utils/usage-signals'

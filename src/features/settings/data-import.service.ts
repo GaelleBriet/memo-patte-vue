@@ -12,11 +12,11 @@ import {
   getTreatmentsRepository,
   type TreatmentsRepository,
 } from '@/features/treatments/treatments.repository'
-import { vaccinationInputSchema } from '@/features/vaccinations/vaccination.schema'
+import { vaccinationInputSchema } from '@/features/vaccinations/schema/vaccination.schema'
 import {
   getVaccinationsRepository,
   type VaccinationsRepository,
-} from '@/features/vaccinations/vaccinations.repository'
+} from '@/features/vaccinations/repository/vaccinations.repository'
 import { weightEntryInputSchema } from '@/features/weight/weight.schema'
 import { getWeightRepository, type WeightRepository } from '@/features/weight/weight.repository'
 import { EXPORT_SCHEMA_VERSION } from './export-format'

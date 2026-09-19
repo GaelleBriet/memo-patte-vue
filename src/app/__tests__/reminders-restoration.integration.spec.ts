@@ -6,7 +6,7 @@ import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory
 import i18n from '@/core/i18n'
 import { createAnimalsRepository } from '@/features/animals/repository/animals.repository'
 import { createTreatmentsRepository } from '@/features/treatments/treatments.repository'
-import { createVaccinationsRepository } from '@/features/vaccinations/vaccinations.repository'
+import { createVaccinationsRepository } from '@/features/vaccinations/repository/vaccinations.repository'
 import {
   createFakeNotifications,
   type FakeNotifications,

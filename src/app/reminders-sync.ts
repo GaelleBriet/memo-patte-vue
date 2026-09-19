@@ -15,11 +15,11 @@ import {
   getTreatmentsRepository,
   type TreatmentsRepository,
 } from '@/features/treatments/treatments.repository'
-import { vaccinationReminders } from '@/features/vaccinations/vaccination-reminders'
+import { vaccinationReminders } from '@/features/vaccinations/logic/vaccination-reminders'
 import {
   getVaccinationsRepository,
   type VaccinationsRepository,
-} from '@/features/vaccinations/vaccinations.repository'
+} from '@/features/vaccinations/repository/vaccinations.repository'
 import type { Translate } from '@/shared/domain/due-reminders'
 import {
   enqueueReminderTask,

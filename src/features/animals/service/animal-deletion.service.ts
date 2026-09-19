@@ -1,7 +1,7 @@
 import {
   getVaccinationsRepository,
   type VaccinationsRepository,
-} from '@/features/vaccinations/vaccinations.repository'
+} from '@/features/vaccinations/repository/vaccinations.repository'
 import {
   getTreatmentsRepository,
   type TreatmentsRepository,

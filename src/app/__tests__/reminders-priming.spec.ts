@@ -4,7 +4,7 @@ import { createMemoryHistory, createRouter, type Router } from 'vue-router'
 
 import type { Animal } from '@/features/animals/schema/animal.schema'
 import type { Treatment } from '@/features/treatments/treatment.schema'
-import type { Vaccination } from '@/features/vaccinations/vaccination.schema'
+import type { Vaccination } from '@/features/vaccinations/schema/vaccination.schema'
 import {
   createRemindersPriming,
   hasUpcomingDueDates,

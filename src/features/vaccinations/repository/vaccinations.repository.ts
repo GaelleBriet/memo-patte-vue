@@ -6,7 +6,7 @@ import {
   type Vaccination,
   type VaccinationInput,
   type VaccinationUpdateInput,
-} from './vaccination.schema'
+} from '../schema/vaccination.schema'
 
 interface VaccinationRow {
   id: string

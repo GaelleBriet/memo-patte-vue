@@ -10,8 +10,8 @@ import {
   replaceDueReminders,
   type ReminderNotifications,
 } from '@/shared/domain/due-reminders-schedule'
-import { vaccinationReminders } from './vaccination-reminders'
-import type { Vaccination } from './vaccination.schema'
+import { vaccinationReminders } from '../logic/vaccination-reminders'
+import type { Vaccination } from '../schema/vaccination.schema'
 
 type Provider<T> = () => T | Promise<T>
 

@@ -7,8 +7,8 @@ import {
   validateVaccinationForm,
   vaccinationFormValuesFrom,
   type VaccinationFormValues,
-} from '../vaccination-form'
-import type { Vaccination } from '../vaccination.schema'
+} from '../logic/vaccination-form'
+import type { Vaccination } from '../schema/vaccination.schema'
 import { todayIsoDate } from '@/core/app-lifecycle/today-iso-date'
 
 function valeurs(surcharges: Partial<VaccinationFormValues> = {}): VaccinationFormValues {

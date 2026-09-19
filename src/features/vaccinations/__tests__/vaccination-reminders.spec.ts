@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
 import i18n from '@/core/i18n'
-import { vaccinationReminders } from '../vaccination-reminders'
+import { vaccinationReminders } from '../logic/vaccination-reminders'
 
 const t = i18n.global.t
 const ID = '22222222-2222-4222-8222-222222222222'

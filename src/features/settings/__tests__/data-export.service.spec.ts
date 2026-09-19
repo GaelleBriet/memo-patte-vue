@@ -6,7 +6,7 @@ import type { ExportFile } from '../export-format'
 import { EXPORT_FIXTURE, LUNA_ID, MILO_ID } from './export-fixture'
 import type { Animal } from '@/features/animals/schema/animal.schema'
 import type { Treatment } from '@/features/treatments/treatment.schema'
-import type { Vaccination } from '@/features/vaccinations/vaccination.schema'
+import type { Vaccination } from '@/features/vaccinations/schema/vaccination.schema'
 import type { WeightEntry } from '@/features/weight/weight.schema'
 
 const NOW = new Date('2026-09-15T10:30:00')

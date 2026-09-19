@@ -14,11 +14,11 @@ import {
   getTreatmentsRepository,
   type TreatmentsRepository,
 } from '@/features/treatments/treatments.repository'
-import type { Vaccination } from '@/features/vaccinations/vaccination.schema'
+import type { Vaccination } from '@/features/vaccinations/schema/vaccination.schema'
 import {
   getVaccinationsRepository,
   type VaccinationsRepository,
-} from '@/features/vaccinations/vaccinations.repository'
+} from '@/features/vaccinations/repository/vaccinations.repository'
 import { DAYS_OVERDUE } from '@/shared/domain/due-reminders'
 import { primingRouteFrom } from '@/shared/domain/notification-priming'
 
