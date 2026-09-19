@@ -5,7 +5,7 @@ import { animalInputSchema } from '@/features/animals/schema/animal.schema'
 import { treatmentInputSchema } from '@/features/treatments/schema/treatment.schema'
 import { vaccinationStatus } from '@/features/vaccinations/logic/vaccination-status'
 import { vaccinationInputSchema } from '@/features/vaccinations/schema/vaccination.schema'
-import { weightEntryInputSchema } from '@/features/weight/weight.schema'
+import { weightEntryInputSchema } from '@/features/weight/schema/weight.schema'
 import { buildDemoCarnet, type DemoAnimal } from '../demo-carnet'
 
 const TODAY = new Date(2026, 8, 13)

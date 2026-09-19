@@ -1,6 +1,6 @@
 import { computed } from 'vue'
 
-import { useWeightStore } from './weight.store'
+import { useWeightStore } from '../store/weight.store'
 import { useAnimalScopedLoad } from '@/shared/composables/use-animal-scoped-load'
 
 /**

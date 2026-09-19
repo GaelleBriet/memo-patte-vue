@@ -1,5 +1,5 @@
 <script lang="ts">
-import type { WeightSummary } from './weight-summary'
+import type { WeightSummary } from '../logic/weight-summary'
 
 /** `null` tant qu'aucune pesée n'est connue. */
 export type WeightSectionSummary = WeightSummary | null
@@ -10,8 +10,8 @@ import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import WeightSheet from './WeightSheet.vue'
-import { weightSummary, type WeightDelta } from './weight-summary'
-import { useWeightEntries } from './use-weight-entries'
+import { weightSummary, type WeightDelta } from '../logic/weight-summary'
+import { useWeightEntries } from '../composables/use-weight-entries'
 import SectionCard from '@/shared/components/SectionCard.vue'
 import WeightSparkline from '@/shared/components/WeightSparkline.vue'
 import { formatKg, formatKgDelta, formatLongDate, formatMonth } from '@/shared/utils/format'

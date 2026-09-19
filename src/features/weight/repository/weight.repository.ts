@@ -6,7 +6,7 @@ import {
   type WeightEntry,
   type WeightEntryInput,
   type WeightEntryUpdateInput,
-} from './weight.schema'
+} from '../schema/weight.schema'
 
 interface WeightEntryRow {
   id: string

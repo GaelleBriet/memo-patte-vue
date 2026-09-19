@@ -19,7 +19,7 @@ import TreatmentsSection, {
 import VaccinationsSection, {
   type VaccinationsSummary,
 } from '@/features/vaccinations/views/VaccinationsSection.vue'
-import WeightSection, { type WeightSectionSummary } from '@/features/weight/WeightSection.vue'
+import WeightSection, { type WeightSectionSummary } from '@/features/weight/views/WeightSection.vue'
 import AnimalChipSelector, { type AnimalChipItem } from '@/shared/components/AnimalChipSelector.vue'
 import { animalAge } from '@/shared/domain/animal-age'
 import { animalAvatarGradientCss } from '@/shared/domain/animal-avatar-gradient'

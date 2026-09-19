@@ -20,8 +20,11 @@ import {
   getVaccinationsRepository,
   type VaccinationsRepository,
 } from '@/features/vaccinations/repository/vaccinations.repository'
-import { weightEntryInputSchema } from '@/features/weight/weight.schema'
-import { getWeightRepository, type WeightRepository } from '@/features/weight/weight.repository'
+import { weightEntryInputSchema } from '@/features/weight/schema/weight.schema'
+import {
+  getWeightRepository,
+  type WeightRepository,
+} from '@/features/weight/repository/weight.repository'
 import { EXPORT_SCHEMA_VERSION } from './export-format'
 import type { ExportAnimal, ExportData } from '@/shared/domain/carnet-data'
 import { buildImportPlan, type ImportMode, type PlannedWrite } from '@/shared/domain/import-plan'

@@ -2,9 +2,9 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 
-import type { WeightEntry, WeightEntryInput } from '../weight.schema'
-import type { WeightRepository } from '../weight.repository'
-import { provideWeightRepository, useWeightStore } from '../weight.store'
+import type { WeightEntry, WeightEntryInput } from '../schema/weight.schema'
+import type { WeightRepository } from '../repository/weight.repository'
+import { provideWeightRepository, useWeightStore } from '../store/weight.store'
 import { track } from '@/core/analytics'
 import type { Animal } from '@/features/animals/schema/animal.schema'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'

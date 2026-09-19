@@ -16,7 +16,7 @@ import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory
 import { createAnimalsRepository } from '@/features/animals/repository/animals.repository'
 import { createTreatmentsRepository } from '@/features/treatments/repository/treatments.repository'
 import { createVaccinationsRepository } from '@/features/vaccinations/repository/vaccinations.repository'
-import { createWeightRepository } from '@/features/weight/weight.repository'
+import { createWeightRepository } from '@/features/weight/repository/weight.repository'
 
 const NOW = new Date('2026-09-15T10:00:00.000Z')
 const LUNA_PHOTO = IMPORT_FIXTURE.animals[0]!.photoFileName!

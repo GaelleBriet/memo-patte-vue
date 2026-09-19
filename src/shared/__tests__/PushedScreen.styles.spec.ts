@@ -125,7 +125,7 @@ describe('PushedScreen — contrat de style', () => {
 describe('Écrans poussés — la hauteur reste à PushedScreen', () => {
   it('le suivi de poids ne redéfinit pas de hauteur', () => {
     const sfc = readFileSync(
-      resolve(process.cwd(), 'src/features/weight/WeightHistoryView.vue'),
+      resolve(process.cwd(), 'src/features/weight/views/WeightHistoryView.vue'),
       'utf8',
     )
     const bloc = /<style[^>]*lang="scss">([\s\S]*?)<\/style>/.exec(sfc)?.[1] ?? ''

@@ -1,6 +1,6 @@
 import type { z } from 'zod'
 
-import { weightEntryInputSchema } from './weight.schema'
+import { weightEntryInputSchema } from '../schema/weight.schema'
 import { todayIsoDate } from '@/core/app-lifecycle/today-iso-date'
 
 export interface WeightFormValues {

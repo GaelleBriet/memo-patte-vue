@@ -1,8 +1,8 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
-import type { WeightEntry, WeightEntryInput, WeightEntryUpdateInput } from './weight.schema'
-import type { WeightRepository as FullWeightRepository } from './weight.repository'
+import type { WeightEntry, WeightEntryInput, WeightEntryUpdateInput } from '../schema/weight.schema'
+import type { WeightRepository as FullWeightRepository } from '../repository/weight.repository'
 import { track } from '@/core/analytics'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import { recordUsageSignal } from '@/shared/utils/usage-signals'

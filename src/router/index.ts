@@ -48,7 +48,7 @@ export const routes: RouteRecordRaw[] = [
   {
     path: '/animals/:animalId/weight',
     name: 'weight-history',
-    component: () => import('@/features/weight/WeightHistoryView.vue'),
+    component: () => import('@/features/weight/views/WeightHistoryView.vue'),
     props: true,
   },
   {

@@ -10,7 +10,10 @@ import {
   createTreatmentsRepository,
   type TreatmentsRepository,
 } from '@/features/treatments/repository/treatments.repository'
-import { createWeightRepository, type WeightRepository } from '@/features/weight/weight.repository'
+import {
+  createWeightRepository,
+  type WeightRepository,
+} from '@/features/weight/repository/weight.repository'
 import { getDb } from '@/core/db/sqlite'
 import { cancelReminders, listScheduled, type ScheduledReminder } from '@/core/notifications'
 import { deletePhoto, type PhotoStorage } from '@/core/photos/photo-storage'

@@ -13,7 +13,10 @@ import {
   getVaccinationsRepository,
   type VaccinationsRepository,
 } from '@/features/vaccinations/repository/vaccinations.repository'
-import { getWeightRepository, type WeightRepository } from '@/features/weight/weight.repository'
+import {
+  getWeightRepository,
+  type WeightRepository,
+} from '@/features/weight/repository/weight.repository'
 import { buildDemoCarnet, DEMO_CARNET_MARKER } from './demo-carnet'
 
 /**

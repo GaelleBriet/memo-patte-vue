@@ -45,7 +45,7 @@ function paddingBas(feuille: string, selecteur: string): number {
 describe('zone de gestes sous le dernier élément d’un écran poussé', () => {
   it.each([
     ['src/shared/form/FormScreen.vue', '.form-screen__actions'],
-    ['src/features/weight/WeightHistoryView.vue', '.weight-history__actions'],
+    ['src/features/weight/views/WeightHistoryView.vue', '.weight-history__actions'],
     ['src/features/purchase/PlusView.vue', '.plus__content'],
     ['src/features/settings/SettingsView.vue', '.settings__content'],
     ['src/features/settings/AnalyticsConsentView.vue', '.analytics-consent'],

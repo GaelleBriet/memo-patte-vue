@@ -56,7 +56,7 @@ describe('BottomSheet — contrat de style', () => {
 })
 
 describe('Feuilles modales — le patron reste à BottomSheet', () => {
-  it.each(['src/features/weight/WeightSheet.vue', 'src/features/home/AnimalPickerSheet.vue'])(
+  it.each(['src/features/weight/views/WeightSheet.vue', 'src/features/home/AnimalPickerSheet.vue'])(
     '%s ne recopie ni voile, ni poignée, ni coins',
     (fichier) => {
       const styles = css(fichier)

@@ -21,8 +21,8 @@ import { getTreatmentsRepository } from '@/features/treatments/repository/treatm
 import { provideTreatmentsRepository } from '@/features/treatments/store/treatments.store'
 import { getVaccinationsRepository } from '@/features/vaccinations/repository/vaccinations.repository'
 import { provideVaccinationsRepository } from '@/features/vaccinations/store/vaccinations.store'
-import { getWeightRepository } from '@/features/weight/weight.repository'
-import { provideWeightRepository } from '@/features/weight/weight.store'
+import { getWeightRepository } from '@/features/weight/repository/weight.repository'
+import { provideWeightRepository } from '@/features/weight/store/weight.store'
 import '@/styles/main.scss'
 
 provideAnimalsRepository(getAnimalsRepository)

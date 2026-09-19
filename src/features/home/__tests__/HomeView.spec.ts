@@ -23,7 +23,7 @@ import type { Animal } from '@/features/animals/schema/animal.schema'
 import type * as DataImport from '@/features/settings/data-import.service'
 import { importFixtureJson } from '@/features/settings/__tests__/import-fixture'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
-import WeightSheet from '@/features/weight/WeightSheet.vue'
+import WeightSheet from '@/features/weight/views/WeightSheet.vue'
 import AnimalChipSelector from '@/shared/components/AnimalChipSelector.vue'
 import { forgetPhotoUrls } from '@/core/photos/use-photo-urls'
 import {
