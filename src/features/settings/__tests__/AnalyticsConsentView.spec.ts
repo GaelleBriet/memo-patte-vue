@@ -2,7 +2,7 @@ import { mount } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest'
 import { createMemoryHistory, createRouter, type Router } from 'vue-router'
 
-import AnalyticsConsentView from '../AnalyticsConsentView.vue'
+import AnalyticsConsentView from '../views/AnalyticsConsentView.vue'
 import { optIn, optOut } from '@/core/analytics'
 import i18n from '@/core/i18n'
 import vuetify from '@/core/theme/vuetify'

@@ -1,8 +1,11 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { createDataExportService } from '../data-export.service'
-import { createDataImportService, type DataImportDependencies } from '../data-import.service'
+import { createDataExportService } from '../service/data-export.service'
+import {
+  createDataImportService,
+  type DataImportDependencies,
+} from '../service/data-import.service'
 import type { ExportData } from '@/shared/domain/carnet-data'
 import {
   CHPPIL_ID,

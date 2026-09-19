@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 
-import { pdfExportService, type PdfExportService } from './pdf-export.service'
+import { pdfExportService, type PdfExportService } from '../service/pdf-export.service'
 
 export type PdfExportRunOutcome = 'shared' | 'cancelled' | 'not-found' | 'failed' | 'busy'
 

@@ -8,7 +8,7 @@ import {
   exportReminders,
   toCsvTables,
   toJsonExport,
-} from '../export-format'
+} from '../logic/export-format'
 import { EXPORT_FIXTURE, LUNA_ID, MILO_ID } from './export-fixture'
 
 const META = { exportedAt: new Date('2026-09-15T10:30:00'), appVersion: '0.1.24' }

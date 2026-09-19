@@ -10,9 +10,11 @@ import { useForegroundRefresh } from '@/core/app-lifecycle/use-foreground-refres
 import { usePhotoUrls } from '@/core/photos/use-photo-urls'
 import PlusNudgeSection from '@/features/purchase/views/PlusNudgeSection.vue'
 import { usePurchaseStore } from '@/features/purchase/store/purchase.store'
-import type { PdfExportAnimal } from '@/features/settings/PdfExportSheet.vue'
+import type { PdfExportAnimal } from '@/features/settings/views/PdfExportSheet.vue'
 
-const PdfExportSheet = defineAsyncComponent(() => import('@/features/settings/PdfExportSheet.vue'))
+const PdfExportSheet = defineAsyncComponent(
+  () => import('@/features/settings/views/PdfExportSheet.vue'),
+)
 import TreatmentsSection, {
   type TreatmentsSummary,
 } from '@/features/treatments/views/TreatmentsSection.vue'

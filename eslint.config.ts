@@ -79,7 +79,7 @@ const FEATURES = readdirSync(new URL('./src/features', import.meta.url), { withF
 const COMPOSITE_SCREENS = [
   { feature: 'animals', file: 'src/features/animals/views/CarnetView.vue' },
   { feature: 'home', file: 'src/features/home/views/HomeView.vue' },
-  { feature: 'settings', file: 'src/features/settings/SettingsView.vue' },
+  { feature: 'settings', file: 'src/features/settings/views/SettingsView.vue' },
 ]
 
 // Exception actée le 2026-09-16 (decisions-log) : toute feature lit le store des

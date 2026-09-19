@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import { renderCarnetPdf } from '../render-carnet-pdf'
-import type { CarnetPdfContent } from '../pdf-content'
+import { renderCarnetPdf } from '../logic/render-carnet-pdf'
+import type { CarnetPdfContent } from '../logic/pdf-content'
 
 const EMPTY_CONTENT: CarnetPdfContent = {
   animal: { name: 'Milo', species: 'dog', breed: null, birthDate: null, photoFileName: null },

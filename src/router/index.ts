@@ -75,7 +75,7 @@ export const routes: RouteRecordRaw[] = [
   {
     path: '/settings',
     name: 'settings',
-    component: () => import('@/features/settings/SettingsView.vue'),
+    component: () => import('@/features/settings/views/SettingsView.vue'),
   },
   {
     path: '/plus',
@@ -91,7 +91,7 @@ export const routes: RouteRecordRaw[] = [
   {
     path: '/analytics/consent',
     name: 'analytics-consent',
-    component: () => import('@/features/settings/AnalyticsConsentView.vue'),
+    component: () => import('@/features/settings/views/AnalyticsConsentView.vue'),
   },
   {
     path: '/:pathMatch(.*)*',

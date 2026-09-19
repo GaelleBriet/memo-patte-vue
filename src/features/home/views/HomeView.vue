@@ -10,7 +10,7 @@ import { useNotificationPermission } from '@/core/notifications/use-notification
 import { usePhotoUrls } from '@/core/photos/use-photo-urls'
 import illustration from '@/assets/brand-illustration.png'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
-import ImportSheet from '@/features/settings/ImportSheet.vue'
+import ImportSheet from '@/features/settings/views/ImportSheet.vue'
 import WeightSheet from '@/features/weight/views/WeightSheet.vue'
 import AnimalChipSelector, { type AnimalChipItem } from '@/shared/components/AnimalChipSelector.vue'
 import DueStatusChip from '@/shared/components/DueStatusChip.vue'

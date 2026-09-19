@@ -25,7 +25,7 @@ import {
   getWeightRepository,
   type WeightRepository,
 } from '@/features/weight/repository/weight.repository'
-import { EXPORT_SCHEMA_VERSION } from './export-format'
+import { EXPORT_SCHEMA_VERSION } from '../logic/export-format'
 import type { ExportAnimal, ExportData } from '@/shared/domain/carnet-data'
 import { buildImportPlan, type ImportMode, type PlannedWrite } from '@/shared/domain/import-plan'
 

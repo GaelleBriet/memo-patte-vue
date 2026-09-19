@@ -47,8 +47,8 @@ describe('zone de gestes sous le dernier élément d’un écran poussé', () =>
     ['src/shared/form/FormScreen.vue', '.form-screen__actions'],
     ['src/features/weight/views/WeightHistoryView.vue', '.weight-history__actions'],
     ['src/features/purchase/views/PlusView.vue', '.plus__content'],
-    ['src/features/settings/SettingsView.vue', '.settings__content'],
-    ['src/features/settings/AnalyticsConsentView.vue', '.analytics-consent'],
+    ['src/features/settings/views/SettingsView.vue', '.settings__content'],
+    ['src/features/settings/views/AnalyticsConsentView.vue', '.analytics-consent'],
     ['src/shared/components/NotificationPrimingView.vue', '.notification-priming'],
     ['src/shared/components/BottomSheet.vue', '.bottom-sheet__panel'],
   ])('%s — %s', (fichier, selecteur) => {

@@ -1,8 +1,11 @@
 import { unzipSync } from 'fflate'
 import { describe, expect, it, vi } from 'vitest'
 
-import { createDataExportService, type DataExportDependencies } from '../data-export.service'
-import type { ExportFile } from '../export-format'
+import {
+  createDataExportService,
+  type DataExportDependencies,
+} from '../service/data-export.service'
+import type { ExportFile } from '../logic/export-format'
 import { EXPORT_FIXTURE, LUNA_ID, MILO_ID } from './export-fixture'
 import type { Animal } from '@/features/animals/schema/animal.schema'
 import type { Treatment } from '@/features/treatments/schema/treatment.schema'

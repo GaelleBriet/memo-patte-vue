@@ -20,7 +20,7 @@ import i18n from '@/core/i18n'
 import router from '@/router'
 import vuetify from '@/core/theme/vuetify'
 import type { Animal } from '@/features/animals/schema/animal.schema'
-import type * as DataImport from '@/features/settings/data-import.service'
+import type * as DataImport from '@/features/settings/service/data-import.service'
 import { importFixtureJson } from '@/features/settings/__tests__/import-fixture'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import WeightSheet from '@/features/weight/views/WeightSheet.vue'
@@ -52,7 +52,7 @@ const promptNotificationsIfReminders = vi.hoisted(() =>
   vi.fn<(router: unknown, from: string) => Promise<boolean>>(async () => false),
 )
 
-vi.mock('@/features/settings/data-import.service', async (importOriginal) => ({
+vi.mock('@/features/settings/service/data-import.service', async (importOriginal) => ({
   ...(await importOriginal<typeof DataImport>()),
   dataImportService: { hasLocalData, importData },
 }))

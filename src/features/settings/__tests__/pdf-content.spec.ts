@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { buildCarnetPdfContent, pdfExportFileName } from '../pdf-content'
+import { buildCarnetPdfContent, pdfExportFileName } from '../logic/pdf-content'
 import type { ExportData } from '@/shared/domain/carnet-data'
 
 const ANIMAL_ID = '11111111-1111-4111-8111-111111111111'

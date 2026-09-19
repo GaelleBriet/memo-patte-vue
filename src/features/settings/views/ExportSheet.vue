@@ -3,8 +3,8 @@ import { computed, ref, useId, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import ChoiceCards from './ChoiceCards.vue'
-import type { ExportFormat } from './export-format'
-import { useDataExport } from './use-data-export'
+import type { ExportFormat } from '../logic/export-format'
+import { useDataExport } from '../composables/use-data-export'
 import BottomSheet from '@/shared/components/BottomSheet.vue'
 import { showToast } from '@/shared/utils/toast'
 

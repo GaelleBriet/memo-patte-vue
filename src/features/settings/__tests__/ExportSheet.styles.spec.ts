@@ -17,7 +17,7 @@ function declaration(css: string, selecteur: string, propriete: string): string 
 describe('ExportSheet — contrat de style', () => {
   it('écarte le spinner de « Préparation… » : le contenu du bouton n’hérite pas du gap', () => {
     const sfc = readFileSync(
-      resolve(process.cwd(), 'src/features/settings/ExportSheet.vue'),
+      resolve(process.cwd(), 'src/features/settings/views/ExportSheet.vue'),
       'utf8',
     )
     const bloc = /<style[^>]*lang="scss">([\s\S]*?)<\/style>/.exec(sfc)![1]!

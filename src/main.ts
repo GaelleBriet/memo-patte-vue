@@ -16,7 +16,7 @@ import { provideAnimalsRepository } from '@/features/animals/store/animals.store
 import { useAuthStore } from '@/features/auth/store/auth.store'
 import { installPlusAccountLink } from '@/features/purchase/service/plus-account-link.service'
 import { usePurchaseStore } from '@/features/purchase/store/purchase.store'
-import { clearExports } from '@/features/settings/export-delivery'
+import { clearExports } from '@/features/settings/logic/export-delivery'
 import { getTreatmentsRepository } from '@/features/treatments/repository/treatments.repository'
 import { provideTreatmentsRepository } from '@/features/treatments/store/treatments.store'
 import { getVaccinationsRepository } from '@/features/vaccinations/repository/vaccinations.repository'
