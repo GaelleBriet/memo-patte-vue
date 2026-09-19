@@ -57,6 +57,7 @@ tmp/
 docs/design/**/*standalone*.html.md
 docs/product/02-customer-discovery/entretiens/*
 !docs/product/02-customer-discovery/entretiens/.gitkeep
+.directory
 
 # Skills locaux (CLAUDE.md, lui, est versionné : plusieurs machines)
 **/skills/
