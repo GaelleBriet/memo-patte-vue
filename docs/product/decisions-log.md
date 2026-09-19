@@ -1041,3 +1041,19 @@ pierre tombale comme à l'import, cohérente avec #84, mais remplit le cloud de
 lignes mortes pour rien. Dans les deux cas, action irréversible : confirmation
 explicite à l'écran avant d'effacer. — Pour revenir dessus : marquer `deleted_at`
 au lieu de supprimer physiquement avant le pull complet.
+
+2026-09-19 — **Épic sync, décision §7-7 tranchée avec Gaelle (rétention du cloud
+après expiration) : la reco est retenue, confirme le point laissé « à confirmer
+en 11.7 » par l'entrée du 2026-09-07 (point 2, « purgé après 12 mois sans sync »).**
+Rétention de **12 mois après l'expiration du dernier droit Plus**, pas 12 mois
+sans synchronisation : lecture maintenue pendant ce délai (la restauration marche
+encore), écriture coupée dès l'expiration, un email un mois avant l'échéance. La
+durée est affichée à l'utilisateur. — Raison : le déclencheur est vérifiable côté
+serveur seul, sans dépendre qu'un appareil se reconnecte pour faire avancer un
+compteur ; c'est aussi déjà ce que dit la politique de confidentialité, donc les
+deux documents s'accordent maintenant. — Alternative écartée : « 12 mois sans
+sync » (version du 2026-09-07) — plus généreux dans l'esprit, mais un utilisateur
+qui réinstalle sans se reconnecter verrait son délai courir en réalité, sans rien
+pour l'en informer. — Pour revenir dessus : recalculer la purge sur la dernière
+date de synchronisation plutôt que sur la date d'expiration du droit Plus, et
+mettre à jour la politique de confidentialité en conséquence.

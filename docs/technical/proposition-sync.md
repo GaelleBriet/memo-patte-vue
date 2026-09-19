@@ -388,7 +388,9 @@ confidentialité doit nommer une région précise.
    _Alternative écartée_ : la pierre tombale comme à l'import — cohérent avec #84, mais remplit le
    cloud de lignes mortes sans objet. Action irréversible dans les deux cas : confirmation explicite.
 
-7. **Rétention du cloud après expiration.** Les deux documents ne disent pas la même chose : « 12 mois
+7. **Rétention du cloud après expiration.** _Tranché le 2026-09-19 avec Gaelle, la reco est retenue —
+   confirme le point laissé « à confirmer en 11.7 » par le decisions-log du 2026-09-07._ Les deux
+   documents ne disent pas la même chose : « 12 mois
    **sans sync** » (decisions-log, 2026-09-07) et « 12 mois après expiration du dernier droit Plus »
    (politique de confidentialité). _Reco_ : « 12 mois après l'expiration du dernier droit Plus, avec
    un email un mois avant » ; lecture maintenue pendant ce délai, écriture coupée dès l'expiration.
