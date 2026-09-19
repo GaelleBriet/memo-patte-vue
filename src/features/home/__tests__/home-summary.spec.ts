@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import type { HomeReminderSource } from '../home-reminders.service'
+import type { HomeReminderSource } from '../service/home-reminders.service'
 import {
   dueBadge,
   overdueBanner,
@@ -9,7 +9,7 @@ import {
   reminderTitle,
   scopeCounter,
   upToDateText,
-} from '../home-summary'
+} from '../logic/home-summary'
 import i18n from '@/core/i18n'
 import type { Reminder } from '@/shared/domain/reminders'
 

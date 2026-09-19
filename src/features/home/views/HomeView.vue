@@ -17,9 +17,9 @@ import DueStatusChip from '@/shared/components/DueStatusChip.vue'
 import SectionCard from '@/shared/components/SectionCard.vue'
 import { buildReminders } from '@/shared/domain/reminders'
 import AnimalPickerSheet from './AnimalPickerSheet.vue'
-import { useHomeStore } from './home.store'
-import { overdueBanner, reminderRows, scopeCounter, upToDateText } from './home-summary'
-import { quickActionAnimalId } from './quick-actions'
+import { useHomeStore } from '../store/home.store'
+import { overdueBanner, reminderRows, scopeCounter, upToDateText } from '../logic/home-summary'
+import { quickActionAnimalId } from '../logic/quick-actions'
 
 const { t } = useI18n()
 const router = useRouter()

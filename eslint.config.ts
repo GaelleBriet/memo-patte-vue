@@ -78,7 +78,7 @@ const FEATURES = readdirSync(new URL('./src/features', import.meta.url), { withF
 
 const COMPOSITE_SCREENS = [
   { feature: 'animals', file: 'src/features/animals/views/CarnetView.vue' },
-  { feature: 'home', file: 'src/features/home/HomeView.vue' },
+  { feature: 'home', file: 'src/features/home/views/HomeView.vue' },
   { feature: 'settings', file: 'src/features/settings/SettingsView.vue' },
 ]
 

@@ -1,4 +1,4 @@
-import type { HomeReminderSource } from './home-reminders.service'
+import type { HomeReminderSource } from '../service/home-reminders.service'
 import type { Reminder, ReminderStatus } from '@/shared/domain/reminders'
 
 export type Translate = (key: string, named?: Record<string, unknown>, plural?: number) => string

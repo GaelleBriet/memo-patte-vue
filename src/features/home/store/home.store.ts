@@ -5,7 +5,7 @@ import {
   homeRemindersService,
   type HomeReminderSource,
   type HomeRemindersService,
-} from './home-reminders.service'
+} from '../service/home-reminders.service'
 
 export type HomeRemindersServiceProvider = () => HomeRemindersService
 

@@ -13,7 +13,7 @@ export const routes: RouteRecordRaw[] = [
   {
     path: '/',
     name: 'home',
-    component: () => import('@/features/home/HomeView.vue'),
+    component: () => import('@/features/home/views/HomeView.vue'),
     meta: { rootScreen: true },
   },
   {

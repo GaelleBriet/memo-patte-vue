@@ -1,7 +1,7 @@
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import AnimalPickerSheet from '../AnimalPickerSheet.vue'
+import AnimalPickerSheet from '../views/AnimalPickerSheet.vue'
 import i18n from '@/core/i18n'
 import vuetify from '@/core/theme/vuetify'
 import { animalAvatarGradientCss } from '@/shared/domain/animal-avatar-gradient'

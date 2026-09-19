@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { createHomeRemindersService } from '../home-reminders.service'
+import { createHomeRemindersService } from '../service/home-reminders.service'
 import type { Treatment } from '@/features/treatments/schema/treatment.schema'
 import type { Vaccination } from '@/features/vaccinations/schema/vaccination.schema'
 

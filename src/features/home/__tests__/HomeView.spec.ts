@@ -11,10 +11,10 @@ import {
   type MockInstance,
 } from 'vitest'
 
-import AnimalPickerSheet from '../AnimalPickerSheet.vue'
-import HomeView from '../HomeView.vue'
-import type { HomeReminderSource, HomeRemindersService } from '../home-reminders.service'
-import { provideHomeRemindersService, useHomeStore } from '../home.store'
+import AnimalPickerSheet from '../views/AnimalPickerSheet.vue'
+import HomeView from '../views/HomeView.vue'
+import type { HomeReminderSource, HomeRemindersService } from '../service/home-reminders.service'
+import { provideHomeRemindersService, useHomeStore } from '../store/home.store'
 import { simulateWebResume } from '@/core/app-lifecycle/__tests__/simulate-resume'
 import i18n from '@/core/i18n'
 import router from '@/router'

@@ -1,8 +1,8 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { HomeReminderSource, HomeRemindersService } from '../home-reminders.service'
-import { provideHomeRemindersService, useHomeStore } from '../home.store'
+import type { HomeReminderSource, HomeRemindersService } from '../service/home-reminders.service'
+import { provideHomeRemindersService, useHomeStore } from '../store/home.store'
 
 type ListSources = HomeRemindersService['listSources']
 
