@@ -5,8 +5,8 @@ import { useI18n } from 'vue-i18n'
 import ChoiceCards from './ChoiceCards.vue'
 import type { ImportMode } from './data-import.service'
 import { useDataImport } from './use-data-import'
-import BottomSheet from '@/shared/BottomSheet.vue'
-import { showToast } from '@/shared/toast'
+import BottomSheet from '@/shared/components/BottomSheet.vue'
+import { showToast } from '@/shared/utils/toast'
 
 const emit = defineEmits<{ imported: [] }>()
 

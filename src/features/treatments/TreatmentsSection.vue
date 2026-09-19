@@ -1,5 +1,5 @@
 <script lang="ts">
-import type { ReminderCounts } from '@/shared/reminders'
+import type { ReminderCounts } from '@/shared/domain/reminders'
 
 export type TreatmentsSummary = ReminderCounts & {
   /** Traitements en cours, avec ou sans rappel. */
@@ -13,10 +13,10 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
 import { useTreatmentsStore } from './treatments.store'
-import DueStatusChip from '@/shared/DueStatusChip.vue'
-import SectionCard from '@/shared/SectionCard.vue'
-import { useAnimalScopedLoad } from '@/shared/use-animal-scoped-load'
-import { buildReminders, type Reminder, type ReminderStatus } from '@/shared/reminders'
+import DueStatusChip from '@/shared/components/DueStatusChip.vue'
+import SectionCard from '@/shared/components/SectionCard.vue'
+import { useAnimalScopedLoad } from '@/shared/composables/use-animal-scoped-load'
+import { buildReminders, type Reminder, type ReminderStatus } from '@/shared/domain/reminders'
 
 const props = defineProps<{
   animalId: string

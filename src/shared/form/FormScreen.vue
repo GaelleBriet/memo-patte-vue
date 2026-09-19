@@ -2,7 +2,7 @@
 import { nextTick, useTemplateRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 
-import PushedScreen from '@/shared/PushedScreen.vue'
+import PushedScreen from '@/shared/components/PushedScreen.vue'
 import { focusFirstInvalid } from './focus-first-invalid'
 
 defineProps<{

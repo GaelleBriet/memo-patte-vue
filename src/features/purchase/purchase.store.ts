@@ -15,7 +15,7 @@ import {
   type StoredPlusStatus,
 } from './plus-status-storage'
 import { track } from '@/core/analytics'
-import { errorSummary } from '@/shared/error-summary'
+import { errorSummary } from '@/shared/utils/error-summary'
 
 function remember(next: PlusStatus, previous: StoredPlusStatus): StoredPlusStatus {
   if (next.plan !== 'none')

@@ -1,5 +1,5 @@
 import { clearPurchaseDeviceState } from '@/features/purchase/purchase-device-state.service'
-import { clearUsageSignals } from '@/shared/usage-signals'
+import { clearUsageSignals } from '@/shared/utils/usage-signals'
 
 /**
  * Déconnexion : seuls les compteurs d'usage suivent le compte. L'achat Google Play appartient

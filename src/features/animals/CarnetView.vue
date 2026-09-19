@@ -20,10 +20,10 @@ import VaccinationsSection, {
   type VaccinationsSummary,
 } from '@/features/vaccinations/VaccinationsSection.vue'
 import WeightSection, { type WeightSectionSummary } from '@/features/weight/WeightSection.vue'
-import AnimalChipSelector, { type AnimalChipItem } from '@/shared/AnimalChipSelector.vue'
-import { animalAge } from '@/shared/animal-age'
-import { animalAvatarGradientCss } from '@/shared/animal-avatar-gradient'
-import { formatKg, formatKgDelta, formatMonth } from '@/shared/format'
+import AnimalChipSelector, { type AnimalChipItem } from '@/shared/components/AnimalChipSelector.vue'
+import { animalAge } from '@/shared/domain/animal-age'
+import { animalAvatarGradientCss } from '@/shared/domain/animal-avatar-gradient'
+import { formatKg, formatKgDelta, formatMonth } from '@/shared/utils/format'
 
 const { t } = useI18n()
 const router = useRouter()

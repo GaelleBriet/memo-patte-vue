@@ -5,7 +5,7 @@ import ExportSheet from '../ExportSheet.vue'
 import type { DeliveryOutcome } from '../export-delivery'
 import i18n from '@/core/i18n'
 import vuetify from '@/core/theme/vuetify'
-import { dismissToast, toastMessage } from '@/shared/toast'
+import { dismissToast, toastMessage } from '@/shared/utils/toast'
 
 const exportData = vi.hoisted(() => vi.fn<(format: 'json' | 'csv') => Promise<DeliveryOutcome>>())
 

@@ -11,7 +11,7 @@ import {
   writeStoredPlusStatus,
 } from '@/features/purchase/plus-status-storage'
 import { usePurchaseStore } from '@/features/purchase/purchase.store'
-import { USAGE_SIGNALS_STORAGE_KEY } from '@/shared/usage-signals'
+import { USAGE_SIGNALS_STORAGE_KEY } from '@/shared/utils/usage-signals'
 
 import { AccountError } from '../account-error'
 import { authRepository, type AuthRepository, type AuthSession } from '../auth.repository'

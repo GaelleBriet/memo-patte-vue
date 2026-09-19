@@ -5,8 +5,8 @@ import { useRoute, useRouter } from 'vue-router'
 
 import { onBackButton } from '@/core/app-lifecycle/back-button'
 import { postponePriming, requestAfterPriming } from '@/core/notifications/permission'
-import { primingReturnRoute } from './notification-priming'
-import { showToast } from './toast'
+import { primingReturnRoute } from '../domain/notification-priming'
+import { showToast } from '../utils/toast'
 
 const props = defineProps<{
   animalName: string

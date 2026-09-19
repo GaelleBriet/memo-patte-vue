@@ -4,8 +4,8 @@ import { useI18n } from 'vue-i18n'
 
 import ChoiceCards, { type ChoiceCard } from './ChoiceCards.vue'
 import { usePdfExport } from './use-pdf-export'
-import BottomSheet from '@/shared/BottomSheet.vue'
-import { showToast } from '@/shared/toast'
+import BottomSheet from '@/shared/components/BottomSheet.vue'
+import { showToast } from '@/shared/utils/toast'
 
 export type PdfExportAnimal = {
   id: string

@@ -9,7 +9,7 @@ import {
   PLUS_NUDGE_STORAGE_KEY,
 } from '@/features/purchase/plus-nudge'
 import { PLUS_STATUS_STORAGE_KEY } from '@/features/purchase/plus-status-storage'
-import { readUsageSignals, USAGE_SIGNALS_STORAGE_KEY } from '@/shared/usage-signals'
+import { readUsageSignals, USAGE_SIGNALS_STORAGE_KEY } from '@/shared/utils/usage-signals'
 
 import {
   clearDeviceAccountState,

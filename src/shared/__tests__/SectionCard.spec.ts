@@ -1,7 +1,7 @@
 import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
 
-import SectionCard from '../SectionCard.vue'
+import SectionCard from '../components/SectionCard.vue'
 
 type Props = InstanceType<typeof SectionCard>['$props']
 

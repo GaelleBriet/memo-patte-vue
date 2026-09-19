@@ -9,7 +9,7 @@ import type { Treatment, TreatmentInput, TreatmentUpdateInput } from './treatmen
 import type { TreatmentsRepository as FullTreatmentsRepository } from './treatments.repository'
 import { track } from '@/core/analytics'
 import { useAnimalsStore } from '@/features/animals/animals.store'
-import { recordUsageSignal } from '@/shared/usage-signals'
+import { recordUsageSignal } from '@/shared/utils/usage-signals'
 
 // Le store ne dépend que de ce qu'il appelle : la cascade de suppression (#102) n'est pas son affaire.
 type TreatmentsRepository = Pick<

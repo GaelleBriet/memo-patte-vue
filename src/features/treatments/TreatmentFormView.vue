@@ -19,12 +19,12 @@ import {
 import { useTreatmentsStore } from './treatments.store'
 import { useToday } from '@/core/app-lifecycle/use-today'
 import { useAnimalsStore } from '@/features/animals/animals.store'
-import { formatLongDate } from '@/shared/format'
+import { formatLongDate } from '@/shared/utils/format'
 import FormField from '@/shared/form/FormField.vue'
 import FormScreen from '@/shared/form/FormScreen.vue'
 import FormSegmented from '@/shared/form/FormSegmented.vue'
 import { useFormValidation } from '@/shared/form/use-form-validation'
-import { routeAfterReminderSaved } from '@/shared/notification-priming'
+import { routeAfterReminderSaved } from '@/shared/domain/notification-priming'
 
 const props = defineProps<{
   animalId?: string

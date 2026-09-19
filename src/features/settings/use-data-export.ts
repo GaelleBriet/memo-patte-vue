@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import { dataExportService, type DataExportService } from './data-export.service'
 import type { DeliveryOutcome } from './export-delivery'
 import type { ExportFormat } from './export-format'
-import { recordUsageSignal } from '@/shared/usage-signals'
+import { recordUsageSignal } from '@/shared/utils/usage-signals'
 
 export type ExportRunOutcome = DeliveryOutcome | 'failed' | 'busy'
 

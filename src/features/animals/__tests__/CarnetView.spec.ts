@@ -20,7 +20,7 @@ import { simulateWebResume } from '@/core/app-lifecycle/__tests__/simulate-resum
 import i18n from '@/core/i18n'
 import router from '@/router'
 import vuetify from '@/core/theme/vuetify'
-import AnimalChipSelector from '@/shared/AnimalChipSelector.vue'
+import AnimalChipSelector from '@/shared/components/AnimalChipSelector.vue'
 import type { Treatment } from '@/features/treatments/treatment.schema'
 import type { TreatmentsRepository } from '@/features/treatments/treatments.repository'
 import { provideTreatmentsRepository } from '@/features/treatments/treatments.store'

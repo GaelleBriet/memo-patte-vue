@@ -1,4 +1,4 @@
-import { formatKg, formatMonthShort } from './format'
+import { formatKg, formatMonthShort } from '../utils/format'
 
 export type WeightChartEntry = { weightKg: number; measuredOn: string }
 

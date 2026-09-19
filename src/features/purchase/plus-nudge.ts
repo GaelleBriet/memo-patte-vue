@@ -1,7 +1,7 @@
 import { differenceInCalendarDays, parseISO } from 'date-fns'
 import { z } from 'zod'
 
-import { readUsageSignals, type UsageSignals } from '@/shared/usage-signals'
+import { readUsageSignals, type UsageSignals } from '@/shared/utils/usage-signals'
 
 export const PLUS_NUDGE_STORAGE_KEY = 'memopatte.plus.nudge'
 

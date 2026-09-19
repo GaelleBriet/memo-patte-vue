@@ -5,7 +5,7 @@ import { animalDeletionService, type AnimalDeletionService } from './animal-dele
 import { animalPhotoService, type PhotoChange } from './animal-photo.service'
 import type { AnimalsRepository } from './animals.repository'
 import { track } from '@/core/analytics'
-import { recordUsageSignal } from '@/shared/usage-signals'
+import { recordUsageSignal } from '@/shared/utils/usage-signals'
 
 export type AnimalsRepositoryProvider = () => AnimalsRepository | Promise<AnimalsRepository>
 export type AnimalDeletionServiceProvider = () => AnimalDeletionService

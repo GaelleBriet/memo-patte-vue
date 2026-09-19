@@ -1,7 +1,7 @@
 import { format } from 'date-fns'
 import { strToU8, zipSync, type Zippable } from 'fflate'
 
-import type { ExportData } from '@/shared/carnet-data'
+import type { ExportData } from '@/shared/domain/carnet-data'
 
 /** Contrat documenté dans `docs/technical/export-format.md` : toute rupture incrémente la version. */
 export const EXPORT_SCHEMA_VERSION = 1

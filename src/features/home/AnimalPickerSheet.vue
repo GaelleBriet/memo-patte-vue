@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 
-import { animalAvatarGradientCss } from '@/shared/animal-avatar-gradient'
-import BottomSheet from '@/shared/BottomSheet.vue'
+import { animalAvatarGradientCss } from '@/shared/domain/animal-avatar-gradient'
+import BottomSheet from '@/shared/components/BottomSheet.vue'
 
 export type AnimalPickerItem = {
   id: string

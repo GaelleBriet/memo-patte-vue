@@ -17,7 +17,7 @@ export type AnimalChipSelectorMode = 'filter' | 'switch'
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 
-import { animalAvatarGradientCss } from './animal-avatar-gradient'
+import { animalAvatarGradientCss } from '../domain/animal-avatar-gradient'
 
 withDefaults(
   defineProps<{

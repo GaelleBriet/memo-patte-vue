@@ -8,12 +8,12 @@ import {
 } from '@/features/treatments/treatments.repository'
 import { getWeightRepository } from '@/features/weight/weight.repository'
 import { deletePhoto, type PhotoStorage } from '@/core/photos/photo-storage'
-import type { DueReminderEntry } from '@/shared/due-reminders'
+import type { DueReminderEntry } from '@/shared/domain/due-reminders'
 import {
   cancelDueReminders,
   reminderNotifications,
   type ReminderNotifications,
-} from '@/shared/due-reminders-schedule'
+} from '@/shared/domain/due-reminders-schedule'
 import { getAnimalsRepository, type AnimalsRepository } from './animals.repository'
 
 type Provider<T> = () => T | Promise<T>

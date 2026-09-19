@@ -1,7 +1,7 @@
 import type { AuthError, Session, SupabaseClient } from '@supabase/supabase-js'
 
 import { AUTH_STORAGE_KEY } from '@/core/supabase/auth-storage'
-import { errorSummary } from '@/shared/error-summary'
+import { errorSummary } from '@/shared/utils/error-summary'
 
 import { AccountError, type AccountErrorReason } from './account-error'
 

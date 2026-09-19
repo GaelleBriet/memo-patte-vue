@@ -14,8 +14,8 @@ import { useAnimalsStore } from '@/features/animals/animals.store'
 import AccountSection from '@/features/auth/AccountSection.vue'
 import PlusSection from '@/features/purchase/PlusSection.vue'
 import { usePurchaseStore } from '@/features/purchase/purchase.store'
-import PushedScreen from '@/shared/PushedScreen.vue'
-import SectionCard from '@/shared/SectionCard.vue'
+import PushedScreen from '@/shared/components/PushedScreen.vue'
+import SectionCard from '@/shared/components/SectionCard.vue'
 
 const { t } = useI18n()
 const router = useRouter()

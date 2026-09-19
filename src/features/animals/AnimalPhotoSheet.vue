@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 
-import BottomSheet from '@/shared/BottomSheet.vue'
+import BottomSheet from '@/shared/components/BottomSheet.vue'
 
 defineProps<{
   name: string

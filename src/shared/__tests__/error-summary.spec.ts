@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
 
-import { errorSummary } from '../error-summary'
+import { errorSummary } from '../utils/error-summary'
 
 describe('errorSummary', () => {
   it('garde le nom, le code et le statut', () => {

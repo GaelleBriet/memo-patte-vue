@@ -1,5 +1,5 @@
 <script lang="ts">
-import type { ReminderCounts } from '@/shared/reminders'
+import type { ReminderCounts } from '@/shared/domain/reminders'
 
 export type VaccinationsSummary = ReminderCounts
 </script>
@@ -11,11 +11,11 @@ import { useRouter } from 'vue-router'
 
 import { byDueDate, vaccinationStatus, type VaccinationStatus } from './vaccination-status'
 import { useVaccinationsStore } from './vaccinations.store'
-import DueStatusChip from '@/shared/DueStatusChip.vue'
-import SectionCard from '@/shared/SectionCard.vue'
-import { formatMonthYear } from '@/shared/format'
-import { useAnimalScopedLoad } from '@/shared/use-animal-scoped-load'
-import { buildReminders } from '@/shared/reminders'
+import DueStatusChip from '@/shared/components/DueStatusChip.vue'
+import SectionCard from '@/shared/components/SectionCard.vue'
+import { formatMonthYear } from '@/shared/utils/format'
+import { useAnimalScopedLoad } from '@/shared/composables/use-animal-scoped-load'
+import { buildReminders } from '@/shared/domain/reminders'
 
 const props = defineProps<{
   animalId: string

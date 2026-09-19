@@ -12,7 +12,7 @@ import {
   readPlusNudgeState,
   stopPlusNudges,
 } from '../plus-nudge'
-import { recordUsageSignal } from '@/shared/usage-signals'
+import { recordUsageSignal } from '@/shared/utils/usage-signals'
 
 const NOW = new Date('2026-09-16T10:00:00Z')
 

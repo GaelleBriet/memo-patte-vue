@@ -5,8 +5,8 @@ import { useI18n } from 'vue-i18n'
 import ChoiceCards from './ChoiceCards.vue'
 import type { ExportFormat } from './export-format'
 import { useDataExport } from './use-data-export'
-import BottomSheet from '@/shared/BottomSheet.vue'
-import { showToast } from '@/shared/toast'
+import BottomSheet from '@/shared/components/BottomSheet.vue'
+import { showToast } from '@/shared/utils/toast'
 
 defineProps<{
   focusFallback?: HTMLElement | null

@@ -5,11 +5,11 @@ import { useRouter } from 'vue-router'
 
 import ManageSubscriptionSection from './ManageSubscriptionSection.vue'
 import { usePurchaseStore } from './purchase.store'
-import { authAvailable } from '@/shared/auth-available'
-import { formatNumericDate } from '@/shared/format'
-import SectionCard from '@/shared/SectionCard.vue'
-import { signInRoute } from '@/shared/sign-in-route'
-import { showToast } from '@/shared/toast'
+import { authAvailable } from '@/shared/utils/auth-available'
+import { formatNumericDate } from '@/shared/utils/format'
+import SectionCard from '@/shared/components/SectionCard.vue'
+import { signInRoute } from '@/shared/utils/sign-in-route'
+import { showToast } from '@/shared/utils/toast'
 
 const { t } = useI18n()
 const router = useRouter()

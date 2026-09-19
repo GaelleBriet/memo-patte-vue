@@ -2,7 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, useTemplateRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 
-import type { WeightChart } from './weight-chart'
+import type { WeightChart } from '../domain/weight-chart'
 
 const props = defineProps<{
   chart: WeightChart

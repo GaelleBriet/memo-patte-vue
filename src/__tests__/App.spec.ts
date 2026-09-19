@@ -8,8 +8,8 @@ import vuetify from '@/core/theme/vuetify'
 import i18n from '@/core/i18n'
 import router from '@/router'
 import { routeurMemoire } from '@/router/__tests__/routeur-memoire'
-import AppToast from '@/shared/AppToast.vue'
-import { dismissToast, showToast } from '@/shared/toast'
+import AppToast from '@/shared/components/AppToast.vue'
+import { dismissToast, showToast } from '@/shared/utils/toast'
 
 const ECRANS_RACINE = [{ name: 'home' }, { name: 'animals' }] as const
 

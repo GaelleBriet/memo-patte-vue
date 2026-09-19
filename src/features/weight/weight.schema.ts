@@ -1,7 +1,7 @@
 import { isFuture, parseISO } from 'date-fns'
 import { z } from 'zod'
 
-import { MAX_WEIGHT_KG } from '@/shared/weight-bounds'
+import { MAX_WEIGHT_KG } from '@/shared/domain/weight-bounds'
 
 export const weightEntryInputSchema = z.object({
   animalId: z.uuid(),

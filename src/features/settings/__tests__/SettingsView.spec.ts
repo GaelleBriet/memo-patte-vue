@@ -38,7 +38,7 @@ vi.mock('@/app/reminders-priming', () => ({ promptNotificationsIfReminders }))
 
 const authAvailable = vi.hoisted(() => vi.fn<() => boolean>(() => true))
 
-vi.mock('@/shared/auth-available', () => ({ authAvailable }))
+vi.mock('@/shared/utils/auth-available', () => ({ authAvailable }))
 
 const consent = vi.hoisted(() => ({ granted: false }))
 const optIn = vi.hoisted(() => vi.fn<() => Promise<void>>())

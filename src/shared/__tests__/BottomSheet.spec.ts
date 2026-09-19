@@ -4,7 +4,7 @@ import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 import { defineComponent, h, ref } from 'vue'
 
-import BottomSheet from '../BottomSheet.vue'
+import BottomSheet from '../components/BottomSheet.vue'
 import { installBackButton } from '@/core/app-lifecycle/back-button'
 import vuetify from '@/core/theme/vuetify'
 

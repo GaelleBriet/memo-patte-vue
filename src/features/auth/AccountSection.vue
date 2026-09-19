@@ -4,8 +4,8 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
 import { useAuthStore } from './auth.store'
-import SectionCard from '@/shared/SectionCard.vue'
-import { signInRoute } from '@/shared/sign-in-route'
+import SectionCard from '@/shared/components/SectionCard.vue'
+import { signInRoute } from '@/shared/utils/sign-in-route'
 
 const { t } = useI18n()
 const router = useRouter()

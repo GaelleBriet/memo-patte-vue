@@ -11,7 +11,10 @@ import {
   createFakeNotifications,
   type FakeNotifications,
 } from '@/shared/__tests__/fake-notifications'
-import { enqueueReminderTask, MAX_SCHEDULED_REMINDERS } from '@/shared/due-reminders-schedule'
+import {
+  enqueueReminderTask,
+  MAX_SCHEDULED_REMINDERS,
+} from '@/shared/domain/due-reminders-schedule'
 import { createRemindersSync, installRemindersSync } from '../reminders-sync'
 
 const NOW = new Date(2026, 8, 15, 12)

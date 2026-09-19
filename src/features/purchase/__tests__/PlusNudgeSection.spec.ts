@@ -10,7 +10,7 @@ import { writeStoredPlusStatus } from '../plus-status-storage'
 import i18n from '@/core/i18n'
 import vuetify from '@/core/theme/vuetify'
 import router from '@/router'
-import { recordUsageSignal } from '@/shared/usage-signals'
+import { recordUsageSignal } from '@/shared/utils/usage-signals'
 
 vi.mock('../billing.service', async (importOriginal) => ({
   ...(await importOriginal<object>()),

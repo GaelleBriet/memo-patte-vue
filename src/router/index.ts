@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 
-import { authAvailable } from '@/shared/auth-available'
+import { authAvailable } from '@/shared/utils/auth-available'
 
 declare module 'vue-router' {
   interface RouteMeta {
@@ -66,7 +66,7 @@ export const routes: RouteRecordRaw[] = [
   {
     path: '/notifications/priming',
     name: 'notifications-priming',
-    component: () => import('@/shared/NotificationPrimingView.vue'),
+    component: () => import('@/shared/components/NotificationPrimingView.vue'),
     props: (route) => ({
       animalName: typeof route.query.animalName === 'string' ? route.query.animalName : '',
       kind: route.query.kind === 'treatment' ? 'treatment' : 'vaccination',

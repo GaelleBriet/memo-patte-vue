@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { primingReturnRoute, routeAfterReminderSaved } from '../notification-priming'
+import { primingReturnRoute, routeAfterReminderSaved } from '../domain/notification-priming'
 import { shouldShowPriming } from '@/core/notifications/permission'
 import router from '@/router'
 

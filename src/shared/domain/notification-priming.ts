@@ -1,6 +1,6 @@
 import type { RouteLocationRaw } from 'vue-router'
 
-import { ANIMAL_NAME_QUERY_PARAM } from '@/shared/animal-name-query-param'
+import { ANIMAL_NAME_QUERY_PARAM } from '@/shared/utils/animal-name-query-param'
 import { shouldShowPriming } from '@/core/notifications/permission'
 
 export type ReminderKind = 'vaccination' | 'treatment'

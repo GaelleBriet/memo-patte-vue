@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { buildReminders, type ReminderSource } from '../reminders'
+import { buildReminders, type ReminderSource } from '../domain/reminders'
 
 const TODAY = '2026-09-09'
 

@@ -1,7 +1,7 @@
 import { computed } from 'vue'
 
 import { useWeightStore } from './weight.store'
-import { useAnimalScopedLoad } from '@/shared/use-animal-scoped-load'
+import { useAnimalScopedLoad } from '@/shared/composables/use-animal-scoped-load'
 
 /**
  * Pesées d'un animal pour une vue, chargées à chaque changement d'animal et au retour au premier plan.

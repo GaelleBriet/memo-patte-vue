@@ -1,6 +1,6 @@
 import { jsPDF } from 'jspdf'
 
-import { formatKg, formatLongDate, formatNumericDate } from '@/shared/format'
+import { formatKg, formatLongDate, formatNumericDate } from '@/shared/utils/format'
 import i18n from '@/core/i18n'
 import type { CarnetPdfContent, PdfDueState } from './pdf-content'
 

@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 
 import { heightBottomNav, paddingBottomNav } from '@/core/theme/layout-tokens'
-import { dismissToast, toastMessage } from './toast'
+import { dismissToast, toastMessage } from '../utils/toast'
 
 const props = withDefaults(defineProps<{ aboveBottomNav?: boolean }>(), { aboveBottomNav: false })
 

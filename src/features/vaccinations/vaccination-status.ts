@@ -1,4 +1,4 @@
-import { buildReminders } from '@/shared/reminders'
+import { buildReminders } from '@/shared/domain/reminders'
 
 /** « À jour » et « En retard » disent la validité ; sans échéance, ni l'un ni l'autre n'est vrai. */
 export type VaccinationStatus = 'overdue' | 'up-to-date' | 'none'

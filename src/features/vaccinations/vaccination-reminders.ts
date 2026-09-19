@@ -6,7 +6,7 @@ import {
   dueReminders,
   type DueReminderTexts,
   type Translate,
-} from '@/shared/due-reminders'
+} from '@/shared/domain/due-reminders'
 import type { Vaccination } from './vaccination.schema'
 
 type RemindedVaccination = Pick<Vaccination, 'id' | 'name' | 'dueDate' | 'deletedAt'>

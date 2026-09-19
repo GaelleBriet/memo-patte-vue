@@ -10,7 +10,7 @@ import {
   type ImportMode,
   type ImportRefusal,
 } from './data-import.service'
-import type { ExportData } from '@/shared/carnet-data'
+import type { ExportData } from '@/shared/domain/carnet-data'
 
 export type ImportStep = 'idle' | 'choice' | 'confirm' | 'error'
 export type ImportError = ImportFileError | ImportRefusal | 'failed'

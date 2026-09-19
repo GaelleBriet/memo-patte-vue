@@ -1,8 +1,8 @@
 import { format } from 'date-fns'
 
-import { buildReminders, type ReminderKind } from '@/shared/reminders'
-import { buildWeightChart, type WeightChart } from '@/shared/weight-chart'
-import type { ExportData } from '@/shared/carnet-data'
+import { buildReminders, type ReminderKind } from '@/shared/domain/reminders'
+import { buildWeightChart, type WeightChart } from '@/shared/domain/weight-chart'
+import type { ExportData } from '@/shared/domain/carnet-data'
 
 export type PdfDueState = 'overdue' | 'upToDate' | 'none'
 

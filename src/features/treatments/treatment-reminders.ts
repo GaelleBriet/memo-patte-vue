@@ -17,7 +17,7 @@ import {
   reminderWindowEnd,
   type DueReminderTexts,
   type Translate,
-} from '@/shared/due-reminders'
+} from '@/shared/domain/due-reminders'
 import { addFrequency } from './treatment-frequency'
 import type { Treatment, TreatmentFrequency } from './treatment.schema'
 

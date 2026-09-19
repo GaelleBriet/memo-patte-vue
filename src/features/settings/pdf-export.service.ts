@@ -6,7 +6,7 @@ import { dataExportService } from './data-export.service'
 import { deliverExportFile, type DeliveryOutcome } from './export-delivery'
 import { buildCarnetPdfContent, pdfExportFileName } from './pdf-content'
 import { renderCarnetPdf } from './render-carnet-pdf'
-import type { ExportData } from '@/shared/carnet-data'
+import type { ExportData } from '@/shared/domain/carnet-data'
 import type { CarnetPdfContent } from './pdf-content'
 
 export type PdfExportOutcome = DeliveryOutcome | 'not-found'

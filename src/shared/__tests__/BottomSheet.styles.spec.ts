@@ -20,7 +20,7 @@ function css(fichier: string): string {
 let feuille: string
 
 beforeAll(() => {
-  feuille = css('src/shared/BottomSheet.vue')
+  feuille = css('src/shared/components/BottomSheet.vue')
 })
 
 function declaration(selecteur: string, propriete: string): string | undefined {

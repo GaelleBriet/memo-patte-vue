@@ -1,7 +1,7 @@
 import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
 
-import DueStatusChip from '../DueStatusChip.vue'
+import DueStatusChip from '../components/DueStatusChip.vue'
 import vuetify from '@/core/theme/vuetify'
 
 type Props = InstanceType<typeof DueStatusChip>['$props']

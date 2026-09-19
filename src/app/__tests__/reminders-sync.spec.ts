@@ -16,7 +16,7 @@ import {
   enqueueReminderTask,
   MAX_SCHEDULED_REMINDERS,
   replaceDueReminders,
-} from '@/shared/due-reminders-schedule'
+} from '@/shared/domain/due-reminders-schedule'
 import type { Reminder } from '@/core/notifications'
 import { createRemindersSync, installRemindersSync } from '../reminders-sync'
 

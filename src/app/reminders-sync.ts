@@ -17,7 +17,7 @@ import {
   getVaccinationsRepository,
   type VaccinationsRepository,
 } from '@/features/vaccinations/vaccinations.repository'
-import type { Translate } from '@/shared/due-reminders'
+import type { Translate } from '@/shared/domain/due-reminders'
 import {
   enqueueReminderTask,
   MAX_SCHEDULED_REMINDERS,
@@ -26,7 +26,7 @@ import {
   reminderNotifications,
   remindersWithinCap,
   type ReminderNotifications,
-} from '@/shared/due-reminders-schedule'
+} from '@/shared/domain/due-reminders-schedule'
 
 type Provider<T> = () => T | Promise<T>
 

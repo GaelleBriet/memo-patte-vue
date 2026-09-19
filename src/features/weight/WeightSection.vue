@@ -12,10 +12,10 @@ import { useI18n } from 'vue-i18n'
 import WeightSheet from './WeightSheet.vue'
 import { weightSummary, type WeightDelta } from './weight-summary'
 import { useWeightEntries } from './use-weight-entries'
-import SectionCard from '@/shared/SectionCard.vue'
-import WeightSparkline from '@/shared/WeightSparkline.vue'
-import { formatKg, formatKgDelta, formatLongDate, formatMonth } from '@/shared/format'
-import { buildWeightChart } from '@/shared/weight-chart'
+import SectionCard from '@/shared/components/SectionCard.vue'
+import WeightSparkline from '@/shared/components/WeightSparkline.vue'
+import { formatKg, formatKgDelta, formatLongDate, formatMonth } from '@/shared/utils/format'
+import { buildWeightChart } from '@/shared/domain/weight-chart'
 
 const props = defineProps<{
   animalId: string

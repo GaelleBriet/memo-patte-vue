@@ -10,8 +10,8 @@ import { emptySignInFormValues, validateSignInForm, type SignInMode } from './si
 import { focusFirstInvalid } from '@/shared/form/focus-first-invalid'
 import FormField from '@/shared/form/FormField.vue'
 import { useFormValidation } from '@/shared/form/use-form-validation'
-import PushedScreen from '@/shared/PushedScreen.vue'
-import { signInReturnRoute } from '@/shared/sign-in-route'
+import PushedScreen from '@/shared/components/PushedScreen.vue'
+import { signInReturnRoute } from '@/shared/utils/sign-in-route'
 
 const { t } = useI18n()
 const router = useRouter()

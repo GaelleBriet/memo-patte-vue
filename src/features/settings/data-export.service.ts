@@ -11,7 +11,7 @@ import {
 import { getWeightRepository, type WeightRepository } from '@/features/weight/weight.repository'
 import { deliverExportFile, type DeliveryOutcome } from './export-delivery'
 import { buildExportFile, type ExportFile, type ExportFormat } from './export-format'
-import type { ExportData } from '@/shared/carnet-data'
+import type { ExportData } from '@/shared/domain/carnet-data'
 
 type Provider<T> = () => T | Promise<T>
 

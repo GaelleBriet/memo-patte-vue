@@ -11,7 +11,7 @@ import { memoryStorage } from './billing-fixture'
 import i18n from '@/core/i18n'
 import vuetify from '@/core/theme/vuetify'
 import router from '@/router'
-import { dismissToast, toastMessage } from '@/shared/toast'
+import { dismissToast, toastMessage } from '@/shared/utils/toast'
 
 vi.mock('../billing.service', async (importOriginal) => ({
   ...(await importOriginal<object>()),

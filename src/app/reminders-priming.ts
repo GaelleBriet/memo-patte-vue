@@ -16,8 +16,8 @@ import {
   getVaccinationsRepository,
   type VaccinationsRepository,
 } from '@/features/vaccinations/vaccinations.repository'
-import { DAYS_OVERDUE } from '@/shared/due-reminders'
-import { primingRouteFrom } from '@/shared/notification-priming'
+import { DAYS_OVERDUE } from '@/shared/domain/due-reminders'
+import { primingRouteFrom } from '@/shared/domain/notification-priming'
 
 type Provider<T> = () => T | Promise<T>
 

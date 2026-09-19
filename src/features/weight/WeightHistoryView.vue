@@ -7,11 +7,11 @@ import WeightSheet from './WeightSheet.vue'
 import { weightHistory, type WeightHeadline, type WeightTrend } from './weight-history'
 import { useWeightEntries } from './use-weight-entries'
 import { useAnimalsStore } from '@/features/animals/animals.store'
-import PushedScreen from '@/shared/PushedScreen.vue'
-import SectionCard from '@/shared/SectionCard.vue'
-import WeightSparkline from '@/shared/WeightSparkline.vue'
-import { formatKg, formatKgDelta, formatLongDate, formatMonth } from '@/shared/format'
-import { buildWeightChart } from '@/shared/weight-chart'
+import PushedScreen from '@/shared/components/PushedScreen.vue'
+import SectionCard from '@/shared/components/SectionCard.vue'
+import WeightSparkline from '@/shared/components/WeightSparkline.vue'
+import { formatKg, formatKgDelta, formatLongDate, formatMonth } from '@/shared/utils/format'
+import { buildWeightChart } from '@/shared/domain/weight-chart'
 
 const props = defineProps<{
   animalId: string

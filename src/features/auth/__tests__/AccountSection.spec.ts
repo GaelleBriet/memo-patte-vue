@@ -23,7 +23,7 @@ vi.mock('../auth.repository', () => ({
 
 const repository = vi.mocked(authRepository)
 
-vi.mock('@/shared/auth-available', () => ({ authAvailable: () => true }))
+vi.mock('@/shared/utils/auth-available', () => ({ authAvailable: () => true }))
 
 let wrapper: VueWrapper | null = null
 

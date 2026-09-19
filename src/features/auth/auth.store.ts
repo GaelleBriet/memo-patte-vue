@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 
 import { identify, reset as resetAnalytics } from '@/core/analytics'
-import { errorSummary } from '@/shared/error-summary'
+import { errorSummary } from '@/shared/utils/error-summary'
 
 import {
   authRepository,

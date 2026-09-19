@@ -49,8 +49,8 @@ describe('zone de gestes sous le dernier élément d’un écran poussé', () =>
     ['src/features/purchase/PlusView.vue', '.plus__content'],
     ['src/features/settings/SettingsView.vue', '.settings__content'],
     ['src/features/settings/AnalyticsConsentView.vue', '.analytics-consent'],
-    ['src/shared/NotificationPrimingView.vue', '.notification-priming'],
-    ['src/shared/BottomSheet.vue', '.bottom-sheet__panel'],
+    ['src/shared/components/NotificationPrimingView.vue', '.notification-priming'],
+    ['src/shared/components/BottomSheet.vue', '.bottom-sheet__panel'],
   ])('%s — %s', (fichier, selecteur) => {
     expect(paddingBas(css(fichier), selecteur)).toBeGreaterThanOrEqual(paddingBottomNav)
   })

@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { createDataExportService } from '../data-export.service'
 import { createDataImportService, type DataImportDependencies } from '../data-import.service'
-import type { ExportData } from '@/shared/carnet-data'
+import type { ExportData } from '@/shared/domain/carnet-data'
 import {
   CHPPIL_ID,
   IMPORT_FIXTURE,

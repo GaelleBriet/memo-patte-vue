@@ -11,7 +11,7 @@ import {
   upToDateText,
 } from '../home-summary'
 import i18n from '@/core/i18n'
-import type { Reminder } from '@/shared/reminders'
+import type { Reminder } from '@/shared/domain/reminders'
 
 const t = i18n.global.t
 

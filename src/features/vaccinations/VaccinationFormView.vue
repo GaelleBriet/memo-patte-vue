@@ -15,7 +15,7 @@ import { useAnimalsStore } from '@/features/animals/animals.store'
 import FormField from '@/shared/form/FormField.vue'
 import FormScreen from '@/shared/form/FormScreen.vue'
 import { useFormValidation } from '@/shared/form/use-form-validation'
-import { routeAfterReminderSaved } from '@/shared/notification-priming'
+import { routeAfterReminderSaved } from '@/shared/domain/notification-priming'
 
 const props = defineProps<{
   animalId?: string

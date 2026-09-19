@@ -10,7 +10,10 @@ import { heightBottomNav, paddingBottomNav } from '@/core/theme/layout-tokens'
 const DOSSIER_STYLES = resolve(process.cwd(), 'src/styles')
 
 function cssDeLaBarre(): string {
-  const sfc = readFileSync(resolve(process.cwd(), 'src/shared/BottomNavigation.vue'), 'utf8')
+  const sfc = readFileSync(
+    resolve(process.cwd(), 'src/shared/components/BottomNavigation.vue'),
+    'utf8',
+  )
   const bloc = /<style[^>]*lang="scss">([\s\S]*?)<\/style>/.exec(sfc)?.[1]
 
   if (!bloc) throw new Error('bloc <style lang="scss"> introuvable dans BottomNavigation.vue')

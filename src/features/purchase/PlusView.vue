@@ -6,8 +6,8 @@ import { useRouter } from 'vue-router'
 import type { PaidPlan, PlusOffer } from './billing.service'
 import { MANAGE_SUBSCRIPTIONS_URL } from './google-play'
 import { usePurchaseStore } from './purchase.store'
-import PushedScreen from '@/shared/PushedScreen.vue'
-import { showToast } from '@/shared/toast'
+import PushedScreen from '@/shared/components/PushedScreen.vue'
+import { showToast } from '@/shared/utils/toast'
 
 type Phase = 'offers' | 'purchasing' | 'restoring' | 'success' | 'cancelled' | 'failed'
 

@@ -265,7 +265,7 @@ describe('imports dynamiques', { timeout: 30_000 }, () => {
     const view = await restrictedDynamicImports('src/features/weight/WeightHistoryView.vue', [
       './weight.store',
       '@/features/animals/animals.store',
-      '@/shared/reminders',
+      '@/shared/domain/reminders',
     ])
     const service = await restrictedDynamicImports('src/features/purchase/billing.service.ts', [
       '@revenuecat/purchases-capacitor',

@@ -7,7 +7,7 @@ import {
   getVaccinationsRepository,
   type VaccinationsRepository,
 } from '@/features/vaccinations/vaccinations.repository'
-import type { ReminderSource } from '@/shared/reminders'
+import type { ReminderSource } from '@/shared/domain/reminders'
 
 type Provider<T> = () => T | Promise<T>
 

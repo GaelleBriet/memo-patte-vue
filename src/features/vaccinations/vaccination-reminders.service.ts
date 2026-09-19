@@ -1,12 +1,12 @@
 import i18n from '@/core/i18n'
 import { getAnimalsRepository, type AnimalsRepository } from '@/features/animals/animals.repository'
-import type { Translate } from '@/shared/due-reminders'
+import type { Translate } from '@/shared/domain/due-reminders'
 import {
   cancelDueReminders,
   reminderNotifications,
   replaceDueReminders,
   type ReminderNotifications,
-} from '@/shared/due-reminders-schedule'
+} from '@/shared/domain/due-reminders-schedule'
 import { vaccinationReminders } from './vaccination-reminders'
 import type { Vaccination } from './vaccination.schema'
 
