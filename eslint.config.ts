@@ -260,16 +260,11 @@ export default defineConfigWithVueTs(
   ...FEATURES.map((feature) => ({
     name: `app/feature-imports/${feature}-services`,
     files: [`src/features/${feature}/**/*.service.ts`],
-    // Formes plates ET imbriquées tolérées le temps que chaque feature migre
-    // (decisions-log du 2026-09-19) ; les plates partiront une fois la dernière migrée.
     rules: featureImportsRule(feature, [
-      '@/features/*/*.repository',
       '@/features/*/repository',
       '@/features/*/repository/*.repository',
-      '@/features/*/*.schema',
       '@/features/*/schema',
       '@/features/*/schema/*.schema',
-      '@/features/*/*.service',
       '@/features/*/service',
       '@/features/*/service/*.service',
     ]),
@@ -278,8 +273,6 @@ export default defineConfigWithVueTs(
     name: `app/feature-imports/${file}`,
     files: [file],
     rules: featureImportsRule(feature, [
-      '@/features/*/*Section.vue',
-      '@/features/*/*Sheet.vue',
       '@/features/*/views',
       '@/features/*/views/*Section.vue',
       '@/features/*/views/*Sheet.vue',
