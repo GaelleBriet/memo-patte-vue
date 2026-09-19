@@ -13,7 +13,7 @@ import router from '@/router'
 import type { Animal } from '@/features/animals/schema/animal.schema'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import { USER_ID } from '@/features/auth/__tests__/auth-fixture'
-import { writePlusAccount } from '@/features/auth/plus-account-storage'
+import { writePlusAccount } from '@/features/auth/logic/plus-account-storage'
 import { memoryStorage } from '@/features/purchase/__tests__/billing-fixture'
 import { writeStoredPlusStatus } from '@/features/purchase/plus-status-storage'
 

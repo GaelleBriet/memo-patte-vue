@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
-import { useAuthStore } from './auth.store'
+import { useAuthStore } from '../store/auth.store'
 import SectionCard from '@/shared/components/SectionCard.vue'
 import { signInRoute } from '@/shared/utils/sign-in-route'
 

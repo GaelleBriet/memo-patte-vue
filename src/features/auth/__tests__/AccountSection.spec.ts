@@ -2,15 +2,15 @@ import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import AccountSection from '../AccountSection.vue'
-import { authRepository, type AuthRepository } from '../auth.repository'
-import { writePlusAccount } from '../plus-account-storage'
+import AccountSection from '../views/AccountSection.vue'
+import { authRepository, type AuthRepository } from '../repository/auth.repository'
+import { writePlusAccount } from '../logic/plus-account-storage'
 import { memoryStorage, USER_ID } from './auth-fixture'
 import i18n from '@/core/i18n'
 import vuetify from '@/core/theme/vuetify'
 import router from '@/router'
 
-vi.mock('../auth.repository', () => ({
+vi.mock('../repository/auth.repository', () => ({
   authRepository: {
     signUp: vi.fn<AuthRepository['signUp']>(),
     signIn: vi.fn<AuthRepository['signIn']>(),

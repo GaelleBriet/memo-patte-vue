@@ -14,7 +14,7 @@ import { readUsageSignals, USAGE_SIGNALS_STORAGE_KEY } from '@/shared/utils/usag
 import {
   clearDeviceAccountState,
   clearSignedOutAccountState,
-} from '../device-account-state.service'
+} from '../service/device-account-state.service'
 import { memoryStorage, type MemoryStorage } from './auth-fixture'
 
 const UNRELATED_KEYS = [ANALYTICS_CONSENT_KEY, 'memopatte.notifications.primingAnswered']

@@ -9,14 +9,17 @@ import {
   type AuthSession,
   type SessionCheck,
   type SignUpOutcome,
-} from './auth.repository'
-import { clearDeviceAccountState, clearSignedOutAccountState } from './device-account-state.service'
+} from '../repository/auth.repository'
+import {
+  clearDeviceAccountState,
+  clearSignedOutAccountState,
+} from '../service/device-account-state.service'
 import {
   clearPlusAccount,
   readPlusAccount,
   writePlusAccount,
   type PlusAccount,
-} from './plus-account-storage'
+} from '../logic/plus-account-storage'
 
 export type SessionState = 'none' | 'restoring' | 'active' | 'needs-refresh' | 'needs-sign-in'
 

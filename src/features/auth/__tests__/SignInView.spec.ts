@@ -3,14 +3,14 @@ import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest'
 import { createMemoryHistory, createRouter, type Router } from 'vue-router'
 
-import { AccountError } from '../account-error'
-import { authRepository, type AuthRepository } from '../auth.repository'
-import SignInView from '../SignInView.vue'
+import { AccountError } from '../logic/account-error'
+import { authRepository, type AuthRepository } from '../repository/auth.repository'
+import SignInView from '../views/SignInView.vue'
 import { memoryStorage, USER_ID, type MemoryStorage } from './auth-fixture'
 import i18n from '@/core/i18n'
 import vuetify from '@/core/theme/vuetify'
 
-vi.mock('../auth.repository', () => ({
+vi.mock('../repository/auth.repository', () => ({
   authRepository: {
     signUp: vi.fn<AuthRepository['signUp']>(),
     signIn: vi.fn<AuthRepository['signIn']>(),

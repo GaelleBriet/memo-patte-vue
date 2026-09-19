@@ -85,7 +85,7 @@ export const routes: RouteRecordRaw[] = [
   {
     path: '/sign-in',
     name: 'sign-in',
-    component: () => import('@/features/auth/SignInView.vue'),
+    component: () => import('@/features/auth/views/SignInView.vue'),
     beforeEnter: () => authAvailable() || { name: 'plus' },
   },
   {
