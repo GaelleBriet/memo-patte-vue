@@ -1,5 +1,37 @@
 # Contexte en cours (à mettre à jour à chaque lot)
 
+- 2026-09-19 : **pause demandée par Gaelle — reprendre exactement ici.**
+  - **PostHog : fait et vérifié de bout en bout.** Clé posée dans `.env`, consentement testé sur le
+    téléphone (`pnpm dev:mobile`, `VITE_ANALYTICS_CONSENT=ask` nécessaire pour voir l'écran en
+    navigateur — sauté par défaut en dev hors natif), pageview reçu côté PostHog EU Cloud. Seul
+    point laissé ouvert, pas bloquant : la rétention « 13 mois » de la doc n'est pas un réglage
+    PostHog — la rétention des événements est fixée par palier d'abonnement (1 an gratuit, 7 ans
+    payant), pas configurable à une valeur arbitraire. À trancher plus tard : ajuster ce que dit la
+    politique de confidentialité sur la durée réelle, ou prévoir une purge programmée via l'API
+    PostHog à 13 mois.
+  - **Connexion Google (#65) : en cours, rien encore exécuté.** Projet Google Cloud « MémoPatte »
+    créé par Gaelle. Guide donné pour la suite, vérifié dans la doc Supabase à jour (pas juste de
+    mémoire) : le flux recommandé aujourd'hui est **Credential Manager + `signInWithIdToken`**,
+    **sans** deep link — ça contredit ce que dit #65 (« schéma de redirection / deep link configuré
+    côté Android et côté Supabase ») ; à corriger sur le ticket une fois qu'on y revient. Trois
+    étapes détaillées, prêtes à exécuter dès que Gaelle veut s'y remettre : (1) écran de consentement
+    OAuth sur le projet MémoPatte, (2) un client OAuth **Web** (« server client ID », donne un
+    Client ID + Secret) et un client OAuth **Android** avec le SHA-1 **debug**
+    (`cd android && ./gradlew signingReport`) — le SHA-1 de **release** attendra le premier upload
+    Play Console, #53 n'étant pas fait (keystore pas créé) ; (3) déclarer dans Supabase → Auth →
+    Providers → Google (client Web en principal, client Android en « Client ID supplémentaire
+    autorisé »). **Reste à trancher avant du code** : quel plugin Capacitor fait l'appel natif —
+    candidats trouvés le 2026-09-19 (à revérifier au moment de reprendre, Gaelle a dit
+    explicitement qu'elle prend mieux/plus simple si ça se présente d'ici là) :
+    `@capawesome/capacitor-google-sign-in`, `@capgo/capacitor-social-login`.
+  - **#313 ouvert, pas encore investigué sur l'appareil.** Ajout de photo à la création d'un animal
+    échoue (« La photo n'a pas pu être chargée. Réessaie. »), le sélecteur système ne s'ouvre pas.
+    Écarté : régression du rangement de dossiers (#312, imports vérifiés bons), plugin caméra mal
+    enregistré côté natif (vérifié présent, bonne version, 8.2.4 des deux côtés). Piste la plus
+    probable, pas testée : `pnpm dev:mobile` tourne avec `--no-sync`, essayer
+    `npx cap sync android` + réinstallation complète avant de creuser le code.
+  - **Play Console / RevenueCat en pause côté Gaelle**, en attente de la création de sa
+    micro-entreprise — rien à faire de mon côté tant que ce n'est pas réglé.
 - 2026-09-19 : **nettoyage de ce fichier** — deux entrées du 2026-09-16 corrigées après vérification (issues et branches réellement encore ouvertes) : `fix/conformite-maquettes` a atterri dans `main` depuis (le test qui verrouille le correctif, `row-title-wrap.styles.spec.ts`, y est) — la branche n'existe plus, rien à reprendre ; #66 et #67 (consentement analytics) sont fermées, réglées par la PR #269 mergée, la question de poids des boutons ne reste pas ouverte. Le reste de l'entrée du 2026-09-16 sur les dépendances externes (#187, #65, #47, PostHog, #8) reste exact, vérifié à la même date
 - 2026-09-16 : **audit visuel app ↔ maquettes, puis lot de conformité** — branche `fix/conformite-maquettes` (mergée depuis) : 15 écarts relevés à la lecture des planches et tous corrigés (icône Paramètres sur la ligne du titre, astérisque collée au libellé, tri des vaccins par échéance, barre du bas pleine largeur, suffixe « kg » et icône date visibles, flèche de retour sur la ligne du titre…), plus **#282** (le mot « vaccin » ne précède plus le nom saisi, FR et EN, accueil et notifications) et l'ordre de création des chips. **Piège de mise en page à retenir** : sur une ligne « titre + badge », c'est le `min-width: 0` de la colonne de titre — pas la valeur d'`overflow-wrap` — qui laisse le flex couper un mot en deux ; il faut `flex-wrap: wrap` sur la ligne et `margin-inline-start: auto` sur le badge, verrouillés pour les trois listes par `row-title-wrap.styles.spec.ts`. **Piège d'outillage** : `vite.config.ts` supprime `sql-wasm.wasm` de tout build et `web-sqlite.ts` lève hors de `import.meta.env.DEV` — pour servir un build avec données, `NODE_ENV=development vite build --mode development` **et** recopier `public/assets/sql-wasm.wasm` dans `dist/assets/`
 - 2026-09-16 (nuit, autonomie complète) : **mergés** — #244 (#44 service billing RevenueCat : trois offres, statut Plus persisté, indisponible sans clé, aucun appel pour un gratuit), #246 (#7 + #9 session Supabase persistante, drapeau « compte Plus » local, client chargé seulement à la première opération de compte), #247 (#90 outillage : rien à monter, maintien en pnpm 10 consigné), #249 (avance #41 : test d'intégration de la reprogrammation des rappels sur appareil restauré). `main` à **1607 tests**
