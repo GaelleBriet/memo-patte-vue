@@ -3,6 +3,9 @@ import { ref } from 'vue'
 
 import type { WeightEntry, WeightEntryInput, WeightEntryUpdateInput } from './weight.schema'
 import type { WeightRepository as FullWeightRepository } from './weight.repository'
+import { track } from '@/core/analytics'
+import { useAnimalsStore } from '@/features/animals/animals.store'
+import { recordUsageSignal } from '@/shared/usage-signals'
 
 // Le store ne dépend que de ce qu'il appelle : la cascade de suppression (#102) n'est pas son affaire.
 type WeightRepository = Pick<FullWeightRepository, 'listByAnimal' | 'create' | 'update' | 'remove'>
@@ -89,10 +92,14 @@ export const useWeightStore = defineStore('weight', () => {
     },
 
     async create(input: WeightEntryInput): Promise<WeightEntry> {
-      return write(
+      const created = await write(
         (repository) => repository.create(input),
-        (created) => created.animalId,
+        (entry) => entry.animalId,
       )
+      recordUsageSignal('entry')
+      const species = useAnimalsStore().byId(created.animalId)?.species
+      if (species) track('weight_added', { species })
+      return created
     },
 
     async update(id: string, input: WeightEntryUpdateInput): Promise<WeightEntry> {

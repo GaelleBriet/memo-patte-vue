@@ -3,15 +3,20 @@ import { createPinia } from 'pinia'
 
 import App from './App.vue'
 import router from './router'
+import { installConsentGate } from '@/app/analytics-consent'
+import { installPageviewTracking } from '@/app/analytics-pageview'
 import { installLaunchPriming } from '@/app/reminders-priming'
 import { installRemindersSync } from '@/app/reminders-sync'
+import { initAnalytics } from '@/core/analytics'
 import { installBackButton } from '@/core/app-lifecycle/back-button'
 import vuetify from '@/core/theme/vuetify'
 import i18n, { applyLocale, detectLocale } from '@/core/i18n'
 import { getAnimalsRepository } from '@/features/animals/animals.repository'
 import { provideAnimalsRepository } from '@/features/animals/animals.store'
 import { useAuthStore } from '@/features/auth/auth.store'
+import { installPlusAccountLink } from '@/features/purchase/plus-account-link.service'
 import { usePurchaseStore } from '@/features/purchase/purchase.store'
+import { clearExports } from '@/features/settings/export-delivery'
 import { getTreatmentsRepository } from '@/features/treatments/treatments.repository'
 import { provideTreatmentsRepository } from '@/features/treatments/treatments.store'
 import { getVaccinationsRepository } from '@/features/vaccinations/vaccinations.repository'
@@ -27,6 +32,10 @@ provideTreatmentsRepository(getTreatmentsRepository)
 
 const app = createApp(App)
 
+installConsentGate(router)
+installPageviewTracking(router)
+void initAnalytics()
+
 app.use(createPinia())
 app.use(router)
 app.use(vuetify)
@@ -34,6 +43,7 @@ app.use(i18n)
 applyLocale(detectLocale(navigator.languages))
 
 installBackButton()
+void clearExports()
 
 // Fixtures de développement (`pnpm dev:data`) : import dynamique derrière
 // `import.meta.env.DEV`, le module tombe au build. Avant le montage, pour que
@@ -47,4 +57,5 @@ app.mount('#app')
 installRemindersSync()
 installLaunchPriming(router)
 void usePurchaseStore().verifyKnownStatus()
+installPlusAccountLink(() => useAuthStore().userId)
 void useAuthStore().restore()

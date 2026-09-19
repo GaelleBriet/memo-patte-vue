@@ -54,7 +54,12 @@ Supabase (Postgres + Auth)
 
 ### Règles de synchronisation
 
-Mise en œuvre détaillée (colonnes, schéma Postgres, RLS, file d'attente, lots) : `proposition-sync.md`.
+> **Cible, pas état des lieux.** Rien de cette section n'est implémenté : le projet Supabase ne
+> contient aucune table, seulement la fonction `keep_alive()`. Les règles ci-dessous sont l'intention
+> d'origine ; l'architecture détaillée, validée avec Gaelle le 2026-09-19, vit dans
+> `proposition-sync.md` (PR #248). En cas de divergence, c'est la proposition qui fait foi : la note
+> du ticket #39 (« pull par `updated_at` ») y est par exemple corrigée, et la purge des lignes
+> supprimées y est tranchée plutôt que laissée « à définir ».
 
 - Toute écriture se fait d’abord en local (SQLite).
 - La synchronisation vers Supabase se déclenche dès que le réseau est disponible (avec debounce).

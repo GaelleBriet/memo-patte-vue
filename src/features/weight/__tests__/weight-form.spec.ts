@@ -75,6 +75,10 @@ describe('validateWeightForm — poids', () => {
   it('refuse un texte qui n’est pas un nombre', () => {
     expect(erreurs({ weightKg: 'lourd' }).weightKg).toBe('weight.form.errors.weightKg')
   })
+
+  it('refuse un poids au-delà de l’échelle, avec un message distinct', () => {
+    expect(erreurs({ weightKg: '2000' }).weightKg).toBe('weight.form.errors.weightKgMax')
+  })
 })
 
 describe('validateWeightForm — date', () => {

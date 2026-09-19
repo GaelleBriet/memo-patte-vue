@@ -941,6 +941,247 @@ propose déjà. — Alternatives écartées : forcer une visibilité publique (e
 carnet sans l'accord de l'utilisateur) ou privée (masque un rappel que
 l'utilisateur veut lire d'un coup d'œil).
 
+2026-09-16 — **Outillage (#90) : on reste en pnpm 10.34.5, malgré la clôture de
+la demande de support pnpm 11 chez Dependabot.** Node (`.nvmrc` 26.8.1,
+`engines.node >=24.12.0`) et les quatre actions GitHub (`actions/checkout@v7`,
+`actions/setup-node@v7`, `pnpm/action-setup@v6`, `googleapis/release-please-action@v5`)
+sont déjà chacun sur la dernière majeure disponible : rien à monter.
+`dependabot-core#14794` a été fermée le 2026-09-15 et un support est arrivé le
+2026-07-29 (`dependabot-core#15710`, pnpm 11.17.0 embarqué), mais il est annoncé
+comme beta et la page officielle des écosystèmes supportés liste toujours
+pnpm v7 à v10. — Raison : pnpm 11 n'est pas un changement de numéro, c'est une
+migration — `onlyBuiltDependencies` est supprimé au profit de `allowBuilds`, dont
+dépend la compilation de `sharp` pour `@capacitor/assets` ; `minimumReleaseAge`
+passe à un jour et `blockExoticSubdeps` à `true` par défaut ; `.npmrc` est
+réservé à l'authentification et au registre ; le lockfile change de format. Rien
+de tout cela ne se vérifie ici : le comportement qui compte, Dependabot ouvrant
+ses PR hebdomadaires contre un lockfile pnpm 11, ne s'observe que sur le dépôt et
+sur plusieurs semaines. — Alternatives écartées : monter en pnpm 11 maintenant
+(migration non vérifiable localement, pour zéro gain fonctionnel) ; monter en
+pnpm 12, où un réglage inconnu de `pnpm-workspace.yaml` fait désormais échouer la
+commande. **À rouvrir quand la page des écosystèmes supportés listera pnpm 11.**
+
+2026-09-16 — **« Gérer mon abonnement · Google Play » vit dans la section
+MémoPatte Plus, pas dans Confidentialité.** — Raison : décision de Gaelle ; c'est
+une action d'abonnement, elle se lit à côté du statut Plus et de « Restaurer mon
+achat », et le relevé de textes la range avec le compte, qui n'existe pas encore.
+— Alternative écartée : la laisser dans Confidentialité comme le relevé, où elle
+voisine les statistiques d'usage, sans rapport.
+
+2026-09-16 — **Le souvenir d'un abonnement échu s'efface au bout de 30 jours.**
+Une fois l'expiration confirmée par Google Play, le bandeau « Ta sauvegarde cloud
+est en pause » reste affiché 30 jours, puis l'app oublie : retour à « Découvrir
+MémoPatte Plus », et plus aucun appel à Google Play au lancement pour cet
+utilisateur. Un utilisateur qui n'a jamais payé ne voit jamais le bandeau ; une
+réactivation, un achat à vie ou une connexion à un autre compte effacent le
+souvenir tout de suite. Le délai court depuis la fin réelle de l'abonnement quand
+elle est connue, sinon depuis la confirmation de Google Play. L'oubli se fait à la
+lecture de la préférence locale, pas par une purge écrite : le comportement est le
+même et il n'y a pas d'écriture au lancement. — Raison : décision de Gaelle ; au
+bout d'un mois, quelqu'un qui n'a pas renouvelé a choisi, et lui rappeler
+indéfiniment qu'il a laissé tomber Plus est du harcèlement commercial ; l'appel au
+store à chaque lancement n'a plus de contrepartie. — Alternatives écartées : garder
+le souvenir pour toujours (bandeau permanent, appel réseau à vie) ; l'effacer dès
+la confirmation d'expiration (l'utilisateur ne saurait jamais que sa sauvegarde
+s'est arrêtée).
+
+2026-09-16 — **Le rappel doux vers MémoPatte Plus s'en tient aux trois moments de
+valeur de la maquette, sans déclencheur temporel.** Première photo ajoutée,
+deuxième animal ou dixième entrée, premier export : une carte en tête de la liste
+du Carnet, jamais sur l'Accueil pour rester à distance du bandeau des rappels en
+retard. Jamais modale, une seule à la fois, un rappel par déclencheur, jamais deux
+à moins de 30 jours d'écart, et « Ne plus me le proposer » coupe définitivement.
+Rien ne s'affiche pour un abonné Plus, ni pour un ancien abonné dont l'abonnement
+a expiré — celui-là a déjà le bandeau « Ta sauvegarde cloud est en pause » dans les
+Paramètres. — Raison : décision de Gaelle ; un rappel qui tombe au bout de 30 jours
+d'installation arrive sans raison, alors que les trois autres arrivent au moment où
+l'utilisateur voit lui-même la valeur de son carnet, et deux sollicitations
+commerciales dans le même écran seraient du harcèlement. — Alternative écartée :
+ajouter « 30 jours après l'installation » comme quatrième rappel, tel que le
+proposait le ticket 9.2.
+
+2026-09-16 — **Les chips d'animaux suivent l'ordre de création, sur l'Accueil comme
+sur le Carnet.** `animals.repository.list()` trie par `created_at`, et départage par
+nom deux animaux créés dans la même milliseconde, cas d'un import. — Raison :
+décision de Gaelle ; l'animal principal, presque toujours créé en premier, garde sa
+place en tête et se tape sans regarder, alors que l'ordre alphabétique le déplaçait
+à chaque nouvel animal. — Alternatives écartées : l'ordre alphabétique (la première
+chip change quand on ajoute un animal) ; le dernier animal consulté en tête (la
+rangée bouge toute seule entre deux ouvertures de l'app).
+
+2026-09-16 — **On n'affiche jamais le mot « vaccin » devant le nom saisi, ni en
+français ni en anglais (#282).** `home.reminder.vaccination` rend le nom seul, et
+les titres de notification `reminders.vaccination.*` perdent eux aussi le type, dans
+les deux langues. Le type reste porté par l'icône de la ligne sur l'Accueil.
+Écart assumé à la maquette de l'Accueil, qui montre
+« Vaccin CHPPiL ». — Raison : décision de Gaelle ; la plupart des gens saisissent
+déjà « Vaccin antirabique » ou « Rabies vaccine », et le préfixe donnait « Vaccin
+Vaccin antirabique ». — Alternatives écartées : garder le préfixe et retirer le mot
+à la saisie (on corrige ce que l'utilisateur a écrit) ; ne corriger que le français
+(les deux langues divergeaient depuis le 2026-09-15).
+
+2026-09-16 — **Sur l'écran de consentement, « Refuser » et « Accepter » ont le même
+poids visuel.** Les deux sont des boutons à contour pétrole, côte à côte et de même
+largeur ; écart assumé à la planche A1, qui donne « Accepter » en plein pétrole. —
+Raison : exigence du ticket #67 ; un consentement analytics n'est libre que si le
+refus est aussi facile à donner que l'accord, et un bouton plein face à un bouton
+fade est précisément le dark pattern que le RGPD vise. — Alternative écartée :
+suivre la maquette (refus visuellement dévalué, consentement contestable).
+
+2026-09-16 — **La carte Vaccins du Carnet est triée par échéance, la plus urgente en
+tête.** Le départage est celui de `buildReminders` (échéance, puis nom, puis
+identifiant) : deux vaccins de même échéance tombent donc dans le même ordre sur
+l'Accueil et sur le Carnet. Un vaccin sans rappel programmé va en fin de liste. —
+Raison : la planche C1 montre « CHPPi · En retard » avant « Rage · À jour », et la
+carte suivait jusqu'ici l'ordre du repository (dernière injection d'abord), ce qui
+pouvait enterrer un retard sous des vaccins à jour. — Alternative écartée : garder
+l'ordre de saisie et compter sur la seule barre corail pour signaler le retard.
+
+2026-09-16 — **La déconnexion garde l'achat Plus et la préférence « Ne plus me
+proposer Plus » ; seul le changement de compte efface tout (#287).** `signOut()`
+efface le compte enregistré et les compteurs d'usage ; `memopatte.plus.status` et
+`memopatte.plus.nudge` restent. L'effacement complet a lieu dans `record()`, quand
+un autre `userId` prend la main sur l'appareil. — Raison : décision de Gaelle ;
+l'abonnement appartient au compte Google Play de l'appareil, pas au compte
+MémoPatte, et `verifyKnownStatus()` court-circuite sur « aucun droit connu » : un
+statut effacé n'était jamais revérifié, l'abonné repartait « gratuit » jusqu'à ce
+qu'il pense à « Restaurer mon achat ». « Ne plus me proposer Plus » est une
+préférence, pas de l'état de compte. — Alternative écartée : tout effacer à la
+déconnexion comme le demandait le ticket (le risque « le compte suivant hérite »
+n'existe qu'au changement de compte, où l'effacement complet reste en place).
+
+2026-09-16 — **L'exception « données des animaux » est actée, pas supprimée (#295), et
+resserrée à la lecture.** Toute feature peut importer `useAnimalsStore` et
+`animal.schema` ; `provideAnimalsRepository` et les autres modules de
+`features/animals` restent interdits, et la règle ESLint le dit maintenant nommément
+(`allowImportNames: ['useAnimalsStore']`). Six fichiers de quatre features s'en
+servent, plus `app/reminders-sync.ts` ; tous n'appellent que `load`, `select`,
+`byId`, `animals`, `selectedAnimal`, `hasLoaded`, `error`. — Raison : l'animal est le
+pivot du modèle, tout écran qui affiche un vaccin, une pesée ou un traitement a
+besoin de son nom et de la sélection courante ; l'exception vivait dans
+`eslint.config.ts` sans être écrite nulle part. — Alternative écartée : un
+`useAnimals()` en lecture seule dans `shared/`, qui ajouterait une couche
+d'indirection sans rien garantir de plus (elle exposerait le même store). — Pour
+revenir dessus : retirer les deux négations et le motif `useAnimalsStore` de
+`featureImportsRule` dans `eslint.config.ts`, la ligne de CLAUDE.md, et remonter
+l'accès dans `shared/`.
+
+2026-09-16 — **Les imports dynamiques sont couverts par une règle maison qui délègue à
+`no-restricted-imports` (#294), pas par oxlint.** `tools/eslint/dynamic-imports.ts`
+réutilise la règle d'ESLint et lui passe les nœuds `ImportExpression` qu'elle ne
+visite pas ; elle est posée sous deux noms, à côté de chaque interdit existant. —
+Raison : les motifs restent écrits une seule fois, dans `eslint.config.ts`, où la
+matrice par feature est construite à partir du contenu de `src/features/` ; et une
+violation n'est signalée que par un seul linter. — Alternative écartée : oxlint, qui
+visite bien `ImportExpression`, mais dont la configuration est un JSON statique : il
+aurait fallu y recopier toute la matrice et accepter un double diagnostic sur les
+imports statiques.
+
+2026-09-16 — **Un fichier d'import qui rattache une entrée à un autre animal est
+refusé en entier** (#293). Le rattachement d'un vaccin, d'un traitement ou d'une
+pesée est figé à la création (2026-09-09) ; un export édité à la main pouvait
+pourtant les déplacer, `restoreStatement` mettant `animal_id` dans son `SET`.
+L'import s'arrête désormais avant toute écriture, avec un motif d'erreur dédié
+(« Ce fichier rattache une entrée de ton carnet à un autre animal. »), et
+`animal_id` sort du `SET` des trois `restoreStatement`. — Raison : c'est déjà le
+traitement des deux autres incohérences de fichier (identifiant en double,
+`animalId` orphelin), un déplacement ne peut pas naître d'un usage normal de
+l'app, et la synchronisation rejouera ces mêmes instructions (le pull « n'a pas à
+gérer de déplacement »). — Alternative écartée : ignorer la seule entrée fautive
+et importer le reste, c'est-à-dire appliquer à moitié un fichier incohérent sans
+que rien ne le dise. — Pour revenir dessus : retirer le contrôle
+`findReattached` de `shared/import-plan.ts` et remettre `animal_id` au `SET`.
+
+2026-09-16 — **L'échéance d'un traitement importée fait foi, elle n'est jamais
+recalculée** (#293), tranché par Gaelle. `nextDueDate` du fichier est écrite telle
+quelle, sans être comparée à `lastDoseDate` + `frequency`. — Raison : la ligne
+voyage entière, exactement ce que fera la synchronisation Plus, donc import et
+pull se comportent à l'identique ; et l'app ne réécrit jamais en silence une
+donnée que l'utilisateur a exportée. Pour tout fichier produit par MémoPatte les
+deux comportements coïncident, le repository calculant l'échéance à chaque
+écriture. — Alternatives écartées : recalculer à l'import, qui ferait de l'import
+le seul endroit qui corrige une valeur sans le dire et divergerait de la synchro ;
+refuser le fichier en cas d'écart, qui rejetterait des exports valides si la règle
+de calcul évoluait. — Conséquence assumée : un fichier édité à la main peut dater
+un rappel n'importe quand, `nextDueDate` n'étant bornée que par son format.
+
+2026-09-18 — **Masquage de `animalName` dans les URL envoyées à PostHog**, trouvé
+en revue robustesse/sécurité du lot analytics (#68/#69). PostHog enrichit chaque
+`capture()`, y compris le nouveau `$pageview`, avec `$current_url` lu sur
+`location.href` ; or `shared/notification-priming.ts` route vers l'écran de
+priming avec `?animalName=<nom>` en query après création d'un vaccin/traitement,
+donc le nom réel d'un animal partait en clair vers PostHog EU Cloud. Corrigé par
+`mask_personal_data_properties: true` + `custom_personal_data_properties:
+['animalName']` dans `postHogConfig()` (`core/analytics/analytics.ts`) — mécanisme
+documenté de posthog-js, qui remplace la valeur du paramètre par `<masked>` dans
+`$current_url` sans désactiver la propriété. — Raison : viole directement CLAUDE.md
+(« jamais de contenu de carnet dans les événements ») ; `capture_pageview: false`
+ne coupe que le pageview automatique du SDK, pas cet enrichissement sur les
+captures manuelles. — Alternative écartée : un `before_send` maison qui retire la
+query string de `$current_url`/`$referrer`, plus de code pour un besoin déjà
+couvert par une option native. Le nom du paramètre (`ANIMAL_NAME_QUERY_PARAM`) vit
+dans `shared/animal-name-query-param.ts`, un module sans dépendance, plutôt que
+dans `notification-priming.ts` : l'importer depuis `core/analytics` aurait tiré
+`core/notifications/permission.ts` (donc `@capacitor/local-notifications`) dans le
+chunk chargé au démarrage — un essai de build l'a fait passer à 233 Ko avant
+correction. — Pour revenir dessus : retirer les deux clés de `postHogConfig()`.
+
+2026-09-18 — **Quatre décisions prises en autonomie pour le ticket #81 (export PDF
+du carnet, Plus)**, consignées ici faute de session d'autonomie déclarée par
+Gaelle en cours pour les recueillir ailleurs.
+
+1) **Bibliothèque PDF : `jsPDF`.** — Raison : ses polices standard (Helvetica,
+encodage WinAnsi) couvrent les caractères accentués français sans embarquer de
+fichier de police, contrairement à `pdfmake` dont le rendu correct exige de
+charger sa table `vfs_fonts` (plusieurs centaines de Ko à plus d'1 Mo pour un jeu
+complet) ; le tracé de la courbe de poids est fait à la main avec les primitives
+vectorielles de `jsPDF` (`line`, `circle`) à partir de `shared/weight-chart.ts`
+déjà utilisé par `WeightSparkline.vue`, sans bibliothèque de graphique
+supplémentaire. — Mesuré : le chunk `PdfExportSheet` (jsPDF inclus) pèse 400 Ko
+(129 Ko gzip) au build. `jsPDF` référence `html2canvas` pour sa méthode `.html()`
+(non utilisée ici) via un `import()` dynamique déjà isolé par Vite dans son propre
+chunk, jamais chargé. Le reste du poids est assumé jusqu'à mesure sur appareil
+(écrans Carnet et Paramètres, tous deux visités par un compte gratuit), dans le
+même esprit que le 2026-09-08 pour `@capacitor-community/sqlite` : optimiser sans
+mesure serait deviner. — Alternative écartée : `pdfmake`, au rendu plus riche
+mais plus lourd pour ce besoin, et un tracé de courbe en `<canvas>` converti en
+image, qui aurait ajouté une étape de rendu DOM à une génération par ailleurs
+synchrone.
+
+2) **Depuis Paramètres, un seul animal exporte directement ; plusieurs animaux
+ouvrent un sélecteur.** La feuille `PdfExportSheet.vue` réutilise `ChoiceCards.vue`
+(déjà au service de l'import JSON/CSV) pour choisir l'animal quand il y en a
+plus d'un, et saute cette étape sinon. — Raison : le ticket ne précise pas ce
+point, resté hors du scope maquette (l'export PDF a rejoint le v1 après le gel
+des maquettes, 2026-09-07) ; réutiliser un composant déjà éprouvé pour le même
+usage (choisir une option avant de lancer un export) respecte « saisie rapide »
+sans inventer de nouvelle identité visuelle. — Alternative écartée : toujours
+afficher le sélecteur, même à un seul animal, plus uniforme mais un tap de plus
+pour le cas le plus courant (un seul animal).
+
+3) **Depuis le Carnet, une icône dans l'en-tête ouvre directement l'export du seul
+animal consulté**, à côté du crayon d'édition existant, avec le même style de
+bouton (`v-btn icon variant="text"`). — Raison : le ticket demande un point
+d'entrée depuis le Carnet (3.4) sans le maquetter — comme l'écran Paramètres
+lui-même (2026-09-07) — et l'icône reprend un bouton déjà présent au même endroit
+plutôt que d'inventer un nouvel emplacement. — Alternative écartée : une ligne
+dans une liste d'actions du Carnet, qui n'existe pas aujourd'hui et aurait
+demandé de construire un emplacement pour un seul usage.
+
+4) **Nouvelle exception d'architecture : le statut Plus se lit comme l'entité
+animal.** `usePurchaseStore` (seul, comme `useAnimalsStore`) devient importable
+par toute feature ; `eslint.config.ts` porte la même forme que l'exception du
+2026-09-16 (`PURCHASE_STORE_READ_ONLY`), testée dans
+`eslint-feature-imports.spec.ts`. — Raison : sans elle, aucun écran hors de
+`features/purchase` ne peut savoir si le compte est Plus pour gater une
+fonctionnalité payante — exactement le rôle que joue déjà l'exception animaux
+pour le contenu du carnet — et l'export PDF est la première fonctionnalité v1 à
+en avoir besoin. — Alternative écartée : un composant `*Section.vue` ou
+`*Sheet.vue` intermédiaire qui envelopperait chaque bouton gaté d'un slot, plus
+de code pour le même accès en lecture seule. — Pour revenir dessus : retirer
+`PURCHASE_STORE_READ_ONLY` et la ligne `'!@/features/purchase/purchase.store'`
+de `featureImportsRule` dans `eslint.config.ts`.
+
 2026-09-19 — **Trois garde-fous manquants trouvés en relisant
 `docs/technical/proposition-sync.md` avant tranchage, tous corrigés dans le
 document.** (1) Le trigger SQLite de remplissage de `sync_outbox` faisait

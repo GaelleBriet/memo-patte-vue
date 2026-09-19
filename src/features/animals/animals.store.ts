@@ -4,6 +4,8 @@ import type { Animal, AnimalInput } from './animal.schema'
 import { animalDeletionService, type AnimalDeletionService } from './animal-deletion.service'
 import { animalPhotoService, type PhotoChange } from './animal-photo.service'
 import type { AnimalsRepository } from './animals.repository'
+import { track } from '@/core/analytics'
+import { recordUsageSignal } from '@/shared/usage-signals'
 
 export type AnimalsRepositoryProvider = () => AnimalsRepository | Promise<AnimalsRepository>
 export type AnimalDeletionServiceProvider = () => AnimalDeletionService
@@ -93,12 +95,21 @@ export const useAnimalsStore = defineStore('animals', () => {
     },
 
     async create(input: AnimalInput, photo: PhotoChange = KEEP_PHOTO): Promise<Animal> {
-      return write((repository) => animalPhotoService.create(repository, input, photo))
+      const animal = await write((repository) =>
+        animalPhotoService.create(repository, input, photo),
+      )
+      if (photo.kind === 'replace') recordUsageSignal('photo')
+      track('animal_created', { species: animal.species })
+      return animal
     },
 
     /** Sans `photo`, la photo en place est gardée quel que soit `input.photoPath`. */
     async update(id: string, input: AnimalInput, photo: PhotoChange = KEEP_PHOTO): Promise<Animal> {
-      return write((repository) => animalPhotoService.update(repository, id, input, photo))
+      const animal = await write((repository) =>
+        animalPhotoService.update(repository, id, input, photo),
+      )
+      if (photo.kind === 'replace') recordUsageSignal('photo')
+      return animal
     },
 
     async remove(id: string): Promise<void> {

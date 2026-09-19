@@ -48,6 +48,10 @@ const errorMessage = computed(() => {
       return t('settings.import.errors.invalid')
     case 'newer':
       return t('settings.import.errors.newer')
+    case 'outOfRange':
+      return t('settings.import.errors.outOfRange')
+    case 'reattached':
+      return t('settings.import.errors.reattached')
     case 'failed':
       return t('settings.import.errors.failed')
     default:

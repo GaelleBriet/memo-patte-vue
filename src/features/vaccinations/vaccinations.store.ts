@@ -7,6 +7,9 @@ import {
 } from './vaccination-reminders.service'
 import type { Vaccination, VaccinationInput, VaccinationUpdateInput } from './vaccination.schema'
 import type { VaccinationsRepository as FullVaccinationsRepository } from './vaccinations.repository'
+import { track } from '@/core/analytics'
+import { useAnimalsStore } from '@/features/animals/animals.store'
+import { recordUsageSignal } from '@/shared/usage-signals'
 
 // Le store ne dépend que de ce qu'il appelle : la cascade de suppression (#102) n'est pas son affaire.
 type VaccinationsRepository = Pick<
@@ -111,14 +114,18 @@ export const useVaccinationsStore = defineStore('vaccinations', () => {
     },
 
     async create(input: VaccinationInput): Promise<Vaccination> {
-      return write(
+      const created = await write(
         async (repository) => {
-          const created = await repository.create(input)
-          await remindersProvider().reschedule(created)
-          return created
+          const vaccination = await repository.create(input)
+          await remindersProvider().reschedule(vaccination)
+          return vaccination
         },
-        (created) => created.animalId,
+        (vaccination) => vaccination.animalId,
       )
+      recordUsageSignal('entry')
+      const species = useAnimalsStore().byId(created.animalId)?.species
+      if (species) track('vaccination_created', { species })
+      return created
     },
 
     async update(id: string, input: VaccinationUpdateInput): Promise<Vaccination> {

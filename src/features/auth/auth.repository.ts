@@ -1,6 +1,7 @@
 import type { AuthError, Session, SupabaseClient } from '@supabase/supabase-js'
 
 import { AUTH_STORAGE_KEY } from '@/core/supabase/auth-storage'
+import { errorSummary } from '@/shared/error-summary'
 
 import { AccountError, type AccountErrorReason } from './account-error'
 
@@ -55,6 +56,14 @@ function accountErrorFrom(cause: unknown): AccountError {
   return new AccountError((code && REASONS_BY_CODE[code]) || 'unknown', { cause })
 }
 
+type Revocation = { ok: true } | { ok: false; trace: string }
+
+const REVOKED: Revocation = { ok: true }
+
+function failedRevocation(cause: unknown): Revocation {
+  return { ok: false, trace: errorSummary(cause) }
+}
+
 function sessionOf(session: Session): AuthSession {
   return { userId: session.user.id }
 }
@@ -87,7 +96,7 @@ function forgetStoredSession(): void {
     try {
       localStorage.removeItem(key)
     } catch (cause) {
-      console.warn('Session non effacée de l’appareil :', cause)
+      console.warn('Session non effacée de l’appareil :', errorSummary(cause))
     }
   }
 }
@@ -142,21 +151,28 @@ export function createAuthRepository({
       }),
 
     async signOut() {
-      const invalidation = client()
-        .then((supabase) => supabase.auth.signOut({ scope: 'local' }))
-        .then(
-          ({ error }) => error,
-          (cause: unknown) => cause ?? 'failed',
-        )
+      const revoke = (scope: 'global' | 'local'): Promise<Revocation> =>
+        client()
+          .then((supabase) => supabase.auth.signOut({ scope }))
+          .then(
+            ({ error }) => (error ? failedRevocation(error) : REVOKED),
+            (cause: unknown) => failedRevocation(cause),
+          )
       let timer: ReturnType<typeof setTimeout> | undefined
-      const timeout = new Promise<'timeout'>((resolve) => {
-        timer = setTimeout(() => resolve('timeout'), SIGN_OUT_TIMEOUT_MS)
+      // Un seul délai pour les deux tentatives : la seconde n'ajoute jamais d'attente à la première.
+      const timeout = new Promise<Revocation>((resolve) => {
+        timer = setTimeout(
+          () => resolve({ ok: false, trace: 'délai dépassé' }),
+          SIGN_OUT_TIMEOUT_MS,
+        )
       })
-      const failure = await Promise.race([invalidation, timeout])
+      const outcome = await Promise.race([revoke('global'), timeout])
+      if (!outcome.ok) {
+        console.warn('Session non invalidée auprès de Supabase :', outcome.trace)
+        await Promise.race([revoke('local'), timeout])
+        forgetStoredSession()
+      }
       clearTimeout(timer)
-      if (!failure) return
-      console.warn('Session non invalidée auprès de Supabase :', failure)
-      forgetStoredSession()
     },
 
     async restoreSession() {

@@ -17,6 +17,12 @@ describe('weightEntryInputSchema', () => {
     expect(weightEntryInputSchema.safeParse({ ...validInput, weightKg: -3 }).success).toBe(false)
   })
 
+  it('rejette un poids hors de toute échelle animale', () => {
+    expect(weightEntryInputSchema.safeParse({ ...validInput, weightKg: 1e308 }).success).toBe(false)
+    expect(weightEntryInputSchema.safeParse({ ...validInput, weightKg: 200.5 }).success).toBe(false)
+    expect(weightEntryInputSchema.safeParse({ ...validInput, weightKg: 200 }).success).toBe(true)
+  })
+
   it('rejette un poids absent ou non numérique', () => {
     expect(weightEntryInputSchema.safeParse({ ...validInput, weightKg: '24,7' }).success).toBe(
       false,

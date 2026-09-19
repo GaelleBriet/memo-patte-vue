@@ -51,4 +51,9 @@ describe('SectionCard — contrat de style', () => {
       'rgb(var(--v-theme-overdue))',
     )
   })
+
+  it('tient l’état vide dans la hauteur d’une ligne d’ajout, sans la marge du paragraphe', () => {
+    expect(declaration(css, '.section-card__empty', 'margin')).toBe('0')
+    expect(declaration(css, '.section-card__empty', 'min-height')).toBe('52px')
+  })
 })

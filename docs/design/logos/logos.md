@@ -88,7 +88,7 @@ dans `android/app/src/main/res/`.
 
 ```sh
 python3 scripts/build-icon-resources.py          # sources -> resources/ (Python 3, Pillow, numpy)
-pnpm exec capacitor-assets generate --android    # resources/ -> mipmaps + splash Android
+pnpm assets:android                              # resources/ -> mipmaps + splash Android (pnpm dlx + --allow-build=sharp)
 git checkout android/app/src/main/AndroidManifest.xml android/app/src/main/res/mipmap-anydpi-v26/
 for d in ldpi:36 mdpi:48 hdpi:72 xhdpi:96 xxhdpi:144 xxxhdpi:192; do
   magick resources/icon-monochrome.png -resize ${d#*:}x${d#*:} -define png:color-type=6 \

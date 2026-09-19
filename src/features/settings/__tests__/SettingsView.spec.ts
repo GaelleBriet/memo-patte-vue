@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } fr
 
 import ExportSheet from '../ExportSheet.vue'
 import type * as DataImport from '../data-import.service'
+import PdfExportSheet from '../PdfExportSheet.vue'
 import SettingsView from '../SettingsView.vue'
 import { importFixtureJson } from './import-fixture'
 import i18n from '@/core/i18n'
@@ -11,6 +12,10 @@ import vuetify from '@/core/theme/vuetify'
 import router from '@/router'
 import type { Animal } from '@/features/animals/animal.schema'
 import { useAnimalsStore } from '@/features/animals/animals.store'
+import { USER_ID } from '@/features/auth/__tests__/auth-fixture'
+import { writePlusAccount } from '@/features/auth/plus-account-storage'
+import { memoryStorage } from '@/features/purchase/__tests__/billing-fixture'
+import { writeStoredPlusStatus } from '@/features/purchase/plus-status-storage'
 
 vi.mock('../data-export.service', () => ({
   dataExportService: { exportData: vi.fn<() => Promise<'shared'>>() },
@@ -30,6 +35,20 @@ vi.mock('../data-import.service', async (importOriginal) => ({
 }))
 
 vi.mock('@/app/reminders-priming', () => ({ promptNotificationsIfReminders }))
+
+const authAvailable = vi.hoisted(() => vi.fn<() => boolean>(() => true))
+
+vi.mock('@/shared/auth-available', () => ({ authAvailable }))
+
+const consent = vi.hoisted(() => ({ granted: false }))
+const optIn = vi.hoisted(() => vi.fn<() => Promise<void>>())
+const optOut = vi.hoisted(() => vi.fn<() => Promise<void>>())
+
+vi.mock('@/core/analytics', () => ({
+  hasConsent: () => consent.granted,
+  optIn,
+  optOut,
+}))
 
 const MILO: Animal = {
   id: '11111111-1111-4111-8111-111111111111',
@@ -54,6 +73,10 @@ beforeEach(async () => {
   hasLocalData.mockReset()
   importData.mockReset()
   promptNotificationsIfReminders.mockClear()
+  authAvailable.mockReturnValue(true)
+  consent.granted = false
+  optIn.mockReset().mockImplementation(async () => void (consent.granted = true))
+  optOut.mockReset().mockImplementation(async () => void (consent.granted = false))
   setActivePinia(createPinia())
   animalsStore = useAnimalsStore()
   animals = [MILO]
@@ -64,6 +87,7 @@ beforeEach(async () => {
   })
   await router.push({ name: 'settings' })
   push = vi.spyOn(router, 'push').mockResolvedValue()
+  vi.stubGlobal('localStorage', memoryStorage())
   vi.stubGlobal('visualViewport', {
     addEventListener() {},
     removeEventListener() {},
@@ -104,6 +128,10 @@ function ligneExport(wrapper: VueWrapper) {
   return wrapper.get('.settings-row--export')
 }
 
+function lignePdf(wrapper: VueWrapper) {
+  return wrapper.get('.settings-row--export-pdf')
+}
+
 describe('SettingsView', () => {
   it('s’intitule « Paramètres » et revient à l’accueil', async () => {
     const wrapper = await monter()
@@ -114,14 +142,160 @@ describe('SettingsView', () => {
     expect(push).toHaveBeenCalledWith({ name: 'home' })
   })
 
-  it('ne livre que les sections dont la destination existe : Mes données et À propos', async () => {
+  it('ne livre que les sections dont la destination existe : Plus, Mes données, Confidentialité et À propos', async () => {
     const wrapper = await monter()
 
     expect(wrapper.findAll('.section-card__title').map((title) => title.text())).toEqual([
+      'MémoPatte Plus',
       'Mes données',
+      'Confidentialité',
       'À propos',
     ])
-    expect(wrapper.text()).not.toMatch(/Plus|Compte|PDF|Confidentialité/)
+    expect(wrapper.text()).not.toMatch(/Compte|Export PDF|Politique/)
+  })
+
+  describe('MémoPatte Plus', () => {
+    it('ouvre l’écran sur la découverte de Plus, avant les autres sections', async () => {
+      const wrapper = await monter()
+
+      expect(wrapper.get('.section-card__title').text()).toBe('MémoPatte Plus')
+      expect(wrapper.get('.settings-row--plus-discover').text()).toContain(
+        'Découvrir MémoPatte Plus',
+      )
+    })
+
+    it('annonce le statut à qui est déjà dans Plus', async () => {
+      writeStoredPlusStatus({ plan: 'lifetime', expiresAt: null })
+      const wrapper = await monter()
+
+      expect(wrapper.get('.settings-row--plus-status').text()).toContain('Plus à vie')
+      expect(wrapper.find('.settings-row--plus-discover').exists()).toBe(false)
+    })
+
+    it('ouvre la connexion depuis « Je suis déjà abonné », et revient ici après', async () => {
+      const wrapper = await monter()
+      const ligne = wrapper.get('.settings-row--plus-sign-in')
+
+      expect(ligne.text()).toContain('Je suis déjà abonné')
+      await ligne.trigger('click')
+
+      expect(push).toHaveBeenCalledWith({ name: 'sign-in', query: { from: 'settings' } })
+    })
+
+    it('ne propose pas la connexion à qui est déjà dans Plus', async () => {
+      writeStoredPlusStatus({ plan: 'lifetime', expiresAt: null })
+      const wrapper = await monter()
+
+      expect(wrapper.find('.settings-row--plus-sign-in').exists()).toBe(false)
+    })
+
+    it('ne propose pas la connexion sans configuration Supabase', async () => {
+      authAvailable.mockReturnValue(false)
+
+      const wrapper = await monter()
+
+      expect(wrapper.find('.settings-row--plus-discover').exists()).toBe(true)
+      expect(wrapper.find('.settings-row--plus-sign-in').exists()).toBe(false)
+    })
+
+    it('range « Gérer mon abonnement » dans MémoPatte Plus, et non dans Confidentialité', async () => {
+      writeStoredPlusStatus({ plan: 'annual', expiresAt: '2027-09-14T10:00:00Z' })
+      const wrapper = await monter()
+      const carte = wrapper
+        .get('.settings-row--manage-subscription')
+        .element.closest('.section-card')
+
+      expect(carte?.querySelector('.section-card__title')?.textContent).toBe('MémoPatte Plus')
+    })
+  })
+
+  describe('Compte', () => {
+    it('range Compte juste après MémoPatte Plus quand un compte existe', async () => {
+      writePlusAccount({ userId: USER_ID })
+      const wrapper = await monter()
+
+      expect(wrapper.findAll('.section-card__title').map((title) => title.text())).toEqual([
+        'MémoPatte Plus',
+        'Compte',
+        'Mes données',
+        'Confidentialité',
+        'À propos',
+      ])
+      expect(wrapper.get('.settings-row--sign-out').text()).toBe('Se déconnecter')
+    })
+  })
+
+  describe('Confidentialité', () => {
+    function interrupteur(wrapper: VueWrapper) {
+      return wrapper.get<HTMLInputElement>('.settings-row--analytics input[type="checkbox"]')
+    }
+
+    it('nomme l’interrupteur des statistiques par son libellé', async () => {
+      const wrapper = await monter()
+      const input = interrupteur(wrapper)
+
+      expect(wrapper.get('.settings-row--analytics').text()).toContain(
+        'Statistiques d’usage anonymes',
+      )
+      expect([...input.element.labels!].map((label) => label.textContent?.trim())).toContain(
+        'Statistiques d’usage anonymes',
+      )
+    })
+
+    it('annonce l’interrupteur comme un interrupteur aux lecteurs d’écran', async () => {
+      const wrapper = await monter()
+
+      expect(interrupteur(wrapper).attributes('role')).toBe('switch')
+    })
+
+    it('ne pose aucun voile sous le doigt pendant l’appui', async () => {
+      const wrapper = await monter()
+      const zone = wrapper.get('.settings-row--analytics .v-selection-control__input')
+
+      await zone.trigger('mousedown')
+
+      expect(zone.find('.v-ripple__container').exists()).toBe(false)
+    })
+
+    it.each([
+      [false, 'désactivé'],
+      [true, 'activé'],
+    ])('reflète le consentement enregistré (%s → %s)', async (granted) => {
+      consent.granted = granted
+      const wrapper = await monter()
+
+      expect(interrupteur(wrapper).element.checked).toBe(granted)
+    })
+
+    it('active les statistiques dès que l’interrupteur passe à oui', async () => {
+      const wrapper = await monter()
+
+      await interrupteur(wrapper).setValue(true)
+
+      expect(optIn).toHaveBeenCalledOnce()
+      expect(optOut).not.toHaveBeenCalled()
+      expect(interrupteur(wrapper).element.checked).toBe(true)
+    })
+
+    it('bascule aussi d’un tap sur le libellé, toute la ligne servant de zone de tap', async () => {
+      const wrapper = await monter()
+
+      await wrapper.get('.settings-row--analytics .settings-row__label').trigger('click')
+
+      expect(optIn).toHaveBeenCalledOnce()
+      expect(interrupteur(wrapper).element.checked).toBe(true)
+    })
+
+    it('les coupe dès que l’interrupteur passe à non', async () => {
+      consent.granted = true
+      const wrapper = await monter()
+
+      await interrupteur(wrapper).setValue(false)
+
+      expect(optOut).toHaveBeenCalledOnce()
+      expect(optIn).not.toHaveBeenCalled()
+      expect(interrupteur(wrapper).element.checked).toBe(false)
+    })
   })
 
   it('charge les animaux s’ils ne le sont pas encore', async () => {
@@ -194,6 +368,72 @@ describe('SettingsView', () => {
     expect(ligneExport(wrapper).text()).toBe('Exporter mes données')
   })
 
+  describe('Exporter en PDF', () => {
+    it('ouvre la feuille PDF pour un compte Plus', async () => {
+      writeStoredPlusStatus({ plan: 'lifetime', expiresAt: null })
+      const wrapper = await monter()
+      const ligne = lignePdf(wrapper)
+
+      expect(ligne.text()).toBe('Exporter en PDF')
+      expect(ligne.attributes('disabled')).toBeUndefined()
+      expect(wrapper.findComponent(PdfExportSheet).exists()).toBe(false)
+
+      await ligne.trigger('click')
+      await flushPromises()
+
+      expect(wrapper.getComponent(PdfExportSheet).props('modelValue')).toBe(true)
+      expect(wrapper.getComponent(PdfExportSheet).props('animals')).toEqual([
+        { id: MILO.id, name: 'Milo', species: 'dog' },
+      ])
+    })
+
+    it('renvoie vers MémoPatte Plus sans compte, sans ouvrir la feuille', async () => {
+      const wrapper = await monter()
+      const ligne = lignePdf(wrapper)
+
+      expect(ligne.text()).toContain('Fonction MémoPatte Plus')
+
+      await ligne.trigger('click')
+
+      expect(push).toHaveBeenCalledWith({ name: 'plus' })
+      expect(wrapper.findComponent(PdfExportSheet).exists()).toBe(false)
+    })
+
+    it('désactive la ligne sans animal, avec « Rien à exporter pour l’instant »', async () => {
+      writeStoredPlusStatus({ plan: 'lifetime', expiresAt: null })
+      animals = []
+      const wrapper = await monter()
+      const ligne = lignePdf(wrapper)
+
+      expect(ligne.attributes('disabled')).toBeDefined()
+      expect(ligne.text()).toContain('Rien à exporter pour l’instant')
+    })
+
+    it('signale un échec de lecture des animaux et relance le chargement au tap', async () => {
+      loadAnimals.mockImplementation(async () => {
+        animalsStore.error = new Error('base indisponible')
+        return false
+      })
+      const wrapper = await monter()
+      const ligne = lignePdf(wrapper)
+
+      expect(ligne.attributes('disabled')).toBeUndefined()
+      expect(ligne.text()).toContain('La base locale n’a pas répondu. Touche pour réessayer.')
+
+      loadAnimals.mockImplementation(async () => {
+        animalsStore.animals = animals
+        animalsStore.hasLoaded = true
+        animalsStore.error = null
+        return true
+      })
+      await ligne.trigger('click')
+      await flushPromises()
+
+      expect(loadAnimals).toHaveBeenCalledTimes(2)
+      expect(wrapper.findComponent(PdfExportSheet).exists()).toBe(false)
+    })
+  })
+
   it.each([
     ['avec des animaux', [MILO]],
     ['sans animal', []],
@@ -209,7 +449,7 @@ describe('SettingsView', () => {
         .mockImplementation(() => undefined)
 
       expect(lignes.indexOf('Importer un export MémoPatte')).toBe(
-        lignes.findIndex((texte) => texte.startsWith('Exporter mes données')) + 1,
+        lignes.findIndex((texte) => texte.startsWith('Exporter mes données')) + 2,
       )
       expect(ligne.attributes('disabled')).toBeUndefined()
       await ligne.trigger('click')

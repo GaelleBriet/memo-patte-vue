@@ -2,16 +2,18 @@ import { ref } from 'vue'
 
 import {
   dataImportService,
+  ImportRefusedError,
   MAX_IMPORT_FILE_BYTES,
   parseExportFile,
   type DataImportService,
   type ImportFileError,
   type ImportMode,
+  type ImportRefusal,
 } from './data-import.service'
-import type { ExportData } from './export-format'
+import type { ExportData } from '@/shared/carnet-data'
 
 export type ImportStep = 'idle' | 'choice' | 'confirm' | 'error'
-export type ImportError = ImportFileError | 'failed'
+export type ImportError = ImportFileError | ImportRefusal | 'failed'
 
 export function useDataImport(
   service: Pick<DataImportService, 'hasLocalData' | 'importData'> = dataImportService,
@@ -35,6 +37,7 @@ export function useDataImport(
       step.value = 'idle'
       onImported()
     } catch (cause) {
+      if (cause instanceof ImportRefusedError) return fail(cause.reason)
       console.warn('Import impossible :', cause)
       fail('failed')
     }

@@ -15,7 +15,7 @@ import VaccinationsSection from '../VaccinationsSection.vue'
 import type { Vaccination } from '../vaccination.schema'
 import type { VaccinationsRepository } from '../vaccinations.repository'
 import { provideVaccinationsRepository } from '../vaccinations.store'
-import i18n from '@/core/i18n'
+import i18n, { applyLocale } from '@/core/i18n'
 import router from '@/router'
 import vuetify from '@/core/theme/vuetify'
 
@@ -113,6 +113,41 @@ describe('VaccinationsSection — chargement', () => {
   })
 })
 
+describe('VaccinationsSection — ordre des lignes', () => {
+  function noms(wrapper: ReturnType<typeof mount>): string[] {
+    return wrapper.findAll('.vaccination-row__name').map((row) => row.text())
+  }
+
+  it('met les vaccins en retard en tête, du plus ancien au plus récent', async () => {
+    vaccinations = [
+      vaccination({ name: 'Rage', dueDate: '2026-12-12' }),
+      vaccination({ name: 'CHPPi', dueDate: '2026-09-08' }),
+      vaccination({ name: 'Leptospirose', dueDate: '2026-07-01' }),
+    ]
+
+    expect(noms(await monter())).toEqual(['Leptospirose', 'CHPPi', 'Rage'])
+  })
+
+  it('range les vaccins à jour par échéance croissante', async () => {
+    vaccinations = [
+      vaccination({ name: 'Rage', dueDate: '2027-01-10' }),
+      vaccination({ name: 'Typhus', dueDate: '2026-11-02' }),
+    ]
+
+    expect(noms(await monter())).toEqual(['Typhus', 'Rage'])
+  })
+
+  it('renvoie en fin de liste un vaccin sans rappel programmé', async () => {
+    vaccinations = [
+      vaccination({ name: 'Toux du chenil', dueDate: null }),
+      vaccination({ name: 'Rage', dueDate: '2027-01-10' }),
+      vaccination({ name: 'CHPPi', dueDate: '2026-09-08' }),
+    ]
+
+    expect(noms(await monter())).toEqual(['CHPPi', 'Rage', 'Toux du chenil'])
+  })
+})
+
 describe('VaccinationsSection — lignes et badges', () => {
   it('marque un vaccin en retard : barre corail, « Échéance passée », badge error', async () => {
     vaccinations = [vaccination({ name: 'CHPPi', dueDate: '2026-09-08' })]
@@ -134,11 +169,24 @@ describe('VaccinationsSection — lignes et badges', () => {
     const row = ligne(wrapper, 0)
 
     expect(row.classes()).not.toContain('vaccination-row--overdue')
-    expect(row.get('.vaccination-row__detail').text()).toBe('Valide jusqu’au 12/2026')
+    expect(row.get('.vaccination-row__detail').text()).toBe('Valide jusqu’à déc. 2026')
     const badge = row.get('.vaccination-row__badge')
     expect(badge.classes()).toContain('due-status-chip--up-to-date')
     expect(badge.text()).toBe('À jour')
     expect(badge.find('svg').exists()).toBe(true)
+  })
+
+  it('dit le mois de validité dans la langue affichée', async () => {
+    vaccinations = [vaccination({ dueDate: '2026-12-12' })]
+    applyLocale('en')
+
+    try {
+      const wrapper = await monter()
+
+      expect(ligne(wrapper, 0).get('.vaccination-row__detail').text()).toBe('Valid until Dec 2026')
+    } finally {
+      applyLocale('fr')
+    }
   })
 
   it('reste « À jour » le jour même de l’échéance', async () => {

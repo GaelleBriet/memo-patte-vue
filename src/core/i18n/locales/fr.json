@@ -48,6 +48,7 @@
         "species": "Choisis une espèce.",
         "birthDate": "La date de naissance ne peut pas être dans le futur.",
         "initialWeightKg": "Le poids doit être supérieur à 0 kg.",
+        "initialWeightKgMax": "Le poids doit être de 200 kg maximum.",
         "notFound": "Cet animal est introuvable.",
         "save": "L’animal n’a pas pu être enregistré. Réessaie.",
         "photo": "La photo n’a pas pu être chargée. Réessaie."
@@ -61,6 +62,7 @@
     "carnet": {
       "back": "Retour",
       "edit": "Modifier la fiche",
+      "exportPdf": "Exporter le carnet en PDF",
       "photo": {
         "avatarLabel": "Gérer la photo de {name}",
         "sheetTitle": "Photo de {name}",
@@ -115,6 +117,7 @@
         "lastInjectionDateFuture": "La date d’injection ne peut pas être dans le futur.",
         "dueDate": "La date d’échéance est invalide.",
         "notFound": "Ce vaccin est introuvable.",
+        "load": "Ce vaccin n’a pas pu être chargé. Réessaie.",
         "save": "Le vaccin n’a pas pu être enregistré. Réessaie."
       }
     },
@@ -129,7 +132,7 @@
       },
       "detail": {
         "overdue": "Échéance passée",
-        "validUntil": "Valide jusqu’au {month}",
+        "validUntil": "Valide jusqu’à {month}",
         "none": "Pas de rappel programmé"
       },
       "error": "Impossible de charger les vaccins."
@@ -158,6 +161,7 @@
       },
       "frequency": {
         "label": "Fréquence",
+        "placeholder": "1",
         "every": {
           "day": "Tous les",
           "week": "Toutes les",
@@ -173,17 +177,19 @@
         "label": "Date de la dernière prise"
       },
       "nextDose": "Prochaine dose le {date}",
-      "submit": "Ajouter",
-      "submitting": "Ajout…",
+      "submit": "Créer",
+      "submitting": "Création…",
       "save": "Enregistrer",
       "saving": "Enregistrement…",
       "errors": {
         "name": "Le nom est obligatoire.",
         "type": "Choisis un type.",
         "frequency": "Indique une fréquence.",
+        "frequencyMax": "La fréquence doit être de 365 maximum.",
         "lastDoseDate": "La date est obligatoire.",
         "lastDoseDateFuture": "La date ne peut pas être dans le futur.",
         "notFound": "Ce traitement est introuvable.",
+        "load": "Ce traitement n’a pas pu être chargé. Réessaie.",
         "save": "Le traitement n’a pas pu être enregistré. Réessaie."
       }
     },
@@ -202,11 +208,11 @@
   },
   "reminders": {
     "vaccination": {
-      "beforeTitle": "Vaccin {name} de {animal} dans {days} jours",
+      "beforeTitle": "{name} de {animal} dans {days} jours",
       "beforeBody": "Pense à prendre rendez-vous chez le vétérinaire.",
-      "dueTitle": "Vaccin {name} de {animal} aujourd’hui",
+      "dueTitle": "{name} de {animal} aujourd’hui",
       "dueBody": "Note le vaccin dans MémoPatte une fois fait.",
-      "overdueTitle": "Vaccin {name} de {animal} en retard de {days} jours",
+      "overdueTitle": "{name} de {animal} en retard de {days} jours",
       "overdueBody": "Prends rendez-vous chez le vétérinaire, puis note le vaccin dans MémoPatte."
     },
     "treatment": {
@@ -239,7 +245,7 @@
       "current": "Poids actuel",
       "list": "Toutes les pesées",
       "value": "{weight} kg",
-      "initial": "Poids à l’arrivée : {weight} kg",
+      "initial": "Poids à l’arrivée : {weight} kg",
       "link": "Voir l’historique"
     },
     "form": {
@@ -262,6 +268,7 @@
       "errors": {
         "animalId": "Choisis un animal.",
         "weightKg": "Le poids doit être supérieur à 0 kg.",
+        "weightKgMax": "Le poids doit être de 200 kg maximum.",
         "measuredOn": "La date est obligatoire.",
         "measuredOnFuture": "La date ne peut pas être dans le futur.",
         "save": "La pesée n’a pas pu être enregistrée. Réessaie."
@@ -286,7 +293,7 @@
       "overdueBanner": "{n} rappel en retard | {n} rappels en retard"
     },
     "reminder": {
-      "vaccination": "Vaccin {name}",
+      "vaccination": "{name}",
       "deworming": "Vermifuge",
       "antiparasitic": "Antiparasitaire"
     },
@@ -311,7 +318,7 @@
       "vaccination": "Rappel de vaccin",
       "weight": "Ajouter un poids",
       "picker": {
-        "title": "Pour quel animal ?",
+        "title": "Pour quel animal ?",
         "close": "Fermer"
       }
     },
@@ -354,12 +361,30 @@
   "settings": {
     "open": "Paramètres",
     "title": "Paramètres",
+    "account": {
+      "title": "Compte",
+      "signOut": {
+        "action": "Se déconnecter",
+        "confirm": {
+          "title": "Se déconnecter ?",
+          "body": "Ton carnet reste sur cet appareil. Seule la synchronisation s’arrête.",
+          "cancel": "Annuler",
+          "submit": "Se déconnecter"
+        }
+      }
+    },
     "data": {
       "title": "Mes données",
       "export": "Exporter mes données",
       "exportEmpty": "Rien à exporter pour l’instant",
+      "exportPdf": "Exporter en PDF",
+      "exportPdfPlus": "Fonction MémoPatte Plus",
       "import": "Importer un export MémoPatte",
       "loadError": "La base locale n’a pas répondu. Touche pour réessayer."
+    },
+    "privacy": {
+      "title": "Confidentialité",
+      "analytics": "Statistiques d’usage anonymes"
     },
     "about": {
       "title": "À propos",
@@ -404,6 +429,8 @@
       "errors": {
         "invalid": "Ce fichier n’est pas un export MémoPatte.",
         "newer": "Cet export vient d’une version plus récente de l’app.",
+        "outOfRange": "Ce fichier contient une valeur hors limites : 200 kg maximum pour un poids, 365 pour une fréquence.",
+        "reattached": "Ce fichier rattache une entrée de ton carnet à un autre animal.",
         "failed": "L’import n’a pas abouti. Tes données n’ont pas changé."
       },
       "confirm": {
@@ -411,6 +438,226 @@
         "body": "Cette action supprimera définitivement les données actuelles de l’appareil. Elle est irréversible.",
         "cancel": "Annuler",
         "submit": "Remplacer"
+      }
+    },
+    "pdf": {
+      "sheet": {
+        "title": "Exporter en PDF",
+        "subtitleOne": "Un document sera préparé pour {name}.",
+        "subtitlePick": "Choisis l’animal à exporter.",
+        "close": "Fermer",
+        "pickAnimalLabel": "Animal",
+        "submit": "Exporter",
+        "preparing": "Préparation…",
+        "error": "Le PDF n’a pas pu être préparé. Réessaie."
+      },
+      "shareTitle": "Partager via",
+      "success": "PDF exporté",
+      "status": {
+        "overdue": "En retard",
+        "upToDate": "À jour",
+        "none": "Pas de rappel"
+      },
+      "identity": {
+        "birthDate": "Date de naissance : {date}"
+      },
+      "vaccinations": {
+        "title": "Vaccins",
+        "empty": "Aucun vaccin enregistré."
+      },
+      "treatments": {
+        "title": "Traitements",
+        "empty": "Aucun traitement enregistré."
+      },
+      "weight": {
+        "title": "Poids",
+        "empty": "Aucune pesée enregistrée."
+      },
+      "footer": "Généré le {date} — MémoPatte {version}"
+    }
+  },
+  "analytics": {
+    "consent": {
+      "title": "Avant de commencer",
+      "measured": "Avec ton accord, MémoPatte mesure des statistiques d’usage anonymes pour améliorer l’app : les écrans consultés et des actions comme « vaccin ajouté ».",
+      "never": "Jamais le contenu de ton carnet, jamais le nom de tes animaux. Ces données sont hébergées en Europe.",
+      "changeMind": "Tu peux changer d’avis à tout moment dans Paramètres → Confidentialité.",
+      "refuse": "Refuser",
+      "accept": "Accepter"
+    }
+  },
+  "auth": {
+    "intro": "Un compte MémoPatte sert à garder tes carnets en sécurité dans le cloud et à les retrouver sur tous tes appareils.",
+    "signIn": {
+      "title": "Connexion",
+      "submit": "Se connecter",
+      "loading": "Connexion en cours…",
+      "toggle": "Pas encore de compte ?",
+      "toggleAction": "Créer un compte"
+    },
+    "signUp": {
+      "title": "Inscription",
+      "submit": "Créer mon compte",
+      "loading": "Création du compte en cours…",
+      "toggle": "Déjà un compte ?",
+      "toggleAction": "Se connecter"
+    },
+    "email": {
+      "label": "Adresse e-mail"
+    },
+    "password": {
+      "label": "Mot de passe"
+    },
+    "form": {
+      "errors": {
+        "emailRequired": "Saisis ton adresse e-mail.",
+        "emailInvalid": "Cette adresse e-mail n’est pas valide.",
+        "passwordRequired": "Saisis ton mot de passe.",
+        "passwordTooShort": "Choisis un mot de passe d’au moins 8 caractères."
+      }
+    },
+    "errors": {
+      "emailTaken": "Un compte existe déjà avec cette adresse e-mail.",
+      "invalidCredentials": "E-mail ou mot de passe incorrect. Réessaie.",
+      "weakPassword": "Ce mot de passe est trop faible. Choisis-en un plus long ou moins courant.",
+      "emailNotConfirmed": "Ton adresse e-mail n’est pas encore confirmée. Ouvre le lien reçu par e-mail, puis réessaie.",
+      "offline": "Pas de connexion internet. Vérifie ton réseau et réessaie.",
+      "unknown": "Quelque chose s’est mal passé. Réessaie dans un instant."
+    },
+    "confirmation": {
+      "title": "Vérifie ta boîte mail",
+      "message": "On vient d’envoyer un lien de confirmation à {email}. Ouvre-le pour activer ton compte, puis reviens te connecter ici.",
+      "back": "Retour à la connexion"
+    }
+  },
+  "plus": {
+    "title": "MémoPatte Plus",
+    "headline": "Garde tes carnets en sécurité, partout",
+    "subtitle": "Le local reste gratuit et sans limite. Plus ajoute la sauvegarde cloud.",
+    "benefits": {
+      "backup": "Sauvegarde garantie dans le cloud",
+      "devices": "Le même carnet sur tous tes appareils",
+      "photos": "Tes photos sauvegardées aussi",
+      "pdf": "Export PDF complet"
+    },
+    "free": {
+      "title": "Déjà inclus gratuitement, sans compte",
+      "animals": "Animaux illimités",
+      "reminders": "Rappels illimités",
+      "weight": "Suivi de poids illimité",
+      "export": "Export JSON et CSV"
+    },
+    "comparison": {
+      "title": "Ce qu’Android fait déjà, ce que Plus garantit",
+      "android": "Android (gratuit)",
+      "plus": "MémoPatte Plus",
+      "backup": {
+        "label": "Sauvegarde automatique",
+        "android": "Oui, au mieux (best effort)",
+        "plus": "Oui, garantie"
+      },
+      "photos": {
+        "label": "Photos sauvegardées",
+        "android": "Non",
+        "plus": "Oui"
+      },
+      "restore": {
+        "label": "Restauration sur nouvel appareil",
+        "android": "Pas garantie",
+        "plus": "Garantie"
+      }
+    },
+    "offers": {
+      "title": "Trois façons de payer, même contenu",
+      "best": "Meilleure offre",
+      "monthly": {
+        "label": "Mensuel",
+        "price": "{price}/mois",
+        "terms": "Renouvellement automatique chaque mois. Sans engagement, annulable à tout moment.",
+        "submit": "Continuer avec Plus mensuel — {price}"
+      },
+      "annual": {
+        "label": "Plus annuel",
+        "price": "{price}/an",
+        "saving": "≈ 44 % d’économie vs mensuel",
+        "terms": "Renouvellement automatique chaque année. Annulable à tout moment dans Google Play — accès conservé jusqu’à la fin de la période payée.",
+        "submit": "Continuer avec Plus annuel — {price}"
+      },
+      "lifetime": {
+        "label": "À vie",
+        "price": "{price}",
+        "terms": "Paiement unique, pour toujours.",
+        "submit": "Continuer avec Plus à vie — {price}"
+      },
+      "unavailable": "Les offres Google Play ne sont pas disponibles pour l’instant.",
+      "retry": "Réessayer"
+    },
+    "member": {
+      "title": "Tu es déjà dans Plus",
+      "monthly": "Abonnement mensuel actif.",
+      "annual": "Abonnement annuel actif.",
+      "lifetime": "Accès à vie, sans renouvellement."
+    },
+    "terms": {
+      "free": "MémoPatte est utilisable gratuitement sans abonnement.",
+      "prices": "Prix affichés par Google Play, dans ta devise.",
+      "local": "Si tu arrêtes Plus, tes carnets restent sur ton téléphone.",
+      "manage": "Gérer mon abonnement · Google Play"
+    },
+    "restore": {
+      "action": "Restaurer mon achat",
+      "busy": "Restauration…",
+      "restored": "Te voilà de retour dans Plus.",
+      "none": "Aucun achat à restaurer sur ce compte Google.",
+      "failed": "La restauration n’a pas abouti. Réessaie."
+    },
+    "success": {
+      "title": "Bienvenue dans Plus",
+      "body": "La sauvegarde de ton carnet arrive très vite.",
+      "back": "Retour aux paramètres"
+    },
+    "cancelled": {
+      "title": "Achat non abouti",
+      "body": "Aucun paiement n’a été effectué. Réessaie quand tu veux, rien n’a changé pour toi."
+    },
+    "failed": {
+      "title": "L’achat n’a pas abouti",
+      "body": "Aucun paiement n’a été effectué. Réessaie dans un instant, rien n’a changé pour toi."
+    },
+    "retry": "Réessayer",
+    "later": "Plus tard",
+    "settings": {
+      "discover": "Découvrir MémoPatte Plus",
+      "discoverHint": "Sauvegarde cloud, export PDF, plusieurs appareils",
+      "alreadySubscribed": "Je suis déjà abonné",
+      "alreadySubscribedHint": "Retrouve ton carnet sauvegardé sur un autre appareil",
+      "status": {
+        "monthly": "Plus mensuel jusqu’au {date}",
+        "annual": "Plus annuel jusqu’au {date}",
+        "lifetime": "Plus à vie",
+        "expiredMonthly": "Plus mensuel — expiré",
+        "expiredAnnual": "Plus annuel — expiré"
+      },
+      "paused": {
+        "body": "Ta sauvegarde cloud est en pause. Tes carnets restent sur ton téléphone.",
+        "action": "Réactiver Plus"
+      }
+    },
+    "nudge": {
+      "discover": "Découvrir",
+      "stop": "Ne plus me le proposer",
+      "close": "Fermer ce rappel",
+      "firstPhoto": {
+        "title": "Cette photo n’est pas dans la sauvegarde Android",
+        "body": "MémoPatte Plus la met à l’abri, elle aussi."
+      },
+      "carnetValue": {
+        "title": "Ton carnet commence à valoir de l’or",
+        "body": "Mets-le à l’abri avec MémoPatte Plus."
+      },
+      "firstExport": {
+        "title": "Ton export est prêt",
+        "body": "Avec Plus, plus besoin d’y penser : tout se sauvegarde seul."
       }
     }
   }

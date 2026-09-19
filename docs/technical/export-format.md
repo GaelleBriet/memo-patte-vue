@@ -13,9 +13,13 @@ Le code de référence est `src/features/settings/export-format.ts`, couvert par
   (`deleted_at` renseigné) ne sont pas exportées, et la colonne `deletedAt` n'apparaît pas.
   L'export ne porte donc **aucune pierre tombale** : un import (#84) ne peut pas propager une
   suppression, une donnée absente du fichier n'est pas une donnée supprimée.
-- Le fichier est écrit dans le cache de l'app (`Directory.Cache`, sous-dossier `exports/`, vidé à
-  chaque export) puis remis par la feuille de partage Android (`@capacitor/share`, via le
-  `FileProvider` de l'app). Aucune permission de stockage n'est demandée.
+- Le fichier est écrit dans le cache de l'app (`Directory.Cache`, sous-dossier `exports/`) puis
+  remis par la feuille de partage Android (`@capacitor/share`, via le `FileProvider` de l'app, qui
+  n'ouvre que ce sous-dossier). Aucune permission de stockage n'est demandée.
+- Le dossier est vidé avant chaque écriture et au lancement de l'app, jamais juste après un partage
+  accepté : le partage rend la main quand MémoPatte revient au premier plan, alors que Gmail, Drive
+  ou Quick Share lisent l'URI après coup — effacer tout de suite enverrait une pièce jointe vide.
+  Un partage annulé ou en échec, lui, est effacé sur-le-champ : aucune appli n'a reçu l'URI.
 - Les photos ne sont **jamais** incluses : le JSON cite leur nom de fichier, le CSV les ignore.
 
 ## JSON — `memopatte-export-AAAA-MM-JJ.json`
@@ -113,7 +117,10 @@ reconstruit les rappels depuis `vaccinations` et `treatments`.
 
 ## Import — « Importer un export MémoPatte »
 
-Code de référence : `src/features/settings/data-import.service.ts` (validation Zod et écriture).
+Code de référence : `src/features/settings/data-import.service.ts` (validation Zod et écriture) et
+`src/shared/import-plan.ts` (module pur : entrées du fichier + état local → écritures à jouer,
+réutilisable par la synchronisation Plus). Les types de lignes partagés vivent dans
+`src/shared/carnet-data.ts`.
 
 - **Sélection du fichier** : `<input type="file">` de la WebView, que Capacitor confie au
   sélecteur de documents Android (`ACTION_GET_CONTENT`). Le fichier est lu par une permission
@@ -122,8 +129,12 @@ Code de référence : `src/features/settings/data-import.service.ts` (validation
   - fichier de plus de 10 Mo (refusé sans être lu), pas du JSON, pas d'entier `schemaVersion`,
     champ obligatoire absent ou mal formé → « Ce fichier n'est pas un export MémoPatte. » ;
   - mêmes règles que les formulaires, reprises de leurs schémas : nom non vide, espèce, type et
-    fréquence de traitement, poids positif, date de naissance, de dernière injection, de dernière
-    prise et de pesée jamais dans le futur ;
+    fréquence de traitement, poids strictement positif et de 200 kg au plus (poids initial comme
+    pesée), date de naissance, de dernière injection, de dernière prise et de pesée jamais dans le
+    futur ;
+  - un fichier dont le seul défaut est un poids au-delà de 200 kg est refusé avec un motif à part,
+    « Ce fichier contient un poids hors limites : 200 kg maximum. », pour ne pas laisser croire que
+    le fichier n'est pas un export MémoPatte ;
   - UUID pour les identifiants, instants ISO 8601 en UTC (`Z`) uniquement, textes libres limités à
     200 caractères, espaces de bord retirées, race vide lue comme absente ;
   - `schemaVersion` supérieur à celui que l'app connaît → « Cet export vient d'une version plus
@@ -145,6 +156,16 @@ Code de référence : `src/features/settings/data-import.service.ts` (validation
   - **Remplacer**, après confirmation — toutes les lignes visibles sont marquées supprimées
     (suppression logique, `deleted_at` et `updated_at` à l'heure de l'import, pour que la
     synchronisation Plus propage la suppression), puis toutes les entrées du fichier sont écrites.
+- **Rattachement figé** : un vaccin, un traitement, une pesée ne changent jamais d'animal (décision
+  du 2026-09-09), y compris par import. Une entrée du fichier dont l'identifiant existe déjà sur
+  l'appareil **sous un autre animal** fait refuser l'import en entier, sans rien écrire — comme un
+  identifiant en double, le fichier est incohérent. Le motif est distinct d'une panne d'écriture —
+  « Ce fichier rattache une entrée de ton carnet à un autre animal. » — pour que l'utilisateur ne
+  réessaie pas indéfiniment. L'invariant est aussi porté par le SQL : `restoreStatement` laisse
+  `animal_id` hors du `SET` de son `UPDATE`.
+- **Échéance d'un traitement** : `nextDueDate` du fichier est reprise **telle quelle**, jamais
+  recalculée depuis `lastDoseDate` et `frequency` — la ligne voyage entière, comme elle le fera dans
+  la synchronisation Plus.
 - **Dates** : une entrée écrite qui n'existait pas sur l'appareil garde son `createdAt` et son
   `updatedAt` d'origine. Une entrée qui existait déjà, même supprimée, garde le `createdAt` du
   fichier et prend l'heure de l'import comme `updatedAt` : la synchronisation « la plus récente

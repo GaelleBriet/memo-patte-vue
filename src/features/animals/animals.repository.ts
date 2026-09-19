@@ -54,7 +54,8 @@ export function createAnimalsRepository(db: DbClient) {
 
     async list(): Promise<Animal[]> {
       const rows = await db.query<AnimalRow>(
-        `SELECT ${COLUMNS} FROM animal WHERE ${NOT_DELETED} ORDER BY name COLLATE NOCASE`,
+        `SELECT ${COLUMNS} FROM animal WHERE ${NOT_DELETED}
+         ORDER BY created_at, name COLLATE NOCASE`,
       )
       return rows.map(toAnimal)
     },

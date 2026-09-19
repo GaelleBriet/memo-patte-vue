@@ -10,12 +10,8 @@ import {
 } from '@/features/vaccinations/vaccinations.repository'
 import { getWeightRepository, type WeightRepository } from '@/features/weight/weight.repository'
 import { deliverExportFile, type DeliveryOutcome } from './export-delivery'
-import {
-  buildExportFile,
-  type ExportData,
-  type ExportFile,
-  type ExportFormat,
-} from './export-format'
+import { buildExportFile, type ExportFile, type ExportFormat } from './export-format'
+import type { ExportData } from '@/shared/carnet-data'
 
 type Provider<T> = () => T | Promise<T>
 

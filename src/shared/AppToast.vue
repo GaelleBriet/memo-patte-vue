@@ -4,8 +4,14 @@ import { computed } from 'vue'
 import { heightBottomNav, paddingBottomNav } from '@/core/theme/layout-tokens'
 import { dismissToast, toastMessage } from './toast'
 
+const props = withDefaults(defineProps<{ aboveBottomNav?: boolean }>(), { aboveBottomNav: false })
+
 const TOAST_DURATION_MS = 3000
-const GAP_ABOVE_BOTTOM_NAV = 12
+const GAP_BELOW_TOAST = 12
+
+const offset = computed(
+  () => (props.aboveBottomNav ? heightBottomNav : 0) + paddingBottomNav + GAP_BELOW_TOAST,
+)
 
 const isOpen = computed({
   get: () => toastMessage.value !== null,
@@ -23,7 +29,7 @@ const isOpen = computed({
     class="app-toast"
     :timeout="TOAST_DURATION_MS"
     location="bottom"
-    :offset="heightBottomNav + paddingBottomNav + GAP_ABOVE_BOTTOM_NAV"
+    :offset="offset"
     rounded="lg"
     :content-props="{ 'aria-hidden': 'true' }"
   >

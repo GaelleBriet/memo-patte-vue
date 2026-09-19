@@ -39,7 +39,17 @@ export function formatMonthShort(isoDate: string): string {
   return month.charAt(0).toLocaleUpperCase(locale) + month.slice(1)
 }
 
+/** `déc. 2026` / `Dec 2026` — mois et année d'une validité. */
+export function formatMonthYear(isoDate: string): string {
+  return format(parseISO(isoDate), 'MMM yyyy', { locale: DATE_LOCALES[currentLocale()] })
+}
+
 /** `8 nov. 2026` / `Nov 8, 2026`. */
 export function formatLongDate(isoDate: string): string {
   return format(parseISO(isoDate), 'PP', { locale: DATE_LOCALES[currentLocale()] })
+}
+
+/** `08/11/2026` / `11/08/2026`. */
+export function formatNumericDate(isoDate: string): string {
+  return format(parseISO(isoDate), 'P', { locale: DATE_LOCALES[currentLocale()] })
 }

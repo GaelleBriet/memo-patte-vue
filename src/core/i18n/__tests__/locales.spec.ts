@@ -30,4 +30,14 @@ describe('locales', () => {
 
     expect(keys(en)).toEqual(keys(fr))
   })
+
+  it('fr sépare la ponctuation double par une insécable', () => {
+    const breakable = /( [!?;:%»])|(« )/
+
+    const faulty = leaves(fr)
+      .filter(([, value]) => typeof value === 'string' && breakable.test(value))
+      .map(([key]) => key)
+
+    expect(faulty).toEqual([])
+  })
 })

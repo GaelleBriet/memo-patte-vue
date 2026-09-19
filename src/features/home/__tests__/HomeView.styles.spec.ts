@@ -48,8 +48,24 @@ describe('HomeView — contrat de style', () => {
     expect(declaration('.home-header__subtitle', 'font-size')).toBe('13.5px')
   })
 
+  it('pose l’icône Paramètres sur la ligne du titre, dans le flux du header', () => {
+    expect(declaration('.home-header__line', 'display')).toBe('flex')
+    expect(declaration('.home-header__line', 'align-items')).toBe('center')
+    expect(declaration('.home-header__line', 'justify-content')).toBe('space-between')
+    expect(declaration('.home-header__settings', 'position')).toBeUndefined()
+  })
+
   it('écarte l’icône du texte de 14 px dans une ligne de rappel', () => {
     expect(declaration('.reminder-row', 'gap')).toBe('14px')
+  })
+
+  it('renvoie un titre de rappel trop long à la ligne sans couper le mot en deux', () => {
+    expect(declaration('.reminder-row__title', 'overflow-wrap')).toBe('break-word')
+  })
+
+  it('fait passer le badge sous le titre quand les deux ne tiennent plus côte à côte', () => {
+    expect(declaration('.reminder-row', 'flex-wrap')).toBe('wrap')
+    expect(declaration('.reminder-row__badge', 'margin-inline-start')).toBe('auto')
   })
 
   it('colore la barre d’urgence selon le statut', () => {
@@ -109,5 +125,16 @@ describe('HomeView — contrat de style', () => {
     expect(declaration('.home-quick-tile', 'border-radius')).toBe('18px')
     expect(declaration('.home-quick-tile', 'min-height')).toBe('78px')
     expect(declaration('.home-quick-tile', 'flex-direction')).toBe('column')
+  })
+
+  it('resserre la tuile d’action rapide sur la hauteur de la maquette', () => {
+    expect(declaration('.home-quick-tile', 'padding')).toBe('10px')
+    expect(declaration('.home-quick-tile', 'gap')).toBe('6px')
+    expect(declaration('.home-quick-tile__label', 'line-height')).toBe('1.2')
+  })
+
+  it('titre les actions rapides comme les autres sections, en 700', () => {
+    expect(declaration('.home-quick-actions__title', 'font-weight')).toBe('700')
+    expect(declaration('.home-quick-actions__title', 'font-size')).toBe('21px')
   })
 })

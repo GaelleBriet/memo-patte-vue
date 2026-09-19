@@ -5,6 +5,8 @@ export const PLUS_ENTITLEMENT = 'plus'
 
 export type PlusPlan = 'none' | 'monthly' | 'annual' | 'lifetime'
 
+export type SubscriptionPlan = 'monthly' | 'annual'
+
 export type PlusStatus = {
   plan: PlusPlan
   /** ISO 8601, `null` pour « aucun » et « à vie ». */
@@ -15,7 +17,11 @@ export const NO_PLUS: PlusStatus = { plan: 'none', expiresAt: null }
 
 const LONGEST_MONTHLY_PERIOD_DAYS = 45
 
-function subscriptionPlan(plus: PurchasesEntitlementInfo, expiresAt: string): PlusPlan {
+export function subscriptionOf(status: PlusStatus): SubscriptionPlan | null {
+  return status.plan === 'monthly' || status.plan === 'annual' ? status.plan : null
+}
+
+function subscriptionPlan(plus: PurchasesEntitlementInfo, expiresAt: string): SubscriptionPlan {
   const basePlan = plus.productPlanIdentifier ?? plus.productIdentifier.split(':')[1]
   if (basePlan === 'monthly' || basePlan === 'annual') return basePlan
 

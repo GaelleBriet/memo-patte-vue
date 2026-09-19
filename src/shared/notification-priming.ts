@@ -1,5 +1,6 @@
 import type { RouteLocationRaw } from 'vue-router'
 
+import { ANIMAL_NAME_QUERY_PARAM } from '@/shared/animal-name-query-param'
 import { shouldShowPriming } from '@/core/notifications/permission'
 
 export type ReminderKind = 'vaccination' | 'treatment'
@@ -17,7 +18,7 @@ export async function routeAfterReminderSaved(saved: {
     return {
       name: PRIMING_ROUTE,
       query: saved.animalName
-        ? { animalName: saved.animalName, kind: saved.kind }
+        ? { [ANIMAL_NAME_QUERY_PARAM]: saved.animalName, kind: saved.kind }
         : { kind: saved.kind },
     }
   }

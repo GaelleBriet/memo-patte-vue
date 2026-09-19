@@ -3,8 +3,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { createDataExportService } from '../data-export.service'
 import { createDataImportService, type DataImportDependencies } from '../data-import.service'
-import type { ExportData } from '../export-format'
-import { CHPPIL_ID, IMPORT_FIXTURE, LUNA_ID, MILO_ID, MILO_WEIGHT_ID } from './import-fixture'
+import type { ExportData } from '@/shared/carnet-data'
+import {
+  CHPPIL_ID,
+  IMPORT_FIXTURE,
+  LUNA_ID,
+  MILBEMAX_ID,
+  MILO_ID,
+  MILO_WEIGHT_ID,
+} from './import-fixture'
 import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory-db'
 import { createAnimalsRepository } from '@/features/animals/animals.repository'
 import { createTreatmentsRepository } from '@/features/treatments/treatments.repository'
@@ -160,6 +167,53 @@ describe('data-import.service', () => {
 
       const photos = (await repositories.animals.list()).map(({ photoPath }) => photoPath)
       expect(photos).toEqual([LUNA_PHOTO, null])
+    })
+  })
+
+  describe('rattachement', () => {
+    it.each(['merge', 'replace'] as const)(
+      'refuse en %s un fichier qui rattache une entrée existante à un autre animal',
+      async (mode) => {
+        const { service, syncReminders } = setup()
+        await service.importData(IMPORT_FIXTURE, 'replace')
+        syncReminders.mockClear()
+        const deplace: ExportData = {
+          ...IMPORT_FIXTURE,
+          vaccinations: IMPORT_FIXTURE.vaccinations.map((vaccination) =>
+            vaccination.id === CHPPIL_ID ? { ...vaccination, animalId: LUNA_ID } : vaccination,
+          ),
+        }
+
+        await expect(service.importData(deplace, mode)).rejects.toMatchObject({
+          reason: 'reattached',
+        })
+
+        await expect(repositories.vaccinations.getById(CHPPIL_ID)).resolves.toMatchObject({
+          animalId: MILO_ID,
+        })
+        expect(syncReminders).not.toHaveBeenCalled()
+      },
+    )
+  })
+
+  describe('échéance d’un traitement', () => {
+    it('reprend l’échéance du fichier telle quelle, sans la recalculer depuis la dernière prise', async () => {
+      const { service } = setup()
+      const echeanceArbitraire: ExportData = {
+        ...IMPORT_FIXTURE,
+        treatments: IMPORT_FIXTURE.treatments.map((treatment) => ({
+          ...treatment,
+          nextDueDate: '2027-01-31',
+        })),
+      }
+
+      await service.importData(echeanceArbitraire, 'replace')
+
+      await expect(repositories.treatments.getById(MILBEMAX_ID)).resolves.toMatchObject({
+        lastDoseDate: '2026-06-15',
+        frequency: { value: 3, unit: 'month' },
+        nextDueDate: '2027-01-31',
+      })
     })
   })
 

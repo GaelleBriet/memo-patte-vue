@@ -15,7 +15,7 @@ Tickets : #45 (écran Plus + rappel doux), #6 (connexion / inscription), #87 (su
 
 ## Plus (P1 à P5, rappels doux R1 à R3)
 
-- Écran poussé « MémoPatte Plus » : icône, titre « Garde tes carnets en sécurité, partout », sous-titre « Le local reste gratuit et sans limite. Plus ajoute la sauvegarde cloud. », quatre bénéfices (sauvegarde garantie dans le cloud, le même carnet sur tous tes appareils, tes photos sauvegardées aussi, export PDF complet), carte « Déjà inclus gratuitement, sans compte », comparatif « Ce qu'Android fait déjà, ce que Plus garantit », puis **trois offres** : Mensuel 1,49 €, Plus annuel 9,99 € (mise en avant), À vie 29,99 € (« Paiement unique, pour toujours. »)
+- Écran poussé « MémoPatte Plus » : icône, titre « Garde tes carnets en sécurité, partout », sous-titre « Le local reste gratuit et sans limite. Plus ajoute la sauvegarde cloud. », quatre bénéfices (sauvegarde garantie dans le cloud, le même carnet sur tous tes appareils, tes photos sauvegardées aussi, export PDF complet), carte « Déjà inclus gratuitement, sans compte », comparatif « Ce qu'Android fait déjà, ce que Plus garantit », puis **trois offres**, dans cet ordre : Plus annuel 9,99 € (mise en avant, badge « Meilleure offre »), Mensuel 1,49 €, À vie 29,99 € (« Paiement unique, pour toujours. »). Le relevé de textes des planches (2026-09-16) fait foi sur les libellés et sur cet ordre, qui corrige la première version de cette description.
 - P3 feuille Google Play simulée, P4 « Bienvenue dans Plus » (carnet sauvegardé), P5 « Achat non abouti » (« Aucun paiement n'a été effectué. Réessaie quand tu veux, rien n'a changé pour toi. », Réessayer / Plus tard)
 - Rappel doux : un par déclencheur, un seul à la fois, « Ne plus me le proposer » l'écarte pour toujours
 
@@ -25,6 +25,8 @@ Tickets : #45 (écran Plus + rappel doux), #6 (connexion / inscription), #87 (su
 - « Continuer avec Google », séparateur « ou », e-mail, mot de passe (« Oublié ? »), « Se connecter » / « Créer mon compte », bascule « Pas encore de compte ? Créer un compte » / « Déjà un compte ? Se connecter »
 - Erreurs : « Un compte existe déjà avec cette adresse e-mail. », « Mot de passe incorrect. Réessaie. », mot de passe trop court, « La connexion avec Google a échoué. Réessaie. », « Pas de connexion internet. Vérifie ton réseau et réessaie. »
 - C4 « Connexion en cours… », C5 « Mot de passe oublié » → « E-mail envoyé » + « Retour à la connexion »
+- Livré le 2026-09-16 (#6) avec **« E-mail ou mot de passe incorrect. Réessaie. »** au lieu du « Mot de passe incorrect. Réessaie. » de la planche : décision de Gaelle, Supabase renvoie la même erreur pour une adresse inconnue et pour un mot de passe faux (anti-énumération), le texte de la maquette mentait donc une fois sur deux
+- Livré le 2026-09-16 (#6) **sans « Continuer avec Google », sans son séparateur « ou » et sans « Oublié ? »** : les trois dépendent du lien de retour dans l'app (#65) et auraient été des boutons morts. L'inscription mène à un écran « Vérifie ta boîte mail » (la confirmation d'e-mail est obligatoire), qui n'a pas de planche
 
 ## Suppression du compte (D1 à D6)
 
@@ -34,6 +36,7 @@ Tickets : #45 (écran Plus + rappel doux), #6 (connexion / inscription), #87 (su
 ## Consentement (A1, A2)
 
 - A1 écran « Avant de commencer » au premier lancement : ce qui est mesuré (écrans consultés, actions comme « vaccin ajouté »), jamais le contenu du carnet ni le nom des animaux, hébergé en Europe, modifiable dans Paramètres → Confidentialité ; boutons « Refuser » et « Accepter » de même taille
+- Livré le 2026-09-16 (#67) avec les **deux boutons au même style** (contour pétrole, même taille) et non contour + plein comme la capture : décision de Gaelle, alignée sur « refuser est aussi facile qu'accepter » et sur la prudence CNIL
 - A2 Paramètres → Confidentialité : « Politique de confidentialité », interrupteur « Statistiques d'usage anonymes »
 
 ## Paramètres (S1 à S9)
@@ -46,3 +49,18 @@ Tickets : #45 (écran Plus + rappel doux), #6 (connexion / inscription), #87 (su
 1. **Écran de bienvenue après le consentement (A1)** : la maquette le montre sur fond pétrole avec « Commencer », alors que l'écran de bienvenue livré (A5, `accueil-v2`) est sur fond crème avec l'illustration et « Créer mon premier animal ». Proposition : garder A5 tel quel et n'ajouter que l'écran de consentement avant.
 2. **« Gérer mon abonnement »** : décidé le 2026-09-15 pour le mensuel comme pour l'annuel.
 3. Défauts de rendu de la maquette (textes qui se chevauchent dans les listes « Déjà inclus » et « Ce qui sera supprimé », titres coupés) : non reproduits.
+
+## Relevés de textes (ajoutés le 2026-09-16)
+
+- `releve-textes-plus.png` — tous les textes des planches P1 à P5 de l'écran Plus, y compris les
+  conditions par offre, le badge « Meilleure offre », les libellés de bouton et le pied de page.
+- `releve-textes-parametres.png` — tous les textes des planches S1 à S9 des Paramètres, feuilles
+  d'export et d'import et dialogues compris.
+- `rappel-doux-R1-R3.png` — le rappel doux vers Plus (#45) : carte en tête de liste du Carnet,
+  jamais sur l'Accueil pour rester à distance du bandeau des rappels en retard, jamais modale,
+  refermable, une seule à la fois, avec « Ne plus me le proposer » qui l'écarte pour toujours.
+  Trois déclencheurs : première photo, deuxième animal ou dixième entrée, premier export.
+
+Ces relevés font foi pour les textes français ; les captures d'écran, plus anciennes, peuvent
+montrer un état antérieur (par exemple le bouton plein de l'écran de consentement, remplacé par
+deux boutons de même style le 2026-09-16).

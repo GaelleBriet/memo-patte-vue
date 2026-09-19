@@ -144,6 +144,16 @@ watch(summary, (value) => emit('summary', value), { immediate: true })
 <style scoped lang="scss">
 @use '@/styles/tokens' as tokens;
 
+// Sous 380 px, un nom d'un seul mot long et son badge ne tiennent pas côte à côte :
+// le badge passe dessous plutôt que le mot soit coupé en deux.
+.treatment-row {
+  flex-wrap: wrap;
+}
+
+.treatment-row__frequency {
+  margin-inline-start: auto;
+}
+
 .treatment-row__text {
   flex: 1 1 auto;
   min-width: 0;
@@ -151,7 +161,7 @@ watch(summary, (value) => emit('summary', value), { immediate: true })
 
 .treatment-row__name {
   margin: 0;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
   font-size: 15.5px;
   font-weight: 700;
 }

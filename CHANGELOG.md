@@ -5,6 +5,144 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.30](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.29...memo-patte-v0.1.30) (2026-09-19)
+
+
+### ✨ Fonctionnalités
+
+* **settings:** authorize automated merging of Claude's own PRs in me… ([1beba43](https://github.com/GaelleBriet/memo-patte-vue/commit/1beba435007a5dbabdc7b4dc5601133ec46f063a))
+* **settings:** authorize automated merging of Claude's own PRs in memo-patte-vue ([487f43c](https://github.com/GaelleBriet/memo-patte-vue/commit/487f43c98dba4cdc343541df95ea25aa8a1b2aae))
+
+## [0.1.29](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.28...memo-patte-v0.1.29) (2026-09-18)
+
+
+### ✨ Fonctionnalités
+
+* **analytics:** événements métier et tests ([c4316b9](https://github.com/GaelleBriet/memo-patte-vue/commit/c4316b966d53a3bba006a501d98009ed19e9f1af))
+* **analytics:** pageview et événements métier, identify/reset au compte ([88be656](https://github.com/GaelleBriet/memo-patte-vue/commit/88be656b8572293d5b0daa29a8d8436e21c0c5c3))
+* **settings:** déconnexion du compte Plus ([e1032fd](https://github.com/GaelleBriet/memo-patte-vue/commit/e1032fd7ee761e5eb9fc466adf5ad1b8078bdd8d))
+* **settings:** déconnexion du compte Plus ([6069247](https://github.com/GaelleBriet/memo-patte-vue/commit/606924759579cc4ef756e52d8395787f0b74a490))
+* **settings:** export PDF du carnet d'un animal (Plus) ([3ab49af](https://github.com/GaelleBriet/memo-patte-vue/commit/3ab49aff07896af3412d49054756fe7a6eb5d094))
+* **settings:** export PDF du carnet d'un animal (Plus) ([9c4bddc](https://github.com/GaelleBriet/memo-patte-vue/commit/9c4bddcd9bb7a16c96f7fcc8d843a6013273eeda))
+
+
+### 🐛 Corrections
+
+* **analytics:** masquer animalName dans les URL envoyées à PostHog ([7bdb8e6](https://github.com/GaelleBriet/memo-patte-vue/commit/7bdb8e65009bd8c9b0fbdc2232b85d02ecd00492))
+* **auth:** ignorer un double-clic sur la confirmation de déconnexion ([b08b8d8](https://github.com/GaelleBriet/memo-patte-vue/commit/b08b8d8ab671018758392fd8a1e2fd36a3a1bbf9))
+* **settings:** photo, tableau+courbe et chargement paresseux du PDF ([cec5138](https://github.com/GaelleBriet/memo-patte-vue/commit/cec5138bdd342b528545948a1a9c1e67538ee329))
+* **ui:** garder les états de survol derrière [@media](https://github.com/media) (hover: hover) ([35604fd](https://github.com/GaelleBriet/memo-patte-vue/commit/35604fdd6df83639f050d07b2705380731b9e632))
+* **ui:** garder les états de survol derrière [@media](https://github.com/media) (hover: hover) ([82eddc3](https://github.com/GaelleBriet/memo-patte-vue/commit/82eddc3d6e2217c7254469befab38511a8fcb448))
+
+## [0.1.28](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.27...memo-patte-v0.1.28) (2026-09-16)
+
+
+### ✨ Fonctionnalités
+
+* **purchase:** rattacher l'achat au compte Supabase à la connexion ([3d4e88e](https://github.com/GaelleBriet/memo-patte-vue/commit/3d4e88e8586b09bedc6a13c82d0a973698665f7b))
+
+
+### 🐛 Corrections
+
+* collisions d'identifiant de rappel et rattachement de l'achat au compte ([400e344](https://github.com/GaelleBriet/memo-patte-vue/commit/400e34456a6833e52167922e5b9d64a14c85445b))
+* **import:** figer le rattachement à l'animal et rendre l'échéance explicite ([79e24f3](https://github.com/GaelleBriet/memo-patte-vue/commit/79e24f3cae1bf0f8f4ae92a168cc2a96fbd70043))
+* **import:** un motif d'erreur dédié au fichier qui déplace une entrée ([938a899](https://github.com/GaelleBriet/memo-patte-vue/commit/938a899a65aa0bdb67764d38dfbb2a30ca5ed9d1))
+* **notifications:** résoudre les collisions d'identifiant au lieu de les signaler ([a4c4316](https://github.com/GaelleBriet/memo-patte-vue/commit/a4c4316439a5932fa7d9eaaf0b760ba9f3949553))
+* **purchase:** ne solder le souvenir d'abonnement qu'au changement de compte ([7e64cc7](https://github.com/GaelleBriet/memo-patte-vue/commit/7e64cc7b993d666b0089d49f5433ed3c81261033))
+* **settings:** refuser un import qui déplace une entrée, et extraire le plan d'import ([195875b](https://github.com/GaelleBriet/memo-patte-vue/commit/195875b899964149b3082a71b52d2c571f6d3753))
+
+
+### ⚡ Performance
+
+* **photos:** sonder l'existence d'une photo par stat, sans lire le fichier ([5e1b59d](https://github.com/GaelleBriet/memo-patte-vue/commit/5e1b59d220d99e5c751e42de19a59272a995812e))
+
+## [0.1.27](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.26...memo-patte-v0.1.27) (2026-09-16)
+
+
+### ✨ Fonctionnalités
+
+* **analytics:** PostHog sans effet sans accord et écran de consentement ([a4255d7](https://github.com/GaelleBriet/memo-patte-vue/commit/a4255d7789336d26b9085bd53a387dd9830c7f45))
+* **auth:** écran de connexion et d'inscription ([f2b5f5b](https://github.com/GaelleBriet/memo-patte-vue/commit/f2b5f5b79d0cbbe9f807b11fb83648cdd8b54010))
+* **auth:** écran de connexion et d'inscription ([3f97a44](https://github.com/GaelleBriet/memo-patte-vue/commit/3f97a441f3e178dd6ca8bdfac23c42844581816e))
+* **auth:** session persistante et drapeau « compte Plus sur l'appareil » ([04b0bc0](https://github.com/GaelleBriet/memo-patte-vue/commit/04b0bc05449cea1acb59ac555b19ad0acec11e1a))
+* **auth:** session persistante et drapeau compte Plus ([0a6d38c](https://github.com/GaelleBriet/memo-patte-vue/commit/0a6d38c8caf9f661676d29f6d02cab62eaf586c2))
+* **purchase:** « Te voilà de retour dans Plus. » après une restauration ([568f01f](https://github.com/GaelleBriet/memo-patte-vue/commit/568f01fa5ca18a01f2de3f152d1554cf3d326253))
+* **purchase:** écran MémoPatte Plus ([9249ad7](https://github.com/GaelleBriet/memo-patte-vue/commit/9249ad757999dc279d7966b852ff0332b4a831d4))
+* **purchase:** écran MémoPatte Plus, offres et prix venant de l'offering ([849e251](https://github.com/GaelleBriet/memo-patte-vue/commit/849e25123c7f73db5a720ce5b547edca039cbebb)), closes [#45](https://github.com/GaelleBriet/memo-patte-vue/issues/45)
+* **purchase:** le souvenir d'un abonnement échu s'efface au bout de 30 jours ([731d090](https://github.com/GaelleBriet/memo-patte-vue/commit/731d0904b4dec19ccc673cf1a7b44f723c3e9454))
+* **purchase:** nommer le plan d'un abonnement échu et écrire une échéance en chiffres ([e05e57b](https://github.com/GaelleBriet/memo-patte-vue/commit/e05e57bd251d6acd71d6fb1a74fcb32bf4c61ed3))
+* **purchase:** rappel doux vers MémoPatte Plus en tête du Carnet ([49de573](https://github.com/GaelleBriet/memo-patte-vue/commit/49de573ba09bad37bfdd6131aac2a6e952679f4b))
+* **purchase:** rappel doux vers MémoPatte Plus en tête du Carnet ([42ef2c6](https://github.com/GaelleBriet/memo-patte-vue/commit/42ef2c6015ffac8a2a949bd6ed705812e67024a7))
+* **purchase:** service billing RevenueCat et statut Plus ([7f6f95b](https://github.com/GaelleBriet/memo-patte-vue/commit/7f6f95b64bcddf3ea317b0274a250735031e13e4))
+* **purchase:** service billing RevenueCat et statut Plus persisté ([15c9db9](https://github.com/GaelleBriet/memo-patte-vue/commit/15c9db959216c773c8155f067758e9568fad5b26))
+* **purchase:** textes exacts du relevé P1-P5 et constats de revue ([0fabcf5](https://github.com/GaelleBriet/memo-patte-vue/commit/0fabcf54ded947a54f9a442a88aa996edb947d47)), closes [#45](https://github.com/GaelleBriet/memo-patte-vue/issues/45)
+* **settings:** section MémoPatte Plus, restauration d'achat et bandeau Plus en pause ([9ecd31c](https://github.com/GaelleBriet/memo-patte-vue/commit/9ecd31c747ccfa3af342239cad6526bee2ea0921))
+* **settings:** section MémoPatte Plus, restauration de l'achat et gestion de l'abonnement ([49020d5](https://github.com/GaelleBriet/memo-patte-vue/commit/49020d52b340df4606f265c68bbec1379d5db6a0))
+* **theme:** enregistrer l'icône mark_email_unread ([2ed8e10](https://github.com/GaelleBriet/memo-patte-vue/commit/2ed8e10af1ffbfa234c0f6aedefcef773f97748e))
+
+
+### 🐛 Corrections
+
+* **analytics:** effacer les clés PostHog au retrait même quand le SDK a chargé ([40156e5](https://github.com/GaelleBriet/memo-patte-vue/commit/40156e5bb2a9e94abfa784a7cf29265f321c75ac)), closes [#289](https://github.com/GaelleBriet/memo-patte-vue/issues/289)
+* **analytics:** même style pour refuser et accepter sur l'écran de consentement ([dca114a](https://github.com/GaelleBriet/memo-patte-vue/commit/dca114aacd461cbcbd90b2c07f76c0ded23709a8))
+* **animals:** chips dans l'ordre de création, et non par nom ([7cfae49](https://github.com/GaelleBriet/memo-patte-vue/commit/7cfae49cfac0927eba073771318b28a603709f0d))
+* **animals:** effacer la copie de la photo à la suppression d'un animal ([c4e8139](https://github.com/GaelleBriet/memo-patte-vue/commit/c4e81391358a1ef6df55fd93d2e689675b68fdb9))
+* **animals:** effacer la copie de la photo quand l'animal est supprimé ([7e683b4](https://github.com/GaelleBriet/memo-patte-vue/commit/7e683b4be79c09e195586221943ce2ebf1fcf156)), closes [#268](https://github.com/GaelleBriet/memo-patte-vue/issues/268)
+* **animals:** vaccins triés par urgence, sous-titre et états vides du Carnet ([e8e3764](https://github.com/GaelleBriet/memo-patte-vue/commit/e8e3764e56dcc1cbf4fdc9e4349b93e833585cdf))
+* **auth:** dire « E-mail ou mot de passe incorrect » et nommer le refus du serveur ([70ee762](https://github.com/GaelleBriet/memo-patte-vue/commit/70ee762d818655700ba8fb1a1a9163b3ac05bf15))
+* **auth:** effacement complet de la session et rafraîchissement refusé relu ([d67f56b](https://github.com/GaelleBriet/memo-patte-vue/commit/d67f56b5d84abd8335821886265b3f0ce7477800))
+* **auth:** garder l'achat Plus et la préférence de rappel à la déconnexion ([eba939a](https://github.com/GaelleBriet/memo-patte-vue/commit/eba939a0ce53e6908350e67351c126476006bb9f)), closes [#287](https://github.com/GaelleBriet/memo-patte-vue/issues/287)
+* **auth:** masquer le parcours compte sans configuration Supabase ([a910ed7](https://github.com/GaelleBriet/memo-patte-vue/commit/a910ed77ea920fbc26acf0c7b991480ca9b5ae24)), closes [#291](https://github.com/GaelleBriet/memo-patte-vue/issues/291)
+* **auth:** ne plus agir sur un écran quitté, et rendre la connexion joignable ([0f5dbf4](https://github.com/GaelleBriet/memo-patte-vue/commit/0f5dbf4986109225aa1ff5004ab7c3af563888b9))
+* **auth:** ne plus lire une trace d'erreur comme un booléen à la déconnexion ([c60306f](https://github.com/GaelleBriet/memo-patte-vue/commit/c60306f4fb42c3aa382788ad3adfa14ab69a7012)), closes [#287](https://github.com/GaelleBriet/memo-patte-vue/issues/287) [#288](https://github.com/GaelleBriet/memo-patte-vue/issues/288)
+* **auth:** révoquer le jeton à la déconnexion et effacer l'état d'appareil ([7f32cd1](https://github.com/GaelleBriet/memo-patte-vue/commit/7f32cd1af4834ebced2089dd0e9a6ebaa13b2f43)), closes [#287](https://github.com/GaelleBriet/memo-patte-vue/issues/287)
+* **form:** astérisque collée au libellé, unité et icône date visibles ([cf83eda](https://github.com/GaelleBriet/memo-patte-vue/commit/cf83eda030524526b038f80d64f5e565b4017fc8))
+* **forms:** signaler une fiche illisible et bloquer l'enregistrement ([8a745b3](https://github.com/GaelleBriet/memo-patte-vue/commit/8a745b352a6406bb1ee652a084805e0e6c56bbde)), closes [#255](https://github.com/GaelleBriet/memo-patte-vue/issues/255)
+* **home:** icône Paramètres sur la ligne du titre, tuiles et titre resserrés ([330738e](https://github.com/GaelleBriet/memo-patte-vue/commit/330738eb062c38ec6f3eac159245b0a438d566c7))
+* **i18n:** insécables avant la ponctuation double en français ([a8ea470](https://github.com/GaelleBriet/memo-patte-vue/commit/a8ea47033f3484d3f4d93032f92c370ce78baf53))
+* **i18n:** ne plus préfixer le nom du vaccin dans les rappels ([4b5b0bd](https://github.com/GaelleBriet/memo-patte-vue/commit/4b5b0bd5e525870d2b0b7aa46561d80d58802c0b))
+* **i18n:** relecture d'ensemble de l'anglais ([4cb139f](https://github.com/GaelleBriet/memo-patte-vue/commit/4cb139fb107b1dd42dd4953af66aa5a98c87cc78))
+* **i18n:** relecture d'ensemble des textes anglais et glossaire FR→EN ([35dafe1](https://github.com/GaelleBriet/memo-patte-vue/commit/35dafe1de19de3dc98dcea6b1479d3d9da70e67e))
+* **logs:** résumer les erreurs Supabase au lieu de les journaliser entières ([a67a4c8](https://github.com/GaelleBriet/memo-patte-vue/commit/a67a4c86406ac73960a9bd64047927056eda450c)), closes [#288](https://github.com/GaelleBriet/memo-patte-vue/issues/288)
+* **notifications:** annuler l'obsolète avant de programmer, jamais les deux à la fois ([7e900e1](https://github.com/GaelleBriet/memo-patte-vue/commit/7e900e1fac767bcecdbd1388c4d5b0dc026fa70b))
+* **notifications:** désarmer les rappels quand la permission est retirée ([e16616a](https://github.com/GaelleBriet/memo-patte-vue/commit/e16616a5bc3796eadd9a7c8ae0d56b7db7a65aa0))
+* **notifications:** fiabilité de la reconstruction des rappels ([6f9fcd1](https://github.com/GaelleBriet/memo-patte-vue/commit/6f9fcd1e37a7f94248cec20943238b98b5fd0411))
+* **notifications:** programmer par lots avant d'annuler, un échec ne vide plus les rappels ([921ea4c](https://github.com/GaelleBriet/memo-patte-vue/commit/921ea4c8d0b01108af2bd495f1f32982ca4eecd7))
+* **notifications:** réserver la première échéance de chaque entrée sous le plafond ([0f61509](https://github.com/GaelleBriet/memo-patte-vue/commit/0f61509da72dd92b4f77565e7b1979c6909633ee))
+* **notifications:** une ligne de traitement invalide ne casse plus tous les rappels ([ecc62c9](https://github.com/GaelleBriet/memo-patte-vue/commit/ecc62c9bd96d55c12bb295774705096177f71ecf))
+* **purchase:** bandeau « en pause » aligné sur la maquette et statut Plus cliquable ([cb0512e](https://github.com/GaelleBriet/memo-patte-vue/commit/cb0512e0991d210bd44a5ce6d60eefc709e21825))
+* **purchase:** carte du rappel doux sans chrome de bouton, croix hors du flux ([9959655](https://github.com/GaelleBriet/memo-patte-vue/commit/99596551fa28a463b20224e2e10e68097d777cb6))
+* **purchase:** échéance passée lue « aucun », disponibilité exposée, revérification tardive ignorée ([e08546a](https://github.com/GaelleBriet/memo-patte-vue/commit/e08546a88afa90d6ad093e656dc72d1538b1b005))
+* **purchase:** finitions de l'écran Plus et des Paramètres ([3ef3ad1](https://github.com/GaelleBriet/memo-patte-vue/commit/3ef3ad1a394e161989ac1f69441697b40f2d00f5))
+* **purchase:** l'offre annuelle en tête des trois offres ([da8e9e7](https://github.com/GaelleBriet/memo-patte-vue/commit/da8e9e72c2d13b8949aa789af935bfa8e50624da)), closes [#45](https://github.com/GaelleBriet/memo-patte-vue/issues/45)
+* **purchase:** rappel doux tenu en session, nombre d'animaux lu du Carnet ([9ef30d1](https://github.com/GaelleBriet/memo-patte-vue/commit/9ef30d159378fcfa9db299e58d03f5a2035409da))
+* **rappels:** annuler les rappels programmés quand la permission n'est plus accordée ([8b1579b](https://github.com/GaelleBriet/memo-patte-vue/commit/8b1579be470d68c9922ad7b754e093d647a6d224)), closes [#265](https://github.com/GaelleBriet/memo-patte-vue/issues/265)
+* robustesse des formulaires, de l'export partagé, du routeur et des bornes de poids ([7593290](https://github.com/GaelleBriet/memo-patte-vue/commit/75932906eda6b09af6f7e94bfc1dd8672ce187c7))
+* **router:** ramener à l'accueil toute adresse inconnue ([1b92640](https://github.com/GaelleBriet/memo-patte-vue/commit/1b92640c15facb26f29cc43d9de52af6c8110884)), closes [#257](https://github.com/GaelleBriet/memo-patte-vue/issues/257)
+* **securite:** révocation de session, traces, clés PostHog, dépendances et entrée compte ([38982c6](https://github.com/GaelleBriet/memo-patte-vue/commit/38982c6aa70d9007c4cabf3f6632cee4bb9898af))
+* **settings:** dire pourquoi un import est refusé quand un poids sort des bornes ([0e4d7bc](https://github.com/GaelleBriet/memo-patte-vue/commit/0e4d7bc004f01bf3d2f555276d661932f5bcd498)), closes [#258](https://github.com/GaelleBriet/memo-patte-vue/issues/258)
+* **settings:** effacer l'export du cache après partage et restreindre le FileProvider ([4d2b205](https://github.com/GaelleBriet/memo-patte-vue/commit/4d2b2054ee64b06aa2e5b4538728f749ac54ac0d)), closes [#256](https://github.com/GaelleBriet/memo-patte-vue/issues/256)
+* **settings:** garder l'export partagé jusqu'au lancement suivant ([10aa66b](https://github.com/GaelleBriet/memo-patte-vue/commit/10aa66b6aa43da164a6ec7e1403bf909812b3624)), closes [#256](https://github.com/GaelleBriet/memo-patte-vue/issues/256)
+* **settings:** garder les règles du switch dans le bloc scopé, sortir les lignes dans styles/ ([3fe9cbf](https://github.com/GaelleBriet/memo-patte-vue/commit/3fe9cbf54b821160d283ee57f8edeb73b3ec2c02))
+* **supabase:** remettre le contrôle de configuration dans le client ([7b1af87](https://github.com/GaelleBriet/memo-patte-vue/commit/7b1af8711b2276f4b016e081ac2dfbbd8d2d21d1)), closes [#291](https://github.com/GaelleBriet/memo-patte-vue/issues/291)
+* **treatments:** « Créer » comme les deux autres formulaires, exemple de fréquence ([9b5b7a9](https://github.com/GaelleBriet/memo-patte-vue/commit/9b5b7a91db03d9a4116dffd36958b580dc40cdb0))
+* **treatments:** dire le plafond de fréquence au lieu de la croire absente ([02e2ad8](https://github.com/GaelleBriet/memo-patte-vue/commit/02e2ad86264dbe0ea217d6b473301b04d5eb3868))
+* **ui:** barre du bas réservée aux écrans racine et teinte de la feuille d'animaux ([31402b4](https://github.com/GaelleBriet/memo-patte-vue/commit/31402b4361169a27577a2d8721bcd10dce33203c))
+* **ui:** conformité aux maquettes sur l'accueil, le carnet et les formulaires ([89f559e](https://github.com/GaelleBriet/memo-patte-vue/commit/89f559e21a7071462990d6bb791befb7a439b69e))
+* **ui:** flèche de retour sur la ligne du titre des écrans poussés ([33d467c](https://github.com/GaelleBriet/memo-patte-vue/commit/33d467c2dee930a0815caa4890362df520b8dcdd))
+* **ui:** masquer la barre du bas sur les écrans poussés ([d3d82d7](https://github.com/GaelleBriet/memo-patte-vue/commit/d3d82d7b05e42ea92948ec9b2bd81c34242714f9))
+* **ui:** ne plus couper un titre de ligne en plein milieu d'un mot ([bfdc07c](https://github.com/GaelleBriet/memo-patte-vue/commit/bfdc07c351ad61bbb38fc38da7d6309138f77123))
+* **ui:** partager toute la largeur entre les deux onglets de la barre du bas ([4e0ec4f](https://github.com/GaelleBriet/memo-patte-vue/commit/4e0ec4fc612a6b69a6947651789a416be78bef0d))
+* **ui:** porter au Carnet la ligne qui ne coupe plus les mots ([325bcbf](https://github.com/GaelleBriet/memo-patte-vue/commit/325bcbf2b51dab3dce16a1ff21aaef757321c019))
+* **vaccinations:** mois de validité localisé et « valide jusqu'à » ([0160cdf](https://github.com/GaelleBriet/memo-patte-vue/commit/0160cdff0add0f63c78f54c075f0e2310d461a3a))
+* **validation:** borner le poids à 200 kg à la saisie comme à l'import ([abe304d](https://github.com/GaelleBriet/memo-patte-vue/commit/abe304d483d69fe8b08f35d9061de230228d2d70)), closes [#258](https://github.com/GaelleBriet/memo-patte-vue/issues/258)
+* **weight:** rendre au pied du suivi de poids sa zone de gestes ([f90ca7f](https://github.com/GaelleBriet/memo-patte-vue/commit/f90ca7fff3ad52d0653d14773bce97dca02d3ac0))
+
+
+### ⚡ Performance
+
+* **notifications:** annuler les rappels d'une entrée en un seul appel natif ([e0f07ac](https://github.com/GaelleBriet/memo-patte-vue/commit/e0f07acf77624f1bf0a31a966490b28264a44a1b))
+
 ## [0.1.26](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.25...memo-patte-v0.1.26) (2026-09-15)
 
 

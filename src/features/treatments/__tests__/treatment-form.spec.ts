@@ -121,6 +121,13 @@ describe('validateTreatmentForm — fréquence', () => {
     }
   })
 
+  it('dit le plafond quand la valeur le dépasse, au lieu de la croire absente', () => {
+    expect(erreurs({ frequencyValue: '10000000' }).frequency).toBe(
+      'treatments.form.errors.frequencyMax',
+    )
+    expect(erreurs({ frequencyValue: '366' }).frequency).toBe('treatments.form.errors.frequencyMax')
+  })
+
   it('accepte chaque unité', () => {
     expect(donnees({ frequencyUnit: 'day' }).frequency.unit).toBe('day')
     expect(donnees({ frequencyUnit: 'week' }).frequency.unit).toBe('week')

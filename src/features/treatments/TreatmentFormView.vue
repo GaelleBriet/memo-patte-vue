@@ -11,6 +11,7 @@ import {
 } from './treatment-form'
 import {
   FREQUENCY_UNITS,
+  MAX_FREQUENCY_VALUE,
   TREATMENT_TYPES,
   type FrequencyUnit,
   type Treatment,
@@ -39,6 +40,8 @@ const values = ref(emptyTreatmentFormValues())
 const { errors, validate } = useFormValidation(values, validateTreatmentForm)
 const existing = ref<Treatment | null>(null)
 const notFound = ref(false)
+const isLoading = ref(props.id !== undefined)
+const loadFailed = ref(false)
 const saveFailed = ref(false)
 const isSubmitting = ref(false)
 const { today: maxLastDoseDate } = useToday()
@@ -64,9 +67,11 @@ const submitLabel = computed(() => {
 })
 const errorMessage = computed(() => {
   if (notFound.value) return t('treatments.form.errors.notFound')
+  if (loadFailed.value) return t('treatments.form.errors.load')
   if (saveFailed.value) return t('treatments.form.errors.save')
   return null
 })
+const canSave = computed(() => !isLoading.value && !notFound.value && !loadFailed.value)
 const typeOptions = computed(() =>
   TREATMENT_TYPES.map((type) => ({ value: type, label: t(`treatments.type.${type}`) })),
 )
@@ -87,9 +92,15 @@ const nextDose = computed(() => {
 
 onMounted(async () => {
   if (props.id !== undefined) {
-    existing.value = await treatments.getById(props.id)
-    notFound.value = existing.value === null
-    if (existing.value) values.value = treatmentFormValuesFrom(existing.value)
+    try {
+      existing.value = await treatments.getById(props.id)
+      notFound.value = existing.value === null
+      if (existing.value) values.value = treatmentFormValuesFrom(existing.value)
+    } catch {
+      loadFailed.value = true
+    } finally {
+      isLoading.value = false
+    }
   }
   if (!animals.hasLoaded) await animals.load()
 })
@@ -113,7 +124,7 @@ function selectUnit(unit: FrequencyUnit | null): void {
 }
 
 async function submit(): Promise<void> {
-  if (isSubmitting.value || notFound.value) return
+  if (isSubmitting.value || !canSave.value) return
 
   const result = validate()
   if (!result.success) return
@@ -150,7 +161,7 @@ async function submit(): Promise<void> {
     :subtitle="subtitle"
     :submit-label="submitLabel"
     :is-submitting="isSubmitting"
-    :disabled="notFound"
+    :disabled="!canSave"
     :error-message="errorMessage"
     @cancel="backToAnimals"
     @submit="submit"
@@ -219,7 +230,9 @@ async function submit(): Promise<void> {
               class="form-field__input form-field__input--number treatment-form__frequency-value"
               type="number"
               inputmode="numeric"
+              :placeholder="t('treatments.form.frequency.placeholder')"
               min="1"
+              :max="MAX_FREQUENCY_VALUE"
               step="1"
               variant="outlined"
               hide-details

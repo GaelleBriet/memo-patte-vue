@@ -77,7 +77,6 @@ function backToAnimals(): void {
     :title="t('weight.history.title')"
     :subtitle="animal?.name"
     subtitle-tone="secondary"
-    compact
     :back-label="t('weight.history.back')"
     @back="backToAnimals"
   >
@@ -363,7 +362,7 @@ function backToAnimals(): void {
 }
 
 .weight-history__actions {
-  padding: 12px 20px;
+  padding: 12px 20px 30px;
 }
 
 .weight-history__add {

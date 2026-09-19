@@ -1,5 +1,13 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { formatKg, formatKgDelta, formatLongDate, formatMonth, formatMonthShort } from '../format'
+import {
+  formatKg,
+  formatKgDelta,
+  formatLongDate,
+  formatMonth,
+  formatMonthShort,
+  formatMonthYear,
+  formatNumericDate,
+} from '../format'
 import { applyLocale } from '@/core/i18n'
 
 describe('formatKg', () => {
@@ -49,8 +57,18 @@ describe('mois et dates', () => {
     ).toEqual(['Juin', 'Juil.', 'Août', 'Sept.', 'Oct.', 'Nov.'])
   })
 
+  it('écrit un mois avec son année pour une validité', () => {
+    expect(formatMonthYear('2026-12-12')).toBe('déc. 2026')
+    expect(formatMonthYear('2027-09-14')).toBe('sept. 2027')
+  })
+
   it('écrit une date complète courte', () => {
     expect(formatLongDate('2026-11-08')).toBe('8 nov. 2026')
+  })
+
+  it('écrit une échéance en chiffres', () => {
+    expect(formatNumericDate('2027-09-14T10:00:00Z')).toBe('14/09/2027')
+    expect(formatNumericDate('2026-11-08')).toBe('08/11/2026')
   })
 })
 
@@ -72,6 +90,8 @@ describe('en anglais', () => {
 
     expect(formatMonth('2026-08-14')).toBe('August')
     expect(formatMonthShort('2026-09-05')).toBe('Sep')
+    expect(formatMonthYear('2026-12-12')).toBe('Dec 2026')
     expect(formatLongDate('2026-11-08')).toBe('Nov 8, 2026')
+    expect(formatNumericDate('2027-09-14T10:00:00Z')).toBe('09/14/2027')
   })
 })

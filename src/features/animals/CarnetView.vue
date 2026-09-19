@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watchEffect } from 'vue'
+import { computed, defineAsyncComponent, onMounted, ref, watchEffect } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
@@ -8,6 +8,11 @@ import { useAnimalsStore } from './animals.store'
 import { useAnimalPhotoActions } from './use-animal-photo-actions'
 import { useForegroundRefresh } from '@/core/app-lifecycle/use-foreground-refresh'
 import { usePhotoUrls } from '@/core/photos/use-photo-urls'
+import PlusNudgeSection from '@/features/purchase/PlusNudgeSection.vue'
+import { usePurchaseStore } from '@/features/purchase/purchase.store'
+import type { PdfExportAnimal } from '@/features/settings/PdfExportSheet.vue'
+
+const PdfExportSheet = defineAsyncComponent(() => import('@/features/settings/PdfExportSheet.vue'))
 import TreatmentsSection, {
   type TreatmentsSummary,
 } from '@/features/treatments/TreatmentsSection.vue'
@@ -23,6 +28,7 @@ import { formatKg, formatKgDelta, formatMonth } from '@/shared/format'
 const { t } = useI18n()
 const router = useRouter()
 const animals = useAnimalsStore()
+const purchase = usePurchaseStore()
 
 const { today } = useForegroundRefresh(() => void animals.load())
 
@@ -50,6 +56,23 @@ const headerPhotoUrl = computed(() => photoUrl(animal.value?.photoPath ?? null))
 
 const isPhotoSheetOpen = ref(false)
 const photoActions = useAnimalPhotoActions(animal)
+
+const isPdfExportSheetOpen = ref(false)
+const hasOpenedPdfExportSheet = ref(false)
+const pdfExportAnimals = computed<PdfExportAnimal[]>(() =>
+  animal.value
+    ? [{ id: animal.value.id, name: animal.value.name, species: animal.value.species }]
+    : [],
+)
+
+function onExportPdf(): void {
+  if (purchase.status.plan === 'none') {
+    void router.push({ name: 'plus' })
+  } else {
+    hasOpenedPdfExportSheet.value = true
+    isPdfExportSheetOpen.value = true
+  }
+}
 
 function openPhotoSheet(event: Event): void {
   const avatar = event.currentTarget as HTMLElement
@@ -152,6 +175,13 @@ function createAnimal(): void {
             <p v-if="subtitle" class="carnet-header__subtitle">{{ subtitle }}</p>
           </div>
           <v-btn
+            class="carnet-header__export-pdf"
+            icon="ms:picture_as_pdf"
+            variant="text"
+            :aria-label="t('animals.carnet.exportPdf')"
+            @click="onExportPdf"
+          />
+          <v-btn
             class="carnet-header__edit"
             icon="ms:edit"
             variant="text"
@@ -160,6 +190,12 @@ function createAnimal(): void {
           />
         </div>
       </header>
+
+      <PdfExportSheet
+        v-if="hasOpenedPdfExportSheet"
+        v-model="isPdfExportSheetOpen"
+        :animals="pdfExportAnimals"
+      />
 
       <AnimalPhotoSheet
         v-model="isPhotoSheetOpen"
@@ -197,6 +233,7 @@ function createAnimal(): void {
       </dl>
 
       <div class="carnet__sections">
+        <PlusNudgeSection :animal-count="animals.animals.length" />
         <VaccinationsSection
           :animal-id="animal.id"
           :today="today"
@@ -256,6 +293,7 @@ function createAnimal(): void {
 }
 
 .carnet-header__back,
+.carnet-header__export-pdf,
 .carnet-header__edit {
   width: 48px;
   height: 48px;
@@ -317,6 +355,7 @@ function createAnimal(): void {
   margin: 2px 0 0;
   color: tokens.$color-on-primary-subtitle;
   font-size: 13.5px;
+  font-weight: 500;
   white-space: nowrap;
   text-overflow: ellipsis;
 }

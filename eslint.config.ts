@@ -7,6 +7,22 @@ import pluginVitest from '@vitest/eslint-plugin'
 import pluginOxlint from 'eslint-plugin-oxlint'
 import pluginVueI18n from '@intlify/eslint-plugin-vue-i18n'
 import skipFormatting from 'eslint-config-prettier/flat'
+import dynamicImports from './tools/eslint/dynamic-imports.ts'
+
+// Chaque interdit d'import est posé deux fois : la règle d'ESLint pour les
+// déclarations, la nôtre pour `import()` qu'elle ne visite pas.
+function restrictImports(options: object): Linter.RulesRecord {
+  const entry: Linter.RuleEntry = ['error', options]
+  return { 'no-restricted-imports': entry, 'app/no-restricted-dynamic-imports': entry }
+}
+
+function restrictFeatureImports(options: object): Linter.RulesRecord {
+  const entry: Linter.RuleEntry = ['error', options]
+  return {
+    '@typescript-eslint/no-restricted-imports': entry,
+    'app/no-restricted-dynamic-feature-imports': entry,
+  }
+}
 
 const NOTIFICATIONS_PLUGIN_RESTRICTION = {
   name: '@capacitor/local-notifications',
@@ -29,15 +45,25 @@ const DYNAMIC_I18N_KEYS = [
   '/^nav\\.(home|animals)$/',
   '/^animals\\.form\\.species\\.(dog|cat)$/',
   '/^animals\\.age\\.(year|month|week)$/',
-  '/^animals\\.form\\.errors\\.(name|species|birthDate|initialWeightKg)$/',
+  '/^animals\\.form\\.errors\\.(name|species|birthDate|initialWeightKg|initialWeightKgMax)$/',
   '/^vaccinations\\.form\\.errors\\.(name|lastInjectionDate|lastInjectionDateFuture|dueDate)$/',
-  '/^treatments\\.form\\.errors\\.(name|type|frequency|lastDoseDate|lastDoseDateFuture)$/',
-  '/^weight\\.form\\.errors\\.(animalId|weightKg|measuredOn|measuredOnFuture)$/',
+  '/^treatments\\.form\\.errors\\.(name|type|frequency|frequencyMax|lastDoseDate|lastDoseDateFuture)$/',
+  '/^weight\\.form\\.errors\\.(animalId|weightKg|weightKgMax|measuredOn|measuredOnFuture)$/',
   '/^vaccinations\\.section\\.status\\.(overdue|upToDate|none)$/',
+  '/^settings\\.pdf\\.status\\.(overdue|upToDate|none)$/',
   '/^treatments\\.type\\.(deworming|antiparasitic)$/',
   '/^treatments\\.(frequency|form\\.frequency\\.every|form\\.frequency\\.unit)\\.(day|week|month)$/',
   '/^home\\.reminder\\.(deworming|antiparasitic)$/',
   '/^home\\.due\\.(overdue|today|tomorrow|later)$/',
+  '/^plus\\.benefits\\.(backup|devices|photos|pdf)$/',
+  '/^plus\\.free\\.(animals|reminders|weight|export)$/',
+  '/^plus\\.comparison\\.(backup|photos|restore)\\.(label|android|plus)$/',
+  '/^plus\\.offers\\.(monthly|annual|lifetime)\\.(label|price|terms|submit)$/',
+  '/^plus\\.member\\.(monthly|annual|lifetime)$/',
+  '/^plus\\.nudge\\.(firstPhoto|carnetValue|firstExport)\\.(title|body)$/',
+  '/^plus\\.(success|cancelled|failed)\\.(title|body)$/',
+  '/^auth\\.form\\.errors\\.(emailRequired|emailInvalid|passwordRequired|passwordTooShort)$/',
+  '/^auth\\.errors\\.(emailTaken|invalidCredentials|weakPassword|emailNotConfirmed|offline|unknown)$/',
 ]
 
 const FEATURES_RESTRICTION = {
@@ -53,40 +79,58 @@ const FEATURES = readdirSync(new URL('./src/features', import.meta.url), { withF
 const COMPOSITE_SCREENS = [
   { feature: 'animals', file: 'src/features/animals/CarnetView.vue' },
   { feature: 'home', file: 'src/features/home/HomeView.vue' },
+  { feature: 'settings', file: 'src/features/settings/SettingsView.vue' },
 ]
 
+// Exception actée le 2026-09-16 (decisions-log) : toute feature lit le store des
+// animaux et son schéma, rien de plus — d'où `useAnimalsStore` seul autorisé.
+const ANIMALS_STORE_READ_ONLY = {
+  group: ['@/features/animals/animals.store'],
+  allowImportNames: ['useAnimalsStore'],
+  message:
+    'Des animaux, une autre feature ne lit que useAnimalsStore et animal.schema (cf. CLAUDE.md, « Règles strictes de structure »).',
+}
+
+// Exception actée au ticket #81 (decisions-log) : le statut Plus se lit au même
+// titre que l'entité animal — d'où `usePurchaseStore` seul autorisé.
+const PURCHASE_STORE_READ_ONLY = {
+  group: ['@/features/purchase/purchase.store'],
+  allowImportNames: ['usePurchaseStore'],
+  message:
+    'Du statut Plus, une autre feature ne lit que usePurchaseStore (cf. CLAUDE.md, « Règles strictes de structure »).',
+}
+
 function featureImportsRule(feature: string, allowedElsewhere: string[] = []): Linter.RulesRecord {
-  return {
-    '@typescript-eslint/no-restricted-imports': [
-      'error',
+  return restrictFeatureImports({
+    patterns: [
       {
-        patterns: [
-          {
-            group: [
-              '@/features/*/**',
-              '../**',
-              `!@/features/${feature}/**`,
-              '!@/features/animals/animals.store',
-              '!@/features/animals/animal.schema',
-              ...allowedElsewhere.map((pattern) => `!${pattern}`),
-            ],
-            message:
-              'Import interdit depuis une autre feature : passe par shared/ ou core/ (cf. CLAUDE.md, « Règles strictes de structure »).',
-          },
-          {
-            regex: '^@/features/[^/]+/?$',
-            message: 'Importe un module précis de la feature, pas son dossier.',
-          },
+        group: [
+          '@/features/*/**',
+          '../**',
+          `!@/features/${feature}/**`,
+          '!@/features/animals/animals.store',
+          '!@/features/animals/animal.schema',
+          '!@/features/purchase/purchase.store',
+          ...allowedElsewhere.map((pattern) => `!${pattern}`),
         ],
+        message:
+          'Import interdit depuis une autre feature : passe par shared/ ou core/ (cf. CLAUDE.md, « Règles strictes de structure »).',
+      },
+      ...(feature === 'animals' ? [] : [ANIMALS_STORE_READ_ONLY]),
+      ...(feature === 'purchase' ? [] : [PURCHASE_STORE_READ_ONLY]),
+      {
+        regex: '^@/features/[^/]+/?$',
+        message: 'Importe un module précis de la feature, pas son dossier.',
       },
     ],
-  }
+  })
 }
 
 export default defineConfigWithVueTs(
   {
     name: 'app/files-to-lint',
     files: ['**/*.{vue,ts,mts,tsx}'],
+    plugins: { app: dynamicImports },
   },
 
   globalIgnores([
@@ -137,7 +181,8 @@ export default defineConfigWithVueTs(
   skipFormatting,
 
   // Accès direct à SQLite/Supabase interdit hors de core/ et des repositories.
-  // Les tests d'un repository sont exemptés : ils lui injectent un client de base en mémoire.
+  // Les tests qui montent de vrais repositories sur une base en mémoire sont exemptés,
+  // repérés par le suffixe `.integration.spec.ts` en plus des tests de repository et de service.
   {
     name: 'app/repository-only-data-access',
     files: ['src/**/*.{ts,vue}'],
@@ -146,35 +191,31 @@ export default defineConfigWithVueTs(
       '**/*.repository.ts',
       '**/*.repository.spec.ts',
       '**/*.service.spec.ts',
+      '**/*.integration.spec.ts',
     ],
-    rules: {
-      'no-restricted-imports': [
-        'error',
+    rules: restrictImports({
+      paths: [
         {
-          paths: [
-            {
-              name: '@supabase/supabase-js',
-              message: "Import interdit hors de core/supabase/ ou d'un repository (cf. CLAUDE.md).",
-            },
-            {
-              name: '@capacitor-community/sqlite',
-              message: "Import interdit hors de core/db/ ou d'un repository (cf. CLAUDE.md).",
-            },
-            {
-              name: '@capacitor/local-notifications',
-              message:
-                'Import interdit hors de core/notifications/ : utilise notifications.service (cf. CLAUDE.md).',
-            },
-          ],
-          patterns: [
-            {
-              group: ['**/core/supabase/*', '**/core/db/*', '@/core/supabase/*', '@/core/db/*'],
-              message: 'Utilise un repository, pas le client directement (cf. CLAUDE.md).',
-            },
-          ],
+          name: '@supabase/supabase-js',
+          message: "Import interdit hors de core/supabase/ ou d'un repository (cf. CLAUDE.md).",
+        },
+        {
+          name: '@capacitor-community/sqlite',
+          message: "Import interdit hors de core/db/ ou d'un repository (cf. CLAUDE.md).",
+        },
+        {
+          name: '@capacitor/local-notifications',
+          message:
+            'Import interdit hors de core/notifications/ : utilise notifications.service (cf. CLAUDE.md).',
         },
       ],
-    },
+      patterns: [
+        {
+          group: ['**/core/supabase/*', '**/core/db/*', '@/core/supabase/*', '@/core/db/*'],
+          message: 'Utilise un repository, pas le client directement (cf. CLAUDE.md).',
+        },
+      ],
+    }),
   },
 
   // Là où le bloc précédent ne s'applique pas (tout core/ et les repositories), deux
@@ -187,30 +228,21 @@ export default defineConfigWithVueTs(
     name: 'app/core-independent-of-features',
     files: ['src/core/**/*.{ts,vue}'],
     ignores: ['src/core/notifications/**', 'src/core/dev/**'],
-    rules: {
-      'no-restricted-imports': [
-        'error',
-        {
-          paths: [NOTIFICATIONS_PLUGIN_RESTRICTION],
-          patterns: [FEATURES_RESTRICTION],
-        },
-      ],
-    },
+    rules: restrictImports({
+      paths: [NOTIFICATIONS_PLUGIN_RESTRICTION],
+      patterns: [FEATURES_RESTRICTION],
+    }),
   },
   {
     name: 'app/core-notifications-independent-of-features',
     files: ['src/core/notifications/**/*.{ts,vue}'],
-    rules: {
-      'no-restricted-imports': ['error', { patterns: [FEATURES_RESTRICTION] }],
-    },
+    rules: restrictImports({ patterns: [FEATURES_RESTRICTION] }),
   },
   {
     name: 'app/notifications-service-only',
     files: ['src/core/dev/**/*.{ts,vue}', 'src/**/*.repository.ts'],
     ignores: ['src/core/notifications/**'],
-    rules: {
-      'no-restricted-imports': ['error', { paths: [NOTIFICATIONS_PLUGIN_RESTRICTION] }],
-    },
+    rules: restrictImports({ paths: [NOTIFICATIONS_PLUGIN_RESTRICTION] }),
   },
 
   // Règle distincte de no-restricted-imports pour se cumuler avec les interdits ci-dessus.
@@ -223,7 +255,11 @@ export default defineConfigWithVueTs(
   ...FEATURES.map((feature) => ({
     name: `app/feature-imports/${feature}-services`,
     files: [`src/features/${feature}/**/*.service.ts`],
-    rules: featureImportsRule(feature, ['@/features/*/*.repository', '@/features/*/*.schema']),
+    rules: featureImportsRule(feature, [
+      '@/features/*/*.repository',
+      '@/features/*/*.schema',
+      '@/features/*/*.service',
+    ]),
   })),
   ...COMPOSITE_SCREENS.map(({ feature, file }) => ({
     name: `app/feature-imports/${file}`,

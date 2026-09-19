@@ -48,6 +48,19 @@ describe('treatmentInputSchema', () => {
     }
   })
 
+  it('rejette une fréquence démesurée, qui ferait échouer le calcul des échéances', () => {
+    for (const value of [366, 10_000_000]) {
+      expect(
+        treatmentInputSchema.safeParse({ ...validInput, frequency: { value, unit: 'month' } })
+          .success,
+      ).toBe(false)
+    }
+    expect(
+      treatmentInputSchema.safeParse({ ...validInput, frequency: { value: 365, unit: 'day' } })
+        .success,
+    ).toBe(true)
+  })
+
   it('rejette une unité de fréquence hors liste', () => {
     expect(
       treatmentInputSchema.safeParse({ ...validInput, frequency: { value: 1, unit: 'year' } })

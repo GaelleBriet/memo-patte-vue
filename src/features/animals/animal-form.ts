@@ -17,6 +17,8 @@ const ERROR_KEYS = {
   initialWeightKg: 'animals.form.errors.initialWeightKg',
 } as const
 
+const MAX_WEIGHT_KEY = 'animals.form.errors.initialWeightKgMax'
+
 export type AnimalFormErrorField = keyof typeof ERROR_KEYS
 export type AnimalFormErrors = Partial<Record<AnimalFormErrorField, string>>
 
@@ -54,6 +56,12 @@ function isErrorField(field: string): field is AnimalFormErrorField {
   return Object.prototype.hasOwnProperty.call(ERROR_KEYS, field)
 }
 
+function errorKeyFor(field: AnimalFormErrorField, issue: z.core.$ZodIssue): string {
+  if (field === 'initialWeightKg' && issue.code === 'too_big') return MAX_WEIGHT_KEY
+
+  return ERROR_KEYS[field]
+}
+
 export function validateAnimalForm(values: AnimalFormValues): AnimalFormResult {
   const result = animalInputSchema.safeParse({
     name: values.name,
@@ -70,7 +78,7 @@ export function validateAnimalForm(values: AnimalFormValues): AnimalFormResult {
   for (const issue of result.error.issues) {
     const field = String(issue.path[0])
 
-    if (isErrorField(field)) errors[field] = ERROR_KEYS[field]
+    if (isErrorField(field)) errors[field] = errorKeyFor(field, issue)
   }
 
   return { success: false, errors }

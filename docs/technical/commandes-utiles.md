@@ -103,6 +103,8 @@ pnpm dev:mobile
   lance `pnpm cap:sync` une fois pour régénérer `capacitor.settings.gradle`, **puis commite le fichier** (c'est
   un geste manuel après le merge, Dependabot ne peut pas le faire), car `dev:mobile` tourne avec `--no-sync`.
   Sinon la dérive revient à chaque bump (vu sur #147 : `main` pointait encore vers 8.5.0 après la montée 8.5.1).
+  Le job `android` de la CI (§8) refait `pnpm cap:sync` et échoue si `android/` bouge : une PR qui laisse la
+  dérive reste rouge jusqu'à ce que le fichier régénéré y soit commité.
 
 ## 3. Inspecter l'app avec Chrome DevTools (optionnel)
 
@@ -152,3 +154,75 @@ Après un `pnpm build`, ou avant d'ouvrir Android Studio pour un build de prod /
 pnpm cap:sync           # build + copie le web build + synchronise les plugins natifs
 pnpm cap:open:android   # ouvre le projet dans Android Studio
 ```
+
+## 6. Contrôler le manifest fusionné avant un upload Play
+
+Les plugins et leurs dépendances transitives ajoutent des permissions au manifest final : `androidx.biometric`
+(tirée par `@capacitor-community/sqlite`) apportait `USE_BIOMETRIC` et `USE_FINGERPRINT`, retirées depuis avec
+`tools:node="remove"`. `pnpm test:manifest` compare les permissions et les `uses-feature` du manifest **fusionné**
+à la liste blanche commentée de `scripts/check-android-manifest.mjs`, et échoue dès qu'une permission apparaît,
+disparaît ou n'est pas justifiée.
+
+```bash
+pnpm cap:sync
+cd android && ./gradlew :app:processDebugManifest && cd ..
+pnpm test:manifest              # variante debug par défaut
+pnpm test:manifest release      # après ./gradlew :app:processReleaseManifest
+```
+
+Le job `android` de la CI (§8) fait tourner la variante `debug` sur chaque PR. La variante `release` reste un
+contrôle local, à passer avant chaque upload sur la Play Console (check-list §3.4 point 11 de
+`conformite-play-store-rgpd.md`).
+
+Permissions attendues à ce jour : `INTERNET` et `POST_NOTIFICATIONS` (notre manifest),
+`RECEIVE_BOOT_COMPLETED` et `WAKE_LOCK` (`@capacitor/local-notifications`, indispensables pour reprogrammer les
+rappels après un redémarrage), `ACCESS_NETWORK_STATE` (RevenueCat), `com.android.vending.BILLING` (Play Billing)
+et la permission de signature `DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` d'`androidx.core`. Aucun `uses-feature` :
+la photo passe par le Photo Picker système, jamais par la caméra déclarée comme fonctionnalité requise.
+
+## 7. Version de l'app
+
+`android/app/build.gradle` lit `package.json` (piloté par release-please) : `versionName` reprend la version telle
+quelle et `versionCode` vaut `major × 1 000 000 + minor × 1 000 + patch` (0.1.26 → `1026`). Le build échoue si
+`minor` ou `patch` atteint 1000, borne qui garantit que le code reste strictement croissant. Rien à mettre à jour
+à la main avant un upload.
+
+## 8. Ce que fait la CI
+
+`.github/workflows/ci.yml` lance deux jobs en parallèle sur chaque PR vers `main` et sur chaque push sur `main`.
+
+| Job       | Ce qu'il fait                                                                                                     |
+| --------- | ----------------------------------------------------------------------------------------------------------------- |
+| `ci`      | `lint`, `type-check`, `vitest run`, `build`, `test:build`                                                           |
+| `android` | `cap:sync`, contrôle que `android/` n'a pas bougé, `./gradlew :app:assembleDebug`, `test:manifest` (variante debug) |
+
+Le job `android` tourne sur **toutes** les PR, sans filtre de chemins : il est parallèle au job `ci`, le dépôt est
+public (minutes Actions gratuites), et un filtre à tenir à jour aurait le même mode de défaillance silencieux que
+celui qui a motivé le ticket #260 — une CI verte qui ne construit rien.
+
+Reproduire le job `android` en local :
+
+```bash
+pnpm install --frozen-lockfile
+pnpm cap:sync
+git diff --exit-code -- android    # doit être vide
+cd android && ./gradlew :app:assembleDebug && cd ..
+pnpm test:manifest
+```
+
+## 9. Régénérer les icônes et le splash
+
+`@capacitor/assets` ne sert qu'à ça, une fois de temps en temps. Il n'est **pas** installé : il tirait `sharp` et
+`tar`, soit 15 des 20 constats de `pnpm audit` (tous de développement). Il est appelé à la demande par `pnpm dlx`,
+qui le télécharge dans le cache pnpm le temps de la commande :
+
+```bash
+python3 scripts/build-icon-resources.py   # sources -> resources/ (Python 3, Pillow, numpy)
+pnpm assets:android                       # pnpm --allow-build=sharp dlx @capacitor/assets@3.0.5 generate --android
+```
+
+`--allow-build=sharp` n'est pas décoratif : `pnpm dlx` installe hors du projet et ne lit donc pas
+`pnpm-workspace.yaml`. Sans ce drapeau, `sharp` ne compile pas son binaire et la génération échoue.
+
+La suite du geste (restauration des fichiers réécrits sans raison, couche monochrome) est dans
+`docs/design/logos/logos.md`, section « Régénérer ».

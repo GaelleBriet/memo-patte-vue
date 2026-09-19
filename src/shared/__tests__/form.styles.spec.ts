@@ -75,6 +75,19 @@ describe('FormField — contrat de style', () => {
     expect(declaration(css, '.form-field__error', 'color')).toBe('rgb(var(--v-theme-error))')
   })
 
+  it('colle l’astérisque au libellé et ne repousse que « Optionnel » à droite', () => {
+    expect(declaration(css, '.form-field__label', 'justify-content')).toBe('flex-start')
+    expect(declaration(css, '.form-field__label', 'gap')).toBe('6px')
+    expect(declaration(css, '.form-field__optional', 'margin-inline-start')).toBe('auto')
+  })
+
+  it('peint l’icône du champ date en pétrole, à la taille de la maquette', () => {
+    const icone = '.form-field :deep(.form-field__input--date .v-field__append-inner .v-icon)'
+
+    expect(declaration(css, icone, 'color')).toBe('rgb(var(--v-theme-primary))')
+    expect(declaration(css, icone, 'font-size')).toBe('21px')
+  })
+
   describe('bordure du champ', () => {
     const CHAMP = '.form-field :deep(.form-field__input)'
     const ERREUR = `${CHAMP} .v-field--error:not(.v-field--disabled) .v-field__outline`
@@ -138,6 +151,16 @@ describe('FormField — contrat de style', () => {
         'color',
       ),
     ).toBe('#413933')
+  })
+
+  it('garde l’unité visible sur un champ nombre vide, que Vuetify masque au repos', () => {
+    expect(
+      declaration(
+        css,
+        '.form-field :deep(.form-field__input--number .v-text-field__suffix)',
+        'opacity',
+      ),
+    ).toBe('1')
   })
 })
 

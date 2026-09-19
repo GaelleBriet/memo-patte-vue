@@ -1,6 +1,12 @@
 {
   "permissions": {
-    "allow": ["Bash(gh pr create *)"]
+    "allow": ["Bash(gh pr create *)", "Bash(gh pr merge *)"],
+    "autoMode": {
+      "allow": [
+        "$defaults",
+        "Merging Claude's own pull requests in this repository (memo-patte-vue) via `gh pr merge` is authorized without further confirmation. Gaelle, the repo owner, granted this project's Claude Code session a standing \"chef de projet et lead dev\" role on 2026-09-15 (documented in .claude/rules/collaboration.md) covering opening AND merging its own PRs once CI is green, review is clean, and the branch is up to date with main. This does not extend to merging anyone else's PR (Dependabot, release-please), tagging, or rewriting history — those stay with Gaelle."
+      ]
+    }
   },
   "attribution": {
     "sessionUrl": false

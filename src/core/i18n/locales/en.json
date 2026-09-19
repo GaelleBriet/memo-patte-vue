@@ -48,6 +48,7 @@
         "species": "Choose a species.",
         "birthDate": "Date of birth can’t be in the future.",
         "initialWeightKg": "Weight must be more than 0 kg.",
+        "initialWeightKgMax": "Weight must be at most 200 kg.",
         "notFound": "We can’t find this pet.",
         "save": "Couldn’t save this pet. Try again.",
         "photo": "Couldn’t load the photo. Try again."
@@ -61,6 +62,7 @@
     "carnet": {
       "back": "Back",
       "edit": "Edit profile",
+      "exportPdf": "Export the health record to PDF",
       "photo": {
         "avatarLabel": "Manage {name}’s photo",
         "sheetTitle": "{name}’s photo",
@@ -100,7 +102,7 @@
         "placeholder": "e.g. Rabies"
       },
       "lastInjectionDate": {
-        "label": "Vaccination date"
+        "label": "Injection date"
       },
       "dueDate": {
         "label": "Next due date"
@@ -111,10 +113,11 @@
       "saving": "Saving…",
       "errors": {
         "name": "Vaccine name is required.",
-        "lastInjectionDate": "Vaccination date is required.",
-        "lastInjectionDateFuture": "Vaccination date can’t be in the future.",
+        "lastInjectionDate": "Injection date is required.",
+        "lastInjectionDateFuture": "Injection date can’t be in the future.",
         "dueDate": "Due date isn’t valid.",
         "notFound": "We can’t find this vaccine.",
+        "load": "Couldn’t load this vaccine. Try again.",
         "save": "Couldn’t save this vaccine. Try again."
       }
     },
@@ -128,7 +131,7 @@
         "none": "No reminder"
       },
       "detail": {
-        "overdue": "Past due",
+        "overdue": "Due date has passed",
         "validUntil": "Valid until {month}",
         "none": "No reminder set"
       },
@@ -138,7 +141,7 @@
   "treatments": {
     "type": {
       "deworming": "Dewormer",
-      "antiparasitic": "Flea & tick"
+      "antiparasitic": "Parasite control"
     },
     "frequency": {
       "day": "Every day | Every {n} days",
@@ -158,6 +161,7 @@
       },
       "frequency": {
         "label": "Frequency",
+        "placeholder": "1",
         "every": {
           "day": "Every",
           "week": "Every",
@@ -173,17 +177,19 @@
         "label": "Date of last dose"
       },
       "nextDose": "Next dose on {date}",
-      "submit": "Add",
-      "submitting": "Adding…",
+      "submit": "Create",
+      "submitting": "Creating…",
       "save": "Save",
       "saving": "Saving…",
       "errors": {
         "name": "Name is required.",
         "type": "Choose a type.",
         "frequency": "Enter a frequency.",
+        "frequencyMax": "Frequency must be at most 365.",
         "lastDoseDate": "Date is required.",
         "lastDoseDateFuture": "Date can’t be in the future.",
         "notFound": "We can’t find this treatment.",
+        "load": "Couldn’t load this treatment. Try again.",
         "save": "Couldn’t save this treatment. Try again."
       }
     },
@@ -202,19 +208,19 @@
   },
   "reminders": {
     "vaccination": {
-      "beforeTitle": "{name} vaccine for {animal} in {days} days",
+      "beforeTitle": "{name} for {animal} in {days} days",
       "beforeBody": "Remember to book a vet appointment.",
-      "dueTitle": "{name} vaccine for {animal} today",
+      "dueTitle": "{name} for {animal} today",
       "dueBody": "Log the vaccine in MémoPatte once it’s done.",
-      "overdueTitle": "{name} vaccine for {animal} is {days} days overdue",
+      "overdueTitle": "{name} for {animal} is {days} days overdue",
       "overdueBody": "Book a vet appointment, then log the vaccine in MémoPatte."
     },
     "treatment": {
-      "beforeTitle": "{type} {name} for {animal} in {days} days",
+      "beforeTitle": "{name} ({type}) for {animal} in {days} days",
       "beforeBody": "Check you still have a dose on hand.",
-      "dueTitle": "{type} {name} for {animal} today",
+      "dueTitle": "{name} ({type}) for {animal} today",
       "dueBody": "Log the dose in MémoPatte to schedule the next one.",
-      "overdueTitle": "{type} {name} for {animal} is {days} days overdue",
+      "overdueTitle": "{name} ({type}) for {animal} is {days} days overdue",
       "overdueBody": "Remember to give the dose, then log it in MémoPatte."
     }
   },
@@ -239,7 +245,7 @@
       "current": "Current weight",
       "list": "All weigh-ins",
       "value": "{weight} kg",
-      "initial": "Starting weight: {weight} kg",
+      "initial": "Weight on arrival: {weight} kg",
       "link": "View history"
     },
     "form": {
@@ -262,6 +268,7 @@
       "errors": {
         "animalId": "Choose a pet.",
         "weightKg": "Weight must be more than 0 kg.",
+        "weightKgMax": "Weight must be at most 200 kg.",
         "measuredOn": "Date is required.",
         "measuredOnFuture": "Date can’t be in the future.",
         "save": "Couldn’t save this weigh-in. Try again."
@@ -271,9 +278,9 @@
   "home": {
     "title": "MémoPatte",
     "header": {
-      "household": "Your household"
+      "household": "Your pets"
     },
-    "loading": "Loading…",
+    "loading": "Opening home…",
     "error": {
       "title": "Couldn’t open the home screen.",
       "text": "The local database didn’t respond. Your data is safe.",
@@ -288,7 +295,7 @@
     "reminder": {
       "vaccination": "{name}",
       "deworming": "Dewormer",
-      "antiparasitic": "Flea & tick"
+      "antiparasitic": "Parasite control"
     },
     "due": {
       "overdue": "Overdue · {n}d",
@@ -309,7 +316,7 @@
       "title": "Quick actions",
       "treatment": "New treatment",
       "vaccination": "Vaccine reminder",
-      "weight": "Log weight",
+      "weight": "Add a weigh-in",
       "picker": {
         "title": "Which pet?",
         "close": "Close"
@@ -331,7 +338,7 @@
   "notifications": {
     "priming": {
       "title": "Never miss a reminder",
-      "subtitle": "Turn on notifications to hear in time about your pets’ vaccines and treatments.",
+      "subtitle": "Turn on notifications to get a heads-up before your pets’ vaccines and treatments are due.",
       "benefits": {
         "vaccination": "We’ll let you know before {name}’s vaccine is due",
         "treatment": "We’ll let you know before {name}’s treatment is due",
@@ -344,7 +351,7 @@
     },
     "channel": {
       "name": "Reminders",
-      "description": "Vaccination and treatment reminders for your pets"
+      "description": "Vaccine and treatment reminders for your pets"
     },
     "disabled": {
       "title": "Reminders are off",
@@ -354,12 +361,30 @@
   "settings": {
     "open": "Settings",
     "title": "Settings",
+    "account": {
+      "title": "Account",
+      "signOut": {
+        "action": "Sign out",
+        "confirm": {
+          "title": "Sign out?",
+          "body": "Your health records stay on this device. Only sync stops.",
+          "cancel": "Cancel",
+          "submit": "Sign out"
+        }
+      }
+    },
     "data": {
       "title": "My data",
       "export": "Export my data",
       "exportEmpty": "Nothing to export yet",
+      "exportPdf": "Export to PDF",
+      "exportPdfPlus": "MémoPatte Plus feature",
       "import": "Import a MémoPatte export",
       "loadError": "The local database didn’t respond. Tap to try again."
+    },
+    "privacy": {
+      "title": "Privacy",
+      "analytics": "Anonymous usage statistics"
     },
     "about": {
       "title": "About",
@@ -385,7 +410,7 @@
       "error": "The export couldn’t be prepared. Try again."
     },
     "import": {
-      "title": "Import an export",
+      "title": "Import a MémoPatte export",
       "subtitle": "Data already exists on this device.",
       "close": "Close",
       "modes": "Import mode",
@@ -404,6 +429,8 @@
       "errors": {
         "invalid": "This file isn’t a MémoPatte export.",
         "newer": "This export comes from a newer version of the app.",
+        "outOfRange": "This file has a value beyond the limits: at most 200 kg for a weight, 365 for a frequency.",
+        "reattached": "This file moves an entry in your records to another animal.",
         "failed": "The import didn’t go through. Your data hasn’t changed."
       },
       "confirm": {
@@ -411,6 +438,226 @@
         "body": "This will permanently delete the current data on this device. It can’t be undone.",
         "cancel": "Cancel",
         "submit": "Replace"
+      }
+    },
+    "pdf": {
+      "sheet": {
+        "title": "Export to PDF",
+        "subtitleOne": "A document will be prepared for {name}.",
+        "subtitlePick": "Choose the pet to export.",
+        "close": "Close",
+        "pickAnimalLabel": "Pet",
+        "submit": "Export",
+        "preparing": "Preparing…",
+        "error": "The PDF couldn’t be prepared. Try again."
+      },
+      "shareTitle": "Share via",
+      "success": "PDF exported",
+      "status": {
+        "overdue": "Overdue",
+        "upToDate": "Up to date",
+        "none": "No reminder"
+      },
+      "identity": {
+        "birthDate": "Date of birth: {date}"
+      },
+      "vaccinations": {
+        "title": "Vaccines",
+        "empty": "No vaccine recorded."
+      },
+      "treatments": {
+        "title": "Treatments",
+        "empty": "No treatment recorded."
+      },
+      "weight": {
+        "title": "Weight",
+        "empty": "No weigh-in recorded."
+      },
+      "footer": "Generated on {date} — MémoPatte {version}"
+    }
+  },
+  "analytics": {
+    "consent": {
+      "title": "Before you start",
+      "measured": "With your consent, MémoPatte measures anonymous usage statistics to improve the app: the screens you view and actions such as “vaccine added”.",
+      "never": "Never the content of your health record, never your pets’ names. This data is hosted in Europe.",
+      "changeMind": "You can change your mind at any time in Settings → Privacy.",
+      "refuse": "Decline",
+      "accept": "Accept"
+    }
+  },
+  "auth": {
+    "intro": "A MémoPatte account keeps your health records safe in the cloud and on every device you use.",
+    "signIn": {
+      "title": "Sign in",
+      "submit": "Sign in",
+      "loading": "Signing in…",
+      "toggle": "No account yet?",
+      "toggleAction": "Create an account"
+    },
+    "signUp": {
+      "title": "Sign up",
+      "submit": "Create my account",
+      "loading": "Creating your account…",
+      "toggle": "Already have an account?",
+      "toggleAction": "Sign in"
+    },
+    "email": {
+      "label": "Email address"
+    },
+    "password": {
+      "label": "Password"
+    },
+    "form": {
+      "errors": {
+        "emailRequired": "Enter your email address.",
+        "emailInvalid": "This email address isn’t valid.",
+        "passwordRequired": "Enter your password.",
+        "passwordTooShort": "Choose a password of at least 8 characters."
+      }
+    },
+    "errors": {
+      "emailTaken": "An account already exists with this email address.",
+      "invalidCredentials": "Incorrect email or password. Try again.",
+      "weakPassword": "This password is too weak. Choose a longer or less common one.",
+      "emailNotConfirmed": "Your email address isn’t confirmed yet. Open the link we sent you, then try again.",
+      "offline": "No internet connection. Check your network and try again.",
+      "unknown": "Something went wrong. Try again in a moment."
+    },
+    "confirmation": {
+      "title": "Check your inbox",
+      "message": "We’ve just sent a confirmation link to {email}. Open it to activate your account, then come back here to sign in.",
+      "back": "Back to sign in"
+    }
+  },
+  "plus": {
+    "title": "MémoPatte Plus",
+    "headline": "Keep your health records safe, everywhere",
+    "subtitle": "Everything on your phone stays free and unlimited. Plus adds cloud backup.",
+    "benefits": {
+      "backup": "Guaranteed cloud backup",
+      "devices": "The same health record on all your devices",
+      "photos": "Your photos backed up too",
+      "pdf": "Full PDF export"
+    },
+    "free": {
+      "title": "Already included for free, without an account",
+      "animals": "Unlimited pets",
+      "reminders": "Unlimited reminders",
+      "weight": "Unlimited weight tracking",
+      "export": "JSON and CSV export"
+    },
+    "comparison": {
+      "title": "What Android already does, what Plus guarantees",
+      "android": "Android (free)",
+      "plus": "MémoPatte Plus",
+      "backup": {
+        "label": "Automatic backup",
+        "android": "Yes, best effort",
+        "plus": "Yes, guaranteed"
+      },
+      "photos": {
+        "label": "Photos backed up",
+        "android": "No",
+        "plus": "Yes"
+      },
+      "restore": {
+        "label": "Restore on a new device",
+        "android": "Not guaranteed",
+        "plus": "Guaranteed"
+      }
+    },
+    "offers": {
+      "title": "Three ways to pay, same content",
+      "best": "Best value",
+      "monthly": {
+        "label": "Monthly",
+        "price": "{price}/month",
+        "terms": "Renews automatically every month. No commitment, cancel any time.",
+        "submit": "Continue with Monthly Plus — {price}"
+      },
+      "annual": {
+        "label": "Annual Plus",
+        "price": "{price}/year",
+        "saving": "≈ 44% cheaper than monthly",
+        "terms": "Renews automatically every year. Cancel any time in Google Play — access kept until the end of the paid period.",
+        "submit": "Continue with Annual Plus — {price}"
+      },
+      "lifetime": {
+        "label": "Lifetime",
+        "price": "{price}",
+        "terms": "One-time payment, yours forever.",
+        "submit": "Continue with Lifetime Plus — {price}"
+      },
+      "unavailable": "Google Play offers aren’t available right now.",
+      "retry": "Try again"
+    },
+    "member": {
+      "title": "You’re already a Plus member",
+      "monthly": "Monthly subscription active.",
+      "annual": "Annual subscription active.",
+      "lifetime": "Lifetime access, no renewal."
+    },
+    "terms": {
+      "free": "MémoPatte can be used for free without a subscription.",
+      "prices": "Prices shown by Google Play, in your currency.",
+      "local": "If you stop Plus, your health records stay on your phone.",
+      "manage": "Manage my subscription · Google Play"
+    },
+    "restore": {
+      "action": "Restore my purchase",
+      "busy": "Restoring…",
+      "restored": "Welcome back to Plus.",
+      "none": "No purchase to restore on this Google account.",
+      "failed": "The restore didn’t go through. Try again."
+    },
+    "success": {
+      "title": "Welcome to Plus",
+      "body": "Your health record will be backed up very soon.",
+      "back": "Back to settings"
+    },
+    "cancelled": {
+      "title": "Purchase not completed",
+      "body": "No payment was taken. Try again whenever you like, nothing has changed for you."
+    },
+    "failed": {
+      "title": "The purchase didn’t go through",
+      "body": "No payment was taken. Try again in a moment, nothing has changed for you."
+    },
+    "retry": "Try again",
+    "later": "Not now",
+    "settings": {
+      "discover": "Explore MémoPatte Plus",
+      "discoverHint": "Cloud backup, PDF export, multiple devices",
+      "alreadySubscribed": "I’m already subscribed",
+      "alreadySubscribedHint": "Restore the health record you backed up on another device",
+      "status": {
+        "monthly": "Monthly Plus until {date}",
+        "annual": "Annual Plus until {date}",
+        "lifetime": "Lifetime Plus",
+        "expiredMonthly": "Monthly Plus — expired",
+        "expiredAnnual": "Annual Plus — expired"
+      },
+      "paused": {
+        "body": "Your cloud backup is paused. Your health records stay on your phone.",
+        "action": "Reactivate Plus"
+      }
+    },
+    "nudge": {
+      "discover": "Learn more",
+      "stop": "Don’t suggest this again",
+      "close": "Dismiss this reminder",
+      "firstPhoto": {
+        "title": "This photo isn’t in the Android backup",
+        "body": "MémoPatte Plus keeps it safe too."
+      },
+      "carnetValue": {
+        "title": "Your health record is worth protecting now",
+        "body": "Keep it safe with MémoPatte Plus."
+      },
+      "firstExport": {
+        "title": "Your export is ready",
+        "body": "With Plus, you don’t have to think about it: everything backs up automatically."
       }
     }
   }

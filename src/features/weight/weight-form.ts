@@ -17,6 +17,7 @@ const ERROR_KEYS = {
 } as const
 
 const FUTURE_DATE_KEY = 'weight.form.errors.measuredOnFuture'
+const MAX_WEIGHT_KEY = 'weight.form.errors.weightKgMax'
 
 export type WeightFormErrorField = keyof typeof ERROR_KEYS
 export type WeightFormErrors = Partial<Record<WeightFormErrorField, string>>
@@ -43,6 +44,7 @@ function isErrorField(field: string): field is WeightFormErrorField {
 // Le seul `refine` du schéma est la borne « pas dans le futur » : c'est lui qui émet `custom`.
 function errorKeyFor(field: WeightFormErrorField, issue: z.core.$ZodIssue): string {
   if (field === 'measuredOn' && issue.code === 'custom') return FUTURE_DATE_KEY
+  if (field === 'weightKg' && issue.code === 'too_big') return MAX_WEIGHT_KEY
 
   return ERROR_KEYS[field]
 }

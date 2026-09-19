@@ -27,6 +27,16 @@ export async function deletePhoto(name: string): Promise<void> {
   await Filesystem.deleteFile({ path: photoPath(name), directory: Directory.Data })
 }
 
+/** Sonde par `stat` seul : l'import vérifie tout un carnet sans lire une seule image. */
+export async function photoExists(name: string): Promise<boolean> {
+  try {
+    await Filesystem.stat({ path: photoPath(name), directory: Directory.Data })
+    return true
+  } catch {
+    return false
+  }
+}
+
 /** Rejette si le fichier manque, par exemple après une restauration Auto Backup qui exclut les photos. */
 export async function photoDisplayUrl(name: string): Promise<string> {
   const options = { path: photoPath(name), directory: Directory.Data }
@@ -37,6 +47,12 @@ export async function photoDisplayUrl(name: string): Promise<string> {
   }
 
   const { data } = await Filesystem.readFile(options)
+  return `data:image/jpeg;base64,${String(data)}`
+}
+
+/** Toujours en base64, y compris natif : jsPDF ne sait pas dessiner une URI capacitor://. */
+export async function photoBase64DataUrl(name: string): Promise<string> {
+  const { data } = await Filesystem.readFile({ path: photoPath(name), directory: Directory.Data })
   return `data:image/jpeg;base64,${String(data)}`
 }
 

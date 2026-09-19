@@ -71,7 +71,7 @@ describe('AnimalPickerSheet', () => {
     await monter()
 
     expect(feuille().querySelector('.bottom-sheet__title')?.textContent?.trim()).toBe(
-      'Pour quel animal ?',
+      'Pour quel animal ?',
     )
     expect(lignes().map((ligne) => ligne.textContent?.trim())).toEqual(['Milo', 'Luna'])
     const avatar = lignes()[1]!.querySelector<HTMLElement>('.animal-picker-sheet__avatar')
@@ -93,7 +93,7 @@ describe('AnimalPickerSheet', () => {
 
     const dialogue = document.body.querySelector('.animal-picker-sheet[role="dialog"]')
     const titre = document.getElementById(dialogue?.getAttribute('aria-labelledby') ?? '')
-    expect(titre?.textContent?.trim()).toBe('Pour quel animal ?')
+    expect(titre?.textContent?.trim()).toBe('Pour quel animal ?')
   })
 
   it('émet l’animal choisi et se ferme au tap sur une ligne', async () => {

@@ -10,8 +10,11 @@ export type TreatmentType = z.output<typeof treatmentTypeSchema>
 export const frequencyUnitSchema = z.enum(FREQUENCY_UNITS)
 export type FrequencyUnit = z.output<typeof frequencyUnitSchema>
 
+/** Au-delà, la saisie n'a plus de sens pour un carnet, et le calcul des échéances déraille. */
+export const MAX_FREQUENCY_VALUE = 365
+
 export const treatmentFrequencySchema = z.object({
-  value: z.number().int().positive(),
+  value: z.number().int().positive().max(MAX_FREQUENCY_VALUE),
   unit: frequencyUnitSchema,
 })
 export type TreatmentFrequency = z.output<typeof treatmentFrequencySchema>
