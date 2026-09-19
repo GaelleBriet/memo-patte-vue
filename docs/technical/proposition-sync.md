@@ -399,7 +399,8 @@ confidentialité doit nommer une région précise.
    généreux, mais un utilisateur qui réinstalle sans se reconnecter verrait son délai courir sans le
    savoir. Vraie décision produit : la durée est affichée à l'utilisateur. (Relève de #88 / 11.7.)
 
-8. **Ajouter `@capacitor/network` ?** _Reco_ : oui. _Raison_ : `navigator.onLine` dans une WebView
+8. **Ajouter `@capacitor/network` ?** _Tranché le 2026-09-19 avec Gaelle, la reco est retenue._ _Reco_ :
+   oui. _Raison_ : `navigator.onLine` dans une WebView
    Android ne détecte ni portail captif ni sortie de Doze ; la reprise après retour du réseau
    dépendrait du seul backoff, soit jusqu'à quinze minutes d'attente. _Alternative écartée_ : s'en
    passer — une dépendance et un `cap sync` de moins, contre une synchronisation qui a l'air en panne

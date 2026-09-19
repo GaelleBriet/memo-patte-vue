@@ -1057,3 +1057,13 @@ qui réinstalle sans se reconnecter verrait son délai courir en réalité, sans
 pour l'en informer. — Pour revenir dessus : recalculer la purge sur la dernière
 date de synchronisation plutôt que sur la date d'expiration du droit Plus, et
 mettre à jour la politique de confidentialité en conséquence.
+
+2026-09-19 — **Épic sync, décision §7-8 tranchée avec Gaelle (`@capacitor/network`)
+: la reco est retenue.** Ajouter la dépendance pour détecter le retour du réseau.
+— Raison : `navigator.onLine` dans une WebView Android ne détecte ni portail
+captif ni sortie de mode Doze ; sans le plugin, la reprise après un retour de
+réseau dépend du seul backoff (jusqu'à 15 minutes d'attente avant qu'un cycle ne
+reparte de lui-même). — Alternative écartée : s'en passer — une dépendance et un
+`cap sync` de moins, mais la synchronisation aurait l'air en panne juste après le
+retour du réseau. — Pour revenir dessus : retirer la dépendance et le listener,
+laisser le seul backoff gérer la reprise.
