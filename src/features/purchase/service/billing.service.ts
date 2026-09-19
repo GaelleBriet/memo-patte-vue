@@ -6,7 +6,7 @@ import type {
   PurchasesPlugin,
 } from '@revenuecat/purchases-capacitor'
 
-import { plusStatusFrom, type PlusPlan, type PlusStatus } from './plus-status'
+import { plusStatusFrom, type PlusPlan, type PlusStatus } from '../logic/plus-status'
 
 export type PaidPlan = Exclude<PlusPlan, 'none'>
 

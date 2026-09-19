@@ -94,7 +94,7 @@ const ANIMALS_STORE_READ_ONLY = {
 // Exception actée au ticket #81 (decisions-log) : le statut Plus se lit au même
 // titre que l'entité animal — d'où `usePurchaseStore` seul autorisé.
 const PURCHASE_STORE_READ_ONLY = {
-  group: ['@/features/purchase/purchase.store'],
+  group: ['@/features/purchase/store/purchase.store'],
   allowImportNames: ['usePurchaseStore'],
   message:
     'Du statut Plus, une autre feature ne lit que usePurchaseStore (cf. CLAUDE.md, « Règles strictes de structure »).',
@@ -114,7 +114,8 @@ function featureImportsRule(feature: string, allowedElsewhere: string[] = []): L
           '!@/features/animals/store/animals.store',
           '!@/features/animals/schema',
           '!@/features/animals/schema/animal.schema',
-          '!@/features/purchase/purchase.store',
+          '!@/features/purchase/store',
+          '!@/features/purchase/store/purchase.store',
           ...allowedElsewhere.map((pattern) => `!${pattern}`),
         ],
         message:

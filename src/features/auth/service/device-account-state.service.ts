@@ -1,4 +1,4 @@
-import { clearPurchaseDeviceState } from '@/features/purchase/purchase-device-state.service'
+import { clearPurchaseDeviceState } from '@/features/purchase/service/purchase-device-state.service'
 import { clearUsageSignals } from '@/shared/utils/usage-signals'
 
 /**

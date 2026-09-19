@@ -3,9 +3,9 @@ import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
-import type { PaidPlan, PlusOffer } from './billing.service'
-import { MANAGE_SUBSCRIPTIONS_URL } from './google-play'
-import { usePurchaseStore } from './purchase.store'
+import type { PaidPlan, PlusOffer } from '../service/billing.service'
+import { MANAGE_SUBSCRIPTIONS_URL } from '../logic/google-play'
+import { usePurchaseStore } from '../store/purchase.store'
 import PushedScreen from '@/shared/components/PushedScreen.vue'
 import { showToast } from '@/shared/utils/toast'
 

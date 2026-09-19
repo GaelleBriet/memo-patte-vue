@@ -6,14 +6,19 @@ import {
   type PaidPlan,
   type PlusOffer,
   type PurchaseOutcome,
-} from './billing.service'
-import { NO_PLUS, subscriptionOf, type PlusStatus, type SubscriptionPlan } from './plus-status'
+} from '../service/billing.service'
+import {
+  NO_PLUS,
+  subscriptionOf,
+  type PlusStatus,
+  type SubscriptionPlan,
+} from '../logic/plus-status'
 import {
   NO_STORED_PLUS,
   readStoredPlusStatus,
   writeStoredPlusStatus,
   type StoredPlusStatus,
-} from './plus-status-storage'
+} from '../logic/plus-status-storage'
 import { track } from '@/core/analytics'
 import { errorSummary } from '@/shared/utils/error-summary'
 

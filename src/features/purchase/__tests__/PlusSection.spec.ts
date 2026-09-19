@@ -2,18 +2,18 @@ import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { BillingError, billingService, type BillingService } from '../billing.service'
-import PlusSection from '../PlusSection.vue'
-import { NO_PLUS, type PlusStatus } from '../plus-status'
-import { writeStoredPlusStatus } from '../plus-status-storage'
-import { usePurchaseStore } from '../purchase.store'
+import { BillingError, billingService, type BillingService } from '../service/billing.service'
+import PlusSection from '../views/PlusSection.vue'
+import { NO_PLUS, type PlusStatus } from '../logic/plus-status'
+import { writeStoredPlusStatus } from '../logic/plus-status-storage'
+import { usePurchaseStore } from '../store/purchase.store'
 import { memoryStorage } from './billing-fixture'
 import i18n from '@/core/i18n'
 import vuetify from '@/core/theme/vuetify'
 import router from '@/router'
 import { dismissToast, toastMessage } from '@/shared/utils/toast'
 
-vi.mock('../billing.service', async (importOriginal) => ({
+vi.mock('../service/billing.service', async (importOriginal) => ({
   ...(await importOriginal<object>()),
   billingService: {
     isAvailable: vi.fn<BillingService['isAvailable']>(() => true),

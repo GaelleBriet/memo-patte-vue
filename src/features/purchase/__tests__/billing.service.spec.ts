@@ -2,8 +2,8 @@
 import { Purchases, type PurchasesPlugin } from '@revenuecat/purchases-capacitor'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { BillingError, createBillingService, type BillingService } from '../billing.service'
-import { NO_PLUS } from '../plus-status'
+import { BillingError, createBillingService, type BillingService } from '../service/billing.service'
+import { NO_PLUS } from '../logic/plus-status'
 import {
   ANNUAL_PACKAGE,
   customerInfo,

@@ -7,8 +7,8 @@ import {
   markPlusNudgeShown,
   readPlusNudgeState,
   PLUS_NUDGE_STORAGE_KEY,
-} from '@/features/purchase/plus-nudge'
-import { PLUS_STATUS_STORAGE_KEY } from '@/features/purchase/plus-status-storage'
+} from '@/features/purchase/logic/plus-nudge'
+import { PLUS_STATUS_STORAGE_KEY } from '@/features/purchase/logic/plus-status-storage'
 import { readUsageSignals, USAGE_SIGNALS_STORAGE_KEY } from '@/shared/utils/usage-signals'
 
 import {

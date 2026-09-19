@@ -36,7 +36,7 @@ import WeightSection from '@/features/weight/views/WeightSection.vue'
 import { pickPhoto, type PickedPhoto } from '@/core/photos/photo-picker'
 import { forgetPhotoUrls } from '@/core/photos/use-photo-urls'
 import { memoryStorage } from '@/features/purchase/__tests__/billing-fixture'
-import { writeStoredPlusStatus } from '@/features/purchase/plus-status-storage'
+import { writeStoredPlusStatus } from '@/features/purchase/logic/plus-status-storage'
 import PdfExportSheet from '@/features/settings/PdfExportSheet.vue'
 
 vi.mock('@/core/photos/photo-picker', () => ({

@@ -4,13 +4,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { identify, reset as resetAnalytics } from '@/core/analytics'
 import { ANALYTICS_CONSENT_KEY } from '@/core/analytics/analytics'
-import { PLUS_NUDGE_STORAGE_KEY } from '@/features/purchase/plus-nudge'
+import { PLUS_NUDGE_STORAGE_KEY } from '@/features/purchase/logic/plus-nudge'
 import {
   PLUS_STATUS_STORAGE_KEY,
   readStoredPlusStatus,
   writeStoredPlusStatus,
-} from '@/features/purchase/plus-status-storage'
-import { usePurchaseStore } from '@/features/purchase/purchase.store'
+} from '@/features/purchase/logic/plus-status-storage'
+import { usePurchaseStore } from '@/features/purchase/store/purchase.store'
 import { USAGE_SIGNALS_STORAGE_KEY } from '@/shared/utils/usage-signals'
 
 import { AccountError } from '../logic/account-error'

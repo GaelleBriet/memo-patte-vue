@@ -1,7 +1,7 @@
 import { watch, type WatchSource } from 'vue'
 
 import { errorSummary } from '@/shared/utils/error-summary'
-import { usePurchaseStore } from './purchase.store'
+import { usePurchaseStore } from '../store/purchase.store'
 
 export type PlusAccountPort = {
   available: boolean

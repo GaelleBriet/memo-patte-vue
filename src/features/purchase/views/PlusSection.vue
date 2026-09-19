@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
 import ManageSubscriptionSection from './ManageSubscriptionSection.vue'
-import { usePurchaseStore } from './purchase.store'
+import { usePurchaseStore } from '../store/purchase.store'
 import { authAvailable } from '@/shared/utils/auth-available'
 import { formatNumericDate } from '@/shared/utils/format'
 import SectionCard from '@/shared/components/SectionCard.vue'

@@ -8,8 +8,8 @@ import { useAnimalsStore } from '../store/animals.store'
 import { useAnimalPhotoActions } from '../composables/use-animal-photo-actions'
 import { useForegroundRefresh } from '@/core/app-lifecycle/use-foreground-refresh'
 import { usePhotoUrls } from '@/core/photos/use-photo-urls'
-import PlusNudgeSection from '@/features/purchase/PlusNudgeSection.vue'
-import { usePurchaseStore } from '@/features/purchase/purchase.store'
+import PlusNudgeSection from '@/features/purchase/views/PlusNudgeSection.vue'
+import { usePurchaseStore } from '@/features/purchase/store/purchase.store'
 import type { PdfExportAnimal } from '@/features/settings/PdfExportSheet.vue'
 
 const PdfExportSheet = defineAsyncComponent(() => import('@/features/settings/PdfExportSheet.vue'))

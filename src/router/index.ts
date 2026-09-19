@@ -80,7 +80,7 @@ export const routes: RouteRecordRaw[] = [
   {
     path: '/plus',
     name: 'plus',
-    component: () => import('@/features/purchase/PlusView.vue'),
+    component: () => import('@/features/purchase/views/PlusView.vue'),
   },
   {
     path: '/sign-in',

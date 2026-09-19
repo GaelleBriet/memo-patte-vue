@@ -2,12 +2,12 @@
 import { nextTick, ref } from 'vue'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { BillingError } from '../billing.service'
+import { BillingError } from '../service/billing.service'
 import {
   createPlusAccountLink,
   installPlusAccountLink,
   type PlusAccountPort,
-} from '../plus-account-link.service'
+} from '../service/plus-account-link.service'
 
 const ALICE = '0f8fad5b-d9cb-469f-a165-70867728950e'
 const BOB = '7c9e6679-7425-40de-944b-e07fc1f90ae7'

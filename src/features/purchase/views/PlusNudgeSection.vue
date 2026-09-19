@@ -8,8 +8,8 @@ import {
   nextPlusNudge,
   stopPlusNudges,
   type PlusNudgeTrigger,
-} from './plus-nudge'
-import { usePurchaseStore } from './purchase.store'
+} from '../logic/plus-nudge'
+import { usePurchaseStore } from '../store/purchase.store'
 
 const props = defineProps<{ animalCount: number }>()
 
