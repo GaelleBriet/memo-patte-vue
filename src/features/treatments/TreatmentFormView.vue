@@ -18,7 +18,7 @@ import {
 } from './treatment.schema'
 import { useTreatmentsStore } from './treatments.store'
 import { useToday } from '@/core/app-lifecycle/use-today'
-import { useAnimalsStore } from '@/features/animals/animals.store'
+import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import { formatLongDate } from '@/shared/utils/format'
 import FormField from '@/shared/form/FormField.vue'
 import FormScreen from '@/shared/form/FormScreen.vue'

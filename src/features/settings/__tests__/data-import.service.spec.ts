@@ -13,7 +13,7 @@ import {
   MILO_WEIGHT_ID,
 } from './import-fixture'
 import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory-db'
-import { createAnimalsRepository } from '@/features/animals/animals.repository'
+import { createAnimalsRepository } from '@/features/animals/repository/animals.repository'
 import { createTreatmentsRepository } from '@/features/treatments/treatments.repository'
 import { createVaccinationsRepository } from '@/features/vaccinations/vaccinations.repository'
 import { createWeightRepository } from '@/features/weight/weight.repository'

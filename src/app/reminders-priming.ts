@@ -4,8 +4,11 @@ import type { Router } from 'vue-router'
 
 import { todayIsoDate } from '@/core/app-lifecycle/today-iso-date'
 import { shouldShowPriming } from '@/core/notifications'
-import type { Animal } from '@/features/animals/animal.schema'
-import { getAnimalsRepository, type AnimalsRepository } from '@/features/animals/animals.repository'
+import type { Animal } from '@/features/animals/schema/animal.schema'
+import {
+  getAnimalsRepository,
+  type AnimalsRepository,
+} from '@/features/animals/repository/animals.repository'
 import type { Treatment } from '@/features/treatments/treatment.schema'
 import {
   getTreatmentsRepository,

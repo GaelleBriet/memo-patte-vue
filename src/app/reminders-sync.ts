@@ -5,8 +5,11 @@ import {
   type Reminder,
   type ScheduledReminder,
 } from '@/core/notifications'
-import { getAnimalsRepository, type AnimalsRepository } from '@/features/animals/animals.repository'
-import { useAnimalsStore } from '@/features/animals/animals.store'
+import {
+  getAnimalsRepository,
+  type AnimalsRepository,
+} from '@/features/animals/repository/animals.repository'
+import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import { treatmentReminders } from '@/features/treatments/treatment-reminders'
 import {
   getTreatmentsRepository,

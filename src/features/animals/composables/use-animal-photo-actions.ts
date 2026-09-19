@@ -1,8 +1,8 @@
 import { ref, type Ref } from 'vue'
 
-import type { PhotoChange } from './animal-photo.service'
-import type { Animal, AnimalInput } from './animal.schema'
-import { useAnimalsStore } from './animals.store'
+import type { PhotoChange } from '../service/animal-photo.service'
+import type { Animal, AnimalInput } from '../schema/animal.schema'
+import { useAnimalsStore } from '../store/animals.store'
 import { pickPhoto } from '@/core/photos/photo-picker'
 
 export type AnimalPhotoError = 'animals.form.errors.photo' | 'animals.form.errors.save'

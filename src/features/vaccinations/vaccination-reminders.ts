@@ -1,5 +1,5 @@
 import type { Reminder } from '@/core/notifications'
-import type { Animal } from '@/features/animals/animal.schema'
+import type { Animal } from '@/features/animals/schema/animal.schema'
 import {
   DAYS_BEFORE_DUE,
   DAYS_OVERDUE,

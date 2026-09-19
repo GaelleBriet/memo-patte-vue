@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { simulateWebResume } from '@/core/app-lifecycle/__tests__/simulate-resume'
 import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory-db'
 import i18n from '@/core/i18n'
-import { createAnimalsRepository } from '@/features/animals/animals.repository'
+import { createAnimalsRepository } from '@/features/animals/repository/animals.repository'
 import { createTreatmentsRepository } from '@/features/treatments/treatments.repository'
 import { createVaccinationsRepository } from '@/features/vaccinations/vaccinations.repository'
 import {

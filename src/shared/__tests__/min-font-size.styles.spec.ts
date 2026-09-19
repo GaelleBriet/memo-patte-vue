@@ -23,8 +23,8 @@ function declaration(feuille: string, selecteur: string, propriete: string): str
 
 describe('aucun texte sous 12 px', () => {
   it.each([
-    ['src/features/animals/CarnetView.vue', '.carnet-stat__label'],
-    ['src/features/animals/CarnetView.vue', '.carnet-stat__sub'],
+    ['src/features/animals/views/CarnetView.vue', '.carnet-stat__label'],
+    ['src/features/animals/views/CarnetView.vue', '.carnet-stat__sub'],
     ['src/features/weight/WeightHistoryView.vue', '.weight-history__current-label'],
     ['src/shared/components/WeightSparkline.vue', '.weight-sparkline__months'],
     ['src/shared/components/BottomNavigation.vue', '.bottom-navigation :deep(.v-btn)'],

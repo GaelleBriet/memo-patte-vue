@@ -2,8 +2,11 @@ import { z } from 'zod'
 
 import { syncAllReminders } from '@/app/reminders-sync'
 import { photoExists } from '@/core/photos/photo-storage'
-import { animalInputSchema, animalSpeciesSchema } from '@/features/animals/animal.schema'
-import { getAnimalsRepository, type AnimalsRepository } from '@/features/animals/animals.repository'
+import { animalInputSchema, animalSpeciesSchema } from '@/features/animals/schema/animal.schema'
+import {
+  getAnimalsRepository,
+  type AnimalsRepository,
+} from '@/features/animals/repository/animals.repository'
 import { treatmentInputSchema, treatmentTypeSchema } from '@/features/treatments/treatment.schema'
 import {
   getTreatmentsRepository,

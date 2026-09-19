@@ -1,5 +1,5 @@
-import type { Animal, AnimalInput } from './animal.schema'
-import type { AnimalsRepository } from './animals.repository'
+import type { Animal, AnimalInput } from '../schema/animal.schema'
+import type { AnimalsRepository } from '../repository/animals.repository'
 import { deletePhoto, savePhoto, type PhotoStorage } from '@/core/photos/photo-storage'
 
 export type PhotoChange =

@@ -3,11 +3,15 @@ import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
-import { animalFormValuesFrom, emptyAnimalFormValues, validateAnimalForm } from './animal-form'
-import type { PhotoChange } from './animal-photo.service'
-import { ANIMAL_SPECIES, type Animal } from './animal.schema'
+import {
+  animalFormValuesFrom,
+  emptyAnimalFormValues,
+  validateAnimalForm,
+} from '../logic/animal-form'
+import type { PhotoChange } from '../service/animal-photo.service'
+import { ANIMAL_SPECIES, type Animal } from '../schema/animal.schema'
 import AnimalPhotoField from './AnimalPhotoField.vue'
-import { useAnimalsStore } from './animals.store'
+import { useAnimalsStore } from '../store/animals.store'
 import { useToday } from '@/core/app-lifecycle/use-today'
 import { pickPhoto } from '@/core/photos/photo-picker'
 import { usePhotoUrls } from '@/core/photos/use-photo-urls'

@@ -11,11 +11,11 @@ import {
   type MockInstance,
 } from 'vitest'
 
-import AnimalPhotoSheet from '../AnimalPhotoSheet.vue'
-import CarnetView from '../CarnetView.vue'
-import type { Animal } from '../animal.schema'
-import { provideAnimalsRepository, useAnimalsStore } from '../animals.store'
-import type { AnimalsRepository } from '../animals.repository'
+import AnimalPhotoSheet from '../views/AnimalPhotoSheet.vue'
+import CarnetView from '../views/CarnetView.vue'
+import type { Animal } from '../schema/animal.schema'
+import { provideAnimalsRepository, useAnimalsStore } from '../store/animals.store'
+import type { AnimalsRepository } from '../repository/animals.repository'
 import { simulateWebResume } from '@/core/app-lifecycle/__tests__/simulate-resume'
 import i18n from '@/core/i18n'
 import router from '@/router'

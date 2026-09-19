@@ -2,7 +2,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import i18n from '@/core/i18n'
-import type { Animal } from '@/features/animals/animal.schema'
+import type { Animal } from '@/features/animals/schema/animal.schema'
 import {
   createFakeNotifications,
   type FakeNotifications,

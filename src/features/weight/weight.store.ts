@@ -4,7 +4,7 @@ import { ref } from 'vue'
 import type { WeightEntry, WeightEntryInput, WeightEntryUpdateInput } from './weight.schema'
 import type { WeightRepository as FullWeightRepository } from './weight.repository'
 import { track } from '@/core/analytics'
-import { useAnimalsStore } from '@/features/animals/animals.store'
+import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import { recordUsageSignal } from '@/shared/utils/usage-signals'
 
 // Le store ne dépend que de ce qu'il appelle : la cascade de suppression (#102) n'est pas son affaire.

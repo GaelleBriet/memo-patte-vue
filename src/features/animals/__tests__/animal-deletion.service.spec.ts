@@ -22,8 +22,8 @@ import {
   animalDeletionService,
   createAnimalDeletionService,
   type AnimalDeletionService,
-} from '../animal-deletion.service'
-import { createAnimalsRepository, type AnimalsRepository } from '../animals.repository'
+} from '../service/animal-deletion.service'
+import { createAnimalsRepository, type AnimalsRepository } from '../repository/animals.repository'
 
 vi.mock('@/core/db/sqlite', () => ({ getDb: vi.fn<() => Promise<DbClient>>() }))
 vi.mock('@/core/notifications', () => ({

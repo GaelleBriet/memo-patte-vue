@@ -19,18 +19,18 @@ export const routes: RouteRecordRaw[] = [
   {
     path: '/animals',
     name: 'animals',
-    component: () => import('@/features/animals/CarnetView.vue'),
+    component: () => import('@/features/animals/views/CarnetView.vue'),
     meta: { rootScreen: true },
   },
   {
     path: '/animals/new',
     name: 'animal-new',
-    component: () => import('@/features/animals/AnimalFormView.vue'),
+    component: () => import('@/features/animals/views/AnimalFormView.vue'),
   },
   {
     path: '/animals/:id/edit',
     name: 'animal-edit',
-    component: () => import('@/features/animals/AnimalFormView.vue'),
+    component: () => import('@/features/animals/views/AnimalFormView.vue'),
     props: true,
   },
   {

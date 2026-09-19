@@ -1,6 +1,6 @@
 import type { DbClient, SqlStatement } from '@/core/db/db-client'
 import { getDb } from '@/core/db/sqlite'
-import { animalInputSchema, type Animal, type AnimalInput } from './animal.schema'
+import { animalInputSchema, type Animal, type AnimalInput } from '../schema/animal.schema'
 
 interface AnimalRow {
   id: string

@@ -11,7 +11,7 @@ import {
 import type { Vaccination } from './vaccination.schema'
 import { useVaccinationsStore } from './vaccinations.store'
 import { useToday } from '@/core/app-lifecycle/use-today'
-import { useAnimalsStore } from '@/features/animals/animals.store'
+import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import FormField from '@/shared/form/FormField.vue'
 import FormScreen from '@/shared/form/FormScreen.vue'
 import { useFormValidation } from '@/shared/form/use-form-validation'

@@ -2,9 +2,9 @@
 import { ZodError } from 'zod'
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 
-import type { Animal, AnimalInput } from '../animal.schema'
-import { createAnimalPhotoService, type PhotoChange } from '../animal-photo.service'
-import { createAnimalsRepository, type AnimalsRepository } from '../animals.repository'
+import type { Animal, AnimalInput } from '../schema/animal.schema'
+import { createAnimalPhotoService, type PhotoChange } from '../service/animal-photo.service'
+import { createAnimalsRepository, type AnimalsRepository } from '../repository/animals.repository'
 import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory-db'
 import type { PhotoStorage } from '@/core/photos/photo-storage'
 

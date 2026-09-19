@@ -1,6 +1,6 @@
 import type { z } from 'zod'
 
-import { animalInputSchema, type Animal, type AnimalSpecies } from './animal.schema'
+import { animalInputSchema, type Animal, type AnimalSpecies } from '../schema/animal.schema'
 
 export interface AnimalFormValues {
   name: string

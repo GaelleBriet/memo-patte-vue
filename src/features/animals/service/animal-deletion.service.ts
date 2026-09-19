@@ -14,7 +14,7 @@ import {
   reminderNotifications,
   type ReminderNotifications,
 } from '@/shared/domain/due-reminders-schedule'
-import { getAnimalsRepository, type AnimalsRepository } from './animals.repository'
+import { getAnimalsRepository, type AnimalsRepository } from '../repository/animals.repository'
 
 type Provider<T> = () => T | Promise<T>
 

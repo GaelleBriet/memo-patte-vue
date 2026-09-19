@@ -63,7 +63,7 @@ describe('zones de tap de 48 px, sans changement de rendu', () => {
   })
 
   it('étend la zone de « Retirer la photo » vers le bas, loin du bouton photo', () => {
-    const feuille = css('src/features/animals/AnimalPhotoField.vue')
+    const feuille = css('src/features/animals/views/AnimalPhotoField.vue')
 
     expect(declaration(feuille, '.animal-photo__remove::before', 'top')).toBe('0')
     expect(declaration(feuille, '.animal-photo__remove::before', 'height')).toBe('48px')

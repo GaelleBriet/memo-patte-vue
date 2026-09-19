@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { animalInputSchema } from '../animal.schema'
+import { animalInputSchema } from '../schema/animal.schema'
 
 const validInput = { name: 'Miette', species: 'cat' } as const
 

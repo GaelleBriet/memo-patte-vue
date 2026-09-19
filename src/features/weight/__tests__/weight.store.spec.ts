@@ -6,8 +6,8 @@ import type { WeightEntry, WeightEntryInput } from '../weight.schema'
 import type { WeightRepository } from '../weight.repository'
 import { provideWeightRepository, useWeightStore } from '../weight.store'
 import { track } from '@/core/analytics'
-import type { Animal } from '@/features/animals/animal.schema'
-import { useAnimalsStore } from '@/features/animals/animals.store'
+import type { Animal } from '@/features/animals/schema/animal.schema'
+import { useAnimalsStore } from '@/features/animals/store/animals.store'
 
 vi.mock('@/core/analytics', () => ({
   track: vi.fn<(event: string, properties?: Record<string, unknown>) => void>(),

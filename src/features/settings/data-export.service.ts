@@ -1,5 +1,8 @@
 import i18n from '@/core/i18n'
-import { getAnimalsRepository, type AnimalsRepository } from '@/features/animals/animals.repository'
+import {
+  getAnimalsRepository,
+  type AnimalsRepository,
+} from '@/features/animals/repository/animals.repository'
 import {
   getTreatmentsRepository,
   type TreatmentsRepository,

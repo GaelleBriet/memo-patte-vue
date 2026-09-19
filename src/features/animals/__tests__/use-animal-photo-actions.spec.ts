@@ -3,10 +3,10 @@ import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest'
 import { ref } from 'vue'
 
-import type { Animal, AnimalInput } from '../animal.schema'
-import type { PhotoChange } from '../animal-photo.service'
-import { useAnimalsStore } from '../animals.store'
-import { useAnimalPhotoActions } from '../use-animal-photo-actions'
+import type { Animal, AnimalInput } from '../schema/animal.schema'
+import type { PhotoChange } from '../service/animal-photo.service'
+import { useAnimalsStore } from '../store/animals.store'
+import { useAnimalPhotoActions } from '../composables/use-animal-photo-actions'
 import { pickPhoto, type PickedPhoto } from '@/core/photos/photo-picker'
 
 vi.mock('@/core/photos/photo-picker', () => ({

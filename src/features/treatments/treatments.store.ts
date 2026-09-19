@@ -8,7 +8,7 @@ import {
 import type { Treatment, TreatmentInput, TreatmentUpdateInput } from './treatment.schema'
 import type { TreatmentsRepository as FullTreatmentsRepository } from './treatments.repository'
 import { track } from '@/core/analytics'
-import { useAnimalsStore } from '@/features/animals/animals.store'
+import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import { recordUsageSignal } from '@/shared/utils/usage-signals'
 
 // Le store ne dépend que de ce qu'il appelle : la cascade de suppression (#102) n'est pas son affaire.

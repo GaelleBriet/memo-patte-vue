@@ -1,9 +1,12 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
-import type { Animal, AnimalInput } from './animal.schema'
-import { animalDeletionService, type AnimalDeletionService } from './animal-deletion.service'
-import { animalPhotoService, type PhotoChange } from './animal-photo.service'
-import type { AnimalsRepository } from './animals.repository'
+import type { Animal, AnimalInput } from '../schema/animal.schema'
+import {
+  animalDeletionService,
+  type AnimalDeletionService,
+} from '../service/animal-deletion.service'
+import { animalPhotoService, type PhotoChange } from '../service/animal-photo.service'
+import type { AnimalsRepository } from '../repository/animals.repository'
 import { track } from '@/core/analytics'
 import { recordUsageSignal } from '@/shared/utils/usage-signals'
 
