@@ -7,7 +7,14 @@ const NOW = '2026-09-13T10:00:00.000Z'
 
 describe('migrationTableNames', () => {
   it('liste toutes les tables créées par les migrations, dans leur ordre de création', () => {
-    expect(migrationTableNames()).toEqual(['animal', 'vaccination', 'weight_entry', 'treatment'])
+    expect(migrationTableNames()).toEqual([
+      'animal',
+      'vaccination',
+      'weight_entry',
+      'treatment',
+      'sync_outbox',
+      'sync_state',
+    ])
   })
 
   it('couvre chaque table réellement présente en base après migration', async () => {

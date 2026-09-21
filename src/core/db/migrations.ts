@@ -80,7 +80,52 @@ export const migrations: DbMigration[] = [
       `CREATE INDEX IF NOT EXISTS idx_treatment_animal_id ON treatment (animal_id);`,
     ],
   },
+  {
+    toVersion: 5,
+    statements: [
+      `CREATE TABLE IF NOT EXISTS sync_outbox (
+        entity TEXT NOT NULL,
+        entity_id TEXT NOT NULL,
+        queued_at TEXT NOT NULL,
+        attempts INTEGER NOT NULL DEFAULT 0,
+        PRIMARY KEY (entity, entity_id)
+      );`,
+      `CREATE TABLE IF NOT EXISTS sync_state (
+        id INTEGER PRIMARY KEY CHECK (id = 1),
+        enabled INTEGER NOT NULL DEFAULT 0,
+        last_pulled_at TEXT,
+        restoring INTEGER NOT NULL DEFAULT 0
+      );`,
+      `INSERT INTO sync_state (id, enabled, last_pulled_at, restoring) VALUES (1, 0, NULL, 0);`,
+      ...outboxTriggerStatements('animal'),
+      ...outboxTriggerStatements('vaccination'),
+      ...outboxTriggerStatements('treatment'),
+      ...outboxTriggerStatements('weight_entry'),
+    ],
+  },
 ]
+
+/**
+ * `DO UPDATE`, jamais `DO NOTHING` : une ligne déjà en file qui change une deuxième fois doit
+ * avancer `queued_at`, sinon la garde de fin d'entrée ne verrait pas la nouvelle modification.
+ */
+function outboxTriggerStatements(table: string): string[] {
+  const upsert = `
+      INSERT INTO sync_outbox (entity, entity_id, queued_at)
+      VALUES ('${table}', NEW.id, NEW.updated_at)
+      ON CONFLICT (entity, entity_id) DO UPDATE SET queued_at = excluded.queued_at;`
+
+  return [
+    `CREATE TRIGGER ${table}_outbox_insert AFTER INSERT ON ${table}
+     WHEN (SELECT enabled FROM sync_state WHERE id = 1) = 1
+     BEGIN${upsert}
+     END;`,
+    `CREATE TRIGGER ${table}_outbox_update AFTER UPDATE ON ${table}
+     WHEN (SELECT enabled FROM sync_state WHERE id = 1) = 1
+     BEGIN${upsert}
+     END;`,
+  ]
+}
 
 export const DATABASE_VERSION = migrations.reduce(
   (highest, migration) => Math.max(highest, migration.toVersion),
