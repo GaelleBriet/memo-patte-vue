@@ -1,5 +1,20 @@
 # Contexte en cours (à mettre à jour à chaque lot)
 
+- 2026-09-21 : **#313 fermé — pas un bug, testé en vrai sur le téléphone (build de prod et
+  `pnpm dev:mobile`).** En production, le sélecteur de photo s'ouvre du premier coup, à chaque
+  fois. En dev, seule la **toute première** navigation vers un écran neuf dans une session fraîche
+  peut couper un tap : Vite découvre à ce moment-là des composants Vuetify auto-importés
+  (`VBottomSheet`, `VChip`, `VBtnToggle`…) pas encore dans son cache, s'optimise à chaud et
+  recharge tout le live-reload (log Vite : « optimized dependencies changed. reloading »). Un
+  correctif ciblé (`optimizeDeps.include` sur `@capacitor/camera`) a été essayé et écarté : ce
+  n'était pas la bonne dépendance, donc aucun effet. **Piège général à retenir**, pas spécifique
+  aux photos : le premier tour d'un écran jamais visité dans la session `pnpm dev`/`pnpm dev:mobile`
+  en cours peut demander un deuxième essai — ça n'existe pas dans le vrai build (aucune
+  optimisation à chaud dans un bundle de prod).
+  **Incident de process signalé** : ce test a réinitialisé la base SQLite du téléphone plusieurs
+  fois (jetons `VITE_FIXTURES` différents à chaque relance) sans sauvegarde préalable, contrairement
+  à ce que dit `collaboration.md`. Aucune perte connue, mais la règle n'a pas été suivie — à corriger
+  la prochaine fois : sauvegarder la base avant tout test qui touche aux fixtures.
 - 2026-09-19 : **pause demandée par Gaelle — reprendre exactement ici.**
   - **PostHog : fait et vérifié de bout en bout.** Clé posée dans `.env`, consentement testé sur le
     téléphone (`pnpm dev:mobile`, `VITE_ANALYTICS_CONSENT=ask` nécessaire pour voir l'écran en
@@ -24,12 +39,8 @@
     candidats trouvés le 2026-09-19 (à revérifier au moment de reprendre, Gaelle a dit
     explicitement qu'elle prend mieux/plus simple si ça se présente d'ici là) :
     `@capawesome/capacitor-google-sign-in`, `@capgo/capacitor-social-login`.
-  - **#313 ouvert, pas encore investigué sur l'appareil.** Ajout de photo à la création d'un animal
-    échoue (« La photo n'a pas pu être chargée. Réessaie. »), le sélecteur système ne s'ouvre pas.
-    Écarté : régression du rangement de dossiers (#312, imports vérifiés bons), plugin caméra mal
-    enregistré côté natif (vérifié présent, bonne version, 8.2.4 des deux côtés). Piste la plus
-    probable, pas testée : `pnpm dev:mobile` tourne avec `--no-sync`, essayer
-    `npx cap sync android` + réinstallation complète avant de creuser le code.
+  - ~~#313 ouvert, pas encore investigué sur l'appareil~~ fermé depuis, pas un bug — voir l'entrée
+    du 2026-09-21 ci-dessus.
   - **Play Console / RevenueCat en pause côté Gaelle**, en attente de la création de sa
     micro-entreprise — rien à faire de mon côté tant que ce n'est pas réglé.
 - 2026-09-19 : **nettoyage de ce fichier** — deux entrées du 2026-09-16 corrigées après vérification (issues et branches réellement encore ouvertes) : `fix/conformite-maquettes` a atterri dans `main` depuis (le test qui verrouille le correctif, `row-title-wrap.styles.spec.ts`, y est) — la branche n'existe plus, rien à reprendre ; #66 et #67 (consentement analytics) sont fermées, réglées par la PR #269 mergée, la question de poids des boutons ne reste pas ouverte. Le reste de l'entrée du 2026-09-16 sur les dépendances externes (#187, #65, #47, PostHog, #8) reste exact, vérifié à la même date
