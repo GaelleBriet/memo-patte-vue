@@ -5,6 +5,14 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.34](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.33...memo-patte-v0.1.34) (2026-09-21)
+
+
+### 🐛 Corrections
+
+* **ci:** contourner supabase link, cassé avec les tokens à permissions fines ([03a4d5e](https://github.com/GaelleBriet/memo-patte-vue/commit/03a4d5eb61bd0446e7291f31a06a0025dc31ba82))
+* **ci:** contourner supabase link, cassé avec les tokens à permissions fines ([56d081a](https://github.com/GaelleBriet/memo-patte-vue/commit/56d081a8fa512c389146b184f16b68150f8ef41f))
+
 ## [0.1.33](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.32...memo-patte-v0.1.33) (2026-09-21)
 
 
