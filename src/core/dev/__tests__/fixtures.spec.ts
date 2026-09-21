@@ -101,7 +101,14 @@ describe('applyFixtures', () => {
     })
 
     expect(outcome).toBe('seeded')
-    expect(deletedTables(db)).toEqual(['treatment', 'weight_entry', 'vaccination', 'animal'])
+    expect(deletedTables(db)).toEqual([
+      'sync_state',
+      'sync_outbox',
+      'treatment',
+      'weight_entry',
+      'vaccination',
+      'animal',
+    ])
     expect(repositories.animals.create).toHaveBeenCalledTimes(2)
     expect(repositories.vaccinations.create).toHaveBeenCalledTimes(3)
     expect(repositories.treatments.create).toHaveBeenCalledTimes(2)
@@ -159,7 +166,7 @@ describe('applyFixtures', () => {
     })
 
     expect(outcome).toBe('reset')
-    expect(deletedTables(db)).toHaveLength(4)
+    expect(deletedTables(db)).toHaveLength(6)
     expect(repositories.animals.create).not.toHaveBeenCalled()
     expect(storage.getItem(FIXTURES_STORAGE_KEY)).toBe(EMPTY_FIXTURES_TOKEN)
   })

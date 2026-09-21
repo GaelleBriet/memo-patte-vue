@@ -31,7 +31,7 @@ afterEach(() => {
 
 describe('createSyncScheduler — debounce', () => {
   it('ne déclenche qu’un seul cycle pour plusieurs écritures rapprochées', async () => {
-    const runCycle = vi.fn().mockResolvedValue(undefined)
+    const runCycle = vi.fn<() => Promise<void>>().mockResolvedValue(undefined)
     const scheduler = createSyncScheduler({ runCycle, random: NO_JITTER })
 
     scheduler.notifyChange()
@@ -48,7 +48,7 @@ describe('createSyncScheduler — debounce', () => {
   })
 
   it('repousse le cycle tant que des écritures arrivent, dans la limite de 30 s', async () => {
-    const runCycle = vi.fn().mockResolvedValue(undefined)
+    const runCycle = vi.fn<() => Promise<void>>().mockResolvedValue(undefined)
     const scheduler = createSyncScheduler({ runCycle, random: NO_JITTER })
 
     for (let i = 0; i < 29; i += 1) {
@@ -64,7 +64,7 @@ describe('createSyncScheduler — debounce', () => {
   })
 
   it('programme un nouveau cycle pour une écriture arrivant après la fin du précédent', async () => {
-    const runCycle = vi.fn().mockResolvedValue(undefined)
+    const runCycle = vi.fn<() => Promise<void>>().mockResolvedValue(undefined)
     const scheduler = createSyncScheduler({ runCycle, random: NO_JITTER })
 
     scheduler.notifyChange()
@@ -79,7 +79,7 @@ describe('createSyncScheduler — debounce', () => {
 
 describe('createSyncScheduler — backoff', () => {
   it('suit la séquence 5 s, 15 s, 1 min, 5 min, 15 min puis reste au plafond', async () => {
-    const runCycle = vi.fn().mockRejectedValue(new Error('échec réseau'))
+    const runCycle = vi.fn<() => Promise<void>>().mockRejectedValue(new Error('échec réseau'))
     const scheduler = createSyncScheduler({ runCycle, random: NO_JITTER })
 
     scheduler.notifyChange()
@@ -97,7 +97,7 @@ describe('createSyncScheduler — backoff', () => {
 
   it('réinitialise le backoff après un cycle réussi', async () => {
     const runCycle = vi
-      .fn()
+      .fn<() => Promise<void>>()
       .mockRejectedValueOnce(new Error('échec'))
       .mockResolvedValueOnce(undefined)
       .mockRejectedValueOnce(new Error('échec'))
@@ -122,7 +122,10 @@ describe('createSyncScheduler — backoff', () => {
   })
 
   it('ajoute une gigue au délai de réessai', async () => {
-    const runCycle = vi.fn().mockRejectedValueOnce(new Error('échec')).mockResolvedValue(undefined)
+    const runCycle = vi
+      .fn<() => Promise<void>>()
+      .mockRejectedValueOnce(new Error('échec'))
+      .mockResolvedValue(undefined)
     const scheduler = createSyncScheduler({ runCycle, random: () => 0.5 })
 
     scheduler.notifyChange()
@@ -142,7 +145,7 @@ describe('createSyncScheduler — sérialisation', () => {
     const first = deferred<void>()
     const second = deferred<void>()
     const runCycle = vi
-      .fn()
+      .fn<() => Promise<void>>()
       .mockImplementationOnce(() => first.promise)
       .mockImplementationOnce(() => second.promise)
     const scheduler = createSyncScheduler({ runCycle, random: NO_JITTER })
@@ -169,7 +172,7 @@ describe('resumePendingSync', () => {
     await enableSync(db)
     await insertAnimal(db, ANIMAL_ID, '2026-01-01T00:00:00.000Z')
     const repository = createSyncOutboxRepository(db)
-    const runCycle = vi.fn().mockResolvedValue(undefined)
+    const runCycle = vi.fn<() => Promise<void>>().mockResolvedValue(undefined)
     const scheduler = createSyncScheduler({ runCycle, random: NO_JITTER })
 
     await resumePendingSync(repository, scheduler)
@@ -182,7 +185,7 @@ describe('resumePendingSync', () => {
   it('ne programme rien si la file est vide', async () => {
     const db = await createSyncTestDb()
     const repository = createSyncOutboxRepository(db)
-    const runCycle = vi.fn().mockResolvedValue(undefined)
+    const runCycle = vi.fn<() => Promise<void>>().mockResolvedValue(undefined)
     const scheduler = createSyncScheduler({ runCycle, random: NO_JITTER })
 
     await resumePendingSync(repository, scheduler)
