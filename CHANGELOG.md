@@ -5,6 +5,22 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.32](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.31...memo-patte-v0.1.32) (2026-09-21)
+
+
+### ✨ Fonctionnalités
+
+* **sync:** fondation de la file d'attente locale (Lot A) ([dc118b9](https://github.com/GaelleBriet/memo-patte-vue/commit/dc118b922f2a71888642d5b2b0a361c22e767618))
+* **sync:** migration v5, table sync_outbox/sync_state et triggers d'alimentation ([5cf2df9](https://github.com/GaelleBriet/memo-patte-vue/commit/5cf2df9bb1cde4c2b15c5cfc8bfc18f59c70cfba))
+* **sync:** repository sync_outbox/sync_state ([ad45e54](https://github.com/GaelleBriet/memo-patte-vue/commit/ad45e547182aeb4e6d795684d975988bd2994893))
+
+
+### 🐛 Corrections
+
+* **a11y:** remonter deux textes de l'écran Plus au minimum 12 px ([b4bafa9](https://github.com/GaelleBriet/memo-patte-vue/commit/b4bafa9bce19f4c75c94a24a34195de3fac408b9))
+* **a11y:** repasse accessibilité — écrans ajoutés depuis le 15/09 ([2c8a575](https://github.com/GaelleBriet/memo-patte-vue/commit/2c8a5757948ca0665005039cde678eec867dfdef))
+* **sync:** mettre à jour les tables attendues par clear-all-tables et les fixtures dev ([04918e4](https://github.com/GaelleBriet/memo-patte-vue/commit/04918e40cd85dd616705108566eecd4f2d559c27))
+
 ## [0.1.31](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.30...memo-patte-v0.1.31) (2026-09-19)
 
 
