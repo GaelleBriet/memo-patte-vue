@@ -8,6 +8,56 @@ Référentiel : WCAG 2.2 niveau AA pour les contrastes (4,5:1 texte courant, 3:1
 ≥ 18,66 px gras, 3:1 composants d'interface et icônes porteuses de sens) ; zone de tap de 48 dp
 (Material), 44 px au minimum ; aucun texte sous 12 px.
 
+## Repasse du 2026-09-21 : écrans ajoutés depuis, et tentative d'émulateur Android
+
+Le thème n'a toujours qu'une palette (`light`) : rien à vérifier côté sombre.
+
+**Contrastes, police, tap** : les paires de couleurs des statuts (`overdue` / `today` / `soon` /
+`up-to-date` / badge de fréquence) sont verrouillées par `contrast.spec.ts` et n'ont pas bougé.
+Revue des écrans ajoutés depuis le 2026-09-15 (Auth, Plus, Paramètres v2, sélection de photo) :
+tap targets et bordures déjà conformes (mixin `_tap-target.scss` appliqué partout où une icône
+seule sert de contrôle, lignes de réglage en 58 px). Deux textes sous 12 px trouvés dans
+`PlusView.vue`, non couverts par la passe du 15 (l'écran Plus n'existait pas encore) : l'en-tête du
+tableau comparatif (`.plus__comparison-head th`, 11,5 px) et le badge « Meilleure offre »
+(`.plus-offer__badge`, 11 px). Remontés à 12 px.
+
+**Deux tailles d'écran Android réelles** : tentative d'émulateur AVD, bloquée par l'environnement
+d'exécution de cet agent — `/dev/kvm` absent (pas d'accélération matérielle), et l'image système
+disponible (`android-36;google_apis;x86_64`) refuse de démarrer sans elle (« x86_64 emulation
+currently requires hardware acceleration! », aucun repli logiciel). AVD temporaire créé pour un
+Nexus 5 puis supprimé après l'échec ; l'AVD Pixel 6 existant (`memopatte-test`) n'a pas pu démarrer
+non plus, pour la même raison. Ce blocage est propre à cet environnement d'exécution, pas au projet
+: à refaire sur un poste avec KVM (machine de Gaelle) ou une CI à virtualisation imbriquée.
+
+À défaut, revérification à deux résolutions réelles d'appareil (Chromium headless piloté en CDP,
+carnet de démo Milo/Luna, viewport en dp exact d'un Nexus 5 et d'un Pixel 6 — pas une nouvelle
+émulation arbitraire, les deux tailles déjà utilisées le 2026-09-15) :
+
+| Taille | Appareil de référence | Écrans vérifiés |
+| --- | --- | --- |
+| 360 × 640 dp | Nexus 5 | Accueil, Carnet, formulaire animal, formulaire vaccin, Plus (dont le tableau comparatif) |
+| 412 × 915 dp | Pixel 6 | Accueil, Carnet, formulaire animal |
+
+Aucun texte coupé, aucun débordement, barre du bas et barre d'actions des formulaires utilisables
+aux deux tailles. Au plus étroit (360 px), la ligne « Antiparasitaire » du rappel Milo montre le
+comportement attendu du correctif `row-title-wrap.styles.spec.ts` (badge qui descend sous le
+titre) ; le sous-titre du header Carnet (race + âge) est tronqué à l'ellipse comme prévu par son
+`text-overflow: ellipsis`, sans coupure au milieu d'un mot.
+
+Ceci **ne remplace pas** un test sur émulateur ou appareil Android réel : reste un écart à couvrir
+hors de cet environnement pour clore complètement ce critère du ticket.
+
+**Complément same-day, sur le téléphone réel de Gaelle** (`pnpm test:device`, build de prod) :
+l'écran Plus corrigé s'affiche correctement, en-tête du tableau comparatif lisible, aucun
+débordement. Taille réelle mesurée (`adb shell wm size`/`wm density`) : 1080 × 2392 px à 420 dpi,
+soit ≈ 411 × 911 dp — très proche du Pixel 6 déjà utilisé en simulation, donc une confirmation sur
+matériel réel de cette taille-là, pas une deuxième taille distincte. Le badge « Meilleure offre »
+n'a pas pu être vérifié : aucune offre Google Play configurée, l'écran affiche
+« Les offres Google Play ne sont pas disponibles pour l'instant » à la place du tableau de prix.
+Animal de test créé pour atteindre l'écran Paramètres, supprimé ensuite par désinstallation complète
+et réinstallation d'un build `main` propre. Le critère « deux tailles Android » reste donc ouvert
+pour une taille réellement différente (petit écran), à couvrir sur un poste avec KVM.
+
 ## 1. Contrastes
 
 Ratios calculés sur les couleurs réellement rendues (couleur calculée du texte, fond composé des ancêtres),
@@ -185,4 +235,7 @@ Corrigé :
   feuille ouverte, focus sur le premier champ en erreur après un envoi refusé ;
 - Paramètres Android « Taille de police » au maximum et « Taille d'affichage » agrandie : la simulation ne
   reproduit pas exactement le zoom texte de la WebView (hauteurs de ligne en px, icônes) ;
-- zones de tap au doigt sur les chips du header, dont la zone agrandie déborde de 3 px sur le header.
+- zones de tap au doigt sur les chips du header, dont la zone agrandie déborde de 3 px sur le header ;
+- **émulateur ou appareil Android réel** (voir « Repasse du 2026-09-21 ») : non fait faute de
+  virtualisation matérielle dans l'environnement d'exécution de l'agent qui a tenté cette repasse ;
+  à faire sur un poste avec KVM.
