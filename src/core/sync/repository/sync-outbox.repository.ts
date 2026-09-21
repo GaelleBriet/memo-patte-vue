@@ -1,0 +1,96 @@
+import type { DbClient } from '@/core/db/db-client'
+
+export interface SyncOutboxEntry {
+  entity: string
+  entityId: string
+  queuedAt: string
+  attempts: number
+}
+
+interface SyncOutboxRow {
+  entity: string
+  entity_id: string
+  queued_at: string
+  attempts: number
+}
+
+interface SyncStateRow {
+  enabled: number
+  last_pulled_at: string | null
+  restoring: number
+}
+
+const ENTITY_ORDER = ['animal', 'vaccination', 'treatment', 'weight_entry']
+
+function toEntry(row: SyncOutboxRow): SyncOutboxEntry {
+  return {
+    entity: row.entity,
+    entityId: row.entity_id,
+    queuedAt: row.queued_at,
+    attempts: row.attempts,
+  }
+}
+
+export function createSyncOutboxRepository(db: DbClient) {
+  async function state(): Promise<SyncStateRow> {
+    const [row] = await db.query<SyncStateRow>(
+      'SELECT enabled, last_pulled_at, restoring FROM sync_state WHERE id = 1',
+    )
+    if (!row) throw new Error('sync_state introuvable : la migration v5 a-t-elle été jouée ?')
+    return row
+  }
+
+  return {
+    async isEnabled(): Promise<boolean> {
+      return (await state()).enabled === 1
+    },
+
+    async setEnabled(enabled: boolean): Promise<void> {
+      await db.run('UPDATE sync_state SET enabled = ? WHERE id = 1', [enabled ? 1 : 0])
+    },
+
+    async getLastPulledAt(): Promise<string | null> {
+      return (await state()).last_pulled_at
+    },
+
+    async setLastPulledAt(lastPulledAt: string | null): Promise<void> {
+      await db.run('UPDATE sync_state SET last_pulled_at = ? WHERE id = 1', [lastPulledAt])
+    },
+
+    async isRestoring(): Promise<boolean> {
+      return (await state()).restoring === 1
+    },
+
+    async setRestoring(restoring: boolean): Promise<void> {
+      await db.run('UPDATE sync_state SET restoring = ? WHERE id = 1', [restoring ? 1 : 0])
+    },
+
+    /** Ordre imposé par la clé étrangère Postgres au push : animal, vaccination, treatment, weight_entry. */
+    async listPending(): Promise<SyncOutboxEntry[]> {
+      const rows = await db.query<SyncOutboxRow>(
+        `SELECT entity, entity_id, queued_at, attempts FROM sync_outbox
+         ORDER BY CASE entity WHEN ? THEN 0 WHEN ? THEN 1 WHEN ? THEN 2 WHEN ? THEN 3 ELSE 4 END,
+                  queued_at`,
+        ENTITY_ORDER,
+      )
+      return rows.map(toEntry)
+    },
+
+    /** Ne retire l'entrée que si `queuedAt` n'a pas bougé depuis la lecture (§3.3 de la proposition). */
+    async removeIfUnchanged(
+      entry: Pick<SyncOutboxEntry, 'entity' | 'entityId' | 'queuedAt'>,
+    ): Promise<void> {
+      await db.run('DELETE FROM sync_outbox WHERE entity = ? AND entity_id = ? AND queued_at = ?', [
+        entry.entity,
+        entry.entityId,
+        entry.queuedAt,
+      ])
+    },
+
+    async clear(): Promise<void> {
+      await db.run('DELETE FROM sync_outbox')
+    },
+  }
+}
+
+export type SyncOutboxRepository = ReturnType<typeof createSyncOutboxRepository>
