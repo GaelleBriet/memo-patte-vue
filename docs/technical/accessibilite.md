@@ -47,6 +47,17 @@ titre) ; le sous-titre du header Carnet (race + âge) est tronqué à l'ellipse 
 Ceci **ne remplace pas** un test sur émulateur ou appareil Android réel : reste un écart à couvrir
 hors de cet environnement pour clore complètement ce critère du ticket.
 
+**Complément same-day, sur le téléphone réel de Gaelle** (`pnpm test:device`, build de prod) :
+l'écran Plus corrigé s'affiche correctement, en-tête du tableau comparatif lisible, aucun
+débordement. Taille réelle mesurée (`adb shell wm size`/`wm density`) : 1080 × 2392 px à 420 dpi,
+soit ≈ 411 × 911 dp — très proche du Pixel 6 déjà utilisé en simulation, donc une confirmation sur
+matériel réel de cette taille-là, pas une deuxième taille distincte. Le badge « Meilleure offre »
+n'a pas pu être vérifié : aucune offre Google Play configurée, l'écran affiche
+« Les offres Google Play ne sont pas disponibles pour l'instant » à la place du tableau de prix.
+Animal de test créé pour atteindre l'écran Paramètres, supprimé ensuite par désinstallation complète
+et réinstallation d'un build `main` propre. Le critère « deux tailles Android » reste donc ouvert
+pour une taille réellement différente (petit écran), à couvrir sur un poste avec KVM.
+
 ## 1. Contrastes
 
 Ratios calculés sur les couleurs réellement rendues (couleur calculée du texte, fond composé des ancêtres),
