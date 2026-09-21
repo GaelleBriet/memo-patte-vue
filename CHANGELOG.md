@@ -5,6 +5,14 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.33](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.32...memo-patte-v0.1.33) (2026-09-21)
+
+
+### ✨ Fonctionnalités
+
+* **ui:** bottom nav en capsule flottante ([317cd34](https://github.com/GaelleBriet/memo-patte-vue/commit/317cd341bf25617c474e5d8ac8e7877644d033dc))
+* **ui:** refonte de la bottom nav en capsule flottante ([339741f](https://github.com/GaelleBriet/memo-patte-vue/commit/339741fc5b696b3593f7bbf4f38f4df4854635f9)), closes [#327](https://github.com/GaelleBriet/memo-patte-vue/issues/327)
+
 ## [0.1.32](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.31...memo-patte-v0.1.32) (2026-09-21)
 
 
