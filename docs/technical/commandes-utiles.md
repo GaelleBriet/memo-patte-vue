@@ -214,6 +214,12 @@ Le job `android` tourne sur **toutes** les PR, sans filtre de chemins : il est p
 public (minutes Actions gratuites), et un filtre à tenir à jour aurait le même mode de défaillance silencieux que
 celui qui a motivé le ticket #260 — une CI verte qui ne construit rien.
 
+`.github/workflows/supabase-migrations.yml` pousse les migrations de `supabase/migrations/` vers le vrai projet
+Supabase (`supabase db push`) à chaque push sur `main`, sans filtre de chemins pour la même raison. `db push` est
+idempotent : il ne rejoue que ce qui manque, donc ce workflow rattrape aussi tout ce qui a pu être ajouté au dépôt
+avant sa mise en place. Secrets nécessaires : `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`,
+`SUPABASE_PROJECT_ID` (détail dans le coffre de notes de Gaelle, jamais dans le dépôt).
+
 Reproduire le job `android` en local :
 
 ```bash
