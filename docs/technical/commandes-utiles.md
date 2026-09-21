@@ -215,10 +215,13 @@ public (minutes Actions gratuites), et un filtre à tenir à jour aurait le mêm
 celui qui a motivé le ticket #260 — une CI verte qui ne construit rien.
 
 `.github/workflows/supabase-migrations.yml` pousse les migrations de `supabase/migrations/` vers le vrai projet
-Supabase (`supabase db push`) à chaque push sur `main`, sans filtre de chemins pour la même raison. `db push` est
-idempotent : il ne rejoue que ce qui manque, donc ce workflow rattrape aussi tout ce qui a pu être ajouté au dépôt
-avant sa mise en place. Secrets nécessaires : `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`,
-`SUPABASE_PROJECT_ID` (détail dans le coffre de notes de Gaelle, jamais dans le dépôt).
+Supabase (`supabase db push --db-url ...`) à chaque push sur `main`, sans filtre de chemins pour la même raison.
+`db push` est idempotent : il ne rejoue que ce qui manque, donc ce workflow rattrape aussi tout ce qui a pu être
+ajouté au dépôt avant sa mise en place. Passe par le **Session Pooler** (compatible IPv4, contrairement à la
+connexion directe) plutôt que par `supabase link` (cassé avec les tokens à permissions fines du Dashboard,
+[supabase/supabase#50244](https://github.com/supabase/supabase/issues/50244)) : aucun jeton de compte nécessaire.
+Secrets nécessaires : `SUPABASE_DB_PASSWORD`, `SUPABASE_PROJECT_ID`, `SUPABASE_POOLER_HOST` (détail dans le
+coffre de notes de Gaelle, jamais dans le dépôt).
 
 Reproduire le job `android` en local :
 
