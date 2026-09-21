@@ -67,13 +67,12 @@ describe('BottomNavigation', () => {
     expect(wrapper.text()).not.toContain('Finances')
   })
 
-  it("pose une barre pleine largeur et claire sur le bas de l'écran", () => {
-    const { nav } = mountNavigation()
+  it("pose une capsule flottante et claire au-dessus du bas de l'écran", () => {
+    const { wrapper, nav } = mountNavigation()
 
     expect(nav().element.tagName).toBe('NAV')
-    expect(nav().classes()).toContain('bg-surface')
-    expect(nav().classes()).toContain('v-bottom-navigation--grow')
-    expect(nav().classes()).toContain('elevation-0')
+    expect(nav().classes()).not.toContain('bg-surface')
+    expect(wrapper.find('.v-bottom-navigation__content').exists()).toBe(true)
   })
 
   it('réserve la zone de gestes Android sous les onglets', () => {
@@ -87,23 +86,19 @@ describe('BottomNavigation', () => {
     const { tabAt } = mountNavigation()
     await flushPromises()
 
-    // Le gris chaud de l'onglet inactif vient du style scopé, hors de portée de
-    // jsdom : on vérifie seulement qu'il ne prend pas le pétrole.
+    // `v-btn--selected` est la classe sur laquelle s'accroche le fond plein de
+    // l'onglet actif (voir BottomNavigation.styles.spec.ts) : c'est le contrat testable.
     expect(tabAt(0).classes()).toContain('v-btn--selected')
-    expect(tabAt(0).classes()).toContain('text-primary')
     expect(tabAt(0).attributes('aria-current')).toBe('page')
     expect(tabAt(1).classes()).not.toContain('v-btn--selected')
-    expect(tabAt(1).classes()).not.toContain('text-primary')
     expect(tabAt(1).attributes('aria-current')).toBeUndefined()
 
     await router.push({ name: 'animals' })
     await flushPromises()
 
     expect(tabAt(0).classes()).not.toContain('v-btn--selected')
-    expect(tabAt(0).classes()).not.toContain('text-primary')
     expect(tabAt(0).attributes('aria-current')).toBeUndefined()
     expect(tabAt(1).classes()).toContain('v-btn--selected')
-    expect(tabAt(1).classes()).toContain('text-primary')
     expect(tabAt(1).attributes('aria-current')).toBe('page')
   })
 

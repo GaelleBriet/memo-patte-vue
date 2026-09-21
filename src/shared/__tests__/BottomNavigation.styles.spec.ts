@@ -4,6 +4,8 @@ import { compileString } from 'sass'
 import { describe, expect, it } from 'vitest'
 
 import { heightBottomNav, paddingBottomNav } from '@/core/theme/layout-tokens'
+import vuetify from '@/core/theme/vuetify'
+import { contrastRatio, scssColorTokens } from '@/core/theme/__tests__/contrast'
 
 // Vitest tourne avec `css: false` : ce fichier compile le bloc `<style>` de la barre
 // et les tokens SCSS, et vérifie des déclarations, jamais la géométrie.
@@ -64,6 +66,71 @@ describe('BottomNavigation — contrat de style', () => {
     expect(declaration(css, '.bottom-navigation :deep(.v-btn--selected)', 'font-weight')).toBe(
       '700',
     )
+  })
+
+  it("flotte au-dessus du bas de l'écran, avec une marge visible sur les trois côtés", () => {
+    expect(declaration(css, '.bottom-navigation', 'background-color')).toBe('transparent')
+    expect(declaration(css, '.bottom-navigation', 'padding-inline')).toBe(
+      tokenScss('padding-section-inline'),
+    )
+    expect(declaration(css, '.bottom-navigation', 'padding-block')).toBe(
+      `0 ${tokenScss('padding-bottom-nav')}`,
+    )
+  })
+
+  it('donne à la capsule un fond clair et des coins en pilule', () => {
+    expect(
+      declaration(css, '.bottom-navigation :deep(.v-bottom-navigation__content)', 'border-radius'),
+    ).toBe(tokenScss('radius-pill'))
+    expect(
+      declaration(
+        css,
+        '.bottom-navigation :deep(.v-bottom-navigation__content)',
+        'background-color',
+      ),
+    ).toBe('rgb(var(--v-theme-surface))')
+  })
+
+  it("remplit l'onglet actif d'un fond plein primary, texte et icône en on-primary : pas qu'une couleur de texte", () => {
+    expect(declaration(css, '.bottom-navigation :deep(.v-btn--selected)', 'background-color')).toBe(
+      'rgb(var(--v-theme-primary))',
+    )
+    expect(declaration(css, '.bottom-navigation :deep(.v-btn--selected)', 'border-radius')).toBe(
+      tokenScss('radius-pill'),
+    )
+    expect(declaration(css, '.bottom-navigation :deep(.v-btn--selected)', 'color')).toBe(
+      tokenScss('color-on-primary'),
+    )
+  })
+
+  it("laisse l'onglet inactif sans remplissage, posé sur le fond de la capsule", () => {
+    expect(
+      declaration(
+        css,
+        '.bottom-navigation :deep(.v-btn:not(.v-btn--selected))',
+        'background-color',
+      ),
+    ).toBeUndefined()
+    expect(
+      declaration(css, '.bottom-navigation :deep(.v-btn:not(.v-btn--selected))', 'color'),
+    ).toBe(tokenScss('color-text-secondary'))
+  })
+})
+
+describe('BottomNavigation — contraste des deux états (WCAG AA)', () => {
+  const theme = vuetify.theme.themes.value.light!.colors
+  const tokensColor = scssColorTokens()
+
+  it('onglet actif : $color-on-primary sur primary', () => {
+    expect(
+      contrastRatio(tokensColor['color-on-primary']!, String(theme.primary)),
+    ).toBeGreaterThanOrEqual(4.5)
+  })
+
+  it('onglet inactif : $color-text-secondary sur surface', () => {
+    expect(
+      contrastRatio(tokensColor['color-text-secondary']!, String(theme.surface)),
+    ).toBeGreaterThanOrEqual(4.5)
   })
 })
 
