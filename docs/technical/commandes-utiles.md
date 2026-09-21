@@ -106,6 +106,20 @@ pnpm dev:mobile
   Le job `android` de la CI (§8) refait `pnpm cap:sync` et échoue si `android/` bouge : une PR qui laisse la
   dérive reste rouge jusqu'à ce que le fichier régénéré y soit commité.
 
+**Tester un build de production sur le téléphone (sans live-reload)**
+
+Utile pour vérifier un comportement observé en dev qui pourrait être un artefact du live-reload
+(voir #313 : la toute première navigation vers un écran neuf peut recharger la page, Vite
+découvrant à ce moment-là des composants Vuetify pas encore optimisés — ça n'existe pas dans un
+vrai build).
+
+```bash
+pnpm test:device   # build de prod, synchronise Android, installe et lance sur le téléphone branché
+```
+
+Une seule commande, un seul terminal : contrairement à `pnpm dev:mobile`, pas de serveur Vite à
+lancer en parallèle, et le comportement observé est celui qui part en production.
+
 ## 3. Inspecter l'app avec Chrome DevTools (optionnel)
 
 Utile pour voir la console JS, le réseau, inspecter le DOM — pendant que l'app tourne sur le téléphone (avec ou sans live-reload, ça marche dans les deux cas). Ce n'est **pas** un troisième mode de lancement, juste un outil de debug branché sur ce qui tourne déjà.
