@@ -411,7 +411,7 @@ async function restore(): Promise<void> {
 .plus__comparison-head th {
   padding-bottom: 6px;
   color: tokens.$color-hint;
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-align: start;
@@ -506,7 +506,7 @@ async function restore(): Promise<void> {
   border-radius: 999px;
   background: rgb(var(--v-theme-primary));
   color: tokens.$color-on-primary;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
 }
 
