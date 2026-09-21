@@ -22,8 +22,6 @@ const barHeight = heightBottomNav + paddingBottomNav
     :aria-label="t('nav.ariaLabel')"
     :height="barHeight"
     :elevation="0"
-    bg-color="surface"
-    color="primary"
     grow
   >
     <v-btn v-for="tab in tabs" :key="tab.route" :to="{ name: tab.route }" :value="tab.route">
@@ -37,8 +35,18 @@ const barHeight = heightBottomNav + paddingBottomNav
 @use '@/styles/tokens' as tokens;
 
 .bottom-navigation {
-  border-top: 1px solid tokens.$color-divider;
-  padding-bottom: tokens.$padding-bottom-nav;
+  padding-inline: tokens.$padding-section-inline;
+  padding-block: 0 tokens.$padding-bottom-nav;
+  background-color: transparent;
+}
+
+// Ce conteneur, généré par Vuetify autour des onglets, porte la capsule : pas besoin
+// d'un wrapper à nous. Le padding y ramène la hauteur des onglets à `$size-tap-target`.
+.bottom-navigation :deep(.v-bottom-navigation__content) {
+  padding: 4px;
+  border-radius: tokens.$radius-pill;
+  background-color: rgb(var(--v-theme-surface));
+  box-shadow: 0 6px 20px rgb(30 25 20 / 18%);
 }
 
 // Vuetify plafonne un onglet à 168 px : à deux onglets, il resterait un bord mort
@@ -62,6 +70,9 @@ const barHeight = heightBottomNav + paddingBottomNav
 }
 
 .bottom-navigation :deep(.v-btn--selected) {
+  border-radius: tokens.$radius-pill;
+  background-color: rgb(var(--v-theme-primary));
+  color: tokens.$color-on-primary;
   font-weight: 700;
 }
 </style>
