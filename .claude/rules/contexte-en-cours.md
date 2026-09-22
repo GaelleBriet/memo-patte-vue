@@ -1,10 +1,35 @@
 # Contexte en cours (à mettre à jour à chaque lot)
 
+- 2026-09-22 : **#39 mergé (PR #334)** — cycle push/pull réel, Lot C de la synchro. Port par table
+  (`core/sync/service/syncable-table.ts`) implémenté par les quatre repositories, `core/sync`
+  n'écrit ni SQL ni appel Supabase direct. Pagination du pull avec curseur repositionné à
+  `last_pulled_at` **pour chaque table** (pas chaîné d'une table à l'autre, sinon des modifications
+  d'une table pas encore parcourue seraient sautées). Ping-pong (§3.4) vérifié avec les vrais
+  triggers SQLite. `syncAllReminders()` rappelé après un pull touchant animal/vaccination/treatment
+  (#41 avancé). `@capacitor/network` ajouté, `android/` resynchronisé, vrai `assembleDebug` relancé.
+
+  **Point technique à retenir.** L'upsert atomique du doc, une seule requête avec condition sur
+  `updated_at`, n'est pas exprimable via PostgREST (pas de condition possible sur un upsert).
+  Remplacé par `guardedUpsert` (`core/supabase/guarded-upsert.ts`) : deux écritures indépendantes,
+  chacune atomique (mise à jour conditionnée puis création si absente). Analysé : sûr pour deux
+  appareils qui modifient la même ligne existante, le plus récent gagne quel que soit l'ordre.
+  Fenêtre théorique résiduelle seulement sur la création simultanée de la même ligne pour la toute
+  première fois par deux appareils à quelques ms d'intervalle — accepté comme compromis, une
+  fonction RPC réglerait ça si besoin un jour.
+
+  **Bug réel trouvé en testant contre une vraie instance Supabase locale** (jamais le vrai projet) :
+  PostgREST rend un horodatage avec un décalage `+00:00`, jamais avec un `Z` final — la garde SQLite,
+  une comparaison de chaînes, aurait pu juger une ligne distante plus ancienne à tort malgré un
+  instant identique. Corrigé par `normalize-sync-timestamps.ts`.
+
+  **Reste avant que ça serve à quelque chose en vrai** : #83 (amorçage à la souscription) est le seul
+  endroit qui doit activer `sync_state.enabled` — sans lui, la file de Lot A reste vide pour tout le
+  monde (sans effet pratique aujourd'hui, RevenueCat bloqué). #40 (restauration) reste aussi hors
+  scope.
+
 - 2026-09-22 : **Plugin Google tranché** — `@capawesome/capacitor-google-sign-in` (voir
   `docs/product/decisions-log.md` du jour). Le SIRET n'est toujours pas là (micro-entreprise pas
-  créée) : Play Console/RevenueCat restent en pause côté Gaelle. En parallèle, agent lancé sur #39
-  (push/pull, Lot C de la synchro) maintenant que le Lot B est réellement posé sur le vrai projet
-  Supabase (voir l'entrée du 2026-09-21 ci-dessous pour l'incident Symbaroum, réglé sans perte).
+  créée) : Play Console/RevenueCat restent en pause côté Gaelle.
 - 2026-09-21 : **#313 fermé — pas un bug, testé en vrai sur le téléphone (build de prod et
   `pnpm dev:mobile`).** En production, le sélecteur de photo s'ouvre du premier coup, à chaque
   fois. En dev, seule la **toute première** navigation vers un écran neuf dans une session fraîche
