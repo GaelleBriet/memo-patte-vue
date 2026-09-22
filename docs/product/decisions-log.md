@@ -1387,3 +1387,16 @@ garder chaque feature à plat pour éviter la question, contraire à la demande
 de Gaelle. — Pour revenir dessus : remettre `'../**'` et retirer les négations
 de dossier intermédiaire ; nécessaire seulement si la structure redevient
 plate.
+
+2026-09-22 — **Ticket #65, plugin Capacitor pour la connexion Google : `@capawesome/capacitor-google-sign-in`,
+tranché avec Gaelle.** Les deux candidats identifiés le 2026-09-19 exposent le même flux Credential
+Manager → ID token attendu par `signInWithIdToken`, tous deux compatibles Capacitor 8 et activement
+maintenus. — Raison : MémoPatte n'a besoin que de Google aujourd'hui, aucun document produit ne
+prévoit Apple ou un autre réseau ; un plugin mono-provider (~135 Ko) a moins de surface à auditer et
+rien à mal configurer par oubli. — Alternative écartée : `@capgo/capacitor-social-login` — 10× plus de
+téléchargements hebdomadaires et tout aussi actif, mais son seul vrai atout (mutualiser plusieurs
+providers) ne sert à rien tant qu'aucun autre réseau n'est prévu, et il existe précisément parce que le
+plugin multi-provider précédent (`codetrix-studio/capacitor-google-auth`) est tombé à l'abandon — un
+risque à ne pas payer pour une fonctionnalité inutilisée. — Pour revenir dessus : retirer
+`@capawesome/capacitor-google-sign-in`, installer `@capgo/capacitor-social-login` à la place ; aucun
+code natif n'est encore écrit à cette date, donc pas de migration à prévoir.

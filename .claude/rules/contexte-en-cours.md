@@ -1,5 +1,10 @@
 # Contexte en cours (à mettre à jour à chaque lot)
 
+- 2026-09-22 : **Plugin Google tranché** — `@capawesome/capacitor-google-sign-in` (voir
+  `docs/product/decisions-log.md` du jour). Le SIRET n'est toujours pas là (micro-entreprise pas
+  créée) : Play Console/RevenueCat restent en pause côté Gaelle. En parallèle, agent lancé sur #39
+  (push/pull, Lot C de la synchro) maintenant que le Lot B est réellement posé sur le vrai projet
+  Supabase (voir l'entrée du 2026-09-21 ci-dessous pour l'incident Symbaroum, réglé sans perte).
 - 2026-09-21 : **#313 fermé — pas un bug, testé en vrai sur le téléphone (build de prod et
   `pnpm dev:mobile`).** En production, le sélecteur de photo s'ouvre du premier coup, à chaque
   fois. En dev, seule la **toute première** navigation vers un écran neuf dans une session fraîche
@@ -15,6 +20,22 @@
   fois (jetons `VITE_FIXTURES` différents à chaque relance) sans sauvegarde préalable, contrairement
   à ce que dit `collaboration.md`. Aucune perte connue, mais la règle n'a pas été suivie — à corriger
   la prochaine fois : sauvegarder la base avant tout test qui touche aux fixtures.
+- 2026-09-21 : **CI des migrations Supabase mise en place** (`.github/workflows/supabase-migrations.yml`,
+  détail dans le coffre de notes de Gaelle, `docs/technical/supabase-migrations-ci.md`) — `supabase db
+push --db-url` vers le Session Pooler, sans `supabase link` (cassé avec les tokens à permissions
+  fines du Dashboard, [supabase/supabase#50244](https://github.com/supabase/supabase/issues/50244),
+  encore ouvert) ni jeton de compte. Rattrape d'un coup les six migrations du Lot B jamais appliquées
+  (miroir Postgres, droit Plus, RLS, bucket photos).
+  **Incident signalé** : Gaelle a posé par erreur les secrets GitHub d'un tout autre projet
+  (`symbaroum-bestiary`) sur le dépôt MémoPatte ; les six migrations sont donc parties sur la base
+  Symbaroum au lieu de MémoPatte. **Contenu, sans perte** : les migrations n'ont fait qu'ajouter des
+  objets nouveaux (4 tables, 2 fonctions, un bucket), jamais touché aux tables existantes de Symbaroum
+  (`monsters` et son `grant` intacts) — tout supprimé proprement par `drop ... if exists` (le bucket via
+  le Dashboard, la suppression directe des tables `storage.*` étant bloquée par
+  `storage.protect_delete()`). Mot de passe de la base Symbaroum réinitialisé par précaution. Les bons
+  secrets MémoPatte posés ensuite, migrations réellement appliquées sur le vrai projet, CI vérifiée
+  verte. **Réflexe à en retenir** : après avoir posé des secrets dans un dépôt, vérifier une fois le nom
+  du projet visé avant de relancer un job qui écrit dans une vraie base.
 - 2026-09-19 : **pause demandée par Gaelle — reprendre exactement ici.**
   - **PostHog : fait et vérifié de bout en bout.** Clé posée dans `.env`, consentement testé sur le
     téléphone (`pnpm dev:mobile`, `VITE_ANALYTICS_CONSENT=ask` nécessaire pour voir l'écran en
@@ -35,9 +56,9 @@
     (`cd android && ./gradlew signingReport`) — le SHA-1 de **release** attendra le premier upload
     Play Console, #53 n'étant pas fait (keystore pas créé) ; (3) déclarer dans Supabase → Auth →
     Providers → Google (client Web en principal, client Android en « Client ID supplémentaire
-    autorisé »). **Reste à trancher avant du code** : quel plugin Capacitor fait l'appel natif —
-    candidats trouvés le 2026-09-19 (à revérifier au moment de reprendre, Gaelle a dit
-    explicitement qu'elle prend mieux/plus simple si ça se présente d'ici là) :
+    autorisé »). ~~Reste à trancher avant du code : quel plugin Capacitor fait l'appel natif~~
+    tranché le 2026-09-22 : `@capawesome/capacitor-google-sign-in` (voir decisions-log). Candidats
+    comparés le 2026-09-19, à l'époque encore ouverts :
     `@capawesome/capacitor-google-sign-in`, `@capgo/capacitor-social-login`.
   - ~~#313 ouvert, pas encore investigué sur l'appareil~~ fermé depuis, pas un bug — voir l'entrée
     du 2026-09-21 ci-dessus.
