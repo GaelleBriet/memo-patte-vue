@@ -1,5 +1,10 @@
+import type { SupabaseClient } from '@supabase/supabase-js'
+
 import type { DbClient, SqlStatement } from '@/core/db/db-client'
 import { getDb } from '@/core/db/sqlite'
+import { guardedUpsert, type SyncRow } from '@/core/supabase/guarded-upsert'
+import { loadSupabaseClient } from '@/core/supabase/load-client'
+import { syncField, type SyncPullPage } from '@/core/sync/service/syncable-table'
 import {
   weightEntryInputSchema,
   weightEntryUpdateSchema,
@@ -38,7 +43,14 @@ function toWeightEntry(row: WeightEntryRow): WeightEntry {
   }
 }
 
-export function createWeightRepository(db: DbClient) {
+export interface WeightRepositoryDependencies {
+  loadSupabaseClient?: () => Promise<SupabaseClient>
+}
+
+export function createWeightRepository(
+  db: DbClient,
+  { loadSupabaseClient: loadClient = loadSupabaseClient }: WeightRepositoryDependencies = {},
+) {
   async function getById(id: string): Promise<WeightEntry | null> {
     const rows = await db.query<WeightEntryRow>(
       `SELECT ${COLUMNS} FROM weight_entry WHERE id = ? AND ${NOT_DELETED}`,
@@ -49,6 +61,8 @@ export function createWeightRepository(db: DbClient) {
   }
 
   return {
+    entity: 'weight_entry',
+
     getById,
 
     /** Ordre chronologique croissant : celui de la courbe, la liste inversée se fait à l'affichage. */
@@ -159,6 +173,60 @@ export function createWeightRepository(db: DbClient) {
             sql: `INSERT INTO weight_entry (${COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, NULL)`,
             params: [id, animalId, weightKg, measuredOn, createdAt, updatedAt],
           }
+    },
+
+    /** Tombstones compris : le push doit pouvoir renvoyer une suppression comme une ligne normale. */
+    async getRowForPush(id: string): Promise<SyncRow | null> {
+      const rows = await db.query<WeightEntryRow>(
+        `SELECT ${COLUMNS} FROM weight_entry WHERE id = ?`,
+        [id],
+      )
+      return (rows[0] as SyncRow | undefined) ?? null
+    },
+
+    async pushRow(userId: string, row: SyncRow): Promise<void> {
+      const supabase = await loadClient()
+      await guardedUpsert(supabase, 'weight_entry', ['user_id', 'id'], { ...row, user_id: userId })
+    },
+
+    async pullPage(userId: string, since: string, limit: number): Promise<SyncPullPage> {
+      const supabase = await loadClient()
+      const { data, error } = await supabase
+        .from('weight_entry')
+        .select(`${COLUMNS}, server_updated_at`)
+        .eq('user_id', userId)
+        .gte('server_updated_at', since)
+        .order('server_updated_at', { ascending: true })
+        .limit(limit)
+      if (error) throw error
+
+      const rows = (data ?? []) as Array<WeightEntryRow & { server_updated_at: string }>
+      const cursor = rows.length > 0 ? (rows.at(-1)?.server_updated_at ?? null) : null
+      return {
+        rows: rows.map(({ server_updated_at: _serverUpdatedAt, ...columns }) => columns as SyncRow),
+        cursor,
+      }
+    },
+
+    applyRemoteRowStatement(row: SyncRow): SqlStatement {
+      return {
+        sql: `INSERT INTO weight_entry (${COLUMNS})
+              VALUES (?, ?, ?, ?, ?, ?, ?)
+              ON CONFLICT (id) DO UPDATE SET
+                animal_id = excluded.animal_id, weight_kg = excluded.weight_kg,
+                measured_on = excluded.measured_on, created_at = excluded.created_at,
+                updated_at = excluded.updated_at, deleted_at = excluded.deleted_at
+              WHERE excluded.updated_at > weight_entry.updated_at`,
+        params: [
+          row.id,
+          syncField(row, 'animal_id'),
+          syncField(row, 'weight_kg'),
+          syncField(row, 'measured_on'),
+          syncField(row, 'created_at'),
+          row.updated_at,
+          syncField(row, 'deleted_at'),
+        ],
+      }
     },
   }
 }
