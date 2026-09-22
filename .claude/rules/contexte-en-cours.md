@@ -7,21 +7,26 @@
   d'une table pas encore parcourue seraient sautées). Ping-pong (§3.4) vérifié avec les vrais
   triggers SQLite. `syncAllReminders()` rappelé après un pull touchant animal/vaccination/treatment
   (#41 avancé). `@capacitor/network` ajouté, `android/` resynchronisé, vrai `assembleDebug` relancé.
-  **Point technique à retenir** : l'upsert atomique du doc (`on conflict … where excluded.updated_at
-  > table.updated_at`) n'est pas exprimable en une requête via PostgREST (pas de `where`sur un
-upsert) — remplacé par`guardedUpsert` (`core/supabase/guarded-upsert.ts`), deux écritures
-indépendantes chacune atomique (update conditionné puis insert-si-absent). Analysé : sûr pour deux
-appareils qui modifient la même ligne existante (le plus récent gagne quel que soit l'ordre) ;
-fenêtre théorique résiduelle uniquement sur la création simultanée de la **même ligne pour la toute
-première fois** par deux appareils à quelques ms d'intervalle — accepté comme compromis, une
-fonction RPC réglerait ça si besoin un jour. **Bug réel trouvé en testant contre une vraie instance
-Supabase locale** (jamais le vrai projet) : PostgREST rend un `timestamptz`en`+00:00`, jamais en
-`Z`— la garde SQLite (comparaison de chaînes) aurait pu juger une ligne distante « plus ancienne »
-à tort malgré un instant identique ; corrigé par`normalize-sync-timestamps.ts`.
-**Reste avant que ça serve à quelque chose en vrai** : #83 (amorçage à la souscription) est le seul
-endroit qui doit mettre `sync_state.enabled = 1` — sans lui, la file de Lot A reste vide pour tout
-  > le monde (sans effet pratique aujourd'hui, RevenueCat bloqué). #40 (restauration) reste aussi hors
-  > scope.
+
+  **Point technique à retenir.** L'upsert atomique du doc, une seule requête avec condition sur
+  `updated_at`, n'est pas exprimable via PostgREST (pas de condition possible sur un upsert).
+  Remplacé par `guardedUpsert` (`core/supabase/guarded-upsert.ts`) : deux écritures indépendantes,
+  chacune atomique (mise à jour conditionnée puis création si absente). Analysé : sûr pour deux
+  appareils qui modifient la même ligne existante, le plus récent gagne quel que soit l'ordre.
+  Fenêtre théorique résiduelle seulement sur la création simultanée de la même ligne pour la toute
+  première fois par deux appareils à quelques ms d'intervalle — accepté comme compromis, une
+  fonction RPC réglerait ça si besoin un jour.
+
+  **Bug réel trouvé en testant contre une vraie instance Supabase locale** (jamais le vrai projet) :
+  PostgREST rend un horodatage avec un décalage `+00:00`, jamais avec un `Z` final — la garde SQLite,
+  une comparaison de chaînes, aurait pu juger une ligne distante plus ancienne à tort malgré un
+  instant identique. Corrigé par `normalize-sync-timestamps.ts`.
+
+  **Reste avant que ça serve à quelque chose en vrai** : #83 (amorçage à la souscription) est le seul
+  endroit qui doit activer `sync_state.enabled` — sans lui, la file de Lot A reste vide pour tout le
+  monde (sans effet pratique aujourd'hui, RevenueCat bloqué). #40 (restauration) reste aussi hors
+  scope.
+
 - 2026-09-22 : **Plugin Google tranché** — `@capawesome/capacitor-google-sign-in` (voir
   `docs/product/decisions-log.md` du jour). Le SIRET n'est toujours pas là (micro-entreprise pas
   créée) : Play Console/RevenueCat restent en pause côté Gaelle.
