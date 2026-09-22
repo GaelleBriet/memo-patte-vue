@@ -5,6 +5,21 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.35](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.34...memo-patte-v0.1.35) (2026-09-22)
+
+
+### ✨ Fonctionnalités
+
+* **sync:** cycle push/pull, détection réseau et déclencheurs ([#39](https://github.com/GaelleBriet/memo-patte-vue/issues/39)) ([5666b19](https://github.com/GaelleBriet/memo-patte-vue/commit/5666b194578fd25eec034885d328361459431dce))
+* **sync:** cycle push/pull, détection réseau et déclencheurs ([#39](https://github.com/GaelleBriet/memo-patte-vue/issues/39)) ([e838d09](https://github.com/GaelleBriet/memo-patte-vue/commit/e838d09d68c89b4d3728add80293ebc4afafdeb8))
+* **sync:** implémente le port de synchro dans les quatre repositories ([dbc68c9](https://github.com/GaelleBriet/memo-patte-vue/commit/dbc68c94089915e81ebe95409d8a9977e5c843d6))
+* **sync:** port SyncableTable et upsert Supabase gardé contre la régression ([d1baf15](https://github.com/GaelleBriet/memo-patte-vue/commit/d1baf15828c7a92df7bb9b9650ad6996d715b9c4))
+
+
+### 🐛 Corrections
+
+* **contexte:** corrige la mise en forme mangled par prettier sur l'entrée [#39](https://github.com/GaelleBriet/memo-patte-vue/issues/39) ([eaa8b09](https://github.com/GaelleBriet/memo-patte-vue/commit/eaa8b090be8acefeff7b270de1c7a82bf7139928))
+
 ## [0.1.34](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.33...memo-patte-v0.1.34) (2026-09-21)
 
 
