@@ -7,6 +7,7 @@ import { installConsentGate } from '@/app/analytics-consent'
 import { installPageviewTracking } from '@/app/analytics-pageview'
 import { installLaunchPriming } from '@/app/reminders-priming'
 import { installRemindersSync } from '@/app/reminders-sync'
+import { createDefaultSyncDependencies, installSync } from '@/app/sync'
 import { initAnalytics } from '@/core/analytics'
 import { installBackButton } from '@/core/app-lifecycle/back-button'
 import vuetify from '@/core/theme/vuetify'
@@ -59,3 +60,4 @@ installLaunchPriming(router)
 void usePurchaseStore().verifyKnownStatus()
 installPlusAccountLink(() => useAuthStore().userId)
 void useAuthStore().restore()
+void createDefaultSyncDependencies().then(installSync)

@@ -1,5 +1,10 @@
+import type { SupabaseClient } from '@supabase/supabase-js'
+
 import type { DbClient, SqlStatement } from '@/core/db/db-client'
 import { getDb } from '@/core/db/sqlite'
+import { guardedUpsert, type SyncRow } from '@/core/supabase/guarded-upsert'
+import { loadSupabaseClient } from '@/core/supabase/load-client'
+import { syncField, type SyncPullPage } from '@/core/sync/service/syncable-table'
 import {
   vaccinationInputSchema,
   vaccinationUpdateSchema,
@@ -41,7 +46,14 @@ function toVaccination(row: VaccinationRow): Vaccination {
   }
 }
 
-export function createVaccinationsRepository(db: DbClient) {
+export interface VaccinationsRepositoryDependencies {
+  loadSupabaseClient?: () => Promise<SupabaseClient>
+}
+
+export function createVaccinationsRepository(
+  db: DbClient,
+  { loadSupabaseClient: loadClient = loadSupabaseClient }: VaccinationsRepositoryDependencies = {},
+) {
   async function getById(id: string): Promise<Vaccination | null> {
     const rows = await db.query<VaccinationRow>(
       `SELECT ${COLUMNS} FROM vaccination WHERE id = ? AND ${NOT_DELETED}`,
@@ -52,6 +64,8 @@ export function createVaccinationsRepository(db: DbClient) {
   }
 
   return {
+    entity: 'vaccination',
+
     getById,
 
     async listByAnimal(animalId: string): Promise<Vaccination[]> {
@@ -171,6 +185,62 @@ export function createVaccinationsRepository(db: DbClient) {
             sql: `INSERT INTO vaccination (${COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?, NULL)`,
             params: [id, animalId, name, lastInjectionDate, dueDate, createdAt, updatedAt],
           }
+    },
+
+    /** Tombstones compris : le push doit pouvoir renvoyer une suppression comme une ligne normale. */
+    async getRowForPush(id: string): Promise<SyncRow | null> {
+      const rows = await db.query<VaccinationRow>(
+        `SELECT ${COLUMNS} FROM vaccination WHERE id = ?`,
+        [id],
+      )
+      return (rows[0] as SyncRow | undefined) ?? null
+    },
+
+    async pushRow(userId: string, row: SyncRow): Promise<void> {
+      const supabase = await loadClient()
+      await guardedUpsert(supabase, 'vaccination', ['user_id', 'id'], { ...row, user_id: userId })
+    },
+
+    async pullPage(userId: string, since: string, limit: number): Promise<SyncPullPage> {
+      const supabase = await loadClient()
+      const { data, error } = await supabase
+        .from('vaccination')
+        .select(`${COLUMNS}, server_updated_at`)
+        .eq('user_id', userId)
+        .gte('server_updated_at', since)
+        .order('server_updated_at', { ascending: true })
+        .limit(limit)
+      if (error) throw error
+
+      const rows = (data ?? []) as Array<VaccinationRow & { server_updated_at: string }>
+      const cursor = rows.length > 0 ? (rows.at(-1)?.server_updated_at ?? null) : null
+      return {
+        rows: rows.map(({ server_updated_at: _serverUpdatedAt, ...columns }) => columns as SyncRow),
+        cursor,
+      }
+    },
+
+    applyRemoteRowStatement(row: SyncRow): SqlStatement {
+      return {
+        sql: `INSERT INTO vaccination (${COLUMNS})
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+              ON CONFLICT (id) DO UPDATE SET
+                animal_id = excluded.animal_id, name = excluded.name,
+                last_injection_date = excluded.last_injection_date, due_date = excluded.due_date,
+                created_at = excluded.created_at, updated_at = excluded.updated_at,
+                deleted_at = excluded.deleted_at
+              WHERE excluded.updated_at > vaccination.updated_at`,
+        params: [
+          row.id,
+          syncField(row, 'animal_id'),
+          syncField(row, 'name'),
+          syncField(row, 'last_injection_date'),
+          syncField(row, 'due_date'),
+          syncField(row, 'created_at'),
+          row.updated_at,
+          syncField(row, 'deleted_at'),
+        ],
+      }
     },
   }
 }

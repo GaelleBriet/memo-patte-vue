@@ -1,5 +1,10 @@
+import type { SupabaseClient } from '@supabase/supabase-js'
+
 import type { DbClient, SqlStatement } from '@/core/db/db-client'
 import { getDb } from '@/core/db/sqlite'
+import { guardedUpsert, type SyncRow } from '@/core/supabase/guarded-upsert'
+import { loadSupabaseClient } from '@/core/supabase/load-client'
+import { syncField, type SyncPullPage } from '@/core/sync/service/syncable-table'
 import { animalInputSchema, type Animal, type AnimalInput } from '../schema/animal.schema'
 
 interface AnimalRow {
@@ -39,7 +44,14 @@ function toAnimal(row: AnimalRow): Animal {
   }
 }
 
-export function createAnimalsRepository(db: DbClient) {
+export interface AnimalsRepositoryDependencies {
+  loadSupabaseClient?: () => Promise<SupabaseClient>
+}
+
+export function createAnimalsRepository(
+  db: DbClient,
+  { loadSupabaseClient: loadClient = loadSupabaseClient }: AnimalsRepositoryDependencies = {},
+) {
   async function getById(id: string): Promise<Animal | null> {
     const rows = await db.query<AnimalRow>(
       `SELECT ${COLUMNS} FROM animal WHERE id = ? AND ${NOT_DELETED}`,
@@ -50,6 +62,8 @@ export function createAnimalsRepository(db: DbClient) {
   }
 
   return {
+    entity: 'animal',
+
     getById,
 
     async list(): Promise<Animal[]> {
@@ -181,6 +195,61 @@ export function createAnimalsRepository(db: DbClient) {
     /** Joue en une transaction les instructions d'import de l'animal et de son carnet. */
     async runImport(statements: SqlStatement[]): Promise<void> {
       await db.runMany(statements)
+    },
+
+    /** Tombstones compris : le push doit pouvoir renvoyer une suppression comme une ligne normale. */
+    async getRowForPush(id: string): Promise<SyncRow | null> {
+      const rows = await db.query<AnimalRow>(`SELECT ${COLUMNS} FROM animal WHERE id = ?`, [id])
+      return (rows[0] as SyncRow | undefined) ?? null
+    },
+
+    async pushRow(userId: string, row: SyncRow): Promise<void> {
+      const supabase = await loadClient()
+      await guardedUpsert(supabase, 'animal', ['user_id', 'id'], { ...row, user_id: userId })
+    },
+
+    async pullPage(userId: string, since: string, limit: number): Promise<SyncPullPage> {
+      const supabase = await loadClient()
+      const { data, error } = await supabase
+        .from('animal')
+        .select(`${COLUMNS}, server_updated_at`)
+        .eq('user_id', userId)
+        .gte('server_updated_at', since)
+        .order('server_updated_at', { ascending: true })
+        .limit(limit)
+      if (error) throw error
+
+      const rows = (data ?? []) as Array<AnimalRow & { server_updated_at: string }>
+      const cursor = rows.length > 0 ? (rows.at(-1)?.server_updated_at ?? null) : null
+      return {
+        rows: rows.map(({ server_updated_at: _serverUpdatedAt, ...columns }) => columns as SyncRow),
+        cursor,
+      }
+    },
+
+    applyRemoteRowStatement(row: SyncRow): SqlStatement {
+      return {
+        sql: `INSERT INTO animal (${COLUMNS})
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              ON CONFLICT (id) DO UPDATE SET
+                name = excluded.name, species = excluded.species, breed = excluded.breed,
+                birth_date = excluded.birth_date, initial_weight_kg = excluded.initial_weight_kg,
+                photo_path = excluded.photo_path, created_at = excluded.created_at,
+                updated_at = excluded.updated_at, deleted_at = excluded.deleted_at
+              WHERE excluded.updated_at > animal.updated_at`,
+        params: [
+          row.id,
+          syncField(row, 'name'),
+          syncField(row, 'species'),
+          syncField(row, 'breed'),
+          syncField(row, 'birth_date'),
+          syncField(row, 'initial_weight_kg'),
+          syncField(row, 'photo_path'),
+          syncField(row, 'created_at'),
+          row.updated_at,
+          syncField(row, 'deleted_at'),
+        ],
+      }
     },
   }
 }
