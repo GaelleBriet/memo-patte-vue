@@ -1447,3 +1447,8 @@ elle-même (doc du plugin et code de la 8.1.3).
 
 7) **La fenêtre d'affichage de la liste « À faire » (un vaccin à 337 jours s'y affiche) se décide
 en session de brainstorming, après le lot en cours** (#344).
+
+8) **Le bouton « Ouvrir » du toast qui confirme un enregistrement (maquette B3) est reporté à plus
+tard** (#349), hors du lot de #343. — Raison : il demande un outil d'ouverture de fichier absent de
+l'app (nouvelle dépendance et réglage Android), et le toast dit déjà où se trouve le fichier ; Gaelle
+le veut, mais plus tard. — Alternative écartée : l'ajouter dans ce lot.
