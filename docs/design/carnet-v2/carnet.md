@@ -111,10 +111,20 @@ Carte unique contenant :
       (`24,5 kg`, 12 px / 600, texte `#F9F4EE`). Quand la dernière pesée est
       aussi la plus haute ou la plus basse, seule la pastille l'écrit. Une
       étiquette dont le point touche un bord s'aligne sur ce bord
+    - aucune étiquette ne chevauche la pastille : quand « max » la toucherait,
+      il passe sous son point, la pastille ne bouge pas (décision de Gaelle,
+      2026-09-23)
+    - la rangée des mois est 10 px plus bas que la ligne de base ne
+      l'exigerait : « min » ne la touche jamais, même pour un chiot qui passe
+      de 5 à 30 kg
 - sous la courbe, les mois (12 px / 500, `#736E67`) : un libellé au début de
-  chaque mois, avec un petit trait de repère, un sur deux au-delà de six mois ;
-  le mois de départ, partiel, est écrit au début de l'axe s'il reste la place
-  avant le premier changement de mois. Plus aucun libellé par pesée
+  chaque mois, avec un petit trait de repère. Au-delà de six changements de
+  mois, un libellé tous les 2, 3, 6 ou 12 mois, le plus petit pas qui en garde
+  au plus six (un sur deux jusqu'à 12 mois). Le mois de départ, partiel, est
+  écrit au début de l'axe s'il reste la place avant le premier libellé. Le
+  dernier mois ne déborde jamais : quand la place manque après son trait, son
+  libellé finit au bout de l'axe ; s'il touche alors le libellé précédent,
+  c'est le précédent qui s'efface. Plus aucun libellé par pesée
 - dernière ligne séparée par un filet : icône `add` + **« Ajouter une pesée »**.
 
 ### 7. Bottom navigation

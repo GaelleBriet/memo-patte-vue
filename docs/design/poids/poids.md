@@ -63,16 +63,22 @@ saisie reste dans la feuille pesée (`pesee.md`).
 - Piste D, choisie le 2026-09-23 (#340). Même tracé que la courbe du Carnet
   (`carnet.md` §6) : axe horizontal proportionnel au temps, polyline pétrole
   2 px, voile pétrole à 10 % d'opacité, points de 4 px cerclés de 2 px couleur
-  surface, mois sous la courbe (un au début de chaque mois, un sur deux
-  au-delà de six mois, mois de départ partiel écrit au début de l'axe s'il
-  reste la place). Courbe plus haute : 190 px.
+  surface, mois sous la courbe avec les mêmes règles : un libellé au début de
+  chaque mois, puis tous les 2, 3, 6 ou 12 mois pour en garder au plus six,
+  mois de départ partiel écrit s'il reste la place, dernier mois jamais
+  débordant. Courbe plus haute : 190 px.
 - Échelle verticale : 3 à 5 lignes de repère horizontales `#ECE6DE` en kg
   ronds, au pas de 0,1 / 0,2 / 0,5 / 1 / 2 / 5 / 10 kg, le plus petit qui
   tient en cinq lignes en encadrant les pesées. La ligne du bas est le
   multiple du pas juste sous la pesée la plus légère : jamais une échelle
-  forcée à zéro. Chiffres à gauche des lignes (12 px, `#736E67`, sans
-  décimale inutile : `24`, `24,5`), unité « kg » au-dessus de l'axe (12 px /
-  500). Aucun chiffre sur les points.
+  forcée à zéro. Deux exceptions acceptées par Gaelle le 2026-09-23 :
+    - l'axe descend jusqu'à 0 kg quand les pesées s'en approchent (un chaton
+      de 0,9 à 4 kg donne un axe de 0 à 6 kg) ;
+    - au-delà d'environ 40 kg d'écart, le pas reste de 10 kg et l'axe compte
+      plus de cinq lignes.
+- Chiffres à gauche des lignes (12 px, `#736E67`, sans décimale inutile :
+  `24`, `24,5`), unité « kg » au-dessus de l'axe (12 px / 500). Aucun chiffre
+  sur les points.
 - Toucher ou glisser sur la courbe sélectionne la pesée la plus proche : trait
   vertical `#736E67` de 1 px sur toute la hauteur du tracé, point agrandi à
   6 px de rayon. La sélection reste en place quand le doigt se lève. Au repos,
