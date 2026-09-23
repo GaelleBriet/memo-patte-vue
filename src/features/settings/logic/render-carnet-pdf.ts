@@ -8,7 +8,6 @@ import type { CarnetPdfContent, PdfDueState } from './pdf-content'
 const PAGE_WIDTH_MM = 210
 const MARGIN_MM = 18
 const CONTENT_WIDTH_MM = PAGE_WIDTH_MM - 2 * MARGIN_MM
-const CHART_GAP_MM = 4
 const PHOTO_SIZE_MM = 24
 
 const STATE_LABEL_KEYS: Record<PdfDueState, string> = {
@@ -155,15 +154,14 @@ function renderWeightSection(
     return y + 10
   }
 
-  const chartTop = y + CHART_GAP_MM
   doc.saveGraphicsState()
   const chartHeight = drawWeightChart(doc, content.weightEntries, {
     x: MARGIN_MM,
-    y: chartTop,
+    y,
     width: CONTENT_WIDTH_MM,
   })
   doc.restoreGraphicsState()
-  if (chartHeight !== null) y = chartTop + chartHeight + 7
+  if (chartHeight !== null) y += chartHeight + 7
 
   for (const entry of content.weightEntries) {
     doc.text(formatNumericDate(entry.measuredOn), MARGIN_MM, y)

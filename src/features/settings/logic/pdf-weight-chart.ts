@@ -29,7 +29,8 @@ const CAP_HEIGHT_EM = 0.718
 const PETROL = '#01383E'
 // Voile pétrole à 10 % déjà mêlé au blanc de la page : aucune transparence à imprimer.
 const AREA = '#E6EBEC'
-const GRID = '#ECE6DE'
+// Gris de la bordure de champ, plus soutenu que celui du Carnet : le gris d'écran pâlit à l'impression.
+const GRID = '#B6ADA1'
 const MONTH = '#736E67'
 const VALUE = '#2F2722'
 const ON_PETROL = '#F9F4EE'

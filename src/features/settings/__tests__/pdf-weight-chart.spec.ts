@@ -97,7 +97,7 @@ const PALETTE: Record<string, string> = {
   'color-text-meta': tokens['color-text-meta']!,
   'color-chart-value': tokens['color-chart-value']!,
   'color-on-primary': tokens['color-on-primary']!,
-  'color-chart-grid': tokens['color-chart-grid']!,
+  'color-field-border': tokens['color-field-border']!,
 }
 
 function nomDe(couleur: string): string | undefined {
@@ -343,7 +343,7 @@ describe('drawWeightChart — lisible à l’impression', () => {
     for (const text of texts) expect(text.sizePt).toBeGreaterThanOrEqual(9)
   })
 
-  it('reprend les couleurs du Carnet', () => {
+  it('reprend les couleurs du Carnet, traits gris de la bordure de champ pour l’impression', () => {
     const { texts, paths } = dessine(LUNA_1_AN)
     const traits = paths.filter((path) => path.paint === 'S' && path !== courbe(paths))
 
@@ -359,7 +359,7 @@ describe('drawWeightChart — lisible à l’impression', () => {
     expect(pastille(paths)).toBeDefined()
     expect(centres(paths)).toHaveLength(LUNA_1_AN.length)
     expect(traits.length).toBeGreaterThan(1)
-    for (const trait of traits) expect(nomDe(trait.stroke)).toBe('color-chart-grid')
+    for (const trait of traits) expect(nomDe(trait.stroke)).toBe('color-field-border')
   })
 
   it('pose le voile pétrole du Carnet sur le blanc de la page, sans transparence', () => {

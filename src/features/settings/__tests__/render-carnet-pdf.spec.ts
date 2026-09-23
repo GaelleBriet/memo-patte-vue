@@ -1,7 +1,9 @@
+import { jsPDF } from 'jspdf'
 import { describe, expect, it } from 'vitest'
 
+import { drawWeightChart } from '../logic/pdf-weight-chart'
 import { renderCarnetPdf } from '../logic/render-carnet-pdf'
-import { readPdf, sameColor, type PdfText } from './pdf-reader'
+import { readPdf, sameColor, type PdfPath, type PdfText } from './pdf-reader'
 import type { CarnetPdfContent } from '../logic/pdf-content'
 import vuetify from '@/core/theme/vuetify'
 
@@ -115,6 +117,23 @@ describe('renderCarnetPdf — courbe de poids', () => {
 
     expect(tracesDeLaCourbe).toEqual([])
     expect(texts.map((text) => text.text)).toEqual(expect.arrayContaining(['01/06/2026', '4,3 kg']))
+  })
+
+  it('commence la courbe sous le titre « Poids » comme la première ligne d’une section', () => {
+    const content = { ...FULL_CONTENT, weightEntries: PESEES_IRREGULIERES }
+    const { texts, paths } = readPdf(renderCarnetPdf(content, '0.1.24', null))
+    const seule = new jsPDF({ unit: 'mm', format: 'a4' })
+    drawWeightChart(seule, PESEES_IRREGULIERES, { x: 18, y: 0, width: 174 })
+    const ligneDeBase = (traces: PdfPath[]) =>
+      traces.find((path) => path.paint === 'S')!.points[0]!.y
+    const hautDeLaCourbe =
+      ligneDeBase(paths) - ligneDeBase(readPdf(new Uint8Array(seule.output('arraybuffer'))).paths)
+    const baseline = (text: string) => texts.find((item) => item.text === text)!.baseline
+
+    expect(hautDeLaCourbe - baseline('Poids')).toBeCloseTo(
+      baseline('Rage') - baseline('Vaccins'),
+      2,
+    )
   })
 
   it('écrit les pesées sous la courbe, du même style que les autres lignes du carnet', () => {
