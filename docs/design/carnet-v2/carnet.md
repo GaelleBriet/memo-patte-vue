@@ -98,10 +98,23 @@ Carte unique contenant :
 - poids actuel en gros (Space Grotesk, 26 px) + unité `kg`
 - delta en vert : `+0,5 kg vs août`
 - à droite, lien **« Voir l'historique »** + chevron
-- courbe SVG simple : polyline pétrole 2 px, un point par pesée, valeur écrite
-  au-dessus de chaque point (`23,6`, `23,8`…), sans axes ni grille
-- sous la courbe, les libellés de période : `Juin`, `Juil.`, `Août`, `Sept.`,
-  `Oct.`, `Nov.`
+- courbe SVG, à partir de deux pesées (piste C, choisie le 2026-09-23, #340) :
+    - axe horizontal proportionnel au temps : la position d'une pesée suit sa
+      date, la première au bord gauche, la dernière au bord droit
+    - échelle verticale bornée au min / max avec 0,3 kg de marge, sans
+      graduation ni grille ; une ligne de base `#ECE6DE` sous la courbe
+    - polyline pétrole 2 px, voile pétrole à 10 % d'opacité dessous, points de
+      4 px de rayon cerclés de 2 px couleur surface
+    - trois chiffres seulement : le plus haut au-dessus de son point
+      (`max 24,5`), le plus bas dessous (`min 23,6`), 12 px / 600 `#2F2722`, et
+      la dernière pesée dans une pastille pétrole au-dessus du dernier point
+      (`24,5 kg`, 12 px / 600, texte `#F9F4EE`). Quand la dernière pesée est
+      aussi la plus haute ou la plus basse, seule la pastille l'écrit. Une
+      étiquette dont le point touche un bord s'aligne sur ce bord
+- sous la courbe, les mois (12 px / 500, `#736E67`) : un libellé au début de
+  chaque mois, avec un petit trait de repère, un sur deux au-delà de six mois ;
+  le mois de départ, partiel, est écrit au début de l'axe s'il reste la place
+  avant le premier changement de mois. Plus aucun libellé par pesée
 - dernière ligne séparée par un filet : icône `add` + **« Ajouter une pesée »**.
 
 ### 7. Bottom navigation
@@ -145,6 +158,8 @@ Spécifiques au Carnet :
 | Badge « À jour » fond / texte | `oklch(94.5% 0.03 150)` / `oklch(41% 0.065 150)` | `#DFF3E2` / `#2F5437` |
 | Badge « En retard » fond / texte | `oklch(94.5% 0.04 27)` / `oklch(45% 0.15 27)` | `#FFE3DF` / `#972622` |
 | Badge de fréquence fond / texte / bordure | `oklch(95.5% 0.006 78)` / `oklch(46% 0.012 70)` / `oklch(92% 0.008 78)` | `#F2F0EC` / `#5C5751` / `#E7E4DF` |
+| Ligne de base et traits des mois de la courbe (`$color-chart-grid`) | — | `#ECE6DE` |
+| Plus haut / plus bas écrits sur la courbe (`$color-chart-value`) | `oklch(28% 0.015 60)` | `#2F2722` |
 
 Le badge « Pas de rappel » (vaccin sans `due_date`) réutilise exactement le
 style du badge de fréquence ci-dessus, sans icône. Pas de nouveau token à
