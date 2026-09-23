@@ -64,8 +64,9 @@ pnpm cap:open:android            # ouvre le projet dans Android Studio
 `VITE_DEV_PLAN` choisit le statut Plus simulé, écrit au lancement en dev seulement : `lifetime`
 (défaut de `dev:plus`), `annual`, `monthly`, `expired` (abonnement mensuel échu depuis peu) ou `none`
 (retour au gratuit), par exemple `VITE_DEV_PLAN=expired pnpm dev`. Sans la variable, le statut déjà
-gardé reste tel quel. Limite : avec une clé RevenueCat dans `.env`, la revérification au lancement
-sur le téléphone remplace le statut simulé.
+gardé reste tel quel. Limite : avec une clé RevenueCat dans `.env`, sur le téléphone, la revérification
+au lancement et la connexion à un compte remplacent le statut simulé ; sans achat de test, `lifetime`
+repasse au gratuit, `annual` et `monthly` s'affichent « expiré », `expired` reste expiré.
 
 Avant de committer :
 

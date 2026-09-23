@@ -59,7 +59,7 @@ describe('applyDevPlusStatus', () => {
     ],
     ['expired', EXPIRED_MONTHLY],
   ])('« %s » écrit le statut Plus correspondant', (requested, expected) => {
-    applyDevPlusStatus(requested, NOW)
+    applyDevPlusStatus(requested)
 
     expect(readStoredPlusStatus()).toEqual(expected)
   })
@@ -67,7 +67,7 @@ describe('applyDevPlusStatus', () => {
   it('« none » revient au gratuit et efface la mémoire d’abonnement', () => {
     writeStoredPlusStatus(EXPIRED_MONTHLY)
 
-    applyDevPlusStatus('none', NOW)
+    applyDevPlusStatus('none')
 
     expect(readStoredPlusStatus()).toEqual({
       plan: 'none',
@@ -78,7 +78,7 @@ describe('applyDevPlusStatus', () => {
   })
 
   it('« expired » se lit comme un abonnement mensuel échu', () => {
-    applyDevPlusStatus('expired', NOW)
+    applyDevPlusStatus('expired')
 
     const purchase = usePurchaseStore()
     expect(purchase.status).toEqual(NO_PLUS)
@@ -90,7 +90,7 @@ describe('applyDevPlusStatus', () => {
     const setItem = vi.spyOn(localStorage, 'setItem')
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
 
-    applyDevPlusStatus(requested, NOW)
+    applyDevPlusStatus(requested)
 
     expect(setItem).not.toHaveBeenCalled()
     expect(warn).not.toHaveBeenCalled()
@@ -100,7 +100,7 @@ describe('applyDevPlusStatus', () => {
     const setItem = vi.spyOn(localStorage, 'setItem')
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
 
-    applyDevPlusStatus('gold', NOW)
+    applyDevPlusStatus('gold')
 
     expect(setItem).not.toHaveBeenCalled()
     expect(warn).toHaveBeenCalledOnce()

@@ -88,9 +88,10 @@ VITE_DEV_PLAN=none pnpm dev             # retour au gratuit
 - Sans la variable, rien n'est écrit : le statut déjà gardé reste, y compris celui d'un `dev:plus` précédent.
   Pour revenir au gratuit, `VITE_DEV_PLAN=none`.
 - Une valeur inconnue n'écrit rien et laisse un avertissement dans la console.
-- **Limite** : avec une clé RevenueCat dans `.env` (`VITE_REVENUECAT_GOOGLE_KEY`), la revérification au
-  lancement interroge RevenueCat sur le téléphone et remplace le statut simulé par le droit que RevenueCat
-  connaît (aucun, sans achat de test). Dans le navigateur, RevenueCat n'est jamais appelé : le statut simulé reste.
+- **Limite** : avec une clé RevenueCat dans `.env` (`VITE_REVENUECAT_GOOGLE_KEY`), sur le téléphone, la
+  revérification au lancement et la connexion à un compte remplacent le statut simulé. Sans achat de test,
+  `lifetime` repasse au gratuit, `annual` et `monthly` s'affichent « expiré » (l'app garde le dernier abonnement
+  connu) et `expired` reste expiré. Dans le navigateur, RevenueCat n'est jamais appelé : le statut simulé reste.
 - Rien de ce code ne part en production : `pnpm build-only && pnpm test:build` le vérifie.
 
 ## 2. Dev sur Android, avec hot reload

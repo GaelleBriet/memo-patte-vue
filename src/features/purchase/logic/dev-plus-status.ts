@@ -16,7 +16,7 @@ const DEV_PLANS = new Map<string, (now: Date) => WritablePlusStatus>([
   ['none', () => NO_STORED_PLUS],
 ])
 
-export function applyDevPlusStatus(requested: string | undefined, now = new Date()): void {
+export function applyDevPlusStatus(requested: string | undefined): void {
   if (!requested) return
   const statusAt = DEV_PLANS.get(requested)
   if (!statusAt) {
@@ -25,5 +25,5 @@ export function applyDevPlusStatus(requested: string | undefined, now = new Date
     )
     return
   }
-  writeStoredPlusStatus(statusAt(now))
+  writeStoredPlusStatus(statusAt(new Date()))
 }
