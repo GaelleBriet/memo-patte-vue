@@ -1,6 +1,15 @@
 # Contexte en cours (à mettre à jour à chaque lot)
 
-- 2026-09-23 : **reprendre ici.** Gaelle a commencé à vérifier sur son téléphone le travail
+- 2026-09-23 (suite) : **reprendre ici.** Lot « retours de navigation » lancé, tickets #339 à #344
+  (décisions au journal du jour). En cours par agents : #339 (accueil à un seul animal) et #340
+  (courbe de poids, pistes C et D ; page de propositions hors dépôt). **Bloqués par une maquette
+  Claude Design** dont le prompt a été donné à Gaelle : #341 (pastille Plus sur l'icône PDF), #342
+  (écran Plus revu), #343 (« Enregistrer sous » + « Partager » ; attend aussi le choix du plugin
+  natif). #344 (fenêtre de la liste « À faire ») : session de brainstorming après le lot. Question 2
+  ci-dessous : ce lot passe en premier, l'ordre des tickets de synchro (#83, #40, #87…) reste à
+  fixer avec Gaelle après.
+
+- 2026-09-23 : **point de départ de la journée.** Gaelle a commencé à vérifier sur son téléphone le travail
   livré (`pnpm dev:mobile` depuis son dépôt principal). Deux questions lui ont été posées, la
   première est tranchée ; elle revient avec des retours de navigation dans l'app.
 
