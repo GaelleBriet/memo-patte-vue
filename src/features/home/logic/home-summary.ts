@@ -66,7 +66,6 @@ export type UpToDateInput = {
 
 export function upToDateText(t: Translate, { animalName, allNames }: UpToDateInput): string {
   if (animalName !== null) return t('home.upToDate.forAnimal', { name: animalName })
-  if (allNames.length === 1) return t('home.upToDate.forOne', { name: allNames[0] })
   const head = allNames.slice(0, -1).join(t('home.upToDate.namesSeparator'))
   const names = [head, allNames.at(-1)].join(t('home.upToDate.namesLast'))
   return t('home.upToDate.forMany', { names })

@@ -307,7 +307,6 @@
     "upToDate": {
       "title": "All up to date",
       "forAnimal": "No upcoming reminders for {name}.",
-      "forOne": "{name} has no upcoming reminders.",
       "forMany": "{names} have no upcoming reminders.",
       "namesSeparator": ", ",
       "namesLast": " and ",
