@@ -1,8 +1,8 @@
 # Contexte en cours (à mettre à jour à chaque lot)
 
 - 2026-09-23 : **reprendre ici.** Gaelle a commencé à vérifier sur son téléphone le travail
-  livré (`pnpm dev:mobile` depuis son dépôt principal). Deux questions lui ont été posées, sans
-  réponse encore.
+  livré (`pnpm dev:mobile` depuis son dépôt principal). Deux questions lui ont été posées, la
+  première est tranchée ; elle revient avec des retours de navigation dans l'app.
 
   **Premier retour, pas un bug de l'app** : sur l'écran « Avant de commencer », les boutons
   semblaient morts. Ils recevaient bien le tap (vérifié par `elementFromPoint`) et le choix était
@@ -17,9 +17,9 @@
   y figuraient, donc App, Camera, Filesystem, Share et Network étaient « not implemented on
   android » en dev. Remède immédiat donné : `pnpm cap:sync` une fois, puis `pnpm dev:mobile`.
 
-  **Question 1 en attente** : faire lancer `cap update android` par `dev:mobile` avant le
-  `cap run` (régénère la liste des plugins sans build web, quelques secondes). Recommandé plutôt
-  qu'une consigne « relancer `cap:sync` après un ajout de plugin », qui repose sur la mémoire.
+  **Question 1 tranchée par Gaelle** : `dev:mobile` lance désormais `cap update android` avant le
+  `cap run` (liste des plugins régénérée sans build web, une seconde), et un `cap:sync` complet
+  seulement si le dépôt n'a jamais été synchronisé. Plus de consigne à retenir.
 
   **Question 2 en attente** : quel lot lancer maintenant que #39 est mergé. Candidats : #83
   (amorçage de la synchro à la souscription), #40 (restauration), #87 (suppression de compte,
