@@ -1,5 +1,6 @@
 // Vérifie qu'aucun outil de développement ne part en production : ni les fixtures
-// (`src/core/dev/`), ni la SQLite du navigateur (`jeep-sqlite`, `sql-wasm.wasm`).
+// (`src/core/dev/`), ni le statut Plus simulé (`dev-plus-status.ts`), ni la SQLite du
+// navigateur (`jeep-sqlite`, `sql-wasm.wasm`).
 // Lit le `dist/` déjà produit, sans relancer de build : `pnpm build-only && pnpm test:build`.
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join, relative } from 'node:path'
@@ -10,10 +11,15 @@ const ASSETS = join(DIST, 'assets')
 /**
  * Marqueurs techniques uniquement, jamais les noms du carnet de démo : un placeholder
  * légitime (« Ex. Milo », « Ex. Bravecto ») les reprend. `memo-patte:demo-carnet` est
- * `DEMO_CARNET_MARKER` (`src/core/dev/demo-carnet.ts`), lu à l'exécution par les fixtures.
+ * `DEMO_CARNET_MARKER` (`src/core/dev/demo-carnet.ts`), lu à l'exécution par les fixtures ;
+ * `memo-patte:dev-plus-status` est `DEV_PLUS_STATUS_MARKER`, lu par le statut Plus simulé.
  */
-const DEV_MARKERS = ['memo-patte:demo-carnet', 'memo-patte:fixtures-token']
-const DEV_CHUNK = /fixtures|demo-carnet/
+const DEV_MARKERS = [
+  'memo-patte:demo-carnet',
+  'memo-patte:fixtures-token',
+  'memo-patte:dev-plus-status',
+]
+const DEV_CHUNK = /fixtures|demo-carnet|dev-plus-status/
 
 /**
  * Pas `jeep-sqlite` : le plugin SQLite web, légitime dans le build, cite ce nom.
@@ -41,7 +47,7 @@ for (const file of allFiles) {
 
 for (const file of codeFiles) {
   const name = relative(DIST, file)
-  if (DEV_CHUNK.test(name)) failures.push(`${name} : chunk des fixtures présent dans le build`)
+  if (DEV_CHUNK.test(name)) failures.push(`${name} : chunk de dev présent dans le build`)
 
   const content = readFileSync(file, 'utf8')
   for (const marker of [...DEV_MARKERS, ...WEB_SQLITE_MARKERS]) {
@@ -58,5 +64,5 @@ if (failures.length > 0) {
 }
 
 process.stdout.write(
-  `✓ Ni fixtures ni SQLite du navigateur dans les ${allFiles.length} fichiers de ${DIST}\n`,
+  `✓ Ni fixtures, ni statut Plus simulé, ni SQLite du navigateur dans les ${allFiles.length} fichiers de ${DIST}\n`,
 )

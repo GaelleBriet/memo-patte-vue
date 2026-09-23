@@ -13,6 +13,8 @@ interface ImportMetaEnv {
   readonly VITE_APP_VERSION: string
   /** Posée par `pnpm dev:data` (`maquettes-<horodatage>`), absente sinon. Voir `src/core/dev/fixtures.ts`. */
   readonly VITE_FIXTURES?: string
+  /** Statut Plus écrit au lancement en dev (`pnpm dev:plus`). Voir `src/features/purchase/logic/dev-plus-status.ts`. */
+  readonly VITE_DEV_PLAN?: string
   /** `ask` : montre l'écran de consentement dans l'aperçu navigateur de `pnpm dev`, qui l'écarte sinon. */
   readonly VITE_ANALYTICS_CONSENT?: string
 }

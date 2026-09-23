@@ -58,6 +58,42 @@ Points propres à un changement de machine :
 pnpm dev
 ```
 
+### Statut MémoPatte Plus simulé
+
+Tant que RevenueCat n'est pas branché, `pnpm dev:plus` lance le serveur de dev avec un statut « Plus à vie » :
+pastille Plus absente, export PDF ouvert, écran Plus « déjà membre ». Le statut est écrit au lancement de l'app
+par la persistance normale du statut Plus (`memopatte.plus.status`), en dev seulement, et l'app se comporte
+comme avec un vrai droit.
+
+`VITE_DEV_PLAN` choisit l'état simulé ; la variable seule suffit, avec `pnpm dev`, `pnpm dev:data` ou
+`pnpm dev:plus` :
+
+| `VITE_DEV_PLAN`                | Statut écrit                                                               |
+| ------------------------------ | -------------------------------------------------------------------------- |
+| `lifetime` (défaut `dev:plus`) | Plus à vie                                                                 |
+| `annual`                       | abonnement annuel, échéance dans un an                                     |
+| `monthly`                      | abonnement mensuel, échéance dans un mois                                  |
+| `expired`                      | abonnement mensuel échu il y a trois jours : « expiré » dans Paramètres    |
+| `none`                         | retour au gratuit, mémoire de l'abonnement effacée                         |
+
+```bash
+pnpm dev:plus                           # Plus à vie
+VITE_DEV_PLAN=expired pnpm dev          # abonnement échu
+VITE_DEV_PLAN=lifetime pnpm dev:data    # Plus à vie avec le carnet de démo (export PDF)
+VITE_DEV_PLAN=none pnpm dev             # retour au gratuit
+```
+
+- Le serveur Vite porte la variable : `pnpm dev:mobile` à côté donne le même statut au téléphone.
+- Le statut est réécrit à chaque chargement de page tant que la variable est posée.
+- Sans la variable, rien n'est écrit : le statut déjà gardé reste, y compris celui d'un `dev:plus` précédent.
+  Pour revenir au gratuit, `VITE_DEV_PLAN=none`.
+- Une valeur inconnue n'écrit rien et laisse un avertissement dans la console.
+- **Limite** : avec une clé RevenueCat dans `.env` (`VITE_REVENUECAT_GOOGLE_KEY`), sur le téléphone, la
+  revérification au lancement et la connexion à un compte remplacent le statut simulé. Sans achat de test,
+  `lifetime` repasse au gratuit, `annual` et `monthly` s'affichent « expiré » (l'app garde le dernier abonnement
+  connu) et `expired` reste expiré. Dans le navigateur, RevenueCat n'est jamais appelé : le statut simulé reste.
+- Rien de ce code ne part en production : `pnpm build-only && pnpm test:build` le vérifie.
+
 ## 2. Dev sur Android, avec hot reload
 
 Deux choses tournent en parallèle : le serveur Vite et l'app Android
