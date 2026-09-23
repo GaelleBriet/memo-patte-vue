@@ -49,7 +49,9 @@ prochain rappel à venir ou en retard.
 - Sélection :
     - non sélectionnée = fond crème, bordure fine
     - **sélectionnée = fond `#01383E`, texte clair, anneau clair de 2 px**
-    - re-cliquer sur la chip active revient à la vue « tous les animaux »
+    - re-cliquer sur la chip active revient à la vue « tous les animaux »,
+      sauf avec un seul animal : sa chip est toujours sélectionnée
+      (decisions-log du 2026-09-23)
 
 ### 3. Section « À faire »
 
@@ -131,6 +133,8 @@ spécification de comportement.
 | **A3** | Animal sélectionné, aucun rappel | état « Tout est à jour » + sous-texte nominatif |
 | **A4** | Tous les animaux, aucun rappel | état « Tout est à jour » + sous-texte listant les animaux |
 | **A5** | Premier lancement, aucun animal | écran plein, sans header ni chips |
+
+Avec un seul animal, l'accueil n'est jamais en A1 ni A4 : sa chip est toujours sélectionnée.
 
 **Détail de A5 (premier lancement)** :
 

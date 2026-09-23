@@ -563,6 +563,72 @@ describe('HomeView — A4 tous les animaux, aucun rappel', () => {
   })
 })
 
+describe('HomeView — un seul animal', () => {
+  beforeEach(() => {
+    animals = [MILO]
+  })
+
+  function chipsPressees(wrapper: ReturnType<typeof mount>) {
+    return wrapper.findAll('.animal-chip').map((chip) => chip.attributes('aria-pressed'))
+  }
+
+  it('s’ouvre sur sa chip sélectionnée, compteur et liste à son nom', async () => {
+    sources = [ANTIPARASITAIRE_MILO_3J, CHPPIL_MILO_RETARD]
+    const wrapper = await monter()
+
+    expect(chipsPressees(wrapper)).toEqual(['true'])
+    expect(wrapper.get('.home-todo .section-card__counter').text()).toBe('Milo · 2 rappels')
+    expect(rows(wrapper).map((row) => row.animal)).toEqual([null, null])
+  })
+
+  it('écrit « Tout est à jour » à son nom', async () => {
+    const wrapper = await monter()
+
+    expect(wrapper.get('.home-todo .section-card__counter').text()).toBe('Milo')
+    expect(wrapper.get('.home-up-to-date__text').text()).toBe('Aucun rappel à venir pour Milo.')
+  })
+
+  it('garde sa chip sélectionnée quand on la tape', async () => {
+    sources = [CHPPIL_MILO_RETARD]
+    const wrapper = await monter()
+    expect(chipsPressees(wrapper)).toEqual(['true'])
+
+    await wrapper.get('.animal-chip').trigger('click')
+    await flushPromises()
+
+    expect(chipsPressees(wrapper)).toEqual(['true'])
+    expect(wrapper.get('.animal-chip').classes()).toContain('animal-chip--selected')
+    expect(wrapper.get('.home-todo .section-card__counter').text()).toBe('Milo · 1 rappel')
+  })
+
+  it('revient sur « tous » à l’ouverture suivante quand un deuxième animal est arrivé', async () => {
+    sources = [CHPPIL_MILO_RETARD, VERMIFUGE_LUNA_AUJOURDHUI]
+    const premier = await monter()
+    premier.unmount()
+    animalsStore.select(MILO.id)
+    animals = [MILO, LUNA]
+
+    const wrapper = await monter()
+
+    expect(chipsPressees(wrapper)).toEqual(['false', 'false'])
+    expect(wrapper.get('.home-todo .section-card__counter').text()).toBe('2 rappels')
+  })
+
+  it('sélectionne l’animal restant à l’ouverture suivante quand le foyer redescend à un', async () => {
+    animals = [MILO, LUNA]
+    sources = [CHPPIL_MILO_RETARD]
+    const premier = await monter()
+    await premier.findAll('.animal-chip')[1]!.trigger('click')
+    premier.unmount()
+    animals = [MILO]
+
+    const wrapper = await monter()
+
+    expect(chipsPressees(wrapper)).toEqual(['true'])
+    expect(wrapper.get('.home-todo .section-card__counter').text()).toBe('Milo · 1 rappel')
+  })
+})
+
 describe('HomeView — A5 premier lancement, aucun animal', () => {
   beforeEach(() => {
     animals = []
@@ -854,5 +920,23 @@ describe('HomeView — Actions rapides', () => {
     const sheet = wrapper.getComponent(WeightSheet)
     expect(sheet.props('modelValue')).toBe(true)
     expect(sheet.props('animalId')).toBe(MILO.id)
+  })
+
+  it('ouvre la feuille de pesée du seul animal du foyer, sans sélecteur et clavier sur le poids', async () => {
+    animals = [MILO]
+    const wrapper = mount(HomeView, {
+      global: { plugins: [vuetify, i18n, router] },
+      attachTo: document.body,
+    })
+    mounted.push(wrapper)
+    await flushPromises()
+
+    await taper(wrapper, 2)
+
+    const feuille = document.body.querySelector<HTMLElement>('.weight-sheet .bottom-sheet__panel')
+    expect(wrapper.getComponent(WeightSheet).props('animalId')).toBe(MILO.id)
+    expect(feuille?.querySelector('.bottom-sheet__subtitle')?.textContent?.trim()).toBe('Pour Milo')
+    expect(feuille?.querySelector('.animal-chip-selector')).toBeNull()
+    expect(document.activeElement).toBe(feuille?.querySelector('#weight-sheet-kg'))
   })
 })

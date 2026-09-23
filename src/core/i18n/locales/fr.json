@@ -306,7 +306,6 @@
     "upToDate": {
       "title": "Tout est à jour",
       "forAnimal": "Aucun rappel à venir pour {name}.",
-      "forOne": "{name} n’a aucun rappel à venir.",
       "forMany": "{names} n’ont aucun rappel à venir.",
       "namesSeparator": ", ",
       "namesLast": " et ",
