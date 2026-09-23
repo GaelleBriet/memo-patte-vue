@@ -13,6 +13,7 @@ import { NO_PLUS, type PlusStatus } from '../logic/plus-status'
 import { writeStoredPlusStatus } from '../logic/plus-status-storage'
 import PlusView from '../views/PlusView.vue'
 import i18n from '@/core/i18n'
+import { getMsIconPath } from '@/core/theme/icons'
 import vuetify from '@/core/theme/vuetify'
 import { dismissToast, toastMessage } from '@/shared/utils/toast'
 import { memoryStorage } from './billing-fixture'
@@ -46,7 +47,7 @@ let routeur: Router
 let back: MockInstance
 let wrapper: VueWrapper | null = null
 
-beforeEach(async () => {
+beforeEach(() => {
   vi.clearAllMocks()
   service.isAvailable.mockReturnValue(true)
   service.listOffers.mockResolvedValue([...OFFRES])
@@ -59,7 +60,6 @@ beforeEach(async () => {
       { path: '/plus', name: 'plus', component: Vide },
     ],
   })
-  await routeur.push('/plus')
   back = vi.spyOn(routeur, 'back').mockImplementation(() => {})
 })
 
@@ -72,7 +72,8 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-async function monter() {
+async function monter(from?: string) {
+  await routeur.push({ name: 'plus', query: from === undefined ? {} : { from } })
   wrapper = mount(PlusView, {
     global: { plugins: [vuetify, i18n, routeur] },
     attachTo: document.body,
@@ -85,8 +86,13 @@ function offres(wrapper: VueWrapper) {
   return wrapper.findAll('.plus-offer')
 }
 
+function traceIcone(element: ReturnType<VueWrapper['get']>) {
+  return element.get('svg path').attributes('d')
+}
+
 describe('PlusView — ouverture', () => {
   it('ne touche à RevenueCat qu’à l’ouverture de l’écran', async () => {
+    await routeur.push({ name: 'plus' })
     expect(service.listOffers).not.toHaveBeenCalled()
 
     await monter()
@@ -106,13 +112,38 @@ describe('PlusView — ouverture', () => {
   })
 })
 
-describe('PlusView — contenu', () => {
-  it('annonce la promesse et les quatre bénéfices de la maquette', async () => {
+describe('PlusView — provenance', () => {
+  it('nomme l’export PDF quand on vient d’une fonction PDF', async () => {
+    const wrapper = await monter('pdf')
+
+    expect(wrapper.get('.plus__headline').text()).toBe('L’export PDF fait partie de MémoPatte Plus')
+    expect(traceIcone(wrapper.get('.plus__hero-icon'))).toBe(getMsIconPath('picture_as_pdf')!.path)
+  })
+
+  it('met l’export PDF en tête des bénéfices, et lui seul en avant', async () => {
+    const wrapper = await monter('pdf')
+    const benefices = wrapper.findAll('.plus__benefit')
+
+    expect(benefices.map((item) => item.text())).toEqual([
+      'Export PDF complet',
+      'Sauvegarde garantie dans le cloud',
+      'Le même carnet sur tous tes appareils',
+      'Tes photos sauvegardées aussi',
+    ])
+    expect(benefices.map((item) => item.classes().includes('plus__benefit--highlighted'))).toEqual([
+      true,
+      false,
+      false,
+      false,
+    ])
+  })
+
+  it('garde le titre général quand on vient des Paramètres', async () => {
     const wrapper = await monter()
 
     expect(wrapper.get('.plus__headline').text()).toBe('Garde tes carnets en sécurité, partout')
-    expect(wrapper.get('.plus__subtitle').text()).toBe(
-      'Le local reste gratuit et sans limite. Plus ajoute la sauvegarde cloud.',
+    expect(traceIcone(wrapper.get('.plus__hero-icon'))).toBe(
+      getMsIconPath('workspace_premium')!.path,
     )
     expect(wrapper.findAll('.plus__benefit').map((item) => item.text())).toEqual([
       'Sauvegarde garantie dans le cloud',
@@ -120,37 +151,50 @@ describe('PlusView — contenu', () => {
       'Tes photos sauvegardées aussi',
       'Export PDF complet',
     ])
+    expect(wrapper.find('.plus__benefit--highlighted').exists()).toBe(false)
   })
 
-  it('rappelle ce qui est déjà gratuit et sans compte', async () => {
-    const wrapper = await monter()
+  it('retombe sur la version générale pour une provenance inconnue', async () => {
+    const wrapper = await monter('inconnue')
 
-    expect(wrapper.get('.plus__free-title').text()).toBe('Déjà inclus gratuitement, sans compte')
-    expect(wrapper.findAll('.plus__free-item').map((item) => item.text())).toEqual([
-      'Animaux illimités',
-      'Rappels illimités',
-      'Suivi de poids illimité',
-      'Export JSON et CSV',
-    ])
+    expect(wrapper.get('.plus__headline').text()).toBe('Garde tes carnets en sécurité, partout')
   })
+})
 
-  it('compare ce qu’Android sauvegarde déjà et ce que Plus garantit', async () => {
+describe('PlusView — contenu', () => {
+  it('rappelle ce qui reste gratuit sous le titre', async () => {
     const wrapper = await monter()
 
-    expect(wrapper.get('.plus__comparison-title').text()).toBe(
-      'Ce qu’Android fait déjà, ce que Plus garantit',
+    expect(wrapper.get('.plus__subtitle').text()).toBe(
+      'Animaux, rappels, poids et export JSON/CSV restent gratuits, sans compte.',
     )
-    const lignes = wrapper.findAll('.plus__comparison-row')
-    expect(
-      lignes.map((ligne) => [
-        ligne.get('.plus__comparison-label').text(),
-        ligne.get('.plus__comparison-android').text(),
-        ligne.get('.plus__comparison-plus').text(),
-      ]),
-    ).toEqual([
-      ['Sauvegarde automatique', 'Oui, au mieux (best effort)', 'Oui, garantie'],
-      ['Photos sauvegardées', 'Non', 'Oui'],
-      ['Restauration sur nouvel appareil', 'Pas garantie', 'Garantie'],
+  })
+
+  it('dit en une ligne ce qu’Android sauvegarde déjà et ce que Plus garantit', async () => {
+    const wrapper = await monter()
+
+    expect(wrapper.get('.plus__android').text()).toBe(
+      'Android sauvegarde déjà ton carnet, mais sans les photos ni garantie de restauration. Plus le garantit.',
+    )
+    expect(wrapper.find('table').exists()).toBe(false)
+  })
+
+  it('rappelle la devise des prix et le carnet qui reste, et mène à Google Play', async () => {
+    const wrapper = await monter()
+
+    expect(wrapper.get('.plus__terms').text()).toBe(
+      'Prix affichés par Google Play, dans ta devise. Si tu arrêtes Plus, tes carnets restent sur ton téléphone.',
+    )
+    const gerer = wrapper.get('.plus__manage')
+    expect(gerer.text()).toBe('Gérer mon abonnement · Google Play')
+    expect(gerer.attributes('href')).toBe('https://play.google.com/store/account/subscriptions')
+  })
+
+  it('ne pose aucun lien vers des pages qui n’existent pas encore', async () => {
+    const wrapper = await monter()
+
+    expect(wrapper.findAll('a').map((lien) => lien.attributes('href'))).toEqual([
+      'https://play.google.com/store/account/subscriptions',
     ])
   })
 })
@@ -180,84 +224,182 @@ describe('PlusView — offres', () => {
     ])
   })
 
-  it('dit la périodicité, le renouvellement automatique et l’achat unique', async () => {
+  it('résume chaque offre en une ligne, l’économie de l’annuel en pourcentage', async () => {
     const wrapper = await monter()
-    const conditions = offres(wrapper).map((offre) => offre.get('.plus-offer__terms').text())
 
-    expect(conditions).toEqual([
-      'Renouvellement automatique chaque année. Annulable à tout moment dans Google Play — accès conservé jusqu’à la fin de la période payée.',
-      'Renouvellement automatique chaque mois. Sans engagement, annulable à tout moment.',
+    expect(offres(wrapper).map((offre) => offre.get('.plus-offer__detail').text())).toEqual([
+      '≈ 44 % d’économie vs mensuel',
+      'Sans engagement',
       'Paiement unique, pour toujours.',
     ])
   })
 
-  it('annonce l’économie de l’annuel en pourcentage, jamais en prix mensuel', async () => {
-    const wrapper = await monter()
-
-    expect(wrapper.findAll('.plus-offer__saving').map((item) => item.text())).toEqual([
-      '≈ 44 % d’économie vs mensuel',
-    ])
-  })
-
-  it('nomme l’offre et son prix sur le bouton d’achat', async () => {
-    const wrapper = await monter()
-
-    expect(wrapper.get('.plus__submit').text()).toBe('Continuer avec Plus annuel — $12.99/an')
-
-    await offres(wrapper)[2]!.trigger('click')
-
-    expect(wrapper.get('.plus__submit').text()).toBe('Continuer avec Plus à vie — $34.99')
-  })
-
-  it('met l’offre annuelle en avant et la présélectionne', async () => {
+  it('présélectionne l’offre annuelle, seule à porter « Meilleure offre »', async () => {
     const wrapper = await monter()
     const [annuel, mensuel, aVie] = offres(wrapper)
 
-    expect(annuel!.classes()).toEqual(
-      expect.arrayContaining(['plus-offer--selected', 'plus-offer--best']),
-    )
-    expect(annuel!.get('.plus-offer__badge').text()).toBe('Meilleure offre')
+    expect(annuel!.classes()).toContain('plus-offer--selected')
     expect(annuel!.attributes('aria-checked')).toBe('true')
-    expect(mensuel!.classes()).not.toContain('plus-offer--selected')
-    expect(aVie!.classes()).not.toContain('plus-offer--selected')
+    expect(wrapper.findAll('.plus-offer__badge').map((badge) => badge.text())).toEqual([
+      'Meilleure offre',
+    ])
+    expect(annuel!.find('.plus-offer__badge').exists()).toBe(true)
+    expect(mensuel!.attributes('aria-checked')).toBe('false')
+    expect(aVie!.attributes('aria-checked')).toBe('false')
+  })
+
+  it('regroupe les offres sous un nom lisible par le lecteur d’écran', async () => {
+    const wrapper = await monter()
+
+    expect(wrapper.get('[role="radiogroup"]').attributes('aria-label')).toBe(
+      'Trois façons de payer, même contenu',
+    )
   })
 })
 
-describe('PlusView — mentions obligatoires', () => {
-  it('rappelle la gratuité, le carnet qui reste, et mène à Google Play', async () => {
+describe('PlusView — barre d’achat', () => {
+  it('pose le bouton d’achat dans la barre fixe, hors de la zone qui défile', async () => {
     const wrapper = await monter()
 
-    expect(wrapper.get('.plus__terms-free').text()).toBe(
-      'MémoPatte est utilisable gratuitement sans abonnement.',
-    )
-    expect(wrapper.get('.plus__terms-prices').text()).toBe(
-      'Prix affichés par Google Play, dans ta devise.',
-    )
-    expect(wrapper.get('.plus__terms-local').text()).toBe(
-      'Si tu arrêtes Plus, tes carnets restent sur ton téléphone.',
-    )
-    const gerer = wrapper.get('.plus__manage')
-    expect(gerer.text()).toBe('Gérer mon abonnement · Google Play')
-    expect(gerer.attributes('href')).toBe('https://play.google.com/store/account/subscriptions')
+    expect(wrapper.find('.pushed-screen__actions .plus__submit').exists()).toBe(true)
+    expect(wrapper.find('.pushed-screen__scroll .plus__submit').exists()).toBe(false)
   })
 
-  it('ne pose aucun lien vers des pages qui n’existent pas encore', async () => {
+  it.each([
+    [
+      0,
+      'Renouvellement automatique chaque année. Annulable à tout moment dans Google Play — accès conservé jusqu’à la fin de la période payée.',
+      'Continuer avec Plus annuel — $12.99/an',
+    ],
+    [
+      1,
+      'Renouvellement automatique chaque mois. Annulable à tout moment dans Google Play — accès conservé jusqu’à la fin de la période payée.',
+      'Continuer avec Plus mensuel — $1.99/mois',
+    ],
+    [
+      2,
+      'Paiement unique de $34.99. Pas d’abonnement, rien à renouveler.',
+      'Continuer avec Plus à vie — $34.99',
+    ],
+  ])(
+    'dit le renouvellement et le prix de l’offre choisie (n° %i) juste au-dessus du bouton',
+    async (index, mention, bouton) => {
+      const wrapper = await monter()
+
+      await offres(wrapper)[index]!.trigger('click')
+
+      expect(wrapper.get('.pushed-screen__actions .plus__disclosure').text()).toBe(mention)
+      expect(wrapper.get('.plus__submit').text()).toBe(bouton)
+    },
+  )
+})
+
+describe('PlusView — offres indisponibles', () => {
+  it('remplace le bouton d’achat par l’état prévu quand Google Play ne rend rien', async () => {
+    service.listOffers.mockResolvedValue([])
+    const wrapper = await monter('pdf')
+
+    expect(offres(wrapper)).toHaveLength(0)
+    expect(wrapper.find('.plus__submit').exists()).toBe(false)
+    expect(wrapper.get('.plus__pending').text()).toBe(
+      'Les offres s’affichent dès que Google Play répond.',
+    )
+    const barre = wrapper.get('.pushed-screen__actions')
+    expect(barre.get('.plus__unavailable-title').text()).toBe('Offres indisponibles pour l’instant')
+    expect(barre.get('.plus__unavailable-hint').text()).toBe('Vérifie ta connexion, puis réessaie.')
+    expect(barre.get('.plus__retry-offers').text()).toBe('Réessayer')
+    expect(wrapper.get('.plus__headline').text()).toBe('L’export PDF fait partie de MémoPatte Plus')
+    expect(wrapper.findAll('.plus__benefit')).toHaveLength(4)
+    expect(wrapper.get('.plus__android').isVisible()).toBe(true)
+  })
+
+  it('le dit aussi quand le store a répondu par une erreur, et réessaie', async () => {
+    service.listOffers.mockRejectedValueOnce(new BillingError('failed'))
     const wrapper = await monter()
 
-    expect(wrapper.findAll('a').map((lien) => lien.attributes('href'))).toEqual([
-      'https://play.google.com/store/account/subscriptions',
-    ])
+    expect(wrapper.get('.plus__unavailable-title').text()).toBe(
+      'Offres indisponibles pour l’instant',
+    )
+
+    await wrapper.get('.plus__retry-offers').trigger('click')
+    await flushPromises()
+
+    expect(service.listOffers).toHaveBeenCalledTimes(2)
+    expect(offres(wrapper)).toHaveLength(3)
+    expect(wrapper.find('.plus__unavailable-title').exists()).toBe(false)
+    expect(wrapper.get('.plus__submit').text()).toBe('Continuer avec Plus annuel — $12.99/an')
+  })
+
+  it('montre la connexion à Google Play pendant le réessai, sans relancer', async () => {
+    service.listOffers.mockResolvedValueOnce([])
+    const wrapper = await monter()
+    let repondre: (offers: PlusOffer[]) => void = () => {}
+    service.listOffers.mockReturnValue(
+      new Promise((resolve) => {
+        repondre = resolve
+      }),
+    )
+
+    await wrapper.get('.plus__retry-offers').trigger('click')
+
+    const bouton = wrapper.get('.plus__retry-offers')
+    expect(bouton.text()).toBe('Connexion à Google Play…')
+    expect(bouton.attributes('aria-busy')).toBe('true')
+    expect(bouton.find('.plus__retry-spinner').exists()).toBe(true)
+    expect(wrapper.get('.plus__unavailable-title').text()).toBe(
+      'Offres indisponibles pour l’instant',
+    )
+
+    await bouton.trigger('click')
+    expect(service.listOffers).toHaveBeenCalledTimes(2)
+
+    repondre([...OFFRES])
+    await flushPromises()
+
+    expect(wrapper.get('.plus__submit').text()).toBe('Continuer avec Plus annuel — $12.99/an')
+  })
+
+  it('se connecte à Google Play à l’ouverture, avant d’annoncer quoi que ce soit', async () => {
+    let repondre: (offers: PlusOffer[]) => void = () => {}
+    service.listOffers.mockReturnValue(
+      new Promise((resolve) => {
+        repondre = resolve
+      }),
+    )
+    const wrapper = await monter()
+
+    expect(wrapper.find('.plus__unavailable-title').exists()).toBe(false)
+    expect(wrapper.find('.plus__pending').exists()).toBe(true)
+    expect(wrapper.get('.plus__retry-offers').text()).toBe('Connexion à Google Play…')
+
+    await wrapper.get('.plus__retry-offers').trigger('click')
+    expect(service.listOffers).toHaveBeenCalledTimes(1)
+
+    repondre([...OFFRES])
+    await flushPromises()
+
+    expect(offres(wrapper)).toHaveLength(3)
+  })
+
+  it('reste présentable sans clé RevenueCat, sans proposer de restaurer', async () => {
+    service.isAvailable.mockReturnValue(false)
+    service.listOffers.mockResolvedValue([])
+    const wrapper = await monter()
+
+    expect(wrapper.get('.plus__unavailable-title').isVisible()).toBe(true)
+    expect(wrapper.find('.plus__restore').exists()).toBe(false)
   })
 })
 
 describe('PlusView — déjà abonné', () => {
   it('montre son statut au lieu de l’argumentaire, sans rien redemander', async () => {
     writeStoredPlusStatus(ANNUEL)
-    const wrapper = await monter()
+    const wrapper = await monter('pdf')
 
     expect(wrapper.get('.plus-member__status').text()).toBe('Abonnement annuel actif.')
     expect(offres(wrapper)).toHaveLength(0)
     expect(wrapper.find('.plus__headline').exists()).toBe(false)
+    expect(wrapper.find('.pushed-screen__actions').exists()).toBe(false)
     expect(wrapper.get('.plus-member__manage').attributes('href')).toBe(
       'https://play.google.com/store/account/subscriptions',
     )
@@ -266,48 +408,6 @@ describe('PlusView — déjà abonné', () => {
     await wrapper.get('.plus-member__close').trigger('click')
 
     expect(back).toHaveBeenCalled()
-  })
-})
-
-describe('PlusView — offres indisponibles', () => {
-  it('reste présentable sans clé RevenueCat, sans proposer un réessai inutile', async () => {
-    service.isAvailable.mockReturnValue(false)
-    service.listOffers.mockResolvedValue([])
-    const wrapper = await monter()
-
-    expect(offres(wrapper)).toHaveLength(0)
-    expect(wrapper.find('.plus__submit').exists()).toBe(false)
-    expect(wrapper.find('.plus__retry-offers').exists()).toBe(false)
-    expect(wrapper.get('.plus__unavailable').text()).toBe(
-      'Les offres Google Play ne sont pas disponibles pour l’instant.',
-    )
-    expect(wrapper.get('.plus__headline').isVisible()).toBe(true)
-    expect(wrapper.findAll('.plus__benefit')).toHaveLength(4)
-    expect(wrapper.get('.plus__terms-free').isVisible()).toBe(true)
-    expect(wrapper.find('.plus__restore').exists()).toBe(false)
-  })
-
-  it('n’annonce pas « trois façons de payer » quand il n’y en a aucune', async () => {
-    service.isAvailable.mockReturnValue(false)
-    service.listOffers.mockResolvedValue([])
-
-    expect((await monter()).find('.plus__offers-title').exists()).toBe(false)
-  })
-
-  it('propose de réessayer quand le store a répondu par une erreur', async () => {
-    service.listOffers.mockRejectedValueOnce(new BillingError('failed'))
-    const wrapper = await monter()
-
-    expect(wrapper.get('.plus__unavailable').text()).toBe(
-      'Les offres Google Play ne sont pas disponibles pour l’instant.',
-    )
-
-    service.listOffers.mockResolvedValue([...OFFRES])
-    await wrapper.get('.plus__retry-offers').trigger('click')
-    await flushPromises()
-
-    expect(service.listOffers).toHaveBeenCalledTimes(2)
-    expect(offres(wrapper)).toHaveLength(3)
   })
 })
 
@@ -343,7 +443,7 @@ describe('PlusView — achat', () => {
     await flushPromises()
   })
 
-  it('confirme l’achat abouti', async () => {
+  it('confirme l’achat abouti, sans barre d’achat', async () => {
     service.purchase.mockResolvedValue({ kind: 'purchased', status: ANNUEL })
     const wrapper = await monter()
 
@@ -355,6 +455,7 @@ describe('PlusView — achat', () => {
     expect(wrapper.get('.plus-outcome__body').text()).toBe(
       'La sauvegarde de ton carnet arrive très vite.',
     )
+    expect(wrapper.find('.pushed-screen__actions').exists()).toBe(false)
 
     await wrapper.get('.plus-outcome__primary').trigger('click')
 
@@ -376,6 +477,7 @@ describe('PlusView — achat', () => {
     await wrapper.get('.plus-outcome__primary').trigger('click')
 
     expect(offres(wrapper)).toHaveLength(3)
+    expect(wrapper.find('.plus__submit').exists()).toBe(true)
   })
 
   it('dit l’échec du store sans accuser personne, et referme sur « Plus tard »', async () => {
@@ -400,6 +502,8 @@ describe('PlusView — restauration', () => {
   it('rend son achat à qui en a un', async () => {
     service.restore.mockResolvedValue(ANNUEL)
     const wrapper = await monter()
+
+    expect(wrapper.get('.plus__restore').text()).toBe('Restaurer mes achats')
 
     await wrapper.get('.plus__restore').trigger('click')
     await flushPromises()

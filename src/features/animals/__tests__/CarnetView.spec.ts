@@ -38,6 +38,7 @@ import { forgetPhotoUrls } from '@/core/photos/use-photo-urls'
 import { memoryStorage } from '@/features/purchase/__tests__/billing-fixture'
 import { writeStoredPlusStatus } from '@/features/purchase/logic/plus-status-storage'
 import PdfExportSheet from '@/features/settings/views/PdfExportSheet.vue'
+import PlusBadge from '@/shared/components/PlusBadge.vue'
 
 vi.mock('@/core/photos/photo-picker', () => ({
   pickPhoto: vi.fn<() => Promise<PickedPhoto | null>>(),
@@ -337,13 +338,30 @@ describe('CarnetView — header', () => {
       ])
     })
 
-    it('renvoie vers MémoPatte Plus sans compte, sans ouvrir la feuille', async () => {
+    it('renvoie vers MémoPatte Plus sans compte, en disant qu’on vient du PDF', async () => {
       const wrapper = await monter()
 
       await wrapper.get('.carnet-header__export-pdf').trigger('click')
 
-      expect(push).toHaveBeenCalledWith({ name: 'plus' })
+      expect(push).toHaveBeenCalledWith({ name: 'plus', query: { from: 'pdf' } })
       expect(wrapper.findComponent(PdfExportSheet).exists()).toBe(false)
+    })
+
+    it('porte la pastille Plus sans compte, et le dit au lecteur d’écran', async () => {
+      const wrapper = await monter()
+      const icone = wrapper.get('.carnet-header__export-pdf')
+
+      expect(icone.findComponent(PlusBadge).props('on')).toBe('primary')
+      expect(icone.attributes('aria-label')).toBe('Exporter en PDF, fonction MémoPatte Plus')
+    })
+
+    it('n’a plus de pastille pour un compte Plus', async () => {
+      writeStoredPlusStatus({ plan: 'annual', expiresAt: '2027-09-01T10:00:00Z' })
+      const wrapper = await monter()
+      const icone = wrapper.get('.carnet-header__export-pdf')
+
+      expect(icone.findComponent(PlusBadge).exists()).toBe(false)
+      expect(icone.attributes('aria-label')).toBe('Exporter en PDF')
     })
   })
 

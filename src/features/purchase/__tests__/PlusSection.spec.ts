@@ -79,6 +79,7 @@ describe('PlusSection — utilisateur gratuit', () => {
     await ligne.trigger('click')
 
     await vi.waitFor(() => expect(router.currentRoute.value.path).toBe('/plus'))
+    expect(router.currentRoute.value.query).toEqual({})
   })
 
   it('reste présentable sans achat possible sur cet appareil', async () => {

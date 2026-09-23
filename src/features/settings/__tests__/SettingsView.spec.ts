@@ -16,6 +16,7 @@ import { USER_ID } from '@/features/auth/__tests__/auth-fixture'
 import { writePlusAccount } from '@/features/auth/logic/plus-account-storage'
 import { memoryStorage } from '@/features/purchase/__tests__/billing-fixture'
 import { writeStoredPlusStatus } from '@/features/purchase/logic/plus-status-storage'
+import PlusBadge from '@/shared/components/PlusBadge.vue'
 
 vi.mock('../service/data-export.service', () => ({
   dataExportService: { exportData: vi.fn<() => Promise<'shared'>>() },
@@ -375,6 +376,7 @@ describe('SettingsView', () => {
       const ligne = lignePdf(wrapper)
 
       expect(ligne.text()).toBe('Exporter en PDF')
+      expect(ligne.findComponent(PlusBadge).exists()).toBe(false)
       expect(ligne.attributes('disabled')).toBeUndefined()
       expect(wrapper.findComponent(PdfExportSheet).exists()).toBe(false)
 
@@ -387,16 +389,22 @@ describe('SettingsView', () => {
       ])
     })
 
-    it('renvoie vers MémoPatte Plus sans compte, sans ouvrir la feuille', async () => {
+    it('renvoie vers MémoPatte Plus sans compte, en disant qu’on vient du PDF', async () => {
+      const wrapper = await monter()
+
+      await lignePdf(wrapper).trigger('click')
+
+      expect(push).toHaveBeenCalledWith({ name: 'plus', query: { from: 'pdf' } })
+      expect(wrapper.findComponent(PdfExportSheet).exists()).toBe(false)
+    })
+
+    it('pose la pastille Plus sur l’icône sans compte, à la place du sous-titre', async () => {
       const wrapper = await monter()
       const ligne = lignePdf(wrapper)
 
-      expect(ligne.text()).toContain('Fonction MémoPatte Plus')
-
-      await ligne.trigger('click')
-
-      expect(push).toHaveBeenCalledWith({ name: 'plus' })
-      expect(wrapper.findComponent(PdfExportSheet).exists()).toBe(false)
+      expect(ligne.get('.settings-row__icon').findComponent(PlusBadge).props('on')).toBe('surface')
+      expect(ligne.find('.settings-row__hint').exists()).toBe(false)
+      expect(ligne.get('.d-sr-only').text()).toBe('Fonction MémoPatte Plus')
     })
 
     it('désactive la ligne sans animal, avec « Rien à exporter pour l’instant »', async () => {

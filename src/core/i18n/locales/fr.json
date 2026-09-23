@@ -62,7 +62,8 @@
     "carnet": {
       "back": "Retour",
       "edit": "Modifier la fiche",
-      "exportPdf": "Exporter le carnet en PDF",
+      "exportPdf": "Exporter en PDF",
+      "exportPdfPlus": "Exporter en PDF, fonction MémoPatte Plus",
       "photo": {
         "avatarLabel": "Gérer la photo de {name}",
         "sheetTitle": "Photo de {name}",
@@ -532,65 +533,49 @@
   },
   "plus": {
     "title": "MémoPatte Plus",
-    "headline": "Garde tes carnets en sécurité, partout",
-    "subtitle": "Le local reste gratuit et sans limite. Plus ajoute la sauvegarde cloud.",
+    "headline": {
+      "pdf": "L’export PDF fait partie de MémoPatte Plus",
+      "general": "Garde tes carnets en sécurité, partout"
+    },
+    "subtitle": "Animaux, rappels, poids et export JSON/CSV restent gratuits, sans compte.",
     "benefits": {
       "backup": "Sauvegarde garantie dans le cloud",
       "devices": "Le même carnet sur tous tes appareils",
       "photos": "Tes photos sauvegardées aussi",
       "pdf": "Export PDF complet"
     },
-    "free": {
-      "title": "Déjà inclus gratuitement, sans compte",
-      "animals": "Animaux illimités",
-      "reminders": "Rappels illimités",
-      "weight": "Suivi de poids illimité",
-      "export": "Export JSON et CSV"
-    },
-    "comparison": {
-      "title": "Ce qu’Android fait déjà, ce que Plus garantit",
-      "android": "Android (gratuit)",
-      "plus": "MémoPatte Plus",
-      "backup": {
-        "label": "Sauvegarde automatique",
-        "android": "Oui, au mieux (best effort)",
-        "plus": "Oui, garantie"
-      },
-      "photos": {
-        "label": "Photos sauvegardées",
-        "android": "Non",
-        "plus": "Oui"
-      },
-      "restore": {
-        "label": "Restauration sur nouvel appareil",
-        "android": "Pas garantie",
-        "plus": "Garantie"
-      }
-    },
+    "android": "Android sauvegarde déjà ton carnet, mais sans les photos ni garantie de restauration. Plus le garantit.",
     "offers": {
       "title": "Trois façons de payer, même contenu",
       "best": "Meilleure offre",
       "monthly": {
         "label": "Mensuel",
         "price": "{price}/mois",
-        "terms": "Renouvellement automatique chaque mois. Sans engagement, annulable à tout moment.",
+        "detail": "Sans engagement",
+        "terms": "Renouvellement automatique chaque mois. Annulable à tout moment dans Google Play — accès conservé jusqu’à la fin de la période payée.",
         "submit": "Continuer avec Plus mensuel — {price}"
       },
       "annual": {
         "label": "Plus annuel",
         "price": "{price}/an",
-        "saving": "≈ 44 % d’économie vs mensuel",
+        "detail": "≈ 44 % d’économie vs mensuel",
         "terms": "Renouvellement automatique chaque année. Annulable à tout moment dans Google Play — accès conservé jusqu’à la fin de la période payée.",
         "submit": "Continuer avec Plus annuel — {price}"
       },
       "lifetime": {
         "label": "À vie",
         "price": "{price}",
-        "terms": "Paiement unique, pour toujours.",
+        "detail": "Paiement unique, pour toujours.",
+        "terms": "Paiement unique de {price}. Pas d’abonnement, rien à renouveler.",
         "submit": "Continuer avec Plus à vie — {price}"
       },
-      "unavailable": "Les offres Google Play ne sont pas disponibles pour l’instant.",
-      "retry": "Réessayer"
+      "pending": "Les offres s’affichent dès que Google Play répond.",
+      "unavailable": {
+        "title": "Offres indisponibles pour l’instant",
+        "hint": "Vérifie ta connexion, puis réessaie."
+      },
+      "retry": "Réessayer",
+      "connecting": "Connexion à Google Play…"
     },
     "member": {
       "title": "Tu es déjà dans Plus",
@@ -599,13 +584,13 @@
       "lifetime": "Accès à vie, sans renouvellement."
     },
     "terms": {
-      "free": "MémoPatte est utilisable gratuitement sans abonnement.",
       "prices": "Prix affichés par Google Play, dans ta devise.",
       "local": "Si tu arrêtes Plus, tes carnets restent sur ton téléphone.",
       "manage": "Gérer mon abonnement · Google Play"
     },
     "restore": {
       "action": "Restaurer mon achat",
+      "purchases": "Restaurer mes achats",
       "busy": "Restauration…",
       "restored": "Te voilà de retour dans Plus.",
       "none": "Aucun achat à restaurer sur ce compte Google.",
