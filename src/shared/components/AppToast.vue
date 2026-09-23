@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-import { dismissToast, toastMessage } from '../utils/toast'
+import { dismissToast, toastAnnouncement, toastMessage } from '../utils/toast'
 
 const isOpen = computed({
   get: () => toastMessage.value !== null,
@@ -12,7 +12,7 @@ const isOpen = computed({
 </script>
 
 <template>
-  <p class="app-toast__live" role="status" aria-live="polite">{{ toastMessage }}</p>
+  <p class="app-toast__live" role="status" aria-live="polite">{{ toastAnnouncement }}</p>
   <!-- Annoncé par la région ci-dessus, déjà en place : celle de Vuetify naît avec le message. -->
   <v-snackbar
     v-model="isOpen"

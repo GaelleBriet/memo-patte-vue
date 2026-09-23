@@ -7,6 +7,8 @@ import { dismissToast, showToast, toastMessage } from '../utils/toast'
 import { getMsIconPath } from '@/core/theme/icons'
 import vuetify from '@/core/theme/vuetify'
 
+const ANNONCE_MS = 100
+
 function mountToast() {
   return mount(AppToast, { global: { plugins: [vuetify] }, attachTo: document.body })
 }
@@ -38,9 +40,12 @@ describe('AppToast', () => {
   })
 
   it('affiche le message envoyé par showToast dans une région annoncée', async () => {
+    vi.useFakeTimers()
     const wrapper = mountToast()
 
     showToast('Rappels activés')
+    await nextTick()
+    vi.advanceTimersByTime(ANNONCE_MS)
     await nextTick()
 
     const toast = document.body.querySelector('.app-toast')
@@ -138,11 +143,14 @@ describe('AppToast', () => {
   })
 
   it('garde sa région annoncée en place avant le message, pour que TalkBack le lise', async () => {
+    vi.useFakeTimers()
     const wrapper = mountToast()
     const region = document.body.querySelector('[role="status"]')
     expect(region?.getAttribute('aria-live')).toBe('polite')
 
     showToast('Pesée enregistrée')
+    await nextTick()
+    vi.advanceTimersByTime(ANNONCE_MS)
     await nextTick()
 
     expect(region?.textContent).toContain('Pesée enregistrée')
@@ -150,6 +158,30 @@ describe('AppToast', () => {
       (element) => !element.closest('[aria-hidden="true"]'),
     )
     expect(annoncees).toEqual([region])
+    wrapper.unmount()
+  })
+
+  it('annonce de nouveau le même message quand il revient', async () => {
+    vi.useFakeTimers()
+    const wrapper = mountToast()
+    const region = document.body.querySelector('[role="status"]')
+    const message = 'Export JSON enregistré dans Documents › MémoPatte'
+    showToast(message)
+    await nextTick()
+    vi.advanceTimersByTime(ANNONCE_MS)
+    await nextTick()
+
+    const textes: string[] = []
+    const observateur = new MutationObserver(() => textes.push(region?.textContent ?? ''))
+    observateur.observe(region!, { childList: true, characterData: true, subtree: true })
+    showToast(message)
+    await nextTick()
+    vi.advanceTimersByTime(ANNONCE_MS)
+    await nextTick()
+    await Promise.resolve()
+    observateur.disconnect()
+
+    expect(textes).toEqual(['', message])
     wrapper.unmount()
   })
 
