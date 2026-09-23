@@ -19,8 +19,6 @@ const PERMISSION_DENIED = 'OS-PLUG-FILE-0007'
 
 const MAX_COPIES = 100
 
-const MAX_WRITE_ATTEMPTS = 3
-
 function toBase64(bytes: Uint8Array): string {
   let binary = ''
   const chunk = 0x8000
@@ -84,20 +82,25 @@ function isPermissionDenied(cause: unknown): boolean {
     : false
 }
 
-async function writeToDocuments(file: ExportFile): Promise<void> {
-  let failures = 0
+async function freePath(name: string): Promise<string> {
   for (let copy = 0; copy < MAX_COPIES; copy += 1) {
-    const path = `${SAVED_EXPORTS_DIR}/${numbered(file.name, copy)}`
-    if (await exists(path)) continue
-    try {
-      await writeFile(path, file, Directory.Documents)
-      return
-    } catch (cause) {
-      failures += 1
-      if (isPermissionDenied(cause) || failures === MAX_WRITE_ATTEMPTS) throw cause
-    }
+    const path = `${SAVED_EXPORTS_DIR}/${numbered(name, copy)}`
+    if (!(await exists(path))) return path
   }
-  throw new Error(`Aucun nom libre pour ${file.name} dans ${SAVED_EXPORTS_DIR}/`)
+  throw new Error(`Aucun nom libre pour ${name} dans ${SAVED_EXPORTS_DIR}/`)
+}
+
+async function writeToDocuments(file: ExportFile): Promise<void> {
+  const path = await freePath(file.name)
+  try {
+    await writeFile(path, file, Directory.Documents)
+  } catch (cause) {
+    // Sans l'accès, sur Android 10 et moins, effacer rouvrirait la demande d'Android.
+    if (!isPermissionDenied(cause)) {
+      await Filesystem.deleteFile({ path, directory: Directory.Documents }).catch(() => {})
+    }
+    throw cause
+  }
 }
 
 function download(file: ExportFile): void {

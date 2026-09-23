@@ -13,6 +13,7 @@ vi.mock('@capacitor/filesystem', () => ({
   Directory: { Cache: 'CACHE', Documents: 'DOCUMENTS' },
   Encoding: { UTF8: 'utf8' },
   Filesystem: {
+    deleteFile: vi.fn<() => Promise<void>>(async () => {}),
     rmdir: vi.fn<() => Promise<void>>(async () => {}),
     stat: vi.fn<(options: { path: string }) => Promise<object>>(async ({ path }) => {
       throw new Error(`File does not exist at ${path}`)
@@ -50,21 +51,21 @@ describe('deliverExportFile — partager', () => {
   it('écrit un JSON en UTF-8 dans le cache de l’app puis ouvre la feuille de partage', async () => {
     await expect(
       deliverExportFile(
-        { name: 'memopatte-export-2026-09-15.json', content: '{}' },
+        { name: 'memopatte-export-20260915-1030.json', content: '{}' },
         'share',
         'Partager via',
       ),
     ).resolves.toBe('shared')
 
     expect(Filesystem.writeFile).toHaveBeenCalledWith({
-      path: 'exports/memopatte-export-2026-09-15.json',
+      path: 'exports/memopatte-export-20260915-1030.json',
       data: '{}',
       directory: Directory.Cache,
       encoding: Encoding.UTF8,
       recursive: true,
     })
     expect(Share.share).toHaveBeenCalledWith({
-      files: ['file:///cache/exports/memopatte-export-2026-09-15.json'],
+      files: ['file:///cache/exports/memopatte-export-20260915-1030.json'],
       dialogTitle: 'Partager via',
     })
   })
@@ -72,7 +73,7 @@ describe('deliverExportFile — partager', () => {
   it('écrit une archive en base64, sans encodage texte', async () => {
     await deliverExportFile(
       {
-        name: 'memopatte-export-2026-09-15.zip',
+        name: 'memopatte-export-20260915-1030.zip',
         content: new Uint8Array([0x50, 0x4b, 0x03, 0x04]),
       },
       'share',
@@ -80,7 +81,7 @@ describe('deliverExportFile — partager', () => {
     )
 
     expect(Filesystem.writeFile).toHaveBeenCalledWith({
-      path: 'exports/memopatte-export-2026-09-15.zip',
+      path: 'exports/memopatte-export-20260915-1030.zip',
       data: 'UEsDBA==',
       directory: Directory.Cache,
       recursive: true,
@@ -160,14 +161,14 @@ describe('deliverExportFile — enregistrer sur le téléphone', () => {
   it('écrit un JSON en UTF-8 dans Documents › MémoPatte, sans feuille de partage', async () => {
     await expect(
       deliverExportFile(
-        { name: 'memopatte-export-2026-09-23.json', content: '{}' },
+        { name: 'memopatte-export-20260923-1432.json', content: '{}' },
         'save',
         'Partager via',
       ),
     ).resolves.toBe('saved')
 
     expect(Filesystem.writeFile).toHaveBeenCalledExactlyOnceWith({
-      path: 'MémoPatte/memopatte-export-2026-09-23.json',
+      path: 'MémoPatte/memopatte-export-20260923-1432.json',
       data: '{}',
       directory: Directory.Documents,
       encoding: Encoding.UTF8,
@@ -179,61 +180,65 @@ describe('deliverExportFile — enregistrer sur le téléphone', () => {
 
   it('écrit un PDF en base64, sans encodage texte', async () => {
     await deliverExportFile(
-      { name: 'memopatte-milo-2026-09-23.pdf', content: new Uint8Array([0x25, 0x50, 0x44, 0x46]) },
+      { name: 'carnet-milo-20260923-1432.pdf', content: new Uint8Array([0x25, 0x50, 0x44, 0x46]) },
       'save',
       'x',
     )
 
     expect(Filesystem.writeFile).toHaveBeenCalledExactlyOnceWith({
-      path: 'MémoPatte/memopatte-milo-2026-09-23.pdf',
+      path: 'MémoPatte/carnet-milo-20260923-1432.pdf',
       data: 'JVBERg==',
       directory: Directory.Documents,
       recursive: true,
     })
   })
 
-  it('ne remplace jamais un export déjà présent : le nouveau prend un numéro', async () => {
-    const present = new Set([
-      'MémoPatte/memopatte-export-2026-09-23.json',
-      'MémoPatte/memopatte-export-2026-09-23 (1).json',
-    ])
+  it('ne remplace jamais un export de la même minute : le nouveau prend un numéro', async () => {
     vi.mocked(Filesystem.stat).mockImplementation(async ({ path }) => {
-      if (present.has(path)) return FILE_INFO
+      if (path === 'MémoPatte/memopatte-export-20260923-1432.json') return FILE_INFO
       throw new Error('File does not exist')
     })
 
     await expect(
-      deliverExportFile({ name: 'memopatte-export-2026-09-23.json', content: '{}' }, 'save', 'x'),
+      deliverExportFile(
+        { name: 'memopatte-export-20260923-1432.json', content: '{}' },
+        'save',
+        'x',
+      ),
     ).resolves.toBe('saved')
 
-    expect(writtenPaths()).toEqual(['MémoPatte/memopatte-export-2026-09-23 (2).json'])
+    expect(writtenPaths()).toEqual(['MémoPatte/memopatte-export-20260923-1432 (1).json'])
     expect(Filesystem.stat).toHaveBeenCalledWith({
-      path: 'MémoPatte/memopatte-export-2026-09-23.json',
+      path: 'MémoPatte/memopatte-export-20260923-1432.json',
       directory: Directory.Documents,
     })
   })
 
-  // Sur Android 11 et plus, un fichier laissé par une installation précédente n'appartient plus à
-  // l'app : elle ne peut ni le lire ni l'écraser.
-  it('contourne un fichier qu’elle ne peut pas écraser en prenant le nom suivant', async () => {
-    vi.mocked(Filesystem.writeFile).mockRejectedValueOnce(
-      pluginError(
-        "'writeFile' failed with: open failed: EACCES (Permission denied)",
-        'OS-PLUG-FILE-0013',
-      ),
+  it('remonte une vraie panne au premier essai et efface le fichier entamé', async () => {
+    vi.mocked(Filesystem.writeFile).mockRejectedValue(
+      pluginError("'writeFile' failed with: ENOSPC (No space left on device)", 'OS-PLUG-FILE-0013'),
     )
 
-    await expect(
-      deliverExportFile({ name: 'memopatte-export-2026-09-23.zip', content: 'x' }, 'save', 'x'),
-    ).resolves.toBe('saved')
-
-    expect(writtenPaths()).toEqual([
-      'MémoPatte/memopatte-export-2026-09-23.zip',
-      'MémoPatte/memopatte-export-2026-09-23 (1).zip',
-    ])
+    await expect(deliverExportFile({ name: 'a.json', content: '{}' }, 'save', 'x')).rejects.toThrow(
+      'No space left on device',
+    )
+    expect(writtenPaths()).toEqual(['MémoPatte/a.json'])
+    expect(Filesystem.deleteFile).toHaveBeenCalledExactlyOnceWith({
+      path: 'MémoPatte/a.json',
+      directory: Directory.Documents,
+    })
   })
 
-  it('lève sans réessayer quand l’accès au stockage est refusé', async () => {
+  it('remonte la panne d’écriture même si l’effacement échoue aussi', async () => {
+    vi.mocked(Filesystem.writeFile).mockRejectedValue(new Error('No space left on device'))
+    vi.mocked(Filesystem.deleteFile).mockRejectedValue(new Error('File does not exist'))
+
+    await expect(deliverExportFile({ name: 'a.json', content: '{}' }, 'save', 'x')).rejects.toThrow(
+      'No space left on device',
+    )
+  })
+
+  it('lève sans rien effacer quand l’accès au stockage est refusé, pour ne pas redemander', async () => {
     vi.mocked(Filesystem.writeFile).mockRejectedValue(
       pluginError(
         'Unable to do file operation, user denied permission request.',
@@ -245,21 +250,7 @@ describe('deliverExportFile — enregistrer sur le téléphone', () => {
       'user denied permission request',
     )
     expect(Filesystem.writeFile).toHaveBeenCalledOnce()
-  })
-
-  it('lève quand l’écriture échoue quel que soit le nom, après trois essais', async () => {
-    vi.mocked(Filesystem.writeFile).mockRejectedValue(
-      pluginError("'writeFile' failed with: ENOSPC (No space left on device)", 'OS-PLUG-FILE-0013'),
-    )
-
-    await expect(deliverExportFile({ name: 'a.json', content: '{}' }, 'save', 'x')).rejects.toThrow(
-      'No space left on device',
-    )
-    expect(writtenPaths()).toEqual([
-      'MémoPatte/a.json',
-      'MémoPatte/a (1).json',
-      'MémoPatte/a (2).json',
-    ])
+    expect(Filesystem.deleteFile).not.toHaveBeenCalled()
   })
 
   it('lève sans rien écrire quand tous les numéros sont déjà pris', async () => {
@@ -296,11 +287,15 @@ describe('deliverExportFile — enregistrer sur le téléphone', () => {
 
     it('télécharge le fichier sous son nom, sans toucher au stockage', async () => {
       await expect(
-        deliverExportFile({ name: 'memopatte-export-2026-09-23.json', content: '{}' }, 'save', 'x'),
+        deliverExportFile(
+          { name: 'memopatte-export-20260923-1432.json', content: '{}' },
+          'save',
+          'x',
+        ),
       ).resolves.toBe('saved')
 
       expect(clicked).toEqual([
-        { href: 'blob:http://localhost/export', download: 'memopatte-export-2026-09-23.json' },
+        { href: 'blob:http://localhost/export', download: 'memopatte-export-20260923-1432.json' },
       ])
       const [blob] = vi.mocked(URL.createObjectURL).mock.calls[0]! as [Blob]
       await expect(blob.text()).resolves.toBe('{}')
