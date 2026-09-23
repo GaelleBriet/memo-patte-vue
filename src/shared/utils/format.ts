@@ -20,6 +20,14 @@ export function formatKg(value: number): string {
   }).format(roundToDecimal(value))
 }
 
+/** Graduation d'un axe : `24`, `24,5` en français, `24.5` en anglais. */
+export function formatKgAxis(value: number): string {
+  return new Intl.NumberFormat(currentLocale(), {
+    maximumFractionDigits: 1,
+    useGrouping: false,
+  }).format(roundToDecimal(value))
+}
+
 /** `+0,5`, `−0,3`, ou `±0,0` quand rien ne bouge à la décimale près. */
 export function formatKgDelta(delta: number): string {
   const rounded = roundToDecimal(delta)

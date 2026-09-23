@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import {
   formatKg,
+  formatKgAxis,
   formatKgDelta,
   formatLongDate,
   formatMonth,
@@ -24,6 +25,19 @@ describe('formatKg', () => {
 
   it('ne groupe pas les milliers', () => {
     expect(formatKg(1234.5)).toBe('1234,5')
+  })
+})
+
+describe('formatKgAxis', () => {
+  it('écrit une graduation ronde sans décimale inutile', () => {
+    expect(formatKgAxis(24)).toBe('24')
+    expect(formatKgAxis(24.5)).toBe('24,5')
+    expect(formatKgAxis(4.2)).toBe('4,2')
+  })
+
+  it('arrondit à la décimale et ne groupe pas les milliers', () => {
+    expect(formatKgAxis(23.500000001)).toBe('23,5')
+    expect(formatKgAxis(1200)).toBe('1200')
   })
 })
 
@@ -81,6 +95,7 @@ describe('en anglais', () => {
     expect(formatKg(24.5)).toBe('24.5')
     expect(formatKg(24)).toBe('24.0')
     expect(formatKg(1234.5)).toBe('1234.5')
+    expect(formatKgAxis(24.5)).toBe('24.5')
     expect(formatKgDelta(-0.3)).toBe('−0.3')
     expect(formatKgDelta(0)).toBe('±0.0')
   })
