@@ -1,6 +1,17 @@
 # Contexte en cours (à mettre à jour à chaque lot)
 
-- 2026-09-23 (fin) : **reprendre ici.** Lot « retours de navigation » **mergé** : #346 (#339
+- 2026-09-23 (soir) : **reprendre ici.** Séance de brainstorming « cycle de vie d'un rappel »
+  (journal du jour, bloc « Cycle de vie d'un rappel », points 1 à 8). **Reste à trancher par Gaelle :
+  le modèle de données de l'historique** (deux tables d'historique, ou une ligne de vaccin par
+  injection ; elle penche pour la seconde) : document de comparaison sur la branche
+  `docs/proposition-historique-rappels`, sans PR tant que ce n'est pas tranché. Ensuite : spec,
+  maquette Claude Design de la feuille « Fait », tickets d'implémentation de #364. Agents lancés
+  pendant l'absence de Gaelle, sur ce qui était entièrement tranché : #344 (« À faire » sur 30 jours),
+  #350 (courbe du PDF), #354 (style des toasts et minuteur). En attente de Gaelle aussi : #351 et
+  #352 (maquette Claude Design), #365 (médicaments), ordre des tickets de synchro. `pnpm dev:plus`
+  (#362) permet de tester les fonctions Plus en dev.
+
+- 2026-09-23 (fin) : **lot mergé.** Lot « retours de navigation » **mergé** : #346 (#339
   accueil à un animal), #355 (#342 + #341 écran Plus et pastille), #358 (#340 courbe de poids),
   #359 (#343 export enregistré dans Documents). `main` à **2403 tests**. Testé sur le téléphone de
   Gaelle (Android 16) avec le lot intégré : chip et feuille pesée à un animal, pastille, écran Plus
