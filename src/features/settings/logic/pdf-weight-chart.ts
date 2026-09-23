@@ -4,6 +4,8 @@ import i18n from '@/core/i18n'
 import {
   buildCarnetWeightChart,
   CHART_FONT_PX,
+  CHART_MONTH_TICK_LENGTH,
+  CHART_POINT_RADIUS,
   type CarnetChartLabels,
   type ChartAnchor,
   type ChartText,
@@ -16,6 +18,7 @@ export type ChartFrame = { x: number; y: number; width: number }
 type Style = 'normal' | 'bold'
 type AnchoredText = ChartText & { anchor: ChartAnchor }
 
+const ALIGN = { start: 'left', middle: 'center', end: 'right' } as const
 const FONT = 'helvetica'
 const FONT_PT = 9.5
 const MM_PER_PT = 25.4 / 72
@@ -34,9 +37,7 @@ const PAGE = '#FFFFFF'
 
 const LINE_WIDTH = 2
 const GRID_WIDTH = 1
-const POINT_RADIUS = 4
 const POINT_RING = 2
-const MONTH_TICK_LENGTH = 5
 
 function emWidth(doc: jsPDF, text: string, style: Style): number {
   doc.setFont(FONT, style)
@@ -79,10 +80,8 @@ export function drawWeightChart(
   const last = points[points.length - 1]!
 
   const write = ({ x: textX, y: baseline, text, anchor }: AnchoredText, style: Style) => {
-    const width = emWidth(doc, text, style) * FONT_PT * MM_PER_PT
-    const left =
-      anchor === 'start' ? x(textX) : anchor === 'end' ? x(textX) - width : x(textX) - width / 2
-    doc.text(text, left, y(baseline))
+    doc.setFont(FONT, style)
+    doc.text(text, x(textX), y(baseline), { align: ALIGN[anchor] })
   }
 
   doc.setFillColor(AREA)
@@ -92,7 +91,7 @@ export function drawWeightChart(
   doc.setLineWidth(mm(GRID_WIDTH))
   doc.line(x(plot.left), y(plot.bottom), x(plot.right), y(plot.bottom))
   for (const tickX of chart.monthTicks) {
-    doc.line(x(tickX), y(plot.bottom), x(tickX), y(plot.bottom + MONTH_TICK_LENGTH))
+    doc.line(x(tickX), y(plot.bottom), x(tickX), y(plot.bottom + CHART_MONTH_TICK_LENGTH))
   }
 
   doc.setFontSize(FONT_PT)
@@ -108,7 +107,7 @@ export function drawWeightChart(
   doc.setFillColor(PETROL)
   doc.setDrawColor(PAGE)
   doc.setLineWidth(mm(POINT_RING))
-  for (const [pointX, pointY] of points) doc.circle(pointX, pointY, mm(POINT_RADIUS), 'FD')
+  for (const [pointX, pointY] of points) doc.circle(pointX, pointY, mm(CHART_POINT_RADIUS), 'FD')
 
   doc.setTextColor(VALUE)
   for (const label of [chart.max, chart.min]) if (label) write(label, 'bold')

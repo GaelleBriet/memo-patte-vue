@@ -1,8 +1,14 @@
 import { describe, expect, it } from 'vitest'
 
 import { renderCarnetPdf } from '../logic/render-carnet-pdf'
-import { readPdf } from './pdf-reader'
+import { readPdf, sameColor, type PdfText } from './pdf-reader'
 import type { CarnetPdfContent } from '../logic/pdf-content'
+import vuetify from '@/core/theme/vuetify'
+
+const MM_PER_PT = 25.4 / 72
+const ASCENT_EM = 0.75
+const DESCENT_EM = 0.22
+const PRIMARY = String(vuetify.theme.themes.value.light!.colors.primary).toUpperCase()
 
 const EMPTY_CONTENT: CarnetPdfContent = {
   animal: { name: 'Milo', species: 'dog', breed: null, birthDate: null, photoFileName: null },
@@ -103,9 +109,32 @@ describe('renderCarnetPdf — courbe de poids', () => {
       weightEntries: [{ measuredOn: '2026-06-01', weightKg: 4.3 }],
     }
     const { texts, paths } = readPdf(renderCarnetPdf(content, '0.1.24', null))
+    const tracesDeLaCourbe = paths.filter((path) =>
+      [path.stroke, path.fill].some((color) => sameColor(color, PRIMARY)),
+    )
 
-    expect(paths).toEqual([])
+    expect(tracesDeLaCourbe).toEqual([])
     expect(texts.map((text) => text.text)).toEqual(expect.arrayContaining(['01/06/2026', '4,3 kg']))
+  })
+
+  it('écrit les pesées sous la courbe, du même style que les autres lignes du carnet', () => {
+    const content = { ...FULL_CONTENT, weightEntries: PESEES_IRREGULIERES }
+    const { texts, paths } = readPdf(renderCarnetPdf(content, '0.1.24', null))
+    const style = ({ bold, sizePt, color }: PdfText) => ({ bold, sizePt, color })
+    const vaccin = texts.find((text) => text.text === 'Rage')!
+    const titre = texts.findIndex((text) => text.text === 'Poids')
+    const premiere = texts.findIndex((text) => text.text === '20/09/2025')
+    const textesDeLaCourbe = texts.slice(titre + 1, premiere)
+    const basDeLaCourbe = Math.max(
+      ...textesDeLaCourbe.map((text) => text.baseline + DESCENT_EM * text.sizePt * MM_PER_PT),
+      ...paths.flatMap((path) => path.points.map((point) => point.y)),
+    )
+    const ligne = texts[premiere]!
+
+    expect(textesDeLaCourbe.length).toBeGreaterThan(0)
+    expect(style(ligne)).toEqual(style(vaccin))
+    expect(style(texts[premiere + 1]!)).toEqual(style(vaccin))
+    expect(ligne.baseline - ASCENT_EM * ligne.sizePt * MM_PER_PT).toBeGreaterThan(basDeLaCourbe)
   })
 
   it('n’écrit aucun texte sous 9 pt, tableau des pesées compris', () => {

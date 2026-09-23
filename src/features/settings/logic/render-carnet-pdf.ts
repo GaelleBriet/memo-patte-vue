@@ -156,17 +156,14 @@ function renderWeightSection(
   }
 
   const chartTop = y + CHART_GAP_MM
+  doc.saveGraphicsState()
   const chartHeight = drawWeightChart(doc, content.weightEntries, {
     x: MARGIN_MM,
     y: chartTop,
     width: CONTENT_WIDTH_MM,
   })
-  if (chartHeight !== null) {
-    y = chartTop + chartHeight + 7
-    doc.setFont('helvetica', 'normal')
-    doc.setFontSize(10.5)
-    doc.setTextColor(0)
-  }
+  doc.restoreGraphicsState()
+  if (chartHeight !== null) y = chartTop + chartHeight + 7
 
   for (const entry of content.weightEntries) {
     doc.text(formatNumericDate(entry.measuredOn), MARGIN_MM, y)

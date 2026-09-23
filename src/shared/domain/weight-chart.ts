@@ -12,9 +12,13 @@ export const DEFAULT_CHART_WIDTH = 320
 /** Taille des textes de la courbe dans son style ; la chasse ci-dessous est mesurée à cette taille. */
 export const CHART_FONT_PX = 12
 
+export const CHART_POINT_RADIUS = 4
+
+export const CHART_MONTH_TICK_LENGTH = 5
+
 /**
  * `textScale` : taille de police réellement rendue sur `CHART_FONT_PX`, au-delà de 1 si le système l'agrandit.
- * `textWidth` : largeur d'un texte à `CHART_FONT_PX` quand la police n'est pas Inter (l'export PDF).
+ * `textWidth` : largeur d'un texte à `CHART_FONT_PX` quand la police n'est pas Inter.
  */
 export type ChartMeasure = {
   width?: number
@@ -131,7 +135,6 @@ function interWidth(text: string): number {
   return [...text].reduce((sum, glyph) => sum + (GLYPH_WIDTHS.get(glyph) ?? DEFAULT_GLYPH_WIDTH), 0)
 }
 
-/** Chasse et hauteur des textes à la taille rendue. */
 type ChartFont = { width: (text: string) => number; ascent: number; descent: number }
 
 function chartFont({ textScale = 1, textWidth = interWidth }: ChartMeasure): ChartFont {

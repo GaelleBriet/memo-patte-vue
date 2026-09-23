@@ -35,6 +35,14 @@ function hex(components: number[]): string {
     .toUpperCase()}`
 }
 
+// jsPDF écrit la couleur d'un tracé au centième : une composante peut s'écarter d'une unité.
+export function sameColor(read: string, expected: string): boolean {
+  return [1, 3, 5].every((index) => {
+    const component = (color: string) => parseInt(color.slice(index, index + 2), 16)
+    return Math.abs(component(read) - component(expected)) <= 1
+  })
+}
+
 function fontStyles(source: string): Map<string, boolean> {
   const baseFonts = new Map<string, string>()
   for (const [, id, name] of source.matchAll(
@@ -66,6 +74,7 @@ export function readPdf(bytes: Uint8Array): { texts: PdfText[]; paths: PdfPath[]
   let sizePt = 0
   let origin = { x: 0, y: 0 }
   let points: PdfPath['points'] = []
+  const saved: { fill: string; stroke: string; lineWidth: number }[] = []
 
   for (const line of content.split(/\r?\n/)) {
     const shown = /^\((.*)\) Tj$/.exec(line)
@@ -84,6 +93,12 @@ export function readPdf(bytes: Uint8Array): { texts: PdfText[]; paths: PdfPath[]
     const operator = operands.pop()
     const n = operands.map(Number)
     switch (operator) {
+      case 'q':
+        saved.push({ fill, stroke, lineWidth })
+        break
+      case 'Q':
+        ;({ fill, stroke, lineWidth } = saved.pop()!)
+        break
       case 'Tf':
         font = operands[0]!.slice(1)
         sizePt = n[1]!

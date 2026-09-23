@@ -1,17 +1,27 @@
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { jsPDF } from 'jspdf'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { drawWeightChart } from '../logic/pdf-weight-chart'
-import { bounds, readPdf, type PdfBounds, type PdfPath, type PdfText } from './pdf-reader'
+import {
+  bounds,
+  readPdf,
+  sameColor,
+  type PdfBounds,
+  type PdfPath,
+  type PdfText,
+} from './pdf-reader'
 import { applyLocale } from '@/core/i18n'
 import { contrastRatio, scssColorTokens } from '@/core/theme/__tests__/contrast'
 import vuetify from '@/core/theme/vuetify'
-import type { WeightChartEntry } from '@/shared/domain/weight-chart'
+import { CHART_FONT_PX, type WeightChartEntry } from '@/shared/domain/weight-chart'
 
 const MM_PER_PT = 25.4 / 72
 // Métriques AFM d'Helvetica : accents jusqu'à 0,75 em au-dessus de la ligne de base, « g » à 0,22 dessous.
 const ASCENT_EM = 0.75
 const DESCENT_EM = 0.22
+const CAP_HEIGHT_EM = 0.718
 const FRAME = { x: 18, y: 120, width: 174 }
 
 const tokens = scssColorTokens()
@@ -82,14 +92,6 @@ function chevauche(a: PdfBounds, b: PdfBounds): boolean {
   return a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom
 }
 
-// jsPDF écrit la couleur d'un tracé au centième : une composante peut s'écarter d'une unité.
-function memeCouleur(lue: string, attendue: string): boolean {
-  return [1, 3, 5].every((index) => {
-    const composante = (couleur: string) => parseInt(couleur.slice(index, index + 2), 16)
-    return Math.abs(composante(lue) - composante(attendue)) <= 1
-  })
-}
-
 const PALETTE: Record<string, string> = {
   primary: PRIMARY,
   'color-text-meta': tokens['color-text-meta']!,
@@ -99,24 +101,24 @@ const PALETTE: Record<string, string> = {
 }
 
 function nomDe(couleur: string): string | undefined {
-  return Object.keys(PALETTE).find((nom) => memeCouleur(couleur, PALETTE[nom]!))
+  return Object.keys(PALETTE).find((nom) => sameColor(couleur, PALETTE[nom]!))
 }
 
 function courbe(paths: PdfPath[]): PdfPath {
-  return paths.find((path) => path.paint === 'S' && memeCouleur(path.stroke, PRIMARY))!
+  return paths.find((path) => path.paint === 'S' && sameColor(path.stroke, PRIMARY))!
 }
 
 function pastille(paths: PdfPath[]): PdfPath {
-  return paths.find((path) => path.paint === 'f' && memeCouleur(path.fill, PRIMARY))!
+  return paths.find((path) => path.paint === 'f' && sameColor(path.fill, PRIMARY))!
 }
 
 function voile(paths: PdfPath[]): PdfPath {
-  return paths.find((path) => path.paint === 'f' && !memeCouleur(path.fill, PRIMARY))!
+  return paths.find((path) => path.paint === 'f' && !sameColor(path.fill, PRIMARY))!
 }
 
 function centres(paths: PdfPath[]) {
   return paths
-    .filter((path) => path.paint === 'B' && memeCouleur(path.fill, PRIMARY))
+    .filter((path) => path.paint === 'B' && sameColor(path.fill, PRIMARY))
     .map((path) => {
       const box = bounds(path.points)
       return { x: (box.left + box.right) / 2, y: (box.top + box.bottom) / 2 }
@@ -236,6 +238,23 @@ describe('drawWeightChart — plus haut, plus bas et dernière pesée', () => {
     expect(chiffres(dessine(MILO_6_MOIS).texts)).toEqual(['min 23,6', '24,5\u00a0kg'])
   })
 
+  it('ajuste la pastille à son texte : 9 px de marge de chaque côté, capitales centrées', () => {
+    const { texts, paths } = dessine(pesees(['2026-03-01', 10.2], ['2026-06-01', 11.1]))
+    const derniere = texts.at(-1)!
+    const texte = boite(derniere)
+    const fond = bounds(pastille(paths).points)
+    const em = derniere.sizePt * MM_PER_PT
+    const pixel = em / CHART_FONT_PX
+
+    expect(derniere.text).toBe('11,1\u00a0kg')
+    expect(texte.left - fond.left).toBeCloseTo(9 * pixel, 2)
+    expect(fond.right - texte.right).toBeCloseTo(9 * pixel, 2)
+    expect(derniere.baseline - (CAP_HEIGHT_EM * em) / 2).toBeCloseTo(
+      (fond.top + fond.bottom) / 2,
+      2,
+    )
+  })
+
   it('passe « max » sous son point quand il toucherait la pastille', () => {
     const { texts, paths } = dessine(MAX_PRES_DE_LA_PASTILLE)
     const max = texts.find((text) => text.text === 'max 24,6')!
@@ -343,13 +362,15 @@ describe('drawWeightChart — lisible à l’impression', () => {
     for (const trait of traits) expect(nomDe(trait.stroke)).toBe('color-chart-grid')
   })
 
-  it('pose le voile pétrole à 10 % sur le blanc de la page, sans transparence', () => {
+  it('pose le voile pétrole du Carnet sur le blanc de la page, sans transparence', () => {
+    const scss = readFileSync(resolve(process.cwd(), 'src/styles/_tokens.scss'), 'utf8')
+    const opacite = Number(/^\$opacity-chart-area:\s*([\d.]+);/m.exec(scss)![1])
     const attendu = [1, 3, 5].map((index) => {
       const primaire = parseInt(PRIMARY.slice(index, index + 2), 16)
-      return Math.round(255 + 0.1 * (primaire - 255)).toString(16)
+      return Math.round(255 + opacite * (primaire - 255)).toString(16)
     })
 
-    expect(memeCouleur(voile(dessine(LUNA_1_AN).paths).fill, `#${attendu.join('')}`)).toBe(true)
+    expect(sameColor(voile(dessine(LUNA_1_AN).paths).fill, `#${attendu.join('')}`)).toBe(true)
   })
 
   it('garde un contraste AA pour chaque texte sur son fond imprimé', () => {
