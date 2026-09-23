@@ -1,15 +1,17 @@
 # Contexte en cours (à mettre à jour à chaque lot)
 
-- 2026-09-23 (soir) : **reprendre ici.** Séance de brainstorming « cycle de vie d'un rappel »
-  (journal du jour, bloc « Cycle de vie d'un rappel », points 1 à 8). **Reste à trancher par Gaelle :
-  le modèle de données de l'historique** (deux tables d'historique, ou une ligne de vaccin par
-  injection ; elle penche pour la seconde) : document de comparaison sur la branche
-  `docs/proposition-historique-rappels`, sans PR tant que ce n'est pas tranché. Ensuite : spec,
-  maquette Claude Design de la feuille « Fait », tickets d'implémentation de #364. Agents lancés
-  pendant l'absence de Gaelle, sur ce qui était entièrement tranché : #344 (« À faire » sur 30 jours),
-  #350 (courbe du PDF), #354 (style des toasts et minuteur). En attente de Gaelle aussi : #351 et
-  #352 (maquette Claude Design), #365 (médicaments), ordre des tickets de synchro. `pnpm dev:plus`
-  (#362) permet de tester les fonctions Plus en dev.
+- 2026-09-23 (soir) : **reprendre ici.** Mergés dans la soirée : #367 (#344 « À faire » sur 30 jours,
+  « Prochain rappel » à la place de « Aucun rappel à venir »), #369 (#354 toasts pétrole, au-dessus de
+  toute barre fixe, tonalités réussite / information / échec), #370 (#350 courbe du PDF sur l'axe du
+  temps ; aucune étiquette ne touche la ligne de base, Carnet compris). `main` à **2485 tests**.
+  Décisions au journal : « Cycle de vie d'un rappel » et « Finitions de #344, #350 et #354 ».
+  **En attente de Gaelle** : (1) modèle de données de l'historique (#364) — document de comparaison
+  sur la branche distante `docs/proposition-historique-rappels`, sans PR ; elle penche pour « une
+  ligne de vaccin par injection » ; (2) maquette Claude Design de la feuille « Fait » (prompt donné,
+  planches F1 à F11) ; (3) maquettes de #351 et #352 ; (4) #365 médicaments ; (5) retirer ou non les
+  10 px d'air sous la ligne de base de la courbe du Carnet, devenus inutiles ; (6) ordre des tickets
+  de synchro. Non vérifié sur appareil : l'annonce TalkBack des toasts (délai de 100 ms), la courbe
+  avec police système agrandie, l'action de notification quand l'app est fermée.
 
 - 2026-09-23 (fin) : **lot mergé.** Lot « retours de navigation » **mergé** : #346 (#339
   accueil à un animal), #355 (#342 + #341 écran Plus et pastille), #358 (#340 courbe de poids),
