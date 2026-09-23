@@ -67,8 +67,8 @@ describe('useFixedBottomBar', () => {
   })
 
   it('garde la plus haute quand deux barres coexistent', async () => {
-    const basse = mount(Barre, { props: { hauteur: 60 } })
     const haute = mount(Barre, { props: { hauteur: 146 } })
+    const basse = mount(Barre, { props: { hauteur: 60 } })
     await mesurer()
 
     expect(fixedBottomBarHeight.value).toBe(146)

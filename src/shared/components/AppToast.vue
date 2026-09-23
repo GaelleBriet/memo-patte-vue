@@ -64,6 +64,7 @@ const isOpen = computed({
 .app-toast--error :deep(.v-snackbar__wrapper) {
   background: rgb(var(--v-theme-error));
   color: rgb(var(--v-theme-on-error));
+  box-shadow: tokens.$shadow-toast-error;
 }
 
 .app-toast :deep(.v-snackbar__content) {

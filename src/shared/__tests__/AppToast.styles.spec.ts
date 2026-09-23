@@ -29,7 +29,9 @@ describe('AppToast — contrat de style (maquette B3)', () => {
   it('peint un toast pétrole aux coins de 16 px, avec son ombre pétrole', () => {
     expect(declaration(feuille, TOAST, 'background')).toBe('rgb(var(--v-theme-primary))')
     expect(declaration(feuille, TOAST, 'border-radius')).toBe('16px')
-    expect(declaration(feuille, TOAST, 'box-shadow')).toBe('0 8px 22px rgba(1, 56, 62, 0.28)')
+    expect(declaration(feuille, TOAST, 'box-shadow')).toBe(
+      '0 8px 22px rgba(var(--v-theme-primary), 0.28)',
+    )
   })
 
   it('se pose à 14 px des bords et à 24 px du bas de la zone disponible', () => {
@@ -67,5 +69,8 @@ describe('AppToast — contrat de style (maquette B3)', () => {
     expect(declaration(feuille, ECHEC, 'background')).toBe('rgb(var(--v-theme-error))')
     expect(declaration(feuille, ECHEC, 'color')).toBe('rgb(var(--v-theme-on-error))')
     expect(declaration(feuille, '.app-toast--error .app-toast__icon', 'color')).toBe('inherit')
+    expect(declaration(feuille, ECHEC, 'box-shadow')).toBe(
+      '0 8px 22px rgba(var(--v-theme-error), 0.28)',
+    )
   })
 })
