@@ -555,6 +555,52 @@ describe('buildCarnetWeightChart — police agrandie', () => {
   })
 })
 
+describe('buildCarnetWeightChart — chasse d’une autre police', () => {
+  const chasseFixe = (text: string) => text.length * 10
+  const largeur = (box: ChartBox) => box.right - box.left
+
+  it('mesure les mois, les extrêmes et la pastille avec la chasse reçue', () => {
+    const chart = buildCarnetWeightChart(LUNA_1_AN, LIBELLES, { textWidth: chasseFixe })!
+
+    expect(largeur(chart.max!.box)).toBeCloseTo('max 4,6'.length * 10, 5)
+    expect(largeur(chart.min!.box)).toBeCloseTo('min 4,1'.length * 10, 5)
+    for (const month of chart.months) {
+      expect(largeur(month.box)).toBeCloseTo(month.text.length * 10, 5)
+    }
+    // Pastille : le texte et 9 px de marge de chaque côté.
+    expect(largeur(chart.latest.box)).toBeCloseTo('4,3\u00a0kg'.length * 10 + 18, 5)
+  })
+
+  it('lui applique encore la taille de police rendue', () => {
+    const chart = buildCarnetWeightChart(LUNA_1_AN, LIBELLES, {
+      textWidth: chasseFixe,
+      textScale: 1.5,
+    })!
+
+    expect(largeur(chart.max!.box)).toBeCloseTo('max 4,6'.length * 10 * 1.5, 5)
+  })
+
+  it('place les textes selon cette chasse : sans chevauchement ni débordement', () => {
+    const cas = [
+      LUNA_1_AN,
+      MILO_6_MOIS,
+      pesees(['2025-01-10', 0.9], ['2026-09-01', 4.3]),
+      pesees(['2025-11-02', 5], ['2026-01-10', 12], ['2026-04-20', 22], ['2026-09-01', 30]),
+    ]
+    for (const entries of cas) {
+      for (const chasse of [chasseFixe, (text: string) => text.length * 13]) {
+        const chart = buildCarnetWeightChart(entries, LIBELLES, { width: 320, textWidth: chasse })!
+        const boites = boitesDuCarnet(chart)
+
+        expect(horsDuSvg(chart, boites)).toEqual([])
+        boites.forEach((boite, index) => {
+          for (const autre of boites.slice(index + 1)) expect(chevauche(boite, autre)).toBe(false)
+        })
+      }
+    }
+  })
+})
+
 describe('buildCarnetWeightChart — les trois chiffres écrits', () => {
   it('écrit le plus haut au-dessus de son point, le plus bas dessous, la dernière pesée en pastille', () => {
     const chart = carnet(LUNA_1_AN, 320)!

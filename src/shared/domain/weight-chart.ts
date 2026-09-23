@@ -82,8 +82,15 @@ export const DEFAULT_CHART_WIDTH = 320
 /** Taille des textes de la courbe dans son style ; la chasse ci-dessous est mesurée à cette taille. */
 export const CHART_FONT_PX = 12
 
-/** `textScale` : taille de police réellement rendue sur `CHART_FONT_PX`, au-delà de 1 si le système l'agrandit. */
-export type ChartMeasure = { width?: number; textScale?: number }
+/**
+ * `textScale` : taille de police réellement rendue sur `CHART_FONT_PX`, au-delà de 1 si le système l'agrandit.
+ * `textWidth` : largeur d'un texte à `CHART_FONT_PX` quand la police n'est pas Inter (l'export PDF).
+ */
+export type ChartMeasure = {
+  width?: number
+  textScale?: number
+  textWidth?: (text: string) => number
+}
 
 /** Libellés traduits par l'appelant : le calcul les mesure tels qu'ils seront écrits. */
 export type CarnetChartLabels = {
@@ -190,18 +197,35 @@ const DEFAULT_GLYPH_WIDTH = 8
 const TEXT_ASCENT = 9
 const TEXT_DESCENT = 3
 
-function textWidth(text: string): number {
+function interWidth(text: string): number {
   return [...text].reduce((sum, glyph) => sum + (GLYPH_WIDTHS.get(glyph) ?? DEFAULT_GLYPH_WIDTH), 0)
 }
 
-function textBox(x: number, y: number, anchor: ChartAnchor, text: string, scale: number): ChartBox {
-  const width = textWidth(text) * scale
+/** Chasse et hauteur des textes à la taille rendue. */
+type ChartFont = { width: (text: string) => number; ascent: number; descent: number }
+
+function chartFont({ textScale = 1, textWidth = interWidth }: ChartMeasure): ChartFont {
+  return {
+    width: (text) => textWidth(text) * textScale,
+    ascent: TEXT_ASCENT * textScale,
+    descent: TEXT_DESCENT * textScale,
+  }
+}
+
+function textBox(
+  x: number,
+  y: number,
+  anchor: ChartAnchor,
+  text: string,
+  font: ChartFont,
+): ChartBox {
+  const width = font.width(text)
   const left = anchor === 'start' ? x : anchor === 'end' ? x - width : x - width / 2
   return {
     left,
     right: left + width,
-    top: y - TEXT_ASCENT * scale,
-    bottom: y + TEXT_DESCENT * scale,
+    top: y - font.ascent,
+    bottom: y + font.descent,
   }
 }
 
@@ -236,7 +260,7 @@ function monthAxis(
   lastIsoDate: string,
   plot: ChartPlot,
   y: number,
-  scale: number,
+  font: ChartFont,
   xOf: (isoDate: string) => number,
 ): { months: ChartMonth[]; monthTicks: number[] } {
   const label = (x: number, anchor: ChartAnchor, text: string, tickX: number | null) => ({
@@ -245,7 +269,7 @@ function monthAxis(
     text,
     anchor,
     tickX,
-    box: textBox(x, y, anchor, text, scale),
+    box: textBox(x, y, anchor, text, font),
   })
 
   const starts = monthStarts(firstIsoDate, lastIsoDate)
@@ -279,7 +303,7 @@ function timeChart(
   layout: Layout,
   lowKg: number,
   highKg: number,
-  { width, scale }: { width: number; scale: number },
+  { width, font }: { width: number; font: ChartFont },
 ): { chart: TimeChart; yOf: (weightKg: number) => number } {
   const plot = {
     left: layout.left,
@@ -308,8 +332,8 @@ function timeChart(
     measuredOn: entry.measuredOn,
   }))
   const lastPoint = points[points.length - 1]!
-  const monthY = round(layout.height - MONTH_ROW_MARGIN - TEXT_DESCENT * scale)
-  const axis = monthAxis(first, last, plot, monthY, scale, xOf)
+  const monthY = round(layout.height - MONTH_ROW_MARGIN - font.descent)
+  const axis = monthAxis(first, last, plot, monthY, font, xOf)
 
   return {
     chart: {
@@ -346,11 +370,11 @@ function fits(box: ChartBox, chart: TimeChart): boolean {
   )
 }
 
-function latestPill(chart: TimeChart, text: string, scale: number): CarnetWeightChart['latest'] {
+function latestPill(chart: TimeChart, text: string, font: ChartFont): CarnetWeightChart['latest'] {
   const last = chart.points[chart.points.length - 1]!
   const right = Math.min(last.x + LATEST_OVERHANG, chart.plot.right)
   const bottom = last.y - LATEST_GAP
-  const width = textWidth(text) * scale + 2 * LATEST_PADDING_X
+  const width = font.width(text) + 2 * LATEST_PADDING_X
   return {
     right: round(chart.width - right),
     bottom: round(chart.height - bottom),
@@ -372,17 +396,17 @@ function extremeLabel(
   text: string,
   places: Place[],
   obstacles: ChartBox[],
-  scale: number,
+  font: ChartFont,
 ): ChartLabel | null {
   const last = chart.points[chart.points.length - 1]!
   if (last.weightKg === weightKg) return null
   const point = chart.points.find((candidate) => candidate.weightKg === weightKg)!
-  const width = textWidth(text) * scale
+  const width = font.width(text)
   const labels = places.map(({ dx, dy, anchor }) => {
     const x = round(point.x + dx)
     const y = round(point.y + dy)
     const side = anchor ?? anchorAt(point.x, width, chart.plot)
-    return { x, y, text, anchor: side, box: textBox(x, y, side, text, scale) }
+    return { x, y, text, anchor: side, box: textBox(x, y, side, text, font) }
   })
   const inside = labels.filter((label) => fits(label.box, chart))
   return (
@@ -396,10 +420,11 @@ function extremeLabel(
 export function buildCarnetWeightChart(
   entries: readonly WeightChartEntry[],
   labels: CarnetChartLabels,
-  { width = DEFAULT_CHART_WIDTH, textScale = 1 }: ChartMeasure = {},
+  { width = DEFAULT_CHART_WIDTH, ...measure }: ChartMeasure = {},
 ): CarnetWeightChart | null {
   if (entries.length < 2) return null
 
+  const font = chartFont(measure)
   const weights = entries.map((entry) => entry.weightKg)
   const maxKg = Math.max(...weights)
   const minKg = Math.min(...weights)
@@ -408,18 +433,17 @@ export function buildCarnetWeightChart(
     CARNET_LAYOUT,
     minKg - CARNET_MARGIN_KG,
     maxKg + CARNET_MARGIN_KG,
-    { width, scale: textScale },
+    { width, font },
   )
   const last = chart.points[chart.points.length - 1]!
-  const latest = latestPill(chart, labels.latest(formatKg(last.weightKg)), textScale)
+  const latest = latestPill(chart, labels.latest(formatKg(last.weightKg)), font)
   const obstacles = [latest.box, ...chart.months.map((month) => month.box)]
 
-  const ascent = TEXT_ASCENT * textScale
-  const above = { dx: 0, dy: -(GAP_ABOVE_POINT + TEXT_DESCENT * textScale) }
-  const below = { dx: 0, dy: GAP_BELOW_POINT + ascent }
+  const above = { dx: 0, dy: -(GAP_ABOVE_POINT + font.descent) }
+  const below = { dx: 0, dy: GAP_BELOW_POINT + font.ascent }
   // Assez bas pour sortir de la pastille partout où la place au-dessus du point la touche.
-  const clearOfLatest = { dx: 0, dy: LATEST_HEIGHT - GAP_ABOVE_POINT + ascent }
-  const besideDy = ((TEXT_ASCENT - TEXT_DESCENT) / 2) * textScale
+  const clearOfLatest = { dx: 0, dy: LATEST_HEIGHT - GAP_ABOVE_POINT + font.ascent }
+  const besideDy = (font.ascent - font.descent) / 2
   const toTheRight: Place = { dx: GAP_BESIDE_POINT, dy: besideDy, anchor: 'start' }
   const toTheLeft: Place = { dx: -GAP_BESIDE_POINT, dy: besideDy, anchor: 'end' }
 
@@ -429,7 +453,7 @@ export function buildCarnetWeightChart(
     labels.max(formatKg(maxKg)),
     [above, below, clearOfLatest],
     obstacles,
-    textScale,
+    font,
   )
   const min = extremeLabel(
     chart,
@@ -437,7 +461,7 @@ export function buildCarnetWeightChart(
     labels.min(formatKg(minKg)),
     [below, toTheRight, toTheLeft],
     max ? [...obstacles, max.box] : obstacles,
-    textScale,
+    font,
   )
 
   return { ...chart, max, min, latest }
@@ -462,7 +486,7 @@ export function weightAxisTicks(minKg: number, maxKg: number): number[] {
 /** Historique : lignes de repère en kg ronds, aucun chiffre sur les points. */
 export function buildHistoryWeightChart(
   entries: readonly WeightChartEntry[],
-  { width = DEFAULT_CHART_WIDTH, textScale = 1 }: ChartMeasure = {},
+  { width = DEFAULT_CHART_WIDTH, ...measure }: ChartMeasure = {},
 ): HistoryWeightChart | null {
   if (entries.length < 2) return null
 
@@ -470,7 +494,7 @@ export function buildHistoryWeightChart(
   const ticks = weightAxisTicks(Math.min(...weights), Math.max(...weights))
   const { chart, yOf } = timeChart(entries, HISTORY_LAYOUT, ticks[0]!, ticks[ticks.length - 1]!, {
     width,
-    scale: textScale,
+    font: chartFont(measure),
   })
 
   return {
