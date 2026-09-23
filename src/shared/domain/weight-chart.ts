@@ -145,11 +145,10 @@ const MONTH_STEPS = [1, 2, 3, 6, 12]
 const MAX_MONTH_LABELS = 6
 const MONTH_LABEL_OFFSET = 3
 const LABEL_GAP = 1
-const BASELINE_FROM_BOTTOM = 4
+const MONTH_ROW_MARGIN = 1
 const GAP_ABOVE_POINT = 8
 const GAP_BELOW_POINT = 10
 const GAP_BESIDE_POINT = 8
-const EDGE_ROOM = 20
 const LATEST_GAP = 10
 const LATEST_OVERHANG = 6
 // À tenir alignés sur le style de `.weight-sparkline__latest`.
@@ -309,7 +308,8 @@ function timeChart(
     measuredOn: entry.measuredOn,
   }))
   const lastPoint = points[points.length - 1]!
-  const axis = monthAxis(first, last, plot, layout.height - BASELINE_FROM_BOTTOM, scale, xOf)
+  const monthY = round(layout.height - MONTH_ROW_MARGIN - TEXT_DESCENT * scale)
+  const axis = monthAxis(first, last, plot, monthY, scale, xOf)
 
   return {
     chart: {
@@ -330,10 +330,20 @@ function timeChart(
   }
 }
 
-function anchorAt(x: number, plot: ChartPlot): ChartAnchor {
-  if (x - plot.left < EDGE_ROOM) return 'start'
-  if (plot.right - x < EDGE_ROOM) return 'end'
+/** Centré sur son point, sauf si le texte sortirait du tracé : il s'aligne alors sur ce bord. */
+function anchorAt(x: number, width: number, plot: ChartPlot): ChartAnchor {
+  if (x - width / 2 < plot.left) return 'start'
+  if (x + width / 2 > plot.right) return 'end'
   return 'middle'
+}
+
+function fits(box: ChartBox, chart: TimeChart): boolean {
+  return (
+    box.left >= chart.plot.left &&
+    box.right <= chart.plot.right &&
+    box.top >= 0 &&
+    box.bottom <= chart.height
+  )
 }
 
 function latestPill(chart: TimeChart, text: string, scale: number): CarnetWeightChart['latest'] {
@@ -349,31 +359,36 @@ function latestPill(chart: TimeChart, text: string, scale: number): CarnetWeight
   }
 }
 
-type Place = { dx: number; dy: number; anchor: ChartAnchor }
+/** Décalage depuis le point ; sans ancre, le texte se centre sur le point tant qu'il tient. */
+type Place = { dx: number; dy: number; anchor?: ChartAnchor }
 
 /**
  * `null` quand la dernière pesée atteint déjà cet extrême : la pastille l'écrit. Sinon, la première
- * des `places` autour du point qui ne chevauche ni la pastille ni un mois.
+ * des `places` qui tient dans le graphique sans toucher un des `obstacles`.
  */
 function extremeLabel(
   chart: TimeChart,
   weightKg: number,
   text: string,
-  places: (point: ChartPoint) => Place[],
+  places: Place[],
   obstacles: ChartBox[],
   scale: number,
 ): ChartLabel | null {
   const last = chart.points[chart.points.length - 1]!
   if (last.weightKg === weightKg) return null
   const point = chart.points.find((candidate) => candidate.weightKg === weightKg)!
-  const labels = places(point).map(({ dx, dy, anchor }) => {
+  const width = textWidth(text) * scale
+  const labels = places.map(({ dx, dy, anchor }) => {
     const x = round(point.x + dx)
     const y = round(point.y + dy)
-    return { x, y, text, anchor, box: textBox(x, y, anchor, text, scale) }
+    const side = anchor ?? anchorAt(point.x, width, chart.plot)
+    return { x, y, text, anchor: side, box: textBox(x, y, side, text, scale) }
   })
+  const inside = labels.filter((label) => fits(label.box, chart))
   return (
-    labels.find((label) => obstacles.every((obstacle) => !overlaps(label.box, obstacle))) ??
-    labels[labels.length - 1]!
+    inside.find((label) => obstacles.every((obstacle) => !overlaps(label.box, obstacle))) ??
+    inside[0] ??
+    labels[0]!
   )
 }
 
@@ -404,37 +419,28 @@ export function buildCarnetWeightChart(
   const below = { dx: 0, dy: GAP_BELOW_POINT + ascent }
   // Assez bas pour sortir de la pastille partout où la place au-dessus du point la touche.
   const clearOfLatest = { dx: 0, dy: LATEST_HEIGHT - GAP_ABOVE_POINT + ascent }
-  const beside = (point: ChartPoint): Place => {
-    const dy = ((TEXT_ASCENT - TEXT_DESCENT) / 2) * textScale
-    return chart.plot.right - point.x < EDGE_ROOM
-      ? { dx: -GAP_BESIDE_POINT, dy, anchor: 'end' }
-      : { dx: GAP_BESIDE_POINT, dy, anchor: 'start' }
-  }
-  const aligned = (point: ChartPoint, place: { dx: number; dy: number }): Place => ({
-    ...place,
-    anchor: anchorAt(point.x, chart.plot),
-  })
+  const besideDy = ((TEXT_ASCENT - TEXT_DESCENT) / 2) * textScale
+  const toTheRight: Place = { dx: GAP_BESIDE_POINT, dy: besideDy, anchor: 'start' }
+  const toTheLeft: Place = { dx: -GAP_BESIDE_POINT, dy: besideDy, anchor: 'end' }
 
-  return {
-    ...chart,
-    max: extremeLabel(
-      chart,
-      maxKg,
-      labels.max(formatKg(maxKg)),
-      (point) => [above, below, clearOfLatest].map((place) => aligned(point, place)),
-      obstacles,
-      textScale,
-    ),
-    min: extremeLabel(
-      chart,
-      minKg,
-      labels.min(formatKg(minKg)),
-      (point) => [aligned(point, below), beside(point)],
-      obstacles,
-      textScale,
-    ),
-    latest,
-  }
+  const max = extremeLabel(
+    chart,
+    maxKg,
+    labels.max(formatKg(maxKg)),
+    [above, below, clearOfLatest],
+    obstacles,
+    textScale,
+  )
+  const min = extremeLabel(
+    chart,
+    minKg,
+    labels.min(formatKg(minKg)),
+    [below, toTheRight, toTheLeft],
+    max ? [...obstacles, max.box] : obstacles,
+    textScale,
+  )
+
+  return { ...chart, max, min, latest }
 }
 
 /** Graduations en kg ronds encadrant les pesées : trois à cinq lignes, sauf au-delà du pas de 10 kg. */

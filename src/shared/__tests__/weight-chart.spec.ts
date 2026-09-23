@@ -6,6 +6,7 @@ import {
   nearestPointIndex,
   weightAxisTicks,
   type CarnetChartLabels,
+  type CarnetWeightChart,
   type ChartBox,
   type WeightChartEntry,
 } from '../domain/weight-chart'
@@ -46,6 +47,22 @@ afterAll(() => {
 
 function chevauche(a: ChartBox, b: ChartBox): boolean {
   return a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom
+}
+
+const FACTEURS = [1, 1.3, 1.5]
+
+function horsDuSvg(chart: { width: number; height: number }, boxes: ChartBox[]): ChartBox[] {
+  return boxes.filter(
+    (box) => box.left < 0 || box.right > chart.width || box.top < 0 || box.bottom > chart.height,
+  )
+}
+
+function boitesDuCarnet(chart: CarnetWeightChart): ChartBox[] {
+  return [
+    ...chart.months.map((month) => month.box),
+    ...[chart.max, chart.min].flatMap((label) => (label ? [label.box] : [])),
+    chart.latest.box,
+  ]
 }
 
 const MILO = [
@@ -304,7 +321,7 @@ describe('mois sous la courbe', () => {
     ]
     for (const entries of historiques) {
       for (const width of [300, 320, 360]) {
-        for (const textScale of [1, 1.3]) {
+        for (const textScale of FACTEURS) {
           for (const chart of [
             carnet(entries, width, textScale)!,
             historique(entries, width, textScale)!,
@@ -313,6 +330,12 @@ describe('mois sous la courbe', () => {
             const changements = chart.months.filter((month) => month.tickX !== null)
             expect(changements.length).toBeLessThanOrEqual(6)
             expect(chart.months.length).toBeLessThanOrEqual(7)
+            expect(
+              horsDuSvg(
+                chart,
+                chart.months.map((month) => month.box),
+              ),
+            ).toEqual([])
             chart.months.slice(1).forEach((month, index) => {
               expect(month.box.left).toBeGreaterThan(chart.months[index]!.box.right)
             })
@@ -361,12 +384,18 @@ describe('mois sous la courbe', () => {
       for (const first of ['2026-03-01', '2026-04-12', '2025-09-01', '2025-01-01']) {
         for (const width of [300, 320, 360]) {
           const entries = pesees([first, 23.6], [last, 24.5])
-          for (const textScale of [1, 1.3]) {
+          for (const textScale of FACTEURS) {
             for (const chart of [
               carnet(entries, width, textScale)!,
               historique(entries, width, textScale)!,
             ]) {
               expect(chart.months.at(-1)!.box.right).toBeLessThanOrEqual(chart.plot.right)
+              expect(
+                horsDuSvg(
+                  chart,
+                  chart.months.map((month) => month.box),
+                ),
+              ).toEqual([])
               chart.months.slice(1).forEach((month, index) => {
                 expect(month.box.left).toBeGreaterThan(chart.months[index]!.box.right)
               })
@@ -465,6 +494,50 @@ describe('buildCarnetWeightChart — police agrandie', () => {
     expect(hauteur(agrandi.months[0]!.box)).toBeCloseTo(hauteur(normal.months[0]!.box) * 1.3, 5)
   })
 
+  it('pose « min » du côté où il tient, sans sortir du graphique : chien au régime, police agrandie', () => {
+    const regimes = [
+      pesees(
+        ['2026-03-01', 35],
+        ['2026-05-01', 33.3],
+        ['2026-06-15', 31.5],
+        ['2026-08-01', 29.8],
+        ['2026-08-11', 30],
+      ),
+      pesees(
+        ['2026-03-20', 35],
+        ['2026-04-27', 33.3],
+        ['2026-06-04', 31.5],
+        ['2026-07-12', 29.8],
+        ['2026-08-20', 30],
+      ),
+    ]
+    const defauts: string[] = []
+    for (const locale of ['fr', 'en'] as const) {
+      applyLocale(locale)
+      for (const entries of regimes) {
+        for (const width of [260, 280, 300, 320, 340, 360]) {
+          for (const textScale of [1.3, 1.5]) {
+            const chart = carnet(entries, width, textScale)!
+            const min = chart.min!
+            const cas = `${locale}, ${width} px, police × ${textScale}`
+            if (horsDuSvg(chart, boitesDuCarnet(chart)).length > 0)
+              defauts.push(`hors du SVG, ${cas}`)
+            const voisins = [chart.latest.box, ...chart.months.map((month) => month.box)]
+            if (chart.max) voisins.push(chart.max.box)
+            if (voisins.some((box) => chevauche(min.box, box)))
+              defauts.push(`chevauchement, ${cas}`)
+          }
+        }
+      }
+    }
+
+    expect(defauts).toEqual([])
+    applyLocale('fr')
+    const chart = carnet(regimes[0]!, 320, 1.3)!
+    expect(chart.min).toMatchObject({ text: 'min 29,8', anchor: 'end' })
+    expect(chart.min!.box.right).toBeLessThanOrEqual(chart.plot.right)
+  })
+
   it('à 130 %, pose « min » à côté de son point quand la place sous la courbe ne suffit plus', () => {
     const chiot = pesees(
       ['2025-11-02', 5],
@@ -550,7 +623,7 @@ describe('buildCarnetWeightChart — les trois chiffres écrits', () => {
     let maxSousSonPoint = 0
     for (const entries of cas) {
       for (const width of [300, 320, 360]) {
-        for (const textScale of [1, 1.3]) {
+        for (const textScale of FACTEURS) {
           const chart = carnet(entries, width, textScale)!
           const plusHaut = chart.points.find((point) => point.weightKg === 24.6)
           if (chart.max && plusHaut && chart.max.y > plusHaut.y) maxSousSonPoint += 1
@@ -558,6 +631,9 @@ describe('buildCarnetWeightChart — les trois chiffres écrits', () => {
             if (label && chevauche(label.box, chart.latest.box)) {
               chevauchements.push(`${label.text} à ${width} px, police × ${textScale}`)
             }
+          }
+          if (horsDuSvg(chart, boitesDuCarnet(chart)).length > 0) {
+            chevauchements.push(`hors du SVG à ${width} px, police × ${textScale}`)
           }
         }
       }
@@ -576,13 +652,14 @@ describe('buildCarnetWeightChart — les trois chiffres écrits', () => {
     ]
     for (const entries of cas) {
       for (const width of [300, 320, 360]) {
-        for (const textScale of [1, 1.3]) {
+        for (const textScale of FACTEURS) {
           const chart = carnet(entries, width, textScale)!
 
           expect(chart.min).not.toBeNull()
           for (const month of chart.months) {
             expect(chevauche(chart.min!.box, month.box)).toBe(false)
           }
+          expect(horsDuSvg(chart, boitesDuCarnet(chart))).toEqual([])
         }
       }
     }
