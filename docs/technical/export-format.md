@@ -2,8 +2,9 @@
 
 Contrat entre l'export (Paramètres → « Exporter mes données ») et l'import (#84, section
 [Import](#import--importer-un-export-mémopatte)).
-Le code de référence est `src/features/settings/export-format.ts`, couvert par
-`src/features/settings/__tests__/export-format.spec.ts`.
+Le code de référence est `src/features/settings/logic/export-format.ts`, couvert par
+`src/features/settings/__tests__/export-format.spec.ts` ; la remise du fichier vit dans
+`src/features/settings/logic/export-delivery.ts` et `export-storage-access.ts`.
 
 ## Principes
 
@@ -13,6 +14,41 @@ Le code de référence est `src/features/settings/export-format.ts`, couvert par
   (`deleted_at` renseigné) ne sont pas exportées, et la colonne `deletedAt` n'apparaît pas.
   L'export ne porte donc **aucune pierre tombale** : un import (#84) ne peut pas propager une
   suppression, une donnée absente du fichier n'est pas une donnée supprimée.
+- Les photos ne sont **jamais** incluses : le JSON cite leur nom de fichier, le CSV les ignore.
+
+## Remise du fichier : enregistrer ou partager
+
+Les feuilles d'export (JSON et CSV depuis Paramètres, PDF depuis le Carnet ou Paramètres) proposent
+deux actions. Le fichier est le même, seul son chemin change.
+
+### « Enregistrer sur le téléphone » (action principale)
+
+- Écriture directe dans le dossier public **Documents**, sous-dossier `MémoPatte/`
+  (`Directory.Documents` de `@capacitor/filesystem`), sans fenêtre de choix. Le système indexe le
+  fichier : il apparaît dans l'app Fichiers. Un toast dit où il se trouve
+  (« Export JSON enregistré dans Documents › MémoPatte »), 4 s.
+- Le fichier garde son nom. Un export n'écrase **jamais** un fichier existant : si le nom est pris
+  (deuxième export du jour), il prend un numéro, `memopatte-export-2026-09-23 (1).json`. Même règle
+  quand l'écriture échoue sur un nom que l'app ne voit pas : sur Android 11 et plus, un fichier laissé
+  par une installation précédente n'appartient plus à l'app, qui ne peut ni le lire ni l'écraser.
+  Une panne qui persiste d'un nom à l'autre (disque plein) fait échouer l'export après trois essais,
+  avec le message d'erreur de la feuille.
+- **Android 11 et plus** : aucune permission, l'app n'accède qu'aux fichiers qu'elle crée.
+- **Android 7 à 10** : `READ_EXTERNAL_STORAGE` et `WRITE_EXTERNAL_STORAGE`, déclarées avec
+  `android:maxSdkVersion="29"` (alias `publicStorage` du plugin), demandées au premier
+  enregistrement, jamais au lancement. Sur Android 10, `android:requestLegacyExternalStorage="true"`
+  est ce qui ouvre le dossier Documents à l'app. `pnpm test:manifest` vérifie le `maxSdkVersion` dans
+  le manifest fusionné.
+  - Refus (Android redemandera, état `prompt-with-rationale` de Capacitor) : la feuille l'explique,
+    « Enregistrer » redemande l'accès, « Partager » reste disponible.
+  - Refus définitif (« Ne plus demander », état `denied`) : « Enregistrer » devient indisponible et un
+    lien ouvre la fiche de l'app dans les réglages Android (`capacitor-native-settings`). Au retour au
+    premier plan, l'accès est relu : accordé, la feuille redevient normale.
+  - La feuille lit l'accès à chaque ouverture, sans jamais afficher la demande d'Android.
+- **Navigateur** (`pnpm dev`) : le fichier est téléchargé, aucun plugin n'est appelé.
+
+### « Partager »
+
 - Le fichier est écrit dans le cache de l'app (`Directory.Cache`, sous-dossier `exports/`) puis
   remis par la feuille de partage Android (`@capacitor/share`, via le `FileProvider` de l'app, qui
   n'ouvre que ce sous-dossier). Aucune permission de stockage n'est demandée.
@@ -20,7 +56,6 @@ Le code de référence est `src/features/settings/export-format.ts`, couvert par
   accepté : le partage rend la main quand MémoPatte revient au premier plan, alors que Gmail, Drive
   ou Quick Share lisent l'URI après coup — effacer tout de suite enverrait une pièce jointe vide.
   Un partage annulé ou en échec, lui, est effacé sur-le-champ : aucune appli n'a reçu l'URI.
-- Les photos ne sont **jamais** incluses : le JSON cite leur nom de fichier, le CSV les ignore.
 
 ## JSON — `memopatte-export-AAAA-MM-JJ.json`
 
