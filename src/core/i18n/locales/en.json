@@ -62,7 +62,8 @@
     "carnet": {
       "back": "Back",
       "edit": "Edit profile",
-      "exportPdf": "Export the health record to PDF",
+      "exportPdf": "Export to PDF",
+      "exportPdfPlus": "Export to PDF, a MémoPatte Plus feature",
       "photo": {
         "avatarLabel": "Manage {name}’s photo",
         "sheetTitle": "{name}’s photo",
@@ -531,65 +532,49 @@
   },
   "plus": {
     "title": "MémoPatte Plus",
-    "headline": "Keep your health records safe, everywhere",
-    "subtitle": "Everything on your phone stays free and unlimited. Plus adds cloud backup.",
+    "headline": {
+      "pdf": "PDF export is part of MémoPatte Plus",
+      "general": "Keep your health records safe, everywhere"
+    },
+    "subtitle": "Pets, reminders, weight and JSON/CSV export stay free, without an account or subscription.",
     "benefits": {
       "backup": "Guaranteed cloud backup",
       "devices": "The same health record on all your devices",
       "photos": "Your photos backed up too",
       "pdf": "Full PDF export"
     },
-    "free": {
-      "title": "Already included for free, without an account",
-      "animals": "Unlimited pets",
-      "reminders": "Unlimited reminders",
-      "weight": "Unlimited weight tracking",
-      "export": "JSON and CSV export"
-    },
-    "comparison": {
-      "title": "What Android already does, what Plus guarantees",
-      "android": "Android (free)",
-      "plus": "MémoPatte Plus",
-      "backup": {
-        "label": "Automatic backup",
-        "android": "Yes, best effort",
-        "plus": "Yes, guaranteed"
-      },
-      "photos": {
-        "label": "Photos backed up",
-        "android": "No",
-        "plus": "Yes"
-      },
-      "restore": {
-        "label": "Restore on a new device",
-        "android": "Not guaranteed",
-        "plus": "Guaranteed"
-      }
-    },
+    "android": "Android already backs up your health record, but without photos or a guaranteed restore. Plus guarantees it.",
     "offers": {
       "title": "Three ways to pay, same content",
       "best": "Best value",
       "monthly": {
         "label": "Monthly",
         "price": "{price}/month",
-        "terms": "Renews automatically every month. No commitment, cancel any time.",
+        "detail": "No commitment",
+        "terms": "Renews automatically every month. Cancel any time in Google Play — access kept until the end of the paid period.",
         "submit": "Continue with Monthly Plus — {price}"
       },
       "annual": {
         "label": "Annual Plus",
         "price": "{price}/year",
-        "saving": "≈ 44% cheaper than monthly",
+        "detail": "≈ 44% cheaper than monthly",
         "terms": "Renews automatically every year. Cancel any time in Google Play — access kept until the end of the paid period.",
         "submit": "Continue with Annual Plus — {price}"
       },
       "lifetime": {
         "label": "Lifetime",
         "price": "{price}",
-        "terms": "One-time payment, yours forever.",
+        "detail": "One-time payment, yours forever.",
+        "terms": "One-time payment of {price}. No subscription, nothing to renew.",
         "submit": "Continue with Lifetime Plus — {price}"
       },
-      "unavailable": "Google Play offers aren’t available right now.",
-      "retry": "Try again"
+      "pending": "Offers appear as soon as Google Play responds.",
+      "unavailable": {
+        "title": "Offers unavailable right now",
+        "hint": "Check your connection, then try again."
+      },
+      "retry": "Try again",
+      "connecting": "Connecting to Google Play…"
     },
     "member": {
       "title": "You’re already a Plus member",
@@ -598,13 +583,12 @@
       "lifetime": "Lifetime access, no renewal."
     },
     "terms": {
-      "free": "MémoPatte can be used for free without a subscription.",
       "prices": "Prices shown by Google Play, in your currency.",
       "local": "If you stop Plus, your health records stay on your phone.",
       "manage": "Manage my subscription · Google Play"
     },
     "restore": {
-      "action": "Restore my purchase",
+      "action": "Restore my purchases",
       "busy": "Restoring…",
       "restored": "Welcome back to Plus.",
       "none": "No purchase to restore on this Google account.",
@@ -613,7 +597,7 @@
     "success": {
       "title": "Welcome to Plus",
       "body": "Your health record will be backed up very soon.",
-      "back": "Back to settings"
+      "back": "Back"
     },
     "cancelled": {
       "title": "Purchase not completed",

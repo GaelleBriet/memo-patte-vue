@@ -1,77 +1,103 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 import type { PaidPlan, PlusOffer } from '../service/billing.service'
 import { MANAGE_SUBSCRIPTIONS_URL } from '../logic/google-play'
+import {
+  checkoutBar,
+  orderedOffers,
+  pitchBenefits,
+  plusOriginOf,
+  PRESELECTED_PLAN,
+  selectablePlan,
+  type PlusBenefit,
+} from '../logic/plus-paywall'
 import { usePurchaseStore } from '../store/purchase.store'
 import PushedScreen from '@/shared/components/PushedScreen.vue'
 import { showToast } from '@/shared/utils/toast'
 
 type Phase = 'offers' | 'purchasing' | 'restoring' | 'success' | 'cancelled' | 'failed'
 
-const PLAN_ORDER = ['annual', 'monthly', 'lifetime'] as const satisfies readonly PaidPlan[]
-
-const BENEFITS = [
-  { key: 'backup', icon: 'ms:cloud_done' },
-  { key: 'devices', icon: 'ms:devices' },
-  { key: 'photos', icon: 'ms:photo_camera' },
-  { key: 'pdf', icon: 'ms:picture_as_pdf' },
-] as const
-
-const FREE_ITEMS = ['animals', 'reminders', 'weight', 'export'] as const
-const COMPARISON_ROWS = ['backup', 'photos', 'restore'] as const
+const BENEFIT_ICONS: Record<PlusBenefit, string> = {
+  backup: 'ms:cloud_done',
+  devices: 'ms:devices',
+  photos: 'ms:photo_camera',
+  pdf: 'ms:picture_as_pdf',
+}
 
 const { t } = useI18n()
+const route = useRoute()
 const router = useRouter()
 const purchase = usePurchaseStore()
 
 const phase = ref<Phase>('offers')
-const selected = ref<PaidPlan>('annual')
+const selected = ref<PaidPlan>(PRESELECTED_PLAN)
+const isLoadingOffers = ref(false)
+const hasAnswered = ref(false)
 
-const offers = computed(() =>
-  PLAN_ORDER.flatMap((plan) => purchase.offers.filter((offer) => offer.plan === plan)),
+const origin = computed(() => plusOriginOf(route.query.from))
+const heroIcon = computed(() =>
+  origin.value === 'pdf' ? 'ms:picture_as_pdf' : 'ms:workspace_premium',
+)
+const benefits = computed(() => pitchBenefits(origin.value))
+const offers = computed(() => orderedOffers(purchase.offers))
+const bar = computed(() =>
+  checkoutBar({
+    offers: offers.value,
+    selected: selected.value,
+    loading: isLoadingOffers.value,
+    answered: hasAnswered.value,
+  }),
+)
+const isConnecting = computed(
+  () => bar.value.kind === 'connecting' || (bar.value.kind === 'unavailable' && bar.value.retrying),
 )
 const isMember = computed(() => purchase.status.plan !== 'none')
-const canRetryOffers = computed(() => purchase.available && offers.value.length === 0)
 const isPurchasing = computed(() => phase.value === 'purchasing')
 const isRestoring = computed(() => phase.value === 'restoring')
 const isBusy = computed(() => isPurchasing.value || isRestoring.value)
 const isDone = computed(() => ['success', 'cancelled', 'failed'].includes(phase.value))
-const selectedOffer = computed(
-  () => offers.value.find((offer) => offer.plan === selected.value) ?? null,
-)
-const submitLabel = computed(() => {
-  const offer = selectedOffer.value
-  if (!offer) return ''
-  return t(`plus.offers.${offer.plan}.submit`, { price: priceOf(offer) })
-})
 
 function priceOf(offer: PlusOffer): string {
   return t(`plus.offers.${offer.plan}.price`, { price: offer.priceString })
 }
 
-onMounted(() => {
-  if (!isMember.value) void loadOffers()
-})
+function disclosureOf(offer: PlusOffer): string {
+  return t(`plus.offers.${offer.plan}.terms`, { price: offer.priceString })
+}
+
+function submitLabelOf(offer: PlusOffer): string {
+  return t(`plus.offers.${offer.plan}.submit`, { price: priceOf(offer) })
+}
+
+watch(
+  isMember,
+  (member) => {
+    if (!member && purchase.available) void loadOffers()
+  },
+  { immediate: true },
+)
 
 async function loadOffers(): Promise<void> {
+  if (isLoadingOffers.value) return
+  isLoadingOffers.value = true
   await purchase.loadOffers()
-  if (!offers.value.some((offer) => offer.plan === selected.value)) {
-    selected.value = offers.value[0]?.plan ?? 'annual'
-  }
+  isLoadingOffers.value = false
+  hasAnswered.value = true
+  selected.value = selectablePlan(offers.value, selected.value)
 }
 
 function close(): void {
   router.back()
 }
 
-async function buy(): Promise<void> {
+async function buy(plan: PaidPlan): Promise<void> {
   if (isBusy.value) return
   phase.value = 'purchasing'
   try {
-    const outcome = await purchase.purchase(selected.value)
+    const outcome = await purchase.purchase(plan)
     phase.value = outcome.kind === 'purchased' ? 'success' : 'cancelled'
   } catch {
     phase.value = 'failed'
@@ -154,135 +180,133 @@ async function restore(): Promise<void> {
     <div v-else class="plus__content">
       <div class="plus__hero">
         <span class="plus__hero-icon">
-          <v-icon icon="ms:workspace_premium" size="38" />
+          <v-icon :icon="heroIcon" size="23" />
         </span>
-        <h2 class="plus__headline">{{ t('plus.headline') }}</h2>
+        <h2 class="plus__headline">{{ t(`plus.headline.${origin}`) }}</h2>
         <p class="plus__subtitle">{{ t('plus.subtitle') }}</p>
       </div>
 
       <ul class="plus__benefits">
-        <li v-for="benefit in BENEFITS" :key="benefit.key" class="plus__benefit">
-          <v-icon :icon="benefit.icon" size="20" />
-          <span>{{ t(`plus.benefits.${benefit.key}`) }}</span>
+        <li
+          v-for="item in benefits"
+          :key="item.benefit"
+          class="plus__benefit"
+          :class="{ 'plus__benefit--highlighted': item.highlighted }"
+        >
+          <span class="plus__benefit-icon">
+            <v-icon :icon="BENEFIT_ICONS[item.benefit]" size="16" />
+          </span>
+          <span>{{ t(`plus.benefits.${item.benefit}`) }}</span>
         </li>
       </ul>
 
-      <section class="plus__card plus__free">
-        <h3 class="plus__free-title">{{ t('plus.free.title') }}</h3>
-        <ul class="plus__free-list">
-          <li v-for="item in FREE_ITEMS" :key="item" class="plus__free-item">
-            <v-icon icon="ms:check" size="18" />
-            <span>{{ t(`plus.free.${item}`) }}</span>
-          </li>
-        </ul>
-      </section>
-
-      <section class="plus__card plus__comparison">
-        <h3 class="plus__comparison-title">{{ t('plus.comparison.title') }}</h3>
-        <table class="plus__comparison-table" role="table">
-          <thead role="rowgroup">
-            <tr class="plus__comparison-head" role="row">
-              <td class="plus__comparison-corner" role="cell"></td>
-              <th role="columnheader" scope="col">{{ t('plus.comparison.android') }}</th>
-              <th role="columnheader" scope="col">{{ t('plus.comparison.plus') }}</th>
-            </tr>
-          </thead>
-          <tbody role="rowgroup">
-            <tr v-for="row in COMPARISON_ROWS" :key="row" class="plus__comparison-row" role="row">
-              <th role="rowheader" scope="row" class="plus__comparison-label">
-                {{ t(`plus.comparison.${row}.label`) }}
-              </th>
-              <td role="cell" class="plus__comparison-android">
-                {{ t(`plus.comparison.${row}.android`) }}
-              </td>
-              <td role="cell" class="plus__comparison-plus">
-                {{ t(`plus.comparison.${row}.plus`) }}
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </section>
-
-      <section class="plus__offers">
-        <h3 v-if="offers.length > 0" id="plus-offers-title" class="plus__offers-title">
-          {{ t('plus.offers.title') }}
-        </h3>
-
-        <div v-if="offers.length > 0" role="radiogroup" aria-labelledby="plus-offers-title">
-          <button
-            v-for="offer in offers"
-            :key="offer.plan"
-            type="button"
-            role="radio"
-            class="plus-offer"
-            :class="{
-              'plus-offer--selected': selected === offer.plan,
-              'plus-offer--best': offer.plan === 'annual',
-            }"
-            :aria-checked="selected === offer.plan"
-            :disabled="isBusy"
-            @click="selected = offer.plan"
-          >
+      <div
+        v-if="offers.length > 0"
+        class="plus__offers"
+        role="radiogroup"
+        :aria-label="t('plus.offers.title')"
+      >
+        <button
+          v-for="offer in offers"
+          :key="offer.plan"
+          type="button"
+          role="radio"
+          class="plus-offer"
+          :class="{ 'plus-offer--selected': selected === offer.plan }"
+          :aria-checked="selected === offer.plan"
+          :disabled="isBusy"
+          @click="selected = offer.plan"
+        >
+          <span class="plus-offer__radio" aria-hidden="true" />
+          <span class="plus-offer__text">
             <span class="plus-offer__head">
               <span class="plus-offer__label">{{ t(`plus.offers.${offer.plan}.label`) }}</span>
-              <span v-if="offer.plan === 'annual'" class="plus-offer__badge">
+              <span v-if="offer.plan === PRESELECTED_PLAN" class="plus-offer__badge">
                 {{ t('plus.offers.best') }}
               </span>
             </span>
-            <span class="plus-offer__price">{{ priceOf(offer) }}</span>
-            <span v-if="offer.plan === 'annual'" class="plus-offer__saving">
-              {{ t('plus.offers.annual.saving') }}
-            </span>
-            <span class="plus-offer__terms">{{ t(`plus.offers.${offer.plan}.terms`) }}</span>
-          </button>
-        </div>
+            <span class="plus-offer__detail">{{ t(`plus.offers.${offer.plan}.detail`) }}</span>
+          </span>
+          <span class="plus-offer__price">{{ priceOf(offer) }}</span>
+        </button>
+      </div>
 
-        <p v-else class="plus__unavailable">{{ t('plus.offers.unavailable') }}</p>
+      <p v-else class="plus__pending">
+        <v-icon icon="ms:storefront" size="22" />
+        <span>{{ t('plus.offers.pending') }}</span>
+      </p>
 
+      <p class="plus__android">
+        <v-icon icon="ms:info" size="18" />
+        <span>{{ t('plus.android') }}</span>
+      </p>
+
+      <div class="plus__links">
         <v-btn
-          v-if="offers.length > 0"
-          class="plus__submit"
-          variant="flat"
+          v-if="purchase.available"
+          class="plus__restore"
+          variant="text"
           color="primary"
-          :loading="isPurchasing"
+          :loading="isRestoring"
           :disabled="isBusy"
-          @click="buy"
+          @click="restore"
         >
-          {{ submitLabel }}
+          {{ t('plus.restore.action') }}
         </v-btn>
-        <v-btn
-          v-else-if="canRetryOffers"
-          class="plus__retry-offers"
-          variant="outlined"
-          color="primary"
-          @click="loadOffers"
-        >
-          {{ t('plus.offers.retry') }}
-        </v-btn>
-      </section>
-
-      <div class="plus__terms">
-        <p class="plus__terms-free">{{ t('plus.terms.free') }}</p>
-        <p class="plus__terms-prices">{{ t('plus.terms.prices') }}</p>
-        <p class="plus__terms-local">{{ t('plus.terms.local') }}</p>
         <a class="plus__manage" :href="MANAGE_SUBSCRIPTIONS_URL" target="_blank" rel="noopener">
           {{ t('plus.terms.manage') }}
-          <v-icon icon="ms:open_in_new" size="16" />
+          <v-icon icon="ms:open_in_new" size="15" />
         </a>
       </div>
 
-      <v-btn
-        v-if="purchase.available"
-        class="plus__restore"
-        variant="text"
-        color="primary"
-        :loading="isRestoring"
-        :disabled="isBusy"
-        @click="restore"
-      >
-        {{ t('plus.restore.action') }}
-      </v-btn>
+      <p class="plus__terms">{{ t('plus.terms.prices') }} {{ t('plus.terms.local') }}</p>
     </div>
+
+    <template v-if="!isDone && !isMember" #actions>
+      <div class="plus__checkout">
+        <template v-if="bar.kind === 'offer'">
+          <p id="plus-disclosure" class="plus__disclosure">{{ disclosureOf(bar.offer) }}</p>
+          <v-btn
+            class="plus__submit"
+            variant="flat"
+            color="primary"
+            aria-describedby="plus-disclosure"
+            :loading="isPurchasing"
+            :disabled="isBusy"
+            @click="buy(bar.offer.plan)"
+          >
+            {{ submitLabelOf(bar.offer) }}
+          </v-btn>
+        </template>
+
+        <template v-else>
+          <div v-if="bar.kind === 'unavailable'" class="plus__unavailable" role="status">
+            <v-icon icon="ms:cloud_off" size="20" />
+            <div>
+              <p class="plus__unavailable-title">{{ t('plus.offers.unavailable.title') }}</p>
+              <p class="plus__unavailable-hint">{{ t('plus.offers.unavailable.hint') }}</p>
+            </div>
+          </div>
+          <v-btn
+            v-if="purchase.available"
+            class="plus__retry-offers"
+            variant="flat"
+            color="primary"
+            :aria-busy="isConnecting"
+            @click="loadOffers"
+          >
+            <v-progress-circular
+              v-if="isConnecting"
+              class="plus__retry-spinner"
+              indeterminate
+              :size="15"
+              :width="2"
+            />
+            {{ isConnecting ? t('plus.offers.connecting') : t('plus.offers.retry') }}
+          </v-btn>
+        </template>
+      </div>
+    </template>
   </PushedScreen>
 </template>
 
@@ -293,8 +317,7 @@ async function restore(): Promise<void> {
 .plus__content {
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  padding: 8px 20px 36px;
+  padding: 16px 22px 24px;
 }
 
 .plus__hero {
@@ -308,35 +331,38 @@ async function restore(): Promise<void> {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 76px;
-  height: 76px;
-  margin-bottom: 18px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   background: tokens.$color-priming-icon-surface;
   color: rgb(var(--v-theme-primary));
 }
 
 .plus__headline {
-  margin: 0;
+  max-width: 290px;
+  margin: 10px 0 0;
   font-family: tokens.$font-family-heading;
-  font-size: 23px;
+  font-size: 20px;
   font-weight: 700;
-  line-height: 1.25;
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+  text-wrap: balance;
 }
 
 .plus__subtitle {
-  max-width: 320px;
-  margin: 10px 0 0;
+  max-width: 290px;
+  margin: 6px 0 0;
   color: tokens.$color-text-secondary;
-  font-size: 14.5px;
-  line-height: 1.55;
+  font-size: 12.5px;
+  line-height: 1.45;
+  text-wrap: pretty;
 }
 
 .plus__benefits {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  margin: 0;
+  gap: 6px;
+  margin: 16px 0 0;
   padding: 0;
   list-style: none;
 }
@@ -344,145 +370,64 @@ async function restore(): Promise<void> {
 .plus__benefit {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
+  padding-block: 3px;
   font-size: 13.5px;
   font-weight: 600;
   line-height: 1.35;
+}
 
-  .v-icon {
-    flex: 0 0 auto;
-    color: rgb(var(--v-theme-primary));
+.plus__benefit-icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: tokens.$color-priming-icon-surface;
+  color: rgb(var(--v-theme-primary));
+}
+
+.plus__benefit--highlighted {
+  margin-inline: -10px;
+  padding: 6px 10px;
+  border-radius: tokens.$radius-field;
+  background: tokens.$color-plus-highlight-surface;
+  color: rgb(var(--v-theme-primary));
+  font-weight: 700;
+
+  .plus__benefit-icon {
+    background: rgb(var(--v-theme-primary));
+    color: tokens.$color-on-primary;
   }
 }
 
-.plus__card {
-  padding: 18px 20px;
-  border: 1px solid tokens.$color-card-border;
-  border-radius: tokens.$radius-card;
-  background: rgb(var(--v-theme-surface));
-}
-
-.plus__free-title,
-.plus__comparison-title {
-  margin: 0;
-  font-family: tokens.$font-family-heading;
-  font-size: 15px;
-  font-weight: 700;
-}
-
-.plus__free-list {
+.plus__offers {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin: 14px 0 0;
-  padding: 0;
-  list-style: none;
-}
-
-.plus__free-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: tokens.$color-text-secondary;
-  font-size: 13.5px;
-
-  .v-icon {
-    flex: 0 0 auto;
-    color: rgb(var(--v-theme-primary));
-  }
-}
-
-// `display: contents` : la maquette pose le libellé sur toute la largeur et ses
-// deux valeurs dessous, ce qu'aucune colonne de tableau ne sait faire.
-.plus__comparison-table {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  column-gap: 12px;
-  width: 100%;
-  margin-top: 14px;
-
-  thead,
-  tbody,
-  tr {
-    display: contents;
-  }
-}
-
-.plus__comparison-head th {
-  padding-bottom: 6px;
-  color: tokens.$color-hint;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-align: start;
-  text-transform: uppercase;
-}
-
-.plus__comparison-corner {
-  display: none;
-}
-
-.plus__comparison-label {
-  grid-column: 1 / -1;
-  margin-top: 12px;
-  padding-top: 12px;
-  padding-bottom: 4px;
-  border-top: 1px solid tokens.$color-divider;
-  font-size: 13.5px;
-  font-weight: 600;
-  text-align: start;
-}
-
-.plus__comparison-row:first-child .plus__comparison-label {
-  margin-top: 0;
-  padding-top: 0;
-  border-top: 0;
-}
-
-.plus__comparison-android,
-.plus__comparison-plus {
-  font-size: 13px;
-}
-
-.plus__comparison-android {
-  color: tokens.$color-text-secondary;
-}
-
-.plus__comparison-plus {
-  color: rgb(var(--v-theme-primary));
-  font-weight: 600;
-}
-
-.plus__offers-title {
-  margin: 0 0 14px;
-  font-family: tokens.$font-family-heading;
-  font-size: 18px;
-  font-weight: 700;
+  gap: 8px;
+  margin-top: 18px;
 }
 
 .plus-offer {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  align-items: center;
+  gap: 12px;
   width: 100%;
-  padding: 16px 18px;
-  border: 1px solid tokens.$color-card-border;
-  border-radius: tokens.$radius-tile;
+  padding: 11px 14px;
+  border: 1.5px solid tokens.$color-card-border;
+  border-radius: tokens.$radius-notice;
   background: rgb(var(--v-theme-surface));
   color: rgb(var(--v-theme-on-surface));
   font-family: inherit;
+  line-height: 1.2;
   text-align: start;
   cursor: pointer;
-}
 
-.plus-offer + .plus-offer {
-  margin-top: 12px;
-}
-
-// `rgba(…, alpha)` et non `rgb(… / alpha)` : le thème livre « 1,56,62 », que la
-// syntaxe à barre oblique rejette, et la bordure retombait alors sur `currentColor`.
-.plus-offer--best {
-  border-color: rgba(var(--v-theme-primary), 0.18);
+  &:focus-visible {
+    outline: none;
+  }
 }
 
 .plus-offer--selected {
@@ -490,49 +435,174 @@ async function restore(): Promise<void> {
   background: tokens.$color-choice-selected-surface;
 }
 
+.plus-offer__radio {
+  flex: 0 0 auto;
+  box-sizing: border-box;
+  width: 20px;
+  height: 20px;
+  border: 2px solid tokens.$color-offer-radio-border;
+  border-radius: 50%;
+}
+
+.plus-offer--selected .plus-offer__radio {
+  border-color: rgb(var(--v-theme-primary));
+  background: rgb(var(--v-theme-primary));
+  box-shadow: inset 0 0 0 3px tokens.$color-choice-selected-surface;
+}
+
+.plus-offer__text {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+}
+
 .plus-offer__head {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
 }
 
 .plus-offer__label {
-  font-size: 14.5px;
+  font-size: 14px;
   font-weight: 700;
 }
 
 .plus-offer__badge {
-  padding: 2px 9px;
-  border-radius: 999px;
+  padding: 2px 8px;
+  border-radius: tokens.$radius-pill;
   background: rgb(var(--v-theme-primary));
   color: tokens.$color-on-primary;
   font-size: 12px;
   font-weight: 700;
 }
 
-.plus-offer__price {
-  font-family: tokens.$font-family-heading;
-  font-size: 20px;
-  font-weight: 700;
-}
-
-.plus-offer__saving {
-  color: rgb(var(--v-theme-primary));
-  font-size: 12.5px;
-  font-weight: 700;
-}
-
-.plus-offer__terms {
+.plus-offer__detail {
+  margin-top: 2px;
   color: tokens.$color-text-secondary;
-  font-size: 12.5px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.plus-offer__price {
+  flex: 0 0 auto;
+  color: rgb(var(--v-theme-primary));
+  font-family: tokens.$font-family-heading;
+  font-size: 15px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.plus__pending,
+.plus__android {
+  display: flex;
+  margin: 18px 0 0;
+  border-radius: tokens.$radius-notice;
   line-height: 1.45;
 }
 
-.plus__unavailable {
-  margin: 0;
+.plus__pending {
+  align-items: center;
+  gap: 12px;
+  padding: 18px 16px;
+  border: 1px dashed tokens.$color-card-border;
+  background: rgb(var(--v-theme-surface));
   color: tokens.$color-text-secondary;
+  font-size: 13px;
+  font-weight: 500;
+
+  .v-icon {
+    flex: 0 0 auto;
+    color: tokens.$color-text-meta;
+  }
+}
+
+.plus__android {
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  background: tokens.$color-notice-surface;
+  font-size: 12.5px;
+  font-weight: 500;
+
+  .v-icon {
+    flex: 0 0 auto;
+    color: rgb(var(--v-theme-primary));
+  }
+}
+
+.plus__links {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 14px;
+}
+
+.plus__restore,
+.plus__manage {
+  position: relative;
+  height: 44px;
   font-size: 13.5px;
+  font-weight: 600;
+  letter-spacing: normal;
+
+  @include tap.tap-target;
+}
+
+.plus__manage {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: rgb(var(--v-theme-primary));
+  text-decoration: none;
+}
+
+.plus__terms {
+  margin: 4px 8px 0;
+  color: tokens.$color-hint;
+  font-size: 12px;
   line-height: 1.5;
+  text-align: center;
+}
+
+.plus__checkout {
+  padding: 12px 20px tokens.$padding-bottom-nav;
+}
+
+.plus__disclosure {
+  margin: 0 0 10px;
+  color: tokens.$color-text-secondary;
+  font-size: 12px;
+  line-height: 1.4;
+  text-wrap: pretty;
+}
+
+.plus__unavailable {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+
+  .v-icon {
+    flex: 0 0 auto;
+    color: tokens.$color-text-secondary;
+  }
+
+  p {
+    margin: 0;
+  }
+}
+
+.plus__unavailable-title {
+  font-size: 13.5px;
+  font-weight: 700;
+}
+
+.plus__unavailable-hint {
+  margin-top: 1px;
+  color: tokens.$color-text-secondary;
+  font-size: 12px;
 }
 
 .plus__submit,
@@ -540,54 +610,21 @@ async function restore(): Promise<void> {
   width: 100%;
   height: auto;
   min-height: 52px;
-  margin-top: 18px;
-  padding-block: 12px;
-  border-radius: 999px;
-  font-size: 16px;
+  padding: 12px;
+  border-radius: tokens.$radius-pill;
+  font-size: 14px;
   font-weight: 700;
   letter-spacing: normal;
+}
+
+.plus__retry-offers :deep(.v-btn__content) {
+  gap: 10px;
 }
 
 // Le libellé porte le prix rendu par Google Play : aucune devise ne doit déborder.
 .plus__submit :deep(.v-btn__content) {
   overflow-wrap: anywhere;
   white-space: normal;
-}
-
-.plus__terms {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  color: tokens.$color-text-secondary;
-  font-size: 12.5px;
-  line-height: 1.5;
-
-  p {
-    margin: 0;
-  }
-}
-
-.plus__manage {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  align-self: flex-start;
-  color: rgb(var(--v-theme-primary));
-  font-weight: 700;
-  text-decoration: none;
-
-  @include tap.tap-target;
-}
-
-.plus__restore {
-  align-self: center;
-  height: 44px;
-  font-size: 15px;
-  font-weight: 700;
-  letter-spacing: normal;
-
-  @include tap.tap-target;
 }
 
 .plus-member {
