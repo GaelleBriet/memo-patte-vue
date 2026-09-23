@@ -1535,3 +1535,28 @@ tombe, l'état « Tout est à jour » annonce le prochain rappel plus lointain. 
 une table de prises pour les traitements. Gaelle penche pour la seconde et veut comparer ; un
 document de comparaison est préparé (`docs/technical/proposition-historique-rappels.md`).
 
+2026-09-23 — **Finitions de #344, #350 et #354, tranchées avec Gaelle.**
+
+1) **« À faire », état « Tout est à jour »** (#344) : quand un rappel existe au-delà de la fenêtre de
+30 jours, la ligne « Prochain rappel : … » remplace « Aucun rappel à venir… », qui ne reste que s'il
+n'existe aucun rappel ; la date de cette ligne ne se coupe jamais. — Raison : les deux phrases ensemble
+se contredisaient (« aucun rappel à venir » puis un prochain rappel). — Alternative écartée :
+reformuler la première phrase, qui aurait redit la seconde.
+
+2) **Courbe de poids du PDF** (#350) : ligne de base et traits des mois en gris de bordure de champ
+(`#B6ADA1`, déjà dans la palette), pour qu'ils restent visibles à l'impression ; le Carnet garde son
+gris pâle. Plus d'écart entre le titre « Poids » et la courbe. — Alternative écartée : le gris du
+Carnet, qui risquait de disparaître sur une imprimante laser.
+
+3) **Aucune étiquette de la courbe ne touche la ligne de base** (Carnet et PDF) : « min » reste sous
+son point, la courbe réserve la place nécessaire. Application de la règle « aucun chevauchement »
+déjà validée pour la courbe (#340), révélée par le gris plus visible du PDF.
+
+4) **Toasts** (#354) : style pétrole de la maquette B3 pour toute l'app ; 24 px au-dessus de la barre
+du bas, et toujours au-dessus de toute barre fixe du bas (le bouton d'achat de l'écran Plus n'est plus
+recouvert) ; 56 px de haut sans bouton ; trois tonalités : réussite (pétrole, coche), information
+(pétrole, icône d'information), échec (couleur système `error` du thème, texte et icône blancs).
+— Raison : une coche sur un message d'échec trompait ; Gaelle veut une couleur sémantique d'échec.
+— Alternatives écartées : 12 px au-dessus de la barre ; un toast compact ; une couleur d'échec hors
+palette.
+
