@@ -1,7 +1,16 @@
+import { jsPDF } from 'jspdf'
 import { describe, expect, it } from 'vitest'
 
+import { drawWeightChart } from '../logic/pdf-weight-chart'
 import { renderCarnetPdf } from '../logic/render-carnet-pdf'
+import { readPdf, sameColor, type PdfPath, type PdfText } from './pdf-reader'
 import type { CarnetPdfContent } from '../logic/pdf-content'
+import vuetify from '@/core/theme/vuetify'
+
+const MM_PER_PT = 25.4 / 72
+const ASCENT_EM = 0.75
+const DESCENT_EM = 0.22
+const PRIMARY = String(vuetify.theme.themes.value.light!.colors.primary).toUpperCase()
 
 const EMPTY_CONTENT: CarnetPdfContent = {
   animal: { name: 'Milo', species: 'dog', breed: null, birthDate: null, photoFileName: null },
@@ -9,7 +18,6 @@ const EMPTY_CONTENT: CarnetPdfContent = {
   vaccinations: [],
   treatments: [],
   weightEntries: [],
-  weightChart: null,
 }
 
 const FULL_CONTENT: CarnetPdfContent = {
@@ -31,15 +39,19 @@ const FULL_CONTENT: CarnetPdfContent = {
     { measuredOn: '2026-01-01', weightKg: 4 },
     { measuredOn: '2026-06-01', weightKg: 4.3 },
   ],
-  weightChart: {
-    width: 300,
-    height: 120,
-    polyline: '16,100 284,20',
-    points: [
-      { x: 16, y: 100, valueLabel: '4,0', monthLabel: 'Janv.' },
-      { x: 284, y: 20, valueLabel: '4,3', monthLabel: 'Juin' },
-    ],
-  },
+}
+
+const PESEES_IRREGULIERES = [
+  { measuredOn: '2025-09-20', weightKg: 4.2 },
+  { measuredOn: '2025-10-18', weightKg: 4.3 },
+  { measuredOn: '2025-12-20', weightKg: 4.6 },
+  { measuredOn: '2026-01-10', weightKg: 4.5 },
+  { measuredOn: '2026-06-27', weightKg: 4.1 },
+  { measuredOn: '2026-09-19', weightKg: 4.3 },
+]
+
+function jours(from: string, to: string): number {
+  return (Date.parse(to) - Date.parse(from)) / 86_400_000
 }
 
 const TINY_JPEG_DATA_URL =
@@ -67,5 +79,87 @@ describe('renderCarnetPdf', () => {
     expect(() =>
       renderCarnetPdf(FULL_CONTENT, '0.1.24', 'data:image/jpeg;base64,invalide'),
     ).not.toThrow()
+  })
+})
+
+describe('renderCarnetPdf — courbe de poids', () => {
+  it('le PDF d’un animal à plusieurs pesées contient la courbe sur l’axe du temps', () => {
+    const content = { ...FULL_CONTENT, weightEntries: PESEES_IRREGULIERES }
+    const { texts, paths } = readPdf(renderCarnetPdf(content, '0.1.24', null))
+    const courbe = paths.find(
+      (path) => path.paint === 'S' && path.points.length === PESEES_IRREGULIERES.length,
+    )!
+    const debut = PESEES_IRREGULIERES[0]!.measuredOn
+    const duree = jours(debut, PESEES_IRREGULIERES.at(-1)!.measuredOn)
+    const largeur = courbe.points.at(-1)!.x - courbe.points[0]!.x
+    const ecrits = texts.map((text) => text.text)
+
+    PESEES_IRREGULIERES.forEach((entry, index) => {
+      const attendu = (jours(debut, entry.measuredOn) / duree) * largeur
+      expect(courbe.points[index]!.x - courbe.points[0]!.x).toBeCloseTo(attendu, 1)
+    })
+    expect(ecrits).toEqual(
+      expect.arrayContaining(['Oct.', 'Déc.', 'Févr.', 'Avr.', 'Juin', 'Août']),
+    )
+    expect(ecrits).toEqual(expect.arrayContaining(['max 4,6', 'min 4,1', '4,3\u00a0kg']))
+    expect(ecrits).not.toContain('4,5')
+  })
+
+  it('garde le tableau des pesées, sans courbe sous deux pesées', () => {
+    const content = {
+      ...FULL_CONTENT,
+      weightEntries: [{ measuredOn: '2026-06-01', weightKg: 4.3 }],
+    }
+    const { texts, paths } = readPdf(renderCarnetPdf(content, '0.1.24', null))
+    const tracesDeLaCourbe = paths.filter((path) =>
+      [path.stroke, path.fill].some((color) => sameColor(color, PRIMARY)),
+    )
+
+    expect(tracesDeLaCourbe).toEqual([])
+    expect(texts.map((text) => text.text)).toEqual(expect.arrayContaining(['01/06/2026', '4,3 kg']))
+  })
+
+  it('commence la courbe sous le titre « Poids » comme la première ligne d’une section', () => {
+    const content = { ...FULL_CONTENT, weightEntries: PESEES_IRREGULIERES }
+    const { texts, paths } = readPdf(renderCarnetPdf(content, '0.1.24', null))
+    const seule = new jsPDF({ unit: 'mm', format: 'a4' })
+    drawWeightChart(seule, PESEES_IRREGULIERES, { x: 18, y: 0, width: 174 })
+    const ligneDeBase = (traces: PdfPath[]) =>
+      traces.find((path) => path.paint === 'S')!.points[0]!.y
+    const hautDeLaCourbe =
+      ligneDeBase(paths) - ligneDeBase(readPdf(new Uint8Array(seule.output('arraybuffer'))).paths)
+    const baseline = (text: string) => texts.find((item) => item.text === text)!.baseline
+
+    expect(hautDeLaCourbe - baseline('Poids')).toBeCloseTo(
+      baseline('Rage') - baseline('Vaccins'),
+      2,
+    )
+  })
+
+  it('écrit les pesées sous la courbe, du même style que les autres lignes du carnet', () => {
+    const content = { ...FULL_CONTENT, weightEntries: PESEES_IRREGULIERES }
+    const { texts, paths } = readPdf(renderCarnetPdf(content, '0.1.24', null))
+    const style = ({ bold, sizePt, color }: PdfText) => ({ bold, sizePt, color })
+    const vaccin = texts.find((text) => text.text === 'Rage')!
+    const titre = texts.findIndex((text) => text.text === 'Poids')
+    const premiere = texts.findIndex((text) => text.text === '20/09/2025')
+    const textesDeLaCourbe = texts.slice(titre + 1, premiere)
+    const basDeLaCourbe = Math.max(
+      ...textesDeLaCourbe.map((text) => text.baseline + DESCENT_EM * text.sizePt * MM_PER_PT),
+      ...paths.flatMap((path) => path.points.map((point) => point.y)),
+    )
+    const ligne = texts[premiere]!
+
+    expect(textesDeLaCourbe.length).toBeGreaterThan(0)
+    expect(style(ligne)).toEqual(style(vaccin))
+    expect(style(texts[premiere + 1]!)).toEqual(style(vaccin))
+    expect(ligne.baseline - ASCENT_EM * ligne.sizePt * MM_PER_PT).toBeGreaterThan(basDeLaCourbe)
+  })
+
+  it('n’écrit aucun texte sous 9 pt, tableau des pesées compris', () => {
+    const content = { ...FULL_CONTENT, weightEntries: PESEES_IRREGULIERES }
+    const { texts } = readPdf(renderCarnetPdf(content, '0.1.24', null))
+
+    for (const text of texts) expect(text.sizePt).toBeGreaterThanOrEqual(9)
   })
 })

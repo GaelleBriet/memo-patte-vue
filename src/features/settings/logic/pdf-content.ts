@@ -2,7 +2,6 @@ import { format } from 'date-fns'
 
 import { EXPORT_FILE_TIME } from './export-format'
 import { buildReminders, type ReminderKind } from '@/shared/domain/reminders'
-import { buildWeightChart, type WeightChart } from '@/shared/domain/weight-chart'
 import type { ExportData } from '@/shared/domain/carnet-data'
 
 export type PdfDueState = 'overdue' | 'upToDate' | 'none'
@@ -38,7 +37,6 @@ export type CarnetPdfContent = {
   vaccinations: PdfVaccinationRow[]
   treatments: PdfTreatmentRow[]
   weightEntries: PdfWeightRow[]
-  weightChart: WeightChart | null
 }
 
 function dueState(dueDate: string | null, today: string, kind: ReminderKind): PdfDueState {
@@ -101,7 +99,6 @@ export function buildCarnetPdfContent(
     vaccinations,
     treatments,
     weightEntries,
-    weightChart: buildWeightChart(weightEntries),
   }
 }
 

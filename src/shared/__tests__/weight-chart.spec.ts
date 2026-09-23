@@ -2,12 +2,12 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import {
   buildCarnetWeightChart,
   buildHistoryWeightChart,
-  buildWeightChart,
   nearestPointIndex,
   weightAxisTicks,
   type CarnetChartLabels,
   type CarnetWeightChart,
   type ChartBox,
+  type ChartPlot,
   type WeightChartEntry,
 } from '../domain/weight-chart'
 import i18n, { applyLocale } from '@/core/i18n'
@@ -64,96 +64,6 @@ function boitesDuCarnet(chart: CarnetWeightChart): ChartBox[] {
     chart.latest.box,
   ]
 }
-
-const MILO = [
-  { weightKg: 23.6, measuredOn: '2026-06-05' },
-  { weightKg: 23.8, measuredOn: '2026-07-05' },
-  { weightKg: 24.1, measuredOn: '2026-08-05' },
-  { weightKg: 23.9, measuredOn: '2026-09-05' },
-  { weightKg: 24.3, measuredOn: '2026-10-05' },
-  { weightKg: 24.5, measuredOn: '2026-11-08' },
-]
-
-const OPTIONS = { width: 300, height: 120, paddingX: 16, paddingTop: 18, paddingBottom: 8 }
-
-describe('buildWeightChart', () => {
-  it('ne trace rien sous deux pesées', () => {
-    expect(buildWeightChart([], OPTIONS)).toBeNull()
-    expect(buildWeightChart([MILO[0]!], OPTIONS)).toBeNull()
-  })
-
-  it('répartit les points de gauche à droite dans l’ordre des pesées', () => {
-    const chart = buildWeightChart([MILO[0]!, MILO[2]!, MILO[5]!], OPTIONS)!
-
-    expect(chart.points.map((point) => point.x)).toEqual([16, 150, 284])
-  })
-
-  it('borne l’échelle au min / max avec 0,3 kg de marge, jamais depuis zéro', () => {
-    const chart = buildWeightChart([MILO[0]!, MILO[5]!], OPTIONS)!
-
-    // 23,6 est à 0,3 kg du bas d'une échelle 23,3 → 24,8 : un cinquième de la hauteur utile.
-    expect(chart.points[0]!.y).toBeCloseTo(112 - 0.2 * 94, 1)
-    expect(chart.points[1]!.y).toBeCloseTo(112 - 0.8 * 94, 1)
-    // Une échelle partant de zéro placerait 23,6 kg tout en haut du tracé.
-    expect(chart.points[0]!.y).toBeGreaterThan(60)
-  })
-
-  it('centre une ligne plate quand toutes les pesées sont égales', () => {
-    const chart = buildWeightChart(
-      [
-        { weightKg: 4.2, measuredOn: '2026-06-05' },
-        { weightKg: 4.2, measuredOn: '2026-07-05' },
-      ],
-      OPTIONS,
-    )!
-
-    expect(chart.points.map((point) => point.y)).toEqual([65, 65])
-  })
-
-  it('accepte une autre marge', () => {
-    const chart = buildWeightChart([MILO[0]!, MILO[5]!], { ...OPTIONS, marginKg: 0 })!
-
-    expect(chart.points[0]!.y).toBe(112)
-    expect(chart.points[1]!.y).toBe(18)
-  })
-
-  it('écrit la valeur au-dessus de chaque point et le mois abrégé dessous', () => {
-    const chart = buildWeightChart(MILO, OPTIONS)!
-
-    expect(chart.points.map((point) => point.valueLabel)).toEqual([
-      '23,6',
-      '23,8',
-      '24,1',
-      '23,9',
-      '24,3',
-      '24,5',
-    ])
-    expect(chart.points.map((point) => point.monthLabel)).toEqual([
-      'Juin',
-      'Juil.',
-      'Août',
-      'Sept.',
-      'Oct.',
-      'Nov.',
-    ])
-  })
-
-  it('assemble la polyline à partir des points, avec des coordonnées arrondies', () => {
-    const chart = buildWeightChart([MILO[0]!, MILO[5]!], OPTIONS)!
-
-    expect(chart.polyline).toBe('16,93.2 284,36.8')
-    expect(chart.width).toBe(300)
-    expect(chart.height).toBe(120)
-  })
-
-  it('a des dimensions par défaut', () => {
-    const chart = buildWeightChart([MILO[0]!, MILO[5]!])!
-
-    expect(chart.width).toBeGreaterThan(0)
-    expect(chart.height).toBeGreaterThan(0)
-    expect(chart.points).toHaveLength(2)
-  })
-})
 
 function pesees(...items: [string, number][]) {
   return items.map(([measuredOn, weightKg]) => ({ measuredOn, weightKg }))
@@ -217,17 +127,33 @@ describe('buildCarnetWeightChart — axe du temps', () => {
   it('assemble la courbe et le voile qui descend jusqu’au bas du tracé', () => {
     const chart = carnet(pesees(['2026-03-01', 23.6], ['2026-03-31', 24.5]), 320)!
 
-    expect(chart.line).toBe('8,106 312,52')
-    expect(chart.area).toBe('M8,124 L8,106 L312,52 L312,124 Z')
+    expect(chart.line).toBe('8,99 312,50.3')
+    expect(chart.area).toBe('M8,124 L8,99 L312,50.3 L312,124 Z')
   })
 })
 
 describe('buildCarnetWeightChart — échelle', () => {
   it('borne l’échelle au min / max avec 0,3 kg de marge, jamais depuis zéro', () => {
+    const chart = carnet(pesees(['2026-03-01', 4.2], ['2026-03-31', 4.3]), 320)!
+
+    // Échelle 3,9 → 4,6 sur 90 px : 4,2 aux trois septièmes de la hauteur, 4,3 aux quatre.
+    expect(chart.points.map((point) => point.y)).toEqual([85.4, 72.6])
+  })
+
+  it('garde 0,3 kg sous le plus bas quand la pastille l’écrit, sans place pour « min »', () => {
+    const chart = carnet(pesees(['2026-03-01', 24.5], ['2026-03-31', 23.6]), 320)!
+
+    // Échelle 23,3 → 24,8 sur 90 px : 24,5 aux quatre cinquièmes de la hauteur, 23,6 à un.
+    expect(chart.min).toBeNull()
+    expect(chart.points.map((point) => point.y)).toEqual([52, 106])
+  })
+
+  it('descend sous le plus bas assez pour écrire « min » entre son point et la ligne de base', () => {
     const chart = carnet(pesees(['2026-03-01', 23.6], ['2026-03-31', 24.5]), 320)!
 
-    // Échelle 23,3 → 24,8 sur 90 px : 23,6 à un cinquième de la hauteur, 24,5 à quatre.
-    expect(chart.points.map((point) => point.y)).toEqual([106, 52])
+    // 0,3 kg ne ferait que 18 px : le point le plus bas monte à 25 px de la ligne de base.
+    expect(chart.points.map((point) => point.y)).toEqual([99, 50.3])
+    expect(chart.min!.box.bottom).toBeLessThan(chart.plot.bottom - 2)
   })
 
   it('centre une ligne plate', () => {
@@ -538,7 +464,7 @@ describe('buildCarnetWeightChart — police agrandie', () => {
     expect(chart.min!.box.right).toBeLessThanOrEqual(chart.plot.right)
   })
 
-  it('à 130 %, pose « min » à côté de son point quand la place sous la courbe ne suffit plus', () => {
+  it('à 130 %, garde « min » sous son point : l’échelle lui laisse la place au-dessus de la ligne de base', () => {
     const chiot = pesees(
       ['2025-11-02', 5],
       ['2026-01-10', 12],
@@ -548,10 +474,134 @@ describe('buildCarnetWeightChart — police agrandie', () => {
     const chart = carnet(chiot, 320, 1.3)!
     const point = chart.points[0]!
 
-    expect(chart.min!.anchor).toBe('start')
-    expect(chart.min!.x).toBeGreaterThan(point.x)
-    expect(Math.abs(chart.min!.y - point.y)).toBeLessThan(10)
-    for (const month of chart.months) expect(chevauche(chart.min!.box, month.box)).toBe(false)
+    expect(chart.min).toMatchObject({ anchor: 'start', x: point.x })
+    expect(chart.min!.box.top).toBeGreaterThan(point.y)
+    expect(chart.min!.box.bottom).toBeLessThan(chart.plot.bottom - 2)
+  })
+})
+
+describe('buildCarnetWeightChart — chasse d’une autre police', () => {
+  const chasseFixe = (text: string) => text.length * 10
+  const largeur = (box: ChartBox) => box.right - box.left
+
+  it('mesure les mois, les extrêmes et la pastille avec la chasse reçue', () => {
+    const chart = buildCarnetWeightChart(LUNA_1_AN, LIBELLES, { textWidth: chasseFixe })!
+
+    expect(largeur(chart.max!.box)).toBeCloseTo('max 4,6'.length * 10, 5)
+    expect(largeur(chart.min!.box)).toBeCloseTo('min 4,1'.length * 10, 5)
+    for (const month of chart.months) {
+      expect(largeur(month.box)).toBeCloseTo(month.text.length * 10, 5)
+    }
+    // Pastille : le texte et 9 px de marge de chaque côté.
+    expect(largeur(chart.latest.box)).toBeCloseTo('4,3\u00a0kg'.length * 10 + 18, 5)
+  })
+
+  it('lui applique encore la taille de police rendue', () => {
+    const chart = buildCarnetWeightChart(LUNA_1_AN, LIBELLES, {
+      textWidth: chasseFixe,
+      textScale: 1.5,
+    })!
+
+    expect(largeur(chart.max!.box)).toBeCloseTo('max 4,6'.length * 10 * 1.5, 5)
+  })
+
+  it('place les textes selon cette chasse : sans chevauchement ni débordement', () => {
+    const cas = [
+      LUNA_1_AN,
+      MILO_6_MOIS,
+      pesees(['2025-01-10', 0.9], ['2026-09-01', 4.3]),
+      pesees(['2025-11-02', 5], ['2026-01-10', 12], ['2026-04-20', 22], ['2026-09-01', 30]),
+    ]
+    for (const entries of cas) {
+      for (const chasse of [chasseFixe, (text: string) => text.length * 13]) {
+        const chart = buildCarnetWeightChart(entries, LIBELLES, { width: 320, textWidth: chasse })!
+        const boites = boitesDuCarnet(chart)
+
+        expect(horsDuSvg(chart, boites)).toEqual([])
+        boites.forEach((boite, index) => {
+          for (const autre of boites.slice(index + 1)) expect(chevauche(boite, autre)).toBe(false)
+        })
+      }
+    }
+  })
+})
+
+describe('ligne de base', () => {
+  // Le trait de 1 px sous la courbe ; « toucher » compte comme chevaucher.
+  function ligneDeBase(chart: { plot: ChartPlot }): ChartBox {
+    const { left, right, bottom } = chart.plot
+    return { left, right, top: bottom - 0.5, bottom: bottom + 0.5 }
+  }
+
+  function touche(a: ChartBox, b: ChartBox): boolean {
+    return a.left <= b.right && b.left <= a.right && a.top <= b.bottom && b.top <= a.bottom
+  }
+
+  const DEMO_MILO = pesees(
+    ['2026-04-23', 23.6],
+    ['2026-05-23', 23.8],
+    ['2026-06-23', 24],
+    ['2026-07-23', 24.1],
+    ['2026-08-23', 24.3],
+    ['2026-09-23', 24.5],
+  )
+  const CAS = [
+    DEMO_MILO,
+    MILO_6_MOIS,
+    LUNA_1_AN,
+    pesees(['2025-11-02', 5], ['2026-01-10', 12], ['2026-04-20', 22], ['2026-09-01', 30]),
+    pesees(['2025-01-10', 0.9], ['2026-09-01', 4.3]),
+    pesees(['2026-03-04', 60], ['2026-06-10', 12], ['2026-09-15', 30]),
+    pesees(['2026-03-01', 24], ['2026-04-01', 24.1], ['2026-05-01', 24.05]),
+    pesees(
+      ['2026-03-01', 35],
+      ['2026-05-01', 33.3],
+      ['2026-06-15', 31.5],
+      ['2026-08-01', 29.8],
+      ['2026-08-11', 30],
+    ),
+    pesees(['2026-01-10', 20], ['2026-09-10', 24.6], ['2026-09-23', 24.5]),
+    pesees(['2026-01-10', 24.6], ['2026-09-10', 20], ['2026-09-23', 22]),
+  ]
+
+  it('aucune étiquette ne traverse ni ne touche la ligne de base, jambages compris', () => {
+    const defauts: string[] = []
+    for (const locale of ['fr', 'en'] as const) {
+      applyLocale(locale)
+      for (const entries of CAS) {
+        for (const width of [300, 320, 360]) {
+          for (const textScale of FACTEURS) {
+            const cas = `${locale}, ${entries[0]!.measuredOn} → ${entries.at(-1)!.weightKg}, ${width} px, × ${textScale}`
+            const carnetChart = carnet(entries, width, textScale)!
+            const historyChart = historique(entries, width, textScale)!
+            const boites = [
+              ...boitesDuCarnet(carnetChart).map((box) => ({ box, chart: carnetChart })),
+              ...historyChart.months.map(({ box }) => ({ box, chart: historyChart })),
+            ]
+            for (const { box, chart } of boites) {
+              if (touche(box, ligneDeBase(chart))) defauts.push(cas)
+            }
+          }
+        }
+      }
+    }
+
+    expect(defauts).toEqual([])
+  })
+
+  it('garde « min » sous son point, police agrandie comprise', () => {
+    for (const entries of CAS) {
+      for (const textScale of FACTEURS) {
+        const chart = carnet(entries, 320, textScale)!
+        if (!chart.min) continue
+        const point = chart.points.find(
+          (candidate) => candidate.weightKg === Math.min(...entries.map((entry) => entry.weightKg)),
+        )!
+
+        expect(chart.min.box.top).toBeGreaterThan(point.y)
+        expect(chart.min.box.bottom).toBeLessThan(chart.plot.bottom)
+      }
+    }
   })
 })
 

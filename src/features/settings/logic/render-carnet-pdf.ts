@@ -2,12 +2,12 @@ import { jsPDF } from 'jspdf'
 
 import { formatKg, formatLongDate, formatNumericDate } from '@/shared/utils/format'
 import i18n from '@/core/i18n'
+import { drawWeightChart } from './pdf-weight-chart'
 import type { CarnetPdfContent, PdfDueState } from './pdf-content'
 
 const PAGE_WIDTH_MM = 210
 const MARGIN_MM = 18
 const CONTENT_WIDTH_MM = PAGE_WIDTH_MM - 2 * MARGIN_MM
-const CHART_HEIGHT_MM = 45
 const PHOTO_SIZE_MM = 24
 
 const STATE_LABEL_KEYS: Record<PdfDueState, string> = {
@@ -154,37 +154,14 @@ function renderWeightSection(
     return y + 10
   }
 
-  const chart = content.weightChart
-  if (chart) {
-    y += 4
-    const originX = MARGIN_MM
-    const originY = y
-    const scaleX = CONTENT_WIDTH_MM / chart.width
-    const scaleY = CHART_HEIGHT_MM / chart.height
-    const points = chart.points.map((point) => ({
-      ...point,
-      x: originX + point.x * scaleX,
-      y: originY + point.y * scaleY,
-    }))
-
-    doc.setDrawColor(0, 90, 90)
-    doc.setLineWidth(0.5)
-    for (let index = 1; index < points.length; index += 1) {
-      const previous = points[index - 1]!
-      const current = points[index]!
-      doc.line(previous.x, previous.y, current.x, current.y)
-    }
-
-    doc.setFillColor(0, 90, 90)
-    doc.setFontSize(8.5)
-    for (const point of points) {
-      doc.circle(point.x, point.y, 0.9, 'F')
-      doc.text(point.valueLabel, point.x, point.y - 2.5, { align: 'center' })
-      doc.text(point.monthLabel, point.x, originY + CHART_HEIGHT_MM + 4, { align: 'center' })
-    }
-
-    y = originY + CHART_HEIGHT_MM + 10
-  }
+  doc.saveGraphicsState()
+  const chartHeight = drawWeightChart(doc, content.weightEntries, {
+    x: MARGIN_MM,
+    y,
+    width: CONTENT_WIDTH_MM,
+  })
+  doc.restoreGraphicsState()
+  if (chartHeight !== null) y += chartHeight + 7
 
   for (const entry of content.weightEntries) {
     doc.text(formatNumericDate(entry.measuredOn), MARGIN_MM, y)

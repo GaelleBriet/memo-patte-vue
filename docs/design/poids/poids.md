@@ -66,7 +66,9 @@ saisie reste dans la feuille pesée (`pesee.md`).
   surface, mois sous la courbe avec les mêmes règles : un libellé au début de
   chaque mois, puis tous les 2, 3, 6 ou 12 mois pour en garder au plus six,
   mois de départ partiel écrit s'il reste la place, dernier mois jamais
-  débordant. Courbe plus haute : 190 px.
+  débordant. Courbe plus haute : 190 px. Comme dans le Carnet, aucun texte ne
+  traverse ni ne touche la ligne de base, jambages compris (#350) : les mois
+  restent dessous, les chiffres des repères à gauche du tracé.
 - Échelle verticale : 3 à 5 lignes de repère horizontales `#ECE6DE` en kg
   ronds, au pas de 0,1 / 0,2 / 0,5 / 1 / 2 / 5 / 10 kg, le plus petit qui
   tient en cinq lignes en encadrant les pesées. La ligne du bas est le
