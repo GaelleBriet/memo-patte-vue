@@ -38,7 +38,7 @@ afterEach(() => {
 
 describe('WeightSparkline — tracé', () => {
   it('se dessine à une largeur par défaut tant que sa carte n’est pas mesurée', () => {
-    expect(monter().get('svg').attributes('viewBox')).toBe('0 0 320 150')
+    expect(monter().get('svg').attributes('viewBox')).toBe('0 0 320 160')
   })
 
   it('se redessine à la largeur rendue de sa carte, pixel pour pixel', async () => {
@@ -59,7 +59,7 @@ describe('WeightSparkline — tracé', () => {
     const wrapper = monter()
     await nextTick()
 
-    expect(wrapper.get('svg').attributes('viewBox')).toBe('0 0 290 150')
+    expect(wrapper.get('svg').attributes('viewBox')).toBe('0 0 290 160')
     expect(wrapper.findAll('circle').at(-1)!.attributes('cx')).toBe('282')
   })
 
@@ -78,6 +78,18 @@ describe('WeightSparkline — tracé', () => {
     const months = monter().findAll('.weight-chart-trace__month')
 
     expect(months.map((m) => m.text())).toEqual(['Mars', 'Avr.', 'Mai', 'Juin', 'Juil.', 'Août'])
+  })
+
+  it('aligne la fin du dernier mois sur la fin de l’axe quand la place manque après son trait', () => {
+    const months = monter(
+      pesees(['2026-04-12', 23.6], ['2026-07-02', 24], ['2026-09-01', 24.5]),
+    ).findAll('.weight-chart-trace__month')
+    const dernier = months.at(-1)!
+
+    expect(dernier.text()).toBe('Sept.')
+    expect(dernier.attributes('text-anchor')).toBe('end')
+    expect(dernier.attributes('x')).toBe('312')
+    expect(months[0]!.attributes('text-anchor')).toBe('start')
   })
 
   it('trace une ligne de base, sans grille ni graduation', () => {

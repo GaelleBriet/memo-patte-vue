@@ -83,10 +83,15 @@ export type ChartText = { x: number; y: number; text: string }
 
 export type ChartAnchor = 'start' | 'middle' | 'end'
 
+/** Place estimée d'un texte écrit, pour qu'aucun ne chevauche son voisin. */
+export type ChartBox = { left: number; right: number; top: number; bottom: number }
+
+export type ChartLabel = ChartText & { anchor: ChartAnchor; box: ChartBox }
+
 export type ChartPoint = { x: number; y: number; weightKg: number; measuredOn: string }
 
 /** `tickX` vaut `null` pour le mois de départ, écrit au début de l'axe sans trait de repère. */
-export type ChartMonth = ChartText & { tickX: number | null }
+export type ChartMonth = ChartLabel & { tickX: number | null }
 
 export type ChartPlot = { left: number; right: number; top: number; bottom: number }
 
@@ -101,10 +106,10 @@ type TimeChart = {
 }
 
 export type CarnetWeightChart = TimeChart & {
-  max: (ChartText & { anchor: ChartAnchor }) | null
-  min: (ChartText & { anchor: ChartAnchor }) | null
+  max: ChartLabel | null
+  min: ChartLabel | null
   /** Pastille de la dernière pesée : distances de son coin bas droit aux bords droit et bas. */
-  latest: { right: number; bottom: number; text: string }
+  latest: { right: number; bottom: number; text: string; box: ChartBox }
 }
 
 export type HistoryWeightChart = TimeChart & {
@@ -113,25 +118,78 @@ export type HistoryWeightChart = TimeChart & {
 
 type Layout = { height: number; left: number; right: number; top: number; bottom: number }
 
-const CARNET_LAYOUT: Layout = { height: 150, left: 8, right: 8, top: 34, bottom: 26 }
+// La rangée des mois du Carnet descend de 10 px : « min » tient toujours au-dessus.
+const CARNET_LAYOUT: Layout = { height: 160, left: 8, right: 8, top: 34, bottom: 36 }
 const HISTORY_LAYOUT: Layout = { height: 190, left: 36, right: 10, top: 12, bottom: 22 }
 
 const CARNET_MARGIN_KG = 0.3
 const TICK_STEPS_KG = [0.1, 0.2, 0.5, 1, 2, 5, 10]
 const TICK_PADDING_KG = 0.1
 const MAX_TICKS = 5
-const MAX_MONTHS_ALL_LABELLED = 6
-const START_MONTH_ROOM = 36
+const MONTH_STEPS = [1, 2, 3, 6, 12]
+const MAX_MONTH_LABELS = 6
 const MONTH_LABEL_OFFSET = 3
+const LABEL_GAP = 1
 const BASELINE_FROM_BOTTOM = 4
-const EXTREME_ABOVE = -11
-const EXTREME_BELOW = 19
+const MAX_ABOVE = -11
+// Plus bas que « min » : sous son point, « max » échappe à la pastille quelle que soit leur distance.
+const MAX_BELOW = 23
+const MIN_BELOW = 19
 const EDGE_ROOM = 20
 const LATEST_GAP = 10
 const LATEST_OVERHANG = 6
+// À tenir alignés sur le style de `.weight-sparkline__latest`.
+const LATEST_HEIGHT = 22
+const LATEST_PADDING_X = 9
 const GRID_LABEL_GAP = 8
 const GRID_LABEL_BASELINE = 4
 const DAY_MS = 86_400_000
+
+// Chasse d'Inter à 12 px, mesurée et arrondie au dixième supérieur ; un glyphe absent compte 8 px.
+const GLYPH_WIDTHS = new Map(
+  (
+    [
+      [' \u00a0il', 3.2],
+      ['.,', 3.9],
+      ['t', 4.3],
+      ['r', 4.8],
+      ['1', 5.1],
+      ['s', 6.6],
+      ['akx', 6.9],
+      ['7Jc', 7],
+      ['vFéey', 7.1],
+      ['5nuoû', 7.4],
+      ['2pb', 7.5],
+      ['g', 7.6],
+      ['3689', 7.7],
+      ['S', 7.8],
+      ['04', 8],
+      ['D', 8.7],
+      ['A', 8.8],
+      ['N', 9.2],
+      ['O', 9.3],
+      ['m', 10.8],
+      ['M', 11.1],
+    ] as const
+  ).flatMap(([glyphs, width]) => [...glyphs].map((glyph) => [glyph, width] as const)),
+)
+const DEFAULT_GLYPH_WIDTH = 8
+const TEXT_ASCENT = 9
+const TEXT_DESCENT = 3
+
+function textWidth(text: string): number {
+  return [...text].reduce((sum, glyph) => sum + (GLYPH_WIDTHS.get(glyph) ?? DEFAULT_GLYPH_WIDTH), 0)
+}
+
+function textBox(x: number, y: number, anchor: ChartAnchor, text: string): ChartBox {
+  const width = textWidth(text)
+  const left = anchor === 'start' ? x : anchor === 'end' ? x - width : x - width / 2
+  return { left, right: left + width, top: y - TEXT_ASCENT, bottom: y + TEXT_DESCENT }
+}
+
+function overlaps(a: ChartBox, b: ChartBox): boolean {
+  return a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom
+}
 
 function dayNumber(isoDate: string): number {
   const [year, month, day] = isoDate.slice(0, 10).split('-').map(Number)
@@ -148,6 +206,59 @@ function monthStarts(firstIsoDate: string, lastIsoDate: string): string[] {
     if (start.getTime() / DAY_MS > lastDay) return starts
     starts.push(start.toISOString().slice(0, 10))
   }
+}
+
+function monthLabel(
+  x: number,
+  y: number,
+  anchor: ChartAnchor,
+  text: string,
+  tickX: number | null,
+): ChartMonth {
+  return { x, y, text, anchor, tickX, box: textBox(x, y, anchor, text) }
+}
+
+/**
+ * Un libellé tous les 1, 2, 3, 6 ou 12 mois, le plus petit pas qui en garde au plus six ; le dernier
+ * finit au bout de l'axe s'il déborderait, et le mois de départ ne s'écrit que s'il reste la place.
+ */
+function monthLabels(
+  firstIsoDate: string,
+  lastIsoDate: string,
+  plot: ChartPlot,
+  y: number,
+  xOf: (isoDate: string) => number,
+): ChartMonth[] {
+  const starts = monthStarts(firstIsoDate, lastIsoDate)
+  const step =
+    MONTH_STEPS.find((candidate) => Math.ceil(starts.length / candidate) <= MAX_MONTH_LABELS) ??
+    MONTH_STEPS[MONTH_STEPS.length - 1]!
+  const months = starts
+    .filter((_, index) => index % step === 0)
+    .map((start) => {
+      const tickX = xOf(start)
+      return monthLabel(
+        round(tickX + MONTH_LABEL_OFFSET),
+        y,
+        'start',
+        formatMonthShort(start),
+        tickX,
+      )
+    })
+
+  const last = months[months.length - 1]
+  if (last && last.box.right > plot.right) {
+    months[months.length - 1] = monthLabel(plot.right, y, 'end', last.text, last.tickX)
+  }
+  // Le dernier mois, collé au bout de l'axe, l'emporte sur un voisin qu'il toucherait.
+  for (let index = months.length - 2; index >= 0; index -= 1) {
+    if (months[index]!.box.right + LABEL_GAP > months[index + 1]!.box.left) months.splice(index, 1)
+  }
+
+  const start = monthLabel(plot.left, y, 'start', formatMonthShort(firstIsoDate), null)
+  const firstMonth = months[0]
+  if (!firstMonth || start.box.right + LABEL_GAP <= firstMonth.box.left) months.unshift(start)
+  return months
 }
 
 function timeChart(
@@ -184,19 +295,7 @@ function timeChart(
     measuredOn: entry.measuredOn,
   }))
   const lastPoint = points[points.length - 1]!
-
-  const starts = monthStarts(first, last)
-  const labelled =
-    starts.length > MAX_MONTHS_ALL_LABELLED ? starts.filter((_, index) => index % 2 === 0) : starts
-  const monthY = layout.height - BASELINE_FROM_BOTTOM
-  const months: ChartMonth[] = labelled.map((start) => {
-    const tickX = xOf(start)
-    return { x: round(tickX + MONTH_LABEL_OFFSET), y: monthY, text: formatMonthShort(start), tickX }
-  })
-  const firstTickX = months[0]?.tickX ?? Infinity
-  if (firstTickX - plot.left > START_MONTH_ROOM) {
-    months.unshift({ x: plot.left, y: monthY, text: formatMonthShort(first), tickX: null })
-  }
+  const months = monthLabels(first, last, plot, layout.height - BASELINE_FROM_BOTTOM, xOf)
 
   return {
     chart: {
@@ -223,21 +322,41 @@ function anchorAt(x: number, plot: ChartPlot): ChartAnchor {
   return 'middle'
 }
 
-/** `null` quand la dernière pesée atteint déjà cet extrême : la pastille l'écrit. */
+function latestPill(chart: TimeChart): CarnetWeightChart['latest'] {
+  const last = chart.points[chart.points.length - 1]!
+  const right = Math.min(last.x + LATEST_OVERHANG, chart.plot.right)
+  const bottom = last.y - LATEST_GAP
+  const text = formatKg(last.weightKg)
+  const width = textWidth(`${text}\u00a0kg`) + 2 * LATEST_PADDING_X
+  return {
+    right: round(chart.width - right),
+    bottom: round(chart.height - bottom),
+    text,
+    box: { left: right - width, right, top: bottom - LATEST_HEIGHT, bottom },
+  }
+}
+
+/**
+ * `null` quand la dernière pesée atteint déjà cet extrême : la pastille l'écrit. Sinon, la première
+ * des places `offsetsY` (décalages sous le point) qui ne chevauche pas la pastille.
+ */
 function extremeLabel(
   chart: TimeChart,
   weightKg: number,
-  offsetY: number,
-): CarnetWeightChart['max'] {
+  wording: 'max' | 'min',
+  offsetsY: readonly number[],
+  latest: ChartBox,
+): ChartLabel | null {
   const last = chart.points[chart.points.length - 1]!
   if (last.weightKg === weightKg) return null
   const point = chart.points.find((candidate) => candidate.weightKg === weightKg)!
-  return {
-    x: point.x,
-    y: round(point.y + offsetY),
-    text: formatKg(weightKg),
-    anchor: anchorAt(point.x, chart.plot),
-  }
+  const text = formatKg(weightKg)
+  const anchor = anchorAt(point.x, chart.plot)
+  const places = offsetsY.map((offsetY) => {
+    const y = round(point.y + offsetY)
+    return { x: point.x, y, text, anchor, box: textBox(point.x, y, anchor, `${wording} ${text}`) }
+  })
+  return places.find((place) => !overlaps(place.box, latest)) ?? places[places.length - 1]!
 }
 
 /** Carnet : échelle min / max ± 0,3 kg, seuls le plus haut, le plus bas et la dernière pesée écrits. */
@@ -257,17 +376,13 @@ export function buildCarnetWeightChart(
     minKg - CARNET_MARGIN_KG,
     maxKg + CARNET_MARGIN_KG,
   )
-  const last = chart.points[chart.points.length - 1]!
+  const latest = latestPill(chart)
 
   return {
     ...chart,
-    max: extremeLabel(chart, maxKg, EXTREME_ABOVE),
-    min: extremeLabel(chart, minKg, EXTREME_BELOW),
-    latest: {
-      right: round(width - Math.min(last.x + LATEST_OVERHANG, chart.plot.right)),
-      bottom: round(chart.height - (last.y - LATEST_GAP)),
-      text: formatKg(last.weightKg),
-    },
+    max: extremeLabel(chart, maxKg, 'max', [MAX_ABOVE, MAX_BELOW], latest.box),
+    min: extremeLabel(chart, minKg, 'min', [MIN_BELOW], latest.box),
+    latest,
   }
 }
 

@@ -26,7 +26,9 @@ const POINT_RADIUS = 4
       :y1="chart.plot.bottom"
       :y2="chart.plot.bottom + MONTH_TICK_LENGTH"
     />
-    <text class="weight-chart-trace__month" :x="month.x" :y="month.y">{{ month.text }}</text>
+    <text class="weight-chart-trace__month" :x="month.x" :y="month.y" :text-anchor="month.anchor">
+      {{ month.text }}
+    </text>
   </template>
   <polyline class="weight-chart-trace__line" :points="chart.line" />
   <circle
