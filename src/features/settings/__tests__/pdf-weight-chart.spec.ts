@@ -211,7 +211,7 @@ describe('drawWeightChart — mois', () => {
     ])
   })
 
-  it('écrit les mois à 22 px du Carnet sous la ligne de base, la courbe gardant sa hauteur', () => {
+  it('écrit les mois à 22 px du Carnet sous la ligne de base, la carte gardant sa hauteur', () => {
     const { height, texts, paths } = dessine(MILO_6_MOIS)
     const ligneDeBase = bounds(paths.find((path) => path.paint === 'S')!.points).top
     const libelles = texts.filter((text) => !text.bold)
