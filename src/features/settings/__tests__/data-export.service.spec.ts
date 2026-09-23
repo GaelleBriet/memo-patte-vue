@@ -65,10 +65,11 @@ describe('data-export.service', () => {
   it('JSON : remet le fichier du jour, versionné, et renvoie l’issue du partage', async () => {
     const { service, deliver } = setup()
 
-    await expect(service.exportData('json')).resolves.toBe('shared')
+    await expect(service.exportData('json', 'share')).resolves.toBe('shared')
 
+    expect(deliver.mock.calls[0]![1]).toBe('share')
     const file = delivered(deliver)
-    expect(file.name).toBe('memopatte-export-2026-09-15.json')
+    expect(file.name).toBe('memopatte-export-20260915-1030.json')
     const document = JSON.parse(file.content as string)
     expect(document).toMatchObject({
       schemaVersion: 1,
@@ -83,17 +84,29 @@ describe('data-export.service', () => {
   it('CSV : remet l’archive des cinq tables', async () => {
     const { service, deliver } = setup()
 
-    await service.exportData('csv')
+    await service.exportData('csv', 'share')
 
     const file = delivered(deliver)
-    expect(file.name).toBe('memopatte-export-2026-09-15.zip')
+    expect(file.name).toBe('memopatte-export-20260915-1030.zip')
     expect(Object.keys(unzipSync(file.content as Uint8Array))).toHaveLength(5)
   })
 
   it('transmet l’annulation du partage', async () => {
     const { service } = setup({ deliver: async () => 'cancelled' })
 
-    await expect(service.exportData('json')).resolves.toBe('cancelled')
+    await expect(service.exportData('json', 'share')).resolves.toBe('cancelled')
+  })
+
+  it('remet le même fichier pour l’enregistrer sur le téléphone', async () => {
+    const deliver = vi.fn<DataExportDependencies['deliver']>(async () => 'saved')
+    const { service } = setup({ deliver })
+
+    await expect(service.exportData('json', 'save')).resolves.toBe('saved')
+
+    expect(deliver).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ name: 'memopatte-export-20260915-1030.json' }),
+      'save',
+    )
   })
 
   it('lève si la base ne répond pas, sans rien remettre', async () => {
@@ -105,7 +118,7 @@ describe('data-export.service', () => {
       }),
     })
 
-    await expect(service.exportData('json')).rejects.toThrow('base fermée')
+    await expect(service.exportData('json', 'save')).rejects.toThrow('base fermée')
     expect(deliver).not.toHaveBeenCalled()
   })
 })

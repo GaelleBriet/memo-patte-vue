@@ -8,13 +8,14 @@ import check from '@material-symbols/svg-400/outlined/check.svg?raw'
 import cloudDone from '@material-symbols/svg-400/outlined/cloud_done.svg?raw'
 import cloudOff from '@material-symbols/svg-400/outlined/cloud_off.svg?raw'
 import creditCard from '@material-symbols/svg-400/outlined/credit_card.svg?raw'
+import dataObject from '@material-symbols/svg-400/outlined/data_object.svg?raw'
 import deleteSweep from '@material-symbols/svg-400/outlined/delete_sweep.svg?raw'
-import description from '@material-symbols/svg-400/outlined/description.svg?raw'
 import devices from '@material-symbols/svg-400/outlined/devices.svg?raw'
 import download from '@material-symbols/svg-400/outlined/download.svg?raw'
 import edit from '@material-symbols/svg-400/outlined/edit.svg?raw'
 import error from '@material-symbols/svg-400/outlined/error.svg?raw'
 import errorFill from '@material-symbols/svg-400/outlined/error-fill.svg?raw'
+import folderOff from '@material-symbols/svg-400/outlined/folder_off.svg?raw'
 import home from '@material-symbols/svg-400/outlined/home.svg?raw'
 import iosShare from '@material-symbols/svg-400/outlined/ios_share.svg?raw'
 import logout from '@material-symbols/svg-400/outlined/logout.svg?raw'
@@ -33,10 +34,11 @@ import queryStats from '@material-symbols/svg-400/outlined/query_stats.svg?raw'
 import schedule from '@material-symbols/svg-400/outlined/schedule.svg?raw'
 import settings from '@material-symbols/svg-400/outlined/settings.svg?raw'
 import settingsBackupRestore from '@material-symbols/svg-400/outlined/settings_backup_restore.svg?raw'
+import share from '@material-symbols/svg-400/outlined/share.svg?raw'
 import showChart from '@material-symbols/svg-400/outlined/show_chart.svg?raw'
 import starShine from '@material-symbols/svg-400/outlined/star_shine.svg?raw'
 import storefront from '@material-symbols/svg-400/outlined/storefront.svg?raw'
-import table from '@material-symbols/svg-400/outlined/table.svg?raw'
+import tableView from '@material-symbols/svg-400/outlined/table_view.svg?raw'
 import today from '@material-symbols/svg-400/outlined/today.svg?raw'
 import vaccines from '@material-symbols/svg-400/outlined/vaccines.svg?raw'
 import workspacePremium from '@material-symbols/svg-400/outlined/workspace_premium.svg?raw'
@@ -129,14 +131,15 @@ export const msIcons = {
   cloud_off: cloudOff,
   colorize,
   credit_card: creditCard,
+  data_object: dataObject,
   delete_sweep: deleteSweep,
-  description,
   devices,
   download,
   edit,
   error,
   error_fill: errorFill,
   first_page: firstPage,
+  folder_off: folderOff,
   fullscreen,
   fullscreen_exit: fullscreenExit,
   home,
@@ -174,6 +177,7 @@ export const msIcons = {
   search,
   settings,
   settings_backup_restore: settingsBackupRestore,
+  share,
   shift,
   show_chart: showChart,
   star_shine: starShine,
@@ -182,7 +186,7 @@ export const msIcons = {
   star_fill: starFill,
   star_half: starHalf,
   storefront,
-  table,
+  table_view: tableView,
   today,
   unfold_more: unfoldMore,
   upload,

@@ -13,6 +13,14 @@ const ALLOWED_PERMISSIONS = new Map([
   ['android.permission.INTERNET', 'notre manifest — Supabase, RevenueCat'],
   ['android.permission.POST_NOTIFICATIONS', 'notre manifest — rappels, demandée au premier rappel'],
   [
+    'android.permission.READ_EXTERNAL_STORAGE',
+    'notre manifest — export enregistré dans Documents, Android 7 à 10, au premier enregistrement',
+  ],
+  [
+    'android.permission.WRITE_EXTERNAL_STORAGE',
+    'notre manifest — export enregistré dans Documents, Android 7 à 10, au premier enregistrement',
+  ],
+  [
     'android.permission.RECEIVE_BOOT_COMPLETED',
     '@capacitor/local-notifications — reprogramme les rappels après redémarrage',
   ],
@@ -23,6 +31,12 @@ const ALLOWED_PERMISSIONS = new Map([
     'com.gaellebriet.memopatte.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION',
     'androidx.core — permission de signature interne, jamais visible du Play Store',
   ],
+])
+
+/** Réservées aux anciennes versions d'Android : au-delà, l'app ne doit jamais les demander. */
+const MAX_SDK_VERSIONS = new Map([
+  ['android.permission.READ_EXTERNAL_STORAGE', '29'],
+  ['android.permission.WRITE_EXTERNAL_STORAGE', '29'],
 ])
 
 /** Aucune fonctionnalité matérielle requise : la photo passe par le Photo Picker système. */
@@ -43,9 +57,12 @@ function findMergedManifest() {
   return null
 }
 
-function namesOf(manifest, tag) {
-  const matches = manifest.matchAll(new RegExp(`<${tag}[^>]*android:name="([^"]+)"`, 'g'))
-  return [...matches].map((match) => match[1])
+function declarationsOf(manifest, tag) {
+  return [...manifest.matchAll(new RegExp(`<${tag}\\s[^>]*>`, 'g'))].map((match) => match[0])
+}
+
+function attributeOf(declaration, attribute) {
+  return declaration.match(new RegExp(`android:${attribute}="([^"]+)"`))?.[1] ?? null
 }
 
 let manifestPath
@@ -64,8 +81,15 @@ if (!manifestPath) {
 }
 
 const manifest = readFileSync(manifestPath, 'utf8')
-const permissions = namesOf(manifest, 'uses-permission')
-const features = namesOf(manifest, 'uses-feature')
+const permissionDeclarations = ['uses-permission', 'uses-permission-sdk-23'].flatMap((tag) =>
+  declarationsOf(manifest, tag),
+)
+const permissions = [
+  ...new Set(permissionDeclarations.map((declaration) => attributeOf(declaration, 'name'))),
+]
+const features = declarationsOf(manifest, 'uses-feature').map((declaration) =>
+  attributeOf(declaration, 'name'),
+)
 
 const failures = []
 for (const permission of permissions) {
@@ -78,6 +102,16 @@ for (const permission of ALLOWED_PERMISSIONS.keys()) {
     failures.push(
       `permission attendue absente : ${permission} (${ALLOWED_PERMISSIONS.get(permission)})`,
     )
+  }
+}
+for (const [permission, maxSdk] of MAX_SDK_VERSIONS) {
+  const unbounded = permissionDeclarations.filter(
+    (declaration) =>
+      attributeOf(declaration, 'name') === permission &&
+      attributeOf(declaration, 'maxSdkVersion') !== maxSdk,
+  )
+  if (unbounded.length > 0) {
+    failures.push(`${permission} déclarée sans android:maxSdkVersion="${maxSdk}"`)
   }
 }
 for (const feature of features) {

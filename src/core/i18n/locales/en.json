@@ -410,10 +410,20 @@
         "label": "CSV",
         "description": "For a spreadsheet"
       },
-      "submit": "Export",
+      "save": "Save to phone",
+      "share": "Share",
       "preparing": "Preparing…",
       "shareTitle": "Share via",
       "success": "Data exported",
+      "saved": {
+        "json": "JSON export saved to Documents › MémoPatte",
+        "csv": "CSV export saved to Documents › MémoPatte"
+      },
+      "storage": {
+        "refused": "MémoPatte can’t access storage. Try again, or share the file.",
+        "blocked": "Storage access is blocked. Allow it in the app’s settings, or share the file.",
+        "openSettings": "Open app settings"
+      },
       "error": "The export couldn’t be prepared. Try again."
     },
     "import": {
@@ -450,16 +460,17 @@
     "pdf": {
       "sheet": {
         "title": "Export to PDF",
-        "subtitleOne": "A document will be prepared for {name}.",
+        "subtitleOne": "{name}’s complete health record, ready to print or send.",
         "subtitlePick": "Choose the pet to export.",
         "close": "Close",
         "pickAnimalLabel": "Pet",
-        "submit": "Export",
-        "preparing": "Preparing…",
+        "fileContent": "Vaccines, treatments, weight and photos",
         "error": "The PDF couldn’t be prepared. Try again."
       },
+      "fileNamePrefix": "health-record",
       "shareTitle": "Share via",
       "success": "PDF exported",
+      "saved": "PDF saved to Documents › MémoPatte",
       "status": {
         "overdue": "Overdue",
         "upToDate": "Up to date",

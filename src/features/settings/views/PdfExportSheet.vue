@@ -3,6 +3,11 @@ import { computed, ref, useId, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import ChoiceCards, { type ChoiceCard } from './ChoiceCards.vue'
+import ExportActions from './ExportActions.vue'
+import type { DeliveryMode } from '../logic/export-delivery'
+import { openAppSettings } from '../logic/export-storage-access'
+import { pdfExportFileName } from '../logic/pdf-content'
+import { SAVED_TOAST_MS } from '../composables/use-export-run'
 import { usePdfExport } from '../composables/use-pdf-export'
 import BottomSheet from '@/shared/components/BottomSheet.vue'
 import { showToast } from '@/shared/utils/toast'
@@ -21,10 +26,11 @@ const props = defineProps<{
 const open = defineModel<boolean>({ default: false })
 
 const { t } = useI18n()
-const { isPreparing, hasFailed, run, reset } = usePdfExport()
+const { pendingMode, isPreparing, hasFailed, saveAccess, run, reset } = usePdfExport()
 
 const needsPicker = computed(() => props.animals.length > 1)
 const selected = ref<string | null>(props.animals[0]?.id ?? null)
+const openedAt = ref(new Date())
 const groupLabelId = useId()
 
 const choices = computed<ChoiceCard<string>[]>(() =>
@@ -36,24 +42,42 @@ const choices = computed<ChoiceCard<string>[]>(() =>
   })),
 )
 
+const onlyAnimal = computed(() => (needsPicker.value ? null : (props.animals[0] ?? null)))
+
 const subtitle = computed(() => {
   if (needsPicker.value) return t('settings.pdf.sheet.subtitlePick')
-  const [animal] = props.animals
-  return animal ? t('settings.pdf.sheet.subtitleOne', { name: animal.name }) : ''
+  return onlyAnimal.value
+    ? t('settings.pdf.sheet.subtitleOne', { name: onlyAnimal.value.name })
+    : ''
 })
 
-watch(open, (isOpen) => {
-  if (!isOpen) return
-  selected.value = props.animals[0]?.id ?? null
-  reset()
-})
+const fileName = computed(() =>
+  onlyAnimal.value
+    ? pdfExportFileName(t('settings.pdf.fileNamePrefix'), onlyAnimal.value.name, openedAt.value)
+    : null,
+)
 
-async function submit(): Promise<void> {
+watch(
+  open,
+  (isOpen) => {
+    if (!isOpen) return
+    selected.value = props.animals[0]?.id ?? null
+    openedAt.value = new Date()
+    reset()
+  },
+  { immediate: true },
+)
+
+async function deliver(mode: DeliveryMode): Promise<void> {
   if (selected.value === null) return
-  const outcome = await run(selected.value)
-  if (outcome !== 'shared') return
-  open.value = false
-  showToast(t('settings.pdf.success'))
+  const outcome = await run(selected.value, mode, openedAt.value)
+  if (outcome === 'saved') {
+    open.value = false
+    showToast(t('settings.pdf.saved'), { durationMs: SAVED_TOAST_MS })
+  } else if (outcome === 'shared') {
+    open.value = false
+    showToast(t('settings.pdf.success'))
+  }
 }
 </script>
 
@@ -79,26 +103,30 @@ async function submit(): Promise<void> {
       />
     </template>
 
+    <div v-else-if="fileName" class="pdf-export-sheet__file">
+      <span class="pdf-export-sheet__file-icon" aria-hidden="true">
+        <v-icon icon="ms:picture_as_pdf" size="22" />
+      </span>
+      <span class="pdf-export-sheet__file-text">
+        <span class="pdf-export-sheet__file-name">{{ fileName }}</span>
+        <span class="pdf-export-sheet__file-content">
+          {{ t('settings.pdf.sheet.fileContent') }}
+        </span>
+      </span>
+    </div>
+
     <p v-if="hasFailed" class="pdf-export-sheet__error" role="alert">
       {{ t('settings.pdf.sheet.error') }}
     </p>
 
-    <v-btn
-      class="pdf-export-sheet__submit"
-      variant="flat"
-      color="primary"
-      :disabled="isPreparing || selected === null"
-      @click="submit"
-    >
-      <v-progress-circular
-        v-if="isPreparing"
-        class="pdf-export-sheet__spinner"
-        indeterminate
-        :size="18"
-        :width="2"
-      />
-      {{ isPreparing ? t('settings.pdf.sheet.preparing') : t('settings.pdf.sheet.submit') }}
-    </v-btn>
+    <ExportActions
+      :access="saveAccess"
+      :pending-mode="pendingMode"
+      :disabled="selected === null"
+      @save="deliver('save')"
+      @share="deliver('share')"
+      @open-settings="openAppSettings"
+    />
   </BottomSheet>
 </template>
 
@@ -114,8 +142,47 @@ async function submit(): Promise<void> {
   white-space: nowrap;
 }
 
-.pdf-export-sheet__spinner {
-  margin-inline-end: 8px;
+.pdf-export-sheet__file {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 18px;
+  padding: 14px;
+  border: 1px solid tokens.$color-card-border;
+  border-radius: tokens.$radius-field;
+  background: rgb(var(--v-theme-surface));
+}
+
+.pdf-export-sheet__file-icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: tokens.$color-notice-surface;
+  color: rgb(var(--v-theme-primary));
+}
+
+.pdf-export-sheet__file-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.pdf-export-sheet__file-name {
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pdf-export-sheet__file-content {
+  margin-top: 2px;
+  color: tokens.$color-text-secondary;
+  font-size: 12px;
 }
 
 .pdf-export-sheet__error {
@@ -123,21 +190,5 @@ async function submit(): Promise<void> {
   color: rgb(var(--v-theme-error));
   font-size: 12.5px;
   font-weight: 500;
-}
-
-.pdf-export-sheet__submit {
-  width: 100%;
-  height: 52px;
-  margin-top: 22px;
-  border-radius: 999px;
-  font-size: 16px;
-  font-weight: 700;
-  letter-spacing: normal;
-}
-
-.pdf-export-sheet__submit:disabled,
-.pdf-export-sheet__submit.v-btn--disabled {
-  background: tokens.$color-disabled-surface;
-  color: tokens.$color-disabled-text;
 }
 </style>

@@ -410,10 +410,20 @@
         "label": "CSV",
         "description": "Pour un tableur"
       },
-      "submit": "Exporter",
+      "save": "Enregistrer sur le téléphone",
+      "share": "Partager",
       "preparing": "Préparation…",
       "shareTitle": "Partager via",
       "success": "Données exportées",
+      "saved": {
+        "json": "Export JSON enregistré dans Documents › MémoPatte",
+        "csv": "Export CSV enregistré dans Documents › MémoPatte"
+      },
+      "storage": {
+        "refused": "MémoPatte n’a pas accès au stockage. Réessaie, ou partage le fichier.",
+        "blocked": "L’accès au stockage est bloqué. Autorise-le dans les réglages de l’app, ou partage le fichier.",
+        "openSettings": "Ouvrir les réglages de l’app"
+      },
       "error": "L’export n’a pas pu être préparé. Réessaie."
     },
     "import": {
@@ -450,16 +460,17 @@
     "pdf": {
       "sheet": {
         "title": "Exporter en PDF",
-        "subtitleOne": "Un document sera préparé pour {name}.",
+        "subtitleOne": "Le carnet complet de {name}, prêt à imprimer ou à envoyer.",
         "subtitlePick": "Choisis l’animal à exporter.",
         "close": "Fermer",
         "pickAnimalLabel": "Animal",
-        "submit": "Exporter",
-        "preparing": "Préparation…",
+        "fileContent": "Vaccins, traitements, poids et photos",
         "error": "Le PDF n’a pas pu être préparé. Réessaie."
       },
+      "fileNamePrefix": "carnet",
       "shareTitle": "Partager via",
       "success": "PDF exporté",
+      "saved": "PDF enregistré dans Documents › MémoPatte",
       "status": {
         "overdue": "En retard",
         "upToDate": "À jour",

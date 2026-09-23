@@ -2,20 +2,37 @@ import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import ExportSheet from '../views/ExportSheet.vue'
-import type { DeliveryOutcome } from '../logic/export-delivery'
+import type { DeliveryMode, DeliveryOutcome } from '../logic/export-delivery'
+import type { SaveAccess } from '../logic/export-storage-access'
 import i18n from '@/core/i18n'
 import vuetify from '@/core/theme/vuetify'
-import { dismissToast, toastMessage } from '@/shared/utils/toast'
+import { dismissToast, toastDurationMs, toastMessage } from '@/shared/utils/toast'
 
-const exportData = vi.hoisted(() => vi.fn<(format: 'json' | 'csv') => Promise<DeliveryOutcome>>())
+const exportData = vi.hoisted(() =>
+  vi.fn<(format: 'json' | 'csv', mode: DeliveryMode) => Promise<DeliveryOutcome>>(),
+)
+const storage = vi.hoisted(() => ({
+  checkSaveAccess: vi.fn<() => Promise<SaveAccess>>(),
+  requestSaveAccess: vi.fn<() => Promise<SaveAccess>>(),
+  openAppSettings: vi.fn<() => Promise<void>>(),
+}))
+const resumeListeners = vi.hoisted(() => [] as (() => void)[])
 
 vi.mock('../service/data-export.service', () => ({ dataExportService: { exportData } }))
+vi.mock('../logic/export-storage-access', () => storage)
+vi.mock('@/core/app-lifecycle/app-resume', () => ({
+  useAppResume: (listener: () => void) => resumeListeners.push(listener),
+}))
 
 let wrapper: VueWrapper | null = null
 
 beforeEach(() => {
   exportData.mockReset()
-  exportData.mockResolvedValue('shared')
+  exportData.mockImplementation(async (_, mode) => (mode === 'save' ? 'saved' : 'shared'))
+  storage.checkSaveAccess.mockReset().mockResolvedValue('granted')
+  storage.requestSaveAccess.mockReset().mockResolvedValue('granted')
+  storage.openAppSettings.mockReset().mockResolvedValue()
+  resumeListeners.length = 0
   dismissToast()
   vi.stubGlobal('visualViewport', {
     addEventListener() {},
@@ -56,8 +73,20 @@ function choix(): HTMLElement[] {
   return [...feuille().querySelectorAll<HTMLElement>('[role="radio"]')]
 }
 
-function bouton(): HTMLButtonElement {
-  return feuille().querySelector<HTMLButtonElement>('.export-sheet__submit')!
+function enregistrer(): HTMLButtonElement {
+  return feuille().querySelector<HTMLButtonElement>('.export-actions__save')!
+}
+
+function partager(): HTMLButtonElement {
+  return feuille().querySelector<HTMLButtonElement>('.export-actions__share')!
+}
+
+function bandeau(): HTMLElement | null {
+  return feuille().querySelector<HTMLElement>('.export-actions__notice')
+}
+
+function lienReglages(): HTMLButtonElement | null {
+  return feuille().querySelector<HTMLButtonElement>('.export-actions__settings')
 }
 
 function deferred<T>() {
@@ -67,7 +96,7 @@ function deferred<T>() {
 }
 
 describe('ExportSheet', () => {
-  it('propose JSON ou CSV, JSON coché par défaut', async () => {
+  it('propose JSON ou CSV, puis « Enregistrer sur le téléphone » et « Partager »', async () => {
     await monter()
 
     expect(feuille().querySelector('.bottom-sheet__title')?.textContent).toBe(
@@ -86,37 +115,62 @@ describe('ExportSheet', () => {
       ['CSV', 'Pour un tableur'],
     ])
     expect(choix().map((option) => option.getAttribute('aria-checked'))).toEqual(['true', 'false'])
-    expect(bouton().textContent?.trim()).toBe('Exporter')
+    expect(enregistrer().textContent?.trim()).toBe('Enregistrer sur le téléphone')
+    expect(partager().textContent?.trim()).toBe('Partager')
+    expect(enregistrer().disabled).toBe(false)
+    expect(bandeau()).toBeNull()
   })
 
-  it('exporte au format choisi, puis ferme la feuille et confirme', async () => {
+  it.each([
+    [0, 'json', 'Export JSON enregistré dans Documents › MémoPatte'],
+    [1, 'csv', 'Export CSV enregistré dans Documents › MémoPatte'],
+  ] as const)(
+    'enregistre au format choisi, ferme la feuille et dit où trouver le fichier (%s)',
+    async (index, format, message) => {
+      const wrapper = await monter()
+
+      choix()[index]!.click()
+      await flushPromises()
+      enregistrer().click()
+      await flushPromises()
+
+      expect(storage.requestSaveAccess).toHaveBeenCalledOnce()
+      expect(exportData).toHaveBeenCalledExactlyOnceWith(format, 'save')
+      expect(wrapper.emitted('update:modelValue')).toEqual([[false]])
+      expect(toastMessage.value).toBe(message)
+      expect(toastDurationMs.value).toBe(4000)
+    },
+  )
+
+  it('partage comme avant, sans demander l’accès au stockage', async () => {
     const wrapper = await monter()
 
     choix()[1]!.click()
     await flushPromises()
-    expect(choix()[1]!.getAttribute('aria-checked')).toBe('true')
-
-    bouton().click()
+    partager().click()
     await flushPromises()
 
-    expect(exportData).toHaveBeenCalledWith('csv')
+    expect(storage.requestSaveAccess).not.toHaveBeenCalled()
+    expect(exportData).toHaveBeenCalledExactlyOnceWith('csv', 'share')
     expect(wrapper.emitted('update:modelValue')).toEqual([[false]])
     expect(toastMessage.value).toBe('Données exportées')
   })
 
-  it('affiche « Préparation… » et bloque le bouton pendant la génération', async () => {
+  it('affiche « Préparation… » sur le bouton touché et bloque les deux pendant la génération', async () => {
     const pending = deferred<DeliveryOutcome>()
     exportData.mockReturnValue(pending.promise)
     await monter()
 
-    bouton().click()
+    partager().click()
     await flushPromises()
 
-    expect(bouton().textContent?.trim()).toBe('Préparation…')
-    expect(bouton().disabled).toBe(true)
-    expect(feuille().querySelector('.v-progress-circular')).not.toBeNull()
+    expect(partager().textContent?.trim()).toBe('Préparation…')
+    expect(enregistrer().textContent?.trim()).toBe('Enregistrer sur le téléphone')
+    expect(partager().disabled).toBe(true)
+    expect(enregistrer().disabled).toBe(true)
+    expect(partager().querySelector('.v-progress-circular')).not.toBeNull()
 
-    bouton().click()
+    enregistrer().click()
     expect(exportData).toHaveBeenCalledOnce()
 
     pending.resolve('shared')
@@ -127,13 +181,78 @@ describe('ExportSheet', () => {
     exportData.mockResolvedValue('cancelled')
     const wrapper = await monter()
 
-    bouton().click()
+    partager().click()
     await flushPromises()
 
     expect(wrapper.emitted('update:modelValue')).toBeUndefined()
     expect(toastMessage.value).toBeNull()
     expect(feuille().querySelector('[role="alert"]')).toBeNull()
-    expect(bouton().textContent?.trim()).toBe('Exporter')
+    expect(partager().textContent?.trim()).toBe('Partager')
+  })
+
+  it('accès refusé (Android 7 à 10) : l’explique, Enregistrer redemande, Partager reste possible', async () => {
+    storage.requestSaveAccess.mockResolvedValue('refused')
+    const wrapper = await monter()
+
+    enregistrer().click()
+    await flushPromises()
+
+    expect(exportData).not.toHaveBeenCalled()
+    expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+    expect(bandeau()?.textContent?.trim()).toBe(
+      'MémoPatte n’a pas accès au stockage. Réessaie, ou partage le fichier.',
+    )
+    expect(lienReglages()).toBeNull()
+    expect(feuille().querySelector('[role="alert"]')).toBeNull()
+    expect(enregistrer().disabled).toBe(false)
+    expect(partager().disabled).toBe(false)
+
+    storage.requestSaveAccess.mockResolvedValue('granted')
+    enregistrer().click()
+    await flushPromises()
+
+    expect(storage.requestSaveAccess).toHaveBeenCalledTimes(2)
+    expect(exportData).toHaveBeenCalledExactlyOnceWith('json', 'save')
+  })
+
+  it('accès bloqué (« Ne plus demander ») : renvoie aux réglages, Enregistrer indisponible', async () => {
+    storage.requestSaveAccess.mockResolvedValue('blocked')
+    await monter()
+
+    enregistrer().click()
+    await flushPromises()
+
+    const texte = bandeau()?.querySelector('p')
+    expect(texte?.textContent?.trim()).toBe(
+      'L’accès au stockage est bloqué. Autorise-le dans les réglages de l’app, ou partage le fichier.',
+    )
+    expect(lienReglages()?.textContent?.trim()).toBe('Ouvrir les réglages de l’app')
+    expect(enregistrer().disabled).toBe(true)
+    expect(enregistrer().getAttribute('aria-describedby')).toBe(texte?.id)
+    expect(partager().disabled).toBe(false)
+
+    lienReglages()!.click()
+    expect(storage.openAppSettings).toHaveBeenCalledOnce()
+  })
+
+  it('s’ouvre sur l’accès bloqué quand Android ne demande plus', async () => {
+    storage.checkSaveAccess.mockResolvedValue('blocked')
+    await monter()
+
+    expect(lienReglages()).not.toBeNull()
+    expect(enregistrer().disabled).toBe(true)
+  })
+
+  it('revient à l’état normal au retour des réglages avec l’accès accordé', async () => {
+    storage.checkSaveAccess.mockResolvedValue('blocked')
+    await monter()
+
+    storage.checkSaveAccess.mockResolvedValue('granted')
+    for (const listener of resumeListeners) listener()
+    await flushPromises()
+
+    expect(bandeau()).toBeNull()
+    expect(enregistrer().disabled).toBe(false)
   })
 
   it('signale un échec dans la feuille, et repart propre à la réouverture', async () => {
@@ -142,7 +261,7 @@ describe('ExportSheet', () => {
     const wrapper = await monter()
 
     choix()[1]!.click()
-    bouton().click()
+    enregistrer().click()
     await flushPromises()
 
     expect(feuille().querySelector('[role="alert"]')?.textContent?.trim()).toBe(

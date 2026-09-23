@@ -16,6 +16,7 @@ function setup(overrides: Partial<PdfExportDependencies> = {}) {
     render,
     loadPhoto,
     deliver,
+    fileNamePrefix: () => 'carnet',
     now: () => NOW,
     appVersion: '0.1.24',
     ...overrides,
@@ -27,7 +28,7 @@ describe('pdf-export.service', () => {
   it('renvoie « not-found » sans rien remettre pour un animal inconnu', async () => {
     const { service, deliver, render } = setup()
 
-    await expect(service.exportAnimalCarnetPdf('introuvable')).resolves.toBe('not-found')
+    await expect(service.exportAnimalCarnetPdf('introuvable', 'save')).resolves.toBe('not-found')
     expect(render).not.toHaveBeenCalled()
     expect(deliver).not.toHaveBeenCalled()
   })
@@ -35,7 +36,7 @@ describe('pdf-export.service', () => {
   it("construit le contenu de l'animal demandé et le remet en PDF nommé", async () => {
     const { service, deliver, render, loadPhoto } = setup()
 
-    await expect(service.exportAnimalCarnetPdf(MILO_ID)).resolves.toBe('shared')
+    await expect(service.exportAnimalCarnetPdf(MILO_ID, 'share')).resolves.toBe('shared')
 
     const [content, appVersion, photoDataUrl] = render.mock.calls[0]! as [
       CarnetPdfContent,
@@ -48,9 +49,10 @@ describe('pdf-export.service', () => {
     expect(photoDataUrl).toBeNull()
     expect(loadPhoto).not.toHaveBeenCalled()
 
-    const [file] = deliver.mock.calls[0]! as [{ name: string; content: Uint8Array }]
-    expect(file.name).toBe('memopatte-milo-2026-09-15.pdf')
+    const [file, mode] = deliver.mock.calls[0]!
+    expect(file.name).toBe('carnet-milo-20260915-1030.pdf')
     expect(file.content).toEqual(new Uint8Array([1, 2, 3]))
+    expect(mode).toBe('share')
   })
 
   it("charge la photo de l'animal quand il en a une et la transmet au rendu", async () => {
@@ -59,7 +61,7 @@ describe('pdf-export.service', () => {
     )
     const { service, render } = setup({ loadPhoto })
 
-    await service.exportAnimalCarnetPdf(LUNA_ID)
+    await service.exportAnimalCarnetPdf(LUNA_ID, 'share')
 
     expect(loadPhoto).toHaveBeenCalledWith('0f6c1c9e-5d6b-4b43-9a57-2f1d8b0c7a11.jpg')
     const [, , photoDataUrl] = render.mock.calls[0]! as [CarnetPdfContent, string, string | null]
@@ -70,7 +72,7 @@ describe('pdf-export.service', () => {
     const loadPhoto = vi.fn<PdfExportDependencies['loadPhoto']>(async () => null)
     const { service, render } = setup({ loadPhoto })
 
-    await expect(service.exportAnimalCarnetPdf(LUNA_ID)).resolves.toBe('shared')
+    await expect(service.exportAnimalCarnetPdf(LUNA_ID, 'share')).resolves.toBe('shared')
 
     const [, , photoDataUrl] = render.mock.calls[0]! as [CarnetPdfContent, string, string | null]
     expect(photoDataUrl).toBeNull()
@@ -79,7 +81,37 @@ describe('pdf-export.service', () => {
   it('transmet l’issue du partage', async () => {
     const { service } = setup({ deliver: async () => 'cancelled' as DeliveryOutcome })
 
-    await expect(service.exportAnimalCarnetPdf(MILO_ID)).resolves.toBe('cancelled')
+    await expect(service.exportAnimalCarnetPdf(MILO_ID, 'share')).resolves.toBe('cancelled')
+  })
+
+  it('remet le PDF pour l’enregistrer sur le téléphone', async () => {
+    const deliver = vi.fn<PdfExportDependencies['deliver']>(async () => 'saved')
+    const { service } = setup({ deliver })
+
+    await expect(service.exportAnimalCarnetPdf(MILO_ID, 'save')).resolves.toBe('saved')
+
+    expect(deliver).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ name: 'carnet-milo-20260915-1030.pdf' }),
+      'save',
+    )
+  })
+
+  it('nomme le PDF avec le mot de la langue de l’app', async () => {
+    const { service, deliver } = setup({ fileNamePrefix: () => 'health-record' })
+
+    await service.exportAnimalCarnetPdf(MILO_ID, 'save')
+
+    expect(deliver.mock.calls[0]![0].name).toBe('health-record-milo-20260915-1030.pdf')
+  })
+
+  it('nomme et date le PDF de l’instant que la feuille affiche', async () => {
+    const { service, deliver, render } = setup()
+
+    await service.exportAnimalCarnetPdf(MILO_ID, 'save', new Date('2026-09-23T14:32:00'))
+
+    expect(deliver.mock.calls[0]![0].name).toBe('carnet-milo-20260923-1432.pdf')
+    const [content] = render.mock.calls[0]! as [CarnetPdfContent, string, string | null]
+    expect(content.generatedOn).toBe('2026-09-23')
   })
 
   it('lève si la base ne répond pas, sans rien remettre', async () => {
@@ -89,7 +121,7 @@ describe('pdf-export.service', () => {
       },
     })
 
-    await expect(service.exportAnimalCarnetPdf(MILO_ID)).rejects.toThrow('base fermée')
+    await expect(service.exportAnimalCarnetPdf(MILO_ID, 'save')).rejects.toThrow('base fermée')
     expect(deliver).not.toHaveBeenCalled()
   })
 })

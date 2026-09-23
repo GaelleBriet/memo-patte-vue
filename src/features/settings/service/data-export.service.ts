@@ -15,7 +15,11 @@ import {
   getWeightRepository,
   type WeightRepository,
 } from '@/features/weight/repository/weight.repository'
-import { deliverExportFile, type DeliveryOutcome } from '../logic/export-delivery'
+import {
+  deliverExportFile,
+  type DeliveryMode,
+  type DeliveryOutcome,
+} from '../logic/export-delivery'
 import { buildExportFile, type ExportFile, type ExportFormat } from '../logic/export-format'
 import type { ExportData } from '@/shared/domain/carnet-data'
 
@@ -26,7 +30,7 @@ export type DataExportDependencies = {
   vaccinations: Provider<Pick<VaccinationsRepository, 'listAll'>>
   treatments: Provider<Pick<TreatmentsRepository, 'listAll'>>
   weight: Provider<Pick<WeightRepository, 'listByAnimal'>>
-  deliver: (file: ExportFile) => Promise<DeliveryOutcome>
+  deliver: (file: ExportFile, mode: DeliveryMode) => Promise<DeliveryOutcome>
   now: () => Date
   appVersion: string
 }
@@ -99,9 +103,9 @@ export function createDataExportService({
     collect,
 
     /** Lit la base locale seulement ; lève si la lecture ou l'écriture du fichier échoue. */
-    async exportData(format: ExportFormat): Promise<DeliveryOutcome> {
+    async exportData(format: ExportFormat, mode: DeliveryMode): Promise<DeliveryOutcome> {
       const data = await collect()
-      return deliver(buildExportFile(format, data, { exportedAt: now(), appVersion }))
+      return deliver(buildExportFile(format, data, { exportedAt: now(), appVersion }), mode)
     },
   }
 }
@@ -113,7 +117,8 @@ export const dataExportService = createDataExportService({
   vaccinations: getVaccinationsRepository,
   treatments: getTreatmentsRepository,
   weight: getWeightRepository,
-  deliver: (file) => deliverExportFile(file, i18n.global.t('settings.export.shareTitle')),
+  deliver: (file, mode) =>
+    deliverExportFile(file, mode, i18n.global.t('settings.export.shareTitle')),
   now: () => new Date(),
   appVersion: import.meta.env.VITE_APP_VERSION,
 })

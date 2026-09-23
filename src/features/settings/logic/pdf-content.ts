@@ -1,5 +1,6 @@
 import { format } from 'date-fns'
 
+import { EXPORT_FILE_TIME } from './export-format'
 import { buildReminders, type ReminderKind } from '@/shared/domain/reminders'
 import { buildWeightChart, type WeightChart } from '@/shared/domain/weight-chart'
 import type { ExportData } from '@/shared/domain/carnet-data'
@@ -113,6 +114,7 @@ function slug(value: string): string {
     .replace(/(^-+|-+$)/g, '')
 }
 
-export function pdfExportFileName(animalName: string, exportedAt: Date): string {
-  return `memopatte-${slug(animalName)}-${format(exportedAt, 'yyyy-MM-dd')}.pdf`
+export function pdfExportFileName(label: string, animalName: string, exportedAt: Date): string {
+  const parts = [slug(label), slug(animalName), format(exportedAt, EXPORT_FILE_TIME)]
+  return `${parts.filter(Boolean).join('-')}.pdf`
 }

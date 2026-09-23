@@ -19,9 +19,11 @@ function lines(csv: string): string[] {
 }
 
 describe('exportFileName', () => {
-  it('date le fichier du jour local, en .json ou en .zip', () => {
-    expect(exportFileName('json', META.exportedAt)).toBe('memopatte-export-2026-09-15.json')
-    expect(exportFileName('csv', META.exportedAt)).toBe('memopatte-export-2026-09-15.zip')
+  it('date le fichier à la minute, heure locale sur 24 h, en .json ou en .zip', () => {
+    expect(exportFileName('json', META.exportedAt)).toBe('memopatte-export-20260915-1030.json')
+    expect(exportFileName('csv', new Date('2026-09-15T21:07:00'))).toBe(
+      'memopatte-export-20260915-2107.zip',
+    )
   })
 })
 
@@ -171,14 +173,14 @@ describe('buildExportFile', () => {
   it('JSON : un seul fichier texte', () => {
     const file = buildExportFile('json', EXPORT_FIXTURE, META)
 
-    expect(file.name).toBe('memopatte-export-2026-09-15.json')
+    expect(file.name).toBe('memopatte-export-20260915-1030.json')
     expect(file.content).toBe(toJsonExport(EXPORT_FIXTURE, META))
   })
 
   it('CSV : une archive zip qui contient les cinq tables telles quelles', () => {
     const file = buildExportFile('csv', EXPORT_FIXTURE, META)
 
-    expect(file.name).toBe('memopatte-export-2026-09-15.zip')
+    expect(file.name).toBe('memopatte-export-20260915-1030.zip')
     expect(file.content).toBeInstanceOf(Uint8Array)
 
     const entries = unzipSync(file.content as Uint8Array)

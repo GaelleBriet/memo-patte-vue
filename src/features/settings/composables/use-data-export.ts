@@ -1,36 +1,22 @@
-import { ref } from 'vue'
-
 import { dataExportService, type DataExportService } from '../service/data-export.service'
-import type { DeliveryOutcome } from '../logic/export-delivery'
+import type { DeliveryMode, DeliveryOutcome } from '../logic/export-delivery'
 import type { ExportFormat } from '../logic/export-format'
+import { useExportRun, type ExportRunInterruption, type SaveAccessPort } from './use-export-run'
 import { recordUsageSignal } from '@/shared/utils/usage-signals'
 
-export type ExportRunOutcome = DeliveryOutcome | 'failed' | 'busy'
+export type ExportRunOutcome = DeliveryOutcome | ExportRunInterruption
 
-export function useDataExport(service: Pick<DataExportService, 'exportData'> = dataExportService) {
-  const isPreparing = ref(false)
-  const hasFailed = ref(false)
+export function useDataExport(
+  service: Pick<DataExportService, 'exportData'> = dataExportService,
+  access?: SaveAccessPort,
+) {
+  const exportRun = useExportRun(access)
 
-  async function run(format: ExportFormat): Promise<ExportRunOutcome> {
-    if (isPreparing.value) return 'busy'
-    isPreparing.value = true
-    hasFailed.value = false
-    try {
-      const outcome = await service.exportData(format)
-      if (outcome === 'shared') recordUsageSignal('export')
-      return outcome
-    } catch (cause) {
-      console.warn('Export impossible :', cause)
-      hasFailed.value = true
-      return 'failed'
-    } finally {
-      isPreparing.value = false
-    }
+  async function run(format: ExportFormat, mode: DeliveryMode): Promise<ExportRunOutcome> {
+    const outcome = await exportRun.run(mode, () => service.exportData(format, mode))
+    if (outcome === 'saved' || outcome === 'shared') recordUsageSignal('export')
+    return outcome
   }
 
-  function reset(): void {
-    hasFailed.value = false
-  }
-
-  return { isPreparing, hasFailed, run, reset }
+  return { ...exportRun, run }
 }
