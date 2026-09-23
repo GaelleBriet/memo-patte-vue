@@ -13,6 +13,14 @@ const ALLOWED_PERMISSIONS = new Map([
   ['android.permission.INTERNET', 'notre manifest — Supabase, RevenueCat'],
   ['android.permission.POST_NOTIFICATIONS', 'notre manifest — rappels, demandée au premier rappel'],
   [
+    'android.permission.READ_EXTERNAL_STORAGE',
+    'notre manifest — export enregistré dans Documents, Android 7 à 10, au premier enregistrement',
+  ],
+  [
+    'android.permission.WRITE_EXTERNAL_STORAGE',
+    'notre manifest — export enregistré dans Documents, Android 7 à 10, au premier enregistrement',
+  ],
+  [
     'android.permission.RECEIVE_BOOT_COMPLETED',
     '@capacitor/local-notifications — reprogramme les rappels après redémarrage',
   ],
@@ -23,6 +31,12 @@ const ALLOWED_PERMISSIONS = new Map([
     'com.gaellebriet.memopatte.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION',
     'androidx.core — permission de signature interne, jamais visible du Play Store',
   ],
+])
+
+/** Réservées aux anciennes versions d'Android : au-delà, l'app ne doit jamais les demander. */
+const MAX_SDK_VERSIONS = new Map([
+  ['android.permission.READ_EXTERNAL_STORAGE', '29'],
+  ['android.permission.WRITE_EXTERNAL_STORAGE', '29'],
 ])
 
 /** Aucune fonctionnalité matérielle requise : la photo passe par le Photo Picker système. */
@@ -41,6 +55,13 @@ function findMergedManifest() {
     if (found) return found
   }
   return null
+}
+
+function maxSdkOf(manifest, permission) {
+  const declaration = [...manifest.matchAll(/<uses-permission[^>]*>/g)]
+    .map((match) => match[0])
+    .find((tag) => tag.includes(`android:name="${permission}"`))
+  return declaration?.match(/android:maxSdkVersion="(\d+)"/)?.[1] ?? null
 }
 
 function namesOf(manifest, tag) {
@@ -78,6 +99,11 @@ for (const permission of ALLOWED_PERMISSIONS.keys()) {
     failures.push(
       `permission attendue absente : ${permission} (${ALLOWED_PERMISSIONS.get(permission)})`,
     )
+  }
+}
+for (const [permission, maxSdk] of MAX_SDK_VERSIONS) {
+  if (permissions.includes(permission) && maxSdkOf(manifest, permission) !== maxSdk) {
+    failures.push(`${permission} sans android:maxSdkVersion="${maxSdk}"`)
   }
 }
 for (const feature of features) {
