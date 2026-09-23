@@ -89,6 +89,47 @@ describe('AppToast', () => {
     wrapper.unmount()
   })
 
+  it('redonne sa durée complète au toast quand le même message revient', async () => {
+    vi.useFakeTimers()
+    const wrapper = mountToast()
+    const message = 'Export JSON enregistré dans Documents › MémoPatte'
+    showToast(message, { durationMs: 4000 })
+    await nextTick()
+
+    vi.advanceTimersByTime(3000)
+    showToast(message, { durationMs: 4000 })
+    await nextTick()
+
+    vi.advanceTimersByTime(3900)
+    await nextTick()
+    expect(toastMessage.value).toBe(message)
+
+    vi.advanceTimersByTime(200)
+    await nextTick()
+    expect(toastMessage.value).toBeNull()
+    wrapper.unmount()
+  })
+
+  it('redonne aussi sa durée complète au toast quand un autre message le remplace', async () => {
+    vi.useFakeTimers()
+    const wrapper = mountToast()
+    showToast('Rappels activés')
+    await nextTick()
+
+    vi.advanceTimersByTime(2000)
+    showToast('Données exportées')
+    await nextTick()
+
+    vi.advanceTimersByTime(2900)
+    await nextTick()
+    expect(toastMessage.value).toBe('Données exportées')
+
+    vi.advanceTimersByTime(200)
+    await nextTick()
+    expect(toastMessage.value).toBeNull()
+    wrapper.unmount()
+  })
+
   it('garde sa région annoncée en place avant le message, pour que TalkBack le lise', async () => {
     const wrapper = mountToast()
     const region = document.body.querySelector('[role="status"]')
