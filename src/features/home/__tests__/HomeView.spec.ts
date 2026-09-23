@@ -165,6 +165,12 @@ function rows(wrapper: ReturnType<typeof mount>) {
   }))
 }
 
+function upToDateLines(wrapper: ReturnType<typeof mount>) {
+  return wrapper
+    .findAll('.home-up-to-date__text, .home-up-to-date__next')
+    .map((line) => line.text())
+}
+
 describe('HomeView — chargement et erreur', () => {
   it('charge les animaux et les rappels au montage', async () => {
     await monter()
@@ -623,9 +629,9 @@ describe('HomeView — fenêtre de 30 jours', () => {
 
     expect(wrapper.get('.home-todo .section-card__counter').text()).toBe('Milo')
     expect(wrapper.get('.home-up-to-date__title').text()).toBe('Tout est à jour')
-    expect(wrapper.get('.home-up-to-date__next').text()).toBe(
-      'Prochain rappel : Carré le 26 août 2027',
-    )
+    expect(upToDateLines(wrapper)).toEqual([
+      'Prochain rappel\u00a0: Carré le 26\u00a0août\u00a02027',
+    ])
   })
 
   it('annonce le prochain rappel sans prénom quand le foyer n’a qu’un animal', async () => {
@@ -633,9 +639,9 @@ describe('HomeView — fenêtre de 30 jours', () => {
     sources = [CARRE_MILO_2027]
     const wrapper = await monter()
 
-    expect(wrapper.get('.home-up-to-date__next').text()).toBe(
-      'Prochain rappel : Carré le 26 août 2027',
-    )
+    expect(upToDateLines(wrapper)).toEqual([
+      'Prochain rappel\u00a0: Carré le 26\u00a0août\u00a02027',
+    ])
   })
 
   it('nomme l’animal du prochain rappel dans la vue de tous les animaux', async () => {
@@ -644,17 +650,16 @@ describe('HomeView — fenêtre de 30 jours', () => {
 
     expect(wrapper.find('.home-todo .section-card__counter').exists()).toBe(false)
     expect(wrapper.find('.home-overdue-banner').exists()).toBe(false)
-    expect(wrapper.get('.home-up-to-date__next').text()).toBe(
-      'Prochain rappel : Typhus pour Luna le 10 oct. 2026',
-    )
+    expect(upToDateLines(wrapper)).toEqual([
+      'Prochain rappel\u00a0: Typhus pour Luna le 10\u00a0oct.\u00a02026',
+    ])
   })
 
   it('n’annonce rien quand aucun rappel n’existe', async () => {
     sources = [SANS_ECHEANCE]
     const wrapper = await monter()
 
-    expect(wrapper.find('.home-up-to-date').exists()).toBe(true)
-    expect(wrapper.find('.home-up-to-date__next').exists()).toBe(false)
+    expect(upToDateLines(wrapper)).toEqual(['Milo et Luna n’ont aucun rappel à venir.'])
   })
 
   it('fait entrer une échéance à 31 jours dans la liste quand l’app revient le lendemain', async () => {

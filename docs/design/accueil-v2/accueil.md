@@ -96,21 +96,25 @@ Tri : par urgence croissante (le plus en retard en premier).
 | Demain | icône `schedule` + `Demain` | vert |
 | Plus tard | icône `schedule` + `Dans 3 jours` | vert |
 
-### 4. État « aucun rappel » (remplace la carte vide de la v1)
+### 4. État « Tout est à jour » : aucun rappel dans la fenêtre (remplace la carte vide de la v1)
 
 - Ligne simple : pastille verte 46 px avec icône `check`, puis
-  **« Tout est à jour »** (18 px, 700) et une sous-ligne :
-    - animal sélectionné : `Aucun rappel à venir pour Milo.`
-    - vue globale : `Milo et Luna n'ont aucun rappel à venir.`
-      (les prénoms sont listés dynamiquement)
-- Si un rappel existe au-delà de la fenêtre de 30 jours, une ligne de plus
-  annonce le plus proche, dans le style de la sous-ligne, avec la date longue
-  de l'app (`formatLongDate`) :
+  **« Tout est à jour »** (18 px, 700) et une seule sous-ligne.
+- Si un rappel existe au-delà de la fenêtre de 30 jours, la sous-ligne annonce
+  le plus proche, avec la date longue de l'app (`formatLongDate`) :
     - animal sélectionné, ou foyer d'un seul animal :
       `Prochain rappel : Carré le 26 août 2027`
     - vue de plusieurs animaux : `Prochain rappel : Vermifuge pour Luna le 8 nov. 2026`
     - le rappel est nommé comme dans la liste (nom saisi du vaccin, type du
-      traitement) ; aucune ligne s'il n'existe aucun rappel
+      traitement)
+    - la date ne se coupe jamais sur deux lignes : ses espaces deviennent
+      insécables, dans cette ligne seulement
+- Sinon, aucun rappel n'existe du tout, et la sous-ligne le dit :
+    - animal sélectionné : `Aucun rappel à venir pour Milo.`
+    - vue globale : `Milo et Luna n'ont aucun rappel à venir.`
+      (les prénoms sont listés dynamiquement)
+- Décision de Gaelle du 2026-09-23 (#344) : « Prochain rappel » remplace
+  « Aucun rappel à venir », les deux phrases se contrediraient.
 - En dessous, lien texte pétrole : icône `add` + **« Ajouter un vaccin ou un
   traitement »**. Ce n'est plus un bouton contour dans une carte.
 
@@ -147,8 +151,8 @@ spécification de comportement.
 |---|---|---|
 | **A1** | Tous les animaux, avec rappels | aucune chip sélectionnée, rappels de tous les animaux fusionnés et triés, nom de l'animal visible sur chaque ligne |
 | **A2** | Animal sélectionné, avec rappels | chip active, liste filtrée, nom de l'animal masqué sur les lignes, compteur `Milo · 2 rappels` |
-| **A3** | Animal sélectionné, aucun rappel dans la fenêtre | état « Tout est à jour » + sous-texte nominatif (+ « Prochain rappel » s'il en existe un plus loin) |
-| **A4** | Tous les animaux, aucun rappel dans la fenêtre | état « Tout est à jour » + sous-texte listant les animaux (+ « Prochain rappel … pour {animal} » s'il en existe un plus loin) |
+| **A3** | Animal sélectionné, aucun rappel dans la fenêtre | état « Tout est à jour » + `Prochain rappel : {rappel} le {date}` s'il en existe un plus loin, sinon sous-texte nominatif |
+| **A4** | Tous les animaux, aucun rappel dans la fenêtre | état « Tout est à jour » + `Prochain rappel : {rappel} pour {animal} le {date}` s'il en existe un plus loin, sinon sous-texte listant les animaux |
 | **A5** | Premier lancement, aucun animal | écran plein, sans header ni chips |
 
 Avec un seul animal, l'accueil n'est jamais en A1 ni A4 : sa chip est toujours sélectionnée.

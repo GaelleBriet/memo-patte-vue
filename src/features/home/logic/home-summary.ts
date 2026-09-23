@@ -107,7 +107,10 @@ export function nextReminderText(
   { animalNames, showAnimal }: ReminderRowsOptions,
 ): string | null {
   if (reminder === null) return null
-  const params = { reminder: reminderTitle(t, reminder), date: formatLongDate(reminder.dueDate) }
+  const params = {
+    reminder: reminderTitle(t, reminder),
+    date: formatLongDate(reminder.dueDate).replaceAll(' ', '\u00a0'),
+  }
   const name = showAnimal ? animalNames.get(reminder.animalId) : undefined
   if (name === undefined) return t('home.upToDate.nextForAnimal', params)
   return t('home.upToDate.nextForMany', { ...params, name })

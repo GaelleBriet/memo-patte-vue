@@ -201,14 +201,21 @@ describe('nextReminderText', () => {
 
   it('annonce le rappel et sa date, sans l’animal quand un seul animal est affiché', () => {
     expect(nextReminderText(t, carre, { animalNames: names, showAnimal: false })).toBe(
-      'Prochain rappel\u00a0: Carré le 26 août 2027',
+      'Prochain rappel\u00a0: Carré le 26\u00a0août\u00a02027',
     )
   })
 
   it('nomme l’animal dans la vue de plusieurs animaux', () => {
     expect(nextReminderText(t, vermifuge, { animalNames: names, showAnimal: true })).toBe(
-      'Prochain rappel\u00a0: Vermifuge pour Luna le 8 nov. 2026',
+      'Prochain rappel\u00a0: Vermifuge pour Luna le 8\u00a0nov.\u00a02026',
     )
+  })
+
+  it('garde la date d’un seul tenant, espaces insécables compris', () => {
+    const text = nextReminderText(t, carre, { animalNames: names, showAnimal: false })
+
+    expect(text).toMatch(/le 26\u00a0août\u00a02027$/)
+    expect(text?.split(' ').at(-1)).toBe('26\u00a0août\u00a02027')
   })
 
   it('n’annonce rien sans rappel au-delà de la fenêtre', () => {
@@ -218,17 +225,17 @@ describe('nextReminderText', () => {
   it('omet l’animal quand son prénom est introuvable', () => {
     expect(
       nextReminderText(t, { ...carre, animalId: 'nala' }, { animalNames: names, showAnimal: true }),
-    ).toBe('Prochain rappel\u00a0: Carré le 26 août 2027')
+    ).toBe('Prochain rappel\u00a0: Carré le 26\u00a0août\u00a02027')
   })
 
   it('suit la langue courante, date comprise', () => {
     applyLocale('en')
 
     expect(nextReminderText(t, carre, { animalNames: names, showAnimal: false })).toBe(
-      'Next reminder: Carré on Aug 26, 2027',
+      'Next reminder: Carré on Aug\u00a026,\u00a02027',
     )
     expect(nextReminderText(t, vermifuge, { animalNames: names, showAnimal: true })).toBe(
-      'Next reminder: Dewormer for Luna on Nov 8, 2026',
+      'Next reminder: Dewormer for Luna on Nov\u00a08,\u00a02026',
     )
   })
 })

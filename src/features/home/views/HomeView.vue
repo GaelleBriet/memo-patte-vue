@@ -220,10 +220,8 @@ function openCarnet(): void {
               </span>
               <div>
                 <p class="home-up-to-date__title">{{ t('home.upToDate.title') }}</p>
-                <p class="home-up-to-date__text">{{ upToDate }}</p>
-                <p v-if="nextReminder" class="home-up-to-date__next">
-                  {{ nextReminder }}
-                </p>
+                <p v-if="nextReminder" class="home-up-to-date__next">{{ nextReminder }}</p>
+                <p v-else class="home-up-to-date__text">{{ upToDate }}</p>
               </div>
             </div>
             <button type="button" class="home-up-to-date__add" @click="openCarnet">
