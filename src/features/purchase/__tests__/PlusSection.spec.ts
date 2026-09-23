@@ -11,7 +11,7 @@ import { memoryStorage } from './billing-fixture'
 import i18n from '@/core/i18n'
 import vuetify from '@/core/theme/vuetify'
 import router from '@/router'
-import { dismissToast, toastMessage } from '@/shared/utils/toast'
+import { dismissToast, toastMessage, toastTone } from '@/shared/utils/toast'
 
 vi.mock('../service/billing.service', async (importOriginal) => ({
   ...(await importOriginal<object>()),
@@ -251,6 +251,7 @@ describe('PlusSection — restaurer mon achat', () => {
     expect(service.restore).toHaveBeenCalledOnce()
     expect(statut(wrapper)).toContain('Plus annuel jusqu’au 14/09/2027')
     expect(toastMessage.value).toBe('Te voilà de retour dans Plus.')
+    expect(toastTone.value).toBe('success')
   })
 
   it('montre la restauration en cours et bloque un second tap', async () => {
@@ -280,6 +281,7 @@ describe('PlusSection — restaurer mon achat', () => {
     await flushPromises()
 
     expect(toastMessage.value).toBe('Aucun achat à restaurer sur ce compte Google.')
+    expect(toastTone.value).toBe('info')
     expect(wrapper.find('.settings-row--plus-status').exists()).toBe(false)
   })
 
@@ -291,6 +293,7 @@ describe('PlusSection — restaurer mon achat', () => {
     await flushPromises()
 
     expect(toastMessage.value).toBe('La restauration n’a pas abouti. Réessaie.')
+    expect(toastTone.value).toBe('error')
     expect(ligneRestaurer(wrapper).attributes('disabled')).toBeUndefined()
   })
 })

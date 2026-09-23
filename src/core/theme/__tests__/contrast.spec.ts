@@ -90,7 +90,9 @@ const pairs: [element: string, foreground: string, background: string, minimum: 
     TEXT,
   ],
   ['Lien du bandeau « rappels désactivés »', 'primary', '$color-reminders-off-surface', TEXT],
-  ['Toast de confirmation', '$color-on-primary', '$color-toast-surface', TEXT],
+  ['Toast de confirmation', '$color-on-primary', 'primary', TEXT],
+  ['Icône du toast de réussite ou d’information', '$color-toast-icon', 'primary', LARGE_TEXT_OR_UI],
+  ['Toast d’échec : texte et icône', 'on-error', 'error', TEXT],
   ['Chevron d’une ligne de réglage', '$color-settings-chevron', 'surface', LARGE_TEXT_OR_UI],
   ['Carte de choix cochée', 'on-surface', '$color-choice-selected-surface', TEXT],
   [

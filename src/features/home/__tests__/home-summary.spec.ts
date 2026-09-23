@@ -1,8 +1,9 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 
 import type { HomeReminderSource } from '../service/home-reminders.service'
 import {
   dueBadge,
+  nextReminderText,
   overdueBanner,
   reminderIcon,
   reminderRows,
@@ -10,7 +11,7 @@ import {
   scopeCounter,
   upToDateText,
 } from '../logic/home-summary'
-import i18n from '@/core/i18n'
+import i18n, { applyLocale } from '@/core/i18n'
 import type { Reminder } from '@/shared/domain/reminders'
 
 const t = i18n.global.t
@@ -169,5 +170,72 @@ describe('reminderRows', () => {
   it('masque le nom de l’animal quand un animal est sélectionné', () => {
     const rows = reminderRows(t, reminders, { animalNames: names, showAnimal: false })
     expect(rows.map((row) => row.animalName)).toEqual([null, null])
+  })
+})
+
+describe('nextReminderText', () => {
+  const names = new Map([
+    ['milo', 'Milo'],
+    ['luna', 'Luna'],
+  ])
+
+  const carre: Reminder<HomeReminderSource> = {
+    ...reminder({ label: 'Carré', dueDate: '2027-08-26', status: 'later', daysUntil: 351 }),
+    treatmentType: null,
+  }
+
+  const vermifuge: Reminder<HomeReminderSource> = {
+    ...reminder({
+      kind: 'treatment',
+      id: 't1',
+      animalId: 'luna',
+      label: 'Milbemax',
+      dueDate: '2026-11-08',
+      status: 'later',
+      daysUntil: 60,
+    }),
+    treatmentType: 'deworming',
+  }
+
+  afterEach(() => applyLocale('fr'))
+
+  it('annonce le rappel et sa date, sans l’animal quand un seul animal est affiché', () => {
+    expect(nextReminderText(t, carre, { animalNames: names, showAnimal: false })).toBe(
+      'Prochain rappel\u00a0: Carré le 26\u00a0août\u00a02027',
+    )
+  })
+
+  it('nomme l’animal dans la vue de plusieurs animaux', () => {
+    expect(nextReminderText(t, vermifuge, { animalNames: names, showAnimal: true })).toBe(
+      'Prochain rappel\u00a0: Vermifuge pour Luna le 8\u00a0nov.\u00a02026',
+    )
+  })
+
+  it('garde la date d’un seul tenant, espaces insécables compris', () => {
+    const text = nextReminderText(t, carre, { animalNames: names, showAnimal: false })
+
+    expect(text).toMatch(/le 26\u00a0août\u00a02027$/)
+    expect(text?.split(' ').at(-1)).toBe('26\u00a0août\u00a02027')
+  })
+
+  it('n’annonce rien sans rappel au-delà de la fenêtre', () => {
+    expect(nextReminderText(t, null, { animalNames: names, showAnimal: true })).toBeNull()
+  })
+
+  it('omet l’animal quand son prénom est introuvable', () => {
+    expect(
+      nextReminderText(t, { ...carre, animalId: 'nala' }, { animalNames: names, showAnimal: true }),
+    ).toBe('Prochain rappel\u00a0: Carré le 26\u00a0août\u00a02027')
+  })
+
+  it('suit la langue courante, date comprise', () => {
+    applyLocale('en')
+
+    expect(nextReminderText(t, carre, { animalNames: names, showAnimal: false })).toBe(
+      'Next reminder: Carré on Aug\u00a026,\u00a02027',
+    )
+    expect(nextReminderText(t, vermifuge, { animalNames: names, showAnimal: true })).toBe(
+      'Next reminder: Dewormer for Luna on Nov\u00a08,\u00a02026',
+    )
   })
 })

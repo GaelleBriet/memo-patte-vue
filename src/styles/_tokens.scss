@@ -99,9 +99,11 @@ $height-picker-row: 60px; // Ligne d'animal de la feuille « Pour quel animal ? 
 $size-picker-avatar: 40px; // Avatar rond d'une ligne de cette feuille
 
 // Notifications (écran d'explication, bandeau « rappels désactivés », toast)
-$color-toast-surface: #2b221a; // Fond du toast de confirmation
-$radius-toast: 12px; // Toast de confirmation
+$radius-toast: 16px; // Toast de confirmation, sur le pétrole `primary` du thème
+$shadow-toast: 0 8px 22px rgba(var(--v-theme-primary), 0.28); // Ombre du toast, teinte de son fond pétrole
+$shadow-toast-error: 0 8px 22px rgba(var(--v-theme-error), 0.28); // Même ombre, teinte du toast d'échec
 $color-priming-icon-surface: #b9e4e7; // Pastille de l'icône de l'écran d'explication
+$color-toast-icon: $color-priming-icon-surface; // Coche du toast
 $color-reminders-off-surface: #f2f0ec; // Fond du bandeau « rappels désactivés »
 $color-reminders-off-border: #e1ddd8; // Bordure de ce bandeau
 $color-reminders-off-text: #47413c; // Première ligne de ce bandeau

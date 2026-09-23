@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { onBeforeUnmount, onMounted, ref, shallowRef } from 'vue'
+
+import { useFixedBottomBar } from '../composables/use-fixed-bottom-bar'
 
 withDefaults(
   defineProps<{
@@ -24,6 +26,9 @@ const isScrolled = ref(false)
 const topbar = ref<HTMLElement | null>(null)
 const topbarHeight = ref(0)
 let observer: ResizeObserver | null = null
+const actions = shallowRef<HTMLElement | null>(null)
+
+useFixedBottomBar(actions)
 
 onMounted(() => {
   if (!topbar.value) return
@@ -81,7 +86,7 @@ function onScroll(event: Event): void {
       <slot />
     </div>
 
-    <footer v-if="$slots.actions" class="pushed-screen__actions">
+    <footer v-if="$slots.actions" ref="actions" class="pushed-screen__actions">
       <slot name="actions" />
     </footer>
   </div>

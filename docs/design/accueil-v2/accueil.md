@@ -55,15 +55,24 @@ prochain rappel à venir ou en retard.
 
 ### 3. Section « À faire »
 
+**Fenêtre de 30 jours** : la liste ne montre que les rappels en retard, quel
+que soit le retard, et ceux dont l'échéance tombe dans les 30 prochains jours,
+bornes incluses (échéance à aujourd'hui + 30 jours affichée, + 31 non). Une
+seule fenêtre pour les vaccins et les traitements. Un rappel plus lointain
+n'apparaît que dans le Carnet, ou dans la ligne « Prochain rappel » de l'état
+« Tout est à jour » (voir 4). Décision de Gaelle du 2026-09-23 (#344) ; la
+fenêtre est la constante `TODO_WINDOW_DAYS` de `features/home/logic/todo-window.ts`.
+
 Titre « À faire » (Space Grotesk, 21 px, 700) avec, à droite, un compteur de
-portée :
+portée, qui compte les rappels affichés :
 
 - aucun animal sélectionné : `3 rappels` (ou `1 rappel`)
 - animal sélectionné : `Milo · 2 rappels`
 - animal sélectionné sans rappel : `Milo` seul
 
 **Bandeau retard** (uniquement s'il y a au moins un retard) : fond rose pâle,
-icône `error`, texte `1 rappel en retard` / `2 rappels en retard`.
+icône `error`, texte `1 rappel en retard` / `2 rappels en retard`. Tous les
+retards sont dans la fenêtre : le bandeau compte les lignes en retard de la liste.
 
 **Carte de rappels** : une seule surface arrondie (rayon 22 px) contenant toutes
 les lignes, hauteur de ligne 76 px minimum, filet de séparation entre les lignes.
@@ -87,13 +96,25 @@ Tri : par urgence croissante (le plus en retard en premier).
 | Demain | icône `schedule` + `Demain` | vert |
 | Plus tard | icône `schedule` + `Dans 3 jours` | vert |
 
-### 4. État « aucun rappel » (remplace la carte vide de la v1)
+### 4. État « Tout est à jour » : aucun rappel dans la fenêtre (remplace la carte vide de la v1)
 
 - Ligne simple : pastille verte 46 px avec icône `check`, puis
-  **« Tout est à jour »** (18 px, 700) et une sous-ligne :
+  **« Tout est à jour »** (18 px, 700) et une seule sous-ligne.
+- Si un rappel existe au-delà de la fenêtre de 30 jours, la sous-ligne annonce
+  le plus proche, avec la date longue de l'app (`formatLongDate`) :
+    - animal sélectionné, ou foyer d'un seul animal :
+      `Prochain rappel : Carré le 26 août 2027`
+    - vue de plusieurs animaux : `Prochain rappel : Vermifuge pour Luna le 8 nov. 2026`
+    - le rappel est nommé comme dans la liste (nom saisi du vaccin, type du
+      traitement)
+    - la date ne se coupe jamais sur deux lignes : ses espaces deviennent
+      insécables, dans cette ligne seulement
+- Sinon, aucun rappel n'existe du tout, et la sous-ligne le dit :
     - animal sélectionné : `Aucun rappel à venir pour Milo.`
     - vue globale : `Milo et Luna n'ont aucun rappel à venir.`
       (les prénoms sont listés dynamiquement)
+- Décision de Gaelle du 2026-09-23 (#344) : « Prochain rappel » remplace
+  « Aucun rappel à venir », les deux phrases se contrediraient.
 - En dessous, lien texte pétrole : icône `add` + **« Ajouter un vaccin ou un
   traitement »**. Ce n'est plus un bouton contour dans une carte.
 
@@ -130,8 +151,8 @@ spécification de comportement.
 |---|---|---|
 | **A1** | Tous les animaux, avec rappels | aucune chip sélectionnée, rappels de tous les animaux fusionnés et triés, nom de l'animal visible sur chaque ligne |
 | **A2** | Animal sélectionné, avec rappels | chip active, liste filtrée, nom de l'animal masqué sur les lignes, compteur `Milo · 2 rappels` |
-| **A3** | Animal sélectionné, aucun rappel | état « Tout est à jour » + sous-texte nominatif |
-| **A4** | Tous les animaux, aucun rappel | état « Tout est à jour » + sous-texte listant les animaux |
+| **A3** | Animal sélectionné, aucun rappel dans la fenêtre | état « Tout est à jour » + `Prochain rappel : {rappel} le {date}` s'il en existe un plus loin, sinon sous-texte nominatif |
+| **A4** | Tous les animaux, aucun rappel dans la fenêtre | état « Tout est à jour » + `Prochain rappel : {rappel} pour {animal} le {date}` s'il en existe un plus loin, sinon sous-texte listant les animaux |
 | **A5** | Premier lancement, aucun animal | écran plein, sans header ni chips |
 
 Avec un seul animal, l'accueil n'est jamais en A1 ni A4 : sa chip est toujours sélectionnée.

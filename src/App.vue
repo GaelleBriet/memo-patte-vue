@@ -16,6 +16,6 @@ const showsBottomNav = computed(() => route.meta.rootScreen === true)
       <router-view />
     </v-main>
     <BottomNavigation v-if="showsBottomNav" />
-    <AppToast :above-bottom-nav="showsBottomNav" />
+    <AppToast />
   </v-app>
 </template>
