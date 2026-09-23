@@ -4,8 +4,18 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { nextTick } from 'vue'
 
 import WeightSparkline from '../components/WeightSparkline.vue'
-import { buildCarnetWeightChart, type WeightChartEntry } from '../domain/weight-chart'
+import {
+  buildCarnetWeightChart,
+  type CarnetChartLabels,
+  type WeightChartEntry,
+} from '../domain/weight-chart'
 import i18n from '@/core/i18n'
+
+const LIBELLES: CarnetChartLabels = {
+  max: (weight) => `max ${weight}`,
+  min: (weight) => `min ${weight}`,
+  latest: (weight) => `${weight} kg`,
+}
 
 function pesees(...items: [string, number][]): WeightChartEntry[] {
   return items.map(([measuredOn, weightKg]) => ({ measuredOn, weightKg }))
@@ -64,7 +74,7 @@ describe('WeightSparkline — tracé', () => {
   })
 
   it('pose le voile, la courbe et un point par pesée, placé selon sa date', () => {
-    const chart = buildCarnetWeightChart(LUNA)!
+    const chart = buildCarnetWeightChart(LUNA, LIBELLES)!
     const svg = monter().get('svg')
 
     expect(svg.get('.weight-chart-trace__area').attributes('d')).toBe(chart.area)
@@ -90,6 +100,19 @@ describe('WeightSparkline — tracé', () => {
     expect(dernier.attributes('text-anchor')).toBe('end')
     expect(dernier.attributes('x')).toBe('312')
     expect(months[0]!.attributes('text-anchor')).toBe('start')
+  })
+
+  it('garde le trait d’un mois dont le libellé s’efface devant le dernier', () => {
+    const wrapper = monter(pesees(['2026-04-01', 23.6], ['2026-06-01', 24], ['2026-09-01', 24.5]))
+
+    expect(wrapper.findAll('.weight-chart-trace__month').map((m) => m.text())).toEqual([
+      'Avr.',
+      'Mai',
+      'Juin',
+      'Juil.',
+      'Sept.',
+    ])
+    expect(wrapper.findAll('.weight-chart-trace__tick')).toHaveLength(5)
   })
 
   it('trace une ligne de base, sans grille ni graduation', () => {
@@ -120,7 +143,7 @@ describe('WeightSparkline — trois chiffres seulement', () => {
   })
 
   it('pose la pastille au-dessus de la dernière pesée, calée sur la fin du tracé', () => {
-    const chart = buildCarnetWeightChart(LUNA)!
+    const chart = buildCarnetWeightChart(LUNA, LIBELLES)!
     const pastille = monter().get('.weight-sparkline__latest')
 
     expect(pastille.attributes('style')).toBe(

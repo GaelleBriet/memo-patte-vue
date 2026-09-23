@@ -8,6 +8,7 @@ defineProps<{
     line: string
     area: string
     months: ChartMonth[]
+    monthTicks: number[]
   }
 }>()
 
@@ -17,19 +18,25 @@ const POINT_RADIUS = 4
 
 <template>
   <path class="weight-chart-trace__area" :d="chart.area" />
-  <template v-for="month in chart.months" :key="month.x">
-    <line
-      v-if="month.tickX !== null"
-      class="weight-chart-trace__tick"
-      :x1="month.tickX"
-      :x2="month.tickX"
-      :y1="chart.plot.bottom"
-      :y2="chart.plot.bottom + MONTH_TICK_LENGTH"
-    />
-    <text class="weight-chart-trace__month" :x="month.x" :y="month.y" :text-anchor="month.anchor">
-      {{ month.text }}
-    </text>
-  </template>
+  <line
+    v-for="tickX in chart.monthTicks"
+    :key="`tick-${tickX}`"
+    class="weight-chart-trace__tick"
+    :x1="tickX"
+    :x2="tickX"
+    :y1="chart.plot.bottom"
+    :y2="chart.plot.bottom + MONTH_TICK_LENGTH"
+  />
+  <text
+    v-for="month in chart.months"
+    :key="`month-${month.x}`"
+    class="weight-chart-trace__month"
+    :x="month.x"
+    :y="month.y"
+    :text-anchor="month.anchor"
+  >
+    {{ month.text }}
+  </text>
   <polyline class="weight-chart-trace__line" :points="chart.line" />
   <circle
     v-for="(point, index) in chart.points"

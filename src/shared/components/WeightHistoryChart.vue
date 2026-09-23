@@ -3,7 +3,7 @@ import { computed, useTemplateRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import WeightChartTrace from './WeightChartTrace.vue'
-import { useElementWidth } from '../composables/use-element-width'
+import { useChartMeasure } from '../composables/use-chart-measure'
 import {
   buildHistoryWeightChart,
   DEFAULT_CHART_WIDTH,
@@ -30,9 +30,11 @@ const KEY_STEPS: Record<string, number> = {
 }
 
 const figure = useTemplateRef<HTMLElement>('figure')
-const width = useElementWidth(figure, DEFAULT_CHART_WIDTH)
+const { width, textScale } = useChartMeasure(figure, DEFAULT_CHART_WIDTH)
 
-const chart = computed(() => buildHistoryWeightChart(props.entries, width.value))
+const chart = computed(() =>
+  buildHistoryWeightChart(props.entries, { width: width.value, textScale: textScale.value }),
+)
 
 const lastIndex = computed(() => props.entries.length - 1)
 const activeIndex = computed(() => Math.min(selected.value ?? lastIndex.value, lastIndex.value))

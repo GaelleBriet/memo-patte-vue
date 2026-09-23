@@ -3,10 +3,11 @@ import { computed, useTemplateRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import WeightChartTrace from './WeightChartTrace.vue'
-import { useElementWidth } from '../composables/use-element-width'
+import { useChartMeasure } from '../composables/use-chart-measure'
 import {
   buildCarnetWeightChart,
   DEFAULT_CHART_WIDTH,
+  type CarnetChartLabels,
   type WeightChartEntry,
 } from '../domain/weight-chart'
 
@@ -16,10 +17,21 @@ const props = defineProps<{
 
 const { t } = useI18n()
 
-const figure = useTemplateRef<HTMLElement>('figure')
-const width = useElementWidth(figure, DEFAULT_CHART_WIDTH)
+const labels: CarnetChartLabels = {
+  max: (weight) => t('weight.chart.max', { weight }),
+  min: (weight) => t('weight.chart.min', { weight }),
+  latest: (weight) => t('weight.chart.latest', { weight }),
+}
 
-const chart = computed(() => buildCarnetWeightChart(props.entries, width.value))
+const figure = useTemplateRef<HTMLElement>('figure')
+const { width, textScale } = useChartMeasure(figure, DEFAULT_CHART_WIDTH)
+
+const chart = computed(() =>
+  buildCarnetWeightChart(props.entries, labels, {
+    width: width.value,
+    textScale: textScale.value,
+  }),
+)
 </script>
 
 <template>
@@ -45,7 +57,7 @@ const chart = computed(() => buildCarnetWeightChart(props.entries, width.value))
         :y="chart.max.y"
         :text-anchor="chart.max.anchor"
       >
-        {{ t('weight.chart.max', { weight: chart.max.text }) }}
+        {{ chart.max.text }}
       </text>
       <text
         v-if="chart.min"
@@ -54,7 +66,7 @@ const chart = computed(() => buildCarnetWeightChart(props.entries, width.value))
         :y="chart.min.y"
         :text-anchor="chart.min.anchor"
       >
-        {{ t('weight.chart.min', { weight: chart.min.text }) }}
+        {{ chart.min.text }}
       </text>
     </svg>
     <span
@@ -62,7 +74,7 @@ const chart = computed(() => buildCarnetWeightChart(props.entries, width.value))
       aria-hidden="true"
       :style="{ right: `${chart.latest.right}px`, bottom: `${chart.latest.bottom}px` }"
     >
-      {{ t('weight.chart.latest', { weight: chart.latest.text }) }}
+      {{ chart.latest.text }}
     </span>
   </figure>
 </template>

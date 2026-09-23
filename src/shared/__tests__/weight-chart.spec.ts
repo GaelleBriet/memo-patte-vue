@@ -1,13 +1,36 @@
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import {
   buildCarnetWeightChart,
   buildHistoryWeightChart,
   buildWeightChart,
   nearestPointIndex,
   weightAxisTicks,
+  type CarnetChartLabels,
   type ChartBox,
   type WeightChartEntry,
 } from '../domain/weight-chart'
+import i18n, { applyLocale } from '@/core/i18n'
+
+const LIBELLES: CarnetChartLabels = {
+  max: (weight) => `max ${weight}`,
+  min: (weight) => `min ${weight}`,
+  latest: (weight) => `${weight} kg`,
+}
+
+function carnet(
+  entries: readonly WeightChartEntry[],
+  width = 320,
+  textScale = 1,
+  labels = LIBELLES,
+) {
+  return buildCarnetWeightChart(entries, labels, { width, textScale })
+}
+
+function historique(entries: readonly WeightChartEntry[], width = 320, textScale = 1) {
+  return buildHistoryWeightChart(entries, { width, textScale })
+}
+
+afterEach(() => applyLocale('fr'))
 
 let previousTz: string | undefined
 
@@ -147,12 +170,12 @@ const LUNA_1_AN = pesees(
 
 describe('buildCarnetWeightChart — axe du temps', () => {
   it('ne trace rien sous deux pesées', () => {
-    expect(buildCarnetWeightChart([])).toBeNull()
-    expect(buildCarnetWeightChart(pesees(['2026-03-04', 23.6]))).toBeNull()
+    expect(carnet([])).toBeNull()
+    expect(carnet(pesees(['2026-03-04', 23.6]))).toBeNull()
   })
 
   it('place chaque pesée selon sa date, de bord à bord du tracé', () => {
-    const chart = buildCarnetWeightChart(
+    const chart = carnet(
       pesees(['2026-03-01', 23.6], ['2026-03-11', 23.8], ['2026-03-31', 24.0]),
       320,
     )!
@@ -162,20 +185,20 @@ describe('buildCarnetWeightChart — axe du temps', () => {
   })
 
   it('centre les pesées quand elles tombent toutes le même jour', () => {
-    const chart = buildCarnetWeightChart(pesees(['2026-03-04', 23.6], ['2026-03-04', 23.8]), 320)!
+    const chart = carnet(pesees(['2026-03-04', 23.6], ['2026-03-04', 23.8]), 320)!
 
     expect(chart.points.map((point) => point.x)).toEqual([160, 160])
   })
 
   it('suit la largeur reçue', () => {
-    const chart = buildCarnetWeightChart(pesees(['2026-03-01', 23.6], ['2026-03-31', 24]), 280)!
+    const chart = carnet(pesees(['2026-03-01', 23.6], ['2026-03-31', 24]), 280)!
 
     expect(chart.width).toBe(280)
     expect(chart.points.map((point) => point.x)).toEqual([8, 272])
   })
 
   it('assemble la courbe et le voile qui descend jusqu’au bas du tracé', () => {
-    const chart = buildCarnetWeightChart(pesees(['2026-03-01', 23.6], ['2026-03-31', 24.5]), 320)!
+    const chart = carnet(pesees(['2026-03-01', 23.6], ['2026-03-31', 24.5]), 320)!
 
     expect(chart.line).toBe('8,106 312,52')
     expect(chart.area).toBe('M8,124 L8,106 L312,52 L312,124 Z')
@@ -184,14 +207,14 @@ describe('buildCarnetWeightChart — axe du temps', () => {
 
 describe('buildCarnetWeightChart — échelle', () => {
   it('borne l’échelle au min / max avec 0,3 kg de marge, jamais depuis zéro', () => {
-    const chart = buildCarnetWeightChart(pesees(['2026-03-01', 23.6], ['2026-03-31', 24.5]), 320)!
+    const chart = carnet(pesees(['2026-03-01', 23.6], ['2026-03-31', 24.5]), 320)!
 
     // Échelle 23,3 → 24,8 sur 90 px : 23,6 à un cinquième de la hauteur, 24,5 à quatre.
     expect(chart.points.map((point) => point.y)).toEqual([106, 52])
   })
 
   it('centre une ligne plate', () => {
-    const chart = buildCarnetWeightChart(pesees(['2026-03-01', 4.2], ['2026-03-31', 4.2]), 320)!
+    const chart = carnet(pesees(['2026-03-01', 4.2], ['2026-03-31', 4.2]), 320)!
 
     expect(chart.points.map((point) => point.y)).toEqual([79, 79])
   })
@@ -199,7 +222,7 @@ describe('buildCarnetWeightChart — échelle', () => {
 
 describe('mois sous la courbe', () => {
   it('écrit un mois à chaque début de mois, et le mois de départ au début de l’axe', () => {
-    const chart = buildCarnetWeightChart(MILO_6_MOIS, 320)!
+    const chart = carnet(MILO_6_MOIS, 320)!
 
     expect(chart.months.map((month) => month.text)).toEqual([
       'Mars',
@@ -216,7 +239,7 @@ describe('mois sous la courbe', () => {
   })
 
   it('n’écrit plus un mois par pesée : deux pesées du même mois, un seul libellé', () => {
-    const chart = buildCarnetWeightChart(pesees(['2026-03-04', 23.6], ['2026-03-20', 23.8]), 320)!
+    const chart = carnet(pesees(['2026-03-04', 23.6], ['2026-03-20', 23.8]), 320)!
 
     expect(chart.months).toMatchObject([
       { x: 8, y: 156, text: 'Mars', tickX: null, anchor: 'start' },
@@ -224,13 +247,13 @@ describe('mois sous la courbe', () => {
   })
 
   it('tait le mois de départ quand le premier changement de mois arrive trop tôt', () => {
-    const chart = buildCarnetWeightChart(pesees(['2026-03-28', 23.6], ['2026-06-10', 24]), 320)!
+    const chart = carnet(pesees(['2026-03-28', 23.6], ['2026-06-10', 24]), 320)!
 
     expect(chart.months.map((month) => month.text)).toEqual(['Avr.', 'Mai', 'Juin'])
   })
 
   it('garde un mois sur deux au-delà de six mois', () => {
-    const chart = buildCarnetWeightChart(LUNA_1_AN, 320)!
+    const chart = carnet(LUNA_1_AN, 320)!
 
     expect(chart.months.map((month) => month.text)).toEqual([
       'Oct.',
@@ -243,8 +266,8 @@ describe('mois sous la courbe', () => {
   })
 
   it('écrit encore chaque mois à six changements de mois, un sur deux à sept', () => {
-    const six = buildCarnetWeightChart(pesees(['2026-01-15', 4], ['2026-07-15', 4.2]), 320)!
-    const sept = buildCarnetWeightChart(pesees(['2026-01-15', 4], ['2026-08-15', 4.2]), 320)!
+    const six = carnet(pesees(['2026-01-15', 4], ['2026-07-15', 4.2]), 320)!
+    const sept = carnet(pesees(['2026-01-15', 4], ['2026-08-15', 4.2]), 320)!
 
     expect(six.months.map((month) => month.text)).toEqual([
       'Févr.',
@@ -258,9 +281,9 @@ describe('mois sous la courbe', () => {
   })
 
   it('espace les mois d’un pas de 1, 2, 3, 6 ou 12 mois : jamais plus de six libellés', () => {
-    const treize = buildCarnetWeightChart(pesees(['2025-08-15', 4], ['2026-09-15', 4.2]), 320)!
-    const vingt = buildCarnetWeightChart(pesees(['2025-01-10', 0.9], ['2026-09-01', 4.3]), 320)!
-    const vingtQuatre = buildCarnetWeightChart(pesees(['2024-09-15', 4], ['2026-09-15', 4.2]), 320)!
+    const treize = carnet(pesees(['2025-08-15', 4], ['2026-09-15', 4.2]), 320)!
+    const vingt = carnet(pesees(['2025-01-10', 0.9], ['2026-09-01', 4.3]), 320)!
+    const vingtQuatre = carnet(pesees(['2024-09-15', 4], ['2026-09-15', 4.2]), 320)!
 
     expect(treize.months.map((month) => month.text)).toEqual([
       'Sept.',
@@ -281,21 +304,41 @@ describe('mois sous la courbe', () => {
     ]
     for (const entries of historiques) {
       for (const width of [300, 320, 360]) {
-        for (const chart of [
-          buildCarnetWeightChart(entries, width)!,
-          buildHistoryWeightChart(entries, width)!,
-        ]) {
-          expect(chart.months.length).toBeLessThanOrEqual(6)
-          chart.months.slice(1).forEach((month, index) => {
-            expect(month.box.left).toBeGreaterThan(chart.months[index]!.box.right)
-          })
+        for (const textScale of [1, 1.3]) {
+          for (const chart of [
+            carnet(entries, width, textScale)!,
+            historique(entries, width, textScale)!,
+          ]) {
+            // Comme dans le ticket, le mois de départ partiel ne compte pas dans les six.
+            const changements = chart.months.filter((month) => month.tickX !== null)
+            expect(changements.length).toBeLessThanOrEqual(6)
+            expect(chart.months.length).toBeLessThanOrEqual(7)
+            chart.months.slice(1).forEach((month, index) => {
+              expect(month.box.left).toBeGreaterThan(chart.months[index]!.box.right)
+            })
+          }
         }
       }
     }
   })
 
+  it('compte le mois de départ en plus des six changements de mois', () => {
+    const chart = carnet(pesees(['2026-01-05', 4], ['2026-07-05', 4.2]))!
+
+    expect(chart.months.map((month) => month.text)).toEqual([
+      'Janv.',
+      'Févr.',
+      'Mars',
+      'Avr.',
+      'Mai',
+      'Juin',
+      'Juil.',
+    ])
+    expect(chart.months.filter((month) => month.tickX !== null)).toHaveLength(6)
+  })
+
   it('aligne la fin du dernier mois sur la fin de l’axe plutôt que de déborder', () => {
-    const chart = buildCarnetWeightChart(
+    const chart = carnet(
       pesees(['2026-04-12', 23.6], ['2026-05-20', 23.8], ['2026-07-02', 24], ['2026-09-01', 24.5]),
       320,
     )!
@@ -318,14 +361,16 @@ describe('mois sous la courbe', () => {
       for (const first of ['2026-03-01', '2026-04-12', '2025-09-01', '2025-01-01']) {
         for (const width of [300, 320, 360]) {
           const entries = pesees([first, 23.6], [last, 24.5])
-          for (const chart of [
-            buildCarnetWeightChart(entries, width)!,
-            buildHistoryWeightChart(entries, width)!,
-          ]) {
-            expect(chart.months.at(-1)!.box.right).toBeLessThanOrEqual(chart.plot.right)
-            chart.months.slice(1).forEach((month, index) => {
-              expect(month.box.left).toBeGreaterThan(chart.months[index]!.box.right)
-            })
+          for (const textScale of [1, 1.3]) {
+            for (const chart of [
+              carnet(entries, width, textScale)!,
+              historique(entries, width, textScale)!,
+            ]) {
+              expect(chart.months.at(-1)!.box.right).toBeLessThanOrEqual(chart.plot.right)
+              chart.months.slice(1).forEach((month, index) => {
+                expect(month.box.left).toBeGreaterThan(chart.months[index]!.box.right)
+              })
+            }
           }
         }
       }
@@ -333,7 +378,7 @@ describe('mois sous la courbe', () => {
   })
 
   it('efface le mois précédent plutôt que le dernier quand la fin de l’axe les rapproche trop', () => {
-    const chart = buildCarnetWeightChart(
+    const chart = carnet(
       pesees(['2026-04-01', 23.6], ['2026-06-01', 24], ['2026-09-01', 24.5]),
       292,
     )!
@@ -341,11 +386,105 @@ describe('mois sous la courbe', () => {
     expect(chart.months.at(-1)).toMatchObject({ text: 'Sept.', anchor: 'end' })
     expect(chart.months.map((month) => month.text)).not.toContain('Août')
   })
+
+  it('garde le trait de repère du mois dont le libellé s’efface', () => {
+    const chart = carnet(
+      pesees(['2026-04-01', 23.6], ['2026-06-01', 24], ['2026-09-01', 24.5]),
+      292,
+    )!
+    // 1er août : 122 jours sur 153, sur un tracé de 276 px.
+    const aout = Math.round((8 + (122 / 153) * 276) * 10) / 10
+
+    expect(chart.monthTicks).toHaveLength(5)
+    expect(chart.monthTicks).toContain(aout)
+    expect(chart.monthTicks.at(-1)).toBe(284)
+  })
+
+  it('trace un trait pour chaque mois écrit, aucun pour le mois de départ', () => {
+    const chart = carnet(MILO_6_MOIS)!
+
+    expect(chart.monthTicks).toEqual(
+      chart.months.filter((month) => month.tickX !== null).map((month) => month.tickX),
+    )
+  })
+
+  it('mesure les mois dans la langue affichée : en anglais, « Sep » plus court laisse « Aug » en place', () => {
+    const entries = pesees(['2026-04-01', 23.6], ['2026-06-01', 24], ['2026-09-01', 24.5])
+    applyLocale('en')
+
+    const chart = carnet(entries, 292)!
+
+    expect(chart.months.map((month) => month.text)).toEqual([
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+    ])
+    chart.months.slice(1).forEach((month, index) => {
+      expect(month.box.left).toBeGreaterThan(chart.months[index]!.box.right)
+    })
+  })
+})
+
+describe('buildCarnetWeightChart — libellés reçus du composant', () => {
+  it('écrit et mesure exactement les libellés traduits qu’il reçoit', () => {
+    applyLocale('en')
+    const { t } = i18n.global
+    const anglais: CarnetChartLabels = {
+      max: (weight) => t('weight.chart.max', { weight }),
+      min: (weight) => t('weight.chart.min', { weight }),
+      latest: (weight) => t('weight.chart.latest', { weight }),
+    }
+
+    const chart = carnet(LUNA_1_AN, 320, 1, anglais)!
+
+    expect(chart.max!.text).toBe('max 4.6')
+    expect(chart.min!.text).toBe('min 4.1')
+    expect(chart.latest.text).toBe('4.3 kg')
+  })
+
+  it('élargit la boîte d’une étiquette avec son libellé', () => {
+    const court = carnet(LUNA_1_AN)!.max!.box
+    const long = carnet(LUNA_1_AN, 320, 1, { ...LIBELLES, max: (weight) => `plus haut ${weight}` })!
+      .max!.box
+
+    expect(long.right - long.left).toBeGreaterThan(court.right - court.left + 20)
+  })
+})
+
+describe('buildCarnetWeightChart — police agrandie', () => {
+  it('agrandit les boîtes des textes selon la taille de police réellement rendue', () => {
+    const normal = carnet(LUNA_1_AN)!
+    const agrandi = carnet(LUNA_1_AN, 320, 1.3)!
+    const largeur = (box: ChartBox) => box.right - box.left
+    const hauteur = (box: ChartBox) => box.bottom - box.top
+
+    expect(largeur(agrandi.min!.box)).toBeCloseTo(largeur(normal.min!.box) * 1.3, 5)
+    expect(hauteur(agrandi.months[0]!.box)).toBeCloseTo(hauteur(normal.months[0]!.box) * 1.3, 5)
+  })
+
+  it('à 130 %, pose « min » à côté de son point quand la place sous la courbe ne suffit plus', () => {
+    const chiot = pesees(
+      ['2025-11-02', 5],
+      ['2026-01-10', 12],
+      ['2026-04-20', 22],
+      ['2026-09-01', 30],
+    )
+    const chart = carnet(chiot, 320, 1.3)!
+    const point = chart.points[0]!
+
+    expect(chart.min!.anchor).toBe('start')
+    expect(chart.min!.x).toBeGreaterThan(point.x)
+    expect(Math.abs(chart.min!.y - point.y)).toBeLessThan(10)
+    for (const month of chart.months) expect(chevauche(chart.min!.box, month.box)).toBe(false)
+  })
 })
 
 describe('buildCarnetWeightChart — les trois chiffres écrits', () => {
   it('écrit le plus haut au-dessus de son point, le plus bas dessous, la dernière pesée en pastille', () => {
-    const chart = buildCarnetWeightChart(LUNA_1_AN, 320)!
+    const chart = carnet(LUNA_1_AN, 320)!
     const plusHaut = chart.points[3]!
     const plusBas = chart.points[10]!
     const derniere = chart.points[13]!
@@ -353,25 +492,25 @@ describe('buildCarnetWeightChart — les trois chiffres écrits', () => {
     expect(chart.max).toMatchObject({
       x: plusHaut.x,
       y: expect.closeTo(plusHaut.y - 11, 5),
-      text: '4,6',
+      text: 'max 4,6',
       anchor: 'middle',
     })
     expect(chart.min).toMatchObject({
       x: plusBas.x,
       y: expect.closeTo(plusBas.y + 19, 5),
-      text: '4,1',
+      text: 'min 4,1',
       anchor: 'middle',
     })
     // Pastille ancrée par son coin bas droit : au bout du tracé, 10 px au-dessus du point.
     expect(chart.latest).toMatchObject({
       right: 8,
       bottom: expect.closeTo(160 - (derniere.y - 10), 5),
-      text: '4,3',
+      text: '4,3\u00a0kg',
     })
   })
 
   it('passe « max » sous son point quand il chevaucherait la pastille, sans bouger la pastille', () => {
-    const chart = buildCarnetWeightChart(
+    const chart = carnet(
       pesees(
         ['2026-05-23', 23.6],
         ['2026-06-23', 24.0],
@@ -385,7 +524,7 @@ describe('buildCarnetWeightChart — les trois chiffres écrits', () => {
     const derniere = chart.points[4]!
 
     expect(chart.max!.y).toBeGreaterThan(plusHaut.y)
-    expect(chart.max!.text).toBe('24,6')
+    expect(chart.max!.text).toBe('max 24,6')
     expect(chart.latest).toMatchObject({
       right: 8,
       bottom: expect.closeTo(160 - (derniere.y - 10), 5),
@@ -411,12 +550,14 @@ describe('buildCarnetWeightChart — les trois chiffres écrits', () => {
     let maxSousSonPoint = 0
     for (const entries of cas) {
       for (const width of [300, 320, 360]) {
-        const chart = buildCarnetWeightChart(entries, width)!
-        const plusHaut = chart.points.find((point) => point.weightKg === 24.6)
-        if (chart.max && plusHaut && chart.max.y > plusHaut.y) maxSousSonPoint += 1
-        for (const label of [chart.max, chart.min]) {
-          if (label && chevauche(label.box, chart.latest.box)) {
-            chevauchements.push(`${label.text} à ${width} px`)
+        for (const textScale of [1, 1.3]) {
+          const chart = carnet(entries, width, textScale)!
+          const plusHaut = chart.points.find((point) => point.weightKg === 24.6)
+          if (chart.max && plusHaut && chart.max.y > plusHaut.y) maxSousSonPoint += 1
+          for (const label of [chart.max, chart.min]) {
+            if (label && chevauche(label.box, chart.latest.box)) {
+              chevauchements.push(`${label.text} à ${width} px, police × ${textScale}`)
+            }
           }
         }
       }
@@ -435,57 +576,69 @@ describe('buildCarnetWeightChart — les trois chiffres écrits', () => {
     ]
     for (const entries of cas) {
       for (const width of [300, 320, 360]) {
-        const chart = buildCarnetWeightChart(entries, width)!
+        for (const textScale of [1, 1.3]) {
+          const chart = carnet(entries, width, textScale)!
 
-        expect(chart.min).not.toBeNull()
-        for (const month of chart.months) expect(chevauche(chart.min!.box, month.box)).toBe(false)
+          expect(chart.min).not.toBeNull()
+          for (const month of chart.months) {
+            expect(chevauche(chart.min!.box, month.box)).toBe(false)
+          }
+        }
       }
     }
   })
 
+  it('à taille de police normale, garde « min » sous son point', () => {
+    const chart = carnet(
+      pesees(['2025-11-02', 5], ['2026-01-10', 12], ['2026-04-20', 22], ['2026-09-01', 30]),
+    )!
+
+    expect(chart.min!.y).toBeCloseTo(chart.points[0]!.y + 19, 5)
+  })
+
   it('ne double pas le plus haut quand c’est la dernière pesée', () => {
-    const chart = buildCarnetWeightChart(MILO_6_MOIS, 320)!
+    const chart = carnet(MILO_6_MOIS, 320)!
 
     expect(chart.max).toBeNull()
-    expect(chart.min).toMatchObject({ text: '23,6', anchor: 'start' })
-    expect(chart.latest.text).toBe('24,5')
+    expect(chart.min).toMatchObject({ text: 'min 23,6', anchor: 'start' })
+    expect(chart.latest.text).toBe('24,5\u00a0kg')
   })
 
   it('ne double pas le plus bas quand c’est la dernière pesée', () => {
-    const chart = buildCarnetWeightChart(
+    const chart = carnet(
       pesees(['2026-03-01', 24.5], ['2026-04-01', 24], ['2026-05-01', 23.6]),
       320,
     )!
 
     expect(chart.min).toBeNull()
-    expect(chart.max).toMatchObject({ text: '24,5', anchor: 'start' })
+    expect(chart.max).toMatchObject({ text: 'max 24,5', anchor: 'start' })
   })
 
   it('tait un extrême que la dernière pesée égale, même atteint plus tôt', () => {
-    const chart = buildCarnetWeightChart(
+    const chart = carnet(
       pesees(['2026-03-01', 24.5], ['2026-04-01', 24], ['2026-05-01', 24.5]),
       320,
     )!
 
     expect(chart.max).toBeNull()
-    expect(chart.min).toMatchObject({ text: '24,0', anchor: 'middle' })
+    expect(chart.min).toMatchObject({ text: 'min 24,0', anchor: 'middle' })
   })
 
   it('n’écrit que la pastille sur une ligne plate', () => {
-    const chart = buildCarnetWeightChart(pesees(['2026-03-01', 4.2], ['2026-03-31', 4.2]), 320)!
+    const chart = carnet(pesees(['2026-03-01', 4.2], ['2026-03-31', 4.2]), 320)!
 
     expect(chart.max).toBeNull()
     expect(chart.min).toBeNull()
-    expect(chart.latest.text).toBe('4,2')
+    expect(chart.latest.text).toBe('4,2\u00a0kg')
   })
 
   it('aligne une étiquette sur sa fin quand son point touche le bord droit', () => {
-    const chart = buildCarnetWeightChart(
+    const chart = carnet(
       pesees(['2026-03-04', 23.6], ['2026-09-14', 24.6], ['2026-09-15', 24.5]),
       320,
     )!
 
-    expect(chart.max).toMatchObject({ text: '24,6', anchor: 'end' })
+    expect(chart.max).toMatchObject({ text: 'max 24,6', anchor: 'end' })
   })
 })
 
@@ -519,11 +672,11 @@ describe('weightAxisTicks', () => {
 
 describe('buildHistoryWeightChart', () => {
   it('ne trace rien sous deux pesées', () => {
-    expect(buildHistoryWeightChart(pesees(['2026-03-04', 23.6]))).toBeNull()
+    expect(historique(pesees(['2026-03-04', 23.6]))).toBeNull()
   })
 
   it('pose une ligne de repère par graduation, son chiffre à gauche du tracé', () => {
-    const chart = buildHistoryWeightChart(MILO_6_MOIS, 320)!
+    const chart = historique(MILO_6_MOIS, 320)!
 
     expect(chart.plot).toEqual({ left: 36, right: 310, top: 12, bottom: 168 })
     expect(chart.gridLines).toEqual([
@@ -535,7 +688,7 @@ describe('buildHistoryWeightChart', () => {
   })
 
   it('place les pesées dans l’échelle des graduations, selon leur date', () => {
-    const chart = buildHistoryWeightChart(
+    const chart = historique(
       pesees(['2026-03-01', 23.5], ['2026-03-11', 24], ['2026-03-31', 25]),
       320,
     )!
@@ -550,7 +703,7 @@ describe('buildHistoryWeightChart', () => {
   })
 
   it('écrit les mois comme le Carnet, sous son propre tracé', () => {
-    const chart = buildHistoryWeightChart(LUNA_1_AN, 320)!
+    const chart = historique(LUNA_1_AN, 320)!
 
     expect(chart.months.map((month) => month.text)).toEqual([
       'Oct.',
@@ -564,7 +717,7 @@ describe('buildHistoryWeightChart', () => {
   })
 
   it('garde la date et le poids de chaque pesée, pour la lire au toucher', () => {
-    const chart = buildHistoryWeightChart(MILO_6_MOIS, 320)!
+    const chart = historique(MILO_6_MOIS, 320)!
 
     expect(chart.points[2]).toMatchObject({ measuredOn: '2026-04-22', weightKg: 24 })
   })

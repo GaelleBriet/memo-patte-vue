@@ -116,7 +116,9 @@ Carte unique contenant :
       2026-09-23)
     - la rangée des mois est 10 px plus bas que la ligne de base ne
       l'exigerait : « min » ne la touche jamais, même pour un chiot qui passe
-      de 5 à 30 kg
+      de 5 à 30 kg. Quand la police du système est agrandie et que cette
+      place ne suffit plus, « min » s'écrit à côté de son point
+    - la place des étiquettes suit la taille de police réellement rendue
 - sous la courbe, les mois (12 px / 500, `#736E67`) : un libellé au début de
   chaque mois, avec un petit trait de repère. Au-delà de six changements de
   mois, un libellé tous les 2, 3, 6 ou 12 mois, le plus petit pas qui en garde
@@ -124,7 +126,8 @@ Carte unique contenant :
   écrit au début de l'axe s'il reste la place avant le premier libellé. Le
   dernier mois ne déborde jamais : quand la place manque après son trait, son
   libellé finit au bout de l'axe ; s'il touche alors le libellé précédent,
-  c'est le précédent qui s'efface. Plus aucun libellé par pesée
+  c'est le texte du précédent qui s'efface, son trait de repère reste. Plus
+  aucun libellé par pesée
 - dernière ligne séparée par un filet : icône `add` + **« Ajouter une pesée »**.
 
 ### 7. Bottom navigation

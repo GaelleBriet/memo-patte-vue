@@ -79,6 +79,19 @@ export function buildWeightChart(
 
 export const DEFAULT_CHART_WIDTH = 320
 
+/** Taille des textes de la courbe dans son style ; la chasse ci-dessous est mesurée à cette taille. */
+export const CHART_FONT_PX = 12
+
+/** `textScale` : taille de police réellement rendue sur `CHART_FONT_PX`, au-delà de 1 si le système l'agrandit. */
+export type ChartMeasure = { width?: number; textScale?: number }
+
+/** Libellés traduits par l'appelant : le calcul les mesure tels qu'ils seront écrits. */
+export type CarnetChartLabels = {
+  max: (weight: string) => string
+  min: (weight: string) => string
+  latest: (weight: string) => string
+}
+
 export type ChartText = { x: number; y: number; text: string }
 
 export type ChartAnchor = 'start' | 'middle' | 'end'
@@ -103,6 +116,8 @@ type TimeChart = {
   line: string
   area: string
   months: ChartMonth[]
+  /** Un trait par mois retenu, y compris celui dont le libellé s'efface faute de place. */
+  monthTicks: number[]
 }
 
 export type CarnetWeightChart = TimeChart & {
@@ -118,7 +133,7 @@ export type HistoryWeightChart = TimeChart & {
 
 type Layout = { height: number; left: number; right: number; top: number; bottom: number }
 
-// La rangée des mois du Carnet descend de 10 px : « min » tient toujours au-dessus.
+// 10 px de plus sous la courbe du Carnet : la place où « min » s'écrit sans toucher les mois.
 const CARNET_LAYOUT: Layout = { height: 160, left: 8, right: 8, top: 34, bottom: 36 }
 const HISTORY_LAYOUT: Layout = { height: 190, left: 36, right: 10, top: 12, bottom: 22 }
 
@@ -131,10 +146,9 @@ const MAX_MONTH_LABELS = 6
 const MONTH_LABEL_OFFSET = 3
 const LABEL_GAP = 1
 const BASELINE_FROM_BOTTOM = 4
-const MAX_ABOVE = -11
-// Plus bas que « min » : sous son point, « max » échappe à la pastille quelle que soit leur distance.
-const MAX_BELOW = 23
-const MIN_BELOW = 19
+const GAP_ABOVE_POINT = 8
+const GAP_BELOW_POINT = 10
+const GAP_BESIDE_POINT = 8
 const EDGE_ROOM = 20
 const LATEST_GAP = 10
 const LATEST_OVERHANG = 6
@@ -181,10 +195,15 @@ function textWidth(text: string): number {
   return [...text].reduce((sum, glyph) => sum + (GLYPH_WIDTHS.get(glyph) ?? DEFAULT_GLYPH_WIDTH), 0)
 }
 
-function textBox(x: number, y: number, anchor: ChartAnchor, text: string): ChartBox {
-  const width = textWidth(text)
+function textBox(x: number, y: number, anchor: ChartAnchor, text: string, scale: number): ChartBox {
+  const width = textWidth(text) * scale
   const left = anchor === 'start' ? x : anchor === 'end' ? x - width : x - width / 2
-  return { left, right: left + width, top: y - TEXT_ASCENT, bottom: y + TEXT_DESCENT }
+  return {
+    left,
+    right: left + width,
+    top: y - TEXT_ASCENT * scale,
+    bottom: y + TEXT_DESCENT * scale,
+  }
 }
 
 function overlaps(a: ChartBox, b: ChartBox): boolean {
@@ -208,65 +227,60 @@ function monthStarts(firstIsoDate: string, lastIsoDate: string): string[] {
   }
 }
 
-function monthLabel(
-  x: number,
-  y: number,
-  anchor: ChartAnchor,
-  text: string,
-  tickX: number | null,
-): ChartMonth {
-  return { x, y, text, anchor, tickX, box: textBox(x, y, anchor, text) }
-}
-
 /**
- * Un libellé tous les 1, 2, 3, 6 ou 12 mois, le plus petit pas qui en garde au plus six ; le dernier
- * finit au bout de l'axe s'il déborderait, et le mois de départ ne s'écrit que s'il reste la place.
+ * Un mois tous les 1, 2, 3, 6 ou 12 mois, le plus petit pas qui en garde au plus six (le mois de
+ * départ en plus) ; le dernier libellé finit au bout de l'axe s'il déborderait, et le mois de départ
+ * ne s'écrit que s'il reste la place.
  */
-function monthLabels(
+function monthAxis(
   firstIsoDate: string,
   lastIsoDate: string,
   plot: ChartPlot,
   y: number,
+  scale: number,
   xOf: (isoDate: string) => number,
-): ChartMonth[] {
+): { months: ChartMonth[]; monthTicks: number[] } {
+  const label = (x: number, anchor: ChartAnchor, text: string, tickX: number | null) => ({
+    x,
+    y,
+    text,
+    anchor,
+    tickX,
+    box: textBox(x, y, anchor, text, scale),
+  })
+
   const starts = monthStarts(firstIsoDate, lastIsoDate)
   const step =
     MONTH_STEPS.find((candidate) => Math.ceil(starts.length / candidate) <= MAX_MONTH_LABELS) ??
     MONTH_STEPS[MONTH_STEPS.length - 1]!
-  const months = starts
-    .filter((_, index) => index % step === 0)
-    .map((start) => {
-      const tickX = xOf(start)
-      return monthLabel(
-        round(tickX + MONTH_LABEL_OFFSET),
-        y,
-        'start',
-        formatMonthShort(start),
-        tickX,
-      )
-    })
+  const kept = starts.filter((_, index) => index % step === 0)
+  const monthTicks = kept.map(xOf)
+  const months = kept.map((start, index) => {
+    const tickX = monthTicks[index]!
+    return label(round(tickX + MONTH_LABEL_OFFSET), 'start', formatMonthShort(start), tickX)
+  })
 
   const last = months[months.length - 1]
   if (last && last.box.right > plot.right) {
-    months[months.length - 1] = monthLabel(plot.right, y, 'end', last.text, last.tickX)
+    months[months.length - 1] = label(plot.right, 'end', last.text, last.tickX)
   }
   // Le dernier mois, collé au bout de l'axe, l'emporte sur un voisin qu'il toucherait.
   for (let index = months.length - 2; index >= 0; index -= 1) {
     if (months[index]!.box.right + LABEL_GAP > months[index + 1]!.box.left) months.splice(index, 1)
   }
 
-  const start = monthLabel(plot.left, y, 'start', formatMonthShort(firstIsoDate), null)
+  const start = label(plot.left, 'start', formatMonthShort(firstIsoDate), null)
   const firstMonth = months[0]
   if (!firstMonth || start.box.right + LABEL_GAP <= firstMonth.box.left) months.unshift(start)
-  return months
+  return { months, monthTicks }
 }
 
 function timeChart(
   entries: readonly WeightChartEntry[],
-  width: number,
   layout: Layout,
   lowKg: number,
   highKg: number,
+  { width, scale }: { width: number; scale: number },
 ): { chart: TimeChart; yOf: (weightKg: number) => number } {
   const plot = {
     left: layout.left,
@@ -295,7 +309,7 @@ function timeChart(
     measuredOn: entry.measuredOn,
   }))
   const lastPoint = points[points.length - 1]!
-  const months = monthLabels(first, last, plot, layout.height - BASELINE_FROM_BOTTOM, xOf)
+  const axis = monthAxis(first, last, plot, layout.height - BASELINE_FROM_BOTTOM, scale, xOf)
 
   return {
     chart: {
@@ -310,7 +324,7 @@ function timeChart(
         `L${lastPoint.x},${plot.bottom}`,
         'Z',
       ].join(' '),
-      months,
+      ...axis,
     },
     yOf,
   }
@@ -322,12 +336,11 @@ function anchorAt(x: number, plot: ChartPlot): ChartAnchor {
   return 'middle'
 }
 
-function latestPill(chart: TimeChart): CarnetWeightChart['latest'] {
+function latestPill(chart: TimeChart, text: string, scale: number): CarnetWeightChart['latest'] {
   const last = chart.points[chart.points.length - 1]!
   const right = Math.min(last.x + LATEST_OVERHANG, chart.plot.right)
   const bottom = last.y - LATEST_GAP
-  const text = formatKg(last.weightKg)
-  const width = textWidth(`${text}\u00a0kg`) + 2 * LATEST_PADDING_X
+  const width = textWidth(text) * scale + 2 * LATEST_PADDING_X
   return {
     right: round(chart.width - right),
     bottom: round(chart.height - bottom),
@@ -336,33 +349,39 @@ function latestPill(chart: TimeChart): CarnetWeightChart['latest'] {
   }
 }
 
+type Place = { dx: number; dy: number; anchor: ChartAnchor }
+
 /**
  * `null` quand la dernière pesée atteint déjà cet extrême : la pastille l'écrit. Sinon, la première
- * des places `offsetsY` (décalages sous le point) qui ne chevauche pas la pastille.
+ * des `places` autour du point qui ne chevauche ni la pastille ni un mois.
  */
 function extremeLabel(
   chart: TimeChart,
   weightKg: number,
-  wording: 'max' | 'min',
-  offsetsY: readonly number[],
-  latest: ChartBox,
+  text: string,
+  places: (point: ChartPoint) => Place[],
+  obstacles: ChartBox[],
+  scale: number,
 ): ChartLabel | null {
   const last = chart.points[chart.points.length - 1]!
   if (last.weightKg === weightKg) return null
   const point = chart.points.find((candidate) => candidate.weightKg === weightKg)!
-  const text = formatKg(weightKg)
-  const anchor = anchorAt(point.x, chart.plot)
-  const places = offsetsY.map((offsetY) => {
-    const y = round(point.y + offsetY)
-    return { x: point.x, y, text, anchor, box: textBox(point.x, y, anchor, `${wording} ${text}`) }
+  const labels = places(point).map(({ dx, dy, anchor }) => {
+    const x = round(point.x + dx)
+    const y = round(point.y + dy)
+    return { x, y, text, anchor, box: textBox(x, y, anchor, text, scale) }
   })
-  return places.find((place) => !overlaps(place.box, latest)) ?? places[places.length - 1]!
+  return (
+    labels.find((label) => obstacles.every((obstacle) => !overlaps(label.box, obstacle))) ??
+    labels[labels.length - 1]!
+  )
 }
 
 /** Carnet : échelle min / max ± 0,3 kg, seuls le plus haut, le plus bas et la dernière pesée écrits. */
 export function buildCarnetWeightChart(
   entries: readonly WeightChartEntry[],
-  width = DEFAULT_CHART_WIDTH,
+  labels: CarnetChartLabels,
+  { width = DEFAULT_CHART_WIDTH, textScale = 1 }: ChartMeasure = {},
 ): CarnetWeightChart | null {
   if (entries.length < 2) return null
 
@@ -371,17 +390,49 @@ export function buildCarnetWeightChart(
   const minKg = Math.min(...weights)
   const { chart } = timeChart(
     entries,
-    width,
     CARNET_LAYOUT,
     minKg - CARNET_MARGIN_KG,
     maxKg + CARNET_MARGIN_KG,
+    { width, scale: textScale },
   )
-  const latest = latestPill(chart)
+  const last = chart.points[chart.points.length - 1]!
+  const latest = latestPill(chart, labels.latest(formatKg(last.weightKg)), textScale)
+  const obstacles = [latest.box, ...chart.months.map((month) => month.box)]
+
+  const ascent = TEXT_ASCENT * textScale
+  const above = { dx: 0, dy: -(GAP_ABOVE_POINT + TEXT_DESCENT * textScale) }
+  const below = { dx: 0, dy: GAP_BELOW_POINT + ascent }
+  // Assez bas pour sortir de la pastille partout où la place au-dessus du point la touche.
+  const clearOfLatest = { dx: 0, dy: LATEST_HEIGHT - GAP_ABOVE_POINT + ascent }
+  const beside = (point: ChartPoint): Place => {
+    const dy = ((TEXT_ASCENT - TEXT_DESCENT) / 2) * textScale
+    return chart.plot.right - point.x < EDGE_ROOM
+      ? { dx: -GAP_BESIDE_POINT, dy, anchor: 'end' }
+      : { dx: GAP_BESIDE_POINT, dy, anchor: 'start' }
+  }
+  const aligned = (point: ChartPoint, place: { dx: number; dy: number }): Place => ({
+    ...place,
+    anchor: anchorAt(point.x, chart.plot),
+  })
 
   return {
     ...chart,
-    max: extremeLabel(chart, maxKg, 'max', [MAX_ABOVE, MAX_BELOW], latest.box),
-    min: extremeLabel(chart, minKg, 'min', [MIN_BELOW], latest.box),
+    max: extremeLabel(
+      chart,
+      maxKg,
+      labels.max(formatKg(maxKg)),
+      (point) => [above, below, clearOfLatest].map((place) => aligned(point, place)),
+      obstacles,
+      textScale,
+    ),
+    min: extremeLabel(
+      chart,
+      minKg,
+      labels.min(formatKg(minKg)),
+      (point) => [aligned(point, below), beside(point)],
+      obstacles,
+      textScale,
+    ),
     latest,
   }
 }
@@ -405,19 +456,16 @@ export function weightAxisTicks(minKg: number, maxKg: number): number[] {
 /** Historique : lignes de repère en kg ronds, aucun chiffre sur les points. */
 export function buildHistoryWeightChart(
   entries: readonly WeightChartEntry[],
-  width = DEFAULT_CHART_WIDTH,
+  { width = DEFAULT_CHART_WIDTH, textScale = 1 }: ChartMeasure = {},
 ): HistoryWeightChart | null {
   if (entries.length < 2) return null
 
   const weights = entries.map((entry) => entry.weightKg)
   const ticks = weightAxisTicks(Math.min(...weights), Math.max(...weights))
-  const { chart, yOf } = timeChart(
-    entries,
+  const { chart, yOf } = timeChart(entries, HISTORY_LAYOUT, ticks[0]!, ticks[ticks.length - 1]!, {
     width,
-    HISTORY_LAYOUT,
-    ticks[0]!,
-    ticks[ticks.length - 1]!,
-  )
+    scale: textScale,
+  })
 
   return {
     ...chart,
