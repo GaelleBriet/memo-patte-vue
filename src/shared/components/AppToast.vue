@@ -1,16 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-import { heightBottomNav, paddingBottomNav } from '@/core/theme/layout-tokens'
 import { dismissToast, toastMessage } from '../utils/toast'
-
-const props = withDefaults(defineProps<{ aboveBottomNav?: boolean }>(), { aboveBottomNav: false })
-
-const GAP_BELOW_TOAST = 12
-
-const offset = computed(
-  () => (props.aboveBottomNav ? heightBottomNav : 0) + paddingBottomNav + GAP_BELOW_TOAST,
-)
 
 const isOpen = computed({
   get: () => toastMessage.value !== null,
@@ -28,13 +19,11 @@ const isOpen = computed({
     class="app-toast"
     :timeout="-1"
     location="bottom"
-    :offset="offset"
-    rounded="lg"
     :content-props="{ 'aria-hidden': 'true' }"
   >
     <span class="app-toast__content">
-      <v-icon icon="ms:check_circle" size="20" />
-      <span>{{ toastMessage }}</span>
+      <v-icon class="app-toast__icon" icon="ms:check_circle_fill" size="20" />
+      <span class="app-toast__message">{{ toastMessage }}</span>
     </span>
   </v-snackbar>
 </template>
@@ -42,12 +31,24 @@ const isOpen = computed({
 <style scoped lang="scss">
 @use '@/styles/tokens' as tokens;
 
+// Vuetify ajoute la hauteur de la bottom nav sous cette marge quand elle est affichée.
+.app-toast {
+  margin: 0 14px 24px;
+}
+
 .app-toast :deep(.v-snackbar__wrapper) {
+  width: 100%;
   min-width: 0;
-  width: calc(100% - 40px);
+  min-height: 56px;
   border-radius: tokens.$radius-toast;
-  background: tokens.$color-toast-surface;
+  background: rgb(var(--v-theme-primary));
   color: tokens.$color-on-primary;
+  box-shadow: tokens.$shadow-toast;
+}
+
+.app-toast :deep(.v-snackbar__content) {
+  padding: 6px 16px;
+  letter-spacing: normal;
 }
 
 .app-toast__live {
@@ -62,8 +63,18 @@ const isOpen = computed({
 .app-toast__content {
   display: flex;
   align-items: center;
-  gap: 12px;
-  font-size: 15px;
-  font-weight: 600;
+  gap: 10px;
+}
+
+.app-toast__icon {
+  flex-shrink: 0;
+  color: tokens.$color-toast-icon;
+}
+
+.app-toast__message {
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.35;
 }
 </style>

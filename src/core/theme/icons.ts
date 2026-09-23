@@ -5,6 +5,7 @@ import add from '@material-symbols/svg-400/outlined/add.svg?raw'
 import arrowBack from '@material-symbols/svg-400/outlined/arrow_back.svg?raw'
 import calendarMonth from '@material-symbols/svg-400/outlined/calendar_month.svg?raw'
 import check from '@material-symbols/svg-400/outlined/check.svg?raw'
+import checkCircleFill from '@material-symbols/svg-400/outlined/check_circle-fill.svg?raw'
 import cloudDone from '@material-symbols/svg-400/outlined/cloud_done.svg?raw'
 import cloudOff from '@material-symbols/svg-400/outlined/cloud_off.svg?raw'
 import creditCard from '@material-symbols/svg-400/outlined/credit_card.svg?raw'
@@ -123,6 +124,7 @@ export const msIcons = {
   check_box: checkBox,
   check_box_outline_blank: checkBoxOutlineBlank,
   check_circle: checkCircle,
+  check_circle_fill: checkCircleFill,
   chevron_left: chevronLeft,
   chevron_right: chevronRight,
   circle,

@@ -2,24 +2,13 @@ import { mount } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { nextTick } from 'vue'
 
-import { VSnackbar } from 'vuetify/components'
-
 import AppToast from '../components/AppToast.vue'
 import { dismissToast, showToast, toastMessage } from '../utils/toast'
-import { heightBottomNav, paddingBottomNav } from '@/core/theme/layout-tokens'
+import { getMsIconPath } from '@/core/theme/icons'
 import vuetify from '@/core/theme/vuetify'
 
 function mountToast() {
   return mount(AppToast, { global: { plugins: [vuetify] }, attachTo: document.body })
-}
-
-// `offset` n'est pas déclarée par `VSnackbar`, qui la relaie à son overlay : elle passe par `$attrs`.
-function offsetDuToast(aboveBottomNav: boolean): unknown {
-  const wrapper = mount(AppToast, { props: { aboveBottomNav }, global: { plugins: [vuetify] } })
-  const offset = wrapper.getComponent(VSnackbar).vm.$attrs.offset
-  wrapper.unmount()
-
-  return offset
 }
 
 beforeEach(() => {
@@ -51,6 +40,18 @@ describe('AppToast', () => {
     const toast = document.body.querySelector('.app-toast')
     expect(toast?.textContent).toContain('Rappels activés')
     expect(document.body.querySelector('[role="status"]')?.textContent).toContain('Rappels activés')
+    wrapper.unmount()
+  })
+
+  it('précède le message de la coche pleine de la maquette', async () => {
+    const wrapper = mountToast()
+
+    showToast('Rappels activés')
+    await nextTick()
+
+    const trace = document.body.querySelector('.app-toast__icon svg path')?.getAttribute('d')
+    expect(trace).toBeTruthy()
+    expect(trace).toBe(getMsIconPath('check_circle_fill')?.path)
     wrapper.unmount()
   })
 
@@ -144,13 +145,5 @@ describe('AppToast', () => {
     )
     expect(annoncees).toEqual([region])
     wrapper.unmount()
-  })
-
-  it('se pose au-dessus de la bottom navigation quand elle est là', () => {
-    expect(offsetDuToast(true)).toBe(heightBottomNav + paddingBottomNav + 12)
-  })
-
-  it('ne garde que la zone de gestes sous lui sur un écran sans bottom navigation', () => {
-    expect(offsetDuToast(false)).toBe(paddingBottomNav + 12)
   })
 })

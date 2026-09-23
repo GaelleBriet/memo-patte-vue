@@ -136,7 +136,7 @@ photo (`#A2BDC0` 1,80, `#90ABAD` 2,38 ; le bouton est nommé par sa légende), p
 | Valeurs de la courbe, dates des pesées | `#2F2722`, `#342C26` / `#FEFCF9` | 14,30 / 13,37 |
 | Icône « une seule pesée » | `#798A8B` / `#FEFCF9` | 3,52 |
 | Bandeau « rappels désactivés » : titre, lien | `#47413C`, `#01383E` / `#F2F0EC` | 8,83 / 11,27 |
-| Toast | `#F9F4EE` / `#2B221A` | 14,26 |
+| Toast : texte, coche | `#F9F4EE`, `#B9E4E7` / `#01383E` | 11,73 / 9,36 |
 | Chevron des réglages (icône) | `#857F79` / `#FEFCF9` | 3,86 |
 | Carte de choix cochée : libellé, icône | `#221B16`, `#01383E` / `#DCF0F1` | 14,38 / 10,86 |
 | Icône de l'écran d'explication | `#01383E` / `#B9E4E7` | 9,36 |
