@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 
@@ -10,6 +10,7 @@ import {
   orderedOffers,
   pitchBenefits,
   plusOriginOf,
+  PRESELECTED_PLAN,
   selectablePlan,
   type PlusBenefit,
 } from '../logic/plus-paywall'
@@ -32,7 +33,7 @@ const router = useRouter()
 const purchase = usePurchaseStore()
 
 const phase = ref<Phase>('offers')
-const selected = ref<PaidPlan>('annual')
+const selected = ref<PaidPlan>(PRESELECTED_PLAN)
 const isLoadingOffers = ref(false)
 const hasAnswered = ref(false)
 
@@ -71,9 +72,13 @@ function submitLabelOf(offer: PlusOffer): string {
   return t(`plus.offers.${offer.plan}.submit`, { price: priceOf(offer) })
 }
 
-onMounted(() => {
-  if (!isMember.value) void loadOffers()
-})
+watch(
+  isMember,
+  (member) => {
+    if (!member && purchase.available) void loadOffers()
+  },
+  { immediate: true },
+)
 
 async function loadOffers(): Promise<void> {
   if (isLoadingOffers.value) return
@@ -216,7 +221,7 @@ async function restore(): Promise<void> {
           <span class="plus-offer__text">
             <span class="plus-offer__head">
               <span class="plus-offer__label">{{ t(`plus.offers.${offer.plan}.label`) }}</span>
-              <span v-if="offer.plan === 'annual'" class="plus-offer__badge">
+              <span v-if="offer.plan === PRESELECTED_PLAN" class="plus-offer__badge">
                 {{ t('plus.offers.best') }}
               </span>
             </span>
@@ -246,7 +251,7 @@ async function restore(): Promise<void> {
           :disabled="isBusy"
           @click="restore"
         >
-          {{ t('plus.restore.purchases') }}
+          {{ t('plus.restore.action') }}
         </v-btn>
         <a class="plus__manage" :href="MANAGE_SUBSCRIPTIONS_URL" target="_blank" rel="noopener">
           {{ t('plus.terms.manage') }}
@@ -260,11 +265,12 @@ async function restore(): Promise<void> {
     <template v-if="!isDone && !isMember" #actions>
       <div class="plus__checkout">
         <template v-if="bar.kind === 'offer'">
-          <p class="plus__disclosure">{{ disclosureOf(bar.offer) }}</p>
+          <p id="plus-disclosure" class="plus__disclosure">{{ disclosureOf(bar.offer) }}</p>
           <v-btn
             class="plus__submit"
             variant="flat"
             color="primary"
+            aria-describedby="plus-disclosure"
             :loading="isPurchasing"
             :disabled="isBusy"
             @click="buy(bar.offer.plan)"
@@ -282,6 +288,7 @@ async function restore(): Promise<void> {
             </div>
           </div>
           <v-btn
+            v-if="purchase.available"
             class="plus__retry-offers"
             variant="flat"
             color="primary"

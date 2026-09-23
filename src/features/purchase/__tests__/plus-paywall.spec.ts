@@ -6,6 +6,7 @@ import {
   orderedOffers,
   pitchBenefits,
   plusOriginOf,
+  PRESELECTED_PLAN,
   selectablePlan,
 } from '../logic/plus-paywall'
 import type { PlusOffer } from '../service/billing.service'
@@ -66,8 +67,12 @@ describe('selectablePlan', () => {
     expect(selectablePlan([MENSUEL, A_VIE], 'annual')).toBe('monthly')
   })
 
-  it('garde l’annuel présélectionné tant qu’aucune offre n’est arrivée', () => {
-    expect(selectablePlan([], 'lifetime')).toBe('annual')
+  it('présélectionne l’annuel', () => {
+    expect(PRESELECTED_PLAN).toBe('annual')
+  })
+
+  it('garde l’offre présélectionnée tant qu’aucune offre n’est arrivée', () => {
+    expect(selectablePlan([], 'lifetime')).toBe(PRESELECTED_PLAN)
   })
 })
 
@@ -101,6 +106,12 @@ describe('checkoutBar', () => {
         retrying: false,
       },
     )
+  })
+
+  it('ne prétend pas se connecter quand aucun chargement n’est en cours', () => {
+    expect(
+      checkoutBar({ offers: [], selected: 'annual', loading: false, answered: false }),
+    ).toEqual({ kind: 'unavailable', retrying: false })
   })
 
   it('garde l’état indisponible pendant le réessai', () => {

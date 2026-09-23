@@ -537,7 +537,7 @@
       "pdf": "L’export PDF fait partie de MémoPatte Plus",
       "general": "Garde tes carnets en sécurité, partout"
     },
-    "subtitle": "Animaux, rappels, poids et export JSON/CSV restent gratuits, sans compte.",
+    "subtitle": "Animaux, rappels, poids et export JSON/CSV restent gratuits, sans compte ni abonnement.",
     "benefits": {
       "backup": "Sauvegarde garantie dans le cloud",
       "devices": "Le même carnet sur tous tes appareils",
@@ -589,8 +589,7 @@
       "manage": "Gérer mon abonnement · Google Play"
     },
     "restore": {
-      "action": "Restaurer mon achat",
-      "purchases": "Restaurer mes achats",
+      "action": "Restaurer mes achats",
       "busy": "Restauration…",
       "restored": "Te voilà de retour dans Plus.",
       "none": "Aucun achat à restaurer sur ce compte Google.",
@@ -599,7 +598,7 @@
     "success": {
       "title": "Bienvenue dans Plus",
       "body": "La sauvegarde de ton carnet arrive très vite.",
-      "back": "Retour aux paramètres"
+      "back": "Retour"
     },
     "cancelled": {
       "title": "Achat non abouti",

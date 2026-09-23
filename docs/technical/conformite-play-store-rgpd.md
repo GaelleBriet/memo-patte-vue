@@ -119,7 +119,7 @@ Subscriptions policy : vous devez divulguer clairement « your offer terms, the 
 
 Pratiques interdites citées : abonnement mensuel « without informing users of automatic monthly charges » ; plan annuel « prominently displaying monthly pricing breakdowns » ; « Incompletely localized pricing and terms » ; SKU trompeurs type « Free Trial » ; clics multiples provoquant un abonnement accidentel.
 
-→ **Écran Plus de MémoPatte** : afficher côte à côte « 1,49 €/mois, renouvellement automatique chaque mois, annulable à tout moment dans Google Play », « 9,99 €/an, renouvellement automatique chaque année, annulable à tout moment dans Google Play » et « 29,99 € une fois, à vie, sans renouvellement », préciser que **l'app est utilisable gratuitement sans abonnement**, prix localisé (Google Play fournit la devise). Pas de prix « au mois » pour l'annuel : l'économie par rapport au mensuel se dit en pourcentage, sans ramener l'annuel à un prix mensuel.
+→ **Écran Plus de MémoPatte** (revu le 2026-09-23, #342) : les trois offres s'affichent avec leur prix localisé et leur périodicité (« 9,99 €/an », « 1,49 €/mois », « 29,99 € », Google Play fournit la devise). La gratuité sans abonnement est dite par le sous-titre, sous le titre : « Animaux, rappels, poids et export JSON/CSV restent gratuits, sans compte ni abonnement. » Les conditions de l'offre cochée s'affichent dans la barre fixe, juste au-dessus du bouton d'achat qui nomme l'offre et son prix : « Renouvellement automatique chaque année. Annulable à tout moment dans Google Play — accès conservé jusqu'à la fin de la période payée. » (même texte « chaque mois » pour le mensuel), « Paiement unique de 29,99 €. Pas d'abonnement, rien à renouveler. » pour l'achat à vie. Pas de prix « au mois » pour l'annuel : l'économie par rapport au mensuel se dit en pourcentage, sans ramener l'annuel à un prix mensuel.
 
 #### Offre « à vie »
 
@@ -501,7 +501,7 @@ Contenu minimal de la page `supprimer-mon-compte.html` (exigences Google : nom d
 **C. Application**
 10. `targetSdkVersion 36` ; plugin de facturation avec PBL ≥ 7 ; `queryPurchasesAsync` au lancement ; acquittement des achats < 3 jours ; gestion des états (grâce = accès, hold = coupure).
 11. Manifest : `POST_NOTIFICATIONS` ; **pas** de `READ_MEDIA_IMAGES`/`READ_MEDIA_VIDEO`, pas d'`USE_EXACT_ALARM`, pas d'`USE_BIOMETRIC`/`USE_FINGERPRINT` ; vérifier le manifest fusionné avec `pnpm test:manifest` (liste blanche ; contrôle local, cf. `commandes-utiles.md` §6).
-12. Écran Plus : prix, périodicité, renouvellement automatique, mention « app utilisable gratuitement », lien « Gérer mon abonnement » (Play Subscription Center), lien CGU/politique.
+12. Écran Plus : prix localisé et périodicité sur chaque offre ; renouvellement automatique et résiliation de l'offre cochée au-dessus du bouton d'achat ; gratuité sans abonnement portée par le sous-titre (« … restent gratuits, sans compte ni abonnement. ») ; lien « Gérer mon abonnement » (Play Subscription Center) ; lien CGU/politique.
 13. Écran de consentement analytics in-app (action positive, avant init), interrupteur dans Paramètres. *(Fait le 2026-09-15, #67 ; lien vers la politique à ajouter avec #86.)*
 14. Paramètres > Confidentialité : lien/texte de la politique ; Paramètres > Compte : « Supprimer mon compte » ; Paramètres > Exporter (JSON/CSV).
 15. Mention « réservé aux 18 ans et plus » dans les CGU / création de compte.

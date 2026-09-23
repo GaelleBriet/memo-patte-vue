@@ -244,7 +244,7 @@ describe('PlusSection — restaurer mon achat', () => {
     service.restore.mockResolvedValue(ANNUAL)
     const wrapper = await monter()
 
-    expect(ligneRestaurer(wrapper).text()).toContain('Restaurer mon achat')
+    expect(ligneRestaurer(wrapper).text()).toContain('Restaurer mes achats')
     await ligneRestaurer(wrapper).trigger('click')
     await flushPromises()
 

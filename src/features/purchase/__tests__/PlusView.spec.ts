@@ -11,6 +11,7 @@ import {
 } from '../service/billing.service'
 import { NO_PLUS, type PlusStatus } from '../logic/plus-status'
 import { writeStoredPlusStatus } from '../logic/plus-status-storage'
+import { usePurchaseStore } from '../store/purchase.store'
 import PlusView from '../views/PlusView.vue'
 import i18n from '@/core/i18n'
 import { getMsIconPath } from '@/core/theme/icons'
@@ -166,7 +167,7 @@ describe('PlusView — contenu', () => {
     const wrapper = await monter()
 
     expect(wrapper.get('.plus__subtitle').text()).toBe(
-      'Animaux, rappels, poids et export JSON/CSV restent gratuits, sans compte.',
+      'Animaux, rappels, poids et export JSON/CSV restent gratuits, sans compte ni abonnement.',
     )
   })
 
@@ -248,6 +249,17 @@ describe('PlusView — offres', () => {
     expect(aVie!.attributes('aria-checked')).toBe('false')
   })
 
+  it('présélectionne la première offre reçue quand l’annuel manque', async () => {
+    service.listOffers.mockResolvedValue(OFFRES.filter((offre) => offre.plan !== 'annual'))
+    const wrapper = await monter()
+
+    expect(offres(wrapper).map((offre) => offre.attributes('aria-checked'))).toEqual([
+      'true',
+      'false',
+    ])
+    expect(wrapper.get('.plus__submit').text()).toBe('Continuer avec Plus mensuel — $1.99/mois')
+  })
+
   it('regroupe les offres sous un nom lisible par le lecteur d’écran', async () => {
     const wrapper = await monter()
 
@@ -263,6 +275,16 @@ describe('PlusView — barre d’achat', () => {
 
     expect(wrapper.find('.pushed-screen__actions .plus__submit').exists()).toBe(true)
     expect(wrapper.find('.pushed-screen__scroll .plus__submit').exists()).toBe(false)
+  })
+
+  it('rattache la mention de l’offre au bouton pour le lecteur d’écran', async () => {
+    const wrapper = await monter()
+    const mention = wrapper.get('.plus__disclosure')
+
+    expect(mention.attributes('id')).toBeTruthy()
+    expect(wrapper.get('.plus__submit').attributes('aria-describedby')).toBe(
+      mention.attributes('id'),
+    )
   })
 
   it.each([
@@ -381,13 +403,15 @@ describe('PlusView — offres indisponibles', () => {
     expect(offres(wrapper)).toHaveLength(3)
   })
 
-  it('reste présentable sans clé RevenueCat, sans proposer de restaurer', async () => {
+  it('reste présentable sans clé RevenueCat, sans proposer un réessai inutile', async () => {
     service.isAvailable.mockReturnValue(false)
     service.listOffers.mockResolvedValue([])
     const wrapper = await monter()
 
     expect(wrapper.get('.plus__unavailable-title').isVisible()).toBe(true)
+    expect(wrapper.find('.plus__retry-offers').exists()).toBe(false)
     expect(wrapper.find('.plus__restore').exists()).toBe(false)
+    expect(wrapper.text()).not.toContain('Connexion à Google Play…')
   })
 })
 
@@ -405,9 +429,23 @@ describe('PlusView — déjà abonné', () => {
     )
     expect(service.listOffers).not.toHaveBeenCalled()
 
+    expect(wrapper.get('.plus-member__close').text()).toBe('Retour')
     await wrapper.get('.plus-member__close').trigger('click')
 
     expect(back).toHaveBeenCalled()
+  })
+
+  it('charge les offres dès que l’abonnement s’avère échu, sans rester figé', async () => {
+    writeStoredPlusStatus(ANNUEL)
+    const wrapper = await monter()
+    service.fetchStatus.mockResolvedValue(NO_PLUS)
+
+    await usePurchaseStore().verifyKnownStatus()
+    await flushPromises()
+
+    expect(service.listOffers).toHaveBeenCalledTimes(1)
+    expect(offres(wrapper)).toHaveLength(3)
+    expect(wrapper.get('.plus__submit').text()).toBe('Continuer avec Plus annuel — $12.99/an')
   })
 })
 
@@ -421,6 +459,17 @@ describe('PlusView — achat', () => {
     await flushPromises()
 
     expect(service.purchase).toHaveBeenCalledWith('lifetime')
+  })
+
+  it('ne lance qu’un achat sur un double tap', async () => {
+    service.purchase.mockReturnValue(new Promise(() => {}))
+    const wrapper = await monter()
+    const bouton = wrapper.get('.plus__submit')
+
+    void bouton.trigger('click')
+    await bouton.trigger('click')
+
+    expect(service.purchase).toHaveBeenCalledTimes(1)
   })
 
   it('montre l’achat en cours sans jamais bloquer la sortie', async () => {
@@ -456,6 +505,7 @@ describe('PlusView — achat', () => {
       'La sauvegarde de ton carnet arrive très vite.',
     )
     expect(wrapper.find('.pushed-screen__actions').exists()).toBe(false)
+    expect(wrapper.get('.plus-outcome__primary').text()).toBe('Retour')
 
     await wrapper.get('.plus-outcome__primary').trigger('click')
 

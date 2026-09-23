@@ -16,6 +16,8 @@ import { USER_ID } from '@/features/auth/__tests__/auth-fixture'
 import { writePlusAccount } from '@/features/auth/logic/plus-account-storage'
 import { memoryStorage } from '@/features/purchase/__tests__/billing-fixture'
 import { writeStoredPlusStatus } from '@/features/purchase/logic/plus-status-storage'
+import { billingService } from '@/features/purchase/service/billing.service'
+import { usePurchaseStore } from '@/features/purchase/store/purchase.store'
 import PlusBadge from '@/shared/components/PlusBadge.vue'
 
 vi.mock('../service/data-export.service', () => ({
@@ -405,6 +407,18 @@ describe('SettingsView', () => {
       expect(ligne.get('.settings-row__icon').findComponent(PlusBadge).props('on')).toBe('surface')
       expect(ligne.find('.settings-row__hint').exists()).toBe(false)
       expect(ligne.get('.d-sr-only').text()).toBe('Fonction MémoPatte Plus')
+    })
+
+    it('retire la pastille dès que Plus devient actif, écran affiché', async () => {
+      const wrapper = await monter()
+      vi.spyOn(billingService, 'restore').mockResolvedValue({ plan: 'lifetime', expiresAt: null })
+
+      await usePurchaseStore().restore()
+      await flushPromises()
+
+      const ligne = lignePdf(wrapper)
+      expect(ligne.findComponent(PlusBadge).exists()).toBe(false)
+      expect(ligne.find('.d-sr-only').exists()).toBe(false)
     })
 
     it('désactive la ligne sans animal, avec « Rien à exporter pour l’instant »', async () => {

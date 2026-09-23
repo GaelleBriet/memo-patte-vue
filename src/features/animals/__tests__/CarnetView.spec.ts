@@ -37,6 +37,8 @@ import { pickPhoto, type PickedPhoto } from '@/core/photos/photo-picker'
 import { forgetPhotoUrls } from '@/core/photos/use-photo-urls'
 import { memoryStorage } from '@/features/purchase/__tests__/billing-fixture'
 import { writeStoredPlusStatus } from '@/features/purchase/logic/plus-status-storage'
+import { billingService } from '@/features/purchase/service/billing.service'
+import { usePurchaseStore } from '@/features/purchase/store/purchase.store'
 import PdfExportSheet from '@/features/settings/views/PdfExportSheet.vue'
 import PlusBadge from '@/shared/components/PlusBadge.vue'
 
@@ -353,6 +355,18 @@ describe('CarnetView — header', () => {
 
       expect(icone.findComponent(PlusBadge).props('on')).toBe('primary')
       expect(icone.attributes('aria-label')).toBe('Exporter en PDF, fonction MémoPatte Plus')
+    })
+
+    it('retire la pastille dès que Plus devient actif, Carnet affiché', async () => {
+      const wrapper = await monter()
+      vi.spyOn(billingService, 'restore').mockResolvedValue({ plan: 'lifetime', expiresAt: null })
+
+      await usePurchaseStore().restore()
+      await flushPromises()
+
+      const icone = wrapper.get('.carnet-header__export-pdf')
+      expect(icone.findComponent(PlusBadge).exists()).toBe(false)
+      expect(icone.attributes('aria-label')).toBe('Exporter en PDF')
     })
 
     it('n’a plus de pastille pour un compte Plus', async () => {

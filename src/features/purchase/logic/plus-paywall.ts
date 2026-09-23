@@ -15,7 +15,7 @@ const GENERAL_BENEFITS: readonly PlusBenefit[] = ['backup', 'devices', 'photos',
 
 const OFFER_ORDER: readonly PaidPlan[] = ['annual', 'monthly', 'lifetime']
 
-const PRESELECTED_PLAN: PaidPlan = 'annual'
+export const PRESELECTED_PLAN: PaidPlan = 'annual'
 
 export function plusOriginOf(from: unknown): PlusOrigin {
   return from === 'pdf' ? 'pdf' : 'general'
@@ -47,6 +47,6 @@ export function checkoutBar(state: {
   const plan = selectablePlan(state.offers, state.selected)
   const offer = state.offers.find((candidate) => candidate.plan === plan)
   if (offer) return { kind: 'offer', offer }
-  if (!state.answered) return { kind: 'connecting' }
+  if (state.loading && !state.answered) return { kind: 'connecting' }
   return { kind: 'unavailable', retrying: state.loading }
 }

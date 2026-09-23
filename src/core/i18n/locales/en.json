@@ -537,7 +537,7 @@
       "pdf": "PDF export is part of MémoPatte Plus",
       "general": "Keep your health records safe, everywhere"
     },
-    "subtitle": "Pets, reminders, weight and JSON/CSV export stay free, without an account.",
+    "subtitle": "Pets, reminders, weight and JSON/CSV export stay free, without an account or subscription.",
     "benefits": {
       "backup": "Guaranteed cloud backup",
       "devices": "The same health record on all your devices",
@@ -589,8 +589,7 @@
       "manage": "Manage my subscription · Google Play"
     },
     "restore": {
-      "action": "Restore my purchase",
-      "purchases": "Restore my purchases",
+      "action": "Restore my purchases",
       "busy": "Restoring…",
       "restored": "Welcome back to Plus.",
       "none": "No purchase to restore on this Google account.",
@@ -599,7 +598,7 @@
     "success": {
       "title": "Welcome to Plus",
       "body": "Your health record will be backed up very soon.",
-      "back": "Back to settings"
+      "back": "Back"
     },
     "cancelled": {
       "title": "Purchase not completed",
