@@ -5,6 +5,35 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.37](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.36...memo-patte-v0.1.37) (2026-09-23)
+
+
+### ✨ Fonctionnalités
+
+* **home:** « À faire » ne montre que les retards et les 30 prochains jours ([cdcfe73](https://github.com/GaelleBriet/memo-patte-vue/commit/cdcfe73fd46fee394356d6ac82d9ac83aca83ffd))
+* **home:** « Prochain rappel » remplace « Aucun rappel à venir », date d'un seul tenant ([8dc04e5](https://github.com/GaelleBriet/memo-patte-vue/commit/8dc04e566ae087d6f875ebf154a749a055696a6a))
+* **home:** la liste « À faire » montre les retards et les 30 prochains jours ([8e54cfa](https://github.com/GaelleBriet/memo-patte-vue/commit/8e54cfafdf053917c3c010961706aac9fa585bf6))
+* **settings:** courbe de poids du PDF sur l'axe du temps, comme le Carnet ([a616888](https://github.com/GaelleBriet/memo-patte-vue/commit/a616888c17eb99aad5a0582f615afd7ac39ff1cb))
+* **settings:** courbe de poids du PDF sur l'axe du temps, rendu du Carnet ([9e7fc84](https://github.com/GaelleBriet/memo-patte-vue/commit/9e7fc84ea53acec2d13736f0461f1e323374dc1b)), closes [#350](https://github.com/GaelleBriet/memo-patte-vue/issues/350)
+* **shared:** la courbe du Carnet mesure ses textes avec la chasse reçue ([447a2a7](https://github.com/GaelleBriet/memo-patte-vue/commit/447a2a7468b0b509324002d4f243ab1356a355b9)), closes [#350](https://github.com/GaelleBriet/memo-patte-vue/issues/350)
+* **shared:** le toast se pose au-dessus de toute barre fixe du bas ([0b8dac7](https://github.com/GaelleBriet/memo-patte-vue/commit/0b8dac7ea1602c88643f483e626b644675224c7e))
+* **shared:** toasts au style pétrole de la maquette B3 ([d88dc7d](https://github.com/GaelleBriet/memo-patte-vue/commit/d88dc7d983124ba34e8efac5c47fca763fedfaf1))
+* **shared:** toasts au style pétrole de la maquette, placement et tonalités ([82095da](https://github.com/GaelleBriet/memo-patte-vue/commit/82095da07aae6f8e9fea57b26df089383898754f))
+* **shared:** tonalité du toast (réussite, information, échec) ([ace06c3](https://github.com/GaelleBriet/memo-patte-vue/commit/ace06c31e614b0b11eef5c8c73cbd204d3e743dc))
+
+
+### 🐛 Corrections
+
+* **a11y:** annoncer chaque toast, même au message identique ([8fb27c7](https://github.com/GaelleBriet/memo-patte-vue/commit/8fb27c7df9fa9cbe46b5bb9611968de8d93a4e47))
+* **settings:** état graphique rétabli après la courbe du PDF, pastille verrouillée ([ef60a6d](https://github.com/GaelleBriet/memo-patte-vue/commit/ef60a6da7a6e3ce66eb3cbff185c5febb02a3d74)), closes [#350](https://github.com/GaelleBriet/memo-patte-vue/issues/350)
+* **settings:** largeur entière pour la courbe du PDF, obstacle inutile retiré ([3b91090](https://github.com/GaelleBriet/memo-patte-vue/commit/3b9109099907f2906c3fbc151807978a726dc2e5)), closes [#350](https://github.com/GaelleBriet/memo-patte-vue/issues/350)
+* **settings:** traits de la courbe du PDF en gris de bordure, sans écart sous le titre ([6988a36](https://github.com/GaelleBriet/memo-patte-vue/commit/6988a36bc15599387a0c9c49e8977ade3e7471d9)), closes [#350](https://github.com/GaelleBriet/memo-patte-vue/issues/350)
+* **shared:** aucune étiquette de la courbe ne touche la ligne de base ([18c808d](https://github.com/GaelleBriet/memo-patte-vue/commit/18c808d8dfb98a047f6ea8b4e267437c73416047)), closes [#350](https://github.com/GaelleBriet/memo-patte-vue/issues/350)
+* **shared:** ombre du toast d'échec à sa teinte, annonce et barres mieux couvertes ([cd27555](https://github.com/GaelleBriet/memo-patte-vue/commit/cd27555c908e96de3d8b575f9c9f1805f8f4e451))
+* **shared:** relancer le minuteur du toast à chaque appel ([becff6a](https://github.com/GaelleBriet/memo-patte-vue/commit/becff6a544452a957f39451712b0c423d44ebfb1))
+* **weight:** mois du Carnet contre la ligne de base, place rendue à la courbe ([86f46b5](https://github.com/GaelleBriet/memo-patte-vue/commit/86f46b5a86aabb86ee378587781b73d2e502c9c5)), closes [#373](https://github.com/GaelleBriet/memo-patte-vue/issues/373)
+* **weight:** retirer la bande vide sous la ligne de base de la courbe du Carnet ([39da461](https://github.com/GaelleBriet/memo-patte-vue/commit/39da461f05040c142282af6e64940999a5a99526))
+
 ## [0.1.36](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.35...memo-patte-v0.1.36) (2026-09-23)
 
 
