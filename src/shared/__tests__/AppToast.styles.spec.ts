@@ -37,6 +37,12 @@ describe('AppToast — contrat de style (maquette B3)', () => {
     expect(declaration(feuille, TOAST, 'width')).toBe('100%')
   })
 
+  it('laisse libres sous lui la bottom nav et toute barre fixe du bas déclarée', () => {
+    expect(declaration(feuille, '.app-toast', 'padding-bottom')).toBe(
+      'calc(var(--v-layout-bottom) + var(--fixed-bottom-bar-height, 0px))',
+    )
+  })
+
   it('garde la hauteur et les marges intérieures de B3', () => {
     expect(declaration(feuille, TOAST, 'min-height')).toBe('56px')
     expect(declaration(feuille, '.app-toast :deep(.v-snackbar__content)', 'padding')).toBe(

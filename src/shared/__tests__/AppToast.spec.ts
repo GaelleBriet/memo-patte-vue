@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { nextTick } from 'vue'
 
 import AppToast from '../components/AppToast.vue'
+import PushedScreen from '../components/PushedScreen.vue'
 import { dismissToast, showToast, toastMessage } from '../utils/toast'
 import { getMsIconPath } from '@/core/theme/icons'
 import vuetify from '@/core/theme/vuetify'
@@ -183,6 +184,40 @@ describe('AppToast', () => {
 
     expect(textes).toEqual(['', message])
     wrapper.unmount()
+  })
+
+  it('se pose au-dessus de la barre d’actions fixe d’un écran poussé', async () => {
+    let mesurer: () => void = () => {}
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        constructor(rappel: () => void) {
+          mesurer = rappel
+        }
+        observe(cible: Element) {
+          if (!cible.classList.contains('pushed-screen__actions')) return
+          vi.spyOn(cible, 'getBoundingClientRect').mockReturnValue({ height: 146 } as DOMRect)
+        }
+        disconnect() {}
+      },
+    )
+    const ecran = mount(PushedScreen, {
+      props: { title: 'MémoPatte Plus', backLabel: 'Retour' },
+      slots: { default: '<p>Offres</p>', actions: '<button>Continuer</button>' },
+      global: { plugins: [vuetify] },
+      attachTo: document.body,
+    })
+    const wrapper = mountToast()
+    await nextTick()
+    mesurer()
+
+    showToast('Aucun achat à restaurer sur ce compte Google.')
+    await nextTick()
+
+    const toast = document.body.querySelector<HTMLElement>('.app-toast')
+    expect(toast?.style.getPropertyValue('--fixed-bottom-bar-height')).toBe('146px')
+    wrapper.unmount()
+    ecran.unmount()
   })
 
   it('se ferme d’un glissement vers le bas', async () => {

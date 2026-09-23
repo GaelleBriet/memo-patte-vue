@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
+import { fixedBottomBarHeight } from '../composables/use-fixed-bottom-bar'
 import { dismissToast, toastAnnouncement, toastMessage } from '../utils/toast'
 
 const isOpen = computed({
@@ -19,6 +20,7 @@ const isOpen = computed({
     class="app-toast"
     :timeout="-1"
     location="bottom"
+    :style="{ '--fixed-bottom-bar-height': `${fixedBottomBarHeight}px` }"
     :content-props="{ 'aria-hidden': 'true' }"
   >
     <span class="app-toast__content">
@@ -31,9 +33,9 @@ const isOpen = computed({
 <style scoped lang="scss">
 @use '@/styles/tokens' as tokens;
 
-// Vuetify ajoute la hauteur de la bottom nav sous cette marge quand elle est affichée.
 .app-toast {
   margin: 0 14px 24px;
+  padding-bottom: calc(var(--v-layout-bottom) + var(--fixed-bottom-bar-height, 0px));
 }
 
 .app-toast :deep(.v-snackbar__wrapper) {
