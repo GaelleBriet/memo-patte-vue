@@ -3,13 +3,12 @@
 - 2026-09-23 (soir) : **reprendre ici.** Mergés dans la soirée : #367 (#344 « À faire » sur 30 jours,
   « Prochain rappel » à la place de « Aucun rappel à venir »), #369 (#354 toasts pétrole, au-dessus de
   toute barre fixe, tonalités réussite / information / échec), #370 (#350 courbe du PDF sur l'axe du
-  temps ; aucune étiquette ne touche la ligne de base, Carnet compris). `main` à **2485 tests**.
+  temps ; aucune étiquette ne touche la ligne de base, Carnet compris). `main` à **2485 tests**, puis #373 (bande vide retirée sous la ligne de base de la courbe du Carnet, la place va au tracé) : voir la PR du même nom.
   Décisions au journal : « Cycle de vie d'un rappel » et « Finitions de #344, #350 et #354 ».
   **En attente de Gaelle** : (1) modèle de données de l'historique (#364) — document de comparaison
   sur la branche distante `docs/proposition-historique-rappels`, sans PR ; elle penche pour « une
   ligne de vaccin par injection » ; (2) maquette Claude Design de la feuille « Fait » (prompt donné,
-  planches F1 à F11) ; (3) maquettes de #351 et #352 ; (4) #365 médicaments ; (5) retirer ou non les
-  10 px d'air sous la ligne de base de la courbe du Carnet, devenus inutiles ; (6) ordre des tickets
+  planches F1 à F11) ; (3) maquettes de #351 et #352 ; (4) #365 médicaments ; (5) ordre des tickets
   de synchro. Non vérifié sur appareil : l'annonce TalkBack des toasts (délai de 100 ms), la courbe
   avec police système agrandie, l'action de notification quand l'app est fermée.
 

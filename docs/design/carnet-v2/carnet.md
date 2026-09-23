@@ -120,8 +120,10 @@ Carte unique contenant :
       la ligne de base, jambages compris (2026-09-23, #350) : « min » s'écrit
       toujours sous son point, au-dessus de la ligne de base, même pour un
       chiot qui passe de 5 à 30 kg et même police agrandie
-    - la rangée des mois est 10 px plus bas que la ligne de base ne
-      l'exigerait : de l'air sous la courbe, où aucune étiquette ne s'écrit
+    - 160 px de haut : 34 px au-dessus du tracé pour la pastille et « max »,
+      100 px de tracé, puis la rangée des mois contre la ligne de base (traits
+      de repère de 5 px, libellés écrits 22 px sous la ligne de base). La
+      courbe du PDF reprend ce gabarit
     - la place des étiquettes suit la taille de police réellement rendue
 - sous la courbe, les mois (12 px / 500, `#736E67`) : un libellé au début de
   chaque mois, avec un petit trait de repère. Au-delà de six changements de

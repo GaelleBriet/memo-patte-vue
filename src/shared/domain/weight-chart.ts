@@ -74,8 +74,7 @@ export type HistoryWeightChart = TimeChart & {
 
 type Layout = { height: number; left: number; right: number; top: number; bottom: number }
 
-// Sous la ligne de base du Carnet, 10 px d'air de plus que les traits et les mois n'en demandent.
-const CARNET_LAYOUT: Layout = { height: 160, left: 8, right: 8, top: 34, bottom: 36 }
+const CARNET_LAYOUT: Layout = { height: 160, left: 8, right: 8, top: 34, bottom: 26 }
 const HISTORY_LAYOUT: Layout = { height: 190, left: 36, right: 10, top: 12, bottom: 22 }
 
 const CARNET_MARGIN_KG = 0.3
