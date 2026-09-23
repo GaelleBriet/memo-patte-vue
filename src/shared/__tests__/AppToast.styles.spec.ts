@@ -61,4 +61,11 @@ describe('AppToast — contrat de style (maquette B3)', () => {
   it('dessine la coche en bleu clair', () => {
     expect(declaration(feuille, '.app-toast__icon', 'color')).toBe('#b9e4e7')
   })
+
+  it('peint un échec dans la couleur système d’erreur, texte et icône compris', () => {
+    const ECHEC = '.app-toast--error :deep(.v-snackbar__wrapper)'
+    expect(declaration(feuille, ECHEC, 'background')).toBe('rgb(var(--v-theme-error))')
+    expect(declaration(feuille, ECHEC, 'color')).toBe('rgb(var(--v-theme-on-error))')
+    expect(declaration(feuille, '.app-toast--error .app-toast__icon', 'color')).toBe('inherit')
+  })
 })

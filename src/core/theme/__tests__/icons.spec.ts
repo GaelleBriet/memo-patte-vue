@@ -35,6 +35,8 @@ const iconesDesMaquettes = [
   'open_in_new',
   'picture_as_pdf',
   'check_circle_fill',
+  'info_fill',
+  'error_fill',
 ] as const
 
 describe('registre d’icônes Material Symbols', () => {

@@ -2,7 +2,19 @@
 import { computed } from 'vue'
 
 import { fixedBottomBarHeight } from '../composables/use-fixed-bottom-bar'
-import { dismissToast, toastAnnouncement, toastMessage } from '../utils/toast'
+import {
+  dismissToast,
+  toastAnnouncement,
+  toastMessage,
+  toastTone,
+  type ToastTone,
+} from '../utils/toast'
+
+const ICONS: Record<ToastTone, string> = {
+  success: 'ms:check_circle_fill',
+  info: 'ms:info_fill',
+  error: 'ms:error_fill',
+}
 
 const isOpen = computed({
   get: () => toastMessage.value !== null,
@@ -18,13 +30,14 @@ const isOpen = computed({
   <v-snackbar
     v-model="isOpen"
     class="app-toast"
+    :class="`app-toast--${toastTone}`"
     :timeout="-1"
     location="bottom"
     :style="{ '--fixed-bottom-bar-height': `${fixedBottomBarHeight}px` }"
     :content-props="{ 'aria-hidden': 'true' }"
   >
     <span class="app-toast__content">
-      <v-icon class="app-toast__icon" icon="ms:check_circle_fill" size="20" />
+      <v-icon class="app-toast__icon" :icon="ICONS[toastTone]" size="20" />
       <span class="app-toast__message">{{ toastMessage }}</span>
     </span>
   </v-snackbar>
@@ -46,6 +59,11 @@ const isOpen = computed({
   background: rgb(var(--v-theme-primary));
   color: tokens.$color-on-primary;
   box-shadow: tokens.$shadow-toast;
+}
+
+.app-toast--error :deep(.v-snackbar__wrapper) {
+  background: rgb(var(--v-theme-error));
+  color: rgb(var(--v-theme-on-error));
 }
 
 .app-toast :deep(.v-snackbar__content) {
@@ -71,6 +89,10 @@ const isOpen = computed({
 .app-toast__icon {
   flex-shrink: 0;
   color: tokens.$color-toast-icon;
+}
+
+.app-toast--error .app-toast__icon {
+  color: inherit;
 }
 
 .app-toast__message {

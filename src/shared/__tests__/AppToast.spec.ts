@@ -67,6 +67,39 @@ describe('AppToast', () => {
     wrapper.unmount()
   })
 
+  it.each([
+    [undefined, 'success', 'check_circle_fill'],
+    ['info', 'info', 'info_fill'],
+    ['error', 'error', 'error_fill'],
+  ] as const)(
+    'prend la tonalité demandée (%s) : sa couleur et son icône',
+    async (tone, classe, icone) => {
+      const wrapper = mountToast()
+
+      showToast('La restauration n’a pas abouti. Réessaie.', tone ? { tone } : {})
+      await nextTick()
+
+      const toast = document.body.querySelector('.app-toast')
+      expect(toast?.classList.contains(`app-toast--${classe}`)).toBe(true)
+      const trace = toast?.querySelector('.app-toast__icon svg path')?.getAttribute('d')
+      expect(trace).toBeTruthy()
+      expect(trace).toBe(getMsIconPath(icone)?.path)
+      wrapper.unmount()
+    },
+  )
+
+  it('revient à la tonalité de réussite quand un appel ne la précise pas', async () => {
+    const wrapper = mountToast()
+    showToast('La restauration n’a pas abouti. Réessaie.', { tone: 'error' })
+    await nextTick()
+
+    showToast('Rappels activés')
+    await nextTick()
+
+    expect(document.body.querySelector('.app-toast')?.classList).toContain('app-toast--success')
+    wrapper.unmount()
+  })
+
   it('se referme seul après quelques secondes', async () => {
     vi.useFakeTimers()
     const wrapper = mountToast()

@@ -54,9 +54,10 @@ async function restore(): Promise<void> {
   isRestoring.value = true
   try {
     const status = await purchase.restore()
-    showToast(status.plan === 'none' ? t('plus.restore.none') : t('plus.restore.restored'))
+    if (status.plan === 'none') showToast(t('plus.restore.none'), { tone: 'info' })
+    else showToast(t('plus.restore.restored'))
   } catch {
-    showToast(t('plus.restore.failed'))
+    showToast(t('plus.restore.failed'), { tone: 'error' })
   } finally {
     isRestoring.value = false
   }

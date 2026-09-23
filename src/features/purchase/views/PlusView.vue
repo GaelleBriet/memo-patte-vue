@@ -116,13 +116,13 @@ async function restore(): Promise<void> {
     const status = await purchase.restore()
     if (status.plan === 'none') {
       phase.value = 'offers'
-      showToast(t('plus.restore.none'))
+      showToast(t('plus.restore.none'), { tone: 'info' })
     } else {
       phase.value = 'success'
     }
   } catch {
     phase.value = 'offers'
-    showToast(t('plus.restore.failed'))
+    showToast(t('plus.restore.failed'), { tone: 'error' })
   }
 }
 </script>

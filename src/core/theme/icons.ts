@@ -69,6 +69,7 @@ import fullscreen from '@material-symbols/svg-400/outlined/fullscreen.svg?raw'
 import fullscreenExit from '@material-symbols/svg-400/outlined/fullscreen_exit.svg?raw'
 import indeterminateCheckBox from '@material-symbols/svg-400/outlined/indeterminate_check_box.svg?raw'
 import info from '@material-symbols/svg-400/outlined/info.svg?raw'
+import infoFill from '@material-symbols/svg-400/outlined/info-fill.svg?raw'
 import keyboardArrowDown from '@material-symbols/svg-400/outlined/keyboard_arrow_down.svg?raw'
 import keyboardArrowUp from '@material-symbols/svg-400/outlined/keyboard_arrow_up.svg?raw'
 import keyboardCommandKey from '@material-symbols/svg-400/outlined/keyboard_command_key.svg?raw'
@@ -147,6 +148,7 @@ export const msIcons = {
   home,
   indeterminate_check_box: indeterminateCheckBox,
   info,
+  info_fill: infoFill,
   ios_share: iosShare,
   keyboard_arrow_down: keyboardArrowDown,
   keyboard_arrow_up: keyboardArrowUp,
