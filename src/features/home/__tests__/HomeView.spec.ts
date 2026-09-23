@@ -563,6 +563,101 @@ describe('HomeView — A4 tous les animaux, aucun rappel', () => {
   })
 })
 
+describe('HomeView — fenêtre de 30 jours', () => {
+  const RETARD_ANCIEN = source({ id: 'v-ancien', label: 'Leishmaniose', dueDate: '2025-06-01' })
+  const RAGE_LUNA_J30 = source({
+    id: 'v-j30',
+    animalId: LUNA.id,
+    label: 'Rage',
+    dueDate: '2026-10-09',
+  })
+  const TYPHUS_LUNA_J31 = source({
+    id: 'v-j31',
+    animalId: LUNA.id,
+    label: 'Typhus',
+    dueDate: '2026-10-10',
+  })
+  const CARRE_MILO_2027 = source({ id: 'v-2027', label: 'Carré', dueDate: '2027-08-26' })
+  const VERMIFUGE_LUNA_NOVEMBRE = source({
+    id: 't-nov',
+    kind: 'treatment',
+    animalId: LUNA.id,
+    label: 'Milbemax',
+    treatmentType: 'deworming',
+    dueDate: '2026-11-08',
+  })
+
+  it('liste les retards, même anciens, et les échéances à 30 jours au plus', async () => {
+    sources = [TYPHUS_LUNA_J31, RAGE_LUNA_J30, RETARD_ANCIEN, CARRE_MILO_2027]
+    const wrapper = await monter()
+
+    expect(rows(wrapper).map((row) => row.title)).toEqual(['Leishmaniose', 'Rage'])
+    expect(rows(wrapper)[1]).toMatchObject({ badge: 'Dans 30 jours' })
+  })
+
+  it('compte dans l’en-tête et le bandeau ce qui est affiché', async () => {
+    sources = [TYPHUS_LUNA_J31, RAGE_LUNA_J30, RETARD_ANCIEN, CARRE_MILO_2027]
+    const wrapper = await monter()
+
+    expect(wrapper.get('.home-todo .section-card__counter').text()).toBe('2 rappels')
+    expect(wrapper.get('.home-overdue-banner').text()).toBe('1 rappel en retard')
+
+    await wrapper.findAll('.animal-chip')[1]!.trigger('click')
+    await flushPromises()
+
+    expect(wrapper.get('.home-todo .section-card__counter').text()).toBe('Luna · 1 rappel')
+  })
+
+  it('n’annonce pas de prochain rappel tant que la liste en montre', async () => {
+    sources = [RAGE_LUNA_J30, CARRE_MILO_2027]
+    const wrapper = await monter()
+
+    expect(wrapper.find('.home-up-to-date__next').exists()).toBe(false)
+  })
+
+  it('annonce le prochain rappel de l’animal sélectionné, sans son prénom', async () => {
+    sources = [CARRE_MILO_2027, VERMIFUGE_LUNA_NOVEMBRE]
+    const wrapper = await monter()
+    await wrapper.findAll('.animal-chip')[0]!.trigger('click')
+    await flushPromises()
+
+    expect(wrapper.get('.home-todo .section-card__counter').text()).toBe('Milo')
+    expect(wrapper.get('.home-up-to-date__title').text()).toBe('Tout est à jour')
+    expect(wrapper.get('.home-up-to-date__next').text()).toBe(
+      'Prochain rappel : Carré le 26 août 2027',
+    )
+  })
+
+  it('annonce le prochain rappel sans prénom quand le foyer n’a qu’un animal', async () => {
+    animals = [MILO]
+    sources = [CARRE_MILO_2027]
+    const wrapper = await monter()
+
+    expect(wrapper.get('.home-up-to-date__next').text()).toBe(
+      'Prochain rappel : Carré le 26 août 2027',
+    )
+  })
+
+  it('nomme l’animal du prochain rappel dans la vue de tous les animaux', async () => {
+    sources = [CARRE_MILO_2027, VERMIFUGE_LUNA_NOVEMBRE, TYPHUS_LUNA_J31]
+    const wrapper = await monter()
+
+    expect(wrapper.find('.home-todo .section-card__counter').exists()).toBe(false)
+    expect(wrapper.find('.home-overdue-banner').exists()).toBe(false)
+    expect(wrapper.get('.home-up-to-date__next').text()).toBe(
+      'Prochain rappel : Typhus pour Luna le 10 oct. 2026',
+    )
+  })
+
+  it('n’annonce rien quand aucun rappel n’existe', async () => {
+    sources = [SANS_ECHEANCE]
+    const wrapper = await monter()
+
+    expect(wrapper.find('.home-up-to-date').exists()).toBe(true)
+    expect(wrapper.find('.home-up-to-date__next').exists()).toBe(false)
+  })
+})
+
 describe('HomeView — un seul animal', () => {
   beforeEach(() => {
     animals = [MILO]

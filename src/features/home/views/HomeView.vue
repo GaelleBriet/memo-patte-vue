@@ -15,11 +15,17 @@ import WeightSheet from '@/features/weight/views/WeightSheet.vue'
 import AnimalChipSelector, { type AnimalChipItem } from '@/shared/components/AnimalChipSelector.vue'
 import DueStatusChip from '@/shared/components/DueStatusChip.vue'
 import SectionCard from '@/shared/components/SectionCard.vue'
-import { buildReminders } from '@/shared/domain/reminders'
 import AnimalPickerSheet from './AnimalPickerSheet.vue'
 import { useHomeStore } from '../store/home.store'
-import { overdueBanner, reminderRows, scopeCounter, upToDateText } from '../logic/home-summary'
+import {
+  nextReminderText,
+  overdueBanner,
+  reminderRows,
+  scopeCounter,
+  upToDateText,
+} from '../logic/home-summary'
 import { currentAnimalId } from '../logic/current-animal'
+import { buildTodo } from '../logic/todo-window'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -58,18 +64,18 @@ const currentName = computed(
 )
 
 const summary = computed(() =>
-  buildReminders(home.sources, {
+  buildTodo(home.sources, {
     today: today.value,
     animalId: currentId.value ?? undefined,
   }),
 )
 
-const rows = computed(() =>
-  reminderRows(t, summary.value.reminders, {
-    animalNames: new Map(animals.animals.map((animal) => [animal.id, animal.name])),
-    showAnimal: currentName.value === null,
-  }),
-)
+const rowOptions = computed(() => ({
+  animalNames: new Map(animals.animals.map((animal) => [animal.id, animal.name])),
+  showAnimal: currentName.value === null,
+}))
+
+const rows = computed(() => reminderRows(t, summary.value.reminders, rowOptions.value))
 
 const counter = computed(() =>
   scopeCounter(t, { total: summary.value.total, animalName: currentName.value }),
@@ -81,6 +87,7 @@ const upToDate = computed(() =>
     allNames: animals.animals.map((animal) => animal.name),
   }),
 )
+const nextReminder = computed(() => nextReminderText(t, summary.value.next, rowOptions.value))
 
 function load(): Promise<unknown> {
   return Promise.all([animals.load(), home.load()])
@@ -214,6 +221,9 @@ function openCarnet(): void {
               <div>
                 <p class="home-up-to-date__title">{{ t('home.upToDate.title') }}</p>
                 <p class="home-up-to-date__text">{{ upToDate }}</p>
+                <p v-if="nextReminder" class="home-up-to-date__next">
+                  {{ nextReminder }}
+                </p>
               </div>
             </div>
             <button type="button" class="home-up-to-date__add" @click="openCarnet">
@@ -490,7 +500,8 @@ function openCarnet(): void {
   font-weight: 700;
 }
 
-.home-up-to-date__text {
+.home-up-to-date__text,
+.home-up-to-date__next {
   margin: 2px 0 0;
   color: tokens.$color-text-secondary;
   font-size: 14px;
