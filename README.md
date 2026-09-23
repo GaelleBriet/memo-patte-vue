@@ -55,7 +55,7 @@ cp .env.example .env             # clés Supabase, fichier jamais versionné
 
 pnpm dev                         # développement web (Vite), base vide
 pnpm dev:data                    # idem, avec le carnet de démo Milo + Luna
-pnpm dev:mobile                  # build + install sur le téléphone, hot reload via adb ; suit le serveur dev ou dev:data
+pnpm dev:mobile                  # plugins à jour, build + install sur le téléphone, hot reload via adb ; suit dev ou dev:data
 pnpm cap:sync                    # build de prod + synchronisation Capacitor
 pnpm cap:open:android            # ouvre le projet dans Android Studio
 ```

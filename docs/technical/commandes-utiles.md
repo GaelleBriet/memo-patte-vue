@@ -88,6 +88,10 @@ pnpm dev:mobile
 `--forwardPorts` lance automatiquement `adb reverse` pour que le téléphone puisse atteindre le `localhost` de la machine
 — pas besoin de connaître l'IP de ta machine sur le réseau, ni de config manuelle dans `capacitor.config.ts`.
 
+Avant, `cap update android` régénère la liste des plugins natifs (`capacitor.plugins.json`, ignoré par git) :
+sans ça, un plugin ajouté depuis le dernier `cap:sync` reste « not implemented on android » en dev. Sur un
+dépôt jamais synchronisé (clone neuf), la commande lance d'abord `pnpm cap:sync` complet.
+
 **Pièges connus (2026-09-07)** :
 
 - « Page web non disponible » sur le téléphone alors que le build passe : Vite n'écoute pas là où
@@ -100,8 +104,8 @@ pnpm dev:mobile
   (`node_modules/.pnpm/…`). Un `node_modules` installé par npm ne les a pas. `preinstall` refuse désormais
   `npm install` ; si ça arrive quand même : `rm -rf node_modules package-lock.json && pnpm install --frozen-lockfile`.
 - Après un bump de `@capacitor/*` ou d'un plugin Capacitor (groupe Dependabot `capacitor`), ces chemins changent :
-  lance `pnpm cap:sync` une fois pour régénérer `capacitor.settings.gradle`, **puis commite le fichier** (c'est
-  un geste manuel après le merge, Dependabot ne peut pas le faire), car `dev:mobile` tourne avec `--no-sync`.
+  le prochain `pnpm dev:mobile` (ou `pnpm cap:sync`) régénère `capacitor.settings.gradle`, qui apparaît alors
+  modifié dans `git status` : **commite-le** (c'est un geste manuel après le merge, Dependabot ne peut pas le faire).
   Sinon la dérive revient à chaque bump (vu sur #147 : `main` pointait encore vers 8.5.0 après la montée 8.5.1).
   Le job `android` de la CI (§8) refait `pnpm cap:sync` et échoue si `android/` bouge : une PR qui laisse la
   dérive reste rouge jusqu'à ce que le fichier régénéré y soit commité.
