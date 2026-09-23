@@ -502,7 +502,7 @@ Contenu minimal de la page `supprimer-mon-compte.html` (exigences Google : nom d
 
 **C. Application**
 10. `targetSdkVersion 36` ; plugin de facturation avec PBL ≥ 7 ; `queryPurchasesAsync` au lancement ; acquittement des achats < 3 jours ; gestion des états (grâce = accès, hold = coupure).
-11. Manifest : `POST_NOTIFICATIONS` ; **pas** de `READ_MEDIA_IMAGES`/`READ_MEDIA_VIDEO`, pas d'`USE_EXACT_ALARM`, pas d'`USE_BIOMETRIC`/`USE_FINGERPRINT` ; vérifier le manifest fusionné avec `pnpm test:manifest` (liste blanche ; contrôle local, cf. `commandes-utiles.md` §6).
+11. Manifest : `POST_NOTIFICATIONS` ; `READ/WRITE_EXTERNAL_STORAGE` avec `android:maxSdkVersion="29"`, jamais `MANAGE_EXTERNAL_STORAGE` ; **pas** de `READ_MEDIA_IMAGES`/`READ_MEDIA_VIDEO`, pas d'`USE_EXACT_ALARM`, pas d'`USE_BIOMETRIC`/`USE_FINGERPRINT` ; vérifier le manifest fusionné avec `pnpm test:manifest` (liste blanche ; contrôle local, cf. `commandes-utiles.md` §6).
 12. Écran Plus : prix, périodicité, renouvellement automatique, mention « app utilisable gratuitement », lien « Gérer mon abonnement » (Play Subscription Center), lien CGU/politique.
 13. Écran de consentement analytics in-app (action positive, avant init), interrupteur dans Paramètres. *(Fait le 2026-09-15, #67 ; lien vers la politique à ajouter avec #86.)*
 14. Paramètres > Confidentialité : lien/texte de la politique ; Paramètres > Compte : « Supprimer mon compte » ; Paramètres > Exporter (JSON/CSV).

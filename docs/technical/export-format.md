@@ -21,18 +21,32 @@ Le code de référence est `src/features/settings/logic/export-format.ts`, couve
 Les feuilles d'export (JSON et CSV depuis Paramètres, PDF depuis le Carnet ou Paramètres) proposent
 deux actions. Le fichier est le même, seul son chemin change.
 
+**Noms de fichier** : minute locale du téléphone, sur 24 h, au format `AAAAMMJJ-HHmm`, identique
+dans toutes les langues (décision de Gaelle du 2026-09-23).
+
+| Export | Nom                                                                  |
+| ------ | -------------------------------------------------------------------- |
+| JSON   | `memopatte-export-20260923-1432.json`                                |
+| CSV    | `memopatte-export-20260923-1432.zip`                                 |
+| PDF    | `carnet-milo-20260923-1432.pdf` (anglais : `health-record-milo-…`)   |
+
+Pour le PDF, le premier mot vient de la clé `settings.pdf.fileNamePrefix` et le nom de l'animal est
+simplifié : minuscules ASCII, accents retirés, tout autre caractère remplacé par `-`, sans tiret
+doublé ni en bord. Un nom qui ne donne aucun caractère (un emoji seul) est omis :
+`carnet-20260923-1432.pdf`. La feuille PDF affiche le nom qui sera écrit : l'export est daté de
+l'ouverture de la feuille.
+
 ### « Enregistrer sur le téléphone » (action principale)
 
 - Écriture directe dans le dossier public **Documents**, sous-dossier `MémoPatte/`
   (`Directory.Documents` de `@capacitor/filesystem`), sans fenêtre de choix. Le système indexe le
   fichier : il apparaît dans l'app Fichiers. Un toast dit où il se trouve
   (« Export JSON enregistré dans Documents › MémoPatte »), 4 s.
-- Le fichier garde son nom. Un export n'écrase **jamais** un fichier existant : si le nom est pris
-  (deuxième export du jour), il prend un numéro, `memopatte-export-2026-09-23 (1).json`. Même règle
-  quand l'écriture échoue sur un nom que l'app ne voit pas : sur Android 11 et plus, un fichier laissé
-  par une installation précédente n'appartient plus à l'app, qui ne peut ni le lire ni l'écraser.
-  Une panne qui persiste d'un nom à l'autre (disque plein) fait échouer l'export après trois essais,
-  avec le message d'erreur de la feuille.
+- Le fichier garde son nom. Un export n'écrase **jamais** un fichier existant : si le nom est déjà
+  pris (deux exports dans la même minute), il prend un numéro, `memopatte-export-20260923-1432 (1).json`.
+- Une panne d'écriture (disque plein…) fait échouer l'export au premier essai, avec le message
+  d'erreur de la feuille ; le fichier entamé est effacé. Sauf si l'accès au stockage manque : sur
+  Android 10 et moins, y toucher rouvrirait la demande d'Android.
 - **Android 11 et plus** : aucune permission, l'app n'accède qu'aux fichiers qu'elle crée.
 - **Android 7 à 10** : `READ_EXTERNAL_STORAGE` et `WRITE_EXTERNAL_STORAGE`, déclarées avec
   `android:maxSdkVersion="29"` (alias `publicStorage` du plugin), demandées au premier
@@ -57,9 +71,9 @@ deux actions. Le fichier est le même, seul son chemin change.
   ou Quick Share lisent l'URI après coup — effacer tout de suite enverrait une pièce jointe vide.
   Un partage annulé ou en échec, lui, est effacé sur-le-champ : aucune appli n'a reçu l'URI.
 
-## JSON — `memopatte-export-AAAA-MM-JJ.json`
+## JSON — `memopatte-export-AAAAMMJJ-HHmm.json`
 
-Date du nom de fichier : jour local de l'export. Encodage UTF-8, sans BOM, indenté sur 2 espaces.
+Date du nom de fichier : minute locale de l'export. Encodage UTF-8, sans BOM, indenté sur 2 espaces.
 
 ```json
 {
@@ -218,7 +232,7 @@ réutilisable par la synchronisation Plus). Les types de lignes partagés vivent
   (`promptNotificationsIfReminders(router, 'settings')`) ; les autres écrans relisent la base à leur
   ouverture.
 
-## CSV — `memopatte-export-AAAA-MM-JJ.zip`
+## CSV — `memopatte-export-AAAAMMJJ-HHmm.zip`
 
 Archive zip d'un fichier par table, pour un tableur. **Pas prévu pour l'import** : seul le JSON
 se réimporte.
