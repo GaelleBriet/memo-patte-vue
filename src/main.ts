@@ -46,10 +46,12 @@ applyLocale(detectLocale(navigator.languages))
 installBackButton()
 void clearExports()
 
-// Fixtures de développement (`pnpm dev:data`) : import dynamique derrière
-// `import.meta.env.DEV`, le module tombe au build. Avant le montage, pour que
-// les stores lisent une base déjà prête ; un échec ne bloque pas l'app.
+// Outils de développement (`pnpm dev:data`, `pnpm dev:plus`) : import dynamique derrière
+// `import.meta.env.DEV`, les modules tombent au build. Avant le montage, pour que
+// les stores lisent une base et un statut Plus déjà prêts ; un échec ne bloque pas l'app.
 if (import.meta.env.DEV) {
+  const { applyDevPlusStatus } = await import('@/features/purchase/logic/dev-plus-status')
+  applyDevPlusStatus(import.meta.env.VITE_DEV_PLAN)
   const { applyDevFixtures } = await import('@/core/dev/fixtures')
   await applyDevFixtures()
 }

@@ -8,6 +8,7 @@
     "postinstall": "node -e \"const fs=require('fs');fs.mkdirSync('public/assets',{recursive:true});fs.copyFileSync(require.resolve('sql.js/dist/sql-wasm.wasm',{paths:[require.resolve('jeep-sqlite/package.json')]}),'public/assets/sql-wasm.wasm')\"",
     "dev": "vite",
     "dev:data": "VITE_FIXTURES=maquettes-$(date +%s) vite",
+    "dev:plus": "VITE_DEV_PLAN=${VITE_DEV_PLAN:-lifetime} vite",
     "build": "run-p type-check \"build-only {@}\" --",
     "preview": "vite preview",
     "test:unit": "vitest",
