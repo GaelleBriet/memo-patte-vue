@@ -1,14 +1,19 @@
 # Contexte en cours (à mettre à jour à chaque lot)
 
-- 2026-09-23 (suite) : **reprendre ici.** Lot « retours de navigation » (décisions 1 à 15 du
-  journal du jour). PR prêtes, relues : #346 (#339 accueil à un animal), #355 (#342 + #341 écran
-  Plus et pastille). En relecture ciblée finale : #340 (courbe, branche `feat/courbe-poids-axe-temps`)
-  et #343 (export, `feat/export-enregistrer`). Avant de merger : fusion des quatre branches dans un
-  worktree jetable, puis test sur le téléphone de Gaelle (export dans Documents › MémoPatte, courbe
-  avec police agrandie). Suivis créés : #344 (brainstorming de la liste « À faire », après le lot),
-  #349 (« Ouvrir » du toast), #350 (courbe du PDF), #351 (Historique par pages, maquette à faire),
-  #352 (unité de poids, questions et maquette), #353 (relecture EN), #354 (style des toasts),
-  #356 (PDF de tous les animaux). Un prompt Claude Design pour #351 et #352 a été donné à Gaelle.
+- 2026-09-23 (fin) : **reprendre ici.** Lot « retours de navigation » **mergé** : #346 (#339
+  accueil à un animal), #355 (#342 + #341 écran Plus et pastille), #358 (#340 courbe de poids),
+  #359 (#343 export enregistré dans Documents). `main` à **2403 tests**. Testé sur le téléphone de
+  Gaelle (Android 16) avec le lot intégré : chip et feuille pesée à un animal, pastille, écran Plus
+  depuis le PDF, courbe du Carnet, export JSON et CSV écrits dans Documents › MémoPatte sans
+  permission, suffixe ` (1)` dans la même minute ; base sauvegardée puis restaurée à l'identique,
+  fichiers de test et entrée MediaStore supprimés, build de `main` réinstallé. **Non testé sur
+  appareil** : courbe avec la police système agrandie (réglage système interdit au test), export PDF
+  (Plus requis), parcours Android 7 à 10 (émulateur API 29 nécessaire).
+  **Suivis ouverts** : #344 (brainstorming de la liste « À faire », prochaine étape convenue), #349
+  (« Ouvrir » du toast), #350 (courbe du PDF), #351 (Historique par pages, maquette Claude Design à
+  recevoir), #352 (unité de poids, trois questions et maquette), #353 (relecture EN), #354 (style
+  des toasts, plus le minuteur qui ne repart pas sur un message identique), #356 (PDF de tous les
+  animaux). Synchro (#83, #40, #87…) à ordonner ensuite avec Gaelle.
 
 - 2026-09-23 : **point de départ de la journée.** Gaelle a commencé à vérifier sur son téléphone le travail
   livré (`pnpm dev:mobile` depuis son dépôt principal). Deux questions lui ont été posées, la
