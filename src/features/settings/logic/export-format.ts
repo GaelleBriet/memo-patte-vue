@@ -26,9 +26,12 @@ export type ExportFile = {
   content: string | Uint8Array
 }
 
+/** Minute locale de l'export, sur 24 h : deux exports d'un même jour ne portent pas le même nom. */
+export const EXPORT_FILE_TIME = 'yyyyMMdd-HHmm'
+
 export function exportFileName(exportFormat: ExportFormat, exportedAt: Date): string {
   const extension = exportFormat === 'json' ? 'json' : 'zip'
-  return `memopatte-export-${format(exportedAt, 'yyyy-MM-dd')}.${extension}`
+  return `memopatte-export-${format(exportedAt, EXPORT_FILE_TIME)}.${extension}`
 }
 
 export function exportReminders(data: ExportData): ExportReminder[] {

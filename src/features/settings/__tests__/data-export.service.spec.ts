@@ -69,7 +69,7 @@ describe('data-export.service', () => {
 
     expect(deliver.mock.calls[0]![1]).toBe('share')
     const file = delivered(deliver)
-    expect(file.name).toBe('memopatte-export-2026-09-15.json')
+    expect(file.name).toBe('memopatte-export-20260915-1030.json')
     const document = JSON.parse(file.content as string)
     expect(document).toMatchObject({
       schemaVersion: 1,
@@ -87,7 +87,7 @@ describe('data-export.service', () => {
     await service.exportData('csv', 'share')
 
     const file = delivered(deliver)
-    expect(file.name).toBe('memopatte-export-2026-09-15.zip')
+    expect(file.name).toBe('memopatte-export-20260915-1030.zip')
     expect(Object.keys(unzipSync(file.content as Uint8Array))).toHaveLength(5)
   })
 
@@ -104,7 +104,7 @@ describe('data-export.service', () => {
     await expect(service.exportData('json', 'save')).resolves.toBe('saved')
 
     expect(deliver).toHaveBeenCalledExactlyOnceWith(
-      expect.objectContaining({ name: 'memopatte-export-2026-09-15.json' }),
+      expect.objectContaining({ name: 'memopatte-export-20260915-1030.json' }),
       'save',
     )
   })

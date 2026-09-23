@@ -460,6 +460,7 @@
         "fileContent": "Vaccins, traitements, poids et photos",
         "error": "Le PDF n’a pas pu être préparé. Réessaie."
       },
+      "fileNamePrefix": "carnet",
       "shareTitle": "Partager via",
       "success": "PDF exporté",
       "saved": "PDF enregistré dans Documents › MémoPatte",

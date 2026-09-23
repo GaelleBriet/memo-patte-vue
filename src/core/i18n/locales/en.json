@@ -460,6 +460,7 @@
         "fileContent": "Vaccines, treatments, weight and photos",
         "error": "The PDF couldn’t be prepared. Try again."
       },
+      "fileNamePrefix": "health-record",
       "shareTitle": "Share via",
       "success": "PDF exported",
       "saved": "PDF saved to Documents › MémoPatte",

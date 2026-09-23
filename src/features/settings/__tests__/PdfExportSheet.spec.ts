@@ -5,12 +5,12 @@ import PdfExportSheet, { type PdfExportAnimal } from '../views/PdfExportSheet.vu
 import type { DeliveryMode } from '../logic/export-delivery'
 import type { SaveAccess } from '../logic/export-storage-access'
 import type { PdfExportOutcome } from '../service/pdf-export.service'
-import i18n from '@/core/i18n'
+import i18n, { applyLocale } from '@/core/i18n'
 import vuetify from '@/core/theme/vuetify'
 import { dismissToast, toastDurationMs, toastMessage } from '@/shared/utils/toast'
 
 const exportAnimalCarnetPdf = vi.hoisted(() =>
-  vi.fn<(animalId: string, mode: DeliveryMode) => Promise<PdfExportOutcome>>(),
+  vi.fn<(animalId: string, mode: DeliveryMode, exportedAt?: Date) => Promise<PdfExportOutcome>>(),
 )
 const storage = vi.hoisted(() => ({
   checkSaveAccess: vi.fn<() => Promise<SaveAccess>>(),
@@ -26,11 +26,12 @@ vi.mock('@/core/app-lifecycle/app-resume', () => ({ useAppResume: () => {} }))
 
 const MILO: PdfExportAnimal = { id: 'milo-id', name: 'Milo', species: 'dog' }
 const LUNA: PdfExportAnimal = { id: 'luna-id', name: 'Luna', species: 'cat' }
+const OPENED_AT = new Date('2026-09-23T10:30:00')
 
 let wrapper: VueWrapper | null = null
 
 beforeEach(() => {
-  vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-09-23T10:30:00') })
+  vi.useFakeTimers({ toFake: ['Date'], now: OPENED_AT })
   exportAnimalCarnetPdf.mockReset()
   exportAnimalCarnetPdf.mockImplementation(async (_, mode) =>
     mode === 'save' ? 'saved' : 'shared',
@@ -54,6 +55,7 @@ afterEach(() => {
   document.body.innerHTML = ''
   vi.unstubAllGlobals()
   vi.useRealTimers()
+  applyLocale('fr')
 })
 
 async function monter(animals: PdfExportAnimal[]) {
@@ -101,7 +103,7 @@ describe('PdfExportSheet', () => {
     )
     expect(choix()).toHaveLength(0)
     expect(carteFichier()?.querySelector('.pdf-export-sheet__file-name')?.textContent?.trim()).toBe(
-      'memopatte-milo-2026-09-23.pdf',
+      'carnet-milo-20260923-1030.pdf',
     )
     expect(
       carteFichier()?.querySelector('.pdf-export-sheet__file-content')?.textContent?.trim(),
@@ -110,14 +112,24 @@ describe('PdfExportSheet', () => {
     expect(partager().textContent?.trim()).toBe('Partager')
   })
 
-  it('enregistre le PDF, ferme la feuille et dit où le trouver', async () => {
+  it('nomme le fichier en anglais quand l’app est en anglais', async () => {
+    applyLocale('en')
     await monter([MILO])
+
+    expect(carteFichier()?.querySelector('.pdf-export-sheet__file-name')?.textContent?.trim()).toBe(
+      'health-record-milo-20260923-1030.pdf',
+    )
+  })
+
+  it('enregistre le PDF sous le nom affiché, ferme la feuille et dit où le trouver', async () => {
+    await monter([MILO])
+    vi.setSystemTime(new Date('2026-09-23T10:31:00'))
 
     enregistrer().click()
     await flushPromises()
 
     expect(storage.requestSaveAccess).toHaveBeenCalledOnce()
-    expect(exportAnimalCarnetPdf).toHaveBeenCalledExactlyOnceWith('milo-id', 'save')
+    expect(exportAnimalCarnetPdf).toHaveBeenCalledExactlyOnceWith('milo-id', 'save', OPENED_AT)
     expect(wrapper!.emitted('update:modelValue')).toEqual([[false]])
     expect(toastMessage.value).toBe('PDF enregistré dans Documents › MémoPatte')
     expect(toastDurationMs.value).toBe(4000)
@@ -130,7 +142,7 @@ describe('PdfExportSheet', () => {
     await flushPromises()
 
     expect(storage.requestSaveAccess).not.toHaveBeenCalled()
-    expect(exportAnimalCarnetPdf).toHaveBeenCalledExactlyOnceWith('milo-id', 'share')
+    expect(exportAnimalCarnetPdf).toHaveBeenCalledExactlyOnceWith('milo-id', 'share', OPENED_AT)
     expect(wrapper!.emitted('update:modelValue')).toEqual([[false]])
     expect(toastMessage.value).toBe('PDF exporté')
   })
@@ -152,7 +164,7 @@ describe('PdfExportSheet', () => {
     enregistrer().click()
     await flushPromises()
 
-    expect(exportAnimalCarnetPdf).toHaveBeenCalledWith('luna-id', 'save')
+    expect(exportAnimalCarnetPdf).toHaveBeenCalledWith('luna-id', 'save', OPENED_AT)
   })
 
   it('reste ouverte, sans message, quand la feuille de partage est fermée', async () => {
@@ -182,6 +194,15 @@ describe('PdfExportSheet', () => {
 
     feuille().querySelector<HTMLButtonElement>('.export-actions__settings')!.click()
     expect(storage.openAppSettings).toHaveBeenCalledOnce()
+  })
+
+  it('s’ouvre sur l’accès bloqué quand Android ne demande plus', async () => {
+    storage.checkSaveAccess.mockResolvedValue('blocked')
+    await monter([MILO])
+
+    expect(feuille().querySelector('.export-actions__settings')).not.toBeNull()
+    expect(enregistrer().disabled).toBe(true)
+    expect(partager().disabled).toBe(false)
   })
 
   it('signale un échec, et repart propre à la réouverture', async () => {

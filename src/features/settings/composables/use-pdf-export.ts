@@ -14,8 +14,12 @@ export function usePdfExport(
 ) {
   const exportRun = useExportRun(access)
 
-  function run(animalId: string, mode: DeliveryMode): Promise<PdfExportRunOutcome> {
-    return exportRun.run(mode, () => service.exportAnimalCarnetPdf(animalId, mode))
+  function run(
+    animalId: string,
+    mode: DeliveryMode,
+    exportedAt?: Date,
+  ): Promise<PdfExportRunOutcome> {
+    return exportRun.run(mode, () => service.exportAnimalCarnetPdf(animalId, mode, exportedAt))
   }
 
   return { ...exportRun, run }

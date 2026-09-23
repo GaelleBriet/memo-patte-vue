@@ -16,6 +16,7 @@ function setup(overrides: Partial<PdfExportDependencies> = {}) {
     render,
     loadPhoto,
     deliver,
+    fileNamePrefix: () => 'carnet',
     now: () => NOW,
     appVersion: '0.1.24',
     ...overrides,
@@ -49,7 +50,7 @@ describe('pdf-export.service', () => {
     expect(loadPhoto).not.toHaveBeenCalled()
 
     const [file, mode] = deliver.mock.calls[0]!
-    expect(file.name).toBe('memopatte-milo-2026-09-15.pdf')
+    expect(file.name).toBe('carnet-milo-20260915-1030.pdf')
     expect(file.content).toEqual(new Uint8Array([1, 2, 3]))
     expect(mode).toBe('share')
   })
@@ -90,9 +91,19 @@ describe('pdf-export.service', () => {
     await expect(service.exportAnimalCarnetPdf(MILO_ID, 'save')).resolves.toBe('saved')
 
     expect(deliver).toHaveBeenCalledExactlyOnceWith(
-      expect.objectContaining({ name: 'memopatte-milo-2026-09-15.pdf' }),
+      expect.objectContaining({ name: 'carnet-milo-20260915-1030.pdf' }),
       'save',
     )
+  })
+
+  it('nomme et date le PDF de l’instant que la feuille affiche', async () => {
+    const { service, deliver, render } = setup()
+
+    await service.exportAnimalCarnetPdf(MILO_ID, 'save', new Date('2026-09-23T14:32:00'))
+
+    expect(deliver.mock.calls[0]![0].name).toBe('carnet-milo-20260923-1432.pdf')
+    const [content] = render.mock.calls[0]! as [CarnetPdfContent, string, string | null]
+    expect(content.generatedOn).toBe('2026-09-23')
   })
 
   it('lève si la base ne répond pas, sans rien remettre', async () => {

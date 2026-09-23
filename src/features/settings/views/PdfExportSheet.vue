@@ -52,7 +52,9 @@ const subtitle = computed(() => {
 })
 
 const fileName = computed(() =>
-  onlyAnimal.value ? pdfExportFileName(onlyAnimal.value.name, openedAt.value) : null,
+  onlyAnimal.value
+    ? pdfExportFileName(t('settings.pdf.fileNamePrefix'), onlyAnimal.value.name, openedAt.value)
+    : null,
 )
 
 watch(
@@ -68,7 +70,7 @@ watch(
 
 async function deliver(mode: DeliveryMode): Promise<void> {
   if (selected.value === null) return
-  const outcome = await run(selected.value, mode)
+  const outcome = await run(selected.value, mode, openedAt.value)
   if (outcome === 'saved') {
     open.value = false
     showToast(t('settings.pdf.saved'), { durationMs: SAVED_TOAST_MS })

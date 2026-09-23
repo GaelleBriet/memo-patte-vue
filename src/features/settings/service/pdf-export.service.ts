@@ -23,6 +23,7 @@ export type PdfExportDependencies = {
     file: { name: string; content: Uint8Array },
     mode: DeliveryMode,
   ) => Promise<DeliveryOutcome>
+  fileNamePrefix: () => string
   now: () => Date
   appVersion: string
 }
@@ -32,13 +33,17 @@ export function createPdfExportService({
   render,
   loadPhoto,
   deliver,
+  fileNamePrefix,
   now,
   appVersion,
 }: PdfExportDependencies) {
   return {
-    async exportAnimalCarnetPdf(animalId: string, mode: DeliveryMode): Promise<PdfExportOutcome> {
+    async exportAnimalCarnetPdf(
+      animalId: string,
+      mode: DeliveryMode,
+      exportedAt: Date = now(),
+    ): Promise<PdfExportOutcome> {
       const data = await collect()
-      const exportedAt = now()
       const content = buildCarnetPdfContent(data, animalId, format(exportedAt, 'yyyy-MM-dd'))
       if (!content) return 'not-found'
 
@@ -47,7 +52,10 @@ export function createPdfExportService({
         : null
       const bytes = render(content, appVersion, photoDataUrl)
       return deliver(
-        { name: pdfExportFileName(content.animal.name, exportedAt), content: bytes },
+        {
+          name: pdfExportFileName(fileNamePrefix(), content.animal.name, exportedAt),
+          content: bytes,
+        },
         mode,
       )
     },
@@ -61,6 +69,7 @@ export const pdfExportService = createPdfExportService({
   render: renderCarnetPdf,
   loadPhoto: (fileName) => photoBase64DataUrl(fileName).catch(() => null),
   deliver: (file, mode) => deliverExportFile(file, mode, i18n.global.t('settings.pdf.shareTitle')),
+  fileNamePrefix: () => i18n.global.t('settings.pdf.fileNamePrefix'),
   now: () => new Date(),
   appVersion: import.meta.env.VITE_APP_VERSION,
 })
