@@ -57,16 +57,12 @@ function findMergedManifest() {
   return null
 }
 
-function maxSdkOf(manifest, permission) {
-  const declaration = [...manifest.matchAll(/<uses-permission[^>]*>/g)]
-    .map((match) => match[0])
-    .find((tag) => tag.includes(`android:name="${permission}"`))
-  return declaration?.match(/android:maxSdkVersion="(\d+)"/)?.[1] ?? null
+function declarationsOf(manifest, tag) {
+  return [...manifest.matchAll(new RegExp(`<${tag}\\s[^>]*>`, 'g'))].map((match) => match[0])
 }
 
-function namesOf(manifest, tag) {
-  const matches = manifest.matchAll(new RegExp(`<${tag}[^>]*android:name="([^"]+)"`, 'g'))
-  return [...matches].map((match) => match[1])
+function attributeOf(declaration, attribute) {
+  return declaration.match(new RegExp(`android:${attribute}="([^"]+)"`))?.[1] ?? null
 }
 
 let manifestPath
@@ -85,8 +81,15 @@ if (!manifestPath) {
 }
 
 const manifest = readFileSync(manifestPath, 'utf8')
-const permissions = namesOf(manifest, 'uses-permission')
-const features = namesOf(manifest, 'uses-feature')
+const permissionDeclarations = ['uses-permission', 'uses-permission-sdk-23'].flatMap((tag) =>
+  declarationsOf(manifest, tag),
+)
+const permissions = [
+  ...new Set(permissionDeclarations.map((declaration) => attributeOf(declaration, 'name'))),
+]
+const features = declarationsOf(manifest, 'uses-feature').map((declaration) =>
+  attributeOf(declaration, 'name'),
+)
 
 const failures = []
 for (const permission of permissions) {
@@ -102,8 +105,13 @@ for (const permission of ALLOWED_PERMISSIONS.keys()) {
   }
 }
 for (const [permission, maxSdk] of MAX_SDK_VERSIONS) {
-  if (permissions.includes(permission) && maxSdkOf(manifest, permission) !== maxSdk) {
-    failures.push(`${permission} sans android:maxSdkVersion="${maxSdk}"`)
+  const unbounded = permissionDeclarations.filter(
+    (declaration) =>
+      attributeOf(declaration, 'name') === permission &&
+      attributeOf(declaration, 'maxSdkVersion') !== maxSdk,
+  )
+  if (unbounded.length > 0) {
+    failures.push(`${permission} déclarée sans android:maxSdkVersion="${maxSdk}"`)
   }
 }
 for (const feature of features) {
