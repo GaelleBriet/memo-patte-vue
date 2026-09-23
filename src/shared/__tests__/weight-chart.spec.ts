@@ -7,6 +7,7 @@ import {
   type CarnetChartLabels,
   type CarnetWeightChart,
   type ChartBox,
+  type ChartPlot,
   type WeightChartEntry,
 } from '../domain/weight-chart'
 import i18n, { applyLocale } from '@/core/i18n'
@@ -126,17 +127,25 @@ describe('buildCarnetWeightChart — axe du temps', () => {
   it('assemble la courbe et le voile qui descend jusqu’au bas du tracé', () => {
     const chart = carnet(pesees(['2026-03-01', 23.6], ['2026-03-31', 24.5]), 320)!
 
-    expect(chart.line).toBe('8,106 312,52')
-    expect(chart.area).toBe('M8,124 L8,106 L312,52 L312,124 Z')
+    expect(chart.line).toBe('8,99 312,50.3')
+    expect(chart.area).toBe('M8,124 L8,99 L312,50.3 L312,124 Z')
   })
 })
 
 describe('buildCarnetWeightChart — échelle', () => {
   it('borne l’échelle au min / max avec 0,3 kg de marge, jamais depuis zéro', () => {
+    const chart = carnet(pesees(['2026-03-01', 4.2], ['2026-03-31', 4.3]), 320)!
+
+    // Échelle 3,9 → 4,6 sur 90 px : 4,2 aux trois septièmes de la hauteur, 4,3 aux quatre.
+    expect(chart.points.map((point) => point.y)).toEqual([85.4, 72.6])
+  })
+
+  it('descend sous le plus bas assez pour écrire « min » entre son point et la ligne de base', () => {
     const chart = carnet(pesees(['2026-03-01', 23.6], ['2026-03-31', 24.5]), 320)!
 
-    // Échelle 23,3 → 24,8 sur 90 px : 23,6 à un cinquième de la hauteur, 24,5 à quatre.
-    expect(chart.points.map((point) => point.y)).toEqual([106, 52])
+    // 0,3 kg ne ferait que 18 px : le point le plus bas monte à 25 px de la ligne de base.
+    expect(chart.points.map((point) => point.y)).toEqual([99, 50.3])
+    expect(chart.min!.box.bottom).toBeLessThan(chart.plot.bottom - 2)
   })
 
   it('centre une ligne plate', () => {
@@ -447,7 +456,7 @@ describe('buildCarnetWeightChart — police agrandie', () => {
     expect(chart.min!.box.right).toBeLessThanOrEqual(chart.plot.right)
   })
 
-  it('à 130 %, pose « min » à côté de son point quand la place sous la courbe ne suffit plus', () => {
+  it('à 130 %, garde « min » sous son point : l’échelle lui laisse la place au-dessus de la ligne de base', () => {
     const chiot = pesees(
       ['2025-11-02', 5],
       ['2026-01-10', 12],
@@ -457,10 +466,9 @@ describe('buildCarnetWeightChart — police agrandie', () => {
     const chart = carnet(chiot, 320, 1.3)!
     const point = chart.points[0]!
 
-    expect(chart.min!.anchor).toBe('start')
-    expect(chart.min!.x).toBeGreaterThan(point.x)
-    expect(Math.abs(chart.min!.y - point.y)).toBeLessThan(10)
-    for (const month of chart.months) expect(chevauche(chart.min!.box, month.box)).toBe(false)
+    expect(chart.min).toMatchObject({ anchor: 'start', x: point.x })
+    expect(chart.min!.box.top).toBeGreaterThan(point.y)
+    expect(chart.min!.box.bottom).toBeLessThan(chart.plot.bottom - 2)
   })
 })
 
@@ -505,6 +513,85 @@ describe('buildCarnetWeightChart — chasse d’une autre police', () => {
         boites.forEach((boite, index) => {
           for (const autre of boites.slice(index + 1)) expect(chevauche(boite, autre)).toBe(false)
         })
+      }
+    }
+  })
+})
+
+describe('ligne de base', () => {
+  // Le trait de 1 px sous la courbe ; « toucher » compte comme chevaucher.
+  function ligneDeBase(chart: { plot: ChartPlot }): ChartBox {
+    const { left, right, bottom } = chart.plot
+    return { left, right, top: bottom - 0.5, bottom: bottom + 0.5 }
+  }
+
+  function touche(a: ChartBox, b: ChartBox): boolean {
+    return a.left <= b.right && b.left <= a.right && a.top <= b.bottom && b.top <= a.bottom
+  }
+
+  const DEMO_MILO = pesees(
+    ['2026-04-23', 23.6],
+    ['2026-05-23', 23.8],
+    ['2026-06-23', 24],
+    ['2026-07-23', 24.1],
+    ['2026-08-23', 24.3],
+    ['2026-09-23', 24.5],
+  )
+  const CAS = [
+    DEMO_MILO,
+    MILO_6_MOIS,
+    LUNA_1_AN,
+    pesees(['2025-11-02', 5], ['2026-01-10', 12], ['2026-04-20', 22], ['2026-09-01', 30]),
+    pesees(['2025-01-10', 0.9], ['2026-09-01', 4.3]),
+    pesees(['2026-03-04', 60], ['2026-06-10', 12], ['2026-09-15', 30]),
+    pesees(['2026-03-01', 24], ['2026-04-01', 24.1], ['2026-05-01', 24.05]),
+    pesees(
+      ['2026-03-01', 35],
+      ['2026-05-01', 33.3],
+      ['2026-06-15', 31.5],
+      ['2026-08-01', 29.8],
+      ['2026-08-11', 30],
+    ),
+    pesees(['2026-01-10', 20], ['2026-09-10', 24.6], ['2026-09-23', 24.5]),
+    pesees(['2026-01-10', 24.6], ['2026-09-10', 20], ['2026-09-23', 22]),
+  ]
+
+  it('aucune étiquette ne traverse ni ne touche la ligne de base, jambages compris', () => {
+    const defauts: string[] = []
+    for (const locale of ['fr', 'en'] as const) {
+      applyLocale(locale)
+      for (const entries of CAS) {
+        for (const width of [300, 320, 360]) {
+          for (const textScale of FACTEURS) {
+            const cas = `${locale}, ${entries[0]!.measuredOn} → ${entries.at(-1)!.weightKg}, ${width} px, × ${textScale}`
+            const carnetChart = carnet(entries, width, textScale)!
+            const historyChart = historique(entries, width, textScale)!
+            const boites = [
+              ...boitesDuCarnet(carnetChart).map((box) => ({ box, chart: carnetChart })),
+              ...historyChart.months.map(({ box }) => ({ box, chart: historyChart })),
+            ]
+            for (const { box, chart } of boites) {
+              if (touche(box, ligneDeBase(chart))) defauts.push(cas)
+            }
+          }
+        }
+      }
+    }
+
+    expect(defauts).toEqual([])
+  })
+
+  it('garde « min » sous son point, police agrandie comprise', () => {
+    for (const entries of CAS) {
+      for (const textScale of FACTEURS) {
+        const chart = carnet(entries, 320, textScale)!
+        if (!chart.min) continue
+        const point = chart.points.find(
+          (candidate) => candidate.weightKg === Math.min(...entries.map((entry) => entry.weightKg)),
+        )!
+
+        expect(chart.min.box.top).toBeGreaterThan(point.y)
+        expect(chart.min.box.bottom).toBeLessThan(chart.plot.bottom)
       }
     }
   })

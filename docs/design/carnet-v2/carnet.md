@@ -102,7 +102,9 @@ Carte unique contenant :
     - axe horizontal proportionnel au temps : la position d'une pesée suit sa
       date, la première au bord gauche, la dernière au bord droit
     - échelle verticale bornée au min / max avec 0,3 kg de marge, sans
-      graduation ni grille ; une ligne de base `#ECE6DE` sous la courbe
+      graduation ni grille ; une ligne de base `#ECE6DE` sous la courbe. Sous
+      le plus bas, la marge grandit quand « min » est écrit et que 0,3 kg ne
+      lui laisse pas la place entre son point et la ligne de base
     - polyline pétrole 2 px, voile pétrole à 10 % d'opacité dessous, points de
       4 px de rayon cerclés de 2 px couleur surface
     - trois chiffres seulement : le plus haut au-dessus de son point
@@ -114,10 +116,13 @@ Carte unique contenant :
     - aucune étiquette ne chevauche la pastille : quand « max » la toucherait,
       il passe sous son point, la pastille ne bouge pas (décision de Gaelle,
       2026-09-23)
+    - aucune étiquette (« max », « min », pastille) ne traverse ni ne touche
+      la ligne de base, jambages compris (2026-09-23, #350) : « min » s'écrit
+      toujours sous son point, au-dessus de la ligne de base, même pour un
+      chiot qui passe de 5 à 30 kg et même police agrandie ; les places de
+      repli, à droite puis à gauche du point, évitent aussi la ligne de base
     - la rangée des mois est 10 px plus bas que la ligne de base ne
-      l'exigerait : « min » ne la touche jamais, même pour un chiot qui passe
-      de 5 à 30 kg. Quand la police du système est agrandie et que cette
-      place ne suffit plus, « min » s'écrit à côté de son point
+      l'exigerait (la place où « min » s'écrivait sous la ligne avant #350)
     - la place des étiquettes suit la taille de police réellement rendue
 - sous la courbe, les mois (12 px / 500, `#736E67`) : un libellé au début de
   chaque mois, avec un petit trait de repère. Au-delà de six changements de

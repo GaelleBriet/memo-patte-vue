@@ -86,6 +86,7 @@ const MONTH_STEPS = [1, 2, 3, 6, 12]
 const MAX_MONTH_LABELS = 6
 const MONTH_LABEL_OFFSET = 3
 const LABEL_GAP = 1
+const BASELINE_CLEARANCE = 2
 const MONTH_ROW_MARGIN = 1
 const GAP_ABOVE_POINT = 8
 const GAP_BELOW_POINT = 10
@@ -349,6 +350,14 @@ function extremeLabel(
   )
 }
 
+/** Sous le plus bas, 0,3 kg ou la place d'écrire « min » sous son point sans toucher la ligne de base. */
+function carnetLowMarginKg(minKg: number, highKg: number, font: ChartFont): number {
+  const plotHeight = CARNET_LAYOUT.height - CARNET_LAYOUT.top - CARNET_LAYOUT.bottom
+  // Le pixel de plus absorbe l'arrondi au dixième du point puis de son étiquette.
+  const room = GAP_BELOW_POINT + font.ascent + font.descent + BASELINE_CLEARANCE + LABEL_GAP
+  return Math.max(CARNET_MARGIN_KG, (room * (highKg - minKg)) / (plotHeight - room))
+}
+
 /** Carnet : échelle min / max ± 0,3 kg, seuls le plus haut, le plus bas et la dernière pesée écrits. */
 export function buildCarnetWeightChart(
   entries: readonly WeightChartEntry[],
@@ -361,16 +370,19 @@ export function buildCarnetWeightChart(
   const weights = entries.map((entry) => entry.weightKg)
   const maxKg = Math.max(...weights)
   const minKg = Math.min(...weights)
-  const { chart } = timeChart(
-    entries,
-    CARNET_LAYOUT,
-    minKg - CARNET_MARGIN_KG,
-    maxKg + CARNET_MARGIN_KG,
-    { width, font },
-  )
+  const highKg = maxKg + CARNET_MARGIN_KG
+  const minWritten = entries[entries.length - 1]!.weightKg !== minKg
+  const lowKg = minKg - (minWritten ? carnetLowMarginKg(minKg, highKg, font) : CARNET_MARGIN_KG)
+  const { chart } = timeChart(entries, CARNET_LAYOUT, lowKg, highKg, { width, font })
   const last = chart.points[chart.points.length - 1]!
   const latest = latestPill(chart, labels.latest(formatKg(last.weightKg)), font)
-  const obstacles = [latest.box, ...chart.months.map((month) => month.box)]
+  const baseline = {
+    left: chart.plot.left,
+    right: chart.plot.right,
+    top: chart.plot.bottom - BASELINE_CLEARANCE,
+    bottom: chart.plot.bottom + BASELINE_CLEARANCE,
+  }
+  const obstacles = [latest.box, baseline, ...chart.months.map((month) => month.box)]
 
   const above = { dx: 0, dy: -(GAP_ABOVE_POINT + font.descent) }
   const below = { dx: 0, dy: GAP_BELOW_POINT + font.ascent }

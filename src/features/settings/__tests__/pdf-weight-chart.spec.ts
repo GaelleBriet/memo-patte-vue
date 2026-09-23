@@ -60,6 +60,15 @@ const LUNA_1_AN = pesees(
   ['2026-09-19', 4.3],
 )
 
+const DEMO_MILO = pesees(
+  ['2026-04-23', 23.6],
+  ['2026-05-23', 23.8],
+  ['2026-06-23', 24],
+  ['2026-07-23', 24.1],
+  ['2026-08-23', 24.3],
+  ['2026-09-23', 24.5],
+)
+
 const CHIOT = pesees(['2025-11-02', 5], ['2026-01-10', 12], ['2026-04-20', 22], ['2026-09-01', 30])
 
 const MAX_PRES_DE_LA_PASTILLE = pesees(
@@ -265,7 +274,19 @@ describe('drawWeightChart — plus haut, plus bas et dernière pesée', () => {
 })
 
 describe('drawWeightChart — aucun chevauchement ni débordement', () => {
+  // Le trait tel que tracé, sur toute sa largeur ; « toucher » compte comme chevaucher.
+  function ligneDeBase(paths: PdfPath[]): PdfBounds {
+    const trait = paths.find((path) => path.paint === 'S')!
+    const { left, right, top } = bounds(trait.points)
+    return { left, right, top: top - trait.lineWidth / 2, bottom: top + trait.lineWidth / 2 }
+  }
+
+  function touche(a: PdfBounds, b: PdfBounds): boolean {
+    return a.left <= b.right && b.left <= a.right && a.top <= b.bottom && b.top <= a.bottom
+  }
+
   const cas: WeightChartEntry[][] = [
+    DEMO_MILO,
     MILO_6_MOIS,
     LUNA_1_AN,
     CHIOT,
@@ -328,6 +349,13 @@ describe('drawWeightChart — aucun chevauchement ni débordement', () => {
               defauts.push(`${text.text} touche la pastille, ${libelle}`)
             }
           })
+          const ligne = ligneDeBase(paths)
+          texts.forEach((text, index) => {
+            if (touche(boites[index]!, ligne)) {
+              defauts.push(`${text.text} touche la ligne de base, ${libelle}`)
+            }
+          })
+          if (touche(fond, ligne)) defauts.push(`pastille sur la ligne de base, ${libelle}`)
         }
       }
     }
