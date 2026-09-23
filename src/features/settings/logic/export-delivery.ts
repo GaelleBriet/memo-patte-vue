@@ -1,14 +1,25 @@
+import { Capacitor } from '@capacitor/core'
 import { Directory, Encoding, Filesystem } from '@capacitor/filesystem'
 import { Share } from '@capacitor/share'
 
 import type { ExportFile } from './export-format'
 
-export type DeliveryOutcome = 'shared' | 'cancelled'
+export type DeliveryMode = 'save' | 'share'
+
+export type DeliveryOutcome = 'saved' | 'shared' | 'cancelled'
 
 export const EXPORTS_DIR = 'exports'
 
+const SAVED_EXPORTS_DIR = 'MémoPatte'
+
 /** Message de rejet du plugin Android quand la feuille de partage est fermée. */
 const SHARE_CANCELED = /cancel/i
+
+const PERMISSION_DENIED = 'OS-PLUG-FILE-0007'
+
+const MAX_COPIES = 100
+
+const MAX_WRITE_ATTEMPTS = 3
 
 function toBase64(bytes: Uint8Array): string {
   let binary = ''
@@ -17,6 +28,18 @@ function toBase64(bytes: Uint8Array): string {
     binary += String.fromCharCode(...bytes.subarray(index, index + chunk))
   }
   return btoa(binary)
+}
+
+function writeFile(path: string, file: ExportFile, directory: Directory) {
+  return typeof file.content === 'string'
+    ? Filesystem.writeFile({
+        path,
+        data: file.content,
+        directory,
+        encoding: Encoding.UTF8,
+        recursive: true,
+      })
+    : Filesystem.writeFile({ path, data: toBase64(file.content), directory, recursive: true })
 }
 
 /**
@@ -29,32 +52,9 @@ export async function clearExports(): Promise<void> {
   )
 }
 
-async function writeToCache(file: ExportFile): Promise<string> {
+async function share(file: ExportFile, dialogTitle: string): Promise<'shared' | 'cancelled'> {
   await clearExports()
-  const path = `${EXPORTS_DIR}/${file.name}`
-  const { uri } =
-    typeof file.content === 'string'
-      ? await Filesystem.writeFile({
-          path,
-          data: file.content,
-          directory: Directory.Cache,
-          encoding: Encoding.UTF8,
-          recursive: true,
-        })
-      : await Filesystem.writeFile({
-          path,
-          data: toBase64(file.content),
-          directory: Directory.Cache,
-          recursive: true,
-        })
-  return uri
-}
-
-export async function deliverExportFile(
-  file: ExportFile,
-  dialogTitle: string,
-): Promise<DeliveryOutcome> {
-  const uri = await writeToCache(file)
+  const { uri } = await writeFile(`${EXPORTS_DIR}/${file.name}`, file, Directory.Cache)
   try {
     await Share.share({ files: [uri], dialogTitle })
     return 'shared'
@@ -63,4 +63,63 @@ export async function deliverExportFile(
     if (cause instanceof Error && SHARE_CANCELED.test(cause.message)) return 'cancelled'
     throw cause
   }
+}
+
+function numbered(name: string, copy: number): string {
+  if (copy === 0) return name
+  const dot = name.includes('.') ? name.lastIndexOf('.') : name.length
+  return `${name.slice(0, dot)} (${copy})${name.slice(dot)}`
+}
+
+function exists(path: string): Promise<boolean> {
+  return Filesystem.stat({ path, directory: Directory.Documents }).then(
+    () => true,
+    () => false,
+  )
+}
+
+function isPermissionDenied(cause: unknown): boolean {
+  return typeof cause === 'object' && cause !== null && 'code' in cause
+    ? cause.code === PERMISSION_DENIED
+    : false
+}
+
+async function writeToDocuments(file: ExportFile): Promise<void> {
+  let failures = 0
+  for (let copy = 0; copy < MAX_COPIES; copy += 1) {
+    const path = `${SAVED_EXPORTS_DIR}/${numbered(file.name, copy)}`
+    if (await exists(path)) continue
+    try {
+      await writeFile(path, file, Directory.Documents)
+      return
+    } catch (cause) {
+      failures += 1
+      if (isPermissionDenied(cause) || failures === MAX_WRITE_ATTEMPTS) throw cause
+    }
+  }
+  throw new Error(`Aucun nom libre pour ${file.name} dans ${SAVED_EXPORTS_DIR}/`)
+}
+
+function download(file: ExportFile): void {
+  const content = typeof file.content === 'string' ? file.content : new Uint8Array(file.content)
+  const url = URL.createObjectURL(new Blob([content]))
+  const link = document.createElement('a')
+  link.href = url
+  link.download = file.name
+  link.click()
+  setTimeout(() => URL.revokeObjectURL(url))
+}
+
+async function save(file: ExportFile): Promise<'saved'> {
+  if (Capacitor.isNativePlatform()) await writeToDocuments(file)
+  else download(file)
+  return 'saved'
+}
+
+export function deliverExportFile(
+  file: ExportFile,
+  mode: DeliveryMode,
+  dialogTitle: string,
+): Promise<DeliveryOutcome> {
+  return mode === 'save' ? save(file) : share(file, dialogTitle)
 }

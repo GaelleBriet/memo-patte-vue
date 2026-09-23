@@ -27,6 +27,11 @@ const iconesDesMaquettes = [
   'table',
   'mark_email_unread',
   'logout',
+  'download',
+  'share',
+  'folder_off',
+  'open_in_new',
+  'picture_as_pdf',
 ] as const
 
 describe('registre d’icônes Material Symbols', () => {

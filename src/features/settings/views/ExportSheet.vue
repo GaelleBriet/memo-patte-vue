@@ -3,8 +3,12 @@ import { computed, ref, useId, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import ChoiceCards from './ChoiceCards.vue'
+import ExportActions from './ExportActions.vue'
+import type { DeliveryMode } from '../logic/export-delivery'
 import type { ExportFormat } from '../logic/export-format'
+import { openAppSettings } from '../logic/export-storage-access'
 import { useDataExport } from '../composables/use-data-export'
+import { SAVED_TOAST_MS } from '../composables/use-export-run'
 import BottomSheet from '@/shared/components/BottomSheet.vue'
 import { showToast } from '@/shared/utils/toast'
 
@@ -15,7 +19,7 @@ defineProps<{
 const open = defineModel<boolean>({ default: false })
 
 const { t } = useI18n()
-const { isPreparing, hasFailed, run, reset } = useDataExport()
+const { pendingMode, isPreparing, hasFailed, saveAccess, run, reset } = useDataExport()
 
 const formats = computed(() => [
   {
@@ -35,17 +39,28 @@ const formats = computed(() => [
 const selected = ref<ExportFormat>('json')
 const groupLabelId = useId()
 
-watch(open, (isOpen) => {
-  if (!isOpen) return
-  selected.value = 'json'
-  reset()
-})
+watch(
+  open,
+  (isOpen) => {
+    if (!isOpen) return
+    selected.value = 'json'
+    reset()
+  },
+  { immediate: true },
+)
 
-async function submit(): Promise<void> {
-  const outcome = await run(selected.value)
-  if (outcome !== 'shared') return
-  open.value = false
-  showToast(t('settings.export.success'))
+async function deliver(mode: DeliveryMode): Promise<void> {
+  const format = selected.value
+  const outcome = await run(format, mode)
+  if (outcome === 'saved') {
+    open.value = false
+    const message =
+      format === 'json' ? t('settings.export.saved.json') : t('settings.export.saved.csv')
+    showToast(message, { durationMs: SAVED_TOAST_MS })
+  } else if (outcome === 'shared') {
+    open.value = false
+    showToast(t('settings.export.success'))
+  }
 }
 </script>
 
@@ -74,28 +89,17 @@ async function submit(): Promise<void> {
       {{ t('settings.export.error') }}
     </p>
 
-    <v-btn
-      class="export-sheet__submit"
-      variant="flat"
-      color="primary"
-      :disabled="isPreparing"
-      @click="submit"
-    >
-      <v-progress-circular
-        v-if="isPreparing"
-        class="export-sheet__spinner"
-        indeterminate
-        :size="18"
-        :width="2"
-      />
-      {{ isPreparing ? t('settings.export.preparing') : t('settings.export.submit') }}
-    </v-btn>
+    <ExportActions
+      :access="saveAccess"
+      :pending-mode="pendingMode"
+      @save="deliver('save')"
+      @share="deliver('share')"
+      @open-settings="openAppSettings"
+    />
   </BottomSheet>
 </template>
 
 <style lang="scss">
-@use '@/styles/tokens' as tokens;
-
 .export-sheet__group-label {
   position: absolute;
   width: 1px;
@@ -105,30 +109,10 @@ async function submit(): Promise<void> {
   white-space: nowrap;
 }
 
-.export-sheet__spinner {
-  margin-inline-end: 8px;
-}
-
 .export-sheet__error {
   margin: 12px 0 0;
   color: rgb(var(--v-theme-error));
   font-size: 12.5px;
   font-weight: 500;
-}
-
-.export-sheet__submit {
-  width: 100%;
-  height: 52px;
-  margin-top: 22px;
-  border-radius: 999px;
-  font-size: 16px;
-  font-weight: 700;
-  letter-spacing: normal;
-}
-
-.export-sheet__submit:disabled,
-.export-sheet__submit.v-btn--disabled {
-  background: tokens.$color-disabled-surface;
-  color: tokens.$color-disabled-text;
 }
 </style>

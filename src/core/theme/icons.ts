@@ -15,6 +15,7 @@ import download from '@material-symbols/svg-400/outlined/download.svg?raw'
 import edit from '@material-symbols/svg-400/outlined/edit.svg?raw'
 import error from '@material-symbols/svg-400/outlined/error.svg?raw'
 import errorFill from '@material-symbols/svg-400/outlined/error-fill.svg?raw'
+import folderOff from '@material-symbols/svg-400/outlined/folder_off.svg?raw'
 import home from '@material-symbols/svg-400/outlined/home.svg?raw'
 import iosShare from '@material-symbols/svg-400/outlined/ios_share.svg?raw'
 import logout from '@material-symbols/svg-400/outlined/logout.svg?raw'
@@ -33,6 +34,7 @@ import queryStats from '@material-symbols/svg-400/outlined/query_stats.svg?raw'
 import schedule from '@material-symbols/svg-400/outlined/schedule.svg?raw'
 import settings from '@material-symbols/svg-400/outlined/settings.svg?raw'
 import settingsBackupRestore from '@material-symbols/svg-400/outlined/settings_backup_restore.svg?raw'
+import share from '@material-symbols/svg-400/outlined/share.svg?raw'
 import showChart from '@material-symbols/svg-400/outlined/show_chart.svg?raw'
 import starShine from '@material-symbols/svg-400/outlined/star_shine.svg?raw'
 import table from '@material-symbols/svg-400/outlined/table.svg?raw'
@@ -135,6 +137,7 @@ export const msIcons = {
   error,
   error_fill: errorFill,
   first_page: firstPage,
+  folder_off: folderOff,
   fullscreen,
   fullscreen_exit: fullscreenExit,
   home,
@@ -172,6 +175,7 @@ export const msIcons = {
   search,
   settings,
   settings_backup_restore: settingsBackupRestore,
+  share,
   shift,
   show_chart: showChart,
   star_shine: starShine,

@@ -2,11 +2,10 @@
 import { computed } from 'vue'
 
 import { heightBottomNav, paddingBottomNav } from '@/core/theme/layout-tokens'
-import { dismissToast, toastMessage } from '../utils/toast'
+import { dismissToast, toastDurationMs, toastMessage } from '../utils/toast'
 
 const props = withDefaults(defineProps<{ aboveBottomNav?: boolean }>(), { aboveBottomNav: false })
 
-const TOAST_DURATION_MS = 3000
 const GAP_BELOW_TOAST = 12
 
 const offset = computed(
@@ -27,7 +26,7 @@ const isOpen = computed({
   <v-snackbar
     v-model="isOpen"
     class="app-toast"
-    :timeout="TOAST_DURATION_MS"
+    :timeout="toastDurationMs"
     location="bottom"
     :offset="offset"
     rounded="lg"

@@ -14,15 +14,17 @@ function declaration(css: string, selecteur: string, propriete: string): string 
   return undefined
 }
 
-describe('ExportSheet — contrat de style', () => {
-  it('écarte le spinner de « Préparation… » : le contenu du bouton n’hérite pas du gap', () => {
+describe('ExportActions — contrat de style', () => {
+  it('écarte l’icône et le spinner du libellé : le contenu du bouton n’hérite pas du gap', () => {
     const sfc = readFileSync(
-      resolve(process.cwd(), 'src/features/settings/views/ExportSheet.vue'),
+      resolve(process.cwd(), 'src/features/settings/views/ExportActions.vue'),
       'utf8',
     )
     const bloc = /<style[^>]*lang="scss">([\s\S]*?)<\/style>/.exec(sfc)![1]!
     const css = compileString(bloc, { importers: [aliasSrc] }).css
 
-    expect(declaration(css, '.export-sheet__spinner', 'margin-inline-end')).toBe('8px')
+    expect(
+      declaration(css, '.export-actions__icon, .export-actions__spinner', 'margin-inline-end'),
+    ).toBe('8px')
   })
 })

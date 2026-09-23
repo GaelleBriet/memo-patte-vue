@@ -1,61 +1,46 @@
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { DataExportService } from '../service/data-export.service'
+import type { SaveAccessPort } from '../composables/use-export-run'
 import { useDataExport } from '../composables/use-data-export'
+import { recordUsageSignal } from '@/shared/utils/usage-signals'
 
-function deferred<T>() {
-  let resolve!: (value: T) => void
-  let reject!: (cause: unknown) => void
-  const promise = new Promise<T>((ok, ko) => {
-    resolve = ok
-    reject = ko
-  })
-  return { promise, resolve, reject }
+vi.mock('@/core/app-lifecycle/app-resume', () => ({ useAppResume: () => {} }))
+vi.mock('@/shared/utils/usage-signals', () => ({
+  recordUsageSignal: vi.fn<(signal: string) => void>(),
+}))
+
+function port(request: Awaited<ReturnType<SaveAccessPort['request']>>): SaveAccessPort {
+  return { check: async () => 'granted', request: async () => request }
 }
 
+beforeEach(() => {
+  vi.mocked(recordUsageSignal).mockClear()
+})
+
 describe('useDataExport', () => {
-  it('signale la préparation pendant l’export et renvoie son issue', async () => {
-    const pending = deferred<'shared'>()
-    const exportData = vi.fn<DataExportService['exportData']>(() => pending.promise)
-    const { isPreparing, hasFailed, run } = useDataExport({ exportData })
+  it('prépare le format choisi pour l’action choisie et renvoie son issue', async () => {
+    const exportData = vi.fn<DataExportService['exportData']>(async () => 'saved')
+    const { run } = useDataExport({ exportData }, port('granted'))
 
-    const result = run('csv')
-    expect(isPreparing.value).toBe(true)
-    expect(exportData).toHaveBeenCalledWith('csv')
-
-    pending.resolve('shared')
-    await expect(result).resolves.toBe('shared')
-    expect(isPreparing.value).toBe(false)
-    expect(hasFailed.value).toBe(false)
+    await expect(run('csv', 'save')).resolves.toBe('saved')
+    expect(exportData).toHaveBeenCalledExactlyOnceWith('csv', 'save')
   })
 
-  it('ignore un second export lancé pendant la préparation', async () => {
-    const pending = deferred<'shared'>()
-    const exportData = vi.fn<DataExportService['exportData']>(() => pending.promise)
-    const { run } = useDataExport({ exportData })
+  it.each(['saved', 'shared'] as const)('compte un export %s', async (outcome) => {
+    const { run } = useDataExport({ exportData: async () => outcome }, port('granted'))
 
-    void run('json')
-    await expect(run('json')).resolves.toBe('busy')
-    expect(exportData).toHaveBeenCalledTimes(1)
-    pending.resolve('shared')
+    await run('json', outcome === 'saved' ? 'save' : 'share')
+
+    expect(recordUsageSignal).toHaveBeenCalledExactlyOnceWith('export')
   })
 
-  it('retient l’échec sans lever, et l’oublie au nouvel essai', async () => {
-    const exportData = vi
-      .fn<DataExportService['exportData']>()
-      .mockRejectedValueOnce(new Error('base fermée'))
-      .mockResolvedValueOnce('cancelled')
-    const { hasFailed, run, reset } = useDataExport({ exportData })
+  it('ne compte ni un partage annulé ni un enregistrement sans accès', async () => {
+    const { run } = useDataExport({ exportData: async () => 'cancelled' }, port('refused'))
 
-    await expect(run('json')).resolves.toBe('failed')
-    expect(hasFailed.value).toBe(true)
+    await expect(run('json', 'share')).resolves.toBe('cancelled')
+    await expect(run('json', 'save')).resolves.toBe('no-access')
 
-    const retry = run('json')
-    expect(hasFailed.value).toBe(false)
-    await expect(retry).resolves.toBe('cancelled')
-
-    hasFailed.value = true
-    reset()
-    expect(hasFailed.value).toBe(false)
+    expect(recordUsageSignal).not.toHaveBeenCalled()
   })
 })

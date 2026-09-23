@@ -1,33 +1,22 @@
-import { ref } from 'vue'
+import {
+  pdfExportService,
+  type PdfExportOutcome,
+  type PdfExportService,
+} from '../service/pdf-export.service'
+import type { DeliveryMode } from '../logic/export-delivery'
+import { useExportRun, type ExportRunInterruption, type SaveAccessPort } from './use-export-run'
 
-import { pdfExportService, type PdfExportService } from '../service/pdf-export.service'
-
-export type PdfExportRunOutcome = 'shared' | 'cancelled' | 'not-found' | 'failed' | 'busy'
+export type PdfExportRunOutcome = PdfExportOutcome | ExportRunInterruption
 
 export function usePdfExport(
   service: Pick<PdfExportService, 'exportAnimalCarnetPdf'> = pdfExportService,
+  access?: SaveAccessPort,
 ) {
-  const isPreparing = ref(false)
-  const hasFailed = ref(false)
+  const exportRun = useExportRun(access)
 
-  async function run(animalId: string): Promise<PdfExportRunOutcome> {
-    if (isPreparing.value) return 'busy'
-    isPreparing.value = true
-    hasFailed.value = false
-    try {
-      return await service.exportAnimalCarnetPdf(animalId)
-    } catch (cause) {
-      console.warn('Export PDF impossible :', cause)
-      hasFailed.value = true
-      return 'failed'
-    } finally {
-      isPreparing.value = false
-    }
+  function run(animalId: string, mode: DeliveryMode): Promise<PdfExportRunOutcome> {
+    return exportRun.run(mode, () => service.exportAnimalCarnetPdf(animalId, mode))
   }
 
-  function reset(): void {
-    hasFailed.value = false
-  }
-
-  return { isPreparing, hasFailed, run, reset }
+  return { ...exportRun, run }
 }
