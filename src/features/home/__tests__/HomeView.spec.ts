@@ -597,6 +597,7 @@ describe('HomeView — un seul animal', () => {
     await flushPromises()
 
     expect(chipsPressees(wrapper)).toEqual(['true'])
+    expect(wrapper.get('.animal-chip').classes()).toContain('animal-chip--selected')
     expect(wrapper.get('.home-todo .section-card__counter').text()).toBe('Milo · 1 rappel')
   })
 
