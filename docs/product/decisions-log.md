@@ -1560,3 +1560,9 @@ recouvert) ; 56 px de haut sans bouton ; trois tonalités : réussite (pétrole,
 — Alternatives écartées : 12 px au-dessus de la barre ; un toast compact ; une couleur d'échec hors
 palette.
 
+2026-09-23 — **La bande vide sous la ligne de base de la courbe du Carnet est retirée** (#373). Les
+10 px ajoutés par #340 (point 9 du matin) servaient à écarter « min » des mois ; depuis que plus
+aucune étiquette ne touche la ligne de base, ils ne laissaient qu'un vide. La place revient à la
+courbe (tracé de 90 à 100 px), la carte garde sa taille ; le PDF suit. — Décision de Gaelle. —
+Alternative écartée : garder la bande.
+
