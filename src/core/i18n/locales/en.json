@@ -239,10 +239,17 @@
       "error": "Couldn’t load weigh-ins.",
       "add": "Add a weigh-in"
     },
+    "chart": {
+      "max": "max {weight}",
+      "min": "min {weight}",
+      "latest": "{weight} kg",
+      "point": "Weigh-in on {date}: {weight} kg"
+    },
     "history": {
       "title": "Weight tracking",
       "back": "Back",
       "current": "Current weight",
+      "selected": "Weigh-in on {date}",
       "list": "All weigh-ins",
       "value": "{weight} kg",
       "initial": "Weight on arrival: {weight} kg",

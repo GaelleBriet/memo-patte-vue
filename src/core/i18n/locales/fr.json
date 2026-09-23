@@ -239,10 +239,17 @@
       "error": "Impossible de charger les pesées.",
       "add": "Ajouter une pesée"
     },
+    "chart": {
+      "max": "max {weight}",
+      "min": "min {weight}",
+      "latest": "{weight} kg",
+      "point": "Pesée du {date} : {weight} kg"
+    },
     "history": {
       "title": "Suivi de poids",
       "back": "Retour",
       "current": "Poids actuel",
+      "selected": "Pesée du {date}",
       "list": "Toutes les pesées",
       "value": "{weight} kg",
       "initial": "Poids à l’arrivée : {weight} kg",

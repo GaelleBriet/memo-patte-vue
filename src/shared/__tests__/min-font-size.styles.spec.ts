@@ -26,19 +26,14 @@ describe('aucun texte sous 12 px', () => {
     ['src/features/animals/views/CarnetView.vue', '.carnet-stat__label'],
     ['src/features/animals/views/CarnetView.vue', '.carnet-stat__sub'],
     ['src/features/weight/views/WeightHistoryView.vue', '.weight-history__current-label'],
-    ['src/shared/components/WeightSparkline.vue', '.weight-sparkline__months'],
+    // Les courbes se dessinent à leur largeur rendue : 12 px dans le SVG font 12 px à l'écran.
+    ['src/shared/components/WeightChartTrace.vue', '.weight-chart-trace__month'],
+    ['src/shared/components/WeightSparkline.vue', '.weight-sparkline__extreme'],
+    ['src/shared/components/WeightSparkline.vue', '.weight-sparkline__latest'],
+    ['src/shared/components/WeightHistoryChart.vue', '.weight-history-chart__unit'],
+    ['src/shared/components/WeightHistoryChart.vue', '.weight-history-chart__tick'],
     ['src/shared/components/BottomNavigation.vue', '.bottom-navigation :deep(.v-btn)'],
   ])('%s — %s', (fichier, selecteur) => {
     expect(declaration(css(fichier), selecteur, 'font-size')).toBe('12px')
-  })
-
-  it('laisse la taille des valeurs de la courbe au composant, qui la corrige de l’échelle du SVG', () => {
-    expect(
-      declaration(
-        css('src/shared/components/WeightSparkline.vue'),
-        '.weight-sparkline__value',
-        'font-size',
-      ),
-    ).toBeUndefined()
   })
 })
