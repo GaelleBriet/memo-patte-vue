@@ -44,6 +44,8 @@ l'ouverture de la feuille.
   (« Export JSON enregistré dans Documents › MémoPatte »), 4 s.
 - Le fichier garde son nom. Un export n'écrase **jamais** un fichier existant : si le nom est déjà
   pris (deux exports dans la même minute), il prend un numéro, `memopatte-export-20260923-1432 (1).json`.
+  Seul le « fichier introuvable » du plugin (`OS-PLUG-FILE-0008`) rend un nom libre : toute autre
+  erreur de `stat` fait échouer l'export sans rien écrire ni effacer.
 - Une panne d'écriture (disque plein…) fait échouer l'export au premier essai, avec le message
   d'erreur de la feuille ; le fichier entamé est effacé. Sauf si l'accès au stockage manque : sur
   Android 10 et moins, y toucher rouvrirait la demande d'Android.

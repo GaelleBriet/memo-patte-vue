@@ -96,6 +96,14 @@ describe('pdf-export.service', () => {
     )
   })
 
+  it('nomme le PDF avec le mot de la langue de l’app', async () => {
+    const { service, deliver } = setup({ fileNamePrefix: () => 'health-record' })
+
+    await service.exportAnimalCarnetPdf(MILO_ID, 'save')
+
+    expect(deliver.mock.calls[0]![0].name).toBe('health-record-milo-20260915-1030.pdf')
+  })
+
   it('nomme et date le PDF de l’instant que la feuille affiche', async () => {
     const { service, deliver, render } = setup()
 

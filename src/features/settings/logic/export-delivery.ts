@@ -17,6 +17,8 @@ const SHARE_CANCELED = /cancel/i
 
 const PERMISSION_DENIED = 'OS-PLUG-FILE-0007'
 
+const DOES_NOT_EXIST = 'OS-PLUG-FILE-0008'
+
 const MAX_COPIES = 100
 
 function toBase64(bytes: Uint8Array): string {
@@ -69,17 +71,18 @@ function numbered(name: string, copy: number): string {
   return `${name.slice(0, dot)} (${copy})${name.slice(dot)}`
 }
 
-function exists(path: string): Promise<boolean> {
-  return Filesystem.stat({ path, directory: Directory.Documents }).then(
-    () => true,
-    () => false,
-  )
+function hasCode(cause: unknown, code: string): boolean {
+  return typeof cause === 'object' && cause !== null && 'code' in cause && cause.code === code
 }
 
-function isPermissionDenied(cause: unknown): boolean {
-  return typeof cause === 'object' && cause !== null && 'code' in cause
-    ? cause.code === PERMISSION_DENIED
-    : false
+async function exists(path: string): Promise<boolean> {
+  try {
+    await Filesystem.stat({ path, directory: Directory.Documents })
+    return true
+  } catch (cause) {
+    if (hasCode(cause, DOES_NOT_EXIST)) return false
+    throw cause
+  }
 }
 
 async function freePath(name: string): Promise<string> {
@@ -96,7 +99,7 @@ async function writeToDocuments(file: ExportFile): Promise<void> {
     await writeFile(path, file, Directory.Documents)
   } catch (cause) {
     // Sans l'accès, sur Android 10 et moins, effacer rouvrirait la demande d'Android.
-    if (!isPermissionDenied(cause)) {
+    if (!hasCode(cause, PERMISSION_DENIED)) {
       await Filesystem.deleteFile({ path, directory: Directory.Documents }).catch(() => {})
     }
     throw cause

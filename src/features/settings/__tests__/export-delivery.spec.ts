@@ -16,7 +16,9 @@ vi.mock('@capacitor/filesystem', () => ({
     deleteFile: vi.fn<() => Promise<void>>(async () => {}),
     rmdir: vi.fn<() => Promise<void>>(async () => {}),
     stat: vi.fn<(options: { path: string }) => Promise<object>>(async ({ path }) => {
-      throw new Error(`File does not exist at ${path}`)
+      throw Object.assign(new Error(`'stat' failed because file at '${path}' does not exist.`), {
+        code: 'OS-PLUG-FILE-0008',
+      })
     }),
     writeFile: vi.fn<(options: { path: string }) => Promise<{ uri: string }>>(async ({ path }) => ({
       uri: `file:///cache/${path}`,
@@ -196,7 +198,7 @@ describe('deliverExportFile — enregistrer sur le téléphone', () => {
   it('ne remplace jamais un export de la même minute : le nouveau prend un numéro', async () => {
     vi.mocked(Filesystem.stat).mockImplementation(async ({ path }) => {
       if (path === 'MémoPatte/memopatte-export-20260923-1432.json') return FILE_INFO
-      throw new Error('File does not exist')
+      throw pluginError("'stat' failed because file does not exist.", 'OS-PLUG-FILE-0008')
     })
 
     await expect(
@@ -212,6 +214,27 @@ describe('deliverExportFile — enregistrer sur le téléphone', () => {
       path: 'MémoPatte/memopatte-export-20260923-1432.json',
       directory: Directory.Documents,
     })
+  })
+
+  it('tient pour libre un nom que le système dit introuvable', async () => {
+    await deliverExportFile({ name: 'a.json', content: '{}' }, 'save', 'x')
+
+    await expect(vi.mocked(Filesystem.stat).mock.results[0]!.value).rejects.toMatchObject({
+      code: 'OS-PLUG-FILE-0008',
+    })
+    expect(writtenPaths()).toEqual(['MémoPatte/a.json'])
+  })
+
+  it('ne tient pas un nom pour libre quand le système ne sait pas dire s’il est pris', async () => {
+    vi.mocked(Filesystem.stat).mockRejectedValue(
+      pluginError("'stat' failed with: EIO (I/O error)", 'OS-PLUG-FILE-0013'),
+    )
+
+    await expect(deliverExportFile({ name: 'a.json', content: '{}' }, 'save', 'x')).rejects.toThrow(
+      'EIO',
+    )
+    expect(Filesystem.writeFile).not.toHaveBeenCalled()
+    expect(Filesystem.deleteFile).not.toHaveBeenCalled()
   })
 
   it('remonte une vraie panne au premier essai et efface le fichier entamé', async () => {
