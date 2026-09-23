@@ -107,7 +107,7 @@ describe('buildCarnetWeightChart — axe du temps', () => {
       320,
     )!
 
-    expect(chart.plot).toEqual({ left: 8, right: 312, top: 34, bottom: 124 })
+    expect(chart.plot).toEqual({ left: 8, right: 312, top: 34, bottom: 134 })
     expect(chart.points.map((point) => point.x)).toEqual([8, 109.3, 312])
   })
 
@@ -127,8 +127,8 @@ describe('buildCarnetWeightChart — axe du temps', () => {
   it('assemble la courbe et le voile qui descend jusqu’au bas du tracé', () => {
     const chart = carnet(pesees(['2026-03-01', 23.6], ['2026-03-31', 24.5]), 320)!
 
-    expect(chart.line).toBe('8,99 312,50.3')
-    expect(chart.area).toBe('M8,124 L8,99 L312,50.3 L312,124 Z')
+    expect(chart.line).toBe('8,109 312,52.8')
+    expect(chart.area).toBe('M8,134 L8,109 L312,52.8 L312,134 Z')
   })
 })
 
@@ -136,30 +136,30 @@ describe('buildCarnetWeightChart — échelle', () => {
   it('borne l’échelle au min / max avec 0,3 kg de marge, jamais depuis zéro', () => {
     const chart = carnet(pesees(['2026-03-01', 4.2], ['2026-03-31', 4.3]), 320)!
 
-    // Échelle 3,9 → 4,6 sur 90 px : 4,2 aux trois septièmes de la hauteur, 4,3 aux quatre.
-    expect(chart.points.map((point) => point.y)).toEqual([85.4, 72.6])
+    // Échelle 3,9 → 4,6 sur 100 px : 4,2 aux trois septièmes de la hauteur, 4,3 aux quatre.
+    expect(chart.points.map((point) => point.y)).toEqual([91.1, 76.9])
   })
 
   it('garde 0,3 kg sous le plus bas quand la pastille l’écrit, sans place pour « min »', () => {
     const chart = carnet(pesees(['2026-03-01', 24.5], ['2026-03-31', 23.6]), 320)!
 
-    // Échelle 23,3 → 24,8 sur 90 px : 24,5 aux quatre cinquièmes de la hauteur, 23,6 à un.
+    // Échelle 23,3 → 24,8 sur 100 px : 24,5 aux quatre cinquièmes de la hauteur, 23,6 à un.
     expect(chart.min).toBeNull()
-    expect(chart.points.map((point) => point.y)).toEqual([52, 106])
+    expect(chart.points.map((point) => point.y)).toEqual([54, 114])
   })
 
   it('descend sous le plus bas assez pour écrire « min » entre son point et la ligne de base', () => {
     const chart = carnet(pesees(['2026-03-01', 23.6], ['2026-03-31', 24.5]), 320)!
 
-    // 0,3 kg ne ferait que 18 px : le point le plus bas monte à 25 px de la ligne de base.
-    expect(chart.points.map((point) => point.y)).toEqual([99, 50.3])
+    // 0,3 kg ne ferait que 20 px : le point le plus bas monte à 25 px de la ligne de base.
+    expect(chart.points.map((point) => point.y)).toEqual([109, 52.8])
     expect(chart.min!.box.bottom).toBeLessThan(chart.plot.bottom - 2)
   })
 
   it('centre une ligne plate', () => {
     const chart = carnet(pesees(['2026-03-01', 4.2], ['2026-03-31', 4.2]), 320)!
 
-    expect(chart.points.map((point) => point.y)).toEqual([79, 79])
+    expect(chart.points.map((point) => point.y)).toEqual([84, 84])
   })
 })
 
@@ -179,6 +179,15 @@ describe('mois sous la courbe', () => {
     expect(chart.months[0]).toMatchObject({ x: 8, tickX: null })
     // Le 1er avril tombe 28 jours après la première pesée, sur 195.
     expect(chart.months[1]).toMatchObject({ tickX: 51.7, x: 54.7 })
+  })
+
+  it('écrit les mois à 22 px sous la ligne de base ; la carte garde sa hauteur, la courbe prend la place', () => {
+    const chart = carnet(MILO_6_MOIS)!
+
+    for (const month of chart.months) expect(month.y - chart.plot.bottom).toBe(22)
+    expect(chart.height).toBe(160)
+    expect(chart.plot.top).toBe(34)
+    expect(chart.plot.bottom - chart.plot.top).toBe(100)
   })
 
   it('n’écrit plus un mois par pesée : deux pesées du même mois, un seul libellé', () => {

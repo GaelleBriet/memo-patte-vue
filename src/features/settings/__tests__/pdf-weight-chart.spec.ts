@@ -211,6 +211,18 @@ describe('drawWeightChart — mois', () => {
     ])
   })
 
+  it('écrit les mois à 22 px du Carnet sous la ligne de base, la courbe gardant sa hauteur', () => {
+    const { height, texts, paths } = dessine(MILO_6_MOIS)
+    const ligneDeBase = bounds(paths.find((path) => path.paint === 'S')!.points).top
+    const libelles = texts.filter((text) => !text.bold)
+    const pixel = (libelles[0]!.sizePt * MM_PER_PT) / CHART_FONT_PX
+
+    for (const month of libelles) {
+      expect(month.baseline - ligneDeBase).toBeCloseTo(22 * pixel, 2)
+    }
+    expect(height).toBeCloseTo(160 * pixel, 2)
+  })
+
   it('écrit les mois sous la courbe, dans la langue affichée', () => {
     applyLocale('en')
     const { texts, paths } = dessine(MILO_6_MOIS)
