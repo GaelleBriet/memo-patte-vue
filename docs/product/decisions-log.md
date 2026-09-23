@@ -1400,3 +1400,46 @@ plugin multi-provider précédent (`codetrix-studio/capacitor-google-auth`) est 
 risque à ne pas payer pour une fonctionnalité inutilisée. — Pour revenir dessus : retirer
 `@capawesome/capacitor-google-sign-in`, installer `@capgo/capacitor-social-login` à la place ; aucun
 code natif n'est encore écrit à cette date, donc pas de migration à prévoir.
+
+2026-09-23 — **Retours de Gaelle après une navigation dans l'app sur son téléphone, tranchés avec
+elle.**
+
+1) **`pnpm dev:mobile` régénère la liste des plugins natifs avant chaque lancement** (`cap update
+android`, une seconde, sans build web ; `cap:sync` complet seulement sur un dépôt jamais
+synchronisé). — Raison : la liste datait du 2026-09-07 dans le dépôt principal, cinq plugins étaient
+« not implemented on android » en dev. — Alternative écartée : une consigne « relancer `cap:sync`
+après un ajout de plugin », qui repose sur la mémoire. — Livré par la PR #338.
+
+2) **Avec un seul animal, l'accueil sélectionne sa chip, qui ne se désélectionne pas, et « Ajouter
+un poids » ne demande plus l'animal** (#339). — Raison : avec un seul animal, « tous » et l'animal
+sont la même chose ; traitement et vaccin sautaient déjà ce choix, la pesée non. — Alternative
+écartée : garder la chip désélectionnable, qui ramène à l'état jugé confus.
+
+3) **Courbe de poids : axe du temps proportionnel partout, piste C dans le Carnet (plus haut, plus
+bas, pastille de la dernière pesée, sans graduation), piste D dans l'Historique (repères en kg
+ronds, sélection d'une pesée au toucher)** (#340). — Raison : les pesées étaient espacées à
+intervalle régulier quelle que soit leur date, la pente ne voulait rien dire ; le Carnet est un
+aperçu lu en une seconde, l'Historique l'écran où l'on creuse. — Alternatives écartées : la piste B
+(repères en kg) partout, plus proche de la maquette mais chargée pour la petite carte du Carnet ;
+une bibliothèque de graphiques, inutile pour une seule courbe. — Pour revenir dessus : les pistes
+sont des variantes d'un même calcul dans `shared/domain/weight-chart.ts`.
+
+4) **L'icône d'export PDF porte une pastille Plus tant que l'utilisateur n'est pas abonné** (#341).
+— Raison : le tap menait à l'écran Plus sans rien annoncer. — Alternative écartée : un libellé
+« PDF · Plus », plus explicite mais trop large à côté du nom de l'animal.
+
+5) **Écran Plus revu sur maquette Claude Design avant code : titre qui nomme la fonction payante
+d'où l'on vient, bouton d'achat visible sans défiler, comparatif Android remplacé par une seule
+ligne** (#342). — Raison : trop de texte, bouton d'achat hors de l'écran ; la ligne garde la règle
+de CLAUDE.md (l'utilisateur comprend ce qu'Android sauvegarde déjà et ce que Plus garantit), cœur
+du modèle « prix confiance ». — Alternative écartée : retirer toute mention d'Android.
+
+6) **Les exports JSON, CSV et PDF proposent « Enregistrer sur le téléphone » (fenêtre système
+« Enregistrer sous », Storage Access Framework) et « Partager »** (#343). — Raison : la feuille de
+partage seule n'enregistre pas sur le téléphone ; « Enregistrer sous » ne demande aucune
+permission et marche sur tous les Android visés (7 et plus). — Alternative écartée : écrire
+directement dans Téléchargements, qui demande une permission de stockage sur Android 7 à 9 et que
+`@capacitor/filesystem` ne sait pas faire sur Android 11 et plus.
+
+7) **La fenêtre d'affichage de la liste « À faire » (un vaccin à 337 jours s'y affiche) se décide
+en session de brainstorming, après le lot en cours** (#344).
