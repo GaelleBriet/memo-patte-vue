@@ -1452,3 +1452,47 @@ en session de brainstorming, après le lot en cours** (#344).
 tard** (#349), hors du lot de #343. — Raison : il demande un outil d'ouverture de fichier absent de
 l'app (nouvelle dépendance et réglage Android), et le toast dit déjà où se trouve le fichier ; Gaelle
 le veut, mais plus tard. — Alternative écartée : l'ajouter dans ce lot.
+
+9) **Courbe de poids, cas limites** (#340) : l'étiquette « max » passe sous son point quand elle
+chevaucherait la pastille ; les mois sont espacés de 1, 2, 3, 6 ou 12 mois pour ne jamais dépasser
+six libellés ; le dernier mois ne déborde jamais, il se cale sur la fin de l'axe ; la courbe du
+Carnet gagne une dizaine de pixels pour que « min » ne touche pas les mois ; l'échelle de
+l'Historique peut descendre jusqu'à 0 kg quand les données s'en approchent. — Raison : la page de
+propositions n'avait pas prévu ces données (pesées récentes au plus haut, 20 mois d'historique,
+chiot de 5 à 30 kg), et les étiquettes se chevauchaient ou sortaient de la carte. — Alternatives
+écartées : descendre la pastille ; ne pas écrire le dernier mois.
+
+10) **Historique du poids par pages de pesées, glisser pour remonter le temps** (#351) : l'Historique
+seulement, le Carnet reste un aperçu de toute la période ; une page s'adapte au nombre de pesées
+plutôt qu'à une durée fixe de 12 mois ; glisser change de page, toucher lit une pesée, appui long
+puis glisser les parcourt ; l'échelle s'adapte à chaque page. Le nombre de pesées par page et le
+libellé de période attendent une maquette. — Raison : seize mois tassés dans une courbe ne se
+lisent plus. — Alternative écartée : une fenêtre fixe de 12 mois, qui laisse un adulte pesé
+rarement avec deux points.
+
+11) **Écran Plus, cas sans planche** (#342) : au premier chargement, « Connexion à Google Play… »
+plutôt qu'un état « indisponible » avant d'avoir demandé ; « Restaurer mes achats » partout ;
+« Retour » neutre après un achat ; le sous-titre dit « …restent gratuits, sans compte ni
+abonnement. », qui porte l'exigence Google de dire si un abonnement est nécessaire. — Alternative
+écartée : garder la seule mention « sans compte », qui ne faisait que sous-entendre la gratuité
+sans abonnement.
+
+12) **Noms des fichiers exportés** (#343) : `carnet-<nom>-AAAAMMJJ-HHmm.pdf` pour un animal
+(`health-record-…` en anglais, nom simplifié en minuscules ASCII), `carnet-memopatte-…` pour tous
+les animaux (#356), `memopatte-export-AAAAMMJJ-HHmm.json` ou `.zip` ; heure sur 24 h, même format
+dans toutes les langues ; une seule tentative d'écriture, un suffixe ` (n)` seulement pour deux
+exports dans la même minute. — Raison : la date seule obligeait à retenter sous d'autres noms et
+laissait des fichiers vides quand le téléphone était plein. — Alternatives écartées : l'heure sur
+12 h, ambiguë sans « am / pm » et qui casse le tri ; jamais le nom de l'animal, qui rend deux PDF
+indiscernables.
+
+13) **Depuis les Paramètres, l'export PDF exportera tous les animaux dans un seul PDF** (#356) ;
+depuis le Carnet, l'animal affiché. En attendant, les Paramètres gardent le choix de l'animal, sans
+carte fichier.
+
+14) **Un seul style de toast, celui de la maquette B3 (pétrole)**, pour toute l'app (#354).
+
+15) **Unité de poids au choix (kg ou lb) dans les Paramètres, suivie par toute l'app** (#352) ;
+unités, unité par défaut et exports restent à trancher sur maquette. **Relecture complète des
+textes anglais** (#353).
+
