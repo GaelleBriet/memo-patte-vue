@@ -67,7 +67,7 @@ export function drawWeightChart(
   }
   // Mesurés en gras, jamais plus étroit que le romain des mois : la place réservée suffit aux deux.
   const chart = buildCarnetWeightChart(entries, labels, {
-    width: frame.width / UNIT_MM,
+    width: Math.floor(frame.width / UNIT_MM),
     textWidth: (text) => emWidth(doc, text, 'bold') * CHART_FONT_PX,
   })
   if (!chart) return null

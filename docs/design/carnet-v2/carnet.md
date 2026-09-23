@@ -119,10 +119,9 @@ Carte unique contenant :
     - aucune étiquette (« max », « min », pastille) ne traverse ni ne touche
       la ligne de base, jambages compris (2026-09-23, #350) : « min » s'écrit
       toujours sous son point, au-dessus de la ligne de base, même pour un
-      chiot qui passe de 5 à 30 kg et même police agrandie ; les places de
-      repli, à droite puis à gauche du point, évitent aussi la ligne de base
+      chiot qui passe de 5 à 30 kg et même police agrandie
     - la rangée des mois est 10 px plus bas que la ligne de base ne
-      l'exigerait (la place où « min » s'écrivait sous la ligne avant #350)
+      l'exigerait : de l'air sous la courbe, où aucune étiquette ne s'écrit
     - la place des étiquettes suit la taille de police réellement rendue
 - sous la courbe, les mois (12 px / 500, `#736E67`) : un libellé au début de
   chaque mois, avec un petit trait de repère. Au-delà de six changements de

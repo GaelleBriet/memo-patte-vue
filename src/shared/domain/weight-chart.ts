@@ -74,7 +74,7 @@ export type HistoryWeightChart = TimeChart & {
 
 type Layout = { height: number; left: number; right: number; top: number; bottom: number }
 
-// 10 px de plus sous la courbe du Carnet : la place où « min » s'écrit sans toucher les mois.
+// Sous la ligne de base du Carnet, 10 px d'air de plus que les traits et les mois n'en demandent.
 const CARNET_LAYOUT: Layout = { height: 160, left: 8, right: 8, top: 34, bottom: 36 }
 const HISTORY_LAYOUT: Layout = { height: 190, left: 36, right: 10, top: 12, bottom: 22 }
 
@@ -350,7 +350,7 @@ function extremeLabel(
   )
 }
 
-/** Sous le plus bas, 0,3 kg ou la place d'écrire « min » sous son point sans toucher la ligne de base. */
+// 0,3 kg, ou plus s'il le faut pour écrire « min » sous son point sans toucher la ligne de base.
 function carnetLowMarginKg(minKg: number, highKg: number, font: ChartFont): number {
   const plotHeight = CARNET_LAYOUT.height - CARNET_LAYOUT.top - CARNET_LAYOUT.bottom
   // Le pixel de plus absorbe l'arrondi au dixième du point puis de son étiquette.
@@ -376,13 +376,7 @@ export function buildCarnetWeightChart(
   const { chart } = timeChart(entries, CARNET_LAYOUT, lowKg, highKg, { width, font })
   const last = chart.points[chart.points.length - 1]!
   const latest = latestPill(chart, labels.latest(formatKg(last.weightKg)), font)
-  const baseline = {
-    left: chart.plot.left,
-    right: chart.plot.right,
-    top: chart.plot.bottom - BASELINE_CLEARANCE,
-    bottom: chart.plot.bottom + BASELINE_CLEARANCE,
-  }
-  const obstacles = [latest.box, baseline, ...chart.months.map((month) => month.box)]
+  const obstacles = [latest.box, ...chart.months.map((month) => month.box)]
 
   const above = { dx: 0, dy: -(GAP_ABOVE_POINT + font.descent) }
   const below = { dx: 0, dy: GAP_BELOW_POINT + font.ascent }

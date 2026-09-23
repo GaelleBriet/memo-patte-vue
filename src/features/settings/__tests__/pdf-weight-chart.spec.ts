@@ -264,6 +264,26 @@ describe('drawWeightChart — plus haut, plus bas et dernière pesée', () => {
     )
   })
 
+  it('garde « max » hors de la pastille quand la largeur ne tombe pas sur un pixel entier', () => {
+    const entries = pesees(
+      ['2025-03-01', 45],
+      ['2025-04-01', 45.8],
+      ['2025-05-01', 46.5],
+      ['2025-06-01', 47.1],
+      ['2025-07-01', 47.9],
+      ['2025-08-01', 48.6],
+      ['2025-09-01', 49.2],
+      ['2025-10-01', 50],
+      ['2025-11-01', 50.7],
+      ['2025-12-30', 52.6],
+      ['2025-12-30', 51.1],
+    )
+    const { texts, paths } = dessine(entries, { ...FRAME, width: 120 })
+    const max = texts.find((text) => text.text === 'max 52,6')!
+
+    expect(chevauche(boite(max), bounds(pastille(paths).points))).toBe(false)
+  })
+
   it('passe « max » sous son point quand il toucherait la pastille', () => {
     const { texts, paths } = dessine(MAX_PRES_DE_LA_PASTILLE)
     const max = texts.find((text) => text.text === 'max 24,6')!

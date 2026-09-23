@@ -140,6 +140,14 @@ describe('buildCarnetWeightChart — échelle', () => {
     expect(chart.points.map((point) => point.y)).toEqual([85.4, 72.6])
   })
 
+  it('garde 0,3 kg sous le plus bas quand la pastille l’écrit, sans place pour « min »', () => {
+    const chart = carnet(pesees(['2026-03-01', 24.5], ['2026-03-31', 23.6]), 320)!
+
+    // Échelle 23,3 → 24,8 sur 90 px : 24,5 aux quatre cinquièmes de la hauteur, 23,6 à un.
+    expect(chart.min).toBeNull()
+    expect(chart.points.map((point) => point.y)).toEqual([52, 106])
+  })
+
   it('descend sous le plus bas assez pour écrire « min » entre son point et la ligne de base', () => {
     const chart = carnet(pesees(['2026-03-01', 23.6], ['2026-03-31', 24.5]), 320)!
 
