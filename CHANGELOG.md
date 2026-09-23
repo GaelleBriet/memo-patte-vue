@@ -5,6 +5,36 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.36](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.35...memo-patte-v0.1.36) (2026-09-23)
+
+
+### ✨ Fonctionnalités
+
+* **android:** accès au stockage limité à Android 10 et moins pour l'export ([5f7b295](https://github.com/GaelleBriet/memo-patte-vue/commit/5f7b29545d234d55b44af8931cad31247245217e))
+* **purchase:** écran Plus revu et pastille Plus sur l'export PDF ([a56452f](https://github.com/GaelleBriet/memo-patte-vue/commit/a56452f029750aa546042fcc2da66833367f6268))
+* **purchase:** écran Plus revu et pastille Plus sur l'export PDF ([457013f](https://github.com/GaelleBriet/memo-patte-vue/commit/457013f8ff9f23c14666b559b834d88676a7f0b1))
+* **settings:** enregistrer un export sur le téléphone en plus du partage ([c4a96d7](https://github.com/GaelleBriet/memo-patte-vue/commit/c4a96d721d55d1218605b14a93463aa924ab0c12))
+* **settings:** enregistrer un export sur le téléphone en plus du partage ([8e90cf3](https://github.com/GaelleBriet/memo-patte-vue/commit/8e90cf3b344fe76046a8396b07597cfe62bd5a47)), closes [#343](https://github.com/GaelleBriet/memo-patte-vue/issues/343)
+* **settings:** icônes JSON et CSV de la maquette ([c3b6f48](https://github.com/GaelleBriet/memo-patte-vue/commit/c3b6f48a39f8145243acd1dc0160b72be2ce1d44))
+* **settings:** noms d'export datés à la minute, carnet PDF nommé comme affiché ([582e0d9](https://github.com/GaelleBriet/memo-patte-vue/commit/582e0d9e8ed009052ad83fe0a2e3584dee3d99ab))
+* **shared:** calcul de la courbe de poids sur l'axe du temps ([751e9f5](https://github.com/GaelleBriet/memo-patte-vue/commit/751e9f58386e158edff35322c4664455b7119d4b)), closes [#340](https://github.com/GaelleBriet/memo-patte-vue/issues/340)
+* **weight:** courbe de poids sur l'axe du temps, pistes C (Carnet) et D (Historique) ([d90da37](https://github.com/GaelleBriet/memo-patte-vue/commit/d90da378b9fd29e9b9080b34dd1c2657a2da7626))
+* **weight:** courbe du Carnet (piste C) et de l'Historique (piste D) ([f72b5ac](https://github.com/GaelleBriet/memo-patte-vue/commit/f72b5ac630ac090ef17d21c25d6f15c0e2acd79d)), closes [#340](https://github.com/GaelleBriet/memo-patte-vue/issues/340)
+
+
+### 🐛 Corrections
+
+* **android:** contrôle du manifest sur chaque déclaration d'une permission ([fda2e28](https://github.com/GaelleBriet/memo-patte-vue/commit/fda2e281628d8adfb3841797f36df2cbd47dae74))
+* **home:** le seul animal du foyer devient l'animal courant de l'accueil ([103eb42](https://github.com/GaelleBriet/memo-patte-vue/commit/103eb42d1446c09c997b423f18e425dd7125a6c6))
+* **home:** le seul animal du foyer devient l'animal courant de l'accueil ([accbdc9](https://github.com/GaelleBriet/memo-patte-vue/commit/accbdc961fbbce2c4b46597d4e71e89533803383))
+* **home:** retire le texte « à jour » d'un foyer à un animal, devenu inatteignable ([99b02ee](https://github.com/GaelleBriet/memo-patte-vue/commit/99b02eedbcbef47e10aafcfadda87550f8bd8b52))
+* **purchase:** suites de la revue de l'écran Plus et textes tranchés ([813f1d1](https://github.com/GaelleBriet/memo-patte-vue/commit/813f1d1b4b9819506ea9664dede47aa73505bc76))
+* **settings:** seul « fichier introuvable » rend un nom d'export libre ([2a5243e](https://github.com/GaelleBriet/memo-patte-vue/commit/2a5243ee374f7354953d16a6c1498537122ccff1))
+* **settings:** une seule tentative d'écriture, fichier entamé effacé ([99a8568](https://github.com/GaelleBriet/memo-patte-vue/commit/99a8568d802ac1a13554b7caca6ac081d30a2d9f))
+* **weight:** « min » à côté de son point du côté où il tient, aucune étiquette hors du graphique ([5239bb5](https://github.com/GaelleBriet/memo-patte-vue/commit/5239bb5148734f97208e8f6e4c2166fda77a58a7)), closes [#340](https://github.com/GaelleBriet/memo-patte-vue/issues/340)
+* **weight:** aucune étiquette de la courbe ne se chevauche ni ne déborde ([71d5f4b](https://github.com/GaelleBriet/memo-patte-vue/commit/71d5f4b65ea83739a33879f8f8380dd77e7cebbe)), closes [#340](https://github.com/GaelleBriet/memo-patte-vue/issues/340)
+* **weight:** libellés traduits et police agrandie mesurés, traits des mois gardés ([e9da807](https://github.com/GaelleBriet/memo-patte-vue/commit/e9da807d88669c5f9dcd8aa295e2e9ed9b05be29)), closes [#340](https://github.com/GaelleBriet/memo-patte-vue/issues/340)
+
 ## [0.1.35](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.34...memo-patte-v0.1.35) (2026-09-22)
 
 
