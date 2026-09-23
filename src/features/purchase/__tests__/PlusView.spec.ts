@@ -412,6 +412,7 @@ describe('PlusView — offres indisponibles', () => {
     expect(wrapper.find('.plus__retry-offers').exists()).toBe(false)
     expect(wrapper.find('.plus__restore').exists()).toBe(false)
     expect(wrapper.text()).not.toContain('Connexion à Google Play…')
+    expect(service.listOffers).not.toHaveBeenCalled()
   })
 })
 
@@ -571,6 +572,17 @@ describe('PlusView — restauration', () => {
 
     expect(toastMessage.value).toBe('Aucun achat à restaurer sur ce compte Google.')
     expect(offres(wrapper)).toHaveLength(3)
+  })
+
+  it('ne lance qu’une restauration sur un double tap', async () => {
+    service.restore.mockReturnValue(new Promise(() => {}))
+    const wrapper = await monter()
+    const bouton = wrapper.get('.plus__restore')
+
+    void bouton.trigger('click')
+    await bouton.trigger('click')
+
+    expect(service.restore).toHaveBeenCalledTimes(1)
   })
 
   it('ne se laisse pas relancer tant qu’elle est en vol', async () => {
