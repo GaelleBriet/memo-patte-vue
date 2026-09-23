@@ -24,13 +24,13 @@ const { pendingMode, isPreparing, hasFailed, saveAccess, run, reset } = useDataE
 const formats = computed(() => [
   {
     value: 'json' as const,
-    icon: 'ms:description',
+    icon: 'ms:data_object',
     label: t('settings.export.json.label'),
     description: t('settings.export.json.description'),
   },
   {
     value: 'csv' as const,
-    icon: 'ms:table',
+    icon: 'ms:table_view',
     label: t('settings.export.csv.label'),
     description: t('settings.export.csv.description'),
   },
