@@ -82,11 +82,12 @@ describe('buildTodo', () => {
           source({ id: 'dans-un-an', dueDate: '2027-09-01' }),
           source({ id: 'dans-deux-mois', dueDate: '2026-11-09' }),
           source({ id: 'j31', dueDate: '2026-10-10' }),
+          source({ id: 'j30', dueDate: '2026-10-09' }),
         ],
         { today: TODAY },
       )
 
-      expect(todo.reminders).toEqual([])
+      expect(todo.reminders.map((r) => r.id)).toEqual(['j30'])
       expect(todo.next).toMatchObject({ id: 'j31', dueDate: '2026-10-10', daysUntil: 31 })
     })
 

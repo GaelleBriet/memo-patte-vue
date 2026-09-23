@@ -656,6 +656,22 @@ describe('HomeView — fenêtre de 30 jours', () => {
     expect(wrapper.find('.home-up-to-date').exists()).toBe(true)
     expect(wrapper.find('.home-up-to-date__next').exists()).toBe(false)
   })
+
+  it('fait entrer une échéance à 31 jours dans la liste quand l’app revient le lendemain', async () => {
+    sources = [TYPHUS_LUNA_J31]
+    const wrapper = await monter()
+    expect(wrapper.find('.home-up-to-date__next').exists()).toBe(true)
+
+    vi.setSystemTime(new Date('2026-09-10T08:00:00'))
+    simulateWebResume()
+    await flushPromises()
+
+    expect(wrapper.find('.home-up-to-date__next').exists()).toBe(false)
+    expect(wrapper.get('.home-todo .section-card__counter').text()).toBe('1 rappel')
+    expect(rows(wrapper)).toEqual([
+      { title: 'Typhus', animal: 'Luna', badge: 'Dans 30 jours', status: 'reminder-row--later' },
+    ])
+  })
 })
 
 describe('HomeView — un seul animal', () => {
