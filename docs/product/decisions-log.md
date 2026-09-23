@@ -1496,3 +1496,42 @@ carte fichier.
 unités, unité par défaut et exports restent à trancher sur maquette. **Relecture complète des
 textes anglais** (#353).
 
+2026-09-23 — **Cycle de vie d'un rappel, séance de brainstorming avec Gaelle** (#344, #364).
+
+1) **Historique complet des vaccins et des traitements, sans limite de durée.** — Raison : c'est le
+carnet de santé que le véto consulte, et le volume est dérisoire (un vermifuge mensuel, douze
+lignes par an). — Alternatives écartées : la dernière date seulement, qui efface une injection du
+carnet quand on refait un vaccin ; deux ans d'historique pour les vermifuges et antiparasitaires,
+écartés au profit de tout garder. Le PDF regroupe les prises répétées d'un traitement au lieu
+d'aligner des lignes identiques ; le JSON garde chaque prise.
+
+2) **Les médicaments au sens large (cure, traitement chronique) sont un sujet à part** (#365) :
+extension du périmètre v1, qui ne cite que vaccins, vermifuges et antiparasitaires.
+
+3) **Un rappel se marque « fait » depuis la liste « À faire », depuis le Carnet et depuis un bouton
+« C'est fait » de la notification**, qui ouvre l'app (`@capacitor/local-notifications` lance
+l'activité). Pour un vermifuge ou un antiparasitaire, le bouton note la prise du jour en un tap ;
+pour un vaccin, il ouvre la feuille « Fait » du vaccin.
+
+4) **Vaccin fait : date de l'injection, puis prochain rappel par raccourcis « Dans 1 an · Dans
+3 ans · Autre date · Pas de rappel », rien de présélectionné**, quitte à dépasser deux taps. — Raison :
+après une primo-vaccination les rappels s'espacent, un intervalle repris de la fois précédente
+tromperait. — Alternative écartée : proposer le même intervalle que la dernière fois.
+
+5) **Traitement fait : une prise à la date du jour ou à une date passée, l'échéance suivante
+recalculée depuis la date réelle de la prise.**
+
+6) **La feuille d'un rappel propose « Fait aujourd'hui », « Fait à une autre date », « Modifier »
+(qui sert aussi à reporter) et, pour un traitement, « Arrêter ce traitement »** (plus de rappels,
+historique gardé). — Alternatives écartées : un bouton « Reporter » dédié ; « Ignorer ce rappel »,
+qui ôterait leur fiabilité aux rappels.
+
+7) **« À faire » montre les rappels en retard et ceux des 30 prochains jours** ; quand rien n'y
+tombe, l'état « Tout est à jour » annonce le prochain rappel plus lointain. — Alternatives
+écartées : une fenêtre par type ; tout afficher par sections.
+
+8) **Modèle de données de l'historique : non tranché.** Deux approches : deux tables d'historique
+(`vaccination_injection`, `treatment_dose`) ou une nouvelle ligne `vaccination` par injection avec
+une table de prises pour les traitements. Gaelle penche pour la seconde et veut comparer ; un
+document de comparaison est préparé (`docs/technical/proposition-historique-rappels.md`).
+
