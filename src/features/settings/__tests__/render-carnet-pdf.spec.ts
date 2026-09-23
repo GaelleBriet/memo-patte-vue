@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { renderCarnetPdf } from '../logic/render-carnet-pdf'
+import { readPdf } from './pdf-reader'
 import type { CarnetPdfContent } from '../logic/pdf-content'
 
 const EMPTY_CONTENT: CarnetPdfContent = {
@@ -9,7 +10,6 @@ const EMPTY_CONTENT: CarnetPdfContent = {
   vaccinations: [],
   treatments: [],
   weightEntries: [],
-  weightChart: null,
 }
 
 const FULL_CONTENT: CarnetPdfContent = {
@@ -31,15 +31,19 @@ const FULL_CONTENT: CarnetPdfContent = {
     { measuredOn: '2026-01-01', weightKg: 4 },
     { measuredOn: '2026-06-01', weightKg: 4.3 },
   ],
-  weightChart: {
-    width: 300,
-    height: 120,
-    polyline: '16,100 284,20',
-    points: [
-      { x: 16, y: 100, valueLabel: '4,0', monthLabel: 'Janv.' },
-      { x: 284, y: 20, valueLabel: '4,3', monthLabel: 'Juin' },
-    ],
-  },
+}
+
+const PESEES_IRREGULIERES = [
+  { measuredOn: '2025-09-20', weightKg: 4.2 },
+  { measuredOn: '2025-10-18', weightKg: 4.3 },
+  { measuredOn: '2025-12-20', weightKg: 4.6 },
+  { measuredOn: '2026-01-10', weightKg: 4.5 },
+  { measuredOn: '2026-06-27', weightKg: 4.1 },
+  { measuredOn: '2026-09-19', weightKg: 4.3 },
+]
+
+function jours(from: string, to: string): number {
+  return (Date.parse(to) - Date.parse(from)) / 86_400_000
 }
 
 const TINY_JPEG_DATA_URL =
@@ -67,5 +71,47 @@ describe('renderCarnetPdf', () => {
     expect(() =>
       renderCarnetPdf(FULL_CONTENT, '0.1.24', 'data:image/jpeg;base64,invalide'),
     ).not.toThrow()
+  })
+})
+
+describe('renderCarnetPdf — courbe de poids', () => {
+  it('le PDF d’un animal à plusieurs pesées contient la courbe sur l’axe du temps', () => {
+    const content = { ...FULL_CONTENT, weightEntries: PESEES_IRREGULIERES }
+    const { texts, paths } = readPdf(renderCarnetPdf(content, '0.1.24', null))
+    const courbe = paths.find(
+      (path) => path.paint === 'S' && path.points.length === PESEES_IRREGULIERES.length,
+    )!
+    const debut = PESEES_IRREGULIERES[0]!.measuredOn
+    const duree = jours(debut, PESEES_IRREGULIERES.at(-1)!.measuredOn)
+    const largeur = courbe.points.at(-1)!.x - courbe.points[0]!.x
+    const ecrits = texts.map((text) => text.text)
+
+    PESEES_IRREGULIERES.forEach((entry, index) => {
+      const attendu = (jours(debut, entry.measuredOn) / duree) * largeur
+      expect(courbe.points[index]!.x - courbe.points[0]!.x).toBeCloseTo(attendu, 1)
+    })
+    expect(ecrits).toEqual(
+      expect.arrayContaining(['Oct.', 'Déc.', 'Févr.', 'Avr.', 'Juin', 'Août']),
+    )
+    expect(ecrits).toEqual(expect.arrayContaining(['max 4,6', 'min 4,1', '4,3\u00a0kg']))
+    expect(ecrits).not.toContain('4,5')
+  })
+
+  it('garde le tableau des pesées, sans courbe sous deux pesées', () => {
+    const content = {
+      ...FULL_CONTENT,
+      weightEntries: [{ measuredOn: '2026-06-01', weightKg: 4.3 }],
+    }
+    const { texts, paths } = readPdf(renderCarnetPdf(content, '0.1.24', null))
+
+    expect(paths).toEqual([])
+    expect(texts.map((text) => text.text)).toEqual(expect.arrayContaining(['01/06/2026', '4,3 kg']))
+  })
+
+  it('n’écrit aucun texte sous 9 pt, tableau des pesées compris', () => {
+    const content = { ...FULL_CONTENT, weightEntries: PESEES_IRREGULIERES }
+    const { texts } = readPdf(renderCarnetPdf(content, '0.1.24', null))
+
+    for (const text of texts) expect(text.sizePt).toBeGreaterThanOrEqual(9)
   })
 })

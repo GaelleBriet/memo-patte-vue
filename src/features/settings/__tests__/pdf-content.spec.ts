@@ -137,15 +137,6 @@ describe('buildCarnetPdfContent', () => {
     expect(content.weightEntries.map((row) => row.measuredOn)).toEqual(['2026-01-01', '2026-06-01'])
   })
 
-  it('construit une courbe de poids dès deux pesées, aucune sous deux', () => {
-    const content = buildCarnetPdfContent(DATA, ANIMAL_ID, TODAY)!
-    expect(content.weightChart).not.toBeNull()
-    expect(content.weightChart!.points).toHaveLength(2)
-
-    const luna = buildCarnetPdfContent(DATA, OTHER_ANIMAL_ID, TODAY)!
-    expect(luna.weightChart).toBeNull()
-  })
-
   it('reprend le nom de fichier de la photo quand il existe', () => {
     expect(buildCarnetPdfContent(DATA, ANIMAL_ID, TODAY)!.animal.photoFileName).toBeNull()
     expect(buildCarnetPdfContent(DATA, OTHER_ANIMAL_ID, TODAY)!.animal.photoFileName).toBe(
