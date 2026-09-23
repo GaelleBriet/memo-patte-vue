@@ -1,17 +1,21 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, useTemplateRef, type ComponentPublicInstance } from 'vue'
+import { computed, onMounted, ref, useTemplateRef, watch, type ComponentPublicInstance } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
 import WeightSheet from './WeightSheet.vue'
-import { weightHistory, type WeightHeadline, type WeightTrend } from '../logic/weight-history'
+import {
+  weightHistory,
+  type WeightHeadline,
+  type WeightHistoryRow,
+  type WeightTrend,
+} from '../logic/weight-history'
 import { useWeightEntries } from '../composables/use-weight-entries'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import PushedScreen from '@/shared/components/PushedScreen.vue'
 import SectionCard from '@/shared/components/SectionCard.vue'
-import WeightSparkline from '@/shared/components/WeightSparkline.vue'
+import WeightHistoryChart from '@/shared/components/WeightHistoryChart.vue'
 import { formatKg, formatKgDelta, formatLongDate, formatMonth } from '@/shared/utils/format'
-import { buildWeightChart } from '@/shared/domain/weight-chart'
 
 const props = defineProps<{
   animalId: string
@@ -25,9 +29,6 @@ const isSheetOpen = ref(false)
 // La première pesée remplace la carte vide par le bouton fixe : c'est lui qui reprend le focus.
 const addButton = useTemplateRef<ComponentPublicInstance>('addButton')
 
-// Courbe plus haute que celle du Carnet : c'est le sujet de l'écran.
-const CHART_OPTIONS = { width: 320, height: 150, paddingTop: 22 }
-
 const animal = computed(() => animals.byId(props.animalId))
 // Supprimé ou lien périmé : rien à consulter ni à ajouter.
 const isNotFound = computed(() => animals.hasLoaded && animal.value === null)
@@ -35,13 +36,42 @@ const isNotFound = computed(() => animals.hasLoaded && animal.value === null)
 const { entries, isLoading, isReady, hasError, reload } = useWeightEntries(() => props.animalId)
 
 const history = computed(() => weightHistory(entries.value, animal.value?.initialWeightKg ?? null))
-const chart = computed(() =>
-  history.value.state === 'full' ? buildWeightChart(entries.value, CHART_OPTIONS) : null,
-)
 
-const headline = computed(() =>
-  history.value.headline ? describeHeadline(history.value.headline) : null,
-)
+const selected = ref<number | null>(null)
+watch(entries, () => {
+  selected.value = null
+})
+
+// La dernière pesée garde le résumé du repos : « Poids actuel » et sa variation.
+const selectedRow = computed(() => {
+  if (selected.value === null || selected.value === entries.value.length - 1) return null
+  const id = entries.value[selected.value]?.id
+  return history.value.rows.find((row) => row.id === id) ?? null
+})
+
+const summary = computed(() => {
+  if (selectedRow.value) return describeRow(selectedRow.value)
+  const { current, headline } = history.value
+  if (!current || !headline) return null
+  return {
+    label: t('weight.history.current'),
+    weightKg: current.weightKg,
+    delta: describeHeadline(headline),
+  }
+})
+
+function describeRow(row: WeightHistoryRow) {
+  return {
+    label: t('weight.history.selected', { date: formatLongDate(row.measuredOn) }),
+    weightKg: row.weightKg,
+    delta: row.delta
+      ? {
+          text: t('weight.delta.value', { delta: formatKgDelta(row.delta.deltaKg) }),
+          trend: row.delta.trend,
+        }
+      : null,
+  }
+}
 
 function describeHeadline(value: WeightHeadline): { text: string; trend: WeightTrend } {
   if (value.kind === 'first') {
@@ -86,19 +116,22 @@ function backToAnimals(): void {
       </p>
 
       <template v-else>
-        <section v-if="history.current && headline" class="weight-history__summary">
-          <p class="weight-history__current-label">{{ t('weight.history.current') }}</p>
+        <section v-if="summary" class="weight-history__summary">
+          <p class="weight-history__current-label">{{ summary.label }}</p>
           <p class="weight-history__headline">
-            <span class="weight-history__current">{{ formatKg(history.current.weightKg) }}</span>
+            <span class="weight-history__current">{{ formatKg(summary.weightKg) }}</span>
             <span class="weight-history__unit">{{ t('weight.unit') }}</span>
           </p>
-          <p class="weight-history__delta" :class="`weight-history__delta--${headline.trend}`">
-            {{ headline.text }}
+          <p
+            class="weight-history__delta"
+            :class="summary.delta ? `weight-history__delta--${summary.delta.trend}` : null"
+          >
+            {{ summary.delta?.text }}
           </p>
         </section>
 
-        <div v-if="chart" class="section-card__card weight-history__chart">
-          <WeightSparkline :chart="chart" />
+        <div v-if="history.state === 'full'" class="section-card__card weight-history__chart">
+          <WeightHistoryChart v-model:selected="selected" :entries="entries" />
         </div>
         <p v-else-if="history.state === 'single'" class="section-card__card weight-history__single">
           <v-icon icon="ms:show_chart" size="22" />
@@ -241,6 +274,8 @@ function backToAnimals(): void {
 }
 
 .weight-history__delta {
+  // Vide sur la première pesée : la courbe sous le doigt ne doit pas remonter.
+  min-height: 1lh;
   margin: 8px 0 0;
   font-size: 13px;
   font-weight: 600;

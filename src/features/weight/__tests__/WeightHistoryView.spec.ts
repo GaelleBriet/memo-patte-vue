@@ -19,6 +19,7 @@ import type { WeightRepository } from '../repository/weight.repository'
 import { provideWeightRepository, useWeightStore } from '../store/weight.store'
 import type { Animal } from '@/features/animals/schema/animal.schema'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
+import { buildHistoryWeightChart } from '@/shared/domain/weight-chart'
 import i18n from '@/core/i18n'
 import router from '@/router'
 import vuetify from '@/core/theme/vuetify'
@@ -200,19 +201,18 @@ describe('WeightHistoryView — H1 historique complet', () => {
     expect(delta.classes()).toContain('weight-history__delta--up')
   })
 
-  it('trace la courbe dans le sens du temps, sans carte « une seule pesée »', async () => {
+  it('trace la courbe dans le sens du temps, repères en kg ronds, sans carte « une seule pesée »', async () => {
     const wrapper = await monter()
-    const sparkline = wrapper.get('.weight-sparkline')
+    const courbe = wrapper.get('.weight-history-chart')
 
-    expect(sparkline.findAll('.weight-sparkline__value').map((n) => n.text())).toEqual([
-      '23,6',
-      '23,8',
-      '24,0',
-      '24,2',
-      '24,3',
+    expect(courbe.findAll('.weight-chart-trace__point')).toHaveLength(6)
+    expect(courbe.findAll('.weight-history-chart__tick').map((n) => n.text())).toEqual([
+      '23,5',
+      '24',
       '24,5',
+      '25',
     ])
-    expect(sparkline.findAll('.weight-sparkline__month').map((n) => n.text())).toEqual([
+    expect(courbe.findAll('.weight-chart-trace__month').map((n) => n.text())).toEqual([
       'Juin',
       'Juil.',
       'Août',
@@ -280,6 +280,120 @@ describe('WeightHistoryView — H1 historique complet', () => {
   })
 })
 
+describe('WeightHistoryView — lire une pesée sur la courbe', () => {
+  beforeEach(() => {
+    entries = [...HISTORIQUE_MILO]
+  })
+
+  function courbe() {
+    return wrapper!.get('.weight-history-chart svg')
+  }
+
+  function resume() {
+    return {
+      label: wrapper!.get('.weight-history__current-label').text(),
+      poids: wrapper!.get('.weight-history__current').text(),
+      unite: wrapper!.get('.weight-history__unit').text(),
+      variation: wrapper!.get('.weight-history__delta').text(),
+    }
+  }
+
+  it('montre dans le résumé la pesée choisie : sa date, son poids, sa variation depuis la précédente', async () => {
+    await monter()
+
+    await courbe().trigger('keydown', { key: 'ArrowLeft' })
+
+    expect(resume()).toEqual({
+      label: 'Pesée du 11 oct. 2026',
+      poids: '24,3',
+      unite: 'kg',
+      variation: '+0,1 kg',
+    })
+    expect(wrapper!.get('.weight-history__delta').classes()).toContain('weight-history__delta--up')
+  })
+
+  it('suit le doigt posé sur la courbe', async () => {
+    vi.spyOn(SVGElement.prototype, 'getBoundingClientRect').mockReturnValue({
+      left: 0,
+      width: 320,
+    } as DOMRect)
+    await monter()
+    const juillet = buildHistoryWeightChart(HISTORIQUE_MILO)!.points[1]!
+
+    courbe().element.dispatchEvent(
+      new MouseEvent('pointerdown', { clientX: juillet.x, buttons: 1, bubbles: true }),
+    )
+    await flushPromises()
+
+    expect(resume()).toMatchObject({ label: 'Pesée du 12 juil. 2026', poids: '23,8' })
+    expect(resume().variation).toBe('+0,2 kg')
+  })
+
+  it('écrit une baisse en gris chaud', async () => {
+    entries = [entry(24.5, '2026-08-09'), entry(24.2, '2026-09-13'), entry(24.4, '2026-10-11')]
+    await monter()
+
+    await courbe().trigger('keydown', { key: 'ArrowLeft' })
+
+    expect(resume().variation).toBe('−0,3 kg')
+    expect(wrapper!.get('.weight-history__delta').classes()).toContain(
+      'weight-history__delta--down',
+    )
+  })
+
+  it('laisse la variation vide sur la toute première pesée, comme dans la liste', async () => {
+    await monter()
+
+    await courbe().trigger('keydown', { key: 'Home' })
+
+    expect(resume()).toEqual({
+      label: 'Pesée du 7 juin 2026',
+      poids: '23,6',
+      unite: 'kg',
+      variation: '',
+    })
+  })
+
+  it('redevient le poids actuel sur la dernière pesée', async () => {
+    await monter()
+
+    await courbe().trigger('keydown', { key: 'ArrowLeft' })
+    await courbe().trigger('keydown', { key: 'End' })
+
+    expect(resume()).toEqual({
+      label: 'Poids actuel',
+      poids: '24,5',
+      unite: 'kg',
+      variation: '+0,2 kg vs octobre',
+    })
+  })
+
+  it('repart de la dernière pesée à chaque ouverture de l’écran', async () => {
+    await monter()
+    await courbe().trigger('keydown', { key: 'Home' })
+    wrapper!.unmount()
+
+    await monter()
+
+    expect(resume().label).toBe('Poids actuel')
+  })
+
+  it('repart de la dernière pesée quand une pesée s’ajoute', async () => {
+    create.mockImplementation(async (input) => {
+      const created = entry(input.weightKg, input.measuredOn, input.animalId)
+      entries = [...entries, created]
+      return created
+    })
+    await monter()
+    await courbe().trigger('keydown', { key: 'Home' })
+
+    await useWeightStore().create({ animalId: MILO.id, weightKg: 25, measuredOn: '2026-11-20' })
+    await flushPromises()
+
+    expect(resume()).toMatchObject({ label: 'Poids actuel', poids: '25,0' })
+  })
+})
+
 describe('WeightHistoryView — pendant une écriture', () => {
   it('garde le poids actuel, les lignes et le bouton fixe pendant l’enregistrement', async () => {
     entries = [...HISTORIQUE_MILO]
@@ -334,7 +448,7 @@ describe('WeightHistoryView — H2 une seule pesée', () => {
     const single = wrapper.get('.weight-history__single')
     expect(single.text()).toBe('Ajoute une nouvelle pesée pour voir l’évolution.')
     expect(single.find('svg').exists()).toBe(true)
-    expect(wrapper.find('.weight-sparkline').exists()).toBe(false)
+    expect(wrapper.find('.weight-history-chart').exists()).toBe(false)
   })
 
   it('liste l’unique pesée sans delta, garde le poids à l’arrivée et le bouton fixe', async () => {
@@ -354,7 +468,7 @@ describe('WeightHistoryView — H3 aucune pesée', () => {
 
     expect(wrapper.get('.weight-history__empty').text()).toBe('Aucune pesée enregistrée')
     expect(wrapper.find('.weight-history__current').exists()).toBe(false)
-    expect(wrapper.find('.weight-sparkline').exists()).toBe(false)
+    expect(wrapper.find('.weight-history-chart').exists()).toBe(false)
     expect(wrapper.find('.weight-history__single').exists()).toBe(false)
     expect(wrapper.find('.weight-history__row').exists()).toBe(false)
     expect(wrapper.find('.weight-history__add').exists()).toBe(false)

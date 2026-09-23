@@ -162,21 +162,25 @@ describe('WeightSection — poids actuel et delta', () => {
 })
 
 describe('WeightSection — courbe', () => {
-  it('trace la courbe à partir de deux pesées, valeurs au-dessus des points, mois dessous', async () => {
+  it('trace la courbe à partir de deux pesées : mois dessous, plus bas et dernière pesée écrits', async () => {
     entries = [entry(23.6, '2026-06-05'), entry(24.5, '2026-11-08')]
     const wrapper = await monter()
     const sparkline = wrapper.get('.weight-sparkline')
 
     expect(sparkline.findAll('circle')).toHaveLength(2)
     expect(sparkline.find('polyline').exists()).toBe(true)
-    expect(sparkline.findAll('.weight-sparkline__value').map((n) => n.text())).toEqual([
-      '23,6',
-      '24,5',
-    ])
-    expect(sparkline.findAll('.weight-sparkline__month').map((n) => n.text())).toEqual([
+    expect(sparkline.findAll('.weight-chart-trace__month').map((n) => n.text())).toEqual([
       'Juin',
+      'Juil.',
+      'Août',
+      'Sept.',
+      'Oct.',
       'Nov.',
     ])
+    expect(sparkline.findAll('.weight-sparkline__extreme').map((n) => n.text())).toEqual([
+      'min 23,6',
+    ])
+    expect(sparkline.get('.weight-sparkline__latest').text()).toBe('24,5 kg')
     expect(wrapper.find('.weight-section__single').exists()).toBe(false)
   })
 
