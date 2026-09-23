@@ -16,7 +16,7 @@ import PlusView from '../views/PlusView.vue'
 import i18n from '@/core/i18n'
 import { getMsIconPath } from '@/core/theme/icons'
 import vuetify from '@/core/theme/vuetify'
-import { dismissToast, toastMessage } from '@/shared/utils/toast'
+import { dismissToast, toastMessage, toastTone } from '@/shared/utils/toast'
 import { memoryStorage } from './billing-fixture'
 
 vi.mock('../service/billing.service', async (importOriginal) => ({
@@ -571,6 +571,7 @@ describe('PlusView — restauration', () => {
     await flushPromises()
 
     expect(toastMessage.value).toBe('Aucun achat à restaurer sur ce compte Google.')
+    expect(toastTone.value).toBe('info')
     expect(offres(wrapper)).toHaveLength(3)
   })
 
@@ -615,5 +616,6 @@ describe('PlusView — restauration', () => {
     await flushPromises()
 
     expect(toastMessage.value).toBe('La restauration n’a pas abouti. Réessaie.')
+    expect(toastTone.value).toBe('error')
   })
 })

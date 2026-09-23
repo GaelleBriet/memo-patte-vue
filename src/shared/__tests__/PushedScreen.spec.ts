@@ -2,6 +2,7 @@ import { mount } from '@vue/test-utils'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import PushedScreen from '../components/PushedScreen.vue'
+import { fixedBottomBarHeight } from '../composables/use-fixed-bottom-bar'
 import vuetify from '@/core/theme/vuetify'
 
 type Props = InstanceType<typeof PushedScreen>['$props']
@@ -96,6 +97,35 @@ describe('PushedScreen — barre du bas', () => {
 
   it('n’affiche aucune barre sans slot actions', () => {
     expect(monter().find('.pushed-screen__actions').exists()).toBe(false)
+  })
+
+  it('déclare sa barre d’actions comme barre fixe du bas, que le toast laisse libre', async () => {
+    const observees: Element[] = []
+    const rappels: (() => void)[] = []
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        constructor(rappel: () => void) {
+          rappels.push(rappel)
+        }
+        observe(cible: Element) {
+          observees.push(cible)
+        }
+        disconnect() {}
+      },
+    )
+    const wrapper = monter({}, { default: '<p>Contenu</p>', actions: '<button>Payer</button>' })
+    await wrapper.vm.$nextTick()
+    const barre = wrapper.get('.pushed-screen__actions').element
+
+    expect(observees).toContain(barre)
+    vi.spyOn(barre, 'getBoundingClientRect').mockReturnValue({ height: 146 } as DOMRect)
+    rappels.forEach((rappel) => rappel())
+    expect(fixedBottomBarHeight.value).toBe(146)
+
+    wrapper.unmount()
+    expect(fixedBottomBarHeight.value).toBe(0)
+    vi.unstubAllGlobals()
   })
 })
 

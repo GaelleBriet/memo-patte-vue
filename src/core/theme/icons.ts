@@ -5,6 +5,7 @@ import add from '@material-symbols/svg-400/outlined/add.svg?raw'
 import arrowBack from '@material-symbols/svg-400/outlined/arrow_back.svg?raw'
 import calendarMonth from '@material-symbols/svg-400/outlined/calendar_month.svg?raw'
 import check from '@material-symbols/svg-400/outlined/check.svg?raw'
+import checkCircleFill from '@material-symbols/svg-400/outlined/check_circle-fill.svg?raw'
 import cloudDone from '@material-symbols/svg-400/outlined/cloud_done.svg?raw'
 import cloudOff from '@material-symbols/svg-400/outlined/cloud_off.svg?raw'
 import creditCard from '@material-symbols/svg-400/outlined/credit_card.svg?raw'
@@ -68,6 +69,7 @@ import fullscreen from '@material-symbols/svg-400/outlined/fullscreen.svg?raw'
 import fullscreenExit from '@material-symbols/svg-400/outlined/fullscreen_exit.svg?raw'
 import indeterminateCheckBox from '@material-symbols/svg-400/outlined/indeterminate_check_box.svg?raw'
 import info from '@material-symbols/svg-400/outlined/info.svg?raw'
+import infoFill from '@material-symbols/svg-400/outlined/info-fill.svg?raw'
 import keyboardArrowDown from '@material-symbols/svg-400/outlined/keyboard_arrow_down.svg?raw'
 import keyboardArrowUp from '@material-symbols/svg-400/outlined/keyboard_arrow_up.svg?raw'
 import keyboardCommandKey from '@material-symbols/svg-400/outlined/keyboard_command_key.svg?raw'
@@ -123,6 +125,7 @@ export const msIcons = {
   check_box: checkBox,
   check_box_outline_blank: checkBoxOutlineBlank,
   check_circle: checkCircle,
+  check_circle_fill: checkCircleFill,
   chevron_left: chevronLeft,
   chevron_right: chevronRight,
   circle,
@@ -145,6 +148,7 @@ export const msIcons = {
   home,
   indeterminate_check_box: indeterminateCheckBox,
   info,
+  info_fill: infoFill,
   ios_share: iosShare,
   keyboard_arrow_down: keyboardArrowDown,
   keyboard_arrow_up: keyboardArrowUp,

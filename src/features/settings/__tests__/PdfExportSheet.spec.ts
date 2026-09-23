@@ -7,7 +7,7 @@ import type { SaveAccess } from '../logic/export-storage-access'
 import type { PdfExportOutcome } from '../service/pdf-export.service'
 import i18n, { applyLocale } from '@/core/i18n'
 import vuetify from '@/core/theme/vuetify'
-import { dismissToast, toastDurationMs, toastMessage } from '@/shared/utils/toast'
+import { dismissToast, toastMessage } from '@/shared/utils/toast'
 
 const exportAnimalCarnetPdf = vi.hoisted(() =>
   vi.fn<(animalId: string, mode: DeliveryMode, exportedAt?: Date) => Promise<PdfExportOutcome>>(),
@@ -123,7 +123,10 @@ describe('PdfExportSheet', () => {
 
   it('enregistre le PDF sous le nom affiché, ferme la feuille et dit où le trouver', async () => {
     await monter([MILO])
-    vi.setSystemTime(new Date('2026-09-23T10:31:00'))
+    vi.useFakeTimers({
+      toFake: ['Date', 'setTimeout', 'clearTimeout'],
+      now: new Date('2026-09-23T10:31:00'),
+    })
 
     enregistrer().click()
     await flushPromises()
@@ -132,7 +135,10 @@ describe('PdfExportSheet', () => {
     expect(exportAnimalCarnetPdf).toHaveBeenCalledExactlyOnceWith('milo-id', 'save', OPENED_AT)
     expect(wrapper!.emitted('update:modelValue')).toEqual([[false]])
     expect(toastMessage.value).toBe('PDF enregistré dans Documents › MémoPatte')
-    expect(toastDurationMs.value).toBe(4000)
+    vi.advanceTimersByTime(3900)
+    expect(toastMessage.value).toBe('PDF enregistré dans Documents › MémoPatte')
+    vi.advanceTimersByTime(200)
+    expect(toastMessage.value).toBeNull()
   })
 
   it('partage le PDF comme avant', async () => {

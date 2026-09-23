@@ -3,12 +3,13 @@ import { nextTick } from 'vue'
 import type { RouteLocationRaw } from 'vue-router'
 
 import { flushPromises, mount } from '@vue/test-utils'
+import { VSnackbar } from 'vuetify/components'
 import App from '../App.vue'
+import { heightBottomNav, paddingBottomNav } from '@/core/theme/layout-tokens'
 import vuetify from '@/core/theme/vuetify'
 import i18n from '@/core/i18n'
 import router from '@/router'
 import { routeurMemoire } from '@/router/__tests__/routeur-memoire'
-import AppToast from '@/shared/components/AppToast.vue'
 import { dismissToast, showToast } from '@/shared/utils/toast'
 
 const ECRANS_RACINE = [{ name: 'home' }, { name: 'animals' }] as const
@@ -80,13 +81,31 @@ describe('App', () => {
   })
 
   it.each([
-    [{ name: 'home' } as const, true],
-    [{ name: 'settings' } as const, false],
-  ])('dit au toast si la bottom navigation est sous lui (%o)', async (cible, attendu) => {
-    const wrapper = await monteSur(cible)
+    [{ name: 'home' } as const, `${heightBottomNav + paddingBottomNav}px`],
+    [{ name: 'settings' } as const, '0px'],
+  ])(
+    'pose le toast au-dessus de la bottom navigation quand elle est là (%o)',
+    async (cible, attendu) => {
+      vi.stubGlobal('visualViewport', { addEventListener() {}, removeEventListener() {} })
+      const routeur = routeurMemoire()
+      await routeur.replace(cible)
+      const wrapper = mount(App, {
+        global: { plugins: [vuetify, i18n, routeur] },
+        attachTo: document.body,
+      })
+      await flushPromises()
 
-    expect(wrapper.getComponent(AppToast).props('aboveBottomNav')).toBe(attendu)
-  })
+      showToast('Rappels activés')
+      await flushPromises()
+
+      const toast = wrapper.getComponent(VSnackbar).vm.rootEl
+      expect(toast?.style.getPropertyValue('--v-layout-bottom')).toBe(attendu)
+      dismissToast()
+      wrapper.unmount()
+      await flushPromises()
+      vi.unstubAllGlobals()
+    },
+  )
 
   it('héberge le toast partagé, qui survit aux changements de route', async () => {
     vi.stubGlobal('visualViewport', { addEventListener() {}, removeEventListener() {} })

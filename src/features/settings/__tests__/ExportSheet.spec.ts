@@ -6,7 +6,7 @@ import type { DeliveryMode, DeliveryOutcome } from '../logic/export-delivery'
 import type { SaveAccess } from '../logic/export-storage-access'
 import i18n from '@/core/i18n'
 import vuetify from '@/core/theme/vuetify'
-import { dismissToast, toastDurationMs, toastMessage } from '@/shared/utils/toast'
+import { dismissToast, toastMessage } from '@/shared/utils/toast'
 
 const exportData = vi.hoisted(() =>
   vi.fn<(format: 'json' | 'csv', mode: DeliveryMode) => Promise<DeliveryOutcome>>(),
@@ -48,6 +48,7 @@ afterEach(() => {
   wrapper = null
   document.body.innerHTML = ''
   vi.unstubAllGlobals()
+  vi.useRealTimers()
 })
 
 async function monter() {
@@ -131,6 +132,7 @@ describe('ExportSheet', () => {
 
       choix()[index]!.click()
       await flushPromises()
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
       enregistrer().click()
       await flushPromises()
 
@@ -138,7 +140,10 @@ describe('ExportSheet', () => {
       expect(exportData).toHaveBeenCalledExactlyOnceWith(format, 'save')
       expect(wrapper.emitted('update:modelValue')).toEqual([[false]])
       expect(toastMessage.value).toBe(message)
-      expect(toastDurationMs.value).toBe(4000)
+      vi.advanceTimersByTime(3900)
+      expect(toastMessage.value).toBe(message)
+      vi.advanceTimersByTime(200)
+      expect(toastMessage.value).toBeNull()
     },
   )
 

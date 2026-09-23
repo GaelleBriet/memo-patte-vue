@@ -1,16 +1,20 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-import { heightBottomNav, paddingBottomNav } from '@/core/theme/layout-tokens'
-import { dismissToast, toastDurationMs, toastMessage } from '../utils/toast'
+import { fixedBottomBarHeight } from '../composables/use-fixed-bottom-bar'
+import {
+  dismissToast,
+  toastAnnouncement,
+  toastMessage,
+  toastTone,
+  type ToastTone,
+} from '../utils/toast'
 
-const props = withDefaults(defineProps<{ aboveBottomNav?: boolean }>(), { aboveBottomNav: false })
-
-const GAP_BELOW_TOAST = 12
-
-const offset = computed(
-  () => (props.aboveBottomNav ? heightBottomNav : 0) + paddingBottomNav + GAP_BELOW_TOAST,
-)
+const ICONS: Record<ToastTone, string> = {
+  success: 'ms:check_circle_fill',
+  info: 'ms:info_fill',
+  error: 'ms:error_fill',
+}
 
 const isOpen = computed({
   get: () => toastMessage.value !== null,
@@ -21,20 +25,20 @@ const isOpen = computed({
 </script>
 
 <template>
-  <p class="app-toast__live" role="status" aria-live="polite">{{ toastMessage }}</p>
+  <p class="app-toast__live" role="status" aria-live="polite">{{ toastAnnouncement }}</p>
   <!-- Annoncé par la région ci-dessus, déjà en place : celle de Vuetify naît avec le message. -->
   <v-snackbar
     v-model="isOpen"
     class="app-toast"
-    :timeout="toastDurationMs"
+    :class="`app-toast--${toastTone}`"
+    :timeout="-1"
     location="bottom"
-    :offset="offset"
-    rounded="lg"
+    :style="{ '--fixed-bottom-bar-height': `${fixedBottomBarHeight}px` }"
     :content-props="{ 'aria-hidden': 'true' }"
   >
     <span class="app-toast__content">
-      <v-icon icon="ms:check_circle" size="20" />
-      <span>{{ toastMessage }}</span>
+      <v-icon class="app-toast__icon" :icon="ICONS[toastTone]" size="20" />
+      <span class="app-toast__message">{{ toastMessage }}</span>
     </span>
   </v-snackbar>
 </template>
@@ -42,12 +46,30 @@ const isOpen = computed({
 <style scoped lang="scss">
 @use '@/styles/tokens' as tokens;
 
+.app-toast {
+  margin: 0 14px 24px;
+  padding-bottom: calc(var(--v-layout-bottom) + var(--fixed-bottom-bar-height, 0px));
+}
+
 .app-toast :deep(.v-snackbar__wrapper) {
+  width: 100%;
   min-width: 0;
-  width: calc(100% - 40px);
+  min-height: 56px;
   border-radius: tokens.$radius-toast;
-  background: tokens.$color-toast-surface;
+  background: rgb(var(--v-theme-primary));
   color: tokens.$color-on-primary;
+  box-shadow: tokens.$shadow-toast;
+}
+
+.app-toast--error :deep(.v-snackbar__wrapper) {
+  background: rgb(var(--v-theme-error));
+  color: rgb(var(--v-theme-on-error));
+  box-shadow: tokens.$shadow-toast-error;
+}
+
+.app-toast :deep(.v-snackbar__content) {
+  padding: 6px 16px;
+  letter-spacing: normal;
 }
 
 .app-toast__live {
@@ -62,8 +84,22 @@ const isOpen = computed({
 .app-toast__content {
   display: flex;
   align-items: center;
-  gap: 12px;
-  font-size: 15px;
-  font-weight: 600;
+  gap: 10px;
+}
+
+.app-toast__icon {
+  flex-shrink: 0;
+  color: tokens.$color-toast-icon;
+}
+
+.app-toast--error .app-toast__icon {
+  color: inherit;
+}
+
+.app-toast__message {
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.35;
 }
 </style>
