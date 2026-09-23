@@ -50,17 +50,45 @@ saisie reste dans la feuille pesée (`pesee.md`).
   Carnet) si la variation est positive, gris chaud `#5A544D` si négative,
   gris neutre `#736E67` si nulle ou s'il n'y a pas de pesée précédente. Pas
   de rouge : une perte de poids n'est pas en soi une alerte santé.
+- Ce bloc suit la pesée sélectionnée sur la courbe (§3). Au repos, c'est la
+  dernière pesée et il reste tel que décrit ci-dessus. Une autre pesée
+  sélectionnée remplace « Poids actuel » par `Pesée du 11 oct. 2026`, affiche
+  son poids et sa variation par rapport à la pesée précédente au format de la
+  liste (`+0,1 kg`, même code couleur) ; la variation reste vide pour la toute
+  première pesée, la ligne gardant sa hauteur.
 
 ### 3. Courbe
 
 - N'apparaît qu'à partir de deux pesées.
-- Reprend le style de la mini-courbe du Carnet : polyline pétrole 2 px,
-  points 4 px de rayon, valeur affichée au-dessus de chaque point (une
-  décimale, virgule française : `23,6`).
-- Échelle verticale automatique : bornée au min/max des valeurs affichées,
-  avec une marge de 0,3 kg de chaque côté — jamais un axe qui part de zéro.
-- Labels de mois abrégés sous la courbe (`Juin`, `Juil.`, `Août`…), un par
-  point.
+- Piste D, choisie le 2026-09-23 (#340). Même tracé que la courbe du Carnet
+  (`carnet.md` §6) : axe horizontal proportionnel au temps, polyline pétrole
+  2 px, voile pétrole à 10 % d'opacité, points de 4 px cerclés de 2 px couleur
+  surface, mois sous la courbe avec les mêmes règles : un libellé au début de
+  chaque mois, puis tous les 2, 3, 6 ou 12 mois pour en garder au plus six,
+  mois de départ partiel écrit s'il reste la place, dernier mois jamais
+  débordant. Courbe plus haute : 190 px.
+- Échelle verticale : 3 à 5 lignes de repère horizontales `#ECE6DE` en kg
+  ronds, au pas de 0,1 / 0,2 / 0,5 / 1 / 2 / 5 / 10 kg, le plus petit qui
+  tient en cinq lignes en encadrant les pesées. La ligne du bas est le
+  multiple du pas juste sous la pesée la plus légère : jamais une échelle
+  forcée à zéro. Deux exceptions acceptées par Gaelle le 2026-09-23 :
+    - l'axe descend jusqu'à 0 kg quand les pesées s'en approchent (un chaton
+      de 0,9 à 4 kg donne un axe de 0 à 6 kg) ;
+    - au-delà d'environ 40 kg d'écart, le pas reste de 10 kg et l'axe compte
+      plus de cinq lignes.
+- Chiffres à gauche des lignes (12 px, `#736E67`, sans décimale inutile :
+  `24`, `24,5`), unité « kg » au-dessus de l'axe (12 px / 500). Aucun chiffre
+  sur les points.
+- Toucher ou glisser sur la courbe sélectionne la pesée la plus proche : trait
+  vertical `#736E67` de 1 px sur toute la hauteur du tracé, point agrandi à
+  6 px de rayon. La sélection reste en place quand le doigt se lève. Au repos,
+  à chaque ouverture de l'écran et après chaque ajout d'une pesée, la
+  sélection est sur la dernière pesée.
+- Clavier et lecteur d'écran : la courbe prend le focus comme un curseur
+  (« Évolution du poids »), les flèches gauche / droite (et haut / bas) et
+  Début / Fin parcourent les pesées, et la pesée sélectionnée est annoncée
+  (`Pesée du 11 oct. 2026 : 24,3 kg`). Pas d'anneau de focus visible : le
+  trait vertical dit déjà la sélection.
 - Le tout dans une carte `#FEFCF9`, bordure `#ECE9E5`, rayon 22 px, même
   traitement que les autres cartes du Carnet.
 
@@ -126,7 +154,8 @@ En complément des tokens déjà définis dans `accueil.md`, `carnet.md` et
 | Delta négatif | `oklch(45% 0.014 70)` | `#5A544D` |
 | Delta neutre / première pesée / poids à l'arrivée | `oklch(54% 0.012 70)` | `#736E67` |
 | Icône « une seule pesée » | `oklch(62% 0.02 202)` | `#798A8B` |
-| Valeur au-dessus d'un point de courbe | `oklch(28% 0.015 60)` | `#2F2722` |
+| Plus haut / plus bas écrits sur la courbe du Carnet | `oklch(28% 0.015 60)` | `#2F2722` |
+| Lignes de repère, ligne de base et traits des mois | — | `#ECE6DE` |
 | Date de ligne (liste des pesées) | `oklch(30% 0.015 60)` | `#342C26` |
 
 Delta positif : réutilise exactement le token du badge « À jour » du Carnet
@@ -135,3 +164,5 @@ Delta positif : réutilise exactement le token du badge « À jour » du Carnet
 ## Format des nombres
 
 Toujours une décimale, virgule française : `23,6`, jamais `23.6` ni `23,60`.
+Seule exception, les chiffres des lignes de repère de la courbe : `24`,
+`24,5`, sans décimale inutile.

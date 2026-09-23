@@ -79,6 +79,7 @@ describe('PlusSection — utilisateur gratuit', () => {
     await ligne.trigger('click')
 
     await vi.waitFor(() => expect(router.currentRoute.value.path).toBe('/plus'))
+    expect(router.currentRoute.value.query).toEqual({})
   })
 
   it('reste présentable sans achat possible sur cet appareil', async () => {
@@ -243,7 +244,7 @@ describe('PlusSection — restaurer mon achat', () => {
     service.restore.mockResolvedValue(ANNUAL)
     const wrapper = await monter()
 
-    expect(ligneRestaurer(wrapper).text()).toContain('Restaurer mon achat')
+    expect(ligneRestaurer(wrapper).text()).toContain('Restaurer mes achats')
     await ligneRestaurer(wrapper).trigger('click')
     await flushPromises()
 

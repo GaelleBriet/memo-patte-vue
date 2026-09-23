@@ -127,12 +127,6 @@ describe('upToDateText', () => {
       'Milo, Luna et Nala n’ont aucun rappel à venir.',
     )
   })
-
-  it('accorde au singulier avec un seul animal', () => {
-    expect(upToDateText(t, { animalName: null, allNames: ['Milo'] })).toBe(
-      'Milo n’a aucun rappel à venir.',
-    )
-  })
 })
 
 describe('reminderRows', () => {

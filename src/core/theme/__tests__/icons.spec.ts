@@ -27,6 +27,8 @@ const iconesDesMaquettes = [
   'table_view',
   'mark_email_unread',
   'logout',
+  'storefront',
+  'workspace_premium_fill',
   'download',
   'share',
   'folder_off',

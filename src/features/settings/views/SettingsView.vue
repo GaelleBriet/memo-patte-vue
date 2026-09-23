@@ -14,6 +14,7 @@ import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import AccountSection from '@/features/auth/views/AccountSection.vue'
 import PlusSection from '@/features/purchase/views/PlusSection.vue'
 import { usePurchaseStore } from '@/features/purchase/store/purchase.store'
+import PlusBadge from '@/shared/components/PlusBadge.vue'
 import PushedScreen from '@/shared/components/PushedScreen.vue'
 import SectionCard from '@/shared/components/SectionCard.vue'
 
@@ -47,7 +48,7 @@ function onExportPdfRow(): void {
   if (hasLoadFailed.value) {
     void animals.load()
   } else if (isFreePlan.value) {
-    void router.push({ name: 'plus' })
+    void router.push({ name: 'plus', query: { from: 'pdf' } })
   } else {
     hasOpenedPdfExportSheet.value = true
     isPdfExportSheetOpen.value = true
@@ -117,7 +118,10 @@ function goHome(): void {
           :disabled="!canExport && !hasLoadFailed"
           @click="onExportPdfRow"
         >
-          <v-icon class="settings-row__icon" icon="ms:picture_as_pdf" size="22" />
+          <span class="settings-row__icon settings__pdf-icon">
+            <v-icon icon="ms:picture_as_pdf" size="22" />
+            <PlusBadge v-if="isFreePlan" class="settings__plus-badge" />
+          </span>
           <span class="settings-row__text">
             <span class="settings-row__label">{{ t('settings.data.exportPdf') }}</span>
             <span v-if="hasLoadFailed" class="settings-row__hint settings-row__hint--error">
@@ -126,7 +130,7 @@ function goHome(): void {
             <span v-else-if="hasNothingToExport" class="settings-row__hint">
               {{ t('settings.data.exportEmpty') }}
             </span>
-            <span v-else-if="isFreePlan" class="settings-row__hint">
+            <span v-else-if="isFreePlan" class="d-sr-only">
               {{ t('settings.data.exportPdfPlus') }}
             </span>
           </span>
@@ -213,6 +217,16 @@ function goHome(): void {
   flex-direction: column;
   gap: tokens.$gap-settings-sections;
   padding-block: 12px 32px;
+}
+
+.settings__pdf-icon {
+  position: relative;
+  display: inline-flex;
+}
+
+.settings__plus-badge {
+  top: -10px;
+  right: -8px;
 }
 
 .settings-row__switch {

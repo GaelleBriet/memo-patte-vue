@@ -182,7 +182,9 @@ Passés à 12 px le 2026-09-15 (décision de Gaelle) :
 | Mois sous la courbe | 11,5 px | 12 px |
 | Valeurs au-dessus de la courbe (SVG mis à l'échelle de sa carte) | 11 unités, 9,6 à 12,1 px rendus selon la largeur | 12 px rendus à toute largeur |
 
-La taille des valeurs est recalculée par `WeightSparkline` depuis la largeur rendue du SVG.
+Depuis #340, les courbes de poids se redessinent à la largeur rendue de leur carte, pixel pour pixel :
+leurs textes, déclarés à 12 px, font 12 px à l'écran. Quand le système agrandit la police, la place
+réservée à leurs étiquettes suit la taille rendue d'un de leurs textes.
 
 Police système agrandie, simulée à 130 % (toutes les tailles de police calculées multipliées, comme le
 zoom texte de la WebView Android) à 360 × 640 et 412 × 915. Corrigé, sans effet à 100 % :

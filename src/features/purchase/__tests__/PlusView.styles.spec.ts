@@ -24,22 +24,16 @@ function styleCompile(): string {
 }
 
 describe('PlusView — contrat de style', () => {
-  it('ancre la zone de tap du lien Google Play sur le lien, pas sur l’écran', () => {
+  it('ancre la zone de tap des deux liens sur le lien, pas sur l’écran', () => {
     const css = styleCompile()
 
-    expect(declaration(css, '.plus__manage::before', 'position')).toBe('absolute')
-    expect(declaration(css, '.plus__manage', 'position')).toBe('relative')
-  })
-
-  it('borde l’offre annuelle non cochée sans la faire passer pour cochée', () => {
-    const css = styleCompile()
-
-    expect(declaration(css, '.plus-offer--best', 'border-color')).toBe(
-      'rgba(var(--v-theme-primary), 0.18)',
+    expect(declaration(css, '.plus__restore::before, .plus__manage::before', 'position')).toBe(
+      'absolute',
     )
+    expect(declaration(css, '.plus__restore, .plus__manage', 'position')).toBe('relative')
   })
 
-  it('laisse le bouton d’achat grandir plutôt que déborder, quel que soit le prix', () => {
+  it('laisse le bouton de la barre grandir plutôt que déborder, quel que soit le prix', () => {
     const css = styleCompile()
 
     expect(declaration(css, '.plus__submit, .plus__retry-offers', 'height')).toBe('auto')
@@ -48,5 +42,19 @@ describe('PlusView — contrat de style', () => {
     expect(declaration(css, '.plus__submit :deep(.v-btn__content)', 'overflow-wrap')).toBe(
       'anywhere',
     )
+  })
+
+  it.each([
+    '.plus-offer__badge',
+    '.plus-offer__detail',
+    '.plus__disclosure',
+    '.plus__terms',
+    '.plus__unavailable-hint',
+  ])('n’écrit pas sous 12 px : %s', (selecteur) => {
+    expect(declaration(styleCompile(), selecteur, 'font-size')).toBe('12px')
+  })
+
+  it('ne montre aucun anneau de focus sur une offre touchée', () => {
+    expect(declaration(styleCompile(), '.plus-offer:focus-visible', 'outline')).toBe('none')
   })
 })

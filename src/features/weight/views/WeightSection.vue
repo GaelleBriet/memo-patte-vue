@@ -15,7 +15,6 @@ import { useWeightEntries } from '../composables/use-weight-entries'
 import SectionCard from '@/shared/components/SectionCard.vue'
 import WeightSparkline from '@/shared/components/WeightSparkline.vue'
 import { formatKg, formatKgDelta, formatLongDate, formatMonth } from '@/shared/utils/format'
-import { buildWeightChart } from '@/shared/domain/weight-chart'
 
 const props = defineProps<{
   animalId: string
@@ -32,7 +31,6 @@ const isSheetOpen = ref(false)
 const { entries, hasError } = useWeightEntries(() => props.animalId)
 
 const summary = computed<WeightSectionSummary>(() => weightSummary(entries.value))
-const chart = computed(() => buildWeightChart(entries.value))
 
 const current = computed(() => (summary.value ? formatKg(summary.value.latest.weightKg) : null))
 
@@ -75,7 +73,11 @@ watch(summary, (value) => emit('summary', value), { immediate: true })
         {{ delta.text }}
       </p>
 
-      <WeightSparkline v-if="chart" class="weight-section__chart" :chart="chart" />
+      <WeightSparkline
+        v-if="summary.delta.kind === 'delta'"
+        class="weight-section__chart"
+        :entries="entries"
+      />
       <p v-else class="weight-section__single">
         <v-icon icon="ms:show_chart" size="22" />
         <span>{{ t('weight.section.single') }}</span>

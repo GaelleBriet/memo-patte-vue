@@ -32,7 +32,9 @@ $color-delta-up: $color-badge-up-to-date-text; // Delta de poids positif
 $color-delta-down: #5a544d; // Delta de poids négatif
 $color-delta-flat: #736e67; // Delta nul, première pesée
 $color-chart-icon: #798a8b; // Icône « une seule pesée »
-$color-chart-value: #2f2722; // Valeur au-dessus d'un point de courbe
+$color-chart-value: #2f2722; // Plus haut / plus bas écrit sur la courbe
+$color-chart-grid: #ece6de; // Ligne de base, lignes de repère et traits des mois d'une courbe
+$opacity-chart-area: 0.1; // Voile pétrole sous une courbe
 $color-header-avatar-border: rgb(255 255 255 / 70%); // Bordure claire de l'avatar du header
 
 // Suivi de poids (écran poussé, historique des pesées)
@@ -111,6 +113,11 @@ $color-notice-surface: #def1f2; // Fond d'un bandeau d'information
 $color-notice-border: #b4d5d7; // Bordure de ce bandeau
 $color-notice-text: #322d29; // Texte de ce bandeau
 $radius-notice: 16px; // Coins de ce bandeau
+
+// MémoPatte Plus (écran Plus, pastille d'une fonction payante)
+$color-plus-badge-surface: $color-priming-icon-surface; // Pastille Plus posée sur une fonction payante
+$color-plus-highlight-surface: $color-notice-surface; // Bénéfice mis en avant selon la provenance
+$color-offer-radio-border: $color-text-meta; // Pastille radio d'une offre non cochée
 
 // Paramètres (lignes de réglage, feuille d'export)
 $padding-section-inline: 20px; // Marge latérale d'une section et de son bandeau

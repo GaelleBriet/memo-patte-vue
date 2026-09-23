@@ -1,70 +1,81 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, useTemplateRef } from 'vue'
+import { computed, useTemplateRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 
-import type { WeightChart } from '../domain/weight-chart'
+import WeightChartTrace from './WeightChartTrace.vue'
+import { useChartMeasure } from '../composables/use-chart-measure'
+import {
+  buildCarnetWeightChart,
+  DEFAULT_CHART_WIDTH,
+  type CarnetChartLabels,
+  type WeightChartEntry,
+} from '../domain/weight-chart'
 
 const props = defineProps<{
-  chart: WeightChart
+  entries: readonly WeightChartEntry[]
 }>()
 
 const { t } = useI18n()
 
-const VALUE_OFFSET = 10
-const POINT_RADIUS = 4
-const VALUE_FONT_PX = 12
+const labels: CarnetChartLabels = {
+  max: (weight) => t('weight.chart.max', { weight }),
+  min: (weight) => t('weight.chart.min', { weight }),
+  latest: (weight) => t('weight.chart.latest', { weight }),
+}
 
-const svg = useTemplateRef<SVGSVGElement>('svg')
-const renderedWidth = ref(0)
-let observer: ResizeObserver | null = null
+const figure = useTemplateRef<HTMLElement>('figure')
+const { width, textScale } = useChartMeasure(figure, DEFAULT_CHART_WIDTH)
 
-// Le SVG s'étire à sa carte : la taille en unités du tracé est corrigée pour rester à 12 px à l'écran.
-const valueFontSize = computed(() =>
-  renderedWidth.value > 0
-    ? (VALUE_FONT_PX * props.chart.width) / renderedWidth.value
-    : VALUE_FONT_PX,
+const chart = computed(() =>
+  buildCarnetWeightChart(props.entries, labels, {
+    width: width.value,
+    textScale: textScale.value,
+  }),
 )
-
-onMounted(() => {
-  const element = svg.value
-  if (!element) return
-  observer = new ResizeObserver(() => {
-    renderedWidth.value = element.getBoundingClientRect().width
-  })
-  observer.observe(element)
-})
-
-onBeforeUnmount(() => observer?.disconnect())
 </script>
 
 <template>
-  <figure class="weight-sparkline">
+  <figure v-if="chart" ref="figure" class="weight-sparkline">
     <svg
-      ref="svg"
       class="weight-sparkline__svg"
       :viewBox="`0 0 ${chart.width} ${chart.height}`"
       role="img"
       :aria-label="t('weight.section.chartLabel')"
     >
-      <polyline class="weight-sparkline__line" :points="chart.polyline" />
-      <template v-for="point in chart.points" :key="point.x">
-        <circle class="weight-sparkline__point" :cx="point.x" :cy="point.y" :r="POINT_RADIUS" />
-        <text
-          class="weight-sparkline__value"
-          :x="point.x"
-          :y="point.y - VALUE_OFFSET"
-          text-anchor="middle"
-          :style="{ fontSize: `${valueFontSize}px` }"
-        >
-          {{ point.valueLabel }}
-        </text>
-      </template>
+      <line
+        class="weight-sparkline__baseline"
+        :x1="chart.plot.left"
+        :x2="chart.plot.right"
+        :y1="chart.plot.bottom"
+        :y2="chart.plot.bottom"
+      />
+      <WeightChartTrace :chart="chart" />
+      <text
+        v-if="chart.max"
+        class="weight-sparkline__extreme"
+        :x="chart.max.x"
+        :y="chart.max.y"
+        :text-anchor="chart.max.anchor"
+      >
+        {{ chart.max.text }}
+      </text>
+      <text
+        v-if="chart.min"
+        class="weight-sparkline__extreme"
+        :x="chart.min.x"
+        :y="chart.min.y"
+        :text-anchor="chart.min.anchor"
+      >
+        {{ chart.min.text }}
+      </text>
     </svg>
-    <figcaption class="weight-sparkline__months">
-      <span v-for="point in chart.points" :key="point.x" class="weight-sparkline__month">
-        {{ point.monthLabel }}
-      </span>
-    </figcaption>
+    <span
+      class="weight-sparkline__latest"
+      aria-hidden="true"
+      :style="{ right: `${chart.latest.right}px`, bottom: `${chart.latest.bottom}px` }"
+    >
+      {{ chart.latest.text }}
+    </span>
   </figure>
 </template>
 
@@ -72,6 +83,7 @@ onBeforeUnmount(() => observer?.disconnect())
 @use '@/styles/tokens' as tokens;
 
 .weight-sparkline {
+  position: relative;
   margin: 0;
 }
 
@@ -82,30 +94,27 @@ onBeforeUnmount(() => observer?.disconnect())
   overflow: visible;
 }
 
-.weight-sparkline__line {
-  fill: none;
-  stroke: rgb(var(--v-theme-primary));
-  stroke-width: 2;
-  stroke-linejoin: round;
-  stroke-linecap: round;
+.weight-sparkline__baseline {
+  stroke: tokens.$color-chart-grid;
+  stroke-width: 1;
 }
 
-.weight-sparkline__point {
-  fill: rgb(var(--v-theme-primary));
-}
-
-.weight-sparkline__value {
+.weight-sparkline__extreme {
   fill: tokens.$color-chart-value;
   font-family: tokens.$font-family-body;
+  font-size: 12px;
   font-weight: 600;
 }
 
-.weight-sparkline__months {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 4px;
-  color: tokens.$color-text-meta;
+.weight-sparkline__latest {
+  position: absolute;
+  padding: 3px 9px;
+  border-radius: tokens.$radius-pill;
+  background: rgb(var(--v-theme-primary));
+  color: tokens.$color-on-primary;
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 600;
+  line-height: 16px;
+  white-space: nowrap;
 }
 </style>
