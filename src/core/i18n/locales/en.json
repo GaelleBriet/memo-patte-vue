@@ -315,6 +315,8 @@
       "title": "All up to date",
       "forAnimal": "No upcoming reminders for {name}.",
       "forMany": "{names} have no upcoming reminders.",
+      "nextForAnimal": "Next reminder: {reminder} on {date}",
+      "nextForMany": "Next reminder: {reminder} for {name} on {date}",
       "namesSeparator": ", ",
       "namesLast": " and ",
       "add": "Add a vaccine or treatment"

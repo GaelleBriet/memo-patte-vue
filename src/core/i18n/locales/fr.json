@@ -315,6 +315,8 @@
       "title": "Tout est à jour",
       "forAnimal": "Aucun rappel à venir pour {name}.",
       "forMany": "{names} n’ont aucun rappel à venir.",
+      "nextForAnimal": "Prochain rappel : {reminder} le {date}",
+      "nextForMany": "Prochain rappel : {reminder} pour {name} le {date}",
       "namesSeparator": ", ",
       "namesLast": " et ",
       "add": "Ajouter un vaccin ou un traitement"
