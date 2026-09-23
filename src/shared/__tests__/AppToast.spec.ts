@@ -11,6 +11,12 @@ function mountToast() {
   return mount(AppToast, { global: { plugins: [vuetify] }, attachTo: document.body })
 }
 
+function toucher(type: string, liste: 'touches' | 'changedTouches', clientY: number): Event {
+  const evenement = new Event(type)
+  Object.defineProperty(evenement, liste, { value: [{ clientY }] })
+  return evenement
+}
+
 beforeEach(() => {
   // jsdom ne fournit pas `visualViewport`, que l'overlay de VSnackbar écoute.
   vi.stubGlobal('visualViewport', { addEventListener() {}, removeEventListener() {} })
@@ -144,6 +150,20 @@ describe('AppToast', () => {
       (element) => !element.closest('[aria-hidden="true"]'),
     )
     expect(annoncees).toEqual([region])
+    wrapper.unmount()
+  })
+
+  it('se ferme d’un glissement vers le bas', async () => {
+    const wrapper = mountToast()
+    showToast('Rappels activés')
+    await nextTick()
+
+    const toast = document.body.querySelector('.app-toast')!
+    toast.dispatchEvent(toucher('touchstart', 'touches', 300))
+    toast.dispatchEvent(toucher('touchend', 'changedTouches', 400))
+    await nextTick()
+
+    expect(toastMessage.value).toBeNull()
     wrapper.unmount()
   })
 })

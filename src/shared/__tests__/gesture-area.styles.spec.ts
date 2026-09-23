@@ -28,15 +28,19 @@ function pixels(valeur: string | undefined): number {
   return Number(mesure[1])
 }
 
-function paddingBas(feuille: string, selecteur: string): number {
-  const bas = declaration(feuille, selecteur, 'padding-bottom')
+function espaceBas(
+  feuille: string,
+  selecteur: string,
+  propriete: 'padding' | 'margin' = 'padding',
+): number {
+  const bas = declaration(feuille, selecteur, `${propriete}-bottom`)
   if (bas) return pixels(bas)
 
-  const bloc = declaration(feuille, selecteur, 'padding-block')?.split(/\s+/)
+  const bloc = declaration(feuille, selecteur, `${propriete}-block`)?.split(/\s+/)
   if (bloc) return pixels(bloc.at(-1))
 
-  const raccourci = declaration(feuille, selecteur, 'padding')?.split(/\s+/)
-  if (!raccourci) throw new Error(`aucun rembourrage sur ${selecteur}`)
+  const raccourci = declaration(feuille, selecteur, propriete)?.split(/\s+/)
+  if (!raccourci) throw new Error(`aucun ${propriete} sur ${selecteur}`)
   return pixels(raccourci.length >= 3 ? raccourci[2] : raccourci[0])
 }
 
@@ -53,6 +57,12 @@ describe('zone de gestes sous le dernier élément d’un écran poussé', () =>
     ['src/shared/components/NotificationPrimingView.vue', '.notification-priming'],
     ['src/shared/components/BottomSheet.vue', '.bottom-sheet__panel'],
   ])('%s — %s', (fichier, selecteur) => {
-    expect(paddingBas(css(fichier), selecteur)).toBeGreaterThanOrEqual(paddingBottomNav)
+    expect(espaceBas(css(fichier), selecteur)).toBeGreaterThanOrEqual(paddingBottomNav)
+  })
+
+  it('src/shared/components/AppToast.vue — .app-toast, par sa marge du bas', () => {
+    const feuille = css('src/shared/components/AppToast.vue')
+
+    expect(espaceBas(feuille, '.app-toast', 'margin')).toBeGreaterThanOrEqual(paddingBottomNav)
   })
 })
