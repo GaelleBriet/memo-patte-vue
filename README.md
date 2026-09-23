@@ -55,10 +55,17 @@ cp .env.example .env             # clés Supabase, fichier jamais versionné
 
 pnpm dev                         # développement web (Vite), base vide
 pnpm dev:data                    # idem, avec le carnet de démo Milo + Luna
-pnpm dev:mobile                  # plugins à jour, build + install sur le téléphone, hot reload via adb ; suit dev ou dev:data
+pnpm dev:plus                    # développement web, avec un statut MémoPatte Plus simulé (à vie par défaut)
+pnpm dev:mobile                  # plugins à jour, build + install sur le téléphone, hot reload via adb ; suit dev, dev:data ou dev:plus
 pnpm cap:sync                    # build de prod + synchronisation Capacitor
 pnpm cap:open:android            # ouvre le projet dans Android Studio
 ```
+
+`VITE_DEV_PLAN` choisit le statut Plus simulé, écrit au lancement en dev seulement : `lifetime`
+(défaut de `dev:plus`), `annual`, `monthly`, `expired` (abonnement mensuel échu depuis peu) ou `none`
+(retour au gratuit), par exemple `VITE_DEV_PLAN=expired pnpm dev`. Sans la variable, le statut déjà
+gardé reste tel quel. Limite : avec une clé RevenueCat dans `.env`, la revérification au lancement
+sur le téléphone remplace le statut simulé.
 
 Avant de committer :
 
