@@ -1,6 +1,16 @@
 # Contexte en cours (à mettre à jour à chaque lot)
 
-- 2026-09-23 : **reprendre ici.** Gaelle a commencé à vérifier sur son téléphone le travail
+- 2026-09-23 (suite) : **reprendre ici.** Lot « retours de navigation » (décisions 1 à 15 du
+  journal du jour). PR prêtes, relues : #346 (#339 accueil à un animal), #355 (#342 + #341 écran
+  Plus et pastille). En relecture ciblée finale : #340 (courbe, branche `feat/courbe-poids-axe-temps`)
+  et #343 (export, `feat/export-enregistrer`). Avant de merger : fusion des quatre branches dans un
+  worktree jetable, puis test sur le téléphone de Gaelle (export dans Documents › MémoPatte, courbe
+  avec police agrandie). Suivis créés : #344 (brainstorming de la liste « À faire », après le lot),
+  #349 (« Ouvrir » du toast), #350 (courbe du PDF), #351 (Historique par pages, maquette à faire),
+  #352 (unité de poids, questions et maquette), #353 (relecture EN), #354 (style des toasts),
+  #356 (PDF de tous les animaux). Un prompt Claude Design pour #351 et #352 a été donné à Gaelle.
+
+- 2026-09-23 : **point de départ de la journée.** Gaelle a commencé à vérifier sur son téléphone le travail
   livré (`pnpm dev:mobile` depuis son dépôt principal). Deux questions lui ont été posées, la
   première est tranchée ; elle revient avec des retours de navigation dans l'app.
 

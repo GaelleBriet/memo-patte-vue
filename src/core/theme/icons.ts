@@ -35,10 +35,12 @@ import settings from '@material-symbols/svg-400/outlined/settings.svg?raw'
 import settingsBackupRestore from '@material-symbols/svg-400/outlined/settings_backup_restore.svg?raw'
 import showChart from '@material-symbols/svg-400/outlined/show_chart.svg?raw'
 import starShine from '@material-symbols/svg-400/outlined/star_shine.svg?raw'
+import storefront from '@material-symbols/svg-400/outlined/storefront.svg?raw'
 import table from '@material-symbols/svg-400/outlined/table.svg?raw'
 import today from '@material-symbols/svg-400/outlined/today.svg?raw'
 import vaccines from '@material-symbols/svg-400/outlined/vaccines.svg?raw'
 import workspacePremium from '@material-symbols/svg-400/outlined/workspace_premium.svg?raw'
+import workspacePremiumFill from '@material-symbols/svg-400/outlined/workspace_premium-fill.svg?raw'
 
 // Icônes nécessaires aux alias internes de Vuetify
 import arrowDownward from '@material-symbols/svg-400/outlined/arrow_downward.svg?raw'
@@ -179,6 +181,7 @@ export const msIcons = {
   star,
   star_fill: starFill,
   star_half: starHalf,
+  storefront,
   table,
   today,
   unfold_more: unfoldMore,
@@ -190,6 +193,7 @@ export const msIcons = {
   volume_up: volumeUp,
   warning,
   workspace_premium: workspacePremium,
+  workspace_premium_fill: workspacePremiumFill,
 } as const
 
 export type MsIconName = keyof typeof msIcons

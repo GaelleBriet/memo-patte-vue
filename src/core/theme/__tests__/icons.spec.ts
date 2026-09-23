@@ -27,6 +27,8 @@ const iconesDesMaquettes = [
   'table',
   'mark_email_unread',
   'logout',
+  'storefront',
+  'workspace_premium_fill',
 ] as const
 
 describe('registre d’icônes Material Symbols', () => {

@@ -19,7 +19,7 @@ import { buildReminders } from '@/shared/domain/reminders'
 import AnimalPickerSheet from './AnimalPickerSheet.vue'
 import { useHomeStore } from '../store/home.store'
 import { overdueBanner, reminderRows, scopeCounter, upToDateText } from '../logic/home-summary'
-import { quickActionAnimalId } from '../logic/quick-actions'
+import { currentAnimalId } from '../logic/current-animal'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -44,29 +44,40 @@ const chips = computed<AnimalChipItem[]>(() =>
   })),
 )
 
-const selectedName = computed(() => animals.selectedAnimal?.name ?? null)
+const currentId = computed<string | null>({
+  get: () =>
+    currentAnimalId({
+      selectedId: animals.selectedAnimalId,
+      animalIds: animals.animals.map((animal) => animal.id),
+    }),
+  set: (id) => animals.select(id),
+})
+
+const currentName = computed(
+  () => animals.animals.find((animal) => animal.id === currentId.value)?.name ?? null,
+)
 
 const summary = computed(() =>
   buildReminders(home.sources, {
     today: today.value,
-    animalId: animals.selectedAnimalId ?? undefined,
+    animalId: currentId.value ?? undefined,
   }),
 )
 
 const rows = computed(() =>
   reminderRows(t, summary.value.reminders, {
     animalNames: new Map(animals.animals.map((animal) => [animal.id, animal.name])),
-    showAnimal: selectedName.value === null,
+    showAnimal: currentName.value === null,
   }),
 )
 
 const counter = computed(() =>
-  scopeCounter(t, { total: summary.value.total, animalName: selectedName.value }),
+  scopeCounter(t, { total: summary.value.total, animalName: currentName.value }),
 )
 const banner = computed(() => overdueBanner(t, summary.value.overdue))
 const upToDate = computed(() =>
   upToDateText(t, {
-    animalName: selectedName.value,
+    animalName: currentName.value,
     allNames: animals.animals.map((animal) => animal.name),
   }),
 )
@@ -75,7 +86,7 @@ function load(): Promise<unknown> {
   return Promise.all([animals.load(), home.load()])
 }
 
-// Le Carnet laisse un animal sélectionné dans le store partagé : l'accueil s'ouvre toujours sur tous.
+// Le Carnet laisse un animal sélectionné dans le store partagé : l'accueil ne le reprend pas.
 onMounted(() => {
   animals.select(null)
   void load()
@@ -88,10 +99,7 @@ const isPickerOpen = ref(false)
 const isWeightSheetOpen = ref(false)
 
 function openForm(name: FormRoute): void {
-  const animalId = quickActionAnimalId({
-    selectedId: animals.selectedAnimalId,
-    animalIds: animals.animals.map((animal) => animal.id),
-  })
+  const animalId = currentId.value
   if (animalId !== null) {
     void router.push({ name, params: { animalId } })
     return
@@ -123,7 +131,7 @@ function openSettings(): void {
 }
 
 function openCarnet(): void {
-  const animalId = animals.selectedAnimalId ?? animals.animals[0]?.id
+  const animalId = currentId.value ?? animals.animals[0]?.id
   if (!animalId) return
   animals.select(animalId)
   void router.push({ name: 'animals' })
@@ -174,7 +182,7 @@ function openCarnet(): void {
       </header>
 
       <AnimalChipSelector
-        v-model:selected-id="animals.selectedAnimalId"
+        v-model:selected-id="currentId"
         :animals="chips"
         mode="filter"
         @add="createAnimal"
@@ -256,7 +264,7 @@ function openCarnet(): void {
       </section>
 
       <AnimalPickerSheet v-model="isPickerOpen" :animals="chips" @pick="onAnimalPicked" />
-      <WeightSheet v-model="isWeightSheetOpen" :animal-id="animals.selectedAnimalId" />
+      <WeightSheet v-model="isWeightSheetOpen" :animal-id="currentId" />
     </template>
 
     <div v-else-if="isLoading" class="home-loading" role="status" :aria-label="t('home.loading')">
