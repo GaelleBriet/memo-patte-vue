@@ -1434,12 +1434,16 @@ ligne** (#342). — Raison : trop de texte, bouton d'achat hors de l'écran ; la
 de CLAUDE.md (l'utilisateur comprend ce qu'Android sauvegarde déjà et ce que Plus garantit), cœur
 du modèle « prix confiance ». — Alternative écartée : retirer toute mention d'Android.
 
-6) **Les exports JSON, CSV et PDF proposent « Enregistrer sur le téléphone » (fenêtre système
-« Enregistrer sous », Storage Access Framework) et « Partager »** (#343). — Raison : la feuille de
-partage seule n'enregistre pas sur le téléphone ; « Enregistrer sous » ne demande aucune
-permission et marche sur tous les Android visés (7 et plus). — Alternative écartée : écrire
-directement dans Téléchargements, qui demande une permission de stockage sur Android 7 à 9 et que
-`@capacitor/filesystem` ne sait pas faire sur Android 11 et plus.
+6) **Les exports JSON, CSV et PDF proposent « Enregistrer sur le téléphone » et « Partager ».
+L'enregistrement écrit directement dans le dossier Documents du téléphone avec `@capacitor/filesystem`
+(déjà installé) et demande l'accès au stockage sur Android 7 à 10** (#343). — Raison : la feuille de
+partage seule n'enregistre pas sur le téléphone ; l'écriture directe est la sauvegarde en un tap
+voulue par Gaelle, sans permission sur Android 11 et plus ni code natif. — Alternatives écartées :
+la fenêtre système « Enregistrer sous », qui ajoute un tap et un plugin natif à maintenir ; ne
+proposer que « Partager » sur Android 7 à 10 pour éviter la permission, refusé par Gaelle. —
+Correction : une première version de ce point affirmait que `@capacitor/filesystem` ne sait pas
+écrire dans un dossier public sur Android 11 et plus ; c'est faux pour les fichiers que l'app crée
+elle-même (doc du plugin et code de la 8.1.3).
 
 7) **La fenêtre d'affichage de la liste « À faire » (un vaccin à 337 jours s'y affiche) se décide
 en session de brainstorming, après le lot en cours** (#344).
