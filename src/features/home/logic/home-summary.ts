@@ -1,5 +1,6 @@
 import type { HomeReminderSource } from '../service/home-reminders.service'
 import type { Reminder, ReminderStatus } from '@/shared/domain/reminders'
+import { formatLongDate } from '@/shared/utils/format'
 
 export type Translate = (key: string, named?: Record<string, unknown>, plural?: number) => string
 
@@ -98,4 +99,19 @@ export function reminderRows(
     animalName: showAnimal ? (animalNames.get(reminder.animalId) ?? null) : null,
     badge: dueBadge(t, reminder),
   }))
+}
+
+export function nextReminderText(
+  t: Translate,
+  reminder: Reminder<HomeReminderSource> | null,
+  { animalNames, showAnimal }: ReminderRowsOptions,
+): string | null {
+  if (reminder === null) return null
+  const params = {
+    reminder: reminderTitle(t, reminder),
+    date: formatLongDate(reminder.dueDate).replaceAll(' ', '\u00a0'),
+  }
+  const name = showAnimal ? animalNames.get(reminder.animalId) : undefined
+  if (name === undefined) return t('home.upToDate.nextForAnimal', params)
+  return t('home.upToDate.nextForMany', { ...params, name })
 }
