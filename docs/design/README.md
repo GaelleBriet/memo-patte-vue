@@ -4,6 +4,7 @@
 |---|---|---|
 | `accueil-v2/` | Spécification de l'écran d'accueil (`accueil.md`, 5 états A1→A5) + capture `MémoPatte v2 - Accueil.png` | **référence** (#36, #33, #34, #37) |
 | `carnet-v2/` | Spécification de l'écran Carnet (`carnet.md`, planches C1→C3) + capture | **référence** (#17) |
+| `courbes-poids/` | Historique du poids par pages (H1 à H3), unité de poids kg / lb (U1, U2) + relevé des textes (`poids-pages-unite.md`) | **référence**, points à trancher (#351, #352) |
 | `rappels/` | Marquer un rappel comme fait : feuilles « Fait », détail d'un vaccin et d'un traitement, traitements terminés, notifications (F1 à F11) + relevé des textes (`rappel-fait.md`) | **référence**, points à trancher (#364) |
 | `plus-revision/` | Écran Plus révisé (P1 à P1 ter), pastille Plus sur l'export PDF (A), feuilles d'export et accès au stockage (B1 à B5) + relevé des textes (`plus-revision.md`) | **référence** (#341, #342, #343) |
 | `logos/` | Icône, couches adaptatives Android, notes de correction (`logos.md`) | référence (#50, #54) |
