@@ -261,7 +261,7 @@ describe('TreatmentReminderSheet — F3, fait à une autre date', () => {
     return bouton(`.v-date-picker-month__day .v-btn[data-v-date^="${date}"]`)
   }
 
-  it('propose aujourd’hui, jamais une date future, jamais avant la naissance', async () => {
+  it('propose aujourd’hui, jamais une date future', async () => {
     await ouvrirF3()
 
     expect(texte('.bottom-sheet__title')).toBe('Fait à une autre date')
@@ -273,6 +273,26 @@ describe('TreatmentReminderSheet — F3, fait à une autre date', () => {
     expect(document.body.querySelector('[data-v-date^="2026-09-23"]')).not.toBeNull()
     expect(document.body.querySelector('[data-v-date^="2026-09-24"]')).toBeNull()
     expect(bouton('.date-calendar__nav--next').disabled).toBe(true)
+  })
+
+  it('ne propose aucune date avant la naissance de l’animal', async () => {
+    await ouvrirF3()
+    bouton('.date-calendar__month').click()
+    await flushPromises()
+    bouton('.v-date-picker-years [data-v-year="2026"]').click()
+    await flushPromises()
+
+    const mois = [
+      ...document.body.querySelectorAll<HTMLButtonElement>('.v-date-picker-months .v-btn'),
+    ]
+    expect(mois[2]!.disabled).toBe(true)
+    mois[3]!.click()
+    await flushPromises()
+
+    expect(texte('.date-calendar__month')).toBe('avril 2026')
+    expect(document.body.querySelector('[data-v-date^="2026-04-09"]')).toBeNull()
+    expect(jour('2026-04-10').disabled).toBe(false)
+    expect(bouton('.date-calendar__nav--previous').disabled).toBe(true)
   })
 
   it('recalcule la prochaine dose depuis la date choisie, puis note cette prise', async () => {
@@ -370,5 +390,19 @@ describe('TreatmentReminderSheet — F6, arrêter', () => {
     bouton('.confirm-dialog__cancel').click()
 
     await vi.waitFor(() => expect(document.activeElement).toBe(arreter))
+  })
+
+  it('confirme sans « Annuler » quand le traitement était déjà arrêté', async () => {
+    stop.mockResolvedValue({ animalId: BOREE.id, stopped: false })
+    const sheet = await monter()
+
+    bouton('.treatment-reminder-sheet__stop').click()
+    await flushPromises()
+    bouton('.confirm-dialog__confirm').click()
+    await flushPromises()
+
+    expect(sheet.emitted('update:modelValue')).toEqual([[false]])
+    expect(toastMessage.value).toBe('Bravecto arrêté. Il est dans Traitements terminés.')
+    expect(toastAction.value).toBeNull()
   })
 })

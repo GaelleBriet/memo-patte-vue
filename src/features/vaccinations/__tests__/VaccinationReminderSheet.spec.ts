@@ -384,4 +384,22 @@ describe('VaccinationReminderSheet — F5, vaccin fait', () => {
 
     expect(texte('.vaccination-reminder-sheet__injection-date')).toBe('Injection le 21 sept. 2026')
   })
+
+  it('ne présélectionne rien quand elle s’ouvre sur F5, même rouverte après un choix', async () => {
+    const sheet = await monter({ startAt: 'done', initialInjectedOn: '2026-09-21' })
+    const rienDeChoisi = () =>
+      choix().every((element) => element.getAttribute('aria-checked') === 'false')
+    expect(rienDeChoisi()).toBe(true)
+    expect(bouton('.vaccination-reminder-sheet__submit').disabled).toBe(true)
+
+    choix()[0]!.click()
+    await flushPromises()
+    expect(rienDeChoisi()).toBe(false)
+    await sheet.setProps({ modelValue: false })
+    await sheet.setProps({ modelValue: true })
+    await flushPromises()
+
+    expect(rienDeChoisi()).toBe(true)
+    expect(bouton('.vaccination-reminder-sheet__submit').disabled).toBe(true)
+  })
 })

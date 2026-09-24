@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import i18n from '@/core/i18n'
 import type { Animal } from '@/features/animals/schema/animal.schema'
+import { enqueueReminderTask } from '@/shared/domain/due-reminders-schedule'
 import {
   createFakeNotifications,
   type FakeNotifications,
@@ -90,6 +91,23 @@ describe('vaccinationRemindersService', () => {
 
     expect(notifications.pending.size).toBe(0)
     expect(notifications.scheduleReminders).not.toHaveBeenCalled()
+  })
+
+  it('lit la tête à son tour dans la file des rappels, pas à l’appel', async () => {
+    let liberer = () => {}
+    void enqueueReminderTask(() => new Promise<void>((resolve) => (liberer = resolve)))
+
+    const reprogrammation = service.reschedule(CHPPI.id)
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    getVaccination.mockResolvedValue({ ...CHPPI, dueDate: '2027-05-15' })
+    liberer()
+    await reprogrammation
+
+    expect([...notifications.pending.keys()]).toEqual([
+      `vaccination:${CHPPI.id}:2027-05-15:before`,
+      `vaccination:${CHPPI.id}:2027-05-15:due`,
+      `vaccination:${CHPPI.id}:2027-05-15:overdue`,
+    ])
   })
 
   it('programme les trois rappels d’un vaccin dont l’échéance est dans huit mois', async () => {

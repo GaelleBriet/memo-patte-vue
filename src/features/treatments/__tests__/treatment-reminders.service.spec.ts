@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import i18n from '@/core/i18n'
 import type { Animal } from '@/features/animals/schema/animal.schema'
+import { enqueueReminderTask } from '@/shared/domain/due-reminders-schedule'
 import {
   createFakeNotifications,
   type FakeNotifications,
@@ -85,6 +86,23 @@ describe('treatmentRemindersService', () => {
     getTreatment.mockResolvedValue({ ...MILBEMAX, nextDueDate: '2026-11-20' })
 
     await service.reschedule(MILBEMAX.id)
+
+    expect(programmes()).toEqual([
+      new Date(2026, 10, 17, 9),
+      new Date(2026, 10, 20, 9),
+      new Date(2026, 10, 23, 9),
+    ])
+  })
+
+  it('lit la tête à son tour dans la file des rappels, pas à l’appel', async () => {
+    let liberer = () => {}
+    void enqueueReminderTask(() => new Promise<void>((resolve) => (liberer = resolve)))
+
+    const reprogrammation = service.reschedule(MILBEMAX.id)
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    getTreatment.mockResolvedValue({ ...MILBEMAX, nextDueDate: '2026-11-20' })
+    liberer()
+    await reprogrammation
 
     expect(programmes()).toEqual([
       new Date(2026, 10, 17, 9),
