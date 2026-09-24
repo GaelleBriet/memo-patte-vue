@@ -6,13 +6,15 @@ Ticket : #364. Décisions : `docs/product/decisions-log.md`, bloc du 2026-09-23 
 
 Les données d'exemple (« Foyer de Sophie », animaux, dates) sont fictives : l'en-tête de l'accueil garde son texte actuel.
 
-## Points à trancher avec Gaelle (2026-09-24)
+## Écarts tranchés avec Gaelle (2026-09-24)
 
-- F10 : la maquette note la prise de vermifuge **sans ouvrir l'app** ; le bouton d'une notification du plugin `@capacitor/local-notifications` ouvre l'app (journal du 2026-09-23, point 3)
-- F1 / F4 : fenêtre « aujourd'hui à J+29 » ; #344 a livré J+30 inclus
-- F2 : « Date, dose ou fréquence » ; le modèle n'a pas de champ de dose
-- Toasts avec « Annuler » (F3 à F8) : le toast n'a pas encore d'action (#349)
-- F9 ter : « Reprendre ce traitement », recommandé par la maquette
+Journal du 2026-09-24, points 1 à 5 :
+
+- F10 : « C'est fait » **ouvre l'app** (limite d'Android), qui note la prise et affiche le toast ; planche F10 à corriger
+- F1 / F4 : fenêtre d'aujourd'hui à **J+29**
+- F2 : « Modifier » se décrit **« Date ou fréquence »**
+- Toasts : bouton **« Annuler »** ajouté
+- F9 ter : **« Reprendre ce traitement »** retenu
 
 ## Relevé des textes exacts
 
