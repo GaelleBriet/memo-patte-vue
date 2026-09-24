@@ -9,11 +9,13 @@ Tickets : #351 (H1 à H3), #352 (U1, U2). Décisions : journal du 2026-09-23 (Hi
 - U1 montre d'anciennes lignes des Paramètres (« Restaurer mon achat », « Export PDF » avec une puce « Plus ») : l'app garde « Restaurer mes achats » et la pastille sur l'icône (#355)
 - U2 dessine l'ancienne mini-courbe (un chiffre et une date par pesée) : le Carnet garde la courbe de #340 (plus haut, plus bas, pastille, mois), en livres
 
-## Points à trancher avec Gaelle (2026-09-24)
+## Écarts tranchés avec Gaelle (2026-09-24)
 
-- U1 « Par défaut : kg » ; décision du 2026-09-24 : lb si la région du téléphone est les États-Unis, kg ailleurs
-- U1 « Export CSV : colonne Poids (lb) ou Poids (kg) selon ce réglage » ; décision du 2026-09-24 : JSON et CSV en kg
-- H1 à H3 : 12 pesées par page, à juger sur ces planches
+Journal du 2026-09-24 :
+
+- Unité par défaut : **lb si la région du téléphone est les États-Unis, kg ailleurs** (Royaume-Uni compris) ; la maquette disait kg partout
+- Export : **CSV dans l'unité choisie** (unité dans le titre de colonne, comme la maquette), **JSON toujours en kg**, PDF dans l'unité choisie
+- **12 pesées par page** retenues
 
 ## Relevé des textes exacts
 

@@ -1620,3 +1620,9 @@ kg partout, la décision est gardée) ; les pesées restent stockées en kg ; **
 choisie. — Raison : seul le JSON se réimporte, et un tableur lit l'unité dans le titre de colonne. —
 Alternative écartée : CSV toujours en kg (décision du matin, corrigée à la lecture de la maquette).
 
+2026-09-24 — **Historique du poids par pages : 12 pesées par page** (#351), jugé sur la maquette
+`docs/design/courbes-poids/` (la dernière page, la plus ancienne, peut en avoir moins). **Unité par
+défaut au Royaume-Uni : kg**, comme partout sauf aux États-Unis (#352). — Raison : les vétérinaires
+britanniques pèsent et dosent en kg ; le carnet de santé est en kg. — Alternative écartée : lb par
+défaut au Royaume-Uni, par analogie avec l'usage courant pour le poids des personnes.
+
