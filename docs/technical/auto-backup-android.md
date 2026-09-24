@@ -46,10 +46,12 @@ les `<exclude>` sont là pour rendre l'intention lisible.
 
 ## Tester sans attendre le cycle quotidien
 
+Sur MémoPatte Dev, jamais sur la vraie app : la désinstallation efface sa base.
+
 ```bash
-adb shell bmgr enabled                              # doit répondre "enabled"
-adb shell bmgr backupnow com.gaellebriet.memopatte  # force une sauvegarde
-adb shell pm uninstall com.gaellebriet.memopatte    # puis réinstaller depuis Android Studio ou Play
+adb shell bmgr enabled                                  # doit répondre "enabled"
+adb shell bmgr backupnow com.gaellebriet.memopatte.dev  # force une sauvegarde
+adb shell pm uninstall com.gaellebriet.memopatte.dev    # puis réinstaller : pnpm test:device:dev
 adb logcat -s BackupManagerService BackupXmlParserLogging   # vérifie les règles appliquées
 ```
 
@@ -59,7 +61,7 @@ Après réinstallation, l'app doit retrouver animaux et rappels, sans photos
 ## À vérifier sur appareil (ticket #82)
 
 - Le chemin réel de la base du plugin SQLite sur Android (attendu :
-  `/data/data/com.gaellebriet.memopatte/databases/memopatteSQLite.db`).
+  `/data/data/com.gaellebriet.memopatte.dev/databases/memopatteSQLite.db` pour MémoPatte Dev).
 - La taille de la base après un jeu de données réaliste (3 animaux, 2 ans
   d'historique) : doit rester très en dessous de 25 Mo.
 - Que `app_webview/` est bien le nom du répertoire WebView sur les versions

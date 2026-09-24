@@ -56,7 +56,9 @@ cp .env.example .env             # clés Supabase, fichier jamais versionné
 pnpm dev                         # développement web (Vite), base vide
 pnpm dev:data                    # idem, avec le carnet de démo Milo + Luna
 pnpm dev:plus                    # développement web, avec un statut MémoPatte Plus simulé (à vie par défaut)
-pnpm dev:mobile                  # plugins à jour, build + install sur le téléphone, hot reload via adb ; suit dev, dev:data ou dev:plus
+pnpm dev:mobile                  # installe « MémoPatte Dev » sur le téléphone, hot reload via adb ; suit dev, dev:data ou dev:plus
+pnpm test:device:dev             # build de prod installé dans « MémoPatte Dev », sans serveur Vite
+pnpm test:device                 # build de prod installé dans la vraie MémoPatte : depuis main seulement
 pnpm cap:sync                    # build de prod + synchronisation Capacitor
 pnpm cap:open:android            # ouvre le projet dans Android Studio
 ```
@@ -67,6 +69,11 @@ pnpm cap:open:android            # ouvre le projet dans Android Studio
 gardé reste tel quel. Limite : avec une clé RevenueCat dans `.env`, sur le téléphone, la revérification
 au lancement et la connexion à un compte remplacent le statut simulé ; sans achat de test, `lifetime`
 repasse au gratuit, `annual` et `monthly` s'affichent « expiré », `expired` reste expiré.
+
+Sur le téléphone, le développement et les tests passent par « MémoPatte Dev »
+(`com.gaellebriet.memopatte.dev`), une app à part avec sa propre base : la vraie MémoPatte
+(`com.gaellebriet.memopatte`) garde ses données. Détail dans
+[`docs/technical/commandes-utiles.md`](docs/technical/commandes-utiles.md) §2.
 
 Avant de committer :
 

@@ -96,6 +96,44 @@ VITE_DEV_PLAN=none pnpm dev             # retour au gratuit
 
 ## 2. Dev sur Android, avec hot reload
 
+### Deux apps sur le téléphone : MémoPatte Dev et la vraie MémoPatte (2026-09-24, #388)
+
+Le téléphone porte deux apps côte à côte, chacune avec sa base, ses rappels et sa sauvegarde Android :
+
+| App               | Paquet                          | Installée par                                                          |
+| ----------------- | ------------------------------- | ---------------------------------------------------------------------- |
+| **MémoPatte Dev** | `com.gaellebriet.memopatte.dev` | `pnpm dev:mobile` (hot reload), `pnpm test:device:dev` (build de prod) |
+| **MémoPatte**     | `com.gaellebriet.memopatte`     | `pnpm test:device`, **depuis `main` seulement**                        |
+
+- Le développement et les tests vont dans MémoPatte Dev : fixtures (`dev:data`, `dev:plus`), branches qui
+  migrent la base, tests d'agents. La vraie MémoPatte garde ses données. MémoPatte Dev démarre vide.
+- **Mettre à jour la vraie app** : `git switch main && git pull`, puis `pnpm test:device` (build de prod,
+  données gardées). À faire une fois après #388 : jusque-là, `dev:mobile` installait sous le vrai paquet un
+  build qui dépend du serveur Vite.
+- Le suffixe `.dev` et le nom viennent de la propriété Gradle `devApp`, que `dev:mobile` et `test:device:dev`
+  posent (`ORG_GRADLE_PROJECT_devApp=true`). Sans elle (`test:device`, CI, Android Studio, release), c'est la
+  vraie MémoPatte qui est construite. À la main : `cd android && ./gradlew :app:assembleDebug -PdevApp=true`.
+- Les deux builds sortent au même endroit (`android/app/build/outputs/apk/debug/app-debug.apk`) : l'APK est
+  celui du dernier build.
+- **Piège** : si le téléphone refuse la mise à jour (signature différente, donc build fait sur une autre
+  machine, ou version plus ancienne), `cap run` désinstalle l'app puis la réinstalle, **et ses données
+  partent avec**. La vraie MémoPatte ne s'installe que depuis `main`, sur la machine qui l'a installée.
+- Ce qui ne marche que dans la vraie MémoPatte : les achats Google Play (MémoPatte Dev n'existe pas sur la
+  Play Console). La connexion Google demande un client OAuth Android pour chaque paquet
+  (`google-oauth-setup.md`). Les exports vont dans le même `Documents/MémoPatte/`, mais depuis Android 11
+  chaque app ne voit que ses propres fichiers.
+
+`adb` avec le bon paquet (`com.gaellebriet.memopatte` vise la vraie app : jamais sans le vouloir) :
+
+```bash
+adb shell am force-stop com.gaellebriet.memopatte.dev   # fermer MémoPatte Dev
+adb exec-out run-as com.gaellebriet.memopatte.dev cat databases/memopatteSQLite.db > dev.db   # copier sa base
+adb shell pm clear com.gaellebriet.memopatte.dev        # la remettre à zéro (base, préférences, WebView)
+adb uninstall com.gaellebriet.memopatte.dev             # la retirer du téléphone
+```
+
+### Lancer MémoPatte Dev avec hot reload
+
 Deux choses tournent en parallèle : le serveur Vite et l'app Android
 
 **Prérequis** :
@@ -114,7 +152,7 @@ Deux choses tournent en parallèle : le serveur Vite et l'app Android
 pnpm dev
 ```
 
-**Terminal 2** — build + install sur le téléphone, connecte au serveur Vite du terminal 1 :
+**Terminal 2** — build + install de MémoPatte Dev sur le téléphone, connectée au serveur Vite du terminal 1 :
 
 ```bash
 pnpm dev:mobile
@@ -154,7 +192,8 @@ découvrant à ce moment-là des composants Vuetify pas encore optimisés — ç
 vrai build).
 
 ```bash
-pnpm test:device   # build de prod, synchronise Android, installe et lance sur le téléphone branché
+pnpm test:device:dev   # build de prod, synchronise Android, installe et lance MémoPatte Dev
+pnpm test:device       # idem sous la vraie MémoPatte : depuis main seulement
 ```
 
 Une seule commande, un seul terminal : contrairement à `pnpm dev:mobile`, pas de serveur Vite à
@@ -166,7 +205,7 @@ Utile pour voir la console JS, le réseau, inspecter le DOM — pendant que l'ap
 
 1. Téléphone branché, app lancée dessus (via `pnpm dev:mobile` ou une install classique)
 2. Sur Chrome (desktop) : `chrome://inspect/#devices`
-3. Ton app doit apparaître dans la liste → **inspect**
+3. Ton app doit apparaître dans la liste → **inspect** (MémoPatte Dev sous `com.gaellebriet.memopatte.dev`)
 
 ⚠️ **Piège spécifique à ta config WSL** : comme le téléphone est attaché exclusivement à WSL via `usbipd`, le Chrome de Windows (qui utilise son propre `adb`) ne le verra pas directement. Si la liste reste vide :
 
@@ -223,6 +262,9 @@ cd android && ./gradlew :app:processDebugManifest && cd ..
 pnpm test:manifest              # variante debug par défaut
 pnpm test:manifest release      # après ./gradlew :app:processReleaseManifest
 ```
+
+Le contrôle porte sur la vraie MémoPatte : après un `pnpm dev:mobile`, le manifest fusionné est celui de
+MémoPatte Dev et le script demande de relancer `processDebugManifest`.
 
 Le job `android` de la CI (§8) fait tourner la variante `debug` sur chaque PR. La variante `release` reste un
 contrôle local, à passer avant chaque upload sur la Play Console (check-list §3.4 point 11 de

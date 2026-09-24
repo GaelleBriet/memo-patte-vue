@@ -77,6 +77,10 @@ C'est le `webClientId` du code et de Supabase.
 
 ➡️ Note aussi ce Client ID.
 
+Recommence pour **MémoPatte Dev**, l'app installée par `pnpm dev:mobile` (#388) : un second identifiant
+Android, `MemoPatte Android Dev`, package name `com.gaellebriet.memopatte.dev`, même SHA-1 debug. Sans lui,
+la connexion Google échoue dans MémoPatte Dev, donc au test de l'étape 4.
+
 > Pour ré-extraire ce SHA-1 plus tard :
 > ```bash
 > keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android -keypass android
@@ -119,6 +123,7 @@ keytool -list -v -keystore <chemin-du-keystore-release> -alias <alias>
    ```
    <WEB_CLIENT_ID>,<ANDROID_CLIENT_ID>
    ```
+   puis l'identifiant de MémoPatte Dev à la suite (`,<ANDROID_DEV_CLIENT_ID>`).
 
 ### ⚠️ Trois champs à NE PAS remplir
 
