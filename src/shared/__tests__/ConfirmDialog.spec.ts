@@ -117,6 +117,22 @@ describe('ConfirmDialog', () => {
     await vi.waitFor(() => expect(document.activeElement).toBe(declencheur))
   })
 
+  it('laisse le focus où l’écran appelant l’a mis après une confirmation', async () => {
+    const declencheur = document.createElement('button')
+    const suite = document.createElement('button')
+    document.body.append(declencheur, suite)
+    declencheur.focus()
+    await monter({ modelValue: false, onConfirm: () => suite.focus() })
+    await wrapper!.setProps({ modelValue: true })
+    await vi.waitFor(() => expect(document.activeElement).toBe(bouton('cancel')))
+
+    bouton('confirm').click()
+    await vi.waitFor(() => expect(document.body.querySelector('.confirm-dialog__panel')).toBeNull())
+    await new Promise((resolve) => setTimeout(resolve, 50))
+
+    expect(document.activeElement).toBe(suite)
+  })
+
   it('confirme en fermant le dialogue', async () => {
     await monter()
 
