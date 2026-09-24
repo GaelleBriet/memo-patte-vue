@@ -1670,7 +1670,7 @@ plusieurs (#380), et un vaccin restauré sans injection visible disparaîtrait. 
 identifiant de l'événement = identifiant du parent, qui n'était sûr que tant qu'un parent n'avait qu'un
 événement.
 
-2026-09-24 — **Rappel fait (#380) : trois choix tranchés avec Gaelle, deux consignés.**
+2026-09-24 — **Rappel fait (#380) : deux choix de Gaelle, deux conséquences de la spec.**
 
 1) **Vaccin déjà existant** (décision 1 de l'audit, présentation choisie par Gaelle) : la question vient
 **au toucher d'Enregistrer**, dans le dialogue de confirmation partagé : « C'est un rappel de Carré ? »,
@@ -1685,10 +1685,10 @@ mois, puis les jours ; les bornes (jamais de futur pour une prise, jamais avant 
 chaque étape. — Raison : une date à deux ans coûtait environ 24 taps. — Alternative écartée : le titre
 fixe de la maquette F3.
 
-3) **« Modifier » d'un traitement** change le plan et la **prochaine dose** de la prise de tête (§10.4),
-plus la date de la dernière prise : corriger une prise passée passe par « Changer la date » de son
+3) **« Modifier » d'un traitement** (conséquence du §10.4, spec validée) change le plan et la **prochaine
+dose** de la prise de tête, et non plus la date de la dernière prise : corriger une prise passée passe par « Changer la date » de son
 historique (#381). La prochaine dose ne peut pas précéder la dernière prise. — Raison : réécrire la date
 de la tête pourrait changer quelle prise est la tête. Transitoire assumé jusqu'à #381.
 
-4) **Export JSON** : `treatments[]` porte `stoppedOn`, relu par l'import (un traitement arrêté le reste
+4) **Export JSON** (correctif, perte de données évitée) : `treatments[]` porte `stoppedOn`, relu par l'import (un traitement arrêté le reste
 après un aller-retour, sans rappel). — Raison : sans lui, les rappels d'un traitement arrêté reprendraient.
