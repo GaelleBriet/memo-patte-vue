@@ -1566,3 +1566,30 @@ aucune étiquette ne touche la ligne de base, ils ne laissaient qu'un vide. — 
 alternative écartée : garder la bande. **La place rendue va au tracé** (90 à 100 px), la carte garde
 sa taille et le PDF suit. — Choix de Claude, faute de précision dans le ticket : la courbe gagne en
 lisibilité sans rien déplacer d'autre dans la carte ; alternative écartée : réduire la carte à 150 px.
+
+2026-09-24 — **Maquette « marquer un rappel comme fait » (F1 à F11) : écarts tranchés avec Gaelle**
+(#364, `docs/design/rappels/`).
+
+1) **« C'est fait » dans une notification ouvre l'app**, qui note la prise et affiche le toast de
+confirmation (la planche F10 sera corrigée en conséquence). — Raison : sur Android, un bouton de
+notification de `@capacitor/local-notifications` ouvre forcément l'app (limite connue,
+ionic-team/capacitor-plugins#512) ; le plugin Cordova qui agit en arrière-plan prévient qu'une
+action faite app fermée « could be lost », inacceptable pour des rappels fiables. — Alternatives
+écartées : ce plugin Cordova ; du code Android natif qui dupliquerait le calcul des échéances.
+
+2) **La fenêtre de « À faire » va d'aujourd'hui à J+29** (30 jours, aujourd'hui compris), au lieu de
+J+30 inclus livré par #344. — Raison : un traitement mensuel marqué fait revient à J+30 et resterait
+dans la liste juste après avoir été noté.
+
+3) **« Modifier » d'un traitement se décrit « Date ou fréquence »** : le modèle n'a pas de champ de
+dose. — Alternative écartée : ajouter un champ de dose.
+
+4) **Le toast gagne un bouton « Annuler »**, qui défait l'action qu'il confirme (prise, injection,
+arrêt, suppression d'une prise ou d'une injection). Les suppressions réversibles se passent de
+dialogue de confirmation ; « Arrêter ce traitement » garde le sien. La même capacité servira au
+bouton « Ouvrir » (#349).
+
+5) **Un traitement arrêté peut être repris** (« Reprendre ce traitement ») : il revient dans les
+traitements en cours avec son historique. — Alternative écartée : le recréer, ce qui couperait
+l'historique en deux.
+
