@@ -23,8 +23,8 @@ Toutes les valeurs propres à MémoPatte sont déjà renseignées ci-dessous.
 Trois endroits à configurer, dans cet ordre :
 
 ```
-1. Google Cloud Console  →  crée 2 identifiants (Web + Android)
-2. Supabase Dashboard    →  reçoit ces 2 identifiants
+1. Google Cloud Console  →  crée 3 identifiants (Web + Android + Android Dev)
+2. Supabase Dashboard    →  reçoit ces 3 identifiants
 3. Le projet             →  installe le plugin, utilise le Web client ID
 ```
 
@@ -118,12 +118,11 @@ keytool -list -v -keystore <chemin-du-keystore-release> -alias <alias>
 **Authentication → Providers → Google**
 
 1. Active le provider
-2. Dans **Client IDs**, colle les **deux** identifiants de l'étape 1, séparés
+2. Dans **Client IDs**, colle les **trois** identifiants de l'étape 1, séparés
    par une virgule :
    ```
-   <WEB_CLIENT_ID>,<ANDROID_CLIENT_ID>
+   <WEB_CLIENT_ID>,<ANDROID_CLIENT_ID>,<ANDROID_DEV_CLIENT_ID>
    ```
-   puis l'identifiant de MémoPatte Dev à la suite (`,<ANDROID_DEV_CLIENT_ID>`).
 
 ### ⚠️ Trois champs à NE PAS remplir
 
@@ -214,7 +213,8 @@ pnpm dev:mobile
 - [ ] Projet + écran de consentement créés dans Google Cloud Console
 - [ ] Client ID **Web** créé
 - [ ] Client ID **Android** créé (package name + SHA-1 debug)
-- [ ] Provider Google activé dans Supabase, avec les deux Client IDs
+- [ ] Client ID **Android Dev** créé (`com.gaellebriet.memopatte.dev` + SHA-1 debug)
+- [ ] Provider Google activé dans Supabase, avec les trois Client IDs
 - [ ] Plugin installé, `pnpm cap:sync` passé
 - [ ] Connexion testée de bout en bout sur téléphone physique
 - [ ] SHA-1 de release noté comme à ajouter au ticket #53

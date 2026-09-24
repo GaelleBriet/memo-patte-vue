@@ -29,7 +29,7 @@ est commun, c'est le **jeu de données de départ**, choisi sur le serveur Vite 
 | ----------------- | ----------------------------------------------------------------------- |
 | `pnpm dev`        | serveur **sans** fixtures : l'app démarre à vide                        |
 | `pnpm dev:data`   | serveur **avec** fixtures : carnet de démo Milo + Luna                  |
-| `pnpm dev:mobile` | inchangé : déploie l'app sur le téléphone, qui suit le serveur en cours |
+| `pnpm dev:mobile` | inchangé : déploie MémoPatte Dev sur le téléphone, qui suit le serveur en cours |
 
 - `pnpm dev:mobile` ne démarre pas le serveur (`cap run -l` pointe seulement la WebView vers lui) : c'est
   la commande `dev` ou `dev:data` lancée à côté qui décide du jeu de données, et **le téléphone suit**.

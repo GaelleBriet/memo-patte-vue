@@ -86,7 +86,7 @@ const packageName = manifest.match(/<manifest\s[^>]*package="([^"]+)"/)?.[1]
 if (packageName !== APP_ID) {
   console.error(
     `✗ ${manifestPath} : paquet ${packageName ?? 'introuvable'}, attendu ${APP_ID} (\`pnpm dev:mobile\`` +
-      ` construit MémoPatte Dev au même endroit). Relancer \`cd android && ./gradlew :app:process${variant[0].toUpperCase()}${variant.slice(1)}Manifest\`.`,
+      ` et \`pnpm test:device:dev\` construisent MémoPatte Dev au même endroit). Relancer \`cd android && ./gradlew :app:process${variant[0].toUpperCase()}${variant.slice(1)}Manifest\`.`,
   )
   process.exit(1)
 }

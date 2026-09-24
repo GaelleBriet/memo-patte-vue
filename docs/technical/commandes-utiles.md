@@ -105,11 +105,15 @@ Le téléphone porte deux apps côte à côte, chacune avec sa base, ses rappels
 | **MémoPatte Dev** | `com.gaellebriet.memopatte.dev` | `pnpm dev:mobile` (hot reload), `pnpm test:device:dev` (build de prod) |
 | **MémoPatte**     | `com.gaellebriet.memopatte`     | `pnpm test:device`, **depuis `main` seulement**                        |
 
+**Première action après le merge de #388, avant tout `dev:data` ou `dev:mobile`** :
+`git switch main && git pull && pnpm test:device`. La vraie MémoPatte installée jusque-là vient d'un
+`dev:mobile` et charge le code du serveur Vite dès qu'il tourne (avec `adb reverse` actif) : un `dev:data`
+viderait sa base, une branche qui migre la base la migrerait.
+
 - Le développement et les tests vont dans MémoPatte Dev : fixtures (`dev:data`, `dev:plus`), branches qui
   migrent la base, tests d'agents. La vraie MémoPatte garde ses données. MémoPatte Dev démarre vide.
 - **Mettre à jour la vraie app** : `git switch main && git pull`, puis `pnpm test:device` (build de prod,
-  données gardées). À faire une fois après #388 : jusque-là, `dev:mobile` installait sous le vrai paquet un
-  build qui dépend du serveur Vite.
+  données gardées).
 - Le suffixe `.dev` et le nom viennent de la propriété Gradle `devApp`, que `dev:mobile` et `test:device:dev`
   posent (`ORG_GRADLE_PROJECT_devApp=true`). Sans elle (`test:device`, CI, Android Studio, release), c'est la
   vraie MémoPatte qui est construite. À la main : `cd android && ./gradlew :app:assembleDebug -PdevApp=true`.
