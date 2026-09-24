@@ -136,7 +136,7 @@ d'une version plus récente de l'app »).
 | `frequency`    | `{ "value": entier > 0, "unit": "day" \| "week" \| "month" }` |                                     |
 | `lastDoseDate` | `AAAA-MM-JJ`                                              |                                         |
 | `nextDueDate`  | `AAAA-MM-JJ`                                              | Stockée ; recalculable depuis la dernière prise et la fréquence |
-| `stoppedOn`    | `AAAA-MM-JJ` \| `null`                                    | Date d'arrêt, `null` en cours ; ignorée à l'import, le traitement revient en cours |
+| `stoppedOn`    | `AAAA-MM-JJ` \| `null`                                    | Date d'arrêt, `null` en cours ; reprise à l'import, absente = en cours |
 | `createdAt`    | ISO 8601 UTC                                              |                                         |
 | `updatedAt`    | ISO 8601 UTC                                              |                                         |
 

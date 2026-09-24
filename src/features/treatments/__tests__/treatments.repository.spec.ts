@@ -864,6 +864,29 @@ describe('treatmentsRepository — import', () => {
     ).resolves.toEqual([{ id: IMPORTE.id, frequency_value: 2, frequency_unit: 'week' }])
   })
 
+  it('garde l’arrêt du fichier, à l’insertion comme à l’écrasement', async () => {
+    await restore({ ...IMPORTE, stoppedOn: '2026-08-01' }, false)
+    await expect(repository.getById(IMPORTE.id)).resolves.toMatchObject({
+      stoppedOn: '2026-08-01',
+    })
+
+    await restore({ ...IMPORTE, stoppedOn: '2026-09-01' }, true)
+    await expect(repository.getById(IMPORTE.id)).resolves.toMatchObject({
+      stoppedOn: '2026-09-01',
+    })
+
+    await restore({ ...IMPORTE, stoppedOn: null }, true)
+    await expect(repository.getById(IMPORTE.id)).resolves.toMatchObject({ stoppedOn: null })
+  })
+
+  it('remet en cours un traitement dont le fichier ne porte pas d’arrêt', async () => {
+    await restore({ ...IMPORTE, stoppedOn: '2026-08-01' }, false)
+
+    await restore(IMPORTE, true)
+
+    await expect(repository.getById(IMPORTE.id)).resolves.toMatchObject({ stoppedOn: null })
+  })
+
   it('ne déplace pas un traitement existant vers l’animal du fichier', async () => {
     await restore(IMPORTE, false)
 

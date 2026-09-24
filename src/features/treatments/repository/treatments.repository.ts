@@ -39,7 +39,8 @@ export type TreatmentVersion = Pick<Treatment, 'id' | 'animalId' | 'updatedAt' |
 export type RestoredTreatment = Pick<
   Treatment,
   'id' | 'animalId' | 'name' | 'type' | 'frequency' | 'createdAt' | 'updatedAt'
->
+> &
+  Partial<Pick<Treatment, 'stoppedOn'>>
 
 const COLUMNS =
   'id, animal_id, name, type, frequency_value, frequency_unit, stopped_on, created_at, updated_at, deleted_at'
@@ -248,16 +249,14 @@ export function createTreatmentsRepository(
       }
     },
 
-    /**
-     * Rend la ligne visible sans la changer d'animal ; un fichier v1 ignore l'arrêt, le traitement
-     * revient donc en cours.
-     */
+    /** Rend la ligne visible sans la changer d'animal ; sans date d'arrêt, le traitement est en cours. */
     restoreStatement(treatment: RestoredTreatment, exists: boolean): SqlStatement {
       const values = [
         treatment.name,
         treatment.type,
         treatment.frequency.value,
         treatment.frequency.unit,
+        treatment.stoppedOn ?? null,
         treatment.createdAt,
         treatment.updatedAt,
       ]
@@ -265,14 +264,14 @@ export function createTreatmentsRepository(
         ? {
             sql: `UPDATE treatment
                   SET name = ?, type = ?, frequency_value = ?, frequency_unit = ?,
-                      stopped_on = NULL, created_at = ?, updated_at = ?, deleted_at = NULL
+                      stopped_on = ?, created_at = ?, updated_at = ?, deleted_at = NULL
                   WHERE id = ?`,
             params: [...values, treatment.id],
           }
         : {
             sql: `INSERT INTO treatment (id, animal_id, name, type, frequency_value, frequency_unit,
-                    created_at, updated_at)
-                  VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                    stopped_on, created_at, updated_at)
+                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             params: [treatment.id, treatment.animalId, ...values],
           }
     },

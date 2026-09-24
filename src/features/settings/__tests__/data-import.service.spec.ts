@@ -69,13 +69,8 @@ function carnet(): Promise<ExportData> {
   }).collect()
 }
 
-// L'export relit la date d'arrêt, qu'un fichier importé ne porte pas : le traitement revient en cours.
 function withoutPhotos(data: ExportData): ExportData {
-  return {
-    ...data,
-    animals: data.animals.map((animal) => ({ ...animal, photoFileName: null })),
-    treatments: data.treatments.map((treatment) => ({ ...treatment, stoppedOn: null })),
-  }
+  return { ...data, animals: data.animals.map((animal) => ({ ...animal, photoFileName: null })) }
 }
 
 beforeEach(async () => {
