@@ -7,6 +7,7 @@ import { join } from 'node:path'
 
 const INTERMEDIATES = join('android', 'app', 'build', 'intermediates')
 const variant = process.argv[2] ?? 'debug'
+const APP_ID = 'com.gaellebriet.memopatte'
 
 /** Chaque entrée dit d'où vient la permission et quelle fonction la justifie. */
 const ALLOWED_PERMISSIONS = new Map([
@@ -28,7 +29,7 @@ const ALLOWED_PERMISSIONS = new Map([
   ['android.permission.ACCESS_NETWORK_STATE', 'RevenueCat — état du réseau avant un achat'],
   ['com.android.vending.BILLING', 'Play Billing via RevenueCat — achats MémoPatte Plus'],
   [
-    'com.gaellebriet.memopatte.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION',
+    `${APP_ID}.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`,
     'androidx.core — permission de signature interne, jamais visible du Play Store',
   ],
 ])
@@ -81,6 +82,14 @@ if (!manifestPath) {
 }
 
 const manifest = readFileSync(manifestPath, 'utf8')
+const packageName = manifest.match(/<manifest\s[^>]*package="([^"]+)"/)?.[1]
+if (packageName !== APP_ID) {
+  console.error(
+    `✗ ${manifestPath} : paquet ${packageName ?? 'introuvable'}, attendu ${APP_ID} (\`pnpm dev:mobile\`` +
+      ` et \`pnpm test:device:dev\` construisent MémoPatte Dev au même endroit). Relancer \`cd android && ./gradlew :app:process${variant[0].toUpperCase()}${variant.slice(1)}Manifest\`.`,
+  )
+  process.exit(1)
+}
 const permissionDeclarations = ['uses-permission', 'uses-permission-sdk-23'].flatMap((tag) =>
   declarationsOf(manifest, tag),
 )
