@@ -174,12 +174,14 @@ type SqlStatement = ReturnType<AnimalsRepository['markAllDeletedStatement']>
 
 type ImportMethods = 'listVersions' | 'markAllDeletedStatement' | 'restoreStatement'
 
+type EventImportMethods = ImportMethods | 'reviveStatement'
+
 export type DataImportDependencies = {
   animals: Provider<Pick<AnimalsRepository, 'list' | 'runImport' | ImportMethods>>
   vaccinations: Provider<Pick<VaccinationsRepository, ImportMethods>>
-  vaccinationInjections: Provider<Pick<VaccinationInjectionsRepository, ImportMethods>>
+  vaccinationInjections: Provider<Pick<VaccinationInjectionsRepository, EventImportMethods>>
   treatments: Provider<Pick<TreatmentsRepository, ImportMethods>>
-  treatmentDoses: Provider<Pick<TreatmentDosesRepository, ImportMethods>>
+  treatmentDoses: Provider<Pick<TreatmentDosesRepository, EventImportMethods>>
   weight: Provider<Pick<WeightRepository, ImportMethods>>
   photoExists: (fileName: string) => Promise<boolean>
   syncReminders: () => Promise<void>
@@ -294,8 +296,10 @@ export function createDataImportService({
         ...write(plan.animals, animalsRepository.restoreStatement),
         ...write(plan.vaccinations, vaccinationsRepository.restoreStatement),
         ...write(plan.vaccinationInjections, injectionsRepository.restoreStatement),
+        ...plan.revivedInjections.map((id) => injectionsRepository.reviveStatement(id, importedAt)),
         ...write(plan.treatments, treatmentsRepository.restoreStatement),
         ...write(plan.treatmentDoses, dosesRepository.restoreStatement),
+        ...plan.revivedDoses.map((id) => dosesRepository.reviveStatement(id, importedAt)),
         ...write(plan.weightEntries, weightRepository.restoreStatement),
       ])
       await syncReminders()

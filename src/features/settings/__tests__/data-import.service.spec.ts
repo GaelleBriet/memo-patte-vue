@@ -659,4 +659,114 @@ describe('data-import.service', () => {
       ).resolves.toEqual([{ given_on: '2026-06-15', deleted_at: NOW.toISOString() }])
     })
   })
+
+  describe('événements revenus avec leur animal', () => {
+    const CANCELLED = '2026-09-05T00:00:00.000Z'
+    const CASCADE = '2026-09-10T00:00:00.000Z'
+    const ADDED = '2026-09-01T00:00:00.000Z'
+
+    function withNewerAnimal(animalId: string): ExportData {
+      return {
+        ...IMPORT_FIXTURE,
+        animals: IMPORT_FIXTURE.animals.map((animal) =>
+          animal.id === animalId ? { ...animal, updatedAt: '2026-09-12T00:00:00.000Z' } : animal,
+        ),
+      }
+    }
+
+    async function removeAnimal(animalId: string): Promise<void> {
+      await repositories.animals.remove(
+        animalId,
+        [
+          repositories.vaccinations.markDeletedByAnimalStatement(animalId, CASCADE),
+          createVaccinationInjectionsRepository(db).markDeletedByAnimalStatement(animalId, CASCADE),
+          repositories.treatments.markDeletedByAnimalStatement(animalId, CASCADE),
+          createTreatmentDosesRepository(db).markDeletedByAnimalStatement(animalId, CASCADE),
+          repositories.weight.markDeletedByAnimalStatement(animalId, CASCADE),
+        ],
+        CASCADE,
+      )
+    }
+
+    it('ramène le vaccin avec l’injection supprimée avec lui, celle annulée avant reste annulée', async () => {
+      const { service } = setup()
+      await service.importData(IMPORT_FIXTURE, 'merge')
+      await db.runMany([
+        createVaccinationInjectionsRepository(db).insertStatement({
+          id: 'e1',
+          vaccinationId: CHPPIL_ID,
+          animalId: MILO_ID,
+          injectedOn: '2024-09-01',
+          nextDueDate: '2025-09-01',
+          createdAt: ADDED,
+          updatedAt: ADDED,
+          deletedAt: null,
+        }),
+      ])
+      await db.run('UPDATE vaccination_injection SET deleted_at = ?, updated_at = ? WHERE id = ?', [
+        CANCELLED,
+        CANCELLED,
+        CHPPIL_ID,
+      ])
+      await removeAnimal(MILO_ID)
+
+      await service.importData(withNewerAnimal(MILO_ID), 'merge')
+
+      await expect(repositories.vaccinations.getById(CHPPIL_ID)).resolves.toMatchObject({
+        lastInjectionDate: '2024-09-01',
+        dueDate: '2025-09-01',
+      })
+      await expect(
+        db.query(
+          `SELECT id, injected_on, deleted_at FROM vaccination_injection
+           WHERE vaccination_id = ? ORDER BY injected_on`,
+          [CHPPIL_ID],
+        ),
+      ).resolves.toEqual([
+        { id: 'e1', injected_on: '2024-09-01', deleted_at: null },
+        { id: CHPPIL_ID, injected_on: '2025-09-01', deleted_at: CANCELLED },
+      ])
+    })
+
+    it('ramène le traitement avec la prise supprimée avec lui, celle annulée avant reste annulée', async () => {
+      const { service } = setup()
+      await service.importData(IMPORT_FIXTURE, 'merge')
+      await db.runMany([
+        createTreatmentDosesRepository(db).insertStatement({
+          id: 'd1',
+          treatmentId: MILBEMAX_ID,
+          animalId: LUNA_ID,
+          givenOn: '2026-03-15',
+          nextDueDate: '2026-06-15',
+          frequency: { value: 3, unit: 'month' },
+          createdAt: ADDED,
+          updatedAt: ADDED,
+          deletedAt: null,
+        }),
+      ])
+      await db.run('UPDATE treatment_dose SET deleted_at = ?, updated_at = ? WHERE id = ?', [
+        CANCELLED,
+        CANCELLED,
+        MILBEMAX_ID,
+      ])
+      await removeAnimal(LUNA_ID)
+
+      await service.importData(withNewerAnimal(LUNA_ID), 'merge')
+
+      await expect(repositories.treatments.getById(MILBEMAX_ID)).resolves.toMatchObject({
+        lastDoseDate: '2026-03-15',
+        nextDueDate: '2026-06-15',
+      })
+      await expect(
+        db.query(
+          `SELECT id, given_on, deleted_at FROM treatment_dose
+           WHERE treatment_id = ? ORDER BY given_on`,
+          [MILBEMAX_ID],
+        ),
+      ).resolves.toEqual([
+        { id: 'd1', given_on: '2026-03-15', deleted_at: null },
+        { id: MILBEMAX_ID, given_on: '2026-06-15', deleted_at: CANCELLED },
+      ])
+    })
+  })
 })

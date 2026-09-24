@@ -105,6 +105,13 @@ export function createTreatmentDosesRepository(db: DbClient) {
       }
     },
 
+    reviveStatement(id: string, updatedAt: string): SqlStatement {
+      return {
+        sql: 'UPDATE treatment_dose SET deleted_at = NULL, updated_at = ? WHERE id = ?',
+        params: [updatedAt, id],
+      }
+    },
+
     /** Une prise existante garde sa date, son traitement et son animal : échéance et fréquence suivent le fichier. */
     restoreStatement(dose: RestoredTreatmentDose, exists: boolean): SqlStatement {
       return exists

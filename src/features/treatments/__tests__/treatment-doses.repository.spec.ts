@@ -133,6 +133,16 @@ describe('treatmentDosesRepository', () => {
     )
   })
 
+  it('ramène une prise supprimée sans toucher ses dates, son échéance ni sa fréquence', async () => {
+    const [avant] = await db.query('SELECT * FROM treatment_dose WHERE id = ?', [drontal])
+
+    await db.runMany([doses.reviveStatement(drontal, NOW)])
+
+    await expect(db.query('SELECT * FROM treatment_dose WHERE id = ?', [drontal])).resolves.toEqual(
+      [{ ...(avant as object), updated_at: NOW, deleted_at: null }],
+    )
+  })
+
   it('insère une prise absente avec l’identifiant choisi', async () => {
     const dose = {
       id: 'nouvelle',

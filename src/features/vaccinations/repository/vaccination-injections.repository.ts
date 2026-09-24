@@ -101,6 +101,13 @@ export function createVaccinationInjectionsRepository(db: DbClient) {
       }
     },
 
+    reviveStatement(id: string, updatedAt: string): SqlStatement {
+      return {
+        sql: 'UPDATE vaccination_injection SET deleted_at = NULL, updated_at = ? WHERE id = ?',
+        params: [updatedAt, id],
+      }
+    },
+
     /** Une injection existante garde sa date, son vaccin et son animal : seul le rappel suit le fichier. */
     restoreStatement(injection: RestoredVaccinationInjection, exists: boolean): SqlStatement {
       return exists

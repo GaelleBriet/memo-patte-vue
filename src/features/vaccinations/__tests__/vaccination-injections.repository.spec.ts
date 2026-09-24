@@ -126,6 +126,16 @@ describe('vaccinationInjectionsRepository', () => {
     ])
   })
 
+  it('ramène une injection supprimée sans toucher ses dates ni son rappel', async () => {
+    const [avant] = await db.query('SELECT * FROM vaccination_injection WHERE id = ?', [typhus])
+
+    await db.runMany([injections.reviveStatement(typhus, NOW)])
+
+    await expect(
+      db.query('SELECT * FROM vaccination_injection WHERE id = ?', [typhus]),
+    ).resolves.toEqual([{ ...(avant as object), updated_at: NOW, deleted_at: null }])
+  })
+
   it('insère une injection absente avec l’identifiant choisi', async () => {
     const injection = {
       id: 'nouvelle',
