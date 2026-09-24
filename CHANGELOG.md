@@ -5,6 +5,27 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.38](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.37...memo-patte-v0.1.38) (2026-09-24)
+
+
+### ✨ Fonctionnalités
+
+* **db:** migration v6, historique des vaccins et des traitements ([#379](https://github.com/GaelleBriet/memo-patte-vue/issues/379)) ([8f43305](https://github.com/GaelleBriet/memo-patte-vue/commit/8f43305f0a0380f50d1a653304aaa4e4b2bfe944))
+* **db:** migration v6, historique des vaccins et des traitements ([#379](https://github.com/GaelleBriet/memo-patte-vue/issues/379)) ([4711098](https://github.com/GaelleBriet/memo-patte-vue/commit/4711098d99718e10ec66bfb5240c6286e1af2430))
+* **weight:** découpage de l'historique en pages de 12 pesées ([#351](https://github.com/GaelleBriet/memo-patte-vue/issues/351)) ([f505e64](https://github.com/GaelleBriet/memo-patte-vue/commit/f505e64d3aeb2419271f08810423f853826caa14))
+* **weight:** Historique du poids par pages de 12 pesées ([#351](https://github.com/GaelleBriet/memo-patte-vue/issues/351)) ([96a9263](https://github.com/GaelleBriet/memo-patte-vue/commit/96a92639b0c8cf2b976399d009e54be1f27c5b04))
+* **weight:** historique par pages, glisser pour remonter le temps ([#351](https://github.com/GaelleBriet/memo-patte-vue/issues/351)) ([1595f3f](https://github.com/GaelleBriet/memo-patte-vue/commit/1595f3feb4e56cfa1a583c20f12262693dd4357e))
+* **weight:** période d'un seul mois écrite « mars 2026 » ([#351](https://github.com/GaelleBriet/memo-patte-vue/issues/351)) ([f3088c0](https://github.com/GaelleBriet/memo-patte-vue/commit/f3088c09334887e045154790cc6fe3affa703112))
+
+
+### 🐛 Corrections
+
+* **db:** version 6 posée dans la transaction de la migration ([#379](https://github.com/GaelleBriet/memo-patte-vue/issues/379)) ([2b93e41](https://github.com/GaelleBriet/memo-patte-vue/commit/2b93e4119fcc313171ca93b68a7e9ec6cbe6602a))
+* **settings:** l'événement de même date revenu avec son parent reprend les valeurs du fichier ([#379](https://github.com/GaelleBriet/memo-patte-vue/issues/379)) ([2300fcb](https://github.com/GaelleBriet/memo-patte-vue/commit/2300fcb8db766965bed448fb29d0f76770995d7b))
+* **settings:** l'import v1 rattache sa ligne à l'événement local de même date ([#379](https://github.com/GaelleBriet/memo-patte-vue/issues/379)) ([f8d6d61](https://github.com/GaelleBriet/memo-patte-vue/commit/f8d6d61276693b207aa62abbe7591768560fb3f5))
+* **settings:** un événement supprimé avec son parent revient avec lui à l'import v1 ([#379](https://github.com/GaelleBriet/memo-patte-vue/issues/379)) ([c638223](https://github.com/GaelleBriet/memo-patte-vue/commit/c638223a1b5bdf266e741588131ddb97be314e27))
+* **shared:** sous-titre d'un écran poussé collé au titre, comme la maquette H1 ([754b851](https://github.com/GaelleBriet/memo-patte-vue/commit/754b85118d8ae9b47ffd5c25909312484ccaab00))
+
 ## [0.1.37](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.36...memo-patte-v0.1.37) (2026-09-23)
 
 
