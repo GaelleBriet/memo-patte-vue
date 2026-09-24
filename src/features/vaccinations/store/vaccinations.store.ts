@@ -1,6 +1,13 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
+import { isSameVaccineName } from '../logic/vaccination-name'
+import {
+  vaccinationInjectionsService,
+  type InjectionInput,
+  type RecordedInjection,
+  type VaccinationInjectionsService,
+} from '../service/vaccination-injections.service'
 import {
   vaccinationRemindersService,
   type VaccinationRemindersService,
@@ -30,7 +37,7 @@ export function provideVaccinationsRepository(next: VaccinationsRepositoryProvid
   provider = next
 }
 
-type VaccinationReminders = Pick<VaccinationRemindersService, 'reschedule' | 'cancel'>
+type VaccinationReminders = Pick<VaccinationRemindersService, 'reschedule'>
 
 let remindersProvider: () => VaccinationReminders = () => vaccinationRemindersService
 
@@ -39,6 +46,17 @@ export function provideVaccinationRemindersService(
   next: (() => VaccinationReminders) | null,
 ): void {
   remindersProvider = next ?? (() => vaccinationRemindersService)
+}
+
+type VaccinationInjections = Pick<VaccinationInjectionsService, 'record' | 'undo'>
+
+let injectionsProvider: () => VaccinationInjections = () => vaccinationInjectionsService
+
+/** `null` rétablit le service réel. */
+export function provideVaccinationInjectionsService(
+  next: (() => VaccinationInjections) | null,
+): void {
+  injectionsProvider = next ?? (() => vaccinationInjectionsService)
 }
 
 export const useVaccinationsStore = defineStore('vaccinations', () => {
@@ -117,11 +135,17 @@ export const useVaccinationsStore = defineStore('vaccinations', () => {
       return (await requireRepository()).getById(id)
     },
 
+    /** Le vaccin déjà suivi sous ce nom par l'animal, sans changer la liste affichée. */
+    async findSameName(animalId: string, name: string): Promise<Vaccination | null> {
+      const list = await (await requireRepository()).listByAnimal(animalId)
+      return list.find((vaccination) => isSameVaccineName(vaccination.name, name)) ?? null
+    },
+
     async create(input: VaccinationInput): Promise<Vaccination> {
       const created = await write(
         async (repository) => {
           const vaccination = await repository.create(input)
-          await remindersProvider().reschedule(vaccination)
+          await remindersProvider().reschedule(vaccination.id)
           return vaccination
         },
         (vaccination) => vaccination.animalId,
@@ -136,7 +160,7 @@ export const useVaccinationsStore = defineStore('vaccinations', () => {
       return write(
         async (repository) => {
           const updated = await repository.update(id, input)
-          await remindersProvider().reschedule(updated)
+          await remindersProvider().reschedule(id)
           return updated
         },
         (updated) => updated.animalId,
@@ -147,8 +171,25 @@ export const useVaccinationsStore = defineStore('vaccinations', () => {
       await write(
         async (repository) => {
           await repository.remove(id)
-          await remindersProvider().cancel(id)
+          await remindersProvider().reschedule(id)
         },
+        () => animalId.value,
+      )
+    },
+
+    async recordInjection(
+      vaccinationId: string,
+      input: InjectionInput,
+    ): Promise<RecordedInjection> {
+      return write(
+        () => injectionsProvider().record(vaccinationId, input),
+        (recorded) => recorded.animalId,
+      )
+    },
+
+    async undoInjection(vaccinationId: string, injectionId: string): Promise<void> {
+      await write(
+        () => injectionsProvider().undo(vaccinationId, injectionId),
         () => animalId.value,
       )
     },

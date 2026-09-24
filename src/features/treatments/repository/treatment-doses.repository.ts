@@ -1,4 +1,4 @@
-import type { DbClient, SqlStatement } from '@/core/db/db-client'
+import type { DbClient, SqlParam, SqlStatement } from '@/core/db/db-client'
 import { getDb } from '@/core/db/sqlite'
 import type { TreatmentDose } from '../schema/treatment-dose.schema'
 
@@ -32,9 +32,49 @@ export function headDoseIdSql(treatmentId: string): string {
            LIMIT 1)`
 }
 
-/** Ses écritures sont des instructions que le repository des traitements ou un service joue. */
+function valuesOf(dose: TreatmentDose): SqlParam[] {
+  return [
+    dose.id,
+    dose.treatmentId,
+    dose.animalId,
+    dose.givenOn,
+    dose.nextDueDate,
+    dose.frequency.value,
+    dose.frequency.unit,
+    dose.createdAt,
+    dose.updatedAt,
+    dose.deletedAt,
+  ]
+}
+
+/**
+ * Écrit seul une prise notée ou annulée ; ses autres écritures sont des instructions que le
+ * repository des traitements ou un service joue.
+ */
 export function createTreatmentDosesRepository(db: DbClient) {
   return {
+    /** Faux quand une prise visible du même jour existe déjà : un double tap n'en note qu'une. */
+    async record(dose: TreatmentDose): Promise<boolean> {
+      const changes = await db.run(
+        `INSERT INTO treatment_dose (${COLUMNS})
+         SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+         WHERE NOT EXISTS (
+           SELECT 1 FROM treatment_dose
+           WHERE treatment_id = ? AND given_on = ? AND ${NOT_DELETED}
+         )`,
+        [...valuesOf(dose), dose.treatmentId, dose.givenOn],
+      )
+      return changes > 0
+    },
+
+    /** Sans effet sur une prise déjà supprimée : sa date de suppression est gardée. */
+    async remove(id: string, deletedAt: string): Promise<void> {
+      await db.run(
+        `UPDATE treatment_dose SET deleted_at = ?, updated_at = ? WHERE id = ? AND ${NOT_DELETED}`,
+        [deletedAt, deletedAt, id],
+      )
+    },
+
     /** Lignes supprimées comprises : l'import rattache un fichier aux prises déjà en base. */
     async listVersions(): Promise<TreatmentDoseVersion[]> {
       const rows = await db.query<DoseVersionRow>(
@@ -52,35 +92,24 @@ export function createTreatmentDosesRepository(db: DbClient) {
     insertStatement(dose: TreatmentDose): SqlStatement {
       return {
         sql: `INSERT INTO treatment_dose (${COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        params: [
-          dose.id,
-          dose.treatmentId,
-          dose.animalId,
-          dose.givenOn,
-          dose.nextDueDate,
-          dose.frequency.value,
-          dose.frequency.unit,
-          dose.createdAt,
-          dose.updatedAt,
-          dose.deletedAt,
-        ],
+        params: valuesOf(dose),
       }
     },
 
+    /** La date de la prise ne change pas ici : la tête reste la même prise. */
     updateHeadStatement(
       treatmentId: string,
       {
-        givenOn,
         nextDueDate,
         frequency,
         updatedAt,
-      }: Pick<TreatmentDose, 'givenOn' | 'nextDueDate' | 'frequency' | 'updatedAt'>,
+      }: Pick<TreatmentDose, 'nextDueDate' | 'frequency' | 'updatedAt'>,
     ): SqlStatement {
       return {
         sql: `UPDATE treatment_dose
-              SET given_on = ?, next_due_date = ?, frequency_value = ?, frequency_unit = ?, updated_at = ?
+              SET next_due_date = ?, frequency_value = ?, frequency_unit = ?, updated_at = ?
               WHERE id = ${headDoseIdSql('?')}`,
-        params: [givenOn, nextDueDate, frequency.value, frequency.unit, updatedAt, treatmentId],
+        params: [nextDueDate, frequency.value, frequency.unit, updatedAt, treatmentId],
       }
     },
 

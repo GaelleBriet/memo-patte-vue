@@ -253,6 +253,66 @@ describe('AppToast', () => {
     ecran.unmount()
   })
 
+  it('offre son action au lecteur d’écran, hors de la zone masquée, et la joue au toucher', async () => {
+    vi.useFakeTimers()
+    const wrapper = mountToast()
+    const run = vi.fn<() => void>()
+    showToast('Prise de Bravecto notée pour Boree', {
+      action: { label: 'Annuler', ariaLabel: 'Annuler la prise de Bravecto', run },
+    })
+    await nextTick()
+    vi.advanceTimersByTime(ANNONCE_MS)
+    await nextTick()
+
+    const action = document.body.querySelector<HTMLButtonElement>('.app-toast__action')!
+    expect(action.textContent?.trim()).toBe('Annuler')
+    expect(action.getAttribute('aria-label')).toBe('Annuler la prise de Bravecto')
+    expect(action.closest('[aria-hidden="true"]')).toBeNull()
+    const annoncees = [...document.body.querySelectorAll('[role="status"]')].filter(
+      (element) => !element.closest('[aria-hidden="true"]'),
+    )
+    expect(annoncees.map((element) => element.textContent)).toEqual([
+      'Prise de Bravecto notée pour Boree',
+    ])
+
+    action.click()
+    await nextTick()
+
+    expect(run).toHaveBeenCalledOnce()
+    expect(toastMessage.value).toBeNull()
+    wrapper.unmount()
+  })
+
+  it('reste affiché tant que son action a le focus', async () => {
+    vi.useFakeTimers()
+    const wrapper = mountToast()
+    showToast('Prise de Bravecto notée pour Boree', {
+      action: { label: 'Annuler', run: vi.fn<() => void>() },
+    })
+    await nextTick()
+    const action = document.body.querySelector<HTMLButtonElement>('.app-toast__action')!
+
+    action.focus()
+    vi.advanceTimersByTime(20_000)
+    await nextTick()
+    expect(toastMessage.value).toBe('Prise de Bravecto notée pour Boree')
+
+    action.blur()
+    vi.advanceTimersByTime(4100)
+    await nextTick()
+    expect(toastMessage.value).toBeNull()
+    wrapper.unmount()
+  })
+
+  it('n’a pas de bouton quand le message ne propose aucune action', async () => {
+    const wrapper = mountToast()
+    showToast('Pesée enregistrée')
+    await nextTick()
+
+    expect(document.body.querySelector('.app-toast__action')).toBeNull()
+    wrapper.unmount()
+  })
+
   it('se ferme d’un glissement vers le bas', async () => {
     const wrapper = mountToast()
     showToast('Rappels activés')

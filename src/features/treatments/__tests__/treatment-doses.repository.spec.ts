@@ -9,6 +9,7 @@ import {
   type TreatmentDosesRepository,
 } from '../repository/treatment-doses.repository'
 import { createTreatmentsRepository } from '../repository/treatments.repository'
+import type { TreatmentDose } from '../schema/treatment-dose.schema'
 
 vi.mock('@/core/db/sqlite', () => ({ getDb: vi.fn<() => Promise<DbClient>>() }))
 
@@ -173,6 +174,100 @@ describe('treatmentDosesRepository', () => {
         deleted_at: null,
       },
     ])
+  })
+})
+
+describe('treatmentDosesRepository — noter et annuler une prise', () => {
+  let db: InMemoryDb
+  let doses: TreatmentDosesRepository
+  let milbemax: string
+
+  function prise(id: string, givenOn: string, surcharges: Partial<TreatmentDose> = {}) {
+    return {
+      id,
+      treatmentId: milbemax,
+      animalId: MIETTE,
+      givenOn,
+      nextDueDate: '2026-12-20',
+      frequency: { value: 3, unit: 'month' },
+      createdAt: NOW,
+      updatedAt: NOW,
+      deletedAt: null,
+      ...surcharges,
+    } satisfies TreatmentDose
+  }
+
+  function prises() {
+    return db.query<{ id: string; given_on: string; deleted_at: string | null }>(
+      'SELECT id, given_on, deleted_at FROM treatment_dose WHERE treatment_id = ? ORDER BY given_on, id',
+      [milbemax],
+    )
+  }
+
+  beforeEach(async () => {
+    db = await createInMemoryDb()
+    await db.execute('PRAGMA foreign_keys = ON')
+    await db.run(
+      `INSERT INTO animal (id, name, species, created_at, updated_at)
+       VALUES (?, 'Miette', 'cat', ?, ?)`,
+      [MIETTE, T0, T0],
+    )
+    doses = createTreatmentDosesRepository(db)
+    milbemax = (
+      await createTreatmentsRepository(db).create({ ...plan, animalId: MIETTE, name: 'Milbemax' })
+    ).id
+  })
+
+  afterEach(() => {
+    db.close()
+  })
+
+  it('note une prise et le dit', async () => {
+    await expect(doses.record(prise('p1', '2026-09-20'))).resolves.toBe(true)
+
+    await expect(prises()).resolves.toEqual([
+      { id: milbemax, given_on: '2026-01-10', deleted_at: null },
+      { id: 'p1', given_on: '2026-09-20', deleted_at: null },
+    ])
+  })
+
+  it('ne note pas une seconde prise du même jour pour le même traitement', async () => {
+    await doses.record(prise('p1', '2026-09-20'))
+
+    await expect(doses.record(prise('p2', '2026-09-20'))).resolves.toBe(false)
+
+    await expect(prises()).resolves.toHaveLength(2)
+  })
+
+  it('note de nouveau une prise dont celle du même jour a été annulée', async () => {
+    await doses.record(prise('p1', '2026-09-20'))
+    await doses.remove('p1', NOW)
+
+    await expect(doses.record(prise('p2', '2026-09-20'))).resolves.toBe(true)
+  })
+
+  it('annule une prise par une date de suppression, sans toucher les autres', async () => {
+    await doses.record(prise('p1', '2026-09-20'))
+
+    await doses.remove('p1', NOW)
+
+    await expect(prises()).resolves.toEqual([
+      { id: milbemax, given_on: '2026-01-10', deleted_at: null },
+      { id: 'p1', given_on: '2026-09-20', deleted_at: NOW },
+    ])
+  })
+
+  it('ne change pas la date d’une prise déjà annulée', async () => {
+    await doses.record(prise('p1', '2026-09-20'))
+    await doses.remove('p1', EARLIER)
+
+    await doses.remove('p1', NOW)
+
+    await expect(prises()).resolves.toContainEqual({
+      id: 'p1',
+      given_on: '2026-09-20',
+      deleted_at: EARLIER,
+    })
   })
 })
 

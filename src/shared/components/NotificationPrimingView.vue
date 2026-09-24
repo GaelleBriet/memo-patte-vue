@@ -6,6 +6,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { onBackButton } from '@/core/app-lifecycle/back-button'
 import { postponePriming, requestAfterPriming } from '@/core/notifications/permission'
 import { primingReturnRoute } from '../domain/notification-priming'
+import { returnTo } from '../utils/return-to'
 import { showToast } from '../utils/toast'
 
 const props = defineProps<{
@@ -15,7 +16,8 @@ const props = defineProps<{
 
 const { t } = useI18n()
 const router = useRouter()
-const returnRoute = primingReturnRoute(useRoute().query.from)
+const { query } = useRoute()
+const returnRoute = primingReturnRoute(query.from, query.reminder)
 const isRequesting = ref(false)
 
 const personalBenefit = computed(() => {
@@ -32,7 +34,7 @@ const benefits = computed(() => [
 ])
 
 function goBack(): void {
-  void router.replace(returnRoute)
+  returnTo(router, returnRoute)
 }
 
 async function enable(): Promise<void> {

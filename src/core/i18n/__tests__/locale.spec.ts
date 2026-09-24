@@ -63,18 +63,6 @@ describe('pluriels anglais', () => {
 describe('rappels de vaccin', () => {
   afterEach(() => applyLocale('fr'))
 
-  it('gardent le nom saisi seul, sans « vaccin » redoublé, dans les deux langues', () => {
-    expect(i18n.global.t('home.reminder.vaccination', { name: 'Vaccin antirabique' })).toBe(
-      'Vaccin antirabique',
-    )
-
-    applyLocale('en')
-
-    expect(i18n.global.t('home.reminder.vaccination', { name: 'Rabies vaccine' })).toBe(
-      'Rabies vaccine',
-    )
-  })
-
   it('titrent la notification sans redoubler le type non plus', () => {
     const named = { name: 'Vaccin antirabique', animal: 'Milo', days: 3 }
 

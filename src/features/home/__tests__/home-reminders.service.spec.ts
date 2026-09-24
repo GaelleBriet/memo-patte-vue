@@ -70,6 +70,12 @@ describe('homeRemindersService', () => {
     expect(sources).toEqual([expect.objectContaining({ id: 'v2', dueDate: null })])
   })
 
+  it('écarte un traitement arrêté : ni dans « À faire » ni en prochain rappel', async () => {
+    const sources = await service([], [{ ...BRAVECTO, stoppedOn: '2026-09-20' }]).listSources()
+
+    expect(sources).toEqual([])
+  })
+
   it('renvoie une liste vide sans aucune donnée', async () => {
     await expect(service([], []).listSources()).resolves.toEqual([])
   })

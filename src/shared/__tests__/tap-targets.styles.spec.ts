@@ -27,6 +27,7 @@ describe('zones de tap de 48 px, sans changement de rendu', () => {
     ['src/shared/components/AnimalChipSelector.vue', '.animal-chip::before'],
     ['src/shared/components/AnimalChipSelector.vue', '.animal-chip-selector__add::before'],
     ['src/shared/components/BottomSheet.vue', '.bottom-sheet__close::before'],
+    ['src/shared/components/ConfirmDialog.vue', '.confirm-dialog__actions .v-btn::before'],
     ['src/shared/form/FormScreen.vue', '.form-screen__cancel::before'],
     ['src/shared/components/NotificationPrimingView.vue', '.notification-priming__later::before'],
     ['src/features/home/views/HomeView.vue', '.home-up-to-date__add::before'],

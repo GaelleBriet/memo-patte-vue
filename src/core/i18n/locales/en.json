@@ -4,6 +4,11 @@
     "home": "Home",
     "animals": "Records"
   },
+  "calendar": {
+    "previousMonth": "Previous month",
+    "nextMonth": "Next month",
+    "pickMonthYear": "{month}, choose the month and year"
+  },
   "animals": {
     "chipSelector": {
       "label": "Pets",
@@ -112,6 +117,12 @@
       "submitting": "Creating…",
       "save": "Save",
       "saving": "Saving…",
+      "duplicate": {
+        "title": "Is this a {name} booster?",
+        "text": "{animal} already has a {name} vaccine. Logging a new injection keeps its whole history.",
+        "cancel": "No, create another vaccine",
+        "confirm": "Yes, log the booster"
+      },
       "errors": {
         "name": "Vaccine name is required.",
         "lastInjectionDate": "Injection date is required.",
@@ -137,6 +148,46 @@
         "none": "No reminder set"
       },
       "error": "Couldn’t load vaccines."
+    },
+    "sheet": {
+      "subtitle": "Vaccine · {animal}",
+      "nextReminder": "Next reminder on {date}",
+      "doneTodayLabel": "Done today: log the {name} injection for {animal} and choose the next reminder",
+      "editHint": "Name or date",
+      "calendarSubtitle": "{name} · {animal}",
+      "done": {
+        "injectionOn": "Injection on {date}",
+        "change": "Change",
+        "changeInjectionLabel": "Change the injection date",
+        "nextReminder": "Next reminder",
+        "hint": "Use the date your vet gave you.",
+        "choices": {
+          "oneYear": "In 1 year",
+          "threeYears": "In 3 years",
+          "otherDate": "Other date",
+          "none": "No reminder"
+        },
+        "nextOn": "Next reminder on {date}",
+        "changeDueLabel": "Change the next reminder date",
+        "noReminder": "No reminder will be scheduled.",
+        "choose": "Choose the next reminder to save.",
+        "submit": "Save"
+      },
+      "injectionDate": {
+        "title": "Injection date",
+        "back": "Back"
+      },
+      "dueDate": {
+        "title": "Next reminder",
+        "back": "Back"
+      },
+      "toast": {
+        "injection": "{name} injection logged for {animal}",
+        "undoInjection": "Undo the {name} injection"
+      },
+      "errors": {
+        "save": "Couldn’t log the injection. Try again."
+      }
     }
   },
   "treatments": {
@@ -177,6 +228,9 @@
       "lastDoseDate": {
         "label": "Date of last dose"
       },
+      "nextDueDate": {
+        "label": "Next dose"
+      },
       "nextDose": "Next dose on {date}",
       "submit": "Create",
       "submitting": "Creating…",
@@ -189,6 +243,8 @@
         "frequencyMax": "Frequency must be at most 365.",
         "lastDoseDate": "Date is required.",
         "lastDoseDateFuture": "Date can’t be in the future.",
+        "nextDueDate": "Date is required.",
+        "nextDueDateBeforeLastDose": "The next dose can’t be before the last dose.",
         "notFound": "We can’t find this treatment.",
         "load": "Couldn’t load this treatment. Try again.",
         "save": "Couldn’t save this treatment. Try again."
@@ -205,6 +261,47 @@
         "later": "Next dose in {n} days"
       },
       "error": "Couldn’t load treatments."
+    },
+    "sheet": {
+      "subtitle": "{type} · {animal} · {frequency}",
+      "frequency": {
+        "day": "every day | every {n} days",
+        "week": "every week | every {n} weeks",
+        "month": "every month | every {n} months"
+      },
+      "nextDose": "Next dose on {date}",
+      "doneTodayLabel": "Done today: log the {name} dose for {animal}",
+      "editHint": "Date or frequency",
+      "stop": "Stop this treatment",
+      "stopLabel": "Stop the {name} treatment. Asks for confirmation.",
+      "otherDay": {
+        "title": "Done on another day",
+        "subtitle": "{name} · {animal}",
+        "back": "Back to actions",
+        "doseOn": "Dose on {date}",
+        "nextDose": "Next dose: {date}",
+        "submit": "Log the dose on {date}",
+        "submitToday": "Log today’s dose"
+      },
+      "stopDialog": {
+        "title": "Stop {name}?",
+        "text": "No more reminders for this treatment. Its past doses stay in the health record.",
+        "cancel": "Cancel",
+        "cancelLabel": "Cancel, keep {name}",
+        "confirm": "Stop",
+        "confirmLabel": "Stop the {name} treatment"
+      },
+      "toast": {
+        "dose": "{name} dose logged for {animal}",
+        "doseOn": "{name} dose on {date} logged for {animal}",
+        "undoDose": "Undo the {name} dose",
+        "stopped": "{name} stopped. It’s in Finished treatments.",
+        "undoStop": "Undo stopping {name}"
+      },
+      "errors": {
+        "dose": "Couldn’t log the dose. Try again.",
+        "stop": "Couldn’t stop the treatment. Try again."
+      }
     }
   },
   "reminders": {
@@ -224,6 +321,14 @@
       "overdueTitle": "{name} ({type}) for {animal} is {days} days overdue",
       "overdueBody": "Remember to give the dose, then log it in MémoPatte."
     }
+  },
+  "reminderSheet": {
+    "close": "Close",
+    "doneToday": "Done today",
+    "doneOtherDay": "Done on another day",
+    "edit": "Edit",
+    "undo": "Undo",
+    "undoFailed": "Couldn’t undo."
   },
   "weight": {
     "unit": "kg",
@@ -309,9 +414,25 @@
       "overdueBanner": "{n} overdue reminder | {n} overdue reminders"
     },
     "reminder": {
-      "vaccination": "{name}",
+      "vaccination": "Vaccine",
       "deworming": "Dewormer",
       "antiparasitic": "Parasite control"
+    },
+    "row": {
+      "subtitle": "{type} · {animal}",
+      "label": "{title}, {type}, {animal}, {due}. Opens actions.",
+      "labelSingle": "{title}, {type}, {due}. Opens actions.",
+      "spokenType": {
+        "vaccination": "vaccine",
+        "deworming": "dewormer",
+        "antiparasitic": "parasite control"
+      },
+      "due": {
+        "overdue": "{n} day overdue | {n} days overdue",
+        "today": "today",
+        "tomorrow": "tomorrow",
+        "later": "in {n} day, on {date} | in {n} days, on {date}"
+      }
     },
     "due": {
       "overdue": "Overdue · {n}d",

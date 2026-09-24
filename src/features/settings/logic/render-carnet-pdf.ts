@@ -82,7 +82,7 @@ export function renderCarnetPdf(
     t('settings.pdf.treatments.title'),
     content.treatments.map((row) => [
       row.name,
-      formatNumericDate(row.nextDueDate),
+      row.nextDueDate ? formatNumericDate(row.nextDueDate) : t('settings.pdf.status.none'),
       t(STATE_LABEL_KEYS[row.state]),
     ]),
     t('settings.pdf.treatments.empty'),

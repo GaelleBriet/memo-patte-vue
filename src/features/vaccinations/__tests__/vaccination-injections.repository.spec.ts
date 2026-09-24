@@ -166,6 +166,79 @@ describe('vaccinationInjectionsRepository', () => {
   })
 })
 
+describe('vaccinationInjectionsRepository — noter et annuler une injection', () => {
+  let db: InMemoryDb
+  let injections: VaccinationInjectionsRepository
+  let rage: string
+
+  function lignes() {
+    return db.query<{ id: string; injected_on: string; next_due_date: string | null }>(
+      `SELECT id, injected_on, next_due_date FROM vaccination_injection
+       WHERE vaccination_id = ? AND deleted_at IS NULL ORDER BY injected_on`,
+      [rage],
+    )
+  }
+
+  beforeEach(async () => {
+    db = await createInMemoryDb()
+    await db.execute('PRAGMA foreign_keys = ON')
+    await db.run(
+      `INSERT INTO animal (id, name, species, created_at, updated_at)
+       VALUES (?, 'Miette', 'cat', ?, ?)`,
+      [MIETTE, T0, T0],
+    )
+    injections = createVaccinationInjectionsRepository(db)
+    rage = (
+      await createVaccinationsRepository(db).create({
+        animalId: MIETTE,
+        name: 'Rage',
+        lastInjectionDate: '2025-01-01',
+      })
+    ).id
+  })
+
+  afterEach(() => {
+    db.close()
+  })
+
+  it('note une injection avec le rappel choisi, puis l’annule', async () => {
+    await injections.record({
+      id: 'i1',
+      vaccinationId: rage,
+      animalId: MIETTE,
+      injectedOn: '2026-02-20',
+      nextDueDate: '2027-02-20',
+      createdAt: NOW,
+      updatedAt: NOW,
+      deletedAt: null,
+    })
+
+    await expect(lignes()).resolves.toEqual([
+      { id: rage, injected_on: '2025-01-01', next_due_date: null },
+      { id: 'i1', injected_on: '2026-02-20', next_due_date: '2027-02-20' },
+    ])
+
+    await injections.remove('i1', NOW)
+
+    await expect(lignes()).resolves.toEqual([
+      { id: rage, injected_on: '2025-01-01', next_due_date: null },
+    ])
+    await expect(
+      db.query('SELECT deleted_at, updated_at FROM vaccination_injection WHERE id = ?', ['i1']),
+    ).resolves.toEqual([{ deleted_at: NOW, updated_at: NOW }])
+  })
+
+  it('ne change pas la date d’une injection déjà annulée', async () => {
+    await injections.remove(rage, EARLIER)
+
+    await injections.remove(rage, NOW)
+
+    await expect(
+      db.query('SELECT deleted_at FROM vaccination_injection WHERE id = ?', [rage]),
+    ).resolves.toEqual([{ deleted_at: EARLIER }])
+  })
+})
+
 describe('getVaccinationInjectionsRepository', () => {
   it('ne met pas en cache une ouverture ratée, puis réutilise celle qui réussit', async () => {
     const db = await createInMemoryDb()

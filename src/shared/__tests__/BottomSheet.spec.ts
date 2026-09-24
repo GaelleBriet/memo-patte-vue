@@ -178,6 +178,29 @@ describe('BottomSheet — patron', () => {
     expect(element('.bottom-sheet__close').getAttribute('aria-label')).toBe('Fermer')
   })
 
+  it('pose l’icône demandée dans une pastille, avant le titre', async () => {
+    await monter({ icon: 'ms:medication' })
+
+    const entete = element('.bottom-sheet__header')
+    expect(entete.firstElementChild?.classList).toContain('bottom-sheet__icon')
+    expect(element('.bottom-sheet__icon').getAttribute('aria-hidden')).toBe('true')
+    expect(document.body.querySelector('.bottom-sheet__back')).toBeNull()
+  })
+
+  it('remplace l’icône par une flèche de retour libellée, qui demande l’étape précédente', async () => {
+    const feuille = await monter({ icon: 'ms:medication', backLabel: 'Retour aux actions' })
+
+    expect(document.body.querySelector('.bottom-sheet__icon')).toBeNull()
+    const fleche = element('.bottom-sheet__back')
+    expect(fleche.getAttribute('aria-label')).toBe('Retour aux actions')
+
+    fleche.click()
+    await flushPromises()
+
+    expect(feuille.emitted('back')).toHaveLength(1)
+    expect(feuille.emitted('update:modelValue')).toBeUndefined()
+  })
+
   it('se ferme par la poignée et par la croix', async () => {
     const feuille = await monter({ showClose: true })
 
@@ -379,6 +402,34 @@ describe('BottomSheet — bouton retour Android', () => {
     retour()
 
     expect(back).toHaveBeenCalledOnce()
+  })
+
+  it('revient à l’étape précédente d’une feuille à étapes au lieu de la fermer', async () => {
+    const feuille = await monter({ backLabel: 'Retour aux actions' })
+
+    retour()
+    await flushPromises()
+
+    expect(feuille.emitted('back')).toHaveLength(1)
+    expect(feuille.emitted('update:modelValue')).toBeUndefined()
+
+    await feuille.setProps({ backLabel: null })
+    retour()
+    await flushPromises()
+
+    expect(feuille.emitted('back')).toHaveLength(1)
+    expect(feuille.emitted('update:modelValue')).toEqual([[false]])
+  })
+
+  it('revient aussi à l’étape précédente d’une étape sans flèche', async () => {
+    const feuille = await monter({ icon: 'ms:vaccines', hasPreviousStep: true })
+
+    retour()
+    await flushPromises()
+
+    expect(document.body.querySelector('.bottom-sheet__back')).toBeNull()
+    expect(feuille.emitted('back')).toHaveLength(1)
+    expect(feuille.emitted('update:modelValue')).toBeUndefined()
   })
 
   it('ferme d’abord la dernière feuille ouverte', async () => {

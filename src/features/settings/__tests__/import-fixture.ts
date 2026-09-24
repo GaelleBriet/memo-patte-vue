@@ -63,6 +63,7 @@ export const IMPORT_FIXTURE: ExportData = {
       frequency: { value: 3, unit: 'month' },
       lastDoseDate: '2026-06-15',
       nextDueDate: '2026-09-15',
+      stoppedOn: null,
       createdAt: '2026-01-10T08:10:00.000Z',
       updatedAt: '2026-06-15T08:10:00.000Z',
     },

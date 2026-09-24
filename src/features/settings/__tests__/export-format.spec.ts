@@ -48,6 +48,33 @@ describe('exportReminders', () => {
   })
 })
 
+describe('exportReminders, traitement arrêté', () => {
+  const ARRETE = {
+    ...EXPORT_FIXTURE,
+    treatments: EXPORT_FIXTURE.treatments.map((treatment) => ({
+      ...treatment,
+      stoppedOn: '2026-09-10',
+    })),
+  }
+
+  it('écarte un traitement arrêté des échéances du JSON et de rappels.csv', () => {
+    expect(exportReminders(ARRETE).map((reminder) => reminder.sourceId)).toEqual(['v-chppil'])
+    expect(lines(toCsvTables(ARRETE)['rappels.csv'])).toEqual([
+      'kind;sourceId;animalId;animalName;name;dueDate',
+      `vaccination;v-chppil;${MILO_ID};Milo;CHPPiL;2026-09-01`,
+      '',
+    ])
+  })
+
+  it('garde le traitement arrêté et sa date d’arrêt dans les traitements du JSON', () => {
+    const parsed = JSON.parse(toJsonExport(ARRETE, META))
+
+    expect(parsed.treatments).toEqual([
+      expect.objectContaining({ id: 't-milbemax', stoppedOn: '2026-09-10' }),
+    ])
+  })
+})
+
 describe('toJsonExport', () => {
   const parsed = JSON.parse(toJsonExport(EXPORT_FIXTURE, META))
 

@@ -125,6 +125,23 @@ describe('buildCarnetPdfContent', () => {
     expect(content.treatments[0]!.state).toBe('upToDate')
   })
 
+  it('montre un traitement arrêté sans échéance ni rappel, après les traitements en cours', () => {
+    const data = {
+      ...DATA,
+      treatments: [
+        { ...DATA.treatments[0]!, id: 't-stopped', name: 'Drontal', stoppedOn: '2026-06-20' },
+        ...DATA.treatments,
+      ],
+    }
+
+    const content = buildCarnetPdfContent(data, ANIMAL_ID, TODAY)!
+
+    expect(content.treatments.map((row) => [row.name, row.nextDueDate, row.state])).toEqual([
+      ['Milbémax', '2026-09-01', 'upToDate'],
+      ['Drontal', null, 'none'],
+    ])
+  })
+
   it('trie les échéances par date, les rappels absents en dernier', () => {
     const content = buildCarnetPdfContent(DATA, ANIMAL_ID, TODAY)!
 

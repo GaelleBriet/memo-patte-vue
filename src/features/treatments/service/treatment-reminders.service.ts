@@ -5,17 +5,20 @@ import {
 } from '@/features/animals/repository/animals.repository'
 import type { Translate } from '@/shared/domain/due-reminders'
 import {
-  cancelDueReminders,
   reminderNotifications,
   replaceDueReminders,
   type ReminderNotifications,
 } from '@/shared/domain/due-reminders-schedule'
 import { treatmentReminders } from '../logic/treatment-reminders'
-import type { Treatment } from '../schema/treatment.schema'
+import {
+  getTreatmentsRepository,
+  type TreatmentsRepository,
+} from '../repository/treatments.repository'
 
 type Provider<T> = () => T | Promise<T>
 
 export type TreatmentRemindersDependencies = {
+  treatments: Provider<Pick<TreatmentsRepository, 'getById'>>
   animals: Provider<Pick<AnimalsRepository, 'getById'>>
   notifications: ReminderNotifications
   t: Translate
@@ -24,25 +27,21 @@ export type TreatmentRemindersDependencies = {
 
 /** Aucune méthode ne lève : un échec du plugin ne doit pas faire échouer l'écriture du traitement. */
 export function createTreatmentRemindersService({
+  treatments,
   animals,
   notifications,
   t,
   now,
 }: TreatmentRemindersDependencies) {
   return {
-    async reschedule(treatment: Treatment): Promise<void> {
-      await replaceDueReminders(
-        notifications,
-        { kind: 'treatment', id: treatment.id },
-        async () => {
-          const animal = await (await animals()).getById(treatment.animalId)
-          return treatmentReminders(t, treatment, animal, now())
-        },
-      )
-    },
-
-    async cancel(id: string): Promise<void> {
-      await cancelDueReminders(notifications, [{ kind: 'treatment', id }])
+    /** Relit le traitement dans la file des rappels : supprimé ou arrêté, il n'a plus de rappel. */
+    async reschedule(id: string): Promise<void> {
+      await replaceDueReminders(notifications, { kind: 'treatment', id }, async () => {
+        const treatment = await (await treatments()).getById(id)
+        if (treatment === null) return []
+        const animal = await (await animals()).getById(treatment.animalId)
+        return treatmentReminders(t, treatment, animal, now())
+      })
     },
   }
 }
@@ -50,6 +49,7 @@ export function createTreatmentRemindersService({
 export type TreatmentRemindersService = ReturnType<typeof createTreatmentRemindersService>
 
 export const treatmentRemindersService = createTreatmentRemindersService({
+  treatments: getTreatmentsRepository,
   animals: getAnimalsRepository,
   notifications: reminderNotifications,
   t: i18n.global.t,

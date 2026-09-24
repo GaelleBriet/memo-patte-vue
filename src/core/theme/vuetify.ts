@@ -2,8 +2,11 @@ import 'vuetify/styles'
 // Polices auto-hébergées : rien n'est chargé depuis Google Fonts à l'exécution.
 import '@fontsource-variable/inter'
 import '@fontsource-variable/space-grotesk'
+import { enUS, fr as frDates } from 'date-fns/locale'
 import { createVuetify } from 'vuetify'
+import { en, fr } from 'vuetify/locale'
 
+import { CalendarDateAdapter } from './calendar-date-adapter'
 import MsIcon from './MsIcon.vue'
 import { msAliases } from './icons'
 
@@ -54,6 +57,16 @@ export default createVuetify({
   theme: {
     defaultTheme: 'light',
     themes: { light },
+  },
+  // Suivi par `DateCalendar`, qui cale la langue de Vuetify sur celle de vue-i18n.
+  locale: {
+    locale: 'fr',
+    fallback: 'en',
+    messages: { fr, en },
+  },
+  date: {
+    adapter: CalendarDateAdapter,
+    locale: { fr: frDates, en: enUS },
   },
   icons: {
     defaultSet: 'ms',

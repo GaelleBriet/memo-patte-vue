@@ -1,21 +1,25 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 import {
   emptyVaccinationFormValues,
+  enteredInjectionDate,
   validateVaccinationForm,
   vaccinationFormValuesFrom,
 } from '../logic/vaccination-form'
 import type { Vaccination } from '../schema/vaccination.schema'
 import { useVaccinationsStore } from '../store/vaccinations.store'
+import VaccinationReminderSheet from './VaccinationReminderSheet.vue'
 import { useToday } from '@/core/app-lifecycle/use-today'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
+import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
 import FormField from '@/shared/form/FormField.vue'
 import FormScreen from '@/shared/form/FormScreen.vue'
 import { useFormValidation } from '@/shared/form/use-form-validation'
-import { routeAfterReminderSaved } from '@/shared/domain/notification-priming'
+import { primingReturnRoute, routeAfterReminderSaved } from '@/shared/domain/notification-priming'
+import { returnTo } from '@/shared/utils/return-to'
 
 const props = defineProps<{
   animalId?: string
@@ -24,6 +28,9 @@ const props = defineProps<{
 
 const { t } = useI18n()
 const router = useRouter()
+const { query } = useRoute()
+const from = typeof query.from === 'string' ? query.from : undefined
+const reminder = typeof query.reminder === 'string' ? query.reminder : undefined
 const animals = useAnimalsStore()
 const vaccinations = useVaccinationsStore()
 
@@ -88,13 +95,48 @@ function selectTargetAnimal(): void {
   if (targetAnimalId.value !== null) animals.select(targetAnimalId.value)
 }
 
-function backToAnimals(): void {
+function backToOrigin(): void {
   selectTargetAnimal()
-  void router.replace({ name: 'animals' })
+  returnTo(router, primingReturnRoute(from, reminder))
+}
+
+const sameName = ref<Vaccination | null>(null)
+const isSameNameDialogOpen = ref(false)
+const isDoneSheetOpen = ref(false)
+const doneSheetInjectedOn = ref<string | null>(null)
+const isCheckingName = ref(false)
+
+async function findSameName(): Promise<Vaccination | null> {
+  if (props.animalId === undefined || values.value.name.trim() === '') return null
+  try {
+    return await vaccinations.findSameName(props.animalId, values.value.name)
+  } catch {
+    return null
+  }
 }
 
 async function submit(): Promise<void> {
-  if (isSubmitting.value || !canSave.value) return
+  if (isSubmitting.value || isCheckingName.value || !canSave.value) return
+
+  if (!isEdit.value) {
+    isCheckingName.value = true
+    sameName.value = await findSameName()
+    isCheckingName.value = false
+    if (sameName.value !== null) {
+      isSameNameDialogOpen.value = true
+      return
+    }
+  }
+  await save()
+}
+
+function noteBooster(): void {
+  doneSheetInjectedOn.value = enteredInjectionDate(values.value)
+  isDoneSheetOpen.value = true
+}
+
+async function save(): Promise<void> {
+  if (isSubmitting.value) return
 
   const result = validate()
   if (!result.success) return
@@ -109,11 +151,14 @@ async function submit(): Promise<void> {
       await vaccinations.create({ animalId: requireAnimalId(), ...result.data })
     }
     selectTargetAnimal()
-    void router.replace(
+    returnTo(
+      router,
       await routeAfterReminderSaved({
         hasDueDate: result.data.dueDate !== null,
         animalName: animalName.value,
         kind: 'vaccination',
+        from,
+        reminder,
       }),
     )
   } catch {
@@ -133,7 +178,7 @@ async function submit(): Promise<void> {
     :is-submitting="isSubmitting"
     :disabled="!canSave"
     :error-message="errorMessage"
-    @cancel="backToAnimals"
+    @cancel="backToOrigin"
     @submit="submit"
   >
     <FormField
@@ -206,4 +251,25 @@ async function submit(): Promise<void> {
       </template>
     </FormField>
   </FormScreen>
+
+  <ConfirmDialog
+    v-if="sameName"
+    v-model="isSameNameDialogOpen"
+    tone="primary"
+    :title="t('vaccinations.form.duplicate.title', { name: sameName.name })"
+    :text="t('vaccinations.form.duplicate.text', { name: sameName.name, animal: animalName ?? '' })"
+    :cancel-label="t('vaccinations.form.duplicate.cancel')"
+    :confirm-label="t('vaccinations.form.duplicate.confirm')"
+    @cancel="save"
+    @confirm="noteBooster"
+  />
+  <VaccinationReminderSheet
+    v-if="sameName"
+    v-model="isDoneSheetOpen"
+    :vaccination-id="sameName.id"
+    start-at="done"
+    :initial-injected-on="doneSheetInjectedOn"
+    :return-to="from ?? 'animals'"
+    @changed="selectTargetAnimal"
+  />
 </template>

@@ -12,11 +12,16 @@ import creditCard from '@material-symbols/svg-400/outlined/credit_card.svg?raw'
 import dataObject from '@material-symbols/svg-400/outlined/data_object.svg?raw'
 import deleteSweep from '@material-symbols/svg-400/outlined/delete_sweep.svg?raw'
 import devices from '@material-symbols/svg-400/outlined/devices.svg?raw'
+import doNotDisturbOn from '@material-symbols/svg-400/outlined/do_not_disturb_on.svg?raw'
 import download from '@material-symbols/svg-400/outlined/download.svg?raw'
 import edit from '@material-symbols/svg-400/outlined/edit.svg?raw'
+import editCalendar from '@material-symbols/svg-400/outlined/edit_calendar.svg?raw'
 import error from '@material-symbols/svg-400/outlined/error.svg?raw'
 import errorFill from '@material-symbols/svg-400/outlined/error-fill.svg?raw'
+import event from '@material-symbols/svg-400/outlined/event.svg?raw'
+import eventAvailable from '@material-symbols/svg-400/outlined/event_available.svg?raw'
 import folderOff from '@material-symbols/svg-400/outlined/folder_off.svg?raw'
+import history from '@material-symbols/svg-400/outlined/history.svg?raw'
 import home from '@material-symbols/svg-400/outlined/home.svg?raw'
 import iosShare from '@material-symbols/svg-400/outlined/ios_share.svg?raw'
 import logout from '@material-symbols/svg-400/outlined/logout.svg?raw'
@@ -137,14 +142,19 @@ export const msIcons = {
   data_object: dataObject,
   delete_sweep: deleteSweep,
   devices,
+  do_not_disturb_on: doNotDisturbOn,
   download,
   edit,
+  edit_calendar: editCalendar,
   error,
   error_fill: errorFill,
+  event,
+  event_available: eventAvailable,
   first_page: firstPage,
   folder_off: folderOff,
   fullscreen,
   fullscreen_exit: fullscreenExit,
+  history,
   home,
   indeterminate_check_box: indeterminateCheckBox,
   info,

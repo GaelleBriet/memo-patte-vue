@@ -94,6 +94,7 @@ const treatmentFileSchema = z.object({
   frequency: treatmentInputSchema.shape.frequency,
   lastDoseDate: treatmentInputSchema.shape.lastDoseDate,
   nextDueDate: z.iso.date(),
+  stoppedOn: z.iso.date().nullable().optional(),
   ...timestamps,
 })
 

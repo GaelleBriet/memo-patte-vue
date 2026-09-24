@@ -55,13 +55,15 @@ prochain rappel à venir ou en retard.
 
 ### 3. Section « À faire »
 
-**Fenêtre de 30 jours** : la liste ne montre que les rappels en retard, quel
-que soit le retard, et ceux dont l'échéance tombe dans les 30 prochains jours,
-bornes incluses (échéance à aujourd'hui + 30 jours affichée, + 31 non). Une
-seule fenêtre pour les vaccins et les traitements. Un rappel plus lointain
-n'apparaît que dans le Carnet, ou dans la ligne « Prochain rappel » de l'état
-« Tout est à jour » (voir 4). Décision de Gaelle du 2026-09-23 (#344) ; la
-fenêtre est la constante `TODO_WINDOW_DAYS` de `features/home/logic/todo-window.ts`.
+**Fenêtre de 30 jours, aujourd'hui compris** : la liste ne montre que les
+rappels en retard, quel que soit le retard, et ceux dont l'échéance tombe
+d'aujourd'hui à J+29 (échéance à J+29 affichée, à J+30 non). Une seule fenêtre
+pour les vaccins et les traitements. Un rappel plus lointain n'apparaît que dans
+le Carnet, ou dans la ligne « Prochain rappel » de l'état « Tout est à jour »
+(voir 4). Décisions de Gaelle du 2026-09-23 (#344) et du 2026-09-24 (#380) : un
+traitement mensuel marqué fait revient à J+30 et ne doit pas rester dans la
+liste. Le dernier jour, J+29, est la constante `TODO_LAST_DAY_OFFSET` de
+`features/home/logic/todo-window.ts`.
 
 Titre « À faire » (Space Grotesk, 21 px, 700) avec, à droite, un compteur de
 portée, qui compte les rappels affichés :
@@ -77,13 +79,16 @@ retards sont dans la fenêtre : le bandeau compte les lignes en retard de la lis
 **Carte de rappels** : une seule surface arrondie (rayon 22 px) contenant toutes
 les lignes, hauteur de ligne 76 px minimum, filet de séparation entre les lignes.
 
-Chaque ligne contient, de gauche à droite :
+Toute la ligne se touche et ouvre la feuille de son rappel (maquette
+`../rappels/rappel-fait.md`, F1 et F2). Elle contient, de gauche à droite :
 
 1. barre d'urgence verticale de 3 px collée au bord gauche
 2. icône du type (`vaccines`, `medication`, `pest_control`)
-3. type de rappel (15,5 px, 700) + nom de l'animal en dessous
-   (13 px, masqué quand un animal est sélectionné : l'info serait redondante)
+3. nom du produit (15,5 px, 700) + type et animal en dessous, `Vermifuge · Boree`
+   (13 px ; l'animal est masqué quand un animal est sélectionné : l'info serait
+   redondante)
 4. badge d'échéance relative, aligné à droite
+5. chevron `chevron_right`, qui dit que la ligne ouvre une feuille
 
 Tri : par urgence croissante (le plus en retard en premier).
 
@@ -100,13 +105,12 @@ Tri : par urgence croissante (le plus en retard en premier).
 
 - Ligne simple : pastille verte 46 px avec icône `check`, puis
   **« Tout est à jour »** (18 px, 700) et une seule sous-ligne.
-- Si un rappel existe au-delà de la fenêtre de 30 jours, la sous-ligne annonce
+- Si un rappel existe au-delà de la fenêtre (après J+29), la sous-ligne annonce
   le plus proche, avec la date longue de l'app (`formatLongDate`) :
     - animal sélectionné, ou foyer d'un seul animal :
       `Prochain rappel : Carré le 26 août 2027`
-    - vue de plusieurs animaux : `Prochain rappel : Vermifuge pour Luna le 8 nov. 2026`
-    - le rappel est nommé comme dans la liste (nom saisi du vaccin, type du
-      traitement)
+    - vue de plusieurs animaux : `Prochain rappel : Milbemax pour Luna le 8 nov. 2026`
+    - le rappel est nommé comme dans la liste, par le nom du produit
     - la date ne se coupe jamais sur deux lignes : ses espaces deviennent
       insécables, dans cette ligne seulement
 - Sinon, aucun rappel n'existe du tout, et la sous-ligne le dit :

@@ -1,6 +1,10 @@
 import type { z } from 'zod'
 
-import { vaccinationUpdateSchema, type Vaccination } from '../schema/vaccination.schema'
+import {
+  vaccinationInputSchema,
+  vaccinationUpdateSchema,
+  type Vaccination,
+} from '../schema/vaccination.schema'
 
 export interface VaccinationFormValues {
   name: string
@@ -70,4 +74,12 @@ export function validateVaccinationForm(values: VaccinationFormValues): Vaccinat
   }
 
   return { success: false, errors }
+}
+
+/** La date d'injection saisie si elle est valide, passée ou du jour ; `null` sinon. */
+export function enteredInjectionDate(values: VaccinationFormValues): string | null {
+  const date = vaccinationInputSchema.shape.lastInjectionDate.safeParse(
+    values.lastInjectionDate.trim(),
+  )
+  return date.success ? date.data : null
 }

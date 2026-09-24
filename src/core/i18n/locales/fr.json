@@ -4,6 +4,11 @@
     "home": "Accueil",
     "animals": "Carnet"
   },
+  "calendar": {
+    "previousMonth": "Mois précédent",
+    "nextMonth": "Mois suivant",
+    "pickMonthYear": "{month}, choisir le mois et l’année"
+  },
   "animals": {
     "chipSelector": {
       "label": "Animaux",
@@ -112,6 +117,12 @@
       "submitting": "Création…",
       "save": "Enregistrer",
       "saving": "Enregistrement…",
+      "duplicate": {
+        "title": "C’est un rappel de {name} ?",
+        "text": "{animal} a déjà un vaccin {name}. Noter une nouvelle injection garde tout son historique.",
+        "cancel": "Non, créer un autre vaccin",
+        "confirm": "Oui, noter le rappel"
+      },
       "errors": {
         "name": "Le nom du vaccin est obligatoire.",
         "lastInjectionDate": "La date d’injection est obligatoire.",
@@ -137,6 +148,46 @@
         "none": "Pas de rappel programmé"
       },
       "error": "Impossible de charger les vaccins."
+    },
+    "sheet": {
+      "subtitle": "Vaccin · {animal}",
+      "nextReminder": "Prochain rappel le {date}",
+      "doneTodayLabel": "Fait aujourd’hui : noter l’injection de {name} pour {animal} et choisir le prochain rappel",
+      "editHint": "Nom ou date",
+      "calendarSubtitle": "{name} · {animal}",
+      "done": {
+        "injectionOn": "Injection le {date}",
+        "change": "Changer",
+        "changeInjectionLabel": "Changer la date d’injection",
+        "nextReminder": "Prochain rappel",
+        "hint": "Reporte la date indiquée par ton vétérinaire.",
+        "choices": {
+          "oneYear": "Dans 1 an",
+          "threeYears": "Dans 3 ans",
+          "otherDate": "Autre date",
+          "none": "Pas de rappel"
+        },
+        "nextOn": "Prochain rappel le {date}",
+        "changeDueLabel": "Changer la date du prochain rappel",
+        "noReminder": "Aucun rappel ne sera programmé.",
+        "choose": "Choisis le prochain rappel pour enregistrer.",
+        "submit": "Enregistrer"
+      },
+      "injectionDate": {
+        "title": "Date d’injection",
+        "back": "Retour"
+      },
+      "dueDate": {
+        "title": "Prochain rappel",
+        "back": "Retour"
+      },
+      "toast": {
+        "injection": "Injection de {name} notée pour {animal}",
+        "undoInjection": "Annuler l’injection de {name}"
+      },
+      "errors": {
+        "save": "L’injection n’a pas pu être notée. Réessaie."
+      }
     }
   },
   "treatments": {
@@ -177,6 +228,9 @@
       "lastDoseDate": {
         "label": "Date de la dernière prise"
       },
+      "nextDueDate": {
+        "label": "Prochaine dose"
+      },
       "nextDose": "Prochaine dose le {date}",
       "submit": "Créer",
       "submitting": "Création…",
@@ -189,6 +243,8 @@
         "frequencyMax": "La fréquence doit être de 365 maximum.",
         "lastDoseDate": "La date est obligatoire.",
         "lastDoseDateFuture": "La date ne peut pas être dans le futur.",
+        "nextDueDate": "La date est obligatoire.",
+        "nextDueDateBeforeLastDose": "La prochaine dose ne peut pas précéder la dernière prise.",
         "notFound": "Ce traitement est introuvable.",
         "load": "Ce traitement n’a pas pu être chargé. Réessaie.",
         "save": "Le traitement n’a pas pu être enregistré. Réessaie."
@@ -205,6 +261,47 @@
         "later": "Prochaine dose dans {n} jours"
       },
       "error": "Impossible de charger les traitements."
+    },
+    "sheet": {
+      "subtitle": "{type} · {animal} · {frequency}",
+      "frequency": {
+        "day": "tous les jours | tous les {n} jours",
+        "week": "toutes les semaines | toutes les {n} semaines",
+        "month": "tous les mois | tous les {n} mois"
+      },
+      "nextDose": "Prochaine dose le {date}",
+      "doneTodayLabel": "Fait aujourd’hui : noter la prise de {name} pour {animal}",
+      "editHint": "Date ou fréquence",
+      "stop": "Arrêter ce traitement",
+      "stopLabel": "Arrêter le traitement {name}. Demande confirmation.",
+      "otherDay": {
+        "title": "Fait à une autre date",
+        "subtitle": "{name} · {animal}",
+        "back": "Retour aux actions",
+        "doseOn": "Prise du {date}",
+        "nextDose": "Prochaine dose : {date}",
+        "submit": "Noter la prise du {date}",
+        "submitToday": "Noter la prise d’aujourd’hui"
+      },
+      "stopDialog": {
+        "title": "Arrêter {name} ?",
+        "text": "Plus aucun rappel pour ce traitement. Ses prises passées restent dans le carnet.",
+        "cancel": "Annuler",
+        "cancelLabel": "Annuler, garder {name}",
+        "confirm": "Arrêter",
+        "confirmLabel": "Arrêter le traitement {name}"
+      },
+      "toast": {
+        "dose": "Prise de {name} notée pour {animal}",
+        "doseOn": "Prise de {name} du {date} notée pour {animal}",
+        "undoDose": "Annuler la prise de {name}",
+        "stopped": "{name} arrêté. Il est dans Traitements terminés.",
+        "undoStop": "Annuler l’arrêt de {name}"
+      },
+      "errors": {
+        "dose": "La prise n’a pas pu être notée. Réessaie.",
+        "stop": "Le traitement n’a pas pu être arrêté. Réessaie."
+      }
     }
   },
   "reminders": {
@@ -224,6 +321,14 @@
       "overdueTitle": "{type} {name} de {animal} en retard de {days} jours",
       "overdueBody": "Pense à donner la dose, puis note la prise dans MémoPatte."
     }
+  },
+  "reminderSheet": {
+    "close": "Fermer",
+    "doneToday": "Fait aujourd’hui",
+    "doneOtherDay": "Fait à une autre date",
+    "edit": "Modifier",
+    "undo": "Annuler",
+    "undoFailed": "L’annulation n’a pas abouti."
   },
   "weight": {
     "unit": "kg",
@@ -309,9 +414,25 @@
       "overdueBanner": "{n} rappel en retard | {n} rappels en retard"
     },
     "reminder": {
-      "vaccination": "{name}",
+      "vaccination": "Vaccin",
       "deworming": "Vermifuge",
       "antiparasitic": "Antiparasitaire"
+    },
+    "row": {
+      "subtitle": "{type} · {animal}",
+      "label": "{title}, {type}, {animal}, {due}. Ouvre les actions.",
+      "labelSingle": "{title}, {type}, {due}. Ouvre les actions.",
+      "spokenType": {
+        "vaccination": "vaccin",
+        "deworming": "vermifuge",
+        "antiparasitic": "antiparasitaire"
+      },
+      "due": {
+        "overdue": "en retard de {n} jour | en retard de {n} jours",
+        "today": "aujourd’hui",
+        "tomorrow": "demain",
+        "later": "dans {n} jour, le {date} | dans {n} jours, le {date}"
+      }
     },
     "due": {
       "overdue": "En retard · {n} j",

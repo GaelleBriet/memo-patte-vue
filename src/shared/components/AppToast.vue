@@ -4,6 +4,10 @@ import { computed } from 'vue'
 import { fixedBottomBarHeight } from '../composables/use-fixed-bottom-bar'
 import {
   dismissToast,
+  pauseToast,
+  resumeToast,
+  runToastAction,
+  toastAction,
   toastAnnouncement,
   toastMessage,
   toastTone,
@@ -26,20 +30,34 @@ const isOpen = computed({
 
 <template>
   <p class="app-toast__live" role="status" aria-live="polite">{{ toastAnnouncement }}</p>
-  <!-- Annoncé par la région ci-dessus, déjà en place : celle de Vuetify naît avec le message. -->
+  <!-- Annoncé par la région ci-dessus, déjà en place : le contenu de Vuetify, qui porte son propre
+       `role="status"` et naît avec le message, n'est pas utilisé. -->
   <v-snackbar
     v-model="isOpen"
     class="app-toast"
-    :class="`app-toast--${toastTone}`"
+    :class="[`app-toast--${toastTone}`, { 'app-toast--with-action': toastAction }]"
     :timeout="-1"
     location="bottom"
     :style="{ '--fixed-bottom-bar-height': `${fixedBottomBarHeight}px` }"
-    :content-props="{ 'aria-hidden': 'true' }"
   >
-    <span class="app-toast__content">
-      <v-icon class="app-toast__icon" :icon="ICONS[toastTone]" size="20" />
-      <span class="app-toast__message">{{ toastMessage }}</span>
-    </span>
+    <template #prepend>
+      <span class="app-toast__content" aria-hidden="true">
+        <v-icon class="app-toast__icon" :icon="ICONS[toastTone]" size="20" />
+        <span class="app-toast__message">{{ toastMessage }}</span>
+      </span>
+    </template>
+    <template v-if="toastAction" #actions>
+      <v-btn
+        class="app-toast__action"
+        variant="text"
+        :aria-label="toastAction.ariaLabel"
+        @click="runToastAction"
+        @focus="pauseToast"
+        @blur="resumeToast"
+      >
+        {{ toastAction.label }}
+      </v-btn>
+    </template>
   </v-snackbar>
 </template>
 
@@ -67,9 +85,20 @@ const isOpen = computed({
   box-shadow: tokens.$shadow-toast-error;
 }
 
-.app-toast :deep(.v-snackbar__content) {
+.app-toast :deep(.v-snackbar__prepend) {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
   padding: 6px 16px;
   letter-spacing: normal;
+}
+
+.app-toast--with-action :deep(.v-snackbar__prepend) {
+  padding-inline-end: 4px;
+}
+
+.app-toast :deep(.v-snackbar__actions) {
+  margin-inline-end: 6px;
 }
 
 .app-toast__live {
@@ -101,5 +130,19 @@ const isOpen = computed({
   font-size: 13px;
   font-weight: 500;
   line-height: 1.35;
+}
+
+.app-toast__action {
+  height: 48px;
+  padding-inline: 10px;
+  color: tokens.$color-toast-icon;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.app-toast--error .app-toast__action {
+  color: inherit;
 }
 </style>

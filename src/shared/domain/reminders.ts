@@ -66,5 +66,10 @@ export function buildReminders<T extends ReminderSource>(
   }
 }
 
+export function reminderIcon(kind: ReminderKind, treatmentType: string | null): string {
+  if (kind === 'vaccination') return 'ms:vaccines'
+  return treatmentType === 'antiparasitic' ? 'ms:pest_control' : 'ms:medication'
+}
+
 /** Ce qu'un écran composite a besoin de savoir d'une section : combien de rappels, combien en retard. */
 export type ReminderCounts = Pick<RemindersSummary, 'total' | 'overdue'>

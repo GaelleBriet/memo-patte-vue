@@ -5,8 +5,16 @@ import { simulateWebResume } from '@/core/app-lifecycle/__tests__/simulate-resum
 import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory-db'
 import i18n from '@/core/i18n'
 import { createAnimalsRepository } from '@/features/animals/repository/animals.repository'
+import { createDataExportService } from '@/features/settings/service/data-export.service'
+import {
+  createDataImportService,
+  parseExportFile,
+} from '@/features/settings/service/data-import.service'
+import { createTreatmentDosesRepository } from '@/features/treatments/repository/treatment-doses.repository'
 import { createTreatmentsRepository } from '@/features/treatments/repository/treatments.repository'
+import { createVaccinationInjectionsRepository } from '@/features/vaccinations/repository/vaccination-injections.repository'
 import { createVaccinationsRepository } from '@/features/vaccinations/repository/vaccinations.repository'
+import { createWeightRepository } from '@/features/weight/repository/weight.repository'
 import {
   createFakeNotifications,
   type FakeNotifications,
@@ -294,5 +302,91 @@ describe('appareil restauré, aucune notification programmée', () => {
 
     expect(notifications.pending.size).toBe(0)
     expect(notifications.listScheduled).toHaveBeenCalled()
+  })
+})
+
+describe('traitement arrêté, exporté puis réimporté', () => {
+  const STOPPED_ON = '2026-09-10'
+
+  function exportService(client: InMemoryDb, files: string[]) {
+    const from = createRepositories(client)
+    return createDataExportService({
+      animals: () => from.animals,
+      vaccinations: () => from.vaccinations,
+      treatments: () => from.treatments,
+      weight: () => createWeightRepository(client),
+      deliver: async (file) => {
+        files.push(file.content as string)
+        return 'shared'
+      },
+      now: () => NOW,
+      appVersion: 'test',
+    })
+  }
+
+  function importService() {
+    return createDataImportService({
+      animals: () => repositories.animals,
+      vaccinations: () => repositories.vaccinations,
+      vaccinationInjections: () => createVaccinationInjectionsRepository(db),
+      treatments: () => repositories.treatments,
+      treatmentDoses: () => createTreatmentDosesRepository(db),
+      weight: () => createWeightRepository(db),
+      photoExists: async () => false,
+      syncReminders: restoredDevice(),
+      now: () => NOW,
+    })
+  }
+
+  async function exportsBeforeAndAfterStop() {
+    const source = await createInMemoryDb()
+    const phone = createRepositories(source)
+    const luna = await phone.animals.create({ name: 'Luna', species: 'cat' })
+    const milbemax = await phone.treatments.create({
+      animalId: luna.id,
+      name: 'Milbemax',
+      type: 'deworming',
+      frequency: { value: 1, unit: 'month' },
+      lastDoseDate: '2026-09-01',
+    })
+    const files: string[] = []
+    await exportService(source, files).exportData('json', 'share')
+    await phone.treatments.stop(milbemax.id, STOPPED_ON)
+    await exportService(source, files).exportData('json', 'share')
+    source.close()
+    return { ongoing: files[0]!, stopped: files[1]!, id: milbemax.id }
+  }
+
+  function parsed(text: string) {
+    const file = parseExportFile(text)
+    if (!file.ok) throw new Error(`export refusé : ${file.reason}`)
+    return file.data
+  }
+
+  it('reste arrêté sur un appareil neuf, sans aucun rappel programmé', async () => {
+    const { stopped, id } = await exportsBeforeAndAfterStop()
+
+    await importService().importData(parsed(stopped), 'replace')
+    await settled()
+
+    await expect(repositories.treatments.getById(id)).resolves.toMatchObject({
+      stoppedOn: STOPPED_ON,
+    })
+    expect(notifications.pending.size).toBe(0)
+  })
+
+  it('reste arrêté quand l’import remplace un carnet où il était en cours', async () => {
+    const { ongoing, stopped, id } = await exportsBeforeAndAfterStop()
+    await importService().importData(parsed(ongoing), 'replace')
+    await settled()
+    expect(scheduledKeys().some((key) => key.startsWith(`treatment:${id}:`))).toBe(true)
+
+    await importService().importData(parsed(stopped), 'replace')
+    await settled()
+
+    await expect(repositories.treatments.getById(id)).resolves.toMatchObject({
+      stoppedOn: STOPPED_ON,
+    })
+    expect(notifications.pending.size).toBe(0)
   })
 })

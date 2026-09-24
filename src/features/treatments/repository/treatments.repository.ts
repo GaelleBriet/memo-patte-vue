@@ -8,13 +8,13 @@ import { syncField, type SyncPullPage } from '@/core/sync/service/syncable-table
 import { addFrequency } from '../logic/treatment-frequency'
 import { createTreatmentDosesRepository, headDoseIdSql } from './treatment-doses.repository'
 import {
+  treatmentEditSchemaAfter,
   treatmentInputSchema,
-  treatmentUpdateSchema,
   type FrequencyUnit,
   type Treatment,
   type TreatmentInput,
+  type TreatmentEditInput,
   type TreatmentType,
-  type TreatmentUpdateInput,
 } from '../schema/treatment.schema'
 
 interface TreatmentRow {
@@ -39,7 +39,8 @@ export type TreatmentVersion = Pick<Treatment, 'id' | 'animalId' | 'updatedAt' |
 export type RestoredTreatment = Pick<
   Treatment,
   'id' | 'animalId' | 'name' | 'type' | 'frequency' | 'createdAt' | 'updatedAt'
->
+> &
+  Partial<Pick<Treatment, 'stoppedOn'>>
 
 const COLUMNS =
   'id, animal_id, name, type, frequency_value, frequency_unit, stopped_on, created_at, updated_at, deleted_at'
@@ -164,10 +165,13 @@ export function createTreatmentsRepository(
       return treatment
     },
 
-    /** Change le plan et sa prise de tête ; `animal_id` reste figé depuis la création. */
-    async update(id: string, input: TreatmentUpdateInput): Promise<Treatment> {
-      const data = treatmentUpdateSchema.parse(input)
-      await requireVisible(id)
+    /**
+     * Change le plan et la prochaine dose de sa prise de tête, fréquence recopiée, dans une seule
+     * écriture ; la date de la prise et `animal_id` restent figés.
+     */
+    async update(id: string, input: TreatmentEditInput): Promise<Treatment> {
+      const current = await requireVisible(id)
+      const data = treatmentEditSchemaAfter(current.lastDoseDate).parse(input)
       const updatedAt = new Date().toISOString()
 
       await db.runMany([
@@ -178,14 +182,33 @@ export function createTreatmentsRepository(
           params: [data.name, data.type, data.frequency.value, data.frequency.unit, updatedAt, id],
         },
         doses.updateHeadStatement(id, {
-          givenOn: data.lastDoseDate,
-          nextDueDate: addFrequency(data.lastDoseDate, data.frequency),
+          nextDueDate: data.nextDueDate,
           frequency: data.frequency,
           updatedAt,
         }),
       ])
 
       return requireVisible(id)
+    },
+
+    /** Faux pour un traitement déjà arrêté, inconnu ou supprimé : rien n'est écrit. */
+    async stop(id: string, stoppedOn: string): Promise<boolean> {
+      const updatedAt = new Date().toISOString()
+      const changes = await db.run(
+        `UPDATE treatment SET stopped_on = ?, updated_at = ?
+         WHERE id = ? AND stopped_on IS NULL AND ${NOT_DELETED}`,
+        [stoppedOn, updatedAt, id],
+      )
+      return changes > 0
+    },
+
+    async undoStop(id: string): Promise<void> {
+      const updatedAt = new Date().toISOString()
+      await db.run(
+        `UPDATE treatment SET stopped_on = NULL, updated_at = ?
+         WHERE id = ? AND stopped_on IS NOT NULL AND ${NOT_DELETED}`,
+        [updatedAt, id],
+      )
     },
 
     /** Sans effet sur un traitement inconnu ou déjà supprimé : la date initiale est gardée. */
@@ -226,16 +249,14 @@ export function createTreatmentsRepository(
       }
     },
 
-    /**
-     * Rend la ligne visible sans la changer d'animal ; un fichier v1 ignore l'arrêt, le traitement
-     * revient donc en cours.
-     */
+    /** Rend la ligne visible sans la changer d'animal ; sans date d'arrêt, le traitement est en cours. */
     restoreStatement(treatment: RestoredTreatment, exists: boolean): SqlStatement {
       const values = [
         treatment.name,
         treatment.type,
         treatment.frequency.value,
         treatment.frequency.unit,
+        treatment.stoppedOn ?? null,
         treatment.createdAt,
         treatment.updatedAt,
       ]
@@ -243,14 +264,14 @@ export function createTreatmentsRepository(
         ? {
             sql: `UPDATE treatment
                   SET name = ?, type = ?, frequency_value = ?, frequency_unit = ?,
-                      stopped_on = NULL, created_at = ?, updated_at = ?, deleted_at = NULL
+                      stopped_on = ?, created_at = ?, updated_at = ?, deleted_at = NULL
                   WHERE id = ?`,
             params: [...values, treatment.id],
           }
         : {
             sql: `INSERT INTO treatment (id, animal_id, name, type, frequency_value, frequency_unit,
-                    created_at, updated_at)
-                  VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                    stopped_on, created_at, updated_at)
+                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             params: [treatment.id, treatment.animalId, ...values],
           }
     },

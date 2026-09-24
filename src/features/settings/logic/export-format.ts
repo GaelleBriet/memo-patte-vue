@@ -49,13 +49,15 @@ export function exportReminders(data: ExportData): ExportReminder[] {
             },
           ],
     ),
-    ...data.treatments.map((treatment): ExportReminder => ({
-      kind: 'treatment',
-      sourceId: treatment.id,
-      animalId: treatment.animalId,
-      name: treatment.name,
-      dueDate: treatment.nextDueDate,
-    })),
+    ...data.treatments
+      .filter((treatment) => !treatment.stoppedOn)
+      .map((treatment): ExportReminder => ({
+        kind: 'treatment',
+        sourceId: treatment.id,
+        animalId: treatment.animalId,
+        name: treatment.name,
+        dueDate: treatment.nextDueDate,
+      })),
   ]
   return reminders.sort(
     (a, b) => a.dueDate.localeCompare(b.dueDate) || a.name.localeCompare(b.name),

@@ -47,7 +47,7 @@ describe('AppToast — contrat de style (maquette B3)', () => {
 
   it('garde la hauteur et les marges intérieures de B3', () => {
     expect(declaration(feuille, TOAST, 'min-height')).toBe('56px')
-    expect(declaration(feuille, '.app-toast :deep(.v-snackbar__content)', 'padding')).toBe(
+    expect(declaration(feuille, '.app-toast :deep(.v-snackbar__prepend)', 'padding')).toBe(
       '6px 16px',
     )
     expect(declaration(feuille, '.app-toast__content', 'gap')).toBe('10px')

@@ -21,11 +21,14 @@ et une relecture s'y réfère plutôt que de rouvrir le débat.
 | Échéance                 | due date                         | deadline, expiry                          | « En retard » = overdue, « Échéance passée » = due date has passed       |
 | Vaccin                   | vaccine                          | vaccination, shot, jab                    | `vaccination` reste le nom du dossier de code, pas du texte              |
 | Date d'injection         | injection date                   | vaccination date                          |                                                                         |
+| Rappel (vaccin)          | booster                          | reminder, second shot                     | l'injection qui renouvelle un vaccin ; « reminder » reste l'alerte       |
 | Traitement               | treatment                        | medication, med                           |                                                                         |
 | Vermifuge                | dewormer                         | worming tablet                            |                                                                         |
 | Antiparasitaire          | parasite control                 | flea & tick, antiparasitic                | « flea & tick » exclut vers et acariens (tranché par Gaelle, 2026-09-16) |
 | Prise / dose             | dose                             | intake                                    |                                                                         |
+| Noter une prise          | log a dose                       | record, register, mark as done            | « noter l'injection » = log the injection                                |
 | Fréquence                | frequency                        | interval, how often                       |                                                                         |
+| Traitements terminés     | Finished treatments              | Stopped treatments, Past treatments       | la liste des traitements arrêtés                                         |
 | Pesée                    | weigh-in                         | weighing, weight entry, weight log        | « Ajouter une pesée » = Add a weigh-in, partout                          |
 | Poids                    | weight                           | —                                         | kg dans les deux langues, séparateur décimal localisé (`shared/format`)  |
 | Poids à l'arrivée        | weight on arrival                | starting weight                           | « starting weight » est réservé au champ `initialWeightKg` du formulaire |

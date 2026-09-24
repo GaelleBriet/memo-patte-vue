@@ -2,11 +2,15 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 
-import type { Treatment, TreatmentInput } from '../schema/treatment.schema'
+import type { Treatment, TreatmentEditInput, TreatmentInput } from '../schema/treatment.schema'
+import type { TreatmentDosesService } from '../service/treatment-doses.service'
 import type { TreatmentRemindersService } from '../service/treatment-reminders.service'
+import type { TreatmentStopService } from '../service/treatment-stop.service'
 import type { TreatmentsRepository } from '../repository/treatments.repository'
 import {
+  provideTreatmentDosesService,
   provideTreatmentRemindersService,
+  provideTreatmentStopService,
   provideTreatmentsRepository,
   useTreatmentsStore,
 } from '../store/treatments.store'
@@ -37,7 +41,6 @@ const MILO_ANIMAL: Animal = {
 let repository: FakeTreatmentsRepository
 let reminders: {
   reschedule: Mock<TreatmentRemindersService['reschedule']>
-  cancel: Mock<TreatmentRemindersService['cancel']>
 }
 
 beforeEach(() => {
@@ -47,7 +50,6 @@ beforeEach(() => {
   provideTreatmentsRepository(() => repository)
   reminders = {
     reschedule: vi.fn<TreatmentRemindersService['reschedule']>().mockResolvedValue(),
-    cancel: vi.fn<TreatmentRemindersService['cancel']>().mockResolvedValue(),
   }
   provideTreatmentRemindersService(() => reminders)
 })
@@ -64,6 +66,16 @@ function vermifuge(animalId = MILO, surcharges: Partial<TreatmentInput> = {}): T
     type: 'deworming',
     frequency: { value: 3, unit: 'month' },
     lastDoseDate: '2026-03-12',
+    ...surcharges,
+  }
+}
+
+function edition(surcharges: Partial<TreatmentEditInput> = {}): TreatmentEditInput {
+  return {
+    name: 'Milbemax',
+    type: 'deworming',
+    frequency: { value: 3, unit: 'month' },
+    nextDueDate: '2026-06-12',
     ...surcharges,
   }
 }
@@ -280,14 +292,14 @@ describe('useTreatmentsStore', () => {
       name: 'Milbemax (chiot)',
       type: 'deworming',
       frequency: { value: 1, unit: 'month' },
-      lastDoseDate: '2026-04-01',
+      nextDueDate: '2026-04-12',
     })
 
     expect(repository.update).toHaveBeenCalledWith(seme.id, {
       name: 'Milbemax (chiot)',
       type: 'deworming',
       frequency: { value: 1, unit: 'month' },
-      lastDoseDate: '2026-04-01',
+      nextDueDate: '2026-04-12',
     })
     expect(updated.name).toBe('Milbemax (chiot)')
     expect(store.treatments.map((treatment) => treatment.name)).toEqual(['Milbemax (chiot)'])
@@ -310,28 +322,30 @@ describe('useTreatmentsStore', () => {
 
     const created = await store.create(vermifuge())
 
-    expect(reminders.reschedule).toHaveBeenCalledWith(created)
+    expect(reminders.reschedule).toHaveBeenCalledWith(created.id)
   })
 
-  it('reprogramme les rappels quand une nouvelle prise déplace l’échéance', async () => {
+  it('reprogramme les rappels quand « Modifier » déplace l’échéance', async () => {
     const seme = repository.seed(vermifuge())
     const store = useTreatmentsStore()
 
-    const updated = await store.update(seme.id, { ...vermifuge(), lastDoseDate: '2026-06-12' })
+    const updated = await store.update(seme.id, edition({ nextDueDate: '2026-07-12' }))
 
-    expect(reminders.reschedule).toHaveBeenCalledWith(updated)
-    expect(reminders.reschedule.mock.calls[0]?.[0].nextDueDate).not.toBe(seme.nextDueDate)
+    expect(reminders.reschedule).toHaveBeenCalledWith(updated.id)
+    expect(repository.update.mock.invocationCallOrder[0]).toBeLessThan(
+      reminders.reschedule.mock.invocationCallOrder[0]!,
+    )
   })
 
-  it('annule les rappels du traitement supprimé, après l’écriture en base', async () => {
+  it('reprogramme, donc retire, les rappels du traitement supprimé, après l’écriture en base', async () => {
     const seme = repository.seed(vermifuge())
     const store = useTreatmentsStore()
 
     await store.remove(seme.id)
 
-    expect(reminders.cancel).toHaveBeenCalledWith(seme.id)
+    expect(reminders.reschedule).toHaveBeenCalledWith(seme.id)
     expect(repository.remove.mock.invocationCallOrder[0]).toBeLessThan(
-      reminders.cancel.mock.invocationCallOrder[0]!,
+      reminders.reschedule.mock.invocationCallOrder[0]!,
     )
   })
 
@@ -341,11 +355,10 @@ describe('useTreatmentsStore', () => {
     repository.update.mockRejectedValueOnce(new Error('traitement introuvable'))
     repository.remove.mockRejectedValueOnce(new Error('base verrouillée'))
 
-    await expect(store.update(seme.id, vermifuge())).rejects.toThrow('traitement introuvable')
+    await expect(store.update(seme.id, edition())).rejects.toThrow('traitement introuvable')
     await expect(store.remove(seme.id)).rejects.toThrow('base verrouillée')
 
     expect(reminders.reschedule).not.toHaveBeenCalled()
-    expect(reminders.cancel).not.toHaveBeenCalled()
   })
 
   it('propage l’erreur d’une création et garde la liste intacte', async () => {
@@ -366,14 +379,7 @@ describe('useTreatmentsStore', () => {
     await store.loadForAnimal(MILO)
 
     repository.update.mockRejectedValueOnce(new Error('traitement introuvable'))
-    await expect(
-      store.update(seme.id, {
-        name: 'Milbemax',
-        type: 'deworming',
-        frequency: { value: 3, unit: 'month' },
-        lastDoseDate: '2026-03-12',
-      }),
-    ).rejects.toThrow('traitement introuvable')
+    await expect(store.update(seme.id, edition())).rejects.toThrow('traitement introuvable')
 
     repository.remove.mockRejectedValueOnce(new Error('base verrouillée'))
     await expect(store.remove(seme.id)).rejects.toThrow('base verrouillée')
@@ -412,6 +418,71 @@ describe('useTreatmentsStore', () => {
 
     await expect(store.create(vermifuge())).rejects.toThrow('provideTreatmentsRepository')
     await expect(store.getById(MILO)).rejects.toThrow('provideTreatmentsRepository')
+  })
+})
+
+describe('useTreatmentsStore — gestes d’un rappel', () => {
+  const doses = {
+    record: vi.fn<TreatmentDosesService['record']>(),
+    undo: vi.fn<TreatmentDosesService['undo']>().mockResolvedValue(),
+  }
+  const stop = {
+    stop: vi.fn<TreatmentStopService['stop']>(),
+    undo: vi.fn<TreatmentStopService['undo']>().mockResolvedValue(),
+  }
+
+  beforeEach(() => {
+    provideTreatmentDosesService(() => doses)
+    provideTreatmentStopService(() => stop)
+  })
+
+  afterEach(() => {
+    provideTreatmentDosesService(null)
+    provideTreatmentStopService(null)
+    vi.clearAllMocks()
+  })
+
+  it('note une prise par son service puis relit la liste affichée de l’animal', async () => {
+    const seme = repository.seed(vermifuge())
+    const store = useTreatmentsStore()
+    await store.loadForAnimal(MILO)
+    doses.record.mockResolvedValue({ animalId: MILO, doseId: 'p1' })
+    repository.listByAnimal.mockClear()
+
+    await expect(store.recordDose(seme.id, '2026-09-20')).resolves.toEqual({
+      animalId: MILO,
+      doseId: 'p1',
+    })
+
+    expect(doses.record).toHaveBeenCalledWith(seme.id, '2026-09-20')
+    expect(repository.listByAnimal).toHaveBeenCalledWith(MILO)
+  })
+
+  it('annule une prise par son service', async () => {
+    const store = useTreatmentsStore()
+
+    await store.undoDose('t1', 'p1')
+
+    expect(doses.undo).toHaveBeenCalledWith('t1', 'p1')
+  })
+
+  it('arrête un traitement puis annule l’arrêt par son service', async () => {
+    stop.stop.mockResolvedValue({ animalId: MILO, stopped: true })
+    const store = useTreatmentsStore()
+
+    await expect(store.stop('t1')).resolves.toEqual({ animalId: MILO, stopped: true })
+    await store.undoStop('t1')
+
+    expect(stop.stop).toHaveBeenCalledWith('t1')
+    expect(stop.undo).toHaveBeenCalledWith('t1')
+  })
+
+  it('propage l’échec d’un geste', async () => {
+    doses.record.mockRejectedValue(new Error('base verrouillée'))
+    const store = useTreatmentsStore()
+
+    await expect(store.recordDose('t1', '2026-09-20')).rejects.toThrow('base verrouillée')
+    expect(store.isLoading).toBe(false)
   })
 })
 
@@ -473,8 +544,7 @@ function createFakeRepository(): FakeTreatmentsRepository {
         name: input.name,
         type: input.type,
         frequency: input.frequency,
-        lastDoseDate: input.lastDoseDate,
-        nextDueDate: nextDueDate(input.lastDoseDate),
+        nextDueDate: input.nextDueDate,
         updatedAt: new Date().toISOString(),
       }
       treatments[index] = updated

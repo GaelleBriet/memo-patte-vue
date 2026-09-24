@@ -22,6 +22,7 @@ const MILBEMAX = {
   type: 'deworming' as const,
   frequency: MONTHLY,
   nextDueDate: '2026-10-15',
+  stoppedOn: null,
   deletedAt: null,
 }
 const NOW = new Date(2026, 8, 15, 12)
@@ -173,6 +174,12 @@ describe('treatmentReminders', () => {
     const deleted = { ...MILBEMAX, deletedAt: '2026-09-15T08:00:00.000Z' }
 
     expect(treatmentReminders(t, deleted, LUNA, NOW)).toEqual([])
+  })
+
+  it('ne produit rien pour un traitement arrêté', () => {
+    const stopped = { ...MILBEMAX, stoppedOn: '2026-09-14' }
+
+    expect(treatmentReminders(t, stopped, LUNA, NOW)).toEqual([])
   })
 
   it('ne produit rien quand l’animal est supprimé ou introuvable', () => {
