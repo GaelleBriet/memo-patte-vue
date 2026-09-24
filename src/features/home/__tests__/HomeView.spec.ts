@@ -23,6 +23,10 @@ import type { Animal } from '@/features/animals/schema/animal.schema'
 import type * as DataImport from '@/features/settings/service/data-import.service'
 import { importFixtureJson } from '@/features/settings/__tests__/import-fixture'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
+import { useTreatmentsStore } from '@/features/treatments/store/treatments.store'
+import TreatmentReminderSheet from '@/features/treatments/views/TreatmentReminderSheet.vue'
+import { useVaccinationsStore } from '@/features/vaccinations/store/vaccinations.store'
+import VaccinationReminderSheet from '@/features/vaccinations/views/VaccinationReminderSheet.vue'
 import WeightSheet from '@/features/weight/views/WeightSheet.vue'
 import AnimalChipSelector from '@/shared/components/AnimalChipSelector.vue'
 import { forgetPhotoUrls } from '@/core/photos/use-photo-urls'
@@ -157,9 +161,7 @@ async function monter() {
 function rows(wrapper: ReturnType<typeof mount>) {
   return wrapper.findAll('.reminder-row').map((row) => ({
     title: row.get('.reminder-row__title').text(),
-    animal: row.find('.reminder-row__animal').exists()
-      ? row.get('.reminder-row__animal').text()
-      : null,
+    subtitle: row.get('.reminder-row__subtitle').text(),
     badge: row.get('.reminder-row__badge').text(),
     status: [...row.classes()].find((name) => name.startsWith('reminder-row--')) ?? null,
   }))
@@ -277,21 +279,26 @@ describe('HomeView — A1 tous les animaux, avec rappels', () => {
     expect(wrapper.get('.home-overdue-banner').text()).toBe('1 rappel en retard')
   })
 
-  it('liste les rappels dans une seule carte, du plus urgent au moins urgent, avec le nom de l’animal', async () => {
+  it('liste les rappels dans une seule carte, du plus urgent au moins urgent, titrés du produit, type et animal dessous', async () => {
     const wrapper = await monter()
 
     expect(wrapper.findAll('.home-todo .section-card__card')).toHaveLength(1)
     expect(rows(wrapper)).toEqual([
       {
         title: 'CHPPiL',
-        animal: 'Milo',
+        subtitle: 'Vaccin · Milo',
         badge: 'En retard · 2 j',
         status: 'reminder-row--overdue',
       },
-      { title: 'Vermifuge', animal: 'Luna', badge: 'Aujourd’hui', status: 'reminder-row--today' },
       {
-        title: 'Antiparasitaire',
-        animal: 'Milo',
+        title: 'Milbemax',
+        subtitle: 'Vermifuge · Luna',
+        badge: 'Aujourd’hui',
+        status: 'reminder-row--today',
+      },
+      {
+        title: 'Bravecto',
+        subtitle: 'Antiparasitaire · Milo',
         badge: 'Dans 3 jours',
         status: 'reminder-row--later',
       },
@@ -338,7 +345,11 @@ describe('HomeView — A1 tous les animaux, avec rappels', () => {
 
     expect(animalsStore.selectedAnimalId).toBeNull()
     expect(wrapper.get('.home-todo .section-card__counter').text()).toBe('3 rappels')
-    expect(rows(wrapper).map((row) => row.animal)).toEqual(['Milo', 'Luna', 'Milo'])
+    expect(rows(wrapper).map((row) => row.subtitle)).toEqual([
+      'Vaccin · Milo',
+      'Vermifuge · Luna',
+      'Antiparasitaire · Milo',
+    ])
   })
 
   it('affiche les nouvelles sources quand on remonte l’accueil', async () => {
@@ -471,13 +482,13 @@ describe('HomeView — A2 animal sélectionné, avec rappels', () => {
     expect(rows(wrapper)).toEqual([
       {
         title: 'CHPPiL',
-        animal: null,
+        subtitle: 'Vaccin',
         badge: 'En retard · 2 j',
         status: 'reminder-row--overdue',
       },
       {
-        title: 'Antiparasitaire',
-        animal: null,
+        title: 'Bravecto',
+        subtitle: 'Antiparasitaire',
         badge: 'Dans 3 jours',
         status: 'reminder-row--later',
       },
@@ -569,19 +580,19 @@ describe('HomeView — A4 tous les animaux, aucun rappel', () => {
   })
 })
 
-describe('HomeView — fenêtre de 30 jours', () => {
+describe('HomeView — fenêtre de 30 jours, aujourd’hui compris', () => {
   const RETARD_ANCIEN = source({ id: 'v-ancien', label: 'Leishmaniose', dueDate: '2025-06-01' })
-  const RAGE_LUNA_J30 = source({
-    id: 'v-j30',
+  const RAGE_LUNA_J29 = source({
+    id: 'v-j29',
     animalId: LUNA.id,
     label: 'Rage',
-    dueDate: '2026-10-09',
+    dueDate: '2026-10-08',
   })
-  const TYPHUS_LUNA_J31 = source({
-    id: 'v-j31',
+  const TYPHUS_LUNA_J30 = source({
+    id: 'v-j30',
     animalId: LUNA.id,
     label: 'Typhus',
-    dueDate: '2026-10-10',
+    dueDate: '2026-10-09',
   })
   const CARRE_MILO_2027 = source({ id: 'v-2027', label: 'Carré', dueDate: '2027-08-26' })
   const VERMIFUGE_LUNA_NOVEMBRE = source({
@@ -593,16 +604,16 @@ describe('HomeView — fenêtre de 30 jours', () => {
     dueDate: '2026-11-08',
   })
 
-  it('liste les retards, même anciens, et les échéances à 30 jours au plus', async () => {
-    sources = [TYPHUS_LUNA_J31, RAGE_LUNA_J30, RETARD_ANCIEN, CARRE_MILO_2027]
+  it('liste les retards, même anciens, et les échéances jusqu’à J+29', async () => {
+    sources = [TYPHUS_LUNA_J30, RAGE_LUNA_J29, RETARD_ANCIEN, CARRE_MILO_2027]
     const wrapper = await monter()
 
     expect(rows(wrapper).map((row) => row.title)).toEqual(['Leishmaniose', 'Rage'])
-    expect(rows(wrapper)[1]).toMatchObject({ badge: 'Dans 30 jours' })
+    expect(rows(wrapper)[1]).toMatchObject({ badge: 'Dans 29 jours' })
   })
 
   it('compte dans l’en-tête et le bandeau ce qui est affiché', async () => {
-    sources = [TYPHUS_LUNA_J31, RAGE_LUNA_J30, RETARD_ANCIEN, CARRE_MILO_2027]
+    sources = [TYPHUS_LUNA_J30, RAGE_LUNA_J29, RETARD_ANCIEN, CARRE_MILO_2027]
     const wrapper = await monter()
 
     expect(wrapper.get('.home-todo .section-card__counter').text()).toBe('2 rappels')
@@ -615,7 +626,7 @@ describe('HomeView — fenêtre de 30 jours', () => {
   })
 
   it('n’annonce pas de prochain rappel tant que la liste en montre', async () => {
-    sources = [RAGE_LUNA_J30, CARRE_MILO_2027]
+    sources = [RAGE_LUNA_J29, CARRE_MILO_2027]
     const wrapper = await monter()
 
     expect(wrapper.find('.home-up-to-date__next').exists()).toBe(false)
@@ -645,13 +656,13 @@ describe('HomeView — fenêtre de 30 jours', () => {
   })
 
   it('nomme l’animal du prochain rappel dans la vue de tous les animaux', async () => {
-    sources = [CARRE_MILO_2027, VERMIFUGE_LUNA_NOVEMBRE, TYPHUS_LUNA_J31]
+    sources = [CARRE_MILO_2027, VERMIFUGE_LUNA_NOVEMBRE, TYPHUS_LUNA_J30]
     const wrapper = await monter()
 
     expect(wrapper.find('.home-todo .section-card__counter').exists()).toBe(false)
     expect(wrapper.find('.home-overdue-banner').exists()).toBe(false)
     expect(upToDateLines(wrapper)).toEqual([
-      'Prochain rappel\u00a0: Typhus pour Luna le 10\u00a0oct.\u00a02026',
+      'Prochain rappel\u00a0: Typhus pour Luna le 9\u00a0oct.\u00a02026',
     ])
   })
 
@@ -662,8 +673,8 @@ describe('HomeView — fenêtre de 30 jours', () => {
     expect(upToDateLines(wrapper)).toEqual(['Milo et Luna n’ont aucun rappel à venir.'])
   })
 
-  it('fait entrer une échéance à 31 jours dans la liste quand l’app revient le lendemain', async () => {
-    sources = [TYPHUS_LUNA_J31]
+  it('fait entrer une échéance à J+30 dans la liste quand l’app revient le lendemain', async () => {
+    sources = [TYPHUS_LUNA_J30]
     const wrapper = await monter()
     expect(wrapper.find('.home-up-to-date__next').exists()).toBe(true)
 
@@ -674,7 +685,12 @@ describe('HomeView — fenêtre de 30 jours', () => {
     expect(wrapper.find('.home-up-to-date__next').exists()).toBe(false)
     expect(wrapper.get('.home-todo .section-card__counter').text()).toBe('1 rappel')
     expect(rows(wrapper)).toEqual([
-      { title: 'Typhus', animal: 'Luna', badge: 'Dans 30 jours', status: 'reminder-row--later' },
+      {
+        title: 'Typhus',
+        subtitle: 'Vaccin · Luna',
+        badge: 'Dans 29 jours',
+        status: 'reminder-row--later',
+      },
     ])
   })
 })
@@ -694,7 +710,7 @@ describe('HomeView — un seul animal', () => {
 
     expect(chipsPressees(wrapper)).toEqual(['true'])
     expect(wrapper.get('.home-todo .section-card__counter').text()).toBe('Milo · 2 rappels')
-    expect(rows(wrapper).map((row) => row.animal)).toEqual([null, null])
+    expect(rows(wrapper).map((row) => row.subtitle)).toEqual(['Vaccin', 'Antiparasitaire'])
   })
 
   it('écrit « Tout est à jour » à son nom', async () => {
@@ -1054,5 +1070,82 @@ describe('HomeView — Actions rapides', () => {
     expect(feuille?.querySelector('.bottom-sheet__subtitle')?.textContent?.trim()).toBe('Pour Milo')
     expect(feuille?.querySelector('.animal-chip-selector')).toBeNull()
     expect(document.activeElement).toBe(feuille?.querySelector('#weight-sheet-kg'))
+  })
+})
+
+describe('HomeView — feuille d’un rappel', () => {
+  beforeEach(() => {
+    sources = [VERMIFUGE_LUNA_AUJOURDHUI, CHPPIL_MILO_RETARD]
+    vi.stubGlobal('visualViewport', { addEventListener() {}, removeEventListener() {} })
+    const dates = {
+      createdAt: '2026-09-01T09:00:00.000Z',
+      updatedAt: '2026-09-01T09:00:00.000Z',
+      deletedAt: null,
+    }
+    vi.spyOn(useTreatmentsStore(), 'getById').mockResolvedValue({
+      id: VERMIFUGE_LUNA_AUJOURDHUI.id,
+      animalId: LUNA.id,
+      name: 'Milbemax',
+      type: 'deworming',
+      frequency: { value: 1, unit: 'month' },
+      lastDoseDate: '2026-08-09',
+      nextDueDate: '2026-09-09',
+      stoppedOn: null,
+      ...dates,
+    })
+    vi.spyOn(useVaccinationsStore(), 'getById').mockResolvedValue({
+      id: CHPPIL_MILO_RETARD.id,
+      animalId: MILO.id,
+      name: 'CHPPiL',
+      lastInjectionDate: '2025-09-07',
+      dueDate: '2026-09-07',
+      ...dates,
+    })
+  })
+
+  it('rend chaque ligne touchable, nommée pour le lecteur d’écran', async () => {
+    const wrapper = await monter()
+
+    const lignes = wrapper.findAll('.reminder-row')
+    expect(lignes.map((ligne) => ligne.element.tagName)).toEqual(['BUTTON', 'BUTTON'])
+    expect(lignes.map((ligne) => ligne.attributes('aria-label'))).toEqual([
+      'CHPPiL, vaccin, Milo, en retard de 2 jours. Ouvre les actions.',
+      'Milbemax, vermifuge, Luna, aujourd’hui. Ouvre les actions.',
+    ])
+    expect(lignes[0]!.find('.reminder-row__chevron').exists()).toBe(true)
+  })
+
+  it('ouvre la feuille du traitement touché', async () => {
+    const wrapper = await monter()
+
+    await wrapper.findAll('.reminder-row')[1]!.trigger('click')
+
+    const feuille = wrapper.getComponent(TreatmentReminderSheet)
+    expect(feuille.props('modelValue')).toBe(true)
+    expect(feuille.props('treatmentId')).toBe(VERMIFUGE_LUNA_AUJOURDHUI.id)
+    expect(wrapper.getComponent(VaccinationReminderSheet).props('modelValue')).toBe(false)
+  })
+
+  it('ouvre la feuille du vaccin touché', async () => {
+    const wrapper = await monter()
+
+    await wrapper.findAll('.reminder-row')[0]!.trigger('click')
+
+    const feuille = wrapper.getComponent(VaccinationReminderSheet)
+    expect(feuille.props('modelValue')).toBe(true)
+    expect(feuille.props('vaccinationId')).toBe(CHPPIL_MILO_RETARD.id)
+    expect(wrapper.getComponent(TreatmentReminderSheet).props('modelValue')).toBe(false)
+  })
+
+  it('relit les rappels quand une feuille a noté, arrêté ou annulé', async () => {
+    const wrapper = await monter()
+    expect(listSources).toHaveBeenCalledOnce()
+
+    wrapper.getComponent(TreatmentReminderSheet).vm.$emit('changed')
+    await flushPromises()
+    wrapper.getComponent(VaccinationReminderSheet).vm.$emit('changed')
+    await flushPromises()
+
+    expect(listSources).toHaveBeenCalledTimes(3)
   })
 })

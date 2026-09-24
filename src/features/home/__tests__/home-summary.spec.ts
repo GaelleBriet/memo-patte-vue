@@ -7,7 +7,7 @@ import {
   overdueBanner,
   reminderIcon,
   reminderRows,
-  reminderTitle,
+  reminderType,
   scopeCounter,
   upToDateText,
 } from '../logic/home-summary'
@@ -89,14 +89,14 @@ describe('dueBadge', () => {
   })
 })
 
-describe('reminderTitle et reminderIcon', () => {
-  it('nomme un vaccin par le nom saisi, sans préfixe de type', () => {
+describe('reminderType et reminderIcon', () => {
+  it('donne le type d’un vaccin', () => {
     const source = reminder()
-    expect(reminderTitle(t, { ...source, treatmentType: null })).toBe('CHPPiL')
+    expect(reminderType(t, { ...source, treatmentType: null })).toBe('Vaccin')
     expect(reminderIcon({ ...source, treatmentType: null })).toBe('ms:vaccines')
   })
 
-  it('nomme un traitement par son type, pas par son produit', () => {
+  it('donne le type d’un traitement', () => {
     const deworming = {
       ...reminder({ kind: 'treatment', label: 'Milbemax' }),
       treatmentType: 'deworming' as const,
@@ -106,9 +106,9 @@ describe('reminderTitle et reminderIcon', () => {
       treatmentType: 'antiparasitic' as const,
     }
 
-    expect(reminderTitle(t, deworming)).toBe('Vermifuge')
+    expect(reminderType(t, deworming)).toBe('Vermifuge')
     expect(reminderIcon(deworming)).toBe('ms:medication')
-    expect(reminderTitle(t, antiparasitic)).toBe('Antiparasitaire')
+    expect(reminderType(t, antiparasitic)).toBe('Antiparasitaire')
     expect(reminderIcon(antiparasitic)).toBe('ms:pest_control')
   })
 })
@@ -146,30 +146,68 @@ describe('reminderRows', () => {
     },
   ]
 
-  it('compose titre, icône, animal et badge de chaque ligne', () => {
+  it('titre chaque ligne du nom du produit, type et animal dessous', () => {
     expect(reminderRows(t, reminders, { animalNames: names, showAnimal: true })).toEqual([
       {
         id: 'v1',
+        kind: 'vaccination',
         status: 'overdue',
         icon: 'ms:vaccines',
         title: 'CHPPiL',
-        animalName: 'Milo',
+        subtitle: 'Vaccin · Milo',
         badge: { text: 'En retard · 2 j', icon: null },
+        ariaLabel: 'CHPPiL, vaccin, Milo, en retard de 2 jours. Ouvre les actions.',
       },
       {
         id: 't1',
+        kind: 'treatment',
         status: 'today',
         icon: 'ms:medication',
-        title: 'Vermifuge',
-        animalName: 'Luna',
+        title: 'Milbemax',
+        subtitle: 'Vermifuge · Luna',
         badge: { text: 'Aujourd’hui', icon: 'ms:today' },
+        ariaLabel: 'Milbemax, vermifuge, Luna, aujourd’hui. Ouvre les actions.',
       },
     ])
   })
 
+  it('annonce une échéance à venir avec son délai et sa date', () => {
+    const bravecto: Reminder<HomeReminderSource> = {
+      ...reminder({ kind: 'treatment', id: 't2', label: 'Bravecto', dueDate: '2026-09-28' }),
+      status: 'later',
+      daysUntil: 5,
+      treatmentType: 'deworming',
+    }
+
+    expect(
+      reminderRows(t, [bravecto], { animalNames: names, showAnimal: true })[0]?.ariaLabel,
+    ).toBe('Bravecto, vermifuge, Milo, dans 5 jours, le 28 septembre. Ouvre les actions.')
+  })
+
+  it('titre un vaccin du nom saisi seul, sans « vaccin » redoublé, dans les deux langues', () => {
+    const antirabique: Reminder<HomeReminderSource> = {
+      ...reminder({ label: 'Vaccin antirabique' }),
+      treatmentType: null,
+    }
+
+    expect(
+      reminderRows(t, [antirabique], { animalNames: names, showAnimal: false })[0],
+    ).toMatchObject({ title: 'Vaccin antirabique', subtitle: 'Vaccin' })
+
+    applyLocale('en')
+    expect(
+      reminderRows(t, [{ ...antirabique, label: 'Rabies vaccine' }], {
+        animalNames: names,
+        showAnimal: false,
+      })[0],
+    ).toMatchObject({ title: 'Rabies vaccine', subtitle: 'Vaccine' })
+    applyLocale('fr')
+  })
+
   it('masque le nom de l’animal quand un animal est sélectionné', () => {
     const rows = reminderRows(t, reminders, { animalNames: names, showAnimal: false })
-    expect(rows.map((row) => row.animalName)).toEqual([null, null])
+    expect(rows.map((row) => row.subtitle)).toEqual(['Vaccin', 'Vermifuge'])
+    expect(rows[1]?.ariaLabel).toBe('Milbemax, vermifuge, aujourd’hui. Ouvre les actions.')
   })
 })
 
@@ -205,9 +243,9 @@ describe('nextReminderText', () => {
     )
   })
 
-  it('nomme l’animal dans la vue de plusieurs animaux', () => {
+  it('nomme le produit et l’animal dans la vue de plusieurs animaux', () => {
     expect(nextReminderText(t, vermifuge, { animalNames: names, showAnimal: true })).toBe(
-      'Prochain rappel\u00a0: Vermifuge pour Luna le 8\u00a0nov.\u00a02026',
+      'Prochain rappel\u00a0: Milbemax pour Luna le 8\u00a0nov.\u00a02026',
     )
   })
 
@@ -235,7 +273,7 @@ describe('nextReminderText', () => {
       'Next reminder: Carré on Aug\u00a026,\u00a02027',
     )
     expect(nextReminderText(t, vermifuge, { animalNames: names, showAnimal: true })).toBe(
-      'Next reminder: Dewormer for Luna on Nov\u00a08,\u00a02026',
+      'Next reminder: Milbemax for Luna on Nov\u00a08,\u00a02026',
     )
   })
 })

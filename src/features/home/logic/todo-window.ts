@@ -6,7 +6,8 @@ import {
   type ReminderSource,
 } from '@/shared/domain/reminders'
 
-export const TODO_WINDOW_DAYS = 30
+/** Dernier jour de la fenêtre de « À faire » : J+29, soit 30 jours, aujourd'hui compris. */
+export const TODO_WINDOW_DAYS = 29
 
 export type TodoSummary<T extends ReminderSource = ReminderSource> = RemindersSummary<T> & {
   /** Le plus proche des rappels laissés hors de la fenêtre. */

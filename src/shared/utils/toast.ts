@@ -74,6 +74,29 @@ export function resumeToast(): void {
   dismissTimer = setTimeout(dismissToast, durationMs)
 }
 
+export type UndoOptions = {
+  label: string
+  ariaLabel: string
+  undo: () => Promise<unknown>
+  onUndone: () => void
+  /** Affiché en toast d'échec si l'annulation lève. */
+  failedMessage: string
+}
+
+/** Confirme un geste réversible ; « Annuler » le défait. */
+export function showUndoableToast(message: string, options: UndoOptions): void {
+  showToast(message, {
+    action: {
+      label: options.label,
+      ariaLabel: options.ariaLabel,
+      run: () =>
+        void options
+          .undo()
+          .then(options.onUndone, () => showToast(options.failedMessage, { tone: 'error' })),
+    },
+  })
+}
+
 /** Ferme le toast puis joue son action, une seule fois. */
 export function runToastAction(): void {
   const action = currentAction.value

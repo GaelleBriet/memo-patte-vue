@@ -9,6 +9,9 @@ import {
   formatMonthShort,
   formatMonthYear,
   formatNumericDate,
+  formatDayMonth,
+  formatFullDayMonth,
+  formatWeekdayDate,
 } from '../utils/format'
 import { applyLocale } from '@/core/i18n'
 
@@ -86,6 +89,19 @@ describe('mois et dates', () => {
     expect(formatFullDate('2026-09-01')).toBe('1 septembre 2026')
   })
 
+  it('écrit le jour et le mois abrégé, sans l’année', () => {
+    expect(formatDayMonth('2026-09-28')).toBe('28 sept.')
+    expect(formatDayMonth('2026-05-03')).toBe('3 mai')
+  })
+
+  it('écrit le jour et le mois en toutes lettres pour le lecteur d’écran', () => {
+    expect(formatFullDayMonth('2026-09-28')).toBe('28 septembre')
+  })
+
+  it('écrit une date précédée de son jour de la semaine abrégé', () => {
+    expect(formatWeekdayDate('2026-09-20')).toBe('dim. 20 sept. 2026')
+  })
+
   it('écrit une échéance en chiffres', () => {
     expect(formatNumericDate('2027-09-14T10:00:00Z')).toBe('14/09/2027')
     expect(formatNumericDate('2026-11-08')).toBe('08/11/2026')
@@ -115,5 +131,8 @@ describe('en anglais', () => {
     expect(formatLongDate('2026-11-08')).toBe('Nov 8, 2026')
     expect(formatFullDate('2026-02-03')).toBe('February 3, 2026')
     expect(formatNumericDate('2027-09-14T10:00:00Z')).toBe('09/14/2027')
+    expect(formatDayMonth('2026-09-28')).toBe('Sep 28')
+    expect(formatFullDayMonth('2026-09-28')).toBe('September 28')
+    expect(formatWeekdayDate('2026-09-20')).toBe('Sun, Sep 20, 2026')
   })
 })

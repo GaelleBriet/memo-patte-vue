@@ -1,6 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { primingReturnRoute, routeAfterReminderSaved } from '../domain/notification-priming'
+import {
+  primingAfterReminderSaved,
+  primingReturnRoute,
+  routeAfterReminderSaved,
+} from '../domain/notification-priming'
 import { shouldShowPriming } from '@/core/notifications/permission'
 import router from '@/router'
 
@@ -47,6 +51,55 @@ describe('routeAfterReminderSaved', () => {
       await routeAfterReminderSaved({ hasDueDate: false, animalName: 'Milo', kind: 'vaccination' }),
     ).toEqual({ name: 'animals' })
     expect(shouldShow).not.toHaveBeenCalled()
+  })
+})
+
+describe('routeAfterReminderSaved, depuis un écran d’origine', () => {
+  it('revient à l’écran d’origine, ou y ramènera après l’écran d’explication', async () => {
+    shouldShow.mockResolvedValue(false)
+    const saved = { hasDueDate: true, animalName: 'Milo', kind: 'treatment', from: 'home' } as const
+
+    expect(await routeAfterReminderSaved(saved)).toEqual({ name: 'home' })
+
+    shouldShow.mockResolvedValue(true)
+    expect(await routeAfterReminderSaved(saved)).toEqual({
+      name: 'notifications-priming',
+      query: { animalName: 'Milo', kind: 'treatment', from: 'home' },
+    })
+  })
+
+  it('revient au Carnet depuis une origine inconnue', async () => {
+    shouldShow.mockResolvedValue(false)
+
+    expect(
+      await routeAfterReminderSaved({
+        hasDueDate: true,
+        animalName: 'Milo',
+        kind: 'treatment',
+        from: 'treatment-edit',
+      }),
+    ).toEqual({ name: 'animals' })
+  })
+})
+
+describe('primingAfterReminderSaved', () => {
+  it('ne propose l’écran d’explication qu’au premier rappel, quand rien n’a été demandé', async () => {
+    shouldShow.mockResolvedValue(true)
+    const saved = {
+      hasDueDate: true,
+      animalName: 'Boree',
+      kind: 'vaccination',
+      from: 'home',
+    } as const
+
+    expect(await primingAfterReminderSaved(saved)).toEqual({
+      name: 'notifications-priming',
+      query: { animalName: 'Boree', kind: 'vaccination', from: 'home' },
+    })
+    expect(await primingAfterReminderSaved({ ...saved, hasDueDate: false })).toBeNull()
+
+    shouldShow.mockResolvedValue(false)
+    expect(await primingAfterReminderSaved(saved)).toBeNull()
   })
 })
 

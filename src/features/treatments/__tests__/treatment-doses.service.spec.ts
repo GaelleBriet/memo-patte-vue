@@ -1,5 +1,6 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { ZodError } from 'zod'
 
 import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory-db'
 import i18n from '@/core/i18n'
@@ -122,7 +123,7 @@ describe('treatmentDosesService', () => {
   })
 
   it('refuse une prise dans le futur, sans rien écrire', async () => {
-    await expect(service.record(bravecto, '2026-09-24')).rejects.toThrow()
+    await expect(service.record(bravecto, '2026-09-24')).rejects.toThrow(ZodError)
 
     await expect(visibleDoses()).resolves.toHaveLength(1)
   })

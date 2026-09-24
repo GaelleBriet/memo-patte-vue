@@ -12,9 +12,27 @@ const props = withDefaults(
     persistent?: boolean
     /** Reçoit le focus à la fermeture si le contrôle qui a ouvert la feuille a disparu. */
     focusFallback?: HTMLElement | null
+    /** Icône posée dans une pastille avant le titre. */
+    icon?: string | null
+    /** Flèche de retour libellée avant le titre, qui émet `back`. */
+    backLabel?: string | null
+    /** Feuille à étapes : le retour Android émet `back` au lieu de fermer, flèche ou non. */
+    hasPreviousStep?: boolean
   }>(),
-  { subtitle: null, showClose: false, persistent: false, focusFallback: null },
+  {
+    subtitle: null,
+    showClose: false,
+    persistent: false,
+    focusFallback: null,
+    icon: null,
+    backLabel: null,
+    hasPreviousStep: false,
+  },
 )
+
+const emit = defineEmits<{
+  back: []
+}>()
 
 const open = defineModel<boolean>({ default: false })
 
@@ -41,7 +59,9 @@ watch(
     releaseBack()
     if (isOpen) {
       releaseBackButton = onBackButton(() => {
-        if (!props.persistent) close()
+        if (props.persistent) return
+        if (props.hasPreviousStep || props.backLabel) emit('back')
+        else close()
       })
       const active = document.activeElement
       opener = active instanceof HTMLElement && active !== document.body ? active : null
@@ -72,7 +92,21 @@ function close(): void {
     :aria-labelledby="titleId"
   >
     <div class="bottom-sheet__panel">
-      <div class="bottom-sheet__header">
+      <div
+        class="bottom-sheet__header"
+        :class="{ 'bottom-sheet__header--lead': icon || backLabel }"
+      >
+        <v-btn
+          v-if="backLabel"
+          class="bottom-sheet__back"
+          icon="ms:arrow_back"
+          variant="text"
+          :aria-label="backLabel"
+          @click="emit('back')"
+        />
+        <span v-else-if="icon" class="bottom-sheet__icon" aria-hidden="true">
+          <v-icon :icon="icon" size="24" />
+        </span>
         <div class="bottom-sheet__heading">
           <h2 :id="titleId" class="bottom-sheet__title">{{ title }}</h2>
           <p v-if="subtitle" class="bottom-sheet__subtitle">{{ subtitle }}</p>
@@ -165,8 +199,34 @@ function close(): void {
   gap: 8px;
 }
 
+.bottom-sheet__header--lead {
+  align-items: center;
+  gap: 14px;
+}
+
 .bottom-sheet__heading {
+  flex: 1 1 auto;
   min-width: 0;
+}
+
+.bottom-sheet__icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: tokens.$size-sheet-icon;
+  height: tokens.$size-sheet-icon;
+  border-radius: 50%;
+  background: tokens.$color-sheet-icon-surface;
+  color: rgb(var(--v-theme-primary));
+}
+
+.bottom-sheet__back {
+  flex: 0 0 auto;
+  width: tokens.$size-tap-target;
+  height: tokens.$size-tap-target;
+  margin-inline: -12px -4px;
+  color: rgb(var(--v-theme-primary));
 }
 
 .bottom-sheet__title {

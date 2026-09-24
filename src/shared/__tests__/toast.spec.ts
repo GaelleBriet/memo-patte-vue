@@ -6,9 +6,11 @@ import {
   resumeToast,
   runToastAction,
   showToast,
+  showUndoableToast,
   toastAction,
   toastAnnouncement,
   toastMessage,
+  toastTone,
 } from '../utils/toast'
 
 const ANNONCE_MS = 100
@@ -114,6 +116,34 @@ describe('action du toast', () => {
     expect(toastMessage.value).toBe('Prise de Bravecto notée pour Boree')
     vi.advanceTimersByTime(200)
     expect(toastMessage.value).toBeNull()
+  })
+
+  it('annule un geste réversible puis prévient l’écran, ou affiche l’échec de l’annulation', async () => {
+    const onUndone = vi.fn<() => void>()
+    const options = {
+      label: 'Annuler',
+      ariaLabel: 'Annuler la prise de Bravecto',
+      undo: vi.fn<() => Promise<void>>().mockResolvedValue(),
+      onUndone,
+      failedMessage: 'L’annulation n’a pas abouti.',
+    }
+    showUndoableToast('Prise de Bravecto notée pour Boree', options)
+
+    runToastAction()
+    await vi.runAllTimersAsync()
+
+    expect(options.undo).toHaveBeenCalledOnce()
+    expect(onUndone).toHaveBeenCalledOnce()
+
+    options.undo.mockRejectedValue(new Error('base verrouillée'))
+    showUndoableToast('Prise de Bravecto notée pour Boree', options)
+    runToastAction()
+    await Promise.resolve()
+    await Promise.resolve()
+
+    expect(onUndone).toHaveBeenCalledOnce()
+    expect(toastMessage.value).toBe('L’annulation n’a pas abouti.')
+    expect(toastTone.value).toBe('error')
   })
 
   it('ne rouvre rien quand le focus quitte un toast déjà fermé', () => {

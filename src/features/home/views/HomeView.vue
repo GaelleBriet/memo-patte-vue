@@ -11,6 +11,8 @@ import { usePhotoUrls } from '@/core/photos/use-photo-urls'
 import illustration from '@/assets/brand-illustration.png'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import ImportSheet from '@/features/settings/views/ImportSheet.vue'
+import TreatmentReminderSheet from '@/features/treatments/views/TreatmentReminderSheet.vue'
+import VaccinationReminderSheet from '@/features/vaccinations/views/VaccinationReminderSheet.vue'
 import WeightSheet from '@/features/weight/views/WeightSheet.vue'
 import AnimalChipSelector, { type AnimalChipItem } from '@/shared/components/AnimalChipSelector.vue'
 import DueStatusChip from '@/shared/components/DueStatusChip.vue'
@@ -23,6 +25,7 @@ import {
   reminderRows,
   scopeCounter,
   upToDateText,
+  type ReminderRow,
 } from '../logic/home-summary'
 import { currentAnimalId } from '../logic/current-animal'
 import { buildTodo } from '../logic/todo-window'
@@ -104,6 +107,15 @@ type FormRoute = 'treatment-new' | 'vaccination-new'
 const pendingForm = ref<FormRoute | null>(null)
 const isPickerOpen = ref(false)
 const isWeightSheetOpen = ref(false)
+const openedReminder = ref<Pick<ReminderRow, 'kind' | 'id'> | null>(null)
+const isTreatmentSheetOpen = ref(false)
+const isVaccinationSheetOpen = ref(false)
+
+function openReminder(row: ReminderRow): void {
+  openedReminder.value = { kind: row.kind, id: row.id }
+  if (row.kind === 'treatment') isTreatmentSheetOpen.value = true
+  else isVaccinationSheetOpen.value = true
+}
 
 function openForm(name: FormRoute): void {
   const animalId = currentId.value
@@ -232,24 +244,30 @@ function openCarnet(): void {
         </template>
 
         <template v-if="rows.length > 0" #default>
-          <div
+          <button
             v-for="row in rows"
             :key="row.id"
+            type="button"
             class="section-card__row reminder-row"
             :class="`reminder-row--${row.status}`"
+            :aria-label="row.ariaLabel"
+            @click="openReminder(row)"
           >
             <v-icon class="reminder-row__icon" :icon="row.icon" size="24" />
-            <div class="reminder-row__text">
-              <p class="reminder-row__title">{{ row.title }}</p>
-              <p v-if="row.animalName" class="reminder-row__animal">{{ row.animalName }}</p>
-            </div>
-            <DueStatusChip
-              class="reminder-row__badge"
-              :status="row.status"
-              :label="row.badge.text"
-              :icon="row.badge.icon"
-            />
-          </div>
+            <span class="reminder-row__text">
+              <span class="reminder-row__title">{{ row.title }}</span>
+              <span class="reminder-row__subtitle">{{ row.subtitle }}</span>
+            </span>
+            <span class="reminder-row__end">
+              <DueStatusChip
+                class="reminder-row__badge"
+                :status="row.status"
+                :label="row.badge.text"
+                :icon="row.badge.icon"
+              />
+              <v-icon class="reminder-row__chevron" icon="ms:chevron_right" size="22" />
+            </span>
+          </button>
         </template>
       </SectionCard>
 
@@ -273,6 +291,16 @@ function openCarnet(): void {
 
       <AnimalPickerSheet v-model="isPickerOpen" :animals="chips" @pick="onAnimalPicked" />
       <WeightSheet v-model="isWeightSheetOpen" :animal-id="currentId" />
+      <TreatmentReminderSheet
+        v-model="isTreatmentSheetOpen"
+        :treatment-id="openedReminder?.kind === 'treatment' ? openedReminder.id : null"
+        @changed="load"
+      />
+      <VaccinationReminderSheet
+        v-model="isVaccinationSheetOpen"
+        :vaccination-id="openedReminder?.kind === 'vaccination' ? openedReminder.id : null"
+        @changed="load"
+      />
     </template>
 
     <div v-else-if="isLoading" class="home-loading" role="status" :aria-label="t('home.loading')">
@@ -429,10 +457,45 @@ function openCarnet(): void {
   // pas côte à côte : le badge passe dessous plutôt que le mot soit coupé en deux.
   flex-wrap: wrap;
   gap: 14px;
+  width: 100%;
+  padding-inline-end: 12px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
+  text-align: start;
+  cursor: pointer;
+
+  @media (hover: hover) {
+    &:hover {
+      background: rgba(var(--v-theme-primary), 0.04);
+    }
+  }
+
+  &:focus-visible {
+    outline: none;
+    background: rgba(var(--v-theme-primary), 0.06);
+  }
+}
+
+.reminder-row + .reminder-row {
+  border-top: 1px solid tokens.$color-divider;
+}
+
+.reminder-row__end {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-inline-start: auto;
 }
 
 .reminder-row__badge {
   margin-inline-start: auto;
+}
+
+.reminder-row__chevron {
+  flex: 0 0 auto;
+  color: tokens.$color-settings-chevron;
 }
 
 .reminder-row--overdue::before {
@@ -459,6 +522,7 @@ function openCarnet(): void {
 }
 
 .reminder-row__title {
+  display: block;
   margin: 0;
   // `anywhere` ramenait la largeur minimale du titre à zéro : la colonne cédait au
   // badge et coupait « Antiparasitaire » en deux dès 360 px.
@@ -467,7 +531,8 @@ function openCarnet(): void {
   font-weight: 700;
 }
 
-.reminder-row__animal {
+.reminder-row__subtitle {
+  display: block;
   margin: 2px 0 0;
   color: tokens.$color-text-secondary;
   font-size: 13px;
