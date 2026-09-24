@@ -779,29 +779,44 @@ Une requête par repository, testée.
   `NULL` et prochaine dose choisie, écrite sur la prise de tête (F9 ter).
 - **Renommer** (et produit de #283, porté par le parent) : mise à jour du parent seul ; l'historique
   suit, les identifiants de route et de notification (ceux du parent) ne changent jamais.
+- **Supprimer un vaccin ou un traitement** : la même `deleted_at` est posée sur le parent et sur tous
+  ses événements, dans un seul `runMany` (le patron de la suppression d'un animal).
+  **Supprimer un animal** : les repositories des deux tables d'événements rejoignent la liste
+  `records` de `animal-deletion.service.ts`. À l'import, la règle « revient avec son animal » gagne un
+  étage : un événement supprimé en même temps que son parent revient avec lui.
 - Tests par geste, dont : changement de fréquence seul ; changement de fréquence avec report dans la
   même saisie ; reprise d'un traitement arrêté. Chacun vérifie que les deux lignes ont bougé.
 
 ### 10.5 Rappels
 
 Calculés depuis la tête de chaque parent non supprimé et non arrêté. Notifications identifiées par le
-parent, comme aujourd'hui ; `syncAllReminders` garde son sens.
+parent, comme aujourd'hui ; `syncAllReminders` garde son sens. L'échéance arrivant désormais avec
+l'événement, `REMINDER_ENTITIES` (`core/sync/service/sync-cycle.ts`) doit inclure
+`vaccination_injection` et `treatment_dose` : sinon un « fait » reçu de l'autre téléphone ne
+reprogramme rien.
 
 ### 10.6 Export et import
 
 Format **v2** : parents et événements. L'import accepte v1 (un événement par ligne v1, par un
-adaptateur) et v2. Une échéance importée n'est jamais recalculée (décision du 2026-09-16, intacte).
+adaptateur) et v2. Dans l'adaptateur v1, **l'identifiant de l'événement est celui du parent**, comme à
+la migration, pour qu'importer deux fois le même fichier ne duplique pas l'historique ; une prise v1
+recopie la fréquence de son traitement. Deux refus nouveaux, fichier entier refusé comme les refus
+existants : un événement dont le parent n'est pas dans le fichier ni sur l'appareil, et un événement
+dont l'animal diffère de celui de son parent. Une échéance importée n'est jamais recalculée (décision du 2026-09-16, intacte).
 PDF : prises répétées regroupées ; JSON : chaque événement ; CSV : une ligne par événement.
 
 ### 10.7 Synchro
 
 Deux tables synchronisables de plus, tirées après leur parent (ordre des clés étrangères déjà
-appliqué au pull). Deux « fait » simultanés donnent deux événements, et la tête est déterminée
+appliqué au pull) : à ajouter dans `ENTITY_ORDER` (`core/sync/repository/sync-outbox.repository.ts`),
+dans la liste `tables` de `src/app/sync.ts` et dans l'amorçage de #83. Deux « fait » simultanés donnent deux événements, et la tête est déterminée
 partout pareil ; un renommage et un « fait » simultanés se composent (le nom de l'un, l'échéance de
 l'autre).
 
-**Reporté à l'activation de la synchro (#83), à ne pas oublier** — réconciliation à la fin d'un pull
-et d'un import, au même endroit que `syncAllReminders` : pour chaque traitement en cours, si la
+**Réconciliation des prises à fréquence périmée, à ne pas oublier.** Elle vaut dès aujourd'hui pour
+l'**import** (fusionner les exports de deux téléphones produit le même cas) : cette part va dans le
+ticket 4. La part **après un pull** attend l'activation de la synchro (#83, ticket 5). Même règle
+dans les deux cas, au même endroit que `syncAllReminders` : pour chaque traitement en cours, si la
 fréquence recopiée sur la prise de tête diffère de celle du plan (fréquence changée sur un appareil
 pendant qu'un autre notait une prise), recalculer `next_due_date` depuis `given_on` avec la fréquence
 du plan, recopier la fréquence et avancer `updated_at` ; les appareils font le même calcul et
@@ -822,9 +837,39 @@ tête — la plus récente gagne. Rare, visible, corrigé par la prise suivante.
 ### 10.9 Ordre des tickets
 
 1. Migration v6 et repositories (parents, événements, tête), sans changement visible.
-2. Service « fait » et feuilles F2 à F6 (dont le bouton « Annuler » du toast), fenêtre J+29,
+2. Service « fait » et feuilles F2 à F6 (dont le bouton « Annuler » du toast), fenêtre J+29
+   (**changement voulu** du J+30 inclus livré par #344, décision du 2026-09-24 : son test change),
    « Date ou fréquence », titre de ligne = nom du produit (F1).
 3. Détail d'un vaccin et d'un traitement dans le Carnet, historique, traitements terminés (F7 à F9).
-4. Export v2 et adaptateur v1, PDF regroupé, CSV.
-5. Synchro des deux tables (miroirs Postgres, ports).
+4. Export v2 et adaptateur v1, PDF regroupé, CSV, réconciliation après import.
+5. Synchro des deux tables (miroirs Postgres, ports, listes de la synchro) ; réconciliation après un
+   pull avec l'activation de la synchro (#83).
 6. Bouton « C'est fait » des notifications (F10 corrigée : l'app s'ouvre).
+
+### 10.10 Pièges pour le ticket 1 (migration v6)
+
+- **Les clés étrangères sont actives pendant les migrations** : le plugin les active à l'ouverture,
+  avant de jouer les migrations (`setForeignKeyConstraintsEnabled(true)`, vérifié dans
+  `@capacitor-community/sqlite`). Un `DROP TABLE vaccination` alors qu'une table enfant la référence
+  ferait un `DELETE` implicite et déclencherait `ON DELETE CASCADE` : les injections tout juste copiées
+  disparaîtraient. Ordre sûr, sans toucher au `PRAGMA` :
+
+  ```sql
+  DROP TRIGGER vaccination_outbox_insert; DROP TRIGGER vaccination_outbox_update;
+  DROP INDEX idx_vaccination_animal_id;
+  ALTER TABLE vaccination RENAME TO vaccination_old;
+  CREATE TABLE IF NOT EXISTS vaccination (...);            -- sous son nom définitif
+  INSERT INTO vaccination SELECT ... FROM vaccination_old;
+  CREATE TABLE IF NOT EXISTS vaccination_injection (... REFERENCES vaccination(id) ...);
+  INSERT INTO vaccination_injection SELECT ... FROM vaccination_old;
+  DROP TABLE vaccination_old;                              -- plus rien ne la référence
+  -- puis index, et déclencheurs d'outbox des quatre tables (deux reconstruites, deux nouvelles)
+  ```
+
+  Même séquence pour `treatment`.
+
+- **Créer les tables sous leur nom définitif** (`CREATE TABLE IF NOT EXISTS <nom>`) : `clear-all-tables.ts`
+  retrouve les tables en lisant les `CREATE TABLE` des migrations ; une table créée sous un nom
+  temporaire puis renommée y laisserait une table fantôme.
+- Tester la migration sur une base v5 remplie (vaccins, traitements, pesées, file d'outbox), avec les
+  clés étrangères actives : aucune ligne perdue, identifiants conservés, déclencheurs recréés.

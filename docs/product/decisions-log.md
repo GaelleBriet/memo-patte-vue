@@ -1607,8 +1607,16 @@ justifie est un cache à tenir à jour sur plusieurs chemins d'écriture, que la
 le dériver supprime le risque sans changer le sens des lignes existantes ni leurs lecteurs. —
 Alternatives écartées : deux tables d'historique avec résumé stocké sur le parent (approche 1) ; une
 nouvelle ligne `vaccination` par injection (approche 2), qui change le sens de la table pour tous ses
-lecteurs et donne deux modèles différents pour vaccins et traitements. — **Reporté à l'activation de la
-synchro (#83)** : la réconciliation des prises calculées avec une fréquence périmée (§10.7). **Accepté** :
+lecteurs et donne deux modèles différents pour vaccins et traitements. — **Réconciliation des prises calculées avec une fréquence périmée** (§10.7) : après un import dès le
+ticket d'export (la fusion de deux exports produit le cas), après un pull avec l'activation de la
+synchro (#83). **Accepté** :
 un report et un changement de fréquence concurrents sur deux appareils, la plus récente gagne. — Pour
 revenir dessus : rien n'est encore codé à cette date.
+
+2026-09-24 — **Unité de poids** (#352), maquette `docs/design/courbes-poids/` : kg et lb seulement ;
+**unité par défaut lb si la région du téléphone est les États-Unis, kg ailleurs** (la maquette disait
+kg partout, la décision est gardée) ; les pesées restent stockées en kg ; **JSON toujours en kg**,
+**CSV dans l'unité choisie avec l'unité dans le titre de colonne** (« Poids (lb) »), PDF dans l'unité
+choisie. — Raison : seul le JSON se réimporte, et un tableur lit l'unité dans le titre de colonne. —
+Alternative écartée : CSV toujours en kg (décision du matin, corrigée à la lecture de la maquette).
 
