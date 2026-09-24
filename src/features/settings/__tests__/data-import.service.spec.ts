@@ -315,6 +315,7 @@ describe('data-import.service', () => {
         MILO_ID,
         [
           repositories.vaccinations.markDeletedByAnimalStatement(MILO_ID, deletedAt),
+          createVaccinationInjectionsRepository().markDeletedByAnimalStatement(MILO_ID, deletedAt),
           repositories.weight.markDeletedByAnimalStatement(MILO_ID, deletedAt),
         ],
         deletedAt,

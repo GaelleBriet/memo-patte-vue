@@ -93,10 +93,7 @@ function byId<T extends { id: string }>(rows: readonly T[]): Map<string, T> {
   return new Map(rows.map((row) => [row.id, row]))
 }
 
-/**
- * Un fichier v1 ne porte que l'événement de tête : même identifiant que son parent, pour qu'un
- * second import ne le duplique pas.
- */
+// Même identifiant que le parent : importer deux fois le même fichier v1 ne duplique rien.
 function injectionOf(vaccination: ExportVaccination): PlannedInjection {
   return {
     id: vaccination.id,

@@ -189,6 +189,8 @@ export const migrations: DbMigration[] = [
       ...outboxTriggerStatements('vaccination_injection'),
       ...outboxTriggerStatements('treatment'),
       ...outboxTriggerStatements('treatment_dose'),
+      // Le plugin pose la version après le commit : posée ici, elle suit la transaction du schéma.
+      'PRAGMA user_version = 6',
     ],
   },
 ]

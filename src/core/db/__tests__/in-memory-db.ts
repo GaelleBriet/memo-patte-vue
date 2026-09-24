@@ -23,8 +23,8 @@ export async function createInMemoryDb(): Promise<InMemoryDb> {
 }
 
 /**
- * Reproduit `addUpgradeStatement`, injouable hors appareil : une transaction par version, une
- * instruction à la fois comme `execSQL` sur Android. Deux appels ne rejouent rien.
+ * Reproduit `addUpgradeStatement` : une transaction par version, une instruction à la fois comme
+ * `execSQL` sur Android, puis `user_version` posée après le commit. Deux appels ne rejouent rien.
  */
 export async function applyMigrations(
   db: DbClient,
@@ -35,10 +35,8 @@ export async function applyMigrations(
 
   for (const migration of migrations) {
     if (migration.toVersion <= currentVersion || migration.toVersion > targetVersion) continue
-    await db.runMany([
-      ...migration.statements.map((sql) => ({ sql })),
-      { sql: `PRAGMA user_version = ${migration.toVersion}` },
-    ])
+    await db.runMany(migration.statements.map((sql) => ({ sql })))
+    await db.execute(`PRAGMA user_version = ${migration.toVersion}`)
   }
 }
 

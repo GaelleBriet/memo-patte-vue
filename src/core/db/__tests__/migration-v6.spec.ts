@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { migrationTableNames } from '../clear-all-tables'
+import { migrations } from '../migrations'
 import { applyMigrations, createSqlJsDbClient, type InMemoryDb } from './in-memory-db'
 
 const MILO = '11111111-1111-4111-8111-111111111111'
@@ -85,6 +86,29 @@ describe('migration v6 : historique des vaccins et des traitements', () => {
 
   afterEach(() => {
     db.close()
+  })
+
+  async function userVersion(): Promise<number | undefined> {
+    const [version] = await db.query<{ user_version: number }>('PRAGMA user_version')
+    return version?.user_version
+  }
+
+  it('pose la version 6 dans sa propre transaction, sans attendre le plugin', async () => {
+    const v6 = migrations.find(({ toVersion }) => toVersion === 6)
+
+    await db.runMany((v6?.statements ?? []).map((sql) => ({ sql })))
+
+    expect(await userVersion()).toBe(6)
+  })
+
+  it('reste en version 5, schéma intact, quand une instruction de la v6 échoue', async () => {
+    await db.execute('CREATE TABLE treatment_old (id TEXT)')
+
+    await expect(applyMigrations(db)).rejects.toThrow(/treatment_old/)
+
+    expect(await userVersion()).toBe(5)
+    expect(await columnNames(db, 'vaccination')).toContain('last_injection_date')
+    expect(await tableNames(db)).not.toContain('vaccination_injection')
   })
 
   it('porte la base en version 6 sans laisser de table temporaire', async () => {
