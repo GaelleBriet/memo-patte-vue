@@ -5,17 +5,20 @@ import {
 } from '@/features/animals/repository/animals.repository'
 import type { Translate } from '@/shared/domain/due-reminders'
 import {
-  cancelDueReminders,
   reminderNotifications,
   replaceDueReminders,
   type ReminderNotifications,
 } from '@/shared/domain/due-reminders-schedule'
 import { vaccinationReminders } from '../logic/vaccination-reminders'
-import type { Vaccination } from '../schema/vaccination.schema'
+import {
+  getVaccinationsRepository,
+  type VaccinationsRepository,
+} from '../repository/vaccinations.repository'
 
 type Provider<T> = () => T | Promise<T>
 
 export type VaccinationRemindersDependencies = {
+  vaccinations: Provider<Pick<VaccinationsRepository, 'getById'>>
   animals: Provider<Pick<AnimalsRepository, 'getById'>>
   notifications: ReminderNotifications
   t: Translate
@@ -24,25 +27,21 @@ export type VaccinationRemindersDependencies = {
 
 /** Aucune méthode ne lève : un échec du plugin ne doit pas faire échouer l'écriture du vaccin. */
 export function createVaccinationRemindersService({
+  vaccinations,
   animals,
   notifications,
   t,
   now,
 }: VaccinationRemindersDependencies) {
   return {
-    async reschedule(vaccination: Vaccination): Promise<void> {
-      await replaceDueReminders(
-        notifications,
-        { kind: 'vaccination', id: vaccination.id },
-        async () => {
-          const animal = await (await animals()).getById(vaccination.animalId)
-          return vaccinationReminders(t, vaccination, animal, now())
-        },
-      )
-    },
-
-    async cancel(id: string): Promise<void> {
-      await cancelDueReminders(notifications, [{ kind: 'vaccination', id }])
+    /** Relit le vaccin dans la file des rappels : supprimé, il n'a plus de rappel. */
+    async reschedule(id: string): Promise<void> {
+      await replaceDueReminders(notifications, { kind: 'vaccination', id }, async () => {
+        const vaccination = await (await vaccinations()).getById(id)
+        if (vaccination === null) return []
+        const animal = await (await animals()).getById(vaccination.animalId)
+        return vaccinationReminders(t, vaccination, animal, now())
+      })
     },
   }
 }
@@ -50,6 +49,7 @@ export function createVaccinationRemindersService({
 export type VaccinationRemindersService = ReturnType<typeof createVaccinationRemindersService>
 
 export const vaccinationRemindersService = createVaccinationRemindersService({
+  vaccinations: getVaccinationsRepository,
   animals: getAnimalsRepository,
   notifications: reminderNotifications,
   t: i18n.global.t,

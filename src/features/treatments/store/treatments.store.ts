@@ -2,9 +2,19 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
 import {
+  treatmentDosesService,
+  type RecordedDose,
+  type TreatmentDosesService,
+} from '../service/treatment-doses.service'
+import {
   treatmentRemindersService,
   type TreatmentRemindersService,
 } from '../service/treatment-reminders.service'
+import {
+  treatmentStopService,
+  type StoppedTreatment,
+  type TreatmentStopService,
+} from '../service/treatment-stop.service'
 import type { Treatment, TreatmentInput, TreatmentUpdateInput } from '../schema/treatment.schema'
 import type { TreatmentsRepository as FullTreatmentsRepository } from '../repository/treatments.repository'
 import { track } from '@/core/analytics'
@@ -26,13 +36,31 @@ export function provideTreatmentsRepository(next: TreatmentsRepositoryProvider |
   provider = next
 }
 
-type TreatmentReminders = Pick<TreatmentRemindersService, 'reschedule' | 'cancel'>
+type TreatmentReminders = Pick<TreatmentRemindersService, 'reschedule'>
 
 let remindersProvider: () => TreatmentReminders = () => treatmentRemindersService
 
 /** `null` rétablit le service réel. */
 export function provideTreatmentRemindersService(next: (() => TreatmentReminders) | null): void {
   remindersProvider = next ?? (() => treatmentRemindersService)
+}
+
+type TreatmentDoses = Pick<TreatmentDosesService, 'record' | 'undo'>
+
+let dosesProvider: () => TreatmentDoses = () => treatmentDosesService
+
+/** `null` rétablit le service réel. */
+export function provideTreatmentDosesService(next: (() => TreatmentDoses) | null): void {
+  dosesProvider = next ?? (() => treatmentDosesService)
+}
+
+type TreatmentStop = Pick<TreatmentStopService, 'stop' | 'undo'>
+
+let stopProvider: () => TreatmentStop = () => treatmentStopService
+
+/** `null` rétablit le service réel. */
+export function provideTreatmentStopService(next: (() => TreatmentStop) | null): void {
+  stopProvider = next ?? (() => treatmentStopService)
 }
 
 export const useTreatmentsStore = defineStore('treatments', () => {
@@ -116,7 +144,7 @@ export const useTreatmentsStore = defineStore('treatments', () => {
       const created = await write(
         async (repository) => {
           const treatment = await repository.create(input)
-          await remindersProvider().reschedule(treatment)
+          await remindersProvider().reschedule(treatment.id)
           return treatment
         },
         (treatment) => treatment.animalId,
@@ -131,7 +159,7 @@ export const useTreatmentsStore = defineStore('treatments', () => {
       return write(
         async (repository) => {
           const updated = await repository.update(id, input)
-          await remindersProvider().reschedule(updated)
+          await remindersProvider().reschedule(id)
           return updated
         },
         (updated) => updated.animalId,
@@ -142,8 +170,37 @@ export const useTreatmentsStore = defineStore('treatments', () => {
       await write(
         async (repository) => {
           await repository.remove(id)
-          await remindersProvider().cancel(id)
+          await remindersProvider().reschedule(id)
         },
+        () => animalId.value,
+      )
+    },
+
+    /** Prise du jour ou d'un jour passé ; `doseId` vaut `null` si ce jour était déjà noté. */
+    async recordDose(treatmentId: string, givenOn: string): Promise<RecordedDose> {
+      return write(
+        () => dosesProvider().record(treatmentId, givenOn),
+        (recorded) => recorded.animalId,
+      )
+    },
+
+    async undoDose(treatmentId: string, doseId: string): Promise<void> {
+      await write(
+        () => dosesProvider().undo(treatmentId, doseId),
+        () => animalId.value,
+      )
+    },
+
+    async stop(treatmentId: string): Promise<StoppedTreatment> {
+      return write(
+        () => stopProvider().stop(treatmentId),
+        (stopped) => stopped.animalId,
+      )
+    },
+
+    async undoStop(treatmentId: string): Promise<void> {
+      await write(
+        () => stopProvider().undo(treatmentId),
         () => animalId.value,
       )
     },

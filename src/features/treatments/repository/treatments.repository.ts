@@ -188,6 +188,26 @@ export function createTreatmentsRepository(
       return requireVisible(id)
     },
 
+    /** Faux pour un traitement déjà arrêté, inconnu ou supprimé : rien n'est écrit. */
+    async stop(id: string, stoppedOn: string): Promise<boolean> {
+      const updatedAt = new Date().toISOString()
+      const changes = await db.run(
+        `UPDATE treatment SET stopped_on = ?, updated_at = ?
+         WHERE id = ? AND stopped_on IS NULL AND ${NOT_DELETED}`,
+        [stoppedOn, updatedAt, id],
+      )
+      return changes > 0
+    },
+
+    async undoStop(id: string): Promise<void> {
+      const updatedAt = new Date().toISOString()
+      await db.run(
+        `UPDATE treatment SET stopped_on = NULL, updated_at = ?
+         WHERE id = ? AND stopped_on IS NOT NULL AND ${NOT_DELETED}`,
+        [updatedAt, id],
+      )
+    },
+
     /** Sans effet sur un traitement inconnu ou déjà supprimé : la date initiale est gardée. */
     async remove(id: string): Promise<void> {
       const deletedAt = new Date().toISOString()

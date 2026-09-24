@@ -32,9 +32,41 @@ export function headInjectionIdSql(vaccinationId: string): string {
            LIMIT 1)`
 }
 
-/** Ses écritures sont des instructions que le repository des vaccins ou un service joue. */
+/**
+ * Écrit seul une injection notée ou annulée ; ses autres écritures sont des instructions que le
+ * repository des vaccins ou un service joue.
+ */
 export function createVaccinationInjectionsRepository(db: DbClient) {
+  function insertStatement(injection: VaccinationInjection): SqlStatement {
+    return {
+      sql: `INSERT INTO vaccination_injection (${COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      params: [
+        injection.id,
+        injection.vaccinationId,
+        injection.animalId,
+        injection.injectedOn,
+        injection.nextDueDate,
+        injection.createdAt,
+        injection.updatedAt,
+        injection.deletedAt,
+      ],
+    }
+  }
+
   return {
+    async record(injection: VaccinationInjection): Promise<void> {
+      const { sql, params } = insertStatement(injection)
+      await db.run(sql, params)
+    },
+
+    /** Sans effet sur une injection déjà supprimée : sa date de suppression est gardée. */
+    async remove(id: string, deletedAt: string): Promise<void> {
+      await db.run(
+        `UPDATE vaccination_injection SET deleted_at = ?, updated_at = ? WHERE id = ? AND ${NOT_DELETED}`,
+        [deletedAt, deletedAt, id],
+      )
+    },
+
     /** Lignes supprimées comprises : l'import rattache un fichier aux injections déjà en base. */
     async listVersions(): Promise<VaccinationInjectionVersion[]> {
       const rows = await db.query<InjectionVersionRow>(
@@ -49,21 +81,7 @@ export function createVaccinationInjectionsRepository(db: DbClient) {
       }))
     },
 
-    insertStatement(injection: VaccinationInjection): SqlStatement {
-      return {
-        sql: `INSERT INTO vaccination_injection (${COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        params: [
-          injection.id,
-          injection.vaccinationId,
-          injection.animalId,
-          injection.injectedOn,
-          injection.nextDueDate,
-          injection.createdAt,
-          injection.updatedAt,
-          injection.deletedAt,
-        ],
-      }
-    },
+    insertStatement,
 
     updateHeadStatement(
       vaccinationId: string,

@@ -39,12 +39,15 @@ const CHPPI: Vaccination = {
 
 let notifications: FakeNotifications
 let getById: ReturnType<typeof vi.fn<(id: string) => Promise<Animal | null>>>
+let getVaccination: ReturnType<typeof vi.fn<(id: string) => Promise<Vaccination | null>>>
 let service: VaccinationRemindersService
 
 beforeEach(() => {
   notifications = createFakeNotifications()
   getById = vi.fn<(id: string) => Promise<Animal | null>>().mockResolvedValue(MILO)
+  getVaccination = vi.fn<(id: string) => Promise<Vaccination | null>>().mockResolvedValue(CHPPI)
   service = createVaccinationRemindersService({
+    vaccinations: () => ({ getById: getVaccination }),
     animals: () => ({ getById }),
     notifications,
     t: i18n.global.t,
@@ -57,8 +60,9 @@ describe('vaccinationRemindersService', () => {
     const stale = `vaccination:${CHPPI.id}:2026-09-20:due`
     notifications.pending.set(stale, { key: stale, title: '', body: '', at: new Date() })
 
-    await service.reschedule(CHPPI)
+    await service.reschedule(CHPPI.id)
 
+    expect(getVaccination).toHaveBeenCalledWith(CHPPI.id)
     expect(getById).toHaveBeenCalledWith(MILO.id)
     expect([...notifications.pending.keys()]).toEqual([
       `vaccination:${CHPPI.id}:2026-10-15:before`,
@@ -80,14 +84,18 @@ describe('vaccinationRemindersService', () => {
     const stale = `vaccination:${CHPPI.id}:2026-10-15:due`
     notifications.pending.set(stale, { key: stale, title: '', body: '', at: new Date() })
 
-    await service.reschedule({ ...CHPPI, dueDate: null })
+    getVaccination.mockResolvedValue({ ...CHPPI, dueDate: null })
+
+    await service.reschedule(CHPPI.id)
 
     expect(notifications.pending.size).toBe(0)
     expect(notifications.scheduleReminders).not.toHaveBeenCalled()
   })
 
   it('programme les trois rappels d’un vaccin dont l’échéance est dans huit mois', async () => {
-    await service.reschedule({ ...CHPPI, dueDate: '2027-05-15' })
+    getVaccination.mockResolvedValue({ ...CHPPI, dueDate: '2027-05-15' })
+
+    await service.reschedule(CHPPI.id)
 
     expect([...notifications.pending.keys()]).toEqual([
       `vaccination:${CHPPI.id}:2027-05-15:before`,
@@ -99,7 +107,7 @@ describe('vaccinationRemindersService', () => {
   it('ne programme rien quand l’animal n’existe plus', async () => {
     getById.mockResolvedValue(null)
 
-    await service.reschedule(CHPPI)
+    await service.reschedule(CHPPI.id)
 
     expect(notifications.scheduleReminders).not.toHaveBeenCalled()
   })
@@ -107,18 +115,20 @@ describe('vaccinationRemindersService', () => {
   it('ne lit pas la base sans permission', async () => {
     notifications.checkPermission.mockResolvedValue(false)
 
-    await service.reschedule(CHPPI)
+    await service.reschedule(CHPPI.id)
 
+    expect(getVaccination).not.toHaveBeenCalled()
     expect(getById).not.toHaveBeenCalled()
     expect(notifications.scheduleReminders).not.toHaveBeenCalled()
   })
 
-  it('annule les rappels d’un vaccin supprimé', async () => {
-    await service.reschedule(CHPPI)
+  it('annule les rappels d’un vaccin supprimé, relu au moment de reprogrammer', async () => {
+    await service.reschedule(CHPPI.id)
+    getVaccination.mockResolvedValue(null)
 
-    await service.cancel(CHPPI.id)
+    await service.reschedule(CHPPI.id)
 
-    expect(notifications.cancelReminders.mock.calls[0]?.[0]).toHaveLength(3)
+    expect(notifications.cancelReminders.mock.calls.at(-1)?.[0]).toHaveLength(3)
     expect(notifications.pending.size).toBe(0)
   })
 })

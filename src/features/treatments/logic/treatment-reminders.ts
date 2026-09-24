@@ -23,7 +23,7 @@ import type { Treatment, TreatmentFrequency } from '../schema/treatment.schema'
 
 type RemindedTreatment = Pick<
   Treatment,
-  'id' | 'name' | 'type' | 'frequency' | 'nextDueDate' | 'deletedAt'
+  'id' | 'name' | 'type' | 'frequency' | 'nextDueDate' | 'stoppedOn' | 'deletedAt'
 >
 
 /** Un cycle sous-estimé suffit : les cycles déjà passés sont ensuite sautés un à un. */
@@ -63,7 +63,8 @@ export function treatmentReminders(
   animal: Pick<Animal, 'name' | 'deletedAt'> | null,
   now: Date,
 ): Reminder[] {
-  if (treatment.deletedAt !== null || animal === null || animal.deletedAt !== null) return []
+  if (treatment.deletedAt !== null || treatment.stoppedOn !== null) return []
+  if (animal === null || animal.deletedAt !== null) return []
 
   const named = {
     type: t(`treatments.type.${treatment.type}`, {}),

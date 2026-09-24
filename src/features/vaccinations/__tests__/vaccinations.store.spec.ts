@@ -3,9 +3,11 @@ import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 
 import type { Vaccination, VaccinationInput } from '../schema/vaccination.schema'
+import type { VaccinationInjectionsService } from '../service/vaccination-injections.service'
 import type { VaccinationRemindersService } from '../service/vaccination-reminders.service'
 import type { VaccinationsRepository } from '../repository/vaccinations.repository'
 import {
+  provideVaccinationInjectionsService,
   provideVaccinationRemindersService,
   provideVaccinationsRepository,
   useVaccinationsStore,
@@ -37,7 +39,6 @@ const MILO_ANIMAL: Animal = {
 let repository: FakeVaccinationsRepository
 let reminders: {
   reschedule: Mock<VaccinationRemindersService['reschedule']>
-  cancel: Mock<VaccinationRemindersService['cancel']>
 }
 
 beforeEach(() => {
@@ -47,7 +48,6 @@ beforeEach(() => {
   provideVaccinationsRepository(() => repository)
   reminders = {
     reschedule: vi.fn<VaccinationRemindersService['reschedule']>().mockResolvedValue(),
-    cancel: vi.fn<VaccinationRemindersService['cancel']>().mockResolvedValue(),
   }
   provideVaccinationRemindersService(() => reminders)
 })
@@ -282,7 +282,7 @@ describe('useVaccinationsStore', () => {
 
     const created = await store.create(rage(MILO, { dueDate: '2027-03-12' }))
 
-    expect(reminders.reschedule).toHaveBeenCalledWith(created)
+    expect(reminders.reschedule).toHaveBeenCalledWith(created.id)
   })
 
   it('reprogramme les rappels du vaccin modifié', async () => {
@@ -295,18 +295,18 @@ describe('useVaccinationsStore', () => {
       dueDate: '2027-03-12',
     })
 
-    expect(reminders.reschedule).toHaveBeenCalledWith(updated)
+    expect(reminders.reschedule).toHaveBeenCalledWith(updated.id)
   })
 
-  it('annule les rappels du vaccin supprimé, après l’écriture en base', async () => {
+  it('reprogramme, donc retire, les rappels du vaccin supprimé, après l’écriture en base', async () => {
     const seme = repository.seed(rage())
     const store = useVaccinationsStore()
 
     await store.remove(seme.id)
 
-    expect(reminders.cancel).toHaveBeenCalledWith(seme.id)
+    expect(reminders.reschedule).toHaveBeenCalledWith(seme.id)
     expect(repository.remove.mock.invocationCallOrder[0]).toBeLessThan(
-      reminders.cancel.mock.invocationCallOrder[0]!,
+      reminders.reschedule.mock.invocationCallOrder[0]!,
     )
   })
 
@@ -320,7 +320,6 @@ describe('useVaccinationsStore', () => {
     await expect(store.remove(seme.id)).rejects.toThrow('base verrouillée')
 
     expect(reminders.reschedule).not.toHaveBeenCalled()
-    expect(reminders.cancel).not.toHaveBeenCalled()
   })
 
   it('propage l’erreur d’une création et garde la liste intacte', async () => {
@@ -382,6 +381,47 @@ describe('useVaccinationsStore', () => {
 
     await expect(store.create(rage())).rejects.toThrow('provideVaccinationsRepository')
     await expect(store.getById(MILO)).rejects.toThrow('provideVaccinationsRepository')
+  })
+})
+
+describe('useVaccinationsStore — injection notée', () => {
+  const injections = {
+    record: vi.fn<VaccinationInjectionsService['record']>(),
+    undo: vi.fn<VaccinationInjectionsService['undo']>().mockResolvedValue(),
+  }
+
+  beforeEach(() => {
+    provideVaccinationInjectionsService(() => injections)
+  })
+
+  afterEach(() => {
+    provideVaccinationInjectionsService(null)
+    vi.clearAllMocks()
+  })
+
+  it('note une injection par son service puis relit la liste affichée de l’animal', async () => {
+    const seme = repository.seed(rage())
+    const store = useVaccinationsStore()
+    await store.loadForAnimal(MILO)
+    injections.record.mockResolvedValue({ animalId: MILO, injectionId: 'i1' })
+    repository.listByAnimal.mockClear()
+
+    const input = { injectedOn: '2026-09-23', nextDueDate: '2027-09-23' }
+    await expect(store.recordInjection(seme.id, input)).resolves.toEqual({
+      animalId: MILO,
+      injectionId: 'i1',
+    })
+
+    expect(injections.record).toHaveBeenCalledWith(seme.id, input)
+    expect(repository.listByAnimal).toHaveBeenCalledWith(MILO)
+  })
+
+  it('annule une injection par son service', async () => {
+    const store = useVaccinationsStore()
+
+    await store.undoInjection('v1', 'i1')
+
+    expect(injections.undo).toHaveBeenCalledWith('v1', 'i1')
   })
 })
 

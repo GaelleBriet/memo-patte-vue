@@ -597,6 +597,45 @@ describe('treatmentsRepository — prises', () => {
     })
   })
 
+  it('arrête un traitement à une date, puis annule l’arrêt', async () => {
+    vi.useFakeTimers({ now: new Date('2026-09-24T10:00:00.000Z') })
+    const created = await repository.create(bravecto)
+    vi.advanceTimersByTime(60_000)
+
+    await expect(repository.stop(created.id, '2026-09-24')).resolves.toBe(true)
+
+    await expect(repository.getById(created.id)).resolves.toMatchObject({
+      stoppedOn: '2026-09-24',
+      updatedAt: '2026-09-24T10:01:00.000Z',
+    })
+
+    vi.advanceTimersByTime(60_000)
+    await repository.undoStop(created.id)
+
+    await expect(repository.getById(created.id)).resolves.toMatchObject({
+      stoppedOn: null,
+      updatedAt: '2026-09-24T10:02:00.000Z',
+    })
+  })
+
+  it('n’arrête pas de nouveau un traitement déjà arrêté : sa date d’arrêt est gardée', async () => {
+    const created = await repository.create(bravecto)
+    await repository.stop(created.id, '2026-09-01')
+
+    await expect(repository.stop(created.id, '2026-09-24')).resolves.toBe(false)
+
+    await expect(repository.getById(created.id)).resolves.toMatchObject({
+      stoppedOn: '2026-09-01',
+    })
+  })
+
+  it('n’arrête pas un traitement supprimé', async () => {
+    const created = await repository.create(bravecto)
+    await repository.remove(created.id)
+
+    await expect(repository.stop(created.id, '2026-09-24')).resolves.toBe(false)
+  })
+
   it('ne montre pas un traitement sans prise visible', async () => {
     await insertRaw(db, { id: 'sans-prise' })
 
