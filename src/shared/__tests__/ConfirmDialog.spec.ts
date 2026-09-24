@@ -104,6 +104,19 @@ describe('ConfirmDialog', () => {
     await vi.waitFor(() => expect(document.activeElement).toBe(bouton('cancel')))
   })
 
+  it('rend le focus au bouton qui l’a ouvert quand on annule', async () => {
+    const declencheur = document.createElement('button')
+    document.body.append(declencheur)
+    declencheur.focus()
+    await monter({ modelValue: false })
+    await wrapper!.setProps({ modelValue: true })
+    await vi.waitFor(() => expect(document.activeElement).toBe(bouton('cancel')))
+
+    bouton('cancel').click()
+
+    await vi.waitFor(() => expect(document.activeElement).toBe(declencheur))
+  })
+
   it('confirme en fermant le dialogue', async () => {
     await monter()
 

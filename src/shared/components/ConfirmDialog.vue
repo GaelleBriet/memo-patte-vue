@@ -27,6 +27,8 @@ const open = defineModel<boolean>({ default: false })
 const cancelButton = useTemplateRef<{ $el: HTMLElement }>('cancelButton')
 
 let releaseBackButton: (() => void) | null = null
+let opener: HTMLElement | null = null
+let confirmed = false
 
 function releaseBack(): void {
   releaseBackButton?.()
@@ -39,7 +41,10 @@ watch(
   open,
   (isOpen) => {
     releaseBack()
-    if (isOpen) releaseBackButton = onBackButton(close)
+    if (!isOpen) return
+    releaseBackButton = onBackButton(close)
+    opener = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    confirmed = false
   },
   { immediate: true },
 )
@@ -52,12 +57,19 @@ function focusCancel(): void {
   cancelButton.value?.$el.focus({ preventScroll: true })
 }
 
+// Après une confirmation, c'est l'écran appelant qui décide où va le focus.
+function restoreFocus(): void {
+  if (!confirmed && opener?.isConnected) opener.focus({ preventScroll: true })
+  opener = null
+}
+
 function cancel(): void {
   close()
   emit('cancel')
 }
 
 function confirm(): void {
+  confirmed = true
   close()
   emit('confirm')
 }
@@ -71,6 +83,7 @@ function confirm(): void {
     max-width="340"
     :aria-label="props.title"
     @after-enter="focusCancel"
+    @after-leave="restoreFocus"
   >
     <div class="confirm-dialog__panel" :class="`confirm-dialog__panel--${props.tone}`">
       <h2 class="confirm-dialog__title">{{ props.title }}</h2>

@@ -359,4 +359,16 @@ describe('TreatmentReminderSheet — F6, arrêter', () => {
     expect(stop).not.toHaveBeenCalled()
     expect(sheet.emitted('update:modelValue')).toBeUndefined()
   })
+
+  it('rend le focus à « Arrêter ce traitement » après « Annuler »', async () => {
+    await monter()
+    const arreter = bouton('.treatment-reminder-sheet__stop')
+    arreter.focus()
+
+    arreter.click()
+    await vi.waitFor(() => expect(document.activeElement).toBe(bouton('.confirm-dialog__cancel')))
+    bouton('.confirm-dialog__cancel').click()
+
+    await vi.waitFor(() => expect(document.activeElement).toBe(arreter))
+  })
 })
