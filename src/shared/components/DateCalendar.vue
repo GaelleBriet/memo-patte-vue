@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { format, parseISO } from 'date-fns'
-import { computed, ref } from 'vue'
+import { computed, onScopeDispose, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+
+import { onBackButton } from '@/core/app-lifecycle/back-button'
 
 const props = withDefaults(
   defineProps<{
@@ -37,6 +39,20 @@ function toggleYears(openYears: () => void): void {
   closingYears = viewMode.value === 'year'
   openYears()
 }
+
+let releaseBackButton: (() => void) | null = null
+
+function releaseBack(): void {
+  releaseBackButton?.()
+  releaseBackButton = null
+}
+
+onScopeDispose(releaseBack)
+
+watch(viewMode, (mode) => {
+  releaseBack()
+  if (mode !== 'month') releaseBackButton = onBackButton(() => (viewMode.value = 'month'))
+})
 
 const selected = computed({
   get: () => toDate(model.value) ?? null,
@@ -74,7 +90,7 @@ const selected = computed({
           <button
             type="button"
             class="date-calendar__month"
-            :aria-label="t('calendar.pickMonthYear')"
+            :aria-label="t('calendar.pickMonthYear', { month: monthYearText })"
             :aria-expanded="viewMode !== 'month'"
             @click="toggleYears(openYears)"
           >

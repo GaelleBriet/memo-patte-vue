@@ -1,11 +1,28 @@
+import { App, type BackButtonListenerEvent } from '@capacitor/app'
+import { Capacitor, type PluginListenerHandle } from '@capacitor/core'
 import { flushPromises, mount } from '@vue/test-utils'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi, type Mock } from 'vitest'
 
 import DateCalendar from '../components/DateCalendar.vue'
+import { installBackButton, onBackButton } from '@/core/app-lifecycle/back-button'
 import i18n, { applyLocale } from '@/core/i18n'
 import vuetify from '@/core/theme/vuetify'
 
-afterEach(() => applyLocale('fr'))
+type BackListener = (event: BackButtonListenerEvent) => void
+
+vi.mock('@capacitor/app', () => ({
+  App: {
+    addListener: vi.fn<(event: string, callback: BackListener) => Promise<PluginListenerHandle>>(
+      async () => ({ remove: async () => {} }),
+    ),
+    minimizeApp: vi.fn<() => Promise<void>>(async () => {}),
+  },
+}))
+
+afterEach(() => {
+  applyLocale('fr')
+  vi.restoreAllMocks()
+})
 
 async function monter(props: Record<string, unknown>) {
   const wrapper = mount(DateCalendar, {
@@ -41,6 +58,9 @@ describe('DateCalendar', () => {
     const wrapper = await monter({ modelValue: '2026-09-20' })
 
     expect(wrapper.get('.date-calendar__month').text()).toBe('September 2026')
+    expect(wrapper.get('.date-calendar__month').attributes('aria-label')).toBe(
+      'September 2026, choose the month and year',
+    )
     expect(wrapper.get('.date-calendar__nav--next').attributes('aria-label')).toBe('Next month')
     wrapper.unmount()
   })
@@ -64,7 +84,7 @@ describe('DateCalendar', () => {
       }))
     }
 
-    it('ouvre les années par un titre nommé pour le lecteur d’écran', async () => {
+    it('ouvre les années par un titre dont le nom commence par le mois affiché', async () => {
       const wrapper = await monter({
         modelValue: '2026-09-20',
         min: '2024-05-10',
@@ -73,7 +93,9 @@ describe('DateCalendar', () => {
 
       const titre = wrapper.get('.date-calendar__month')
       expect(titre.element.tagName).toBe('BUTTON')
-      expect(titre.attributes('aria-label')).toBe('Choisir le mois et l’année')
+      expect(titre.attributes('aria-label')).toBe('septembre 2026, choisir le mois et l’année')
+      await wrapper.get('.date-calendar__nav--previous').trigger('click')
+      expect(titre.attributes('aria-label')).toBe('août 2026, choisir le mois et l’année')
       await titre.trigger('click')
 
       expect(annees(wrapper)).toEqual([
@@ -123,6 +145,39 @@ describe('DateCalendar', () => {
         .findAll('.v-date-picker-months .v-btn')
         .map((bouton) => bouton.attributes('disabled') === undefined)
       expect(debut).toEqual([false, false, false, false, ...Array(8).fill(true)])
+      wrapper.unmount()
+    })
+
+    it('revient aux jours au retour Android, avant l’écran qui porte le calendrier', async () => {
+      vi.spyOn(Capacitor, 'isNativePlatform').mockReturnValue(true)
+      const desinstaller = installBackButton()
+      const retour = (vi.mocked(App.addListener) as Mock).mock.calls.at(-1)![1] as BackListener
+      const ecran = vi.fn<() => void>()
+      const libererEcran = onBackButton(ecran)
+      const wrapper = await monter({
+        modelValue: '2026-09-20',
+        min: '2024-05-10',
+        max: '2026-09-23',
+      })
+
+      await wrapper.get('.date-calendar__month').trigger('click')
+      retour({ canGoBack: true })
+      await flushPromises()
+      expect(wrapper.find('.v-date-picker-years').exists()).toBe(false)
+      expect(wrapper.find('[data-v-date^="2026-09-20"]').exists()).toBe(true)
+
+      await wrapper.get('.date-calendar__month').trigger('click')
+      await wrapper.get('.v-date-picker-years [data-v-year="2025"]').trigger('click')
+      retour({ canGoBack: true })
+      await flushPromises()
+      expect(wrapper.find('.v-date-picker-months').exists()).toBe(false)
+      expect(wrapper.find('.v-date-picker-month').exists()).toBe(true)
+      expect(ecran).not.toHaveBeenCalled()
+
+      retour({ canGoBack: true })
+      expect(ecran).toHaveBeenCalledOnce()
+      libererEcran()
+      desinstaller()
       wrapper.unmount()
     })
 

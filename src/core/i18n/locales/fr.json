@@ -7,7 +7,7 @@
   "calendar": {
     "previousMonth": "Mois précédent",
     "nextMonth": "Mois suivant",
-    "pickMonthYear": "Choisir le mois et l’année"
+    "pickMonthYear": "{month}, choisir le mois et l’année"
   },
   "animals": {
     "chipSelector": {
