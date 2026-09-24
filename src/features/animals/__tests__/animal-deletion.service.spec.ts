@@ -6,10 +6,12 @@ import {
   createVaccinationsRepository,
   type VaccinationsRepository,
 } from '@/features/vaccinations/repository/vaccinations.repository'
+import { createVaccinationInjectionsRepository } from '@/features/vaccinations/repository/vaccination-injections.repository'
 import {
   createTreatmentsRepository,
   type TreatmentsRepository,
 } from '@/features/treatments/repository/treatments.repository'
+import { createTreatmentDosesRepository } from '@/features/treatments/repository/treatment-doses.repository'
 import {
   createWeightRepository,
   type WeightRepository,
@@ -63,7 +65,13 @@ describe('animalDeletionService', () => {
     photos = { deletePhoto: vi.fn<PhotoStorage['deletePhoto']>().mockResolvedValue() }
     service = createAnimalDeletionService(
       () => animals,
-      [() => vaccinations, () => weight, () => treatments],
+      [
+        () => vaccinations,
+        () => createVaccinationInjectionsRepository(db),
+        () => weight,
+        () => treatments,
+        () => createTreatmentDosesRepository(db),
+      ],
       { vaccinations: () => vaccinations, treatments: () => treatments, notifications },
       photos,
     )
@@ -187,6 +195,50 @@ describe('animalDeletionService', () => {
       { deleted_at: '2026-03-01T10:01:00.000Z', updated_at: '2026-03-01T10:01:00.000Z' },
     ])
     await expect(treatments.listByAnimal(vasco.id)).resolves.toEqual([vascoTreatment])
+  })
+
+  it('marque les injections et les prises de l’animal avec la même date, sans toucher celles des autres', async () => {
+    vi.useFakeTimers({ now: new Date('2026-03-01T10:00:00.000Z') })
+    const miette = await animals.create({ name: 'Miette', species: 'cat' })
+    const vasco = await animals.create({ name: 'Vasco', species: 'dog' })
+    const rage = await vaccinations.create({
+      animalId: miette.id,
+      name: 'Rage',
+      lastInjectionDate: '2024-03-01',
+    })
+    const milbemax = await treatments.create({
+      animalId: miette.id,
+      name: 'Milbemax',
+      type: 'deworming',
+      frequency: { value: 3, unit: 'month' },
+      lastDoseDate: '2026-01-10',
+    })
+    const chppi = await vaccinations.create({
+      animalId: vasco.id,
+      name: 'CHPPi',
+      lastInjectionDate: '2025-11-02',
+    })
+    vi.advanceTimersByTime(60_000)
+
+    await service.remove(miette.id)
+
+    const tombstone: Tombstone = {
+      deleted_at: '2026-03-01T10:01:00.000Z',
+      updated_at: '2026-03-01T10:01:00.000Z',
+    }
+    await expect(
+      db.query<Tombstone>(
+        'SELECT deleted_at, updated_at FROM vaccination_injection WHERE vaccination_id = ?',
+        [rage.id],
+      ),
+    ).resolves.toEqual([tombstone])
+    await expect(
+      db.query<Tombstone>(
+        'SELECT deleted_at, updated_at FROM treatment_dose WHERE treatment_id = ?',
+        [milbemax.id],
+      ),
+    ).resolves.toEqual([tombstone])
+    await expect(vaccinations.listByAnimal(vasco.id)).resolves.toEqual([chppi])
   })
 
   it('laisse intacts les autres animaux et leurs vaccins', async () => {
@@ -482,6 +534,17 @@ describe('animalDeletionService', () => {
     ).resolves.toEqual([animal])
     await expect(
       db.query<Tombstone>('SELECT deleted_at, updated_at FROM treatment WHERE animal_id = ?', [
+        miette.id,
+      ]),
+    ).resolves.toEqual([animal])
+    await expect(
+      db.query<Tombstone>(
+        'SELECT deleted_at, updated_at FROM vaccination_injection WHERE animal_id = ?',
+        [miette.id],
+      ),
+    ).resolves.toEqual([animal])
+    await expect(
+      db.query<Tombstone>('SELECT deleted_at, updated_at FROM treatment_dose WHERE animal_id = ?', [
         miette.id,
       ]),
     ).resolves.toEqual([animal])

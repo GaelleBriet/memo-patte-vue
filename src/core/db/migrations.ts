@@ -103,6 +103,96 @@ export const migrations: DbMigration[] = [
       ...outboxTriggerStatements('weight_entry'),
     ],
   },
+  {
+    toVersion: 6,
+    statements: [
+      // Clés étrangères actives sur Android : l'ancienne table est renommée avant que l'enfant ne
+      // la référence, sinon sa suppression déclencherait ON DELETE CASCADE sur les copies.
+      'DROP TRIGGER IF EXISTS vaccination_outbox_insert',
+      'DROP TRIGGER IF EXISTS vaccination_outbox_update',
+      'DROP INDEX IF EXISTS idx_vaccination_animal_id',
+      'ALTER TABLE vaccination RENAME TO vaccination_old',
+      `CREATE TABLE IF NOT EXISTS vaccination (
+        id TEXT PRIMARY KEY NOT NULL,
+        animal_id TEXT NOT NULL REFERENCES animal(id) ON DELETE CASCADE,
+        name TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        deleted_at TEXT
+      );`,
+      `INSERT INTO vaccination (id, animal_id, name, created_at, updated_at, deleted_at)
+       SELECT id, animal_id, name, created_at, updated_at, deleted_at FROM vaccination_old;`,
+      `CREATE TABLE IF NOT EXISTS vaccination_injection (
+        id TEXT PRIMARY KEY NOT NULL,
+        vaccination_id TEXT NOT NULL REFERENCES vaccination(id) ON DELETE CASCADE,
+        animal_id TEXT NOT NULL REFERENCES animal(id) ON DELETE CASCADE,
+        injected_on TEXT NOT NULL,
+        next_due_date TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        deleted_at TEXT
+      );`,
+      `INSERT INTO vaccination_injection
+         (id, vaccination_id, animal_id, injected_on, next_due_date, created_at, updated_at, deleted_at)
+       SELECT id, id, animal_id, last_injection_date, due_date, created_at, updated_at, deleted_at
+       FROM vaccination_old;`,
+      'DROP TABLE vaccination_old',
+
+      'DROP TRIGGER IF EXISTS treatment_outbox_insert',
+      'DROP TRIGGER IF EXISTS treatment_outbox_update',
+      'DROP INDEX IF EXISTS idx_treatment_animal_id',
+      'ALTER TABLE treatment RENAME TO treatment_old',
+      `CREATE TABLE IF NOT EXISTS treatment (
+        id TEXT PRIMARY KEY NOT NULL,
+        animal_id TEXT NOT NULL REFERENCES animal(id) ON DELETE CASCADE,
+        name TEXT NOT NULL,
+        type TEXT NOT NULL CHECK (type IN ('deworming', 'antiparasitic')),
+        frequency_value INTEGER NOT NULL CHECK (frequency_value > 0),
+        frequency_unit TEXT NOT NULL CHECK (frequency_unit IN ('day', 'week', 'month')),
+        stopped_on TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        deleted_at TEXT
+      );`,
+      `INSERT INTO treatment
+         (id, animal_id, name, type, frequency_value, frequency_unit, stopped_on, created_at, updated_at, deleted_at)
+       SELECT id, animal_id, name, type, frequency_value, frequency_unit, NULL, created_at, updated_at, deleted_at
+       FROM treatment_old;`,
+      `CREATE TABLE IF NOT EXISTS treatment_dose (
+        id TEXT PRIMARY KEY NOT NULL,
+        treatment_id TEXT NOT NULL REFERENCES treatment(id) ON DELETE CASCADE,
+        animal_id TEXT NOT NULL REFERENCES animal(id) ON DELETE CASCADE,
+        given_on TEXT NOT NULL,
+        next_due_date TEXT NOT NULL,
+        frequency_value INTEGER NOT NULL CHECK (frequency_value > 0),
+        frequency_unit TEXT NOT NULL CHECK (frequency_unit IN ('day', 'week', 'month')),
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        deleted_at TEXT
+      );`,
+      `INSERT INTO treatment_dose
+         (id, treatment_id, animal_id, given_on, next_due_date, frequency_value, frequency_unit, created_at, updated_at, deleted_at)
+       SELECT id, id, animal_id, last_dose_date, next_due_date, frequency_value, frequency_unit, created_at, updated_at, deleted_at
+       FROM treatment_old;`,
+      'DROP TABLE treatment_old',
+
+      'CREATE INDEX IF NOT EXISTS idx_vaccination_animal_id ON vaccination (animal_id);',
+      `CREATE INDEX IF NOT EXISTS idx_vaccination_injection_vaccination
+         ON vaccination_injection (vaccination_id, injected_on);`,
+      `CREATE INDEX IF NOT EXISTS idx_vaccination_injection_animal_id
+         ON vaccination_injection (animal_id);`,
+      'CREATE INDEX IF NOT EXISTS idx_treatment_animal_id ON treatment (animal_id);',
+      `CREATE INDEX IF NOT EXISTS idx_treatment_dose_treatment
+         ON treatment_dose (treatment_id, given_on);`,
+      'CREATE INDEX IF NOT EXISTS idx_treatment_dose_animal_id ON treatment_dose (animal_id);',
+      ...outboxTriggerStatements('vaccination'),
+      ...outboxTriggerStatements('vaccination_injection'),
+      ...outboxTriggerStatements('treatment'),
+      ...outboxTriggerStatements('treatment_dose'),
+      // Le plugin pose la version après le commit : posée ici, elle suit la transaction du schéma.
+      'PRAGMA user_version = 6',
+    ],
+  },
 ]
 
 /**

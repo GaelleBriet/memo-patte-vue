@@ -48,8 +48,8 @@ export async function insertVaccination(
   updatedAt: string,
 ): Promise<void> {
   await db.run(
-    `INSERT INTO vaccination (id, animal_id, name, last_injection_date, created_at, updated_at)
-     VALUES (?, ?, 'Rage', '2026-01-01', ?, ?)`,
+    `INSERT INTO vaccination (id, animal_id, name, created_at, updated_at)
+     VALUES (?, ?, 'Rage', ?, ?)`,
     [id, animalId, updatedAt, updatedAt],
   )
 }
@@ -70,8 +70,8 @@ export async function insertTreatment(
 ): Promise<void> {
   await db.run(
     `INSERT INTO treatment
-       (id, animal_id, name, type, frequency_value, frequency_unit, last_dose_date, next_due_date, created_at, updated_at)
-     VALUES (?, ?, 'Bravecto', 'antiparasitic', 1, 'month', '2026-01-01', '2026-02-01', ?, ?)`,
+       (id, animal_id, name, type, frequency_value, frequency_unit, created_at, updated_at)
+     VALUES (?, ?, 'Bravecto', 'antiparasitic', 1, 'month', ?, ?)`,
     [id, animalId, updatedAt, updatedAt],
   )
 }

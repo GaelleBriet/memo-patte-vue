@@ -6,6 +6,10 @@ import { guardedUpsert, type SyncRow } from '@/core/supabase/guarded-upsert'
 import { loadSupabaseClient } from '@/core/supabase/load-client'
 import { syncField, type SyncPullPage } from '@/core/sync/service/syncable-table'
 import {
+  createVaccinationInjectionsRepository,
+  headInjectionIdSql,
+} from './vaccination-injections.repository'
+import {
   vaccinationInputSchema,
   vaccinationUpdateSchema,
   type Vaccination,
@@ -17,23 +21,36 @@ interface VaccinationRow {
   id: string
   animal_id: string
   name: string
-  last_injection_date: string
-  due_date: string | null
   created_at: string
   updated_at: string
   deleted_at: string | null
 }
 
-export type VaccinationVersion = Pick<Vaccination, 'id' | 'animalId' | 'updatedAt' | 'deletedAt'>
-export type RestoredVaccination = Omit<Vaccination, 'deletedAt'>
+interface VaccinationWithHeadRow extends VaccinationRow {
+  last_injection_date: string
+  due_date: string | null
+}
 
-const COLUMNS =
-  'id, animal_id, name, last_injection_date, due_date, created_at, updated_at, deleted_at'
+export type VaccinationVersion = Pick<Vaccination, 'id' | 'animalId' | 'updatedAt' | 'deletedAt'>
+export type RestoredVaccination = Pick<
+  Vaccination,
+  'id' | 'animalId' | 'name' | 'createdAt' | 'updatedAt'
+>
+
+const COLUMNS = 'id, animal_id, name, created_at, updated_at, deleted_at'
 
 /** Les vaccins supprimés restent en base pour la synchronisation, jamais pour l'UI. */
 const NOT_DELETED = 'deleted_at IS NULL'
 
-function toVaccination(row: VaccinationRow): Vaccination {
+const VISIBLE_WITH_HEAD = `
+  SELECT vaccination.id, vaccination.animal_id, vaccination.name,
+         head.injected_on AS last_injection_date, head.next_due_date AS due_date,
+         vaccination.created_at, vaccination.updated_at, vaccination.deleted_at
+  FROM vaccination
+  JOIN vaccination_injection head ON head.id = ${headInjectionIdSql('vaccination.id')}
+  WHERE vaccination.deleted_at IS NULL`
+
+function toVaccination(row: VaccinationWithHeadRow): Vaccination {
   return {
     id: row.id,
     animalId: row.animal_id,
@@ -54,13 +71,23 @@ export function createVaccinationsRepository(
   db: DbClient,
   { loadSupabaseClient: loadClient = loadSupabaseClient }: VaccinationsRepositoryDependencies = {},
 ) {
+  const injections = createVaccinationInjectionsRepository(db)
+
   async function getById(id: string): Promise<Vaccination | null> {
-    const rows = await db.query<VaccinationRow>(
-      `SELECT ${COLUMNS} FROM vaccination WHERE id = ? AND ${NOT_DELETED}`,
+    const rows = await db.query<VaccinationWithHeadRow>(
+      `${VISIBLE_WITH_HEAD} AND vaccination.id = ?`,
       [id],
     )
     const row = rows[0]
     return row ? toVaccination(row) : null
+  }
+
+  async function requireVisible(id: string): Promise<Vaccination> {
+    const vaccination = await getById(id)
+    if (!vaccination) {
+      throw new Error(`Vaccin introuvable : ${id}`)
+    }
+    return vaccination
   }
 
   return {
@@ -69,20 +96,18 @@ export function createVaccinationsRepository(
     getById,
 
     async listByAnimal(animalId: string): Promise<Vaccination[]> {
-      const rows = await db.query<VaccinationRow>(
-        `SELECT ${COLUMNS} FROM vaccination
-         WHERE animal_id = ? AND ${NOT_DELETED}
-         ORDER BY last_injection_date DESC, name COLLATE NOCASE`,
+      const rows = await db.query<VaccinationWithHeadRow>(
+        `${VISIBLE_WITH_HEAD} AND vaccination.animal_id = ?
+         ORDER BY head.injected_on DESC, vaccination.name COLLATE NOCASE`,
         [animalId],
       )
       return rows.map(toVaccination)
     },
 
     async listAll(): Promise<Vaccination[]> {
-      const rows = await db.query<VaccinationRow>(
-        `SELECT ${COLUMNS} FROM vaccination
-         WHERE ${NOT_DELETED}
-         ORDER BY animal_id, last_injection_date DESC, name COLLATE NOCASE`,
+      const rows = await db.query<VaccinationWithHeadRow>(
+        `${VISIBLE_WITH_HEAD}
+         ORDER BY vaccination.animal_id, head.injected_on DESC, vaccination.name COLLATE NOCASE`,
       )
       return rows.map(toVaccination)
     },
@@ -98,50 +123,57 @@ export function createVaccinationsRepository(
         deletedAt: null,
       }
 
-      await db.run(`INSERT INTO vaccination (${COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, [
-        vaccination.id,
-        vaccination.animalId,
-        vaccination.name,
-        vaccination.lastInjectionDate,
-        vaccination.dueDate,
-        vaccination.createdAt,
-        vaccination.updatedAt,
-        vaccination.deletedAt,
+      await db.runMany([
+        {
+          sql: `INSERT INTO vaccination (${COLUMNS}) VALUES (?, ?, ?, ?, ?, NULL)`,
+          params: [vaccination.id, vaccination.animalId, vaccination.name, now, now],
+        },
+        injections.insertStatement({
+          id: vaccination.id,
+          vaccinationId: vaccination.id,
+          animalId: vaccination.animalId,
+          injectedOn: vaccination.lastInjectionDate,
+          nextDueDate: vaccination.dueDate,
+          createdAt: now,
+          updatedAt: now,
+          deletedAt: null,
+        }),
       ])
 
       return vaccination
     },
 
-    /** `animal_id` reste hors du `SET` : le rattachement est figé à la création. */
+    /** Change le vaccin et son injection de tête ; `animal_id` reste figé depuis la création. */
     async update(id: string, input: VaccinationUpdateInput): Promise<Vaccination> {
       const data = vaccinationUpdateSchema.parse(input)
+      await requireVisible(id)
       const updatedAt = new Date().toISOString()
 
-      const changes = await db.run(
-        `UPDATE vaccination
-         SET name = ?, last_injection_date = ?, due_date = ?, updated_at = ?
-         WHERE id = ? AND ${NOT_DELETED}`,
-        [data.name, data.lastInjectionDate, data.dueDate, updatedAt, id],
-      )
+      await db.runMany([
+        {
+          sql: `UPDATE vaccination SET name = ?, updated_at = ? WHERE id = ? AND ${NOT_DELETED}`,
+          params: [data.name, updatedAt, id],
+        },
+        injections.updateHeadStatement(id, {
+          injectedOn: data.lastInjectionDate,
+          nextDueDate: data.dueDate,
+          updatedAt,
+        }),
+      ])
 
-      if (changes === 0) {
-        throw new Error(`Vaccin introuvable : ${id}`)
-      }
-
-      const vaccination = await getById(id)
-      if (!vaccination) {
-        throw new Error(`Vaccin introuvable : ${id}`)
-      }
-      return vaccination
+      return requireVisible(id)
     },
 
     /** Sans effet sur un vaccin inconnu ou déjà supprimé : la date initiale est gardée. */
     async remove(id: string): Promise<void> {
       const deletedAt = new Date().toISOString()
-      await db.run(
-        `UPDATE vaccination SET deleted_at = ?, updated_at = ? WHERE id = ? AND ${NOT_DELETED}`,
-        [deletedAt, deletedAt, id],
-      )
+      await db.runMany([
+        {
+          sql: `UPDATE vaccination SET deleted_at = ?, updated_at = ? WHERE id = ? AND ${NOT_DELETED}`,
+          params: [deletedAt, deletedAt, id],
+        },
+        injections.markDeletedByVaccinationStatement(id, deletedAt),
+      ])
     },
 
     /** Instruction fournie sans être exécutée : la suppression d'un animal la joue dans sa transaction. */
@@ -172,18 +204,17 @@ export function createVaccinationsRepository(
 
     /** Reprend les dates du fichier importé et rend la ligne visible, sans la changer d'animal. */
     restoreStatement(vaccination: RestoredVaccination, exists: boolean): SqlStatement {
-      const { id, animalId, name, lastInjectionDate, dueDate, createdAt, updatedAt } = vaccination
+      const { id, animalId, name, createdAt, updatedAt } = vaccination
       return exists
         ? {
             sql: `UPDATE vaccination
-                  SET name = ?, last_injection_date = ?, due_date = ?,
-                      created_at = ?, updated_at = ?, deleted_at = NULL
+                  SET name = ?, created_at = ?, updated_at = ?, deleted_at = NULL
                   WHERE id = ?`,
-            params: [name, lastInjectionDate, dueDate, createdAt, updatedAt, id],
+            params: [name, createdAt, updatedAt, id],
           }
         : {
-            sql: `INSERT INTO vaccination (${COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?, NULL)`,
-            params: [id, animalId, name, lastInjectionDate, dueDate, createdAt, updatedAt],
+            sql: `INSERT INTO vaccination (${COLUMNS}) VALUES (?, ?, ?, ?, ?, NULL)`,
+            params: [id, animalId, name, createdAt, updatedAt],
           }
     },
 
@@ -223,10 +254,9 @@ export function createVaccinationsRepository(
     applyRemoteRowStatement(row: SyncRow): SqlStatement {
       return {
         sql: `INSERT INTO vaccination (${COLUMNS})
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+              VALUES (?, ?, ?, ?, ?, ?)
               ON CONFLICT (id) DO UPDATE SET
                 animal_id = excluded.animal_id, name = excluded.name,
-                last_injection_date = excluded.last_injection_date, due_date = excluded.due_date,
                 created_at = excluded.created_at, updated_at = excluded.updated_at,
                 deleted_at = excluded.deleted_at
               WHERE excluded.updated_at > vaccination.updated_at`,
@@ -234,8 +264,6 @@ export function createVaccinationsRepository(
           row.id,
           syncField(row, 'animal_id'),
           syncField(row, 'name'),
-          syncField(row, 'last_injection_date'),
-          syncField(row, 'due_date'),
           syncField(row, 'created_at'),
           row.updated_at,
           syncField(row, 'deleted_at'),

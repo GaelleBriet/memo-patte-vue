@@ -24,9 +24,15 @@ describe('treatmentsRepository — port de synchronisation', () => {
     )
     await db.run(
       `INSERT INTO treatment
-         (id, animal_id, name, type, frequency_value, frequency_unit, last_dose_date, next_due_date, created_at, updated_at)
-       VALUES (?, ?, 'Bravecto', 'antiparasitic', 1, 'month', '2026-01-01', '2026-02-01', ?, ?)`,
+         (id, animal_id, name, type, frequency_value, frequency_unit, created_at, updated_at)
+       VALUES (?, ?, 'Bravecto', 'antiparasitic', 1, 'month', ?, ?)`,
       [TREATMENT_ID, ANIMAL_ID, T_LOCAL, T_LOCAL],
+    )
+    await db.run(
+      `INSERT INTO treatment_dose
+         (id, treatment_id, animal_id, given_on, next_due_date, frequency_value, frequency_unit, created_at, updated_at)
+       VALUES (?, ?, ?, '2026-01-01', '2026-02-01', 1, 'month', ?, ?)`,
+      [TREATMENT_ID, TREATMENT_ID, ANIMAL_ID, T_LOCAL, T_LOCAL],
     )
   })
 
@@ -38,12 +44,23 @@ describe('treatmentsRepository — port de synchronisation', () => {
     expect(repository.entity).toBe('treatment')
   })
 
-  it('getRowForPush renvoie la ligne même supprimée logiquement', async () => {
+  it('getRowForPush renvoie la ligne du plan seule, même supprimée logiquement', async () => {
     await db.run('UPDATE treatment SET deleted_at = ? WHERE id = ?', [T_NEW, TREATMENT_ID])
 
     const row = await repository.getRowForPush(TREATMENT_ID)
 
-    expect(row).toMatchObject({ id: TREATMENT_ID, deleted_at: T_NEW })
+    expect(row).toEqual({
+      id: TREATMENT_ID,
+      animal_id: ANIMAL_ID,
+      name: 'Bravecto',
+      type: 'antiparasitic',
+      frequency_value: 1,
+      frequency_unit: 'month',
+      stopped_on: null,
+      created_at: T_LOCAL,
+      updated_at: T_LOCAL,
+      deleted_at: T_NEW,
+    })
   })
 
   it("n'écrase pas une ligne locale plus récente qu'une ligne distante", async () => {
@@ -54,8 +71,7 @@ describe('treatmentsRepository — port de synchronisation', () => {
       type: 'antiparasitic',
       frequency_value: 3,
       frequency_unit: 'month',
-      last_dose_date: '2025-01-01',
-      next_due_date: '2025-04-01',
+      stopped_on: null,
       created_at: T_LOCAL,
       updated_at: '2026-01-01T00:00:00.000Z',
       deleted_at: null,
@@ -66,7 +82,7 @@ describe('treatmentsRepository — port de synchronisation', () => {
     await expect(repository.getById(TREATMENT_ID)).resolves.toMatchObject({ name: 'Bravecto' })
   })
 
-  it('remplace la ligne locale par une version distante plus récente', async () => {
+  it('remplace la ligne locale par une version distante plus récente, sans toucher ses prises', async () => {
     const remote = {
       id: TREATMENT_ID,
       animal_id: ANIMAL_ID,
@@ -74,8 +90,7 @@ describe('treatmentsRepository — port de synchronisation', () => {
       type: 'deworming',
       frequency_value: 2,
       frequency_unit: 'week',
-      last_dose_date: '2026-02-01',
-      next_due_date: '2026-02-15',
+      stopped_on: '2026-01-05',
       created_at: T_LOCAL,
       updated_at: T_NEW,
       deleted_at: null,
@@ -87,6 +102,9 @@ describe('treatmentsRepository — port de synchronisation', () => {
       name: 'Bravecto (mis à jour)',
       type: 'deworming',
       frequency: { value: 2, unit: 'week' },
+      stoppedOn: '2026-01-05',
+      lastDoseDate: '2026-01-01',
+      nextDueDate: '2026-02-01',
     })
   })
 
@@ -98,8 +116,7 @@ describe('treatmentsRepository — port de synchronisation', () => {
       type: 'antiparasitic',
       frequency_value: 1,
       frequency_unit: 'month',
-      last_dose_date: '2026-01-01',
-      next_due_date: '2026-02-01',
+      stopped_on: null,
       created_at: T_LOCAL,
       updated_at: T_NEW,
       deleted_at: T_NEW,

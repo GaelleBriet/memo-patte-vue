@@ -1657,3 +1657,15 @@ nouvelle série si l'écart dépasse 1,5 fois la fréquence ; les vaccins ne son
 8) **Le bouton « Arrêter » utilise la couleur système `error` du thème**, pas le corail des retards
 de la maquette. — Raison : séparation entre action destructive et urgence métier posée par le thème.
 
+
+2026-09-24 — **Import d'un fichier v1 : l'événement se retrouve par sa date, jamais par son
+identifiant** (#379, validé par Gaelle). Pour chaque vaccin ou traitement retenu par l'import, on
+cherche l'injection ou la prise locale de même date (supprimées comprises, une visible de préférence).
+Trouvée : ses valeurs ne sont réécrites que si le fichier est plus récent, et jamais sa date. Absente :
+nouvel événement, avec l'identifiant du parent s'il est libre, sinon un nouveau. Un parent qui revient
+avec son animal ramène tous les événements supprimés en même temps que lui (§10.4), sans changer leurs
+dates ; un événement annulé à part reste annulé. — Raison : une ligne v1 ne porte que la tête ; l'écrire
+par identifiant réécrirait en silence la date de la plus ancienne injection dès qu'un vaccin en a
+plusieurs (#380), et un vaccin restauré sans injection visible disparaîtrait. — Alternative écartée :
+identifiant de l'événement = identifiant du parent, qui n'était sûr que tant qu'un parent n'avait qu'un
+événement.

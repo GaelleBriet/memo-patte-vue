@@ -54,6 +54,7 @@ function treatment(nextDueDate: string, animalId = MILO.id): Treatment {
     frequency: { value: 3, unit: 'month' },
     lastDoseDate: '2026-03-01',
     nextDueDate,
+    stoppedOn: null,
     createdAt: STAMP,
     updatedAt: STAMP,
     deletedAt: null,

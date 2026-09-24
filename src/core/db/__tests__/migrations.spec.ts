@@ -65,8 +65,6 @@ describe('migrations', () => {
       'id',
       'animal_id',
       'name',
-      'last_injection_date',
-      'due_date',
       'created_at',
       'updated_at',
       'deleted_at',
@@ -74,11 +72,8 @@ describe('migrations', () => {
     expect(columns.get('id')?.pk).toBe(1)
     expect(columns.get('animal_id')?.notnull).toBe(1)
     expect(columns.get('name')?.notnull).toBe(1)
-    expect(columns.get('last_injection_date')?.notnull).toBe(1)
     expect(columns.get('created_at')?.notnull).toBe(1)
     expect(columns.get('updated_at')?.notnull).toBe(1)
-    // Échéance facultative : un vaccin peut être consigné sans prochain rappel.
-    expect(columns.get('due_date')?.notnull).toBe(0)
     // Suppression logique : la colonne doit rester nullable (NULL = vaccin actif).
     expect(columns.get('deleted_at')?.notnull).toBe(0)
 
@@ -144,16 +139,9 @@ describe('migrations', () => {
 
     await expect(
       db.run(
-        `INSERT INTO vaccination (id, animal_id, name, last_injection_date, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [
-          'v1',
-          'inconnu',
-          'CHPPi',
-          '2025-06-12',
-          '2026-01-01T00:00:00.000Z',
-          '2026-01-01T00:00:00.000Z',
-        ],
+        `INSERT INTO vaccination (id, animal_id, name, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?)`,
+        ['v1', 'inconnu', 'CHPPi', '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z'],
       ),
     ).rejects.toThrow(/FOREIGN KEY constraint failed/)
 
