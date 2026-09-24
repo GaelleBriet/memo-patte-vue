@@ -71,6 +71,13 @@ export function formatDayMonth(isoDate: string): string {
   return formatIn(isoDate, DAY_MONTH_PATTERNS)
 }
 
+/** `28 sept.` dans l'année de `today`, `10 août 2025` sinon. */
+export function formatDayMonthOrYear(isoDate: string, today: string): string {
+  return isoDate.slice(0, 4) === today.slice(0, 4)
+    ? formatDayMonth(isoDate)
+    : formatLongDate(isoDate)
+}
+
 /** `28 septembre` / `September 28` — lu par le lecteur d'écran. */
 export function formatFullDayMonth(isoDate: string): string {
   return formatIn(isoDate, FULL_DAY_MONTH_PATTERNS)

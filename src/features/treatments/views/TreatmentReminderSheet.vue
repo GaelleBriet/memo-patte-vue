@@ -50,7 +50,12 @@ const isShown = computed({
 
 const animal = computed(() => (treatment.value ? animals.byId(treatment.value.animalId) : null))
 const texts = computed(() =>
-  treatment.value ? treatmentSheetTexts(t, treatment.value, animal.value?.name ?? '') : null,
+  treatment.value
+    ? treatmentSheetTexts(t, treatment.value, {
+        animal: animal.value?.name ?? '',
+        today: today.value,
+      })
+    : null,
 )
 const summary = computed(() =>
   treatment.value

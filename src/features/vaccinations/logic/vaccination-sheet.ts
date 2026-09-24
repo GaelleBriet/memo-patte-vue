@@ -2,20 +2,26 @@ import { addDays, format, parseISO } from 'date-fns'
 
 import { nextReminderDate, type NextReminderChoice } from './vaccination-done'
 import type { Vaccination } from '../schema/vaccination.schema'
-import { formatDayMonth, formatLongDate } from '@/shared/utils/format'
+import { formatDayMonthOrYear, formatLongDate } from '@/shared/utils/format'
 
 export type Translate = (key: string, named?: Record<string, unknown>, plural?: number) => string
 
 export type SheetVaccination = Pick<Vaccination, 'name' | 'dueDate'>
 
-export function vaccinationSheetTexts(t: Translate, vaccination: SheetVaccination, animal: string) {
+export function vaccinationSheetTexts(
+  t: Translate,
+  vaccination: SheetVaccination,
+  { animal, today }: { animal: string; today: string },
+) {
   const named = { name: vaccination.name, animal }
   return {
     subtitle: t('vaccinations.sheet.subtitle', { animal }),
     due:
       vaccination.dueDate === null
         ? null
-        : t('vaccinations.sheet.nextReminder', { date: formatDayMonth(vaccination.dueDate) }),
+        : t('vaccinations.sheet.nextReminder', {
+            date: formatDayMonthOrYear(vaccination.dueDate, today),
+          }),
     doneTodayLabel: t('vaccinations.sheet.doneTodayLabel', named),
     calendarSubtitle: t('vaccinations.sheet.calendarSubtitle', named),
   }

@@ -164,6 +164,16 @@ describe('VaccinationReminderSheet — feuille d’un vaccin', () => {
     expect(document.body.querySelector('.reminder-actions__footer')).toBeNull()
   })
 
+  it('donne l’année d’un rappel en retard d’une autre année', async () => {
+    vi.spyOn(useVaccinationsStore(), 'getById').mockResolvedValue({
+      ...CARRE,
+      dueDate: '2025-08-10',
+    })
+    await monter()
+
+    expect(texte('.reminder-actions__due')).toBe('Prochain rappel le 10 août 2025')
+  })
+
   it('ouvre l’écran de modification du vaccin', async () => {
     await monter()
 

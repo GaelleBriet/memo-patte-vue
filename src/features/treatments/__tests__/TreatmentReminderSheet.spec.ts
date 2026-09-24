@@ -163,6 +163,16 @@ describe('TreatmentReminderSheet — F2', () => {
     expect(feuille().querySelector('.bottom-sheet__icon')).not.toBeNull()
   })
 
+  it('donne l’année d’une prochaine dose hors de l’année en cours', async () => {
+    vi.spyOn(useTreatmentsStore(), 'getById').mockResolvedValue({
+      ...BRAVECTO,
+      nextDueDate: '2025-08-10',
+    })
+    await monter()
+
+    expect(texte('.reminder-actions__due')).toBe('Prochaine dose le 10 août 2025')
+  })
+
   it('note la prise du jour, se ferme et propose d’annuler la prise', async () => {
     const sheet = await monter()
 

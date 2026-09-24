@@ -1,6 +1,6 @@
 import { nextDueAfterDose } from './treatment-dose'
 import type { Treatment } from '../schema/treatment.schema'
-import { formatDayMonth, formatLongDate, formatWeekdayDate } from '@/shared/utils/format'
+import { formatDayMonthOrYear, formatLongDate, formatWeekdayDate } from '@/shared/utils/format'
 
 export type Translate = (key: string, named?: Record<string, unknown>, plural?: number) => string
 
@@ -9,7 +9,11 @@ export type SheetTreatment = Pick<
   'name' | 'type' | 'frequency' | 'lastDoseDate' | 'nextDueDate'
 >
 
-export function treatmentSheetTexts(t: Translate, treatment: SheetTreatment, animal: string) {
+export function treatmentSheetTexts(
+  t: Translate,
+  treatment: SheetTreatment,
+  { animal, today }: { animal: string; today: string },
+) {
   const named = { name: treatment.name, animal }
   const { value, unit } = treatment.frequency
 
@@ -19,7 +23,9 @@ export function treatmentSheetTexts(t: Translate, treatment: SheetTreatment, ani
       animal,
       frequency: t(`treatments.sheet.frequency.${unit}`, { n: value }, value),
     }),
-    due: t('treatments.sheet.nextDose', { date: formatDayMonth(treatment.nextDueDate) }),
+    due: t('treatments.sheet.nextDose', {
+      date: formatDayMonthOrYear(treatment.nextDueDate, today),
+    }),
     doneTodayLabel: t('treatments.sheet.doneTodayLabel', named),
     stopLabel: t('treatments.sheet.stopLabel', named),
     otherDaySubtitle: t('treatments.sheet.otherDay.subtitle', named),
@@ -46,7 +52,7 @@ export function otherDaySummary(
     submit:
       givenOn === today
         ? t('treatments.sheet.otherDay.submitToday')
-        : t('treatments.sheet.otherDay.submit', { date: formatDayMonth(givenOn) }),
+        : t('treatments.sheet.otherDay.submit', { date: formatDayMonthOrYear(givenOn, today) }),
   }
 }
 
@@ -61,5 +67,9 @@ export function doseToast(
 ): string {
   return givenOn === today
     ? t('treatments.sheet.toast.dose', { name, animal })
-    : t('treatments.sheet.toast.doseOn', { name, animal, date: formatDayMonth(givenOn) })
+    : t('treatments.sheet.toast.doseOn', {
+        name,
+        animal,
+        date: formatDayMonthOrYear(givenOn, today),
+      })
 }

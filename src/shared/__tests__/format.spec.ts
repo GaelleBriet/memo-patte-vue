@@ -10,6 +10,7 @@ import {
   formatMonthYear,
   formatNumericDate,
   formatDayMonth,
+  formatDayMonthOrYear,
   formatFullDayMonth,
   formatWeekdayDate,
 } from '../utils/format'
@@ -92,6 +93,12 @@ describe('mois et dates', () => {
   it('écrit le jour et le mois abrégé, sans l’année', () => {
     expect(formatDayMonth('2026-09-28')).toBe('28 sept.')
     expect(formatDayMonth('2026-05-03')).toBe('3 mai')
+  })
+
+  it('n’ajoute l’année qu’en dehors de l’année en cours', () => {
+    expect(formatDayMonthOrYear('2026-09-28', '2026-09-23')).toBe('28 sept.')
+    expect(formatDayMonthOrYear('2025-08-10', '2026-09-23')).toBe('10 août 2025')
+    expect(formatDayMonthOrYear('2027-01-05', '2026-09-23')).toBe('5 janv. 2027')
   })
 
   it('écrit le jour et le mois en toutes lettres pour le lecteur d’écran', () => {

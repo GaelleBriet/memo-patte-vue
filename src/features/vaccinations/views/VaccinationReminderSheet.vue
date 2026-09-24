@@ -76,7 +76,12 @@ const isShown = computed({
 
 const animal = computed(() => (vaccination.value ? animals.byId(vaccination.value.animalId) : null))
 const texts = computed(() =>
-  vaccination.value ? vaccinationSheetTexts(t, vaccination.value, animal.value?.name ?? '') : null,
+  vaccination.value
+    ? vaccinationSheetTexts(t, vaccination.value, {
+        animal: animal.value?.name ?? '',
+        today: today.value,
+      })
+    : null,
 )
 const injectionDate = computed(() => injectedOn.value ?? today.value)
 const summary = computed(() => nextReminderSummary(t, injectionDate.value, choice.value))
