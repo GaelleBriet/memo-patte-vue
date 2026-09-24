@@ -86,6 +86,13 @@ async function doigt(monte: VueWrapper, type: string, x: number, y = 100, button
   await nextTick()
 }
 
+/** `false` quand la courbe garde le doigt et empêche l'écran de défiler. */
+function deplacerLEcran(monte: VueWrapper): boolean {
+  const deplacement = new Event('touchmove', { cancelable: true, bubbles: true })
+  monte.get('.weight-history-chart__svg').element.dispatchEvent(deplacement)
+  return !deplacement.defaultPrevented
+}
+
 async function toucher(monte: VueWrapper, x: number) {
   await doigt(monte, 'pointerdown', x)
   await doigt(monte, 'pointerup', x, 100, 0)
@@ -331,6 +338,7 @@ describe('WeightHistoryChart — glisser', () => {
     expect(monte.get('.weight-history-chart__svg').attributes('style')).toContain(
       'translateX(60px)',
     )
+    expect(deplacerLEcran(monte)).toBe(false)
 
     await doigt(monte, 'pointerup', 160, 100, 0)
     expect(monte.get('.weight-history-chart__svg').attributes('style') ?? '').not.toContain(
@@ -376,6 +384,10 @@ describe('WeightHistoryChart — glisser', () => {
 
     await doigt(monte, 'pointerdown', 100, 100)
     await doigt(monte, 'pointermove', 104, 160)
+    expect(deplacerLEcran(monte)).toBe(true)
+    expect(monte.get('.weight-history-chart__svg').attributes('style') ?? '').not.toContain(
+      'translateX',
+    )
     await doigt(monte, 'pointercancel', 104, 160, 0)
 
     expect(periode(monte).dates).toBe('avr. 2026\u00a0– sept. 2026')
@@ -393,6 +405,56 @@ describe('WeightHistoryChart — glisser', () => {
       'translateX',
     )
     expect(periode(monte).dates).toBe('avr. 2026\u00a0– sept. 2026')
+  })
+})
+
+describe('WeightHistoryChart — animation', () => {
+  const animate = vi.fn<(keyframes: Keyframe[], options: KeyframeAnimationOptions) => void>()
+  let reduite: boolean
+
+  beforeEach(() => {
+    reduite = false
+    Object.defineProperty(SVGElement.prototype, 'animate', { value: animate, configurable: true })
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: query === '(prefers-reduced-motion: reduce)' && reduite,
+    }))
+  })
+
+  afterEach(() => {
+    Reflect.deleteProperty(SVGElement.prototype, 'animate')
+    animate.mockReset()
+  })
+
+  it('fait entrer la nouvelle page du côté d’où elle vient', async () => {
+    const monte = monter()
+
+    await fleche(monte, 'previous').bouton.trigger('click')
+
+    expect(animate).toHaveBeenCalledOnce()
+    expect(animate.mock.calls[0]![0][0]).toMatchObject({ transform: 'translateX(-32px)' })
+  })
+
+  it('ramène la courbe qui résiste au bout du suivi', async () => {
+    const monte = monter()
+
+    await glisser(monte, 200, 100)
+
+    expect(animate).toHaveBeenCalledOnce()
+    expect(animate.mock.calls[0]![0]).toEqual([
+      { transform: 'translateX(-25px)' },
+      { transform: 'translateX(0)' },
+    ])
+  })
+
+  it('ne bouge rien quand le système demande moins d’animations', async () => {
+    reduite = true
+    const monte = monter()
+
+    await fleche(monte, 'previous').bouton.trigger('click')
+    await glisser(monte, 100, 60)
+
+    expect(animate).not.toHaveBeenCalled()
+    expect(periode(monte).dates).toBe('oct. 2025\u00a0– mars 2026')
   })
 })
 
@@ -584,7 +646,7 @@ describe('WeightHistoryChart — clavier et lecteur d’écran', () => {
     expect(selections(monte)).toEqual([28, 29])
   })
 
-  it('change de page par Page précédente et Page suivante', async () => {
+  it('montre les pesées précédentes par PageDown, les suivantes par PageUp', async () => {
     const monte = monter()
     const svg = monte.get('.weight-history-chart__svg')
 
@@ -594,6 +656,19 @@ describe('WeightHistoryChart — clavier et lecteur d’écran', () => {
 
     await svg.trigger('keydown', { key: 'PageUp' })
     expect(periode(monte).dates).toBe('avr. 2026\u00a0– sept. 2026')
+  })
+
+  it('ne change rien par PageUp ni PageDown au bout du suivi', async () => {
+    const monte = monter()
+    const svg = monte.get('.weight-history-chart__svg')
+
+    await svg.trigger('keydown', { key: 'PageUp' })
+    expect(periode(monte).dates).toBe('avr. 2026\u00a0– sept. 2026')
+
+    await svg.trigger('keydown', { key: 'PageDown' })
+    await svg.trigger('keydown', { key: 'PageDown' })
+    await svg.trigger('keydown', { key: 'PageDown' })
+    expect(periode(monte).dates).toBe('août 2025\u00a0– oct. 2025')
   })
 
   it('laisse passer les autres touches', async () => {

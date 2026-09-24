@@ -122,8 +122,10 @@ saisie reste dans la feuille pesée (`pesee.md`).
 - Clavier et lecteur d'écran : les chevrons changent de page. La courbe prend
   le focus comme un curseur (« Évolution du poids ») sur les pesées de la
   page : flèches gauche / droite (et haut / bas) et Début / Fin les
-  parcourent, Page précédente / Page suivante changent de page, et la pesée
-  est annoncée date en toutes lettres (`Pesée du 3 février 2026, 17,8 kg`).
+  parcourent ; `PageDown` montre la page des pesées précédentes (plus
+  anciennes), `PageUp` celle des pesées suivantes (plus récentes), comme les
+  chevrons ‹ et ›, et rien ne change au bout du suivi. La pesée est annoncée
+  date en toutes lettres (`Pesée du 3 février 2026, 17,8 kg`).
   Au repos, le curseur annonce la dernière pesée de la page. Pas d'anneau de
   focus visible : le trait vertical dit déjà la sélection.
 - Le tout dans une carte `#FEFCF9`, bordure `#ECE9E5`, rayon 22 px, même

@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, useTemplateRef, watch } from 'vue'
+import { computed, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import WeightChartTrace from './WeightChartTrace.vue'
+import { useChartGestures, type SwipeDirection } from '../composables/use-chart-gestures'
 import { useChartMeasure } from '../composables/use-chart-measure'
 import {
   buildHistoryWeightChart,
@@ -22,13 +23,7 @@ const selected = defineModel<number | null>('selected', { default: null })
 
 const { t } = useI18n()
 
-type Direction = -1 | 1
-
 const ACTIVE_RADIUS = 7
-const LONG_PRESS_MS = 400
-const TOUCH_SLOP_PX = 10
-const SWIPE_PX = 48
-const EDGE_RESISTANCE = 0.25
 const SLIDE_IN_PX = 32
 const SETTLE_MS = 220
 const KEY_STEPS: Record<string, number> = {
@@ -37,7 +32,7 @@ const KEY_STEPS: Record<string, number> = {
   ArrowRight: 1,
   ArrowUp: 1,
 }
-const PAGE_KEYS: Record<string, Direction> = { PageDown: -1, PageUp: 1 }
+const PAGE_KEYS: Record<string, SwipeDirection> = { PageDown: -1, PageUp: 1 }
 
 const figure = useTemplateRef<HTMLElement>('figure')
 const svg = useTemplateRef<SVGSVGElement>('svg')
@@ -112,98 +107,27 @@ function animate(keyframes: Keyframe[]): void {
   element.animate(keyframes, { duration: SETTLE_MS, easing: 'cubic-bezier(0.2, 0, 0, 1)' })
 }
 
-function turnPage(direction: Direction): boolean {
-  const target = pageIndex.value + direction
-  if (target < 0 || target >= pages.value.length) return false
-  pageIndex.value = target
+function hasPage(direction: SwipeDirection): boolean {
+  return direction < 0 ? hasPrevious.value : hasNext.value
+}
+
+function turnPage(direction: SwipeDirection): void {
+  if (!hasPage(direction)) return
+  pageIndex.value += direction
   selected.value = null
   animate([
     { transform: `translateX(${direction * SLIDE_IN_PX}px)`, opacity: 0 },
     { transform: 'translateX(0)', opacity: 1 },
   ])
-  return true
 }
 
-type Gesture = {
-  pointerId: number
-  startX: number
-  startY: number
-  lastX: number
-  mode: 'pending' | 'swipe' | 'scrub' | 'ignored'
-  timer: ReturnType<typeof setTimeout>
-}
-
-let gesture: Gesture | null = null
-const dragX = ref(0)
-
-function canTurn(dx: number): boolean {
-  return dx > 0 ? hasPrevious.value : hasNext.value
-}
-
-function onPointerDown(event: PointerEvent): void {
-  if (gesture || event.button > 0) return
-  // Le doigt qui sort de la courbe en glissant continue de la piloter.
-  ;(event.currentTarget as SVGSVGElement).setPointerCapture?.(event.pointerId)
-  gesture = {
-    pointerId: event.pointerId,
-    startX: event.clientX,
-    startY: event.clientY,
-    lastX: event.clientX,
-    mode: 'pending',
-    timer: setTimeout(startScrub, LONG_PRESS_MS),
-  }
-}
-
-function startScrub(): void {
-  if (gesture?.mode !== 'pending') return
-  gesture.mode = 'scrub'
-  selectAt(gesture.lastX)
-}
-
-function onPointerMove(event: PointerEvent): void {
-  if (!gesture || event.pointerId !== gesture.pointerId) return
-  gesture.lastX = event.clientX
-  const dx = event.clientX - gesture.startX
-  const dy = event.clientY - gesture.startY
-  if (gesture.mode === 'pending' && Math.hypot(dx, dy) > TOUCH_SLOP_PX) {
-    clearTimeout(gesture.timer)
-    gesture.mode = Math.abs(dx) > Math.abs(dy) ? 'swipe' : 'ignored'
-  }
-  if (gesture.mode === 'swipe') dragX.value = canTurn(dx) ? dx : dx * EDGE_RESISTANCE
-  else if (gesture.mode === 'scrub') selectAt(event.clientX)
-}
-
-function endGesture(event: PointerEvent): Gesture | null {
-  if (!gesture || event.pointerId !== gesture.pointerId) return null
-  const ended = gesture
-  clearTimeout(ended.timer)
-  gesture = null
-  return ended
-}
-
-function settle(dx: number): void {
-  const from = dragX.value
-  dragX.value = 0
-  if (Math.abs(dx) >= SWIPE_PX && turnPage(dx > 0 ? -1 : 1)) return
-  animate([{ transform: `translateX(${from}px)` }, { transform: 'translateX(0)' }])
-}
-
-function onPointerUp(event: PointerEvent): void {
-  const ended = endGesture(event)
-  if (ended?.mode === 'pending') selectAt(event.clientX)
-  else if (ended?.mode === 'swipe') settle(event.clientX - ended.startX)
-}
-
-// Le navigateur annule le geste quand il fait défiler l'écran.
-function onPointerCancel(event: PointerEvent): void {
-  if (endGesture(event)?.mode === 'swipe') settle(0)
-}
-
-function onTouchMove(event: TouchEvent): void {
-  if (event.cancelable && (gesture?.mode === 'scrub' || gesture?.mode === 'swipe')) {
-    event.preventDefault()
-  }
-}
+const { dragX, listeners } = useChartGestures({
+  pick: selectAt,
+  hasPage,
+  turn: turnPage,
+  settle: (fromX) =>
+    animate([{ transform: `translateX(${fromX}px)` }, { transform: 'translateX(0)' }]),
+})
 
 function onKeydown(event: KeyboardEvent): void {
   const step = KEY_STEPS[event.key]
@@ -215,10 +139,6 @@ function onKeydown(event: KeyboardEvent): void {
   else return
   event.preventDefault()
 }
-
-onBeforeUnmount(() => {
-  if (gesture) clearTimeout(gesture.timer)
-})
 
 defineExpose({
   focus: () => svg.value?.focus({ preventScroll: true }),
@@ -264,12 +184,7 @@ defineExpose({
       :aria-valuemax="chart.points.length"
       :aria-valuenow="sliderIndex + 1"
       :aria-valuetext="valueText"
-      @pointerdown="onPointerDown"
-      @pointermove="onPointerMove"
-      @pointerup="onPointerUp"
-      @pointercancel="onPointerCancel"
-      @touchmove="onTouchMove"
-      @contextmenu.prevent
+      v-on="listeners"
       @keydown="onKeydown"
     >
       <template v-for="gridLine in chart.gridLines" :key="gridLine.y">
