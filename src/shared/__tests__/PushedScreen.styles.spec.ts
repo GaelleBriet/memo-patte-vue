@@ -93,8 +93,20 @@ describe('PushedScreen — contrat de style', () => {
 
   it('pose lui-même l’écart titre / sous-titre, que le flex ne fusionne plus', () => {
     expect(declaration(css, '.pushed-screen__title', 'margin-block')).toBe('0')
-    expect(declaration(css, '.pushed-screen__subtitle', 'margin')).toBe('2px 0 0 52px')
+    expect(declaration(css, '.pushed-screen__subtitle', 'margin')).toBe('0 0 0 52px')
     expect(css).not.toContain('--compact')
+  })
+
+  it('colle le sous-titre au titre : la flèche déborde de la ligne sans la hausser', () => {
+    expect(
+      declaration(
+        css,
+        '.pushed-screen__topbar--with-subtitle .pushed-screen__back',
+        'margin-block',
+      ),
+    ).toBe('-24px')
+    expect(declaration(css, '.pushed-screen__topbar--with-subtitle', 'padding-top')).toBe('16.8px')
+    expect(declaration(css, '.pushed-screen__back', 'margin-block')).toBeUndefined()
   })
 
   it('met la flèche sur la ligne du titre et indente le sous-titre sous lui', () => {
