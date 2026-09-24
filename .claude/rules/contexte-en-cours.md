@@ -1,5 +1,21 @@
 # Contexte en cours (à mettre à jour à chaque lot)
 
+- 2026-09-24 (soir) : **pause demandée par Gaelle, reprendre ici.** **#395 mergée (#380, marquer un
+  rappel comme fait)** : feuilles F2 à F6 depuis « À faire » (fenêtre J+29), toast « Annuler », dialogue
+  de confirmation partagé, arrêt d'un traitement, « Modifier » avec retour sur la feuille rouverte,
+  « C'est un rappel de Carré ? » à Enregistrer, titre du calendrier touchable (deux choix de Gaelle,
+  au journal du jour). `main` à **2828 tests**. Testé sur le téléphone dans MémoPatte Dev (vrai
+  plugin, vrais touchers), puis MémoPatte Dev désinstallée ; vraie app intacte (base v5, jamais
+  rouverte depuis sa réinstallation). **Piège de test à retenir** : un clic simulé par CDP
+  (`element.click()`) ne donne pas d'activation utilisateur, Chrome saute alors au retour les entrées
+  d'historique qu'il a créées et le retour Android peut mettre l'app en arrière-plan ; pour tester la
+  navigation, toucher pour de vrai (`adb shell input tap` aux coordonnées du bouton : x·dpr,
+  126 + y·dpr sur ce téléphone). **Ne pas publier de version avant #381** : un traitement arrêté
+  disparaît du Carnet alors que le toast annonce « Traitements terminés », et la date d'une prise
+  passée ne se corrige plus par « Modifier ». **Suite** : #381 (détail, historique, traitements
+  terminés), puis #382 à #384. Toujours mis de côté par Gaelle : l'audit de Fable
+  (`docs/product/audit-2026-09-24.md`) et les suites de #388.
+
 - 2026-09-24 (après-midi) : **reprendre ici.** Mergés : #390 (#388, app de dev séparée « MémoPatte
   Dev », `com.gaellebriet.memopatte.dev`, installée par `pnpm dev:mobile` et `pnpm test:device:dev` ;
   la vraie app ne reçoit que `main` par `pnpm test:device`), #389 (#351, Historique du poids par pages
