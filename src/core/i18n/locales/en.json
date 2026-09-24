@@ -6,7 +6,8 @@
   },
   "calendar": {
     "previousMonth": "Previous month",
-    "nextMonth": "Next month"
+    "nextMonth": "Next month",
+    "pickMonthYear": "Choose the month and year"
   },
   "animals": {
     "chipSelector": {

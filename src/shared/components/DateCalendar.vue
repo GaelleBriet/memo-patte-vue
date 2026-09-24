@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { format, parseISO } from 'date-fns'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 const props = withDefaults(
@@ -19,6 +19,23 @@ const { t, locale } = useI18n()
 // Dates locales à minuit : une chaîne serait lue en UTC par l'adaptateur, un jour trop tôt à l'ouest.
 function toDate(value: string | null): Date | undefined {
   return value === null ? undefined : parseISO(value)
+}
+
+type ViewMode = 'month' | 'months' | 'year'
+
+const viewMode = ref<ViewMode>('month')
+let closingYears = false
+
+// Vuetify revient aux jours après le choix d'une année : le choix du mois passe avant.
+function onViewMode(next: ViewMode): void {
+  const yearPicked = viewMode.value === 'year' && next === 'month' && !closingYears
+  viewMode.value = yearPicked ? 'months' : next
+  closingYears = false
+}
+
+function toggleYears(openYears: () => void): void {
+  closingYears = viewMode.value === 'year'
+  openYears()
 }
 
 const selected = computed({
@@ -41,8 +58,10 @@ const selected = computed({
       :min="toDate(props.min)"
       :max="toDate(props.max)"
       :show-adjacent-months="false"
+      :view-mode="viewMode"
+      @update:view-mode="onViewMode"
     >
-      <template #controls="{ monthYearText, prevMonth, nextMonth, disabled }">
+      <template #controls="{ monthYearText, prevMonth, nextMonth, openYears, disabled }">
         <div class="date-calendar__controls">
           <v-btn
             class="date-calendar__nav date-calendar__nav--previous"
@@ -52,7 +71,16 @@ const selected = computed({
             :disabled="disabled.includes('prev-month')"
             @click="prevMonth"
           />
-          <span class="date-calendar__month" aria-live="polite">{{ monthYearText }}</span>
+          <button
+            type="button"
+            class="date-calendar__month"
+            :aria-label="t('calendar.pickMonthYear')"
+            :aria-expanded="viewMode !== 'month'"
+            @click="toggleYears(openYears)"
+          >
+            <span aria-live="polite">{{ monthYearText }}</span>
+            <v-icon icon="ms:arrow_drop_down" size="22" />
+          </button>
           <v-btn
             class="date-calendar__nav date-calendar__nav--next"
             icon="ms:chevron_right"
@@ -107,9 +135,28 @@ const selected = computed({
 }
 
 .date-calendar__month {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-height: tokens.$size-tap-target;
+  padding: 0 4px 0 8px;
+  border: 0;
+  border-radius: tokens.$radius-pill;
+  background: transparent;
+  color: inherit;
   font-family: tokens.$font-family-heading;
   font-size: 16px;
   font-weight: 700;
+  cursor: pointer;
+
+  .v-icon {
+    color: rgb(var(--v-theme-primary));
+  }
+
+  &:focus-visible {
+    outline: none;
+    background: rgba(var(--v-theme-primary), 0.06);
+  }
 }
 
 .date-calendar :deep(.v-date-picker-month) {
