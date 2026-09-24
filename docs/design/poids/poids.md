@@ -26,7 +26,7 @@ saisie reste dans la feuille pesée (`pesee.md`).
 
 - Même mécanique que le formulaire animal : sticky, sans bordure au repos,
   bordure `#ECE9E5` + ombre légère dès que le contenu défile.
-- Flèche retour pétrole vers le Carnet.
+- Flèche retour pétrole vers le Carnet, annoncée « Retour au carnet » (#351).
 - Titre « Suivi de poids » (Space Grotesk 22 px / 700) avec, juste en
   dessous, le prénom de l'animal consulté en petit texte secondaire
   (12,5 px / 500, `#68625C`) — absent du formulaire animal, propre à cet
@@ -55,11 +55,32 @@ saisie reste dans la feuille pesée (`pesee.md`).
   sélectionnée remplace « Poids actuel » par `Pesée du 11 oct. 2026`, affiche
   son poids et sa variation par rapport à la pesée précédente au format de la
   liste (`+0,1 kg`, même code couleur) ; la variation reste vide pour la toute
-  première pesée, la ligne gardant sa hauteur.
+  première pesée, la ligne gardant sa hauteur. Le bloc est annoncé en
+  « polite » au lecteur d'écran.
+- Puce « × Poids actuel » (#351, maquette `courbes-poids/` H2) à droite de la
+  ligne « Pesée du … », seulement quand une autre pesée que la plus récente est
+  lue : fond `#DEF1F2`, texte pétrole 13 px / 700, 28 px de haut (zone de
+  toucher 48 px), annoncée « Revenir au poids actuel ». Elle remet le résumé
+  à la pesée la plus récente, sans changer de page, et rend le focus à la
+  courbe.
 
 ### 3. Courbe
 
 - N'apparaît qu'à partir de deux pesées.
+- Par pages de **12 pesées** (#351, maquette `courbes-poids/` H1 à H3),
+  découpées depuis la plus récente : l'écran s'ouvre sur la page la plus
+  récente, la plus ancienne garde le reste (elle peut n'en compter qu'une). La
+  courbe occupe toute la largeur quel que soit le nombre de pesées de la page,
+  une pesée seule au centre. Échelle, repères et mois se recalculent pour
+  chaque page, avec les règles ci-dessous. La carte du Carnet et le PDF restent
+  un aperçu de toute la période.
+- En-tête de la carte : ‹ · période · › ; période `mars 2026 – sept. 2026`
+  (Space Grotesk 16 px / 700), en dessous `12 pesées` (13 px / 500,
+  `#68625C`), `6 pesées · début du suivi` sur la page de la première pesée.
+  Chevrons pétrole de 24 px, zone de toucher 48 px ; grisés `#CFCAC3` quand il
+  n'y a plus de page de ce côté, et annoncés « Pesées précédentes, aucune » /
+  « Pesées suivantes, aucune ». La période est annoncée en « polite » à chaque
+  changement de page.
 - Piste D, choisie le 2026-09-23 (#340). Même tracé que la courbe du Carnet
   (`carnet.md` §6) : axe horizontal proportionnel au temps, polyline pétrole
   2 px, voile pétrole à 10 % d'opacité, points de 4 px cerclés de 2 px couleur
@@ -83,16 +104,27 @@ saisie reste dans la feuille pesée (`pesee.md`).
 - Chiffres à gauche des lignes (12 px, `#736E67`, sans décimale inutile :
   `24`, `24,5`), unité « kg » au-dessus de l'axe (12 px / 500). Aucun chiffre
   sur les points.
-- Toucher ou glisser sur la courbe sélectionne la pesée la plus proche : trait
-  vertical `#736E67` de 1 px sur toute la hauteur du tracé, point agrandi à
-  6 px de rayon. La sélection reste en place quand le doigt se lève. Au repos,
-  à chaque ouverture de l'écran et après chaque ajout d'une pesée, la
-  sélection est sur la dernière pesée.
-- Clavier et lecteur d'écran : la courbe prend le focus comme un curseur
-  (« Évolution du poids »), les flèches gauche / droite (et haut / bas) et
-  Début / Fin parcourent les pesées, et la pesée sélectionnée est annoncée
-  (`Pesée du 11 oct. 2026 : 24,3 kg`). Pas d'anneau de focus visible : le
-  trait vertical dit déjà la sélection.
+- Gestes (#351) :
+    - **glisser** vers la droite montre la page précédente, vers la gauche la
+      suivante ; la courbe suit le doigt, et au bout du suivi elle résiste
+      (elle ne suit le doigt qu'au quart) puis revient, sans changer de page ;
+    - **toucher** un point sélectionne la pesée la plus proche : trait vertical
+      pétrole à 50 % de 1 px sur toute la hauteur du tracé, point agrandi à
+      7 px de rayon, contour couleur surface ;
+    - **appui long puis glisser** parcourt les pesées de la page, le résumé
+      suit ; l'écran ne défile pas sous le doigt pendant ce geste ;
+    - un geste qui part à la verticale fait défiler l'écran.
+- La sélection reste en place quand le doigt se lève. Au repos, aucune pesée
+  n'est marquée sur la courbe ; à chaque ouverture de l'écran, après chaque
+  ajout d'une pesée et à chaque changement de page, le résumé revient à la
+  pesée la plus récente.
+- Clavier et lecteur d'écran : les chevrons changent de page. La courbe prend
+  le focus comme un curseur (« Évolution du poids ») sur les pesées de la
+  page : flèches gauche / droite (et haut / bas) et Début / Fin les
+  parcourent, Page précédente / Page suivante changent de page, et la pesée
+  est annoncée date en toutes lettres (`Pesée du 3 février 2026, 17,8 kg`).
+  Au repos, le curseur annonce la dernière pesée de la page. Pas d'anneau de
+  focus visible : le trait vertical dit déjà la sélection.
 - Le tout dans une carte `#FEFCF9`, bordure `#ECE9E5`, rayon 22 px, même
   traitement que les autres cartes du Carnet.
 
@@ -105,8 +137,8 @@ saisie reste dans la feuille pesée (`pesee.md`).
 ### 5. Liste « Toutes les pesées »
 
 - N'apparaît que s'il existe au moins une pesée.
-- Titre « Toutes les pesées » (20 px / 700), puis une carte unique
-  contenant toutes les entrées, **la plus récente en haut** (ordre
+- Titre « Toutes les pesées » (20 px / 700), le nombre de pesées à droite
+  (#351), puis une carte unique contenant toutes les entrées, **la plus récente en haut** (ordre
   chronologique inversé par rapport à la courbe, qui va dans le sens du
   temps).
 - Une ligne par pesée, hauteur 56 px, filet de séparation entre les lignes

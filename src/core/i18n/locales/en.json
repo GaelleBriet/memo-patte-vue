@@ -244,12 +244,20 @@
       "max": "max {weight}",
       "min": "min {weight}",
       "latest": "{weight} kg",
-      "point": "Weigh-in on {date}: {weight} kg"
+      "point": "Weigh-in on {date}, {weight} kg",
+      "period": "{from} – {to}",
+      "count": "{n} weigh-in | {n} weigh-ins",
+      "start": "{count} · start of tracking",
+      "previous": "Earlier weigh-ins",
+      "previousNone": "Earlier weigh-ins, none",
+      "next": "Later weigh-ins",
+      "nextNone": "Later weigh-ins, none"
     },
     "history": {
       "title": "Weight tracking",
-      "back": "Back",
+      "back": "Back to health record",
       "current": "Current weight",
+      "reset": "Back to current weight",
       "selected": "Weigh-in on {date}",
       "list": "All weigh-ins",
       "value": "{weight} kg",
