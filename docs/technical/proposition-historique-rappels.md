@@ -798,9 +798,12 @@ reprogramme rien.
 ### 10.6 Export et import
 
 Format **v2** : parents et événements. L'import accepte v1 (un événement par ligne v1, par un
-adaptateur) et v2. Dans l'adaptateur v1, **l'identifiant de l'événement est celui du parent**, comme à
-la migration, pour qu'importer deux fois le même fichier ne duplique pas l'historique ; une prise v1
-recopie la fréquence de son traitement. Deux refus nouveaux, fichier entier refusé comme les refus
+adaptateur) et v2. Dans l'adaptateur v1, **la ligne v1 se rattache à l'événement local de même date**
+(supprimés compris, un non supprimé de préférence), mis à jour seulement si le fichier est plus récent,
+ou s'il avait été supprimé en même temps que son parent ; à défaut, un événement est créé avec
+l'identifiant du parent s'il est libre, sinon un nouvel identifiant. Importer deux fois le même
+fichier ne duplique rien et aucune date déjà en base n'est réécrite ; une prise v1 recopie la
+fréquence de son traitement. Deux refus nouveaux, fichier entier refusé comme les refus
 existants : un événement dont le parent n'est pas dans le fichier ni sur l'appareil, et un événement
 dont l'animal diffère de celui de son parent. Une échéance importée n'est jamais recalculée (décision du 2026-09-16, intacte).
 PDF : prises répétées regroupées ; JSON : chaque événement ; CSV : une ligne par événement.
