@@ -5,6 +5,31 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.39](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.38...memo-patte-v0.1.39) (2026-09-24)
+
+
+### ✨ Fonctionnalités
+
+* **home:** feuilles d'un rappel F2 à F6 depuis « À faire », fenêtre jusqu'à J+29 ([#380](https://github.com/GaelleBriet/memo-patte-vue/issues/380)) ([95a883c](https://github.com/GaelleBriet/memo-patte-vue/commit/95a883ca43b9c761febe17eedad30ed8710e2f6d))
+* **home:** retour de « Modifier » sur la feuille du rappel, rouverte à jour ([#380](https://github.com/GaelleBriet/memo-patte-vue/issues/380)) ([46054f3](https://github.com/GaelleBriet/memo-patte-vue/commit/46054f3a297f336b3cdad69927c8e386cb973701))
+* **rappels:** l'année s'affiche quand l'échéance n'est pas de l'année en cours ([#380](https://github.com/GaelleBriet/memo-patte-vue/issues/380)) ([9ba206d](https://github.com/GaelleBriet/memo-patte-vue/commit/9ba206d210ba2a531e5de3c659538db170502235))
+* **reminders:** marquer un rappel comme fait depuis l'accueil ([#380](https://github.com/GaelleBriet/memo-patte-vue/issues/380)) ([d58da95](https://github.com/GaelleBriet/memo-patte-vue/commit/d58da9545e953d892ccb1e97c10498a082497940))
+* **reminders:** services de la prise, de l'injection et de l'arrêt, avec leur annulation ([#380](https://github.com/GaelleBriet/memo-patte-vue/issues/380)) ([a8c8dca](https://github.com/GaelleBriet/memo-patte-vue/commit/a8c8dca99ae6d720b5959aaf63b126f5f5418cbe))
+* **shared:** action du toast et dialogue de confirmation partagé ([#380](https://github.com/GaelleBriet/memo-patte-vue/issues/380)) ([e353bc6](https://github.com/GaelleBriet/memo-patte-vue/commit/e353bc60eb8ba21e6f6a76b869de494e5076ee48))
+* **shared:** calendrier, mois et année au toucher du titre ([#380](https://github.com/GaelleBriet/memo-patte-vue/issues/380)) ([62ef822](https://github.com/GaelleBriet/memo-patte-vue/commit/62ef822cb1c7c3d245ff279fdef46a25a40daae4))
+* **treatments:** « Modifier » change le plan et la prochaine dose de la prise de tête ([#380](https://github.com/GaelleBriet/memo-patte-vue/issues/380)) ([615c76f](https://github.com/GaelleBriet/memo-patte-vue/commit/615c76f2bd46709c888736ee7e529bea2e03b885))
+* **treatments:** un traitement arrêté sort des rappels, de « À faire » et des exports ([#380](https://github.com/GaelleBriet/memo-patte-vue/issues/380)) ([71502ba](https://github.com/GaelleBriet/memo-patte-vue/commit/71502bab8005548b80ce361a8279b5f5592b9c73))
+* **vaccinations:** « C'est un rappel de … ? » ouvre la feuille « Fait » du vaccin existant ([#380](https://github.com/GaelleBriet/memo-patte-vue/issues/380)) ([a6e6265](https://github.com/GaelleBriet/memo-patte-vue/commit/a6e62659a4f6de9cb0df7be98bfcafaff4c6b570))
+
+
+### 🐛 Corrections
+
+* **settings:** un traitement arrêté le reste après export puis import ([#380](https://github.com/GaelleBriet/memo-patte-vue/issues/380)) ([3aa723c](https://github.com/GaelleBriet/memo-patte-vue/commit/3aa723c60cdb4a63436b57cf8c5acc6a1218e054))
+* **shared:** le focus revient au bouton d'origine quand on annule un dialogue ([#380](https://github.com/GaelleBriet/memo-patte-vue/issues/380)) ([146ece7](https://github.com/GaelleBriet/memo-patte-vue/commit/146ece76863d8a66865cee94d0b78965cf03eaa1))
+* **shared:** titre du calendrier nommé avec le mois, retour Android vers les jours ([#380](https://github.com/GaelleBriet/memo-patte-vue/issues/380)) ([cbb5ecf](https://github.com/GaelleBriet/memo-patte-vue/commit/cbb5ecff02376939125efe1cbe820beea6239039))
+* **treatments:** la prochaine dose ne précède jamais la dernière prise dans « Modifier » ([#380](https://github.com/GaelleBriet/memo-patte-vue/issues/380)) ([d241b90](https://github.com/GaelleBriet/memo-patte-vue/commit/d241b90cfb943e6d533606013639076d48ebf07e))
+* **vaccinations:** « Fait aujourd'hui » annonce aussi le choix du prochain rappel ([#380](https://github.com/GaelleBriet/memo-patte-vue/issues/380)) ([2a2cb0a](https://github.com/GaelleBriet/memo-patte-vue/commit/2a2cb0a778e85f6ea134f49aedc20a7c5fe08d3c))
+
 ## [0.1.38](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.37...memo-patte-v0.1.38) (2026-09-24)
 
 
