@@ -57,6 +57,14 @@ export function formatLongDate(isoDate: string): string {
   return format(parseISO(isoDate), 'PP', { locale: DATE_LOCALES[currentLocale()] })
 }
 
+const FULL_DATE_PATTERNS = { fr: 'd MMMM yyyy', en: 'MMMM d, yyyy' }
+
+/** `3 février 2026` / `February 3, 2026` — une date lue par le lecteur d'écran. */
+export function formatFullDate(isoDate: string): string {
+  const locale = currentLocale()
+  return format(parseISO(isoDate), FULL_DATE_PATTERNS[locale], { locale: DATE_LOCALES[locale] })
+}
+
 /** `08/11/2026` / `11/08/2026`. */
 export function formatNumericDate(isoDate: string): string {
   return format(parseISO(isoDate), 'P', { locale: DATE_LOCALES[currentLocale()] })

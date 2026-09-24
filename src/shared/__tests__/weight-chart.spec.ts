@@ -807,8 +807,16 @@ describe('weightAxisTicks', () => {
 })
 
 describe('buildHistoryWeightChart', () => {
-  it('ne trace rien sous deux pesées', () => {
-    expect(historique(pesees(['2026-03-04', 23.6]))).toBeNull()
+  it('ne trace rien sans pesée', () => {
+    expect(historique([])).toBeNull()
+  })
+
+  it('centre la pesée d’une page qui n’en compte qu’une, dans des repères qui l’encadrent', () => {
+    const chart = historique(pesees(['2026-03-04', 23.6]), 320)!
+
+    expect(chart.points).toEqual([{ x: 173, y: 90, weightKg: 23.6, measuredOn: '2026-03-04' }])
+    expect(chart.gridLines.map((line) => line.label.text)).toEqual(['23,5', '23,6', '23,7'])
+    expect(chart.months.map((month) => month.text)).toEqual(['Mars'])
   })
 
   it('pose une ligne de repère par graduation, son chiffre à gauche du tracé', () => {

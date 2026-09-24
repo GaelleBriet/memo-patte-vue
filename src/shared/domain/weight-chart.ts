@@ -421,12 +421,12 @@ export function weightAxisTicks(minKg: number, maxKg: number): number[] {
   return ticksFor(TICK_STEPS_KG[TICK_STEPS_KG.length - 1]!)
 }
 
-/** Historique : lignes de repère en kg ronds, aucun chiffre sur les points. */
+/** Historique : repères en kg ronds, aucun chiffre sur les points ; une pesée seule se centre. */
 export function buildHistoryWeightChart(
   entries: readonly WeightChartEntry[],
   { width = DEFAULT_CHART_WIDTH, ...measure }: ChartMeasure = {},
 ): HistoryWeightChart | null {
-  if (entries.length < 2) return null
+  if (entries.length === 0) return null
 
   const weights = entries.map((entry) => entry.weightKg)
   const ticks = weightAxisTicks(Math.min(...weights), Math.max(...weights))
