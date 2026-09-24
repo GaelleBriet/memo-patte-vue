@@ -71,7 +71,7 @@ export function createVaccinationsRepository(
   db: DbClient,
   { loadSupabaseClient: loadClient = loadSupabaseClient }: VaccinationsRepositoryDependencies = {},
 ) {
-  const injections = createVaccinationInjectionsRepository()
+  const injections = createVaccinationInjectionsRepository(db)
 
   async function getById(id: string): Promise<Vaccination | null> {
     const rows = await db.query<VaccinationWithHeadRow>(

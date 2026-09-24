@@ -80,7 +80,7 @@ export function createTreatmentsRepository(
   db: DbClient,
   { loadSupabaseClient: loadClient = loadSupabaseClient }: TreatmentsRepositoryDependencies = {},
 ) {
-  const doses = createTreatmentDosesRepository()
+  const doses = createTreatmentDosesRepository(db)
 
   async function getById(id: string): Promise<Treatment | null> {
     const rows = await db.query<TreatmentWithHeadRow>(`${VISIBLE_WITH_HEAD} AND treatment.id = ?`, [

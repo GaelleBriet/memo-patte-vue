@@ -6,7 +6,10 @@ import {
   createTreatmentsRepository,
   type TreatmentsRepository,
 } from '../repository/treatments.repository'
-import { createTreatmentDosesRepository } from '../repository/treatment-doses.repository'
+import {
+  createTreatmentDosesRepository,
+  type TreatmentDosesRepository,
+} from '../repository/treatment-doses.repository'
 import type { ExportTreatment } from '@/shared/domain/carnet-data'
 
 const MIETTE = '11111111-1111-4111-8111-111111111111'
@@ -422,7 +425,7 @@ describe('treatmentsRepository', () => {
 describe('treatmentsRepository — prises', () => {
   let db: InMemoryDb
   let repository: TreatmentsRepository
-  const doses = createTreatmentDosesRepository()
+  let doses: TreatmentDosesRepository
 
   interface DoseRow {
     id: string
@@ -472,6 +475,7 @@ describe('treatmentsRepository — prises', () => {
     await seedAnimal(db, MIETTE, 'Miette')
     await seedAnimal(db, VASCO, 'Vasco')
     repository = createTreatmentsRepository(db)
+    doses = createTreatmentDosesRepository(db)
   })
 
   afterEach(() => {
@@ -697,21 +701,24 @@ describe('treatmentsRepository — import', () => {
 
   let db: InMemoryDb
   let repository: TreatmentsRepository
-  const doses = createTreatmentDosesRepository()
+  let doses: TreatmentDosesRepository
 
   function restore(treatment: ExportTreatment, exists: boolean) {
     return db.runMany([
       repository.restoreStatement(treatment, exists),
-      doses.restoreStatement({
-        id: treatment.id,
-        treatmentId: treatment.id,
-        animalId: treatment.animalId,
-        givenOn: treatment.lastDoseDate,
-        nextDueDate: treatment.nextDueDate,
-        frequency: treatment.frequency,
-        createdAt: treatment.createdAt,
-        updatedAt: treatment.updatedAt,
-      }),
+      doses.restoreStatement(
+        {
+          id: treatment.id,
+          treatmentId: treatment.id,
+          animalId: treatment.animalId,
+          givenOn: treatment.lastDoseDate,
+          nextDueDate: treatment.nextDueDate,
+          frequency: treatment.frequency,
+          createdAt: treatment.createdAt,
+          updatedAt: treatment.updatedAt,
+        },
+        exists,
+      ),
     ])
   }
 
@@ -721,6 +728,7 @@ describe('treatmentsRepository — import', () => {
     await seedAnimal(db, MIETTE, 'Miette')
     await seedAnimal(db, VASCO, 'Vasco')
     repository = createTreatmentsRepository(db)
+    doses = createTreatmentDosesRepository(db)
   })
 
   afterEach(() => {
@@ -744,7 +752,6 @@ describe('treatmentsRepository — import', () => {
       ...IMPORTE,
       type: 'antiparasitic',
       frequency: { value: 2, unit: 'week' },
-      lastDoseDate: '2026-07-01',
       nextDueDate: '2026-07-15',
       updatedAt: '2026-09-15T08:00:00.000Z',
     }

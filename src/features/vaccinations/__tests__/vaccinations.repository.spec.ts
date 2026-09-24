@@ -9,7 +9,10 @@ import {
   getVaccinationsRepository,
   type VaccinationsRepository,
 } from '../repository/vaccinations.repository'
-import { createVaccinationInjectionsRepository } from '../repository/vaccination-injections.repository'
+import {
+  createVaccinationInjectionsRepository,
+  type VaccinationInjectionsRepository,
+} from '../repository/vaccination-injections.repository'
 import type { ExportVaccination } from '@/shared/domain/carnet-data'
 
 // La fabrique est le seul code testé ici qui ouvre la base : on lui substitue `getDb`.
@@ -365,7 +368,7 @@ describe('vaccinationsRepository', () => {
 describe('vaccinationsRepository — injections', () => {
   let db: InMemoryDb
   let repository: VaccinationsRepository
-  const injections = createVaccinationInjectionsRepository()
+  let injections: VaccinationInjectionsRepository
 
   interface InjectionRow {
     id: string
@@ -412,6 +415,7 @@ describe('vaccinationsRepository — injections', () => {
     await seedAnimal(db, MIETTE, 'Miette')
     await seedAnimal(db, VASCO, 'Vasco')
     repository = createVaccinationsRepository(db)
+    injections = createVaccinationInjectionsRepository(db)
   })
 
   afterEach(() => {
@@ -643,20 +647,23 @@ describe('vaccinationsRepository — import', () => {
 
   let db: InMemoryDb
   let repository: VaccinationsRepository
-  const injections = createVaccinationInjectionsRepository()
+  let injections: VaccinationInjectionsRepository
 
   function restore(vaccination: ExportVaccination, exists: boolean) {
     return db.runMany([
       repository.restoreStatement(vaccination, exists),
-      injections.restoreStatement({
-        id: vaccination.id,
-        vaccinationId: vaccination.id,
-        animalId: vaccination.animalId,
-        injectedOn: vaccination.lastInjectionDate,
-        nextDueDate: vaccination.dueDate,
-        createdAt: vaccination.createdAt,
-        updatedAt: vaccination.updatedAt,
-      }),
+      injections.restoreStatement(
+        {
+          id: vaccination.id,
+          vaccinationId: vaccination.id,
+          animalId: vaccination.animalId,
+          injectedOn: vaccination.lastInjectionDate,
+          nextDueDate: vaccination.dueDate,
+          createdAt: vaccination.createdAt,
+          updatedAt: vaccination.updatedAt,
+        },
+        exists,
+      ),
     ])
   }
 
@@ -666,6 +673,7 @@ describe('vaccinationsRepository — import', () => {
     await seedAnimal(db, MIETTE, 'Miette')
     await seedAnimal(db, VASCO, 'Vasco')
     repository = createVaccinationsRepository(db)
+    injections = createVaccinationInjectionsRepository(db)
   })
 
   afterEach(() => {
@@ -684,7 +692,6 @@ describe('vaccinationsRepository — import', () => {
     const importe = {
       ...IMPORTE,
       name: 'CHPPiL',
-      lastInjectionDate: '2025-10-01',
       dueDate: null,
       updatedAt: '2026-09-15T08:00:00.000Z',
     }

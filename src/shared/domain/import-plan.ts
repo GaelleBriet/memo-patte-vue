@@ -12,13 +12,23 @@ type Stamped = { id: string; updatedAt: string }
 
 export type LocalAnimal = Stamped & { deletedAt: string | null; photoPath: string | null }
 export type LocalEntry = Stamped & { deletedAt: string | null; animalId: string }
+export type LocalInjection = Stamped & {
+  deletedAt: string | null
+  vaccinationId: string
+  injectedOn: string
+}
+export type LocalDose = Stamped & { deletedAt: string | null; treatmentId: string; givenOn: string }
 
 export type LocalCarnet = {
   animals: LocalAnimal[]
   vaccinations: LocalEntry[]
+  vaccinationInjections: LocalInjection[]
   treatments: LocalEntry[]
+  treatmentDoses: LocalDose[]
   weightEntries: LocalEntry[]
 }
+
+type LocalEvent = Stamped & { deletedAt: string | null; parentId: string; date: string }
 
 export type ImportedAnimal = Omit<ExportAnimal, 'photoFileName'> & { photoPath: string | null }
 
@@ -45,14 +55,13 @@ export type PlannedDose = {
   updatedAt: string
 }
 
-/** Les injections et les prises s'écrivent par identifiant, qu'elles existent déjà ou non. */
 export type ImportPlan = {
   replaceLocalData: boolean
   animals: PlannedWrite<ImportedAnimal>[]
   vaccinations: PlannedWrite<ExportVaccination>[]
-  vaccinationInjections: PlannedInjection[]
+  vaccinationInjections: PlannedWrite<PlannedInjection>[]
   treatments: PlannedWrite<ExportTreatment>[]
-  treatmentDoses: PlannedDose[]
+  treatmentDoses: PlannedWrite<PlannedDose>[]
   weightEntries: PlannedWrite<ExportWeightEntry>[]
 }
 
@@ -69,6 +78,7 @@ export type ImportPlanInput = {
   local: LocalCarnet
   photosOnDevice: ReadonlySet<string>
   importedAt: string
+  newId: () => string
 }
 
 /** Date de suppression d'un animal dont le fichier rend une version plus récente, par identifiant. */
@@ -93,10 +103,9 @@ function byId<T extends { id: string }>(rows: readonly T[]): Map<string, T> {
   return new Map(rows.map((row) => [row.id, row]))
 }
 
-// Même identifiant que le parent : importer deux fois le même fichier v1 ne duplique rien.
-function injectionOf(vaccination: ExportVaccination): PlannedInjection {
+function injectionOf(vaccination: ExportVaccination, id: string): PlannedInjection {
   return {
-    id: vaccination.id,
+    id,
     vaccinationId: vaccination.id,
     animalId: vaccination.animalId,
     injectedOn: vaccination.lastInjectionDate,
@@ -106,9 +115,9 @@ function injectionOf(vaccination: ExportVaccination): PlannedInjection {
   }
 }
 
-function doseOf(treatment: ExportTreatment): PlannedDose {
+function doseOf(treatment: ExportTreatment, id: string): PlannedDose {
   return {
-    id: treatment.id,
+    id,
     treatmentId: treatment.id,
     animalId: treatment.animalId,
     givenOn: treatment.lastDoseDate,
@@ -117,6 +126,14 @@ function doseOf(treatment: ExportTreatment): PlannedDose {
     createdAt: treatment.createdAt,
     updatedAt: treatment.updatedAt,
   }
+}
+
+function eventsByParent(events: readonly LocalEvent[]): Map<string, LocalEvent[]> {
+  const byParent = new Map<string, LocalEvent[]>()
+  for (const event of events) {
+    byParent.set(event.parentId, [...(byParent.get(event.parentId) ?? []), event])
+  }
+  return byParent
 }
 
 function findReattached(data: ExportData, local: LocalCarnet): ReattachedEntry | undefined {
@@ -139,6 +156,8 @@ function findReattached(data: ExportData, local: LocalCarnet): ReattachedEntry |
  * `replace` : tout le fichier est écrit, après effacement logique des données locales. Un vaccin,
  * un traitement, une pesée ne changent jamais d'animal : un fichier qui en déplace un est refusé
  * en entier. L'échéance d'un traitement est celle du fichier, jamais recalculée.
+ * L'injection ou la prise d'un fichier v1 met à jour l'événement local de même date, ou en crée un :
+ * aucune date déjà en base n'est réécrite.
  */
 export function buildImportPlan({
   data,
@@ -146,6 +165,7 @@ export function buildImportPlan({
   local,
   photosOnDevice,
   importedAt,
+  newId,
 }: ImportPlanInput): ImportPlanResult {
   const reattached = findReattached(data, local)
   if (reattached !== undefined) return { ok: false, reattached }
@@ -215,8 +235,48 @@ export function buildImportPlan({
     return planned
   }
 
+  function planEvents<T extends Stamped, E extends Stamped>(
+    parents: PlannedWrite<T>[],
+    rows: readonly T[],
+    localParents: readonly LocalEntry[],
+    localEvents: readonly LocalEvent[],
+    dateOf: (row: T) => string,
+    eventOf: (row: T, id: string) => E,
+  ): PlannedWrite<E>[] {
+    const plannedIds = new Set(parents.map(({ row }) => row.id))
+    const parentDeletions = new Map(localParents.map(({ id, deletedAt }) => [id, deletedAt]))
+    const takenIds = new Set(localEvents.map(({ id }) => id))
+    const byParent = eventsByParent(localEvents)
+
+    return rows.flatMap((row): PlannedWrite<E>[] => {
+      if (!plannedIds.has(row.id)) return []
+      const sameDate = (byParent.get(row.id) ?? []).filter(({ date }) => date === dateOf(row))
+      const match = sameDate.find(({ deletedAt }) => deletedAt === null) ?? sameDate[0]
+      if (match === undefined) {
+        return [{ row: eventOf(row, takenIds.has(row.id) ? newId() : row.id), exists: false }]
+      }
+      const backWithItsParent =
+        match.deletedAt !== null && match.deletedAt === parentDeletions.get(row.id)
+      return wins(row, match) || backWithItsParent
+        ? [{ row: dated(eventOf(row, match.id), match), exists: true }]
+        : []
+    })
+  }
+
   const vaccinations = planEntries(data.vaccinations, local.vaccinations)
   const treatments = planEntries(data.treatments, local.treatments)
+  const injections = local.vaccinationInjections.map(
+    ({ vaccinationId, injectedOn, ...event }): LocalEvent => ({
+      ...event,
+      parentId: vaccinationId,
+      date: injectedOn,
+    }),
+  )
+  const doses = local.treatmentDoses.map(({ treatmentId, givenOn, ...event }): LocalEvent => ({
+    ...event,
+    parentId: treatmentId,
+    date: givenOn,
+  }))
 
   return {
     ok: true,
@@ -224,9 +284,23 @@ export function buildImportPlan({
       replaceLocalData,
       animals,
       vaccinations,
-      vaccinationInjections: vaccinations.map(({ row }) => injectionOf(row)),
+      vaccinationInjections: planEvents(
+        vaccinations,
+        data.vaccinations,
+        local.vaccinations,
+        injections,
+        (row) => row.lastInjectionDate,
+        injectionOf,
+      ),
       treatments,
-      treatmentDoses: treatments.map(({ row }) => doseOf(row)),
+      treatmentDoses: planEvents(
+        treatments,
+        data.treatments,
+        local.treatments,
+        doses,
+        (row) => row.lastDoseDate,
+        doseOf,
+      ),
       weightEntries: planEntries(data.weightEntries, local.weightEntries),
     },
   }

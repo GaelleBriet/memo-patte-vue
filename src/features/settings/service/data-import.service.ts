@@ -174,14 +174,12 @@ type SqlStatement = ReturnType<AnimalsRepository['markAllDeletedStatement']>
 
 type ImportMethods = 'listVersions' | 'markAllDeletedStatement' | 'restoreStatement'
 
-type EventImportMethods = 'markAllDeletedStatement' | 'restoreStatement'
-
 export type DataImportDependencies = {
   animals: Provider<Pick<AnimalsRepository, 'list' | 'runImport' | ImportMethods>>
   vaccinations: Provider<Pick<VaccinationsRepository, ImportMethods>>
-  vaccinationInjections: Provider<Pick<VaccinationInjectionsRepository, EventImportMethods>>
+  vaccinationInjections: Provider<Pick<VaccinationInjectionsRepository, ImportMethods>>
   treatments: Provider<Pick<TreatmentsRepository, ImportMethods>>
-  treatmentDoses: Provider<Pick<TreatmentDosesRepository, EventImportMethods>>
+  treatmentDoses: Provider<Pick<TreatmentDosesRepository, ImportMethods>>
   weight: Provider<Pick<WeightRepository, ImportMethods>>
   photoExists: (fileName: string) => Promise<boolean>
   syncReminders: () => Promise<void>
@@ -236,13 +234,22 @@ export function createDataImportService({
         weight(),
       ])
       const [
-        [animalVersions, vaccinationVersions, treatmentVersions, weightVersions],
+        [
+          animalVersions,
+          vaccinationVersions,
+          injectionVersions,
+          treatmentVersions,
+          doseVersions,
+          weightVersions,
+        ],
         photosOnDevice,
       ] = await Promise.all([
         Promise.all([
           animalsRepository.listVersions(),
           vaccinationsRepository.listVersions(),
+          injectionsRepository.listVersions(),
           treatmentsRepository.listVersions(),
+          dosesRepository.listVersions(),
           weightRepository.listVersions(),
         ]),
         devicePhotos(data.animals),
@@ -255,11 +262,14 @@ export function createDataImportService({
         local: {
           animals: animalVersions,
           vaccinations: vaccinationVersions,
+          vaccinationInjections: injectionVersions,
           treatments: treatmentVersions,
+          treatmentDoses: doseVersions,
           weightEntries: weightVersions,
         },
         photosOnDevice,
         importedAt,
+        newId: () => crypto.randomUUID(),
       })
 
       if (!result.ok) throw new ImportRefusedError('reattached')
@@ -283,11 +293,9 @@ export function createDataImportService({
           : []),
         ...write(plan.animals, animalsRepository.restoreStatement),
         ...write(plan.vaccinations, vaccinationsRepository.restoreStatement),
-        ...plan.vaccinationInjections.map((injection) =>
-          injectionsRepository.restoreStatement(injection),
-        ),
+        ...write(plan.vaccinationInjections, injectionsRepository.restoreStatement),
         ...write(plan.treatments, treatmentsRepository.restoreStatement),
-        ...plan.treatmentDoses.map((dose) => dosesRepository.restoreStatement(dose)),
+        ...write(plan.treatmentDoses, dosesRepository.restoreStatement),
         ...write(plan.weightEntries, weightRepository.restoreStatement),
       ])
       await syncReminders()

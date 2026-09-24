@@ -67,10 +67,10 @@ describe('animalDeletionService', () => {
       () => animals,
       [
         () => vaccinations,
-        createVaccinationInjectionsRepository,
+        () => createVaccinationInjectionsRepository(db),
         () => weight,
         () => treatments,
-        createTreatmentDosesRepository,
+        () => createTreatmentDosesRepository(db),
       ],
       { vaccinations: () => vaccinations, treatments: () => treatments, notifications },
       photos,

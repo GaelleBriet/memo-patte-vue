@@ -45,9 +45,9 @@ function setup(overrides: Partial<DataImportDependencies> = {}) {
   const service = createDataImportService({
     animals: () => repositories.animals,
     vaccinations: () => repositories.vaccinations,
-    vaccinationInjections: createVaccinationInjectionsRepository,
+    vaccinationInjections: () => createVaccinationInjectionsRepository(db),
     treatments: async () => repositories.treatments,
-    treatmentDoses: createTreatmentDosesRepository,
+    treatmentDoses: () => createTreatmentDosesRepository(db),
     weight: () => repositories.weight,
     photoExists,
     syncReminders,
@@ -315,7 +315,10 @@ describe('data-import.service', () => {
         MILO_ID,
         [
           repositories.vaccinations.markDeletedByAnimalStatement(MILO_ID, deletedAt),
-          createVaccinationInjectionsRepository().markDeletedByAnimalStatement(MILO_ID, deletedAt),
+          createVaccinationInjectionsRepository(db).markDeletedByAnimalStatement(
+            MILO_ID,
+            deletedAt,
+          ),
           repositories.weight.markDeletedByAnimalStatement(MILO_ID, deletedAt),
         ],
         deletedAt,
@@ -420,5 +423,240 @@ describe('data-import.service', () => {
     await expect(repositories.animals.list()).resolves.toEqual([rex])
     await expect(repositories.animals.listVersions()).resolves.toHaveLength(1)
     expect(syncReminders).not.toHaveBeenCalled()
+  })
+
+  describe('injections d’un fichier v1', () => {
+    const FILE_UPDATED_AT = '2026-09-10T00:00:00.000Z'
+    const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
+
+    function injectionsOf(vaccinationId: string) {
+      return db.query<{ id: string; injected_on: string; next_due_date: string | null }>(
+        `SELECT id, injected_on, next_due_date FROM vaccination_injection
+         WHERE vaccination_id = ? AND deleted_at IS NULL ORDER BY injected_on`,
+        [vaccinationId],
+      )
+    }
+
+    async function addInjection(id: string, injectedOn: string, nextDueDate: string) {
+      await db.runMany([
+        createVaccinationInjectionsRepository(db).insertStatement({
+          id,
+          vaccinationId: CHPPIL_ID,
+          animalId: MILO_ID,
+          injectedOn,
+          nextDueDate,
+          createdAt: '2026-09-02T00:00:00.000Z',
+          updatedAt: '2026-09-02T00:00:00.000Z',
+          deletedAt: null,
+        }),
+      ])
+    }
+
+    function withChppil(lastInjectionDate: string, dueDate: string): ExportData {
+      return {
+        ...IMPORT_FIXTURE,
+        vaccinations: IMPORT_FIXTURE.vaccinations.map((vaccination) =>
+          vaccination.id === CHPPIL_ID
+            ? { ...vaccination, lastInjectionDate, dueDate, updatedAt: FILE_UPDATED_AT }
+            : vaccination,
+        ),
+      }
+    }
+
+    it('met à jour l’injection de même date et laisse la date des autres', async () => {
+      const { service } = setup()
+      await service.importData(IMPORT_FIXTURE, 'merge')
+      await addInjection('recente', '2026-09-01', '2027-09-01')
+
+      await service.importData(withChppil('2026-09-01', '2029-09-01'), 'merge')
+
+      await expect(injectionsOf(CHPPIL_ID)).resolves.toEqual([
+        { id: CHPPIL_ID, injected_on: '2025-09-01', next_due_date: '2026-09-01' },
+        { id: 'recente', injected_on: '2026-09-01', next_due_date: '2029-09-01' },
+      ])
+    })
+
+    it('ajoute une injection neuve pour une date absente, une seule fois', async () => {
+      const { service } = setup()
+      await service.importData(IMPORT_FIXTURE, 'merge')
+
+      await service.importData(withChppil('2026-03-01', '2027-03-01'), 'merge')
+      await service.importData(withChppil('2026-03-01', '2027-03-01'), 'merge')
+
+      const [ancienne, neuve] = await injectionsOf(CHPPIL_ID)
+      expect(ancienne).toEqual({
+        id: CHPPIL_ID,
+        injected_on: '2025-09-01',
+        next_due_date: '2026-09-01',
+      })
+      expect(neuve?.id).toMatch(UUID)
+      expect(neuve).toMatchObject({ injected_on: '2026-03-01', next_due_date: '2027-03-01' })
+      await expect(injectionsOf(CHPPIL_ID)).resolves.toHaveLength(2)
+      await expect(repositories.vaccinations.getById(CHPPIL_ID)).resolves.toMatchObject({
+        lastInjectionDate: '2026-03-01',
+        dueDate: '2027-03-01',
+      })
+    })
+
+    it('n’écrit rien sur une injection de même date modifiée après le fichier', async () => {
+      const { service } = setup()
+      await service.importData(IMPORT_FIXTURE, 'merge')
+      await db.run(
+        `UPDATE vaccination_injection SET next_due_date = '2027-01-01', updated_at = ? WHERE id = ?`,
+        ['2026-09-12T00:00:00.000Z', CHPPIL_ID],
+      )
+
+      await service.importData(withChppil('2025-09-01', '2026-12-31'), 'merge')
+
+      await expect(injectionsOf(CHPPIL_ID)).resolves.toEqual([
+        { id: CHPPIL_ID, injected_on: '2025-09-01', next_due_date: '2027-01-01' },
+      ])
+    })
+
+    it('en remplacement, ne garde que l’injection du fichier, sans réécrire la date d’une autre', async () => {
+      const { service } = setup()
+      await service.importData(IMPORT_FIXTURE, 'merge')
+      await addInjection('recente', '2026-09-01', '2027-09-01')
+
+      await service.importData(withChppil('2026-09-01', '2029-09-01'), 'replace')
+
+      await expect(injectionsOf(CHPPIL_ID)).resolves.toEqual([
+        { id: 'recente', injected_on: '2026-09-01', next_due_date: '2029-09-01' },
+      ])
+      await expect(
+        db.query('SELECT injected_on, deleted_at FROM vaccination_injection WHERE id = ?', [
+          CHPPIL_ID,
+        ]),
+      ).resolves.toEqual([{ injected_on: '2025-09-01', deleted_at: NOW.toISOString() }])
+    })
+  })
+
+  describe('prises d’un fichier v1', () => {
+    const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
+
+    function dosesOf(treatmentId: string) {
+      return db.query<{
+        id: string
+        given_on: string
+        next_due_date: string
+        frequency_value: number
+        frequency_unit: string
+      }>(
+        `SELECT id, given_on, next_due_date, frequency_value, frequency_unit FROM treatment_dose
+         WHERE treatment_id = ? AND deleted_at IS NULL ORDER BY given_on`,
+        [treatmentId],
+      )
+    }
+
+    async function addDose(id: string, givenOn: string, nextDueDate: string) {
+      await db.runMany([
+        createTreatmentDosesRepository(db).insertStatement({
+          id,
+          treatmentId: MILBEMAX_ID,
+          animalId: LUNA_ID,
+          givenOn,
+          nextDueDate,
+          frequency: { value: 3, unit: 'month' },
+          createdAt: '2026-09-16T00:00:00.000Z',
+          updatedAt: '2026-09-16T00:00:00.000Z',
+          deletedAt: null,
+        }),
+      ])
+    }
+
+    function withMilbemax(
+      lastDoseDate: string,
+      nextDueDate: string,
+      updatedAt = '2026-09-20T00:00:00.000Z',
+    ): ExportData {
+      return {
+        ...IMPORT_FIXTURE,
+        treatments: IMPORT_FIXTURE.treatments.map((treatment) => ({
+          ...treatment,
+          frequency: { value: 1, unit: 'month' },
+          lastDoseDate,
+          nextDueDate,
+          updatedAt,
+        })),
+      }
+    }
+
+    it('met à jour la prise de même date, fréquence comprise, et laisse la date des autres', async () => {
+      const { service } = setup()
+      await service.importData(IMPORT_FIXTURE, 'merge')
+      await addDose('recente', '2026-09-15', '2026-12-15')
+
+      await service.importData(withMilbemax('2026-09-15', '2026-10-15'), 'merge')
+
+      await expect(dosesOf(MILBEMAX_ID)).resolves.toEqual([
+        {
+          id: MILBEMAX_ID,
+          given_on: '2026-06-15',
+          next_due_date: '2026-09-15',
+          frequency_value: 3,
+          frequency_unit: 'month',
+        },
+        {
+          id: 'recente',
+          given_on: '2026-09-15',
+          next_due_date: '2026-10-15',
+          frequency_value: 1,
+          frequency_unit: 'month',
+        },
+      ])
+    })
+
+    it('ajoute une prise neuve pour une date absente, une seule fois', async () => {
+      const { service } = setup()
+      await service.importData(IMPORT_FIXTURE, 'merge')
+
+      await service.importData(withMilbemax('2026-08-01', '2026-09-01'), 'merge')
+      await service.importData(withMilbemax('2026-08-01', '2026-09-01'), 'merge')
+
+      const [ancienne, neuve] = await dosesOf(MILBEMAX_ID)
+      expect(ancienne).toMatchObject({ id: MILBEMAX_ID, given_on: '2026-06-15' })
+      expect(neuve?.id).toMatch(UUID)
+      expect(neuve).toMatchObject({ given_on: '2026-08-01', next_due_date: '2026-09-01' })
+      await expect(dosesOf(MILBEMAX_ID)).resolves.toHaveLength(2)
+    })
+
+    it('n’écrit rien sur une prise de même date modifiée après le fichier', async () => {
+      const { service } = setup()
+      await service.importData(IMPORT_FIXTURE, 'merge')
+      await db.run(
+        `UPDATE treatment_dose SET next_due_date = '2026-10-01', updated_at = ? WHERE id = ?`,
+        ['2026-09-18T00:00:00.000Z', MILBEMAX_ID],
+      )
+
+      await service.importData(
+        withMilbemax('2026-06-15', '2026-07-15', '2026-09-17T00:00:00.000Z'),
+        'merge',
+      )
+
+      await expect(dosesOf(MILBEMAX_ID)).resolves.toEqual([
+        {
+          id: MILBEMAX_ID,
+          given_on: '2026-06-15',
+          next_due_date: '2026-10-01',
+          frequency_value: 3,
+          frequency_unit: 'month',
+        },
+      ])
+    })
+
+    it('en remplacement, ne garde que la prise du fichier, sans réécrire la date d’une autre', async () => {
+      const { service } = setup()
+      await service.importData(IMPORT_FIXTURE, 'merge')
+      await addDose('recente', '2026-09-15', '2026-12-15')
+
+      await service.importData(withMilbemax('2026-09-15', '2026-10-15'), 'replace')
+
+      await expect(dosesOf(MILBEMAX_ID)).resolves.toMatchObject([
+        { id: 'recente', given_on: '2026-09-15', next_due_date: '2026-10-15' },
+      ])
+      await expect(
+        db.query('SELECT given_on, deleted_at FROM treatment_dose WHERE id = ?', [MILBEMAX_ID]),
+      ).resolves.toEqual([{ given_on: '2026-06-15', deleted_at: NOW.toISOString() }])
+    })
   })
 })

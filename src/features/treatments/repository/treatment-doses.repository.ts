@@ -1,7 +1,20 @@
-import type { SqlStatement } from '@/core/db/db-client'
+import type { DbClient, SqlStatement } from '@/core/db/db-client'
+import { getDb } from '@/core/db/sqlite'
 import type { TreatmentDose } from '../schema/treatment-dose.schema'
 
 export type RestoredTreatmentDose = Omit<TreatmentDose, 'deletedAt'>
+export type TreatmentDoseVersion = Pick<
+  TreatmentDose,
+  'id' | 'treatmentId' | 'givenOn' | 'updatedAt' | 'deletedAt'
+>
+
+interface DoseVersionRow {
+  id: string
+  treatment_id: string
+  given_on: string
+  updated_at: string
+  deleted_at: string | null
+}
 
 const COLUMNS =
   'id, treatment_id, animal_id, given_on, next_due_date, frequency_value, frequency_unit, created_at, updated_at, deleted_at'
@@ -19,9 +32,23 @@ export function headDoseIdSql(treatmentId: string): string {
            LIMIT 1)`
 }
 
-/** Instructions fournies sans être exécutées : le repository des traitements ou un service les joue. */
-export function createTreatmentDosesRepository() {
+/** Ses écritures sont des instructions que le repository des traitements ou un service joue. */
+export function createTreatmentDosesRepository(db: DbClient) {
   return {
+    /** Lignes supprimées comprises : l'import rattache un fichier aux prises déjà en base. */
+    async listVersions(): Promise<TreatmentDoseVersion[]> {
+      const rows = await db.query<DoseVersionRow>(
+        'SELECT id, treatment_id, given_on, updated_at, deleted_at FROM treatment_dose',
+      )
+      return rows.map((row) => ({
+        id: row.id,
+        treatmentId: row.treatment_id,
+        givenOn: row.given_on,
+        updatedAt: row.updated_at,
+        deletedAt: row.deleted_at,
+      }))
+    },
+
     insertStatement(dose: TreatmentDose): SqlStatement {
       return {
         sql: `INSERT INTO treatment_dose (${COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -78,35 +105,51 @@ export function createTreatmentDosesRepository() {
       }
     },
 
-    /** Reprend les dates du fichier et rend la prise visible, sans la changer de traitement ni d'animal. */
-    restoreStatement(dose: RestoredTreatmentDose): SqlStatement {
-      return {
-        sql: `INSERT INTO treatment_dose (${COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)
-              ON CONFLICT (id) DO UPDATE SET
-                given_on = excluded.given_on, next_due_date = excluded.next_due_date,
-                frequency_value = excluded.frequency_value, frequency_unit = excluded.frequency_unit,
-                created_at = excluded.created_at, updated_at = excluded.updated_at,
-                deleted_at = NULL`,
-        params: [
-          dose.id,
-          dose.treatmentId,
-          dose.animalId,
-          dose.givenOn,
-          dose.nextDueDate,
-          dose.frequency.value,
-          dose.frequency.unit,
-          dose.createdAt,
-          dose.updatedAt,
-        ],
-      }
+    /** Une prise existante garde sa date, son traitement et son animal : échéance et fréquence suivent le fichier. */
+    restoreStatement(dose: RestoredTreatmentDose, exists: boolean): SqlStatement {
+      return exists
+        ? {
+            sql: `UPDATE treatment_dose
+                  SET next_due_date = ?, frequency_value = ?, frequency_unit = ?, updated_at = ?,
+                      deleted_at = NULL
+                  WHERE id = ?`,
+            params: [
+              dose.nextDueDate,
+              dose.frequency.value,
+              dose.frequency.unit,
+              dose.updatedAt,
+              dose.id,
+            ],
+          }
+        : {
+            sql: `INSERT INTO treatment_dose (${COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)`,
+            params: [
+              dose.id,
+              dose.treatmentId,
+              dose.animalId,
+              dose.givenOn,
+              dose.nextDueDate,
+              dose.frequency.value,
+              dose.frequency.unit,
+              dose.createdAt,
+              dose.updatedAt,
+            ],
+          }
     },
   }
 }
 
 export type TreatmentDosesRepository = ReturnType<typeof createTreatmentDosesRepository>
 
-const repository = createTreatmentDosesRepository()
+let repository: Promise<TreatmentDosesRepository> | null = null
 
-export function getTreatmentDosesRepository(): TreatmentDosesRepository {
+/** Ouverture ratée non mise en cache : `getDb()` doit pouvoir réessayer. */
+export function getTreatmentDosesRepository(): Promise<TreatmentDosesRepository> {
+  repository ??= getDb()
+    .then(createTreatmentDosesRepository)
+    .catch((cause: unknown) => {
+      repository = null
+      throw cause
+    })
   return repository
 }
