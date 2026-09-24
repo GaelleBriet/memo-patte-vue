@@ -1593,3 +1593,22 @@ bouton « Ouvrir » (#349).
 traitements en cours avec son historique. — Alternative écartée : le recréer, ce qui couperait
 l'historique en deux.
 
+2026-09-24 — **Modèle de données de l'historique des vaccins et des traitements** (#364), validé par
+Gaelle. Spec : `docs/technical/proposition-historique-rappels.md` §10. Un vaccin suivi (`vaccination`)
+et ses injections (`vaccination_injection`), un plan de traitement (`treatment`, avec `stopped_on`) et
+ses prises (`treatment_dose`) ; chaque événement porte la prochaine échéance qu'il a fixée, **le plus
+récent fait foi**, et le parent ne stocke aucun résumé : le repository le calcule par jointure.
+Migration v6 par reconstruction des deux tables ; un premier événement par ligne existante, de même
+identifiant. Un parent a toujours au moins un événement ; l'échéance d'un traitement est portée par la
+prise, qui recopie aussi la fréquence utilisée ; le produit de #283 est porté par le parent. Changer
+la fréquence met à jour le plan et la prise de tête dans la même écriture, la nouvelle prochaine dose
+étant proposée par le formulaire. — Raison : un résumé stocké sur une autre ligne que le fait qui le
+justifie est un cache à tenir à jour sur plusieurs chemins d'écriture, que la synchro peut écraser ;
+le dériver supprime le risque sans changer le sens des lignes existantes ni leurs lecteurs. —
+Alternatives écartées : deux tables d'historique avec résumé stocké sur le parent (approche 1) ; une
+nouvelle ligne `vaccination` par injection (approche 2), qui change le sens de la table pour tous ses
+lecteurs et donne deux modèles différents pour vaccins et traitements. — **Reporté à l'activation de la
+synchro (#83)** : la réconciliation des prises calculées avec une fréquence périmée (§10.7). **Accepté** :
+un report et un changement de fréquence concurrents sur deux appareils, la plus récente gagne. — Pour
+revenir dessus : rien n'est encore codé à cette date.
+

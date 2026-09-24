@@ -1,6 +1,16 @@
 # Contexte en cours (à mettre à jour à chaque lot)
 
-- 2026-09-23 (soir) : **reprendre ici.** Mergés dans la soirée : #367 (#344 « À faire » sur 30 jours,
+- 2026-09-24 : **reprendre ici.** Maquette « rappel fait » reçue (`docs/design/rappels/`, écarts
+  tranchés au journal du jour, points 1 à 5 ; planche F10 à faire corriger par Gaelle : l'app
+  s'ouvre). **Modèle de l'historique tranché** (journal du jour ; spec
+  `docs/technical/proposition-historique-rappels.md` §10). Prochaine étape : relecture de la spec
+  (Gaelle, éventuellement Fable), puis tickets dans l'ordre du §10.9. **À ne pas oublier** : la
+  réconciliation des prises à fréquence périmée est à faire avec l'activation de la synchro (#83,
+  critère ajouté sur le ticket). #352 : unités kg / lb, défaut lb aux États-Unis, exports JSON / CSV
+  en kg, PDF dans l'unité choisie (tranché le 2026-09-24, maquette attendue). #351 : nombre de pesées
+  par page à juger sur la maquette (12 proposé).
+
+- 2026-09-23 (soir) : **lot du soir.** Mergés dans la soirée : #367 (#344 « À faire » sur 30 jours,
   « Prochain rappel » à la place de « Aucun rappel à venir »), #369 (#354 toasts pétrole, au-dessus de
   toute barre fixe, tonalités réussite / information / échec), #370 (#350 courbe du PDF sur l'axe du
   temps ; aucune étiquette ne touche la ligne de base, Carnet compris). `main` à **2485 tests**, puis #373 (bande vide retirée sous la ligne de base de la courbe du Carnet, la place va au tracé) : voir la PR du même nom.
