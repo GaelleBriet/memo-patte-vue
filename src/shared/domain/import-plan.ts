@@ -270,7 +270,7 @@ export function buildImportPlan({
             b.id.localeCompare(a.id),
         )
 
-      const rewritten = match !== undefined && wins(row, match)
+      const rewritten = match !== undefined && (wins(row, match) || withItsParent(match))
       if (match === undefined) {
         writes.push({ row: eventOf(row, takenIds.has(row.id) ? newId() : row.id), exists: false })
       } else if (rewritten) {

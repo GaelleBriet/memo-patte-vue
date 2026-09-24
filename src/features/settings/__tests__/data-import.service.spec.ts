@@ -728,6 +728,40 @@ describe('data-import.service', () => {
       ])
     })
 
+    it('ramène l’événement de même date supprimé avec son parent aux valeurs du fichier', async () => {
+      const { service } = setup()
+      await service.importData(IMPORT_FIXTURE, 'replace')
+      vi.useFakeTimers({ now: new Date(ADDED), toFake: ['Date'] })
+      try {
+        await repositories.treatments.update(MILBEMAX_ID, {
+          name: 'Milbémax',
+          type: 'deworming',
+          frequency: { value: 1, unit: 'month' },
+          lastDoseDate: '2026-06-15',
+        })
+        await repositories.vaccinations.update(TYPHUS_ID, {
+          name: 'Typhus',
+          lastInjectionDate: '2024-05-20',
+          dueDate: '2027-05-20',
+        })
+      } finally {
+        vi.useRealTimers()
+      }
+      await removeAnimal(LUNA_ID)
+
+      await service.importData(withNewerAnimal(LUNA_ID), 'merge')
+
+      await expect(repositories.treatments.getById(MILBEMAX_ID)).resolves.toMatchObject({
+        frequency: { value: 3, unit: 'month' },
+        lastDoseDate: '2026-06-15',
+        nextDueDate: '2026-09-15',
+      })
+      await expect(repositories.vaccinations.getById(TYPHUS_ID)).resolves.toMatchObject({
+        lastInjectionDate: '2024-05-20',
+        dueDate: null,
+      })
+    })
+
     it('ramène le traitement avec la prise supprimée avec lui, celle annulée avant reste annulée', async () => {
       const { service } = setup()
       await service.importData(IMPORT_FIXTURE, 'merge')

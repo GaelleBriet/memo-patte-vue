@@ -406,13 +406,15 @@ describe('buildImportPlan', () => {
         expect(plan.revivedInjections).toEqual(['e1'])
       })
 
-      it('ramène l’injection de même date supprimée avec le vaccin, sans réécrire son rappel', () => {
+      it('ramène l’injection de même date supprimée avec le vaccin, aux valeurs du fichier', () => {
         const local = cascadeWith([localInjection(CHPPIL_ID, FILE_DATE, withParent)])
 
         const plan = buildPlan({ data: miloAfterCascade, local })
 
-        expect(chppilInjections(plan)).toEqual([])
-        expect(plan.revivedInjections).toEqual([CHPPIL_ID])
+        expect(chppilInjections(plan)).toEqual([
+          { row: expect.objectContaining({ id: CHPPIL_ID, updatedAt: IMPORTED_AT }), exists: true },
+        ])
+        expect(plan.revivedInjections).toEqual([])
       })
 
       it('à date égale, retient l’injection supprimée avec le vaccin, puis la plus récente', () => {
