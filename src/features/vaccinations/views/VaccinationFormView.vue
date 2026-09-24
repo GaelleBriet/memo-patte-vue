@@ -19,6 +19,7 @@ import FormField from '@/shared/form/FormField.vue'
 import FormScreen from '@/shared/form/FormScreen.vue'
 import { useFormValidation } from '@/shared/form/use-form-validation'
 import { primingReturnRoute, routeAfterReminderSaved } from '@/shared/domain/notification-priming'
+import { returnTo } from '@/shared/utils/return-to'
 
 const props = defineProps<{
   animalId?: string
@@ -27,8 +28,9 @@ const props = defineProps<{
 
 const { t } = useI18n()
 const router = useRouter()
-const origin = useRoute().query.from
-const from = typeof origin === 'string' ? origin : undefined
+const { query } = useRoute()
+const from = typeof query.from === 'string' ? query.from : undefined
+const reminder = typeof query.reminder === 'string' ? query.reminder : undefined
 const animals = useAnimalsStore()
 const vaccinations = useVaccinationsStore()
 
@@ -95,7 +97,7 @@ function selectTargetAnimal(): void {
 
 function backToOrigin(): void {
   selectTargetAnimal()
-  void router.replace(primingReturnRoute(from))
+  returnTo(router, primingReturnRoute(from, reminder))
 }
 
 const sameName = ref<Vaccination | null>(null)
@@ -149,12 +151,14 @@ async function save(): Promise<void> {
       await vaccinations.create({ animalId: requireAnimalId(), ...result.data })
     }
     selectTargetAnimal()
-    void router.replace(
+    returnTo(
+      router,
       await routeAfterReminderSaved({
         hasDueDate: result.data.dueDate !== null,
         animalName: animalName.value,
         kind: 'vaccination',
         from,
+        reminder,
       }),
     )
   } catch {

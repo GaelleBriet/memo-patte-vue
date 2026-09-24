@@ -12,6 +12,7 @@ import BottomSheet from '@/shared/components/BottomSheet.vue'
 import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
 import DateCalendar from '@/shared/components/DateCalendar.vue'
 import ReminderActions from '@/shared/components/ReminderActions.vue'
+import { REMINDER_QUERY_PARAM, reminderQueryValue } from '@/shared/domain/reminder-route'
 import { reminderIcon } from '@/shared/domain/reminders'
 import { showToast, showUndoableToast } from '@/shared/utils/toast'
 
@@ -146,14 +147,17 @@ async function stop(): Promise<void> {
   }
 }
 
-function edit(): void {
+// L'écran d'accueil garde le rappel dans son adresse : le retour, bouton Android compris, rouvre la feuille.
+async function edit(): Promise<void> {
   const current = treatment.value
   if (current === null) return
+  const reminder = reminderQueryValue({ kind: 'treatment', id: current.id })
   open.value = false
-  void router.push({
+  await router.replace({ query: { ...route.query, [REMINDER_QUERY_PARAM]: reminder } })
+  await router.push({
     name: 'treatment-edit',
     params: { id: current.id },
-    query: { from: String(route.name ?? '') },
+    query: { from: String(route.name ?? ''), [REMINDER_QUERY_PARAM]: reminder },
   })
 }
 </script>

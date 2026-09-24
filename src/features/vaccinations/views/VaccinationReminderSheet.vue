@@ -19,6 +19,7 @@ import { useVaccinationsStore } from '../store/vaccinations.store'
 import { useToday } from '@/core/app-lifecycle/use-today'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import BottomSheet from '@/shared/components/BottomSheet.vue'
+import { REMINDER_QUERY_PARAM, reminderQueryValue } from '@/shared/domain/reminder-route'
 import DateCalendar from '@/shared/components/DateCalendar.vue'
 import ReminderActions from '@/shared/components/ReminderActions.vue'
 import {
@@ -157,14 +158,17 @@ function choose(kind: NextReminderKind): void {
   choice.value = { kind }
 }
 
-function edit(): void {
+// L'écran d'accueil garde le rappel dans son adresse : le retour, bouton Android compris, rouvre la feuille.
+async function edit(): Promise<void> {
   const current = vaccination.value
   if (current === null) return
+  const reminder = reminderQueryValue({ kind: 'vaccination', id: current.id })
   open.value = false
-  void router.push({
+  await router.replace({ query: { ...route.query, [REMINDER_QUERY_PARAM]: reminder } })
+  await router.push({
     name: 'vaccination-edit',
     params: { id: current.id },
-    query: { from: String(route.name ?? '') },
+    query: { from: String(route.name ?? ''), [REMINDER_QUERY_PARAM]: reminder },
   })
 }
 

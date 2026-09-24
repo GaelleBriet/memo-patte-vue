@@ -756,7 +756,7 @@ describe('TreatmentFormView — édition', () => {
 })
 
 describe('TreatmentFormView — retour vers l’écran d’origine', () => {
-  async function monterDepuis(from: string) {
+  async function monterDepuis(from: string, reminder?: string) {
     routeur = createRouter({
       history: createMemoryHistory(),
       routes: [
@@ -765,7 +765,11 @@ describe('TreatmentFormView — retour vers l’écran d’origine', () => {
         { path: '/treatments/:id/edit', name: 'treatment-edit', component: Vide },
       ],
     })
-    await routeur.push({ name: 'treatment-edit', params: { id: BRAVECTO.id }, query: { from } })
+    await routeur.push({
+      name: 'treatment-edit',
+      params: { id: BRAVECTO.id },
+      query: reminder ? { from, reminder } : { from },
+    })
     replace = vi.spyOn(routeur, 'replace').mockResolvedValue()
     return monterEdition()
   }
@@ -776,6 +780,18 @@ describe('TreatmentFormView — retour vers l’écran d’origine', () => {
     await soumettre(wrapper)
 
     expect(replace).toHaveBeenCalledWith({ name: 'home' })
+  })
+
+  it('rend à l’accueil le rappel dont la feuille se rouvre, à l’enregistrement comme à l’annulation', async () => {
+    const reminder = `treatment:${BRAVECTO.id}`
+    const enregistre = await monterDepuis('home', reminder)
+    await soumettre(enregistre)
+    expect(replace).toHaveBeenLastCalledWith({ name: 'home', query: { reminder } })
+
+    const annule = await monterDepuis('home', reminder)
+    await annule.get('.form-screen__cancel').trigger('click')
+    await flushPromises()
+    expect(replace).toHaveBeenLastCalledWith({ name: 'home', query: { reminder } })
   })
 
   it('revient à l’accueil quand on annule', async () => {

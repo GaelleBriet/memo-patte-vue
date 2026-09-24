@@ -82,6 +82,38 @@ describe('routeAfterReminderSaved, depuis un écran d’origine', () => {
   })
 })
 
+describe('routeAfterReminderSaved, depuis la feuille d’un rappel', () => {
+  const saved = {
+    hasDueDate: true,
+    animalName: 'Boree',
+    kind: 'treatment',
+    from: 'home',
+    reminder: 'treatment:t1',
+  } as const
+
+  it('revient à l’accueil en gardant le rappel dont la feuille se rouvre', async () => {
+    shouldShow.mockResolvedValue(false)
+
+    expect(await routeAfterReminderSaved(saved)).toEqual({
+      name: 'home',
+      query: { reminder: 'treatment:t1' },
+    })
+  })
+
+  it('confie le rappel à l’écran d’explication, qui le rendra au retour', async () => {
+    shouldShow.mockResolvedValue(true)
+
+    expect(await routeAfterReminderSaved(saved)).toEqual({
+      name: 'notifications-priming',
+      query: { animalName: 'Boree', kind: 'treatment', from: 'home', reminder: 'treatment:t1' },
+    })
+    expect(primingReturnRoute('home', 'treatment:t1')).toEqual({
+      name: 'home',
+      query: { reminder: 'treatment:t1' },
+    })
+  })
+})
+
 describe('primingAfterReminderSaved', () => {
   it('ne propose l’écran d’explication qu’au premier rappel, quand rien n’a été demandé', async () => {
     shouldShow.mockResolvedValue(true)

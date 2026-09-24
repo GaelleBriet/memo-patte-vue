@@ -170,10 +170,11 @@ describe('VaccinationReminderSheet — feuille d’un vaccin', () => {
     bouton('.reminder-actions__row--edit').click()
     await flushPromises()
 
+    expect(replace).toHaveBeenCalledWith({ query: { reminder: `vaccination:${CARRE.id}` } })
     expect(push).toHaveBeenCalledWith({
       name: 'vaccination-edit',
       params: { id: CARRE.id },
-      query: { from: 'home' },
+      query: { from: 'home', reminder: `vaccination:${CARRE.id}` },
     })
   })
 })

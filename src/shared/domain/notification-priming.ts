@@ -2,6 +2,7 @@ import type { RouteLocationRaw } from 'vue-router'
 
 import { ANIMAL_NAME_QUERY_PARAM } from '@/shared/utils/animal-name-query-param'
 import { shouldShowPriming } from '@/core/notifications/permission'
+import { REMINDER_QUERY_PARAM } from './reminder-route'
 
 export type ReminderKind = 'vaccination' | 'treatment'
 
@@ -15,6 +16,12 @@ export type SavedReminder = {
   kind: ReminderKind
   /** Écran où revenir : `home`, `settings` ou `animals`, le Carnet sinon. */
   from?: string
+  /** Rappel dont la feuille se rouvre au retour (`reminder-route.ts`). */
+  reminder?: string
+}
+
+function reminderQuery(reminder: unknown): Record<string, string> {
+  return typeof reminder === 'string' ? { [REMINDER_QUERY_PARAM]: reminder } : {}
 }
 
 /** L'écran d'explication, quand le rappel posé est le premier et que rien n'a été demandé ; sinon `null`. */
@@ -28,12 +35,13 @@ export async function primingAfterReminderSaved(
       ...(saved.animalName ? { [ANIMAL_NAME_QUERY_PARAM]: saved.animalName } : {}),
       kind: saved.kind,
       ...(saved.from ? { from: saved.from } : {}),
+      ...reminderQuery(saved.reminder),
     },
   }
 }
 
 export async function routeAfterReminderSaved(saved: SavedReminder): Promise<RouteLocationRaw> {
-  return (await primingAfterReminderSaved(saved)) ?? primingReturnRoute(saved.from)
+  return (await primingAfterReminderSaved(saved)) ?? primingReturnRoute(saved.from, saved.reminder)
 }
 
 /** `from` : `home`, `settings` ou `animals`, où l'écran d'explication ramènera. */
@@ -41,8 +49,9 @@ export function primingRouteFrom(from: string): RouteLocationRaw {
   return { name: PRIMING_ROUTE, query: { from } }
 }
 
-export function primingReturnRoute(from: unknown): RouteLocationRaw {
-  return {
-    name: typeof from === 'string' && RETURN_ROUTES.includes(from) ? from : DEFAULT_RETURN_ROUTE,
-  }
+export function primingReturnRoute(from: unknown, reminder?: unknown): RouteLocationRaw {
+  const name =
+    typeof from === 'string' && RETURN_ROUTES.includes(from) ? from : DEFAULT_RETURN_ROUTE
+  const query = reminderQuery(reminder)
+  return Object.keys(query).length > 0 ? { name, query } : { name }
 }

@@ -27,6 +27,7 @@ import FormScreen from '@/shared/form/FormScreen.vue'
 import FormSegmented from '@/shared/form/FormSegmented.vue'
 import { useFormValidation } from '@/shared/form/use-form-validation'
 import { primingReturnRoute, routeAfterReminderSaved } from '@/shared/domain/notification-priming'
+import { returnTo } from '@/shared/utils/return-to'
 
 const props = defineProps<{
   animalId?: string
@@ -35,8 +36,9 @@ const props = defineProps<{
 
 const { t } = useI18n()
 const router = useRouter()
-const origin = useRoute().query.from
-const from = typeof origin === 'string' ? origin : undefined
+const { query } = useRoute()
+const from = typeof query.from === 'string' ? query.from : undefined
+const reminder = typeof query.reminder === 'string' ? query.reminder : undefined
 const animals = useAnimalsStore()
 const treatments = useTreatmentsStore()
 
@@ -133,7 +135,7 @@ function selectTargetAnimal(): void {
 
 function backToOrigin(): void {
   selectTargetAnimal()
-  void router.replace(primingReturnRoute(from))
+  returnTo(router, primingReturnRoute(from, reminder))
 }
 
 function selectUnit(unit: FrequencyUnit | null): void {
@@ -164,12 +166,14 @@ async function submit(): Promise<void> {
   try {
     await write()
     selectTargetAnimal()
-    void router.replace(
+    returnTo(
+      router,
       await routeAfterReminderSaved({
         hasDueDate: true,
         animalName: animalName.value,
         kind: 'treatment',
         from,
+        reminder,
       }),
     )
   } catch {

@@ -704,7 +704,7 @@ describe('VaccinationFormView — vaccin déjà suivi', () => {
 })
 
 describe('VaccinationFormView — retour vers l’écran d’origine', () => {
-  async function monterDepuis(from: string) {
+  async function monterDepuis(from: string, reminder?: string) {
     routeur = createRouter({
       history: createMemoryHistory(),
       routes: [
@@ -713,7 +713,11 @@ describe('VaccinationFormView — retour vers l’écran d’origine', () => {
         { path: '/vaccinations/:id/edit', name: 'vaccination-edit', component: Vide },
       ],
     })
-    await routeur.push({ name: 'vaccination-edit', params: { id: RAGE.id }, query: { from } })
+    await routeur.push({
+      name: 'vaccination-edit',
+      params: { id: RAGE.id },
+      query: reminder ? { from, reminder } : { from },
+    })
     replace = vi.spyOn(routeur, 'replace').mockResolvedValue()
     return monterEdition()
   }
@@ -724,6 +728,18 @@ describe('VaccinationFormView — retour vers l’écran d’origine', () => {
     await soumettre(wrapper)
 
     expect(replace).toHaveBeenCalledWith({ name: 'home' })
+  })
+
+  it('rend à l’accueil le rappel dont la feuille se rouvre, à l’enregistrement comme à l’annulation', async () => {
+    const reminder = `vaccination:${RAGE.id}`
+    const enregistre = await monterDepuis('home', reminder)
+    await soumettre(enregistre)
+    expect(replace).toHaveBeenLastCalledWith({ name: 'home', query: { reminder } })
+
+    const annule = await monterDepuis('home', reminder)
+    await annule.get('.form-screen__cancel').trigger('click')
+    await flushPromises()
+    expect(replace).toHaveBeenLastCalledWith({ name: 'home', query: { reminder } })
   })
 
   it('revient à l’accueil quand on annule', async () => {

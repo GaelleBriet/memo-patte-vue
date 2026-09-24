@@ -222,17 +222,19 @@ describe('TreatmentReminderSheet — F2', () => {
     expect(texte('[role="alert"]')).toBe('La prise n’a pas pu être notée. Réessaie.')
   })
 
-  it('ouvre l’écran de modification en gardant l’écran d’origine', async () => {
+  it('ouvre l’écran de modification en gardant l’écran d’origine et le rappel à rouvrir', async () => {
+    const replace = vi.spyOn(router, 'replace').mockResolvedValue()
     const sheet = await monter()
 
     bouton('.reminder-actions__row--edit').click()
     await flushPromises()
 
     expect(sheet.emitted('update:modelValue')).toEqual([[false]])
+    expect(replace).toHaveBeenCalledWith({ query: { reminder: `treatment:${BRAVECTO.id}` } })
     expect(push).toHaveBeenCalledWith({
       name: 'treatment-edit',
       params: { id: BRAVECTO.id },
-      query: { from: 'home' },
+      query: { from: 'home', reminder: `treatment:${BRAVECTO.id}` },
     })
   })
 })

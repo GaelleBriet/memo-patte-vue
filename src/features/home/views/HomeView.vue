@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, useTemplateRef } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 import { promptNotificationsIfReminders } from '@/app/reminders-priming'
 import { useForegroundRefresh } from '@/core/app-lifecycle/use-foreground-refresh'
@@ -17,6 +17,11 @@ import WeightSheet from '@/features/weight/views/WeightSheet.vue'
 import AnimalChipSelector, { type AnimalChipItem } from '@/shared/components/AnimalChipSelector.vue'
 import DueStatusChip from '@/shared/components/DueStatusChip.vue'
 import SectionCard from '@/shared/components/SectionCard.vue'
+import {
+  parseReminderQuery,
+  REMINDER_QUERY_PARAM,
+  type ReminderRef,
+} from '@/shared/domain/reminder-route'
 import AnimalPickerSheet from './AnimalPickerSheet.vue'
 import { useHomeStore } from '../store/home.store'
 import {
@@ -32,6 +37,7 @@ import { buildTodo } from '../logic/todo-window'
 
 const { t } = useI18n()
 const router = useRouter()
+const route = useRoute()
 const animals = useAnimalsStore()
 const home = useHomeStore()
 
@@ -99,7 +105,14 @@ function load(): Promise<unknown> {
 // Le Carnet laisse un animal sélectionné dans le store partagé : l'accueil ne le reprend pas.
 onMounted(() => {
   animals.select(null)
-  void load()
+  const reopened = parseReminderQuery(route.query[REMINDER_QUERY_PARAM])
+  if (reopened) {
+    const { [REMINDER_QUERY_PARAM]: _reminder, ...query } = route.query
+    void router.replace({ query })
+  }
+  void load().then(() => {
+    if (reopened) reopenReminder(reopened)
+  })
 })
 
 type FormRoute = 'treatment-new' | 'vaccination-new'
@@ -111,10 +124,17 @@ const openedReminder = ref<Pick<ReminderRow, 'kind' | 'id'> | null>(null)
 const isTreatmentSheetOpen = ref(false)
 const isVaccinationSheetOpen = ref(false)
 
-function openReminder(row: ReminderRow): void {
+function openReminder(row: Pick<ReminderRow, 'kind' | 'id'>): void {
   openedReminder.value = { kind: row.kind, id: row.id }
   if (row.kind === 'treatment') isTreatmentSheetOpen.value = true
   else isVaccinationSheetOpen.value = true
+}
+
+/** Retour de « Modifier » : la feuille se rouvre si le rappel est encore dans « À faire ». */
+function reopenReminder(reminder: ReminderRef): void {
+  if (rows.value.some((row) => row.kind === reminder.kind && row.id === reminder.id)) {
+    openReminder(reminder)
+  }
 }
 
 function openForm(name: FormRoute): void {

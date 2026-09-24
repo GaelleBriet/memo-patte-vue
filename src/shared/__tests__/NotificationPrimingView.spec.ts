@@ -186,6 +186,19 @@ describe('NotificationPrimingView — écran d’origine', () => {
     expect(replace).toHaveBeenCalledWith({ name: 'home' })
   })
 
+  it('rend à l’accueil le rappel dont la feuille se rouvre', async () => {
+    await routeur.push({
+      name: 'notifications-priming',
+      query: { from: 'home', reminder: 'treatment:t1' },
+    })
+    const wrapper = monter({ animalName: '' })
+
+    await wrapper.get('.notification-priming__later').trigger('click')
+    await flushPromises()
+
+    expect(replace).toHaveBeenCalledWith({ name: 'home', query: { reminder: 'treatment:t1' } })
+  })
+
   it('le retour Android ramène à l’écran d’où l’on vient', async () => {
     monter({ animalName: '' })
 
