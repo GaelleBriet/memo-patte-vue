@@ -1,5 +1,22 @@
 # Contexte en cours (à mettre à jour à chaque lot)
 
+- 2026-09-24 (après-midi) : **reprendre ici.** Mergés : #390 (#388, app de dev séparée « MémoPatte
+  Dev », `com.gaellebriet.memopatte.dev`, installée par `pnpm dev:mobile` et `pnpm test:device:dev` ;
+  la vraie app ne reçoit que `main` par `pnpm test:device`) et #389 (#351, Historique du poids par pages
+  de 12 pesées, sous-titre des écrans poussés collé au titre). `main` à **2561 tests**.
+  **En PR : #391 (#379, migration v6 de l'historique)**, revue propre (trois re-revues), intégrée avec
+  le lot (2646 tests). **À merger seulement après le test sur le téléphone** : installer `main` (v5)
+  dans MémoPatte Dev avec le carnet de démo, puis le build de #391, et vérifier la migration avec le
+  vrai plugin (données, `user_version` 6, rappels). Pas d'émulateur possible : `/dev/kvm` absent.
+  Décision de Gaelle du jour : l'import v1 rattache sa ligne à l'événement **de même date** (journal).
+  **À faire une fois au prochain test sur le téléphone** : réinstaller la vraie app depuis `main`
+  (`pnpm test:device`) ; elle vient d'un ancien `dev:mobile` et chargerait le code de dev.
+  **Mis de côté par Gaelle** (« on voit ça après, quand le reste est ok ») : (1) l'audit de Fable,
+  vérifié point par point, tickets rédigés dans `docs/product/audit-2026-09-24.md`, rien créé sur
+  GitHub ; (2) les trois suites de #388 : installer sans que `cap run` puisse désinstaller la vraie
+  app, garde « `test:device` depuis `main` seulement », phrase de `collaboration.md` sur la vraie app.
+  Suite du lot historique : #380 (« Fait »), puis #381 à #384 ; #352, #385, #386 en attente.
+
 - 2026-09-24 : **reprendre ici.** Maquette « rappel fait » reçue (`docs/design/rappels/`, écarts
   tranchés au journal du jour, points 1 à 5 ; planche F10 à faire corriger par Gaelle : l'app
   s'ouvre). **Modèle de l'historique tranché** (journal du jour ; spec
