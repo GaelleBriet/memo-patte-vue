@@ -39,14 +39,16 @@ export function createHomeRemindersService(
           dueDate: vaccination.dueDate,
           treatmentType: null,
         })),
-        ...treatmentRows.map((treatment): HomeReminderSource => ({
-          kind: 'treatment',
-          id: treatment.id,
-          animalId: treatment.animalId,
-          label: treatment.name,
-          dueDate: treatment.nextDueDate,
-          treatmentType: treatment.type,
-        })),
+        ...treatmentRows
+          .filter((treatment) => treatment.stoppedOn === null)
+          .map((treatment): HomeReminderSource => ({
+            kind: 'treatment',
+            id: treatment.id,
+            animalId: treatment.animalId,
+            label: treatment.name,
+            dueDate: treatment.nextDueDate,
+            treatmentType: treatment.type,
+          })),
       ]
     },
   }

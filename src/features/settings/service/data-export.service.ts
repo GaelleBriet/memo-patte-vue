@@ -85,6 +85,7 @@ export function createDataExportService({
         frequency: { value: treatment.frequency.value, unit: treatment.frequency.unit },
         lastDoseDate: treatment.lastDoseDate,
         nextDueDate: treatment.nextDueDate,
+        stoppedOn: treatment.stoppedOn,
         createdAt: treatment.createdAt,
         updatedAt: treatment.updatedAt,
       })),

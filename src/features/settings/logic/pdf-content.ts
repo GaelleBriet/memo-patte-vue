@@ -16,7 +16,8 @@ export type PdfVaccinationRow = {
 export type PdfTreatmentRow = {
   name: string
   lastDoseDate: string
-  nextDueDate: string
+  /** `null` pour un traitement arrêté : il n'a plus d'échéance. */
+  nextDueDate: string | null
   state: PdfDueState
 }
 
@@ -74,13 +75,16 @@ export function buildCarnetPdfContent(
 
   const treatments: PdfTreatmentRow[] = data.treatments
     .filter((item) => item.animalId === animalId)
-    .map((item) => ({
-      name: item.name,
-      lastDoseDate: item.lastDoseDate,
-      nextDueDate: item.nextDueDate,
-      state: dueState(item.nextDueDate, today, 'treatment'),
-    }))
-    .sort((a, b) => a.nextDueDate.localeCompare(b.nextDueDate))
+    .map((item) => {
+      const nextDueDate = item.stoppedOn ? null : item.nextDueDate
+      return {
+        name: item.name,
+        lastDoseDate: item.lastDoseDate,
+        nextDueDate,
+        state: dueState(nextDueDate, today, 'treatment'),
+      }
+    })
+    .sort((a, b) => byDueDateAscending({ dueDate: a.nextDueDate }, { dueDate: b.nextDueDate }))
 
   const weightEntries: PdfWeightRow[] = data.weightEntries
     .filter((item) => item.animalId === animalId)

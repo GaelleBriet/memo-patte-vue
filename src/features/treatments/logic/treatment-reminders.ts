@@ -19,6 +19,7 @@ import {
   type Translate,
 } from '@/shared/domain/due-reminders'
 import { addFrequency } from './treatment-frequency'
+import { isOngoing } from './treatment-status'
 import type { Treatment, TreatmentFrequency } from '../schema/treatment.schema'
 
 type RemindedTreatment = Pick<
@@ -63,7 +64,7 @@ export function treatmentReminders(
   animal: Pick<Animal, 'name' | 'deletedAt'> | null,
   now: Date,
 ): Reminder[] {
-  if (treatment.deletedAt !== null || treatment.stoppedOn !== null) return []
+  if (treatment.deletedAt !== null || !isOngoing(treatment)) return []
   if (animal === null || animal.deletedAt !== null) return []
 
   const named = {

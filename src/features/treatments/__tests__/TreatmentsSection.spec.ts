@@ -222,6 +222,20 @@ describe('TreatmentsSection — résumé pour le bandeau', () => {
     const summaries = wrapper.emitted('summary') ?? []
     expect(summaries[summaries.length - 1]).toEqual([{ total: 2, overdue: 1, ongoing: 2 }])
   })
+
+  it('laisse un traitement arrêté hors des traitements en cours, du bandeau et des retards', async () => {
+    treatments = [
+      treatment({ name: 'Milbemax', nextDueDate: '2026-09-01', stoppedOn: '2026-09-05' }),
+      treatment({ nextDueDate: '2026-09-24' }),
+    ]
+    const wrapper = await monter()
+
+    expect(
+      wrapper.findAll('.treatment-row').map((row) => row.get('.treatment-row__name').text()),
+    ).toEqual(['Bravecto'])
+    const summaries = wrapper.emitted('summary') ?? []
+    expect(summaries[summaries.length - 1]).toEqual([{ total: 1, overdue: 0, ongoing: 1 }])
+  })
 })
 
 describe('TreatmentsSection — ajout', () => {

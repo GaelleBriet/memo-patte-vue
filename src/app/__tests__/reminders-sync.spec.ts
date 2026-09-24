@@ -166,6 +166,22 @@ describe('syncAllReminders', () => {
     expect(notifications.pending.size).toBe(0)
   })
 
+  it('ne fait pas resonner un traitement arrêté au redémarrage', async () => {
+    listTreatments.mockResolvedValue([{ ...MILBEMAX, stoppedOn: '2026-09-14' }])
+    const stale = `treatment:${MILBEMAX.id}:2026-12-17:due`
+    notifications.pending.set(stale, {
+      key: stale,
+      title: '',
+      body: '',
+      at: new Date(2026, 11, 17),
+    })
+
+    await sync()()
+
+    expect(notifications.rescheduleAll).toHaveBeenCalledWith([])
+    expect(notifications.pending.size).toBe(0)
+  })
+
   it('garde au plus 400 rappels : le jour même de chaque première échéance, puis les plus proches', async () => {
     const count = Math.ceil(MAX_SCHEDULED_REMINDERS / 3) + 1
     listVaccinations.mockResolvedValue(

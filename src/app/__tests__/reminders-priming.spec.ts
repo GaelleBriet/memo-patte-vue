@@ -99,6 +99,19 @@ describe('hasUpcomingDueDates', () => {
     ).toBe(false)
   })
 
+  it('est faux pour un traitement arrêté : il n’a plus de rappel', () => {
+    expect(
+      hasUpcomingDueDates(
+        {
+          animals: [MILO],
+          vaccinations: [],
+          treatments: [{ ...treatment('2026-10-01'), stoppedOn: '2026-09-10' }],
+        },
+        TODAY,
+      ),
+    ).toBe(false)
+  })
+
   it('est vrai pour un traitement, même en retard : ses cycles suivants restent à venir', () => {
     expect(
       hasUpcomingDueDates(

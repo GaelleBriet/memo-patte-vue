@@ -12,6 +12,7 @@ import { computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
+import { isOngoing } from '../logic/treatment-status'
 import { useTreatmentsStore } from '../store/treatments.store'
 import DueStatusChip from '@/shared/components/DueStatusChip.vue'
 import SectionCard from '@/shared/components/SectionCard.vue'
@@ -33,7 +34,7 @@ const router = useRouter()
 const store = useTreatmentsStore()
 
 // Au changement d'animal, ou après un échec, le store porte déjà le nouvel animal mais encore l'ancienne liste.
-const treatments = computed(() => (isCurrent.value ? store.treatments : []))
+const treatments = computed(() => (isCurrent.value ? store.treatments.filter(isOngoing) : []))
 
 const { loadedFor } = useAnimalScopedLoad(
   () => props.animalId,

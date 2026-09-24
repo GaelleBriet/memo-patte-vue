@@ -136,6 +136,7 @@ d'une version plus récente de l'app »).
 | `frequency`    | `{ "value": entier > 0, "unit": "day" \| "week" \| "month" }` |                                     |
 | `lastDoseDate` | `AAAA-MM-JJ`                                              |                                         |
 | `nextDueDate`  | `AAAA-MM-JJ`                                              | Stockée ; recalculable depuis la dernière prise et la fréquence |
+| `stoppedOn`    | `AAAA-MM-JJ` \| `null`                                    | Date d'arrêt, `null` en cours ; ignorée à l'import, le traitement revient en cours |
 | `createdAt`    | ISO 8601 UTC                                              |                                         |
 | `updatedAt`    | ISO 8601 UTC                                              |                                         |
 
@@ -152,8 +153,8 @@ d'une version plus récente de l'app »).
 
 ### `reminders[]` — dérivé, ignoré à l'import
 
-Une ligne par échéance programmée : chaque vaccin qui a une `dueDate`, chaque traitement (sa
-`nextDueDate`), triés par date. C'est la donnée dont l'app reconstruit les notifications locales
+Une ligne par échéance programmée : chaque vaccin qui a une `dueDate`, chaque traitement en cours
+(sa `nextDueDate` ; un traitement arrêté n'a plus de rappel), triés par date. C'est la donnée dont l'app reconstruit les notifications locales
 (trois jours avant, le jour même, trois jours après, à 9 h) ; les instants de notification ne sont
 pas exportés, car ils dépendent du jour de l'import. Un import **ne lit pas** ce tableau : il
 reconstruit les rappels depuis `vaccinations` et `treatments`.

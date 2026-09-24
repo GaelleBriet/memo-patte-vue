@@ -32,6 +32,8 @@ export type ExportTreatment = {
   frequency: { value: number; unit: 'day' | 'week' | 'month' }
   lastDoseDate: string
   nextDueDate: string
+  /** Date d'arrêt, `null` en cours ; absente d'un fichier importé, qui ne la lit pas. */
+  stoppedOn?: string | null
   createdAt: string
   updatedAt: string
 }

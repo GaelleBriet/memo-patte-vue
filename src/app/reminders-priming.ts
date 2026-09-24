@@ -27,12 +27,12 @@ type Provider<T> = () => T | Promise<T>
 export type CarnetDueDates = {
   animals: Pick<Animal, 'id' | 'deletedAt'>[]
   vaccinations: Pick<Vaccination, 'animalId' | 'dueDate' | 'deletedAt'>[]
-  treatments: Pick<Treatment, 'animalId' | 'deletedAt'>[]
+  treatments: Pick<Treatment, 'animalId' | 'deletedAt' | 'stoppedOn'>[]
 }
 
 /**
- * Un vaccin compte tant que sa relance est programmée ; un traitement toujours, ses rappels suivant
- * la fréquence même quand sa dernière échéance est passée.
+ * Un vaccin compte tant que sa relance est programmée ; un traitement en cours toujours, ses rappels
+ * suivant la fréquence même quand sa dernière échéance est passée.
  */
 export function hasUpcomingDueDates(
   { animals, vaccinations, treatments }: CarnetDueDates,
@@ -51,7 +51,7 @@ export function hasUpcomingDueDates(
         isActive(vaccination) &&
         vaccination.dueDate !== null &&
         vaccination.dueDate >= lastRemindedDueDate,
-    ) || treatments.some(isActive)
+    ) || treatments.some((treatment) => isActive(treatment) && treatment.stoppedOn === null)
   )
 }
 
