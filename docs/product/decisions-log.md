@@ -1626,3 +1626,34 @@ défaut au Royaume-Uni : kg**, comme partout sauf aux États-Unis (#352). — Ra
 britanniques pèsent et dosent en kg ; le carnet de santé est en kg. — Alternative écartée : lb par
 défaut au Royaume-Uni, par analogie avec l'usage courant pour le poids des personnes.
 
+2026-09-24 — **Questions ouvertes par l'audit du lot « historique », tranchées avec Gaelle** (#380,
+#381, #382).
+
+1) **Ajouter un vaccin qui existe déjà** sur le même animal (même nom) : l'app propose « C'est un
+rappel de Carré ? », qui ouvre la feuille « Fait » du vaccin existant. — Raison : un second « Carré »
+laisserait l'ancien sonner. — Alternative écartée : créer un doublon.
+
+2) **« Rappel choisi » d'une injection** (F7) : déduit, pas stocké — « dans 1 an » ou « dans 3 ans »
+si l'écart entre l'injection et son rappel vaut exactement un ou trois ans, sinon la date, « Pas de
+rappel » si aucune. — Alternative écartée : une colonne de plus pour le choix.
+
+3) **Le nom d'un traitement reste obligatoire** ; une ligne affiche toujours le nom du produit. —
+Alternative écartée : un nom facultatif (migration et formulaire).
+
+4) **F9 est une planche simplifiée** : le Carnet actuel (`carnet.md`) reste la référence ; on y ajoute
+les lignes touchables et la partie « Traitements terminés ».
+
+5) **Supprimer un vaccin ou un traitement** : dans le menu de son détail (F7, F8), avec un dialogue de
+confirmation, l'action étant irréversible (comme la suppression d'un animal). Aussi proposé quand on
+supprime sa seule injection ou prise.
+
+6) **CSV** : des fichiers séparés pour les injections et les prises, reliés à leur vaccin ou
+traitement. — Alternative écartée : une ligne par événement dans les fichiers existants, qui
+répéterait tout.
+
+7) **Regroupement dans le PDF** : dates listées jusqu'à trois prises, « N prises du A au B » au-delà ;
+nouvelle série si l'écart dépasse 1,5 fois la fréquence ; les vaccins ne sont jamais regroupés.
+
+8) **Le bouton « Arrêter » utilise la couleur système `error` du thème**, pas le corail des retards
+de la maquette. — Raison : séparation entre action destructive et urgence métier posée par le thème.
+
