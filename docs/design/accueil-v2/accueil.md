@@ -62,7 +62,7 @@ pour les vaccins et les traitements. Un rappel plus lointain n'apparaît que dan
 le Carnet, ou dans la ligne « Prochain rappel » de l'état « Tout est à jour »
 (voir 4). Décisions de Gaelle du 2026-09-23 (#344) et du 2026-09-24 (#380) : un
 traitement mensuel marqué fait revient à J+30 et ne doit pas rester dans la
-liste. La fenêtre est la constante `TODO_WINDOW_DAYS` de
+liste. Le dernier jour, J+29, est la constante `TODO_LAST_DAY_OFFSET` de
 `features/home/logic/todo-window.ts`.
 
 Titre « À faire » (Space Grotesk, 21 px, 700) avec, à droite, un compteur de

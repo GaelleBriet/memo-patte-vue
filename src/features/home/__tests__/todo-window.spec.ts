@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { buildTodo, TODO_WINDOW_DAYS } from '../logic/todo-window'
+import { buildTodo, TODO_LAST_DAY_OFFSET } from '../logic/todo-window'
 import type { ReminderSource } from '@/shared/domain/reminders'
 
 const TODAY = '2026-09-09'
@@ -16,9 +16,9 @@ function source(overrides: Partial<ReminderSource> = {}): ReminderSource {
   }
 }
 
-describe('TODO_WINDOW_DAYS', () => {
+describe('TODO_LAST_DAY_OFFSET', () => {
   it('va jusqu’à J+29 : 30 jours, aujourd’hui compris', () => {
-    expect(TODO_WINDOW_DAYS).toBe(29)
+    expect(TODO_LAST_DAY_OFFSET).toBe(29)
   })
 })
 

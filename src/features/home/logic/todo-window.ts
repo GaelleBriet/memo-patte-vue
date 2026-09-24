@@ -6,8 +6,8 @@ import {
   type ReminderSource,
 } from '@/shared/domain/reminders'
 
-/** Dernier jour de la fenêtre de « À faire » : J+29, soit 30 jours, aujourd'hui compris. */
-export const TODO_WINDOW_DAYS = 29
+/** Écart en jours entre aujourd’hui et le dernier jour de « À faire » : J+29, soit 30 jours. */
+export const TODO_LAST_DAY_OFFSET = 29
 
 export type TodoSummary<T extends ReminderSource = ReminderSource> = RemindersSummary<T> & {
   /** Le plus proche des rappels laissés hors de la fenêtre. */
@@ -19,12 +19,12 @@ export function buildTodo<T extends ReminderSource>(
   options: BuildRemindersOptions,
 ): TodoSummary<T> {
   const { reminders } = buildReminders(sources, options)
-  const shown = reminders.filter((reminder) => reminder.daysUntil <= TODO_WINDOW_DAYS)
+  const shown = reminders.filter((reminder) => reminder.daysUntil <= TODO_LAST_DAY_OFFSET)
 
   return {
     reminders: shown,
     total: shown.length,
     overdue: shown.filter((reminder) => reminder.status === 'overdue').length,
-    next: reminders.find((reminder) => reminder.daysUntil > TODO_WINDOW_DAYS) ?? null,
+    next: reminders.find((reminder) => reminder.daysUntil > TODO_LAST_DAY_OFFSET) ?? null,
   }
 }
