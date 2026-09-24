@@ -384,6 +384,19 @@ describe('useVaccinationsStore', () => {
   })
 })
 
+describe('useVaccinationsStore — vaccin déjà suivi', () => {
+  it('retrouve le vaccin du même nom chez le même animal, sans toucher la liste affichée', async () => {
+    const carre = repository.seed(rage(MILO, { name: 'Carré' }))
+    repository.seed(rage(LUNA, { name: 'Leptospirose' }))
+    const store = useVaccinationsStore()
+
+    await expect(store.findSameName(MILO, ' carre ')).resolves.toEqual(carre)
+    await expect(store.findSameName(LUNA, 'Carré')).resolves.toBeNull()
+    await expect(store.findSameName(MILO, 'Rage')).resolves.toBeNull()
+    expect(store.vaccinations).toEqual([])
+  })
+})
+
 describe('useVaccinationsStore — injection notée', () => {
   const injections = {
     record: vi.fn<VaccinationInjectionsService['record']>(),

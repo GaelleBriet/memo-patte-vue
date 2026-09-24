@@ -342,6 +342,32 @@ describe('VaccinationReminderSheet — F5, vaccin fait', () => {
     expect(replace).not.toHaveBeenCalled()
   })
 
+  it('revient à l’écran demandé une fois l’injection notée', async () => {
+    await monter({ startAt: 'done', returnTo: 'animals' })
+
+    choix()[0]!.click()
+    await flushPromises()
+    bouton('.vaccination-reminder-sheet__submit').click()
+    await flushPromises()
+
+    expect(replace).toHaveBeenCalledWith({ name: 'animals' })
+  })
+
+  it('passe par l’écran d’explication avant l’écran demandé, au premier rappel', async () => {
+    vi.mocked(shouldShowPriming).mockResolvedValue(true)
+    await monter({ startAt: 'done', returnTo: 'home' })
+
+    choix()[0]!.click()
+    await flushPromises()
+    bouton('.vaccination-reminder-sheet__submit').click()
+    await flushPromises()
+
+    expect(replace).toHaveBeenCalledWith({
+      name: 'notifications-priming',
+      query: { animalName: 'Boree', kind: 'vaccination', from: 'home' },
+    })
+  })
+
   it('s’ouvre directement sur F5 avec la date d’injection donnée', async () => {
     await monter({ startAt: 'done', initialInjectedOn: '2026-09-21' })
 

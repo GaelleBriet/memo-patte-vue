@@ -5,13 +5,16 @@ import { useRoute, useRouter } from 'vue-router'
 
 import {
   emptyVaccinationFormValues,
+  enteredInjectionDate,
   validateVaccinationForm,
   vaccinationFormValuesFrom,
 } from '../logic/vaccination-form'
 import type { Vaccination } from '../schema/vaccination.schema'
 import { useVaccinationsStore } from '../store/vaccinations.store'
+import VaccinationReminderSheet from './VaccinationReminderSheet.vue'
 import { useToday } from '@/core/app-lifecycle/use-today'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
+import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
 import FormField from '@/shared/form/FormField.vue'
 import FormScreen from '@/shared/form/FormScreen.vue'
 import { useFormValidation } from '@/shared/form/use-form-validation'
@@ -95,8 +98,43 @@ function backToOrigin(): void {
   void router.replace(primingReturnRoute(from))
 }
 
+const sameName = ref<Vaccination | null>(null)
+const isSameNameDialogOpen = ref(false)
+const isDoneSheetOpen = ref(false)
+const doneSheetInjectedOn = ref<string | null>(null)
+const isCheckingName = ref(false)
+
+async function findSameName(): Promise<Vaccination | null> {
+  if (props.animalId === undefined || values.value.name.trim() === '') return null
+  try {
+    return await vaccinations.findSameName(props.animalId, values.value.name)
+  } catch {
+    return null
+  }
+}
+
 async function submit(): Promise<void> {
-  if (isSubmitting.value || !canSave.value) return
+  if (isSubmitting.value || isCheckingName.value || !canSave.value) return
+
+  if (!isEdit.value) {
+    isCheckingName.value = true
+    sameName.value = await findSameName()
+    isCheckingName.value = false
+    if (sameName.value !== null) {
+      isSameNameDialogOpen.value = true
+      return
+    }
+  }
+  await save()
+}
+
+function noteBooster(): void {
+  doneSheetInjectedOn.value = enteredInjectionDate(values.value)
+  isDoneSheetOpen.value = true
+}
+
+async function save(): Promise<void> {
+  if (isSubmitting.value) return
 
   const result = validate()
   if (!result.success) return
@@ -209,4 +247,25 @@ async function submit(): Promise<void> {
       </template>
     </FormField>
   </FormScreen>
+
+  <ConfirmDialog
+    v-if="sameName"
+    v-model="isSameNameDialogOpen"
+    tone="primary"
+    :title="t('vaccinations.form.duplicate.title', { name: sameName.name })"
+    :text="t('vaccinations.form.duplicate.text', { name: sameName.name, animal: animalName ?? '' })"
+    :cancel-label="t('vaccinations.form.duplicate.cancel')"
+    :confirm-label="t('vaccinations.form.duplicate.confirm')"
+    @cancel="save"
+    @confirm="noteBooster"
+  />
+  <VaccinationReminderSheet
+    v-if="sameName"
+    v-model="isDoneSheetOpen"
+    :vaccination-id="sameName.id"
+    start-at="done"
+    :initial-injected-on="doneSheetInjectedOn"
+    :return-to="from ?? 'animals'"
+    @changed="selectTargetAnimal"
+  />
 </template>

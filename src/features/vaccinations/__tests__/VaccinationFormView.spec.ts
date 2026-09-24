@@ -4,6 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } fr
 import { createMemoryHistory, createRouter, type Router } from 'vue-router'
 
 import VaccinationFormView from '../views/VaccinationFormView.vue'
+import VaccinationReminderSheet from '../views/VaccinationReminderSheet.vue'
+import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
 import type {
   Vaccination,
   VaccinationInput,
@@ -582,6 +584,122 @@ describe('VaccinationFormView — édition', () => {
     await soumettre(wrapper)
 
     expect(update).not.toHaveBeenCalled()
+  })
+})
+
+describe('VaccinationFormView — vaccin déjà suivi', () => {
+  const CARRE: Vaccination = { ...RAGE, id: '33333333-3333-4333-8333-333333333333', name: 'Carré' }
+  let findSameName: MockInstance<(animalId: string, name: string) => Promise<Vaccination | null>>
+
+  beforeEach(() => {
+    vi.stubGlobal('visualViewport', { addEventListener() {}, removeEventListener() {} })
+    findSameName = vi.spyOn(useVaccinationsStore(), 'findSameName').mockResolvedValue(CARRE)
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    document.body.innerHTML = ''
+  })
+
+  async function saisirCarre(wrapper: VueWrapper, date = '2026-09-01') {
+    await champ(wrapper, 'vaccination-name').setValue(' carre ')
+    await champ(wrapper, 'vaccination-last-injection-date').setValue(date)
+    await soumettre(wrapper)
+  }
+
+  function texte(selecteur: string): string | undefined {
+    return document.body.querySelector(selecteur)?.textContent?.trim()
+  }
+
+  it('propose d’en noter le rappel au toucher d’« Enregistrer », sans rien créer', async () => {
+    const wrapper = await monterCreation()
+
+    await saisirCarre(wrapper)
+
+    expect(findSameName).toHaveBeenCalledWith(MILO.id, ' carre ')
+    expect(texte('.confirm-dialog__title')).toBe('C’est un rappel de Carré ?')
+    expect(texte('.confirm-dialog__text')).toBe(
+      'Milo a déjà un vaccin Carré. Noter une nouvelle injection garde tout son historique.',
+    )
+    expect(texte('.confirm-dialog__cancel')).toBe('Non, créer un autre vaccin')
+    expect(texte('.confirm-dialog__confirm')).toBe('Oui, noter le rappel')
+    expect(create).not.toHaveBeenCalled()
+  })
+
+  it('« Oui, noter le rappel » ouvre la feuille « Fait » du vaccin existant, date saisie reprise', async () => {
+    const wrapper = await monterCreation()
+    await saisirCarre(wrapper)
+
+    document.body.querySelector<HTMLButtonElement>('.confirm-dialog__confirm')!.click()
+    await flushPromises()
+
+    const feuille = wrapper.getComponent(VaccinationReminderSheet)
+    expect(feuille.props()).toMatchObject({
+      modelValue: true,
+      vaccinationId: CARRE.id,
+      startAt: 'done',
+      initialInjectedOn: '2026-09-01',
+      returnTo: 'animals',
+    })
+    expect(create).not.toHaveBeenCalled()
+    expect(replace).not.toHaveBeenCalled()
+  })
+
+  it('part d’aujourd’hui quand aucune date n’est saisie', async () => {
+    const wrapper = await monterCreation()
+    await saisirCarre(wrapper, '')
+
+    document.body.querySelector<HTMLButtonElement>('.confirm-dialog__confirm')!.click()
+    await flushPromises()
+
+    expect(wrapper.getComponent(VaccinationReminderSheet).props('initialInjectedOn')).toBeNull()
+  })
+
+  it('« Non, créer un autre vaccin » enregistre le nouveau vaccin comme aujourd’hui', async () => {
+    const wrapper = await monterCreation()
+    await saisirCarre(wrapper)
+
+    document.body.querySelector<HTMLButtonElement>('.confirm-dialog__cancel')!.click()
+    await flushPromises()
+
+    expect(create).toHaveBeenCalledExactlyOnceWith({
+      animalId: MILO.id,
+      name: 'carre',
+      lastInjectionDate: '2026-09-01',
+      dueDate: null,
+    })
+    expect(replace).toHaveBeenCalledWith({ name: 'animals' })
+  })
+
+  it('reste sur le formulaire sans rien enregistrer quand on quitte le dialogue', async () => {
+    const wrapper = await monterCreation()
+    await saisirCarre(wrapper)
+
+    wrapper.getComponent(ConfirmDialog).vm.$emit('update:modelValue', false)
+    await flushPromises()
+
+    expect(create).not.toHaveBeenCalled()
+    expect(replace).not.toHaveBeenCalled()
+    expect(wrapper.getComponent(VaccinationReminderSheet).props('modelValue')).toBe(false)
+  })
+
+  it('crée directement quand l’animal ne suit aucun vaccin de ce nom', async () => {
+    findSameName.mockResolvedValue(null)
+    const wrapper = await monterCreation()
+
+    await saisirCarre(wrapper)
+
+    expect(document.body.querySelector('.confirm-dialog__title')).toBeNull()
+    expect(create).toHaveBeenCalledOnce()
+  })
+
+  it('ne cherche pas de doublon en modification', async () => {
+    const wrapper = await monterEdition()
+
+    await soumettre(wrapper)
+
+    expect(findSameName).not.toHaveBeenCalled()
+    expect(update).toHaveBeenCalledOnce()
   })
 })
 

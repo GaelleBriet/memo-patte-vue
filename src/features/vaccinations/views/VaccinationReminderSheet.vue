@@ -21,7 +21,10 @@ import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import BottomSheet from '@/shared/components/BottomSheet.vue'
 import DateCalendar from '@/shared/components/DateCalendar.vue'
 import ReminderActions from '@/shared/components/ReminderActions.vue'
-import { primingAfterReminderSaved } from '@/shared/domain/notification-priming'
+import {
+  primingAfterReminderSaved,
+  routeAfterReminderSaved,
+} from '@/shared/domain/notification-priming'
 import { formatLongDate } from '@/shared/utils/format'
 import { showToast, showUndoableToast } from '@/shared/utils/toast'
 
@@ -34,8 +37,10 @@ const props = withDefaults(
     startAt?: 'actions' | 'done'
     /** Date d'injection proposée à l'ouverture ; aujourd'hui sinon. */
     initialInjectedOn?: string | null
+    /** Écran où revenir une fois l'injection notée ; absent, la feuille reste sur l'écran qui l'a ouverte. */
+    returnTo?: string | null
   }>(),
-  { startAt: 'actions', initialInjectedOn: null },
+  { startAt: 'actions', initialInjectedOn: null, returnTo: null },
 )
 
 const emit = defineEmits<{
@@ -185,12 +190,16 @@ async function save(): Promise<void> {
       onUndone: () => emit('changed'),
       failedMessage: t('reminderSheet.undoFailed'),
     })
-    const priming = await primingAfterReminderSaved({
+    const saved = {
       hasDueDate: nextDueDate !== null,
       animalName: animal.value?.name ?? null,
       kind: 'vaccination',
-      from: String(route.name ?? ''),
-    })
+    } as const
+    if (props.returnTo) {
+      void router.replace(await routeAfterReminderSaved({ ...saved, from: props.returnTo }))
+      return
+    }
+    const priming = await primingAfterReminderSaved({ ...saved, from: String(route.name ?? '') })
     if (priming) void router.replace(priming)
   } catch {
     saveFailed.value = true

@@ -116,6 +116,12 @@
       "submitting": "Création…",
       "save": "Enregistrer",
       "saving": "Enregistrement…",
+      "duplicate": {
+        "title": "C’est un rappel de {name} ?",
+        "text": "{animal} a déjà un vaccin {name}. Noter une nouvelle injection garde tout son historique.",
+        "cancel": "Non, créer un autre vaccin",
+        "confirm": "Oui, noter le rappel"
+      },
       "errors": {
         "name": "Le nom du vaccin est obligatoire.",
         "lastInjectionDate": "La date d’injection est obligatoire.",

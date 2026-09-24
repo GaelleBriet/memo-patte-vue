@@ -116,6 +116,12 @@
       "submitting": "Creating…",
       "save": "Save",
       "saving": "Saving…",
+      "duplicate": {
+        "title": "Is this a {name} booster?",
+        "text": "{animal} already has a {name} vaccine. Logging a new injection keeps its whole history.",
+        "cancel": "No, create another vaccine",
+        "confirm": "Yes, log the booster"
+      },
       "errors": {
         "name": "Vaccine name is required.",
         "lastInjectionDate": "Injection date is required.",

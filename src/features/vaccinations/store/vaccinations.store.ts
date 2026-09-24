@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
+import { isSameVaccineName } from '../logic/vaccination-name'
 import {
   vaccinationInjectionsService,
   type InjectionInput,
@@ -132,6 +133,12 @@ export const useVaccinationsStore = defineStore('vaccinations', () => {
 
     async getById(id: string): Promise<Vaccination | null> {
       return (await requireRepository()).getById(id)
+    },
+
+    /** Le vaccin déjà suivi sous ce nom par l'animal, sans changer la liste affichée. */
+    async findSameName(animalId: string, name: string): Promise<Vaccination | null> {
+      const list = await (await requireRepository()).listByAnimal(animalId)
+      return list.find((vaccination) => isSameVaccineName(vaccination.name, name)) ?? null
     },
 
     async create(input: VaccinationInput): Promise<Vaccination> {
