@@ -66,7 +66,6 @@ export function buildReminders<T extends ReminderSource>(
   }
 }
 
-/** Seringue d'un vaccin, insecte d'un antiparasitaire, gélule d'un vermifuge. */
 export function reminderIcon(kind: ReminderKind, treatmentType: string | null): string {
   if (kind === 'vaccination') return 'ms:vaccines'
   return treatmentType === 'antiparasitic' ? 'ms:pest_control' : 'ms:medication'
