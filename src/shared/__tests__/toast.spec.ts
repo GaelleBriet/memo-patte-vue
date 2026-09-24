@@ -1,6 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { dismissToast, showToast, toastAnnouncement } from '../utils/toast'
+import {
+  dismissToast,
+  pauseToast,
+  resumeToast,
+  runToastAction,
+  showToast,
+  toastAction,
+  toastAnnouncement,
+  toastMessage,
+} from '../utils/toast'
 
 const ANNONCE_MS = 100
 
@@ -44,5 +53,79 @@ describe('annonce du toast', () => {
     dismissToast()
 
     expect(toastAnnouncement.value).toBe('')
+  })
+})
+
+describe('action du toast', () => {
+  it('garde l’action affichée avec son message, 4 s par défaut', () => {
+    const run = vi.fn<() => void>()
+    showToast('Prise de Bravecto notée pour Boree', {
+      action: { label: 'Annuler', ariaLabel: 'Annuler la prise de Bravecto', run },
+    })
+
+    expect(toastAction.value?.label).toBe('Annuler')
+    expect(toastAction.value?.ariaLabel).toBe('Annuler la prise de Bravecto')
+    vi.advanceTimersByTime(3900)
+    expect(toastMessage.value).toBe('Prise de Bravecto notée pour Boree')
+    vi.advanceTimersByTime(200)
+    expect(toastMessage.value).toBeNull()
+    expect(toastAction.value).toBeNull()
+  })
+
+  it('ferme le toast et joue l’action une seule fois, même touchée deux fois', () => {
+    const run = vi.fn<() => void>()
+    showToast('Prise de Bravecto notée pour Boree', { action: { label: 'Annuler', run } })
+
+    runToastAction()
+    runToastAction()
+
+    expect(run).toHaveBeenCalledOnce()
+    expect(toastMessage.value).toBeNull()
+  })
+
+  it('ne vaut que pour la dernière action : un nouveau toast remplace ou retire la précédente', () => {
+    const premiere = vi.fn<() => void>()
+    const seconde = vi.fn<() => void>()
+    showToast('Prise de Bravecto notée pour Boree', { action: { label: 'Annuler', run: premiere } })
+    showToast('Injection de Carré notée pour Boree', { action: { label: 'Annuler', run: seconde } })
+
+    runToastAction()
+
+    expect(premiere).not.toHaveBeenCalled()
+    expect(seconde).toHaveBeenCalledOnce()
+
+    showToast('Prise de Bravecto notée pour Boree', { action: { label: 'Annuler', run: premiere } })
+    showToast('Pesée enregistrée')
+    expect(toastAction.value).toBeNull()
+  })
+
+  it('suspend la fermeture tant que l’action a le focus, puis repart pour sa durée complète', () => {
+    showToast('Prise de Bravecto notée pour Boree', {
+      action: { label: 'Annuler', run: vi.fn<() => void>() },
+    })
+    vi.advanceTimersByTime(3000)
+
+    pauseToast()
+    vi.advanceTimersByTime(60_000)
+    expect(toastMessage.value).toBe('Prise de Bravecto notée pour Boree')
+
+    resumeToast()
+    vi.advanceTimersByTime(3900)
+    expect(toastMessage.value).toBe('Prise de Bravecto notée pour Boree')
+    vi.advanceTimersByTime(200)
+    expect(toastMessage.value).toBeNull()
+  })
+
+  it('ne rouvre rien quand le focus quitte un toast déjà fermé', () => {
+    showToast('Prise de Bravecto notée pour Boree', {
+      action: { label: 'Annuler', run: vi.fn<() => void>() },
+    })
+    pauseToast()
+    dismissToast()
+
+    resumeToast()
+
+    expect(vi.getTimerCount()).toBe(0)
+    expect(toastMessage.value).toBeNull()
   })
 })

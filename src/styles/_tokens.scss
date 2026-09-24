@@ -135,3 +135,6 @@ $height-export-choice: 64px; // Carte de choix de format
 $color-choice-selected-surface: #dcf0f1; // Fond d'une carte de choix cochée
 $color-radio-border: #b9b4ae; // Pastille radio non cochée
 $size-import-error-badge: 56px; // Pastille d'icône d'une erreur d'import
+
+// Rappel fait (feuilles d'un rappel, dialogue de confirmation)
+$color-dialog-cancel-border: $color-priming-icon-surface; // Contour de « Annuler » d'un dialogue de confirmation
