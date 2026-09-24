@@ -2,15 +2,16 @@
 
 - 2026-09-24 (après-midi) : **reprendre ici.** Mergés : #390 (#388, app de dev séparée « MémoPatte
   Dev », `com.gaellebriet.memopatte.dev`, installée par `pnpm dev:mobile` et `pnpm test:device:dev` ;
-  la vraie app ne reçoit que `main` par `pnpm test:device`) et #389 (#351, Historique du poids par pages
-  de 12 pesées, sous-titre des écrans poussés collé au titre). `main` à **2561 tests**.
-  **En PR : #391 (#379, migration v6 de l'historique)**, revue propre (trois re-revues), intégrée avec
-  le lot (2646 tests). **À merger seulement après le test sur le téléphone** : installer `main` (v5)
-  dans MémoPatte Dev avec le carnet de démo, puis le build de #391, et vérifier la migration avec le
-  vrai plugin (données, `user_version` 6, rappels). Pas d'émulateur possible : `/dev/kvm` absent.
-  Décision de Gaelle du jour : l'import v1 rattache sa ligne à l'événement **de même date** (journal).
-  **À faire une fois au prochain test sur le téléphone** : réinstaller la vraie app depuis `main`
-  (`pnpm test:device`) ; elle vient d'un ancien `dev:mobile` et chargerait le code de dev.
+  la vraie app ne reçoit que `main` par `pnpm test:device`), #389 (#351, Historique du poids par pages
+  de 12 pesées, sous-titre des écrans poussés collé au titre) et **#391 (#379, migration v6 de
+  l'historique)**. `main` à **2647 tests**. Migration rejouée sur le téléphone avec le vrai plugin
+  (MémoPatte Dev, v5 puis v6) : données, identifiants, déclencheurs et 12 rappels identiques ;
+  MémoPatte Dev désinstallée ensuite (absente avant le test). Pas d'émulateur possible : `/dev/kvm`
+  absent. Décision de Gaelle du jour : l'import v1 rattache sa ligne à l'événement **de même date**.
+  **Vraie app réinstallée depuis `main`** (0.1.37, par `./gradlew :app:installDebug`, sans l'ouvrir) :
+  sa base, sauvegardée avant, est intacte en v5 et passera en v6 à la prochaine ouverture.
+  **Petit défaut vu au passage, sur `main`** : `clearExports()` logue une erreur au démarrage quand
+  `cache/exports/` n'existe pas encore (`OS-PLUG-FILE-0008`), sans effet.
   **Mis de côté par Gaelle** (« on voit ça après, quand le reste est ok ») : (1) l'audit de Fable,
   vérifié point par point, tickets rédigés dans `docs/product/audit-2026-09-24.md`, rien créé sur
   GitHub ; (2) les trois suites de #388 : installer sans que `cap run` puisse désinstaller la vraie
