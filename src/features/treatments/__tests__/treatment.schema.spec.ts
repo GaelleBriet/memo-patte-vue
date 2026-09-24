@@ -5,6 +5,7 @@ import {
   treatmentInputSchema,
   treatmentSchema,
   treatmentEditSchema,
+  treatmentEditSchemaAfter,
   treatmentFormSchema,
 } from '../schema/treatment.schema'
 
@@ -137,6 +138,15 @@ describe('treatmentEditSchema', () => {
     expect(treatmentEditSchema.parse({ ...edition, animalId: validInput.animalId })).toEqual(
       edition,
     )
+  })
+
+  it('borne la prochaine dose à partir de la dernière prise', () => {
+    const schema = treatmentEditSchemaAfter('2026-06-15')
+
+    expect(schema.safeParse({ ...edition, nextDueDate: '2026-06-15' }).success).toBe(true)
+    const avant = schema.safeParse({ ...edition, nextDueDate: '2026-06-14' })
+    expect(avant.success).toBe(false)
+    expect(avant.error?.issues[0]?.path).toEqual(['nextDueDate'])
   })
 
   it('exige une prochaine dose valide', () => {

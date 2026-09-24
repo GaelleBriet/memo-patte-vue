@@ -298,6 +298,7 @@ async function submit(): Promise<void> {
           v-model="values.nextDueDate"
           class="form-field__input form-field__input--date"
           type="date"
+          :min="existing?.lastDoseDate"
           variant="outlined"
           hide-details
           aria-required="true"

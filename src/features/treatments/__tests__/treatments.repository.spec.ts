@@ -735,6 +735,18 @@ describe('treatmentsRepository — prises', () => {
     ])
   })
 
+  it('refuse une prochaine dose avant la dernière prise, sans rien écrire', async () => {
+    const created = await repository.create(bravecto)
+
+    await expect(
+      repository.update(created.id, { ...edition, nextDueDate: '2026-02-28' }),
+    ).rejects.toBeInstanceOf(ZodError)
+
+    await expect(repository.getById(created.id)).resolves.toMatchObject({
+      nextDueDate: '2026-06-01',
+    })
+  })
+
   it('n’écrit ni le plan ni la prise quand l’une des deux écritures échoue', async () => {
     const created = await repository.create(bravecto)
     await db.execute(

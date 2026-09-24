@@ -202,6 +202,14 @@ describe('validateTreatmentEditForm — Modifier', () => {
     expect(edition({ lastDoseDate: '' }).success).toBe(true)
   })
 
+  it('refuse une prochaine dose avant la dernière prise, avec un message distinct', () => {
+    expect(edition({ nextDueDate: '2026-06-23' })).toEqual({
+      success: false,
+      errors: { nextDueDate: 'treatments.form.errors.nextDueDateBeforeLastDose' },
+    })
+    expect(edition({ nextDueDate: '2026-06-24' }).success).toBe(true)
+  })
+
   it('exige une prochaine dose', () => {
     expect(edition({ nextDueDate: '' })).toEqual({
       success: false,

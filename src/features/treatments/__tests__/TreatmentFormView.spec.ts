@@ -707,6 +707,18 @@ describe('TreatmentFormView — édition', () => {
     expect(valeur(wrapper, 'treatment-next-due-date')).toBe('2026-10-05')
   })
 
+  it('borne le champ de la prochaine dose à la date de la dernière prise', async () => {
+    const wrapper = await monterEdition()
+
+    expect(champ(wrapper, 'treatment-next-due-date').attributes('min')).toBe('2026-06-24')
+
+    await champ(wrapper, 'treatment-next-due-date').setValue('2026-06-01')
+    await soumettre(wrapper)
+
+    expect(update).not.toHaveBeenCalled()
+    expect(messages(wrapper)).toEqual(['La prochaine dose ne peut pas précéder la dernière prise.'])
+  })
+
   it('exige une prochaine dose', async () => {
     const wrapper = await monterEdition()
 

@@ -244,6 +244,7 @@
         "lastDoseDate": "Date is required.",
         "lastDoseDateFuture": "Date can’t be in the future.",
         "nextDueDate": "Date is required.",
+        "nextDueDateBeforeLastDose": "The next dose can’t be before the last dose.",
         "notFound": "We can’t find this treatment.",
         "load": "Couldn’t load this treatment. Try again.",
         "save": "Couldn’t save this treatment. Try again."

@@ -39,6 +39,13 @@ export const treatmentEditSchema = treatmentInputSchema
   .pick({ name: true, type: true, frequency: true })
   .extend({ nextDueDate: z.iso.date() })
 
+/** La prochaine dose ne précède jamais la dernière prise. */
+export function treatmentEditSchemaAfter(lastDoseDate: string) {
+  return treatmentEditSchema.refine((data) => data.nextDueDate >= lastDoseDate, {
+    path: ['nextDueDate'],
+  })
+}
+
 export const treatmentSchema = treatmentInputSchema.extend({
   id: z.uuid(),
   nextDueDate: z.iso.date(),

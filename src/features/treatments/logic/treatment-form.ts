@@ -3,6 +3,7 @@ import type { z } from 'zod'
 import { addFrequency } from './treatment-frequency'
 import {
   treatmentEditSchema,
+  treatmentEditSchemaAfter,
   treatmentFormSchema,
   treatmentFrequencySchema,
   treatmentInputSchema,
@@ -30,6 +31,7 @@ const ERROR_KEYS = {
 } as const
 
 const FUTURE_DOSE_KEY = 'treatments.form.errors.lastDoseDateFuture'
+const BEFORE_LAST_DOSE_KEY = 'treatments.form.errors.nextDueDateBeforeLastDose'
 const FREQUENCY_MAX_KEY = 'treatments.form.errors.frequencyMax'
 
 export type TreatmentFormErrorField = keyof typeof ERROR_KEYS
@@ -72,9 +74,10 @@ function isErrorField(field: string): field is TreatmentFormErrorField {
   return Object.prototype.hasOwnProperty.call(ERROR_KEYS, field)
 }
 
-// Le seul `refine` du schéma est la borne « pas dans le futur » : c'est lui qui émet `custom`.
+// Les seuls `refine` des schémas sont les bornes de date : ce sont eux qui émettent `custom`.
 function errorKeyFor(field: TreatmentFormErrorField, issue: z.core.$ZodIssue): string {
   if (field === 'lastDoseDate' && issue.code === 'custom') return FUTURE_DOSE_KEY
+  if (field === 'nextDueDate' && issue.code === 'custom') return BEFORE_LAST_DOSE_KEY
   if (field === 'frequency' && issue.code === 'too_big') return FREQUENCY_MAX_KEY
 
   return ERROR_KEYS[field]
@@ -106,7 +109,9 @@ export function validateTreatmentForm(values: TreatmentFormValues): TreatmentFor
 }
 
 export function validateTreatmentEditForm(values: TreatmentFormValues): TreatmentEditFormResult {
-  const result = treatmentEditSchema.safeParse({
+  const lastDose = treatmentInputSchema.shape.lastDoseDate.safeParse(values.lastDoseDate.trim())
+  const schema = lastDose.success ? treatmentEditSchemaAfter(lastDose.data) : treatmentEditSchema
+  const result = schema.safeParse({
     name: values.name,
     type: values.type,
     frequency: frequencyOf(values),
