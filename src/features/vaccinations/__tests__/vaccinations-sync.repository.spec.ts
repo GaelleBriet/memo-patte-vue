@@ -23,9 +23,14 @@ describe('vaccinationsRepository — port de synchronisation', () => {
       [ANIMAL_ID, T_LOCAL, T_LOCAL],
     )
     await db.run(
-      `INSERT INTO vaccination (id, animal_id, name, last_injection_date, created_at, updated_at)
-       VALUES (?, ?, 'Rage', '2026-01-01', ?, ?)`,
+      `INSERT INTO vaccination (id, animal_id, name, created_at, updated_at)
+       VALUES (?, ?, 'Rage', ?, ?)`,
       [VACCINATION_ID, ANIMAL_ID, T_LOCAL, T_LOCAL],
+    )
+    await db.run(
+      `INSERT INTO vaccination_injection (id, vaccination_id, animal_id, injected_on, next_due_date, created_at, updated_at)
+       VALUES (?, ?, ?, '2026-01-01', '2027-01-01', ?, ?)`,
+      [VACCINATION_ID, VACCINATION_ID, ANIMAL_ID, T_LOCAL, T_LOCAL],
     )
   })
 
@@ -37,12 +42,19 @@ describe('vaccinationsRepository — port de synchronisation', () => {
     expect(repository.entity).toBe('vaccination')
   })
 
-  it('getRowForPush renvoie la ligne même supprimée logiquement', async () => {
+  it('getRowForPush renvoie la ligne du vaccin seule, même supprimée logiquement', async () => {
     await db.run('UPDATE vaccination SET deleted_at = ? WHERE id = ?', [T_NEW, VACCINATION_ID])
 
     const row = await repository.getRowForPush(VACCINATION_ID)
 
-    expect(row).toMatchObject({ id: VACCINATION_ID, deleted_at: T_NEW })
+    expect(row).toEqual({
+      id: VACCINATION_ID,
+      animal_id: ANIMAL_ID,
+      name: 'Rage',
+      created_at: T_LOCAL,
+      updated_at: T_LOCAL,
+      deleted_at: T_NEW,
+    })
   })
 
   it("n'écrase pas une ligne locale plus récente qu'une ligne distante", async () => {
@@ -50,8 +62,6 @@ describe('vaccinationsRepository — port de synchronisation', () => {
       id: VACCINATION_ID,
       animal_id: ANIMAL_ID,
       name: 'Rage (autre appareil)',
-      last_injection_date: '2025-01-01',
-      due_date: null,
       created_at: T_LOCAL,
       updated_at: '2026-01-01T00:00:00.000Z',
       deleted_at: null,
@@ -62,13 +72,11 @@ describe('vaccinationsRepository — port de synchronisation', () => {
     await expect(repository.getById(VACCINATION_ID)).resolves.toMatchObject({ name: 'Rage' })
   })
 
-  it('remplace la ligne locale par une version distante plus récente', async () => {
+  it('remplace la ligne locale par une version distante plus récente, sans toucher ses injections', async () => {
     const remote = {
       id: VACCINATION_ID,
       animal_id: ANIMAL_ID,
       name: 'Rage (mise à jour)',
-      last_injection_date: '2026-01-01',
-      due_date: '2027-01-01',
       created_at: T_LOCAL,
       updated_at: T_NEW,
       deleted_at: null,
@@ -78,7 +86,9 @@ describe('vaccinationsRepository — port de synchronisation', () => {
 
     await expect(repository.getById(VACCINATION_ID)).resolves.toMatchObject({
       name: 'Rage (mise à jour)',
+      lastInjectionDate: '2026-01-01',
       dueDate: '2027-01-01',
+      updatedAt: T_NEW,
     })
   })
 
@@ -87,8 +97,6 @@ describe('vaccinationsRepository — port de synchronisation', () => {
       id: VACCINATION_ID,
       animal_id: ANIMAL_ID,
       name: 'Rage',
-      last_injection_date: '2026-01-01',
-      due_date: null,
       created_at: T_LOCAL,
       updated_at: T_NEW,
       deleted_at: T_NEW,

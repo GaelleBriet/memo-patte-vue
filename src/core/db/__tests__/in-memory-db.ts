@@ -1,7 +1,7 @@
 import { createRequire } from 'node:module'
 import initSqlJs, { type Database } from 'sql.js'
 import type { DbClient, SqlParam } from '../db-client'
-import { migrations } from '../migrations'
+import { DATABASE_VERSION, migrations } from '../migrations'
 
 const require = createRequire(import.meta.url)
 
@@ -22,17 +22,23 @@ export async function createInMemoryDb(): Promise<InMemoryDb> {
   return db
 }
 
-/** Reproduit `addUpgradeStatement`, injouable hors appareil : deux appels ne rejouent rien. */
-export async function applyMigrations(db: DbClient): Promise<void> {
+/**
+ * Reproduit `addUpgradeStatement`, injouable hors appareil : une transaction par version, une
+ * instruction à la fois comme `execSQL` sur Android. Deux appels ne rejouent rien.
+ */
+export async function applyMigrations(
+  db: DbClient,
+  targetVersion = DATABASE_VERSION,
+): Promise<void> {
   const [version] = await db.query<{ user_version: number }>('PRAGMA user_version')
   const currentVersion = version?.user_version ?? 0
 
   for (const migration of migrations) {
-    if (migration.toVersion <= currentVersion) continue
-    for (const statement of migration.statements) {
-      await db.execute(statement)
-    }
-    await db.execute(`PRAGMA user_version = ${migration.toVersion}`)
+    if (migration.toVersion <= currentVersion || migration.toVersion > targetVersion) continue
+    await db.runMany([
+      ...migration.statements.map((sql) => ({ sql })),
+      { sql: `PRAGMA user_version = ${migration.toVersion}` },
+    ])
   }
 }
 

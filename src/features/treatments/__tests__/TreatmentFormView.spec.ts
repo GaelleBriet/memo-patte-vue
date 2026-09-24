@@ -73,6 +73,7 @@ const BRAVECTO: Treatment = {
   frequency: { value: 3, unit: 'month' },
   lastDoseDate: '2026-06-24',
   nextDueDate: '2026-09-24',
+  stoppedOn: null,
   createdAt: '2026-09-09T09:00:00.000Z',
   updatedAt: '2026-09-09T09:00:00.000Z',
   deletedAt: null,

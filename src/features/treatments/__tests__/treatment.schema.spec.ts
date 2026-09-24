@@ -126,6 +126,7 @@ describe('treatmentSchema', () => {
       ...validInput,
       id: '22222222-2222-4222-8222-222222222222',
       nextDueDate: '2026-06-01',
+      stoppedOn: null,
       createdAt: '2026-03-01T10:00:00.000Z',
       updatedAt: '2026-03-01T10:00:00.000Z',
       deletedAt: null,

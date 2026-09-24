@@ -12,10 +12,18 @@ import {
   treatmentTypeSchema,
 } from '@/features/treatments/schema/treatment.schema'
 import {
+  getTreatmentDosesRepository,
+  type TreatmentDosesRepository,
+} from '@/features/treatments/repository/treatment-doses.repository'
+import {
   getTreatmentsRepository,
   type TreatmentsRepository,
 } from '@/features/treatments/repository/treatments.repository'
 import { vaccinationInputSchema } from '@/features/vaccinations/schema/vaccination.schema'
+import {
+  getVaccinationInjectionsRepository,
+  type VaccinationInjectionsRepository,
+} from '@/features/vaccinations/repository/vaccination-injections.repository'
 import {
   getVaccinationsRepository,
   type VaccinationsRepository,
@@ -166,10 +174,14 @@ type SqlStatement = ReturnType<AnimalsRepository['markAllDeletedStatement']>
 
 type ImportMethods = 'listVersions' | 'markAllDeletedStatement' | 'restoreStatement'
 
+type EventImportMethods = 'markAllDeletedStatement' | 'restoreStatement'
+
 export type DataImportDependencies = {
   animals: Provider<Pick<AnimalsRepository, 'list' | 'runImport' | ImportMethods>>
   vaccinations: Provider<Pick<VaccinationsRepository, ImportMethods>>
+  vaccinationInjections: Provider<Pick<VaccinationInjectionsRepository, EventImportMethods>>
   treatments: Provider<Pick<TreatmentsRepository, ImportMethods>>
+  treatmentDoses: Provider<Pick<TreatmentDosesRepository, EventImportMethods>>
   weight: Provider<Pick<WeightRepository, ImportMethods>>
   photoExists: (fileName: string) => Promise<boolean>
   syncReminders: () => Promise<void>
@@ -179,7 +191,9 @@ export type DataImportDependencies = {
 export function createDataImportService({
   animals,
   vaccinations,
+  vaccinationInjections,
   treatments,
+  treatmentDoses,
   weight,
   photoExists,
   syncReminders,
@@ -206,8 +220,21 @@ export function createDataImportService({
      * l'écriture échoue.
      */
     async importData(data: ExportData, mode: ImportMode): Promise<void> {
-      const [animalsRepository, vaccinationsRepository, treatmentsRepository, weightRepository] =
-        await Promise.all([animals(), vaccinations(), treatments(), weight()])
+      const [
+        animalsRepository,
+        vaccinationsRepository,
+        injectionsRepository,
+        treatmentsRepository,
+        dosesRepository,
+        weightRepository,
+      ] = await Promise.all([
+        animals(),
+        vaccinations(),
+        vaccinationInjections(),
+        treatments(),
+        treatmentDoses(),
+        weight(),
+      ])
       const [
         [animalVersions, vaccinationVersions, treatmentVersions, weightVersions],
         photosOnDevice,
@@ -248,13 +275,19 @@ export function createDataImportService({
           ? [
               animalsRepository.markAllDeletedStatement(importedAt),
               vaccinationsRepository.markAllDeletedStatement(importedAt),
+              injectionsRepository.markAllDeletedStatement(importedAt),
               treatmentsRepository.markAllDeletedStatement(importedAt),
+              dosesRepository.markAllDeletedStatement(importedAt),
               weightRepository.markAllDeletedStatement(importedAt),
             ]
           : []),
         ...write(plan.animals, animalsRepository.restoreStatement),
         ...write(plan.vaccinations, vaccinationsRepository.restoreStatement),
+        ...plan.vaccinationInjections.map((injection) =>
+          injectionsRepository.restoreStatement(injection),
+        ),
         ...write(plan.treatments, treatmentsRepository.restoreStatement),
+        ...plan.treatmentDoses.map((dose) => dosesRepository.restoreStatement(dose)),
         ...write(plan.weightEntries, weightRepository.restoreStatement),
       ])
       await syncReminders()
@@ -267,7 +300,9 @@ export type DataImportService = ReturnType<typeof createDataImportService>
 export const dataImportService = createDataImportService({
   animals: getAnimalsRepository,
   vaccinations: getVaccinationsRepository,
+  vaccinationInjections: getVaccinationInjectionsRepository,
   treatments: getTreatmentsRepository,
+  treatmentDoses: getTreatmentDosesRepository,
   weight: getWeightRepository,
   photoExists,
   syncReminders: syncAllReminders,

@@ -7,8 +7,8 @@ const NOW = '2026-09-08T10:00:00.000Z'
 const INSERT_ANIMAL = `INSERT INTO animal (id, name, species, created_at, updated_at)
   VALUES (?, ?, 'dog', '${NOW}', '${NOW}')`
 
-const INSERT_VACCINATION = `INSERT INTO vaccination (id, animal_id, name, last_injection_date, created_at, updated_at)
-  VALUES (?, ?, ?, '2026-01-15', '${NOW}', '${NOW}')`
+const INSERT_VACCINATION = `INSERT INTO vaccination (id, animal_id, name, created_at, updated_at)
+  VALUES (?, ?, ?, '${NOW}', '${NOW}')`
 
 async function rejection(promise: Promise<unknown>): Promise<Error> {
   try {

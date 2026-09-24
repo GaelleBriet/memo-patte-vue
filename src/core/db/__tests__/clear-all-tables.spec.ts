@@ -6,7 +6,7 @@ import { createInMemoryDb, type InMemoryDb } from './in-memory-db'
 const NOW = '2026-09-13T10:00:00.000Z'
 
 describe('migrationTableNames', () => {
-  it('liste toutes les tables créées par les migrations, dans leur ordre de création', () => {
+  it('liste une fois chaque table créée par les migrations, dans leur ordre de première création', () => {
     expect(migrationTableNames()).toEqual([
       'animal',
       'vaccination',
@@ -14,6 +14,8 @@ describe('migrationTableNames', () => {
       'treatment',
       'sync_outbox',
       'sync_state',
+      'vaccination_injection',
+      'treatment_dose',
     ])
   })
 
@@ -33,6 +35,7 @@ describe('clearAllTables', () => {
 
   beforeEach(async () => {
     db = await createInMemoryDb()
+    await db.execute('PRAGMA foreign_keys = ON')
     await db.runMany([
       {
         sql: `INSERT INTO animal (id, name, species, created_at, updated_at, deleted_at)
@@ -40,8 +43,13 @@ describe('clearAllTables', () => {
         params: [NOW, NOW, NOW, NOW, NOW],
       },
       {
-        sql: `INSERT INTO vaccination (id, animal_id, name, last_injection_date, created_at, updated_at, deleted_at)
-              VALUES ('v-1', 'a-1', 'Rage', '2026-01-15', ?, ?, ?)`,
+        sql: `INSERT INTO vaccination (id, animal_id, name, created_at, updated_at, deleted_at)
+              VALUES ('v-1', 'a-1', 'Rage', ?, ?, ?)`,
+        params: [NOW, NOW, NOW],
+      },
+      {
+        sql: `INSERT INTO vaccination_injection (id, vaccination_id, animal_id, injected_on, created_at, updated_at, deleted_at)
+              VALUES ('v-1', 'v-1', 'a-1', '2026-01-15', ?, ?, ?)`,
         params: [NOW, NOW, NOW],
       },
       {
@@ -50,8 +58,13 @@ describe('clearAllTables', () => {
         params: [NOW, NOW],
       },
       {
-        sql: `INSERT INTO treatment (id, animal_id, name, type, frequency_value, frequency_unit, last_dose_date, next_due_date, created_at, updated_at)
-              VALUES ('t-1', 'a-2', 'Milbemax', 'deworming', 3, 'month', '2026-08-01', '2026-11-01', ?, ?)`,
+        sql: `INSERT INTO treatment (id, animal_id, name, type, frequency_value, frequency_unit, created_at, updated_at)
+              VALUES ('t-1', 'a-2', 'Milbemax', 'deworming', 3, 'month', ?, ?)`,
+        params: [NOW, NOW],
+      },
+      {
+        sql: `INSERT INTO treatment_dose (id, treatment_id, animal_id, given_on, next_due_date, frequency_value, frequency_unit, created_at, updated_at)
+              VALUES ('t-1', 't-1', 'a-2', '2026-08-01', '2026-11-01', 3, 'month', ?, ?)`,
         params: [NOW, NOW],
       },
     ])

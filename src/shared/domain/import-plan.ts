@@ -24,11 +24,35 @@ export type ImportedAnimal = Omit<ExportAnimal, 'photoFileName'> & { photoPath: 
 
 export type PlannedWrite<T> = { row: T; exists: boolean }
 
+export type PlannedInjection = {
+  id: string
+  vaccinationId: string
+  animalId: string
+  injectedOn: string
+  nextDueDate: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export type PlannedDose = {
+  id: string
+  treatmentId: string
+  animalId: string
+  givenOn: string
+  nextDueDate: string
+  frequency: ExportTreatment['frequency']
+  createdAt: string
+  updatedAt: string
+}
+
+/** Les injections et les prises s'écrivent par identifiant, qu'elles existent déjà ou non. */
 export type ImportPlan = {
   replaceLocalData: boolean
   animals: PlannedWrite<ImportedAnimal>[]
   vaccinations: PlannedWrite<ExportVaccination>[]
+  vaccinationInjections: PlannedInjection[]
   treatments: PlannedWrite<ExportTreatment>[]
+  treatmentDoses: PlannedDose[]
   weightEntries: PlannedWrite<ExportWeightEntry>[]
 }
 
@@ -67,6 +91,35 @@ const ENTRY_TABLES = [
 
 function byId<T extends { id: string }>(rows: readonly T[]): Map<string, T> {
   return new Map(rows.map((row) => [row.id, row]))
+}
+
+/**
+ * Un fichier v1 ne porte que l'événement de tête : même identifiant que son parent, pour qu'un
+ * second import ne le duplique pas.
+ */
+function injectionOf(vaccination: ExportVaccination): PlannedInjection {
+  return {
+    id: vaccination.id,
+    vaccinationId: vaccination.id,
+    animalId: vaccination.animalId,
+    injectedOn: vaccination.lastInjectionDate,
+    nextDueDate: vaccination.dueDate,
+    createdAt: vaccination.createdAt,
+    updatedAt: vaccination.updatedAt,
+  }
+}
+
+function doseOf(treatment: ExportTreatment): PlannedDose {
+  return {
+    id: treatment.id,
+    treatmentId: treatment.id,
+    animalId: treatment.animalId,
+    givenOn: treatment.lastDoseDate,
+    nextDueDate: treatment.nextDueDate,
+    frequency: treatment.frequency,
+    createdAt: treatment.createdAt,
+    updatedAt: treatment.updatedAt,
+  }
 }
 
 function findReattached(data: ExportData, local: LocalCarnet): ReattachedEntry | undefined {
@@ -165,13 +218,18 @@ export function buildImportPlan({
     return planned
   }
 
+  const vaccinations = planEntries(data.vaccinations, local.vaccinations)
+  const treatments = planEntries(data.treatments, local.treatments)
+
   return {
     ok: true,
     plan: {
       replaceLocalData,
       animals,
-      vaccinations: planEntries(data.vaccinations, local.vaccinations),
-      treatments: planEntries(data.treatments, local.treatments),
+      vaccinations,
+      vaccinationInjections: vaccinations.map(({ row }) => injectionOf(row)),
+      treatments,
+      treatmentDoses: treatments.map(({ row }) => doseOf(row)),
       weightEntries: planEntries(data.weightEntries, local.weightEntries),
     },
   }

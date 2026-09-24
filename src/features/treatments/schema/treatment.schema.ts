@@ -34,6 +34,8 @@ export const treatmentUpdateSchema = treatmentInputSchema.omit({ animalId: true 
 export const treatmentSchema = treatmentInputSchema.extend({
   id: z.uuid(),
   nextDueDate: z.iso.date(),
+  /** `null` tant que le traitement est en cours. */
+  stoppedOn: z.iso.date().nullable(),
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
   /** Suppression logique : `null` tant que le traitement existe. */

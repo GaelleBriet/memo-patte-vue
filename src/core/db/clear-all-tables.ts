@@ -3,13 +3,17 @@ import { migrations } from './migrations'
 
 const CREATE_TABLE = /CREATE TABLE IF NOT EXISTS (\w+)/g
 
-/** Tables créées par les migrations, dans l'ordre de création : une nouvelle migration s'y ajoute toute seule. */
+/**
+ * Tables créées par les migrations, dans l'ordre de leur première création : une nouvelle
+ * migration s'y ajoute toute seule, une table reconstruite n'y figure qu'une fois.
+ */
 export function migrationTableNames(): string[] {
-  return migrations.flatMap((migration) =>
+  const names = migrations.flatMap((migration) =>
     migration.statements.flatMap((statement) =>
       [...statement.matchAll(CREATE_TABLE)].map((match) => match[1] as string),
     ),
   )
+  return [...new Set(names)]
 }
 
 /**

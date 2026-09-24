@@ -62,6 +62,7 @@ const MILBEMAX: Treatment = {
   frequency: { value: 3, unit: 'month' },
   lastDoseDate: '2026-09-17',
   nextDueDate: '2026-09-17',
+  stoppedOn: null,
   createdAt: STAMP,
   updatedAt: STAMP,
   deletedAt: null,

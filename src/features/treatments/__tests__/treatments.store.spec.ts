@@ -443,6 +443,7 @@ function createFakeRepository(): FakeTreatmentsRepository {
       frequency: input.frequency,
       lastDoseDate: input.lastDoseDate,
       nextDueDate: nextDueDate(input.lastDoseDate),
+      stoppedOn: null,
       createdAt: now,
       updatedAt: now,
       deletedAt: null,

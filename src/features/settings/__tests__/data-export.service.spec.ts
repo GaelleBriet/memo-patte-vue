@@ -25,6 +25,7 @@ const vaccinations: Vaccination[] = EXPORT_FIXTURE.vaccinations.map((row) => ({
 }))
 const treatments: Treatment[] = EXPORT_FIXTURE.treatments.map((row) => ({
   ...row,
+  stoppedOn: null,
   deletedAt: null,
 }))
 const weightEntries: WeightEntry[] = EXPORT_FIXTURE.weightEntries.map((row) => ({

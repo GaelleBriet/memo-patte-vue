@@ -104,6 +104,7 @@ function treatment(animalId: string, nextDueDate: string): Treatment {
     frequency: { value: 3, unit: 'month' },
     lastDoseDate: '2026-06-24',
     nextDueDate,
+    stoppedOn: null,
     ...STAMPS,
   }
 }

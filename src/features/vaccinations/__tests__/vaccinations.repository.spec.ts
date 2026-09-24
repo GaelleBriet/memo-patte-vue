@@ -9,6 +9,8 @@ import {
   getVaccinationsRepository,
   type VaccinationsRepository,
 } from '../repository/vaccinations.repository'
+import { createVaccinationInjectionsRepository } from '../repository/vaccination-injections.repository'
+import type { ExportVaccination } from '@/shared/domain/carnet-data'
 
 // La fabrique est le seul code testé ici qui ouvre la base : on lui substitue `getDb`.
 vi.mock('@/core/db/sqlite', () => ({ getDb: vi.fn<() => Promise<DbClient>>() }))
@@ -360,8 +362,276 @@ describe('vaccinationsRepository', () => {
   })
 })
 
+describe('vaccinationsRepository — injections', () => {
+  let db: InMemoryDb
+  let repository: VaccinationsRepository
+  const injections = createVaccinationInjectionsRepository()
+
+  interface InjectionRow {
+    id: string
+    vaccination_id: string
+    animal_id: string
+    injected_on: string
+    next_due_date: string | null
+    created_at: string
+    updated_at: string
+    deleted_at: string | null
+  }
+
+  async function addInjection(
+    vaccinationId: string,
+    injectedOn: string,
+    nextDueDate: string | null,
+    { createdAt = '2026-09-20T10:00:00.000Z', id = crypto.randomUUID() } = {},
+  ): Promise<string> {
+    await db.runMany([
+      injections.insertStatement({
+        id,
+        vaccinationId,
+        animalId: MIETTE,
+        injectedOn,
+        nextDueDate,
+        createdAt,
+        updatedAt: createdAt,
+        deletedAt: null,
+      }),
+    ])
+    return id
+  }
+
+  function injectionsOf(vaccinationId: string): Promise<InjectionRow[]> {
+    return db.query<InjectionRow>(
+      'SELECT * FROM vaccination_injection WHERE vaccination_id = ? ORDER BY injected_on',
+      [vaccinationId],
+    )
+  }
+
+  beforeEach(async () => {
+    db = await createInMemoryDb()
+    await db.execute('PRAGMA foreign_keys = ON')
+    await seedAnimal(db, MIETTE, 'Miette')
+    await seedAnimal(db, VASCO, 'Vasco')
+    repository = createVaccinationsRepository(db)
+  })
+
+  afterEach(() => {
+    db.close()
+    vi.useRealTimers()
+  })
+
+  it('crée le vaccin et sa première injection, de même identifiant', async () => {
+    const carre = await repository.create({
+      animalId: MIETTE,
+      name: 'Carré',
+      lastInjectionDate: '2025-09-25',
+      dueDate: '2026-09-25',
+    })
+
+    await expect(injectionsOf(carre.id)).resolves.toEqual([
+      {
+        id: carre.id,
+        vaccination_id: carre.id,
+        animal_id: MIETTE,
+        injected_on: '2025-09-25',
+        next_due_date: '2026-09-25',
+        created_at: carre.createdAt,
+        updated_at: carre.createdAt,
+        deleted_at: null,
+      },
+    ])
+  })
+
+  it('n’écrit pas le vaccin quand sa première injection est refusée', async () => {
+    await db.execute(
+      `CREATE TRIGGER refuse_injection BEFORE INSERT ON vaccination_injection
+       BEGIN SELECT RAISE(ABORT, 'injection refusée'); END`,
+    )
+
+    await expect(
+      repository.create({ animalId: MIETTE, name: 'Carré', lastInjectionDate: '2025-09-25' }),
+    ).rejects.toThrow('injection refusée')
+
+    await expect(db.query('SELECT id FROM vaccination')).resolves.toEqual([])
+  })
+
+  it('prend ses dates dans l’injection la plus récente', async () => {
+    const carre = await repository.create({
+      animalId: MIETTE,
+      name: 'Carré',
+      lastInjectionDate: '2025-09-25',
+      dueDate: '2026-09-25',
+    })
+
+    await addInjection(carre.id, '2026-09-20', '2029-09-20')
+
+    const attendu = { lastInjectionDate: '2026-09-20', dueDate: '2029-09-20' }
+    await expect(repository.getById(carre.id)).resolves.toMatchObject(attendu)
+    await expect(repository.listByAnimal(MIETTE)).resolves.toMatchObject([attendu])
+    await expect(repository.listAll()).resolves.toMatchObject([attendu])
+  })
+
+  it('une injection plus ancienne ajoutée ensuite ne devient pas la tête', async () => {
+    const carre = await repository.create({
+      animalId: MIETTE,
+      name: 'Carré',
+      lastInjectionDate: '2025-09-25',
+      dueDate: '2026-09-25',
+    })
+
+    await addInjection(carre.id, '2024-09-20', '2025-09-20', {
+      createdAt: '2099-01-01T00:00:00.000Z',
+    })
+
+    await expect(repository.getById(carre.id)).resolves.toMatchObject({
+      lastInjectionDate: '2025-09-25',
+      dueDate: '2026-09-25',
+    })
+  })
+
+  it('à date égale, la dernière saisie fait foi, puis le plus grand identifiant', async () => {
+    const rage = await repository.create({
+      animalId: MIETTE,
+      name: 'Rage',
+      lastInjectionDate: '2020-01-01',
+    })
+    await addInjection(rage.id, '2026-01-10', '2027-01-10', {
+      createdAt: '2026-01-10T11:00:00.000Z',
+      id: '00000000-0000-4000-8000-000000000000',
+    })
+    await addInjection(rage.id, '2026-01-10', '2028-01-10', {
+      createdAt: '2026-01-10T10:00:00.000Z',
+      id: 'ffffffff-ffff-4fff-8fff-ffffffffffff',
+    })
+
+    await expect(repository.getById(rage.id)).resolves.toMatchObject({ dueDate: '2027-01-10' })
+
+    await addInjection(rage.id, '2026-01-10', '2029-01-10', {
+      createdAt: '2026-01-10T11:00:00.000Z',
+      id: '11111111-0000-4000-8000-000000000000',
+    })
+
+    await expect(repository.getById(rage.id)).resolves.toMatchObject({ dueDate: '2029-01-10' })
+  })
+
+  it('ignore une injection supprimée : la précédente redevient la tête', async () => {
+    const carre = await repository.create({
+      animalId: MIETTE,
+      name: 'Carré',
+      lastInjectionDate: '2025-09-25',
+      dueDate: '2026-09-25',
+    })
+    const recente = await addInjection(carre.id, '2026-09-20', '2029-09-20')
+
+    await db.run('UPDATE vaccination_injection SET deleted_at = updated_at WHERE id = ?', [recente])
+
+    await expect(repository.getById(carre.id)).resolves.toMatchObject({
+      lastInjectionDate: '2025-09-25',
+      dueDate: '2026-09-25',
+    })
+  })
+
+  it('ne montre pas un vaccin sans injection visible', async () => {
+    await db.run(
+      `INSERT INTO vaccination (id, animal_id, name, created_at, updated_at)
+       VALUES ('sans-injection', ?, 'Leucose', '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z')`,
+      [MIETTE],
+    )
+
+    await expect(repository.getById('sans-injection')).resolves.toBeNull()
+    await expect(repository.listByAnimal(MIETTE)).resolves.toEqual([])
+    await expect(repository.listAll()).resolves.toEqual([])
+  })
+
+  it('trie les vaccins d’un animal par la date de leur tête', async () => {
+    const rage = await repository.create({
+      animalId: MIETTE,
+      name: 'Rage',
+      lastInjectionDate: '2024-03-01',
+    })
+    await repository.create({ animalId: MIETTE, name: 'Typhus', lastInjectionDate: '2025-09-12' })
+
+    await addInjection(rage.id, '2026-03-01', '2027-03-01')
+
+    const names = (await repository.listByAnimal(MIETTE)).map(({ name }) => name)
+    expect(names).toEqual(['Rage', 'Typhus'])
+  })
+
+  it('la modification change le vaccin et son injection de tête, pas les précédentes', async () => {
+    vi.useFakeTimers({ now: new Date('2026-09-24T10:00:00.000Z') })
+    const carre = await repository.create({
+      animalId: MIETTE,
+      name: 'Carré',
+      lastInjectionDate: '2025-09-25',
+      dueDate: '2026-09-25',
+    })
+    const ancienne = await addInjection(carre.id, '2024-09-20', '2025-09-20')
+    vi.advanceTimersByTime(60_000)
+
+    await repository.update(carre.id, {
+      name: 'Carré (Eurican)',
+      lastInjectionDate: '2025-09-26',
+      dueDate: '2026-09-26',
+    })
+
+    await expect(injectionsOf(carre.id)).resolves.toMatchObject([
+      { id: ancienne, injected_on: '2024-09-20', next_due_date: '2025-09-20' },
+      {
+        id: carre.id,
+        injected_on: '2025-09-26',
+        next_due_date: '2026-09-26',
+        updated_at: '2026-09-24T10:01:00.000Z',
+      },
+    ])
+    await expect(repository.getById(carre.id)).resolves.toMatchObject({
+      name: 'Carré (Eurican)',
+      updatedAt: '2026-09-24T10:01:00.000Z',
+    })
+  })
+
+  it('supprimer un vaccin pose sa date de suppression sur toutes ses injections', async () => {
+    vi.useFakeTimers({ now: new Date('2026-09-24T10:00:00.000Z') })
+    const carre = await repository.create({
+      animalId: MIETTE,
+      name: 'Carré',
+      lastInjectionDate: '2025-09-25',
+    })
+    await addInjection(carre.id, '2024-09-20', null)
+    const rage = await repository.create({
+      animalId: MIETTE,
+      name: 'Rage',
+      lastInjectionDate: '2025-01-01',
+    })
+    vi.advanceTimersByTime(60_000)
+
+    await repository.remove(carre.id)
+
+    const tombstone = {
+      deleted_at: '2026-09-24T10:01:00.000Z',
+      updated_at: '2026-09-24T10:01:00.000Z',
+    }
+    await expect(injectionsOf(carre.id)).resolves.toMatchObject([tombstone, tombstone])
+    await expect(injectionsOf(rage.id)).resolves.toMatchObject([{ deleted_at: null }])
+  })
+
+  it('supprimer deux fois un vaccin ne change pas la date de ses injections', async () => {
+    vi.useFakeTimers({ now: new Date('2026-09-24T10:00:00.000Z') })
+    const carre = await repository.create({
+      animalId: MIETTE,
+      name: 'Carré',
+      lastInjectionDate: '2025-09-25',
+    })
+    await repository.remove(carre.id)
+    const avant = await injectionsOf(carre.id)
+    vi.advanceTimersByTime(60_000)
+
+    await repository.remove(carre.id)
+
+    await expect(injectionsOf(carre.id)).resolves.toEqual(avant)
+  })
+})
+
 describe('vaccinationsRepository — import', () => {
-  const IMPORTE = {
+  const IMPORTE: ExportVaccination = {
     id: '44444444-4444-4444-8444-444444444444',
     animalId: MIETTE,
     name: 'Typhus',
@@ -373,6 +643,22 @@ describe('vaccinationsRepository — import', () => {
 
   let db: InMemoryDb
   let repository: VaccinationsRepository
+  const injections = createVaccinationInjectionsRepository()
+
+  function restore(vaccination: ExportVaccination, exists: boolean) {
+    return db.runMany([
+      repository.restoreStatement(vaccination, exists),
+      injections.restoreStatement({
+        id: vaccination.id,
+        vaccinationId: vaccination.id,
+        animalId: vaccination.animalId,
+        injectedOn: vaccination.lastInjectionDate,
+        nextDueDate: vaccination.dueDate,
+        createdAt: vaccination.createdAt,
+        updatedAt: vaccination.updatedAt,
+      }),
+    ])
+  }
 
   beforeEach(async () => {
     db = await createInMemoryDb()
@@ -387,34 +673,41 @@ describe('vaccinationsRepository — import', () => {
   })
 
   it('insère un vaccin importé avec son identifiant et ses dates d’origine', async () => {
-    await db.runMany([repository.restoreStatement(IMPORTE, false)])
+    await restore(IMPORTE, false)
 
     await expect(repository.getById(IMPORTE.id)).resolves.toEqual({ ...IMPORTE, deletedAt: null })
   })
 
   it('écrase un vaccin existant, même supprimé, et le rend visible', async () => {
-    await db.runMany([repository.restoreStatement(IMPORTE, false)])
+    await restore(IMPORTE, false)
     await repository.remove(IMPORTE.id)
     const importe = {
       ...IMPORTE,
       name: 'CHPPiL',
+      lastInjectionDate: '2025-10-01',
       dueDate: null,
       updatedAt: '2026-09-15T08:00:00.000Z',
     }
 
-    await db.runMany([repository.restoreStatement(importe, true)])
+    await restore(importe, true)
 
     await expect(repository.getById(IMPORTE.id)).resolves.toEqual({ ...importe, deletedAt: null })
+    await expect(
+      db.query('SELECT id FROM vaccination_injection WHERE vaccination_id = ?', [IMPORTE.id]),
+    ).resolves.toEqual([{ id: IMPORTE.id }])
   })
 
   it('ne déplace pas un vaccin existant vers l’animal du fichier', async () => {
-    await db.runMany([repository.restoreStatement(IMPORTE, false)])
+    await restore(IMPORTE, false)
 
-    await db.runMany([repository.restoreStatement({ ...IMPORTE, animalId: VASCO }, true)])
+    await restore({ ...IMPORTE, animalId: VASCO }, true)
 
     await expect(repository.getById(IMPORTE.id)).resolves.toMatchObject({
       animalId: IMPORTE.animalId,
     })
+    await expect(
+      db.query('SELECT animal_id FROM vaccination_injection WHERE id = ?', [IMPORTE.id]),
+    ).resolves.toEqual([{ animal_id: MIETTE }])
   })
 
   it('liste les versions de toutes les lignes, supprimées comprises', async () => {
@@ -423,7 +716,7 @@ describe('vaccinationsRepository — import', () => {
       name: 'Rage',
       lastInjectionDate: '2025-01-01',
     })
-    await db.runMany([repository.restoreStatement(IMPORTE, false)])
+    await restore(IMPORTE, false)
     await repository.remove(IMPORTE.id)
 
     const versions = await repository.listVersions()
@@ -439,7 +732,7 @@ describe('vaccinationsRepository — import', () => {
   })
 
   it('marque tous les vaccins encore visibles, sans changer la date des déjà supprimés', async () => {
-    await db.runMany([repository.restoreStatement(IMPORTE, false)])
+    await restore(IMPORTE, false)
     const autre = await repository.create({
       animalId: VASCO,
       name: 'Rage',

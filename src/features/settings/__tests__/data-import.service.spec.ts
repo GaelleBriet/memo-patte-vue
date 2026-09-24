@@ -14,10 +14,13 @@ import {
   MILBEMAX_ID,
   MILO_ID,
   MILO_WEIGHT_ID,
+  TYPHUS_ID,
 } from './import-fixture'
 import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory-db'
 import { createAnimalsRepository } from '@/features/animals/repository/animals.repository'
+import { createTreatmentDosesRepository } from '@/features/treatments/repository/treatment-doses.repository'
 import { createTreatmentsRepository } from '@/features/treatments/repository/treatments.repository'
+import { createVaccinationInjectionsRepository } from '@/features/vaccinations/repository/vaccination-injections.repository'
 import { createVaccinationsRepository } from '@/features/vaccinations/repository/vaccinations.repository'
 import { createWeightRepository } from '@/features/weight/repository/weight.repository'
 
@@ -42,7 +45,9 @@ function setup(overrides: Partial<DataImportDependencies> = {}) {
   const service = createDataImportService({
     animals: () => repositories.animals,
     vaccinations: () => repositories.vaccinations,
+    vaccinationInjections: createVaccinationInjectionsRepository,
     treatments: async () => repositories.treatments,
+    treatmentDoses: createTreatmentDosesRepository,
     weight: () => repositories.weight,
     photoExists,
     syncReminders,
@@ -94,6 +99,23 @@ describe('data-import.service', () => {
     await service.importData(IMPORT_FIXTURE, 'replace')
 
     await expect(carnet()).resolves.toEqual(withoutPhotos(IMPORT_FIXTURE))
+  })
+
+  it('écrit chaque vaccin et chaque traitement avec leur événement, sans doublon au second import', async () => {
+    const { service } = setup()
+
+    await service.importData(IMPORT_FIXTURE, 'merge')
+    await service.importData(IMPORT_FIXTURE, 'replace')
+
+    await expect(
+      db.query('SELECT id, vaccination_id FROM vaccination_injection ORDER BY id'),
+    ).resolves.toEqual([
+      { id: CHPPIL_ID, vaccination_id: CHPPIL_ID },
+      { id: TYPHUS_ID, vaccination_id: TYPHUS_ID },
+    ])
+    await expect(
+      db.query('SELECT id, treatment_id, deleted_at FROM treatment_dose'),
+    ).resolves.toEqual([{ id: MILBEMAX_ID, treatment_id: MILBEMAX_ID, deleted_at: null }])
   })
 
   it('reprogramme les rappels une fois l’import écrit', async () => {
@@ -350,6 +372,34 @@ describe('data-import.service', () => {
       const vaccins = await repositories.vaccinations.listVersions()
       expect(vaccins.filter(({ deletedAt }) => deletedAt === null)).toHaveLength(2)
       expect(vaccins).toHaveLength(3)
+    })
+
+    it('marque supprimés avec la même date les événements des vaccins et traitements locaux', async () => {
+      const { service } = setup()
+      const rex = await repositories.animals.create({ name: 'Rex', species: 'dog' })
+      const rage = await repositories.vaccinations.create({
+        animalId: rex.id,
+        name: 'Rage',
+        lastInjectionDate: '2025-01-01',
+      })
+      const bravecto = await repositories.treatments.create({
+        animalId: rex.id,
+        name: 'Bravecto',
+        type: 'antiparasitic',
+        frequency: { value: 3, unit: 'month' },
+        lastDoseDate: '2026-07-01',
+      })
+
+      await service.importData(IMPORT_FIXTURE, 'replace')
+
+      await expect(
+        db.query('SELECT deleted_at FROM vaccination_injection WHERE vaccination_id = ?', [
+          rage.id,
+        ]),
+      ).resolves.toEqual([{ deleted_at: NOW.toISOString() }])
+      await expect(
+        db.query('SELECT deleted_at FROM treatment_dose WHERE treatment_id = ?', [bravecto.id]),
+      ).resolves.toEqual([{ deleted_at: NOW.toISOString() }])
     })
   })
 

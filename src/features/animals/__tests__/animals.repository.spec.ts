@@ -203,8 +203,8 @@ describe('animalsRepository', () => {
     it('applique les instructions de la cascade dans la même transaction', async () => {
       const miette = await repository.create({ name: 'Miette', species: 'cat' })
       await db.run(
-        `INSERT INTO vaccination (id, animal_id, name, last_injection_date, created_at, updated_at)
-         VALUES ('v1', ?, 'Rage', '2024-03-01', '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z')`,
+        `INSERT INTO vaccination (id, animal_id, name, created_at, updated_at)
+         VALUES ('v1', ?, 'Rage', '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z')`,
         [miette.id],
       )
 
@@ -381,8 +381,8 @@ describe('animalsRepository — import', () => {
 
   it('n’écrit rien quand une instruction de l’import échoue', async () => {
     const orpheline = {
-      sql: `INSERT INTO vaccination (id, animal_id, name, last_injection_date, created_at, updated_at)
-            VALUES ('v', 'animal-absent', 'Rage', '2025-01-01', 'x', 'x')`,
+      sql: `INSERT INTO vaccination (id, animal_id, name, created_at, updated_at)
+            VALUES ('v', 'animal-absent', 'Rage', 'x', 'x')`,
     }
 
     await expect(

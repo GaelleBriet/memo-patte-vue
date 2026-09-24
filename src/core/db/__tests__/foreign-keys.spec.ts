@@ -56,16 +56,9 @@ describe('base ouverte par getDb', () => {
 
     await expect(
       db.run(
-        `INSERT INTO vaccination (id, animal_id, name, last_injection_date, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [
-          'v1',
-          'inconnu',
-          'CHPPi',
-          '2025-06-12',
-          '2026-01-01T00:00:00.000Z',
-          '2026-01-01T00:00:00.000Z',
-        ],
+        `INSERT INTO vaccination (id, animal_id, name, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?)`,
+        ['v1', 'inconnu', 'CHPPi', '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z'],
       ),
     ).rejects.toThrow(/FOREIGN KEY constraint failed/)
   })

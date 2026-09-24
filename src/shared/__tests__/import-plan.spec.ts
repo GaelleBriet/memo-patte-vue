@@ -223,6 +223,66 @@ describe('buildImportPlan', () => {
     })
   })
 
+  describe('événements d’un fichier v1', () => {
+    it('donne à chaque vaccin écrit une injection de même identifiant, à ses dates', () => {
+      const local = { ...EMPTY, vaccinations: [localEntry(CHPPIL_ID, MILO_ID)] }
+
+      const plan = buildPlan({ local })
+
+      const chppil = IMPORT_FIXTURE.vaccinations[0]!
+      const typhus = IMPORT_FIXTURE.vaccinations[1]!
+      expect(plan.vaccinationInjections).toEqual([
+        {
+          id: CHPPIL_ID,
+          vaccinationId: CHPPIL_ID,
+          animalId: MILO_ID,
+          injectedOn: chppil.lastInjectionDate,
+          nextDueDate: chppil.dueDate,
+          createdAt: chppil.createdAt,
+          updatedAt: IMPORTED_AT,
+        },
+        {
+          id: TYPHUS_ID,
+          vaccinationId: TYPHUS_ID,
+          animalId: LUNA_ID,
+          injectedOn: typhus.lastInjectionDate,
+          nextDueDate: null,
+          createdAt: typhus.createdAt,
+          updatedAt: typhus.updatedAt,
+        },
+      ])
+    })
+
+    it('donne à chaque traitement écrit une prise de même identifiant, fréquence recopiée', () => {
+      const milbemax = IMPORT_FIXTURE.treatments[0]!
+
+      expect(buildPlan().treatmentDoses).toEqual([
+        {
+          id: MILBEMAX_ID,
+          treatmentId: MILBEMAX_ID,
+          animalId: LUNA_ID,
+          givenOn: milbemax.lastDoseDate,
+          nextDueDate: milbemax.nextDueDate,
+          frequency: milbemax.frequency,
+          createdAt: milbemax.createdAt,
+          updatedAt: milbemax.updatedAt,
+        },
+      ])
+    })
+
+    it('n’écrit aucun événement pour un vaccin ou un traitement que le plan n’écrit pas', () => {
+      const local = {
+        ...EMPTY,
+        animals: [localAnimal(LUNA_ID, { deletedAt: IMPORTED_AT, updatedAt: IMPORTED_AT })],
+      }
+
+      const plan = buildPlan({ local })
+
+      expect(plan.vaccinationInjections.map(({ id }) => id)).toEqual([CHPPIL_ID])
+      expect(plan.treatmentDoses).toEqual([])
+    })
+  })
+
   it('reprend l’échéance du traitement telle quelle, sans la recalculer', () => {
     const data = {
       ...IMPORT_FIXTURE,
