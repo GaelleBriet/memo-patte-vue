@@ -5,7 +5,8 @@ export type WeightPage = { start: number; end: number }
 
 export type WeightPagePeriod = {
   from: string
-  to: string
+  /** `null` quand la page tient dans le mois de `from`. */
+  to: string | null
   count: number
   /** La page porte la toute première pesée. */
   isStart: boolean
@@ -24,9 +25,11 @@ export function weightPagePeriod(
   entries: readonly { measuredOn: string }[],
   page: WeightPage,
 ): WeightPagePeriod {
+  const from = entries[page.start]!.measuredOn
+  const to = entries[page.end - 1]!.measuredOn
   return {
-    from: entries[page.start]!.measuredOn,
-    to: entries[page.end - 1]!.measuredOn,
+    from,
+    to: to.slice(0, 7) === from.slice(0, 7) ? null : to,
     count: page.end - page.start,
     isStart: page.start === 0,
   }

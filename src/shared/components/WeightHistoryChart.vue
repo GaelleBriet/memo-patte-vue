@@ -67,7 +67,9 @@ const period = computed(() => {
   const { from, to, count, isStart } = weightPagePeriod(props.entries, page.value)
   const counted = t('weight.chart.count', count)
   return {
-    range: t('weight.chart.period', { from: formatMonthYear(from), to: formatMonthYear(to) }),
+    range: to
+      ? t('weight.chart.period', { from: formatMonthYear(from), to: formatMonthYear(to) })
+      : formatMonthYear(from),
     count: isStart ? t('weight.chart.start', { count: counted }) : counted,
   }
 })

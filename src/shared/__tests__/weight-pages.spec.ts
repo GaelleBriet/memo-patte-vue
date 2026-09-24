@@ -71,14 +71,29 @@ describe('weightPagePeriod', () => {
     })
   })
 
-  it('borne une page d’une seule pesée par cette pesée', () => {
+  it('réduit la période à son mois quand la page tient dans un seul mois', () => {
+    expect(weightPagePeriod(trente, { start: 0, end: 3 })).toEqual({
+      from: trente[0]!.measuredOn,
+      to: null,
+      count: 3,
+      isStart: true,
+    })
+  })
+
+  it('réduit à son mois une page d’une seule pesée', () => {
     const treize = pesees(13)
 
     expect(weightPagePeriod(treize, { start: 0, end: 1 })).toEqual({
       from: treize[0]!.measuredOn,
-      to: treize[0]!.measuredOn,
+      to: null,
       count: 1,
       isStart: true,
     })
+  })
+
+  it('garde les deux bornes pour le même mois de deux années', () => {
+    const annee = [{ measuredOn: '2025-03-10' }, { measuredOn: '2026-03-02' }]
+
+    expect(weightPagePeriod(annee, { start: 0, end: 2 }).to).toBe('2026-03-02')
   })
 })

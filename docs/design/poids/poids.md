@@ -75,7 +75,8 @@ saisie reste dans la feuille pesée (`pesee.md`).
   chaque page, avec les règles ci-dessous. La carte du Carnet et le PDF restent
   un aperçu de toute la période.
 - En-tête de la carte : ‹ · période · › ; période `mars 2026 – sept. 2026`
-  (Space Grotesk 16 px / 700), en dessous `12 pesées` (13 px / 500,
+  (Space Grotesk 16 px / 700), `mars 2026` seul quand la page tient dans un
+  mois (Gaelle, 2026-09-24), en dessous `12 pesées` (13 px / 500,
   `#68625C`), `6 pesées · début du suivi` sur la page de la première pesée.
   Chevrons pétrole de 24 px, zone de toucher 48 px ; grisés `#CFCAC3` quand il
   n'y a plus de page de ce côté, et annoncés « Pesées précédentes, aucune » /

@@ -5,7 +5,7 @@ import { nextTick } from 'vue'
 
 import WeightHistoryChart from '../components/WeightHistoryChart.vue'
 import { buildHistoryWeightChart, type WeightChartEntry } from '../domain/weight-chart'
-import i18n from '@/core/i18n'
+import i18n, { applyLocale } from '@/core/i18n'
 import vuetify from '@/core/theme/vuetify'
 
 function pesees(...items: [string, number][]): WeightChartEntry[] {
@@ -251,10 +251,32 @@ describe('WeightHistoryChart — pages', () => {
     await fleche(monte, 'previous').bouton.trigger('click')
 
     expect(periode(monte)).toEqual({
-      dates: 'mars 2026\u00a0– mars 2026',
+      dates: 'mars 2026',
       pesees: '1 pesée · début du suivi',
     })
     expect(points(monte)).toHaveLength(1)
+  })
+
+  it('n’écrit qu’un mois quand la page tient dans un seul', () => {
+    const monte = monter(TRENTE.slice(15, 18))
+
+    expect(periode(monte)).toEqual({ dates: 'mars 2026', pesees: '3 pesées · début du suivi' })
+  })
+
+  it('écrit la période en anglais', async () => {
+    applyLocale('en')
+    try {
+      const monte = monter()
+      expect(periode(monte)).toEqual({ dates: 'Apr 2026\u00a0– Sep 2026', pesees: '12 weigh-ins' })
+
+      await monte.setProps({ entries: TRENTE.slice(15, 18) })
+      expect(periode(monte)).toEqual({
+        dates: 'Mar 2026',
+        pesees: '3 weigh-ins · start of tracking',
+      })
+    } finally {
+      applyLocale('fr')
+    }
   })
 
   it('annonce la nouvelle période au lecteur d’écran', () => {
