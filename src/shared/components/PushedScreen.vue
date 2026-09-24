@@ -113,6 +113,9 @@ function onScroll(event: Event): void {
 }
 
 $gap-back: 4px;
+$padding-topbar-block: 6px;
+$font-size-title: 22px;
+$line-height-title-with-subtitle: 1.2;
 
 .pushed-screen__topbar {
   position: sticky;
@@ -120,7 +123,7 @@ $gap-back: 4px;
   z-index: 2;
   display: flex;
   flex-direction: column;
-  padding: 6px 12px;
+  padding: $padding-topbar-block 12px;
   background: rgb(var(--v-theme-background));
   border-bottom: 1px solid transparent;
 }
@@ -145,6 +148,16 @@ $size-back: 48px;
   height: $size-back;
 }
 
+// La flèche déborde de la ligne du titre au lieu de la hausser : le sous-titre se colle au titre.
+.pushed-screen__topbar--with-subtitle {
+  padding-top: $padding-topbar-block +
+    ($size-back - $font-size-title * $line-height-title-with-subtitle) * 0.5;
+}
+
+.pushed-screen__topbar--with-subtitle .pushed-screen__back {
+  margin-block: -$size-back * 0.5;
+}
+
 // Le titre et le sous-titre sont sur deux lignes flex, dont les marges ne se
 // fusionnent plus : l'écart se pose ici, comme sur les headers Accueil et Carnet.
 .pushed-screen__title {
@@ -152,19 +165,19 @@ $size-back: 48px;
   min-width: 0;
   overflow: hidden;
   font-family: tokens.$font-family-heading;
-  font-size: 22px;
+  font-size: $font-size-title;
   font-weight: 700;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
 
 .pushed-screen__topbar--with-subtitle .pushed-screen__title {
-  line-height: 1.2;
+  line-height: $line-height-title-with-subtitle;
 }
 
 .pushed-screen__subtitle {
   // Aligné sous le titre, pas sous la flèche, comme sur la maquette du suivi de poids.
-  margin: 2px 0 0 $size-back + $gap-back;
+  margin: 0 0 0 $size-back + $gap-back;
   overflow: hidden;
   color: tokens.$color-hint;
   font-size: 12.5px;
