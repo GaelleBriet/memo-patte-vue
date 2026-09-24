@@ -23,8 +23,9 @@
     "format": "prettier --write --experimental-cli src/",
     "check": "run-s format lint type-check test:unit:run build",
     "prepare": "husky",
-    "dev:mobile": "(test -d android/app/src/main/assets/public || pnpm cap:sync) && cap update android && cap run android -l --host=localhost --port=5173 --forwardPorts=5173:5173 --no-sync",
+    "dev:mobile": "(test -d android/app/src/main/assets/public || pnpm cap:sync) && cap update android && ORG_GRADLE_PROJECT_devApp=true cap run android -l --host=localhost --port=5173 --forwardPorts=5173:5173 --no-sync",
     "test:device": "pnpm cap:sync && cap run android --no-sync",
+    "test:device:dev": "pnpm cap:sync && ORG_GRADLE_PROJECT_devApp=true cap run android --no-sync",
     "cap:sync": "vite build && cap sync",
     "cap:open:android": "cap open android",
     "assets:android": "pnpm --allow-build=sharp dlx @capacitor/assets@3.0.5 generate --android"

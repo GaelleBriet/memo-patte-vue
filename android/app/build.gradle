@@ -13,11 +13,19 @@ if (appMinor > 999 || appPatch > 999) {
 }
 def appVersionCode = appMajor * 1000000 + appMinor * 1000 + appPatch
 
+def devApp = findProperty('devApp') == 'true'
+def appName = devApp ? 'MémoPatte Dev' : 'MémoPatte'
+
 android {
     namespace = "com.gaellebriet.memopatte"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
         applicationId "com.gaellebriet.memopatte"
+        if (devApp) {
+            applicationIdSuffix ".dev"
+        }
+        resValue "string", "app_name", appName
+        resValue "string", "title_activity_main", appName
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode appVersionCode
