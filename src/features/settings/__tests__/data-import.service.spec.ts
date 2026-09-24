@@ -737,7 +737,7 @@ describe('data-import.service', () => {
           name: 'Milbémax',
           type: 'deworming',
           frequency: { value: 1, unit: 'month' },
-          lastDoseDate: '2026-06-15',
+          nextDueDate: '2026-07-15',
         })
         await repositories.vaccinations.update(TYPHUS_ID, {
           name: 'Typhus',

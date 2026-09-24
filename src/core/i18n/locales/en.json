@@ -221,6 +221,9 @@
       "lastDoseDate": {
         "label": "Date of last dose"
       },
+      "nextDueDate": {
+        "label": "Next dose"
+      },
       "nextDose": "Next dose on {date}",
       "submit": "Create",
       "submitting": "Creating…",
@@ -233,6 +236,7 @@
         "frequencyMax": "Frequency must be at most 365.",
         "lastDoseDate": "Date is required.",
         "lastDoseDateFuture": "Date can’t be in the future.",
+        "nextDueDate": "Date is required.",
         "notFound": "We can’t find this treatment.",
         "load": "Couldn’t load this treatment. Try again.",
         "save": "Couldn’t save this treatment. Try again."

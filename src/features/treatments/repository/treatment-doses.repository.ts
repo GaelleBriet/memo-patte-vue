@@ -96,20 +96,20 @@ export function createTreatmentDosesRepository(db: DbClient) {
       }
     },
 
+    /** La date de la prise ne change pas ici : la tête reste la même prise. */
     updateHeadStatement(
       treatmentId: string,
       {
-        givenOn,
         nextDueDate,
         frequency,
         updatedAt,
-      }: Pick<TreatmentDose, 'givenOn' | 'nextDueDate' | 'frequency' | 'updatedAt'>,
+      }: Pick<TreatmentDose, 'nextDueDate' | 'frequency' | 'updatedAt'>,
     ): SqlStatement {
       return {
         sql: `UPDATE treatment_dose
-              SET given_on = ?, next_due_date = ?, frequency_value = ?, frequency_unit = ?, updated_at = ?
+              SET next_due_date = ?, frequency_value = ?, frequency_unit = ?, updated_at = ?
               WHERE id = ${headDoseIdSql('?')}`,
-        params: [givenOn, nextDueDate, frequency.value, frequency.unit, updatedAt, treatmentId],
+        params: [nextDueDate, frequency.value, frequency.unit, updatedAt, treatmentId],
       }
     },
 

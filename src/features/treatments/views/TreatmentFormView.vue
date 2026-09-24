@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 import {
+  editedNextDueDate,
   emptyTreatmentFormValues,
   nextDoseDate,
   treatmentFormValuesFrom,
+  validateTreatmentEditForm,
   validateTreatmentForm,
 } from '../logic/treatment-form'
 import {
@@ -24,7 +26,7 @@ import FormField from '@/shared/form/FormField.vue'
 import FormScreen from '@/shared/form/FormScreen.vue'
 import FormSegmented from '@/shared/form/FormSegmented.vue'
 import { useFormValidation } from '@/shared/form/use-form-validation'
-import { routeAfterReminderSaved } from '@/shared/domain/notification-priming'
+import { primingReturnRoute, routeAfterReminderSaved } from '@/shared/domain/notification-priming'
 
 const props = defineProps<{
   animalId?: string
@@ -33,11 +35,17 @@ const props = defineProps<{
 
 const { t } = useI18n()
 const router = useRouter()
+const origin = useRoute().query.from
+const from = typeof origin === 'string' ? origin : undefined
 const animals = useAnimalsStore()
 const treatments = useTreatmentsStore()
 
 const values = ref(emptyTreatmentFormValues())
-const { errors, validate } = useFormValidation(values, validateTreatmentForm)
+const creation = useFormValidation(values, validateTreatmentForm)
+const edition = useFormValidation(values, validateTreatmentEditForm)
+const errors = computed(() =>
+  props.id === undefined ? creation.errors.value : edition.errors.value,
+)
 const existing = ref<Treatment | null>(null)
 const notFound = ref(false)
 const isLoading = ref(props.id !== undefined)
@@ -86,9 +94,18 @@ const unitOptions = computed(() =>
   })),
 )
 const nextDose = computed(() => {
-  const date = nextDoseDate(values.value)
+  const date = isEdit.value ? null : nextDoseDate(values.value)
   return date ? t('treatments.form.nextDose', { date: formatLongDate(date) }) : null
 })
+
+watch(
+  () => [values.value.frequencyValue, values.value.frequencyUnit],
+  () => {
+    if (!existing.value) return
+    const proposed = editedNextDueDate(values.value, existing.value)
+    if (proposed) values.value.nextDueDate = proposed
+  },
+)
 
 onMounted(async () => {
   if (props.id !== undefined) {
@@ -114,36 +131,45 @@ function selectTargetAnimal(): void {
   if (targetAnimalId.value !== null) animals.select(targetAnimalId.value)
 }
 
-function backToAnimals(): void {
+function backToOrigin(): void {
   selectTargetAnimal()
-  void router.replace({ name: 'animals' })
+  void router.replace(primingReturnRoute(from))
 }
 
 function selectUnit(unit: FrequencyUnit | null): void {
   if (unit) values.value.frequencyUnit = unit
 }
 
+function creationWrite(): (() => Promise<unknown>) | null {
+  const result = creation.validate()
+  if (!result.success) return null
+  return () => treatments.create({ animalId: requireAnimalId(), ...result.data })
+}
+
+function editionWrite(id: string): (() => Promise<unknown>) | null {
+  const result = edition.validate()
+  if (!result.success) return null
+  return () => treatments.update(id, result.data)
+}
+
 async function submit(): Promise<void> {
   if (isSubmitting.value || !canSave.value) return
 
-  const result = validate()
-  if (!result.success) return
+  const write = props.id === undefined ? creationWrite() : editionWrite(props.id)
+  if (write === null) return
 
   isSubmitting.value = true
   saveFailed.value = false
 
   try {
-    if (props.id !== undefined) {
-      await treatments.update(props.id, result.data)
-    } else {
-      await treatments.create({ animalId: requireAnimalId(), ...result.data })
-    }
+    await write()
     selectTargetAnimal()
     void router.replace(
       await routeAfterReminderSaved({
         hasDueDate: true,
         animalName: animalName.value,
         kind: 'treatment',
+        from,
       }),
     )
   } catch {
@@ -163,7 +189,7 @@ async function submit(): Promise<void> {
     :is-submitting="isSubmitting"
     :disabled="!canSave"
     :error-message="errorMessage"
-    @cancel="backToAnimals"
+    @cancel="backToOrigin"
     @submit="submit"
   >
     <FormField
@@ -255,6 +281,32 @@ async function submit(): Promise<void> {
     </FormField>
 
     <FormField
+      v-if="isEdit"
+      class="treatment-form__field--next-due-date"
+      :label="t('treatments.form.nextDueDate.label')"
+      control-id="treatment-next-due-date"
+      required
+      :error="errors.nextDueDate ? t(errors.nextDueDate) : null"
+    >
+      <template #default="{ describedby, invalid }">
+        <v-text-field
+          id="treatment-next-due-date"
+          v-model="values.nextDueDate"
+          class="form-field__input form-field__input--date"
+          type="date"
+          variant="outlined"
+          hide-details
+          aria-required="true"
+          append-inner-icon="ms:calendar_month"
+          :aria-describedby="describedby"
+          :aria-invalid="invalid"
+          :error="invalid"
+        />
+      </template>
+    </FormField>
+
+    <FormField
+      v-else
       class="treatment-form__field--last-dose-date"
       :label="t('treatments.form.lastDoseDate.label')"
       control-id="treatment-last-dose-date"

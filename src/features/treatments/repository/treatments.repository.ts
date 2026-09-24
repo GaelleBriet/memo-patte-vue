@@ -8,13 +8,13 @@ import { syncField, type SyncPullPage } from '@/core/sync/service/syncable-table
 import { addFrequency } from '../logic/treatment-frequency'
 import { createTreatmentDosesRepository, headDoseIdSql } from './treatment-doses.repository'
 import {
+  treatmentEditSchema,
   treatmentInputSchema,
-  treatmentUpdateSchema,
   type FrequencyUnit,
   type Treatment,
   type TreatmentInput,
+  type TreatmentEditInput,
   type TreatmentType,
-  type TreatmentUpdateInput,
 } from '../schema/treatment.schema'
 
 interface TreatmentRow {
@@ -164,9 +164,12 @@ export function createTreatmentsRepository(
       return treatment
     },
 
-    /** Change le plan et sa prise de tête ; `animal_id` reste figé depuis la création. */
-    async update(id: string, input: TreatmentUpdateInput): Promise<Treatment> {
-      const data = treatmentUpdateSchema.parse(input)
+    /**
+     * Change le plan et la prochaine dose de sa prise de tête, fréquence recopiée, dans une seule
+     * écriture ; la date de la prise et `animal_id` restent figés.
+     */
+    async update(id: string, input: TreatmentEditInput): Promise<Treatment> {
+      const data = treatmentEditSchema.parse(input)
       await requireVisible(id)
       const updatedAt = new Date().toISOString()
 
@@ -178,8 +181,7 @@ export function createTreatmentsRepository(
           params: [data.name, data.type, data.frequency.value, data.frequency.unit, updatedAt, id],
         },
         doses.updateHeadStatement(id, {
-          givenOn: data.lastDoseDate,
-          nextDueDate: addFrequency(data.lastDoseDate, data.frequency),
+          nextDueDate: data.nextDueDate,
           frequency: data.frequency,
           updatedAt,
         }),

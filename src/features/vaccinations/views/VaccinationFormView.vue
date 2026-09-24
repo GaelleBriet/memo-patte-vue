@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 import {
   emptyVaccinationFormValues,
@@ -15,7 +15,7 @@ import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import FormField from '@/shared/form/FormField.vue'
 import FormScreen from '@/shared/form/FormScreen.vue'
 import { useFormValidation } from '@/shared/form/use-form-validation'
-import { routeAfterReminderSaved } from '@/shared/domain/notification-priming'
+import { primingReturnRoute, routeAfterReminderSaved } from '@/shared/domain/notification-priming'
 
 const props = defineProps<{
   animalId?: string
@@ -24,6 +24,8 @@ const props = defineProps<{
 
 const { t } = useI18n()
 const router = useRouter()
+const origin = useRoute().query.from
+const from = typeof origin === 'string' ? origin : undefined
 const animals = useAnimalsStore()
 const vaccinations = useVaccinationsStore()
 
@@ -88,9 +90,9 @@ function selectTargetAnimal(): void {
   if (targetAnimalId.value !== null) animals.select(targetAnimalId.value)
 }
 
-function backToAnimals(): void {
+function backToOrigin(): void {
   selectTargetAnimal()
-  void router.replace({ name: 'animals' })
+  void router.replace(primingReturnRoute(from))
 }
 
 async function submit(): Promise<void> {
@@ -114,6 +116,7 @@ async function submit(): Promise<void> {
         hasDueDate: result.data.dueDate !== null,
         animalName: animalName.value,
         kind: 'vaccination',
+        from,
       }),
     )
   } catch {
@@ -133,7 +136,7 @@ async function submit(): Promise<void> {
     :is-submitting="isSubmitting"
     :disabled="!canSave"
     :error-message="errorMessage"
-    @cancel="backToAnimals"
+    @cancel="backToOrigin"
     @submit="submit"
   >
     <FormField

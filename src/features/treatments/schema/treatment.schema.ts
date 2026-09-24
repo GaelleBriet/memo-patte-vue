@@ -28,8 +28,16 @@ export const treatmentInputSchema = z.object({
   lastDoseDate: z.iso.date().refine((value) => !isFuture(parseISO(value))),
 })
 
-/** Le rattachement à l'animal est figé à la création. */
-export const treatmentUpdateSchema = treatmentInputSchema.omit({ animalId: true })
+/** Formulaire de création : l'animal vient de la route. */
+export const treatmentFormSchema = treatmentInputSchema.omit({ animalId: true })
+
+/**
+ * « Modifier » : le plan et la prochaine dose, portée par la prise de tête. La date de cette prise
+ * ne s'y change pas, et le rattachement à l'animal est figé.
+ */
+export const treatmentEditSchema = treatmentInputSchema
+  .pick({ name: true, type: true, frequency: true })
+  .extend({ nextDueDate: z.iso.date() })
 
 export const treatmentSchema = treatmentInputSchema.extend({
   id: z.uuid(),
@@ -43,5 +51,5 @@ export const treatmentSchema = treatmentInputSchema.extend({
 })
 
 export type TreatmentInput = z.input<typeof treatmentInputSchema>
-export type TreatmentUpdateInput = z.input<typeof treatmentUpdateSchema>
+export type TreatmentEditInput = z.input<typeof treatmentEditSchema>
 export type Treatment = z.output<typeof treatmentSchema>

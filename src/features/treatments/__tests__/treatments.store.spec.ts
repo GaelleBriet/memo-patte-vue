@@ -2,7 +2,7 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 
-import type { Treatment, TreatmentInput } from '../schema/treatment.schema'
+import type { Treatment, TreatmentEditInput, TreatmentInput } from '../schema/treatment.schema'
 import type { TreatmentDosesService } from '../service/treatment-doses.service'
 import type { TreatmentRemindersService } from '../service/treatment-reminders.service'
 import type { TreatmentStopService } from '../service/treatment-stop.service'
@@ -66,6 +66,16 @@ function vermifuge(animalId = MILO, surcharges: Partial<TreatmentInput> = {}): T
     type: 'deworming',
     frequency: { value: 3, unit: 'month' },
     lastDoseDate: '2026-03-12',
+    ...surcharges,
+  }
+}
+
+function edition(surcharges: Partial<TreatmentEditInput> = {}): TreatmentEditInput {
+  return {
+    name: 'Milbemax',
+    type: 'deworming',
+    frequency: { value: 3, unit: 'month' },
+    nextDueDate: '2026-06-12',
     ...surcharges,
   }
 }
@@ -282,14 +292,14 @@ describe('useTreatmentsStore', () => {
       name: 'Milbemax (chiot)',
       type: 'deworming',
       frequency: { value: 1, unit: 'month' },
-      lastDoseDate: '2026-04-01',
+      nextDueDate: '2026-04-12',
     })
 
     expect(repository.update).toHaveBeenCalledWith(seme.id, {
       name: 'Milbemax (chiot)',
       type: 'deworming',
       frequency: { value: 1, unit: 'month' },
-      lastDoseDate: '2026-04-01',
+      nextDueDate: '2026-04-12',
     })
     expect(updated.name).toBe('Milbemax (chiot)')
     expect(store.treatments.map((treatment) => treatment.name)).toEqual(['Milbemax (chiot)'])
@@ -315,11 +325,11 @@ describe('useTreatmentsStore', () => {
     expect(reminders.reschedule).toHaveBeenCalledWith(created.id)
   })
 
-  it('reprogramme les rappels quand une nouvelle prise déplace l’échéance', async () => {
+  it('reprogramme les rappels quand « Modifier » déplace l’échéance', async () => {
     const seme = repository.seed(vermifuge())
     const store = useTreatmentsStore()
 
-    const updated = await store.update(seme.id, { ...vermifuge(), lastDoseDate: '2026-06-12' })
+    const updated = await store.update(seme.id, edition({ nextDueDate: '2026-07-12' }))
 
     expect(reminders.reschedule).toHaveBeenCalledWith(updated.id)
     expect(repository.update.mock.invocationCallOrder[0]).toBeLessThan(
@@ -345,7 +355,7 @@ describe('useTreatmentsStore', () => {
     repository.update.mockRejectedValueOnce(new Error('traitement introuvable'))
     repository.remove.mockRejectedValueOnce(new Error('base verrouillée'))
 
-    await expect(store.update(seme.id, vermifuge())).rejects.toThrow('traitement introuvable')
+    await expect(store.update(seme.id, edition())).rejects.toThrow('traitement introuvable')
     await expect(store.remove(seme.id)).rejects.toThrow('base verrouillée')
 
     expect(reminders.reschedule).not.toHaveBeenCalled()
@@ -369,14 +379,7 @@ describe('useTreatmentsStore', () => {
     await store.loadForAnimal(MILO)
 
     repository.update.mockRejectedValueOnce(new Error('traitement introuvable'))
-    await expect(
-      store.update(seme.id, {
-        name: 'Milbemax',
-        type: 'deworming',
-        frequency: { value: 3, unit: 'month' },
-        lastDoseDate: '2026-03-12',
-      }),
-    ).rejects.toThrow('traitement introuvable')
+    await expect(store.update(seme.id, edition())).rejects.toThrow('traitement introuvable')
 
     repository.remove.mockRejectedValueOnce(new Error('base verrouillée'))
     await expect(store.remove(seme.id)).rejects.toThrow('base verrouillée')
@@ -541,8 +544,7 @@ function createFakeRepository(): FakeTreatmentsRepository {
         name: input.name,
         type: input.type,
         frequency: input.frequency,
-        lastDoseDate: input.lastDoseDate,
-        nextDueDate: nextDueDate(input.lastDoseDate),
+        nextDueDate: input.nextDueDate,
         updatedAt: new Date().toISOString(),
       }
       treatments[index] = updated

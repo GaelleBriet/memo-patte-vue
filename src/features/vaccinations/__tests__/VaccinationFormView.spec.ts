@@ -585,6 +585,39 @@ describe('VaccinationFormView — édition', () => {
   })
 })
 
+describe('VaccinationFormView — retour vers l’écran d’origine', () => {
+  async function monterDepuis(from: string) {
+    routeur = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        { path: '/', name: 'home', component: Vide },
+        { path: '/animals', name: 'animals', component: Vide },
+        { path: '/vaccinations/:id/edit', name: 'vaccination-edit', component: Vide },
+      ],
+    })
+    await routeur.push({ name: 'vaccination-edit', params: { id: RAGE.id }, query: { from } })
+    replace = vi.spyOn(routeur, 'replace').mockResolvedValue()
+    return monterEdition()
+  }
+
+  it('revient à l’accueil après l’enregistrement quand « Modifier » y a été ouvert', async () => {
+    const wrapper = await monterDepuis('home')
+
+    await soumettre(wrapper)
+
+    expect(replace).toHaveBeenCalledWith({ name: 'home' })
+  })
+
+  it('revient à l’accueil quand on annule', async () => {
+    const wrapper = await monterDepuis('home')
+
+    await wrapper.get('.form-screen__cancel').trigger('click')
+    await flushPromises()
+
+    expect(replace).toHaveBeenCalledWith({ name: 'home' })
+  })
+})
+
 describe('VaccinationFormView — envoi en cours', () => {
   it('désactive les deux boutons et bascule le libellé pendant l’écriture', async () => {
     let terminer: (vaccination: Vaccination) => void = () => {}

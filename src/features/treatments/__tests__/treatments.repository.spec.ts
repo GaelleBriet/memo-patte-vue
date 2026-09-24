@@ -24,6 +24,13 @@ const bravecto = {
   lastDoseDate: '2026-03-01',
 } as const
 
+const edition = {
+  name: 'Bravecto',
+  type: 'antiparasitic',
+  frequency: { value: 3, unit: 'month' },
+  nextDueDate: '2026-06-01',
+} as const
+
 async function seedAnimal(db: InMemoryDb, id: string, name: string) {
   await db.run(
     `INSERT INTO animal (id, name, species, created_at, updated_at)
@@ -165,7 +172,7 @@ describe('treatmentsRepository', () => {
     await expect(repository.listByAnimal(VASCO)).resolves.toEqual([])
   })
 
-  it('met à jour les champs, recalcule l’échéance et rafraîchit updatedAt sans toucher createdAt', async () => {
+  it('met à jour le plan et la prochaine dose, rafraîchit updatedAt sans toucher createdAt', async () => {
     vi.useFakeTimers({ now: new Date('2026-03-01T10:00:00.000Z') })
     const created = await repository.create(bravecto)
     vi.advanceTimersByTime(60_000)
@@ -174,7 +181,7 @@ describe('treatmentsRepository', () => {
       name: 'Milbemax',
       type: 'deworming',
       frequency: { value: 4, unit: 'week' },
-      lastDoseDate: '2026-02-10',
+      nextDueDate: '2026-03-29',
     })
 
     expect(updated).toEqual({
@@ -183,8 +190,8 @@ describe('treatmentsRepository', () => {
       name: 'Milbemax',
       type: 'deworming',
       frequency: { value: 4, unit: 'week' },
-      lastDoseDate: '2026-02-10',
-      nextDueDate: '2026-03-10',
+      lastDoseDate: '2026-03-01',
+      nextDueDate: '2026-03-29',
       stoppedOn: null,
       createdAt: '2026-03-01T10:00:00.000Z',
       updatedAt: '2026-03-01T10:01:00.000Z',
@@ -193,30 +200,11 @@ describe('treatmentsRepository', () => {
     await expect(repository.getById(created.id)).resolves.toEqual(updated)
   })
 
-  it('recalcule l’échéance quand seule la date de dernière prise change', async () => {
-    const created = await repository.create(bravecto)
-
-    const updated = await repository.update(created.id, { ...bravecto, lastDoseDate: '2026-01-31' })
-
-    expect(updated.nextDueDate).toBe('2026-04-30')
-  })
-
-  it('recalcule l’échéance quand seule la fréquence change', async () => {
-    const created = await repository.create(bravecto)
-
-    const updated = await repository.update(created.id, {
-      ...bravecto,
-      frequency: { value: 1, unit: 'month' },
-    })
-
-    expect(updated.nextDueDate).toBe('2026-04-01')
-  })
-
   it('ne déplace pas un traitement vers un autre animal', async () => {
     const created = await repository.create(bravecto)
 
     const updated = await repository.update(created.id, {
-      ...bravecto,
+      ...edition,
       // @ts-expect-error le rattachement est figé : `animalId` n'est pas modifiable
       animalId: VASCO,
     })
@@ -227,7 +215,7 @@ describe('treatmentsRepository', () => {
   })
 
   it('échoue à mettre à jour un traitement inexistant', async () => {
-    await expect(repository.update('inconnu', bravecto)).rejects.toThrow(
+    await expect(repository.update('inconnu', edition)).rejects.toThrow(
       'Traitement introuvable : inconnu',
     )
   })
@@ -274,7 +262,7 @@ describe('treatmentsRepository', () => {
     const created = await repository.create(bravecto)
     await repository.remove(created.id)
 
-    await expect(repository.update(created.id, { ...bravecto, name: 'Autre' })).rejects.toThrow(
+    await expect(repository.update(created.id, { ...edition, name: 'Autre' })).rejects.toThrow(
       `Traitement introuvable : ${created.id}`,
     )
 
@@ -658,7 +646,7 @@ describe('treatmentsRepository — prises', () => {
     expect(names).toEqual(['Trimestriel', 'Mensuel'])
   })
 
-  it('la modification change le plan et sa prise de tête, pas les précédentes', async () => {
+  it('la modification change le plan et sa prise de tête, pas sa date ni les prises précédentes', async () => {
     vi.useFakeTimers({ now: new Date('2026-09-24T10:00:00.000Z') })
     const created = await repository.create(bravecto)
     const ancienne = await addDose(created.id, '2025-12-01', '2026-03-01')
@@ -668,7 +656,7 @@ describe('treatmentsRepository — prises', () => {
       name: 'Milbemax',
       type: 'deworming',
       frequency: { value: 4, unit: 'week' },
-      lastDoseDate: '2026-02-10',
+      nextDueDate: '2026-03-29',
     })
 
     await expect(dosesOf(created.id)).resolves.toEqual([
@@ -681,8 +669,8 @@ describe('treatmentsRepository — prises', () => {
       }),
       expect.objectContaining({
         id: created.id,
-        given_on: '2026-02-10',
-        next_due_date: '2026-03-10',
+        given_on: '2026-03-01',
+        next_due_date: '2026-03-29',
         frequency_value: 4,
         frequency_unit: 'week',
         updated_at: '2026-09-24T10:01:00.000Z',
@@ -692,6 +680,75 @@ describe('treatmentsRepository — prises', () => {
       name: 'Milbemax',
       frequency: { value: 4, unit: 'week' },
       updatedAt: '2026-09-24T10:01:00.000Z',
+    })
+  })
+
+  it('change la fréquence seule : plan et prise de tête bougent ensemble', async () => {
+    const created = await repository.create(bravecto)
+
+    await repository.update(created.id, {
+      ...edition,
+      frequency: { value: 1, unit: 'month' },
+      nextDueDate: '2026-04-01',
+    })
+
+    await expect(repository.getById(created.id)).resolves.toMatchObject({
+      frequency: { value: 1, unit: 'month' },
+      lastDoseDate: '2026-03-01',
+      nextDueDate: '2026-04-01',
+    })
+    await expect(dosesOf(created.id)).resolves.toMatchObject([
+      { frequency_value: 1, frequency_unit: 'month', next_due_date: '2026-04-01' },
+    ])
+  })
+
+  it('change la fréquence et reporte dans la même saisie : le report est gardé', async () => {
+    const created = await repository.create(bravecto)
+
+    await repository.update(created.id, {
+      ...edition,
+      frequency: { value: 1, unit: 'month' },
+      nextDueDate: '2026-04-15',
+    })
+
+    await expect(repository.getById(created.id)).resolves.toMatchObject({
+      frequency: { value: 1, unit: 'month' },
+      nextDueDate: '2026-04-15',
+    })
+    await expect(dosesOf(created.id)).resolves.toMatchObject([
+      { frequency_value: 1, frequency_unit: 'month', next_due_date: '2026-04-15' },
+    ])
+  })
+
+  it('reporte seul : la prise de tête garde la fréquence du plan', async () => {
+    const created = await repository.create(bravecto)
+
+    await repository.update(created.id, { ...edition, nextDueDate: '2026-06-20' })
+
+    await expect(dosesOf(created.id)).resolves.toMatchObject([
+      {
+        given_on: '2026-03-01',
+        frequency_value: 3,
+        frequency_unit: 'month',
+        next_due_date: '2026-06-20',
+      },
+    ])
+  })
+
+  it('n’écrit ni le plan ni la prise quand l’une des deux écritures échoue', async () => {
+    const created = await repository.create(bravecto)
+    await db.execute(
+      `CREATE TRIGGER refuse_modification BEFORE UPDATE ON treatment_dose
+       BEGIN SELECT RAISE(ABORT, 'prise verrouillée'); END`,
+    )
+
+    await expect(
+      repository.update(created.id, { ...edition, frequency: { value: 1, unit: 'month' } }),
+    ).rejects.toThrow('prise verrouillée')
+
+    await expect(repository.getById(created.id)).resolves.toMatchObject({
+      frequency: { value: 3, unit: 'month' },
+      nextDueDate: '2026-06-01',
     })
   })
 

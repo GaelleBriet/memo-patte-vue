@@ -15,7 +15,7 @@ import {
   type StoppedTreatment,
   type TreatmentStopService,
 } from '../service/treatment-stop.service'
-import type { Treatment, TreatmentInput, TreatmentUpdateInput } from '../schema/treatment.schema'
+import type { Treatment, TreatmentEditInput, TreatmentInput } from '../schema/treatment.schema'
 import type { TreatmentsRepository as FullTreatmentsRepository } from '../repository/treatments.repository'
 import { track } from '@/core/analytics'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
@@ -155,7 +155,7 @@ export const useTreatmentsStore = defineStore('treatments', () => {
       return created
     },
 
-    async update(id: string, input: TreatmentUpdateInput): Promise<Treatment> {
+    async update(id: string, input: TreatmentEditInput): Promise<Treatment> {
       return write(
         async (repository) => {
           const updated = await repository.update(id, input)

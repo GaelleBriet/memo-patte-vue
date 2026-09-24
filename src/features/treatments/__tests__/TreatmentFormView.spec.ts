@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } fr
 import { createMemoryHistory, createRouter, type Router } from 'vue-router'
 
 import TreatmentFormView from '../views/TreatmentFormView.vue'
-import type { Treatment, TreatmentInput, TreatmentUpdateInput } from '../schema/treatment.schema'
+import type { Treatment, TreatmentEditInput, TreatmentInput } from '../schema/treatment.schema'
 import { useTreatmentsStore } from '../store/treatments.store'
 import type { Animal } from '@/features/animals/schema/animal.schema'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
@@ -81,7 +81,7 @@ const BRAVECTO: Treatment = {
 
 let loadAnimals: MockInstance
 let create: MockInstance<(input: TreatmentInput) => Promise<Treatment>>
-let update: MockInstance<(id: string, input: TreatmentUpdateInput) => Promise<Treatment>>
+let update: MockInstance<(id: string, input: TreatmentEditInput) => Promise<Treatment>>
 let getById: MockInstance<(id: string) => Promise<Treatment | null>>
 let replace: MockInstance
 let routeur: Router
@@ -613,8 +613,12 @@ describe('TreatmentFormView — édition', () => {
     expect(types(wrapper)[1]!.attributes('aria-checked')).toBe('true')
     expect(valeur(wrapper, 'treatment-frequency-value')).toBe('3')
     expect(uniteCochee(wrapper)).toBe('month')
-    expect(valeur(wrapper, 'treatment-last-dose-date')).toBe('2026-06-24')
-    expect(wrapper.get('.treatment-form__next-dose').text()).toBe('Prochaine dose le 24 sept. 2026')
+    expect(valeur(wrapper, 'treatment-next-due-date')).toBe('2026-09-24')
+    expect(wrapper.get('.treatment-form__field--next-due-date label').text()).toContain(
+      'Prochaine dose',
+    )
+    expect(wrapper.find('#treatment-last-dose-date').exists()).toBe(false)
+    expect(wrapper.find('.treatment-form__next-dose').exists()).toBe(false)
     expect(wrapper.get('.form-screen__submit').text()).toBe('Enregistrer')
   })
 
@@ -626,20 +630,91 @@ describe('TreatmentFormView — édition', () => {
     expect(wrapper.get('.pushed-screen__title').text()).toBe('Modifier Bravecto')
   })
 
-  it('met à jour par le store avec l’identifiant de la route, sans animal', async () => {
+  it('met à jour par le store avec l’identifiant de la route, sans animal ni dernière prise', async () => {
     const wrapper = await monterEdition()
-    await champ(wrapper, 'treatment-frequency-value').setValue('2')
+    await champ(wrapper, 'treatment-name').setValue('Bravecto Plus')
 
     await soumettre(wrapper)
 
     expect(update).toHaveBeenCalledExactlyOnceWith(BRAVECTO.id, {
-      name: 'Bravecto',
+      name: 'Bravecto Plus',
       type: 'antiparasitic',
-      frequency: { value: 2, unit: 'month' },
-      lastDoseDate: '2026-06-24',
+      frequency: { value: 3, unit: 'month' },
+      nextDueDate: '2026-09-24',
     })
     expect(create).not.toHaveBeenCalled()
     expect(replace).toHaveBeenCalledWith({ name: 'animals' })
+  })
+
+  it('propose une nouvelle prochaine dose quand la fréquence change : dernière prise + fréquence', async () => {
+    const wrapper = await monterEdition()
+
+    await champ(wrapper, 'treatment-frequency-value').setValue('1')
+    expect(valeur(wrapper, 'treatment-next-due-date')).toBe('2026-07-24')
+
+    await choisirUnite(wrapper, 'week')
+    expect(valeur(wrapper, 'treatment-next-due-date')).toBe('2026-07-01')
+
+    await soumettre(wrapper)
+
+    expect(update).toHaveBeenCalledWith(BRAVECTO.id, {
+      name: 'Bravecto',
+      type: 'antiparasitic',
+      frequency: { value: 1, unit: 'week' },
+      nextDueDate: '2026-07-01',
+    })
+  })
+
+  it('garde un report saisi avec la nouvelle fréquence dans la même saisie', async () => {
+    const wrapper = await monterEdition()
+
+    await champ(wrapper, 'treatment-frequency-value').setValue('1')
+    await champ(wrapper, 'treatment-next-due-date').setValue('2026-08-02')
+    await soumettre(wrapper)
+
+    expect(update).toHaveBeenCalledWith(BRAVECTO.id, {
+      name: 'Bravecto',
+      type: 'antiparasitic',
+      frequency: { value: 1, unit: 'month' },
+      nextDueDate: '2026-08-02',
+    })
+  })
+
+  it('reporte la prochaine dose sans toucher la fréquence', async () => {
+    const wrapper = await monterEdition()
+
+    await champ(wrapper, 'treatment-next-due-date').setValue('2026-10-10')
+    await soumettre(wrapper)
+
+    expect(update).toHaveBeenCalledWith(
+      BRAVECTO.id,
+      expect.objectContaining({
+        frequency: { value: 3, unit: 'month' },
+        nextDueDate: '2026-10-10',
+      }),
+    )
+  })
+
+  it('rend la prochaine dose enregistrée, report compris, quand la fréquence revient à celle du plan', async () => {
+    getById.mockResolvedValueOnce({ ...BRAVECTO, nextDueDate: '2026-10-05' })
+    const wrapper = await monterEdition()
+    expect(valeur(wrapper, 'treatment-next-due-date')).toBe('2026-10-05')
+
+    await champ(wrapper, 'treatment-frequency-value').setValue('2')
+    expect(valeur(wrapper, 'treatment-next-due-date')).toBe('2026-08-24')
+
+    await champ(wrapper, 'treatment-frequency-value').setValue('3')
+    expect(valeur(wrapper, 'treatment-next-due-date')).toBe('2026-10-05')
+  })
+
+  it('exige une prochaine dose', async () => {
+    const wrapper = await monterEdition()
+
+    await champ(wrapper, 'treatment-next-due-date').setValue('')
+    await soumettre(wrapper)
+
+    expect(update).not.toHaveBeenCalled()
+    expect(messages(wrapper)).toEqual(['La date est obligatoire.'])
   })
 
   it('prévient et n’autorise pas l’envoi quand le traitement est introuvable', async () => {
@@ -677,6 +752,60 @@ describe('TreatmentFormView — édition', () => {
     await soumettre(wrapper)
 
     expect(update).not.toHaveBeenCalled()
+  })
+})
+
+describe('TreatmentFormView — retour vers l’écran d’origine', () => {
+  async function monterDepuis(from: string) {
+    routeur = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        { path: '/', name: 'home', component: Vide },
+        { path: '/animals', name: 'animals', component: Vide },
+        { path: '/treatments/:id/edit', name: 'treatment-edit', component: Vide },
+      ],
+    })
+    await routeur.push({ name: 'treatment-edit', params: { id: BRAVECTO.id }, query: { from } })
+    replace = vi.spyOn(routeur, 'replace').mockResolvedValue()
+    return monterEdition()
+  }
+
+  it('revient à l’accueil après l’enregistrement quand « Modifier » y a été ouvert', async () => {
+    const wrapper = await monterDepuis('home')
+
+    await soumettre(wrapper)
+
+    expect(replace).toHaveBeenCalledWith({ name: 'home' })
+  })
+
+  it('revient à l’accueil quand on annule', async () => {
+    const wrapper = await monterDepuis('home')
+
+    await wrapper.get('.form-screen__cancel').trigger('click')
+    await flushPromises()
+
+    expect(replace).toHaveBeenCalledWith({ name: 'home' })
+    expect(update).not.toHaveBeenCalled()
+  })
+
+  it('revient au Carnet depuis une origine inconnue', async () => {
+    const wrapper = await monterDepuis('ailleurs')
+
+    await soumettre(wrapper)
+
+    expect(replace).toHaveBeenCalledWith({ name: 'animals' })
+  })
+
+  it('ramènera à l’accueil après l’écran d’explication des notifications', async () => {
+    vi.mocked(shouldShowPriming).mockResolvedValueOnce(true)
+    const wrapper = await monterDepuis('home')
+
+    await soumettre(wrapper)
+
+    expect(replace).toHaveBeenCalledWith({
+      name: 'notifications-priming',
+      query: { animalName: 'Milo', kind: 'treatment', from: 'home' },
+    })
   })
 })
 

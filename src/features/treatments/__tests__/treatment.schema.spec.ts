@@ -4,7 +4,8 @@ import {
   TREATMENT_TYPES,
   treatmentInputSchema,
   treatmentSchema,
-  treatmentUpdateSchema,
+  treatmentEditSchema,
+  treatmentFormSchema,
 } from '../schema/treatment.schema'
 
 const validInput = {
@@ -109,14 +110,40 @@ describe('treatmentInputSchema', () => {
   })
 })
 
-describe('treatmentUpdateSchema', () => {
-  it('ignore un animalId fourni : le rattachement est figé', () => {
-    expect(treatmentUpdateSchema.parse({ ...validInput, name: 'Milbemax' })).toEqual({
+describe('treatmentFormSchema', () => {
+  it('ignore un animalId fourni : il vient de la route', () => {
+    expect(treatmentFormSchema.parse({ ...validInput, name: 'Milbemax' })).toEqual({
       name: 'Milbemax',
       type: 'antiparasitic',
       frequency: { value: 3, unit: 'month' },
       lastDoseDate: '2026-03-01',
     })
+  })
+})
+
+describe('treatmentEditSchema', () => {
+  const edition = {
+    name: 'Bravecto',
+    type: 'antiparasitic',
+    frequency: { value: 3, unit: 'month' },
+    nextDueDate: '2026-06-15',
+  } as const
+
+  it('modifie le plan et la prochaine dose, saisissable, sans la date de la dernière prise', () => {
+    expect(treatmentEditSchema.parse({ ...edition, lastDoseDate: '2026-03-01' })).toEqual(edition)
+  })
+
+  it('ignore un animalId fourni : le rattachement est figé', () => {
+    expect(treatmentEditSchema.parse({ ...edition, animalId: validInput.animalId })).toEqual(
+      edition,
+    )
+  })
+
+  it('exige une prochaine dose valide', () => {
+    expect(treatmentEditSchema.safeParse({ ...edition, nextDueDate: '' }).success).toBe(false)
+    expect(treatmentEditSchema.safeParse({ ...edition, nextDueDate: '15/06/2026' }).success).toBe(
+      false,
+    )
   })
 })
 

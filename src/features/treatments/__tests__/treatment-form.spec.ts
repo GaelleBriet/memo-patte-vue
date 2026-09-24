@@ -4,8 +4,10 @@ import { describe, expect, it } from 'vitest'
 
 import {
   emptyTreatmentFormValues,
+  editedNextDueDate,
   nextDoseDate,
   treatmentFormValuesFrom,
+  validateTreatmentEditForm,
   validateTreatmentForm,
   type TreatmentFormValues,
 } from '../logic/treatment-form'
@@ -62,18 +64,20 @@ describe('emptyTreatmentFormValues', () => {
       frequencyValue: '',
       frequencyUnit: 'month',
       lastDoseDate: '',
+      nextDueDate: '',
     })
   })
 })
 
 describe('treatmentFormValuesFrom', () => {
-  it('pré-remplit les champs depuis un traitement, sans y glisser l’animal ni l’échéance', () => {
+  it('pré-remplit les champs depuis un traitement, prochaine dose comprise, sans l’animal', () => {
     expect(treatmentFormValuesFrom(BRAVECTO)).toEqual({
       name: 'Bravecto',
       type: 'antiparasitic',
       frequencyValue: '3',
       frequencyUnit: 'month',
       lastDoseDate: '2026-06-24',
+      nextDueDate: '2026-09-24',
     })
   })
 })
@@ -175,5 +179,67 @@ describe('nextDoseDate — aperçu en direct', () => {
     expect(nextDoseDate(valeurs({ frequencyValue: '0' }))).toBeNull()
     expect(nextDoseDate(valeurs({ lastDoseDate: '' }))).toBeNull()
     expect(nextDoseDate(valeurs({ lastDoseDate: '2999-01-01' }))).toBeNull()
+  })
+})
+
+describe('validateTreatmentEditForm — Modifier', () => {
+  const edition = (surcharges: Partial<TreatmentFormValues> = {}) =>
+    validateTreatmentEditForm({ ...treatmentFormValuesFrom(BRAVECTO), ...surcharges })
+
+  it('rend le plan et la prochaine dose, sans la dernière prise ni l’animal', () => {
+    expect(edition({ nextDueDate: '2026-10-01' })).toEqual({
+      success: true,
+      data: {
+        name: 'Bravecto',
+        type: 'antiparasitic',
+        frequency: { value: 3, unit: 'month' },
+        nextDueDate: '2026-10-01',
+      },
+    })
+  })
+
+  it('n’exige pas de toucher la dernière prise', () => {
+    expect(edition({ lastDoseDate: '' }).success).toBe(true)
+  })
+
+  it('exige une prochaine dose', () => {
+    expect(edition({ nextDueDate: '' })).toEqual({
+      success: false,
+      errors: { nextDueDate: 'treatments.form.errors.nextDueDate' },
+    })
+  })
+
+  it('garde les messages du nom, du type et de la fréquence', () => {
+    expect(edition({ name: '', type: null, frequencyValue: '' })).toEqual({
+      success: false,
+      errors: {
+        name: 'treatments.form.errors.name',
+        type: 'treatments.form.errors.type',
+        frequency: 'treatments.form.errors.frequency',
+      },
+    })
+  })
+})
+
+describe('editedNextDueDate — prochaine dose proposée par « Modifier »', () => {
+  const REPORTE = { ...BRAVECTO, nextDueDate: '2026-10-05' }
+
+  it('propose la dernière prise plus la nouvelle fréquence quand la fréquence change', () => {
+    expect(
+      editedNextDueDate(
+        { ...treatmentFormValuesFrom(REPORTE), frequencyValue: '1', frequencyUnit: 'month' },
+        REPORTE,
+      ),
+    ).toBe('2026-07-24')
+  })
+
+  it('rend la prochaine dose enregistrée, report compris, quand la fréquence revient à celle du plan', () => {
+    expect(editedNextDueDate(treatmentFormValuesFrom(REPORTE), REPORTE)).toBe('2026-10-05')
+  })
+
+  it('ne propose rien tant que la fréquence saisie n’est pas valide', () => {
+    expect(
+      editedNextDueDate({ ...treatmentFormValuesFrom(REPORTE), frequencyValue: '' }, REPORTE),
+    ).toBeNull()
   })
 })
