@@ -42,6 +42,14 @@ watch(entries, () => {
   selected.value = null
 })
 
+const chart = useTemplateRef<InstanceType<typeof WeightHistoryChart>>('chart')
+
+// La puce disparaît sous le doigt : le focus passe à la courbe plutôt que de se perdre.
+function backToCurrent(): void {
+  selected.value = null
+  chart.value?.focus()
+}
+
 // La dernière pesée garde le résumé du repos : « Poids actuel » et sa variation.
 const selectedRow = computed(() => {
   if (selected.value === null || selected.value === entries.value.length - 1) return null
@@ -117,21 +125,33 @@ function backToAnimals(): void {
 
       <template v-else>
         <section v-if="summary" class="weight-history__summary">
-          <p class="weight-history__current-label">{{ summary.label }}</p>
-          <p class="weight-history__headline">
-            <span class="weight-history__current">{{ formatKg(summary.weightKg) }}</span>
-            <span class="weight-history__unit">{{ t('weight.unit') }}</span>
-          </p>
-          <p
-            class="weight-history__delta"
-            :class="summary.delta ? `weight-history__delta--${summary.delta.trend}` : null"
+          <div class="weight-history__reading" aria-live="polite">
+            <p class="weight-history__current-label">{{ summary.label }}</p>
+            <p class="weight-history__headline">
+              <span class="weight-history__current">{{ formatKg(summary.weightKg) }}</span>
+              <span class="weight-history__unit">{{ t('weight.unit') }}</span>
+            </p>
+            <p
+              class="weight-history__delta"
+              :class="summary.delta ? `weight-history__delta--${summary.delta.trend}` : null"
+            >
+              {{ summary.delta?.text }}
+            </p>
+          </div>
+          <button
+            v-if="selectedRow"
+            type="button"
+            class="weight-history__reset"
+            :aria-label="t('weight.history.reset')"
+            @click="backToCurrent"
           >
-            {{ summary.delta?.text }}
-          </p>
+            <v-icon icon="ms:close" size="16" />
+            <span>{{ t('weight.history.current') }}</span>
+          </button>
         </section>
 
         <div v-if="history.state === 'full'" class="section-card__card weight-history__chart">
-          <WeightHistoryChart v-model:selected="selected" :entries="entries" />
+          <WeightHistoryChart ref="chart" v-model:selected="selected" :entries="entries" />
         </div>
         <p v-else-if="history.state === 'single'" class="section-card__card weight-history__single">
           <v-icon icon="ms:show_chart" size="22" />
@@ -142,6 +162,7 @@ function backToAnimals(): void {
           v-if="history.rows.length > 0"
           class="weight-history__list"
           :title="t('weight.history.list')"
+          :counter="String(history.rows.length)"
         >
           <ul class="weight-history__rows">
             <li v-for="row in history.rows" :key="row.id" class="weight-history__row">
@@ -247,10 +268,44 @@ function backToAnimals(): void {
   margin-block: 0;
 }
 
+.weight-history__summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  column-gap: 12px;
+}
+
 .weight-history__current-label {
   color: tokens.$color-text-meta;
   font-size: 12px;
   font-weight: 600;
+}
+
+.weight-history__reset {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 28px;
+  // Centrée sur la ligne « Pesée du … », sans pousser le poids vers le bas.
+  margin-top: -7px;
+  padding: 0 12px 0 8px;
+  border: 0;
+  border-radius: tokens.$radius-pill;
+  background: tokens.$color-notice-surface;
+  color: rgb(var(--v-theme-primary));
+  font-family: tokens.$font-family-body;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+
+  @include tap.tap-target;
+
+  &:focus-visible {
+    outline: none;
+  }
 }
 
 .weight-history__headline {

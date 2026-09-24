@@ -3,6 +3,7 @@ import {
   formatKg,
   formatKgAxis,
   formatKgDelta,
+  formatFullDate,
   formatLongDate,
   formatMonth,
   formatMonthShort,
@@ -80,6 +81,11 @@ describe('mois et dates', () => {
     expect(formatLongDate('2026-11-08')).toBe('8 nov. 2026')
   })
 
+  it('écrit une date complète, mois en toutes lettres, pour le lecteur d’écran', () => {
+    expect(formatFullDate('2026-02-03')).toBe('3 février 2026')
+    expect(formatFullDate('2026-09-01')).toBe('1 septembre 2026')
+  })
+
   it('écrit une échéance en chiffres', () => {
     expect(formatNumericDate('2027-09-14T10:00:00Z')).toBe('14/09/2027')
     expect(formatNumericDate('2026-11-08')).toBe('08/11/2026')
@@ -107,6 +113,7 @@ describe('en anglais', () => {
     expect(formatMonthShort('2026-09-05')).toBe('Sep')
     expect(formatMonthYear('2026-12-12')).toBe('Dec 2026')
     expect(formatLongDate('2026-11-08')).toBe('Nov 8, 2026')
+    expect(formatFullDate('2026-02-03')).toBe('February 3, 2026')
     expect(formatNumericDate('2027-09-14T10:00:00Z')).toBe('09/14/2027')
   })
 })

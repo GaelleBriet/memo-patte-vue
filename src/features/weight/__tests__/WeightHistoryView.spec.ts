@@ -178,8 +178,10 @@ describe('WeightHistoryView — top bar', () => {
 
   it('revient au Carnet par la flèche retour', async () => {
     const wrapper = await monter()
+    const retour = wrapper.get('.pushed-screen__back')
+    expect(retour.attributes('aria-label')).toBe('Retour au carnet')
 
-    await wrapper.get('.pushed-screen__back').trigger('click')
+    await retour.trigger('click')
 
     expect(push).toHaveBeenCalledExactlyOnceWith({ name: 'animals' })
   })
@@ -228,6 +230,7 @@ describe('WeightHistoryView — H1 historique complet', () => {
     const lignes = wrapper.findAll('.weight-history__row')
 
     expect(wrapper.get('.section-card__title').text()).toBe('Toutes les pesées')
+    expect(wrapper.get('.section-card__counter').text()).toBe('6')
     expect(lignes).toHaveLength(6)
     expect(lignes.map((l) => l.get('.weight-history__row-date').text())).toEqual([
       '8 nov. 2026',
@@ -286,7 +289,7 @@ describe('WeightHistoryView — lire une pesée sur la courbe', () => {
   })
 
   function courbe() {
-    return wrapper!.get('.weight-history-chart svg')
+    return wrapper!.get('.weight-history-chart__svg')
   }
 
   function resume() {
@@ -312,7 +315,7 @@ describe('WeightHistoryView — lire une pesée sur la courbe', () => {
     expect(wrapper!.get('.weight-history__delta').classes()).toContain('weight-history__delta--up')
   })
 
-  it('suit le doigt posé sur la courbe', async () => {
+  it('montre la pesée touchée sur la courbe', async () => {
     vi.spyOn(SVGElement.prototype, 'getBoundingClientRect').mockReturnValue({
       left: 0,
       width: 320,
@@ -320,9 +323,11 @@ describe('WeightHistoryView — lire une pesée sur la courbe', () => {
     await monter()
     const juillet = buildHistoryWeightChart(HISTORIQUE_MILO)!.points[1]!
 
-    courbe().element.dispatchEvent(
-      new MouseEvent('pointerdown', { clientX: juillet.x, buttons: 1, bubbles: true }),
-    )
+    for (const type of ['pointerdown', 'pointerup']) {
+      courbe().element.dispatchEvent(
+        new MouseEvent(type, { clientX: juillet.x, buttons: 1, bubbles: true }),
+      )
+    }
     await flushPromises()
 
     expect(resume()).toMatchObject({ label: 'Pesée du 12 juil. 2026', poids: '23,8' })
@@ -391,6 +396,98 @@ describe('WeightHistoryView — lire une pesée sur la courbe', () => {
     await flushPromises()
 
     expect(resume()).toMatchObject({ label: 'Poids actuel', poids: '25,0' })
+  })
+
+  it('annonce le résumé qui suit la pesée lue, poliment', async () => {
+    await monter()
+
+    expect(wrapper!.get('.weight-history__reading').attributes('aria-live')).toBe('polite')
+  })
+})
+
+describe('WeightHistoryView — revenir au poids actuel', () => {
+  beforeEach(() => {
+    entries = [...HISTORIQUE_MILO]
+  })
+
+  function courbe() {
+    return wrapper!.get('.weight-history-chart__svg')
+  }
+
+  it('n’offre pas la puce au repos, ni sur la pesée la plus récente', async () => {
+    await monter()
+    expect(wrapper!.find('.weight-history__reset').exists()).toBe(false)
+
+    await courbe().trigger('keydown', { key: 'End' })
+    expect(wrapper!.find('.weight-history__reset').exists()).toBe(false)
+  })
+
+  it('offre la puce « Poids actuel » à côté d’une autre pesée lue', async () => {
+    await monter()
+
+    await courbe().trigger('keydown', { key: 'ArrowLeft' })
+
+    const puce = wrapper!.get('.weight-history__reset')
+    expect(puce.text()).toBe('Poids actuel')
+    expect(puce.attributes('aria-label')).toBe('Revenir au poids actuel')
+  })
+
+  it('revient à la pesée la plus récente par la puce, et rend le focus à la courbe', async () => {
+    await monter()
+    await courbe().trigger('keydown', { key: 'Home' })
+
+    await wrapper!.get('.weight-history__reset').trigger('click')
+
+    expect(wrapper!.get('.weight-history__current-label').text()).toBe('Poids actuel')
+    expect(wrapper!.get('.weight-history__current').text()).toBe('24,5')
+    expect(wrapper!.find('.weight-history__reset').exists()).toBe(false)
+    expect(wrapper!.find('.weight-history-chart__cursor').exists()).toBe(false)
+    expect(document.activeElement).toBe(courbe().element)
+  })
+})
+
+describe('WeightHistoryView — historique par pages', () => {
+  const TRENTE = Array.from({ length: 30 }, (_, index) =>
+    entry(
+      Math.round((4.2 + index * 0.7) * 10) / 10,
+      new Date(Date.UTC(2025, 7, 3) + index * 14 * 86_400_000).toISOString().slice(0, 10),
+    ),
+  )
+
+  beforeEach(() => {
+    entries = [...TRENTE]
+  })
+
+  it('ouvre la courbe sur les douze pesées les plus récentes, la liste les garde toutes', async () => {
+    const wrapper = await monter()
+
+    expect(wrapper.findAll('.weight-chart-trace__point')).toHaveLength(12)
+    expect(wrapper.get('.weight-history-chart__range').text()).toBe('avr. 2026\u00a0– sept. 2026')
+    expect(wrapper.findAll('.weight-history__row')).toHaveLength(30)
+    expect(wrapper.get('.section-card__counter').text()).toBe('30')
+  })
+
+  it('remet le résumé à la pesée la plus récente en changeant de page', async () => {
+    const wrapper = await monter()
+    await wrapper.get('.weight-history-chart__svg').trigger('keydown', { key: 'Home' })
+    expect(wrapper.get('.weight-history__current-label').text()).toBe('Pesée du 12 avr. 2026')
+
+    await wrapper.get('.weight-history-chart__turn--previous').trigger('click')
+
+    expect(wrapper.get('.weight-history__current-label').text()).toBe('Poids actuel')
+    expect(wrapper.get('.weight-history__current').text()).toBe('24,5')
+    expect(wrapper.find('.weight-history__reset').exists()).toBe(false)
+  })
+
+  it('lit une pesée d’une page plus ancienne dans le résumé', async () => {
+    const wrapper = await monter()
+    await wrapper.get('.weight-history-chart__turn--previous').trigger('click')
+
+    await wrapper.get('.weight-history-chart__svg').trigger('keydown', { key: 'ArrowLeft' })
+
+    expect(wrapper.get('.weight-history__current-label').text()).toBe('Pesée du 15 mars 2026')
+    expect(wrapper.get('.weight-history__current').text()).toBe('15,4')
+    expect(wrapper.get('.weight-history__delta').text()).toBe('+0,7 kg')
   })
 })
 
