@@ -159,7 +159,7 @@ describe('VaccinationReminderSheet — feuille d’un vaccin', () => {
     expect(texte('.bottom-sheet__subtitle')).toBe('Vaccin · Boree')
     expect(texte('.reminder-actions__due')).toBe('Prochain rappel le 26 sept.')
     expect(bouton('.reminder-actions__done-today').getAttribute('aria-label')).toBe(
-      'Fait aujourd’hui : noter l’injection de Carré pour Boree',
+      'Fait aujourd’hui : noter l’injection de Carré pour Boree et choisir le prochain rappel',
     )
     expect(document.body.querySelector('.reminder-actions__footer')).toBeNull()
   })

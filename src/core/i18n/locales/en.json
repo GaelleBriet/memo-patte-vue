@@ -152,7 +152,7 @@
     "sheet": {
       "subtitle": "Vaccine · {animal}",
       "nextReminder": "Next reminder on {date}",
-      "doneTodayLabel": "Done today: log the {name} injection for {animal}",
+      "doneTodayLabel": "Done today: log the {name} injection for {animal} and choose the next reminder",
       "editHint": "Name or date",
       "calendarSubtitle": "{name} · {animal}",
       "done": {
