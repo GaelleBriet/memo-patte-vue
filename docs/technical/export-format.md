@@ -42,6 +42,12 @@ l'ouverture de la feuille.
   (`Directory.Documents` de `@capacitor/filesystem`), sans fenêtre de choix. Le système indexe le
   fichier : il apparaît dans l'app Fichiers. Un toast dit où il se trouve
   (« Export JSON enregistré dans Documents › MémoPatte »), 4 s.
+- Le toast propose **« Ouvrir »**, sur le téléphone seulement : le fichier tout juste écrit est
+  confié à l'app par défaut (`@capawesome-team/capacitor-file-opener`, via le `FileProvider` de
+  l'app), avec son type MIME explicite : `application/json`, `application/zip` (CSV) ou
+  `application/pdf`. Quand aucune app ne sait l'ouvrir, le plugin ne le dit que par son message,
+  sans code : tout rejet affiche donc un toast d'échec, « Aucune app n'a pu ouvrir ce fichier. Il
+  reste dans Documents › MémoPatte. » Aucune permission de plus.
 - Le fichier garde son nom. Un export n'écrase **jamais** un fichier existant : si le nom est déjà
   pris (deux exports dans la même minute), il prend un numéro, `memopatte-export-20260923-1432 (1).json`.
   Seul le « fichier introuvable » du plugin (`OS-PLUG-FILE-0008`) rend un nom libre : toute autre
@@ -61,13 +67,16 @@ l'ouverture de la feuille.
     lien ouvre la fiche de l'app dans les réglages Android (`capacitor-native-settings`). Au retour au
     premier plan, l'accès est relu : accordé, la feuille redevient normale.
   - La feuille lit l'accès à chaque ouverture, sans jamais afficher la demande d'Android.
-- **Navigateur** (`pnpm dev`) : le fichier est téléchargé, aucun plugin n'est appelé.
+- **Navigateur** (`pnpm dev`) : le fichier est téléchargé, aucun plugin n'est appelé, et le toast
+  n'a pas d'« Ouvrir ».
 
 ### « Partager »
 
 - Le fichier est écrit dans le cache de l'app (`Directory.Cache`, sous-dossier `exports/`) puis
-  remis par la feuille de partage Android (`@capacitor/share`, via le `FileProvider` de l'app, qui
-  n'ouvre que ce sous-dossier). Aucune permission de stockage n'est demandée.
+  remis par la feuille de partage Android (`@capacitor/share`, via le `FileProvider` de l'app).
+  Aucune permission de stockage n'est demandée. Le `FileProvider` n'expose que deux dossiers : ce
+  sous-dossier du cache, pour « Partager », et `Documents/MémoPatte/`, pour « Ouvrir »
+  (`file_paths.xml`, verrouillé par `android-file-paths.spec.ts`).
 - Le dossier est vidé avant chaque écriture et au lancement de l'app, jamais juste après un partage
   accepté : le partage rend la main quand MémoPatte revient au premier plan, alors que Gmail, Drive
   ou Quick Share lisent l'URI après coup — effacer tout de suite enverrait une pièce jointe vide.
