@@ -1078,6 +1078,22 @@ describe('WeightHistoryView — en livres', () => {
     )
   })
 
+  it('écrit la variation comme l’écart des deux poids affichés', async () => {
+    applyWeightUnit('lb')
+    entries = [entry(24.1, '2026-07-25'), entry(24.3, '2026-08-25')]
+    const wrapper = await monter()
+    const lignes = wrapper.findAll('.weight-history__row')
+
+    expect(lignes.map((l) => l.get('.weight-history__row-value').text())).toEqual([
+      '53,6\u00a0lb',
+      '53,1\u00a0lb',
+    ])
+    expect(lignes[0]!.get('.weight-history__row-delta').text()).toBe('+0,5\u00a0lb')
+    expect(wrapper.get('.weight-history__delta').text()).toBe(
+      '+0,5\u00a0lb depuis le\u00a025\u00a0juil.',
+    )
+  })
+
   it('annonce chaque pesée de la courbe en livres', async () => {
     applyWeightUnit('lb')
     const wrapper = await monter()

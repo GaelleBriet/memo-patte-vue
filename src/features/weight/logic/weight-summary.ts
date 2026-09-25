@@ -1,11 +1,9 @@
-import { weightTrend, type WeightTrend } from '@/shared/domain/weight-delta'
+import { weightTrend, type WeightChange, type WeightTrend } from '@/shared/domain/weight-delta'
 
 export type WeightPoint = { weightKg: number; measuredOn: string }
 
-/** `deltaKg` est l'écart brut : il ne s'arrondit qu'une fois converti dans l'unité affichée. */
 export type WeightDelta =
-  | { kind: 'first'; measuredOn: string }
-  | { kind: 'delta'; deltaKg: number; trend: WeightTrend; previousMeasuredOn: string }
+  { kind: 'first'; measuredOn: string } | ({ kind: 'delta'; trend: WeightTrend } & WeightChange)
 
 export type WeightSummary = { latest: WeightPoint; delta: WeightDelta }
 
@@ -22,14 +20,13 @@ export function weightSummary(entries: readonly WeightPoint[]): WeightSummary | 
     }
   }
 
-  const deltaKg = latest.weightKg - previous.weightKg
+  const change: WeightChange = {
+    previousKg: previous.weightKg,
+    latestKg: latest.weightKg,
+    previousMeasuredOn: previous.measuredOn,
+  }
   return {
     latest: { weightKg: latest.weightKg, measuredOn: latest.measuredOn },
-    delta: {
-      kind: 'delta',
-      deltaKg,
-      trend: weightTrend(deltaKg),
-      previousMeasuredOn: previous.measuredOn,
-    },
+    delta: { kind: 'delta', ...change, trend: weightTrend(change) },
   }
 }

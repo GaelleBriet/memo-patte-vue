@@ -94,15 +94,7 @@ function describeRow(row: WeightHistoryRow) {
     label: t('weight.history.selected', { date: formatLongDate(row.measuredOn) }),
     weightKg: row.weightKg,
     delta: row.delta
-      ? {
-          text: weightDeltaSinceText(
-            t,
-            row.delta.deltaKg,
-            row.delta.previousMeasuredOn,
-            today.value,
-          ),
-          trend: row.delta.trend,
-        }
+      ? { text: weightDeltaSinceText(t, row.delta, today.value), trend: row.delta.trend }
       : null,
   }
 }
@@ -115,7 +107,7 @@ function describeHeadline(value: WeightDelta): { text: string; trend: WeightTren
     }
   }
   return {
-    text: weightDeltaSinceText(t, value.deltaKg, value.previousMeasuredOn, today.value),
+    text: weightDeltaSinceText(t, value, today.value),
     trend: value.trend,
   }
 }
@@ -216,7 +208,7 @@ function backToAnimals(): void {
                 <span
                   class="weight-history__row-delta"
                   :class="row.delta ? `weight-history__delta--${row.delta.trend}` : null"
-                  >{{ row.delta ? weightDeltaText(t, row.delta.deltaKg) : '' }}</span
+                  >{{ row.delta ? weightDeltaText(t, row.delta) : '' }}</span
                 >
                 <span class="weight-history__row-value">
                   {{ weightText(t, row.weightKg) }}

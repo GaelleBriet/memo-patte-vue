@@ -41,7 +41,8 @@ describe('weightHistory — delta du poids actuel', () => {
 
     expect(history.headline).toEqual({
       kind: 'delta',
-      deltaKg: 0.5,
+      previousKg: 24,
+      latestKg: 24.5,
       trend: 'up',
       previousMeasuredOn: '2026-08-09',
     })
@@ -52,7 +53,8 @@ describe('weightHistory — delta du poids actuel', () => {
 
     expect(history.headline).toMatchObject({
       kind: 'delta',
-      deltaKg: expect.closeTo(-0.3, 10),
+      previousKg: 24.5,
+      latestKg: 24.2,
       trend: 'down',
     })
   })
@@ -62,7 +64,8 @@ describe('weightHistory — delta du poids actuel', () => {
 
     expect(history.headline).toEqual({
       kind: 'delta',
-      deltaKg: expect.closeTo(0.04, 10),
+      previousKg: 24.5,
+      latestKg: 24.54,
       trend: 'flat',
       previousMeasuredOn: '2026-08-09',
     })
@@ -96,12 +99,17 @@ describe('weightHistory — liste « Toutes les pesées »', () => {
   it('donne à chaque ligne son delta par rapport à la pesée immédiatement précédente, datée', () => {
     const rows = weightHistory(milo, null).rows
 
-    expect(rows.map((row) => row.delta?.deltaKg)).toEqual([
-      ...[0.2, 0.1, 0.2, 0.2, 0.2].map((deltaKg) => expect.closeTo(deltaKg, 10)),
+    expect(rows.map((row) => row.delta?.previousKg)).toEqual([
+      24.3,
+      24.2,
+      24,
+      23.8,
+      23.6,
       undefined,
     ])
     expect(rows[0]!.delta).toEqual({
-      deltaKg: expect.closeTo(0.2, 10),
+      previousKg: 24.3,
+      latestKg: 24.5,
       trend: 'up',
       previousMeasuredOn: '2026-10-11',
     })
@@ -120,8 +128,8 @@ describe('weightHistory — liste « Toutes les pesées »', () => {
     ).rows
 
     expect(rows.map((row) => row.delta)).toEqual([
-      { deltaKg: 0, trend: 'flat', previousMeasuredOn: '2026-09-13' },
-      { deltaKg: expect.closeTo(-0.3, 10), trend: 'down', previousMeasuredOn: '2026-08-09' },
+      { previousKg: 24.2, latestKg: 24.2, trend: 'flat', previousMeasuredOn: '2026-09-13' },
+      { previousKg: 24.5, latestKg: 24.2, trend: 'down', previousMeasuredOn: '2026-08-09' },
       null,
     ])
   })

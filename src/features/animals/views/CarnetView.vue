@@ -108,7 +108,7 @@ const weightStat = computed(() => {
   if (summary.delta.kind === 'first') {
     return { value, sub: t('animals.carnet.stats.firstWeight') }
   }
-  return { value, sub: weightDeltaText(t, summary.delta.deltaKg) }
+  return { value, sub: weightDeltaText(t, summary.delta) }
 })
 
 // Dès qu'il y a un retard, la colonne ne compte plus que les retards : un « 2 en retard »

@@ -34,7 +34,8 @@ describe('weightSummary', () => {
 
     expect(summary.delta).toEqual({
       kind: 'delta',
-      deltaKg: 0.5,
+      previousKg: 24,
+      latestKg: 24.5,
       trend: 'up',
       previousMeasuredOn: '2026-08-05',
     })
@@ -43,16 +44,16 @@ describe('weightSummary', () => {
   it('garde le signe d’une baisse', () => {
     const summary = weightSummary([entry(24.5, '2026-08-05'), entry(24.2, '2026-11-08')])!
 
-    expect(summary.delta).toMatchObject({ deltaKg: expect.closeTo(-0.3, 10), trend: 'down' })
+    expect(summary.delta).toMatchObject({ previousKg: 24.5, latestKg: 24.2, trend: 'down' })
   })
 
-  it('garde l’écart brut et le dit stable sous la décimale affichée', () => {
+  it('dit stable une variation nulle entre les deux poids affichés', () => {
     const summary = weightSummary([entry(24.5, '2026-08-05'), entry(24.54, '2026-11-08')])!
 
-    expect(summary.delta).toMatchObject({ deltaKg: expect.closeTo(0.04, 10), trend: 'flat' })
+    expect(summary.delta).toMatchObject({ trend: 'flat' })
   })
 
-  it('juge la tendance à la décimale de l’unité choisie', () => {
+  it('juge la tendance sur les poids affichés dans l’unité choisie', () => {
     applyWeightUnit('lb')
 
     const summary = weightSummary([entry(24.5, '2026-08-05'), entry(24.54, '2026-11-08')])!

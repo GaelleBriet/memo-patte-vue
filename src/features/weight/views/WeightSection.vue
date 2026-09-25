@@ -47,7 +47,7 @@ function describeDelta(value: WeightDelta): { text: string; trend: 'up' | 'down'
     }
   }
   return {
-    text: weightDeltaSinceText(t, value.deltaKg, value.previousMeasuredOn, props.today),
+    text: weightDeltaSinceText(t, value, props.today),
     trend: value.trend,
   }
 }

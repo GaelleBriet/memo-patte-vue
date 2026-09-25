@@ -404,7 +404,13 @@ describe('WeightSection — résumé pour le bandeau', () => {
     expect(summaries[summaries.length - 1]).toEqual([
       {
         latest: { weightKg: 24.5, measuredOn: '2026-11-08' },
-        delta: { kind: 'delta', deltaKg: 0.5, trend: 'up', previousMeasuredOn: '2026-08-05' },
+        delta: {
+          kind: 'delta',
+          previousKg: 24,
+          latestKg: 24.5,
+          trend: 'up',
+          previousMeasuredOn: '2026-08-05',
+        },
       },
     ])
   })

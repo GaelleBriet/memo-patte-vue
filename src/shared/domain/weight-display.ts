@@ -18,9 +18,14 @@ export function weightUnitName(t: Translate): string {
   return t(`weight.unitName.${currentWeightUnit()}`, {})
 }
 
+/** Le poids tel qu'il s'affiche : dans l'unité choisie, au dixième. */
+export function shownWeight(kg: number): number {
+  return Math.round(displayedWeight(kg) * 10) / 10
+}
+
 /** `54,0` : le chiffre seul, quand l'unité s'écrit à part. */
 export function weightNumber(kg: number): string {
-  return formatWeight(displayedWeight(kg))
+  return formatWeight(shownWeight(kg))
 }
 
 /** `+0,3 lb` : un nombre déjà écrit dans l'unité choisie, suivi de celle-ci. */
