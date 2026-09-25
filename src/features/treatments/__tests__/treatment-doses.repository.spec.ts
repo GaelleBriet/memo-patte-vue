@@ -512,6 +512,18 @@ describe('treatmentDosesRepository — réconciliation des prises à fréquence 
     )
   })
 
+  it('recalcule aussi une prise de tête de même valeur mais d’une autre unité que le plan', async () => {
+    await db.run(`UPDATE treatment SET frequency_unit = 'week' WHERE id = ?`, [milbemax])
+
+    await reconcile()
+
+    await expect(doses.getById(milbemax)).resolves.toMatchObject({
+      nextDueDate: '2026-01-31',
+      frequency: { value: 3, unit: 'week' },
+      updatedAt: LATER,
+    })
+  })
+
   it('ne touche jamais une prise de tête déjà à la fréquence du plan : un report reste', async () => {
     await doses.record(prise('reportee', '2026-03-01', { nextDueDate: '2026-09-30' }))
 

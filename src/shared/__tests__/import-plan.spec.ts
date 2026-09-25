@@ -492,6 +492,19 @@ describe('buildImportPlan', () => {
 
       expect(plan.vaccinationInjections.map(({ row }) => row.id)).toEqual([CHPPIL_ID])
     })
+
+    it('n’ajoute pas la date du fichier à un vaccin resté plus récent sur l’appareil', () => {
+      const local = {
+        ...localChppil,
+        vaccinations: [localEntry(CHPPIL_ID, MILO_ID, { updatedAt: IMPORTED_AT })],
+        vaccinationInjections: [localInjection(CHPPIL_ID, OLDER)],
+      }
+
+      const plan = buildPlan({ file: v1File(), local })
+
+      expect(ids(plan.vaccinations)).toEqual([TYPHUS_ID])
+      expect(chppilInjections(plan)).toEqual([])
+    })
   })
 
   describe('prises d’un fichier v1', () => {
@@ -721,6 +734,25 @@ describe('buildImportPlan', () => {
       const plan = buildPlan({ file: v2(withHistory), local })
 
       expect(chppilInjections(plan)).toEqual([])
+    })
+
+    it('en remplacement, n’écrit aucun événement sous un parent qui n’est que sur l’appareil', () => {
+      const underLocal = {
+        ...IMPORT_FIXTURE.vaccinationInjections[0]!,
+        id: 'sous-vaccin-local',
+        vaccinationId: 'vaccin-local',
+      }
+      const data = {
+        ...IMPORT_FIXTURE,
+        vaccinationInjections: [...IMPORT_FIXTURE.vaccinationInjections, underLocal],
+      }
+      const local = { ...EMPTY, vaccinations: [localEntry('vaccin-local', MILO_ID)] }
+
+      const merged = buildPlan({ file: v2(data), local })
+      const replaced = buildPlan({ file: v2(data), local, mode: 'replace' })
+
+      expect(ids(merged.vaccinationInjections)).toContain('sous-vaccin-local')
+      expect(ids(replaced.vaccinationInjections)).toEqual([CHPPIL_ID, TYPHUS_ID])
     })
 
     describe('parent supprimé seul, rendu visible par le fichier', () => {
