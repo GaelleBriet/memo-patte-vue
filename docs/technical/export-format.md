@@ -345,3 +345,19 @@ se réimporte.
 | `rappels.csv`     | `kind;sourceId;animalId;animalName;name;dueDate`                                                    |
 
 Les valeurs d'énumération (`dog`, `deworming`, `month`…) restent les codes du JSON, non traduits.
+
+## PDF — historique du carnet (#382)
+
+Le PDF (MémoPatte Plus) lit les mêmes lignes que l'export (`collect`), un animal à la fois
+(`src/features/settings/logic/pdf-content.ts`, rendu par `render-carnet-pdf.ts`). Sous la ligne de
+chaque vaccin ou traitement (nom, échéance, état), en retrait, en 9 pt gris, sur la même page que
+sa ligne :
+
+- **Vaccin** : `Injections : 27/05/2025 · 30/05/2022 · 02/06/2021`, toutes les injections, la plus
+  récente d'abord, **jamais regroupées** ; une longue liste passe à la ligne.
+- **Traitement** : `Dernière prise : 15/08/2026` toujours à part, puis `Prises précédentes : …`, par
+  séries, la plus récente d'abord (décision du 2026-09-24) :
+  - une série s'arrête quand l'écart entre deux prises dépasse 1,5 fois la fréquence de la première
+    des deux (celle avec laquelle la suivante était attendue) ;
+  - jusqu'à trois prises, leurs dates sont listées (`07/05/2026`) ; au-delà, la série se résume en
+    `11 prises du 15/09/2025 au 15/07/2026`.

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { treatmentHeads, vaccinationHeads } from '../domain/carnet-heads'
+import { treatmentHeads, vaccinationHeads, vaccinationHistories } from '../domain/carnet-heads'
 import type { ExportTreatmentDose, ExportVaccinationInjection } from '../domain/carnet-data'
 
 function injection(
@@ -45,6 +45,20 @@ describe('têtes du carnet', () => {
     expect([...heads].map(([parent, head]) => [parent, head.id])).toEqual([
       ['rage', 'rage-2025'],
       ['carre', 'carre-2026'],
+    ])
+  })
+
+  it('range l’historique de chaque vaccin du plus récent au plus ancien', () => {
+    const histories = vaccinationHistories([
+      injection('rage-2019', 'rage', '2019-05-20'),
+      injection('rage-2025', 'rage', '2025-05-20'),
+      injection('rage-2022', 'rage', '2022-05-20'),
+    ])
+
+    expect(histories.get('rage')?.map(({ id }) => id)).toEqual([
+      'rage-2025',
+      'rage-2022',
+      'rage-2019',
     ])
   })
 

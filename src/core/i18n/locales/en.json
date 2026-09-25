@@ -726,6 +726,12 @@
         "title": "Weight",
         "empty": "No weigh-in recorded."
       },
+      "history": {
+        "injections": "Injections: {dates}",
+        "lastDose": "Last dose: {date}",
+        "previousDoses": "Previous doses: {series}",
+        "doseRange": "{count} doses from {from} to {to}"
+      },
       "pageNumber": "{page} / {total}",
       "footer": "Generated on {date} — MémoPatte {version}"
     }

@@ -28,6 +28,7 @@ function vaccins(count: number): PdfVaccinationRow[] {
   return Array.from({ length: count }, (_, index) => ({
     name: `Vaccin ${index + 1}`,
     lastInjectionDate: '2025-09-01',
+    injectionDates: ['2025-09-01'],
     dueDate: '2026-09-01',
     state: 'upToDate',
   }))
@@ -37,6 +38,7 @@ function traitements(count: number): PdfTreatmentRow[] {
   return Array.from({ length: count }, (_, index) => ({
     name: `Traitement ${index + 1}`,
     lastDoseDate: '2026-08-01',
+    previousDoses: [{ kind: 'range', count: 6, from: '2025-08-01', to: '2026-05-01' }],
     nextDueDate: '2026-11-01',
     state: 'upToDate',
   }))
@@ -110,7 +112,7 @@ describe('renderCarnetPdf — pages', () => {
     ]
     const ecrites = doc.flatMap((page) => page.texts.map((text) => text.text))
 
-    expect(doc).toHaveLength(3)
+    expect(doc).toHaveLength(4)
     expect(ecrites.filter((text) => lignes.includes(text))).toEqual(lignes)
   })
 
@@ -135,7 +137,7 @@ describe('renderCarnetPdf — pages', () => {
       page.texts.reduce((haut, text) => (text.baseline < haut.baseline ? text : haut))
 
     expect(enTete(premiere!).text).toBe('MémoPatte')
-    expect(suivantes).toHaveLength(2)
+    expect(suivantes).toHaveLength(3)
     for (const page of suivantes) {
       expect(enTete(page)).toMatchObject({ text: 'Luna', bold: true })
     }
@@ -224,6 +226,19 @@ describe('renderCarnetPdf — pages', () => {
       for (const nom of page.texts.filter((text) => /^(Vaccin|Traitement) \d+$/.test(text.text))) {
         const ligne = page.texts.filter((text) => text.baseline === nom.baseline)
         expect(ligne.map((text) => text.text)).toEqual(cellules(nom.text))
+      }
+    }
+  })
+
+  it('garde un vaccin ou un traitement et son historique sur la même page', () => {
+    for (const content of [LONG, ...DEBORDEMENTS]) {
+      for (const page of pages(content)) {
+        const nombre = (pattern: RegExp) =>
+          page.texts.filter((text) => pattern.test(text.text)).length
+
+        expect(nombre(/^Injections/)).toBe(nombre(/^Vaccin \d+$/))
+        expect(nombre(/^Dernière prise/)).toBe(nombre(/^Traitement \d+$/))
+        expect(nombre(/^Prises précédentes/)).toBe(nombre(/^Traitement \d+$/))
       }
     }
   })

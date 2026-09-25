@@ -3,7 +3,7 @@ import { jsPDF } from 'jspdf'
 import { formatKg, formatLongDate, formatNumericDate } from '@/shared/utils/format'
 import i18n from '@/core/i18n'
 import { drawWeightChart, weightChartHeight } from './pdf-weight-chart'
-import type { CarnetPdfContent, PdfDueState } from './pdf-content'
+import type { CarnetPdfContent, PdfDoseSeries, PdfDueState, PdfTreatmentRow } from './pdf-content'
 
 const PAGE_WIDTH_MM = 210
 const PAGE_HEIGHT_MM = 297
@@ -22,6 +22,10 @@ const SECTION_GAP_MM = 5
 const EMPTY_ADVANCE_MM = 10
 const CHART_GAP_MM = 7
 const CONTINUATION_ADVANCE_MM = 10
+const DETAIL_PT = 9
+const DETAIL_ADVANCE_MM = 4.6
+const DETAIL_INDENT_MM = 4
+const DETAIL_GRAY = 90
 
 const STATE_LABEL_KEYS: Record<PdfDueState, string> = {
   overdue: 'settings.pdf.status.overdue',
@@ -105,6 +109,9 @@ export function renderCarnetPdf(
       t(STATE_LABEL_KEYS[row.state]),
     ]),
     t('settings.pdf.vaccinations.empty'),
+    content.vaccinations.map((row) => [
+      t('settings.pdf.history.injections', { dates: numericDates(row.injectionDates) }),
+    ]),
   )
 
   renderSection(
@@ -117,6 +124,7 @@ export function renderCarnetPdf(
       t(STATE_LABEL_KEYS[row.state]),
     ]),
     t('settings.pdf.treatments.empty'),
+    content.treatments.map((row) => doseHistory(row, t)),
   )
 
   renderWeightSection(doc, cursor, content, t)
@@ -128,6 +136,46 @@ export function renderCarnetPdf(
   )
 
   return new Uint8Array(doc.output('arraybuffer'))
+}
+
+function numericDates(dates: string[]): string {
+  return dates.map(formatNumericDate).join(' · ')
+}
+
+function doseSeriesLabel(series: PdfDoseSeries, t: Translate): string {
+  if (series.kind === 'dates') return numericDates(series.dates)
+  return t('settings.pdf.history.doseRange', {
+    count: series.count,
+    from: formatNumericDate(series.from),
+    to: formatNumericDate(series.to),
+  })
+}
+
+function doseHistory(row: PdfTreatmentRow, t: Translate): string[] {
+  const last = t('settings.pdf.history.lastDose', { date: formatNumericDate(row.lastDoseDate) })
+  if (row.previousDoses.length === 0) return [last]
+  const series = row.previousDoses.map((item) => doseSeriesLabel(item, t)).join(' · ')
+  return [last, t('settings.pdf.history.previousDoses', { series })]
+}
+
+function detailLines(doc: jsPDF, details: string[]): string[] {
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(DETAIL_PT)
+  const lines = details.flatMap((detail): string[] =>
+    doc.splitTextToSize(detail, CONTENT_WIDTH_MM - DETAIL_INDENT_MM),
+  )
+  doc.setFontSize(ROW_PT)
+  return lines
+}
+
+function writeDetailLines(doc: jsPDF, lines: string[], rowBaseline: number): void {
+  doc.setFontSize(DETAIL_PT)
+  doc.setTextColor(DETAIL_GRAY)
+  lines.forEach((line, index) => {
+    doc.text(line, MARGIN_MM + DETAIL_INDENT_MM, rowBaseline + (index + 1) * DETAIL_ADVANCE_MM)
+  })
+  doc.setTextColor(0)
+  doc.setFontSize(ROW_PT)
 }
 
 function writeContinuationHeader(doc: jsPDF, animalName: string): number {
@@ -180,20 +228,25 @@ function renderSection(
   title: string,
   rows: string[][],
   emptyLabel: string,
+  details: string[][],
 ): void {
-  writeSectionTitle(doc, cursor, title, ROW_DESCENT_MM)
+  const detailsOf = rows.map((_, index) => detailLines(doc, details[index] ?? []))
+  const blockHeight = (lines: string[]) => lines.length * DETAIL_ADVANCE_MM + ROW_DESCENT_MM
+  writeSectionTitle(doc, cursor, title, blockHeight(detailsOf[0] ?? []))
   if (rows.length === 0) {
     writeEmptyLine(doc, cursor, emptyLabel)
     return
   }
 
-  for (const [name, date, state] of rows) {
-    cursor.makeRoom(ROW_DESCENT_MM)
+  rows.forEach(([name, date, state], index) => {
+    const lines = detailsOf[index]!
+    cursor.makeRoom(blockHeight(lines))
     doc.text(name ?? '', MARGIN_MM, cursor.y)
     doc.text(date ?? '', MARGIN_MM + CONTENT_WIDTH_MM * 0.55, cursor.y)
     doc.text(state ?? '', MARGIN_MM + CONTENT_WIDTH_MM * 0.78, cursor.y)
-    cursor.y += ROW_ADVANCE_MM
-  }
+    writeDetailLines(doc, lines, cursor.y)
+    cursor.y += lines.length * DETAIL_ADVANCE_MM + ROW_ADVANCE_MM
+  })
   cursor.y += SECTION_GAP_MM
 }
 

@@ -726,6 +726,12 @@
         "title": "Poids",
         "empty": "Aucune pesée enregistrée."
       },
+      "history": {
+        "injections": "Injections : {dates}",
+        "lastDose": "Dernière prise : {date}",
+        "previousDoses": "Prises précédentes : {series}",
+        "doseRange": "{count} prises du {from} au {to}"
+      },
       "pageNumber": "{page} / {total}",
       "footer": "Généré le {date} — MémoPatte {version}"
     }
