@@ -363,7 +363,7 @@ describe('migration v6 : historique des vaccins et des traitements', () => {
       { entity: 'vaccination_injection', entity_id: CARRE },
     ])
     const triggers = await db.query<{ name: string }>(
-      `SELECT name FROM sqlite_master WHERE type = 'trigger' ORDER BY name`,
+      `SELECT name FROM sqlite_master WHERE type = 'trigger' AND name LIKE '%outbox%' ORDER BY name`,
     )
     expect(triggers.map(({ name }) => name)).toEqual(
       [

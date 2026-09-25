@@ -203,6 +203,15 @@ export const migrations: DbMigration[] = [
       'PRAGMA user_version = 7',
     ],
   },
+  {
+    toVersion: 8,
+    statements: [
+      ...nameLengthTriggerStatements('animal', ['name', 'breed']),
+      ...nameLengthTriggerStatements('vaccination', ['name']),
+      ...nameLengthTriggerStatements('treatment', ['name']),
+      'PRAGMA user_version = 8',
+    ],
+  },
 ]
 
 /**
@@ -224,6 +233,24 @@ function outboxTriggerStatements(table: string): string[] {
      WHEN (SELECT enabled FROM sync_state WHERE id = 1) = 1
      BEGIN${upsert}
      END;`,
+  ]
+}
+
+/**
+ * `UPDATE OF` : une ligne plus longue enregistrée avant la v8 reste modifiable tant qu'on ne
+ * réécrit pas ces colonnes, sa suppression logique comprise.
+ */
+function nameLengthTriggerStatements(table: string, columns: string[]): string[] {
+  const tooLong = columns.map((column) => `length(NEW.${column}) > 80`).join(' OR ')
+  const abort = `BEGIN SELECT RAISE(ABORT, '${table}: text longer than 80 characters'); END;`
+
+  return [
+    `CREATE TRIGGER ${table}_name_length_insert BEFORE INSERT ON ${table}
+     WHEN ${tooLong}
+     ${abort}`,
+    `CREATE TRIGGER ${table}_name_length_update BEFORE UPDATE OF ${columns.join(', ')} ON ${table}
+     WHEN ${tooLong}
+     ${abort}`,
   ]
 }
 
