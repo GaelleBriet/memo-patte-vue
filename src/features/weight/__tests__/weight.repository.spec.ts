@@ -371,11 +371,13 @@ describe('weightRepository', () => {
     })
 
     it('ne touche ni à une pesée visible ni à un identifiant inconnu', async () => {
+      vi.useFakeTimers({ now: new Date('2026-03-01T10:00:00.000Z') })
       const created = await repository.create({
         animalId: MIETTE,
         weightKg: 4.1,
         measuredOn: '2026-01-10',
       })
+      vi.advanceTimersByTime(60_000)
 
       await repository.undoRemove(created.id)
       await expect(repository.undoRemove('inconnu')).resolves.toBeUndefined()
