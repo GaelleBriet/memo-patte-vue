@@ -404,6 +404,7 @@ describe('useVaccinationsStore — injection notée', () => {
     remove: vi.fn<VaccinationInjectionsService['remove']>().mockResolvedValue(),
     undoRemove: vi.fn<VaccinationInjectionsService['undoRemove']>().mockResolvedValue(),
     changeDate: vi.fn<VaccinationInjectionsService['changeDate']>(),
+    changeDateAndReminder: vi.fn<VaccinationInjectionsService['changeDateAndReminder']>(),
     undoChangeDate: vi.fn<VaccinationInjectionsService['undoChangeDate']>().mockResolvedValue(),
   }
 
@@ -459,6 +460,21 @@ describe('useVaccinationsStore — injection notée', () => {
     expect(injections.changeDate).toHaveBeenCalledWith(seme.id, 'i1', '2026-09-18')
     expect(injections.undoChangeDate).toHaveBeenCalledWith(seme.id, 'i1', avant)
     expect(repository.listByAnimal).toHaveBeenCalledTimes(4)
+  })
+
+  it('déplace une injection avec le rappel choisi par son service, puis relit la liste', async () => {
+    const seme = repository.seed(rage())
+    const store = useVaccinationsStore()
+    await store.loadForAnimal(MILO)
+    const avant = { injectedOn: '2026-07-27', nextDueDate: '2026-08-26' }
+    injections.changeDateAndReminder.mockResolvedValue(avant)
+    repository.listByAnimal.mockClear()
+    const dates = { injectedOn: '2026-09-01', nextDueDate: '2027-09-01' }
+
+    await expect(store.changeInjectionDateAndReminder(seme.id, 'i1', dates)).resolves.toEqual(avant)
+
+    expect(injections.changeDateAndReminder).toHaveBeenCalledWith(seme.id, 'i1', dates)
+    expect(repository.listByAnimal).toHaveBeenCalledWith(MILO)
   })
 
   it('lit les injections d’un vaccin sans changer la liste affichée', async () => {

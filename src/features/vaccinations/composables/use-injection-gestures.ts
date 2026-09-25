@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { todayIsoDate } from '@/core/app-lifecycle/today-iso-date'
 import { showToast, showUndoableToast } from '@/shared/utils/toast'
 import { injectionGestureTexts, vaccinationDeleteTexts } from '../logic/vaccination-history'
+import type { InjectionDates } from '../repository/vaccination-injections.repository'
 import type { VaccinationInjection } from '../schema/vaccination-injection.schema'
 import type { Vaccination } from '../schema/vaccination.schema'
 import { useVaccinationsStore } from '../store/vaccinations.store'
@@ -51,19 +52,39 @@ export function useInjectionGestures(onChanged: () => void) {
     }, t('vaccinations.detail.errors.change'))
   }
 
-  function changeInjectionDate(
+  function moved(
     injection: VaccinationInjection,
     injectedOn: string,
+    write: () => Promise<InjectionDates>,
   ): Promise<boolean> {
     const { vaccinationId, id } = injection
     const texts = injectionGestureTexts(t, injection.injectedOn, todayIsoDate())
     return guarded(async () => {
-      const previous = await store.changeInjectionDate(vaccinationId, id, injectedOn)
+      const previous = await write()
       onChanged()
       undoable(texts.moved(injectedOn), texts.undoMove, () =>
         store.undoChangeInjectionDate(vaccinationId, id, previous),
       )
     }, t('vaccinations.detail.errors.change'))
+  }
+
+  function changeInjectionDate(
+    injection: VaccinationInjection,
+    injectedOn: string,
+  ): Promise<boolean> {
+    return moved(injection, injectedOn, () =>
+      store.changeInjectionDate(injection.vaccinationId, injection.id, injectedOn),
+    )
+  }
+
+  /** Déplacement qui a redemandé le prochain rappel : les deux s'écrivent ensemble. */
+  function changeInjectionDateAndReminder(
+    injection: VaccinationInjection,
+    dates: InjectionDates,
+  ): Promise<boolean> {
+    return moved(injection, dates.injectedOn, () =>
+      store.changeInjectionDateAndReminder(injection.vaccinationId, injection.id, dates),
+    )
   }
 
   /** Suppression définitive, confirmée par un dialogue avant d'arriver ici. */
@@ -75,5 +96,11 @@ export function useInjectionGestures(onChanged: () => void) {
     }, texts.failed)
   }
 
-  return { isBusy, removeInjection, changeInjectionDate, removeVaccination }
+  return {
+    isBusy,
+    removeInjection,
+    changeInjectionDate,
+    changeInjectionDateAndReminder,
+    removeVaccination,
+  }
 }

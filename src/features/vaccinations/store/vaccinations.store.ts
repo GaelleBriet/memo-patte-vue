@@ -52,7 +52,13 @@ export function provideVaccinationRemindersService(
 
 type VaccinationInjections = Pick<
   VaccinationInjectionsService,
-  'record' | 'undo' | 'remove' | 'undoRemove' | 'changeDate' | 'undoChangeDate'
+  | 'record'
+  | 'undo'
+  | 'remove'
+  | 'undoRemove'
+  | 'changeDate'
+  | 'changeDateAndReminder'
+  | 'undoChangeDate'
 >
 
 let injectionsProvider: () => VaccinationInjections = () => vaccinationInjectionsService
@@ -226,6 +232,18 @@ export const useVaccinationsStore = defineStore('vaccinations', () => {
     ): Promise<InjectionDates> {
       return write(
         () => injectionsProvider().changeDate(vaccinationId, injectionId, injectedOn),
+        () => animalId.value,
+      )
+    },
+
+    /** Date et rappel choisis ensemble ; renvoie les dates d'avant, pour « Annuler ». */
+    async changeInjectionDateAndReminder(
+      vaccinationId: string,
+      injectionId: string,
+      dates: InjectionDates,
+    ): Promise<InjectionDates> {
+      return write(
+        () => injectionsProvider().changeDateAndReminder(vaccinationId, injectionId, dates),
         () => animalId.value,
       )
     },

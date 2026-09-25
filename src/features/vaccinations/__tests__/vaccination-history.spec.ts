@@ -6,6 +6,7 @@ import {
   injectionDatesOn,
   injectionGestureTexts,
   injectionRows,
+  needsNewReminder,
   vaccinationDeleteTexts,
   vaccinationDetailTexts,
 } from '../logic/vaccination-history'
@@ -84,6 +85,22 @@ describe('injectionDatesOn', () => {
       injectedOn: '2026-07-25',
       nextDueDate: null,
     })
+  })
+})
+
+describe('needsNewReminder', () => {
+  it('redemande le rappel d’une injection déplacée au jour de son « autre date » ou après', () => {
+    const autreDate = injection('i', '2026-07-27', '2026-08-26')
+
+    expect(needsNewReminder(autreDate, '2026-08-26')).toBe(true)
+    expect(needsNewReminder(autreDate, '2026-09-01')).toBe(true)
+    expect(needsNewReminder(autreDate, '2026-08-25')).toBe(false)
+  })
+
+  it('ne redemande rien pour un rappel à un ou trois ans, ni sans rappel', () => {
+    expect(needsNewReminder(injection('i', '2026-07-27', '2027-07-27'), '2026-09-01')).toBe(false)
+    expect(needsNewReminder(injection('i', '2026-07-27', '2029-07-27'), '2026-09-01')).toBe(false)
+    expect(needsNewReminder(injection('i', '2026-07-27', null), '2026-09-01')).toBe(false)
   })
 })
 

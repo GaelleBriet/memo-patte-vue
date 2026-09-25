@@ -1,5 +1,5 @@
 import { injectionOn } from '../logic/vaccination-done'
-import { injectionDatesOn } from '../logic/vaccination-history'
+import { injectionDatesOn, needsNewReminder } from '../logic/vaccination-history'
 import {
   getVaccinationInjectionsRepository,
   type InjectionDates,
@@ -88,18 +88,35 @@ export function createVaccinationInjectionsService({
       await reminders.reschedule(vaccinationId)
     },
 
-    /** Renvoie les dates d'avant, pour « Annuler ». Lève pour une date future. */
+    /**
+     * Renvoie les dates d'avant, pour « Annuler ». Lève pour une date future, ou qui dépasse le
+     * rappel « autre date » : c'est `changeDateAndReminder` qui déplace alors l'injection.
+     */
     async changeDate(
       vaccinationId: string,
       injectionId: string,
       injectedOn: string,
     ): Promise<InjectionDates> {
       const date = vaccinationInputSchema.shape.lastInjectionDate.parse(injectedOn)
-      const repository = await injections()
-      const injection = await repository.getById(injectionId)
-      if (injection === null) throw new Error(`Injection introuvable : ${injectionId}`)
+      const injection = await requireInjection(injectionId)
+      if (needsNewReminder(injection, date)) {
+        throw new Error(`Prochain rappel à choisir : ${injectionId}`)
+      }
 
       await writeDates(vaccinationId, injectionId, injectionDatesOn(injection, date))
+      return { injectedOn: injection.injectedOn, nextDueDate: injection.nextDueDate }
+    },
+
+    /** Date et rappel choisis ensemble, écrits d'un coup ; renvoie les dates d'avant. */
+    async changeDateAndReminder(
+      vaccinationId: string,
+      injectionId: string,
+      dates: InjectionDates,
+    ): Promise<InjectionDates> {
+      const injectedOn = vaccinationInputSchema.shape.lastInjectionDate.parse(dates.injectedOn)
+      const injection = await requireInjection(injectionId)
+
+      await writeDates(vaccinationId, injectionId, { injectedOn, nextDueDate: dates.nextDueDate })
       return { injectedOn: injection.injectedOn, nextDueDate: injection.nextDueDate }
     },
 
@@ -110,6 +127,12 @@ export function createVaccinationInjectionsService({
     ): Promise<void> {
       return writeDates(vaccinationId, injectionId, previous)
     },
+  }
+
+  async function requireInjection(injectionId: string) {
+    const injection = await (await injections()).getById(injectionId)
+    if (injection === null) throw new Error(`Injection introuvable : ${injectionId}`)
+    return injection
   }
 
   async function writeDates(

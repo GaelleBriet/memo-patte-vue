@@ -85,9 +85,16 @@ let injections: VaccinationInjection[]
 let getById: MockInstance
 let remove: MockInstance
 let service: {
-  [K in 'record' | 'undo' | 'remove' | 'undoRemove' | 'changeDate' | 'undoChangeDate']: Mock<
-    VaccinationInjectionsService[K]
-  >
+  [
+    K in
+      | 'record'
+      | 'undo'
+      | 'remove'
+      | 'undoRemove'
+      | 'changeDate'
+      | 'changeDateAndReminder'
+      | 'undoChangeDate'
+  ]: Mock<VaccinationInjectionsService[K]>
 }
 let push: MockInstance
 let wrapper: VueWrapper | null = null
@@ -126,6 +133,9 @@ beforeEach(async () => {
       injectedOn: '2026-07-27',
       nextDueDate: '2026-08-26',
     })),
+    changeDateAndReminder: vi.fn<VaccinationInjectionsService['changeDateAndReminder']>(
+      async () => ({ injectedOn: '2026-07-27', nextDueDate: '2026-08-26' }),
+    ),
     undoChangeDate: vi.fn<VaccinationInjectionsService['undoChangeDate']>(async () => {}),
   }
   provideVaccinationInjectionsService(() => service)
@@ -164,6 +174,14 @@ function lignes(view: VueWrapper) {
 async function choisir(view: VueWrapper, index: number, action: string) {
   lignes(view)[index]!.vm.$emit('select', action)
   await flushPromises()
+}
+
+function feuilleDuRappel(view: VueWrapper) {
+  const found = view
+    .findAllComponents(VaccinationReminderSheet)
+    .find((sheet) => sheet.props('redate'))
+  if (!found) throw new Error('Pas de feuille de rappel pour une injection redatée')
+  return found
 }
 
 function dialogue(view: VueWrapper) {
@@ -278,6 +296,7 @@ describe('VaccinationDetailView — injection supprimée ou redatée', () => {
     await flushPromises()
 
     expect(service.changeDate).toHaveBeenCalledWith(CARRE.id, 'i2', '2026-07-25')
+    expect(feuilleDuRappel(view).props('modelValue')).toBe(false)
     expect(toastMessage.value).toBe('Injection déplacée au 25 juil.')
     runToastAction()
     await flushPromises()
@@ -285,6 +304,50 @@ describe('VaccinationDetailView — injection supprimée ou redatée', () => {
       injectedOn: '2026-07-27',
       nextDueDate: '2026-08-26',
     })
+  })
+
+  it('redemande le rappel d’une injection déplacée après son « autre date », puis écrit tout d’un coup', async () => {
+    const view = await monter()
+    await choisir(view, 1, 'changeDate')
+
+    view.getComponent(DatePickerSheet).vm.$emit('pick', '2026-09-01')
+    await flushPromises()
+
+    expect(service.changeDate).not.toHaveBeenCalled()
+    expect(feuilleDuRappel(view).props()).toMatchObject({
+      modelValue: true,
+      vaccinationId: CARRE.id,
+      startAt: 'done',
+      initialInjectedOn: '2026-09-01',
+    })
+
+    const dates = { injectedOn: '2026-09-01', nextDueDate: '2027-09-01' }
+    feuilleDuRappel(view).vm.$emit('reminderChosen', dates)
+    await flushPromises()
+
+    expect(service.changeDateAndReminder).toHaveBeenCalledExactlyOnceWith(CARRE.id, 'i2', dates)
+    expect(service.changeDate).not.toHaveBeenCalled()
+    expect(toastMessage.value).toBe('Injection déplacée au 1 sept.')
+    runToastAction()
+    await flushPromises()
+    expect(service.undoChangeDate).toHaveBeenCalledWith(CARRE.id, 'i2', {
+      injectedOn: '2026-07-27',
+      nextDueDate: '2026-08-26',
+    })
+  })
+
+  it('n’écrit rien quand on ferme la question du rappel sans choisir', async () => {
+    const view = await monter()
+    await choisir(view, 1, 'changeDate')
+    view.getComponent(DatePickerSheet).vm.$emit('pick', '2026-09-01')
+    await flushPromises()
+
+    feuilleDuRappel(view).vm.$emit('update:modelValue', false)
+    await flushPromises()
+
+    expect(service.changeDate).not.toHaveBeenCalled()
+    expect(service.changeDateAndReminder).not.toHaveBeenCalled()
+    expect(toastMessage.value).toBeNull()
   })
 
   it('dit l’échec d’une suppression', async () => {

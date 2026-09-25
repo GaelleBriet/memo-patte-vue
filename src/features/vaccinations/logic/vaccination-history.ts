@@ -20,6 +20,12 @@ export function chosenReminder({ injectedOn, nextDueDate }: InjectionDates): Cho
   return { kind: 'date', date: nextDueDate }
 }
 
+/** Déplacée au jour de son rappel « autre date » ou après, l'injection n'a plus de rappel valable. */
+export function needsNewReminder(injection: InjectionDates, injectedOn: string): boolean {
+  const chosen = chosenReminder(injection)
+  return chosen.kind === 'date' && injectedOn >= chosen.date
+}
+
 /** L'injection déplacée garde le rappel choisi : un rappel à un ou trois ans suit sa date. */
 export function injectionDatesOn(injection: InjectionDates, injectedOn: string): InjectionDates {
   const chosen = chosenReminder(injection)

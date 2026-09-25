@@ -10,9 +10,11 @@ import {
   injectionDatesExcept,
   injectionGestureTexts,
   injectionRows,
+  needsNewReminder,
   vaccinationDeleteTexts,
   vaccinationDetailTexts,
 } from '../logic/vaccination-history'
+import type { InjectionDates } from '../repository/vaccination-injections.repository'
 import type { VaccinationInjection } from '../schema/vaccination-injection.schema'
 import { useToday } from '@/core/app-lifecycle/use-today'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
@@ -103,8 +105,22 @@ function onInjectionAction(injectionId: string, action: string): void {
   }
 }
 
+const redating = ref<{ injection: VaccinationInjection; injectedOn: string } | null>(null)
+const isRedateSheetOpen = ref(false)
+
 function move(injectedOn: string): void {
-  if (moving.value) void gestures.changeInjectionDate(moving.value, injectedOn)
+  const injection = moving.value
+  if (!injection) return
+  if (needsNewReminder(injection, injectedOn)) {
+    redating.value = { injection, injectedOn }
+    isRedateSheetOpen.value = true
+  } else {
+    void gestures.changeInjectionDate(injection, injectedOn)
+  }
+}
+
+function redate(dates: InjectionDates): void {
+  if (redating.value) void gestures.changeInjectionDateAndReminder(redating.value.injection, dates)
 }
 
 function backToCarnet(): void {
@@ -191,6 +207,15 @@ async function remove(): Promise<void> {
       :vaccination-id="id"
       start-at="done"
       @changed="reload"
+    />
+
+    <VaccinationReminderSheet
+      v-model="isRedateSheetOpen"
+      :vaccination-id="id"
+      start-at="done"
+      :initial-injected-on="redating?.injectedOn ?? null"
+      redate
+      @reminder-chosen="redate"
     />
 
     <DatePickerSheet

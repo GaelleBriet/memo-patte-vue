@@ -9,7 +9,10 @@ import {
   createFakeNotifications,
   type FakeNotifications,
 } from '@/shared/__tests__/fake-notifications'
-import { createVaccinationInjectionsRepository } from '../repository/vaccination-injections.repository'
+import {
+  createVaccinationInjectionsRepository,
+  type VaccinationInjectionsRepository,
+} from '../repository/vaccination-injections.repository'
 import {
   createVaccinationsRepository,
   type VaccinationsRepository,
@@ -28,6 +31,7 @@ describe('vaccinationInjectionsService', () => {
   let vaccinations: VaccinationsRepository
   let notifications: FakeNotifications
   let service: VaccinationInjectionsService
+  let injectionsRepository: VaccinationInjectionsRepository
   let carre: string
 
   function dueDates(): string[] {
@@ -54,9 +58,10 @@ describe('vaccinationInjectionsService', () => {
       t: i18n.global.t,
       now: () => new Date(),
     })
+    injectionsRepository = createVaccinationInjectionsRepository(db)
     service = createVaccinationInjectionsService({
       vaccinations: () => vaccinations,
-      injections: () => createVaccinationInjectionsRepository(db),
+      injections: () => injectionsRepository,
       reminders,
       now: () => new Date(),
     })
@@ -183,6 +188,56 @@ describe('vaccinationInjectionsService', () => {
         dueDate: '2026-12-01',
       })
       expect(dueDates()).toEqual(['2026-12-01'])
+    })
+
+    it('refuse de dépasser le rappel « autre date » sans nouveau rappel, sans rien écrire', async () => {
+      const derniere = await noter('2026-07-27', '2026-08-26')
+
+      await expect(service.changeDate(carre, derniere, '2026-09-01')).rejects.toThrow(
+        'Prochain rappel à choisir',
+      )
+
+      await expect(vaccinations.getById(carre)).resolves.toMatchObject({
+        lastInjectionDate: '2026-07-27',
+        dueDate: '2026-08-26',
+      })
+    })
+
+    it('déplace l’injection avec le rappel choisi, en une seule écriture', async () => {
+      const derniere = await noter('2026-07-27', '2026-08-26')
+      const ecriture = vi.spyOn(injectionsRepository, 'changeDate')
+
+      const avant = await service.changeDateAndReminder(carre, derniere, {
+        injectedOn: '2026-09-01',
+        nextDueDate: '2027-09-01',
+      })
+
+      expect(avant).toEqual({ injectedOn: '2026-07-27', nextDueDate: '2026-08-26' })
+      expect(ecriture).toHaveBeenCalledExactlyOnceWith(
+        derniere,
+        { injectedOn: '2026-09-01', nextDueDate: '2027-09-01' },
+        expect.any(String),
+      )
+      await expect(vaccinations.getById(carre)).resolves.toMatchObject({
+        lastInjectionDate: '2026-09-01',
+        dueDate: '2027-09-01',
+      })
+      expect(dueDates()).toEqual(['2027-09-01'])
+    })
+
+    it('refuse une date d’injection future avec le rappel choisi, sans rien écrire', async () => {
+      const derniere = await noter('2026-07-27', '2026-08-26')
+
+      await expect(
+        service.changeDateAndReminder(carre, derniere, {
+          injectedOn: '2026-09-24',
+          nextDueDate: null,
+        }),
+      ).rejects.toThrow(ZodError)
+
+      await expect(vaccinations.getById(carre)).resolves.toMatchObject({
+        lastInjectionDate: '2026-07-27',
+      })
     })
 
     it('refuse une date future, sans rien écrire', async () => {

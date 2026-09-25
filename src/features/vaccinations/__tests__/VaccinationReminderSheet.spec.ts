@@ -385,6 +385,37 @@ describe('VaccinationReminderSheet — F5, vaccin fait', () => {
     expect(texte('.vaccination-reminder-sheet__injection-date')).toBe('Injection le 21 sept. 2026')
   })
 
+  it('pour une injection redatée, ne demande que le rappel et le rend sans rien écrire', async () => {
+    const sheet = await monter({ startAt: 'done', initialInjectedOn: '2026-09-01', redate: true })
+
+    expect(texte('.vaccination-reminder-sheet__injection-date')).toBe('Injection le 1 sept. 2026')
+    expect(document.body.querySelector('.vaccination-reminder-sheet__injection button')).toBeNull()
+    expect(choix().every((element) => element.getAttribute('aria-checked') === 'false')).toBe(true)
+    expect(bouton('.vaccination-reminder-sheet__submit').disabled).toBe(true)
+
+    choix()[0]!.click()
+    await flushPromises()
+    bouton('.vaccination-reminder-sheet__submit').click()
+    await flushPromises()
+
+    expect(sheet.emitted('reminderChosen')).toEqual([
+      [{ injectedOn: '2026-09-01', nextDueDate: '2027-09-01' }],
+    ])
+    expect(sheet.emitted('update:modelValue')).toEqual([[false]])
+    expect(recordInjection).not.toHaveBeenCalled()
+    expect(toastMessage.value).toBeNull()
+  })
+
+  it('ne rend rien pour une injection redatée quand on ferme sans choisir', async () => {
+    const sheet = await monter({ startAt: 'done', initialInjectedOn: '2026-09-01', redate: true })
+
+    await sheet.setProps({ modelValue: false })
+    await flushPromises()
+
+    expect(sheet.emitted('reminderChosen')).toBeUndefined()
+    expect(recordInjection).not.toHaveBeenCalled()
+  })
+
   it('ne présélectionne rien quand elle s’ouvre sur F5, même rouverte après un choix', async () => {
     const sheet = await monter({ startAt: 'done', initialInjectedOn: '2026-09-21' })
     const rienDeChoisi = () =>
