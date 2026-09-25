@@ -45,6 +45,7 @@ const modes = computed(() => [
 const errorMessage = computed(() => {
   switch (error.value) {
     case 'invalid':
+    case 'orphanEvent':
       return t('settings.import.errors.invalid')
     case 'newer':
       return t('settings.import.errors.newer')

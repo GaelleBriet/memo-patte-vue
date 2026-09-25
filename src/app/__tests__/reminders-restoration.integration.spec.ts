@@ -313,7 +313,9 @@ describe('traitement arrêté, exporté puis réimporté', () => {
     return createDataExportService({
       animals: () => from.animals,
       vaccinations: () => from.vaccinations,
+      vaccinationInjections: () => createVaccinationInjectionsRepository(client),
       treatments: () => from.treatments,
+      treatmentDoses: () => createTreatmentDosesRepository(client),
       weight: () => createWeightRepository(client),
       deliver: async (file) => {
         files.push(file.content as string)
@@ -360,7 +362,7 @@ describe('traitement arrêté, exporté puis réimporté', () => {
   function parsed(text: string) {
     const file = parseExportFile(text)
     if (!file.ok) throw new Error(`export refusé : ${file.reason}`)
-    return file.data
+    return file.file
   }
 
   it('reste arrêté sur un appareil neuf, sans aucun rappel programmé', async () => {

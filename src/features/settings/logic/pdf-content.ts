@@ -3,6 +3,7 @@ import { format } from 'date-fns'
 import { EXPORT_FILE_TIME } from './export-format'
 import { buildReminders, type ReminderKind } from '@/shared/domain/reminders'
 import type { ExportData } from '@/shared/domain/carnet-data'
+import { treatmentHeads, vaccinationHeads } from '@/shared/domain/carnet-heads'
 
 export type PdfDueState = 'overdue' | 'upToDate' | 'none'
 
@@ -63,26 +64,39 @@ export function buildCarnetPdfContent(
   const animal = data.animals.find((item) => item.id === animalId)
   if (!animal) return null
 
+  const injections = vaccinationHeads(data.vaccinationInjections)
+  const doses = treatmentHeads(data.treatmentDoses)
+
   const vaccinations: PdfVaccinationRow[] = data.vaccinations
     .filter((item) => item.animalId === animalId)
-    .map((item) => ({
-      name: item.name,
-      lastInjectionDate: item.lastInjectionDate,
-      dueDate: item.dueDate,
-      state: dueState(item.dueDate, today, 'vaccination'),
-    }))
+    .flatMap((item) => {
+      const head = injections.get(item.id)
+      if (!head) return []
+      return [
+        {
+          name: item.name,
+          lastInjectionDate: head.injectedOn,
+          dueDate: head.nextDueDate,
+          state: dueState(head.nextDueDate, today, 'vaccination'),
+        },
+      ]
+    })
     .sort(byDueDateAscending)
 
   const treatments: PdfTreatmentRow[] = data.treatments
     .filter((item) => item.animalId === animalId)
-    .map((item) => {
-      const nextDueDate = item.stoppedOn ? null : item.nextDueDate
-      return {
-        name: item.name,
-        lastDoseDate: item.lastDoseDate,
-        nextDueDate,
-        state: dueState(nextDueDate, today, 'treatment'),
-      }
+    .flatMap((item) => {
+      const head = doses.get(item.id)
+      if (!head) return []
+      const nextDueDate = item.stoppedOn ? null : head.nextDueDate
+      return [
+        {
+          name: item.name,
+          lastDoseDate: head.givenOn,
+          nextDueDate,
+          state: dueState(nextDueDate, today, 'treatment'),
+        },
+      ]
     })
     .sort((a, b) => byDueDateAscending({ dueDate: a.nextDueDate }, { dueDate: b.nextDueDate }))
 

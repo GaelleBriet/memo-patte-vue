@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
+import { fromExportV1, type ExportDataV1 } from '../logic/export-v1'
 import { buildCarnetPdfContent, pdfExportFileName } from '../logic/pdf-content'
-import type { ExportData } from '@/shared/domain/carnet-data'
 
 const ANIMAL_ID = '11111111-1111-4111-8111-111111111111'
 const OTHER_ANIMAL_ID = '22222222-2222-4222-8222-222222222222'
 
-const DATA: ExportData = {
+const DATA_V1: ExportDataV1 = {
   animals: [
     {
       id: ANIMAL_ID,
@@ -93,6 +93,7 @@ const DATA: ExportData = {
   ],
 }
 
+const DATA = fromExportV1(DATA_V1)
 const TODAY = '2026-07-01'
 
 describe('buildCarnetPdfContent', () => {
@@ -126,13 +127,13 @@ describe('buildCarnetPdfContent', () => {
   })
 
   it('montre un traitement arrêté sans échéance ni rappel, après les traitements en cours', () => {
-    const data = {
-      ...DATA,
+    const data = fromExportV1({
+      ...DATA_V1,
       treatments: [
-        { ...DATA.treatments[0]!, id: 't-stopped', name: 'Drontal', stoppedOn: '2026-06-20' },
-        ...DATA.treatments,
+        { ...DATA_V1.treatments[0]!, id: 't-stopped', name: 'Drontal', stoppedOn: '2026-06-20' },
+        ...DATA_V1.treatments,
       ],
-    }
+    })
 
     const content = buildCarnetPdfContent(data, ANIMAL_ID, TODAY)!
 

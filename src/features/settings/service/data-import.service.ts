@@ -34,15 +34,23 @@ import {
   type WeightRepository,
 } from '@/features/weight/repository/weight.repository'
 import { EXPORT_SCHEMA_VERSION } from '../logic/export-format'
-import type { ExportAnimal, ExportData } from '@/shared/domain/carnet-data'
-import { buildImportPlan, type ImportMode, type PlannedWrite } from '@/shared/domain/import-plan'
+import { fromExportV1 } from '../logic/export-v1'
+import { exportFileV1Schema } from '../schema/export-v1.schema'
+import type { ExportAnimal } from '@/shared/domain/carnet-data'
+import {
+  buildImportPlan,
+  type ImportFile,
+  type ImportMode,
+  type ImportRefusalReason,
+  type PlannedWrite,
+} from '@/shared/domain/import-plan'
 
-export type { ImportMode }
+export type { ImportFile, ImportMode }
 
 export type ImportFileError = 'invalid' | 'newer' | 'outOfRange'
 
 /** Incohérence que seule la base locale révèle : réessayer le même fichier n'y changerait rien. */
-export type ImportRefusal = 'reattached'
+export type ImportRefusal = ImportRefusalReason
 
 export class ImportRefusedError extends Error {
   constructor(readonly reason: ImportRefusal) {
@@ -52,7 +60,7 @@ export class ImportRefusedError extends Error {
 }
 
 export type ParsedExportFile =
-  { ok: true; data: ExportData } | { ok: false; reason: ImportFileError }
+  { ok: true; file: ImportFile } | { ok: false; reason: ImportFileError }
 
 export const MAX_IMPORT_FILE_BYTES = 10 * 1024 * 1024
 const MAX_TEXT_LENGTH = 200
@@ -81,8 +89,15 @@ const vaccinationFileSchema = z.object({
   id: z.uuid(),
   animalId: z.uuid(),
   name: vaccinationInputSchema.shape.name.max(MAX_TEXT_LENGTH),
-  lastInjectionDate: vaccinationInputSchema.shape.lastInjectionDate,
-  dueDate: z.iso.date().nullable(),
+  ...timestamps,
+})
+
+const injectionFileSchema = z.object({
+  id: z.uuid(),
+  vaccinationId: z.uuid(),
+  animalId: z.uuid(),
+  injectedOn: vaccinationInputSchema.shape.lastInjectionDate,
+  nextDueDate: z.iso.date().nullable(),
   ...timestamps,
 })
 
@@ -92,9 +107,17 @@ const treatmentFileSchema = z.object({
   name: treatmentInputSchema.shape.name.max(MAX_TEXT_LENGTH),
   type: treatmentTypeSchema,
   frequency: treatmentInputSchema.shape.frequency,
-  lastDoseDate: treatmentInputSchema.shape.lastDoseDate,
+  stoppedOn: z.iso.date().nullable(),
+  ...timestamps,
+})
+
+const doseFileSchema = z.object({
+  id: z.uuid(),
+  treatmentId: z.uuid(),
+  animalId: z.uuid(),
+  givenOn: treatmentInputSchema.shape.lastDoseDate,
   nextDueDate: z.iso.date(),
-  stoppedOn: z.iso.date().nullable().optional(),
+  frequency: treatmentInputSchema.shape.frequency,
   ...timestamps,
 })
 
@@ -117,17 +140,30 @@ const exportFileSchema = z
     appVersion: z.string().max(MAX_TEXT_LENGTH),
     animals: z.array(animalFileSchema),
     vaccinations: z.array(vaccinationFileSchema),
+    vaccinationInjections: z.array(injectionFileSchema),
     treatments: z.array(treatmentFileSchema),
+    treatmentDoses: z.array(doseFileSchema),
     weightEntries: z.array(weightEntryFileSchema),
   })
   .refine((file) =>
-    [file.animals, file.vaccinations, file.treatments, file.weightEntries].every(hasUniqueIds),
+    [
+      file.animals,
+      file.vaccinations,
+      file.vaccinationInjections,
+      file.treatments,
+      file.treatmentDoses,
+      file.weightEntries,
+    ].every(hasUniqueIds),
   )
   .refine((file) => {
     const animalIds = new Set(file.animals.map((animal) => animal.id))
-    return [...file.vaccinations, ...file.treatments, ...file.weightEntries].every((row) =>
-      animalIds.has(row.animalId),
-    )
+    return [
+      ...file.vaccinations,
+      ...file.vaccinationInjections,
+      ...file.treatments,
+      ...file.treatmentDoses,
+      ...file.weightEntries,
+    ].every((row) => animalIds.has(row.animalId))
   })
 
 const versionSchema = z.object({ schemaVersion: z.number().int().positive() })
@@ -155,6 +191,7 @@ function refusalReason(error: z.ZodError): ImportFileError {
   return onlyBoundsExceeded ? 'outOfRange' : 'invalid'
 }
 
+/** La version aiguille avant toute validation : chaque format se relit avec son propre schéma. */
 export function parseExportFile(text: string): ParsedExportFile {
   const document = parseJson(text)
 
@@ -162,11 +199,37 @@ export function parseExportFile(text: string): ParsedExportFile {
   if (!version.success) return { ok: false, reason: 'invalid' }
   if (version.data.schemaVersion > EXPORT_SCHEMA_VERSION) return { ok: false, reason: 'newer' }
 
+  if (version.data.schemaVersion === 1) {
+    const file = exportFileV1Schema.safeParse(document)
+    if (!file.success) return { ok: false, reason: refusalReason(file.error) }
+    return { ok: true, file: { schemaVersion: 1, data: fromExportV1(file.data) } }
+  }
+
   const file = exportFileSchema.safeParse(document)
   if (!file.success) return { ok: false, reason: refusalReason(file.error) }
 
-  const { animals, vaccinations, treatments, weightEntries } = file.data
-  return { ok: true, data: { animals, vaccinations, treatments, weightEntries } }
+  const {
+    animals,
+    vaccinations,
+    vaccinationInjections,
+    treatments,
+    treatmentDoses,
+    weightEntries,
+  } = file.data
+  return {
+    ok: true,
+    file: {
+      schemaVersion: 2,
+      data: {
+        animals,
+        vaccinations,
+        vaccinationInjections,
+        treatments,
+        treatmentDoses,
+        weightEntries,
+      },
+    },
+  }
 }
 
 type Provider<T> = () => T | Promise<T>
@@ -182,7 +245,9 @@ export type DataImportDependencies = {
   vaccinations: Provider<Pick<VaccinationsRepository, ImportMethods>>
   vaccinationInjections: Provider<Pick<VaccinationInjectionsRepository, EventImportMethods>>
   treatments: Provider<Pick<TreatmentsRepository, ImportMethods>>
-  treatmentDoses: Provider<Pick<TreatmentDosesRepository, EventImportMethods>>
+  treatmentDoses: Provider<
+    Pick<TreatmentDosesRepository, EventImportMethods | 'reconcileStaleHeadsStatement'>
+  >
   weight: Provider<Pick<WeightRepository, ImportMethods>>
   photoExists: (fileName: string) => Promise<boolean>
   syncReminders: () => Promise<void>
@@ -217,10 +282,11 @@ export function createDataImportService({
 
     /**
      * Tout ou rien : le plan (`buildImportPlan`) est arrêté avant la moindre écriture, puis joué
-     * en une transaction. Lève si le fichier déplace une entrée d'un animal à l'autre, ou si
-     * l'écriture échoue.
+     * en une transaction, avec la réconciliation des prises à fréquence périmée. Lève si le plan
+     * refuse le fichier, ou si l'écriture échoue.
      */
-    async importData(data: ExportData, mode: ImportMode): Promise<void> {
+    async importData(file: ImportFile, mode: ImportMode): Promise<void> {
+      const { data } = file
       const [
         animalsRepository,
         vaccinationsRepository,
@@ -260,7 +326,7 @@ export function createDataImportService({
 
       const importedAt = now().toISOString()
       const result = buildImportPlan({
-        data,
+        file,
         mode,
         local: {
           animals: animalVersions,
@@ -275,7 +341,7 @@ export function createDataImportService({
         newId: () => crypto.randomUUID(),
       })
 
-      if (!result.ok) throw new ImportRefusedError('reattached')
+      if (!result.ok) throw new ImportRefusedError(result.refused.reason)
 
       const { plan } = result
       const write = <T>(
@@ -302,6 +368,7 @@ export function createDataImportService({
         ...write(plan.treatmentDoses, dosesRepository.restoreStatement),
         ...plan.revivedDoses.map((id) => dosesRepository.reviveStatement(id, importedAt)),
         ...write(plan.weightEntries, weightRepository.restoreStatement),
+        dosesRepository.reconcileStaleHeadsStatement(importedAt),
       ])
       await syncReminders()
     },

@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest'
 import {
   buildImportPlan,
   deletedWithItsAnimal,
+  deletedWithItsParent,
+  type ImportFile,
   type ImportPlan,
   type ImportPlanInput,
   type LocalAnimal,
@@ -12,15 +14,19 @@ import {
   type LocalInjection,
 } from '../domain/import-plan'
 import type { ExportData } from '../domain/carnet-data'
+import type { ExportDataV1 } from '@/features/settings/logic/export-v1'
 import {
   CHPPIL_ID,
+  IMPORT_FILE,
   IMPORT_FIXTURE,
+  IMPORT_FIXTURE_V1,
   LUNA_ID,
   LUNA_WEIGHT_ID,
   MILBEMAX_ID,
   MILO_ID,
   MILO_WEIGHT_ID,
   TYPHUS_ID,
+  v1File,
 } from '@/features/settings/__tests__/import-fixture'
 
 const IMPORTED_AT = '2026-09-15T10:00:00.000Z'
@@ -76,9 +82,13 @@ function localEntry(id: string, animalId: string, overrides: Partial<LocalEntry>
   return { id, animalId, updatedAt: '2025-01-01T00:00:00.000Z', deletedAt: null, ...overrides }
 }
 
-function buildPlan(overrides: Partial<ImportPlanInput> = {}): ImportPlan {
-  const result = buildImportPlan({
-    data: IMPORT_FIXTURE,
+function v2(data: ExportData): ImportFile {
+  return { schemaVersion: 2, data }
+}
+
+function planResult(overrides: Partial<ImportPlanInput> = {}) {
+  return buildImportPlan({
+    file: IMPORT_FILE,
     mode: 'merge',
     local: EMPTY,
     photosOnDevice: new Set(),
@@ -86,7 +96,11 @@ function buildPlan(overrides: Partial<ImportPlanInput> = {}): ImportPlan {
     newId: () => NEW_ID,
     ...overrides,
   })
-  if (!result.ok) throw new Error(`Plan refusé : ${result.reattached.entity}`)
+}
+
+function buildPlan(overrides: Partial<ImportPlanInput> = {}): ImportPlan {
+  const result = planResult(overrides)
+  if (!result.ok) throw new Error(`Plan refusé : ${result.refused.entity}`)
   return result.plan
 }
 
@@ -149,18 +163,9 @@ describe('buildImportPlan', () => {
     it('refuse le fichier si une entrée déjà en base change d’animal', () => {
       const local = { ...EMPTY, vaccinations: [localEntry(CHPPIL_ID, LUNA_ID)] }
 
-      const result = buildImportPlan({
-        data: IMPORT_FIXTURE,
-        mode: 'merge',
-        local,
-        photosOnDevice: new Set(),
-        importedAt: IMPORTED_AT,
-        newId: () => NEW_ID,
-      })
-
-      expect(result).toEqual({
+      expect(planResult({ local })).toEqual({
         ok: false,
-        reattached: { entity: 'vaccination', id: CHPPIL_ID },
+        refused: { reason: 'reattached', entity: 'vaccination', id: CHPPIL_ID },
       })
     })
 
@@ -171,16 +176,10 @@ describe('buildImportPlan', () => {
         weightEntries: [localEntry(MILO_WEIGHT_ID, LUNA_ID)],
       }
 
-      expect(
-        buildImportPlan({
-          data: IMPORT_FIXTURE,
-          mode: 'merge',
-          local,
-          photosOnDevice: new Set(),
-          importedAt: IMPORTED_AT,
-          newId: () => NEW_ID,
-        }),
-      ).toMatchObject({ ok: false, reattached: { entity: 'weightEntry' } })
+      expect(planResult({ local })).toMatchObject({
+        ok: false,
+        refused: { reason: 'reattached', entity: 'weightEntry' },
+      })
     })
   })
 
@@ -264,7 +263,7 @@ describe('buildImportPlan', () => {
   })
 
   describe('injections d’un fichier v1', () => {
-    const chppil = IMPORT_FIXTURE.vaccinations[0]!
+    const chppil = IMPORT_FIXTURE_V1.vaccinations[0]!
     const FILE_DATE = chppil.lastInjectionDate
     const OLDER = '2024-09-01'
     const localChppil = { ...EMPTY, vaccinations: [localEntry(CHPPIL_ID, MILO_ID)] }
@@ -274,9 +273,9 @@ describe('buildImportPlan', () => {
     }
 
     it('appareil vierge : crée chaque injection avec l’identifiant de son vaccin', () => {
-      const typhus = IMPORT_FIXTURE.vaccinations[1]!
+      const typhus = IMPORT_FIXTURE_V1.vaccinations[1]!
 
-      expect(buildPlan().vaccinationInjections).toEqual([
+      expect(buildPlan({ file: v1File() }).vaccinationInjections).toEqual([
         {
           row: {
             id: CHPPIL_ID,
@@ -313,7 +312,7 @@ describe('buildImportPlan', () => {
         ],
       }
 
-      expect(chppilInjections(buildPlan({ local }))).toEqual([
+      expect(chppilInjections(buildPlan({ file: v1File(), local }))).toEqual([
         {
           row: expect.objectContaining({
             id: 'recente',
@@ -329,7 +328,7 @@ describe('buildImportPlan', () => {
     it('crée une injection neuve pour une date absente, sans reprendre l’identifiant déjà pris', () => {
       const local = { ...localChppil, vaccinationInjections: [localInjection(CHPPIL_ID, OLDER)] }
 
-      expect(chppilInjections(buildPlan({ local }))).toEqual([
+      expect(chppilInjections(buildPlan({ file: v1File(), local }))).toEqual([
         {
           row: expect.objectContaining({ id: NEW_ID, injectedOn: FILE_DATE }),
           exists: false,
@@ -345,7 +344,7 @@ describe('buildImportPlan', () => {
         ],
       }
 
-      expect(chppilInjections(buildPlan({ local }))).toEqual([])
+      expect(chppilInjections(buildPlan({ file: v1File(), local }))).toEqual([])
     })
 
     it('préfère, à date égale, l’injection non supprimée', () => {
@@ -357,15 +356,17 @@ describe('buildImportPlan', () => {
         ],
       }
 
-      expect(chppilInjections(buildPlan({ local })).map(({ row }) => row.id)).toEqual(['vivante'])
+      expect(
+        chppilInjections(buildPlan({ file: v1File(), local })).map(({ row }) => row.id),
+      ).toEqual(['vivante'])
     })
 
     describe('vaccin revenu avec son animal', () => {
       const CASCADE = '2026-09-10T00:00:00.000Z'
       const CANCELLED = '2026-09-05T00:00:00.000Z'
-      const miloAfterCascade: ExportData = {
-        ...IMPORT_FIXTURE,
-        animals: IMPORT_FIXTURE.animals.map((animal) =>
+      const miloAfterCascade: ExportDataV1 = {
+        ...IMPORT_FIXTURE_V1,
+        animals: IMPORT_FIXTURE_V1.animals.map((animal) =>
           animal.id === MILO_ID ? { ...animal, updatedAt: '2026-09-12T00:00:00.000Z' } : animal,
         ),
       }
@@ -386,7 +387,7 @@ describe('buildImportPlan', () => {
           localInjection('e0', FILE_DATE, { deletedAt: CANCELLED, updatedAt: CANCELLED }),
         ])
 
-        const plan = buildPlan({ data: miloAfterCascade, local })
+        const plan = buildPlan({ file: v1File(miloAfterCascade), local })
 
         expect(chppilInjections(plan)).toEqual([])
         expect(plan.revivedInjections).toEqual(['e1'])
@@ -401,7 +402,7 @@ describe('buildImportPlan', () => {
           }),
         ])
 
-        const plan = buildPlan({ data: miloAfterCascade, local })
+        const plan = buildPlan({ file: v1File(miloAfterCascade), local })
 
         expect(plan.revivedInjections).toEqual(['e1'])
       })
@@ -409,7 +410,7 @@ describe('buildImportPlan', () => {
       it('ramène l’injection de même date supprimée avec le vaccin, aux valeurs du fichier', () => {
         const local = cascadeWith([localInjection(CHPPIL_ID, FILE_DATE, withParent)])
 
-        const plan = buildPlan({ data: miloAfterCascade, local })
+        const plan = buildPlan({ file: v1File(miloAfterCascade), local })
 
         expect(chppilInjections(plan)).toEqual([
           { row: expect.objectContaining({ id: CHPPIL_ID, updatedAt: IMPORTED_AT }), exists: true },
@@ -418,7 +419,7 @@ describe('buildImportPlan', () => {
       })
 
       it('à date égale, retient l’injection supprimée avec le vaccin, puis la plus récente', () => {
-        const fileNewer: ExportData = {
+        const fileNewer: ExportDataV1 = {
           ...miloAfterCascade,
           vaccinations: miloAfterCascade.vaccinations.map((vaccination) => ({
             ...vaccination,
@@ -430,7 +431,7 @@ describe('buildImportPlan', () => {
           updatedAt: `2026-09-0${day}T00:00:00.000Z`,
         })
         const chosen = (local: LocalCarnet) => {
-          const plan = buildPlan({ data: fileNewer, local })
+          const plan = buildPlan({ file: v1File(fileNewer), local })
           return [chppilInjections(plan).map(({ row }) => row.id), plan.revivedInjections]
         }
 
@@ -458,7 +459,7 @@ describe('buildImportPlan', () => {
           localInjection('e0', FILE_DATE, { deletedAt: CANCELLED, updatedAt: CANCELLED }),
         ])
 
-        const plan = buildPlan({ data: miloAfterCascade, local, mode: 'replace' })
+        const plan = buildPlan({ file: v1File(miloAfterCascade), local, mode: 'replace' })
 
         expect(chppilInjections(plan)).toEqual([
           { row: expect.objectContaining({ id: 'e0', injectedOn: FILE_DATE }), exists: true },
@@ -476,7 +477,7 @@ describe('buildImportPlan', () => {
         ],
       }
 
-      expect(chppilInjections(buildPlan({ local, mode: 'replace' }))).toEqual([
+      expect(chppilInjections(buildPlan({ file: v1File(), local, mode: 'replace' }))).toEqual([
         { row: expect.objectContaining({ id: 'recente', injectedOn: FILE_DATE }), exists: true },
       ])
     })
@@ -487,20 +488,20 @@ describe('buildImportPlan', () => {
         animals: [localAnimal(LUNA_ID, { deletedAt: IMPORTED_AT, updatedAt: IMPORTED_AT })],
       }
 
-      const plan = buildPlan({ local })
+      const plan = buildPlan({ file: v1File(), local })
 
       expect(plan.vaccinationInjections.map(({ row }) => row.id)).toEqual([CHPPIL_ID])
     })
   })
 
   describe('prises d’un fichier v1', () => {
-    const milbemax = IMPORT_FIXTURE.treatments[0]!
+    const milbemax = IMPORT_FIXTURE_V1.treatments[0]!
     const FILE_DATE = milbemax.lastDoseDate
     const OLDER = '2026-03-15'
     const localMilbemax = { ...EMPTY, treatments: [localEntry(MILBEMAX_ID, LUNA_ID)] }
 
     it('appareil vierge : crée la prise avec l’identifiant de son traitement, fréquence recopiée', () => {
-      expect(buildPlan().treatmentDoses).toEqual([
+      expect(buildPlan({ file: v1File() }).treatmentDoses).toEqual([
         {
           row: {
             id: MILBEMAX_ID,
@@ -523,7 +524,7 @@ describe('buildImportPlan', () => {
         treatmentDoses: [localDose(MILBEMAX_ID, OLDER), localDose('recente', FILE_DATE)],
       }
 
-      expect(buildPlan({ local }).treatmentDoses).toEqual([
+      expect(buildPlan({ file: v1File(), local }).treatmentDoses).toEqual([
         {
           row: expect.objectContaining({
             id: 'recente',
@@ -540,7 +541,7 @@ describe('buildImportPlan', () => {
     it('crée une prise neuve pour une date absente, sans reprendre l’identifiant déjà pris', () => {
       const local = { ...localMilbemax, treatmentDoses: [localDose(MILBEMAX_ID, OLDER)] }
 
-      expect(buildPlan({ local }).treatmentDoses).toEqual([
+      expect(buildPlan({ file: v1File(), local }).treatmentDoses).toEqual([
         { row: expect.objectContaining({ id: NEW_ID, givenOn: FILE_DATE }), exists: false },
       ])
     })
@@ -553,7 +554,7 @@ describe('buildImportPlan', () => {
         ],
       }
 
-      expect(buildPlan({ local }).treatmentDoses).toEqual([])
+      expect(buildPlan({ file: v1File(), local }).treatmentDoses).toEqual([])
     })
 
     it('en remplacement, restaure la prise du fichier même plus récente sur l’appareil', () => {
@@ -564,7 +565,7 @@ describe('buildImportPlan', () => {
         ],
       }
 
-      expect(buildPlan({ local, mode: 'replace' }).treatmentDoses).toEqual([
+      expect(buildPlan({ file: v1File(), local, mode: 'replace' }).treatmentDoses).toEqual([
         { row: expect.objectContaining({ id: MILBEMAX_ID, givenOn: FILE_DATE }), exists: true },
       ])
     })
@@ -576,9 +577,9 @@ describe('buildImportPlan', () => {
         deletedAt: '2026-09-05T00:00:00.000Z',
         updatedAt: '2026-09-05T00:00:00.000Z',
       }
-      const lunaAfterCascade: ExportData = {
-        ...IMPORT_FIXTURE,
-        animals: IMPORT_FIXTURE.animals.map((animal) =>
+      const lunaAfterCascade: ExportDataV1 = {
+        ...IMPORT_FIXTURE_V1,
+        animals: IMPORT_FIXTURE_V1.animals.map((animal) =>
           animal.id === LUNA_ID ? { ...animal, updatedAt: '2026-09-12T00:00:00.000Z' } : animal,
         ),
       }
@@ -598,7 +599,7 @@ describe('buildImportPlan', () => {
           localDose('d0', FILE_DATE, cancelled),
         ])
 
-        const plan = buildPlan({ data: lunaAfterCascade, local })
+        const plan = buildPlan({ file: v1File(lunaAfterCascade), local })
 
         expect(plan.treatmentDoses).toEqual([])
         expect(plan.revivedDoses).toEqual(['d1'])
@@ -610,7 +611,7 @@ describe('buildImportPlan', () => {
           localDose('seule', '2026-01-15', cancelled),
         ])
 
-        expect(buildPlan({ data: lunaAfterCascade, local }).revivedDoses).toEqual(['d1'])
+        expect(buildPlan({ file: v1File(lunaAfterCascade), local }).revivedDoses).toEqual(['d1'])
       })
 
       it('en remplacement, n’écrit que la prise du fichier', () => {
@@ -619,7 +620,7 @@ describe('buildImportPlan', () => {
           localDose('d0', FILE_DATE, cancelled),
         ])
 
-        const plan = buildPlan({ data: lunaAfterCascade, local, mode: 'replace' })
+        const plan = buildPlan({ file: v1File(lunaAfterCascade), local, mode: 'replace' })
 
         expect(plan.treatmentDoses).toEqual([
           { row: expect.objectContaining({ id: 'd0', givenOn: FILE_DATE }), exists: true },
@@ -634,21 +635,228 @@ describe('buildImportPlan', () => {
         animals: [localAnimal(LUNA_ID, { deletedAt: IMPORTED_AT, updatedAt: IMPORTED_AT })],
       }
 
-      expect(buildPlan({ local }).treatmentDoses).toEqual([])
+      expect(buildPlan({ file: v1File(), local }).treatmentDoses).toEqual([])
     })
   })
 
-  it('reprend l’échéance du traitement telle quelle, sans la recalculer', () => {
+  describe('événements d’un fichier v2', () => {
+    const OLDER = '2024-09-01'
+    const ancienne = {
+      ...IMPORT_FIXTURE.vaccinationInjections[0]!,
+      id: 'ancienne',
+      injectedOn: OLDER,
+      nextDueDate: '2025-09-01',
+    }
+    const withHistory: ExportData = {
+      ...IMPORT_FIXTURE,
+      vaccinationInjections: [...IMPORT_FIXTURE.vaccinationInjections, ancienne],
+    }
+
+    function chppilInjections(plan: ImportPlan) {
+      return plan.vaccinationInjections.filter(({ row }) => row.vaccinationId === CHPPIL_ID)
+    }
+
+    it('écrit chaque événement du fichier avec son identifiant', () => {
+      const plan = buildPlan({ file: v2(withHistory) })
+
+      expect(chppilInjections(plan)).toEqual([
+        { row: IMPORT_FIXTURE.vaccinationInjections[0], exists: false },
+        { row: ancienne, exists: false },
+      ])
+    })
+
+    it('retrouve un événement par son identifiant : plus récent dans le fichier, sa date suit', () => {
+      const moved = { ...ancienne, injectedOn: '2024-10-01', updatedAt: IMPORTED_AT }
+      const local = {
+        ...EMPTY,
+        vaccinations: [localEntry(CHPPIL_ID, MILO_ID)],
+        vaccinationInjections: [localInjection('ancienne', OLDER)],
+      }
+
+      const plan = buildPlan({
+        file: v2({ ...IMPORT_FIXTURE, vaccinationInjections: [moved] }),
+        local,
+      })
+
+      expect(chppilInjections(plan)).toEqual([
+        { row: { ...moved, updatedAt: IMPORTED_AT }, exists: true },
+      ])
+    })
+
+    it('garde un événement plus récent sur l’appareil, même à une autre date', () => {
+      const local = {
+        ...EMPTY,
+        vaccinations: [localEntry(CHPPIL_ID, MILO_ID)],
+        vaccinationInjections: [
+          localInjection('ancienne', '2023-09-01', { updatedAt: IMPORTED_AT }),
+        ],
+      }
+
+      expect(chppilInjections(buildPlan({ file: v2(withHistory), local }))).toEqual([
+        { row: IMPORT_FIXTURE.vaccinationInjections[0], exists: false },
+      ])
+    })
+
+    it('écrit les événements d’un parent resté plus récent sur l’appareil', () => {
+      const local = {
+        ...EMPTY,
+        animals: [localAnimal(MILO_ID, { updatedAt: IMPORTED_AT })],
+        vaccinations: [localEntry(CHPPIL_ID, MILO_ID, { updatedAt: IMPORTED_AT })],
+      }
+
+      const plan = buildPlan({ file: v2(withHistory), local })
+
+      expect(ids(plan.vaccinations)).toEqual([TYPHUS_ID])
+      expect(ids(chppilInjections(plan))).toEqual([CHPPIL_ID, 'ancienne'])
+    })
+
+    it('n’écrit aucun événement sous un parent qui reste supprimé', () => {
+      const local = {
+        ...EMPTY,
+        vaccinations: [
+          localEntry(CHPPIL_ID, MILO_ID, { deletedAt: IMPORTED_AT, updatedAt: IMPORTED_AT }),
+        ],
+      }
+
+      const plan = buildPlan({ file: v2(withHistory), local })
+
+      expect(chppilInjections(plan)).toEqual([])
+    })
+
+    describe('parent supprimé seul, rendu visible par le fichier', () => {
+      const DELETED = '2026-09-10T00:00:00.000Z'
+      const CANCELLED = '2026-09-05T00:00:00.000Z'
+      const withParent = { deletedAt: DELETED, updatedAt: DELETED }
+      const newerParent: ExportData = {
+        ...withHistory,
+        vaccinations: withHistory.vaccinations.map((vaccination) =>
+          vaccination.id === CHPPIL_ID ? { ...vaccination, updatedAt: IMPORTED_AT } : vaccination,
+        ),
+      }
+
+      function deletedAlone(vaccinationInjections: LocalInjection[]): LocalCarnet {
+        return {
+          ...EMPTY,
+          animals: [localAnimal(MILO_ID)],
+          vaccinations: [localEntry(CHPPIL_ID, MILO_ID, withParent)],
+          vaccinationInjections,
+        }
+      }
+
+      it('revient avec ses événements : ceux du fichier à ses valeurs, les autres tels quels', () => {
+        const local = deletedAlone([
+          localInjection(CHPPIL_ID, '2025-09-01', withParent),
+          localInjection('hors-fichier', '2023-09-01', withParent),
+          localInjection('annulee', '2022-09-01', { deletedAt: CANCELLED, updatedAt: CANCELLED }),
+        ])
+
+        const plan = buildPlan({ file: v2(newerParent), local })
+
+        expect(chppilInjections(plan)).toEqual([
+          {
+            row: { ...IMPORT_FIXTURE.vaccinationInjections[0], updatedAt: IMPORTED_AT },
+            exists: true,
+          },
+          { row: ancienne, exists: false },
+        ])
+        expect(plan.revivedInjections).toEqual(['hors-fichier'])
+      })
+
+      it('en remplacement, n’écrit que les événements du fichier', () => {
+        const local = deletedAlone([localInjection('hors-fichier', '2023-09-01', withParent)])
+
+        const plan = buildPlan({ file: v2(newerParent), local, mode: 'replace' })
+
+        expect(ids(chppilInjections(plan))).toEqual([CHPPIL_ID, 'ancienne'])
+        expect(plan.revivedInjections).toEqual([])
+      })
+
+      it('reconnaît un événement supprimé avec son parent à son `deletedAt` exact', () => {
+        const parentCascades = new Map([[CHPPIL_ID, DELETED]])
+        const event = { id: 'e', updatedAt: DELETED, parentId: CHPPIL_ID, date: OLDER }
+
+        expect(deletedWithItsParent({ ...event, deletedAt: DELETED }, parentCascades)).toBe(true)
+        expect(deletedWithItsParent({ ...event, deletedAt: CANCELLED }, parentCascades)).toBe(false)
+        expect(deletedWithItsParent({ ...event, deletedAt: null }, parentCascades)).toBe(false)
+      })
+    })
+  })
+
+  describe('refus propres aux événements', () => {
+    const orphan = {
+      ...IMPORT_FIXTURE.treatmentDoses[0]!,
+      id: 'orpheline',
+      treatmentId: 'traitement-inconnu',
+    }
+
+    it('refuse un événement dont le parent n’est ni dans le fichier ni sur l’appareil', () => {
+      const data = { ...IMPORT_FIXTURE, treatmentDoses: [orphan] }
+
+      expect(planResult({ file: v2(data) })).toEqual({
+        ok: false,
+        refused: { reason: 'orphanEvent', entity: 'treatmentDose', id: 'orpheline' },
+      })
+    })
+
+    it('accepte un événement dont le parent n’est que sur l’appareil', () => {
+      const data = { ...IMPORT_FIXTURE, treatmentDoses: [orphan] }
+      const local = { ...EMPTY, treatments: [localEntry('traitement-inconnu', LUNA_ID)] }
+
+      expect(planResult({ file: v2(data), local }).ok).toBe(true)
+    })
+
+    it('refuse un événement qui n’a pas l’animal de son parent, dans le fichier ou sur l’appareil', () => {
+      const misplaced = { ...IMPORT_FIXTURE.vaccinationInjections[0]!, animalId: LUNA_ID }
+      const inFile = { ...IMPORT_FIXTURE, vaccinationInjections: [misplaced] }
+      const onDevice = { ...inFile, vaccinations: [] }
+      const local = { ...EMPTY, vaccinations: [localEntry(CHPPIL_ID, MILO_ID)] }
+      const refused = {
+        ok: false,
+        refused: { reason: 'reattached', entity: 'vaccinationInjection', id: CHPPIL_ID },
+      }
+
+      expect(planResult({ file: v2(inFile) })).toEqual(refused)
+      expect(planResult({ file: v2(onDevice), local })).toEqual(refused)
+    })
+
+    it('refuse un événement déjà sur l’appareil sous un autre parent', () => {
+      const local = {
+        ...EMPTY,
+        vaccinations: [localEntry(TYPHUS_ID, LUNA_ID)],
+        vaccinationInjections: [
+          localInjection(CHPPIL_ID, '2025-09-01', { vaccinationId: 'autre' }),
+        ],
+      }
+
+      expect(planResult({ local })).toMatchObject({
+        ok: false,
+        refused: { reason: 'reattached', entity: 'vaccinationInjection', id: CHPPIL_ID },
+      })
+    })
+
+    it('ne lit jamais l’identifiant d’un événement v1 comme un rattachement', () => {
+      const local = {
+        ...EMPTY,
+        vaccinationInjections: [
+          localInjection(CHPPIL_ID, '2025-09-01', { vaccinationId: 'autre' }),
+        ],
+      }
+
+      expect(planResult({ file: v1File(), local }).ok).toBe(true)
+    })
+  })
+
+  it('reprend l’échéance de la prise telle quelle, sans la recalculer', () => {
     const data = {
       ...IMPORT_FIXTURE,
-      treatments: IMPORT_FIXTURE.treatments.map((treatment) => ({
-        ...treatment,
+      treatmentDoses: IMPORT_FIXTURE.treatmentDoses.map((dose) => ({
+        ...dose,
         nextDueDate: '2027-01-31',
       })),
     }
 
-    expect(buildPlan({ data }).treatments[0]!.row).toMatchObject({
-      lastDoseDate: '2026-06-15',
+    expect(buildPlan({ file: v2(data) }).treatmentDoses[0]!.row).toMatchObject({
+      givenOn: '2026-06-15',
       nextDueDate: '2027-01-31',
     })
   })

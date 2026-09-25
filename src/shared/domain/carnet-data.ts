@@ -18,22 +18,40 @@ export type ExportVaccination = {
   id: string
   animalId: string
   name: string
-  lastInjectionDate: string
-  dueDate: string | null
   createdAt: string
   updatedAt: string
 }
+
+export type ExportVaccinationInjection = {
+  id: string
+  vaccinationId: string
+  animalId: string
+  injectedOn: string
+  nextDueDate: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export type ExportFrequency = { value: number; unit: 'day' | 'week' | 'month' }
 
 export type ExportTreatment = {
   id: string
   animalId: string
   name: string
   type: 'deworming' | 'antiparasitic'
-  frequency: { value: number; unit: 'day' | 'week' | 'month' }
-  lastDoseDate: string
+  frequency: ExportFrequency
+  stoppedOn: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export type ExportTreatmentDose = {
+  id: string
+  treatmentId: string
+  animalId: string
+  givenOn: string
   nextDueDate: string
-  /** Date d'arrêt, `null` en cours ; absente d'un fichier plus ancien : le traitement est en cours. */
-  stoppedOn?: string | null
+  frequency: ExportFrequency
   createdAt: string
   updatedAt: string
 }
@@ -50,6 +68,8 @@ export type ExportWeightEntry = {
 export type ExportData = {
   animals: ExportAnimal[]
   vaccinations: ExportVaccination[]
+  vaccinationInjections: ExportVaccinationInjection[]
   treatments: ExportTreatment[]
+  treatmentDoses: ExportTreatmentDose[]
   weightEntries: ExportWeightEntry[]
 }

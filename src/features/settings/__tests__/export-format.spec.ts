@@ -28,7 +28,7 @@ describe('exportFileName', () => {
 })
 
 describe('exportReminders', () => {
-  it('liste une échéance par vaccin daté et par traitement, la plus proche d’abord', () => {
+  it('liste l’échéance de la dernière injection ou prise de chaque parent, la plus proche d’abord', () => {
     expect(exportReminders(EXPORT_FIXTURE)).toEqual([
       {
         kind: 'vaccination',
@@ -80,7 +80,7 @@ describe('toJsonExport', () => {
 
   it('versionne le document pour l’import', () => {
     expect(parsed.schemaVersion).toBe(EXPORT_SCHEMA_VERSION)
-    expect(parsed.schemaVersion).toBe(1)
+    expect(parsed.schemaVersion).toBe(2)
     expect(parsed.exportedAt).toBe(META.exportedAt.toISOString())
     expect(parsed.appVersion).toBe('0.1.24')
   })
@@ -88,9 +88,23 @@ describe('toJsonExport', () => {
   it('reprend toutes les données, historique compris, texte libre intact', () => {
     expect(parsed.animals).toEqual(EXPORT_FIXTURE.animals)
     expect(parsed.vaccinations).toEqual(EXPORT_FIXTURE.vaccinations)
+    expect(parsed.vaccinationInjections).toEqual(EXPORT_FIXTURE.vaccinationInjections)
     expect(parsed.treatments).toEqual(EXPORT_FIXTURE.treatments)
+    expect(parsed.treatmentDoses).toEqual(EXPORT_FIXTURE.treatmentDoses)
     expect(parsed.weightEntries).toEqual(EXPORT_FIXTURE.weightEntries)
     expect(parsed.reminders).toEqual(exportReminders(EXPORT_FIXTURE))
+  })
+
+  it('ne répète pas sur un parent la date ni l’échéance portées par ses événements', () => {
+    expect(Object.keys(parsed.vaccinations[0])).toEqual([
+      'id',
+      'animalId',
+      'name',
+      'createdAt',
+      'updatedAt',
+    ])
+    expect(parsed.treatments[0]).not.toHaveProperty('lastDoseDate')
+    expect(parsed.treatments[0]).not.toHaveProperty('nextDueDate')
   })
 
   it('référence la photo par son nom de fichier, sans contenu encodé', () => {
@@ -106,7 +120,9 @@ describe('toCsvTables', () => {
     expect(Object.keys(tables)).toEqual([
       'animaux.csv',
       'vaccins.csv',
+      'injections.csv',
       'traitements.csv',
+      'prises.csv',
       'poids.csv',
       'rappels.csv',
     ])
@@ -142,6 +158,22 @@ describe('toCsvTables', () => {
     expect(lines(tables['traitements.csv'])).toEqual([
       'id;animalId;animalName;name;type;frequencyValue;frequencyUnit;lastDoseDate;nextDueDate',
       `t-milbemax;${LUNA_ID};Luna;Milbémax;deworming;3;month;2026-06-15;2026-09-15`,
+      '',
+    ])
+  })
+
+  it('écrit une ligne par injection et par prise, reliée à son vaccin ou traitement', () => {
+    expect(lines(tables['injections.csv'])).toEqual([
+      'id;vaccinationId;vaccinationName;animalId;animalName;injectedOn;nextDueDate',
+      `i-chppil-2025;v-chppil;CHPPiL;${MILO_ID};Milo;2025-09-01;2026-09-01`,
+      `i-chppil-2024;v-chppil;CHPPiL;${MILO_ID};Milo;2024-09-01;2025-09-01`,
+      `i-typhus;v-typhus;"Typhus; coryza";${LUNA_ID};Luna;2024-05-20;`,
+      '',
+    ])
+    expect(lines(tables['prises.csv'])).toEqual([
+      'id;treatmentId;treatmentName;animalId;animalName;givenOn;nextDueDate;frequencyValue;frequencyUnit',
+      `d-milbemax-06;t-milbemax;Milbémax;${LUNA_ID};Luna;2026-06-15;2026-09-15;3;month`,
+      `d-milbemax-03;t-milbemax;Milbémax;${LUNA_ID};Luna;2026-03-15;2026-06-15;3;month`,
       '',
     ])
   })
@@ -204,7 +236,7 @@ describe('buildExportFile', () => {
     expect(file.content).toBe(toJsonExport(EXPORT_FIXTURE, META))
   })
 
-  it('CSV : une archive zip qui contient les cinq tables telles quelles', () => {
+  it('CSV : une archive zip qui contient les sept tables telles quelles', () => {
     const file = buildExportFile('csv', EXPORT_FIXTURE, META)
 
     expect(file.name).toBe('memopatte-export-20260915-1030.zip')
