@@ -428,7 +428,7 @@ describe('CarnetView — bandeau de stats', () => {
 
     expect(stat(wrapper, 0).sub).toBe('+0,3 kg')
     expect(wrapper.get('.weight-section__delta').text()).toBe(
-      '+0,3 kg depuis le 20\u00a0déc.\u00a02025',
+      '+0,3 kg depuis le\u00a020\u00a0déc.\u00a02025',
     )
   })
 

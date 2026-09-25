@@ -202,7 +202,7 @@ describe('WeightHistoryView — H1 historique complet', () => {
     expect(wrapper.get('.weight-history__current').text()).toBe('24,5')
     expect(wrapper.get('.weight-history__unit').text()).toBe('kg')
     const delta = wrapper.get('.weight-history__delta')
-    expect(delta.text()).toBe('+0,2 kg depuis le 11\u00a0oct.')
+    expect(delta.text()).toBe('+0,2 kg depuis le\u00a011\u00a0oct.')
     expect(delta.classes()).toContain('weight-history__delta--up')
   })
 
@@ -313,7 +313,7 @@ describe('WeightHistoryView — lire une pesée sur la courbe', () => {
       label: 'Pesée du 11 oct. 2026',
       poids: '24,3',
       unite: 'kg',
-      variation: '+0,1 kg depuis le 13\u00a0sept.',
+      variation: '+0,1 kg depuis le\u00a013\u00a0sept.',
     })
     expect(wrapper!.get('.weight-history__delta').classes()).toContain('weight-history__delta--up')
   })
@@ -334,7 +334,7 @@ describe('WeightHistoryView — lire une pesée sur la courbe', () => {
     await flushPromises()
 
     expect(resume()).toMatchObject({ label: 'Pesée du 12 juil. 2026', poids: '23,8' })
-    expect(resume().variation).toBe('+0,2 kg depuis le 7\u00a0juin')
+    expect(resume().variation).toBe('+0,2 kg depuis le\u00a07\u00a0juin')
   })
 
   it('écrit une baisse en gris chaud', async () => {
@@ -343,7 +343,7 @@ describe('WeightHistoryView — lire une pesée sur la courbe', () => {
 
     await courbe().trigger('keydown', { key: 'ArrowLeft' })
 
-    expect(resume().variation).toBe('−0,3 kg depuis le 9\u00a0août')
+    expect(resume().variation).toBe('−0,3 kg depuis le\u00a09\u00a0août')
     expect(wrapper!.get('.weight-history__delta').classes()).toContain(
       'weight-history__delta--down',
     )
@@ -355,7 +355,7 @@ describe('WeightHistoryView — lire une pesée sur la courbe', () => {
 
     await courbe().trigger('keydown', { key: 'ArrowLeft' })
 
-    expect(resume().variation).toBe('±0,0 kg depuis le 9\u00a0août')
+    expect(resume().variation).toBe('±0,0 kg depuis le\u00a09\u00a0août')
     expect(wrapper!.get('.weight-history__delta').classes()).toContain(
       'weight-history__delta--flat',
     )
@@ -373,13 +373,13 @@ describe('WeightHistoryView — lire une pesée sur la courbe', () => {
     await courbe().trigger('keydown', { key: 'ArrowLeft' })
     expect(resume()).toMatchObject({
       label: 'Pesée du 3 févr. 2026',
-      variation: '+0,8 kg depuis le 20\u00a0janv.',
+      variation: '+0,8 kg depuis le\u00a020\u00a0janv.',
     })
 
     await courbe().trigger('keydown', { key: 'ArrowLeft' })
     expect(resume()).toMatchObject({
       label: 'Pesée du 20 janv. 2026',
-      variation: '+0,8 kg depuis le 20\u00a0déc.\u00a02025',
+      variation: '+0,8 kg depuis le\u00a020\u00a0déc.\u00a02025',
     })
   })
 
@@ -416,7 +416,7 @@ describe('WeightHistoryView — lire une pesée sur la courbe', () => {
       label: 'Poids actuel',
       poids: '24,5',
       unite: 'kg',
-      variation: '+0,2 kg depuis le 11\u00a0oct.',
+      variation: '+0,2 kg depuis le\u00a011\u00a0oct.',
     })
   })
 
@@ -532,7 +532,7 @@ describe('WeightHistoryView — historique par pages', () => {
     await wrapper.get('.weight-history-chart__svg').trigger('keydown', { key: 'Home' })
 
     expect(wrapper.get('.weight-history__current-label').text()).toBe('Pesée du 12 avr. 2026')
-    expect(wrapper.get('.weight-history__delta').text()).toBe('+0,7 kg depuis le 29\u00a0mars')
+    expect(wrapper.get('.weight-history__delta').text()).toBe('+0,7 kg depuis le\u00a029\u00a0mars')
   })
 
   it('lit une pesée d’une page plus ancienne dans le résumé', async () => {
@@ -543,7 +543,7 @@ describe('WeightHistoryView — historique par pages', () => {
 
     expect(wrapper.get('.weight-history__current-label').text()).toBe('Pesée du 15 mars 2026')
     expect(wrapper.get('.weight-history__current').text()).toBe('15,4')
-    expect(wrapper.get('.weight-history__delta').text()).toBe('+0,7 kg depuis le 1\u00a0mars')
+    expect(wrapper.get('.weight-history__delta').text()).toBe('+0,7 kg depuis le\u00a01\u00a0mars')
   })
 })
 
@@ -570,7 +570,7 @@ describe('WeightHistoryView — deltas du poids actuel', () => {
     const wrapper = await monter()
     const delta = wrapper.get('.weight-history__delta')
 
-    expect(delta.text()).toBe('−0,3 kg depuis le 9\u00a0août')
+    expect(delta.text()).toBe('−0,3 kg depuis le\u00a09\u00a0août')
     expect(delta.classes()).toContain('weight-history__delta--down')
   })
 
@@ -578,14 +578,14 @@ describe('WeightHistoryView — deltas du poids actuel', () => {
     vi.setSystemTime(new Date('2026-12-31T20:00:00'))
     entries = [entry(23.9, '2026-12-20'), entry(24.2, '2026-12-30')]
     const wrapper = await monter()
-    expect(wrapper.get('.weight-history__delta').text()).toBe('+0,3 kg depuis le 20\u00a0déc.')
+    expect(wrapper.get('.weight-history__delta').text()).toBe('+0,3 kg depuis le\u00a020\u00a0déc.')
 
     vi.setSystemTime(new Date('2027-01-02T08:00:00'))
     simulateWebResume()
     await flushPromises()
 
     expect(wrapper.get('.weight-history__delta').text()).toBe(
-      '+0,3 kg depuis le 20\u00a0déc.\u00a02026',
+      '+0,3 kg depuis le\u00a020\u00a0déc.\u00a02026',
     )
   })
 
@@ -594,7 +594,7 @@ describe('WeightHistoryView — deltas du poids actuel', () => {
     const wrapper = await monter()
 
     expect(wrapper.get('.weight-history__delta').text()).toBe(
-      '+0,3 kg depuis le 20\u00a0déc.\u00a02025',
+      '+0,3 kg depuis le\u00a020\u00a0déc.\u00a02025',
     )
   })
 
@@ -604,10 +604,10 @@ describe('WeightHistoryView — deltas du poids actuel', () => {
 
     try {
       const wrapper = await monter()
-      expect(wrapper.get('.weight-history__delta').text()).toBe('+0.2 kg since Oct\u00a011')
+      expect(wrapper.get('.weight-history__delta').text()).toBe('+0.2 kg since\u00a0Oct\u00a011')
 
       await wrapper.get('.weight-history-chart__svg').trigger('keydown', { key: 'ArrowLeft' })
-      expect(wrapper.get('.weight-history__delta').text()).toBe('+0.1 kg since Sep\u00a013')
+      expect(wrapper.get('.weight-history__delta').text()).toBe('+0.1 kg since\u00a0Sep\u00a013')
     } finally {
       applyLocale('fr')
     }
@@ -618,7 +618,7 @@ describe('WeightHistoryView — deltas du poids actuel', () => {
     const wrapper = await monter()
     const delta = wrapper.get('.weight-history__delta')
 
-    expect(delta.text()).toBe('±0,0 kg depuis le 9\u00a0août')
+    expect(delta.text()).toBe('±0,0 kg depuis le\u00a09\u00a0août')
     expect(delta.classes()).toContain('weight-history__delta--flat')
     expect(wrapper.findAll('.weight-history__row-delta')[0]!.classes()).toContain(
       'weight-history__delta--flat',
