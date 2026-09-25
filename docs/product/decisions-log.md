@@ -1763,3 +1763,30 @@ même jour peuvent en résulter, comme par la synchro (§10.7).
 2) **Textes de l'historique dans le PDF** : « Injections : » (toutes les dates, jamais regroupées),
 « Dernière prise : », « Prises précédentes : », et « N prises du A au B » pour une série de plus de
 trois prises ; en petit et en gris, en retrait sous chaque ligne.
+
+2026-09-25 (soir) — **Réponses de Gaelle sur les branches du lot** (#352, #409, #384, #349, #416).
+
+1) **Variation de poids calculée à partir des poids affichés** (#352) : c'est l'écart entre les deux poids
+arrondis tels qu'on les montre, dans l'unité choisie (53,1 → 53,6 lb donne « +0,5 lb »). — Raison : ce
+qu'on voit s'additionne toujours ; l'écart avec le calcul exact reste sous un dixième. — Alternative
+écartée : le calcul exact avant arrondi, qui semblait faux une fois sur quatre.
+
+2) **Noms de plus de 80 caractères enregistrés avant la limite : coupés à 80 par la migration** (#409),
+en base locale (v8) comme dans le cloud ; les fixtures restent sous la limite. — Raison : seules des
+données de test peuvent en contenir ; sans coupe, un tel nom bloquerait la synchro et la réimportation.
+— Alternative écartée : ne rien couper et mettre de côté la ligne refusée dans la synchro.
+
+3) **Bouton « C'est fait » des notifications** (#384) : Android ne donne pas de nom accessible distinct
+à un bouton de notification ; TalkBack lit le titre (« Bravecto pour Boree ») puis « C'est fait », ce qui
+est accepté (le relevé F10 le prévoyait autrement). Une prise déjà notée affiche « Prise de Bravecto du
+25 sept. déjà notée pour Boree », ou « … déjà notée aujourd'hui pour Boree » si elle est du jour (idem
+pour une injection).
+
+4) **« Ouvrir » un export** (#349) : plugin `@capawesome-team/capacitor-file-opener`, qui réutilise
+notre FileProvider (seul `Documents/MémoPatte/` ajouté, aucune permission) ; échec : « Aucune app n'a pu
+ouvrir ce fichier. Il reste dans Documents › MémoPatte. » ; noms lus « Ouvrir l'export JSON / CSV »,
+« Ouvrir le PDF ». — Alternatives écartées : `@capacitor-community/file-opener` (expose tout le
+stockage, un seul mainteneur) ; un plugin Android maison.
+
+5) **Export CSV lisible dans un tableur** : titres, valeurs et séparateur dans la langue de l'app, ticket
+#416 ; d'ici là, le CSV garde ses noms techniques (`weightLb`).
