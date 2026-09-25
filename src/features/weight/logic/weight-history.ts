@@ -7,7 +7,7 @@ export type WeightTrend = 'up' | 'down' | 'flat'
 /** H1 : au moins deux pesées ; H2 : une seule ; H3 : aucune. */
 export type WeightHistoryState = 'full' | 'single' | 'empty'
 
-/** Ligne « Poids actuel » : `+0,5 kg vs août`, `Première pesée · 8 nov. 2026` ou `±0,0 kg`. */
+/** Ligne « Poids actuel » : `+0,5 kg vs 25 août`, `Première pesée · 8 nov. 2026` ou `±0,0 kg`. */
 export type WeightHeadline =
   | { kind: 'first'; measuredOn: string }
   | { kind: 'vs'; deltaKg: number; trend: 'up' | 'down'; previousMeasuredOn: string }
@@ -15,7 +15,7 @@ export type WeightHeadline =
 
 export type WeightHistoryRow = WeightHistoryEntry & {
   /** `null` pour la toute première pesée : la cellule reste vide. */
-  delta: { deltaKg: number; trend: WeightTrend } | null
+  delta: { deltaKg: number; trend: WeightTrend; previousMeasuredOn: string } | null
 }
 
 export type WeightHistory = {
@@ -35,7 +35,8 @@ function rowDelta(
   if (!previous) return null
   const summary = weightSummary([previous, entry])
   if (summary?.delta.kind !== 'delta') return null
-  return { deltaKg: summary.delta.deltaKg, trend: summary.delta.trend }
+  const { deltaKg, trend, previousMeasuredOn } = summary.delta
+  return { deltaKg, trend, previousMeasuredOn }
 }
 
 function headlineOf(entries: readonly WeightHistoryEntry[]): WeightHeadline | null {

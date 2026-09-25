@@ -36,7 +36,7 @@ describe('weightHistory — état de l’écran', () => {
 })
 
 describe('weightHistory — delta du poids actuel', () => {
-  it('compare au mois de la pesée précédente quand le poids monte', () => {
+  it('compare à la date de la pesée précédente quand le poids monte', () => {
     const history = weightHistory([entry(24, '2026-08-09'), entry(24.5, '2026-11-08')], null)
 
     expect(history.headline).toEqual({
@@ -53,7 +53,7 @@ describe('weightHistory — delta du poids actuel', () => {
     expect(history.headline).toMatchObject({ kind: 'vs', deltaKg: -0.3, trend: 'down' })
   })
 
-  it('dit « nul » sans mois quand rien ne bouge à la décimale près', () => {
+  it('dit « nul » sans date quand rien ne bouge à la décimale près', () => {
     const history = weightHistory([entry(24.5, '2026-08-09'), entry(24.54, '2026-11-08')], null)
 
     expect(history.headline).toEqual({ kind: 'flat' })
@@ -84,11 +84,11 @@ describe('weightHistory — liste « Toutes les pesées »', () => {
     expect(rows[0]).toMatchObject({ id: milo[5]!.id, weightKg: 24.5 })
   })
 
-  it('donne à chaque ligne son delta par rapport à la pesée immédiatement précédente', () => {
+  it('donne à chaque ligne son delta par rapport à la pesée immédiatement précédente, datée', () => {
     const rows = weightHistory(milo, null).rows
 
     expect(rows.map((row) => row.delta?.deltaKg)).toEqual([0.2, 0.1, 0.2, 0.2, 0.2, undefined])
-    expect(rows[0]!.delta).toEqual({ deltaKg: 0.2, trend: 'up' })
+    expect(rows[0]!.delta).toEqual({ deltaKg: 0.2, trend: 'up', previousMeasuredOn: '2026-10-11' })
   })
 
   it('laisse la toute première pesée sans delta', () => {
@@ -104,8 +104,8 @@ describe('weightHistory — liste « Toutes les pesées »', () => {
     ).rows
 
     expect(rows.map((row) => row.delta)).toEqual([
-      { deltaKg: 0, trend: 'flat' },
-      { deltaKg: -0.3, trend: 'down' },
+      { deltaKg: 0, trend: 'flat', previousMeasuredOn: '2026-09-13' },
+      { deltaKg: -0.3, trend: 'down', previousMeasuredOn: '2026-08-09' },
       null,
     ])
   })

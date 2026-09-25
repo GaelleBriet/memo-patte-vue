@@ -11,11 +11,18 @@ import {
   type WeightTrend,
 } from '../logic/weight-history'
 import { useWeightEntries } from '../composables/use-weight-entries'
+import { useToday } from '@/core/app-lifecycle/use-today'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import PushedScreen from '@/shared/components/PushedScreen.vue'
 import SectionCard from '@/shared/components/SectionCard.vue'
 import WeightHistoryChart from '@/shared/components/WeightHistoryChart.vue'
-import { formatKg, formatKgDelta, formatLongDate, formatMonth } from '@/shared/utils/format'
+import {
+  formatDayMonthOrYear,
+  formatKg,
+  formatKgDelta,
+  formatLongDate,
+  nonBreaking,
+} from '@/shared/utils/format'
 
 const props = defineProps<{
   animalId: string
@@ -24,6 +31,7 @@ const props = defineProps<{
 const { t } = useI18n()
 const router = useRouter()
 const animals = useAnimalsStore()
+const { today } = useToday()
 
 const isSheetOpen = ref(false)
 // La première pesée remplace la carte vide par le bouton fixe : c'est lui qui reprend le focus.
@@ -74,7 +82,10 @@ function describeRow(row: WeightHistoryRow) {
     weightKg: row.weightKg,
     delta: row.delta
       ? {
-          text: t('weight.delta.value', { delta: formatKgDelta(row.delta.deltaKg) }),
+          text:
+            row.delta.trend === 'flat'
+              ? t('weight.delta.value', { delta: formatKgDelta(0) })
+              : deltaVs(row.delta.deltaKg, row.delta.previousMeasuredOn),
           trend: row.delta.trend,
         }
       : null,
@@ -91,13 +102,14 @@ function describeHeadline(value: WeightHeadline): { text: string; trend: WeightT
   if (value.kind === 'flat') {
     return { text: t('weight.delta.value', { delta: formatKgDelta(0) }), trend: 'flat' }
   }
-  return {
-    text: t('weight.delta.vs', {
-      delta: formatKgDelta(value.deltaKg),
-      month: formatMonth(value.previousMeasuredOn),
-    }),
-    trend: value.trend,
-  }
+  return { text: deltaVs(value.deltaKg, value.previousMeasuredOn), trend: value.trend }
+}
+
+function deltaVs(deltaKg: number, previousMeasuredOn: string): string {
+  return t('weight.delta.vs', {
+    delta: formatKgDelta(deltaKg),
+    date: nonBreaking(formatDayMonthOrYear(previousMeasuredOn, today.value)),
+  })
 }
 
 onMounted(() => {
