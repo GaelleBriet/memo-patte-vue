@@ -141,7 +141,7 @@ describe('vaccinationDetailTexts', () => {
     ).toEqual({
       subtitle: 'Vaccin · Boree',
       due: { date: '26 août 2027', delay: { text: 'dans 11 mois', overdue: false } },
-      doneLabel: 'C’est fait : noter l’injection de Carré pour Boree',
+      doneLabel: 'C’est fait : noter l’injection de Carré pour Boree et choisir le prochain rappel',
       counter: '3',
     })
   })
@@ -190,9 +190,25 @@ describe('vaccinationDeleteTexts', () => {
       text: 'Ses injections et ses rappels seront supprimés du carnet. Cette action est définitive.',
       cancel: 'Annuler',
       confirm: 'Supprimer',
-      deleted: 'Carré supprimé',
+      deleted: 'Vaccin Carré supprimé',
       failed: 'Carré n’a pas pu être supprimé. Réessaie.',
     })
+  })
+
+  it('dit en anglais que c’est sa seule injection, et invite à choisir le rappel', () => {
+    applyLocale('en')
+
+    expect(vaccinationDeleteTexts(t, 'Carré', { onlyInjection: true })).toMatchObject({
+      text: 'This is its only injection: the Carré vaccine will be deleted, along with its reminders. This can’t be undone.',
+      deleted: 'Carré vaccine deleted',
+    })
+    expect(
+      vaccinationDetailTexts(
+        t,
+        { name: 'Carré', dueDate: null },
+        { animal: 'Boree', today: TODAY, injections: 1 },
+      ).doneLabel,
+    ).toBe('Done: log the Carré injection for Boree and choose the next reminder')
   })
 
   it('explique que supprimer la seule injection supprime le vaccin', () => {

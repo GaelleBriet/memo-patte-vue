@@ -337,7 +337,7 @@ describe('VaccinationDetailView — suppression du vaccin', () => {
     await flushPromises()
 
     expect(remove).toHaveBeenCalledWith(CARRE.id)
-    expect(toastMessage.value).toBe('Carré supprimé')
+    expect(toastMessage.value).toBe('Vaccin Carré supprimé')
     expect(back).toHaveBeenCalled()
   })
 

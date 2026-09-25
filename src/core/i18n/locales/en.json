@@ -193,7 +193,7 @@
       "back": "Back to health record",
       "nextReminder": "Next reminder",
       "noReminder": "No reminder set",
-      "doneLabel": "Done: log the {name} injection for {animal}",
+      "doneLabel": "Done: log the {name} injection for {animal} and choose the next reminder",
       "injections": "Injections",
       "chosen": {
         "oneYear": "Reminder set: in 1 year",
@@ -209,7 +209,7 @@
         "undoRemove": "Undo deleting the injection on {date}",
         "moved": "Injection moved to {date}",
         "undoMove": "Undo the injection date change",
-        "deleted": "{name} deleted"
+        "deleted": "{name} vaccine deleted"
       },
       "menu": {
         "remove": "Delete this vaccine"
@@ -217,7 +217,7 @@
       "deleteDialog": {
         "title": "Delete {name}?",
         "text": "Its injections and reminders will be deleted from the health record. This can’t be undone.",
-        "onlyInjection": "It’s its only injection: the {name} vaccine will be deleted, along with its reminders. This can’t be undone.",
+        "onlyInjection": "This is its only injection: the {name} vaccine will be deleted, along with its reminders. This can’t be undone.",
         "cancel": "Cancel",
         "confirm": "Delete"
       },
@@ -348,7 +348,7 @@
       "doses": "Doses",
       "since": "{n} since {month}",
       "last": "Last dose",
-      "setDose": "Set the dose for {date}",
+      "setDose": "Set the next dose for {date}",
       "showPrevious": "Show the previous dose | Show the {n} previous doses",
       "hidePrevious": "Hide previous doses",
       "year": "{year} · {n} dose | {year} · {n} doses",
@@ -364,7 +364,7 @@
         "undoRemove": "Undo deleting the dose on {date}",
         "moved": "Dose moved to {date}",
         "undoMove": "Undo the dose date change",
-        "deleted": "{name} deleted"
+        "deleted": "{name} treatment deleted"
       },
       "menu": {
         "remove": "Delete this treatment"
@@ -372,7 +372,7 @@
       "deleteDialog": {
         "title": "Delete {name}?",
         "text": "Its doses and reminders will be deleted from the health record. This can’t be undone.",
-        "onlyDose": "It’s its only dose: the {name} treatment will be deleted, along with its reminders. This can’t be undone.",
+        "onlyDose": "This is its only dose: the {name} treatment will be deleted, along with its reminders. This can’t be undone.",
         "cancel": "Cancel",
         "confirm": "Delete"
       },

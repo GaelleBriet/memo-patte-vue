@@ -193,7 +193,7 @@
       "back": "Retour au carnet",
       "nextReminder": "Prochain rappel",
       "noReminder": "Pas de rappel programmé",
-      "doneLabel": "C’est fait : noter l’injection de {name} pour {animal}",
+      "doneLabel": "C’est fait : noter l’injection de {name} pour {animal} et choisir le prochain rappel",
       "injections": "Injections",
       "chosen": {
         "oneYear": "Rappel choisi : dans 1 an",
@@ -209,7 +209,7 @@
         "undoRemove": "Annuler la suppression de l’injection du {date}",
         "moved": "Injection déplacée au {date}",
         "undoMove": "Annuler le changement de date de l’injection",
-        "deleted": "{name} supprimé"
+        "deleted": "Vaccin {name} supprimé"
       },
       "menu": {
         "remove": "Supprimer ce vaccin"
@@ -364,7 +364,7 @@
         "undoRemove": "Annuler la suppression de la prise du {date}",
         "moved": "Prise déplacée au {date}",
         "undoMove": "Annuler le changement de date de la prise",
-        "deleted": "{name} supprimé"
+        "deleted": "Traitement {name} supprimé"
       },
       "menu": {
         "remove": "Supprimer ce traitement"

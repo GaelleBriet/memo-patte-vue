@@ -370,7 +370,7 @@ describe('TreatmentDetailView — prise supprimée ou redatée', () => {
     await flushPromises()
 
     expect(remove).toHaveBeenCalledWith(BRAVECTO.id)
-    expect(toastMessage.value).toBe('Bravecto supprimé')
+    expect(toastMessage.value).toBe('Traitement Bravecto supprimé')
     expect(back).toHaveBeenCalled()
   })
 })

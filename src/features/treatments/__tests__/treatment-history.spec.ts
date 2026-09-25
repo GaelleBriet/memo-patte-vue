@@ -186,7 +186,7 @@ describe('treatmentDetailTexts', () => {
     ).toMatchObject({
       subtitle: 'Dewormer · Boree',
       counter: '4 since May 2026',
-      headDetail: 'Set the dose for Sep 28',
+      headDetail: 'Set the next dose for Sep 28',
     })
   })
 })
@@ -228,8 +228,17 @@ describe('treatmentDeleteTexts', () => {
       text: 'Ses prises et ses rappels seront supprimés du carnet. Cette action est définitive.',
       cancel: 'Annuler',
       confirm: 'Supprimer',
-      deleted: 'Bravecto supprimé',
+      deleted: 'Traitement Bravecto supprimé',
       failed: 'Bravecto n’a pas pu être supprimé. Réessaie.',
+    })
+  })
+
+  it('dit en anglais que c’est sa seule prise', () => {
+    applyLocale('en')
+
+    expect(treatmentDeleteTexts(t, 'Bravecto', { onlyDose: true })).toMatchObject({
+      text: 'This is its only dose: the Bravecto treatment will be deleted, along with its reminders. This can’t be undone.',
+      deleted: 'Bravecto treatment deleted',
     })
   })
 
