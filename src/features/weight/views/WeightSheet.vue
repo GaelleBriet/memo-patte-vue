@@ -2,7 +2,12 @@
 import { computed, nextTick, ref, useId, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
-import { emptyWeightFormValues, validateWeightForm } from '../logic/weight-form'
+import {
+  emptyWeightFormValues,
+  validateWeightForm,
+  weightFormValuesFrom,
+} from '../logic/weight-form'
+import type { WeightEntry } from '../schema/weight.schema'
 import { useWeightStore } from '../store/weight.store'
 import { useToday } from '@/core/app-lifecycle/use-today'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
@@ -10,12 +15,20 @@ import AnimalChipSelector, { type AnimalChipItem } from '@/shared/components/Ani
 import BottomSheet from '@/shared/components/BottomSheet.vue'
 import { focusFirstInvalid } from '@/shared/form/focus-first-invalid'
 import { useFormValidation } from '@/shared/form/use-form-validation'
+import { formatDayMonthOrYear } from '@/shared/utils/format'
+import { showUndoableToast } from '@/shared/utils/toast'
 
 const props = defineProps<{
   /** Animal déjà identifié par le contexte d'ouverture (Carnet) ; `null` ou absent : à choisir. */
   animalId?: string | null
+  /** Pesée à corriger ; absente, la feuille en ajoute une. */
+  entry?: WeightEntry | null
   /** Reçoit le focus à la fermeture si le contrôle qui a ouvert la feuille a disparu. */
   focusFallback?: HTMLElement | null
+}>()
+
+const emit = defineEmits<{
+  created: [entry: WeightEntry]
 }>()
 
 const open = defineModel<boolean>({ default: false })
@@ -24,43 +37,52 @@ const { t } = useI18n()
 const animals = useAnimalsStore()
 const weight = useWeightStore()
 
-const values = ref(emptyWeightFormValues(props.animalId ?? null))
+const values = ref(initialValues())
 const { errors, validate, reset } = useFormValidation(values, validateWeightForm)
 const animalErrorId = useId()
 const weightErrorId = useId()
 const dateErrorId = useId()
-const saveFailed = ref(false)
-const isSubmitting = ref(false)
+const errorKey = ref<string | null>(null)
+const pending = ref<'save' | 'delete' | null>(null)
+const isSubmitting = computed(() => pending.value !== null)
 const { today, refresh: refreshToday } = useToday()
 const weightInput = ref<{ focus: () => void } | null>(null)
 const form = useTemplateRef<HTMLElement>('form')
 
-const needsAnimal = computed(() => !props.animalId)
+const knownAnimalId = computed(() => props.entry?.animalId ?? props.animalId ?? null)
+const needsAnimal = computed(() => knownAnimalId.value === null)
 const isLocked = computed(() => needsAnimal.value && values.value.animalId === null)
+const title = computed(() => (props.entry ? t('weight.form.editTitle') : t('weight.form.title')))
 const subtitle = computed(() => {
-  const name = props.animalId ? animals.byId(props.animalId)?.name : null
+  const name = knownAnimalId.value ? animals.byId(knownAnimalId.value)?.name : null
   return name ? t('weight.form.forAnimal', { name }) : null
 })
 const chips = computed<AnimalChipItem[]>(() =>
   animals.animals.map((animal) => ({ id: animal.id, name: animal.name })),
 )
 const submitLabel = computed(() =>
-  isSubmitting.value ? t('weight.form.submitting') : t('weight.form.submit'),
+  pending.value === 'save' ? t('weight.form.submitting') : t('weight.form.submit'),
 )
 
-// Chaque ouverture repart d'un formulaire vierge : la feuille ne garde aucune saisie.
+function initialValues() {
+  return props.entry
+    ? weightFormValuesFrom(props.entry)
+    : emptyWeightFormValues(props.animalId ?? null)
+}
+
+// Chaque ouverture repart de la pesée enregistrée, ou d'un formulaire vierge : aucune saisie gardée.
 watch(
   open,
   (isOpen) => {
     if (!isOpen) return
     refreshToday()
-    values.value = emptyWeightFormValues(props.animalId ?? null)
+    values.value = initialValues()
     reset()
-    saveFailed.value = false
+    errorKey.value = null
     if (!animals.hasLoaded) void animals.load()
-    // Animal connu : le clavier s'ouvre sur le poids, la saisie tient en deux taps.
+    // Ajout pour un animal connu : le clavier s'ouvre sur le poids, la saisie tient en deux taps.
     // Sans animal, les champs sont verrouillés : rien à focaliser.
-    if (!needsAnimal.value) void nextTick(() => weightInput.value?.focus())
+    if (!needsAnimal.value && !props.entry) void nextTick(() => weightInput.value?.focus())
   },
   { immediate: true },
 )
@@ -75,16 +97,46 @@ async function submit(): Promise<void> {
     return
   }
 
-  isSubmitting.value = true
-  saveFailed.value = false
+  pending.value = 'save'
+  errorKey.value = null
 
   try {
-    await weight.create(result.data)
+    if (props.entry) {
+      const { weightKg, measuredOn } = result.data
+      await weight.update(props.entry.id, { weightKg, measuredOn })
+    } else {
+      emit('created', await weight.create(result.data))
+    }
     open.value = false
   } catch {
-    saveFailed.value = true
+    errorKey.value = 'weight.form.errors.save'
   } finally {
-    isSubmitting.value = false
+    pending.value = null
+  }
+}
+
+async function remove(): Promise<void> {
+  const entry = props.entry
+  if (isSubmitting.value || !entry) return
+
+  pending.value = 'delete'
+  errorKey.value = null
+
+  try {
+    await weight.remove(entry.id)
+    open.value = false
+    const date = formatDayMonthOrYear(entry.measuredOn, today.value)
+    showUndoableToast(t('weight.form.toast.deleted', { date }), {
+      label: t('reminderSheet.undo'),
+      ariaLabel: t('weight.form.toast.undoDelete', { date }),
+      undo: () => weight.undoRemove(entry.id),
+      onUndone: () => {},
+      failedMessage: t('reminderSheet.undoFailed'),
+    })
+  } catch {
+    errorKey.value = 'weight.form.errors.delete'
+  } finally {
+    pending.value = null
   }
 }
 </script>
@@ -94,7 +146,7 @@ async function submit(): Promise<void> {
   <BottomSheet
     v-model="open"
     class="weight-sheet"
-    :title="t('weight.form.title')"
+    :title="title"
     :subtitle="subtitle"
     :close-label="t('weight.form.close')"
     :show-close="needsAnimal"
@@ -184,8 +236,8 @@ async function submit(): Promise<void> {
       </div>
     </div>
 
-    <p v-if="saveFailed" class="weight-sheet__save-error" role="alert">
-      {{ t('weight.form.errors.save') }}
+    <p v-if="errorKey" class="weight-sheet__save-error" role="alert">
+      {{ t(errorKey) }}
     </p>
 
     <v-btn
@@ -204,6 +256,13 @@ async function submit(): Promise<void> {
       />
       {{ submitLabel }}
     </v-btn>
+
+    <div v-if="entry" class="weight-sheet__footer">
+      <button type="button" class="weight-sheet__delete" :disabled="isSubmitting" @click="remove">
+        <v-icon icon="ms:delete" size="22" />
+        <span>{{ t('weight.form.delete') }}</span>
+      </button>
+    </div>
   </BottomSheet>
 </template>
 
@@ -313,5 +372,38 @@ async function submit(): Promise<void> {
 .weight-sheet__submit.v-btn--disabled {
   background: tokens.$color-disabled-surface;
   color: tokens.$color-disabled-text;
+}
+
+.weight-sheet__footer {
+  margin-top: 14px;
+  padding-top: 6px;
+  border-top: 1px solid tokens.$color-divider;
+}
+
+.weight-sheet__delete {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: tokens.$size-tap-target;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: tokens.$color-text-secondary;
+  font-family: inherit;
+  font-size: 15.5px;
+  font-weight: 600;
+  text-align: start;
+  cursor: pointer;
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.6;
+  }
+
+  &:focus-visible {
+    outline: none;
+    color: rgb(var(--v-theme-on-surface));
+  }
 }
 </style>
