@@ -245,7 +245,8 @@ toutes les tables, sauterait pour toujours une ligne écrite côté serveur pend
 suivante ; et un parent sauté bloquerait ensuite chacun de ses enfants sur la clé étrangère locale.
 Un enfant tiré avant son parent, écrit pendant la passe, fait échouer sa page sur cette clé : rien
 n'avance, et le cycle suivant tire le parent puis l'enfant. Les rappels ne sont reconstruits que si
-une table de rappels a ramené une ligne plus récente que son curseur.
+une table de rappels a avancé son curseur, et ils le sont même si la suite du pull échoue : une ligne
+passée derrière son curseur ne reviendra pas au cycle suivant.
 
 _Déclencheurs_ : lancement (après `authStore.restore()`), retour au premier plan (`onAppResume`, déjà
 là), debounce après écriture, retour du réseau, connexion réussie.
@@ -292,12 +293,13 @@ Android » du ticket est couvert par le seul lancement. Les identifiants de noti
 empreintes déterministes d'une clé stable (`reminderNotificationId`), pas des numéros stockés en
 base : rien ne devient périmé après réinstallation, contrairement à ce que craint la note de #41.
 
-Reste à faire : appeler `syncAllReminders()` à la fin de tout cycle dont le pull a touché `animal`
-(le prénom est dans le texte), `vaccination`, `treatment` ou l'une de leurs injections ou prises
-(l'échéance vit sur l'événement, un « fait » reçu doit reprogrammer), et à la fin d'une
-restauration, plus les tests du CA. Le point d'injection `provideFullReminderSync` existe. À garder en tête : les cycles
-lointains d'un traitement ne sont programmés que sur 60 jours / 400 rappels, « chaque synchro remplit
-la suite » — raison de plus pour reconstruire après chaque pull, pas seulement après restauration.
+Fait depuis #39 et #383 : `syncAllReminders()` est appelé à la fin de tout pull qui a ramené une
+ligne nouvelle de `animal` (le prénom est dans le texte), `vaccination`, `treatment` ou de l'une de
+leurs injections ou prises (l'échéance vit sur l'événement, un « fait » reçu doit reprogrammer),
+même si le pull échoue ensuite. Un pull qui ne ramène rien de nouveau ne reconstruit rien. Reste à
+faire : l'appel à la fin d'une restauration, plus les tests du CA. Les cycles lointains d'un
+traitement ne sont programmés que sur 60 jours / 400 rappels : cette fenêtre se remplit au lancement
+et à chaque retour au premier plan (`installRemindersSync`), pas par la synchronisation.
 
 ### 4.5 Photos (#85)
 
