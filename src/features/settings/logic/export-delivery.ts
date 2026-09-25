@@ -47,9 +47,14 @@ function writeFile(path: string, file: ExportFile, directory: Directory) {
  * accepté ne peut pas l'effacer lui-même, le destinataire lit l'URI après que l'app a rendu la main.
  */
 export async function clearExports(): Promise<void> {
-  await Filesystem.rmdir({ path: EXPORTS_DIR, directory: Directory.Cache, recursive: true }).catch(
-    () => undefined,
-  )
+  try {
+    // Le pont Capacitor journalise tout rejet natif, même rattrapé : ne pas laisser rmdir échouer.
+    const { files } = await Filesystem.readdir({ path: '', directory: Directory.Cache })
+    if (!files.some(({ name }) => name === EXPORTS_DIR)) return
+    await Filesystem.rmdir({ path: EXPORTS_DIR, directory: Directory.Cache, recursive: true })
+  } catch (cause) {
+    console.warn('Exports précédents non effacés :', cause)
+  }
 }
 
 async function share(file: ExportFile, dialogTitle: string): Promise<'shared' | 'cancelled'> {
