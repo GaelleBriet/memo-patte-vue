@@ -1,7 +1,8 @@
 import type { z } from 'zod'
 
-import { weightEntryInputSchema } from '../schema/weight.schema'
+import { weightEntryInputSchema, type WeightEntry } from '../schema/weight.schema'
 import { todayIsoDate } from '@/core/app-lifecycle/today-iso-date'
+import { formatKgInput } from '@/shared/utils/format'
 
 export interface WeightFormValues {
   /** `null` tant que l'animal n'est ni donné par le contexte ni choisi dans la feuille. */
@@ -29,6 +30,14 @@ export type WeightFormResult =
 /** La date est pré-remplie à aujourd'hui : la feuille tient sa promesse des deux taps. */
 export function emptyWeightFormValues(animalId: string | null = null): WeightFormValues {
   return { animalId, weightKg: '', measuredOn: todayIsoDate() }
+}
+
+export function weightFormValuesFrom(entry: WeightEntry): WeightFormValues {
+  return {
+    animalId: entry.animalId,
+    weightKg: formatKgInput(entry.weightKg),
+    measuredOn: entry.measuredOn,
+  }
 }
 
 function numberOrNull(value: string): number | null {
