@@ -79,7 +79,7 @@ const CARNET_LAYOUT: Layout = { height: 160, left: 8, right: 8, top: 34, bottom:
 const HISTORY_LAYOUT: Layout = { height: 190, left: 36, right: 10, top: 12, bottom: 22 }
 
 const CARNET_MARGIN = 0.3
-const TICK_STEPS = [0.1, 0.2, 0.5, 1, 2, 5, 10]
+const TICK_STEPS = [0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50]
 const TICK_PADDING = 0.1
 const MAX_TICKS = 5
 const MONTH_STEPS = [1, 2, 3, 6, 12]
@@ -412,7 +412,7 @@ export function buildCarnetWeightChart(
   return { ...chart, max, min, latest }
 }
 
-/** Graduations rondes dans l'unité affichée encadrant les pesées : trois à cinq lignes, sauf au-delà du pas de 10. */
+/** Graduations rondes dans l'unité affichée encadrant les pesées : trois à cinq lignes, sauf au-delà du pas de 50. */
 export function weightAxisTicks(min: number, max: number): number[] {
   const ticksFor = (step: number) => {
     // La division flottante rend 24,4 / 0,1 = 243,999… : sans tolérance, une graduation de trop.

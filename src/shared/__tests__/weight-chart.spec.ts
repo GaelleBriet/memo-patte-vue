@@ -11,7 +11,7 @@ import {
   type WeightChartEntry,
 } from '../domain/weight-chart'
 import { withWeightUnit } from '../domain/weight-display'
-import { toKg } from '../domain/weight-unit'
+import { fromKg, toKg } from '../domain/weight-unit'
 import { applyWeightUnit } from '../domain/weight-unit-preference'
 import i18n, { applyLocale } from '@/core/i18n'
 
@@ -789,23 +789,28 @@ describe('weightAxisTicks', () => {
     expect(weightAxisTicks(30.2, 31)).toEqual([30, 30.5, 31, 31.5])
   })
 
-  it('encadre les pesées de trois à cinq lignes, la plus basse à moins d’un pas sous la plus légère', () => {
-    for (const low of [0.9, 3.8, 12.3, 24.5, 41]) {
-      for (const range of [0, 0.05, 0.3, 1, 2.4, 7, 15, 29]) {
-        const ticks = weightAxisTicks(low, low + range)
-        const step = ticks[1]! - ticks[0]!
+  it('encadre les pesées de trois à cinq lignes en kg comme en lb, la plus basse à moins d’un pas sous la plus légère', () => {
+    for (const unit of ['kg', 'lb'] as const) {
+      for (const lowKg of [0.9, 3.8, 12.3, 24.5, 41]) {
+        for (const rangeKg of [0, 0.05, 0.3, 1, 2.4, 7, 15, 29, 45, 60]) {
+          const low = fromKg(lowKg, unit)
+          const high = fromKg(lowKg + rangeKg, unit)
+          const ticks = weightAxisTicks(low, high)
+          const step = ticks[1]! - ticks[0]!
 
-        expect(ticks.length).toBeGreaterThanOrEqual(3)
-        expect(ticks.length).toBeLessThanOrEqual(5)
-        expect(ticks[0]!).toBeLessThan(low)
-        expect(ticks[0]!).toBeGreaterThan(low - 0.1 - step - 1e-9)
-        expect(ticks.at(-1)!).toBeGreaterThan(low + range)
+          expect(ticks.length).toBeGreaterThanOrEqual(3)
+          expect(ticks.length).toBeLessThanOrEqual(5)
+          expect(ticks[0]!).toBeLessThan(low)
+          expect(ticks[0]!).toBeGreaterThan(low - 0.1 - step - 1e-9)
+          expect(ticks.at(-1)!).toBeGreaterThan(high)
+        }
       }
     }
   })
 
-  it('garde le pas de 10 kg au-delà, quitte à tracer plus de lignes', () => {
-    expect(weightAxisTicks(8, 60)).toEqual([0, 10, 20, 30, 40, 50, 60, 70])
+  it('passe au pas de 20, puis de 50, plutôt que de tracer plus de cinq lignes', () => {
+    expect(weightAxisTicks(8, 60)).toEqual([0, 20, 40, 60, 80])
+    expect(weightAxisTicks(fromKg(8, 'lb'), fromKg(60, 'lb'))).toEqual([0, 50, 100, 150])
   })
 })
 
