@@ -8,6 +8,7 @@ Tickets : #351 (H1 à H3), #352 (U1, U2). Décisions : journal du 2026-09-23 (Hi
 
 - U1 montre d'anciennes lignes des Paramètres (« Restaurer mon achat », « Export PDF » avec une puce « Plus ») : l'app garde « Restaurer mes achats » et la pastille sur l'icône (#355)
 - U2 dessine l'ancienne mini-courbe (un chiffre et une date par pesée) : le Carnet garde la courbe de #340 (plus haut, plus bas, pastille, mois), en livres
+- H1, H2, H3 et U2 écrivent la variation « +0,3 kg vs 25 août » : l'app écrit « +0,3 kg depuis le 25 août » (« +0.3 kg since Aug 25 »), l'année seulement hors de l'année en cours, variation nulle datée de même ; le bandeau du Carnet n'écrit que la variation (#385, Gaelle, 2026-09-25)
 
 ## Écarts tranchés avec Gaelle (2026-09-24)
 

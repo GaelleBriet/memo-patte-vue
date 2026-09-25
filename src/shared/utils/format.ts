@@ -35,11 +35,6 @@ export function formatKgDelta(delta: number): string {
   return `${rounded > 0 ? '+' : MINUS}${formatKg(Math.abs(rounded))}`
 }
 
-/** `août` / `August` — pour « vs août ». */
-export function formatMonth(isoDate: string): string {
-  return format(parseISO(isoDate), 'MMMM', { locale: DATE_LOCALES[currentLocale()] })
-}
-
 /** `Juin`, `Juil.`, `Sept.` / `Jun`, `Jul`, `Sep` — libellés sous une courbe. */
 export function formatMonthShort(isoDate: string): string {
   const locale = currentLocale()
@@ -76,6 +71,11 @@ export function formatDayMonthOrYear(isoDate: string, today: string): string {
   return isoDate.slice(0, 4) === today.slice(0, 4)
     ? formatDayMonth(isoDate)
     : formatLongDate(isoDate)
+}
+
+/** `25 août`, `Dec 20, 2025` d'un seul tenant : aucun retour à la ligne à l'intérieur. */
+export function nonBreaking(text: string): string {
+  return text.replaceAll(' ', '\u00a0')
 }
 
 /** `28 septembre` / `September 28` — lu par le lecteur d'écran. */
