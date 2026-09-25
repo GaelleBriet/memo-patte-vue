@@ -732,14 +732,15 @@ describe('WeightSheet — supprimer une pesée', () => {
     expect(toastMessage.value).toBe('Pesée du 20 déc. 2025 supprimée')
   })
 
-  it('remet la pesée par « Annuler »', async () => {
-    await monterEnCorrection()
+  it('remet la pesée par « Annuler », puis l’annonce à l’écran', async () => {
+    const wrapper = await monterEnCorrection()
     await supprimer()
 
     runToastAction()
     await flushPromises()
 
     expect(undoRemove).toHaveBeenCalledExactlyOnceWith(A_CORRIGER.id)
+    expect(wrapper.emitted('restored')).toEqual([[A_CORRIGER]])
   })
 
   it('dit que l’annulation n’a pas abouti', async () => {
@@ -763,6 +764,7 @@ describe('WeightSheet — supprimer une pesée', () => {
     const enregistrer = feuille().querySelector<HTMLButtonElement>('.weight-sheet__submit')
     expect(enregistrer?.disabled).toBe(true)
     expect(enregistrer?.textContent?.trim()).toBe('Enregistrer')
+    expect(enregistrer?.querySelector('.v-progress-circular')).toBeNull()
     expect(feuille().querySelector<HTMLButtonElement>('.weight-sheet__delete')?.disabled).toBe(true)
   })
 

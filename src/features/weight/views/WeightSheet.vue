@@ -29,6 +29,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   created: [entry: WeightEntry]
+  restored: [entry: WeightEntry]
 }>()
 
 const open = defineModel<boolean>({ default: false })
@@ -130,7 +131,7 @@ async function remove(): Promise<void> {
       label: t('reminderSheet.undo'),
       ariaLabel: t('weight.form.toast.undoDelete', { date }),
       undo: () => weight.undoRemove(entry.id),
-      onUndone: () => {},
+      onUndone: () => emit('restored', entry),
       failedMessage: t('reminderSheet.undoFailed'),
     })
   } catch {
@@ -248,7 +249,7 @@ async function remove(): Promise<void> {
       @click="submit"
     >
       <v-progress-circular
-        v-if="isSubmitting"
+        v-if="pending === 'save'"
         class="weight-sheet__spinner"
         indeterminate
         :size="18"
