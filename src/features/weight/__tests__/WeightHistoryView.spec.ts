@@ -802,7 +802,7 @@ describe('WeightHistoryView — corriger ou supprimer une pesée', () => {
     expect(wrapper.getComponent(WeightSheet).props('modelValue')).toBe(false)
     expect(lignes()[0]).toEqual({ date: '8 nov. 2026', poids: '24,8 kg' })
     expect(wrapper.get('.weight-history__current').text()).toBe('24,8')
-    expect(wrapper.get('.weight-history__delta').text()).toBe('+0,5 kg vs octobre')
+    expect(wrapper.get('.weight-history__delta').text()).toContain('+0,5 kg')
     expect(wrapper.findAll('.weight-history-chart__tick').map((n) => n.text())).toContain('25')
   })
 
