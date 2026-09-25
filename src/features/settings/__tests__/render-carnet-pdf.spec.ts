@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 
 import { drawWeightChart } from '../logic/pdf-weight-chart'
 import { renderCarnetPdf } from '../logic/render-carnet-pdf'
+import { PHOTO_JPEG } from './pdf-fixture'
 import { readPdf, sameColor, type PdfPath, type PdfText } from './pdf-reader'
 import type { CarnetPdfContent } from '../logic/pdf-content'
 import vuetify from '@/core/theme/vuetify'
@@ -33,7 +34,13 @@ const FULL_CONTENT: CarnetPdfContent = {
     { name: 'Rage', lastInjectionDate: '2025-01-01', dueDate: '2026-01-01', state: 'overdue' },
   ],
   treatments: [
-    { name: 'Milbémax', lastDoseDate: '2026-06-01', nextDueDate: '2026-09-01', state: 'upToDate' },
+    {
+      name: 'Milbémax',
+      lastDoseDate: '2026-06-01',
+      nextDueDate: '2026-09-01',
+      stoppedOn: null,
+      state: 'upToDate',
+    },
   ],
   weightEntries: [
     { measuredOn: '2026-01-01', weightKg: 4 },
@@ -54,9 +61,6 @@ function jours(from: string, to: string): number {
   return (Date.parse(to) - Date.parse(from)) / 86_400_000
 }
 
-const TINY_JPEG_DATA_URL =
-  'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAj/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k='
-
 describe('renderCarnetPdf', () => {
   it('rend un document non vide, sans rappel ni pesée', () => {
     const bytes = renderCarnetPdf(EMPTY_CONTENT, '0.1.24', null)
@@ -71,7 +75,7 @@ describe('renderCarnetPdf', () => {
 
   it('dessine la photo quand elle est fournie', () => {
     const withoutPhoto = renderCarnetPdf(FULL_CONTENT, '0.1.24', null)
-    const withPhoto = renderCarnetPdf(FULL_CONTENT, '0.1.24', TINY_JPEG_DATA_URL)
+    const withPhoto = renderCarnetPdf(FULL_CONTENT, '0.1.24', PHOTO_JPEG)
     expect(withPhoto.length).toBeGreaterThan(withoutPhoto.length)
   })
 
