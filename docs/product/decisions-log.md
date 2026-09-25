@@ -1763,3 +1763,11 @@ même jour peuvent en résulter, comme par la synchro (§10.7).
 2) **Textes de l'historique dans le PDF** : « Injections : » (toutes les dates, jamais regroupées),
 « Dernière prise : », « Prises précédentes : », et « N prises du A au B » pour une série de plus de
 trois prises ; en petit et en gris, en retrait sous chaque ligne.
+
+2026-09-25 — **« Ouvrir » un export enregistré** (#349, décisions de Gaelle) : plugin
+`@capawesome-team/capacitor-file-opener`, qui réutilise notre FileProvider ; seul `Documents/MémoPatte/`
+y est ajouté, aucune permission. Échec : « Aucune app n'a pu ouvrir ce fichier. Il reste dans
+Documents › MémoPatte. » ; noms lus « Ouvrir l'export JSON / CSV », « Ouvrir le PDF ». — Raison :
+maintenu, aucune permission, rien à exposer d'autre, même éditeur que le plugin Google retenu le
+2026-09-22. — Alternatives écartées : `@capacitor-community/file-opener` (expose tout le stockage, un
+seul mainteneur) ; un plugin Android maison (premier code natif du dépôt, invisible des tests).
