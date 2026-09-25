@@ -251,6 +251,13 @@ describe('AnimalFormView — poids initial en livres', () => {
     expect(create).not.toHaveBeenCalled()
   })
 
+  it('pré-remplit le poids initial avec un point, seul séparateur qu’un champ nombre accepte', async () => {
+    const wrapper = await monterEdition()
+
+    expect(champ(wrapper, 'animal-weight').attributes('type')).toBe('number')
+    expect(valeur(wrapper, 'animal-weight')).toBe('8.5')
+  })
+
   it('garde le poids initial enregistré quand seule une autre donnée change', async () => {
     applyWeightUnit('lb')
     const wrapper = await monterEdition()
