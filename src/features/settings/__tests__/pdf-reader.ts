@@ -62,7 +62,7 @@ function fontStyles(source: string): Map<string, boolean> {
   return styles
 }
 
-export type PdfPage = { texts: PdfText[]; paths: PdfPath[] }
+export type PdfPage = { texts: PdfText[]; paths: PdfPath[]; images: PdfBounds[] }
 
 function objectBody(source: string, id: string): string {
   return new RegExp(`(?:^|\\n)${id} 0 obj\\s*([\\s\\S]*?)\\nendobj`).exec(source)![1]!
@@ -116,6 +116,7 @@ function readContent(content: string, bold: Map<string, boolean>): PdfPage {
 
   const texts: PdfText[] = []
   const paths: PdfPath[] = []
+  const images: PdfBounds[] = []
   let fill = '#000000'
   let stroke = '#000000'
   let lineWidth = 0
@@ -123,6 +124,7 @@ function readContent(content: string, bold: Map<string, boolean>): PdfPage {
   let sizePt = 0
   let origin = { x: 0, y: 0 }
   let points: PdfPath['points'] = []
+  let matrix = [0, 0, 0, 0, 0, 0]
   const saved: { fill: string; stroke: string; lineWidth: number }[] = []
 
   for (const line of content.split(/\r?\n/)) {
@@ -173,6 +175,14 @@ function readContent(content: string, bold: Map<string, boolean>): PdfPage {
       case 'c':
         points.push(point(n[0]!, n[1]!), point(n[2]!, n[3]!), point(n[4]!, n[5]!))
         break
+      case 'cm':
+        matrix = n
+        break
+      case 'Do': {
+        const [width, , , height, x, y] = matrix
+        images.push(bounds([point(x!, y!), point(x! + width!, y! + height!)]))
+        break
+      }
       case 'S':
       case 'f':
       case 'f*':
@@ -183,7 +193,7 @@ function readContent(content: string, bold: Map<string, boolean>): PdfPage {
         break
     }
   }
-  return { texts, paths }
+  return { texts, paths, images }
 }
 
 export function bounds(points: readonly { x: number; y: number }[]): PdfBounds {
