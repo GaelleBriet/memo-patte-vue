@@ -19,6 +19,8 @@ const emit = defineEmits<{
 
 defineSlots<{
   default(): unknown
+  /** Au bout de la ligne du titre (menu ⋮). */
+  end?(): unknown
   actions?(): unknown
 }>()
 
@@ -73,6 +75,9 @@ function onScroll(event: Event): void {
             @click="emit('back')"
           />
           <h1 class="pushed-screen__title">{{ title }}</h1>
+          <div v-if="$slots.end" class="pushed-screen__end">
+            <slot name="end" />
+          </div>
         </div>
         <p
           v-if="subtitle"
@@ -156,6 +161,16 @@ $size-back: 48px;
 
 .pushed-screen__topbar--with-subtitle .pushed-screen__back {
   margin-block: -$size-back * 0.5;
+}
+
+.pushed-screen__topbar--with-subtitle .pushed-screen__end {
+  margin-block: -$size-back * 0.5;
+}
+
+.pushed-screen__end {
+  display: flex;
+  flex: 0 0 auto;
+  margin-inline-start: auto;
 }
 
 // Le titre et le sous-titre sont sur deux lignes flex, dont les marges ne se

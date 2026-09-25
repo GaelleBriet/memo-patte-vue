@@ -188,6 +188,43 @@
       "errors": {
         "save": "Couldn’t log the injection. Try again."
       }
+    },
+    "detail": {
+      "back": "Back to health record",
+      "nextReminder": "Next reminder",
+      "noReminder": "No reminder set",
+      "doneLabel": "Done: log the {name} injection for {animal} and choose the next reminder",
+      "injections": "Injections",
+      "chosen": {
+        "oneYear": "Reminder set: in 1 year",
+        "threeYears": "Reminder set: in 3 years",
+        "date": "Reminder set: other date, {date}",
+        "none": "Reminder set: none"
+      },
+      "options": "Options for the injection on {date}",
+      "remove": "Delete this injection",
+      "changeDateSubtitle": "Injection on {date}",
+      "toast": {
+        "removed": "Injection on {date} deleted",
+        "undoRemove": "Undo deleting the injection on {date}",
+        "moved": "Injection moved to {date}",
+        "undoMove": "Undo the injection date change",
+        "deleted": "{name} vaccine deleted"
+      },
+      "menu": {
+        "remove": "Delete this vaccine"
+      },
+      "deleteDialog": {
+        "title": "Delete {name}?",
+        "text": "Its injections and reminders will be deleted from the health record. This can’t be undone.",
+        "onlyInjection": "This is its only injection: the {name} vaccine will be deleted, along with its reminders. This can’t be undone.",
+        "cancel": "Cancel",
+        "confirm": "Delete"
+      },
+      "errors": {
+        "change": "Couldn’t save the change. Try again.",
+        "delete": "Couldn’t delete {name}. Try again."
+      }
     }
   },
   "treatments": {
@@ -302,6 +339,52 @@
         "dose": "Couldn’t log the dose. Try again.",
         "stop": "Couldn’t stop the treatment. Try again."
       }
+    },
+    "detail": {
+      "back": "Back to health record",
+      "subtitle": "{type} · {animal}",
+      "nextDose": "Next dose",
+      "doneLabel": "Done: log the {name} dose for {animal}",
+      "doses": "Doses",
+      "since": "{n} since {month}",
+      "last": "Last dose",
+      "setDose": "Set the next dose for {date}",
+      "showPrevious": "Show the previous dose | Show the {n} previous doses",
+      "hidePrevious": "Hide previous doses",
+      "year": "{year} · {n} dose | {year} · {n} doses",
+      "options": "Options for the dose on {date}",
+      "remove": "Delete this dose",
+      "changeDateSubtitle": "Dose on {date}",
+      "stopped": "Stopped on {date}. No reminders.",
+      "wasFrequency": "Was {frequency}",
+      "resumeHint": "You’ll choose the date of the next dose.",
+      "resume": "Resume this treatment",
+      "toast": {
+        "removed": "Dose on {date} deleted",
+        "undoRemove": "Undo deleting the dose on {date}",
+        "moved": "Dose moved to {date}",
+        "movedKept": "Dose moved to {date}. Next dose kept on {nextDue}, as you had postponed it.",
+        "undoMove": "Undo the dose date change",
+        "deleted": "{name} treatment deleted"
+      },
+      "menu": {
+        "remove": "Delete this treatment"
+      },
+      "deleteDialog": {
+        "title": "Delete {name}?",
+        "text": "Its doses and reminders will be deleted from the health record. This can’t be undone.",
+        "onlyDose": "This is its only dose: the {name} treatment will be deleted, along with its reminders. This can’t be undone.",
+        "cancel": "Cancel",
+        "confirm": "Delete"
+      },
+      "errors": {
+        "change": "Couldn’t save the change. Try again.",
+        "delete": "Couldn’t delete {name}. Try again."
+      }
+    },
+    "finished": {
+      "title": "Finished treatments",
+      "row": "Stopped on {date} · {n} dose | Stopped on {date} · {n} doses"
     }
   },
   "reminders": {
@@ -329,6 +412,19 @@
     "edit": "Edit",
     "undo": "Undo",
     "undoFailed": "Couldn’t undo."
+  },
+  "history": {
+    "done": "Done",
+    "moreOptions": "More options",
+    "changeDate": "Change the date",
+    "delay": {
+      "overdue": "{n} day overdue | {n} days overdue",
+      "today": "today",
+      "tomorrow": "tomorrow",
+      "days": "in {n} day | in {n} days",
+      "months": "in {n} month | in {n} months",
+      "years": "in {n} year | in {n} years"
+    }
   },
   "weight": {
     "unit": "kg",

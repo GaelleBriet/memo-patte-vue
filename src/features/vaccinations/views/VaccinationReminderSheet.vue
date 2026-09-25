@@ -14,12 +14,17 @@ import {
   nextReminderSummary,
   vaccinationSheetTexts,
 } from '../logic/vaccination-sheet'
+import type { InjectionDates } from '../repository/vaccination-injections.repository'
 import type { Vaccination } from '../schema/vaccination.schema'
 import { useVaccinationsStore } from '../store/vaccinations.store'
 import { useToday } from '@/core/app-lifecycle/use-today'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import BottomSheet from '@/shared/components/BottomSheet.vue'
-import { REMINDER_QUERY_PARAM, reminderQueryValue } from '@/shared/domain/reminder-route'
+import {
+  originQuery,
+  REMINDER_QUERY_PARAM,
+  reminderQueryValue,
+} from '@/shared/domain/reminder-route'
 import DateCalendar from '@/shared/components/DateCalendar.vue'
 import ReminderActions from '@/shared/components/ReminderActions.vue'
 import {
@@ -40,13 +45,17 @@ const props = withDefaults(
     initialInjectedOn?: string | null
     /** Écran où revenir une fois l'injection notée ; absent, la feuille reste sur l'écran qui l'a ouverte. */
     returnTo?: string | null
+    /** Injection existante déplacée à `initialInjectedOn` : seul le rappel se choisit, rien n'est écrit. */
+    redate?: boolean
   }>(),
-  { startAt: 'actions', initialInjectedOn: null, returnTo: null },
+  { startAt: 'actions', initialInjectedOn: null, returnTo: null, redate: false },
 )
 
 const emit = defineEmits<{
   /** Une injection ou son annulation a changé le vaccin. */
   changed: []
+  /** Le rappel choisi pour l'injection déplacée, avec sa nouvelle date. */
+  reminderChosen: [dates: InjectionDates]
 }>()
 
 const open = defineModel<boolean>({ default: false })
@@ -181,11 +190,16 @@ async function save(): Promise<void> {
   const current = vaccination.value
   const chosen = choice.value
   if (isSubmitting.value || current === null || chosen === null) return
+  const nextDueDate = nextReminderDate(injectionDate.value, chosen)
+  if (props.redate) {
+    emit('reminderChosen', { injectedOn: injectionDate.value, nextDueDate })
+    open.value = false
+    return
+  }
   isSubmitting.value = true
   saveFailed.value = false
   const named = { name: current.name, animal: animal.value?.name ?? '' }
   try {
-    const nextDueDate = nextReminderDate(injectionDate.value, chosen)
     const { injectionId } = await vaccinations.recordInjection(current.id, {
       injectedOn: injectionDate.value,
       nextDueDate,
@@ -208,7 +222,7 @@ async function save(): Promise<void> {
       void router.replace(await routeAfterReminderSaved({ ...saved, from: props.returnTo }))
       return
     }
-    const priming = await primingAfterReminderSaved({ ...saved, from: String(route.name ?? '') })
+    const priming = await primingAfterReminderSaved({ ...saved, ...originQuery(route) })
     if (priming) void router.replace(priming)
   } catch {
     saveFailed.value = true
@@ -249,6 +263,7 @@ async function save(): Promise<void> {
             {{ t('vaccinations.sheet.done.injectionOn', { date: formatLongDate(injectionDate) }) }}
           </span>
           <button
+            v-if="!redate"
             type="button"
             class="vaccination-reminder-sheet__change"
             :aria-label="t('vaccinations.sheet.done.changeInjectionLabel')"

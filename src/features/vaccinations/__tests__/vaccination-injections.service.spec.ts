@@ -9,7 +9,10 @@ import {
   createFakeNotifications,
   type FakeNotifications,
 } from '@/shared/__tests__/fake-notifications'
-import { createVaccinationInjectionsRepository } from '../repository/vaccination-injections.repository'
+import {
+  createVaccinationInjectionsRepository,
+  type VaccinationInjectionsRepository,
+} from '../repository/vaccination-injections.repository'
 import {
   createVaccinationsRepository,
   type VaccinationsRepository,
@@ -28,6 +31,7 @@ describe('vaccinationInjectionsService', () => {
   let vaccinations: VaccinationsRepository
   let notifications: FakeNotifications
   let service: VaccinationInjectionsService
+  let injectionsRepository: VaccinationInjectionsRepository
   let carre: string
 
   function dueDates(): string[] {
@@ -54,9 +58,10 @@ describe('vaccinationInjectionsService', () => {
       t: i18n.global.t,
       now: () => new Date(),
     })
+    injectionsRepository = createVaccinationInjectionsRepository(db)
     service = createVaccinationInjectionsService({
       vaccinations: () => vaccinations,
-      injections: () => createVaccinationInjectionsRepository(db),
+      injections: () => injectionsRepository,
       reminders,
       now: () => new Date(),
     })
@@ -112,6 +117,179 @@ describe('vaccinationInjectionsService', () => {
       dueDate: '2026-09-26',
     })
     expect(dueDates()).toEqual(['2026-09-26'])
+  })
+
+  describe('historique', () => {
+    async function noter(injectedOn: string, nextDueDate: string | null): Promise<string> {
+      return (await service.record(carre, { injectedOn, nextDueDate })).injectionId
+    }
+
+    it('supprime la dernière injection : le rappel choisi à la précédente revient', async () => {
+      const derniere = await noter('2026-09-23', '2027-09-23')
+
+      await service.remove(carre, derniere)
+
+      await expect(vaccinations.getById(carre)).resolves.toMatchObject({
+        lastInjectionDate: '2025-09-26',
+        dueDate: '2026-09-26',
+      })
+      expect(dueDates()).toEqual(['2026-09-26'])
+    })
+
+    it('refuse de supprimer la seule injection d’un vaccin', async () => {
+      await expect(service.remove(carre, carre)).rejects.toThrow('Injection non supprimée')
+
+      await expect(vaccinations.getById(carre)).resolves.not.toBeNull()
+      expect(dueDates()).toEqual(['2026-09-26'])
+    })
+
+    it('rétablit une injection supprimée et son rappel (Annuler)', async () => {
+      const derniere = await noter('2026-09-23', '2027-09-23')
+      await service.remove(carre, derniere)
+
+      await service.undoRemove(carre, derniere)
+
+      await expect(vaccinations.getById(carre)).resolves.toMatchObject({ dueDate: '2027-09-23' })
+      expect(dueDates()).toEqual(['2027-09-23'])
+    })
+
+    it('change la date de la dernière injection : un rappel à un an la suit', async () => {
+      const derniere = await noter('2026-09-23', '2027-09-23')
+
+      const avant = await service.changeDate(carre, derniere, '2026-09-20')
+
+      expect(avant).toEqual({ injectedOn: '2026-09-23', nextDueDate: '2027-09-23' })
+      await expect(vaccinations.getById(carre)).resolves.toMatchObject({
+        lastInjectionDate: '2026-09-20',
+        dueDate: '2027-09-20',
+      })
+      expect(dueDates()).toEqual(['2027-09-20'])
+    })
+
+    it('une injection ancienne déplacée après la dernière devient la tête', async () => {
+      await noter('2026-06-01', '2026-12-01')
+
+      await service.changeDate(carre, carre, '2026-09-01')
+
+      await expect(vaccinations.getById(carre)).resolves.toMatchObject({
+        lastInjectionDate: '2026-09-01',
+        dueDate: '2027-09-01',
+      })
+    })
+
+    it('remet les dates d’avant le changement (Annuler)', async () => {
+      const derniere = await noter('2026-09-23', '2026-12-01')
+      const avant = await service.changeDate(carre, derniere, '2026-09-20')
+
+      await service.undoChangeDate(carre, derniere, avant)
+
+      await expect(vaccinations.getById(carre)).resolves.toMatchObject({
+        lastInjectionDate: '2026-09-23',
+        dueDate: '2026-12-01',
+      })
+      expect(dueDates()).toEqual(['2026-12-01'])
+    })
+
+    it('refuse de dépasser le rappel « autre date » sans nouveau rappel, sans rien écrire', async () => {
+      const derniere = await noter('2026-07-27', '2026-08-26')
+
+      await expect(service.changeDate(carre, derniere, '2026-09-01')).rejects.toThrow(
+        'Prochain rappel à choisir',
+      )
+
+      await expect(vaccinations.getById(carre)).resolves.toMatchObject({
+        lastInjectionDate: '2026-07-27',
+        dueDate: '2026-08-26',
+      })
+    })
+
+    it('déplace l’injection avec le rappel choisi, en une seule écriture', async () => {
+      const derniere = await noter('2026-07-27', '2026-08-26')
+      const ecriture = vi.spyOn(injectionsRepository, 'changeDate')
+
+      const avant = await service.changeDateAndReminder(carre, derniere, {
+        injectedOn: '2026-09-01',
+        nextDueDate: '2027-09-01',
+      })
+
+      expect(avant).toEqual({ injectedOn: '2026-07-27', nextDueDate: '2026-08-26' })
+      expect(ecriture).toHaveBeenCalledExactlyOnceWith(
+        derniere,
+        { injectedOn: '2026-09-01', nextDueDate: '2027-09-01' },
+        expect.any(String),
+      )
+      await expect(vaccinations.getById(carre)).resolves.toMatchObject({
+        lastInjectionDate: '2026-09-01',
+        dueDate: '2027-09-01',
+      })
+      expect(dueDates()).toEqual(['2027-09-01'])
+    })
+
+    it('refuse une date d’injection future avec le rappel choisi, sans rien écrire', async () => {
+      const derniere = await noter('2026-07-27', '2026-08-26')
+
+      await expect(
+        service.changeDateAndReminder(carre, derniere, {
+          injectedOn: '2026-09-24',
+          nextDueDate: null,
+        }),
+      ).rejects.toThrow(ZodError)
+
+      await expect(vaccinations.getById(carre)).resolves.toMatchObject({
+        lastInjectionDate: '2026-07-27',
+      })
+    })
+
+    it.each([
+      ['une date invalide', 'pas-une-date'],
+      ['un rappel le jour de l’injection', '2026-09-01'],
+      ['un rappel avant l’injection', '2026-08-31'],
+    ])('refuse %s avec le déplacement, sans rien écrire', async (_, nextDueDate) => {
+      const derniere = await noter('2026-07-27', '2026-08-26')
+
+      await expect(
+        service.changeDateAndReminder(carre, derniere, { injectedOn: '2026-09-01', nextDueDate }),
+      ).rejects.toThrow(ZodError)
+
+      await expect(vaccinations.getById(carre)).resolves.toMatchObject({
+        lastInjectionDate: '2026-07-27',
+        dueDate: '2026-08-26',
+      })
+    })
+
+    it('accepte « Pas de rappel » avec le déplacement', async () => {
+      const derniere = await noter('2026-07-27', '2026-08-26')
+
+      await service.changeDateAndReminder(carre, derniere, {
+        injectedOn: '2026-09-01',
+        nextDueDate: null,
+      })
+
+      await expect(vaccinations.getById(carre)).resolves.toMatchObject({
+        lastInjectionDate: '2026-09-01',
+        dueDate: null,
+      })
+    })
+
+    it('refuse une date future, sans rien écrire', async () => {
+      await expect(service.changeDate(carre, carre, '2026-09-24')).rejects.toThrow(ZodError)
+
+      await expect(vaccinations.getById(carre)).resolves.toMatchObject({
+        lastInjectionDate: '2025-09-26',
+      })
+    })
+  })
+
+  it('dit l’échec d’une annulation qui n’a rien supprimé', async () => {
+    const { injectionId } = await service.record(carre, {
+      injectedOn: '2026-09-23',
+      nextDueDate: '2027-09-23',
+    })
+    await service.remove(carre, carre)
+
+    await expect(service.undo(carre, injectionId)).rejects.toThrow('Injection non annulée')
+
+    await expect(vaccinations.getById(carre)).resolves.toMatchObject({ dueDate: '2027-09-23' })
   })
 
   it('refuse une injection future, sans rien écrire', async () => {

@@ -1,6 +1,8 @@
 import { injectionOn } from '../logic/vaccination-done'
+import { injectionDatesOn, needsNewReminder } from '../logic/vaccination-history'
 import {
   getVaccinationInjectionsRepository,
+  type InjectionDates,
   type VaccinationInjectionsRepository,
 } from '../repository/vaccination-injections.repository'
 import {
@@ -17,7 +19,9 @@ type Provider<T> = () => T | Promise<T>
 
 export type VaccinationInjectionsDependencies = {
   vaccinations: Provider<Pick<VaccinationsRepository, 'getById'>>
-  injections: Provider<Pick<VaccinationInjectionsRepository, 'record' | 'remove'>>
+  injections: Provider<
+    Pick<VaccinationInjectionsRepository, 'record' | 'remove' | 'getById' | 'revive' | 'changeDate'>
+  >
   reminders: Pick<VaccinationRemindersService, 'reschedule'>
   now: () => Date
 }
@@ -39,6 +43,12 @@ const injectionInputSchema = vaccinationInputSchema
     injectedOn: lastInjectionDate,
     nextDueDate: dueDate,
   }))
+
+/** Rappel choisi avec le déplacement : une date valide, strictement après l'injection, ou aucune. */
+const redatedInjectionSchema = injectionInputSchema.refine(
+  ({ injectedOn, nextDueDate }) => nextDueDate === null || nextDueDate > injectedOn,
+  { path: ['nextDueDate'] },
+)
 
 export function createVaccinationInjectionsService({
   vaccinations,
@@ -66,9 +76,82 @@ export function createVaccinationInjectionsService({
     },
 
     async undo(vaccinationId: string, injectionId: string): Promise<void> {
-      await (await injections()).remove(injectionId, now().toISOString())
+      const removed = await (await injections()).remove(injectionId, now().toISOString())
+      if (!removed) throw new Error(`Injection non annulée : ${injectionId}`)
       await reminders.reschedule(vaccinationId)
     },
+
+    /** Lève pour la seule injection du vaccin : c'est le vaccin qu'on supprime alors. */
+    async remove(vaccinationId: string, injectionId: string): Promise<void> {
+      const removed = await (await injections()).remove(injectionId, now().toISOString())
+      if (!removed) throw new Error(`Injection non supprimée : ${injectionId}`)
+      await reminders.reschedule(vaccinationId)
+    },
+
+    async undoRemove(vaccinationId: string, injectionId: string): Promise<void> {
+      const revived = await (await injections()).revive(injectionId, now().toISOString())
+      if (!revived) throw new Error(`Injection non rétablie : ${injectionId}`)
+      await reminders.reschedule(vaccinationId)
+    },
+
+    /**
+     * Renvoie les dates d'avant, pour « Annuler ». Lève pour une date future, ou qui dépasse le
+     * rappel « autre date » : c'est `changeDateAndReminder` qui déplace alors l'injection.
+     */
+    async changeDate(
+      vaccinationId: string,
+      injectionId: string,
+      injectedOn: string,
+    ): Promise<InjectionDates> {
+      const date = vaccinationInputSchema.shape.lastInjectionDate.parse(injectedOn)
+      const injection = await requireInjection(injectionId)
+      if (needsNewReminder(injection, date)) {
+        throw new Error(`Prochain rappel à choisir : ${injectionId}`)
+      }
+
+      await writeDates(vaccinationId, injectionId, injectionDatesOn(injection, date))
+      return { injectedOn: injection.injectedOn, nextDueDate: injection.nextDueDate }
+    },
+
+    /** Date et rappel choisis ensemble, écrits d'un coup ; renvoie les dates d'avant. */
+    async changeDateAndReminder(
+      vaccinationId: string,
+      injectionId: string,
+      dates: InjectionDates,
+    ): Promise<InjectionDates> {
+      const data = redatedInjectionSchema.parse({
+        lastInjectionDate: dates.injectedOn,
+        dueDate: dates.nextDueDate,
+      })
+      const injection = await requireInjection(injectionId)
+
+      await writeDates(vaccinationId, injectionId, data)
+      return { injectedOn: injection.injectedOn, nextDueDate: injection.nextDueDate }
+    },
+
+    undoChangeDate(
+      vaccinationId: string,
+      injectionId: string,
+      previous: InjectionDates,
+    ): Promise<void> {
+      return writeDates(vaccinationId, injectionId, previous)
+    },
+  }
+
+  async function requireInjection(injectionId: string) {
+    const injection = await (await injections()).getById(injectionId)
+    if (injection === null) throw new Error(`Injection introuvable : ${injectionId}`)
+    return injection
+  }
+
+  async function writeDates(
+    vaccinationId: string,
+    injectionId: string,
+    dates: InjectionDates,
+  ): Promise<void> {
+    const changed = await (await injections()).changeDate(injectionId, dates, now().toISOString())
+    if (!changed) throw new Error(`Injection non modifiée : ${injectionId}`)
+    await reminders.reschedule(vaccinationId)
   }
 }
 

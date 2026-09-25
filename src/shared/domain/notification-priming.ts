@@ -2,7 +2,7 @@ import type { RouteLocationRaw } from 'vue-router'
 
 import { ANIMAL_NAME_QUERY_PARAM } from '@/shared/utils/animal-name-query-param'
 import { shouldShowPriming } from '@/core/notifications/permission'
-import { REMINDER_QUERY_PARAM } from './reminder-route'
+import { detailOrigin, detailRoute, REMINDER_QUERY_PARAM } from './reminder-route'
 
 export type ReminderKind = 'vaccination' | 'treatment'
 
@@ -14,7 +14,7 @@ export type SavedReminder = {
   hasDueDate: boolean
   animalName: string | null
   kind: ReminderKind
-  /** Écran où revenir : `home`, `settings` ou `animals`, le Carnet sinon. */
+  /** Écran où revenir : `home`, `settings`, `animals` ou un détail du Carnet, le Carnet sinon. */
   from?: string
   /** Rappel dont la feuille se rouvre au retour (`reminder-route.ts`). */
   reminder?: string
@@ -50,6 +50,8 @@ export function primingRouteFrom(from: string): RouteLocationRaw {
 }
 
 export function primingReturnRoute(from: unknown, reminder?: unknown): RouteLocationRaw {
+  const detail = detailOrigin(from, reminder)
+  if (detail) return detailRoute(detail)
   const name =
     typeof from === 'string' && RETURN_ROUTES.includes(from) ? from : DEFAULT_RETURN_ROUTE
   const query = reminderQuery(reminder)

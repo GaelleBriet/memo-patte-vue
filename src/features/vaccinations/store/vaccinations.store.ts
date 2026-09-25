@@ -18,6 +18,8 @@ import type {
   VaccinationUpdateInput,
 } from '../schema/vaccination.schema'
 import type { VaccinationsRepository as FullVaccinationsRepository } from '../repository/vaccinations.repository'
+import type { InjectionDates } from '../repository/vaccination-injections.repository'
+import type { VaccinationInjection } from '../schema/vaccination-injection.schema'
 import { track } from '@/core/analytics'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import { recordUsageSignal } from '@/shared/utils/usage-signals'
@@ -25,7 +27,7 @@ import { recordUsageSignal } from '@/shared/utils/usage-signals'
 // Le store ne dépend que de ce qu'il appelle : la cascade de suppression (#102) n'est pas son affaire.
 type VaccinationsRepository = Pick<
   FullVaccinationsRepository,
-  'getById' | 'listByAnimal' | 'create' | 'update' | 'remove'
+  'getById' | 'listByAnimal' | 'create' | 'update' | 'remove' | 'listInjections'
 >
 
 export type VaccinationsRepositoryProvider = () =>
@@ -48,7 +50,16 @@ export function provideVaccinationRemindersService(
   remindersProvider = next ?? (() => vaccinationRemindersService)
 }
 
-type VaccinationInjections = Pick<VaccinationInjectionsService, 'record' | 'undo'>
+type VaccinationInjections = Pick<
+  VaccinationInjectionsService,
+  | 'record'
+  | 'undo'
+  | 'remove'
+  | 'undoRemove'
+  | 'changeDate'
+  | 'changeDateAndReminder'
+  | 'undoChangeDate'
+>
 
 let injectionsProvider: () => VaccinationInjections = () => vaccinationInjectionsService
 
@@ -135,6 +146,11 @@ export const useVaccinationsStore = defineStore('vaccinations', () => {
       return (await requireRepository()).getById(id)
     },
 
+    /** Injections visibles, la tête d'abord ; la liste affichée ne change pas. */
+    async listInjections(vaccinationId: string): Promise<VaccinationInjection[]> {
+      return (await requireRepository()).listInjections(vaccinationId)
+    },
+
     /** Le vaccin déjà suivi sous ce nom par l'animal, sans changer la liste affichée. */
     async findSameName(animalId: string, name: string): Promise<Vaccination | null> {
       const list = await (await requireRepository()).listByAnimal(animalId)
@@ -190,6 +206,55 @@ export const useVaccinationsStore = defineStore('vaccinations', () => {
     async undoInjection(vaccinationId: string, injectionId: string): Promise<void> {
       await write(
         () => injectionsProvider().undo(vaccinationId, injectionId),
+        () => animalId.value,
+      )
+    },
+
+    async removeInjection(vaccinationId: string, injectionId: string): Promise<void> {
+      await write(
+        () => injectionsProvider().remove(vaccinationId, injectionId),
+        () => animalId.value,
+      )
+    },
+
+    async undoRemoveInjection(vaccinationId: string, injectionId: string): Promise<void> {
+      await write(
+        () => injectionsProvider().undoRemove(vaccinationId, injectionId),
+        () => animalId.value,
+      )
+    },
+
+    /** Renvoie les dates d'avant le changement, pour « Annuler ». */
+    async changeInjectionDate(
+      vaccinationId: string,
+      injectionId: string,
+      injectedOn: string,
+    ): Promise<InjectionDates> {
+      return write(
+        () => injectionsProvider().changeDate(vaccinationId, injectionId, injectedOn),
+        () => animalId.value,
+      )
+    },
+
+    /** Date et rappel choisis ensemble ; renvoie les dates d'avant, pour « Annuler ». */
+    async changeInjectionDateAndReminder(
+      vaccinationId: string,
+      injectionId: string,
+      dates: InjectionDates,
+    ): Promise<InjectionDates> {
+      return write(
+        () => injectionsProvider().changeDateAndReminder(vaccinationId, injectionId, dates),
+        () => animalId.value,
+      )
+    },
+
+    async undoChangeInjectionDate(
+      vaccinationId: string,
+      injectionId: string,
+      previous: InjectionDates,
+    ): Promise<void> {
+      await write(
+        () => injectionsProvider().undoChangeDate(vaccinationId, injectionId, previous),
         () => animalId.value,
       )
     },

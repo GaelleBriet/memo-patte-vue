@@ -76,6 +76,23 @@ describe('DateCalendar', () => {
     wrapper.unmount()
   })
 
+  it('rend non sélectionnables les jours exclus, dans les bornes', async () => {
+    const wrapper = await monter({
+      modelValue: '2026-09-20',
+      max: '2026-09-23',
+      excluded: ['2026-09-18'],
+    })
+
+    const actif = (jour: string) =>
+      wrapper
+        .get(`.v-date-picker-month__day .v-btn[aria-label$="${jour}"]`)
+        .attributes('disabled') === undefined
+    expect(actif(' 18 septembre 2026')).toBe(false)
+    expect(actif(' 19 septembre 2026')).toBe(true)
+    expect(actif(' 24 septembre 2026')).toBe(false)
+    wrapper.unmount()
+  })
+
   describe('mois et année au toucher du titre', () => {
     function annees(wrapper: ReturnType<typeof mount>) {
       return wrapper.findAll('.v-date-picker-years .v-btn').map((bouton) => ({

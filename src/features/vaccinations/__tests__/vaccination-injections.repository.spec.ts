@@ -9,6 +9,7 @@ import {
   type VaccinationInjectionsRepository,
 } from '../repository/vaccination-injections.repository'
 import { createVaccinationsRepository } from '../repository/vaccinations.repository'
+import type { VaccinationInjection } from '../schema/vaccination-injection.schema'
 
 vi.mock('@/core/db/sqlite', () => ({ getDb: vi.fn<() => Promise<DbClient>>() }))
 
@@ -17,6 +18,7 @@ const VASCO = '22222222-2222-4222-8222-222222222222'
 const T0 = '2026-01-01T00:00:00.000Z'
 const EARLIER = '2026-02-01T00:00:00.000Z'
 const NOW = '2026-03-01T10:00:00.000Z'
+const LATER = '2026-03-02T10:00:00.000Z'
 
 interface Tombstone {
   vaccination_id: string
@@ -229,13 +231,109 @@ describe('vaccinationInjectionsRepository — noter et annuler une injection', (
   })
 
   it('ne change pas la date d’une injection déjà annulée', async () => {
-    await injections.remove(rage, EARLIER)
+    await injections.record(injection('i1', '2026-02-20'))
+    await injections.remove('i1', EARLIER)
 
-    await injections.remove(rage, NOW)
+    await injections.remove('i1', NOW)
 
     await expect(
-      db.query('SELECT deleted_at FROM vaccination_injection WHERE id = ?', [rage]),
+      db.query('SELECT deleted_at FROM vaccination_injection WHERE id = ?', ['i1']),
     ).resolves.toEqual([{ deleted_at: EARLIER }])
+  })
+
+  function injection(
+    id: string,
+    injectedOn: string,
+    surcharges: Partial<VaccinationInjection> = {},
+  ): VaccinationInjection {
+    return {
+      id,
+      vaccinationId: rage,
+      animalId: MIETTE,
+      injectedOn,
+      nextDueDate: '2027-02-20',
+      createdAt: NOW,
+      updatedAt: NOW,
+      deletedAt: null,
+      ...surcharges,
+    }
+  }
+
+  describe('historique', () => {
+    it('liste les injections visibles d’un vaccin, la tête d’abord', async () => {
+      await injections.record(injection('ancienne', '2024-01-01'))
+      await injections.record(injection('recente', '2026-02-20'))
+      await injections.record(injection('annulee', '2026-03-01'))
+      await injections.remove('annulee', NOW)
+
+      const liste = await injections.listByVaccination(rage)
+
+      expect(liste.map(({ id }) => id)).toEqual(['recente', rage, 'ancienne'])
+      expect(liste[0]).toEqual(injection('recente', '2026-02-20'))
+    })
+
+    it('lit une injection visible, jamais une injection supprimée', async () => {
+      await injections.record(injection('i1', '2026-02-20', { nextDueDate: null }))
+
+      await expect(injections.getById('i1')).resolves.toEqual(
+        injection('i1', '2026-02-20', { nextDueDate: null }),
+      )
+      await injections.remove('i1', NOW)
+      await expect(injections.getById('i1')).resolves.toBeNull()
+    })
+
+    it('ne supprime jamais la seule injection visible d’un vaccin', async () => {
+      await expect(injections.remove(rage, NOW)).resolves.toBe(false)
+
+      await expect(lignes()).resolves.toHaveLength(1)
+    })
+
+    it('ne compte pas une injection supprimée : la restante, seule visible, est gardée', async () => {
+      await injections.record(injection('i1', '2026-02-20'))
+      await injections.remove('i1', EARLIER)
+
+      await expect(injections.remove(rage, NOW)).resolves.toBe(false)
+
+      await expect(lignes()).resolves.toEqual([
+        { id: rage, injected_on: '2025-01-01', next_due_date: null },
+      ])
+    })
+
+    it('supprime une injection quand une autre reste visible, et le dit', async () => {
+      await injections.record(injection('i1', '2026-02-20'))
+
+      await expect(injections.remove(rage, NOW)).resolves.toBe(true)
+
+      await expect(lignes()).resolves.toEqual([
+        { id: 'i1', injected_on: '2026-02-20', next_due_date: '2027-02-20' },
+      ])
+    })
+
+    it('rétablit une injection supprimée sans toucher ses dates', async () => {
+      await injections.record(injection('i1', '2026-02-20'))
+      await injections.remove('i1', EARLIER)
+
+      await expect(injections.revive('i1', NOW)).resolves.toBe(true)
+
+      await expect(injections.getById('i1')).resolves.toEqual(injection('i1', '2026-02-20'))
+      await expect(injections.revive('i1', NOW)).resolves.toBe(false)
+    })
+
+    it('change la date d’une injection et son rappel, jamais ceux d’une injection supprimée', async () => {
+      await injections.record(injection('i1', '2026-02-20'))
+
+      await expect(
+        injections.changeDate('i1', { injectedOn: '2026-02-18', nextDueDate: '2027-02-18' }, LATER),
+      ).resolves.toBe(true)
+      await expect(injections.getById('i1')).resolves.toEqual(
+        injection('i1', '2026-02-18', { nextDueDate: '2027-02-18', updatedAt: LATER }),
+      )
+
+      await injections.remove('i1', NOW)
+      await expect(
+        injections.changeDate('i1', { injectedOn: '2026-02-10', nextDueDate: null }, LATER),
+      ).resolves.toBe(false)
+    })
   })
 })
 

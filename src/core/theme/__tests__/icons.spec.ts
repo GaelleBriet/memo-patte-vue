@@ -37,7 +37,10 @@ const iconesDesMaquettes = [
   'check_circle_fill',
   'info_fill',
   'error_fill',
+  'more_vert',
   'delete',
+  'repeat',
+  'restart_alt',
 ] as const
 
 describe('registre d’icônes Material Symbols', () => {

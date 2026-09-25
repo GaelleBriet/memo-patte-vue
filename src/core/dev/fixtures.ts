@@ -6,9 +6,17 @@ import {
   type AnimalsRepository,
 } from '@/features/animals/repository/animals.repository'
 import {
+  getTreatmentDosesRepository,
+  type TreatmentDosesRepository,
+} from '@/features/treatments/repository/treatment-doses.repository'
+import {
   getTreatmentsRepository,
   type TreatmentsRepository,
 } from '@/features/treatments/repository/treatments.repository'
+import {
+  getVaccinationInjectionsRepository,
+  type VaccinationInjectionsRepository,
+} from '@/features/vaccinations/repository/vaccination-injections.repository'
 import {
   getVaccinationsRepository,
   type VaccinationsRepository,
@@ -45,11 +53,13 @@ export const EMPTY_FIXTURES_TOKEN = 'empty'
 
 const DEMO_TOKEN_PREFIX = 'maquettes'
 
-/** Seule la création est nécessaire : le module ne lit ni ne modifie rien. */
+/** Seules les écritures du carnet de démo : le module ne lit rien. */
 export interface FixturesRepositories {
   animals: Pick<AnimalsRepository, 'create'>
   vaccinations: Pick<VaccinationsRepository, 'create'>
-  treatments: Pick<TreatmentsRepository, 'create'>
+  vaccinationInjections: Pick<VaccinationInjectionsRepository, 'record'>
+  treatments: Pick<TreatmentsRepository, 'create' | 'stop'>
+  treatmentDoses: Pick<TreatmentDosesRepository, 'record'>
   weight: Pick<WeightRepository, 'create'>
 }
 
@@ -88,13 +98,39 @@ export async function applyFixtures({
 
 /** Peuple par les repositories, jamais par SQL direct : les schémas Zod valident le jeu. */
 async function seedDemoCarnet(repositories: FixturesRepositories, today: Date): Promise<void> {
+  const stamps = { createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
   for (const { animal, vaccinations, treatments, weights } of buildDemoCarnet(today)) {
     const { id: animalId } = await repositories.animals.create(animal)
-    for (const vaccination of vaccinations) {
-      await repositories.vaccinations.create({ ...vaccination, animalId })
+    for (const { history = [], ...vaccination } of vaccinations) {
+      const { id: vaccinationId } = await repositories.vaccinations.create({
+        ...vaccination,
+        animalId,
+      })
+      for (const past of history) {
+        await repositories.vaccinationInjections.record({
+          ...past,
+          ...stamps,
+          id: crypto.randomUUID(),
+          vaccinationId,
+          animalId,
+          deletedAt: null,
+        })
+      }
     }
-    for (const treatment of treatments) {
-      await repositories.treatments.create({ ...treatment, animalId })
+    for (const { history = [], stoppedOn, ...treatment } of treatments) {
+      const { id: treatmentId } = await repositories.treatments.create({ ...treatment, animalId })
+      for (const past of history) {
+        await repositories.treatmentDoses.record({
+          ...past,
+          ...stamps,
+          id: crypto.randomUUID(),
+          treatmentId,
+          animalId,
+          frequency: treatment.frequency,
+          deletedAt: null,
+        })
+      }
+      if (stoppedOn) await repositories.treatments.stop(treatmentId, stoppedOn)
     }
     for (const weight of weights) {
       await repositories.weight.create({ ...weight, animalId })
@@ -108,18 +144,28 @@ async function seedDemoCarnet(repositories: FixturesRepositories, today: Date): 
  */
 export async function applyDevFixtures(): Promise<void> {
   try {
-    const [db, animals, vaccinations, treatments, weight] = await Promise.all([
-      getDb(),
-      getAnimalsRepository(),
-      getVaccinationsRepository(),
-      getTreatmentsRepository(),
-      getWeightRepository(),
-    ])
+    const [db, animals, vaccinations, vaccinationInjections, treatments, treatmentDoses, weight] =
+      await Promise.all([
+        getDb(),
+        getAnimalsRepository(),
+        getVaccinationsRepository(),
+        getVaccinationInjectionsRepository(),
+        getTreatmentsRepository(),
+        getTreatmentDosesRepository(),
+        getWeightRepository(),
+      ])
     await applyFixtures({
       token: import.meta.env.VITE_FIXTURES,
       storage: localStorage,
       db,
-      repositories: { animals, vaccinations, treatments, weight },
+      repositories: {
+        animals,
+        vaccinations,
+        vaccinationInjections,
+        treatments,
+        treatmentDoses,
+        weight,
+      },
     })
   } catch (error) {
     console.error(`[${DEMO_CARNET_MARKER}] Fixtures de développement non appliquées :`, error)

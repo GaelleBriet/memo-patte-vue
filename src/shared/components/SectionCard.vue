@@ -71,6 +71,28 @@ defineProps<{
   padding-block: 14px;
 }
 
+// Spécificité sous celle du filet entre deux lignes : il reste entre deux lignes-boutons.
+button.section-card__row {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
+  text-align: start;
+  cursor: pointer;
+
+  @media (hover: hover) {
+    &:hover {
+      background: rgba(var(--v-theme-primary), 0.04);
+    }
+  }
+
+  &:focus-visible {
+    outline: none;
+    background: rgba(var(--v-theme-primary), 0.06);
+  }
+}
+
 .section-card__row::before {
   position: absolute;
   inset-block: 0;

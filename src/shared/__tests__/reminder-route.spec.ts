@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { createRouter, createWebHistory } from 'vue-router'
 
-import { parseReminderQuery, reminderQueryValue } from '../domain/reminder-route'
+import { originQuery, parseReminderQuery, reminderQueryValue } from '../domain/reminder-route'
 import { returnTo } from '../utils/return-to'
 
 describe('paramètre de retour vers la feuille d’un rappel', () => {
@@ -19,6 +19,20 @@ describe('paramètre de retour vers la feuille d’un rappel', () => {
     expect(parseReminderQuery('weight:w1')).toBeNull()
     expect(parseReminderQuery('treatment:')).toBeNull()
     expect(parseReminderQuery('treatment:t1:x')).toBeNull()
+  })
+})
+
+describe('originQuery', () => {
+  it('nomme l’écran courant, et le rappel de son détail quand c’est un détail', () => {
+    expect(originQuery({ name: 'home', params: {} })).toEqual({ from: 'home' })
+    expect(originQuery({ name: 'vaccination-detail', params: { id: 'v1' } })).toEqual({
+      from: 'vaccination-detail',
+      reminder: 'vaccination:v1',
+    })
+    expect(originQuery({ name: 'treatment-detail', params: { id: 't1' } })).toEqual({
+      from: 'treatment-detail',
+      reminder: 'treatment:t1',
+    })
   })
 })
 

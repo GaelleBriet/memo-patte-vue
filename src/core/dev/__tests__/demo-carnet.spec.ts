@@ -64,18 +64,15 @@ describe('buildDemoCarnet', () => {
   })
 
   it('donne à Milo un antiparasitaire trimestriel dont la prochaine dose approche', () => {
-    const { treatments } = find('Milo')
+    const bravecto = find('Milo').treatments.find(({ name }) => name === 'Bravecto')
 
-    expect(treatments).toEqual([
-      expect.objectContaining({
-        name: 'Bravecto',
-        type: 'antiparasitic',
-        frequency: { value: 3, unit: 'month' },
-      }),
-    ])
+    expect(bravecto).toMatchObject({
+      type: 'antiparasitic',
+      frequency: { value: 3, unit: 'month' },
+    })
     const daysSinceLastDose = differenceInCalendarDays(
       TODAY,
-      parseISO(treatments[0]?.lastDoseDate as string),
+      parseISO(bravecto?.lastDoseDate as string),
     )
     expect(daysSinceLastDose).toBeGreaterThan(60)
     expect(daysSinceLastDose).toBeLessThan(90)
@@ -88,6 +85,58 @@ describe('buildDemoCarnet', () => {
     expect(weights.map((weight) => weight.weightKg)).toEqual([23.6, 23.8, 24, 24.1, 24.3, 24.5])
     expect(weights.at(-1)?.measuredOn).toBe(today)
     expect(weights.at(0)?.measuredOn).toBe('2026-04-13')
+  })
+
+  it('donne à Milo un CHPPi de trois injections, les plus anciennes avant la dernière (F7)', () => {
+    const chppi = find('Milo').vaccinations.find(({ name }) => name === 'CHPPi')
+
+    expect(chppi?.history).toEqual([
+      { injectedOn: '2024-07-30', nextDueDate: '2025-07-30' },
+      { injectedOn: '2024-06-30', nextDueDate: '2024-07-30' },
+    ])
+  })
+
+  it('donne à Milo un vermifuge mensuel de plus de 12 prises, sur deux années (F8)', () => {
+    const drontal = find('Milo').treatments.find(({ name }) => name === 'Drontal')
+
+    expect(drontal).toMatchObject({
+      type: 'deworming',
+      frequency: { value: 1, unit: 'month' },
+      lastDoseDate: '2026-08-24',
+    })
+    const history = drontal?.history ?? []
+    expect(history).toHaveLength(14)
+    expect(history[0]).toEqual({ givenOn: '2026-07-24', nextDueDate: '2026-08-24' })
+    expect(history.at(-1)).toEqual({ givenOn: '2025-06-24', nextDueDate: '2025-07-24' })
+    expect(drontal?.stoppedOn).toBeUndefined()
+  })
+
+  it('donne à Milo un traitement arrêté de deux prises, tous les 15 jours (F9 ter)', () => {
+    const advocate = find('Milo').treatments.find(({ name }) => name === 'Advocate')
+
+    expect(advocate).toMatchObject({
+      type: 'antiparasitic',
+      frequency: { value: 15, unit: 'day' },
+      lastDoseDate: '2026-05-08',
+      stoppedOn: '2026-05-13',
+      history: [{ givenOn: '2026-04-23', nextDueDate: '2026-05-08' }],
+    })
+  })
+
+  it('ne date aucune prise ni injection passée après la dernière, ni dans le futur', () => {
+    for (const { vaccinations, treatments } of buildDemoCarnet(TODAY)) {
+      for (const vaccination of vaccinations) {
+        for (const { injectedOn } of vaccination.history ?? []) {
+          expect(injectedOn < vaccination.lastInjectionDate).toBe(true)
+        }
+      }
+      for (const treatment of treatments) {
+        for (const { givenOn } of treatment.history ?? []) {
+          expect(givenOn < treatment.lastDoseDate).toBe(true)
+        }
+        expect((treatment.stoppedOn ?? today) <= today).toBe(true)
+      }
+    }
   })
 
   it('date Luna relativement à aujourd’hui : chatte européenne de 3 ans, Typhus à jour', () => {

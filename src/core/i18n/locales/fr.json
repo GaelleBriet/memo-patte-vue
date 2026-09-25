@@ -188,6 +188,43 @@
       "errors": {
         "save": "L’injection n’a pas pu être notée. Réessaie."
       }
+    },
+    "detail": {
+      "back": "Retour au carnet",
+      "nextReminder": "Prochain rappel",
+      "noReminder": "Pas de rappel programmé",
+      "doneLabel": "C’est fait : noter l’injection de {name} pour {animal} et choisir le prochain rappel",
+      "injections": "Injections",
+      "chosen": {
+        "oneYear": "Rappel choisi : dans 1 an",
+        "threeYears": "Rappel choisi : dans 3 ans",
+        "date": "Rappel choisi : autre date, {date}",
+        "none": "Rappel choisi : pas de rappel"
+      },
+      "options": "Options pour l’injection du {date}",
+      "remove": "Supprimer cette injection",
+      "changeDateSubtitle": "Injection du {date}",
+      "toast": {
+        "removed": "Injection du {date} supprimée",
+        "undoRemove": "Annuler la suppression de l’injection du {date}",
+        "moved": "Injection déplacée au {date}",
+        "undoMove": "Annuler le changement de date de l’injection",
+        "deleted": "Vaccin {name} supprimé"
+      },
+      "menu": {
+        "remove": "Supprimer ce vaccin"
+      },
+      "deleteDialog": {
+        "title": "Supprimer {name} ?",
+        "text": "Ses injections et ses rappels seront supprimés du carnet. Cette action est définitive.",
+        "onlyInjection": "C’est sa seule injection : le vaccin {name} sera supprimé, avec ses rappels. Cette action est définitive.",
+        "cancel": "Annuler",
+        "confirm": "Supprimer"
+      },
+      "errors": {
+        "change": "La modification n’a pas abouti. Réessaie.",
+        "delete": "{name} n’a pas pu être supprimé. Réessaie."
+      }
     }
   },
   "treatments": {
@@ -302,6 +339,52 @@
         "dose": "La prise n’a pas pu être notée. Réessaie.",
         "stop": "Le traitement n’a pas pu être arrêté. Réessaie."
       }
+    },
+    "detail": {
+      "back": "Retour au carnet",
+      "subtitle": "{type} · {animal}",
+      "nextDose": "Prochaine dose",
+      "doneLabel": "C’est fait : noter la prise de {name} pour {animal}",
+      "doses": "Prises",
+      "since": "{n} depuis {month}",
+      "last": "Dernière prise",
+      "setDose": "A fixé la dose du {date}",
+      "showPrevious": "Voir la prise précédente | Voir les {n} prises précédentes",
+      "hidePrevious": "Masquer les prises précédentes",
+      "year": "{year} · {n} prise | {year} · {n} prises",
+      "options": "Options pour la prise du {date}",
+      "remove": "Supprimer cette prise",
+      "changeDateSubtitle": "Prise du {date}",
+      "stopped": "Arrêté le {date}. Aucun rappel.",
+      "wasFrequency": "Était {frequency}",
+      "resumeHint": "Tu choisiras la date de la prochaine dose.",
+      "resume": "Reprendre ce traitement",
+      "toast": {
+        "removed": "Prise du {date} supprimée",
+        "undoRemove": "Annuler la suppression de la prise du {date}",
+        "moved": "Prise déplacée au {date}",
+        "movedKept": "Prise déplacée au {date}. Prochaine dose gardée au {nextDue}, que tu avais reportée.",
+        "undoMove": "Annuler le changement de date de la prise",
+        "deleted": "Traitement {name} supprimé"
+      },
+      "menu": {
+        "remove": "Supprimer ce traitement"
+      },
+      "deleteDialog": {
+        "title": "Supprimer {name} ?",
+        "text": "Ses prises et ses rappels seront supprimés du carnet. Cette action est définitive.",
+        "onlyDose": "C’est sa seule prise : le traitement {name} sera supprimé, avec ses rappels. Cette action est définitive.",
+        "cancel": "Annuler",
+        "confirm": "Supprimer"
+      },
+      "errors": {
+        "change": "La modification n’a pas abouti. Réessaie.",
+        "delete": "{name} n’a pas pu être supprimé. Réessaie."
+      }
+    },
+    "finished": {
+      "title": "Traitements terminés",
+      "row": "Arrêté le {date} · {n} prise | Arrêté le {date} · {n} prises"
     }
   },
   "reminders": {
@@ -329,6 +412,19 @@
     "edit": "Modifier",
     "undo": "Annuler",
     "undoFailed": "L’annulation n’a pas abouti."
+  },
+  "history": {
+    "done": "C’est fait",
+    "moreOptions": "Plus d’options",
+    "changeDate": "Changer la date",
+    "delay": {
+      "overdue": "en retard de {n} jour | en retard de {n} jours",
+      "today": "aujourd’hui",
+      "tomorrow": "demain",
+      "days": "dans {n} jour | dans {n} jours",
+      "months": "dans {n} mois",
+      "years": "dans {n} an | dans {n} ans"
+    }
   },
   "weight": {
     "unit": "kg",

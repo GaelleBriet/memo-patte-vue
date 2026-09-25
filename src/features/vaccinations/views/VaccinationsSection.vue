@@ -94,6 +94,10 @@ function detailOf(status: VaccinationStatus, dueDate: string | null): string {
   return t('vaccinations.section.detail.validUntil', { month: formatMonthYear(dueDate) })
 }
 
+function openDetail(id: string): void {
+  void router.push({ name: 'vaccination-detail', params: { id } })
+}
+
 function addVaccination(): void {
   void router.push({ name: 'vaccination-new', params: { animalId: props.animalId } })
 }
@@ -103,26 +107,31 @@ watch(summary, (value) => emit('summary', value), { immediate: true })
 
 <template>
   <SectionCard class="vaccinations-section" :title="t('vaccinations.section.title')">
-    <div
+    <button
       v-for="row in rows"
       :key="row.id"
+      type="button"
       class="section-card__row vaccination-row"
       :class="{
         'section-card__row--overdue': row.status === 'overdue',
         'vaccination-row--overdue': row.status === 'overdue',
       }"
+      @click="openDetail(row.id)"
     >
-      <div class="vaccination-row__text">
-        <p class="vaccination-row__name">{{ row.name }}</p>
-        <p class="vaccination-row__detail">{{ row.detail }}</p>
-      </div>
-      <DueStatusChip
-        class="vaccination-row__badge"
-        :status="row.status"
-        :label="row.badge"
-        :icon="row.icon"
-      />
-    </div>
+      <span class="vaccination-row__text">
+        <span class="vaccination-row__name">{{ row.name }}</span>
+        <span class="vaccination-row__detail">{{ row.detail }}</span>
+      </span>
+      <span class="vaccination-row__end">
+        <DueStatusChip
+          class="vaccination-row__badge"
+          :status="row.status"
+          :label="row.badge"
+          :icon="row.icon"
+        />
+        <v-icon class="vaccination-row__chevron" icon="ms:chevron_right" size="22" />
+      </span>
+    </button>
 
     <p v-if="hasError" class="section-card__empty vaccinations-section__error">
       {{ t('vaccinations.section.error') }}
@@ -149,10 +158,23 @@ watch(summary, (value) => emit('summary', value), { immediate: true })
 // le badge passe dessous plutôt que le mot soit coupé en deux.
 .vaccination-row {
   flex-wrap: wrap;
+  padding-inline-end: 12px;
+}
+
+.vaccination-row__end {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-inline-start: auto;
 }
 
 .vaccination-row__badge {
   margin-inline-start: auto;
+}
+
+.vaccination-row__chevron {
+  flex: 0 0 auto;
+  color: tokens.$color-settings-chevron;
 }
 
 .vaccination-row__text {
@@ -161,6 +183,7 @@ watch(summary, (value) => emit('summary', value), { immediate: true })
 }
 
 .vaccination-row__name {
+  display: block;
   margin: 0;
   overflow-wrap: break-word;
   font-size: 15.5px;
@@ -168,6 +191,7 @@ watch(summary, (value) => emit('summary', value), { immediate: true })
 }
 
 .vaccination-row__detail {
+  display: block;
   margin: 2px 0 0;
   color: tokens.$color-text-secondary;
   font-size: 12.5px;

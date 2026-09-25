@@ -409,6 +409,40 @@ describe('useTreatmentsStore', () => {
     expect(store.treatments.map((treatment) => treatment.name)).toEqual(['Milbemax'])
   })
 
+  it('compte les prises de chaque traitement avec la liste', async () => {
+    const seme = repository.seed(vermifuge())
+    repository.countDosesByAnimal.mockResolvedValue({ [seme.id]: 14 })
+    const store = useTreatmentsStore()
+
+    await store.loadForAnimal(MILO)
+
+    expect(repository.countDosesByAnimal).toHaveBeenCalledWith(MILO)
+    expect(store.doseCounts).toEqual({ [seme.id]: 14 })
+  })
+
+  it('lit les prises d’un traitement sans changer la liste affichée', async () => {
+    repository.listDoses.mockResolvedValue([])
+    const store = useTreatmentsStore()
+
+    await expect(store.listDoses('t1')).resolves.toEqual([])
+
+    expect(repository.listDoses).toHaveBeenCalledWith('t1')
+  })
+
+  it('reprend un traitement arrêté, reprogramme ses rappels et relit la liste', async () => {
+    const seme = repository.seed(vermifuge())
+    const store = useTreatmentsStore()
+    await store.loadForAnimal(MILO)
+    repository.listByAnimal.mockClear()
+
+    const repris = await store.resume(seme.id, edition({ nextDueDate: '2026-10-01' }))
+
+    expect(repository.resume).toHaveBeenCalledWith(seme.id, edition({ nextDueDate: '2026-10-01' }))
+    expect(repris).toMatchObject({ id: seme.id, stoppedOn: null, nextDueDate: '2026-10-01' })
+    expect(reminders.reschedule).toHaveBeenCalledWith(seme.id)
+    expect(repository.listByAnimal).toHaveBeenCalledWith(MILO)
+  })
+
   it('nomme le câblage manquant quand aucun repository n’est injecté', async () => {
     provideTreatmentsRepository(null)
     const store = useTreatmentsStore()
@@ -425,6 +459,10 @@ describe('useTreatmentsStore — gestes d’un rappel', () => {
   const doses = {
     record: vi.fn<TreatmentDosesService['record']>(),
     undo: vi.fn<TreatmentDosesService['undo']>().mockResolvedValue(),
+    remove: vi.fn<TreatmentDosesService['remove']>().mockResolvedValue(),
+    undoRemove: vi.fn<TreatmentDosesService['undoRemove']>().mockResolvedValue(),
+    changeDate: vi.fn<TreatmentDosesService['changeDate']>(),
+    undoChangeDate: vi.fn<TreatmentDosesService['undoChangeDate']>().mockResolvedValue(),
   }
   const stop = {
     stop: vi.fn<TreatmentStopService['stop']>(),
@@ -477,6 +515,27 @@ describe('useTreatmentsStore — gestes d’un rappel', () => {
     expect(stop.undo).toHaveBeenCalledWith('t1')
   })
 
+  it('supprime une prise, la rétablit, change sa date puis l’annule, par son service', async () => {
+    const seme = repository.seed(vermifuge())
+    const store = useTreatmentsStore()
+    await store.loadForAnimal(MILO)
+    const avant = { givenOn: '2026-09-20', nextDueDate: '2026-12-20', frequency: seme.frequency }
+    const changement = { previous: avant, postponementKept: true }
+    doses.changeDate.mockResolvedValue(changement)
+    repository.listByAnimal.mockClear()
+
+    await store.removeDose(seme.id, 'p1')
+    await store.undoRemoveDose(seme.id, 'p1')
+    await expect(store.changeDoseDate(seme.id, 'p1', '2026-09-18')).resolves.toEqual(changement)
+    await store.undoChangeDoseDate(seme.id, 'p1', avant)
+
+    expect(doses.remove).toHaveBeenCalledWith(seme.id, 'p1')
+    expect(doses.undoRemove).toHaveBeenCalledWith(seme.id, 'p1')
+    expect(doses.changeDate).toHaveBeenCalledWith(seme.id, 'p1', '2026-09-18')
+    expect(doses.undoChangeDate).toHaveBeenCalledWith(seme.id, 'p1', avant)
+    expect(repository.listByAnimal).toHaveBeenCalledTimes(4)
+  })
+
   it('propage l’échec d’un geste', async () => {
     doses.record.mockRejectedValue(new Error('base verrouillée'))
     const store = useTreatmentsStore()
@@ -493,6 +552,9 @@ interface FakeTreatmentsRepository {
   create: Mock<TreatmentsRepository['create']>
   update: Mock<TreatmentsRepository['update']>
   remove: Mock<TreatmentsRepository['remove']>
+  resume: Mock<TreatmentsRepository['resume']>
+  listDoses: Mock<TreatmentsRepository['listDoses']>
+  countDosesByAnimal: Mock<TreatmentsRepository['countDosesByAnimal']>
 }
 
 // Même contrat que `treatments.repository.ts`, sans SQLite. `update` remplace l'objet : la liste du store ne bouge que si elle est relue.
@@ -554,5 +616,13 @@ function createFakeRepository(): FakeTreatmentsRepository {
       const treatment = living().find((candidate) => candidate.id === id)
       if (treatment) treatment.deletedAt = new Date().toISOString()
     }),
+    resume: vi.fn<TreatmentsRepository['resume']>(async (id, input) => {
+      const treatment = living().find((candidate) => candidate.id === id)
+      if (!treatment) throw new Error(`Traitement introuvable : ${id}`)
+      Object.assign(treatment, { ...input, stoppedOn: null })
+      return { ...treatment }
+    }),
+    listDoses: vi.fn<TreatmentsRepository['listDoses']>(async () => []),
+    countDosesByAnimal: vi.fn<TreatmentsRepository['countDosesByAnimal']>(async () => ({})),
   }
 }
