@@ -168,6 +168,17 @@ describe('parseExportFile', () => {
     expect(parseExportFile(text)).toEqual({ ok: false, reason: 'invalid' })
   })
 
+  it.each([
+    ['un vaccin', 'vaccinationInjections'],
+    ['un traitement', 'treatmentDoses'],
+  ])('refuse %s sans aucun événement dans le fichier', (_, table) => {
+    const text = withDocument((document) => {
+      document[table] = (document[table] as Record<string, unknown>[]).slice(1)
+    })
+
+    expect(parseExportFile(text)).toEqual({ ok: false, reason: 'invalid' })
+  })
+
   it('refuse une entrée rattachée à un animal absent du fichier', () => {
     const text = withDocument((document) => {
       document.animals = (document.animals as Record<string, unknown>[]).filter(

@@ -165,6 +165,14 @@ const exportFileSchema = z
       ...file.weightEntries,
     ].every((row) => animalIds.has(row.animalId))
   })
+  .refine((file) => {
+    const injected = new Set(file.vaccinationInjections.map(({ vaccinationId }) => vaccinationId))
+    const dosed = new Set(file.treatmentDoses.map(({ treatmentId }) => treatmentId))
+    return (
+      file.vaccinations.every(({ id }) => injected.has(id)) &&
+      file.treatments.every(({ id }) => dosed.has(id))
+    )
+  })
 
 const versionSchema = z.object({ schemaVersion: z.number().int().positive() })
 

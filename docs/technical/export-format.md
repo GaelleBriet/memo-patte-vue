@@ -234,9 +234,10 @@ jouer, réutilisable par la synchronisation Plus). Les types de lignes partagés
     200 caractères, espaces de bord retirées, race vide lue comme absente ;
   - `schemaVersion` supérieur à celui que l'app connaît → « Cet export vient d'une version plus
     récente de l'app. », vérifié avant le reste du contenu ;
-  - identifiant en double dans une table, ou entrée (événements compris) dont l'`animalId` n'est
-    pas dans `animals[]` → fichier refusé en entier (même message que le premier cas) : l'import
-    est tout ou rien ;
+  - identifiant en double dans une table, entrée (événements compris) dont l'`animalId` n'est
+    pas dans `animals[]`, ou vaccin ou traitement v2 sans aucun événement dans le fichier (l'app
+    n'en exporte jamais, et il ne s'afficherait pas) → fichier refusé en entier (même message que
+    le premier cas) : l'import est tout ou rien ;
   - champs inconnus ignorés, `reminders[]` jamais lu.
 - **Base locale sans animal visible** : import direct, en mode « remplacer » (rien de visible à
   perdre, et un animal supprimé avant l'import redevient visible). La ligne de Paramètres affiche
