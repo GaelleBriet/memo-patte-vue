@@ -69,6 +69,18 @@ describe('syncOutboxRepository', () => {
 
       await expect(repository.getLastPulledAt('animal')).resolves.toBe(T2)
     })
+
+    it('oublie tous les curseurs : le prochain pull repart du début, données intactes', async () => {
+      await insertAnimal(db, ANIMAL_ID, T1)
+      await repository.setLastPulledAt('animal', T2)
+      await repository.setLastPulledAt('treatment_dose', T1)
+
+      await repository.clearPullCursors()
+
+      await expect(repository.getLastPulledAt('animal')).resolves.toBeNull()
+      await expect(repository.getLastPulledAt('treatment_dose')).resolves.toBeNull()
+      await expect(db.query('SELECT id FROM animal')).resolves.toEqual([{ id: ANIMAL_ID }])
+    })
   })
 
   describe('restoring', () => {

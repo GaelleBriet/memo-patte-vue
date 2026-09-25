@@ -75,6 +75,11 @@ export function createSyncOutboxRepository(db: DbClient) {
       )
     },
 
+    /** Le prochain pull repart du début pour chaque table ; les données locales ne bougent pas. */
+    async clearPullCursors(): Promise<void> {
+      await db.run('DELETE FROM sync_pull_cursor')
+    },
+
     async isRestoring(): Promise<boolean> {
       return (await state()).restoring === 1
     },
