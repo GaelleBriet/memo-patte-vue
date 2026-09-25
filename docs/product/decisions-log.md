@@ -1717,3 +1717,22 @@ confirmation pour une action réversible.
 définitive. » (« Ses prises… » pour un traitement), et pour la seule injection ou prise « C'est sa seule
 injection : le vaccin Carré sera supprimé, avec ses rappels. Cette action est définitive. » · Annuler ·
 Supprimer (couleur `error`). — Raison : action irréversible, sans toast « Annuler ».
+
+2026-09-25 — **« Changer la date » d'une prise ou d'une injection passée** (#381, décisions de Gaelle).
+
+1) **Prise d'un traitement** : un report manuel de la prochaine dose est **gardé**. La prochaine dose
+n'est recalculée (nouvelle date + fréquence) que si elle valait encore « ancienne date + fréquence », ou
+si le report ne tombe plus strictement après la nouvelle date (une prochaine dose ne précède jamais la
+dernière prise). Quand le report est gardé et que la prise reste la dernière, **le toast le dit** :
+« Prise déplacée au 27 août. Prochaine dose gardée au 15 déc., que tu avais reportée. » · Annuler. Une
+prise qui devient la dernière d'un traitement en cours prend la fréquence du plan. — Raison : la spec
+(§10.4) ne laisse jamais un report manuel s'effacer en silence. — Alternatives écartées : toujours
+recalculer (le report disparaît, « Annuler » seul pour le rattraper) ; une mention permanente
+« Reportée à la main » dans le détail (un élément de plus, sans maquette).
+
+2) **Injection d'un vaccin** déplacée le jour même de son rappel « autre date » ou après : l'app
+**redemande le prochain rappel** (Dans 1 an · Dans 3 ans · Autre date · Pas de rappel) ; le déplacement
+n'est enregistré qu'avec ce nouveau rappel, dans la même écriture ; fermer sans choisir ne change rien.
+Un rappel « dans 1 an / 3 ans » suit la nouvelle date sans question. — Raison : un rappel antérieur à
+son injection ferait naître le vaccin en retard. — Alternatives écartées : bloquer ces jours dans le
+calendrier ; garder le rappel tel quel.
