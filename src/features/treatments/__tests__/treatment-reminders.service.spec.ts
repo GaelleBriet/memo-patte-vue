@@ -120,6 +120,41 @@ describe('treatmentRemindersService', () => {
     expect(notifications.scheduleReminders.mock.calls[0]![0].length).toBeGreaterThan(10)
   })
 
+  it('retire du volet la notification affichée de l’échéance que la prise a notée', async () => {
+    const shown = `treatment:${MILBEMAX.id}:2026-07-15:due`
+    notifications.pending.set(shown, {
+      key: shown,
+      title: '',
+      body: '',
+      at: new Date(2026, 6, 15, 9),
+    })
+
+    await service.reschedule(MILBEMAX.id)
+
+    expect(notifications.removeDelivered).toHaveBeenCalledExactlyOnceWith([
+      notifications.idOf(shown),
+    ])
+  })
+
+  it('laisse dans le volet la notification d’une échéance encore à faire', async () => {
+    getTreatment.mockResolvedValue({
+      ...MILBEMAX,
+      lastDoseDate: '2026-06-10',
+      nextDueDate: '2026-09-10',
+    })
+    const shown = `treatment:${MILBEMAX.id}:2026-09-10:due`
+    notifications.pending.set(shown, {
+      key: shown,
+      title: '',
+      body: '',
+      at: new Date(2026, 8, 10, 9),
+    })
+
+    await service.reschedule(MILBEMAX.id)
+
+    expect(notifications.removeDelivered).not.toHaveBeenCalled()
+  })
+
   it('ne lit pas la base sans permission', async () => {
     notifications.checkPermission.mockResolvedValue(false)
 

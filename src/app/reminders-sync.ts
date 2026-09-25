@@ -10,20 +10,26 @@ import {
   type AnimalsRepository,
 } from '@/features/animals/repository/animals.repository'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
-import { treatmentReminders } from '@/features/treatments/logic/treatment-reminders'
+import { isDoseNoted, treatmentReminders } from '@/features/treatments/logic/treatment-reminders'
+import type { Treatment } from '@/features/treatments/schema/treatment.schema'
 import {
   getTreatmentsRepository,
   type TreatmentsRepository,
 } from '@/features/treatments/repository/treatments.repository'
-import { vaccinationReminders } from '@/features/vaccinations/logic/vaccination-reminders'
+import {
+  isInjectionNoted,
+  vaccinationReminders,
+} from '@/features/vaccinations/logic/vaccination-reminders'
+import type { Vaccination } from '@/features/vaccinations/schema/vaccination.schema'
 import {
   getVaccinationsRepository,
   type VaccinationsRepository,
 } from '@/features/vaccinations/repository/vaccinations.repository'
-import type { Translate } from '@/shared/domain/due-reminders'
+import { dueReminderEntryKey, type Translate } from '@/shared/domain/due-reminders'
 import {
   enqueueReminderTask,
   MAX_SCHEDULED_REMINDERS,
+  notedDeliveredIds,
   pendingTime,
   provideFullReminderSync,
   reminderNotifications,
@@ -50,27 +56,51 @@ function remindersOf<T extends { id: string }>(
   return reminders
 }
 
-function fingerprint(key: string | undefined, time: number | null, title: string, body: string) {
-  return JSON.stringify([key, time, title, body])
+/** Le bouton en fait partie : un rappel posé sans lui avant la mise à jour est refait. */
+function fingerprint(
+  {
+    key,
+    title,
+    body,
+    actionTypeId,
+  }: Pick<ScheduledReminder, 'key' | 'title' | 'body' | 'actionTypeId'>,
+  time: number | null,
+) {
+  return JSON.stringify([key, time, title, body, actionTypeId ?? null])
 }
 
 function isAlreadyScheduled(pending: ScheduledReminder[], wanted: Reminder[]): boolean {
   if (pending.length !== wanted.length) return false
-  const scheduled = new Set(
-    pending.map((reminder) =>
-      fingerprint(reminder.key, pendingTime(reminder), reminder.title, reminder.body),
-    ),
+  const scheduled = new Set(pending.map((reminder) => fingerprint(reminder, pendingTime(reminder))))
+  return wanted.every((reminder) => scheduled.has(fingerprint(reminder, reminder.at.getTime())))
+}
+
+function notedDue(
+  vaccinations: Vaccination[],
+  treatments: Treatment[],
+): (entry: string, dueDate: string) => boolean {
+  const entryOf = (kind: 'vaccination' | 'treatment', id: string) =>
+    dueReminderEntryKey({ kind, id })
+  const vaccinationsByEntry = new Map(
+    vaccinations.map((row) => [entryOf('vaccination', row.id), row]),
   )
-  return wanted.every(({ key, at, title, body }) =>
-    scheduled.has(fingerprint(key, at.getTime(), title, body)),
-  )
+  const treatmentsByEntry = new Map(treatments.map((row) => [entryOf('treatment', row.id), row]))
+  return (entry, dueDate) => {
+    const vaccination = vaccinationsByEntry.get(entry)
+    if (vaccination) return isInjectionNoted(vaccination, dueDate)
+    const treatment = treatmentsByEntry.get(entry)
+    return treatment !== undefined && isDoseNoted(treatment, dueDate)
+  }
 }
 
 export type RemindersSyncDependencies = {
   animals: Provider<Pick<AnimalsRepository, 'list'>>
   vaccinations: Provider<Pick<VaccinationsRepository, 'listAll'>>
   treatments: Provider<Pick<TreatmentsRepository, 'listAll'>>
-  notifications: Pick<ReminderNotifications, 'checkPermission' | 'rescheduleAll' | 'listScheduled'>
+  notifications: Pick<
+    ReminderNotifications,
+    'checkPermission' | 'rescheduleAll' | 'listScheduled' | 'removeDelivered'
+  >
   t: Translate
   now: () => Date
 }
@@ -114,8 +144,21 @@ export function createRemindersSync({
         ),
       ]
 
+      const scheduled = await notifications.listScheduled()
+      const noted = notedDeliveredIds(
+        scheduled,
+        notedDue(vaccinationRows, treatmentRows),
+        at.getTime(),
+      )
+      if (noted.length > 0) {
+        await notifications
+          .removeDelivered(noted)
+          .catch((cause: unknown) => console.warn('Volet des notifications non vidé :', cause))
+      }
+
       const wanted = remindersWithinCap(reminders, MAX_SCHEDULED_REMINDERS)
-      if (isAlreadyScheduled(await notifications.listScheduled(), wanted)) return
+      const kept = scheduled.filter(({ id }) => !noted.includes(id))
+      if (isAlreadyScheduled(kept, wanted)) return
       await notifications.rescheduleAll(wanted)
     } catch (cause) {
       console.warn('Rappels non reconstruits :', cause)

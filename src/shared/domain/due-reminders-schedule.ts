@@ -6,8 +6,19 @@ import { dueReminderPrefix, parseReminderKey, type DueReminderEntry } from './du
 
 export type ReminderNotifications = Pick<
   typeof notifications,
-  'checkPermission' | 'scheduleReminders' | 'cancelReminders' | 'rescheduleAll' | 'listScheduled'
+  | 'checkPermission'
+  | 'scheduleReminders'
+  | 'cancelReminders'
+  | 'rescheduleAll'
+  | 'listScheduled'
+  | 'removeDelivered'
 >
+
+/** Rappels d'une entrée, et ses échéances déjà notées dont la notification affichée est périmée. */
+export type EntryReminders = {
+  reminders: Reminder[]
+  isNoted: (dueDate: string) => boolean
+}
 
 export const reminderNotifications: ReminderNotifications = notifications
 
@@ -84,21 +95,52 @@ export function pendingTime({ at }: ScheduledReminder): number | null {
   return at === undefined ? null : new Date(at).getTime()
 }
 
-/** Renvoie les rappels encore en attente et à venir après l'annulation. */
+/**
+ * Notifications déjà affichées dont l'échéance est notée d'après `isNoted` de leur entrée : le
+ * plugin garde une notification affichée après son annulation.
+ */
+export function notedDeliveredIds(
+  scheduled: ScheduledReminder[],
+  isNoted: (entry: string, dueDate: string) => boolean,
+  now: number,
+): number[] {
+  return scheduled.flatMap((reminder) => {
+    const time = pendingTime(reminder)
+    const parsed = reminder.key === undefined ? null : parseReminderKey(reminder.key)
+    if (time === null || time > now || parsed === null) return []
+    return isNoted(parsed.entry, parsed.dueDate) ? [reminder.id] : []
+  })
+}
+
+/** Les rappels de ces entrées, annulés, et ceux des autres encore à venir. */
 async function cancelPending(
   port: CancelPort,
   entries: DueReminderEntry[],
-): Promise<ScheduledReminder[]> {
+): Promise<{ cancelled: ScheduledReminder[]; remaining: ScheduledReminder[] }> {
   const prefixes = entries.map(dueReminderPrefix)
   const matches = (key: string | undefined): key is string =>
     key !== undefined && prefixes.some((prefix) => key.startsWith(prefix))
   const pending = await port.listScheduled()
-  const cancelled = pending.map(({ key }) => key).filter(matches)
-  if (cancelled.length > 0) await port.cancelReminders(cancelled)
-  const now = Date.now()
-  return pending.filter(
-    (reminder) => !matches(reminder.key) && (pendingTime(reminder) ?? now + 1) > now,
+  const cancelled = pending.filter((reminder): reminder is ScheduledReminder & { key: string } =>
+    matches(reminder.key),
   )
+  if (cancelled.length > 0) await port.cancelReminders(cancelled.map(({ key }) => key))
+  const now = Date.now()
+  return {
+    cancelled,
+    remaining: pending.filter(
+      (reminder) => !matches(reminder.key) && (pendingTime(reminder) ?? now + 1) > now,
+    ),
+  }
+}
+
+async function removeNotedDelivered(
+  port: Pick<ReminderNotifications, 'removeDelivered'>,
+  cancelled: ScheduledReminder[],
+  isNoted: (dueDate: string) => boolean,
+): Promise<void> {
+  const ids = notedDeliveredIds(cancelled, (_entry, dueDate) => isNoted(dueDate), Date.now())
+  if (ids.length > 0) await port.removeDelivered(ids).catch(warn)
 }
 
 function pushesOutFartherPending(reminder: Reminder, pending: ScheduledReminder[]): boolean {
@@ -115,15 +157,16 @@ function pushesOutFartherPending(reminder: Reminder, pending: ScheduledReminder[
 export function replaceDueReminders(
   port: ReminderNotifications,
   entry: DueReminderEntry,
-  build: () => Reminder[] | Promise<Reminder[]>,
+  build: () => EntryReminders | Promise<EntryReminders>,
 ): Promise<void> {
   return enqueueReminderTask(async () => {
     try {
-      const remaining = await cancelPending(port, [entry])
+      const { cancelled, remaining } = await cancelPending(port, [entry])
       if (!(await port.checkPermission())) return
-      const reminders = await build()
+      const { reminders, isNoted } = await build()
       const kept = remindersWithinCap(reminders, MAX_SCHEDULED_REMINDERS - remaining.length)
       if (kept.length > 0) await port.scheduleReminders(kept)
+      await removeNotedDelivered(port, cancelled, isNoted)
       const [firstLeftOut] = reminders
         .filter((reminder) => !kept.includes(reminder))
         .sort((a, b) => compareAsc(a.at, b.at))

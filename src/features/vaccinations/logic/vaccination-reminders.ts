@@ -4,12 +4,21 @@ import {
   DAYS_BEFORE_DUE,
   DAYS_OVERDUE,
   dueReminders,
+  isDoneForDue,
   type DueReminderTexts,
   type Translate,
 } from '@/shared/domain/due-reminders'
 import type { Vaccination } from '../schema/vaccination.schema'
 
 type RemindedVaccination = Pick<Vaccination, 'id' | 'name' | 'dueDate' | 'deletedAt'>
+
+/** Une échéance déplacée sans injection n'est pas notée. */
+export function isInjectionNoted(
+  vaccination: Pick<Vaccination, 'lastInjectionDate' | 'dueDate'>,
+  dueDate: string,
+): boolean {
+  return vaccination.dueDate !== dueDate && isDoneForDue(dueDate, vaccination.lastInjectionDate)
+}
 
 export function vaccinationReminders(
   t: Translate,

@@ -1,6 +1,6 @@
-import { addDays, compareAsc, format, isAfter, parseISO, set } from 'date-fns'
+import { addDays, compareAsc, format, isAfter, parseISO, set, subDays } from 'date-fns'
 
-import type { Reminder } from '@/core/notifications'
+import { REMINDER_DONE_ACTION_TYPE, type Reminder } from '@/core/notifications'
 import type { ReminderKind } from './reminders'
 
 export type DueReminderMoment = 'before' | 'due' | 'overdue'
@@ -30,8 +30,16 @@ const OFFSETS: Record<DueReminderMoment, number> = {
 
 const MOMENTS = Object.keys(OFFSETS) as DueReminderMoment[]
 
-export function dueReminderPrefix({ kind, id }: DueReminderEntry): string {
-  return `${kind}:${id}:`
+/** Trois jours avant, « C'est fait » noterait une prise trop tôt et décalerait tout le cycle. */
+const WITH_DONE_ACTION: ReadonlySet<DueReminderMoment> = new Set(['due', 'overdue'])
+
+/** `kind:id` de l'entrée, tel que `parseReminderKey` le relit. */
+export function dueReminderEntryKey({ kind, id }: DueReminderEntry): string {
+  return `${kind}:${id}`
+}
+
+export function dueReminderPrefix(entry: DueReminderEntry): string {
+  return `${dueReminderEntryKey(entry)}:`
 }
 
 export type ParsedReminderKey = {
@@ -65,6 +73,12 @@ export function reminderWindowEnd(now: Date): Date {
 /** Premier et dernier rappel d'une échéance : trois jours avant et trois jours après. */
 export function dueReminderSpan(dueDate: string): { first: Date; last: Date } {
   return { first: at(dueDate, OFFSETS.before), last: at(dueDate, OFFSETS.overdue) }
+}
+
+/** Une prise ou une injection faite moins de trois jours avant l'échéance, ou après, vaut pour elle. */
+export function isDoneForDue(dueDate: string, lastDoneOn: string | null): boolean {
+  const earliest = format(subDays(parseISO(dueDate), DAYS_BEFORE_DUE), 'yyyy-MM-dd')
+  return lastDoneOn !== null && lastDoneOn > earliest
 }
 
 /** Vrai tant que le rappel du jour même n'a pas sonné. */
@@ -118,6 +132,7 @@ export function dueReminders(
           key: `${dueReminderPrefix(entry)}${dueDate}:${moment}`,
           ...texts(moment),
           at: when,
+          ...(WITH_DONE_ACTION.has(moment) ? { actionTypeId: REMINDER_DONE_ACTION_TYPE } : {}),
         },
       })
     }

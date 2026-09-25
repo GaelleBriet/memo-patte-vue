@@ -17,7 +17,7 @@ import {
   MAX_SCHEDULED_REMINDERS,
   replaceDueReminders,
 } from '@/shared/domain/due-reminders-schedule'
-import type { Reminder } from '@/core/notifications'
+import { REMINDER_DONE_ACTION_TYPE, type Reminder } from '@/core/notifications'
 import { createRemindersSync, installRemindersSync } from '../reminders-sync'
 
 const STAMP = '2026-09-01T09:00:00.000Z'
@@ -147,6 +147,73 @@ describe('syncAllReminders', () => {
     await sync()()
     notifications.rescheduleAll.mockClear()
     list.mockResolvedValue([{ ...MILO, name: 'Milou' }, LUNA])
+
+    await sync()()
+
+    expect(notifications.rescheduleAll).toHaveBeenCalledOnce()
+  })
+
+  it('reprogramme avec le bouton « C’est fait » les rappels posés sans lui avant la mise à jour', async () => {
+    listVaccinations.mockResolvedValue([
+      vaccination('22222222-2222-4222-8222-222222222222', MILO.id, '2026-10-15'),
+    ])
+    await sync()()
+    for (const [key, { actionTypeId: _button, ...withoutButton }] of notifications.pending) {
+      notifications.pending.set(key, withoutButton)
+    }
+    notifications.rescheduleAll.mockClear()
+
+    await sync()()
+
+    expect(notifications.rescheduleAll).toHaveBeenCalledOnce()
+    expect(
+      [...notifications.pending.values()].map(({ key, actionTypeId }) => [
+        key.split(':').at(-1),
+        actionTypeId,
+      ]),
+    ).toEqual([
+      ['before', undefined],
+      ['due', REMINDER_DONE_ACTION_TYPE],
+      ['overdue', REMINDER_DONE_ACTION_TYPE],
+    ])
+  })
+
+  it('retire du volet les notifications affichées des échéances notées, et d’elles seules', async () => {
+    const carre = {
+      ...vaccination('22222222-2222-4222-8222-222222222222', MILO.id, '2027-09-14'),
+      lastInjectionDate: '2026-09-14',
+    }
+    listVaccinations.mockResolvedValue([carre])
+    listTreatments.mockResolvedValue([MILBEMAX])
+    const noted = `vaccination:${carre.id}:2026-09-14:due`
+    const awaited = `treatment:${MILBEMAX.id}:2026-09-17:before`
+    const deleted = `vaccination:${GONE}:2026-09-14:due`
+    for (const key of [noted, awaited, deleted]) {
+      notifications.pending.set(key, { key, title: '', body: '', at: new Date(2026, 8, 14, 9) })
+    }
+
+    await sync()()
+
+    expect(notifications.removeDelivered).toHaveBeenCalledExactlyOnceWith([
+      notifications.idOf(noted),
+    ])
+  })
+
+  it('reconstruit les rappels même quand le volet ne se laisse pas vider', async () => {
+    const carre = {
+      ...vaccination('22222222-2222-4222-8222-222222222222', MILO.id, '2027-09-14'),
+      lastInjectionDate: '2026-09-14',
+    }
+    listVaccinations.mockResolvedValue([carre])
+    const noted = `vaccination:${carre.id}:2026-09-14:due`
+    notifications.pending.set(noted, {
+      key: noted,
+      title: '',
+      body: '',
+      at: new Date(2026, 8, 14, 9),
+    })
+    notifications.removeDelivered.mockRejectedValue(new Error('plugin'))
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
 
     await sync()()
 
@@ -359,14 +426,17 @@ describe('installRemindersSync', () => {
     notifications.pending.clear()
     for (const [key, value] of pending) notifications.pending.set(key, value)
 
-    await replaceDueReminders(notifications, { kind: 'treatment', id: MILBEMAX.id }, () => [
-      {
-        key: `treatment:${MILBEMAX.id}:2026-10-15:due`,
-        title: '',
-        body: '',
-        at: new Date(2098, 0, 1),
-      },
-    ])
+    await replaceDueReminders(notifications, { kind: 'treatment', id: MILBEMAX.id }, () => ({
+      reminders: [
+        {
+          key: `treatment:${MILBEMAX.id}:2026-10-15:due`,
+          title: '',
+          body: '',
+          at: new Date(2098, 0, 1),
+        },
+      ],
+      isNoted: () => false,
+    }))
     await enqueueReminderTask(async () => {})
 
     expect(syncAll).toHaveBeenCalledOnce()
