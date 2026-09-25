@@ -151,9 +151,12 @@ beforeEach(async () => {
     remove: vi.fn<TreatmentDosesService['remove']>(async () => {}),
     undoRemove: vi.fn<TreatmentDosesService['undoRemove']>(async () => {}),
     changeDate: vi.fn<TreatmentDosesService['changeDate']>(async () => ({
-      givenOn: '2026-08-28',
-      nextDueDate: '2026-09-28',
-      frequency: { value: 1, unit: 'month' },
+      previous: {
+        givenOn: '2026-08-28',
+        nextDueDate: '2026-09-28',
+        frequency: { value: 1, unit: 'month' },
+      },
+      postponementKept: false,
     })),
     undoChangeDate: vi.fn<TreatmentDosesService['undoChangeDate']>(async () => {}),
   }

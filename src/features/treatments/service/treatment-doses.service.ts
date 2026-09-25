@@ -1,5 +1,6 @@
 import { doseGivenOn } from '../logic/treatment-dose'
-import { doseDatesOn } from '../logic/treatment-history'
+import { becomesHead, redatedDose } from '../logic/treatment-history'
+import { isOngoing } from '../logic/treatment-status'
 import {
   getTreatmentDosesRepository,
   type DoseDates,
@@ -20,7 +21,10 @@ type Provider<T> = () => T | Promise<T>
 export type TreatmentDosesDependencies = {
   treatments: Provider<Pick<TreatmentsRepository, 'getById'>>
   doses: Provider<
-    Pick<TreatmentDosesRepository, 'record' | 'remove' | 'getById' | 'revive' | 'changeDate'>
+    Pick<
+      TreatmentDosesRepository,
+      'record' | 'remove' | 'getById' | 'revive' | 'changeDate' | 'listByTreatment'
+    >
   >
   reminders: Pick<TreatmentRemindersService, 'reschedule'>
   now: () => Date
@@ -30,6 +34,13 @@ export type RecordedDose = {
   animalId: string
   /** `null` quand une prise du même jour était déjà notée : rien n'a été écrit. */
   doseId: string | null
+}
+
+export type DoseDateChange = {
+  /** Dates d'avant, pour « Annuler ». */
+  previous: DoseDates
+  /** La prochaine dose, reportée à la main, n'a pas suivi la nouvelle date. */
+  postponementKept: boolean
 }
 
 export function createTreatmentDosesService({
@@ -73,14 +84,34 @@ export function createTreatmentDosesService({
       await reminders.reschedule(treatmentId)
     },
 
-    /** Renvoie les dates d'avant, pour « Annuler ». Lève pour une date future ou déjà notée. */
-    async changeDate(treatmentId: string, doseId: string, givenOn: string): Promise<DoseDates> {
+    /** Lève pour une date future ou déjà notée. */
+    async changeDate(
+      treatmentId: string,
+      doseId: string,
+      givenOn: string,
+    ): Promise<DoseDateChange> {
       const date = treatmentInputSchema.shape.lastDoseDate.parse(givenOn)
-      const dose = await (await doses()).getById(doseId)
+      const repository = await doses()
+      const [dose, treatment, all] = await Promise.all([
+        repository.getById(doseId),
+        (await treatments()).getById(treatmentId),
+        repository.listByTreatment(treatmentId),
+      ])
       if (dose === null) throw new Error(`Prise introuvable : ${doseId}`)
+      if (treatment === null) throw new Error(`Traitement introuvable : ${treatmentId}`)
 
-      await writeDates(treatmentId, doseId, doseDatesOn(dose, date))
-      return { givenOn: dose.givenOn, nextDueDate: dose.nextDueDate, frequency: dose.frequency }
+      const planFrequency =
+        isOngoing(treatment) && becomesHead(all, dose, date) ? treatment.frequency : null
+      const { dates, postponementKept } = redatedDose(dose, date, planFrequency)
+      await writeDates(treatmentId, doseId, dates)
+      return {
+        previous: {
+          givenOn: dose.givenOn,
+          nextDueDate: dose.nextDueDate,
+          frequency: dose.frequency,
+        },
+        postponementKept,
+      }
     },
 
     undoChangeDate(treatmentId: string, doseId: string, previous: DoseDates): Promise<void> {

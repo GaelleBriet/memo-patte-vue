@@ -1,8 +1,9 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
 import {
+  becomesHead,
   doseDatesExcept,
-  doseDatesOn,
+  redatedDose,
   doseGestureTexts,
   doseHistory,
   finishedTreatmentRows,
@@ -102,15 +103,57 @@ describe('doseHistory', () => {
   })
 })
 
-describe('doseDatesOn', () => {
-  it('recalcule la prochaine dose depuis la nouvelle date, avec la fréquence de la prise', () => {
-    const prise = dose('2026-08-28', { frequency: { value: 15, unit: 'day' } })
+describe('redatedDose', () => {
+  const QUINZE_JOURS = { value: 15, unit: 'day' } as const
+  const TROIS_MOIS = { value: 3, unit: 'month' } as const
 
-    expect(doseDatesOn(prise, '2026-08-25')).toEqual({
-      givenOn: '2026-08-25',
-      nextDueDate: '2026-09-09',
-      frequency: { value: 15, unit: 'day' },
+  it('recalcule la prochaine dose depuis la nouvelle date, avec la fréquence de la prise', () => {
+    const prise = dose('2026-08-28', { nextDueDate: '2026-09-12', frequency: QUINZE_JOURS })
+
+    expect(redatedDose(prise, '2026-08-25', null)).toEqual({
+      dates: { givenOn: '2026-08-25', nextDueDate: '2026-09-09', frequency: QUINZE_JOURS },
+      postponementKept: false,
     })
+  })
+
+  it('garde une prochaine dose reportée à la main, et le dit', () => {
+    const prise = dose('2026-08-28', { nextDueDate: '2026-12-15', frequency: TROIS_MOIS })
+
+    expect(redatedDose(prise, '2026-08-27', TROIS_MOIS)).toEqual({
+      dates: { givenOn: '2026-08-27', nextDueDate: '2026-12-15', frequency: TROIS_MOIS },
+      postponementKept: true,
+    })
+  })
+
+  it('devenue la dernière d’un traitement en cours, prend et recopie la fréquence du plan', () => {
+    const ancienne = dose('2026-06-01', { nextDueDate: '2026-06-16', frequency: QUINZE_JOURS })
+
+    expect(redatedDose(ancienne, '2026-09-01', TROIS_MOIS)).toEqual({
+      dates: { givenOn: '2026-09-01', nextDueDate: '2026-12-01', frequency: TROIS_MOIS },
+      postponementKept: false,
+    })
+  })
+})
+
+describe('becomesHead', () => {
+  const doses = [
+    dose('2026-08-28', { id: 'tete', createdAt: '2026-08-28T09:00:00.000Z' }),
+    dose('2026-07-28', { id: 'avant', createdAt: '2026-07-28T09:00:00.000Z' }),
+    dose('2026-06-28', { id: 'ancienne', createdAt: '2026-06-28T09:00:00.000Z' }),
+  ]
+
+  it('dit si la prise déplacée passe devant toutes les autres', () => {
+    expect(becomesHead(doses, doses[2]!, '2026-09-01')).toBe(true)
+    expect(becomesHead(doses, doses[2]!, '2026-08-01')).toBe(false)
+    expect(becomesHead(doses, doses[0]!, '2026-08-20')).toBe(true)
+    expect(becomesHead(doses, doses[0]!, '2026-07-01')).toBe(false)
+  })
+
+  it('départage une même date comme la tête en base : saisie la plus récente, puis identifiant', () => {
+    expect(becomesHead(doses, doses[2]!, '2026-08-28')).toBe(false)
+    expect(
+      becomesHead(doses, { ...doses[2]!, createdAt: '2026-09-01T09:00:00.000Z' }, '2026-08-28'),
+    ).toBe(true)
   })
 })
 

@@ -1,7 +1,7 @@
 import { addFrequency } from './treatment-frequency'
 import type { DoseDates } from '../repository/treatment-doses.repository'
 import type { TreatmentDose } from '../schema/treatment-dose.schema'
-import type { Treatment } from '../schema/treatment.schema'
+import type { Treatment, TreatmentFrequency } from '../schema/treatment.schema'
 import { dueDelayText } from '@/shared/domain/due-delay'
 import {
   formatDayMonthOrYear,
@@ -42,13 +42,45 @@ export function doseHistory(
   return { head, others: { kind: 'years', groups } }
 }
 
-/** La prise déplacée refixe sa prochaine dose avec la fréquence qu'elle portait. */
-export function doseDatesOn(dose: DoseDates, givenOn: string): DoseDates {
+export type RedatedDose = {
+  dates: DoseDates
+  /** La prochaine dose avait été reportée à la main : elle est gardée telle quelle. */
+  postponementKept: boolean
+}
+
+/**
+ * Prise déplacée : sa prochaine dose suit la nouvelle date, sauf un report manuel, gardé.
+ * `planFrequency`, quand elle devient la dernière d'un traitement en cours, remplace la sienne.
+ */
+export function redatedDose(
+  dose: DoseDates,
+  givenOn: string,
+  planFrequency: TreatmentFrequency | null,
+): RedatedDose {
+  const frequency = { ...(planFrequency ?? dose.frequency) }
+  const postponed = dose.nextDueDate !== addFrequency(dose.givenOn, dose.frequency)
   return {
-    givenOn,
-    nextDueDate: addFrequency(givenOn, dose.frequency),
-    frequency: { ...dose.frequency },
+    dates: {
+      givenOn,
+      nextDueDate: postponed ? dose.nextDueDate : addFrequency(givenOn, frequency),
+      frequency,
+    },
+    postponementKept: postponed,
   }
+}
+
+type HeadOrder = Pick<TreatmentDose, 'givenOn' | 'createdAt' | 'id'>
+
+function isBefore(a: HeadOrder, b: HeadOrder): boolean {
+  if (a.givenOn !== b.givenOn) return a.givenOn < b.givenOn
+  if (a.createdAt !== b.createdAt) return a.createdAt < b.createdAt
+  return a.id < b.id
+}
+
+/** Même ordre que la tête en base : date, puis saisie, puis identifiant. */
+export function becomesHead(doses: TreatmentDose[], dose: TreatmentDose, givenOn: string): boolean {
+  const moved = { ...dose, givenOn }
+  return doses.every((other) => other.id === dose.id || isBefore(other, moved))
 }
 
 export function treatmentDetailTexts(

@@ -3,6 +3,7 @@ import { ref } from 'vue'
 
 import {
   treatmentDosesService,
+  type DoseDateChange,
   type RecordedDose,
   type TreatmentDosesService,
 } from '../service/treatment-doses.service'
@@ -241,8 +242,12 @@ export const useTreatmentsStore = defineStore('treatments', () => {
       )
     },
 
-    /** Renvoie les dates d'avant le changement, pour « Annuler ». */
-    async changeDoseDate(treatmentId: string, doseId: string, givenOn: string): Promise<DoseDates> {
+    /** Renvoie les dates d'avant, pour « Annuler », et si un report manuel a été gardé. */
+    async changeDoseDate(
+      treatmentId: string,
+      doseId: string,
+      givenOn: string,
+    ): Promise<DoseDateChange> {
       return write(
         () => dosesProvider().changeDate(treatmentId, doseId, givenOn),
         () => animalId.value,

@@ -520,12 +520,13 @@ describe('useTreatmentsStore — gestes d’un rappel', () => {
     const store = useTreatmentsStore()
     await store.loadForAnimal(MILO)
     const avant = { givenOn: '2026-09-20', nextDueDate: '2026-12-20', frequency: seme.frequency }
-    doses.changeDate.mockResolvedValue(avant)
+    const changement = { previous: avant, postponementKept: true }
+    doses.changeDate.mockResolvedValue(changement)
     repository.listByAnimal.mockClear()
 
     await store.removeDose(seme.id, 'p1')
     await store.undoRemoveDose(seme.id, 'p1')
-    await expect(store.changeDoseDate(seme.id, 'p1', '2026-09-18')).resolves.toEqual(avant)
+    await expect(store.changeDoseDate(seme.id, 'p1', '2026-09-18')).resolves.toEqual(changement)
     await store.undoChangeDoseDate(seme.id, 'p1', avant)
 
     expect(doses.remove).toHaveBeenCalledWith(seme.id, 'p1')
