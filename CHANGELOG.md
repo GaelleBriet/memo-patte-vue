@@ -5,6 +5,56 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.40](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.39...memo-patte-v0.1.40) (2026-09-25)
+
+
+### ✨ Fonctionnalités
+
+* **carnet:** détail d'un vaccin et d'un traitement, historique, traitements terminés ([#381](https://github.com/GaelleBriet/memo-patte-vue/issues/381)) ([6a27610](https://github.com/GaelleBriet/memo-patte-vue/commit/6a276105f0175853e113fbf423f0cb422ad51c21))
+* **carnet:** détail d'un vaccin et d'un traitement, traitements terminés, reprise ([#381](https://github.com/GaelleBriet/memo-patte-vue/issues/381)) ([ba05c24](https://github.com/GaelleBriet/memo-patte-vue/commit/ba05c243a4346bfe7653db306e5921c0e94cbf35))
+* **carnet:** historique des injections et des prises lu, corrigé, repris ([#381](https://github.com/GaelleBriet/memo-patte-vue/issues/381)) ([cb40cf7](https://github.com/GaelleBriet/memo-patte-vue/commit/cb40cf74adaf7b46b39ca8aeb5cd193847619692))
+* **carnet:** supprimer, rétablir et redater une injection ou une prise ([#381](https://github.com/GaelleBriet/memo-patte-vue/issues/381)) ([705173a](https://github.com/GaelleBriet/memo-patte-vue/commit/705173a337a3d2f3bfb238ba2f4c2e575e1590af))
+* **carnet:** textes et règles de l'historique, délai d'une échéance ([#381](https://github.com/GaelleBriet/memo-patte-vue/issues/381)) ([da7c1aa](https://github.com/GaelleBriet/memo-patte-vue/commit/da7c1aac883f4c67c7cdf4870fb2e6c9c7f39d65))
+* **shared:** menu ⋮, ligne d'historique, carte d'échéance et calendrier de date ([#381](https://github.com/GaelleBriet/memo-patte-vue/issues/381)) ([a1cfe22](https://github.com/GaelleBriet/memo-patte-vue/commit/a1cfe2217c389c351f086091fb25c9df942aeeb8))
+* **treatments:** le toast dit la prochaine dose gardée quand un report n'a pas suivi ([#381](https://github.com/GaelleBriet/memo-patte-vue/issues/381)) ([ccd82bc](https://github.com/GaelleBriet/memo-patte-vue/commit/ccd82bcc49c2c21b7ffa72b4bfee9b8b521a97d6))
+* **weight:** « +0,3 kg depuis le 25 août », variation seule dans le bandeau ([#385](https://github.com/GaelleBriet/memo-patte-vue/issues/385)) ([5825571](https://github.com/GaelleBriet/memo-patte-vue/commit/5825571da831b7f1f9a920922c92a3855b02da16))
+* **weight:** corriger ou supprimer une pesée depuis l'Historique ([#402](https://github.com/GaelleBriet/memo-patte-vue/issues/402)) ([adaf64c](https://github.com/GaelleBriet/memo-patte-vue/commit/adaf64cff35a8f39a09d7fb8177c9bf414cf1943))
+* **weight:** la courbe de l’Historique garde sa page quand une pesée change ([#402](https://github.com/GaelleBriet/memo-patte-vue/issues/402)) ([5d9e791](https://github.com/GaelleBriet/memo-patte-vue/commit/5d9e791a6205ce6fec0174e2486d14f10eaa1a12))
+* **weight:** la feuille pesée corrige et supprime une pesée, « Annuler » la remet ([#402](https://github.com/GaelleBriet/memo-patte-vue/issues/402)) ([8c9cf76](https://github.com/GaelleBriet/memo-patte-vue/commit/8c9cf76d4832a704ea5b1bc4b331b46007a1ed28))
+* **weight:** le repository sait remettre une pesée supprimée ([#402](https://github.com/GaelleBriet/memo-patte-vue/issues/402)) ([39186ce](https://github.com/GaelleBriet/memo-patte-vue/commit/39186cea369669da45267dfd870021424e83a4d0))
+* **weight:** le store remet une pesée supprimée ([#402](https://github.com/GaelleBriet/memo-patte-vue/issues/402)) ([9986b2e](https://github.com/GaelleBriet/memo-patte-vue/commit/9986b2e71cca750a212914297f81ad06a62b6963))
+* **weight:** pré-remplir le formulaire d’une pesée à corriger, poids sans arrondi ([#402](https://github.com/GaelleBriet/memo-patte-vue/issues/402)) ([eb5ce0e](https://github.com/GaelleBriet/memo-patte-vue/commit/eb5ce0e439bf3a16be935a4421d9652b3f26aea0))
+* **weight:** toucher une pesée de l’Historique ouvre sa correction ([#402](https://github.com/GaelleBriet/memo-patte-vue/issues/402)) ([91c6bd5](https://github.com/GaelleBriet/memo-patte-vue/commit/91c6bd5fd4cb567555c1557c071519cd206de05a))
+* **weight:** variation « depuis le 25 août », chiffre seul dans le bandeau ([#385](https://github.com/GaelleBriet/memo-patte-vue/issues/385)) ([cbbf0f8](https://github.com/GaelleBriet/memo-patte-vue/commit/cbbf0f8ad00d60f1dae985ef68175cf704839286))
+* **weight:** variation de poids datée de la pesée de référence ([#385](https://github.com/GaelleBriet/memo-patte-vue/issues/385)) ([59b3f6a](https://github.com/GaelleBriet/memo-patte-vue/commit/59b3f6a38d01c400a76f4e3ae054e010473ee3b4))
+
+
+### 🐛 Corrections
+
+* **carnet:** le filet entre les lignes-boutons des sections revient ([#381](https://github.com/GaelleBriet/memo-patte-vue/issues/381)) ([9fa8815](https://github.com/GaelleBriet/memo-patte-vue/commit/9fa8815531918cc1265595cac441083f9d144bed))
+* **carnet:** libellé vocal de « C'est fait », toasts et textes anglais de l'historique ([#381](https://github.com/GaelleBriet/memo-patte-vue/issues/381)) ([c5263e5](https://github.com/GaelleBriet/memo-patte-vue/commit/c5263e5d73a975f6330f6a2147515bed312ab7ab))
+* **carnet:** lignes d'historique à la hauteur de la maquette, zone de tap d'« Arrêter » ([#381](https://github.com/GaelleBriet/memo-patte-vue/issues/381)) ([8facc2e](https://github.com/GaelleBriet/memo-patte-vue/commit/8facc2e00b7046b32e040e680cd48837e7ab9789))
+* **carnet:** prises précédentes en poids normal sous la dernière (F8) ([#381](https://github.com/GaelleBriet/memo-patte-vue/issues/381)) ([5d9f8c0](https://github.com/GaelleBriet/memo-patte-vue/commit/5d9f8c072cbac6addb07063e6456b19f3137e6c3))
+* **carnet:** une annulation qui n'a rien supprimé est dite en échec ([#381](https://github.com/GaelleBriet/memo-patte-vue/issues/381)) ([a905c25](https://github.com/GaelleBriet/memo-patte-vue/commit/a905c25f4e4b2105f93adde8e39c72a85dbc1f28))
+* **i18n:** « le » et « since » restent collés à la date de la variation ([#385](https://github.com/GaelleBriet/memo-patte-vue/issues/385)) ([3ed3d2a](https://github.com/GaelleBriet/memo-patte-vue/commit/3ed3d2a3dd04787d24c5682e2113a09c65f1ded9))
+* **settings:** la courbe du PDF rend l'état du trait qu'elle a trouvé ([#386](https://github.com/GaelleBriet/memo-patte-vue/issues/386)) ([51be06e](https://github.com/GaelleBriet/memo-patte-vue/commit/51be06e38af76fdfd79b79a5d97def78f01d91ae))
+* **settings:** le PDF du carnet passe à la page suivante au lieu de déborder ([#386](https://github.com/GaelleBriet/memo-patte-vue/issues/386)) ([9b05623](https://github.com/GaelleBriet/memo-patte-vue/commit/9b056234573d0d8651a931a9c89e56dd5a37eec8))
+* **settings:** le PDF du carnet passe à la page suivante au lieu de déborder ([#386](https://github.com/GaelleBriet/memo-patte-vue/issues/386)) ([1102c61](https://github.com/GaelleBriet/memo-patte-vue/commit/1102c61711cda8fe57ed651886e479e7b8f337f8))
+* **settings:** plus d'erreur au démarrage quand le dossier des exports n'existe pas ([5dd6e69](https://github.com/GaelleBriet/memo-patte-vue/commit/5dd6e693704b63f633a07643cd6158a537579c7b)), closes [#398](https://github.com/GaelleBriet/memo-patte-vue/issues/398)
+* **settings:** plus d'erreur au démarrage quand le dossier des exports n'existe pas ([#398](https://github.com/GaelleBriet/memo-patte-vue/issues/398)) ([df0c716](https://github.com/GaelleBriet/memo-patte-vue/commit/df0c716feefd3085f38a271693cee1da53c01a45))
+* **shared:** le focus va à la première action une fois le menu ⋮ affiché ([#381](https://github.com/GaelleBriet/memo-patte-vue/issues/381)) ([4fdd969](https://github.com/GaelleBriet/memo-patte-vue/commit/4fdd96950df000fa2ad2a385518a6dba5bd9b7e9))
+* **shared:** le menu ⋮ se lit comme un menu, focus sur sa première action puis sur ⋮ ([#381](https://github.com/GaelleBriet/memo-patte-vue/issues/381)) ([6c6e818](https://github.com/GaelleBriet/memo-patte-vue/commit/6c6e818731329dc9aa8b89c3e7518139c63f97ba))
+* **shared:** le retour Android ferme le menu ⋮ avant l'écran ([#381](https://github.com/GaelleBriet/memo-patte-vue/issues/381)) ([b5e64d1](https://github.com/GaelleBriet/memo-patte-vue/commit/b5e64d1b7c0e5e3f6dfb51eebf0e83cdc10e0ec5))
+* **treatments:** « report gardé » ne vaut que pour la prise restée la dernière ([#381](https://github.com/GaelleBriet/memo-patte-vue/issues/381)) ([20f750f](https://github.com/GaelleBriet/memo-patte-vue/commit/20f750f1c5c2223942ebce5bbe172ce948e113ef))
+* **treatments:** un report qui ne reste pas après la nouvelle date est recalculé ([#381](https://github.com/GaelleBriet/memo-patte-vue/issues/381)) ([c97b33e](https://github.com/GaelleBriet/memo-patte-vue/commit/c97b33e04ea6d20fc70021021fc9fefb921aa647))
+* **treatments:** une prise redatée garde un report manuel et prend la fréquence du plan ([#381](https://github.com/GaelleBriet/memo-patte-vue/issues/381)) ([36009cc](https://github.com/GaelleBriet/memo-patte-vue/commit/36009ccaa8667e2042dcb3ce2a6161c8209079f7))
+* **vaccinations:** déplacée après son « autre date », l'injection redemande son rappel ([#381](https://github.com/GaelleBriet/memo-patte-vue/issues/381)) ([3c80234](https://github.com/GaelleBriet/memo-patte-vue/commit/3c80234540768fd42002e677151366f070fe9776))
+* **vaccinations:** le rappel choisi avec le déplacement est validé, après l'injection ([#381](https://github.com/GaelleBriet/memo-patte-vue/issues/381)) ([33ca7b8](https://github.com/GaelleBriet/memo-patte-vue/commit/33ca7b820883316e255cc0d5077fa169ca1d124f))
+* **weight:** feuille pesée sans spinner à la suppression, pesée remise signalée ([#402](https://github.com/GaelleBriet/memo-patte-vue/issues/402)) ([bb96fe2](https://github.com/GaelleBriet/memo-patte-vue/commit/bb96fe2a0d7a4dc66b3541e93d1dc4e2697b0e85))
+* **weight:** la ligne de pesée lit sa variation, reprend le focus après « Annuler » ([#402](https://github.com/GaelleBriet/memo-patte-vue/issues/402)) ([e38dc10](https://github.com/GaelleBriet/memo-patte-vue/commit/e38dc1038a6e1a5d37b739a641efba59261bf75d))
+* **weight:** la puce « Poids actuel » ne tient que la ligne « Pesée du … » ([#385](https://github.com/GaelleBriet/memo-patte-vue/issues/385)) ([79d15f4](https://github.com/GaelleBriet/memo-patte-vue/commit/79d15f48a4ce840d0b1bdede3f13d4b06e50b2da))
+* **weight:** messages d’échec de la feuille pesée en clés i18n statiques ([#402](https://github.com/GaelleBriet/memo-patte-vue/issues/402)) ([1b1b973](https://github.com/GaelleBriet/memo-patte-vue/commit/1b1b9731cecdacf9a5683285e4c3aa9a794abdb6))
+
 ## [0.1.39](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.38...memo-patte-v0.1.39) (2026-09-24)
 
 
