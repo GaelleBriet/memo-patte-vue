@@ -8,6 +8,8 @@ export function fakeTreatmentsRepository(methods: Partial<StoreTreatmentsReposit
   return fakeRepository<StoreTreatmentsRepository>({
     listByAnimal: async () => [],
     getById: async () => null,
+    listDoses: async () => [],
+    countDosesByAnimal: async () => ({}),
     ...methods,
   })
 }

@@ -401,6 +401,10 @@ describe('useVaccinationsStore — injection notée', () => {
   const injections = {
     record: vi.fn<VaccinationInjectionsService['record']>(),
     undo: vi.fn<VaccinationInjectionsService['undo']>().mockResolvedValue(),
+    remove: vi.fn<VaccinationInjectionsService['remove']>().mockResolvedValue(),
+    undoRemove: vi.fn<VaccinationInjectionsService['undoRemove']>().mockResolvedValue(),
+    changeDate: vi.fn<VaccinationInjectionsService['changeDate']>(),
+    undoChangeDate: vi.fn<VaccinationInjectionsService['undoChangeDate']>().mockResolvedValue(),
   }
 
   beforeEach(() => {
@@ -436,6 +440,35 @@ describe('useVaccinationsStore — injection notée', () => {
 
     expect(injections.undo).toHaveBeenCalledWith('v1', 'i1')
   })
+
+  it('supprime une injection, la rétablit, change sa date puis l’annule, par son service', async () => {
+    const seme = repository.seed(rage())
+    const store = useVaccinationsStore()
+    await store.loadForAnimal(MILO)
+    const avant = { injectedOn: '2026-09-20', nextDueDate: '2027-09-20' }
+    injections.changeDate.mockResolvedValue(avant)
+    repository.listByAnimal.mockClear()
+
+    await store.removeInjection(seme.id, 'i1')
+    await store.undoRemoveInjection(seme.id, 'i1')
+    await expect(store.changeInjectionDate(seme.id, 'i1', '2026-09-18')).resolves.toEqual(avant)
+    await store.undoChangeInjectionDate(seme.id, 'i1', avant)
+
+    expect(injections.remove).toHaveBeenCalledWith(seme.id, 'i1')
+    expect(injections.undoRemove).toHaveBeenCalledWith(seme.id, 'i1')
+    expect(injections.changeDate).toHaveBeenCalledWith(seme.id, 'i1', '2026-09-18')
+    expect(injections.undoChangeDate).toHaveBeenCalledWith(seme.id, 'i1', avant)
+    expect(repository.listByAnimal).toHaveBeenCalledTimes(4)
+  })
+
+  it('lit les injections d’un vaccin sans changer la liste affichée', async () => {
+    repository.listInjections.mockResolvedValue([])
+    const store = useVaccinationsStore()
+
+    await expect(store.listInjections('v1')).resolves.toEqual([])
+
+    expect(repository.listInjections).toHaveBeenCalledWith('v1')
+  })
 })
 
 interface FakeVaccinationsRepository {
@@ -445,6 +478,7 @@ interface FakeVaccinationsRepository {
   create: Mock<VaccinationsRepository['create']>
   update: Mock<VaccinationsRepository['update']>
   remove: Mock<VaccinationsRepository['remove']>
+  listInjections: Mock<VaccinationsRepository['listInjections']>
 }
 
 // Même contrat que `vaccinations.repository.ts`, sans SQLite.
@@ -496,5 +530,6 @@ function createFakeRepository(): FakeVaccinationsRepository {
       const vaccination = living().find((candidate) => candidate.id === id)
       if (vaccination) vaccination.deletedAt = new Date().toISOString()
     }),
+    listInjections: vi.fn<VaccinationsRepository['listInjections']>(async () => []),
   }
 }

@@ -140,6 +140,85 @@ describe('treatmentDosesService', () => {
     expect(dueDates()[0]).toBe('2026-09-28')
   })
 
+  describe('historique', () => {
+    async function noter(givenOn: string): Promise<string> {
+      const { doseId } = await service.record(bravecto, givenOn)
+      if (doseId === null) throw new Error('prise non notée')
+      return doseId
+    }
+
+    it('supprime la dernière prise : la précédente redevient la tête, ses rappels reviennent', async () => {
+      const derniere = await noter('2026-09-23')
+
+      await service.remove(bravecto, derniere)
+
+      await expect(treatments.getById(bravecto)).resolves.toMatchObject({
+        lastDoseDate: '2026-08-28',
+        nextDueDate: '2026-09-28',
+      })
+      expect(dueDates()[0]).toBe('2026-09-28')
+    })
+
+    it('refuse de supprimer la seule prise d’un traitement', async () => {
+      await expect(service.remove(bravecto, bravecto)).rejects.toThrow()
+
+      await expect(visibleDoses()).resolves.toHaveLength(1)
+    })
+
+    it('rétablit une prise supprimée (Annuler)', async () => {
+      const derniere = await noter('2026-09-23')
+      await service.remove(bravecto, derniere)
+
+      await service.undoRemove(bravecto, derniere)
+
+      await expect(treatments.getById(bravecto)).resolves.toMatchObject({
+        nextDueDate: '2026-10-23',
+      })
+      expect(dueDates()[0]).toBe('2026-10-23')
+    })
+
+    it('change la date de la dernière prise : la prochaine dose est recalculée', async () => {
+      const derniere = await noter('2026-09-23')
+
+      const avant = await service.changeDate(bravecto, derniere, '2026-09-21')
+
+      expect(avant).toEqual({
+        givenOn: '2026-09-23',
+        nextDueDate: '2026-10-23',
+        frequency: { value: 1, unit: 'month' },
+      })
+      await expect(visibleDoses()).resolves.toEqual([
+        { given_on: '2026-08-28', next_due_date: '2026-09-28' },
+        { given_on: '2026-09-21', next_due_date: '2026-10-21' },
+      ])
+      expect(dueDates()[0]).toBe('2026-10-21')
+    })
+
+    it('remet les dates d’avant le changement (Annuler)', async () => {
+      const derniere = await noter('2026-09-23')
+      const avant = await service.changeDate(bravecto, derniere, '2026-09-21')
+
+      await service.undoChangeDate(bravecto, derniere, avant)
+
+      await expect(treatments.getById(bravecto)).resolves.toMatchObject({
+        lastDoseDate: '2026-09-23',
+        nextDueDate: '2026-10-23',
+      })
+    })
+
+    it('refuse une date future ou déjà notée, sans rien écrire', async () => {
+      const derniere = await noter('2026-09-23')
+
+      await expect(service.changeDate(bravecto, derniere, '2026-09-24')).rejects.toThrow(ZodError)
+      await expect(service.changeDate(bravecto, derniere, '2026-08-28')).rejects.toThrow()
+
+      await expect(visibleDoses()).resolves.toEqual([
+        { given_on: '2026-08-28', next_due_date: '2026-09-28' },
+        { given_on: '2026-09-23', next_due_date: '2026-10-23' },
+      ])
+    })
+  })
+
   it('lève pour un traitement introuvable', async () => {
     await expect(
       service.record('99999999-9999-4999-8999-999999999999', '2026-09-23'),

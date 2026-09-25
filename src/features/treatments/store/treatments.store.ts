@@ -16,6 +16,8 @@ import {
   type TreatmentStopService,
 } from '../service/treatment-stop.service'
 import type { Treatment, TreatmentEditInput, TreatmentInput } from '../schema/treatment.schema'
+import type { TreatmentDose } from '../schema/treatment-dose.schema'
+import type { DoseDates } from '../repository/treatment-doses.repository'
 import type { TreatmentsRepository as FullTreatmentsRepository } from '../repository/treatments.repository'
 import { track } from '@/core/analytics'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
@@ -24,7 +26,14 @@ import { recordUsageSignal } from '@/shared/utils/usage-signals'
 // Le store ne dépend que de ce qu'il appelle : la cascade de suppression (#102) n'est pas son affaire.
 type TreatmentsRepository = Pick<
   FullTreatmentsRepository,
-  'getById' | 'listByAnimal' | 'create' | 'update' | 'remove'
+  | 'getById'
+  | 'listByAnimal'
+  | 'create'
+  | 'update'
+  | 'remove'
+  | 'resume'
+  | 'listDoses'
+  | 'countDosesByAnimal'
 >
 
 export type TreatmentsRepositoryProvider = () =>
@@ -45,7 +54,10 @@ export function provideTreatmentRemindersService(next: (() => TreatmentReminders
   remindersProvider = next ?? (() => treatmentRemindersService)
 }
 
-type TreatmentDoses = Pick<TreatmentDosesService, 'record' | 'undo'>
+type TreatmentDoses = Pick<
+  TreatmentDosesService,
+  'record' | 'undo' | 'remove' | 'undoRemove' | 'changeDate' | 'undoChangeDate'
+>
 
 let dosesProvider: () => TreatmentDoses = () => treatmentDosesService
 
@@ -66,6 +78,8 @@ export function provideTreatmentStopService(next: (() => TreatmentStop) | null):
 export const useTreatmentsStore = defineStore('treatments', () => {
   /** Traitements de l'animal chargé, prochaine échéance croissante telle que rendue par le repository. */
   const treatments = ref<Treatment[]>([])
+  /** Nombre de prises de chacun de ces traitements. */
+  const doseCounts = ref<Record<string, number>>({})
   /** Animal dont la liste est chargée, `null` tant qu'aucune n'a été demandée. */
   const animalId = ref<string | null>(null)
   /** Vrai pendant toute opération, chargement comme écriture. */
@@ -83,10 +97,14 @@ export const useTreatmentsStore = defineStore('treatments', () => {
   }
 
   async function refresh(repository: TreatmentsRepository, id: string): Promise<void> {
-    const list = await repository.listByAnimal(id)
+    const [list, counts] = await Promise.all([
+      repository.listByAnimal(id),
+      repository.countDosesByAnimal(id),
+    ])
     // Un chargement lancé entre-temps pour un autre animal a priorité sur cette réponse.
     if (animalId.value !== id) return
     treatments.value = list
+    doseCounts.value = counts
     hasLoaded.value = true
     error.value = null
   }
@@ -112,6 +130,7 @@ export const useTreatmentsStore = defineStore('treatments', () => {
 
   return {
     treatments,
+    doseCounts,
     animalId,
     isLoading,
     hasLoaded,
@@ -140,6 +159,11 @@ export const useTreatmentsStore = defineStore('treatments', () => {
       return (await requireRepository()).getById(id)
     },
 
+    /** Prises visibles, la tête d'abord ; la liste affichée ne change pas. */
+    async listDoses(treatmentId: string): Promise<TreatmentDose[]> {
+      return (await requireRepository()).listDoses(treatmentId)
+    },
+
     async create(input: TreatmentInput): Promise<Treatment> {
       const created = await write(
         async (repository) => {
@@ -166,6 +190,18 @@ export const useTreatmentsStore = defineStore('treatments', () => {
       )
     },
 
+    /** Le traitement arrêté repart avec la prochaine dose choisie. */
+    async resume(id: string, input: TreatmentEditInput): Promise<Treatment> {
+      return write(
+        async (repository) => {
+          const resumed = await repository.resume(id, input)
+          await remindersProvider().reschedule(id)
+          return resumed
+        },
+        (resumed) => resumed.animalId,
+      )
+    },
+
     async remove(id: string): Promise<void> {
       await write(
         async (repository) => {
@@ -187,6 +223,39 @@ export const useTreatmentsStore = defineStore('treatments', () => {
     async undoDose(treatmentId: string, doseId: string): Promise<void> {
       await write(
         () => dosesProvider().undo(treatmentId, doseId),
+        () => animalId.value,
+      )
+    },
+
+    async removeDose(treatmentId: string, doseId: string): Promise<void> {
+      await write(
+        () => dosesProvider().remove(treatmentId, doseId),
+        () => animalId.value,
+      )
+    },
+
+    async undoRemoveDose(treatmentId: string, doseId: string): Promise<void> {
+      await write(
+        () => dosesProvider().undoRemove(treatmentId, doseId),
+        () => animalId.value,
+      )
+    },
+
+    /** Renvoie les dates d'avant le changement, pour « Annuler ». */
+    async changeDoseDate(treatmentId: string, doseId: string, givenOn: string): Promise<DoseDates> {
+      return write(
+        () => dosesProvider().changeDate(treatmentId, doseId, givenOn),
+        () => animalId.value,
+      )
+    },
+
+    async undoChangeDoseDate(
+      treatmentId: string,
+      doseId: string,
+      previous: DoseDates,
+    ): Promise<void> {
+      await write(
+        () => dosesProvider().undoChangeDate(treatmentId, doseId, previous),
         () => animalId.value,
       )
     },
