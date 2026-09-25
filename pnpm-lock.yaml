@@ -38,6 +38,9 @@ importers:
       '@capacitor/share':
         specifier: ^8.0.2
         version: 8.0.2(@capacitor/core@8.5.2)
+      '@capawesome-team/capacitor-file-opener':
+        specifier: ^8.0.5
+        version: 8.0.5(@capacitor/core@8.5.2)
       '@date-io/date-fns':
         specifier: ^3.2.1
         version: 3.2.1(date-fns@4.4.0)
@@ -438,6 +441,11 @@ packages:
 
   '@capacitor/synapse@1.0.4':
     resolution: {integrity: sha512-/C1FUo8/OkKuAT4nCIu/34ny9siNHr9qtFezu4kxm6GY1wNFxrCFWjfYx5C1tUhVGz3fxBABegupkpjXvjCHrw==}
+
+  '@capawesome-team/capacitor-file-opener@8.0.5':
+    resolution: {integrity: sha512-Q5p9yv8nrpJbCAKCnjTQsCOJKEVZaxdq4K3JpbUtpTbRUMRZoEg+U4ZyVfF3wAo1WoHrQSR4ZI1x47pSSjj6fg==}
+    peerDependencies:
+      '@capacitor/core': '>=8.0.0'
 
   '@commitlint/cli@21.2.2':
     resolution: {integrity: sha512-a+6hQxIxnpdvSvS2apvttPNbEliYsVC3PqFYDiiB2kjbwIsQsj1urvQ4Tkf70pKYozPalKAuRQmm/GHwndduqA==}
@@ -3774,6 +3782,10 @@ snapshots:
       '@capacitor/core': 8.5.2
 
   '@capacitor/synapse@1.0.4': {}
+
+  '@capawesome-team/capacitor-file-opener@8.0.5(@capacitor/core@8.5.2)':
+    dependencies:
+      '@capacitor/core': 8.5.2
 
   '@commitlint/cli@21.2.2(@types/node@26.4.1)(conventional-commits-parser@7.1.2)(typescript@6.0.3)':
     dependencies:
