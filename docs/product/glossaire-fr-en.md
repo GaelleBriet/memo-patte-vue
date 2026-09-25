@@ -30,7 +30,10 @@ et une relecture s'y réfère plutôt que de rouvrir le débat.
 | Fréquence                | frequency                        | interval, how often                       |                                                                         |
 | Traitements terminés     | Finished treatments              | Stopped treatments, Past treatments       | la liste des traitements arrêtés                                         |
 | Pesée                    | weigh-in                         | weighing, weight entry, weight log        | « Ajouter une pesée » = Add a weigh-in, partout                          |
-| Poids                    | weight                           | —                                         | kg dans les deux langues, séparateur décimal localisé (`shared/format`)  |
+| Poids                    | weight                           | —                                         | kg ou lb selon Paramètres, séparateur décimal localisé (`shared/format`) |
+| Unité de poids           | weight unit                      | —                                         | réglage de Paramètres                                                   |
+| Kilogrammes (kg)         | kilograms (kg)                   | kilos, kgs                                | « kg » s'écrit pareil dans les deux langues                              |
+| Livres (lb)              | pounds (lb)                      | lbs                                       | « lb » reste invariable au pluriel                                       |
 | Poids à l'arrivée        | weight on arrival                | starting weight                           | « starting weight » est réservé au champ `initialWeightKg` du formulaire |
 | Suivi de poids           | weight tracking                  | weight monitoring                         |                                                                         |
 | Sauvegarde (cloud)       | backup (nom) / back up (verbe)   | save, saving                              | « save » est réservé au bouton Enregistrer d'un formulaire               |
@@ -63,4 +66,7 @@ Pas de voix passive administrative, pas de « please ».
 - **Anglais** : jamais d'espace avant une ponctuation, guillemets courbes `“ ”`,
   apostrophe courbe `’`.
 - **Nombres, dates, poids** : jamais formatés à la main dans un composant, tout
-  passe par `src/shared/format.ts`, qui suit la langue courante.
+  passe par `src/shared/format.ts`, qui suit la langue courante ; un poids passe
+  par `src/shared/domain/weight-display.ts`, qui suit aussi l'unité choisie.
+- **Unités** : espace insécable (U+00A0) entre le nombre et son unité, dans les
+  deux langues (`24,5 kg`, `54.0 lb`).

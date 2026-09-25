@@ -333,16 +333,19 @@ se réimporte.
 - **Une ligne par injection et par prise**, dans deux fichiers séparés reliés à leur vaccin ou
   traitement (décision du 2026-09-24). `vaccins.csv` et `traitements.csv` gardent, pour la lecture,
   la date et l'échéance de la dernière injection ou prise.
-- Poids en kilogrammes (`weightKg`) : l'unité de poids choisie (#352) n'est pas encore livrée.
+- **Poids dans l'unité choisie dans Paramètres** (#352), nommée par le titre de colonne :
+  `initialWeightKg` et `weightKg` en kilogrammes, tels qu'enregistrés ; `initialWeightLb` et
+  `weightLb` en livres, au centième. Seules exceptions aux en-têtes identiques au JSON, qui reste
+  toujours en kilogrammes.
 
 | Fichier           | Colonnes                                                                                            |
 | ----------------- | --------------------------------------------------------------------------------------------------- |
-| `animaux.csv`     | `id;name;species;breed;birthDate;initialWeightKg;createdAt;updatedAt` (sans photo)                  |
+| `animaux.csv`     | `id;name;species;breed;birthDate;initialWeightKg;createdAt;updatedAt` (sans photo ; `…Lb` en lb)    |
 | `vaccins.csv`     | `id;animalId;animalName;name;lastInjectionDate;dueDate`                                             |
 | `injections.csv`  | `id;vaccinationId;vaccinationName;animalId;animalName;injectedOn;nextDueDate`                       |
 | `traitements.csv` | `id;animalId;animalName;name;type;frequencyValue;frequencyUnit;lastDoseDate;nextDueDate`            |
 | `prises.csv`      | `id;treatmentId;treatmentName;animalId;animalName;givenOn;nextDueDate;frequencyValue;frequencyUnit` |
-| `poids.csv`       | `id;animalId;animalName;measuredOn;weightKg`                                                        |
+| `poids.csv`       | `id;animalId;animalName;measuredOn;weightKg` (`weightLb` en lb)                                     |
 | `rappels.csv`     | `kind;sourceId;animalId;animalName;name;dueDate`                                                    |
 
 Les valeurs d'énumération (`dog`, `deworming`, `month`…) restent les codes du JSON, non traduits.
