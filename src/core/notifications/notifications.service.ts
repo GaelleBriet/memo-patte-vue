@@ -10,12 +10,20 @@ import {
   type Reminder,
   type ScheduledReminder,
 } from './reminder'
+import { registerReminderActions } from './reminder-actions'
 import { ensureRemindersChannel, remindersGranted, REMINDERS_CHANNEL_ID } from './reminders-channel'
 
-function reminderKey(notification: PendingLocalNotificationSchema): string | undefined {
-  const key: unknown = notification.extra?.key
+function extraText(
+  notification: PendingLocalNotificationSchema,
+  name: 'key' | 'actionTypeId',
+): string | undefined {
+  const value: unknown = notification.extra?.[name]
 
-  return typeof key === 'string' ? key : undefined
+  return typeof value === 'string' ? value : undefined
+}
+
+function reminderKey(notification: PendingLocalNotificationSchema): string | undefined {
+  return extraText(notification, 'key')
 }
 
 function scheduledIdsByKey(pending: PendingLocalNotificationSchema[]): Map<string, number> {
@@ -30,6 +38,10 @@ function scheduledIdsByKey(pending: PendingLocalNotificationSchema[]): Map<strin
 }
 
 function toPluginNotification({ reminder, id }: IdentifiedReminder): LocalNotificationSchema {
+  const { actionTypeId } = reminder
+  // `getPending` ne rend pas `actionTypeId` : `extra` le garde pour l'empreinte des rappels programmés.
+  const action = actionTypeId === undefined ? {} : { actionTypeId }
+
   return {
     id,
     title: reminder.title,
@@ -40,7 +52,8 @@ function toPluginNotification({ reminder, id }: IdentifiedReminder): LocalNotifi
     // ouvrirait l'écran système « Alarmes et rappels ».
     isExactNotification: false,
     channelId: REMINDERS_CHANNEL_ID,
-    extra: { key: reminder.key },
+    ...action,
+    extra: { key: reminder.key, ...action },
   }
 }
 
@@ -51,6 +64,7 @@ function toScheduledReminder(notification: PendingLocalNotificationSchema): Sche
     title: notification.title,
     body: notification.body,
     at: notification.schedule?.at,
+    actionTypeId: extraText(notification, 'actionTypeId'),
   }
 }
 
@@ -108,6 +122,7 @@ export async function rescheduleAll(reminders: Reminder[]): Promise<void> {
   let scheduled = 0
   try {
     await ensureRemindersChannel()
+    await registerReminderActions()
     for (const batch of batches(identified)) {
       await LocalNotifications.schedule({ notifications: batch.map(toPluginNotification) })
       scheduled += batch.length
@@ -137,5 +152,12 @@ export async function scheduleReminders(reminders: Reminder[]): Promise<void> {
   const { notifications: pending } = await LocalNotifications.getPending()
   const identified = assignReminderIds(reminders, scheduledIdsByKey(pending))
   await ensureRemindersChannel()
+  await registerReminderActions()
   await LocalNotifications.schedule({ notifications: identified.map(toPluginNotification) })
+}
+
+/** Retire du volet des notifications déjà affichées ; `cancel` ne touche qu'aux rappels à venir. */
+export async function removeDelivered(ids: number[]): Promise<void> {
+  if (ids.length === 0) return
+  await LocalNotifications.removeDeliveredNotificationsById({ ids })
 }

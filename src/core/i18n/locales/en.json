@@ -598,6 +598,9 @@
     "disabled": {
       "title": "Reminders are off",
       "openSettings": "Turn on in settings"
+    },
+    "action": {
+      "done": "Done"
     }
   },
   "settings": {

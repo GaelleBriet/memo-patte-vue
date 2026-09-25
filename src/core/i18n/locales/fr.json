@@ -598,6 +598,9 @@
     "disabled": {
       "title": "Les rappels sont désactivés",
       "openSettings": "Activer dans les réglages"
+    },
+    "action": {
+      "done": "C’est fait"
     }
   },
   "settings": {
