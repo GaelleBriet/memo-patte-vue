@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, useTemplateRef, watch } from 'vue'
+import { computed, ref, useTemplateRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import WeightChartTrace from './WeightChartTrace.vue'
@@ -39,13 +39,9 @@ const svg = useTemplateRef<SVGSVGElement>('svg')
 const { width, textScale } = useChartMeasure(figure, DEFAULT_CHART_WIDTH)
 
 const pages = computed(() => weightPages(props.entries.length))
-const pageIndex = ref(pages.value.length - 1)
-watch(
-  () => props.entries,
-  () => {
-    pageIndex.value = pages.value.length - 1
-  },
-)
+// Compté depuis la plus récente, comme le découpage : corriger ou supprimer une pesée garde la page.
+const pagesBack = ref(0)
+const pageIndex = computed(() => Math.max(0, pages.value.length - 1 - pagesBack.value))
 const page = computed(() => pages.value[pageIndex.value] ?? { start: 0, end: 0 })
 const hasPrevious = computed(() => pageIndex.value > 0)
 const hasNext = computed(() => pageIndex.value < pages.value.length - 1)
@@ -113,7 +109,7 @@ function hasPage(direction: SwipeDirection): boolean {
 
 function turnPage(direction: SwipeDirection): void {
   if (!hasPage(direction)) return
-  pageIndex.value += direction
+  pagesBack.value = pages.value.length - 1 - (pageIndex.value + direction)
   selected.value = null
   animate([
     { transform: `translateX(${direction * SLIDE_IN_PX}px)`, opacity: 0 },
@@ -142,6 +138,9 @@ function onKeydown(event: KeyboardEvent): void {
 
 defineExpose({
   focus: () => svg.value?.focus({ preventScroll: true }),
+  showLatestPage: () => {
+    pagesBack.value = 0
+  },
 })
 </script>
 
