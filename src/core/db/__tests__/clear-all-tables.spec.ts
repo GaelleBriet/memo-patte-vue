@@ -16,7 +16,13 @@ describe('migrationTableNames', () => {
       'sync_state',
       'vaccination_injection',
       'treatment_dose',
+      'sync_pull_cursor',
     ])
+  })
+
+  it('s’arrête, sur demande, aux tables créées jusqu’à une version', () => {
+    expect(migrationTableNames(1)).toEqual(['animal'])
+    expect(migrationTableNames(6)).not.toContain('sync_pull_cursor')
   })
 
   it('couvre chaque table réellement présente en base après migration', async () => {

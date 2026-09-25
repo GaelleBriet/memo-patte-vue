@@ -1,5 +1,10 @@
+import type { SupabaseClient } from '@supabase/supabase-js'
+
 import type { DbClient, SqlStatement } from '@/core/db/db-client'
 import { getDb } from '@/core/db/sqlite'
+import { guardedUpsert, type SyncRow } from '@/core/supabase/guarded-upsert'
+import { loadSupabaseClient } from '@/core/supabase/load-client'
+import { syncField, type SyncPullPage } from '@/core/sync/service/syncable-table'
 import type { VaccinationInjection } from '../schema/vaccination-injection.schema'
 
 export type RestoredVaccinationInjection = Omit<VaccinationInjection, 'deletedAt'>
@@ -58,11 +63,20 @@ export function headInjectionIdSql(vaccinationId: string): string {
            LIMIT 1)`
 }
 
+export interface VaccinationInjectionsRepositoryDependencies {
+  loadSupabaseClient?: () => Promise<SupabaseClient>
+}
+
 /**
  * Écrit seul une injection notée ou annulée ; ses autres écritures sont des instructions que le
  * repository des vaccins ou un service joue.
  */
-export function createVaccinationInjectionsRepository(db: DbClient) {
+export function createVaccinationInjectionsRepository(
+  db: DbClient,
+  {
+    loadSupabaseClient: loadClient = loadSupabaseClient,
+  }: VaccinationInjectionsRepositoryDependencies = {},
+) {
   function insertStatement(injection: VaccinationInjection): SqlStatement {
     return {
       sql: `INSERT INTO vaccination_injection (${COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -80,6 +94,8 @@ export function createVaccinationInjectionsRepository(db: DbClient) {
   }
 
   return {
+    entity: 'vaccination_injection',
+
     async record(injection: VaccinationInjection): Promise<void> {
       const { sql, params } = insertStatement(injection)
       await db.run(sql, params)
@@ -235,6 +251,65 @@ export function createVaccinationInjectionsRepository(db: DbClient) {
               injection.updatedAt,
             ],
           }
+    },
+
+    /** Tombstones compris : le push doit pouvoir renvoyer une suppression comme une ligne normale. */
+    async getRowForPush(id: string): Promise<SyncRow | null> {
+      const rows = await db.query<InjectionRow>(
+        `SELECT ${COLUMNS} FROM vaccination_injection WHERE id = ?`,
+        [id],
+      )
+      return (rows[0] as SyncRow | undefined) ?? null
+    },
+
+    async pushRow(userId: string, row: SyncRow): Promise<void> {
+      const supabase = await loadClient()
+      await guardedUpsert(supabase, 'vaccination_injection', ['user_id', 'id'], {
+        ...row,
+        user_id: userId,
+      })
+    },
+
+    async pullPage(userId: string, since: string, limit: number): Promise<SyncPullPage> {
+      const supabase = await loadClient()
+      const { data, error } = await supabase
+        .from('vaccination_injection')
+        .select(`${COLUMNS}, server_updated_at`)
+        .eq('user_id', userId)
+        .gte('server_updated_at', since)
+        .order('server_updated_at', { ascending: true })
+        .limit(limit)
+      if (error) throw error
+
+      const rows = (data ?? []) as Array<InjectionRow & { server_updated_at: string }>
+      const cursor = rows.length > 0 ? (rows.at(-1)?.server_updated_at ?? null) : null
+      return {
+        rows: rows.map(({ server_updated_at: _serverUpdatedAt, ...columns }) => columns as SyncRow),
+        cursor,
+      }
+    },
+
+    applyRemoteRowStatement(row: SyncRow): SqlStatement {
+      return {
+        sql: `INSERT INTO vaccination_injection (${COLUMNS})
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+              ON CONFLICT (id) DO UPDATE SET
+                vaccination_id = excluded.vaccination_id, animal_id = excluded.animal_id,
+                injected_on = excluded.injected_on, next_due_date = excluded.next_due_date,
+                created_at = excluded.created_at, updated_at = excluded.updated_at,
+                deleted_at = excluded.deleted_at
+              WHERE excluded.updated_at > vaccination_injection.updated_at`,
+        params: [
+          row.id,
+          syncField(row, 'vaccination_id'),
+          syncField(row, 'animal_id'),
+          syncField(row, 'injected_on'),
+          syncField(row, 'next_due_date'),
+          syncField(row, 'created_at'),
+          row.updated_at,
+          syncField(row, 'deleted_at'),
+        ],
+      }
     },
   }
 }
