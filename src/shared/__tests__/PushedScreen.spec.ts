@@ -30,6 +30,16 @@ describe('PushedScreen — top bar', () => {
     expect(wrapper.find('.pushed-screen__subtitle').exists()).toBe(false)
   })
 
+  it('pose le contenu de `end` au bout de la ligne du titre', () => {
+    const wrapper = monter(
+      {},
+      { default: '<p>Contenu</p>', end: '<button class="menu">⋮</button>' },
+    )
+
+    expect(wrapper.find('.pushed-screen__line .pushed-screen__end .menu').exists()).toBe(true)
+    expect(monter().find('.pushed-screen__end').exists()).toBe(false)
+  })
+
   it('émet back depuis la flèche', async () => {
     const wrapper = monter()
 

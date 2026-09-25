@@ -10,6 +10,7 @@ import cloudDone from '@material-symbols/svg-400/outlined/cloud_done.svg?raw'
 import cloudOff from '@material-symbols/svg-400/outlined/cloud_off.svg?raw'
 import creditCard from '@material-symbols/svg-400/outlined/credit_card.svg?raw'
 import dataObject from '@material-symbols/svg-400/outlined/data_object.svg?raw'
+import deleteIcon from '@material-symbols/svg-400/outlined/delete.svg?raw'
 import deleteSweep from '@material-symbols/svg-400/outlined/delete_sweep.svg?raw'
 import devices from '@material-symbols/svg-400/outlined/devices.svg?raw'
 import doNotDisturbOn from '@material-symbols/svg-400/outlined/do_not_disturb_on.svg?raw'
@@ -29,6 +30,7 @@ import markEmailUnread from '@material-symbols/svg-400/outlined/mark_email_unrea
 import merge from '@material-symbols/svg-400/outlined/merge.svg?raw'
 import medication from '@material-symbols/svg-400/outlined/medication.svg?raw'
 import monitorWeight from '@material-symbols/svg-400/outlined/monitor_weight.svg?raw'
+import moreVert from '@material-symbols/svg-400/outlined/more_vert.svg?raw'
 import notificationsActive from '@material-symbols/svg-400/outlined/notifications_active.svg?raw'
 import notificationsOff from '@material-symbols/svg-400/outlined/notifications_off.svg?raw'
 import openInNew from '@material-symbols/svg-400/outlined/open_in_new.svg?raw'
@@ -37,6 +39,8 @@ import pets from '@material-symbols/svg-400/outlined/pets.svg?raw'
 import photoCamera from '@material-symbols/svg-400/outlined/photo_camera.svg?raw'
 import pictureAsPdf from '@material-symbols/svg-400/outlined/picture_as_pdf.svg?raw'
 import queryStats from '@material-symbols/svg-400/outlined/query_stats.svg?raw'
+import repeat from '@material-symbols/svg-400/outlined/repeat.svg?raw'
+import restartAlt from '@material-symbols/svg-400/outlined/restart_alt.svg?raw'
 import schedule from '@material-symbols/svg-400/outlined/schedule.svg?raw'
 import settings from '@material-symbols/svg-400/outlined/settings.svg?raw'
 import settingsBackupRestore from '@material-symbols/svg-400/outlined/settings_backup_restore.svg?raw'
@@ -140,6 +144,7 @@ export const msIcons = {
   colorize,
   credit_card: creditCard,
   data_object: dataObject,
+  delete: deleteIcon,
   delete_sweep: deleteSweep,
   devices,
   do_not_disturb_on: doNotDisturbOn,
@@ -173,6 +178,7 @@ export const msIcons = {
   merge,
   menu,
   monitor_weight: monitorWeight,
+  more_vert: moreVert,
   notifications_active: notificationsActive,
   notifications_off: notificationsOff,
   open_in_new: openInNew,
@@ -187,6 +193,8 @@ export const msIcons = {
   radio_button_checked: radioButtonChecked,
   radio_button_unchecked: radioButtonUnchecked,
   remove,
+  repeat,
+  restart_alt: restartAlt,
   schedule,
   search,
   settings,

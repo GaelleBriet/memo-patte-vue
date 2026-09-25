@@ -10,8 +10,10 @@ const props = withDefaults(
     /** Dates civiles `yyyy-MM-dd`, bornes comprises ; absentes, rien n'est borné de ce côté. */
     min?: string | null
     max?: string | null
+    /** Jours non sélectionnables à l'intérieur des bornes. */
+    excluded?: readonly string[]
   }>(),
-  { min: null, max: null },
+  { min: null, max: null, excluded: () => [] },
 )
 
 const model = defineModel<string | null>({ default: null })
@@ -54,6 +56,12 @@ watch(viewMode, (mode) => {
   if (mode !== 'month') releaseBackButton = onBackButton(() => (viewMode.value = 'month'))
 })
 
+const allowedDates = computed(() => {
+  if (props.excluded.length === 0) return undefined
+  const excluded = new Set(props.excluded)
+  return (date: unknown) => !excluded.has(format(date as Date, 'yyyy-MM-dd'))
+})
+
 const selected = computed({
   get: () => toDate(model.value) ?? null,
   set: (date: Date | null) => {
@@ -73,6 +81,7 @@ const selected = computed({
       hide-header
       :min="toDate(props.min)"
       :max="toDate(props.max)"
+      :allowed-dates="allowedDates"
       :show-adjacent-months="false"
       :view-mode="viewMode"
       @update:view-mode="onViewMode"

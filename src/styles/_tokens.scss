@@ -141,3 +141,9 @@ $color-dialog-cancel-border: $color-priming-icon-surface; // Contour de « Annul
 $color-calendar-day-disabled: #c4beb7; // Jour non sélectionnable d'un calendrier
 $color-sheet-icon-surface: $color-choice-selected-surface; // Pastille de l'icône en tête d'une feuille
 $size-sheet-icon: 44px; // Cette pastille
+
+// Historique (détail d'un vaccin, d'un traitement, traitements terminés)
+$shadow-menu: 0 8px 24px rgb(30 25 20 / 16%); // Ombre d'un menu ⋮
+$color-history-row-active: $color-badge-frequency-bg; // Ligne dont le menu ⋮ est ouvert
+$color-history-stopped-surface: $color-badge-frequency-bg; // Bandeau « Arrêté le … »
+$color-last-dose-surface: $color-notice-surface; // Pastille « Dernière prise »
