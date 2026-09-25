@@ -654,6 +654,12 @@
         "json": "JSON export saved to Documents › MémoPatte",
         "csv": "CSV export saved to Documents › MémoPatte"
       },
+      "open": "Open",
+      "openLabel": {
+        "json": "Open the JSON export",
+        "csv": "Open the CSV export"
+      },
+      "openFailed": "No app could open this file. It’s still in Documents › MémoPatte.",
       "storage": {
         "refused": "MémoPatte can’t access storage. Try again, or share the file.",
         "blocked": "Storage access is blocked. Allow it in the app’s settings, or share the file.",
@@ -706,6 +712,7 @@
       "shareTitle": "Share via",
       "success": "PDF exported",
       "saved": "PDF saved to Documents › MémoPatte",
+      "openLabel": "Open the PDF",
       "status": {
         "overdue": "Overdue",
         "upToDate": "Up to date",

@@ -20,17 +20,21 @@ beforeEach(() => {
 
 describe('useDataExport', () => {
   it('prépare le format choisi pour l’action choisie et renvoie son issue', async () => {
-    const exportData = vi.fn<DataExportService['exportData']>(async () => 'saved')
+    const saved = { status: 'saved', file: null } as const
+    const exportData = vi.fn<DataExportService['exportData']>(async () => saved)
     const { run } = useDataExport({ exportData }, port('granted'))
 
-    await expect(run('csv', 'save')).resolves.toBe('saved')
+    await expect(run('csv', 'save')).resolves.toBe(saved)
     expect(exportData).toHaveBeenCalledExactlyOnceWith('csv', 'save')
   })
 
-  it.each(['saved', 'shared'] as const)('compte un export %s', async (outcome) => {
+  it.each([
+    ['enregistré', 'save', { status: 'saved', file: null }],
+    ['partagé', 'share', 'shared'],
+  ] as const)('compte un export %s', async (_, mode, outcome) => {
     const { run } = useDataExport({ exportData: async () => outcome }, port('granted'))
 
-    await run('json', outcome === 'saved' ? 'save' : 'share')
+    await run('json', mode)
 
     expect(recordUsageSignal).toHaveBeenCalledExactlyOnceWith('export')
   })

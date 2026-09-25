@@ -179,7 +179,7 @@ describe('deliverExportFile — enregistrer sur le téléphone', () => {
         'save',
         'Partager via',
       ),
-    ).resolves.toBe('saved')
+    ).resolves.toMatchObject({ status: 'saved' })
 
     expect(Filesystem.writeFile).toHaveBeenCalledExactlyOnceWith({
       path: 'MémoPatte/memopatte-export-20260923-1432.json',
@@ -207,6 +207,23 @@ describe('deliverExportFile — enregistrer sur le téléphone', () => {
     })
   })
 
+  it.each([
+    ['memopatte-export-20260923-1432.json', '{}', 'application/json'],
+    ['memopatte-export-20260923-1432.zip', new Uint8Array([0x50, 0x4b]), 'application/zip'],
+    ['carnet-milo-20260923-1432.pdf', new Uint8Array([0x25, 0x50]), 'application/pdf'],
+  ])(
+    'renvoie l’URI du fichier écrit et son type, pour le rouvrir (%s)',
+    async (name, content, mimeType) => {
+      const uri = `file:///storage/emulated/0/Documents/M%C3%A9moPatte/${name}`
+      vi.mocked(Filesystem.writeFile).mockResolvedValueOnce({ uri })
+
+      await expect(deliverExportFile({ name, content }, 'save', 'x')).resolves.toEqual({
+        status: 'saved',
+        file: { uri, mimeType },
+      })
+    },
+  )
+
   it('ne remplace jamais un export de la même minute : le nouveau prend un numéro', async () => {
     vi.mocked(Filesystem.stat).mockImplementation(async ({ path }) => {
       if (path === 'MémoPatte/memopatte-export-20260923-1432.json') return FILE_INFO
@@ -219,7 +236,7 @@ describe('deliverExportFile — enregistrer sur le téléphone', () => {
         'save',
         'x',
       ),
-    ).resolves.toBe('saved')
+    ).resolves.toMatchObject({ status: 'saved' })
 
     expect(writtenPaths()).toEqual(['MémoPatte/memopatte-export-20260923-1432 (1).json'])
     expect(Filesystem.stat).toHaveBeenCalledWith({
@@ -320,14 +337,14 @@ describe('deliverExportFile — enregistrer sur le téléphone', () => {
       vi.restoreAllMocks()
     })
 
-    it('télécharge le fichier sous son nom, sans toucher au stockage', async () => {
+    it('télécharge le fichier sous son nom, sans toucher au stockage ni rien à rouvrir', async () => {
       await expect(
         deliverExportFile(
           { name: 'memopatte-export-20260923-1432.json', content: '{}' },
           'save',
           'x',
         ),
-      ).resolves.toBe('saved')
+      ).resolves.toEqual({ status: 'saved', file: null })
 
       expect(clicked).toEqual([
         { href: 'blob:http://localhost/export', download: 'memopatte-export-20260923-1432.json' },

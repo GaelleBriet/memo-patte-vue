@@ -85,10 +85,14 @@ describe('pdf-export.service', () => {
   })
 
   it('remet le PDF pour l’enregistrer sur le téléphone', async () => {
-    const deliver = vi.fn<PdfExportDependencies['deliver']>(async () => 'saved')
+    const saved = {
+      status: 'saved',
+      file: { uri: 'file:///carnet-milo-20260915-1030.pdf', mimeType: 'application/pdf' },
+    } as const
+    const deliver = vi.fn<PdfExportDependencies['deliver']>(async () => saved)
     const { service } = setup({ deliver })
 
-    await expect(service.exportAnimalCarnetPdf(MILO_ID, 'save')).resolves.toBe('saved')
+    await expect(service.exportAnimalCarnetPdf(MILO_ID, 'save')).resolves.toBe(saved)
 
     expect(deliver).toHaveBeenCalledExactlyOnceWith(
       expect.objectContaining({ name: 'carnet-milo-20260915-1030.pdf' }),

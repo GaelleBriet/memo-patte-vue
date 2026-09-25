@@ -4,10 +4,10 @@ import { useI18n } from 'vue-i18n'
 
 import ChoiceCards, { type ChoiceCard } from './ChoiceCards.vue'
 import ExportActions from './ExportActions.vue'
-import type { DeliveryMode } from '../logic/export-delivery'
+import { isSaved, type DeliveryMode } from '../logic/export-delivery'
 import { openAppSettings } from '../logic/export-storage-access'
 import { pdfExportFileName } from '../logic/pdf-content'
-import { SAVED_TOAST_MS } from '../composables/use-export-run'
+import { showSavedExportToast } from '../logic/saved-export-toast'
 import { usePdfExport } from '../composables/use-pdf-export'
 import BottomSheet from '@/shared/components/BottomSheet.vue'
 import { showToast } from '@/shared/utils/toast'
@@ -71,9 +71,9 @@ watch(
 async function deliver(mode: DeliveryMode): Promise<void> {
   if (selected.value === null) return
   const outcome = await run(selected.value, mode, openedAt.value)
-  if (outcome === 'saved') {
+  if (isSaved(outcome)) {
     open.value = false
-    showToast(t('settings.pdf.saved'), { durationMs: SAVED_TOAST_MS })
+    showSavedExportToast(t('settings.pdf.saved'), t('settings.pdf.openLabel'), outcome.file)
   } else if (outcome === 'shared') {
     open.value = false
     showToast(t('settings.pdf.success'))

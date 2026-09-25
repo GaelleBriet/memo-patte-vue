@@ -4,11 +4,11 @@ import { useI18n } from 'vue-i18n'
 
 import ChoiceCards from './ChoiceCards.vue'
 import ExportActions from './ExportActions.vue'
-import type { DeliveryMode } from '../logic/export-delivery'
+import { isSaved, type DeliveryMode } from '../logic/export-delivery'
 import type { ExportFormat } from '../logic/export-format'
 import { openAppSettings } from '../logic/export-storage-access'
+import { showSavedExportToast } from '../logic/saved-export-toast'
 import { useDataExport } from '../composables/use-data-export'
-import { SAVED_TOAST_MS } from '../composables/use-export-run'
 import BottomSheet from '@/shared/components/BottomSheet.vue'
 import { showToast } from '@/shared/utils/toast'
 
@@ -52,11 +52,13 @@ watch(
 async function deliver(mode: DeliveryMode): Promise<void> {
   const format = selected.value
   const outcome = await run(format, mode)
-  if (outcome === 'saved') {
+  if (isSaved(outcome)) {
     open.value = false
     const message =
       format === 'json' ? t('settings.export.saved.json') : t('settings.export.saved.csv')
-    showToast(message, { durationMs: SAVED_TOAST_MS })
+    const openLabel =
+      format === 'json' ? t('settings.export.openLabel.json') : t('settings.export.openLabel.csv')
+    showSavedExportToast(message, openLabel, outcome.file)
   } else if (outcome === 'shared') {
     open.value = false
     showToast(t('settings.export.success'))

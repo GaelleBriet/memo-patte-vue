@@ -11,8 +11,6 @@ export type SaveAccessPort = {
 
 export type ExportRunInterruption = 'no-access' | 'failed' | 'busy'
 
-export const SAVED_TOAST_MS = 4000
-
 const storageAccess: SaveAccessPort = { check: checkSaveAccess, request: requestSaveAccess }
 
 export function useExportRun(access: SaveAccessPort = storageAccess) {

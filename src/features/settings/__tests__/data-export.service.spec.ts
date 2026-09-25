@@ -129,10 +129,14 @@ describe('data-export.service', () => {
   })
 
   it('remet le même fichier pour l’enregistrer sur le téléphone', async () => {
-    const deliver = vi.fn<DataExportDependencies['deliver']>(async () => 'saved')
+    const saved = {
+      status: 'saved',
+      file: { uri: 'file:///memopatte-export-20260915-1030.json', mimeType: 'application/json' },
+    } as const
+    const deliver = vi.fn<DataExportDependencies['deliver']>(async () => saved)
     const { service } = setup({ deliver })
 
-    await expect(service.exportData('json', 'save')).resolves.toBe('saved')
+    await expect(service.exportData('json', 'save')).resolves.toBe(saved)
 
     expect(deliver).toHaveBeenCalledExactlyOnceWith(
       expect.objectContaining({ name: 'memopatte-export-20260915-1030.json' }),

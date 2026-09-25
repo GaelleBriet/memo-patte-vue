@@ -1,3 +1,4 @@
+import { FileOpener } from '@capawesome-team/capacitor-file-opener'
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -6,7 +7,7 @@ import type { DeliveryMode, DeliveryOutcome } from '../logic/export-delivery'
 import type { SaveAccess } from '../logic/export-storage-access'
 import i18n from '@/core/i18n'
 import vuetify from '@/core/theme/vuetify'
-import { dismissToast, toastMessage } from '@/shared/utils/toast'
+import { dismissToast, runToastAction, toastAction, toastMessage } from '@/shared/utils/toast'
 
 const exportData = vi.hoisted(() =>
   vi.fn<(format: 'json' | 'csv', mode: DeliveryMode) => Promise<DeliveryOutcome>>(),
@@ -23,12 +24,29 @@ vi.mock('../logic/export-storage-access', () => storage)
 vi.mock('@/core/app-lifecycle/app-resume', () => ({
   useAppResume: (listener: () => void) => resumeListeners.push(listener),
 }))
+vi.mock('@capawesome-team/capacitor-file-opener', () => ({
+  FileOpener: { openFile: vi.fn<() => Promise<void>>(async () => {}) },
+}))
+
+const SAVED_FILES = {
+  json: {
+    uri: 'file:///storage/emulated/0/Documents/M%C3%A9moPatte/memopatte-export-20260923-1432.json',
+    mimeType: 'application/json',
+  },
+  csv: {
+    uri: 'file:///storage/emulated/0/Documents/M%C3%A9moPatte/memopatte-export-20260923-1432.zip',
+    mimeType: 'application/zip',
+  },
+}
 
 let wrapper: VueWrapper | null = null
 
 beforeEach(() => {
   exportData.mockReset()
-  exportData.mockImplementation(async (_, mode) => (mode === 'save' ? 'saved' : 'shared'))
+  exportData.mockImplementation(async (format, mode) =>
+    mode === 'save' ? { status: 'saved', file: SAVED_FILES[format] } : 'shared',
+  )
+  vi.mocked(FileOpener.openFile).mockReset().mockResolvedValue()
   storage.checkSaveAccess.mockReset().mockResolvedValue('granted')
   storage.requestSaveAccess.mockReset().mockResolvedValue('granted')
   storage.openAppSettings.mockReset().mockResolvedValue()
@@ -123,11 +141,11 @@ describe('ExportSheet', () => {
   })
 
   it.each([
-    [0, 'json', 'Export JSON enregistré dans Documents › MémoPatte'],
-    [1, 'csv', 'Export CSV enregistré dans Documents › MémoPatte'],
+    [0, 'json', 'Export JSON enregistré dans Documents › MémoPatte', 'Ouvrir l’export JSON'],
+    [1, 'csv', 'Export CSV enregistré dans Documents › MémoPatte', 'Ouvrir l’export CSV'],
   ] as const)(
     'enregistre au format choisi, ferme la feuille et dit où trouver le fichier (%s)',
-    async (index, format, message) => {
+    async (index, format, message, openLabel) => {
       const wrapper = await monter()
 
       choix()[index]!.click()
@@ -140,12 +158,43 @@ describe('ExportSheet', () => {
       expect(exportData).toHaveBeenCalledExactlyOnceWith(format, 'save')
       expect(wrapper.emitted('update:modelValue')).toEqual([[false]])
       expect(toastMessage.value).toBe(message)
+      expect(toastAction.value).toMatchObject({ label: 'Ouvrir', ariaLabel: openLabel })
       vi.advanceTimersByTime(3900)
       expect(toastMessage.value).toBe(message)
       vi.advanceTimersByTime(200)
       expect(toastMessage.value).toBeNull()
     },
   )
+
+  it.each(['json', 'csv'] as const)(
+    '« Ouvrir » ouvre l’export %s tout juste enregistré',
+    async (format) => {
+      await monter()
+
+      choix()[format === 'json' ? 0 : 1]!.click()
+      await flushPromises()
+      enregistrer().click()
+      await flushPromises()
+      runToastAction()
+      await flushPromises()
+
+      expect(FileOpener.openFile).toHaveBeenCalledExactlyOnceWith({
+        path: SAVED_FILES[format].uri,
+        mimeType: SAVED_FILES[format].mimeType,
+      })
+    },
+  )
+
+  it('ne propose pas « Ouvrir » dans le navigateur, où l’export est un téléchargement', async () => {
+    exportData.mockResolvedValue({ status: 'saved', file: null })
+    await monter()
+
+    enregistrer().click()
+    await flushPromises()
+
+    expect(toastMessage.value).toBe('Export JSON enregistré dans Documents › MémoPatte')
+    expect(toastAction.value).toBeNull()
+  })
 
   it('partage comme avant, sans demander l’accès au stockage', async () => {
     const wrapper = await monter()
@@ -159,6 +208,7 @@ describe('ExportSheet', () => {
     expect(exportData).toHaveBeenCalledExactlyOnceWith('csv', 'share')
     expect(wrapper.emitted('update:modelValue')).toEqual([[false]])
     expect(toastMessage.value).toBe('Données exportées')
+    expect(toastAction.value).toBeNull()
   })
 
   it('affiche « Préparation… » sur le bouton touché et bloque les deux pendant la génération', async () => {
