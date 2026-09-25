@@ -187,6 +187,19 @@ describe('toCsvTables', () => {
     ])
   })
 
+  it('écrit en kilos au centième une pesée saisie en livres, sans décimales parasites', () => {
+    const data = {
+      ...EXPORT_FIXTURE,
+      animals: [{ ...EXPORT_FIXTURE.animals[0]!, initialWeightKg: 54.1 * 0.45359237 }],
+      weightEntries: [{ ...EXPORT_FIXTURE.weightEntries[0]!, weightKg: 54.1 * 0.45359237 }],
+    }
+    const tables = toCsvTables(data, 'kg')
+
+    expect(lines(tables['poids.csv'])[1]).toMatch(/;24,54$/)
+    expect(lines(tables['animaux.csv'])[1]).toContain(';24,54;')
+    expect(JSON.parse(toJsonExport(data, META)).weightEntries[0].weightKg).toBe(54.1 * 0.45359237)
+  })
+
   it('écrit les poids en livres quand c’est l’unité choisie, l’unité dans le titre de colonne', () => {
     const enLivres = toCsvTables(EXPORT_FIXTURE, 'lb')
 

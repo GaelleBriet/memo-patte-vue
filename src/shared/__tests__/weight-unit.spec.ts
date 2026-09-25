@@ -59,8 +59,9 @@ describe('maxWeightIn', () => {
 })
 
 describe('recordedWeightIn', () => {
-  it('rend les kilos tels qu’enregistrés', () => {
+  it('rend les kilos au centième, sans le bruit d’une saisie en livres', () => {
     expect(recordedWeightIn(24.55, 'kg')).toBe(24.55)
+    expect(recordedWeightIn(toKg(54.1, 'lb'), 'kg')).toBe(24.54)
   })
 
   it('rend les livres au centième', () => {
@@ -83,6 +84,7 @@ describe('weightKgFromInput', () => {
   it('garde le poids enregistré quand la valeur proposée revient sans changement', () => {
     expect(weightKgFromInput(54.12, 'lb', 24.55)).toBe(24.55)
     expect(weightKgFromInput(24.55, 'kg', 24.55)).toBe(24.55)
+    expect(weightKgFromInput(24.54, 'kg', toKg(54.1, 'lb'))).toBe(toKg(54.1, 'lb'))
   })
 
   it('convertit la valeur dès qu’elle change', () => {

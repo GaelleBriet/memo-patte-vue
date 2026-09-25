@@ -333,10 +333,10 @@ se réimporte.
 - **Une ligne par injection et par prise**, dans deux fichiers séparés reliés à leur vaccin ou
   traitement (décision du 2026-09-24). `vaccins.csv` et `traitements.csv` gardent, pour la lecture,
   la date et l'échéance de la dernière injection ou prise.
-- **Poids dans l'unité choisie dans Paramètres** (#352), nommée par le titre de colonne :
-  `initialWeightKg` et `weightKg` en kilogrammes, tels qu'enregistrés ; `initialWeightLb` et
-  `weightLb` en livres, au centième. Seules exceptions aux en-têtes identiques au JSON, qui reste
-  toujours en kilogrammes.
+- **Poids dans l'unité choisie dans Paramètres** (#352), au centième, nommée par le titre de
+  colonne : `initialWeightKg` et `weightKg` en kilogrammes, `initialWeightLb` et `weightLb` en
+  livres. Seules exceptions aux en-têtes identiques au JSON, qui reste toujours en kilogrammes,
+  valeur enregistrée sans arrondi.
 
 | Fichier           | Colonnes                                                                                            |
 | ----------------- | --------------------------------------------------------------------------------------------------- |

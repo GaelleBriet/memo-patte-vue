@@ -145,6 +145,20 @@ describe('validateWeightForm — plusieurs erreurs', () => {
   })
 })
 
+describe('pesée saisie en livres, corrigée en kilos', () => {
+  const EN_LIVRES: WeightEntry = { ...PESEE, weightKg: 54.1 * KG_PER_LB }
+
+  it('propose le poids au centième, sans décimales parasites', () => {
+    expect(weightFormValuesFrom(EN_LIVRES).weightKg).toBe('24,54')
+  })
+
+  it('garde le poids enregistré tel quel quand la valeur proposée n’a pas bougé', () => {
+    const resultat = validateWeightForm(weightFormValuesFrom(EN_LIVRES), EN_LIVRES.weightKg)
+
+    expect(resultat.success && resultat.data.weightKg).toBe(EN_LIVRES.weightKg)
+  })
+})
+
 describe('en livres', () => {
   afterEach(() => applyWeightUnit('kg'))
 

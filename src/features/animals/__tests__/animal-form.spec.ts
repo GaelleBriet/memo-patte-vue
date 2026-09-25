@@ -221,6 +221,14 @@ describe('validateAnimalForm — plusieurs erreurs', () => {
   })
 })
 
+describe('poids initial saisi en livres, relu en kilos', () => {
+  it('propose le poids initial au centième, sans décimales parasites', () => {
+    expect(
+      animalFormValuesFrom({ ...MILO, initialWeightKg: 54.1 * KG_PER_LB }).initialWeightKg,
+    ).toBe('24.54')
+  })
+})
+
 describe('poids initial en livres', () => {
   afterEach(() => applyWeightUnit('kg'))
 
