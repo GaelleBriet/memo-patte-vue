@@ -42,7 +42,7 @@ const { errors, validate, reset } = useFormValidation(values, validateWeightForm
 const animalErrorId = useId()
 const weightErrorId = useId()
 const dateErrorId = useId()
-const errorKey = ref<string | null>(null)
+const failed = ref<'save' | 'delete' | null>(null)
 const pending = ref<'save' | 'delete' | null>(null)
 const isSubmitting = computed(() => pending.value !== null)
 const { today, refresh: refreshToday } = useToday()
@@ -78,7 +78,7 @@ watch(
     refreshToday()
     values.value = initialValues()
     reset()
-    errorKey.value = null
+    failed.value = null
     if (!animals.hasLoaded) void animals.load()
     // Ajout pour un animal connu : le clavier s'ouvre sur le poids, la saisie tient en deux taps.
     // Sans animal, les champs sont verrouillés : rien à focaliser.
@@ -98,7 +98,7 @@ async function submit(): Promise<void> {
   }
 
   pending.value = 'save'
-  errorKey.value = null
+  failed.value = null
 
   try {
     if (props.entry) {
@@ -109,7 +109,7 @@ async function submit(): Promise<void> {
     }
     open.value = false
   } catch {
-    errorKey.value = 'weight.form.errors.save'
+    failed.value = 'save'
   } finally {
     pending.value = null
   }
@@ -120,7 +120,7 @@ async function remove(): Promise<void> {
   if (isSubmitting.value || !entry) return
 
   pending.value = 'delete'
-  errorKey.value = null
+  failed.value = null
 
   try {
     await weight.remove(entry.id)
@@ -134,7 +134,7 @@ async function remove(): Promise<void> {
       failedMessage: t('reminderSheet.undoFailed'),
     })
   } catch {
-    errorKey.value = 'weight.form.errors.delete'
+    failed.value = 'delete'
   } finally {
     pending.value = null
   }
@@ -236,8 +236,8 @@ async function remove(): Promise<void> {
       </div>
     </div>
 
-    <p v-if="errorKey" class="weight-sheet__save-error" role="alert">
-      {{ t(errorKey) }}
+    <p v-if="failed" class="weight-sheet__save-error" role="alert">
+      {{ failed === 'save' ? t('weight.form.errors.save') : t('weight.form.errors.delete') }}
     </p>
 
     <v-btn
