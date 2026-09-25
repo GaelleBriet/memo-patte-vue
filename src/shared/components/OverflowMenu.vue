@@ -9,6 +9,10 @@ export type OverflowMenuItem = {
 </script>
 
 <script setup lang="ts">
+import { onScopeDispose, ref, watch } from 'vue'
+
+import { onBackButton } from '@/core/app-lifecycle/back-button'
+
 defineProps<{
   /** Nom du bouton ⋮ lu par le lecteur d'écran. */
   label: string
@@ -18,10 +22,25 @@ defineProps<{
 const emit = defineEmits<{
   select: [id: string]
 }>()
+
+const isOpen = ref(false)
+let releaseBackButton: (() => void) | null = null
+
+function releaseBack(): void {
+  releaseBackButton?.()
+  releaseBackButton = null
+}
+
+onScopeDispose(releaseBack)
+
+watch(isOpen, (open) => {
+  releaseBack()
+  if (open) releaseBackButton = onBackButton(() => (isOpen.value = false))
+})
 </script>
 
 <template>
-  <v-menu location="bottom end" content-class="overflow-menu">
+  <v-menu v-model="isOpen" location="bottom end" content-class="overflow-menu">
     <template #activator="{ props: activator }">
       <v-btn
         v-bind="activator"
