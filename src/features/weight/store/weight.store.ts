@@ -8,7 +8,10 @@ import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import { recordUsageSignal } from '@/shared/utils/usage-signals'
 
 // Le store ne dépend que de ce qu'il appelle : la cascade de suppression (#102) n'est pas son affaire.
-type WeightRepository = Pick<FullWeightRepository, 'listByAnimal' | 'create' | 'update' | 'remove'>
+type WeightRepository = Pick<
+  FullWeightRepository,
+  'listByAnimal' | 'create' | 'update' | 'remove' | 'undoRemove'
+>
 
 export type WeightRepositoryProvider = () => WeightRepository | Promise<WeightRepository>
 
@@ -112,6 +115,13 @@ export const useWeightStore = defineStore('weight', () => {
     async remove(id: string): Promise<void> {
       await write(
         (repository) => repository.remove(id),
+        () => animalId.value,
+      )
+    },
+
+    async undoRemove(id: string): Promise<void> {
+      await write(
+        (repository) => repository.undoRemove(id),
         () => animalId.value,
       )
     },

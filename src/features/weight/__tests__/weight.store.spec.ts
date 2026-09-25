@@ -259,6 +259,27 @@ describe('useWeightStore', () => {
     expect(store.entries.map((entry) => entry.weightKg)).toEqual([12.9])
   })
 
+  it('remet une pesée supprimée et rafraîchit la liste', async () => {
+    const seme = repository.seed(pesee())
+    const store = useWeightStore()
+    await store.loadForAnimal(MILO)
+    await store.remove(seme.id)
+
+    await store.undoRemove(seme.id)
+
+    expect(repository.undoRemove).toHaveBeenCalledWith(seme.id)
+    expect(store.entries.map((entry) => entry.id)).toEqual([seme.id])
+    expect(store.isLoading).toBe(false)
+  })
+
+  it('propage l’erreur d’une remise', async () => {
+    const store = useWeightStore()
+    repository.undoRemove.mockRejectedValueOnce(new Error('base verrouillée'))
+
+    await expect(store.undoRemove('inconnu')).rejects.toThrow('base verrouillée')
+    expect(store.isLoading).toBe(false)
+  })
+
   it('propage l’erreur d’une création et garde la liste intacte', async () => {
     repository.seed(pesee())
     const store = useWeightStore()
@@ -326,6 +347,7 @@ interface FakeWeightRepository {
   create: Mock<WeightRepository['create']>
   update: Mock<WeightRepository['update']>
   remove: Mock<WeightRepository['remove']>
+  undoRemove: Mock<WeightRepository['undoRemove']>
 }
 
 // Même contrat que `weight.repository.ts`, sans SQLite. `update` remplace l'objet : la liste du store ne bouge que si elle est relue.
@@ -370,6 +392,10 @@ function createFakeRepository(): FakeWeightRepository {
     remove: vi.fn<WeightRepository['remove']>(async (id) => {
       const entry = living().find((candidate) => candidate.id === id)
       if (entry) entry.deletedAt = new Date().toISOString()
+    }),
+    undoRemove: vi.fn<WeightRepository['undoRemove']>(async (id) => {
+      const entry = entries.find((candidate) => candidate.id === id)
+      if (entry) entry.deletedAt = null
     }),
   }
 }

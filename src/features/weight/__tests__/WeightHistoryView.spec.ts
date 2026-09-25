@@ -83,6 +83,7 @@ beforeEach(async () => {
     create,
     update: vi.fn<WeightRepository['update']>(),
     remove: vi.fn<WeightRepository['remove']>(),
+    undoRemove: vi.fn<WeightRepository['undoRemove']>(),
   }))
   const store = useAnimalsStore()
   loadAnimals = vi.spyOn(store, 'load').mockImplementation(async () => {

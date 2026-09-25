@@ -166,6 +166,7 @@ beforeEach(async () => {
     create: vi.fn<WeightRepository['create']>(),
     update: vi.fn<WeightRepository['update']>(),
     remove: vi.fn<WeightRepository['remove']>(),
+    undoRemove: vi.fn<WeightRepository['undoRemove']>(),
   }))
   await router.push({ name: 'animals' })
   push = vi.spyOn(router, 'push').mockResolvedValue()
