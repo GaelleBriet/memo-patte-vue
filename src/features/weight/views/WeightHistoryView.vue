@@ -1,5 +1,14 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, useTemplateRef, watch, type ComponentPublicInstance } from 'vue'
+import {
+  computed,
+  nextTick,
+  onMounted,
+  ref,
+  useId,
+  useTemplateRef,
+  watch,
+  type ComponentPublicInstance,
+} from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
@@ -16,13 +25,7 @@ import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import PushedScreen from '@/shared/components/PushedScreen.vue'
 import SectionCard from '@/shared/components/SectionCard.vue'
 import WeightHistoryChart from '@/shared/components/WeightHistoryChart.vue'
-import {
-  formatFullDate,
-  formatKg,
-  formatKgDelta,
-  formatLongDate,
-  formatMonth,
-} from '@/shared/utils/format'
+import { formatKg, formatKgDelta, formatLongDate, formatMonth } from '@/shared/utils/format'
 
 const props = defineProps<{
   animalId: string
@@ -40,6 +43,8 @@ const emptyAddButton = useTemplateRef<HTMLElement>('emptyAddButton')
 const focusFallback = computed<HTMLElement | null>(
   () => addButton.value?.$el ?? emptyAddButton.value ?? null,
 )
+const rowList = useTemplateRef<HTMLElement>('rowList')
+const rowHintId = useId()
 
 const animal = computed(() => animals.byId(props.animalId))
 // Supprimé ou lien périmé : rien à consulter ni à ajouter.
@@ -124,11 +129,10 @@ function openEdit(id: string): void {
   isSheetOpen.value = true
 }
 
-function rowLabel(row: WeightHistoryRow): string {
-  return t('weight.history.rowLabel', {
-    date: formatFullDate(row.measuredOn),
-    weight: formatKg(row.weightKg),
-  })
+// Le toast qui portait le focus a disparu : la ligne remise le reprend.
+async function focusRow(id: string): Promise<void> {
+  await nextTick()
+  rowList.value?.querySelector<HTMLElement>(`[data-entry-id="${id}"]`)?.focus()
 }
 
 onMounted(() => {
@@ -195,12 +199,14 @@ function backToAnimals(): void {
           :title="t('weight.history.list')"
           :counter="String(history.rows.length)"
         >
-          <ul class="weight-history__rows">
+          <p :id="rowHintId" hidden>{{ t('weight.history.rowHint') }}</p>
+          <ul ref="rowList" class="weight-history__rows">
             <li v-for="row in history.rows" :key="row.id" class="weight-history__row">
               <button
                 type="button"
                 class="weight-history__row-button"
-                :aria-label="rowLabel(row)"
+                :data-entry-id="row.id"
+                :aria-describedby="rowHintId"
                 @click="openEdit(row.id)"
               >
                 <span class="weight-history__row-date">{{ formatLongDate(row.measuredOn) }}</span>
@@ -258,6 +264,7 @@ function backToAnimals(): void {
         :entry="editedEntry"
         :focus-fallback="focusFallback"
         @created="chart?.showLatestPage()"
+        @restored="focusRow($event.id)"
       />
     </div>
 

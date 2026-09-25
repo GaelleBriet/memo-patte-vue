@@ -754,15 +754,27 @@ describe('WeightHistoryView — corriger ou supprimer une pesée', () => {
     }))
   }
 
-  it('fait de chaque ligne un bouton qui dit la pesée et ce qu’il permet', async () => {
+  it('fait de chaque ligne un bouton nommé par son contenu, variation comprise', async () => {
     const wrapper = await monter()
 
     const boutons = wrapper.findAll('.weight-history__row .weight-history__row-button')
     expect(boutons).toHaveLength(6)
     expect(boutons[0]!.element.tagName).toBe('BUTTON')
-    expect(boutons[0]!.attributes('aria-label')).toBe(
-      'Pesée du 8 novembre 2026, 24,5 kg. Modifier ou supprimer.',
-    )
+    expect(boutons[0]!.attributes('aria-label')).toBeUndefined()
+    expect(boutons[0]!.findAll('span').map((partie) => partie.text())).toEqual([
+      '8 nov. 2026',
+      '+0,2 kg',
+      '24,5 kg',
+    ])
+  })
+
+  it('décrit ce que permet chaque ligne : modifier ou supprimer', async () => {
+    const wrapper = await monter()
+
+    for (const bouton of wrapper.findAll('.weight-history__row-button')) {
+      const description = document.getElementById(bouton.attributes('aria-describedby') ?? '')
+      expect(description?.textContent?.trim()).toBe('Modifier ou supprimer')
+    }
   })
 
   it('ouvre la feuille pesée de la ligne touchée, pré-remplie', async () => {
@@ -830,6 +842,17 @@ describe('WeightHistoryView — corriger ou supprimer une pesée', () => {
 
     expect(lignes()[2]).toEqual({ date: '13 sept. 2026', poids: '24,2 kg' })
     expect(wrapper.get('.section-card__counter').text()).toBe('6')
+  })
+
+  it('rend le focus à la ligne remise par « Annuler »', async () => {
+    const wrapper = await monter()
+    await toucherLigne(2)
+    await cliquerDansLaFeuille('.weight-sheet__delete')
+
+    runToastAction()
+    await flushPromises()
+
+    expect(document.activeElement).toBe(wrapper.findAll('.weight-history__row-button')[2]!.element)
   })
 
   it('rend le focus au bouton fixe quand la ligne supprimée a disparu', async () => {

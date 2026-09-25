@@ -366,7 +366,7 @@
       "selected": "Weigh-in on {date}",
       "list": "All weigh-ins",
       "value": "{weight} kg",
-      "rowLabel": "Weigh-in on {date}, {weight} kg. Edit or delete.",
+      "rowHint": "Edit or delete",
       "initial": "Weight on arrival: {weight} kg",
       "link": "View history"
     },
