@@ -1749,3 +1749,17 @@ avec l'ancienne fréquence, que personne n'a choisie ; les deux appareils font l
 convergent. — Alternative écartée : ne jamais recalculer, ce qui garde un rappel faux jusqu'à la
 prise suivante. — Accepté sans remède (§10.7) : un report et un changement de fréquence concurrents
 sur la même prise de tête, la modification la plus récente gagne.
+
+2026-09-25 — **Export v2 et import : deux points validés par Gaelle** (#382).
+
+1) **Une injection ou une prise reconnue par son identifiant prend la version la plus récemment
+modifiée** (`updated_at`), date de l'événement comprise : une date corrigée sur un appareil voyage par
+l'export comme par la synchro. Ce n'est jamais la date de la prise qui départage, c'est la date de la
+dernière modification. — Raison : même règle que le reste de l'import et que la synchro (la
+modification la plus récente gagne). — Alternative écartée : ne jamais réécrire une date d'événement
+déjà en base, qui bloquerait une correction sur le premier appareil. Limite acceptée : deux prises le
+même jour peuvent en résulter, comme par la synchro (§10.7).
+
+2) **Textes de l'historique dans le PDF** : « Injections : » (toutes les dates, jamais regroupées),
+« Dernière prise : », « Prises précédentes : », et « N prises du A au B » pour une série de plus de
+trois prises ; en petit et en gris, en retrait sous chaque ligne.
