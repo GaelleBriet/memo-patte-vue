@@ -6,7 +6,6 @@ import {
   formatKgInput,
   formatFullDate,
   formatLongDate,
-  formatMonth,
   formatMonthShort,
   formatMonthYear,
   formatNumericDate,
@@ -14,6 +13,7 @@ import {
   formatDayMonthOrYear,
   formatFullDayMonth,
   formatWeekdayDate,
+  nonBreaking,
 } from '../utils/format'
 import { applyLocale } from '@/core/i18n'
 
@@ -76,11 +76,6 @@ describe('formatKgInput', () => {
 })
 
 describe('mois et dates', () => {
-  it('nomme le mois en toutes lettres, en minuscules', () => {
-    expect(formatMonth('2026-08-14')).toBe('août')
-    expect(formatMonth('2026-09-01')).toBe('septembre')
-  })
-
   it('abrège le mois avec une majuscule pour les libellés de courbe', () => {
     expect(
       ['2026-06-05', '2026-07-05', '2026-08-05', '2026-09-05', '2026-10-05', '2026-11-05'].map(
@@ -112,6 +107,13 @@ describe('mois et dates', () => {
     expect(formatDayMonthOrYear('2026-09-28', '2026-09-23')).toBe('28 sept.')
     expect(formatDayMonthOrYear('2025-08-10', '2026-09-23')).toBe('10 août 2025')
     expect(formatDayMonthOrYear('2027-01-05', '2026-09-23')).toBe('5 janv. 2027')
+  })
+
+  it('garde une date d’un seul tenant, par des espaces insécables', () => {
+    expect(nonBreaking(formatDayMonthOrYear('2026-08-25', '2026-09-24'))).toBe('25\u00a0août')
+    expect(nonBreaking(formatDayMonthOrYear('2025-12-20', '2026-09-24'))).toBe(
+      '20\u00a0déc.\u00a02025',
+    )
   })
 
   it('écrit le jour et le mois en toutes lettres pour le lecteur d’écran', () => {
@@ -146,7 +148,6 @@ describe('en anglais', () => {
   it('suit la langue courante pour les mois et les dates', () => {
     applyLocale('en')
 
-    expect(formatMonth('2026-08-14')).toBe('August')
     expect(formatMonthShort('2026-09-05')).toBe('Sep')
     expect(formatMonthYear('2026-12-12')).toBe('Dec 2026')
     expect(formatLongDate('2026-11-08')).toBe('Nov 8, 2026')
@@ -155,5 +156,14 @@ describe('en anglais', () => {
     expect(formatDayMonth('2026-09-28')).toBe('Sep 28')
     expect(formatFullDayMonth('2026-09-28')).toBe('September 28')
     expect(formatWeekdayDate('2026-09-20')).toBe('Sun, Sep 20, 2026')
+  })
+
+  it('garde en anglais une date d’un seul tenant, année hors de l’année en cours', () => {
+    applyLocale('en')
+
+    expect(nonBreaking(formatDayMonthOrYear('2026-08-25', '2026-09-24'))).toBe('Aug\u00a025')
+    expect(nonBreaking(formatDayMonthOrYear('2025-12-20', '2026-09-24'))).toBe(
+      'Dec\u00a020,\u00a02025',
+    )
   })
 })

@@ -26,7 +26,8 @@ import AnimalChipSelector, { type AnimalChipItem } from '@/shared/components/Ani
 import PlusBadge from '@/shared/components/PlusBadge.vue'
 import { animalAge } from '@/shared/domain/animal-age'
 import { animalAvatarGradientCss } from '@/shared/domain/animal-avatar-gradient'
-import { formatKg, formatKgDelta, formatMonth } from '@/shared/utils/format'
+import { weightDeltaText } from '@/shared/domain/weight-delta'
+import { formatKg } from '@/shared/utils/format'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -107,13 +108,7 @@ const weightStat = computed(() => {
   if (summary.delta.kind === 'first') {
     return { value, sub: t('animals.carnet.stats.firstWeight') }
   }
-  return {
-    value,
-    sub: t('weight.delta.vs', {
-      delta: formatKgDelta(summary.delta.deltaKg),
-      month: formatMonth(summary.delta.previousMeasuredOn),
-    }),
-  }
+  return { value, sub: weightDeltaText(t, summary.delta.deltaKg) }
 })
 
 // Dès qu'il y a un retard, la colonne ne compte plus que les retards : un « 2 en retard »
@@ -254,7 +249,7 @@ function createAnimal(): void {
           :today="today"
           @summary="treatmentsSummary = $event"
         />
-        <WeightSection :animal-id="animal.id" @summary="weightSummary = $event" />
+        <WeightSection :animal-id="animal.id" :today="today" @summary="weightSummary = $event" />
       </div>
     </template>
 

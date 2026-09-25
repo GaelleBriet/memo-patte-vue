@@ -41,11 +41,13 @@ saisie reste dans la feuille pesée (`pesee.md`).
   l'écran, elle porte tout le poids visuel (au sens propre).
 - Unité « kg » à côté, 17 px / 600, `#413933`.
 - Ligne de delta en dessous, trois formulations possibles :
-    - une pesée précédente existe : `+0,5 kg vs août` (le mois vient de la
-      pesée précédente, même convention que la carte Carnet)
+    - une pesée précédente existe : `+0,3 kg depuis le 25 août` (#385 : la date
+      de la pesée précédente, l'année seulement si elle n'est pas de l'année en
+      cours, `depuis le 20 déc. 2025` ; même texte que la section du Carnet ;
+      en anglais `+0.3 kg since Aug 25`)
     - aucune pesée précédente (une seule pesée au total) : `Première pesée ·
       {date complète}`, par exemple `Première pesée · 8 nov. 2026`
-    - delta nul : `±0,0 kg`
+    - delta nul, daté de même : `±0,0 kg depuis le 25 août`
 - Couleur du delta : vert `#2F5437` (même token que le badge « À jour » du
   Carnet) si la variation est positive, gris chaud `#5A544D` si négative,
   gris neutre `#736E67` si nulle ou s'il n'y a pas de pesée précédente. Pas
@@ -53,16 +55,18 @@ saisie reste dans la feuille pesée (`pesee.md`).
 - Ce bloc suit la pesée sélectionnée sur la courbe (§3). Au repos, c'est la
   dernière pesée et il reste tel que décrit ci-dessus. Une autre pesée
   sélectionnée remplace « Poids actuel » par `Pesée du 11 oct. 2026`, affiche
-  son poids et sa variation par rapport à la pesée précédente au format de la
-  liste (`+0,1 kg`, même code couleur) ; la variation reste vide pour la toute
+  son poids et sa variation par rapport à la pesée précédente au format du
+  repos (`+0,8 kg depuis le 20 janv.`, même code couleur, #385) ; les lignes
+  de la liste gardent `+0,1 kg`. La variation reste vide pour la toute
   première pesée, la ligne gardant sa hauteur. Le bloc est annoncé en
   « polite » au lecteur d'écran.
 - Puce « × Poids actuel » (#351, maquette `courbes-poids/` H2) à droite de la
   ligne « Pesée du … », seulement quand une autre pesée que la plus récente est
   lue : fond `#DEF1F2`, texte pétrole 13 px / 700, 28 px de haut (zone de
-  toucher 48 px), annoncée « Revenir au poids actuel ». Elle remet le résumé
-  à la pesée la plus récente, sans changer de page, et rend le focus à la
-  courbe.
+  toucher 48 px), annoncée « Revenir au poids actuel ». Elle ne tient que
+  cette ligne : le poids et sa variation passent dessous, sur toute la largeur
+  (#385). Elle remet le résumé à la pesée la plus récente, sans changer de
+  page, et rend le focus à la courbe.
 
 ### 3. Courbe
 
