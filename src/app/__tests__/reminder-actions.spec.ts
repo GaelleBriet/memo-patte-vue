@@ -239,6 +239,18 @@ describe('« C’est fait » d’un vaccin', () => {
     expect(toastMessage.value).toBe('Injection de Carré du 24 sept. déjà notée pour Boree')
     expect(currentPlace()).toEqual({ name: 'home', query: {} })
   })
+
+  it('ouvre F5 quand l’échéance de la notification est toujours celle du vaccin, malgré une injection récente', async () => {
+    vaccination = { ...CARRE, lastInjectionDate: '2026-09-24', dueDate: TODAY }
+
+    await handler()(done(`vaccination:${CARRE.id}:${TODAY}:due`))
+
+    expect(toastMessage.value).toBeNull()
+    expect(currentPlace()).toEqual({
+      name: 'home',
+      query: { reminder: `vaccination:${CARRE.id}`, step: 'done' },
+    })
+  })
 })
 
 describe('notification touchée hors du bouton', () => {
