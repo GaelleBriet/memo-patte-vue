@@ -194,6 +194,18 @@ describe('vaccinationInjectionsService', () => {
     })
   })
 
+  it('dit l’échec d’une annulation qui n’a rien supprimé', async () => {
+    const { injectionId } = await service.record(carre, {
+      injectedOn: '2026-09-23',
+      nextDueDate: '2027-09-23',
+    })
+    await service.remove(carre, carre)
+
+    await expect(service.undo(carre, injectionId)).rejects.toThrow('Injection non annulée')
+
+    await expect(vaccinations.getById(carre)).resolves.toMatchObject({ dueDate: '2027-09-23' })
+  })
+
   it('refuse une injection future, sans rien écrire', async () => {
     await expect(
       service.record(carre, { injectedOn: '2026-09-24', nextDueDate: null }),

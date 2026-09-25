@@ -70,7 +70,8 @@ export function createVaccinationInjectionsService({
     },
 
     async undo(vaccinationId: string, injectionId: string): Promise<void> {
-      await (await injections()).remove(injectionId, now().toISOString())
+      const removed = await (await injections()).remove(injectionId, now().toISOString())
+      if (!removed) throw new Error(`Injection non annulée : ${injectionId}`)
       await reminders.reschedule(vaccinationId)
     },
 

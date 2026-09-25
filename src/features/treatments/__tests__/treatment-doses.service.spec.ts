@@ -221,6 +221,17 @@ describe('treatmentDosesService', () => {
     })
   })
 
+  it('dit l’échec d’une annulation qui n’a rien supprimé', async () => {
+    const { doseId } = await service.record(bravecto, '2026-09-23')
+    await service.remove(bravecto, bravecto)
+
+    await expect(service.undo(bravecto, doseId!)).rejects.toThrow('Prise non annulée')
+
+    await expect(visibleDoses()).resolves.toEqual([
+      { given_on: '2026-09-23', next_due_date: '2026-10-23' },
+    ])
+  })
+
   it('lève pour un traitement introuvable', async () => {
     await expect(
       service.record('99999999-9999-4999-8999-999999999999', '2026-09-23'),

@@ -36,7 +36,6 @@ const COLUMNS =
 
 const NOT_DELETED = 'deleted_at IS NULL'
 
-/** Une autre prise visible du traitement de la ligne modifiée, le jour `day` (expression SQL) s'il est donné. */
 function otherVisibleDose(day?: string): string {
   return `EXISTS (
     SELECT 1 FROM treatment_dose other

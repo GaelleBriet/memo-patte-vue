@@ -55,7 +55,8 @@ export function createTreatmentDosesService({
     },
 
     async undo(treatmentId: string, doseId: string): Promise<void> {
-      await (await doses()).remove(doseId, now().toISOString())
+      const removed = await (await doses()).remove(doseId, now().toISOString())
+      if (!removed) throw new Error(`Prise non annulée : ${doseId}`)
       await reminders.reschedule(treatmentId)
     },
 
