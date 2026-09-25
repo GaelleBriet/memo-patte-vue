@@ -68,16 +68,41 @@ function objectBody(source: string, id: string): string {
   return new RegExp(`(?:^|\\n)${id} 0 obj\\s*([\\s\\S]*?)\\nendobj`).exec(source)![1]!
 }
 
+function pageStreams(source: string): string[] {
+  const kids = /\/Type \/Pages\s*\/Kids \[([^\]]*)\]/.exec(source)![1]!
+  return [...kids.matchAll(/(\d+) 0 R/g)].map(([, pageId]) => {
+    const contentsId = /\/Contents (\d+) 0 R/.exec(objectBody(source, pageId!))![1]!
+    return /stream\r?\n([\s\S]*?)\r?\nendstream/.exec(objectBody(source, contentsId))![1]!
+  })
+}
+
+/** Opérateurs bruts de chaque page, dans l'ordre. */
+export function readPdfStreams(bytes: Uint8Array): string[] {
+  return pageStreams(new TextDecoder('latin1').decode(bytes))
+}
+
+export type StrokeState = { lineWidth: number; stroke: string; cap: number; join: number }
+
+/** État du trait à la fin d'un flux de page : épaisseur en mm, couleur, `J` et `j`. */
+export function strokeState(stream: string): StrokeState {
+  const state: StrokeState = { lineWidth: 0, stroke: '#000000', cap: 0, join: 0 }
+  for (const line of stream.split(/\r?\n/)) {
+    const operands = line.trim().split(/\s+/)
+    const operator = operands.pop()
+    const n = operands.map(Number)
+    if (operator === 'w') state.lineWidth = n[0]! * MM_PER_PT
+    if (operator === 'G' || operator === 'RG') state.stroke = hex(n)
+    if (operator === 'J') state.cap = n[0]!
+    if (operator === 'j') state.join = n[0]!
+  }
+  return state
+}
+
 /** Lit chaque page, dans l'ordre, d'un PDF produit par jsPDF, non compressé. */
 export function readPdfPages(bytes: Uint8Array): PdfPage[] {
   const source = new TextDecoder('latin1').decode(bytes)
   const bold = fontStyles(source)
-  const kids = /\/Type \/Pages\s*\/Kids \[([^\]]*)\]/.exec(source)![1]!
-  return [...kids.matchAll(/(\d+) 0 R/g)].map(([, pageId]) => {
-    const contentsId = /\/Contents (\d+) 0 R/.exec(objectBody(source, pageId!))![1]!
-    const stream = /stream\r?\n([\s\S]*?)\r?\nendstream/.exec(objectBody(source, contentsId))![1]!
-    return readContent(stream, bold)
-  })
+  return pageStreams(source).map((stream) => readContent(stream, bold))
 }
 
 /** Lit la première page d'un PDF produit par jsPDF, non compressé. */

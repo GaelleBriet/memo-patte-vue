@@ -85,6 +85,8 @@ export function drawWeightChart(
 ): number | null {
   const chart = layoutChart(doc, entries, frame.width)
   if (!chart) return null
+  const lineWidthBefore = doc.getLineWidth()
+  const drawColorBefore = doc.getDrawColor()
 
   const mm = (value: number) => value * UNIT_MM
   const x = (value: number) => frame.x + mm(value)
@@ -150,5 +152,11 @@ export function drawWeightChart(
     'bold',
   )
 
+  // jsPDF réécrit son trait courant en tête de chaque nouvelle page, hors de tout `restoreGraphicsState` ;
+  // il n'expose ni l'extrémité ni la jointure en cours, rendues à ses valeurs par défaut.
+  doc.setLineWidth(lineWidthBefore)
+  doc.setDrawColor(drawColorBefore)
+  doc.setLineCap('butt')
+  doc.setLineJoin('miter')
   return mm(chart.height)
 }

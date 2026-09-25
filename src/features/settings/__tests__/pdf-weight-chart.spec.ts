@@ -7,6 +7,8 @@ import { drawWeightChart, weightChartHeight } from '../logic/pdf-weight-chart'
 import {
   bounds,
   readPdf,
+  readPdfStreams,
+  strokeState,
   sameColor,
   type PdfBounds,
   type PdfPath,
@@ -153,6 +155,20 @@ describe('weightChartHeight', () => {
     expect(weightChartHeight(doc, LUNA_1_AN, FRAME.width)).toBe(dessine(LUNA_1_AN).height)
     expect(weightChartHeight(doc, CHIOT, 80)).toBe(dessine(CHIOT, { ...FRAME, width: 80 }).height)
     expect(weightChartHeight(doc, pesees(['2026-03-04', 23.6]), FRAME.width)).toBeNull()
+  })
+})
+
+describe('drawWeightChart — état du document', () => {
+  it('rend le trait tel qu’elle l’a trouvé : la page suivante commence comme une page vierge', () => {
+    const vierge = new jsPDF({ unit: 'mm', format: 'a4' })
+    vierge.addPage()
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' })
+    drawWeightChart(doc, LUNA_1_AN, FRAME)
+    doc.addPage()
+    const debut = (pdf: jsPDF) =>
+      strokeState(readPdfStreams(new Uint8Array(pdf.output('arraybuffer')))[1]!)
+
+    expect(debut(doc)).toEqual(debut(vierge))
   })
 })
 
