@@ -350,6 +350,15 @@ describe('treatmentDosesRepository — historique', () => {
     await expect(ligne(milbemax)).resolves.toMatchObject([{ deleted_at: null }])
   })
 
+  it('ne compte pas une prise supprimée : la restante, seule visible, est gardée', async () => {
+    await doses.record(prise('p1', '2026-04-10'))
+    await doses.remove('p1', EARLIER)
+
+    await expect(doses.remove(milbemax, NOW)).resolves.toBe(false)
+
+    await expect(doses.listByTreatment(milbemax)).resolves.toMatchObject([{ id: milbemax }])
+  })
+
   it('supprime une prise quand une autre reste visible, et le dit', async () => {
     await doses.record(prise('p1', '2026-04-10'))
 

@@ -288,6 +288,17 @@ describe('vaccinationInjectionsRepository — noter et annuler une injection', (
       await expect(lignes()).resolves.toHaveLength(1)
     })
 
+    it('ne compte pas une injection supprimée : la restante, seule visible, est gardée', async () => {
+      await injections.record(injection('i1', '2026-02-20'))
+      await injections.remove('i1', EARLIER)
+
+      await expect(injections.remove(rage, NOW)).resolves.toBe(false)
+
+      await expect(lignes()).resolves.toEqual([
+        { id: rage, injected_on: '2025-01-01', next_due_date: null },
+      ])
+    })
+
     it('supprime une injection quand une autre reste visible, et le dit', async () => {
       await injections.record(injection('i1', '2026-02-20'))
 
