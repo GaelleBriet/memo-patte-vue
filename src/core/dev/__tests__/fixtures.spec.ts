@@ -2,7 +2,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { DbClient } from '@/core/db/db-client'
 import type { AnimalsRepository } from '@/features/animals/repository/animals.repository'
+import type { TreatmentDosesRepository } from '@/features/treatments/repository/treatment-doses.repository'
 import type { TreatmentsRepository } from '@/features/treatments/repository/treatments.repository'
+import type { VaccinationInjectionsRepository } from '@/features/vaccinations/repository/vaccination-injections.repository'
 import type { VaccinationsRepository } from '@/features/vaccinations/repository/vaccinations.repository'
 import type { WeightRepository } from '@/features/weight/repository/weight.repository'
 vi.mock('@/core/db/sqlite', () => ({
@@ -52,7 +54,14 @@ function createFakeRepositories(): FixturesRepositories {
   return {
     animals: { create: fakeCreate<AnimalsRepository['create']>('animal') },
     vaccinations: { create: fakeCreate<VaccinationsRepository['create']>('vaccination') },
-    treatments: { create: fakeCreate<TreatmentsRepository['create']>('treatment') },
+    vaccinationInjections: {
+      record: vi.fn<VaccinationInjectionsRepository['record']>(async () => {}),
+    },
+    treatments: {
+      create: fakeCreate<TreatmentsRepository['create']>('treatment'),
+      stop: vi.fn<TreatmentsRepository['stop']>(async () => true),
+    },
+    treatmentDoses: { record: vi.fn<TreatmentDosesRepository['record']>(async () => true) },
     weight: { create: fakeCreate<WeightRepository['create']>('weight') },
   }
 }
@@ -113,7 +122,7 @@ describe('applyFixtures', () => {
     ])
     expect(repositories.animals.create).toHaveBeenCalledTimes(2)
     expect(repositories.vaccinations.create).toHaveBeenCalledTimes(3)
-    expect(repositories.treatments.create).toHaveBeenCalledTimes(2)
+    expect(repositories.treatments.create).toHaveBeenCalledTimes(4)
     expect(repositories.weight.create).toHaveBeenCalledTimes(10)
     expect(storage.getItem(FIXTURES_STORAGE_KEY)).toBe('maquettes-2')
   })
@@ -135,6 +144,45 @@ describe('applyFixtures', () => {
       .mock.calls.map(([input]) => input.animalId)
     expect(vaccinationAnimalIds).toEqual([milo.id, milo.id, luna.id])
     expect(db.runMany).toHaveBeenCalledOnce()
+  })
+
+  it('note l’historique par les repositories des injections et des prises, puis arrête un traitement', async () => {
+    await applyFixtures({
+      token: 'maquettes-1',
+      storage: createFakeStorage(),
+      db,
+      repositories,
+      today: TODAY,
+    })
+
+    const [chppi] = await Promise.all(
+      vi.mocked(repositories.vaccinations.create).mock.results.map((result) => result.value),
+    )
+    const injections = vi.mocked(repositories.vaccinationInjections.record).mock.calls
+    expect(
+      injections.map(([injection]) => [injection.vaccinationId, injection.injectedOn]),
+    ).toEqual([
+      [chppi.id, '2024-07-30'],
+      [chppi.id, '2024-06-30'],
+    ])
+    const treatments = await Promise.all(
+      vi.mocked(repositories.treatments.create).mock.results.map((result) => result.value),
+    )
+    const drontal = treatments.find(({ name }) => name === 'Drontal')
+    const advocate = treatments.find(({ name }) => name === 'Advocate')
+    const doses = vi.mocked(repositories.treatmentDoses.record).mock.calls.map(([dose]) => dose)
+    expect(doses.filter((dose) => dose.treatmentId === drontal.id)).toHaveLength(14)
+    expect(doses.find((dose) => dose.treatmentId === advocate.id)).toMatchObject({
+      animalId: drontal.animalId,
+      givenOn: '2026-04-23',
+      nextDueDate: '2026-05-08',
+      frequency: { value: 15, unit: 'day' },
+      deletedAt: null,
+    })
+    expect(repositories.treatments.stop).toHaveBeenCalledExactlyOnceWith(advocate.id, '2026-05-13')
+    expect(vi.mocked(repositories.treatments.create).mock.calls[1]?.[0]).not.toHaveProperty(
+      'history',
+    )
   })
 
   it('ordonne la remise à zéro avant le peuplement', async () => {

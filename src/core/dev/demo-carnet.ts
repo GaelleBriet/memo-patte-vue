@@ -15,10 +15,21 @@ import type { WeightEntryInput } from '@/features/weight/schema/weight.schema'
  * statuts (en retard, à jour, dose bientôt) qui doivent rester ceux de la
  * maquette, quelle que soit la date à laquelle on lance l'app.
  */
+export interface DemoVaccination extends Omit<VaccinationInput, 'animalId'> {
+  /** Injections antérieures à la dernière, la plus récente d'abord. */
+  history?: { injectedOn: string; nextDueDate: string | null }[]
+}
+
+export interface DemoTreatment extends Omit<TreatmentInput, 'animalId'> {
+  /** Prises antérieures à la dernière, la plus récente d'abord. */
+  history?: { givenOn: string; nextDueDate: string }[]
+  stoppedOn?: string
+}
+
 export interface DemoAnimal {
   animal: AnimalInput
-  vaccinations: Omit<VaccinationInput, 'animalId'>[]
-  treatments: Omit<TreatmentInput, 'animalId'>[]
+  vaccinations: DemoVaccination[]
+  treatments: DemoTreatment[]
   weights: Omit<WeightEntryInput, 'animalId'>[]
 }
 
@@ -44,7 +55,20 @@ function monthlyWeights(today: Date, weightsKg: number[]): DemoAnimal['weights']
   }))
 }
 
+/** Prises mensuelles antérieures à `last`, chacune fixant la suivante. */
+function monthlyHistory(last: Date, count: number): NonNullable<DemoTreatment['history']> {
+  return Array.from({ length: count }, (_, index) => ({
+    givenOn: day(subMonths(last, index + 1)),
+    nextDueDate: day(subMonths(last, index)),
+  }))
+}
+
 export function buildDemoCarnet(today: Date): DemoAnimal[] {
+  const chppiLast = subMonths(subDays(today, 45), 12)
+  const drontalLast = subDays(today, 20)
+  const advocateStop = subMonths(today, 4)
+  const advocateLast = subDays(advocateStop, 5)
+
   return [
     {
       animal: {
@@ -55,11 +79,18 @@ export function buildDemoCarnet(today: Date): DemoAnimal[] {
         initialWeightKg: 8.5,
       },
       vaccinations: [
-        // En retard : rappel annuel, échéance dépassée de 45 jours.
+        // En retard : rappel annuel, échéance dépassée de 45 jours, après une primo-vaccination.
         {
           name: 'CHPPi',
-          lastInjectionDate: day(subMonths(subDays(today, 45), 12)),
+          lastInjectionDate: day(chppiLast),
           dueDate: day(subDays(today, 45)),
+          history: [
+            { injectedOn: day(subYears(chppiLast, 1)), nextDueDate: day(chppiLast) },
+            {
+              injectedOn: day(subMonths(chppiLast, 13)),
+              nextDueDate: day(subYears(chppiLast, 1)),
+            },
+          ],
         },
         // À jour : encore dix mois de validité.
         {
@@ -75,6 +106,23 @@ export function buildDemoCarnet(today: Date): DemoAnimal[] {
           type: 'antiparasitic',
           frequency: { value: 3, unit: 'month' },
           lastDoseDate: day(subDays(subMonths(today, 2), 15)),
+        },
+        // Plus de 12 prises : l'historique se regroupe par année.
+        {
+          name: 'Drontal',
+          type: 'deworming',
+          frequency: { value: 1, unit: 'month' },
+          lastDoseDate: day(drontalLast),
+          history: monthlyHistory(drontalLast, 14),
+        },
+        // Arrêté : dans « Traitements terminés ».
+        {
+          name: 'Advocate',
+          type: 'antiparasitic',
+          frequency: { value: 15, unit: 'day' },
+          lastDoseDate: day(advocateLast),
+          history: [{ givenOn: day(subDays(advocateLast, 15)), nextDueDate: day(advocateLast) }],
+          stoppedOn: day(advocateStop),
         },
       ],
       weights: monthlyWeights(today, [23.6, 23.8, 24, 24.1, 24.3, 24.5]),
