@@ -273,7 +273,16 @@ function backToAnimals(): void {
   column-gap: 12px;
 }
 
+// Planche H2 : la puce ne tient que la ligne « Pesée du … », poids et variation passent dessous.
+.weight-history__reading {
+  display: grid;
+  grid-template-columns: subgrid;
+  grid-row: 1;
+  grid-column: 1 / -1;
+}
+
 .weight-history__current-label {
+  grid-column: 1;
   color: tokens.$color-text-meta;
   font-size: 12px;
   font-weight: 600;
@@ -281,6 +290,8 @@ function backToAnimals(): void {
 
 .weight-history__reset {
   position: relative;
+  grid-row: 1;
+  grid-column: 2;
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -308,6 +319,7 @@ function backToAnimals(): void {
 
 .weight-history__headline {
   display: flex;
+  grid-column: 1 / -1;
   align-items: baseline;
   gap: 8px;
   margin: 4px 0 0;
@@ -327,6 +339,7 @@ function backToAnimals(): void {
 }
 
 .weight-history__delta {
+  grid-column: 1 / -1;
   // Vide sur la première pesée : la courbe sous le doigt ne doit pas remonter.
   min-height: 1lh;
   margin: 8px 0 0;
