@@ -1,9 +1,11 @@
 import { isFuture, parseISO } from 'date-fns'
 import { z } from 'zod'
 
+import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
+
 /**
- * Export v1 (jusqu'à la 0.1.40), figé : ses règles ne suivent plus celles des formulaires, pour
- * qu'un ancien fichier se relise toujours comme sa version l'écrivait.
+ * Export v1 (jusqu'à la 0.1.40), figé : il se relit comme sa version l'écrivait, sauf la longueur
+ * des noms, bornée comme en base pour refuser le fichier plutôt que d'échouer à l'écriture.
  */
 const MAX_TEXT_LENGTH = 200
 const MAX_WEIGHT_KG = 200
@@ -12,12 +14,12 @@ const MAX_FREQUENCY_VALUE = 365
 const instant = z.iso.datetime()
 const timestamps = { createdAt: instant, updatedAt: instant }
 const pastDate = z.iso.date().refine((value) => !isFuture(parseISO(value)))
-const name = z.string().trim().min(1).max(MAX_TEXT_LENGTH)
+const name = z.string().trim().min(1).max(MAX_NAME_LENGTH)
 const weightKg = z.number().positive().max(MAX_WEIGHT_KG)
-const optionalText = z
+const optionalName = z
   .string()
   .trim()
-  .max(MAX_TEXT_LENGTH)
+  .max(MAX_NAME_LENGTH)
   .nullable()
   .transform((value) => value || null)
 
@@ -25,7 +27,7 @@ const animalSchema = z.object({
   id: z.uuid(),
   name,
   species: z.enum(['dog', 'cat']),
-  breed: optionalText,
+  breed: optionalName,
   birthDate: pastDate.nullable().default(null),
   initialWeightKg: weightKg.nullable().default(null),
   photoFileName: z.string().max(MAX_TEXT_LENGTH).nullable(),

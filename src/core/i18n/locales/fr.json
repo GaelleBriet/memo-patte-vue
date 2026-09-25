@@ -686,6 +686,7 @@
         "invalid": "Ce fichier n’est pas un export MémoPatte.",
         "newer": "Cet export vient d’une version plus récente de l’app.",
         "outOfRange": "Ce fichier contient une valeur hors limites : 200 kg maximum pour un poids, 365 pour une fréquence.",
+        "nameTooLong": "Un nom de ce fichier dépasse {max} caractères.",
         "reattached": "Ce fichier rattache une entrée de ton carnet à un autre animal.",
         "failed": "L’import n’a pas abouti. Tes données n’ont pas changé."
       },

@@ -6,6 +6,7 @@ import ChoiceCards from './ChoiceCards.vue'
 import type { ImportMode } from '../service/data-import.service'
 import { useDataImport } from '../composables/use-data-import'
 import BottomSheet from '@/shared/components/BottomSheet.vue'
+import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
 import { showToast } from '@/shared/utils/toast'
 
 const emit = defineEmits<{ imported: [] }>()
@@ -51,6 +52,8 @@ const errorMessage = computed(() => {
       return t('settings.import.errors.newer')
     case 'outOfRange':
       return t('settings.import.errors.outOfRange')
+    case 'nameTooLong':
+      return t('settings.import.errors.nameTooLong', { max: MAX_NAME_LENGTH })
     case 'reattached':
       return t('settings.import.errors.reattached')
     case 'failed':

@@ -21,6 +21,12 @@ vi.mock('../service/data-import.service', async (importOriginal) => ({
 
 let wrapper: VueWrapper<InstanceType<typeof ImportSheet>> | null = null
 
+function exportAvecNomTropLong(): string {
+  const document = JSON.parse(importFixtureJson()) as Record<string, unknown>
+  ;(document.animals as Record<string, unknown>[])[0]!.name = 'a'.repeat(81)
+  return JSON.stringify(document)
+}
+
 function exportAvecPoidsHorsBornes(): string {
   const document = JSON.parse(importFixtureJson()) as Record<string, unknown>
   ;(document.weightEntries as Record<string, unknown>[])[0]!.weightKg = 1e308
@@ -199,6 +205,7 @@ describe('ImportSheet', () => {
       exportAvecPoidsHorsBornes(),
       'Ce fichier contient une valeur hors limites : 200 kg maximum pour un poids, 365 pour une fréquence.',
     ],
+    [exportAvecNomTropLong(), 'Un nom de ce fichier dépasse 80 caractères.'],
   ])('explique un fichier refusé et propose d’en choisir un autre', async (content, message) => {
     await monter()
 
@@ -209,6 +216,21 @@ describe('ImportSheet', () => {
     await cliquer(boutonDeLaFeuille('Choisir un autre fichier'))
     expect(click).toHaveBeenCalledOnce()
     expect(importData).not.toHaveBeenCalled()
+  })
+
+  it('explique en anglais un fichier au nom trop long', async () => {
+    i18n.global.locale.value = 'en'
+    try {
+      await monter()
+
+      await choisirFichier(exportAvecNomTropLong())
+
+      expect(feuille()?.querySelector('[role="alert"]')?.textContent?.trim()).toBe(
+        'A name in this file is longer than 80 characters.',
+      )
+    } finally {
+      i18n.global.locale.value = 'fr'
+    }
   })
 
   it.each([
