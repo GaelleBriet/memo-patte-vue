@@ -19,10 +19,12 @@ import type { WeightRepository } from '../repository/weight.repository'
 import { provideWeightRepository, useWeightStore } from '../store/weight.store'
 import type { Animal } from '@/features/animals/schema/animal.schema'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
+import { simulateWebResume } from '@/core/app-lifecycle/__tests__/simulate-resume'
 import { buildHistoryWeightChart } from '@/shared/domain/weight-chart'
-import i18n from '@/core/i18n'
+import i18n, { applyLocale } from '@/core/i18n'
 import router from '@/router'
 import vuetify from '@/core/theme/vuetify'
+import { dismissToast, runToastAction, toastMessage } from '@/shared/utils/toast'
 
 const Vide = { render: () => null }
 
@@ -61,6 +63,7 @@ const HISTORIQUE_MILO = [
 ]
 
 let entries: WeightEntry[]
+let removed: WeightEntry[]
 let animals: Animal[]
 let listByAnimal: Mock<WeightRepository['listByAnimal']>
 let create: Mock<WeightRepository['create']>
@@ -70,9 +73,11 @@ let routeur: Router
 let wrapper: VueWrapper | null = null
 
 beforeEach(async () => {
+  vi.useFakeTimers({ now: new Date('2026-11-20T12:00:00'), toFake: ['Date'] })
   vi.stubGlobal('visualViewport', { addEventListener() {}, removeEventListener() {} })
   setActivePinia(createPinia())
   entries = []
+  removed = []
   animals = [MILO]
   listByAnimal = vi.fn<WeightRepository['listByAnimal']>(async (animalId) =>
     entries.filter((item) => item.animalId === animalId),
@@ -81,8 +86,22 @@ beforeEach(async () => {
   provideWeightRepository(() => ({
     listByAnimal,
     create,
-    update: vi.fn<WeightRepository['update']>(),
-    remove: vi.fn<WeightRepository['remove']>(),
+    update: vi.fn<WeightRepository['update']>(async (id, input) => {
+      const updated = { ...entries.find((item) => item.id === id)!, ...input }
+      entries = entries
+        .map((item) => (item.id === id ? updated : item))
+        .sort((a, b) => a.measuredOn.localeCompare(b.measuredOn))
+      return updated
+    }),
+    remove: vi.fn<WeightRepository['remove']>(async (id) => {
+      removed = [...removed, ...entries.filter((item) => item.id === id)]
+      entries = entries.filter((item) => item.id !== id)
+    }),
+    undoRemove: vi.fn<WeightRepository['undoRemove']>(async (id) => {
+      entries = [...entries, ...removed.filter((item) => item.id === id)].sort((a, b) =>
+        a.measuredOn.localeCompare(b.measuredOn),
+      )
+    }),
   }))
   const store = useAnimalsStore()
   loadAnimals = vi.spyOn(store, 'load').mockImplementation(async () => {
@@ -105,9 +124,12 @@ afterEach(() => {
   wrapper?.unmount()
   wrapper = null
   document.body.innerHTML = ''
+  dismissToast()
   provideWeightRepository(null)
+  vi.useRealTimers()
   vi.restoreAllMocks()
   vi.unstubAllGlobals()
+  vi.useRealTimers()
 })
 
 async function monter(animalId = MILO.id) {
@@ -187,6 +209,31 @@ describe('WeightHistoryView — top bar', () => {
   })
 })
 
+function feuille(): HTMLElement {
+  const element = document.body.querySelector<HTMLElement>('.weight-sheet .bottom-sheet__panel')
+  if (!element) throw new Error('Feuille absente du document')
+  return element
+}
+
+async function saisirPoids(valeur: string) {
+  const poids = feuille().querySelector<HTMLInputElement>('#weight-sheet-kg')!
+  poids.value = valeur
+  poids.dispatchEvent(new Event('input', { bubbles: true }))
+  await flushPromises()
+}
+
+async function cliquerDansLaFeuille(selecteur: string) {
+  feuille().querySelector<HTMLButtonElement>(selecteur)!.click()
+  await flushPromises()
+}
+
+async function toucherLigne(index: number) {
+  const ligne = wrapper!.findAll<HTMLButtonElement>('.weight-history__row-button')[index]!.element
+  ligne.focus()
+  ligne.click()
+  await flushPromises()
+}
+
 describe('WeightHistoryView — H1 historique complet', () => {
   beforeEach(() => {
     entries = [...HISTORIQUE_MILO]
@@ -199,7 +246,7 @@ describe('WeightHistoryView — H1 historique complet', () => {
     expect(wrapper.get('.weight-history__current').text()).toBe('24,5')
     expect(wrapper.get('.weight-history__unit').text()).toBe('kg')
     const delta = wrapper.get('.weight-history__delta')
-    expect(delta.text()).toBe('+0,2 kg vs octobre')
+    expect(delta.text()).toBe('+0,2 kg depuis le\u00a011\u00a0oct.')
     expect(delta.classes()).toContain('weight-history__delta--up')
   })
 
@@ -310,7 +357,7 @@ describe('WeightHistoryView — lire une pesée sur la courbe', () => {
       label: 'Pesée du 11 oct. 2026',
       poids: '24,3',
       unite: 'kg',
-      variation: '+0,1 kg',
+      variation: '+0,1 kg depuis le\u00a013\u00a0sept.',
     })
     expect(wrapper!.get('.weight-history__delta').classes()).toContain('weight-history__delta--up')
   })
@@ -331,7 +378,7 @@ describe('WeightHistoryView — lire une pesée sur la courbe', () => {
     await flushPromises()
 
     expect(resume()).toMatchObject({ label: 'Pesée du 12 juil. 2026', poids: '23,8' })
-    expect(resume().variation).toBe('+0,2 kg')
+    expect(resume().variation).toBe('+0,2 kg depuis le\u00a07\u00a0juin')
   })
 
   it('écrit une baisse en gris chaud', async () => {
@@ -340,9 +387,53 @@ describe('WeightHistoryView — lire une pesée sur la courbe', () => {
 
     await courbe().trigger('keydown', { key: 'ArrowLeft' })
 
-    expect(resume().variation).toBe('−0,3 kg')
+    expect(resume().variation).toBe('−0,3 kg depuis le\u00a09\u00a0août')
     expect(wrapper!.get('.weight-history__delta').classes()).toContain(
       'weight-history__delta--down',
+    )
+  })
+
+  it('date aussi une pesée choisie qui n’a pas bougé', async () => {
+    entries = [entry(24.5, '2026-08-09'), entry(24.5, '2026-09-13'), entry(24.8, '2026-10-11')]
+    await monter()
+
+    await courbe().trigger('keydown', { key: 'ArrowLeft' })
+
+    expect(resume().variation).toBe('±0,0 kg depuis le\u00a09\u00a0août')
+    expect(wrapper!.get('.weight-history__delta').classes()).toContain(
+      'weight-history__delta--flat',
+    )
+  })
+
+  it('ajoute l’année quand la pesée de référence n’est pas de l’année en cours', async () => {
+    entries = [
+      entry(16.2, '2025-12-20'),
+      entry(17, '2026-01-20'),
+      entry(17.8, '2026-02-03'),
+      entry(18.1, '2026-03-01'),
+    ]
+    await monter()
+
+    await courbe().trigger('keydown', { key: 'ArrowLeft' })
+    expect(resume()).toMatchObject({
+      label: 'Pesée du 3 févr. 2026',
+      variation: '+0,8 kg depuis le\u00a020\u00a0janv.',
+    })
+
+    await courbe().trigger('keydown', { key: 'ArrowLeft' })
+    expect(resume()).toMatchObject({
+      label: 'Pesée du 20 janv. 2026',
+      variation: '+0,8 kg depuis le\u00a020\u00a0déc.\u00a02025',
+    })
+  })
+
+  it('garde le format court des lignes de la liste pendant qu’une pesée est lue', async () => {
+    await monter()
+
+    await courbe().trigger('keydown', { key: 'ArrowLeft' })
+
+    expect(wrapper!.findAll('.weight-history__row-delta').map((cellule) => cellule.text())).toEqual(
+      ['+0,2 kg', '+0,1 kg', '+0,2 kg', '+0,2 kg', '+0,2 kg', ''],
     )
   })
 
@@ -369,7 +460,7 @@ describe('WeightHistoryView — lire une pesée sur la courbe', () => {
       label: 'Poids actuel',
       poids: '24,5',
       unite: 'kg',
-      variation: '+0,2 kg vs octobre',
+      variation: '+0,2 kg depuis le\u00a011\u00a0oct.',
     })
   })
 
@@ -479,6 +570,15 @@ describe('WeightHistoryView — historique par pages', () => {
     expect(wrapper.find('.weight-history__reset').exists()).toBe(false)
   })
 
+  it('compare la première pesée d’une page à la dernière de la page précédente', async () => {
+    const wrapper = await monter()
+
+    await wrapper.get('.weight-history-chart__svg').trigger('keydown', { key: 'Home' })
+
+    expect(wrapper.get('.weight-history__current-label').text()).toBe('Pesée du 12 avr. 2026')
+    expect(wrapper.get('.weight-history__delta').text()).toBe('+0,7 kg depuis le\u00a029\u00a0mars')
+  })
+
   it('lit une pesée d’une page plus ancienne dans le résumé', async () => {
     const wrapper = await monter()
     await wrapper.get('.weight-history-chart__turn--previous').trigger('click')
@@ -487,7 +587,7 @@ describe('WeightHistoryView — historique par pages', () => {
 
     expect(wrapper.get('.weight-history__current-label').text()).toBe('Pesée du 15 mars 2026')
     expect(wrapper.get('.weight-history__current').text()).toBe('15,4')
-    expect(wrapper.get('.weight-history__delta').text()).toBe('+0,7 kg')
+    expect(wrapper.get('.weight-history__delta').text()).toBe('+0,7 kg depuis le\u00a01\u00a0mars')
   })
 })
 
@@ -514,16 +614,55 @@ describe('WeightHistoryView — deltas du poids actuel', () => {
     const wrapper = await monter()
     const delta = wrapper.get('.weight-history__delta')
 
-    expect(delta.text()).toBe('−0,3 kg vs août')
+    expect(delta.text()).toBe('−0,3 kg depuis le\u00a09\u00a0août')
     expect(delta.classes()).toContain('weight-history__delta--down')
   })
 
-  it('écrit ±0,0 kg en gris neutre quand rien ne bouge', async () => {
+  it('ajoute l’année à la date quand l’app revient au premier plan l’année suivante', async () => {
+    vi.setSystemTime(new Date('2026-12-31T20:00:00'))
+    entries = [entry(23.9, '2026-12-20'), entry(24.2, '2026-12-30')]
+    const wrapper = await monter()
+    expect(wrapper.get('.weight-history__delta').text()).toBe('+0,3 kg depuis le\u00a020\u00a0déc.')
+
+    vi.setSystemTime(new Date('2027-01-02T08:00:00'))
+    simulateWebResume()
+    await flushPromises()
+
+    expect(wrapper.get('.weight-history__delta').text()).toBe(
+      '+0,3 kg depuis le\u00a020\u00a0déc.\u00a02026',
+    )
+  })
+
+  it('ajoute l’année quand la pesée précédente n’est pas de l’année en cours', async () => {
+    entries = [entry(23.9, '2025-12-20'), entry(24.2, '2026-01-10')]
+    const wrapper = await monter()
+
+    expect(wrapper.get('.weight-history__delta').text()).toBe(
+      '+0,3 kg depuis le\u00a020\u00a0déc.\u00a02025',
+    )
+  })
+
+  it('écrit la date à l’anglaise en anglais, au repos comme sur une pesée lue', async () => {
+    entries = [...HISTORIQUE_MILO]
+    applyLocale('en')
+
+    try {
+      const wrapper = await monter()
+      expect(wrapper.get('.weight-history__delta').text()).toBe('+0.2 kg since\u00a0Oct\u00a011')
+
+      await wrapper.get('.weight-history-chart__svg').trigger('keydown', { key: 'ArrowLeft' })
+      expect(wrapper.get('.weight-history__delta').text()).toBe('+0.1 kg since\u00a0Sep\u00a013')
+    } finally {
+      applyLocale('fr')
+    }
+  })
+
+  it('date ±0,0 kg, en gris neutre, quand rien ne bouge', async () => {
     entries = [entry(24.5, '2026-08-09'), entry(24.5, '2026-09-13')]
     const wrapper = await monter()
     const delta = wrapper.get('.weight-history__delta')
 
-    expect(delta.text()).toBe('±0,0 kg')
+    expect(delta.text()).toBe('±0,0 kg depuis le\u00a09\u00a0août')
     expect(delta.classes()).toContain('weight-history__delta--flat')
     expect(wrapper.findAll('.weight-history__row-delta')[0]!.classes()).toContain(
       'weight-history__delta--flat',
@@ -693,5 +832,205 @@ describe('WeightHistoryView — route', () => {
     expect(route.name).toBe('weight-history')
     expect(route.params).toEqual({ animalId: MILO.id })
     expect(route.matched[0]!.props.default).toBe(true)
+  })
+})
+
+describe('WeightHistoryView — corriger ou supprimer une pesée', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 10, 20, 10, 0))
+    entries = [...HISTORIQUE_MILO]
+  })
+
+  function lignes() {
+    return wrapper!.findAll('.weight-history__row').map((ligne) => ({
+      date: ligne.get('.weight-history__row-date').text(),
+      poids: ligne.get('.weight-history__row-value').text(),
+    }))
+  }
+
+  it('fait de chaque ligne un bouton nommé par son contenu, variation comprise', async () => {
+    const wrapper = await monter()
+
+    const boutons = wrapper.findAll('.weight-history__row .weight-history__row-button')
+    expect(boutons).toHaveLength(6)
+    expect(boutons[0]!.element.tagName).toBe('BUTTON')
+    expect(boutons[0]!.attributes('aria-label')).toBeUndefined()
+    expect(boutons[0]!.findAll('span').map((partie) => partie.text())).toEqual([
+      '8 nov. 2026',
+      '+0,2 kg',
+      '24,5 kg',
+    ])
+  })
+
+  it('décrit ce que permet chaque ligne : modifier ou supprimer', async () => {
+    const wrapper = await monter()
+
+    for (const bouton of wrapper.findAll('.weight-history__row-button')) {
+      const description = document.getElementById(bouton.attributes('aria-describedby') ?? '')
+      expect(description?.textContent?.trim()).toBe('Modifier ou supprimer')
+    }
+  })
+
+  it('ouvre la feuille pesée de la ligne touchée, pré-remplie', async () => {
+    const wrapper = await monter()
+
+    await toucherLigne(1)
+
+    const sheet = wrapper.getComponent(WeightSheet)
+    expect(sheet.props('modelValue')).toBe(true)
+    expect(sheet.props('entry')).toEqual(HISTORIQUE_MILO[4])
+    expect(feuille().querySelector('.bottom-sheet__title')?.textContent).toBe('Modifier la pesée')
+    expect(feuille().querySelector<HTMLInputElement>('#weight-sheet-kg')?.value).toBe('24,3')
+    expect(feuille().querySelector<HTMLInputElement>('#weight-sheet-date')?.value).toBe(
+      '2026-10-11',
+    )
+  })
+
+  it('rouvre la feuille en ajout par le bouton fixe, après une ligne', async () => {
+    const wrapper = await monter()
+    await toucherLigne(1)
+    await wrapper.getComponent(WeightSheet).setValue(false, 'modelValue')
+
+    await wrapper.get('.weight-history__add').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.getComponent(WeightSheet).props('entry')).toBeNull()
+    expect(feuille().querySelector('.bottom-sheet__title')?.textContent).toBe('Ajouter une pesée')
+  })
+
+  it('corrige la pesée : liste, poids actuel, variation et courbe suivent aussitôt', async () => {
+    const wrapper = await monter()
+    await toucherLigne(0)
+
+    await saisirPoids('24,8')
+    await cliquerDansLaFeuille('.weight-sheet__submit')
+
+    expect(wrapper.getComponent(WeightSheet).props('modelValue')).toBe(false)
+    expect(lignes()[0]).toEqual({ date: '8 nov. 2026', poids: '24,8 kg' })
+    expect(wrapper.get('.weight-history__current').text()).toBe('24,8')
+    expect(wrapper.get('.weight-history__delta').text()).toContain('+0,5 kg')
+    expect(wrapper.findAll('.weight-history-chart__tick').map((n) => n.text())).toContain('25')
+  })
+
+  it('supprime la pesée sans dialogue : la ligne part, le résumé suit, un toast le confirme', async () => {
+    const wrapper = await monter()
+    await toucherLigne(0)
+
+    await cliquerDansLaFeuille('.weight-sheet__delete')
+
+    expect(lignes().map((ligne) => ligne.date)).not.toContain('8 nov. 2026')
+    expect(wrapper.get('.section-card__counter').text()).toBe('5')
+    expect(wrapper.get('.weight-history__current').text()).toBe('24,3')
+    expect(wrapper.findAll('.weight-chart-trace__point')).toHaveLength(5)
+    expect(toastMessage.value).toBe('Pesée du 8 nov. supprimée')
+  })
+
+  it('remet la pesée supprimée par « Annuler »', async () => {
+    const wrapper = await monter()
+    await toucherLigne(2)
+    await cliquerDansLaFeuille('.weight-sheet__delete')
+    expect(wrapper.findAll('.weight-history__row')).toHaveLength(5)
+
+    runToastAction()
+    await flushPromises()
+
+    expect(lignes()[2]).toEqual({ date: '13 sept. 2026', poids: '24,2 kg' })
+    expect(wrapper.get('.section-card__counter').text()).toBe('6')
+  })
+
+  it('rend le focus à la ligne remise par « Annuler »', async () => {
+    const wrapper = await monter()
+    await toucherLigne(2)
+    await cliquerDansLaFeuille('.weight-sheet__delete')
+
+    runToastAction()
+    await flushPromises()
+
+    expect(document.activeElement).toBe(wrapper.findAll('.weight-history__row-button')[2]!.element)
+  })
+
+  it('rend le focus au bouton fixe quand la ligne supprimée a disparu', async () => {
+    const wrapper = await monter()
+    await toucherLigne(0)
+
+    await cliquerDansLaFeuille('.weight-sheet__delete')
+
+    expect(document.activeElement).toBe(wrapper.get('.weight-history__add').element)
+  })
+
+  it('rend le focus à la ligne d’ajout quand la dernière pesée est supprimée', async () => {
+    entries = [entry(24.5, '2026-11-08')]
+    const wrapper = await monter()
+    await toucherLigne(0)
+
+    await cliquerDansLaFeuille('.weight-sheet__delete')
+
+    expect(wrapper.find('.weight-history__add').exists()).toBe(false)
+    expect(document.activeElement).toBe(wrapper.get('.weight-history__empty-add').element)
+  })
+})
+
+describe('WeightHistoryView — page de la courbe après une écriture', () => {
+  const TRENTE = Array.from({ length: 30 }, (_, index) =>
+    entry(
+      Math.round((4.2 + index * 0.7) * 10) / 10,
+      new Date(Date.UTC(2025, 7, 3) + index * 14 * 86_400_000).toISOString().slice(0, 10),
+    ),
+  )
+
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 8, 25, 10, 0))
+    entries = [...TRENTE]
+  })
+
+  function periode() {
+    return wrapper!.get('.weight-history-chart__range').text()
+  }
+
+  it('garde la page de la courbe quand une pesée est supprimée puis remise', async () => {
+    const wrapper = await monter()
+    await wrapper.get('.weight-history-chart__turn--previous').trigger('click')
+    expect(periode()).toBe('oct. 2025\u00a0– mars 2026')
+
+    await toucherLigne(0)
+    await cliquerDansLaFeuille('.weight-sheet__delete')
+    expect(periode()).toBe('oct. 2025\u00a0– mars 2026')
+
+    runToastAction()
+    await flushPromises()
+    expect(periode()).toBe('oct. 2025\u00a0– mars 2026')
+  })
+
+  it('garde la page de la courbe quand une pesée est corrigée', async () => {
+    const wrapper = await monter()
+    await wrapper.get('.weight-history-chart__turn--previous').trigger('click')
+
+    await toucherLigne(0)
+    await saisirPoids('24,6')
+    await cliquerDansLaFeuille('.weight-sheet__submit')
+
+    expect(periode()).toBe('oct. 2025\u00a0– mars 2026')
+  })
+
+  it('montre la page la plus récente après un ajout', async () => {
+    create.mockImplementation(async (input) => {
+      const created = entry(input.weightKg, input.measuredOn, input.animalId)
+      entries = [...entries, created]
+      return created
+    })
+    const wrapper = await monter()
+    await wrapper.get('.weight-history-chart__turn--previous').trigger('click')
+
+    await wrapper.get('.weight-history__add').trigger('click')
+    await flushPromises()
+    await saisirPoids('24,6')
+    await cliquerDansLaFeuille('.weight-sheet__submit')
+
+    expect(periode()).toBe('avr. 2026\u00a0– sept. 2026')
+    expect(wrapper.get('.weight-history-chart__turn--next').attributes('aria-disabled')).toBe(
+      'true',
+    )
   })
 })

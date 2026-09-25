@@ -283,6 +283,7 @@ describe('CarnetView — header', () => {
 
     expect(wrapper.getComponent(VaccinationsSection).props('today')).toBe('2026-09-09')
     expect(wrapper.getComponent(TreatmentsSection).props('today')).toBe('2026-09-09')
+    expect(wrapper.getComponent(WeightSection).props('today')).toBe('2026-09-09')
   })
 
   it('n’écrit que la race sans date de naissance', async () => {
@@ -396,11 +397,28 @@ describe('CarnetView — bandeau de stats', () => {
     expect(stat(wrapper, 1).column.classes()).not.toContain('carnet-stat--overdue')
   })
 
-  it('affiche la dernière pesée et son delta', async () => {
-    weights = [weight(MILO.id, 24, '2026-08-05'), weight(MILO.id, 24.5, '2026-11-08')]
+  it('affiche la dernière pesée et sa variation seule, sans date', async () => {
+    weights = [weight(MILO.id, 24, '2026-08-05'), weight(MILO.id, 24.5, '2026-08-25')]
     const wrapper = await monter()
 
-    expect(stat(wrapper, 0)).toMatchObject({ value: '24,5 kg', sub: '+0,5 kg vs août' })
+    expect(stat(wrapper, 0)).toMatchObject({ value: '24,5 kg', sub: '+0,5 kg' })
+  })
+
+  it('écrit ±0,0 kg sans date quand rien ne bouge', async () => {
+    weights = [weight(MILO.id, 24.5, '2026-08-05'), weight(MILO.id, 24.5, '2026-08-25')]
+    const wrapper = await monter()
+
+    expect(stat(wrapper, 0).sub).toBe('±0,0 kg')
+  })
+
+  it('laisse la date à la section « Suivi de poids », année comprise hors de l’année en cours', async () => {
+    weights = [weight(MILO.id, 23.9, '2025-12-20'), weight(MILO.id, 24.2, '2026-01-10')]
+    const wrapper = await monter()
+
+    expect(stat(wrapper, 0).sub).toBe('+0,3 kg')
+    expect(wrapper.get('.weight-section__delta').text()).toBe(
+      '+0,3 kg depuis le\u00a020\u00a0déc.\u00a02025',
+    )
   })
 
   it('signale une première pesée', async () => {

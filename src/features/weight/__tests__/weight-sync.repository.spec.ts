@@ -1,6 +1,7 @@
 // @vitest-environment node
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory-db'
+import { enableSync, outboxRows } from '@/core/sync/__tests__/sync-test-db'
 import { createWeightRepository, type WeightRepository } from '../repository/weight.repository'
 
 const T_LOCAL = '2026-01-01T00:05:00.000Z'
@@ -27,6 +28,7 @@ describe('weightRepository — port de synchronisation', () => {
   })
 
   afterEach(() => {
+    vi.useRealTimers()
     db.close()
   })
 
@@ -91,5 +93,27 @@ describe('weightRepository — port de synchronisation', () => {
     await db.runMany([repository.applyRemoteRowStatement(remote)])
 
     await expect(repository.getById(WEIGHT_ENTRY_ID)).resolves.toBeNull()
+  })
+
+  it('remet en file une pesée remise par « Annuler », visible au prochain push', async () => {
+    await enableSync(db)
+    vi.useFakeTimers({ now: new Date('2026-01-02T09:00:00.000Z') })
+    await repository.remove(WEIGHT_ENTRY_ID)
+    vi.advanceTimersByTime(4_000)
+
+    await repository.undoRemove(WEIGHT_ENTRY_ID)
+
+    await expect(outboxRows(db)).resolves.toEqual([
+      {
+        entity: 'weight_entry',
+        entity_id: WEIGHT_ENTRY_ID,
+        queued_at: '2026-01-02T09:00:04.000Z',
+        attempts: 0,
+      },
+    ])
+    await expect(repository.getRowForPush(WEIGHT_ENTRY_ID)).resolves.toMatchObject({
+      updated_at: '2026-01-02T09:00:04.000Z',
+      deleted_at: null,
+    })
   })
 })

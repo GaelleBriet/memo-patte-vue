@@ -8,11 +8,12 @@ import WeightSheet from '../views/WeightSheet.vue'
 import type { WeightEntry } from '../schema/weight.schema'
 import type { WeightRepository } from '../repository/weight.repository'
 import { provideWeightRepository, useWeightStore } from '../store/weight.store'
-import i18n from '@/core/i18n'
+import i18n, { applyLocale } from '@/core/i18n'
 import vuetify from '@/core/theme/vuetify'
 
 const MILO = '11111111-1111-4111-8111-111111111111'
 const LUNA = '33333333-3333-4333-8333-333333333333'
+const TODAY = '2026-11-10'
 
 function entry(weightKg: number, measuredOn: string, animalId = MILO): WeightEntry {
   return {
@@ -57,8 +58,15 @@ beforeEach(() => {
   provideWeightRepository(() => ({
     listByAnimal,
     create,
-    update: vi.fn<WeightRepository['update']>(),
-    remove: vi.fn<WeightRepository['remove']>(),
+    update: vi.fn<WeightRepository['update']>(async (id, input) => {
+      const updated = { ...entries.find((item) => item.id === id)!, ...input }
+      entries = entries.map((item) => (item.id === id ? updated : item))
+      return updated
+    }),
+    remove: vi.fn<WeightRepository['remove']>(async (id) => {
+      entries = entries.filter((item) => item.id !== id)
+    }),
+    undoRemove: vi.fn<WeightRepository['undoRemove']>(),
   }))
 })
 
@@ -70,9 +78,9 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-async function monter(animalId = MILO) {
+async function monter(animalId = MILO, today = TODAY) {
   wrapper = mount(WeightSection, {
-    props: { animalId },
+    props: { animalId, today },
     global: { plugins: [vuetify, i18n, routeur] },
     attachTo: document.body,
   })
@@ -123,12 +131,12 @@ describe('WeightSection — poids actuel et delta', () => {
     expect(wrapper.get('.weight-section__unit').text()).toBe('kg')
   })
 
-  it('écrit une hausse en vert par rapport au mois de la pesée précédente', async () => {
+  it('écrit une hausse en vert par rapport à la date de la pesée précédente', async () => {
     entries = [entry(24, '2026-08-05'), entry(24.5, '2026-11-08')]
     const wrapper = await monter()
     const delta = wrapper.get('.weight-section__delta')
 
-    expect(delta.text()).toBe('+0,5 kg vs août')
+    expect(delta.text()).toBe('+0,5 kg depuis le\u00a05\u00a0août')
     expect(delta.classes()).toContain('weight-section__delta--up')
   })
 
@@ -137,7 +145,7 @@ describe('WeightSection — poids actuel et delta', () => {
     const wrapper = await monter()
     const delta = wrapper.get('.weight-section__delta')
 
-    expect(delta.text()).toBe('−0,3 kg vs août')
+    expect(delta.text()).toBe('−0,3 kg depuis le\u00a05\u00a0août')
     expect(delta.classes()).toContain('weight-section__delta--down')
     expect(delta.classes()).not.toContain('weight-section__delta--up')
   })
@@ -147,8 +155,37 @@ describe('WeightSection — poids actuel et delta', () => {
     const wrapper = await monter()
     const delta = wrapper.get('.weight-section__delta')
 
-    expect(delta.text()).toBe('±0,0 kg vs août')
+    expect(delta.text()).toBe('±0,0 kg depuis le\u00a05\u00a0août')
     expect(delta.classes()).toContain('weight-section__delta--flat')
+  })
+
+  it('distingue deux pesées du même mois par le jour de la pesée de référence', async () => {
+    entries = [entry(23.9, '2026-08-04'), entry(24.2, '2026-08-25'), entry(24.5, '2026-09-13')]
+    const wrapper = await monter(MILO, '2026-09-24')
+
+    expect(wrapper.get('.weight-section__delta').text()).toBe('+0,3 kg depuis le\u00a025\u00a0août')
+  })
+
+  it('ajoute l’année quand la pesée de référence n’est pas de l’année en cours', async () => {
+    entries = [entry(23.9, '2025-12-20'), entry(24.2, '2026-01-10')]
+    const wrapper = await monter(MILO, '2026-01-12')
+
+    expect(wrapper.get('.weight-section__delta').text()).toBe(
+      '+0,3 kg depuis le\u00a020\u00a0déc.\u00a02025',
+    )
+  })
+
+  it('écrit la date à l’anglaise en anglais', async () => {
+    entries = [entry(23.9, '2025-12-20'), entry(24.2, '2026-08-25'), entry(24.5, '2026-09-13')]
+    applyLocale('en')
+
+    try {
+      const wrapper = await monter(MILO, '2026-09-24')
+
+      expect(wrapper.get('.weight-section__delta').text()).toBe('+0.3 kg since\u00a0Aug\u00a025')
+    } finally {
+      applyLocale('fr')
+    }
   })
 
   it('date la première pesée quand il n’y en a qu’une', async () => {
@@ -272,6 +309,32 @@ describe('WeightSection — ajouter une pesée', () => {
     )
     expect(wrapper.get('.weight-section__current').text()).toBe('24,5')
     expect(wrapper.getComponent(WeightSheet).props('modelValue')).toBe(false)
+  })
+})
+
+describe('WeightSection — pesée corrigée ou supprimée depuis l’Historique', () => {
+  it('suit aussitôt une pesée corrigée', async () => {
+    const derniere = entry(2.45, '2026-11-08')
+    entries = [entry(24, '2026-08-05'), derniere]
+    const wrapper = await monter()
+
+    await useWeightStore().update(derniere.id, { weightKg: 24.5, measuredOn: '2026-09-08' })
+    await flushPromises()
+
+    expect(wrapper.get('.weight-section__current').text()).toBe('24,5')
+    expect(wrapper.get('.weight-section__delta').text()).toContain('+0,5 kg')
+  })
+
+  it('suit aussitôt une pesée supprimée', async () => {
+    const derniere = entry(2.45, '2026-11-08')
+    entries = [entry(24, '2026-08-05'), derniere]
+    const wrapper = await monter()
+
+    await useWeightStore().remove(derniere.id)
+    await flushPromises()
+
+    expect(wrapper.get('.weight-section__current').text()).toBe('24,0')
+    expect(wrapper.find('.weight-section__chart').exists()).toBe(false)
   })
 })
 

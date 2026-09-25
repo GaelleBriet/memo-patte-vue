@@ -132,6 +132,16 @@ export function createWeightRepository(
       )
     },
 
+    /** Sans effet sur une pesée visible, inconnue, ou dont l'animal a été supprimé. */
+    async undoRemove(id: string): Promise<void> {
+      await db.run(
+        `UPDATE weight_entry SET deleted_at = NULL, updated_at = ?
+         WHERE id = ? AND deleted_at IS NOT NULL
+           AND animal_id IN (SELECT id FROM animal WHERE deleted_at IS NULL)`,
+        [new Date().toISOString(), id],
+      )
+    },
+
     /** Instruction fournie sans être exécutée : la suppression d'un animal la joue dans sa transaction. */
     markDeletedByAnimalStatement(animalId: string, deletedAt: string): SqlStatement {
       return {

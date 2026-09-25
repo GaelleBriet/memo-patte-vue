@@ -428,7 +428,7 @@
   "weight": {
     "unit": "kg",
     "delta": {
-      "vs": "{delta} kg vs. {month}",
+      "since": "{delta} kg since {date}",
       "first": "First weigh-in · {date}",
       "value": "{delta} kg"
     },
@@ -461,11 +461,13 @@
       "selected": "Weigh-in on {date}",
       "list": "All weigh-ins",
       "value": "{weight} kg",
+      "rowHint": "Edit or delete",
       "initial": "Weight on arrival: {weight} kg",
       "link": "View history"
     },
     "form": {
       "title": "Add a weigh-in",
+      "editTitle": "Edit weigh-in",
       "forAnimal": "For {name}",
       "close": "Close",
       "required": "*",
@@ -481,13 +483,19 @@
       },
       "submit": "Save",
       "submitting": "Saving…",
+      "delete": "Delete this weigh-in",
+      "toast": {
+        "deleted": "Weigh-in on {date} deleted",
+        "undoDelete": "Undo deleting the weigh-in on {date}"
+      },
       "errors": {
         "animalId": "Choose a pet.",
         "weightKg": "Weight must be more than 0 kg.",
         "weightKgMax": "Weight must be at most 200 kg.",
         "measuredOn": "Date is required.",
         "measuredOnFuture": "Date can’t be in the future.",
-        "save": "Couldn’t save this weigh-in. Try again."
+        "save": "Couldn’t save this weigh-in. Try again.",
+        "delete": "Couldn’t delete this weigh-in. Try again."
       }
     }
   },
@@ -717,6 +725,7 @@
         "title": "Weight",
         "empty": "No weigh-in recorded."
       },
+      "pageNumber": "{page} / {total}",
       "footer": "Generated on {date} — MémoPatte {version}"
     }
   },

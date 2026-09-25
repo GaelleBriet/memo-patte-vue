@@ -5,8 +5,10 @@ import { describe, expect, it } from 'vitest'
 import {
   emptyWeightFormValues,
   validateWeightForm,
+  weightFormValuesFrom,
   type WeightFormValues,
 } from '../logic/weight-form'
+import type { WeightEntry } from '../schema/weight.schema'
 import { todayIsoDate } from '@/core/app-lifecycle/today-iso-date'
 
 const MILO = '11111111-1111-4111-8111-111111111111'
@@ -42,6 +44,34 @@ describe('emptyWeightFormValues', () => {
 
   it('garde l’animal fourni par le contexte d’ouverture', () => {
     expect(emptyWeightFormValues(MILO).animalId).toBe(MILO)
+  })
+})
+
+describe('weightFormValuesFrom', () => {
+  const PESEE: WeightEntry = {
+    id: '22222222-2222-4222-8222-222222222222',
+    animalId: MILO,
+    weightKg: 24.55,
+    measuredOn: '2026-08-25',
+    createdAt: '2026-09-09T09:00:00.000Z',
+    updatedAt: '2026-09-09T09:00:00.000Z',
+    deletedAt: null,
+  }
+
+  it('pré-remplit la pesée à corriger, poids écrit sans arrondi', () => {
+    expect(weightFormValuesFrom(PESEE)).toEqual({
+      animalId: MILO,
+      weightKg: '24,55',
+      measuredOn: '2026-08-25',
+    })
+  })
+
+  it('rend à l’identique une pesée enregistrée sans rien changer', () => {
+    expect(donnees(weightFormValuesFrom(PESEE))).toEqual({
+      animalId: MILO,
+      weightKg: 24.55,
+      measuredOn: '2026-08-25',
+    })
   })
 })
 

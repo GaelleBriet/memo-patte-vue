@@ -300,11 +300,40 @@ describe('WeightHistoryChart — pages', () => {
     expect(selections(monte)).toEqual([null])
   })
 
-  it('revient à la page la plus récente quand les pesées changent', async () => {
+  it('garde la page affichée quand une pesée est corrigée ou supprimée', async () => {
     const monte = monter()
     await fleche(monte, 'previous').bouton.trigger('click')
 
+    await monte.setProps({ entries: TRENTE.map((e, i) => (i === 10 ? { ...e, weightKg: 20 } : e)) })
+    expect(periode(monte)).toEqual({ dates: 'oct. 2025\u00a0– mars 2026', pesees: '12 pesées' })
+
+    await monte.setProps({ entries: TRENTE.filter((_, index) => index !== 25) })
+    expect(periode(monte)).toEqual({ dates: 'oct. 2025\u00a0– mars 2026', pesees: '12 pesées' })
+    expect(fleche(monte, 'next').grisee).toBe(false)
+  })
+
+  it('montre la page la plus ancienne quand la page affichée disparaît, sans bloquer les flèches', async () => {
+    const monte = monter(TRENTE.slice(0, 25))
+    await fleche(monte, 'previous').bouton.trigger('click')
+    await fleche(monte, 'previous').bouton.trigger('click')
+    expect(periode(monte).pesees).toBe('1 pesée · début du suivi')
+
+    await monte.setProps({ entries: TRENTE.slice(1, 25) })
+    expect(periode(monte).pesees).toBe('12 pesées · début du suivi')
+    expect(fleche(monte, 'previous').grisee).toBe(true)
+
+    await fleche(monte, 'next').bouton.trigger('click')
+    expect(periode(monte).dates).toBe('févr. 2026\u00a0– juil. 2026')
+    expect(fleche(monte, 'next').grisee).toBe(true)
+  })
+
+  it('revient à la page la plus récente quand on le lui demande, après un ajout', async () => {
+    const monte = monter()
+    await fleche(monte, 'previous').bouton.trigger('click')
     await monte.setProps({ entries: [...TRENTE, { measuredOn: '2026-09-20', weightKg: 24.6 }] })
+
+    ;(monte.vm as unknown as { showLatestPage: () => void }).showLatestPage()
+    await nextTick()
 
     expect(periode(monte).dates).toBe('avr. 2026\u00a0– sept. 2026')
     expect(points(monte)).toHaveLength(12)

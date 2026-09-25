@@ -43,6 +43,7 @@ beforeEach(() => {
     }),
     update: vi.fn<WeightRepository['update']>(),
     remove: vi.fn<WeightRepository['remove']>(),
+    undoRemove: vi.fn<WeightRepository['undoRemove']>(),
   }))
 })
 
