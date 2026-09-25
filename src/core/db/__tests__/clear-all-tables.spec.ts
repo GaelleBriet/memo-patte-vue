@@ -20,6 +20,11 @@ describe('migrationTableNames', () => {
     ])
   })
 
+  it('s’arrête, sur demande, aux tables créées jusqu’à une version', () => {
+    expect(migrationTableNames(1)).toEqual(['animal'])
+    expect(migrationTableNames(6)).not.toContain('sync_pull_cursor')
+  })
+
   it('couvre chaque table réellement présente en base après migration', async () => {
     const db = await createInMemoryDb()
     const rows = await db.query<{ name: string }>(

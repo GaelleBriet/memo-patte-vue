@@ -1,5 +1,6 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { migrations } from '../migrations'
 import { applyMigrations, createSqlJsDbClient, type InMemoryDb } from './in-memory-db'
 
 const MILO = '11111111-1111-4111-8111-111111111111'
@@ -21,6 +22,15 @@ describe('migration v7 : un curseur de pull par entité', () => {
 
   afterEach(() => {
     db.close()
+  })
+
+  it('pose la version 7 dans sa propre transaction, sans attendre le plugin', async () => {
+    const v7 = migrations.find(({ toVersion }) => toVersion === 7)
+
+    await db.runMany((v7?.statements ?? []).map((sql) => ({ sql })))
+
+    const [version] = await db.query<{ user_version: number }>('PRAGMA user_version')
+    expect(version?.user_version).toBe(7)
   })
 
   it('crée une table de curseurs vide : chaque entité repart d’un pull complet', async () => {

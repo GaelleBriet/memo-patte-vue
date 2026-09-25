@@ -116,11 +116,7 @@ describe('migration v6 : historique des vaccins et des traitements', () => {
 
     const [version] = await db.query<{ user_version: number }>('PRAGMA user_version')
     expect(version?.user_version).toBe(6)
-    expect(await tableNames(db)).toEqual(
-      migrationTableNames()
-        .filter((name) => name !== 'sync_pull_cursor')
-        .sort(),
-    )
+    expect(await tableNames(db)).toEqual([...migrationTableNames(6)].sort())
     await expect(
       db.query(`SELECT name FROM sqlite_master WHERE sql LIKE '%_old%'`),
     ).resolves.toEqual([])

@@ -200,6 +200,7 @@ export const migrations: DbMigration[] = [
         entity TEXT PRIMARY KEY NOT NULL,
         last_pulled_at TEXT NOT NULL
       );`,
+      'PRAGMA user_version = 7',
     ],
   },
 ]
