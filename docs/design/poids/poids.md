@@ -62,10 +62,11 @@ saisie reste dans la feuille pesée (`pesee.md`).
   « polite » au lecteur d'écran.
 - Puce « × Poids actuel » (#351, maquette `courbes-poids/` H2) à droite de la
   ligne « Pesée du … », seulement quand une autre pesée que la plus récente est
-  lue ; le poids et sa variation passent dessous, sur toute la largeur (#385) : fond `#DEF1F2`, texte pétrole 13 px / 700, 28 px de haut (zone de
-  toucher 48 px), annoncée « Revenir au poids actuel ». Elle remet le résumé
-  à la pesée la plus récente, sans changer de page, et rend le focus à la
-  courbe.
+  lue : fond `#DEF1F2`, texte pétrole 13 px / 700, 28 px de haut (zone de
+  toucher 48 px), annoncée « Revenir au poids actuel ». Elle ne tient que
+  cette ligne : le poids et sa variation passent dessous, sur toute la largeur
+  (#385). Elle remet le résumé à la pesée la plus récente, sans changer de
+  page, et rend le focus à la courbe.
 
 ### 3. Courbe
 

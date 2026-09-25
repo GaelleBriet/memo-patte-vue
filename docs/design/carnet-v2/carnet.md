@@ -96,7 +96,7 @@ Même principe de carte unique :
 Carte unique contenant :
 
 - poids actuel en gros (Space Grotesk, 26 px) + unité `kg`
-- delta en vert : `+0,5 kg depuis le 25 août` (date de la pesée précédente, année hors de l'année en cours, variation nulle datée de même, #385)
+- delta en vert : `+0,5 kg depuis le 25 août` (date de la pesée précédente, l'année seulement hors de l'année en cours, variation nulle datée de même, #385)
 - à droite, lien **« Voir l'historique »** + chevron
 - courbe SVG, à partir de deux pesées (piste C, choisie le 2026-09-23, #340) :
     - axe horizontal proportionnel au temps : la position d'une pesée suit sa
