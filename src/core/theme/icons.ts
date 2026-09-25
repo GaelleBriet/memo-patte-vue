@@ -10,6 +10,7 @@ import cloudDone from '@material-symbols/svg-400/outlined/cloud_done.svg?raw'
 import cloudOff from '@material-symbols/svg-400/outlined/cloud_off.svg?raw'
 import creditCard from '@material-symbols/svg-400/outlined/credit_card.svg?raw'
 import dataObject from '@material-symbols/svg-400/outlined/data_object.svg?raw'
+import deleteIcon from '@material-symbols/svg-400/outlined/delete.svg?raw'
 import deleteSweep from '@material-symbols/svg-400/outlined/delete_sweep.svg?raw'
 import devices from '@material-symbols/svg-400/outlined/devices.svg?raw'
 import doNotDisturbOn from '@material-symbols/svg-400/outlined/do_not_disturb_on.svg?raw'
@@ -140,6 +141,7 @@ export const msIcons = {
   colorize,
   credit_card: creditCard,
   data_object: dataObject,
+  delete: deleteIcon,
   delete_sweep: deleteSweep,
   devices,
   do_not_disturb_on: doNotDisturbOn,

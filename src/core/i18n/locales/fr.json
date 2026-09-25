@@ -366,11 +366,13 @@
       "selected": "Pesée du {date}",
       "list": "Toutes les pesées",
       "value": "{weight} kg",
+      "rowHint": "Modifier ou supprimer",
       "initial": "Poids à l’arrivée : {weight} kg",
       "link": "Voir l’historique"
     },
     "form": {
       "title": "Ajouter une pesée",
+      "editTitle": "Modifier la pesée",
       "forAnimal": "Pour {name}",
       "close": "Fermer",
       "required": "*",
@@ -386,13 +388,19 @@
       },
       "submit": "Enregistrer",
       "submitting": "Enregistrement…",
+      "delete": "Supprimer cette pesée",
+      "toast": {
+        "deleted": "Pesée du {date} supprimée",
+        "undoDelete": "Annuler la suppression de la pesée du {date}"
+      },
       "errors": {
         "animalId": "Choisis un animal.",
         "weightKg": "Le poids doit être supérieur à 0 kg.",
         "weightKgMax": "Le poids doit être de 200 kg maximum.",
         "measuredOn": "La date est obligatoire.",
         "measuredOnFuture": "La date ne peut pas être dans le futur.",
-        "save": "La pesée n’a pas pu être enregistrée. Réessaie."
+        "save": "La pesée n’a pas pu être enregistrée. Réessaie.",
+        "delete": "La pesée n’a pas pu être supprimée. Réessaie."
       }
     }
   },

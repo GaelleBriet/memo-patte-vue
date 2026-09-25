@@ -349,6 +349,59 @@ describe('weightRepository', () => {
       )
     })
   })
+
+  describe('undoRemove', () => {
+    it('rend visible une pesée supprimée, telle qu’elle était, et date le changement pour la synchro', async () => {
+      vi.useFakeTimers({ now: new Date('2026-03-01T10:00:00.000Z') })
+      const created = await repository.create({
+        animalId: MIETTE,
+        weightKg: 2.45,
+        measuredOn: '2026-01-10',
+      })
+      await repository.remove(created.id)
+      vi.advanceTimersByTime(60_000)
+
+      await repository.undoRemove(created.id)
+
+      await expect(repository.getById(created.id)).resolves.toEqual({
+        ...created,
+        updatedAt: '2026-03-01T10:01:00.000Z',
+      })
+      expect((await repository.listByAnimal(MIETTE)).map((entry) => entry.id)).toEqual([created.id])
+    })
+
+    it('ne touche ni à une pesée visible ni à un identifiant inconnu', async () => {
+      vi.useFakeTimers({ now: new Date('2026-03-01T10:00:00.000Z') })
+      const created = await repository.create({
+        animalId: MIETTE,
+        weightKg: 4.1,
+        measuredOn: '2026-01-10',
+      })
+      vi.advanceTimersByTime(60_000)
+
+      await repository.undoRemove(created.id)
+      await expect(repository.undoRemove('inconnu')).resolves.toBeUndefined()
+
+      await expect(repository.getById(created.id)).resolves.toEqual(created)
+    })
+
+    it('ne remet pas une pesée dont l’animal a été supprimé entre-temps', async () => {
+      const created = await repository.create({
+        animalId: MIETTE,
+        weightKg: 4.1,
+        measuredOn: '2026-01-10',
+      })
+      await repository.remove(created.id)
+      await db.run('UPDATE animal SET deleted_at = ? WHERE id = ?', [
+        '2026-03-01T10:00:00.000Z',
+        MIETTE,
+      ])
+
+      await repository.undoRemove(created.id)
+
+      await expect(repository.getById(created.id)).resolves.toBeNull()
+    })
+  })
 })
 
 describe('weightRepository — import', () => {

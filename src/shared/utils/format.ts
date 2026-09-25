@@ -28,6 +28,14 @@ export function formatKgAxis(value: number): string {
   }).format(roundToDecimal(value))
 }
 
+/** Poids à corriger dans un champ : `24,55` tel qu'enregistré, sans l'arrondi de l'affichage. */
+export function formatKgInput(value: number): string {
+  return new Intl.NumberFormat(currentLocale(), {
+    maximumFractionDigits: 20,
+    useGrouping: false,
+  }).format(value)
+}
+
 /** `+0,5`, `−0,3`, ou `±0,0` quand rien ne bouge à la décimale près. */
 export function formatKgDelta(delta: number): string {
   const rounded = roundToDecimal(delta)

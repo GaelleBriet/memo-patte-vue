@@ -58,8 +58,15 @@ beforeEach(() => {
   provideWeightRepository(() => ({
     listByAnimal,
     create,
-    update: vi.fn<WeightRepository['update']>(),
-    remove: vi.fn<WeightRepository['remove']>(),
+    update: vi.fn<WeightRepository['update']>(async (id, input) => {
+      const updated = { ...entries.find((item) => item.id === id)!, ...input }
+      entries = entries.map((item) => (item.id === id ? updated : item))
+      return updated
+    }),
+    remove: vi.fn<WeightRepository['remove']>(async (id) => {
+      entries = entries.filter((item) => item.id !== id)
+    }),
+    undoRemove: vi.fn<WeightRepository['undoRemove']>(),
   }))
 })
 
@@ -302,6 +309,32 @@ describe('WeightSection — ajouter une pesée', () => {
     )
     expect(wrapper.get('.weight-section__current').text()).toBe('24,5')
     expect(wrapper.getComponent(WeightSheet).props('modelValue')).toBe(false)
+  })
+})
+
+describe('WeightSection — pesée corrigée ou supprimée depuis l’Historique', () => {
+  it('suit aussitôt une pesée corrigée', async () => {
+    const derniere = entry(2.45, '2026-11-08')
+    entries = [entry(24, '2026-08-05'), derniere]
+    const wrapper = await monter()
+
+    await useWeightStore().update(derniere.id, { weightKg: 24.5, measuredOn: '2026-09-08' })
+    await flushPromises()
+
+    expect(wrapper.get('.weight-section__current').text()).toBe('24,5')
+    expect(wrapper.get('.weight-section__delta').text()).toContain('+0,5 kg')
+  })
+
+  it('suit aussitôt une pesée supprimée', async () => {
+    const derniere = entry(2.45, '2026-11-08')
+    entries = [entry(24, '2026-08-05'), derniere]
+    const wrapper = await monter()
+
+    await useWeightStore().remove(derniere.id)
+    await flushPromises()
+
+    expect(wrapper.get('.weight-section__current').text()).toBe('24,0')
+    expect(wrapper.find('.weight-section__chart').exists()).toBe(false)
   })
 })
 

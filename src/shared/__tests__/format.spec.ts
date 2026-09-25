@@ -3,6 +3,7 @@ import {
   formatKg,
   formatKgAxis,
   formatKgDelta,
+  formatKgInput,
   formatFullDate,
   formatLongDate,
   formatMonthShort,
@@ -59,6 +60,18 @@ describe('formatKgDelta', () => {
     expect(formatKgDelta(0)).toBe('±0,0')
     expect(formatKgDelta(0.04)).toBe('±0,0')
     expect(formatKgDelta(-0.04)).toBe('±0,0')
+  })
+})
+
+describe('formatKgInput', () => {
+  it('rend le poids tel qu’il est enregistré, virgule française, sans arrondi', () => {
+    expect(formatKgInput(24.5)).toBe('24,5')
+    expect(formatKgInput(24.55)).toBe('24,55')
+    expect(formatKgInput(24)).toBe('24')
+  })
+
+  it('ne groupe pas les milliers', () => {
+    expect(formatKgInput(1234.5)).toBe('1234,5')
   })
 })
 
@@ -127,6 +140,7 @@ describe('en anglais', () => {
     expect(formatKg(24)).toBe('24.0')
     expect(formatKg(1234.5)).toBe('1234.5')
     expect(formatKgAxis(24.5)).toBe('24.5')
+    expect(formatKgInput(24.55)).toBe('24.55')
     expect(formatKgDelta(-0.3)).toBe('−0.3')
     expect(formatKgDelta(0)).toBe('±0.0')
   })

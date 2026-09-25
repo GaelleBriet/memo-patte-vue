@@ -12,6 +12,13 @@ import i18n from '@/core/i18n'
 import { getMsIconPath } from '@/core/theme/icons'
 import vuetify from '@/core/theme/vuetify'
 import { todayIsoDate } from '@/core/app-lifecycle/today-iso-date'
+import {
+  dismissToast,
+  runToastAction,
+  toastAction,
+  toastMessage,
+  toastTone,
+} from '@/shared/utils/toast'
 
 const MILO: Animal = {
   id: '11111111-1111-4111-8111-111111111111',
@@ -38,8 +45,13 @@ const PESEE: WeightEntry = {
   deletedAt: null,
 }
 
+const A_CORRIGER: WeightEntry = { ...PESEE, weightKg: 2.45, measuredOn: '2026-08-25' }
+
 let loadAnimals: MockInstance
 let create: MockInstance<(input: WeightEntryInput) => Promise<WeightEntry>>
+let update: MockInstance
+let remove: MockInstance
+let undoRemove: MockInstance
 let wrapper: VueWrapper | null = null
 
 // jsdom ne fournit pas `visualViewport`, que VDialog écoute pour suivre le clavier.
@@ -62,15 +74,21 @@ beforeEach(() => {
     animals.hasLoaded = true
     return true
   })
-  create = vi.spyOn(useWeightStore(), 'create').mockResolvedValue(PESEE)
+  const weight = useWeightStore()
+  create = vi.spyOn(weight, 'create').mockResolvedValue(PESEE)
+  update = vi.spyOn(weight, 'update').mockResolvedValue(PESEE)
+  remove = vi.spyOn(weight, 'remove').mockResolvedValue()
+  undoRemove = vi.spyOn(weight, 'undoRemove').mockResolvedValue()
 })
 
 afterEach(() => {
   wrapper?.unmount()
   wrapper = null
   document.body.innerHTML = ''
+  dismissToast()
   vi.restoreAllMocks()
   vi.unstubAllGlobals()
+  vi.useRealTimers()
 })
 
 // La feuille est téléportée hors du composant : on interroge le document.
@@ -129,6 +147,23 @@ async function monter(animalId?: string | null) {
   return wrapper
 }
 
+async function monterEnCorrection(entry: WeightEntry = A_CORRIGER) {
+  wrapper = mount(WeightSheet, {
+    props: { modelValue: true, animalId: entry.animalId, entry, 'onUpdate:modelValue': () => {} },
+    global: { plugins: [vuetify, i18n], stubs: { transition: false } },
+    attachTo: document.body,
+  })
+  await flushPromises()
+  return wrapper
+}
+
+function supprimer() {
+  const bouton = feuille().querySelector<HTMLButtonElement>('.weight-sheet__delete')
+  if (!bouton) throw new Error('« Supprimer cette pesée » absent')
+  bouton.click()
+  return flushPromises()
+}
+
 describe('WeightSheet — animal identifié (P1)', () => {
   it('titre, sous-titre « Pour Milo », ni croix ni sélecteur', async () => {
     await monter(MILO.id)
@@ -168,6 +203,12 @@ describe('WeightSheet — animal identifié (P1)', () => {
     await monter(MILO.id)
 
     expect(document.activeElement).toBe(champ('weight-sheet-kg'))
+  })
+
+  it('n’offre pas de suppression pour une pesée à ajouter', async () => {
+    await monter(MILO.id)
+
+    expect(feuille().querySelector('.weight-sheet__delete')).toBeNull()
   })
 
   it('offre une poignée qui ferme la feuille', async () => {
@@ -426,6 +467,15 @@ describe('WeightSheet — message d’erreur', () => {
 })
 
 describe('WeightSheet — enregistrement (P4)', () => {
+  it('annonce la pesée ajoutée, pour que l’écran montre sa page', async () => {
+    const wrapper = await monter(MILO.id)
+    await saisir('weight-sheet-kg', '24,7')
+
+    await soumettre()
+
+    expect(wrapper.emitted('created')).toEqual([[PESEE]])
+  })
+
   it('écrit par le store avec l’animal du contexte puis ferme la feuille', async () => {
     const wrapper = await monter(MILO.id)
     await saisir('weight-sheet-kg', '24,7')
@@ -567,5 +617,165 @@ describe('WeightSheet — réouverture', () => {
 
     expect(champ('weight-sheet-kg').value).toBe('')
     expect(messages()).toEqual([])
+  })
+})
+
+describe('WeightSheet — corriger une pesée', () => {
+  it('titre « Modifier la pesée » pour l’animal, poids et date de la pesée pré-remplis', async () => {
+    await monterEnCorrection()
+
+    expect(texte('.bottom-sheet__title')).toBe('Modifier la pesée')
+    expect(texte('.bottom-sheet__subtitle')).toBe('Pour Milo')
+    expect(feuille().querySelector('.animal-chip-selector')).toBeNull()
+    expect(champ('weight-sheet-kg').value).toBe('2,45')
+    expect(champ('weight-sheet-date').value).toBe('2026-08-25')
+    expect(champ('weight-sheet-date').getAttribute('max')).toBe(todayIsoDate())
+    expect(texte('.weight-sheet__submit')).toBe('Enregistrer')
+  })
+
+  it('n’ouvre pas le clavier : on peut venir pour la date ou pour supprimer', async () => {
+    await monterEnCorrection()
+
+    expect(document.activeElement).not.toBe(champ('weight-sheet-kg'))
+  })
+
+  it('corrige la pesée par le store, sans en créer, puis ferme la feuille', async () => {
+    const wrapper = await monterEnCorrection()
+    await saisir('weight-sheet-kg', '24,5')
+
+    await soumettre()
+
+    expect(update).toHaveBeenCalledExactlyOnceWith(A_CORRIGER.id, {
+      weightKg: 24.5,
+      measuredOn: '2026-08-25',
+    })
+    expect(create).not.toHaveBeenCalled()
+    expect(wrapper.emitted('created')).toBeUndefined()
+    expect(wrapper.emitted('update:modelValue')).toEqual([[false]])
+  })
+
+  it('refuse une date future et un poids hors bornes, comme à l’ajout', async () => {
+    await monterEnCorrection()
+    await saisir('weight-sheet-kg', '2000')
+    await saisir('weight-sheet-date', '2999-01-01')
+
+    await soumettre()
+
+    expect(messages()).toEqual([
+      'Le poids doit être de 200 kg maximum.',
+      'La date ne peut pas être dans le futur.',
+    ])
+    expect(update).not.toHaveBeenCalled()
+  })
+
+  it('reste ouverte et prévient quand la correction échoue', async () => {
+    update.mockRejectedValueOnce(new Error('Pesée introuvable'))
+    const wrapper = await monterEnCorrection()
+
+    await soumettre()
+
+    expect(texte('.weight-sheet__save-error')).toBe(
+      'La pesée n’a pas pu être enregistrée. Réessaie.',
+    )
+    expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+  })
+
+  it('repart de la pesée enregistrée à chaque ouverture', async () => {
+    const wrapper = await monterEnCorrection()
+    await saisir('weight-sheet-kg', '0')
+    await soumettre()
+
+    await wrapper.setProps({ modelValue: false })
+    await flushPromises()
+    await wrapper.setProps({ modelValue: true })
+    await flushPromises()
+
+    expect(champ('weight-sheet-kg').value).toBe('2,45')
+    expect(messages()).toEqual([])
+  })
+})
+
+describe('WeightSheet — supprimer une pesée', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 8, 25, 10, 0))
+  })
+
+  it('offre « Supprimer cette pesée » en bas de la feuille, sous « Enregistrer »', async () => {
+    await monterEnCorrection()
+
+    const bouton = feuille().querySelector('.weight-sheet__delete')
+    expect(bouton?.textContent?.trim()).toBe('Supprimer cette pesée')
+    expect(feuille().querySelector('.weight-sheet__submit')?.compareDocumentPosition(bouton!)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    )
+  })
+
+  it('supprime sans dialogue, ferme la feuille et le confirme par un toast', async () => {
+    const wrapper = await monterEnCorrection()
+
+    await supprimer()
+
+    expect(remove).toHaveBeenCalledExactlyOnceWith(A_CORRIGER.id)
+    expect(document.body.querySelector('.confirm-dialog')).toBeNull()
+    expect(wrapper.emitted('update:modelValue')).toEqual([[false]])
+    expect(toastMessage.value).toBe('Pesée du 25 août supprimée')
+    expect(toastAction.value?.label).toBe('Annuler')
+    expect(toastAction.value?.ariaLabel).toBe('Annuler la suppression de la pesée du 25 août')
+  })
+
+  it('date la pesée d’une autre année avec son année', async () => {
+    await monterEnCorrection({ ...A_CORRIGER, measuredOn: '2025-12-20' })
+
+    await supprimer()
+
+    expect(toastMessage.value).toBe('Pesée du 20 déc. 2025 supprimée')
+  })
+
+  it('remet la pesée par « Annuler », puis l’annonce à l’écran', async () => {
+    const wrapper = await monterEnCorrection()
+    await supprimer()
+
+    runToastAction()
+    await flushPromises()
+
+    expect(undoRemove).toHaveBeenCalledExactlyOnceWith(A_CORRIGER.id)
+    expect(wrapper.emitted('restored')).toEqual([[A_CORRIGER]])
+  })
+
+  it('dit que l’annulation n’a pas abouti', async () => {
+    undoRemove.mockRejectedValueOnce(new Error('base verrouillée'))
+    await monterEnCorrection()
+    await supprimer()
+
+    runToastAction()
+    await flushPromises()
+
+    expect(toastMessage.value).toBe('L’annulation n’a pas abouti.')
+    expect(toastTone.value).toBe('error')
+  })
+
+  it('désactive la feuille le temps de la suppression, sans « Enregistrement… »', async () => {
+    remove.mockReturnValueOnce(new Promise(() => {}))
+    await monterEnCorrection()
+
+    await supprimer()
+
+    const enregistrer = feuille().querySelector<HTMLButtonElement>('.weight-sheet__submit')
+    expect(enregistrer?.disabled).toBe(true)
+    expect(enregistrer?.textContent?.trim()).toBe('Enregistrer')
+    expect(enregistrer?.querySelector('.v-progress-circular')).toBeNull()
+    expect(feuille().querySelector<HTMLButtonElement>('.weight-sheet__delete')?.disabled).toBe(true)
+  })
+
+  it('reste ouverte et prévient quand la suppression échoue, sans toast', async () => {
+    remove.mockRejectedValueOnce(new Error('base verrouillée'))
+    const wrapper = await monterEnCorrection()
+
+    await supprimer()
+
+    expect(texte('.weight-sheet__save-error')).toBe('La pesée n’a pas pu être supprimée. Réessaie.')
+    expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+    expect(toastMessage.value).toBeNull()
   })
 })
