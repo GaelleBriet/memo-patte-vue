@@ -1,5 +1,29 @@
 # Contexte en cours (à mettre à jour à chaque lot)
 
+- 2026-09-25 (soir) : **reprendre ici.** Mergés depuis le point de midi : #410 (#401, noms longs
+  à la ligne dans le PDF, « Arrêté le »), **#412 (#383, synchro des injections et des prises : migration
+  Supabase appliquée au vrai projet avec Gaelle présente, CI verte ; curseur de pull par table, v7)**,
+  #413 (#382, export JSON v2 avec l'historique, import v1 et v2, CSV séparés, PDF regroupé ; règle
+  « la modification la plus récente (`updated_at`) gagne »), #414 (planche F10 corrigée). `main` à
+  **3223 tests**. **Branches prêtes, sans PR, en attente** :
+  - `feat/unite-de-poids` (#352) : attend la réponse de Gaelle sur le calcul de la variation (à partir
+    des poids affichés, recommandé, ou exact) ; en-têtes CSV `weightLb` gardés (ticket de traduction du
+    CSV proposé : titres, valeurs, séparateur selon la langue) ;
+  - `fix/limites-texte-emoji` (#409) : attend la réponse sur les noms de plus de 80 caractères
+    enregistrés avant la v8 (ne rien couper et parade dans #83, recommandé) ; **merge avec Gaelle
+    présente** (migration Supabase) ; conflits attendus avec #352 (`AnimalFormView`, deux specs,
+    `toCsvTables(data, 'kg')`) ;
+  - `feat/notification-cest-fait` (#384, worktree `.claude/worktrees/notification-cest-fait`) : attend
+    les réponses sur les noms accessibles (impossibles sur Android, garder « C'est fait ») et le texte
+    « déjà noté » (« … déjà notée aujourd'hui » si du jour), puis **test sur le téléphone** (app fermée,
+    rejeu à la réouverture) ; premier code natif du dépôt (`MainActivity.java`) ;
+  - `feat/export-ouvrir` (#349, plugin `@capawesome-team/capacitor-file-opener`, décision au journal
+    sur la branche) : attend le **test sur le téléphone** (PDF, ZIP, JSON).
+    Tickets créés : #409 (tranché, en cours), #401 (fait). Notes ajoutées sur #83 : heure serveur au début
+    de transaction, pagination bloquée par un même `server_updated_at`, curseurs à remettre à zéro à la
+    déconnexion, `clearPullCursors()`, ligne refusée par un CHECK qui ne doit pas bloquer la file. Toujours
+    mis de côté par Gaelle : l'audit de Fable et les suites de #388.
+
 - 2026-09-25 : **reprendre ici.** Mergés dans la journée : #399 (#398, plus d'erreur au démarrage
   quand `cache/exports/` n'existe pas : le pont Capacitor journalise tout rejet natif en debug, même
   rattrapé), #403 (#386, sauts de page et numéros de page du PDF), #404 (étude
