@@ -9,7 +9,7 @@ export type OverflowMenuItem = {
 </script>
 
 <script setup lang="ts">
-import { onScopeDispose, ref, watch } from 'vue'
+import { nextTick, onScopeDispose, ref, useTemplateRef, watch } from 'vue'
 
 import { onBackButton } from '@/core/app-lifecycle/back-button'
 
@@ -24,6 +24,8 @@ const emit = defineEmits<{
 }>()
 
 const isOpen = ref(false)
+const button = useTemplateRef<{ $el: HTMLElement }>('button')
+const list = useTemplateRef<{ $el: HTMLElement }>('list')
 let releaseBackButton: (() => void) | null = null
 
 function releaseBack(): void {
@@ -33,10 +35,30 @@ function releaseBack(): void {
 
 onScopeDispose(releaseBack)
 
-watch(isOpen, (open) => {
+function focusButton(): void {
+  button.value?.$el.focus({ preventScroll: true })
+}
+
+// Le focus ne revient au bouton que s'il était resté dans le menu : un choix a déjà pu le déplacer.
+watch(isOpen, async (open) => {
   releaseBack()
-  if (open) releaseBackButton = onBackButton(() => (isOpen.value = false))
+  if (open) {
+    releaseBackButton = onBackButton(() => (isOpen.value = false))
+    await nextTick()
+    list.value?.$el.querySelector<HTMLElement>('[role="menuitem"]')?.focus({ preventScroll: true })
+    return
+  }
+  const active = document.activeElement
+  if (active === null || active === document.body || list.value?.$el.contains(active)) {
+    focusButton()
+  }
 })
+
+function choose(id: string): void {
+  isOpen.value = false
+  focusButton()
+  emit('select', id)
+}
 </script>
 
 <template>
@@ -44,19 +66,21 @@ watch(isOpen, (open) => {
     <template #activator="{ props: activator }">
       <v-btn
         v-bind="activator"
+        ref="button"
         class="overflow-menu__button"
         icon="ms:more_vert"
         variant="text"
         :aria-label="label"
       />
     </template>
-    <v-list class="overflow-menu__list">
+    <v-list ref="list" class="overflow-menu__list" role="menu">
       <v-list-item
         v-for="item in items"
         :key="item.id"
         class="overflow-menu__item"
         :class="{ 'overflow-menu__item--danger': item.danger }"
-        @click="emit('select', item.id)"
+        role="menuitem"
+        @click="choose(item.id)"
       >
         <template #prepend>
           <v-icon class="overflow-menu__icon" :icon="item.icon" size="22" />

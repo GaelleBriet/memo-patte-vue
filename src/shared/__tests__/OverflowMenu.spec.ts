@@ -74,6 +74,50 @@ describe('OverflowMenu', () => {
     wrapper.unmount()
   })
 
+  it('se présente comme un menu d’actions au lecteur d’écran', async () => {
+    const wrapper = await ouvrir()
+
+    expect(document.body.querySelector('.overflow-menu__list')?.getAttribute('role')).toBe('menu')
+    expect(items().map((item) => item.getAttribute('role'))).toEqual(['menuitem', 'menuitem'])
+    wrapper.unmount()
+  })
+
+  it('donne le focus à la première action à l’ouverture', async () => {
+    const wrapper = await ouvrir()
+
+    await vi.waitFor(() => expect(document.activeElement).toBe(items()[0]))
+    wrapper.unmount()
+  })
+
+  it('rend le focus au bouton ⋮ quand une action est choisie, avant de l’émettre', async () => {
+    const wrapper = await ouvrir()
+    await vi.waitFor(() => expect(document.activeElement).toBe(items()[0]))
+    let focusAuChoix: Element | null = null
+    await wrapper.setProps({ onSelect: () => (focusAuChoix = document.activeElement) })
+
+    items()[1]?.click()
+    await flushPromises()
+
+    expect(focusAuChoix).toBe(wrapper.get('.overflow-menu__button').element)
+    wrapper.unmount()
+  })
+
+  it('rend le focus au bouton ⋮ quand le menu se ferme sans choix', async () => {
+    vi.spyOn(Capacitor, 'isNativePlatform').mockReturnValue(true)
+    uninstall = installBackButton()
+    const retour = (vi.mocked(App.addListener) as Mock).mock.calls.at(-1)![1] as BackListener
+    const wrapper = await ouvrir()
+    await vi.waitFor(() => expect(document.activeElement).toBe(items()[0]))
+
+    retour({ canGoBack: true })
+    await flushPromises()
+
+    await vi.waitFor(() =>
+      expect(document.activeElement).toBe(wrapper.get('.overflow-menu__button').element),
+    )
+    wrapper.unmount()
+  })
+
   it('se ferme au retour Android, avant l’écran qu’il recouvre', async () => {
     vi.spyOn(Capacitor, 'isNativePlatform').mockReturnValue(true)
     uninstall = installBackButton()
