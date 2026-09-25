@@ -1,7 +1,7 @@
 import type { z } from 'zod'
 
 import { animalInputSchema, type Animal, type AnimalSpecies } from '../schema/animal.schema'
-import { recordedWeightIn, weightKgFromInput } from '@/shared/domain/weight-unit'
+import { exceedsMaxWeight, recordedWeightIn, weightKgFromInput } from '@/shared/domain/weight-unit'
 import { currentWeightUnit } from '@/shared/domain/weight-unit-preference'
 
 export interface AnimalFormValues {
@@ -73,23 +73,22 @@ export function validateAnimalForm(
   values: AnimalFormValues,
   storedInitialWeightKg: number | null = null,
 ): AnimalFormResult {
+  const typed = numberOrNull(values.initialWeightKg)
+  const unit = currentWeightUnit()
   const result = animalInputSchema.safeParse({
     name: values.name,
     species: values.species,
     breed: textOrNull(values.breed),
     birthDate: textOrNull(values.birthDate),
-    initialWeightKg: weightKgFromInput(
-      numberOrNull(values.initialWeightKg),
-      currentWeightUnit(),
-      storedInitialWeightKg,
-    ),
+    initialWeightKg: weightKgFromInput(typed, unit, storedInitialWeightKg),
   })
+  const tooHeavy = exceedsMaxWeight(typed, unit, storedInitialWeightKg)
 
-  if (result.success) return { success: true, data: result.data }
+  if (result.success && !tooHeavy) return { success: true, data: result.data }
 
-  const errors: AnimalFormErrors = {}
+  const errors: AnimalFormErrors = tooHeavy ? { initialWeightKg: MAX_WEIGHT_KEY } : {}
 
-  for (const issue of result.error.issues) {
+  for (const issue of result.error?.issues ?? []) {
     const field = String(issue.path[0])
 
     if (isErrorField(field)) errors[field] = errorKeyFor(field, issue)

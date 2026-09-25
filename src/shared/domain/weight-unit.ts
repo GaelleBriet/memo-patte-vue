@@ -32,6 +32,18 @@ export function maxWeightIn(unit: WeightUnit): number {
   return Math.floor(roundTo(fromKg(MAX_WEIGHT_KG, unit), 6) * 10) / 10
 }
 
+/** Au-delà de la borne annoncée (440,9 lb), sauf le poids enregistré rendu tel quel. */
+export function exceedsMaxWeight(
+  value: number | null,
+  unit: WeightUnit,
+  storedKg: number | null,
+): boolean {
+  if (value === null || (storedKg !== null && recordedWeightIn(storedKg, unit) === value)) {
+    return false
+  }
+  return value > maxWeightIn(unit)
+}
+
 /** Poids enregistré dans l'unité, au centième, pour le corriger ou l'exporter en CSV. */
 export function recordedWeightIn(kg: number, unit: WeightUnit): number {
   return roundTo(fromKg(kg, unit), RECORDED_DECIMALS)

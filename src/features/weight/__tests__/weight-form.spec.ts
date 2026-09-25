@@ -176,6 +176,25 @@ describe('en livres', () => {
     expect(donnees({ weightKg: '440,9' }).weightKg).toBeLessThanOrEqual(200)
   })
 
+  it('refuse au-delà du dixième annoncé, même sous 200 kg', () => {
+    applyWeightUnit('lb')
+
+    expect(erreurs({ weightKg: '440,92' })).toEqual({ weightKg: 'weight.form.errors.weightKgMax' })
+    expect(erreurs({ weightKg: '440,92', measuredOn: '' })).toEqual({
+      weightKg: 'weight.form.errors.weightKgMax',
+      measuredOn: 'weight.form.errors.measuredOn',
+    })
+  })
+
+  it('garde une pesée enregistrée à 200 kg quand son poids proposé n’a pas bougé', () => {
+    applyWeightUnit('lb')
+    const lourde: WeightEntry = { ...PESEE, weightKg: 200 }
+
+    const resultat = validateWeightForm(weightFormValuesFrom(lourde), lourde.weightKg)
+
+    expect(resultat.success && resultat.data.weightKg).toBe(200)
+  })
+
   it('propose la pesée à corriger en livres, au centième', () => {
     applyWeightUnit('lb')
 

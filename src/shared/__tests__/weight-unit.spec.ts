@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { MAX_WEIGHT_KG } from '../domain/weight-bounds'
 import {
   defaultWeightUnit,
+  exceedsMaxWeight,
   fromKg,
   isWeightUnit,
   KG_PER_LB,
@@ -55,6 +56,21 @@ describe('maxWeightIn', () => {
     expect(maxWeightIn('lb')).toBe(440.9)
     expect(toKg(maxWeightIn('lb'), 'lb')).toBeLessThanOrEqual(MAX_WEIGHT_KG)
     expect(toKg(maxWeightIn('lb') + 0.1, 'lb')).toBeGreaterThan(MAX_WEIGHT_KG)
+  })
+})
+
+describe('exceedsMaxWeight', () => {
+  it('refuse tout poids au-delà de la borne annoncée dans l’unité, pas en deçà', () => {
+    expect(exceedsMaxWeight(440.9, 'lb', null)).toBe(false)
+    expect(exceedsMaxWeight(440.92, 'lb', null)).toBe(true)
+    expect(exceedsMaxWeight(200, 'kg', null)).toBe(false)
+    expect(exceedsMaxWeight(200.01, 'kg', null)).toBe(true)
+    expect(exceedsMaxWeight(null, 'lb', null)).toBe(false)
+  })
+
+  it('laisse passer le poids enregistré rendu tel quel, même au-delà du dixième annoncé', () => {
+    expect(exceedsMaxWeight(440.92, 'lb', MAX_WEIGHT_KG)).toBe(false)
+    expect(exceedsMaxWeight(440.93, 'lb', MAX_WEIGHT_KG)).toBe(true)
   })
 })
 

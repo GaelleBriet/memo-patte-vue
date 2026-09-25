@@ -245,6 +245,9 @@ describe('poids initial en livres', () => {
       'animals.form.errors.initialWeightKgMax',
     )
     expect(donnees({ initialWeightKg: '440.9' }).initialWeightKg).toBeLessThanOrEqual(200)
+    expect(erreurs({ initialWeightKg: '440.92' }).initialWeightKg).toBe(
+      'animals.form.errors.initialWeightKgMax',
+    )
   })
 
   it('propose le poids initial en livres, au centième', () => {
