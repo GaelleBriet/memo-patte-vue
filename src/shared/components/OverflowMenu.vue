@@ -39,13 +39,17 @@ function focusButton(): void {
   button.value?.$el.focus({ preventScroll: true })
 }
 
+function focusFirstItem(): void {
+  list.value?.$el.querySelector<HTMLElement>('[role="menuitem"]')?.focus({ preventScroll: true })
+}
+
 // Le focus ne revient au bouton que s'il était resté dans le menu : un choix a déjà pu le déplacer.
 watch(isOpen, async (open) => {
   releaseBack()
   if (open) {
     releaseBackButton = onBackButton(() => (isOpen.value = false))
     await nextTick()
-    list.value?.$el.querySelector<HTMLElement>('[role="menuitem"]')?.focus({ preventScroll: true })
+    focusFirstItem()
     return
   }
   const active = document.activeElement
@@ -62,7 +66,12 @@ function choose(id: string): void {
 </script>
 
 <template>
-  <v-menu v-model="isOpen" location="bottom end" content-class="overflow-menu">
+  <v-menu
+    v-model="isOpen"
+    location="bottom end"
+    content-class="overflow-menu"
+    @after-enter="focusFirstItem"
+  >
     <template #activator="{ props: activator }">
       <v-btn
         v-bind="activator"
