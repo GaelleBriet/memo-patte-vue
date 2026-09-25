@@ -5,6 +5,31 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.41](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.40...memo-patte-v0.1.41) (2026-09-25)
+
+
+### ✨ Fonctionnalités
+
+* **settings:** export JSON v2 avec l'historique, import v1 et v2, CSV par événement ([#382](https://github.com/GaelleBriet/memo-patte-vue/issues/382)) ([df24d99](https://github.com/GaelleBriet/memo-patte-vue/commit/df24d99eb04cfd096c80d36792272fb987b3f274))
+* **settings:** export v2 avec l'historique, import v1 et v2, PDF regroupé ([#382](https://github.com/GaelleBriet/memo-patte-vue/issues/382)) ([69710c1](https://github.com/GaelleBriet/memo-patte-vue/commit/69710c19e4b882ceb2df5d892f178baf4ebbe593))
+* **settings:** le PDF liste les injections et regroupe les prises ([#382](https://github.com/GaelleBriet/memo-patte-vue/issues/382)) ([0a4be00](https://github.com/GaelleBriet/memo-patte-vue/commit/0a4be009e659cf3441da34506b88542482223493))
+* **supabase:** miroirs des injections et des prises ([#383](https://github.com/GaelleBriet/memo-patte-vue/issues/383)) ([2fd5287](https://github.com/GaelleBriet/memo-patte-vue/commit/2fd5287e75e20f10fddaafa7ced227eb81c5f99b))
+* **sync:** clearPullCursors, pour repartir d'un pull complet ([#383](https://github.com/GaelleBriet/memo-patte-vue/issues/383)) ([552c397](https://github.com/GaelleBriet/memo-patte-vue/commit/552c397de303e881baff4f4214c6410b41dc142c))
+* **sync:** synchro des injections et des prises ([#383](https://github.com/GaelleBriet/memo-patte-vue/issues/383)) ([bd1de65](https://github.com/GaelleBriet/memo-patte-vue/commit/bd1de65d1f143dbd896e22ab9883b102f497c20f))
+* **sync:** synchro des injections et des prises, curseur de pull par table ([#383](https://github.com/GaelleBriet/memo-patte-vue/issues/383)) ([aa81328](https://github.com/GaelleBriet/memo-patte-vue/commit/aa8132859da77d83b7d5e7059eed3bcb5ff2febf))
+* **sync:** un curseur de pull par entité ([#383](https://github.com/GaelleBriet/memo-patte-vue/issues/383)) ([6c6c283](https://github.com/GaelleBriet/memo-patte-vue/commit/6c6c283dda688848be9198d94afefd5b2fa28b99))
+* **treatments:** réconciliation des prises à fréquence périmée, événements listés ([#382](https://github.com/GaelleBriet/memo-patte-vue/issues/382)) ([41e108d](https://github.com/GaelleBriet/memo-patte-vue/commit/41e108d1532ad07dbec6c383b321ff3c2b37c2af))
+
+
+### 🐛 Corrections
+
+* **db:** la v7 pose sa version dans sa transaction, comme la v6 ([#383](https://github.com/GaelleBriet/memo-patte-vue/issues/383)) ([98e5b70](https://github.com/GaelleBriet/memo-patte-vue/commit/98e5b70b33f44cb4e7e467f5b6c643cdd010d925))
+* **settings:** ligne d'identité du PDF à la ligne, dans la largeur du nom ([#401](https://github.com/GaelleBriet/memo-patte-vue/issues/401)) ([903438f](https://github.com/GaelleBriet/memo-patte-vue/commit/903438f2121a57df576ee3433c34eef9da1dbdff))
+* **settings:** noms longs à la ligne dans le PDF, « Arrêté le » d'un traitement arrêté ([#401](https://github.com/GaelleBriet/memo-patte-vue/issues/401)) ([88c2293](https://github.com/GaelleBriet/memo-patte-vue/commit/88c22932d4fe0f34148e92ee20af606c12348fa4))
+* **settings:** noms longs à la ligne dans le PDF, « Arrêté le » d'un traitement arrêté ([#401](https://github.com/GaelleBriet/memo-patte-vue/issues/401)) ([e3d88f3](https://github.com/GaelleBriet/memo-patte-vue/commit/e3d88f39b3294e9b251ac1bdc2cf44fb7518f3d0))
+* **settings:** un export v2 dont un vaccin ou un traitement n'a aucun événement est refusé ([#382](https://github.com/GaelleBriet/memo-patte-vue/issues/382)) ([c1ef808](https://github.com/GaelleBriet/memo-patte-vue/commit/c1ef808b235e87d5d20d848b927880be14d8fa9c))
+* **sync:** un pull interrompu reconstruit quand même les rappels ([#383](https://github.com/GaelleBriet/memo-patte-vue/issues/383)) ([7ca929c](https://github.com/GaelleBriet/memo-patte-vue/commit/7ca929c4272be50c6bbdbabc11fee8184c45654d))
+
 ## [0.1.40](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.39...memo-patte-v0.1.40) (2026-09-25)
 
 
