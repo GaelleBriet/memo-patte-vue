@@ -44,7 +44,7 @@ export function doseHistory(
 
 export type RedatedDose = {
   dates: DoseDates
-  /** La prochaine dose avait été reportée à la main : elle est gardée telle quelle. */
+  /** La prochaine dose, reportée à la main et encore après la nouvelle date, est gardée telle quelle. */
   postponementKept: boolean
 }
 
@@ -58,14 +58,15 @@ export function redatedDose(
   planFrequency: TreatmentFrequency | null,
 ): RedatedDose {
   const frequency = { ...(planFrequency ?? dose.frequency) }
-  const postponed = dose.nextDueDate !== addFrequency(dose.givenOn, dose.frequency)
+  const kept =
+    dose.nextDueDate !== addFrequency(dose.givenOn, dose.frequency) && dose.nextDueDate > givenOn
   return {
     dates: {
       givenOn,
-      nextDueDate: postponed ? dose.nextDueDate : addFrequency(givenOn, frequency),
+      nextDueDate: kept ? dose.nextDueDate : addFrequency(givenOn, frequency),
       frequency,
     },
-    postponementKept: postponed,
+    postponementKept: kept,
   }
 }
 

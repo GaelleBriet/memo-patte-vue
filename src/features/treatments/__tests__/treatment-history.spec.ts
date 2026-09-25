@@ -125,6 +125,19 @@ describe('redatedDose', () => {
     })
   })
 
+  it('recalcule un report qui ne resterait pas strictement après la nouvelle date', () => {
+    const prise = dose('2026-08-28', { nextDueDate: '2026-09-10', frequency: TROIS_MOIS })
+
+    expect(redatedDose(prise, '2026-09-10', TROIS_MOIS)).toEqual({
+      dates: { givenOn: '2026-09-10', nextDueDate: '2026-12-10', frequency: TROIS_MOIS },
+      postponementKept: false,
+    })
+    expect(redatedDose(prise, '2026-09-15', TROIS_MOIS)).toEqual({
+      dates: { givenOn: '2026-09-15', nextDueDate: '2026-12-15', frequency: TROIS_MOIS },
+      postponementKept: false,
+    })
+  })
+
   it('devenue la dernière d’un traitement en cours, prend et recopie la fréquence du plan', () => {
     const ancienne = dose('2026-06-01', { nextDueDate: '2026-06-16', frequency: QUINZE_JOURS })
 
