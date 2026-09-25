@@ -600,7 +600,9 @@
       "openSettings": "Activer dans les réglages"
     },
     "action": {
-      "done": "C’est fait"
+      "done": "C’est fait",
+      "alreadyDose": "Prise de {name} du {date} déjà notée pour {animal}",
+      "alreadyInjection": "Injection de {name} du {date} déjà notée pour {animal}"
     }
   },
   "settings": {

@@ -14,7 +14,7 @@ import {
 vi.mock('@capacitor/local-notifications', () => ({
   LocalNotifications: {
     registerActionTypes: vi.fn<LocalNotificationsPlugin['registerActionTypes']>(),
-    addListener: vi.fn(),
+    addListener: vi.fn<LocalNotificationsPlugin['addListener']>(),
   },
 }))
 

@@ -600,7 +600,9 @@
       "openSettings": "Turn on in settings"
     },
     "action": {
-      "done": "Done"
+      "done": "Done",
+      "alreadyDose": "{name} dose on {date} already logged for {animal}",
+      "alreadyInjection": "{name} injection on {date} already logged for {animal}"
     }
   },
   "settings": {

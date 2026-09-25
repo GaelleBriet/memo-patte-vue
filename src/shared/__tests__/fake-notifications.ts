@@ -46,7 +46,7 @@ export function createFakeNotifications(): FakeNotifications & ReminderNotificat
       [...pending.values()].map((reminder) => ({ id: idOf(reminder.key), ...reminder })),
     ),
     removeDelivered: vi.fn<(removed: number[]) => Promise<void>>(async (removed) => {
-      for (const key of [...pending.keys()]) {
+      for (const key of pending.keys()) {
         if (removed.includes(idOf(key))) pending.delete(key)
       }
     }),
