@@ -622,6 +622,7 @@
         "title": "Weight",
         "empty": "No weigh-in recorded."
       },
+      "pageNumber": "{page} / {total}",
       "footer": "Generated on {date} — MémoPatte {version}"
     }
   },

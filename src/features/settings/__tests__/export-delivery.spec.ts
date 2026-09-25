@@ -1,7 +1,7 @@
 import { Capacitor } from '@capacitor/core'
 import { Directory, Encoding, Filesystem, type FileInfo } from '@capacitor/filesystem'
 import { Share } from '@capacitor/share'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest'
 
 import { clearExports, deliverExportFile } from '../logic/export-delivery'
 
@@ -14,6 +14,11 @@ vi.mock('@capacitor/filesystem', () => ({
   Encoding: { UTF8: 'utf8' },
   Filesystem: {
     deleteFile: vi.fn<() => Promise<void>>(async () => {}),
+    readdir: vi.fn<() => Promise<{ files: object[] }>>(async () => ({
+      files: [
+        { name: 'exports', type: 'directory', size: 0, mtime: 0, uri: 'file:///cache/exports' },
+      ],
+    })),
     rmdir: vi.fn<() => Promise<void>>(async () => {}),
     stat: vi.fn<(options: { path: string }) => Promise<object>>(async ({ path }) => {
       throw Object.assign(new Error(`'stat' failed because file at '${path}' does not exist.`), {
@@ -35,6 +40,14 @@ vi.mock('@capacitor/share', () => ({
 }))
 
 const FILE_INFO: FileInfo = { name: 'x', type: 'file', size: 2, mtime: 0, uri: 'file:///x' }
+
+const WEBVIEW_CACHE: FileInfo = {
+  name: 'WebView',
+  type: 'directory',
+  size: 0,
+  mtime: 0,
+  uri: 'file:///cache/WebView',
+}
 
 function pluginError(message: string, code: string): Error {
   return Object.assign(new Error(message), { code })
@@ -90,9 +103,7 @@ describe('deliverExportFile — partager', () => {
     })
   })
 
-  it('efface les exports précédents avant d’écrire, même s’il n’y en a aucun', async () => {
-    vi.mocked(Filesystem.rmdir).mockRejectedValueOnce(new Error('Folder does not exist.'))
-
+  it('efface les exports précédents avant d’écrire', async () => {
     await deliverExportFile({ name: 'a.json', content: '{}' }, 'share', 'Partager via')
 
     expect(Filesystem.rmdir).toHaveBeenCalledWith({
@@ -150,6 +161,7 @@ describe('deliverExportFile — partager', () => {
   })
 
   it('renvoie « cancelled » même si l’effacement échoue', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
     vi.mocked(Share.share).mockRejectedValueOnce(new Error('Share canceled'))
     vi.mocked(Filesystem.rmdir).mockResolvedValueOnce().mockRejectedValueOnce(new Error('occupé'))
 
@@ -329,14 +341,59 @@ describe('deliverExportFile — enregistrer sur le téléphone', () => {
 })
 
 describe('clearExports', () => {
-  it('vide le dossier des exports, même vide ou absent', async () => {
-    vi.mocked(Filesystem.rmdir).mockRejectedValueOnce(new Error('Folder does not exist.'))
+  let warn: MockInstance<typeof console.warn>
+  let error: MockInstance<typeof console.error>
+
+  beforeEach(() => {
+    warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    error = vi.spyOn(console, 'error').mockImplementation(() => {})
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('ne tente rien et ne journalise rien quand le dossier des exports n’existe pas', async () => {
+    vi.mocked(Filesystem.readdir).mockResolvedValueOnce({ files: [WEBVIEW_CACHE] })
 
     await expect(clearExports()).resolves.toBeUndefined()
+    expect(Filesystem.readdir).toHaveBeenCalledExactlyOnceWith({
+      path: '',
+      directory: Directory.Cache,
+    })
+    expect(Filesystem.rmdir).not.toHaveBeenCalled()
+    expect(warn).not.toHaveBeenCalled()
+    expect(error).not.toHaveBeenCalled()
+  })
+
+  it('vide le dossier des exports quand il existe', async () => {
+    await expect(clearExports()).resolves.toBeUndefined()
+
     expect(Filesystem.rmdir).toHaveBeenCalledExactlyOnceWith({
       path: 'exports',
       directory: Directory.Cache,
       recursive: true,
     })
+    expect(warn).not.toHaveBeenCalled()
+  })
+
+  it('journalise un échec de l’effacement, sans le lever', async () => {
+    const cause = pluginError(
+      "'rmdir' failed with: EACCES (Permission denied)",
+      'OS-PLUG-FILE-0013',
+    )
+    vi.mocked(Filesystem.rmdir).mockRejectedValueOnce(cause)
+
+    await expect(clearExports()).resolves.toBeUndefined()
+    expect(warn).toHaveBeenCalledExactlyOnceWith('Exports précédents non effacés :', cause)
+  })
+
+  it('journalise un échec de la lecture du cache, sans rien effacer', async () => {
+    const cause = pluginError("'readdir' failed with: EIO (I/O error)", 'OS-PLUG-FILE-0013')
+    vi.mocked(Filesystem.readdir).mockRejectedValueOnce(cause)
+
+    await expect(clearExports()).resolves.toBeUndefined()
+    expect(Filesystem.rmdir).not.toHaveBeenCalled()
+    expect(warn).toHaveBeenCalledExactlyOnceWith('Exports précédents non effacés :', cause)
   })
 })

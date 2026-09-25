@@ -53,12 +53,7 @@ function trace(doc: jsPDF, [start, ...rest]: readonly Corner[]): jsPDF {
   return doc
 }
 
-/** Courbe du Carnet (piste C) sur la page ; sa hauteur en mm, `null` sous deux pesées. */
-export function drawWeightChart(
-  doc: jsPDF,
-  entries: readonly WeightChartEntry[],
-  frame: ChartFrame,
-): number | null {
+function layoutChart(doc: jsPDF, entries: readonly WeightChartEntry[], width: number) {
   const t = i18n.global.t
   const labels: CarnetChartLabels = {
     max: (weight) => t('weight.chart.max', { weight }),
@@ -66,11 +61,32 @@ export function drawWeightChart(
     latest: (weight) => t('weight.chart.latest', { weight }),
   }
   // Mesurés en gras, jamais plus étroit que le romain des mois : la place réservée suffit aux deux.
-  const chart = buildCarnetWeightChart(entries, labels, {
-    width: Math.floor(frame.width / UNIT_MM),
+  return buildCarnetWeightChart(entries, labels, {
+    width: Math.floor(width / UNIT_MM),
     textWidth: (text) => emWidth(doc, text, 'bold') * CHART_FONT_PX,
   })
+}
+
+/** Hauteur en mm de la courbe dans cette largeur, `null` sous deux pesées. */
+export function weightChartHeight(
+  doc: jsPDF,
+  entries: readonly WeightChartEntry[],
+  width: number,
+): number | null {
+  const chart = layoutChart(doc, entries, width)
+  return chart ? chart.height * UNIT_MM : null
+}
+
+/** Courbe du Carnet (piste C) sur la page ; sa hauteur en mm, `null` sous deux pesées. */
+export function drawWeightChart(
+  doc: jsPDF,
+  entries: readonly WeightChartEntry[],
+  frame: ChartFrame,
+): number | null {
+  const chart = layoutChart(doc, entries, frame.width)
   if (!chart) return null
+  const lineWidthBefore = doc.getLineWidth()
+  const drawColorBefore = doc.getDrawColor()
 
   const mm = (value: number) => value * UNIT_MM
   const x = (value: number) => frame.x + mm(value)
@@ -136,5 +152,11 @@ export function drawWeightChart(
     'bold',
   )
 
+  // jsPDF réécrit son trait courant en tête de chaque nouvelle page, hors de tout `restoreGraphicsState` ;
+  // il n'expose ni l'extrémité ni la jointure en cours, rendues à ses valeurs par défaut.
+  doc.setLineWidth(lineWidthBefore)
+  doc.setDrawColor(drawColorBefore)
+  doc.setLineCap('butt')
+  doc.setLineJoin('miter')
   return mm(chart.height)
 }
