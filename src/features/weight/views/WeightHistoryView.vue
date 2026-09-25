@@ -12,8 +12,8 @@ import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import PushedScreen from '@/shared/components/PushedScreen.vue'
 import SectionCard from '@/shared/components/SectionCard.vue'
 import WeightHistoryChart from '@/shared/components/WeightHistoryChart.vue'
-import { weightDeltaSinceText } from '@/shared/domain/weight-delta'
-import { formatKg, formatKgDelta, formatLongDate } from '@/shared/utils/format'
+import { weightDeltaSinceText, weightDeltaText } from '@/shared/domain/weight-delta'
+import { formatKg, formatLongDate } from '@/shared/utils/format'
 
 const props = defineProps<{
   animalId: string
@@ -168,11 +168,7 @@ function backToAnimals(): void {
               <span
                 class="weight-history__row-delta"
                 :class="row.delta ? `weight-history__delta--${row.delta.trend}` : null"
-                >{{
-                  row.delta
-                    ? t('weight.delta.value', { delta: formatKgDelta(row.delta.deltaKg) })
-                    : ''
-                }}</span
+                >{{ row.delta ? weightDeltaText(t, row.delta.deltaKg) : '' }}</span
               >
               <span class="weight-history__row-value">
                 {{ t('weight.history.value', { weight: formatKg(row.weightKg) }) }}
