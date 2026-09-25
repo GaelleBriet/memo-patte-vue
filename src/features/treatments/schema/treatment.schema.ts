@@ -1,6 +1,8 @@
 import { isFuture, parseISO } from 'date-fns'
 import { z } from 'zod'
 
+import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
+
 export const TREATMENT_TYPES = ['deworming', 'antiparasitic'] as const
 export const FREQUENCY_UNITS = ['day', 'week', 'month'] as const
 
@@ -22,7 +24,7 @@ export type TreatmentFrequency = z.output<typeof treatmentFrequencySchema>
 /** L'échéance n'en fait pas partie : le repository la calcule à partir de la dernière prise et de la fréquence. */
 export const treatmentInputSchema = z.object({
   animalId: z.uuid(),
-  name: z.string().trim().min(1),
+  name: z.string().trim().min(1).max(MAX_NAME_LENGTH),
   type: treatmentTypeSchema,
   frequency: treatmentFrequencySchema,
   lastDoseDate: z.iso.date().refine((value) => !isFuture(parseISO(value))),

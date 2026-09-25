@@ -15,6 +15,7 @@ import { useAnimalsStore } from '../store/animals.store'
 import { useToday } from '@/core/app-lifecycle/use-today'
 import { pickPhoto } from '@/core/photos/photo-picker'
 import { usePhotoUrls } from '@/core/photos/use-photo-urls'
+import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
 import FormField from '@/shared/form/FormField.vue'
 import FormScreen from '@/shared/form/FormScreen.vue'
 import FormSegmented from '@/shared/form/FormSegmented.vue'
@@ -155,7 +156,7 @@ async function submit(): Promise<void> {
       :label="t('animals.form.name.label')"
       control-id="animal-name"
       required
-      :error="errors.name ? t(errors.name) : null"
+      :error="errors.name ? t(errors.name, { max: MAX_NAME_LENGTH }) : null"
     >
       <template #default="{ describedby, invalid }">
         <v-text-field
@@ -167,6 +168,7 @@ async function submit(): Promise<void> {
           variant="outlined"
           hide-details
           aria-required="true"
+          :maxlength="MAX_NAME_LENGTH"
           :error="invalid"
           :placeholder="t('animals.form.name.placeholder')"
         />
@@ -196,15 +198,22 @@ async function submit(): Promise<void> {
       class="animal-form__field--breed"
       :label="t('animals.form.breed.label')"
       control-id="animal-breed"
+      :error="errors.breed ? t(errors.breed, { max: MAX_NAME_LENGTH }) : null"
     >
-      <v-text-field
-        id="animal-breed"
-        v-model="values.breed"
-        class="form-field__input"
-        variant="outlined"
-        hide-details
-        :placeholder="t('animals.form.breed.placeholder')"
-      />
+      <template #default="{ describedby, invalid }">
+        <v-text-field
+          id="animal-breed"
+          v-model="values.breed"
+          :aria-describedby="describedby"
+          :aria-invalid="invalid"
+          class="form-field__input"
+          variant="outlined"
+          hide-details
+          :maxlength="MAX_NAME_LENGTH"
+          :error="invalid"
+          :placeholder="t('animals.form.breed.placeholder')"
+        />
+      </template>
     </FormField>
 
     <FormField

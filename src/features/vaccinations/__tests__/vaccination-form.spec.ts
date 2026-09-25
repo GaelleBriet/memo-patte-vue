@@ -10,6 +10,7 @@ import {
 } from '../logic/vaccination-form'
 import type { Vaccination } from '../schema/vaccination.schema'
 import { todayIsoDate } from '@/core/app-lifecycle/today-iso-date'
+import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
 
 function valeurs(surcharges: Partial<VaccinationFormValues> = {}): VaccinationFormValues {
   return {
@@ -97,6 +98,15 @@ describe('validateVaccinationForm — nom', () => {
 
   it('refuse un nom fait d’espaces', () => {
     expect(erreurs({ name: '   ' }).name).toBe('vaccinations.form.errors.name')
+  })
+})
+
+describe('validateVaccinationForm — longueur du nom', () => {
+  it('accepte 80 caractères, refuse 81 avec un message distinct', () => {
+    const limite = 'a'.repeat(MAX_NAME_LENGTH)
+
+    expect(donnees({ name: limite }).name).toBe(limite)
+    expect(erreurs({ name: `${limite}a` }).name).toBe('vaccinations.form.errors.nameMax')
   })
 })
 

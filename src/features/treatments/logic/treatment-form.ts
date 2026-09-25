@@ -33,6 +33,7 @@ const ERROR_KEYS = {
 const FUTURE_DOSE_KEY = 'treatments.form.errors.lastDoseDateFuture'
 const BEFORE_LAST_DOSE_KEY = 'treatments.form.errors.nextDueDateBeforeLastDose'
 const FREQUENCY_MAX_KEY = 'treatments.form.errors.frequencyMax'
+const NAME_MAX_KEY = 'treatments.form.errors.nameMax'
 
 export type TreatmentFormErrorField = keyof typeof ERROR_KEYS
 export type TreatmentFormErrors = Partial<Record<TreatmentFormErrorField, string>>
@@ -79,6 +80,7 @@ function errorKeyFor(field: TreatmentFormErrorField, issue: z.core.$ZodIssue): s
   if (field === 'lastDoseDate' && issue.code === 'custom') return FUTURE_DOSE_KEY
   if (field === 'nextDueDate' && issue.code === 'custom') return BEFORE_LAST_DOSE_KEY
   if (field === 'frequency' && issue.code === 'too_big') return FREQUENCY_MAX_KEY
+  if (field === 'name' && issue.code === 'too_big') return NAME_MAX_KEY
 
   return ERROR_KEYS[field]
 }

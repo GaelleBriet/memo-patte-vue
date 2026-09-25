@@ -50,7 +50,9 @@
       "saving": "Saving…",
       "errors": {
         "name": "Name is required.",
+        "nameMax": "Name can’t be longer than {max} characters.",
         "species": "Choose a species.",
+        "breedMax": "Breed can’t be longer than {max} characters.",
         "birthDate": "Date of birth can’t be in the future.",
         "initialWeightKg": "Weight must be more than 0 kg.",
         "initialWeightKgMax": "Weight must be at most 200 kg.",
@@ -125,6 +127,7 @@
       },
       "errors": {
         "name": "Vaccine name is required.",
+        "nameMax": "Vaccine name can’t be longer than {max} characters.",
         "lastInjectionDate": "Injection date is required.",
         "lastInjectionDateFuture": "Injection date can’t be in the future.",
         "dueDate": "Due date isn’t valid.",
@@ -275,6 +278,7 @@
       "saving": "Saving…",
       "errors": {
         "name": "Name is required.",
+        "nameMax": "Name can’t be longer than {max} characters.",
         "type": "Choose a type.",
         "frequency": "Enter a frequency.",
         "frequencyMax": "Frequency must be at most 365.",

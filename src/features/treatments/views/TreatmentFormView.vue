@@ -28,6 +28,7 @@ import FormSegmented from '@/shared/form/FormSegmented.vue'
 import { useFormValidation } from '@/shared/form/use-form-validation'
 import { primingReturnRoute, routeAfterReminderSaved } from '@/shared/domain/notification-priming'
 import { returnTo } from '@/shared/utils/return-to'
+import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
 
 const props = defineProps<{
   animalId?: string
@@ -208,7 +209,7 @@ async function submit(): Promise<void> {
       :label="t('treatments.form.name.label')"
       control-id="treatment-name"
       required
-      :error="errors.name ? t(errors.name) : null"
+      :error="errors.name ? t(errors.name, { max: MAX_NAME_LENGTH }) : null"
     >
       <template #default="{ describedby, invalid }">
         <v-text-field
@@ -218,6 +219,7 @@ async function submit(): Promise<void> {
           variant="outlined"
           hide-details
           aria-required="true"
+          :maxlength="MAX_NAME_LENGTH"
           :aria-describedby="describedby"
           :aria-invalid="invalid"
           :error="invalid"

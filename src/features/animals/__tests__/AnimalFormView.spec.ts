@@ -14,6 +14,7 @@ import { todayIsoDate } from '@/core/app-lifecycle/today-iso-date'
 import { pickPhoto, type PickedPhoto } from '@/core/photos/photo-picker'
 import { photoDisplayUrl } from '@/core/photos/photo-storage'
 import { forgetPhotoUrls } from '@/core/photos/use-photo-urls'
+import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
 
 vi.mock('@/core/photos/photo-picker', () => ({
   pickPhoto: vi.fn<() => Promise<PickedPhoto | null>>(),
@@ -249,6 +250,66 @@ describe('AnimalFormView — validation', () => {
     await soumettre(wrapper)
 
     expect(messages(wrapper)).toEqual([])
+  })
+})
+
+describe('AnimalFormView — longueur du nom et de la race', () => {
+  const limite = 'a'.repeat(MAX_NAME_LENGTH)
+
+  afterEach(() => {
+    i18n.global.locale.value = 'fr'
+  })
+
+  it('borne la saisie du nom et de la race à 80 caractères, collage compris', () => {
+    const wrapper = monter()
+
+    expect(champ(wrapper, 'animal-name').attributes('maxlength')).toBe('80')
+    expect(champ(wrapper, 'animal-breed').attributes('maxlength')).toBe('80')
+  })
+
+  it('accepte un nom et une race de 80 caractères', async () => {
+    const wrapper = monter()
+    await remplirMinimum(wrapper)
+    await champ(wrapper, 'animal-name').setValue(limite)
+    await champ(wrapper, 'animal-breed').setValue(limite)
+
+    await soumettre(wrapper)
+    await flushPromises()
+
+    expect(messages(wrapper)).toEqual([])
+    expect(create).toHaveBeenCalledOnce()
+    expect(create.mock.calls[0]![0]).toMatchObject({ name: limite, breed: limite })
+  })
+
+  it('refuse 81 caractères avec un message pour chaque champ, et n’écrit rien', async () => {
+    const wrapper = monter()
+    await remplirMinimum(wrapper)
+    await champ(wrapper, 'animal-name').setValue(`${limite}a`)
+    await champ(wrapper, 'animal-breed').setValue(`${limite}a`)
+
+    await soumettre(wrapper)
+
+    expect(messages(wrapper)).toEqual([
+      'Le nom ne peut pas dépasser 80 caractères.',
+      'La race ne peut pas dépasser 80 caractères.',
+    ])
+    expect(champ(wrapper, 'animal-breed').attributes('aria-invalid')).toBe('true')
+    expect(create).not.toHaveBeenCalled()
+  })
+
+  it('le dit aussi en anglais', async () => {
+    i18n.global.locale.value = 'en'
+    const wrapper = monter()
+    await remplirMinimum(wrapper)
+    await champ(wrapper, 'animal-name').setValue(`${limite}a`)
+    await champ(wrapper, 'animal-breed').setValue(`${limite}a`)
+
+    await soumettre(wrapper)
+
+    expect(messages(wrapper)).toEqual([
+      'Name can’t be longer than 80 characters.',
+      'Breed can’t be longer than 80 characters.',
+    ])
   })
 })
 

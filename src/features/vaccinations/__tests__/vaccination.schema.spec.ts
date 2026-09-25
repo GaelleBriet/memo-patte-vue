@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { vaccinationInputSchema } from '../schema/vaccination.schema'
+import { vaccinationInputSchema, vaccinationUpdateSchema } from '../schema/vaccination.schema'
+import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
 
 const validInput = {
   animalId: '11111111-1111-4111-8111-111111111111',
@@ -23,6 +24,15 @@ describe('vaccinationInputSchema', () => {
 
   it('rejette un nom vide ou seulement composé d’espaces', () => {
     expect(vaccinationInputSchema.safeParse({ ...validInput, name: '   ' }).success).toBe(false)
+  })
+
+  it('borne le nom à 80 caractères, en création comme en modification', () => {
+    const limite = 'a'.repeat(MAX_NAME_LENGTH)
+
+    for (const schema of [vaccinationInputSchema, vaccinationUpdateSchema]) {
+      expect(schema.safeParse({ ...validInput, name: limite }).success).toBe(true)
+      expect(schema.safeParse({ ...validInput, name: `${limite}a` }).success).toBe(false)
+    }
   })
 
   it('rejette un identifiant d’animal qui n’est pas un UUID', () => {
