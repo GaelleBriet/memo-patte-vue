@@ -15,6 +15,7 @@ import VaccinationsSection from '../views/VaccinationsSection.vue'
 import type { Vaccination } from '../schema/vaccination.schema'
 import type { VaccinationsRepository } from '../repository/vaccinations.repository'
 import { provideVaccinationsRepository } from '../store/vaccinations.store'
+import { fakeVaccinationsRepository } from './fake-vaccinations-repository'
 import i18n, { applyLocale } from '@/core/i18n'
 import router from '@/router'
 import vuetify from '@/core/theme/vuetify'
@@ -47,13 +48,8 @@ beforeEach(async () => {
   listByAnimal = vi.fn<VaccinationsRepository['listByAnimal']>(async (animalId) =>
     vaccinations.filter((item) => item.animalId === animalId),
   )
-  provideVaccinationsRepository(() => ({
-    listByAnimal,
-    getById: vi.fn<VaccinationsRepository['getById']>(),
-    create: vi.fn<VaccinationsRepository['create']>(),
-    update: vi.fn<VaccinationsRepository['update']>(),
-    remove: vi.fn<VaccinationsRepository['remove']>(),
-  }))
+  const repository = fakeVaccinationsRepository({ listByAnimal })
+  provideVaccinationsRepository(() => repository)
   await router.push({ name: 'animals' })
   push = vi.spyOn(router, 'push').mockResolvedValue()
 })

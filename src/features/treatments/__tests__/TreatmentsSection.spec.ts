@@ -6,6 +6,7 @@ import TreatmentsSection from '../views/TreatmentsSection.vue'
 import type { Treatment } from '../schema/treatment.schema'
 import type { TreatmentsRepository } from '../repository/treatments.repository'
 import { provideTreatmentsRepository } from '../store/treatments.store'
+import { fakeTreatmentsRepository } from './fake-treatments-repository'
 import i18n from '@/core/i18n'
 import router from '@/router'
 import vuetify from '@/core/theme/vuetify'
@@ -40,13 +41,8 @@ beforeEach(async () => {
   listByAnimal = vi.fn<TreatmentsRepository['listByAnimal']>(async (animalId) =>
     treatments.filter((item) => item.animalId === animalId),
   )
-  provideTreatmentsRepository(() => ({
-    listByAnimal,
-    getById: vi.fn<TreatmentsRepository['getById']>(),
-    create: vi.fn<TreatmentsRepository['create']>(),
-    update: vi.fn<TreatmentsRepository['update']>(),
-    remove: vi.fn<TreatmentsRepository['remove']>(),
-  }))
+  const repository = fakeTreatmentsRepository({ listByAnimal })
+  provideTreatmentsRepository(() => repository)
   await router.push({ name: 'animals' })
 })
 

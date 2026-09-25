@@ -24,14 +24,17 @@ import AnimalChipSelector from '@/shared/components/AnimalChipSelector.vue'
 import type { Treatment } from '@/features/treatments/schema/treatment.schema'
 import type { TreatmentsRepository } from '@/features/treatments/repository/treatments.repository'
 import { provideTreatmentsRepository } from '@/features/treatments/store/treatments.store'
+import { fakeTreatmentsRepository } from '@/features/treatments/__tests__/fake-treatments-repository'
 import TreatmentsSection from '@/features/treatments/views/TreatmentsSection.vue'
 import type { Vaccination } from '@/features/vaccinations/schema/vaccination.schema'
 import type { VaccinationsRepository } from '@/features/vaccinations/repository/vaccinations.repository'
 import { provideVaccinationsRepository } from '@/features/vaccinations/store/vaccinations.store'
+import { fakeVaccinationsRepository } from '@/features/vaccinations/__tests__/fake-vaccinations-repository'
 import VaccinationsSection from '@/features/vaccinations/views/VaccinationsSection.vue'
 import type { WeightEntry } from '@/features/weight/schema/weight.schema'
 import type { WeightRepository } from '@/features/weight/repository/weight.repository'
 import { provideWeightRepository } from '@/features/weight/store/weight.store'
+import { fakeWeightRepository } from '@/features/weight/__tests__/fake-weight-repository'
 import WeightSection from '@/features/weight/views/WeightSection.vue'
 import { pickPhoto, type PickedPhoto } from '@/core/photos/photo-picker'
 import { forgetPhotoUrls } from '@/core/photos/use-photo-urls'
@@ -147,26 +150,12 @@ beforeEach(async () => {
   listWeights = vi.fn<WeightRepository['listByAnimal']>(async (id) =>
     weights.filter((w) => w.animalId === id),
   )
-  provideVaccinationsRepository(() => ({
-    listByAnimal: listVaccinations,
-    getById: vi.fn<VaccinationsRepository['getById']>(),
-    create: vi.fn<VaccinationsRepository['create']>(),
-    update: vi.fn<VaccinationsRepository['update']>(),
-    remove: vi.fn<VaccinationsRepository['remove']>(),
-  }))
-  provideTreatmentsRepository(() => ({
-    listByAnimal: listTreatments,
-    getById: vi.fn<TreatmentsRepository['getById']>(),
-    create: vi.fn<TreatmentsRepository['create']>(),
-    update: vi.fn<TreatmentsRepository['update']>(),
-    remove: vi.fn<TreatmentsRepository['remove']>(),
-  }))
-  provideWeightRepository(() => ({
-    listByAnimal: listWeights,
-    create: vi.fn<WeightRepository['create']>(),
-    update: vi.fn<WeightRepository['update']>(),
-    remove: vi.fn<WeightRepository['remove']>(),
-  }))
+  const vaccinationsRepository = fakeVaccinationsRepository({ listByAnimal: listVaccinations })
+  const treatmentsRepository = fakeTreatmentsRepository({ listByAnimal: listTreatments })
+  const weightRepository = fakeWeightRepository({ listByAnimal: listWeights })
+  provideVaccinationsRepository(() => vaccinationsRepository)
+  provideTreatmentsRepository(() => treatmentsRepository)
+  provideWeightRepository(() => weightRepository)
   await router.push({ name: 'animals' })
   push = vi.spyOn(router, 'push').mockResolvedValue()
   vi.stubGlobal('localStorage', memoryStorage())
