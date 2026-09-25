@@ -30,6 +30,8 @@ import {
 } from '../logic/export-delivery'
 import { buildExportFile, type ExportFile, type ExportFormat } from '../logic/export-format'
 import type { ExportData } from '@/shared/domain/carnet-data'
+import type { WeightUnit } from '@/shared/domain/weight-unit'
+import { currentWeightUnit } from '@/shared/domain/weight-unit-preference'
 
 type Provider<T> = () => T | Promise<T>
 
@@ -43,6 +45,7 @@ export type DataExportDependencies = {
   deliver: (file: ExportFile, mode: DeliveryMode) => Promise<DeliveryOutcome>
   now: () => Date
   appVersion: string
+  weightUnit: () => WeightUnit
 }
 
 // Un événement exporté sans son parent ferait refuser le fichier à l'import.
@@ -64,6 +67,7 @@ export function createDataExportService({
   deliver,
   now,
   appVersion,
+  weightUnit,
 }: DataExportDependencies) {
   async function collect(): Promise<ExportData> {
     const [
@@ -165,7 +169,8 @@ export function createDataExportService({
     /** Lit la base locale seulement ; lève si la lecture ou l'écriture du fichier échoue. */
     async exportData(format: ExportFormat, mode: DeliveryMode): Promise<DeliveryOutcome> {
       const data = await collect()
-      return deliver(buildExportFile(format, data, { exportedAt: now(), appVersion }), mode)
+      const meta = { exportedAt: now(), appVersion }
+      return deliver(buildExportFile(format, data, meta, weightUnit()), mode)
     },
   }
 }
@@ -183,4 +188,5 @@ export const dataExportService = createDataExportService({
     deliverExportFile(file, mode, i18n.global.t('settings.export.shareTitle')),
   now: () => new Date(),
   appVersion: import.meta.env.VITE_APP_VERSION,
+  weightUnit: currentWeightUnit,
 })

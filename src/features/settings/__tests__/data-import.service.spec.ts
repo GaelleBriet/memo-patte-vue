@@ -81,6 +81,7 @@ function carnet(client: InMemoryDb = db): Promise<ExportData> {
     deliver: async () => 'shared',
     now: () => NOW,
     appVersion: 'test',
+    weightUnit: () => 'kg',
   }).collect()
 }
 
