@@ -273,6 +273,75 @@ describe('treatmentDosesService', () => {
       ])
     })
 
+    it('ne dit pas « report gardé » quand la dernière passe avant la précédente', async () => {
+      const trimestriel = (
+        await treatments.create({
+          animalId: BOREE,
+          name: 'Bravecto trimestriel',
+          type: 'antiparasitic',
+          frequency: { value: 3, unit: 'month' },
+          lastDoseDate: '2026-08-28',
+        })
+      ).id
+      await service.record(trimestriel, '2026-07-01')
+      await treatments.update(trimestriel, {
+        name: 'Bravecto trimestriel',
+        type: 'antiparasitic',
+        frequency: { value: 3, unit: 'month' },
+        nextDueDate: '2026-12-15',
+      })
+
+      const changement = await service.changeDate(trimestriel, trimestriel, '2026-06-15')
+
+      expect(changement.postponementKept).toBe(false)
+      await expect(treatments.getById(trimestriel)).resolves.toMatchObject({
+        lastDoseDate: '2026-07-01',
+      })
+    })
+
+    function frequenceDe(id: string) {
+      return db.query('SELECT frequency_value, frequency_unit FROM treatment_dose WHERE id = ?', [
+        id,
+      ])
+    }
+
+    it('une prise précédente redatée garde sa fréquence, même si le plan en a une autre', async () => {
+      const precedente = await noter('2026-06-01')
+      await treatments.update(bravecto, {
+        name: 'Bravecto',
+        type: 'deworming',
+        frequency: { value: 3, unit: 'month' },
+        nextDueDate: '2026-11-28',
+      })
+
+      await service.changeDate(bravecto, precedente, '2026-06-05')
+
+      await expect(frequenceDe(precedente)).resolves.toEqual([
+        { frequency_value: 1, frequency_unit: 'month' },
+      ])
+      await expect(visibleDoses()).resolves.toContainEqual({
+        given_on: '2026-06-05',
+        next_due_date: '2026-07-05',
+      })
+    })
+
+    it('sur un traitement arrêté, la dernière redatée garde sa fréquence', async () => {
+      await treatments.stop(bravecto, '2026-09-01')
+      await db.run(
+        `UPDATE treatment SET frequency_value = 3, frequency_unit = 'month' WHERE id = ?`,
+        [bravecto],
+      )
+
+      await service.changeDate(bravecto, bravecto, '2026-08-25')
+
+      await expect(frequenceDe(bravecto)).resolves.toEqual([
+        { frequency_value: 1, frequency_unit: 'month' },
+      ])
+      await expect(visibleDoses()).resolves.toEqual([
+        { given_on: '2026-08-25', next_due_date: '2026-09-25' },
+      ])
+    })
+
     it('refuse une date future ou déjà notée, sans rien écrire', async () => {
       const derniere = await noter('2026-09-23')
 

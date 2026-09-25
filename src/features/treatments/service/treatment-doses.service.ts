@@ -1,6 +1,5 @@
 import { doseGivenOn } from '../logic/treatment-dose'
 import { becomesHead, redatedDose } from '../logic/treatment-history'
-import { isOngoing } from '../logic/treatment-status'
 import {
   getTreatmentDosesRepository,
   type DoseDates,
@@ -100,9 +99,10 @@ export function createTreatmentDosesService({
       if (dose === null) throw new Error(`Prise introuvable : ${doseId}`)
       if (treatment === null) throw new Error(`Traitement introuvable : ${treatmentId}`)
 
-      const planFrequency =
-        isOngoing(treatment) && becomesHead(all, dose, date) ? treatment.frequency : null
-      const { dates, postponementKept } = redatedDose(dose, date, planFrequency)
+      const { dates, postponementKept } = redatedDose(dose, date, {
+        isHead: becomesHead(all, dose, date),
+        plan: treatment,
+      })
       await writeDates(treatmentId, doseId, dates)
       return {
         previous: {

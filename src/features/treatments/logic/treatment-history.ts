@@ -1,7 +1,8 @@
 import { addFrequency } from './treatment-frequency'
+import { isOngoing } from './treatment-status'
 import type { DoseDates } from '../repository/treatment-doses.repository'
 import type { TreatmentDose } from '../schema/treatment-dose.schema'
-import type { Treatment, TreatmentFrequency } from '../schema/treatment.schema'
+import type { Treatment } from '../schema/treatment.schema'
 import { dueDelayText } from '@/shared/domain/due-delay'
 import {
   formatDayMonthOrYear,
@@ -44,20 +45,20 @@ export function doseHistory(
 
 export type RedatedDose = {
   dates: DoseDates
-  /** La prochaine dose, reportée à la main et encore après la nouvelle date, est gardée telle quelle. */
+  /** La dernière prise gardait un report manuel, encore après sa nouvelle date : il n'a pas bougé. */
   postponementKept: boolean
 }
 
 /**
- * Prise déplacée : sa prochaine dose suit la nouvelle date, sauf un report manuel, gardé.
- * `planFrequency`, quand elle devient la dernière d'un traitement en cours, remplace la sienne.
+ * Prise déplacée : sa prochaine dose suit la nouvelle date, sauf un report manuel qui reste après
+ * elle. Devenue la dernière d'un traitement en cours, elle prend la fréquence du plan.
  */
 export function redatedDose(
   dose: DoseDates,
   givenOn: string,
-  planFrequency: TreatmentFrequency | null,
+  { isHead, plan }: { isHead: boolean; plan: Pick<Treatment, 'frequency' | 'stoppedOn'> },
 ): RedatedDose {
-  const frequency = { ...(planFrequency ?? dose.frequency) }
+  const frequency = { ...(isHead && isOngoing(plan) ? plan.frequency : dose.frequency) }
   const kept =
     dose.nextDueDate !== addFrequency(dose.givenOn, dose.frequency) && dose.nextDueDate > givenOn
   return {
@@ -66,7 +67,7 @@ export function redatedDose(
       nextDueDate: kept ? dose.nextDueDate : addFrequency(givenOn, frequency),
       frequency,
     },
-    postponementKept: kept,
+    postponementKept: kept && isHead,
   }
 }
 
