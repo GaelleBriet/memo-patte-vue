@@ -12,6 +12,7 @@ const CONTENT_WIDTH_MM = PAGE_WIDTH_MM - 2 * MARGIN_MM
 const BODY_BOTTOM_MM = PAGE_HEIGHT_MM - MARGIN_MM
 const FOOTER_BASELINE_MM = 286
 const PHOTO_SIZE_MM = 24
+const PHOTO_GAP_MM = 6
 
 const TITLE_ADVANCE_MM = 7
 const ROW_PT = 10.5
@@ -22,6 +23,12 @@ const SECTION_GAP_MM = 5
 const EMPTY_ADVANCE_MM = 10
 const CHART_GAP_MM = 7
 const CONTINUATION_ADVANCE_MM = 10
+const COLUMN_GAP_MM = 4
+const COLUMNS_MM = [
+  { x: 0, width: CONTENT_WIDTH_MM * 0.55 - COLUMN_GAP_MM },
+  { x: CONTENT_WIDTH_MM * 0.55, width: CONTENT_WIDTH_MM * 0.23 - COLUMN_GAP_MM },
+  { x: CONTENT_WIDTH_MM * 0.78, width: CONTENT_WIDTH_MM * 0.22 },
+]
 const DETAIL_PT = 9
 const DETAIL_ADVANCE_MM = 4.6
 const DETAIL_INDENT_MM = 4
@@ -39,6 +46,22 @@ type PageCursor = { y: number; makeRoom: (height: number) => void }
 
 function speciesLabelKey(species: 'dog' | 'cat'): string {
   return `animals.form.species.${species}`
+}
+
+function lineHeight(doc: jsPDF): number {
+  return (doc.getFontSize() * doc.getLineHeightFactor()) / doc.internal.scaleFactor
+}
+
+function wrap(doc: jsPDF, text: string, width: number): string[] {
+  return doc.splitTextToSize(text, width)
+}
+
+function writeLines(doc: jsPDF, lines: readonly string[], x: number, y: number): void {
+  lines.forEach((line, index) => doc.text(line, x, y + index * lineHeight(doc)))
+}
+
+function extraLinesHeight(doc: jsPDF, lineCount: number): number {
+  return (lineCount - 1) * lineHeight(doc)
 }
 
 function createPageCursor(doc: jsPDF, y: number, continuePage: () => number): PageCursor {
@@ -83,8 +106,12 @@ export function renderCarnetPdf(
   y += 10
 
   doc.setFontSize(15)
-  doc.text(content.animal.name, MARGIN_MM, y)
-  y += 7
+  const headerWidth = photoDataUrl
+    ? CONTENT_WIDTH_MM - PHOTO_SIZE_MM - PHOTO_GAP_MM
+    : CONTENT_WIDTH_MM
+  const nameLines = wrap(doc, content.animal.name, headerWidth)
+  writeLines(doc, nameLines, MARGIN_MM, y)
+  y += extraLinesHeight(doc, nameLines.length) + 7
 
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(11)
@@ -94,8 +121,9 @@ export function renderCarnetPdf(
     content.animal.birthDate &&
       t('settings.pdf.identity.birthDate', { date: formatLongDate(content.animal.birthDate) }),
   ].filter((part): part is string => Boolean(part))
-  doc.text(identityParts.join(' · '), MARGIN_MM, y)
-  y += 10
+  const identityLines = wrap(doc, identityParts.join(' · '), headerWidth)
+  writeLines(doc, identityLines, MARGIN_MM, y)
+  y += extraLinesHeight(doc, identityLines.length) + 10
 
   const cursor = createPageCursor(doc, y, () => writeContinuationHeader(doc, content.animal.name))
 
@@ -120,7 +148,7 @@ export function renderCarnetPdf(
     t('settings.pdf.treatments.title'),
     content.treatments.map((row) => [
       row.name,
-      row.nextDueDate ? formatNumericDate(row.nextDueDate) : t('settings.pdf.status.none'),
+      treatmentDueLabel(row, t),
       t(STATE_LABEL_KEYS[row.state]),
     ]),
     t('settings.pdf.treatments.empty'),
@@ -136,6 +164,13 @@ export function renderCarnetPdf(
   )
 
   return new Uint8Array(doc.output('arraybuffer'))
+}
+
+function treatmentDueLabel(row: PdfTreatmentRow, t: Translate): string {
+  if (row.stoppedOn) {
+    return t('settings.pdf.treatments.stopped', { date: formatNumericDate(row.stoppedOn) })
+  }
+  return row.nextDueDate ? formatNumericDate(row.nextDueDate) : t('settings.pdf.status.none')
 }
 
 function numericDates(dates: string[]): string {
@@ -158,22 +193,20 @@ function doseHistory(row: PdfTreatmentRow, t: Translate): string[] {
   return [last, t('settings.pdf.history.previousDoses', { series })]
 }
 
-function detailLines(doc: jsPDF, details: string[]): string[] {
-  doc.setFont('helvetica', 'normal')
+type DetailBlock = { lines: string[]; height: number }
+
+function detailBlock(doc: jsPDF, details: string[]): DetailBlock {
   doc.setFontSize(DETAIL_PT)
-  const lines = details.flatMap((detail): string[] =>
-    doc.splitTextToSize(detail, CONTENT_WIDTH_MM - DETAIL_INDENT_MM),
-  )
+  const lines = details.flatMap((detail) => wrap(doc, detail, CONTENT_WIDTH_MM - DETAIL_INDENT_MM))
+  const height = lines.length === 0 ? 0 : DETAIL_ADVANCE_MM + extraLinesHeight(doc, lines.length)
   doc.setFontSize(ROW_PT)
-  return lines
+  return { lines, height }
 }
 
-function writeDetailLines(doc: jsPDF, lines: string[], rowBaseline: number): void {
+function writeDetails(doc: jsPDF, { lines }: DetailBlock, lastRowLine: number): void {
   doc.setFontSize(DETAIL_PT)
   doc.setTextColor(DETAIL_GRAY)
-  lines.forEach((line, index) => {
-    doc.text(line, MARGIN_MM + DETAIL_INDENT_MM, rowBaseline + (index + 1) * DETAIL_ADVANCE_MM)
-  })
+  writeLines(doc, lines, MARGIN_MM + DETAIL_INDENT_MM, lastRowLine + DETAIL_ADVANCE_MM)
   doc.setTextColor(0)
   doc.setFontSize(ROW_PT)
 }
@@ -183,9 +216,11 @@ function writeContinuationHeader(doc: jsPDF, animalName: string): number {
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(11)
   doc.setTextColor(0)
-  doc.text(animalName, MARGIN_MM, MARGIN_MM)
+  const lines = wrap(doc, animalName, CONTENT_WIDTH_MM)
+  writeLines(doc, lines, MARGIN_MM, MARGIN_MM)
+  const height = extraLinesHeight(doc, lines.length)
   doc.restoreGraphicsState()
-  return MARGIN_MM + CONTINUATION_ADVANCE_MM
+  return MARGIN_MM + height + CONTINUATION_ADVANCE_MM
 }
 
 function writeFooters(doc: jsPDF, generated: string, t: Translate): void {
@@ -230,22 +265,31 @@ function renderSection(
   emptyLabel: string,
   details: string[][],
 ): void {
-  const detailsOf = rows.map((_, index) => detailLines(doc, details[index] ?? []))
-  const blockHeight = (lines: string[]) => lines.length * DETAIL_ADVANCE_MM + ROW_DESCENT_MM
-  writeSectionTitle(doc, cursor, title, blockHeight(detailsOf[0] ?? []))
-  if (rows.length === 0) {
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(ROW_PT)
+  const wrapped = rows.map((cells) =>
+    cells.map((cell, column) => wrap(doc, cell, COLUMNS_MM[column]!.width)),
+  )
+  const extraHeight = (cells: string[][]) =>
+    extraLinesHeight(doc, Math.max(...cells.map((lines) => lines.length)))
+  const blocks = rows.map((_, index) => detailBlock(doc, details[index] ?? []))
+  const rowHeight = (index: number) => extraHeight(wrapped[index]!) + blocks[index]!.height
+
+  writeSectionTitle(doc, cursor, title, (wrapped[0] ? rowHeight(0) : 0) + ROW_DESCENT_MM)
+  if (wrapped.length === 0) {
     writeEmptyLine(doc, cursor, emptyLabel)
     return
   }
 
-  rows.forEach(([name, date, state], index) => {
-    const lines = detailsOf[index]!
-    cursor.makeRoom(blockHeight(lines))
-    doc.text(name ?? '', MARGIN_MM, cursor.y)
-    doc.text(date ?? '', MARGIN_MM + CONTENT_WIDTH_MM * 0.55, cursor.y)
-    doc.text(state ?? '', MARGIN_MM + CONTENT_WIDTH_MM * 0.78, cursor.y)
-    writeDetailLines(doc, lines, cursor.y)
-    cursor.y += lines.length * DETAIL_ADVANCE_MM + ROW_ADVANCE_MM
+  wrapped.forEach((cells, index) => {
+    const extra = extraHeight(cells)
+    const height = rowHeight(index)
+    cursor.makeRoom(height + ROW_DESCENT_MM)
+    cells.forEach((lines, column) => {
+      writeLines(doc, lines, MARGIN_MM + COLUMNS_MM[column]!.x, cursor.y)
+    })
+    writeDetails(doc, blocks[index]!, cursor.y + extra)
+    cursor.y += height + ROW_ADVANCE_MM
   })
   cursor.y += SECTION_GAP_MM
 }

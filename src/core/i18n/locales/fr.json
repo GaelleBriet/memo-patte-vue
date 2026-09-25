@@ -720,7 +720,8 @@
       },
       "treatments": {
         "title": "Traitements",
-        "empty": "Aucun traitement enregistré."
+        "empty": "Aucun traitement enregistré.",
+        "stopped": "Arrêté le {date}"
       },
       "weight": {
         "title": "Poids",

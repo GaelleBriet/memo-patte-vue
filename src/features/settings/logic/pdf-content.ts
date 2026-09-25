@@ -27,6 +27,7 @@ export type PdfTreatmentRow = {
   previousDoses: PdfDoseSeries[]
   /** `null` pour un traitement arrêté : il n'a plus d'échéance. */
   nextDueDate: string | null
+  stoppedOn: string | null
   state: PdfDueState
 }
 
@@ -132,6 +133,7 @@ export function buildCarnetPdfContent(
           lastDoseDate: head.givenOn,
           previousDoses: doseSeries(previous),
           nextDueDate,
+          stoppedOn: item.stoppedOn,
           state: dueState(nextDueDate, today, 'treatment'),
         },
       ]
