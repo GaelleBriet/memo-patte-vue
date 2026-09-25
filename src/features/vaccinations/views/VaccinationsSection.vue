@@ -158,25 +158,7 @@ watch(summary, (value) => emit('summary', value), { immediate: true })
 // le badge passe dessous plutôt que le mot soit coupé en deux.
 .vaccination-row {
   flex-wrap: wrap;
-  width: 100%;
   padding-inline-end: 12px;
-  border: 0;
-  background: transparent;
-  color: inherit;
-  font-family: inherit;
-  text-align: start;
-  cursor: pointer;
-
-  @media (hover: hover) {
-    &:hover {
-      background: rgba(var(--v-theme-primary), 0.04);
-    }
-  }
-
-  &:focus-visible {
-    outline: none;
-    background: rgba(var(--v-theme-primary), 0.06);
-  }
 }
 
 .vaccination-row__end {

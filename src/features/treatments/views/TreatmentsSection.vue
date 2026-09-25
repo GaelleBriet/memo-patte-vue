@@ -213,25 +213,7 @@ watch(summary, (value) => emit('summary', value), { immediate: true })
 
 .treatment-row,
 .finished-treatment-row {
-  width: 100%;
   padding-inline-end: 12px;
-  border: 0;
-  background: transparent;
-  color: inherit;
-  font-family: inherit;
-  text-align: start;
-  cursor: pointer;
-
-  @media (hover: hover) {
-    &:hover {
-      background: rgba(var(--v-theme-primary), 0.04);
-    }
-  }
-
-  &:focus-visible {
-    outline: none;
-    background: rgba(var(--v-theme-primary), 0.06);
-  }
 }
 
 .treatment-row__end {
@@ -352,9 +334,5 @@ watch(summary, (value) => emit('summary', value), { immediate: true })
   margin-top: 2px;
   color: tokens.$color-text-secondary;
   font-size: 12.5px;
-}
-
-.finished-treatment-row + .finished-treatment-row {
-  border-top: 1px solid tokens.$color-divider;
 }
 </style>
