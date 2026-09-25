@@ -20,7 +20,7 @@ function monter(load: (id: string) => Promise<string | null>) {
 
 describe('useDetailLoad', () => {
   it('charge l’élément puis le relit quand l’identifiant change', async () => {
-    const load = vi.fn(async (id: string) => `élément ${id}`)
+    const load = vi.fn<(id: string) => Promise<string>>(async (id) => `élément ${id}`)
     const { id, detail } = monter(load)
 
     expect(detail().state.value).toBe('loading')
@@ -58,7 +58,7 @@ describe('useDetailLoad', () => {
 
   it('ignore la réponse d’un identifiant déjà quitté', async () => {
     let finishA: (value: string) => void = () => {}
-    const load = vi.fn((id: string) =>
+    const load = vi.fn<(id: string) => Promise<string>>((id) =>
       id === 'a'
         ? new Promise<string>((resolve) => (finishA = resolve))
         : Promise.resolve(`élément ${id}`),

@@ -139,7 +139,9 @@ beforeEach(async () => {
   })
   remove = repository.remove
   provideTreatmentsRepository(() => repository)
-  provideTreatmentRemindersService(() => ({ reschedule: vi.fn(async () => {}) }))
+  provideTreatmentRemindersService(() => ({
+    reschedule: vi.fn<(id: string) => Promise<void>>(async () => {}),
+  }))
   service = {
     record: vi.fn<TreatmentDosesService['record']>(async () => ({
       animalId: BOREE.id,

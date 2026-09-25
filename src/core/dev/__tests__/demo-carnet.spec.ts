@@ -134,7 +134,7 @@ describe('buildDemoCarnet', () => {
         for (const { givenOn } of treatment.history ?? []) {
           expect(givenOn < treatment.lastDoseDate).toBe(true)
         }
-        if (treatment.stoppedOn) expect(treatment.stoppedOn <= today).toBe(true)
+        expect((treatment.stoppedOn ?? today) <= today).toBe(true)
       }
     }
   })

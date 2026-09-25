@@ -132,7 +132,7 @@ describe('vaccinationInjectionsService', () => {
     })
 
     it('refuse de supprimer la seule injection d’un vaccin', async () => {
-      await expect(service.remove(carre, carre)).rejects.toThrow()
+      await expect(service.remove(carre, carre)).rejects.toThrow('Injection non supprimée')
 
       await expect(vaccinations.getById(carre)).resolves.not.toBeNull()
       expect(dueDates()).toEqual(['2026-09-26'])

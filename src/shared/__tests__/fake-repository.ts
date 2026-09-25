@@ -18,14 +18,16 @@ export function fakeRepository<T extends object>(methods: Partial<T> = {}): Fake
   const mocks = new Map<PropertyKey, unknown>(
     Object.entries(methods).map(([key, value]) => [
       key,
-      typeof value === 'function' && !vi.isMockFunction(value) ? vi.fn(value as Method) : value,
+      typeof value === 'function' && !vi.isMockFunction(value)
+        ? vi.fn<Method>(value as Method)
+        : value,
     ]),
   )
   return new Proxy({} as FakeRepository<T>, {
     get(_target, key) {
       if (mocks.has(key)) return mocks.get(key)
       if (typeof key === 'symbol' || PROBED_KEYS.has(key)) return undefined
-      const method = vi.fn()
+      const method = vi.fn<Method>()
       mocks.set(key, method)
       return method
     },

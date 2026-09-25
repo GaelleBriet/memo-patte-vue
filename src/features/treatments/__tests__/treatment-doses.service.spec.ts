@@ -160,7 +160,7 @@ describe('treatmentDosesService', () => {
     })
 
     it('refuse de supprimer la seule prise d’un traitement', async () => {
-      await expect(service.remove(bravecto, bravecto)).rejects.toThrow()
+      await expect(service.remove(bravecto, bravecto)).rejects.toThrow('Prise non supprimée')
 
       await expect(visibleDoses()).resolves.toHaveLength(1)
     })
@@ -210,7 +210,9 @@ describe('treatmentDosesService', () => {
       const derniere = await noter('2026-09-23')
 
       await expect(service.changeDate(bravecto, derniere, '2026-09-24')).rejects.toThrow(ZodError)
-      await expect(service.changeDate(bravecto, derniere, '2026-08-28')).rejects.toThrow()
+      await expect(service.changeDate(bravecto, derniere, '2026-08-28')).rejects.toThrow(
+        'Prise non modifiée',
+      )
 
       await expect(visibleDoses()).resolves.toEqual([
         { given_on: '2026-08-28', next_due_date: '2026-09-28' },
