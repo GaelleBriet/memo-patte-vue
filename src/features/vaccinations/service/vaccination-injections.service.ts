@@ -44,6 +44,12 @@ const injectionInputSchema = vaccinationInputSchema
     nextDueDate: dueDate,
   }))
 
+/** Rappel choisi avec le déplacement : une date valide, strictement après l'injection, ou aucune. */
+const redatedInjectionSchema = injectionInputSchema.refine(
+  ({ injectedOn, nextDueDate }) => nextDueDate === null || nextDueDate > injectedOn,
+  { path: ['nextDueDate'] },
+)
+
 export function createVaccinationInjectionsService({
   vaccinations,
   injections,
@@ -113,10 +119,13 @@ export function createVaccinationInjectionsService({
       injectionId: string,
       dates: InjectionDates,
     ): Promise<InjectionDates> {
-      const injectedOn = vaccinationInputSchema.shape.lastInjectionDate.parse(dates.injectedOn)
+      const data = redatedInjectionSchema.parse({
+        lastInjectionDate: dates.injectedOn,
+        dueDate: dates.nextDueDate,
+      })
       const injection = await requireInjection(injectionId)
 
-      await writeDates(vaccinationId, injectionId, { injectedOn, nextDueDate: dates.nextDueDate })
+      await writeDates(vaccinationId, injectionId, data)
       return { injectedOn: injection.injectedOn, nextDueDate: injection.nextDueDate }
     },
 

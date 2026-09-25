@@ -240,6 +240,37 @@ describe('vaccinationInjectionsService', () => {
       })
     })
 
+    it.each([
+      ['une date invalide', 'pas-une-date'],
+      ['un rappel le jour de l’injection', '2026-09-01'],
+      ['un rappel avant l’injection', '2026-08-31'],
+    ])('refuse %s avec le déplacement, sans rien écrire', async (_, nextDueDate) => {
+      const derniere = await noter('2026-07-27', '2026-08-26')
+
+      await expect(
+        service.changeDateAndReminder(carre, derniere, { injectedOn: '2026-09-01', nextDueDate }),
+      ).rejects.toThrow(ZodError)
+
+      await expect(vaccinations.getById(carre)).resolves.toMatchObject({
+        lastInjectionDate: '2026-07-27',
+        dueDate: '2026-08-26',
+      })
+    })
+
+    it('accepte « Pas de rappel » avec le déplacement', async () => {
+      const derniere = await noter('2026-07-27', '2026-08-26')
+
+      await service.changeDateAndReminder(carre, derniere, {
+        injectedOn: '2026-09-01',
+        nextDueDate: null,
+      })
+
+      await expect(vaccinations.getById(carre)).resolves.toMatchObject({
+        lastInjectionDate: '2026-09-01',
+        dueDate: null,
+      })
+    })
+
     it('refuse une date future, sans rien écrire', async () => {
       await expect(service.changeDate(carre, carre, '2026-09-24')).rejects.toThrow(ZodError)
 
