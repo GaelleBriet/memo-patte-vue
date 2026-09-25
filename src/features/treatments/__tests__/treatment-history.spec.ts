@@ -312,7 +312,35 @@ describe('doseGestureTexts', () => {
     expect(texts.removed).toBe('Prise du 28 juil. supprimée')
     expect(texts.undoRemove).toBe('Annuler la suppression de la prise du 28 juillet 2026')
     expect(texts.moved('2026-07-30')).toBe('Prise déplacée au 30 juil.')
+    expect(texts.moved('2026-07-30', null)).toBe('Prise déplacée au 30 juil.')
     expect(texts.undoMove).toBe('Annuler le changement de date de la prise')
+  })
+})
+
+describe('doseGestureTexts — report gardé', () => {
+  it('dit la prochaine dose gardée quand le report n’a pas suivi le déplacement', () => {
+    const texts = doseGestureTexts(t, '2026-08-28', TODAY)
+
+    expect(texts.moved('2026-08-27', '2026-12-15')).toBe(
+      'Prise déplacée au 27\u00a0août. Prochaine dose gardée au 15\u00a0déc., que tu avais reportée.',
+    )
+    expect(texts.moved('2026-08-27', '2027-01-15')).toBe(
+      'Prise déplacée au 27\u00a0août. Prochaine dose gardée au 15\u00a0janv.\u00a02027, que tu avais reportée.',
+    )
+  })
+
+  it('ne double pas le point quand la date se termine par une abréviation', () => {
+    expect(doseGestureTexts(t, '2026-07-10', TODAY).moved('2026-07-08', '2026-11-04')).toBe(
+      'Prise déplacée au 8\u00a0juil. Prochaine dose gardée au 4\u00a0nov., que tu avais reportée.',
+    )
+  })
+
+  it('suit la langue courante', () => {
+    applyLocale('en')
+
+    expect(doseGestureTexts(t, '2026-08-28', TODAY).moved('2026-08-27', '2026-12-15')).toBe(
+      'Dose moved to Aug\u00a027. Next dose kept on Dec\u00a015, as you had postponed it.',
+    )
   })
 })
 

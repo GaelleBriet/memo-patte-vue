@@ -91,9 +91,14 @@ export function useTreatmentGestures(onChanged: () => void) {
     const { treatmentId, id } = dose
     const texts = doseGestureTexts(t, dose.givenOn, todayIsoDate())
     return guarded(async () => {
-      const { previous } = await treatments.changeDoseDate(treatmentId, id, givenOn)
+      const { previous, postponementKept } = await treatments.changeDoseDate(
+        treatmentId,
+        id,
+        givenOn,
+      )
       onChanged()
-      undoable(texts.moved(givenOn), texts.undoMove, () =>
+      const keptNextDue = postponementKept ? previous.nextDueDate : null
+      undoable(texts.moved(givenOn, keptNextDue), texts.undoMove, () =>
         treatments.undoChangeDoseDate(treatmentId, id, previous),
       )
     }, t('treatments.detail.errors.change'))

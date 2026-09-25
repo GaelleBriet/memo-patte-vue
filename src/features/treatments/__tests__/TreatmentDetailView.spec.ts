@@ -352,6 +352,27 @@ describe('TreatmentDetailView — prise supprimée ou redatée', () => {
     })
   })
 
+  it('dit dans le toast la prochaine dose gardée quand le report n’a pas suivi', async () => {
+    service.changeDate.mockResolvedValue({
+      previous: {
+        givenOn: '2026-08-28',
+        nextDueDate: '2026-12-15',
+        frequency: { value: 1, unit: 'month' },
+      },
+      postponementKept: true,
+    })
+    const view = await monter()
+
+    await choisir(view, 0, 'changeDate')
+    view.getComponent(DatePickerSheet).vm.$emit('pick', '2026-08-27')
+    await flushPromises()
+
+    expect(toastMessage.value).toBe(
+      'Prise déplacée au 27\u00a0août. Prochaine dose gardée au 15\u00a0déc., que tu avais reportée.',
+    )
+    expect(toastAction.value?.label).toBe('Annuler')
+  })
+
   it('propose de supprimer le traitement quand on supprime sa seule prise', async () => {
     doses = [dose('p4', '2026-08-28')]
     const view = await monter()

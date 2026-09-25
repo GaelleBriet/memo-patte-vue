@@ -53,6 +53,10 @@ describe('AppToast — contrat de style (maquette B3)', () => {
     expect(declaration(feuille, '.app-toast__content', 'gap')).toBe('10px')
   })
 
+  it('passe un message long à la ligne à côté de l’action, sans la renvoyer dessous', () => {
+    expect(declaration(feuille, '.app-toast :deep(.v-snackbar__prepend)', 'flex')).toBe('1 1 0')
+  })
+
   it('écrit le message en 13 px medium, clair sur le pétrole', () => {
     expect(declaration(feuille, '.app-toast__message', 'font-size')).toBe('13px')
     expect(declaration(feuille, '.app-toast__message', 'font-weight')).toBe('500')

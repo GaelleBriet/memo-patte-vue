@@ -86,7 +86,7 @@ const isOpen = computed({
 }
 
 .app-toast :deep(.v-snackbar__prepend) {
-  flex: 1 1 auto;
+  flex: 1 1 0;
   min-width: 0;
   margin: 0;
   padding: 6px 16px;

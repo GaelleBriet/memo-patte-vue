@@ -363,6 +363,7 @@
         "removed": "Dose on {date} deleted",
         "undoRemove": "Undo deleting the dose on {date}",
         "moved": "Dose moved to {date}",
+        "movedKept": "Dose moved to {date}. Next dose kept on {nextDue}, as you had postponed it.",
         "undoMove": "Undo the dose date change",
         "deleted": "{name} treatment deleted"
       },

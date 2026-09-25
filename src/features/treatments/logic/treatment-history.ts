@@ -9,6 +9,7 @@ import {
   formatFullDate,
   formatLongDate,
   formatMonthYear,
+  nonBreaking,
 } from '@/shared/utils/format'
 
 export type Translate = (key: string, named?: Record<string, unknown>, plural?: number) => string
@@ -178,8 +179,15 @@ export function doseGestureTexts(t: Translate, givenOn: string, today: string) {
     }),
     removed: t('treatments.detail.toast.removed', { date: formatDayMonthOrYear(givenOn, today) }),
     undoRemove: t('treatments.detail.toast.undoRemove', { date: formatFullDate(givenOn) }),
-    moved: (date: string) =>
-      t('treatments.detail.toast.moved', { date: formatDayMonthOrYear(date, today) }),
+    /** `keptNextDue` : la prochaine dose reportée à la main, restée à sa date. */
+    moved: (date: string, keptNextDue: string | null = null) =>
+      keptNextDue === null
+        ? t('treatments.detail.toast.moved', { date: formatDayMonthOrYear(date, today) })
+        : t('treatments.detail.toast.movedKept', {
+            // Le point d'abréviation (« juil. ») sert aussi de point final à la phrase.
+            date: nonBreaking(formatDayMonthOrYear(date, today).replace(/\.$/, '')),
+            nextDue: nonBreaking(formatDayMonthOrYear(keptNextDue, today)),
+          }),
     undoMove: t('treatments.detail.toast.undoMove'),
   }
 }
