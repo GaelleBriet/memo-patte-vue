@@ -168,7 +168,7 @@ describe('« C’est fait » d’un vermifuge ou d’un antiparasitaire', () => 
     await act(done(`treatment:${BRAVECTO.id}:${TODAY}:due`))
 
     expect(record).toHaveBeenCalledOnce()
-    expect(toastMessage.value).toBe('Prise de Bravecto du 25 sept. déjà notée pour Boree')
+    expect(toastMessage.value).toBe('Prise de Bravecto déjà notée aujourd’hui pour Boree')
     expect(toastTone.value).toBe('info')
     expect(toastAction.value).toBeNull()
   })
@@ -250,6 +250,49 @@ describe('« C’est fait » d’un vaccin', () => {
       name: 'home',
       query: { reminder: `vaccination:${CARRE.id}`, step: 'done' },
     })
+  })
+})
+
+describe('texte « déjà noté »', () => {
+  afterEach(() => {
+    i18n.global.locale.value = 'fr'
+  })
+
+  const noted = {
+    dose: {
+      today: { ...BRAVECTO, lastDoseDate: TODAY, nextDueDate: '2026-10-25' },
+      earlier: { ...BRAVECTO, lastDoseDate: '2026-09-23', nextDueDate: '2026-10-23' },
+    },
+    injection: {
+      today: { ...CARRE, lastInjectionDate: TODAY, dueDate: '2027-09-25' },
+      earlier: { ...CARRE, lastInjectionDate: '2026-09-23', dueDate: '2027-09-23' },
+    },
+  }
+
+  async function alreadyNotedToast(
+    kind: 'dose' | 'injection',
+    day: 'today' | 'earlier',
+  ): Promise<string | null> {
+    if (kind === 'dose') treatment = noted.dose[day]
+    else vaccination = noted.injection[day]
+    const entry = kind === 'dose' ? `treatment:${BRAVECTO.id}` : `vaccination:${CARRE.id}`
+    await handler()(done(`${entry}:2026-09-22:overdue`))
+    return toastMessage.value
+  }
+
+  it.each([
+    ['fr', 'dose', 'today', 'Prise de Bravecto déjà notée aujourd’hui pour Boree'],
+    ['fr', 'dose', 'earlier', 'Prise de Bravecto du 23 sept. déjà notée pour Boree'],
+    ['fr', 'injection', 'today', 'Injection de Carré déjà notée aujourd’hui pour Boree'],
+    ['fr', 'injection', 'earlier', 'Injection de Carré du 23 sept. déjà notée pour Boree'],
+    ['en', 'dose', 'today', 'Bravecto dose already logged today for Boree'],
+    ['en', 'dose', 'earlier', 'Bravecto dose on Sep 23 already logged for Boree'],
+    ['en', 'injection', 'today', 'Carré injection already logged today for Boree'],
+    ['en', 'injection', 'earlier', 'Carré injection on Sep 23 already logged for Boree'],
+  ] as const)('%s, %s notée %s', async (locale, kind, day, expected) => {
+    i18n.global.locale.value = locale
+
+    await expect(alreadyNotedToast(kind, day)).resolves.toBe(expected)
   })
 })
 

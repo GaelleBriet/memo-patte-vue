@@ -602,7 +602,9 @@
     "action": {
       "done": "C’est fait",
       "alreadyDose": "Prise de {name} du {date} déjà notée pour {animal}",
-      "alreadyInjection": "Injection de {name} du {date} déjà notée pour {animal}"
+      "alreadyDoseToday": "Prise de {name} déjà notée aujourd’hui pour {animal}",
+      "alreadyInjection": "Injection de {name} du {date} déjà notée pour {animal}",
+      "alreadyInjectionToday": "Injection de {name} déjà notée aujourd’hui pour {animal}"
     }
   },
   "settings": {

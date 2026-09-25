@@ -50,7 +50,12 @@ export type ReminderActionsDependencies = {
 
 type Done = { animalId: string; name: string; doneOn: string }
 
-type Named = { name: string; animal: string; date: string }
+type Named = { name: string; animal: string }
+
+type AlreadyNotedTexts = {
+  today: (named: Named) => string
+  on: (named: Named & { date: string }) => string
+}
 
 /**
  * Traite une action de notification : l'app s'ouvre toujours sur l'accueil. « C'est fait » note la
@@ -79,12 +84,17 @@ export function createReminderActions({
   }
 
   async function alreadyNoted(
-    message: (named: Named) => string,
+    texts: AlreadyNotedTexts,
     { animalId, name, doneOn }: Done,
   ): Promise<void> {
     await openHome()
-    const date = formatDayMonthOrYear(doneOn, today())
-    showToast(message({ name, animal: await animalName(animalId), date }), { tone: 'info' })
+    const named = { name, animal: await animalName(animalId) }
+    const day = today()
+    const message =
+      doneOn === day
+        ? texts.today(named)
+        : texts.on({ ...named, date: formatDayMonthOrYear(doneOn, day) })
+    showToast(message, { tone: 'info' })
   }
 
   async function treatmentDone(id: string, dueDate: string): Promise<void> {
@@ -92,7 +102,11 @@ export function createReminderActions({
     if (treatment === null || !isOngoing(treatment)) return openHome()
     const sheet: ReminderRequest = { kind: 'treatment', id, step: 'actions' }
     if (isDoseNoted(treatment, dueDate)) {
-      return alreadyNoted((named) => t('notifications.action.alreadyDose', named), {
+      const texts: AlreadyNotedTexts = {
+        today: (named) => t('notifications.action.alreadyDoseToday', named),
+        on: (named) => t('notifications.action.alreadyDose', named),
+      }
+      return alreadyNoted(texts, {
         animalId: treatment.animalId,
         name: treatment.name,
         doneOn: treatment.lastDoseDate,
@@ -128,7 +142,11 @@ export function createReminderActions({
     const vaccination = await (await vaccinations()).getById(id)
     if (vaccination === null) return openHome()
     if (isInjectionNoted(vaccination, dueDate)) {
-      return alreadyNoted((named) => t('notifications.action.alreadyInjection', named), {
+      const texts: AlreadyNotedTexts = {
+        today: (named) => t('notifications.action.alreadyInjectionToday', named),
+        on: (named) => t('notifications.action.alreadyInjection', named),
+      }
+      return alreadyNoted(texts, {
         animalId: vaccination.animalId,
         name: vaccination.name,
         doneOn: vaccination.lastInjectionDate,
