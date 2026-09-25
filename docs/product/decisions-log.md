@@ -1692,3 +1692,28 @@ de la tête pourrait changer quelle prise est la tête. Transitoire assumé jusq
 
 4) **Export JSON** (correctif, perte de données évitée) : `treatments[]` porte `stoppedOn`, relu par l'import (un traitement arrêté le reste
 après un aller-retour, sans rappel). — Raison : sans lui, les rappels d'un traitement arrêté reprendraient.
+
+2026-09-25 — **Variation de poids : « depuis le 25 août », chiffre seul dans le bandeau** (#385, étude
+`docs/product/etude-variation-poids.md`, décisions de Gaelle). La variation reste celle depuis la pesée
+précédente ; elle est datée « +0,3 kg depuis le 25 août » (année seulement hors de l'année en cours ; EN
+« since Aug 25 ») dans la section « Suivi de poids » du Carnet, le résumé de l'Historique et la pesée
+touchée, variation nulle comprise (« ±0,0 kg depuis le 25 août »). Le bandeau de stats du Carnet garde la
+variation **sans date** (« +0,3 kg »). La liste des pesées et le PDF ne changent pas. Le pourcentage et une
+alerte au-delà d'un seuil sont remis à plus tard. — Raison : « vs août » ne disait ni quelle pesée, ni
+l'année, ni le temps écoulé, alors que les vétérinaires lisent un écart avec sa durée ; le bandeau, étroit,
+passait sur deux lignes et répétait la section. — Alternatives écartées : « vs 25 août » des maquettes
+(abréviation anglaise, deux lignes dans le bandeau) ; « +0,3 kg en 3 semaines » (arrondi à inventer) ; la
+variation retirée du bandeau (on perd l'indication « prend ou perd » en haut de l'écran). À vérifier : que le
+texte tienne sur une ligne à 360 dp.
+
+2026-09-25 — **Corriger et supprimer une pesée** (#402, décisions de Gaelle) : toucher une pesée de
+l'Historique ouvre la feuille pesée en modification (poids et date) ; « Supprimer cette pesée » en bas,
+sans dialogue, avec « Annuler » dans le toast, comme la suppression d'une injection. — Raison : une pesée
+mal saisie faussait pour toujours la courbe et la variation. — Alternative écartée : un dialogue de
+confirmation pour une action réversible.
+
+2026-09-25 — **Dialogue de suppression d'un vaccin ou d'un traitement** (#381, textes validés par Gaelle) :
+« Supprimer Carré ? », « Ses injections et ses rappels seront supprimés du carnet. Cette action est
+définitive. » (« Ses prises… » pour un traitement), et pour la seule injection ou prise « C'est sa seule
+injection : le vaccin Carré sera supprimé, avec ses rappels. Cette action est définitive. » · Annuler ·
+Supprimer (couleur `error`). — Raison : action irréversible, sans toast « Annuler ».
