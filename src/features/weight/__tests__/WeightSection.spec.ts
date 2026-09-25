@@ -129,7 +129,7 @@ describe('WeightSection — poids actuel et delta', () => {
     const wrapper = await monter()
     const delta = wrapper.get('.weight-section__delta')
 
-    expect(delta.text()).toBe('+0,5 kg vs 5\u00a0août')
+    expect(delta.text()).toBe('+0,5 kg depuis le 5\u00a0août')
     expect(delta.classes()).toContain('weight-section__delta--up')
   })
 
@@ -138,7 +138,7 @@ describe('WeightSection — poids actuel et delta', () => {
     const wrapper = await monter()
     const delta = wrapper.get('.weight-section__delta')
 
-    expect(delta.text()).toBe('−0,3 kg vs 5\u00a0août')
+    expect(delta.text()).toBe('−0,3 kg depuis le 5\u00a0août')
     expect(delta.classes()).toContain('weight-section__delta--down')
     expect(delta.classes()).not.toContain('weight-section__delta--up')
   })
@@ -148,7 +148,7 @@ describe('WeightSection — poids actuel et delta', () => {
     const wrapper = await monter()
     const delta = wrapper.get('.weight-section__delta')
 
-    expect(delta.text()).toBe('±0,0 kg vs 5\u00a0août')
+    expect(delta.text()).toBe('±0,0 kg depuis le 5\u00a0août')
     expect(delta.classes()).toContain('weight-section__delta--flat')
   })
 
@@ -156,14 +156,16 @@ describe('WeightSection — poids actuel et delta', () => {
     entries = [entry(23.9, '2026-08-04'), entry(24.2, '2026-08-25'), entry(24.5, '2026-09-13')]
     const wrapper = await monter(MILO, '2026-09-24')
 
-    expect(wrapper.get('.weight-section__delta').text()).toBe('+0,3 kg vs 25\u00a0août')
+    expect(wrapper.get('.weight-section__delta').text()).toBe('+0,3 kg depuis le 25\u00a0août')
   })
 
   it('ajoute l’année quand la pesée de référence n’est pas de l’année en cours', async () => {
     entries = [entry(23.9, '2025-12-20'), entry(24.2, '2026-01-10')]
     const wrapper = await monter(MILO, '2026-01-12')
 
-    expect(wrapper.get('.weight-section__delta').text()).toBe('+0,3 kg vs 20\u00a0déc.\u00a02025')
+    expect(wrapper.get('.weight-section__delta').text()).toBe(
+      '+0,3 kg depuis le 20\u00a0déc.\u00a02025',
+    )
   })
 
   it('écrit la date à l’anglaise en anglais', async () => {
@@ -173,7 +175,7 @@ describe('WeightSection — poids actuel et delta', () => {
     try {
       const wrapper = await monter(MILO, '2026-09-24')
 
-      expect(wrapper.get('.weight-section__delta').text()).toBe('+0.3 kg vs Aug\u00a025')
+      expect(wrapper.get('.weight-section__delta').text()).toBe('+0.3 kg since Aug\u00a025')
     } finally {
       applyLocale('fr')
     }

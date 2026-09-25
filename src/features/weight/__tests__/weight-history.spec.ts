@@ -40,7 +40,7 @@ describe('weightHistory — delta du poids actuel', () => {
     const history = weightHistory([entry(24, '2026-08-09'), entry(24.5, '2026-11-08')], null)
 
     expect(history.headline).toEqual({
-      kind: 'vs',
+      kind: 'delta',
       deltaKg: 0.5,
       trend: 'up',
       previousMeasuredOn: '2026-08-09',
@@ -50,13 +50,18 @@ describe('weightHistory — delta du poids actuel', () => {
   it('garde le signe d’une baisse', () => {
     const history = weightHistory([entry(24.5, '2026-08-09'), entry(24.2, '2026-11-08')], null)
 
-    expect(history.headline).toMatchObject({ kind: 'vs', deltaKg: -0.3, trend: 'down' })
+    expect(history.headline).toMatchObject({ kind: 'delta', deltaKg: -0.3, trend: 'down' })
   })
 
-  it('dit « nul » sans date quand rien ne bouge à la décimale près', () => {
+  it('date aussi une variation nulle à la décimale près', () => {
     const history = weightHistory([entry(24.5, '2026-08-09'), entry(24.54, '2026-11-08')], null)
 
-    expect(history.headline).toEqual({ kind: 'flat' })
+    expect(history.headline).toEqual({
+      kind: 'delta',
+      deltaKg: 0,
+      trend: 'flat',
+      previousMeasuredOn: '2026-08-09',
+    })
   })
 })
 

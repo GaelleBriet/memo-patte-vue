@@ -4,25 +4,16 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
 import WeightSheet from './WeightSheet.vue'
-import {
-  weightHistory,
-  type WeightHeadline,
-  type WeightHistoryRow,
-  type WeightTrend,
-} from '../logic/weight-history'
+import { weightHistory, type WeightHistoryRow, type WeightTrend } from '../logic/weight-history'
+import type { WeightDelta } from '../logic/weight-summary'
 import { useWeightEntries } from '../composables/use-weight-entries'
 import { useToday } from '@/core/app-lifecycle/use-today'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import PushedScreen from '@/shared/components/PushedScreen.vue'
 import SectionCard from '@/shared/components/SectionCard.vue'
 import WeightHistoryChart from '@/shared/components/WeightHistoryChart.vue'
-import {
-  formatDayMonthOrYear,
-  formatKg,
-  formatKgDelta,
-  formatLongDate,
-  nonBreaking,
-} from '@/shared/utils/format'
+import { weightDeltaSinceText } from '@/shared/domain/weight-delta'
+import { formatKg, formatKgDelta, formatLongDate } from '@/shared/utils/format'
 
 const props = defineProps<{
   animalId: string
@@ -82,34 +73,29 @@ function describeRow(row: WeightHistoryRow) {
     weightKg: row.weightKg,
     delta: row.delta
       ? {
-          text:
-            row.delta.trend === 'flat'
-              ? t('weight.delta.value', { delta: formatKgDelta(0) })
-              : deltaVs(row.delta.deltaKg, row.delta.previousMeasuredOn),
+          text: weightDeltaSinceText(
+            t,
+            row.delta.deltaKg,
+            row.delta.previousMeasuredOn,
+            today.value,
+          ),
           trend: row.delta.trend,
         }
       : null,
   }
 }
 
-function describeHeadline(value: WeightHeadline): { text: string; trend: WeightTrend } {
+function describeHeadline(value: WeightDelta): { text: string; trend: WeightTrend } {
   if (value.kind === 'first') {
     return {
       text: t('weight.delta.first', { date: formatLongDate(value.measuredOn) }),
       trend: 'flat',
     }
   }
-  if (value.kind === 'flat') {
-    return { text: t('weight.delta.value', { delta: formatKgDelta(0) }), trend: 'flat' }
+  return {
+    text: weightDeltaSinceText(t, value.deltaKg, value.previousMeasuredOn, today.value),
+    trend: value.trend,
   }
-  return { text: deltaVs(value.deltaKg, value.previousMeasuredOn), trend: value.trend }
-}
-
-function deltaVs(deltaKg: number, previousMeasuredOn: string): string {
-  return t('weight.delta.vs', {
-    delta: formatKgDelta(deltaKg),
-    date: nonBreaking(formatDayMonthOrYear(previousMeasuredOn, today.value)),
-  })
 }
 
 onMounted(() => {

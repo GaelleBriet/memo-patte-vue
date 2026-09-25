@@ -14,13 +14,8 @@ import { weightSummary, type WeightDelta } from '../logic/weight-summary'
 import { useWeightEntries } from '../composables/use-weight-entries'
 import SectionCard from '@/shared/components/SectionCard.vue'
 import WeightSparkline from '@/shared/components/WeightSparkline.vue'
-import {
-  formatDayMonthOrYear,
-  formatKg,
-  formatKgDelta,
-  formatLongDate,
-  nonBreaking,
-} from '@/shared/utils/format'
+import { weightDeltaSinceText } from '@/shared/domain/weight-delta'
+import { formatKg, formatLongDate } from '@/shared/utils/format'
 
 const props = defineProps<{
   animalId: string
@@ -51,10 +46,7 @@ function describeDelta(value: WeightDelta): { text: string; trend: 'up' | 'down'
     }
   }
   return {
-    text: t('weight.delta.vs', {
-      delta: formatKgDelta(value.deltaKg),
-      date: nonBreaking(formatDayMonthOrYear(value.previousMeasuredOn, props.today)),
-    }),
+    text: weightDeltaSinceText(t, value.deltaKg, value.previousMeasuredOn, props.today),
     trend: value.trend,
   }
 }
