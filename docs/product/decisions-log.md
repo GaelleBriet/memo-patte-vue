@@ -1736,3 +1736,16 @@ n'est enregistré qu'avec ce nouveau rappel, dans la même écriture ; fermer sa
 Un rappel « dans 1 an / 3 ans » suit la nouvelle date sans question. — Raison : un rappel antérieur à
 son injection ferait naître le vaccin en retard. — Alternatives écartées : bloquer ces jours dans le
 calendrier ; garder le rappel tel quel.
+
+2026-09-25 — **Import : la réconciliation des prises à fréquence périmée est la seule exception à
+« l'app ne réécrit jamais en silence une donnée exportée »** (décision du 2026-09-16, #382, spec
+§10.7). Dans la transaction de l'import, après toutes les écritures, la prise de tête d'un
+traitement en cours dont la fréquence recopiée diffère de celle du plan voit sa prochaine dose
+recalculée depuis sa date avec la fréquence du plan (fréquence recopiée, `updated_at` à l'heure de
+l'import). Rien d'autre n'est recalculé : une prise de tête à la fréquence du plan garde son
+échéance, report manuel compris. — Raison : fusionner l'export d'un téléphone où la fréquence a
+changé avec celui d'un autre où une prise a été notée donnerait sinon une prochaine dose calculée
+avec l'ancienne fréquence, que personne n'a choisie ; les deux appareils font le même calcul et
+convergent. — Alternative écartée : ne jamais recalculer, ce qui garde un rappel faux jusqu'à la
+prise suivante. — Accepté sans remède (§10.7) : un report et un changement de fréquence concurrents
+sur la même prise de tête, la modification la plus récente gagne.

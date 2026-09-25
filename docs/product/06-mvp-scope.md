@@ -62,10 +62,10 @@ toute discussion technique.
 - Règle d'or inchangée : aucune fonction locale ne passe jamais derrière un paywall, aucune donnée déjà saisie n'est jamais verrouillée. Qui arrête Plus garde son carnet complet en local et perd seulement la sync.
 
 ### Portabilité des données (différenciant n°4, ajouté le 2026-09-07)
-- Export de l'intégralité des données de l'utilisateur (animaux, vaccins, traitements, poids, rappels) en **JSON** (fichier unique, ré-importable à terme) et en **CSV** (un fichier par table, lisible dans un tableur).
+- Export de l'intégralité des données de l'utilisateur (animaux, vaccins et leurs injections, traitements et leurs prises, poids, rappels) en **JSON** (fichier unique, ré-importable) et en **CSV** (un fichier par table, une ligne par injection ou prise, lisible dans un tableur). Format JSON v2 depuis #382 : tout l'historique voyage.
 - Accessible depuis l'écran Paramètres, en 2 taps, **quel que soit l'état d'achat** : c'est la preuve concrète de la règle « jamais de verrouillage rétroactif » de `05-monetisation.md`.
 - Généré localement depuis SQLite, partagé via la feuille de partage Android (aucun serveur impliqué).
-- Import depuis un export JSON (**v1**, décidé le 2026-09-07) : filet de restauration manuel pour les utilisateurs gratuits, même schéma que l'export. Remplace ou fusionne, jamais d'écrasement silencieux.
+- Import depuis un export JSON (**v1**, décidé le 2026-09-07) : filet de restauration manuel pour les utilisateurs gratuits, même schéma que l'export. Remplace ou fusionne, jamais d'écrasement silencieux. Depuis #382, il lit les exports v2 (avec l'historique) et toujours les exports v1 des versions précédentes. Détail : `docs/technical/export-format.md`.
 
 ### Conformité (ajouté le 2026-09-07)
 - Politique de confidentialité publiée (GitHub Pages) et liée dans l'app ; page web de suppression de compte ; Data safety et déclarations Play Console (#86).
