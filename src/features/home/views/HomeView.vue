@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, useTemplateRef } from 'vue'
+import { computed, onMounted, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 
@@ -18,9 +18,11 @@ import AnimalChipSelector, { type AnimalChipItem } from '@/shared/components/Ani
 import DueStatusChip from '@/shared/components/DueStatusChip.vue'
 import SectionCard from '@/shared/components/SectionCard.vue'
 import {
-  parseReminderQuery,
-  REMINDER_QUERY_PARAM,
-  type ReminderRef,
+  parseReminderRequest,
+  REMINDER_STEP_QUERY_PARAM,
+  withoutReminderRequest,
+  type ReminderRequest,
+  type ReminderStep,
 } from '@/shared/domain/reminder-route'
 import AnimalPickerSheet from './AnimalPickerSheet.vue'
 import { useHomeStore } from '../store/home.store'
@@ -102,18 +104,34 @@ function load(): Promise<unknown> {
   return Promise.all([animals.load(), home.load()])
 }
 
+function takeReminderRequest(): ReminderRequest | null {
+  const request = parseReminderRequest(route.query)
+  if (request) void router.replace({ query: withoutReminderRequest(route.query) })
+  return request
+}
+
 // Le Carnet laisse un animal sélectionné dans le store partagé : l'accueil ne le reprend pas.
 onMounted(() => {
   animals.select(null)
-  const reopened = parseReminderQuery(route.query[REMINDER_QUERY_PARAM])
-  if (reopened) {
-    const { [REMINDER_QUERY_PARAM]: _reminder, ...query } = route.query
-    void router.replace({ query })
-  }
+  const request = takeReminderRequest()
   void load().then(() => {
-    if (reopened) reopenReminder(reopened)
+    if (request) reopenReminder(request)
   })
 })
+
+// Seule une notification pose l'étape : le rappel que « Modifier » laisse dans l'adresse attend le retour.
+watch(
+  () => route.query[REMINDER_STEP_QUERY_PARAM],
+  (step) => {
+    if (step === undefined) return
+    const request = takeReminderRequest()
+    if (!request) return
+    animals.select(null)
+    isTreatmentSheetOpen.value = false
+    isVaccinationSheetOpen.value = false
+    void load().then(() => reopenReminder(request))
+  },
+)
 
 type FormRoute = 'treatment-new' | 'vaccination-new'
 
@@ -121,19 +139,21 @@ const pendingForm = ref<FormRoute | null>(null)
 const isPickerOpen = ref(false)
 const isWeightSheetOpen = ref(false)
 const openedReminder = ref<Pick<ReminderRow, 'kind' | 'id'> | null>(null)
+const openedStep = ref<ReminderStep>('actions')
 const isTreatmentSheetOpen = ref(false)
 const isVaccinationSheetOpen = ref(false)
 
-function openReminder(row: Pick<ReminderRow, 'kind' | 'id'>): void {
+function openReminder(row: Pick<ReminderRow, 'kind' | 'id'>, step: ReminderStep = 'actions'): void {
   openedReminder.value = { kind: row.kind, id: row.id }
+  openedStep.value = step
   if (row.kind === 'treatment') isTreatmentSheetOpen.value = true
   else isVaccinationSheetOpen.value = true
 }
 
-/** Retour de « Modifier » : la feuille se rouvre si le rappel est encore dans « À faire ». */
-function reopenReminder(reminder: ReminderRef): void {
+/** Retour de « Modifier » ou notification : la feuille s'ouvre si le rappel est dans « À faire ». */
+function reopenReminder({ step, ...reminder }: ReminderRequest): void {
   if (rows.value.some((row) => row.kind === reminder.kind && row.id === reminder.id)) {
-    openReminder(reminder)
+    openReminder(reminder, step)
   }
 }
 
@@ -319,6 +339,7 @@ function openCarnet(): void {
       <VaccinationReminderSheet
         v-model="isVaccinationSheetOpen"
         :vaccination-id="openedReminder?.kind === 'vaccination' ? openedReminder.id : null"
+        :start-at="openedStep"
         @changed="load"
       />
     </template>

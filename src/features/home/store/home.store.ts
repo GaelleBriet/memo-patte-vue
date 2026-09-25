@@ -22,6 +22,7 @@ export const useHomeStore = defineStore('home', () => {
   /** Distingue « pas encore chargé » de « aucun rappel ». */
   const hasLoaded = ref(false)
   const error = ref<Error | null>(null)
+  let latestLoad = 0
 
   return {
     sources,
@@ -29,19 +30,28 @@ export const useHomeStore = defineStore('home', () => {
     hasLoaded,
     error,
 
-    /** Ne lève pas : renvoie `false` et renseigne `error`. */
+    /**
+     * Ne lève pas : renvoie `false` et renseigne `error`. Seul le chargement lancé en dernier
+     * s'affiche, pour qu'une lecture partie avant une écriture ne la masque pas.
+     */
     async load(): Promise<boolean> {
+      const call = ++latestLoad
       isLoading.value = true
       try {
-        sources.value = await provider().listSources()
-        hasLoaded.value = true
-        error.value = null
+        const loaded = await provider().listSources()
+        if (call === latestLoad) {
+          sources.value = loaded
+          hasLoaded.value = true
+          error.value = null
+        }
         return true
       } catch (cause) {
-        error.value = cause instanceof Error ? cause : new Error(String(cause))
+        if (call === latestLoad) {
+          error.value = cause instanceof Error ? cause : new Error(String(cause))
+        }
         return false
       } finally {
-        isLoading.value = false
+        if (call === latestLoad) isLoading.value = false
       }
     },
   }
