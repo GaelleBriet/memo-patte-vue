@@ -242,6 +242,12 @@ describe('TreatmentDetailView — F8, traitement en cours', () => {
     await bouton.trigger('click')
 
     expect(dates(view)).toEqual(['28 août 2026', '28 juil. 2026', '28 juin 2026', '30 mai 2026'])
+    expect(view.findAllComponents(HistoryRow).map((row) => row.props('regular'))).toEqual([
+      false,
+      true,
+      true,
+      true,
+    ])
     expect(view.get('.treatment-detail__toggle').text()).toBe('Masquer les prises précédentes')
     await view.get('.treatment-detail__toggle').trigger('click')
     expect(dates(view)).toEqual(['28 août 2026'])
@@ -392,6 +398,10 @@ describe('TreatmentDetailView — F9 ter, traitement terminé', () => {
     expect(view.get('.section-card__counter').text()).toBe('2')
     expect(dates(view)).toEqual(['21 mai 2026', '7 mai 2026'])
     expect(view.findComponent(HistoryRow).props('badge')).toBeNull()
+    expect(view.findAllComponents(HistoryRow).map((row) => row.props('regular'))).toEqual([
+      false,
+      false,
+    ])
     expect(view.find('.treatment-detail__toggle').exists()).toBe(false)
     expect(view.find('.treatment-detail__stop').exists()).toBe(false)
   })

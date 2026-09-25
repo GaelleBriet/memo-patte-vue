@@ -28,6 +28,13 @@ describe('HistoryRow', () => {
     expect(wrapper.get('.history-row__detail').text()).toBe('A fixé la dose du 28 sept.')
   })
 
+  it('écrit la date en gras, en poids normal sur demande', () => {
+    expect(monter().get('.history-row__date').classes()).not.toContain('history-row__date--regular')
+    expect(monter({ regular: true }).get('.history-row__date').classes()).toContain(
+      'history-row__date--regular',
+    )
+  })
+
   it('se réduit à la date sans pastille ni détail', () => {
     const wrapper = monter()
 

@@ -6,11 +6,13 @@ withDefaults(
     date: string
     detail?: string | null
     badge?: string | null
+    /** Date en poids normal : une prise précédente, sous la dernière mise en avant. */
+    regular?: boolean
     /** Nom du menu ⋮ de la ligne, date en toutes lettres. */
     optionsLabel: string
     items: readonly OverflowMenuItem[]
   }>(),
-  { detail: null, badge: null },
+  { detail: null, badge: null, regular: false },
 )
 
 const emit = defineEmits<{
@@ -22,7 +24,9 @@ const emit = defineEmits<{
   <div class="history-row">
     <div class="history-row__text">
       <p class="history-row__line">
-        <span class="history-row__date">{{ date }}</span>
+        <span class="history-row__date" :class="{ 'history-row__date--regular': regular }">{{
+          date
+        }}</span>
         <span v-if="badge" class="history-row__badge">{{ badge }}</span>
       </p>
       <p v-if="detail" class="history-row__detail">{{ detail }}</p>
@@ -68,6 +72,10 @@ const emit = defineEmits<{
   font-size: 15.5px;
   font-weight: 700;
   line-height: 24px;
+}
+
+.history-row__date--regular {
+  font-weight: 500;
 }
 
 .history-row__badge {
