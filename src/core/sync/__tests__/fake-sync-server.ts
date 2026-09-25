@@ -33,6 +33,8 @@ export interface FakeSyncServer {
   rows(table: string): ServerRow[]
   /** Joué juste avant de répondre au prochain pull de `table` : une écriture « pendant » le parcours. */
   beforeNextPull(table: string, hook: () => Promise<void> | void): void
+  /** La connexion coupe au pull de `table` qui suit `pagesServed` pages servies. */
+  cutPull(table: string, pagesServed?: number): void
 }
 
 /**
@@ -43,6 +45,7 @@ export interface FakeSyncServer {
 export function createFakeSyncServer(): FakeSyncServer {
   const tables = new Map<string, ServerRow[]>()
   const pullHooks = new Map<string, () => Promise<void> | void>()
+  const pullCuts = new Map<string, number>()
   let clock = 0
 
   function tableRows(table: string): ServerRow[] {
@@ -98,6 +101,13 @@ export function createFakeSyncServer(): FakeSyncServer {
         const hook = pullHooks.get(table)
         pullHooks.delete(table)
         await hook?.()
+
+        const pagesBeforeCut = pullCuts.get(table)
+        if (pagesBeforeCut === 0) {
+          pullCuts.delete(table)
+          return { data: null, error: { message: 'réseau coupé' } }
+        }
+        if (pagesBeforeCut !== undefined) pullCuts.set(table, pagesBeforeCut - 1)
 
         const picked = columns.split(',').map((column) => column.trim())
         const rows = tableRows(table)
@@ -173,6 +183,9 @@ export function createFakeSyncServer(): FakeSyncServer {
     rows: (table) => tableRows(table).map(asPostgrest),
     beforeNextPull(table, hook) {
       pullHooks.set(table, hook)
+    },
+    cutPull(table, pagesServed = 0) {
+      pullCuts.set(table, pagesServed)
     },
   }
 }

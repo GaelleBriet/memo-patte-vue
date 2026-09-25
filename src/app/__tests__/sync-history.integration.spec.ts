@@ -246,6 +246,57 @@ describe('synchro de l’historique entre deux appareils', () => {
     })
   })
 
+  describe('pull interrompu', () => {
+    it('une prise tirée avant la coupure reprogramme les rappels', async () => {
+      const { bravecto } = await createCarnet(phone)
+      await phone.sync()
+      await tablet.sync()
+      tablet.onRemindersOutdated.mockClear()
+      later()
+      await phone.doseDone.record(bravecto.id, '2026-09-25')
+      await phone.sync()
+      server.cutPull('weight_entry')
+
+      await expect(tablet.sync()).rejects.toMatchObject({ message: 'réseau coupé' })
+
+      expect(tablet.onRemindersOutdated).toHaveBeenCalledOnce()
+      await expect(tablet.treatments.getById(bravecto.id)).resolves.toMatchObject({
+        lastDoseDate: '2026-09-25',
+      })
+    })
+
+    it('un animal renommé avant la coupure reprogramme les rappels', async () => {
+      const { milo } = await createCarnet(phone)
+      await phone.sync()
+      await tablet.sync()
+      tablet.onRemindersOutdated.mockClear()
+      later()
+      await phone.animals.update(milo.id, { name: 'Milo le brave', species: 'dog' })
+      await phone.sync()
+      server.cutPull('vaccination')
+
+      await expect(tablet.sync()).rejects.toMatchObject({ message: 'réseau coupé' })
+
+      expect(tablet.onRemindersOutdated).toHaveBeenCalledOnce()
+      await expect(tablet.animals.getById(milo.id)).resolves.toMatchObject({
+        name: 'Milo le brave',
+      })
+    })
+
+    it('une coupure à la deuxième page d’une table garde le signal de la première', async () => {
+      for (let index = 0; index < 501; index += 1) {
+        await phone.animals.create({ name: `Animal ${index}`, species: 'cat' })
+      }
+      await phone.sync()
+      server.cutPull('animal', 1)
+
+      await expect(tablet.sync()).rejects.toMatchObject({ message: 'réseau coupé' })
+
+      expect(tablet.onRemindersOutdated).toHaveBeenCalledOnce()
+      expect(await tablet.animals.list()).toHaveLength(500)
+    })
+  })
+
   it('une injection tirée avant son vaccin, écrit pendant la passe : rien n’est perdu au cycle suivant', async () => {
     const { milo } = await createCarnet(phone)
     await phone.sync()

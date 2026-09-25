@@ -455,6 +455,78 @@ describe('createSyncCycle', () => {
       expect(scratch?.value).toBe('Milo')
     })
 
+    it("n'avance pas le curseur quand une ligne de la page échoue, et n'en garde aucune", async () => {
+      const animal = fakeTable('animal', [
+        page(
+          [row('a1', T_ROW, 'Milo'), row('a2', T_ROW, 'Luna'), row('a3', T_ROW, 'Oscar')],
+          '2026-01-03T00:00:00.000Z',
+        ),
+      ])
+      const applyRemoteRowStatement = animal.applyRemoteRowStatement.bind(animal)
+      animal.applyRemoteRowStatement = (remote) =>
+        remote.id === 'a2'
+          ? { sql: 'INSERT INTO table_absente (id) VALUES (?)', params: [remote.id] }
+          : applyRemoteRowStatement(remote)
+      const outbox = createFakeOutbox()
+      const cycle = createSyncCycle({
+        db,
+        outbox,
+        tables: [animal],
+        userId: () => 'user-1',
+        isEligible: () => true,
+      })
+
+      await expect(cycle.runCycle()).rejects.toThrow(/table_absente/)
+
+      expect(outbox.cursor('animal')).toBeNull()
+      await expect(db.query('SELECT id FROM sync_scratch')).resolves.toEqual([])
+    })
+
+    it('reconstruit les rappels même si une table suivante échoue', async () => {
+      const vaccination = fakeTable('vaccination', [
+        page([row('v1', T_ROW, 'x')], '2026-01-01T00:00:00.000Z'),
+      ])
+      const weight = fakeTable('weight_entry')
+      weight.pullPage = vi.fn<SyncableTable['pullPage']>().mockRejectedValue(new Error('réseau'))
+      const onRemindersOutdated = vi.fn<() => Promise<void>>().mockResolvedValue(undefined)
+      const cycle = createSyncCycle({
+        db,
+        outbox: createFakeOutbox(),
+        tables: [vaccination, weight],
+        userId: () => 'user-1',
+        isEligible: () => true,
+        onRemindersOutdated,
+      })
+
+      await expect(cycle.runCycle()).rejects.toThrow('réseau')
+
+      expect(onRemindersOutdated).toHaveBeenCalledOnce()
+    })
+
+    it('reconstruit les rappels quand la deuxième page d’une table échoue après la première', async () => {
+      const firstPage = Array.from({ length: 500 }, (_, index) => row(`a${index}`, T_ROW, 'x'))
+      const animal = fakeTable('animal')
+      animal.pullPage = vi
+        .fn<SyncableTable['pullPage']>()
+        .mockResolvedValueOnce(page(firstPage, '2026-01-01T00:00:00.000Z'))
+        .mockRejectedValueOnce(new Error('réseau'))
+      const onRemindersOutdated = vi.fn<() => Promise<void>>().mockResolvedValue(undefined)
+      const outbox = createFakeOutbox()
+      const cycle = createSyncCycle({
+        db,
+        outbox,
+        tables: [animal],
+        userId: () => 'user-1',
+        isEligible: () => true,
+        onRemindersOutdated,
+      })
+
+      await expect(cycle.runCycle()).rejects.toThrow('réseau')
+
+      expect(outbox.cursor('animal')).toBe('2026-01-01T00:00:00.000Z')
+      expect(onRemindersOutdated).toHaveBeenCalledOnce()
+    })
+
     it('reconstruit les rappels seulement si le pull a touché animal, vaccination ou treatment', async () => {
       const weight = fakeTable('weight_entry', [
         page([row('w1', '2026-01-01T00:00:00.000Z', '4.2')], '2026-01-01T00:00:00.000Z'),

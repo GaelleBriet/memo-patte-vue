@@ -68,10 +68,12 @@ export function createSyncCycle(deps: SyncCycleDependencies): SyncCycle {
     ])
   }
 
-  /** Vrai si la table a ramené une ligne plus récente que son curseur. */
-  async function pullTable(userId: string, table: SyncableTable): Promise<boolean> {
-    const since = (await deps.outbox.getLastPulledAt(table.entity)) ?? EPOCH
-    let pageCursor = since
+  async function pullTable(
+    userId: string,
+    table: SyncableTable,
+    onCursorAdvanced: () => void,
+  ): Promise<void> {
+    let pageCursor = (await deps.outbox.getLastPulledAt(table.entity)) ?? EPOCH
 
     for (;;) {
       const page = await table.pullPage(userId, pageCursor, PULL_PAGE_SIZE)
@@ -87,20 +89,27 @@ export function createSyncCycle(deps: SyncCycleDependencies): SyncCycle {
         break
       }
       await deps.outbox.setLastPulledAt(table.entity, cursor)
+      onCursorAdvanced()
       pageCursor = cursor
       if (page.rows.length < PULL_PAGE_SIZE) break
     }
-
-    return pageCursor !== since
   }
 
+  /**
+   * Une ligne passée derrière son curseur ne revient plus : ses rappels se reconstruisent même si
+   * la suite du pull échoue.
+   */
   async function pull(userId: string): Promise<void> {
     let touchedReminders = false
-    for (const table of deps.tables) {
-      const progressed = await pullTable(userId, table)
-      if (progressed && REMINDER_ENTITIES.has(table.entity)) touchedReminders = true
+    try {
+      for (const table of deps.tables) {
+        await pullTable(userId, table, () => {
+          if (REMINDER_ENTITIES.has(table.entity)) touchedReminders = true
+        })
+      }
+    } finally {
+      if (touchedReminders) await deps.onRemindersOutdated?.()
     }
-    if (touchedReminders) await deps.onRemindersOutdated?.()
   }
 
   return {
