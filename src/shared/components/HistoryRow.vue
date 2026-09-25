@@ -39,7 +39,7 @@ const emit = defineEmits<{
   align-items: center;
   gap: 8px;
   min-height: tokens.$height-weight-row;
-  padding: 10px 6px 10px 20px;
+  padding: 0 6px 0 20px;
 }
 
 .history-row:has([aria-expanded='true']) {
@@ -53,6 +53,7 @@ const emit = defineEmits<{
 .history-row__text {
   flex: 1 1 auto;
   min-width: 0;
+  padding-block: 16px;
 }
 
 .history-row__line {
@@ -66,6 +67,7 @@ const emit = defineEmits<{
 .history-row__date {
   font-size: 15.5px;
   font-weight: 700;
+  line-height: 24px;
 }
 
 .history-row__badge {
@@ -81,5 +83,6 @@ const emit = defineEmits<{
   margin: 2px 0 0;
   color: tokens.$color-text-secondary;
   font-size: 13.5px;
+  line-height: 20px;
 }
 </style>

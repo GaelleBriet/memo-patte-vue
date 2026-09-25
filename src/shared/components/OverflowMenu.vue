@@ -58,6 +58,11 @@ const emit = defineEmits<{
   color: tokens.$color-text-secondary;
 }
 
+// Le menu ouvert dit déjà l'état : le bouton ne garde pas de voile actif.
+.overflow-menu__button[aria-expanded='true'] > .v-btn__overlay {
+  opacity: 0;
+}
+
 .overflow-menu__list.v-list {
   min-width: 220px;
   padding-block: 6px;

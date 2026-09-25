@@ -364,7 +364,6 @@ async function remove(): Promise<void> {
 
 <style scoped lang="scss">
 @use '@/styles/tokens' as tokens;
-@use '@/styles/tap-target' as tap;
 
 .treatment-detail__content {
   display: flex;
@@ -472,11 +471,10 @@ async function remove(): Promise<void> {
   background: transparent;
   color: tokens.$color-text-secondary;
   font-family: inherit;
+  min-height: tokens.$size-tap-target;
   font-size: 15.5px;
   font-weight: 600;
   cursor: pointer;
-
-  @include tap.tap-target;
 
   &:disabled {
     cursor: default;
