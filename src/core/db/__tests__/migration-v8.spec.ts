@@ -16,6 +16,7 @@ const T2 = '2026-09-25T10:00:00.000Z'
 const LIMITE = 'a'.repeat(MAX_NAME_LENGTH)
 const TROP_LONG = `${LIMITE}a`
 const NOM_ANCIEN = 'b'.repeat(MAX_NAME_LENGTH + 20)
+const TROP_LONG_REFUSE = /text longer than 80 characters/
 
 async function seedVersion7(db: InMemoryDb): Promise<void> {
   await db.runMany([
@@ -59,7 +60,7 @@ async function seedVersion7(db: InMemoryDb): Promise<void> {
 async function snapshot(db: InMemoryDb): Promise<Record<string, unknown[]>> {
   const tables = migrationTableNames()
   const rows = await Promise.all(tables.map((table) => db.query(`SELECT * FROM ${table}`)))
-  return Object.fromEntries(tables.map((table, index) => [table, rows[index]]))
+  return Object.fromEntries(tables.map((table, index) => [table, rows[index] ?? []]))
 }
 
 async function userVersion(db: InMemoryDb): Promise<number | undefined> {
@@ -147,7 +148,7 @@ describe('migration v8 : noms et race limités à 80 caractères', () => {
     async (_, insertion) => {
       await applyMigrations(db)
 
-      await expect(db.runMany([insertion(TROP_LONG)])).rejects.toThrow()
+      await expect(db.runMany([insertion(TROP_LONG)])).rejects.toThrow(TROP_LONG_REFUSE)
       await expect(db.runMany([insertion(LIMITE)])).resolves.toBeUndefined()
     },
   )
@@ -157,7 +158,7 @@ describe('migration v8 : noms et race limités à 80 caractères', () => {
     async (_, modification) => {
       await applyMigrations(db)
 
-      await expect(db.runMany([modification(TROP_LONG)])).rejects.toThrow()
+      await expect(db.runMany([modification(TROP_LONG)])).rejects.toThrow(TROP_LONG_REFUSE)
       await expect(db.runMany([modification(LIMITE)])).resolves.toBeUndefined()
     },
   )
@@ -170,7 +171,7 @@ describe('migration v8 : noms et race limités à 80 caractères', () => {
     ).resolves.toBeUndefined()
     await expect(
       db.runMany([modifications['le nom d’un animal']('é'.repeat(MAX_NAME_LENGTH + 1))]),
-    ).rejects.toThrow()
+    ).rejects.toThrow(TROP_LONG_REFUSE)
   })
 
   it('annule toute la transaction au premier nom trop long : rien n’est écrit', async () => {
@@ -182,7 +183,7 @@ describe('migration v8 : noms et race limités à 80 caractères', () => {
         insertions['le nom d’un vaccin']('Leptospirose'),
         insertions['le nom d’un traitement'](TROP_LONG),
       ]),
-    ).rejects.toThrow()
+    ).rejects.toThrow(TROP_LONG_REFUSE)
 
     expect(await snapshot(db)).toEqual(avant)
   })
@@ -205,6 +206,6 @@ describe('migration v8 : noms et race limités à 80 caractères', () => {
           params: [NOM_ANCIEN, T2, ANCIEN],
         },
       ]),
-    ).rejects.toThrow()
+    ).rejects.toThrow(TROP_LONG_REFUSE)
   })
 })
