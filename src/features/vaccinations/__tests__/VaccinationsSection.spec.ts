@@ -237,6 +237,18 @@ describe('VaccinationsSection — état vide et ajout', () => {
     )
   })
 
+  it('ouvre le détail d’un vaccin au toucher de sa ligne (F7)', async () => {
+    const rage = vaccination()
+    vaccinations = [rage]
+    const wrapper = await monter()
+
+    const row = wrapper.get('.vaccination-row')
+    expect(row.element.tagName).toBe('BUTTON')
+    await row.trigger('click')
+
+    expect(push).toHaveBeenCalledWith({ name: 'vaccination-detail', params: { id: rage.id } })
+  })
+
   it('ouvre le formulaire vaccin de l’animal consulté', async () => {
     const wrapper = await monter()
 

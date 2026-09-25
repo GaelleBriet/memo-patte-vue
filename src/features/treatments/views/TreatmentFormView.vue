@@ -32,6 +32,8 @@ import { returnTo } from '@/shared/utils/return-to'
 const props = defineProps<{
   animalId?: string
   id?: string
+  /** Reprise d'un traitement arrêté : la prochaine dose est à choisir. */
+  resume?: boolean
 }>()
 
 const { t } = useI18n()
@@ -103,7 +105,7 @@ const nextDose = computed(() => {
 watch(
   () => [values.value.frequencyValue, values.value.frequencyUnit],
   () => {
-    if (!existing.value) return
+    if (!existing.value || props.resume) return
     const proposed = editedNextDueDate(values.value, existing.value)
     if (proposed) values.value.nextDueDate = proposed
   },
@@ -114,7 +116,10 @@ onMounted(async () => {
     try {
       existing.value = await treatments.getById(props.id)
       notFound.value = existing.value === null
-      if (existing.value) values.value = treatmentFormValuesFrom(existing.value)
+      if (existing.value) {
+        values.value = treatmentFormValuesFrom(existing.value)
+        if (props.resume) values.value.nextDueDate = ''
+      }
     } catch {
       loadFailed.value = true
     } finally {
@@ -151,7 +156,9 @@ function creationWrite(): (() => Promise<unknown>) | null {
 function editionWrite(id: string): (() => Promise<unknown>) | null {
   const result = edition.validate()
   if (!result.success) return null
-  return () => treatments.update(id, result.data)
+  return props.resume
+    ? () => treatments.resume(id, result.data)
+    : () => treatments.update(id, result.data)
 }
 
 async function submit(): Promise<void> {

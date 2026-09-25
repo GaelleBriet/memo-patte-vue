@@ -8,10 +8,11 @@ export type TreatmentsSummary = ReminderCounts & {
 </script>
 
 <script setup lang="ts">
-import { computed, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
+import { finishedTreatmentRows } from '../logic/treatment-history'
 import { isOngoing } from '../logic/treatment-status'
 import { useTreatmentsStore } from '../store/treatments.store'
 import DueStatusChip from '@/shared/components/DueStatusChip.vue'
@@ -78,6 +79,18 @@ const rows = computed(() => {
   })
 })
 
+const finishedRows = computed(() =>
+  isCurrent.value ? finishedTreatmentRows(t, store.treatments, store.doseCounts) : [],
+)
+const showsFinished = ref(false)
+
+watch(
+  () => props.animalId,
+  () => {
+    showsFinished.value = false
+  },
+)
+
 const summary = computed<TreatmentsSummary>(() => ({
   total: reminders.value.total,
   overdue: reminders.value.overdue,
@@ -104,6 +117,10 @@ function nextDoseOf(reminder: Reminder | undefined): string | null {
   }
 }
 
+function openDetail(id: string): void {
+  void router.push({ name: 'treatment-detail', params: { id } })
+}
+
 function addTreatment(): void {
   void router.push({ name: 'treatment-new', params: { animalId: props.animalId } })
 }
@@ -113,20 +130,29 @@ watch(summary, (value) => emit('summary', value), { immediate: true })
 
 <template>
   <SectionCard class="treatments-section" :title="t('treatments.section.title')">
-    <div v-for="row in rows" :key="row.id" class="section-card__row treatment-row">
-      <div class="treatment-row__text">
-        <p class="treatment-row__name">{{ row.name }}</p>
-        <p class="treatment-row__type">{{ row.type }}</p>
-        <p
+    <button
+      v-for="row in rows"
+      :key="row.id"
+      type="button"
+      class="section-card__row treatment-row"
+      @click="openDetail(row.id)"
+    >
+      <span class="treatment-row__text">
+        <span class="treatment-row__name">{{ row.name }}</span>
+        <span class="treatment-row__type">{{ row.type }}</span>
+        <span
           v-if="row.nextDose"
           class="treatment-row__next-dose"
           :class="`treatment-row__next-dose--${row.urgency}`"
         >
           {{ row.nextDose }}
-        </p>
-      </div>
-      <DueStatusChip class="treatment-row__frequency" status="none" :label="row.frequency" />
-    </div>
+        </span>
+      </span>
+      <span class="treatment-row__end">
+        <DueStatusChip class="treatment-row__frequency" status="none" :label="row.frequency" />
+        <v-icon class="treatment-row__chevron" icon="ms:chevron_right" size="22" />
+      </span>
+    </button>
 
     <p v-if="hasError" class="section-card__empty treatments-section__error">
       {{ t('treatments.section.error') }}
@@ -140,6 +166,40 @@ watch(summary, (value) => emit('summary', value), { immediate: true })
       <span>{{ t('treatments.section.add') }}</span>
     </button>
   </SectionCard>
+
+  <section v-if="finishedRows.length > 0" class="finished-treatments">
+    <h2 class="finished-treatments__heading">
+      <button
+        type="button"
+        class="finished-treatments__toggle"
+        :aria-expanded="showsFinished"
+        @click="showsFinished = !showsFinished"
+      >
+        <span class="finished-treatments__title">{{ t('treatments.finished.title') }}</span>
+        <span class="finished-treatments__counter">{{ finishedRows.length }}</span>
+        <v-icon
+          class="finished-treatments__chevron"
+          :icon="showsFinished ? 'ms:keyboard_arrow_up' : 'ms:keyboard_arrow_down'"
+          size="24"
+        />
+      </button>
+    </h2>
+    <div v-if="showsFinished" class="section-card__card">
+      <button
+        v-for="row in finishedRows"
+        :key="row.id"
+        type="button"
+        class="section-card__row finished-treatment-row"
+        @click="openDetail(row.id)"
+      >
+        <span class="finished-treatment-row__text">
+          <span class="finished-treatment-row__name">{{ row.name }}</span>
+          <span class="finished-treatment-row__detail">{{ row.detail }}</span>
+        </span>
+        <v-icon class="finished-treatment-row__chevron" icon="ms:chevron_right" size="22" />
+      </button>
+    </div>
+  </section>
 </template>
 
 <style scoped lang="scss">
@@ -151,8 +211,45 @@ watch(summary, (value) => emit('summary', value), { immediate: true })
   flex-wrap: wrap;
 }
 
+.treatment-row,
+.finished-treatment-row {
+  width: 100%;
+  padding-inline-end: 12px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
+  text-align: start;
+  cursor: pointer;
+
+  @media (hover: hover) {
+    &:hover {
+      background: rgba(var(--v-theme-primary), 0.04);
+    }
+  }
+
+  &:focus-visible {
+    outline: none;
+    background: rgba(var(--v-theme-primary), 0.06);
+  }
+}
+
+.treatment-row__end {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-inline-start: auto;
+}
+
 .treatment-row__frequency {
   margin-inline-start: auto;
+}
+
+.treatment-row__chevron,
+.finished-treatment-row__chevron {
+  flex: 0 0 auto;
+  margin-inline-start: auto;
+  color: tokens.$color-settings-chevron;
 }
 
 .treatment-row__text {
@@ -161,6 +258,7 @@ watch(summary, (value) => emit('summary', value), { immediate: true })
 }
 
 .treatment-row__name {
+  display: block;
   margin: 0;
   overflow-wrap: break-word;
   font-size: 15.5px;
@@ -168,12 +266,14 @@ watch(summary, (value) => emit('summary', value), { immediate: true })
 }
 
 .treatment-row__type {
+  display: block;
   margin: 2px 0 0;
   color: tokens.$color-text-secondary;
   font-size: 12.5px;
 }
 
 .treatment-row__next-dose {
+  display: block;
   margin: 4px 0 0;
   color: tokens.$color-text-meta;
   font-size: 12.5px;
@@ -188,5 +288,73 @@ watch(summary, (value) => emit('summary', value), { immediate: true })
 .treatment-row__next-dose--overdue {
   color: rgb(var(--v-theme-overdue));
   font-weight: 700;
+}
+
+.finished-treatments {
+  padding-inline: tokens.$padding-section-inline;
+}
+
+.finished-treatments__heading {
+  margin: 0 0 12px;
+}
+
+.finished-treatments__toggle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: tokens.$size-tap-target;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: tokens.$color-text-secondary;
+  font-family: inherit;
+  text-align: start;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: none;
+    color: rgb(var(--v-theme-on-surface));
+  }
+}
+
+.finished-treatments__title {
+  flex: 1 1 auto;
+  font-family: tokens.$font-family-heading;
+  font-size: 21px;
+  font-weight: 700;
+}
+
+.finished-treatments__counter {
+  color: tokens.$color-text-meta;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.finished-treatments__chevron {
+  color: rgb(var(--v-theme-primary));
+}
+
+.finished-treatment-row__text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.finished-treatment-row__name {
+  display: block;
+  overflow-wrap: break-word;
+  font-size: 15.5px;
+  font-weight: 700;
+}
+
+.finished-treatment-row__detail {
+  display: block;
+  margin-top: 2px;
+  color: tokens.$color-text-secondary;
+  font-size: 12.5px;
+}
+
+.finished-treatment-row + .finished-treatment-row {
+  border-top: 1px solid tokens.$color-divider;
 }
 </style>

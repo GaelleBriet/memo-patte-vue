@@ -837,6 +837,94 @@ describe('TreatmentFormView — retour vers l’écran d’origine', () => {
   })
 })
 
+describe('TreatmentFormView — reprise d’un traitement arrêté (F9 ter)', () => {
+  const MILBEMAX: Treatment = {
+    ...BRAVECTO,
+    name: 'Milbemax',
+    type: 'deworming',
+    frequency: { value: 15, unit: 'day' },
+    lastDoseDate: '2026-05-21',
+    nextDueDate: '2026-06-05',
+    stoppedOn: '2026-05-26',
+  }
+  let resume: MockInstance<(id: string, input: TreatmentEditInput) => Promise<Treatment>>
+
+  async function monterReprise(from?: string) {
+    getById.mockResolvedValue(MILBEMAX)
+    resume = vi.spyOn(useTreatmentsStore(), 'resume').mockResolvedValue({
+      ...MILBEMAX,
+      stoppedOn: null,
+    })
+    routeur = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        { path: '/animals', name: 'animals', component: Vide },
+        { path: '/treatments/:id', name: 'treatment-detail', component: Vide },
+        { path: '/treatments/:id/resume', name: 'treatment-resume', component: Vide },
+      ],
+    })
+    await routeur.push({
+      name: 'treatment-resume',
+      params: { id: MILBEMAX.id },
+      query: from ? { from, reminder: `treatment:${MILBEMAX.id}` } : {},
+    })
+    replace = vi.spyOn(routeur, 'replace').mockResolvedValue()
+    const wrapper = mount(TreatmentFormView, {
+      props: { id: MILBEMAX.id, resume: true },
+      global: { plugins: [vuetify, i18n, routeur] },
+      attachTo: document.body,
+    })
+    await flushPromises()
+    return wrapper
+  }
+
+  it('laisse la prochaine dose à choisir, le plan pré-rempli', async () => {
+    const wrapper = await monterReprise()
+
+    expect(valeur(wrapper, 'treatment-name')).toBe('Milbemax')
+    expect(valeur(wrapper, 'treatment-frequency-value')).toBe('15')
+    expect(valeur(wrapper, 'treatment-next-due-date')).toBe('')
+  })
+
+  it('exige la prochaine dose avant de reprendre', async () => {
+    const wrapper = await monterReprise()
+
+    await soumettre(wrapper)
+
+    expect(resume).not.toHaveBeenCalled()
+    expect(wrapper.get('.treatment-form__field--next-due-date').text()).toContain(
+      'La date est obligatoire.',
+    )
+  })
+
+  it('reprend le traitement avec la prochaine dose choisie, puis revient à son détail', async () => {
+    const wrapper = await monterReprise('treatment-detail')
+    await champ(wrapper, 'treatment-next-due-date').setValue('2026-10-01')
+
+    await soumettre(wrapper)
+
+    expect(resume).toHaveBeenCalledExactlyOnceWith(MILBEMAX.id, {
+      name: 'Milbemax',
+      type: 'deworming',
+      frequency: { value: 15, unit: 'day' },
+      nextDueDate: '2026-10-01',
+    })
+    expect(update).not.toHaveBeenCalled()
+    expect(replace).toHaveBeenCalledWith({
+      name: 'treatment-detail',
+      params: { id: MILBEMAX.id },
+    })
+  })
+
+  it('ouvre la reprise depuis l’identifiant du traitement', () => {
+    const route = router.resolve(`/treatments/${MILBEMAX.id}/resume`)
+    const props = route.matched[0]!.props.default as (r: typeof route) => unknown
+
+    expect(route.name).toBe('treatment-resume')
+    expect(props(route)).toEqual({ id: MILBEMAX.id, resume: true })
+  })
+})
+
 describe('TreatmentFormView — envoi en cours', () => {
   it('désactive les deux boutons et bascule sur « Création… » pendant l’écriture', async () => {
     let terminer: (treatment: Treatment) => void = () => {}

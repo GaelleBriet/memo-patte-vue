@@ -142,6 +142,24 @@ describe('primingReturnRoute', () => {
     expect(primingReturnRoute('animals')).toEqual({ name: 'animals' })
   })
 
+  it('revient au détail d’un vaccin ou d’un traitement, identifié par son rappel', () => {
+    expect(primingReturnRoute('vaccination-detail', 'vaccination:v1')).toEqual({
+      name: 'vaccination-detail',
+      params: { id: 'v1' },
+    })
+    expect(primingReturnRoute('treatment-detail', 'treatment:t1')).toEqual({
+      name: 'treatment-detail',
+      params: { id: 't1' },
+    })
+  })
+
+  it('revient au Carnet depuis un détail sans rappel, ou dont le rappel est d’un autre type', () => {
+    expect(primingReturnRoute('vaccination-detail')).toEqual({ name: 'animals' })
+    expect(primingReturnRoute('vaccination-detail', 'treatment:t1')).toMatchObject({
+      name: 'animals',
+    })
+  })
+
   it('revient au Carnet sans origine, avec une origine inconnue ou l’écran lui-même', () => {
     expect(primingReturnRoute(undefined)).toEqual({ name: 'animals' })
     expect(primingReturnRoute('inconnu')).toEqual({ name: 'animals' })

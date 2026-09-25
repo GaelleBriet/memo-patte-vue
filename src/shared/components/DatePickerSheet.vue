@@ -25,8 +25,8 @@ const open = defineModel<boolean>({ default: false })
 
 function pick(date: string | null): void {
   if (date === null || date === props.date) return
-  open.value = false
   emit('pick', date)
+  open.value = false
 }
 </script>
 

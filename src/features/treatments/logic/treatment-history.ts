@@ -130,3 +130,40 @@ export function finishedTreatmentRows(
     ]
   })
 }
+
+/** Jours déjà pris par les autres prises : une prise ne s'y déplace pas. */
+export function doseDatesExcept(doses: TreatmentDose[], id: string): string[] {
+  return doses.filter((dose) => dose.id !== id).map(({ givenOn }) => givenOn)
+}
+
+/** Textes de « Changer la date » et « Supprimer cette prise », et de leur toast. */
+export function doseGestureTexts(t: Translate, givenOn: string, today: string) {
+  return {
+    changeDateSubtitle: t('treatments.detail.changeDateSubtitle', {
+      date: formatLongDate(givenOn),
+    }),
+    removed: t('treatments.detail.toast.removed', { date: formatDayMonthOrYear(givenOn, today) }),
+    undoRemove: t('treatments.detail.toast.undoRemove', { date: formatFullDate(givenOn) }),
+    moved: (date: string) =>
+      t('treatments.detail.toast.moved', { date: formatDayMonthOrYear(date, today) }),
+    undoMove: t('treatments.detail.toast.undoMove'),
+  }
+}
+
+/** Dialogue de suppression d'un traitement, depuis son menu ou sa seule prise. */
+export function treatmentDeleteTexts(
+  t: Translate,
+  name: string,
+  { onlyDose }: { onlyDose: boolean },
+) {
+  return {
+    title: t('treatments.detail.deleteDialog.title', { name }),
+    text: onlyDose
+      ? t('treatments.detail.deleteDialog.onlyDose', { name })
+      : t('treatments.detail.deleteDialog.text'),
+    cancel: t('treatments.detail.deleteDialog.cancel'),
+    confirm: t('treatments.detail.deleteDialog.confirm'),
+    deleted: t('treatments.detail.toast.deleted', { name }),
+    failed: t('treatments.detail.errors.delete', { name }),
+  }
+}

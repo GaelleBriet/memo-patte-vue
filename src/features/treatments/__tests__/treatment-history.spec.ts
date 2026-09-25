@@ -1,9 +1,12 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
 import {
+  doseDatesExcept,
   doseDatesOn,
+  doseGestureTexts,
   doseHistory,
   finishedTreatmentRows,
+  treatmentDeleteTexts,
   treatmentDetailTexts,
 } from '../logic/treatment-history'
 import type { TreatmentDose } from '../schema/treatment-dose.schema'
@@ -197,5 +200,42 @@ describe('finishedTreatmentRows', () => {
       { id: 'milbemax', name: 'Milbemax', detail: 'Arrêté le 26 mai 2026 · 2 prises' },
       { id: 'drontal', name: 'Drontal', detail: 'Arrêté le 2 nov. 2025 · 1 prise' },
     ])
+  })
+})
+
+describe('doseDatesExcept', () => {
+  it('rend les jours des autres prises', () => {
+    expect(doseDatesExcept(monthly(3), 'prise-2026-08-28')).toEqual(['2026-07-28', '2026-06-28'])
+  })
+})
+
+describe('doseGestureTexts', () => {
+  it('annonce la suppression et le déplacement d’une prise (F8)', () => {
+    const texts = doseGestureTexts(t, '2026-07-28', TODAY)
+
+    expect(texts.changeDateSubtitle).toBe('Prise du 28 juil. 2026')
+    expect(texts.removed).toBe('Prise du 28 juil. supprimée')
+    expect(texts.undoRemove).toBe('Annuler la suppression de la prise du 28 juillet 2026')
+    expect(texts.moved('2026-07-30')).toBe('Prise déplacée au 30 juil.')
+    expect(texts.undoMove).toBe('Annuler le changement de date de la prise')
+  })
+})
+
+describe('treatmentDeleteTexts', () => {
+  it('confirme la suppression du traitement, avec ses prises et ses rappels', () => {
+    expect(treatmentDeleteTexts(t, 'Bravecto', { onlyDose: false })).toEqual({
+      title: 'Supprimer Bravecto\u00a0?',
+      text: 'Ses prises et ses rappels seront supprimés du carnet. Cette action est définitive.',
+      cancel: 'Annuler',
+      confirm: 'Supprimer',
+      deleted: 'Bravecto supprimé',
+      failed: 'Bravecto n’a pas pu être supprimé. Réessaie.',
+    })
+  })
+
+  it('explique que supprimer la seule prise supprime le traitement', () => {
+    expect(treatmentDeleteTexts(t, 'Bravecto', { onlyDose: true }).text).toBe(
+      'C’est sa seule prise\u00a0: le traitement Bravecto sera supprimé, avec ses rappels. Cette action est définitive.',
+    )
   })
 })

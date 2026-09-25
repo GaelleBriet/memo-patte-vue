@@ -3,7 +3,8 @@ import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 
-import { doseToast, otherDaySummary, treatmentSheetTexts } from '../logic/treatment-sheet'
+import { useTreatmentGestures } from '../composables/use-treatment-gestures'
+import { otherDaySummary, treatmentSheetTexts } from '../logic/treatment-sheet'
 import type { Treatment } from '../schema/treatment.schema'
 import { useTreatmentsStore } from '../store/treatments.store'
 import { useToday } from '@/core/app-lifecycle/use-today'
@@ -14,7 +15,7 @@ import DateCalendar from '@/shared/components/DateCalendar.vue'
 import ReminderActions from '@/shared/components/ReminderActions.vue'
 import { REMINDER_QUERY_PARAM, reminderQueryValue } from '@/shared/domain/reminder-route'
 import { reminderIcon } from '@/shared/domain/reminders'
-import { showToast, showUndoableToast } from '@/shared/utils/toast'
+import { showToast } from '@/shared/utils/toast'
 
 const props = defineProps<{
   treatmentId: string | null
@@ -37,7 +38,8 @@ const { today, refresh: refreshToday } = useToday()
 const treatment = ref<Treatment | null>(null)
 const step = ref<'actions' | 'other-date'>('actions')
 const givenOn = ref<string | null>(today.value)
-const isSubmitting = ref(false)
+const gestures = useTreatmentGestures(() => emit('changed'))
+const isSubmitting = gestures.isBusy
 const errorMessage = ref<string | null>(null)
 const isStopDialogOpen = ref(false)
 
@@ -92,64 +94,20 @@ watch(
   { immediate: true },
 )
 
-function namedOf(current: Treatment) {
-  return { name: current.name, animal: animal.value?.name ?? '' }
-}
-
 async function record(date: string): Promise<void> {
   const current = treatment.value
   if (isSubmitting.value || current === null) return
-  isSubmitting.value = true
   errorMessage.value = null
-  try {
-    const { doseId } = await treatments.recordDose(current.id, date)
-    open.value = false
-    emit('changed')
-    const message = doseToast(t, { ...namedOf(current), givenOn: date, today: today.value })
-    if (doseId === null) {
-      showToast(message)
-      return
-    }
-    showUndoableToast(message, {
-      label: t('reminderSheet.undo'),
-      ariaLabel: t('treatments.sheet.toast.undoDose', namedOf(current)),
-      undo: () => treatments.undoDose(current.id, doseId),
-      onUndone: () => emit('changed'),
-      failedMessage: t('reminderSheet.undoFailed'),
-    })
-  } catch {
-    errorMessage.value = t('treatments.sheet.errors.dose')
-  } finally {
-    isSubmitting.value = false
-  }
+  if (await gestures.recordDose(current, date)) open.value = false
+  else errorMessage.value = t('treatments.sheet.errors.dose')
 }
 
 async function stop(): Promise<void> {
   const current = treatment.value
   if (isSubmitting.value || current === null) return
-  isSubmitting.value = true
   errorMessage.value = null
-  try {
-    const { stopped } = await treatments.stop(current.id)
-    open.value = false
-    emit('changed')
-    const message = t('treatments.sheet.toast.stopped', namedOf(current))
-    if (!stopped) {
-      showToast(message)
-      return
-    }
-    showUndoableToast(message, {
-      label: t('reminderSheet.undo'),
-      ariaLabel: t('treatments.sheet.toast.undoStop', namedOf(current)),
-      undo: () => treatments.undoStop(current.id),
-      onUndone: () => emit('changed'),
-      failedMessage: t('reminderSheet.undoFailed'),
-    })
-  } catch {
-    errorMessage.value = t('treatments.sheet.errors.stop')
-  } finally {
-    isSubmitting.value = false
-  }
+  if (await gestures.stop(current)) open.value = false
+  else errorMessage.value = t('treatments.sheet.errors.stop')
 }
 
 // L'écran d'accueil garde le rappel dans son adresse : le retour, bouton Android compris, rouvre la feuille.

@@ -40,6 +40,12 @@ export const routes: RouteRecordRaw[] = [
     props: true,
   },
   {
+    path: '/vaccinations/:id',
+    name: 'vaccination-detail',
+    component: () => import('@/features/vaccinations/views/VaccinationDetailView.vue'),
+    props: true,
+  },
+  {
     path: '/vaccinations/:id/edit',
     name: 'vaccination-edit',
     component: () => import('@/features/vaccinations/views/VaccinationFormView.vue'),
@@ -58,10 +64,22 @@ export const routes: RouteRecordRaw[] = [
     props: true,
   },
   {
+    path: '/treatments/:id',
+    name: 'treatment-detail',
+    component: () => import('@/features/treatments/views/TreatmentDetailView.vue'),
+    props: true,
+  },
+  {
     path: '/treatments/:id/edit',
     name: 'treatment-edit',
     component: () => import('@/features/treatments/views/TreatmentFormView.vue'),
     props: true,
+  },
+  {
+    path: '/treatments/:id/resume',
+    name: 'treatment-resume',
+    component: () => import('@/features/treatments/views/TreatmentFormView.vue'),
+    props: (route) => ({ id: String(route.params.id), resume: true }),
   },
   {
     path: '/notifications/priming',

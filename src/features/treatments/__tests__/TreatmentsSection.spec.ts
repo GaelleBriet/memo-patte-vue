@@ -234,6 +234,79 @@ describe('TreatmentsSection — résumé pour le bandeau', () => {
   })
 })
 
+describe('TreatmentsSection — détail', () => {
+  it('ouvre le détail d’un traitement en cours au toucher de sa ligne (F8)', async () => {
+    const bravecto = treatment()
+    treatments = [bravecto]
+    const push = vi.spyOn(router, 'push').mockResolvedValue()
+    const wrapper = await monter()
+
+    expect(ligne(wrapper).element.tagName).toBe('BUTTON')
+    await ligne(wrapper).trigger('click')
+
+    expect(push).toHaveBeenCalledWith({ name: 'treatment-detail', params: { id: bravecto.id } })
+  })
+})
+
+describe('TreatmentsSection — traitements terminés (F9)', () => {
+  function terminés(wrapper: ReturnType<typeof mount>) {
+    return wrapper.findAll('.finished-treatment-row')
+  }
+
+  it('replie par défaut les traitements terminés, avec leur nombre', async () => {
+    treatments = [treatment({ name: 'Milbemax', stoppedOn: '2026-05-26' }), treatment()]
+    const wrapper = await monter()
+
+    const bouton = wrapper.get('.finished-treatments__toggle')
+    expect(bouton.text()).toContain('Traitements terminés')
+    expect(bouton.get('.finished-treatments__counter').text()).toBe('1')
+    expect(bouton.attributes('aria-expanded')).toBe('false')
+    expect(terminés(wrapper)).toHaveLength(0)
+  })
+
+  it('déplie : date d’arrêt et nombre de prises, ligne qui ouvre le détail (F9 ter)', async () => {
+    const milbemax = treatment({ name: 'Milbemax', stoppedOn: '2026-05-26' })
+    treatments = [milbemax]
+    const repository = fakeTreatmentsRepository({
+      listByAnimal,
+      countDosesByAnimal: async () => ({ [milbemax.id]: 2 }),
+    })
+    provideTreatmentsRepository(() => repository)
+    const push = vi.spyOn(router, 'push').mockResolvedValue()
+    const wrapper = await monter()
+
+    await wrapper.get('.finished-treatments__toggle').trigger('click')
+
+    expect(wrapper.get('.finished-treatments__toggle').attributes('aria-expanded')).toBe('true')
+    expect(terminés(wrapper).map((row) => row.text())).toEqual([
+      'MilbemaxArrêté le 26 mai 2026 · 2 prises',
+    ])
+    await terminés(wrapper)[0]!.trigger('click')
+    expect(push).toHaveBeenCalledWith({ name: 'treatment-detail', params: { id: milbemax.id } })
+  })
+
+  it('n’affiche pas la partie sans traitement terminé', async () => {
+    treatments = [treatment()]
+    const wrapper = await monter()
+
+    expect(wrapper.find('.finished-treatments').exists()).toBe(false)
+  })
+
+  it('replie de nouveau la partie quand l’animal change', async () => {
+    treatments = [
+      treatment({ name: 'Milbemax', stoppedOn: '2026-05-26' }),
+      treatment({ animalId: LUNA, name: 'Drontal', stoppedOn: '2026-05-26' }),
+    ]
+    const wrapper = await monter()
+    await wrapper.get('.finished-treatments__toggle').trigger('click')
+
+    await wrapper.setProps({ animalId: LUNA })
+    await flushPromises()
+
+    expect(wrapper.get('.finished-treatments__toggle').attributes('aria-expanded')).toBe('false')
+  })
+})
+
 describe('TreatmentsSection — ajout', () => {
   it('termine la carte par « Ajouter un traitement », même sans traitement', async () => {
     const wrapper = await monter()

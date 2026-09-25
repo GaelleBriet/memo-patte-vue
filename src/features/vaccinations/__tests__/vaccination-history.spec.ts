@@ -2,8 +2,11 @@ import { afterEach, describe, expect, it } from 'vitest'
 
 import {
   chosenReminder,
+  injectionDatesExcept,
   injectionDatesOn,
+  injectionGestureTexts,
   injectionRows,
+  vaccinationDeleteTexts,
   vaccinationDetailTexts,
 } from '../logic/vaccination-history'
 import type { VaccinationInjection } from '../schema/vaccination-injection.schema'
@@ -151,5 +154,50 @@ describe('vaccinationDetailTexts', () => {
         { animal: 'Boree', today: TODAY, injections: 1 },
       ).due,
     ).toBeNull()
+  })
+})
+
+describe('injectionDatesExcept', () => {
+  it('rend les jours des autres injections', () => {
+    const injections = [injection('a', '2026-08-26', null), injection('b', '2026-07-27', null)]
+
+    expect(injectionDatesExcept(injections, 'a')).toEqual(['2026-07-27'])
+  })
+})
+
+describe('injectionGestureTexts', () => {
+  it('annonce la suppression et le déplacement d’une injection (F7)', () => {
+    const texts = injectionGestureTexts(t, '2026-07-27', TODAY)
+
+    expect(texts.changeDateSubtitle).toBe('Injection du 27 juil. 2026')
+    expect(texts.removed).toBe('Injection du 27 juil. supprimée')
+    expect(texts.undoRemove).toBe('Annuler la suppression de l’injection du 27 juillet 2026')
+    expect(texts.moved('2026-07-25')).toBe('Injection déplacée au 25 juil.')
+    expect(texts.undoMove).toBe('Annuler le changement de date de l’injection')
+  })
+
+  it('écrit l’année d’une injection d’une autre année', () => {
+    expect(injectionGestureTexts(t, '2025-07-27', TODAY).removed).toBe(
+      'Injection du 27 juil. 2025 supprimée',
+    )
+  })
+})
+
+describe('vaccinationDeleteTexts', () => {
+  it('confirme la suppression du vaccin, avec ses injections et ses rappels', () => {
+    expect(vaccinationDeleteTexts(t, 'Carré', { onlyInjection: false })).toEqual({
+      title: 'Supprimer Carré\u00a0?',
+      text: 'Ses injections et ses rappels seront supprimés du carnet. Cette action est définitive.',
+      cancel: 'Annuler',
+      confirm: 'Supprimer',
+      deleted: 'Carré supprimé',
+      failed: 'Carré n’a pas pu être supprimé. Réessaie.',
+    })
+  })
+
+  it('explique que supprimer la seule injection supprime le vaccin', () => {
+    expect(vaccinationDeleteTexts(t, 'Carré', { onlyInjection: true }).text).toBe(
+      'C’est sa seule injection\u00a0: le vaccin Carré sera supprimé, avec ses rappels. Cette action est définitive.',
+    )
   })
 })

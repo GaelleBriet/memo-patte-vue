@@ -19,7 +19,11 @@ import { useVaccinationsStore } from '../store/vaccinations.store'
 import { useToday } from '@/core/app-lifecycle/use-today'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import BottomSheet from '@/shared/components/BottomSheet.vue'
-import { REMINDER_QUERY_PARAM, reminderQueryValue } from '@/shared/domain/reminder-route'
+import {
+  originQuery,
+  REMINDER_QUERY_PARAM,
+  reminderQueryValue,
+} from '@/shared/domain/reminder-route'
 import DateCalendar from '@/shared/components/DateCalendar.vue'
 import ReminderActions from '@/shared/components/ReminderActions.vue'
 import {
@@ -208,7 +212,7 @@ async function save(): Promise<void> {
       void router.replace(await routeAfterReminderSaved({ ...saved, from: props.returnTo }))
       return
     }
-    const priming = await primingAfterReminderSaved({ ...saved, from: String(route.name ?? '') })
+    const priming = await primingAfterReminderSaved({ ...saved, ...originQuery(route) })
     if (priming) void router.replace(priming)
   } catch {
     saveFailed.value = true
