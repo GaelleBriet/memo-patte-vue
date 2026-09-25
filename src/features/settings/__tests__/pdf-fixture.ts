@@ -7,6 +7,9 @@ export const NOM_TRAITEMENT_200 =
 export const NOM_ANIMAL_200 =
   'Mademoiselle Cléopâtre de la Grande Prairie des Monts du Lyonnais et du Beaujolais, dite Cléo pour les intimes, première du nom, championne de sieste au soleil et de course après les papillons du parc'
 
+export const RACE_120 =
+  'Européen à poil mi-long, croisé Maine Coon et Chat des forêts norvégiennes, robe tigrée brune et blanche aux yeux verts.'
+
 export const MOT_80 = 'Leptospirose'.repeat(7).slice(0, 80)
 
 export const PHOTO_JPEG =

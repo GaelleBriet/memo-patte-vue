@@ -102,10 +102,10 @@ export function renderCarnetPdf(
   y += 10
 
   doc.setFontSize(15)
-  const nameWidth = photoDataUrl
+  const headerWidth = photoDataUrl
     ? CONTENT_WIDTH_MM - PHOTO_SIZE_MM - PHOTO_GAP_MM
     : CONTENT_WIDTH_MM
-  const nameLines = wrap(doc, content.animal.name, nameWidth)
+  const nameLines = wrap(doc, content.animal.name, headerWidth)
   writeLines(doc, nameLines, MARGIN_MM, y)
   y += extraLinesHeight(doc, nameLines.length) + 7
 
@@ -117,8 +117,9 @@ export function renderCarnetPdf(
     content.animal.birthDate &&
       t('settings.pdf.identity.birthDate', { date: formatLongDate(content.animal.birthDate) }),
   ].filter((part): part is string => Boolean(part))
-  doc.text(identityParts.join(' · '), MARGIN_MM, y)
-  y += 10
+  const identityLines = wrap(doc, identityParts.join(' · '), headerWidth)
+  writeLines(doc, identityLines, MARGIN_MM, y)
+  y += extraLinesHeight(doc, identityLines.length) + 10
 
   const cursor = createPageCursor(doc, y, () => writeContinuationHeader(doc, content.animal.name))
 

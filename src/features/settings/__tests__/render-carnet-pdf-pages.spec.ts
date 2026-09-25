@@ -7,6 +7,7 @@ import {
   NOM_TRAITEMENT_200,
   NOM_VACCIN_200,
   PHOTO_JPEG,
+  RACE_120,
 } from './pdf-fixture'
 import {
   pathBounds,
@@ -106,7 +107,7 @@ function carnetAuxNomsLongs(count: number): CarnetPdfContent {
   const court = carnet(count, 0, 0)
   return {
     ...court,
-    animal: { ...court.animal, name: NOM_ANIMAL_200 },
+    animal: { ...court.animal, name: NOM_ANIMAL_200, breed: RACE_120 },
     vaccinations: [...court.vaccinations, VACCIN_LONG, VACCIN_LONG, VACCIN_LONG],
     treatments: [TRAITEMENT_LONG, ARRETE, TRAITEMENT_LONG],
   }
@@ -386,6 +387,31 @@ describe('renderCarnetPdf — noms longs', () => {
     expect(lignes.map((text) => text.text).join(' ')).toBe(NOM_ANIMAL_200)
     for (const ligne of lignes) expect(textBounds(ligne).right).toBeLessThan(photo!.left)
     expect(textBounds(identite).top).toBeGreaterThan(
+      Math.max(...lignes.map((ligne) => textBounds(ligne).bottom)),
+    )
+  })
+
+  it.each([
+    { cas: 'avec photo', photo: PHOTO_JPEG },
+    { cas: 'sans photo', photo: null },
+  ])('coupe à la ligne une identité à race de 120 caractères, $cas', ({ photo }) => {
+    const identiteCourte = pages(COURT)[0]!.texts.find((text) => text.text.startsWith('Chat · '))!
+    const content = { ...COURT, animal: { ...COURT.animal, breed: RACE_120 } }
+    const [page] = readPdfPages(renderCarnetPdf(content, '0.1.24', photo))
+    const lignes = page!.texts.filter((text) => text.sizePt === 11 && !text.bold)
+    const titre = page!.texts.find((text) => text.text === 'Vaccins')!
+    const limite = page!.images[0]?.left ?? ZONE.right
+
+    expect(page!.images).toHaveLength(photo ? 1 : 0)
+    expect(lignes.length).toBeGreaterThan(1)
+    expect(lignes.map((text) => text.text).join(' ')).toBe(
+      identiteCourte.text.replace('Européen', RACE_120),
+    )
+    for (const ligne of lignes) {
+      expect(hors(textBounds(ligne), ZONE)).toBe(false)
+      expect(textBounds(ligne).right).toBeLessThanOrEqual(limite)
+    }
+    expect(textBounds(titre).top).toBeGreaterThan(
       Math.max(...lignes.map((ligne) => textBounds(ligne).bottom)),
     )
   })
