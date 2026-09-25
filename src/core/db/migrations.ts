@@ -206,9 +206,9 @@ export const migrations: DbMigration[] = [
   {
     toVersion: 8,
     statements: [
-      ...nameLengthTriggerStatements('animal', ['name', 'breed']),
-      ...nameLengthTriggerStatements('vaccination', ['name']),
-      ...nameLengthTriggerStatements('treatment', ['name']),
+      ...nameLengthStatements('animal', ['name', 'breed']),
+      ...nameLengthStatements('vaccination', ['name']),
+      ...nameLengthStatements('treatment', ['name']),
       'PRAGMA user_version = 8',
     ],
   },
@@ -236,15 +236,17 @@ function outboxTriggerStatements(table: string): string[] {
   ]
 }
 
-/**
- * `UPDATE OF` : une ligne plus longue enregistrée avant la v8 reste modifiable tant qu'on ne
- * réécrit pas ces colonnes, sa suppression logique comprise.
- */
-function nameLengthTriggerStatements(table: string, columns: string[]): string[] {
+/** Une ligne plus longue déjà enregistrée est coupée et datée : la synchro la renvoie. */
+function nameLengthStatements(table: string, columns: string[]): string[] {
+  const cut = columns.map((column) => `${column} = substr(${column}, 1, 80)`).join(', ')
+  const stored = columns.map((column) => `length(${column}) > 80`).join(' OR ')
   const tooLong = columns.map((column) => `length(NEW.${column}) > 80`).join(' OR ')
   const abort = `BEGIN SELECT RAISE(ABORT, '${table}: text longer than 80 characters'); END;`
 
   return [
+    `UPDATE ${table}
+     SET ${cut}, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+     WHERE ${stored}`,
     `CREATE TRIGGER ${table}_name_length_insert BEFORE INSERT ON ${table}
      WHEN ${tooLong}
      ${abort}`,
