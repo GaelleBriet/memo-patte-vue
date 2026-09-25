@@ -1,12 +1,27 @@
 import type { DbClient, SqlParam, SqlStatement } from '@/core/db/db-client'
 import { getDb } from '@/core/db/sqlite'
 import type { TreatmentDose } from '../schema/treatment-dose.schema'
+import type { FrequencyUnit } from '../schema/treatment.schema'
 
 export type RestoredTreatmentDose = Omit<TreatmentDose, 'deletedAt'>
 export type TreatmentDoseVersion = Pick<
   TreatmentDose,
   'id' | 'treatmentId' | 'givenOn' | 'updatedAt' | 'deletedAt'
 >
+export type DoseDates = Pick<TreatmentDose, 'givenOn' | 'nextDueDate' | 'frequency'>
+
+interface DoseRow {
+  id: string
+  treatment_id: string
+  animal_id: string
+  given_on: string
+  next_due_date: string
+  frequency_value: number
+  frequency_unit: FrequencyUnit
+  created_at: string
+  updated_at: string
+  deleted_at: string | null
+}
 
 interface DoseVersionRow {
   id: string
@@ -20,6 +35,28 @@ const COLUMNS =
   'id, treatment_id, animal_id, given_on, next_due_date, frequency_value, frequency_unit, created_at, updated_at, deleted_at'
 
 const NOT_DELETED = 'deleted_at IS NULL'
+
+/** Une autre prise visible du traitement de la ligne modifiée, le jour `day` (expression SQL) s'il est donné. */
+function otherVisibleDose(day?: string): string {
+  return `EXISTS (
+    SELECT 1 FROM treatment_dose other
+    WHERE other.treatment_id = treatment_dose.treatment_id AND other.id <> treatment_dose.id
+      AND other.deleted_at IS NULL${day ? ` AND other.given_on = ${day}` : ''})`
+}
+
+function toDose(row: DoseRow): TreatmentDose {
+  return {
+    id: row.id,
+    treatmentId: row.treatment_id,
+    animalId: row.animal_id,
+    givenOn: row.given_on,
+    nextDueDate: row.next_due_date,
+    frequency: { value: row.frequency_value, unit: row.frequency_unit },
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    deletedAt: row.deleted_at,
+  }
+}
 
 /**
  * Sous-requête de la tête d'un traitement (`treatmentId` est une expression SQL) : la prise non
@@ -67,12 +104,76 @@ export function createTreatmentDosesRepository(db: DbClient) {
       return changes > 0
     },
 
-    /** Sans effet sur une prise déjà supprimée : sa date de suppression est gardée. */
-    async remove(id: string, deletedAt: string): Promise<void> {
-      await db.run(
-        `UPDATE treatment_dose SET deleted_at = ?, updated_at = ? WHERE id = ? AND ${NOT_DELETED}`,
+    /** Prises visibles, la tête d'abord. */
+    async listByTreatment(treatmentId: string): Promise<TreatmentDose[]> {
+      const rows = await db.query<DoseRow>(
+        `SELECT ${COLUMNS} FROM treatment_dose WHERE treatment_id = ? AND ${NOT_DELETED}
+         ORDER BY given_on DESC, created_at DESC, id DESC`,
+        [treatmentId],
+      )
+      return rows.map(toDose)
+    },
+
+    async getById(id: string): Promise<TreatmentDose | null> {
+      const rows = await db.query<DoseRow>(
+        `SELECT ${COLUMNS} FROM treatment_dose WHERE id = ? AND ${NOT_DELETED}`,
+        [id],
+      )
+      const row = rows[0]
+      return row ? toDose(row) : null
+    },
+
+    /** Nombre de prises visibles par traitement de l'animal. */
+    async countByAnimal(animalId: string): Promise<Record<string, number>> {
+      const rows = await db.query<{ treatment_id: string; count: number }>(
+        `SELECT treatment_id, COUNT(*) AS count FROM treatment_dose
+         WHERE animal_id = ? AND ${NOT_DELETED} GROUP BY treatment_id`,
+        [animalId],
+      )
+      return Object.fromEntries(rows.map((row) => [row.treatment_id, row.count]))
+    },
+
+    /**
+     * Faux pour une prise déjà supprimée ou la seule visible de son traitement : un traitement
+     * garde toujours au moins une prise.
+     */
+    async remove(id: string, deletedAt: string): Promise<boolean> {
+      const changes = await db.run(
+        `UPDATE treatment_dose SET deleted_at = ?, updated_at = ?
+         WHERE id = ? AND ${NOT_DELETED} AND ${otherVisibleDose()}`,
         [deletedAt, deletedAt, id],
       )
+      return changes > 0
+    },
+
+    /** Faux pour une prise visible, ou dont le jour a été noté entre-temps. */
+    async revive(id: string, updatedAt: string): Promise<boolean> {
+      const changes = await db.run(
+        `UPDATE treatment_dose SET deleted_at = NULL, updated_at = ?
+         WHERE id = ? AND deleted_at IS NOT NULL
+           AND NOT ${otherVisibleDose('treatment_dose.given_on')}`,
+        [updatedAt, id],
+      )
+      return changes > 0
+    },
+
+    /** Faux pour une prise supprimée, ou quand une autre prise visible occupe déjà ce jour. */
+    async changeDate(id: string, dates: DoseDates, updatedAt: string): Promise<boolean> {
+      const changes = await db.run(
+        `UPDATE treatment_dose
+         SET given_on = ?, next_due_date = ?, frequency_value = ?, frequency_unit = ?, updated_at = ?
+         WHERE id = ? AND ${NOT_DELETED} AND NOT ${otherVisibleDose('?')}`,
+        [
+          dates.givenOn,
+          dates.nextDueDate,
+          dates.frequency.value,
+          dates.frequency.unit,
+          updatedAt,
+          id,
+          dates.givenOn,
+        ],
+      )
+      return changes > 0
     },
 
     /** Lignes supprimées comprises : l'import rattache un fichier aux prises déjà en base. */

@@ -7,6 +7,7 @@ import { loadSupabaseClient } from '@/core/supabase/load-client'
 import { syncField, type SyncPullPage } from '@/core/sync/service/syncable-table'
 import { addFrequency } from '../logic/treatment-frequency'
 import { createTreatmentDosesRepository, headDoseIdSql } from './treatment-doses.repository'
+import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import {
   treatmentEditSchemaAfter,
   treatmentInputSchema,
@@ -99,6 +100,33 @@ export function createTreatmentsRepository(
     return treatment
   }
 
+  async function writePlan(
+    id: string,
+    input: TreatmentEditInput,
+    { resume }: { resume: boolean },
+  ): Promise<Treatment> {
+    const current = await requireVisible(id)
+    const data = treatmentEditSchemaAfter(current.lastDoseDate).parse(input)
+    const updatedAt = new Date().toISOString()
+
+    await db.runMany([
+      {
+        sql: `UPDATE treatment
+              SET name = ?, type = ?, frequency_value = ?, frequency_unit = ?,
+                  ${resume ? 'stopped_on = NULL, ' : ''}updated_at = ?
+              WHERE id = ? AND ${NOT_DELETED}`,
+        params: [data.name, data.type, data.frequency.value, data.frequency.unit, updatedAt, id],
+      },
+      doses.updateHeadStatement(id, {
+        nextDueDate: data.nextDueDate,
+        frequency: data.frequency,
+        updatedAt,
+      }),
+    ])
+
+    return requireVisible(id)
+  }
+
   return {
     entity: 'treatment',
 
@@ -169,26 +197,21 @@ export function createTreatmentsRepository(
      * Change le plan et la prochaine dose de sa prise de tête, fréquence recopiée, dans une seule
      * écriture ; la date de la prise et `animal_id` restent figés.
      */
-    async update(id: string, input: TreatmentEditInput): Promise<Treatment> {
-      const current = await requireVisible(id)
-      const data = treatmentEditSchemaAfter(current.lastDoseDate).parse(input)
-      const updatedAt = new Date().toISOString()
+    update(id: string, input: TreatmentEditInput): Promise<Treatment> {
+      return writePlan(id, input, { resume: false })
+    },
 
-      await db.runMany([
-        {
-          sql: `UPDATE treatment
-                SET name = ?, type = ?, frequency_value = ?, frequency_unit = ?, updated_at = ?
-                WHERE id = ? AND ${NOT_DELETED}`,
-          params: [data.name, data.type, data.frequency.value, data.frequency.unit, updatedAt, id],
-        },
-        doses.updateHeadStatement(id, {
-          nextDueDate: data.nextDueDate,
-          frequency: data.frequency,
-          updatedAt,
-        }),
-      ])
+    /** Comme `update`, et le traitement arrêté repart : son historique reste le sien. */
+    resume(id: string, input: TreatmentEditInput): Promise<Treatment> {
+      return writePlan(id, input, { resume: true })
+    },
 
-      return requireVisible(id)
+    listDoses(treatmentId: string): Promise<TreatmentDose[]> {
+      return doses.listByTreatment(treatmentId)
+    },
+
+    countDosesByAnimal(animalId: string): Promise<Record<string, number>> {
+      return doses.countByAnimal(animalId)
     },
 
     /** Faux pour un traitement déjà arrêté, inconnu ou supprimé : rien n'est écrit. */

@@ -9,6 +9,7 @@ import {
   createVaccinationInjectionsRepository,
   headInjectionIdSql,
 } from './vaccination-injections.repository'
+import type { VaccinationInjection } from '../schema/vaccination-injection.schema'
 import {
   vaccinationInputSchema,
   vaccinationUpdateSchema,
@@ -162,6 +163,10 @@ export function createVaccinationsRepository(
       ])
 
       return requireVisible(id)
+    },
+
+    listInjections(vaccinationId: string): Promise<VaccinationInjection[]> {
+      return injections.listByVaccination(vaccinationId)
     },
 
     /** Sans effet sur un vaccin inconnu ou déjà supprimé : la date initiale est gardée. */

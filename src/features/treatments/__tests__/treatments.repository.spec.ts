@@ -792,6 +792,71 @@ describe('treatmentsRepository — prises', () => {
 
     await expect(dosesOf(created.id)).resolves.toEqual(avant)
   })
+
+  it('liste les prises visibles d’un traitement, la plus récente d’abord', async () => {
+    const created = await repository.create(bravecto)
+    const ancienne = await addDose(created.id, '2025-12-01', '2026-03-01')
+
+    const liste = await repository.listDoses(created.id)
+
+    expect(liste.map(({ id }) => id)).toEqual([created.id, ancienne])
+  })
+
+  it('compte les prises de chaque traitement d’un animal', async () => {
+    const created = await repository.create(bravecto)
+    await addDose(created.id, '2025-12-01', '2026-03-01')
+    const autre = await repository.create({ ...bravecto, name: 'Milbemax' })
+
+    await expect(repository.countDosesByAnimal(MIETTE)).resolves.toEqual({
+      [created.id]: 2,
+      [autre.id]: 1,
+    })
+  })
+
+  it('reprend un traitement arrêté : plan en cours et prochaine dose sur la prise de tête', async () => {
+    vi.useFakeTimers({ now: new Date('2026-09-24T10:00:00.000Z') })
+    const created = await repository.create(bravecto)
+    const ancienne = await addDose(created.id, '2025-12-01', '2026-03-01')
+    await repository.stop(created.id, '2026-05-26')
+    vi.advanceTimersByTime(60_000)
+
+    await repository.resume(created.id, {
+      ...edition,
+      frequency: { value: 1, unit: 'month' },
+      nextDueDate: '2026-10-01',
+    })
+
+    await expect(repository.getById(created.id)).resolves.toMatchObject({
+      stoppedOn: null,
+      frequency: { value: 1, unit: 'month' },
+      lastDoseDate: '2026-03-01',
+      nextDueDate: '2026-10-01',
+      updatedAt: '2026-09-24T10:01:00.000Z',
+    })
+    await expect(dosesOf(created.id)).resolves.toEqual([
+      expect.objectContaining({ id: ancienne, next_due_date: '2026-03-01', frequency_value: 3 }),
+      expect.objectContaining({
+        id: created.id,
+        next_due_date: '2026-10-01',
+        frequency_value: 1,
+        frequency_unit: 'month',
+        updated_at: '2026-09-24T10:01:00.000Z',
+      }),
+    ])
+  })
+
+  it('ne reprend pas un traitement avec une prochaine dose avant sa dernière prise', async () => {
+    const created = await repository.create(bravecto)
+    await repository.stop(created.id, '2026-05-26')
+
+    await expect(
+      repository.resume(created.id, { ...edition, nextDueDate: '2026-02-28' }),
+    ).rejects.toBeInstanceOf(ZodError)
+
+    await expect(repository.getById(created.id)).resolves.toMatchObject({
+      stoppedOn: '2026-05-26',
+    })
+  })
 })
 
 describe('treatmentsRepository — import', () => {

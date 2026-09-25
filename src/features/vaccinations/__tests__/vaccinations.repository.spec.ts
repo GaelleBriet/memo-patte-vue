@@ -632,6 +632,19 @@ describe('vaccinationsRepository — injections', () => {
 
     await expect(injectionsOf(carre.id)).resolves.toEqual(avant)
   })
+
+  it('liste les injections visibles d’un vaccin, la plus récente d’abord', async () => {
+    const carre = await repository.create({
+      animalId: MIETTE,
+      name: 'Carré',
+      lastInjectionDate: '2025-09-25',
+    })
+    const recente = await addInjection(carre.id, '2026-08-26', '2027-08-26')
+
+    const liste = await repository.listInjections(carre.id)
+
+    expect(liste.map(({ id }) => id)).toEqual([recente, carre.id])
+  })
 })
 
 describe('vaccinationsRepository — import', () => {
