@@ -20,6 +20,9 @@ import type {
 const ZONE: PdfBounds = { left: 18, right: 192, top: 10, bottom: 287 }
 const FOOTER = 'Généré le 15 sept. 2026 — MémoPatte 0.1.24'
 const SECTION_TITLES = ['Vaccins', 'Traitements', 'Poids']
+// La mise en page laisse au moins 5,7 mm sous l'en-tête (un titre de section) et 4,6 mm sur le pied.
+const ECART_SOUS_EN_TETE = 5
+const ECART_SUR_PIED = 4
 
 function vaccins(count: number): PdfVaccinationRow[] {
   return Array.from({ length: count }, (_, index) => ({
@@ -138,29 +141,47 @@ describe('renderCarnetPdf — pages', () => {
     }
   })
 
-  it('n’écrit ni ne dessine rien hors de la zone imprimable ni sur le pied de page', () => {
+  it('écrit les lignes des pages suivantes du même style que celles de la première', () => {
+    const [premiere, ...suivantes] = pages(LONG)
+    const style = ({ bold, sizePt, color }: PdfText) => ({ bold, sizePt, color })
+    const cellule = (text: PdfText) =>
+      /^(Vaccin \d+|Traitement \d+|\d{2}\/\d{2}\/\d{4}|\d+,\d kg|À jour)$/.test(text.text)
+    const reference = style(premiere!.texts.find((text) => text.text === 'Vaccin 1')!)
+    const lignes = suivantes.flatMap((page) => page.texts.filter(cellule))
+
+    expect(lignes.length).toBeGreaterThan(0)
+    expect(lignes.map(style)).toEqual(lignes.map(() => reference))
+  })
+
+  it('n’écrit ni ne dessine rien hors de la zone imprimable, ni contre l’en-tête ou le pied', () => {
     const defauts: string[] = []
     for (const content of [COURT, LONG, ...DEBORDEMENTS]) {
       pages(content).forEach((page, index) => {
         const lieu = `${content.vaccinations.length} vaccins, page ${index + 1}`
         const pied = hautDuPied(page)
+        const enTete =
+          index > 0 ? page.texts.find((text) => text.text === content.animal.name) : undefined
+        if (index > 0 && !enTete) defauts.push(`pas d’en-tête, ${lieu}`)
+        const basDeLEnTete = enTete ? textBounds(enTete).bottom : -Infinity
         const elements = [
           ...page.texts.map((text) => ({
             nom: text.text,
             box: textBounds(text),
-            duPied: dansLePied(text),
+            cadre: dansLePied(text) || text === enTete,
           })),
           ...page.paths.map((path) => ({
             nom: `tracé ${path.paint}`,
             box: pathBounds(path),
-            duPied: false,
+            cadre: false,
           })),
         ]
-        for (const { nom, box, duPied } of elements) {
+        for (const { nom, box, cadre } of elements) {
           if (hors(box, ZONE)) defauts.push(`${nom} hors de la zone, ${lieu}`)
-          if (!duPied && box.bottom >= pied) {
-            defauts.push(`${nom} sur le pied de page, ${lieu}`)
+          if (cadre) continue
+          if (box.top - basDeLEnTete < ECART_SOUS_EN_TETE) {
+            defauts.push(`${nom} contre l’en-tête, ${lieu}`)
           }
+          if (pied - box.bottom < ECART_SUR_PIED) defauts.push(`${nom} contre le pied, ${lieu}`)
         }
       })
     }
