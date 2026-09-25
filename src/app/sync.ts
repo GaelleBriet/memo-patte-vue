@@ -9,7 +9,9 @@ import type { SyncableTable } from '@/core/sync/service/syncable-table'
 import { getAnimalsRepository } from '@/features/animals/repository/animals.repository'
 import { useAuthStore } from '@/features/auth/store/auth.store'
 import { usePurchaseStore } from '@/features/purchase/store/purchase.store'
+import { getTreatmentDosesRepository } from '@/features/treatments/repository/treatment-doses.repository'
 import { getTreatmentsRepository } from '@/features/treatments/repository/treatments.repository'
+import { getVaccinationInjectionsRepository } from '@/features/vaccinations/repository/vaccination-injections.repository'
 import { getVaccinationsRepository } from '@/features/vaccinations/repository/vaccinations.repository'
 import { getWeightRepository } from '@/features/weight/repository/weight.repository'
 import { syncAllReminders } from './reminders-sync'
@@ -43,12 +45,14 @@ export async function installSync(deps: SyncDependencies): Promise<() => void> {
   }
 }
 
-/** Composition réelle : les quatre repositories sur la base de l'appareil, le statut Plus des stores. */
+/** Composition réelle : les repositories sur la base de l'appareil, le statut Plus des stores. */
 export async function createDefaultSyncDependencies(): Promise<SyncDependencies> {
   const tables: SyncableTable[] = [
     await getAnimalsRepository(),
     await getVaccinationsRepository(),
+    await getVaccinationInjectionsRepository(),
     await getTreatmentsRepository(),
+    await getTreatmentDosesRepository(),
     await getWeightRepository(),
   ]
   const userId = () => useAuthStore().userId

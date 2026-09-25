@@ -6,6 +6,10 @@ code applicatif, les extraits ci-dessous illustrent : reste à démarrer l'impl�
 Tickets couverts : #38 (8.1), #39 (8.2), #40 (8.3), #41 (8.4), #42 (8.5), #83 (8.6), #85 (8.7),
 #89 (9.5).
 
+Mis à jour le 2026-09-25 (#383) : les injections et les prises (historique, migration v6 de l'app,
+`proposition-historique-rappels.md` §10) sont synchronisées comme deux tables de plus, et le
+curseur de pull est tenu par table (§4.1).
+
 Déjà acté, non rediscuté ici : offline-first, Supabase en région UE, « la modification la plus
 récente gagne » au niveau ligne, pas de temps réel, pas de fusion champ par champ, suppression
 logique par `deleted_at`, un utilisateur gratuit ne touche jamais Supabase.
@@ -17,10 +21,11 @@ dans `docs/product/decisions-log.md`.
 
 ### 1.1 SQLite
 
-Les quatre tables (`animal`, `vaccination`, `treatment`, `weight_entry`) portent déjà tout le
-nécessaire : `id` UUID généré en local, `created_at`, `updated_at`, `deleted_at`. **Rien à ajouter
-dans ces tables.** Le rattachement à l'animal est figé (2026-09-09), donc une ligne enfant ne change
-jamais de parent : le pull n'a pas à gérer de déplacement.
+Les six tables (`animal`, `vaccination`, `vaccination_injection`, `treatment`, `treatment_dose`,
+`weight_entry`) portent déjà tout le nécessaire : `id` UUID généré en local, `created_at`,
+`updated_at`, `deleted_at`. **Rien à ajouter dans ces tables.** Le rattachement à l'animal est figé
+(2026-09-09), donc une ligne enfant ne change jamais de parent : le pull n'a pas à gérer de
+déplacement.
 
 Deux tables de service à créer (migration v5) :
 
@@ -41,9 +46,12 @@ CREATE TABLE IF NOT EXISTS sync_state (
 `last_error` : un message d'erreur brut peut contenir du contenu de carnet, que la conformité
 interdit de journaliser.
 
+Depuis la migration v7, le curseur de pull vit dans `sync_pull_cursor (entity, last_pulled_at)`, une
+ligne par table (§4.1) ; `sync_state.last_pulled_at` n'est plus lu.
+
 ### 1.2 Le miroir Postgres
 
-Quatre tables de même nom et mêmes colonnes, plus `user_id` et `server_updated_at` :
+Six tables de même nom et mêmes colonnes, plus `user_id` et `server_updated_at` :
 
 ```sql
 create table public.animal (
@@ -62,8 +70,12 @@ create index on public.animal (user_id, server_updated_at);
 Clé primaire `(user_id, id)` : deux comptes ne peuvent pas se marcher dessus, et l'index sert
 directement la clause RLS. Les tables enfants ajoutent
 `foreign key (user_id, animal_id) references public.animal(user_id, id) on delete cascade` — ce qui
-impose l'ordre du push (animaux d'abord) et interdit une ligne orpheline côté serveur.
-`next_due_date` voyage telle quelle : c'est une colonne de la ligne, la ligne voyage entière.
+impose l'ordre du push (animaux d'abord) et interdit une ligne orpheline côté serveur. Les
+injections et les prises référencent en plus leur vaccin ou leur traitement, de la même façon.
+L'échéance vit sur l'événement qui l'a fixée (`next_due_date` de l'injection ou de la prise), jamais
+sur le parent : elle voyage avec sa ligne, et un « fait » est une ligne nouvelle, jamais la
+modification d'une autre. Deux « fait » concurrents donnent donc deux événements, la tête se calcule
+partout pareil (date, puis `created_at`, puis `id`), et un renommage concurrent se compose avec eux.
 
 ### 1.3 Horodatage : deux colonnes, deux rôles
 
@@ -141,7 +153,7 @@ du serveur. Les appareils qui ont déjà la bonne valeur en local s'en sortiraie
 propre comparaison la rejette), mais un appareil qui restaure pour la première fois récupérerait la
 valeur régressée, sans rien en local pour la corriger. Sans le `where` du pull, une modification locale
 survenue pendant l'attente réseau d'un cycle pourrait être écrasée par le lot qui arrive, construit
-avant cette modification. Même schéma pour les trois autres tables.
+avant cette modification. Même schéma pour les cinq autres tables.
 
 **Suppression contre modification : aucun cas particulier.** Une suppression *est* une modification —
 elle écrit `deleted_at` **et** `updated_at`. Donc une modification postérieure à une suppression fait
@@ -176,7 +188,7 @@ BEGIN
 END;
 ```
 
-(et le même en `AFTER UPDATE`, pour les quatre tables — huit triggers, déclarés dans
+(et le même en `AFTER UPDATE`, pour les six tables — douze triggers, déclarés dans
 `src/core/db/migrations.ts`.)
 
 **`DO UPDATE`, pas `DO NOTHING`.** Une ligne déjà en file qui change une deuxième fois doit avancer
@@ -197,8 +209,9 @@ Déconnexion et expiration se traitent alors en deux instructions, sans toucher 
   au diagnostic ; le minuteur est global, un seul cycle à la fois.
 - **Sérialisation** : le patron déjà en place pour les rappels (`enqueueReminderTask` dans
   `shared/due-reminders-schedule.ts`), une promesse chaînée.
-- **Ordre intra-cycle** : `animal`, puis `vaccination`, `treatment`, `weight_entry` — la clé
-  étrangère Postgres l'impose. Par lots de 200 lignes.
+- **Ordre intra-cycle** : `animal`, `vaccination`, `vaccination_injection`, `treatment`,
+  `treatment_dose`, `weight_entry` (`SYNC_ENTITY_ORDER`, au push comme au pull) — la clé étrangère
+  Postgres l'impose. Par lots de 200 lignes.
 - **Redémarrage** : rien à sérialiser en JS, la file est en base. Au lancement, après restauration de
   session, s'il y a un compte Plus et des entrées, on programme un cycle. C'est ce que couvre le CA
   « sérialisation de la file » de #42 : reconstruire le service sur la même base et vérifier que les
@@ -223,11 +236,17 @@ pousser d'abord réduit la fenêtre pendant laquelle un autre appareil lit une v
 _Push_ : réclamer les entrées → relire les lignes (tombstones compris) → `upsert` par table dans
 l'ordre → retirer les entrées acquittées.
 
-_Pull_ : pour chaque table dans le même ordre,
+_Pull_ : pour chaque table dans le même ordre, depuis **son propre curseur**,
 `select * where server_updated_at >= last_pulled_at order by server_updated_at limit 500`, paginé.
 Le curseur est en `>=` et non `>` : deux lignes peuvent partager l'horodatage à la microseconde près,
 et réappliquer une ligne déjà appliquée ne coûte rien puisque la règle est idempotente. Lot appliqué
-en une transaction, puis `last_pulled_at` avance.
+en une transaction, puis le curseur de la table avance. Un curseur unique, avancé au maximum vu sur
+toutes les tables, sauterait pour toujours une ligne écrite côté serveur pendant le parcours d'une table
+suivante ; et un parent sauté bloquerait ensuite chacun de ses enfants sur la clé étrangère locale.
+Un enfant tiré avant son parent, écrit pendant la passe, fait échouer sa page sur cette clé : rien
+n'avance, et le cycle suivant tire le parent puis l'enfant. Les rappels ne sont reconstruits que si
+une table de rappels a avancé son curseur, et ils le sont même si la suite du pull échoue : une ligne
+passée derrière son curseur ne reviendra pas au cycle suivant.
 
 _Déclencheurs_ : lancement (après `authStore.restore()`), retour au premier plan (`onAppResume`, déjà
 là), debounce après écriture, retour du réseau, connexion réussie.
@@ -242,7 +261,8 @@ réseau ou 5xx ne doit jamais vider la file ni casser l'UI, seulement repousser 
 
 À la fin du parcours d'achat, compte créé et `Purchases.logIn(userId)` passé : (1)
 `UPDATE sync_state SET enabled = 1` ; (2) amorcer la file avec tout l'existant, tombstones compris —
-`INSERT INTO sync_outbox SELECT 'animal', id, updated_at, 0 FROM animal`, et les trois autres ; (3)
+`INSERT INTO sync_outbox SELECT 'animal', id, updated_at, 0 FROM animal`, et les cinq autres, dont
+`vaccination_injection` et `treatment_dose` ; (3)
 le cycle normal fait le reste. Aucun chemin d'envoi séparé, donc l'idempotence demandée par #83 est
 celle de l'`upsert`. Progression : entrées restantes sur total initial, l'app reste utilisable.
 
@@ -252,9 +272,9 @@ juste après l'achat.
 
 ### 4.3 Restauration à l'installation (#40)
 
-Appareil **sans carnet visible** : pull complet, curseur nul, paginé. Chaque lot avance
-`last_pulled_at`, donc une coupure réseau reprend où elle s'est arrêtée. `sync_state.restoring` tient
-l'écran de progression et survit à un redémarrage en cours de route.
+Appareil **sans carnet visible** : pull complet, curseurs nuls, paginé. Chaque lot avance le
+curseur de sa table, donc une coupure réseau reprend où elle s'est arrêtée. `sync_state.restoring`
+tient l'écran de progression et survit à un redémarrage en cours de route.
 
 Appareil **avec un carnet local** : choix explicite, jamais d'écrasement silencieux.
 
@@ -273,11 +293,13 @@ Android » du ticket est couvert par le seul lancement. Les identifiants de noti
 empreintes déterministes d'une clé stable (`reminderNotificationId`), pas des numéros stockés en
 base : rien ne devient périmé après réinstallation, contrairement à ce que craint la note de #41.
 
-Reste à faire : appeler `syncAllReminders()` à la fin de tout cycle dont le pull a touché `animal`
-(le prénom est dans le texte), `vaccination` ou `treatment`, et à la fin d'une restauration, plus les
-tests du CA. Le point d'injection `provideFullReminderSync` existe. À garder en tête : les cycles
-lointains d'un traitement ne sont programmés que sur 60 jours / 400 rappels, « chaque synchro remplit
-la suite » — raison de plus pour reconstruire après chaque pull, pas seulement après restauration.
+Fait depuis #39 et #383 : `syncAllReminders()` est appelé à la fin de tout pull qui a ramené une
+ligne nouvelle de `animal` (le prénom est dans le texte), `vaccination`, `treatment` ou de l'une de
+leurs injections ou prises (l'échéance vit sur l'événement, un « fait » reçu doit reprogrammer),
+même si le pull échoue ensuite. Un pull qui ne ramène rien de nouveau ne reconstruit rien. Reste à
+faire : l'appel à la fin d'une restauration, plus les tests du CA. Les cycles lointains d'un
+traitement ne sont programmés que sur 60 jours / 400 rappels : cette fenêtre se remplit au lancement
+et à chaque retour au premier plan (`installRemindersSync`), pas par la synchronisation.
 
 ### 4.5 Photos (#85)
 

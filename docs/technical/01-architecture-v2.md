@@ -54,9 +54,9 @@ Supabase (Postgres + Auth)
 
 ### Règles de synchronisation
 
-> **Cible, pas état des lieux.** Rien de cette section n'est implémenté : le projet Supabase ne
-> contient aucune table, seulement la fonction `keep_alive()`. Les règles ci-dessous sont l'intention
-> d'origine ; l'architecture détaillée, validée avec Gaelle le 2026-09-19, vit dans
+> **Cible, en partie implémentée.** Push et pull (#39), injections et prises (#383) sont en place ;
+> l'activation à la souscription (#83) et la restauration (#40) restent à faire. Les règles ci-dessous
+> sont l'intention d'origine ; l'architecture détaillée, validée avec Gaelle le 2026-09-19, vit dans
 > `proposition-sync.md` (PR #248). En cas de divergence, c'est la proposition qui fait foi : la note
 > du ticket #39 (« pull par `updated_at` ») y est par exemple corrigée, et la purge des lignes
 > supprimées y est tranchée plutôt que laissée « à définir ».
@@ -64,6 +64,7 @@ Supabase (Postgres + Auth)
 - Toute écriture se fait d’abord en local (SQLite).
 - La synchronisation vers Supabase se déclenche dès que le réseau est disponible (avec debounce).
 - Multi-appareil (Plus) : chaque ligne synchronisable porte un UUID généré localement et un `updated_at` ; le pull applique les lignes distantes plus récentes, la modification la plus récente gagne, pas de fusion champ par champ.
+- Un « fait » (injection, prise) est une ligne nouvelle, jamais la modification du vaccin ou du traitement : deux « fait » notés sur deux appareils donnent deux événements, et un renommage concurrent se compose avec eux.
 - Suppression logique : supprimer une entrée renseigne `deleted_at` (ISO 8601 UTC) au lieu d'effacer la ligne, pour que la suppression se propage aux autres appareils comme n'importe quelle modification. Les lignes marquées sont invisibles pour l'UI ; leur purge définitive, une fois la suppression synchronisée, reste à définir.
 - Au premier lancement sur un nouvel appareil : restauration depuis Supabase si un compte Plus existe ; sinon, l'Auto Backup Android (`android:allowBackup`, ≤ 25 Mo, base SQLite incluse, photos exclues) restaure les données locales sans serveur.
 - À la souscription Plus : envoi complet de la base locale vers le compte (pas de réconciliation, le local fait foi).
@@ -128,6 +129,7 @@ src/
 
 - Les notifications sont **exécutées localement** via `@capacitor/local-notifications`.
 - Les règles et échéances qui permettent de les générer (date, heure, animal, type, fréquence, etc.) sont des **données métier** persistées dans SQLite et synchronisées vers Supabase.
+- **L'échéance vit sur l'événement** qui l'a fixée (l'injection d'un vaccin, la prise d'un traitement), jamais sur le vaccin ou le traitement : le plus récent fait foi (`proposition-historique-rappels.md` §10). Un « fait » reçu d'un autre appareil reprogramme donc les rappels.
 - Après toute restauration de données (nouveau téléphone, réinstallation…), l’application doit pouvoir **reconstruire automatiquement** l’ensemble des notifications locales à partir des données restaurées.
 - On stocke également les identifiants des notifications locales déjà programmées afin de pouvoir les annuler proprement en cas de modification ou suppression.
 

@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import type { InMemoryDb } from '@/core/db/__tests__/in-memory-db'
 import {
   createSyncOutboxRepository,
+  SYNC_ENTITY_ORDER,
   type SyncOutboxRepository,
 } from '../repository/sync-outbox.repository'
 import {
@@ -11,7 +12,9 @@ import {
   enableSync,
   insertAnimal,
   insertTreatment,
+  insertTreatmentDose,
   insertVaccination,
+  insertVaccinationInjection,
   insertWeightEntry,
   touchAnimal,
 } from './sync-test-db'
@@ -46,17 +49,37 @@ describe('syncOutboxRepository', () => {
     })
   })
 
-  describe('last_pulled_at', () => {
-    it('vaut null tant que rien n’a été tiré', async () => {
-      await expect(repository.getLastPulledAt()).resolves.toBeNull()
+  describe('curseur de pull par entité', () => {
+    it('vaut null pour une entité jamais tirée', async () => {
+      await expect(repository.getLastPulledAt('animal')).resolves.toBeNull()
     })
 
-    it('mémorise puis efface le curseur de pull', async () => {
-      await repository.setLastPulledAt(T1)
-      await expect(repository.getLastPulledAt()).resolves.toBe(T1)
+    it('mémorise un curseur par entité, sans toucher aux autres', async () => {
+      await repository.setLastPulledAt('animal', T2)
+      await repository.setLastPulledAt('vaccination_injection', T1)
 
-      await repository.setLastPulledAt(null)
-      await expect(repository.getLastPulledAt()).resolves.toBeNull()
+      await expect(repository.getLastPulledAt('animal')).resolves.toBe(T2)
+      await expect(repository.getLastPulledAt('vaccination_injection')).resolves.toBe(T1)
+      await expect(repository.getLastPulledAt('treatment_dose')).resolves.toBeNull()
+    })
+
+    it('remplace le curseur déjà mémorisé d’une entité', async () => {
+      await repository.setLastPulledAt('animal', T1)
+      await repository.setLastPulledAt('animal', T2)
+
+      await expect(repository.getLastPulledAt('animal')).resolves.toBe(T2)
+    })
+
+    it('oublie tous les curseurs : le prochain pull repart du début, données intactes', async () => {
+      await insertAnimal(db, ANIMAL_ID, T1)
+      await repository.setLastPulledAt('animal', T2)
+      await repository.setLastPulledAt('treatment_dose', T1)
+
+      await repository.clearPullCursors()
+
+      await expect(repository.getLastPulledAt('animal')).resolves.toBeNull()
+      await expect(repository.getLastPulledAt('treatment_dose')).resolves.toBeNull()
+      await expect(db.query('SELECT id FROM animal')).resolves.toEqual([{ id: ANIMAL_ID }])
     })
   })
 
@@ -79,31 +102,26 @@ describe('syncOutboxRepository', () => {
       await expect(repository.listPending()).resolves.toEqual([])
     })
 
-    it('trie les entrées animal, vaccination, treatment puis weight_entry (ordre de la clé étrangère Postgres)', async () => {
+    it('rend chaque parent avant ses enfants (ordre des clés étrangères Postgres)', async () => {
       await enableSync(db)
       await insertAnimal(db, ANIMAL_ID, T1)
-      const vaccinationId = 'v-1'
-      const treatmentId = 't-1'
-      const weightEntryId = 'w-1'
-      // Insérées dans le désordre pour vérifier que le tri ne dépend pas de l'ordre d'écriture.
-      await insertWeightEntry(db, weightEntryId, ANIMAL_ID, T1)
-      await insertTreatment(db, treatmentId, ANIMAL_ID, T1)
-      await insertVaccination(db, vaccinationId, ANIMAL_ID, T1)
+      await insertWeightEntry(db, 'w-1', ANIMAL_ID, T1)
+      await insertTreatment(db, 't-1', ANIMAL_ID, T1)
+      await insertTreatmentDose(db, 'd-1', 't-1', ANIMAL_ID, T1)
+      await insertVaccination(db, 'v-1', ANIMAL_ID, T1)
+      await insertVaccinationInjection(db, 'i-1', 'v-1', ANIMAL_ID, T1)
 
       const pending = await repository.listPending()
 
-      expect(pending.map((entry) => entry.entity)).toEqual([
-        'animal',
-        'vaccination',
-        'treatment',
-        'weight_entry',
-      ])
       expect(pending).toEqual([
         { entity: 'animal', entityId: ANIMAL_ID, queuedAt: T1, attempts: 0 },
-        { entity: 'vaccination', entityId: vaccinationId, queuedAt: T1, attempts: 0 },
-        { entity: 'treatment', entityId: treatmentId, queuedAt: T1, attempts: 0 },
-        { entity: 'weight_entry', entityId: weightEntryId, queuedAt: T1, attempts: 0 },
+        { entity: 'vaccination', entityId: 'v-1', queuedAt: T1, attempts: 0 },
+        { entity: 'vaccination_injection', entityId: 'i-1', queuedAt: T1, attempts: 0 },
+        { entity: 'treatment', entityId: 't-1', queuedAt: T1, attempts: 0 },
+        { entity: 'treatment_dose', entityId: 'd-1', queuedAt: T1, attempts: 0 },
+        { entity: 'weight_entry', entityId: 'w-1', queuedAt: T1, attempts: 0 },
       ])
+      expect(pending.map((entry) => entry.entity)).toEqual(SYNC_ENTITY_ORDER)
     })
   })
 
