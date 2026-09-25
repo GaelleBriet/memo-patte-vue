@@ -54,11 +54,18 @@ async function deliver(mode: DeliveryMode): Promise<void> {
   const outcome = await run(format, mode)
   if (isSaved(outcome)) {
     open.value = false
-    const message =
-      format === 'json' ? t('settings.export.saved.json') : t('settings.export.saved.csv')
-    const openLabel =
-      format === 'json' ? t('settings.export.openLabel.json') : t('settings.export.openLabel.csv')
-    showSavedExportToast(message, openLabel, outcome.file)
+    showSavedExportToast(
+      outcome.file,
+      format === 'json'
+        ? {
+            message: t('settings.export.saved.json'),
+            openAriaLabel: t('settings.export.openLabel.json'),
+          }
+        : {
+            message: t('settings.export.saved.csv'),
+            openAriaLabel: t('settings.export.openLabel.csv'),
+          },
+    )
   } else if (outcome === 'shared') {
     open.value = false
     showToast(t('settings.export.success'))

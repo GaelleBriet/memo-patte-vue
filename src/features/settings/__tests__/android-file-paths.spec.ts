@@ -6,19 +6,19 @@ import { EXPORTS_DIR, SAVED_EXPORTS_DIR } from '../logic/export-delivery'
 
 const filePaths = readFileSync('android/app/src/main/res/xml/file_paths.xml', 'utf8')
 
-describe('file_paths.xml', () => {
-  it('n’ouvre au partage que le dossier où l’export est écrit', () => {
-    expect(filePaths).toContain(`<cache-path name="exports" path="${EXPORTS_DIR}/" />`)
-  })
+function exposedPaths(): string[] {
+  const body = filePaths.match(/<paths[^>]*>([\s\S]*)<\/paths>/)?.[1] ?? ''
+  return body
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+}
 
-  it('n’expose du stockage externe que le dossier des exports enregistrés, pour « Ouvrir »', () => {
-    expect(filePaths.match(/<external-[^>]*>/g)).toEqual([
+describe('file_paths.xml', () => {
+  it('n’expose que le dossier du partage et celui des exports enregistrés, pour « Ouvrir »', () => {
+    expect(exposedPaths()).toEqual([
+      `<cache-path name="exports" path="${EXPORTS_DIR}/" />`,
       `<external-path name="saved-exports" path="Documents/${SAVED_EXPORTS_DIR}/" />`,
     ])
-  })
-
-  it('n’expose ni la racine du cache ni celle du stockage', () => {
-    expect(filePaths).not.toMatch(/path="\.?\/?"/)
-    expect(filePaths).not.toContain('root-path')
   })
 })

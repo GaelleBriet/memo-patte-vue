@@ -15,11 +15,15 @@ async function openSavedFile(file: SavedFile): Promise<void> {
   }
 }
 
+export type SavedExportToast = {
+  message: string
+  openAriaLabel: string
+}
+
 /** Confirme un enregistrement ; « Ouvrir » n'apparaît qu'avec un fichier écrit sur le téléphone. */
 export function showSavedExportToast(
-  message: string,
-  openAriaLabel: string,
   file: SavedFile | null,
+  { message, openAriaLabel }: SavedExportToast,
 ): void {
   showToast(message, {
     durationMs: SAVED_TOAST_MS,
