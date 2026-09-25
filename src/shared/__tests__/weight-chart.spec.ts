@@ -11,6 +11,7 @@ import {
   type WeightChartEntry,
 } from '../domain/weight-chart'
 import { withWeightUnit } from '../domain/weight-display'
+import { toKg } from '../domain/weight-unit'
 import { applyWeightUnit } from '../domain/weight-unit-preference'
 import i18n, { applyLocale } from '@/core/i18n'
 
@@ -882,13 +883,16 @@ describe('en livres', () => {
     expect(chart.latest.text).toBe(LIBELLES.latest('9,5'))
   })
 
-  it('Carnet : garde la forme de la courbe', () => {
-    const enKilos = carnet(MILO_6_MOIS, 320)!.points.map((point) => point.y)
+  it('Carnet : place les pesées dans l’échelle en livres, 0,3 lb de marge', () => {
     applyWeightUnit('lb')
-    const enLivres = carnet(MILO_6_MOIS, 320)!.points.map((point) => point.y)
 
-    expect(enLivres[0]).toBeGreaterThan(enLivres[5]!)
-    expect(enLivres).toHaveLength(enKilos.length)
+    const chart = carnet(
+      pesees(['2026-03-01', toKg(24.5, 'lb')], ['2026-03-31', toKg(23.6, 'lb')]),
+      320,
+    )!
+
+    // Échelle 23,3 → 24,8 lb sur 100 px : 24,5 aux quatre cinquièmes de la hauteur, 23,6 à un.
+    expect(chart.points.map((point) => point.y)).toEqual([54, 114])
   })
 
   it('Historique : gradue en livres rondes et garde le poids en kg de chaque point', () => {
@@ -898,6 +902,19 @@ describe('en livres', () => {
 
     expect(chart.gridLines.map((line) => line.label.text)).toEqual(['51', '52', '53', '54', '55'])
     expect(chart.points[5]).toMatchObject({ measuredOn: '2026-09-15', weightKg: 24.5 })
+  })
+
+  it('Historique : pose chaque pesée en livres sur sa graduation', () => {
+    applyWeightUnit('lb')
+
+    const chart = historique(
+      pesees(['2026-03-01', toKg(52, 'lb')], ['2026-03-31', toKg(54, 'lb')]),
+      320,
+    )!
+    const graduation = (texte: string) =>
+      chart.gridLines.find((line) => line.label.text === texte)!.y
+
+    expect(chart.points.map((point) => point.y)).toEqual([graduation('52'), graduation('54')])
   })
 })
 
