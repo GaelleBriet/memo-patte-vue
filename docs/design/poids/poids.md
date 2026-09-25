@@ -41,8 +41,9 @@ saisie reste dans la feuille pesée (`pesee.md`).
   l'écran, elle porte tout le poids visuel (au sens propre).
 - Unité « kg » à côté, 17 px / 600, `#413933`.
 - Ligne de delta en dessous, trois formulations possibles :
-    - une pesée précédente existe : `+0,5 kg vs août` (le mois vient de la
-      pesée précédente, même convention que la carte Carnet)
+    - une pesée précédente existe : `+0,3 kg vs 25 août` (#385 : la date de la
+      pesée précédente, l'année seulement si elle n'est pas de l'année en cours,
+      `vs 20 déc. 2025` ; même convention que la carte Carnet)
     - aucune pesée précédente (une seule pesée au total) : `Première pesée ·
       {date complète}`, par exemple `Première pesée · 8 nov. 2026`
     - delta nul : `±0,0 kg`
@@ -53,8 +54,9 @@ saisie reste dans la feuille pesée (`pesee.md`).
 - Ce bloc suit la pesée sélectionnée sur la courbe (§3). Au repos, c'est la
   dernière pesée et il reste tel que décrit ci-dessus. Une autre pesée
   sélectionnée remplace « Poids actuel » par `Pesée du 11 oct. 2026`, affiche
-  son poids et sa variation par rapport à la pesée précédente au format de la
-  liste (`+0,1 kg`, même code couleur) ; la variation reste vide pour la toute
+  son poids et sa variation par rapport à la pesée précédente au format du
+  repos (`+0,8 kg vs 20 janv.`, `±0,0 kg`, même code couleur, #385) ; les
+  lignes de la liste gardent `+0,1 kg`. La variation reste vide pour la toute
   première pesée, la ligne gardant sa hauteur. Le bloc est annoncé en
   « polite » au lecteur d'écran.
 - Puce « × Poids actuel » (#351, maquette `courbes-poids/` H2) à droite de la
