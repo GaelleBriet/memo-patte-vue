@@ -1,4 +1,4 @@
-import { addMonths, format, parseISO } from 'date-fns'
+import { addDays, addMonths, format, parseISO } from 'date-fns'
 import { describe, expect, it } from 'vitest'
 
 import { fromExportV1, type ExportDataV1 } from '../logic/export-v1'
@@ -271,18 +271,49 @@ describe('buildCarnetPdfContent — historique', () => {
     ])
   })
 
-  it('mesure l’écart avec la fréquence de la prise précédente, pas celle du plan', () => {
+  it('mesure l’écart avec la fréquence de la prise précédente, pas celle de la suivante', () => {
     const quarterly = { value: 3, unit: 'month' } as const
-    const row = treatmentRow([
-      dose('2025-10-01', quarterly),
+    const quarterlyThenMonthly = treatmentRow([
       dose('2026-01-01', quarterly),
-      ...monthlyFrom('2026-02-01', 3),
+      dose('2026-03-02'),
+      dose('2026-04-02'),
+      dose('2026-05-02'),
+    ])
+    const monthlyThenQuarterly = treatmentRow([
+      dose('2026-01-01'),
+      dose('2026-03-02', quarterly),
+      dose('2026-06-02', quarterly),
+      dose('2026-09-02', quarterly),
     ])
 
-    expect(row.previousDoses).toEqual([
-      { kind: 'range', count: 4, from: '2025-10-01', to: '2026-03-01' },
+    expect(quarterlyThenMonthly.previousDoses).toEqual([
+      { kind: 'dates', dates: ['2026-04-02', '2026-03-02', '2026-01-01'] },
+    ])
+    expect(monthlyThenQuarterly.previousDoses).toEqual([
+      { kind: 'dates', dates: ['2026-06-02', '2026-03-02'] },
+      { kind: 'dates', dates: ['2026-01-01'] },
     ])
   })
+
+  it.each([
+    ['tous les jours', 1, { value: 1, unit: 'day' }],
+    ['toutes les semaines', 10, { value: 1, unit: 'week' }],
+    ['tous les 12 mois, à 30,44 jours le mois', 547, { value: 12, unit: 'month' }],
+  ] as const)(
+    '%s, garde dans la série un écart de %i jours, pas un jour de plus',
+    (_, days, frequency) => {
+      const seriesCount = (gap: number) => {
+        const first = '2024-01-01'
+        const second = format(addDays(parseISO(first), gap), 'yyyy-MM-dd')
+        const head = format(addDays(parseISO(second), 1), 'yyyy-MM-dd')
+        return treatmentRow([first, second, head].map((day) => dose(day, frequency))).previousDoses
+          .length
+      }
+
+      expect(seriesCount(days)).toBe(1)
+      expect(seriesCount(days + 1)).toBe(2)
+    },
+  )
 })
 
 describe('pdfExportFileName', () => {
