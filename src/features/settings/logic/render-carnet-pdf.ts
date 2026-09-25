@@ -2,13 +2,26 @@ import { jsPDF } from 'jspdf'
 
 import { formatKg, formatLongDate, formatNumericDate } from '@/shared/utils/format'
 import i18n from '@/core/i18n'
-import { drawWeightChart } from './pdf-weight-chart'
+import { drawWeightChart, weightChartHeight } from './pdf-weight-chart'
 import type { CarnetPdfContent, PdfDueState } from './pdf-content'
 
 const PAGE_WIDTH_MM = 210
+const PAGE_HEIGHT_MM = 297
 const MARGIN_MM = 18
 const CONTENT_WIDTH_MM = PAGE_WIDTH_MM - 2 * MARGIN_MM
+const BODY_BOTTOM_MM = PAGE_HEIGHT_MM - MARGIN_MM
+const FOOTER_BASELINE_MM = 286
 const PHOTO_SIZE_MM = 24
+
+const TITLE_ADVANCE_MM = 7
+const ROW_PT = 10.5
+const ROW_ADVANCE_MM = 6.5
+// Jambage d'Helvetica (0,22 em) : le bas d'une ligne écrite sur sa ligne de base.
+const ROW_DESCENT_MM = (0.22 * ROW_PT * 25.4) / 72
+const SECTION_GAP_MM = 5
+const EMPTY_ADVANCE_MM = 10
+const CHART_GAP_MM = 7
+const CONTINUATION_ADVANCE_MM = 10
 
 const STATE_LABEL_KEYS: Record<PdfDueState, string> = {
   overdue: 'settings.pdf.status.overdue',
@@ -16,8 +29,24 @@ const STATE_LABEL_KEYS: Record<PdfDueState, string> = {
   none: 'settings.pdf.status.none',
 }
 
+type Translate = (key: string, params?: Record<string, unknown>) => string
+
+type PageCursor = { y: number; makeRoom: (height: number) => void }
+
 function speciesLabelKey(species: 'dog' | 'cat'): string {
   return `animals.form.species.${species}`
+}
+
+function createPageCursor(doc: jsPDF, y: number, continuePage: () => number): PageCursor {
+  const cursor: PageCursor = {
+    y,
+    makeRoom(height) {
+      if (cursor.y + height <= BODY_BOTTOM_MM) return
+      doc.addPage()
+      cursor.y = continuePage()
+    },
+  }
+  return cursor
 }
 
 export function renderCarnetPdf(
@@ -64,9 +93,11 @@ export function renderCarnetPdf(
   doc.text(identityParts.join(' · '), MARGIN_MM, y)
   y += 10
 
-  y = renderSection(
+  const cursor = createPageCursor(doc, y, () => writeContinuationHeader(doc, content.animal.name))
+
+  renderSection(
     doc,
-    y,
+    cursor,
     t('settings.pdf.vaccinations.title'),
     content.vaccinations.map((row) => [
       row.name,
@@ -76,9 +107,9 @@ export function renderCarnetPdf(
     t('settings.pdf.vaccinations.empty'),
   )
 
-  y = renderSection(
+  renderSection(
     doc,
-    y,
+    cursor,
     t('settings.pdf.treatments.title'),
     content.treatments.map((row) => [
       row.name,
@@ -88,87 +119,110 @@ export function renderCarnetPdf(
     t('settings.pdf.treatments.empty'),
   )
 
-  y = renderWeightSection(doc, y, content, t)
+  renderWeightSection(doc, cursor, content, t)
 
-  doc.setFontSize(9)
-  doc.setTextColor(120)
-  doc.text(
+  writeFooters(
+    doc,
     t('settings.pdf.footer', { date: formatLongDate(content.generatedOn), version: appVersion }),
-    MARGIN_MM,
-    287,
+    t,
   )
 
   return new Uint8Array(doc.output('arraybuffer'))
 }
 
+function writeContinuationHeader(doc: jsPDF, animalName: string): number {
+  doc.saveGraphicsState()
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(11)
+  doc.setTextColor(0)
+  doc.text(animalName, MARGIN_MM, MARGIN_MM)
+  doc.restoreGraphicsState()
+  return MARGIN_MM + CONTINUATION_ADVANCE_MM
+}
+
+function writeFooters(doc: jsPDF, generated: string, t: Translate): void {
+  const total = doc.getNumberOfPages()
+  for (let page = 1; page <= total; page += 1) {
+    doc.setPage(page)
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(9)
+    doc.setTextColor(120)
+    doc.text(generated, MARGIN_MM, FOOTER_BASELINE_MM)
+    doc.text(
+      t('settings.pdf.pageNumber', { page, total }),
+      PAGE_WIDTH_MM - MARGIN_MM,
+      FOOTER_BASELINE_MM,
+      { align: 'right' },
+    )
+  }
+}
+
+function writeSectionTitle(doc: jsPDF, cursor: PageCursor, title: string, firstBlock: number) {
+  cursor.makeRoom(TITLE_ADVANCE_MM + firstBlock)
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(13)
+  doc.text(title, MARGIN_MM, cursor.y)
+  cursor.y += TITLE_ADVANCE_MM
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(ROW_PT)
+}
+
+function writeEmptyLine(doc: jsPDF, cursor: PageCursor, label: string): void {
+  doc.setTextColor(120)
+  doc.text(label, MARGIN_MM, cursor.y)
+  doc.setTextColor(0)
+  cursor.y += EMPTY_ADVANCE_MM
+}
+
 function renderSection(
   doc: jsPDF,
-  startY: number,
+  cursor: PageCursor,
   title: string,
   rows: string[][],
   emptyLabel: string,
-): number {
-  let y = startY
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(13)
-  doc.text(title, MARGIN_MM, y)
-  y += 7
-
-  doc.setFont('helvetica', 'normal')
-  doc.setFontSize(10.5)
+): void {
+  writeSectionTitle(doc, cursor, title, ROW_DESCENT_MM)
   if (rows.length === 0) {
-    doc.setTextColor(120)
-    doc.text(emptyLabel, MARGIN_MM, y)
-    doc.setTextColor(0)
-    return y + 10
+    writeEmptyLine(doc, cursor, emptyLabel)
+    return
   }
 
   for (const [name, date, state] of rows) {
-    doc.text(name ?? '', MARGIN_MM, y)
-    doc.text(date ?? '', MARGIN_MM + CONTENT_WIDTH_MM * 0.55, y)
-    doc.text(state ?? '', MARGIN_MM + CONTENT_WIDTH_MM * 0.78, y)
-    y += 6.5
+    cursor.makeRoom(ROW_DESCENT_MM)
+    doc.text(name ?? '', MARGIN_MM, cursor.y)
+    doc.text(date ?? '', MARGIN_MM + CONTENT_WIDTH_MM * 0.55, cursor.y)
+    doc.text(state ?? '', MARGIN_MM + CONTENT_WIDTH_MM * 0.78, cursor.y)
+    cursor.y += ROW_ADVANCE_MM
   }
-
-  return y + 5
+  cursor.y += SECTION_GAP_MM
 }
 
 function renderWeightSection(
   doc: jsPDF,
-  startY: number,
+  cursor: PageCursor,
   content: CarnetPdfContent,
-  t: (key: string, params?: Record<string, unknown>) => string,
-): number {
-  let y = startY
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(13)
-  doc.text(t('settings.pdf.weight.title'), MARGIN_MM, y)
-  y += 7
-
-  doc.setFont('helvetica', 'normal')
-  doc.setFontSize(10.5)
-  if (content.weightEntries.length === 0) {
-    doc.setTextColor(120)
-    doc.text(t('settings.pdf.weight.empty'), MARGIN_MM, y)
-    doc.setTextColor(0)
-    return y + 10
+  t: Translate,
+): void {
+  const entries = content.weightEntries
+  const chartHeight = weightChartHeight(doc, entries, CONTENT_WIDTH_MM)
+  writeSectionTitle(doc, cursor, t('settings.pdf.weight.title'), chartHeight ?? ROW_DESCENT_MM)
+  if (entries.length === 0) {
+    writeEmptyLine(doc, cursor, t('settings.pdf.weight.empty'))
+    return
   }
 
-  doc.saveGraphicsState()
-  const chartHeight = drawWeightChart(doc, content.weightEntries, {
-    x: MARGIN_MM,
-    y,
-    width: CONTENT_WIDTH_MM,
-  })
-  doc.restoreGraphicsState()
-  if (chartHeight !== null) y += chartHeight + 7
-
-  for (const entry of content.weightEntries) {
-    doc.text(formatNumericDate(entry.measuredOn), MARGIN_MM, y)
-    doc.text(`${formatKg(entry.weightKg)} ${t('weight.unit')}`, MARGIN_MM + 40, y)
-    y += 6.5
+  if (chartHeight !== null) {
+    doc.saveGraphicsState()
+    drawWeightChart(doc, entries, { x: MARGIN_MM, y: cursor.y, width: CONTENT_WIDTH_MM })
+    doc.restoreGraphicsState()
+    cursor.y += chartHeight + CHART_GAP_MM
   }
-  y += 5
 
-  return y
+  for (const entry of entries) {
+    cursor.makeRoom(ROW_DESCENT_MM)
+    doc.text(formatNumericDate(entry.measuredOn), MARGIN_MM, cursor.y)
+    doc.text(`${formatKg(entry.weightKg)} ${t('weight.unit')}`, MARGIN_MM + 40, cursor.y)
+    cursor.y += ROW_ADVANCE_MM
+  }
+  cursor.y += SECTION_GAP_MM
 }
