@@ -1,5 +1,23 @@
 # Contexte en cours (à mettre à jour à chaque lot)
 
+- 2026-09-25 : **reprendre ici.** Mergés dans la journée : #399 (#398, plus d'erreur au démarrage
+  quand `cache/exports/` n'existe pas : le pont Capacitor journalise tout rejet natif en debug, même
+  rattrapé), #403 (#386, sauts de page et numéros de page du PDF), #404 (étude
+  `docs/product/etude-variation-poids.md` et décisions du jour), #405 (#385, variation « +0,3 kg depuis
+  le 25 août », chiffre seul dans le bandeau), #406 (#402, corriger ou supprimer une pesée avec
+  « Annuler »), #407 (#381, détail d'un vaccin et d'un traitement, historique, traitements terminés,
+  reprise, redatage). `main` à **3109 tests**. Décisions de Gaelle au journal du 2026-09-25 (variation
+  de poids, pesées, dialogue de suppression, redatage). Testé sur le téléphone dans MémoPatte Dev avec
+  #381, #385 et #402 intégrés, puis MémoPatte Dev désinstallée ; **pas revérifié depuis les derniers
+  correctifs de #381** (focus des menus ⋮, toast sur trois lignes, injection déplacée qui redemande le
+  rappel). **Écart de process signalé à Gaelle** : lecture d'une copie de la base de la vraie app pour
+  en prendre l'empreinte, alors que la règle de #388 l'interdit ; copie supprimée, ne plus le faire.
+  **Nouveaux tickets** : #401 (PDF : noms longs et « Pas de rappel » en double, recommandation à
+  trancher). **Suite** : #382 (export v2, PDF regroupé ; #386 fait), #383 (synchro des événements :
+  merge avec Gaelle présente, migrations Supabase), #384 (bouton de notification, attend la planche
+  F10 corrigée), #352 (unité kg / lb, le texte passe déjà par `shared/domain/weight-delta.ts`). Toujours
+  mis de côté par Gaelle : l'audit de Fable (`docs/product/audit-2026-09-24.md`) et les suites de #388.
+
 - 2026-09-24 (soir) : **pause demandée par Gaelle, reprendre ici.** **#395 mergée (#380, marquer un
   rappel comme fait)** : feuilles F2 à F6 depuis « À faire » (fenêtre J+29), toast « Annuler », dialogue
   de confirmation partagé, arrêt d'un traitement, « Modifier » avec retour sur la feuille rouverte,
