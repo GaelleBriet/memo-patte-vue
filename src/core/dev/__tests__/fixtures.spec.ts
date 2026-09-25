@@ -111,6 +111,7 @@ describe('applyFixtures', () => {
 
     expect(outcome).toBe('seeded')
     expect(deletedTables(db)).toEqual([
+      'sync_pull_cursor',
       'treatment_dose',
       'vaccination_injection',
       'sync_state',
@@ -216,7 +217,7 @@ describe('applyFixtures', () => {
     })
 
     expect(outcome).toBe('reset')
-    expect(deletedTables(db)).toHaveLength(8)
+    expect(deletedTables(db)).toHaveLength(9)
     expect(repositories.animals.create).not.toHaveBeenCalled()
     expect(storage.getItem(FIXTURES_STORAGE_KEY)).toBe(EMPTY_FIXTURES_TOKEN)
   })

@@ -112,11 +112,15 @@ describe('migration v6 : historique des vaccins et des traitements', () => {
   })
 
   it('porte la base en version 6 sans laisser de table temporaire', async () => {
-    await applyMigrations(db)
+    await applyMigrations(db, 6)
 
     const [version] = await db.query<{ user_version: number }>('PRAGMA user_version')
     expect(version?.user_version).toBe(6)
-    expect(await tableNames(db)).toEqual([...migrationTableNames()].sort())
+    expect(await tableNames(db)).toEqual(
+      migrationTableNames()
+        .filter((name) => name !== 'sync_pull_cursor')
+        .sort(),
+    )
     await expect(
       db.query(`SELECT name FROM sqlite_master WHERE sql LIKE '%_old%'`),
     ).resolves.toEqual([])

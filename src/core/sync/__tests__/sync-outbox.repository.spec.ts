@@ -46,17 +46,25 @@ describe('syncOutboxRepository', () => {
     })
   })
 
-  describe('last_pulled_at', () => {
-    it('vaut null tant que rien n’a été tiré', async () => {
-      await expect(repository.getLastPulledAt()).resolves.toBeNull()
+  describe('curseur de pull par entité', () => {
+    it('vaut null pour une entité jamais tirée', async () => {
+      await expect(repository.getLastPulledAt('animal')).resolves.toBeNull()
     })
 
-    it('mémorise puis efface le curseur de pull', async () => {
-      await repository.setLastPulledAt(T1)
-      await expect(repository.getLastPulledAt()).resolves.toBe(T1)
+    it('mémorise un curseur par entité, sans toucher aux autres', async () => {
+      await repository.setLastPulledAt('animal', T2)
+      await repository.setLastPulledAt('vaccination_injection', T1)
 
-      await repository.setLastPulledAt(null)
-      await expect(repository.getLastPulledAt()).resolves.toBeNull()
+      await expect(repository.getLastPulledAt('animal')).resolves.toBe(T2)
+      await expect(repository.getLastPulledAt('vaccination_injection')).resolves.toBe(T1)
+      await expect(repository.getLastPulledAt('treatment_dose')).resolves.toBeNull()
+    })
+
+    it('remplace le curseur déjà mémorisé d’une entité', async () => {
+      await repository.setLastPulledAt('animal', T1)
+      await repository.setLastPulledAt('animal', T2)
+
+      await expect(repository.getLastPulledAt('animal')).resolves.toBe(T2)
     })
   })
 

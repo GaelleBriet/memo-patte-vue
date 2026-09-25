@@ -11,8 +11,8 @@ const REMINDER_ENTITIES = new Set(['animal', 'vaccination', 'treatment'])
 export interface SyncCycleOutbox {
   listPending(): Promise<SyncOutboxEntry[]>
   removeIfUnchanged(entry: Pick<SyncOutboxEntry, 'entity' | 'entityId' | 'queuedAt'>): Promise<void>
-  getLastPulledAt(): Promise<string | null>
-  setLastPulledAt(lastPulledAt: string | null): Promise<void>
+  getLastPulledAt(entity: string): Promise<string | null>
+  setLastPulledAt(entity: string, lastPulledAt: string): Promise<void>
   isEnabled(): Promise<boolean>
 }
 
@@ -62,36 +62,38 @@ export function createSyncCycle(deps: SyncCycleDependencies): SyncCycle {
     ])
   }
 
-  async function pull(userId: string): Promise<void> {
-    const since = (await deps.outbox.getLastPulledAt()) ?? EPOCH
-    let maxCursorSeen = since
-    let touchedReminders = false
+  /** Vrai si la table a ramené une ligne plus récente que son curseur. */
+  async function pullTable(userId: string, table: SyncableTable): Promise<boolean> {
+    const since = (await deps.outbox.getLastPulledAt(table.entity)) ?? EPOCH
+    let pageCursor = since
 
-    for (const table of deps.tables) {
-      let pageCursor = since
+    for (;;) {
+      const page = await table.pullPage(userId, pageCursor, PULL_PAGE_SIZE)
+      if (page.rows.length === 0) break
 
-      for (;;) {
-        const page = await table.pullPage(userId, pageCursor, PULL_PAGE_SIZE)
-        if (page.rows.length === 0) break
+      await applyPage(table, page.rows)
 
-        await applyPage(table, page.rows)
-        if (REMINDER_ENTITIES.has(table.entity)) touchedReminders = true
-
-        const cursor = page.cursor
-        if (cursor !== null && cursor > maxCursorSeen) maxCursorSeen = cursor
-
-        if (cursor === null || cursor === pageCursor) {
-          if (page.rows.length >= PULL_PAGE_SIZE) {
-            console.warn(`Pagination du pull arrêtée sans progrès pour ${table.entity}.`)
-          }
-          break
+      const cursor = page.cursor
+      if (cursor === null || cursor <= pageCursor) {
+        if (page.rows.length >= PULL_PAGE_SIZE) {
+          console.warn(`Pagination du pull arrêtée sans progrès pour ${table.entity}.`)
         }
-        if (page.rows.length < PULL_PAGE_SIZE) break
-        pageCursor = cursor
+        break
       }
+      await deps.outbox.setLastPulledAt(table.entity, cursor)
+      pageCursor = cursor
+      if (page.rows.length < PULL_PAGE_SIZE) break
     }
 
-    if (maxCursorSeen !== since) await deps.outbox.setLastPulledAt(maxCursorSeen)
+    return pageCursor !== since
+  }
+
+  async function pull(userId: string): Promise<void> {
+    let touchedReminders = false
+    for (const table of deps.tables) {
+      const progressed = await pullTable(userId, table)
+      if (progressed && REMINDER_ENTITIES.has(table.entity)) touchedReminders = true
+    }
     if (touchedReminders) await deps.onRemindersOutdated?.()
   }
 

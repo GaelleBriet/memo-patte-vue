@@ -16,6 +16,7 @@ describe('migrationTableNames', () => {
       'sync_state',
       'vaccination_injection',
       'treatment_dose',
+      'sync_pull_cursor',
     ])
   })
 

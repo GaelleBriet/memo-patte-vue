@@ -17,12 +17,15 @@ interface FakeOutboxEntry {
   attempts: number
 }
 
-function createFakeOutbox(initial: FakeOutboxEntry[] = []): SyncCycleOutbox & {
+function createFakeOutbox(
+  initial: FakeOutboxEntry[] = [],
+  cursors: Record<string, string> = {},
+): SyncCycleOutbox & {
   entries: () => FakeOutboxEntry[]
-  lastPulledAt: () => string | null
+  cursor: (entity: string) => string | null
 } {
   let entries = [...initial]
-  let lastPulledAt: string | null = null
+  const lastPulledAt = new Map(Object.entries(cursors))
   return {
     async listPending() {
       return entries.map((entry) => ({ ...entry }))
@@ -37,17 +40,17 @@ function createFakeOutbox(initial: FakeOutboxEntry[] = []): SyncCycleOutbox & {
           ),
       )
     },
-    async getLastPulledAt() {
-      return lastPulledAt
+    async getLastPulledAt(entity) {
+      return lastPulledAt.get(entity) ?? null
     },
-    async setLastPulledAt(value) {
-      lastPulledAt = value
+    async setLastPulledAt(entity, value) {
+      lastPulledAt.set(entity, value)
     },
     async isEnabled() {
       return true
     },
     entries: () => entries,
-    lastPulledAt: () => lastPulledAt,
+    cursor: (entity) => lastPulledAt.get(entity) ?? null,
   }
 }
 
@@ -97,6 +100,8 @@ function fakeTable(
 function page(rows: SyncRow[], cursor: string | null): SyncPullPage {
   return { rows, cursor }
 }
+
+const T_ROW = '2026-01-01T00:00:00.000Z'
 
 function row(id: string, updatedAt: string, value: string): SyncRow {
   return { id, updated_at: updatedAt, value }
@@ -289,7 +294,7 @@ describe('createSyncCycle', () => {
   })
 
   describe('pull', () => {
-    it('applique une page distante et avance le curseur au maximum observé', async () => {
+    it('applique une page distante et avance le curseur de sa table', async () => {
       const animal = fakeTable('animal', [
         page([row('a1', '2026-01-01T00:00:00.000Z', 'Milo')], '2026-01-01T00:00:00.000Z'),
       ])
@@ -304,7 +309,7 @@ describe('createSyncCycle', () => {
 
       await cycle.runCycle()
 
-      expect(outbox.lastPulledAt()).toBe('2026-01-01T00:00:00.000Z')
+      expect(outbox.cursor('animal')).toBe('2026-01-01T00:00:00.000Z')
       const [scratch] = await db.query<{ value: string }>(
         'SELECT value FROM sync_scratch WHERE id = ?',
         ['a1'],
@@ -312,14 +317,14 @@ describe('createSyncCycle', () => {
       expect(scratch?.value).toBe('Milo')
     })
 
-    it('réinitialise le curseur de page à `since` pour chaque table (pas de saut entre tables)', async () => {
+    it('fait partir chaque table de son propre curseur', async () => {
       const animal = fakeTable('animal', [
         page([row('a1', '2026-01-05T00:00:00.000Z', 'x')], '2026-01-05T00:00:00.000Z'),
       ])
       const vaccination = fakeTable('vaccination', [
         page([row('v1', '2026-01-02T00:00:00.000Z', 'y')], '2026-01-02T00:00:00.000Z'),
       ])
-      const outbox = createFakeOutbox()
+      const outbox = createFakeOutbox([], { animal: '2026-01-04T00:00:00.000Z' })
       const cycle = createSyncCycle({
         db,
         outbox,
@@ -330,9 +335,46 @@ describe('createSyncCycle', () => {
 
       await cycle.runCycle()
 
-      expect(animal.pullCalls[0]?.since).toBe('1970-01-01T00:00:00.000Z')
+      expect(animal.pullCalls[0]?.since).toBe('2026-01-04T00:00:00.000Z')
       expect(vaccination.pullCalls[0]?.since).toBe('1970-01-01T00:00:00.000Z')
-      expect(outbox.lastPulledAt()).toBe('2026-01-05T00:00:00.000Z')
+      expect(outbox.cursor('animal')).toBe('2026-01-05T00:00:00.000Z')
+      expect(outbox.cursor('vaccination')).toBe('2026-01-02T00:00:00.000Z')
+    })
+
+    it('ne saute jamais une ligne écrite pendant le parcours d’une table suivante', async () => {
+      const serverAnimals = [{ stamp: '2026-01-01T00:00:00.000Z', row: row('a1', T_ROW, 'Milo') }]
+      const animal = fakeTable('animal')
+      animal.pullPage = async (_userId, since, limit) => {
+        animal.pullCalls.push({ since, limit })
+        const rows = serverAnimals.filter(({ stamp }) => stamp >= since)
+        return page(
+          rows.map((entry) => entry.row),
+          rows.at(-1)?.stamp ?? null,
+        )
+      }
+      const weight = fakeTable('weight_entry')
+      weight.pullPage = async () => {
+        if (serverAnimals.length === 1) {
+          serverAnimals.push({ stamp: '2026-01-02T00:00:00.000Z', row: row('a2', T_ROW, 'Luna') })
+        }
+        return page([row('w1', T_ROW, '4.2')], '2026-01-03T00:00:00.000Z')
+      }
+      const cycle = createSyncCycle({
+        db,
+        outbox: createFakeOutbox(),
+        tables: [animal, weight],
+        userId: () => 'user-1',
+        isEligible: () => true,
+      })
+
+      await cycle.runCycle()
+      await cycle.runCycle()
+
+      expect(animal.pullCalls[1]?.since).toBe('2026-01-01T00:00:00.000Z')
+      const names = await db.query<{ value: string }>(
+        "SELECT value FROM sync_scratch WHERE entity = 'animal' ORDER BY id",
+      )
+      expect(names).toEqual([{ value: 'Milo' }, { value: 'Luna' }])
     })
 
     it('poursuit la pagination au sein d’une même table avec le curseur de la page précédente', async () => {
@@ -357,7 +399,7 @@ describe('createSyncCycle', () => {
       expect(animal.pullCalls).toHaveLength(2)
       expect(animal.pullCalls[0]?.since).toBe('1970-01-01T00:00:00.000Z')
       expect(animal.pullCalls[1]?.since).toBe('2026-01-01T00:00:00.000Z')
-      expect(outbox.lastPulledAt()).toBe('2026-01-02T00:00:00.000Z')
+      expect(outbox.cursor('animal')).toBe('2026-01-02T00:00:00.000Z')
     })
 
     it('arrête la pagination sans boucler si une page pleine ne progresse pas', async () => {
@@ -385,7 +427,7 @@ describe('createSyncCycle', () => {
       warn.mockRestore()
     })
 
-    it("n'avance pas le curseur, et laisse déjà appliquées les tables précédentes, quand une table échoue", async () => {
+    it("garde les tables déjà tirées, et n'avance pas le curseur de la table qui échoue", async () => {
       const animal = fakeTable('animal', [
         page([row('a1', '2026-01-01T00:00:00.000Z', 'Milo')], '2026-01-01T00:00:00.000Z'),
       ])
@@ -404,7 +446,8 @@ describe('createSyncCycle', () => {
 
       await expect(cycle.runCycle()).rejects.toThrow('réseau')
 
-      expect(outbox.lastPulledAt()).toBeNull()
+      expect(outbox.cursor('animal')).toBe('2026-01-01T00:00:00.000Z')
+      expect(outbox.cursor('vaccination')).toBeNull()
       const [scratch] = await db.query<{ value: string }>(
         'SELECT value FROM sync_scratch WHERE id = ?',
         ['a1'],
@@ -448,6 +491,24 @@ describe('createSyncCycle', () => {
       await cycle.runCycle()
 
       expect(onRemindersOutdated).toHaveBeenCalledOnce()
+    })
+
+    it('ne reconstruit pas les rappels quand le pull ne ramène que la ligne déjà vue au curseur', async () => {
+      const seen = '2026-01-01T00:00:00.000Z'
+      const vaccination = fakeTable('vaccination', [page([row('v1', seen, 'x')], seen)])
+      const onRemindersOutdated = vi.fn<() => Promise<void>>().mockResolvedValue(undefined)
+      const cycle = createSyncCycle({
+        db,
+        outbox: createFakeOutbox([], { vaccination: seen }),
+        tables: [vaccination],
+        userId: () => 'user-1',
+        isEligible: () => true,
+        onRemindersOutdated,
+      })
+
+      await cycle.runCycle()
+
+      expect(onRemindersOutdated).not.toHaveBeenCalled()
     })
   })
 

@@ -193,6 +193,15 @@ export const migrations: DbMigration[] = [
       'PRAGMA user_version = 6',
     ],
   },
+  {
+    toVersion: 7,
+    statements: [
+      `CREATE TABLE IF NOT EXISTS sync_pull_cursor (
+        entity TEXT PRIMARY KEY NOT NULL,
+        last_pulled_at TEXT NOT NULL
+      );`,
+    ],
+  },
 ]
 
 /**
