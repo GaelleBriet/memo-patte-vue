@@ -52,7 +52,7 @@ Grotesk, 21 px, 700) + sous-libellé (11,5 px).
 
 | Colonne | Valeur | Sous-libellé |
 |---|---|---|
-| **Poids** | `24,5 kg`, ou `—` sans pesée | `+0,5 kg vs 25 août`, ou `Aucune pesée` |
+| **Poids** | `24,5 kg`, ou `—` sans pesée | la variation seule, sans date (`+0,5 kg`, `±0,0 kg`, #385), `Première pesée` ou `Aucune pesée` |
 | **Rappels** | nombre de vaccins en retard | `en retard` si > 0, sinon `à venir` |
 | **Traitements** | nombre de traitements actifs | `en cours` |
 
@@ -96,7 +96,7 @@ Même principe de carte unique :
 Carte unique contenant :
 
 - poids actuel en gros (Space Grotesk, 26 px) + unité `kg`
-- delta en vert : `+0,5 kg vs 25 août` (date de la pesée précédente, année hors de l'année en cours, #385)
+- delta en vert : `+0,5 kg depuis le 25 août` (date de la pesée précédente, année hors de l'année en cours, variation nulle datée de même, #385)
 - à droite, lien **« Voir l'historique »** + chevron
 - courbe SVG, à partir de deux pesées (piste C, choisie le 2026-09-23, #340) :
     - axe horizontal proportionnel au temps : la position d'une pesée suit sa
