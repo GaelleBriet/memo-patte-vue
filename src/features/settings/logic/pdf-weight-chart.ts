@@ -11,6 +11,7 @@ import {
   type ChartText,
   type WeightChartEntry,
 } from '@/shared/domain/weight-chart'
+import { withWeightUnit } from '@/shared/domain/weight-display'
 
 /** Coin haut gauche et largeur de la courbe sur la page, en mm. */
 export type ChartFrame = { x: number; y: number; width: number }
@@ -58,7 +59,7 @@ function layoutChart(doc: jsPDF, entries: readonly WeightChartEntry[], width: nu
   const labels: CarnetChartLabels = {
     max: (weight) => t('weight.chart.max', { weight }),
     min: (weight) => t('weight.chart.min', { weight }),
-    latest: (weight) => t('weight.chart.latest', { weight }),
+    latest: (weight) => withWeightUnit(t, weight),
   }
   // Mesurés en gras, jamais plus étroit que le romain des mois : la place réservée suffit aux deux.
   return buildCarnetWeightChart(entries, labels, {

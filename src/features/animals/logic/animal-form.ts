@@ -1,12 +1,15 @@
 import type { z } from 'zod'
 
 import { animalInputSchema, type Animal, type AnimalSpecies } from '../schema/animal.schema'
+import { recordedWeightIn, weightKgFromInput } from '@/shared/domain/weight-unit'
+import { currentWeightUnit } from '@/shared/domain/weight-unit-preference'
 
 export interface AnimalFormValues {
   name: string
   species: AnimalSpecies | null
   breed: string
   birthDate: string
+  /** Saisi dans l'unité choisie, enregistré en kg. */
   initialWeightKg: string
 }
 
@@ -36,7 +39,10 @@ export function animalFormValuesFrom(animal: Animal): AnimalFormValues {
     species: animal.species,
     breed: animal.breed ?? '',
     birthDate: animal.birthDate ?? '',
-    initialWeightKg: animal.initialWeightKg === null ? '' : String(animal.initialWeightKg),
+    initialWeightKg:
+      animal.initialWeightKg === null
+        ? ''
+        : String(recordedWeightIn(animal.initialWeightKg, currentWeightUnit())),
   }
 }
 
@@ -62,13 +68,21 @@ function errorKeyFor(field: AnimalFormErrorField, issue: z.core.$ZodIssue): stri
   return ERROR_KEYS[field]
 }
 
-export function validateAnimalForm(values: AnimalFormValues): AnimalFormResult {
+/** `storedInitialWeightKg` : gardé tel quel si la valeur proposée n'a pas bougé. */
+export function validateAnimalForm(
+  values: AnimalFormValues,
+  storedInitialWeightKg: number | null = null,
+): AnimalFormResult {
   const result = animalInputSchema.safeParse({
     name: values.name,
     species: values.species,
     breed: textOrNull(values.breed),
     birthDate: textOrNull(values.birthDate),
-    initialWeightKg: numberOrNull(values.initialWeightKg),
+    initialWeightKg: weightKgFromInput(
+      numberOrNull(values.initialWeightKg),
+      currentWeightUnit(),
+      storedInitialWeightKg,
+    ),
   })
 
   if (result.success) return { success: true, data: result.data }

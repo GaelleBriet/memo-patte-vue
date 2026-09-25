@@ -49,6 +49,8 @@ const DYNAMIC_I18N_KEYS = [
   '/^vaccinations\\.form\\.errors\\.(name|lastInjectionDate|lastInjectionDateFuture|dueDate)$/',
   '/^treatments\\.form\\.errors\\.(name|type|frequency|frequencyMax|lastDoseDate|lastDoseDateFuture|nextDueDate|nextDueDateBeforeLastDose)$/',
   '/^weight\\.form\\.errors\\.(animalId|weightKg|weightKgMax|measuredOn|measuredOnFuture)$/',
+  '/^weight\\.(unit|unitName)\\.(kg|lb)$/',
+  '/^settings\\.data\\.weightUnit\\.spoken\\.(kg|lb)$/',
   '/^vaccinations\\.section\\.status\\.(overdue|upToDate|none)$/',
   '/^settings\\.pdf\\.status\\.(overdue|upToDate|none)$/',
   '/^treatments\\.type\\.(deworming|antiparasitic)$/',

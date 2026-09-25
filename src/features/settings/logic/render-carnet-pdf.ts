@@ -1,6 +1,7 @@
 import { jsPDF } from 'jspdf'
 
-import { formatKg, formatLongDate, formatNumericDate } from '@/shared/utils/format'
+import { weightText } from '@/shared/domain/weight-display'
+import { formatLongDate, formatNumericDate } from '@/shared/utils/format'
 import i18n from '@/core/i18n'
 import { drawWeightChart, weightChartHeight } from './pdf-weight-chart'
 import type { CarnetPdfContent, PdfDoseSeries, PdfDueState, PdfTreatmentRow } from './pdf-content'
@@ -318,7 +319,7 @@ function renderWeightSection(
   for (const entry of entries) {
     cursor.makeRoom(ROW_DESCENT_MM)
     doc.text(formatNumericDate(entry.measuredOn), MARGIN_MM, cursor.y)
-    doc.text(`${formatKg(entry.weightKg)} ${t('weight.unit')}`, MARGIN_MM + 40, cursor.y)
+    doc.text(weightText(t, entry.weightKg), MARGIN_MM + 40, cursor.y)
     cursor.y += ROW_ADVANCE_MM
   }
   cursor.y += SECTION_GAP_MM

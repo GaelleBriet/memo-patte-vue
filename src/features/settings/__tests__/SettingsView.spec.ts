@@ -19,6 +19,11 @@ import { writeStoredPlusStatus } from '@/features/purchase/logic/plus-status-sto
 import { billingService } from '@/features/purchase/service/billing.service'
 import { usePurchaseStore } from '@/features/purchase/store/purchase.store'
 import PlusBadge from '@/shared/components/PlusBadge.vue'
+import {
+  applyWeightUnit,
+  currentWeightUnit,
+  WEIGHT_UNIT_STORAGE_KEY,
+} from '@/shared/domain/weight-unit-preference'
 
 vi.mock('../service/data-export.service', () => ({
   dataExportService: { exportData: vi.fn<() => Promise<'shared'>>() },
@@ -104,6 +109,7 @@ afterEach(() => {
   wrapper?.unmount()
   wrapper = null
   document.body.innerHTML = ''
+  applyWeightUnit('kg')
   vi.restoreAllMocks()
   vi.unstubAllGlobals()
 })
@@ -298,6 +304,56 @@ describe('SettingsView', () => {
       expect(optOut).toHaveBeenCalledOnce()
       expect(optIn).not.toHaveBeenCalled()
       expect(interrupteur(wrapper).element.checked).toBe(false)
+    })
+  })
+
+  describe('Unité de poids (U1)', () => {
+    function unites(wrapper: VueWrapper) {
+      return wrapper.findAll('.settings-row--weight-unit .form-segmented button')
+    }
+
+    it('ouvre « Mes données » sur l’unité de poids, en choix exclusif nommé', async () => {
+      const wrapper = await monter()
+      const ligne = wrapper.get('.settings-row--weight-unit')
+      const groupe = ligne.get('.form-segmented')
+
+      expect(wrapper.findAll('.section-card')[1]!.find('.settings-row').classes()).toContain(
+        'settings-row--weight-unit',
+      )
+      expect(ligne.get('.settings-row__label').text()).toBe('Unité de poids')
+      expect(ligne.get('.settings-row__hint').text()).toBe('Pour afficher et saisir les pesées')
+      expect(groupe.attributes('role')).toBe('radiogroup')
+      expect(document.getElementById(groupe.attributes('aria-labelledby')!)?.textContent).toBe(
+        'Unité de poids',
+      )
+      expect(unites(wrapper).map((bouton) => bouton.text())).toEqual(['kgkilogrammes', 'lblivres'])
+      expect(unites(wrapper).map((bouton) => bouton.attributes('aria-label'))).toEqual([
+        'Kilogrammes, kg',
+        'Livres, lb',
+      ])
+      expect(unites(wrapper).map((bouton) => bouton.attributes('aria-checked'))).toEqual([
+        'true',
+        'false',
+      ])
+    })
+
+    it('retient les livres sur l’appareil et les applique aussitôt', async () => {
+      const wrapper = await monter()
+
+      await unites(wrapper)[1]!.trigger('click')
+
+      expect(currentWeightUnit()).toBe('lb')
+      expect(localStorage.getItem(WEIGHT_UNIT_STORAGE_KEY)).toBe('lb')
+      expect(unites(wrapper)[1]!.attributes('aria-checked')).toBe('true')
+    })
+
+    it('garde toujours une unité cochée', async () => {
+      const wrapper = await monter()
+
+      await unites(wrapper)[0]!.trigger('click')
+
+      expect(currentWeightUnit()).toBe('kg')
+      expect(unites(wrapper)[0]!.attributes('aria-checked')).toBe('true')
     })
   })
 

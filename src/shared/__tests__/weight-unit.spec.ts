@@ -8,7 +8,7 @@ import {
   KG_PER_LB,
   maxWeightIn,
   toKg,
-  weightInputValue,
+  recordedWeightIn,
   weightKgFromInput,
 } from '../domain/weight-unit'
 
@@ -58,14 +58,14 @@ describe('maxWeightIn', () => {
   })
 })
 
-describe('weightInputValue', () => {
+describe('recordedWeightIn', () => {
   it('rend les kilos tels qu’enregistrés', () => {
-    expect(weightInputValue(24.55, 'kg')).toBe(24.55)
+    expect(recordedWeightIn(24.55, 'kg')).toBe(24.55)
   })
 
   it('rend les livres au centième', () => {
-    expect(weightInputValue(24.55, 'lb')).toBe(54.12)
-    expect(weightInputValue(toKg(54.2, 'lb'), 'lb')).toBe(54.2)
+    expect(recordedWeightIn(24.55, 'lb')).toBe(54.12)
+    expect(recordedWeightIn(toKg(54.2, 'lb'), 'lb')).toBe(54.2)
   })
 })
 
@@ -102,7 +102,7 @@ describe('aller-retour', () => {
   it('repropose à l’identique toute pesée saisie au centième en livres', () => {
     const drifted = range(0.01, 100, 0.01).filter((typed) => {
       const kg = weightKgFromInput(typed, 'lb', null)!
-      return weightInputValue(kg, 'lb') !== typed
+      return recordedWeightIn(kg, 'lb') !== typed
     })
 
     expect(drifted).toEqual([])
@@ -111,7 +111,7 @@ describe('aller-retour', () => {
   it('ne bouge plus une pesée corrigée puis réenregistrée sans toucher au poids', () => {
     let kg = 24.55
     for (let pass = 0; pass < 5; pass += 1) {
-      kg = weightKgFromInput(weightInputValue(kg, 'lb'), 'lb', kg)!
+      kg = weightKgFromInput(recordedWeightIn(kg, 'lb'), 'lb', kg)!
     }
 
     expect(kg).toBe(24.55)

@@ -10,6 +10,8 @@ import {
   type ChartPlot,
   type WeightChartEntry,
 } from '../domain/weight-chart'
+import { withWeightUnit } from '../domain/weight-display'
+import { applyWeightUnit } from '../domain/weight-unit-preference'
 import i18n, { applyLocale } from '@/core/i18n'
 
 const LIBELLES: CarnetChartLabels = {
@@ -399,7 +401,7 @@ describe('buildCarnetWeightChart — libellés reçus du composant', () => {
     const anglais: CarnetChartLabels = {
       max: (weight) => t('weight.chart.max', { weight }),
       min: (weight) => t('weight.chart.min', { weight }),
-      latest: (weight) => t('weight.chart.latest', { weight }),
+      latest: (weight) => withWeightUnit(t, weight),
     }
 
     const chart = carnet(LUNA_1_AN, 320, 1, anglais)!
@@ -864,6 +866,38 @@ describe('buildHistoryWeightChart', () => {
     const chart = historique(MILO_6_MOIS, 320)!
 
     expect(chart.points[2]).toMatchObject({ measuredOn: '2026-04-22', weightKg: 24 })
+  })
+})
+
+describe('en livres', () => {
+  afterEach(() => applyWeightUnit('kg'))
+
+  it('Carnet : écrit le plus haut, le plus bas et la dernière pesée en livres', () => {
+    applyWeightUnit('lb')
+
+    const chart = carnet(LUNA_1_AN, 320)!
+
+    expect(chart.max!.text).toBe('max 10,1')
+    expect(chart.min!.text).toBe('min 9,0')
+    expect(chart.latest.text).toBe(LIBELLES.latest('9,5'))
+  })
+
+  it('Carnet : garde la forme de la courbe', () => {
+    const enKilos = carnet(MILO_6_MOIS, 320)!.points.map((point) => point.y)
+    applyWeightUnit('lb')
+    const enLivres = carnet(MILO_6_MOIS, 320)!.points.map((point) => point.y)
+
+    expect(enLivres[0]).toBeGreaterThan(enLivres[5]!)
+    expect(enLivres).toHaveLength(enKilos.length)
+  })
+
+  it('Historique : gradue en livres rondes et garde le poids en kg de chaque point', () => {
+    applyWeightUnit('lb')
+
+    const chart = historique(MILO_6_MOIS, 320)!
+
+    expect(chart.gridLines.map((line) => line.label.text)).toEqual(['51', '52', '53', '54', '55'])
+    expect(chart.points[5]).toMatchObject({ measuredOn: '2026-09-15', weightKg: 24.5 })
   })
 })
 

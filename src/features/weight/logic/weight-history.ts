@@ -1,8 +1,7 @@
 import { weightSummary, type WeightDelta, type WeightPoint } from './weight-summary'
+import type { WeightTrend } from '@/shared/domain/weight-delta'
 
 export type WeightHistoryEntry = WeightPoint & { id: string }
-
-export type WeightTrend = 'up' | 'down' | 'flat'
 
 /** H1 : au moins deux pesées ; H2 : une seule ; H3 : aucune. */
 export type WeightHistoryState = 'full' | 'single' | 'empty'

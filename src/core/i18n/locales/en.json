@@ -41,8 +41,7 @@
       },
       "initialWeightKg": {
         "label": "Starting weight",
-        "placeholder": "0.0",
-        "suffix": "kg"
+        "placeholder": "0.0"
       },
       "submit": "Create",
       "submitting": "Creating…",
@@ -52,8 +51,8 @@
         "name": "Name is required.",
         "species": "Choose a species.",
         "birthDate": "Date of birth can’t be in the future.",
-        "initialWeightKg": "Weight must be more than 0 kg.",
-        "initialWeightKgMax": "Weight must be at most 200 kg.",
+        "initialWeightKg": "Weight must be more than 0 {unit}.",
+        "initialWeightKgMax": "Weight must be at most {max} {unit}.",
         "notFound": "We can’t find this pet.",
         "save": "Couldn’t save this pet. Try again.",
         "photo": "Couldn’t load the photo. Try again."
@@ -427,11 +426,18 @@
     }
   },
   "weight": {
-    "unit": "kg",
+    "unit": {
+      "kg": "kg",
+      "lb": "lb"
+    },
+    "unitName": {
+      "kg": "kilograms",
+      "lb": "pounds"
+    },
+    "value": "{weight} {unit}",
     "delta": {
-      "since": "{delta} kg since {date}",
-      "first": "First weigh-in · {date}",
-      "value": "{delta} kg"
+      "since": "{delta} since {date}",
+      "first": "First weigh-in · {date}"
     },
     "section": {
       "title": "Weight tracking",
@@ -444,8 +450,7 @@
     "chart": {
       "max": "max {weight}",
       "min": "min {weight}",
-      "latest": "{weight} kg",
-      "point": "Weigh-in on {date}, {weight} kg",
+      "point": "Weigh-in on {date}, {weight}",
       "period": "{from} – {to}",
       "count": "{n} weigh-in | {n} weigh-ins",
       "start": "{count} · start of tracking",
@@ -461,9 +466,8 @@
       "reset": "Back to current weight",
       "selected": "Weigh-in on {date}",
       "list": "All weigh-ins",
-      "value": "{weight} kg",
       "rowHint": "Edit or delete",
-      "initial": "Weight on arrival: {weight} kg",
+      "initial": "Weight on arrival: {weight}",
       "link": "View history"
     },
     "form": {
@@ -477,8 +481,10 @@
       },
       "weightKg": {
         "label": "Weight",
-        "placeholder": "0.0"
+        "placeholder": "0.0",
+        "spoken": "Weight in {unit}"
       },
+      "poundsHint": "In pounds. You can change the unit in Settings.",
       "measuredOn": {
         "label": "Weigh-in date"
       },
@@ -491,8 +497,8 @@
       },
       "errors": {
         "animalId": "Choose a pet.",
-        "weightKg": "Weight must be more than 0 kg.",
-        "weightKgMax": "Weight must be at most 200 kg.",
+        "weightKg": "Weight must be more than 0 {unit}.",
+        "weightKgMax": "Weight must be at most {max} {unit}.",
         "measuredOn": "Date is required.",
         "measuredOnFuture": "Date can’t be in the future.",
         "save": "Couldn’t save this weigh-in. Try again.",
@@ -617,6 +623,14 @@
     },
     "data": {
       "title": "My data",
+      "weightUnit": {
+        "label": "Weight unit",
+        "hint": "For showing and entering weigh-ins",
+        "spoken": {
+          "kg": "Kilograms, kg",
+          "lb": "Pounds, lb"
+        }
+      },
       "export": "Export my data",
       "exportEmpty": "Nothing to export yet",
       "exportPdf": "Export to PDF",

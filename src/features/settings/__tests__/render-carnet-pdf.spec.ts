@@ -1,5 +1,5 @@
 import { jsPDF } from 'jspdf'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 
 import { drawWeightChart } from '../logic/pdf-weight-chart'
 import { renderCarnetPdf } from '../logic/render-carnet-pdf'
@@ -7,6 +7,7 @@ import { PHOTO_JPEG } from './pdf-fixture'
 import { readPdf, sameColor, textBounds, type PdfPath, type PdfText } from './pdf-reader'
 import type { CarnetPdfContent } from '../logic/pdf-content'
 import vuetify from '@/core/theme/vuetify'
+import { applyWeightUnit } from '@/shared/domain/weight-unit-preference'
 
 const MM_PER_PT = 25.4 / 72
 const ASCENT_EM = 0.75
@@ -148,6 +149,8 @@ describe('renderCarnetPdf — historique', () => {
 })
 
 describe('renderCarnetPdf — courbe de poids', () => {
+  afterEach(() => applyWeightUnit('kg'))
+
   it('le PDF d’un animal à plusieurs pesées contient la courbe sur l’axe du temps', () => {
     const content = { ...FULL_CONTENT, weightEntries: PESEES_IRREGULIERES }
     const { texts, paths } = readPdf(renderCarnetPdf(content, '0.1.24', null))
@@ -170,6 +173,18 @@ describe('renderCarnetPdf — courbe de poids', () => {
     expect(ecrits).not.toContain('4,5')
   })
 
+  it('écrit la courbe et le tableau des pesées en livres quand c’est l’unité choisie', () => {
+    applyWeightUnit('lb')
+    const content = { ...FULL_CONTENT, weightEntries: PESEES_IRREGULIERES }
+
+    const ecrits = readPdf(renderCarnetPdf(content, '0.1.24', null)).texts.map((text) => text.text)
+
+    expect(ecrits).toEqual(
+      expect.arrayContaining(['max 10,1', 'min 9,0', '9,5\u00a0lb', '20/09/2025', '9,3\u00a0lb']),
+    )
+    expect(ecrits.join(' ')).not.toContain('kg')
+  })
+
   it('garde le tableau des pesées, sans courbe sous deux pesées', () => {
     const content = {
       ...FULL_CONTENT,
@@ -181,7 +196,9 @@ describe('renderCarnetPdf — courbe de poids', () => {
     )
 
     expect(tracesDeLaCourbe).toEqual([])
-    expect(texts.map((text) => text.text)).toEqual(expect.arrayContaining(['01/06/2026', '4,3 kg']))
+    expect(texts.map((text) => text.text)).toEqual(
+      expect.arrayContaining(['01/06/2026', '4,3\u00a0kg']),
+    )
   })
 
   it('commence la courbe sous le titre « Poids » comme la première ligne d’une section', () => {

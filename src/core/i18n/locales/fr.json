@@ -41,8 +41,7 @@
       },
       "initialWeightKg": {
         "label": "Poids initial",
-        "placeholder": "0,0",
-        "suffix": "kg"
+        "placeholder": "0,0"
       },
       "submit": "Créer",
       "submitting": "Création…",
@@ -52,8 +51,8 @@
         "name": "Le nom est obligatoire.",
         "species": "Choisis une espèce.",
         "birthDate": "La date de naissance ne peut pas être dans le futur.",
-        "initialWeightKg": "Le poids doit être supérieur à 0 kg.",
-        "initialWeightKgMax": "Le poids doit être de 200 kg maximum.",
+        "initialWeightKg": "Le poids doit être supérieur à 0 {unit}.",
+        "initialWeightKgMax": "Le poids doit être de {max} {unit} maximum.",
         "notFound": "Cet animal est introuvable.",
         "save": "L’animal n’a pas pu être enregistré. Réessaie.",
         "photo": "La photo n’a pas pu être chargée. Réessaie."
@@ -427,11 +426,18 @@
     }
   },
   "weight": {
-    "unit": "kg",
+    "unit": {
+      "kg": "kg",
+      "lb": "lb"
+    },
+    "unitName": {
+      "kg": "kilogrammes",
+      "lb": "livres"
+    },
+    "value": "{weight} {unit}",
     "delta": {
-      "since": "{delta} kg depuis le {date}",
-      "first": "Première pesée · {date}",
-      "value": "{delta} kg"
+      "since": "{delta} depuis le {date}",
+      "first": "Première pesée · {date}"
     },
     "section": {
       "title": "Suivi de poids",
@@ -444,8 +450,7 @@
     "chart": {
       "max": "max {weight}",
       "min": "min {weight}",
-      "latest": "{weight} kg",
-      "point": "Pesée du {date}, {weight} kg",
+      "point": "Pesée du {date}, {weight}",
       "period": "{from} – {to}",
       "count": "{n} pesée | {n} pesées",
       "start": "{count} · début du suivi",
@@ -461,9 +466,8 @@
       "reset": "Revenir au poids actuel",
       "selected": "Pesée du {date}",
       "list": "Toutes les pesées",
-      "value": "{weight} kg",
       "rowHint": "Modifier ou supprimer",
-      "initial": "Poids à l’arrivée : {weight} kg",
+      "initial": "Poids à l’arrivée : {weight}",
       "link": "Voir l’historique"
     },
     "form": {
@@ -477,8 +481,10 @@
       },
       "weightKg": {
         "label": "Poids",
-        "placeholder": "0,0"
+        "placeholder": "0,0",
+        "spoken": "Poids en {unit}"
       },
+      "poundsHint": "En livres. Tu peux changer d’unité dans Paramètres.",
       "measuredOn": {
         "label": "Date de la pesée"
       },
@@ -491,8 +497,8 @@
       },
       "errors": {
         "animalId": "Choisis un animal.",
-        "weightKg": "Le poids doit être supérieur à 0 kg.",
-        "weightKgMax": "Le poids doit être de 200 kg maximum.",
+        "weightKg": "Le poids doit être supérieur à 0 {unit}.",
+        "weightKgMax": "Le poids doit être de {max} {unit} maximum.",
         "measuredOn": "La date est obligatoire.",
         "measuredOnFuture": "La date ne peut pas être dans le futur.",
         "save": "La pesée n’a pas pu être enregistrée. Réessaie.",
@@ -617,6 +623,14 @@
     },
     "data": {
       "title": "Mes données",
+      "weightUnit": {
+        "label": "Unité de poids",
+        "hint": "Pour afficher et saisir les pesées",
+        "spoken": {
+          "kg": "Kilogrammes, kg",
+          "lb": "Livres, lb"
+        }
+      },
       "export": "Exporter mes données",
       "exportEmpty": "Rien à exporter pour l’instant",
       "exportPdf": "Exporter en PDF",

@@ -15,7 +15,8 @@ import { useWeightEntries } from '../composables/use-weight-entries'
 import SectionCard from '@/shared/components/SectionCard.vue'
 import WeightSparkline from '@/shared/components/WeightSparkline.vue'
 import { weightDeltaSinceText } from '@/shared/domain/weight-delta'
-import { formatKg, formatLongDate } from '@/shared/utils/format'
+import { weightNumber, weightUnitText } from '@/shared/domain/weight-display'
+import { formatLongDate } from '@/shared/utils/format'
 
 const props = defineProps<{
   animalId: string
@@ -34,7 +35,7 @@ const { entries, hasError } = useWeightEntries(() => props.animalId)
 
 const summary = computed<WeightSectionSummary>(() => weightSummary(entries.value))
 
-const current = computed(() => (summary.value ? formatKg(summary.value.latest.weightKg) : null))
+const current = computed(() => (summary.value ? weightNumber(summary.value.latest.weightKg) : null))
 
 const delta = computed(() => (summary.value ? describeDelta(summary.value.delta) : null))
 
@@ -59,7 +60,7 @@ watch(summary, (value) => emit('summary', value), { immediate: true })
     <div v-if="summary && delta" class="section-card__body weight-section__body">
       <div class="weight-section__headline">
         <span class="weight-section__current">{{ current }}</span>
-        <span class="weight-section__unit">{{ t('weight.unit') }}</span>
+        <span class="weight-section__unit">{{ weightUnitText(t) }}</span>
         <router-link
           class="weight-section__history"
           :to="{ name: 'weight-history', params: { animalId } }"

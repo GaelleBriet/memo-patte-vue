@@ -7,7 +7,8 @@ export type WeightUnit = (typeof WEIGHT_UNITS)[number]
 /** Valeur légale de la livre internationale. */
 export const KG_PER_LB = 0.45359237
 
-const INPUT_DECIMALS_LB = 2
+// Au-delà du centième de livre, il ne reste que le bruit de la conversion.
+const RECORDED_DECIMALS_LB = 2
 
 function roundTo(value: number, decimals: number): number {
   const factor = 10 ** decimals
@@ -31,9 +32,9 @@ export function maxWeightIn(unit: WeightUnit): number {
   return Math.floor(roundTo(fromKg(MAX_WEIGHT_KG, unit), 6) * 10) / 10
 }
 
-/** Valeur proposée pour corriger un poids : exacte en kg, au centième en lb. */
-export function weightInputValue(kg: number, unit: WeightUnit): number {
-  return unit === 'kg' ? kg : roundTo(fromKg(kg, unit), INPUT_DECIMALS_LB)
+/** Poids enregistré dans l'unité, pour le corriger ou l'exporter : tel quel en kg, au centième en lb. */
+export function recordedWeightIn(kg: number, unit: WeightUnit): number {
+  return unit === 'kg' ? kg : roundTo(fromKg(kg, unit), RECORDED_DECIMALS_LB)
 }
 
 /** Poids à enregistrer ; la valeur proposée, rendue telle quelle, garde le poids enregistré. */
@@ -43,7 +44,7 @@ export function weightKgFromInput(
   storedKg: number | null,
 ): number | null {
   if (value === null) return null
-  if (storedKg !== null && weightInputValue(storedKg, unit) === value) return storedKg
+  if (storedKg !== null && recordedWeightIn(storedKg, unit) === value) return storedKg
   return toKg(value, unit)
 }
 

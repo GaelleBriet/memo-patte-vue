@@ -1,4 +1,5 @@
-import { formatKg, formatKgAxis, formatMonthShort } from '../utils/format'
+import { displayedWeight } from './weight-display'
+import { formatMonthShort, formatWeight, formatWeightAxis } from '../utils/format'
 
 /** Les courbes reçoivent les pesées dans l'ordre du temps. */
 export type WeightChartEntry = { weightKg: number; measuredOn: string }
@@ -77,9 +78,9 @@ type Layout = { height: number; left: number; right: number; top: number; bottom
 const CARNET_LAYOUT: Layout = { height: 160, left: 8, right: 8, top: 34, bottom: 26 }
 const HISTORY_LAYOUT: Layout = { height: 190, left: 36, right: 10, top: 12, bottom: 22 }
 
-const CARNET_MARGIN_KG = 0.3
-const TICK_STEPS_KG = [0.1, 0.2, 0.5, 1, 2, 5, 10]
-const TICK_PADDING_KG = 0.1
+const CARNET_MARGIN = 0.3
+const TICK_STEPS = [0.1, 0.2, 0.5, 1, 2, 5, 10]
+const TICK_PADDING = 0.1
 const MAX_TICKS = 5
 const MONTH_STEPS = [1, 2, 3, 6, 12]
 const MAX_MONTH_LABELS = 6
@@ -234,10 +235,10 @@ function monthAxis(
 function timeChart(
   entries: readonly WeightChartEntry[],
   layout: Layout,
-  lowKg: number,
-  highKg: number,
+  low: number,
+  high: number,
   { width, font }: { width: number; font: ChartFont },
-): { chart: TimeChart; yOf: (weightKg: number) => number } {
+): { chart: TimeChart; yOf: (weight: number) => number } {
   const plot = {
     left: layout.left,
     right: width - layout.right,
@@ -255,12 +256,12 @@ function timeChart(
         ? (plot.left + plot.right) / 2
         : plot.left + ((dayNumber(isoDate) - firstDay) / span) * (plot.right - plot.left),
     )
-  const yOf = (weightKg: number) =>
-    round(plot.bottom - ((weightKg - lowKg) / (highKg - lowKg)) * (plot.bottom - plot.top))
+  const yOf = (weight: number) =>
+    round(plot.bottom - ((weight - low) / (high - low)) * (plot.bottom - plot.top))
 
   const points = entries.map((entry) => ({
     x: xOf(entry.measuredOn),
-    y: yOf(entry.weightKg),
+    y: yOf(displayedWeight(entry.weightKg)),
     weightKg: entry.weightKg,
     measuredOn: entry.measuredOn,
   }))
@@ -349,15 +350,15 @@ function extremeLabel(
   )
 }
 
-// 0,3 kg, ou plus s'il le faut pour écrire « min » sous son point sans toucher la ligne de base.
-function carnetLowMarginKg(minKg: number, highKg: number, font: ChartFont): number {
+// 0,3 de l'unité, ou plus s'il le faut pour écrire « min » sous son point sans toucher la ligne de base.
+function carnetLowMargin(min: number, high: number, font: ChartFont): number {
   const plotHeight = CARNET_LAYOUT.height - CARNET_LAYOUT.top - CARNET_LAYOUT.bottom
   // Le pixel de plus absorbe l'arrondi au dixième du point puis de son étiquette.
   const room = GAP_BELOW_POINT + font.ascent + font.descent + BASELINE_CLEARANCE + LABEL_GAP
-  return Math.max(CARNET_MARGIN_KG, (room * (highKg - minKg)) / (plotHeight - room))
+  return Math.max(CARNET_MARGIN, (room * (high - min)) / (plotHeight - room))
 }
 
-/** Carnet : échelle min / max ± 0,3 kg, seuls le plus haut, le plus bas et la dernière pesée écrits. */
+/** Carnet : échelle min / max ± 0,3 de l'unité, seuls le plus haut, le plus bas et la dernière pesée écrits. */
 export function buildCarnetWeightChart(
   entries: readonly WeightChartEntry[],
   labels: CarnetChartLabels,
@@ -369,12 +370,18 @@ export function buildCarnetWeightChart(
   const weights = entries.map((entry) => entry.weightKg)
   const maxKg = Math.max(...weights)
   const minKg = Math.min(...weights)
-  const highKg = maxKg + CARNET_MARGIN_KG
+  const highest = displayedWeight(maxKg)
+  const lowest = displayedWeight(minKg)
+  const high = highest + CARNET_MARGIN
   const minWritten = entries[entries.length - 1]!.weightKg !== minKg
-  const lowKg = minKg - (minWritten ? carnetLowMarginKg(minKg, highKg, font) : CARNET_MARGIN_KG)
-  const { chart } = timeChart(entries, CARNET_LAYOUT, lowKg, highKg, { width, font })
+  const low = lowest - (minWritten ? carnetLowMargin(lowest, high, font) : CARNET_MARGIN)
+  const { chart } = timeChart(entries, CARNET_LAYOUT, low, high, { width, font })
   const last = chart.points[chart.points.length - 1]!
-  const latest = latestPill(chart, labels.latest(formatKg(last.weightKg)), font)
+  const latest = latestPill(
+    chart,
+    labels.latest(formatWeight(displayedWeight(last.weightKg))),
+    font,
+  )
   const obstacles = [latest.box, ...chart.months.map((month) => month.box)]
 
   const above = { dx: 0, dy: -(GAP_ABOVE_POINT + font.descent) }
@@ -388,7 +395,7 @@ export function buildCarnetWeightChart(
   const max = extremeLabel(
     chart,
     maxKg,
-    labels.max(formatKg(maxKg)),
+    labels.max(formatWeight(highest)),
     [above, below, clearOfLatest],
     obstacles,
     font,
@@ -396,7 +403,7 @@ export function buildCarnetWeightChart(
   const min = extremeLabel(
     chart,
     minKg,
-    labels.min(formatKg(minKg)),
+    labels.min(formatWeight(lowest)),
     [below, toTheRight, toTheLeft],
     max ? [...obstacles, max.box] : obstacles,
     font,
@@ -405,30 +412,30 @@ export function buildCarnetWeightChart(
   return { ...chart, max, min, latest }
 }
 
-/** Graduations en kg ronds encadrant les pesées : trois à cinq lignes, sauf au-delà du pas de 10 kg. */
-export function weightAxisTicks(minKg: number, maxKg: number): number[] {
+/** Graduations rondes dans l'unité affichée encadrant les pesées : trois à cinq lignes, sauf au-delà du pas de 10. */
+export function weightAxisTicks(min: number, max: number): number[] {
   const ticksFor = (step: number) => {
     // La division flottante rend 24,4 / 0,1 = 243,999… : sans tolérance, une graduation de trop.
-    const low = Math.floor((minKg - TICK_PADDING_KG) / step + 1e-9)
-    const high = Math.ceil((maxKg + TICK_PADDING_KG) / step - 1e-9)
+    const low = Math.floor((min - TICK_PADDING) / step + 1e-9)
+    const high = Math.ceil((max + TICK_PADDING) / step - 1e-9)
     return Array.from({ length: high - low + 1 }, (_, index) => round((low + index) * step))
   }
 
-  for (const step of TICK_STEPS_KG) {
+  for (const step of TICK_STEPS) {
     const ticks = ticksFor(step)
     if (ticks.length <= MAX_TICKS) return ticks
   }
-  return ticksFor(TICK_STEPS_KG[TICK_STEPS_KG.length - 1]!)
+  return ticksFor(TICK_STEPS[TICK_STEPS.length - 1]!)
 }
 
-/** Historique : repères en kg ronds, aucun chiffre sur les points ; une pesée seule se centre. */
+/** Historique : repères ronds dans l'unité affichée, aucun chiffre sur les points ; une pesée seule se centre. */
 export function buildHistoryWeightChart(
   entries: readonly WeightChartEntry[],
   { width = DEFAULT_CHART_WIDTH, ...measure }: ChartMeasure = {},
 ): HistoryWeightChart | null {
   if (entries.length === 0) return null
 
-  const weights = entries.map((entry) => entry.weightKg)
+  const weights = entries.map((entry) => displayedWeight(entry.weightKg))
   const ticks = weightAxisTicks(Math.min(...weights), Math.max(...weights))
   const { chart, yOf } = timeChart(entries, HISTORY_LAYOUT, ticks[0]!, ticks[ticks.length - 1]!, {
     width,
@@ -437,14 +444,14 @@ export function buildHistoryWeightChart(
 
   return {
     ...chart,
-    gridLines: ticks.map((weightKg) => {
-      const y = yOf(weightKg)
+    gridLines: ticks.map((tick) => {
+      const y = yOf(tick)
       return {
         y,
         label: {
           x: chart.plot.left - GRID_LABEL_GAP,
           y: round(y + GRID_LABEL_BASELINE),
-          text: formatKgAxis(weightKg),
+          text: formatWeightAxis(tick),
         },
       }
     }),

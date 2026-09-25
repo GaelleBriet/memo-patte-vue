@@ -11,8 +11,9 @@ import {
   nearestPointIndex,
   type WeightChartEntry,
 } from '../domain/weight-chart'
+import { weightText, weightUnitText } from '../domain/weight-display'
 import { weightPagePeriod, weightPages } from '../domain/weight-pages'
-import { formatFullDate, formatKg, formatMonthYear } from '../utils/format'
+import { formatFullDate, formatMonthYear } from '../utils/format'
 
 const props = defineProps<{
   entries: readonly WeightChartEntry[]
@@ -81,7 +82,7 @@ const valueText = computed(() => {
   return point
     ? t('weight.chart.point', {
         date: formatFullDate(point.measuredOn),
-        weight: formatKg(point.weightKg),
+        weight: weightText(t, point.weightKg),
       })
     : undefined
 })
@@ -170,7 +171,7 @@ defineExpose({
         <v-icon icon="ms:chevron_right" size="24" />
       </button>
     </div>
-    <span class="weight-history-chart__unit" aria-hidden="true">{{ t('weight.unit') }}</span>
+    <span class="weight-history-chart__unit" aria-hidden="true">{{ weightUnitText(t) }}</span>
     <svg
       ref="svg"
       class="weight-history-chart__svg"

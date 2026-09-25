@@ -2,10 +2,15 @@
 export interface SegmentedOption<T extends string = string> {
   value: T
   label: string
+  /** Seconde ligne sous le libellé ; l'option cochée ne porte alors plus de coche. */
+  hint?: string
+  ariaLabel?: string
 }
 </script>
 
 <script setup lang="ts" generic="T extends string">
+import { computed } from 'vue'
+
 const props = defineProps<{
   modelValue: T | null
   options: readonly SegmentedOption<T>[]
@@ -16,6 +21,8 @@ const emit = defineEmits<{
   'update:modelValue': [value: T | null]
 }>()
 
+const isStacked = computed(() => props.options.some((option) => option.hint))
+
 function select(value: unknown): void {
   emit('update:modelValue', props.options.find((option) => option.value === value)?.value ?? null)
 }
@@ -24,6 +31,7 @@ function select(value: unknown): void {
 <template>
   <v-btn-toggle
     class="form-segmented"
+    :class="{ 'form-segmented--stacked': isStacked }"
     role="radiogroup"
     :aria-labelledby="labelId"
     divided
@@ -41,9 +49,16 @@ function select(value: unknown): void {
       :value="option.value"
       role="radio"
       :aria-checked="modelValue === option.value"
+      :aria-label="option.ariaLabel"
     >
-      <v-icon v-if="modelValue === option.value" icon="ms:check" size="18" />
-      <span>{{ option.label }}</span>
+      <span v-if="isStacked" class="form-segmented__stack">
+        <span class="form-segmented__label">{{ option.label }}</span>
+        <span class="form-segmented__hint">{{ option.hint }}</span>
+      </span>
+      <template v-else>
+        <v-icon v-if="modelValue === option.value" icon="ms:check" size="18" />
+        <span>{{ option.label }}</span>
+      </template>
     </v-btn>
   </v-btn-toggle>
 </template>
@@ -57,6 +72,10 @@ function select(value: unknown): void {
   border: 1px solid tokens.$color-segmented-border;
   border-radius: 999px;
   overflow: hidden;
+}
+
+.form-segmented--stacked {
+  height: tokens.$height-segmented-stacked;
 }
 
 // Pas de `:deep(.v-btn)` : sa spécificité surclasserait la couleur de l'option cochée.
@@ -76,5 +95,22 @@ function select(value: unknown): void {
 .form-segmented__option--selected {
   color: tokens.$color-on-primary;
   font-weight: 700;
+}
+
+.form-segmented__stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.2;
+}
+
+.form-segmented__label {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.form-segmented__hint {
+  font-size: 12.5px;
+  font-weight: 500;
 }
 </style>

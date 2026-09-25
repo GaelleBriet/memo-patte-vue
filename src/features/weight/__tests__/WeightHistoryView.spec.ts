@@ -10,6 +10,7 @@ import {
   type Mock,
   type MockInstance,
 } from 'vitest'
+import { nextTick } from 'vue'
 import { createMemoryHistory, createRouter, type Router } from 'vue-router'
 
 import WeightHistoryView from '../views/WeightHistoryView.vue'
@@ -21,6 +22,7 @@ import type { Animal } from '@/features/animals/schema/animal.schema'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import { simulateWebResume } from '@/core/app-lifecycle/__tests__/simulate-resume'
 import { buildHistoryWeightChart } from '@/shared/domain/weight-chart'
+import { applyWeightUnit } from '@/shared/domain/weight-unit-preference'
 import i18n, { applyLocale } from '@/core/i18n'
 import router from '@/router'
 import vuetify from '@/core/theme/vuetify'
@@ -126,6 +128,7 @@ afterEach(() => {
   document.body.innerHTML = ''
   dismissToast()
   provideWeightRepository(null)
+  applyWeightUnit('kg')
   vi.useRealTimers()
   vi.restoreAllMocks()
   vi.unstubAllGlobals()
@@ -246,7 +249,7 @@ describe('WeightHistoryView — H1 historique complet', () => {
     expect(wrapper.get('.weight-history__current').text()).toBe('24,5')
     expect(wrapper.get('.weight-history__unit').text()).toBe('kg')
     const delta = wrapper.get('.weight-history__delta')
-    expect(delta.text()).toBe('+0,2 kg depuis le\u00a011\u00a0oct.')
+    expect(delta.text()).toBe('+0,2\u00a0kg depuis le\u00a011\u00a0oct.')
     expect(delta.classes()).toContain('weight-history__delta--up')
   })
 
@@ -288,20 +291,20 @@ describe('WeightHistoryView — H1 historique complet', () => {
       '7 juin 2026',
     ])
     expect(lignes.map((l) => l.get('.weight-history__row-delta').text())).toEqual([
-      '+0,2 kg',
-      '+0,1 kg',
-      '+0,2 kg',
-      '+0,2 kg',
-      '+0,2 kg',
+      '+0,2\u00a0kg',
+      '+0,1\u00a0kg',
+      '+0,2\u00a0kg',
+      '+0,2\u00a0kg',
+      '+0,2\u00a0kg',
       '',
     ])
     expect(lignes.map((l) => l.get('.weight-history__row-value').text())).toEqual([
-      '24,5 kg',
-      '24,3 kg',
-      '24,2 kg',
-      '24,0 kg',
-      '23,8 kg',
-      '23,6 kg',
+      '24,5\u00a0kg',
+      '24,3\u00a0kg',
+      '24,2\u00a0kg',
+      '24,0\u00a0kg',
+      '23,8\u00a0kg',
+      '23,6\u00a0kg',
     ])
     expect(lignes[0]!.get('.weight-history__row-delta').classes()).toContain(
       'weight-history__delta--up',
@@ -311,7 +314,7 @@ describe('WeightHistoryView — H1 historique complet', () => {
   it('affiche le poids à l’arrivée sous la liste', async () => {
     const wrapper = await monter()
 
-    expect(wrapper.get('.weight-history__initial').text()).toBe('Poids à l’arrivée : 8,5 kg')
+    expect(wrapper.get('.weight-history__initial').text()).toBe('Poids à l’arrivée : 8,5\u00a0kg')
   })
 
   it('offre le bouton fixe « Ajouter une pesée », qui ouvre la feuille pour cet animal', async () => {
@@ -357,7 +360,7 @@ describe('WeightHistoryView — lire une pesée sur la courbe', () => {
       label: 'Pesée du 11 oct. 2026',
       poids: '24,3',
       unite: 'kg',
-      variation: '+0,1 kg depuis le\u00a013\u00a0sept.',
+      variation: '+0,1\u00a0kg depuis le\u00a013\u00a0sept.',
     })
     expect(wrapper!.get('.weight-history__delta').classes()).toContain('weight-history__delta--up')
   })
@@ -378,7 +381,7 @@ describe('WeightHistoryView — lire une pesée sur la courbe', () => {
     await flushPromises()
 
     expect(resume()).toMatchObject({ label: 'Pesée du 12 juil. 2026', poids: '23,8' })
-    expect(resume().variation).toBe('+0,2 kg depuis le\u00a07\u00a0juin')
+    expect(resume().variation).toBe('+0,2\u00a0kg depuis le\u00a07\u00a0juin')
   })
 
   it('écrit une baisse en gris chaud', async () => {
@@ -387,7 +390,7 @@ describe('WeightHistoryView — lire une pesée sur la courbe', () => {
 
     await courbe().trigger('keydown', { key: 'ArrowLeft' })
 
-    expect(resume().variation).toBe('−0,3 kg depuis le\u00a09\u00a0août')
+    expect(resume().variation).toBe('−0,3\u00a0kg depuis le\u00a09\u00a0août')
     expect(wrapper!.get('.weight-history__delta').classes()).toContain(
       'weight-history__delta--down',
     )
@@ -399,7 +402,7 @@ describe('WeightHistoryView — lire une pesée sur la courbe', () => {
 
     await courbe().trigger('keydown', { key: 'ArrowLeft' })
 
-    expect(resume().variation).toBe('±0,0 kg depuis le\u00a09\u00a0août')
+    expect(resume().variation).toBe('±0,0\u00a0kg depuis le\u00a09\u00a0août')
     expect(wrapper!.get('.weight-history__delta').classes()).toContain(
       'weight-history__delta--flat',
     )
@@ -417,13 +420,13 @@ describe('WeightHistoryView — lire une pesée sur la courbe', () => {
     await courbe().trigger('keydown', { key: 'ArrowLeft' })
     expect(resume()).toMatchObject({
       label: 'Pesée du 3 févr. 2026',
-      variation: '+0,8 kg depuis le\u00a020\u00a0janv.',
+      variation: '+0,8\u00a0kg depuis le\u00a020\u00a0janv.',
     })
 
     await courbe().trigger('keydown', { key: 'ArrowLeft' })
     expect(resume()).toMatchObject({
       label: 'Pesée du 20 janv. 2026',
-      variation: '+0,8 kg depuis le\u00a020\u00a0déc.\u00a02025',
+      variation: '+0,8\u00a0kg depuis le\u00a020\u00a0déc.\u00a02025',
     })
   })
 
@@ -433,7 +436,7 @@ describe('WeightHistoryView — lire une pesée sur la courbe', () => {
     await courbe().trigger('keydown', { key: 'ArrowLeft' })
 
     expect(wrapper!.findAll('.weight-history__row-delta').map((cellule) => cellule.text())).toEqual(
-      ['+0,2 kg', '+0,1 kg', '+0,2 kg', '+0,2 kg', '+0,2 kg', ''],
+      ['+0,2\u00a0kg', '+0,1\u00a0kg', '+0,2\u00a0kg', '+0,2\u00a0kg', '+0,2\u00a0kg', ''],
     )
   })
 
@@ -460,7 +463,7 @@ describe('WeightHistoryView — lire une pesée sur la courbe', () => {
       label: 'Poids actuel',
       poids: '24,5',
       unite: 'kg',
-      variation: '+0,2 kg depuis le\u00a011\u00a0oct.',
+      variation: '+0,2\u00a0kg depuis le\u00a011\u00a0oct.',
     })
   })
 
@@ -576,7 +579,9 @@ describe('WeightHistoryView — historique par pages', () => {
     await wrapper.get('.weight-history-chart__svg').trigger('keydown', { key: 'Home' })
 
     expect(wrapper.get('.weight-history__current-label').text()).toBe('Pesée du 12 avr. 2026')
-    expect(wrapper.get('.weight-history__delta').text()).toBe('+0,7 kg depuis le\u00a029\u00a0mars')
+    expect(wrapper.get('.weight-history__delta').text()).toBe(
+      '+0,7\u00a0kg depuis le\u00a029\u00a0mars',
+    )
   })
 
   it('lit une pesée d’une page plus ancienne dans le résumé', async () => {
@@ -587,7 +592,9 @@ describe('WeightHistoryView — historique par pages', () => {
 
     expect(wrapper.get('.weight-history__current-label').text()).toBe('Pesée du 15 mars 2026')
     expect(wrapper.get('.weight-history__current').text()).toBe('15,4')
-    expect(wrapper.get('.weight-history__delta').text()).toBe('+0,7 kg depuis le\u00a01\u00a0mars')
+    expect(wrapper.get('.weight-history__delta').text()).toBe(
+      '+0,7\u00a0kg depuis le\u00a01\u00a0mars',
+    )
   })
 })
 
@@ -614,7 +621,7 @@ describe('WeightHistoryView — deltas du poids actuel', () => {
     const wrapper = await monter()
     const delta = wrapper.get('.weight-history__delta')
 
-    expect(delta.text()).toBe('−0,3 kg depuis le\u00a09\u00a0août')
+    expect(delta.text()).toBe('−0,3\u00a0kg depuis le\u00a09\u00a0août')
     expect(delta.classes()).toContain('weight-history__delta--down')
   })
 
@@ -622,14 +629,16 @@ describe('WeightHistoryView — deltas du poids actuel', () => {
     vi.setSystemTime(new Date('2026-12-31T20:00:00'))
     entries = [entry(23.9, '2026-12-20'), entry(24.2, '2026-12-30')]
     const wrapper = await monter()
-    expect(wrapper.get('.weight-history__delta').text()).toBe('+0,3 kg depuis le\u00a020\u00a0déc.')
+    expect(wrapper.get('.weight-history__delta').text()).toBe(
+      '+0,3\u00a0kg depuis le\u00a020\u00a0déc.',
+    )
 
     vi.setSystemTime(new Date('2027-01-02T08:00:00'))
     simulateWebResume()
     await flushPromises()
 
     expect(wrapper.get('.weight-history__delta').text()).toBe(
-      '+0,3 kg depuis le\u00a020\u00a0déc.\u00a02026',
+      '+0,3\u00a0kg depuis le\u00a020\u00a0déc.\u00a02026',
     )
   })
 
@@ -638,7 +647,7 @@ describe('WeightHistoryView — deltas du poids actuel', () => {
     const wrapper = await monter()
 
     expect(wrapper.get('.weight-history__delta').text()).toBe(
-      '+0,3 kg depuis le\u00a020\u00a0déc.\u00a02025',
+      '+0,3\u00a0kg depuis le\u00a020\u00a0déc.\u00a02025',
     )
   })
 
@@ -648,10 +657,14 @@ describe('WeightHistoryView — deltas du poids actuel', () => {
 
     try {
       const wrapper = await monter()
-      expect(wrapper.get('.weight-history__delta').text()).toBe('+0.2 kg since\u00a0Oct\u00a011')
+      expect(wrapper.get('.weight-history__delta').text()).toBe(
+        '+0.2\u00a0kg since\u00a0Oct\u00a011',
+      )
 
       await wrapper.get('.weight-history-chart__svg').trigger('keydown', { key: 'ArrowLeft' })
-      expect(wrapper.get('.weight-history__delta').text()).toBe('+0.1 kg since\u00a0Sep\u00a013')
+      expect(wrapper.get('.weight-history__delta').text()).toBe(
+        '+0.1\u00a0kg since\u00a0Sep\u00a013',
+      )
     } finally {
       applyLocale('fr')
     }
@@ -662,7 +675,7 @@ describe('WeightHistoryView — deltas du poids actuel', () => {
     const wrapper = await monter()
     const delta = wrapper.get('.weight-history__delta')
 
-    expect(delta.text()).toBe('±0,0 kg depuis le\u00a09\u00a0août')
+    expect(delta.text()).toBe('±0,0\u00a0kg depuis le\u00a09\u00a0août')
     expect(delta.classes()).toContain('weight-history__delta--flat')
     expect(wrapper.findAll('.weight-history__row-delta')[0]!.classes()).toContain(
       'weight-history__delta--flat',
@@ -693,7 +706,7 @@ describe('WeightHistoryView — H2 une seule pesée', () => {
 
     expect(lignes).toHaveLength(1)
     expect(lignes[0]!.get('.weight-history__row-delta').text()).toBe('')
-    expect(wrapper.get('.weight-history__initial').text()).toBe('Poids à l’arrivée : 8,5 kg')
+    expect(wrapper.get('.weight-history__initial').text()).toBe('Poids à l’arrivée : 8,5\u00a0kg')
     expect(wrapper.find('.weight-history__add').exists()).toBe(true)
   })
 })
@@ -713,7 +726,7 @@ describe('WeightHistoryView — H3 aucune pesée', () => {
   it('garde le poids à l’arrivée', async () => {
     const wrapper = await monter()
 
-    expect(wrapper.get('.weight-history__initial').text()).toBe('Poids à l’arrivée : 8,5 kg')
+    expect(wrapper.get('.weight-history__initial').text()).toBe('Poids à l’arrivée : 8,5\u00a0kg')
   })
 
   it('ouvre la feuille depuis la ligne d’ajout de la carte vide', async () => {
@@ -858,8 +871,8 @@ describe('WeightHistoryView — corriger ou supprimer une pesée', () => {
     expect(boutons[0]!.attributes('aria-label')).toBeUndefined()
     expect(boutons[0]!.findAll('span').map((partie) => partie.text())).toEqual([
       '8 nov. 2026',
-      '+0,2 kg',
-      '24,5 kg',
+      '+0,2\u00a0kg',
+      '24,5\u00a0kg',
     ])
   })
 
@@ -907,9 +920,9 @@ describe('WeightHistoryView — corriger ou supprimer une pesée', () => {
     await cliquerDansLaFeuille('.weight-sheet__submit')
 
     expect(wrapper.getComponent(WeightSheet).props('modelValue')).toBe(false)
-    expect(lignes()[0]).toEqual({ date: '8 nov. 2026', poids: '24,8 kg' })
+    expect(lignes()[0]).toEqual({ date: '8 nov. 2026', poids: '24,8\u00a0kg' })
     expect(wrapper.get('.weight-history__current').text()).toBe('24,8')
-    expect(wrapper.get('.weight-history__delta').text()).toContain('+0,5 kg')
+    expect(wrapper.get('.weight-history__delta').text()).toContain('+0,5\u00a0kg')
     expect(wrapper.findAll('.weight-history-chart__tick').map((n) => n.text())).toContain('25')
   })
 
@@ -935,7 +948,7 @@ describe('WeightHistoryView — corriger ou supprimer une pesée', () => {
     runToastAction()
     await flushPromises()
 
-    expect(lignes()[2]).toEqual({ date: '13 sept. 2026', poids: '24,2 kg' })
+    expect(lignes()[2]).toEqual({ date: '13 sept. 2026', poids: '24,2\u00a0kg' })
     expect(wrapper.get('.section-card__counter').text()).toBe('6')
   })
 
@@ -1032,5 +1045,56 @@ describe('WeightHistoryView — page de la courbe après une écriture', () => {
     expect(wrapper.get('.weight-history-chart__turn--next').attributes('aria-disabled')).toBe(
       'true',
     )
+  })
+})
+
+describe('WeightHistoryView — en livres', () => {
+  beforeEach(() => {
+    entries = [...HISTORIQUE_MILO]
+  })
+
+  it('écrit le résumé, les graduations, la liste et le poids à l’arrivée en livres', async () => {
+    applyWeightUnit('lb')
+    const wrapper = await monter()
+
+    expect(wrapper.get('.weight-history__current').text()).toBe('54,0')
+    expect(wrapper.get('.weight-history__unit').text()).toBe('lb')
+    expect(wrapper.get('.weight-history__delta').text()).toBe(
+      '+0,4\u00a0lb depuis le\u00a011\u00a0oct.',
+    )
+    expect(wrapper.get('.weight-history-chart__unit').text()).toBe('lb')
+    expect(wrapper.findAll('.weight-history-chart__tick').map((n) => n.text())).toEqual([
+      '51',
+      '52',
+      '53',
+      '54',
+      '55',
+    ])
+    const ligne = wrapper.get('.weight-history__row')
+    expect(ligne.get('.weight-history__row-delta').text()).toBe('+0,4\u00a0lb')
+    expect(ligne.get('.weight-history__row-value').text()).toBe('54,0\u00a0lb')
+    expect(wrapper.get('.weight-history__initial').text()).toBe(
+      'Poids à l’arrivée\u00a0: 18,7\u00a0lb',
+    )
+  })
+
+  it('annonce chaque pesée de la courbe en livres', async () => {
+    applyWeightUnit('lb')
+    const wrapper = await monter()
+
+    expect(wrapper.get('.weight-history-chart__svg').attributes('aria-valuetext')).toBe(
+      'Pesée du 8 novembre 2026, 54,0\u00a0lb',
+    )
+  })
+
+  it('passe en livres sans être remonté', async () => {
+    const wrapper = await monter()
+
+    applyWeightUnit('lb')
+    await nextTick()
+
+    expect(wrapper.get('.weight-history__current').text()).toBe('54,0')
+    expect(wrapper.get('.weight-history-chart__unit').text()).toBe('lb')
+    expect(wrapper.get('.weight-history__row-value').text()).toBe('54,0\u00a0lb')
   })
 })

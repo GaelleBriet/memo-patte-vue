@@ -27,7 +27,7 @@ import PlusBadge from '@/shared/components/PlusBadge.vue'
 import { animalAge } from '@/shared/domain/animal-age'
 import { animalAvatarGradientCss } from '@/shared/domain/animal-avatar-gradient'
 import { weightDeltaText } from '@/shared/domain/weight-delta'
-import { formatKg } from '@/shared/utils/format'
+import { weightText } from '@/shared/domain/weight-display'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -104,7 +104,7 @@ const weightStat = computed(() => {
   if (!summary) {
     return { value: t('animals.carnet.stats.noValue'), sub: t('animals.carnet.stats.noWeight') }
   }
-  const value = `${formatKg(summary.latest.weightKg)} ${t('weight.unit')}`
+  const value = weightText(t, summary.latest.weightKg)
   if (summary.delta.kind === 'first') {
     return { value, sub: t('animals.carnet.stats.firstWeight') }
   }

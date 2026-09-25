@@ -1,6 +1,7 @@
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
+import { nextTick } from 'vue'
 import { createMemoryHistory, createRouter, type Router } from 'vue-router'
 
 import WeightSection from '../views/WeightSection.vue'
@@ -10,6 +11,8 @@ import type { WeightRepository } from '../repository/weight.repository'
 import { provideWeightRepository, useWeightStore } from '../store/weight.store'
 import i18n, { applyLocale } from '@/core/i18n'
 import vuetify from '@/core/theme/vuetify'
+import { toKg } from '@/shared/domain/weight-unit'
+import { applyWeightUnit } from '@/shared/domain/weight-unit-preference'
 
 const MILO = '11111111-1111-4111-8111-111111111111'
 const LUNA = '33333333-3333-4333-8333-333333333333'
@@ -75,6 +78,7 @@ afterEach(() => {
   wrapper = null
   document.body.innerHTML = ''
   provideWeightRepository(null)
+  applyWeightUnit('kg')
   vi.unstubAllGlobals()
 })
 
@@ -136,7 +140,7 @@ describe('WeightSection — poids actuel et delta', () => {
     const wrapper = await monter()
     const delta = wrapper.get('.weight-section__delta')
 
-    expect(delta.text()).toBe('+0,5 kg depuis le\u00a05\u00a0août')
+    expect(delta.text()).toBe('+0,5\u00a0kg depuis le\u00a05\u00a0août')
     expect(delta.classes()).toContain('weight-section__delta--up')
   })
 
@@ -145,7 +149,7 @@ describe('WeightSection — poids actuel et delta', () => {
     const wrapper = await monter()
     const delta = wrapper.get('.weight-section__delta')
 
-    expect(delta.text()).toBe('−0,3 kg depuis le\u00a05\u00a0août')
+    expect(delta.text()).toBe('−0,3\u00a0kg depuis le\u00a05\u00a0août')
     expect(delta.classes()).toContain('weight-section__delta--down')
     expect(delta.classes()).not.toContain('weight-section__delta--up')
   })
@@ -155,7 +159,7 @@ describe('WeightSection — poids actuel et delta', () => {
     const wrapper = await monter()
     const delta = wrapper.get('.weight-section__delta')
 
-    expect(delta.text()).toBe('±0,0 kg depuis le\u00a05\u00a0août')
+    expect(delta.text()).toBe('±0,0\u00a0kg depuis le\u00a05\u00a0août')
     expect(delta.classes()).toContain('weight-section__delta--flat')
   })
 
@@ -163,7 +167,9 @@ describe('WeightSection — poids actuel et delta', () => {
     entries = [entry(23.9, '2026-08-04'), entry(24.2, '2026-08-25'), entry(24.5, '2026-09-13')]
     const wrapper = await monter(MILO, '2026-09-24')
 
-    expect(wrapper.get('.weight-section__delta').text()).toBe('+0,3 kg depuis le\u00a025\u00a0août')
+    expect(wrapper.get('.weight-section__delta').text()).toBe(
+      '+0,3\u00a0kg depuis le\u00a025\u00a0août',
+    )
   })
 
   it('ajoute l’année quand la pesée de référence n’est pas de l’année en cours', async () => {
@@ -171,7 +177,7 @@ describe('WeightSection — poids actuel et delta', () => {
     const wrapper = await monter(MILO, '2026-01-12')
 
     expect(wrapper.get('.weight-section__delta').text()).toBe(
-      '+0,3 kg depuis le\u00a020\u00a0déc.\u00a02025',
+      '+0,3\u00a0kg depuis le\u00a020\u00a0déc.\u00a02025',
     )
   })
 
@@ -182,7 +188,9 @@ describe('WeightSection — poids actuel et delta', () => {
     try {
       const wrapper = await monter(MILO, '2026-09-24')
 
-      expect(wrapper.get('.weight-section__delta').text()).toBe('+0.3 kg since\u00a0Aug\u00a025')
+      expect(wrapper.get('.weight-section__delta').text()).toBe(
+        '+0.3\u00a0kg since\u00a0Aug\u00a025',
+      )
     } finally {
       applyLocale('fr')
     }
@@ -322,7 +330,7 @@ describe('WeightSection — pesée corrigée ou supprimée depuis l’Historique
     await flushPromises()
 
     expect(wrapper.get('.weight-section__current').text()).toBe('24,5')
-    expect(wrapper.get('.weight-section__delta').text()).toContain('+0,5 kg')
+    expect(wrapper.get('.weight-section__delta').text()).toContain('+0,5\u00a0kg')
   })
 
   it('suit aussitôt une pesée supprimée', async () => {
@@ -406,5 +414,35 @@ describe('WeightSection — résumé pour le bandeau', () => {
 
     const summaries = wrapper.emitted('summary') ?? []
     expect(summaries[summaries.length - 1]).toEqual([null])
+  })
+})
+
+describe('WeightSection — en livres', () => {
+  it('écrit le poids actuel, sa variation et la courbe en livres', async () => {
+    applyWeightUnit('lb')
+    entries = [entry(toKg(53.3, 'lb'), '2026-08-25'), entry(toKg(54, 'lb'), '2026-11-08')]
+    const wrapper = await monter()
+
+    expect(wrapper.get('.weight-section__current').text()).toBe('54,0')
+    expect(wrapper.get('.weight-section__unit').text()).toBe('lb')
+    expect(wrapper.get('.weight-section__delta').text()).toBe(
+      '+0,7\u00a0lb depuis le\u00a025\u00a0août',
+    )
+    expect(wrapper.get('.weight-sparkline__latest').text()).toBe('54,0\u00a0lb')
+  })
+
+  it('suit un changement d’unité sans être remontée', async () => {
+    entries = [entry(24, '2026-08-05'), entry(24.5, '2026-11-08')]
+    const wrapper = await monter()
+    expect(wrapper.get('.weight-section__current').text()).toBe('24,5')
+
+    applyWeightUnit('lb')
+    await nextTick()
+
+    expect(wrapper.get('.weight-section__current').text()).toBe('54,0')
+    expect(wrapper.get('.weight-section__unit').text()).toBe('lb')
+    expect(wrapper.get('.weight-section__delta').text()).toBe(
+      '+1,1\u00a0lb depuis le\u00a05\u00a0août',
+    )
   })
 })

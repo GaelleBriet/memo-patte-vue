@@ -41,6 +41,7 @@ import pictureAsPdf from '@material-symbols/svg-400/outlined/picture_as_pdf.svg?
 import queryStats from '@material-symbols/svg-400/outlined/query_stats.svg?raw'
 import repeat from '@material-symbols/svg-400/outlined/repeat.svg?raw'
 import restartAlt from '@material-symbols/svg-400/outlined/restart_alt.svg?raw'
+import scale from '@material-symbols/svg-400/outlined/scale.svg?raw'
 import schedule from '@material-symbols/svg-400/outlined/schedule.svg?raw'
 import settings from '@material-symbols/svg-400/outlined/settings.svg?raw'
 import settingsBackupRestore from '@material-symbols/svg-400/outlined/settings_backup_restore.svg?raw'
@@ -195,6 +196,7 @@ export const msIcons = {
   remove,
   repeat,
   restart_alt: restartAlt,
+  scale,
   schedule,
   search,
   settings,

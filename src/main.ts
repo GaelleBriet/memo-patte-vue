@@ -24,6 +24,7 @@ import { getVaccinationsRepository } from '@/features/vaccinations/repository/va
 import { provideVaccinationsRepository } from '@/features/vaccinations/store/vaccinations.store'
 import { getWeightRepository } from '@/features/weight/repository/weight.repository'
 import { provideWeightRepository } from '@/features/weight/store/weight.store'
+import { restoreWeightUnit } from '@/shared/domain/weight-unit-preference'
 import '@/styles/main.scss'
 
 provideAnimalsRepository(getAnimalsRepository)
@@ -42,6 +43,7 @@ app.use(router)
 app.use(vuetify)
 app.use(i18n)
 applyLocale(detectLocale(navigator.languages))
+restoreWeightUnit(navigator.languages)
 
 installBackButton()
 void clearExports()

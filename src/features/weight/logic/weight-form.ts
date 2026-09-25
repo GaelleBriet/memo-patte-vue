@@ -2,11 +2,14 @@ import type { z } from 'zod'
 
 import { weightEntryInputSchema, type WeightEntry } from '../schema/weight.schema'
 import { todayIsoDate } from '@/core/app-lifecycle/today-iso-date'
-import { formatKgInput } from '@/shared/utils/format'
+import { recordedWeightIn, weightKgFromInput } from '@/shared/domain/weight-unit'
+import { currentWeightUnit } from '@/shared/domain/weight-unit-preference'
+import { formatWeightInput } from '@/shared/utils/format'
 
 export interface WeightFormValues {
   /** `null` tant que l'animal n'est ni donné par le contexte ni choisi dans la feuille. */
   animalId: string | null
+  /** Saisi dans l'unité choisie, enregistré en kg. */
   weightKg: string
   measuredOn: string
 }
@@ -35,7 +38,7 @@ export function emptyWeightFormValues(animalId: string | null = null): WeightFor
 export function weightFormValuesFrom(entry: WeightEntry): WeightFormValues {
   return {
     animalId: entry.animalId,
-    weightKg: formatKgInput(entry.weightKg),
+    weightKg: formatWeightInput(recordedWeightIn(entry.weightKg, currentWeightUnit())),
     measuredOn: entry.measuredOn,
   }
 }
@@ -58,13 +61,17 @@ function errorKeyFor(field: WeightFormErrorField, issue: z.core.$ZodIssue): stri
   return ERROR_KEYS[field]
 }
 
-export function validateWeightForm(values: WeightFormValues): WeightFormResult {
+/** `storedWeightKg` : poids de la pesée corrigée, gardé tel quel si la valeur proposée n'a pas bougé. */
+export function validateWeightForm(
+  values: WeightFormValues,
+  storedWeightKg: number | null = null,
+): WeightFormResult {
   // Sans animal, la feuille verrouille le poids et la date : leurs erreurs ne pourraient pas être corrigées.
   if (values.animalId === null) return { success: false, errors: { animalId: ERROR_KEYS.animalId } }
 
   const result = weightEntryInputSchema.safeParse({
     animalId: values.animalId,
-    weightKg: numberOrNull(values.weightKg),
+    weightKg: weightKgFromInput(numberOrNull(values.weightKg), currentWeightUnit(), storedWeightKg),
     measuredOn: values.measuredOn.trim(),
   })
 

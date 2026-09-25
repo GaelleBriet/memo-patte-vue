@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, defineAsyncComponent, onMounted, ref, useTemplateRef } from 'vue'
+import { computed, defineAsyncComponent, onMounted, ref, useId, useTemplateRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
@@ -17,6 +17,9 @@ import { usePurchaseStore } from '@/features/purchase/store/purchase.store'
 import PlusBadge from '@/shared/components/PlusBadge.vue'
 import PushedScreen from '@/shared/components/PushedScreen.vue'
 import SectionCard from '@/shared/components/SectionCard.vue'
+import { WEIGHT_UNITS, type WeightUnit } from '@/shared/domain/weight-unit'
+import { chooseWeightUnit, currentWeightUnit } from '@/shared/domain/weight-unit-preference'
+import FormSegmented from '@/shared/form/FormSegmented.vue'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -30,6 +33,16 @@ const hasOpenedPdfExportSheet = ref(false)
 const importSheet = useTemplateRef('importSheet')
 const isImporting = ref(false)
 const shareAnalytics = ref(hasConsent())
+const weightUnitLabelId = useId()
+const weightUnit = computed(currentWeightUnit)
+const weightUnitOptions = computed(() =>
+  WEIGHT_UNITS.map((unit) => ({
+    value: unit,
+    label: t(`weight.unit.${unit}`),
+    hint: t(`weight.unitName.${unit}`),
+    ariaLabel: t(`settings.data.weightUnit.spoken.${unit}`),
+  })),
+)
 
 const hasLoadFailed = computed(() => animals.error !== null)
 const hasNothingToExport = computed(() => animals.hasLoaded && animals.animals.length === 0)
@@ -64,6 +77,10 @@ function onImported(): void {
   void promptNotificationsIfReminders(router, 'settings')
 }
 
+function onWeightUnitChange(unit: WeightUnit | null): void {
+  if (unit) chooseWeightUnit(unit)
+}
+
 function onShareAnalyticsChange(enabled: boolean | null): void {
   shareAnalytics.value = enabled === true
   void (shareAnalytics.value ? optIn() : optOut())
@@ -87,6 +104,23 @@ function goHome(): void {
       <AccountSection />
 
       <SectionCard :title="t('settings.data.title')">
+        <div class="settings-row settings-row--weight-unit">
+          <div class="settings__weight-unit-heading">
+            <v-icon class="settings-row__icon" icon="ms:scale" size="22" />
+            <span class="settings-row__text">
+              <span :id="weightUnitLabelId" class="settings-row__label">
+                {{ t('settings.data.weightUnit.label') }}
+              </span>
+              <span class="settings-row__hint">{{ t('settings.data.weightUnit.hint') }}</span>
+            </span>
+          </div>
+          <FormSegmented
+            :model-value="weightUnit"
+            :options="weightUnitOptions"
+            :label-id="weightUnitLabelId"
+            @update:model-value="onWeightUnitChange"
+          />
+        </div>
         <button
           type="button"
           class="settings-row settings-row--export"
@@ -217,6 +251,19 @@ function goHome(): void {
   flex-direction: column;
   gap: tokens.$gap-settings-sections;
   padding-block: 12px 32px;
+}
+
+.settings-row--weight-unit {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  padding-block: 14px 16px;
+}
+
+.settings__weight-unit-heading {
+  display: flex;
+  align-items: center;
+  gap: 14px;
 }
 
 .settings__pdf-icon {
