@@ -1,5 +1,10 @@
+import { jsPDF } from 'jspdf'
+
 const MM_PER_PT = 25.4 / 72
 const A4_HEIGHT_MM = 297
+// Métriques AFM d'Helvetica : accents jusqu'à 0,75 em au-dessus de la ligne de base, « g » à 0,22 dessous.
+const ASCENT_EM = 0.75
+const DESCENT_EM = 0.22
 
 /** Texte écrit sur la page : `left` et `baseline` en mm depuis le coin haut gauche. */
 export type PdfText = {
@@ -57,11 +62,55 @@ function fontStyles(source: string): Map<string, boolean> {
   return styles
 }
 
-/** Lit la première page d'un PDF produit par jsPDF, non compressé. */
-export function readPdf(bytes: Uint8Array): { texts: PdfText[]; paths: PdfPath[] } {
+export type PdfPage = { texts: PdfText[]; paths: PdfPath[] }
+
+function objectBody(source: string, id: string): string {
+  return new RegExp(`(?:^|\\n)${id} 0 obj\\s*([\\s\\S]*?)\\nendobj`).exec(source)![1]!
+}
+
+function pageStreams(source: string): string[] {
+  const kids = /\/Type \/Pages\s*\/Kids \[([^\]]*)\]/.exec(source)![1]!
+  return [...kids.matchAll(/(\d+) 0 R/g)].map(([, pageId]) => {
+    const contentsId = /\/Contents (\d+) 0 R/.exec(objectBody(source, pageId!))![1]!
+    return /stream\r?\n([\s\S]*?)\r?\nendstream/.exec(objectBody(source, contentsId))![1]!
+  })
+}
+
+/** Opérateurs bruts de chaque page, dans l'ordre. */
+export function readPdfStreams(bytes: Uint8Array): string[] {
+  return pageStreams(new TextDecoder('latin1').decode(bytes))
+}
+
+export type StrokeState = { lineWidth: number; stroke: string; cap: number; join: number }
+
+/** État du trait à la fin d'un flux de page : épaisseur en mm, couleur, `J` et `j`. */
+export function strokeState(stream: string): StrokeState {
+  const state: StrokeState = { lineWidth: 0, stroke: '#000000', cap: 0, join: 0 }
+  for (const line of stream.split(/\r?\n/)) {
+    const operands = line.trim().split(/\s+/)
+    const operator = operands.pop()
+    const n = operands.map(Number)
+    if (operator === 'w') state.lineWidth = n[0]! * MM_PER_PT
+    if (operator === 'G' || operator === 'RG') state.stroke = hex(n)
+    if (operator === 'J') state.cap = n[0]!
+    if (operator === 'j') state.join = n[0]!
+  }
+  return state
+}
+
+/** Lit chaque page, dans l'ordre, d'un PDF produit par jsPDF, non compressé. */
+export function readPdfPages(bytes: Uint8Array): PdfPage[] {
   const source = new TextDecoder('latin1').decode(bytes)
   const bold = fontStyles(source)
-  const content = /stream\r?\n([\s\S]*?)\r?\nendstream/.exec(source)![1]!
+  return pageStreams(source).map((stream) => readContent(stream, bold))
+}
+
+/** Lit la première page d'un PDF produit par jsPDF, non compressé. */
+export function readPdf(bytes: Uint8Array): PdfPage {
+  return readPdfPages(bytes)[0]!
+}
+
+function readContent(content: string, bold: Map<string, boolean>): PdfPage {
   const mm = (pt: number) => pt * MM_PER_PT
   const point = (x: number, y: number) => ({ x: mm(x), y: A4_HEIGHT_MM - mm(y) })
 
@@ -145,5 +194,31 @@ export function bounds(points: readonly { x: number; y: number }[]): PdfBounds {
     right: Math.max(...xs),
     top: Math.min(...ys),
     bottom: Math.max(...ys),
+  }
+}
+
+const metrics = new jsPDF({ unit: 'mm', format: 'a4' })
+
+/** Boîte d'un texte écrit en Helvetica, accents et jambages compris. */
+export function textBounds(text: PdfText): PdfBounds {
+  metrics.setFont('helvetica', text.bold ? 'bold' : 'normal')
+  const em = text.sizePt * MM_PER_PT
+  return {
+    left: text.left,
+    right: text.left + metrics.getStringUnitWidth(text.text, { doKerning: false }) * em,
+    top: text.baseline - ASCENT_EM * em,
+    bottom: text.baseline + DESCENT_EM * em,
+  }
+}
+
+/** Boîte d'un tracé, épaisseur du trait comprise. */
+export function pathBounds(path: PdfPath): PdfBounds {
+  const box = bounds(path.points)
+  const half = path.paint.startsWith('f') ? 0 : path.lineWidth / 2
+  return {
+    left: box.left - half,
+    right: box.right + half,
+    top: box.top - half,
+    bottom: box.bottom + half,
   }
 }
