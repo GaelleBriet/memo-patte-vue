@@ -366,6 +366,7 @@
       "selected": "Pesée du {date}",
       "list": "Toutes les pesées",
       "value": "{weight} kg",
+      "rowLabel": "Pesée du {date}, {weight} kg. Modifier ou supprimer.",
       "initial": "Poids à l’arrivée : {weight} kg",
       "link": "Voir l’historique"
     },
