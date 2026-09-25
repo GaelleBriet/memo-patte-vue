@@ -1,5 +1,22 @@
 # Contexte en cours (à mettre à jour à chaque lot)
 
+- 2026-09-25 (fin de soirée) : **pause demandée par Gaelle, reprendre ici demain.** Gaelle a répondu
+  aux questions en attente (journal du 2026-09-25 soir, points 1 à 5) : variation de poids à partir des
+  poids affichés (#352) ; anciens noms de plus de 80 caractères coupés par la migration (#409) ; bouton
+  de notification et textes « déjà notée (aujourd'hui) » validés (#384) ; ticket #416 créé (CSV
+  traduit). Les agents appliquaient ces réponses sur leurs branches au moment de la pause.
+  **À faire demain, dans l'ordre** :
+  1. vérifier que les trois branches ont bien reçu leurs corrections (commits poussés, quatre commandes
+     vertes), relecture ciblée si besoin ;
+  2. **#409 d'abord, avec Gaelle présente** (migration Supabase appliquée au vrai projet par la CI) ;
+  3. #352 ensuite : merge de `main` et résolution des conflits attendus avec #409 (`AnimalFormView`,
+     deux specs, `toCsvTables(data, 'kg')`) ;
+  4. **test sur le téléphone** (MémoPatte Dev, rien sur la vraie app) de #349 (ouvrir un PDF, un ZIP,
+     un JSON) et de #384 (app fermée, rejeu à la réouverture par les récents et par l'icône), puis leurs
+     PR ; #384 porte le premier code natif du dépôt (`MainActivity.java`) ;
+  5. au merge de #349, le journal aura deux fois sa décision (sur la branche et ici) : n'en garder
+     qu'une.
+
 - 2026-09-25 (soir) : **reprendre ici.** Mergés depuis le point de midi : #410 (#401, noms longs
   à la ligne dans le PDF, « Arrêté le »), **#412 (#383, synchro des injections et des prises : migration
   Supabase appliquée au vrai projet avec Gaelle présente, CI verte ; curseur de pull par table, v7)**,
