@@ -1,5 +1,15 @@
 const WINDOWS_1252_EXTRAS = '€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ'
 
+const UNDECOMPOSABLE: Record<string, string> = {
+  Ł: 'L',
+  ł: 'l',
+  Đ: 'D',
+  đ: 'd',
+  Ħ: 'H',
+  ħ: 'h',
+  ı: 'i',
+}
+
 function isInPdfFont(char: string): boolean {
   const code = char.codePointAt(0)!
   return (
@@ -7,6 +17,12 @@ function isInPdfFont(char: string): boolean {
     (code >= 0xa0 && code <= 0xff) ||
     WINDOWS_1252_EXTRAS.includes(char)
   )
+}
+
+function withoutAccent(char: string): string {
+  const base = char.normalize('NFD').replace(/\p{M}/gu, '').normalize('NFC')
+  if (base !== '' && [...base].every(isInPdfFont)) return base
+  return UNDECOMPOSABLE[char] ?? ''
 }
 
 /**
@@ -17,7 +33,7 @@ export function pdfText(text: string): string {
   return [...text.normalize('NFC')]
     .map((char) => {
       if (isInPdfFont(char)) return char
-      return /\s/u.test(char) ? ' ' : ''
+      return /\s/u.test(char) ? ' ' : withoutAccent(char)
     })
     .join('')
     .replace(/ {2,}/g, ' ')

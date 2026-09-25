@@ -31,6 +31,27 @@ describe('pdfText', () => {
     expect(pdfText('Cléo')).toBe('Cléo')
   })
 
+  it.each([
+    ['Dvořák', 'Dvorák'],
+    ['Şişli', 'Sisli'],
+    ['Nguyễn', 'Nguyen'],
+    ['Łucja Đorđević', 'Lucja Dordevic'],
+    ['Işık', 'Isik'],
+  ])(
+    'garde la lettre sans son accent quand la police n’a pas la lettre accentuée : %s',
+    (texte, attendu) => {
+      expect(pdfText(texte)).toBe(attendu)
+    },
+  )
+
+  it('garde l’accent des lettres que la police sait écrire', () => {
+    expect(pdfText('Éloïse, Çağla, Øystein, Günther')).toBe('Éloïse, Çagla, Øystein, Günther')
+  })
+
+  it('retire un contrôle C1 au lieu de l’imprimer comme un signe de Windows-1252', () => {
+    expect(pdfText('a\u0080b\u0082c\u0092d\u009fe')).toBe('abcde')
+  })
+
   it('rend une chaîne vide quand il ne reste rien', () => {
     expect(pdfText('🐶 🐱')).toBe('')
   })
