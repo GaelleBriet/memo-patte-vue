@@ -3,7 +3,7 @@ import { jsPDF } from 'jspdf'
 import { formatKg, formatLongDate, formatNumericDate } from '@/shared/utils/format'
 import i18n from '@/core/i18n'
 import { drawWeightChart, weightChartHeight } from './pdf-weight-chart'
-import type { CarnetPdfContent, PdfDueState } from './pdf-content'
+import type { CarnetPdfContent, PdfDueState, PdfTreatmentRow } from './pdf-content'
 
 const PAGE_WIDTH_MM = 210
 const PAGE_HEIGHT_MM = 297
@@ -12,6 +12,7 @@ const CONTENT_WIDTH_MM = PAGE_WIDTH_MM - 2 * MARGIN_MM
 const BODY_BOTTOM_MM = PAGE_HEIGHT_MM - MARGIN_MM
 const FOOTER_BASELINE_MM = 286
 const PHOTO_SIZE_MM = 24
+const PHOTO_GAP_MM = 6
 
 const TITLE_ADVANCE_MM = 7
 const ROW_PT = 10.5
@@ -22,6 +23,12 @@ const SECTION_GAP_MM = 5
 const EMPTY_ADVANCE_MM = 10
 const CHART_GAP_MM = 7
 const CONTINUATION_ADVANCE_MM = 10
+const COLUMN_GAP_MM = 4
+const COLUMNS_MM = [
+  { x: 0, width: CONTENT_WIDTH_MM * 0.55 - COLUMN_GAP_MM },
+  { x: CONTENT_WIDTH_MM * 0.55, width: CONTENT_WIDTH_MM * 0.23 - COLUMN_GAP_MM },
+  { x: CONTENT_WIDTH_MM * 0.78, width: CONTENT_WIDTH_MM * 0.22 },
+]
 
 const STATE_LABEL_KEYS: Record<PdfDueState, string> = {
   overdue: 'settings.pdf.status.overdue',
@@ -35,6 +42,22 @@ type PageCursor = { y: number; makeRoom: (height: number) => void }
 
 function speciesLabelKey(species: 'dog' | 'cat'): string {
   return `animals.form.species.${species}`
+}
+
+function lineHeight(doc: jsPDF): number {
+  return (doc.getFontSize() * doc.getLineHeightFactor()) / doc.internal.scaleFactor
+}
+
+function wrap(doc: jsPDF, text: string, width: number): string[] {
+  return doc.splitTextToSize(text, width)
+}
+
+function writeLines(doc: jsPDF, lines: readonly string[], x: number, y: number): void {
+  lines.forEach((line, index) => doc.text(line, x, y + index * lineHeight(doc)))
+}
+
+function extraLinesHeight(doc: jsPDF, lineCount: number): number {
+  return (lineCount - 1) * lineHeight(doc)
 }
 
 function createPageCursor(doc: jsPDF, y: number, continuePage: () => number): PageCursor {
@@ -79,8 +102,12 @@ export function renderCarnetPdf(
   y += 10
 
   doc.setFontSize(15)
-  doc.text(content.animal.name, MARGIN_MM, y)
-  y += 7
+  const nameWidth = photoDataUrl
+    ? CONTENT_WIDTH_MM - PHOTO_SIZE_MM - PHOTO_GAP_MM
+    : CONTENT_WIDTH_MM
+  const nameLines = wrap(doc, content.animal.name, nameWidth)
+  writeLines(doc, nameLines, MARGIN_MM, y)
+  y += extraLinesHeight(doc, nameLines.length) + 7
 
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(11)
@@ -113,7 +140,7 @@ export function renderCarnetPdf(
     t('settings.pdf.treatments.title'),
     content.treatments.map((row) => [
       row.name,
-      row.nextDueDate ? formatNumericDate(row.nextDueDate) : t('settings.pdf.status.none'),
+      treatmentDueLabel(row, t),
       t(STATE_LABEL_KEYS[row.state]),
     ]),
     t('settings.pdf.treatments.empty'),
@@ -130,14 +157,23 @@ export function renderCarnetPdf(
   return new Uint8Array(doc.output('arraybuffer'))
 }
 
+function treatmentDueLabel(row: PdfTreatmentRow, t: Translate): string {
+  if (row.stoppedOn) {
+    return t('settings.pdf.treatments.stopped', { date: formatNumericDate(row.stoppedOn) })
+  }
+  return row.nextDueDate ? formatNumericDate(row.nextDueDate) : t('settings.pdf.status.none')
+}
+
 function writeContinuationHeader(doc: jsPDF, animalName: string): number {
   doc.saveGraphicsState()
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(11)
   doc.setTextColor(0)
-  doc.text(animalName, MARGIN_MM, MARGIN_MM)
+  const lines = wrap(doc, animalName, CONTENT_WIDTH_MM)
+  writeLines(doc, lines, MARGIN_MM, MARGIN_MM)
+  const height = extraLinesHeight(doc, lines.length)
   doc.restoreGraphicsState()
-  return MARGIN_MM + CONTINUATION_ADVANCE_MM
+  return MARGIN_MM + height + CONTINUATION_ADVANCE_MM
 }
 
 function writeFooters(doc: jsPDF, generated: string, t: Translate): void {
@@ -181,18 +217,28 @@ function renderSection(
   rows: string[][],
   emptyLabel: string,
 ): void {
-  writeSectionTitle(doc, cursor, title, ROW_DESCENT_MM)
-  if (rows.length === 0) {
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(ROW_PT)
+  const wrapped = rows.map((cells) =>
+    cells.map((cell, column) => wrap(doc, cell, COLUMNS_MM[column]!.width)),
+  )
+  const extraHeight = (cells: string[][]) =>
+    extraLinesHeight(doc, Math.max(...cells.map((lines) => lines.length)))
+  const firstRowExtra = wrapped[0] ? extraHeight(wrapped[0]) : 0
+
+  writeSectionTitle(doc, cursor, title, firstRowExtra + ROW_DESCENT_MM)
+  if (wrapped.length === 0) {
     writeEmptyLine(doc, cursor, emptyLabel)
     return
   }
 
-  for (const [name, date, state] of rows) {
-    cursor.makeRoom(ROW_DESCENT_MM)
-    doc.text(name ?? '', MARGIN_MM, cursor.y)
-    doc.text(date ?? '', MARGIN_MM + CONTENT_WIDTH_MM * 0.55, cursor.y)
-    doc.text(state ?? '', MARGIN_MM + CONTENT_WIDTH_MM * 0.78, cursor.y)
-    cursor.y += ROW_ADVANCE_MM
+  for (const cells of wrapped) {
+    const extra = extraHeight(cells)
+    cursor.makeRoom(extra + ROW_DESCENT_MM)
+    cells.forEach((lines, column) => {
+      writeLines(doc, lines, MARGIN_MM + COLUMNS_MM[column]!.x, cursor.y)
+    })
+    cursor.y += extra + ROW_ADVANCE_MM
   }
   cursor.y += SECTION_GAP_MM
 }

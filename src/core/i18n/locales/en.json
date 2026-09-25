@@ -720,7 +720,8 @@
       },
       "treatments": {
         "title": "Treatments",
-        "empty": "No treatment recorded."
+        "empty": "No treatment recorded.",
+        "stopped": "Stopped on {date}"
       },
       "weight": {
         "title": "Weight",

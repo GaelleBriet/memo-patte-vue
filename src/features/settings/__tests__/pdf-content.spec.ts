@@ -125,7 +125,7 @@ describe('buildCarnetPdfContent', () => {
     expect(content.treatments[0]!.state).toBe('upToDate')
   })
 
-  it('montre un traitement arrêté sans échéance ni rappel, après les traitements en cours', () => {
+  it('montre un traitement arrêté avec sa date d’arrêt, sans échéance ni rappel, après les autres', () => {
     const data = {
       ...DATA,
       treatments: [
@@ -136,9 +136,11 @@ describe('buildCarnetPdfContent', () => {
 
     const content = buildCarnetPdfContent(data, ANIMAL_ID, TODAY)!
 
-    expect(content.treatments.map((row) => [row.name, row.nextDueDate, row.state])).toEqual([
-      ['Milbémax', '2026-09-01', 'upToDate'],
-      ['Drontal', null, 'none'],
+    expect(
+      content.treatments.map((row) => [row.name, row.nextDueDate, row.stoppedOn, row.state]),
+    ).toEqual([
+      ['Milbémax', '2026-09-01', null, 'upToDate'],
+      ['Drontal', null, '2026-06-20', 'none'],
     ])
   })
 
