@@ -76,6 +76,37 @@ export async function insertTreatment(
   )
 }
 
+export async function insertVaccinationInjection(
+  db: InMemoryDb,
+  id: string,
+  vaccinationId: string,
+  animalId: string,
+  updatedAt: string,
+): Promise<void> {
+  await db.run(
+    `INSERT INTO vaccination_injection
+       (id, vaccination_id, animal_id, injected_on, next_due_date, created_at, updated_at)
+     VALUES (?, ?, ?, '2026-01-01', '2027-01-01', ?, ?)`,
+    [id, vaccinationId, animalId, updatedAt, updatedAt],
+  )
+}
+
+export async function insertTreatmentDose(
+  db: InMemoryDb,
+  id: string,
+  treatmentId: string,
+  animalId: string,
+  updatedAt: string,
+): Promise<void> {
+  await db.run(
+    `INSERT INTO treatment_dose
+       (id, treatment_id, animal_id, given_on, next_due_date, frequency_value, frequency_unit,
+        created_at, updated_at)
+     VALUES (?, ?, ?, '2026-01-01', '2026-02-01', 1, 'month', ?, ?)`,
+    [id, treatmentId, animalId, updatedAt, updatedAt],
+  )
+}
+
 export async function touchTreatment(db: InMemoryDb, id: string, updatedAt: string): Promise<void> {
   await db.run('UPDATE treatment SET updated_at = ? WHERE id = ?', [updatedAt, id])
 }

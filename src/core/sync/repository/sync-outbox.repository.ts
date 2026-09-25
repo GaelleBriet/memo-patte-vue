@@ -19,7 +19,18 @@ interface SyncStateRow {
   restoring: number
 }
 
-const ENTITY_ORDER = ['animal', 'vaccination', 'treatment', 'weight_entry']
+/** Chaque parent avant ses enfants : l'ordre des clés étrangères Postgres, au push comme au pull. */
+export const SYNC_ENTITY_ORDER = [
+  'animal',
+  'vaccination',
+  'vaccination_injection',
+  'treatment',
+  'treatment_dose',
+  'weight_entry',
+]
+
+const ENTITY_RANK = `CASE entity ${SYNC_ENTITY_ORDER.map((_, rank) => `WHEN ? THEN ${rank}`).join(' ')}
+  ELSE ${SYNC_ENTITY_ORDER.length} END`
 
 function toEntry(row: SyncOutboxRow): SyncOutboxEntry {
   return {
@@ -72,13 +83,12 @@ export function createSyncOutboxRepository(db: DbClient) {
       await db.run('UPDATE sync_state SET restoring = ? WHERE id = 1', [restoring ? 1 : 0])
     },
 
-    /** Ordre imposé par la clé étrangère Postgres au push : animal, vaccination, treatment, weight_entry. */
+    /** Dans l'ordre de `SYNC_ENTITY_ORDER`, puis de mise en file. */
     async listPending(): Promise<SyncOutboxEntry[]> {
       const rows = await db.query<SyncOutboxRow>(
         `SELECT entity, entity_id, queued_at, attempts FROM sync_outbox
-         ORDER BY CASE entity WHEN ? THEN 0 WHEN ? THEN 1 WHEN ? THEN 2 WHEN ? THEN 3 ELSE 4 END,
-                  queued_at`,
-        ENTITY_ORDER,
+         ORDER BY ${ENTITY_RANK}, queued_at`,
+        SYNC_ENTITY_ORDER,
       )
       return rows.map(toEntry)
     },

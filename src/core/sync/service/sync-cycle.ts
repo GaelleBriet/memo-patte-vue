@@ -6,7 +6,13 @@ import type { SyncRow, SyncableTable } from './syncable-table'
 const PUSH_CLAIM_SIZE = 200
 const PULL_PAGE_SIZE = 500
 const EPOCH = '1970-01-01T00:00:00.000Z'
-const REMINDER_ENTITIES = new Set(['animal', 'vaccination', 'treatment'])
+const REMINDER_ENTITIES = new Set([
+  'animal',
+  'vaccination',
+  'vaccination_injection',
+  'treatment',
+  'treatment_dose',
+])
 
 export interface SyncCycleOutbox {
   listPending(): Promise<SyncOutboxEntry[]>
@@ -19,7 +25,7 @@ export interface SyncCycleOutbox {
 export interface SyncCycleDependencies {
   db: DbClient
   outbox: SyncCycleOutbox
-  /** Ordre imposé par la clé étrangère Postgres : animal, vaccination, treatment, weight_entry. */
+  /** Dans l'ordre de `SYNC_ENTITY_ORDER` : un parent est tiré avant ses enfants. */
   tables: SyncableTable[]
   userId: () => string | null
   isEligible: () => boolean

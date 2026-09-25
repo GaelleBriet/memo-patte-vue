@@ -1,5 +1,10 @@
+import type { SupabaseClient } from '@supabase/supabase-js'
+
 import type { DbClient, SqlParam, SqlStatement } from '@/core/db/db-client'
 import { getDb } from '@/core/db/sqlite'
+import { guardedUpsert, type SyncRow } from '@/core/supabase/guarded-upsert'
+import { loadSupabaseClient } from '@/core/supabase/load-client'
+import { syncField, type SyncPullPage } from '@/core/sync/service/syncable-table'
 import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import type { FrequencyUnit } from '../schema/treatment.schema'
 
@@ -83,12 +88,23 @@ function valuesOf(dose: TreatmentDose): SqlParam[] {
   ]
 }
 
+export interface TreatmentDosesRepositoryDependencies {
+  loadSupabaseClient?: () => Promise<SupabaseClient>
+}
+
 /**
  * Écrit seul une prise notée ou annulée ; ses autres écritures sont des instructions que le
  * repository des traitements ou un service joue.
  */
-export function createTreatmentDosesRepository(db: DbClient) {
+export function createTreatmentDosesRepository(
+  db: DbClient,
+  {
+    loadSupabaseClient: loadClient = loadSupabaseClient,
+  }: TreatmentDosesRepositoryDependencies = {},
+) {
   return {
+    entity: 'treatment_dose',
+
     /** Faux quand une prise visible du même jour existe déjà : un double tap n'en note qu'une. */
     async record(dose: TreatmentDose): Promise<boolean> {
       const changes = await db.run(
@@ -271,6 +287,67 @@ export function createTreatmentDosesRepository(db: DbClient) {
               dose.updatedAt,
             ],
           }
+    },
+
+    /** Tombstones compris : le push doit pouvoir renvoyer une suppression comme une ligne normale. */
+    async getRowForPush(id: string): Promise<SyncRow | null> {
+      const rows = await db.query<DoseRow>(`SELECT ${COLUMNS} FROM treatment_dose WHERE id = ?`, [
+        id,
+      ])
+      return (rows[0] as SyncRow | undefined) ?? null
+    },
+
+    async pushRow(userId: string, row: SyncRow): Promise<void> {
+      const supabase = await loadClient()
+      await guardedUpsert(supabase, 'treatment_dose', ['user_id', 'id'], {
+        ...row,
+        user_id: userId,
+      })
+    },
+
+    async pullPage(userId: string, since: string, limit: number): Promise<SyncPullPage> {
+      const supabase = await loadClient()
+      const { data, error } = await supabase
+        .from('treatment_dose')
+        .select(`${COLUMNS}, server_updated_at`)
+        .eq('user_id', userId)
+        .gte('server_updated_at', since)
+        .order('server_updated_at', { ascending: true })
+        .limit(limit)
+      if (error) throw error
+
+      const rows = (data ?? []) as Array<DoseRow & { server_updated_at: string }>
+      const cursor = rows.length > 0 ? (rows.at(-1)?.server_updated_at ?? null) : null
+      return {
+        rows: rows.map(({ server_updated_at: _serverUpdatedAt, ...columns }) => columns as SyncRow),
+        cursor,
+      }
+    },
+
+    applyRemoteRowStatement(row: SyncRow): SqlStatement {
+      return {
+        sql: `INSERT INTO treatment_dose (${COLUMNS})
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              ON CONFLICT (id) DO UPDATE SET
+                treatment_id = excluded.treatment_id, animal_id = excluded.animal_id,
+                given_on = excluded.given_on, next_due_date = excluded.next_due_date,
+                frequency_value = excluded.frequency_value, frequency_unit = excluded.frequency_unit,
+                created_at = excluded.created_at, updated_at = excluded.updated_at,
+                deleted_at = excluded.deleted_at
+              WHERE excluded.updated_at > treatment_dose.updated_at`,
+        params: [
+          row.id,
+          syncField(row, 'treatment_id'),
+          syncField(row, 'animal_id'),
+          syncField(row, 'given_on'),
+          syncField(row, 'next_due_date'),
+          syncField(row, 'frequency_value'),
+          syncField(row, 'frequency_unit'),
+          syncField(row, 'created_at'),
+          row.updated_at,
+          syncField(row, 'deleted_at'),
+        ],
+      }
     },
   }
 }

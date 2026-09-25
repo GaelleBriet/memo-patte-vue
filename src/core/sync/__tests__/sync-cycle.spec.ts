@@ -493,6 +493,28 @@ describe('createSyncCycle', () => {
       expect(onRemindersOutdated).toHaveBeenCalledOnce()
     })
 
+    it.each(['vaccination_injection', 'treatment_dose'])(
+      'reconstruit les rappels quand le pull ne ramène qu’un « fait » (%s)',
+      async (entity) => {
+        const events = fakeTable(entity, [
+          page([row('e1', '2026-01-01T00:00:00.000Z', 'x')], '2026-01-01T00:00:00.000Z'),
+        ])
+        const onRemindersOutdated = vi.fn<() => Promise<void>>().mockResolvedValue(undefined)
+        const cycle = createSyncCycle({
+          db,
+          outbox: createFakeOutbox(),
+          tables: [events],
+          userId: () => 'user-1',
+          isEligible: () => true,
+          onRemindersOutdated,
+        })
+
+        await cycle.runCycle()
+
+        expect(onRemindersOutdated).toHaveBeenCalledOnce()
+      },
+    )
+
     it('ne reconstruit pas les rappels quand le pull ne ramène que la ligne déjà vue au curseur', async () => {
       const seen = '2026-01-01T00:00:00.000Z'
       const vaccination = fakeTable('vaccination', [page([row('v1', seen, 'x')], seen)])
