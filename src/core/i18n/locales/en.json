@@ -711,6 +711,7 @@
         "upToDate": "Up to date",
         "none": "No reminder"
       },
+      "noName": "—",
       "identity": {
         "birthDate": "Date of birth: {date}"
       },
