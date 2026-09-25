@@ -10,7 +10,11 @@ import {
   createTreatmentDosesRepository,
   type TreatmentDosesRepository,
 } from '../repository/treatment-doses.repository'
-import type { ExportTreatment } from '@/shared/domain/carnet-data'
+import type { Treatment } from '../schema/treatment.schema'
+
+type ImportedTreatment = Omit<Treatment, 'stoppedOn' | 'deletedAt'> & {
+  stoppedOn?: string | null
+}
 
 const MIETTE = '11111111-1111-4111-8111-111111111111'
 const VASCO = '22222222-2222-4222-8222-222222222222'
@@ -860,7 +864,7 @@ describe('treatmentsRepository — prises', () => {
 })
 
 describe('treatmentsRepository — import', () => {
-  const IMPORTE: ExportTreatment = {
+  const IMPORTE: ImportedTreatment = {
     id: '44444444-4444-4444-8444-444444444444',
     animalId: MIETTE,
     name: 'Milbémax',
@@ -876,7 +880,7 @@ describe('treatmentsRepository — import', () => {
   let repository: TreatmentsRepository
   let doses: TreatmentDosesRepository
 
-  function restore(treatment: ExportTreatment, exists: boolean) {
+  function restore(treatment: ImportedTreatment, exists: boolean) {
     return db.runMany([
       repository.restoreStatement(treatment, exists),
       doses.restoreStatement(
@@ -921,7 +925,7 @@ describe('treatmentsRepository — import', () => {
   it('écrase un traitement existant, même supprimé, et le rend visible', async () => {
     await restore(IMPORTE, false)
     await repository.remove(IMPORTE.id)
-    const importe: ExportTreatment = {
+    const importe: ImportedTreatment = {
       ...IMPORTE,
       type: 'antiparasitic',
       frequency: { value: 2, unit: 'week' },

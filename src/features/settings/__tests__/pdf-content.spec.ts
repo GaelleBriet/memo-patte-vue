@@ -1,12 +1,18 @@
+import { addDays, addMonths, format, parseISO } from 'date-fns'
 import { describe, expect, it } from 'vitest'
 
+import { fromExportV1, type ExportDataV1 } from '../logic/export-v1'
 import { buildCarnetPdfContent, pdfExportFileName } from '../logic/pdf-content'
-import type { ExportData } from '@/shared/domain/carnet-data'
+import type {
+  ExportFrequency,
+  ExportTreatmentDose,
+  ExportVaccinationInjection,
+} from '@/shared/domain/carnet-data'
 
 const ANIMAL_ID = '11111111-1111-4111-8111-111111111111'
 const OTHER_ANIMAL_ID = '22222222-2222-4222-8222-222222222222'
 
-const DATA: ExportData = {
+const DATA_V1: ExportDataV1 = {
   animals: [
     {
       id: ANIMAL_ID,
@@ -93,6 +99,7 @@ const DATA: ExportData = {
   ],
 }
 
+const DATA = fromExportV1(DATA_V1)
 const TODAY = '2026-07-01'
 
 describe('buildCarnetPdfContent', () => {
@@ -126,13 +133,13 @@ describe('buildCarnetPdfContent', () => {
   })
 
   it('montre un traitement arrêté avec sa date d’arrêt, sans échéance ni rappel, après les autres', () => {
-    const data = {
-      ...DATA,
+    const data = fromExportV1({
+      ...DATA_V1,
       treatments: [
-        { ...DATA.treatments[0]!, id: 't-stopped', name: 'Drontal', stoppedOn: '2026-06-20' },
-        ...DATA.treatments,
+        { ...DATA_V1.treatments[0]!, id: 't-stopped', name: 'Drontal', stoppedOn: '2026-06-20' },
+        ...DATA_V1.treatments,
       ],
-    }
+    })
 
     const content = buildCarnetPdfContent(data, ANIMAL_ID, TODAY)!
 
@@ -162,6 +169,151 @@ describe('buildCarnetPdfContent', () => {
       'luna.jpg',
     )
   })
+})
+
+describe('buildCarnetPdfContent — historique', () => {
+  const MONTHLY = { value: 1, unit: 'month' } as const
+  const AT = '2026-01-01T00:00:00.000Z'
+
+  function injection(injectedOn: string): ExportVaccinationInjection {
+    return {
+      id: `i-${injectedOn}`,
+      vaccinationId: 'v-overdue',
+      animalId: ANIMAL_ID,
+      injectedOn,
+      nextDueDate: null,
+      createdAt: AT,
+      updatedAt: AT,
+    }
+  }
+
+  function dose(givenOn: string, frequency: ExportFrequency = MONTHLY): ExportTreatmentDose {
+    return {
+      id: `d-${givenOn}`,
+      treatmentId: 't-upcoming',
+      animalId: ANIMAL_ID,
+      givenOn,
+      nextDueDate: '2027-01-01',
+      frequency,
+      createdAt: AT,
+      updatedAt: AT,
+    }
+  }
+
+  function monthlyFrom(first: string, count: number): ExportTreatmentDose[] {
+    return Array.from({ length: count }, (_, index) =>
+      dose(format(addMonths(parseISO(first), index), 'yyyy-MM-dd')),
+    )
+  }
+
+  function treatmentRow(treatmentDoses: ExportTreatmentDose[]) {
+    return buildCarnetPdfContent({ ...DATA, treatmentDoses }, ANIMAL_ID, TODAY)!.treatments[0]!
+  }
+
+  it('liste toutes les injections d’un vaccin, la plus récente d’abord, jamais regroupées', () => {
+    const years = ['2021-01-01', '2025-01-01', '2022-01-01', '2024-01-01', '2023-01-01']
+    const data = {
+      ...DATA,
+      vaccinationInjections: [
+        ...DATA.vaccinationInjections.filter(({ vaccinationId }) => vaccinationId !== 'v-overdue'),
+        ...years.map(injection),
+      ],
+    }
+
+    const rage = buildCarnetPdfContent(data, ANIMAL_ID, TODAY)!.vaccinations.find(
+      (row) => row.name === 'Rage',
+    )!
+
+    expect(rage.injectionDates).toEqual([...years].sort().reverse())
+  })
+
+  it('met la dernière prise à part et liste jusqu’à trois prises précédentes', () => {
+    const row = treatmentRow(monthlyFrom('2026-03-01', 4))
+
+    expect(row.lastDoseDate).toBe('2026-06-01')
+    expect(row.previousDoses).toEqual([
+      { kind: 'dates', dates: ['2026-05-01', '2026-04-01', '2026-03-01'] },
+    ])
+    expect(treatmentRow([dose('2026-06-01')]).previousDoses).toEqual([])
+  })
+
+  it('regroupe au-delà de trois prises : « N prises du A au B »', () => {
+    const row = treatmentRow(monthlyFrom('2025-06-01', 13))
+
+    expect(row.lastDoseDate).toBe('2026-06-01')
+    expect(row.previousDoses).toEqual([
+      { kind: 'range', count: 12, from: '2025-06-01', to: '2026-05-01' },
+    ])
+  })
+
+  it('commence une nouvelle série quand l’écart dépasse 1,5 fois la fréquence, la plus récente d’abord', () => {
+    const row = treatmentRow([
+      ...monthlyFrom('2025-01-01', 4),
+      ...monthlyFrom('2025-09-01', 4),
+      dose('2026-01-01'),
+    ])
+
+    expect(row.previousDoses).toEqual([
+      { kind: 'range', count: 4, from: '2025-09-01', to: '2025-12-01' },
+      { kind: 'range', count: 4, from: '2025-01-01', to: '2025-04-01' },
+    ])
+  })
+
+  it('ne coupe pas à exactement 1,5 fois la fréquence, coupe au-delà', () => {
+    const fortnightly = { value: 2, unit: 'week' } as const
+    const row = treatmentRow(
+      ['2026-01-01', '2026-01-22', '2026-02-13', '2026-02-27'].map((day) => dose(day, fortnightly)),
+    )
+
+    expect(row.previousDoses).toEqual([
+      { kind: 'dates', dates: ['2026-02-13'] },
+      { kind: 'dates', dates: ['2026-01-22', '2026-01-01'] },
+    ])
+  })
+
+  it('mesure l’écart avec la fréquence de la prise précédente, pas celle de la suivante', () => {
+    const quarterly = { value: 3, unit: 'month' } as const
+    const quarterlyThenMonthly = treatmentRow([
+      dose('2026-01-01', quarterly),
+      dose('2026-03-02'),
+      dose('2026-04-02'),
+      dose('2026-05-02'),
+    ])
+    const monthlyThenQuarterly = treatmentRow([
+      dose('2026-01-01'),
+      dose('2026-03-02', quarterly),
+      dose('2026-06-02', quarterly),
+      dose('2026-09-02', quarterly),
+    ])
+
+    expect(quarterlyThenMonthly.previousDoses).toEqual([
+      { kind: 'dates', dates: ['2026-04-02', '2026-03-02', '2026-01-01'] },
+    ])
+    expect(monthlyThenQuarterly.previousDoses).toEqual([
+      { kind: 'dates', dates: ['2026-06-02', '2026-03-02'] },
+      { kind: 'dates', dates: ['2026-01-01'] },
+    ])
+  })
+
+  it.each([
+    ['tous les jours', 1, { value: 1, unit: 'day' }],
+    ['toutes les semaines', 10, { value: 1, unit: 'week' }],
+    ['tous les 12 mois, à 30,44 jours le mois', 547, { value: 12, unit: 'month' }],
+  ] as const)(
+    '%s, garde dans la série un écart de %i jours, pas un jour de plus',
+    (_, days, frequency) => {
+      const seriesCount = (gap: number) => {
+        const first = '2024-01-01'
+        const second = format(addDays(parseISO(first), gap), 'yyyy-MM-dd')
+        const head = format(addDays(parseISO(second), 1), 'yyyy-MM-dd')
+        return treatmentRow([first, second, head].map((day) => dose(day, frequency))).previousDoses
+          .length
+      }
+
+      expect(seriesCount(days)).toBe(1)
+      expect(seriesCount(days + 1)).toBe(2)
+    },
+  )
 })
 
 describe('pdfExportFileName', () => {

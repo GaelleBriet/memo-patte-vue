@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
 import { parseExportFile } from '../service/data-import.service'
-import { IMPORT_FIXTURE, importFixtureJson, LUNA_ID, MILO_ID } from './import-fixture'
+import { IMPORT_FILE, importFixtureJson, LUNA_ID, MILO_ID } from './import-fixture'
+import exportV1 from './fixtures/export-v1-0.1.37.json?raw'
 
 function withDocument(change: (document: Record<string, unknown>) => void): string {
   const document = JSON.parse(importFixtureJson()) as Record<string, unknown>
@@ -13,7 +14,7 @@ describe('parseExportFile', () => {
   it('relit un export JSON de l’app à l’identique, sans les rappels dérivés', () => {
     const result = parseExportFile(importFixtureJson())
 
-    expect(result).toEqual({ ok: true, data: IMPORT_FIXTURE })
+    expect(result).toEqual({ ok: true, file: IMPORT_FILE })
   })
 
   it('accepte un champ inconnu : un ajout optionnel ne change pas la version', () => {
@@ -22,7 +23,7 @@ describe('parseExportFile', () => {
       ;(document.animals as Record<string, unknown>[])[0]!.color = 'tabby'
     })
 
-    expect(parseExportFile(text)).toEqual({ ok: true, data: IMPORT_FIXTURE })
+    expect(parseExportFile(text)).toEqual({ ok: true, file: IMPORT_FILE })
   })
 
   it.each([
@@ -50,10 +51,26 @@ describe('parseExportFile', () => {
       }),
     ],
     [
-      'une date de dernière injection dans le futur',
+      'une injection dans le futur',
       withDocument((document) => {
-        ;(document.vaccinations as Record<string, unknown>[])[0]!.lastInjectionDate = '2999-01-01'
+        ;(document.vaccinationInjections as Record<string, unknown>[])[0]!.injectedOn = '2999-01-01'
       }),
+    ],
+    [
+      'une prise dans le futur',
+      withDocument((document) => {
+        ;(document.treatmentDoses as Record<string, unknown>[])[0]!.givenOn = '2999-01-01'
+      }),
+    ],
+    [
+      'un traitement sans date d’arrêt ni `null`',
+      withDocument((document) => {
+        delete (document.treatments as Record<string, unknown>[])[0]!.stoppedOn
+      }),
+    ],
+    [
+      'une table d’événements manquante',
+      withDocument((document) => delete document.treatmentDoses),
     ],
     [
       'une date de naissance dans le futur',
@@ -121,14 +138,14 @@ describe('parseExportFile', () => {
 
     const result = parseExportFile(text)
 
-    expect(result.ok && result.data.animals.map(({ name, breed }) => [name, breed])).toEqual([
+    expect(result.ok && result.file.data.animals.map(({ name, breed }) => [name, breed])).toEqual([
       ['Luna', null],
       ['Milo', null],
     ])
   })
 
   it('signale un export d’une version plus récente, quel que soit son contenu', () => {
-    const text = JSON.stringify({ schemaVersion: 2, pets: [] })
+    const text = JSON.stringify({ schemaVersion: 3, pets: [] })
 
     expect(parseExportFile(text)).toEqual({ ok: false, reason: 'newer' })
   })
@@ -142,6 +159,26 @@ describe('parseExportFile', () => {
     expect(parseExportFile(text)).toEqual({ ok: false, reason: 'invalid' })
   })
 
+  it('refuse un identifiant en double parmi les événements', () => {
+    const text = withDocument((document) => {
+      const injections = document.vaccinationInjections as Record<string, unknown>[]
+      injections[1]!.id = injections[0]!.id
+    })
+
+    expect(parseExportFile(text)).toEqual({ ok: false, reason: 'invalid' })
+  })
+
+  it.each([
+    ['un vaccin', 'vaccinationInjections'],
+    ['un traitement', 'treatmentDoses'],
+  ])('refuse %s sans aucun événement dans le fichier', (_, table) => {
+    const text = withDocument((document) => {
+      document[table] = (document[table] as Record<string, unknown>[]).slice(1)
+    })
+
+    expect(parseExportFile(text)).toEqual({ ok: false, reason: 'invalid' })
+  })
+
   it('refuse une entrée rattachée à un animal absent du fichier', () => {
     const text = withDocument((document) => {
       document.animals = (document.animals as Record<string, unknown>[]).filter(
@@ -150,5 +187,86 @@ describe('parseExportFile', () => {
     })
 
     expect(parseExportFile(text)).toEqual({ ok: false, reason: 'invalid' })
+  })
+})
+
+describe('parseExportFile, export v1', () => {
+  const RAGE = 'c926e5b4-b1c3-4773-bb3f-34e0acdb67da'
+  const MILBEMAX = 'e4d428da-419e-4c67-a6f3-fcad10a2c6ff'
+  const MILO = 'f53143ec-dca0-430d-a77d-755f592ae425'
+
+  function withV1Document(change: (document: Record<string, unknown>) => void): string {
+    const document = JSON.parse(exportV1) as Record<string, unknown>
+    change(document)
+    return JSON.stringify(document)
+  }
+
+  function v1Data(text: string) {
+    const result = parseExportFile(text)
+    if (!result.ok || result.file.schemaVersion !== 1) throw new Error('export v1 refusé')
+    return result.file.data
+  }
+
+  it('relit un vrai export de la 0.1.37 : un événement par ligne, à l’identifiant du parent', () => {
+    const data = v1Data(exportV1)
+
+    expect(data.vaccinations).toHaveLength(3)
+    expect(data.vaccinationInjections).toHaveLength(3)
+    expect(data.vaccinations).toContainEqual({
+      id: RAGE,
+      animalId: MILO,
+      name: 'Rage',
+      createdAt: '2026-09-20T07:20:10.533Z',
+      updatedAt: '2026-09-21T18:02:57.061Z',
+    })
+    expect(data.vaccinationInjections).toContainEqual({
+      id: RAGE,
+      vaccinationId: RAGE,
+      animalId: MILO,
+      injectedOn: '2026-09-21',
+      nextDueDate: '2029-09-21',
+      createdAt: '2026-09-20T07:20:10.533Z',
+      updatedAt: '2026-09-21T18:02:57.061Z',
+    })
+    expect(data.treatments.every(({ stoppedOn }) => stoppedOn === null)).toBe(true)
+    expect(data.treatmentDoses).toContainEqual({
+      id: MILBEMAX,
+      treatmentId: MILBEMAX,
+      animalId: MILO,
+      givenOn: '2026-09-15',
+      nextDueDate: '2026-12-15',
+      frequency: { value: 3, unit: 'month' },
+      createdAt: '2026-09-20T07:29:03.672Z',
+      updatedAt: '2026-09-22T08:41:19.230Z',
+    })
+    expect(data.weightEntries).toHaveLength(3)
+  })
+
+  it('lit la date d’arrêt d’un export v1 plus récent', () => {
+    const text = withV1Document((document) => {
+      ;(document.treatments as Record<string, unknown>[])[0]!.stoppedOn = '2026-09-10'
+    })
+
+    expect(v1Data(text).treatments[0]!.stoppedOn).toBe('2026-09-10')
+  })
+
+  it('aiguille par la version avant de valider : chaque format a son schéma', () => {
+    const v1LikeV2 = JSON.stringify({ ...JSON.parse(importFixtureJson()), schemaVersion: 1 })
+    const v2LikeV1 = withV1Document((document) => (document.schemaVersion = 2))
+
+    expect(parseExportFile(v1LikeV2)).toEqual({ ok: false, reason: 'invalid' })
+    expect(parseExportFile(v2LikeV1)).toEqual({ ok: false, reason: 'invalid' })
+  })
+
+  it('garde les refus du format v1', () => {
+    const heavy = withV1Document((document) => {
+      ;(document.weightEntries as Record<string, unknown>[])[0]!.weightKg = 201
+    })
+    const future = withV1Document((document) => {
+      ;(document.vaccinations as Record<string, unknown>[])[0]!.lastInjectionDate = '2999-01-01'
+    })
+
+    expect(parseExportFile(heavy)).toEqual({ ok: false, reason: 'outOfRange' })
+    expect(parseExportFile(future)).toEqual({ ok: false, reason: 'invalid' })
   })
 })

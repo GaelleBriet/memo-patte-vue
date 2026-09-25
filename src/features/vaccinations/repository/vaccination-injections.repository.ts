@@ -111,6 +111,15 @@ export function createVaccinationInjectionsRepository(
       return rows.map(toInjection)
     },
 
+    /** Injections visibles de tous les vaccins, celles d'un même vaccin la tête d'abord. */
+    async listAll(): Promise<VaccinationInjection[]> {
+      const rows = await db.query<InjectionRow>(
+        `SELECT ${COLUMNS} FROM vaccination_injection WHERE ${NOT_DELETED}
+         ORDER BY vaccination_id, injected_on DESC, created_at DESC, id DESC`,
+      )
+      return rows.map(toInjection)
+    },
+
     async getById(id: string): Promise<VaccinationInjection | null> {
       const rows = await db.query<InjectionRow>(
         `SELECT ${COLUMNS} FROM vaccination_injection WHERE id = ? AND ${NOT_DELETED}`,
@@ -216,14 +225,19 @@ export function createVaccinationInjectionsRepository(
       }
     },
 
-    /** Une injection existante garde sa date, son vaccin et son animal : seul le rappel suit le fichier. */
+    /** Une injection existante garde son vaccin et son animal : sa date et son rappel suivent le fichier. */
     restoreStatement(injection: RestoredVaccinationInjection, exists: boolean): SqlStatement {
       return exists
         ? {
             sql: `UPDATE vaccination_injection
-                  SET next_due_date = ?, updated_at = ?, deleted_at = NULL
+                  SET injected_on = ?, next_due_date = ?, updated_at = ?, deleted_at = NULL
                   WHERE id = ?`,
-            params: [injection.nextDueDate, injection.updatedAt, injection.id],
+            params: [
+              injection.injectedOn,
+              injection.nextDueDate,
+              injection.updatedAt,
+              injection.id,
+            ],
           }
         : {
             sql: `INSERT INTO vaccination_injection (${COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?, NULL)`,

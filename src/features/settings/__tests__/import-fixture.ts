@@ -1,5 +1,7 @@
 import { toJsonExport } from '../logic/export-format'
+import { fromExportV1, type ExportDataV1 } from '../logic/export-v1'
 import type { ExportData } from '@/shared/domain/carnet-data'
+import type { ImportFile } from '@/shared/domain/import-plan'
 
 export const MILO_ID = '11111111-1111-4111-8111-111111111111'
 export const LUNA_ID = '33333333-3333-4333-8333-333333333333'
@@ -9,7 +11,7 @@ export const MILBEMAX_ID = '66666666-6666-4666-8666-666666666666'
 export const LUNA_WEIGHT_ID = '77777777-7777-4777-8777-777777777777'
 export const MILO_WEIGHT_ID = '88888888-8888-4888-8888-888888888888'
 
-export const IMPORT_FIXTURE: ExportData = {
+export const IMPORT_FIXTURE_V1: ExportDataV1 = {
   animals: [
     {
       id: LUNA_ID,
@@ -86,6 +88,78 @@ export const IMPORT_FIXTURE: ExportData = {
       updatedAt: '2026-08-30T08:15:00.000Z',
     },
   ],
+}
+
+/** Le même carnet en v2 : chaque vaccin et traitement avec son seul événement. */
+export const IMPORT_FIXTURE: ExportData = {
+  animals: IMPORT_FIXTURE_V1.animals,
+  vaccinations: [
+    {
+      id: CHPPIL_ID,
+      animalId: MILO_ID,
+      name: 'CHPPiL',
+      createdAt: '2026-01-12T08:05:00.000Z',
+      updatedAt: '2026-01-12T08:05:00.000Z',
+    },
+    {
+      id: TYPHUS_ID,
+      animalId: LUNA_ID,
+      name: 'Typhus',
+      createdAt: '2026-01-10T08:05:00.000Z',
+      updatedAt: '2026-01-10T08:05:00.000Z',
+    },
+  ],
+  vaccinationInjections: [
+    {
+      id: CHPPIL_ID,
+      vaccinationId: CHPPIL_ID,
+      animalId: MILO_ID,
+      injectedOn: '2025-09-01',
+      nextDueDate: '2026-09-01',
+      createdAt: '2026-01-12T08:05:00.000Z',
+      updatedAt: '2026-01-12T08:05:00.000Z',
+    },
+    {
+      id: TYPHUS_ID,
+      vaccinationId: TYPHUS_ID,
+      animalId: LUNA_ID,
+      injectedOn: '2024-05-20',
+      nextDueDate: null,
+      createdAt: '2026-01-10T08:05:00.000Z',
+      updatedAt: '2026-01-10T08:05:00.000Z',
+    },
+  ],
+  treatments: [
+    {
+      id: MILBEMAX_ID,
+      animalId: LUNA_ID,
+      name: 'Milbémax',
+      type: 'deworming',
+      frequency: { value: 3, unit: 'month' },
+      stoppedOn: null,
+      createdAt: '2026-01-10T08:10:00.000Z',
+      updatedAt: '2026-06-15T08:10:00.000Z',
+    },
+  ],
+  treatmentDoses: [
+    {
+      id: MILBEMAX_ID,
+      treatmentId: MILBEMAX_ID,
+      animalId: LUNA_ID,
+      givenOn: '2026-06-15',
+      nextDueDate: '2026-09-15',
+      frequency: { value: 3, unit: 'month' },
+      createdAt: '2026-01-10T08:10:00.000Z',
+      updatedAt: '2026-06-15T08:10:00.000Z',
+    },
+  ],
+  weightEntries: IMPORT_FIXTURE_V1.weightEntries,
+}
+
+export const IMPORT_FILE: ImportFile = { schemaVersion: 2, data: IMPORT_FIXTURE }
+
+export function v1File(data: ExportDataV1 = IMPORT_FIXTURE_V1): ImportFile {
+  return { schemaVersion: 1, data: fromExportV1(data) }
 }
 
 export function importFixtureJson(data: ExportData = IMPORT_FIXTURE): string {

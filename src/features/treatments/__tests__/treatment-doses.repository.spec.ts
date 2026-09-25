@@ -9,7 +9,9 @@ import {
   type TreatmentDosesRepository,
 } from '../repository/treatment-doses.repository'
 import { createTreatmentsRepository } from '../repository/treatments.repository'
+import { addFrequency } from '../logic/treatment-frequency'
 import type { TreatmentDose } from '../schema/treatment-dose.schema'
+import type { TreatmentFrequency } from '../schema/treatment.schema'
 
 vi.mock('@/core/db/sqlite', () => ({ getDb: vi.fn<() => Promise<DbClient>>() }))
 
@@ -102,7 +104,27 @@ describe('treatmentDosesRepository', () => {
     })
   })
 
-  it('restaure une prise existante sans changer sa date ni son traitement', async () => {
+  it('liste les prises visibles de tous les traitements, jamais une supprimée', async () => {
+    const recente: TreatmentDose = {
+      id: 'recente',
+      treatmentId: milbemax,
+      animalId: MIETTE,
+      givenOn: '2026-04-10',
+      nextDueDate: '2026-07-10',
+      frequency: { value: 3, unit: 'month' },
+      createdAt: NOW,
+      updatedAt: NOW,
+      deletedAt: null,
+    }
+    await doses.record(recente)
+
+    const liste = await doses.listAll()
+
+    expect(liste.map(({ id }) => id).sort()).toEqual(['recente', milbemax, bravecto].sort())
+    expect(liste).toContainEqual(recente)
+  })
+
+  it('restaure une prise existante à la date du fichier, sans changer son traitement ni son animal', async () => {
     await db.runMany([
       doses.restoreStatement(
         {
@@ -124,7 +146,7 @@ describe('treatmentDosesRepository', () => {
         expect.objectContaining({
           treatment_id: drontal,
           animal_id: MIETTE,
-          given_on: '2026-01-10',
+          given_on: '2026-02-10',
           next_due_date: '2026-02-24',
           frequency_value: 2,
           frequency_unit: 'week',
@@ -418,6 +440,163 @@ describe('treatmentDosesRepository — historique', () => {
     await doses.remove('p2', NOW)
     await expect(doses.changeDate('p2', dates, LATER)).resolves.toBe(false)
     await expect(doses.changeDate('p1', dates, LATER)).resolves.toBe(true)
+  })
+})
+
+describe('treatmentDosesRepository — réconciliation des prises à fréquence périmée', () => {
+  let db: InMemoryDb
+  let doses: TreatmentDosesRepository
+  let milbemax: string
+
+  function prise(id: string, givenOn: string, surcharges: Partial<TreatmentDose> = {}) {
+    return {
+      id,
+      treatmentId: milbemax,
+      animalId: MIETTE,
+      givenOn,
+      nextDueDate: '2026-12-20',
+      frequency: { value: 3, unit: 'month' },
+      createdAt: NOW,
+      updatedAt: NOW,
+      deletedAt: null,
+      ...surcharges,
+    } satisfies TreatmentDose
+  }
+
+  function planMensuel(): Promise<number> {
+    return db.run(
+      `UPDATE treatment SET frequency_value = 1, frequency_unit = 'month' WHERE id = ?`,
+      [milbemax],
+    )
+  }
+
+  async function reconcile(): Promise<void> {
+    await db.runMany([doses.reconcileStaleHeadsStatement(LATER)])
+  }
+
+  beforeEach(async () => {
+    db = await createInMemoryDb()
+    await db.execute('PRAGMA foreign_keys = ON')
+    await db.run(
+      `INSERT INTO animal (id, name, species, created_at, updated_at)
+       VALUES (?, 'Miette', 'cat', ?, ?)`,
+      [MIETTE, T0, T0],
+    )
+    doses = createTreatmentDosesRepository(db)
+    milbemax = (
+      await createTreatmentsRepository(db).create({ ...plan, animalId: MIETTE, name: 'Milbemax' })
+    ).id
+  })
+
+  afterEach(() => {
+    db.close()
+  })
+
+  it('recalcule depuis la dernière prise la prochaine dose fixée avec une autre fréquence que le plan', async () => {
+    await doses.record(prise('ancienne', '2025-10-10', { frequency: { value: 2, unit: 'week' } }))
+    await doses.record(prise('annulee', '2026-02-01', { deletedAt: NOW }))
+    await planMensuel()
+
+    await reconcile()
+
+    await expect(doses.getById(milbemax)).resolves.toEqual(
+      expect.objectContaining({
+        givenOn: '2026-01-10',
+        nextDueDate: '2026-02-10',
+        frequency: { value: 1, unit: 'month' },
+        updatedAt: LATER,
+      }),
+    )
+    await expect(doses.getById('ancienne')).resolves.toEqual(
+      prise('ancienne', '2025-10-10', { frequency: { value: 2, unit: 'week' } }),
+    )
+  })
+
+  it('recalcule aussi une prise de tête de même valeur mais d’une autre unité que le plan', async () => {
+    await db.run(`UPDATE treatment SET frequency_unit = 'week' WHERE id = ?`, [milbemax])
+
+    await reconcile()
+
+    await expect(doses.getById(milbemax)).resolves.toMatchObject({
+      nextDueDate: '2026-01-31',
+      frequency: { value: 3, unit: 'week' },
+      updatedAt: LATER,
+    })
+  })
+
+  it('ne touche jamais une prise de tête déjà à la fréquence du plan : un report reste', async () => {
+    await doses.record(prise('reportee', '2026-03-01', { nextDueDate: '2026-09-30' }))
+
+    await reconcile()
+
+    await expect(doses.getById('reportee')).resolves.toEqual(
+      prise('reportee', '2026-03-01', { nextDueDate: '2026-09-30' }),
+    )
+  })
+
+  it('laisse la prise de tête d’un traitement arrêté ou supprimé', async () => {
+    await planMensuel()
+    await db.run(`UPDATE treatment SET stopped_on = '2026-02-01' WHERE id = ?`, [milbemax])
+    await reconcile()
+    await db.run(`UPDATE treatment SET stopped_on = NULL, deleted_at = ? WHERE id = ?`, [
+      NOW,
+      milbemax,
+    ])
+    await reconcile()
+
+    await expect(doses.getById(milbemax)).resolves.toMatchObject({
+      nextDueDate: '2026-04-10',
+      frequency: { value: 3, unit: 'month' },
+    })
+  })
+
+  it('calcule la même date que l’app, fin de mois et années bissextiles comprises', async () => {
+    const days = [
+      '2024-01-29',
+      '2024-01-31',
+      '2024-02-29',
+      '2025-01-30',
+      '2025-03-31',
+      '2025-05-31',
+      '2025-08-31',
+      '2025-12-31',
+      '2026-02-28',
+      '2026-06-15',
+    ]
+    const frequencies: TreatmentFrequency[] = [
+      { value: 1, unit: 'day' },
+      { value: 365, unit: 'day' },
+      { value: 1, unit: 'week' },
+      { value: 52, unit: 'week' },
+      { value: 1, unit: 'month' },
+      { value: 3, unit: 'month' },
+      { value: 12, unit: 'month' },
+      { value: 13, unit: 'month' },
+      { value: 365, unit: 'month' },
+    ]
+    const cases = days.flatMap((givenOn) =>
+      frequencies.map((frequency) => ({ id: crypto.randomUUID(), givenOn, frequency })),
+    )
+    await db.runMany(
+      cases.flatMap(({ id, givenOn, frequency }) => [
+        {
+          sql: `INSERT INTO treatment (id, animal_id, name, type, frequency_value, frequency_unit,
+                  created_at, updated_at)
+                VALUES (?, ?, 'Plan', 'deworming', ?, ?, ?, ?)`,
+          params: [id, MIETTE, frequency.value, frequency.unit, T0, T0],
+        },
+        doses.insertStatement(
+          prise(id, givenOn, { treatmentId: id, frequency: { value: 2, unit: 'day' } }),
+        ),
+      ]),
+    )
+
+    await reconcile()
+
+    const heads = await Promise.all(cases.map(({ id }) => doses.getById(id)))
+    expect(heads.map((head) => head?.nextDueDate)).toEqual(
+      cases.map(({ givenOn, frequency }) => addFrequency(givenOn, frequency)),
+    )
   })
 })
 

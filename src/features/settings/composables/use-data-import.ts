@@ -6,11 +6,11 @@ import {
   MAX_IMPORT_FILE_BYTES,
   parseExportFile,
   type DataImportService,
+  type ImportFile,
   type ImportFileError,
   type ImportMode,
   type ImportRefusal,
 } from '../service/data-import.service'
-import type { ExportData } from '@/shared/domain/carnet-data'
 
 export type ImportStep = 'idle' | 'choice' | 'confirm' | 'error'
 export type ImportError = ImportFileError | ImportRefusal | 'failed'
@@ -22,7 +22,7 @@ export function useDataImport(
   const step = ref<ImportStep>('idle')
   const error = ref<ImportError | null>(null)
   const isImporting = ref(false)
-  let pending: ExportData | null = null
+  let pending: ImportFile | null = null
 
   function fail(reason: ImportError): void {
     pending = null
@@ -30,9 +30,9 @@ export function useDataImport(
     step.value = 'error'
   }
 
-  async function write(data: ExportData, mode: ImportMode): Promise<void> {
+  async function write(file: ImportFile, mode: ImportMode): Promise<void> {
     try {
-      await service.importData(data, mode)
+      await service.importData(file, mode)
       pending = null
       step.value = 'idle'
       onImported()
@@ -74,8 +74,8 @@ export function useDataImport(
       return fail('failed')
     }
 
-    if (!hasData) return write(parsed.data, 'replace')
-    pending = parsed.data
+    if (!hasData) return write(parsed.file, 'replace')
+    pending = parsed.file
     step.value = 'choice'
   }
 
@@ -89,15 +89,15 @@ export function useDataImport(
       step.value = 'confirm'
       return
     }
-    const data = pending
-    await busy(() => write(data, 'merge'))
+    const file = pending
+    await busy(() => write(file, 'merge'))
   }
 
   async function confirmReplace(): Promise<void> {
     if (isImporting.value || pending === null || step.value !== 'confirm') return
-    const data = pending
+    const file = pending
     step.value = 'choice'
-    await busy(() => write(data, 'replace'))
+    await busy(() => write(file, 'replace'))
   }
 
   function cancelReplace(): void {

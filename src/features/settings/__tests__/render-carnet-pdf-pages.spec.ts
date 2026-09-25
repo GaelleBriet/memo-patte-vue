@@ -38,6 +38,7 @@ function vaccins(count: number): PdfVaccinationRow[] {
   return Array.from({ length: count }, (_, index) => ({
     name: `Vaccin ${index + 1}`,
     lastInjectionDate: '2025-09-01',
+    injectionDates: ['2025-09-01'],
     dueDate: '2026-09-01',
     state: 'upToDate',
   }))
@@ -47,6 +48,7 @@ function traitements(count: number): PdfTreatmentRow[] {
   return Array.from({ length: count }, (_, index) => ({
     name: `Traitement ${index + 1}`,
     lastDoseDate: '2026-08-01',
+    previousDoses: [{ kind: 'range', count: 6, from: '2025-08-01', to: '2026-05-01' }],
     nextDueDate: '2026-11-01',
     stoppedOn: null,
     state: 'upToDate',
@@ -79,6 +81,7 @@ function carnet(vaccinCount: number, treatmentCount: number, weighInCount: numbe
 const VACCIN_LONG: PdfVaccinationRow = {
   name: NOM_VACCIN_200,
   lastInjectionDate: '2025-09-01',
+  injectionDates: ['2025-09-01'],
   dueDate: '2026-09-01',
   state: 'upToDate',
 }
@@ -86,6 +89,7 @@ const VACCIN_LONG: PdfVaccinationRow = {
 const TRAITEMENT_LONG: PdfTreatmentRow = {
   name: NOM_TRAITEMENT_200,
   lastDoseDate: '2026-08-01',
+  previousDoses: [],
   nextDueDate: '2026-11-01',
   stoppedOn: null,
   state: 'upToDate',
@@ -94,6 +98,7 @@ const TRAITEMENT_LONG: PdfTreatmentRow = {
 const ARRETE: PdfTreatmentRow = {
   name: 'Drontal',
   lastDoseDate: '2026-06-01',
+  previousDoses: [{ kind: 'dates', dates: ['2026-05-18'] }],
   nextDueDate: null,
   stoppedOn: '2026-06-20',
   state: 'none',
@@ -200,7 +205,7 @@ describe('renderCarnetPdf — pages', () => {
     ]
     const ecrites = doc.flatMap((page) => page.texts.map((text) => text.text))
 
-    expect(doc).toHaveLength(3)
+    expect(doc).toHaveLength(4)
     expect(ecrites.filter((text) => lignes.includes(text))).toEqual(lignes)
   })
 
@@ -225,7 +230,7 @@ describe('renderCarnetPdf — pages', () => {
       page.texts.reduce((haut, text) => (text.baseline < haut.baseline ? text : haut))
 
     expect(enTete(premiere!).text).toBe('MémoPatte')
-    expect(suivantes).toHaveLength(2)
+    expect(suivantes).toHaveLength(3)
     for (const page of suivantes) {
       expect(enTete(page)).toMatchObject({ text: 'Luna', bold: true })
     }
@@ -317,6 +322,20 @@ describe('renderCarnetPdf — pages', () => {
     }
   })
 
+  it('garde un vaccin ou un traitement et son historique sur la même page', () => {
+    for (const content of [LONG, ...DEBORDEMENTS, ...NOMS_LONGS]) {
+      for (const page of pages(content)) {
+        const nombre = (pattern: RegExp) =>
+          page.texts.filter((text) => pattern.test(text.text)).length
+
+        const lignes = page.texts.filter((text) => ETATS.includes(text.text)).length
+
+        expect(nombre(/^Injections/) + nombre(/^Dernière prise/)).toBe(lignes)
+        expect(nombre(/^Prises précédentes/)).toBeLessThanOrEqual(nombre(/^Dernière prise/))
+      }
+    }
+  })
+
   it('ne laisse jamais un titre de section seul en bas de page', () => {
     const defauts: string[] = []
     for (const content of [...DEBORDEMENTS, ...NOMS_LONGS]) {
@@ -362,6 +381,20 @@ describe('renderCarnetPdf — noms longs', () => {
     expect(lignes.map((text) => text.text).join(' ')).toBe(nom)
     expect(lignes[0]!.baseline).toBe(echeance.baseline)
     for (const ligne of lignes) expect(textBounds(ligne).right).toBeLessThan(echeance.left)
+  })
+
+  it('écrit l’historique sous un nom coupé à la ligne, sans le chevaucher', () => {
+    const [page] = pages(avec({ vaccinations: [VACCIN_LONG], treatments: [TRAITEMENT_LONG] }))
+    const noms = colonneDesNoms(page!)
+
+    for (const debut of ['Injections', 'Dernière prise']) {
+      const detail = page!.texts.find((text) => text.text.startsWith(debut))!
+      const auDessus = noms.filter((nom) => nom.baseline < detail.baseline)
+      expect(auDessus.length).toBeGreaterThan(1)
+      expect(textBounds(detail).top).toBeGreaterThan(
+        Math.max(...auDessus.map((nom) => textBounds(nom).bottom)),
+      )
+    }
   })
 
   it('coupe un mot sans espace plus long que la colonne', () => {

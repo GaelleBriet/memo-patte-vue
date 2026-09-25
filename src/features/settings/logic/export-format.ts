@@ -2,9 +2,10 @@ import { format } from 'date-fns'
 import { strToU8, zipSync, type Zippable } from 'fflate'
 
 import type { ExportData } from '@/shared/domain/carnet-data'
+import { treatmentHeads, vaccinationHeads } from '@/shared/domain/carnet-heads'
 
 /** Contrat documenté dans `docs/technical/export-format.md` : toute rupture incrémente la version. */
-export const EXPORT_SCHEMA_VERSION = 1
+export const EXPORT_SCHEMA_VERSION = 2
 
 export type ExportFormat = 'json' | 'csv'
 
@@ -35,29 +36,37 @@ export function exportFileName(exportFormat: ExportFormat, exportedAt: Date): st
 }
 
 export function exportReminders(data: ExportData): ExportReminder[] {
+  const injections = vaccinationHeads(data.vaccinationInjections)
+  const doses = treatmentHeads(data.treatmentDoses)
   const reminders: ExportReminder[] = [
-    ...data.vaccinations.flatMap((vaccination): ExportReminder[] =>
-      vaccination.dueDate === null
-        ? []
-        : [
+    ...data.vaccinations.flatMap((vaccination): ExportReminder[] => {
+      const dueDate = injections.get(vaccination.id)?.nextDueDate
+      return dueDate
+        ? [
             {
               kind: 'vaccination',
               sourceId: vaccination.id,
               animalId: vaccination.animalId,
               name: vaccination.name,
-              dueDate: vaccination.dueDate,
+              dueDate,
             },
-          ],
-    ),
-    ...data.treatments
-      .filter((treatment) => !treatment.stoppedOn)
-      .map((treatment): ExportReminder => ({
-        kind: 'treatment',
-        sourceId: treatment.id,
-        animalId: treatment.animalId,
-        name: treatment.name,
-        dueDate: treatment.nextDueDate,
-      })),
+          ]
+        : []
+    }),
+    ...data.treatments.flatMap((treatment): ExportReminder[] => {
+      const dueDate = doses.get(treatment.id)?.nextDueDate
+      return dueDate && !treatment.stoppedOn
+        ? [
+            {
+              kind: 'treatment',
+              sourceId: treatment.id,
+              animalId: treatment.animalId,
+              name: treatment.name,
+              dueDate,
+            },
+          ]
+        : []
+    }),
   ]
   return reminders.sort(
     (a, b) => a.dueDate.localeCompare(b.dueDate) || a.name.localeCompare(b.name),
@@ -71,7 +80,9 @@ export function toJsonExport(data: ExportData, meta: ExportMeta): string {
     appVersion: meta.appVersion,
     animals: data.animals,
     vaccinations: data.vaccinations,
+    vaccinationInjections: data.vaccinationInjections,
     treatments: data.treatments,
+    treatmentDoses: data.treatmentDoses,
     weightEntries: data.weightEntries,
     reminders: exportReminders(data),
   }
@@ -101,14 +112,24 @@ function csv(header: string[], rows: CsvValue[][]): string {
 export type CsvTables = {
   'animaux.csv': string
   'vaccins.csv': string
+  'injections.csv': string
   'traitements.csv': string
+  'prises.csv': string
   'poids.csv': string
   'rappels.csv': string
 }
 
+function namesById(rows: { id: string; name: string }[]): (id: string) => string | null {
+  const names = new Map(rows.map(({ id, name }) => [id, name]))
+  return (id) => names.get(id) ?? null
+}
+
 export function toCsvTables(data: ExportData): CsvTables {
-  const names = new Map(data.animals.map((animal) => [animal.id, animal.name]))
-  const animalName = (animalId: string): string | null => names.get(animalId) ?? null
+  const animalName = namesById(data.animals)
+  const vaccinationName = namesById(data.vaccinations)
+  const treatmentName = namesById(data.treatments)
+  const injections = vaccinationHeads(data.vaccinationInjections)
+  const doses = treatmentHeads(data.treatmentDoses)
 
   return {
     'animaux.csv': csv(
@@ -131,8 +152,28 @@ export function toCsvTables(data: ExportData): CsvTables {
         vaccination.animalId,
         animalName(vaccination.animalId),
         vaccination.name,
-        vaccination.lastInjectionDate,
-        vaccination.dueDate,
+        injections.get(vaccination.id)?.injectedOn ?? null,
+        injections.get(vaccination.id)?.nextDueDate ?? null,
+      ]),
+    ),
+    'injections.csv': csv(
+      [
+        'id',
+        'vaccinationId',
+        'vaccinationName',
+        'animalId',
+        'animalName',
+        'injectedOn',
+        'nextDueDate',
+      ],
+      data.vaccinationInjections.map((injection) => [
+        injection.id,
+        injection.vaccinationId,
+        vaccinationName(injection.vaccinationId),
+        injection.animalId,
+        animalName(injection.animalId),
+        injection.injectedOn,
+        injection.nextDueDate,
       ]),
     ),
     'traitements.csv': csv(
@@ -155,8 +196,32 @@ export function toCsvTables(data: ExportData): CsvTables {
         treatment.type,
         treatment.frequency.value,
         treatment.frequency.unit,
-        treatment.lastDoseDate,
-        treatment.nextDueDate,
+        doses.get(treatment.id)?.givenOn ?? null,
+        doses.get(treatment.id)?.nextDueDate ?? null,
+      ]),
+    ),
+    'prises.csv': csv(
+      [
+        'id',
+        'treatmentId',
+        'treatmentName',
+        'animalId',
+        'animalName',
+        'givenOn',
+        'nextDueDate',
+        'frequencyValue',
+        'frequencyUnit',
+      ],
+      data.treatmentDoses.map((dose) => [
+        dose.id,
+        dose.treatmentId,
+        treatmentName(dose.treatmentId),
+        dose.animalId,
+        animalName(dose.animalId),
+        dose.givenOn,
+        dose.nextDueDate,
+        dose.frequency.value,
+        dose.frequency.unit,
       ]),
     ),
     'poids.csv': csv(

@@ -3,7 +3,7 @@ import { jsPDF } from 'jspdf'
 import { formatKg, formatLongDate, formatNumericDate } from '@/shared/utils/format'
 import i18n from '@/core/i18n'
 import { drawWeightChart, weightChartHeight } from './pdf-weight-chart'
-import type { CarnetPdfContent, PdfDueState, PdfTreatmentRow } from './pdf-content'
+import type { CarnetPdfContent, PdfDoseSeries, PdfDueState, PdfTreatmentRow } from './pdf-content'
 
 const PAGE_WIDTH_MM = 210
 const PAGE_HEIGHT_MM = 297
@@ -29,6 +29,10 @@ const COLUMNS_MM = [
   { x: CONTENT_WIDTH_MM * 0.55, width: CONTENT_WIDTH_MM * 0.23 - COLUMN_GAP_MM },
   { x: CONTENT_WIDTH_MM * 0.78, width: CONTENT_WIDTH_MM * 0.22 },
 ]
+const DETAIL_PT = 9
+const DETAIL_ADVANCE_MM = 4.6
+const DETAIL_INDENT_MM = 4
+const DETAIL_GRAY = 90
 
 const STATE_LABEL_KEYS: Record<PdfDueState, string> = {
   overdue: 'settings.pdf.status.overdue',
@@ -133,6 +137,9 @@ export function renderCarnetPdf(
       t(STATE_LABEL_KEYS[row.state]),
     ]),
     t('settings.pdf.vaccinations.empty'),
+    content.vaccinations.map((row) => [
+      t('settings.pdf.history.injections', { dates: numericDates(row.injectionDates) }),
+    ]),
   )
 
   renderSection(
@@ -145,6 +152,7 @@ export function renderCarnetPdf(
       t(STATE_LABEL_KEYS[row.state]),
     ]),
     t('settings.pdf.treatments.empty'),
+    content.treatments.map((row) => doseHistory(row, t)),
   )
 
   renderWeightSection(doc, cursor, content, t)
@@ -163,6 +171,44 @@ function treatmentDueLabel(row: PdfTreatmentRow, t: Translate): string {
     return t('settings.pdf.treatments.stopped', { date: formatNumericDate(row.stoppedOn) })
   }
   return row.nextDueDate ? formatNumericDate(row.nextDueDate) : t('settings.pdf.status.none')
+}
+
+function numericDates(dates: string[]): string {
+  return dates.map(formatNumericDate).join(' · ')
+}
+
+function doseSeriesLabel(series: PdfDoseSeries, t: Translate): string {
+  if (series.kind === 'dates') return numericDates(series.dates)
+  return t('settings.pdf.history.doseRange', {
+    count: series.count,
+    from: formatNumericDate(series.from),
+    to: formatNumericDate(series.to),
+  })
+}
+
+function doseHistory(row: PdfTreatmentRow, t: Translate): string[] {
+  const last = t('settings.pdf.history.lastDose', { date: formatNumericDate(row.lastDoseDate) })
+  if (row.previousDoses.length === 0) return [last]
+  const series = row.previousDoses.map((item) => doseSeriesLabel(item, t)).join(' · ')
+  return [last, t('settings.pdf.history.previousDoses', { series })]
+}
+
+type DetailBlock = { lines: string[]; height: number }
+
+function detailBlock(doc: jsPDF, details: string[]): DetailBlock {
+  doc.setFontSize(DETAIL_PT)
+  const lines = details.flatMap((detail) => wrap(doc, detail, CONTENT_WIDTH_MM - DETAIL_INDENT_MM))
+  const height = lines.length === 0 ? 0 : DETAIL_ADVANCE_MM + extraLinesHeight(doc, lines.length)
+  doc.setFontSize(ROW_PT)
+  return { lines, height }
+}
+
+function writeDetails(doc: jsPDF, { lines }: DetailBlock, lastRowLine: number): void {
+  doc.setFontSize(DETAIL_PT)
+  doc.setTextColor(DETAIL_GRAY)
+  writeLines(doc, lines, MARGIN_MM + DETAIL_INDENT_MM, lastRowLine + DETAIL_ADVANCE_MM)
+  doc.setTextColor(0)
+  doc.setFontSize(ROW_PT)
 }
 
 function writeContinuationHeader(doc: jsPDF, animalName: string): number {
@@ -217,6 +263,7 @@ function renderSection(
   title: string,
   rows: string[][],
   emptyLabel: string,
+  details: string[][],
 ): void {
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(ROW_PT)
@@ -225,22 +272,25 @@ function renderSection(
   )
   const extraHeight = (cells: string[][]) =>
     extraLinesHeight(doc, Math.max(...cells.map((lines) => lines.length)))
-  const firstRowExtra = wrapped[0] ? extraHeight(wrapped[0]) : 0
+  const blocks = rows.map((_, index) => detailBlock(doc, details[index] ?? []))
+  const rowHeight = (index: number) => extraHeight(wrapped[index]!) + blocks[index]!.height
 
-  writeSectionTitle(doc, cursor, title, firstRowExtra + ROW_DESCENT_MM)
+  writeSectionTitle(doc, cursor, title, (wrapped[0] ? rowHeight(0) : 0) + ROW_DESCENT_MM)
   if (wrapped.length === 0) {
     writeEmptyLine(doc, cursor, emptyLabel)
     return
   }
 
-  for (const cells of wrapped) {
+  wrapped.forEach((cells, index) => {
     const extra = extraHeight(cells)
-    cursor.makeRoom(extra + ROW_DESCENT_MM)
+    const height = rowHeight(index)
+    cursor.makeRoom(height + ROW_DESCENT_MM)
     cells.forEach((lines, column) => {
       writeLines(doc, lines, MARGIN_MM + COLUMNS_MM[column]!.x, cursor.y)
     })
-    cursor.y += extra + ROW_ADVANCE_MM
-  }
+    writeDetails(doc, blocks[index]!, cursor.y + extra)
+    cursor.y += height + ROW_ADVANCE_MM
+  })
   cursor.y += SECTION_GAP_MM
 }
 

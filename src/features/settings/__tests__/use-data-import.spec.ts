@@ -6,7 +6,7 @@ import {
   type ImportMode,
 } from '../service/data-import.service'
 import { useDataImport } from '../composables/use-data-import'
-import { IMPORT_FIXTURE, importFixtureJson } from './import-fixture'
+import { IMPORT_FILE, importFixtureJson } from './import-fixture'
 
 const hasLocalData = vi.fn<() => Promise<boolean>>()
 const importData = vi.fn<DataImportService['importData']>()
@@ -34,7 +34,7 @@ describe('useDataImport', () => {
 
     await flow.selectFile(fichier(importFixtureJson()))
 
-    expect(importData).toHaveBeenCalledWith(IMPORT_FIXTURE, 'replace')
+    expect(importData).toHaveBeenCalledWith(IMPORT_FILE, 'replace')
     expect(onImported).toHaveBeenCalledOnce()
     expect(flow.step.value).toBe('idle')
   })
@@ -54,7 +54,7 @@ describe('useDataImport', () => {
 
     await flow.choose('merge')
 
-    expect(importData).toHaveBeenCalledWith(IMPORT_FIXTURE, 'merge')
+    expect(importData).toHaveBeenCalledWith(IMPORT_FILE, 'merge')
     expect(onImported).toHaveBeenCalledOnce()
     expect(flow.step.value).toBe('idle')
   })
@@ -72,7 +72,7 @@ describe('useDataImport', () => {
 
     await flow.choose('replace')
     await flow.confirmReplace()
-    expect(importData).toHaveBeenCalledWith(IMPORT_FIXTURE, 'replace')
+    expect(importData).toHaveBeenCalledWith(IMPORT_FILE, 'replace')
     expect(flow.step.value).toBe('idle')
   })
 

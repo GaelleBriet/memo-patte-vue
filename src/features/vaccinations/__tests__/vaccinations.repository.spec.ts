@@ -13,7 +13,9 @@ import {
   createVaccinationInjectionsRepository,
   type VaccinationInjectionsRepository,
 } from '../repository/vaccination-injections.repository'
-import type { ExportVaccination } from '@/shared/domain/carnet-data'
+import type { Vaccination } from '../schema/vaccination.schema'
+
+type ImportedVaccination = Omit<Vaccination, 'deletedAt'>
 
 // La fabrique est le seul code testé ici qui ouvre la base : on lui substitue `getDb`.
 vi.mock('@/core/db/sqlite', () => ({ getDb: vi.fn<() => Promise<DbClient>>() }))
@@ -648,7 +650,7 @@ describe('vaccinationsRepository — injections', () => {
 })
 
 describe('vaccinationsRepository — import', () => {
-  const IMPORTE: ExportVaccination = {
+  const IMPORTE: ImportedVaccination = {
     id: '44444444-4444-4444-8444-444444444444',
     animalId: MIETTE,
     name: 'Typhus',
@@ -662,7 +664,7 @@ describe('vaccinationsRepository — import', () => {
   let repository: VaccinationsRepository
   let injections: VaccinationInjectionsRepository
 
-  function restore(vaccination: ExportVaccination, exists: boolean) {
+  function restore(vaccination: ImportedVaccination, exists: boolean) {
     return db.runMany([
       repository.restoreStatement(vaccination, exists),
       injections.restoreStatement(

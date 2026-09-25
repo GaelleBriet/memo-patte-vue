@@ -73,6 +73,18 @@ export function headDoseIdSql(treatmentId: string): string {
            LIMIT 1)`
 }
 
+// `addFrequency` en SQL, pour tenir dans une transaction : même calage en fin de mois (test de parité).
+function plusFrequencySql(date: string, value: string, unit: string): string {
+  const months = `'+' || ${value} || ' months'`
+  return `CASE ${unit}
+    WHEN 'day' THEN date(${date}, '+' || ${value} || ' days')
+    WHEN 'week' THEN date(${date}, '+' || (7 * ${value}) || ' days')
+    ELSE CASE WHEN strftime('%d', date(${date}, ${months})) = strftime('%d', ${date})
+      THEN date(${date}, ${months})
+      ELSE date(${date}, 'start of month', '+' || (${value} + 1) || ' months', '-1 day') END
+  END`
+}
+
 function valuesOf(dose: TreatmentDose): SqlParam[] {
   return [
     dose.id,
@@ -125,6 +137,15 @@ export function createTreatmentDosesRepository(
         `SELECT ${COLUMNS} FROM treatment_dose WHERE treatment_id = ? AND ${NOT_DELETED}
          ORDER BY given_on DESC, created_at DESC, id DESC`,
         [treatmentId],
+      )
+      return rows.map(toDose)
+    },
+
+    /** Prises visibles de tous les traitements, celles d'un même traitement la tête d'abord. */
+    async listAll(): Promise<TreatmentDose[]> {
+      const rows = await db.query<DoseRow>(
+        `SELECT ${COLUMNS} FROM treatment_dose WHERE ${NOT_DELETED}
+         ORDER BY treatment_id, given_on DESC, created_at DESC, id DESC`,
       )
       return rows.map(toDose)
     },
@@ -257,15 +278,41 @@ export function createTreatmentDosesRepository(
       }
     },
 
-    /** Une prise existante garde sa date, son traitement et son animal : échéance et fréquence suivent le fichier. */
+    /**
+     * Prise de tête d'un traitement en cours copiée d'une autre fréquence que le plan : prochaine
+     * dose recalculée depuis sa date. À la fréquence du plan, elle n'est jamais touchée.
+     */
+    reconcileStaleHeadsStatement(updatedAt: string): SqlStatement {
+      const plan = (column: string) =>
+        `(SELECT treatment.${column} FROM treatment WHERE treatment.id = treatment_dose.treatment_id)`
+      return {
+        sql: `UPDATE treatment_dose
+              SET next_due_date = ${plusFrequencySql('given_on', plan('frequency_value'), plan('frequency_unit'))},
+                  frequency_value = ${plan('frequency_value')},
+                  frequency_unit = ${plan('frequency_unit')},
+                  updated_at = ?
+              WHERE ${NOT_DELETED}
+                AND id = ${headDoseIdSql('treatment_dose.treatment_id')}
+                AND EXISTS (
+                  SELECT 1 FROM treatment
+                  WHERE treatment.id = treatment_dose.treatment_id
+                    AND treatment.deleted_at IS NULL AND treatment.stopped_on IS NULL
+                    AND (treatment.frequency_value <> treatment_dose.frequency_value
+                      OR treatment.frequency_unit <> treatment_dose.frequency_unit))`,
+        params: [updatedAt],
+      }
+    },
+
+    /** Une prise existante garde son traitement et son animal : le reste suit le fichier. */
     restoreStatement(dose: RestoredTreatmentDose, exists: boolean): SqlStatement {
       return exists
         ? {
             sql: `UPDATE treatment_dose
-                  SET next_due_date = ?, frequency_value = ?, frequency_unit = ?, updated_at = ?,
-                      deleted_at = NULL
+                  SET given_on = ?, next_due_date = ?, frequency_value = ?, frequency_unit = ?,
+                      updated_at = ?, deleted_at = NULL
                   WHERE id = ?`,
             params: [
+              dose.givenOn,
               dose.nextDueDate,
               dose.frequency.value,
               dose.frequency.unit,

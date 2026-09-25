@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 import { drawWeightChart } from '../logic/pdf-weight-chart'
 import { renderCarnetPdf } from '../logic/render-carnet-pdf'
 import { PHOTO_JPEG } from './pdf-fixture'
-import { readPdf, sameColor, type PdfPath, type PdfText } from './pdf-reader'
+import { readPdf, sameColor, textBounds, type PdfPath, type PdfText } from './pdf-reader'
 import type { CarnetPdfContent } from '../logic/pdf-content'
 import vuetify from '@/core/theme/vuetify'
 
@@ -31,12 +31,22 @@ const FULL_CONTENT: CarnetPdfContent = {
   },
   generatedOn: '2026-09-15',
   vaccinations: [
-    { name: 'Rage', lastInjectionDate: '2025-01-01', dueDate: '2026-01-01', state: 'overdue' },
+    {
+      name: 'Rage',
+      lastInjectionDate: '2025-01-01',
+      injectionDates: ['2025-01-01', '2022-01-01'],
+      dueDate: '2026-01-01',
+      state: 'overdue',
+    },
   ],
   treatments: [
     {
       name: 'Milbémax',
       lastDoseDate: '2026-06-01',
+      previousDoses: [
+        { kind: 'range', count: 12, from: '2025-06-01', to: '2026-05-01' },
+        { kind: 'dates', dates: ['2024-12-01', '2024-11-01'] },
+      ],
       nextDueDate: '2026-09-01',
       stoppedOn: null,
       state: 'upToDate',
@@ -83,6 +93,57 @@ describe('renderCarnetPdf', () => {
     expect(() =>
       renderCarnetPdf(FULL_CONTENT, '0.1.24', 'data:image/jpeg;base64,invalide'),
     ).not.toThrow()
+  })
+})
+
+describe('renderCarnetPdf — historique', () => {
+  const texts = () => readPdf(renderCarnetPdf(FULL_CONTENT, '0.1.24', null)).texts
+  const find = (text: string) => texts().find((item) => item.text === text)
+
+  it('liste sous un vaccin toutes ses injections, la plus récente d’abord', () => {
+    expect(find('Injections\u00a0: 01/01/2025 · 01/01/2022')).toBeDefined()
+  })
+
+  it('met la dernière prise d’un traitement à part, puis ses prises précédentes regroupées', () => {
+    expect(find('Dernière prise\u00a0: 01/06/2026')).toBeDefined()
+    expect(
+      find(
+        'Prises précédentes\u00a0: 12 prises du 01/06/2025 au 01/05/2026 · 01/12/2024 · 01/11/2024',
+      ),
+    ).toBeDefined()
+  })
+
+  it('écrit l’historique sous sa ligne, en retrait, sans descendre sous 9 pt', () => {
+    const traitement = find('Milbémax')!
+    const derniere = find('Dernière prise\u00a0: 01/06/2026')!
+    const precedentes = texts().find((item) => item.text.startsWith('Prises précédentes'))!
+
+    expect(derniere.baseline).toBeGreaterThan(traitement.baseline)
+    expect(precedentes.baseline).toBeGreaterThan(derniere.baseline)
+    expect(derniere.left).toBeGreaterThan(traitement.left)
+    expect(derniere.sizePt).toBeGreaterThanOrEqual(9)
+    expect(find('Traitements')!.baseline).toBeLessThan(traitement.baseline)
+    expect(find('Poids')!.baseline).toBeGreaterThan(precedentes.baseline)
+  })
+
+  it('coupe à la ligne une longue liste d’injections, dans la largeur de la page', () => {
+    const years = Array.from({ length: 30 }, (_, index) => `${2025 - index}-05-20`)
+    const content: CarnetPdfContent = {
+      ...FULL_CONTENT,
+      vaccinations: [{ ...FULL_CONTENT.vaccinations[0]!, injectionDates: years }],
+    }
+    const all = readPdf(renderCarnetPdf(content, '0.1.24', null)).texts
+    const [vaccin, titre] = ['Rage', 'Traitements'].map((name) =>
+      all.find((text) => text.text === name),
+    )
+    const lignes = all.filter(
+      (text) => text.baseline > vaccin!.baseline && text.baseline < titre!.baseline,
+    )
+    const ecrites = lignes.flatMap((text) => text.text.match(/\d{2}\/\d{2}\/\d{4}/g) ?? [])
+
+    expect(lignes.length).toBeGreaterThan(1)
+    expect(ecrites).toHaveLength(30)
+    for (const ligne of lignes) expect(textBounds(ligne).right).toBeLessThanOrEqual(192)
   })
 })
 

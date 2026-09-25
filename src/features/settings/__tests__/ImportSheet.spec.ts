@@ -2,9 +2,9 @@ import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type * as DataImport from '../service/data-import.service'
-import type { DataImportService } from '../service/data-import.service'
+import { ImportRefusedError, type DataImportService } from '../service/data-import.service'
 import ImportSheet from '../views/ImportSheet.vue'
-import { IMPORT_FIXTURE, importFixtureJson } from './import-fixture'
+import { IMPORT_FILE, importFixtureJson } from './import-fixture'
 import i18n from '@/core/i18n'
 import vuetify from '@/core/theme/vuetify'
 import { dismissToast, toastMessage } from '@/shared/utils/toast'
@@ -124,7 +124,7 @@ describe('ImportSheet', () => {
     finish()
     await flushPromises()
 
-    expect(importData).toHaveBeenCalledWith(IMPORT_FIXTURE, 'replace')
+    expect(importData).toHaveBeenCalledWith(IMPORT_FILE, 'replace')
     expect(feuille()).toBeNull()
     expect(toastMessage.value).toBe('Données importées')
     expect(wrapper!.emitted('imported')).toHaveLength(1)
@@ -161,7 +161,7 @@ describe('ImportSheet', () => {
     await cliquer(choix('Fusionner'))
     await cliquer(boutonDeLaFeuille('Continuer'))
 
-    expect(importData).toHaveBeenCalledWith(IMPORT_FIXTURE, 'merge')
+    expect(importData).toHaveBeenCalledWith(IMPORT_FILE, 'merge')
     expect(dialogue()).toBeNull()
     expect(feuille()).toBeNull()
     expect(toastMessage.value).toBe('Données importées')
@@ -189,12 +189,12 @@ describe('ImportSheet', () => {
     )
     await cliquer(remplacer)
 
-    expect(importData).toHaveBeenCalledWith(IMPORT_FIXTURE, 'replace')
+    expect(importData).toHaveBeenCalledWith(IMPORT_FILE, 'replace')
   })
 
   it.each([
     ['pas du JSON', 'Ce fichier n’est pas un export MémoPatte.'],
-    [JSON.stringify({ schemaVersion: 2 }), 'Cet export vient d’une version plus récente de l’app.'],
+    [JSON.stringify({ schemaVersion: 3 }), 'Cet export vient d’une version plus récente de l’app.'],
     [
       exportAvecPoidsHorsBornes(),
       'Ce fichier contient une valeur hors limites : 200 kg maximum pour un poids, 365 pour une fréquence.',
@@ -209,6 +209,19 @@ describe('ImportSheet', () => {
     await cliquer(boutonDeLaFeuille('Choisir un autre fichier'))
     expect(click).toHaveBeenCalledOnce()
     expect(importData).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ['reattached', 'Ce fichier rattache une entrée de ton carnet à un autre animal.'],
+    ['orphanEvent', 'Ce fichier n’est pas un export MémoPatte.'],
+  ] as const)('explique un fichier que le carnet refuse (%s)', async (reason, message) => {
+    importData.mockRejectedValue(new ImportRefusedError(reason))
+    hasLocalData.mockResolvedValue(false)
+    await monter()
+
+    await choisirFichier(importFixtureJson())
+
+    expect(feuille()?.querySelector('[role="alert"]')?.textContent?.trim()).toBe(message)
   })
 
   it('signale un import qui n’a pas abouti', async () => {

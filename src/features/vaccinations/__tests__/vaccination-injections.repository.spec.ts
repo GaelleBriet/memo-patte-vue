@@ -98,7 +98,26 @@ describe('vaccinationInjectionsRepository', () => {
     })
   })
 
-  it('restaure une injection existante sans changer sa date ni son vaccin', async () => {
+  it('liste les injections visibles de tous les vaccins, jamais une supprimée', async () => {
+    const rappel = {
+      id: 'rappel',
+      vaccinationId: rage,
+      animalId: MIETTE,
+      injectedOn: '2026-01-01',
+      nextDueDate: '2027-01-01',
+      createdAt: NOW,
+      updatedAt: NOW,
+      deletedAt: null,
+    }
+    await injections.record(rappel)
+
+    const liste = await injections.listAll()
+
+    expect(liste.map(({ id }) => id).sort()).toEqual(['rappel', rage, chppi].sort())
+    expect(liste).toContainEqual(rappel)
+  })
+
+  it('restaure une injection existante à la date du fichier, sans changer son vaccin ni son animal', async () => {
     await db.runMany([
       injections.restoreStatement(
         {
@@ -120,7 +139,7 @@ describe('vaccinationInjectionsRepository', () => {
       expect.objectContaining({
         vaccination_id: typhus,
         animal_id: MIETTE,
-        injected_on: '2025-01-01',
+        injected_on: '2025-06-01',
         next_due_date: '2026-06-01',
         updated_at: NOW,
         deleted_at: null,
