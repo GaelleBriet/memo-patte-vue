@@ -1,13 +1,14 @@
 # Contexte en cours (à mettre à jour à chaque lot)
 
-- 2026-09-26 (matin) : **Gaelle prépare Play Console et RevenueCat**, rien n'a été mergé ni lancé
-  côté code. Sa micro-entreprise existe, avec une adresse de domiciliation pour l'adresse publique.
+- 2026-09-26 (matin) : **Gaelle prépare Play Console et RevenueCat**, rien n'a été mergé ni lancé côté
+  code. Sa micro-entreprise existe, avec une adresse de domiciliation pour l'adresse publique.
   **Compte organisation recommandé** (pas de test fermé de 12 testeurs × 14 jours) : il attend le
   **D-U-N-S**, demandé le matin par l'outil d'Apple (réponse de D&B sous 5 jours ouvrés) ; nom et
   adresse de la fiche D&B à recopier tels quels dans le profil de paiement Google. Guide pas à pas :
-  `docs/technical/guide-play-console-revenuecat.md` (copie dans le coffre de notes). Ticket créé :
-  #418 (`singleTop`, après #384). Questions notées pour plus tard : achats de test sur la vraie app,
-  prix hors de France, déclaration « Health apps ». **Toujours à faire, dans l'ordre de l'entrée
+  `technical/guide-play-console-revenuecat.md` du coffre de notes. Ticket créé : #418 (`singleTop`,
+  après #384). Questions notées pour plus tard : achats de test sur la vraie app, prix hors de France,
+  déclaration « Health apps ». Stratégie produit, audit de Fable et guides de console déplacés dans le
+  coffre de notes (règle dans `collaboration.md`). **Toujours à faire, dans l'ordre de l'entrée
   suivante** : #409 avec Gaelle présente, #352, tests sur le téléphone de #349 et #384.
 
 - 2026-09-25 (fin de soirée) : **pause demandée par Gaelle, reprendre ici demain.** Gaelle a répondu
@@ -67,7 +68,7 @@
   trancher). **Suite** : #382 (export v2, PDF regroupé ; #386 fait), #383 (synchro des événements :
   merge avec Gaelle présente, migrations Supabase), #384 (bouton de notification, attend la planche
   F10 corrigée), #352 (unité kg / lb, le texte passe déjà par `shared/domain/weight-delta.ts`). Toujours
-  mis de côté par Gaelle : l'audit de Fable (`docs/product/audit-2026-09-24.md`) et les suites de #388.
+  mis de côté par Gaelle : l'audit de Fable (`audit-2026-09-24.md` du coffre de notes) et les suites de #388.
 
 - 2026-09-24 (soir) : **pause demandée par Gaelle, reprendre ici.** **#395 mergée (#380, marquer un
   rappel comme fait)** : feuilles F2 à F6 depuis « À faire » (fenêtre J+29), toast « Annuler », dialogue
@@ -83,7 +84,7 @@
   disparaît du Carnet alors que le toast annonce « Traitements terminés », et la date d'une prise
   passée ne se corrige plus par « Modifier ». **Suite** : #381 (détail, historique, traitements
   terminés), puis #382 à #384. Toujours mis de côté par Gaelle : l'audit de Fable
-  (`docs/product/audit-2026-09-24.md`) et les suites de #388.
+  (`audit-2026-09-24.md` du coffre de notes) et les suites de #388.
 
 - 2026-09-24 (après-midi) : **reprendre ici.** Mergés : #390 (#388, app de dev séparée « MémoPatte
   Dev », `com.gaellebriet.memopatte.dev`, installée par `pnpm dev:mobile` et `pnpm test:device:dev` ;
@@ -98,7 +99,7 @@
   **Petit défaut vu au passage, sur `main`** : `clearExports()` logue une erreur au démarrage quand
   `cache/exports/` n'existe pas encore (`OS-PLUG-FILE-0008`), sans effet.
   **Mis de côté par Gaelle** (« on voit ça après, quand le reste est ok ») : (1) l'audit de Fable,
-  vérifié point par point, tickets rédigés dans `docs/product/audit-2026-09-24.md`, rien créé sur
+  vérifié point par point, tickets rédigés dans `audit-2026-09-24.md` du coffre de notes, rien créé sur
   GitHub ; (2) les trois suites de #388 : installer sans que `cap run` puisse désinstaller la vraie
   app, garde « `test:device` depuis `main` seulement », phrase de `collaboration.md` sur la vraie app.
   Suite du lot historique : #380 (« Fait »), puis #381 à #384 ; #352, #385, #386 en attente.
