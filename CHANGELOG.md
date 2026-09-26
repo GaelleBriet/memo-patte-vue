@@ -5,6 +5,19 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.43](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.42...memo-patte-v0.1.43) (2026-09-26)
+
+
+### ✨ Fonctionnalités
+
+* **site:** politique de confidentialité et page de suppression de compte ([fa13bd8](https://github.com/GaelleBriet/memo-patte-vue/commit/fa13bd8c1bf305dd05f4047bc27f865409f69027))
+
+
+### 🐛 Corrections
+
+* **site:** journaux techniques de Supabase exclus de l'effacement immédiat ([bbb1344](https://github.com/GaelleBriet/memo-patte-vue/commit/bbb13441497c792d6a3910eabf48f02f5f3eb750))
+* **site:** revue de la politique et de la page de suppression ([7ec9404](https://github.com/GaelleBriet/memo-patte-vue/commit/7ec9404cdf244a2afdbd65ff1a0bc74fefed79fe))
+
 ## [0.1.42](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.41...memo-patte-v0.1.42) (2026-09-26)
 
 
