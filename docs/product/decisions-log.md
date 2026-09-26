@@ -1790,3 +1790,24 @@ stockage, un seul mainteneur) ; un plugin Android maison.
 
 5) **Export CSV lisible dans un tableur** : titres, valeurs et séparateur dans la langue de l'app, ticket
 #416 ; d'ici là, le CSV garde ses noms techniques (`weightLb`).
+
+2026-09-26 — **Site public de MémoPatte** (#86, choix de Gaelle).
+
+1) **Adresse : `memopatte.gaelle-briet.fr`**, sous-domaine du site de son entreprise, qui sert aussi de
+« site de l'organisation » pour la Play Console. — Raison : une adresse propre au produit, gratuite
+(Cloudflare Pages, entrée CNAME chez Infomaniak). — Alternatives écartées : `gaelle-briet.fr/memopatte`
+(rien à configurer, mais préférence de Gaelle pour le sous-domaine) ; GitHub Pages du dépôt, prévu
+jusqu'ici par #86.
+
+2) **Code dans `site/` du dépôt MémoPatte** : HTML statique, français à `/` et anglais à `/en/`, aux
+couleurs de l'app, sans script ni ressource externe (un test le vérifie). Projet Cloudflare Pages qui ne
+publie que ce dossier. — Raison : la politique de confidentialité vit à côté du code qu'elle décrit et
+change dans la même PR. — Alternative écartée : des pages dans le site Nuxt de Gaelle, qui demandaient
+du code propre à Cloudflare pour servir le sous-domaine.
+
+3) **Mentions légales sur `gaelle-briet.fr`** (adresse de domiciliation, SIRET, contact, hébergeur) ; les
+pages MémoPatte y renvoient, et ni l'adresse ni le SIRET n'entrent dans ce dépôt.
+
+4) **Page d'attente d'abord** (« Bientôt sur Google Play ») pour brancher Cloudflare et le DNS tout de
+suite ; la politique et la page de suppression de compte la rejoignent quand l'e-mail de contact est
+choisi.
