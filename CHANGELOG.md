@@ -5,6 +5,14 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.44](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.43...memo-patte-v0.1.44) (2026-09-26)
+
+
+### ✨ Fonctionnalités
+
+* **site:** page 404 au lieu de l'accueil pour une adresse inconnue ([4984cf0](https://github.com/GaelleBriet/memo-patte-vue/commit/4984cf01646cedcab00308dfbf48588744e9c3a4))
+* **site:** page 404 pour une adresse inconnue ([d89c96d](https://github.com/GaelleBriet/memo-patte-vue/commit/d89c96dfb28f213d5d54f20d28d23d7a8b86ebc9))
+
 ## [0.1.43](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.42...memo-patte-v0.1.43) (2026-09-26)
 
 
