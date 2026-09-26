@@ -5,7 +5,7 @@
   --primary: #01383e;
   --primary-darken: #012a2f;
   --muted: #68625c;
-  --outline: #ece9e5;
+  --outline: #8a8279;
 }
 
 * {
@@ -189,6 +189,10 @@ a:hover {
   color: var(--primary);
 }
 
+.document tbody th {
+  font-weight: 600;
+}
+
 @media (max-width: 40rem) {
   .document thead {
     display: none;
@@ -197,6 +201,7 @@ a:hover {
   .document table,
   .document tbody,
   .document tr,
+  .document th,
   .document td {
     display: block;
   }
@@ -209,17 +214,17 @@ a:hover {
     border: 1px solid var(--outline);
   }
 
+  .document th,
   .document td {
     padding: 0.25rem 0;
     border: none;
   }
 
-  .document td:first-child {
-    color: var(--primary);
+  .document tbody th {
     font-weight: 700;
   }
 
-  .document td[data-label]:not(:first-child)::before {
+  .document td[data-label]::before {
     content: attr(data-label);
     display: block;
     color: var(--muted);
