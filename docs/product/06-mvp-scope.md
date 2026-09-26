@@ -68,7 +68,7 @@ dernier document avant toute discussion technique.
 - Import depuis un export JSON (**v1**, décidé le 2026-09-07) : filet de restauration manuel pour les utilisateurs gratuits, même schéma que l'export. Remplace ou fusionne, jamais d'écrasement silencieux. Depuis #382, il lit les exports v2 (avec l'historique) et toujours les exports v1 des versions précédentes. Détail : `docs/technical/export-format.md`.
 
 ### Conformité (ajouté le 2026-09-07)
-- Politique de confidentialité publiée (GitHub Pages) et liée dans l'app ; page web de suppression de compte ; Data safety et déclarations Play Console (#86).
+- Politique de confidentialité publiée sur `memopatte.gaelle-briet.fr` (dossier `site/`) et liée dans l'app ; page web de suppression de compte ; Data safety et déclarations Play Console (#86).
 - Suppression du compte Plus depuis l'app, Edge Function côté Supabase (#87).
 - Registre des traitements, DPA Supabase et PostHog, prestataires en région UE (#88).
 - Consentement analytics opt-in avant toute initialisation PostHog (#67) ; aucune permission média large (Photo Picker), pas d'alarmes exactes.
