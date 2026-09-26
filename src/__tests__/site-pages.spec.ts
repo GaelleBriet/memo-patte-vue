@@ -72,6 +72,13 @@ describe('site public memopatte.gaelle-briet.fr', () => {
     expect(existsSync(join(SITE, fileOf(url)))).toBe(true)
   })
 
+  it('la page 404 ramène aux deux accueils sans être indexée', () => {
+    const html = read('404.html')
+    expect(html).toContain('<meta name="robots" content="noindex" />')
+    expect(html).toContain('href="/"')
+    expect(html).toContain('href="/en/"')
+  })
+
   it.each(pages)('%s déclare sa langue', (page) => {
     expect(read(page)).toContain(`<html lang="${languageOf(page)}">`)
   })
