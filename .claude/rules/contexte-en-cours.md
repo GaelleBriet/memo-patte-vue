@@ -1,13 +1,13 @@
 # Contexte en cours (à mettre à jour à chaque lot)
 
 - 2026-09-26 (matin) : **Gaelle prépare Play Console et RevenueCat**, rien n'a été mergé ni lancé
-  côté code. Sa micro-entreprise existe (EI réactivée le 2026-09-24, même SIREN, siège à une adresse
-  de domiciliation : c'est l'adresse publique). **Compte organisation recommandé** : pas de test fermé
-  de 12 testeurs × 14 jours ; il attend le **D-U-N-S**, demandé via Altares (site en panne le matin)
-  ou l'outil d'Apple, avec l'adresse de domiciliation, car la fiche D&B doit correspondre au profil de
-  paiement. Guide pas à pas : `docs/technical/guide-play-console-revenuecat.md`. Ticket créé : #418
-  (`singleTop`, après #384). Questions notées pour plus tard : achats de test sur la vraie app, prix
-  hors de France, déclaration « Health apps ». **Toujours à faire, dans l'ordre de l'entrée
+  côté code. Sa micro-entreprise existe, avec une adresse de domiciliation pour l'adresse publique.
+  **Compte organisation recommandé** (pas de test fermé de 12 testeurs × 14 jours) : il attend le
+  **D-U-N-S**, demandé le matin par l'outil d'Apple (réponse de D&B sous 5 jours ouvrés) ; nom et
+  adresse de la fiche D&B à recopier tels quels dans le profil de paiement Google. Guide pas à pas :
+  `docs/technical/guide-play-console-revenuecat.md` (copie dans le coffre de notes). Ticket créé :
+  #418 (`singleTop`, après #384). Questions notées pour plus tard : achats de test sur la vraie app,
+  prix hors de France, déclaration « Health apps ». **Toujours à faire, dans l'ordre de l'entrée
   suivante** : #409 avec Gaelle présente, #352, tests sur le téléphone de #349 et #384.
 
 - 2026-09-25 (fin de soirée) : **pause demandée par Gaelle, reprendre ici demain.** Gaelle a répondu
