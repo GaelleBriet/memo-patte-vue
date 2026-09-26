@@ -1,7 +1,7 @@
 # Auto Backup Android — ce qui est sauvegardé, ce qui ne l'est pas
 
 Filet de sécurité **gratuit** pour les utilisateurs sans compte Plus (décision
-du 2026-09-07, `docs/product/05-monetisation.md`). Android sauvegarde les
+du 2026-09-07, `05-monetisation.md` du coffre de notes). Android sauvegarde les
 données de l'app sur le Drive Google de l'utilisateur, sans aucun serveur
 MémoPatte, et les restaure à la réinstallation ou lors de la configuration
 d'un nouveau téléphone avec le même compte Google. Ticket : #82 (0.4).
