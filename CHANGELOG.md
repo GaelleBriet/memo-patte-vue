@@ -5,6 +5,14 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.42](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.41...memo-patte-v0.1.42) (2026-09-26)
+
+
+### ✨ Fonctionnalités
+
+* **site:** page d'attente de memopatte.gaelle-briet.fr ([cd5772d](https://github.com/GaelleBriet/memo-patte-vue/commit/cd5772d5422696043ae7c9be8f5be61de670a7fe))
+* **site:** page d'attente de memopatte.gaelle-briet.fr, en français et en anglais ([23f198c](https://github.com/GaelleBriet/memo-patte-vue/commit/23f198c2fbe0b06c4f9aed3ab40760676b81e22d))
+
 ## [0.1.41](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.40...memo-patte-v0.1.41) (2026-09-25)
 
 
