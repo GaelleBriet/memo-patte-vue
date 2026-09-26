@@ -1,5 +1,20 @@
 # Contexte en cours (à mettre à jour à chaque lot)
 
+- 2026-09-26 (fin d'après-midi) : **pause demandée par Gaelle, reprendre ici demain.** Site public en
+  ligne sur `memopatte.gaelle-briet.fr` (dossier `site/`, Cloudflare Pages, CNAME chez Infomaniak) :
+  page d'attente (#423), politique de confidentialité et page de suppression de compte FR/EN (#428,
+  vérifiées contre le code, revue et re-revue), page 404 (#430). Filtre Cloudflare `site/*`
+  opérationnel (le champ du tableau de bord demande Entrée pour valider chaque valeur). Mentions
+  légales sur `gaelle-briet.fr/mentions-legales/` (dépôt de son site, PR mergée par Gaelle ; téléphone
+  en PR #11 de ce dépôt, à merger par elle). Décisions du jour au journal (site, contact
+  `memopatte@gaelle-briet.fr`, durées, vouvoiement, remboursement, **compte d'abord puis achat**).
+  Tickets créés : #425 (« anonymes »), #426 (purge des comptes inactifs), #427 (compte avant l'achat)
+  ; notes sur #65, #86, #87. Les pages du site décrivent le parcours voulu : ne pas les déclarer dans
+  la Play Console avant #427, #87, #65 et #426. D-U-N-S : réponse de D&B attendue. **À faire demain,
+  dans l'ordre** : mettre à jour `fix/limites-texte-emoji` (#409, 26 commits de retard), quatre
+  commandes, PR, montrer la migration à Gaelle puis merger devant elle ; #352 ensuite (conflits connus
+  avec #409) ; tests sur le téléphone de #349 et #384 (MémoPatte Dev), puis leurs PR.
+
 - 2026-09-26 (matin) : **Gaelle prépare Play Console et RevenueCat**, rien n'a été mergé ni lancé côté
   code. Sa micro-entreprise existe, avec une adresse de domiciliation pour l'adresse publique.
   **Compte organisation recommandé** (pas de test fermé de 12 testeurs × 14 jours) : il attend le
