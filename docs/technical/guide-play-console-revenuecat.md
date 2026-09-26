@@ -6,15 +6,15 @@ confirmé par une source.
 
 ## Valeurs de MémoPatte
 
-| Quoi                           | Valeur                                                              |
-| ------------------------------ | ------------------------------------------------------------------- |
-| Nom de paquet (Play)           | `com.gaellebriet.memopatte` (la variante `.dev` ne va jamais sur Play) |
-| Abonnement                     | `memopatte_plus`, forfaits de base `monthly` (1,49 €) et `annual` (9,99 €), sans essai |
-| Produit ponctuel à vie         | `memopatte_plus_lifetime` (29,99 €), **non consommable**            |
-| Entitlement RevenueCat         | `plus`, rattaché aux trois produits                                 |
-| Offering RevenueCat            | `default`, packages `$rc_monthly`, `$rc_annual`, `$rc_lifetime`     |
-| Clé dans `.env`                | `VITE_REVENUECAT_GOOGLE_KEY=goog_…` (clé publique, jamais commitée) |
-| Play Billing Library embarquée | 8.3.0 (`purchases-capacitor` 13.5.1 → hybrid-common 18.36.1 → purchases 10.20.0) : l'exigence « version 8 ou plus depuis le 31/08/2026 » est remplie |
+| Quoi                   | Valeur                                                                    |
+| ---------------------- | ------------------------------------------------------------------------- |
+| Nom de paquet (Play)   | `com.gaellebriet.memopatte` (jamais la variante `.dev`)                   |
+| Abonnement             | `memopatte_plus`, forfaits `monthly` (1,49 €) et `annual` (9,99 €)        |
+| Achat à vie            | `memopatte_plus_lifetime` (29,99 €), produit ponctuel non consommable     |
+| Entitlement RevenueCat | `plus`, rattaché aux trois produits                                       |
+| Offering RevenueCat    | `default`, packages `$rc_monthly`, `$rc_annual`, `$rc_lifetime`           |
+| Clé dans `.env`        | `VITE_REVENUECAT_GOOGLE_KEY=goog_…` (clé publique, jamais commitée)       |
+| Play Billing Library   | 8.3.0 via `purchases-capacitor` 13.5.1 : exigence « 8 ou plus » remplie   |
 
 ## 0. Type de compte et D-U-N-S
 
