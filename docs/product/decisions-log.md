@@ -1811,3 +1811,38 @@ pages MémoPatte y renvoient, et ni l'adresse ni le SIRET n'entrent dans ce dép
 4) **Page d'attente d'abord** (« Bientôt sur Google Play ») pour brancher Cloudflare et le DNS tout de
 suite ; la politique et la page de suppression de compte la rejoignent quand l'e-mail de contact est
 choisi.
+
+2026-09-26 — **Politique de confidentialité et page de suppression de compte** (#86, choix de Gaelle).
+Pages publiées depuis `site/` (`/confidentialite/`, `/suppression-compte/` et leur version anglaise),
+seule version du texte.
+
+1) **Contact : `memopatte@gaelle-briet.fr`**, boîte hébergée par Proton AG (Suisse, pays reconnu
+adéquat par la Commission européenne), citée comme prestataire des échanges avec nous.
+
+2) **Durées** : sauvegarde Plus, photos et compte (adresse e-mail comprise) supprimés après 12 mois sans
+accès Plus, avec un e-mail d'avertissement un mois avant ; suppression immédiate de tout à la demande ;
+statistiques d'usage 12 mois ; échanges de support 1 an après la clôture ; jeton d'achat durée de
+l'accès + 60 jours ; journaux techniques de Supabase (adresse IP, sessions) selon la durée fixée par
+Supabase, sans chiffre inventé. — Tranche les durées laissées « à confirmer » le 2026-09-07 (13 mois
+d'analytics ramenés à 12, suppression du compte inactif en plus de la sauvegarde).
+
+3) **Adresse IP** : « Discard client IP data » activé sur le projet PostHog, la politique dit donc que
+PostHog ne la conserve pas ; rien n'est affirmé sur un pays approximatif. Phrase générale : l'IP est
+reçue par les prestataires pour acheminer les requêtes.
+
+4) **Compte d'abord, puis achat** : sur l'écran Plus, choisir une offre demande de se connecter ou de
+créer un compte avant d'ouvrir le paiement ; l'achat est rattaché au compte dès le départ. La politique
+dit que Plus demande un compte. — Raison : aucun abonné payant sans sauvegarde, achat rattaché au compte
+(recommandation de RevenueCat). — Alternative écartée : acheter d'abord puis créer le compte, avec le
+risque d'un abonné payant sans sauvegarde et d'un transfert d'achat à gérer. L'app achète encore sans
+compte aujourd'hui : ticket séparé.
+
+5) **Ton** : vouvoiement sur ces deux pages, formel mais simple ; l'app reste au tutoiement.
+
+6) **Remboursement** : section de la politique — Google Play dans les 48 h, ensuite par e-mail,
+remboursement en cas de dysfonctionnement avéré, abonnement géré dans Google Play.
+
+7) **Page de suppression publiée d'après la maquette** (D1 à D6), avant que #87 ne livre le parcours
+dans l'app : méthode 1 dans l'app (y compris « Se reconnecter avec Google »), méthode 2 par e-mail.
+— Raison : l'URL doit exister pour la Play Console ; #87 et #65 livreront ce que la page décrit avant
+la publication de l'app.

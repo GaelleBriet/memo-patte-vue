@@ -134,7 +134,7 @@ Subscriptions policy : « Subscriptions must provide sustained or recurring valu
 - Remboursements : côté utilisateur, « Within 48 hours: You may be able to get a refund depending on the details of the purchase » ; « After 48 hours: Contact the developer […] The developer can help with purchase issues and can process refunds according to their policies and applicable laws » (15574908). Côté développeuse : remboursement depuis Play Console > Order management ; « You must issue refunds in accordance with your policy. It is your responsibility to notify your users of any changes to your refund policies and ensure that the policies comply with applicable laws » ; rembourser la **dernière commande** d'un abonnement entraîne « the user's subscription is removed immediately, and future recurrences are automatically canceled » (2741495).
 - Droit de rétractation UE : Conditions Google Play (FR) : le consommateur dispose d'un droit de rétractation de 14 jours, mais pour le contenu numérique « vous convenez que celui-ci est mis à votre disposition immédiatement, et vous renoncez de ce fait à votre droit légal de rétractation » ; « Les Contenus de Google Play sont proposés par Google Commerce Limited » (Irlande) qui agit comme vendeur. DDA §3.4 : « Google est le marchand officiel des Produits vendus ou proposés aux utilisateurs » dans les pays listés (dont la France) ; DDA §3.8 : « Vous autorisez Google à rembourser les utilisateurs conformément aux modalités de remboursement sur Google Play ».
 
-→ MémoPatte doit publier une **politique de remboursement** courte (dans la fiche/politique ou page web) : « Google Play gère les remboursements dans les 48 h ; au-delà, contactez [EMAIL] ; nous remboursons en cas de dysfonctionnement avéré ». Prévoir un lien in-app « Gérer mon abonnement » vers `https://play.google.com/store/account/subscriptions`.
+→ MémoPatte doit publier une **politique de remboursement** courte (dans la fiche/politique ou page web) : « Google Play gère les remboursements dans les 48 h ; au-delà, contactez `memopatte@gaelle-briet.fr` ; nous remboursons en cas de dysfonctionnement avéré ». Prévoir un lien in-app « Gérer mon abonnement » vers `https://play.google.com/store/account/subscriptions`.
 
 #### Période de grâce, account hold, expiration — valeurs
 
@@ -155,7 +155,7 @@ Ce que **l'app doit faire** par état (Lifecycle) :
 | `CANCELED` | Accorder jusqu'à `expiryTime`, puis révoquer. |
 | `EXPIRED` / revoked | Révoquer immédiatement, « Remove entitlement and mark purchase as invalid in backend ». |
 
-Décision produit recommandée à l'expiration : l'app **reste utilisable en local** (données SQLite), la sync cloud et les fonctions Plus se désactivent, la sauvegarde distante est conservée [DURÉE] avant purge (voir durées §2.3) et l'utilisateur en est informé. Le jeton d'achat « is valid from subscription signup until 60 days after expiration ».
+Décision produit recommandée à l'expiration : l'app **reste utilisable en local** (données SQLite), la sync cloud et les fonctions Plus se désactivent, la sauvegarde distante est conservée 12 mois avant purge, compte compris (voir durées §2.3) et l'utilisateur en est informé. Le jeton d'achat « is valid from subscription signup until 60 days after expiration ».
 
 ### 1.5 Autres exigences pertinentes
 
@@ -229,12 +229,12 @@ Principe CNIL : « Les données personnelles ne peuvent pas être conservées in
 
 | Donnée | Base active | Archivage / suppression | Note |
 |---|---|---|---|
-| Compte Plus + données synchronisées + photos | Tant que le compte existe | Suppression **immédiate** à la demande (in-app / web) ; sinon **[12] mois après expiration** du dernier droit Plus sans réactivation, après avertissement par email à J-30 | Valeur à décider par Gaelle ; 12 mois laisse le temps de réabonner et de restaurer. |
+| Compte Plus + données synchronisées + photos | Tant que l'accès Plus existe | Suppression **immédiate** à la demande (in-app / web) ; sinon compte (email compris), sauvegarde et photos supprimés **12 mois après expiration** du dernier droit Plus sans réactivation, après avertissement par email à J-30 | Tranché le 2026-09-26 ; 12 mois laisse le temps de réabonner et de restaurer. |
 | Compte Plus jamais réactivé / inactif | — | Même règle | — |
 | Jeton d'achat Play et état d'abonnement | Durée du droit + 60 jours | Puis suppression | Le jeton Play n'est plus utilisable « 60 days after expiration ». |
-| Événements PostHog | **[13] mois** max (aligné sur les critères CNIL de mesure d'audience : traceur ≤ 13 mois, données ≤ 25 mois) | Suppression automatique (réglage de rétention côté projet : §4) | Voir §2.4. |
-| Emails de support | Durée de traitement de la demande + **[1] an** | Suppression | Preuve en cas de litige. |
-| Logs techniques Supabase | Rétention par défaut de la plateforme (courte) | — | Documenter la valeur constatée. |
+| Événements PostHog | **12 mois** (tranché le 2026-09-26 ; sous les critères CNIL de mesure d'audience : traceur ≤ 13 mois, données ≤ 25 mois) | Suppression automatique (réglage de rétention côté projet : §4) | Voir §2.4. |
+| Emails de support | Durée de traitement de la demande + **1 an** (tranché le 2026-09-26) | Suppression | Preuve en cas de litige. |
+| Logs techniques Supabase (IP, sessions) | Rétention fixée par Supabase | — | Cités dans la politique sans chiffre ; documenter la valeur constatée. |
 | Pièces comptables (factures Play reçues par Gaelle) | 10 ans (Code de commerce, cité par la CNIL : « The Code of Commerce requires retention of billing data for 10 years ») | — | Ce sont les relevés Google, pas des données utilisateur individuelles détenues par MémoPatte. |
 
 #### Droits des personnes et exercice
