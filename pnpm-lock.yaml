@@ -48,8 +48,8 @@ importers:
         specifier: ^5.3.0
         version: 5.3.0
       '@material-symbols/svg-400':
-        specifier: ^0.47.4
-        version: 0.47.4
+        specifier: ^0.47.5
+        version: 0.47.5
       '@revenuecat/purchases-capacitor':
         specifier: ^13.5.1
         version: 13.5.1(@capacitor/core@8.5.2)
@@ -746,8 +746,8 @@ packages:
   '@keyv/serialize@1.1.1':
     resolution: {integrity: sha512-dXn3FZhPv0US+7dtJsIi2R+c7qWYiReoEh5zUntWCf4oSpMNib8FDhSoed6m3QyZdx5hK7iLFkYk3rNxwt8vTA==}
 
-  '@material-symbols/svg-400@0.47.4':
-    resolution: {integrity: sha512-o6vhGUH7Lk6epJkDJevmjRF2vQz2ognSlJujHW5O10S/2CTwVD+CRxCePfgj3tF0GVwhJMkd8qCMYUCfAEhXkg==}
+  '@material-symbols/svg-400@0.47.5':
+    resolution: {integrity: sha512-5AHuernGbTq1uq0YDb16QabESAaiYdqgDsDqF3Nk5usqP8pEeE5Nrt11jSs4/A/D7kOz5Ci6xyXMS/DsaxY/rw==}
 
   '@nodelib/fs.scandir@2.1.5':
     resolution: {integrity: sha512-vq24Bq3ym5HEQm2NKCr3yXDwjc7vTsEThRDnkp2DK9p1uqLR+DHurm/NOTo0KG7HYHU7eppKZj3MyqYuMBf62g==}
@@ -4168,7 +4168,7 @@ snapshots:
 
   '@keyv/serialize@1.1.1': {}
 
-  '@material-symbols/svg-400@0.47.4': {}
+  '@material-symbols/svg-400@0.47.5': {}
 
   '@nodelib/fs.scandir@2.1.5':
     dependencies:
