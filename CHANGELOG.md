@@ -5,6 +5,13 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.46](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.45...memo-patte-v0.1.46) (2026-09-27)
+
+
+### 🐛 Corrections
+
+* emoji retirés du PDF, noms limités à 80 caractères en base et dans les formulaires ([812353b](https://github.com/GaelleBriet/memo-patte-vue/commit/812353b603d8ede6ff6aec1f5fdf8cb809fc02e4))
+
 ## [0.1.45](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.44...memo-patte-v0.1.45) (2026-09-27)
 
 
