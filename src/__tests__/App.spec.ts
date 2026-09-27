@@ -8,7 +8,6 @@ import App from '../App.vue'
 import { heightBottomNav, paddingBottomNav } from '@/core/theme/layout-tokens'
 import vuetify from '@/core/theme/vuetify'
 import i18n from '@/core/i18n'
-import router from '@/router'
 import { routeurMemoire } from '@/router/__tests__/routeur-memoire'
 import { dismissToast, showToast } from '@/shared/utils/toast'
 
@@ -36,7 +35,7 @@ describe('App', () => {
   it('mounts and renders the Vuetify app shell', () => {
     const wrapper = mount(App, {
       global: {
-        plugins: [vuetify, i18n, router],
+        plugins: [vuetify, i18n, routeurMemoire()],
       },
     })
 
@@ -111,7 +110,7 @@ describe('App', () => {
     vi.stubGlobal('visualViewport', { addEventListener() {}, removeEventListener() {} })
     const wrapper = mount(App, {
       global: {
-        plugins: [vuetify, i18n, router],
+        plugins: [vuetify, i18n, routeurMemoire()],
       },
       attachTo: document.body,
     })
