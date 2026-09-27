@@ -1,5 +1,19 @@
 # Contexte en cours (à mettre à jour à chaque lot)
 
+- 2026-09-27 : **pause demandée par Gaelle, reprendre ici.** Mergés : Dependabot #437
+  (material-symbols), #436 (vue 3.5.43), #434 (sass), #435 (vuetify 4.2.2), après **#438** (Vuetify
+  4.2 met `overflow: hidden` sur `.v-btn` : la pastille Plus du bouton PDF du Carnet était rognée ; vu
+  seulement en comparant des captures, tests verts) ; **#441** (Vitest 5, ferme #439 et remplace #433
+  : deux tests de `App.spec.ts` montaient l'app avec le vrai routeur, qui charge l'accueil et ses
+  stores sans Pinia) ; **#442 (#409, noms limités à 80 caractères, emoji retirés du PDF, migration v8
+  ; migration Supabase appliquée au vrai projet avec Gaelle présente, job vert)**. `main` à **3385
+  tests**. **Piège à retenir** : une montée de Vuetify se vérifie aussi à l'œil (captures avant /
+  après avec `pnpm dev:data` et Playwright), les tests tournent avec `css: false`. Les avertissements
+  CI « Signal d'usage non enregistré… `setItem` » existent déjà avec Vitest 4, absents en local
+  (ticket proposé, pas créé). **À faire ensuite, dans l'ordre** : #352 (`feat/unite-de-poids`, merger
+  `main` : conflits attendus avec #409 dans `AnimalFormView`, deux specs, `toCsvTables(data, 'kg')`) ;
+  tests sur le téléphone de #349 et #384 (MémoPatte Dev), puis leurs PR.
+
 - 2026-09-26 (fin d'après-midi) : **pause demandée par Gaelle, reprendre ici demain.** Site public en
   ligne sur `memopatte.gaelle-briet.fr` (dossier `site/`, Cloudflare Pages, CNAME chez Infomaniak) :
   page d'attente (#423), politique de confidentialité et page de suppression de compte FR/EN (#428,
