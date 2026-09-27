@@ -1,5 +1,48 @@
 # Contexte en cours (à mettre à jour à chaque lot)
 
+- 2026-09-26 (fin d'après-midi) : **pause demandée par Gaelle, reprendre ici demain.** Site public en
+  ligne sur `memopatte.gaelle-briet.fr` (dossier `site/`, Cloudflare Pages, CNAME chez Infomaniak) :
+  page d'attente (#423), politique de confidentialité et page de suppression de compte FR/EN (#428,
+  vérifiées contre le code, revue et re-revue), page 404 (#430). Filtre Cloudflare `site/*`
+  opérationnel (le champ du tableau de bord demande Entrée pour valider chaque valeur). Mentions
+  légales sur `gaelle-briet.fr/mentions-legales/` (dépôt de son site, PR mergée par Gaelle ; téléphone
+  en PR #11 de ce dépôt, à merger par elle). Décisions du jour au journal (site, contact
+  `memopatte@gaelle-briet.fr`, durées, vouvoiement, remboursement, **compte d'abord puis achat**).
+  Tickets créés : #425 (« anonymes »), #426 (purge des comptes inactifs), #427 (compte avant l'achat)
+  ; notes sur #65, #86, #87. Les pages du site décrivent le parcours voulu : ne pas les déclarer dans
+  la Play Console avant #427, #87, #65 et #426. D-U-N-S : réponse de D&B attendue. **À faire demain,
+  dans l'ordre** : mettre à jour `fix/limites-texte-emoji` (#409, 26 commits de retard), quatre
+  commandes, PR, montrer la migration à Gaelle puis merger devant elle ; #352 ensuite (conflits connus
+  avec #409) ; tests sur le téléphone de #349 et #384 (MémoPatte Dev), puis leurs PR.
+
+- 2026-09-26 (matin) : **Gaelle prépare Play Console et RevenueCat**, rien n'a été mergé ni lancé côté
+  code. Sa micro-entreprise existe, avec une adresse de domiciliation pour l'adresse publique.
+  **Compte organisation recommandé** (pas de test fermé de 12 testeurs × 14 jours) : il attend le
+  **D-U-N-S**, demandé le matin par l'outil d'Apple (réponse de D&B sous 5 jours ouvrés) ; nom et
+  adresse de la fiche D&B à recopier tels quels dans le profil de paiement Google. Guide pas à pas :
+  `technical/guide-play-console-revenuecat.md` du coffre de notes. Ticket créé : #418 (`singleTop`,
+  après #384). Questions notées pour plus tard : achats de test sur la vraie app, prix hors de France,
+  déclaration « Health apps ». Stratégie produit, audit de Fable et guides de console déplacés dans le
+  coffre de notes (règle dans `collaboration.md`). **Toujours à faire, dans l'ordre de l'entrée
+  suivante** : #409 avec Gaelle présente, #352, tests sur le téléphone de #349 et #384.
+
+- 2026-09-25 (fin de soirée) : **pause demandée par Gaelle, reprendre ici demain.** Gaelle a répondu
+  aux questions en attente (journal du 2026-09-25 soir, points 1 à 5) : variation de poids à partir des
+  poids affichés (#352) ; anciens noms de plus de 80 caractères coupés par la migration (#409) ; bouton
+  de notification et textes « déjà notée (aujourd'hui) » validés (#384) ; ticket #416 créé (CSV
+  traduit). Les agents appliquaient ces réponses sur leurs branches au moment de la pause.
+  **À faire demain, dans l'ordre** :
+  1. vérifier que les trois branches ont bien reçu leurs corrections (commits poussés, quatre commandes
+     vertes), relecture ciblée si besoin ;
+  2. **#409 d'abord, avec Gaelle présente** (migration Supabase appliquée au vrai projet par la CI) ;
+  3. #352 ensuite : merge de `main` et résolution des conflits attendus avec #409 (`AnimalFormView`,
+     deux specs, `toCsvTables(data, 'kg')`) ;
+  4. **test sur le téléphone** (MémoPatte Dev, rien sur la vraie app) de #349 (ouvrir un PDF, un ZIP,
+     un JSON) et de #384 (app fermée, rejeu à la réouverture par les récents et par l'icône), puis leurs
+     PR ; #384 porte le premier code natif du dépôt (`MainActivity.java`) ;
+  5. au merge de #349, le journal aura deux fois sa décision (sur la branche et ici) : n'en garder
+     qu'une.
+
 - 2026-09-25 (soir) : **reprendre ici.** Mergés depuis le point de midi : #410 (#401, noms longs
   à la ligne dans le PDF, « Arrêté le »), **#412 (#383, synchro des injections et des prises : migration
   Supabase appliquée au vrai projet avec Gaelle présente, CI verte ; curseur de pull par table, v7)**,
@@ -40,7 +83,7 @@
   trancher). **Suite** : #382 (export v2, PDF regroupé ; #386 fait), #383 (synchro des événements :
   merge avec Gaelle présente, migrations Supabase), #384 (bouton de notification, attend la planche
   F10 corrigée), #352 (unité kg / lb, le texte passe déjà par `shared/domain/weight-delta.ts`). Toujours
-  mis de côté par Gaelle : l'audit de Fable (`docs/product/audit-2026-09-24.md`) et les suites de #388.
+  mis de côté par Gaelle : l'audit de Fable (`audit-2026-09-24.md` du coffre de notes) et les suites de #388.
 
 - 2026-09-24 (soir) : **pause demandée par Gaelle, reprendre ici.** **#395 mergée (#380, marquer un
   rappel comme fait)** : feuilles F2 à F6 depuis « À faire » (fenêtre J+29), toast « Annuler », dialogue
@@ -56,7 +99,7 @@
   disparaît du Carnet alors que le toast annonce « Traitements terminés », et la date d'une prise
   passée ne se corrige plus par « Modifier ». **Suite** : #381 (détail, historique, traitements
   terminés), puis #382 à #384. Toujours mis de côté par Gaelle : l'audit de Fable
-  (`docs/product/audit-2026-09-24.md`) et les suites de #388.
+  (`audit-2026-09-24.md` du coffre de notes) et les suites de #388.
 
 - 2026-09-24 (après-midi) : **reprendre ici.** Mergés : #390 (#388, app de dev séparée « MémoPatte
   Dev », `com.gaellebriet.memopatte.dev`, installée par `pnpm dev:mobile` et `pnpm test:device:dev` ;
@@ -71,7 +114,7 @@
   **Petit défaut vu au passage, sur `main`** : `clearExports()` logue une erreur au démarrage quand
   `cache/exports/` n'existe pas encore (`OS-PLUG-FILE-0008`), sans effet.
   **Mis de côté par Gaelle** (« on voit ça après, quand le reste est ok ») : (1) l'audit de Fable,
-  vérifié point par point, tickets rédigés dans `docs/product/audit-2026-09-24.md`, rien créé sur
+  vérifié point par point, tickets rédigés dans `audit-2026-09-24.md` du coffre de notes, rien créé sur
   GitHub ; (2) les trois suites de #388 : installer sans que `cap run` puisse désinstaller la vraie
   app, garde « `test:device` depuis `main` seulement », phrase de `collaboration.md` sur la vraie app.
   Suite du lot historique : #380 (« Fait »), puis #381 à #384 ; #352, #385, #386 en attente.

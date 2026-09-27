@@ -8,3 +8,4 @@
 - Le ticket GitHub est la spec : ses critères d’acceptation cochés, rien de plus. Tests d’abord (TDD)
 - Ce dossier `.claude/rules/` est versionné : c’est la mémoire qui suit le dépôt d’un poste à l’autre. Toute consigne durable se consigne ici ; les décisions produit dans `docs/product/decisions-log.md`
 - Le dépôt est public : aucune note nominative d’entretien, aucune clé, aucune adresse personnelle dans ces fichiers
+- Ne vont pas dans le dépôt mais dans le coffre de notes de Gaelle (`Memo-Patte/docs/`, décision du 2026-09-26) : la stratégie produit (vision, concurrents, entretiens, pain points, différenciation, monétisation, recherche), les audits et les guides de ses démarches dans les consoles (Google Cloud, Play Console, RevenueCat, Supabase). Le dépôt garde ce qui décrit le code : CLAUDE.md, journal des décisions, périmètre, glossaire, architecture, études techniques, conformité, maquettes

@@ -7,8 +7,8 @@ tags:
 # Périmètre du MVP
 
 Ce fichier ne doit être rempli qu'une fois `03-pain-points.md` et
-`04-differenciation.md` stabilisés. C'est le dernier document avant
-toute discussion technique.
+`04-differenciation.md` (coffre de notes de Gaelle) stabilisés. C'est le
+dernier document avant toute discussion technique.
 
 ## Statut
 - [x] Pain points validés par du terrain
@@ -63,12 +63,12 @@ toute discussion technique.
 
 ### Portabilité des données (différenciant n°4, ajouté le 2026-09-07)
 - Export de l'intégralité des données de l'utilisateur (animaux, vaccins et leurs injections, traitements et leurs prises, poids, rappels) en **JSON** (fichier unique, ré-importable) et en **CSV** (un fichier par table, une ligne par injection ou prise, lisible dans un tableur). Format JSON v2 depuis #382 : tout l'historique voyage.
-- Accessible depuis l'écran Paramètres, en 2 taps, **quel que soit l'état d'achat** : c'est la preuve concrète de la règle « jamais de verrouillage rétroactif » de `05-monetisation.md`.
+- Accessible depuis l'écran Paramètres, en 2 taps, **quel que soit l'état d'achat** : c'est la preuve concrète de la règle « jamais de verrouillage rétroactif » de `05-monetisation.md` (coffre de notes).
 - Généré localement depuis SQLite, partagé via la feuille de partage Android (aucun serveur impliqué).
 - Import depuis un export JSON (**v1**, décidé le 2026-09-07) : filet de restauration manuel pour les utilisateurs gratuits, même schéma que l'export. Remplace ou fusionne, jamais d'écrasement silencieux. Depuis #382, il lit les exports v2 (avec l'historique) et toujours les exports v1 des versions précédentes. Détail : `docs/technical/export-format.md`.
 
 ### Conformité (ajouté le 2026-09-07)
-- Politique de confidentialité publiée (GitHub Pages) et liée dans l'app ; page web de suppression de compte ; Data safety et déclarations Play Console (#86).
+- Politique de confidentialité publiée sur `memopatte.gaelle-briet.fr` (dossier `site/`) et liée dans l'app ; page web de suppression de compte ; Data safety et déclarations Play Console (#86).
 - Suppression du compte Plus depuis l'app, Edge Function côté Supabase (#87).
 - Registre des traitements, DPA Supabase et PostHog, prestataires en région UE (#88).
 - Consentement analytics opt-in avant toute initialisation PostHog (#67) ; aucune permission média large (Photo Picker), pas d'alarmes exactes.
