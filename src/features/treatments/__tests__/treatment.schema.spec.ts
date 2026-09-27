@@ -8,6 +8,7 @@ import {
   treatmentEditSchemaAfter,
   treatmentFormSchema,
 } from '../schema/treatment.schema'
+import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
 
 const validInput = {
   animalId: '11111111-1111-4111-8111-111111111111',
@@ -32,6 +33,15 @@ describe('treatmentInputSchema', () => {
   it('nettoie le nom et rejette un nom vide', () => {
     expect(treatmentInputSchema.parse({ ...validInput, name: '  Milbemax ' }).name).toBe('Milbemax')
     expect(treatmentInputSchema.safeParse({ ...validInput, name: '   ' }).success).toBe(false)
+  })
+
+  it('borne le nom à 80 caractères', () => {
+    const limite = 'a'.repeat(MAX_NAME_LENGTH)
+
+    expect(treatmentInputSchema.safeParse({ ...validInput, name: limite }).success).toBe(true)
+    expect(treatmentInputSchema.safeParse({ ...validInput, name: `${limite}a` }).success).toBe(
+      false,
+    )
   })
 
   it('rejette un type hors liste', () => {
@@ -132,6 +142,13 @@ describe('treatmentEditSchema', () => {
 
   it('modifie le plan et la prochaine dose, saisissable, sans la date de la dernière prise', () => {
     expect(treatmentEditSchema.parse({ ...edition, lastDoseDate: '2026-03-01' })).toEqual(edition)
+  })
+
+  it('borne le nom à 80 caractères en modification aussi', () => {
+    const limite = 'a'.repeat(MAX_NAME_LENGTH)
+
+    expect(treatmentEditSchema.safeParse({ ...edition, name: limite }).success).toBe(true)
+    expect(treatmentEditSchema.safeParse({ ...edition, name: `${limite}a` }).success).toBe(false)
   })
 
   it('ignore un animalId fourni : le rattachement est figé', () => {

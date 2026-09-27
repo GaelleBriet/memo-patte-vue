@@ -20,6 +20,7 @@ import FormScreen from '@/shared/form/FormScreen.vue'
 import { useFormValidation } from '@/shared/form/use-form-validation'
 import { primingReturnRoute, routeAfterReminderSaved } from '@/shared/domain/notification-priming'
 import { returnTo } from '@/shared/utils/return-to'
+import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
 
 const props = defineProps<{
   animalId?: string
@@ -186,7 +187,7 @@ async function save(): Promise<void> {
       :label="t('vaccinations.form.name.label')"
       control-id="vaccination-name"
       required
-      :error="errors.name ? t(errors.name) : null"
+      :error="errors.name ? t(errors.name, { max: MAX_NAME_LENGTH }) : null"
     >
       <template #default="{ describedby, invalid }">
         <v-text-field
@@ -198,6 +199,7 @@ async function save(): Promise<void> {
           variant="outlined"
           hide-details
           aria-required="true"
+          :maxlength="MAX_NAME_LENGTH"
           :error="invalid"
           :placeholder="t('vaccinations.form.name.placeholder')"
         />

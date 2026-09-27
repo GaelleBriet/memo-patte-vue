@@ -20,6 +20,7 @@ import router from '@/router'
 import vuetify from '@/core/theme/vuetify'
 import { todayIsoDate } from '@/core/app-lifecycle/today-iso-date'
 import { shouldShowPriming } from '@/core/notifications/permission'
+import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
 
 vi.mock('@/core/notifications/permission', () => ({
   shouldShowPriming: vi.fn<() => Promise<boolean>>(async () => false),
@@ -235,6 +236,46 @@ describe('VaccinationFormView — validation', () => {
     await soumettre(wrapper)
 
     expect(messages(wrapper)).toEqual([])
+  })
+})
+
+describe('VaccinationFormView — longueur du nom', () => {
+  const limite = 'a'.repeat(MAX_NAME_LENGTH)
+
+  afterEach(() => {
+    i18n.global.locale.value = 'fr'
+  })
+
+  it('borne la saisie du nom à 80 caractères, collage compris', async () => {
+    const wrapper = await monterCreation()
+
+    expect(champ(wrapper, 'vaccination-name').attributes('maxlength')).toBe('80')
+  })
+
+  it('accepte un nom de 80 caractères', async () => {
+    const wrapper = await monterCreation()
+    await remplirMinimum(wrapper)
+    await champ(wrapper, 'vaccination-name').setValue(limite)
+
+    await soumettre(wrapper)
+
+    expect(messages(wrapper)).toEqual([])
+    expect(create.mock.calls[0]![0]).toMatchObject({ name: limite })
+  })
+
+  it.each([
+    ['fr', 'Le nom du vaccin ne peut pas dépasser 80 caractères.'],
+    ['en', 'Vaccine name can’t be longer than 80 characters.'],
+  ] as const)('refuse 81 caractères (%s) et n’écrit rien', async (langue, message) => {
+    i18n.global.locale.value = langue
+    const wrapper = await monterCreation()
+    await remplirMinimum(wrapper)
+    await champ(wrapper, 'vaccination-name').setValue(`${limite}a`)
+
+    await soumettre(wrapper)
+
+    expect(messages(wrapper)).toEqual([message])
+    expect(create).not.toHaveBeenCalled()
   })
 })
 

@@ -13,11 +13,13 @@ export interface AnimalFormValues {
 const ERROR_KEYS = {
   name: 'animals.form.errors.name',
   species: 'animals.form.errors.species',
+  breed: 'animals.form.errors.breedMax',
   birthDate: 'animals.form.errors.birthDate',
   initialWeightKg: 'animals.form.errors.initialWeightKg',
 } as const
 
 const MAX_WEIGHT_KEY = 'animals.form.errors.initialWeightKgMax'
+const MAX_NAME_KEY = 'animals.form.errors.nameMax'
 
 export type AnimalFormErrorField = keyof typeof ERROR_KEYS
 export type AnimalFormErrors = Partial<Record<AnimalFormErrorField, string>>
@@ -58,6 +60,7 @@ function isErrorField(field: string): field is AnimalFormErrorField {
 
 function errorKeyFor(field: AnimalFormErrorField, issue: z.core.$ZodIssue): string {
   if (field === 'initialWeightKg' && issue.code === 'too_big') return MAX_WEIGHT_KEY
+  if (field === 'name' && issue.code === 'too_big') return MAX_NAME_KEY
 
   return ERROR_KEYS[field]
 }
