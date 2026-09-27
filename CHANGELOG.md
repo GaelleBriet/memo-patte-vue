@@ -5,6 +5,14 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.45](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.44...memo-patte-v0.1.45) (2026-09-27)
+
+
+### 🐛 Corrections
+
+* **animals:** pastille Plus du bouton PDF non rognée par Vuetify 4.2 ([9c0b422](https://github.com/GaelleBriet/memo-patte-vue/commit/9c0b422d2d7ff5166c2eae63dc4bd2cf80eafc1e))
+* **animals:** pastille Plus du bouton PDF non rognée par Vuetify 4.2 ([65712df](https://github.com/GaelleBriet/memo-patte-vue/commit/65712df6aaacdbd6c8b053fec203df78cf8abc65))
+
 ## [0.1.44](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.43...memo-patte-v0.1.44) (2026-09-26)
 
 
