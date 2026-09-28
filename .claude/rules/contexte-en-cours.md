@@ -1,5 +1,39 @@
 # Contexte en cours (à mettre à jour à chaque lot)
 
+- 2026-09-28 (soir) : **pause demandée par Gaelle, reprendre ici. Plus aucun développement avant des
+  specs validées** (décision de Gaelle du jour : « on a été beaucoup trop superficiels », reprendre la
+  partie produit « dans les règles de l'art »).
+  - **Matin** : **#445 mergée** (#352 unité de poids kg / lb ; merge de `main` avec les conflits
+    attendus de #409, re-revue ciblée, captures kg et lb), `main` à **3470 tests** ; branche et worktree
+    supprimés. `feat/export-ouvrir` (#349) mise à jour avec `main` (le journal ne garde qu'une entrée
+    du choix du plugin), toujours sans PR : test sur téléphone à faire. #384 non touchée.
+  - **Déclencheur** : en testant un vermifuge « tous les jours », Gaelle a trouvé des trous de
+    conception (prochaine dose passée affichée, doses manquées invisibles, pas de date de fin, pas de
+    début futur). Spec `docs/technical/traitements-quotidiens.md` et entrée de journal sur la branche
+    `docs/traitements-quotidiens` (sans PR) : **dépassée** par le cadrage ci-dessous, à réécrire.
+  - **Cadrage produit dans le coffre de Gaelle** (méthode Roman Pichler), point d'entrée
+    `Memo-Patte/docs/product/cadrage-produit.md` (méthode, état, décisions, questions, « Reprendre
+    ici ») : `07-personas`, `08-principes`, `09-vision-board`, `10-go-roadmap`, `parcours/` (1 à 7 écrits
+    et tranchés, 8 en brouillon, 9 à 15 à écrire), `technical/recherche-permissions-rappels.md`,
+    `technical/analyse-programmation-rappels.md`.
+  - **Décisions du jour qui contredisent l'existant** (au coffre ; à reporter dans `decisions-log.md`,
+    CLAUDE.md et `06-mvp-scope.md` une fois le cadrage validé — d'ici là, **ne pas coder d'après
+    CLAUDE.md sur ces points**) : médicaments et plusieurs prises par jour en v1 ; export PDF gratuit
+    (à condition de trouver l'attrait de Plus, parcours 12) ; rappels précis en option
+    (`SCHEDULE_EXACT_ALARM` en contexte et dans Paramètres) ; plus de fenêtre de 60 jours (plafond de
+    400 gardé, notification de relais) ; vaccins prévenus 2 semaines avant ; « C'est fait » touché en
+    retard demande la date ; « Reprendre » crée une nouvelle période ; « Première prise le » (future
+    possible, rien coché à la création) ; date de fin, posologie structurée (11 unités), heure du
+    traitement (#447, ticket mis à jour) ; v1 avec Plus et phase de test interne avant la sortie ;
+    mot « cure » banni de l'app.
+  - **Nouvelle règle** (`collaboration.md`) : tout document produit pour Gaelle a sa copie dans son
+    coffre d'abord ; prompts Claude Design et relectures ne vont que là.
+  - **À faire ensuite, dans l'ordre** : parcours 8 (deux questions), puis 9 à 15 ; relecture des
+    parcours par Gaelle ; specs par domaine ; revue globale du modèle de données (décision de Gaelle :
+    à la fin, pas sujet par sujet) ; maquettes ajustées (planches `design/DosesQuotidiennes/` du coffre :
+    garder le formulaire actuel, Q8 ter à corriger) ; écart avec le code ; tickets. En pause : tests sur
+    téléphone de #349 et #384.
+
 - 2026-09-27 : **pause demandée par Gaelle, reprendre ici.** Mergés : Dependabot #437
   (material-symbols), #436 (vue 3.5.43), #434 (sass), #435 (vuetify 4.2.2), après **#438** (Vuetify
   4.2 met `overflow: hidden` sur `.v-btn` : la pastille Plus du bouton PDF du Carnet était rognée ; vu
