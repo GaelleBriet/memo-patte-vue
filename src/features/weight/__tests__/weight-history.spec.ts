@@ -41,7 +41,8 @@ describe('weightHistory — delta du poids actuel', () => {
 
     expect(history.headline).toEqual({
       kind: 'delta',
-      deltaKg: 0.5,
+      previousKg: 24,
+      latestKg: 24.5,
       trend: 'up',
       previousMeasuredOn: '2026-08-09',
     })
@@ -50,7 +51,12 @@ describe('weightHistory — delta du poids actuel', () => {
   it('garde le signe d’une baisse', () => {
     const history = weightHistory([entry(24.5, '2026-08-09'), entry(24.2, '2026-11-08')], null)
 
-    expect(history.headline).toMatchObject({ kind: 'delta', deltaKg: -0.3, trend: 'down' })
+    expect(history.headline).toMatchObject({
+      kind: 'delta',
+      previousKg: 24.5,
+      latestKg: 24.2,
+      trend: 'down',
+    })
   })
 
   it('date aussi une variation nulle à la décimale près', () => {
@@ -58,7 +64,8 @@ describe('weightHistory — delta du poids actuel', () => {
 
     expect(history.headline).toEqual({
       kind: 'delta',
-      deltaKg: 0,
+      previousKg: 24.5,
+      latestKg: 24.54,
       trend: 'flat',
       previousMeasuredOn: '2026-08-09',
     })
@@ -92,8 +99,20 @@ describe('weightHistory — liste « Toutes les pesées »', () => {
   it('donne à chaque ligne son delta par rapport à la pesée immédiatement précédente, datée', () => {
     const rows = weightHistory(milo, null).rows
 
-    expect(rows.map((row) => row.delta?.deltaKg)).toEqual([0.2, 0.1, 0.2, 0.2, 0.2, undefined])
-    expect(rows[0]!.delta).toEqual({ deltaKg: 0.2, trend: 'up', previousMeasuredOn: '2026-10-11' })
+    expect(rows.map((row) => row.delta?.previousKg)).toEqual([
+      24.3,
+      24.2,
+      24,
+      23.8,
+      23.6,
+      undefined,
+    ])
+    expect(rows[0]!.delta).toEqual({
+      previousKg: 24.3,
+      latestKg: 24.5,
+      trend: 'up',
+      previousMeasuredOn: '2026-10-11',
+    })
   })
 
   it('laisse la toute première pesée sans delta', () => {
@@ -109,8 +128,8 @@ describe('weightHistory — liste « Toutes les pesées »', () => {
     ).rows
 
     expect(rows.map((row) => row.delta)).toEqual([
-      { deltaKg: 0, trend: 'flat', previousMeasuredOn: '2026-09-13' },
-      { deltaKg: -0.3, trend: 'down', previousMeasuredOn: '2026-08-09' },
+      { previousKg: 24.2, latestKg: 24.2, trend: 'flat', previousMeasuredOn: '2026-09-13' },
+      { previousKg: 24.5, latestKg: 24.2, trend: 'down', previousMeasuredOn: '2026-08-09' },
       null,
     ])
   })

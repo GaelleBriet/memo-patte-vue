@@ -10,6 +10,9 @@ import {
   type ChartPlot,
   type WeightChartEntry,
 } from '../domain/weight-chart'
+import { withWeightUnit } from '../domain/weight-display'
+import { fromKg, toKg } from '../domain/weight-unit'
+import { applyWeightUnit } from '../domain/weight-unit-preference'
 import i18n, { applyLocale } from '@/core/i18n'
 
 const LIBELLES: CarnetChartLabels = {
@@ -399,7 +402,7 @@ describe('buildCarnetWeightChart — libellés reçus du composant', () => {
     const anglais: CarnetChartLabels = {
       max: (weight) => t('weight.chart.max', { weight }),
       min: (weight) => t('weight.chart.min', { weight }),
-      latest: (weight) => t('weight.chart.latest', { weight }),
+      latest: (weight) => withWeightUnit(t, weight),
     }
 
     const chart = carnet(LUNA_1_AN, 320, 1, anglais)!
@@ -786,23 +789,28 @@ describe('weightAxisTicks', () => {
     expect(weightAxisTicks(30.2, 31)).toEqual([30, 30.5, 31, 31.5])
   })
 
-  it('encadre les pesées de trois à cinq lignes, la plus basse à moins d’un pas sous la plus légère', () => {
-    for (const low of [0.9, 3.8, 12.3, 24.5, 41]) {
-      for (const range of [0, 0.05, 0.3, 1, 2.4, 7, 15, 29]) {
-        const ticks = weightAxisTicks(low, low + range)
-        const step = ticks[1]! - ticks[0]!
+  it('encadre les pesées de trois à cinq lignes en kg comme en lb, la plus basse à moins d’un pas sous la plus légère', () => {
+    for (const unit of ['kg', 'lb'] as const) {
+      for (const lowKg of [0.9, 3.8, 12.3, 24.5, 41]) {
+        for (const rangeKg of [0, 0.05, 0.3, 1, 2.4, 7, 15, 29, 45, 60]) {
+          const low = fromKg(lowKg, unit)
+          const high = fromKg(lowKg + rangeKg, unit)
+          const ticks = weightAxisTicks(low, high)
+          const step = ticks[1]! - ticks[0]!
 
-        expect(ticks.length).toBeGreaterThanOrEqual(3)
-        expect(ticks.length).toBeLessThanOrEqual(5)
-        expect(ticks[0]!).toBeLessThan(low)
-        expect(ticks[0]!).toBeGreaterThan(low - 0.1 - step - 1e-9)
-        expect(ticks.at(-1)!).toBeGreaterThan(low + range)
+          expect(ticks.length).toBeGreaterThanOrEqual(3)
+          expect(ticks.length).toBeLessThanOrEqual(5)
+          expect(ticks[0]!).toBeLessThan(low)
+          expect(ticks[0]!).toBeGreaterThan(low - 0.1 - step - 1e-9)
+          expect(ticks.at(-1)!).toBeGreaterThan(high)
+        }
       }
     }
   })
 
-  it('garde le pas de 10 kg au-delà, quitte à tracer plus de lignes', () => {
-    expect(weightAxisTicks(8, 60)).toEqual([0, 10, 20, 30, 40, 50, 60, 70])
+  it('passe au pas de 20, puis de 50, plutôt que de tracer plus de cinq lignes', () => {
+    expect(weightAxisTicks(8, 60)).toEqual([0, 20, 40, 60, 80])
+    expect(weightAxisTicks(fromKg(8, 'lb'), fromKg(60, 'lb'))).toEqual([0, 50, 100, 150])
   })
 })
 
@@ -864,6 +872,54 @@ describe('buildHistoryWeightChart', () => {
     const chart = historique(MILO_6_MOIS, 320)!
 
     expect(chart.points[2]).toMatchObject({ measuredOn: '2026-04-22', weightKg: 24 })
+  })
+})
+
+describe('en livres', () => {
+  afterEach(() => applyWeightUnit('kg'))
+
+  it('Carnet : écrit le plus haut, le plus bas et la dernière pesée en livres', () => {
+    applyWeightUnit('lb')
+
+    const chart = carnet(LUNA_1_AN, 320)!
+
+    expect(chart.max!.text).toBe('max 10,1')
+    expect(chart.min!.text).toBe('min 9,0')
+    expect(chart.latest.text).toBe(LIBELLES.latest('9,5'))
+  })
+
+  it('Carnet : place les pesées dans l’échelle en livres, 0,3 lb de marge', () => {
+    applyWeightUnit('lb')
+
+    const chart = carnet(
+      pesees(['2026-03-01', toKg(24.5, 'lb')], ['2026-03-31', toKg(23.6, 'lb')]),
+      320,
+    )!
+
+    // Échelle 23,3 → 24,8 lb sur 100 px : 24,5 aux quatre cinquièmes de la hauteur, 23,6 à un.
+    expect(chart.points.map((point) => point.y)).toEqual([54, 114])
+  })
+
+  it('Historique : gradue en livres rondes et garde le poids en kg de chaque point', () => {
+    applyWeightUnit('lb')
+
+    const chart = historique(MILO_6_MOIS, 320)!
+
+    expect(chart.gridLines.map((line) => line.label.text)).toEqual(['51', '52', '53', '54', '55'])
+    expect(chart.points[5]).toMatchObject({ measuredOn: '2026-09-15', weightKg: 24.5 })
+  })
+
+  it('Historique : pose chaque pesée en livres sur sa graduation', () => {
+    applyWeightUnit('lb')
+
+    const chart = historique(
+      pesees(['2026-03-01', toKg(52, 'lb')], ['2026-03-31', toKg(54, 'lb')]),
+      320,
+    )!
+    const graduation = (texte: string) =>
+      chart.gridLines.find((line) => line.label.text === texte)!.y
+
+    expect(chart.points.map((point) => point.y)).toEqual([graduation('52'), graduation('54')])
   })
 })
 

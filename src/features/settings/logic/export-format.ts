@@ -3,6 +3,7 @@ import { strToU8, zipSync, type Zippable } from 'fflate'
 
 import type { ExportData } from '@/shared/domain/carnet-data'
 import { treatmentHeads, vaccinationHeads } from '@/shared/domain/carnet-heads'
+import { recordedWeightIn, type WeightUnit } from '@/shared/domain/weight-unit'
 
 /** Contrat documenté dans `docs/technical/export-format.md` : toute rupture incrémente la version. */
 export const EXPORT_SCHEMA_VERSION = 2
@@ -124,7 +125,15 @@ function namesById(rows: { id: string; name: string }[]): (id: string) => string
   return (id) => names.get(id) ?? null
 }
 
-export function toCsvTables(data: ExportData): CsvTables {
+const WEIGHT_COLUMNS: Record<WeightUnit, { initial: string; entry: string }> = {
+  kg: { initial: 'initialWeightKg', entry: 'weightKg' },
+  lb: { initial: 'initialWeightLb', entry: 'weightLb' },
+}
+
+/** Poids dans l'unité choisie, nommée par le titre de colonne ; le JSON reste en kg. */
+export function toCsvTables(data: ExportData, weightUnit: WeightUnit): CsvTables {
+  const weightColumns = WEIGHT_COLUMNS[weightUnit]
+  const weight = (kg: number | null) => (kg === null ? null : recordedWeightIn(kg, weightUnit))
   const animalName = namesById(data.animals)
   const vaccinationName = namesById(data.vaccinations)
   const treatmentName = namesById(data.treatments)
@@ -133,14 +142,23 @@ export function toCsvTables(data: ExportData): CsvTables {
 
   return {
     'animaux.csv': csv(
-      ['id', 'name', 'species', 'breed', 'birthDate', 'initialWeightKg', 'createdAt', 'updatedAt'],
+      [
+        'id',
+        'name',
+        'species',
+        'breed',
+        'birthDate',
+        weightColumns.initial,
+        'createdAt',
+        'updatedAt',
+      ],
       data.animals.map((animal) => [
         animal.id,
         animal.name,
         animal.species,
         animal.breed,
         animal.birthDate,
-        animal.initialWeightKg,
+        weight(animal.initialWeightKg),
         animal.createdAt,
         animal.updatedAt,
       ]),
@@ -225,13 +243,13 @@ export function toCsvTables(data: ExportData): CsvTables {
       ]),
     ),
     'poids.csv': csv(
-      ['id', 'animalId', 'animalName', 'measuredOn', 'weightKg'],
+      ['id', 'animalId', 'animalName', 'measuredOn', weightColumns.entry],
       data.weightEntries.map((entry) => [
         entry.id,
         entry.animalId,
         animalName(entry.animalId),
         entry.measuredOn,
-        entry.weightKg,
+        weight(entry.weightKg),
       ]),
     ),
     'rappels.csv': csv(
@@ -252,6 +270,7 @@ export function buildExportFile(
   exportFormat: ExportFormat,
   data: ExportData,
   meta: ExportMeta,
+  weightUnit: WeightUnit,
 ): ExportFile {
   const name = exportFileName(exportFormat, meta.exportedAt)
 
@@ -260,7 +279,7 @@ export function buildExportFile(
   }
 
   const entries: Zippable = {}
-  for (const [fileName, content] of Object.entries(toCsvTables(data))) {
+  for (const [fileName, content] of Object.entries(toCsvTables(data, weightUnit))) {
     entries[fileName] = [strToU8(content), { mtime: meta.exportedAt }]
   }
   return { name, content: zipSync(entries) }

@@ -16,6 +16,7 @@ import { useToday } from '@/core/app-lifecycle/use-today'
 import { pickPhoto } from '@/core/photos/photo-picker'
 import { usePhotoUrls } from '@/core/photos/use-photo-urls'
 import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
+import { weightLimitParams, weightUnitText } from '@/shared/domain/weight-display'
 import FormField from '@/shared/form/FormField.vue'
 import FormScreen from '@/shared/form/FormScreen.vue'
 import FormSegmented from '@/shared/form/FormSegmented.vue'
@@ -30,8 +31,10 @@ const router = useRouter()
 const animals = useAnimalsStore()
 
 const values = ref(emptyAnimalFormValues())
-const { errors, validate } = useFormValidation(values, validateAnimalForm)
 const existing = ref<Animal | null>(null)
+const { errors, validate } = useFormValidation(values, (current) =>
+  validateAnimalForm(current, existing.value?.initialWeightKg ?? null),
+)
 const notFound = ref(false)
 const saveFailed = ref(false)
 const isSubmitting = ref(false)
@@ -243,7 +246,7 @@ async function submit(): Promise<void> {
       class="animal-form__field--weight"
       :label="t('animals.form.initialWeightKg.label')"
       control-id="animal-weight"
-      :error="errors.initialWeightKg ? t(errors.initialWeightKg) : null"
+      :error="errors.initialWeightKg ? t(errors.initialWeightKg, weightLimitParams(t)) : null"
     >
       <template #default="{ describedby, invalid }">
         <v-text-field
@@ -259,7 +262,7 @@ async function submit(): Promise<void> {
           hide-details
           :error="invalid"
           :placeholder="t('animals.form.initialWeightKg.placeholder')"
-          :suffix="t('animals.form.initialWeightKg.suffix')"
+          :suffix="weightUnitText(t)"
         />
       </template>
     </FormField>
