@@ -37,6 +37,7 @@ import { EXPORT_SCHEMA_VERSION } from '../logic/export-format'
 import { fromExportV1 } from '../logic/export-v1'
 import { exportFileV1Schema } from '../schema/export-v1.schema'
 import type { ExportAnimal } from '@/shared/domain/carnet-data'
+import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
 import {
   buildImportPlan,
   type ImportFile,
@@ -47,7 +48,7 @@ import {
 
 export type { ImportFile, ImportMode }
 
-export type ImportFileError = 'invalid' | 'newer' | 'outOfRange'
+export type ImportFileError = 'invalid' | 'newer' | 'outOfRange' | 'nameTooLong'
 
 /** Incohérence que seule la base locale révèle : réessayer le même fichier n'y changerait rien. */
 export type ImportRefusal = ImportRefusalReason
@@ -67,18 +68,18 @@ const MAX_TEXT_LENGTH = 200
 
 const instant = z.iso.datetime()
 const timestamps = { createdAt: instant, updatedAt: instant }
-const optionalText = z
+const optionalName = z
   .string()
   .trim()
-  .max(MAX_TEXT_LENGTH)
+  .max(MAX_NAME_LENGTH)
   .nullable()
   .transform((value) => value || null)
 
 const animalFileSchema = z.object({
   id: z.uuid(),
-  name: animalInputSchema.shape.name.max(MAX_TEXT_LENGTH),
+  name: animalInputSchema.shape.name,
   species: animalSpeciesSchema,
-  breed: optionalText,
+  breed: optionalName,
   birthDate: animalInputSchema.shape.birthDate,
   initialWeightKg: animalInputSchema.shape.initialWeightKg,
   photoFileName: z.string().max(MAX_TEXT_LENGTH).nullable(),
@@ -88,7 +89,7 @@ const animalFileSchema = z.object({
 const vaccinationFileSchema = z.object({
   id: z.uuid(),
   animalId: z.uuid(),
-  name: vaccinationInputSchema.shape.name.max(MAX_TEXT_LENGTH),
+  name: vaccinationInputSchema.shape.name,
   ...timestamps,
 })
 
@@ -104,7 +105,7 @@ const injectionFileSchema = z.object({
 const treatmentFileSchema = z.object({
   id: z.uuid(),
   animalId: z.uuid(),
-  name: treatmentInputSchema.shape.name.max(MAX_TEXT_LENGTH),
+  name: treatmentInputSchema.shape.name,
   type: treatmentTypeSchema,
   frequency: treatmentInputSchema.shape.frequency,
   stoppedOn: z.iso.date().nullable(),
@@ -185,18 +186,21 @@ function parseJson(text: string): unknown {
 }
 
 const BOUNDED_FIELDS = [['weightKg'], ['initialWeightKg'], ['frequency', 'value']]
+const NAME_FIELDS = [['name'], ['breed']]
 
 function endsWith(path: PropertyKey[], suffix: string[]): boolean {
   return suffix.every((segment, index) => path[path.length - suffix.length + index] === segment)
 }
 
-function refusalReason(error: z.ZodError): ImportFileError {
-  const onlyBoundsExceeded = error.issues.every(
-    (issue) =>
-      issue.code === 'too_big' && BOUNDED_FIELDS.some((suffix) => endsWith(issue.path, suffix)),
+function onlyTooBig(error: z.ZodError, fields: string[][]): boolean {
+  return error.issues.every(
+    (issue) => issue.code === 'too_big' && fields.some((suffix) => endsWith(issue.path, suffix)),
   )
+}
 
-  return onlyBoundsExceeded ? 'outOfRange' : 'invalid'
+function refusalReason(error: z.ZodError): ImportFileError {
+  if (onlyTooBig(error, NAME_FIELDS)) return 'nameTooLong'
+  return onlyTooBig(error, BOUNDED_FIELDS) ? 'outOfRange' : 'invalid'
 }
 
 /** La version aiguille avant toute validation : chaque format se relit avec son propre schéma. */

@@ -19,6 +19,7 @@ const ERROR_KEYS = {
 } as const
 
 const FUTURE_INJECTION_KEY = 'vaccinations.form.errors.lastInjectionDateFuture'
+const MAX_NAME_KEY = 'vaccinations.form.errors.nameMax'
 
 export type VaccinationFormErrorField = keyof typeof ERROR_KEYS
 export type VaccinationFormErrors = Partial<Record<VaccinationFormErrorField, string>>
@@ -52,6 +53,7 @@ function isErrorField(field: string): field is VaccinationFormErrorField {
 // Le seul `refine` du schéma est la borne « pas dans le futur » : c'est lui qui émet `custom`.
 function errorKeyFor(field: VaccinationFormErrorField, issue: z.core.$ZodIssue): string {
   if (field === 'lastInjectionDate' && issue.code === 'custom') return FUTURE_INJECTION_KEY
+  if (field === 'name' && issue.code === 'too_big') return MAX_NAME_KEY
 
   return ERROR_KEYS[field]
 }

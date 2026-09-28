@@ -305,6 +305,10 @@ function createAnimal(): void {
   color: rgb(var(--v-theme-background));
 }
 
+.carnet-header__export-pdf {
+  overflow: visible;
+}
+
 .carnet-header__plus-badge {
   top: 1px;
   right: -3px;

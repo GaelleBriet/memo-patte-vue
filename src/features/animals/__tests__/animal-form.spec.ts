@@ -10,6 +10,7 @@ import {
 } from '../logic/animal-form'
 import type { Animal } from '../schema/animal.schema'
 import { todayIsoDate } from '@/core/app-lifecycle/today-iso-date'
+import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
 import { KG_PER_LB } from '@/shared/domain/weight-unit'
 import { applyWeightUnit } from '@/shared/domain/weight-unit-preference'
 
@@ -160,6 +161,22 @@ describe('validateAnimalForm — nom', () => {
 
   it('refuse un nom fait d’espaces', () => {
     expect(erreurs({ name: '   ' }).name).toBe('animals.form.errors.name')
+  })
+
+  it('accepte 80 caractères, refuse 81 avec un message distinct', () => {
+    const limite = 'a'.repeat(MAX_NAME_LENGTH)
+
+    expect(donnees({ name: limite }).name).toBe(limite)
+    expect(erreurs({ name: `${limite}a` }).name).toBe('animals.form.errors.nameMax')
+  })
+})
+
+describe('validateAnimalForm — race', () => {
+  it('accepte 80 caractères, refuse 81 avec son propre message', () => {
+    const limite = 'a'.repeat(MAX_NAME_LENGTH)
+
+    expect(donnees({ breed: limite }).breed).toBe(limite)
+    expect(erreurs({ breed: `${limite}a` })).toEqual({ breed: 'animals.form.errors.breedMax' })
   })
 })
 

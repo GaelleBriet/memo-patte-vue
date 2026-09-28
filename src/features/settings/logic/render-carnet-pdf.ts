@@ -4,6 +4,7 @@ import { weightText } from '@/shared/domain/weight-display'
 import { formatLongDate, formatNumericDate } from '@/shared/utils/format'
 import i18n from '@/core/i18n'
 import { drawWeightChart, weightChartHeight } from './pdf-weight-chart'
+import { pdfText } from './pdf-text'
 import type { CarnetPdfContent, PdfDoseSeries, PdfDueState, PdfTreatmentRow } from './pdf-content'
 
 const PAGE_WIDTH_MM = 210
@@ -47,6 +48,10 @@ type PageCursor = { y: number; makeRoom: (height: number) => void }
 
 function speciesLabelKey(species: 'dog' | 'cat'): string {
   return `animals.form.species.${species}`
+}
+
+function pdfName(name: string, t: Translate): string {
+  return pdfText(name) || t('settings.pdf.noName')
 }
 
 function lineHeight(doc: jsPDF): number {
@@ -110,7 +115,8 @@ export function renderCarnetPdf(
   const headerWidth = photoDataUrl
     ? CONTENT_WIDTH_MM - PHOTO_SIZE_MM - PHOTO_GAP_MM
     : CONTENT_WIDTH_MM
-  const nameLines = wrap(doc, content.animal.name, headerWidth)
+  const animalName = pdfName(content.animal.name, t)
+  const nameLines = wrap(doc, animalName, headerWidth)
   writeLines(doc, nameLines, MARGIN_MM, y)
   y += extraLinesHeight(doc, nameLines.length) + 7
 
@@ -118,7 +124,7 @@ export function renderCarnetPdf(
   doc.setFontSize(11)
   const identityParts = [
     t(speciesLabelKey(content.animal.species)),
-    content.animal.breed,
+    content.animal.breed && pdfText(content.animal.breed),
     content.animal.birthDate &&
       t('settings.pdf.identity.birthDate', { date: formatLongDate(content.animal.birthDate) }),
   ].filter((part): part is string => Boolean(part))
@@ -126,14 +132,14 @@ export function renderCarnetPdf(
   writeLines(doc, identityLines, MARGIN_MM, y)
   y += extraLinesHeight(doc, identityLines.length) + 10
 
-  const cursor = createPageCursor(doc, y, () => writeContinuationHeader(doc, content.animal.name))
+  const cursor = createPageCursor(doc, y, () => writeContinuationHeader(doc, animalName))
 
   renderSection(
     doc,
     cursor,
     t('settings.pdf.vaccinations.title'),
     content.vaccinations.map((row) => [
-      row.name,
+      pdfName(row.name, t),
       row.dueDate ? formatNumericDate(row.dueDate) : t('settings.pdf.status.none'),
       t(STATE_LABEL_KEYS[row.state]),
     ]),
@@ -148,7 +154,7 @@ export function renderCarnetPdf(
     cursor,
     t('settings.pdf.treatments.title'),
     content.treatments.map((row) => [
-      row.name,
+      pdfName(row.name, t),
       treatmentDueLabel(row, t),
       t(STATE_LABEL_KEYS[row.state]),
     ]),

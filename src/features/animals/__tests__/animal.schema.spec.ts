@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { animalInputSchema } from '../schema/animal.schema'
+import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
 
 const validInput = { name: 'Miette', species: 'cat' } as const
 
@@ -21,6 +22,18 @@ describe('animalInputSchema', () => {
 
   it('rejette un nom vide ou seulement composé d’espaces', () => {
     expect(animalInputSchema.safeParse({ ...validInput, name: '   ' }).success).toBe(false)
+  })
+
+  it('borne le nom et la race à 80 caractères, espaces du bord non comptés', () => {
+    const limite = 'a'.repeat(MAX_NAME_LENGTH)
+    const accepte = (champs: object) => animalInputSchema.safeParse({ ...validInput, ...champs })
+
+    expect(MAX_NAME_LENGTH).toBe(80)
+    expect(accepte({ name: limite }).success).toBe(true)
+    expect(accepte({ name: `  ${limite}  ` }).success).toBe(true)
+    expect(accepte({ name: `${limite}a` }).success).toBe(false)
+    expect(accepte({ breed: limite }).success).toBe(true)
+    expect(accepte({ breed: `${limite}a` }).success).toBe(false)
   })
 
   it('rejette une espèce hors chien/chat', () => {
