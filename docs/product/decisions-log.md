@@ -1846,3 +1846,35 @@ remboursement en cas de dysfonctionnement avéré, abonnement géré dans Google
 dans l'app : méthode 1 dans l'app (y compris « Se reconnecter avec Google »), méthode 2 par e-mail.
 — Raison : l'URL doit exister pour la Play Console ; #87 et #65 livreront ce que la page décrit avant
 la publication de l'app.
+
+2026-09-28 — **Traitements quotidiens, doses non renseignées et date de fin** (choix de Gaelle, spec
+`docs/technical/traitements-quotidiens.md`). Constat : un vermifuge « tous les jours » annonçait une
+prochaine dose passée et « Fait aujourd'hui » semblait remplir le premier jour manqué.
+
+1) **Dose du moment** : la dernière échéance jusqu'à aujourd'hui inclus ; « Dose du jour · 28 sept. »,
+jamais une date passée présentée comme prochaine dose. Un rythme hebdomadaire ou mensuel en retard
+reste « en retard ».
+
+2) **Doses non renseignées** : échéances passées couvertes par aucune prise (une prise couvre la dernière
+échéance tombée à sa date ou avant). Elles ne comptent pas comme des retards. Bandeau « Toutes données /
+Choisir les jours », qui reste jusqu'à ce que chaque jour ait un état. — Alternatives écartées : les
+compter comme des retards ; un bandeau qui disparaît à la première prise notée (plus de mise en
+conformité possible le lendemain).
+
+3) **Un jour peut être noté « oubliée »** : colonne `treatment_dose.status` (`given` / `missed`), une
+ligne de prise par jour oublié. — Alternative écartée : un bouton « laisser non renseigné » sans état par
+jour, qui ne distingue plus l'oubli du « pas eu le temps de noter ».
+
+4) **Date de fin optionnelle** (`treatment.end_date`), toutes fréquences ; « terminé » calculé, jamais
+écrit en arrière-plan. — Alternative écartée pour l'instant : un nombre de prises, ambigu dès qu'une
+prise est oubliée.
+
+5) **Carnet et « À faire »** : une ligne par traitement, badge de la dose du moment et seconde ligne
+« N doses non renseignées » ; le compteur de l'Accueil ne les compte pas.
+
+6) **Notifications** : intervalle de moins d'une semaine, une seule notification le jour même à 9 h ;
+les autres rythmes gardent J−3, J et J+3. Complète l'entrée du 2026-09-15. Heure de prise : #447. —
+Alternative écartée : une relance le lendemain, qui tombe le matin de la dose suivante.
+
+7) **« Tous les jours » reste proposé** : un vermifuge peut se donner plusieurs jours de suite (chaton,
+chiot, à confirmer avec un vétérinaire) ; les traitements chroniques restent la question de #365.
