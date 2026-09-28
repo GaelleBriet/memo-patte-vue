@@ -36,6 +36,10 @@ function declaration(selecteur: string, propriete: string): string | undefined {
 }
 
 describe('CarnetView — contrat de style', () => {
+  it('laisse déborder la pastille Plus du bouton PDF, que Vuetify rogne par défaut', () => {
+    expect(declaration('.carnet-header__export-pdf', 'overflow')).toBe('visible')
+  })
+
   it('peint le header en pétrole plein, à la hauteur de la maquette', () => {
     expect(declaration('.carnet-header', 'background')).toBe('rgb(var(--v-theme-primary))')
     expect(declaration('.carnet-header', 'height')).toBe('158px')

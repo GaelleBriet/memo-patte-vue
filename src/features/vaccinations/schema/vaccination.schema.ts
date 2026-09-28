@@ -1,9 +1,11 @@
 import { isFuture, parseISO } from 'date-fns'
 import { z } from 'zod'
 
+import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
+
 export const vaccinationInputSchema = z.object({
   animalId: z.uuid(),
-  name: z.string().trim().min(1),
+  name: z.string().trim().min(1).max(MAX_NAME_LENGTH),
   lastInjectionDate: z.iso.date().refine((value) => !isFuture(parseISO(value))),
   dueDate: z.iso.date().nullable().default(null),
 })

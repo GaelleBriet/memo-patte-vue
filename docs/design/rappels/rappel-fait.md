@@ -10,7 +10,7 @@ Les données d'exemple (« Foyer de Sophie », animaux, dates) sont fictives : l
 
 Journal du 2026-09-24, points 1 à 5 :
 
-- F10 : « C'est fait » **ouvre l'app** (limite d'Android), qui note la prise et affiche le toast ; planche F10 à corriger
+- F10 : « C'est fait » **ouvre l'app** (limite d'Android), qui note la prise et affiche le toast ; planche F10 corrigée le 2026-09-25
 - F1 / F4 : fenêtre d'aujourd'hui à **J+29**
 - F2 : « Modifier » se décrit **« Date ou fréquence »**
 - Toasts : bouton **« Annuler »** ajouté
@@ -132,10 +132,10 @@ Journal du 2026-09-24, points 1 à 5 :
 
 - MémoPatte · maintenant · Bravecto pour Boree · Vermifuge · dose prévue aujourd’hui · [C’est fait]
 - MémoPatte · maintenant · Vaccin Carré pour Boree · Rappel prévu aujourd’hui · [C’est fait]
-- Vermifuge : noté sans ouvrir l’app ; la notification devient « Prise de Bravecto notée pour Boree » · [Annuler], puis disparaît.
+- Vermifuge : ouvre MémoPatte sur l’Accueil, note la prise du jour et affiche le toast F4 avec Annuler ; la notification disparaît.
 - Vaccin : ouvre MémoPatte sur F5 (injection aujourd’hui, prochain rappel à choisir).
 - Toucher la notification hors bouton → feuille F2 (ou feuille du vaccin).
-- Lecteur d’écran : « C’est fait : noter la prise de Bravecto pour Boree » · « C’est fait : ouvrir MémoPatte pour noter l’injection du vaccin Carré »
+- Lecteur d’écran : « C’est fait : ouvrir MémoPatte et noter la prise de Bravecto pour Boree » · « C’est fait : ouvrir MémoPatte pour noter l’injection du vaccin Carré »
 
 ### F11 · TOUT EST À JOUR
 

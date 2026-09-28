@@ -1764,10 +1764,87 @@ même jour peuvent en résulter, comme par la synchro (§10.7).
 « Dernière prise : », « Prises précédentes : », et « N prises du A au B » pour une série de plus de
 trois prises ; en petit et en gris, en retrait sous chaque ligne.
 
-2026-09-25 — **« Ouvrir » un export enregistré** (#349, décisions de Gaelle) : plugin
-`@capawesome-team/capacitor-file-opener`, qui réutilise notre FileProvider ; seul `Documents/MémoPatte/`
-y est ajouté, aucune permission. Échec : « Aucune app n'a pu ouvrir ce fichier. Il reste dans
-Documents › MémoPatte. » ; noms lus « Ouvrir l'export JSON / CSV », « Ouvrir le PDF ». — Raison :
-maintenu, aucune permission, rien à exposer d'autre, même éditeur que le plugin Google retenu le
-2026-09-22. — Alternatives écartées : `@capacitor-community/file-opener` (expose tout le stockage, un
-seul mainteneur) ; un plugin Android maison (premier code natif du dépôt, invisible des tests).
+2026-09-25 (soir) — **Réponses de Gaelle sur les branches du lot** (#352, #409, #384, #349, #416).
+
+1) **Variation de poids calculée à partir des poids affichés** (#352) : c'est l'écart entre les deux poids
+arrondis tels qu'on les montre, dans l'unité choisie (53,1 → 53,6 lb donne « +0,5 lb »). — Raison : ce
+qu'on voit s'additionne toujours ; l'écart avec le calcul exact reste sous un dixième. — Alternative
+écartée : le calcul exact avant arrondi, qui semblait faux une fois sur quatre.
+
+2) **Noms de plus de 80 caractères enregistrés avant la limite : coupés à 80 par la migration** (#409),
+en base locale (v8) comme dans le cloud ; les fixtures restent sous la limite. — Raison : seules des
+données de test peuvent en contenir ; sans coupe, un tel nom bloquerait la synchro et la réimportation.
+— Alternative écartée : ne rien couper et mettre de côté la ligne refusée dans la synchro.
+
+3) **Bouton « C'est fait » des notifications** (#384) : Android ne donne pas de nom accessible distinct
+à un bouton de notification ; TalkBack lit le titre (« Bravecto pour Boree ») puis « C'est fait », ce qui
+est accepté (le relevé F10 le prévoyait autrement). Une prise déjà notée affiche « Prise de Bravecto du
+25 sept. déjà notée pour Boree », ou « … déjà notée aujourd'hui pour Boree » si elle est du jour (idem
+pour une injection).
+
+4) **« Ouvrir » un export** (#349) : plugin `@capawesome-team/capacitor-file-opener`, qui réutilise
+notre FileProvider (seul `Documents/MémoPatte/` ajouté, aucune permission) ; échec : « Aucune app n'a pu
+ouvrir ce fichier. Il reste dans Documents › MémoPatte. » ; noms lus « Ouvrir l'export JSON / CSV »,
+« Ouvrir le PDF ». — Raison : maintenu, aucune permission, rien d'autre à exposer, même éditeur que le
+plugin Google retenu le 2026-09-22. — Alternatives écartées : `@capacitor-community/file-opener` (expose
+tout le stockage, un seul mainteneur) ; un plugin Android maison (premier code natif du dépôt, invisible
+des tests).
+
+5) **Export CSV lisible dans un tableur** : titres, valeurs et séparateur dans la langue de l'app, ticket
+#416 ; d'ici là, le CSV garde ses noms techniques (`weightLb`).
+
+2026-09-26 — **Site public de MémoPatte** (#86, choix de Gaelle).
+
+1) **Adresse : `memopatte.gaelle-briet.fr`**, sous-domaine du site de son entreprise, qui sert aussi de
+« site de l'organisation » pour la Play Console. — Raison : une adresse propre au produit, gratuite
+(Cloudflare Pages, entrée CNAME chez Infomaniak). — Alternatives écartées : `gaelle-briet.fr/memopatte`
+(rien à configurer, mais préférence de Gaelle pour le sous-domaine) ; GitHub Pages du dépôt, prévu
+jusqu'ici par #86.
+
+2) **Code dans `site/` du dépôt MémoPatte** : HTML statique, français à `/` et anglais à `/en/`, aux
+couleurs de l'app, sans script ni ressource externe (un test le vérifie). Projet Cloudflare Pages qui ne
+publie que ce dossier. — Raison : la politique de confidentialité vit à côté du code qu'elle décrit et
+change dans la même PR. — Alternative écartée : des pages dans le site Nuxt de Gaelle, qui demandaient
+du code propre à Cloudflare pour servir le sous-domaine.
+
+3) **Mentions légales sur `gaelle-briet.fr`** (adresse de domiciliation, SIRET, contact, hébergeur) ; les
+pages MémoPatte y renvoient, et ni l'adresse ni le SIRET n'entrent dans ce dépôt.
+
+4) **Page d'attente d'abord** (« Bientôt sur Google Play ») pour brancher Cloudflare et le DNS tout de
+suite ; la politique et la page de suppression de compte la rejoignent quand l'e-mail de contact est
+choisi.
+
+2026-09-26 — **Politique de confidentialité et page de suppression de compte** (#86, choix de Gaelle).
+Pages publiées depuis `site/` (`/confidentialite/`, `/suppression-compte/` et leur version anglaise),
+seule version du texte.
+
+1) **Contact : `memopatte@gaelle-briet.fr`**, boîte hébergée par Proton AG (Suisse, pays reconnu
+adéquat par la Commission européenne), citée comme prestataire des échanges avec nous.
+
+2) **Durées** : sauvegarde Plus, photos et compte (adresse e-mail comprise) supprimés après 12 mois sans
+accès Plus, avec un e-mail d'avertissement un mois avant ; suppression immédiate de tout à la demande ;
+statistiques d'usage 12 mois ; échanges de support 1 an après la clôture ; jeton d'achat durée de
+l'accès + 60 jours ; journaux techniques de Supabase (adresse IP, sessions) selon la durée fixée par
+Supabase, sans chiffre inventé. — Tranche les durées laissées « à confirmer » le 2026-09-07 (13 mois
+d'analytics ramenés à 12, suppression du compte inactif en plus de la sauvegarde).
+
+3) **Adresse IP** : « Discard client IP data » activé sur le projet PostHog, la politique dit donc que
+PostHog ne la conserve pas ; rien n'est affirmé sur un pays approximatif. Phrase générale : l'IP est
+reçue par les prestataires pour acheminer les requêtes.
+
+4) **Compte d'abord, puis achat** : sur l'écran Plus, choisir une offre demande de se connecter ou de
+créer un compte avant d'ouvrir le paiement ; l'achat est rattaché au compte dès le départ. La politique
+dit que Plus demande un compte. — Raison : aucun abonné payant sans sauvegarde, achat rattaché au compte
+(recommandation de RevenueCat). — Alternative écartée : acheter d'abord puis créer le compte, avec le
+risque d'un abonné payant sans sauvegarde et d'un transfert d'achat à gérer. L'app achète encore sans
+compte aujourd'hui : ticket séparé.
+
+5) **Ton** : vouvoiement sur ces deux pages, formel mais simple ; l'app reste au tutoiement.
+
+6) **Remboursement** : section de la politique — Google Play dans les 48 h, ensuite par e-mail,
+remboursement en cas de dysfonctionnement avéré, abonnement géré dans Google Play.
+
+7) **Page de suppression publiée d'après la maquette** (D1 à D6), avant que #87 ne livre le parcours
+dans l'app : méthode 1 dans l'app (y compris « Se reconnecter avec Google »), méthode 2 par e-mail.
+— Raison : l'URL doit exister pour la Play Console ; #87 et #65 livreront ce que la page décrit avant
+la publication de l'app.

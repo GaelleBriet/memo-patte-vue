@@ -13,6 +13,7 @@ import {
 } from '../logic/treatment-form'
 import type { Treatment } from '../schema/treatment.schema'
 import { todayIsoDate } from '@/core/app-lifecycle/today-iso-date'
+import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
 
 const BRAVECTO: Treatment = {
   id: '22222222-2222-4222-8222-222222222222',
@@ -112,6 +113,13 @@ describe('validateTreatmentForm — nom et type', () => {
 
   it('refuse un type non choisi', () => {
     expect(erreurs({ type: null }).type).toBe('treatments.form.errors.type')
+  })
+
+  it('accepte un nom de 80 caractères, refuse 81 avec un message distinct', () => {
+    const limite = 'a'.repeat(MAX_NAME_LENGTH)
+
+    expect(donnees({ name: limite }).name).toBe(limite)
+    expect(erreurs({ name: `${limite}a` }).name).toBe('treatments.form.errors.nameMax')
   })
 })
 
@@ -214,6 +222,16 @@ describe('validateTreatmentEditForm — Modifier', () => {
     expect(edition({ nextDueDate: '' })).toEqual({
       success: false,
       errors: { nextDueDate: 'treatments.form.errors.nextDueDate' },
+    })
+  })
+
+  it('refuse un nom de 81 caractères avec le même message qu’à la création', () => {
+    const limite = 'a'.repeat(MAX_NAME_LENGTH)
+
+    expect(edition({ name: limite }).success).toBe(true)
+    expect(edition({ name: `${limite}a` })).toEqual({
+      success: false,
+      errors: { name: 'treatments.form.errors.nameMax' },
     })
   })
 
