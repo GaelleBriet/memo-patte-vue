@@ -1,5 +1,31 @@
 # Contexte en cours (à mettre à jour à chaque lot)
 
+- 2026-09-29 (soir) : **pause demandée par Gaelle, reprendre ici. Toujours aucun développement
+  avant la relecture des specs par Gaelle.** Le cadrage produit est complet dans son coffre de notes
+  (point d'entrée `Memo-Patte/docs/product/cadrage-produit.md`, section « Reprendre ici ») : 15
+  parcours, matrice des fonctionnalités, 8 specs fonctionnelles, modèle de données v2 (M1 à M8 :
+  périodes de traitement, prises « donnée / oubliée / reportée », réglages du carnet, **schéma v9
+  neuf** qui remplace v1 à v8, import v3 seul), écart avec le code, **plan de livraison** (lots 0 à
+  10, `12-plan-de-livraison.md`) et brouillons de tickets des lots 1 et 2
+  (`13-tickets-lots-1-2.md`, créés sur GitHub après la relecture).
+  - **Données** : l'app n'est pas publiée, toutes les données (MémoPatte Dev comme la vraie app de
+    Gaelle) sont des données de test ; une migration peut repartir d'une base vide. Ça s'inverse à la
+    publication.
+  - **Maquettes v1** (Claude Design, `design/v1-specs/` du coffre) : lots A et B relus, 37 questions
+    tranchées, **prompts de correction prêts** (`design/prompt-maquettes-v1-specs-corrections-lot-A.md`
+    et `-lot-B.md`) ; Claude Design en panne, Gaelle les colle quand il remarche. Lot C : relecture
+    lancée au moment de la pause, questions à poser ensuite.
+  - **Décisions du jour qui changent l'existant** (au coffre, à reporter dans le dépôt par la PR de
+    documentation) : chaque prise vise une échéance précise, jour et heure ; noter tard une dose non
+    renseignée ne déplace pas la suite ; rappels précis permis (`SCHEDULE_EXACT_ALARM` sans
+    déclaration Play, vérifié ; `USE_EXACT_ALARM` toujours interdite), l'option s'appelle « Rappels
+    précis » ; « soin » au lieu de « rappel » sur l'accueil ; textes en tournures neutres ; âge en
+    semaines jusqu'à 16 semaines ; « Valide jusqu'à » remplacé par « Prochain rappel le … ».
+  - **À faire ensuite, dans l'ordre** : questions du lot C ; relecture des specs par Gaelle ; PR de
+    documentation (specs, `decisions-log.md`, CLAUDE.md, `06-mvp-scope.md`, glossaire) ; tickets
+    des lots 1 et 2 ; lot 0 (tests sur téléphone de #384 et #349, puis PR). La branche
+    `docs/traitements-quotidiens` est dépassée : à fermer.
+
 - 2026-09-28 (soir) : **pause demandée par Gaelle, reprendre ici. Plus aucun développement avant des
   specs validées** (décision de Gaelle du jour : « on a été beaucoup trop superficiels », reprendre la
   partie produit « dans les règles de l'art »).
