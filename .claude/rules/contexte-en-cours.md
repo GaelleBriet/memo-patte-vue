@@ -1,5 +1,18 @@
 # Contexte en cours (à mettre à jour à chaque lot)
 
+- 2026-09-30 (soir) : **pause demandée par Gaelle, reprendre ici.** Lot 0 **mergé** : #456 (#349,
+  « Ouvrir » après un export CSV ou PDF ; plus de bouton pour un JSON, qu'aucune app n'ouvre sur le
+  téléphone de Gaelle : décision du jour, spec DO-6) et #457 (#384, « C'est fait » sur les
+  notifications, premier code natif ; écart TR-20 accepté, corrigé au lot 4). Testés sur le téléphone
+  dans MémoPatte Dev, puis MémoPatte Dev désinstallée, vraie app inchangée (0.1.37). `main` à **3564
+  tests**. Les PR disaient `Closes #N` mais GitHub n'a pas lié les tickets : #349 et #384 fermés à la
+  main (vérifier `closingIssuesReferences` après chaque PR). Tickets des lots 1 et 2 créés : #451
+  (base neuve v9), #452 (périodes et prises), #453 (moteur d'échéances), #454 (export v3, démo), #455
+  (miroirs Supabase). Échec Cloudflare Pages sur le merge de #456 : clone GitHub raté côté Cloudflare
+  (erreur TLS), relancé par Gaelle, rien à corriger. **À faire ensuite, dans l'ordre** : #451, et
+  #453 en parallèle ; puis #452 ; puis #454 et #455 (#455 avec Gaelle présente). Branche
+  `docs/traitements-quotidiens` dépassée : la supprimer après accord de Gaelle.
+
 - 2026-09-30 : **cadrage produit v1 terminé et entré dans le dépôt** (cette PR). Specs
   fonctionnelles validées (`docs/product/specs/`, règles numérotées), principes produit
   (`docs/product/principes.md`), modèle de données v2 (`docs/technical/modele-de-donnees-v2.md`),
