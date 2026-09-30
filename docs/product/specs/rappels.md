@@ -5,7 +5,7 @@ tags:
   - product
 ---
 
-# Spec fonctionnelle — Rappels et notifications (brouillon du 2026-09-29)
+# Spec fonctionnelle — Rappels et notifications (validée le 2026-09-30)
 
 Suivi : cadrage produit. Sources : [principes](../principes.md) (3 : un rappel ne se perd pas ; 6 :
 pas de bruit), parcours 1, 3, 4, 6, 11, 14 ; `technical/analyse-programmation-rappels.md`,

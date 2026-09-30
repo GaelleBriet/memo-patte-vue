@@ -5,7 +5,7 @@ tags:
   - product
 ---
 
-# Spec fonctionnelle — MémoPatte Plus et compte (brouillon du 2026-09-29)
+# Spec fonctionnelle — MémoPatte Plus et compte (validée le 2026-09-30)
 
 Suivi : cadrage produit. Sources : [principes](../principes.md) (3, 7), Vision Board (objectif 3),
 GO Roadmap (v1 avec Plus, phase de test), parcours 1, 12, 13, 14, 15, matrice des fonctionnalités (G4,
@@ -201,4 +201,4 @@ publicité.
 
 ## 6. Questions ouvertes
 
-Aucune. Spec « Plus et compte » prête pour relecture par Gaelle.
+Aucune. Spec « Plus et compte » validée le 2026-09-30.

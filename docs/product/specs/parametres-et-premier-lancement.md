@@ -5,7 +5,7 @@ tags:
   - product
 ---
 
-# Spec fonctionnelle — Paramètres et premier lancement (brouillon du 2026-09-29)
+# Spec fonctionnelle — Paramètres et premier lancement (validée le 2026-09-30)
 
 Suivi : cadrage produit. Sources : [principes](../principes.md), parcours 1, 3, 13, 15, matrice des
 fonctionnalités (G3) ; specs [rappels](rappels.md), [données](donnees.md),
@@ -119,4 +119,4 @@ personnalisation de l'accueil.
 
 ## 7. Questions ouvertes
 
-Aucune. Spec « Paramètres et premier lancement » prête pour relecture par Gaelle.
+Aucune. Spec « Paramètres et premier lancement » validée le 2026-09-30.

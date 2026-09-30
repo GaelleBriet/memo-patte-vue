@@ -5,7 +5,7 @@ tags:
   - product
 ---
 
-# Spec fonctionnelle — Accueil et « À faire » (brouillon du 2026-09-29)
+# Spec fonctionnelle — Accueil et « À faire » (validée le 2026-09-30)
 
 Suivi : cadrage produit. Sources : [principes](../principes.md) (4 : l'action du moment d'abord ;
 6 : pas de bruit), parcours 1, 4, 5, 10, 12, 13, matrice des fonctionnalités ; specs

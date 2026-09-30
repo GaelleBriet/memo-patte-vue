@@ -5,7 +5,7 @@ tags:
   - product
 ---
 
-# Spec fonctionnelle — Données : exports, import, sauvegarde (brouillon du 2026-09-29)
+# Spec fonctionnelle — Données : exports, import, sauvegarde (validée le 2026-09-30)
 
 Suivi : cadrage produit. Sources : [principes](../principes.md) (3 : dire honnêtement jusqu'où on
 protège ; 7 : données jamais otages), parcours 1, 6, 10, 13, 15, matrice des fonctionnalités (G8) ;
@@ -174,4 +174,4 @@ par le partage d'Android ; export d'un seul animal en JSON (piste « à prévoir
 
 ## 6. Questions ouvertes
 
-Aucune. Spec « Données » prête pour relecture par Gaelle.
+Aucune. Spec « Données » validée le 2026-09-30.

@@ -1,5 +1,18 @@
 # Contexte en cours (à mettre à jour à chaque lot)
 
+- 2026-09-30 : **cadrage produit v1 terminé et entré dans le dépôt** (cette PR). Specs
+  fonctionnelles validées (`docs/product/specs/`, règles numérotées), principes produit
+  (`docs/product/principes.md`), modèle de données v2 (`docs/technical/modele-de-donnees-v2.md`),
+  maquettes v1 validées (`docs/design/v1-specs/`, lots A, B, C en révision 2), journal des décisions
+  des 28, 29 et 30 septembre, CLAUDE.md et périmètre alignés (PDF gratuit, médicaments, rappels précis
+  en option, tournures neutres). Relecture de cohérence faite dans le coffre de Gaelle (216
+  corrections). Les restes des maquettes à régler dans le code sont listés dans le plan de livraison
+  (coffre, `product/12-plan-de-livraison.md` §4 bis). Glossaire anglais complété ; Gaelle ne juge pas
+  l'anglais : à faire relire avec #353. **À faire ensuite, dans l'ordre** : tickets des lots 1 et 2
+  (brouillons dans le coffre, `product/13-tickets-lots-1-2.md`), puis lot 0 (tests sur téléphone de
+  #384 et #349, puis leurs PR) ; réécrire #447 (plusieurs heures) et mettre à jour #356 (choix de
+  l'animal dans Paramètres) ; fermer la branche `docs/traitements-quotidiens`, dépassée.
+
 - 2026-09-29 (soir) : **pause demandée par Gaelle, reprendre ici. Toujours aucun développement
   avant la relecture des specs par Gaelle.** Le cadrage produit est complet dans son coffre de notes
   (point d'entrée `Memo-Patte/docs/product/cadrage-produit.md`, section « Reprendre ici ») : 15

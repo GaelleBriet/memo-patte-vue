@@ -5,7 +5,7 @@ tags:
   - product
 ---
 
-# Spec fonctionnelle — Traitements (brouillon du 2026-09-29)
+# Spec fonctionnelle — Traitements (validée le 2026-09-30)
 
 Suivi : cadrage produit. Sources : [principes](../principes.md), parcours 2, 3, 4, 5, 7, 9, matrice
 des fonctionnalités. Chaque règle cite sa source ; une règle marquée **(à valider)** est une déduction

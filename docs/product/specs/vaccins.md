@@ -5,7 +5,7 @@ tags:
   - product
 ---
 
-# Spec fonctionnelle — Vaccins (brouillon du 2026-09-29)
+# Spec fonctionnelle — Vaccins (validée le 2026-09-30)
 
 Suivi : cadrage produit. Sources : [principes](../principes.md) (1, 2), parcours 2, 6, 8, matrice des
 fonctionnalités ; spec [rappels](rappels.md) ; décisions du 2026-09-23 (historique complet, raccourcis)
@@ -200,4 +200,4 @@ vaccins ne propose aucune durée) ; calendrier vaccinal imposé ; certificat off
 
 ## 8. Questions ouvertes
 
-Aucune. Spec « Vaccins » prête pour relecture par Gaelle.
+Aucune. Spec « Vaccins » validée le 2026-09-30.

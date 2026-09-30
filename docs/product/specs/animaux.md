@@ -5,7 +5,7 @@ tags:
   - product
 ---
 
-# Spec fonctionnelle — Animaux et poids (brouillon du 2026-09-29)
+# Spec fonctionnelle — Animaux et poids (validée le 2026-09-30)
 
 Suivi : cadrage produit. Sources : [principes](../principes.md) (1, 3, 7 : sans limite d'animaux),
 parcours 1, 8, 10, matrice des fonctionnalités (G1, G5, G6, G7) ; existant (#14, #15, #101, #127, #31,
@@ -155,4 +155,4 @@ chien et chat ; partage d'un animal entre personnes (v2, Plus).
 
 ## 6. Questions ouvertes
 
-Aucune. Spec « Animaux et poids » prête pour relecture par Gaelle.
+Aucune. Spec « Animaux et poids » validée le 2026-09-30.
