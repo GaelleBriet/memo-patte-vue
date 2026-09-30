@@ -1,5 +1,8 @@
 # Design — index
 
+Les maquettes de la v1 (`v1-specs/`) l'emportent sur les dossiers plus anciens partout où elles
+diffèrent (textes, « 2 taps », poids initial…) ; ces dossiers restent pour l'historique des écrans.
+
 | Dossier | Contenu | Statut |
 |---|---|---|
 | `v1-specs/` | Maquettes de la v1 en trois pages HTML autonomes : traitements et rappels (V1 à V9), vaccins, animaux et accueil (V10 à V18), Paramètres, compte et Plus (V19 à V27, D1 à D6) (`README.md`) | **référence de la v1**, validée le 2026-09-30 |

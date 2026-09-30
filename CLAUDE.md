@@ -150,7 +150,7 @@ Hors scope :
 - Aucun événement analytics avant le consentement explicite ; PostHog sur EU Cloud, jamais de contenu de carnet dans les événements
 - Photos via le Photo Picker Android : ne jamais déclarer `READ_MEDIA_IMAGES` / `READ_MEDIA_VIDEO`
 - Rappels en alarmes inexactes par défaut ; `SCHEDULE_EXACT_ALARM` seulement pour l’option « Rappels précis », demandée en contexte, jamais au lancement ; ne jamais déclarer `USE_EXACT_ALARM` (réservée aux réveils et agendas par la politique Play, vérifié le 2026-09-29)
-- `POST_NOTIFICATIONS` demandée en contexte (premier rappel), jamais au lancement
+- `POST_NOTIFICATIONS` demandée en contexte, toujours après l'écran d'explication, dès que le carnet a un soin à venir (premier soin, import, restauration, transfert d'Android) ; jamais sur un carnet vide
 - Clé `service_role` Supabase : uniquement dans les Edge Functions, jamais dans l'app ni dans le dépôt
 - Toute table Plus référence `auth.users(id)` avec `on delete cascade`
 
