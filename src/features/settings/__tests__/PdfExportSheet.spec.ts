@@ -1,3 +1,4 @@
+import { FileOpener } from '@capawesome-team/capacitor-file-opener'
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -7,7 +8,7 @@ import type { SaveAccess } from '../logic/export-storage-access'
 import type { PdfExportOutcome } from '../service/pdf-export.service'
 import i18n, { applyLocale } from '@/core/i18n'
 import vuetify from '@/core/theme/vuetify'
-import { dismissToast, toastMessage } from '@/shared/utils/toast'
+import { dismissToast, runToastAction, toastAction, toastMessage } from '@/shared/utils/toast'
 
 const exportAnimalCarnetPdf = vi.hoisted(() =>
   vi.fn<(animalId: string, mode: DeliveryMode, exportedAt?: Date) => Promise<PdfExportOutcome>>(),
@@ -23,6 +24,14 @@ vi.mock('../service/pdf-export.service', () => ({
 }))
 vi.mock('../logic/export-storage-access', () => storage)
 vi.mock('@/core/app-lifecycle/app-resume', () => ({ useAppResume: () => {} }))
+vi.mock('@capawesome-team/capacitor-file-opener', () => ({
+  FileOpener: { openFile: vi.fn<() => Promise<void>>(async () => {}) },
+}))
+
+const SAVED_PDF = {
+  uri: 'file:///storage/emulated/0/Documents/M%C3%A9moPatte/carnet-milo-20260923-1030.pdf',
+  mimeType: 'application/pdf',
+}
 
 const MILO: PdfExportAnimal = { id: 'milo-id', name: 'Milo', species: 'dog' }
 const LUNA: PdfExportAnimal = { id: 'luna-id', name: 'Luna', species: 'cat' }
@@ -34,8 +43,9 @@ beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'], now: OPENED_AT })
   exportAnimalCarnetPdf.mockReset()
   exportAnimalCarnetPdf.mockImplementation(async (_, mode) =>
-    mode === 'save' ? 'saved' : 'shared',
+    mode === 'save' ? { status: 'saved', file: SAVED_PDF } : 'shared',
   )
+  vi.mocked(FileOpener.openFile).mockReset().mockResolvedValue()
   storage.checkSaveAccess.mockReset().mockResolvedValue('granted')
   storage.requestSaveAccess.mockReset().mockResolvedValue('granted')
   storage.openAppSettings.mockReset().mockResolvedValue()
@@ -135,10 +145,36 @@ describe('PdfExportSheet', () => {
     expect(exportAnimalCarnetPdf).toHaveBeenCalledExactlyOnceWith('milo-id', 'save', OPENED_AT)
     expect(wrapper!.emitted('update:modelValue')).toEqual([[false]])
     expect(toastMessage.value).toBe('PDF enregistré dans Documents › MémoPatte')
+    expect(toastAction.value).toMatchObject({ label: 'Ouvrir', ariaLabel: 'Ouvrir le PDF' })
     vi.advanceTimersByTime(3900)
     expect(toastMessage.value).toBe('PDF enregistré dans Documents › MémoPatte')
     vi.advanceTimersByTime(200)
     expect(toastMessage.value).toBeNull()
+  })
+
+  it('« Ouvrir » ouvre le PDF tout juste enregistré', async () => {
+    await monter([MILO])
+
+    enregistrer().click()
+    await flushPromises()
+    runToastAction()
+    await flushPromises()
+
+    expect(FileOpener.openFile).toHaveBeenCalledExactlyOnceWith({
+      path: SAVED_PDF.uri,
+      mimeType: 'application/pdf',
+    })
+  })
+
+  it('ne propose pas « Ouvrir » dans le navigateur, où le PDF est un téléchargement', async () => {
+    exportAnimalCarnetPdf.mockResolvedValue({ status: 'saved', file: null })
+    await monter([MILO])
+
+    enregistrer().click()
+    await flushPromises()
+
+    expect(toastMessage.value).toBe('PDF enregistré dans Documents › MémoPatte')
+    expect(toastAction.value).toBeNull()
   })
 
   it('partage le PDF comme avant', async () => {
@@ -151,6 +187,7 @@ describe('PdfExportSheet', () => {
     expect(exportAnimalCarnetPdf).toHaveBeenCalledExactlyOnceWith('milo-id', 'share', OPENED_AT)
     expect(wrapper!.emitted('update:modelValue')).toEqual([[false]])
     expect(toastMessage.value).toBe('PDF exporté')
+    expect(toastAction.value).toBeNull()
   })
 
   it('propose un choix quand plusieurs animaux existent, le premier coché', async () => {

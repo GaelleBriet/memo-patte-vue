@@ -56,7 +56,9 @@ par le partage d'Android ; export d'un seul animal en JSON (piste « à prévoir
   et des oublis. (Spec Q2, 2026-09-29)
 - **DO-5** Noms de fichier : `carnet-<nom>-AAAAMMJJ-HHmm.pdf` pour un animal,
   `carnet-memopatte-AAAAMMJJ-HHmm.pdf` pour tous ; suffixe ` (1)` dans la même minute. (#343, #356)
-- **DO-6** Après un export enregistré : toast avec « Ouvrir ». (#349)
+- **DO-6** Après un export enregistré : toast avec « Ouvrir » pour un CSV ou un PDF, jamais pour un
+  JSON (copie de secours à réimporter, qu'aucune app n'ouvre sur beaucoup de téléphones). (#349 ;
+  décision du 2026-09-30)
 
 ### 3.2 Import
 
