@@ -298,7 +298,7 @@ ligne nouvelle de `animal` (le prénom est dans le texte), `vaccination`, `treat
 leurs injections ou prises (l'échéance vit sur l'événement, un « fait » reçu doit reprogrammer),
 même si le pull échoue ensuite. Un pull qui ne ramène rien de nouveau ne reconstruit rien. Reste à
 faire : l'appel à la fin d'une restauration, plus les tests du CA. Les cycles lointains d'un
-traitement ne sont programmés que sur 60 jours / 400 rappels : cette fenêtre se remplit au lancement
+traitement ne sont programmés que sur 60 jours / 400 rappels (fenêtre de 60 jours supprimée par la spec Rappels, RA-11 ; plafond de 400 gardé) : cette fenêtre se remplit au lancement
 et à chaque retour au premier plan (`installRemindersSync`), pas par la synchronisation.
 
 ### 4.5 Photos (#85)

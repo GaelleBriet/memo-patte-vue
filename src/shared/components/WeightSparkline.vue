@@ -10,6 +10,7 @@ import {
   type CarnetChartLabels,
   type WeightChartEntry,
 } from '../domain/weight-chart'
+import { withWeightUnit } from '../domain/weight-display'
 
 const props = defineProps<{
   entries: readonly WeightChartEntry[]
@@ -20,7 +21,7 @@ const { t } = useI18n()
 const labels: CarnetChartLabels = {
   max: (weight) => t('weight.chart.max', { weight }),
   min: (weight) => t('weight.chart.min', { weight }),
-  latest: (weight) => t('weight.chart.latest', { weight }),
+  latest: (weight) => withWeightUnit(t, weight),
 }
 
 const figure = useTemplateRef<HTMLElement>('figure')

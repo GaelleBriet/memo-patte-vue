@@ -124,7 +124,7 @@ viderait sa base, une branche qui migre la base la migrerait.
   partent avec**. La vraie MémoPatte ne s'installe que depuis `main`, sur la machine qui l'a installée.
 - Ce qui ne marche que dans la vraie MémoPatte : les achats Google Play (MémoPatte Dev n'existe pas sur la
   Play Console). La connexion Google demande un client OAuth Android pour chaque paquet
-  (`google-oauth-setup.md`). Les exports vont dans le même `Documents/MémoPatte/`, mais depuis Android 11
+  (`google-oauth-setup.md`, coffre de notes). Les exports vont dans le même `Documents/MémoPatte/`, mais depuis Android 11
   chaque app ne voit que ses propres fichiers.
 
 `adb` avec le bon paquet (`com.gaellebriet.memopatte` vise la vraie app : jamais sans le vouloir) :

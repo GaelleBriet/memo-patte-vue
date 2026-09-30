@@ -14,6 +14,9 @@ import { todayIsoDate } from '@/core/app-lifecycle/today-iso-date'
 import { pickPhoto, type PickedPhoto } from '@/core/photos/photo-picker'
 import { photoDisplayUrl } from '@/core/photos/photo-storage'
 import { forgetPhotoUrls } from '@/core/photos/use-photo-urls'
+import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
+import { KG_PER_LB } from '@/shared/domain/weight-unit'
+import { applyWeightUnit } from '@/shared/domain/weight-unit-preference'
 
 vi.mock('@/core/photos/photo-picker', () => ({
   pickPhoto: vi.fn<() => Promise<PickedPhoto | null>>(),
@@ -106,6 +109,7 @@ beforeEach(async () => {
 })
 
 afterEach(() => {
+  applyWeightUnit('kg')
   vi.restoreAllMocks()
   vi.useRealTimers()
 })
@@ -220,6 +224,57 @@ describe('AnimalFormView — champs date et poids', () => {
   })
 })
 
+describe('AnimalFormView — poids initial en livres', () => {
+  it('saisit le poids initial en livres et l’enregistre en kg', async () => {
+    applyWeightUnit('lb')
+    const wrapper = monter()
+    expect(wrapper.get('.animal-form__field--weight .v-text-field__suffix').text()).toBe('lb')
+    await remplirMinimum(wrapper)
+    await champ(wrapper, 'animal-weight').setValue('18.7')
+
+    await soumettre(wrapper)
+
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({ initialWeightKg: 18.7 * KG_PER_LB }),
+      { kind: 'keep' },
+    )
+  })
+
+  it('dit la borne haute en livres', async () => {
+    applyWeightUnit('lb')
+    const wrapper = monter()
+    await remplirMinimum(wrapper)
+    await champ(wrapper, 'animal-weight').setValue('441')
+
+    await soumettre(wrapper)
+
+    expect(messages(wrapper)).toEqual(['Le poids doit être de 440,9\u00a0lb maximum.'])
+    expect(create).not.toHaveBeenCalled()
+  })
+
+  it('pré-remplit le poids initial avec un point, seul séparateur qu’un champ nombre accepte', async () => {
+    const wrapper = await monterEdition()
+
+    expect(champ(wrapper, 'animal-weight').attributes('type')).toBe('number')
+    expect(valeur(wrapper, 'animal-weight')).toBe('8.5')
+  })
+
+  it('garde le poids initial enregistré quand seule une autre donnée change', async () => {
+    applyWeightUnit('lb')
+    const wrapper = await monterEdition()
+    expect(valeur(wrapper, 'animal-weight')).toBe('18.74')
+    await champ(wrapper, 'animal-breed').setValue('Beagle')
+
+    await soumettre(wrapper)
+
+    expect(update).toHaveBeenCalledWith(
+      MILO.id,
+      expect.objectContaining({ breed: 'Beagle', initialWeightKg: 8.5 }),
+      { kind: 'keep' },
+    )
+  })
+})
+
 describe('AnimalFormView — validation', () => {
   it('refuse un formulaire vide et n’écrit rien', async () => {
     const wrapper = monter()
@@ -237,7 +292,7 @@ describe('AnimalFormView — validation', () => {
 
     await soumettre(wrapper)
 
-    expect(messages(wrapper)).toEqual(['Le poids doit être supérieur à 0 kg.'])
+    expect(messages(wrapper)).toEqual(['Le poids doit être supérieur à 0\u00a0kg.'])
     expect(create).not.toHaveBeenCalled()
   })
 
@@ -249,6 +304,66 @@ describe('AnimalFormView — validation', () => {
     await soumettre(wrapper)
 
     expect(messages(wrapper)).toEqual([])
+  })
+})
+
+describe('AnimalFormView — longueur du nom et de la race', () => {
+  const limite = 'a'.repeat(MAX_NAME_LENGTH)
+
+  afterEach(() => {
+    i18n.global.locale.value = 'fr'
+  })
+
+  it('borne la saisie du nom et de la race à 80 caractères, collage compris', () => {
+    const wrapper = monter()
+
+    expect(champ(wrapper, 'animal-name').attributes('maxlength')).toBe('80')
+    expect(champ(wrapper, 'animal-breed').attributes('maxlength')).toBe('80')
+  })
+
+  it('accepte un nom et une race de 80 caractères', async () => {
+    const wrapper = monter()
+    await remplirMinimum(wrapper)
+    await champ(wrapper, 'animal-name').setValue(limite)
+    await champ(wrapper, 'animal-breed').setValue(limite)
+
+    await soumettre(wrapper)
+    await flushPromises()
+
+    expect(messages(wrapper)).toEqual([])
+    expect(create).toHaveBeenCalledOnce()
+    expect(create.mock.calls[0]![0]).toMatchObject({ name: limite, breed: limite })
+  })
+
+  it('refuse 81 caractères avec un message pour chaque champ, et n’écrit rien', async () => {
+    const wrapper = monter()
+    await remplirMinimum(wrapper)
+    await champ(wrapper, 'animal-name').setValue(`${limite}a`)
+    await champ(wrapper, 'animal-breed').setValue(`${limite}a`)
+
+    await soumettre(wrapper)
+
+    expect(messages(wrapper)).toEqual([
+      'Le nom ne peut pas dépasser 80 caractères.',
+      'La race ne peut pas dépasser 80 caractères.',
+    ])
+    expect(champ(wrapper, 'animal-breed').attributes('aria-invalid')).toBe('true')
+    expect(create).not.toHaveBeenCalled()
+  })
+
+  it('le dit aussi en anglais', async () => {
+    i18n.global.locale.value = 'en'
+    const wrapper = monter()
+    await remplirMinimum(wrapper)
+    await champ(wrapper, 'animal-name').setValue(`${limite}a`)
+    await champ(wrapper, 'animal-breed').setValue(`${limite}a`)
+
+    await soumettre(wrapper)
+
+    expect(messages(wrapper)).toEqual([
+      'Name can’t be longer than 80 characters.',
+      'Breed can’t be longer than 80 characters.',
+    ])
   })
 })
 
@@ -293,7 +408,7 @@ describe('AnimalFormView — revalidation après envoi', () => {
     expect(messages(wrapper)).toEqual([])
 
     await champ(wrapper, 'animal-weight').setValue('0')
-    expect(messages(wrapper)).toEqual(['Le poids doit être supérieur à 0 kg.'])
+    expect(messages(wrapper)).toEqual(['Le poids doit être supérieur à 0\u00a0kg.'])
     expect(champ(wrapper, 'animal-weight').attributes('aria-invalid')).toBe('true')
   })
 })

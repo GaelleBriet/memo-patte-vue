@@ -73,3 +73,46 @@ describe('FormSegmented', () => {
     expect(wrapper.emitted('update:modelValue')).toEqual([[null]])
   })
 })
+
+describe('FormSegmented — options sur deux lignes', () => {
+  const UNITES = [
+    { value: 'kg', label: 'kg', hint: 'kilogrammes', ariaLabel: 'Kilogrammes, kg' },
+    { value: 'lb', label: 'lb', hint: 'livres', ariaLabel: 'Livres, lb' },
+  ] as const
+
+  function monterUnites(modelValue: 'kg' | 'lb' = 'lb') {
+    return mount(FormSegmented, {
+      props: { modelValue, options: UNITES, labelId: 'weight-unit-label' },
+      global: { plugins: [vuetify] },
+    })
+  }
+
+  it('écrit l’abréviation puis son nom en dessous', () => {
+    const boutons = monterUnites().findAll('.form-segmented button')
+
+    expect(boutons.map((bouton) => bouton.get('.form-segmented__label').text())).toEqual([
+      'kg',
+      'lb',
+    ])
+    expect(boutons.map((bouton) => bouton.get('.form-segmented__hint').text())).toEqual([
+      'kilogrammes',
+      'livres',
+    ])
+  })
+
+  it('donne à chaque option le nom lu par le lecteur d’écran', () => {
+    const boutons = monterUnites().findAll('.form-segmented button')
+
+    expect(boutons.map((bouton) => bouton.attributes('aria-label'))).toEqual([
+      'Kilogrammes, kg',
+      'Livres, lb',
+    ])
+  })
+
+  it('marque l’option cochée par sa couleur seule, sans coche', () => {
+    const boutons = monterUnites('lb').findAll('.form-segmented button')
+
+    expect(boutons[1]!.attributes('aria-checked')).toBe('true')
+    expect(boutons[1]!.find('.v-icon').exists()).toBe(false)
+  })
+})

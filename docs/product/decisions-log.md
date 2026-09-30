@@ -1763,3 +1763,253 @@ même jour peuvent en résulter, comme par la synchro (§10.7).
 2) **Textes de l'historique dans le PDF** : « Injections : » (toutes les dates, jamais regroupées),
 « Dernière prise : », « Prises précédentes : », et « N prises du A au B » pour une série de plus de
 trois prises ; en petit et en gris, en retrait sous chaque ligne.
+
+2026-09-25 (soir) — **Réponses de Gaelle sur les branches du lot** (#352, #409, #384, #349, #416).
+
+1) **Variation de poids calculée à partir des poids affichés** (#352) : c'est l'écart entre les deux poids
+arrondis tels qu'on les montre, dans l'unité choisie (53,1 → 53,6 lb donne « +0,5 lb »). — Raison : ce
+qu'on voit s'additionne toujours ; l'écart avec le calcul exact reste sous un dixième. — Alternative
+écartée : le calcul exact avant arrondi, qui semblait faux une fois sur quatre.
+
+2) **Noms de plus de 80 caractères enregistrés avant la limite : coupés à 80 par la migration** (#409),
+en base locale (v8) comme dans le cloud ; les fixtures restent sous la limite. — Raison : seules des
+données de test peuvent en contenir ; sans coupe, un tel nom bloquerait la synchro et la réimportation.
+— Alternative écartée : ne rien couper et mettre de côté la ligne refusée dans la synchro.
+
+3) **Bouton « C'est fait » des notifications** (#384) : Android ne donne pas de nom accessible distinct
+à un bouton de notification ; TalkBack lit le titre (« Bravecto pour Boree ») puis « C'est fait », ce qui
+est accepté (le relevé F10 le prévoyait autrement). Une prise déjà notée affiche « Prise de Bravecto du
+25 sept. déjà notée pour Boree », ou « … déjà notée aujourd'hui pour Boree » si elle est du jour (idem
+pour une injection).
+
+4) **« Ouvrir » un export** (#349) : plugin `@capawesome-team/capacitor-file-opener`, qui réutilise
+notre FileProvider (seul `Documents/MémoPatte/` ajouté, aucune permission) ; échec : « Aucune app n'a pu
+ouvrir ce fichier. Il reste dans Documents › MémoPatte. » ; noms lus « Ouvrir l'export JSON / CSV »,
+« Ouvrir le PDF ». — Alternatives écartées : `@capacitor-community/file-opener` (expose tout le
+stockage, un seul mainteneur) ; un plugin Android maison.
+
+5) **Export CSV lisible dans un tableur** : titres, valeurs et séparateur dans la langue de l'app, ticket
+#416 ; d'ici là, le CSV garde ses noms techniques (`weightLb`).
+
+2026-09-26 — **Site public de MémoPatte** (#86, choix de Gaelle).
+
+1) **Adresse : `memopatte.gaelle-briet.fr`**, sous-domaine du site de son entreprise, qui sert aussi de
+« site de l'organisation » pour la Play Console. — Raison : une adresse propre au produit, gratuite
+(Cloudflare Pages, entrée CNAME chez Infomaniak). — Alternatives écartées : `gaelle-briet.fr/memopatte`
+(rien à configurer, mais préférence de Gaelle pour le sous-domaine) ; GitHub Pages du dépôt, prévu
+jusqu'ici par #86.
+
+2) **Code dans `site/` du dépôt MémoPatte** : HTML statique, français à `/` et anglais à `/en/`, aux
+couleurs de l'app, sans script ni ressource externe (un test le vérifie). Projet Cloudflare Pages qui ne
+publie que ce dossier. — Raison : la politique de confidentialité vit à côté du code qu'elle décrit et
+change dans la même PR. — Alternative écartée : des pages dans le site Nuxt de Gaelle, qui demandaient
+du code propre à Cloudflare pour servir le sous-domaine.
+
+3) **Mentions légales sur `gaelle-briet.fr`** (adresse de domiciliation, SIRET, contact, hébergeur) ; les
+pages MémoPatte y renvoient, et ni l'adresse ni le SIRET n'entrent dans ce dépôt.
+
+4) **Page d'attente d'abord** (« Bientôt sur Google Play ») pour brancher Cloudflare et le DNS tout de
+suite ; la politique et la page de suppression de compte la rejoignent quand l'e-mail de contact est
+choisi.
+
+2026-09-26 — **Politique de confidentialité et page de suppression de compte** (#86, choix de Gaelle).
+Pages publiées depuis `site/` (`/confidentialite/`, `/suppression-compte/` et leur version anglaise),
+seule version du texte.
+
+1) **Contact : `memopatte@gaelle-briet.fr`**, boîte hébergée par Proton AG (Suisse, pays reconnu
+adéquat par la Commission européenne), citée comme prestataire des échanges avec nous.
+
+2) **Durées** : sauvegarde Plus, photos et compte (adresse e-mail comprise) supprimés après 12 mois sans
+accès Plus, avec un e-mail d'avertissement un mois avant ; suppression immédiate de tout à la demande ;
+statistiques d'usage 12 mois ; échanges de support 1 an après la clôture ; jeton d'achat durée de
+l'accès + 60 jours ; journaux techniques de Supabase (adresse IP, sessions) selon la durée fixée par
+Supabase, sans chiffre inventé. — Tranche les durées laissées « à confirmer » le 2026-09-07 (13 mois
+d'analytics ramenés à 12, suppression du compte inactif en plus de la sauvegarde).
+
+3) **Adresse IP** : « Discard client IP data » activé sur le projet PostHog, la politique dit donc que
+PostHog ne la conserve pas ; rien n'est affirmé sur un pays approximatif. Phrase générale : l'IP est
+reçue par les prestataires pour acheminer les requêtes.
+
+4) **Compte d'abord, puis achat** : sur l'écran Plus, choisir une offre demande de se connecter ou de
+créer un compte avant d'ouvrir le paiement ; l'achat est rattaché au compte dès le départ. La politique
+dit que Plus demande un compte. — Raison : aucun abonné payant sans sauvegarde, achat rattaché au compte
+(recommandation de RevenueCat). — Alternative écartée : acheter d'abord puis créer le compte, avec le
+risque d'un abonné payant sans sauvegarde et d'un transfert d'achat à gérer. L'app achète encore sans
+compte aujourd'hui : ticket séparé.
+
+5) **Ton** : vouvoiement sur ces deux pages, formel mais simple ; l'app reste au tutoiement.
+
+6) **Remboursement** : section de la politique — Google Play dans les 48 h, ensuite par e-mail,
+remboursement en cas de dysfonctionnement avéré, abonnement géré dans Google Play.
+
+7) **Page de suppression publiée d'après la maquette** (D1 à D6), avant que #87 ne livre le parcours
+dans l'app : méthode 1 dans l'app (y compris « Se reconnecter avec Google »), méthode 2 par e-mail.
+— Raison : l'URL doit exister pour la Play Console ; #87 et #65 livreront ce que la page décrit avant
+la publication de l'app.
+
+2026-09-28 — **Cadrage produit : plus aucun développement sans spec validée** (décision de Gaelle).
+En testant un vermifuge « tous les jours », Gaelle a trouvé des trous de conception : une prochaine
+dose passée affichée comme à venir, des doses manquées invisibles, ni date de fin ni début futur. On
+était passé du périmètre aux tickets et aux écrans sans parcours ni règles fonctionnelles. La partie
+produit est reprise selon la méthode de Roman Pichler (personas, principes produit, Product Vision
+Board, GO Product Roadmap), complétée de quinze parcours de bout en bout, de huit specs par domaine et
+d'une revue du modèle de données faite en une fois, puis des maquettes et des tickets. Ce qui décrit le
+code est dans le dépôt : les specs (`docs/product/specs/`, règles numérotées TR-, RA-, VA-, AN-, AC-,
+DO-, PL-, PR-, PA-), les principes (`docs/product/principes.md`), le modèle de données
+(`docs/technical/modele-de-donnees-v2.md`) et les maquettes (`docs/design/v1-specs/`). — Raison : un
+carnet qui se trompe sur une date ruine la confiance que vendent les rappels ; des règles écrites avant
+le code évitent de corriger écran par écran. — Alternative écartée : corriger les traitements ticket
+par ticket (spec `traitements-quotidiens.md` de la branche `docs/traitements-quotidiens`, dépassée).
+
+2026-09-28 — **Principes produit, version 1** (`docs/product/principes.md`) : huit principes classés par
+priorité, qui tranchent quand une spec hésite (le carnet dit la vérité ; on note et on rappelle, on ne
+prescrit pas ; un rappel ne se perd pas, et on dit honnêtement jusqu'où ; l'action du moment d'abord,
+au plus court, mais juste ; rattraper sans bloquer ; pas de bruit ; le local est gratuit, les données
+ne sont jamais otages ; quand deux profils divergent, le cœur de cible gagne). Le différenciant n° 3
+« 2 taps maximum » est reformulé d'après le principe 4 : un nombre de taps ne s'annonce que s'il est
+tenu et mesuré sur l'app. — Raison : un tap de plus vaut mieux qu'une erreur ou une ambiguïté.
+
+2026-09-28 — **Décisions du cadrage qui changent le périmètre et l'existant** (raisons et détail dans les
+specs citées).
+
+1) **Médicaments dans la v1, plusieurs prises par jour comprises** : type « Médicament » à côté de
+vermifuge et antiparasitaire, plusieurs heures par jour pour toutes les fréquences (Traitements TR-1,
+TR-5, Q1 ; tranche #365 pour la v1). Le mot « cure » n'apparaît pas dans l'app.
+
+2) **Date de fin, posologie et « Première prise le »** : date de fin facultative ; posologie
+facultative, une quantité et une unité parmi 11, recopiée du vétérinaire, jamais calculée ; première
+prise passée, du jour ou future, sans rien noter comme donné à la création (Traitements TR-1 à TR-8).
+« Reprendre » crée une nouvelle période, la précédente n'est jamais modifiée (TR-32).
+
+3) **Doses non renseignées** : une échéance passée sans prise n'est jamais un retard ni une
+notification ; bandeau sur la fiche (« Toutes données », « Choisir les jours ») et groupe « À
+renseigner » dans « À faire », hors du compteur de retards, qui ne disparaissent jamais seuls
+(Traitements TR-13 à TR-17 ; Accueil AC-5, AC-10).
+
+4) **« C'est fait » touché en retard demande la date** (« Donnée quand ? ») au lieu de noter aujourd'hui
+(Traitements TR-20 ; Rappels RA-18).
+
+5) **Plus de fenêtre de 60 jours** : les rappels les plus proches jusqu'au plafond de 400, la prochaine
+échéance de chaque soin toujours programmée, un relais « ouvre MémoPatte » sur le dernier rappel
+programmé de chaque soin (Rappels RA-11, RA-12).
+
+6) **Vaccins prévenus 2 semaines avant, traitements 3 jours avant**, réglage « Me prévenir avant
+l'échéance » (Rappels RA-2).
+
+7) **Rappels précis en option** : alarmes inexactes par défaut ; l'option « Rappels précis »
+(Paramètres › Rappels, et une seule suggestion en contexte, jamais au lancement) demande
+`SCHEDULE_EXACT_ALARM` ; `USE_EXACT_ALARM` reste interdite, réservée aux réveils et agendas par la
+politique Play (vérifié le 2026-09-29) ; retirés, les rappels passent en inexact sans changer les
+choix, avec « Moins précis » (Rappels RA-7, RA-23, Q3, Q5). Revient sur la règle de CLAUDE.md « ne
+jamais demander `SCHEDULE_EXACT_ALARM` ». Une page Aide du site répond à « Je ne reçois pas mes
+rappels » (RA-24).
+
+8) **Export PDF gratuit** (Données DO-4), qui remplace « PDF dans Plus » du 2026-09-07 ; Plus se vend
+sur « ton carnet ne disparaît jamais » (Plus et compte PL-2).
+
+9) **Premier lancement** : ce qui est sauvegardé se dit en trois points de contact légers (ligne de
+l'accueil de bienvenue, rubrique « Sauvegarde », carte unique après le premier soin) ; lien « J'ai déjà
+MémoPatte Plus · Retrouver mon carnet » (Accueil AC-1, AC-14 ; Paramètres PR-2, PR-5).
+
+2026-09-29 — **Specs fonctionnelles et modèle de données v2** (`docs/product/specs/`,
+`docs/technical/modele-de-donnees-v2.md`) : décisions qui changent l'existant.
+
+1) **Chaque prise vise une échéance précise, jour et heure**, et vaut « donnée », « oubliée » ou
+« reportée » (Traitements TR-9, TR-13, Q6). Une échéance du jour reste « du jour » jusqu'à minuit
+(TR-11, Q3) ; reporter remplace l'échéance d'origine (TR-9, Q2) ; plus de règle de « seule prise »
+(TR-26, Q4) ; noter tard une dose non renseignée ne déplace pas la suite (TR-7, Q8).
+
+2) **Périodes de traitement** : changer fréquence, heures ou posologie corrige la période si rien n'y
+est noté, sinon ouvre une nouvelle période à partir d'aujourd'hui, sans question (TR-28) ; sa première
+dose n'est jamais avant aujourd'hui (TR-7, Q7) ; un autre produit est un nouveau traitement (TR-29) ;
+l'arrêt propose de renseigner les doses (TR-30). « Choisir les jours » s'ouvre tout coché et le bouton
+annonce le résultat (TR-16).
+
+3) **Vaccins** : un vaccin peut exister sans injection, statut « Prévu le … » (Vaccins VA-3, VA-16, Q1,
+Q1 bis) ; nom saisi avec des propositions (noms du carnet, combinaisons courantes tirées de la base
+publique de l'ANMV), sans aucune durée proposée (VA-4, Q2 bis) ; raccourci « Dans 1 mois » (VA-6) ;
+« Prochain rappel le … » remplace « Valide jusqu'à … » (VA-16, Q3).
+
+4) **Animaux** : « Ne plus suivre », distinct de « Supprimer », coupe les rappels, arrête les
+traitements en cours et garde le carnet ; « Suivre de nouveau » (Animaux AN-9 à AN-11, Q1) ; date de
+naissance approximative (AN-1, AN-7) ; âge en semaines jusqu'à 16 semaines (AN-8, Q2) ; plus de poids
+initial : le poids saisi à la création devient la première pesée (AN-2).
+
+5) **Accueil** : « soin » pour ce qui est à faire (« 1 soin en retard »), l'anglais garde « reminder »
+(Accueil Q5) ; au plus un message à la fois (AC-17, Q1) ; bandeau des rappels désactivés refermable
+(AC-13, Q3) ; carte trimestrielle « Mets une copie à l'abri » pour les gratuits (AC-15).
+
+6) **Tournures neutres** pour tout texte adressé à la personne, jamais accordé au féminin ni au masculin
+(Traitements Q12) ; l'app ne connaît pas non plus le sexe de l'animal (« Chez quelqu'un d'autre »).
+
+7) **Rappels** : une heure commune, réglable, pour les rappels de vaccins (Rappels RA-9, Q1) ; une
+prévenance et une relance par jour d'échéance à plusieurs heures (RA-5, Q2) ; l'heure suit le lieu du
+téléphone (RA-10) ; l'écran d'explication vient dès qu'un soin existe, import et restauration compris
+(RA-21, Q4).
+
+8) **Données** : CSV lisible dans un tableur dès la v1 (Données DO-3, Q1) ; PDF avec les doses non
+renseignées (DO-4, Q2) ; « Tous les animaux » ne contient que les animaux suivis (Q3) ; « Effacer les
+données de ce téléphone » pour tous, export proposé d'abord, deux confirmations, abonné déconnecté
+avant (DO-14).
+
+9) **Plus et compte** : adresse e-mail confirmée par un code à 6 chiffres, mot de passe oublié par code
+(Plus et compte PL-8, PL-9, Q1) ; changer de mot de passe et d'adresse dans la v1 (PL-10, Q2) ; état
+de la sauvegarde dans Paramètres › Sauvegarde et icône de nuage pour les abonnés (PL-17 ; Accueil
+AC-16).
+
+10) **Paramètres en rubriques, du plus utile au plus rare** : Rappels, Sauvegarde, Mes données,
+MémoPatte Plus, Compte, Confidentialité, Aide et contact, À propos, accessibles même sans animal
+(Paramètres PA-1, PA-3, Q1) ; « Nous écrire » et « Il me manque quelque chose » ouvrent un e-mail
+prérempli, jamais avec le contenu du carnet (PA-2, Q2).
+
+11) **Gestes communs** : supprimer un objet entier demande une confirmation puis offre « Annuler », en
+suppression logique (TR-33, VA-15, AN-12) ; « Fait à une autre date » toujours à côté de « C'est
+fait » (TR-19, VA-5).
+
+12) **Modèle de données v2** : périodes (`treatment_period`), prise rattachée à sa période avec son
+échéance (`due_on`, `due_time`) et son état (`status`), rappel prévu d'un vaccin sans injection
+(`planned_due_date`), animal suivi ou non, avec motif et date du départ, sans `initial_weight_kg`, et
+réglages du carnet en base, synchronisés et exportés (modèle M1 à M8).
+
+13) **Schéma v9 neuf et import v3 seul** : une seule migration supprime toutes les tables et crée le
+schéma cible, à la place de v1 à v8 ; l'import n'accepte que le format v3 et refuse les anciens avec
+un message clair (Données DO-8 ; modèle §4). — Raison : l'app n'est pas publiée, toutes les données
+existantes sont des données de test ; et reconstruire une table en la renommant réécrit les clés
+étrangères de ses tables enfants (rejoué : « no such table: main.treatment_old »). — Alternative
+écartée : une v9 par reconstruction de tables et la conversion des anciens exports. Ça s'inverse à la
+publication : chaque migration devra alors garder les données.
+
+2026-09-30 — **Maquettes de la v1 validées, relecture de cohérence faite** : lots A, B et C validés en
+révision 2 (`docs/design/v1-specs/`) ; specs, modèle et plan relus ensemble (216 corrections). Décisions
+qui touchent l'existant :
+
+1) **Traitements** : plus de ligne « A fixé la dose du … » dans l'historique (Traitements Q13) ; toasts
+« Panacur arrêté, à retrouver dans Traitements terminés. » et « Dernière dose de Panacur notée, à
+retrouver dans Traitements terminés. » (Q14, Q16) ; dans le Carnet, une seule ligne par traitement,
+« 3 doses non renseignées » dessous, sans rouge (TR-36, Q15).
+
+2) **Vaccins** : « En retard depuis le 5 oct. » sur la carte (Vaccins VA-17, Q4) ; un vaccin qui perd sa
+seule injection garde son rappel (VA-14, Q5).
+
+3) **Animaux** : « Ajouter une date », puis « Motif » (Décès, Chez quelqu'un d'autre, Autre) et « Date du
+départ », facultatifs, sans note libre (Animaux AN-10, Q3, Q5).
+
+4) **Accueil** : un soin du jour sans heure passe en tête des soins du jour (Accueil AC-6, Q6).
+
+5) **Données** : « Exporter une copie » ouvre directement le partage d'Android (Données DO-12, Q6) ;
+effacer sans mot à taper (DO-14, Q4) ; des changements pas encore sauvegardés se signalent sans
+bloquer (Q5) ; la rubrique Sauvegarde d'un ancien abonné dit le risque et jusqu'à quand sa sauvegarde
+est conservée (DO-12, Q7) ; « sauvegarde cloud » partout, jamais « sauvegarde en ligne ».
+
+6) **Plus et compte** : textes de l'écran « compte d'abord » (décidé le 2026-09-26), « Étape 1 sur 2 »
+et « Ton accès Plus est lié à ton compte » (Plus et compte PL-4, Q5, Q6) ; mot de passe redemandé pour
+changer d'adresse (PL-10, Q3) ; « Prévu ensuite dans Plus », jamais « Bientôt » (PL-2, Q4) ; après la
+suppression du compte, effacer le téléphone suit le parcours de DO-14 (PL-21, Q7).
+
+7) **Paramètres** : une page par rubrique, chacune avec son état (Paramètres PA-2 bis, Q3).
+
+8) **Ce qui entre dans le dépôt** (Gaelle) : les huit specs, les principes, le modèle de données v2, ce
+résumé, CLAUDE.md, le périmètre et le glossaire mis à jour, et les maquettes finales en HTML seulement.
+Personas, vision, roadmap, parcours, matrice, plan de livraison, analyses d'écart, relectures, prompts
+et captures restent dans son coffre de notes. — Raison : le dépôt garde ce qui décrit le code, le coffre
+la démarche (règle du 2026-09-26, `.claude/rules/collaboration.md`).

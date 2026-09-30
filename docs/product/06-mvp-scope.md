@@ -7,8 +7,8 @@ tags:
 # Périmètre du MVP
 
 Ce fichier ne doit être rempli qu'une fois `03-pain-points.md` et
-`04-differenciation.md` stabilisés. C'est le dernier document avant
-toute discussion technique.
+`04-differenciation.md` (coffre de notes de Gaelle) stabilisés. C'est le
+dernier document avant toute discussion technique.
 
 ## Statut
 - [x] Pain points validés par du terrain
@@ -19,6 +19,7 @@ toute discussion technique.
 - [x] Mise à jour majeure du 2026-08-21 : compte obligatoire + architecture hybride (SQLite local + Supabase)
 - [x] Mise à jour du 2026-09-07 : export JSON/CSV ajouté au scope v1 (portabilité des données, différenciant n°4)
 - [x] Mise à jour majeure du 2026-09-07 : monétisation « gratuit = local, Plus = cloud » ; le compte devient optionnel, lié à Plus
+- [x] Mise à jour majeure du 2026-09-30 : cadrage produit de la v1 (médicaments et plusieurs prises par jour, export PDF gratuit, rappels précis en option, import JSON v3 seul). Référence détaillée : les specs de `docs/product/specs/` ; ce fichier en reste le résumé
 
 ## Dans le scope v1
 
@@ -31,14 +32,16 @@ toute discussion technique.
 - Message clair sur l'écran Plus : ce que fait Android tout seul, ce que Plus garantit en plus.
 
 ### Profil animal
-- Créer un profil par animal : nom, espèce, race, date de naissance, poids initial, photo. 
+- Créer un profil par animal : nom, espèce, race, date de naissance (exacte ou approximative), photo. Le poids saisi à la création devient la première pesée : plus de « poids initial ».
+- « Ne plus suivre » un animal parti : ses rappels et ses traitements en cours s'arrêtent, son carnet reste consultable et exportable (distinct de « Supprimer »).
 - Espèces couvertes en v1 : chien et chat uniquement.
 - Pas de limite sur le nombre d’animaux.
 
 ### Rappels (différenciant n°1)
-- Vaccins : date + rappel programmable.
-- Vermifuges / antiparasitaires : date + fréquence + rappel
-  programmable.
+- Vaccins : injections et prochain rappel ; un vaccin peut être « Prévu » avant sa première injection.
+- Traitements : vermifuges, antiparasitaires et **médicaments** ; fréquence, « Première prise le » (passée, du jour ou future), date de fin facultative, une ou **plusieurs prises par jour**, posologie facultative (quantité et unité, jamais calculée).
+- Doses non renseignées montrées comme telles, jamais comme un retard ; elles se renseignent plus tard, sans blocage.
+- Rappels le jour de l'échéance, prévenance (2 semaines pour un vaccin, 3 jours pour un traitement) et relance ; alarmes inexactes par défaut, « Rappels précis » en option.
 - Notifications **locales** (Capacitor), fonctionnelles hors-ligne.
 - Les règles et échéances qui permettent de reprogrammer les notifications sont persistées (SQLite + Supabase). Après restauration des données, l’app reconstruit automatiquement les notifications locales.
 
@@ -48,36 +51,35 @@ toute discussion technique.
 - Pas besoin de rentrer dans chaque profil pour savoir "qui a quoi
   bientôt".
 
-### Saisie rapide (différenciant n°3)
-- Ajouter un poids, une date de traitement ou un rappel en 2 taps
-  maximum depuis l'écran d'accueil ou le profil de l'animal.
+### L'action du moment d'abord (différenciant n°3, reformulé le 2026-09-30)
+- L'action du moment d'abord, au plus court mais juste : le geste courant (noter la prise du jour) est le plus court possible ; un nombre de taps ne s'annonce que s'il est tenu et mesuré sur l'app (principe 4, `docs/product/principes.md`).
 - Historique de poids consultable (liste ou graphique simple).
 - Possibilité de saisir une date antérieure au jour présent.
 
 ### Monétisation (différenciant n°4, modifié le 2026-09-07)
 - Règle : **tout ce qui vit sur le téléphone est gratuit, tout ce qui passe par le cloud est dans Plus.**
-- **MémoPatte (gratuit, sans compte)** : animaux illimités, vaccins, traitements, poids, rappels hors-ligne, accueil consolidé, export JSON/CSV. Pas de pub, pas de limite artificielle.
-- **MémoPatte Plus** : compte + sauvegarde cloud + restauration + multi-appareil + photos sauvegardées + **export PDF** (déplacé de v2 vers Plus v1 pour donner un argument tangible en plus de la sauvegarde).
+- **MémoPatte (gratuit, sans compte)** : animaux illimités, vaccins, traitements, poids, rappels hors-ligne, accueil consolidé, export JSON/CSV/PDF. Pas de pub, pas de limite artificielle.
+- **MémoPatte Plus** : compte + sauvegarde cloud + restauration + multi-appareil + photos sauvegardées. L'export PDF, placé dans Plus le 2026-09-07, est **gratuit** depuis le 2026-09-28 ; Plus se vend sur « ton carnet ne disparaît jamais ».
 - Trois façons de payer la même chose (prix du 2026-09-15) : **1,49 €/mois**, **9,99 €/an** (offre mise en avant, ≈ 44 % d'économie sur le mensuel) ou **29,99 € à vie** (≈ 3 ans d'annuel). Abonnements annulables à tout moment dans Google Play, accès gardé jusqu'à la fin de la période. Prix affichés avant tout paiement, modifiables plus tard sur Play sans effet rétroactif.
 - Règle d'or inchangée : aucune fonction locale ne passe jamais derrière un paywall, aucune donnée déjà saisie n'est jamais verrouillée. Qui arrête Plus garde son carnet complet en local et perd seulement la sync.
 
 ### Portabilité des données (différenciant n°4, ajouté le 2026-09-07)
 - Export de l'intégralité des données de l'utilisateur (animaux, vaccins et leurs injections, traitements et leurs prises, poids, rappels) en **JSON** (fichier unique, ré-importable) et en **CSV** (un fichier par table, une ligne par injection ou prise, lisible dans un tableur). Format JSON v2 depuis #382 : tout l'historique voyage.
-- Accessible depuis l'écran Paramètres, en 2 taps, **quel que soit l'état d'achat** : c'est la preuve concrète de la règle « jamais de verrouillage rétroactif » de `05-monetisation.md`.
+- Accessible depuis l'écran Paramètres, **quel que soit l'état d'achat** : c'est la preuve concrète de la règle « jamais de verrouillage rétroactif » de `05-monetisation.md` (coffre de notes).
 - Généré localement depuis SQLite, partagé via la feuille de partage Android (aucun serveur impliqué).
-- Import depuis un export JSON (**v1**, décidé le 2026-09-07) : filet de restauration manuel pour les utilisateurs gratuits, même schéma que l'export. Remplace ou fusionne, jamais d'écrasement silencieux. Depuis #382, il lit les exports v2 (avec l'historique) et toujours les exports v1 des versions précédentes. Détail : `docs/technical/export-format.md`.
+- Import depuis un export JSON (**v1**, décidé le 2026-09-07) : filet de restauration manuel pour les utilisateurs gratuits, même schéma que l'export. Remplace ou fusionne, jamais d'écrasement silencieux. Depuis #382, il lit les exports v2 (avec l'historique) et toujours les exports v1 des versions précédentes. Avec le schéma v9, l'export passe au **format v3** et l'import **n'accepte plus que lui** : un fichier plus ancien est refusé avec un message clair (l'app n'est pas publiée, toutes les données actuelles sont des données de test ; spec Données DO-8). Détail : `docs/technical/export-format.md`.
+- **Export PDF gratuit** : le carnet d'un animal ou de tous les animaux suivis, historique compris (spec Données DO-4).
 
 ### Conformité (ajouté le 2026-09-07)
-- Politique de confidentialité publiée (GitHub Pages) et liée dans l'app ; page web de suppression de compte ; Data safety et déclarations Play Console (#86).
+- Politique de confidentialité publiée sur `memopatte.gaelle-briet.fr` (dossier `site/`) et liée dans l'app ; page web de suppression de compte ; Data safety et déclarations Play Console (#86).
 - Suppression du compte Plus depuis l'app, Edge Function côté Supabase (#87).
 - Registre des traitements, DPA Supabase et PostHog, prestataires en région UE (#88).
-- Consentement analytics opt-in avant toute initialisation PostHog (#67) ; aucune permission média large (Photo Picker), pas d'alarmes exactes.
+- Consentement analytics opt-in avant toute initialisation PostHog (#67) ; aucune permission média large (Photo Picker) ; alarmes inexactes par défaut, `SCHEDULE_EXACT_ALARM` seulement pour l'option « Rappels précis », jamais `USE_EXACT_ALARM`.
 - Référence : `docs/technical/conformite-play-store-rgpd.md`.
 
 ## Explicitement hors scope v1
 
 - **Partage du carnet (pet-sitter, famille)** 
-- **Export PDF gratuit** : l'export PDF existe mais dans Plus (voir Monétisation) ; l'export JSON/CSV, lui, est gratuit
 - **Suivi des chaleurs / stérilisation**
 - **Espèces au-delà de chien/chat** (NAC, chevaux, etc.) 
 - **Collaboration multi-compte / temps réel** (Plus offre le même compte sur plusieurs appareils, pas une édition simultanée à plusieurs) 

@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import {
-  formatKg,
-  formatKgAxis,
-  formatKgDelta,
-  formatKgInput,
+  formatWeight,
+  formatWeightAxis,
+  formatWeightDelta,
+  formatWeightInput,
   formatFullDate,
   formatLongDate,
   formatMonthShort,
@@ -17,61 +17,61 @@ import {
 } from '../utils/format'
 import { applyLocale } from '@/core/i18n'
 
-describe('formatKg', () => {
+describe('formatWeight', () => {
   it('garde une décimale avec la virgule française', () => {
-    expect(formatKg(24.5)).toBe('24,5')
-    expect(formatKg(24)).toBe('24,0')
-    expect(formatKg(3.8)).toBe('3,8')
+    expect(formatWeight(24.5)).toBe('24,5')
+    expect(formatWeight(24)).toBe('24,0')
+    expect(formatWeight(3.8)).toBe('3,8')
   })
 
   it('arrondit à la décimale, jamais deux', () => {
-    expect(formatKg(23.64)).toBe('23,6')
-    expect(formatKg(23.66)).toBe('23,7')
+    expect(formatWeight(23.64)).toBe('23,6')
+    expect(formatWeight(23.66)).toBe('23,7')
   })
 
   it('ne groupe pas les milliers', () => {
-    expect(formatKg(1234.5)).toBe('1234,5')
+    expect(formatWeight(1234.5)).toBe('1234,5')
   })
 })
 
-describe('formatKgAxis', () => {
+describe('formatWeightAxis', () => {
   it('écrit une graduation ronde sans décimale inutile', () => {
-    expect(formatKgAxis(24)).toBe('24')
-    expect(formatKgAxis(24.5)).toBe('24,5')
-    expect(formatKgAxis(4.2)).toBe('4,2')
+    expect(formatWeightAxis(24)).toBe('24')
+    expect(formatWeightAxis(24.5)).toBe('24,5')
+    expect(formatWeightAxis(4.2)).toBe('4,2')
   })
 
   it('arrondit à la décimale et ne groupe pas les milliers', () => {
-    expect(formatKgAxis(23.500000001)).toBe('23,5')
-    expect(formatKgAxis(1200)).toBe('1200')
+    expect(formatWeightAxis(23.500000001)).toBe('23,5')
+    expect(formatWeightAxis(1200)).toBe('1200')
   })
 })
 
-describe('formatKgDelta', () => {
+describe('formatWeightDelta', () => {
   it('signe une hausse', () => {
-    expect(formatKgDelta(0.5)).toBe('+0,5')
+    expect(formatWeightDelta(0.5)).toBe('+0,5')
   })
 
   it('signe une baisse avec le signe moins typographique', () => {
-    expect(formatKgDelta(-0.3)).toBe('−0,3')
+    expect(formatWeightDelta(-0.3)).toBe('−0,3')
   })
 
   it('marque ± quand la variation est nulle après arrondi', () => {
-    expect(formatKgDelta(0)).toBe('±0,0')
-    expect(formatKgDelta(0.04)).toBe('±0,0')
-    expect(formatKgDelta(-0.04)).toBe('±0,0')
+    expect(formatWeightDelta(0)).toBe('±0,0')
+    expect(formatWeightDelta(0.04)).toBe('±0,0')
+    expect(formatWeightDelta(-0.04)).toBe('±0,0')
   })
 })
 
-describe('formatKgInput', () => {
+describe('formatWeightInput', () => {
   it('rend le poids tel qu’il est enregistré, virgule française, sans arrondi', () => {
-    expect(formatKgInput(24.5)).toBe('24,5')
-    expect(formatKgInput(24.55)).toBe('24,55')
-    expect(formatKgInput(24)).toBe('24')
+    expect(formatWeightInput(24.5)).toBe('24,5')
+    expect(formatWeightInput(24.55)).toBe('24,55')
+    expect(formatWeightInput(24)).toBe('24')
   })
 
   it('ne groupe pas les milliers', () => {
-    expect(formatKgInput(1234.5)).toBe('1234,5')
+    expect(formatWeightInput(1234.5)).toBe('1234,5')
   })
 })
 
@@ -136,13 +136,13 @@ describe('en anglais', () => {
   it('suit la langue courante pour les poids', () => {
     applyLocale('en')
 
-    expect(formatKg(24.5)).toBe('24.5')
-    expect(formatKg(24)).toBe('24.0')
-    expect(formatKg(1234.5)).toBe('1234.5')
-    expect(formatKgAxis(24.5)).toBe('24.5')
-    expect(formatKgInput(24.55)).toBe('24.55')
-    expect(formatKgDelta(-0.3)).toBe('−0.3')
-    expect(formatKgDelta(0)).toBe('±0.0')
+    expect(formatWeight(24.5)).toBe('24.5')
+    expect(formatWeight(24)).toBe('24.0')
+    expect(formatWeight(1234.5)).toBe('1234.5')
+    expect(formatWeightAxis(24.5)).toBe('24.5')
+    expect(formatWeightInput(24.55)).toBe('24.55')
+    expect(formatWeightDelta(-0.3)).toBe('−0.3')
+    expect(formatWeightDelta(0)).toBe('±0.0')
   })
 
   it('suit la langue courante pour les mois et les dates', () => {

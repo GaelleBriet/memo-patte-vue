@@ -1,15 +1,14 @@
 import { weightSummary, type WeightDelta, type WeightPoint } from './weight-summary'
+import type { WeightChange, WeightTrend } from '@/shared/domain/weight-delta'
 
 export type WeightHistoryEntry = WeightPoint & { id: string }
-
-export type WeightTrend = 'up' | 'down' | 'flat'
 
 /** H1 : au moins deux pesées ; H2 : une seule ; H3 : aucune. */
 export type WeightHistoryState = 'full' | 'single' | 'empty'
 
 export type WeightHistoryRow = WeightHistoryEntry & {
   /** `null` pour la toute première pesée : la cellule reste vide. */
-  delta: { deltaKg: number; trend: WeightTrend; previousMeasuredOn: string } | null
+  delta: (WeightChange & { trend: WeightTrend }) | null
 }
 
 export type WeightHistory = {
@@ -30,8 +29,8 @@ function rowDelta(
   if (!previous) return null
   const summary = weightSummary([previous, entry])
   if (summary?.delta.kind !== 'delta') return null
-  const { deltaKg, trend, previousMeasuredOn } = summary.delta
-  return { deltaKg, trend, previousMeasuredOn }
+  const { previousKg, latestKg, trend, previousMeasuredOn } = summary.delta
+  return { previousKg, latestKg, trend, previousMeasuredOn }
 }
 
 /** Les pesées arrivent dans l'ordre du temps, comme les rend le store. */

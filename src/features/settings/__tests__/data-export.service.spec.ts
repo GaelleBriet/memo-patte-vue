@@ -1,4 +1,4 @@
-import { unzipSync } from 'fflate'
+import { strFromU8, unzipSync } from 'fflate'
 import { describe, expect, it, vi } from 'vitest'
 
 import {
@@ -61,6 +61,7 @@ function setup(overrides: Partial<DataExportDependencies> = {}) {
     deliver,
     now: () => NOW,
     appVersion: '0.1.24',
+    weightUnit: () => 'kg',
     ...overrides,
   })
   return { service, deliver, listByAnimal }
@@ -120,6 +121,24 @@ describe('data-export.service', () => {
     const file = delivered(deliver)
     expect(file.name).toBe('memopatte-export-20260915-1030.zip')
     expect(Object.keys(unzipSync(file.content as Uint8Array))).toHaveLength(7)
+  })
+
+  it('CSV : écrit les poids dans l’unité choisie au moment de l’export', async () => {
+    const { service, deliver } = setup({ weightUnit: () => 'lb' })
+
+    await service.exportData('csv', 'share')
+
+    const poids = strFromU8(unzipSync(delivered(deliver).content as Uint8Array)['poids.csv']!)
+    expect(poids).toContain('measuredOn;weightLb\r\n')
+  })
+
+  it('JSON : garde les kilos quelle que soit l’unité choisie', async () => {
+    const { service, deliver } = setup({ weightUnit: () => 'lb' })
+
+    await service.exportData('json', 'share')
+
+    const document = JSON.parse(delivered(deliver).content as string)
+    expect(document.weightEntries[0].weightKg).toBe(EXPORT_FIXTURE.weightEntries[0]!.weightKg)
   })
 
   it('transmet l’annulation du partage', async () => {

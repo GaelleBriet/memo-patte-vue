@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { addDays, format } from 'date-fns'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 
 import {
   animalFormValuesFrom,
@@ -10,6 +10,9 @@ import {
 } from '../logic/animal-form'
 import type { Animal } from '../schema/animal.schema'
 import { todayIsoDate } from '@/core/app-lifecycle/today-iso-date'
+import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
+import { KG_PER_LB } from '@/shared/domain/weight-unit'
+import { applyWeightUnit } from '@/shared/domain/weight-unit-preference'
 
 const MILO: Animal = {
   id: '11111111-1111-4111-8111-111111111111',
@@ -159,6 +162,22 @@ describe('validateAnimalForm — nom', () => {
   it('refuse un nom fait d’espaces', () => {
     expect(erreurs({ name: '   ' }).name).toBe('animals.form.errors.name')
   })
+
+  it('accepte 80 caractères, refuse 81 avec un message distinct', () => {
+    const limite = 'a'.repeat(MAX_NAME_LENGTH)
+
+    expect(donnees({ name: limite }).name).toBe(limite)
+    expect(erreurs({ name: `${limite}a` }).name).toBe('animals.form.errors.nameMax')
+  })
+})
+
+describe('validateAnimalForm — race', () => {
+  it('accepte 80 caractères, refuse 81 avec son propre message', () => {
+    const limite = 'a'.repeat(MAX_NAME_LENGTH)
+
+    expect(donnees({ breed: limite }).breed).toBe(limite)
+    expect(erreurs({ breed: `${limite}a` })).toEqual({ breed: 'animals.form.errors.breedMax' })
+  })
 })
 
 describe('validateAnimalForm — espèce', () => {
@@ -216,5 +235,50 @@ describe('validateAnimalForm — plusieurs erreurs', () => {
       name: 'animals.form.errors.name',
       initialWeightKg: 'animals.form.errors.initialWeightKg',
     })
+  })
+})
+
+describe('poids initial saisi en livres, relu en kilos', () => {
+  it('propose le poids initial au centième, sans décimales parasites', () => {
+    expect(
+      animalFormValuesFrom({ ...MILO, initialWeightKg: 54.1 * KG_PER_LB }).initialWeightKg,
+    ).toBe('24.54')
+  })
+})
+
+describe('poids initial en livres', () => {
+  afterEach(() => applyWeightUnit('kg'))
+
+  it('enregistre en kg un poids initial saisi en livres', () => {
+    applyWeightUnit('lb')
+
+    expect(donnees({ initialWeightKg: '18.7' }).initialWeightKg).toBe(18.7 * KG_PER_LB)
+  })
+
+  it('refuse au-delà de la borne convertie', () => {
+    applyWeightUnit('lb')
+
+    expect(erreurs({ initialWeightKg: '441' }).initialWeightKg).toBe(
+      'animals.form.errors.initialWeightKgMax',
+    )
+    expect(donnees({ initialWeightKg: '440.9' }).initialWeightKg).toBeLessThanOrEqual(200)
+    expect(erreurs({ initialWeightKg: '440.92' }).initialWeightKg).toBe(
+      'animals.form.errors.initialWeightKgMax',
+    )
+  })
+
+  it('propose le poids initial en livres, au centième', () => {
+    applyWeightUnit('lb')
+
+    expect(animalFormValuesFrom({ ...MILO, initialWeightKg: 8.5 }).initialWeightKg).toBe('18.74')
+  })
+
+  it('rend le poids initial enregistré tel quel quand la valeur proposée n’a pas bougé', () => {
+    applyWeightUnit('lb')
+    const milo = { ...MILO, initialWeightKg: 8.5 }
+
+    const resultat = validateAnimalForm(animalFormValuesFrom(milo), milo.initialWeightKg)
+
+    expect(resultat.success && resultat.data.initialWeightKg).toBe(8.5)
   })
 })

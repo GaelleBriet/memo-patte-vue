@@ -852,6 +852,15 @@ tête — la plus récente gagne. Rare, visible, corrigé par la prise suivante.
 
 ### 10.10 Pièges pour le ticket 1 (migration v6)
 
+> **Note du 2026-09-30.** La séquence ci-dessous n'est plus un modèle : la prochaine migration est un
+> schéma v9 neuf, qui supprime toutes les tables et crée le schéma cible, à la place de v1 à v8
+> ([modèle de données v2](modele-de-donnees-v2.md) §4). Raison : renommer une table parente réécrit
+> les clés étrangères des tables enfants qui la référencent déjà (elles suivent le nouveau nom,
+> `…_old`), et le `DROP` de l'ancienne les laisse pointer dans le vide (rejoué le 2026-09-29 :
+> « no such table: main.treatment_old » à la première prise). La séquence n'est sûre que si aucune
+> table existante ne référence celle qu'on renomme ; les migrations d'après la publication devront en
+> tenir compte.
+
 - **Les clés étrangères sont actives pendant les migrations** : le plugin les active à l'ouverture,
   avant de jouer les migrations (`setForeignKeyConstraintsEnabled(true)`, vérifié dans
   `@capacitor-community/sqlite`). Un `DROP TABLE vaccination` alors qu'une table enfant la référence

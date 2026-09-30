@@ -5,6 +5,57 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.47](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.46...memo-patte-v0.1.47) (2026-09-28)
+
+
+### ✨ Fonctionnalités
+
+* **settings:** unité de poids kg ou lb suivie par toute l'app ([#352](https://github.com/GaelleBriet/memo-patte-vue/issues/352)) ([57fa9a4](https://github.com/GaelleBriet/memo-patte-vue/commit/57fa9a4a4df5b1095a41f1c29fcf61b9b95aa823))
+
+## [0.1.46](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.45...memo-patte-v0.1.46) (2026-09-27)
+
+
+### 🐛 Corrections
+
+* emoji retirés du PDF, noms limités à 80 caractères en base et dans les formulaires ([812353b](https://github.com/GaelleBriet/memo-patte-vue/commit/812353b603d8ede6ff6aec1f5fdf8cb809fc02e4))
+
+## [0.1.45](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.44...memo-patte-v0.1.45) (2026-09-27)
+
+
+### 🐛 Corrections
+
+* **animals:** pastille Plus du bouton PDF non rognée par Vuetify 4.2 ([9c0b422](https://github.com/GaelleBriet/memo-patte-vue/commit/9c0b422d2d7ff5166c2eae63dc4bd2cf80eafc1e))
+* **animals:** pastille Plus du bouton PDF non rognée par Vuetify 4.2 ([65712df](https://github.com/GaelleBriet/memo-patte-vue/commit/65712df6aaacdbd6c8b053fec203df78cf8abc65))
+
+## [0.1.44](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.43...memo-patte-v0.1.44) (2026-09-26)
+
+
+### ✨ Fonctionnalités
+
+* **site:** page 404 au lieu de l'accueil pour une adresse inconnue ([4984cf0](https://github.com/GaelleBriet/memo-patte-vue/commit/4984cf01646cedcab00308dfbf48588744e9c3a4))
+* **site:** page 404 pour une adresse inconnue ([d89c96d](https://github.com/GaelleBriet/memo-patte-vue/commit/d89c96dfb28f213d5d54f20d28d23d7a8b86ebc9))
+
+## [0.1.43](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.42...memo-patte-v0.1.43) (2026-09-26)
+
+
+### ✨ Fonctionnalités
+
+* **site:** politique de confidentialité et page de suppression de compte ([fa13bd8](https://github.com/GaelleBriet/memo-patte-vue/commit/fa13bd8c1bf305dd05f4047bc27f865409f69027))
+
+
+### 🐛 Corrections
+
+* **site:** journaux techniques de Supabase exclus de l'effacement immédiat ([bbb1344](https://github.com/GaelleBriet/memo-patte-vue/commit/bbb13441497c792d6a3910eabf48f02f5f3eb750))
+* **site:** revue de la politique et de la page de suppression ([7ec9404](https://github.com/GaelleBriet/memo-patte-vue/commit/7ec9404cdf244a2afdbd65ff1a0bc74fefed79fe))
+
+## [0.1.42](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.41...memo-patte-v0.1.42) (2026-09-26)
+
+
+### ✨ Fonctionnalités
+
+* **site:** page d'attente de memopatte.gaelle-briet.fr ([cd5772d](https://github.com/GaelleBriet/memo-patte-vue/commit/cd5772d5422696043ae7c9be8f5be61de670a7fe))
+* **site:** page d'attente de memopatte.gaelle-briet.fr, en français et en anglais ([23f198c](https://github.com/GaelleBriet/memo-patte-vue/commit/23f198c2fbe0b06c4f9aed3ab40760676b81e22d))
+
 ## [0.1.41](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.40...memo-patte-v0.1.41) (2026-09-25)
 
 

@@ -13,7 +13,7 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
 import WeightSheet from './WeightSheet.vue'
-import { weightHistory, type WeightHistoryRow, type WeightTrend } from '../logic/weight-history'
+import { weightHistory, type WeightHistoryRow } from '../logic/weight-history'
 import type { WeightDelta } from '../logic/weight-summary'
 import { useWeightEntries } from '../composables/use-weight-entries'
 import type { WeightEntry } from '../schema/weight.schema'
@@ -22,8 +22,13 @@ import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import PushedScreen from '@/shared/components/PushedScreen.vue'
 import SectionCard from '@/shared/components/SectionCard.vue'
 import WeightHistoryChart from '@/shared/components/WeightHistoryChart.vue'
-import { weightDeltaSinceText, weightDeltaText } from '@/shared/domain/weight-delta'
-import { formatKg, formatLongDate } from '@/shared/utils/format'
+import {
+  weightDeltaSinceText,
+  weightDeltaText,
+  type WeightTrend,
+} from '@/shared/domain/weight-delta'
+import { weightNumber, weightText, weightUnitText } from '@/shared/domain/weight-display'
+import { formatLongDate } from '@/shared/utils/format'
 
 const props = defineProps<{
   animalId: string
@@ -89,15 +94,7 @@ function describeRow(row: WeightHistoryRow) {
     label: t('weight.history.selected', { date: formatLongDate(row.measuredOn) }),
     weightKg: row.weightKg,
     delta: row.delta
-      ? {
-          text: weightDeltaSinceText(
-            t,
-            row.delta.deltaKg,
-            row.delta.previousMeasuredOn,
-            today.value,
-          ),
-          trend: row.delta.trend,
-        }
+      ? { text: weightDeltaSinceText(t, row.delta, today.value), trend: row.delta.trend }
       : null,
   }
 }
@@ -110,7 +107,7 @@ function describeHeadline(value: WeightDelta): { text: string; trend: WeightTren
     }
   }
   return {
-    text: weightDeltaSinceText(t, value.deltaKg, value.previousMeasuredOn, today.value),
+    text: weightDeltaSinceText(t, value, today.value),
     trend: value.trend,
   }
 }
@@ -161,8 +158,8 @@ function backToAnimals(): void {
           <div class="weight-history__reading" aria-live="polite">
             <p class="weight-history__current-label">{{ summary.label }}</p>
             <p class="weight-history__headline">
-              <span class="weight-history__current">{{ formatKg(summary.weightKg) }}</span>
-              <span class="weight-history__unit">{{ t('weight.unit') }}</span>
+              <span class="weight-history__current">{{ weightNumber(summary.weightKg) }}</span>
+              <span class="weight-history__unit">{{ weightUnitText(t) }}</span>
             </p>
             <p
               class="weight-history__delta"
@@ -211,10 +208,10 @@ function backToAnimals(): void {
                 <span
                   class="weight-history__row-delta"
                   :class="row.delta ? `weight-history__delta--${row.delta.trend}` : null"
-                  >{{ row.delta ? weightDeltaText(t, row.delta.deltaKg) : '' }}</span
+                  >{{ row.delta ? weightDeltaText(t, row.delta) : '' }}</span
                 >
                 <span class="weight-history__row-value">
-                  {{ t('weight.history.value', { weight: formatKg(row.weightKg) }) }}
+                  {{ weightText(t, row.weightKg) }}
                 </span>
               </button>
             </li>
@@ -248,7 +245,7 @@ function backToAnimals(): void {
         </div>
 
         <p v-if="history.initialWeightKg !== null" class="weight-history__initial">
-          {{ t('weight.history.initial', { weight: formatKg(history.initialWeightKg) }) }}
+          {{ t('weight.history.initial', { weight: weightText(t, history.initialWeightKg) }) }}
         </p>
       </template>
 

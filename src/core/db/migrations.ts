@@ -203,6 +203,15 @@ export const migrations: DbMigration[] = [
       'PRAGMA user_version = 7',
     ],
   },
+  {
+    toVersion: 8,
+    statements: [
+      ...nameLengthStatements('animal', ['name', 'breed']),
+      ...nameLengthStatements('vaccination', ['name']),
+      ...nameLengthStatements('treatment', ['name']),
+      'PRAGMA user_version = 8',
+    ],
+  },
 ]
 
 /**
@@ -224,6 +233,26 @@ function outboxTriggerStatements(table: string): string[] {
      WHEN (SELECT enabled FROM sync_state WHERE id = 1) = 1
      BEGIN${upsert}
      END;`,
+  ]
+}
+
+/** Une ligne plus longue déjà enregistrée est coupée et datée : la synchro la renvoie. */
+function nameLengthStatements(table: string, columns: string[]): string[] {
+  const cut = columns.map((column) => `${column} = substr(${column}, 1, 80)`).join(', ')
+  const stored = columns.map((column) => `length(${column}) > 80`).join(' OR ')
+  const tooLong = columns.map((column) => `length(NEW.${column}) > 80`).join(' OR ')
+  const abort = `BEGIN SELECT RAISE(ABORT, '${table}: text longer than 80 characters'); END;`
+
+  return [
+    `UPDATE ${table}
+     SET ${cut}, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+     WHERE ${stored}`,
+    `CREATE TRIGGER ${table}_name_length_insert BEFORE INSERT ON ${table}
+     WHEN ${tooLong}
+     ${abort}`,
+    `CREATE TRIGGER ${table}_name_length_update BEFORE UPDATE OF ${columns.join(', ')} ON ${table}
+     WHEN ${tooLong}
+     ${abort}`,
   ]
 }
 

@@ -3,6 +3,23 @@ import { describe, expect, it } from 'vitest'
 import { parseExportFile } from '../service/data-import.service'
 import { IMPORT_FILE, importFixtureJson, LUNA_ID, MILO_ID } from './import-fixture'
 import exportV1 from './fixtures/export-v1-0.1.37.json?raw'
+import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
+
+const LIMITE = 'a'.repeat(MAX_NAME_LENGTH)
+const TROP_LONG = `${LIMITE}a`
+
+type Document = Record<string, unknown>
+
+function premier(document: Document, table: string): Document {
+  return (document[table] as Document[])[0]!
+}
+
+const NOMS: [string, (document: Document, value: string) => void][] = [
+  ['le nom d’un animal', (document, value) => (premier(document, 'animals').name = value)],
+  ['la race d’un animal', (document, value) => (premier(document, 'animals').breed = value)],
+  ['le nom d’un vaccin', (document, value) => (premier(document, 'vaccinations').name = value)],
+  ['le nom d’un traitement', (document, value) => (premier(document, 'treatments').name = value)],
+]
 
 function withDocument(change: (document: Record<string, unknown>) => void): string {
   const document = JSON.parse(importFixtureJson()) as Record<string, unknown>
@@ -79,12 +96,6 @@ describe('parseExportFile', () => {
       }),
     ],
     [
-      'un nom trop long',
-      withDocument((document) => {
-        ;(document.treatments as Record<string, unknown>[])[0]!.name = 'x'.repeat(201)
-      }),
-    ],
-    [
       'une date civile invalide',
       withDocument((document) => {
         ;(document.weightEntries as Record<string, unknown>[])[0]!.measuredOn = '24/12/2025'
@@ -124,6 +135,34 @@ describe('parseExportFile', () => {
     const text = withDocument((document) => {
       ;(document.animals as Record<string, unknown>[])[0]!.initialWeightKg = 201
       ;(document.animals as Record<string, unknown>[])[0]!.species = 'rabbit'
+    })
+
+    expect(parseExportFile(text)).toEqual({ ok: false, reason: 'invalid' })
+  })
+
+  it.each(NOMS)(
+    'refuse en entier un fichier dont %s dépasse 80 caractères, avec son propre motif',
+    (_, poser) => {
+      const text = withDocument((document) => poser(document, TROP_LONG))
+
+      expect(parseExportFile(text)).toEqual({ ok: false, reason: 'nameTooLong' })
+    },
+  )
+
+  it('accepte des noms et une race de 80 caractères, espaces du bord non comptés', () => {
+    const text = withDocument((document) => {
+      for (const [, poser] of NOMS) poser(document, ` ${LIMITE} `)
+    })
+
+    const result = parseExportFile(text)
+
+    expect(result.ok && result.file.data.animals[0]).toMatchObject({ name: LIMITE, breed: LIMITE })
+  })
+
+  it('reste « pas un export » quand le nom trop long n’est pas le seul défaut', () => {
+    const text = withDocument((document) => {
+      premier(document, 'animals').name = TROP_LONG
+      premier(document, 'animals').species = 'rabbit'
     })
 
     expect(parseExportFile(text)).toEqual({ ok: false, reason: 'invalid' })
@@ -256,6 +295,20 @@ describe('parseExportFile, export v1', () => {
 
     expect(parseExportFile(v1LikeV2)).toEqual({ ok: false, reason: 'invalid' })
     expect(parseExportFile(v2LikeV1)).toEqual({ ok: false, reason: 'invalid' })
+  })
+
+  it.each(NOMS)('refuse un export v1 dont %s dépasse 80 caractères', (_, poser) => {
+    const text = withV1Document((document) => poser(document, TROP_LONG))
+
+    expect(parseExportFile(text)).toEqual({ ok: false, reason: 'nameTooLong' })
+  })
+
+  it('accepte un export v1 aux noms et à la race de 80 caractères', () => {
+    const text = withV1Document((document) => {
+      for (const [, poser] of NOMS) poser(document, LIMITE)
+    })
+
+    expect(v1Data(text).animals[0]).toMatchObject({ name: LIMITE, breed: LIMITE })
   })
 
   it('garde les refus du format v1', () => {

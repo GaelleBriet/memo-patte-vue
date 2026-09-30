@@ -59,7 +59,7 @@ describe('exportReminders, traitement arrêté', () => {
 
   it('écarte un traitement arrêté des échéances du JSON et de rappels.csv', () => {
     expect(exportReminders(ARRETE).map((reminder) => reminder.sourceId)).toEqual(['v-chppil'])
-    expect(lines(toCsvTables(ARRETE)['rappels.csv'])).toEqual([
+    expect(lines(toCsvTables(ARRETE, 'kg')['rappels.csv'])).toEqual([
       'kind;sourceId;animalId;animalName;name;dueDate',
       `vaccination;v-chppil;${MILO_ID};Milo;CHPPiL;2026-09-01`,
       '',
@@ -114,7 +114,7 @@ describe('toJsonExport', () => {
 })
 
 describe('toCsvTables', () => {
-  const tables = toCsvTables(EXPORT_FIXTURE)
+  const tables = toCsvTables(EXPORT_FIXTURE, 'kg')
 
   it('produit un fichier par table', () => {
     expect(Object.keys(tables)).toEqual([
@@ -187,6 +187,34 @@ describe('toCsvTables', () => {
     ])
   })
 
+  it('écrit en kilos au centième une pesée saisie en livres, sans décimales parasites', () => {
+    const data = {
+      ...EXPORT_FIXTURE,
+      animals: [{ ...EXPORT_FIXTURE.animals[0]!, initialWeightKg: 54.1 * 0.45359237 }],
+      weightEntries: [{ ...EXPORT_FIXTURE.weightEntries[0]!, weightKg: 54.1 * 0.45359237 }],
+    }
+    const tables = toCsvTables(data, 'kg')
+
+    expect(lines(tables['poids.csv'])[1]).toMatch(/;24,54$/)
+    expect(lines(tables['animaux.csv'])[1]).toContain(';24,54;')
+    expect(JSON.parse(toJsonExport(data, META)).weightEntries[0].weightKg).toBe(54.1 * 0.45359237)
+  })
+
+  it('écrit les poids en livres quand c’est l’unité choisie, l’unité dans le titre de colonne', () => {
+    const enLivres = toCsvTables(EXPORT_FIXTURE, 'lb')
+
+    expect(lines(enLivres['poids.csv'])).toEqual([
+      'id;animalId;animalName;measuredOn;weightLb',
+      `w-luna-1;${LUNA_ID};Luna;2025-12-24;9,37`,
+      `w-milo-1;${MILO_ID};Milo;2026-08-30;26,46`,
+      '',
+    ])
+    expect(lines(enLivres['animaux.csv'])[0]).toBe(
+      'id;name;species;breed;birthDate;initialWeightLb;createdAt;updatedAt',
+    )
+    expect(lines(enLivres['animaux.csv'])[1]).toContain(';2019-03-02;8,38;')
+  })
+
   it('liste les échéances dans rappels.csv', () => {
     expect(lines(tables['rappels.csv'])).toEqual([
       'kind;sourceId;animalId;animalName;name;dueDate',
@@ -209,7 +237,7 @@ describe('toCsvTables', () => {
         { ...EXPORT_FIXTURE.vaccinations[1]!, name: '\rToux' },
       ],
     }
-    const tables = toCsvTables(data)
+    const tables = toCsvTables(data, 'kg')
 
     expect(lines(tables['animaux.csv'])[1]).toContain(`;"'=HYPERLINK(""x"")";dog;'+33 croisé;`)
     expect(lines(tables['animaux.csv'])[2]).toContain(";'-Luna;cat;'@home;2019-03-02;3,8;")
@@ -224,26 +252,27 @@ describe('toCsvTables', () => {
       ...EXPORT_FIXTURE,
       vaccinations: [{ ...EXPORT_FIXTURE.vaccinations[0]!, name: 'Rage\nrappel' }],
     }
-    expect(toCsvTables(data)['vaccins.csv']).toContain(';"Rage\nrappel";')
+    expect(toCsvTables(data, 'kg')['vaccins.csv']).toContain(';"Rage\nrappel";')
   })
 })
 
 describe('buildExportFile', () => {
-  it('JSON : un seul fichier texte', () => {
-    const file = buildExportFile('json', EXPORT_FIXTURE, META)
+  it('JSON : un seul fichier texte, toujours en kg', () => {
+    const file = buildExportFile('json', EXPORT_FIXTURE, META, 'lb')
 
     expect(file.name).toBe('memopatte-export-20260915-1030.json')
     expect(file.content).toBe(toJsonExport(EXPORT_FIXTURE, META))
+    expect(JSON.parse(file.content as string).weightEntries[0].weightKg).toBe(4.25)
   })
 
   it('CSV : une archive zip qui contient les sept tables telles quelles', () => {
-    const file = buildExportFile('csv', EXPORT_FIXTURE, META)
+    const file = buildExportFile('csv', EXPORT_FIXTURE, META, 'lb')
 
     expect(file.name).toBe('memopatte-export-20260915-1030.zip')
     expect(file.content).toBeInstanceOf(Uint8Array)
 
     const entries = unzipSync(file.content as Uint8Array)
-    const tables = toCsvTables(EXPORT_FIXTURE)
+    const tables = toCsvTables(EXPORT_FIXTURE, 'lb')
     expect(Object.keys(entries)).toEqual(Object.keys(tables))
     for (const [name, csv] of Object.entries(tables)) {
       expect(Array.from(entries[name]!)).toEqual(Array.from(strToU8(csv)))

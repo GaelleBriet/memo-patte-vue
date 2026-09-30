@@ -323,6 +323,7 @@ describe('traitement arrêté, exporté puis réimporté', () => {
       },
       now: () => NOW,
       appVersion: 'test',
+      weightUnit: () => 'kg',
     })
   }
 

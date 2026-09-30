@@ -1,5 +1,159 @@
 # Contexte en cours (à mettre à jour à chaque lot)
 
+- 2026-09-30 : **cadrage produit v1 terminé et entré dans le dépôt** (cette PR). Specs
+  fonctionnelles validées (`docs/product/specs/`, règles numérotées), principes produit
+  (`docs/product/principes.md`), modèle de données v2 (`docs/technical/modele-de-donnees-v2.md`),
+  maquettes v1 validées (`docs/design/v1-specs/`, lots A, B, C en révision 2), journal des décisions
+  des 28, 29 et 30 septembre, CLAUDE.md et périmètre alignés (PDF gratuit, médicaments, rappels précis
+  en option, tournures neutres). Relecture de cohérence faite dans le coffre de Gaelle (216
+  corrections). Les restes des maquettes à régler dans le code sont listés dans le plan de livraison
+  (coffre, `product/12-plan-de-livraison.md` §4 bis). Glossaire anglais complété ; Gaelle ne juge pas
+  l'anglais : à faire relire avec #353. **À faire ensuite, dans l'ordre** : tickets des lots 1 et 2
+  (brouillons dans le coffre, `product/13-tickets-lots-1-2.md`), puis lot 0 (tests sur téléphone de
+  #384 et #349, puis leurs PR) ; réécrire #447 (plusieurs heures) et mettre à jour #356 (choix de
+  l'animal dans Paramètres) ; fermer la branche `docs/traitements-quotidiens`, dépassée.
+
+- 2026-09-29 (soir) : **pause demandée par Gaelle, reprendre ici. Toujours aucun développement
+  avant la relecture des specs par Gaelle.** Le cadrage produit est complet dans son coffre de notes
+  (point d'entrée `Memo-Patte/docs/product/cadrage-produit.md`, section « Reprendre ici ») : 15
+  parcours, matrice des fonctionnalités, 8 specs fonctionnelles, modèle de données v2 (M1 à M8 :
+  périodes de traitement, prises « donnée / oubliée / reportée », réglages du carnet, **schéma v9
+  neuf** qui remplace v1 à v8, import v3 seul), écart avec le code, **plan de livraison** (lots 0 à
+  10, `12-plan-de-livraison.md`) et brouillons de tickets des lots 1 et 2
+  (`13-tickets-lots-1-2.md`, créés sur GitHub après la relecture).
+  - **Données** : l'app n'est pas publiée, toutes les données (MémoPatte Dev comme la vraie app de
+    Gaelle) sont des données de test ; une migration peut repartir d'une base vide. Ça s'inverse à la
+    publication.
+  - **Maquettes v1** (Claude Design, `design/v1-specs/` du coffre) : lots A et B relus, 37 questions
+    tranchées, **prompts de correction prêts** (`design/prompt-maquettes-v1-specs-corrections-lot-A.md`
+    et `-lot-B.md`) ; Claude Design en panne, Gaelle les colle quand il remarche. Lot C : relecture
+    lancée au moment de la pause, questions à poser ensuite.
+  - **Décisions du jour qui changent l'existant** (au coffre, à reporter dans le dépôt par la PR de
+    documentation) : chaque prise vise une échéance précise, jour et heure ; noter tard une dose non
+    renseignée ne déplace pas la suite ; rappels précis permis (`SCHEDULE_EXACT_ALARM` sans
+    déclaration Play, vérifié ; `USE_EXACT_ALARM` toujours interdite), l'option s'appelle « Rappels
+    précis » ; « soin » au lieu de « rappel » sur l'accueil ; textes en tournures neutres ; âge en
+    semaines jusqu'à 16 semaines ; « Valide jusqu'à » remplacé par « Prochain rappel le … ».
+  - **À faire ensuite, dans l'ordre** : questions du lot C ; relecture des specs par Gaelle ; PR de
+    documentation (specs, `decisions-log.md`, CLAUDE.md, `06-mvp-scope.md`, glossaire) ; tickets
+    des lots 1 et 2 ; lot 0 (tests sur téléphone de #384 et #349, puis PR). La branche
+    `docs/traitements-quotidiens` est dépassée : à fermer.
+
+- 2026-09-28 (soir) : **pause demandée par Gaelle, reprendre ici. Plus aucun développement avant des
+  specs validées** (décision de Gaelle du jour : « on a été beaucoup trop superficiels », reprendre la
+  partie produit « dans les règles de l'art »).
+  - **Matin** : **#445 mergée** (#352 unité de poids kg / lb ; merge de `main` avec les conflits
+    attendus de #409, re-revue ciblée, captures kg et lb), `main` à **3470 tests** ; branche et worktree
+    supprimés. `feat/export-ouvrir` (#349) mise à jour avec `main` (le journal ne garde qu'une entrée
+    du choix du plugin), toujours sans PR : test sur téléphone à faire. #384 non touchée.
+  - **Déclencheur** : en testant un vermifuge « tous les jours », Gaelle a trouvé des trous de
+    conception (prochaine dose passée affichée, doses manquées invisibles, pas de date de fin, pas de
+    début futur). Spec `docs/technical/traitements-quotidiens.md` et entrée de journal sur la branche
+    `docs/traitements-quotidiens` (sans PR) : **dépassée** par le cadrage ci-dessous, à réécrire.
+  - **Cadrage produit dans le coffre de Gaelle** (méthode Roman Pichler), point d'entrée
+    `Memo-Patte/docs/product/cadrage-produit.md` (méthode, état, décisions, questions, « Reprendre
+    ici ») : `07-personas`, `08-principes`, `09-vision-board`, `10-go-roadmap`, `parcours/` (1 à 7 écrits
+    et tranchés, 8 en brouillon, 9 à 15 à écrire), `technical/recherche-permissions-rappels.md`,
+    `technical/analyse-programmation-rappels.md`.
+  - **Décisions du jour qui contredisent l'existant** (au coffre ; à reporter dans `decisions-log.md`,
+    CLAUDE.md et `06-mvp-scope.md` une fois le cadrage validé — d'ici là, **ne pas coder d'après
+    CLAUDE.md sur ces points**) : médicaments et plusieurs prises par jour en v1 ; export PDF gratuit
+    (à condition de trouver l'attrait de Plus, parcours 12) ; rappels précis en option
+    (`SCHEDULE_EXACT_ALARM` en contexte et dans Paramètres) ; plus de fenêtre de 60 jours (plafond de
+    400 gardé, notification de relais) ; vaccins prévenus 2 semaines avant ; « C'est fait » touché en
+    retard demande la date ; « Reprendre » crée une nouvelle période ; « Première prise le » (future
+    possible, rien coché à la création) ; date de fin, posologie structurée (11 unités), heure du
+    traitement (#447, ticket mis à jour) ; v1 avec Plus et phase de test interne avant la sortie ;
+    mot « cure » banni de l'app.
+  - **Nouvelle règle** (`collaboration.md`) : tout document produit pour Gaelle a sa copie dans son
+    coffre d'abord ; prompts Claude Design et relectures ne vont que là.
+  - **À faire ensuite, dans l'ordre** : parcours 8 (deux questions), puis 9 à 15 ; relecture des
+    parcours par Gaelle ; specs par domaine ; revue globale du modèle de données (décision de Gaelle :
+    à la fin, pas sujet par sujet) ; maquettes ajustées (planches `design/DosesQuotidiennes/` du coffre :
+    garder le formulaire actuel, Q8 ter à corriger) ; écart avec le code ; tickets. En pause : tests sur
+    téléphone de #349 et #384.
+
+- 2026-09-27 : **pause demandée par Gaelle, reprendre ici.** Mergés : Dependabot #437
+  (material-symbols), #436 (vue 3.5.43), #434 (sass), #435 (vuetify 4.2.2), après **#438** (Vuetify
+  4.2 met `overflow: hidden` sur `.v-btn` : la pastille Plus du bouton PDF du Carnet était rognée ; vu
+  seulement en comparant des captures, tests verts) ; **#441** (Vitest 5, ferme #439 et remplace #433
+  : deux tests de `App.spec.ts` montaient l'app avec le vrai routeur, qui charge l'accueil et ses
+  stores sans Pinia) ; **#442 (#409, noms limités à 80 caractères, emoji retirés du PDF, migration v8
+  ; migration Supabase appliquée au vrai projet avec Gaelle présente, job vert)**. `main` à **3385
+  tests**. **Piège à retenir** : une montée de Vuetify se vérifie aussi à l'œil (captures avant /
+  après avec `pnpm dev:data` et Playwright), les tests tournent avec `css: false`. Les avertissements
+  CI « Signal d'usage non enregistré… `setItem` » existent déjà avec Vitest 4, absents en local
+  (ticket proposé, pas créé). **À faire ensuite, dans l'ordre** : #352 (`feat/unite-de-poids`, merger
+  `main` : conflits attendus avec #409 dans `AnimalFormView`, deux specs, `toCsvTables(data, 'kg')`) ;
+  tests sur le téléphone de #349 et #384 (MémoPatte Dev), puis leurs PR.
+
+- 2026-09-26 (fin d'après-midi) : **pause demandée par Gaelle, reprendre ici demain.** Site public en
+  ligne sur `memopatte.gaelle-briet.fr` (dossier `site/`, Cloudflare Pages, CNAME chez Infomaniak) :
+  page d'attente (#423), politique de confidentialité et page de suppression de compte FR/EN (#428,
+  vérifiées contre le code, revue et re-revue), page 404 (#430). Filtre Cloudflare `site/*`
+  opérationnel (le champ du tableau de bord demande Entrée pour valider chaque valeur). Mentions
+  légales sur `gaelle-briet.fr/mentions-legales/` (dépôt de son site, PR mergée par Gaelle ; téléphone
+  en PR #11 de ce dépôt, à merger par elle). Décisions du jour au journal (site, contact
+  `memopatte@gaelle-briet.fr`, durées, vouvoiement, remboursement, **compte d'abord puis achat**).
+  Tickets créés : #425 (« anonymes »), #426 (purge des comptes inactifs), #427 (compte avant l'achat)
+  ; notes sur #65, #86, #87. Les pages du site décrivent le parcours voulu : ne pas les déclarer dans
+  la Play Console avant #427, #87, #65 et #426. D-U-N-S : réponse de D&B attendue. **À faire demain,
+  dans l'ordre** : mettre à jour `fix/limites-texte-emoji` (#409, 26 commits de retard), quatre
+  commandes, PR, montrer la migration à Gaelle puis merger devant elle ; #352 ensuite (conflits connus
+  avec #409) ; tests sur le téléphone de #349 et #384 (MémoPatte Dev), puis leurs PR.
+
+- 2026-09-26 (matin) : **Gaelle prépare Play Console et RevenueCat**, rien n'a été mergé ni lancé côté
+  code. Sa micro-entreprise existe, avec une adresse de domiciliation pour l'adresse publique.
+  **Compte organisation recommandé** (pas de test fermé de 12 testeurs × 14 jours) : il attend le
+  **D-U-N-S**, demandé le matin par l'outil d'Apple (réponse de D&B sous 5 jours ouvrés) ; nom et
+  adresse de la fiche D&B à recopier tels quels dans le profil de paiement Google. Guide pas à pas :
+  `technical/guide-play-console-revenuecat.md` du coffre de notes. Ticket créé : #418 (`singleTop`,
+  après #384). Questions notées pour plus tard : achats de test sur la vraie app, prix hors de France,
+  déclaration « Health apps ». Stratégie produit, audit de Fable et guides de console déplacés dans le
+  coffre de notes (règle dans `collaboration.md`). **Toujours à faire, dans l'ordre de l'entrée
+  suivante** : #409 avec Gaelle présente, #352, tests sur le téléphone de #349 et #384.
+
+- 2026-09-25 (fin de soirée) : **pause demandée par Gaelle, reprendre ici demain.** Gaelle a répondu
+  aux questions en attente (journal du 2026-09-25 soir, points 1 à 5) : variation de poids à partir des
+  poids affichés (#352) ; anciens noms de plus de 80 caractères coupés par la migration (#409) ; bouton
+  de notification et textes « déjà notée (aujourd'hui) » validés (#384) ; ticket #416 créé (CSV
+  traduit). Les agents appliquaient ces réponses sur leurs branches au moment de la pause.
+  **À faire demain, dans l'ordre** :
+  1. vérifier que les trois branches ont bien reçu leurs corrections (commits poussés, quatre commandes
+     vertes), relecture ciblée si besoin ;
+  2. **#409 d'abord, avec Gaelle présente** (migration Supabase appliquée au vrai projet par la CI) ;
+  3. #352 ensuite : merge de `main` et résolution des conflits attendus avec #409 (`AnimalFormView`,
+     deux specs, `toCsvTables(data, 'kg')`) ;
+  4. **test sur le téléphone** (MémoPatte Dev, rien sur la vraie app) de #349 (ouvrir un PDF, un ZIP,
+     un JSON) et de #384 (app fermée, rejeu à la réouverture par les récents et par l'icône), puis leurs
+     PR ; #384 porte le premier code natif du dépôt (`MainActivity.java`) ;
+  5. au merge de #349, le journal aura deux fois sa décision (sur la branche et ici) : n'en garder
+     qu'une.
+
+- 2026-09-25 (soir) : **reprendre ici.** Mergés depuis le point de midi : #410 (#401, noms longs
+  à la ligne dans le PDF, « Arrêté le »), **#412 (#383, synchro des injections et des prises : migration
+  Supabase appliquée au vrai projet avec Gaelle présente, CI verte ; curseur de pull par table, v7)**,
+  #413 (#382, export JSON v2 avec l'historique, import v1 et v2, CSV séparés, PDF regroupé ; règle
+  « la modification la plus récente (`updated_at`) gagne »), #414 (planche F10 corrigée). `main` à
+  **3223 tests**. **Branches prêtes, sans PR, en attente** :
+  - `feat/unite-de-poids` (#352) : attend la réponse de Gaelle sur le calcul de la variation (à partir
+    des poids affichés, recommandé, ou exact) ; en-têtes CSV `weightLb` gardés (ticket de traduction du
+    CSV proposé : titres, valeurs, séparateur selon la langue) ;
+  - `fix/limites-texte-emoji` (#409) : attend la réponse sur les noms de plus de 80 caractères
+    enregistrés avant la v8 (ne rien couper et parade dans #83, recommandé) ; **merge avec Gaelle
+    présente** (migration Supabase) ; conflits attendus avec #352 (`AnimalFormView`, deux specs,
+    `toCsvTables(data, 'kg')`) ;
+  - `feat/notification-cest-fait` (#384, worktree `.claude/worktrees/notification-cest-fait`) : attend
+    les réponses sur les noms accessibles (impossibles sur Android, garder « C'est fait ») et le texte
+    « déjà noté » (« … déjà notée aujourd'hui » si du jour), puis **test sur le téléphone** (app fermée,
+    rejeu à la réouverture) ; premier code natif du dépôt (`MainActivity.java`) ;
+  - `feat/export-ouvrir` (#349, plugin `@capawesome-team/capacitor-file-opener`, décision au journal
+    sur la branche) : attend le **test sur le téléphone** (PDF, ZIP, JSON).
+    Tickets créés : #409 (tranché, en cours), #401 (fait). Notes ajoutées sur #83 : heure serveur au début
+    de transaction, pagination bloquée par un même `server_updated_at`, curseurs à remettre à zéro à la
+    déconnexion, `clearPullCursors()`, ligne refusée par un CHECK qui ne doit pas bloquer la file. Toujours
+    mis de côté par Gaelle : l'audit de Fable et les suites de #388.
+
 - 2026-09-25 : **reprendre ici.** Mergés dans la journée : #399 (#398, plus d'erreur au démarrage
   quand `cache/exports/` n'existe pas : le pont Capacitor journalise tout rejet natif en debug, même
   rattrapé), #403 (#386, sauts de page et numéros de page du PDF), #404 (étude
@@ -16,7 +170,7 @@
   trancher). **Suite** : #382 (export v2, PDF regroupé ; #386 fait), #383 (synchro des événements :
   merge avec Gaelle présente, migrations Supabase), #384 (bouton de notification, attend la planche
   F10 corrigée), #352 (unité kg / lb, le texte passe déjà par `shared/domain/weight-delta.ts`). Toujours
-  mis de côté par Gaelle : l'audit de Fable (`docs/product/audit-2026-09-24.md`) et les suites de #388.
+  mis de côté par Gaelle : l'audit de Fable (`audit-2026-09-24.md` du coffre de notes) et les suites de #388.
 
 - 2026-09-24 (soir) : **pause demandée par Gaelle, reprendre ici.** **#395 mergée (#380, marquer un
   rappel comme fait)** : feuilles F2 à F6 depuis « À faire » (fenêtre J+29), toast « Annuler », dialogue
@@ -32,7 +186,7 @@
   disparaît du Carnet alors que le toast annonce « Traitements terminés », et la date d'une prise
   passée ne se corrige plus par « Modifier ». **Suite** : #381 (détail, historique, traitements
   terminés), puis #382 à #384. Toujours mis de côté par Gaelle : l'audit de Fable
-  (`docs/product/audit-2026-09-24.md`) et les suites de #388.
+  (`audit-2026-09-24.md` du coffre de notes) et les suites de #388.
 
 - 2026-09-24 (après-midi) : **reprendre ici.** Mergés : #390 (#388, app de dev séparée « MémoPatte
   Dev », `com.gaellebriet.memopatte.dev`, installée par `pnpm dev:mobile` et `pnpm test:device:dev` ;
@@ -47,7 +201,7 @@
   **Petit défaut vu au passage, sur `main`** : `clearExports()` logue une erreur au démarrage quand
   `cache/exports/` n'existe pas encore (`OS-PLUG-FILE-0008`), sans effet.
   **Mis de côté par Gaelle** (« on voit ça après, quand le reste est ok ») : (1) l'audit de Fable,
-  vérifié point par point, tickets rédigés dans `docs/product/audit-2026-09-24.md`, rien créé sur
+  vérifié point par point, tickets rédigés dans `audit-2026-09-24.md` du coffre de notes, rien créé sur
   GitHub ; (2) les trois suites de #388 : installer sans que `cap run` puisse désinstaller la vraie
   app, garde « `test:device` depuis `main` seulement », phrase de `collaboration.md` sur la vraie app.
   Suite du lot historique : #380 (« Fait »), puis #381 à #384 ; #352, #385, #386 en attente.

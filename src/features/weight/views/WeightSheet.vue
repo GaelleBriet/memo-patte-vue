@@ -13,6 +13,8 @@ import { useToday } from '@/core/app-lifecycle/use-today'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import AnimalChipSelector, { type AnimalChipItem } from '@/shared/components/AnimalChipSelector.vue'
 import BottomSheet from '@/shared/components/BottomSheet.vue'
+import { weightLimitParams, weightUnitName, weightUnitText } from '@/shared/domain/weight-display'
+import { currentWeightUnit } from '@/shared/domain/weight-unit-preference'
 import { focusFirstInvalid } from '@/shared/form/focus-first-invalid'
 import { useFormValidation } from '@/shared/form/use-form-validation'
 import { formatDayMonthOrYear } from '@/shared/utils/format'
@@ -39,9 +41,12 @@ const animals = useAnimalsStore()
 const weight = useWeightStore()
 
 const values = ref(initialValues())
-const { errors, validate, reset } = useFormValidation(values, validateWeightForm)
+const { errors, validate, reset } = useFormValidation(values, (current) =>
+  validateWeightForm(current, props.entry?.weightKg ?? null),
+)
 const animalErrorId = useId()
 const weightErrorId = useId()
+const poundsHintId = useId()
 const dateErrorId = useId()
 const failed = ref<'save' | 'delete' | null>(null)
 const pending = ref<'save' | 'delete' | null>(null)
@@ -50,6 +55,11 @@ const { today, refresh: refreshToday } = useToday()
 const weightInput = ref<{ focus: () => void } | null>(null)
 const form = useTemplateRef<HTMLElement>('form')
 
+const isPounds = computed(() => currentWeightUnit() === 'lb')
+const weightDescribedBy = computed(() => {
+  if (errors.value.weightKg) return weightErrorId
+  return isPounds.value ? poundsHintId : undefined
+})
 const knownAnimalId = computed(() => props.entry?.animalId ?? props.animalId ?? null)
 const needsAnimal = computed(() => knownAnimalId.value === null)
 const isLocked = computed(() => needsAnimal.value && values.value.animalId === null)
@@ -194,16 +204,20 @@ async function remove(): Promise<void> {
             hide-details
             inputmode="decimal"
             aria-required="true"
-            :aria-describedby="errors.weightKg ? weightErrorId : undefined"
+            :aria-label="t('weight.form.weightKg.spoken', { unit: weightUnitName(t) })"
+            :aria-describedby="weightDescribedBy"
             :aria-invalid="Boolean(errors.weightKg)"
             :disabled="isLocked"
             :error="Boolean(errors.weightKg)"
             :placeholder="t('weight.form.weightKg.placeholder')"
-            :suffix="t('weight.unit')"
+            :suffix="weightUnitText(t)"
           />
           <p v-if="errors.weightKg" :id="weightErrorId" class="weight-sheet__error">
             <v-icon icon="ms:error_fill" size="16" />
-            <span>{{ t(errors.weightKg) }}</span>
+            <span>{{ t(errors.weightKg, weightLimitParams(t)) }}</span>
+          </p>
+          <p v-else-if="isPounds" :id="poundsHintId" class="weight-sheet__hint">
+            {{ t('weight.form.poundsHint') }}
           </p>
         </div>
 
@@ -318,7 +332,7 @@ async function remove(): Promise<void> {
   opacity: 1;
 }
 
-// Vuetify n'affiche le suffixe qu'une fois le champ actif : la maquette veut « kg » dès l'ouverture.
+// Vuetify n'affiche le suffixe qu'une fois le champ actif : la maquette veut l'unité dès l'ouverture.
 .weight-sheet__input .v-text-field__suffix {
   color: tokens.$color-field-suffix;
   font-weight: 700;
@@ -347,6 +361,13 @@ async function remove(): Promise<void> {
   gap: 6px;
   margin: 6px 0 0;
   color: rgb(var(--v-theme-error));
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.weight-sheet__hint {
+  margin: 6px 0 0;
+  color: tokens.$color-hint;
   font-size: 12.5px;
   font-weight: 500;
 }
