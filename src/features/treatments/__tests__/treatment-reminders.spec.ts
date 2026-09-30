@@ -2,10 +2,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import i18n from '@/core/i18n'
+import { REMINDER_DONE_ACTION_TYPE } from '@/core/notifications/reminder-actions'
 import type { TreatmentFrequency } from '../schema/treatment.schema'
 import { addFrequency } from '../logic/treatment-frequency'
 import type * as TreatmentFrequencyModule from '../logic/treatment-frequency'
-import { treatmentReminders } from '../logic/treatment-reminders'
+import { isDoseNoted, isTreatmentDueDate, treatmentReminders } from '../logic/treatment-reminders'
 
 vi.mock('../logic/treatment-frequency', async (importOriginal) => {
   const original = await importOriginal<typeof TreatmentFrequencyModule>()
@@ -52,12 +53,14 @@ describe('treatmentReminders', () => {
         title: 'Vermifuge Milbemax de Luna aujourd’hui',
         body: 'Note la prise dans MémoPatte pour programmer la suivante.',
         at: new Date(2026, 9, 15, 9),
+        actionTypeId: REMINDER_DONE_ACTION_TYPE,
       },
       {
         key: `treatment:${ID}:2026-10-15:overdue`,
         title: 'Vermifuge Milbemax de Luna en retard de 3 jours',
         body: 'Pense à donner la dose, puis note la prise dans MémoPatte.',
         at: new Date(2026, 9, 18, 9),
+        actionTypeId: REMINDER_DONE_ACTION_TYPE,
       },
     ])
   })
@@ -187,5 +190,62 @@ describe('treatmentReminders', () => {
 
     expect(treatmentReminders(t, MILBEMAX, deleted, NOW)).toEqual([])
     expect(treatmentReminders(t, MILBEMAX, null, NOW)).toEqual([])
+  })
+})
+
+describe('isTreatmentDueDate', () => {
+  const plan = { nextDueDate: '2026-08-31', frequency: MONTHLY }
+
+  it('reconnaît la prochaine dose et chaque cycle suivant resté sans prise', () => {
+    expect(isTreatmentDueDate(plan, '2026-08-31')).toBe(true)
+    expect(isTreatmentDueDate(plan, '2026-09-30')).toBe(true)
+    expect(isTreatmentDueDate(plan, '2026-10-31')).toBe(true)
+    expect(isTreatmentDueDate(plan, '2027-02-28')).toBe(true)
+  })
+
+  it('écarte une date entre deux cycles ou avant la prochaine dose', () => {
+    expect(isTreatmentDueDate(plan, '2026-09-15')).toBe(false)
+    expect(isTreatmentDueDate(plan, '2026-07-31')).toBe(false)
+  })
+})
+
+describe('isDoseNoted', () => {
+  const plan = {
+    lastDoseDate: '2026-08-25',
+    nextDueDate: '2026-09-25',
+    frequency: MONTHLY,
+  }
+
+  it('reconnaît l’échéance que la prise de tête a notée', () => {
+    expect(
+      isDoseNoted({ ...plan, lastDoseDate: '2026-09-25', nextDueDate: '2026-10-25' }, '2026-09-25'),
+    ).toBe(true)
+    expect(
+      isDoseNoted({ ...plan, lastDoseDate: '2026-09-23', nextDueDate: '2026-10-23' }, '2026-09-25'),
+    ).toBe(true)
+  })
+
+  it('ne tient pas pour notée l’échéance encore attendue', () => {
+    expect(isDoseNoted(plan, '2026-09-25')).toBe(false)
+  })
+
+  it('ne tient pas pour notée un cycle manqué, qui porte échéance + k × fréquence', () => {
+    expect(
+      isDoseNoted({ ...plan, lastDoseDate: '2026-07-25', nextDueDate: '2026-08-25' }, '2026-09-25'),
+    ).toBe(false)
+  })
+
+  it('ne tient pas pour notée la dose du jour d’un traitement quotidien pris la veille', () => {
+    const daily = {
+      lastDoseDate: '2026-09-24',
+      nextDueDate: '2026-09-25',
+      frequency: { value: 1, unit: 'day' },
+    } as const
+
+    expect(isDoseNoted(daily, '2026-09-25')).toBe(false)
+  })
+
+  it('ne tient pas pour notée une échéance reportée sans prise', () => {
+    expect(isDoseNoted({ ...plan, nextDueDate: '2026-10-05' }, '2026-09-25')).toBe(false)
   })
 })

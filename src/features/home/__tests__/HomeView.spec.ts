@@ -1179,6 +1179,86 @@ describe('HomeView — feuille d’un rappel', () => {
     await vi.waitFor(() => expect(router.currentRoute.value.query).toEqual({}))
   })
 
+  it('ouvre la feuille « Fait » du vaccin demandée par une notification (F5), puis l’efface de l’adresse', async () => {
+    await router.replace({
+      name: 'home',
+      query: { reminder: `vaccination:${CHPPIL_MILO_RETARD.id}`, step: 'done' },
+    })
+
+    const wrapper = await monter()
+
+    expect(wrapper.getComponent(VaccinationReminderSheet).props()).toMatchObject({
+      modelValue: true,
+      vaccinationId: CHPPIL_MILO_RETARD.id,
+      startAt: 'done',
+    })
+    await vi.waitFor(() => expect(router.currentRoute.value.query).toEqual({}))
+  })
+
+  it('ouvre la feuille demandée par une notification touchée pendant que l’accueil est affiché', async () => {
+    const wrapper = await monter()
+    await wrapper.getComponent(AnimalChipSelector).vm.$emit('update:selectedId', MILO.id)
+    listSources.mockClear()
+
+    await router.replace({
+      name: 'home',
+      query: { reminder: `treatment:${VERMIFUGE_LUNA_AUJOURDHUI.id}`, step: 'actions' },
+    })
+    await flushPromises()
+
+    expect(listSources).toHaveBeenCalledOnce()
+    expect(wrapper.getComponent(TreatmentReminderSheet).props()).toMatchObject({
+      modelValue: true,
+      treatmentId: VERMIFUGE_LUNA_AUJOURDHUI.id,
+    })
+    await vi.waitFor(() => expect(router.currentRoute.value.query).toEqual({}))
+  })
+
+  it('remplace la feuille ouverte par la feuille « Fait » que demande une notification', async () => {
+    const wrapper = await monter()
+    await wrapper.findAll('.reminder-row')[0]!.trigger('click')
+    await flushPromises()
+
+    await router.replace({
+      name: 'home',
+      query: { reminder: `vaccination:${CHPPIL_MILO_RETARD.id}`, step: 'done' },
+    })
+    await flushPromises()
+
+    const feuille = wrapper.getComponent(VaccinationReminderSheet)
+    expect(feuille.props()).toMatchObject({ modelValue: true, startAt: 'done' })
+    expect(document.body.querySelector('.vaccination-reminder-sheet__done')).not.toBeNull()
+  })
+
+  it('laisse à « Modifier » le rappel qu’il garde dans l’adresse de l’accueil affiché', async () => {
+    const wrapper = await monter()
+
+    await router.replace({
+      name: 'home',
+      query: { reminder: `treatment:${VERMIFUGE_LUNA_AUJOURDHUI.id}` },
+    })
+    await flushPromises()
+
+    expect(wrapper.getComponent(TreatmentReminderSheet).props('modelValue')).toBe(false)
+    expect(router.currentRoute.value.query).toEqual({
+      reminder: `treatment:${VERMIFUGE_LUNA_AUJOURDHUI.id}`,
+    })
+  })
+
+  it('rouvre les actions du vaccin touché dans la liste après une feuille « Fait »', async () => {
+    await router.replace({
+      name: 'home',
+      query: { reminder: `vaccination:${CHPPIL_MILO_RETARD.id}`, step: 'done' },
+    })
+    const wrapper = await monter()
+    wrapper.getComponent(VaccinationReminderSheet).vm.$emit('update:modelValue', false)
+    await flushPromises()
+
+    await wrapper.findAll('.reminder-row')[0]!.trigger('click')
+
+    expect(wrapper.getComponent(VaccinationReminderSheet).props('startAt')).toBe('actions')
+  })
+
   it('relit les rappels quand une feuille a noté, arrêté ou annulé', async () => {
     const wrapper = await monter()
     expect(listSources).toHaveBeenCalledOnce()

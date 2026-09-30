@@ -608,6 +608,13 @@
     "disabled": {
       "title": "Reminders are off",
       "openSettings": "Turn on in settings"
+    },
+    "action": {
+      "done": "Done",
+      "alreadyDose": "{name} dose on {date} already logged for {animal}",
+      "alreadyDoseToday": "{name} dose already logged today for {animal}",
+      "alreadyInjection": "{name} injection on {date} already logged for {animal}",
+      "alreadyInjectionToday": "{name} injection already logged today for {animal}"
     }
   },
   "settings": {

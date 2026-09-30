@@ -1,9 +1,11 @@
 // @vitest-environment node
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
+import { REMINDER_DONE_ACTION_TYPE } from '@/core/notifications/reminder-actions'
 import {
   dueReminderPrefix,
   dueReminders,
+  isDoneForDue,
   parseReminderKey,
   type DueReminderTexts,
 } from '../domain/due-reminders'
@@ -56,14 +58,23 @@ describe('dueReminders', () => {
         title: 'titre due',
         body: 'corps due',
         at: new Date(2026, 9, 15, 9),
+        actionTypeId: REMINDER_DONE_ACTION_TYPE,
       },
       {
         key: `vaccination:${ID}:2026-10-15:overdue`,
         title: 'titre overdue',
         body: 'corps overdue',
         at: new Date(2026, 9, 18, 9),
+        actionTypeId: REMINDER_DONE_ACTION_TYPE,
       },
     ])
+  })
+
+  it('ne met jamais le bouton « C’est fait » trois jours avant : la prise serait notée trop tôt', () => {
+    const before = reminders(['2026-10-15'], NOW()).find(({ key }) => key.endsWith(':before'))
+
+    expect(before).toBeDefined()
+    expect(before).not.toHaveProperty('actionTypeId')
   })
 
   it('ne programme rien sans échéance', () => {
@@ -199,5 +210,22 @@ describe('parseReminderKey', () => {
     ['une clé à rallonge', `vaccination:${ID}:2026-10-15:due:2`],
   ])('ne lit pas %s', (_, key) => {
     expect(parseReminderKey(key)).toBeNull()
+  })
+})
+
+describe('isDoneForDue', () => {
+  it('compte une prise faite le jour de l’échéance, après, ou moins de trois jours avant', () => {
+    expect(isDoneForDue('2026-10-15', '2026-10-15')).toBe(true)
+    expect(isDoneForDue('2026-10-15', '2026-10-18')).toBe(true)
+    expect(isDoneForDue('2026-10-15', '2026-10-13')).toBe(true)
+  })
+
+  it('laisse au cycle précédent une prise faite trois jours avant ou plus tôt', () => {
+    expect(isDoneForDue('2026-10-15', '2026-10-12')).toBe(false)
+    expect(isDoneForDue('2026-10-15', '2026-09-15')).toBe(false)
+  })
+
+  it('ne compte rien sans prise', () => {
+    expect(isDoneForDue('2026-10-15', null)).toBe(false)
   })
 })

@@ -13,6 +13,7 @@ import {
   DAYS_OVERDUE,
   dueReminderSpan,
   dueReminders,
+  isDoneForDue,
   isDueUpcoming,
   reminderWindowEnd,
   type DueReminderTexts,
@@ -56,6 +57,25 @@ function occurrenceDates(nextDueDate: string, frequency: TreatmentFrequency, now
     if (upcomingSeen && isAfter(first, windowEnd)) return dates
     upcomingSeen = true
   }
+}
+
+/** L'échéance est la prochaine dose ou un cycle suivant resté sans prise. */
+export function isTreatmentDueDate(
+  { nextDueDate, frequency }: Pick<Treatment, 'nextDueDate' | 'frequency'>,
+  dueDate: string,
+): boolean {
+  for (let cycle = 0; ; cycle += 1) {
+    const cycleDate = addFrequency(nextDueDate, { ...frequency, value: frequency.value * cycle })
+    if (cycleDate >= dueDate) return cycleDate === dueDate
+  }
+}
+
+/** Une échéance reportée ou changée de fréquence sans prise n'est pas notée. */
+export function isDoseNoted(
+  treatment: Pick<Treatment, 'lastDoseDate' | 'nextDueDate' | 'frequency'>,
+  dueDate: string,
+): boolean {
+  return !isTreatmentDueDate(treatment, dueDate) && isDoneForDue(dueDate, treatment.lastDoseDate)
 }
 
 export function treatmentReminders(

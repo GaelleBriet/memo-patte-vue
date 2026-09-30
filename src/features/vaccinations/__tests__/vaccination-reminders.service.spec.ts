@@ -93,6 +93,27 @@ describe('vaccinationRemindersService', () => {
     expect(notifications.scheduleReminders).not.toHaveBeenCalled()
   })
 
+  it('retire du volet la notification affichée de l’échéance que l’injection a notée', async () => {
+    getVaccination.mockResolvedValue({
+      ...CHPPI,
+      lastInjectionDate: '2026-09-14',
+      dueDate: '2027-09-14',
+    })
+    const shown = `vaccination:${CHPPI.id}:2026-09-14:due`
+    notifications.pending.set(shown, {
+      key: shown,
+      title: '',
+      body: '',
+      at: new Date(2026, 8, 14, 9),
+    })
+
+    await service.reschedule(CHPPI.id)
+
+    expect(notifications.removeDelivered).toHaveBeenCalledExactlyOnceWith([
+      notifications.idOf(shown),
+    ])
+  })
+
   it('lit la tête à son tour dans la file des rappels, pas à l’appel', async () => {
     let liberer = () => {}
     void enqueueReminderTask(() => new Promise<void>((resolve) => (liberer = resolve)))

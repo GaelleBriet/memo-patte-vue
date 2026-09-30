@@ -5,6 +5,7 @@ import App from './App.vue'
 import router from './router'
 import { installConsentGate } from '@/app/analytics-consent'
 import { installPageviewTracking } from '@/app/analytics-pageview'
+import { installReminderActions, reminderActions } from '@/app/reminder-actions'
 import { installLaunchPriming } from '@/app/reminders-priming'
 import { installRemindersSync } from '@/app/reminders-sync'
 import { createDefaultSyncDependencies, installSync } from '@/app/sync'
@@ -58,6 +59,7 @@ if (import.meta.env.DEV) {
 }
 
 app.mount('#app')
+installReminderActions(router, reminderActions(router))
 installRemindersSync()
 installLaunchPriming(router)
 void usePurchaseStore().verifyKnownStatus()

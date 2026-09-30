@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import { createRouter, createWebHistory } from 'vue-router'
 
-import { originQuery, parseReminderQuery, reminderQueryValue } from '../domain/reminder-route'
+import {
+  originQuery,
+  parseReminderQuery,
+  parseReminderRequest,
+  reminderQueryValue,
+  reminderSheetQuery,
+  withoutReminderRequest,
+} from '../domain/reminder-route'
 import { returnTo } from '../utils/return-to'
 
 describe('paramètre de retour vers la feuille d’un rappel', () => {
@@ -19,6 +26,37 @@ describe('paramètre de retour vers la feuille d’un rappel', () => {
     expect(parseReminderQuery('weight:w1')).toBeNull()
     expect(parseReminderQuery('treatment:')).toBeNull()
     expect(parseReminderQuery('treatment:t1:x')).toBeNull()
+  })
+})
+
+describe('feuille d’un rappel demandée à l’accueil', () => {
+  it('écrit puis relit le rappel et l’étape de sa feuille', () => {
+    const query = reminderSheetQuery({ kind: 'vaccination', id: 'v1', step: 'done' })
+
+    expect(query).toEqual({ reminder: 'vaccination:v1', step: 'done' })
+    expect(parseReminderRequest(query)).toEqual({ kind: 'vaccination', id: 'v1', step: 'done' })
+  })
+
+  it('ouvre les actions quand l’étape est absente ou inconnue', () => {
+    expect(parseReminderRequest({ reminder: 'treatment:t1' })).toEqual({
+      kind: 'treatment',
+      id: 't1',
+      step: 'actions',
+    })
+    expect(parseReminderRequest({ reminder: 'treatment:t1', step: 'x' })?.step).toBe('actions')
+  })
+
+  it('ne demande rien sans rappel lisible', () => {
+    expect(parseReminderRequest({ step: 'done' })).toBeNull()
+    expect(parseReminderRequest({ reminder: 'weight:w1', step: 'done' })).toBeNull()
+  })
+
+  it('efface la demande de l’adresse sans toucher au reste', () => {
+    expect(
+      withoutReminderRequest({ reminder: 'treatment:t1', step: 'done', from: 'home' }),
+    ).toEqual({
+      from: 'home',
+    })
   })
 })
 

@@ -9,7 +9,7 @@ import {
   replaceDueReminders,
   type ReminderNotifications,
 } from '@/shared/domain/due-reminders-schedule'
-import { treatmentReminders } from '../logic/treatment-reminders'
+import { isDoseNoted, treatmentReminders } from '../logic/treatment-reminders'
 import {
   getTreatmentsRepository,
   type TreatmentsRepository,
@@ -38,9 +38,12 @@ export function createTreatmentRemindersService({
     async reschedule(id: string): Promise<void> {
       await replaceDueReminders(notifications, { kind: 'treatment', id }, async () => {
         const treatment = await (await treatments()).getById(id)
-        if (treatment === null) return []
+        if (treatment === null) return { reminders: [], isNoted: () => false }
         const animal = await (await animals()).getById(treatment.animalId)
-        return treatmentReminders(t, treatment, animal, now())
+        return {
+          reminders: treatmentReminders(t, treatment, animal, now()),
+          isNoted: (dueDate: string) => isDoseNoted(treatment, dueDate),
+        }
       })
     },
   }

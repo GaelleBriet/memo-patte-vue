@@ -74,4 +74,23 @@ describe('homeStore', () => {
     expect(store.error).toBeNull()
     expect(store.sources).toEqual([RAGE])
   })
+
+  it('garde la réponse du chargement lancé en dernier quand deux se croisent', async () => {
+    const PRISE_NOTEE: HomeReminderSource[] = []
+    let answerFirst: (sources: HomeReminderSource[]) => void = () => {}
+    const listSources = vi
+      .fn<ListSources>()
+      .mockImplementationOnce(() => new Promise((resolve) => (answerFirst = resolve)))
+      .mockResolvedValueOnce(PRISE_NOTEE)
+    provideHomeRemindersService(() => ({ listSources }))
+    const store = useHomeStore()
+
+    const first = store.load()
+    await store.load()
+    answerFirst([RAGE])
+    await first
+
+    expect(store.sources).toEqual(PRISE_NOTEE)
+    expect(store.isLoading).toBe(false)
+  })
 })

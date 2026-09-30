@@ -1,4 +1,9 @@
-import type { RouteLocationNormalizedLoaded, RouteLocationRaw } from 'vue-router'
+import type {
+  LocationQuery,
+  LocationQueryRaw,
+  RouteLocationNormalizedLoaded,
+  RouteLocationRaw,
+} from 'vue-router'
 
 import type { ReminderKind } from './reminders'
 
@@ -22,6 +27,33 @@ export function parseReminderQuery(value: unknown): ReminderRef | null {
   if (rest.length > 0 || !id) return null
   if (kind !== 'vaccination' && kind !== 'treatment') return null
   return { kind, id }
+}
+
+/** Étape à laquelle la feuille s'ouvre : ses actions, ou « Fait » (F5) pour un vaccin. */
+export const REMINDER_STEP_QUERY_PARAM = 'step'
+
+export type ReminderStep = 'actions' | 'done'
+
+export type ReminderRequest = ReminderRef & { step: ReminderStep }
+
+export function reminderSheetQuery({ kind, id, step }: ReminderRequest): LocationQueryRaw {
+  return {
+    [REMINDER_QUERY_PARAM]: reminderQueryValue({ kind, id }),
+    [REMINDER_STEP_QUERY_PARAM]: step,
+  }
+}
+
+export function parseReminderRequest(
+  query: LocationQuery | LocationQueryRaw,
+): ReminderRequest | null {
+  const ref = parseReminderQuery(query[REMINDER_QUERY_PARAM])
+  if (ref === null) return null
+  return { ...ref, step: query[REMINDER_STEP_QUERY_PARAM] === 'done' ? 'done' : 'actions' }
+}
+
+export function withoutReminderRequest(query: LocationQuery): LocationQuery {
+  const { [REMINDER_QUERY_PARAM]: _reminder, [REMINDER_STEP_QUERY_PARAM]: _step, ...rest } = query
+  return rest
 }
 
 export function detailRoute({ kind, id }: ReminderRef): RouteLocationRaw {

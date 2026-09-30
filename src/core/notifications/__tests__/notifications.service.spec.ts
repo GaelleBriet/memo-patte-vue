@@ -7,12 +7,14 @@ import {
   cancelReminders,
   checkPermission,
   listScheduled,
+  removeDelivered,
   requestPermission,
   rescheduleAll,
   SCHEDULE_BATCH_SIZE,
   scheduleReminders,
 } from '../notifications.service'
 import { reminderNotificationId, type Reminder } from '../reminder'
+import { REMINDER_DONE_ACTION_TYPE } from '../reminder-actions'
 import { REMINDERS_CHANNEL_ID } from '../reminders-channel'
 
 vi.mock('@capacitor/local-notifications', () => ({
@@ -24,6 +26,9 @@ vi.mock('@capacitor/local-notifications', () => ({
     requestPermissions: vi.fn<LocalNotificationsPlugin['requestPermissions']>(),
     createChannel: vi.fn<LocalNotificationsPlugin['createChannel']>(),
     listChannels: vi.fn<LocalNotificationsPlugin['listChannels']>(),
+    registerActionTypes: vi.fn<LocalNotificationsPlugin['registerActionTypes']>(),
+    removeDeliveredNotificationsById:
+      vi.fn<LocalNotificationsPlugin['removeDeliveredNotificationsById']>(),
   },
 }))
 
@@ -34,6 +39,8 @@ const checkPermissions = vi.mocked(LocalNotifications.checkPermissions)
 const requestPermissions = vi.mocked(LocalNotifications.requestPermissions)
 const createChannel = vi.mocked(LocalNotifications.createChannel)
 const listChannels = vi.mocked(LocalNotifications.listChannels)
+const registerActionTypes = vi.mocked(LocalNotifications.registerActionTypes)
+const removeDeliveredById = vi.mocked(LocalNotifications.removeDeliveredNotificationsById)
 
 const rabies: Reminder = {
   key: 'vaccination:11111111-1111-4111-8111-111111111111',
@@ -60,6 +67,8 @@ beforeEach(() => {
   checkPermissions.mockResolvedValue({ display: 'granted' })
   createChannel.mockResolvedValue()
   listChannels.mockResolvedValue({ channels: [] })
+  registerActionTypes.mockResolvedValue()
+  removeDeliveredById.mockResolvedValue()
 })
 
 function remindersChannelImportance(importance: Channel['importance']): void {
@@ -145,6 +154,68 @@ describe('scheduleReminders, un rappel', () => {
     const notification = schedule.mock.calls[0]?.[0].notifications[0]
     expect(notification?.isExactNotification).toBe(false)
     expect(notification?.isExactMandatory).toBeUndefined()
+  })
+})
+
+describe('bouton « C’est fait »', () => {
+  const withDone: Reminder = { ...dewormer, actionTypeId: REMINDER_DONE_ACTION_TYPE }
+
+  it('porte le bouton d’un rappel qui le demande, et le retient avec sa clé', async () => {
+    await scheduleReminders([withDone])
+
+    expect(schedule.mock.calls[0]?.[0].notifications[0]).toMatchObject({
+      actionTypeId: REMINDER_DONE_ACTION_TYPE,
+      extra: { key: withDone.key, actionTypeId: REMINDER_DONE_ACTION_TYPE },
+    })
+  })
+
+  it('laisse sans bouton un rappel qui ne le demande pas', async () => {
+    await scheduleReminders([rabies])
+
+    expect(schedule.mock.calls[0]?.[0].notifications[0]).not.toHaveProperty('actionTypeId')
+  })
+
+  it.each([
+    ['scheduleReminders', () => scheduleReminders([withDone])],
+    ['rescheduleAll', () => rescheduleAll([withDone])],
+  ])('inscrit le bouton avant de programmer (%s)', async (_name, run) => {
+    await run()
+
+    expect(registerActionTypes).toHaveBeenCalledOnce()
+    expect(registerActionTypes.mock.invocationCallOrder[0] ?? Infinity).toBeLessThan(
+      schedule.mock.invocationCallOrder[0] ?? 0,
+    )
+  })
+
+  it('relit le bouton d’un rappel en attente', async () => {
+    getPending.mockResolvedValue({
+      notifications: [
+        {
+          id: 3,
+          title: withDone.title,
+          body: withDone.body,
+          extra: { key: withDone.key, actionTypeId: REMINDER_DONE_ACTION_TYPE },
+        },
+      ],
+    })
+
+    await expect(listScheduled()).resolves.toEqual([
+      expect.objectContaining({ key: withDone.key, actionTypeId: REMINDER_DONE_ACTION_TYPE }),
+    ])
+  })
+})
+
+describe('removeDelivered', () => {
+  it('retire du volet les notifications déjà affichées, en un seul appel', async () => {
+    await removeDelivered([12, 34])
+
+    expect(removeDeliveredById).toHaveBeenCalledExactlyOnceWith({ ids: [12, 34] })
+  })
+
+  it('n’appelle pas le plugin pour une liste vide', async () => {
+    await removeDelivered([])
+
+    expect(removeDeliveredById).not.toHaveBeenCalled()
   })
 })
 
