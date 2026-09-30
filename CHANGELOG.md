@@ -5,6 +5,19 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.48](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.47...memo-patte-v0.1.48) (2026-09-30)
+
+
+### ✨ Fonctionnalités
+
+* **notifications:** « C'est fait » sur la notification d'un rappel ([464f77d](https://github.com/GaelleBriet/memo-patte-vue/commit/464f77d24c6ef1ab1a77e0bf2f9fec1df32f32f0))
+* **settings:** « Ouvrir » l'export tout juste enregistré ([f380436](https://github.com/GaelleBriet/memo-patte-vue/commit/f380436addcf4c5d84ff8cec686a565ce99e5a42))
+
+
+### 🐛 Corrections
+
+* **settings:** pas de bouton « Ouvrir » après un export JSON ([6582a67](https://github.com/GaelleBriet/memo-patte-vue/commit/6582a671601a24ff3e27de5d69f8aa5398d501a9))
+
 ## [0.1.47](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.46...memo-patte-v0.1.47) (2026-09-28)
 
 
