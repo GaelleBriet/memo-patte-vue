@@ -141,7 +141,7 @@ describe('ExportSheet', () => {
   })
 
   it.each([
-    [0, 'json', 'Export JSON enregistré dans Documents › MémoPatte', 'Ouvrir l’export JSON'],
+    [0, 'json', 'Export JSON enregistré dans Documents › MémoPatte', null],
     [1, 'csv', 'Export CSV enregistré dans Documents › MémoPatte', 'Ouvrir l’export CSV'],
   ] as const)(
     'enregistre au format choisi, ferme la feuille et dit où trouver le fichier (%s)',
@@ -158,7 +158,11 @@ describe('ExportSheet', () => {
       expect(exportData).toHaveBeenCalledExactlyOnceWith(format, 'save')
       expect(wrapper.emitted('update:modelValue')).toEqual([[false]])
       expect(toastMessage.value).toBe(message)
-      expect(toastAction.value).toMatchObject({ label: 'Ouvrir', ariaLabel: openLabel })
+      if (openLabel) {
+        expect(toastAction.value).toMatchObject({ label: 'Ouvrir', ariaLabel: openLabel })
+      } else {
+        expect(toastAction.value).toBeNull()
+      }
       vi.advanceTimersByTime(3900)
       expect(toastMessage.value).toBe(message)
       vi.advanceTimersByTime(200)
@@ -166,24 +170,21 @@ describe('ExportSheet', () => {
     },
   )
 
-  it.each(['json', 'csv'] as const)(
-    '« Ouvrir » ouvre l’export %s tout juste enregistré',
-    async (format) => {
-      await monter()
+  it('« Ouvrir » ouvre l’export CSV tout juste enregistré', async () => {
+    await monter()
 
-      choix()[format === 'json' ? 0 : 1]!.click()
-      await flushPromises()
-      enregistrer().click()
-      await flushPromises()
-      runToastAction()
-      await flushPromises()
+    choix()[1]!.click()
+    await flushPromises()
+    enregistrer().click()
+    await flushPromises()
+    runToastAction()
+    await flushPromises()
 
-      expect(FileOpener.openFile).toHaveBeenCalledExactlyOnceWith({
-        path: SAVED_FILES[format].uri,
-        mimeType: SAVED_FILES[format].mimeType,
-      })
-    },
-  )
+    expect(FileOpener.openFile).toHaveBeenCalledExactlyOnceWith({
+      path: SAVED_FILES.csv.uri,
+      mimeType: SAVED_FILES.csv.mimeType,
+    })
+  })
 
   it('ne propose pas « Ouvrir » dans le navigateur, où l’export est un téléchargement', async () => {
     exportData.mockResolvedValue({ status: 'saved', file: null })

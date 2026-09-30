@@ -674,7 +674,6 @@
       },
       "open": "Ouvrir",
       "openLabel": {
-        "json": "Ouvrir l’export JSON",
         "csv": "Ouvrir l’export CSV"
       },
       "openFailed": "Aucune app n’a pu ouvrir ce fichier. Il reste dans Documents › MémoPatte.",

@@ -42,9 +42,10 @@ l'ouverture de la feuille.
   (`Directory.Documents` de `@capacitor/filesystem`), sans fenêtre de choix. Le système indexe le
   fichier : il apparaît dans l'app Fichiers. Un toast dit où il se trouve
   (« Export JSON enregistré dans Documents › MémoPatte »), 4 s.
-- Le toast propose **« Ouvrir »**, sur le téléphone seulement : le fichier tout juste écrit est
-  confié à l'app par défaut (`@capawesome-team/capacitor-file-opener`, via le `FileProvider` de
-  l'app), avec son type MIME explicite : `application/json`, `application/zip` (CSV) ou
+- Le toast propose **« Ouvrir »**, sur le téléphone seulement, pour un export CSV ou un PDF (jamais
+  pour un JSON, copie de secours à réimporter, qu'aucune app n'ouvre sur beaucoup de téléphones) : le
+  fichier tout juste écrit est confié à l'app par défaut (`@capawesome-team/capacitor-file-opener`,
+  via le `FileProvider` de l'app), avec son type MIME explicite : `application/zip` (CSV) ou
   `application/pdf`. Quand aucune app ne sait l'ouvrir, le plugin ne le dit que par son message,
   sans code : tout rejet affiche donc un toast d'échec, « Aucune app n'a pu ouvrir ce fichier. Il
   reste dans Documents › MémoPatte. » Aucune permission de plus.
