@@ -141,11 +141,11 @@ describe('ExportSheet', () => {
   })
 
   it.each([
-    [0, 'json', 'Export JSON enregistré dans Documents › MémoPatte', null],
-    [1, 'csv', 'Export CSV enregistré dans Documents › MémoPatte', 'Ouvrir l’export CSV'],
+    [0, 'json', 'Export JSON enregistré dans Documents › MémoPatte'],
+    [1, 'csv', 'Export CSV enregistré dans Documents › MémoPatte'],
   ] as const)(
     'enregistre au format choisi, ferme la feuille et dit où trouver le fichier (%s)',
-    async (index, format, message, openLabel) => {
+    async (index, format, message) => {
       const wrapper = await monter()
 
       choix()[index]!.click()
@@ -158,17 +158,33 @@ describe('ExportSheet', () => {
       expect(exportData).toHaveBeenCalledExactlyOnceWith(format, 'save')
       expect(wrapper.emitted('update:modelValue')).toEqual([[false]])
       expect(toastMessage.value).toBe(message)
-      if (openLabel) {
-        expect(toastAction.value).toMatchObject({ label: 'Ouvrir', ariaLabel: openLabel })
-      } else {
-        expect(toastAction.value).toBeNull()
-      }
       vi.advanceTimersByTime(3900)
       expect(toastMessage.value).toBe(message)
       vi.advanceTimersByTime(200)
       expect(toastMessage.value).toBeNull()
     },
   )
+
+  it('ne propose pas « Ouvrir » après un export JSON, copie de secours à réimporter', async () => {
+    await monter()
+
+    enregistrer().click()
+    await flushPromises()
+
+    expect(toastMessage.value).toBe('Export JSON enregistré dans Documents › MémoPatte')
+    expect(toastAction.value).toBeNull()
+  })
+
+  it('propose « Ouvrir » après un export CSV, nommé pour le lecteur d’écran', async () => {
+    await monter()
+
+    choix()[1]!.click()
+    await flushPromises()
+    enregistrer().click()
+    await flushPromises()
+
+    expect(toastAction.value).toMatchObject({ label: 'Ouvrir', ariaLabel: 'Ouvrir l’export CSV' })
+  })
 
   it('« Ouvrir » ouvre l’export CSV tout juste enregistré', async () => {
     await monter()
