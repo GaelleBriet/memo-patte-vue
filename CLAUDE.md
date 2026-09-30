@@ -12,7 +12,7 @@ Différenciants produits (non négociables) :
 
 1. Rappels ultra-fiables, y compris hors-ligne
 2. Vue consolidée multi-animaux dès l’accueil
-3. Saisie rapide (2 taps maximum)
+3. L’action du moment d’abord, au plus court mais juste : un nombre de taps ne s’annonce que s’il est tenu et mesuré
 4. Modèle de prix confiance : tout le local est gratuit, seul le cloud est payant (MémoPatte Plus, mensuel, annuel ou à vie), données jamais otages (export libre JSON/CSV)
 
 ## Stack imposé
@@ -100,6 +100,8 @@ Chaque `features/<nom>/` range son contenu par rôle technique, en sous-dossiers
 - Réutiliser les composants partagés (SurfaceCard, GradientAppBar, AnimalChipSelector, DueStatusChip, FormScreen, FormField, FormSegmented, etc.)
 - Ne jamais recréer un composant qui existe déjà dans shared/
 - Tout texte nouveau suit le glossaire FR→EN (`docs/product/glossaire-fr-en.md`) : terme retenu, ton, typographie
+- Tout texte adressé à la personne est en tournure neutre : jamais d’accord au féminin ni au masculin
+- Maquettes de référence de la v1 : `docs/design/v1-specs/` (pages HTML à ouvrir dans un navigateur)
 
 ## Authentification
 
@@ -112,7 +114,7 @@ Chaque `features/<nom>/` range son contenu par rôle technique, en sous-dossiers
 - Proposer Tailwind
 - Proposer de supprimer SQLite
 - Proposer un mode cloud-only
-- Créer des features hors scope (Documents, Finances, partage, NAC, etc.) — l’export **JSON/CSV** (gratuit) et l’export **PDF** (Plus) sont, eux, dans le scope v1 (voir `docs/product/06-mvp-scope.md`)
+- Créer des features hors scope (Documents, Finances, partage, NAC, etc.) — l’export **JSON, CSV et PDF** (gratuit) est, lui, dans le scope v1 (voir `docs/product/06-mvp-scope.md`)
 - Mettre de la logique métier dans les composants Vue
 - Hardcoder du texte (tout doit passer par i18n)
 - Mettre une fonction locale, ou une limite d’animaux, derrière un paywall : seul le cloud est payant
@@ -123,10 +125,10 @@ Gratuit, sans compte :
 
 - Profils animaux (chien/chat), sans limite de nombre
 - Vaccins + rappels
-- Traitements (vermifuges/antiparasitaires) + rappels
+- Traitements (vermifuges, antiparasitaires, médicaments ; plusieurs prises par jour, posologie, date de fin) + rappels
 - Suivi de poids
 - Vue consolidée multi-animaux
-- Export des données (JSON, CSV) et import JSON depuis Paramètres
+- Export des données (JSON, CSV, PDF) et import JSON depuis Paramètres
 - Auto Backup Android (sans photos)
 - Interface en français et en anglais (vue-i18n, FR source)
 
@@ -135,7 +137,6 @@ MémoPatte Plus (1,49 €/mois, 9,99 €/an ou 29,99 € à vie) :
 - Compte + sauvegarde cloud Supabase + restauration
 - Même carnet sur plusieurs appareils (push + pull, la modification la plus récente gagne)
 - Photos sauvegardées
-- Export PDF
 
 Hors scope :
 
@@ -148,8 +149,8 @@ Hors scope :
 
 - Aucun événement analytics avant le consentement explicite ; PostHog sur EU Cloud, jamais de contenu de carnet dans les événements
 - Photos via le Photo Picker Android : ne jamais déclarer `READ_MEDIA_IMAGES` / `READ_MEDIA_VIDEO`
-- Rappels en alarmes inexactes : ne jamais déclarer `USE_EXACT_ALARM` ni demander `SCHEDULE_EXACT_ALARM`
-- `POST_NOTIFICATIONS` demandée en contexte (premier rappel), jamais au lancement
+- Rappels en alarmes inexactes par défaut ; `SCHEDULE_EXACT_ALARM` seulement pour l’option « Rappels précis », demandée en contexte, jamais au lancement ; ne jamais déclarer `USE_EXACT_ALARM` (réservée aux réveils et agendas par la politique Play, vérifié le 2026-09-29)
+- `POST_NOTIFICATIONS` demandée en contexte, toujours après l'écran d'explication, dès que le carnet a un soin à venir (premier soin, import, restauration, transfert d'Android) ; jamais sur un carnet vide
 - Clé `service_role` Supabase : uniquement dans les Edge Functions, jamais dans l'app ni dans le dépôt
 - Toute table Plus référence `auth.users(id)` avec `on delete cascade`
 
@@ -160,7 +161,8 @@ Hors scope :
 - En cas de doute sur une décision produit, se référer à `docs/technical/01-architecture-v2.md` et à `docs/product/decisions-log.md`
 - Ne jamais inventer de nouvelles règles métier
 - **Demander avant de trancher** : quand un ticket ou les docs laissent un trou produit, design ou modèle de données (suppression logique ou physique, couleur hors maquette, colonne de synchro…), poser la question avec une recommandation, sa raison et l’alternative écartée, puis attendre la réponse. Ne jamais implémenter un choix puis le présenter « à valider ». Exception : en mode autonomie accordé par Gaelle, les choix de bonnes pratiques se tranchent et se consignent dans son journal (voir `.claude/rules/collaboration.md`)
-- Le ticket GitHub est la spec : ses critères d’acceptation cochés, rien de plus
+- Le ticket GitHub et les règles de `docs/product/specs/` qu’il cite sont la spec : ses critères d’acceptation cochés, rien de plus
+- Les principes produit (`docs/product/principes.md`) tranchent quand une spec hésite
 - Tests d’abord (TDD) : le test qui échoue, puis le code, puis le refactor
 - Les consignes de collaboration (style de travail, flux tickets/agents, contexte en cours) vivent dans `.claude/rules/`, versionné : c’est là qu’une nouvelle consigne durable se consigne
 
