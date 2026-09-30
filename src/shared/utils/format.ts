@@ -11,8 +11,8 @@ function roundToDecimal(value: number): number {
   return Math.round(value * 10) / 10
 }
 
-/** Une décimale au séparateur de la langue : `24,5` en français, `24.5` en anglais. */
-export function formatKg(value: number): string {
+/** Un poids déjà dans son unité, à une décimale au séparateur de la langue : `24,5`, `24.5`. */
+export function formatWeight(value: number): string {
   return new Intl.NumberFormat(currentLocale(), {
     minimumFractionDigits: 1,
     maximumFractionDigits: 1,
@@ -21,15 +21,15 @@ export function formatKg(value: number): string {
 }
 
 /** Graduation d'un axe : `24`, `24,5` en français, `24.5` en anglais. */
-export function formatKgAxis(value: number): string {
+export function formatWeightAxis(value: number): string {
   return new Intl.NumberFormat(currentLocale(), {
     maximumFractionDigits: 1,
     useGrouping: false,
   }).format(roundToDecimal(value))
 }
 
-/** Poids à corriger dans un champ : `24,55` tel qu'enregistré, sans l'arrondi de l'affichage. */
-export function formatKgInput(value: number): string {
+/** Poids à corriger dans un champ : `24,55` tel que proposé, sans l'arrondi de l'affichage. */
+export function formatWeightInput(value: number): string {
   return new Intl.NumberFormat(currentLocale(), {
     maximumFractionDigits: 20,
     useGrouping: false,
@@ -37,10 +37,10 @@ export function formatKgInput(value: number): string {
 }
 
 /** `+0,5`, `−0,3`, ou `±0,0` quand rien ne bouge à la décimale près. */
-export function formatKgDelta(delta: number): string {
+export function formatWeightDelta(delta: number): string {
   const rounded = roundToDecimal(delta)
-  if (rounded === 0) return `±${formatKg(0)}`
-  return `${rounded > 0 ? '+' : MINUS}${formatKg(Math.abs(rounded))}`
+  if (rounded === 0) return `±${formatWeight(0)}`
+  return `${rounded > 0 ? '+' : MINUS}${formatWeight(Math.abs(rounded))}`
 }
 
 /** `Juin`, `Juil.`, `Sept.` / `Jun`, `Jul`, `Sep` — libellés sous une courbe. */

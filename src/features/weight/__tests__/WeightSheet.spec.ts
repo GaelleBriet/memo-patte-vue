@@ -12,6 +12,8 @@ import i18n from '@/core/i18n'
 import { getMsIconPath } from '@/core/theme/icons'
 import vuetify from '@/core/theme/vuetify'
 import { todayIsoDate } from '@/core/app-lifecycle/today-iso-date'
+import { KG_PER_LB } from '@/shared/domain/weight-unit'
+import { applyWeightUnit } from '@/shared/domain/weight-unit-preference'
 import {
   dismissToast,
   runToastAction,
@@ -86,6 +88,7 @@ afterEach(() => {
   wrapper = null
   document.body.innerHTML = ''
   dismissToast()
+  applyWeightUnit('kg')
   vi.restoreAllMocks()
   vi.unstubAllGlobals()
   vi.useRealTimers()
@@ -285,7 +288,7 @@ describe('WeightSheet — sans animal (P2)', () => {
     feuille().querySelectorAll<HTMLElement>('.animal-chip')[0]?.click()
     await flushPromises()
 
-    expect(messages()).toEqual(['Le poids doit être supérieur à 0 kg.'])
+    expect(messages()).toEqual(['Le poids doit être supérieur à 0\u00a0kg.'])
     expect(champ('weight-sheet-kg').getAttribute('aria-invalid')).toBe('true')
 
     await saisir('weight-sheet-kg', '24,7')
@@ -299,7 +302,7 @@ describe('WeightSheet — sans animal (P2)', () => {
 
     await soumettre()
 
-    expect(messages()).toEqual(['Le poids doit être de 200 kg maximum.'])
+    expect(messages()).toEqual(['Le poids doit être de 200\u00a0kg maximum.'])
   })
 
   it('relie le sélecteur d’animal à « Choisis un animal. » et le marque invalide', async () => {
@@ -367,7 +370,7 @@ describe('WeightSheet — validation (P3)', () => {
 
     await soumettre()
 
-    expect(messages()).toEqual(['Le poids doit être supérieur à 0 kg.'])
+    expect(messages()).toEqual(['Le poids doit être supérieur à 0\u00a0kg.'])
     expect(create).not.toHaveBeenCalled()
   })
 
@@ -662,7 +665,7 @@ describe('WeightSheet — corriger une pesée', () => {
     await soumettre()
 
     expect(messages()).toEqual([
-      'Le poids doit être de 200 kg maximum.',
+      'Le poids doit être de 200\u00a0kg maximum.',
       'La date ne peut pas être dans le futur.',
     ])
     expect(update).not.toHaveBeenCalled()
@@ -777,5 +780,69 @@ describe('WeightSheet — supprimer une pesée', () => {
     expect(texte('.weight-sheet__save-error')).toBe('La pesée n’a pas pu être supprimée. Réessaie.')
     expect(wrapper.emitted('update:modelValue')).toBeUndefined()
     expect(toastMessage.value).toBeNull()
+  })
+})
+
+describe('WeightSheet — en livres (U2)', () => {
+  it('saisit le poids en livres, le dit sous le champ et au lecteur d’écran', async () => {
+    applyWeightUnit('lb')
+    await monter(MILO.id)
+
+    expect(texte('.weight-sheet__field--kg .v-text-field__suffix')).toBe('lb')
+    expect(texte('.weight-sheet__hint')).toBe('En livres. Tu peux changer d’unité dans Paramètres.')
+    const poids = champ('weight-sheet-kg')
+    expect(poids.getAttribute('aria-label')).toBe('Poids en livres')
+    expect(poids.getAttribute('aria-describedby')).toBe(
+      feuille().querySelector('.weight-sheet__hint')!.id,
+    )
+  })
+
+  it('n’ajoute aucune mention sous le champ en kilos', async () => {
+    await monter(MILO.id)
+
+    expect(feuille().querySelector('.weight-sheet__hint')).toBeNull()
+    expect(champ('weight-sheet-kg').getAttribute('aria-label')).toBe('Poids en kilogrammes')
+  })
+
+  it('enregistre en kg le poids saisi en livres', async () => {
+    applyWeightUnit('lb')
+    await monter(MILO.id)
+
+    await saisir('weight-sheet-kg', '54,0')
+    await soumettre()
+
+    expect(create).toHaveBeenCalledWith({
+      animalId: MILO.id,
+      weightKg: 54 * KG_PER_LB,
+      measuredOn: todayIsoDate(),
+    })
+  })
+
+  it('dit les bornes en livres, l’erreur à la place de la mention', async () => {
+    applyWeightUnit('lb')
+    await monter(MILO.id)
+
+    await saisir('weight-sheet-kg', '0')
+    await soumettre()
+    expect(messages()).toEqual(['Le poids doit être supérieur à 0\u00a0lb.'])
+    expect(feuille().querySelector('.weight-sheet__hint')).toBeNull()
+
+    await saisir('weight-sheet-kg', '441')
+    expect(messages()).toEqual(['Le poids doit être de 440,9\u00a0lb maximum.'])
+    expect(create).not.toHaveBeenCalled()
+  })
+
+  it('propose la pesée à corriger en livres et la garde telle quelle si le poids n’a pas bougé', async () => {
+    applyWeightUnit('lb')
+    await monterEnCorrection({ ...A_CORRIGER, weightKg: 24.55 })
+
+    expect(champ('weight-sheet-kg').value).toBe('54,12')
+    await saisir('weight-sheet-date', '2026-08-24')
+    await soumettre()
+
+    expect(update).toHaveBeenCalledWith(A_CORRIGER.id, {
+      weightKg: 24.55,
+      measuredOn: '2026-08-24',
+    })
   })
 })

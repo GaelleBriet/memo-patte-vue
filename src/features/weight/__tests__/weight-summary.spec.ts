@@ -1,11 +1,14 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 import { weightSummary } from '../logic/weight-summary'
+import { applyWeightUnit } from '@/shared/domain/weight-unit-preference'
 
 function entry(weightKg: number, measuredOn: string) {
   return { weightKg, measuredOn }
 }
 
 describe('weightSummary', () => {
+  afterEach(() => applyWeightUnit('kg'))
+
   it('rend null sans pesée', () => {
     expect(weightSummary([])).toBeNull()
   })
@@ -31,7 +34,8 @@ describe('weightSummary', () => {
 
     expect(summary.delta).toEqual({
       kind: 'delta',
-      deltaKg: 0.5,
+      previousKg: 24,
+      latestKg: 24.5,
       trend: 'up',
       previousMeasuredOn: '2026-08-05',
     })
@@ -40,13 +44,21 @@ describe('weightSummary', () => {
   it('garde le signe d’une baisse', () => {
     const summary = weightSummary([entry(24.5, '2026-08-05'), entry(24.2, '2026-11-08')])!
 
-    expect(summary.delta).toMatchObject({ deltaKg: -0.3, trend: 'down' })
+    expect(summary.delta).toMatchObject({ previousKg: 24.5, latestKg: 24.2, trend: 'down' })
   })
 
-  it('est nulle sous la décimale affichée', () => {
+  it('dit stable une variation nulle entre les deux poids affichés', () => {
     const summary = weightSummary([entry(24.5, '2026-08-05'), entry(24.54, '2026-11-08')])!
 
-    expect(summary.delta).toMatchObject({ deltaKg: 0, trend: 'flat' })
+    expect(summary.delta).toMatchObject({ trend: 'flat' })
+  })
+
+  it('juge la tendance sur les poids affichés dans l’unité choisie', () => {
+    applyWeightUnit('lb')
+
+    const summary = weightSummary([entry(24.5, '2026-08-05'), entry(24.54, '2026-11-08')])!
+
+    expect(summary.delta).toMatchObject({ trend: 'up' })
   })
 
   it('ne modifie pas le tableau d’entrée', () => {

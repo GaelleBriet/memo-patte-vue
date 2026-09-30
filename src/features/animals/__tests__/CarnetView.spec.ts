@@ -44,6 +44,8 @@ import { billingService } from '@/features/purchase/service/billing.service'
 import { usePurchaseStore } from '@/features/purchase/store/purchase.store'
 import PdfExportSheet from '@/features/settings/views/PdfExportSheet.vue'
 import PlusBadge from '@/shared/components/PlusBadge.vue'
+import { toKg } from '@/shared/domain/weight-unit'
+import { applyWeightUnit } from '@/shared/domain/weight-unit-preference'
 
 vi.mock('@/core/photos/photo-picker', () => ({
   pickPhoto: vi.fn<() => Promise<PickedPhoto | null>>(),
@@ -176,6 +178,7 @@ afterEach(() => {
   provideVaccinationsRepository(null)
   provideTreatmentsRepository(null)
   provideWeightRepository(null)
+  applyWeightUnit('kg')
   vi.restoreAllMocks()
   vi.unstubAllGlobals()
   vi.useRealTimers()
@@ -401,31 +404,42 @@ describe('CarnetView — bandeau de stats', () => {
     weights = [weight(MILO.id, 24, '2026-08-05'), weight(MILO.id, 24.5, '2026-08-25')]
     const wrapper = await monter()
 
-    expect(stat(wrapper, 0)).toMatchObject({ value: '24,5 kg', sub: '+0,5 kg' })
+    expect(stat(wrapper, 0)).toMatchObject({ value: '24,5\u00a0kg', sub: '+0,5\u00a0kg' })
   })
 
   it('écrit ±0,0 kg sans date quand rien ne bouge', async () => {
     weights = [weight(MILO.id, 24.5, '2026-08-05'), weight(MILO.id, 24.5, '2026-08-25')]
     const wrapper = await monter()
 
-    expect(stat(wrapper, 0).sub).toBe('±0,0 kg')
+    expect(stat(wrapper, 0).sub).toBe('±0,0\u00a0kg')
   })
 
   it('laisse la date à la section « Suivi de poids », année comprise hors de l’année en cours', async () => {
     weights = [weight(MILO.id, 23.9, '2025-12-20'), weight(MILO.id, 24.2, '2026-01-10')]
     const wrapper = await monter()
 
-    expect(stat(wrapper, 0).sub).toBe('+0,3 kg')
+    expect(stat(wrapper, 0).sub).toBe('+0,3\u00a0kg')
     expect(wrapper.get('.weight-section__delta').text()).toBe(
-      '+0,3 kg depuis le\u00a020\u00a0déc.\u00a02025',
+      '+0,3\u00a0kg depuis le\u00a020\u00a0déc.\u00a02025',
     )
+  })
+
+  it('écrit la dernière pesée et sa variation en livres quand c’est l’unité choisie', async () => {
+    applyWeightUnit('lb')
+    weights = [
+      weight(MILO.id, toKg(53.3, 'lb'), '2026-08-25'),
+      weight(MILO.id, toKg(54, 'lb'), '2026-09-13'),
+    ]
+    const wrapper = await monter()
+
+    expect(stat(wrapper, 0)).toMatchObject({ value: '54,0\u00a0lb', sub: '+0,7\u00a0lb' })
   })
 
   it('signale une première pesée', async () => {
     weights = [weight(MILO.id, 24.5, '2026-11-08')]
     const wrapper = await monter()
 
-    expect(stat(wrapper, 0)).toMatchObject({ value: '24,5 kg', sub: 'Première pesée' })
+    expect(stat(wrapper, 0)).toMatchObject({ value: '24,5\u00a0kg', sub: 'Première pesée' })
   })
 
   it('compte les retards, vaccins et traitements confondus, en corail, dès qu’il y en a un', async () => {
@@ -502,7 +516,7 @@ describe('CarnetView — retour au premier plan', () => {
     expect(wrapper.findAll('.vaccination-row')).toHaveLength(1)
     expect(wrapper.find('.vaccinations-section__empty').exists()).toBe(false)
     expect(wrapper.findAll('.treatment-row')).toHaveLength(1)
-    expect(stat(wrapper, 0).value).toBe('24,5 kg')
+    expect(stat(wrapper, 0).value).toBe('24,5\u00a0kg')
   })
 
   it('relit la liste des animaux en gardant l’animal consulté', async () => {

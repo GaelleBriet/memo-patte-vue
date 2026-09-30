@@ -116,6 +116,10 @@ portées par leurs événements. Un événement n'est exporté qu'avec son paren
 Un import doit refuser un `schemaVersion` supérieur à celui qu'il connaît (« Cet export vient
 d'une version plus récente de l'app »).
 
+Un **format v3** est prévu avec le schéma v9 ; l'import n'acceptera alors plus que lui (spec Données
+DO-2, DO-8, [`docs/product/specs/donnees.md`](../product/specs/donnees.md)). Il sera décrit ici par
+son ticket.
+
 ### `animals[]`
 
 | Champ             | Type                 | Notes                                                  |
@@ -239,8 +243,10 @@ jouer, réutilisable par la synchronisation Plus). Les types de lignes partagés
   - un fichier dont le seul défaut est un poids au-delà de 200 kg est refusé avec un motif à part,
     « Ce fichier contient un poids hors limites : 200 kg maximum. », pour ne pas laisser croire que
     le fichier n'est pas un export MémoPatte ;
-  - UUID pour les identifiants, instants ISO 8601 en UTC (`Z`) uniquement, textes libres limités à
-    200 caractères, espaces de bord retirées, race vide lue comme absente ;
+  - UUID pour les identifiants, instants ISO 8601 en UTC (`Z`) uniquement, noms (animal, race, vaccin,
+    traitement) limités à 80 caractères comme dans les formulaires (`MAX_NAME_LENGTH`, #409), autres
+    textes (nom de la photo, version de l'app) à 200, espaces de bord retirées, race vide lue comme
+    absente ;
   - `schemaVersion` supérieur à celui que l'app connaît → « Cet export vient d'une version plus
     récente de l'app. », vérifié avant le reste du contenu ;
   - identifiant en double dans une table, entrée (événements compris) dont l'`animalId` n'est
@@ -342,16 +348,19 @@ se réimporte.
 - **Une ligne par injection et par prise**, dans deux fichiers séparés reliés à leur vaccin ou
   traitement (décision du 2026-09-24). `vaccins.csv` et `traitements.csv` gardent, pour la lecture,
   la date et l'échéance de la dernière injection ou prise.
-- Poids en kilogrammes (`weightKg`) : l'unité de poids choisie (#352) n'est pas encore livrée.
+- **Poids dans l'unité choisie dans Paramètres** (#352), au centième, nommée par le titre de
+  colonne : `initialWeightKg` et `weightKg` en kilogrammes, `initialWeightLb` et `weightLb` en
+  livres. Seules exceptions aux en-têtes identiques au JSON, qui reste toujours en kilogrammes,
+  valeur enregistrée sans arrondi.
 
 | Fichier           | Colonnes                                                                                            |
 | ----------------- | --------------------------------------------------------------------------------------------------- |
-| `animaux.csv`     | `id;name;species;breed;birthDate;initialWeightKg;createdAt;updatedAt` (sans photo)                  |
+| `animaux.csv`     | `id;name;species;breed;birthDate;initialWeightKg;createdAt;updatedAt` (sans photo ; `…Lb` en lb)    |
 | `vaccins.csv`     | `id;animalId;animalName;name;lastInjectionDate;dueDate`                                             |
 | `injections.csv`  | `id;vaccinationId;vaccinationName;animalId;animalName;injectedOn;nextDueDate`                       |
 | `traitements.csv` | `id;animalId;animalName;name;type;frequencyValue;frequencyUnit;lastDoseDate;nextDueDate`            |
 | `prises.csv`      | `id;treatmentId;treatmentName;animalId;animalName;givenOn;nextDueDate;frequencyValue;frequencyUnit` |
-| `poids.csv`       | `id;animalId;animalName;measuredOn;weightKg`                                                        |
+| `poids.csv`       | `id;animalId;animalName;measuredOn;weightKg` (`weightLb` en lb)                                     |
 | `rappels.csv`     | `kind;sourceId;animalId;animalName;name;dueDate`                                                    |
 
 Les valeurs d'énumération (`dog`, `deworming`, `month`…) restent les codes du JSON, non traduits.

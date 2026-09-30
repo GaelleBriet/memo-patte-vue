@@ -1,14 +1,11 @@
+import { weightTrend, type WeightChange, type WeightTrend } from '@/shared/domain/weight-delta'
+
 export type WeightPoint = { weightKg: number; measuredOn: string }
 
 export type WeightDelta =
-  | { kind: 'first'; measuredOn: string }
-  | { kind: 'delta'; deltaKg: number; trend: 'up' | 'down' | 'flat'; previousMeasuredOn: string }
+  { kind: 'first'; measuredOn: string } | ({ kind: 'delta'; trend: WeightTrend } & WeightChange)
 
 export type WeightSummary = { latest: WeightPoint; delta: WeightDelta }
-
-function roundToDecimal(value: number): number {
-  return Math.round(value * 10) / 10
-}
 
 /** Pesées dans l'ordre du temps, la dernière étant la plus récente. */
 export function weightSummary(entries: readonly WeightPoint[]): WeightSummary | null {
@@ -23,14 +20,13 @@ export function weightSummary(entries: readonly WeightPoint[]): WeightSummary | 
     }
   }
 
-  const deltaKg = roundToDecimal(latest.weightKg - previous.weightKg)
+  const change: WeightChange = {
+    previousKg: previous.weightKg,
+    latestKg: latest.weightKg,
+    previousMeasuredOn: previous.measuredOn,
+  }
   return {
     latest: { weightKg: latest.weightKg, measuredOn: latest.measuredOn },
-    delta: {
-      kind: 'delta',
-      deltaKg,
-      trend: deltaKg > 0 ? 'up' : deltaKg < 0 ? 'down' : 'flat',
-      previousMeasuredOn: previous.measuredOn,
-    },
+    delta: { kind: 'delta', ...change, trend: weightTrend(change) },
   }
 }

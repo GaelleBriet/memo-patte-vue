@@ -5,6 +5,13 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.47](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.46...memo-patte-v0.1.47) (2026-09-28)
+
+
+### ✨ Fonctionnalités
+
+* **settings:** unité de poids kg ou lb suivie par toute l'app ([#352](https://github.com/GaelleBriet/memo-patte-vue/issues/352)) ([57fa9a4](https://github.com/GaelleBriet/memo-patte-vue/commit/57fa9a4a4df5b1095a41f1c29fcf61b9b95aa823))
+
 ## [0.1.46](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.45...memo-patte-v0.1.46) (2026-09-27)
 
 
