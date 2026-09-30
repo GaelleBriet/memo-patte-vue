@@ -1785,8 +1785,10 @@ pour une injection).
 4) **« Ouvrir » un export** (#349) : plugin `@capawesome-team/capacitor-file-opener`, qui réutilise
 notre FileProvider (seul `Documents/MémoPatte/` ajouté, aucune permission) ; échec : « Aucune app n'a pu
 ouvrir ce fichier. Il reste dans Documents › MémoPatte. » ; noms lus « Ouvrir l'export JSON / CSV »,
-« Ouvrir le PDF ». — Alternatives écartées : `@capacitor-community/file-opener` (expose tout le
-stockage, un seul mainteneur) ; un plugin Android maison.
+« Ouvrir le PDF ». — Raison : maintenu, aucune permission, rien d'autre à exposer, même éditeur que le
+plugin Google retenu le 2026-09-22. — Alternatives écartées : `@capacitor-community/file-opener` (expose
+tout le stockage, un seul mainteneur) ; un plugin Android maison (premier code natif du dépôt, invisible
+des tests).
 
 5) **Export CSV lisible dans un tableur** : titres, valeurs et séparateur dans la langue de l'app, ticket
 #416 ; d'ici là, le CSV garde ses noms techniques (`weightLb`).
@@ -2013,3 +2015,10 @@ résumé, CLAUDE.md, le périmètre et le glossaire mis à jour, et les maquette
 Personas, vision, roadmap, parcours, matrice, plan de livraison, analyses d'écart, relectures, prompts
 et captures restent dans son coffre de notes. — Raison : le dépôt garde ce qui décrit le code, le coffre
 la démarche (règle du 2026-09-26, `.claude/rules/collaboration.md`).
+
+2026-09-30 — **Pas de bouton « Ouvrir » après un export JSON** (#349, décision de Gaelle). Le toast d'un
+export JSON dit seulement où le fichier est rangé ; « Ouvrir » reste pour le CSV (ZIP) et le PDF (spec
+Données, DO-6). — Raison : testé sur le téléphone de Gaelle, aucune app n'y ouvre un JSON, le bouton
+échouait toujours ; un export JSON est une copie de secours à réimporter, pas un document à lire
+(principe 6, pas de bruit). — Alternatives écartées : ouvrir le JSON comme du texte brut (des lignes de
+code illisibles) ; garder le bouton et son message d'échec.

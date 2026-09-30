@@ -88,7 +88,7 @@ Tickets : #342 (écran Plus, P1 à P1 ter), #341 (pastille Plus, A), #343 (feuil
 - Après B2 : PDF enregistré dans Documents › MémoPatte · Ouvrir
 - Après B1 : Export JSON enregistré dans Documents › MémoPatte · Ouvrir (ou « Export CSV… »)
 - La feuille se ferme, le toast s’affiche en bas, disparaît seul après 4 s.
-- **« Ouvrir » est reporté** (#349, décision de Gaelle du 2026-09-23) : #343 livre le toast sans action.
+- « Ouvrir » (#349) confie le fichier enregistré à l’app par défaut du téléphone ; aucune app capable de l’ouvrir : toast d’échec « Aucune app n’a pu ouvrir ce fichier. Il reste dans Documents › MémoPatte. » Pas d’« Ouvrir » dans le navigateur, où l’export est un téléchargement.
 
 ### B4 · ACCÈS AU STOCKAGE REFUSÉ (ANDROID 7 À 10)
 

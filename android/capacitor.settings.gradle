@@ -23,6 +23,9 @@ project(':capacitor-network').projectDir = new File('../node_modules/.pnpm/@capa
 include ':capacitor-share'
 project(':capacitor-share').projectDir = new File('../node_modules/.pnpm/@capacitor+share@8.0.2_@capacitor+core@8.5.2/node_modules/@capacitor/share/android')
 
+include ':capawesome-team-capacitor-file-opener'
+project(':capawesome-team-capacitor-file-opener').projectDir = new File('../node_modules/.pnpm/@capawesome-team+capacitor-file-opener@8.0.5_@capacitor+core@8.5.2/node_modules/@capawesome-team/capacitor-file-opener/android')
+
 include ':revenuecat-purchases-capacitor'
 project(':revenuecat-purchases-capacitor').projectDir = new File('../node_modules/.pnpm/@revenuecat+purchases-capacitor@13.5.1_@capacitor+core@8.5.2/node_modules/@revenuecat/purchases-capacitor/android')
 

@@ -6,11 +6,22 @@ import type { ExportFile } from './export-format'
 
 export type DeliveryMode = 'save' | 'share'
 
-export type DeliveryOutcome = 'saved' | 'shared' | 'cancelled'
+export type SavedFile = { uri: string; mimeType: string }
+
+/** `file` : `null` dans le navigateur, où l'enregistrement est un téléchargement. */
+export type SavedExport = { status: 'saved'; file: SavedFile | null }
+
+export type DeliveryOutcome = SavedExport | 'shared' | 'cancelled'
 
 export const EXPORTS_DIR = 'exports'
 
-const SAVED_EXPORTS_DIR = 'MémoPatte'
+export const SAVED_EXPORTS_DIR = 'MémoPatte'
+
+const MIME_TYPES: Record<string, string> = {
+  json: 'application/json',
+  pdf: 'application/pdf',
+  zip: 'application/zip',
+}
 
 /** Message de rejet du plugin Android quand la feuille de partage est fermée. */
 const SHARE_CANCELED = /cancel/i
@@ -98,10 +109,15 @@ async function freePath(name: string): Promise<string> {
   throw new Error(`Aucun nom libre pour ${name} dans ${SAVED_EXPORTS_DIR}/`)
 }
 
-async function writeToDocuments(file: ExportFile): Promise<void> {
+function mimeTypeOf(name: string): string {
+  return MIME_TYPES[name.slice(name.lastIndexOf('.') + 1)] ?? 'application/octet-stream'
+}
+
+async function writeToDocuments(file: ExportFile): Promise<SavedFile> {
   const path = await freePath(file.name)
   try {
-    await writeFile(path, file, Directory.Documents)
+    const { uri } = await writeFile(path, file, Directory.Documents)
+    return { uri, mimeType: mimeTypeOf(file.name) }
   } catch (cause) {
     // Sans l'accès, sur Android 10 et moins, effacer rouvrirait la demande d'Android.
     if (!hasCode(cause, PERMISSION_DENIED)) {
@@ -121,10 +137,14 @@ function download(file: ExportFile): void {
   setTimeout(() => URL.revokeObjectURL(url))
 }
 
-async function save(file: ExportFile): Promise<'saved'> {
-  if (Capacitor.isNativePlatform()) await writeToDocuments(file)
-  else download(file)
-  return 'saved'
+async function save(file: ExportFile): Promise<SavedExport> {
+  if (Capacitor.isNativePlatform()) return { status: 'saved', file: await writeToDocuments(file) }
+  download(file)
+  return { status: 'saved', file: null }
+}
+
+export function isSaved(outcome: SavedExport | string): outcome is SavedExport {
+  return typeof outcome !== 'string'
 }
 
 export function deliverExportFile(
