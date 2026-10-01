@@ -298,6 +298,38 @@ describe('weightRepository', () => {
     })
   })
 
+  describe('createStatement', () => {
+    it('prépare une pesée datée de l’instant fourni, sans l’écrire', async () => {
+      const statement = repository.createStatement(
+        { animalId: MIETTE, weightKg: 1.2, measuredOn: '2026-09-28' },
+        '2026-09-28T09:15:00.000Z',
+      )
+      await expect(repository.listByAnimal(MIETTE)).resolves.toEqual([])
+
+      await db.runMany([statement])
+
+      const [entry] = await repository.listByAnimal(MIETTE)
+      expect(entry).toMatchObject({
+        animalId: MIETTE,
+        weightKg: 1.2,
+        measuredOn: '2026-09-28',
+        createdAt: '2026-09-28T09:15:00.000Z',
+        updatedAt: '2026-09-28T09:15:00.000Z',
+        deletedAt: null,
+      })
+      expect(entry?.id).toMatch(/^[0-9a-f-]{36}$/)
+    })
+
+    it('valide la pesée comme une création', () => {
+      expect(() =>
+        repository.createStatement(
+          { animalId: MIETTE, weightKg: 0, measuredOn: '2026-09-28' },
+          '2026-09-28T09:15:00.000Z',
+        ),
+      ).toThrow(ZodError)
+    })
+  })
+
   describe('markDeletedByAnimalStatement', () => {
     it('construit l’instruction sans l’exécuter', async () => {
       const created = await repository.create({

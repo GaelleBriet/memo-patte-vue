@@ -141,7 +141,8 @@ export function createReminderActions({
   async function vaccinationDone(id: string, dueDate: string): Promise<void> {
     const vaccination = await (await vaccinations()).getById(id)
     if (vaccination === null) return openHome()
-    if (isInjectionNoted(vaccination, dueDate)) {
+    const { lastInjectionDate } = vaccination
+    if (lastInjectionDate !== null && isInjectionNoted(vaccination, dueDate)) {
       const texts: AlreadyNotedTexts = {
         today: (named) => t('notifications.action.alreadyInjectionToday', named),
         on: (named) => t('notifications.action.alreadyInjection', named),
@@ -149,7 +150,7 @@ export function createReminderActions({
       return alreadyNoted(texts, {
         animalId: vaccination.animalId,
         name: vaccination.name,
-        doneOn: vaccination.lastInjectionDate,
+        doneOn: lastInjectionDate,
       })
     }
     return openHome({ kind: 'vaccination', id, step: 'done' })

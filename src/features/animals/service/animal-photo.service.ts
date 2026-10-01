@@ -33,12 +33,12 @@ export function createAnimalPhotoService(storage: PhotoStorage) {
   }
 
   return {
-    async create(
-      repository: AnimalsRepository,
-      input: AnimalInput,
+    async create<Input extends AnimalInput>(
+      creator: { create(input: Input): Promise<Animal> },
+      input: Input,
       change: PhotoChange,
     ): Promise<Animal> {
-      return withNewPhoto(change, (photoPath) => repository.create({ ...input, photoPath }))
+      return withNewPhoto(change, (photoPath) => creator.create({ ...input, photoPath }))
     },
 
     /** Le `photoPath` de `input` est ignoré : seul `change` décide de la photo. */

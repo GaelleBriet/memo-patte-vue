@@ -1,6 +1,10 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
-import type { Animal, AnimalInput } from '../schema/animal.schema'
+import type { Animal, AnimalCreationInput, AnimalInput } from '../schema/animal.schema'
+import {
+  animalCreationService,
+  type AnimalCreationService,
+} from '../service/animal-creation.service'
 import {
   animalDeletionService,
   type AnimalDeletionService,
@@ -12,11 +16,13 @@ import { recordUsageSignal } from '@/shared/utils/usage-signals'
 
 export type AnimalsRepositoryProvider = () => AnimalsRepository | Promise<AnimalsRepository>
 export type AnimalDeletionServiceProvider = () => AnimalDeletionService
+export type AnimalCreationServiceProvider = () => Pick<AnimalCreationService, 'create'>
 
 const KEEP_PHOTO: PhotoChange = { kind: 'keep' }
 
 let provider: AnimalsRepositoryProvider | null = null
 let deletionProvider: AnimalDeletionServiceProvider = () => animalDeletionService
+let creationProvider: AnimalCreationServiceProvider = () => animalCreationService
 
 export function provideAnimalsRepository(next: AnimalsRepositoryProvider | null): void {
   provider = next
@@ -25,6 +31,11 @@ export function provideAnimalsRepository(next: AnimalsRepositoryProvider | null)
 /** `null` rétablit le service réel, branché sur la base locale. */
 export function provideAnimalDeletionService(next: AnimalDeletionServiceProvider | null): void {
   deletionProvider = next ?? (() => animalDeletionService)
+}
+
+/** `null` rétablit le service réel, branché sur la base locale. */
+export function provideAnimalCreationService(next: AnimalCreationServiceProvider | null): void {
+  creationProvider = next ?? (() => animalCreationService)
 }
 
 export const useAnimalsStore = defineStore('animals', () => {
@@ -97,10 +108,8 @@ export const useAnimalsStore = defineStore('animals', () => {
       }
     },
 
-    async create(input: AnimalInput, photo: PhotoChange = KEEP_PHOTO): Promise<Animal> {
-      const animal = await write((repository) =>
-        animalPhotoService.create(repository, input, photo),
-      )
+    async create(input: AnimalCreationInput, photo: PhotoChange = KEEP_PHOTO): Promise<Animal> {
+      const animal = await write(() => animalPhotoService.create(creationProvider(), input, photo))
       if (photo.kind === 'replace') recordUsageSignal('photo')
       track('animal_created', { species: animal.species })
       return animal

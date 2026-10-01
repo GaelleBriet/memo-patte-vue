@@ -2,9 +2,11 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 import type { Animal, AnimalInput } from '../schema/animal.schema'
+import type { AnimalCreationService } from '../service/animal-creation.service'
 import type { AnimalDeletionService } from '../service/animal-deletion.service'
 import type { AnimalsRepository } from '../repository/animals.repository'
 import {
+  provideAnimalCreationService,
   provideAnimalDeletionService,
   provideAnimalsRepository,
   useAnimalsStore,
@@ -23,6 +25,7 @@ vi.mock('@/core/photos/photo-storage', () => ({
 
 let repository: FakeAnimalsRepository
 let deletion: { remove: Mock<AnimalDeletionService['remove']> }
+let creation: { create: Mock<AnimalCreationService['create']> }
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -31,13 +34,20 @@ beforeEach(() => {
   deletion = {
     remove: vi.fn<AnimalDeletionService['remove']>(async (id) => repository.markDeleted(id)),
   }
+  creation = {
+    create: vi.fn<AnimalCreationService['create']>(async ({ weightKg: _weightKg, ...input }) =>
+      repository.create(input),
+    ),
+  }
   provideAnimalsRepository(() => repository)
   provideAnimalDeletionService(() => deletion)
+  provideAnimalCreationService(() => creation)
 })
 
 afterEach(() => {
   provideAnimalsRepository(null)
   provideAnimalDeletionService(null)
+  provideAnimalCreationService(null)
 })
 
 describe('useAnimalsStore', () => {
@@ -109,6 +119,19 @@ describe('useAnimalsStore', () => {
     })
     expect(created.name).toBe('Vasco')
     expect(store.animals.map((animal) => animal.name)).toEqual(['Vasco'])
+  })
+
+  it('confie au service de création le poids saisi, qui devient la première pesée', async () => {
+    const store = useAnimalsStore()
+
+    await store.create({ name: 'Pixel', species: 'cat', weightKg: 1.2 })
+
+    expect(creation.create).toHaveBeenCalledExactlyOnceWith({
+      name: 'Pixel',
+      species: 'cat',
+      weightKg: 1.2,
+      photoPath: null,
+    })
   })
 
   it('transmet la création aux statistiques, sans le nom de l’animal', async () => {
@@ -339,7 +362,6 @@ function createFakeRepository(): FakeAnimalsRepository {
       species: input.species,
       breed: input.breed ?? null,
       birthDate: input.birthDate ?? null,
-      initialWeightKg: input.initialWeightKg ?? null,
       photoPath: input.photoPath ?? null,
       id: crypto.randomUUID(),
       createdAt: now,

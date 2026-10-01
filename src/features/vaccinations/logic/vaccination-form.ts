@@ -35,7 +35,7 @@ export function emptyVaccinationFormValues(): VaccinationFormValues {
 export function vaccinationFormValuesFrom(vaccination: Vaccination): VaccinationFormValues {
   return {
     name: vaccination.name,
-    lastInjectionDate: vaccination.lastInjectionDate,
+    lastInjectionDate: vaccination.lastInjectionDate ?? '',
     dueDate: vaccination.dueDate ?? '',
   }
 }

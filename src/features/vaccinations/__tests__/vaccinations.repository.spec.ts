@@ -15,7 +15,7 @@ import {
 } from '../repository/vaccination-injections.repository'
 import type { Vaccination } from '../schema/vaccination.schema'
 
-type ImportedVaccination = Omit<Vaccination, 'deletedAt'>
+type ImportedVaccination = Omit<Vaccination, 'deletedAt'> & { lastInjectionDate: string }
 
 // La fabrique est le seul code testé ici qui ouvre la base : on lui substitue `getDb`.
 vi.mock('@/core/db/sqlite', () => ({ getDb: vi.fn<() => Promise<DbClient>>() }))
@@ -536,16 +536,73 @@ describe('vaccinationsRepository — injections', () => {
     })
   })
 
-  it('ne montre pas un vaccin sans injection visible', async () => {
+  it('lit un vaccin sans injection, son rappel prévu pour prochain rappel', async () => {
     await db.run(
-      `INSERT INTO vaccination (id, animal_id, name, created_at, updated_at)
-       VALUES ('sans-injection', ?, 'Leucose', '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z')`,
+      `INSERT INTO vaccination (id, animal_id, name, planned_due_date, created_at, updated_at)
+       VALUES ('sans-injection', ?, 'Leucose', '2026-10-05', '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z')`,
+      [MIETTE],
+    )
+    const leucose: Vaccination = {
+      id: 'sans-injection',
+      animalId: MIETTE,
+      name: 'Leucose',
+      lastInjectionDate: null,
+      dueDate: '2026-10-05',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+      deletedAt: null,
+    }
+
+    await expect(repository.getById('sans-injection')).resolves.toEqual(leucose)
+    await expect(repository.listByAnimal(MIETTE)).resolves.toEqual([leucose])
+    await expect(repository.listAll()).resolves.toEqual([leucose])
+  })
+
+  it('range après les autres un vaccin sans injection', async () => {
+    await repository.create({ animalId: MIETTE, name: 'Typhus', lastInjectionDate: '2025-09-12' })
+    await db.run(
+      `INSERT INTO vaccination (id, animal_id, name, planned_due_date, created_at, updated_at)
+       VALUES ('sans-injection', ?, 'Leucose', '2026-10-05', '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z')`,
       [MIETTE],
     )
 
-    await expect(repository.getById('sans-injection')).resolves.toBeNull()
-    await expect(repository.listByAnimal(MIETTE)).resolves.toEqual([])
-    await expect(repository.listAll()).resolves.toEqual([])
+    const names = (await repository.listByAnimal(MIETTE)).map(({ name }) => name)
+    expect(names).toEqual(['Typhus', 'Leucose'])
+  })
+
+  it('prend le rappel de la dernière injection plutôt que le rappel prévu, même vide', async () => {
+    const carre = await repository.create({
+      animalId: MIETTE,
+      name: 'Carré',
+      lastInjectionDate: '2025-09-25',
+      dueDate: null,
+    })
+    await db.run(`UPDATE vaccination SET planned_due_date = '2026-10-05' WHERE id = ?`, [carre.id])
+
+    await expect(repository.getById(carre.id)).resolves.toMatchObject({
+      lastInjectionDate: '2025-09-25',
+      dueDate: null,
+    })
+  })
+
+  it('retrouve le rappel prévu quand plus aucune injection n’est visible', async () => {
+    const carre = await repository.create({
+      animalId: MIETTE,
+      name: 'Carré',
+      lastInjectionDate: '2025-09-25',
+      dueDate: '2026-09-25',
+    })
+    await db.run(`UPDATE vaccination SET planned_due_date = '2026-10-05' WHERE id = ?`, [carre.id])
+
+    await db.run(
+      'UPDATE vaccination_injection SET deleted_at = updated_at WHERE vaccination_id = ?',
+      [carre.id],
+    )
+
+    await expect(repository.getById(carre.id)).resolves.toMatchObject({
+      lastInjectionDate: null,
+      dueDate: '2026-10-05',
+    })
   })
 
   it('trie les vaccins d’un animal par la date de leur tête', async () => {

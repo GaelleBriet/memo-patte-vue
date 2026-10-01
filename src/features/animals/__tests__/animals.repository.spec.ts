@@ -32,7 +32,6 @@ describe('animalsRepository', () => {
       species: 'cat',
       breed: 'Européen',
       birthDate: '2020-05-12',
-      initialWeightKg: 3.4,
       photoPath: 'miette.jpg',
     })
 
@@ -47,10 +46,54 @@ describe('animalsRepository', () => {
     expect(created).toMatchObject({
       breed: null,
       birthDate: null,
-      initialWeightKg: null,
       photoPath: null,
     })
     await expect(repository.getById(created.id)).resolves.toEqual(created)
+  })
+
+  it('crée un animal suivi, sans date approximative ni départ', async () => {
+    const created = await repository.create({ name: 'Vasco', species: 'dog' })
+
+    await expect(
+      db.query(
+        `SELECT birth_date_approximate, unfollowed_on, departure_reason, departure_date
+         FROM animal WHERE id = ?`,
+        [created.id],
+      ),
+    ).resolves.toEqual([
+      {
+        birth_date_approximate: 0,
+        unfollowed_on: null,
+        departure_reason: null,
+        departure_date: null,
+      },
+    ])
+  })
+
+  describe('create avec des écritures liées', () => {
+    it('les joue dans la même transaction, avec l’animal créé', async () => {
+      const created = await repository.create({ name: 'Pixel', species: 'cat' }, (animal) => [
+        {
+          sql: `INSERT INTO weight_entry (id, animal_id, weight_kg, measured_on, created_at, updated_at)
+                VALUES ('w1', ?, 1.2, '2026-09-28', ?, ?)`,
+          params: [animal.id, animal.createdAt, animal.createdAt],
+        },
+      ])
+
+      await expect(
+        db.query('SELECT animal_id, created_at FROM weight_entry WHERE id = ?', ['w1']),
+      ).resolves.toEqual([{ animal_id: created.id, created_at: created.createdAt }])
+    })
+
+    it('ne crée pas l’animal quand une écriture liée échoue', async () => {
+      await expect(
+        repository.create({ name: 'Pixel', species: 'cat' }, () => [
+          { sql: 'INSERT INTO table_inexistante VALUES (1)' },
+        ]),
+      ).rejects.toThrow(/no such table/)
+
+      await expect(repository.list()).resolves.toEqual([])
+    })
   })
 
   it('renvoie null pour un identifiant inconnu', async () => {
@@ -93,14 +136,12 @@ describe('animalsRepository', () => {
       const updated = await repository.update(created.id, {
         name: 'Miette la seconde',
         species: 'cat',
-        initialWeightKg: 4,
       })
 
       expect(updated).toMatchObject({
         id: created.id,
         name: 'Miette la seconde',
         breed: null,
-        initialWeightKg: 4,
         createdAt: '2026-03-01T10:00:00.000Z',
         updatedAt: '2026-03-01T10:01:00.000Z',
       })
@@ -108,6 +149,38 @@ describe('animalsRepository', () => {
     } finally {
       vi.useRealTimers()
     }
+  })
+
+  it('garde le suivi et le départ de l’animal à la mise à jour', async () => {
+    const created = await repository.create({
+      name: 'Luna',
+      species: 'cat',
+      birthDate: '2026-07-20',
+    })
+    await db.run(
+      `UPDATE animal
+       SET birth_date_approximate = 1, unfollowed_on = '2026-09-30', departure_reason = 'rehomed',
+           departure_date = '2026-09-28'
+       WHERE id = ?`,
+      [created.id],
+    )
+
+    await repository.update(created.id, { name: 'Luna', species: 'cat', breed: 'Européen' })
+
+    await expect(
+      db.query(
+        `SELECT birth_date_approximate, unfollowed_on, departure_reason, departure_date
+         FROM animal WHERE id = ?`,
+        [created.id],
+      ),
+    ).resolves.toEqual([
+      {
+        birth_date_approximate: 1,
+        unfollowed_on: '2026-09-30',
+        departure_reason: 'rehomed',
+        departure_date: '2026-09-28',
+      },
+    ])
   })
 
   it('échoue à mettre à jour un animal inexistant', async () => {
@@ -304,7 +377,6 @@ describe('animalsRepository — import', () => {
     species: 'cat',
     breed: 'Européen',
     birthDate: '2019-03-02',
-    initialWeightKg: 3.8,
     photoPath: null,
     createdAt: '2026-01-10T08:00:00.000Z',
     updatedAt: '2026-02-01T08:00:00.000Z',
