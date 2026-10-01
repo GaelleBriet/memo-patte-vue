@@ -378,3 +378,7 @@ grant update (
 
 revoke execute on function public.has_active_plus() from anon;
 revoke execute on function public.clamp_sync_timestamps() from public, anon, authenticated;
+
+alter table public.plus_entitlements force row level security;
+revoke all on table public.plus_entitlements from anon, authenticated;
+grant select on table public.plus_entitlements to authenticated;
