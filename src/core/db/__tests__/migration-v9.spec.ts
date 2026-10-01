@@ -90,6 +90,19 @@ describe.each([
     expect(await userVersion(db)).toBe(9)
   })
 
+  it('reste en version 8, carnet et schéma intacts, quand une instruction de la v9 échoue', async () => {
+    await db.execute('CREATE VIEW carnet_settings AS SELECT 1 AS id')
+    const schemaAvant = await schema(db)
+
+    await expect(applyMigrations(db)).rejects.toThrow(/cannot create AFTER trigger on view/)
+
+    expect(await userVersion(db)).toBe(8)
+    expect(await schema(db)).toEqual(schemaAvant)
+    await expect(db.query('SELECT name, initial_weight_kg FROM animal')).resolves.toEqual([
+      { name: 'Milo', initial_weight_kg: 8.5 },
+    ])
+  })
+
   it('efface toutes les données de test, synchronisation comprise', async () => {
     await applyMigrations(db)
 
