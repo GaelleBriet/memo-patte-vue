@@ -6,8 +6,13 @@ const PHOTOS_DIR = 'photos'
 
 const PHOTO_NAME = /^[\w-]+\.jpg$/
 
+/** Un nom de fichier seul, sans chemin : celui que `savePhoto` rend. */
+export function isPhotoFileName(name: string): boolean {
+  return PHOTO_NAME.test(name)
+}
+
 function photoPath(name: string): string {
-  if (!PHOTO_NAME.test(name)) throw new Error(`Nom de photo invalide : ${name}`)
+  if (!isPhotoFileName(name)) throw new Error(`Nom de photo invalide : ${name}`)
   return `${PHOTOS_DIR}/${name}`
 }
 

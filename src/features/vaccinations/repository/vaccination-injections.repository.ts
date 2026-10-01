@@ -223,11 +223,13 @@ export function createVaccinationInjectionsRepository(
       return exists
         ? {
             sql: `UPDATE vaccination_injection
-                  SET injected_on = ?, next_due_date = ?, updated_at = ?, deleted_at = NULL
+                  SET injected_on = ?, next_due_date = ?, created_at = ?, updated_at = ?,
+                      deleted_at = NULL
                   WHERE id = ?`,
             params: [
               injection.injectedOn,
               injection.nextDueDate,
+              injection.createdAt,
               injection.updatedAt,
               injection.id,
             ],

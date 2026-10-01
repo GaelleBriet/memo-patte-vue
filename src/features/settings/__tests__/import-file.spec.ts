@@ -72,15 +72,67 @@ describe('parseExportFile', () => {
     expect(result.ok && result.file.data.carnetSettings).toBeNull()
   })
 
-  it('accepte un traitement sans aucune prise et un vaccin sans injection', () => {
+  it('accepte un vaccin sans injection', () => {
     const result = parseExportFile(
-      withDocument((document) => {
-        document.treatmentDoses = []
-        document.vaccinationInjections = []
-      }),
+      withDocument((document) => (document.vaccinationInjections = [])),
     )
 
     expect(result.ok).toBe(true)
+  })
+
+  it('refuse un traitement sans aucune prise, que l’app ne sait pas encore afficher', () => {
+    const text = withDocument((document) => {
+      document.treatmentDoses = rows(document, 'treatmentDoses').slice(1)
+    })
+
+    expect(parseExportFile(text)).toEqual(INVALID)
+  })
+
+  describe('instants', () => {
+    it.each([
+      ['sans secondes', '2026-02-01T08:00Z', '2026-02-01T08:00:00.000Z'],
+      ['sans millisecondes', '2026-02-01T08:00:30Z', '2026-02-01T08:00:30.000Z'],
+      ['au dixième', '2026-02-01T08:00:30.5Z', '2026-02-01T08:00:30.500Z'],
+      ['à la nanoseconde', '2026-02-01T08:00:30.123456789Z', '2026-02-01T08:00:30.123Z'],
+    ])('réécrit un instant %s dans la forme que l’app enregistre', (_, written, canonical) => {
+      const result = parseExportFile(
+        withDocument((document) => {
+          premier(document, 'animals').updatedAt = written
+          premier(document, 'treatmentDoses').createdAt = written
+          ;(document.carnetSettings as Row).updatedAt = written
+        }),
+      )
+
+      expect(result.ok && result.file.data.animals[0]!.updatedAt).toBe(canonical)
+      expect(result.ok && result.file.data.treatmentDoses[0]!.createdAt).toBe(canonical)
+      expect(result.ok && result.file.data.carnetSettings!.updatedAt).toBe(canonical)
+    })
+  })
+
+  describe('nom de photo', () => {
+    it.each([
+      '../photo.jpg',
+      '../../databases/memopatte.db',
+      '/etc/passwd',
+      'dossier/photo.jpg',
+      'dossier\\photo.jpg',
+      'https://exemple.fr/photo.jpg',
+      'photo.png',
+      'photo.jpg.exe',
+      '.jpg',
+      'photo.jpg\u0000',
+      'pho to.jpg',
+      '',
+    ])('refuse « %s »', (photoFileName) => {
+      expect(parseExportFile(forged('animals', 'photoFileName', photoFileName))).toEqual(INVALID)
+    })
+
+    it.each(['0f6c1c9e-5d6b-4b43-9a57-2f1d8b0c7a11.jpg', 'Photo_1.jpg', null])(
+      'accepte « %s »',
+      (photoFileName) => {
+        expect(parseExportFile(forged('animals', 'photoFileName', photoFileName)).ok).toBe(true)
+      },
+    )
   })
 
   describe('version', () => {
@@ -246,6 +298,38 @@ describe('parseExportFile', () => {
       const text = withDocument((document) => Object.assign(panacur(document).period, change))
 
       expect(parseExportFile(text)).toEqual(INVALID)
+    })
+
+    it.each([
+      ['une date de fin avant le début', { endsOn: '2026-08-31' }],
+      ['une date d’arrêt avant le début', { stoppedOn: '2026-08-31' }],
+      ['une première échéance avant le début', { firstDueOn: '2026-08-31' }],
+      [
+        'plus de 24 heures par jour',
+        {
+          times: Array.from(
+            { length: 25 },
+            (_, index) => `0${Math.floor(index / 10)}:${index % 10}0`,
+          ),
+        },
+      ],
+    ])('refuse %s', (_, change) => {
+      const text = withDocument((document) => Object.assign(panacur(document).period, change))
+
+      expect(parseExportFile(text)).toEqual(INVALID)
+    })
+
+    it('accepte une fin, un arrêt et une première échéance le jour du début, et 24 heures par jour', () => {
+      const text = withDocument((document) =>
+        Object.assign(panacur(document).period, {
+          endsOn: '2026-09-01',
+          stoppedOn: '2026-09-01',
+          firstDueOn: '2026-09-01',
+          times: Array.from({ length: 24 }, (_, hour) => `${String(hour).padStart(2, '0')}:00`),
+        }),
+      )
+
+      expect(parseExportFile(text).ok).toBe(true)
     })
 
     it.each([

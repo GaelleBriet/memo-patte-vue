@@ -2,7 +2,7 @@ import { isFuture, parseISO } from 'date-fns'
 import { z } from 'zod'
 
 import { syncAllReminders } from '@/app/reminders-sync'
-import { photoExists } from '@/core/photos/photo-storage'
+import { isPhotoFileName, photoExists } from '@/core/photos/photo-storage'
 import {
   animalInputSchema,
   animalSpeciesSchema,
@@ -85,6 +85,7 @@ export const MAX_IMPORT_FILE_BYTES = 10 * 1024 * 1024
 export const MIN_IMPORT_YEAR = 1900
 export const MAX_IMPORT_YEAR = 2199
 const MAX_TEXT_LENGTH = 200
+const MAX_TIMES_PER_DAY = 24
 
 const DAY = /^(\d{4})-(\d{2})-(\d{2})$/
 
@@ -104,7 +105,11 @@ function isCalendarDay(value: string): boolean {
 const day = z.string().refine(isCalendarDay)
 const pastDay = day.refine((value) => !isFuture(parseISO(value)))
 const clockTime = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/)
-const instant = z.iso.datetime().refine(isYearInRange)
+// La synchronisation compare les instants comme des chaînes : un seul format entre en base.
+const instant = z.iso
+  .datetime()
+  .refine(isYearInRange)
+  .transform((value) => new Date(value).toISOString())
 const timestamps = { createdAt: instant, updatedAt: instant }
 const optionalName = z
   .string()
@@ -122,7 +127,7 @@ const animalFileSchema = z.object({
   breed: optionalName,
   birthDate: pastDay.nullable(),
   birthDateApproximate: z.boolean(),
-  photoFileName: z.string().max(MAX_TEXT_LENGTH).nullable(),
+  photoFileName: z.string().max(MAX_TEXT_LENGTH).refine(isPhotoFileName).nullable(),
   unfollowedOn: day.nullable(),
   departureReason: departureReasonSchema.nullable(),
   departureDate: day.nullable(),
@@ -164,7 +169,10 @@ const periodFileSchema = z
     endsOn: day.nullable(),
     stoppedOn: day.nullable(),
     frequency: treatmentFrequencySchema,
-    times: z.array(clockTime).refine((times) => new Set(times).size === times.length),
+    times: z
+      .array(clockTime)
+      .max(MAX_TIMES_PER_DAY)
+      .refine((times) => new Set(times).size === times.length),
     doseQuantity: z.number().positive().nullable(),
     doseUnit: doseUnitSchema.nullable(),
     reminderOffsetMinutes: z.literal([...REMINDER_OFFSETS_MINUTES]).nullable(),
@@ -172,6 +180,9 @@ const periodFileSchema = z
     ...timestamps,
   })
   .refine((period) => (period.doseQuantity === null) === (period.doseUnit === null))
+  .refine(({ startsOn, firstDueOn, endsOn, stoppedOn }) =>
+    [firstDueOn, endsOn, stoppedOn].every((date) => date === null || date >= startsOn),
+  )
 
 const doseFileSchema = z
   .object({
@@ -238,7 +249,8 @@ const exportFileSchema = z
   })
   .refine((file) => {
     const withPeriod = new Set(file.treatmentPeriods.map(({ treatmentId }) => treatmentId))
-    return file.treatments.every(({ id }) => withPeriod.has(id))
+    const withDose = new Set(file.treatmentDoses.map(({ treatmentId }) => treatmentId))
+    return file.treatments.every(({ id }) => withPeriod.has(id) && withDose.has(id))
   })
 
 const versionSchema = z.object({ schemaVersion: z.number().int().positive() })
