@@ -417,6 +417,37 @@ class Simulation {
     }
   }
 
+  // Q25 : « Supprimer ce report » est refusé dès que la dose d'arrivée est notée, accepté sinon.
+  private unmove(before: TreatmentSchedule): void {
+    const line = pick(
+      this.random,
+      before.doses.filter(({ status }) => status === 'postponed'),
+    )
+    if (line === undefined) return
+    const gesture = `${this.book.today} supprimer le déplacement ${idOf(line)}`
+    const arrivalLogged = before.doses.some(
+      (dose) =>
+        dose.status !== 'postponed' &&
+        dose.periodId === line.periodId &&
+        dose.dueOn === line.nextDueDate,
+    )
+    if (before.lockedMoveIds.includes(line.id) !== arrivalLogged) {
+      this.fail(
+        `${gesture} : verrou ${String(!arrivalLogged)} alors que l’arrivée est notée : ${String(arrivalLogged)}`,
+      )
+    }
+    let refused = false
+    try {
+      before.removeMove(line.id)
+    } catch {
+      refused = true
+    }
+    if (refused !== arrivalLogged) this.fail(`${gesture} : refus ${String(refused)} inattendu`)
+    if (refused) return
+    this.log.push(gesture)
+    this.book = { ...this.book, doses: this.book.doses.filter(({ id }) => id !== line.id) }
+  }
+
   private stop(before: TreatmentSchedule): void {
     const { periods, today } = this.book
     const last = periods.at(-1)
@@ -633,26 +664,9 @@ class Simulation {
       case 'newPeriod':
         this.newPeriod(before)
         break
-      case 'unmove': {
-        const line = pick(
-          this.random,
-          // Un déplacement dont la dose d'arrivée est déjà notée ne se supprime pas : la prise resterait sans échéance.
-          this.book.doses.filter(
-            (move) =>
-              move.status === 'postponed' &&
-              !this.book.doses.some(
-                (dose) =>
-                  dose.status !== 'postponed' &&
-                  dose.periodId === move.periodId &&
-                  dose.dueOn === move.nextDueDate,
-              ),
-          ),
-        )
-        if (line === undefined) break
-        this.log.push(`${today} supprimer le déplacement ${idOf(line)}`)
-        this.book = { ...this.book, doses: this.book.doses.filter(({ id }) => id !== line.id) }
+      case 'unmove':
+        this.unmove(before)
         break
-      }
       default:
         this.book = { ...this.book, today: plusDays(today, int(this.random, 1, 4)) }
     }

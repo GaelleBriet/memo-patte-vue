@@ -2278,20 +2278,6 @@ describe('pourquoi une dose ne se déplace pas, et quel chemin prend « Prochain
     expect(scheduleOf(luna, '2026-09-28').moveRefusal(due('2026-09-27'))).toBe('previous-period')
   })
 
-  it('une ligne existe plus loin dans la période', () => {
-    let book = carnet(weekly())
-    book = record(book, '2026-09-01', {
-      kind: 'given',
-      due: due('2026-09-08'),
-      givenOn: '2026-09-01',
-    })
-    const schedule = scheduleOf(book, '2026-09-01')
-
-    expect(schedule.moveBounds(due('2026-09-01'))).toBeNull()
-    expect(schedule.moveRefusal(due('2026-09-01'))).toBe('later-line')
-    expect(() => schedule.move(due('2026-09-01'), '2026-09-03')).toThrow(/later-line/)
-  })
-
   it('aucune date possible avant la date de fin', () => {
     const book = record(carnet(period({ endsOn: '2026-09-03' })), '2026-09-03', {
       kind: 'given',
@@ -2450,6 +2436,28 @@ describe('contre-exemples de la campagne longue', () => {
     expect(after.currentDoses).toEqual([due('2026-04-11', '20:00')])
   })
 
+  it('corriger une prise ne rattache pas un déplacement suivi d’une autre ligne (graine 906391)', () => {
+    const sixWeeks = period({ firstDueOn: '2026-03-28', frequency: { value: 6, unit: 'week' } })
+    const today = '2026-03-30'
+    let book = record(carnet(sixWeeks), today, {
+      kind: 'given',
+      due: due('2026-03-28'),
+      givenOn: '2026-03-25',
+    })
+    const first = lastDose(book)
+    book = record(book, today, { kind: 'postponed', due: due('2026-05-06'), to: '2026-04-04' })
+    book = record(book, today, { kind: 'given', due: due('2026-04-04'), givenOn: today })
+    const arrival = lastDose(book)
+    book = redate(book, today, arrival.id, '2026-03-28')
+    book = record(book, today, { kind: 'given', due: due('2026-05-09'), givenOn: today })
+    book = withoutDose(redate(book, today, arrival.id, '2026-03-26'), arrival.id)
+    book = redate(book, today, first.id, today)
+
+    const schedule = scheduleOf(book, today)
+    const lines = new Set(schedule.doses.map(({ dueOn }) => dueOn))
+    expect(schedule.upcoming(6).filter(({ dueOn }) => lines.has(dueOn))).toEqual([])
+  })
+
   it('ramenée à un jour que la suite n’atteint plus avant la date de fin, la dose y reste à donner (graine 21753)', () => {
     const sixWeeks = period({
       firstDueOn: '2026-03-06',
@@ -2563,6 +2571,98 @@ describe('une seule ligne de déplacement par journée d’origine (Q21, N16, gr
         ...day('2026-04-06'),
       ])
     })
+  })
+})
+
+describe('un déplacement dont la dose d’arrivée est notée fait partie de l’historique (TR-24, Q25)', () => {
+  const moved = record(done(done(carnet(weekly()), '2026-09-01'), '2026-09-08'), '2026-09-09', {
+    kind: 'postponed',
+    due: due('2026-09-15'),
+    to: '2026-09-20',
+  })
+  const line = lastDose(moved)
+
+  it('tant que la dose d’arrivée est sans prise, la ligne se supprime et se redate', () => {
+    const schedule = scheduleOf(moved, '2026-09-09')
+
+    expect(schedule.lockedMoveIds).toEqual([])
+    expect(schedule.removeMove(line.id)).toEqual({ action: 'delete', doseId: line.id })
+    expect(schedule.move(due('2026-09-20'), '2026-09-18').action).toBe('rewrite')
+  })
+
+  it.each(['given', 'missed'] as const)(
+    'dose d’arrivée %s : la ligne ne se supprime plus',
+    (kind) => {
+      const gesture =
+        kind === 'given'
+          ? { kind, due: due('2026-09-20'), givenOn: '2026-09-20' }
+          : { kind, due: due('2026-09-20') }
+      const schedule = scheduleOf(record(moved, '2026-09-20', gesture), '2026-09-20')
+
+      expect(schedule.lockedMoveIds).toEqual([line.id])
+      expect(() => schedule.removeMove(line.id)).toThrow(/dose d’arrivée est déjà notée/)
+    },
+  )
+
+  it('à plusieurs heures, une heure d’arrivée notée suffit ; l’heure restante se déplace par une nouvelle ligne', () => {
+    const luna = carnet(period({ firstDueOn: '2026-09-28', times: ['08:00', '20:00'] }))
+    let book = record(luna, '2026-09-28', {
+      kind: 'postponed',
+      due: due('2026-09-28', '08:00'),
+      to: '2026-09-30',
+    })
+    const dayLine = lastDose(book)
+    book = done(book, '2026-09-30')
+    const schedule = scheduleOf(book, '2026-09-30')
+
+    expect(schedule.lockedMoveIds).toEqual([dayLine.id])
+    expect(() => schedule.removeMove(dayLine.id)).toThrow(/déjà notée/)
+    expect(schedule.move(due('2026-09-30', '20:00'), '2026-10-02').action).toBe('create')
+  })
+
+  it('une heure revenue sur la journée d’origine ne redate pas une ligne verrouillée', () => {
+    const luna = carnet(period({ firstDueOn: '2026-09-28', times: ['08:00', '20:00'] }))
+    let book = done(luna, '2026-09-28')
+    const at8 = lastDose(book)
+    book = record(book, '2026-09-28', {
+      kind: 'postponed',
+      due: due('2026-09-28', '20:00'),
+      to: '2026-09-30',
+    })
+    book = withoutDose(done(book, '2026-09-30'), at8.id)
+    const schedule = scheduleOf(book, '2026-09-30')
+
+    expect(() => schedule.move(due('2026-09-28', '08:00'), '2026-10-01')).toThrow(/déjà notée/)
+    expect(schedule.moveRefusal(due('2026-09-28', '08:00'))).toBe('arrival-logged')
+  })
+
+  it('une ligne inconnue ou une prise ne se supprime pas par ce geste', () => {
+    const schedule = scheduleOf(moved, '2026-09-09')
+
+    expect(() => schedule.removeMove('inconnue')).toThrow(/Aucun déplacement/)
+    expect(() => schedule.removeMove(moved.doses[0]?.id ?? '')).toThrow(/Aucun déplacement/)
+  })
+})
+
+describe('refus de déplacement : une dose plus lointaine déjà reportée, ou déjà notée (TR-9, Q26)', () => {
+  it('dose plus lointaine déjà déplacée : « later-line »', () => {
+    const book = record(carnet(weekly({ firstDueOn: '2026-04-04' })), '2026-04-11', {
+      kind: 'postponed',
+      due: due('2026-04-18'),
+      to: '2026-04-17',
+    })
+
+    expect(scheduleOf(book, '2026-04-12').moveRefusal(due('2026-04-11'))).toBe('later-line')
+  })
+
+  it('dose plus lointaine déjà notée : « later-dose »', () => {
+    const book = record(carnet(weekly()), '2026-09-01', {
+      kind: 'given',
+      due: due('2026-09-08'),
+      givenOn: '2026-09-01',
+    })
+
+    expect(scheduleOf(book, '2026-09-01').moveRefusal(due('2026-09-01'))).toBe('later-dose')
   })
 })
 

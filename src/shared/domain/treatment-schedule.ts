@@ -82,10 +82,12 @@ export type MovedDose =
 export type MoveBounds = { earliest: string; latest: string | null }
 
 /**
- * Pourquoi une dose ne se déplace pas : dose d'une période précédente, ligne déjà écrite plus loin
- * dans la période, ou plus aucune date possible avant la date de fin.
+ * Pourquoi une dose ne se déplace pas : dose d'une période précédente ; dose plus lointaine déjà
+ * déplacée (Q26) ou déjà notée ; plus aucune date avant la date de fin ; ligne de déplacement dont
+ * la dose d'arrivée est déjà notée (Q25).
  */
-export type MoveRefusal = 'previous-period' | 'later-line' | 'no-date-left'
+export type MoveRefusal =
+  'previous-period' | 'later-line' | 'later-dose' | 'no-date-left' | 'arrival-logged'
 
 export type NewPeriod = { startsOn: string; firstDueOn: string }
 
@@ -125,6 +127,10 @@ export type TreatmentSchedule = {
   moveBounds(due: Due): MoveBounds | null
   /** Raison pour laquelle cette dose ne se déplace pas, `null` si elle se déplace. */
   moveRefusal(due: Due): MoveRefusal | null
+  /** Déplacements dont la dose d'arrivée est notée (Q25) : ni « Changer la date » ni « Supprimer ce report ». */
+  lockedMoveIds: string[]
+  /** « Supprimer ce report » (TR-24) : la ligne à supprimer ; lève si elle est verrouillée (Q25). */
+  removeMove(doseId: string): MovedDose
   /** Dates d'une période ouverte par « Modifier » (TR-28, Q7, Q24), selon ses heures. */
   newPeriod(frequency: Frequency, times: readonly string[]): NewPeriod
 }
@@ -823,7 +829,9 @@ function boundsOf(state: State, moved: Due): MoveBounds | MoveRefusal {
   const { today } = state.input
   const plan = planOf(state, moved.periodId)
   const lines = [...plan.steps.map(({ dose }) => dose), ...plan.stale]
-  if (lines.some((dose) => dose.dueOn > moved.dueOn)) return 'later-line'
+  const later = lines.filter((dose) => dose.dueOn > moved.dueOn)
+  if (later.some((dose) => dose.status !== 'postponed')) return 'later-dose'
+  if (later.length > 0) return 'later-line'
   const afterPrevious = nextDay(dayBeforeMove(state, moved))
   const earliest = latestOf([today, plan.period.startsOn, afterPrevious]) ?? today
   const latest = plan.period.endsOn
@@ -838,10 +846,39 @@ function firstPendingOfDay(state: State, due: Due): Due {
   return uniqueSorted([due, ...sameDay])[0] ?? due
 }
 
+// Q25 : sa dose d'arrivée notée, un déplacement fait partie de l'historique.
+function isLocked(plan: PeriodPlan, move: TreatmentDoseInput): boolean {
+  return plan.noteDays.has(move.nextDueDate)
+}
+
+const REFUSALS: Record<MoveRefusal, string> = {
+  'previous-period': 'dose d’une période précédente',
+  'later-line': 'une dose plus lointaine est déjà déplacée',
+  'later-dose': 'une dose plus lointaine est déjà notée',
+  'no-date-left': 'plus aucune date avant la date de fin',
+  'arrival-logged': 'la dose d’arrivée de son déplacement est déjà notée',
+}
+
+function removeMove(state: State, doseId: string): MovedDose {
+  for (const plan of state.plans) {
+    const inForce = plan.steps.filter(isMove).find(({ dose }) => dose.id === doseId)?.dose
+    if (inForce !== undefined && isLocked(plan, inForce)) {
+      throw new RangeError(
+        `Ce déplacement ne se supprime plus : sa dose d’arrivée est déjà notée (${doseId})`,
+      )
+    }
+    if (inForce !== undefined || plan.stale.some(({ id }) => id === doseId)) {
+      return { action: 'delete', doseId }
+    }
+  }
+  throw new RangeError(`Aucun déplacement à supprimer : ${doseId}`)
+}
+
 function moveBounds(state: State, due: Due): MoveBounds | MoveRefusal {
   const plan = planOf(state, due.periodId)
   if (plan !== state.open) return 'previous-period'
   const existing = movingStep(plan, due)
+  if (existing !== undefined && isLocked(plan, existing)) return 'arrival-logged'
   return existing === undefined
     ? boundsOf(state, firstPendingOfDay(state, due))
     : boundsOf(stateWithoutDues(state, [existing]), originOf(state, existing, due))
@@ -893,7 +930,7 @@ function move(state: State, due: Due, to: string): MovedDose {
   if (to < state.input.today) throw invalid(`nouvelle date ${to} : date passée`)
   const bounds = moveBounds(state, due)
   if (typeof bounds === 'string') {
-    throw invalid(`cette dose ne se déplace pas (${bounds}) : ${JSON.stringify(due)}`)
+    throw invalid(`cette dose ne se déplace pas (${bounds} : ${REFUSALS[bounds]})`)
   }
   if (to < bounds.earliest) throw invalid(`nouvelle date ${to} : pas après l’échéance précédente`)
   if (bounds.latest !== null && to > bounds.latest) {
@@ -956,7 +993,9 @@ function redate(state: State, doseId: string, givenOn: string): RedatedDose {
     const followed = { periodId: dose.periodId, dueOn: nextDueDate, dueTime: firstTime }
     const fixesFromItsDate =
       nextDueDate !== dose.dueOn && shiftDate(givenOn, plan.period.frequency, 1) === nextDueDate
-    const isPending = next !== null && !plan.noteDays.has(next.nextDueDate)
+    // Suivi d'une autre ligne, le déplacement garde son échéance : la suite d'après pourrait retomber dessus.
+    const isPending =
+      next !== null && !plan.noteDays.has(next.nextDueDate) && plan.steps.at(-1)?.dose === next
     const line =
       next === null
         ? null
@@ -1070,6 +1109,13 @@ export function treatmentSchedule(input: TreatmentScheduleInput): TreatmentSched
       const bounds = moveBounds(state, due)
       return typeof bounds === 'string' ? bounds : null
     },
+    lockedMoveIds: state.plans.flatMap((plan) =>
+      plan.steps
+        .filter(isMove)
+        .filter(({ dose }) => isLocked(plan, dose))
+        .map(({ dose }) => dose.id),
+    ),
+    removeMove: (doseId) => removeMove(state, doseId),
     newPeriod: (frequency, times) => newPeriod(state, frequency, times),
   }
 }
