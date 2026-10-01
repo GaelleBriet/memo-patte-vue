@@ -1,4 +1,4 @@
-# Format d'export des données (#80)
+# Format d'export des données (#80, v3 : #454)
 
 Contrat entre l'export (Paramètres → « Exporter mes données ») et l'import (#84, section
 [Import](#import--importer-un-export-mémopatte)).
@@ -89,24 +89,28 @@ Date du nom de fichier : minute locale de l'export. Encodage UTF-8, sans BOM, in
 
 ```json
 {
-  "schemaVersion": 2,
-  "exportedAt": "2026-09-25T08:30:00.000Z",
-  "appVersion": "0.1.41",
+  "schemaVersion": 3,
+  "exportedAt": "2026-10-01T08:30:00.000Z",
+  "appVersion": "0.1.48",
+  "carnetSettings": null,
   "animals": [],
   "vaccinations": [],
   "vaccinationInjections": [],
   "treatments": [],
+  "treatmentPeriods": [],
   "treatmentDoses": [],
   "weightEntries": [],
   "reminders": []
 }
 ```
 
-**Version 2** (#382, modèle de `docs/technical/proposition-historique-rappels.md` §10) : un vaccin
-est un nom et la liste de ses injections, un traitement un plan et la liste de ses prises. Chaque
-injection ou prise porte la prochaine échéance qu'elle a fixée ; la plus récente (la « tête » : date,
-puis `createdAt`, puis `id`) fait foi. Les parents ne répètent ni la dernière date ni l'échéance,
-portées par leurs événements. Un événement n'est exporté qu'avec son parent.
+**Version 3** (#454, modèle de [`modele-de-donnees-v2.md`](modele-de-donnees-v2.md) §4.1) : le fichier
+porte toutes les tables du carnet, colonne par colonne. Un vaccin est un nom, un rappel prévu et la
+liste de ses injections ; un traitement est un nom et un type, ses réglages vivent sur ses
+**périodes** (début, fin, fréquence, heures, posologie, moment du rappel, arrêt) et chaque ligne de
+son historique (prise donnée, oubliée ou reportée) se rattache à sa période. Les réglages du carnet
+voyagent avec lui. Une ligne enfant n'est exportée qu'avec son parent : une injection avec son
+vaccin, une période avec son traitement, une prise avec sa période.
 
 | Champ           | Type                   | Sens                                                                 |
 | --------------- | ---------------------- | -------------------------------------------------------------------- |
@@ -114,36 +118,58 @@ portées par leurs événements. Un événement n'est exporté qu'avec son paren
 | `exportedAt`    | ISO 8601 UTC           | Instant de l'export                                                  |
 | `appVersion`    | texte                  | Version de l'app (`package.json`) qui a produit le fichier           |
 
-Un import doit refuser un `schemaVersion` supérieur à celui qu'il connaît (« Cet export vient
-d'une version plus récente de l'app »).
+L'import n'accepte **que la version 3** (spec Données DO-8) : un `schemaVersion` supérieur est refusé
+(« Cet export vient d'une version plus récente de l'app. »), un `schemaVersion` inférieur aussi
+(« Cet export vient d'une version plus ancienne de l'app. »). Les formats v1 (jusqu'à la 0.1.40) et v2
+(jusqu'à la 0.1.48) ne se relisent plus, sans conversion : l'app n'est pas publiée, les fichiers
+existants ne portent que des données de test (décision du 2026-09-29).
 
-Un **format v3** est prévu avec le schéma v9 ; l'import n'acceptera alors plus que lui (spec Données
-DO-2, DO-8, [`docs/product/specs/donnees.md`](../product/specs/donnees.md)). Il sera décrit ici par
-son ticket.
+Dates : une date civile s'écrit `AAAA-MM-JJ`, existe au calendrier et tombe entre 1900 et 2199 ; un
+instant s'écrit en ISO 8601 UTC (`Z`), entre les mêmes années ; une heure s'écrit `HH:mm` sur 24 h.
+
+### `carnetSettings`
+
+`null` tant que rien n'a été réglé dans Paramètres (les valeurs par défaut s'appliquent : 9 h, « Me
+prévenir avant l'échéance » activé). Les réglages de l'appareil (unité de poids, rappels précis,
+accord aux statistiques, messages fermés) ne sont pas exportés.
+
+| Champ                 | Type         | Notes                                           |
+| --------------------- | ------------ | ----------------------------------------------- |
+| `vaccineReminderTime` | `HH:mm`      | Heure de tous les rappels de vaccins            |
+| `remindBeforeDue`     | booléen      | « Me prévenir avant l'échéance »                |
+| `createdAt`           | ISO 8601 UTC |                                                 |
+| `updatedAt`           | ISO 8601 UTC | Sert à « la modification la plus récente gagne » |
 
 ### `animals[]`
 
-| Champ             | Type                 | Notes                                                  |
-| ----------------- | -------------------- | ------------------------------------------------------ |
-| `id`              | UUID                 | Identifiant stable, repris par les autres tables       |
-| `name`            | texte                |                                                        |
-| `species`         | `"dog"` \| `"cat"`   |                                                        |
-| `breed`           | texte \| `null`      |                                                        |
-| `birthDate`       | `AAAA-MM-JJ` \| `null` | Date civile                                          |
-| `initialWeightKg` | nombre \| `null`     | Kilogrammes                                            |
-| `photoFileName`   | texte \| `null`      | Nom du fichier sous `files/photos/` (ex. `<uuid>.jpg`), jamais le contenu |
-| `createdAt`       | ISO 8601 UTC         |                                                        |
-| `updatedAt`       | ISO 8601 UTC         | Sert à « la modification la plus récente gagne »       |
+| Champ                  | Type                                           | Notes                                                  |
+| ---------------------- | ---------------------------------------------- | ------------------------------------------------------ |
+| `id`                   | UUID                                           | Identifiant stable, repris par les autres tables       |
+| `name`                 | texte                                          | 1 à 80 caractères                                      |
+| `species`              | `"dog"` \| `"cat"`                             |                                                        |
+| `breed`                | texte \| `null`                                | 80 caractères au plus                                  |
+| `birthDate`            | `AAAA-MM-JJ` \| `null`                         | Jamais dans le futur                                   |
+| `birthDateApproximate` | booléen                                        | « Environ » : la date de naissance est une estimation  |
+| `photoFileName`        | texte \| `null`                                | Nom du fichier sous `files/photos/` (ex. `<uuid>.jpg`), jamais le contenu |
+| `unfollowedOn`         | `AAAA-MM-JJ` \| `null`                         | Jour du geste « Ne plus suivre » ; `null` : animal suivi |
+| `departureReason`      | `"death"` \| `"rehomed"` \| `"other"` \| `null` | Motif du départ, facultatif                            |
+| `departureDate`        | `AAAA-MM-JJ` \| `null`                         | Date du départ, facultative, distincte du geste        |
+| `createdAt`            | ISO 8601 UTC                                   |                                                        |
+| `updatedAt`            | ISO 8601 UTC                                   | Sert à « la modification la plus récente gagne »       |
+
+Le poids saisi à la création d'un animal est sa première pesée (`weightEntries[]`) : l'animal ne
+porte plus de poids initial.
 
 ### `vaccinations[]`
 
-| Champ       | Type         | Notes          |
-| ----------- | ------------ | -------------- |
-| `id`        | UUID         |                |
-| `animalId`  | UUID         | `animals[].id` |
-| `name`      | texte        |                |
-| `createdAt` | ISO 8601 UTC |                |
-| `updatedAt` | ISO 8601 UTC |                |
+| Champ            | Type                   | Notes                                                             |
+| ---------------- | ---------------------- | ----------------------------------------------------------------- |
+| `id`             | UUID                   |                                                                   |
+| `animalId`       | UUID                   | `animals[].id`                                                    |
+| `name`           | texte                  | 1 à 80 caractères                                                 |
+| `plannedDueDate` | `AAAA-MM-JJ` \| `null` | Rappel prévu, lu tant que le vaccin n'a aucune injection          |
+| `createdAt`      | ISO 8601 UTC           |                                                                   |
+| `updatedAt`      | ISO 8601 UTC           |                                                                   |
 
 ### `vaccinationInjections[]`
 
@@ -152,66 +178,94 @@ son ticket.
 | `id`            | UUID                   |                                                   |
 | `vaccinationId` | UUID                   | `vaccinations[].id`                               |
 | `animalId`      | UUID                   | Toujours celui de son vaccin                      |
-| `injectedOn`    | `AAAA-MM-JJ`           |                                                   |
+| `injectedOn`    | `AAAA-MM-JJ`           | Jamais dans le futur                              |
 | `nextDueDate`   | `AAAA-MM-JJ` \| `null` | Rappel choisi ce jour-là ; `null` : pas de rappel |
 | `createdAt`     | ISO 8601 UTC           |                                                   |
 | `updatedAt`     | ISO 8601 UTC           |                                                   |
 
+L'injection la plus récente (la « tête » : date, puis `createdAt`, puis `id`) fait foi pour le rappel.
+
 ### `treatments[]`
 
-| Champ       | Type                                                          | Notes                         |
-| ----------- | ------------------------------------------------------------- | ----------------------------- |
-| `id`        | UUID                                                          |                               |
-| `animalId`  | UUID                                                          |                               |
-| `name`      | texte                                                         |                               |
-| `type`      | `"deworming"` \| `"antiparasitic"`                            | Vermifuge / antiparasitaire   |
-| `frequency` | `{ "value": entier > 0, "unit": "day" \| "week" \| "month" }` | Fréquence du plan             |
-| `stoppedOn` | `AAAA-MM-JJ` \| `null`                                        | Date d'arrêt, `null` en cours |
-| `createdAt` | ISO 8601 UTC                                                  |                               |
-| `updatedAt` | ISO 8601 UTC                                                  |                               |
+| Champ       | Type                               | Notes                       |
+| ----------- | ---------------------------------- | --------------------------- |
+| `id`        | UUID                               |                             |
+| `animalId`  | UUID                               |                             |
+| `name`      | texte                              | 1 à 80 caractères           |
+| `type`      | `"deworming"` \| `"antiparasitic"` | Vermifuge / antiparasitaire |
+| `createdAt` | ISO 8601 UTC                       |                             |
+| `updatedAt` | ISO 8601 UTC                       |                             |
+
+Le type `"medication"` (médicament), déjà accepté par la base, entrera dans le format avec le
+formulaire qui le propose (lot 3) : un ajout de valeur, sans changement de version. D'ici là, l'import
+le refuse. Un traitement a toujours au moins une période dans le fichier.
+
+### `treatmentPeriods[]`
+
+| Champ                   | Type                                                          | Notes                                                                 |
+| ----------------------- | ------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `id`                    | UUID                                                          |                                                                       |
+| `treatmentId`           | UUID                                                          | `treatments[].id`                                                     |
+| `animalId`              | UUID                                                          | Toujours celui de son traitement                                      |
+| `startsOn`              | `AAAA-MM-JJ`                                                  | Début de la période                                                   |
+| `firstDueOn`            | `AAAA-MM-JJ`                                                  | Première échéance de la période                                       |
+| `endsOn`                | `AAAA-MM-JJ` \| `null`                                        | Date de fin, facultative                                              |
+| `stoppedOn`             | `AAAA-MM-JJ` \| `null`                                        | Date d'arrêt, `null` en cours                                         |
+| `frequency`             | `{ "value": 1 à 365, "unit": "day" \| "week" \| "month" }`    |                                                                       |
+| `times`                 | liste de `HH:mm`                                              | Heures de chaque jour d'échéance, sans doublon ; `[]` : sans heure    |
+| `doseQuantity`          | nombre > 0 \| `null`                                          | Posologie : quantité, avec `doseUnit` ou pas du tout                  |
+| `doseUnit`              | une des 11 unités \| `null`                                   | `tablet`, `capsule`, `pipette`, `collar`, `ml`, `drop`, `g`, `sachet`, `spray`, `application`, `dose` |
+| `reminderOffsetMinutes` | `0` \| `15` \| `30` \| `60` \| `null`                         | Avance du rappel sur l'heure de la dose, quand il y a des heures      |
+| `reminderTime`          | `HH:mm` \| `null`                                             | Heure du rappel, quand il n'y a pas d'heures                          |
+| `createdAt`             | ISO 8601 UTC                                                  |                                                                       |
+| `updatedAt`             | ISO 8601 UTC                                                  |                                                                       |
+
+La période en cours d'un traitement est celle qui commence le plus tard (`startsOn`, puis `createdAt`,
+puis `id`). Une reprise ou un changement de réglages après des prises ouvre une nouvelle période, sans
+toucher la précédente.
 
 ### `treatmentDoses[]`
 
-| Champ         | Type                                    | Notes                                                     |
-| ------------- | --------------------------------------- | --------------------------------------------------------- |
-| `id`          | UUID                                    |                                                           |
-| `treatmentId` | UUID                                    | `treatments[].id`                                         |
-| `animalId`    | UUID                                    | Toujours celui de son traitement                          |
-| `givenOn`     | `AAAA-MM-JJ`                            |                                                           |
-| `nextDueDate` | `AAAA-MM-JJ`                            | Prochaine dose fixée ce jour-là, stockée (report compris) |
-| `frequency`   | même forme que `treatments[].frequency` | Fréquence avec laquelle `nextDueDate` a été calculée      |
-| `createdAt`   | ISO 8601 UTC                            |                                                           |
-| `updatedAt`   | ISO 8601 UTC                            |                                                           |
+Une ligne par échéance renseignée. Une échéance sans ligne est une **dose non renseignée** : rien ne
+la décrit dans le fichier.
+
+| Champ         | Type                                     | Notes                                                                    |
+| ------------- | ---------------------------------------- | ------------------------------------------------------------------------ |
+| `id`          | UUID                                     |                                                                          |
+| `periodId`    | UUID                                     | `treatmentPeriods[].id`, une période du même traitement                  |
+| `treatmentId` | UUID                                     | `treatments[].id`                                                        |
+| `animalId`    | UUID                                     | Toujours celui de son traitement                                         |
+| `dueOn`       | `AAAA-MM-JJ`                             | Jour de l'échéance couverte                                              |
+| `dueTime`     | `HH:mm` \| `null`                        | Heure de l'échéance ; `null` sans heure                                  |
+| `givenOn`     | `AAAA-MM-JJ` \| `null`                   | Date réelle, jamais dans le futur ; `null` pour une oubliée ou un report |
+| `status`      | `"given"` \| `"missed"` \| `"postponed"` | Donnée, oubliée, reportée                                                |
+| `nextDueDate` | `AAAA-MM-JJ`                             | Prochaine échéance fixée par la ligne ; pour un report, sa nouvelle date |
+| `createdAt`   | ISO 8601 UTC                             |                                                                          |
+| `updatedAt`   | ISO 8601 UTC                             |                                                                          |
+
+`givenOn` est renseigné si et seulement si `status` vaut `"given"`. La dernière ligne d'un traitement
+(la « tête » : `dueOn`, puis `dueTime`, puis `createdAt`, puis `id`) fait foi pour la prochaine dose.
 
 ### `weightEntries[]`
 
-| Champ        | Type         | Notes       |
-| ------------ | ------------ | ----------- |
-| `id`         | UUID         |             |
-| `animalId`   | UUID         |             |
-| `weightKg`   | nombre       | Kilogrammes |
-| `measuredOn` | `AAAA-MM-JJ` |             |
-| `createdAt`  | ISO 8601 UTC |             |
-| `updatedAt`  | ISO 8601 UTC |             |
+| Champ        | Type         | Notes                                         |
+| ------------ | ------------ | --------------------------------------------- |
+| `id`         | UUID         |                                               |
+| `animalId`   | UUID         |                                               |
+| `weightKg`   | nombre       | Kilogrammes, plus de 0 et 200 au plus         |
+| `measuredOn` | `AAAA-MM-JJ` | Jamais dans le futur                          |
+| `createdAt`  | ISO 8601 UTC |                                               |
+| `updatedAt`  | ISO 8601 UTC |                                               |
 
 ### `reminders[]` — dérivé, ignoré à l'import
 
-Une ligne par échéance programmée, lue sur la tête de chaque parent : chaque vaccin dont la
-dernière injection a un rappel, chaque traitement en cours (la prochaine dose de sa dernière prise ;
-un traitement arrêté n'a plus de rappel), triés par date. C'est la donnée dont l'app reconstruit les
-notifications locales (trois jours avant, le jour même, trois jours après, à 9 h) ; les instants de
-notification ne sont pas exportés, car ils dépendent du jour de l'import. Un import **ne lit pas** ce
-tableau : il reconstruit les rappels depuis les injections et les prises.
-
-### Version 1 (jusqu'à la 0.1.40) — toujours importable
-
-Un export v1 ne porte que la tête de chaque vaccin et traitement, sur la ligne du parent :
-`vaccinations[]` avec `lastInjectionDate` et `dueDate`, `treatments[]` avec `lastDoseDate`,
-`nextDueDate` et `stoppedOn` (optionnel, ajouté par #380 ; absent = en cours), sans
-`vaccinationInjections` ni `treatmentDoses`. Son schéma de lecture est **figé**
-(`src/features/settings/schema/export-v1.schema.ts`) : il ne suit plus les formulaires, pour qu'un
-ancien fichier se relise toujours comme sa version l'écrivait. Il est testé sur un vrai export de la
-0.1.37 (`src/features/settings/__tests__/fixtures/export-v1-0.1.37.json`).
+Une ligne par prochaine échéance, triées par date : chaque vaccin dont la dernière injection a un
+rappel, ou dont le rappel est prévu tant qu'il n'a aucune injection ; chaque traitement en cours, avec
+la prochaine dose que fixe la dernière ligne de sa période en cours, ou la première échéance de cette
+période tant qu'elle n'a aucune ligne. Un traitement arrêté, ou dont la date de fin est passée, n'y
+figure pas. C'est un résumé pour qui lit le fichier ; les instants de notification ne sont pas
+exportés, car ils dépendent du jour de l'import. Un import **ne lit pas** ce tableau : il reconstruit
+les rappels depuis le carnet écrit.
 
 | Champ      | Type                              |
 | ---------- | --------------------------------- |
@@ -223,105 +277,107 @@ ancien fichier se relise toujours comme sa version l'écrivait. Il est testé su
 
 ## Import — « Importer un export MémoPatte »
 
-Code de référence : `src/features/settings/service/data-import.service.ts` (validation Zod et
-écriture), `src/features/settings/logic/export-v1.ts` (adaptateur v1) et
-`src/shared/domain/import-plan.ts` (module pur : entrées du fichier + état local → écritures à
+Code de référence : `src/features/settings/service/data-import.service.ts` (validation Zod du
+fichier et écriture) et `src/shared/domain/import-plan.ts` (module pur : entrées du fichier + état local → écritures à
 jouer, réutilisable par la synchronisation Plus). Les types de lignes partagés vivent dans
 `src/shared/domain/carnet-data.ts`.
+
+Un fichier d'import est une **entrée non fiable** : tout champ est validé avant la moindre écriture,
+aucune valeur du fichier n'entre dans le texte d'une instruction SQL (paramètres liés seulement),
+l'écriture est une seule transaction, et rien du contenu du fichier n'est journalisé (une panne
+d'écriture ne journalise que le type de l'erreur).
 
 - **Sélection du fichier** : `<input type="file">` de la WebView, que Capacitor confie au
   sélecteur de documents Android (`ACTION_GET_CONTENT`). Le fichier est lu par une permission
   temporaire accordée par le système : aucune permission de stockage, aucun plugin.
 - **Validation**, avant toute écriture :
-  - fichier de plus de 10 Mo (refusé sans être lu), pas du JSON, pas d'entier `schemaVersion`,
-    champ obligatoire absent ou mal formé → « Ce fichier n'est pas un export MémoPatte. » ;
-  - **aiguillage par version avant toute validation** : `schemaVersion` 1 se lit avec le schéma v1
-    figé, puis passe par l'adaptateur v1 ; 2 avec le schéma courant ;
-  - v2 : mêmes règles que les formulaires, reprises de leurs schémas : nom non vide, espèce, type et
-    fréquence de traitement, poids strictement positif et de 200 kg au plus (poids initial comme
-    pesée), date de naissance, d'injection, de prise et de pesée jamais dans le futur ; v1 : les
-    mêmes règles, recopiées telles qu'elles étaient ;
-  - un fichier dont le seul défaut est un poids au-delà de 200 kg est refusé avec un motif à part,
-    « Ce fichier contient un poids hors limites : 200 kg maximum. », pour ne pas laisser croire que
-    le fichier n'est pas un export MémoPatte ;
-  - UUID pour les identifiants, instants ISO 8601 en UTC (`Z`) uniquement, noms (animal, race, vaccin,
-    traitement) limités à 80 caractères comme dans les formulaires (`MAX_NAME_LENGTH`, #409), autres
-    textes (nom de la photo, version de l'app) à 200, espaces de bord retirées, race vide lue comme
-    absente ;
-  - `schemaVersion` supérieur à celui que l'app connaît → « Cet export vient d'une version plus
-    récente de l'app. », vérifié avant le reste du contenu ;
-  - identifiant en double dans une table, entrée (événements compris) dont l'`animalId` n'est
-    pas dans `animals[]`, ou vaccin ou traitement v2 sans aucun événement dans le fichier (l'app
-    n'en exporte jamais, et il ne s'afficherait pas) → fichier refusé en entier (même message que
-    le premier cas) : l'import est tout ou rien ;
+  - fichier de plus de 10 Mo (refusé sans être lu : c'est ce qui borne le nombre de lignes), pas du
+    JSON, pas d'entier `schemaVersion` strictement positif, champ obligatoire absent ou mal formé →
+    « Ce fichier n'est pas un export MémoPatte. » ;
+  - **la version tranche avant toute validation** : `schemaVersion` supérieur à 3 → « Cet export
+    vient d'une version plus récente de l'app. » ; inférieur à 3 → « Cet export vient d'une version
+    plus ancienne de l'app. » ; dans les deux cas, quel que soit le reste du contenu ;
+  - chaque champ a son type exact (un booléen n'est pas `1`, un nombre n'est pas du texte), ses
+    valeurs fermées (espèce, type, unité de fréquence, état d'une prise, motif du départ, unité de
+    posologie, moment du rappel) et ses bornes : dates civiles réelles entre 1900 et 2199, instants
+    ISO 8601 en UTC (`Z`) entre les mêmes années, heures `HH:mm`, fréquence de 1 à 365, poids de
+    plus de 0 à 200 kg, date de naissance, d'injection, de prise et de pesée jamais dans le futur ;
+  - **posologie** : quantité strictement positive et unité parmi les onze, toutes deux présentes ou
+    toutes deux `null` ; heures d'une période sans doublon ;
+  - **état d'une prise** : `givenOn` renseigné pour une prise donnée, `null` pour une oubliée ou un
+    report ;
+  - UUID pour les identifiants, noms (animal, race, vaccin, traitement) limités à 80 caractères
+    comme dans les formulaires (`MAX_NAME_LENGTH`, #409), autres textes (nom de la photo, version de
+    l'app) à 200, espaces de bord retirées, race vide lue comme absente ;
+  - un fichier dont le seul défaut est un poids au-delà de 200 kg ou une fréquence au-delà de 365 est
+    refusé avec un motif à part, « Ce fichier contient une valeur hors limites : 200 kg maximum pour
+    un poids, 365 pour une fréquence. » ; un fichier dont le seul défaut est un nom trop long,
+    « Un nom de ce fichier dépasse 80 caractères. » ;
+  - identifiant en double dans une table, ligne dont l'`animalId` n'est pas dans `animals[]`, ou
+    traitement sans aucune période dans le fichier → fichier refusé en entier (« Ce fichier n'est
+    pas un export MémoPatte. ») : l'import est tout ou rien ;
+  - un vaccin sans injection et un traitement sans prise sont valides (rappel prévu, première
+    échéance de la période) ;
   - champs inconnus ignorés, `reminders[]` jamais lu.
 - **Base locale sans animal visible** : import direct, en mode « remplacer » (rien de visible à
   perdre, et un animal supprimé avant l'import redevient visible). La ligne de Paramètres affiche
   « Import… » et reste inactive pendant l'écriture.
 - **Base avec des données** : choix explicite.
-  - **Fusionner** — par identifiant : une entrée absente de l'appareil est ajoutée ; présente des
-    deux côtés, la version au `updatedAt` le plus récent gagne (à égalité, l'appareil garde la
-    sienne), comme la synchronisation Plus. Une suppression locale est une modification : un animal
-    supprimé après l'export reste supprimé, et les entrées du fichier rattachées à un animal qui
-    reste supprimé ne sont pas importées. Si le fichier rend visible un animal supprimé, les
-    entrées de son carnet supprimées avec lui (même `deleted_at`) reviennent depuis le fichier ;
+  - **Fusionner** — par identifiant, ligne par ligne : une ligne absente de l'appareil est ajoutée ;
+    présente des deux côtés, la version au `updatedAt` le plus récent gagne (à égalité, l'appareil
+    garde la sienne), comme la synchronisation Plus. Une suppression locale est une modification :
+    un animal supprimé après l'export reste supprimé, et les lignes du fichier rattachées à un
+    animal qui reste supprimé ne sont pas importées. Si le fichier rend visible un animal supprimé,
+    les lignes de son carnet supprimées avec lui (même `deleted_at`) reviennent depuis le fichier ;
     celles supprimées à part restent supprimées.
   - **Remplacer**, après confirmation — toutes les lignes visibles sont marquées supprimées
     (suppression logique, `deleted_at` et `updated_at` à l'heure de l'import, pour que la
-    synchronisation Plus propage la suppression), puis toutes les entrées du fichier sont écrites.
+    synchronisation Plus propage la suppression), puis toutes les lignes du fichier sont écrites.
+- **Réglages du carnet** : une seule ligne, arbitrée comme les autres. En fusion, ceux du fichier
+  sont écrits s'ils sont plus récents que ceux de l'appareil (ou si l'appareil n'en a pas) ; un
+  fichier sans réglages (`null`) ne touche à rien. En remplacement, ceux du fichier sont écrits, et un
+  fichier sans réglages ramène l'appareil aux valeurs par défaut.
 - **Rattachement figé** : un vaccin, un traitement, une pesée ne changent jamais d'animal (décision
-  du 2026-09-09), y compris par import ; une injection ou une prise jamais de vaccin ou de
-  traitement. Une entrée du fichier dont l'identifiant existe déjà sur l'appareil **sous un autre
-  animal** (ou, pour un événement v2, sous un autre parent), ou un événement dont l'`animalId`
-  diffère de celui de son parent (dans le fichier ou sur l'appareil), fait refuser l'import en
-  entier, sans rien écrire — comme un identifiant en double, le fichier est incohérent. Le motif est
-  distinct d'une panne d'écriture — « Ce fichier rattache une entrée de ton carnet à un autre
-  animal. » — pour que l'utilisateur ne réessaie pas indéfiniment. L'invariant est aussi porté par
-  le SQL : `restoreStatement` laisse `animal_id` (et le parent d'un événement) hors du `SET` de son
-  `UPDATE`.
-- **Événement sans parent** : une injection ou une prise dont le vaccin ou le traitement n'est ni
-  dans le fichier ni sur l'appareil fait refuser l'import en entier (motif `orphanEvent`, message
-  « Ce fichier n'est pas un export MémoPatte. » : l'app n'en écrit jamais).
-- **Événements, v2** : retrouvés par leur identifiant, comme les autres entrées (la version la plus
-  récente gagne) ; un événement plus récent dans le fichier y prend aussi sa date. Un événement
-  n'est écrit que si son parent est visible après l'import.
-- **Événements, v1** (adaptateur, décision du 2026-09-24) : chaque ligne v1 donne un événement, qui
-  se rattache à l'événement local **de même date** (supprimés compris : un visible d'abord, puis un
-  supprimé en même temps que son parent, puis le plus récent), jamais par son identifiant ; ses
-  valeurs ne sont écrites que si le fichier est plus récent ou si l'événement avait été supprimé
-  avec son parent. Date absente : un événement est créé, avec l'identifiant du parent s'il est
-  libre, sinon un nouveau. Seul un parent que l'import écrit reçoit son événement. Réimporter deux
-  fois le même fichier ne duplique rien et aucune date déjà en base n'est réécrite. Une prise v1
-  recopie la fréquence de son traitement.
+  du 2026-09-09), y compris par import ; une injection jamais de vaccin, une période jamais de
+  traitement, une prise jamais de période ni de traitement. Fait refuser l'import en entier, sans
+  rien écrire :
+  - une ligne du fichier dont l'identifiant existe déjà sur l'appareil **sous un autre animal** ou
+    sous un autre parent ;
+  - une injection, une période ou une prise dont l'`animalId` diffère de celui de son parent (dans
+    le fichier ou sur l'appareil) ;
+  - une prise qui vise la période **d'un autre traitement**.
+
+  Le motif est distinct d'une panne d'écriture — « Ce fichier rattache une entrée de ton carnet à un
+  autre animal. » — pour que l'utilisateur ne réessaie pas indéfiniment. L'invariant est aussi porté
+  par le SQL : `restoreStatement` laisse `animal_id` et les identifiants de parents hors du `SET` de
+  son `UPDATE`.
+- **Ligne sans parent** : une injection, une période ou une prise dont le vaccin, le traitement ou
+  la période n'est ni dans le fichier ni sur l'appareil fait refuser l'import en entier (motif
+  `orphanEvent`, message « Ce fichier n'est pas un export MémoPatte. » : l'app n'en écrit jamais).
+- **Lignes enfants** : retrouvées par leur identifiant, comme les autres (la version la plus
+  récente gagne). Une injection ou une période n'est écrite que si son parent est visible après
+  l'import ; une prise, que si son traitement **et** sa période le sont.
 - **Cascade au niveau du parent** (fusion) : un vaccin ou un traitement que le fichier rend visible
-  revient avec les événements supprimés en même temps que lui (même `deleted_at`) — ceux du fichier
-  à ses valeurs, les autres tels quels ; un événement annulé à part reste annulé. C'est la règle
+  revient avec les lignes supprimées en même temps que lui (même `deleted_at`) — celles du fichier
+  à ses valeurs, les autres telles quelles ; une ligne annulée à part reste annulée. C'est la règle
   « revient avec son animal » un étage plus bas (`deletedWithItsParent`).
-- **Échéance importée** : la `nextDueDate` d'une injection ou d'une prise est reprise **telle
-  quelle**, jamais recalculée — la ligne voyage entière, comme elle le fera dans la synchronisation
-  Plus. Seule exception, la réconciliation ci-dessous.
-- **Réconciliation des prises à fréquence périmée** (§10.7 de la spec, jouée dans la transaction de
-  l'import, après toutes les écritures) : pour chaque traitement en cours, si la fréquence recopiée
-  sur sa prise de tête diffère de celle du plan (fréquence changée sur un appareil pendant qu'un
-  autre notait une prise), la prochaine dose est recalculée depuis la date de cette prise avec la
-  fréquence du plan, qui y est recopiée, et `updatedAt` prend l'heure de l'import. Une prise de tête
-  déjà à la fréquence du plan n'est jamais touchée : c'est ce qui protège un report manuel. Le calcul
-  est fait en SQL (`reconcileStaleHeadsStatement`), vérifié identique à `addFrequency` (fins de
-  mois, années bissextiles).
-- **Dates** : une entrée écrite qui n'existait pas sur l'appareil garde son `createdAt` et son
-  `updatedAt` d'origine. Une entrée qui existait déjà, même supprimée, garde le `createdAt` du
-  fichier et prend l'heure de l'import comme `updatedAt` : la synchronisation « la plus récente
-  gagne » ne revient ainsi jamais en arrière.
+- **Échéance importée** : chaque ligne voyage entière, comme elle le fera dans la synchronisation
+  Plus. La `nextDueDate` d'une injection ou d'une prise est reprise **telle quelle**, jamais
+  recalculée, et il n'y a plus de réconciliation après l'écriture : les réglages d'une prise sont
+  ceux de sa période.
+- **Dates** : une ligne écrite qui n'existait pas sur l'appareil garde son `createdAt` et son
+  `updatedAt` d'origine. Une ligne qui existait déjà, même supprimée, prend l'heure de l'import comme
+  `updatedAt` : la synchronisation « la plus récente gagne » ne revient ainsi jamais en arrière.
 - **Transaction** : chaque repository fournit ses instructions (`markAllDeletedStatement`,
-  `restoreStatement`, `reviveStatement`, `reconcileStaleHeadsStatement`), jouées ensemble par
-  `animalsRepository.runImport` en une seule transaction, dans l'ordre des clés étrangères (animaux,
-  vaccins, injections, traitements, prises, pesées, puis réconciliation). En mode « Remplacer »,
-  les deux tables d'événements sont marquées supprimées comme les autres. Une contrainte de la base
-  qui casse n'écrit rien, les données locales restent visibles.
+  `restoreStatement`, `reviveStatement`), jouées ensemble par `animalsRepository.runImport` en une
+  seule transaction, dans l'ordre des clés étrangères (réglages, animaux, vaccins, injections,
+  traitements, périodes, prises, pesées). Une contrainte de la base qui casse n'écrit rien, les
+  données locales restent visibles.
 - **Photos** : `photoPath` reprend `photoFileName` seulement si ce fichier existe dans
   `files/photos/` et qu'aucun autre animal ne l'utilise déjà (sur l'appareil ou plus tôt dans le
   fichier) ; sinon l'animal garde la photo déjà présente sur l'appareil pour ce même identifiant,
-  ou prend le placeholder.
+  ou prend le placeholder. Un nom qui n'est pas celui d'une photo de l'app (`<nom>.jpg`, sans
+  chemin) n'est jamais cherché hors de `files/photos/`.
 - **Après l'écriture** : synchronisation complète des rappels (`syncAllReminders`, file unique des
   notifications), rechargement des animaux, puis écran d'explication des notifications si le
   carnet a des échéances et que la permission n'a jamais été demandée
@@ -345,31 +401,39 @@ se réimporte.
 - Nombres décimaux avec une **virgule** (`4,25`), lisibles comme nombres par un tableur français.
 - En-têtes identiques aux noms de champs du JSON, pour qu'une colonne se retrouve d'un format à
   l'autre ; `animalName` est ajouté à côté de `animalId` pour la lecture, comme `vaccinationName` et
-  `treatmentName` à côté du parent d'un événement.
-- **Une ligne par injection et par prise**, dans deux fichiers séparés reliés à leur vaccin ou
-  traitement (décision du 2026-09-24). `vaccins.csv` et `traitements.csv` gardent, pour la lecture,
-  la date et l'échéance de la dernière injection ou prise.
+  `treatmentName` à côté du parent d'une ligne. La fréquence d'une période s'écrit en deux colonnes,
+  `frequencyValue` et `frequencyUnit` ; ses heures dans une seule cellule (`08:00, 20:00`).
+- **Une ligne par injection, par période et par prise**, dans trois fichiers séparés reliés à leur
+  vaccin ou traitement (décision du 2026-09-24 ; périodes : #454). `vaccins.csv` et
+  `traitements.csv` gardent, pour la lecture, la date de la dernière injection ou prise donnée et la
+  prochaine échéance (celle de `reminders[]` ; vide pour un traitement arrêté ou terminé).
+- Booléen : `true` ou `false`.
 - **Poids dans l'unité choisie dans Paramètres** (#352), au centième, nommée par le titre de
-  colonne : `initialWeightKg` et `weightKg` en kilogrammes, `initialWeightLb` et `weightLb` en
-  livres. Seules exceptions aux en-têtes identiques au JSON, qui reste toujours en kilogrammes,
-  valeur enregistrée sans arrondi.
+  colonne : `weightKg` en kilogrammes, `weightLb` en livres. Seule exception aux en-têtes identiques
+  au JSON, qui reste toujours en kilogrammes, valeur enregistrée sans arrondi.
+- Les réglages du carnet ne sont pas dans le CSV : ils voyagent dans le JSON.
 
 | Fichier           | Colonnes                                                                                            |
 | ----------------- | --------------------------------------------------------------------------------------------------- |
-| `animaux.csv`     | `id;name;species;breed;birthDate;initialWeightKg;createdAt;updatedAt` (sans photo ; `…Lb` en lb)    |
-| `vaccins.csv`     | `id;animalId;animalName;name;lastInjectionDate;dueDate`                                             |
+| `animaux.csv`     | `id;name;species;breed;birthDate;birthDateApproximate;unfollowedOn;departureReason;departureDate;createdAt;updatedAt` (sans photo) |
+| `vaccins.csv`     | `id;animalId;animalName;name;plannedDueDate;lastInjectionDate;dueDate`                              |
 | `injections.csv`  | `id;vaccinationId;vaccinationName;animalId;animalName;injectedOn;nextDueDate`                       |
-| `traitements.csv` | `id;animalId;animalName;name;type;frequencyValue;frequencyUnit;lastDoseDate;nextDueDate`            |
-| `prises.csv`      | `id;treatmentId;treatmentName;animalId;animalName;givenOn;nextDueDate;frequencyValue;frequencyUnit` |
+| `traitements.csv` | `id;animalId;animalName;name;type;lastDoseDate;nextDueDate`                                         |
+| `periodes.csv`    | `id;treatmentId;treatmentName;animalId;animalName;startsOn;firstDueOn;endsOn;stoppedOn;frequencyValue;frequencyUnit;times;doseQuantity;doseUnit;reminderOffsetMinutes;reminderTime` |
+| `prises.csv`      | `id;periodId;treatmentId;treatmentName;animalId;animalName;dueOn;dueTime;givenOn;status;nextDueDate` |
 | `poids.csv`       | `id;animalId;animalName;measuredOn;weightKg` (`weightLb` en lb)                                     |
 | `rappels.csv`     | `kind;sourceId;animalId;animalName;name;dueDate`                                                    |
 
-Les valeurs d'énumération (`dog`, `deworming`, `month`…) restent les codes du JSON, non traduits.
+Les valeurs d'énumération (`dog`, `deworming`, `month`, `missed`, `tablet`…) restent les codes du
+JSON, non traduits (traduction du CSV : #416).
 
 ## PDF — historique du carnet (#382)
 
 Le PDF (MémoPatte Plus) lit les mêmes lignes que l'export (`collect`), un animal à la fois
-(`src/features/settings/logic/pdf-content.ts`, rendu par `render-carnet-pdf.ts`). Sous la ligne de
+(`src/features/settings/logic/pdf-content.ts`, rendu par `render-carnet-pdf.ts`). Son contenu n'a pas
+changé avec le format v3 : il montre les prises **données**, par leur date réelle, et la date d'arrêt
+de la période en cours ; les prises oubliées, les reports et les doses non renseignées y entreront
+avec le lot 8. Sous la ligne de
 chaque vaccin ou traitement (nom, échéance, état), en retrait, en 9 pt gris, sur la même page que
 sa ligne :
 
