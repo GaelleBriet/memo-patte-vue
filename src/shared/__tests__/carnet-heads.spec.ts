@@ -3,8 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   currentPeriods,
   givenDoseHistories,
-  treatmentHeads,
-  treatmentHistories,
+  periodHeads,
   vaccinationHeads,
   vaccinationHistories,
 } from '../domain/carnet-heads'
@@ -113,32 +112,30 @@ describe('têtes du carnet', () => {
     const earlier = '2026-09-01T00:00:00.000Z'
 
     expect(
-      treatmentHeads([
+      periodHeads([
         dose('b', '2026-09-01', { createdAt: earlier }),
         dose('a', '2026-09-01', { createdAt: later }),
       ]).get('bravecto')?.id,
     ).toBe('a')
     expect(
-      treatmentHeads([
+      periodHeads([
         dose('a', '2026-09-01', { createdAt: later }),
         dose('b', '2026-09-01', { createdAt: later }),
       ]).get('bravecto')?.id,
     ).toBe('b')
   })
 
-  it('range les lignes d’un traitement par leur échéance, jour puis heure, jamais par leur date réelle', () => {
-    const histories = treatmentHistories([
+  it('retient pour chaque période sa dernière ligne, par son échéance', () => {
+    const heads = periodHeads([
       dose('matin', '2026-09-02', { dueTime: '08:00' }),
-      dose('sans-heure', '2026-09-02'),
       dose('soir', '2026-09-02', { dueTime: '20:00', givenOn: null, status: 'missed' }),
+      dose('reprise', '2026-01-05', { periodId: 'reprise' }),
       dose('veille', '2026-09-01', { dueTime: '20:00', givenOn: '2026-09-05' }),
     ])
 
-    expect(histories.get('bravecto')?.map(({ id }) => id)).toEqual([
-      'soir',
-      'matin',
-      'sans-heure',
-      'veille',
+    expect([...heads].map(([period, head]) => [period, head.id])).toEqual([
+      ['bravecto', 'soir'],
+      ['reprise', 'reprise'],
     ])
   })
 

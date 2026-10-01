@@ -5,7 +5,7 @@ import type { ExportData, ExportTreatment } from '@/shared/domain/carnet-data'
 import {
   currentPeriods,
   givenDoseHistories,
-  treatmentHeads,
+  periodHeads,
   vaccinationHeads,
 } from '@/shared/domain/carnet-heads'
 import { recordedWeightIn, type WeightUnit } from '@/shared/domain/weight-unit'
@@ -48,13 +48,11 @@ export function exportFileName(exportFormat: ExportFormat, exportedAt: Date): st
  */
 function nextDueDates(data: ExportData): (treatment: ExportTreatment) => string | null {
   const periods = currentPeriods(data.treatmentPeriods)
+  const heads = periodHeads(data.treatmentDoses)
   return (treatment) => {
     const period = periods.get(treatment.id)
     if (!period || period.stoppedOn) return null
-    const head = treatmentHeads(
-      data.treatmentDoses.filter(({ periodId }) => periodId === period.id),
-    ).get(treatment.id)
-    const dueDate = head?.nextDueDate ?? period.firstDueOn
+    const dueDate = heads.get(period.id)?.nextDueDate ?? period.firstDueOn
     return period.endsOn !== null && dueDate > period.endsOn ? null : dueDate
   }
 }

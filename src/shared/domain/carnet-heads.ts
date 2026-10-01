@@ -17,7 +17,9 @@ function historiesBy<T extends Event>(
 ): Map<string, T[]> {
   const histories = new Map<string, T[]>()
   for (const event of events) {
-    histories.set(parentOf(event), [...(histories.get(parentOf(event)) ?? []), event])
+    const history = histories.get(parentOf(event))
+    if (history) history.push(event)
+    else histories.set(parentOf(event), [event])
   }
   for (const history of histories.values()) {
     history.sort(
@@ -43,17 +45,6 @@ export function vaccinationHistories(
   )
 }
 
-/** Lignes de chaque traitement, la tête d'abord, dans l'ordre de `headDoseIdSql` : jour puis heure de l'échéance. */
-export function treatmentHistories(
-  doses: readonly ExportTreatmentDose[],
-): Map<string, ExportTreatmentDose[]> {
-  return historiesBy(
-    doses,
-    ({ treatmentId }) => treatmentId,
-    ({ dueOn, dueTime }) => `${dueOn} ${dueTime ?? ''}`,
-  )
-}
-
 export type GivenDose = ExportTreatmentDose & { givenOn: string }
 
 /** Prises données de chaque traitement, la plus récente d'abord, par leur date réelle. */
@@ -73,10 +64,17 @@ export function vaccinationHeads(
   return headsOf(vaccinationHistories(injections))
 }
 
-export function treatmentHeads(
+/** Dernière ligne de chaque période, dans l'ordre de `headDoseIdSql`. */
+export function periodHeads(
   doses: readonly ExportTreatmentDose[],
 ): Map<string, ExportTreatmentDose> {
-  return headsOf(treatmentHistories(doses))
+  return headsOf(
+    historiesBy(
+      doses,
+      ({ periodId }) => periodId,
+      ({ dueOn, dueTime }) => `${dueOn} ${dueTime ?? ''}`,
+    ),
+  )
 }
 
 /** Période en cours de chaque traitement, dans l'ordre de `currentPeriodIdSql`. */

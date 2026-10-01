@@ -62,7 +62,9 @@ export type DataExportDependencies = {
 function childrenOf<E>(parents: { id: string }[], rows: E[], parentOf: (row: E) => string): E[] {
   const byParent = new Map<string, E[]>()
   for (const row of rows) {
-    byParent.set(parentOf(row), [...(byParent.get(parentOf(row)) ?? []), row])
+    const siblings = byParent.get(parentOf(row))
+    if (siblings) siblings.push(row)
+    else byParent.set(parentOf(row), [row])
   }
   return parents.flatMap(({ id }) => byParent.get(id) ?? [])
 }
