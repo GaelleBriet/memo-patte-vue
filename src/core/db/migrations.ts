@@ -4,7 +4,6 @@ export interface DbMigration {
   statements: string[]
 }
 
-/** Enfants avant parents : avec les clés étrangères actives, supprimer un parent viderait ses enfants. */
 const VERSION_8_TABLES = [
   'treatment_dose',
   'treatment',
