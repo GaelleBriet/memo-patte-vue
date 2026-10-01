@@ -500,6 +500,14 @@ function coveredKeys(period: TreatmentPeriodInput, notedThatDay: number): Set<st
   )
 }
 
+// Q21 : une journée n'a qu'une ligne de déplacement, la plus récente ; les autres sont sans effet.
+function olderMovesOfSameDay(doses: TreatmentDoseInput[]): TreatmentDoseInput[] {
+  const moves = doses.filter((dose) => dose.status === 'postponed')
+  return moves.filter((move) =>
+    moves.some((other) => other.dueOn === move.dueOn && isMoreRecent(other, move)),
+  )
+}
+
 function planPeriod(
   period: TreatmentPeriodInput,
   closesOn: string | null,
@@ -507,12 +515,12 @@ function planPeriod(
   notedOnStart: number,
 ): PeriodPlan {
   const steps: Step[] = []
-  const stale: TreatmentDoseInput[] = []
+  const stale = olderMovesOfSameDay(doses)
   const anchors: PeriodPlan['anchors'] = []
   let between: Due[] = []
   let sequence = initialSequence(period)
   let cursor = cursorOn(sequence, period)
-  for (const step of stepsOf(doses)) {
+  for (const step of stepsOf(doses.filter((dose) => !stale.includes(dose)))) {
     const previous = steps.at(-1)
     const left = duesLeftBefore(step, cursor)
     if (hasNoEffect(step, previous, left) || isOvertaken(step, previous, period.frequency)) {
@@ -776,7 +784,7 @@ function movingStep(plan: PeriodPlan, due: Due): TreatmentDoseInput | undefined 
     .filter(
       (move) =>
         (move.nextDueDate === due.dueOn && !plan.noteDays.has(due.dueOn)) ||
-        keyOf(move) === keyOf(due),
+        move.dueOn === due.dueOn,
     )
     .at(-1)
 }
@@ -836,7 +844,15 @@ function moveBounds(state: State, due: Due): MoveBounds | MoveRefusal {
   const existing = movingStep(plan, due)
   return existing === undefined
     ? boundsOf(state, firstPendingOfDay(state, due))
-    : boundsOf(stateWithoutDues(state, [existing]), replacedDue(state, existing))
+    : boundsOf(stateWithoutDues(state, [existing]), originOf(state, existing, due))
+}
+
+// Une heure revenue sur la journée d'origine de la ligne : la journée repart de sa première heure sans prise.
+function originOf(state: State, existing: TreatmentDoseInput, due: Due): Due {
+  const onOriginDay = due.dueOn === existing.dueOn && due.dueOn !== existing.nextDueDate
+  return onOriginDay
+    ? firstPendingOfDay(stateWithoutDues(state, [existing]), due)
+    : replacedDue(state, existing)
 }
 
 function checkMovable(state: State, plan: PeriodPlan, due: Due): void {
@@ -890,7 +906,8 @@ function move(state: State, due: Due, to: string): MovedDose {
       ? { action: 'none' }
       : { action: 'create', dose: movedFields(moved, to) }
   }
-  const replaced = replacedDue(state, existing)
+  if (to === due.dueOn) return { action: 'none' }
+  const replaced = originOf(state, existing, due)
   if (to === replaced.dueOn) return { action: 'delete', doseId: existing.id }
   return { action: 'rewrite', dose: movedFields(replaced, to), doseId: existing.id }
 }

@@ -53,7 +53,7 @@ const GESTURES = [
 const FIRST_SEED = Number(process.env.INVARIANTS_FROM ?? 1)
 const CARNETS = Number(process.env.INVARIANTS_SEEDS ?? 150)
 const STEPS = Number(process.env.INVARIANTS_STEPS ?? 24)
-const TIMEOUT = 30_000 + CARNETS * 100
+const TIMEOUT = 30_000 + CARNETS * STEPS * 5
 
 function mulberry32(seed: number): Random {
   let state = seed
@@ -321,7 +321,7 @@ class Simulation {
     }
   }
 
-  // (f) Hors déplacement, la dose qui suit une prise de la dose du moment n'est jamais à moins d'un intervalle.
+  // (f) Hors déplacement, la dose qui suit une prise de la dose du moment est à un intervalle : ni avant, ni après.
   private checkGap(
     after: TreatmentSchedule,
     due: Due,
@@ -349,6 +349,16 @@ class Simulation {
     )
     if (next !== undefined && next.dueOn < soonest) {
       this.fail(`${gesture} : dose suivante le ${next.dueOn}, avant le ${soonest}`)
+    }
+    // En mois, le jour de référence (le 31) peut tomber jusqu'à trois jours après le même quantième.
+    const slack = period.frequency.unit === 'month' ? 3 : 0
+    const from = givenOn > due.dueOn ? givenOn : due.dueOn
+    const latest = plusDays(shifted(from, period.frequency, 1), slack)
+    if (nextDueDate !== due.dueOn && nextDueDate > latest) {
+      this.fail(`${gesture} : prochaine dose écrite au ${nextDueDate}, après le ${latest}`)
+    }
+    if (next !== undefined && next.dueOn > latest) {
+      this.fail(`${gesture} : dose suivante le ${next.dueOn}, après le ${latest}`)
     }
   }
 

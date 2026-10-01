@@ -4,6 +4,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import {
   isAdvanced,
   treatmentSchedule,
+  type Due,
   type Frequency,
   type TreatmentDoseInput,
   type TreatmentPeriodInput,
@@ -2472,6 +2473,96 @@ describe('contre-exemples de la campagne longue', () => {
     book = move(book, '2026-03-14', '2026-03-29', '2026-04-12')
 
     expect(scheduleOf(book, '2026-03-14').upcoming(2)).toEqual([due('2026-04-12', '20:00')])
+  })
+})
+
+describe('une seule ligne de déplacement par journée d’origine (Q21, N16, graine 502482)', () => {
+  const times = ['06:00', '12:00', '18:00', '23:00']
+  const morning = done(carnet(period({ firstDueOn: '2026-04-02' })), '2026-04-02')
+  const prise = lastDose(morning)
+  const changed: Carnet = {
+    ...morning,
+    periods: [
+      ...morning.periods,
+      period({ id: 'p2', firstDueOn: '2026-04-02', times, createdAt: '2026-08-02T08:00:00.000Z' }),
+    ],
+  }
+  const day = (dueOn: string) => times.map((time) => due(dueOn, time, 'p2'))
+  const move = (book: Carnet, today: string, from: Due, to: string) =>
+    record(book, today, { kind: 'postponed', due: from, to })
+  const toThe7th = move(changed, '2026-04-02', due('2026-04-02', '12:00', 'p2'), '2026-04-07')
+  const returned = withoutDose(toThe7th, prise.id)
+
+  it('la laisser à sa date ne change rien', () => {
+    expect(
+      scheduleOf(returned, '2026-04-02').move(due('2026-04-02', '06:00', 'p2'), '2026-04-02'),
+    ).toEqual({ action: 'none' })
+  })
+
+  it('la prise du matin supprimée, redéplacer la journée réécrit sa ligne au lieu d’en créer une', () => {
+    const line = lastDose(toThe7th)
+
+    expect(
+      scheduleOf(returned, '2026-04-02').move(due('2026-04-02', '06:00', 'p2'), '2026-04-05'),
+    ).toEqual({
+      action: 'rewrite',
+      doseId: line.id,
+      dose: expect.objectContaining({
+        dueOn: '2026-04-02',
+        dueTime: '06:00',
+        nextDueDate: '2026-04-05',
+      }),
+    })
+  })
+
+  it('déplacer ensuite la dose suivante laisse les doses non renseignées d’avant', () => {
+    const toThe5th = move(returned, '2026-04-02', due('2026-04-02', '06:00', 'p2'), '2026-04-05')
+    expect(toThe5th.doses.filter(({ status }) => status === 'postponed')).toHaveLength(1)
+    const on6 = scheduleOf(toThe5th, '2026-04-06')
+    expect(on6.unloggedDoses).toEqual(day('2026-04-05'))
+    expect(on6.currentDoses).toEqual(day('2026-04-06'))
+
+    expect(() => on6.move(due('2026-04-07', '06:00', 'p2'), '2026-04-06')).toThrow(
+      /échéance précédente/,
+    )
+  })
+
+  describe('deux lignes déjà en base pour la même journée (synchro)', () => {
+    const second = stored({
+      ...due('2026-04-02', '06:00', 'p2'),
+      givenOn: null,
+      status: 'postponed',
+      nextDueDate: '2026-04-05',
+    })
+    const doubled = { ...returned, doses: [...returned.doses, second] }
+
+    it('la plus récente est en vigueur, l’autre est sans effet', () => {
+      const schedule = scheduleOf(doubled, '2026-04-06')
+
+      expect(schedule.staleDoseIds).toEqual([lastDose(toThe7th).id])
+      expect(schedule.unloggedDoses).toEqual(day('2026-04-05'))
+      expect(schedule.currentDoses).toEqual(day('2026-04-06'))
+    })
+
+    it('la journée d’arrivée de la ligne sans effet, devenue dose du moment, se déplace comme une autre', () => {
+      const on7 = scheduleOf(doubled, '2026-04-07')
+      expect(on7.currentDoses).toEqual(day('2026-04-07'))
+
+      const moved = on7.move(due('2026-04-07', '06:00', 'p2'), '2026-04-09')
+      expect(moved).toEqual({
+        action: 'create',
+        dose: expect.objectContaining({
+          dueOn: '2026-04-07',
+          dueTime: '06:00',
+          nextDueDate: '2026-04-09',
+        }),
+      })
+      const after = move(doubled, '2026-04-07', due('2026-04-07', '06:00', 'p2'), '2026-04-09')
+      expect(scheduleOf(after, '2026-04-07').unloggedDoses).toEqual([
+        ...day('2026-04-05'),
+        ...day('2026-04-06'),
+      ])
+    })
   })
 })
 
