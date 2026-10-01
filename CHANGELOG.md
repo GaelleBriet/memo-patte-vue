@@ -5,6 +5,37 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.49](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.48...memo-patte-v0.1.49) (2026-10-01)
+
+
+### ✨ Fonctionnalités
+
+* **dev:** carnet de démo avec périodes, heures, oubli et report ([8626b20](https://github.com/GaelleBriet/memo-patte-vue/commit/8626b201a040429136d01976abdd50bd554697af))
+* **settings:** export et import au format v3 ([a3a359b](https://github.com/GaelleBriet/memo-patte-vue/commit/a3a359bdae2991ee0753924e766cee234df4aea4))
+* **settings:** export et import v3, carnet de démo ([3666bfd](https://github.com/GaelleBriet/memo-patte-vue/commit/3666bfd0026af78becf96f5158e1faa93f965fa0))
+* **settings:** repository des réglages du carnet ([8041810](https://github.com/GaelleBriet/memo-patte-vue/commit/804181072504b576430be3661446b11acf300494))
+* **sync:** date de la dernière synchronisation réussie ([613eb40](https://github.com/GaelleBriet/memo-patte-vue/commit/613eb401c42e3701fcb0a5a548020aac4f58f589))
+* **sync:** miroirs supabase au schéma local v10 ([2b07472](https://github.com/GaelleBriet/memo-patte-vue/commit/2b074724683b45248bfc2ed843db2ae3647b51e1))
+* **sync:** miroirs Supabase au schéma v10 et ports de synchro ([59de40a](https://github.com/GaelleBriet/memo-patte-vue/commit/59de40a26313787ca5986a6e0caf28ad6a3321ae))
+* **sync:** ports de synchro des périodes de traitement et des réglages du carnet ([911ea52](https://github.com/GaelleBriet/memo-patte-vue/commit/911ea525ade60ed310774d641bb7ac047eec6ab5))
+* **treatments:** périodes et prises (schéma v10) ([a91a570](https://github.com/GaelleBriet/memo-patte-vue/commit/a91a570cc4176792a7b0977af85abd5ab1fcdf96))
+* **treatments:** périodes et prises (schéma v10) ([d74e8d9](https://github.com/GaelleBriet/memo-patte-vue/commit/d74e8d9d8734499badd17a858a2fc368c4a995e8))
+
+
+### 🐛 Corrections
+
+* **db:** la v10 ne joue plus de DELETE, refusé par le plugin Android ([515819b](https://github.com/GaelleBriet/memo-patte-vue/commit/515819b2355ad41d8f24ea1475cbe71061974942))
+* **settings:** import plus strict sur les traitements, instants et photos ([13cba2f](https://github.com/GaelleBriet/memo-patte-vue/commit/13cba2ff2d55fd12a82b380c4dde25da98cdbb31))
+* **settings:** texte validé du refus d'un ancien export ([c8dc20d](https://github.com/GaelleBriet/memo-patte-vue/commit/c8dc20d46bfc60def9d7fd196b43b84b37a9f408))
+* **sync:** droits de plus_entitlements réduits à la lecture, pgtap sur les huit miroirs ([156f5a3](https://github.com/GaelleBriet/memo-patte-vue/commit/156f5a33bd909d297c570d725f2a75f819893996))
+* **treatments:** « modifier » ne date que les lignes qui changent ([2b707c4](https://github.com/GaelleBriet/memo-patte-vue/commit/2b707c441d3178d6efb50dc2380b408622e93b48))
+* **treatments:** une prise donnée vise son propre jour ([7bd72c9](https://github.com/GaelleBriet/memo-patte-vue/commit/7bd72c9fdc8e4f859979fefec9c37078d568b68d))
+
+
+### ⚡ Performance
+
+* **settings:** export d'un gros carnet sans tri ni recopie répétés ([9e1ea59](https://github.com/GaelleBriet/memo-patte-vue/commit/9e1ea594afe1414762d5cad0232f3eeafddb5edc))
+
 ## [0.1.48](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.47...memo-patte-v0.1.48) (2026-09-30)
 
 
