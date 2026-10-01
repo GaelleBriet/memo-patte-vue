@@ -46,11 +46,13 @@ function stored(
 
 beforeEach(() => {
   vi.clearAllMocks()
+  vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-09-15T10:00:00Z') })
   vi.stubGlobal('localStorage', memoryStorage())
   setActivePinia(createPinia())
 })
 
 afterEach(() => {
+  vi.useRealTimers()
   vi.unstubAllGlobals()
 })
 
@@ -65,12 +67,7 @@ describe('usePurchaseStore', () => {
     const LAPSED: PlusStatus = { plan: 'monthly', expiresAt: '2026-09-01T10:00:00Z' }
 
     beforeEach(() => {
-      vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-09-15T10:00:00Z') })
       writeStoredPlusStatus(LAPSED)
-    })
-
-    afterEach(() => {
-      vi.useRealTimers()
     })
 
     it('se lit « aucun » sans effacer le statut enregistré', () => {
@@ -253,7 +250,7 @@ describe('usePurchaseStore', () => {
     })
 
     it('passe à « aucun » un droit retiré avant son échéance, et date le souvenir du jour', async () => {
-      vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-09-16T10:00:00Z') })
+      vi.setSystemTime(new Date('2026-09-16T10:00:00Z'))
       writeStoredPlusStatus(ANNUAL)
       service.fetchStatus.mockResolvedValueOnce(NO_PLUS)
       const store = usePurchaseStore()
@@ -262,7 +259,6 @@ describe('usePurchaseStore', () => {
 
       expect(store.status).toEqual(NO_PLUS)
       expect(readStoredPlusStatus()).toEqual(stored(NO_PLUS, 'annual', '2026-09-16T10:00:00.000Z'))
-      vi.useRealTimers()
     })
 
     it('garde le statut connu quand la vérification échoue, sans lever', async () => {

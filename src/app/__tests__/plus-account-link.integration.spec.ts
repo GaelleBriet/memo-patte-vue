@@ -49,6 +49,7 @@ const LAPSED_AT = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString()
 let stop: () => void = () => {}
 
 beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-09-15T10:00:00Z') })
   vi.clearAllMocks()
   vi.stubGlobal('localStorage', memoryStorage())
   setActivePinia(createPinia())
@@ -57,6 +58,7 @@ beforeEach(() => {
 })
 
 afterEach(() => {
+  vi.useRealTimers()
   stop()
   vi.unstubAllGlobals()
 })
