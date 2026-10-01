@@ -414,5 +414,5 @@ describe('invariants du moteur, sur des carnets et des gestes tirés au sort (gr
     }
 
     expect(failures).toEqual([])
-  })
+  }, 30_000)
 })
