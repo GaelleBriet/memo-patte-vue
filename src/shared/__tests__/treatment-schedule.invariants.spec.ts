@@ -20,25 +20,40 @@ const FREQUENCIES: Frequency[] = [
   { value: 3, unit: 'day' },
   { value: 1, unit: 'week' },
   { value: 2, unit: 'week' },
+  { value: 6, unit: 'week' },
   { value: 1, unit: 'month' },
+  { value: 3, unit: 'month' },
 ]
-const TIMES = [[], ['08:00', '20:00'], ['08:00', '14:00', '20:00']]
+const TIMES = [
+  [],
+  ['20:00'],
+  ['08:00', '20:00'],
+  ['08:00', '14:00', '20:00'],
+  ['06:00', '12:00', '18:00', '23:00'],
+]
 const GESTURES = [
   'give',
   'give',
-  'give',
+  'miss',
   'log',
   'otherDate',
   'move',
   'move',
   'redate',
+  'delete',
   'newPeriod',
+  'stop',
+  'resume',
+  'resume',
   'unmove',
   'wait',
   'wait',
 ] as const
-const CARNETS = 150
-const STEPS = 24
+// Campagne longue, hors `vitest run` : INVARIANTS_SEEDS=20000 (et INVARIANTS_FROM, INVARIANTS_STEPS).
+const FIRST_SEED = Number(process.env.INVARIANTS_FROM ?? 1)
+const CARNETS = Number(process.env.INVARIANTS_SEEDS ?? 150)
+const STEPS = Number(process.env.INVARIANTS_STEPS ?? 24)
+const TIMEOUT = 30_000 + CARNETS * 100
 
 function mulberry32(seed: number): Random {
   let state = seed
@@ -113,6 +128,7 @@ function newBook(random: Random): Book {
 
 class Simulation {
   private stamp = 0
+  private redated = false
   readonly log: string[] = []
 
   constructor(
@@ -146,6 +162,13 @@ class Simulation {
   ): Book {
     const at = this.at()
     const existing = book.doses.find((dose) => idOf(dose) === idOf(fields))
+    if (
+      existing !== undefined &&
+      existing.status === 'postponed' &&
+      fields.status !== 'postponed'
+    ) {
+      this.fail(`deux lignes pour l’échéance ${idOf(fields)} : un déplacement et une prise`)
+    }
     const doses = existing
       ? book.doses.map((dose) => (dose === existing ? { ...dose, ...fields, updatedAt: at } : dose))
       : [...book.doses, { id: `d${this.stamp}`, ...fields, createdAt: at, updatedAt: at }]
@@ -243,9 +266,12 @@ class Simulation {
   private move(before: TreatmentSchedule): void {
     const due = pick(
       this.random,
-      [before.currentDoses[0], before.nextDue].filter(
-        (item) => item !== null && item !== undefined,
-      ),
+      [
+        before.currentDoses[0],
+        before.currentDoses[0],
+        before.currentDoses[0],
+        before.nextDue,
+      ].filter((item) => item !== null && item !== undefined),
     )
     if (due === undefined) return
     const bounds = before.moveBounds(due)
@@ -288,7 +314,143 @@ class Simulation {
       return this.fail(`${gesture} : ${String(error)}`)
     }
     this.book = this.written(this.book, fields)
-    this.checkProtected(before, this.schedule(), () => true, gesture)
+    const after = this.schedule()
+    this.checkProtected(before, after, () => true, gesture)
+    if (kind === 'given' && before.currentDoses.some((current) => idOf(current) === idOf(due))) {
+      this.checkGap(after, due, givenOn, fields.nextDueDate, gesture)
+    }
+  }
+
+  // (f) Hors déplacement, la dose qui suit une prise de la dose du moment n'est jamais à moins d'un intervalle.
+  private checkGap(
+    after: TreatmentSchedule,
+    due: Due,
+    givenOn: string,
+    nextDueDate: string,
+    gesture: string,
+  ): void {
+    const period = this.book.periods.find(({ id }) => id === due.periodId)
+    if (period === undefined) return
+    // Seule la dernière ligne fixe la suite ; un déplacement du même jour ou d'après est explicite.
+    const key = idOf(due)
+    const followed = after.doses.some(
+      (dose) =>
+        dose.periodId === due.periodId &&
+        idOf(dose) !== key &&
+        (dose.status === 'postponed' ? dose.dueOn >= due.dueOn : idOf(dose) > key),
+    )
+    if (followed) return
+    const soonest = shifted(givenOn < due.dueOn ? givenOn : due.dueOn, period.frequency, 1)
+    if (nextDueDate !== due.dueOn && nextDueDate < soonest) {
+      this.fail(`${gesture} : prochaine dose écrite au ${nextDueDate}, avant le ${soonest}`)
+    }
+    const next = pendingOf(after).find(
+      (other) => other.periodId === due.periodId && other.dueOn > due.dueOn,
+    )
+    if (next !== undefined && next.dueOn < soonest) {
+      this.fail(`${gesture} : dose suivante le ${next.dueOn}, avant le ${soonest}`)
+    }
+  }
+
+  // (g) Une échéance n'a jamais deux lignes : ni une dose à donner sur l'échéance d'une ligne, ni un déplacement sur place.
+  private checkOneLinePerDue(): void {
+    const schedule = this.schedule()
+    const lines = new Set(schedule.doses.map(idOf))
+    const doubled = pendingOf(schedule).find((due) => lines.has(idOf(due)))
+    if (doubled !== undefined)
+      this.fail(`dose à donner sur une échéance déjà en ligne : ${idOf(doubled)}`)
+    const still = schedule.doses.find(
+      (dose) => dose.status === 'postponed' && dose.nextDueDate === dose.dueOn,
+    )
+    if (still !== undefined) this.fail(`déplacement sur place en vigueur : ${idOf(still)}`)
+  }
+
+  // TR-26 : une prise supprimée rend son échéance, à donner ou à renseigner.
+  private delete(before: TreatmentSchedule): void {
+    const line = pick(
+      this.random,
+      before.doses.filter(({ status }) => status !== 'postponed'),
+    )
+    if (line === undefined) return
+    const gesture = `${this.book.today} supprimer la prise ${idOf(line)}`
+    this.log.push(gesture)
+    this.book = { ...this.book, doses: this.book.doses.filter(({ id }) => id !== line.id) }
+    const after = this.schedule()
+    const key = idOf(line)
+    // La suite d'après se recalcule depuis la ligne précédente : seules les échéances d'avant sont tenues.
+    this.checkProtected(
+      before,
+      after,
+      (due) => due.periodId !== line.periodId || idOf(due) < key,
+      gesture,
+    )
+    const period = this.book.periods.find(({ id }) => id === line.periodId)
+    const last = this.book.periods.at(-1)
+    const isOpen = period !== undefined && period === last && period.stoppedOn === null
+    const moved = after.doses.some(
+      (dose) => dose.status === 'postponed' && dose.periodId === line.periodId,
+    )
+    // Une prise dont la date a été corrigée peut laisser derrière elle une échéance hors de la suite.
+    const wasRewritten = this.redated
+    this.redated = true
+    // Une prise donnée un autre jour a pu refixer la suite : l'échéance supprimée n'en fait plus forcément partie.
+    const offDay = before.doses.some(
+      (dose) =>
+        dose.periodId === line.periodId && dose.givenOn !== null && dose.givenOn !== dose.dueOn,
+    )
+    if (!isOpen || moved || wasRewritten || offDay || this.book.periods.length > 1) return
+    if (!pendingOf(after).some((due) => idOf(due) === idOf(line)) && !after.finished) {
+      const horizon = after.upcoming(60).at(-1)
+      if (horizon === undefined || horizon.dueOn >= line.dueOn) {
+        this.fail(`${gesture} : l’échéance ne revient pas`)
+      }
+    }
+  }
+
+  private stop(before: TreatmentSchedule): void {
+    const { periods, today } = this.book
+    const last = periods.at(-1)
+    if (last === undefined || last.stoppedOn !== null || last.startsOn > today) return
+    const gesture = `${today} arrêter`
+    this.log.push(gesture)
+    this.book = {
+      ...this.book,
+      periods: periods.map((period) =>
+        period === last ? { ...period, stoppedOn: today } : period,
+      ),
+    }
+    const after = this.schedule()
+    if (after.phase !== 'stopped') this.fail(`${gesture} : le traitement n’est pas arrêté`)
+    this.checkProtected(before, after, (due) => due.dueOn < today, gesture)
+  }
+
+  private resume(before: TreatmentSchedule): void {
+    const { periods, today } = this.book
+    if (before.phase !== 'stopped' || periods.length >= 4) return
+    const firstDueOn = plusDays(today, int(this.random, 0, 3))
+    const times = pick(this.random, TIMES) ?? []
+    const period: TreatmentPeriodInput = {
+      id: `p${periods.length + 1}`,
+      startsOn: today,
+      firstDueOn,
+      endsOn: this.random() < 0.2 ? plusDays(firstDueOn, int(this.random, 3, 40)) : null,
+      stoppedOn: null,
+      frequency: pick(this.random, FREQUENCIES) ?? { value: 1, unit: 'day' },
+      times,
+      createdAt: this.at(),
+    }
+    const gesture = `${today} reprendre ${JSON.stringify(period)}`
+    this.log.push(gesture)
+    this.book = { ...this.book, periods: [...periods, period] }
+    const after = this.schedule()
+    this.checkProtected(before, after, () => true, gesture)
+    const hours = times.length > 0 ? times : [null]
+    const pending = new Set(pendingOf(after).map(idOf))
+    const missing = hours.find(
+      (dueTime) => !pending.has(idOf({ periodId: period.id, dueOn: firstDueOn, dueTime })),
+    )
+    if (missing !== undefined)
+      this.fail(`${gesture} : la première prise de ${missing ?? 'la reprise'} manque`)
   }
 
   private redate(before: TreatmentSchedule): void {
@@ -299,6 +461,7 @@ class Simulation {
     if (dose === undefined) return
     const givenOn = plusDays(this.book.today, -int(this.random, 0, 6))
     const gesture = `${this.book.today} redater ${idOf(dose)} au ${givenOn}`
+    this.redated = true
     this.log.push(gesture)
     const { dose: fields, postponement } = before.redate(dose.id, givenOn)
     const dropped = postponement?.kept === false ? postponement.doseIds : []
@@ -307,7 +470,12 @@ class Simulation {
       ...this.book,
       doses: this.book.doses
         .filter(({ id }) => !dropped.includes(id))
-        .map((line) => (line.id === dose.id ? { ...line, ...fields, updatedAt: at } : line)),
+        .map((line) => (line.id === dose.id ? { ...line, ...fields, updatedAt: at } : line))
+        .map((line) =>
+          postponement?.kept === true && postponement.doseIds.includes(line.id)
+            ? { ...line, ...postponement.line, updatedAt: at }
+            : line,
+        ),
     }
     const suiteMoved = fields.nextDueDate !== dose.nextDueDate || dropped.length > 0
     const key = `${dose.dueOn} ${dose.dueTime ?? ''}`
@@ -322,7 +490,7 @@ class Simulation {
 
   private newPeriod(before: TreatmentSchedule): void {
     const { periods } = this.book
-    if (!before.currentPeriodHasDose || periods.length >= 3 || before.phase === 'stopped') return
+    if (!before.currentPeriodHasDose || periods.length >= 4 || before.phase === 'stopped') return
     const frequency = pick(this.random, FREQUENCIES) ?? { value: 1, unit: 'day' }
     const times = pick(this.random, TIMES) ?? []
     const dates = before.newPeriod(frequency, times)
@@ -331,7 +499,7 @@ class Simulation {
     const period: TreatmentPeriodInput = {
       id: `p${periods.length + 1}`,
       ...dates,
-      endsOn: null,
+      endsOn: this.random() < 0.2 ? plusDays(dates.firstDueOn, int(this.random, 3, 40)) : null,
       stoppedOn: null,
       frequency,
       times,
@@ -363,8 +531,13 @@ class Simulation {
       this.fail(`${gesture} : une dose de l’ancien réglage reste à donner`)
     }
     if (period.startsOn !== today) return
+    // Une reprise garde sa première prise : seules comptent les prises notées depuis le dernier arrêt.
+    const { periods } = this.book
+    const lastStop = periods.map(({ stoppedOn }) => stoppedOn !== null).lastIndexOf(true)
+    const stopped = new Set(periods.slice(0, lastStop + 1).map(({ id }) => id))
     const noted = before.doses.filter(
-      ({ status, dueOn }) => status !== 'postponed' && dueOn === today,
+      ({ status, dueOn, periodId }) =>
+        status !== 'postponed' && dueOn === today && !stopped.has(periodId),
     ).length
     const hours = Math.max(1, period.times.length)
     const left = pending.filter((due) => due.periodId === period.id && due.dueOn === today).length
@@ -374,6 +547,11 @@ class Simulation {
     }
     if (noted > 0 && noted < hours && period.firstDueOn !== today) {
       this.fail(`${gesture} : les heures restantes du jour sont perdues`)
+    }
+    const sameRhythm = JSON.stringify(previous?.frequency) === JSON.stringify(period.frequency)
+    const dueToday = before.currentDoses.some((due) => due.dueOn === today)
+    if (noted === 0 && sameRhythm && dueToday && left !== hours) {
+      this.fail(`${gesture} : rien noté pour aujourd’hui, ${left} dose(s) sur ${hours} restent`)
     }
   }
 
@@ -407,6 +585,20 @@ class Simulation {
         this.note(before, due, 'given', late ? due.dueOn : today)
         break
       }
+      case 'miss': {
+        const due = pick(this.random, before.currentDoses)
+        if (due !== undefined && due.dueOn <= today) this.note(before, due, 'missed', due.dueOn)
+        break
+      }
+      case 'delete':
+        this.delete(before)
+        break
+      case 'stop':
+        if (this.random() < 0.3) this.stop(before)
+        break
+      case 'resume':
+        this.resume(before)
+        break
       case 'log': {
         const due = pick(this.random, before.unloggedDoses)
         if (due === undefined) break
@@ -434,7 +626,17 @@ class Simulation {
       case 'unmove': {
         const line = pick(
           this.random,
-          this.book.doses.filter(({ status }) => status === 'postponed'),
+          // Un déplacement dont la dose d'arrivée est déjà notée ne se supprime pas : la prise resterait sans échéance.
+          this.book.doses.filter(
+            (move) =>
+              move.status === 'postponed' &&
+              !this.book.doses.some(
+                (dose) =>
+                  dose.status !== 'postponed' &&
+                  dose.periodId === move.periodId &&
+                  dose.dueOn === move.nextDueDate,
+              ),
+          ),
         )
         if (line === undefined) break
         this.log.push(`${today} supprimer le déplacement ${idOf(line)}`)
@@ -447,6 +649,7 @@ class Simulation {
     this.checkFinished(this.book)
     this.purgeStale()
     this.checkWholeDay()
+    this.checkOneLinePerDue()
   }
 
   // Comme le repository : les déplacements sans effet partent avec l'écriture.
@@ -458,18 +661,22 @@ class Simulation {
 }
 
 describe('invariants du moteur, sur des carnets et des gestes tirés au sort (graine fixe)', () => {
-  it('aucune dose ne disparaît sans bruit après un geste accepté', () => {
-    const failures: string[] = []
-    for (let seed = 1; seed <= CARNETS; seed += 1) {
-      const random = mulberry32(seed)
-      const simulation = new Simulation(newBook(random), random, seed)
-      try {
-        for (let step = 0; step < STEPS; step += 1) simulation.step()
-      } catch (error) {
-        failures.push(String(error))
+  it(
+    'aucune dose ne disparaît sans bruit après un geste accepté',
+    () => {
+      const failures: string[] = []
+      for (let seed = FIRST_SEED; seed < FIRST_SEED + CARNETS; seed += 1) {
+        const random = mulberry32(seed)
+        const simulation = new Simulation(newBook(random), random, seed)
+        try {
+          for (let step = 0; step < STEPS; step += 1) simulation.step()
+        } catch (error) {
+          failures.push(String(error))
+        }
       }
-    }
 
-    expect(failures).toEqual([])
-  }, 30_000)
+      expect(failures).toEqual([])
+    },
+    TIMEOUT,
+  )
 })

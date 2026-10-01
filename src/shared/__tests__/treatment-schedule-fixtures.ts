@@ -137,10 +137,14 @@ export function withoutDose(book: Carnet, id: string): Carnet {
 export function redate(book: Carnet, today: string, doseId: string, givenOn: string): Carnet {
   const { dose: fields, postponement } = scheduleOf(book, today).redate(doseId, givenOn)
   const dropped = postponement?.kept === false ? postponement.doseIds : []
+  const kept = postponement?.kept === true ? postponement : null
   return {
     ...book,
     doses: book.doses
       .filter(({ id }) => !dropped.includes(id))
-      .map((dose) => (dose.id === doseId ? { ...dose, ...fields, updatedAt: nextStamp() } : dose)),
+      .map((dose) => (dose.id === doseId ? { ...dose, ...fields, updatedAt: nextStamp() } : dose))
+      .map((dose) =>
+        kept?.doseIds.includes(dose.id) ? { ...dose, ...kept.line, updatedAt: nextStamp() } : dose,
+      ),
   }
 }
