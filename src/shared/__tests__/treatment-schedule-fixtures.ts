@@ -101,7 +101,7 @@ export function withoutDose(book: Carnet, id: string): Carnet {
 
 /** Corrige une prise comme le ferait le repository : même ligne, champs recalculés, plus récente. */
 export function redate(book: Carnet, today: string, doseId: string, givenOn: string): Carnet {
-  const fields = scheduleOf(book, today).doseFor({ kind: 'redated', doseId, givenOn })
+  const { dose: fields } = scheduleOf(book, today).redate(doseId, givenOn)
   return {
     ...book,
     doses: book.doses.map((dose) =>
