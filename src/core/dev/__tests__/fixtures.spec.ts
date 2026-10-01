@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { DbClient } from '@/core/db/db-client'
+import type { DbClient, SqlStatement } from '@/core/db/db-client'
 import type { AnimalsRepository } from '@/features/animals/repository/animals.repository'
 import type { TreatmentDosesRepository } from '@/features/treatments/repository/treatment-doses.repository'
 import type { TreatmentPeriodsRepository } from '@/features/treatments/repository/treatment-periods.repository'
@@ -51,23 +51,50 @@ function fakeCreate<Create extends (input: never) => Promise<unknown>>(prefix: s
   })) as unknown as Create)
 }
 
+/** Chaque instruction porte sa table et sa ligne, pour relire ce que le module a écrit. */
+function fakeStatement<Row>(table: string) {
+  return vi.fn<(row: Row, exists: boolean) => SqlStatement>((row, exists) => ({
+    sql: table,
+    params: [JSON.stringify({ ...row, exists })],
+  }))
+}
+
 function createFakeRepositories(): FixturesRepositories {
   return {
-    animals: { create: fakeCreate<AnimalsRepository['create']>('animal') },
+    animals: {
+      create: fakeCreate<AnimalsRepository['create']>('animal'),
+      runImport: vi.fn<AnimalsRepository['runImport']>(async () => {}),
+    },
     vaccinations: { create: fakeCreate<VaccinationsRepository['create']>('vaccination') },
     vaccinationInjections: {
       record: vi.fn<VaccinationInjectionsRepository['record']>(async () => {}),
     },
     treatments: {
-      create: vi.fn<TreatmentsRepository['create']>((async (input: object) => {
-        const id = `treatment-${++nextId}`
-        return { ...input, id, periodId: `period-${id}` }
-      }) as unknown as TreatmentsRepository['create']),
+      restoreStatement:
+        fakeStatement<Parameters<TreatmentsRepository['restoreStatement']>[0]>('treatment'),
     },
-    treatmentPeriods: { stop: vi.fn<TreatmentPeriodsRepository['stop']>(async () => true) },
-    treatmentDoses: { record: vi.fn<TreatmentDosesRepository['record']>(async () => true) },
+    treatmentPeriods: {
+      restoreStatement:
+        fakeStatement<Parameters<TreatmentPeriodsRepository['restoreStatement']>[0]>('period'),
+    },
+    treatmentDoses: {
+      restoreStatement:
+        fakeStatement<Parameters<TreatmentDosesRepository['restoreStatement']>[0]>('dose'),
+    },
     weight: { create: fakeCreate<WeightRepository['create']>('weight') },
   }
+}
+
+type WrittenRow = Record<string, unknown> & { table: string }
+
+/** Lignes de chaque transaction de traitement, dans l'ordre de leur écriture. */
+function writtenTreatments(repositories: FixturesRepositories): WrittenRow[][] {
+  return vi.mocked(repositories.animals.runImport).mock.calls.map(([statements]) =>
+    statements.map(({ sql, params = [] }) => ({
+      ...(JSON.parse(String(params[0])) as Record<string, unknown>),
+      table: sql,
+    })),
+  )
 }
 
 function deletedTables(db: DbClient): string[] {
@@ -129,7 +156,7 @@ describe('applyFixtures', () => {
     ])
     expect(repositories.animals.create).toHaveBeenCalledTimes(2)
     expect(repositories.vaccinations.create).toHaveBeenCalledTimes(3)
-    expect(repositories.treatments.create).toHaveBeenCalledTimes(4)
+    expect(repositories.animals.runImport).toHaveBeenCalledTimes(6)
     expect(repositories.weight.create).toHaveBeenCalledTimes(10)
     expect(storage.getItem(FIXTURES_STORAGE_KEY)).toBe('maquettes-2')
   })
@@ -153,7 +180,7 @@ describe('applyFixtures', () => {
     expect(db.runMany).toHaveBeenCalledOnce()
   })
 
-  it('note l’historique par les repositories des injections et des prises, puis arrête un traitement', async () => {
+  it('note l’historique des vaccins par le repository des injections', async () => {
     await applyFixtures({
       token: 'maquettes-1',
       storage: createFakeStorage(),
@@ -172,31 +199,99 @@ describe('applyFixtures', () => {
       [chppi.id, '2024-07-30'],
       [chppi.id, '2024-06-30'],
     ])
-    const treatments = await Promise.all(
-      vi.mocked(repositories.treatments.create).mock.results.map((result) => result.value),
-    )
-    const drontal = treatments.find(({ name }) => name === 'Drontal')
-    const advocate = treatments.find(({ name }) => name === 'Advocate')
-    const doses = vi.mocked(repositories.treatmentDoses.record).mock.calls.map(([dose]) => dose)
-    expect(doses.filter((dose) => dose.treatmentId === drontal.id)).toHaveLength(14)
-    expect(doses.find((dose) => dose.treatmentId === advocate.id)).toMatchObject({
-      animalId: drontal.animalId,
-      periodId: advocate.periodId,
-      dueOn: '2026-04-23',
-      dueTime: null,
-      givenOn: '2026-04-23',
-      status: 'given',
-      nextDueDate: '2026-05-08',
-      deletedAt: null,
+  })
+
+  it('écrit chaque traitement en une transaction : le traitement, puis chaque période suivie de ses lignes', async () => {
+    await applyFixtures({
+      token: 'maquettes-1',
+      storage: createFakeStorage(),
+      db,
+      repositories,
+      today: TODAY,
     })
-    expect(doses.every((dose) => !('frequency' in dose))).toBe(true)
-    expect(repositories.treatmentPeriods.stop).toHaveBeenCalledExactlyOnceWith(
-      advocate.id,
-      '2026-05-13',
+
+    const [milo, luna] = await Promise.all(
+      vi.mocked(repositories.animals.create).mock.results.map((result) => result.value),
     )
-    expect(vi.mocked(repositories.treatments.create).mock.calls[1]?.[0]).not.toHaveProperty(
-      'history',
-    )
+    const written = writtenTreatments(repositories)
+    expect(written.map(([treatment]) => [treatment!.name, treatment!.animalId])).toEqual([
+      ['Bravecto', milo.id],
+      ['Drontal', milo.id],
+      ['Advocate', milo.id],
+      ['Panacur', milo.id],
+      ['Milbemax', luna.id],
+      ['Frontline', luna.id],
+    ])
+    expect(written.map((rows) => rows.map(({ table }) => table).join(' '))).toEqual([
+      'treatment period dose',
+      `treatment period${' dose'.repeat(15)}`,
+      'treatment period dose dose',
+      'treatment period dose dose dose dose dose',
+      'treatment period dose dose period dose',
+      'treatment period dose dose dose',
+    ])
+    expect(written.flat().every(({ exists }) => exists === false)).toBe(true)
+  })
+
+  it('rattache chaque période à son traitement et chaque ligne à sa période, toutes à leur animal', async () => {
+    await applyFixtures({
+      token: 'maquettes-1',
+      storage: createFakeStorage(),
+      db,
+      repositories,
+      today: TODAY,
+    })
+
+    for (const [treatment, ...rows] of writtenTreatments(repositories)) {
+      const precedingPeriod = (index: number) =>
+        rows
+          .slice(0, index + 1)
+          .filter(({ table }) => table === 'period')
+          .at(-1)?.id
+      expect(rows.map(({ treatmentId, animalId }) => [treatmentId, animalId])).toEqual(
+        rows.map(() => [treatment!.id, treatment!.animalId]),
+      )
+      expect(rows.map((row) => (row.table === 'period' ? row.id : row.periodId))).toEqual(
+        rows.map((_, index) => precedingPeriod(index)),
+      )
+    }
+    const ids = writtenTreatments(repositories)
+      .flat()
+      .map(({ id }) => id)
+    expect(new Set(ids).size).toBe(ids.length)
+  })
+
+  it('complète une période du jeu de démo : première échéance à son début, le reste vide', async () => {
+    await applyFixtures({
+      token: 'maquettes-1',
+      storage: createFakeStorage(),
+      db,
+      repositories,
+      today: TODAY,
+    })
+
+    const [, bravecto] = writtenTreatments(repositories)[0]!
+    const [, panacur] = writtenTreatments(repositories)[3]!
+    expect(bravecto).toMatchObject({
+      startsOn: '2026-06-28',
+      firstDueOn: '2026-06-28',
+      endsOn: null,
+      stoppedOn: null,
+      times: [],
+      doseQuantity: null,
+      doseUnit: null,
+      reminderOffsetMinutes: null,
+      reminderTime: null,
+    })
+    expect(panacur).toMatchObject({
+      firstDueOn: '2026-09-08',
+      endsOn: '2026-09-17',
+      times: ['08:00', '20:00'],
+      doseQuantity: 1,
+      doseUnit: 'sachet',
+      reminderOffsetMinutes: 15,
+      reminderTime: null,
+    })
   })
 
   it('ordonne la remise à zéro avant le peuplement', async () => {
