@@ -521,7 +521,13 @@ function planPeriod(
   notedOnStart: number,
 ): PeriodPlan {
   const steps: Step[] = []
-  const stale = olderMovesOfSameDay(doses)
+  // Q25 : sa dose d'arrivée notée, un déplacement reste dans l'historique, jamais dépassé ni sans effet.
+  const logged = new Set(
+    doses.filter((dose) => dose.status !== 'postponed').map((dose) => dose.dueOn),
+  )
+  const isLoggedMove = (dose: TreatmentDoseInput) =>
+    dose.status === 'postponed' && logged.has(dose.nextDueDate)
+  const stale = olderMovesOfSameDay(doses).filter((dose) => !isLoggedMove(dose))
   const anchors: PeriodPlan['anchors'] = []
   let between: Due[] = []
   let sequence = initialSequence(period)
@@ -529,7 +535,9 @@ function planPeriod(
   for (const step of stepsOf(doses.filter((dose) => !stale.includes(dose)))) {
     const previous = steps.at(-1)
     const left = duesLeftBefore(step, cursor)
-    if (hasNoEffect(step, previous, left) || isOvertaken(step, previous, period.frequency)) {
+    const isStale =
+      hasNoEffect(step, previous, left) || isOvertaken(step, previous, period.frequency)
+    if (isStale && !isLoggedMove(step.dose)) {
       stale.push(step.dose)
       continue
     }
@@ -983,7 +991,8 @@ function redate(state: State, doseId: string, givenOn: string): RedatedDose {
     const index = plan.steps.findIndex((step) => step.kind === 'note' && step.dose.id === doseId)
     const dose = plan.steps[index]?.dose
     if (dose?.status !== 'given') continue
-    const next = followingMove(plan, index)
+    const following = followingMove(plan, index)
+    const next = following !== null && isLocked(plan, following) ? null : following
     const overtakes = next !== null && next.nextDueDate <= givenOn
     const nextDueDate = overtakes
       ? shiftDate(givenOn, plan.period.frequency, 1)

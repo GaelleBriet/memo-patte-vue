@@ -2636,6 +2636,52 @@ describe('un déplacement dont la dose d’arrivée est notée fait partie de l�
     expect(schedule.moveRefusal(due('2026-09-28', '08:00'))).toBe('arrival-logged')
   })
 
+  it.each(['2026-09-21', '2026-09-20'])(
+    'corriger la prise d’avant au %s ne retire pas la ligne verrouillée (N18)',
+    (givenOn) => {
+      const logged = done(moved, '2026-09-20')
+      const on8 = logged.doses.find(({ dueOn }) => dueOn === '2026-09-08')
+      const before = scheduleOf(logged, '2026-09-21')
+
+      expect(before.redate(on8?.id ?? '', givenOn).postponement).toBeNull()
+
+      const after = scheduleOf(redate(logged, '2026-09-21', on8?.id ?? '', givenOn), '2026-09-21')
+      expect(after.staleDoseIds).toEqual([])
+      expect(after.lockedMoveIds).toEqual([line.id])
+      expect(after.doses.map(({ id }) => id)).toContain(line.id)
+      expect(() => after.removeMove(line.id)).toThrow(/déjà notée/)
+      expect(after.currentDoses).toEqual([due('2026-09-27')])
+      expect(after.unloggedDoses).toEqual([])
+    },
+  )
+
+  it('dépassée par une prise déjà en base (synchro), la ligne verrouillée reste en vigueur', () => {
+    const logged = done(moved, '2026-09-20')
+    const overtaken = {
+      ...logged,
+      doses: logged.doses.map((dose) =>
+        dose.dueOn === '2026-09-08'
+          ? { ...dose, givenOn: '2026-09-21', nextDueDate: '2026-09-28' }
+          : dose,
+      ),
+    }
+    const schedule = scheduleOf(overtaken, '2026-09-21')
+
+    expect(schedule.staleDoseIds).toEqual([])
+    expect(schedule.lockedMoveIds).toEqual([line.id])
+    expect(() => schedule.removeMove(line.id)).toThrow(/déjà notée/)
+    expect(schedule.currentDoses).toEqual([due('2026-09-27')])
+  })
+
+  it('une ligne sans effet se supprime par ce geste', () => {
+    const stale = storedMove(moved, '2026-09-22', '2026-09-22')
+    const schedule = scheduleOf(stale, '2026-09-09')
+    const [staleId] = schedule.staleDoseIds
+
+    expect(staleId).toBe(lastDose(stale).id)
+    expect(schedule.removeMove(staleId ?? '')).toEqual({ action: 'delete', doseId: staleId })
+  })
+
   it('une ligne inconnue ou une prise ne se supprime pas par ce geste', () => {
     const schedule = scheduleOf(moved, '2026-09-09')
 
