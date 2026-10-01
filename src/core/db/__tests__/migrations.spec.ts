@@ -69,6 +69,23 @@ describe('migrations', () => {
   })
 })
 
+describe('instructions que le plugin Android sait jouer pendant une mise à niveau', () => {
+  // Le plugin réécrit tout `DELETE FROM … WHERE` de premier niveau et exige alors une base déjà
+  // ouverte, ce qu'elle n'est pas pendant `onUpgrade` ; le plugin web ne le reproduit pas.
+  const JOUABLES = ['DROP', 'CREATE', 'INSERT', 'PRAGMA']
+
+  it.each(migrations.map((migration) => [migration.toVersion, migration.statements] as const))(
+    'la v%i ne contient que des DROP, CREATE, INSERT et PRAGMA de premier niveau',
+    (_, statements) => {
+      const refusees = statements.filter(
+        (statement) => !JOUABLES.includes(statement.trim().split(/\s+/)[0]!.toUpperCase()),
+      )
+
+      expect(refusees).toEqual([])
+    },
+  )
+})
+
 describe('schéma sur une installation neuve', () => {
   let db: InMemoryDb
 

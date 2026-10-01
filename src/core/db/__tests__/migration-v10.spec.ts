@@ -119,21 +119,19 @@ describe.each([
     ])
   })
 
-  it('retire de la file d’envoi et des curseurs les seuls traitements et prises effacés', async () => {
+  it('ne touche ni à la file d’envoi ni aux curseurs : le cycle retire seul une entrée sans ligne', async () => {
+    const avant = {
+      outbox: await db.query('SELECT * FROM sync_outbox ORDER BY entity, entity_id'),
+      cursors: await db.query('SELECT * FROM sync_pull_cursor ORDER BY entity'),
+    }
+
     await applyMigrations(db)
 
-    await expect(
-      db.query('SELECT entity, entity_id FROM sync_outbox ORDER BY entity, entity_id'),
-    ).resolves.toEqual([
-      { entity: 'animal', entity_id: MILO },
-      { entity: 'carnet_settings', entity_id: CARNET_SETTINGS_ID },
-      { entity: 'vaccination', entity_id: RAGE },
-      { entity: 'vaccination_injection', entity_id: RAGE },
-      { entity: 'weight_entry', entity_id: PESEE },
-    ])
-    await expect(db.query('SELECT entity FROM sync_pull_cursor')).resolves.toEqual([
-      { entity: 'animal' },
-    ])
+    expect({
+      outbox: await db.query('SELECT * FROM sync_outbox ORDER BY entity, entity_id'),
+      cursors: await db.query('SELECT * FROM sync_pull_cursor ORDER BY entity'),
+    }).toEqual(avant)
+    expect(avant.outbox).toContainEqual(expect.objectContaining({ entity: 'treatment_dose' }))
   })
 
   it('reste en version 9, carnet et schéma intacts, quand une instruction de la v10 échoue', async () => {

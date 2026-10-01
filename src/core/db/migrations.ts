@@ -171,8 +171,6 @@ export const migrations: DbMigration[] = [
     toVersion: 10,
     statements: [
       ...VERSION_9_TREATMENT_TABLES.map((table) => `DROP TABLE IF EXISTS ${table}`),
-      `DELETE FROM sync_outbox WHERE entity IN ('treatment', 'treatment_dose')`,
-      `DELETE FROM sync_pull_cursor WHERE entity IN ('treatment', 'treatment_dose')`,
 
       `CREATE TABLE IF NOT EXISTS treatment (
         id TEXT PRIMARY KEY NOT NULL,
