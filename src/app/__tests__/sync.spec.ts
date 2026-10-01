@@ -33,6 +33,7 @@ function fakeOutbox(pending: number): SyncCycleOutbox {
     getLastPulledAt: vi.fn<SyncCycleOutbox['getLastPulledAt']>(async () => null),
     setLastPulledAt: vi.fn<SyncCycleOutbox['setLastPulledAt']>(async () => {}),
     isEnabled: vi.fn<SyncCycleOutbox['isEnabled']>(async () => true),
+    setLastSyncedAt: vi.fn<SyncCycleOutbox['setLastSyncedAt']>(async () => {}),
   }
 }
 

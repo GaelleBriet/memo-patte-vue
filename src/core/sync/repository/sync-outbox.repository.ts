@@ -17,6 +17,7 @@ interface SyncOutboxRow {
 interface SyncStateRow {
   enabled: number
   restoring: number
+  last_synced_at: string | null
 }
 
 /** Chaque parent avant ses enfants : l'ordre des clés étrangères Postgres, au push comme au pull. */
@@ -44,9 +45,9 @@ function toEntry(row: SyncOutboxRow): SyncOutboxEntry {
 export function createSyncOutboxRepository(db: DbClient) {
   async function state(): Promise<SyncStateRow> {
     const [row] = await db.query<SyncStateRow>(
-      'SELECT enabled, restoring FROM sync_state WHERE id = 1',
+      'SELECT enabled, restoring, last_synced_at FROM sync_state WHERE id = 1',
     )
-    if (!row) throw new Error('sync_state introuvable : la migration v5 a-t-elle été jouée ?')
+    if (!row) throw new Error('sync_state introuvable : la migration v9 a-t-elle été jouée ?')
     return row
   }
 
@@ -78,6 +79,14 @@ export function createSyncOutboxRepository(db: DbClient) {
     /** Le prochain pull repart du début pour chaque table ; les données locales ne bougent pas. */
     async clearPullCursors(): Promise<void> {
       await db.run('DELETE FROM sync_pull_cursor')
+    },
+
+    async getLastSyncedAt(): Promise<string | null> {
+      return (await state()).last_synced_at
+    },
+
+    async setLastSyncedAt(lastSyncedAt: string): Promise<void> {
+      await db.run('UPDATE sync_state SET last_synced_at = ? WHERE id = 1', [lastSyncedAt])
     },
 
     async isRestoring(): Promise<boolean> {

@@ -23,9 +23,11 @@ function createFakeOutbox(
 ): SyncCycleOutbox & {
   entries: () => FakeOutboxEntry[]
   cursor: (entity: string) => string | null
+  lastSyncedAt: () => string | null
 } {
   let entries = [...initial]
   const lastPulledAt = new Map(Object.entries(cursors))
+  let lastSyncedAt: string | null = null
   return {
     async listPending() {
       return entries.map((entry) => ({ ...entry }))
@@ -49,8 +51,12 @@ function createFakeOutbox(
     async isEnabled() {
       return true
     },
+    async setLastSyncedAt(value) {
+      lastSyncedAt = value
+    },
     entries: () => entries,
     cursor: (entity) => lastPulledAt.get(entity) ?? null,
+    lastSyncedAt: () => lastSyncedAt,
   }
 }
 
@@ -603,6 +609,60 @@ describe('createSyncCycle', () => {
       await cycle.runCycle()
 
       expect(onRemindersOutdated).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('dernière synchronisation réussie', () => {
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    it('est datée une fois le push et le pull aboutis, même sans rien à échanger', async () => {
+      vi.useFakeTimers({ now: new Date('2026-10-01T08:00:00.000Z'), toFake: ['Date'] })
+      const outbox = createFakeOutbox()
+      const cycle = createSyncCycle({
+        db,
+        outbox,
+        tables: [fakeTable('animal')],
+        userId: () => 'user-1',
+        isEligible: () => true,
+      })
+
+      await cycle.runCycle()
+
+      expect(outbox.lastSyncedAt()).toBe('2026-10-01T08:00:00.000Z')
+    })
+
+    it('n’est pas datée quand le pull échoue', async () => {
+      const animal = fakeTable('animal')
+      animal.pullPage = vi.fn<SyncableTable['pullPage']>().mockRejectedValue(new Error('réseau'))
+      const outbox = createFakeOutbox()
+      const cycle = createSyncCycle({
+        db,
+        outbox,
+        tables: [animal],
+        userId: () => 'user-1',
+        isEligible: () => true,
+      })
+
+      await expect(cycle.runCycle()).rejects.toThrow('réseau')
+
+      expect(outbox.lastSyncedAt()).toBeNull()
+    })
+
+    it('n’est pas datée quand le cycle ne s’est pas lancé', async () => {
+      const outbox = createFakeOutbox()
+      const cycle = createSyncCycle({
+        db,
+        outbox,
+        tables: [fakeTable('animal')],
+        userId: () => 'user-1',
+        isEligible: () => false,
+      })
+
+      await cycle.runCycle()
+
+      expect(outbox.lastSyncedAt()).toBeNull()
     })
   })
 
