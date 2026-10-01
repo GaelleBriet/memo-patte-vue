@@ -1,0 +1,130 @@
+// @vitest-environment node
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { ZodError } from 'zod'
+import type { DbClient } from '@/core/db/db-client'
+import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory-db'
+import { getDb } from '@/core/db/sqlite'
+import {
+  CARNET_SETTINGS_ID,
+  createCarnetSettingsRepository,
+  getCarnetSettingsRepository,
+  type CarnetSettingsRepository,
+} from '../repository/carnet-settings.repository'
+
+vi.mock('@/core/db/sqlite', () => ({ getDb: vi.fn<() => Promise<DbClient>>() }))
+
+interface SettingsRow {
+  id: string
+  vaccine_reminder_time: string
+  remind_before_due: number
+  created_at: string
+  updated_at: string
+  deleted_at: string | null
+}
+
+describe('carnetSettingsRepository', () => {
+  let db: InMemoryDb
+  let repository: CarnetSettingsRepository
+
+  function rows(): Promise<SettingsRow[]> {
+    return db.query<SettingsRow>('SELECT * FROM carnet_settings')
+  }
+
+  beforeEach(async () => {
+    db = await createInMemoryDb()
+    repository = createCarnetSettingsRepository(db)
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+    db.close()
+  })
+
+  it('expose son entité', () => {
+    expect(repository.entity).toBe('carnet_settings')
+  })
+
+  it('donne les réglages par défaut tant que rien n’a été réglé, sans rien écrire', async () => {
+    await expect(repository.get()).resolves.toEqual({
+      vaccineReminderTime: '09:00',
+      remindBeforeDue: true,
+    })
+    await expect(rows()).resolves.toEqual([])
+  })
+
+  it('enregistre un réglage sans toucher à l’autre', async () => {
+    await expect(repository.update({ remindBeforeDue: false })).resolves.toEqual({
+      vaccineReminderTime: '09:00',
+      remindBeforeDue: false,
+    })
+
+    await repository.update({ vaccineReminderTime: '08:30' })
+
+    await expect(repository.get()).resolves.toEqual({
+      vaccineReminderTime: '08:30',
+      remindBeforeDue: false,
+    })
+  })
+
+  it('écrit toujours la même ligne, à l’identifiant fixe partagé par les appareils', async () => {
+    vi.useFakeTimers({ now: new Date('2026-10-01T08:00:00.000Z'), toFake: ['Date'] })
+    await repository.update({ remindBeforeDue: false })
+    vi.setSystemTime(new Date('2026-10-02T08:00:00.000Z'))
+
+    await repository.update({ vaccineReminderTime: '07:45' })
+
+    await expect(rows()).resolves.toEqual([
+      {
+        id: CARNET_SETTINGS_ID,
+        vaccine_reminder_time: '07:45',
+        remind_before_due: 0,
+        created_at: '2026-10-01T08:00:00.000Z',
+        updated_at: '2026-10-02T08:00:00.000Z',
+        deleted_at: null,
+      },
+    ])
+  })
+
+  it.each(['9h', '9:00', '24:00', '12:60'])(
+    'refuse l’heure « %s » avant d’atteindre la base',
+    async (vaccineReminderTime) => {
+      await expect(repository.update({ vaccineReminderTime })).rejects.toThrow(ZodError)
+
+      await expect(rows()).resolves.toEqual([])
+    },
+  )
+
+  it('met le réglage en file d’envoi quand la synchronisation est active', async () => {
+    await db.run('UPDATE sync_state SET enabled = 1 WHERE id = 1')
+
+    await repository.update({ remindBeforeDue: false })
+
+    await expect(db.query('SELECT entity, entity_id FROM sync_outbox')).resolves.toEqual([
+      { entity: 'carnet_settings', entity_id: CARNET_SETTINGS_ID },
+    ])
+  })
+})
+
+describe('getCarnetSettingsRepository', () => {
+  let db: InMemoryDb
+
+  beforeEach(async () => {
+    db = await createInMemoryDb()
+  })
+
+  afterEach(() => {
+    db.close()
+  })
+
+  it('ne met pas en cache une ouverture ratée, puis réutilise celle qui réussit', async () => {
+    vi.mocked(getDb).mockRejectedValueOnce(new Error('base indisponible'))
+    await expect(getCarnetSettingsRepository()).rejects.toThrow('base indisponible')
+
+    vi.mocked(getDb).mockResolvedValueOnce(db)
+    const repository = await getCarnetSettingsRepository()
+    await expect(repository.get()).resolves.toMatchObject({ remindBeforeDue: true })
+
+    await expect(getCarnetSettingsRepository()).resolves.toBe(repository)
+    expect(getDb).toHaveBeenCalledTimes(2)
+  })
+})
