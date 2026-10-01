@@ -62,7 +62,7 @@ const MAX_LISTED_DOSES = 3
 const SERIES_GAP_FACTOR = 1.5
 const DAYS_PER_UNIT = { day: 1, week: 7, month: 365.25 / 12 }
 
-// Fréquence de la prise précédente : celle avec laquelle la suivante était attendue.
+// Fréquence de la période de la prise précédente : le rythme auquel la suivante est attendue.
 function isSameSeries(previous: ExportTreatmentDose, next: ExportTreatmentDose): boolean {
   const gap = differenceInCalendarDays(parseISO(next.givenOn), parseISO(previous.givenOn))
   const period = previous.frequency.value * DAYS_PER_UNIT[previous.frequency.unit]

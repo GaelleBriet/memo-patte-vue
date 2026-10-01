@@ -437,11 +437,12 @@ export function createDataImportService({
         ...write(plan.vaccinationInjections, injectionsRepository.restoreStatement),
         ...plan.revivedInjections.map((id) => injectionsRepository.reviveStatement(id, importedAt)),
         ...write(plan.treatments, treatmentsRepository.restoreStatement),
-        ...plan.treatments.map(({ row }) =>
-          periodsRepository.restoreStatement(
-            firstPeriodOf(row, firstDoses.get(row.id) ?? row.createdAt.slice(0, 10)),
-          ),
-        ),
+        ...plan.treatments.flatMap(({ row }) => {
+          const startsOn = firstDoses.get(row.id)
+          return startsOn === undefined
+            ? []
+            : [periodsRepository.restoreStatement(firstPeriodOf(row, startsOn))]
+        }),
         ...plan.treatmentDoses.map(({ row, exists }) =>
           dosesRepository.restoreStatement(givenDoseOf(row), exists),
         ),

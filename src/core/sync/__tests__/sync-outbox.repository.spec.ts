@@ -126,9 +126,7 @@ describe('syncOutboxRepository', () => {
       await insertVaccination(db, 'v-1', ANIMAL_ID, T1)
       await insertVaccinationInjection(db, 'i-1', 'v-1', ANIMAL_ID, T1)
 
-      const pending = (await repository.listPending()).filter(({ entity }) =>
-        SYNC_ENTITY_ORDER.includes(entity),
-      )
+      const pending = await repository.listPending()
 
       expect(pending).toEqual([
         { entity: 'animal', entityId: ANIMAL_ID, queuedAt: T1, attempts: 0 },
@@ -137,8 +135,12 @@ describe('syncOutboxRepository', () => {
         { entity: 'treatment', entityId: 't-1', queuedAt: T1, attempts: 0 },
         { entity: 'treatment_dose', entityId: 'd-1', queuedAt: T1, attempts: 0 },
         { entity: 'weight_entry', entityId: 'w-1', queuedAt: T1, attempts: 0 },
+        { entity: 'treatment_period', entityId: 'p-1', queuedAt: T1, attempts: 0 },
       ])
-      expect(pending.map((entry) => entry.entity)).toEqual(SYNC_ENTITY_ORDER)
+      expect(pending.map((entry) => entry.entity)).toEqual([
+        ...SYNC_ENTITY_ORDER,
+        'treatment_period',
+      ])
     })
 
     it('rend après toutes les autres une entité sans rang, comme une période de traitement', async () => {

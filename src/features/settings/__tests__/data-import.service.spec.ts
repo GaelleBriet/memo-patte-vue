@@ -30,6 +30,7 @@ import { createTreatmentDosesRepository } from '@/features/treatments/repository
 import { createTreatmentPeriodsRepository } from '@/features/treatments/repository/treatment-periods.repository'
 import type { NewTreatmentDose } from '@/features/treatments/schema/treatment-dose.schema'
 import { createTreatmentsRepository } from '@/features/treatments/repository/treatments.repository'
+import { createTreatmentDosesService } from '@/features/treatments/service/treatment-doses.service'
 import { createVaccinationInjectionsRepository } from '@/features/vaccinations/repository/vaccination-injections.repository'
 import { createVaccinationsRepository } from '@/features/vaccinations/repository/vaccinations.repository'
 import { createWeightRepository } from '@/features/weight/repository/weight.repository'
@@ -1109,6 +1110,50 @@ describe('data-import.service', () => {
 
     afterEach(() => {
       vi.useRealTimers()
+    })
+
+    it('fusionne une prise plus ancienne que la dernière, notée en retard : la dernière prise ne change pas', async () => {
+      const phoneA = db
+      const phoneB = await createInMemoryDb()
+      await phoneB.execute('PRAGMA foreign_keys = ON')
+      at('2026-09-01T08:00:00.000Z')
+      const a = createRepositories(phoneA)
+      const luna = await a.animals.create({ name: 'Luna', species: 'cat' })
+      const milbemax = await a.treatments.create({
+        animalId: luna.id,
+        name: 'Milbémax',
+        type: 'deworming',
+        frequency: { value: 1, unit: 'week' },
+        lastDoseDate: '2026-09-01',
+      })
+      await importerOn(phoneB).importData(await exported(phoneA), 'replace')
+
+      at('2026-09-09T08:00:00.000Z')
+      await createTreatmentDosesRepository(phoneB).record(
+        prise({
+          id: crypto.randomUUID(),
+          treatmentId: milbemax.id,
+          animalId: luna.id,
+          givenOn: '2026-09-09',
+          nextDueDate: '2026-09-16',
+          at: '2026-09-09T08:00:00.000Z',
+        }),
+      )
+      at('2026-09-10T08:00:00.000Z')
+      await createTreatmentDosesService({
+        treatments: () => a.treatments,
+        doses: () => createTreatmentDosesRepository(phoneA),
+        reminders: { reschedule: async () => {} },
+        now: () => new Date(),
+      }).record(milbemax.id, '2026-09-10')
+
+      await importerOn(phoneA).importData(await exported(phoneB), 'merge')
+
+      await expect(a.treatments.getById(milbemax.id)).resolves.toMatchObject({
+        lastDoseDate: '2026-09-10',
+        nextDueDate: '2026-09-17',
+      })
+      phoneB.close()
     })
 
     it('fait converger deux exports : renommé d’un côté, arrêté plus tard de l’autre, l’arrêt gagne', async () => {

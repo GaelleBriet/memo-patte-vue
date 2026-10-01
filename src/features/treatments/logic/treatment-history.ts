@@ -1,4 +1,4 @@
-import { doseDay, rankedDueOn } from './treatment-dose'
+import { doseDay } from './treatment-dose'
 import { addFrequency } from './treatment-frequency'
 import type { DoseDates } from '../repository/treatment-doses.repository'
 import type { TreatmentDose } from '../schema/treatment-dose.schema'
@@ -52,24 +52,38 @@ export type RedatedDose = {
 
 /**
  * Prise déplacée : elle vise sa nouvelle date, et sa prochaine dose la suit, sauf un report manuel
- * qui reste après elle. `last` : la dernière des autres prises, `null` quand elle est seule.
+ * qui reste après elle.
  */
 export function redatedDose(
   dose: Pick<TreatmentDose, 'givenOn' | 'dueOn' | 'nextDueDate' | 'frequency'>,
   givenOn: string,
-  { last }: { last: Pick<TreatmentDose, 'givenOn' | 'dueOn'> | null },
+  { isHead }: { isHead: boolean },
 ): RedatedDose {
-  const isHead = last === null || givenOn > doseDay(last)
   const kept =
     dose.nextDueDate !== addFrequency(doseDay(dose), dose.frequency) && dose.nextDueDate > givenOn
   return {
     dates: {
       givenOn,
-      dueOn: rankedDueOn(givenOn, givenOn, last),
+      dueOn: givenOn,
       nextDueDate: kept ? dose.nextDueDate : addFrequency(givenOn, dose.frequency),
     },
     postponementKept: kept && isHead,
   }
+}
+
+type HeadOrder = Pick<TreatmentDose, 'dueOn' | 'dueTime' | 'createdAt' | 'id'>
+
+function isBefore(a: HeadOrder, b: HeadOrder): boolean {
+  if (a.dueOn !== b.dueOn) return a.dueOn < b.dueOn
+  if (a.dueTime !== b.dueTime) return (a.dueTime ?? '') < (b.dueTime ?? '')
+  if (a.createdAt !== b.createdAt) return a.createdAt < b.createdAt
+  return a.id < b.id
+}
+
+/** Même ordre que la tête en base : échéance, jour puis heure, puis saisie, puis identifiant. */
+export function becomesHead(doses: TreatmentDose[], dose: TreatmentDose, givenOn: string): boolean {
+  const moved = { ...dose, dueOn: givenOn }
+  return doses.every((other) => other.id === dose.id || isBefore(other, moved))
 }
 
 export function treatmentDetailTexts(

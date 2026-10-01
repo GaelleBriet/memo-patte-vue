@@ -1,5 +1,5 @@
 import { doseGivenOn } from '../logic/treatment-dose'
-import { redatedDose } from '../logic/treatment-history'
+import { becomesHead, redatedDose } from '../logic/treatment-history'
 import {
   getTreatmentDosesRepository,
   type DoseDates,
@@ -52,19 +52,14 @@ export function createTreatmentDosesService({
     /** Lève pour une date future ou un traitement introuvable. */
     async record(treatmentId: string, givenOn: string): Promise<RecordedDose> {
       const date = treatmentInputSchema.shape.lastDoseDate.parse(givenOn)
-      const repository = await doses()
-      const [treatment, [head]] = await Promise.all([
-        (await treatments()).getById(treatmentId),
-        repository.listByTreatment(treatmentId),
-      ])
+      const treatment = await (await treatments()).getById(treatmentId)
       if (treatment === null) throw new Error(`Traitement introuvable : ${treatmentId}`)
 
       const dose = doseGivenOn(treatment, date, {
         id: crypto.randomUUID(),
         at: now().toISOString(),
-        last: head ?? null,
       })
-      const recorded = await repository.record(dose)
+      const recorded = await (await doses()).record(dose)
       await reminders.reschedule(treatmentId)
       return { animalId: treatment.animalId, doseId: recorded ? dose.id : null }
     },
@@ -104,7 +99,7 @@ export function createTreatmentDosesService({
       if (dose.givenOn === null) throw new Error(`Prise non donnée : ${doseId}`)
 
       const { dates, postponementKept } = redatedDose(dose, date, {
-        last: all.find((other) => other.id !== doseId) ?? null,
+        isHead: becomesHead(all, dose, date),
       })
       await writeDates(treatmentId, doseId, dates)
       return {

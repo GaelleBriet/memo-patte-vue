@@ -812,6 +812,21 @@ describe('treatmentsRepository — périodes et prises', () => {
     })
   })
 
+  it('change la fréquence et reporte dans la même saisie : le report est gardé', async () => {
+    const created = await repository.create(bravecto)
+
+    await repository.update(created.id, {
+      ...edition,
+      frequency: { value: 1, unit: 'month' },
+      nextDueDate: '2026-04-15',
+    })
+
+    await expect(repository.getById(created.id)).resolves.toMatchObject({
+      frequency: { value: 1, unit: 'month' },
+      nextDueDate: '2026-04-15',
+    })
+  })
+
   it('reporte seul : la période garde sa fréquence', async () => {
     const created = await repository.create(bravecto)
 
