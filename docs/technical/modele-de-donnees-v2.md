@@ -164,11 +164,11 @@ développement peuvent être effacées. Rien de l'existant n'est à récupérer.
 - `vaccination_injection` : inchangée (`injected_on`, `next_due_date`?).
 - `treatment` : `id`, `animal_id`, `name`, `type` (vermifuge, antiparasitaire, médicament), dates d'audit.
 - `treatment_period` : `id`, `treatment_id`, `animal_id`, `starts_on` (date de début de la période :
-  pour une période ouverte par « Modifier », aujourd'hui, ou le lendemain quand une prise du jour est
-  notée et que des heures du jour restent sans prise, spec Traitements Q19, Q22),
+  pour une période ouverte par « Modifier », le jour du changement, toujours ; les prises déjà notées
+  ce jour-là comptent pour les premières heures du nouveau réglage, spec Traitements Q24),
   `first_due_on` (première échéance : la première prise pour une première période ou une reprise, la
   dernière prise plus la nouvelle fréquence pour une période ouverte par « Modifier », jamais avant
-  le début de la période et modifiable, spec Traitements TR-7, Q7), `ends_on`? (date de fin),
+  aujourd'hui et modifiable, spec Traitements TR-7, Q7), `ends_on`? (date de fin),
   `stopped_on`?,
   `frequency_value`, `frequency_unit`, `times`?, `dose_quantity`?, `dose_unit`?,
   `reminder_offset_minutes`?, `reminder_time`?, dates d'audit. Ordre des périodes : `starts_on`, puis
