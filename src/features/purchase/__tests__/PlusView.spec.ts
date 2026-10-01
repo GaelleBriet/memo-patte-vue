@@ -49,6 +49,7 @@ let back: MockInstance
 let wrapper: VueWrapper | null = null
 
 beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-09-15T10:00:00Z') })
   vi.clearAllMocks()
   service.isAvailable.mockReturnValue(true)
   service.listOffers.mockResolvedValue([...OFFRES])
@@ -65,6 +66,7 @@ beforeEach(() => {
 })
 
 afterEach(() => {
+  vi.useRealTimers()
   wrapper?.unmount()
   wrapper = null
   document.body.innerHTML = ''
