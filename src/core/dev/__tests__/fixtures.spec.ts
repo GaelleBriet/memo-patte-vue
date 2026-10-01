@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { DbClient } from '@/core/db/db-client'
 import type { AnimalsRepository } from '@/features/animals/repository/animals.repository'
 import type { TreatmentDosesRepository } from '@/features/treatments/repository/treatment-doses.repository'
+import type { TreatmentPeriodsRepository } from '@/features/treatments/repository/treatment-periods.repository'
 import type { TreatmentsRepository } from '@/features/treatments/repository/treatments.repository'
 import type { VaccinationInjectionsRepository } from '@/features/vaccinations/repository/vaccination-injections.repository'
 import type { VaccinationsRepository } from '@/features/vaccinations/repository/vaccinations.repository'
@@ -58,9 +59,12 @@ function createFakeRepositories(): FixturesRepositories {
       record: vi.fn<VaccinationInjectionsRepository['record']>(async () => {}),
     },
     treatments: {
-      create: fakeCreate<TreatmentsRepository['create']>('treatment'),
-      stop: vi.fn<TreatmentsRepository['stop']>(async () => true),
+      create: vi.fn<TreatmentsRepository['create']>((async (input: object) => {
+        const id = `treatment-${++nextId}`
+        return { ...input, id, periodId: `period-${id}` }
+      }) as unknown as TreatmentsRepository['create']),
     },
+    treatmentPeriods: { stop: vi.fn<TreatmentPeriodsRepository['stop']>(async () => true) },
     treatmentDoses: { record: vi.fn<TreatmentDosesRepository['record']>(async () => true) },
     weight: { create: fakeCreate<WeightRepository['create']>('weight') },
   }
@@ -111,11 +115,12 @@ describe('applyFixtures', () => {
 
     expect(outcome).toBe('seeded')
     expect(deletedTables(db)).toEqual([
+      'treatment_dose',
+      'treatment_period',
+      'treatment',
       'sync_pull_cursor',
       'sync_state',
       'sync_outbox',
-      'treatment_dose',
-      'treatment',
       'vaccination_injection',
       'vaccination',
       'carnet_settings',
@@ -176,12 +181,19 @@ describe('applyFixtures', () => {
     expect(doses.filter((dose) => dose.treatmentId === drontal.id)).toHaveLength(14)
     expect(doses.find((dose) => dose.treatmentId === advocate.id)).toMatchObject({
       animalId: drontal.animalId,
+      periodId: advocate.periodId,
+      dueOn: '2026-04-23',
+      dueTime: null,
       givenOn: '2026-04-23',
+      status: 'given',
       nextDueDate: '2026-05-08',
-      frequency: { value: 15, unit: 'day' },
       deletedAt: null,
     })
-    expect(repositories.treatments.stop).toHaveBeenCalledExactlyOnceWith(advocate.id, '2026-05-13')
+    expect(doses.every((dose) => !('frequency' in dose))).toBe(true)
+    expect(repositories.treatmentPeriods.stop).toHaveBeenCalledExactlyOnceWith(
+      advocate.id,
+      '2026-05-13',
+    )
     expect(vi.mocked(repositories.treatments.create).mock.calls[1]?.[0]).not.toHaveProperty(
       'history',
     )
@@ -218,7 +230,7 @@ describe('applyFixtures', () => {
     })
 
     expect(outcome).toBe('reset')
-    expect(deletedTables(db)).toHaveLength(10)
+    expect(deletedTables(db)).toHaveLength(11)
     expect(repositories.animals.create).not.toHaveBeenCalled()
     expect(storage.getItem(FIXTURES_STORAGE_KEY)).toBe(EMPTY_FIXTURES_TOKEN)
   })

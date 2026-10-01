@@ -20,12 +20,14 @@ const LATER_ID = '33333333-3333-4333-8333-333333333333'
 function remoteDose(overrides: Record<string, string | number | null> = {}) {
   return {
     id: LATER_ID,
+    period_id: TREATMENT_ID,
     treatment_id: TREATMENT_ID,
     animal_id: ANIMAL_ID,
+    due_on: '2026-02-01',
+    due_time: null,
     given_on: '2026-02-01',
+    status: 'given',
     next_due_date: '2026-03-01',
-    frequency_value: 1,
-    frequency_unit: 'month',
     created_at: T_NEW,
     updated_at: T_NEW,
     deleted_at: null,
@@ -50,16 +52,23 @@ describe('treatmentDosesRepository — port de synchronisation', () => {
       [ANIMAL_ID, T_LOCAL, T_LOCAL],
     )
     await db.run(
-      `INSERT INTO treatment
-         (id, animal_id, name, type, frequency_value, frequency_unit, created_at, updated_at)
-       VALUES (?, ?, 'Bravecto', 'antiparasitic', 1, 'month', ?, ?)`,
+      `INSERT INTO treatment (id, animal_id, name, type, created_at, updated_at)
+       VALUES (?, ?, 'Bravecto', 'antiparasitic', ?, ?)`,
       [TREATMENT_ID, ANIMAL_ID, T_LOCAL, T_LOCAL],
     )
     await db.run(
-      `INSERT INTO treatment_dose
-         (id, treatment_id, animal_id, given_on, next_due_date, frequency_value, frequency_unit, created_at, updated_at)
-       VALUES (?, ?, ?, '2026-01-01', '2026-02-01', 1, 'month', ?, ?)`,
+      `INSERT INTO treatment_period
+         (id, treatment_id, animal_id, starts_on, first_due_on, frequency_value, frequency_unit,
+          created_at, updated_at)
+       VALUES (?, ?, ?, '2026-01-01', '2026-01-01', 1, 'month', ?, ?)`,
       [TREATMENT_ID, TREATMENT_ID, ANIMAL_ID, T_LOCAL, T_LOCAL],
+    )
+    await db.run(
+      `INSERT INTO treatment_dose
+         (id, period_id, treatment_id, animal_id, due_on, given_on, status, next_due_date,
+          created_at, updated_at)
+       VALUES (?, ?, ?, ?, '2026-01-01', '2026-01-01', 'given', '2026-02-01', ?, ?)`,
+      [TREATMENT_ID, TREATMENT_ID, TREATMENT_ID, ANIMAL_ID, T_LOCAL, T_LOCAL],
     )
   })
 
@@ -71,17 +80,19 @@ describe('treatmentDosesRepository — port de synchronisation', () => {
     expect(repository.entity).toBe('treatment_dose')
   })
 
-  it('getRowForPush renvoie la prise, fréquence recopiée, même supprimée logiquement', async () => {
+  it('getRowForPush renvoie la prise et sa période, sans fréquence, même supprimée logiquement', async () => {
     await db.run('UPDATE treatment_dose SET deleted_at = ? WHERE id = ?', [T_NEW, TREATMENT_ID])
 
     await expect(repository.getRowForPush(TREATMENT_ID)).resolves.toEqual({
       id: TREATMENT_ID,
+      period_id: TREATMENT_ID,
       treatment_id: TREATMENT_ID,
       animal_id: ANIMAL_ID,
+      due_on: '2026-01-01',
+      due_time: null,
       given_on: '2026-01-01',
+      status: 'given',
       next_due_date: '2026-02-01',
-      frequency_value: 1,
-      frequency_unit: 'month',
       created_at: T_LOCAL,
       updated_at: T_LOCAL,
       deleted_at: T_NEW,
@@ -116,22 +127,27 @@ describe('treatmentDosesRepository — port de synchronisation', () => {
     })
   })
 
-  it('remplace une prise locale par une version distante plus récente, fréquence comprise', async () => {
+  it('remplace une prise locale par une version distante plus récente, échéance et état compris', async () => {
     await db.runMany([
       repository.applyRemoteRowStatement(
         remoteDose({
           id: TREATMENT_ID,
-          given_on: '2026-01-01',
+          due_on: '2026-01-02',
+          due_time: '08:00',
+          given_on: null,
+          status: 'missed',
           next_due_date: '2026-01-15',
-          frequency_value: 2,
-          frequency_unit: 'week',
         }),
       ),
     ])
 
     await expect(repository.getById(TREATMENT_ID)).resolves.toMatchObject({
+      dueOn: '2026-01-02',
+      dueTime: '08:00',
+      givenOn: null,
+      status: 'missed',
       nextDueDate: '2026-01-15',
-      frequency: { value: 2, unit: 'week' },
+      frequency: { value: 1, unit: 'month' },
       updatedAt: T_NEW,
     })
   })
@@ -152,12 +168,14 @@ describe('treatmentDosesRepository — port de synchronisation', () => {
       rows: [
         {
           id: TREATMENT_ID,
+          period_id: TREATMENT_ID,
           treatment_id: TREATMENT_ID,
           animal_id: ANIMAL_ID,
+          due_on: '2026-01-01',
+          due_time: null,
           given_on: '2026-01-01',
+          status: 'given',
           next_due_date: '2026-02-01',
-          frequency_value: 1,
-          frequency_unit: 'month',
           created_at: PG_LOCAL,
           updated_at: PG_LOCAL,
           deleted_at: null,

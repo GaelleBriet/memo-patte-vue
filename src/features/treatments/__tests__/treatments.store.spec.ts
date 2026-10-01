@@ -518,7 +518,7 @@ describe('useTreatmentsStore — gestes d’un rappel', () => {
     const seme = repository.seed(vermifuge())
     const store = useTreatmentsStore()
     await store.loadForAnimal(MILO)
-    const avant = { givenOn: '2026-09-20', nextDueDate: '2026-12-20', frequency: seme.frequency }
+    const avant = { givenOn: '2026-09-20', dueOn: '2026-09-20', nextDueDate: '2026-12-20' }
     const changement = { previous: avant, postponementKept: true }
     doses.changeDate.mockResolvedValue(changement)
     repository.listByAnimal.mockClear()
@@ -572,6 +572,7 @@ function createFakeRepository(): FakeTreatmentsRepository {
       animalId: input.animalId,
       name: input.name,
       type: input.type,
+      periodId: crypto.randomUUID(),
       frequency: input.frequency,
       lastDoseDate: input.lastDoseDate,
       nextDueDate: nextDueDate(input.lastDoseDate),

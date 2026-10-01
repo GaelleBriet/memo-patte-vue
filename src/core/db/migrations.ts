@@ -16,6 +16,24 @@ const VERSION_8_TABLES = [
   'sync_pull_cursor',
 ]
 
+const VERSION_9_TREATMENT_TABLES = ['treatment_dose', 'treatment']
+
+const TREATMENT_TYPES = ['deworming', 'antiparasitic', 'medication']
+
+const DOSE_UNITS = [
+  'tablet',
+  'capsule',
+  'pipette',
+  'collar',
+  'ml',
+  'drop',
+  'g',
+  'sachet',
+  'spray',
+  'application',
+  'dose',
+]
+
 const SYNCED_TABLES = [
   'animal',
   'weight_entry',
@@ -148,6 +166,71 @@ export const migrations: DbMigration[] = [
       'PRAGMA user_version = 9',
     ],
   },
+  {
+    // Les traitements v9 ne sont que des données de test : rien n'est repris.
+    toVersion: 10,
+    statements: [
+      ...VERSION_9_TREATMENT_TABLES.map((table) => `DROP TABLE IF EXISTS ${table}`),
+
+      `CREATE TABLE IF NOT EXISTS treatment (
+        id TEXT PRIMARY KEY NOT NULL,
+        animal_id TEXT NOT NULL REFERENCES animal(id) ON DELETE CASCADE,
+        name TEXT NOT NULL,
+        type TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        deleted_at TEXT
+      );`,
+      `CREATE TABLE IF NOT EXISTS treatment_period (
+        id TEXT PRIMARY KEY NOT NULL,
+        treatment_id TEXT NOT NULL REFERENCES treatment(id) ON DELETE CASCADE,
+        animal_id TEXT NOT NULL REFERENCES animal(id) ON DELETE CASCADE,
+        starts_on TEXT NOT NULL,
+        first_due_on TEXT NOT NULL,
+        ends_on TEXT,
+        stopped_on TEXT,
+        frequency_value INTEGER NOT NULL CHECK (frequency_value > 0),
+        frequency_unit TEXT NOT NULL CHECK (frequency_unit IN ('day', 'week', 'month')),
+        times TEXT,
+        dose_quantity REAL,
+        dose_unit TEXT,
+        reminder_offset_minutes INTEGER CHECK (reminder_offset_minutes IN (0, 15, 30, 60)),
+        reminder_time TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        deleted_at TEXT
+      );`,
+      `CREATE TABLE IF NOT EXISTS treatment_dose (
+        id TEXT PRIMARY KEY NOT NULL,
+        period_id TEXT NOT NULL REFERENCES treatment_period(id) ON DELETE CASCADE,
+        treatment_id TEXT NOT NULL REFERENCES treatment(id) ON DELETE CASCADE,
+        animal_id TEXT NOT NULL REFERENCES animal(id) ON DELETE CASCADE,
+        due_on TEXT NOT NULL,
+        due_time TEXT,
+        given_on TEXT,
+        status TEXT NOT NULL CHECK (status IN ('given', 'missed', 'postponed')),
+        next_due_date TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        deleted_at TEXT
+      );`,
+
+      'CREATE INDEX IF NOT EXISTS idx_treatment_animal_id ON treatment (animal_id);',
+      `CREATE INDEX IF NOT EXISTS idx_treatment_period_treatment
+         ON treatment_period (treatment_id, starts_on);`,
+      'CREATE INDEX IF NOT EXISTS idx_treatment_period_animal_id ON treatment_period (animal_id);',
+      `CREATE INDEX IF NOT EXISTS idx_treatment_dose_treatment
+         ON treatment_dose (treatment_id, due_on, due_time);`,
+      'CREATE INDEX IF NOT EXISTS idx_treatment_dose_period_id ON treatment_dose (period_id);',
+      'CREATE INDEX IF NOT EXISTS idx_treatment_dose_animal_id ON treatment_dose (animal_id);',
+
+      ...['treatment', 'treatment_period', 'treatment_dose'].flatMap(outboxTriggerStatements),
+      ...nameLengthTriggerStatements('treatment', ['name']),
+      ...allowedValuesTriggerStatements('treatment', 'type', TREATMENT_TYPES),
+      ...allowedValuesTriggerStatements('treatment_period', 'dose_unit', DOSE_UNITS),
+      'PRAGMA user_version = 10',
+    ],
+  },
 ]
 
 /**
@@ -182,6 +265,21 @@ function nameLengthTriggerStatements(table: string, columns: string[]): string[]
      ${abort}`,
     `CREATE TRIGGER ${table}_name_length_update BEFORE UPDATE OF ${columns.join(', ')} ON ${table}
      WHEN ${tooLong}
+     ${abort}`,
+  ]
+}
+
+/** Une liste appelée à grandir : une valeur s'ajoute en recréant le déclencheur, sans toucher la table. */
+function allowedValuesTriggerStatements(table: string, column: string, values: string[]): string[] {
+  const outside = `NEW.${column} NOT IN (${values.map((value) => `'${value}'`).join(', ')})`
+  const abort = `BEGIN SELECT RAISE(ABORT, '${table}: ${column} not allowed'); END;`
+
+  return [
+    `CREATE TRIGGER ${table}_${column}_insert BEFORE INSERT ON ${table}
+     WHEN ${outside}
+     ${abort}`,
+    `CREATE TRIGGER ${table}_${column}_update BEFORE UPDATE OF ${column} ON ${table}
+     WHEN ${outside}
      ${abort}`,
   ]
 }

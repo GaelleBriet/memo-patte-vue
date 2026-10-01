@@ -69,11 +69,34 @@ export async function insertTreatment(
   updatedAt: string,
 ): Promise<void> {
   await db.run(
-    `INSERT INTO treatment
-       (id, animal_id, name, type, frequency_value, frequency_unit, created_at, updated_at)
-     VALUES (?, ?, 'Bravecto', 'antiparasitic', 1, 'month', ?, ?)`,
+    `INSERT INTO treatment (id, animal_id, name, type, created_at, updated_at)
+     VALUES (?, ?, 'Bravecto', 'antiparasitic', ?, ?)`,
     [id, animalId, updatedAt, updatedAt],
   )
+}
+
+export async function insertTreatmentPeriod(
+  db: InMemoryDb,
+  id: string,
+  treatmentId: string,
+  animalId: string,
+  updatedAt: string,
+): Promise<void> {
+  await db.run(
+    `INSERT INTO treatment_period
+       (id, treatment_id, animal_id, starts_on, first_due_on, frequency_value, frequency_unit,
+        created_at, updated_at)
+     VALUES (?, ?, ?, '2026-01-01', '2026-01-01', 1, 'month', ?, ?)`,
+    [id, treatmentId, animalId, updatedAt, updatedAt],
+  )
+}
+
+export async function touchTreatmentPeriod(
+  db: InMemoryDb,
+  id: string,
+  updatedAt: string,
+): Promise<void> {
+  await db.run('UPDATE treatment_period SET updated_at = ? WHERE id = ?', [updatedAt, id])
 }
 
 export async function insertVaccinationInjection(
@@ -94,16 +117,17 @@ export async function insertVaccinationInjection(
 export async function insertTreatmentDose(
   db: InMemoryDb,
   id: string,
+  periodId: string,
   treatmentId: string,
   animalId: string,
   updatedAt: string,
 ): Promise<void> {
   await db.run(
     `INSERT INTO treatment_dose
-       (id, treatment_id, animal_id, given_on, next_due_date, frequency_value, frequency_unit,
+       (id, period_id, treatment_id, animal_id, due_on, given_on, status, next_due_date,
         created_at, updated_at)
-     VALUES (?, ?, ?, '2026-01-01', '2026-02-01', 1, 'month', ?, ?)`,
-    [id, treatmentId, animalId, updatedAt, updatedAt],
+     VALUES (?, ?, ?, ?, '2026-01-01', '2026-01-01', 'given', '2026-02-01', ?, ?)`,
+    [id, periodId, treatmentId, animalId, updatedAt, updatedAt],
   )
 }
 

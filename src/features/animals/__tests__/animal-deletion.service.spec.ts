@@ -12,6 +12,7 @@ import {
   type TreatmentsRepository,
 } from '@/features/treatments/repository/treatments.repository'
 import { createTreatmentDosesRepository } from '@/features/treatments/repository/treatment-doses.repository'
+import { createTreatmentPeriodsRepository } from '@/features/treatments/repository/treatment-periods.repository'
 import {
   createWeightRepository,
   type WeightRepository,
@@ -70,6 +71,7 @@ describe('animalDeletionService', () => {
         () => createVaccinationInjectionsRepository(db),
         () => weight,
         () => treatments,
+        () => createTreatmentPeriodsRepository(db),
         () => createTreatmentDosesRepository(db),
       ],
       { vaccinations: () => vaccinations, treatments: () => treatments, notifications },
@@ -197,7 +199,7 @@ describe('animalDeletionService', () => {
     await expect(treatments.listByAnimal(vasco.id)).resolves.toEqual([vascoTreatment])
   })
 
-  it('marque les injections et les prises de l’animal avec la même date, sans toucher celles des autres', async () => {
+  it('marque les injections, les périodes et les prises de l’animal avec la même date, sans toucher celles des autres', async () => {
     vi.useFakeTimers({ now: new Date('2026-03-01T10:00:00.000Z') })
     const miette = await animals.create({ name: 'Miette', species: 'cat' })
     const vasco = await animals.create({ name: 'Vasco', species: 'dog' })
@@ -235,6 +237,12 @@ describe('animalDeletionService', () => {
     await expect(
       db.query<Tombstone>(
         'SELECT deleted_at, updated_at FROM treatment_dose WHERE treatment_id = ?',
+        [milbemax.id],
+      ),
+    ).resolves.toEqual([tombstone])
+    await expect(
+      db.query<Tombstone>(
+        'SELECT deleted_at, updated_at FROM treatment_period WHERE treatment_id = ?',
         [milbemax.id],
       ),
     ).resolves.toEqual([tombstone])
@@ -540,6 +548,12 @@ describe('animalDeletionService', () => {
     await expect(
       db.query<Tombstone>(
         'SELECT deleted_at, updated_at FROM vaccination_injection WHERE animal_id = ?',
+        [miette.id],
+      ),
+    ).resolves.toEqual([animal])
+    await expect(
+      db.query<Tombstone>(
+        'SELECT deleted_at, updated_at FROM treatment_period WHERE animal_id = ?',
         [miette.id],
       ),
     ).resolves.toEqual([animal])

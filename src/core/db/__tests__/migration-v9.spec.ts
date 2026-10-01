@@ -85,7 +85,7 @@ describe.each([
   })
 
   it('porte la base en version 9', async () => {
-    await applyMigrations(db)
+    await applyMigrations(db, 9)
 
     expect(await userVersion(db)).toBe(9)
   })

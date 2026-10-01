@@ -11,6 +11,7 @@ import {
   parseExportFile,
 } from '@/features/settings/service/data-import.service'
 import { createTreatmentDosesRepository } from '@/features/treatments/repository/treatment-doses.repository'
+import { createTreatmentPeriodsRepository } from '@/features/treatments/repository/treatment-periods.repository'
 import { createTreatmentsRepository } from '@/features/treatments/repository/treatments.repository'
 import { createVaccinationInjectionsRepository } from '@/features/vaccinations/repository/vaccination-injections.repository'
 import { createVaccinationsRepository } from '@/features/vaccinations/repository/vaccinations.repository'
@@ -333,6 +334,7 @@ describe('traitement arrêté, exporté puis réimporté', () => {
       vaccinations: () => repositories.vaccinations,
       vaccinationInjections: () => createVaccinationInjectionsRepository(db),
       treatments: () => repositories.treatments,
+      treatmentPeriods: () => createTreatmentPeriodsRepository(db),
       treatmentDoses: () => createTreatmentDosesRepository(db),
       weight: () => createWeightRepository(db),
       photoExists: async () => false,
@@ -354,7 +356,7 @@ describe('traitement arrêté, exporté puis réimporté', () => {
     })
     const files: string[] = []
     await exportService(source, files).exportData('json', 'share')
-    await phone.treatments.stop(milbemax.id, STOPPED_ON)
+    await createTreatmentPeriodsRepository(source).stop(milbemax.id, STOPPED_ON)
     await exportService(source, files).exportData('json', 'share')
     source.close()
     return { ongoing: files[0]!, stopped: files[1]!, id: milbemax.id }

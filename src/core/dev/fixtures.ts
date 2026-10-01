@@ -10,6 +10,10 @@ import {
   type TreatmentDosesRepository,
 } from '@/features/treatments/repository/treatment-doses.repository'
 import {
+  getTreatmentPeriodsRepository,
+  type TreatmentPeriodsRepository,
+} from '@/features/treatments/repository/treatment-periods.repository'
+import {
   getTreatmentsRepository,
   type TreatmentsRepository,
 } from '@/features/treatments/repository/treatments.repository'
@@ -58,7 +62,8 @@ export interface FixturesRepositories {
   animals: Pick<AnimalsRepository, 'create'>
   vaccinations: Pick<VaccinationsRepository, 'create'>
   vaccinationInjections: Pick<VaccinationInjectionsRepository, 'record'>
-  treatments: Pick<TreatmentsRepository, 'create' | 'stop'>
+  treatments: Pick<TreatmentsRepository, 'create'>
+  treatmentPeriods: Pick<TreatmentPeriodsRepository, 'stop'>
   treatmentDoses: Pick<TreatmentDosesRepository, 'record'>
   weight: Pick<WeightRepository, 'create'>
 }
@@ -118,19 +123,25 @@ async function seedDemoCarnet(repositories: FixturesRepositories, today: Date): 
       }
     }
     for (const { history = [], stoppedOn, ...treatment } of treatments) {
-      const { id: treatmentId } = await repositories.treatments.create({ ...treatment, animalId })
+      const { id: treatmentId, periodId } = await repositories.treatments.create({
+        ...treatment,
+        animalId,
+      })
       for (const past of history) {
         await repositories.treatmentDoses.record({
           ...past,
           ...stamps,
           id: crypto.randomUUID(),
+          periodId,
           treatmentId,
           animalId,
-          frequency: treatment.frequency,
+          dueOn: past.givenOn,
+          dueTime: null,
+          status: 'given',
           deletedAt: null,
         })
       }
-      if (stoppedOn) await repositories.treatments.stop(treatmentId, stoppedOn)
+      if (stoppedOn) await repositories.treatmentPeriods.stop(treatmentId, stoppedOn)
     }
     for (const weight of weights) {
       await repositories.weight.create({ ...weight, animalId })
@@ -144,16 +155,25 @@ async function seedDemoCarnet(repositories: FixturesRepositories, today: Date): 
  */
 export async function applyDevFixtures(): Promise<void> {
   try {
-    const [db, animals, vaccinations, vaccinationInjections, treatments, treatmentDoses, weight] =
-      await Promise.all([
-        getDb(),
-        getAnimalsRepository(),
-        getVaccinationsRepository(),
-        getVaccinationInjectionsRepository(),
-        getTreatmentsRepository(),
-        getTreatmentDosesRepository(),
-        getWeightRepository(),
-      ])
+    const [
+      db,
+      animals,
+      vaccinations,
+      vaccinationInjections,
+      treatments,
+      treatmentPeriods,
+      treatmentDoses,
+      weight,
+    ] = await Promise.all([
+      getDb(),
+      getAnimalsRepository(),
+      getVaccinationsRepository(),
+      getVaccinationInjectionsRepository(),
+      getTreatmentsRepository(),
+      getTreatmentPeriodsRepository(),
+      getTreatmentDosesRepository(),
+      getWeightRepository(),
+    ])
     await applyFixtures({
       token: import.meta.env.VITE_FIXTURES,
       storage: localStorage,
@@ -163,6 +183,7 @@ export async function applyDevFixtures(): Promise<void> {
         vaccinations,
         vaccinationInjections,
         treatments,
+        treatmentPeriods,
         treatmentDoses,
         weight,
       },

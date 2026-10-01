@@ -8,6 +8,8 @@ import {
   treatmentEditSchemaAfter,
   treatmentFormSchema,
 } from '../schema/treatment.schema'
+import { DOSE_STATUSES, treatmentDoseSchema } from '../schema/treatment-dose.schema'
+import { treatmentPeriodSchema } from '../schema/treatment-period.schema'
 import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
 
 const validInput = {
@@ -175,10 +177,11 @@ describe('treatmentEditSchema', () => {
 })
 
 describe('treatmentSchema', () => {
-  it('exige l’échéance calculée et les métadonnées', () => {
+  it('exige sa période en cours, l’échéance calculée et les métadonnées', () => {
     const treatment = {
       ...validInput,
       id: '22222222-2222-4222-8222-222222222222',
+      periodId: '22222222-2222-4222-8222-222222222222',
       nextDueDate: '2026-06-01',
       stoppedOn: null,
       createdAt: '2026-03-01T10:00:00.000Z',
@@ -187,5 +190,64 @@ describe('treatmentSchema', () => {
     }
     expect(treatmentSchema.parse(treatment)).toEqual(treatment)
     expect(treatmentSchema.safeParse({ ...treatment, nextDueDate: undefined }).success).toBe(false)
+    expect(treatmentSchema.safeParse({ ...treatment, periodId: undefined }).success).toBe(false)
+  })
+})
+
+describe('treatmentDoseSchema', () => {
+  const dose = {
+    id: '33333333-3333-4333-8333-333333333333',
+    periodId: '22222222-2222-4222-8222-222222222222',
+    treatmentId: '22222222-2222-4222-8222-222222222222',
+    animalId: validInput.animalId,
+    dueOn: '2026-06-01',
+    dueTime: null,
+    givenOn: '2026-06-02',
+    status: 'given',
+    nextDueDate: '2026-09-02',
+    createdAt: '2026-06-02T10:00:00.000Z',
+    updatedAt: '2026-06-02T10:00:00.000Z',
+    deletedAt: null,
+  } as const
+
+  it('vise une échéance, jour et heure, sans fréquence recopiée', () => {
+    expect(treatmentDoseSchema.parse({ ...dose, dueTime: '08:00' })).toEqual({
+      ...dose,
+      dueTime: '08:00',
+    })
+    expect(treatmentDoseSchema.parse({ ...dose, frequency: { value: 3, unit: 'month' } })).toEqual(
+      dose,
+    )
+  })
+
+  it('accepte les trois états, et une prise sans date réelle', () => {
+    expect(DOSE_STATUSES).toEqual(['given', 'missed', 'postponed'])
+    expect(
+      treatmentDoseSchema.safeParse({ ...dose, status: 'missed', givenOn: null }).success,
+    ).toBe(true)
+    expect(treatmentDoseSchema.safeParse({ ...dose, status: 'skipped' }).success).toBe(false)
+  })
+})
+
+describe('treatmentPeriodSchema', () => {
+  it('porte les réglages de la période : début, première échéance, fréquence, arrêt', () => {
+    const period = {
+      id: '22222222-2222-4222-8222-222222222222',
+      treatmentId: '22222222-2222-4222-8222-222222222222',
+      animalId: validInput.animalId,
+      startsOn: '2026-03-01',
+      firstDueOn: '2026-03-01',
+      frequency: { value: 3, unit: 'month' },
+      stoppedOn: null,
+      createdAt: '2026-03-01T10:00:00.000Z',
+      updatedAt: '2026-03-01T10:00:00.000Z',
+      deletedAt: null,
+    } as const
+
+    expect(treatmentPeriodSchema.parse(period)).toEqual(period)
+    expect(
+      treatmentPeriodSchema.safeParse({ ...period, frequency: { value: 0, unit: 'month' } })
+        .success,
+    ).toBe(false)
   })
 })

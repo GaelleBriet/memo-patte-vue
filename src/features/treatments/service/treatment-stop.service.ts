@@ -1,5 +1,9 @@
 import { todayIsoDate } from '@/core/app-lifecycle/today-iso-date'
 import {
+  getTreatmentPeriodsRepository,
+  type TreatmentPeriodsRepository,
+} from '../repository/treatment-periods.repository'
+import {
   getTreatmentsRepository,
   type TreatmentsRepository,
 } from '../repository/treatments.repository'
@@ -11,7 +15,8 @@ import {
 type Provider<T> = () => T | Promise<T>
 
 export type TreatmentStopDependencies = {
-  treatments: Provider<Pick<TreatmentsRepository, 'getById' | 'stop' | 'undoStop'>>
+  treatments: Provider<Pick<TreatmentsRepository, 'getById'>>
+  periods: Provider<Pick<TreatmentPeriodsRepository, 'stop' | 'undoStop'>>
   reminders: Pick<TreatmentRemindersService, 'reschedule'>
   today: () => string
 }
@@ -24,23 +29,26 @@ export type StoppedTreatment = {
 
 export function createTreatmentStopService({
   treatments,
+  periods,
   reminders,
   today,
 }: TreatmentStopDependencies) {
   return {
-    /** Arrêté aujourd'hui : plus aucun rappel, les prises restent. Lève pour un traitement introuvable. */
+    /**
+     * Période en cours arrêtée aujourd'hui : plus aucun rappel, les prises restent. Lève pour un
+     * traitement introuvable.
+     */
     async stop(treatmentId: string): Promise<StoppedTreatment> {
-      const repository = await treatments()
-      const treatment = await repository.getById(treatmentId)
+      const treatment = await (await treatments()).getById(treatmentId)
       if (treatment === null) throw new Error(`Traitement introuvable : ${treatmentId}`)
 
-      const stopped = await repository.stop(treatmentId, today())
+      const stopped = await (await periods()).stop(treatmentId, today())
       await reminders.reschedule(treatmentId)
       return { animalId: treatment.animalId, stopped }
     },
 
     async undo(treatmentId: string): Promise<void> {
-      await (await treatments()).undoStop(treatmentId)
+      await (await periods()).undoStop(treatmentId)
       await reminders.reschedule(treatmentId)
     },
   }
@@ -50,6 +58,7 @@ export type TreatmentStopService = ReturnType<typeof createTreatmentStopService>
 
 export const treatmentStopService = createTreatmentStopService({
   treatments: getTreatmentsRepository,
+  periods: getTreatmentPeriodsRepository,
   reminders: treatmentRemindersService,
   today: todayIsoDate,
 })

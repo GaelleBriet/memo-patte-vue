@@ -4,9 +4,8 @@ import { migrations } from './migrations'
 const CREATE_TABLE = /CREATE TABLE IF NOT EXISTS (\w+)/g
 
 /**
- * Tables créées par les migrations jusqu'à `throughVersion`, dans l'ordre de leur première
- * création : une nouvelle migration s'y ajoute toute seule, une table reconstruite n'y figure
- * qu'une fois.
+ * Tables créées par les migrations jusqu'à `throughVersion`, dans l'ordre de leur dernière
+ * création : une table reconstruite suit les parents recréés avec elle, et n'y figure qu'une fois.
  */
 export function migrationTableNames(throughVersion = Infinity): string[] {
   const names = migrations
@@ -16,7 +15,7 @@ export function migrationTableNames(throughVersion = Infinity): string[] {
         [...statement.matchAll(CREATE_TABLE)].map((match) => match[1] as string),
       ),
     )
-  return [...new Set(names)]
+  return [...new Set(names.reverse())].reverse()
 }
 
 /**

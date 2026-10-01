@@ -20,6 +20,7 @@ const BRAVECTO: Treatment = {
   animalId: '11111111-1111-4111-8111-111111111111',
   name: 'Bravecto',
   type: 'antiparasitic',
+  periodId: '22222222-2222-4222-8222-222222222222',
   frequency: { value: 3, unit: 'month' },
   lastDoseDate: '2026-06-24',
   nextDueDate: '2026-09-24',

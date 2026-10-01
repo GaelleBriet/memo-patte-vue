@@ -6,8 +6,25 @@ import { createInMemoryDb, type InMemoryDb } from './in-memory-db'
 const NOW = '2026-09-13T10:00:00.000Z'
 
 describe('migrationTableNames', () => {
-  it('liste une fois chaque table créée par les migrations, dans leur ordre de première création', () => {
+  it('liste une fois chaque table créée par les migrations, dans leur ordre de dernière création', () => {
     expect(migrationTableNames()).toEqual([
+      'animal',
+      'weight_entry',
+      'carnet_settings',
+      'vaccination',
+      'vaccination_injection',
+      'sync_outbox',
+      'sync_state',
+      'sync_pull_cursor',
+      'treatment',
+      'treatment_period',
+      'treatment_dose',
+    ])
+  })
+
+  it('s’arrête, sur demande, aux tables créées jusqu’à une version', () => {
+    expect(migrationTableNames(8)).toEqual([])
+    expect(migrationTableNames(9)).toEqual([
       'animal',
       'weight_entry',
       'carnet_settings',
@@ -19,11 +36,6 @@ describe('migrationTableNames', () => {
       'sync_state',
       'sync_pull_cursor',
     ])
-  })
-
-  it('s’arrête, sur demande, aux tables créées jusqu’à une version', () => {
-    expect(migrationTableNames(8)).toEqual([])
-    expect(migrationTableNames(9)).toEqual(migrationTableNames())
   })
 
   it('couvre chaque table réellement présente en base après migration', async () => {
@@ -70,13 +82,20 @@ describe('clearAllTables', () => {
         params: [NOW, NOW],
       },
       {
-        sql: `INSERT INTO treatment (id, animal_id, name, type, frequency_value, frequency_unit, created_at, updated_at)
-              VALUES ('t-1', 'a-2', 'Milbemax', 'deworming', 3, 'month', ?, ?)`,
+        sql: `INSERT INTO treatment (id, animal_id, name, type, created_at, updated_at)
+              VALUES ('t-1', 'a-2', 'Milbemax', 'deworming', ?, ?)`,
         params: [NOW, NOW],
       },
       {
-        sql: `INSERT INTO treatment_dose (id, treatment_id, animal_id, given_on, next_due_date, frequency_value, frequency_unit, created_at, updated_at)
-              VALUES ('t-1', 't-1', 'a-2', '2026-08-01', '2026-11-01', 3, 'month', ?, ?)`,
+        sql: `INSERT INTO treatment_period (id, treatment_id, animal_id, starts_on, first_due_on,
+                frequency_value, frequency_unit, created_at, updated_at)
+              VALUES ('t-1', 't-1', 'a-2', '2026-08-01', '2026-08-01', 3, 'month', ?, ?)`,
+        params: [NOW, NOW],
+      },
+      {
+        sql: `INSERT INTO treatment_dose (id, period_id, treatment_id, animal_id, due_on, given_on,
+                status, next_due_date, created_at, updated_at)
+              VALUES ('t-1', 't-1', 't-1', 'a-2', '2026-08-01', '2026-08-01', 'given', '2026-11-01', ?, ?)`,
         params: [NOW, NOW],
       },
     ])
@@ -86,7 +105,13 @@ describe('clearAllTables', () => {
     db.close()
   })
 
-  it('vide toutes les tables, lignes marquées supprimées comprises', async () => {
+  it('vide toutes les tables, lignes marquées supprimées comprises, les enfants avant leurs parents', async () => {
+    await db.execute(
+      `CREATE TRIGGER enfant_d_abord BEFORE DELETE ON treatment_period
+       WHEN EXISTS (SELECT 1 FROM treatment_dose WHERE period_id = OLD.id)
+       BEGIN SELECT RAISE(ABORT, 'période vidée avant ses prises'); END`,
+    )
+
     await clearAllTables(db)
 
     for (const table of migrationTableNames()) {

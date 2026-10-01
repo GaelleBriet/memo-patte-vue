@@ -60,6 +60,7 @@ const BRAVECTO: Treatment = {
   animalId: BOREE.id,
   name: 'Bravecto',
   type: 'deworming',
+  periodId: '44444444-4444-4444-8444-444444444444',
   frequency: { value: 1, unit: 'month' },
   lastDoseDate: '2026-08-28',
   nextDueDate: '2026-09-28',
@@ -79,9 +80,13 @@ const MILBEMAX: Treatment = {
 function dose(id: string, givenOn: string, nextDueDate = '2026-09-28'): TreatmentDose {
   return {
     id,
+    periodId: BRAVECTO.periodId,
     treatmentId: BRAVECTO.id,
     animalId: BOREE.id,
+    dueOn: givenOn,
+    dueTime: null,
     givenOn,
+    status: 'given',
     nextDueDate,
     frequency: { value: 1, unit: 'month' },
     ...STAMPS,
@@ -150,11 +155,7 @@ beforeEach(async () => {
     remove: vi.fn<TreatmentDosesService['remove']>(async () => {}),
     undoRemove: vi.fn<TreatmentDosesService['undoRemove']>(async () => {}),
     changeDate: vi.fn<TreatmentDosesService['changeDate']>(async () => ({
-      previous: {
-        givenOn: '2026-08-28',
-        nextDueDate: '2026-09-28',
-        frequency: { value: 1, unit: 'month' },
-      },
+      previous: { givenOn: '2026-08-28', dueOn: '2026-08-28', nextDueDate: '2026-09-28' },
       postponementKept: false,
     })),
     undoChangeDate: vi.fn<TreatmentDosesService['undoChangeDate']>(async () => {}),
@@ -346,18 +347,14 @@ describe('TreatmentDetailView — prise supprimée ou redatée', () => {
     await flushPromises()
     expect(service.undoChangeDate).toHaveBeenCalledWith(BRAVECTO.id, 'p4', {
       givenOn: '2026-08-28',
+      dueOn: '2026-08-28',
       nextDueDate: '2026-09-28',
-      frequency: { value: 1, unit: 'month' },
     })
   })
 
   it('dit dans le toast la prochaine dose gardée quand le report n’a pas suivi', async () => {
     service.changeDate.mockResolvedValue({
-      previous: {
-        givenOn: '2026-08-28',
-        nextDueDate: '2026-12-15',
-        frequency: { value: 1, unit: 'month' },
-      },
+      previous: { givenOn: '2026-08-28', dueOn: '2026-08-28', nextDueDate: '2026-12-15' },
       postponementKept: true,
     })
     const view = await monter()

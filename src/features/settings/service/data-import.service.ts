@@ -13,8 +13,14 @@ import {
 } from '@/features/treatments/schema/treatment.schema'
 import {
   getTreatmentDosesRepository,
+  type RestoredTreatmentDose,
   type TreatmentDosesRepository,
 } from '@/features/treatments/repository/treatment-doses.repository'
+import {
+  getTreatmentPeriodsRepository,
+  type RestoredTreatmentPeriod,
+  type TreatmentPeriodsRepository,
+} from '@/features/treatments/repository/treatment-periods.repository'
 import {
   getTreatmentsRepository,
   type TreatmentsRepository,
@@ -36,7 +42,12 @@ import {
 import { EXPORT_SCHEMA_VERSION } from '../logic/export-format'
 import { fromExportV1 } from '../logic/export-v1'
 import { exportFileV1Schema } from '../schema/export-v1.schema'
-import type { ExportAnimal } from '@/shared/domain/carnet-data'
+import type {
+  ExportAnimal,
+  ExportData,
+  ExportTreatment,
+  ExportTreatmentDose,
+} from '@/shared/domain/carnet-data'
 import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
 import {
   buildImportPlan,
@@ -243,6 +254,51 @@ export function parseExportFile(text: string): ParsedExportFile {
   }
 }
 
+/** Jour de la première prise de chaque traitement du fichier : le début de sa période. */
+function firstDoseDays(data: ExportData): Map<string, string> {
+  const days = new Map<string, string>()
+  for (const { treatmentId, givenOn } of data.treatmentDoses) {
+    const first = days.get(treatmentId)
+    if (first === undefined || givenOn < first) days.set(treatmentId, givenOn)
+  }
+  return days
+}
+
+/**
+ * Le fichier ne connaît pas les périodes : ses réglages vont à la première période du traitement,
+ * qui porte son identifiant.
+ */
+function firstPeriodOf(treatment: ExportTreatment, startsOn: string): RestoredTreatmentPeriod {
+  return {
+    id: treatment.id,
+    treatmentId: treatment.id,
+    animalId: treatment.animalId,
+    startsOn,
+    firstDueOn: startsOn,
+    frequency: treatment.frequency,
+    stoppedOn: treatment.stoppedOn,
+    createdAt: treatment.createdAt,
+    updatedAt: treatment.updatedAt,
+  }
+}
+
+/** Prise donnée, rattachée à la première période de son traitement ; son échéance est son jour. */
+function givenDoseOf(dose: ExportTreatmentDose): RestoredTreatmentDose {
+  return {
+    id: dose.id,
+    periodId: dose.treatmentId,
+    treatmentId: dose.treatmentId,
+    animalId: dose.animalId,
+    dueOn: dose.givenOn,
+    dueTime: null,
+    givenOn: dose.givenOn,
+    status: 'given',
+    nextDueDate: dose.nextDueDate,
+    createdAt: dose.createdAt,
+    updatedAt: dose.updatedAt,
+  }
+}
+
 type Provider<T> = () => T | Promise<T>
 
 type SqlStatement = ReturnType<AnimalsRepository['markAllDeletedStatement']>
@@ -256,9 +312,10 @@ export type DataImportDependencies = {
   vaccinations: Provider<Pick<VaccinationsRepository, ImportMethods>>
   vaccinationInjections: Provider<Pick<VaccinationInjectionsRepository, EventImportMethods>>
   treatments: Provider<Pick<TreatmentsRepository, ImportMethods>>
-  treatmentDoses: Provider<
-    Pick<TreatmentDosesRepository, EventImportMethods | 'reconcileStaleHeadsStatement'>
+  treatmentPeriods: Provider<
+    Pick<TreatmentPeriodsRepository, 'markAllDeletedStatement' | 'restoreStatement'>
   >
+  treatmentDoses: Provider<Pick<TreatmentDosesRepository, EventImportMethods>>
   weight: Provider<Pick<WeightRepository, ImportMethods>>
   photoExists: (fileName: string) => Promise<boolean>
   syncReminders: () => Promise<void>
@@ -270,6 +327,7 @@ export function createDataImportService({
   vaccinations,
   vaccinationInjections,
   treatments,
+  treatmentPeriods,
   treatmentDoses,
   weight,
   photoExists,
@@ -293,8 +351,7 @@ export function createDataImportService({
 
     /**
      * Tout ou rien : le plan (`buildImportPlan`) est arrêté avant la moindre écriture, puis joué
-     * en une transaction, avec la réconciliation des prises à fréquence périmée. Lève si le plan
-     * refuse le fichier, ou si l'écriture échoue.
+     * en une transaction. Lève si le plan refuse le fichier, ou si l'écriture échoue.
      */
     async importData(file: ImportFile, mode: ImportMode): Promise<void> {
       const { data } = file
@@ -303,6 +360,7 @@ export function createDataImportService({
         vaccinationsRepository,
         injectionsRepository,
         treatmentsRepository,
+        periodsRepository,
         dosesRepository,
         weightRepository,
       ] = await Promise.all([
@@ -310,6 +368,7 @@ export function createDataImportService({
         vaccinations(),
         vaccinationInjections(),
         treatments(),
+        treatmentPeriods(),
         treatmentDoses(),
         weight(),
       ])
@@ -355,6 +414,7 @@ export function createDataImportService({
       if (!result.ok) throw new ImportRefusedError(result.refused.reason)
 
       const { plan } = result
+      const firstDoses = firstDoseDays(data)
       const write = <T>(
         writes: PlannedWrite<T>[],
         restoreStatement: (row: T, exists: boolean) => SqlStatement,
@@ -367,6 +427,7 @@ export function createDataImportService({
               vaccinationsRepository.markAllDeletedStatement(importedAt),
               injectionsRepository.markAllDeletedStatement(importedAt),
               treatmentsRepository.markAllDeletedStatement(importedAt),
+              periodsRepository.markAllDeletedStatement(importedAt),
               dosesRepository.markAllDeletedStatement(importedAt),
               weightRepository.markAllDeletedStatement(importedAt),
             ]
@@ -376,10 +437,17 @@ export function createDataImportService({
         ...write(plan.vaccinationInjections, injectionsRepository.restoreStatement),
         ...plan.revivedInjections.map((id) => injectionsRepository.reviveStatement(id, importedAt)),
         ...write(plan.treatments, treatmentsRepository.restoreStatement),
-        ...write(plan.treatmentDoses, dosesRepository.restoreStatement),
+        ...plan.treatments.flatMap(({ row }) => {
+          const startsOn = firstDoses.get(row.id)
+          return startsOn === undefined
+            ? []
+            : [periodsRepository.restoreStatement(firstPeriodOf(row, startsOn))]
+        }),
+        ...plan.treatmentDoses.map(({ row, exists }) =>
+          dosesRepository.restoreStatement(givenDoseOf(row), exists),
+        ),
         ...plan.revivedDoses.map((id) => dosesRepository.reviveStatement(id, importedAt)),
         ...write(plan.weightEntries, weightRepository.restoreStatement),
-        dosesRepository.reconcileStaleHeadsStatement(importedAt),
       ])
       await syncReminders()
     },
@@ -393,6 +461,7 @@ export const dataImportService = createDataImportService({
   vaccinations: getVaccinationsRepository,
   vaccinationInjections: getVaccinationInjectionsRepository,
   treatments: getTreatmentsRepository,
+  treatmentPeriods: getTreatmentPeriodsRepository,
   treatmentDoses: getTreatmentDosesRepository,
   weight: getWeightRepository,
   photoExists,

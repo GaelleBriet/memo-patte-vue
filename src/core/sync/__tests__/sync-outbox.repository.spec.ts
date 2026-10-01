@@ -13,6 +13,7 @@ import {
   insertAnimal,
   insertTreatment,
   insertTreatmentDose,
+  insertTreatmentPeriod,
   insertVaccination,
   insertVaccinationInjection,
   insertWeightEntry,
@@ -120,7 +121,8 @@ describe('syncOutboxRepository', () => {
       await insertAnimal(db, ANIMAL_ID, T1)
       await insertWeightEntry(db, 'w-1', ANIMAL_ID, T1)
       await insertTreatment(db, 't-1', ANIMAL_ID, T1)
-      await insertTreatmentDose(db, 'd-1', 't-1', ANIMAL_ID, T1)
+      await insertTreatmentPeriod(db, 'p-1', 't-1', ANIMAL_ID, T1)
+      await insertTreatmentDose(db, 'd-1', 'p-1', 't-1', ANIMAL_ID, T1)
       await insertVaccination(db, 'v-1', ANIMAL_ID, T1)
       await insertVaccinationInjection(db, 'i-1', 'v-1', ANIMAL_ID, T1)
 
@@ -133,8 +135,29 @@ describe('syncOutboxRepository', () => {
         { entity: 'treatment', entityId: 't-1', queuedAt: T1, attempts: 0 },
         { entity: 'treatment_dose', entityId: 'd-1', queuedAt: T1, attempts: 0 },
         { entity: 'weight_entry', entityId: 'w-1', queuedAt: T1, attempts: 0 },
+        { entity: 'treatment_period', entityId: 'p-1', queuedAt: T1, attempts: 0 },
       ])
-      expect(pending.map((entry) => entry.entity)).toEqual(SYNC_ENTITY_ORDER)
+      expect(pending.map((entry) => entry.entity)).toEqual([
+        ...SYNC_ENTITY_ORDER,
+        'treatment_period',
+      ])
+    })
+
+    it('rend après toutes les autres une entité sans rang, comme une période de traitement', async () => {
+      await enableSync(db)
+      await insertAnimal(db, ANIMAL_ID, T1)
+      await insertTreatment(db, 't-1', ANIMAL_ID, T1)
+      await insertTreatmentPeriod(db, 'p-1', 't-1', ANIMAL_ID, T1)
+      await insertWeightEntry(db, 'w-1', ANIMAL_ID, T1)
+
+      const pending = await repository.listPending()
+
+      expect(pending.map(({ entity }) => entity)).toEqual([
+        'animal',
+        'treatment',
+        'weight_entry',
+        'treatment_period',
+      ])
     })
   })
 
