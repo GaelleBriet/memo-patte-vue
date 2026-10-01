@@ -131,21 +131,21 @@ describe('échéances d’une période (TR-7, T1, T2)', () => {
     const fifteenDays = { value: 15, unit: 'day' } as const
 
     it('la première dose est la dernière prise plus la nouvelle fréquence', () => {
-      expect(scheduleOf(miloOn8, '2026-09-10').newPeriod(fifteenDays)).toEqual({
+      expect(scheduleOf(miloOn8, '2026-09-10').newPeriod(fifteenDays, [])).toEqual({
         startsOn: '2026-09-10',
         firstDueOn: '2026-09-23',
       })
     })
 
     it('jamais avant aujourd’hui : Milo, dernière prise le 8 sept., passé à 15 jours le 29', () => {
-      expect(scheduleOf(miloOn8, '2026-09-29').newPeriod(fifteenDays)).toEqual({
+      expect(scheduleOf(miloOn8, '2026-09-29').newPeriod(fifteenDays, [])).toEqual({
         startsOn: '2026-09-29',
         firstDueOn: '2026-09-29',
       })
     })
 
     it('sans aucune prise, aujourd’hui', () => {
-      expect(scheduleOf(carnet(weekly()), '2026-09-29').newPeriod(fifteenDays)).toEqual({
+      expect(scheduleOf(carnet(weekly()), '2026-09-29').newPeriod(fifteenDays, [])).toEqual({
         startsOn: '2026-09-29',
         firstDueOn: '2026-09-29',
       })
@@ -300,21 +300,62 @@ describe('dose du moment (TR-10, TR-11)', () => {
     })
   })
 
-  it('tous les 2 jours à 8 h et 20 h : le lendemain, la dernière heure est en retard', () => {
-    const schedule = scheduleOf(
-      carnet(
-        period({
-          firstDueOn: '2026-09-28',
-          frequency: { value: 2, unit: 'day' },
-          times: ['08:00', '20:00'],
-        }),
-      ),
-      '2026-09-29',
+  describe('Métacam, tous les 2 jours à 8 h et 20 h : on raisonne par journée (Q23)', () => {
+    const metacam = carnet(
+      period({
+        firstDueOn: '2026-09-27',
+        frequency: { value: 2, unit: 'day' },
+        times: ['08:00', '20:00'],
+      }),
     )
+    const day27 = [due('2026-09-27', '08:00'), due('2026-09-27', '20:00')]
 
-    expect(schedule.currentDoses).toEqual([due('2026-09-28', '20:00')])
-    expect(schedule.phase).toBe('overdue')
-    expect(schedule.unloggedDoses).toEqual([due('2026-09-28', '08:00')])
+    it('le lendemain, les deux heures de la journée sont en retard, rien n’est non renseigné', () => {
+      const schedule = scheduleOf(metacam, '2026-09-28')
+
+      expect(schedule.currentDoses).toEqual(day27)
+      expect(schedule.phase).toBe('overdue')
+      expect(schedule.unloggedDoses).toEqual([])
+    })
+
+    it('une heure notée, l’autre reste seule en retard, quel que soit l’ordre', () => {
+      const at20 = record(metacam, '2026-09-27', {
+        kind: 'given',
+        due: due('2026-09-27', '20:00'),
+        givenOn: '2026-09-27',
+      })
+      const schedule = scheduleOf(at20, '2026-09-28')
+
+      expect(schedule.currentDoses).toEqual([due('2026-09-27', '08:00')])
+      expect(schedule.unloggedDoses).toEqual([])
+    })
+
+    it('quand la journée d’échéance suivante arrive, la journée passée devient non renseignée', () => {
+      const schedule = scheduleOf(metacam, '2026-09-29')
+
+      expect(schedule.unloggedDoses).toEqual(day27)
+      expect(schedule.currentDoses).toEqual([
+        due('2026-09-29', '08:00'),
+        due('2026-09-29', '20:00'),
+      ])
+      expect(schedule.phase).toBe('today')
+    })
+
+    it('« Prochaine dose » au 29 emporte les deux heures en retard', () => {
+      const moved = record(metacam, '2026-09-28', {
+        kind: 'postponed',
+        due: due('2026-09-27', '20:00'),
+        to: '2026-09-29',
+      })
+      const schedule = scheduleOf(moved, '2026-09-28')
+
+      expect(schedule.unloggedDoses).toEqual([])
+      expect(schedule.upcoming(3)).toEqual([
+        due('2026-09-29', '08:00'),
+        due('2026-09-29', '20:00'),
+        due('2026-10-01', '08:00'),
+      ])
+    })
   })
 })
 
@@ -1691,35 +1732,34 @@ describe('journée déplacée quand une heure est déjà notée (Q21)', () => {
   })
 })
 
-describe('bornes aux frontières d’une période (Q19, Q21)', () => {
-  const luna = carnet(period({ firstDueOn: '2026-09-28', times: ['08:00', '20:00'] }))
-  const at8 = done(luna, '2026-09-28')
+describe('bornes aux frontières d’une période (Q21, Q24)', () => {
+  const luna = carnet(period({ firstDueOn: '2026-09-27', times: ['08:00', '20:00'] }))
   const changed: Carnet = {
-    ...at8,
+    ...luna,
     periods: [
-      ...at8.periods,
+      ...luna.periods,
       period({
         id: 'p2',
-        startsOn: '2026-09-29',
-        firstDueOn: '2026-09-29',
+        startsOn: '2026-09-28',
+        firstDueOn: '2026-09-28',
         times: ['09:00', '21:00'],
       }),
     ],
   }
   const schedule = scheduleOf(changed, '2026-09-28')
 
-  it('l’heure restante de l’ancien réglage ne se déplace pas', () => {
-    expect(schedule.moveBounds(due('2026-09-28', '20:00'))).toBeNull()
-    expect(() => schedule.move(due('2026-09-28', '20:00'), '2026-09-30')).toThrow(
+  it('une dose non renseignée de l’ancien réglage ne se déplace pas', () => {
+    expect(schedule.unloggedDoses).toEqual([due('2026-09-27', '08:00'), due('2026-09-27', '20:00')])
+    expect(schedule.moveBounds(due('2026-09-27', '20:00'))).toBeNull()
+    expect(() => schedule.move(due('2026-09-27', '20:00'), '2026-09-30')).toThrow(
       /ne se déplace pas/,
     )
   })
 
   it('la première dose du nouveau réglage ne vient pas avant le début de sa période', () => {
-    const firstOfNew = due('2026-09-29', '09:00', 'p2')
+    const firstOfNew = due('2026-09-28', '09:00', 'p2')
 
-    expect(schedule.moveBounds(firstOfNew)).toEqual({ earliest: '2026-09-29', latest: null })
-    expect(() => schedule.move(firstOfNew, '2026-09-28')).toThrow(/échéance précédente/)
+    expect(schedule.moveBounds(firstOfNew)).toEqual({ earliest: '2026-09-28', latest: null })
   })
 })
 
@@ -1777,7 +1817,7 @@ describe('contre-exemples trouvés par le test d’invariants', () => {
       to: '2026-03-10',
     })
 
-    expect(scheduleOf(book, '2026-03-08').newPeriod({ value: 1, unit: 'day' }).startsOn).toBe(
+    expect(scheduleOf(book, '2026-03-08').newPeriod({ value: 1, unit: 'day' }, []).startsOn).toBe(
       '2026-03-09',
     )
   })
@@ -1822,7 +1862,7 @@ describe('contre-exemples trouvés par le test d’invariants', () => {
     })
 
     expect(lastDose(book).nextDueDate).toBe('2026-04-16')
-    expect(scheduleOf(book, '2026-03-19').unloggedDoses).toContainEqual(due('2026-03-16', '08:00'))
+    expect(scheduleOf(book, '2026-03-19').currentDoses).toEqual([due('2026-03-16', '08:00')])
   })
 
   it('après une période précédente, la première dose ne s’avance pas non plus d’un intervalle entier', () => {
@@ -1893,41 +1933,126 @@ describe('contre-exemples trouvés par le test d’invariants', () => {
   })
 })
 
-describe('réglage changé en cours de journée (TR-28, Q19)', () => {
-  it('Luna : prise de 8 h notée, heures passées à 9 h et 21 h le 28 → 20 h du 28 à donner, puis 9 h et 21 h', () => {
-    const luna = carnet(period({ firstDueOn: '2026-09-28', times: ['08:00', '20:00'] }))
-    const at8 = done(luna, '2026-09-28')
-    const dates = scheduleOf(at8, '2026-09-28').newPeriod({ value: 1, unit: 'day' })
-    expect(dates).toEqual({ startsOn: '2026-09-29', firstDueOn: '2026-09-29' })
+describe('réglage changé en cours de journée : le nouveau réglage vaut tout de suite (TR-28, Q24)', () => {
+  const daily = { value: 1, unit: 'day' } as const
+  const luna = carnet(period({ firstDueOn: '2026-09-27', times: ['08:00', '20:00'] }))
+  const before = done(done(luna, '2026-09-27'), '2026-09-27')
+  const at8 = done(before, '2026-09-28')
 
-    const changed: Carnet = {
-      ...at8,
-      periods: [
-        ...at8.periods,
-        period({
-          id: 'p2',
-          ...dates,
-          times: ['09:00', '21:00'],
-          createdAt: '2026-09-28T10:00:00.000Z',
-        }),
-      ],
-    }
-    const schedule = scheduleOf(changed, '2026-09-28')
-    expect(schedule.currentDoses).toEqual([due('2026-09-28', '20:00')])
-    expect(schedule.upcoming(3)).toEqual([
-      due('2026-09-28', '20:00'),
+  function changedTo(book: Carnet, times: string[]): Carnet {
+    const dates = scheduleOf(book, '2026-09-28').newPeriod(daily, times)
+    const p2 = period({ id: 'p2', ...dates, times, createdAt: '2026-09-28T10:00:00.000Z' })
+    return { ...book, periods: [...book.periods, p2] }
+  }
+  const leftToday = (book: Carnet) =>
+    scheduleOf(book, '2026-09-28')
+      .currentDoses.filter(({ dueOn }) => dueOn === '2026-09-28')
+      .map(({ dueTime }) => dueTime)
+
+  it('la nouvelle période commence aujourd’hui, même après une prise du jour', () => {
+    expect(scheduleOf(at8, '2026-09-28').newPeriod(daily, ['09:00', '21:00'])).toEqual({
+      startsOn: '2026-09-28',
+      firstDueOn: '2026-09-28',
+    })
+  })
+
+  it('8 h notée, nouveau réglage 9 h et 21 h : reste 21 h', () => {
+    const changed = changedTo(at8, ['09:00', '21:00'])
+
+    expect(leftToday(changed)).toEqual(['21:00'])
+    expect(scheduleOf(changed, '2026-09-28').upcoming(3)).toEqual([
+      due('2026-09-28', '21:00', 'p2'),
       due('2026-09-29', '09:00', 'p2'),
       due('2026-09-29', '21:00', 'p2'),
     ])
   })
 
-  it('sans prise du jour, la nouvelle période commence aujourd’hui', () => {
-    const luna = carnet(period({ firstDueOn: '2026-09-27', times: ['08:00', '20:00'] }))
-    const yesterday = done(done(luna, '2026-09-27'), '2026-09-27')
+  it('les premières heures sont les plus tôt, quel que soit l’ordre de saisie', () => {
+    expect(leftToday(changedTo(at8, ['21:00', '09:00']))).toEqual(['21:00'])
+  })
 
-    expect(scheduleOf(yesterday, '2026-09-28').newPeriod({ value: 1, unit: 'day' })).toEqual({
-      startsOn: '2026-09-28',
-      firstDueOn: '2026-09-28',
+  it('8 h notée, nouveau réglage 8 h, 14 h et 20 h : restent 14 h et 20 h', () => {
+    expect(leftToday(changedTo(at8, ['08:00', '14:00', '20:00']))).toEqual(['14:00', '20:00'])
+  })
+
+  it('8 h notée, nouveau réglage 9 h seule : rien ne reste aujourd’hui', () => {
+    const dates = scheduleOf(at8, '2026-09-28').newPeriod(daily, ['09:00'])
+    expect(dates).toEqual({ startsOn: '2026-09-28', firstDueOn: '2026-09-29' })
+
+    const schedule = scheduleOf(changedTo(at8, ['09:00']), '2026-09-28')
+    expect(schedule.currentDoses).toEqual([due('2026-09-29', '09:00', 'p2')])
+    expect(schedule.unloggedDoses).toEqual([])
+  })
+
+  it('rien noté, nouveau réglage 9 h et 21 h : 9 h et 21 h', () => {
+    const changed = changedTo(before, ['09:00', '21:00'])
+
+    expect(leftToday(changed)).toEqual(['09:00', '21:00'])
+    expect(scheduleOf(changed, '2026-09-28').phase).toBe('today')
+  })
+
+  it('il ne reste aucune dose de l’ancien réglage aujourd’hui', () => {
+    const schedule = scheduleOf(changedTo(at8, ['09:00', '21:00']), '2026-09-28')
+
+    expect(() => schedule.doseFor({ kind: 'missed', due: due('2026-09-28', '20:00') })).toThrow(
+      /inconnue/,
+    )
+  })
+
+  it('les échéances de l’ancien réglage des jours d’avant restent à renseigner', () => {
+    const schedule = scheduleOf(
+      changedTo(done(luna, '2026-09-27'), ['09:00', '21:00']),
+      '2026-09-28',
+    )
+
+    expect(schedule.unloggedDoses).toEqual([due('2026-09-27', '20:00')])
+  })
+
+  it('une seconde prise notée dans le nouveau réglage compte au changement suivant', () => {
+    const second = done(changedTo(at8, ['09:00', '21:00']), '2026-09-28')
+    const dates = scheduleOf(second, '2026-09-28').newPeriod(daily, ['08:00', '14:00', '20:00'])
+    const third: Carnet = {
+      ...second,
+      periods: [
+        ...second.periods,
+        period({
+          id: 'p3',
+          ...dates,
+          times: ['08:00', '14:00', '20:00'],
+          createdAt: '2026-09-28T22:00:00.000Z',
+        }),
+      ],
+    }
+
+    expect(scheduleOf(third, '2026-09-28').currentDoses).toEqual([due('2026-09-28', '20:00', 'p3')])
+  })
+
+  it('une reprise après un arrêt garde sa première prise du jour', () => {
+    const stopped: Carnet = {
+      ...at8,
+      periods: [
+        ...at8.periods.map((old) => ({ ...old, stoppedOn: '2026-09-28' })),
+        period({
+          id: 'p2',
+          startsOn: '2026-09-28',
+          firstDueOn: '2026-09-28',
+          times: ['09:00'],
+          createdAt: '2026-09-28T10:00:00.000Z',
+        }),
+      ],
+    }
+
+    expect(scheduleOf(stopped, '2026-09-28').currentDoses).toEqual([
+      due('2026-09-28', '09:00', 'p2'),
+    ])
+  })
+
+  it('à une prise par jour, la prochaine dose reste la dernière prise plus la fréquence', () => {
+    const milo = done(carnet(weekly()), '2026-09-01')
+
+    expect(scheduleOf(milo, '2026-09-01').newPeriod({ value: 15, unit: 'day' }, [])).toEqual({
+      startsOn: '2026-09-01',
+      firstDueOn: '2026-09-16',
     })
   })
 })
@@ -1940,9 +2065,9 @@ describe('cas hors spec, pris au plus prudent', () => {
       to: '2026-09-12',
     })
 
-    expect(scheduleOf(book, '2026-09-09').newPeriod({ value: 15, unit: 'day' }).firstDueOn).toBe(
-      '2026-09-12',
-    )
+    expect(
+      scheduleOf(book, '2026-09-09').newPeriod({ value: 15, unit: 'day' }, []).firstDueOn,
+    ).toBe('2026-09-12')
   })
 
   it('un traitement sans période n’a ni échéance ni dose à renseigner', () => {
@@ -1989,7 +2114,7 @@ describe('entrées', () => {
     const schedule = treatmentSchedule({ periods, doses, today: '2026-09-28' })
     schedule.upcoming(3)
     schedule.dueForDate('2026-09-21', '08:00')
-    schedule.newPeriod({ value: 2, unit: 'day' })
+    schedule.newPeriod({ value: 2, unit: 'day' }, [])
     schedule.doseFor({ kind: 'given', due: due('2026-09-23', '08:00'), givenOn: '2026-09-23' })
 
     expect(doses).toEqual(reversed)
@@ -2136,6 +2261,6 @@ describe('appels invalides', () => {
   })
 
   it('une nouvelle fréquence invalide est refusée', () => {
-    expect(() => schedule.newPeriod({ value: 0, unit: 'day' })).toThrow(/fréquence/)
+    expect(() => schedule.newPeriod({ value: 0, unit: 'day' }, [])).toThrow(/fréquence/)
   })
 })

@@ -106,10 +106,10 @@ export type TreatmentSchedule = {
   redate(doseId: string, givenOn: string): RedatedDose
   /** « Prochaine dose » (TR-9, Q17, Q18) : déplace la dose, plus tôt ou plus tard. */
   move(due: Due, to: string): MovedDose
-  /** `null` : cette dose ne se déplace pas (aucune date possible, ou heure restante d'un ancien réglage). */
+  /** `null` : cette dose ne se déplace pas (aucune date possible, ou dose d'une période précédente). */
   moveBounds(due: Due): MoveBounds | null
-  /** Dates d'une période ouverte par « Modifier » (TR-28, Q7, Q19). */
-  newPeriod(frequency: Frequency): NewPeriod
+  /** Dates d'une période ouverte par « Modifier » (TR-28, Q7, Q24), selon ses heures. */
+  newPeriod(frequency: Frequency, times: readonly string[]): NewPeriod
 }
 
 type Sequence = { origin: string; firstStep: number; floor: string }
@@ -125,6 +125,7 @@ type PeriodPlan = {
   between: Due[]
   noteKeys: Set<string>
   noteDays: Set<string>
+  covered: Set<string>
   fallenKeys: string[]
 }
 
@@ -137,7 +138,6 @@ type State = {
   noted: Set<string>
   plans: PeriodPlan[]
   open: PeriodPlan | null
-  carriedOver: Due[]
   phase: TreatmentPhase
   currentDoses: Due[]
   unloggedDoses: Due[]
@@ -488,10 +488,20 @@ function leavesWith(move: TreatmentDoseInput, due: Due): boolean {
   return due.dueOn === move.dueOn && keyOf(due) >= keyOf(move)
 }
 
+// Q24 : les prises du jour du changement comptent pour les premières heures du nouveau réglage.
+function coveredKeys(period: TreatmentPeriodInput, notedThatDay: number): Set<string> {
+  if (period.firstDueOn !== period.startsOn) return new Set()
+  const times = period.times.length === 0 ? [null] : [...period.times].sort(compareText)
+  return new Set(
+    times.slice(0, notedThatDay).map((dueTime) => keyOf({ dueOn: period.startsOn, dueTime })),
+  )
+}
+
 function planPeriod(
   period: TreatmentPeriodInput,
   closesOn: string | null,
   doses: TreatmentDoseInput[],
+  notedOnStart: number,
 ): PeriodPlan {
   const steps: Step[] = []
   const stale: TreatmentDoseInput[] = []
@@ -523,6 +533,7 @@ function planPeriod(
     between,
     noteKeys: new Set(notes.map(keyOf)),
     noteDays: new Set(notes.map((dose) => dose.dueOn)),
+    covered: coveredKeys(period, notedOnStart),
     fallenKeys: steps
       .filter(hasFallen)
       .map(({ dose }) => keyOf(dose))
@@ -559,6 +570,7 @@ function pendingDues(plan: PeriodPlan, { from = '', to, limit = Infinity }: Wind
   const isPending = (due: Due) =>
     isWithinPeriod(plan, due.dueOn) &&
     !plan.noteKeys.has(keyOf(due)) &&
+    !plan.covered.has(keyOf(due)) &&
     due.dueOn >= from &&
     (to === undefined || due.dueOn <= to)
   const tail: Due[] = []
@@ -575,28 +587,31 @@ function latestFallenKey(plan: PeriodPlan, today: string): string {
   return plan.fallenKeys.filter((key) => key.slice(0, 10) <= today).at(-1) ?? ''
 }
 
-function dosesOfTheMoment(
-  plan: PeriodPlan,
-  fallen: Due[],
-  carriedOver: Due[],
-  today: string,
-): Due[] {
-  const ofToday = fallen.filter((due) => due.dueOn === today)
-  if (ofToday.length > 0) return ofToday
-  const latest = fallen.at(-1)
-  if (latest !== undefined && keyOf(latest) > latestFallenKey(plan, today)) return [latest]
-  return comingDues(plan, carriedOver, nextDay(today), 1)
-}
-
-function comingDues(open: PeriodPlan, carriedOver: Due[], from: string, limit: number): Due[] {
-  const earlier = carriedOver.filter((due) => due.dueOn >= from)
-  return uniqueSorted([...earlier, ...pendingDues(open, { from, limit })]).slice(0, limit)
+// Q23 : la dernière journée d'échéance arrivée reste entière la dose du moment.
+function dosesOfTheMoment(plan: PeriodPlan, fallen: Due[], today: string): Due[] {
+  const lastDay = fallen.at(-1)?.dueOn
+  if (lastDay !== undefined && lastDay >= latestFallenKey(plan, today).slice(0, 10)) {
+    return fallen.filter((due) => due.dueOn === lastDay)
+  }
+  return pendingDues(plan, { from: nextDay(today), limit: 1 })
 }
 
 function phaseOf(current: Due | undefined, today: string): TreatmentPhase {
   if (current === undefined) return 'ended'
   if (current.dueOn === today) return 'today'
   return current.dueOn < today ? 'overdue' : 'upcoming'
+}
+
+// Une reprise après un arrêt (TR-30) garde sa première prise : seul un changement de réglage compte.
+function notedOn(
+  day: string,
+  earlier: TreatmentPeriodInput[],
+  doses: TreatmentDoseInput[],
+): number {
+  const changed = new Set(earlier.filter((period) => period.stoppedOn === null).map(({ id }) => id))
+  return doses.filter(
+    (dose) => dose.status !== 'postponed' && dose.dueOn === day && changed.has(dose.periodId),
+  ).length
 }
 
 function build(input: TreatmentScheduleInput): State {
@@ -608,6 +623,7 @@ function build(input: TreatmentScheduleInput): State {
       period,
       closingDay(period, periods[index + 1]),
       doses.filter((dose) => dose.periodId === period.id),
+      notedOn(period.startsOn, periods.slice(0, index), doses),
     ),
   )
   const current = plans.at(-1)
@@ -615,7 +631,7 @@ function build(input: TreatmentScheduleInput): State {
     .slice(0, -1)
     .flatMap((plan) => pendingDues(plan, { to: previousDay(today) }))
   const noted = new Set(plans.flatMap(notesOf).map(dueId))
-  const closed = { input, noted, plans, open: null, carriedOver: [], currentDoses: [] }
+  const closed = { input, noted, plans, open: null, currentDoses: [] }
 
   if (current === undefined) return { ...closed, phase: 'ended', unloggedDoses: unlogged }
   const { stoppedOn, endsOn } = current.period
@@ -627,22 +643,14 @@ function build(input: TreatmentScheduleInput): State {
     return { ...closed, phase: 'ended', unloggedDoses: [...unlogged, ...pendingDues(current, {})] }
   }
 
-  // Q19 : une période précédente garde les heures du jour qui lui restent avant sa fermeture.
-  const carriedOver = plans
-    .slice(0, -1)
-    .flatMap((plan) => pendingDues(plan, { from: today, to: today }))
-  const fallen = uniqueSorted([
-    ...carriedOver.filter((due) => due.dueOn === today),
-    ...pendingDues(current, { to: today }),
-  ])
-  const currentDoses = dosesOfTheMoment(current, fallen, carriedOver, today)
+  const fallen = pendingDues(current, { to: today })
+  const currentDoses = dosesOfTheMoment(current, fallen, today)
   const missedHere = fallen.filter(
     (due) => due.dueOn < today && !currentDoses.some((moment) => sameDue(moment, due)),
   )
   return {
     ...closed,
     open: current,
-    carriedOver,
     phase: phaseOf(currentDoses[0], today),
     currentDoses,
     unloggedDoses: [...unlogged, ...missedHere],
@@ -714,10 +722,10 @@ function givenNextDueDate(others: State, due: Due, givenOn: string): string {
 
 // Une prise en avance vise le prochain jour d'échéance : deux jours couvrent chaque heure.
 function nearUpcoming(state: State): Due[] {
-  const { open, carriedOver, input } = state
+  const { open, input } = state
   if (open === null) return []
   const perDay = Math.max(1, open.period.times.length)
-  return comingDues(open, carriedOver, nextDay(input.today), 2 * perDay)
+  return pendingDues(open, { from: nextDay(input.today), limit: 2 * perDay })
 }
 
 function visiblePending(state: State): Due[] {
@@ -906,8 +914,8 @@ function redate(state: State, doseId: string, givenOn: string): RedatedDose {
 
 function upcoming(state: State, limit: number): Due[] {
   if (!Number.isInteger(limit) || limit < 0 || limit > MAX_DUES) throw invalid(`upcoming(${limit})`)
-  const { open, carriedOver, input } = state
-  return open === null ? [] : comingDues(open, carriedOver, input.today, limit)
+  const { open, input } = state
+  return open === null ? [] : pendingDues(open, { from: input.today, limit })
 }
 
 function dueForDate(state: State, date: string, time: string | null): Due | null {
@@ -931,19 +939,15 @@ function dueForDate(state: State, date: string, time: string | null): Due | null
   return nearUpcoming(state).find(matches) ?? null
 }
 
-// Q19 : après une prise du jour, les heures restantes du jour gardent l'ancien réglage.
-function hasHoursLeftToday(state: State): boolean {
-  const { open, input } = state
-  if (open === null) return false
-  const notedToday = open.noteDays.has(input.today)
-  return notedToday && state.currentDoses.some((due) => due.dueOn === input.today)
-}
-
-function newPeriod(state: State, frequency: Frequency): NewPeriod {
+// Q24 : la nouvelle période commence aujourd'hui ; ses heures au-delà des prises du jour restent à donner.
+function newPeriod(state: State, frequency: Frequency, times: readonly string[]): NewPeriod {
   checkFrequency(frequency, '')
+  if (!times.every(isClockTime)) throw invalid(`heures ${JSON.stringify(times)}`)
   const { today } = state.input
-  const start = hasHoursLeftToday(state) ? nextDay(today) : today
-  const startsOn = latestOf([start, state.plans.at(-1)?.period.startsOn]) ?? start
+  const startsOn = latestOf([today, state.plans.at(-1)?.period.startsOn]) ?? today
+  const periods = state.plans.map(({ period }) => period)
+  const noted = notedOn(startsOn, periods, mergeDoses(state.input.doses))
+  if (noted > 0 && noted < times.length) return { startsOn, firstDueOn: startsOn }
   const last = state.plans.flatMap((plan) => plan.steps).at(-1)
   const proposed =
     last === undefined
@@ -970,7 +974,7 @@ export function treatmentSchedule(input: TreatmentScheduleInput): TreatmentSched
     nextDue:
       state.open === null
         ? null
-        : (comingDues(state.open, state.carriedOver, nextDay(input.today), 1)[0] ?? null),
+        : (pendingDues(state.open, { from: nextDay(input.today), limit: 1 })[0] ?? null),
     unloggedDoses: state.unloggedDoses,
     doses,
     staleDoseIds,
@@ -985,6 +989,6 @@ export function treatmentSchedule(input: TreatmentScheduleInput): TreatmentSched
       checkMovable(state, planOf(state, due.periodId), due)
       return moveBounds(state, due)
     },
-    newPeriod: (frequency) => newPeriod(state, frequency),
+    newPeriod: (frequency, times) => newPeriod(state, frequency, times),
   }
 }

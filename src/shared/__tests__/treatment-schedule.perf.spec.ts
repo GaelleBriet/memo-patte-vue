@@ -146,7 +146,7 @@ describe('période suivante très lointaine (fichier forgé)', () => {
     })
 
     expect(schedule.unloggedDoses).toHaveLength(27 * 24)
-    expect(schedule.currentDoses).toHaveLength(24)
+    expect(schedule.currentDoses).toEqual([{ periodId: 'p2', dueOn: '2199-12-30', dueTime: null }])
     expect(elapsed).toBeLessThan(100)
   })
 })

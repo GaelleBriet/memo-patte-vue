@@ -324,7 +324,8 @@ class Simulation {
     const { periods } = this.book
     if (!before.currentPeriodHasDose || periods.length >= 3 || before.phase === 'stopped') return
     const frequency = pick(this.random, FREQUENCIES) ?? { value: 1, unit: 'day' }
-    const dates = before.newPeriod(frequency)
+    const times = pick(this.random, TIMES) ?? []
+    const dates = before.newPeriod(frequency, times)
     const gesture = `${this.book.today} nouvelle période ${JSON.stringify({ ...dates, frequency })}`
     this.log.push(gesture)
     const period: TreatmentPeriodInput = {
@@ -333,11 +334,66 @@ class Simulation {
       endsOn: null,
       stoppedOn: null,
       frequency,
-      times: pick(this.random, TIMES) ?? [],
+      times,
       createdAt: this.at(),
     }
     this.book = { ...this.book, periods: [...periods, period] }
-    this.checkProtected(before, this.schedule(), (due) => due.dueOn < dates.startsOn, gesture)
+    const after = this.schedule()
+    this.checkProtected(before, after, (due) => due.dueOn < dates.startsOn, gesture)
+    this.checkNewSetting(before, after, period, gesture)
+  }
+
+  // Q24 : le nouveau réglage vaut tout de suite, les prises du jour comptent pour ses premières heures.
+  private checkNewSetting(
+    before: TreatmentSchedule,
+    after: TreatmentSchedule,
+    period: TreatmentPeriodInput,
+    gesture: string,
+  ): void {
+    const { today } = this.book
+    const previous = this.book.periods.at(-2)
+    if (
+      period.startsOn !==
+      (previous !== undefined && previous.startsOn > today ? previous.startsOn : today)
+    ) {
+      this.fail(`${gesture} : la nouvelle période ne commence pas aujourd’hui`)
+    }
+    const pending = pendingOf(after)
+    if (pending.some((due) => due.periodId !== period.id && due.dueOn >= period.startsOn)) {
+      this.fail(`${gesture} : une dose de l’ancien réglage reste à donner`)
+    }
+    if (period.startsOn !== today) return
+    const noted = before.doses.filter(
+      ({ status, dueOn }) => status !== 'postponed' && dueOn === today,
+    ).length
+    const hours = Math.max(1, period.times.length)
+    const left = pending.filter((due) => due.periodId === period.id && due.dueOn === today).length
+    const expected = period.firstDueOn === today ? Math.max(0, hours - noted) : 0
+    if (left !== expected) {
+      this.fail(`${gesture} : ${left} dose(s) à donner aujourd’hui, ${expected} attendue(s)`)
+    }
+    if (noted > 0 && noted < hours && period.firstDueOn !== today) {
+      this.fail(`${gesture} : les heures restantes du jour sont perdues`)
+    }
+  }
+
+  // Q23 : une journée d'échéance n'est jamais coupée entre dose du moment et dose non renseignée.
+  private checkWholeDay(): void {
+    const schedule = this.schedule()
+    const [first] = schedule.currentDoses
+    if (first === undefined) return
+    if (schedule.currentDoses.some((due) => due.dueOn !== first.dueOn)) {
+      this.fail('les doses du moment sont sur plusieurs jours')
+    }
+    const split = schedule.unloggedDoses.find(
+      (due) => due.periodId === first.periodId && due.dueOn >= first.dueOn,
+    )
+    if (split !== undefined) this.fail(`journée coupée : ${idOf(split)} non renseignée`)
+    if (first.dueOn > this.book.today) return
+    const day = schedule.upcoming(60).filter((due) => due.dueOn === first.dueOn)
+    if (first.dueOn === this.book.today && day.length !== schedule.currentDoses.length) {
+      this.fail('une dose du jour manque aux doses du moment')
+    }
   }
 
   step(): void {
@@ -390,6 +446,7 @@ class Simulation {
     }
     this.checkFinished(this.book)
     this.purgeStale()
+    this.checkWholeDay()
   }
 
   // Comme le repository : les déplacements sans effet partent avec l'écriture.
