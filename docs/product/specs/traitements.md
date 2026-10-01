@@ -117,6 +117,9 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
   se voient à l'écran et sont à valider) :
   - **G6** Une dose ne s'avance pas d'un intervalle entier ou plus (en mois : jamais à un jour d'où la
     fréquence retombe sur son échéance d'origine), pour garder une seule ligne par échéance.
+    Exemples : hebdomadaire, la dose du 6 avr. s'avance au plus tôt au 31 mars ; mensuel, la dose du
+    30 avr. s'avance au plus tôt au 1er avr., car le 30 mars comme le 31 mars plus un mois retombent
+    sur le 30 avr.
   - **G7** Une dose ne se déplace pas tant qu'une ligne (prise ou déplacement) existe plus loin dans la
     période ; le moteur en donne la raison à l'écran.
   - **G8** La date minimale passe aussi après la date réelle de la dernière prise notée.
@@ -124,6 +127,9 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
   - **G13** Quand la suite a changé depuis le déplacement, déplacer de nouveau la dose réécrit la ligne
     avec l'échéance qu'elle remplace désormais (« prévue le » peut changer) ; une ligne ne ramène
     jamais une dose à son propre jour d'origine.
+  - **G17** Une journée n'a qu'une ligne de déplacement : la redéplacer réécrit sa ligne, même quand
+    une heure y est revenue (prise supprimée) ; deux lignes pour la même journée (synchronisation) :
+    la plus récente vaut, l'autre est sans effet.
   - **G14** Un déplacement ne remplace que l'échéance qu'il vise : si la suite change sans lui (prise
     supprimée, TR-26), l'échéance qui réapparaît reste à donner ou à renseigner.
 - **TR-10** Dose du moment : la dernière échéance jusqu'à aujourd'hui inclus, si elle est encore sans
@@ -233,6 +239,13 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
   - **G3** Une reprise après un arrêt garde sa première prise du jour : seules comptent les prises
     notées depuis le dernier arrêt.
   - **G4** Les heures couvertes sont les plus tôt du nouveau réglage, quel que soit l'ordre de saisie.
+  - **G15** « Même rythme » : quand la fréquence ne change pas, que rien n'est noté pour aujourd'hui
+    et qu'une dose est due aujourd'hui, la nouvelle période commence par la dose du jour (heures
+    passées de 8 h et 20 h à 9 h et 21 h : 9 h et 21 h le jour même), même si la dose suivante avait
+    déjà été déplacée.
+  - **G16** Pour « la dernière prise plus la nouvelle fréquence » (TR-7), une prise qui n'a pas fixé
+    la suite compte par son échéance, pas par sa date réelle (spec Q8) : la dose du 6 notée le 7,
+    fréquence passée à tous les 2 jours le 7, première dose le 8.
   - **G5** Une période précédente ne garde aucune dose à partir du début de la suivante, même si
     celle-ci commence dans le futur (cas que l'app n'écrit pas).
 - **TR-29** Un autre produit est un nouveau traitement : arrêter l'ancien, créer le nouveau. (P9 Q2)
