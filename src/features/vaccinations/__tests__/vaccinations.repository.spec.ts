@@ -723,7 +723,7 @@ describe('vaccinationsRepository — import', () => {
 
   function restore(vaccination: ImportedVaccination, exists: boolean) {
     return db.runMany([
-      repository.restoreStatement(vaccination, exists),
+      repository.restoreStatement({ ...vaccination, plannedDueDate: null }, exists),
       injections.restoreStatement(
         {
           id: vaccination.id,
@@ -774,6 +774,31 @@ describe('vaccinationsRepository — import', () => {
     await expect(
       db.query('SELECT id FROM vaccination_injection WHERE vaccination_id = ?', [IMPORTE.id]),
     ).resolves.toEqual([{ id: IMPORTE.id }])
+  })
+
+  it('écrit et relit le rappel prévu d’un vaccin sans injection', async () => {
+    const prevu = {
+      id: IMPORTE.id,
+      animalId: MIETTE,
+      name: 'Leucose',
+      plannedDueDate: '2026-11-02',
+      createdAt: IMPORTE.createdAt,
+      updatedAt: IMPORTE.updatedAt,
+    }
+
+    await db.runMany([repository.restoreStatement(prevu, false)])
+    await expect(repository.listRecords()).resolves.toEqual([prevu])
+
+    const corrige = { ...prevu, plannedDueDate: null, updatedAt: '2026-09-15T08:00:00.000Z' }
+    await db.runMany([repository.restoreStatement(corrige, true)])
+    await expect(repository.listRecords()).resolves.toEqual([corrige])
+  })
+
+  it('ne liste pas un vaccin supprimé parmi les lignes à exporter', async () => {
+    await restore(IMPORTE, false)
+    await repository.remove(IMPORTE.id)
+
+    await expect(repository.listRecords()).resolves.toEqual([])
   })
 
   it('ne déplace pas un vaccin existant vers l’animal du fichier', async () => {

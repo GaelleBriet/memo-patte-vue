@@ -50,6 +50,8 @@ const errorMessage = computed(() => {
       return t('settings.import.errors.invalid')
     case 'newer':
       return t('settings.import.errors.newer')
+    case 'older':
+      return t('settings.import.errors.older')
     case 'outOfRange':
       return t('settings.import.errors.outOfRange')
     case 'nameTooLong':

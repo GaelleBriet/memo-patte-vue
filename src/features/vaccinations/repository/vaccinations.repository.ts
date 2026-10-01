@@ -34,10 +34,12 @@ interface VaccinationWithHeadRow extends Omit<VaccinationRow, 'planned_due_date'
 }
 
 export type VaccinationVersion = Pick<Vaccination, 'id' | 'animalId' | 'updatedAt' | 'deletedAt'>
-export type RestoredVaccination = Pick<
+/** Le vaccin tel que sa table l'enregistre, sans la tête de son historique. */
+export type VaccinationRecord = Pick<
   Vaccination,
   'id' | 'animalId' | 'name' | 'createdAt' | 'updatedAt'
->
+> & { plannedDueDate: string | null }
+export type RestoredVaccination = VaccinationRecord
 
 const COLUMNS = 'id, animal_id, name, planned_due_date, created_at, updated_at, deleted_at'
 
@@ -115,6 +117,22 @@ export function createVaccinationsRepository(
          ORDER BY vaccination.animal_id, head.injected_on DESC, vaccination.name COLLATE NOCASE`,
       )
       return rows.map(toVaccination)
+    },
+
+    /** Vaccins visibles, rappel prévu compris, qu'ils aient ou non une injection. */
+    async listRecords(): Promise<VaccinationRecord[]> {
+      const rows = await db.query<VaccinationRow>(
+        `SELECT ${COLUMNS} FROM vaccination WHERE ${NOT_DELETED}
+         ORDER BY animal_id, created_at, id`,
+      )
+      return rows.map((row) => ({
+        id: row.id,
+        animalId: row.animal_id,
+        name: row.name,
+        plannedDueDate: row.planned_due_date,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+      }))
     },
 
     async create(input: VaccinationInput): Promise<Vaccination> {
@@ -213,17 +231,18 @@ export function createVaccinationsRepository(
 
     /** Reprend les dates du fichier importé et rend la ligne visible, sans la changer d'animal. */
     restoreStatement(vaccination: RestoredVaccination, exists: boolean): SqlStatement {
-      const { id, animalId, name, createdAt, updatedAt } = vaccination
+      const { id, animalId, name, plannedDueDate, createdAt, updatedAt } = vaccination
       return exists
         ? {
             sql: `UPDATE vaccination
-                  SET name = ?, created_at = ?, updated_at = ?, deleted_at = NULL
+                  SET name = ?, planned_due_date = ?, created_at = ?, updated_at = ?,
+                      deleted_at = NULL
                   WHERE id = ?`,
-            params: [name, createdAt, updatedAt, id],
+            params: [name, plannedDueDate, createdAt, updatedAt, id],
           }
         : {
-            sql: `INSERT INTO vaccination (${COLUMNS}) VALUES (?, ?, ?, NULL, ?, ?, NULL)`,
-            params: [id, animalId, name, createdAt, updatedAt],
+            sql: `INSERT INTO vaccination (${COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, NULL)`,
+            params: [id, animalId, name, plannedDueDate, createdAt, updatedAt],
           }
     },
 

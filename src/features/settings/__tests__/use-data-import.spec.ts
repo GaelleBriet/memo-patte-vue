@@ -79,6 +79,8 @@ describe('useDataImport', () => {
   it.each([
     ['invalid', 'pas du JSON'],
     ['newer', JSON.stringify({ schemaVersion: 99 })],
+    ['older', JSON.stringify({ schemaVersion: 2, animals: [] })],
+    ['older', JSON.stringify({ schemaVersion: 1, animals: [] })],
   ] as const)('signale un fichier refusé (%s) sans rien écrire', async (error, content) => {
     const flow = setup()
 
@@ -139,6 +141,16 @@ describe('useDataImport', () => {
     expect(flow.step.value).toBe('error')
     expect(flow.error.value).toBe('failed')
     expect(onImported).not.toHaveBeenCalled()
+  })
+
+  it('ne journalise que le type d’une erreur d’écriture, jamais son message, qui peut citer le fichier', async () => {
+    importData.mockRejectedValue(new TypeError('UNIQUE constraint failed: Luna, 2019-03-02'))
+    const flow = setup()
+    await flow.selectFile(fichier(importFixtureJson()))
+
+    await flow.choose('merge')
+
+    expect(console.warn).toHaveBeenCalledExactlyOnceWith('Import impossible :', 'TypeError')
   })
 
   it('reste occupé pendant l’écriture et ignore un second choix', async () => {

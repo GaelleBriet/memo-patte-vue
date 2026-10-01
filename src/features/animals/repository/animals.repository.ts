@@ -5,7 +5,12 @@ import { getDb } from '@/core/db/sqlite'
 import { guardedUpsert, type SyncRow } from '@/core/supabase/guarded-upsert'
 import { loadSupabaseClient } from '@/core/supabase/load-client'
 import { syncField, type SyncPullPage } from '@/core/sync/service/syncable-table'
-import { animalInputSchema, type Animal, type AnimalInput } from '../schema/animal.schema'
+import {
+  animalInputSchema,
+  type Animal,
+  type AnimalInput,
+  type AnimalRecord,
+} from '../schema/animal.schema'
 
 interface AnimalRow {
   id: string
@@ -24,7 +29,7 @@ interface AnimalRow {
 }
 
 export type AnimalVersion = Pick<Animal, 'id' | 'photoPath' | 'updatedAt' | 'deletedAt'>
-export type RestoredAnimal = Omit<Animal, 'deletedAt'>
+export type RestoredAnimal = Omit<AnimalRecord, 'deletedAt'>
 
 const COLUMNS =
   'id, name, species, breed, birth_date, birth_date_approximate, photo_path, unfollowed_on, ' +
@@ -48,6 +53,16 @@ function toAnimal(row: AnimalRow): Animal {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     deletedAt: row.deleted_at,
+  }
+}
+
+function toAnimalRecord(row: AnimalRow): AnimalRecord {
+  return {
+    ...toAnimal(row),
+    birthDateApproximate: row.birth_date_approximate === 1,
+    unfollowedOn: row.unfollowed_on,
+    departureReason: row.departure_reason as AnimalRecord['departureReason'],
+    departureDate: row.departure_date,
   }
 }
 
@@ -79,6 +94,15 @@ export function createAnimalsRepository(
          ORDER BY created_at, name COLLATE NOCASE`,
       )
       return rows.map(toAnimal)
+    },
+
+    /** Animaux visibles, toutes colonnes comprises, dans l'ordre de `list`. */
+    async listRecords(): Promise<AnimalRecord[]> {
+      const rows = await db.query<AnimalRow>(
+        `SELECT ${COLUMNS} FROM animal WHERE ${NOT_DELETED}
+         ORDER BY created_at, name COLLATE NOCASE`,
+      )
+      return rows.map(toAnimalRecord)
     },
 
     /** `related` : écritures d'autres tables liées à la création, jouées dans la même transaction. */
@@ -178,19 +202,28 @@ export function createAnimalsRepository(
         animal.species,
         animal.breed,
         animal.birthDate,
+        animal.birthDateApproximate ? 1 : 0,
         animal.photoPath,
+        animal.unfollowedOn,
+        animal.departureReason,
+        animal.departureDate,
         animal.createdAt,
         animal.updatedAt,
       ]
       return exists
         ? {
             sql: `UPDATE animal
-                  SET name = ?, species = ?, breed = ?, birth_date = ?, photo_path = ?,
+                  SET name = ?, species = ?, breed = ?, birth_date = ?, birth_date_approximate = ?,
+                      photo_path = ?, unfollowed_on = ?, departure_reason = ?, departure_date = ?,
                       created_at = ?, updated_at = ?, deleted_at = NULL
                   WHERE id = ?`,
             params: [...values, animal.id],
           }
-        : { sql: INSERT, params: [animal.id, ...values] }
+        : {
+            sql: `INSERT INTO animal (${COLUMNS})
+                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)`,
+            params: [animal.id, ...values],
+          }
     },
 
     /** Joue en une transaction les instructions d'import de l'animal et de son carnet. */

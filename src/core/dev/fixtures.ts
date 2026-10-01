@@ -59,12 +59,12 @@ const DEMO_TOKEN_PREFIX = 'maquettes'
 
 /** Seules les écritures du carnet de démo : le module ne lit rien. */
 export interface FixturesRepositories {
-  animals: Pick<AnimalsRepository, 'create'>
+  animals: Pick<AnimalsRepository, 'create' | 'runImport'>
   vaccinations: Pick<VaccinationsRepository, 'create'>
   vaccinationInjections: Pick<VaccinationInjectionsRepository, 'record'>
-  treatments: Pick<TreatmentsRepository, 'create'>
-  treatmentPeriods: Pick<TreatmentPeriodsRepository, 'stop'>
-  treatmentDoses: Pick<TreatmentDosesRepository, 'record'>
+  treatments: Pick<TreatmentsRepository, 'restoreStatement'>
+  treatmentPeriods: Pick<TreatmentPeriodsRepository, 'restoreStatement'>
+  treatmentDoses: Pick<TreatmentDosesRepository, 'restoreStatement'>
   weight: Pick<WeightRepository, 'create'>
 }
 
@@ -101,7 +101,10 @@ export async function applyFixtures({
   return seed ? 'seeded' : 'reset'
 }
 
-/** Peuple par les repositories, jamais par SQL direct : les schémas Zod valident le jeu. */
+/**
+ * Peuple par les repositories, jamais par SQL direct. Un traitement, ses périodes et ses lignes
+ * s'écrivent comme un import, en une transaction : l'app ne sait pas encore saisir tous ces cas.
+ */
 async function seedDemoCarnet(repositories: FixturesRepositories, today: Date): Promise<void> {
   const stamps = { createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
   for (const { animal, vaccinations, treatments, weights } of buildDemoCarnet(today)) {
@@ -122,26 +125,43 @@ async function seedDemoCarnet(repositories: FixturesRepositories, today: Date): 
         })
       }
     }
-    for (const { history = [], stoppedOn, ...treatment } of treatments) {
-      const { id: treatmentId, periodId } = await repositories.treatments.create({
-        ...treatment,
-        animalId,
-      })
-      for (const past of history) {
-        await repositories.treatmentDoses.record({
-          ...past,
-          ...stamps,
-          id: crypto.randomUUID(),
-          periodId,
-          treatmentId,
-          animalId,
-          dueOn: past.givenOn,
-          dueTime: null,
-          status: 'given',
-          deletedAt: null,
-        })
-      }
-      if (stoppedOn) await repositories.treatmentPeriods.stop(treatmentId, stoppedOn)
+    for (const { periods, ...treatment } of treatments) {
+      const treatmentId = crypto.randomUUID()
+      await repositories.animals.runImport([
+        repositories.treatments.restoreStatement(
+          { ...treatment, ...stamps, id: treatmentId, animalId },
+          false,
+        ),
+        ...periods.flatMap(({ doses, ...period }) => {
+          const periodId = crypto.randomUUID()
+          return [
+            repositories.treatmentPeriods.restoreStatement(
+              {
+                firstDueOn: period.startsOn,
+                endsOn: null,
+                stoppedOn: null,
+                times: [],
+                doseQuantity: null,
+                doseUnit: null,
+                reminderOffsetMinutes: null,
+                reminderTime: null,
+                ...period,
+                ...stamps,
+                id: periodId,
+                treatmentId,
+                animalId,
+              },
+              false,
+            ),
+            ...doses.map((dose) =>
+              repositories.treatmentDoses.restoreStatement(
+                { ...dose, ...stamps, id: crypto.randomUUID(), periodId, treatmentId, animalId },
+                false,
+              ),
+            ),
+          ]
+        }),
+      ])
     }
     for (const weight of weights) {
       await repositories.weight.create({ ...weight, animalId })

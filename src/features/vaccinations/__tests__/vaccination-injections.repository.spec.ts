@@ -92,7 +92,6 @@ describe('vaccinationInjectionsRepository', () => {
     expect(versions).toContainEqual({
       id: typhus,
       vaccinationId: typhus,
-      injectedOn: '2025-01-01',
       updatedAt: EARLIER,
       deletedAt: EARLIER,
     })
@@ -117,7 +116,7 @@ describe('vaccinationInjectionsRepository', () => {
     expect(liste).toContainEqual(rappel)
   })
 
-  it('restaure une injection existante à la date du fichier, sans changer son vaccin ni son animal', async () => {
+  it('restaure une injection existante aux valeurs du fichier, date de création comprise, sans changer son vaccin ni son animal', async () => {
     await db.runMany([
       injections.restoreStatement(
         {
@@ -141,6 +140,7 @@ describe('vaccinationInjectionsRepository', () => {
         animal_id: MIETTE,
         injected_on: '2025-06-01',
         next_due_date: '2026-06-01',
+        created_at: NOW,
         updated_at: NOW,
         deleted_at: null,
       }),

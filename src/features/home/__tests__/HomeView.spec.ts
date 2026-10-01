@@ -41,6 +41,7 @@ vi.mock('@/core/photos/photo-storage', () => ({
   deletePhoto: vi.fn<(name: string) => Promise<void>>(),
   photoDisplayUrl: vi.fn<(name: string) => Promise<string>>(async (name) => `url:${name}`),
   photoExists: vi.fn<(name: string) => Promise<boolean>>(async () => true),
+  isPhotoFileName: (name: string) => /^[\w-]+\.jpg$/.test(name),
 }))
 
 vi.mock('@/core/notifications/permission', () => ({

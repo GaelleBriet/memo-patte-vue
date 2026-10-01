@@ -121,24 +121,10 @@ describe('treatmentDosesRepository', () => {
     expect(versions).toHaveLength(3)
     expect(versions).toContainEqual({
       id: drontal,
+      periodId: drontal,
       treatmentId: drontal,
-      givenOn: '2026-01-10',
       updatedAt: EARLIER,
       deletedAt: EARLIER,
-    })
-  })
-
-  it('liste les versions par le jour de la prise, son échéance pour une prise sans date réelle', async () => {
-    await doses.record(
-      prise(milbemax, 'oubliee', '2026-04-10', { givenOn: null, status: 'missed' }),
-    )
-
-    await expect(doses.listVersions()).resolves.toContainEqual({
-      id: 'oubliee',
-      treatmentId: milbemax,
-      givenOn: '2026-04-10',
-      updatedAt: NOW,
-      deletedAt: null,
     })
   })
 
@@ -152,12 +138,16 @@ describe('treatmentDosesRepository', () => {
     expect(liste).toContainEqual({ ...recente, ...TRIMESTRIELLE })
   })
 
-  it('restaure une prise existante à la date du fichier, sans changer sa période, son traitement ni son animal', async () => {
+  it('restaure une prise existante aux valeurs du fichier, date de création comprise, sans changer sa période, son traitement ni son animal', async () => {
     await db.runMany([
       doses.restoreStatement(
         {
           ...prise(milbemax, drontal, '2026-02-10'),
           animalId: VASCO,
+          dueOn: '2026-02-08',
+          dueTime: '20:00',
+          givenOn: null,
+          status: 'postponed',
           nextDueDate: '2026-02-24',
         },
         true,
@@ -170,30 +160,17 @@ describe('treatmentDosesRepository', () => {
           period_id: drontal,
           treatment_id: drontal,
           animal_id: MIETTE,
-          due_on: '2026-02-10',
-          given_on: '2026-02-10',
-          status: 'given',
+          due_on: '2026-02-08',
+          due_time: '20:00',
+          given_on: null,
+          status: 'postponed',
           next_due_date: '2026-02-24',
+          created_at: NOW,
           updated_at: NOW,
           deleted_at: null,
         }),
       ],
     )
-  })
-
-  it('garde l’échéance d’une prise restaurée dont la date ne change pas', async () => {
-    await db.run(`UPDATE treatment_dose SET due_on = '2026-01-08' WHERE id = ?`, [drontal])
-
-    await db.runMany([
-      doses.restoreStatement(
-        { ...prise(drontal, drontal, '2026-01-10'), nextDueDate: '2026-04-20' },
-        true,
-      ),
-    ])
-
-    await expect(
-      db.query('SELECT due_on, next_due_date FROM treatment_dose WHERE id = ?', [drontal]),
-    ).resolves.toEqual([{ due_on: '2026-01-08', next_due_date: '2026-04-20' }])
   })
 
   it('ramène une prise supprimée sans toucher ses dates, son échéance ni sa période', async () => {
