@@ -11,7 +11,9 @@ const REMINDER_ENTITIES = new Set([
   'vaccination',
   'vaccination_injection',
   'treatment',
+  'treatment_period',
   'treatment_dose',
+  'carnet_settings',
 ])
 
 export interface SyncCycleOutbox {

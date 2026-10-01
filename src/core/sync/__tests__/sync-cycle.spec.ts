@@ -571,8 +571,8 @@ describe('createSyncCycle', () => {
       expect(onRemindersOutdated).toHaveBeenCalledOnce()
     })
 
-    it.each(['vaccination_injection', 'treatment_dose'])(
-      'reconstruit les rappels quand le pull ne ramène qu’un « fait » (%s)',
+    it.each(['vaccination_injection', 'treatment_dose', 'treatment_period', 'carnet_settings'])(
+      'reconstruit les rappels quand le pull ne ramène qu’un « fait » ou un réglage (%s)',
       async (entity) => {
         const events = fakeTable(entity, [
           page([row('e1', '2026-01-01T00:00:00.000Z', 'x')], '2026-01-01T00:00:00.000Z'),

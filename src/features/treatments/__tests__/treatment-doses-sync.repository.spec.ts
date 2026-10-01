@@ -6,6 +6,7 @@ import {
   createTreatmentDosesRepository,
   type TreatmentDosesRepository,
 } from '../repository/treatment-doses.repository'
+import { createTreatmentPeriodsRepository } from '../repository/treatment-periods.repository'
 import { createTreatmentsRepository } from '../repository/treatments.repository'
 
 const T_OLD = '2026-01-01T00:00:00.000Z'
@@ -156,8 +157,12 @@ describe('treatmentDosesRepository — port de synchronisation', () => {
     const treatments = createTreatmentsRepository(db, {
       loadSupabaseClient: async () => server.client,
     })
+    const periods = createTreatmentPeriodsRepository(db, {
+      loadSupabaseClient: async () => server.client,
+    })
     await server.client.from('animal').upsert({ user_id: USER_ID, id: ANIMAL_ID })
     await treatments.pushRow(USER_ID, (await treatments.getRowForPush(TREATMENT_ID))!)
+    await periods.pushRow(USER_ID, (await periods.getRowForPush(TREATMENT_ID))!)
 
     await repository.pushRow(USER_ID, (await repository.getRowForPush(TREATMENT_ID))!)
     const page = await repository.pullPage(USER_ID, T_OLD, 500)
@@ -193,7 +198,7 @@ describe('treatmentDosesRepository — port de synchronisation', () => {
     })
   })
 
-  it('pushRow lève l’erreur Supabase : une prise sans son traitement côté serveur', async () => {
+  it('pushRow lève l’erreur Supabase : une prise sans sa période côté serveur', async () => {
     await expect(
       repository.pushRow(USER_ID, (await repository.getRowForPush(TREATMENT_ID))!),
     ).rejects.toMatchObject({ code: '23503' })
