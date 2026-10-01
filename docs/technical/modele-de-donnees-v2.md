@@ -75,7 +75,8 @@ garantie par le repository seulement), miroir Supabase avec `user_id`, `server_u
 
 - **Recommandé** : garder `next_due_date` sur la prise (la tête l'emporte, comme aujourd'hui) pour le
   report (TR-9) ; sans prise, la première échéance est la première prise de la période. (Corrigé le
-  même jour : pour un traitement, le report est une ligne `postponed`, voir M4 au §5.)
+  même jour : pour un traitement, le report est une ligne `postponed`, voir M4 au §5 ; précisé le
+  2026-10-01 : une ligne par déplacement, voir §5.)
 
 ### M5 — Heures, posologie, moment du rappel
 
@@ -162,17 +163,21 @@ développement peuvent être effacées. Rien de l'existant n'est à récupérer.
 - `vaccination` : `id`, `animal_id`, `name`, `planned_due_date`?, dates d'audit.
 - `vaccination_injection` : inchangée (`injected_on`, `next_due_date`?).
 - `treatment` : `id`, `animal_id`, `name`, `type` (vermifuge, antiparasitaire, médicament), dates d'audit.
-- `treatment_period` : `id`, `treatment_id`, `animal_id`, `starts_on` (date de début de la période),
+- `treatment_period` : `id`, `treatment_id`, `animal_id`, `starts_on` (date de début de la période :
+  pour une période ouverte par « Modifier », le jour du changement, toujours ; les prises déjà notées
+  ce jour-là comptent pour les premières heures du nouveau réglage, spec Traitements Q24),
   `first_due_on` (première échéance : la première prise pour une première période ou une reprise, la
   dernière prise plus la nouvelle fréquence pour une période ouverte par « Modifier », jamais avant
-  aujourd'hui et modifiable, spec Traitements TR-7, Q7), `ends_on`? (date de fin), `stopped_on`?,
+  aujourd'hui et modifiable, spec Traitements TR-7, Q7), `ends_on`? (date de fin),
+  `stopped_on`?,
   `frequency_value`, `frequency_unit`, `times`?, `dose_quantity`?, `dose_unit`?,
   `reminder_offset_minutes`?, `reminder_time`?, dates d'audit. Ordre des périodes : `starts_on`, puis
   `created_at` (pas de lien explicite à la précédente).
 - `treatment_dose` : `id`, `period_id`, `treatment_id`, `animal_id`, `due_on`, `due_time`?, `given_on`?
   (vide pour une oubliée ou reportée), `status` (`given`, `missed`, `postponed`), `next_due_date`, dates
   d'audit. **Dernière prise** : tri par
-  `due_on`, `due_time`, `created_at`, `id` (et non plus par `given_on`, vide pour une oubliée).
+  `due_on`, `due_time`, `created_at`, `id` (et non plus par `given_on`, vide pour une oubliée). Une
+  ligne `postponed` par déplacement (voir §5, 2026-10-01).
 - `sync_state` : gagne la date de la dernière synchronisation réussie (PL-17, alerte du nuage après
   7 jours).
 - Index sur les clés étrangères ; suppression logique partout.
@@ -234,6 +239,14 @@ développement peuvent être effacées. Rien de l'existant n'est à récupérer.
   `departure_date` (facultative, distincte du geste) ; `initial_weight_kg` disparaît**, converti en pesée
   datée du jour de création. Raison : la date du geste sert au fonctionnement, la date du départ est un
   souvenir facultatif. Écartée : une seule date (fausse dès que le geste n'a pas lieu le jour même).
+
+- 2026-10-01 — **Ligne de déplacement d'une dose** (spec Traitements Q17, Q18, Q21). Une ligne
+  `postponed` porte l'échéance d'origine (`due_on`, `due_time`) et la nouvelle date
+  (`next_due_date`), plus tard ou plus tôt que l'échéance (« Reportée », « Avancée »). Déplacer de
+  nouveau la même dose réécrit cette ligne (même échéance d'origine, nouvelle date) au lieu d'en
+  ajouter une ; remise à sa date d'origine, la ligne est supprimée. À plusieurs heures, une seule
+  ligne par journée déplacée : elle porte la première heure du jour encore sans prise. Raison et
+  alternatives écartées : spec Traitements, Q18 et Q21.
 
 ## 6. Questions ouvertes
 
