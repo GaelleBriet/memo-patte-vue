@@ -1,7 +1,12 @@
 // @vitest-environment node
+import { addMonths, format, parseISO } from 'date-fns'
 import { describe, expect, it } from 'vitest'
 
-import { treatmentSchedule, type TreatmentDoseInput } from '../domain/treatment-schedule'
+import {
+  treatmentSchedule,
+  type TreatmentDoseInput,
+  type TreatmentPeriodInput,
+} from '../domain/treatment-schedule'
 import { days, period } from './treatment-schedule-fixtures'
 
 const TWO_YEARS = days('2024-10-01', '2026-09-30')
@@ -88,5 +93,73 @@ describe('performance', () => {
     expect(after.unloggedDoses).toEqual([])
     expect(after.currentDoses).toHaveLength(2)
     expect(elapsed).toBeLessThan(200)
+  })
+
+  it('une prochaine échéance en 9999 est refusée sans rien calculer', () => {
+    const forged = { ...givenAt('2026-09-01', '08:00', '2026-09-01'), nextDueDate: '9999-12-31' }
+
+    const start = performance.now()
+    expect(() => treatmentSchedule({ ...input, doses: [forged] })).toThrow(
+      /Calendrier de traitement invalide/,
+    )
+    expect(performance.now() - start).toBeLessThan(50)
+  })
+})
+
+// Une période par ajustement de posologie, toutes les prises données à leur jour.
+function adjustedTreatment(start: string, months: number, count: number, times: string[]) {
+  const starts = Array.from({ length: count + 1 }, (_, index) =>
+    format(addMonths(parseISO(start), index * months), 'yyyy-MM-dd'),
+  )
+  const periods: TreatmentPeriodInput[] = starts.slice(0, count).map((startsOn, index) =>
+    period({
+      id: `p${index}`,
+      startsOn,
+      firstDueOn: startsOn,
+      times,
+      createdAt: `${startsOn}T08:00:00.000Z`,
+    }),
+  )
+  const end = starts[count] ?? start
+  const allDays = days(start, end).slice(0, -1)
+  const doses = allDays.flatMap((day, index) => {
+    const periodId = `p${starts.filter((startsOn) => startsOn <= day).length - 1}`
+    const slots = times.length > 0 ? times : [null]
+    return slots.map((dueTime, slot) => {
+      const nextDueDate = slot < slots.length - 1 ? day : (allDays[index + 1] ?? end)
+      const at = `${day}T20:00:00.000Z`
+      return {
+        id: `${day}-${slot}`,
+        periodId,
+        dueOn: day,
+        dueTime,
+        givenOn: day,
+        status: 'given' as const,
+        nextDueDate,
+        createdAt: at,
+        updatedAt: at,
+      }
+    })
+  })
+  return { periods, doses, today: allDays.at(-1) ?? start }
+}
+
+describe('traitements longs ordinaires, acceptés et calculés vite', () => {
+  it.each([
+    [
+      'à 2 heures sur 8 ans, posologie ajustée tous les 4 mois (24 périodes)',
+      4,
+      24,
+      ['08:00', '20:00'],
+    ],
+    ['sans heure sur 10 ans, posologie ajustée tous les 3 mois (40 périodes)', 3, 40, []],
+  ])('%s', (_, months, count, times) => {
+    const long = adjustedTreatment('2016-10-01', months, count, times)
+
+    const { result: schedule, elapsed } = fastest(() => treatmentSchedule(long))
+
+    expect(schedule.unloggedDoses).toEqual([])
+    expect(schedule.currentPeriodId).toBe(`p${count - 1}`)
+    expect(elapsed).toBeLessThan(500)
   })
 })

@@ -72,9 +72,35 @@ export function stored(fields: DoseFields, id = `dose-${stamp + 1}`): TreatmentD
   return { id, ...fields, createdAt: at, updatedAt: at }
 }
 
-export function record(book: Carnet, today: string, gesture: DoseGesture): Carnet {
-  const fields = scheduleOf(book, today).doseFor(gesture)
-  return { ...book, doses: [...book.doses, stored(fields)] }
+export type Gesture = DoseGesture | { kind: 'postponed'; due: Due; to: string }
+
+/** Écrit le geste comme le ferait le repository ; un déplacement réécrit sa ligne s'il en a une (Q18). */
+export function record(book: Carnet, today: string, gesture: Gesture): Carnet {
+  const schedule = scheduleOf(book, today)
+  if (gesture.kind !== 'postponed') {
+    return { ...book, doses: [...book.doses, stored(schedule.doseFor(gesture))] }
+  }
+  const { dose, doseId } = schedule.move(gesture.due, gesture.to)
+  if (doseId === null) return { ...book, doses: [...book.doses, stored(dose)] }
+  return {
+    ...book,
+    doses: book.doses.map((line) =>
+      line.id === doseId ? { ...line, ...dose, updatedAt: nextStamp() } : line,
+    ),
+  }
+}
+
+/** Déplacement écrit en ligne chaînée, comme avant Q18 (lignes déjà en base ou venues de la synchro). */
+export function chainedMove(book: Carnet, from: string, to: string): Carnet {
+  const line = stored({
+    periodId: 'p1',
+    dueOn: from,
+    dueTime: null,
+    givenOn: null,
+    status: 'postponed',
+    nextDueDate: to,
+  })
+  return { ...book, doses: [...book.doses, line] }
 }
 
 /** « C'est fait » sur la dose du moment, la première quand il y en a plusieurs. */
