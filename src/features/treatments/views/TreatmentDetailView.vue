@@ -5,6 +5,7 @@ import { useRoute, useRouter } from 'vue-router'
 
 import { useTreatmentDetail } from '../composables/use-treatment-detail'
 import { useTreatmentGestures } from '../composables/use-treatment-gestures'
+import { doseDay } from '../logic/treatment-dose'
 import {
   doseDatesExcept,
   doseGestureTexts,
@@ -89,7 +90,7 @@ const menuItems = computed<OverflowMenuItem[]>(() => [
 const moving = ref<TreatmentDose | null>(null)
 const isDatePickerOpen = ref(false)
 const movingTexts = computed(() =>
-  moving.value ? doseGestureTexts(t, moving.value.givenOn, today.value) : null,
+  moving.value ? doseGestureTexts(t, doseDay(moving.value), today.value) : null,
 )
 const excludedDates = computed(() =>
   moving.value ? doseDatesExcept(doses.value, moving.value.id) : [],

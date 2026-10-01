@@ -27,6 +27,8 @@ import {
 import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory-db'
 import { createAnimalsRepository } from '@/features/animals/repository/animals.repository'
 import { createTreatmentDosesRepository } from '@/features/treatments/repository/treatment-doses.repository'
+import { createTreatmentPeriodsRepository } from '@/features/treatments/repository/treatment-periods.repository'
+import type { NewTreatmentDose } from '@/features/treatments/schema/treatment-dose.schema'
 import { createTreatmentsRepository } from '@/features/treatments/repository/treatments.repository'
 import { createVaccinationInjectionsRepository } from '@/features/vaccinations/repository/vaccination-injections.repository'
 import { createVaccinationsRepository } from '@/features/vaccinations/repository/vaccinations.repository'
@@ -47,6 +49,26 @@ function createRepositories(client: InMemoryDb) {
   }
 }
 
+/** Prise donnée à son échéance, dans la première période de son traitement. */
+function prise(
+  dose: Pick<NewTreatmentDose, 'id' | 'treatmentId' | 'animalId' | 'nextDueDate'> & {
+    givenOn: string
+    at: string
+  },
+): NewTreatmentDose {
+  const { at, ...fields } = dose
+  return {
+    ...fields,
+    periodId: dose.treatmentId,
+    dueOn: dose.givenOn,
+    dueTime: null,
+    status: 'given',
+    createdAt: at,
+    updatedAt: at,
+    deletedAt: null,
+  }
+}
+
 function setup(overrides: Partial<DataImportDependencies> = {}) {
   const syncReminders = vi.fn<() => Promise<void>>(async () => undefined)
   const photoExists = vi.fn<(name: string) => Promise<boolean>>(async () => false)
@@ -55,6 +77,7 @@ function setup(overrides: Partial<DataImportDependencies> = {}) {
     vaccinations: () => repositories.vaccinations,
     vaccinationInjections: () => createVaccinationInjectionsRepository(db),
     treatments: async () => repositories.treatments,
+    treatmentPeriods: () => createTreatmentPeriodsRepository(db),
     treatmentDoses: () => createTreatmentDosesRepository(db),
     weight: () => repositories.weight,
     photoExists,
@@ -100,6 +123,7 @@ function importerOn(client: InMemoryDb, now: () => Date = () => new Date()) {
     vaccinations: () => to.vaccinations,
     vaccinationInjections: () => createVaccinationInjectionsRepository(client),
     treatments: () => to.treatments,
+    treatmentPeriods: () => createTreatmentPeriodsRepository(client),
     treatmentDoses: () => createTreatmentDosesRepository(client),
     weight: () => to.weight,
     photoExists: async () => false,
@@ -432,7 +456,7 @@ describe('data-import.service', () => {
       expect(vaccins).toHaveLength(3)
     })
 
-    it('marque supprimés avec la même date les événements des vaccins et traitements locaux', async () => {
+    it('marque supprimés avec la même date les événements et les périodes des vaccins et traitements locaux', async () => {
       const { service } = setup()
       const rex = await repositories.animals.create({ name: 'Rex', species: 'dog' })
       const rage = await repositories.vaccinations.create({
@@ -457,6 +481,9 @@ describe('data-import.service', () => {
       ).resolves.toEqual([{ deleted_at: NOW.toISOString() }])
       await expect(
         db.query('SELECT deleted_at FROM treatment_dose WHERE treatment_id = ?', [bravecto.id]),
+      ).resolves.toEqual([{ deleted_at: NOW.toISOString() }])
+      await expect(
+        db.query('SELECT deleted_at FROM treatment_period WHERE treatment_id = ?', [bravecto.id]),
       ).resolves.toEqual([{ deleted_at: NOW.toISOString() }])
     })
   })
@@ -589,14 +616,8 @@ describe('data-import.service', () => {
     const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
 
     function dosesOf(treatmentId: string) {
-      return db.query<{
-        id: string
-        given_on: string
-        next_due_date: string
-        frequency_value: number
-        frequency_unit: string
-      }>(
-        `SELECT id, given_on, next_due_date, frequency_value, frequency_unit FROM treatment_dose
+      return db.query<{ id: string; given_on: string; next_due_date: string }>(
+        `SELECT id, given_on, next_due_date FROM treatment_dose
          WHERE treatment_id = ? AND deleted_at IS NULL ORDER BY given_on`,
         [treatmentId],
       )
@@ -604,17 +625,16 @@ describe('data-import.service', () => {
 
     async function addDose(id: string, givenOn: string, nextDueDate: string) {
       await db.runMany([
-        createTreatmentDosesRepository(db).insertStatement({
-          id,
-          treatmentId: MILBEMAX_ID,
-          animalId: LUNA_ID,
-          givenOn,
-          nextDueDate,
-          frequency: { value: 3, unit: 'month' },
-          createdAt: '2026-09-16T00:00:00.000Z',
-          updatedAt: '2026-09-16T00:00:00.000Z',
-          deletedAt: null,
-        }),
+        createTreatmentDosesRepository(db).insertStatement(
+          prise({
+            id,
+            treatmentId: MILBEMAX_ID,
+            animalId: LUNA_ID,
+            givenOn,
+            nextDueDate,
+            at: '2026-09-16T00:00:00.000Z',
+          }),
+        ),
       ])
     }
 
@@ -636,7 +656,7 @@ describe('data-import.service', () => {
       return v1File(data)
     }
 
-    it('met à jour la prise de même date, fréquence comprise, et laisse la date des autres', async () => {
+    it('met à jour la prise de même date et la fréquence de la période, et laisse la date des autres', async () => {
       const { service } = setup()
       await service.importData(IMPORT_FILE, 'merge')
       await addDose('recente', '2026-09-15', '2026-12-15')
@@ -644,21 +664,14 @@ describe('data-import.service', () => {
       await service.importData(withMilbemax('2026-09-15', '2026-10-15'), 'merge')
 
       await expect(dosesOf(MILBEMAX_ID)).resolves.toEqual([
-        {
-          id: MILBEMAX_ID,
-          given_on: '2026-06-15',
-          next_due_date: '2026-09-15',
-          frequency_value: 3,
-          frequency_unit: 'month',
-        },
-        {
-          id: 'recente',
-          given_on: '2026-09-15',
-          next_due_date: '2026-10-15',
-          frequency_value: 1,
-          frequency_unit: 'month',
-        },
+        { id: MILBEMAX_ID, given_on: '2026-06-15', next_due_date: '2026-09-15' },
+        { id: 'recente', given_on: '2026-09-15', next_due_date: '2026-10-15' },
       ])
+      await expect(repositories.treatments.getById(MILBEMAX_ID)).resolves.toMatchObject({
+        frequency: { value: 1, unit: 'month' },
+        lastDoseDate: '2026-09-15',
+        nextDueDate: '2026-10-15',
+      })
     })
 
     it('ajoute une prise neuve pour une date absente, une seule fois', async () => {
@@ -692,13 +705,7 @@ describe('data-import.service', () => {
       )
 
       await expect(dosesOf(MILBEMAX_ID)).resolves.toEqual([
-        {
-          id: MILBEMAX_ID,
-          given_on: '2026-06-15',
-          next_due_date: '2026-10-01',
-          frequency_value: 3,
-          frequency_unit: 'month',
-        },
+        { id: MILBEMAX_ID, given_on: '2026-06-15', next_due_date: '2026-10-01' },
       ])
     })
 
@@ -824,17 +831,16 @@ describe('data-import.service', () => {
       const { service } = setup()
       await service.importData(IMPORT_FILE, 'merge')
       await db.runMany([
-        createTreatmentDosesRepository(db).insertStatement({
-          id: 'd1',
-          treatmentId: MILBEMAX_ID,
-          animalId: LUNA_ID,
-          givenOn: '2026-03-15',
-          nextDueDate: '2026-06-15',
-          frequency: { value: 3, unit: 'month' },
-          createdAt: ADDED,
-          updatedAt: ADDED,
-          deletedAt: null,
-        }),
+        createTreatmentDosesRepository(db).insertStatement(
+          prise({
+            id: 'd1',
+            treatmentId: MILBEMAX_ID,
+            animalId: LUNA_ID,
+            givenOn: '2026-03-15',
+            nextDueDate: '2026-06-15',
+            at: ADDED,
+          }),
+        ),
       ])
       await db.run('UPDATE treatment_dose SET deleted_at = ?, updated_at = ? WHERE id = ?', [
         CANCELLED,
@@ -930,17 +936,16 @@ describe('data-import.service', () => {
         frequency: { value: 3, unit: 'month' },
         lastDoseDate: '2026-03-01',
       })
-      await createTreatmentDosesRepository(client).record({
-        id: crypto.randomUUID(),
-        treatmentId: bravecto.id,
-        animalId: milo.id,
-        givenOn: '2026-06-01',
-        nextDueDate: '2026-09-01',
-        frequency: { value: 3, unit: 'month' },
-        createdAt: '2026-06-01T08:00:00.000Z',
-        updatedAt: '2026-06-01T08:00:00.000Z',
-        deletedAt: null,
-      })
+      await createTreatmentDosesRepository(client).record(
+        prise({
+          id: crypto.randomUUID(),
+          treatmentId: bravecto.id,
+          animalId: milo.id,
+          givenOn: '2026-06-01',
+          nextDueDate: '2026-09-01',
+          at: '2026-06-01T08:00:00.000Z',
+        }),
+      )
       const drontal = await phone.treatments.create({
         animalId: milo.id,
         name: 'Drontal',
@@ -948,7 +953,7 @@ describe('data-import.service', () => {
         frequency: { value: 1, unit: 'month' },
         lastDoseDate: '2026-04-10',
       })
-      await phone.treatments.stop(drontal.id, '2026-05-01')
+      await createTreatmentPeriodsRepository(client).stop(drontal.id, '2026-05-01')
       await phone.weight.create({ animalId: milo.id, weightKg: 24.5, measuredOn: '2026-06-01' })
       return { rage, bravecto }
     }
@@ -963,6 +968,70 @@ describe('data-import.service', () => {
       expect(before.vaccinationInjections).toHaveLength(2)
       expect(before.treatmentDoses).toHaveLength(3)
       await expect(carnet()).resolves.toEqual(before)
+      source.close()
+    })
+
+    it('écrit la première période de chaque traitement : début à sa première prise, fréquence et arrêt du fichier', async () => {
+      const source = await createInMemoryDb()
+      const { bravecto } = await carnetWithHistory(source)
+
+      await importerOn(db, () => NOW).importData(await exported(source), 'replace')
+
+      await expect(
+        db.query(
+          `SELECT id, treatment_id, starts_on, first_due_on, frequency_value, frequency_unit,
+                  stopped_on, deleted_at
+           FROM treatment_period ORDER BY starts_on`,
+        ),
+      ).resolves.toEqual([
+        {
+          id: bravecto.id,
+          treatment_id: bravecto.id,
+          starts_on: '2026-03-01',
+          first_due_on: '2026-03-01',
+          frequency_value: 3,
+          frequency_unit: 'month',
+          stopped_on: null,
+          deleted_at: null,
+        },
+        expect.objectContaining({
+          starts_on: '2026-04-10',
+          frequency_value: 1,
+          frequency_unit: 'month',
+          stopped_on: '2026-05-01',
+        }),
+      ])
+      source.close()
+    })
+
+    it('rattache chaque prise du fichier à la période de son traitement, donnée à son jour', async () => {
+      const source = await createInMemoryDb()
+      const { bravecto } = await carnetWithHistory(source)
+
+      await importerOn(db, () => NOW).importData(await exported(source), 'replace')
+
+      await expect(
+        db.query(
+          `SELECT period_id, due_on, due_time, given_on, status FROM treatment_dose
+           WHERE treatment_id = ? ORDER BY given_on`,
+          [bravecto.id],
+        ),
+      ).resolves.toEqual([
+        {
+          period_id: bravecto.id,
+          due_on: '2026-03-01',
+          due_time: null,
+          given_on: '2026-03-01',
+          status: 'given',
+        },
+        {
+          period_id: bravecto.id,
+          due_on: '2026-06-01',
+          due_time: null,
+          given_on: '2026-06-01',
+          status: 'given',
+        },
+      ])
       source.close()
     })
 
@@ -1029,7 +1098,7 @@ describe('data-import.service', () => {
     })
   })
 
-  describe('réconciliation des prises à fréquence périmée', () => {
+  describe('deux appareils', () => {
     function at(instant: string): void {
       vi.setSystemTime(new Date(instant))
     }
@@ -1042,7 +1111,46 @@ describe('data-import.service', () => {
       vi.useRealTimers()
     })
 
-    it('fait converger deux exports : fréquence changée d’un côté, prise notée de l’autre', async () => {
+    it('fait converger deux exports : renommé d’un côté, arrêté plus tard de l’autre, l’arrêt gagne', async () => {
+      const phoneA = db
+      const phoneB = await createInMemoryDb()
+      await phoneB.execute('PRAGMA foreign_keys = ON')
+      at('2026-09-01T08:00:00.000Z')
+      const a = createRepositories(phoneA)
+      const luna = await a.animals.create({ name: 'Luna', species: 'cat' })
+      const milbemax = await a.treatments.create({
+        animalId: luna.id,
+        name: 'Milbémax',
+        type: 'deworming',
+        frequency: { value: 3, unit: 'month' },
+        lastDoseDate: '2026-06-15',
+      })
+      await importerOn(phoneB).importData(await exported(phoneA), 'replace')
+
+      at('2026-09-05T08:00:00.000Z')
+      await createRepositories(phoneB).treatments.update(milbemax.id, {
+        name: 'Milbémax chat',
+        type: 'deworming',
+        frequency: { value: 3, unit: 'month' },
+        nextDueDate: '2026-09-15',
+      })
+      at('2026-09-10T08:00:00.000Z')
+      await createTreatmentPeriodsRepository(phoneA).stop(milbemax.id, '2026-09-10')
+
+      at('2026-09-20T08:00:00.000Z')
+      const [fromA, fromB] = [await exported(phoneA), await exported(phoneB)]
+      await importerOn(phoneA).importData(fromB, 'merge')
+      await importerOn(phoneB).importData(fromA, 'merge')
+
+      for (const phone of [phoneA, phoneB]) {
+        await expect(
+          createRepositories(phone).treatments.getById(milbemax.id),
+        ).resolves.toMatchObject({ name: 'Milbémax', stoppedOn: '2026-09-10' })
+      }
+      phoneB.close()
+    })
+
+    it('fait converger deux exports : fréquence corrigée d’un côté, prise notée de l’autre, qui garde la prochaine dose qu’elle a fixée', async () => {
       const phoneA = db
       const phoneB = await createInMemoryDb()
       await phoneB.execute('PRAGMA foreign_keys = ON')
@@ -1067,17 +1175,16 @@ describe('data-import.service', () => {
         nextDueDate: '2026-07-15',
       })
       at('2026-09-12T08:00:00.000Z')
-      await createTreatmentDosesRepository(phoneB).record({
-        id: crypto.randomUUID(),
-        treatmentId: milbemax.id,
-        animalId: luna.id,
-        givenOn: '2026-09-12',
-        nextDueDate: '2026-12-12',
-        frequency: { value: 3, unit: 'month' },
-        createdAt: '2026-09-12T08:00:00.000Z',
-        updatedAt: '2026-09-12T08:00:00.000Z',
-        deletedAt: null,
-      })
+      await createTreatmentDosesRepository(phoneB).record(
+        prise({
+          id: crypto.randomUUID(),
+          treatmentId: milbemax.id,
+          animalId: luna.id,
+          givenOn: '2026-09-12',
+          nextDueDate: '2026-12-12',
+          at: '2026-09-12T08:00:00.000Z',
+        }),
+      )
 
       at('2026-09-20T08:00:00.000Z')
       const [fromA, fromB] = [await exported(phoneA), await exported(phoneB)]
@@ -1090,7 +1197,7 @@ describe('data-import.service', () => {
         ).resolves.toMatchObject({
           frequency: { value: 1, unit: 'month' },
           lastDoseDate: '2026-09-12',
-          nextDueDate: '2026-10-12',
+          nextDueDate: '2026-12-12',
         })
       }
       const doses = async (phone: InMemoryDb) =>
@@ -1099,18 +1206,6 @@ describe('data-import.service', () => {
         )
       await expect(doses(phoneB)).resolves.toEqual(await doses(phoneA))
       phoneB.close()
-    })
-
-    it('se joue dans la transaction de l’import, après toutes les écritures', async () => {
-      const { service } = setup()
-      const runImport = vi.spyOn(repositories.animals, 'runImport')
-
-      await service.importData(IMPORT_FILE, 'merge')
-
-      expect(runImport).toHaveBeenCalledOnce()
-      expect(runImport.mock.calls[0]![0].at(-1)).toEqual(
-        createTreatmentDosesRepository(db).reconcileStaleHeadsStatement(NOW.toISOString()),
-      )
     })
   })
 })

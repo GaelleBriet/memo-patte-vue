@@ -1,7 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
 import {
-  becomesHead,
   doseDatesExcept,
   redatedDose,
   doseGestureTexts,
@@ -20,9 +19,13 @@ const TODAY = '2026-09-23'
 function dose(givenOn: string, overrides: Partial<TreatmentDose> = {}): TreatmentDose {
   return {
     id: `prise-${givenOn}`,
+    periodId: 'bravecto',
     treatmentId: 'bravecto',
     animalId: 'boree',
+    dueOn: givenOn,
+    dueTime: null,
     givenOn,
+    status: 'given',
     nextDueDate: '2026-09-28',
     frequency: { value: 1, unit: 'month' },
     createdAt: '2026-09-01T09:00:00.000Z',
@@ -37,6 +40,7 @@ const BRAVECTO: Treatment = {
   animalId: 'boree',
   name: 'Bravecto',
   type: 'deworming',
+  periodId: 'bravecto',
   frequency: { value: 1, unit: 'month' },
   lastDoseDate: '2026-08-28',
   nextDueDate: '2026-09-28',
@@ -105,34 +109,48 @@ describe('doseHistory', () => {
 
 describe('redatedDose', () => {
   const QUINZE_JOURS = { value: 15, unit: 'day' } as const
-  const UN_MOIS = { value: 1, unit: 'month' } as const
   const TROIS_MOIS = { value: 3, unit: 'month' } as const
-  const EN_COURS = { frequency: TROIS_MOIS, stoppedOn: null }
-  const ARRETE = { frequency: TROIS_MOIS, stoppedOn: '2026-09-01' }
+  const PRECEDENTE = { givenOn: '2026-05-28', dueOn: '2026-05-28' }
+  const SUIVANTE = { givenOn: '2026-11-28', dueOn: '2026-11-28' }
 
-  it('recalcule la prochaine dose depuis la nouvelle date, avec la fréquence de la prise', () => {
+  it('recalcule la prochaine dose depuis la nouvelle date, avec la fréquence de sa période', () => {
     const prise = dose('2026-08-28', { nextDueDate: '2026-09-12', frequency: QUINZE_JOURS })
 
-    expect(redatedDose(prise, '2026-08-25', { isHead: false, plan: EN_COURS })).toEqual({
-      dates: { givenOn: '2026-08-25', nextDueDate: '2026-09-09', frequency: QUINZE_JOURS },
+    expect(redatedDose(prise, '2026-08-25', { last: SUIVANTE })).toEqual({
+      dates: { givenOn: '2026-08-25', dueOn: '2026-08-25', nextDueDate: '2026-09-09' },
       postponementKept: false,
+    })
+  })
+
+  it('vise sa nouvelle date, quelle que soit l’échéance qu’elle visait', () => {
+    const enRetard = dose('2026-08-28', {
+      dueOn: '2026-08-20',
+      nextDueDate: '2026-09-12',
+      frequency: QUINZE_JOURS,
+    })
+
+    expect(redatedDose(enRetard, '2026-08-27', { last: PRECEDENTE }).dates).toEqual({
+      givenOn: '2026-08-27',
+      dueOn: '2026-08-27',
+      nextDueDate: '2026-09-11',
     })
   })
 
   it('garde une prochaine dose reportée à la main, et le dit', () => {
     const prise = dose('2026-08-28', { nextDueDate: '2026-12-15', frequency: TROIS_MOIS })
 
-    expect(redatedDose(prise, '2026-08-27', { isHead: true, plan: EN_COURS })).toEqual({
-      dates: { givenOn: '2026-08-27', nextDueDate: '2026-12-15', frequency: TROIS_MOIS },
+    expect(redatedDose(prise, '2026-08-27', { last: PRECEDENTE })).toEqual({
+      dates: { givenOn: '2026-08-27', dueOn: '2026-08-27', nextDueDate: '2026-12-15' },
       postponementKept: true,
     })
+    expect(redatedDose(prise, '2026-08-27', { last: null }).postponementKept).toBe(true)
   })
 
   it('ne dit pas « report gardé » pour une prise qui n’est plus la dernière', () => {
     const prise = dose('2026-08-28', { nextDueDate: '2026-12-15', frequency: TROIS_MOIS })
 
-    expect(redatedDose(prise, '2026-07-01', { isHead: false, plan: EN_COURS })).toEqual({
-      dates: { givenOn: '2026-07-01', nextDueDate: '2026-12-15', frequency: TROIS_MOIS },
+    expect(redatedDose(prise, '2026-05-01', { last: PRECEDENTE })).toEqual({
+      dates: { givenOn: '2026-05-01', dueOn: '2026-05-01', nextDueDate: '2026-12-15' },
       postponementKept: false,
     })
   })
@@ -140,72 +158,23 @@ describe('redatedDose', () => {
   it('recalcule un report qui ne resterait pas strictement après la nouvelle date', () => {
     const prise = dose('2026-08-28', { nextDueDate: '2026-09-10', frequency: TROIS_MOIS })
 
-    expect(redatedDose(prise, '2026-09-10', { isHead: true, plan: EN_COURS })).toEqual({
-      dates: { givenOn: '2026-09-10', nextDueDate: '2026-12-10', frequency: TROIS_MOIS },
+    expect(redatedDose(prise, '2026-09-10', { last: PRECEDENTE })).toEqual({
+      dates: { givenOn: '2026-09-10', dueOn: '2026-09-10', nextDueDate: '2026-12-10' },
       postponementKept: false,
     })
-    expect(redatedDose(prise, '2026-09-15', { isHead: true, plan: EN_COURS })).toEqual({
-      dates: { givenOn: '2026-09-15', nextDueDate: '2026-12-15', frequency: TROIS_MOIS },
-      postponementKept: false,
-    })
-  })
-
-  it('devenue la dernière d’un traitement en cours, prend et recopie la fréquence du plan', () => {
-    const ancienne = dose('2026-06-01', { nextDueDate: '2026-06-16', frequency: QUINZE_JOURS })
-
-    expect(redatedDose(ancienne, '2026-09-01', { isHead: true, plan: EN_COURS })).toEqual({
-      dates: { givenOn: '2026-09-01', nextDueDate: '2026-12-01', frequency: TROIS_MOIS },
+    expect(redatedDose(prise, '2026-09-15', { last: PRECEDENTE })).toEqual({
+      dates: { givenOn: '2026-09-15', dueOn: '2026-09-15', nextDueDate: '2026-12-15' },
       postponementKept: false,
     })
   })
 
-  it('garde sa fréquence quand elle n’est pas la dernière, même si le plan en a une autre', () => {
-    const precedente = dose('2026-06-01', { nextDueDate: '2026-07-01', frequency: UN_MOIS })
+  it('garde face à la dernière des autres le rang que lui donne sa date, même si elle a été donnée en retard ou en avance', () => {
+    const prise = dose('2026-08-28')
+    const enRetard = { givenOn: '2026-10-05', dueOn: '2026-09-28' }
+    const enAvance = { givenOn: '2026-09-23', dueOn: '2026-09-28' }
 
-    expect(redatedDose(precedente, '2026-06-05', { isHead: false, plan: EN_COURS })).toEqual({
-      dates: { givenOn: '2026-06-05', nextDueDate: '2026-07-05', frequency: UN_MOIS },
-      postponementKept: false,
-    })
-  })
-
-  it('garde sa fréquence sur un traitement arrêté, même devenue la dernière', () => {
-    const derniere = dose('2026-08-01', { nextDueDate: '2026-09-01', frequency: UN_MOIS })
-
-    expect(redatedDose(derniere, '2026-08-05', { isHead: true, plan: ARRETE })).toEqual({
-      dates: { givenOn: '2026-08-05', nextDueDate: '2026-09-05', frequency: UN_MOIS },
-      postponementKept: false,
-    })
-  })
-
-  it('détecte le report avec la fréquence de la prise, pas celle du plan', () => {
-    const perimee = dose('2026-08-01', { nextDueDate: '2026-09-01', frequency: UN_MOIS })
-
-    expect(redatedDose(perimee, '2026-08-20', { isHead: true, plan: EN_COURS })).toEqual({
-      dates: { givenOn: '2026-08-20', nextDueDate: '2026-11-20', frequency: TROIS_MOIS },
-      postponementKept: false,
-    })
-  })
-})
-
-describe('becomesHead', () => {
-  const doses = [
-    dose('2026-08-28', { id: 'tete', createdAt: '2026-08-28T09:00:00.000Z' }),
-    dose('2026-07-28', { id: 'avant', createdAt: '2026-07-28T09:00:00.000Z' }),
-    dose('2026-06-28', { id: 'ancienne', createdAt: '2026-06-28T09:00:00.000Z' }),
-  ]
-
-  it('dit si la prise déplacée passe devant toutes les autres', () => {
-    expect(becomesHead(doses, doses[2]!, '2026-09-01')).toBe(true)
-    expect(becomesHead(doses, doses[2]!, '2026-08-01')).toBe(false)
-    expect(becomesHead(doses, doses[0]!, '2026-08-20')).toBe(true)
-    expect(becomesHead(doses, doses[0]!, '2026-07-01')).toBe(false)
-  })
-
-  it('départage une même date comme la tête en base : saisie la plus récente, puis identifiant', () => {
-    expect(becomesHead(doses, doses[2]!, '2026-08-28')).toBe(false)
-    expect(
-      becomesHead(doses, { ...doses[2]!, createdAt: '2026-09-01T09:00:00.000Z' }, '2026-08-28'),
-    ).toBe(true)
+    expect(redatedDose(prise, '2026-10-02', { last: enRetard }).dates.dueOn).toBe('2026-09-27')
+    expect(redatedDose(prise, '2026-09-25', { last: enAvance }).dates.dueOn).toBe('2026-09-29')
   })
 })
 

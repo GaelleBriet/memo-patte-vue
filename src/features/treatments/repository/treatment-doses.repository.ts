@@ -5,41 +5,60 @@ import { getDb } from '@/core/db/sqlite'
 import { guardedUpsert, type SyncRow } from '@/core/supabase/guarded-upsert'
 import { loadSupabaseClient } from '@/core/supabase/load-client'
 import { syncField, type SyncPullPage } from '@/core/sync/service/syncable-table'
-import type { TreatmentDose } from '../schema/treatment-dose.schema'
+import type { NewTreatmentDose, TreatmentDose } from '../schema/treatment-dose.schema'
 import type { FrequencyUnit } from '../schema/treatment.schema'
 
-export type RestoredTreatmentDose = Omit<TreatmentDose, 'deletedAt'>
+export type RestoredTreatmentDose = Omit<NewTreatmentDose, 'deletedAt'>
 export type TreatmentDoseVersion = Pick<
-  TreatmentDose,
-  'id' | 'treatmentId' | 'givenOn' | 'updatedAt' | 'deletedAt'
->
-export type DoseDates = Pick<TreatmentDose, 'givenOn' | 'nextDueDate' | 'frequency'>
+  NewTreatmentDose,
+  'id' | 'treatmentId' | 'updatedAt' | 'deletedAt'
+> & { givenOn: string }
+export type DoseDates = { givenOn: string; dueOn: string; nextDueDate: string }
 
 interface DoseRow {
   id: string
+  period_id: string
   treatment_id: string
   animal_id: string
-  given_on: string
+  due_on: string
+  due_time: string | null
+  given_on: string | null
+  status: TreatmentDose['status']
   next_due_date: string
-  frequency_value: number
-  frequency_unit: FrequencyUnit
   created_at: string
   updated_at: string
   deleted_at: string | null
 }
 
+interface DoseWithFrequencyRow extends DoseRow {
+  frequency_value: number
+  frequency_unit: FrequencyUnit
+}
+
 interface DoseVersionRow {
   id: string
   treatment_id: string
-  given_on: string
+  day: string
   updated_at: string
   deleted_at: string | null
 }
 
 const COLUMNS =
-  'id, treatment_id, animal_id, given_on, next_due_date, frequency_value, frequency_unit, created_at, updated_at, deleted_at'
+  'id, period_id, treatment_id, animal_id, due_on, due_time, given_on, status, next_due_date, created_at, updated_at, deleted_at'
+
+const COLUMN_NAMES = COLUMNS.split(', ')
+const PLACEHOLDERS = COLUMN_NAMES.map(() => '?').join(', ')
 
 const NOT_DELETED = 'deleted_at IS NULL'
+
+/** Une prise lue porte la fréquence de sa période : elle n'est jamais recopiée. */
+const WITH_FREQUENCY = `
+  SELECT ${COLUMN_NAMES.map((column) => `dose.${column}`).join(', ')},
+         period.frequency_value, period.frequency_unit
+  FROM treatment_dose dose
+  JOIN treatment_period period ON period.id = dose.period_id`
+
+const HEAD_FIRST = 'dose.due_on DESC, dose.due_time DESC, dose.created_at DESC, dose.id DESC'
 
 function otherVisibleDose(day?: string): string {
   return `EXISTS (
@@ -48,12 +67,16 @@ function otherVisibleDose(day?: string): string {
       AND other.deleted_at IS NULL${day ? ` AND other.given_on = ${day}` : ''})`
 }
 
-function toDose(row: DoseRow): TreatmentDose {
+function toDose(row: DoseWithFrequencyRow): TreatmentDose {
   return {
     id: row.id,
+    periodId: row.period_id,
     treatmentId: row.treatment_id,
     animalId: row.animal_id,
+    dueOn: row.due_on,
+    dueTime: row.due_time,
     givenOn: row.given_on,
+    status: row.status,
     nextDueDate: row.next_due_date,
     frequency: { value: row.frequency_value, unit: row.frequency_unit },
     createdAt: row.created_at,
@@ -63,37 +86,29 @@ function toDose(row: DoseRow): TreatmentDose {
 }
 
 /**
- * Sous-requête de la tête d'un traitement (`treatmentId` est une expression SQL) : la prise non
- * supprimée la plus récente par date, puis par saisie, puis par identifiant.
+ * Sous-requête de la dernière ligne d'un traitement (`treatmentId` est une expression SQL) : la
+ * prise non supprimée à l'échéance la plus tardive, jour puis heure, puis par saisie, puis par
+ * identifiant.
  */
 export function headDoseIdSql(treatmentId: string): string {
   return `(SELECT candidate.id FROM treatment_dose candidate
            WHERE candidate.treatment_id = ${treatmentId} AND candidate.deleted_at IS NULL
-           ORDER BY candidate.given_on DESC, candidate.created_at DESC, candidate.id DESC
+           ORDER BY candidate.due_on DESC, candidate.due_time DESC, candidate.created_at DESC,
+             candidate.id DESC
            LIMIT 1)`
 }
 
-// `addFrequency` en SQL, pour tenir dans une transaction : même calage en fin de mois (test de parité).
-function plusFrequencySql(date: string, value: string, unit: string): string {
-  const months = `'+' || ${value} || ' months'`
-  return `CASE ${unit}
-    WHEN 'day' THEN date(${date}, '+' || ${value} || ' days')
-    WHEN 'week' THEN date(${date}, '+' || (7 * ${value}) || ' days')
-    ELSE CASE WHEN strftime('%d', date(${date}, ${months})) = strftime('%d', ${date})
-      THEN date(${date}, ${months})
-      ELSE date(${date}, 'start of month', '+' || (${value} + 1) || ' months', '-1 day') END
-  END`
-}
-
-function valuesOf(dose: TreatmentDose): SqlParam[] {
+function valuesOf(dose: NewTreatmentDose): SqlParam[] {
   return [
     dose.id,
+    dose.periodId,
     dose.treatmentId,
     dose.animalId,
+    dose.dueOn,
+    dose.dueTime,
     dose.givenOn,
+    dose.status,
     dose.nextDueDate,
-    dose.frequency.value,
-    dose.frequency.unit,
     dose.createdAt,
     dose.updatedAt,
     dose.deletedAt,
@@ -118,10 +133,10 @@ export function createTreatmentDosesRepository(
     entity: 'treatment_dose',
 
     /** Faux quand une prise visible du même jour existe déjà : un double tap n'en note qu'une. */
-    async record(dose: TreatmentDose): Promise<boolean> {
+    async record(dose: NewTreatmentDose): Promise<boolean> {
       const changes = await db.run(
         `INSERT INTO treatment_dose (${COLUMNS})
-         SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+         SELECT ${PLACEHOLDERS}
          WHERE NOT EXISTS (
            SELECT 1 FROM treatment_dose
            WHERE treatment_id = ? AND given_on = ? AND ${NOT_DELETED}
@@ -131,28 +146,30 @@ export function createTreatmentDosesRepository(
       return changes > 0
     },
 
-    /** Prises visibles, la tête d'abord. */
+    /** Prises visibles, la dernière ligne d'abord. */
     async listByTreatment(treatmentId: string): Promise<TreatmentDose[]> {
-      const rows = await db.query<DoseRow>(
-        `SELECT ${COLUMNS} FROM treatment_dose WHERE treatment_id = ? AND ${NOT_DELETED}
-         ORDER BY given_on DESC, created_at DESC, id DESC`,
+      const rows = await db.query<DoseWithFrequencyRow>(
+        `${WITH_FREQUENCY}
+         WHERE dose.treatment_id = ? AND dose.deleted_at IS NULL
+         ORDER BY ${HEAD_FIRST}`,
         [treatmentId],
       )
       return rows.map(toDose)
     },
 
-    /** Prises visibles de tous les traitements, celles d'un même traitement la tête d'abord. */
+    /** Prises visibles de tous les traitements, celles d'un même traitement la dernière d'abord. */
     async listAll(): Promise<TreatmentDose[]> {
-      const rows = await db.query<DoseRow>(
-        `SELECT ${COLUMNS} FROM treatment_dose WHERE ${NOT_DELETED}
-         ORDER BY treatment_id, given_on DESC, created_at DESC, id DESC`,
+      const rows = await db.query<DoseWithFrequencyRow>(
+        `${WITH_FREQUENCY}
+         WHERE dose.deleted_at IS NULL
+         ORDER BY dose.treatment_id, ${HEAD_FIRST}`,
       )
       return rows.map(toDose)
     },
 
     async getById(id: string): Promise<TreatmentDose | null> {
-      const rows = await db.query<DoseRow>(
-        `SELECT ${COLUMNS} FROM treatment_dose WHERE id = ? AND ${NOT_DELETED}`,
+      const rows = await db.query<DoseWithFrequencyRow>(
+        `${WITH_FREQUENCY} WHERE dose.id = ? AND dose.deleted_at IS NULL`,
         [id],
       )
       const row = rows[0]
@@ -197,56 +214,47 @@ export function createTreatmentDosesRepository(
     async changeDate(id: string, dates: DoseDates, updatedAt: string): Promise<boolean> {
       const changes = await db.run(
         `UPDATE treatment_dose
-         SET given_on = ?, next_due_date = ?, frequency_value = ?, frequency_unit = ?, updated_at = ?
+         SET given_on = ?, due_on = ?, next_due_date = ?, updated_at = ?
          WHERE id = ? AND ${NOT_DELETED} AND NOT ${otherVisibleDose('?')}`,
-        [
-          dates.givenOn,
-          dates.nextDueDate,
-          dates.frequency.value,
-          dates.frequency.unit,
-          updatedAt,
-          id,
-          dates.givenOn,
-        ],
+        [dates.givenOn, dates.dueOn, dates.nextDueDate, updatedAt, id, dates.givenOn],
       )
       return changes > 0
     },
 
-    /** Lignes supprimées comprises : l'import rattache un fichier aux prises déjà en base. */
+    /**
+     * Lignes supprimées comprises : l'import rattache un fichier aux prises déjà en base, par le jour
+     * de la prise, son échéance pour une prise sans date réelle.
+     */
     async listVersions(): Promise<TreatmentDoseVersion[]> {
       const rows = await db.query<DoseVersionRow>(
-        'SELECT id, treatment_id, given_on, updated_at, deleted_at FROM treatment_dose',
+        `SELECT id, treatment_id, COALESCE(given_on, due_on) AS day, updated_at, deleted_at
+         FROM treatment_dose`,
       )
       return rows.map((row) => ({
         id: row.id,
         treatmentId: row.treatment_id,
-        givenOn: row.given_on,
+        givenOn: row.day,
         updatedAt: row.updated_at,
         deletedAt: row.deleted_at,
       }))
     },
 
-    insertStatement(dose: TreatmentDose): SqlStatement {
+    insertStatement(dose: NewTreatmentDose): SqlStatement {
       return {
-        sql: `INSERT INTO treatment_dose (${COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        sql: `INSERT INTO treatment_dose (${COLUMNS}) VALUES (${PLACEHOLDERS})`,
         params: valuesOf(dose),
       }
     },
 
-    /** La date de la prise ne change pas ici : la tête reste la même prise. */
+    /** La dernière ligne garde sa date et son échéance : seule la prochaine dose change. */
     updateHeadStatement(
       treatmentId: string,
-      {
-        nextDueDate,
-        frequency,
-        updatedAt,
-      }: Pick<TreatmentDose, 'nextDueDate' | 'frequency' | 'updatedAt'>,
+      { nextDueDate, updatedAt }: Pick<NewTreatmentDose, 'nextDueDate' | 'updatedAt'>,
     ): SqlStatement {
       return {
-        sql: `UPDATE treatment_dose
-              SET next_due_date = ?, frequency_value = ?, frequency_unit = ?, updated_at = ?
+        sql: `UPDATE treatment_dose SET next_due_date = ?, updated_at = ?
               WHERE id = ${headDoseIdSql('?')}`,
-        params: [nextDueDate, frequency.value, frequency.unit, updatedAt, treatmentId],
+        params: [nextDueDate, updatedAt, treatmentId],
       }
     },
 
@@ -279,60 +287,30 @@ export function createTreatmentDosesRepository(
     },
 
     /**
-     * Prise de tête d'un traitement en cours copiée d'une autre fréquence que le plan : prochaine
-     * dose recalculée depuis sa date. À la fréquence du plan, elle n'est jamais touchée.
+     * Une prise existante garde sa période, son traitement et son animal, et son échéance tant que
+     * sa date ne change pas : le reste suit le fichier.
      */
-    reconcileStaleHeadsStatement(updatedAt: string): SqlStatement {
-      const plan = (column: string) =>
-        `(SELECT treatment.${column} FROM treatment WHERE treatment.id = treatment_dose.treatment_id)`
-      return {
-        sql: `UPDATE treatment_dose
-              SET next_due_date = ${plusFrequencySql('given_on', plan('frequency_value'), plan('frequency_unit'))},
-                  frequency_value = ${plan('frequency_value')},
-                  frequency_unit = ${plan('frequency_unit')},
-                  updated_at = ?
-              WHERE ${NOT_DELETED}
-                AND id = ${headDoseIdSql('treatment_dose.treatment_id')}
-                AND EXISTS (
-                  SELECT 1 FROM treatment
-                  WHERE treatment.id = treatment_dose.treatment_id
-                    AND treatment.deleted_at IS NULL AND treatment.stopped_on IS NULL
-                    AND (treatment.frequency_value <> treatment_dose.frequency_value
-                      OR treatment.frequency_unit <> treatment_dose.frequency_unit))`,
-        params: [updatedAt],
-      }
-    },
-
-    /** Une prise existante garde son traitement et son animal : le reste suit le fichier. */
     restoreStatement(dose: RestoredTreatmentDose, exists: boolean): SqlStatement {
       return exists
         ? {
             sql: `UPDATE treatment_dose
-                  SET given_on = ?, next_due_date = ?, frequency_value = ?, frequency_unit = ?,
-                      updated_at = ?, deleted_at = NULL
+                  SET due_on = CASE WHEN given_on IS ? THEN due_on ELSE ? END,
+                      given_on = ?, status = ?, next_due_date = ?, updated_at = ?,
+                      deleted_at = NULL
                   WHERE id = ?`,
             params: [
               dose.givenOn,
+              dose.dueOn,
+              dose.givenOn,
+              dose.status,
               dose.nextDueDate,
-              dose.frequency.value,
-              dose.frequency.unit,
               dose.updatedAt,
               dose.id,
             ],
           }
         : {
-            sql: `INSERT INTO treatment_dose (${COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)`,
-            params: [
-              dose.id,
-              dose.treatmentId,
-              dose.animalId,
-              dose.givenOn,
-              dose.nextDueDate,
-              dose.frequency.value,
-              dose.frequency.unit,
-              dose.createdAt,
-              dose.updatedAt,
-            ],
+            sql: `INSERT INTO treatment_dose (${COLUMNS}) VALUES (${PLACEHOLDERS})`,
+            params: valuesOf({ ...dose, deletedAt: null }),
           }
     },
 
@@ -374,22 +352,25 @@ export function createTreatmentDosesRepository(
     applyRemoteRowStatement(row: SyncRow): SqlStatement {
       return {
         sql: `INSERT INTO treatment_dose (${COLUMNS})
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              VALUES (${PLACEHOLDERS})
               ON CONFLICT (id) DO UPDATE SET
-                treatment_id = excluded.treatment_id, animal_id = excluded.animal_id,
-                given_on = excluded.given_on, next_due_date = excluded.next_due_date,
-                frequency_value = excluded.frequency_value, frequency_unit = excluded.frequency_unit,
+                period_id = excluded.period_id, treatment_id = excluded.treatment_id,
+                animal_id = excluded.animal_id, due_on = excluded.due_on,
+                due_time = excluded.due_time, given_on = excluded.given_on,
+                status = excluded.status, next_due_date = excluded.next_due_date,
                 created_at = excluded.created_at, updated_at = excluded.updated_at,
                 deleted_at = excluded.deleted_at
               WHERE excluded.updated_at > treatment_dose.updated_at`,
         params: [
           row.id,
+          syncField(row, 'period_id'),
           syncField(row, 'treatment_id'),
           syncField(row, 'animal_id'),
+          syncField(row, 'due_on'),
+          syncField(row, 'due_time'),
           syncField(row, 'given_on'),
+          syncField(row, 'status'),
           syncField(row, 'next_due_date'),
-          syncField(row, 'frequency_value'),
-          syncField(row, 'frequency_unit'),
           syncField(row, 'created_at'),
           row.updated_at,
           syncField(row, 'deleted_at'),

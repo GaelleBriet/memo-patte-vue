@@ -50,6 +50,7 @@ function treatment(nextDueDate: string, animalId = MILO.id): Treatment {
     animalId,
     name: 'Milbemax',
     type: 'deworming',
+    periodId: '44444444-4444-4444-8444-444444444444',
     frequency: { value: 3, unit: 'month' },
     lastDoseDate: '2026-03-01',
     nextDueDate,

@@ -8,12 +8,15 @@ import {
   insertAnimal,
   insertCarnetSettings,
   insertTreatment,
+  insertTreatmentDose,
+  insertTreatmentPeriod,
   insertVaccination,
   insertWeightEntry,
   outboxRows,
   touchAnimal,
   touchCarnetSettings,
   touchTreatment,
+  touchTreatmentPeriod,
   touchVaccination,
   touchWeightEntry,
 } from './sync-test-db'
@@ -133,6 +136,26 @@ describe('déclencheurs sync_outbox', () => {
       touch: touchVaccination,
     },
     { entity: 'treatment', id: TREATMENT_ID, insert: insertTreatment, touch: touchTreatment },
+    {
+      entity: 'treatment_period',
+      id: TREATMENT_ID,
+      insert: async (target: InMemoryDb, id: string, animalId: string, updatedAt: string) => {
+        await insertTreatment(target, id, animalId, updatedAt)
+        await insertTreatmentPeriod(target, id, id, animalId, updatedAt)
+      },
+      touch: touchTreatmentPeriod,
+    },
+    {
+      entity: 'treatment_dose',
+      id: TREATMENT_ID,
+      insert: async (target: InMemoryDb, id: string, animalId: string, updatedAt: string) => {
+        await insertTreatment(target, id, animalId, updatedAt)
+        await insertTreatmentPeriod(target, id, id, animalId, updatedAt)
+        await insertTreatmentDose(target, id, id, id, animalId, updatedAt)
+      },
+      touch: (target: InMemoryDb, id: string, updatedAt: string) =>
+        target.run('UPDATE treatment_dose SET updated_at = ? WHERE id = ?', [updatedAt, id]),
+    },
     {
       entity: 'weight_entry',
       id: WEIGHT_ENTRY_ID,

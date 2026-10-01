@@ -23,16 +23,23 @@ describe('treatmentsRepository — port de synchronisation', () => {
       [ANIMAL_ID, T_LOCAL, T_LOCAL],
     )
     await db.run(
-      `INSERT INTO treatment
-         (id, animal_id, name, type, frequency_value, frequency_unit, created_at, updated_at)
-       VALUES (?, ?, 'Bravecto', 'antiparasitic', 1, 'month', ?, ?)`,
+      `INSERT INTO treatment (id, animal_id, name, type, created_at, updated_at)
+       VALUES (?, ?, 'Bravecto', 'antiparasitic', ?, ?)`,
       [TREATMENT_ID, ANIMAL_ID, T_LOCAL, T_LOCAL],
     )
     await db.run(
-      `INSERT INTO treatment_dose
-         (id, treatment_id, animal_id, given_on, next_due_date, frequency_value, frequency_unit, created_at, updated_at)
-       VALUES (?, ?, ?, '2026-01-01', '2026-02-01', 1, 'month', ?, ?)`,
+      `INSERT INTO treatment_period
+         (id, treatment_id, animal_id, starts_on, first_due_on, frequency_value, frequency_unit,
+          created_at, updated_at)
+       VALUES (?, ?, ?, '2026-01-01', '2026-01-01', 1, 'month', ?, ?)`,
       [TREATMENT_ID, TREATMENT_ID, ANIMAL_ID, T_LOCAL, T_LOCAL],
+    )
+    await db.run(
+      `INSERT INTO treatment_dose
+         (id, period_id, treatment_id, animal_id, due_on, given_on, status, next_due_date,
+          created_at, updated_at)
+       VALUES (?, ?, ?, ?, '2026-01-01', '2026-01-01', 'given', '2026-02-01', ?, ?)`,
+      [TREATMENT_ID, TREATMENT_ID, TREATMENT_ID, ANIMAL_ID, T_LOCAL, T_LOCAL],
     )
   })
 
@@ -44,7 +51,7 @@ describe('treatmentsRepository — port de synchronisation', () => {
     expect(repository.entity).toBe('treatment')
   })
 
-  it('getRowForPush renvoie la ligne du plan seule, même supprimée logiquement', async () => {
+  it('getRowForPush renvoie la ligne du traitement seule, sans réglage de période, même supprimée logiquement', async () => {
     await db.run('UPDATE treatment SET deleted_at = ? WHERE id = ?', [T_NEW, TREATMENT_ID])
 
     const row = await repository.getRowForPush(TREATMENT_ID)
@@ -54,9 +61,6 @@ describe('treatmentsRepository — port de synchronisation', () => {
       animal_id: ANIMAL_ID,
       name: 'Bravecto',
       type: 'antiparasitic',
-      frequency_value: 1,
-      frequency_unit: 'month',
-      stopped_on: null,
       created_at: T_LOCAL,
       updated_at: T_LOCAL,
       deleted_at: T_NEW,
@@ -69,9 +73,6 @@ describe('treatmentsRepository — port de synchronisation', () => {
       animal_id: ANIMAL_ID,
       name: 'Bravecto (autre appareil)',
       type: 'antiparasitic',
-      frequency_value: 3,
-      frequency_unit: 'month',
-      stopped_on: null,
       created_at: T_LOCAL,
       updated_at: '2026-01-01T00:00:00.000Z',
       deleted_at: null,
@@ -82,15 +83,12 @@ describe('treatmentsRepository — port de synchronisation', () => {
     await expect(repository.getById(TREATMENT_ID)).resolves.toMatchObject({ name: 'Bravecto' })
   })
 
-  it('remplace la ligne locale par une version distante plus récente, sans toucher ses prises', async () => {
+  it('remplace la ligne locale par une version distante plus récente, sans toucher sa période ni ses prises', async () => {
     const remote = {
       id: TREATMENT_ID,
       animal_id: ANIMAL_ID,
       name: 'Bravecto (mis à jour)',
       type: 'deworming',
-      frequency_value: 2,
-      frequency_unit: 'week',
-      stopped_on: '2026-01-05',
       created_at: T_LOCAL,
       updated_at: T_NEW,
       deleted_at: null,
@@ -101,8 +99,8 @@ describe('treatmentsRepository — port de synchronisation', () => {
     await expect(repository.getById(TREATMENT_ID)).resolves.toMatchObject({
       name: 'Bravecto (mis à jour)',
       type: 'deworming',
-      frequency: { value: 2, unit: 'week' },
-      stoppedOn: '2026-01-05',
+      frequency: { value: 1, unit: 'month' },
+      stoppedOn: null,
       lastDoseDate: '2026-01-01',
       nextDueDate: '2026-02-01',
     })
@@ -114,9 +112,6 @@ describe('treatmentsRepository — port de synchronisation', () => {
       animal_id: ANIMAL_ID,
       name: 'Bravecto',
       type: 'antiparasitic',
-      frequency_value: 1,
-      frequency_unit: 'month',
-      stopped_on: null,
       created_at: T_LOCAL,
       updated_at: T_NEW,
       deleted_at: T_NEW,

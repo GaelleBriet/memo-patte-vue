@@ -63,13 +63,13 @@ function insertAnimal(db: InMemoryDb, values: Record<string, string | number | n
 }
 
 describe('migrations', () => {
-  it('ne contient que la v9, qui crée le schéma entier', () => {
-    expect(migrations.map(({ toVersion }) => toVersion)).toEqual([9])
-    expect(DATABASE_VERSION).toBe(9)
+  it('contient la v9, qui crée le schéma entier, puis la v10 des traitements', () => {
+    expect(migrations.map(({ toVersion }) => toVersion)).toEqual([9, 10])
+    expect(DATABASE_VERSION).toBe(10)
   })
 })
 
-describe('schéma v9 sur une installation neuve', () => {
+describe('schéma sur une installation neuve', () => {
   let db: InMemoryDb
 
   beforeEach(async () => {
@@ -95,6 +95,7 @@ describe('schéma v9 sur une installation neuve', () => {
       'sync_state',
       'treatment',
       'treatment_dose',
+      'treatment_period',
       'vaccination',
       'vaccination_injection',
       'weight_entry',
@@ -102,13 +103,15 @@ describe('schéma v9 sur une installation neuve', () => {
     expect([...migrationTableNames()].sort()).toEqual(rows.map(({ name }) => name))
   })
 
-  it('pose la version 9 dans sa propre transaction, sans attendre le plugin', async () => {
+  it('pose chaque version dans sa propre transaction, sans attendre le plugin', async () => {
     const fresh = await createSqlJsDbClient()
 
-    await fresh.runMany((migrations[0]?.statements ?? []).map((sql) => ({ sql })))
+    for (const migration of migrations) {
+      await fresh.runMany(migration.statements.map((sql) => ({ sql })))
 
-    const [version] = await fresh.query<{ user_version: number }>('PRAGMA user_version')
-    expect(version?.user_version).toBe(9)
+      const [version] = await fresh.query<{ user_version: number }>('PRAGMA user_version')
+      expect(version?.user_version).toBe(migration.toVersion)
+    }
     fresh.close()
   })
 
@@ -239,31 +242,267 @@ describe('schéma v9 sur une installation neuve', () => {
     })
   })
 
-  it('garde les traitements et leurs prises dans leur forme v8', async () => {
-    expect(await columnNames(db, 'treatment')).toEqual([
-      'id',
-      'animal_id',
-      'name',
-      'type',
-      'frequency_value',
-      'frequency_unit',
-      'stopped_on',
-      'created_at',
-      'updated_at',
-      'deleted_at',
-    ])
-    expect(await columnNames(db, 'treatment_dose')).toEqual([
-      'id',
-      'treatment_id',
-      'animal_id',
-      'given_on',
-      'next_due_date',
-      'frequency_value',
-      'frequency_unit',
-      'created_at',
-      'updated_at',
-      'deleted_at',
-    ])
+  describe('traitements', () => {
+    const PERIODE = '55555555-5555-4555-8555-555555555555'
+    const PRISE = '66666666-6666-4666-8666-666666666666'
+
+    function insertTreatment(values: Record<string, string | number | null> = {}) {
+      const row = {
+        id: BRAVECTO,
+        animal_id: MILO,
+        name: 'Bravecto',
+        type: 'antiparasitic',
+        created_at: NOW,
+        updated_at: NOW,
+        ...values,
+      }
+      const names = Object.keys(row)
+      return db.run(
+        `INSERT INTO treatment (${names.join(', ')}) VALUES (${names.map(() => '?').join(', ')})`,
+        Object.values(row),
+      )
+    }
+
+    function insertPeriod(values: Record<string, string | number | null> = {}) {
+      const row = {
+        id: PERIODE,
+        treatment_id: BRAVECTO,
+        animal_id: MILO,
+        starts_on: '2026-07-08',
+        first_due_on: '2026-07-08',
+        frequency_value: 3,
+        frequency_unit: 'month',
+        created_at: NOW,
+        updated_at: NOW,
+        ...values,
+      }
+      const names = Object.keys(row)
+      return db.run(
+        `INSERT INTO treatment_period (${names.join(', ')})
+         VALUES (${names.map(() => '?').join(', ')})`,
+        Object.values(row),
+      )
+    }
+
+    function insertDose(values: Record<string, string | number | null> = {}) {
+      const row = {
+        id: PRISE,
+        period_id: PERIODE,
+        treatment_id: BRAVECTO,
+        animal_id: MILO,
+        due_on: '2026-07-08',
+        given_on: '2026-07-08',
+        status: 'given',
+        next_due_date: '2026-10-08',
+        created_at: NOW,
+        updated_at: NOW,
+        ...values,
+      }
+      const names = Object.keys(row)
+      return db.run(
+        `INSERT INTO treatment_dose (${names.join(', ')})
+         VALUES (${names.map(() => '?').join(', ')})`,
+        Object.values(row),
+      )
+    }
+
+    beforeEach(async () => {
+      await insertAnimal(db)
+    })
+
+    it('le traitement ne garde que son identité : animal, nom et type', async () => {
+      expect(await columnNames(db, 'treatment')).toEqual([
+        'id',
+        'animal_id',
+        'name',
+        'type',
+        'created_at',
+        'updated_at',
+        'deleted_at',
+      ])
+      expect(await foreignKeys(db, 'treatment')).toMatchObject([
+        { table: 'animal', from: 'animal_id', to: 'id', on_delete: 'CASCADE' },
+      ])
+    })
+
+    it.each(['deworming', 'antiparasitic', 'medication'])('accepte le type %s', async (type) => {
+      await expect(insertTreatment({ type })).resolves.toBe(1)
+    })
+
+    it('refuse un type hors liste, à l’écriture comme à la modification', async () => {
+      await expect(insertTreatment({ type: 'vaccine' })).rejects.toThrow(/type not allowed/)
+      await insertTreatment()
+
+      await expect(
+        db.run(`UPDATE treatment SET type = 'vaccine' WHERE id = ?`, [BRAVECTO]),
+      ).rejects.toThrow(/type not allowed/)
+    })
+
+    it('la période porte les réglages, rattachée au traitement et à l’animal', async () => {
+      expect(await columnNames(db, 'treatment_period')).toEqual([
+        'id',
+        'treatment_id',
+        'animal_id',
+        'starts_on',
+        'first_due_on',
+        'ends_on',
+        'stopped_on',
+        'frequency_value',
+        'frequency_unit',
+        'times',
+        'dose_quantity',
+        'dose_unit',
+        'reminder_offset_minutes',
+        'reminder_time',
+        'created_at',
+        'updated_at',
+        'deleted_at',
+      ])
+      expect(await foreignKeys(db, 'treatment_period')).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            table: 'treatment',
+            from: 'treatment_id',
+            to: 'id',
+            on_delete: 'CASCADE',
+          }),
+          expect.objectContaining({
+            table: 'animal',
+            from: 'animal_id',
+            to: 'id',
+            on_delete: 'CASCADE',
+          }),
+        ]),
+      )
+    })
+
+    it('crée une période sans fin, arrêt, heures, posologie ni moment du rappel', async () => {
+      await insertTreatment()
+      await insertPeriod()
+
+      await expect(
+        db.query(
+          `SELECT ends_on, stopped_on, times, dose_quantity, dose_unit, reminder_offset_minutes,
+                  reminder_time
+           FROM treatment_period`,
+        ),
+      ).resolves.toEqual([
+        {
+          ends_on: null,
+          stopped_on: null,
+          times: null,
+          dose_quantity: null,
+          dose_unit: null,
+          reminder_offset_minutes: null,
+          reminder_time: null,
+        },
+      ])
+    })
+
+    it.each([
+      'tablet',
+      'capsule',
+      'pipette',
+      'collar',
+      'ml',
+      'drop',
+      'g',
+      'sachet',
+      'spray',
+      'application',
+      'dose',
+    ])('accepte l’unité de posologie %s', async (dose_unit) => {
+      await insertTreatment()
+
+      await expect(insertPeriod({ dose_quantity: 0.5, dose_unit })).resolves.toBe(1)
+    })
+
+    it('refuse une unité de posologie hors liste, à l’écriture comme à la modification', async () => {
+      await insertTreatment()
+      await expect(insertPeriod({ dose_unit: 'cuillère' })).rejects.toThrow(/dose_unit not allowed/)
+      await insertPeriod()
+
+      await expect(
+        db.run(`UPDATE treatment_period SET dose_unit = 'cuillère' WHERE id = ?`, [PERIODE]),
+      ).rejects.toThrow(/dose_unit not allowed/)
+    })
+
+    it.each([0, 15, 30, 60])('accepte un rappel %i minutes avant l’heure', async (minutes) => {
+      await insertTreatment()
+
+      await expect(insertPeriod({ reminder_offset_minutes: minutes })).resolves.toBe(1)
+    })
+
+    it.each([
+      ['une unité de fréquence inconnue', { frequency_unit: 'year' }],
+      ['une fréquence nulle', { frequency_value: 0 }],
+      ['un moment du rappel hors liste', { reminder_offset_minutes: 45 }],
+    ])('refuse dans une période %s', async (_, values) => {
+      await insertTreatment()
+
+      await expect(insertPeriod(values)).rejects.toThrow(/constraint failed/)
+    })
+
+    it('refuse une période rattachée à un traitement inexistant', async () => {
+      await expect(insertPeriod()).rejects.toThrow(/FOREIGN KEY constraint failed/)
+    })
+
+    it('la prise se rattache à sa période, sans fréquence recopiée', async () => {
+      expect(await columnNames(db, 'treatment_dose')).toEqual([
+        'id',
+        'period_id',
+        'treatment_id',
+        'animal_id',
+        'due_on',
+        'due_time',
+        'given_on',
+        'status',
+        'next_due_date',
+        'created_at',
+        'updated_at',
+        'deleted_at',
+      ])
+      expect(await foreignKeys(db, 'treatment_dose')).toEqual(
+        expect.arrayContaining(
+          [
+            ['treatment_period', 'period_id'],
+            ['treatment', 'treatment_id'],
+            ['animal', 'animal_id'],
+          ].map(([table, from]) =>
+            expect.objectContaining({ table, from, to: 'id', on_delete: 'CASCADE' }),
+          ),
+        ),
+      )
+    })
+
+    it.each(['given', 'missed', 'postponed'])('accepte une prise à l’état %s', async (status) => {
+      await insertTreatment()
+      await insertPeriod()
+
+      await expect(
+        insertDose({ status, given_on: status === 'given' ? '2026-07-08' : null }),
+      ).resolves.toBe(1)
+    })
+
+    it('garde une prise sans heure ni date réelle', async () => {
+      await insertTreatment()
+      await insertPeriod()
+      await insertDose({ status: 'missed', given_on: null })
+
+      await expect(db.query('SELECT due_time, given_on FROM treatment_dose')).resolves.toEqual([
+        { due_time: null, given_on: null },
+      ])
+    })
+
+    it('refuse une prise à un état inconnu ou sans période', async () => {
+      await insertTreatment()
+      await insertPeriod()
+
+      await expect(insertDose({ status: 'skipped' })).rejects.toThrow(/constraint failed/)
+      await expect(insertDose({ period_id: 'inconnue' })).rejects.toThrow(
+        /FOREIGN KEY constraint failed/,
+      )
+    })
   })
 
   describe('carnet_settings', () => {
@@ -323,7 +562,10 @@ describe('schéma v9 sur une installation neuve', () => {
     expect(await schemaObjects(db, 'index')).toEqual([
       'idx_treatment_animal_id',
       'idx_treatment_dose_animal_id',
+      'idx_treatment_dose_period_id',
       'idx_treatment_dose_treatment',
+      'idx_treatment_period_animal_id',
+      'idx_treatment_period_treatment',
       'idx_vaccination_animal_id',
       'idx_vaccination_injection_animal_id',
       'idx_vaccination_injection_vaccination',
@@ -331,7 +573,7 @@ describe('schéma v9 sur une installation neuve', () => {
     ])
   })
 
-  it('met en file d’envoi chaque table synchronisée, réglages du carnet compris', async () => {
+  it('met en file d’envoi chaque table synchronisée, réglages et périodes compris', async () => {
     const outboxTriggers = (await schemaObjects(db, 'trigger')).filter((name) =>
       name.includes('_outbox_'),
     )
@@ -342,6 +584,7 @@ describe('schéma v9 sur une installation neuve', () => {
         'carnet_settings',
         'treatment',
         'treatment_dose',
+        'treatment_period',
         'vaccination',
         'vaccination_injection',
         'weight_entry',
@@ -361,8 +604,8 @@ describe('schéma v9 sur une installation neuve', () => {
           params: [RAGE, MILO, NOW, NOW],
         },
         {
-          sql: `INSERT INTO treatment (id, animal_id, name, type, frequency_value, frequency_unit, created_at, updated_at)
-                VALUES (?, ?, 'Bravecto', 'antiparasitic', 3, 'month', ?, ?)`,
+          sql: `INSERT INTO treatment (id, animal_id, name, type, created_at, updated_at)
+                VALUES (?, ?, 'Bravecto', 'antiparasitic', ?, ?)`,
           params: [BRAVECTO, MILO, NOW, NOW],
         },
       ])
@@ -382,8 +625,8 @@ describe('schéma v9 sur une installation neuve', () => {
         params: [MILO, name, NOW, NOW],
       }),
       'le nom d’un traitement': (name: string) => ({
-        sql: `INSERT INTO treatment (id, animal_id, name, type, frequency_value, frequency_unit, created_at, updated_at)
-              VALUES ('t-neuf', ?, ?, 'deworming', 1, 'month', ?, ?)`,
+        sql: `INSERT INTO treatment (id, animal_id, name, type, created_at, updated_at)
+              VALUES ('t-neuf', ?, ?, 'deworming', ?, ?)`,
         params: [MILO, name, NOW, NOW],
       }),
     }

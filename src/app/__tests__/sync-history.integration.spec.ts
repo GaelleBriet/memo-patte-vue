@@ -2,9 +2,11 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory-db'
+import { guardedUpsert } from '@/core/supabase/guarded-upsert'
 import { createFakeSyncServer, type FakeSyncServer } from '@/core/sync/__tests__/fake-sync-server'
 import { createSyncOutboxRepository } from '@/core/sync/repository/sync-outbox.repository'
 import { createSyncCycle } from '@/core/sync/service/sync-cycle'
+import type { SyncRow, SyncableTable } from '@/core/sync/service/syncable-table'
 import { createAnimalsRepository } from '@/features/animals/repository/animals.repository'
 import { createTreatmentDosesRepository } from '@/features/treatments/repository/treatment-doses.repository'
 import { createTreatmentsRepository } from '@/features/treatments/repository/treatments.repository'
@@ -16,6 +18,64 @@ import { createWeightRepository } from '@/features/weight/repository/weight.repo
 
 const USER_ID = '99999999-9999-4999-8999-999999999999'
 
+const PERIOD_COLUMNS = [
+  'id',
+  'treatment_id',
+  'animal_id',
+  'starts_on',
+  'first_due_on',
+  'stopped_on',
+  'frequency_value',
+  'frequency_unit',
+  'created_at',
+  'updated_at',
+  'deleted_at',
+]
+
+/** Port de test : l'app ne synchronise pas encore les périodes, sans lesquelles une prise ne se tire pas. */
+function createPeriodsTransport(db: InMemoryDb, client: SupabaseClient): SyncableTable {
+  return {
+    entity: 'treatment_period',
+    async getRowForPush(id) {
+      const [row] = await db.query<SyncRow>(
+        `SELECT ${PERIOD_COLUMNS.join(', ')} FROM treatment_period WHERE id = ?`,
+        [id],
+      )
+      return row ?? null
+    },
+    async pushRow(userId, row) {
+      await guardedUpsert(client, 'treatment_period', ['user_id', 'id'], {
+        ...row,
+        user_id: userId,
+      })
+    },
+    async pullPage(userId, since, limit) {
+      const { data, error } = await client
+        .from('treatment_period')
+        .select(`${PERIOD_COLUMNS.join(', ')}, server_updated_at`)
+        .eq('user_id', userId)
+        .gte('server_updated_at', since)
+        .order('server_updated_at', { ascending: true })
+        .limit(limit)
+      if (error) throw error
+      const rows = (data ?? []) as unknown as Array<SyncRow & { server_updated_at: string }>
+      return { rows, cursor: rows.at(-1)?.server_updated_at ?? null }
+    },
+    applyRemoteRowStatement(row) {
+      return {
+        sql: `INSERT INTO treatment_period (${PERIOD_COLUMNS.join(', ')})
+              VALUES (${PERIOD_COLUMNS.map(() => '?').join(', ')})
+              ON CONFLICT (id) DO UPDATE SET
+                ${PERIOD_COLUMNS.slice(1)
+                  .map((column) => `${column} = excluded.${column}`)
+                  .join(', ')}
+              WHERE excluded.updated_at > treatment_period.updated_at`,
+        params: PERIOD_COLUMNS.map((column) => row[column] ?? null),
+      }
+    },
+  }
+}
+
 async function createDevice(client: SupabaseClient) {
   const db: InMemoryDb = await createInMemoryDb()
   await db.execute('PRAGMA foreign_keys = ON')
@@ -26,13 +86,14 @@ async function createDevice(client: SupabaseClient) {
   const vaccinations = createVaccinationsRepository(db, deps)
   const injections = createVaccinationInjectionsRepository(db, deps)
   const treatments = createTreatmentsRepository(db, deps)
+  const periods = createPeriodsTransport(db, client)
   const doses = createTreatmentDosesRepository(db, deps)
   const weight = createWeightRepository(db, deps)
   const onRemindersOutdated = vi.fn<() => Promise<void>>().mockResolvedValue(undefined)
   const cycle = createSyncCycle({
     db,
     outbox: createSyncOutboxRepository(db),
-    tables: [animals, vaccinations, injections, treatments, doses, weight],
+    tables: [animals, vaccinations, injections, treatments, periods, doses, weight],
     userId: () => USER_ID,
     isEligible: () => true,
     onRemindersOutdated,

@@ -8,6 +8,7 @@ import {
   type TreatmentsRepository,
 } from '@/features/treatments/repository/treatments.repository'
 import { getTreatmentDosesRepository } from '@/features/treatments/repository/treatment-doses.repository'
+import { getTreatmentPeriodsRepository } from '@/features/treatments/repository/treatment-periods.repository'
 import { getWeightRepository } from '@/features/weight/repository/weight.repository'
 import { deletePhoto, type PhotoStorage } from '@/core/photos/photo-storage'
 import type { DueReminderEntry } from '@/shared/domain/due-reminders'
@@ -94,6 +95,7 @@ export const animalDeletionService = createAnimalDeletionService(
     getVaccinationInjectionsRepository,
     getWeightRepository,
     getTreatmentsRepository,
+    getTreatmentPeriodsRepository,
     getTreatmentDosesRepository,
   ],
   {

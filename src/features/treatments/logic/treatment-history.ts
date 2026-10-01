@@ -1,5 +1,5 @@
+import { doseDay, rankedDueOn } from './treatment-dose'
 import { addFrequency } from './treatment-frequency'
-import { isOngoing } from './treatment-status'
 import type { DoseDates } from '../repository/treatment-doses.repository'
 import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import type { Treatment } from '../schema/treatment.schema'
@@ -36,7 +36,7 @@ export function doseHistory(
 
   const groups: DoseYear[] = []
   for (const dose of others) {
-    const year = dose.givenOn.slice(0, 4)
+    const year = doseDay(dose).slice(0, 4)
     const last = groups.at(-1)
     if (last?.year === year) last.doses.push(dose)
     else groups.push({ year, doses: [dose] })
@@ -51,39 +51,25 @@ export type RedatedDose = {
 }
 
 /**
- * Prise déplacée : sa prochaine dose suit la nouvelle date, sauf un report manuel qui reste après
- * elle. Devenue la dernière d'un traitement en cours, elle prend la fréquence du plan.
+ * Prise déplacée : elle vise sa nouvelle date, et sa prochaine dose la suit, sauf un report manuel
+ * qui reste après elle. `last` : la dernière des autres prises, `null` quand elle est seule.
  */
 export function redatedDose(
-  dose: DoseDates,
+  dose: Pick<TreatmentDose, 'givenOn' | 'dueOn' | 'nextDueDate' | 'frequency'>,
   givenOn: string,
-  { isHead, plan }: { isHead: boolean; plan: Pick<Treatment, 'frequency' | 'stoppedOn'> },
+  { last }: { last: Pick<TreatmentDose, 'givenOn' | 'dueOn'> | null },
 ): RedatedDose {
-  const frequency = { ...(isHead && isOngoing(plan) ? plan.frequency : dose.frequency) }
+  const isHead = last === null || givenOn > doseDay(last)
   const kept =
-    dose.nextDueDate !== addFrequency(dose.givenOn, dose.frequency) && dose.nextDueDate > givenOn
+    dose.nextDueDate !== addFrequency(doseDay(dose), dose.frequency) && dose.nextDueDate > givenOn
   return {
     dates: {
       givenOn,
-      nextDueDate: kept ? dose.nextDueDate : addFrequency(givenOn, frequency),
-      frequency,
+      dueOn: rankedDueOn(givenOn, givenOn, last),
+      nextDueDate: kept ? dose.nextDueDate : addFrequency(givenOn, dose.frequency),
     },
     postponementKept: kept && isHead,
   }
-}
-
-type HeadOrder = Pick<TreatmentDose, 'givenOn' | 'createdAt' | 'id'>
-
-function isBefore(a: HeadOrder, b: HeadOrder): boolean {
-  if (a.givenOn !== b.givenOn) return a.givenOn < b.givenOn
-  if (a.createdAt !== b.createdAt) return a.createdAt < b.createdAt
-  return a.id < b.id
-}
-
-/** Même ordre que la tête en base : date, puis saisie, puis identifiant. */
-export function becomesHead(doses: TreatmentDose[], dose: TreatmentDose, givenOn: string): boolean {
-  const moved = { ...dose, givenOn }
-  return doses.every((other) => other.id === dose.id || isBefore(other, moved))
 }
 
 export function treatmentDetailTexts(
@@ -113,7 +99,7 @@ export function treatmentDetailTexts(
       stoppedOn === null && oldest
         ? t('treatments.detail.since', {
             n: doses.length,
-            month: formatMonthYear(oldest.givenOn),
+            month: formatMonthYear(doseDay(oldest)),
           })
         : String(doses.length),
     headDetail: t('treatments.detail.setDose', {
@@ -136,8 +122,8 @@ export function treatmentDetailTexts(
     year: ({ year, doses: ofYear }: DoseYear) =>
       t('treatments.detail.year', { year, n: ofYear.length }, ofYear.length),
     dose: (dose: TreatmentDose) => ({
-      date: formatLongDate(dose.givenOn),
-      optionsLabel: t('treatments.detail.options', { date: formatFullDate(dose.givenOn) }),
+      date: formatLongDate(doseDay(dose)),
+      optionsLabel: t('treatments.detail.options', { date: formatFullDate(doseDay(dose)) }),
     }),
   }
 }
@@ -168,7 +154,7 @@ export function finishedTreatmentRows(
 
 /** Jours déjà pris par les autres prises : une prise ne s'y déplace pas. */
 export function doseDatesExcept(doses: TreatmentDose[], id: string): string[] {
-  return doses.filter((dose) => dose.id !== id).map(({ givenOn }) => givenOn)
+  return doses.flatMap((dose) => (dose.id === id || dose.givenOn === null ? [] : [dose.givenOn]))
 }
 
 /** Textes de « Changer la date » et « Supprimer cette prise », et de leur toast. */

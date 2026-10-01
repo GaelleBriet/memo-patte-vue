@@ -1,5 +1,5 @@
 import { doseGivenOn } from '../logic/treatment-dose'
-import { becomesHead, redatedDose } from '../logic/treatment-history'
+import { redatedDose } from '../logic/treatment-history'
 import {
   getTreatmentDosesRepository,
   type DoseDates,
@@ -52,14 +52,19 @@ export function createTreatmentDosesService({
     /** Lève pour une date future ou un traitement introuvable. */
     async record(treatmentId: string, givenOn: string): Promise<RecordedDose> {
       const date = treatmentInputSchema.shape.lastDoseDate.parse(givenOn)
-      const treatment = await (await treatments()).getById(treatmentId)
+      const repository = await doses()
+      const [treatment, [head]] = await Promise.all([
+        (await treatments()).getById(treatmentId),
+        repository.listByTreatment(treatmentId),
+      ])
       if (treatment === null) throw new Error(`Traitement introuvable : ${treatmentId}`)
 
       const dose = doseGivenOn(treatment, date, {
         id: crypto.randomUUID(),
         at: now().toISOString(),
+        last: head ?? null,
       })
-      const recorded = await (await doses()).record(dose)
+      const recorded = await repository.record(dose)
       await reminders.reschedule(treatmentId)
       return { animalId: treatment.animalId, doseId: recorded ? dose.id : null }
     },
@@ -83,7 +88,7 @@ export function createTreatmentDosesService({
       await reminders.reschedule(treatmentId)
     },
 
-    /** Lève pour une date future ou déjà notée. */
+    /** Lève pour une date future ou déjà notée, et pour une prise qui n'a pas été donnée. */
     async changeDate(
       treatmentId: string,
       doseId: string,
@@ -91,25 +96,19 @@ export function createTreatmentDosesService({
     ): Promise<DoseDateChange> {
       const date = treatmentInputSchema.shape.lastDoseDate.parse(givenOn)
       const repository = await doses()
-      const [dose, treatment, all] = await Promise.all([
+      const [dose, all] = await Promise.all([
         repository.getById(doseId),
-        (await treatments()).getById(treatmentId),
         repository.listByTreatment(treatmentId),
       ])
       if (dose === null) throw new Error(`Prise introuvable : ${doseId}`)
-      if (treatment === null) throw new Error(`Traitement introuvable : ${treatmentId}`)
+      if (dose.givenOn === null) throw new Error(`Prise non donnée : ${doseId}`)
 
       const { dates, postponementKept } = redatedDose(dose, date, {
-        isHead: becomesHead(all, dose, date),
-        plan: treatment,
+        last: all.find((other) => other.id !== doseId) ?? null,
       })
       await writeDates(treatmentId, doseId, dates)
       return {
-        previous: {
-          givenOn: dose.givenOn,
-          nextDueDate: dose.nextDueDate,
-          frequency: dose.frequency,
-        },
+        previous: { givenOn: dose.givenOn, dueOn: dose.dueOn, nextDueDate: dose.nextDueDate },
         postponementKept,
       }
     },

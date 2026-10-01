@@ -21,6 +21,7 @@ function treatment(overrides: Partial<Treatment> = {}): Treatment {
     animalId: MILO,
     name: 'Bravecto',
     type: 'antiparasitic',
+    periodId: crypto.randomUUID(),
     frequency: { value: 3, unit: 'month' },
     lastDoseDate: '2026-06-24',
     nextDueDate: '2026-09-24',

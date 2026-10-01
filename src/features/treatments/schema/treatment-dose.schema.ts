@@ -1,18 +1,27 @@
 import { z } from 'zod'
 
-import { treatmentFrequencySchema } from './treatment.schema'
+import type { TreatmentFrequency } from './treatment.schema'
+
+export const DOSE_STATUSES = ['given', 'missed', 'postponed'] as const
 
 export const treatmentDoseSchema = z.object({
   id: z.uuid(),
+  periodId: z.uuid(),
   treatmentId: z.uuid(),
   animalId: z.uuid(),
-  givenOn: z.iso.date(),
+  dueOn: z.iso.date(),
+  dueTime: z.iso.time({ precision: -1 }).nullable(),
+  /** `null` pour une prise oubliée ou reportée. */
+  givenOn: z.iso.date().nullable(),
+  status: z.enum(DOSE_STATUSES),
   nextDueDate: z.iso.date(),
-  /** Fréquence avec laquelle `nextDueDate` a été calculée, recopiée depuis le plan ce jour-là. */
-  frequency: treatmentFrequencySchema,
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
   deletedAt: z.iso.datetime().nullable(),
 })
 
-export type TreatmentDose = z.output<typeof treatmentDoseSchema>
+/** Ce qu'une prise écrit en base. */
+export type NewTreatmentDose = z.output<typeof treatmentDoseSchema>
+
+/** Une prise lue, avec la fréquence de sa période. */
+export type TreatmentDose = NewTreatmentDose & { frequency: TreatmentFrequency }

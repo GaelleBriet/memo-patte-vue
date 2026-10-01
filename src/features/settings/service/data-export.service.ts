@@ -139,17 +139,22 @@ export function createDataExportService({
         createdAt: treatment.createdAt,
         updatedAt: treatment.updatedAt,
       })),
-      treatmentDoses: eventsOf(treatmentRows, doseRows, ({ treatmentId }) => treatmentId).map(
-        (dose) => ({
-          id: dose.id,
-          treatmentId: dose.treatmentId,
-          animalId: dose.animalId,
-          givenOn: dose.givenOn,
-          nextDueDate: dose.nextDueDate,
-          frequency: { value: dose.frequency.value, unit: dose.frequency.unit },
-          createdAt: dose.createdAt,
-          updatedAt: dose.updatedAt,
-        }),
+      treatmentDoses: eventsOf(treatmentRows, doseRows, ({ treatmentId }) => treatmentId).flatMap(
+        ({ givenOn, ...dose }) =>
+          givenOn === null
+            ? []
+            : [
+                {
+                  id: dose.id,
+                  treatmentId: dose.treatmentId,
+                  animalId: dose.animalId,
+                  givenOn,
+                  nextDueDate: dose.nextDueDate,
+                  frequency: { value: dose.frequency.value, unit: dose.frequency.unit },
+                  createdAt: dose.createdAt,
+                  updatedAt: dose.updatedAt,
+                },
+              ],
       ),
       weightEntries: weightRows.map((entry) => ({
         id: entry.id,

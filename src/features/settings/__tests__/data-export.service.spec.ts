@@ -33,12 +33,17 @@ const injections: VaccinationInjection[] = EXPORT_FIXTURE.vaccinationInjections.
 }))
 const treatments: Treatment[] = EXPORT_FIXTURE.treatments.map((row) => ({
   ...row,
+  periodId: 'p-milbemax',
   lastDoseDate: '2026-06-15',
   nextDueDate: '2026-09-15',
   deletedAt: null,
 }))
 const doses: TreatmentDose[] = EXPORT_FIXTURE.treatmentDoses.map((row) => ({
   ...row,
+  periodId: 'p-milbemax',
+  dueOn: row.givenOn,
+  dueTime: null,
+  status: 'given',
   deletedAt: null,
 }))
 const weightEntries: WeightEntry[] = EXPORT_FIXTURE.weightEntries.map((row) => ({
@@ -92,6 +97,38 @@ describe('data-export.service', () => {
       'i-chppil-2025',
       'i-typhus',
     ])
+  })
+
+  it('exporte une prise à sa date réelle, avec la fréquence de sa période, sans son échéance', async () => {
+    const enRetard: TreatmentDose = {
+      ...doses[0]!,
+      dueOn: '2026-06-10',
+      frequency: { value: 2, unit: 'week' },
+    }
+    const { service } = setup({ treatmentDoses: () => ({ listAll: async () => [enRetard] }) })
+
+    const { treatmentDoses } = await service.collect()
+
+    expect(treatmentDoses).toEqual([
+      { ...EXPORT_FIXTURE.treatmentDoses[0], frequency: { value: 2, unit: 'week' } },
+    ])
+  })
+
+  it('laisse de côté une prise sans date réelle, que ce format ne sait pas décrire', async () => {
+    const oubliee: TreatmentDose = {
+      ...doses[0]!,
+      id: 'd-oubliee',
+      dueOn: '2026-09-15',
+      givenOn: null,
+      status: 'missed',
+    }
+    const { service } = setup({
+      treatmentDoses: () => ({ listAll: async () => [oubliee, ...doses] }),
+    })
+
+    const { treatmentDoses } = await service.collect()
+
+    expect(treatmentDoses).toEqual(EXPORT_FIXTURE.treatmentDoses)
   })
 
   it('JSON : remet le fichier du jour, versionné, et renvoie l’issue du partage', async () => {
