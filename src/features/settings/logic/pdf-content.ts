@@ -2,8 +2,13 @@ import { differenceInCalendarDays, format, parseISO } from 'date-fns'
 
 import { EXPORT_FILE_TIME } from './export-format'
 import { buildReminders, type ReminderKind } from '@/shared/domain/reminders'
-import type { ExportData, ExportTreatmentDose } from '@/shared/domain/carnet-data'
-import { treatmentHistories, vaccinationHistories } from '@/shared/domain/carnet-heads'
+import type { ExportData, ExportFrequency } from '@/shared/domain/carnet-data'
+import {
+  currentPeriods,
+  givenDoseHistories,
+  vaccinationHistories,
+  type GivenDose,
+} from '@/shared/domain/carnet-heads'
 
 export type PdfDueState = 'overdue' | 'upToDate' | 'none'
 
@@ -62,15 +67,17 @@ const MAX_LISTED_DOSES = 3
 const SERIES_GAP_FACTOR = 1.5
 const DAYS_PER_UNIT = { day: 1, week: 7, month: 365.25 / 12 }
 
+type DatedDose = { givenOn: string; frequency: ExportFrequency }
+
 // Fréquence de la période de la prise précédente : le rythme auquel la suivante est attendue.
-function isSameSeries(previous: ExportTreatmentDose, next: ExportTreatmentDose): boolean {
+function isSameSeries(previous: DatedDose, next: DatedDose): boolean {
   const gap = differenceInCalendarDays(parseISO(next.givenOn), parseISO(previous.givenOn))
   const period = previous.frequency.value * DAYS_PER_UNIT[previous.frequency.unit]
   return gap <= SERIES_GAP_FACTOR * period
 }
 
-function doseSeries(doses: readonly ExportTreatmentDose[]): PdfDoseSeries[] {
-  const series: ExportTreatmentDose[][] = []
+function doseSeries(doses: readonly DatedDose[]): PdfDoseSeries[] {
+  const series: DatedDose[][] = []
   for (const dose of [...doses].reverse()) {
     const current = series.at(-1)
     const previous = current?.at(-1)
@@ -101,7 +108,13 @@ export function buildCarnetPdfContent(
   if (!animal) return null
 
   const injections = vaccinationHistories(data.vaccinationInjections)
-  const doses = treatmentHistories(data.treatmentDoses)
+  const doses = givenDoseHistories(data.treatmentDoses)
+  const periods = currentPeriods(data.treatmentPeriods)
+  const frequencies = new Map(data.treatmentPeriods.map(({ id, frequency }) => [id, frequency]))
+  const dated = ({ givenOn, periodId }: GivenDose): DatedDose[] => {
+    const frequency = frequencies.get(periodId)
+    return frequency ? [{ givenOn, frequency }] : []
+  }
 
   const vaccinations: PdfVaccinationRow[] = data.vaccinations
     .filter((item) => item.animalId === animalId)
@@ -125,15 +138,16 @@ export function buildCarnetPdfContent(
     .filter((item) => item.animalId === animalId)
     .flatMap((item) => {
       const [head, ...previous] = doses.get(item.id) ?? []
-      if (!head) return []
-      const nextDueDate = item.stoppedOn ? null : head.nextDueDate
+      const period = periods.get(item.id)
+      if (!head || !period) return []
+      const nextDueDate = period.stoppedOn ? null : head.nextDueDate
       return [
         {
           name: item.name,
           lastDoseDate: head.givenOn,
-          previousDoses: doseSeries(previous),
+          previousDoses: doseSeries(previous.flatMap(dated)),
           nextDueDate,
-          stoppedOn: item.stoppedOn,
+          stoppedOn: period.stoppedOn,
           state: dueState(nextDueDate, today, 'treatment'),
         },
       ]

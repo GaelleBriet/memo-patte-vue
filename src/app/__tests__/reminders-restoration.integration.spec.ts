@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { simulateWebResume } from '@/core/app-lifecycle/__tests__/simulate-resume'
 import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory-db'
 import i18n from '@/core/i18n'
+import { createCarnetSettingsRepository } from '@/features/settings/repository/carnet-settings.repository'
 import { createAnimalsRepository } from '@/features/animals/repository/animals.repository'
 import { createDataExportService } from '@/features/settings/service/data-export.service'
 import {
@@ -312,10 +313,12 @@ describe('traitement arrêté, exporté puis réimporté', () => {
   function exportService(client: InMemoryDb, files: string[]) {
     const from = createRepositories(client)
     return createDataExportService({
+      carnetSettings: () => createCarnetSettingsRepository(client),
       animals: () => from.animals,
       vaccinations: () => from.vaccinations,
       vaccinationInjections: () => createVaccinationInjectionsRepository(client),
       treatments: () => from.treatments,
+      treatmentPeriods: () => createTreatmentPeriodsRepository(client),
       treatmentDoses: () => createTreatmentDosesRepository(client),
       weight: () => createWeightRepository(client),
       deliver: async (file) => {
@@ -330,6 +333,7 @@ describe('traitement arrêté, exporté puis réimporté', () => {
 
   function importService() {
     return createDataImportService({
+      carnetSettings: () => createCarnetSettingsRepository(db),
       animals: () => repositories.animals,
       vaccinations: () => repositories.vaccinations,
       vaccinationInjections: () => createVaccinationInjectionsRepository(db),

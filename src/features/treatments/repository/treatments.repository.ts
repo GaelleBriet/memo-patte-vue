@@ -42,10 +42,12 @@ interface TreatmentWithHeadRow extends TreatmentRow {
 }
 
 export type TreatmentVersion = Pick<Treatment, 'id' | 'animalId' | 'updatedAt' | 'deletedAt'>
-export type RestoredTreatment = Pick<
+/** Le traitement tel que sa table l'enregistre, sans sa période ni la tête de son historique. */
+export type TreatmentRecord = Pick<
   Treatment,
   'id' | 'animalId' | 'name' | 'type' | 'createdAt' | 'updatedAt'
 >
+export type RestoredTreatment = TreatmentRecord
 
 const COLUMNS = 'id, animal_id, name, type, created_at, updated_at, deleted_at'
 
@@ -156,6 +158,22 @@ export function createTreatmentsRepository(
       return rows.map(toTreatment)
     },
 
+    /** Traitements visibles, qu'ils aient ou non une prise. */
+    async listRecords(): Promise<TreatmentRecord[]> {
+      const rows = await db.query<TreatmentRow>(
+        `SELECT ${COLUMNS} FROM treatment WHERE ${NOT_DELETED}
+         ORDER BY animal_id, created_at, id`,
+      )
+      return rows.map((row) => ({
+        id: row.id,
+        animalId: row.animal_id,
+        name: row.name,
+        type: row.type,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+      }))
+    },
+
     /**
      * Le traitement, sa première période et sa première prise, donnée le jour de la dernière prise,
      * en une seule écriture ; période et prise portent l'identifiant du traitement.
@@ -248,17 +266,9 @@ export function createTreatmentsRepository(
       }
     },
 
-    /** Lignes supprimées comprises, datées comme à la lecture : l'import compare les versions. */
+    /** Lignes supprimées comprises : l'import compare les versions avant d'écrire. */
     async listVersions(): Promise<TreatmentVersion[]> {
-      const rows = await db.query<
-        Pick<TreatmentRow, 'id' | 'animal_id' | 'updated_at' | 'deleted_at'>
-      >(
-        `SELECT treatment.id, treatment.animal_id, treatment.deleted_at,
-                MAX(treatment.updated_at, COALESCE(period.updated_at, treatment.updated_at))
-                  AS updated_at
-         FROM treatment
-         LEFT JOIN treatment_period period ON period.id = ${currentPeriodIdSql('treatment.id')}`,
-      )
+      const rows = await db.query<TreatmentRow>(`SELECT ${COLUMNS} FROM treatment`)
       return rows.map(({ id, animal_id, updated_at, deleted_at }) => ({
         id,
         animalId: animal_id,

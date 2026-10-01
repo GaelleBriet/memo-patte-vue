@@ -696,7 +696,7 @@ describe('treatmentsRepository — périodes et prises', () => {
       {
         id: created.id,
         animalId: MIETTE,
-        updatedAt: '2026-09-24T10:01:00.000Z',
+        updatedAt: '2026-09-24T10:00:00.000Z',
         deletedAt: null,
       },
     ])
@@ -1006,17 +1006,26 @@ describe('treatmentsRepository — import', () => {
   function restore(treatment: ImportedTreatment, exists: boolean) {
     return db.runMany([
       repository.restoreStatement(treatment, exists),
-      periods.restoreStatement({
-        id: treatment.id,
-        treatmentId: treatment.id,
-        animalId: treatment.animalId,
-        startsOn: treatment.lastDoseDate,
-        firstDueOn: treatment.lastDoseDate,
-        frequency: treatment.frequency,
-        stoppedOn: treatment.stoppedOn ?? null,
-        createdAt: treatment.createdAt,
-        updatedAt: treatment.updatedAt,
-      }),
+      periods.restoreStatement(
+        {
+          id: treatment.id,
+          treatmentId: treatment.id,
+          animalId: treatment.animalId,
+          startsOn: treatment.lastDoseDate,
+          firstDueOn: treatment.lastDoseDate,
+          endsOn: null,
+          frequency: treatment.frequency,
+          stoppedOn: treatment.stoppedOn ?? null,
+          times: [],
+          doseQuantity: null,
+          doseUnit: null,
+          reminderOffsetMinutes: null,
+          reminderTime: null,
+          createdAt: treatment.createdAt,
+          updatedAt: treatment.updatedAt,
+        },
+        exists,
+      ),
       doses.restoreStatement(
         {
           id: treatment.id,
@@ -1133,6 +1142,27 @@ describe('treatmentsRepository — import', () => {
       deletedAt: null,
     })
     expect(versions.find(({ id }) => id === IMPORTE.id)?.deletedAt).not.toBeNull()
+  })
+
+  it('liste les lignes à exporter telles que la table les enregistre, sans les supprimées', async () => {
+    const vivant = await repository.create(bravecto)
+    await restore(IMPORTE, false)
+    await repository.remove(IMPORTE.id)
+    await db.run('UPDATE treatment_dose SET deleted_at = ? WHERE treatment_id = ?', [
+      '2026-09-01T00:00:00.000Z',
+      vivant.id,
+    ])
+
+    await expect(repository.listRecords()).resolves.toEqual([
+      {
+        id: vivant.id,
+        animalId: MIETTE,
+        name: vivant.name,
+        type: vivant.type,
+        createdAt: vivant.createdAt,
+        updatedAt: vivant.updatedAt,
+      },
+    ])
   })
 
   it('marque tous les traitements encore visibles', async () => {

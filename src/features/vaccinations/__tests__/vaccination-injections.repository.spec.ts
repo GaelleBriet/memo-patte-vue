@@ -92,7 +92,6 @@ describe('vaccinationInjectionsRepository', () => {
     expect(versions).toContainEqual({
       id: typhus,
       vaccinationId: typhus,
-      injectedOn: '2025-01-01',
       updatedAt: EARLIER,
       deletedAt: EARLIER,
     })

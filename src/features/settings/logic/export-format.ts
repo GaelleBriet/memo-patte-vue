@@ -1,12 +1,17 @@
 import { format } from 'date-fns'
 import { strToU8, zipSync, type Zippable } from 'fflate'
 
-import type { ExportData } from '@/shared/domain/carnet-data'
-import { treatmentHeads, vaccinationHeads } from '@/shared/domain/carnet-heads'
+import type { ExportData, ExportTreatment } from '@/shared/domain/carnet-data'
+import {
+  currentPeriods,
+  givenDoseHistories,
+  treatmentHeads,
+  vaccinationHeads,
+} from '@/shared/domain/carnet-heads'
 import { recordedWeightIn, type WeightUnit } from '@/shared/domain/weight-unit'
 
 /** Contrat documenté dans `docs/technical/export-format.md` : toute rupture incrémente la version. */
-export const EXPORT_SCHEMA_VERSION = 2
+export const EXPORT_SCHEMA_VERSION = 3
 
 export type ExportFormat = 'json' | 'csv'
 
@@ -36,12 +41,31 @@ export function exportFileName(exportFormat: ExportFormat, exportedAt: Date): st
   return `memopatte-export-${format(exportedAt, EXPORT_FILE_TIME)}.${extension}`
 }
 
+/**
+ * Prochaine échéance de chaque traitement en cours : celle que fixe la dernière ligne de sa période
+ * en cours, sa première échéance tant qu'elle n'a aucune ligne. Rien pour un traitement arrêté, ou
+ * dont la date de fin est passée.
+ */
+function nextDueDates(data: ExportData): (treatment: ExportTreatment) => string | null {
+  const periods = currentPeriods(data.treatmentPeriods)
+  return (treatment) => {
+    const period = periods.get(treatment.id)
+    if (!period || period.stoppedOn) return null
+    const head = treatmentHeads(
+      data.treatmentDoses.filter(({ periodId }) => periodId === period.id),
+    ).get(treatment.id)
+    const dueDate = head?.nextDueDate ?? period.firstDueOn
+    return period.endsOn !== null && dueDate > period.endsOn ? null : dueDate
+  }
+}
+
 export function exportReminders(data: ExportData): ExportReminder[] {
   const injections = vaccinationHeads(data.vaccinationInjections)
-  const doses = treatmentHeads(data.treatmentDoses)
+  const nextDueDate = nextDueDates(data)
   const reminders: ExportReminder[] = [
     ...data.vaccinations.flatMap((vaccination): ExportReminder[] => {
-      const dueDate = injections.get(vaccination.id)?.nextDueDate
+      const head = injections.get(vaccination.id)
+      const dueDate = head ? head.nextDueDate : vaccination.plannedDueDate
       return dueDate
         ? [
             {
@@ -55,8 +79,8 @@ export function exportReminders(data: ExportData): ExportReminder[] {
         : []
     }),
     ...data.treatments.flatMap((treatment): ExportReminder[] => {
-      const dueDate = doses.get(treatment.id)?.nextDueDate
-      return dueDate && !treatment.stoppedOn
+      const dueDate = nextDueDate(treatment)
+      return dueDate
         ? [
             {
               kind: 'treatment',
@@ -79,10 +103,12 @@ export function toJsonExport(data: ExportData, meta: ExportMeta): string {
     schemaVersion: EXPORT_SCHEMA_VERSION,
     exportedAt: meta.exportedAt.toISOString(),
     appVersion: meta.appVersion,
+    carnetSettings: data.carnetSettings,
     animals: data.animals,
     vaccinations: data.vaccinations,
     vaccinationInjections: data.vaccinationInjections,
     treatments: data.treatments,
+    treatmentPeriods: data.treatmentPeriods,
     treatmentDoses: data.treatmentDoses,
     weightEntries: data.weightEntries,
     reminders: exportReminders(data),
@@ -90,7 +116,7 @@ export function toJsonExport(data: ExportData, meta: ExportMeta): string {
   return JSON.stringify(document, null, 2)
 }
 
-type CsvValue = string | number | null
+type CsvValue = string | number | boolean | null
 
 const UTF8_BOM = '\uFEFF'
 const CSV_SEPARATOR = ';'
@@ -101,6 +127,7 @@ const CSV_FORMULA_START = /^[=+\-@\t\r]/
 function csvCell(value: CsvValue): string {
   if (value === null) return ''
   if (typeof value === 'number') return String(value).replace('.', ',')
+  if (typeof value === 'boolean') return String(value)
   const text = CSV_FORMULA_START.test(value) ? `'${value}` : value
   return CSV_NEEDS_QUOTES.test(text) ? `"${text.replaceAll('"', '""')}"` : text
 }
@@ -115,6 +142,7 @@ export type CsvTables = {
   'vaccins.csv': string
   'injections.csv': string
   'traitements.csv': string
+  'periodes.csv': string
   'prises.csv': string
   'poids.csv': string
   'rappels.csv': string
@@ -134,31 +162,52 @@ export function toCsvTables(data: ExportData, weightUnit: WeightUnit): CsvTables
   const vaccinationName = namesById(data.vaccinations)
   const treatmentName = namesById(data.treatments)
   const injections = vaccinationHeads(data.vaccinationInjections)
-  const doses = treatmentHeads(data.treatmentDoses)
+  const givenDoses = givenDoseHistories(data.treatmentDoses)
+  const nextDueDate = nextDueDates(data)
 
   return {
     'animaux.csv': csv(
-      ['id', 'name', 'species', 'breed', 'birthDate', 'createdAt', 'updatedAt'],
+      [
+        'id',
+        'name',
+        'species',
+        'breed',
+        'birthDate',
+        'birthDateApproximate',
+        'unfollowedOn',
+        'departureReason',
+        'departureDate',
+        'createdAt',
+        'updatedAt',
+      ],
       data.animals.map((animal) => [
         animal.id,
         animal.name,
         animal.species,
         animal.breed,
         animal.birthDate,
+        animal.birthDateApproximate,
+        animal.unfollowedOn,
+        animal.departureReason,
+        animal.departureDate,
         animal.createdAt,
         animal.updatedAt,
       ]),
     ),
     'vaccins.csv': csv(
-      ['id', 'animalId', 'animalName', 'name', 'lastInjectionDate', 'dueDate'],
-      data.vaccinations.map((vaccination) => [
-        vaccination.id,
-        vaccination.animalId,
-        animalName(vaccination.animalId),
-        vaccination.name,
-        injections.get(vaccination.id)?.injectedOn ?? null,
-        injections.get(vaccination.id)?.nextDueDate ?? null,
-      ]),
+      ['id', 'animalId', 'animalName', 'name', 'plannedDueDate', 'lastInjectionDate', 'dueDate'],
+      data.vaccinations.map((vaccination) => {
+        const head = injections.get(vaccination.id)
+        return [
+          vaccination.id,
+          vaccination.animalId,
+          animalName(vaccination.animalId),
+          vaccination.name,
+          vaccination.plannedDueDate,
+          head?.injectedOn ?? null,
+          head ? head.nextDueDate : vaccination.plannedDueDate,
+        ]
+      }),
     ),
     'injections.csv': csv(
       [
@@ -181,51 +230,81 @@ export function toCsvTables(data: ExportData, weightUnit: WeightUnit): CsvTables
       ]),
     ),
     'traitements.csv': csv(
-      [
-        'id',
-        'animalId',
-        'animalName',
-        'name',
-        'type',
-        'frequencyValue',
-        'frequencyUnit',
-        'lastDoseDate',
-        'nextDueDate',
-      ],
+      ['id', 'animalId', 'animalName', 'name', 'type', 'lastDoseDate', 'nextDueDate'],
       data.treatments.map((treatment) => [
         treatment.id,
         treatment.animalId,
         animalName(treatment.animalId),
         treatment.name,
         treatment.type,
-        treatment.frequency.value,
-        treatment.frequency.unit,
-        doses.get(treatment.id)?.givenOn ?? null,
-        doses.get(treatment.id)?.nextDueDate ?? null,
+        givenDoses.get(treatment.id)?.[0]?.givenOn ?? null,
+        nextDueDate(treatment),
       ]),
     ),
-    'prises.csv': csv(
+    'periodes.csv': csv(
       [
         'id',
         'treatmentId',
         'treatmentName',
         'animalId',
         'animalName',
-        'givenOn',
-        'nextDueDate',
+        'startsOn',
+        'firstDueOn',
+        'endsOn',
+        'stoppedOn',
         'frequencyValue',
         'frequencyUnit',
+        'times',
+        'doseQuantity',
+        'doseUnit',
+        'reminderOffsetMinutes',
+        'reminderTime',
+      ],
+      data.treatmentPeriods.map((period) => [
+        period.id,
+        period.treatmentId,
+        treatmentName(period.treatmentId),
+        period.animalId,
+        animalName(period.animalId),
+        period.startsOn,
+        period.firstDueOn,
+        period.endsOn,
+        period.stoppedOn,
+        period.frequency.value,
+        period.frequency.unit,
+        period.times.length > 0 ? period.times.join(', ') : null,
+        period.doseQuantity,
+        period.doseUnit,
+        period.reminderOffsetMinutes,
+        period.reminderTime,
+      ]),
+    ),
+    'prises.csv': csv(
+      [
+        'id',
+        'periodId',
+        'treatmentId',
+        'treatmentName',
+        'animalId',
+        'animalName',
+        'dueOn',
+        'dueTime',
+        'givenOn',
+        'status',
+        'nextDueDate',
       ],
       data.treatmentDoses.map((dose) => [
         dose.id,
+        dose.periodId,
         dose.treatmentId,
         treatmentName(dose.treatmentId),
         dose.animalId,
         animalName(dose.animalId),
+        dose.dueOn,
+        dose.dueTime,
         dose.givenOn,
+        dose.status,
         dose.nextDueDate,
-        dose.frequency.value,
-        dose.frequency.unit,
       ]),
     ),
     'poids.csv': csv(

@@ -7,43 +7,30 @@ import {
 } from '../service/data-export.service'
 import type { ExportFile } from '../logic/export-format'
 import { EXPORT_FIXTURE, LUNA_ID, MILO_ID } from './export-fixture'
-import type { Animal } from '@/features/animals/schema/animal.schema'
+import type { AnimalRecord } from '@/features/animals/schema/animal.schema'
 import type { TreatmentDose } from '@/features/treatments/schema/treatment-dose.schema'
-import type { Treatment } from '@/features/treatments/schema/treatment.schema'
+import type { TreatmentPeriodRecord } from '@/features/treatments/schema/treatment-period.schema'
 import type { VaccinationInjection } from '@/features/vaccinations/schema/vaccination-injection.schema'
-import type { Vaccination } from '@/features/vaccinations/schema/vaccination.schema'
 import type { WeightEntry } from '@/features/weight/schema/weight.schema'
 
 const NOW = new Date('2026-09-15T10:30:00')
 
-const animals: Animal[] = EXPORT_FIXTURE.animals.map(({ photoFileName, ...animal }) => ({
+const animals: AnimalRecord[] = EXPORT_FIXTURE.animals.map(({ photoFileName, ...animal }) => ({
   ...animal,
   photoPath: photoFileName,
-  deletedAt: null,
-}))
-const vaccinations: Vaccination[] = EXPORT_FIXTURE.vaccinations.map((row) => ({
-  ...row,
-  lastInjectionDate: '2025-09-01',
-  dueDate: null,
   deletedAt: null,
 }))
 const injections: VaccinationInjection[] = EXPORT_FIXTURE.vaccinationInjections.map((row) => ({
   ...row,
   deletedAt: null,
 }))
-const treatments: Treatment[] = EXPORT_FIXTURE.treatments.map((row) => ({
+const periods: TreatmentPeriodRecord[] = EXPORT_FIXTURE.treatmentPeriods.map((row) => ({
   ...row,
-  periodId: 'p-milbemax',
-  lastDoseDate: '2026-06-15',
-  nextDueDate: '2026-09-15',
   deletedAt: null,
 }))
 const doses: TreatmentDose[] = EXPORT_FIXTURE.treatmentDoses.map((row) => ({
   ...row,
-  periodId: 'p-milbemax',
-  dueOn: row.givenOn,
-  dueTime: null,
-  status: 'given',
+  frequency: { value: 3, unit: 'month' },
   deletedAt: null,
 }))
 const weightEntries: WeightEntry[] = EXPORT_FIXTURE.weightEntries.map((row) => ({
@@ -57,10 +44,12 @@ function setup(overrides: Partial<DataExportDependencies> = {}) {
   )
   const deliver = vi.fn<DataExportDependencies['deliver']>(async () => 'shared')
   const service = createDataExportService({
-    animals: () => ({ list: async () => animals }),
-    vaccinations: () => ({ listAll: async () => vaccinations }),
+    carnetSettings: () => ({ getRecord: async () => EXPORT_FIXTURE.carnetSettings }),
+    animals: () => ({ listRecords: async () => animals }),
+    vaccinations: () => ({ listRecords: async () => EXPORT_FIXTURE.vaccinations }),
     vaccinationInjections: () => ({ listAll: async () => injections }),
-    treatments: async () => ({ listAll: async () => treatments }),
+    treatments: async () => ({ listRecords: async () => EXPORT_FIXTURE.treatments }),
+    treatmentPeriods: () => ({ listAll: async () => periods }),
     treatmentDoses: () => ({ listAll: async () => doses }),
     weight: () => ({ listByAnimal }),
     deliver,
@@ -84,6 +73,12 @@ describe('data-export.service', () => {
     expect(listByAnimal.mock.calls.map(([id]) => id)).toEqual([LUNA_ID, MILO_ID])
   })
 
+  it('exporte `null` pour des réglages du carnet jamais touchés', async () => {
+    const { service } = setup({ carnetSettings: () => ({ getRecord: async () => null }) })
+
+    await expect(service.collect()).resolves.toMatchObject({ carnetSettings: null })
+  })
+
   it('range les événements dans l’ordre de leurs parents, sans ceux d’un parent non exporté', async () => {
     const orphan = { ...injections[0]!, id: 'i-orpheline', vaccinationId: 'v-supprime' }
     const { service } = setup({
@@ -99,36 +94,35 @@ describe('data-export.service', () => {
     ])
   })
 
-  it('exporte une prise à sa date réelle, avec la fréquence de sa période, sans son échéance', async () => {
-    const enRetard: TreatmentDose = {
-      ...doses[0]!,
-      dueOn: '2026-06-10',
-      frequency: { value: 2, unit: 'week' },
-    }
-    const { service } = setup({ treatmentDoses: () => ({ listAll: async () => [enRetard] }) })
+  it('n’exporte ni la période d’un traitement non exporté, ni la prise d’une période non exportée', async () => {
+    const stray = { ...periods[0]!, id: 'p-orpheline', treatmentId: 't-supprime' }
+    const { service } = setup({
+      treatmentPeriods: () => ({ listAll: async () => [stray, periods[1]!] }),
+    })
 
-    const { treatmentDoses } = await service.collect()
+    const { treatmentPeriods, treatmentDoses } = await service.collect()
 
-    expect(treatmentDoses).toEqual([
-      { ...EXPORT_FIXTURE.treatmentDoses[0], frequency: { value: 2, unit: 'week' } },
-    ])
+    expect(treatmentPeriods.map(({ id }) => id)).toEqual(['p-panacur'])
+    expect(treatmentDoses.map(({ id }) => id)).toEqual(['d-panacur-soir', 'd-panacur-matin'])
   })
 
-  it('laisse de côté une prise sans date réelle, que ce format ne sait pas décrire', async () => {
-    const oubliee: TreatmentDose = {
+  it('exporte chaque ligne d’un traitement, oubliée ou reportée comprise, sans la fréquence de sa période', async () => {
+    const reportee: TreatmentDose = {
       ...doses[0]!,
-      id: 'd-oubliee',
+      id: 'd-reportee',
       dueOn: '2026-09-15',
       givenOn: null,
-      status: 'missed',
+      status: 'postponed',
+      nextDueDate: '2026-09-20',
     }
     const { service } = setup({
-      treatmentDoses: () => ({ listAll: async () => [oubliee, ...doses] }),
+      treatmentDoses: () => ({ listAll: async () => [reportee, ...doses] }),
     })
 
     const { treatmentDoses } = await service.collect()
 
-    expect(treatmentDoses).toEqual(EXPORT_FIXTURE.treatmentDoses)
+    const { frequency: _, deletedAt: __, ...exported } = reportee
+    expect(treatmentDoses).toEqual([exported, ...EXPORT_FIXTURE.treatmentDoses])
   })
 
   it('JSON : remet le fichier du jour, versionné, et renvoie l’issue du partage', async () => {
@@ -141,7 +135,7 @@ describe('data-export.service', () => {
     expect(file.name).toBe('memopatte-export-20260915-1030.json')
     const document = JSON.parse(file.content as string)
     expect(document).toMatchObject({
-      schemaVersion: 2,
+      schemaVersion: 3,
       exportedAt: NOW.toISOString(),
       appVersion: '0.1.24',
     })
@@ -150,14 +144,14 @@ describe('data-export.service', () => {
     expect(document.animals[0]).not.toHaveProperty('photoPath')
   })
 
-  it('CSV : remet l’archive des sept tables', async () => {
+  it('CSV : remet l’archive des huit tables', async () => {
     const { service, deliver } = setup()
 
     await service.exportData('csv', 'share')
 
     const file = delivered(deliver)
     expect(file.name).toBe('memopatte-export-20260915-1030.zip')
-    expect(Object.keys(unzipSync(file.content as Uint8Array))).toHaveLength(7)
+    expect(Object.keys(unzipSync(file.content as Uint8Array))).toHaveLength(8)
   })
 
   it('CSV : écrit les poids dans l’unité choisie au moment de l’export', async () => {
@@ -203,7 +197,7 @@ describe('data-export.service', () => {
   it('lève si la base ne répond pas, sans rien remettre', async () => {
     const { service, deliver } = setup({
       vaccinations: () => ({
-        listAll: async () => {
+        listRecords: async () => {
           throw new Error('base fermée')
         },
       }),

@@ -1,8 +1,8 @@
 import { addDays, addMonths, format, parseISO } from 'date-fns'
 import { describe, expect, it } from 'vitest'
 
-import { fromExportV1, type ExportDataV1 } from '../logic/export-v1'
 import { buildCarnetPdfContent, pdfExportFileName } from '../logic/pdf-content'
+import { carnetOf, periodOf, type CarnetSummary } from './export-fixture'
 import type {
   ExportFrequency,
   ExportTreatmentDose,
@@ -12,7 +12,7 @@ import type {
 const ANIMAL_ID = '11111111-1111-4111-8111-111111111111'
 const OTHER_ANIMAL_ID = '22222222-2222-4222-8222-222222222222'
 
-const DATA_V1: ExportDataV1 = {
+const SUMMARY: CarnetSummary = {
   animals: [
     {
       id: ANIMAL_ID,
@@ -97,7 +97,7 @@ const DATA_V1: ExportDataV1 = {
   ],
 }
 
-const DATA = fromExportV1(DATA_V1)
+const DATA = carnetOf(SUMMARY)
 const TODAY = '2026-07-01'
 
 describe('buildCarnetPdfContent', () => {
@@ -131,11 +131,11 @@ describe('buildCarnetPdfContent', () => {
   })
 
   it('montre un traitement arrêté avec sa date d’arrêt, sans échéance ni rappel, après les autres', () => {
-    const data = fromExportV1({
-      ...DATA_V1,
+    const data = carnetOf({
+      ...SUMMARY,
       treatments: [
-        { ...DATA_V1.treatments[0]!, id: 't-stopped', name: 'Drontal', stoppedOn: '2026-06-20' },
-        ...DATA_V1.treatments,
+        { ...SUMMARY.treatments[0]!, id: 't-stopped', name: 'Drontal', stoppedOn: '2026-06-20' },
+        ...SUMMARY.treatments,
       ],
     })
 
@@ -185,28 +185,75 @@ describe('buildCarnetPdfContent — historique', () => {
     }
   }
 
-  function dose(givenOn: string, frequency: ExportFrequency = MONTHLY): ExportTreatmentDose {
+  type DatedDose = { givenOn: string; frequency: ExportFrequency }
+
+  function dose(givenOn: string, frequency: ExportFrequency = MONTHLY): DatedDose {
+    return { givenOn, frequency }
+  }
+
+  /** Une période par fréquence, plus ancienne que la période en cours du résumé. */
+  function historyOf(doses: DatedDose[]) {
+    const periodId = ({ value, unit }: ExportFrequency) => `p-${value}-${unit}`
+    const frequencies = new Map(doses.map(({ frequency }) => [periodId(frequency), frequency]))
     return {
-      id: `d-${givenOn}`,
-      treatmentId: 't-upcoming',
-      animalId: ANIMAL_ID,
-      givenOn,
-      nextDueDate: '2027-01-01',
-      frequency,
-      createdAt: AT,
-      updatedAt: AT,
+      treatmentPeriods: [
+        ...DATA.treatmentPeriods,
+        ...[...frequencies].map(([id, frequency]) =>
+          periodOf({
+            id,
+            treatmentId: 't-upcoming',
+            animalId: ANIMAL_ID,
+            startsOn: '2000-01-01',
+            frequency,
+            createdAt: AT,
+            updatedAt: AT,
+          }),
+        ),
+      ],
+      treatmentDoses: doses.map(({ givenOn, frequency }): ExportTreatmentDose => ({
+        id: `d-${givenOn}`,
+        periodId: periodId(frequency),
+        treatmentId: 't-upcoming',
+        animalId: ANIMAL_ID,
+        dueOn: givenOn,
+        dueTime: null,
+        givenOn,
+        status: 'given',
+        nextDueDate: '2027-01-01',
+        createdAt: AT,
+        updatedAt: AT,
+      })),
     }
   }
 
-  function monthlyFrom(first: string, count: number): ExportTreatmentDose[] {
+  function monthlyFrom(first: string, count: number): DatedDose[] {
     return Array.from({ length: count }, (_, index) =>
       dose(format(addMonths(parseISO(first), index), 'yyyy-MM-dd')),
     )
   }
 
-  function treatmentRow(treatmentDoses: ExportTreatmentDose[]) {
-    return buildCarnetPdfContent({ ...DATA, treatmentDoses }, ANIMAL_ID, TODAY)!.treatments[0]!
+  function treatmentRow(doses: DatedDose[]) {
+    return buildCarnetPdfContent({ ...DATA, ...historyOf(doses) }, ANIMAL_ID, TODAY)!.treatments[0]!
   }
+
+  it('date la dernière prise de sa date réelle, sans les lignes oubliées ni reportées', () => {
+    const { treatmentPeriods, treatmentDoses } = historyOf([dose('2026-04-01'), dose('2026-05-01')])
+    const [avril, mai] = treatmentDoses
+    const data = {
+      ...DATA,
+      treatmentPeriods,
+      treatmentDoses: [
+        { ...avril!, givenOn: '2026-05-20' },
+        mai!,
+        { ...mai!, id: 'd-oubliee', dueOn: '2026-06-01', givenOn: null, status: 'missed' as const },
+      ],
+    }
+
+    const row = buildCarnetPdfContent(data, ANIMAL_ID, TODAY)!.treatments[0]!
+
+    expect(row.lastDoseDate).toBe('2026-05-20')
+    expect(row.previousDoses).toEqual([{ kind: 'dates', dates: ['2026-05-01'] }])
+  })
 
   it('liste toutes les injections d’un vaccin, la plus récente d’abord, jamais regroupées', () => {
     const years = ['2021-01-01', '2025-01-01', '2022-01-01', '2024-01-01', '2023-01-01']

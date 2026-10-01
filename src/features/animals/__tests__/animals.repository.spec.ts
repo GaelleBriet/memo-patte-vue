@@ -377,7 +377,11 @@ describe('animalsRepository — import', () => {
     species: 'cat',
     breed: 'Européen',
     birthDate: '2019-03-02',
+    birthDateApproximate: true,
     photoPath: null,
+    unfollowedOn: '2026-01-20',
+    departureReason: 'rehomed',
+    departureDate: '2026-01-15',
     createdAt: '2026-01-10T08:00:00.000Z',
     updatedAt: '2026-02-01T08:00:00.000Z',
   } as const
@@ -398,7 +402,21 @@ describe('animalsRepository — import', () => {
   it('insère un animal importé avec son identifiant et ses dates d’origine', async () => {
     await repository.runImport([repository.restoreStatement(IMPORTE, false)])
 
-    await expect(repository.getById(IMPORTE.id)).resolves.toEqual({ ...IMPORTE, deletedAt: null })
+    await expect(repository.listRecords()).resolves.toEqual([{ ...IMPORTE, deletedAt: null }])
+  })
+
+  it('lit un animal créé dans l’app comme suivi, à la date de naissance exacte', async () => {
+    const created = await repository.create({ name: 'Milo', species: 'dog' })
+
+    await expect(repository.listRecords()).resolves.toEqual([
+      {
+        ...created,
+        birthDateApproximate: false,
+        unfollowedOn: null,
+        departureReason: null,
+        departureDate: null,
+      },
+    ])
   })
 
   it('écrase un animal existant, même supprimé, et le rend visible', async () => {
@@ -408,13 +426,17 @@ describe('animalsRepository — import', () => {
       ...IMPORTE,
       name: 'Luna II',
       species: 'dog',
+      birthDateApproximate: false,
       photoPath: 'luna.jpg',
+      unfollowedOn: null,
+      departureReason: null,
+      departureDate: null,
       updatedAt: '2026-09-15T08:00:00.000Z',
     } as const
 
     await repository.runImport([repository.restoreStatement(importe, true)])
 
-    await expect(repository.getById(IMPORTE.id)).resolves.toEqual({ ...importe, deletedAt: null })
+    await expect(repository.listRecords()).resolves.toEqual([{ ...importe, deletedAt: null }])
   })
 
   it('liste les versions de toutes les lignes, photo comprise, supprimées comprises', async () => {

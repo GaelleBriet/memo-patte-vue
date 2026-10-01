@@ -568,6 +568,7 @@ describe('CarnetView — chargement et erreur', () => {
       create: vi.fn<AnimalsRepository['create']>(),
       update: vi.fn<AnimalsRepository['update']>(),
       remove: vi.fn<AnimalsRepository['remove']>(),
+      listRecords: vi.fn<AnimalsRepository['listRecords']>(),
       listVersions: vi.fn<AnimalsRepository['listVersions']>(),
       markAllDeletedStatement: vi.fn<AnimalsRepository['markAllDeletedStatement']>(),
       restoreStatement: vi.fn<AnimalsRepository['restoreStatement']>(),

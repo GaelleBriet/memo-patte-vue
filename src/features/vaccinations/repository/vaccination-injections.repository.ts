@@ -10,7 +10,7 @@ import type { VaccinationInjection } from '../schema/vaccination-injection.schem
 export type RestoredVaccinationInjection = Omit<VaccinationInjection, 'deletedAt'>
 export type VaccinationInjectionVersion = Pick<
   VaccinationInjection,
-  'id' | 'vaccinationId' | 'injectedOn' | 'updatedAt' | 'deletedAt'
+  'id' | 'vaccinationId' | 'updatedAt' | 'deletedAt'
 >
 
 export type InjectionDates = Pick<VaccinationInjection, 'injectedOn' | 'nextDueDate'>
@@ -26,13 +26,7 @@ interface InjectionRow {
   deleted_at: string | null
 }
 
-interface InjectionVersionRow {
-  id: string
-  vaccination_id: string
-  injected_on: string
-  updated_at: string
-  deleted_at: string | null
-}
+type InjectionVersionRow = Pick<InjectionRow, 'id' | 'vaccination_id' | 'updated_at' | 'deleted_at'>
 
 const COLUMNS =
   'id, vaccination_id, animal_id, injected_on, next_due_date, created_at, updated_at, deleted_at'
@@ -166,15 +160,14 @@ export function createVaccinationInjectionsRepository(
       return changes > 0
     },
 
-    /** Lignes supprimées comprises : l'import rattache un fichier aux injections déjà en base. */
+    /** Lignes supprimées comprises : l'import compare les versions avant d'écrire. */
     async listVersions(): Promise<VaccinationInjectionVersion[]> {
       const rows = await db.query<InjectionVersionRow>(
-        'SELECT id, vaccination_id, injected_on, updated_at, deleted_at FROM vaccination_injection',
+        'SELECT id, vaccination_id, updated_at, deleted_at FROM vaccination_injection',
       )
       return rows.map((row) => ({
         id: row.id,
         vaccinationId: row.vaccination_id,
-        injectedOn: row.injected_on,
         updatedAt: row.updated_at,
         deletedAt: row.deleted_at,
       }))

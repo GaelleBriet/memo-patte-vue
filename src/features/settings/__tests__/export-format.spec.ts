@@ -9,7 +9,7 @@ import {
   toCsvTables,
   toJsonExport,
 } from '../logic/export-format'
-import { EXPORT_FIXTURE, LUNA_ID, MILO_ID } from './export-fixture'
+import { EXPORT_FIXTURE, LUNA_ID, MILO_ID, periodOf } from './export-fixture'
 
 const META = { exportedAt: new Date('2026-09-15T10:30:00'), appVersion: '0.1.24' }
 const BOM = '\uFEFF'
@@ -28,7 +28,7 @@ describe('exportFileName', () => {
 })
 
 describe('exportReminders', () => {
-  it('liste l’échéance de la dernière injection ou prise de chaque parent, la plus proche d’abord', () => {
+  it('liste l’échéance de la dernière injection ou ligne de chaque parent, la plus proche d’abord', () => {
     expect(exportReminders(EXPORT_FIXTURE)).toEqual([
       {
         kind: 'vaccination',
@@ -39,38 +39,124 @@ describe('exportReminders', () => {
       },
       {
         kind: 'treatment',
+        sourceId: 't-panacur',
+        animalId: MILO_ID,
+        name: 'Panacur',
+        dueDate: '2026-09-11',
+      },
+      {
+        kind: 'treatment',
         sourceId: 't-milbemax',
         animalId: LUNA_ID,
         name: 'Milbémax',
         dueDate: '2026-09-15',
       },
+      {
+        kind: 'vaccination',
+        sourceId: 'v-leucose',
+        animalId: LUNA_ID,
+        name: 'Leucose',
+        dueDate: '2026-11-02',
+      },
     ])
+  })
+
+  it('lit le rappel prévu d’un vaccin seulement tant qu’il n’a aucune injection', () => {
+    const data = {
+      ...EXPORT_FIXTURE,
+      vaccinations: EXPORT_FIXTURE.vaccinations.map((vaccination) => ({
+        ...vaccination,
+        plannedDueDate: '2030-01-01',
+      })),
+    }
+
+    expect(exportReminders(data).filter(({ kind }) => kind === 'vaccination')).toMatchObject([
+      { sourceId: 'v-chppil', dueDate: '2026-09-01' },
+      { sourceId: 'v-leucose', dueDate: '2030-01-01' },
+    ])
+  })
+
+  it('donne la première échéance d’une période qui n’a encore aucune ligne', () => {
+    const data = {
+      ...EXPORT_FIXTURE,
+      treatmentDoses: EXPORT_FIXTURE.treatmentDoses.filter(
+        ({ treatmentId }) => treatmentId !== 't-panacur',
+      ),
+    }
+
+    expect(exportReminders(data).find(({ sourceId }) => sourceId === 't-panacur')?.dueDate).toBe(
+      '2026-09-10',
+    )
+  })
+
+  it('lit la période en cours : la reprise d’un traitement arrêté, pas la période d’avant', () => {
+    const reprise = periodOf({
+      id: 'p-milbemax-reprise',
+      treatmentId: 't-milbemax',
+      animalId: LUNA_ID,
+      startsOn: '2026-10-01',
+      createdAt: '2026-09-20T08:00:00.000Z',
+      updatedAt: '2026-09-20T08:00:00.000Z',
+    })
+    const data = {
+      ...EXPORT_FIXTURE,
+      treatmentPeriods: [
+        ...EXPORT_FIXTURE.treatmentPeriods.map((period) =>
+          period.id === 'p-milbemax' ? { ...period, stoppedOn: '2026-07-01' } : period,
+        ),
+        reprise,
+      ],
+    }
+
+    expect(exportReminders(data).find(({ sourceId }) => sourceId === 't-milbemax')?.dueDate).toBe(
+      '2026-10-01',
+    )
+  })
+
+  it('n’annonce rien après la date de fin d’un traitement', () => {
+    const data = {
+      ...EXPORT_FIXTURE,
+      treatmentPeriods: EXPORT_FIXTURE.treatmentPeriods.map((period) =>
+        period.id === 'p-panacur' ? { ...period, endsOn: '2026-09-10' } : period,
+      ),
+    }
+
+    expect(exportReminders(data).map(({ sourceId }) => sourceId)).not.toContain('t-panacur')
   })
 })
 
 describe('exportReminders, traitement arrêté', () => {
   const ARRETE = {
     ...EXPORT_FIXTURE,
-    treatments: EXPORT_FIXTURE.treatments.map((treatment) => ({
-      ...treatment,
+    treatmentPeriods: EXPORT_FIXTURE.treatmentPeriods.map((period) => ({
+      ...period,
       stoppedOn: '2026-09-10',
     })),
   }
 
   it('écarte un traitement arrêté des échéances du JSON et de rappels.csv', () => {
-    expect(exportReminders(ARRETE).map((reminder) => reminder.sourceId)).toEqual(['v-chppil'])
+    expect(exportReminders(ARRETE).map((reminder) => reminder.sourceId)).toEqual([
+      'v-chppil',
+      'v-leucose',
+    ])
     expect(lines(toCsvTables(ARRETE, 'kg')['rappels.csv'])).toEqual([
       'kind;sourceId;animalId;animalName;name;dueDate',
       `vaccination;v-chppil;${MILO_ID};Milo;CHPPiL;2026-09-01`,
+      `vaccination;v-leucose;${LUNA_ID};Luna;Leucose;2026-11-02`,
       '',
     ])
   })
 
-  it('garde le traitement arrêté et sa date d’arrêt dans les traitements du JSON', () => {
+  it('garde le traitement arrêté dans le JSON, sa date d’arrêt sur sa période', () => {
     const parsed = JSON.parse(toJsonExport(ARRETE, META))
 
-    expect(parsed.treatments).toEqual([
-      expect.objectContaining({ id: 't-milbemax', stoppedOn: '2026-09-10' }),
+    expect(parsed.treatments.map(({ id }: { id: string }) => id)).toEqual([
+      't-milbemax',
+      't-panacur',
+    ])
+    expect(parsed.treatmentPeriods).toEqual([
+      expect.objectContaining({ id: 'p-milbemax', stoppedOn: '2026-09-10' }),
+      expect.objectContaining({ id: 'p-panacur', stoppedOn: '2026-09-10' }),
     ])
   })
 })
@@ -80,19 +166,81 @@ describe('toJsonExport', () => {
 
   it('versionne le document pour l’import', () => {
     expect(parsed.schemaVersion).toBe(EXPORT_SCHEMA_VERSION)
-    expect(parsed.schemaVersion).toBe(2)
+    expect(parsed.schemaVersion).toBe(3)
     expect(parsed.exportedAt).toBe(META.exportedAt.toISOString())
     expect(parsed.appVersion).toBe('0.1.24')
   })
 
-  it('reprend toutes les données, historique compris, texte libre intact', () => {
-    expect(parsed.animals).toEqual(EXPORT_FIXTURE.animals)
-    expect(parsed.vaccinations).toEqual(EXPORT_FIXTURE.vaccinations)
-    expect(parsed.vaccinationInjections).toEqual(EXPORT_FIXTURE.vaccinationInjections)
-    expect(parsed.treatments).toEqual(EXPORT_FIXTURE.treatments)
-    expect(parsed.treatmentDoses).toEqual(EXPORT_FIXTURE.treatmentDoses)
-    expect(parsed.weightEntries).toEqual(EXPORT_FIXTURE.weightEntries)
-    expect(parsed.reminders).toEqual(exportReminders(EXPORT_FIXTURE))
+  it('reprend toutes les tables, réglages et historique compris, texte libre intact', () => {
+    expect(Object.keys(parsed)).toEqual([
+      'schemaVersion',
+      'exportedAt',
+      'appVersion',
+      'carnetSettings',
+      'animals',
+      'vaccinations',
+      'vaccinationInjections',
+      'treatments',
+      'treatmentPeriods',
+      'treatmentDoses',
+      'weightEntries',
+      'reminders',
+    ])
+    const { reminders, schemaVersion: _, exportedAt: __, appVersion: ___, ...tables } = parsed
+    expect(tables).toEqual(EXPORT_FIXTURE)
+    expect(reminders).toEqual(exportReminders(EXPORT_FIXTURE))
+  })
+
+  it('écrit `null` pour des réglages du carnet jamais touchés', () => {
+    const untouched = JSON.parse(toJsonExport({ ...EXPORT_FIXTURE, carnetSettings: null }, META))
+
+    expect(untouched.carnetSettings).toBeNull()
+  })
+
+  it('porte les nouvelles colonnes de l’animal', () => {
+    expect(parsed.animals[0]).toMatchObject({ birthDateApproximate: true, unfollowedOn: null })
+    expect(parsed.animals[1]).toMatchObject({
+      birthDateApproximate: false,
+      unfollowedOn: '2026-09-14',
+      departureReason: 'rehomed',
+      departureDate: '2026-09-12',
+    })
+  })
+
+  it('décrit une période avec ses heures, sa posologie, sa fin et le moment de son rappel', () => {
+    expect(parsed.treatmentPeriods[1]).toEqual({
+      id: 'p-panacur',
+      treatmentId: 't-panacur',
+      animalId: MILO_ID,
+      startsOn: '2026-09-10',
+      firstDueOn: '2026-09-10',
+      endsOn: '2026-09-20',
+      stoppedOn: null,
+      frequency: { value: 1, unit: 'day' },
+      times: ['08:00', '20:00'],
+      doseQuantity: 0.5,
+      doseUnit: 'tablet',
+      reminderOffsetMinutes: 30,
+      reminderTime: null,
+      createdAt: '2026-09-10T07:00:00.000Z',
+      updatedAt: '2026-09-10T07:00:00.000Z',
+    })
+  })
+
+  it('décrit une prise par son échéance, sa période et son état, sans fréquence recopiée', () => {
+    expect(parsed.treatmentDoses[2]).toEqual({
+      id: 'd-panacur-soir',
+      periodId: 'p-panacur',
+      treatmentId: 't-panacur',
+      animalId: MILO_ID,
+      dueOn: '2026-09-10',
+      dueTime: '20:00',
+      givenOn: null,
+      status: 'missed',
+      nextDueDate: '2026-09-11',
+      createdAt: '2026-09-10T07:00:00.000Z',
+      updatedAt: '2026-09-10T07:00:00.000Z',
+    })
   })
 
   it('ne répète pas sur un parent la date ni l’échéance portées par ses événements', () => {
@@ -100,11 +248,18 @@ describe('toJsonExport', () => {
       'id',
       'animalId',
       'name',
+      'plannedDueDate',
       'createdAt',
       'updatedAt',
     ])
-    expect(parsed.treatments[0]).not.toHaveProperty('lastDoseDate')
-    expect(parsed.treatments[0]).not.toHaveProperty('nextDueDate')
+    expect(Object.keys(parsed.treatments[0])).toEqual([
+      'id',
+      'animalId',
+      'name',
+      'type',
+      'createdAt',
+      'updatedAt',
+    ])
   })
 
   it('référence la photo par son nom de fichier, sans contenu encodé', () => {
@@ -122,6 +277,7 @@ describe('toCsvTables', () => {
       'vaccins.csv',
       'injections.csv',
       'traitements.csv',
+      'periodes.csv',
       'prises.csv',
       'poids.csv',
       'rappels.csv',
@@ -137,9 +293,9 @@ describe('toCsvTables', () => {
 
   it('sépare par « ; », entoure de guillemets un champ qui contient « ; » ou « " »', () => {
     expect(lines(tables['animaux.csv'])).toEqual([
-      'id;name;species;breed;birthDate;createdAt;updatedAt',
-      `${LUNA_ID};Luna;cat;"Européen ; tigrée ""Mimi""";2019-03-02;2026-01-10T08:00:00.000Z;2026-02-01T08:00:00.000Z`,
-      `${MILO_ID};Milo;dog;;;2026-01-12T08:00:00.000Z;2026-01-12T08:00:00.000Z`,
+      'id;name;species;breed;birthDate;birthDateApproximate;unfollowedOn;departureReason;departureDate;createdAt;updatedAt',
+      `${LUNA_ID};Luna;cat;"Européen ; tigrée ""Mimi""";2019-03-02;true;;;;2026-01-10T08:00:00.000Z;2026-02-01T08:00:00.000Z`,
+      `${MILO_ID};Milo;dog;;;false;2026-09-14;rehomed;2026-09-12;2026-01-12T08:00:00.000Z;2026-01-12T08:00:00.000Z`,
       '',
     ])
   })
@@ -150,14 +306,25 @@ describe('toCsvTables', () => {
 
   it('garde les dates ISO et nomme l’animal à côté de son identifiant', () => {
     expect(lines(tables['vaccins.csv'])).toEqual([
-      'id;animalId;animalName;name;lastInjectionDate;dueDate',
-      `v-chppil;${MILO_ID};Milo;CHPPiL;2025-09-01;2026-09-01`,
-      `v-typhus;${LUNA_ID};Luna;"Typhus; coryza";2024-05-20;`,
+      'id;animalId;animalName;name;plannedDueDate;lastInjectionDate;dueDate',
+      `v-chppil;${MILO_ID};Milo;CHPPiL;;2025-09-01;2026-09-01`,
+      `v-typhus;${LUNA_ID};Luna;"Typhus; coryza";;2024-05-20;`,
+      `v-leucose;${LUNA_ID};Luna;Leucose;2026-11-02;;2026-11-02`,
       '',
     ])
     expect(lines(tables['traitements.csv'])).toEqual([
-      'id;animalId;animalName;name;type;frequencyValue;frequencyUnit;lastDoseDate;nextDueDate',
-      `t-milbemax;${LUNA_ID};Luna;Milbémax;deworming;3;month;2026-06-15;2026-09-15`,
+      'id;animalId;animalName;name;type;lastDoseDate;nextDueDate',
+      `t-milbemax;${LUNA_ID};Luna;Milbémax;deworming;2026-06-15;2026-09-15`,
+      `t-panacur;${MILO_ID};Milo;Panacur;deworming;2026-09-10;2026-09-11`,
+      '',
+    ])
+  })
+
+  it('écrit une ligne par période, avec ses réglages : fin, heures, posologie, moment du rappel', () => {
+    expect(lines(tables['periodes.csv'])).toEqual([
+      'id;treatmentId;treatmentName;animalId;animalName;startsOn;firstDueOn;endsOn;stoppedOn;frequencyValue;frequencyUnit;times;doseQuantity;doseUnit;reminderOffsetMinutes;reminderTime',
+      `p-milbemax;t-milbemax;Milbémax;${LUNA_ID};Luna;2026-03-15;2026-03-15;;;3;month;;;;;`,
+      `p-panacur;t-panacur;Panacur;${MILO_ID};Milo;2026-09-10;2026-09-10;2026-09-20;;1;day;08:00, 20:00;0,5;tablet;30;`,
       '',
     ])
   })
@@ -171,9 +338,11 @@ describe('toCsvTables', () => {
       '',
     ])
     expect(lines(tables['prises.csv'])).toEqual([
-      'id;treatmentId;treatmentName;animalId;animalName;givenOn;nextDueDate;frequencyValue;frequencyUnit',
-      `d-milbemax-06;t-milbemax;Milbémax;${LUNA_ID};Luna;2026-06-15;2026-09-15;3;month`,
-      `d-milbemax-03;t-milbemax;Milbémax;${LUNA_ID};Luna;2026-03-15;2026-06-15;3;month`,
+      'id;periodId;treatmentId;treatmentName;animalId;animalName;dueOn;dueTime;givenOn;status;nextDueDate',
+      `d-milbemax-06;p-milbemax;t-milbemax;Milbémax;${LUNA_ID};Luna;2026-06-15;;2026-06-15;given;2026-09-15`,
+      `d-milbemax-03;p-milbemax;t-milbemax;Milbémax;${LUNA_ID};Luna;2026-03-15;;2026-03-15;given;2026-06-15`,
+      `d-panacur-soir;p-panacur;t-panacur;Panacur;${MILO_ID};Milo;2026-09-10;20:00;;missed;2026-09-11`,
+      `d-panacur-matin;p-panacur;t-panacur;Panacur;${MILO_ID};Milo;2026-09-10;08:00;2026-09-10;given;2026-09-10`,
       '',
     ])
   })
@@ -213,7 +382,9 @@ describe('toCsvTables', () => {
     expect(lines(tables['rappels.csv'])).toEqual([
       'kind;sourceId;animalId;animalName;name;dueDate',
       `vaccination;v-chppil;${MILO_ID};Milo;CHPPiL;2026-09-01`,
+      `treatment;t-panacur;${MILO_ID};Milo;Panacur;2026-09-11`,
       `treatment;t-milbemax;${LUNA_ID};Luna;Milbémax;2026-09-15`,
+      `vaccination;v-leucose;${LUNA_ID};Luna;Leucose;2026-11-02`,
       '',
     ])
   })
@@ -259,7 +430,7 @@ describe('buildExportFile', () => {
     expect(JSON.parse(file.content as string).weightEntries[0].weightKg).toBe(4.25)
   })
 
-  it('CSV : une archive zip qui contient les sept tables telles quelles', () => {
+  it('CSV : une archive zip qui contient les huit tables telles quelles', () => {
     const file = buildExportFile('csv', EXPORT_FIXTURE, META, 'lb')
 
     expect(file.name).toBe('memopatte-export-20260915-1030.zip')

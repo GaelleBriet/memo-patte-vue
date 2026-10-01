@@ -1,24 +1,33 @@
+import { isFuture, parseISO } from 'date-fns'
 import { z } from 'zod'
 
 import { syncAllReminders } from '@/app/reminders-sync'
 import { photoExists } from '@/core/photos/photo-storage'
-import { animalInputSchema, animalSpeciesSchema } from '@/features/animals/schema/animal.schema'
+import {
+  animalInputSchema,
+  animalSpeciesSchema,
+  departureReasonSchema,
+} from '@/features/animals/schema/animal.schema'
 import {
   getAnimalsRepository,
   type AnimalsRepository,
 } from '@/features/animals/repository/animals.repository'
+import { DOSE_STATUSES } from '@/features/treatments/schema/treatment-dose.schema'
 import {
+  doseUnitSchema,
+  REMINDER_OFFSETS_MINUTES,
+} from '@/features/treatments/schema/treatment-period.schema'
+import {
+  treatmentFrequencySchema,
   treatmentInputSchema,
   treatmentTypeSchema,
 } from '@/features/treatments/schema/treatment.schema'
 import {
   getTreatmentDosesRepository,
-  type RestoredTreatmentDose,
   type TreatmentDosesRepository,
 } from '@/features/treatments/repository/treatment-doses.repository'
 import {
   getTreatmentPeriodsRepository,
-  type RestoredTreatmentPeriod,
   type TreatmentPeriodsRepository,
 } from '@/features/treatments/repository/treatment-periods.repository'
 import {
@@ -40,14 +49,12 @@ import {
   type WeightRepository,
 } from '@/features/weight/repository/weight.repository'
 import { EXPORT_SCHEMA_VERSION } from '../logic/export-format'
-import { fromExportV1 } from '../logic/export-v1'
-import { exportFileV1Schema } from '../schema/export-v1.schema'
-import type {
-  ExportAnimal,
-  ExportData,
-  ExportTreatment,
-  ExportTreatmentDose,
-} from '@/shared/domain/carnet-data'
+import {
+  getCarnetSettingsRepository,
+  type CarnetSettingsRepository,
+} from '../repository/carnet-settings.repository'
+import { carnetSettingsSchema } from '../schema/carnet-settings.schema'
+import type { ExportAnimal } from '@/shared/domain/carnet-data'
 import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
 import {
   buildImportPlan,
@@ -59,7 +66,7 @@ import {
 
 export type { ImportFile, ImportMode }
 
-export type ImportFileError = 'invalid' | 'newer' | 'outOfRange' | 'nameTooLong'
+export type ImportFileError = 'invalid' | 'newer' | 'older' | 'outOfRange' | 'nameTooLong'
 
 /** Incohérence que seule la base locale révèle : réessayer le même fichier n'y changerait rien. */
 export type ImportRefusal = ImportRefusalReason
@@ -75,9 +82,29 @@ export type ParsedExportFile =
   { ok: true; file: ImportFile } | { ok: false; reason: ImportFileError }
 
 export const MAX_IMPORT_FILE_BYTES = 10 * 1024 * 1024
+export const MIN_IMPORT_YEAR = 1900
+export const MAX_IMPORT_YEAR = 2199
 const MAX_TEXT_LENGTH = 200
 
-const instant = z.iso.datetime()
+const DAY = /^(\d{4})-(\d{2})-(\d{2})$/
+
+function isYearInRange(value: string): boolean {
+  const year = Number(value.slice(0, 4))
+  return year >= MIN_IMPORT_YEAR && year <= MAX_IMPORT_YEAR
+}
+
+function isCalendarDay(value: string): boolean {
+  const match = DAY.exec(value)
+  if (!match || !isYearInRange(value)) return false
+  const [year, month, dayOfMonth] = [Number(match[1]), Number(match[2]), Number(match[3])]
+  const date = new Date(Date.UTC(year, month - 1, dayOfMonth))
+  return date.getUTCMonth() === month - 1 && date.getUTCDate() === dayOfMonth
+}
+
+const day = z.string().refine(isCalendarDay)
+const pastDay = day.refine((value) => !isFuture(parseISO(value)))
+const clockTime = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/)
+const instant = z.iso.datetime().refine(isYearInRange)
 const timestamps = { createdAt: instant, updatedAt: instant }
 const optionalName = z
   .string()
@@ -86,13 +113,19 @@ const optionalName = z
   .nullable()
   .transform((value) => value || null)
 
+const carnetSettingsFileSchema = carnetSettingsSchema.extend(timestamps)
+
 const animalFileSchema = z.object({
   id: z.uuid(),
   name: animalInputSchema.shape.name,
   species: animalSpeciesSchema,
   breed: optionalName,
-  birthDate: animalInputSchema.shape.birthDate,
+  birthDate: pastDay.nullable(),
+  birthDateApproximate: z.boolean(),
   photoFileName: z.string().max(MAX_TEXT_LENGTH).nullable(),
+  unfollowedOn: day.nullable(),
+  departureReason: departureReasonSchema.nullable(),
+  departureDate: day.nullable(),
   ...timestamps,
 })
 
@@ -100,6 +133,7 @@ const vaccinationFileSchema = z.object({
   id: z.uuid(),
   animalId: z.uuid(),
   name: vaccinationInputSchema.shape.name,
+  plannedDueDate: day.nullable(),
   ...timestamps,
 })
 
@@ -107,8 +141,8 @@ const injectionFileSchema = z.object({
   id: z.uuid(),
   vaccinationId: z.uuid(),
   animalId: z.uuid(),
-  injectedOn: vaccinationInputSchema.shape.lastInjectionDate,
-  nextDueDate: z.iso.date().nullable(),
+  injectedOn: pastDay,
+  nextDueDate: day.nullable(),
   ...timestamps,
 })
 
@@ -117,26 +151,48 @@ const treatmentFileSchema = z.object({
   animalId: z.uuid(),
   name: treatmentInputSchema.shape.name,
   type: treatmentTypeSchema,
-  frequency: treatmentInputSchema.shape.frequency,
-  stoppedOn: z.iso.date().nullable(),
   ...timestamps,
 })
 
-const doseFileSchema = z.object({
-  id: z.uuid(),
-  treatmentId: z.uuid(),
-  animalId: z.uuid(),
-  givenOn: treatmentInputSchema.shape.lastDoseDate,
-  nextDueDate: z.iso.date(),
-  frequency: treatmentInputSchema.shape.frequency,
-  ...timestamps,
-})
+const periodFileSchema = z
+  .object({
+    id: z.uuid(),
+    treatmentId: z.uuid(),
+    animalId: z.uuid(),
+    startsOn: day,
+    firstDueOn: day,
+    endsOn: day.nullable(),
+    stoppedOn: day.nullable(),
+    frequency: treatmentFrequencySchema,
+    times: z.array(clockTime).refine((times) => new Set(times).size === times.length),
+    doseQuantity: z.number().positive().nullable(),
+    doseUnit: doseUnitSchema.nullable(),
+    reminderOffsetMinutes: z.literal([...REMINDER_OFFSETS_MINUTES]).nullable(),
+    reminderTime: clockTime.nullable(),
+    ...timestamps,
+  })
+  .refine((period) => (period.doseQuantity === null) === (period.doseUnit === null))
+
+const doseFileSchema = z
+  .object({
+    id: z.uuid(),
+    periodId: z.uuid(),
+    treatmentId: z.uuid(),
+    animalId: z.uuid(),
+    dueOn: day,
+    dueTime: clockTime.nullable(),
+    givenOn: pastDay.nullable(),
+    status: z.enum(DOSE_STATUSES),
+    nextDueDate: day,
+    ...timestamps,
+  })
+  .refine((dose) => (dose.status === 'given') === (dose.givenOn !== null))
 
 const weightEntryFileSchema = z.object({
   id: z.uuid(),
   animalId: z.uuid(),
   weightKg: weightEntryInputSchema.shape.weightKg,
-  measuredOn: weightEntryInputSchema.shape.measuredOn,
+  measuredOn: pastDay,
   ...timestamps,
 })
 
@@ -149,10 +205,12 @@ const exportFileSchema = z
     schemaVersion: z.literal(EXPORT_SCHEMA_VERSION),
     exportedAt: instant,
     appVersion: z.string().max(MAX_TEXT_LENGTH),
+    carnetSettings: carnetSettingsFileSchema.nullable(),
     animals: z.array(animalFileSchema),
     vaccinations: z.array(vaccinationFileSchema),
     vaccinationInjections: z.array(injectionFileSchema),
     treatments: z.array(treatmentFileSchema),
+    treatmentPeriods: z.array(periodFileSchema),
     treatmentDoses: z.array(doseFileSchema),
     weightEntries: z.array(weightEntryFileSchema),
   })
@@ -162,6 +220,7 @@ const exportFileSchema = z
       file.vaccinations,
       file.vaccinationInjections,
       file.treatments,
+      file.treatmentPeriods,
       file.treatmentDoses,
       file.weightEntries,
     ].every(hasUniqueIds),
@@ -172,17 +231,14 @@ const exportFileSchema = z
       ...file.vaccinations,
       ...file.vaccinationInjections,
       ...file.treatments,
+      ...file.treatmentPeriods,
       ...file.treatmentDoses,
       ...file.weightEntries,
     ].every((row) => animalIds.has(row.animalId))
   })
   .refine((file) => {
-    const injected = new Set(file.vaccinationInjections.map(({ vaccinationId }) => vaccinationId))
-    const dosed = new Set(file.treatmentDoses.map(({ treatmentId }) => treatmentId))
-    return (
-      file.vaccinations.every(({ id }) => injected.has(id)) &&
-      file.treatments.every(({ id }) => dosed.has(id))
-    )
+    const withPeriod = new Set(file.treatmentPeriods.map(({ treatmentId }) => treatmentId))
+    return file.treatments.every(({ id }) => withPeriod.has(id))
   })
 
 const versionSchema = z.object({ schemaVersion: z.number().int().positive() })
@@ -213,89 +269,43 @@ function refusalReason(error: z.ZodError): ImportFileError {
   return onlyTooBig(error, BOUNDED_FIELDS) ? 'outOfRange' : 'invalid'
 }
 
-/** La version aiguille avant toute validation : chaque format se relit avec son propre schéma. */
+/** La version tranche avant toute validation : seul le format courant se relit. */
 export function parseExportFile(text: string): ParsedExportFile {
   const document = parseJson(text)
 
   const version = versionSchema.safeParse(document)
   if (!version.success) return { ok: false, reason: 'invalid' }
   if (version.data.schemaVersion > EXPORT_SCHEMA_VERSION) return { ok: false, reason: 'newer' }
-
-  if (version.data.schemaVersion === 1) {
-    const file = exportFileV1Schema.safeParse(document)
-    if (!file.success) return { ok: false, reason: refusalReason(file.error) }
-    return { ok: true, file: { schemaVersion: 1, data: fromExportV1(file.data) } }
-  }
+  if (version.data.schemaVersion < EXPORT_SCHEMA_VERSION) return { ok: false, reason: 'older' }
 
   const file = exportFileSchema.safeParse(document)
   if (!file.success) return { ok: false, reason: refusalReason(file.error) }
 
   const {
+    carnetSettings,
     animals,
     vaccinations,
     vaccinationInjections,
     treatments,
+    treatmentPeriods,
     treatmentDoses,
     weightEntries,
   } = file.data
   return {
     ok: true,
     file: {
-      schemaVersion: 2,
+      schemaVersion: EXPORT_SCHEMA_VERSION,
       data: {
+        carnetSettings,
         animals,
         vaccinations,
         vaccinationInjections,
         treatments,
+        treatmentPeriods,
         treatmentDoses,
         weightEntries,
       },
     },
-  }
-}
-
-/** Jour de la première prise de chaque traitement du fichier : le début de sa période. */
-function firstDoseDays(data: ExportData): Map<string, string> {
-  const days = new Map<string, string>()
-  for (const { treatmentId, givenOn } of data.treatmentDoses) {
-    const first = days.get(treatmentId)
-    if (first === undefined || givenOn < first) days.set(treatmentId, givenOn)
-  }
-  return days
-}
-
-/**
- * Le fichier ne connaît pas les périodes : ses réglages vont à la première période du traitement,
- * qui porte son identifiant.
- */
-function firstPeriodOf(treatment: ExportTreatment, startsOn: string): RestoredTreatmentPeriod {
-  return {
-    id: treatment.id,
-    treatmentId: treatment.id,
-    animalId: treatment.animalId,
-    startsOn,
-    firstDueOn: startsOn,
-    frequency: treatment.frequency,
-    stoppedOn: treatment.stoppedOn,
-    createdAt: treatment.createdAt,
-    updatedAt: treatment.updatedAt,
-  }
-}
-
-/** Prise donnée, rattachée à la première période de son traitement ; son échéance est son jour. */
-function givenDoseOf(dose: ExportTreatmentDose): RestoredTreatmentDose {
-  return {
-    id: dose.id,
-    periodId: dose.treatmentId,
-    treatmentId: dose.treatmentId,
-    animalId: dose.animalId,
-    dueOn: dose.givenOn,
-    dueTime: null,
-    givenOn: dose.givenOn,
-    status: 'given',
-    nextDueDate: dose.nextDueDate,
-    createdAt: dose.createdAt,
-    updatedAt: dose.updatedAt,
   }
 }
 
@@ -308,13 +318,14 @@ type ImportMethods = 'listVersions' | 'markAllDeletedStatement' | 'restoreStatem
 type EventImportMethods = ImportMethods | 'reviveStatement'
 
 export type DataImportDependencies = {
+  carnetSettings: Provider<
+    Pick<CarnetSettingsRepository, 'getVersion' | 'markDeletedStatement' | 'restoreStatement'>
+  >
   animals: Provider<Pick<AnimalsRepository, 'list' | 'runImport' | ImportMethods>>
   vaccinations: Provider<Pick<VaccinationsRepository, ImportMethods>>
   vaccinationInjections: Provider<Pick<VaccinationInjectionsRepository, EventImportMethods>>
   treatments: Provider<Pick<TreatmentsRepository, ImportMethods>>
-  treatmentPeriods: Provider<
-    Pick<TreatmentPeriodsRepository, 'markAllDeletedStatement' | 'restoreStatement'>
-  >
+  treatmentPeriods: Provider<Pick<TreatmentPeriodsRepository, EventImportMethods>>
   treatmentDoses: Provider<Pick<TreatmentDosesRepository, EventImportMethods>>
   weight: Provider<Pick<WeightRepository, ImportMethods>>
   photoExists: (fileName: string) => Promise<boolean>
@@ -323,6 +334,7 @@ export type DataImportDependencies = {
 }
 
 export function createDataImportService({
+  carnetSettings,
   animals,
   vaccinations,
   vaccinationInjections,
@@ -356,6 +368,7 @@ export function createDataImportService({
     async importData(file: ImportFile, mode: ImportMode): Promise<void> {
       const { data } = file
       const [
+        settingsRepository,
         animalsRepository,
         vaccinationsRepository,
         injectionsRepository,
@@ -364,6 +377,7 @@ export function createDataImportService({
         dosesRepository,
         weightRepository,
       ] = await Promise.all([
+        carnetSettings(),
         animals(),
         vaccinations(),
         vaccinationInjections(),
@@ -373,24 +387,24 @@ export function createDataImportService({
         weight(),
       ])
       const [
-        [
-          animalVersions,
-          vaccinationVersions,
-          injectionVersions,
-          treatmentVersions,
-          doseVersions,
-          weightVersions,
-        ],
+        settingsVersion,
+        animalVersions,
+        vaccinationVersions,
+        injectionVersions,
+        treatmentVersions,
+        periodVersions,
+        doseVersions,
+        weightVersions,
         photosOnDevice,
       ] = await Promise.all([
-        Promise.all([
-          animalsRepository.listVersions(),
-          vaccinationsRepository.listVersions(),
-          injectionsRepository.listVersions(),
-          treatmentsRepository.listVersions(),
-          dosesRepository.listVersions(),
-          weightRepository.listVersions(),
-        ]),
+        settingsRepository.getVersion(),
+        animalsRepository.listVersions(),
+        vaccinationsRepository.listVersions(),
+        injectionsRepository.listVersions(),
+        treatmentsRepository.listVersions(),
+        periodsRepository.listVersions(),
+        dosesRepository.listVersions(),
+        weightRepository.listVersions(),
         devicePhotos(data.animals),
       ])
 
@@ -399,22 +413,22 @@ export function createDataImportService({
         file,
         mode,
         local: {
+          carnetSettings: settingsVersion,
           animals: animalVersions,
           vaccinations: vaccinationVersions,
           vaccinationInjections: injectionVersions,
           treatments: treatmentVersions,
+          treatmentPeriods: periodVersions,
           treatmentDoses: doseVersions,
           weightEntries: weightVersions,
         },
         photosOnDevice,
         importedAt,
-        newId: () => crypto.randomUUID(),
       })
 
       if (!result.ok) throw new ImportRefusedError(result.refused.reason)
 
       const { plan } = result
-      const firstDoses = firstDoseDays(data)
       const write = <T>(
         writes: PlannedWrite<T>[],
         restoreStatement: (row: T, exists: boolean) => SqlStatement,
@@ -423,6 +437,7 @@ export function createDataImportService({
       await animalsRepository.runImport([
         ...(plan.replaceLocalData
           ? [
+              settingsRepository.markDeletedStatement(importedAt),
               animalsRepository.markAllDeletedStatement(importedAt),
               vaccinationsRepository.markAllDeletedStatement(importedAt),
               injectionsRepository.markAllDeletedStatement(importedAt),
@@ -432,20 +447,15 @@ export function createDataImportService({
               weightRepository.markAllDeletedStatement(importedAt),
             ]
           : []),
+        ...(plan.carnetSettings ? [settingsRepository.restoreStatement(plan.carnetSettings)] : []),
         ...write(plan.animals, animalsRepository.restoreStatement),
         ...write(plan.vaccinations, vaccinationsRepository.restoreStatement),
         ...write(plan.vaccinationInjections, injectionsRepository.restoreStatement),
         ...plan.revivedInjections.map((id) => injectionsRepository.reviveStatement(id, importedAt)),
         ...write(plan.treatments, treatmentsRepository.restoreStatement),
-        ...plan.treatments.flatMap(({ row }) => {
-          const startsOn = firstDoses.get(row.id)
-          return startsOn === undefined
-            ? []
-            : [periodsRepository.restoreStatement(firstPeriodOf(row, startsOn))]
-        }),
-        ...plan.treatmentDoses.map(({ row, exists }) =>
-          dosesRepository.restoreStatement(givenDoseOf(row), exists),
-        ),
+        ...write(plan.treatmentPeriods, periodsRepository.restoreStatement),
+        ...plan.revivedPeriods.map((id) => periodsRepository.reviveStatement(id, importedAt)),
+        ...write(plan.treatmentDoses, dosesRepository.restoreStatement),
         ...plan.revivedDoses.map((id) => dosesRepository.reviveStatement(id, importedAt)),
         ...write(plan.weightEntries, weightRepository.restoreStatement),
       ])
@@ -457,6 +467,7 @@ export function createDataImportService({
 export type DataImportService = ReturnType<typeof createDataImportService>
 
 export const dataImportService = createDataImportService({
+  carnetSettings: getCarnetSettingsRepository,
   animals: getAnimalsRepository,
   vaccinations: getVaccinationsRepository,
   vaccinationInjections: getVaccinationInjectionsRepository,

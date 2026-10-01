@@ -114,6 +114,67 @@ describe('carnetSettingsRepository', () => {
     },
   )
 
+  describe('export et import', () => {
+    const IMPORTES = {
+      vaccineReminderTime: '18:30',
+      remindBeforeDue: false,
+      createdAt: '2026-01-10T08:00:00.000Z',
+      updatedAt: '2026-02-01T08:00:00.000Z',
+    }
+    const LATER = '2030-01-01T09:00:00.000Z'
+
+    it('n’a ni ligne à exporter ni version tant que rien n’a été réglé', async () => {
+      await expect(repository.getRecord()).resolves.toBeNull()
+      await expect(repository.getVersion()).resolves.toBeNull()
+    })
+
+    it('écrit les réglages importés avec leurs dates d’origine, puis les relit', async () => {
+      await db.runMany([repository.restoreStatement(IMPORTES)])
+
+      await expect(repository.getRecord()).resolves.toEqual(IMPORTES)
+      await expect(repository.get()).resolves.toEqual({
+        vaccineReminderTime: '18:30',
+        remindBeforeDue: false,
+      })
+      await expect(repository.getVersion()).resolves.toEqual({
+        updatedAt: IMPORTES.updatedAt,
+        deletedAt: null,
+      })
+    })
+
+    it('écrase des réglages existants, même supprimés', async () => {
+      await repository.update({ vaccineReminderTime: '07:00' })
+      await db.runMany([repository.markDeletedStatement(LATER)])
+
+      await db.runMany([repository.restoreStatement(IMPORTES)])
+
+      await expect(repository.getRecord()).resolves.toEqual(IMPORTES)
+      await expect(rows()).resolves.toHaveLength(1)
+    })
+
+    it('revient aux réglages par défaut une fois la ligne marquée supprimée, sans la perdre', async () => {
+      await db.runMany([repository.restoreStatement(IMPORTES)])
+
+      await db.runMany([repository.markDeletedStatement(LATER)])
+
+      await expect(repository.getRecord()).resolves.toBeNull()
+      await expect(repository.get()).resolves.toEqual({
+        vaccineReminderTime: '09:00',
+        remindBeforeDue: true,
+      })
+      await expect(repository.getVersion()).resolves.toEqual({
+        updatedAt: LATER,
+        deletedAt: LATER,
+      })
+    })
+
+    it('refuse une heure que la base ne connaît pas', async () => {
+      await expect(
+        db.runMany([repository.restoreStatement({ ...IMPORTES, vaccineReminderTime: '24:00' })]),
+      ).rejects.toThrow(/CHECK/)
+    })
+  })
+
   it('met le réglage en file d’envoi quand la synchronisation est active', async () => {
     await db.run('UPDATE sync_state SET enabled = 1 WHERE id = 1')
 

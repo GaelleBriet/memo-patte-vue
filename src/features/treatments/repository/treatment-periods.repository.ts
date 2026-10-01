@@ -1,11 +1,64 @@
 import type { DbClient, SqlStatement } from '@/core/db/db-client'
 import { getDb } from '@/core/db/sqlite'
 import type { TreatmentFrequency } from '../schema/treatment.schema'
-import type { TreatmentPeriod } from '../schema/treatment-period.schema'
+import type { TreatmentPeriod, TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 
-export type RestoredTreatmentPeriod = Omit<TreatmentPeriod, 'deletedAt'>
+export type RestoredTreatmentPeriod = Omit<TreatmentPeriodRecord, 'deletedAt'>
+export type TreatmentPeriodVersion = Pick<
+  TreatmentPeriod,
+  'id' | 'treatmentId' | 'animalId' | 'updatedAt' | 'deletedAt'
+>
+
+interface PeriodRow {
+  id: string
+  treatment_id: string
+  animal_id: string
+  starts_on: string
+  first_due_on: string
+  ends_on: string | null
+  stopped_on: string | null
+  frequency_value: number
+  frequency_unit: TreatmentFrequency['unit']
+  times: string | null
+  dose_quantity: number | null
+  dose_unit: string | null
+  reminder_offset_minutes: number | null
+  reminder_time: string | null
+  created_at: string
+  updated_at: string
+  deleted_at: string | null
+}
+
+const COLUMNS =
+  'id, treatment_id, animal_id, starts_on, first_due_on, ends_on, stopped_on, frequency_value, ' +
+  'frequency_unit, times, dose_quantity, dose_unit, reminder_offset_minutes, reminder_time, ' +
+  'created_at, updated_at, deleted_at'
 
 const NOT_DELETED = 'deleted_at IS NULL'
+
+const TIMES_SEPARATOR = ','
+
+function toPeriodRecord(row: PeriodRow): TreatmentPeriodRecord {
+  return {
+    id: row.id,
+    treatmentId: row.treatment_id,
+    animalId: row.animal_id,
+    startsOn: row.starts_on,
+    firstDueOn: row.first_due_on,
+    endsOn: row.ends_on,
+    stoppedOn: row.stopped_on,
+    frequency: { value: row.frequency_value, unit: row.frequency_unit },
+    times: row.times ? row.times.split(TIMES_SEPARATOR) : [],
+    doseQuantity: row.dose_quantity,
+    doseUnit: row.dose_unit as TreatmentPeriodRecord['doseUnit'],
+    reminderOffsetMinutes:
+      row.reminder_offset_minutes as TreatmentPeriodRecord['reminderOffsetMinutes'],
+    reminderTime: row.reminder_time,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    deletedAt: row.deleted_at,
+  }
+}
 
 /**
  * Sous-requête de la période en cours d'un traitement (`treatmentId` est une expression SQL) : la
@@ -104,28 +157,67 @@ export function createTreatmentPeriodsRepository(db: DbClient) {
       }
     },
 
-    /** Une période existante garde son début et sa première échéance : le reste suit le fichier. */
-    restoreStatement(period: RestoredTreatmentPeriod): SqlStatement {
+    /** Périodes visibles, toutes colonnes comprises, celles d'un même traitement de la première à la dernière. */
+    async listAll(): Promise<TreatmentPeriodRecord[]> {
+      const rows = await db.query<PeriodRow>(
+        `SELECT ${COLUMNS} FROM treatment_period WHERE ${NOT_DELETED}
+         ORDER BY treatment_id, starts_on, created_at, id`,
+      )
+      return rows.map(toPeriodRecord)
+    },
+
+    /** Lignes supprimées comprises : l'import compare les versions avant d'écrire. */
+    async listVersions(): Promise<TreatmentPeriodVersion[]> {
+      const rows = await db.query<
+        Pick<PeriodRow, 'id' | 'treatment_id' | 'animal_id' | 'updated_at' | 'deleted_at'>
+      >('SELECT id, treatment_id, animal_id, updated_at, deleted_at FROM treatment_period')
+      return rows.map((row) => ({
+        id: row.id,
+        treatmentId: row.treatment_id,
+        animalId: row.animal_id,
+        updatedAt: row.updated_at,
+        deletedAt: row.deleted_at,
+      }))
+    },
+
+    /** Une période existante garde son traitement et son animal : ses réglages suivent le fichier. */
+    restoreStatement(period: RestoredTreatmentPeriod, exists: boolean): SqlStatement {
+      const values = [
+        period.startsOn,
+        period.firstDueOn,
+        period.endsOn,
+        period.stoppedOn,
+        period.frequency.value,
+        period.frequency.unit,
+        period.times.length > 0 ? period.times.join(TIMES_SEPARATOR) : null,
+        period.doseQuantity,
+        period.doseUnit,
+        period.reminderOffsetMinutes,
+        period.reminderTime,
+        period.createdAt,
+        period.updatedAt,
+      ]
+      return exists
+        ? {
+            sql: `UPDATE treatment_period
+                  SET starts_on = ?, first_due_on = ?, ends_on = ?, stopped_on = ?,
+                      frequency_value = ?, frequency_unit = ?, times = ?, dose_quantity = ?,
+                      dose_unit = ?, reminder_offset_minutes = ?, reminder_time = ?,
+                      created_at = ?, updated_at = ?, deleted_at = NULL
+                  WHERE id = ?`,
+            params: [...values, period.id],
+          }
+        : {
+            sql: `INSERT INTO treatment_period (${COLUMNS})
+                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)`,
+            params: [period.id, period.treatmentId, period.animalId, ...values],
+          }
+    },
+
+    reviveStatement(id: string, updatedAt: string): SqlStatement {
       return {
-        sql: `INSERT INTO treatment_period (id, treatment_id, animal_id, starts_on, first_due_on,
-                stopped_on, frequency_value, frequency_unit, created_at, updated_at)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-              ON CONFLICT (id) DO UPDATE SET
-                stopped_on = excluded.stopped_on, frequency_value = excluded.frequency_value,
-                frequency_unit = excluded.frequency_unit, updated_at = excluded.updated_at,
-                deleted_at = NULL`,
-        params: [
-          period.id,
-          period.treatmentId,
-          period.animalId,
-          period.startsOn,
-          period.firstDueOn,
-          period.stoppedOn,
-          period.frequency.value,
-          period.frequency.unit,
-          period.createdAt,
-          period.updatedAt,
-        ],
+        sql: 'UPDATE treatment_period SET deleted_at = NULL, updated_at = ? WHERE id = ?',
+        params: [updatedAt, id],
       }
     },
   }

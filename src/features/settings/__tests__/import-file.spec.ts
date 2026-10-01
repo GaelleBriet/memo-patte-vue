@@ -1,17 +1,29 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { parseExportFile } from '../service/data-import.service'
 import { IMPORT_FILE, importFixtureJson, LUNA_ID, MILO_ID } from './import-fixture'
-import exportV1 from './fixtures/export-v1-0.1.37.json?raw'
 import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
 
 const LIMITE = 'a'.repeat(MAX_NAME_LENGTH)
 const TROP_LONG = `${LIMITE}a`
+const INVALID = { ok: false, reason: 'invalid' }
 
 type Document = Record<string, unknown>
+type Row = Record<string, unknown>
 
-function premier(document: Document, table: string): Document {
-  return (document[table] as Document[])[0]!
+function rows(document: Document, table: string): Row[] {
+  return document[table] as Row[]
+}
+
+function premier(document: Document, table: string): Row {
+  return rows(document, table)[0]!
+}
+
+/** Période et prises du traitement quotidien à deux heures du fichier de test. */
+function panacur(document: Document) {
+  const [, period] = rows(document, 'treatmentPeriods')
+  const [, report, soir, matin] = rows(document, 'treatmentDoses')
+  return { period: period!, report: report!, soir: soir!, matin: matin! }
 }
 
 const NOMS: [string, (document: Document, value: string) => void][] = [
@@ -21,11 +33,21 @@ const NOMS: [string, (document: Document, value: string) => void][] = [
   ['le nom d’un traitement', (document, value) => (premier(document, 'treatments').name = value)],
 ]
 
-function withDocument(change: (document: Record<string, unknown>) => void): string {
-  const document = JSON.parse(importFixtureJson()) as Record<string, unknown>
+function withDocument(change: (document: Document) => void): string {
+  const document = JSON.parse(importFixtureJson()) as Document
   change(document)
   return JSON.stringify(document)
 }
+
+function forged(table: string, field: string, value: unknown, index = 0): string {
+  return withDocument((document) => {
+    rows(document, table)[index]![field] = value
+  })
+}
+
+afterEach(() => {
+  vi.restoreAllMocks()
+})
 
 describe('parseExportFile', () => {
   it('relit un export JSON de l’app à l’identique, sans les rappels dérivés', () => {
@@ -34,286 +56,423 @@ describe('parseExportFile', () => {
     expect(result).toEqual({ ok: true, file: IMPORT_FILE })
   })
 
-  it('accepte un champ inconnu : un ajout optionnel ne change pas la version', () => {
+  it('accepte un champ inconnu, sans le garder : un ajout optionnel ne change pas la version', () => {
     const text = withDocument((document) => {
       document.theme = 'dark'
-      ;(document.animals as Record<string, unknown>[])[0]!.color = 'tabby'
+      premier(document, 'animals').color = 'tabby'
+      premier(document, 'treatmentDoses').frequency = { value: 3, unit: 'month' }
     })
 
     expect(parseExportFile(text)).toEqual({ ok: true, file: IMPORT_FILE })
   })
 
-  it.each([
-    ['du texte qui n’est pas du JSON', 'bonjour'],
-    ['un JSON sans version', JSON.stringify({ animals: [] })],
-    ['un tableau', '[]'],
-    ['une version non entière', withDocument((document) => (document.schemaVersion = '1'))],
-    ['une table manquante', withDocument((document) => delete document.treatments)],
-    [
-      'une espèce inconnue',
-      withDocument((document) => {
-        ;(document.animals as Record<string, unknown>[])[0]!.species = 'rabbit'
-      }),
-    ],
-    [
-      'un identifiant qui n’est pas un UUID',
-      withDocument((document) => {
-        ;(document.vaccinations as Record<string, unknown>[])[0]!.id = 'v-1'
-      }),
-    ],
-    [
-      'un instant avec un décalage horaire au lieu de UTC',
-      withDocument((document) => {
-        ;(document.animals as Record<string, unknown>[])[0]!.updatedAt = '2026-02-01T09:00:00+01:00'
-      }),
-    ],
-    [
-      'une injection dans le futur',
-      withDocument((document) => {
-        ;(document.vaccinationInjections as Record<string, unknown>[])[0]!.injectedOn = '2999-01-01'
-      }),
-    ],
-    [
-      'une prise dans le futur',
-      withDocument((document) => {
-        ;(document.treatmentDoses as Record<string, unknown>[])[0]!.givenOn = '2999-01-01'
-      }),
-    ],
-    [
-      'un traitement sans date d’arrêt ni `null`',
-      withDocument((document) => {
-        delete (document.treatments as Record<string, unknown>[])[0]!.stoppedOn
-      }),
-    ],
-    [
-      'une table d’événements manquante',
-      withDocument((document) => delete document.treatmentDoses),
-    ],
-    [
-      'une date de naissance dans le futur',
-      withDocument((document) => {
-        ;(document.animals as Record<string, unknown>[])[0]!.birthDate = '2999-01-01'
-      }),
-    ],
-    [
-      'une date civile invalide',
-      withDocument((document) => {
-        ;(document.weightEntries as Record<string, unknown>[])[0]!.measuredOn = '24/12/2025'
-      }),
-    ],
-  ])('refuse %s comme un fichier qui n’est pas un export MémoPatte', (_, text) => {
-    expect(parseExportFile(text)).toEqual({ ok: false, reason: 'invalid' })
+  it('relit un carnet dont les réglages n’ont jamais été touchés', () => {
+    const result = parseExportFile(withDocument((document) => (document.carnetSettings = null)))
+
+    expect(result.ok && result.file.data.carnetSettings).toBeNull()
   })
 
-  it.each([
-    [
-      'une pesée hors bornes',
+  it('accepte un traitement sans aucune prise et un vaccin sans injection', () => {
+    const result = parseExportFile(
       withDocument((document) => {
-        ;(document.weightEntries as Record<string, unknown>[])[0]!.weightKg = 1e308
+        document.treatmentDoses = []
+        document.vaccinationInjections = []
       }),
-    ],
-    [
-      'une fréquence de traitement hors bornes',
-      withDocument((document) => {
-        ;(document.treatments as Record<string, unknown>[])[0]!.frequency = {
-          value: 10_000_000,
-          unit: 'month',
-        }
-      }),
-    ],
-  ])('dit pourquoi il refuse %s, plutôt que « ce n’est pas un export »', (_, text) => {
-    expect(parseExportFile(text)).toEqual({ ok: false, reason: 'outOfRange' })
+    )
+
+    expect(result.ok).toBe(true)
   })
 
-  it('reste « pas un export » quand le poids hors bornes n’est pas le seul défaut', () => {
-    const text = withDocument((document) => {
-      ;(document.weightEntries as Record<string, unknown>[])[0]!.weightKg = 201
-      ;(document.animals as Record<string, unknown>[])[0]!.species = 'rabbit'
+  describe('version', () => {
+    it.each([1, 2])(
+      'signale un export d’une version plus ancienne (v%i), quel que soit son contenu',
+      (schemaVersion) => {
+        expect(parseExportFile(JSON.stringify({ schemaVersion, animals: [] }))).toEqual({
+          ok: false,
+          reason: 'older',
+        })
+        expect(
+          parseExportFile(withDocument((document) => (document.schemaVersion = schemaVersion))),
+        ).toEqual({ ok: false, reason: 'older' })
+      },
+    )
+
+    it('signale un export d’une version plus récente, quel que soit son contenu', () => {
+      const text = JSON.stringify({ schemaVersion: 4, pets: [] })
+
+      expect(parseExportFile(text)).toEqual({ ok: false, reason: 'newer' })
     })
 
-    expect(parseExportFile(text)).toEqual({ ok: false, reason: 'invalid' })
+    it.each([
+      ['du texte qui n’est pas du JSON', 'bonjour'],
+      ['un fichier vide', ''],
+      ['un JSON sans version', JSON.stringify({ animals: [] })],
+      ['un tableau', '[]'],
+      ['`null`', 'null'],
+      ['une version en texte', withDocument((document) => (document.schemaVersion = '3'))],
+      ['une version décimale', withDocument((document) => (document.schemaVersion = 3.5))],
+      ['une version nulle ou négative', withDocument((document) => (document.schemaVersion = 0))],
+    ])('refuse %s comme un fichier qui n’est pas un export MémoPatte', (_, text) => {
+      expect(parseExportFile(text)).toEqual(INVALID)
+    })
   })
 
-  it.each(NOMS)(
-    'refuse en entier un fichier dont %s dépasse 80 caractères, avec son propre motif',
-    (_, poser) => {
-      const text = withDocument((document) => poser(document, TROP_LONG))
-
-      expect(parseExportFile(text)).toEqual({ ok: false, reason: 'nameTooLong' })
-    },
-  )
-
-  it('accepte des noms et une race de 80 caractères, espaces du bord non comptés', () => {
-    const text = withDocument((document) => {
-      for (const [, poser] of NOMS) poser(document, ` ${LIMITE} `)
+  describe('forme du fichier', () => {
+    it.each([
+      'carnetSettings',
+      'animals',
+      'vaccinations',
+      'vaccinationInjections',
+      'treatments',
+      'treatmentPeriods',
+      'treatmentDoses',
+      'weightEntries',
+    ])('refuse un fichier sans `%s`', (table) => {
+      expect(parseExportFile(withDocument((document) => delete document[table]))).toEqual(INVALID)
     })
 
-    const result = parseExportFile(text)
-
-    expect(result.ok && result.file.data.animals[0]).toMatchObject({ name: LIMITE, breed: LIMITE })
-  })
-
-  it('reste « pas un export » quand le nom trop long n’est pas le seul défaut', () => {
-    const text = withDocument((document) => {
-      premier(document, 'animals').name = TROP_LONG
-      premier(document, 'animals').species = 'rabbit'
+    it.each([
+      ['une table qui n’est pas un tableau', (document: Document) => (document.animals = {})],
+      ['une ligne qui n’est pas un objet', (document: Document) => (document.animals = ['Luna'])],
+      ['un tableau à la place d’un objet', (document: Document) => (document.carnetSettings = [])],
+    ])('refuse %s', (_, change) => {
+      expect(parseExportFile(withDocument(change))).toEqual(INVALID)
     })
 
-    expect(parseExportFile(text)).toEqual({ ok: false, reason: 'invalid' })
+    it('ne se laisse pas polluer par une clé `__proto__` du fichier', () => {
+      const text = importFixtureJson().replace(
+        '"animals": [',
+        '"__proto__": { "polluted": true }, "animals": [',
+      )
+
+      const result = parseExportFile(text)
+
+      expect(result).toEqual({ ok: true, file: IMPORT_FILE })
+      expect(({} as Record<string, unknown>).polluted).toBeUndefined()
+      expect(result.ok && Object.keys(result.file.data)).not.toContain('__proto__')
+    })
   })
 
-  it('lit une race vide comme absente, et nettoie les espaces des textes', () => {
-    const text = withDocument((document) => {
-      const [luna, milo] = document.animals as Record<string, unknown>[]
-      luna!.breed = '   '
-      milo!.name = '  Milo  '
+  describe('champs forgés', () => {
+    it.each([
+      ['une espèce inconnue', forged('animals', 'species', 'rabbit')],
+      ['un identifiant qui n’est pas un UUID', forged('vaccinations', 'id', 'v-1')],
+      ['un identifiant porteur de SQL', forged('animals', 'id', "x'; DROP TABLE animal; --")],
+      ['un `animalId` qui n’est pas un UUID', forged('weightEntries', 'animalId', '1 OR 1=1')],
+      ['un nom qui n’est pas du texte', forged('animals', 'name', { toString: 'Luna' })],
+      ['un nom vide', forged('animals', 'name', '   ')],
+      [
+        'un nom de photo de plus de 200 caractères',
+        forged('animals', 'photoFileName', 'a'.repeat(201)),
+      ],
+      [
+        'une date approximative qui n’est pas un booléen',
+        forged('animals', 'birthDateApproximate', 1),
+      ],
+      [
+        'un animal sans `birthDateApproximate`',
+        forged('animals', 'birthDateApproximate', undefined),
+      ],
+      ['un motif de départ inconnu', forged('animals', 'departureReason', 'sold')],
+      ['une date de départ illisible', forged('animals', 'departureDate', 'hier')],
+      ['une date de retrait hors du calendrier', forged('animals', 'unfollowedOn', '2026-02-30')],
+      ['une date de naissance dans le futur', forged('animals', 'birthDate', '2999-01-01')],
+      ['une date de naissance avant 1900', forged('animals', 'birthDate', '1899-12-31')],
+      ['un rappel prévu après 2199', forged('vaccinations', 'plannedDueDate', '2200-01-01')],
+      ['une date civile au mauvais format', forged('weightEntries', 'measuredOn', '24/12/2025')],
+      ['une date suivie d’autre chose', forged('weightEntries', 'measuredOn', '2025-12-24\n')],
+      [
+        'un 29 février d’une année non bissextile',
+        forged('weightEntries', 'measuredOn', '2025-02-29'),
+      ],
+      ['une pesée dans le futur', forged('weightEntries', 'measuredOn', '2999-01-01')],
+      ['une injection dans le futur', forged('vaccinationInjections', 'injectedOn', '2999-01-01')],
+      ['un poids nul', forged('weightEntries', 'weightKg', 0)],
+      ['un poids en texte', forged('weightEntries', 'weightKg', '4,25')],
+      [
+        'un instant avec un décalage horaire au lieu de UTC',
+        forged('animals', 'updatedAt', '2026-02-01T09:00:00+01:00'),
+      ],
+      ['un instant avant 1900', forged('animals', 'createdAt', '1899-12-31T23:59:59.000Z')],
+      ['un instant après 2199', forged('animals', 'updatedAt', '2200-01-01T00:00:00.000Z')],
+      ['un instant qui n’est pas du texte', forged('animals', 'updatedAt', 1_769_904_000_000)],
+      ['un type de traitement inconnu', forged('treatments', 'type', 'vaccine')],
+      [
+        'un traitement qui porte encore sa fréquence, sans période',
+        withDocument((document) => {
+          document.treatmentPeriods = rows(document, 'treatmentPeriods').slice(1)
+          document.treatmentDoses = rows(document, 'treatmentDoses').slice(1)
+        }),
+      ],
+    ])('refuse %s', (_, text) => {
+      expect(parseExportFile(text)).toEqual(INVALID)
     })
 
-    const result = parseExportFile(text)
+    it.each([
+      ['une heure des rappels de vaccins à 24 h', { vaccineReminderTime: '24:00' }],
+      ['une heure des rappels de vaccins sans minutes', { vaccineReminderTime: '9h' }],
+      ['un « Me prévenir avant » qui n’est pas un booléen', { remindBeforeDue: 'false' }],
+      ['des réglages datés hors bornes', { updatedAt: '2200-01-01T00:00:00.000Z' }],
+    ])('refuse %s', (_, change) => {
+      const text = withDocument((document) => {
+        Object.assign(document.carnetSettings as Row, change)
+      })
 
-    expect(result.ok && result.file.data.animals.map(({ name, breed }) => [name, breed])).toEqual([
-      ['Luna', null],
-      ['Milo', null],
-    ])
+      expect(parseExportFile(text)).toEqual(INVALID)
+    })
   })
 
-  it('signale un export d’une version plus récente, quel que soit son contenu', () => {
-    const text = JSON.stringify({ schemaVersion: 3, pets: [] })
+  describe('périodes forgées', () => {
+    it.each([
+      ['une fréquence nulle', { frequency: { value: 0, unit: 'day' } }],
+      ['une fréquence décimale', { frequency: { value: 1.5, unit: 'day' } }],
+      ['une unité de fréquence inconnue', { frequency: { value: 1, unit: 'year' } }],
+      ['une fréquence en texte', { frequency: 'daily' }],
+      ['un début illisible', { startsOn: 'demain' }],
+      ['une première échéance hors du calendrier', { firstDueOn: '2026-13-01' }],
+      ['une date de fin avant 1900', { endsOn: '1800-01-01' }],
+      ['une date d’arrêt après 2199', { stoppedOn: '9999-12-31' }],
+      ['des heures en texte plutôt qu’en liste', { times: '08:00,20:00' }],
+      ['une heure à 24 h', { times: ['24:00'] }],
+      ['une heure sans zéro initial', { times: ['8:00'] }],
+      ['une heure avec des secondes', { times: ['08:00:00'] }],
+      ['une heure en double', { times: ['08:00', '08:00'] }],
+      ['une heure qui n’est pas du texte', { times: [800] }],
+      ['un moment du rappel hors de la liste', { reminderOffsetMinutes: 45 }],
+      ['un moment du rappel en texte', { reminderOffsetMinutes: '30' }],
+      ['une heure de rappel illisible', { reminderTime: '9 h' }],
+      ['une période sans `times`', { times: undefined }],
+    ])('refuse %s', (_, change) => {
+      const text = withDocument((document) => Object.assign(panacur(document).period, change))
 
-    expect(parseExportFile(text)).toEqual({ ok: false, reason: 'newer' })
-  })
-
-  it('refuse un identifiant en double dans une même table', () => {
-    const text = withDocument((document) => {
-      const animals = document.animals as Record<string, unknown>[]
-      animals[1]!.id = LUNA_ID
+      expect(parseExportFile(text)).toEqual(INVALID)
     })
 
-    expect(parseExportFile(text)).toEqual({ ok: false, reason: 'invalid' })
-  })
+    it.each([
+      ['une quantité nulle', { doseQuantity: 0 }],
+      ['une quantité négative', { doseQuantity: -1 }],
+      ['une quantité en texte', { doseQuantity: '½' }],
+      ['une unité inconnue', { doseUnit: 'louche' }],
+      ['une quantité sans unité', { doseUnit: null }],
+      ['une unité sans quantité', { doseQuantity: null }],
+    ])('vérifie la posologie : refuse %s', (_, change) => {
+      const text = withDocument((document) => Object.assign(panacur(document).period, change))
 
-  it('refuse un identifiant en double parmi les événements', () => {
-    const text = withDocument((document) => {
-      const injections = document.vaccinationInjections as Record<string, unknown>[]
-      injections[1]!.id = injections[0]!.id
+      expect(parseExportFile(text)).toEqual(INVALID)
     })
 
-    expect(parseExportFile(text)).toEqual({ ok: false, reason: 'invalid' })
-  })
+    it('accepte les onze unités de posologie, et une période sans posologie', () => {
+      const units = [
+        'tablet',
+        'capsule',
+        'pipette',
+        'collar',
+        'ml',
+        'drop',
+        'g',
+        'sachet',
+        'spray',
+        'application',
+        'dose',
+      ]
 
-  it.each([
-    ['un vaccin', 'vaccinationInjections'],
-    ['un traitement', 'treatmentDoses'],
-  ])('refuse %s sans aucun événement dans le fichier', (_, table) => {
-    const text = withDocument((document) => {
-      document[table] = (document[table] as Record<string, unknown>[]).slice(1)
+      for (const doseUnit of units) {
+        expect(parseExportFile(forged('treatmentPeriods', 'doseUnit', doseUnit, 1)).ok).toBe(true)
+      }
+      expect(
+        parseExportFile(
+          withDocument((document) =>
+            Object.assign(panacur(document).period, { doseQuantity: null, doseUnit: null }),
+          ),
+        ).ok,
+      ).toBe(true)
     })
 
-    expect(parseExportFile(text)).toEqual({ ok: false, reason: 'invalid' })
+    it.each([0, 15, 30, 60, null])('accepte le moment du rappel %s', (reminderOffsetMinutes) => {
+      const text = forged('treatmentPeriods', 'reminderOffsetMinutes', reminderOffsetMinutes, 1)
+
+      expect(parseExportFile(text).ok).toBe(true)
+    })
   })
 
-  it('refuse une entrée rattachée à un animal absent du fichier', () => {
-    const text = withDocument((document) => {
-      document.animals = (document.animals as Record<string, unknown>[]).filter(
-        (animal) => animal.id !== MILO_ID,
+  describe('prises forgées', () => {
+    it.each([
+      ['un état inconnu', { status: 'skipped' }],
+      ['une prise donnée sans date réelle', { status: 'given', givenOn: null }],
+      ['une prise oubliée avec une date réelle', { status: 'missed', givenOn: '2026-09-01' }],
+      ['un report avec une date réelle', { status: 'postponed', givenOn: '2026-09-01' }],
+      ['une date réelle dans le futur', { givenOn: '2999-01-01' }],
+      ['une échéance illisible', { dueOn: '10/09/2026' }],
+      ['une heure d’échéance à 25 h', { dueTime: '25:00' }],
+      ['une prochaine échéance absente', { nextDueDate: null }],
+      ['une prochaine échéance après 2199', { nextDueDate: '2200-01-01' }],
+      ['une période qui n’est pas un UUID', { periodId: 'p-1' }],
+      ['une prise sans période', { periodId: undefined }],
+    ])('refuse %s', (_, change) => {
+      const text = withDocument((document) => Object.assign(panacur(document).matin, change))
+
+      expect(parseExportFile(text)).toEqual(INVALID)
+    })
+
+    it('accepte une prise donnée en retard, une oubliée et un report', () => {
+      const result = parseExportFile(
+        withDocument((document) => {
+          Object.assign(panacur(document).matin, { givenOn: '2026-09-12' })
+        }),
+      )
+
+      expect(
+        result.ok &&
+          result.file.data.treatmentDoses.map(({ status, givenOn }) => [status, givenOn]),
+      ).toEqual([
+        ['given', '2026-06-15'],
+        ['postponed', null],
+        ['missed', null],
+        ['given', '2026-09-12'],
+      ])
+    })
+  })
+
+  describe('limites nommées', () => {
+    it.each([
+      ['une pesée hors bornes', forged('weightEntries', 'weightKg', 1e308)],
+      [
+        'une fréquence de traitement hors bornes',
+        forged('treatmentPeriods', 'frequency', { value: 10_000_000, unit: 'month' }),
+      ],
+      [
+        'une fréquence de 366',
+        forged('treatmentPeriods', 'frequency', { value: 366, unit: 'day' }),
+      ],
+    ])('dit pourquoi il refuse %s, plutôt que « ce n’est pas un export »', (_, text) => {
+      expect(parseExportFile(text)).toEqual({ ok: false, reason: 'outOfRange' })
+    })
+
+    it('accepte une fréquence de 365 et un poids de 200 kg', () => {
+      const text = withDocument((document) => {
+        premier(document, 'treatmentPeriods').frequency = { value: 365, unit: 'day' }
+        premier(document, 'weightEntries').weightKg = 200
+      })
+
+      expect(parseExportFile(text).ok).toBe(true)
+    })
+
+    it('reste « pas un export » quand le poids hors bornes n’est pas le seul défaut', () => {
+      const text = withDocument((document) => {
+        premier(document, 'weightEntries').weightKg = 201
+        premier(document, 'animals').species = 'rabbit'
+      })
+
+      expect(parseExportFile(text)).toEqual(INVALID)
+    })
+
+    it.each(NOMS)(
+      'refuse en entier un fichier dont %s dépasse 80 caractères, avec son propre motif',
+      (_, poser) => {
+        const text = withDocument((document) => poser(document, TROP_LONG))
+
+        expect(parseExportFile(text)).toEqual({ ok: false, reason: 'nameTooLong' })
+      },
+    )
+
+    it('accepte des noms et une race de 80 caractères, espaces du bord non comptés', () => {
+      const text = withDocument((document) => {
+        for (const [, poser] of NOMS) poser(document, ` ${LIMITE} `)
+      })
+
+      const result = parseExportFile(text)
+
+      expect(result.ok && result.file.data.animals[0]).toMatchObject({
+        name: LIMITE,
+        breed: LIMITE,
+      })
+    })
+
+    it('reste « pas un export » quand le nom trop long n’est pas le seul défaut', () => {
+      const text = withDocument((document) => {
+        premier(document, 'animals').name = TROP_LONG
+        premier(document, 'animals').species = 'rabbit'
+      })
+
+      expect(parseExportFile(text)).toEqual(INVALID)
+    })
+
+    it('lit une race vide comme absente, et nettoie les espaces des textes', () => {
+      const text = withDocument((document) => {
+        const [luna, milo] = rows(document, 'animals')
+        luna!.breed = '   '
+        milo!.name = '  Milo  '
+      })
+
+      const result = parseExportFile(text)
+
+      expect(result.ok && result.file.data.animals.map(({ name, breed }) => [name, breed])).toEqual(
+        [
+          ['Luna', null],
+          ['Milo', null],
+        ],
       )
     })
-
-    expect(parseExportFile(text)).toEqual({ ok: false, reason: 'invalid' })
-  })
-})
-
-describe('parseExportFile, export v1', () => {
-  const RAGE = 'c926e5b4-b1c3-4773-bb3f-34e0acdb67da'
-  const MILBEMAX = 'e4d428da-419e-4c67-a6f3-fcad10a2c6ff'
-  const MILO = 'f53143ec-dca0-430d-a77d-755f592ae425'
-
-  function withV1Document(change: (document: Record<string, unknown>) => void): string {
-    const document = JSON.parse(exportV1) as Record<string, unknown>
-    change(document)
-    return JSON.stringify(document)
-  }
-
-  function v1Data(text: string) {
-    const result = parseExportFile(text)
-    if (!result.ok || result.file.schemaVersion !== 1) throw new Error('export v1 refusé')
-    return result.file.data
-  }
-
-  it('relit un vrai export de la 0.1.37 : un événement par ligne, à l’identifiant du parent', () => {
-    const data = v1Data(exportV1)
-
-    expect(data.vaccinations).toHaveLength(3)
-    expect(data.vaccinationInjections).toHaveLength(3)
-    expect(data.vaccinations).toContainEqual({
-      id: RAGE,
-      animalId: MILO,
-      name: 'Rage',
-      createdAt: '2026-09-20T07:20:10.533Z',
-      updatedAt: '2026-09-21T18:02:57.061Z',
-    })
-    expect(data.vaccinationInjections).toContainEqual({
-      id: RAGE,
-      vaccinationId: RAGE,
-      animalId: MILO,
-      injectedOn: '2026-09-21',
-      nextDueDate: '2029-09-21',
-      createdAt: '2026-09-20T07:20:10.533Z',
-      updatedAt: '2026-09-21T18:02:57.061Z',
-    })
-    expect(data.treatments.every(({ stoppedOn }) => stoppedOn === null)).toBe(true)
-    expect(data.treatmentDoses).toContainEqual({
-      id: MILBEMAX,
-      treatmentId: MILBEMAX,
-      animalId: MILO,
-      givenOn: '2026-09-15',
-      nextDueDate: '2026-12-15',
-      frequency: { value: 3, unit: 'month' },
-      createdAt: '2026-09-20T07:29:03.672Z',
-      updatedAt: '2026-09-22T08:41:19.230Z',
-    })
-    expect(data.weightEntries).toHaveLength(3)
   })
 
-  it('lit la date d’arrêt d’un export v1 plus récent', () => {
-    const text = withV1Document((document) => {
-      ;(document.treatments as Record<string, unknown>[])[0]!.stoppedOn = '2026-09-10'
+  describe('cohérence du fichier', () => {
+    it.each([
+      'animals',
+      'vaccinations',
+      'vaccinationInjections',
+      'treatments',
+      'treatmentPeriods',
+      'treatmentDoses',
+      'weightEntries',
+    ])('refuse un identifiant en double dans `%s`', (table) => {
+      const text = withDocument((document) => {
+        const [first, second] = rows(document, table)
+        second!.id = first!.id
+      })
+
+      expect(parseExportFile(text)).toEqual(INVALID)
     })
 
-    expect(v1Data(text).treatments[0]!.stoppedOn).toBe('2026-09-10')
-  })
+    it('refuse une entrée rattachée à un animal absent du fichier', () => {
+      const text = withDocument((document) => {
+        document.animals = rows(document, 'animals').filter((animal) => animal.id !== MILO_ID)
+      })
 
-  it('aiguille par la version avant de valider : chaque format a son schéma', () => {
-    const v1LikeV2 = JSON.stringify({ ...JSON.parse(importFixtureJson()), schemaVersion: 1 })
-    const v2LikeV1 = withV1Document((document) => (document.schemaVersion = 2))
-
-    expect(parseExportFile(v1LikeV2)).toEqual({ ok: false, reason: 'invalid' })
-    expect(parseExportFile(v2LikeV1)).toEqual({ ok: false, reason: 'invalid' })
-  })
-
-  it.each(NOMS)('refuse un export v1 dont %s dépasse 80 caractères', (_, poser) => {
-    const text = withV1Document((document) => poser(document, TROP_LONG))
-
-    expect(parseExportFile(text)).toEqual({ ok: false, reason: 'nameTooLong' })
-  })
-
-  it('accepte un export v1 aux noms et à la race de 80 caractères', () => {
-    const text = withV1Document((document) => {
-      for (const [, poser] of NOMS) poser(document, LIMITE)
+      expect(parseExportFile(text)).toEqual(INVALID)
     })
 
-    expect(v1Data(text).animals[0]).toMatchObject({ name: LIMITE, breed: LIMITE })
+    it.each(['treatmentPeriods', 'treatmentDoses', 'vaccinationInjections'])(
+      'refuse une ligne de `%s` rattachée à un animal absent du fichier',
+      (table) => {
+        const text = forged(table, 'animalId', '12345678-1234-4234-8234-123456789012')
+
+        expect(parseExportFile(text)).toEqual(INVALID)
+      },
+    )
+
+    it('garde un animal sans carnet', () => {
+      const text = withDocument((document) => {
+        for (const table of Object.keys(document)) {
+          if (Array.isArray(document[table]) && table !== 'animals') document[table] = []
+        }
+      })
+
+      const result = parseExportFile(text)
+
+      expect(result.ok && result.file.data.animals.map(({ id }) => id)).toEqual([LUNA_ID, MILO_ID])
+    })
   })
 
-  it('garde les refus du format v1', () => {
-    const heavy = withV1Document((document) => {
-      ;(document.weightEntries as Record<string, unknown>[])[0]!.weightKg = 201
-    })
-    const future = withV1Document((document) => {
-      ;(document.vaccinations as Record<string, unknown>[])[0]!.lastInjectionDate = '2999-01-01'
-    })
+  it('n’écrit rien du fichier dans les journaux, accepté ou refusé', () => {
+    const spies = (['log', 'info', 'warn', 'error', 'debug'] as const).map((level) =>
+      vi.spyOn(console, level).mockImplementation(() => undefined),
+    )
 
-    expect(parseExportFile(heavy)).toEqual({ ok: false, reason: 'outOfRange' })
-    expect(parseExportFile(future)).toEqual({ ok: false, reason: 'invalid' })
+    parseExportFile(importFixtureJson())
+    parseExportFile(forged('animals', 'name', TROP_LONG))
+    parseExportFile('{ "schemaVersion": 3, "animals": "secret" }')
+    parseExportFile('secret')
+
+    for (const spy of spies) expect(spy).not.toHaveBeenCalled()
   })
 })
