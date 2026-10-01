@@ -26,6 +26,7 @@ const BRAVECTO: Treatment = {
   animalId: 'luna',
   name: 'Bravecto',
   type: 'antiparasitic',
+  periodId: 't1',
   frequency: { value: 3, unit: 'month' },
   lastDoseDate: '2026-06-24',
   nextDueDate: '2026-09-24',

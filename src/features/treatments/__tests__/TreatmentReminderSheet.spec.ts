@@ -55,6 +55,7 @@ const BRAVECTO: Treatment = {
   animalId: BOREE.id,
   name: 'Bravecto',
   type: 'deworming',
+  periodId: '44444444-4444-4444-8444-444444444444',
   frequency: { value: 1, unit: 'month' },
   lastDoseDate: '2026-08-28',
   nextDueDate: '2026-09-28',

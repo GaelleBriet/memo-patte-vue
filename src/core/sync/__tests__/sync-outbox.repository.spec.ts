@@ -11,8 +11,10 @@ import {
   createSyncTestDb,
   enableSync,
   insertAnimal,
+  insertCarnetSettings,
   insertTreatment,
   insertTreatmentDose,
+  insertTreatmentPeriod,
   insertVaccination,
   insertVaccinationInjection,
   insertWeightEntry,
@@ -21,6 +23,7 @@ import {
 
 const T1 = '2026-01-01T00:00:00.000Z'
 const T2 = '2026-01-01T00:05:00.000Z'
+const SETTINGS_ID = '00000000-0000-0000-0000-000000000000'
 
 describe('syncOutboxRepository', () => {
   let db: InMemoryDb
@@ -117,10 +120,12 @@ describe('syncOutboxRepository', () => {
 
     it('rend chaque parent avant ses enfants (ordre des clés étrangères Postgres)', async () => {
       await enableSync(db)
+      await insertCarnetSettings(db, SETTINGS_ID, T1)
       await insertAnimal(db, ANIMAL_ID, T1)
       await insertWeightEntry(db, 'w-1', ANIMAL_ID, T1)
       await insertTreatment(db, 't-1', ANIMAL_ID, T1)
-      await insertTreatmentDose(db, 'd-1', 't-1', ANIMAL_ID, T1)
+      await insertTreatmentPeriod(db, 'p-1', 't-1', ANIMAL_ID, T1)
+      await insertTreatmentDose(db, 'd-1', 'p-1', 't-1', ANIMAL_ID, T1)
       await insertVaccination(db, 'v-1', ANIMAL_ID, T1)
       await insertVaccinationInjection(db, 'i-1', 'v-1', ANIMAL_ID, T1)
 
@@ -131,10 +136,30 @@ describe('syncOutboxRepository', () => {
         { entity: 'vaccination', entityId: 'v-1', queuedAt: T1, attempts: 0 },
         { entity: 'vaccination_injection', entityId: 'i-1', queuedAt: T1, attempts: 0 },
         { entity: 'treatment', entityId: 't-1', queuedAt: T1, attempts: 0 },
+        { entity: 'treatment_period', entityId: 'p-1', queuedAt: T1, attempts: 0 },
         { entity: 'treatment_dose', entityId: 'd-1', queuedAt: T1, attempts: 0 },
         { entity: 'weight_entry', entityId: 'w-1', queuedAt: T1, attempts: 0 },
+        { entity: 'carnet_settings', entityId: SETTINGS_ID, queuedAt: T1, attempts: 0 },
       ])
       expect(pending.map((entry) => entry.entity)).toEqual(SYNC_ENTITY_ORDER)
+    })
+
+    it('rend après toutes les autres une entité sans rang', async () => {
+      await enableSync(db)
+      await db.run(
+        `INSERT INTO sync_outbox (entity, entity_id, queued_at) VALUES ('table_inconnue', 'x-1', ?)`,
+        [T1],
+      )
+      await insertCarnetSettings(db, SETTINGS_ID, T2)
+      await insertAnimal(db, ANIMAL_ID, T2)
+
+      const pending = await repository.listPending()
+
+      expect(pending.map(({ entity }) => entity)).toEqual([
+        'animal',
+        'carnet_settings',
+        'table_inconnue',
+      ])
     })
   })
 

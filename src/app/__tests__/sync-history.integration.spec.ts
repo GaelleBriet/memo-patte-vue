@@ -7,6 +7,7 @@ import { createSyncOutboxRepository } from '@/core/sync/repository/sync-outbox.r
 import { createSyncCycle } from '@/core/sync/service/sync-cycle'
 import { createAnimalsRepository } from '@/features/animals/repository/animals.repository'
 import { createTreatmentDosesRepository } from '@/features/treatments/repository/treatment-doses.repository'
+import { createTreatmentPeriodsRepository } from '@/features/treatments/repository/treatment-periods.repository'
 import { createTreatmentsRepository } from '@/features/treatments/repository/treatments.repository'
 import { createTreatmentDosesService } from '@/features/treatments/service/treatment-doses.service'
 import { createVaccinationInjectionsRepository } from '@/features/vaccinations/repository/vaccination-injections.repository'
@@ -26,13 +27,14 @@ async function createDevice(client: SupabaseClient) {
   const vaccinations = createVaccinationsRepository(db, deps)
   const injections = createVaccinationInjectionsRepository(db, deps)
   const treatments = createTreatmentsRepository(db, deps)
+  const periods = createTreatmentPeriodsRepository(db, deps)
   const doses = createTreatmentDosesRepository(db, deps)
   const weight = createWeightRepository(db, deps)
   const onRemindersOutdated = vi.fn<() => Promise<void>>().mockResolvedValue(undefined)
   const cycle = createSyncCycle({
     db,
     outbox: createSyncOutboxRepository(db),
-    tables: [animals, vaccinations, injections, treatments, doses, weight],
+    tables: [animals, vaccinations, injections, treatments, periods, doses, weight],
     userId: () => USER_ID,
     isEligible: () => true,
     onRemindersOutdated,

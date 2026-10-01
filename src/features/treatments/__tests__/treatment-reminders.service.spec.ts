@@ -31,6 +31,7 @@ const MILBEMAX: Treatment = {
   animalId: LUNA.id,
   name: 'Milbemax',
   type: 'deworming',
+  periodId: '44444444-4444-4444-8444-444444444444',
   frequency: { value: 3, unit: 'month' },
   lastDoseDate: '2026-07-15',
   nextDueDate: '2026-10-15',

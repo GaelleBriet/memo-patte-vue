@@ -1086,6 +1086,7 @@ describe('HomeView — feuille d’un rappel', () => {
       animalId: LUNA.id,
       name: 'Milbemax',
       type: 'deworming',
+      periodId: VERMIFUGE_LUNA_AUJOURDHUI.id,
       frequency: { value: 1, unit: 'month' },
       lastDoseDate: '2026-08-09',
       nextDueDate: '2026-09-09',

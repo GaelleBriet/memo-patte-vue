@@ -8,6 +8,7 @@ import {
   createFakeNotifications,
   type FakeNotifications,
 } from '@/shared/__tests__/fake-notifications'
+import { createTreatmentPeriodsRepository } from '../repository/treatment-periods.repository'
 import {
   createTreatmentsRepository,
   type TreatmentsRepository,
@@ -48,6 +49,7 @@ describe('treatmentStopService', () => {
     })
     service = createTreatmentStopService({
       treatments: () => treatments,
+      periods: () => createTreatmentPeriodsRepository(db),
       reminders,
       today: () => '2026-09-23',
     })
@@ -68,7 +70,7 @@ describe('treatmentStopService', () => {
     vi.useRealTimers()
   })
 
-  it('arrête le traitement aujourd’hui et retire tous ses rappels, prises gardées', async () => {
+  it('arrête la période en cours aujourd’hui et retire tous les rappels, prises gardées', async () => {
     expect(notifications.pending.size).toBeGreaterThan(0)
 
     await expect(service.stop(bravecto)).resolves.toEqual({ animalId: BOREE, stopped: true })
@@ -77,6 +79,9 @@ describe('treatmentStopService', () => {
       stoppedOn: '2026-09-23',
       lastDoseDate: '2026-08-28',
     })
+    await expect(
+      db.query('SELECT stopped_on FROM treatment_period WHERE treatment_id = ?', [bravecto]),
+    ).resolves.toEqual([{ stopped_on: '2026-09-23' }])
     expect(notifications.pending.size).toBe(0)
   })
 

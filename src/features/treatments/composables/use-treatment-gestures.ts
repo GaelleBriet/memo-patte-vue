@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { todayIsoDate } from '@/core/app-lifecycle/today-iso-date'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import { showToast, showUndoableToast } from '@/shared/utils/toast'
+import { doseDay } from '../logic/treatment-dose'
 import { doseGestureTexts, treatmentDeleteTexts } from '../logic/treatment-history'
 import { doseToast } from '../logic/treatment-sheet'
 import type { TreatmentDose } from '../schema/treatment-dose.schema'
@@ -79,7 +80,7 @@ export function useTreatmentGestures(onChanged: () => void) {
 
   function removeDose(dose: TreatmentDose): Promise<boolean> {
     const { treatmentId, id } = dose
-    const texts = doseGestureTexts(t, dose.givenOn, todayIsoDate())
+    const texts = doseGestureTexts(t, doseDay(dose), todayIsoDate())
     return guarded(async () => {
       await treatments.removeDose(treatmentId, id)
       onChanged()
@@ -89,7 +90,7 @@ export function useTreatmentGestures(onChanged: () => void) {
 
   function changeDoseDate(dose: TreatmentDose, givenOn: string): Promise<boolean> {
     const { treatmentId, id } = dose
-    const texts = doseGestureTexts(t, dose.givenOn, todayIsoDate())
+    const texts = doseGestureTexts(t, doseDay(dose), todayIsoDate())
     return guarded(async () => {
       const { previous, postponementKept } = await treatments.changeDoseDate(
         treatmentId,

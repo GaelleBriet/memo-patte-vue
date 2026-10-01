@@ -30,6 +30,13 @@ vi.mock('@/features/treatments/repository/treatments.repository', async (importO
   ...(await importOriginal<object>()),
   getTreatmentsRepository: async () => ({ entity: 'treatment' }),
 }))
+vi.mock(
+  '@/features/treatments/repository/treatment-periods.repository',
+  async (importOriginal) => ({
+    ...(await importOriginal<object>()),
+    getTreatmentPeriodsRepository: async () => ({ entity: 'treatment_period' }),
+  }),
+)
 vi.mock('@/features/treatments/repository/treatment-doses.repository', async (importOriginal) => ({
   ...(await importOriginal<object>()),
   getTreatmentDosesRepository: async () => ({ entity: 'treatment_dose' }),
@@ -37,6 +44,10 @@ vi.mock('@/features/treatments/repository/treatment-doses.repository', async (im
 vi.mock('@/features/weight/repository/weight.repository', async (importOriginal) => ({
   ...(await importOriginal<object>()),
   getWeightRepository: async () => ({ entity: 'weight_entry' }),
+}))
+vi.mock('@/features/settings/repository/carnet-settings.repository', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  getCarnetSettingsRepository: async () => ({ entity: 'carnet_settings' }),
 }))
 
 describe('createDefaultSyncDependencies', () => {

@@ -83,7 +83,7 @@ export function createTreatmentDosesService({
       await reminders.reschedule(treatmentId)
     },
 
-    /** Lève pour une date future ou déjà notée. */
+    /** Lève pour une date future ou déjà notée, et pour une prise qui n'a pas été donnée. */
     async changeDate(
       treatmentId: string,
       doseId: string,
@@ -91,25 +91,19 @@ export function createTreatmentDosesService({
     ): Promise<DoseDateChange> {
       const date = treatmentInputSchema.shape.lastDoseDate.parse(givenOn)
       const repository = await doses()
-      const [dose, treatment, all] = await Promise.all([
+      const [dose, all] = await Promise.all([
         repository.getById(doseId),
-        (await treatments()).getById(treatmentId),
         repository.listByTreatment(treatmentId),
       ])
       if (dose === null) throw new Error(`Prise introuvable : ${doseId}`)
-      if (treatment === null) throw new Error(`Traitement introuvable : ${treatmentId}`)
+      if (dose.givenOn === null) throw new Error(`Prise non donnée : ${doseId}`)
 
       const { dates, postponementKept } = redatedDose(dose, date, {
         isHead: becomesHead(all, dose, date),
-        plan: treatment,
       })
       await writeDates(treatmentId, doseId, dates)
       return {
-        previous: {
-          givenOn: dose.givenOn,
-          nextDueDate: dose.nextDueDate,
-          frequency: dose.frequency,
-        },
+        previous: { givenOn: dose.givenOn, dueOn: dose.dueOn, nextDueDate: dose.nextDueDate },
         postponementKept,
       }
     },
