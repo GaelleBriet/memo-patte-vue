@@ -5,6 +5,20 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.50](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.49...memo-patte-v0.1.50) (2026-10-01)
+
+
+### ✨ Fonctionnalités
+
+* **shared:** moteur d'échéances des traitements ([82763b5](https://github.com/GaelleBriet/memo-patte-vue/commit/82763b5ad66351f349a2aeba45b75cffa54efcb8))
+* **shared:** un déplacement dont la dose d'arrivée est notée ne se supprime ni ne se redate ([709aa21](https://github.com/GaelleBriet/memo-patte-vue/commit/709aa2152b37d2e789fe53d1f042d5f61517fb20))
+
+
+### 🐛 Corrections
+
+* **shared:** une ligne de déplacement verrouillée n'est jamais dépassée ni sans effet ([eb74be5](https://github.com/GaelleBriet/memo-patte-vue/commit/eb74be537a3ff121196baa3abf840efc74e81ee2))
+* **shared:** une seule ligne de déplacement par journée d'origine ([8eca5cf](https://github.com/GaelleBriet/memo-patte-vue/commit/8eca5cfc98190f31ec56bf84771c38c9f1831967))
+
 ## [0.1.49](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.48...memo-patte-v0.1.49) (2026-10-01)
 
 
