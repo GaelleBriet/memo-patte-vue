@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { animalInputSchema } from '../schema/animal.schema'
+import { animalCreationInputSchema, animalInputSchema } from '../schema/animal.schema'
 import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
 
 const validInput = { name: 'Miette', species: 'cat' } as const
@@ -11,7 +11,6 @@ describe('animalInputSchema', () => {
       species: 'cat',
       breed: null,
       birthDate: null,
-      initialWeightKg: null,
       photoPath: null,
     })
   })
@@ -45,23 +44,6 @@ describe('animalInputSchema', () => {
     expect(animalInputSchema.safeParse({ ...validInput, species: 'cat' }).success).toBe(true)
   })
 
-  it('rejette un poids nul ou négatif mais accepte l’absence de poids', () => {
-    expect(animalInputSchema.safeParse({ ...validInput, initialWeightKg: 0 }).success).toBe(false)
-    expect(animalInputSchema.safeParse({ ...validInput, initialWeightKg: -2 }).success).toBe(false)
-    expect(animalInputSchema.safeParse({ ...validInput, initialWeightKg: 4.2 }).success).toBe(true)
-    expect(animalInputSchema.safeParse({ ...validInput, initialWeightKg: null }).success).toBe(true)
-  })
-
-  it('rejette un poids initial hors de toute échelle animale', () => {
-    expect(animalInputSchema.safeParse({ ...validInput, initialWeightKg: 1e308 }).success).toBe(
-      false,
-    )
-    expect(animalInputSchema.safeParse({ ...validInput, initialWeightKg: 200.5 }).success).toBe(
-      false,
-    )
-    expect(animalInputSchema.safeParse({ ...validInput, initialWeightKg: 200 }).success).toBe(true)
-  })
-
   it('rejette une date de naissance dans le futur ou mal formée', () => {
     expect(animalInputSchema.safeParse({ ...validInput, birthDate: '2099-01-01' }).success).toBe(
       false,
@@ -77,5 +59,28 @@ describe('animalInputSchema', () => {
       true,
     )
     expect(animalInputSchema.safeParse({ ...validInput, birthDate: today }).success).toBe(true)
+  })
+})
+
+describe('animalCreationInputSchema', () => {
+  const creation = (weightKg: number | null) =>
+    animalCreationInputSchema.safeParse({ ...validInput, weightKg }).success
+
+  it('ne porte pas de poids : il est réservé à la création', () => {
+    expect(animalInputSchema.parse({ ...validInput, weightKg: 4.2 })).not.toHaveProperty('weightKg')
+  })
+
+  it('rejette un poids nul ou négatif mais accepte l’absence de poids', () => {
+    expect(creation(0)).toBe(false)
+    expect(creation(-2)).toBe(false)
+    expect(creation(4.2)).toBe(true)
+    expect(creation(null)).toBe(true)
+    expect(animalCreationInputSchema.parse(validInput).weightKg).toBeNull()
+  })
+
+  it('rejette un poids hors de toute échelle animale', () => {
+    expect(creation(1e308)).toBe(false)
+    expect(creation(200.5)).toBe(false)
+    expect(creation(200)).toBe(true)
   })
 })

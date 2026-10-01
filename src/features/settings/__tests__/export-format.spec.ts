@@ -137,9 +137,9 @@ describe('toCsvTables', () => {
 
   it('sépare par « ; », entoure de guillemets un champ qui contient « ; » ou « " »', () => {
     expect(lines(tables['animaux.csv'])).toEqual([
-      'id;name;species;breed;birthDate;initialWeightKg;createdAt;updatedAt',
-      `${LUNA_ID};Luna;cat;"Européen ; tigrée ""Mimi""";2019-03-02;3,8;2026-01-10T08:00:00.000Z;2026-02-01T08:00:00.000Z`,
-      `${MILO_ID};Milo;dog;;;;2026-01-12T08:00:00.000Z;2026-01-12T08:00:00.000Z`,
+      'id;name;species;breed;birthDate;createdAt;updatedAt',
+      `${LUNA_ID};Luna;cat;"Européen ; tigrée ""Mimi""";2019-03-02;2026-01-10T08:00:00.000Z;2026-02-01T08:00:00.000Z`,
+      `${MILO_ID};Milo;dog;;;2026-01-12T08:00:00.000Z;2026-01-12T08:00:00.000Z`,
       '',
     ])
   })
@@ -190,13 +190,11 @@ describe('toCsvTables', () => {
   it('écrit en kilos au centième une pesée saisie en livres, sans décimales parasites', () => {
     const data = {
       ...EXPORT_FIXTURE,
-      animals: [{ ...EXPORT_FIXTURE.animals[0]!, initialWeightKg: 54.1 * 0.45359237 }],
       weightEntries: [{ ...EXPORT_FIXTURE.weightEntries[0]!, weightKg: 54.1 * 0.45359237 }],
     }
     const tables = toCsvTables(data, 'kg')
 
     expect(lines(tables['poids.csv'])[1]).toMatch(/;24,54$/)
-    expect(lines(tables['animaux.csv'])[1]).toContain(';24,54;')
     expect(JSON.parse(toJsonExport(data, META)).weightEntries[0].weightKg).toBe(54.1 * 0.45359237)
   })
 
@@ -209,10 +207,6 @@ describe('toCsvTables', () => {
       `w-milo-1;${MILO_ID};Milo;2026-08-30;26,46`,
       '',
     ])
-    expect(lines(enLivres['animaux.csv'])[0]).toBe(
-      'id;name;species;breed;birthDate;initialWeightLb;createdAt;updatedAt',
-    )
-    expect(lines(enLivres['animaux.csv'])[1]).toContain(';2019-03-02;8,38;')
   })
 
   it('liste les échéances dans rappels.csv', () => {
@@ -240,7 +234,7 @@ describe('toCsvTables', () => {
     const tables = toCsvTables(data, 'kg')
 
     expect(lines(tables['animaux.csv'])[1]).toContain(`;"'=HYPERLINK(""x"")";dog;'+33 croisé;`)
-    expect(lines(tables['animaux.csv'])[2]).toContain(";'-Luna;cat;'@home;2019-03-02;3,8;")
+    expect(lines(tables['animaux.csv'])[2]).toContain(";'-Luna;cat;'@home;2019-03-02;")
     expect(lines(tables['poids.csv'])[1]).toMatch(/;2025-12-24;-1$/)
     expect(tables['vaccins.csv']).toContain(";'\tRage;")
     expect(tables['vaccins.csv']).toContain(`;"'\rToux";`)

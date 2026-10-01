@@ -29,7 +29,6 @@ const animalSchema = z.object({
   species: z.enum(['dog', 'cat']),
   breed: optionalName,
   birthDate: pastDate.nullable().default(null),
-  initialWeightKg: weightKg.nullable().default(null),
   photoFileName: z.string().max(MAX_TEXT_LENGTH).nullable(),
   ...timestamps,
 })

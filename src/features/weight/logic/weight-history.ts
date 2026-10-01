@@ -18,8 +18,6 @@ export type WeightHistory = {
   headline: WeightDelta | null
   /** La plus récente en haut. */
   rows: WeightHistoryRow[]
-  /** Donnée de l'animal, sans date : jamais une pesée ni un point de courbe. */
-  initialWeightKg: number | null
 }
 
 function rowDelta(
@@ -34,10 +32,7 @@ function rowDelta(
 }
 
 /** Les pesées arrivent dans l'ordre du temps, comme les rend le store. */
-export function weightHistory(
-  entries: readonly WeightHistoryEntry[],
-  initialWeightKg: number | null,
-): WeightHistory {
+export function weightHistory(entries: readonly WeightHistoryEntry[]): WeightHistory {
   const rows = entries
     .map((entry, index) => ({
       id: entry.id,
@@ -54,6 +49,5 @@ export function weightHistory(
     current: summary?.latest ?? null,
     headline: summary?.delta ?? null,
     rows,
-    initialWeightKg,
   }
 }

@@ -125,15 +125,11 @@ function namesById(rows: { id: string; name: string }[]): (id: string) => string
   return (id) => names.get(id) ?? null
 }
 
-const WEIGHT_COLUMNS: Record<WeightUnit, { initial: string; entry: string }> = {
-  kg: { initial: 'initialWeightKg', entry: 'weightKg' },
-  lb: { initial: 'initialWeightLb', entry: 'weightLb' },
-}
+const WEIGHT_COLUMNS: Record<WeightUnit, string> = { kg: 'weightKg', lb: 'weightLb' }
 
 /** Poids dans l'unité choisie, nommée par le titre de colonne ; le JSON reste en kg. */
 export function toCsvTables(data: ExportData, weightUnit: WeightUnit): CsvTables {
-  const weightColumns = WEIGHT_COLUMNS[weightUnit]
-  const weight = (kg: number | null) => (kg === null ? null : recordedWeightIn(kg, weightUnit))
+  const weightColumn = WEIGHT_COLUMNS[weightUnit]
   const animalName = namesById(data.animals)
   const vaccinationName = namesById(data.vaccinations)
   const treatmentName = namesById(data.treatments)
@@ -142,23 +138,13 @@ export function toCsvTables(data: ExportData, weightUnit: WeightUnit): CsvTables
 
   return {
     'animaux.csv': csv(
-      [
-        'id',
-        'name',
-        'species',
-        'breed',
-        'birthDate',
-        weightColumns.initial,
-        'createdAt',
-        'updatedAt',
-      ],
+      ['id', 'name', 'species', 'breed', 'birthDate', 'createdAt', 'updatedAt'],
       data.animals.map((animal) => [
         animal.id,
         animal.name,
         animal.species,
         animal.breed,
         animal.birthDate,
-        weight(animal.initialWeightKg),
         animal.createdAt,
         animal.updatedAt,
       ]),
@@ -243,13 +229,13 @@ export function toCsvTables(data: ExportData, weightUnit: WeightUnit): CsvTables
       ]),
     ),
     'poids.csv': csv(
-      ['id', 'animalId', 'animalName', 'measuredOn', weightColumns.entry],
+      ['id', 'animalId', 'animalName', 'measuredOn', weightColumn],
       data.weightEntries.map((entry) => [
         entry.id,
         entry.animalId,
         animalName(entry.animalId),
         entry.measuredOn,
-        weight(entry.weightKg),
+        recordedWeightIn(entry.weightKg, weightUnit),
       ]),
     ),
     'rappels.csv': csv(

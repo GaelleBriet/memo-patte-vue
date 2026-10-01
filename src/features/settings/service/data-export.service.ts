@@ -105,7 +105,6 @@ export function createDataExportService({
         species: animal.species,
         breed: animal.breed,
         birthDate: animal.birthDate,
-        initialWeightKg: animal.initialWeightKg,
         photoFileName: animal.photoPath,
         createdAt: animal.createdAt,
         updatedAt: animal.updatedAt,

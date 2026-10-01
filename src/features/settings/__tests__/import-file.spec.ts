@@ -113,12 +113,6 @@ describe('parseExportFile', () => {
       }),
     ],
     [
-      'un poids initial hors bornes',
-      withDocument((document) => {
-        ;(document.animals as Record<string, unknown>[])[0]!.initialWeightKg = 201
-      }),
-    ],
-    [
       'une fréquence de traitement hors bornes',
       withDocument((document) => {
         ;(document.treatments as Record<string, unknown>[])[0]!.frequency = {
@@ -133,7 +127,7 @@ describe('parseExportFile', () => {
 
   it('reste « pas un export » quand le poids hors bornes n’est pas le seul défaut', () => {
     const text = withDocument((document) => {
-      ;(document.animals as Record<string, unknown>[])[0]!.initialWeightKg = 201
+      ;(document.weightEntries as Record<string, unknown>[])[0]!.weightKg = 201
       ;(document.animals as Record<string, unknown>[])[0]!.species = 'rabbit'
     })
 

@@ -81,7 +81,6 @@ const animalFileSchema = z.object({
   species: animalSpeciesSchema,
   breed: optionalName,
   birthDate: animalInputSchema.shape.birthDate,
-  initialWeightKg: animalInputSchema.shape.initialWeightKg,
   photoFileName: z.string().max(MAX_TEXT_LENGTH).nullable(),
   ...timestamps,
 })
@@ -185,7 +184,7 @@ function parseJson(text: string): unknown {
   }
 }
 
-const BOUNDED_FIELDS = [['weightKg'], ['initialWeightKg'], ['frequency', 'value']]
+const BOUNDED_FIELDS = [['weightKg'], ['frequency', 'value']]
 const NAME_FIELDS = [['name'], ['breed']]
 
 function endsWith(path: PropertyKey[], suffix: string[]): boolean {

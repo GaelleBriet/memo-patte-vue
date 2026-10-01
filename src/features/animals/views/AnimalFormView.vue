@@ -32,9 +32,7 @@ const animals = useAnimalsStore()
 
 const values = ref(emptyAnimalFormValues())
 const existing = ref<Animal | null>(null)
-const { errors, validate } = useFormValidation(values, (current) =>
-  validateAnimalForm(current, existing.value?.initialWeightKg ?? null),
-)
+const { errors, validate } = useFormValidation(values, validateAnimalForm)
 const notFound = ref(false)
 const saveFailed = ref(false)
 const isSubmitting = ref(false)
@@ -121,7 +119,8 @@ async function submit(): Promise<void> {
 
   try {
     if (props.id !== undefined) {
-      await animals.update(props.id, result.data, photo.value)
+      const { weightKg: _weightKg, ...animal } = result.data
+      await animals.update(props.id, animal, photo.value)
     } else {
       const created = await animals.create(result.data, photo.value)
       animals.select(created.id)
@@ -243,15 +242,16 @@ async function submit(): Promise<void> {
     </FormField>
 
     <FormField
+      v-if="!isEdit"
       class="animal-form__field--weight"
       :label="t('animals.form.initialWeightKg.label')"
       control-id="animal-weight"
-      :error="errors.initialWeightKg ? t(errors.initialWeightKg, weightLimitParams(t)) : null"
+      :error="errors.weightKg ? t(errors.weightKg, weightLimitParams(t)) : null"
     >
       <template #default="{ describedby, invalid }">
         <v-text-field
           id="animal-weight"
-          v-model="values.initialWeightKg"
+          v-model="values.weightKg"
           :aria-describedby="describedby"
           :aria-invalid="invalid"
           class="form-field__input form-field__input--number"

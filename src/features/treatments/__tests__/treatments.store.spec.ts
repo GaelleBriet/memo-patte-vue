@@ -31,7 +31,6 @@ const MILO_ANIMAL: Animal = {
   species: 'dog',
   breed: null,
   birthDate: null,
-  initialWeightKg: null,
   photoPath: null,
   createdAt: '2026-09-09T09:00:00.000Z',
   updatedAt: '2026-09-09T09:00:00.000Z',

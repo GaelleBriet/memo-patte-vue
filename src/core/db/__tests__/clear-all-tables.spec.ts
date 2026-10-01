@@ -9,20 +9,21 @@ describe('migrationTableNames', () => {
   it('liste une fois chaque table créée par les migrations, dans leur ordre de première création', () => {
     expect(migrationTableNames()).toEqual([
       'animal',
-      'vaccination',
       'weight_entry',
+      'carnet_settings',
+      'vaccination',
+      'vaccination_injection',
       'treatment',
+      'treatment_dose',
       'sync_outbox',
       'sync_state',
-      'vaccination_injection',
-      'treatment_dose',
       'sync_pull_cursor',
     ])
   })
 
   it('s’arrête, sur demande, aux tables créées jusqu’à une version', () => {
-    expect(migrationTableNames(1)).toEqual(['animal'])
-    expect(migrationTableNames(6)).not.toContain('sync_pull_cursor')
+    expect(migrationTableNames(8)).toEqual([])
+    expect(migrationTableNames(9)).toEqual(migrationTableNames())
   })
 
   it('couvre chaque table réellement présente en base après migration', async () => {
@@ -61,6 +62,11 @@ describe('clearAllTables', () => {
       {
         sql: `INSERT INTO weight_entry (id, animal_id, weight_kg, measured_on, created_at, updated_at)
               VALUES ('w-1', 'a-1', 24.5, '2026-09-01', ?, ?)`,
+        params: [NOW, NOW],
+      },
+      {
+        sql: `INSERT INTO carnet_settings (id, vaccine_reminder_time, created_at, updated_at)
+              VALUES ('00000000-0000-0000-0000-000000000000', '08:30', ?, ?)`,
         params: [NOW, NOW],
       },
       {

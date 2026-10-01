@@ -22,13 +22,14 @@ interface VaccinationRow {
   id: string
   animal_id: string
   name: string
+  planned_due_date: string | null
   created_at: string
   updated_at: string
   deleted_at: string | null
 }
 
-interface VaccinationWithHeadRow extends VaccinationRow {
-  last_injection_date: string
+interface VaccinationWithHeadRow extends Omit<VaccinationRow, 'planned_due_date'> {
+  last_injection_date: string | null
   due_date: string | null
 }
 
@@ -38,17 +39,20 @@ export type RestoredVaccination = Pick<
   'id' | 'animalId' | 'name' | 'createdAt' | 'updatedAt'
 >
 
-const COLUMNS = 'id, animal_id, name, created_at, updated_at, deleted_at'
+const COLUMNS = 'id, animal_id, name, planned_due_date, created_at, updated_at, deleted_at'
 
 /** Les vaccins supprimés restent en base pour la synchronisation, jamais pour l'UI. */
 const NOT_DELETED = 'deleted_at IS NULL'
 
+/** Sans injection, le prochain rappel est le rappel prévu ; avec, celui de la dernière injection. */
 const VISIBLE_WITH_HEAD = `
   SELECT vaccination.id, vaccination.animal_id, vaccination.name,
-         head.injected_on AS last_injection_date, head.next_due_date AS due_date,
+         head.injected_on AS last_injection_date,
+         CASE WHEN head.id IS NULL THEN vaccination.planned_due_date ELSE head.next_due_date END
+           AS due_date,
          vaccination.created_at, vaccination.updated_at, vaccination.deleted_at
   FROM vaccination
-  JOIN vaccination_injection head ON head.id = ${headInjectionIdSql('vaccination.id')}
+  LEFT JOIN vaccination_injection head ON head.id = ${headInjectionIdSql('vaccination.id')}
   WHERE vaccination.deleted_at IS NULL`
 
 function toVaccination(row: VaccinationWithHeadRow): Vaccination {
@@ -126,14 +130,14 @@ export function createVaccinationsRepository(
 
       await db.runMany([
         {
-          sql: `INSERT INTO vaccination (${COLUMNS}) VALUES (?, ?, ?, ?, ?, NULL)`,
+          sql: `INSERT INTO vaccination (${COLUMNS}) VALUES (?, ?, ?, NULL, ?, ?, NULL)`,
           params: [vaccination.id, vaccination.animalId, vaccination.name, now, now],
         },
         injections.insertStatement({
           id: vaccination.id,
           vaccinationId: vaccination.id,
           animalId: vaccination.animalId,
-          injectedOn: vaccination.lastInjectionDate,
+          injectedOn: data.lastInjectionDate,
           nextDueDate: vaccination.dueDate,
           createdAt: now,
           updatedAt: now,
@@ -218,7 +222,7 @@ export function createVaccinationsRepository(
             params: [name, createdAt, updatedAt, id],
           }
         : {
-            sql: `INSERT INTO vaccination (${COLUMNS}) VALUES (?, ?, ?, ?, ?, NULL)`,
+            sql: `INSERT INTO vaccination (${COLUMNS}) VALUES (?, ?, ?, NULL, ?, ?, NULL)`,
             params: [id, animalId, name, createdAt, updatedAt],
           }
     },
@@ -259,9 +263,10 @@ export function createVaccinationsRepository(
     applyRemoteRowStatement(row: SyncRow): SqlStatement {
       return {
         sql: `INSERT INTO vaccination (${COLUMNS})
-              VALUES (?, ?, ?, ?, ?, ?)
+              VALUES (?, ?, ?, ?, ?, ?, ?)
               ON CONFLICT (id) DO UPDATE SET
                 animal_id = excluded.animal_id, name = excluded.name,
+                planned_due_date = excluded.planned_due_date,
                 created_at = excluded.created_at, updated_at = excluded.updated_at,
                 deleted_at = excluded.deleted_at
               WHERE excluded.updated_at > vaccination.updated_at`,
@@ -269,6 +274,7 @@ export function createVaccinationsRepository(
           row.id,
           syncField(row, 'animal_id'),
           syncField(row, 'name'),
+          syncField(row, 'planned_due_date'),
           syncField(row, 'created_at'),
           row.updated_at,
           syncField(row, 'deleted_at'),

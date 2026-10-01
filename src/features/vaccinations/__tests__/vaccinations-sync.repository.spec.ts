@@ -51,6 +51,7 @@ describe('vaccinationsRepository — port de synchronisation', () => {
       id: VACCINATION_ID,
       animal_id: ANIMAL_ID,
       name: 'Rage',
+      planned_due_date: null,
       created_at: T_LOCAL,
       updated_at: T_LOCAL,
       deleted_at: T_NEW,
@@ -77,6 +78,7 @@ describe('vaccinationsRepository — port de synchronisation', () => {
       id: VACCINATION_ID,
       animal_id: ANIMAL_ID,
       name: 'Rage (mise à jour)',
+      planned_due_date: '2026-10-05',
       created_at: T_LOCAL,
       updated_at: T_NEW,
       deleted_at: null,
@@ -89,6 +91,9 @@ describe('vaccinationsRepository — port de synchronisation', () => {
       lastInjectionDate: '2026-01-01',
       dueDate: '2027-01-01',
       updatedAt: T_NEW,
+    })
+    await expect(repository.getRowForPush(VACCINATION_ID)).resolves.toMatchObject({
+      planned_due_date: '2026-10-05',
     })
   })
 

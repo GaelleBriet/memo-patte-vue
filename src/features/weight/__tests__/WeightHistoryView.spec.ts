@@ -36,7 +36,6 @@ const MILO: Animal = {
   species: 'dog',
   breed: null,
   birthDate: null,
-  initialWeightKg: 8.5,
   photoPath: null,
   createdAt: '2026-09-09T09:00:00.000Z',
   updatedAt: '2026-09-09T09:00:00.000Z',
@@ -309,12 +308,6 @@ describe('WeightHistoryView — H1 historique complet', () => {
     expect(lignes[0]!.get('.weight-history__row-delta').classes()).toContain(
       'weight-history__delta--up',
     )
-  })
-
-  it('affiche le poids à l’arrivée sous la liste', async () => {
-    const wrapper = await monter()
-
-    expect(wrapper.get('.weight-history__initial').text()).toBe('Poids à l’arrivée : 8,5\u00a0kg')
   })
 
   it('offre le bouton fixe « Ajouter une pesée », qui ouvre la feuille pour cet animal', async () => {
@@ -700,13 +693,12 @@ describe('WeightHistoryView — H2 une seule pesée', () => {
     expect(wrapper.find('.weight-history-chart').exists()).toBe(false)
   })
 
-  it('liste l’unique pesée sans delta, garde le poids à l’arrivée et le bouton fixe', async () => {
+  it('liste l’unique pesée sans delta et garde le bouton fixe', async () => {
     const wrapper = await monter()
     const lignes = wrapper.findAll('.weight-history__row')
 
     expect(lignes).toHaveLength(1)
     expect(lignes[0]!.get('.weight-history__row-delta').text()).toBe('')
-    expect(wrapper.get('.weight-history__initial').text()).toBe('Poids à l’arrivée : 8,5\u00a0kg')
     expect(wrapper.find('.weight-history__add').exists()).toBe(true)
   })
 })
@@ -723,12 +715,6 @@ describe('WeightHistoryView — H3 aucune pesée', () => {
     expect(wrapper.find('.weight-history__add').exists()).toBe(false)
   })
 
-  it('garde le poids à l’arrivée', async () => {
-    const wrapper = await monter()
-
-    expect(wrapper.get('.weight-history__initial').text()).toBe('Poids à l’arrivée : 8,5\u00a0kg')
-  })
-
   it('ouvre la feuille depuis la ligne d’ajout de la carte vide', async () => {
     const wrapper = await monter()
 
@@ -738,13 +724,6 @@ describe('WeightHistoryView — H3 aucune pesée', () => {
     await flushPromises()
 
     expect(wrapper.getComponent(WeightSheet).props('modelValue')).toBe(true)
-  })
-
-  it('n’affiche pas de poids à l’arrivée quand l’animal n’en a pas', async () => {
-    animals = [{ ...MILO, initialWeightKg: null }]
-    const wrapper = await monter()
-
-    expect(wrapper.find('.weight-history__initial').exists()).toBe(false)
   })
 })
 
@@ -827,7 +806,6 @@ describe('WeightHistoryView — animal introuvable', () => {
     expect(wrapper.find('.weight-history__row').exists()).toBe(false)
     expect(wrapper.find('.weight-history__empty-add').exists()).toBe(false)
     expect(wrapper.find('.weight-history__add').exists()).toBe(false)
-    expect(wrapper.find('.weight-history__initial').exists()).toBe(false)
   })
 
   it('attend la liste des animaux avant de conclure', async () => {
@@ -1053,7 +1031,7 @@ describe('WeightHistoryView — en livres', () => {
     entries = [...HISTORIQUE_MILO]
   })
 
-  it('écrit le résumé, les graduations, la liste et le poids à l’arrivée en livres', async () => {
+  it('écrit le résumé, les graduations et la liste en livres', async () => {
     applyWeightUnit('lb')
     const wrapper = await monter()
 
@@ -1073,9 +1051,6 @@ describe('WeightHistoryView — en livres', () => {
     const ligne = wrapper.get('.weight-history__row')
     expect(ligne.get('.weight-history__row-delta').text()).toBe('+0,4\u00a0lb')
     expect(ligne.get('.weight-history__row-value').text()).toBe('54,0\u00a0lb')
-    expect(wrapper.get('.weight-history__initial').text()).toBe(
-      'Poids à l’arrivée\u00a0: 18,7\u00a0lb',
-    )
   })
 
   it('écrit la variation comme l’écart des deux poids affichés', async () => {

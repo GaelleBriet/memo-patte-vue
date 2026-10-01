@@ -47,6 +47,31 @@ export interface WeightRepositoryDependencies {
   loadSupabaseClient?: () => Promise<SupabaseClient>
 }
 
+function newEntry(input: WeightEntryInput, createdAt: string): WeightEntry {
+  return {
+    ...weightEntryInputSchema.parse(input),
+    id: crypto.randomUUID(),
+    createdAt,
+    updatedAt: createdAt,
+    deletedAt: null,
+  }
+}
+
+function insertStatement(entry: WeightEntry): SqlStatement {
+  return {
+    sql: `INSERT INTO weight_entry (${COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    params: [
+      entry.id,
+      entry.animalId,
+      entry.weightKg,
+      entry.measuredOn,
+      entry.createdAt,
+      entry.updatedAt,
+      entry.deletedAt,
+    ],
+  }
+}
+
 export function createWeightRepository(
   db: DbClient,
   { loadSupabaseClient: loadClient = loadSupabaseClient }: WeightRepositoryDependencies = {},
@@ -77,27 +102,15 @@ export function createWeightRepository(
     },
 
     async create(input: WeightEntryInput): Promise<WeightEntry> {
-      const data = weightEntryInputSchema.parse(input)
-      const now = new Date().toISOString()
-      const entry: WeightEntry = {
-        ...data,
-        id: crypto.randomUUID(),
-        createdAt: now,
-        updatedAt: now,
-        deletedAt: null,
-      }
-
-      await db.run(`INSERT INTO weight_entry (${COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?)`, [
-        entry.id,
-        entry.animalId,
-        entry.weightKg,
-        entry.measuredOn,
-        entry.createdAt,
-        entry.updatedAt,
-        entry.deletedAt,
-      ])
-
+      const entry = newEntry(input, new Date().toISOString())
+      const { sql, params } = insertStatement(entry)
+      await db.run(sql, params)
       return entry
+    },
+
+    /** Instruction fournie sans être exécutée : la création d'un animal la joue dans sa transaction. */
+    createStatement(input: WeightEntryInput, createdAt: string): SqlStatement {
+      return insertStatement(newEntry(input, createdAt))
     },
 
     /** `animal_id` reste hors du `SET` : le rattachement est figé à la création. */

@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } fr
 import { createMemoryHistory, createRouter, type Router } from 'vue-router'
 
 import AnimalFormView from '../views/AnimalFormView.vue'
-import type { Animal, AnimalInput } from '../schema/animal.schema'
+import type { Animal, AnimalCreationInput, AnimalInput } from '../schema/animal.schema'
 import { useAnimalsStore } from '../store/animals.store'
 import { simulateWebResume } from '@/core/app-lifecycle/__tests__/simulate-resume'
 import i18n from '@/core/i18n'
@@ -71,7 +71,6 @@ const MILO: Animal = {
   species: 'dog',
   breed: null,
   birthDate: null,
-  initialWeightKg: null,
   photoPath: null,
   createdAt: '2026-09-09T09:00:00.000Z',
   updatedAt: '2026-09-09T09:00:00.000Z',
@@ -82,11 +81,10 @@ const MILO_COMPLET: Animal = {
   ...MILO,
   breed: 'Labrador',
   birthDate: '2023-03-12',
-  initialWeightKg: 8.5,
 }
 
 let load: MockInstance
-let create: MockInstance<(input: AnimalInput) => Promise<Animal>>
+let create: MockInstance<(input: AnimalCreationInput) => Promise<Animal>>
 let update: MockInstance<(id: string, input: AnimalInput) => Promise<Animal>>
 let replace: MockInstance
 let routeur: Router
@@ -224,8 +222,8 @@ describe('AnimalFormView — champs date et poids', () => {
   })
 })
 
-describe('AnimalFormView — poids initial en livres', () => {
-  it('saisit le poids initial en livres et l’enregistre en kg', async () => {
+describe('AnimalFormView — poids en livres', () => {
+  it('saisit le poids en livres et l’enregistre en kg', async () => {
     applyWeightUnit('lb')
     const wrapper = monter()
     expect(wrapper.get('.animal-form__field--weight .v-text-field__suffix').text()).toBe('lb')
@@ -234,10 +232,9 @@ describe('AnimalFormView — poids initial en livres', () => {
 
     await soumettre(wrapper)
 
-    expect(create).toHaveBeenCalledWith(
-      expect.objectContaining({ initialWeightKg: 18.7 * KG_PER_LB }),
-      { kind: 'keep' },
-    )
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({ weightKg: 18.7 * KG_PER_LB }), {
+      kind: 'keep',
+    })
   })
 
   it('dit la borne haute en livres', async () => {
@@ -252,26 +249,10 @@ describe('AnimalFormView — poids initial en livres', () => {
     expect(create).not.toHaveBeenCalled()
   })
 
-  it('pré-remplit le poids initial avec un point, seul séparateur qu’un champ nombre accepte', async () => {
-    const wrapper = await monterEdition()
+  it('saisit le poids dans un champ nombre, qui n’accepte que le point', () => {
+    const wrapper = monter()
 
     expect(champ(wrapper, 'animal-weight').attributes('type')).toBe('number')
-    expect(valeur(wrapper, 'animal-weight')).toBe('8.5')
-  })
-
-  it('garde le poids initial enregistré quand seule une autre donnée change', async () => {
-    applyWeightUnit('lb')
-    const wrapper = await monterEdition()
-    expect(valeur(wrapper, 'animal-weight')).toBe('18.74')
-    await champ(wrapper, 'animal-breed').setValue('Beagle')
-
-    await soumettre(wrapper)
-
-    expect(update).toHaveBeenCalledWith(
-      MILO.id,
-      expect.objectContaining({ breed: 'Beagle', initialWeightKg: 8.5 }),
-      { kind: 'keep' },
-    )
   })
 })
 
@@ -435,7 +416,7 @@ describe('AnimalFormView — écriture', () => {
         species: 'dog',
         breed: null,
         birthDate: null,
-        initialWeightKg: null,
+        weightKg: null,
       }),
       { kind: 'keep' },
     )
@@ -454,7 +435,7 @@ describe('AnimalFormView — écriture', () => {
       expect.objectContaining({
         breed: 'Labrador',
         birthDate: '2023-03-12',
-        initialWeightKg: 8.5,
+        weightKg: 8.5,
       }),
       { kind: 'keep' },
     )
@@ -540,7 +521,13 @@ describe('AnimalFormView — édition (état F2)', () => {
     expect(especes(wrapper)[1]!.attributes('aria-checked')).toBe('false')
     expect(valeur(wrapper, 'animal-breed')).toBe('Labrador')
     expect(valeur(wrapper, 'animal-birth-date')).toBe('2023-03-12')
-    expect(valeur(wrapper, 'animal-weight')).toBe('8.5')
+  })
+
+  it('ne propose pas le poids, qui se corrige par les pesées', async () => {
+    const wrapper = await monterEdition()
+
+    expect(wrapper.find('#animal-weight').exists()).toBe(false)
+    expect(wrapper.findAll('.form-field')).toHaveLength(4)
   })
 
   it('charge les animaux avant de chercher celui de la route', async () => {
@@ -560,7 +547,6 @@ describe('AnimalFormView — édition (état F2)', () => {
 
     expect(valeur(wrapper, 'animal-breed')).toBe('')
     expect(valeur(wrapper, 'animal-birth-date')).toBe('')
-    expect(valeur(wrapper, 'animal-weight')).toBe('')
   })
 
   it('garde le titre d’origine pendant qu’on retape le nom', async () => {
@@ -574,7 +560,6 @@ describe('AnimalFormView — édition (état F2)', () => {
   it('met à jour par le store avec l’identifiant de la route, jamais par create', async () => {
     const wrapper = await monterEdition()
     await champ(wrapper, 'animal-name').setValue('Milou')
-    await champ(wrapper, 'animal-weight').setValue('9')
 
     await soumettre(wrapper)
     await flushPromises()
@@ -586,7 +571,6 @@ describe('AnimalFormView — édition (état F2)', () => {
         species: 'dog',
         breed: 'Labrador',
         birthDate: '2023-03-12',
-        initialWeightKg: 9,
         photoPath: null,
       },
       { kind: 'keep' },
@@ -614,7 +598,6 @@ describe('AnimalFormView — édition (état F2)', () => {
         species: 'dog',
         breed: null,
         birthDate: null,
-        initialWeightKg: null,
         photoPath: null,
       },
       { kind: 'keep' },

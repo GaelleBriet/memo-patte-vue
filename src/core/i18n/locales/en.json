@@ -471,7 +471,6 @@
       "selected": "Weigh-in on {date}",
       "list": "All weigh-ins",
       "rowHint": "Edit or delete",
-      "initial": "Weight on arrival: {weight}",
       "link": "View history"
     },
     "form": {
