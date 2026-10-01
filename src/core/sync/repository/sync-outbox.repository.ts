@@ -26,8 +26,10 @@ export const SYNC_ENTITY_ORDER = [
   'vaccination',
   'vaccination_injection',
   'treatment',
+  'treatment_period',
   'treatment_dose',
   'weight_entry',
+  'carnet_settings',
 ]
 
 const ENTITY_RANK = `CASE entity ${SYNC_ENTITY_ORDER.map((_, rank) => `WHEN ? THEN ${rank}`).join(' ')}

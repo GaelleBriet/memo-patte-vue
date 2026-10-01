@@ -17,7 +17,12 @@ export const MIRROR_FOREIGN_KEYS: Record<string, ForeignKey[]> = {
     { column: 'animal_id', parent: 'animal' },
   ],
   treatment: [{ column: 'animal_id', parent: 'animal' }],
+  treatment_period: [
+    { column: 'treatment_id', parent: 'treatment' },
+    { column: 'animal_id', parent: 'animal' },
+  ],
   treatment_dose: [
+    { column: 'period_id', parent: 'treatment_period' },
     { column: 'treatment_id', parent: 'treatment' },
     { column: 'animal_id', parent: 'animal' },
   ],

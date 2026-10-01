@@ -9,7 +9,9 @@ import type { SyncableTable } from '@/core/sync/service/syncable-table'
 import { getAnimalsRepository } from '@/features/animals/repository/animals.repository'
 import { useAuthStore } from '@/features/auth/store/auth.store'
 import { usePurchaseStore } from '@/features/purchase/store/purchase.store'
+import { getCarnetSettingsRepository } from '@/features/settings/repository/carnet-settings.repository'
 import { getTreatmentDosesRepository } from '@/features/treatments/repository/treatment-doses.repository'
+import { getTreatmentPeriodsRepository } from '@/features/treatments/repository/treatment-periods.repository'
 import { getTreatmentsRepository } from '@/features/treatments/repository/treatments.repository'
 import { getVaccinationInjectionsRepository } from '@/features/vaccinations/repository/vaccination-injections.repository'
 import { getVaccinationsRepository } from '@/features/vaccinations/repository/vaccinations.repository'
@@ -52,8 +54,10 @@ export async function createDefaultSyncDependencies(): Promise<SyncDependencies>
     await getVaccinationsRepository(),
     await getVaccinationInjectionsRepository(),
     await getTreatmentsRepository(),
+    await getTreatmentPeriodsRepository(),
     await getTreatmentDosesRepository(),
     await getWeightRepository(),
+    await getCarnetSettingsRepository(),
   ]
   const userId = () => useAuthStore().userId
   const { outbox, cycle } = await createLocalSyncContext({

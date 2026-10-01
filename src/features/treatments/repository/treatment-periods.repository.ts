@@ -1,5 +1,10 @@
+import type { SupabaseClient } from '@supabase/supabase-js'
+
 import type { DbClient, SqlStatement } from '@/core/db/db-client'
 import { getDb } from '@/core/db/sqlite'
+import { guardedUpsert, type SyncRow } from '@/core/supabase/guarded-upsert'
+import { loadSupabaseClient } from '@/core/supabase/load-client'
+import { syncField, type SyncPullPage } from '@/core/sync/service/syncable-table'
 import type { TreatmentFrequency } from '../schema/treatment.schema'
 import type { TreatmentPeriod, TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 
@@ -29,12 +34,32 @@ interface PeriodRow {
   deleted_at: string | null
 }
 
-const COLUMNS =
-  'id, treatment_id, animal_id, starts_on, first_due_on, ends_on, stopped_on, frequency_value, ' +
-  'frequency_unit, times, dose_quantity, dose_unit, reminder_offset_minutes, reminder_time, ' +
-  'created_at, updated_at, deleted_at'
-
 const NOT_DELETED = 'deleted_at IS NULL'
+
+const SYNC_COLUMN_NAMES = [
+  'id',
+  'treatment_id',
+  'animal_id',
+  'starts_on',
+  'first_due_on',
+  'ends_on',
+  'stopped_on',
+  'frequency_value',
+  'frequency_unit',
+  'times',
+  'dose_quantity',
+  'dose_unit',
+  'reminder_offset_minutes',
+  'reminder_time',
+  'created_at',
+  'updated_at',
+  'deleted_at',
+]
+const SYNC_COLUMNS = SYNC_COLUMN_NAMES.join(', ')
+
+export interface TreatmentPeriodsRepositoryDependencies {
+  loadSupabaseClient?: () => Promise<SupabaseClient>
+}
 
 const TIMES_SEPARATOR = ','
 
@@ -75,8 +100,15 @@ export function currentPeriodIdSql(treatmentId: string): string {
  * Écrit seul l'arrêt d'une période ; ses autres écritures sont des instructions que le repository
  * des traitements ou un service joue.
  */
-export function createTreatmentPeriodsRepository(db: DbClient) {
+export function createTreatmentPeriodsRepository(
+  db: DbClient,
+  {
+    loadSupabaseClient: loadClient = loadSupabaseClient,
+  }: TreatmentPeriodsRepositoryDependencies = {},
+) {
   return {
+    entity: 'treatment_period',
+
     insertStatement(period: TreatmentPeriod): SqlStatement {
       return {
         sql: `INSERT INTO treatment_period (id, treatment_id, animal_id, starts_on, first_due_on,
@@ -160,7 +192,7 @@ export function createTreatmentPeriodsRepository(db: DbClient) {
     /** Périodes visibles, toutes colonnes comprises, celles d'un même traitement de la première à la dernière. */
     async listAll(): Promise<TreatmentPeriodRecord[]> {
       const rows = await db.query<PeriodRow>(
-        `SELECT ${COLUMNS} FROM treatment_period WHERE ${NOT_DELETED}
+        `SELECT ${SYNC_COLUMNS} FROM treatment_period WHERE ${NOT_DELETED}
          ORDER BY treatment_id, starts_on, created_at, id`,
       )
       return rows.map(toPeriodRecord)
@@ -208,7 +240,7 @@ export function createTreatmentPeriodsRepository(db: DbClient) {
             params: [...values, period.id],
           }
         : {
-            sql: `INSERT INTO treatment_period (${COLUMNS})
+            sql: `INSERT INTO treatment_period (${SYNC_COLUMNS})
                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)`,
             params: [period.id, period.treatmentId, period.animalId, ...values],
           }
@@ -218,6 +250,54 @@ export function createTreatmentPeriodsRepository(db: DbClient) {
       return {
         sql: 'UPDATE treatment_period SET deleted_at = NULL, updated_at = ? WHERE id = ?',
         params: [updatedAt, id],
+      }
+    },
+
+    /** Tombstones compris : le push doit pouvoir renvoyer une suppression comme une ligne normale. */
+    async getRowForPush(id: string): Promise<SyncRow | null> {
+      const rows = await db.query<SyncRow>(
+        `SELECT ${SYNC_COLUMNS} FROM treatment_period WHERE id = ?`,
+        [id],
+      )
+      return rows[0] ?? null
+    },
+
+    async pushRow(userId: string, row: SyncRow): Promise<void> {
+      const supabase = await loadClient()
+      await guardedUpsert(supabase, 'treatment_period', ['user_id', 'id'], {
+        ...row,
+        user_id: userId,
+      })
+    },
+
+    async pullPage(userId: string, since: string, limit: number): Promise<SyncPullPage> {
+      const supabase = await loadClient()
+      const { data, error } = await supabase
+        .from('treatment_period')
+        .select(`${SYNC_COLUMNS}, server_updated_at`)
+        .eq('user_id', userId)
+        .gte('server_updated_at', since)
+        .order('server_updated_at', { ascending: true })
+        .limit(limit)
+      if (error) throw error
+
+      const rows = (data ?? []) as unknown as Array<SyncRow & { server_updated_at: string }>
+      return {
+        rows: rows.map(({ server_updated_at: _serverUpdatedAt, ...columns }) => columns as SyncRow),
+        cursor: rows.at(-1)?.server_updated_at ?? null,
+      }
+    },
+
+    applyRemoteRowStatement(row: SyncRow): SqlStatement {
+      return {
+        sql: `INSERT INTO treatment_period (${SYNC_COLUMNS})
+              VALUES (${SYNC_COLUMN_NAMES.map(() => '?').join(', ')})
+              ON CONFLICT (id) DO UPDATE SET
+                ${SYNC_COLUMN_NAMES.slice(1)
+                  .map((column) => `${column} = excluded.${column}`)
+                  .join(', ')}
+              WHERE excluded.updated_at > treatment_period.updated_at`,
+        params: SYNC_COLUMN_NAMES.map((column) => syncField(row, column)),
       }
     },
   }

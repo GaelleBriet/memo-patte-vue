@@ -210,8 +210,8 @@ Déconnexion et expiration se traitent alors en deux instructions, sans toucher 
 - **Sérialisation** : le patron déjà en place pour les rappels (`enqueueReminderTask` dans
   `shared/due-reminders-schedule.ts`), une promesse chaînée.
 - **Ordre intra-cycle** : `animal`, `vaccination`, `vaccination_injection`, `treatment`,
-  `treatment_dose`, `weight_entry` (`SYNC_ENTITY_ORDER`, au push comme au pull) — la clé étrangère
-  Postgres l'impose. Par lots de 200 lignes.
+  `treatment_period`, `treatment_dose`, `weight_entry`, `carnet_settings` (`SYNC_ENTITY_ORDER`, au push
+  comme au pull) — la clé étrangère Postgres l'impose. Par lots de 200 lignes.
 - **Redémarrage** : rien à sérialiser en JS, la file est en base. Au lancement, après restauration de
   session, s'il y a un compte Plus et des entrées, on programme un cycle. C'est ce que couvre le CA
   « sérialisation de la file » de #42 : reconstruire le service sur la même base et vérifier que les
