@@ -1,5 +1,35 @@
 # Contexte en cours (à mettre à jour à chaque lot)
 
+- 2026-10-01 (soir) : **pause demandée par Gaelle, reprendre ici.** Lots 1 et 2 **mergés** : #464
+  (#451, base neuve v9), #467 (#452, périodes et prises, v10), #470 (#454, export et import v3, carnet
+  de démo), #468 (#455, miroirs Supabase v10 et ports de synchro, **migration appliquée au vrai projet
+  avec Gaelle présente**, job vert), #471 (#453, moteur d'échéances, `src/shared/domain/treatment-schedule.ts`),
+  plus #466 (tests qui lisaient l'heure réelle : un test cassait `main` depuis le 1er octobre 10 h UTC).
+  `main` à **4093 tests**. Décisions de Gaelle du jour dans la spec `traitements.md` §10 (Q17 à Q26) :
+  avancer comme reporter, une ligne par déplacement, pas après la date de fin, « Prochaine dose »
+  déplace la journée, on raisonne par journée à plusieurs heures, un réglage changé vaut tout de
+  suite, un report qui a servi est verrouillé, champ grisé et son texte. Texte du refus d'un ancien
+  export validé ; #469 créé (relire les anciens exports au mieux, avant la publication).
+  - **Pièges trouvés, à retenir** : (1) une migration qui contient un `DELETE FROM … WHERE` passe tous
+    les tests et **échoue sur Android** (le plugin SQLite exige une base ouverte, qu'elle n'est pas
+    pendant une mise à niveau) : un test de `core/db` n'autorise plus que `DROP`, `CREATE`, `INSERT`,
+    `PRAGMA`, et toute migration se rejoue sur le téléphone (ancienne version remplie, puis nouvelle
+    par-dessus) ; (2) un test qui compare une date fixe à l'heure réelle finit par casser : figer
+    `Date` (`vi.useFakeTimers({ toFake: ['Date'], now })`), et rejouer la suite avec l'horloge avancée
+    pour les débusquer ; (3) `gh pr checks` peut rester `BLOCKED` un moment, et GitHub ne lie pas
+    toujours `Closes #N` (#471) : vérifier l'état du ticket après le merge.
+  - **Tests sur le téléphone** : nouvelle méthode, écrite dans `collaboration.md` après deux incidents
+    signalés à Gaelle (un tap tombé sur une notification de SMS, l'app passée devant un appel).
+  - **À faire ensuite, dans l'ordre** : découper `treatment-schedule.ts` (1 130 lignes) en fichiers à
+    plat dans `shared/domain/`, en un commit de déplacement pur ; puis lot 3, #460 et #461 en
+    parallèle, #462, #463 (brouillons dans le coffre, `product/14-tickets-lot-3.md`). À demander à
+    Gaelle avec #460 : les textes de « Prochaine dose » non déplaçable pour `'later-dose'` et
+    `'no-date-left'`. À dédoublonner au lot 3 : `MAX_FREQUENCY_VALUE`, bornes d'années, motif `HH:mm`
+    (moteur, schémas, import). Jusqu'au lot 3, **ne pas publier** : effets temporaires de #452 (PR
+    #467) et import qui refuse un traitement sans prise et le type « médicament ». `06-mvp-scope.md`
+    dit encore « Format JSON v2 ». Branche `docs/traitements-quotidiens` dépassée : la supprimer après
+    accord de Gaelle. BIOS : SVM désactivé, pas d'émulateur tant que Gaelle ne le réactive pas.
+
 - 2026-09-30 (soir) : **pause demandée par Gaelle, reprendre ici.** Lot 0 **mergé** : #456 (#349,
   « Ouvrir » après un export CSV ou PDF ; plus de bouton pour un JSON, qu'aucune app n'ouvre sur le
   téléphone de Gaelle : décision du jour, spec DO-6) et #457 (#384, « C'est fait » sur les
