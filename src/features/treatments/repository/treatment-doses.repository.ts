@@ -11,8 +11,8 @@ import type { FrequencyUnit } from '../schema/treatment.schema'
 export type RestoredTreatmentDose = Omit<NewTreatmentDose, 'deletedAt'>
 export type TreatmentDoseVersion = Pick<
   NewTreatmentDose,
-  'id' | 'treatmentId' | 'updatedAt' | 'deletedAt'
-> & { givenOn: string }
+  'id' | 'periodId' | 'treatmentId' | 'updatedAt' | 'deletedAt'
+>
 export type DoseDates = { givenOn: string; dueOn: string; nextDueDate: string }
 
 interface DoseRow {
@@ -35,13 +35,10 @@ interface DoseWithFrequencyRow extends DoseRow {
   frequency_unit: FrequencyUnit
 }
 
-interface DoseVersionRow {
-  id: string
-  treatment_id: string
-  day: string
-  updated_at: string
-  deleted_at: string | null
-}
+type DoseVersionRow = Pick<
+  DoseRow,
+  'id' | 'period_id' | 'treatment_id' | 'updated_at' | 'deleted_at'
+>
 
 const COLUMNS =
   'id, period_id, treatment_id, animal_id, due_on, due_time, given_on, status, next_due_date, created_at, updated_at, deleted_at'
@@ -221,19 +218,15 @@ export function createTreatmentDosesRepository(
       return changes > 0
     },
 
-    /**
-     * Lignes supprimées comprises : l'import rattache un fichier aux prises déjà en base, par le jour
-     * de la prise, son échéance pour une prise sans date réelle.
-     */
+    /** Lignes supprimées comprises : l'import compare les versions avant d'écrire. */
     async listVersions(): Promise<TreatmentDoseVersion[]> {
       const rows = await db.query<DoseVersionRow>(
-        `SELECT id, treatment_id, COALESCE(given_on, due_on) AS day, updated_at, deleted_at
-         FROM treatment_dose`,
+        'SELECT id, period_id, treatment_id, updated_at, deleted_at FROM treatment_dose',
       )
       return rows.map((row) => ({
         id: row.id,
+        periodId: row.period_id,
         treatmentId: row.treatment_id,
-        givenOn: row.day,
         updatedAt: row.updated_at,
         deletedAt: row.deleted_at,
       }))
@@ -246,15 +239,15 @@ export function createTreatmentDosesRepository(
       }
     },
 
-    /** La dernière ligne garde sa date et son échéance : seule la prochaine dose change. */
+    /** La dernière ligne garde sa date et son échéance ; elle n'est datée que si sa prochaine dose change. */
     updateHeadStatement(
       treatmentId: string,
       { nextDueDate, updatedAt }: Pick<NewTreatmentDose, 'nextDueDate' | 'updatedAt'>,
     ): SqlStatement {
       return {
         sql: `UPDATE treatment_dose SET next_due_date = ?, updated_at = ?
-              WHERE id = ${headDoseIdSql('?')}`,
-        params: [nextDueDate, updatedAt, treatmentId],
+              WHERE id = ${headDoseIdSql('?')} AND next_due_date <> ?`,
+        params: [nextDueDate, updatedAt, treatmentId, nextDueDate],
       }
     },
 
@@ -286,24 +279,21 @@ export function createTreatmentDosesRepository(
       }
     },
 
-    /**
-     * Une prise existante garde sa période, son traitement et son animal, et son échéance tant que
-     * sa date ne change pas : le reste suit le fichier.
-     */
+    /** Une prise existante garde sa période, son traitement et son animal : le reste suit le fichier. */
     restoreStatement(dose: RestoredTreatmentDose, exists: boolean): SqlStatement {
       return exists
         ? {
             sql: `UPDATE treatment_dose
-                  SET due_on = CASE WHEN given_on IS ? THEN due_on ELSE ? END,
-                      given_on = ?, status = ?, next_due_date = ?, updated_at = ?,
-                      deleted_at = NULL
+                  SET due_on = ?, due_time = ?, given_on = ?, status = ?, next_due_date = ?,
+                      created_at = ?, updated_at = ?, deleted_at = NULL
                   WHERE id = ?`,
             params: [
-              dose.givenOn,
               dose.dueOn,
+              dose.dueTime,
               dose.givenOn,
               dose.status,
               dose.nextDueDate,
+              dose.createdAt,
               dose.updatedAt,
               dose.id,
             ],

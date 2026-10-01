@@ -2,27 +2,31 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { toJsonExport } from '../logic/export-format'
+import { createCarnetSettingsRepository } from '../repository/carnet-settings.repository'
 import { createDataExportService } from '../service/data-export.service'
 import {
   createDataImportService,
   parseExportFile,
   type DataImportDependencies,
 } from '../service/data-import.service'
-import exportV1 from './fixtures/export-v1-0.1.37.json?raw'
 import type { ExportData } from '@/shared/domain/carnet-data'
 import type { ImportFile } from '@/shared/domain/import-plan'
-import type { ExportDataV1 } from '../logic/export-v1'
 import {
   CHPPIL_ID,
   IMPORT_FILE,
   IMPORT_FIXTURE,
-  IMPORT_FIXTURE_V1,
+  importFile,
+  importFixtureJson,
+  LEUCOSE_ID,
   LUNA_ID,
   MILBEMAX_ID,
   MILO_ID,
   MILO_WEIGHT_ID,
-  TYPHUS_ID,
-  v1File,
+  PANACUR_ID,
+  PANACUR_MATIN_ID,
+  PANACUR_PERIOD_ID,
+  PANACUR_REPORT_ID,
+  PANACUR_SOIR_ID,
 } from './import-fixture'
 import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory-db'
 import { createAnimalsRepository } from '@/features/animals/repository/animals.repository'
@@ -37,15 +41,29 @@ import { createWeightRepository } from '@/features/weight/repository/weight.repo
 
 const NOW = new Date('2026-09-15T10:00:00.000Z')
 const LUNA_PHOTO = IMPORT_FIXTURE.animals[0]!.photoFileName!
+const TABLES = [
+  'carnet_settings',
+  'animal',
+  'vaccination',
+  'vaccination_injection',
+  'treatment',
+  'treatment_period',
+  'treatment_dose',
+  'weight_entry',
+] as const
 
 let db: InMemoryDb
 let repositories: ReturnType<typeof createRepositories>
 
 function createRepositories(client: InMemoryDb) {
   return {
+    carnetSettings: createCarnetSettingsRepository(client),
     animals: createAnimalsRepository(client),
     vaccinations: createVaccinationsRepository(client),
+    injections: createVaccinationInjectionsRepository(client),
     treatments: createTreatmentsRepository(client),
+    periods: createTreatmentPeriodsRepository(client),
+    doses: createTreatmentDosesRepository(client),
     weight: createWeightRepository(client),
   }
 }
@@ -70,43 +88,67 @@ function prise(
   }
 }
 
+function importerOn(
+  client: InMemoryDb,
+  now: () => Date = () => new Date(),
+  overrides: Partial<DataImportDependencies> = {},
+) {
+  const to = createRepositories(client)
+  return createDataImportService({
+    carnetSettings: () => to.carnetSettings,
+    animals: () => to.animals,
+    vaccinations: () => to.vaccinations,
+    vaccinationInjections: () => to.injections,
+    treatments: async () => to.treatments,
+    treatmentPeriods: () => to.periods,
+    treatmentDoses: () => to.doses,
+    weight: () => to.weight,
+    photoExists: async () => false,
+    syncReminders: async () => undefined,
+    now,
+    ...overrides,
+  })
+}
+
 function setup(overrides: Partial<DataImportDependencies> = {}) {
   const syncReminders = vi.fn<() => Promise<void>>(async () => undefined)
   const photoExists = vi.fn<(name: string) => Promise<boolean>>(async () => false)
-  const service = createDataImportService({
-    animals: () => repositories.animals,
-    vaccinations: () => repositories.vaccinations,
-    vaccinationInjections: () => createVaccinationInjectionsRepository(db),
-    treatments: async () => repositories.treatments,
-    treatmentPeriods: () => createTreatmentPeriodsRepository(db),
-    treatmentDoses: () => createTreatmentDosesRepository(db),
-    weight: () => repositories.weight,
-    photoExists,
-    syncReminders,
-    now: () => NOW,
-    ...overrides,
-  })
+  const service = importerOn(db, () => NOW, { photoExists, syncReminders, ...overrides })
   return { service, syncReminders, photoExists }
 }
 
-function v2(data: ExportData): ImportFile {
-  return { schemaVersion: 2, data }
+function sorted(data: ExportData): ExportData {
+  const byId = <T extends { id: string }>(rows: T[]): T[] =>
+    [...rows].sort((a, b) => a.id.localeCompare(b.id))
+  return {
+    carnetSettings: data.carnetSettings,
+    animals: byId(data.animals),
+    vaccinations: byId(data.vaccinations),
+    vaccinationInjections: byId(data.vaccinationInjections),
+    treatments: byId(data.treatments),
+    treatmentPeriods: byId(data.treatmentPeriods),
+    treatmentDoses: byId(data.treatmentDoses),
+    weightEntries: byId(data.weightEntries),
+  }
 }
 
-function carnet(client: InMemoryDb = db): Promise<ExportData> {
+async function carnet(client: InMemoryDb = db): Promise<ExportData> {
   const from = createRepositories(client)
-  return createDataExportService({
+  const data = await createDataExportService({
+    carnetSettings: () => from.carnetSettings,
     animals: () => from.animals,
     vaccinations: () => from.vaccinations,
-    vaccinationInjections: () => createVaccinationInjectionsRepository(client),
+    vaccinationInjections: () => from.injections,
     treatments: () => from.treatments,
-    treatmentDoses: () => createTreatmentDosesRepository(client),
+    treatmentPeriods: () => from.periods,
+    treatmentDoses: () => from.doses,
     weight: () => from.weight,
     deliver: async () => 'shared',
     now: () => NOW,
     appVersion: 'test',
     weightUnit: () => 'kg',
   }).collect()
+  return sorted(data)
 }
 
 /** Export JSON de l'appareil tel que l'import le relit. */
@@ -117,39 +159,26 @@ async function exported(client: InMemoryDb): Promise<ImportFile> {
   return parsed.file
 }
 
-function importerOn(client: InMemoryDb, now: () => Date = () => new Date()) {
-  const to = createRepositories(client)
-  return createDataImportService({
-    animals: () => to.animals,
-    vaccinations: () => to.vaccinations,
-    vaccinationInjections: () => createVaccinationInjectionsRepository(client),
-    treatments: () => to.treatments,
-    treatmentPeriods: () => createTreatmentPeriodsRepository(client),
-    treatmentDoses: () => createTreatmentDosesRepository(client),
-    weight: () => to.weight,
-    photoExists: async () => false,
-    syncReminders: async () => undefined,
-    now,
-  })
-}
-
-function parsedV1(): ImportFile {
-  const parsed = parseExportFile(exportV1)
-  if (!parsed.ok) throw new Error(`export v1 refusé : ${parsed.reason}`)
-  return parsed.file
-}
-
-function events(client: InMemoryDb = db) {
-  return client.query<{ id: string; parent_id: string; day: string; deleted_at: string | null }>(
-    `SELECT id, vaccination_id AS parent_id, injected_on AS day, deleted_at FROM vaccination_injection
-     UNION ALL
-     SELECT id, treatment_id, given_on, deleted_at FROM treatment_dose
-     ORDER BY parent_id, day`,
-  )
+async function rowCounts(client: InMemoryDb = db): Promise<Record<string, number>> {
+  const counts: Record<string, number> = {}
+  for (const table of TABLES) {
+    const [row] = await client.query<{ count: number }>(`SELECT COUNT(*) AS count FROM ${table}`)
+    counts[table] = row!.count
+  }
+  return counts
 }
 
 function withoutPhotos(data: ExportData): ExportData {
-  return { ...data, animals: data.animals.map((animal) => ({ ...animal, photoFileName: null })) }
+  return sorted({
+    ...data,
+    animals: data.animals.map((animal) => ({ ...animal, photoFileName: null })),
+  })
+}
+
+function newer<T extends { id: string; updatedAt: string }>(rows: T[], id: string): T[] {
+  return rows.map((row) =>
+    row.id === id ? { ...row, updatedAt: '2026-09-12T00:00:00.000Z' } : row,
+  )
 }
 
 beforeEach(async () => {
@@ -172,42 +201,111 @@ describe('data-import.service', () => {
     await expect(service.hasLocalData()).resolves.toBe(true)
   })
 
-  it('importe un export dans une base vide, identifiants et dates d’origine compris', async () => {
+  it('importe un export dans une base vide : réglages, périodes, prises oubliées et reports à l’identique', async () => {
     const { service } = setup()
 
     await service.importData(IMPORT_FILE, 'replace')
 
     await expect(carnet()).resolves.toEqual(withoutPhotos(IMPORT_FIXTURE))
+    await expect(repositories.carnetSettings.get()).resolves.toEqual({
+      vaccineReminderTime: '18:30',
+      remindBeforeDue: false,
+    })
   })
 
-  it('écrit chaque vaccin et chaque traitement avec leur événement, sans doublon au second import', async () => {
+  it('écrit les nouvelles colonnes de l’animal', async () => {
+    const { service } = setup()
+    const parti: ExportData = {
+      ...IMPORT_FIXTURE,
+      animals: IMPORT_FIXTURE.animals.map((animal) =>
+        animal.id === MILO_ID
+          ? {
+              ...animal,
+              unfollowedOn: '2026-09-14',
+              departureReason: 'death',
+              departureDate: '2026-09-12',
+            }
+          : animal,
+      ),
+    }
+
+    await service.importData(importFile(parti), 'replace')
+
+    await expect(
+      db.query(
+        `SELECT name, birth_date_approximate, unfollowed_on, departure_reason, departure_date
+         FROM animal ORDER BY name`,
+      ),
+    ).resolves.toEqual([
+      {
+        name: 'Luna',
+        birth_date_approximate: 1,
+        unfollowed_on: null,
+        departure_reason: null,
+        departure_date: null,
+      },
+      {
+        name: 'Milo',
+        birth_date_approximate: 0,
+        unfollowed_on: '2026-09-14',
+        departure_reason: 'death',
+        departure_date: '2026-09-12',
+      },
+    ])
+  })
+
+  it('lit dans l’app ce qu’il a écrit : rappel prévu d’un vaccin, période en cours d’un traitement', async () => {
+    const { service } = setup()
+
+    await service.importData(IMPORT_FILE, 'replace')
+
+    await expect(repositories.vaccinations.getById(LEUCOSE_ID)).resolves.toMatchObject({
+      lastInjectionDate: null,
+      dueDate: '2026-11-02',
+    })
+    await expect(repositories.treatments.getById(PANACUR_ID)).resolves.toMatchObject({
+      periodId: PANACUR_PERIOD_ID,
+      frequency: { value: 1, unit: 'day' },
+      nextDueDate: '2026-09-03',
+      stoppedOn: null,
+    })
+  })
+
+  it('ne duplique rien au second import, en fusion comme en remplacement', async () => {
     const { service } = setup()
 
     await service.importData(IMPORT_FILE, 'merge')
+    const once = await rowCounts()
+    await service.importData(IMPORT_FILE, 'merge')
     await service.importData(IMPORT_FILE, 'replace')
 
-    await expect(
-      db.query('SELECT id, vaccination_id FROM vaccination_injection ORDER BY id'),
-    ).resolves.toEqual([
-      { id: CHPPIL_ID, vaccination_id: CHPPIL_ID },
-      { id: TYPHUS_ID, vaccination_id: TYPHUS_ID },
-    ])
-    await expect(
-      db.query('SELECT id, treatment_id, deleted_at FROM treatment_dose'),
-    ).resolves.toEqual([{ id: MILBEMAX_ID, treatment_id: MILBEMAX_ID, deleted_at: null }])
+    await expect(rowCounts()).resolves.toEqual(once)
+    expect(once).toEqual({
+      carnet_settings: 1,
+      animal: 2,
+      vaccination: 3,
+      vaccination_injection: 2,
+      treatment: 2,
+      treatment_period: 2,
+      treatment_dose: 4,
+      weight_entry: 2,
+    })
+    await expect(carnet()).resolves.toMatchObject({
+      treatmentDoses: expect.objectContaining({ length: 4 }),
+    })
   })
 
-  it('reprogramme les rappels une fois l’import écrit', async () => {
+  it('reconstruit les rappels une fois l’import écrit, pas avant', async () => {
     const { service, syncReminders } = setup()
-    let animalsAtSync = -1
+    let written: Record<string, number> = {}
     syncReminders.mockImplementation(async () => {
-      animalsAtSync = (await repositories.animals.list()).length
+      written = await rowCounts()
     })
 
     await service.importData(IMPORT_FILE, 'merge')
 
     expect(syncReminders).toHaveBeenCalledOnce()
-    expect(animalsAtSync).toBe(2)
+    expect(written).toMatchObject({ animal: 2, treatment_period: 2, treatment_dose: 4 })
   })
 
   describe('photos', () => {
@@ -250,7 +348,7 @@ describe('data-import.service', () => {
         animals: IMPORT_FIXTURE.animals.map((animal) => ({ ...animal, photoFileName: LUNA_PHOTO })),
       }
 
-      await service.importData(v2(memePhoto), 'merge')
+      await service.importData(importFile(memePhoto), 'merge')
 
       const photos = (await repositories.animals.list()).map(({ id, photoPath }) => [id, photoPath])
       expect(photos).toEqual([
@@ -267,7 +365,7 @@ describe('data-import.service', () => {
         animals: IMPORT_FIXTURE.animals.map((animal) => ({ ...animal, photoFileName: LUNA_PHOTO })),
       }
 
-      await service.importData(v2(memePhoto), 'replace')
+      await service.importData(importFile(memePhoto), 'replace')
 
       const photos = (await repositories.animals.list()).map(({ photoPath }) => photoPath)
       expect(photos).toEqual([LUNA_PHOTO, null])
@@ -288,7 +386,7 @@ describe('data-import.service', () => {
           ),
         }
 
-        await expect(service.importData(v2(deplace), mode)).rejects.toMatchObject({
+        await expect(service.importData(importFile(deplace), mode)).rejects.toMatchObject({
           reason: 'reattached',
         })
 
@@ -298,6 +396,59 @@ describe('data-import.service', () => {
         expect(syncReminders).not.toHaveBeenCalled()
       },
     )
+
+    it.each([
+      [
+        'une prise sans traitement',
+        'orphanEvent',
+        { treatmentId: '12345678-1234-4234-8234-123456789012' },
+      ],
+      [
+        'une prise sans période',
+        'orphanEvent',
+        { periodId: '12345678-1234-4234-8234-123456789012' },
+      ],
+      ['une prise d’un autre animal que son traitement', 'reattached', { animalId: LUNA_ID }],
+      [
+        'une prise qui vise la période d’un autre traitement',
+        'reattached',
+        { periodId: MILBEMAX_ID },
+      ],
+    ] as const)('refuse %s sans rien écrire', async (_, reason, change) => {
+      const { service, syncReminders } = setup()
+      const fautif = importFile({
+        ...IMPORT_FIXTURE,
+        treatmentDoses: IMPORT_FIXTURE.treatmentDoses.map((dose) =>
+          dose.id === PANACUR_MATIN_ID ? { ...dose, ...change } : dose,
+        ),
+      })
+
+      await expect(service.importData(fautif, 'merge')).rejects.toMatchObject({ reason })
+
+      await expect(rowCounts()).resolves.toMatchObject({ animal: 0, treatment_dose: 0 })
+      expect(syncReminders).not.toHaveBeenCalled()
+    })
+
+    it('refuse une période rattachée à un autre traitement que sur l’appareil, sans rien écrire', async () => {
+      const { service } = setup()
+      await service.importData(IMPORT_FILE, 'replace')
+      const before = await carnet()
+      const deplacee = importFile({
+        ...IMPORT_FIXTURE,
+        treatmentPeriods: IMPORT_FIXTURE.treatmentPeriods.map((period) =>
+          period.id === PANACUR_PERIOD_ID
+            ? { ...period, treatmentId: MILBEMAX_ID, animalId: LUNA_ID }
+            : period,
+        ),
+        treatmentDoses: [],
+      })
+
+      await expect(service.importData(deplacee, 'merge')).rejects.toMatchObject({
+        reason: 'reattached',
+      })
+
+      await expect(carnet()).resolves.toEqual(before)
+    })
   })
 
   describe('échéance d’un traitement', () => {
@@ -311,7 +462,7 @@ describe('data-import.service', () => {
         })),
       }
 
-      await service.importData(v2(echeanceArbitraire), 'replace')
+      await service.importData(importFile(echeanceArbitraire), 'replace')
 
       await expect(repositories.treatments.getById(MILBEMAX_ID)).resolves.toMatchObject({
         lastDoseDate: '2026-06-15',
@@ -331,15 +482,87 @@ describe('data-import.service', () => {
 
       const data = await carnet()
       const rows = [
+        data.carnetSettings!,
         ...data.animals,
         ...data.vaccinations,
+        ...data.vaccinationInjections,
         ...data.treatments,
+        ...data.treatmentPeriods,
+        ...data.treatmentDoses,
         ...data.weightEntries,
       ]
       expect(rows.every(({ updatedAt }) => updatedAt === NOW.toISOString())).toBe(true)
-      expect(data.animals.map(({ createdAt }) => createdAt)).toEqual(
-        IMPORT_FIXTURE.animals.map(({ createdAt }) => createdAt),
+      expect(data.animals.map(({ createdAt }) => createdAt).sort()).toEqual(
+        IMPORT_FIXTURE.animals.map(({ createdAt }) => createdAt).sort(),
       )
+    })
+  })
+
+  describe('réglages du carnet', () => {
+    it('en fusion, garde les réglages de l’appareil plus récents que ceux du fichier', async () => {
+      const { service } = setup()
+      await repositories.carnetSettings.update({ vaccineReminderTime: '07:15' })
+
+      await service.importData(IMPORT_FILE, 'merge')
+
+      await expect(repositories.carnetSettings.get()).resolves.toEqual({
+        vaccineReminderTime: '07:15',
+        remindBeforeDue: true,
+      })
+    })
+
+    it('en fusion, prend ceux du fichier quand ils sont plus récents', async () => {
+      const { service } = setup()
+      await repositories.carnetSettings.update({ vaccineReminderTime: '07:15' })
+      const recent = importFile({
+        ...IMPORT_FIXTURE,
+        carnetSettings: {
+          ...IMPORT_FIXTURE.carnetSettings!,
+          updatedAt: '2099-01-01T00:00:00.000Z',
+        },
+      })
+
+      await service.importData(recent, 'merge')
+
+      await expect(repositories.carnetSettings.getRecord()).resolves.toMatchObject({
+        vaccineReminderTime: '18:30',
+        remindBeforeDue: false,
+        updatedAt: NOW.toISOString(),
+      })
+    })
+
+    it('en remplacement, prend ceux du fichier', async () => {
+      const { service } = setup()
+      await repositories.carnetSettings.update({ vaccineReminderTime: '07:15' })
+
+      await service.importData(IMPORT_FILE, 'replace')
+
+      await expect(repositories.carnetSettings.get()).resolves.toMatchObject({
+        vaccineReminderTime: '18:30',
+      })
+    })
+
+    it('en remplacement par un fichier sans réglages, revient aux valeurs par défaut', async () => {
+      const { service } = setup()
+      await repositories.carnetSettings.update({ vaccineReminderTime: '07:15' })
+
+      await service.importData(importFile({ ...IMPORT_FIXTURE, carnetSettings: null }), 'replace')
+
+      await expect(repositories.carnetSettings.get()).resolves.toEqual({
+        vaccineReminderTime: '09:00',
+        remindBeforeDue: true,
+      })
+    })
+
+    it('en fusion avec un fichier sans réglages, ne touche pas à ceux de l’appareil', async () => {
+      const { service } = setup()
+      await repositories.carnetSettings.update({ vaccineReminderTime: '07:15' })
+
+      await service.importData(importFile({ ...IMPORT_FIXTURE, carnetSettings: null }), 'merge')
+
+      await expect(repositories.carnetSettings.get()).resolves.toMatchObject({
+        vaccineReminderTime: '07:15',
+      })
     })
   })
 
@@ -352,10 +575,12 @@ describe('data-import.service', () => {
       await service.importData(IMPORT_FILE, 'merge')
 
       const data = await carnet()
-      expect(data.animals.map(({ name }) => name)).toEqual(['Luna', 'Milo', 'Rex'])
+      expect(data.animals.map(({ name }) => name).sort()).toEqual(['Luna', 'Milo', 'Rex'])
       expect(data.animals.find(({ id }) => id === rex.id)).toMatchObject({ name: 'Rex' })
-      expect(data.vaccinations).toHaveLength(2)
-      expect(data.treatments).toHaveLength(1)
+      expect(data.vaccinations).toHaveLength(3)
+      expect(data.treatments).toHaveLength(2)
+      expect(data.treatmentPeriods).toHaveLength(2)
+      expect(data.treatmentDoses).toHaveLength(4)
       expect(data.weightEntries).toHaveLength(2)
     })
 
@@ -375,13 +600,53 @@ describe('data-import.service', () => {
         ),
       }
 
-      await service.importData(v2(plusRecent), 'merge')
+      await service.importData(importFile(plusRecent), 'merge')
 
       await expect(repositories.animals.getById(MILO_ID)).resolves.toEqual(miloModifie)
       await expect(repositories.vaccinations.getById(CHPPIL_ID)).resolves.toMatchObject({
         name: 'CHPPiL + rage',
         createdAt: IMPORT_FIXTURE.vaccinations[0]!.createdAt,
         updatedAt: NOW.toISOString(),
+      })
+    })
+
+    it('arbitre chaque ligne à part : une période corrigée dans le fichier, une prise notée sur l’appareil', async () => {
+      const { service } = setup()
+      await service.importData(IMPORT_FILE, 'replace')
+      await db.run(
+        `UPDATE treatment_dose SET status = 'given', given_on = '2026-09-01', updated_at = ?
+         WHERE id = ?`,
+        ['2030-06-01T00:00:00.000Z', PANACUR_SOIR_ID],
+      )
+      const corrigee: ExportData = {
+        ...IMPORT_FIXTURE,
+        treatmentPeriods: IMPORT_FIXTURE.treatmentPeriods.map((period) =>
+          period.id === PANACUR_PERIOD_ID
+            ? {
+                ...period,
+                times: ['07:30'],
+                endsOn: null,
+                doseQuantity: 2,
+                doseUnit: 'ml',
+                updatedAt: '2030-01-01T00:00:00.000Z',
+              }
+            : period,
+        ),
+      }
+
+      await service.importData(importFile(corrigee), 'merge')
+
+      const data = await carnet()
+      expect(data.treatmentPeriods.find(({ id }) => id === PANACUR_PERIOD_ID)).toMatchObject({
+        times: ['07:30'],
+        endsOn: null,
+        doseQuantity: 2,
+        doseUnit: 'ml',
+        reminderOffsetMinutes: 30,
+      })
+      expect(data.treatmentDoses.find(({ id }) => id === PANACUR_SOIR_ID)).toMatchObject({
+        status: 'given',
+        givenOn: '2026-09-01',
       })
     })
 
@@ -394,25 +659,27 @@ describe('data-import.service', () => {
         MILO_ID,
         [
           repositories.vaccinations.markDeletedByAnimalStatement(MILO_ID, deletedAt),
-          createVaccinationInjectionsRepository(db).markDeletedByAnimalStatement(
-            MILO_ID,
-            deletedAt,
-          ),
+          repositories.injections.markDeletedByAnimalStatement(MILO_ID, deletedAt),
+          repositories.treatments.markDeletedByAnimalStatement(MILO_ID, deletedAt),
+          repositories.periods.markDeletedByAnimalStatement(MILO_ID, deletedAt),
+          repositories.doses.markDeletedByAnimalStatement(MILO_ID, deletedAt),
           repositories.weight.markDeletedByAnimalStatement(MILO_ID, deletedAt),
         ],
         deletedAt,
       )
       const miloPlusRecent: ExportData = {
         ...IMPORT_FIXTURE,
-        animals: IMPORT_FIXTURE.animals.map((animal) =>
-          animal.id === MILO_ID ? { ...animal, updatedAt: '2026-09-12T00:00:00.000Z' } : animal,
-        ),
+        animals: newer(IMPORT_FIXTURE.animals, MILO_ID),
       }
 
-      await service.importData(v2(miloPlusRecent), 'merge')
+      await service.importData(importFile(miloPlusRecent), 'merge')
 
       await expect(repositories.animals.getById(MILO_ID)).resolves.not.toBeNull()
       await expect(repositories.vaccinations.getById(CHPPIL_ID)).resolves.not.toBeNull()
+      await expect(repositories.treatments.getById(PANACUR_ID)).resolves.toMatchObject({
+        periodId: PANACUR_PERIOD_ID,
+      })
+      await expect(repositories.treatments.listDoses(PANACUR_ID)).resolves.toHaveLength(3)
       await expect(repositories.weight.getById(MILO_WEIGHT_ID)).resolves.toBeNull()
     })
 
@@ -427,7 +694,114 @@ describe('data-import.service', () => {
       const data = await carnet()
       expect(data.animals.map(({ id }) => id)).toEqual([LUNA_ID])
       await expect(repositories.vaccinations.getById(CHPPIL_ID)).resolves.toBeNull()
-      expect(data.vaccinations.map(({ animalId }) => animalId)).toEqual([LUNA_ID])
+      expect(new Set(data.vaccinations.map(({ animalId }) => animalId))).toEqual(new Set([LUNA_ID]))
+    })
+  })
+
+  describe('lignes revenues avec leur parent', () => {
+    const CANCELLED = '2026-09-05T00:00:00.000Z'
+    const ADDED = '2026-09-01T00:00:00.000Z'
+
+    it('ramène le vaccin avec l’injection supprimée avec lui, celle annulée avant reste annulée', async () => {
+      const { service } = setup()
+      await service.importData(IMPORT_FILE, 'merge')
+      await db.runMany([
+        repositories.injections.insertStatement({
+          id: 'e1',
+          vaccinationId: CHPPIL_ID,
+          animalId: MILO_ID,
+          injectedOn: '2024-09-01',
+          nextDueDate: '2025-09-01',
+          createdAt: ADDED,
+          updatedAt: ADDED,
+          deletedAt: null,
+        }),
+      ])
+      await db.run('UPDATE vaccination_injection SET deleted_at = ?, updated_at = ? WHERE id = ?', [
+        CANCELLED,
+        CANCELLED,
+        CHPPIL_ID,
+      ])
+      await repositories.vaccinations.remove(CHPPIL_ID)
+      const fichier = importFile({
+        ...IMPORT_FIXTURE,
+        vaccinations: IMPORT_FIXTURE.vaccinations.map((vaccination) => ({
+          ...vaccination,
+          updatedAt: '2099-01-01T00:00:00.000Z',
+        })),
+        vaccinationInjections: [],
+      })
+
+      await importerOn(db).importData(fichier, 'merge')
+
+      await expect(
+        db.query(
+          `SELECT id, deleted_at FROM vaccination_injection
+           WHERE vaccination_id = ? ORDER BY injected_on`,
+          [CHPPIL_ID],
+        ),
+      ).resolves.toEqual([
+        { id: 'e1', deleted_at: null },
+        { id: CHPPIL_ID, deleted_at: CANCELLED },
+      ])
+    })
+
+    it('ramène le traitement avec sa période et ses prises, celle annulée avant reste annulée', async () => {
+      const { service } = setup()
+      await service.importData(IMPORT_FILE, 'merge')
+      await db.run('UPDATE treatment_dose SET deleted_at = ?, updated_at = ? WHERE id = ?', [
+        CANCELLED,
+        CANCELLED,
+        PANACUR_REPORT_ID,
+      ])
+      await repositories.treatments.remove(PANACUR_ID)
+      const fichier = importFile({
+        ...IMPORT_FIXTURE,
+        treatments: IMPORT_FIXTURE.treatments.map((treatment) => ({
+          ...treatment,
+          updatedAt: '2099-01-01T00:00:00.000Z',
+        })),
+        treatmentPeriods: [IMPORT_FIXTURE.treatmentPeriods[0]!],
+        treatmentDoses: [IMPORT_FIXTURE.treatmentDoses[0]!],
+      })
+
+      await importerOn(db).importData(fichier, 'merge')
+
+      await expect(repositories.treatments.getById(PANACUR_ID)).resolves.toMatchObject({
+        periodId: PANACUR_PERIOD_ID,
+        nextDueDate: '2026-09-02',
+      })
+      await expect(
+        db.query(
+          `SELECT id, deleted_at FROM treatment_dose WHERE treatment_id = ?
+           ORDER BY due_on, due_time`,
+          [PANACUR_ID],
+        ),
+      ).resolves.toEqual([
+        { id: PANACUR_MATIN_ID, deleted_at: null },
+        { id: PANACUR_SOIR_ID, deleted_at: null },
+        { id: PANACUR_REPORT_ID, deleted_at: CANCELLED },
+      ])
+    })
+
+    it('ne ramène rien du fichier sous un vaccin ou un traitement resté supprimé', async () => {
+      const { service } = setup()
+      await service.importData(IMPORT_FILE, 'merge')
+      await repositories.vaccinations.remove(CHPPIL_ID)
+      await repositories.treatments.remove(PANACUR_ID)
+
+      await importerOn(db).importData(IMPORT_FILE, 'merge')
+
+      await expect(repositories.vaccinations.getById(CHPPIL_ID)).resolves.toBeNull()
+      await expect(repositories.treatments.getById(PANACUR_ID)).resolves.toBeNull()
+      const rows = await db.query<{ deleted_at: string | null }>(
+        `SELECT deleted_at FROM vaccination_injection WHERE vaccination_id = ?
+         UNION ALL SELECT deleted_at FROM treatment_period WHERE treatment_id = ?
+         UNION ALL SELECT deleted_at FROM treatment_dose WHERE treatment_id = ?`,
+        [CHPPIL_ID, PANACUR_ID, PANACUR_ID],
+      )
+      expect(rows).toHaveLength(5)
+      expect(rows.every(({ deleted_at }) => deleted_at !== null)).toBe(true)
     })
   })
 
@@ -447,14 +821,14 @@ describe('data-import.service', () => {
 
       const data = await carnet()
       expect(data.animals.map(({ id, name }) => [id, name])).toEqual([
-        [LUNA_ID, 'Luna'],
         [MILO_ID, 'Milo'],
+        [LUNA_ID, 'Luna'],
       ])
       const rexVersion = (await repositories.animals.listVersions()).find(({ id }) => id === rex.id)
       expect(rexVersion?.deletedAt).toBe(NOW.toISOString())
       const vaccins = await repositories.vaccinations.listVersions()
-      expect(vaccins.filter(({ deletedAt }) => deletedAt === null)).toHaveLength(2)
-      expect(vaccins).toHaveLength(3)
+      expect(vaccins.filter(({ deletedAt }) => deletedAt === null)).toHaveLength(3)
+      expect(vaccins).toHaveLength(4)
     })
 
     it('marque supprimés avec la même date les événements et les périodes des vaccins et traitements locaux', async () => {
@@ -489,428 +863,138 @@ describe('data-import.service', () => {
     })
   })
 
-  it('n’écrit rien et ne touche pas aux rappels si une contrainte de la base casse', async () => {
-    const { service, syncReminders } = setup()
-    const rex = await repositories.animals.create({ name: 'Rex', species: 'dog' })
-    const refuseParLaBase = {
-      ...IMPORT_FIXTURE,
-      animals: [
-        ...IMPORT_FIXTURE.animals,
-        { ...IMPORT_FIXTURE.animals[1]!, id: crypto.randomUUID(), species: 'rabbit' },
-      ],
-    } as unknown as ExportData
-
-    await expect(service.importData(v2(refuseParLaBase), 'replace')).rejects.toThrow(/CHECK/)
-
-    await expect(repositories.animals.list()).resolves.toEqual([rex])
-    await expect(repositories.animals.listVersions()).resolves.toHaveLength(1)
-    expect(syncReminders).not.toHaveBeenCalled()
-  })
-
-  describe('injections d’un fichier v1', () => {
-    const FILE_UPDATED_AT = '2026-09-10T00:00:00.000Z'
-    const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
-
-    function injectionsOf(vaccinationId: string) {
-      return db.query<{ id: string; injected_on: string; next_due_date: string | null }>(
-        `SELECT id, injected_on, next_due_date FROM vaccination_injection
-         WHERE vaccination_id = ? AND deleted_at IS NULL ORDER BY injected_on`,
-        [vaccinationId],
-      )
-    }
-
-    async function addInjection(id: string, injectedOn: string, nextDueDate: string) {
-      await db.runMany([
-        createVaccinationInjectionsRepository(db).insertStatement({
-          id,
-          vaccinationId: CHPPIL_ID,
-          animalId: MILO_ID,
-          injectedOn,
-          nextDueDate,
-          createdAt: '2026-09-02T00:00:00.000Z',
-          updatedAt: '2026-09-02T00:00:00.000Z',
-          deletedAt: null,
-        }),
-      ])
-    }
-
-    function withChppil(lastInjectionDate: string, dueDate: string): ImportFile {
-      return v1File({
-        ...IMPORT_FIXTURE_V1,
-        vaccinations: IMPORT_FIXTURE_V1.vaccinations.map((vaccination) =>
-          vaccination.id === CHPPIL_ID
-            ? { ...vaccination, lastInjectionDate, dueDate, updatedAt: FILE_UPDATED_AT }
-            : vaccination,
-        ),
-      })
-    }
-
-    it('met à jour l’injection de même date et laisse la date des autres', async () => {
-      const { service } = setup()
-      await service.importData(IMPORT_FILE, 'merge')
-      await addInjection('recente', '2026-09-01', '2027-09-01')
-
-      await service.importData(withChppil('2026-09-01', '2029-09-01'), 'merge')
-
-      await expect(injectionsOf(CHPPIL_ID)).resolves.toEqual([
-        { id: CHPPIL_ID, injected_on: '2025-09-01', next_due_date: '2026-09-01' },
-        { id: 'recente', injected_on: '2026-09-01', next_due_date: '2029-09-01' },
-      ])
-    })
-
-    it('ajoute une injection neuve pour une date absente, une seule fois', async () => {
-      const { service } = setup()
-      await service.importData(IMPORT_FILE, 'merge')
-
-      await service.importData(withChppil('2026-03-01', '2027-03-01'), 'merge')
-      await service.importData(withChppil('2026-03-01', '2027-03-01'), 'merge')
-
-      const [ancienne, neuve] = await injectionsOf(CHPPIL_ID)
-      expect(ancienne).toEqual({
-        id: CHPPIL_ID,
-        injected_on: '2025-09-01',
-        next_due_date: '2026-09-01',
-      })
-      expect(neuve?.id).toMatch(UUID)
-      expect(neuve).toMatchObject({ injected_on: '2026-03-01', next_due_date: '2027-03-01' })
-      await expect(injectionsOf(CHPPIL_ID)).resolves.toHaveLength(2)
-      await expect(repositories.vaccinations.getById(CHPPIL_ID)).resolves.toMatchObject({
-        lastInjectionDate: '2026-03-01',
-        dueDate: '2027-03-01',
-      })
-    })
-
-    it('n’écrit rien sur une injection de même date modifiée après le fichier', async () => {
-      const { service } = setup()
-      await service.importData(IMPORT_FILE, 'merge')
-      await db.run(
-        `UPDATE vaccination_injection SET next_due_date = '2027-01-01', updated_at = ? WHERE id = ?`,
-        ['2026-09-12T00:00:00.000Z', CHPPIL_ID],
-      )
-
-      await service.importData(withChppil('2025-09-01', '2026-12-31'), 'merge')
-
-      await expect(injectionsOf(CHPPIL_ID)).resolves.toEqual([
-        { id: CHPPIL_ID, injected_on: '2025-09-01', next_due_date: '2027-01-01' },
-      ])
-    })
-
-    it('en remplacement, ne garde que l’injection du fichier, sans réécrire la date d’une autre', async () => {
-      const { service } = setup()
-      await service.importData(IMPORT_FILE, 'merge')
-      await addInjection('recente', '2026-09-01', '2027-09-01')
-
-      await service.importData(withChppil('2026-09-01', '2029-09-01'), 'replace')
-
-      await expect(injectionsOf(CHPPIL_ID)).resolves.toEqual([
-        { id: 'recente', injected_on: '2026-09-01', next_due_date: '2029-09-01' },
-      ])
-      await expect(
-        db.query('SELECT injected_on, deleted_at FROM vaccination_injection WHERE id = ?', [
-          CHPPIL_ID,
-        ]),
-      ).resolves.toEqual([{ injected_on: '2025-09-01', deleted_at: NOW.toISOString() }])
-    })
-  })
-
-  describe('prises d’un fichier v1', () => {
-    const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
-
-    function dosesOf(treatmentId: string) {
-      return db.query<{ id: string; given_on: string; next_due_date: string }>(
-        `SELECT id, given_on, next_due_date FROM treatment_dose
-         WHERE treatment_id = ? AND deleted_at IS NULL ORDER BY given_on`,
-        [treatmentId],
-      )
-    }
-
-    async function addDose(id: string, givenOn: string, nextDueDate: string) {
-      await db.runMany([
-        createTreatmentDosesRepository(db).insertStatement(
-          prise({
-            id,
-            treatmentId: MILBEMAX_ID,
-            animalId: LUNA_ID,
-            givenOn,
-            nextDueDate,
-            at: '2026-09-16T00:00:00.000Z',
-          }),
-        ),
-      ])
-    }
-
-    function withMilbemax(
-      lastDoseDate: string,
-      nextDueDate: string,
-      { updatedAt = '2026-09-20T00:00:00.000Z', monthly = true } = {},
-    ): ImportFile {
-      const data: ExportDataV1 = {
-        ...IMPORT_FIXTURE_V1,
-        treatments: IMPORT_FIXTURE_V1.treatments.map((treatment) => ({
-          ...treatment,
-          frequency: monthly ? { value: 1, unit: 'month' } : treatment.frequency,
-          lastDoseDate,
-          nextDueDate,
-          updatedAt,
-        })),
+  describe('tout ou rien', () => {
+    async function carnetState(syncReminders: { mock: { calls: unknown[] } }) {
+      return {
+        animals: await repositories.animals.list(),
+        rows: await rowCounts(),
+        settings: await repositories.carnetSettings.getRecord(),
+        reminderSyncs: syncReminders.mock.calls.length,
       }
-      return v1File(data)
     }
 
-    it('met à jour la prise de même date et la fréquence de la période, et laisse la date des autres', async () => {
-      const { service } = setup()
-      await service.importData(IMPORT_FILE, 'merge')
-      await addDose('recente', '2026-09-15', '2026-12-15')
-
-      await service.importData(withMilbemax('2026-09-15', '2026-10-15'), 'merge')
-
-      await expect(dosesOf(MILBEMAX_ID)).resolves.toEqual([
-        { id: MILBEMAX_ID, given_on: '2026-06-15', next_due_date: '2026-09-15' },
-        { id: 'recente', given_on: '2026-09-15', next_due_date: '2026-10-15' },
-      ])
-      await expect(repositories.treatments.getById(MILBEMAX_ID)).resolves.toMatchObject({
-        frequency: { value: 1, unit: 'month' },
-        lastDoseDate: '2026-09-15',
-        nextDueDate: '2026-10-15',
-      })
-    })
-
-    it('ajoute une prise neuve pour une date absente, une seule fois', async () => {
-      const { service } = setup()
-      await service.importData(IMPORT_FILE, 'merge')
-
-      await service.importData(withMilbemax('2026-08-01', '2026-09-01'), 'merge')
-      await service.importData(withMilbemax('2026-08-01', '2026-09-01'), 'merge')
-
-      const [ancienne, neuve] = await dosesOf(MILBEMAX_ID)
-      expect(ancienne).toMatchObject({ id: MILBEMAX_ID, given_on: '2026-06-15' })
-      expect(neuve?.id).toMatch(UUID)
-      expect(neuve).toMatchObject({ given_on: '2026-08-01', next_due_date: '2026-09-01' })
-      await expect(dosesOf(MILBEMAX_ID)).resolves.toHaveLength(2)
-    })
-
-    it('n’écrit rien sur une prise de même date modifiée après le fichier', async () => {
-      const { service } = setup()
-      await service.importData(IMPORT_FILE, 'merge')
-      await db.run(
-        `UPDATE treatment_dose SET next_due_date = '2026-10-01', updated_at = ? WHERE id = ?`,
-        ['2026-09-18T00:00:00.000Z', MILBEMAX_ID],
-      )
-
-      await service.importData(
-        withMilbemax('2026-06-15', '2026-07-15', {
-          updatedAt: '2026-09-17T00:00:00.000Z',
-          monthly: false,
-        }),
-        'merge',
-      )
-
-      await expect(dosesOf(MILBEMAX_ID)).resolves.toEqual([
-        { id: MILBEMAX_ID, given_on: '2026-06-15', next_due_date: '2026-10-01' },
-      ])
-    })
-
-    it('en remplacement, ne garde que la prise du fichier, sans réécrire la date d’une autre', async () => {
-      const { service } = setup()
-      await service.importData(IMPORT_FILE, 'merge')
-      await addDose('recente', '2026-09-15', '2026-12-15')
-
-      await service.importData(withMilbemax('2026-09-15', '2026-10-15'), 'replace')
-
-      await expect(dosesOf(MILBEMAX_ID)).resolves.toMatchObject([
-        { id: 'recente', given_on: '2026-09-15', next_due_date: '2026-10-15' },
-      ])
-      await expect(
-        db.query('SELECT given_on, deleted_at FROM treatment_dose WHERE id = ?', [MILBEMAX_ID]),
-      ).resolves.toEqual([{ given_on: '2026-06-15', deleted_at: NOW.toISOString() }])
-    })
-  })
-
-  describe('événements revenus avec leur animal', () => {
-    const CANCELLED = '2026-09-05T00:00:00.000Z'
-    const CASCADE = '2026-09-10T00:00:00.000Z'
-    const ADDED = '2026-09-01T00:00:00.000Z'
-
-    function withNewerAnimal(animalId: string): ImportFile {
-      return v1File({
-        ...IMPORT_FIXTURE_V1,
-        animals: IMPORT_FIXTURE_V1.animals.map((animal) =>
-          animal.id === animalId ? { ...animal, updatedAt: '2026-09-12T00:00:00.000Z' } : animal,
-        ),
-      })
+    /** Remplacement d'un carnet existant par un fichier que la base refuse. */
+    async function failedImport(fautif: ExportData) {
+      const { service, syncReminders } = setup()
+      await repositories.animals.create({ name: 'Rex', species: 'dog' })
+      await repositories.carnetSettings.update({ vaccineReminderTime: '07:15' })
+      const before = await carnetState(syncReminders)
+      const error = await service
+        .importData(importFile(fautif), 'replace')
+        .then(() => 'aucune erreur')
+        .catch((cause: unknown) => String(cause))
+      return { error, before, after: await carnetState(syncReminders) }
     }
 
-    async function removeAnimal(animalId: string): Promise<void> {
-      await repositories.animals.remove(
-        animalId,
-        [
-          repositories.vaccinations.markDeletedByAnimalStatement(animalId, CASCADE),
-          createVaccinationInjectionsRepository(db).markDeletedByAnimalStatement(animalId, CASCADE),
-          repositories.treatments.markDeletedByAnimalStatement(animalId, CASCADE),
-          createTreatmentDosesRepository(db).markDeletedByAnimalStatement(animalId, CASCADE),
-          repositories.weight.markDeletedByAnimalStatement(animalId, CASCADE),
+    it('n’écrit rien et ne touche pas aux rappels si une contrainte de la base casse', async () => {
+      const { error, before, after } = await failedImport({
+        ...IMPORT_FIXTURE,
+        animals: [
+          ...IMPORT_FIXTURE.animals,
+          { ...IMPORT_FIXTURE.animals[1]!, id: crypto.randomUUID(), species: 'rabbit' },
         ],
-        CASCADE,
-      )
-    }
+      } as unknown as ExportData)
 
-    it('ramène le vaccin avec l’injection supprimée avec lui, celle annulée avant reste annulée', async () => {
-      const { service } = setup()
-      await service.importData(IMPORT_FILE, 'merge')
-      await db.runMany([
-        createVaccinationInjectionsRepository(db).insertStatement({
-          id: 'e1',
-          vaccinationId: CHPPIL_ID,
-          animalId: MILO_ID,
-          injectedOn: '2024-09-01',
-          nextDueDate: '2025-09-01',
-          createdAt: ADDED,
-          updatedAt: ADDED,
-          deletedAt: null,
+      expect(error).toMatch(/CHECK/)
+      expect(after).toEqual(before)
+      expect(after).toMatchObject({ animals: [{ name: 'Rex' }], reminderSyncs: 0 })
+    })
+
+    it('annule tout quand la dernière écriture échoue, réglages et effacement compris', async () => {
+      const [luna, milo] = IMPORT_FIXTURE.weightEntries
+      const { error, before, after } = await failedImport({
+        ...IMPORT_FIXTURE,
+        weightEntries: [luna!, { ...milo!, weightKg: null as unknown as number }],
+      })
+
+      expect(error).toMatch(/NOT NULL/)
+      expect(after).toEqual(before)
+      expect(after.settings).toMatchObject({ vaccineReminderTime: '07:15' })
+    })
+
+    it('annule tout quand la base refuse une valeur que le schéma du fichier aurait dû arrêter', async () => {
+      const { error, before, after } = await failedImport({
+        ...IMPORT_FIXTURE,
+        treatmentPeriods: IMPORT_FIXTURE.treatmentPeriods.map((period) => ({
+          ...period,
+          doseQuantity: 1,
+          doseUnit: 'louche' as 'tablet',
+        })),
+      })
+
+      expect(error).toMatch(/dose_unit not allowed/)
+      expect(after).toEqual(before)
+    })
+  })
+
+  describe('fichier hostile', () => {
+    const INJECTION = `Rex'); DROP TABLE animal; --`
+
+    it('écrit un nom porteur de SQL comme un simple texte', async () => {
+      const text = importFixtureJson({
+        ...IMPORT_FIXTURE,
+        animals: IMPORT_FIXTURE.animals.map((animal) => ({ ...animal, name: INJECTION })),
+        vaccinations: IMPORT_FIXTURE.vaccinations.map((vaccination) => ({
+          ...vaccination,
+          name: `" OR 1=1; DELETE FROM vaccination; --`,
+        })),
+      })
+      const parsed = parseExportFile(text)
+      if (!parsed.ok) throw new Error(parsed.reason)
+
+      await setup().service.importData(parsed.file, 'replace')
+
+      const data = await carnet()
+      expect(data.animals.map(({ name }) => name)).toEqual([INJECTION, INJECTION])
+      expect(data.vaccinations).toHaveLength(3)
+      await expect(rowCounts()).resolves.toMatchObject({ animal: 2, vaccination: 3 })
+    })
+
+    it('ne passe aucune valeur du fichier dans le texte d’une instruction SQL', async () => {
+      const statements: string[] = []
+      const { service } = setup({
+        animals: () => ({
+          ...repositories.animals,
+          runImport: async (batch) => {
+            statements.push(...batch.map(({ sql }) => sql))
+          },
         }),
-      ])
-      await db.run('UPDATE vaccination_injection SET deleted_at = ?, updated_at = ? WHERE id = ?', [
-        CANCELLED,
-        CANCELLED,
-        CHPPIL_ID,
-      ])
-      await removeAnimal(MILO_ID)
-
-      await service.importData(withNewerAnimal(MILO_ID), 'merge')
-
-      await expect(repositories.vaccinations.getById(CHPPIL_ID)).resolves.toMatchObject({
-        lastInjectionDate: '2024-09-01',
-        dueDate: '2025-09-01',
       })
-      await expect(
-        db.query(
-          `SELECT id, injected_on, deleted_at FROM vaccination_injection
-           WHERE vaccination_id = ? ORDER BY injected_on`,
-          [CHPPIL_ID],
-        ),
-      ).resolves.toEqual([
-        { id: 'e1', injected_on: '2024-09-01', deleted_at: null },
-        { id: CHPPIL_ID, injected_on: '2025-09-01', deleted_at: CANCELLED },
-      ])
-    })
+      const marked: ExportData = JSON.parse(
+        JSON.stringify(IMPORT_FIXTURE)
+          .replaceAll('Luna', 'MARQUEUR')
+          .replaceAll('18:30', '18:31')
+          .replaceAll('2026-09-01', '2026-08-31'),
+      )
 
-    it('ramène l’événement de même date supprimé avec son parent aux valeurs du fichier', async () => {
-      const { service } = setup()
-      await service.importData(IMPORT_FILE, 'replace')
-      vi.useFakeTimers({ now: new Date(ADDED), toFake: ['Date'] })
-      try {
-        await repositories.treatments.update(MILBEMAX_ID, {
-          name: 'Milbémax',
-          type: 'deworming',
-          frequency: { value: 1, unit: 'month' },
-          nextDueDate: '2026-07-15',
-        })
-        await repositories.vaccinations.update(TYPHUS_ID, {
-          name: 'Typhus',
-          lastInjectionDate: '2024-05-20',
-          dueDate: '2027-05-20',
-        })
-      } finally {
-        vi.useRealTimers()
+      await service.importData(importFile(marked), 'replace')
+
+      const sql = statements.join('\n')
+      expect(statements.length).toBeGreaterThan(20)
+      for (const value of ['MARQUEUR', '18:31', '2026-08-31', LUNA_ID, 'tablet', '08:00']) {
+        expect(sql).not.toContain(value)
       }
-      await removeAnimal(LUNA_ID)
-
-      await service.importData(withNewerAnimal(LUNA_ID), 'merge')
-
-      await expect(repositories.treatments.getById(MILBEMAX_ID)).resolves.toMatchObject({
-        frequency: { value: 3, unit: 'month' },
-        lastDoseDate: '2026-06-15',
-        nextDueDate: '2026-09-15',
-      })
-      await expect(repositories.vaccinations.getById(TYPHUS_ID)).resolves.toMatchObject({
-        lastInjectionDate: '2024-05-20',
-        dueDate: null,
-      })
     })
 
-    it('ramène le traitement avec la prise supprimée avec lui, celle annulée avant reste annulée', async () => {
-      const { service } = setup()
-      await service.importData(IMPORT_FILE, 'merge')
-      await db.runMany([
-        createTreatmentDosesRepository(db).insertStatement(
-          prise({
-            id: 'd1',
-            treatmentId: MILBEMAX_ID,
-            animalId: LUNA_ID,
-            givenOn: '2026-03-15',
-            nextDueDate: '2026-06-15',
-            at: ADDED,
-          }),
-        ),
-      ])
-      await db.run('UPDATE treatment_dose SET deleted_at = ?, updated_at = ? WHERE id = ?', [
-        CANCELLED,
-        CANCELLED,
-        MILBEMAX_ID,
-      ])
-      await removeAnimal(LUNA_ID)
-
-      await service.importData(withNewerAnimal(LUNA_ID), 'merge')
-
-      await expect(repositories.treatments.getById(MILBEMAX_ID)).resolves.toMatchObject({
-        lastDoseDate: '2026-03-15',
-        nextDueDate: '2026-06-15',
+    it('ne donne aucune photo à un nom de fichier qui sort du dossier des photos', async () => {
+      const { service, photoExists } = setup()
+      const traversal = importFile({
+        ...IMPORT_FIXTURE,
+        animals: IMPORT_FIXTURE.animals.map((animal) => ({
+          ...animal,
+          photoFileName: '../databases/memopatte.db',
+        })),
       })
-      await expect(
-        db.query(
-          `SELECT id, given_on, deleted_at FROM treatment_dose
-           WHERE treatment_id = ? ORDER BY given_on`,
-          [MILBEMAX_ID],
-        ),
-      ).resolves.toEqual([
-        { id: 'd1', given_on: '2026-03-15', deleted_at: null },
-        { id: MILBEMAX_ID, given_on: '2026-06-15', deleted_at: CANCELLED },
-      ])
+
+      await service.importData(traversal, 'replace')
+
+      expect(photoExists).toHaveBeenCalledWith('../databases/memopatte.db')
+      const photos = (await repositories.animals.list()).map(({ photoPath }) => photoPath)
+      expect(photos).toEqual([null, null])
     })
   })
 
-  describe('export v1 réel de la 0.1.37', () => {
-    const RAGE = 'c926e5b4-b1c3-4773-bb3f-34e0acdb67da'
-    const MILO = 'f53143ec-dca0-430d-a77d-755f592ae425'
-
-    it('s’importe deux fois sans rien dupliquer : un événement par vaccin et traitement', async () => {
-      const { service } = setup()
-
-      await service.importData(parsedV1(), 'merge')
-      const once = await events()
-      await service.importData(parsedV1(), 'merge')
-      await service.importData(parsedV1(), 'replace')
-
-      expect(once).toHaveLength(6)
-      expect(once.every(({ id, parent_id }) => id === parent_id)).toBe(true)
-      expect(await events()).toEqual(once)
-      await expect(repositories.treatments.listAll()).resolves.toHaveLength(3)
-    })
-
-    it('ne réécrit jamais la date d’une autre injection du même vaccin', async () => {
-      const { service } = setup()
-      await service.importData(parsedV1(), 'merge')
-      await createVaccinationInjectionsRepository(db).record({
-        id: 'rappel-suivant',
-        vaccinationId: RAGE,
-        animalId: MILO,
-        injectedOn: '2026-09-24',
-        nextDueDate: '2027-09-24',
-        createdAt: '2026-09-24T08:00:00.000Z',
-        updatedAt: '2026-09-24T08:00:00.000Z',
-        deletedAt: null,
-      })
-
-      await service.importData(parsedV1(), 'merge')
-
-      await expect(repositories.vaccinations.listInjections(RAGE)).resolves.toMatchObject([
-        { id: 'rappel-suivant', injectedOn: '2026-09-24', nextDueDate: '2027-09-24' },
-        { id: RAGE, injectedOn: '2026-09-21', nextDueDate: '2029-09-21' },
-      ])
-    })
-  })
-
-  describe('export v2', () => {
+  describe('aller-retour', () => {
     async function carnetWithHistory(client: InMemoryDb) {
       const phone = createRepositories(client)
       const milo = await phone.animals.create({ name: 'Milo', species: 'dog' })
@@ -920,7 +1004,7 @@ describe('data-import.service', () => {
         lastInjectionDate: '2023-05-20',
         dueDate: '2026-05-20',
       })
-      await createVaccinationInjectionsRepository(client).record({
+      await phone.injections.record({
         id: crypto.randomUUID(),
         vaccinationId: rage.id,
         animalId: milo.id,
@@ -937,7 +1021,7 @@ describe('data-import.service', () => {
         frequency: { value: 3, unit: 'month' },
         lastDoseDate: '2026-03-01',
       })
-      await createTreatmentDosesRepository(client).record(
+      await phone.doses.record(
         prise({
           id: crypto.randomUUID(),
           treatmentId: bravecto.id,
@@ -954,85 +1038,57 @@ describe('data-import.service', () => {
         frequency: { value: 1, unit: 'month' },
         lastDoseDate: '2026-04-10',
       })
-      await createTreatmentPeriodsRepository(client).stop(drontal.id, '2026-05-01')
+      await phone.periods.stop(drontal.id, '2026-05-01')
       await phone.weight.create({ animalId: milo.id, weightKg: 24.5, measuredOn: '2026-06-01' })
-      return { rage, bravecto }
+      await phone.carnetSettings.update({ remindBeforeDue: false })
     }
 
-    it('fait l’aller-retour : un carnet avec historique revient à l’identique', async () => {
+    it('un carnet saisi dans l’app, avec historique et traitement arrêté, revient à l’identique', async () => {
       const source = await createInMemoryDb()
       await carnetWithHistory(source)
+      const syncReminders = vi.fn<() => Promise<void>>(async () => undefined)
+
+      await importerOn(db, () => NOW, { syncReminders }).importData(
+        await exported(source),
+        'replace',
+      )
+
+      const before = await carnet(source)
+      expect(before.vaccinationInjections).toHaveLength(2)
+      expect(before.treatmentPeriods).toHaveLength(2)
+      expect(before.treatmentDoses).toHaveLength(3)
+      await expect(carnet()).resolves.toEqual(before)
+      expect(syncReminders).toHaveBeenCalledOnce()
+      source.close()
+    })
+
+    it('un carnet avec périodes, heures, posologie, prises oubliées et report revient à l’identique', async () => {
+      const source = await createInMemoryDb()
+      await source.execute('PRAGMA foreign_keys = ON')
+      await importerOn(source, () => NOW).importData(IMPORT_FILE, 'replace')
+      const reprise = {
+        ...IMPORT_FIXTURE.treatmentPeriods[0]!,
+        id: crypto.randomUUID(),
+        startsOn: '2026-09-01',
+        firstDueOn: '2026-09-01',
+        reminderTime: '19:00',
+      }
+      await source.runMany([
+        createTreatmentPeriodsRepository(source).restoreStatement(reprise, false),
+      ])
+      await createTreatmentPeriodsRepository(source).stop(MILBEMAX_ID, '2026-09-20')
 
       await importerOn(db, () => NOW).importData(await exported(source), 'replace')
 
       const before = await carnet(source)
-      expect(before.vaccinationInjections).toHaveLength(2)
-      expect(before.treatmentDoses).toHaveLength(3)
+      expect(before.treatmentPeriods).toHaveLength(3)
+      expect(before.treatmentDoses.map(({ status }) => status).sort()).toEqual([
+        'given',
+        'given',
+        'missed',
+        'postponed',
+      ])
       await expect(carnet()).resolves.toEqual(before)
-      source.close()
-    })
-
-    it('écrit la première période de chaque traitement : début à sa première prise, fréquence et arrêt du fichier', async () => {
-      const source = await createInMemoryDb()
-      const { bravecto } = await carnetWithHistory(source)
-
-      await importerOn(db, () => NOW).importData(await exported(source), 'replace')
-
-      await expect(
-        db.query(
-          `SELECT id, treatment_id, starts_on, first_due_on, frequency_value, frequency_unit,
-                  stopped_on, deleted_at
-           FROM treatment_period ORDER BY starts_on`,
-        ),
-      ).resolves.toEqual([
-        {
-          id: bravecto.id,
-          treatment_id: bravecto.id,
-          starts_on: '2026-03-01',
-          first_due_on: '2026-03-01',
-          frequency_value: 3,
-          frequency_unit: 'month',
-          stopped_on: null,
-          deleted_at: null,
-        },
-        expect.objectContaining({
-          starts_on: '2026-04-10',
-          frequency_value: 1,
-          frequency_unit: 'month',
-          stopped_on: '2026-05-01',
-        }),
-      ])
-      source.close()
-    })
-
-    it('rattache chaque prise du fichier à la période de son traitement, donnée à son jour', async () => {
-      const source = await createInMemoryDb()
-      const { bravecto } = await carnetWithHistory(source)
-
-      await importerOn(db, () => NOW).importData(await exported(source), 'replace')
-
-      await expect(
-        db.query(
-          `SELECT period_id, due_on, due_time, given_on, status FROM treatment_dose
-           WHERE treatment_id = ? ORDER BY given_on`,
-          [bravecto.id],
-        ),
-      ).resolves.toEqual([
-        {
-          period_id: bravecto.id,
-          due_on: '2026-03-01',
-          due_time: null,
-          given_on: '2026-03-01',
-          status: 'given',
-        },
-        {
-          period_id: bravecto.id,
-          due_on: '2026-06-01',
-          due_time: null,
-          given_on: '2026-06-01',
-          status: 'given',
-        },
-      ])
       source.close()
     })
 
@@ -1043,59 +1099,10 @@ describe('data-import.service', () => {
       source.close()
 
       await importerOn(db, () => NOW).importData(file, 'merge')
-      const once = await events()
+      const once = await rowCounts()
       await importerOn(db, () => NOW).importData(file, 'merge')
 
-      await expect(events()).resolves.toEqual(once)
-    })
-
-    it('ramène un vaccin supprimé seul avec ses injections, quand le fichier est plus récent', async () => {
-      const { rage } = await carnetWithHistory(db)
-      const file = await exported(db)
-      await repositories.vaccinations.remove(rage.id)
-      const newer = v2({
-        ...file.data,
-        vaccinations: file.data.vaccinations.map((vaccination) => ({
-          ...vaccination,
-          updatedAt: '2099-01-01T00:00:00.000Z',
-        })),
-      })
-
-      await importerOn(db).importData(newer, 'merge')
-
-      await expect(repositories.vaccinations.listInjections(rage.id)).resolves.toHaveLength(2)
-    })
-
-    it('ne ramène aucune injection du fichier sous un vaccin resté supprimé', async () => {
-      const { rage } = await carnetWithHistory(db)
-      const file = await exported(db)
-      await repositories.vaccinations.remove(rage.id)
-
-      await importerOn(db).importData(file, 'merge')
-
-      await expect(repositories.vaccinations.getById(rage.id)).resolves.toBeNull()
-      const rows = await db.query<{ deleted_at: string | null }>(
-        'SELECT deleted_at FROM vaccination_injection WHERE vaccination_id = ?',
-        [rage.id],
-      )
-      expect(rows.every(({ deleted_at }) => deleted_at !== null)).toBe(true)
-    })
-
-    it.each([
-      ['un événement sans parent', 'orphanEvent', 'treatmentId', 'traitement-inconnu'],
-      ['un événement d’un autre animal que son parent', 'reattached', 'animalId', MILO_ID],
-    ] as const)('refuse %s sans rien écrire', async (_, reason, field, value) => {
-      const { service, syncReminders } = setup()
-      const [dose] = IMPORT_FIXTURE.treatmentDoses
-      const fautif = v2({
-        ...IMPORT_FIXTURE,
-        treatmentDoses: [{ ...dose!, id: crypto.randomUUID(), [field]: value }],
-      })
-
-      await expect(service.importData(fautif, 'merge')).rejects.toMatchObject({ reason })
-
-      await expect(repositories.animals.listVersions()).resolves.toEqual([])
-      expect(syncReminders).not.toHaveBeenCalled()
+      await expect(rowCounts()).resolves.toEqual(once)
     })
   })
 
@@ -1142,7 +1149,7 @@ describe('data-import.service', () => {
       at('2026-09-10T08:00:00.000Z')
       await createTreatmentDosesService({
         treatments: () => a.treatments,
-        doses: () => createTreatmentDosesRepository(phoneA),
+        doses: () => a.doses,
         reminders: { reschedule: async () => {} },
         now: () => new Date(),
       }).record(milbemax.id, '2026-09-10')
@@ -1156,7 +1163,7 @@ describe('data-import.service', () => {
       phoneB.close()
     })
 
-    it('fait converger deux exports : renommé d’un côté, arrêté plus tard de l’autre, l’arrêt gagne', async () => {
+    it('fait converger deux exports : renommé d’un côté, arrêté plus tard de l’autre, les deux sont gardés', async () => {
       const phoneA = db
       const phoneB = await createInMemoryDb()
       await phoneB.execute('PRAGMA foreign_keys = ON')
@@ -1180,7 +1187,7 @@ describe('data-import.service', () => {
         nextDueDate: '2026-09-15',
       })
       at('2026-09-10T08:00:00.000Z')
-      await createTreatmentPeriodsRepository(phoneA).stop(milbemax.id, '2026-09-10')
+      await a.periods.stop(milbemax.id, '2026-09-10')
 
       at('2026-09-20T08:00:00.000Z')
       const [fromA, fromB] = [await exported(phoneA), await exported(phoneB)]
@@ -1190,7 +1197,95 @@ describe('data-import.service', () => {
       for (const phone of [phoneA, phoneB]) {
         await expect(
           createRepositories(phone).treatments.getById(milbemax.id),
-        ).resolves.toMatchObject({ name: 'Milbémax', stoppedOn: '2026-09-10' })
+        ).resolves.toMatchObject({ name: 'Milbémax chat', stoppedOn: '2026-09-10' })
+      }
+      phoneB.close()
+    })
+
+    it('garde l’arrêt d’un appareil quand l’autre renomme le traitement plus tard', async () => {
+      const phoneA = db
+      const phoneB = await createInMemoryDb()
+      await phoneB.execute('PRAGMA foreign_keys = ON')
+      at('2026-09-01T08:00:00.000Z')
+      const a = createRepositories(phoneA)
+      const luna = await a.animals.create({ name: 'Luna', species: 'cat' })
+      const milbemax = await a.treatments.create({
+        animalId: luna.id,
+        name: 'Milbémax',
+        type: 'deworming',
+        frequency: { value: 3, unit: 'month' },
+        lastDoseDate: '2026-06-15',
+      })
+      await importerOn(phoneB).importData(await exported(phoneA), 'replace')
+      const b = createRepositories(phoneB)
+
+      at('2026-09-05T09:00:00.000Z')
+      await b.periods.stop(milbemax.id, '2026-09-05')
+      at('2026-09-05T10:00:00.000Z')
+      await a.treatments.update(milbemax.id, {
+        name: 'Milbémax chat',
+        type: 'deworming',
+        frequency: { value: 3, unit: 'month' },
+        nextDueDate: '2026-09-15',
+      })
+
+      at('2026-09-20T08:00:00.000Z')
+      const [fromA, fromB] = [await exported(phoneA), await exported(phoneB)]
+      await importerOn(phoneB).importData(fromA, 'merge')
+      await importerOn(phoneA).importData(fromB, 'merge')
+
+      for (const phone of [phoneA, phoneB]) {
+        await expect(
+          createRepositories(phone).treatments.getById(milbemax.id),
+        ).resolves.toMatchObject({ name: 'Milbémax chat', stoppedOn: '2026-09-05' })
+      }
+      phoneB.close()
+    })
+
+    it('garde la date corrigée d’une prise quand l’autre appareil renomme le traitement plus tard', async () => {
+      const phoneA = db
+      const phoneB = await createInMemoryDb()
+      await phoneB.execute('PRAGMA foreign_keys = ON')
+      at('2026-09-01T08:00:00.000Z')
+      const a = createRepositories(phoneA)
+      const luna = await a.animals.create({ name: 'Luna', species: 'cat' })
+      const milbemax = await a.treatments.create({
+        animalId: luna.id,
+        name: 'Milbémax',
+        type: 'deworming',
+        frequency: { value: 3, unit: 'month' },
+        lastDoseDate: '2026-06-15',
+      })
+      await importerOn(phoneB).importData(await exported(phoneA), 'replace')
+      const b = createRepositories(phoneB)
+
+      at('2026-09-05T09:00:00.000Z')
+      await b.doses.changeDate(
+        milbemax.id,
+        { givenOn: '2026-06-20', dueOn: '2026-06-20', nextDueDate: '2026-09-20' },
+        new Date().toISOString(),
+      )
+      at('2026-09-05T10:00:00.000Z')
+      await a.treatments.update(milbemax.id, {
+        name: 'Milbémax chat',
+        type: 'deworming',
+        frequency: { value: 3, unit: 'month' },
+        nextDueDate: '2026-09-15',
+      })
+
+      at('2026-09-20T08:00:00.000Z')
+      const [fromA, fromB] = [await exported(phoneA), await exported(phoneB)]
+      await importerOn(phoneB).importData(fromA, 'merge')
+      await importerOn(phoneA).importData(fromB, 'merge')
+
+      for (const phone of [phoneA, phoneB]) {
+        await expect(
+          createRepositories(phone).treatments.getById(milbemax.id),
+        ).resolves.toMatchObject({
+          name: 'Milbémax chat',
+          lastDoseDate: '2026-06-20',
+          nextDueDate: '2026-09-20',
+        })
       }
       phoneB.close()
     })

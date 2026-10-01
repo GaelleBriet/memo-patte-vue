@@ -8,6 +8,10 @@ import {
   type TreatmentDosesRepository,
 } from '@/features/treatments/repository/treatment-doses.repository'
 import {
+  getTreatmentPeriodsRepository,
+  type TreatmentPeriodsRepository,
+} from '@/features/treatments/repository/treatment-periods.repository'
+import {
   getTreatmentsRepository,
   type TreatmentsRepository,
 } from '@/features/treatments/repository/treatments.repository'
@@ -28,6 +32,10 @@ import {
   type DeliveryMode,
   type DeliveryOutcome,
 } from '../logic/export-delivery'
+import {
+  getCarnetSettingsRepository,
+  type CarnetSettingsRepository,
+} from '../repository/carnet-settings.repository'
 import { buildExportFile, type ExportFile, type ExportFormat } from '../logic/export-format'
 import type { ExportData } from '@/shared/domain/carnet-data'
 import type { WeightUnit } from '@/shared/domain/weight-unit'
@@ -36,10 +44,12 @@ import { currentWeightUnit } from '@/shared/domain/weight-unit-preference'
 type Provider<T> = () => T | Promise<T>
 
 export type DataExportDependencies = {
-  animals: Provider<Pick<AnimalsRepository, 'list'>>
-  vaccinations: Provider<Pick<VaccinationsRepository, 'listAll'>>
+  carnetSettings: Provider<Pick<CarnetSettingsRepository, 'getRecord'>>
+  animals: Provider<Pick<AnimalsRepository, 'listRecords'>>
+  vaccinations: Provider<Pick<VaccinationsRepository, 'listRecords'>>
   vaccinationInjections: Provider<Pick<VaccinationInjectionsRepository, 'listAll'>>
-  treatments: Provider<Pick<TreatmentsRepository, 'listAll'>>
+  treatments: Provider<Pick<TreatmentsRepository, 'listRecords'>>
+  treatmentPeriods: Provider<Pick<TreatmentPeriodsRepository, 'listAll'>>
   treatmentDoses: Provider<Pick<TreatmentDosesRepository, 'listAll'>>
   weight: Provider<Pick<WeightRepository, 'listByAnimal'>>
   deliver: (file: ExportFile, mode: DeliveryMode) => Promise<DeliveryOutcome>
@@ -48,20 +58,24 @@ export type DataExportDependencies = {
   weightUnit: () => WeightUnit
 }
 
-// Un événement exporté sans son parent ferait refuser le fichier à l'import.
-function eventsOf<E>(parents: { id: string }[], events: E[], parentOf: (event: E) => string): E[] {
+// Une ligne exportée sans son parent ferait refuser le fichier à l'import.
+function childrenOf<E>(parents: { id: string }[], rows: E[], parentOf: (row: E) => string): E[] {
   const byParent = new Map<string, E[]>()
-  for (const event of events) {
-    byParent.set(parentOf(event), [...(byParent.get(parentOf(event)) ?? []), event])
+  for (const row of rows) {
+    const siblings = byParent.get(parentOf(row))
+    if (siblings) siblings.push(row)
+    else byParent.set(parentOf(row), [row])
   }
   return parents.flatMap(({ id }) => byParent.get(id) ?? [])
 }
 
 export function createDataExportService({
+  carnetSettings,
   animals,
   vaccinations,
   vaccinationInjections,
   treatments,
+  treatmentPeriods,
   treatmentDoses,
   weight,
   deliver,
@@ -71,41 +85,68 @@ export function createDataExportService({
 }: DataExportDependencies) {
   async function collect(): Promise<ExportData> {
     const [
+      settingsRepository,
       animalsRepository,
       vaccinationsRepository,
       injectionsRepository,
       treatmentsRepository,
+      periodsRepository,
       dosesRepository,
       weightRepository,
     ] = await Promise.all([
+      carnetSettings(),
       animals(),
       vaccinations(),
       vaccinationInjections(),
       treatments(),
+      treatmentPeriods(),
       treatmentDoses(),
       weight(),
     ])
-    const [animalRows, vaccinationRows, injectionRows, treatmentRows, doseRows] = await Promise.all(
-      [
-        animalsRepository.list(),
-        vaccinationsRepository.listAll(),
-        injectionsRepository.listAll(),
-        treatmentsRepository.listAll(),
-        dosesRepository.listAll(),
-      ],
-    )
+    const [
+      settings,
+      animalRows,
+      vaccinationRows,
+      injectionRows,
+      treatmentRows,
+      allPeriods,
+      allDoses,
+    ] = await Promise.all([
+      settingsRepository.getRecord(),
+      animalsRepository.listRecords(),
+      vaccinationsRepository.listRecords(),
+      injectionsRepository.listAll(),
+      treatmentsRepository.listRecords(),
+      periodsRepository.listAll(),
+      dosesRepository.listAll(),
+    ])
     const weightRows = (
       await Promise.all(animalRows.map((animal) => weightRepository.listByAnimal(animal.id)))
     ).flat()
+    const periodRows = childrenOf(treatmentRows, allPeriods, ({ treatmentId }) => treatmentId)
+    const exportedPeriods = new Set(periodRows.map(({ id }) => id))
+    const doseRows = childrenOf(treatmentRows, allDoses, ({ treatmentId }) => treatmentId).filter(
+      ({ periodId }) => exportedPeriods.has(periodId),
+    )
 
     return {
+      carnetSettings: settings && {
+        vaccineReminderTime: settings.vaccineReminderTime,
+        remindBeforeDue: settings.remindBeforeDue,
+        createdAt: settings.createdAt,
+        updatedAt: settings.updatedAt,
+      },
       animals: animalRows.map((animal) => ({
         id: animal.id,
         name: animal.name,
         species: animal.species,
         breed: animal.breed,
         birthDate: animal.birthDate,
+        birthDateApproximate: animal.birthDateApproximate,
         photoFileName: animal.photoPath,
+        unfollowedOn: animal.unfollowedOn,
+        departureReason: animal.departureReason,
+        departureDate: animal.departureDate,
         createdAt: animal.createdAt,
         updatedAt: animal.updatedAt,
       })),
@@ -113,10 +154,11 @@ export function createDataExportService({
         id: vaccination.id,
         animalId: vaccination.animalId,
         name: vaccination.name,
+        plannedDueDate: vaccination.plannedDueDate,
         createdAt: vaccination.createdAt,
         updatedAt: vaccination.updatedAt,
       })),
-      vaccinationInjections: eventsOf(
+      vaccinationInjections: childrenOf(
         vaccinationRows,
         injectionRows,
         ({ vaccinationId }) => vaccinationId,
@@ -134,28 +176,39 @@ export function createDataExportService({
         animalId: treatment.animalId,
         name: treatment.name,
         type: treatment.type,
-        frequency: { value: treatment.frequency.value, unit: treatment.frequency.unit },
-        stoppedOn: treatment.stoppedOn,
         createdAt: treatment.createdAt,
         updatedAt: treatment.updatedAt,
       })),
-      treatmentDoses: eventsOf(treatmentRows, doseRows, ({ treatmentId }) => treatmentId).flatMap(
-        ({ givenOn, ...dose }) =>
-          givenOn === null
-            ? []
-            : [
-                {
-                  id: dose.id,
-                  treatmentId: dose.treatmentId,
-                  animalId: dose.animalId,
-                  givenOn,
-                  nextDueDate: dose.nextDueDate,
-                  frequency: { value: dose.frequency.value, unit: dose.frequency.unit },
-                  createdAt: dose.createdAt,
-                  updatedAt: dose.updatedAt,
-                },
-              ],
-      ),
+      treatmentPeriods: periodRows.map((period) => ({
+        id: period.id,
+        treatmentId: period.treatmentId,
+        animalId: period.animalId,
+        startsOn: period.startsOn,
+        firstDueOn: period.firstDueOn,
+        endsOn: period.endsOn,
+        stoppedOn: period.stoppedOn,
+        frequency: { value: period.frequency.value, unit: period.frequency.unit },
+        times: [...period.times],
+        doseQuantity: period.doseQuantity,
+        doseUnit: period.doseUnit,
+        reminderOffsetMinutes: period.reminderOffsetMinutes,
+        reminderTime: period.reminderTime,
+        createdAt: period.createdAt,
+        updatedAt: period.updatedAt,
+      })),
+      treatmentDoses: doseRows.map((dose) => ({
+        id: dose.id,
+        periodId: dose.periodId,
+        treatmentId: dose.treatmentId,
+        animalId: dose.animalId,
+        dueOn: dose.dueOn,
+        dueTime: dose.dueTime,
+        givenOn: dose.givenOn,
+        status: dose.status,
+        nextDueDate: dose.nextDueDate,
+        createdAt: dose.createdAt,
+        updatedAt: dose.updatedAt,
+      })),
       weightEntries: weightRows.map((entry) => ({
         id: entry.id,
         animalId: entry.animalId,
@@ -182,10 +235,12 @@ export function createDataExportService({
 export type DataExportService = ReturnType<typeof createDataExportService>
 
 export const dataExportService = createDataExportService({
+  carnetSettings: getCarnetSettingsRepository,
   animals: getAnimalsRepository,
   vaccinations: getVaccinationsRepository,
   vaccinationInjections: getVaccinationInjectionsRepository,
   treatments: getTreatmentsRepository,
+  treatmentPeriods: getTreatmentPeriodsRepository,
   treatmentDoses: getTreatmentDosesRepository,
   weight: getWeightRepository,
   deliver: (file, mode) =>

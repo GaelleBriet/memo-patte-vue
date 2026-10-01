@@ -335,6 +335,7 @@ interface FakeAnimalsRepository {
   create: Mock<AnimalsRepository['create']>
   update: Mock<AnimalsRepository['update']>
   remove: Mock<AnimalsRepository['remove']>
+  listRecords: Mock<AnimalsRepository['listRecords']>
   listVersions: Mock<AnimalsRepository['listVersions']>
   markAllDeletedStatement: Mock<AnimalsRepository['markAllDeletedStatement']>
   restoreStatement: Mock<AnimalsRepository['restoreStatement']>
@@ -397,6 +398,7 @@ function createFakeRepository(): FakeAnimalsRepository {
       return updated
     }),
     remove: vi.fn<AnimalsRepository['remove']>(async (id) => markDeleted(id)),
+    listRecords: vi.fn<AnimalsRepository['listRecords']>(),
     listVersions: vi.fn<AnimalsRepository['listVersions']>(),
     markAllDeletedStatement: vi.fn<AnimalsRepository['markAllDeletedStatement']>(),
     restoreStatement: vi.fn<AnimalsRepository['restoreStatement']>(),

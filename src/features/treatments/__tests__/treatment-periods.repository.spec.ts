@@ -6,6 +6,7 @@ import { getDb } from '@/core/db/sqlite'
 import {
   createTreatmentPeriodsRepository,
   getTreatmentPeriodsRepository,
+  type RestoredTreatmentPeriod,
   type TreatmentPeriodsRepository,
 } from '../repository/treatment-periods.repository'
 import type { TreatmentPeriod } from '../schema/treatment-period.schema'
@@ -263,56 +264,120 @@ describe('treatmentPeriodsRepository', () => {
     await expect(row(BRAVECTO)).resolves.toMatchObject({ deleted_at: EARLIER })
   })
 
-  describe('import', () => {
-    it('insère une période importée avec ses dates d’origine', async () => {
-      await db.run('DELETE FROM treatment_period WHERE id = ?', [MILBEMAX])
+  describe('export et import', () => {
+    const COMPLETE: RestoredTreatmentPeriod = {
+      id: REPRISE,
+      treatmentId: MILBEMAX,
+      animalId: MIETTE,
+      startsOn: '2026-02-10',
+      firstDueOn: '2026-02-11',
+      endsOn: '2026-03-10',
+      stoppedOn: '2026-02-20',
+      frequency: { value: 1, unit: 'day' },
+      times: ['08:00', '20:00'],
+      doseQuantity: 0.5,
+      doseUnit: 'tablet',
+      reminderOffsetMinutes: 30,
+      reminderTime: null,
+      createdAt: EARLIER,
+      updatedAt: NOW,
+    }
 
-      await db.runMany([
-        periods.restoreStatement(
-          period({ stoppedOn: '2026-02-01', createdAt: EARLIER, updatedAt: NOW }),
-        ),
-      ])
+    it('insère une période importée avec toutes ses colonnes et la relit à l’identique', async () => {
+      await db.runMany([periods.restoreStatement(COMPLETE, false)])
 
-      await expect(row(MILBEMAX)).resolves.toEqual({
-        id: MILBEMAX,
-        starts_on: '2026-01-10',
-        first_due_on: '2026-01-10',
-        frequency_value: 3,
-        frequency_unit: 'month',
-        stopped_on: '2026-02-01',
-        created_at: EARLIER,
-        updated_at: NOW,
-        deleted_at: null,
+      const listed = await periods.listAll()
+
+      expect(listed.find(({ id }) => id === REPRISE)).toEqual({ ...COMPLETE, deletedAt: null })
+      await expect(
+        db.query('SELECT times FROM treatment_period WHERE id = ?', [REPRISE]),
+      ).resolves.toEqual([{ times: '08:00,20:00' }])
+    })
+
+    it('lit une période écrite par l’app sans fin, heures, posologie ni moment du rappel', async () => {
+      const listed = await periods.listAll()
+
+      expect(listed.find(({ id }) => id === MILBEMAX)).toEqual({
+        ...period(),
+        endsOn: null,
+        times: [],
+        doseQuantity: null,
+        doseUnit: null,
+        reminderOffsetMinutes: null,
+        reminderTime: null,
       })
     })
 
-    it('écrase les réglages d’une période existante, même supprimée, et la rend visible', async () => {
-      await periods.stop(MILBEMAX, '2026-02-01')
+    it('liste les périodes d’un traitement de la première à la dernière, sans les supprimées', async () => {
+      await db.runMany([
+        periods.restoreStatement(COMPLETE, false),
+        periods.markDeletedByAnimalStatement(VASCO, NOW),
+      ])
+
+      await expect(periods.listAll()).resolves.toMatchObject([{ id: MILBEMAX }, { id: REPRISE }])
+    })
+
+    it('écrase les réglages d’une période existante, même supprimée, sans la changer de traitement', async () => {
       await db.run('UPDATE treatment_period SET deleted_at = ? WHERE id = ?', [EARLIER, MILBEMAX])
 
       await db.runMany([
         periods.restoreStatement(
-          period({
-            startsOn: '2026-01-25',
-            firstDueOn: '2026-01-25',
-            frequency: { value: 1, unit: 'week' },
-            createdAt: NOW,
-            updatedAt: NOW,
-          }),
+          { ...COMPLETE, id: MILBEMAX, treatmentId: BRAVECTO, animalId: VASCO, times: [] },
+          true,
         ),
       ])
 
-      await expect(row(MILBEMAX)).resolves.toEqual({
+      const listed = await periods.listAll()
+      expect(listed.find(({ id }) => id === MILBEMAX)).toEqual({
+        ...COMPLETE,
         id: MILBEMAX,
-        starts_on: '2026-01-10',
-        first_due_on: '2026-01-10',
-        frequency_value: 1,
-        frequency_unit: 'week',
-        stopped_on: null,
-        created_at: T0,
-        updated_at: NOW,
-        deleted_at: null,
+        times: [],
+        deletedAt: null,
       })
+    })
+
+    it('liste les versions de toutes les périodes, supprimées comprises', async () => {
+      await db.runMany([periods.markDeletedByAnimalStatement(VASCO, NOW)])
+
+      const versions = await periods.listVersions()
+
+      expect(versions).toHaveLength(2)
+      expect(versions).toContainEqual({
+        id: MILBEMAX,
+        treatmentId: MILBEMAX,
+        animalId: MIETTE,
+        updatedAt: T0,
+        deletedAt: null,
+      })
+      expect(versions).toContainEqual({
+        id: BRAVECTO,
+        treatmentId: BRAVECTO,
+        animalId: VASCO,
+        updatedAt: NOW,
+        deletedAt: NOW,
+      })
+    })
+
+    it('ramène une période supprimée sans toucher ses réglages', async () => {
+      await db.runMany([
+        periods.markDeletedByAnimalStatement(MIETTE, EARLIER),
+        periods.reviveStatement(MILBEMAX, NOW),
+      ])
+
+      const listed = await periods.listAll()
+      expect(listed.find(({ id }) => id === MILBEMAX)).toMatchObject({
+        startsOn: '2026-01-10',
+        updatedAt: NOW,
+        deletedAt: null,
+      })
+    })
+
+    it('refuse une unité de posologie inconnue de la base', async () => {
+      await expect(
+        db.runMany([
+          periods.restoreStatement({ ...COMPLETE, doseUnit: 'louche' as 'tablet' }, false),
+        ]),
+      ).rejects.toThrow(/dose_unit not allowed/)
     })
   })
 })

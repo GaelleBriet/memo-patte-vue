@@ -42,10 +42,12 @@ interface TreatmentWithHeadRow extends TreatmentRow {
 }
 
 export type TreatmentVersion = Pick<Treatment, 'id' | 'animalId' | 'updatedAt' | 'deletedAt'>
-export type RestoredTreatment = Pick<
+/** Le traitement tel que sa table l'enregistre, sans sa période ni la tête de son historique. */
+export type TreatmentRecord = Pick<
   Treatment,
   'id' | 'animalId' | 'name' | 'type' | 'createdAt' | 'updatedAt'
 >
+export type RestoredTreatment = TreatmentRecord
 
 const COLUMNS = 'id, animal_id, name, type, created_at, updated_at, deleted_at'
 
@@ -123,8 +125,8 @@ export function createTreatmentsRepository(
     await db.runMany([
       {
         sql: `UPDATE treatment SET name = ?, type = ?, updated_at = ?
-              WHERE id = ? AND ${NOT_DELETED}`,
-        params: [data.name, data.type, updatedAt, id],
+              WHERE id = ? AND ${NOT_DELETED} AND (name <> ? OR type <> ?)`,
+        params: [data.name, data.type, updatedAt, id, data.name, data.type],
       },
       periods.correctCurrentStatement(id, { frequency: data.frequency, resume, updatedAt }),
       doses.updateHeadStatement(id, { nextDueDate: data.nextDueDate, updatedAt }),
@@ -154,6 +156,22 @@ export function createTreatmentsRepository(
          ORDER BY treatment.animal_id, head.next_due_date, treatment.created_at`,
       )
       return rows.map(toTreatment)
+    },
+
+    /** Traitements visibles, qu'ils aient ou non une prise. */
+    async listRecords(): Promise<TreatmentRecord[]> {
+      const rows = await db.query<TreatmentRow>(
+        `SELECT ${COLUMNS} FROM treatment WHERE ${NOT_DELETED}
+         ORDER BY animal_id, created_at, id`,
+      )
+      return rows.map((row) => ({
+        id: row.id,
+        animalId: row.animal_id,
+        name: row.name,
+        type: row.type,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+      }))
     },
 
     /**
@@ -248,17 +266,9 @@ export function createTreatmentsRepository(
       }
     },
 
-    /** Lignes supprimées comprises, datées comme à la lecture : l'import compare les versions. */
+    /** Lignes supprimées comprises : l'import compare les versions avant d'écrire. */
     async listVersions(): Promise<TreatmentVersion[]> {
-      const rows = await db.query<
-        Pick<TreatmentRow, 'id' | 'animal_id' | 'updated_at' | 'deleted_at'>
-      >(
-        `SELECT treatment.id, treatment.animal_id, treatment.deleted_at,
-                MAX(treatment.updated_at, COALESCE(period.updated_at, treatment.updated_at))
-                  AS updated_at
-         FROM treatment
-         LEFT JOIN treatment_period period ON period.id = ${currentPeriodIdSql('treatment.id')}`,
-      )
+      const rows = await db.query<TreatmentRow>(`SELECT ${COLUMNS} FROM treatment`)
       return rows.map(({ id, animal_id, updated_at, deleted_at }) => ({
         id,
         animalId: animal_id,
