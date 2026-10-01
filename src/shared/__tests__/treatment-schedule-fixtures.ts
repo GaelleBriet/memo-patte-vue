@@ -80,18 +80,26 @@ export function record(book: Carnet, today: string, gesture: Gesture): Carnet {
   if (gesture.kind !== 'postponed') {
     return { ...book, doses: [...book.doses, stored(schedule.doseFor(gesture))] }
   }
-  const { dose, doseId } = schedule.move(gesture.due, gesture.to)
-  if (doseId === null) return { ...book, doses: [...book.doses, stored(dose)] }
-  return {
-    ...book,
-    doses: book.doses.map((line) =>
-      line.id === doseId ? { ...line, ...dose, updatedAt: nextStamp() } : line,
-    ),
+  const moved = schedule.move(gesture.due, gesture.to)
+  switch (moved.action) {
+    case 'none':
+      return book
+    case 'create':
+      return { ...book, doses: [...book.doses, stored(moved.dose)] }
+    case 'delete':
+      return { ...book, doses: book.doses.filter(({ id }) => id !== moved.doseId) }
+    case 'rewrite':
+      return {
+        ...book,
+        doses: book.doses.map((line) =>
+          line.id === moved.doseId ? { ...line, ...moved.dose, updatedAt: nextStamp() } : line,
+        ),
+      }
   }
 }
 
-/** Déplacement écrit en ligne chaînée, comme avant Q18 (lignes déjà en base ou venues de la synchro). */
-export function chainedMove(book: Carnet, from: string, to: string): Carnet {
+/** Ligne de déplacement écrite telle quelle, sans passer par le moteur (synchro, fichier importé). */
+export function storedMove(book: Carnet, from: string, to: string): Carnet {
   const line = stored({
     periodId: 'p1',
     dueOn: from,
@@ -125,13 +133,14 @@ export function withoutDose(book: Carnet, id: string): Carnet {
   return { ...book, doses: book.doses.filter((dose) => dose.id !== id) }
 }
 
-/** Corrige une prise comme le ferait le repository : même ligne, champs recalculés, plus récente. */
+/** Corrige une prise comme le ferait le repository : ligne recalculée, déplacements non gardés supprimés. */
 export function redate(book: Carnet, today: string, doseId: string, givenOn: string): Carnet {
-  const { dose: fields } = scheduleOf(book, today).redate(doseId, givenOn)
+  const { dose: fields, postponement } = scheduleOf(book, today).redate(doseId, givenOn)
+  const dropped = postponement?.kept === false ? postponement.doseIds : []
   return {
     ...book,
-    doses: book.doses.map((dose) =>
-      dose.id === doseId ? { ...dose, ...fields, updatedAt: nextStamp() } : dose,
-    ),
+    doses: book.doses
+      .filter(({ id }) => !dropped.includes(id))
+      .map((dose) => (dose.id === doseId ? { ...dose, ...fields, updatedAt: nextStamp() } : dose)),
   }
 }

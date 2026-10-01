@@ -106,6 +106,51 @@ describe('performance', () => {
   })
 })
 
+describe('lignes sans effet sur des échéances à renseigner (fichier forgé)', () => {
+  it('« Toutes données » ne recalcule pas le calendrier à chaque dose', () => {
+    const neutral = TWO_YEARS.map((day) => ({
+      ...givenAt(day, '08:00', day),
+      id: `neutre-${day}`,
+      givenOn: null,
+      status: 'postponed' as const,
+    }))
+
+    const { result: written, elapsed } = fastest(() => {
+      const schedule = treatmentSchedule({ ...input, doses: neutral })
+      return schedule.unloggedDoses.map((due) =>
+        schedule.doseFor({ kind: 'given', due, givenOn: due.dueOn }),
+      )
+    })
+
+    expect(written).toHaveLength(1458)
+    expect(elapsed).toBeLessThan(300)
+  })
+})
+
+describe('période suivante très lointaine (fichier forgé)', () => {
+  it('une période à 24 heures par jour suivie d’une période en 2199 se calcule sans rien dérouler', () => {
+    const everyHour = Array.from({ length: 24 }, (_, hour) => `${String(hour).padStart(2, '0')}:00`)
+    const forged = {
+      periods: [
+        period({ firstDueOn: '2026-09-01', times: everyHour }),
+        period({ id: 'p2', startsOn: '2199-12-30', firstDueOn: '2199-12-30' }),
+      ],
+      doses: [],
+      today: '2026-09-28',
+    }
+
+    const { result: schedule, elapsed } = fastest(() => {
+      const computed = treatmentSchedule(forged)
+      computed.upcoming(400)
+      return computed
+    })
+
+    expect(schedule.unloggedDoses).toHaveLength(27 * 24)
+    expect(schedule.currentDoses).toHaveLength(24)
+    expect(elapsed).toBeLessThan(100)
+  })
+})
+
 // Une période par ajustement de posologie, toutes les prises données à leur jour.
 function adjustedTreatment(start: string, months: number, count: number, times: string[]) {
   const starts = Array.from({ length: count + 1 }, (_, index) =>

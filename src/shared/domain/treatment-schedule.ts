@@ -61,14 +61,18 @@ export type DoseFields = Pick<
   'periodId' | 'dueOn' | 'dueTime' | 'givenOn' | 'status' | 'nextDueDate'
 >
 
-/** `postponement` : le déplacement de la dose que la prise a fixée (TR-24 bis) ; non gardé, à supprimer. */
+/** `postponement` : le déplacement gardé (TR-24 bis), ou ceux que la nouvelle date laisse sans effet, à supprimer. */
 export type RedatedDose = {
   dose: DoseFields
   postponement: { doseIds: string[]; kept: boolean } | null
 }
 
-/** `doseId` : la ligne de déplacement à réécrire (Q18) ; `null` : une nouvelle ligne. */
-export type MovedDose = { dose: DoseFields; doseId: string | null }
+/** Ligne de déplacement à créer, à réécrire (Q18), à supprimer quand la dose revient à sa date, ou rien. */
+export type MovedDose =
+  | { action: 'create'; dose: DoseFields }
+  | { action: 'rewrite'; dose: DoseFields; doseId: string }
+  | { action: 'delete'; doseId: string }
+  | { action: 'none' }
 
 /** Bornes de « Prochaine dose » (TR-9) ; `latest` : la date de fin, `null` sans date de fin. */
 export type MoveBounds = { earliest: string; latest: string | null }
@@ -85,8 +89,10 @@ export type TreatmentSchedule = {
   nextDue: Due | null
   /** Doses non renseignées (TR-13), jamais comptées comme des retards. */
   unloggedDoses: Due[]
-  /** Lignes de l'historique, une par échéance (la plus récemment modifiée) ; sans les reports dépassés. */
+  /** Lignes de l'historique, une par échéance (la plus récemment modifiée) ; sans les déplacements sans effet. */
   doses: TreatmentDoseInput[]
+  /** Déplacements sans effet (dépassés, revenus à leur date) : à supprimer avec la prochaine écriture. */
+  staleDoseIds: string[]
   currentPeriodId: string | null
   /** TR-28 : une prise, même oubliée ou reportée, existe dans la période en cours. */
   currentPeriodHasDose: boolean
@@ -100,35 +106,25 @@ export type TreatmentSchedule = {
   redate(doseId: string, givenOn: string): RedatedDose
   /** « Prochaine dose » (TR-9, Q17, Q18) : déplace la dose, plus tôt ou plus tard. */
   move(due: Due, to: string): MovedDose
-  moveBounds(due: Due): MoveBounds
+  /** `null` : cette dose ne se déplace pas (aucune date possible, ou heure restante d'un ancien réglage). */
+  moveBounds(due: Due): MoveBounds | null
   /** Dates d'une période ouverte par « Modifier » (TR-28, Q7, Q19). */
   newPeriod(frequency: Frequency): NewPeriod
 }
 
 type Sequence = { origin: string; firstStep: number; floor: string }
 
-type Note = { kind: 'note'; dose: TreatmentDoseInput; position: string }
-
-type Move = {
-  kind: 'move'
-  first: TreatmentDoseInput
-  doses: TreatmentDoseInput[]
-  to: string
-  position: string
-}
-
-type Step = Note | Move
+type Step = { kind: 'note' | 'move'; dose: TreatmentDoseInput; position: string }
 
 type PeriodPlan = {
   period: TreatmentPeriodInput
   closesOn: string | null
   steps: Step[]
-  doses: TreatmentDoseInput[]
-  overtaken: TreatmentDoseInput[]
+  stale: TreatmentDoseInput[]
   anchors: { position: string; sequence: Sequence }[]
   between: Due[]
-  covered: Set<string>
   noteKeys: Set<string>
+  noteDays: Set<string>
   fallenKeys: string[]
 }
 
@@ -350,65 +346,42 @@ function compareCreation(a: TreatmentDoseInput, b: TreatmentDoseInput): number {
   return compareText(a.createdAt, b.createdAt) || compareText(a.id, b.id)
 }
 
-// Lignes chaînées (avant Q18, ou venues de la synchro) : un seul déplacement, de bout en bout.
-function movesOf(postponed: TreatmentDoseInput[]): Move[] {
-  const moves: Move[] = []
-  const byDestination = new Map<string, Move>()
-  for (const dose of [...postponed].sort(compareCreation)) {
-    const chained = byDestination.get(dose.dueOn)
-    const move: Move = chained ?? { kind: 'move', first: dose, doses: [], to: '', position: '' }
-    if (chained === undefined) moves.push(move)
-    else byDestination.delete(dose.dueOn)
-    move.doses.push(dose)
-    move.to = dose.nextDueDate
-    byDestination.set(move.to, move)
+// Avancé (Q17), un déplacement agit au début de sa nouvelle date ; reporté, après les prises de son jour d'origine.
+function stepOf(dose: TreatmentDoseInput): Step {
+  if (dose.status !== 'postponed') {
+    return { kind: 'note', dose, position: positionOf(keyOf(dose), 1) }
   }
-  // Avancé (Q17), un déplacement agit à sa nouvelle date, avant l'échéance qu'il remplace.
-  return moves.map((move) => {
-    const replaced = keyOf(move.first)
-    const arrival = `${move.to} `
-    return { ...move, position: positionOf(arrival < replaced ? arrival : replaced, 0) }
-  })
-}
-
-function originOf(step: Step): TreatmentDoseInput {
-  return step.kind === 'note' ? step.dose : step.first
-}
-
-// Une chaîne de déplacements n'occupe que son échéance d'origine ; elle tombe si elle n'avance pas.
-function fallenDoses(step: Step): TreatmentDoseInput[] {
-  if (step.kind === 'note') return [step.dose]
-  return keyOf(step.first) <= `${step.to} ` ? [step.first] : []
+  const actsOn = dose.nextDueDate < dose.dueOn ? `${dose.nextDueDate} ` : `${dose.dueOn} ~`
+  return { kind: 'move', dose, position: positionOf(actsOn, 0) }
 }
 
 function stepsOf(doses: TreatmentDoseInput[]): Step[] {
-  const notes: Step[] = doses
-    .filter((dose) => dose.status !== 'postponed')
-    .map((dose) => ({ kind: 'note', dose, position: positionOf(keyOf(dose), 1) }))
-  const moves = movesOf(doses.filter((dose) => dose.status === 'postponed'))
-  return [...notes, ...moves].sort(
-    (a, b) => compareText(a.position, b.position) || compareCreation(originOf(a), originOf(b)),
+  return doses
+    .map(stepOf)
+    .sort((a, b) => compareText(a.position, b.position) || compareCreation(a.dose, b.dose))
+}
+
+function isNote(step: Step): boolean {
+  return step.kind === 'note'
+}
+
+function isMove(step: Step): boolean {
+  return step.kind === 'move'
+}
+
+// Un report laisse tomber l'échéance qu'il remplace ; une dose avancée, non.
+function hasFallen({ kind, dose }: Step): boolean {
+  return kind === 'note' || dose.nextDueDate > dose.dueOn
+}
+
+// TR-24 bis : un déplacement qui ne tombe plus après la prise qui fixait sa suite est dépassé.
+function isOvertaken(step: Step, previous: Step | undefined, frequency: Frequency): boolean {
+  return (
+    step.kind === 'move' &&
+    previous?.kind === 'note' &&
+    fixesSuiteFromItsDate(previous.dose, frequency) &&
+    step.dose.nextDueDate <= referenceOf(previous.dose)
   )
-}
-
-function stepDoses(step: Step): TreatmentDoseInput[] {
-  return step.kind === 'note' ? [step.dose] : step.doses
-}
-
-function splitOvertaken(steps: Step[], frequency: Frequency) {
-  const kept: Step[] = []
-  const overtaken: TreatmentDoseInput[] = []
-  for (const step of steps) {
-    const previous = kept.at(-1)
-    const isOvertaken =
-      step.kind === 'move' &&
-      previous?.kind === 'note' &&
-      fixesSuiteFromItsDate(previous.dose, frequency) &&
-      step.to <= referenceOf(previous.dose)
-    if (isOvertaken) overtaken.push(...step.doses)
-    else kept.push(step)
-  }
-  return { kept, overtaken }
 }
 
 function initialSequence(period: TreatmentPeriodInput): Sequence {
@@ -447,9 +420,12 @@ function firstDueOf(sequence: Sequence, period: TreatmentPeriodInput): Due {
   return sequenceDues(sequence, period).next().value
 }
 
-function sequenceAfter(step: Step, period: TreatmentPeriodInput, current: Sequence): Sequence {
-  if (step.kind === 'move') return { origin: step.to, firstStep: 0, floor: current.floor }
-  const { dose } = step
+function sequenceAfter(
+  { kind, dose }: Step,
+  period: TreatmentPeriodInput,
+  current: Sequence,
+): Sequence {
+  if (kind === 'move') return { origin: dose.nextDueDate, firstStep: 0, floor: current.floor }
   const reference = referenceOf(dose)
   const floor = keyOf(dose)
   if (shiftDate(reference, period.frequency, 1) === dose.nextDueDate) {
@@ -465,27 +441,51 @@ function distanceInDays(a: string, b: string): number {
   return Math.abs(differenceInCalendarDays(toDate(a), toDate(b)))
 }
 
-function duesLeftBefore(step: Step, sequence: Sequence, period: TreatmentPeriodInput): Due[] {
-  const replaced = originOf(step)
-  const key = keyOf(replaced)
-  const before: Due[] = []
-  let after: Due | undefined
-  for (const due of sequenceDues(sequence, period)) {
-    if (keyOf(due) > key) {
-      after = due
-      break
-    }
-    before.push(due)
+// Les échéances déjà produites restent sous la main : une ligne sans effet ne fait rien recalculer.
+type Cursor = { dues: Generator<Due, never>; ahead: Due[] }
+
+function cursorOn(sequence: Sequence, period: TreatmentPeriodInput): Cursor {
+  return { dues: sequenceDues(sequence, period), ahead: [] }
+}
+
+function duesLeftBefore({ kind, dose }: Step, cursor: Cursor) {
+  const key = keyOf(dose)
+  let after = cursor.ahead.at(-1)
+  while (after === undefined || keyOf(after) <= key) {
+    after = cursor.dues.next().value
+    cursor.ahead.push(after)
   }
+  const before = cursor.ahead.filter((due) => keyOf(due) <= key)
+  const next = cursor.ahead[before.length] ?? after
   const last = before.at(-1)
-  if (last === undefined) return before
-  // Prise d'avant déplacée : le report remplace l'échéance de la suite la plus proche de la sienne.
-  const isReplaced =
-    keyOf(last) === key ||
-    (step.kind === 'move' &&
-      (after === undefined ||
-        distanceInDays(last.dueOn, replaced.dueOn) <= distanceInDays(after.dueOn, replaced.dueOn)))
-  return isReplaced ? before.slice(0, -1) : before
+  if (last !== undefined && keyOf(last) === key) return { left: before.slice(0, -1), exact: true }
+  // Suite décalée par une prise d'avant corrigée : le déplacement remplace la journée la plus proche de la sienne.
+  const takesLast =
+    kind === 'move' &&
+    last !== undefined &&
+    distanceInDays(last.dueOn, dose.dueOn) <= distanceInDays(next.dueOn, dose.dueOn)
+  const left = takesLast ? before.filter((due) => due.dueOn !== last.dueOn) : before
+  return { left, exact: false }
+}
+
+function latestOf(days: (string | null | undefined)[]): string | undefined {
+  return days
+    .filter((day) => day !== null && day !== undefined)
+    .sort(compareText)
+    .at(-1)
+}
+
+// Sans effet : revenu à sa date d'origine, ou arrivé sur ce qui le précède (dose sans prise, ligne d'avant).
+function hasNoEffect(step: Step, previous: Step | undefined, left: Due[], exact: boolean): boolean {
+  if (step.kind === 'note') return false
+  const { dueOn, nextDueDate } = step.dose
+  const before = latestOf([left.at(-1)?.dueOn, previous?.dose.dueOn])
+  return (exact && nextDueDate === dueOn) || (before !== undefined && nextDueDate <= before)
+}
+
+// Q21 : la journée part avec sa première heure sans prise.
+function leavesWith(move: TreatmentDoseInput, due: Due): boolean {
+  return due.dueOn === move.dueOn && keyOf(due) >= keyOf(move)
 }
 
 function planPeriod(
@@ -493,27 +493,40 @@ function planPeriod(
   closesOn: string | null,
   doses: TreatmentDoseInput[],
 ): PeriodPlan {
-  const { kept, overtaken } = splitOvertaken(stepsOf(doses), period.frequency)
+  const steps: Step[] = []
+  const stale: TreatmentDoseInput[] = []
   const anchors: PeriodPlan['anchors'] = []
-  const between: Due[] = []
+  let between: Due[] = []
   let sequence = initialSequence(period)
-  for (const step of kept) {
-    between.push(...duesLeftBefore(step, sequence, period))
+  let cursor = cursorOn(sequence, period)
+  for (const step of stepsOf(doses)) {
+    const previous = steps.at(-1)
+    const { left, exact } = duesLeftBefore(step, cursor)
+    if (hasNoEffect(step, previous, left, exact) || isOvertaken(step, previous, period.frequency)) {
+      stale.push(step.dose)
+      continue
+    }
+    between.push(...left)
+    if (step.kind === 'move') between = between.filter((due) => !leavesWith(step.dose, due))
     sequence = sequenceAfter(step, period, sequence)
+    cursor = cursorOn(sequence, period)
     anchors.push({ position: step.position, sequence })
+    steps.push(step)
   }
-  const notes = kept.flatMap((step) => (step.kind === 'note' ? [step.dose] : []))
+  const notes = steps.filter(isNote).map(({ dose }) => dose)
   return {
     period,
     closesOn,
-    steps: kept,
-    doses: kept.flatMap(stepDoses).sort(compareDoses),
-    overtaken,
+    steps,
+    stale,
     anchors,
     between,
-    covered: new Set(kept.map((step) => keyOf(originOf(step)))),
     noteKeys: new Set(notes.map(keyOf)),
-    fallenKeys: kept.flatMap(fallenDoses).map(keyOf).sort(compareText),
+    noteDays: new Set(notes.map((dose) => dose.dueOn)),
+    fallenKeys: steps
+      .filter(hasFallen)
+      .map(({ dose }) => keyOf(dose))
+      .sort(compareText),
   }
 }
 
@@ -545,7 +558,7 @@ function sequenceAt(plan: PeriodPlan, position: string): Sequence {
 function pendingDues(plan: PeriodPlan, { from = '', to, limit = Infinity }: Window): Due[] {
   const isPending = (due: Due) =>
     isWithinPeriod(plan, due.dueOn) &&
-    !plan.covered.has(keyOf(due)) &&
+    !plan.noteKeys.has(keyOf(due)) &&
     due.dueOn >= from &&
     (to === undefined || due.dueOn <= to)
   const tail: Due[] = []
@@ -601,7 +614,7 @@ function build(input: TreatmentScheduleInput): State {
   const unlogged = plans
     .slice(0, -1)
     .flatMap((plan) => pendingDues(plan, { to: previousDay(today) }))
-  const noted = new Set(doses.map(dueId))
+  const noted = new Set(plans.flatMap(notesOf).map(dueId))
   const closed = { input, noted, plans, open: null, carriedOver: [], currentDoses: [] }
 
   if (current === undefined) return { ...closed, phase: 'ended', unloggedDoses: unlogged }
@@ -615,7 +628,9 @@ function build(input: TreatmentScheduleInput): State {
   }
 
   // Q19 : une période précédente garde les heures du jour qui lui restent avant sa fermeture.
-  const carriedOver = plans.slice(0, -1).flatMap((plan) => pendingDues(plan, { from: today }))
+  const carriedOver = plans
+    .slice(0, -1)
+    .flatMap((plan) => pendingDues(plan, { from: today, to: today }))
   const fallen = uniqueSorted([
     ...carriedOver.filter((due) => due.dueOn === today),
     ...pendingDues(current, { to: today }),
@@ -632,6 +647,10 @@ function build(input: TreatmentScheduleInput): State {
     currentDoses,
     unloggedDoses: [...unlogged, ...missedHere],
   }
+}
+
+function notesOf(plan: PeriodPlan): TreatmentDoseInput[] {
+  return plan.steps.filter(isNote).map(({ dose }) => dose)
 }
 
 function planOf(state: State, periodId: string): PeriodPlan {
@@ -660,11 +679,37 @@ function stateWithout(state: State, due: Due, today = state.input.today): State 
   return build({ ...state.input, doses, today })
 }
 
+function landsOn(from: string, day: string, frequency: Frequency): boolean {
+  const { value, unit } = frequency
+  if (day <= from) return false
+  const start = toDate(from)
+  const target = toDate(day)
+  if (unit === 'month') {
+    const months = differenceInCalendarMonths(target, start)
+    return months % value === 0 && shiftDate(from, frequency, months / value) === day
+  }
+  return differenceInCalendarDays(target, start) % (value * DAYS_PER_STEP[unit]) === 0
+}
+
+// La suite ne repart de la date réelle (T2) que pour la dernière heure du jour, si la dose suivante
+// tombe après l'échéance couverte, et jamais sur l'échéance d'origine d'un déplacement (sa ligne).
 function givenNextDueDate(others: State, due: Due, givenOn: string): string {
+  const next = nextInSequence(others, due)
+  const plan = planOf(others, due.periodId)
+  const { frequency } = plan.period
+  const restarted = shiftDate(givenOn, frequency, 1)
   const coversCurrent = others.currentDoses.some((current) => sameDue(current, due))
-  return coversCurrent && givenOn !== due.dueOn
-    ? shiftDate(givenOn, planOf(others, due.periodId).period.frequency, 1)
-    : nextInSequence(others, due)
+  const hitsAMove = plan.steps.some(
+    ({ kind, dose }) =>
+      kind === 'move' && dose.dueOn > due.dueOn && landsOn(givenOn, dose.dueOn, frequency),
+  )
+  const restarts =
+    coversCurrent &&
+    givenOn !== due.dueOn &&
+    next !== due.dueOn &&
+    restarted > due.dueOn &&
+    !hitsAMove
+  return restarts ? restarted : next
 }
 
 // Une prise en avance vise le prochain jour d'échéance : deux jours couvrent chaque heure.
@@ -705,21 +750,53 @@ function doseFor(state: State, known: () => Set<string>, gesture: DoseGesture): 
   }
 }
 
-function movingStep(plan: PeriodPlan, due: Due): Move | undefined {
+// La dose déplacée : l'arrivée d'un déplacement tant qu'aucune prise n'y est notée, ou son échéance d'origine.
+function movingStep(plan: PeriodPlan, due: Due): TreatmentDoseInput | undefined {
   return plan.steps
-    .filter((step): step is Move => step.kind === 'move')
-    .filter((step) => step.to === due.dueOn || keyOf(step.first) === keyOf(due))
+    .filter(isMove)
+    .map(({ dose }) => dose)
+    .filter(
+      (move) =>
+        (move.nextDueDate === due.dueOn && !plan.noteDays.has(due.dueOn)) ||
+        keyOf(move) === keyOf(due),
+    )
     .at(-1)
 }
 
-function previousDueKey(state: State, due: Due): string | undefined {
-  const plan = planOf(state, due.periodId)
-  const key = keyOf(due)
-  const pending = pendingDues(plan, { to: due.dueOn }).map(keyOf)
-  return [...plan.noteKeys, ...pending]
-    .filter((other) => other < key)
-    .sort(compareText)
-    .at(-1)
+function dueDaysOf(dues: Due[]): string[] {
+  return dues.map((due) => due.dueOn)
+}
+
+// Une ligne par échéance : la dose arrive après tout ce qui a déjà une ligne ou reste sans prise,
+// et à moins d'un intervalle de sa date, pour que la suite ne retombe jamais sur une échéance occupée.
+function dayBeforeMove(state: State, moved: Due): string {
+  const plan = planOf(state, moved.periodId)
+  const pending = pendingDues(plan, { to: moved.dueOn }).filter((due) => keyOf(due) < keyOf(moved))
+  const earlier = state.plans
+    .slice(0, state.plans.indexOf(plan))
+    .flatMap((other) => [...other.noteDays, ...dueDaysOf(pendingDues(other, { to: moved.dueOn }))])
+  const oneStepBefore = shiftDate(moved.dueOn, plan.period.frequency, -1)
+  return (
+    latestOf([
+      ...plan.steps.map(({ dose }) => dose.dueOn),
+      ...notesOf(plan).map((dose) => dose.givenOn),
+      ...dueDaysOf(pending),
+      ...earlier,
+      oneStepBefore,
+    ]) ?? oneStepBefore
+  )
+}
+
+// Le moteur ne tient pas une dose déplacée quand une ligne existe déjà plus loin, même sans effet.
+function boundsOf(state: State, moved: Due): MoveBounds | null {
+  const { today } = state.input
+  const plan = planOf(state, moved.periodId)
+  const lines = [...plan.steps.map(({ dose }) => dose), ...plan.stale]
+  if (lines.some((dose) => dose.dueOn > moved.dueOn)) return null
+  const afterPrevious = nextDay(dayBeforeMove(state, moved))
+  const earliest = latestOf([today, plan.period.startsOn, afterPrevious]) ?? today
+  const latest = plan.period.endsOn
+  return latest !== null && earliest > latest ? null : { earliest, latest }
 }
 
 // Q21 : « Prochaine dose » déplace la journée, à partir de sa première heure encore sans prise.
@@ -730,64 +807,99 @@ function firstPendingOfDay(state: State, due: Due): Due {
   return uniqueSorted([due, ...sameDay])[0] ?? due
 }
 
-function moveBounds(state: State, due: Due): MoveBounds {
-  const { today } = state.input
+function moveBounds(state: State, due: Due): MoveBounds | null {
   const plan = planOf(state, due.periodId)
+  if (plan !== state.open) return null
   const existing = movingStep(plan, due)
-  const previous =
-    existing === undefined
-      ? previousDueKey(state, firstPendingOfDay(state, due))
-      : previousDueKey(stateWithoutDues(state, existing.doses), dueOf(existing.first))
-  const earliest = previous === undefined ? today : nextDay(previous.slice(0, 10))
-  return { earliest: earliest > today ? earliest : today, latest: plan.period.endsOn }
+  return existing === undefined
+    ? boundsOf(state, firstPendingOfDay(state, due))
+    : boundsOf(stateWithoutDues(state, [existing]), dueOf(existing))
 }
 
-function move(state: State, known: () => Set<string>, due: Due, to: string): MovedDose {
-  checkKnown(known, due)
-  const plan = planOf(state, due.periodId)
+function checkMovable(state: State, plan: PeriodPlan, due: Due): void {
   if (plan.noteKeys.has(keyOf(due))) {
     throw new RangeError(`Échéance déjà notée : ${JSON.stringify(due)}`)
   }
+  const isPending = visiblePending(state).some((other) => sameDue(other, due))
+  if (!isPending && movingStep(plan, due) === undefined) {
+    throw new RangeError(`Échéance inconnue du calendrier : ${JSON.stringify(due)}`)
+  }
+}
+
+function isDueWithout(state: State, move: TreatmentDoseInput): boolean {
+  const plan = planOf(stateWithoutDues(state, [move]), move.periodId)
+  return pendingDues(plan, { from: move.dueOn, to: move.dueOn }).some((due) => sameDue(due, move))
+}
+
+function movedFields(due: Due, to: string): DoseFields {
+  return { ...dueOf(due), givenOn: null, status: 'postponed', nextDueDate: to }
+}
+
+function move(state: State, due: Due, to: string): MovedDose {
+  const plan = planOf(state, due.periodId)
+  checkMovable(state, plan, due)
   checkDay(to, 'nouvelle date')
-  const { earliest, latest } = moveBounds(state, due)
   if (to < state.input.today) throw invalid(`nouvelle date ${to} : date passée`)
-  if (to < earliest) throw invalid(`nouvelle date ${to} : pas après l’échéance précédente`)
-  if (latest !== null && to > latest) throw invalid(`nouvelle date ${to} : après la date de fin`)
-  const rewritten = movingStep(plan, due)?.doses.at(-1)
-  const moved = rewritten ?? firstPendingOfDay(state, due)
-  const dose = { ...dueOf(moved), givenOn: null, status: 'postponed' as const }
-  return { dose: { ...dose, nextDueDate: to }, doseId: rewritten?.id ?? null }
+  const bounds = moveBounds(state, due)
+  if (bounds === null) throw invalid(`cette dose ne se déplace pas : ${JSON.stringify(due)}`)
+  if (to < bounds.earliest) throw invalid(`nouvelle date ${to} : pas après l’échéance précédente`)
+  if (bounds.latest !== null && to > bounds.latest) {
+    throw invalid(`nouvelle date ${to} : après la date de fin`)
+  }
+  const existing = movingStep(plan, due)
+  if (existing === undefined) {
+    const moved = firstPendingOfDay(state, due)
+    return to === moved.dueOn
+      ? { action: 'none' }
+      : { action: 'create', dose: movedFields(moved, to) }
+  }
+  if (to === existing.dueOn && isDueWithout(state, existing)) {
+    return { action: 'delete', doseId: existing.id }
+  }
+  return { action: 'rewrite', dose: movedFields(existing, to), doseId: existing.id }
 }
 
 // TR-24 bis ne vaut que pour une prise qui a fixé la suite, avant le déplacement (Q8).
-function followingMove(plan: PeriodPlan, index: number): Move | null {
+function followingMove(plan: PeriodPlan, index: number): TreatmentDoseInput | null {
   const step = plan.steps[index]
   const next = plan.steps[index + 1]
   const anchor = plan.anchors[index]?.sequence
   if (step?.kind !== 'note' || next?.kind !== 'move' || anchor === undefined) return null
   const { dose } = step
   const fixedTheSuite =
-    compareCreation(dose, next.first) < 0 && fixesSuiteFromItsDate(dose, plan.period.frequency)
+    compareCreation(dose, next.dose) < 0 && fixesSuiteFromItsDate(dose, plan.period.frequency)
   const nothingBetween =
-    dose.givenOn !== dose.dueOn || keyOf(firstDueOf(anchor, plan.period)) === keyOf(next.first)
-  return fixedTheSuite && nothingBetween ? next : null
+    dose.givenOn !== dose.dueOn || keyOf(firstDueOf(anchor, plan.period)) === keyOf(next.dose)
+  return fixedTheSuite && nothingBetween ? next.dose : null
+}
+
+function movesLostBy(state: State, redated: TreatmentDoseInput): string[] {
+  const doses = state.input.doses.map((dose) => (sameDue(dose, redated) ? redated : dose))
+  const after = planOf(build({ ...state.input, doses }), redated.periodId)
+  const stale = new Set(after.stale.map(({ id }) => id))
+  return planOf(state, redated.periodId)
+    .steps.map(({ dose }) => dose.id)
+    .filter((id) => stale.has(id))
 }
 
 function redate(state: State, doseId: string, givenOn: string): RedatedDose {
   checkPastDay(givenOn, state.input.today, 'date réelle')
   for (const plan of state.plans) {
     const index = plan.steps.findIndex((step) => step.kind === 'note' && step.dose.id === doseId)
-    const step = plan.steps[index]
-    if (step?.kind !== 'note' || step.dose.status !== 'given') continue
-    const { dose } = step
+    const dose = plan.steps[index]?.dose
+    if (dose?.status !== 'given') continue
     const next = followingMove(plan, index)
-    const postponement =
-      next === null ? null : { doseIds: next.doses.map(({ id }) => id), kept: next.to > givenOn }
-    const nextDueDate =
-      postponement?.kept === false
-        ? shiftDate(givenOn, plan.period.frequency, 1)
-        : givenNextDueDate(stateWithout(state, dose, givenOn), dose, givenOn)
-    return { dose: { ...dueOf(dose), givenOn, status: 'given', nextDueDate }, postponement }
+    const overtakes = next !== null && next.nextDueDate <= givenOn
+    const nextDueDate = overtakes
+      ? shiftDate(givenOn, plan.period.frequency, 1)
+      : givenNextDueDate(stateWithout(state, dose, givenOn), dose, givenOn)
+    const fields: DoseFields = { ...dueOf(dose), givenOn, status: 'given', nextDueDate }
+    const lost = movesLostBy(state, { ...dose, ...fields })
+    if (next !== null && !lost.includes(next.id)) {
+      return { dose: fields, postponement: { doseIds: [next.id], kept: true } }
+    }
+    const postponement = lost.length > 0 ? { doseIds: lost, kept: false } : null
+    return { dose: fields, postponement }
   }
   throw new RangeError(`Aucune prise donnée à redater : ${doseId}`)
 }
@@ -807,8 +919,8 @@ function dueForDate(state: State, date: string, time: string | null): Due | null
   const entries: DueEntry[] = [
     ...pending.map((due) => ({ due, status: null })),
     ...state.plans
-      .flatMap((plan) => plan.steps.flatMap(fallenDoses))
-      .map((dose) => ({ due: dueOf(dose), status: dose.status })),
+      .flatMap((plan) => plan.steps.filter(hasFallen))
+      .map(({ dose }) => ({ due: dueOf(dose), status: dose.status })),
   ]
     .filter(({ due }) => matches(due))
     .sort((a, b) => compareText(keyOf(a.due), keyOf(b.due)))
@@ -823,22 +935,21 @@ function dueForDate(state: State, date: string, time: string | null): Due | null
 function hasHoursLeftToday(state: State): boolean {
   const { open, input } = state
   if (open === null) return false
-  const notedToday = open.steps.some(
-    (step) => step.kind === 'note' && step.dose.dueOn === input.today,
-  )
+  const notedToday = open.noteDays.has(input.today)
   return notedToday && state.currentDoses.some((due) => due.dueOn === input.today)
 }
 
 function newPeriod(state: State, frequency: Frequency): NewPeriod {
   checkFrequency(frequency, '')
   const { today } = state.input
-  const startsOn = hasHoursLeftToday(state) ? nextDay(today) : today
+  const start = hasHoursLeftToday(state) ? nextDay(today) : today
+  const startsOn = latestOf([start, state.plans.at(-1)?.period.startsOn]) ?? start
   const last = state.plans.flatMap((plan) => plan.steps).at(-1)
   const proposed =
     last === undefined
       ? startsOn
       : last.kind === 'move'
-        ? last.to
+        ? last.dose.nextDueDate
         : shiftDate(referenceOf(last.dose), frequency, 1)
   return { startsOn, firstDueOn: proposed > startsOn ? proposed : startsOn }
 }
@@ -847,8 +958,8 @@ export function treatmentSchedule(input: TreatmentScheduleInput): TreatmentSched
   checkInput(input)
   const state = build(input)
   const currentPeriodId = state.plans.at(-1)?.period.id ?? null
-  const overtaken = new Set(state.plans.flatMap((plan) => plan.overtaken.map(({ id }) => id)))
-  const doses = mergeDoses(input.doses).filter(({ id }) => !overtaken.has(id))
+  const staleDoseIds = state.plans.flatMap((plan) => plan.stale.map(({ id }) => id))
+  const doses = mergeDoses(input.doses).filter(({ id }) => !staleDoseIds.includes(id))
   let known: Set<string> | undefined
   const knownOnce = () => (known ??= knownDues(state))
   return {
@@ -862,15 +973,16 @@ export function treatmentSchedule(input: TreatmentScheduleInput): TreatmentSched
         : (comingDues(state.open, state.carriedOver, nextDay(input.today), 1)[0] ?? null),
     unloggedDoses: state.unloggedDoses,
     doses,
+    staleDoseIds,
     currentPeriodId,
     currentPeriodHasDose: doses.some((dose) => dose.periodId === currentPeriodId),
     upcoming: (limit) => upcoming(state, limit),
     dueForDate: (givenOn, time = null) => dueForDate(state, givenOn, time),
     doseFor: (gesture) => doseFor(state, knownOnce, gesture),
     redate: (doseId, givenOn) => redate(state, doseId, givenOn),
-    move: (due, to) => move(state, knownOnce, due, to),
+    move: (due, to) => move(state, due, to),
     moveBounds: (due) => {
-      checkKnown(knownOnce, due)
+      checkMovable(state, planOf(state, due.periodId), due)
       return moveBounds(state, due)
     },
     newPeriod: (frequency) => newPeriod(state, frequency),
