@@ -92,10 +92,12 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
   ancienne (dose non renseignée) ne déplace rien (TR-18, spec Q8). (Décision du 2026-09-23, point 5 ;
   spec du 2026-09-28 §3.1, §4.1 ; plan de livraison, T1 et T2)
 
-  Gardes du moteur d'échéances (#453 ; choisies au plus prudent, non tranchées par Gaelle) :
+  Gardes du moteur d'échéances (#453) :
   - **G10** À plusieurs heures, une prise donnée un autre jour que son échéance ne refixe la suite que
     si elle est la dernière heure du jour et que les autres heures de ce jour sont déjà notées.
+    (Garde technique, consignée au journal des décisions autonomes.)
   - **G11** Une prise datée plus d'un intervalle avant son échéance ne refixe pas la suite.
+    (Garde technique, consignée au journal des décisions autonomes.)
 - **TR-8** Aucune échéance après la date de fin.
 - **TR-9** « Prochaine dose » (« Modifier ») déplace la prochaine dose, plus tôt ou plus tard que
   l'échéance prévue, et recale la suite des échéances à partir de la nouvelle date. La date choisie va
@@ -113,25 +115,31 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
   la première dose corrige la première échéance de la période, sans ligne « Reportée » ni « Avancée »
   (TR-28). (Spec Q2 ; revue du modèle, 2026-09-29, M4 ; lot A révisé, N5)
 
-  Gardes du moteur d'échéances (#453 ; choisies au plus prudent, non tranchées par Gaelle ; G6 et G7
-  se voient à l'écran et sont à valider) :
+  Gardes du moteur d'échéances (#453) :
   - **G6** Une dose ne s'avance pas d'un intervalle entier ou plus (en mois : jamais à un jour d'où la
     fréquence retombe sur son échéance d'origine), pour garder une seule ligne par échéance.
     Exemples : hebdomadaire, la dose du 6 avr. s'avance au plus tôt au 31 mars ; mensuel, la dose du
     30 avr. s'avance au plus tôt au 1er avr., car le 30 mars comme le 31 mars plus un mois retombent
-    sur le 30 avr.
+    sur le 30 avr. (Validée par Gaelle, points validés en bloc du 2026-10-01.)
   - **G7** Une dose ne se déplace pas tant qu'une ligne (prise ou déplacement) existe plus loin dans la
-    période ; le moteur en donne la raison à l'écran.
+    période ; le moteur en donne la raison à l'écran. Quand c'est un déplacement, le champ
+    « Prochaine dose » est grisé, avec l'aide « Une dose plus lointaine est déjà reportée. Supprime ce
+    report pour déplacer celle-ci. » (Décidée, spec Q26.)
   - **G8** La date minimale passe aussi après la date réelle de la dernière prise notée.
+    (Garde technique, consignée au journal des décisions autonomes.)
   - **G9** Une dose n'arrive pas sur le jour d'origine d'un autre déplacement.
+    (Garde technique, consignée au journal des décisions autonomes.)
   - **G13** Quand la suite a changé depuis le déplacement, déplacer de nouveau la dose réécrit la ligne
     avec l'échéance qu'elle remplace désormais (« prévue le » peut changer) ; une ligne ne ramène
     jamais une dose à son propre jour d'origine.
+    (Validée par Gaelle, points validés en bloc du 2026-10-01.)
   - **G17** Une journée n'a qu'une ligne de déplacement : la redéplacer réécrit sa ligne, même quand
     une heure y est revenue (prise supprimée) ; deux lignes pour la même journée (synchronisation) :
     la plus récente vaut, l'autre est sans effet.
+    (Garde technique, consignée au journal des décisions autonomes.)
   - **G14** Un déplacement ne remplace que l'échéance qu'il vise : si la suite change sans lui (prise
     supprimée, TR-26), l'échéance qui réapparaît reste à donner ou à renseigner.
+    (Validée par Gaelle, points validés en bloc du 2026-10-01.)
 - **TR-10** Dose du moment : la dernière échéance jusqu'à aujourd'hui inclus, si elle est encore sans
   prise ; à défaut, la prochaine. Traitement à plusieurs heures : on raisonne par journée (spec Q23).
   Les heures encore sans prise de la dernière journée d'échéance arrivée sont ensemble la dose du
@@ -199,7 +207,10 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
   ligne « Reportée au … » ou « Avancée au … » : « Changer la date », « Supprimer ce report » (la suite
   repart de la ligne précédente ; l'échéance d'origine redevient la dose du moment ou une dose non
   renseignée) ; un toast
-  « Annuler » après chaque geste. (Existant ; P5 ; report : relecture de cohérence du 2026-09-30, validé en bloc)
+  « Annuler » après chaque geste. Un déplacement dont la dose d'arrivée est déjà notée (donnée ou
+  oubliée) fait partie de l'historique : sa ligne n'a plus « Changer la date » ni « Supprimer ce
+  report » ; pour corriger, on passe par la prise elle-même (changer sa date, la supprimer) (spec
+  Q25). (Existant ; P5 ; report : relecture de cohérence du 2026-09-30, validé en bloc)
 - **TR-24 bis** Changer la date d'une prise qui a fixé la suite recalcule la prochaine dose qu'elle
   fixe. Un déplacement placé après elle (ligne « Reportée au … » ou « Avancée au … ») est gardé, et le
   toast le dit (« Prise déplacée au 28 août. Prochaine dose gardée au 10 oct., que tu avais
@@ -208,11 +219,11 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
   changer sa date ne touche ni la suite ni un déplacement. (Décision du 2026-09-25, point 1,
   transposée ; plan de livraison, T3 ; points validés en bloc du 2026-10-01)
 
-  Garde du moteur d'échéances (#453 ; choisie au plus prudent, non tranchée par Gaelle, visible dans
-  l'historique : à valider) :
+  Garde du moteur d'échéances (#453) :
   - **G12** Le déplacement gardé est réécrit pour viser la dose que fixe la prise corrigée : sa ligne
     dit alors « prévue le » avec la nouvelle échéance (prise du 5 sept. corrigée au 28 août :
     « Reportée au 10 oct. (prévue le 28 sept.) »).
+    (Validée par Gaelle, points validés en bloc du 2026-10-01.)
 - **TR-25** Une correction s'applique à toutes les lignes de la même échéance, jour et heure (deux
   appareils), et devient la modification la plus récente. (Relecture, point 5)
 - **TR-26** Pas de règle de « seule prise » : supprimer la seule prise garde le traitement (son
@@ -232,22 +243,27 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
   réglage aujourd'hui (spec Q24) ; les prises passées gardent leurs réglages ; les échéances de l'ancien rythme restées sans
   prise avant aujourd'hui restent à renseigner, comme après un arrêt (TR-30). (P9 Q1 ; spec Q7)
 
-  Gardes du moteur d'échéances (#453 ; choisies au plus prudent, non tranchées par Gaelle) :
+  Gardes du moteur d'échéances (#453) :
   - **G1** Seules les prises dont l'échéance est le jour du changement comptent pour les premières
     heures du nouveau réglage (une dose d'hier notée aujourd'hui n'en retire aucune).
+    (Garde technique, consignée au journal des décisions autonomes.)
   - **G2** Une prise notée « oubliée » compte comme une prise donnée.
+    (Garde technique, consignée au journal des décisions autonomes.)
   - **G3** Une reprise après un arrêt garde sa première prise du jour : seules comptent les prises
-    notées depuis le dernier arrêt.
+    notées depuis le dernier arrêt. (Garde technique, consignée au journal des décisions autonomes.)
   - **G4** Les heures couvertes sont les plus tôt du nouveau réglage, quel que soit l'ordre de saisie.
+    (Garde technique, consignée au journal des décisions autonomes.)
   - **G15** « Même rythme » : quand la fréquence ne change pas, que rien n'est noté pour aujourd'hui
     et qu'une dose est due aujourd'hui, la nouvelle période commence par la dose du jour (heures
     passées de 8 h et 20 h à 9 h et 21 h : 9 h et 21 h le jour même), même si la dose suivante avait
-    déjà été déplacée.
+    déjà été déplacée. (Validée par Gaelle, points validés en bloc du 2026-10-01.)
   - **G16** Pour « la dernière prise plus la nouvelle fréquence » (TR-7), une prise qui n'a pas fixé
     la suite compte par son échéance, pas par sa date réelle (spec Q8) : la dose du 6 notée le 7,
     fréquence passée à tous les 2 jours le 7, première dose le 8.
+    (Garde technique, consignée au journal des décisions autonomes.)
   - **G5** Une période précédente ne garde aucune dose à partir du début de la suivante, même si
     celle-ci commence dans le futur (cas que l'app n'écrit pas).
+    (Garde technique, consignée au journal des décisions autonomes.)
 - **TR-29** Un autre produit est un nouveau traitement : arrêter l'ancien, créer le nouveau. (P9 Q2)
 - **TR-30** « Arrêter » : dialogue qui propose de renseigner les doses non renseignées (« Toutes
   données », « Choisir les jours », « Arrêter sans renseigner ») ; « Arrêté le … », plus aucune
@@ -563,6 +579,28 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
   l'ancien réglage le jour du changement ; ses échéances des jours d'avant restent à renseigner
   (TR-28). Écartées : heures restantes à l'ancien réglage (Q19) ; nouveau réglage seulement le
   lendemain. (Re-revue 2 du moteur d'échéances, #453.)
+- 2026-10-01 — **Q25 : un déplacement dont la dose d'arrivée est notée ne se supprime plus et ne
+  change plus de date** (TR-24). Donnée ou oubliée, la dose d'arrivée fait entrer la ligne dans
+  l'historique ; pour corriger, on passe par la prise elle-même (changer sa date, la supprimer).
+  Raison : supprimer le report laisserait une prise sans échéance et ferait réapparaître à renseigner
+  une dose déjà donnée (dose du 15 reportée au 20 et donnée le 20 : le 15 passerait à renseigner).
+  Écartée : supprimer le report supprime aussi la prise. (Re-revue 4 du moteur d'échéances, #453,
+  N17.)
+- 2026-10-01 — **Q26 : une dose ne se déplace pas tant qu'une dose plus lointaine est déjà reportée**
+  (TR-9, G7). Le champ « Prochaine dose » du formulaire est alors grisé, avec l'aide « Une dose plus
+  lointaine est déjà reportée. Supprime ce report pour déplacer celle-ci. » Le moteur distingue ce
+  cas des autres refus (dose d'une période précédente, dose plus lointaine déjà notée, plus aucune
+  date avant la date de fin, dose d'arrivée déjà notée). (Re-revue 3 du moteur d'échéances, #453,
+  garde 7.)
+- 2026-10-01 — **Gardes du moteur d'échéances, points validés en bloc** : G15, « même rythme » —
+  changer un réglage sans changer la fréquence garde la dose du jour encore sans prise (TR-28) ; G14
+  — une prise supprimée fait réapparaître son échéance, à donner ou à renseigner, même si la dose
+  suivante avait été déplacée (TR-9, TR-26) ; G12 et G13 — la ligne « Reportée / Avancée » dit
+  « prévue le » avec l'échéance réellement remplacée dans le calendrier actuel, et suit donc la
+  correction d'une prise (TR-9, TR-24 bis) ; G6 — date minimale de « Prochaine dose », avec
+  l'exemple en mois (dose précédente le 31 mars : pas avant le 1er avril) (TR-9). Les autres gardes
+  (G1 à G5, G8 à G11, G16, G17) sont des conséquences techniques des règles décidées, consignées au
+  journal des décisions autonomes. (Re-revues 3 et 4 du moteur d'échéances, #453.)
 
 ## 11. Questions ouvertes
 
