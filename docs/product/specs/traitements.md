@@ -215,7 +215,9 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
   fixe. Un déplacement placé après elle (ligne « Reportée au … » ou « Avancée au … ») est gardé, et le
   toast le dit (« Prise déplacée au 28 août. Prochaine dose gardée au 10 oct., que tu avais
   reportée. » · Annuler) ; s'il ne tombe plus après la prise déplacée, la suite repart de la prise, et
-  le toast le dit. Une prise notée pour une dose non renseignée ne fixe aucune suite (TR-7, spec Q8) :
+  le toast le dit. Une ligne verrouillée (dose d'arrivée déjà notée, spec Q25) n'est jamais retirée :
+  elle reste dans l'historique, et le toast ne la mentionne pas. Une prise notée pour une dose non
+  renseignée ne fixe aucune suite (TR-7, spec Q8) :
   changer sa date ne touche ni la suite ni un déplacement. (Décision du 2026-09-25, point 1,
   transposée ; plan de livraison, T3 ; points validés en bloc du 2026-10-01)
 
@@ -584,8 +586,10 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
   l'historique ; pour corriger, on passe par la prise elle-même (changer sa date, la supprimer).
   Raison : supprimer le report laisserait une prise sans échéance et ferait réapparaître à renseigner
   une dose déjà donnée (dose du 15 reportée au 20 et donnée le 20 : le 15 passerait à renseigner).
-  Écartée : supprimer le report supprime aussi la prise. (Re-revue 4 du moteur d'échéances, #453,
-  N17.)
+  Écartée : supprimer le report supprime aussi la prise. La règle l'emporte sur TR-24 bis : corriger
+  la date de la prise d'avant ne retire jamais une ligne verrouillée, même dépassée (prise du 8
+  corrigée au 21 : la ligne « Reportée au 20 sept. (prévue le 15 sept.) » reste, prochaine dose le
+  27). (Re-revues 4 et 5 du moteur d'échéances, #453, N17 et N18.)
 - 2026-10-01 — **Q26 : une dose ne se déplace pas tant qu'une dose plus lointaine est déjà reportée**
   (TR-9, G7). Le champ « Prochaine dose » du formulaire est alors grisé, avec l'aide « Une dose plus
   lointaine est déjà reportée. Supprime ce report pour déplacer celle-ci. » Le moteur distingue ce
