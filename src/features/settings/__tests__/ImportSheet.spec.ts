@@ -203,7 +203,7 @@ describe('ImportSheet', () => {
     [JSON.stringify({ schemaVersion: 4 }), 'Cet export vient d’une version plus récente de l’app.'],
     [
       JSON.stringify({ schemaVersion: 2 }),
-      'Cet export vient d’une version plus ancienne de l’app.',
+      'Cet export vient d’une version plus ancienne de MémoPatte. Il ne peut plus être importé.',
     ],
     [
       exportAvecPoidsHorsBornes(),

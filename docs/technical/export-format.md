@@ -120,7 +120,7 @@ vaccin, une période avec son traitement, une prise avec sa période.
 
 L'import n'accepte **que la version 3** (spec Données DO-8) : un `schemaVersion` supérieur est refusé
 (« Cet export vient d'une version plus récente de l'app. »), un `schemaVersion` inférieur aussi
-(« Cet export vient d'une version plus ancienne de l'app. »). Les formats v1 (jusqu'à la 0.1.40) et v2
+(« Cet export vient d'une version plus ancienne de MémoPatte. Il ne peut plus être importé. »). Les formats v1 (jusqu'à la 0.1.40) et v2
 (jusqu'à la 0.1.48) ne se relisent plus, sans conversion : l'app n'est pas publiée, les fichiers
 existants ne portent que des données de test (décision du 2026-09-29).
 
@@ -296,7 +296,7 @@ d'écriture ne journalise que le type de l'erreur).
     « Ce fichier n'est pas un export MémoPatte. » ;
   - **la version tranche avant toute validation** : `schemaVersion` supérieur à 3 → « Cet export
     vient d'une version plus récente de l'app. » ; inférieur à 3 → « Cet export vient d'une version
-    plus ancienne de l'app. » ; dans les deux cas, quel que soit le reste du contenu ;
+    plus ancienne de MémoPatte. Il ne peut plus être importé. » ; dans les deux cas, quel que soit le reste du contenu ;
   - chaque champ a son type exact (un booléen n'est pas `1`, un nombre n'est pas du texte), ses
     valeurs fermées (espèce, type, unité de fréquence, état d'une prise, motif du départ, unité de
     posologie, moment du rappel) et ses bornes : dates civiles réelles entre 1900 et 2199, instants
