@@ -239,15 +239,15 @@ export function createTreatmentDosesRepository(
       }
     },
 
-    /** La dernière ligne garde sa date et son échéance : seule la prochaine dose change. */
+    /** La dernière ligne garde sa date et son échéance ; elle n'est datée que si sa prochaine dose change. */
     updateHeadStatement(
       treatmentId: string,
       { nextDueDate, updatedAt }: Pick<NewTreatmentDose, 'nextDueDate' | 'updatedAt'>,
     ): SqlStatement {
       return {
         sql: `UPDATE treatment_dose SET next_due_date = ?, updated_at = ?
-              WHERE id = ${headDoseIdSql('?')}`,
-        params: [nextDueDate, updatedAt, treatmentId],
+              WHERE id = ${headDoseIdSql('?')} AND next_due_date <> ?`,
+        params: [nextDueDate, updatedAt, treatmentId, nextDueDate],
       }
     },
 
@@ -285,7 +285,7 @@ export function createTreatmentDosesRepository(
         ? {
             sql: `UPDATE treatment_dose
                   SET due_on = ?, due_time = ?, given_on = ?, status = ?, next_due_date = ?,
-                      updated_at = ?, deleted_at = NULL
+                      created_at = ?, updated_at = ?, deleted_at = NULL
                   WHERE id = ?`,
             params: [
               dose.dueOn,
@@ -293,6 +293,7 @@ export function createTreatmentDosesRepository(
               dose.givenOn,
               dose.status,
               dose.nextDueDate,
+              dose.createdAt,
               dose.updatedAt,
               dose.id,
             ],

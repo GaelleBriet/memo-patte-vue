@@ -138,7 +138,7 @@ describe('treatmentDosesRepository', () => {
     expect(liste).toContainEqual({ ...recente, ...TRIMESTRIELLE })
   })
 
-  it('restaure une prise existante aux valeurs du fichier, sans changer sa période, son traitement ni son animal', async () => {
+  it('restaure une prise existante aux valeurs du fichier, date de création comprise, sans changer sa période, son traitement ni son animal', async () => {
     await db.runMany([
       doses.restoreStatement(
         {
@@ -165,6 +165,7 @@ describe('treatmentDosesRepository', () => {
           given_on: null,
           status: 'postponed',
           next_due_date: '2026-02-24',
+          created_at: NOW,
           updated_at: NOW,
           deleted_at: null,
         }),

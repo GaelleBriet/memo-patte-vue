@@ -1202,6 +1202,94 @@ describe('data-import.service', () => {
       phoneB.close()
     })
 
+    it('garde l’arrêt d’un appareil quand l’autre renomme le traitement plus tard', async () => {
+      const phoneA = db
+      const phoneB = await createInMemoryDb()
+      await phoneB.execute('PRAGMA foreign_keys = ON')
+      at('2026-09-01T08:00:00.000Z')
+      const a = createRepositories(phoneA)
+      const luna = await a.animals.create({ name: 'Luna', species: 'cat' })
+      const milbemax = await a.treatments.create({
+        animalId: luna.id,
+        name: 'Milbémax',
+        type: 'deworming',
+        frequency: { value: 3, unit: 'month' },
+        lastDoseDate: '2026-06-15',
+      })
+      await importerOn(phoneB).importData(await exported(phoneA), 'replace')
+      const b = createRepositories(phoneB)
+
+      at('2026-09-05T09:00:00.000Z')
+      await b.periods.stop(milbemax.id, '2026-09-05')
+      at('2026-09-05T10:00:00.000Z')
+      await a.treatments.update(milbemax.id, {
+        name: 'Milbémax chat',
+        type: 'deworming',
+        frequency: { value: 3, unit: 'month' },
+        nextDueDate: '2026-09-15',
+      })
+
+      at('2026-09-20T08:00:00.000Z')
+      const [fromA, fromB] = [await exported(phoneA), await exported(phoneB)]
+      await importerOn(phoneB).importData(fromA, 'merge')
+      await importerOn(phoneA).importData(fromB, 'merge')
+
+      for (const phone of [phoneA, phoneB]) {
+        await expect(
+          createRepositories(phone).treatments.getById(milbemax.id),
+        ).resolves.toMatchObject({ name: 'Milbémax chat', stoppedOn: '2026-09-05' })
+      }
+      phoneB.close()
+    })
+
+    it('garde la date corrigée d’une prise quand l’autre appareil renomme le traitement plus tard', async () => {
+      const phoneA = db
+      const phoneB = await createInMemoryDb()
+      await phoneB.execute('PRAGMA foreign_keys = ON')
+      at('2026-09-01T08:00:00.000Z')
+      const a = createRepositories(phoneA)
+      const luna = await a.animals.create({ name: 'Luna', species: 'cat' })
+      const milbemax = await a.treatments.create({
+        animalId: luna.id,
+        name: 'Milbémax',
+        type: 'deworming',
+        frequency: { value: 3, unit: 'month' },
+        lastDoseDate: '2026-06-15',
+      })
+      await importerOn(phoneB).importData(await exported(phoneA), 'replace')
+      const b = createRepositories(phoneB)
+
+      at('2026-09-05T09:00:00.000Z')
+      await b.doses.changeDate(
+        milbemax.id,
+        { givenOn: '2026-06-20', dueOn: '2026-06-20', nextDueDate: '2026-09-20' },
+        new Date().toISOString(),
+      )
+      at('2026-09-05T10:00:00.000Z')
+      await a.treatments.update(milbemax.id, {
+        name: 'Milbémax chat',
+        type: 'deworming',
+        frequency: { value: 3, unit: 'month' },
+        nextDueDate: '2026-09-15',
+      })
+
+      at('2026-09-20T08:00:00.000Z')
+      const [fromA, fromB] = [await exported(phoneA), await exported(phoneB)]
+      await importerOn(phoneB).importData(fromA, 'merge')
+      await importerOn(phoneA).importData(fromB, 'merge')
+
+      for (const phone of [phoneA, phoneB]) {
+        await expect(
+          createRepositories(phone).treatments.getById(milbemax.id),
+        ).resolves.toMatchObject({
+          name: 'Milbémax chat',
+          lastDoseDate: '2026-06-20',
+          nextDueDate: '2026-09-20',
+        })
+      }
+      phoneB.close()
+    })
+
     it('fait converger deux exports : fréquence corrigée d’un côté, prise notée de l’autre, qui garde la prochaine dose qu’elle a fixée', async () => {
       const phoneA = db
       const phoneB = await createInMemoryDb()

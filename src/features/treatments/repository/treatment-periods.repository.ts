@@ -130,7 +130,10 @@ export function createTreatmentPeriodsRepository(
       }
     },
 
-    /** « Modifier » corrige la période en cours ; une reprise la remet en cours. */
+    /**
+     * « Modifier » corrige la période en cours ; une reprise la remet en cours. Une période que
+     * rien ne change n'est pas datée : sa version resterait sinon la plus récente à la fusion.
+     */
     correctCurrentStatement(
       treatmentId: string,
       {
@@ -143,8 +146,17 @@ export function createTreatmentPeriodsRepository(
         sql: `UPDATE treatment_period
               SET frequency_value = ?, frequency_unit = ?,
                   ${resume ? 'stopped_on = NULL, ' : ''}updated_at = ?
-              WHERE id = ${currentPeriodIdSql('?')}`,
-        params: [frequency.value, frequency.unit, updatedAt, treatmentId],
+              WHERE id = ${currentPeriodIdSql('?')}
+                AND (frequency_value <> ? OR frequency_unit <> ?
+                     ${resume ? 'OR stopped_on IS NOT NULL' : ''})`,
+        params: [
+          frequency.value,
+          frequency.unit,
+          updatedAt,
+          treatmentId,
+          frequency.value,
+          frequency.unit,
+        ],
       }
     },
 

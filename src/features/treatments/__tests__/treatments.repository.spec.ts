@@ -205,6 +205,103 @@ describe('treatmentsRepository', () => {
     await expect(repository.getById(created.id)).resolves.toEqual(updated)
   })
 
+  describe('« Modifier » ne date que les lignes dont une valeur change', () => {
+    const T0 = '2026-03-01T10:00:00.000Z'
+    const T1 = '2026-03-01T10:01:00.000Z'
+
+    async function stamps(id: string) {
+      const [row] = await db.query<Record<string, string>>(
+        `SELECT treatment.updated_at AS treatment, period.updated_at AS period,
+                dose.updated_at AS dose
+         FROM treatment
+         JOIN treatment_period period ON period.treatment_id = treatment.id
+         JOIN treatment_dose dose ON dose.treatment_id = treatment.id
+         WHERE treatment.id = ?`,
+        [id],
+      )
+      return row
+    }
+
+    async function queued() {
+      const rows = await db.query<{ entity: string }>('SELECT entity FROM sync_outbox')
+      return rows.map(({ entity }) => entity).sort()
+    }
+
+    async function createdThenSynced() {
+      vi.useFakeTimers({ now: new Date(T0) })
+      const created = await repository.create(bravecto)
+      await db.run('UPDATE sync_state SET enabled = 1 WHERE id = 1')
+      vi.advanceTimersByTime(60_000)
+      return created
+    }
+
+    it.each([
+      ['le nom', { name: 'Bravecto 500' }, { treatment: T1, period: T0, dose: T0 }, ['treatment']],
+      ['le type', { type: 'deworming' }, { treatment: T1, period: T0, dose: T0 }, ['treatment']],
+      [
+        'la fréquence',
+        { frequency: { value: 2, unit: 'month' } },
+        { treatment: T0, period: T1, dose: T0 },
+        ['treatment_period'],
+      ],
+      [
+        'l’unité de la fréquence',
+        { frequency: { value: 3, unit: 'week' } },
+        { treatment: T0, period: T1, dose: T0 },
+        ['treatment_period'],
+      ],
+      [
+        'la prochaine dose',
+        { nextDueDate: '2026-06-08' },
+        { treatment: T0, period: T0, dose: T1 },
+        ['treatment_dose'],
+      ],
+      ['rien', {}, { treatment: T0, period: T0, dose: T0 }, []],
+    ] as const)('quand seul change %s', async (_, change, expected, outbox) => {
+      const created = await createdThenSynced()
+
+      await repository.update(created.id, { ...edition, ...change })
+
+      await expect(stamps(created.id)).resolves.toEqual(expected)
+      await expect(queued()).resolves.toEqual(outbox)
+    })
+
+    it('garde un arrêt quand « Modifier » ne change que le nom', async () => {
+      const created = await createdThenSynced()
+      await createTreatmentPeriodsRepository(db).stop(created.id, '2026-03-01')
+      vi.advanceTimersByTime(60_000)
+
+      const updated = await repository.update(created.id, { ...edition, name: 'Bravecto 500' })
+
+      expect(updated).toMatchObject({ name: 'Bravecto 500', stoppedOn: '2026-03-01' })
+      await expect(stamps(created.id)).resolves.toMatchObject({ period: T1, dose: T0 })
+    })
+
+    it('date la période qu’une reprise remet en cours, même sans autre changement', async () => {
+      const created = await createdThenSynced()
+      await createTreatmentPeriodsRepository(db).stop(created.id, '2026-03-01')
+      vi.advanceTimersByTime(60_000)
+
+      const resumed = await repository.resume(created.id, edition)
+
+      expect(resumed.stoppedOn).toBeNull()
+      await expect(stamps(created.id)).resolves.toEqual({
+        treatment: T0,
+        period: '2026-03-01T10:02:00.000Z',
+        dose: T0,
+      })
+    })
+
+    it('ne date pas une période déjà en cours qu’une reprise ne change pas', async () => {
+      const created = await createdThenSynced()
+
+      await repository.resume(created.id, edition)
+
+      await expect(stamps(created.id)).resolves.toEqual({ treatment: T0, period: T0, dose: T0 })
+      await expect(queued()).resolves.toEqual([])
+    })
+  })
+
   it('ne déplace pas un traitement vers un autre animal', async () => {
     const created = await repository.create(bravecto)
 
@@ -866,6 +963,7 @@ describe('treatmentsRepository — périodes et prises', () => {
           ...edition,
           name: 'Autre',
           frequency: { value: 1, unit: 'month' },
+          nextDueDate: '2026-04-01',
         }),
       ).rejects.toThrow('ligne verrouillée')
 

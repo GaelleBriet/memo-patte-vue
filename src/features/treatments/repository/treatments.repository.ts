@@ -125,8 +125,8 @@ export function createTreatmentsRepository(
     await db.runMany([
       {
         sql: `UPDATE treatment SET name = ?, type = ?, updated_at = ?
-              WHERE id = ? AND ${NOT_DELETED}`,
-        params: [data.name, data.type, updatedAt, id],
+              WHERE id = ? AND ${NOT_DELETED} AND (name <> ? OR type <> ?)`,
+        params: [data.name, data.type, updatedAt, id, data.name, data.type],
       },
       periods.correctCurrentStatement(id, { frequency: data.frequency, resume, updatedAt }),
       doses.updateHeadStatement(id, { nextDueDate: data.nextDueDate, updatedAt }),
