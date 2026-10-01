@@ -44,7 +44,7 @@ const repository = vi.mocked(authRepository)
 const billing = vi.mocked(billingService)
 
 const ANNUAL: PlusStatus = { plan: 'annual', expiresAt: '2027-09-01T10:00:00Z' }
-const LAPSED_AT = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString()
+const LAPSED_AT = '2026-09-05T10:00:00Z'
 
 let stop: () => void = () => {}
 
