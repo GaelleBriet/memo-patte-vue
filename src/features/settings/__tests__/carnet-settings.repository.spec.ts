@@ -85,6 +85,26 @@ describe('carnetSettingsRepository', () => {
     ])
   })
 
+  it('rend les valeurs par défaut pour une ligne supprimée, qu’un réglage rend de nouveau visible', async () => {
+    await repository.update({ vaccineReminderTime: '07:45', remindBeforeDue: false })
+    await db.run('UPDATE carnet_settings SET deleted_at = updated_at WHERE id = ?', [
+      CARNET_SETTINGS_ID,
+    ])
+
+    await expect(repository.get()).resolves.toEqual({
+      vaccineReminderTime: '09:00',
+      remindBeforeDue: true,
+    })
+
+    await repository.update({ vaccineReminderTime: '08:30' })
+
+    await expect(repository.get()).resolves.toEqual({
+      vaccineReminderTime: '08:30',
+      remindBeforeDue: true,
+    })
+    await expect(rows()).resolves.toMatchObject([{ deleted_at: null }])
+  })
+
   it.each(['9h', '9:00', '24:00', '12:60'])(
     'refuse l’heure « %s » avant d’atteindre la base',
     async (vaccineReminderTime) => {
