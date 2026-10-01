@@ -91,13 +91,15 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
   ancienne (dose non renseignée) ne déplace rien (TR-18, spec Q8). (Décision du 2026-09-23, point 5 ;
   spec du 2026-09-28 §3.1, §4.1 ; plan de livraison, T1 et T2)
 - **TR-8** Aucune échéance après la date de fin.
-- **TR-9** Reporter la prochaine dose (« Modifier ») recale la suite des échéances à partir de la
-  nouvelle date. (« Modifier sert aussi à reporter », 2026-09-23) L'échéance d'origine est remplacée :
-  elle ne devient jamais une dose non renseignée. Le report s'inscrit dans l'historique comme une ligne
-  « Reportée au 30 sept. (prévue le 26 sept.) », qui couvre l'échéance reportée ; les doses non
-  renseignées d'avant restent à renseigner. Sans prise dans la période, déplacer la première dose
-  corrige la première échéance de la période, sans ligne « Reportée » (TR-28). (Spec Q2 ; revue du
-  modèle, 2026-09-29, M4 ; lot A révisé, N5)
+- **TR-9** « Prochaine dose » (« Modifier ») déplace la prochaine dose à toute date à partir
+  d'aujourd'hui, plus tôt ou plus tard que l'échéance prévue, et recale la suite des échéances à partir
+  de la nouvelle date ; une date passée est refusée (spec Q7). (« Modifier sert aussi à reporter »,
+  2026-09-23 ; spec Q17) L'échéance d'origine est remplacée : elle ne devient jamais une dose non
+  renseignée. Le déplacement s'inscrit dans l'historique comme une ligne « Reportée au 30 sept. (prévue
+  le 26 sept.) », ou « Avancée au 8 oct. (prévue le 10 oct.) » quand la nouvelle date est plus tôt, qui
+  couvre l'échéance déplacée ; les doses non renseignées d'avant restent à renseigner. Sans prise dans
+  la période, déplacer la première dose corrige la première échéance de la période, sans ligne
+  « Reportée » ni « Avancée » (TR-28). (Spec Q2 ; revue du modèle, 2026-09-29, M4 ; lot A révisé, N5)
 - **TR-10** Dose du moment : la dernière échéance jusqu'à aujourd'hui inclus, si elle est encore sans
   prise ; à défaut, la prochaine. Traitement à plusieurs heures : chaque heure du jour encore sans prise, avec son
   propre « C'est fait » ; à défaut, la prochaine. (Spec Q6) Jamais une date passée présentée comme « prochaine dose ». Libellés : « Dose du
@@ -431,6 +433,12 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
   fait » sur une relance à plusieurs heures : « Donnée quand ? » puis « À quelle heure ? » (TR-13,
   RA-18) ; après « Suivre de nouveau », les doses non renseignées reviennent (TR-37).
   (`technical/relecture-coherence-2026-09-30-1.md` à `-3.md`.)
+
+- 2026-10-01 — **Q17 : « Prochaine dose » se déplace plus tôt ou plus tard** (TR-9), à toute date à
+  partir d'aujourd'hui, avec la ligne « Reportée au 14 oct. (prévue le 10 oct.) » ou « Avancée au
+  8 oct. (prévue le 10 oct.) ». Raison (Gaelle) : si les deux dates sont à venir, rien ne justifie de
+  traiter « plus tôt » autrement que « plus tard ». Écartée : seulement reporter, et noter une dose
+  donnée en avance par « C'est fait ». (Revue du moteur d'échéances, #453.)
 
 ## 11. Questions ouvertes
 
