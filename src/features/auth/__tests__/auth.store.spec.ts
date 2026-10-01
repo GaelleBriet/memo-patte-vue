@@ -59,12 +59,14 @@ function supabaseEndsOrRefreshesSession(session: AuthSession | null): void {
 }
 
 beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-09-15T10:00:00Z') })
   vi.clearAllMocks()
   vi.stubGlobal('localStorage', memoryStorage())
   setActivePinia(createPinia())
 })
 
 afterEach(() => {
+  vi.useRealTimers()
   vi.unstubAllGlobals()
   vi.restoreAllMocks()
 })

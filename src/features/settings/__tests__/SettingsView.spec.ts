@@ -77,6 +77,7 @@ let push: MockInstance
 let wrapper: VueWrapper | null = null
 
 beforeEach(async () => {
+  vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-09-15T10:00:00Z') })
   hasLocalData.mockReset()
   importData.mockReset()
   promptNotificationsIfReminders.mockClear()
@@ -105,6 +106,7 @@ beforeEach(async () => {
 })
 
 afterEach(() => {
+  vi.useRealTimers()
   wrapper?.unmount()
   wrapper = null
   document.body.innerHTML = ''

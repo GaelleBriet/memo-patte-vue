@@ -30,11 +30,13 @@ function planned(reminders: Reminder[], isNoted = (_dueDate: string) => false): 
 let notifications: FakeNotifications
 
 beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['Date'], now: new Date(2026, 8, 25, 8) })
   notifications = createFakeNotifications()
   vi.spyOn(console, 'warn').mockImplementation(() => {})
 })
 
 afterEach(() => {
+  vi.useRealTimers()
   vi.restoreAllMocks()
   provideFullReminderSync(null)
 })
