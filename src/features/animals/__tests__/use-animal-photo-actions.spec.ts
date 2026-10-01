@@ -21,7 +21,6 @@ const MILO: Animal = {
   species: 'dog',
   breed: 'Labrador',
   birthDate: '2023-03-12',
-  initialWeightKg: 8.5,
   photoPath: 'milo.jpg',
   createdAt: '2026-09-09T09:00:00.000Z',
   updatedAt: '2026-09-09T09:00:00.000Z',
@@ -56,7 +55,6 @@ describe('useAnimalPhotoActions', () => {
         species: 'dog',
         breed: 'Labrador',
         birthDate: '2023-03-12',
-        initialWeightKg: 8.5,
       },
       { kind: 'replace', base64: 'TUlMTw==' },
     )

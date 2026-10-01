@@ -56,7 +56,7 @@ const isNotFound = computed(() => animals.hasLoaded && animal.value === null)
 
 const { entries, isLoading, isReady, hasError, reload } = useWeightEntries(() => props.animalId)
 
-const history = computed(() => weightHistory(entries.value, animal.value?.initialWeightKg ?? null))
+const history = computed(() => weightHistory(entries.value))
 
 const selected = ref<number | null>(null)
 watch(entries, () => {
@@ -243,10 +243,6 @@ function backToAnimals(): void {
             <span>{{ t('weight.section.add') }}</span>
           </button>
         </div>
-
-        <p v-if="history.initialWeightKg !== null" class="weight-history__initial">
-          {{ t('weight.history.initial', { weight: weightText(t, history.initialWeightKg) }) }}
-        </p>
       </template>
 
       <WeightSheet
@@ -293,15 +289,13 @@ function backToAnimals(): void {
 .weight-history__single,
 .weight-history__error,
 .weight-history__not-found,
-.weight-history__content > .section-card__card,
-.weight-history__initial {
+.weight-history__content > .section-card__card {
   margin-inline: 20px;
 }
 
 .weight-history__current-label,
 .weight-history__single,
 .weight-history__error,
-.weight-history__initial,
 .weight-history__not-found,
 .weight-history__empty {
   margin-block: 0;
@@ -513,12 +507,6 @@ function backToAnimals(): void {
   font-size: 16px;
   font-weight: 700;
   text-align: end;
-}
-
-.weight-history__initial {
-  color: tokens.$color-delta-flat;
-  font-size: 12.5px;
-  font-weight: 500;
 }
 
 .weight-history__actions {

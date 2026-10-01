@@ -131,3 +131,23 @@ export async function touchWeightEntry(
 ): Promise<void> {
   await db.run('UPDATE weight_entry SET updated_at = ? WHERE id = ?', [updatedAt, id])
 }
+
+export async function insertCarnetSettings(
+  db: InMemoryDb,
+  id: string,
+  updatedAt: string,
+): Promise<void> {
+  await db.run(`INSERT INTO carnet_settings (id, created_at, updated_at) VALUES (?, ?, ?)`, [
+    id,
+    updatedAt,
+    updatedAt,
+  ])
+}
+
+export async function touchCarnetSettings(
+  db: InMemoryDb,
+  id: string,
+  updatedAt: string,
+): Promise<void> {
+  await db.run('UPDATE carnet_settings SET updated_at = ? WHERE id = ?', [updatedAt, id])
+}

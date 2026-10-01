@@ -13,8 +13,11 @@ interface AnimalRow {
   species: string
   breed: string | null
   birth_date: string | null
-  initial_weight_kg: number | null
+  birth_date_approximate: number
   photo_path: string | null
+  unfollowed_on: string | null
+  departure_reason: string | null
+  departure_date: string | null
   created_at: string
   updated_at: string
   deleted_at: string | null
@@ -24,7 +27,12 @@ export type AnimalVersion = Pick<Animal, 'id' | 'photoPath' | 'updatedAt' | 'del
 export type RestoredAnimal = Omit<Animal, 'deletedAt'>
 
 const COLUMNS =
-  'id, name, species, breed, birth_date, initial_weight_kg, photo_path, created_at, updated_at, deleted_at'
+  'id, name, species, breed, birth_date, birth_date_approximate, photo_path, unfollowed_on, ' +
+  'departure_reason, departure_date, created_at, updated_at, deleted_at'
+
+const INSERT = `INSERT INTO animal
+  (id, name, species, breed, birth_date, photo_path, created_at, updated_at)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
 
 /** Les animaux supprimés restent en base pour la synchronisation, jamais pour l'UI. */
 const NOT_DELETED = 'deleted_at IS NULL'
@@ -36,7 +44,6 @@ function toAnimal(row: AnimalRow): Animal {
     species: row.species as Animal['species'],
     breed: row.breed,
     birthDate: row.birth_date,
-    initialWeightKg: row.initial_weight_kg,
     photoPath: row.photo_path,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -74,7 +81,11 @@ export function createAnimalsRepository(
       return rows.map(toAnimal)
     },
 
-    async create(input: AnimalInput): Promise<Animal> {
+    /** `related` : écritures d'autres tables liées à la création, jouées dans la même transaction. */
+    async create(
+      input: AnimalInput,
+      related: (animal: Animal) => SqlStatement[] = () => [],
+    ): Promise<Animal> {
       const data = animalInputSchema.parse(input)
       const now = new Date().toISOString()
       const animal: Animal = {
@@ -85,17 +96,21 @@ export function createAnimalsRepository(
         deletedAt: null,
       }
 
-      await db.run(`INSERT INTO animal (${COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
-        animal.id,
-        animal.name,
-        animal.species,
-        animal.breed,
-        animal.birthDate,
-        animal.initialWeightKg,
-        animal.photoPath,
-        animal.createdAt,
-        animal.updatedAt,
-        animal.deletedAt,
+      await db.runMany([
+        {
+          sql: INSERT,
+          params: [
+            animal.id,
+            animal.name,
+            animal.species,
+            animal.breed,
+            animal.birthDate,
+            animal.photoPath,
+            animal.createdAt,
+            animal.updatedAt,
+          ],
+        },
+        ...related(animal),
       ])
 
       return animal
@@ -107,19 +122,9 @@ export function createAnimalsRepository(
 
       const changes = await db.run(
         `UPDATE animal
-         SET name = ?, species = ?, breed = ?, birth_date = ?, initial_weight_kg = ?,
-             photo_path = ?, updated_at = ?
+         SET name = ?, species = ?, breed = ?, birth_date = ?, photo_path = ?, updated_at = ?
          WHERE id = ? AND ${NOT_DELETED}`,
-        [
-          data.name,
-          data.species,
-          data.breed,
-          data.birthDate,
-          data.initialWeightKg,
-          data.photoPath,
-          updatedAt,
-          id,
-        ],
+        [data.name, data.species, data.breed, data.birthDate, data.photoPath, updatedAt, id],
       )
 
       if (changes === 0) {
@@ -173,7 +178,6 @@ export function createAnimalsRepository(
         animal.species,
         animal.breed,
         animal.birthDate,
-        animal.initialWeightKg,
         animal.photoPath,
         animal.createdAt,
         animal.updatedAt,
@@ -181,15 +185,12 @@ export function createAnimalsRepository(
       return exists
         ? {
             sql: `UPDATE animal
-                  SET name = ?, species = ?, breed = ?, birth_date = ?, initial_weight_kg = ?,
-                      photo_path = ?, created_at = ?, updated_at = ?, deleted_at = NULL
+                  SET name = ?, species = ?, breed = ?, birth_date = ?, photo_path = ?,
+                      created_at = ?, updated_at = ?, deleted_at = NULL
                   WHERE id = ?`,
             params: [...values, animal.id],
           }
-        : {
-            sql: `INSERT INTO animal (${COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)`,
-            params: [animal.id, ...values],
-          }
+        : { sql: INSERT, params: [animal.id, ...values] }
     },
 
     /** Joue en une transaction les instructions d'import de l'animal et de son carnet. */
@@ -230,11 +231,14 @@ export function createAnimalsRepository(
     applyRemoteRowStatement(row: SyncRow): SqlStatement {
       return {
         sql: `INSERT INTO animal (${COLUMNS})
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
               ON CONFLICT (id) DO UPDATE SET
                 name = excluded.name, species = excluded.species, breed = excluded.breed,
-                birth_date = excluded.birth_date, initial_weight_kg = excluded.initial_weight_kg,
-                photo_path = excluded.photo_path, created_at = excluded.created_at,
+                birth_date = excluded.birth_date,
+                birth_date_approximate = excluded.birth_date_approximate,
+                photo_path = excluded.photo_path, unfollowed_on = excluded.unfollowed_on,
+                departure_reason = excluded.departure_reason,
+                departure_date = excluded.departure_date, created_at = excluded.created_at,
                 updated_at = excluded.updated_at, deleted_at = excluded.deleted_at
               WHERE excluded.updated_at > animal.updated_at`,
         params: [
@@ -243,8 +247,11 @@ export function createAnimalsRepository(
           syncField(row, 'species'),
           syncField(row, 'breed'),
           syncField(row, 'birth_date'),
-          syncField(row, 'initial_weight_kg'),
+          syncField(row, 'birth_date_approximate'),
           syncField(row, 'photo_path'),
+          syncField(row, 'unfollowed_on'),
+          syncField(row, 'departure_reason'),
+          syncField(row, 'departure_date'),
           syncField(row, 'created_at'),
           row.updated_at,
           syncField(row, 'deleted_at'),

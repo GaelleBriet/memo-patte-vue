@@ -14,6 +14,8 @@ export const vaccinationInputSchema = z.object({
 export const vaccinationUpdateSchema = vaccinationInputSchema.omit({ animalId: true })
 
 export const vaccinationSchema = vaccinationInputSchema.extend({
+  /** `null` pour un vaccin encore sans injection : `dueDate` est alors son rappel prévu. */
+  lastInjectionDate: z.iso.date().nullable(),
   id: z.uuid(),
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),

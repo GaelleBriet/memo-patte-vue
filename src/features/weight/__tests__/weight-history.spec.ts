@@ -11,7 +11,7 @@ function entry(weightKg: number, measuredOn: string) {
 
 describe('weightHistory — état de l’écran', () => {
   it('H3 : sans pesée, ni poids actuel ni lignes', () => {
-    const history = weightHistory([], null)
+    const history = weightHistory([])
 
     expect(history.state).toBe('empty')
     expect(history.current).toBeNull()
@@ -20,7 +20,7 @@ describe('weightHistory — état de l’écran', () => {
   })
 
   it('H2 : une seule pesée, datée comme première pesée', () => {
-    const history = weightHistory([entry(24.5, '2026-11-08')], null)
+    const history = weightHistory([entry(24.5, '2026-11-08')])
 
     expect(history.state).toBe('single')
     expect(history.current).toEqual({ weightKg: 24.5, measuredOn: '2026-11-08' })
@@ -28,7 +28,7 @@ describe('weightHistory — état de l’écran', () => {
   })
 
   it('H1 : à partir de deux pesées, l’historique est complet', () => {
-    const history = weightHistory([entry(24.3, '2026-10-11'), entry(24.5, '2026-11-08')], null)
+    const history = weightHistory([entry(24.3, '2026-10-11'), entry(24.5, '2026-11-08')])
 
     expect(history.state).toBe('full')
     expect(history.current).toEqual({ weightKg: 24.5, measuredOn: '2026-11-08' })
@@ -37,7 +37,7 @@ describe('weightHistory — état de l’écran', () => {
 
 describe('weightHistory — delta du poids actuel', () => {
   it('compare à la date de la pesée précédente quand le poids monte', () => {
-    const history = weightHistory([entry(24, '2026-08-09'), entry(24.5, '2026-11-08')], null)
+    const history = weightHistory([entry(24, '2026-08-09'), entry(24.5, '2026-11-08')])
 
     expect(history.headline).toEqual({
       kind: 'delta',
@@ -49,7 +49,7 @@ describe('weightHistory — delta du poids actuel', () => {
   })
 
   it('garde le signe d’une baisse', () => {
-    const history = weightHistory([entry(24.5, '2026-08-09'), entry(24.2, '2026-11-08')], null)
+    const history = weightHistory([entry(24.5, '2026-08-09'), entry(24.2, '2026-11-08')])
 
     expect(history.headline).toMatchObject({
       kind: 'delta',
@@ -60,7 +60,7 @@ describe('weightHistory — delta du poids actuel', () => {
   })
 
   it('date aussi une variation nulle à la décimale près', () => {
-    const history = weightHistory([entry(24.5, '2026-08-09'), entry(24.54, '2026-11-08')], null)
+    const history = weightHistory([entry(24.5, '2026-08-09'), entry(24.54, '2026-11-08')])
 
     expect(history.headline).toEqual({
       kind: 'delta',
@@ -83,7 +83,7 @@ describe('weightHistory — liste « Toutes les pesées »', () => {
   ]
 
   it('met la pesée la plus récente en haut', () => {
-    const rows = weightHistory(milo, null).rows
+    const rows = weightHistory(milo).rows
 
     expect(rows.map((row) => row.measuredOn)).toEqual([
       '2026-11-08',
@@ -97,7 +97,7 @@ describe('weightHistory — liste « Toutes les pesées »', () => {
   })
 
   it('donne à chaque ligne son delta par rapport à la pesée immédiatement précédente, datée', () => {
-    const rows = weightHistory(milo, null).rows
+    const rows = weightHistory(milo).rows
 
     expect(rows.map((row) => row.delta?.previousKg)).toEqual([
       24.3,
@@ -116,16 +116,17 @@ describe('weightHistory — liste « Toutes les pesées »', () => {
   })
 
   it('laisse la toute première pesée sans delta', () => {
-    const rows = weightHistory(milo, null).rows
+    const rows = weightHistory(milo).rows
 
     expect(rows[rows.length - 1]!.delta).toBeNull()
   })
 
   it('classe les baisses et les deltas nuls', () => {
-    const rows = weightHistory(
-      [entry(24.5, '2026-08-09'), entry(24.2, '2026-09-13'), entry(24.2, '2026-10-11')],
-      null,
-    ).rows
+    const rows = weightHistory([
+      entry(24.5, '2026-08-09'),
+      entry(24.2, '2026-09-13'),
+      entry(24.2, '2026-10-11'),
+    ]).rows
 
     expect(rows.map((row) => row.delta)).toEqual([
       { previousKg: 24.2, latestKg: 24.2, trend: 'flat', previousMeasuredOn: '2026-09-13' },
@@ -135,7 +136,7 @@ describe('weightHistory — liste « Toutes les pesées »', () => {
   })
 
   it('une seule pesée : une ligne, sans delta', () => {
-    const rows = weightHistory([entry(24.5, '2026-11-08')], null).rows
+    const rows = weightHistory([entry(24.5, '2026-11-08')]).rows
 
     expect(rows).toHaveLength(1)
     expect(rows[0]!.delta).toBeNull()
@@ -143,26 +144,8 @@ describe('weightHistory — liste « Toutes les pesées »', () => {
 
   it('ne modifie pas le tableau d’entrée', () => {
     const entries = [entry(23.6, '2026-06-07'), entry(24.5, '2026-11-08')]
-    weightHistory(entries, null)
+    weightHistory(entries)
 
     expect(entries.map((item) => item.weightKg)).toEqual([23.6, 24.5])
-  })
-})
-
-describe('weightHistory — poids à l’arrivée', () => {
-  it('le reprend tel quel, même sans pesée', () => {
-    expect(weightHistory([], 8.5).initialWeightKg).toBe(8.5)
-    expect(weightHistory([entry(24.5, '2026-11-08')], 8.5).initialWeightKg).toBe(8.5)
-  })
-
-  it('reste absent quand l’animal n’en a pas', () => {
-    expect(weightHistory([], null).initialWeightKg).toBeNull()
-  })
-
-  it('n’est jamais injecté comme pesée', () => {
-    const history = weightHistory([entry(24.5, '2026-11-08')], 8.5)
-
-    expect(history.state).toBe('single')
-    expect(history.rows).toHaveLength(1)
   })
 })

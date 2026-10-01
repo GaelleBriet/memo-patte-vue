@@ -20,7 +20,6 @@ const MILO: Animal = {
   species: 'dog',
   breed: null,
   birthDate: null,
-  initialWeightKg: null,
   photoPath: null,
   createdAt: '2026-09-09T09:00:00.000Z',
   updatedAt: '2026-09-09T09:00:00.000Z',
@@ -54,26 +53,19 @@ describe('emptyAnimalFormValues', () => {
       species: null,
       breed: '',
       birthDate: '',
-      initialWeightKg: '',
+      weightKg: '',
     })
   })
 })
 
 describe('animalFormValuesFrom', () => {
-  it('pré-remplit les cinq champs depuis un animal, le poids en texte', () => {
-    expect(
-      animalFormValuesFrom({
-        ...MILO,
-        breed: 'Labrador',
-        birthDate: '2023-03-12',
-        initialWeightKg: 8.5,
-      }),
-    ).toEqual({
+  it('pré-remplit les champs de l’animal, sans poids : il se corrige par les pesées', () => {
+    expect(animalFormValuesFrom({ ...MILO, breed: 'Labrador', birthDate: '2023-03-12' })).toEqual({
       name: 'Milo',
       species: 'dog',
       breed: 'Labrador',
       birthDate: '2023-03-12',
-      initialWeightKg: '8.5',
+      weightKg: '',
     })
   })
 
@@ -83,7 +75,7 @@ describe('animalFormValuesFrom', () => {
       species: 'dog',
       breed: '',
       birthDate: '',
-      initialWeightKg: '',
+      weightKg: '',
     })
   })
 
@@ -94,17 +86,12 @@ describe('animalFormValuesFrom', () => {
 
     expect(resultat.data.breed).toBeNull()
     expect(resultat.data.birthDate).toBeNull()
-    expect(resultat.data.initialWeightKg).toBeNull()
+    expect(resultat.data.weightKg).toBeNull()
   })
 
   it('conserve les valeurs renseignées au fil de l’aller-retour', () => {
     const resultat = validateAnimalForm(
-      animalFormValuesFrom({
-        ...MILO,
-        breed: 'Labrador',
-        birthDate: '2023-03-12',
-        initialWeightKg: 8.5,
-      }),
+      animalFormValuesFrom({ ...MILO, breed: 'Labrador', birthDate: '2023-03-12' }),
     )
 
     if (!resultat.success) throw new Error('Validation refusée')
@@ -114,7 +101,7 @@ describe('animalFormValuesFrom', () => {
       species: 'dog',
       breed: 'Labrador',
       birthDate: '2023-03-12',
-      initialWeightKg: 8.5,
+      weightKg: null,
       photoPath: null,
     })
   })
@@ -126,7 +113,7 @@ describe('validateAnimalForm — champs optionnels', () => {
 
     expect(data.breed).toBeNull()
     expect(data.birthDate).toBeNull()
-    expect(data.initialWeightKg).toBeNull()
+    expect(data.weightKg).toBeNull()
   })
 
   it('rend null pour un champ optionnel rempli d’espaces', () => {
@@ -134,15 +121,15 @@ describe('validateAnimalForm — champs optionnels', () => {
   })
 
   it('conserve les champs optionnels renseignés', () => {
-    const data = donnees({ breed: ' Labrador ', birthDate: '2023-03-12', initialWeightKg: '8.5' })
+    const data = donnees({ breed: ' Labrador ', birthDate: '2023-03-12', weightKg: '8.5' })
 
     expect(data.breed).toBe('Labrador')
     expect(data.birthDate).toBe('2023-03-12')
-    expect(data.initialWeightKg).toBe(8.5)
+    expect(data.weightKg).toBe(8.5)
   })
 
   it('accepte la virgule décimale des claviers français', () => {
-    expect(donnees({ initialWeightKg: '4,2' }).initialWeightKg).toBe(4.2)
+    expect(donnees({ weightKg: '4,2' }).weightKg).toBe(4.2)
   })
 
   it('ne renseigne jamais la photo, hors du périmètre de l’écran', () => {
@@ -191,29 +178,21 @@ describe('validateAnimalForm — espèce', () => {
   })
 })
 
-describe('validateAnimalForm — poids initial', () => {
+describe('validateAnimalForm — poids saisi à la création', () => {
   it('refuse 0, qui n’est pas un champ vide', () => {
-    expect(erreurs({ initialWeightKg: '0' }).initialWeightKg).toBe(
-      'animals.form.errors.initialWeightKg',
-    )
+    expect(erreurs({ weightKg: '0' }).weightKg).toBe('animals.form.errors.initialWeightKg')
   })
 
   it('refuse un poids négatif', () => {
-    expect(erreurs({ initialWeightKg: '-1' }).initialWeightKg).toBe(
-      'animals.form.errors.initialWeightKg',
-    )
+    expect(erreurs({ weightKg: '-1' }).weightKg).toBe('animals.form.errors.initialWeightKg')
   })
 
   it('refuse un poids illisible', () => {
-    expect(erreurs({ initialWeightKg: 'lourd' }).initialWeightKg).toBe(
-      'animals.form.errors.initialWeightKg',
-    )
+    expect(erreurs({ weightKg: 'lourd' }).weightKg).toBe('animals.form.errors.initialWeightKg')
   })
 
   it('refuse un poids au-delà de l’échelle, avec un message distinct', () => {
-    expect(erreurs({ initialWeightKg: '2000' }).initialWeightKg).toBe(
-      'animals.form.errors.initialWeightKgMax',
-    )
+    expect(erreurs({ weightKg: '2000' }).weightKg).toBe('animals.form.errors.initialWeightKgMax')
   })
 })
 
@@ -231,54 +210,27 @@ describe('validateAnimalForm — date de naissance', () => {
 
 describe('validateAnimalForm — plusieurs erreurs', () => {
   it('signale le nom vide et le poids à 0 en même temps (état F3)', () => {
-    expect(erreurs({ name: '', initialWeightKg: '0' })).toEqual({
+    expect(erreurs({ name: '', weightKg: '0' })).toEqual({
       name: 'animals.form.errors.name',
-      initialWeightKg: 'animals.form.errors.initialWeightKg',
+      weightKg: 'animals.form.errors.initialWeightKg',
     })
   })
 })
 
-describe('poids initial saisi en livres, relu en kilos', () => {
-  it('propose le poids initial au centième, sans décimales parasites', () => {
-    expect(
-      animalFormValuesFrom({ ...MILO, initialWeightKg: 54.1 * KG_PER_LB }).initialWeightKg,
-    ).toBe('24.54')
-  })
-})
-
-describe('poids initial en livres', () => {
+describe('poids saisi en livres', () => {
   afterEach(() => applyWeightUnit('kg'))
 
-  it('enregistre en kg un poids initial saisi en livres', () => {
+  it('l’enregistre en kg', () => {
     applyWeightUnit('lb')
 
-    expect(donnees({ initialWeightKg: '18.7' }).initialWeightKg).toBe(18.7 * KG_PER_LB)
+    expect(donnees({ weightKg: '18.7' }).weightKg).toBe(18.7 * KG_PER_LB)
   })
 
   it('refuse au-delà de la borne convertie', () => {
     applyWeightUnit('lb')
 
-    expect(erreurs({ initialWeightKg: '441' }).initialWeightKg).toBe(
-      'animals.form.errors.initialWeightKgMax',
-    )
-    expect(donnees({ initialWeightKg: '440.9' }).initialWeightKg).toBeLessThanOrEqual(200)
-    expect(erreurs({ initialWeightKg: '440.92' }).initialWeightKg).toBe(
-      'animals.form.errors.initialWeightKgMax',
-    )
-  })
-
-  it('propose le poids initial en livres, au centième', () => {
-    applyWeightUnit('lb')
-
-    expect(animalFormValuesFrom({ ...MILO, initialWeightKg: 8.5 }).initialWeightKg).toBe('18.74')
-  })
-
-  it('rend le poids initial enregistré tel quel quand la valeur proposée n’a pas bougé', () => {
-    applyWeightUnit('lb')
-    const milo = { ...MILO, initialWeightKg: 8.5 }
-
-    const resultat = validateAnimalForm(animalFormValuesFrom(milo), milo.initialWeightKg)
-
-    expect(resultat.success && resultat.data.initialWeightKg).toBe(8.5)
+    expect(erreurs({ weightKg: '441' }).weightKg).toBe('animals.form.errors.initialWeightKgMax')
+    expect(donnees({ weightKg: '440.9' }).weightKg).toBeLessThanOrEqual(200)
+    expect(erreurs({ weightKg: '440.92' }).weightKg).toBe('animals.form.errors.initialWeightKgMax')
   })
 })

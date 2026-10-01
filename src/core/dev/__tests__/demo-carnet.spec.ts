@@ -47,7 +47,6 @@ describe('buildDemoCarnet', () => {
 
     expect(animal.species).toBe('dog')
     expect(animal.breed).toBe('Golden retriever')
-    expect(animal.initialWeightKg).toBe(8.5)
     expect(differenceInYears(TODAY, parseISO(animal.birthDate as string))).toBe(4)
   })
 
@@ -143,7 +142,6 @@ describe('buildDemoCarnet', () => {
     const { animal, vaccinations, treatments, weights } = find('Luna')
 
     expect(animal.species).toBe('cat')
-    expect(animal.initialWeightKg).toBe(0.9)
     expect(differenceInYears(TODAY, parseISO(animal.birthDate as string))).toBe(3)
     expect(vaccinations).toHaveLength(1)
     expect(vaccinations[0]?.name).toBe('Typhus')

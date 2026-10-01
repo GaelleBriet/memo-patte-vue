@@ -18,9 +18,13 @@ export const animalInputSchema = z.object({
     .refine((value) => !isFuture(parseISO(value)))
     .nullable()
     .default(null),
-  initialWeightKg: z.number().positive().max(MAX_WEIGHT_KG).nullable().default(null),
   /** Nom de fichier sous `files/photos/`, jamais un chemin ni une URL. */
   photoPath: z.string().trim().min(1).nullable().default(null),
+})
+
+/** Le poids saisi à la création devient la première pesée : il n'est pas une donnée de l'animal. */
+export const animalCreationInputSchema = animalInputSchema.extend({
+  weightKg: z.number().positive().max(MAX_WEIGHT_KG).nullable().default(null),
 })
 
 export const animalSchema = animalInputSchema.extend({
@@ -32,4 +36,5 @@ export const animalSchema = animalInputSchema.extend({
 })
 
 export type AnimalInput = z.input<typeof animalInputSchema>
+export type AnimalCreationInput = z.input<typeof animalCreationInputSchema>
 export type Animal = z.output<typeof animalSchema>

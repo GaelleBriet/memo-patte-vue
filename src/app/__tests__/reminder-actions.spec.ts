@@ -25,7 +25,6 @@ const BOREE: Animal = {
   species: 'dog',
   breed: null,
   birthDate: null,
-  initialWeightKg: null,
   photoPath: null,
   createdAt: STAMP,
   updatedAt: STAMP,

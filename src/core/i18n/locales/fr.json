@@ -471,7 +471,6 @@
       "selected": "Pesée du {date}",
       "list": "Toutes les pesées",
       "rowHint": "Modifier ou supprimer",
-      "initial": "Poids à l’arrivée : {weight}",
       "link": "Voir l’historique"
     },
     "form": {

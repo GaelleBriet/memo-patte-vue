@@ -20,6 +20,7 @@ export interface SyncCycleOutbox {
   getLastPulledAt(entity: string): Promise<string | null>
   setLastPulledAt(entity: string, lastPulledAt: string): Promise<void>
   isEnabled(): Promise<boolean>
+  setLastSyncedAt(lastSyncedAt: string): Promise<void>
 }
 
 export interface SyncCycleDependencies {
@@ -120,6 +121,7 @@ export function createSyncCycle(deps: SyncCycleDependencies): SyncCycle {
 
       await push(userId)
       await pull(userId)
+      await deps.outbox.setLastSyncedAt(new Date().toISOString())
     },
   }
 }

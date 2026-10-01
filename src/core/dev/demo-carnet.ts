@@ -76,7 +76,6 @@ export function buildDemoCarnet(today: Date): DemoAnimal[] {
         species: 'dog',
         breed: 'Golden retriever',
         birthDate: day(subYears(today, 4)),
-        initialWeightKg: 8.5,
       },
       vaccinations: [
         // En retard : rappel annuel, échéance dépassée de 45 jours, après une primo-vaccination.
@@ -133,7 +132,6 @@ export function buildDemoCarnet(today: Date): DemoAnimal[] {
         species: 'cat',
         breed: 'Européen',
         birthDate: day(subYears(today, 3)),
-        initialWeightKg: 0.9,
       },
       vaccinations: [
         {

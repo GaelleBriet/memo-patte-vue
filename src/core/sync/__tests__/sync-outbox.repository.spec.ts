@@ -83,6 +83,19 @@ describe('syncOutboxRepository', () => {
     })
   })
 
+  describe('dernière synchronisation réussie', () => {
+    it('vaut null tant qu’aucune synchronisation n’a abouti', async () => {
+      await expect(repository.getLastSyncedAt()).resolves.toBeNull()
+    })
+
+    it('mémorise la date de la dernière synchronisation réussie', async () => {
+      await repository.setLastSyncedAt(T1)
+      await repository.setLastSyncedAt(T2)
+
+      await expect(repository.getLastSyncedAt()).resolves.toBe(T2)
+    })
+  })
+
   describe('restoring', () => {
     it('vaut faux par défaut', async () => {
       await expect(repository.isRestoring()).resolves.toBe(false)

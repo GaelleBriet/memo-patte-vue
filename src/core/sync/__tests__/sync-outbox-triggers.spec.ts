@@ -6,11 +6,13 @@ import {
   createSyncTestDb,
   enableSync,
   insertAnimal,
+  insertCarnetSettings,
   insertTreatment,
   insertVaccination,
   insertWeightEntry,
   outboxRows,
   touchAnimal,
+  touchCarnetSettings,
   touchTreatment,
   touchVaccination,
   touchWeightEntry,
@@ -35,11 +37,11 @@ describe('sync_state', () => {
     const rows = await db.query<{
       id: number
       enabled: number
-      last_pulled_at: string | null
       restoring: number
-    }>('SELECT id, enabled, last_pulled_at, restoring FROM sync_state')
+      last_synced_at: string | null
+    }>('SELECT id, enabled, restoring, last_synced_at FROM sync_state')
 
-    expect(rows).toEqual([{ id: 1, enabled: 0, last_pulled_at: null, restoring: 0 }])
+    expect(rows).toEqual([{ id: 1, enabled: 0, restoring: 0, last_synced_at: null }])
   })
 })
 
@@ -121,6 +123,7 @@ describe('déclencheurs sync_outbox', () => {
   const VACCINATION_ID = '22222222-2222-4222-8222-222222222222'
   const TREATMENT_ID = '33333333-3333-4333-8333-333333333333'
   const WEIGHT_ENTRY_ID = '44444444-4444-4444-8444-444444444444'
+  const CARNET_SETTINGS_ID = '00000000-0000-0000-0000-000000000000'
 
   it.each([
     {
@@ -135,6 +138,13 @@ describe('déclencheurs sync_outbox', () => {
       id: WEIGHT_ENTRY_ID,
       insert: insertWeightEntry,
       touch: touchWeightEntry,
+    },
+    {
+      entity: 'carnet_settings',
+      id: CARNET_SETTINGS_ID,
+      insert: (target: InMemoryDb, id: string, _animalId: string, updatedAt: string) =>
+        insertCarnetSettings(target, id, updatedAt),
+      touch: touchCarnetSettings,
     },
   ])('alimente et met à jour la file pour $entity', async ({ entity, id, insert, touch }) => {
     await enableSync(db)

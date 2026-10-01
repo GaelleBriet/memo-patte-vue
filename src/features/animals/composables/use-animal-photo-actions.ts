@@ -13,7 +13,6 @@ function inputFrom(animal: Animal): AnimalInput {
     species: animal.species,
     breed: animal.breed,
     birthDate: animal.birthDate,
-    initialWeightKg: animal.initialWeightKg,
   }
 }
 

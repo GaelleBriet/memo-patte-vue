@@ -8,7 +8,6 @@ export type ExportAnimal = {
   species: 'dog' | 'cat'
   breed: string | null
   birthDate: string | null
-  initialWeightKg: number | null
   photoFileName: string | null
   createdAt: string
   updatedAt: string
