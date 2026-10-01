@@ -200,6 +200,10 @@ Le type `"medication"` (médicament), déjà accepté par la base, entrera dans 
 formulaire qui le propose (lot 3) : un ajout de valeur, sans changement de version. D'ici là, l'import
 le refuse. Un traitement a toujours au moins une période dans le fichier.
 
+Un **traitement sans aucune prise** est valide pour le format (sa prochaine échéance est la première
+échéance de sa période), mais l'app ne sait pas encore l'afficher ni lui programmer un rappel : elle
+n'en exporte pas, et l'import le refuse jusqu'au lot 3, comme `"medication"`.
+
 ### `treatmentPeriods[]`
 
 | Champ                   | Type                                                          | Notes                                                                 |
@@ -300,24 +304,28 @@ d'écriture ne journalise que le type de l'erreur).
   - chaque champ a son type exact (un booléen n'est pas `1`, un nombre n'est pas du texte), ses
     valeurs fermées (espèce, type, unité de fréquence, état d'une prise, motif du départ, unité de
     posologie, moment du rappel) et ses bornes : dates civiles réelles entre 1900 et 2199, instants
-    ISO 8601 en UTC (`Z`) entre les mêmes années, heures `HH:mm`, fréquence de 1 à 365, poids de
+    ISO 8601 en UTC (`Z`) entre les mêmes années, réécrits dans la forme que l'app enregistre
+    (`AAAA-MM-JJTHH:mm:ss.sssZ`) avant toute écriture, car la synchronisation compare les instants
+    comme des chaînes ; heures `HH:mm`, fréquence de 1 à 365, poids de
     plus de 0 à 200 kg, date de naissance, d'injection, de prise et de pesée jamais dans le futur ;
   - **posologie** : quantité strictement positive et unité parmi les onze, toutes deux présentes ou
-    toutes deux `null` ; heures d'une période sans doublon ;
+    toutes deux `null` ;
+  - **période** : heures sans doublon, 24 au plus ; première échéance, date de fin et date d'arrêt
+    jamais avant le début ;
   - **état d'une prise** : `givenOn` renseigné pour une prise donnée, `null` pour une oubliée ou un
     report ;
   - UUID pour les identifiants, noms (animal, race, vaccin, traitement) limités à 80 caractères
-    comme dans les formulaires (`MAX_NAME_LENGTH`, #409), autres textes (nom de la photo, version de
-    l'app) à 200, espaces de bord retirées, race vide lue comme absente ;
+    comme dans les formulaires (`MAX_NAME_LENGTH`, #409), version de l'app à 200, espaces de bord retirées, race vide lue comme absente ; nom de photo
+    réduit à un nom de fichier de l'app (lettres, chiffres, `_`, `-`, puis `.jpg` : ni chemin, ni
+    `..`, ni autre extension) ;
   - un fichier dont le seul défaut est un poids au-delà de 200 kg ou une fréquence au-delà de 365 est
     refusé avec un motif à part, « Ce fichier contient une valeur hors limites : 200 kg maximum pour
     un poids, 365 pour une fréquence. » ; un fichier dont le seul défaut est un nom trop long,
     « Un nom de ce fichier dépasse 80 caractères. » ;
-  - identifiant en double dans une table, ligne dont l'`animalId` n'est pas dans `animals[]`, ou
-    traitement sans aucune période dans le fichier → fichier refusé en entier (« Ce fichier n'est
+  - identifiant en double dans une table, ligne dont l'`animalId` n'est pas dans `animals[]`,
+    traitement sans aucune période ou sans aucune prise dans le fichier → fichier refusé en entier (« Ce fichier n'est
     pas un export MémoPatte. ») : l'import est tout ou rien ;
-  - un vaccin sans injection et un traitement sans prise sont valides (rappel prévu, première
-    échéance de la période) ;
+  - un vaccin sans injection est valide (rappel prévu) ;
   - champs inconnus ignorés, `reminders[]` jamais lu.
 - **Base locale sans animal visible** : import direct, en mode « remplacer » (rien de visible à
   perdre, et un animal supprimé avant l'import redevient visible). La ligne de Paramètres affiche
@@ -366,7 +374,9 @@ d'écriture ne journalise que le type de l'erreur).
   recalculée, et il n'y a plus de réconciliation après l'écriture : les réglages d'une prise sont
   ceux de sa période.
 - **Dates** : une ligne écrite qui n'existait pas sur l'appareil garde son `createdAt` et son
-  `updatedAt` d'origine. Une ligne qui existait déjà, même supprimée, prend l'heure de l'import comme
+  `updatedAt` d'origine. Une ligne qui existait déjà, même supprimée, prend le `createdAt` du
+  fichier, dans toutes les tables (la ligne voyage entière, comme dans la synchronisation, et deux
+  appareils départagent alors la « tête » de la même façon), et l'heure de l'import comme
   `updatedAt` : la synchronisation « la plus récente gagne » ne revient ainsi jamais en arrière.
 - **Transaction** : chaque repository fournit ses instructions (`markAllDeletedStatement`,
   `restoreStatement`, `reviveStatement`), jouées ensemble par `animalsRepository.runImport` en une
@@ -376,8 +386,9 @@ d'écriture ne journalise que le type de l'erreur).
 - **Photos** : `photoPath` reprend `photoFileName` seulement si ce fichier existe dans
   `files/photos/` et qu'aucun autre animal ne l'utilise déjà (sur l'appareil ou plus tôt dans le
   fichier) ; sinon l'animal garde la photo déjà présente sur l'appareil pour ce même identifiant,
-  ou prend le placeholder. Un nom qui n'est pas celui d'une photo de l'app (`<nom>.jpg`, sans
-  chemin) n'est jamais cherché hors de `files/photos/`.
+  ou prend le placeholder. Un nom qui n'est pas celui d'une photo de l'app fait refuser le
+  fichier, et `photoExists` le rejetterait de toute façon : rien n'est cherché hors de
+  `files/photos/`.
 - **Après l'écriture** : synchronisation complète des rappels (`syncAllReminders`, file unique des
   notifications), rechargement des animaux, puis écran d'explication des notifications si le
   carnet a des échéances et que la permission n'a jamais été demandée
