@@ -457,14 +457,16 @@
         "movedKept": "Prise déplacée au {date}. Prochaine dose gardée au {nextDue}, que tu avais reportée.",
         "movedLost": "Prise déplacée au {date}. Ton report de la prochaine dose ne s’applique plus.",
         "undoMove": "Annuler le changement de date de la prise",
-        "deleted": "Traitement {name} supprimé"
+        "deleted": "Supprimé",
+        "deletedLabel": "{name} supprimé",
+        "undoDelete": "Annuler la suppression de {name}"
       },
       "menu": {
         "remove": "Supprimer ce traitement"
       },
       "deleteDialog": {
         "title": "Supprimer {name} ?",
-        "text": "Ses prises et ses rappels seront supprimés du carnet. Cette action est définitive.",
+        "text": "Ses prises et ses rappels seront supprimés du carnet.",
         "cancel": "Annuler",
         "confirm": "Supprimer"
       },

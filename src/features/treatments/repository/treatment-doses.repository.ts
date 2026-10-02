@@ -385,6 +385,19 @@ export function createTreatmentDosesRepository(
       }
     },
 
+    /** Les prises supprimées à cet instant, avec leur traitement. */
+    reviveByTreatmentStatement(
+      treatmentId: string,
+      deletedAt: string,
+      updatedAt: string,
+    ): SqlStatement {
+      return {
+        sql: `UPDATE treatment_dose SET deleted_at = NULL, updated_at = ?
+              WHERE treatment_id = ? AND deleted_at = ?`,
+        params: [updatedAt, treatmentId, deletedAt],
+      }
+    },
+
     markDeletedByAnimalStatement(animalId: string, deletedAt: string): SqlStatement {
       return {
         sql: `UPDATE treatment_dose SET deleted_at = ?, updated_at = ? WHERE animal_id = ? AND ${NOT_DELETED}`,

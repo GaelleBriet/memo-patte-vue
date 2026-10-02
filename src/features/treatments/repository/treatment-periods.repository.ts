@@ -240,6 +240,19 @@ export function createTreatmentPeriodsRepository(
       }
     },
 
+    /** Les périodes supprimées à cet instant, avec leur traitement. */
+    reviveByTreatmentStatement(
+      treatmentId: string,
+      deletedAt: string,
+      updatedAt: string,
+    ): SqlStatement {
+      return {
+        sql: `UPDATE treatment_period SET deleted_at = NULL, updated_at = ?
+              WHERE treatment_id = ? AND deleted_at = ?`,
+        params: [updatedAt, treatmentId, deletedAt],
+      }
+    },
+
     markDeletedByAnimalStatement(animalId: string, deletedAt: string): SqlStatement {
       return {
         sql: `UPDATE treatment_period SET deleted_at = ?, updated_at = ?

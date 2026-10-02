@@ -448,10 +448,12 @@ describe('treatmentDeleteTexts', () => {
   it('confirme la suppression du traitement, avec ses prises et ses rappels', () => {
     expect(treatmentDeleteTexts(t, 'Bravecto')).toEqual({
       title: 'Supprimer Bravecto ?',
-      text: 'Ses prises et ses rappels seront supprimés du carnet. Cette action est définitive.',
+      text: 'Ses prises et ses rappels seront supprimés du carnet.',
       cancel: 'Annuler',
       confirm: 'Supprimer',
-      deleted: 'Traitement Bravecto supprimé',
+      deleted: 'Supprimé',
+      deletedLabel: 'Bravecto supprimé',
+      undo: 'Annuler la suppression de Bravecto',
       failed: 'Bravecto n’a pas pu être supprimé. Réessaie.',
     })
   })

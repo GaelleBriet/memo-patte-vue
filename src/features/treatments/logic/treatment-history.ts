@@ -311,7 +311,9 @@ export function treatmentDeleteTexts(t: Translate, name: string) {
     text: t('treatments.detail.deleteDialog.text'),
     cancel: t('treatments.detail.deleteDialog.cancel'),
     confirm: t('treatments.detail.deleteDialog.confirm'),
-    deleted: t('treatments.detail.toast.deleted', { name }),
+    deleted: t('treatments.detail.toast.deleted'),
+    deletedLabel: t('treatments.detail.toast.deletedLabel', { name }),
+    undo: t('treatments.detail.toast.undoDelete', { name }),
     failed: t('treatments.detail.errors.delete', { name }),
   }
 }

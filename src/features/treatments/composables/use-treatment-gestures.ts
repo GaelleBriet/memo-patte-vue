@@ -45,13 +45,19 @@ export function useTreatmentGestures(onChanged: () => void) {
     }
   }
 
-  function undoable(message: string, ariaLabel: string, undo: () => Promise<unknown>): void {
+  function undoable(
+    message: string,
+    ariaLabel: string,
+    undo: () => Promise<unknown>,
+    announcement?: string,
+  ): void {
     showUndoableToast(message, {
       label: t('reminderSheet.undo'),
       ariaLabel,
       undo,
       onUndone: onChanged,
       failedMessage: t('reminderSheet.undoFailed'),
+      announcement,
     })
   }
 
@@ -145,12 +151,17 @@ export function useTreatmentGestures(onChanged: () => void) {
     return stale ? 'stale' : 'failed'
   }
 
-  /** Suppression définitive, confirmée par un dialogue avant d'arriver ici. */
+  /** Confirmée par un dialogue avant d'arriver ici ; « Annuler » rétablit ce que ce geste a supprimé. */
   function removeTreatment(treatment: Named): Promise<boolean> {
     const texts = treatmentDeleteTexts(t, treatment.name)
     return guarded(async () => {
-      await treatments.remove(treatment.id)
-      showToast(texts.deleted)
+      const deletedAt = await treatments.remove(treatment.id)
+      undoable(
+        texts.deleted,
+        texts.undo,
+        () => treatments.undoRemove(treatment.id, deletedAt),
+        texts.deletedLabel,
+      )
     }, texts.failed)
   }
 

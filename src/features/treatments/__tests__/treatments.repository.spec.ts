@@ -182,7 +182,7 @@ describe('treatmentsRepository', () => {
   it('ne casse rien quand on supprime un identifiant inconnu', async () => {
     const created = await seedTreatmentWithDose(db, bravecto)
 
-    await expect(repository.remove('inconnu')).resolves.toBeUndefined()
+    await expect(repository.remove('inconnu')).resolves.toBeTypeOf('string')
 
     expect((await repository.listByAnimal(MIETTE)).map((t) => t.id)).toEqual([created.id])
   })
@@ -722,6 +722,79 @@ describe('treatmentsRepository — périodes et prises', () => {
 
     await expect(dosesOf(created.id)).resolves.toEqual(prisesAvant)
     await expect(periodsOf(created.id)).resolves.toEqual(periodesAvant)
+  })
+
+  describe('rétablir un traitement supprimé', () => {
+    const REMOVED_AT = '2026-09-24T10:01:00.000Z'
+    const UNDONE_AT = '2026-09-24T10:01:03.000Z'
+    const back = { deleted_at: null, updated_at: UNDONE_AT }
+
+    async function removeThenWait(id: string): Promise<string> {
+      vi.setSystemTime(new Date(REMOVED_AT))
+      const deletedAt = await repository.remove(id)
+      vi.setSystemTime(new Date(UNDONE_AT))
+      return deletedAt
+    }
+
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-09-24T10:00:00.000Z') })
+    })
+
+    it('rend visibles le traitement, ses périodes et ses prises, datés de l’annulation', async () => {
+      const created = await seedTreatmentWithDose(db, bravecto)
+      await addDose(created.id, '2025-12-01', '2026-03-01')
+      const deletedAt = await removeThenWait(created.id)
+
+      await repository.restore(created.id, deletedAt)
+
+      expect(deletedAt).toBe(REMOVED_AT)
+      await expect(repository.getWithHistory(created.id)).resolves.toMatchObject({
+        id: created.id,
+        updatedAt: UNDONE_AT,
+        periods: [{ id: created.id }],
+        doses: [{ dueOn: '2026-03-01' }, { dueOn: '2025-12-01' }],
+      })
+      await expect(dosesOf(created.id)).resolves.toMatchObject([back, back])
+      await expect(periodsOf(created.id)).resolves.toMatchObject([back])
+    })
+
+    it('laisse supprimée une prise supprimée avant le traitement', async () => {
+      const created = await seedTreatmentWithDose(db, bravecto)
+      const ancienne = await addDose(created.id, '2025-12-01', '2026-03-01')
+      await doses.applyBatch([{ action: 'delete', id: ancienne }], '2026-09-24T09:00:00.000Z')
+      const deletedAt = await removeThenWait(created.id)
+
+      await repository.restore(created.id, deletedAt)
+
+      await expect(dosesOf(created.id)).resolves.toMatchObject([
+        { id: ancienne, deleted_at: '2026-09-24T09:00:00.000Z' },
+        { id: created.id, ...back },
+      ])
+    })
+
+    it('ne touche ni un autre traitement, ni une suppression d’un autre instant', async () => {
+      const created = await seedTreatmentWithDose(db, bravecto)
+      const autre = await seedTreatmentWithDose(db, { ...bravecto, name: 'Milbemax' })
+      const deletedAt = await removeThenWait(created.id)
+      await repository.remove(autre.id)
+
+      await repository.restore(autre.id, deletedAt)
+      await repository.restore(created.id, '2026-09-24T10:00:59.000Z')
+
+      await expect(repository.listByAnimal(MIETTE)).resolves.toEqual([])
+      await expect(periodsOf(created.id)).resolves.toMatchObject([{ deleted_at: REMOVED_AT }])
+    })
+
+    it('rend l’instant d’une suppression sans effet, qui ne rétablit rien', async () => {
+      const created = await seedTreatmentWithDose(db, bravecto)
+      await removeThenWait(created.id)
+
+      const again = await repository.remove(created.id)
+      await repository.restore(created.id, again)
+
+      expect(again).toBe(UNDONE_AT)
+      await expect(repository.getWithHistory(created.id)).resolves.toBeNull()
+    })
   })
 
   it('liste les prises visibles d’un traitement, la plus récente d’abord', async () => {

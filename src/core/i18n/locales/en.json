@@ -457,14 +457,16 @@
         "movedKept": "Dose moved to {date}. Next dose kept on {nextDue}, as you had postponed it.",
         "movedLost": "Dose moved to {date}. Your postponement of the next dose no longer applies.",
         "undoMove": "Undo the dose date change",
-        "deleted": "{name} treatment deleted"
+        "deleted": "Deleted",
+        "deletedLabel": "{name} deleted",
+        "undoDelete": "Undo deleting {name}"
       },
       "menu": {
         "remove": "Delete this treatment"
       },
       "deleteDialog": {
         "title": "Delete {name}?",
-        "text": "Its doses and reminders will be deleted from the health record. This can’t be undone.",
+        "text": "Its doses and reminders will be removed from the health record.",
         "cancel": "Cancel",
         "confirm": "Delete"
       },

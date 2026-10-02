@@ -40,6 +40,7 @@ type TreatmentsRepository = Pick<
   | 'getById'
   | 'listByAnimal'
   | 'remove'
+  | 'restore'
   | 'listDoses'
   | 'countDosesByAnimal'
   | 'getWithHistory'
@@ -227,10 +228,22 @@ export const useTreatmentsStore = defineStore('treatments', () => {
       )
     },
 
-    async remove(id: string): Promise<void> {
+    /** Rend l'instant de la suppression, à passer à `undoRemove`. */
+    async remove(id: string): Promise<string> {
+      return write(
+        async (repository) => {
+          const deletedAt = await repository.remove(id)
+          await remindersProvider().reschedule(id)
+          return deletedAt
+        },
+        () => animalId.value,
+      )
+    },
+
+    async undoRemove(id: string, deletedAt: string): Promise<void> {
       await write(
         async (repository) => {
-          await repository.remove(id)
+          await repository.restore(id, deletedAt)
           await remindersProvider().reschedule(id)
         },
         () => animalId.value,

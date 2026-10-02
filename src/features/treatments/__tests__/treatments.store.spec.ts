@@ -350,6 +350,23 @@ describe('useTreatmentsStore', () => {
     expect(store.treatments.map((treatment) => treatment.name)).toEqual(['Bravecto'])
   })
 
+  it('rétablit le traitement supprimé, à l’instant rendu par la suppression, puis ses rappels', async () => {
+    const seme = repository.seed(vermifuge())
+    const store = useTreatmentsStore()
+    await store.loadForAnimal(MILO)
+    const removed = await store.remove(seme.id)
+    reminders.reschedule.mockClear()
+
+    await store.undoRemove(seme.id, removed)
+
+    expect(repository.restore).toHaveBeenCalledExactlyOnceWith(seme.id, removed)
+    expect(store.treatments.map((treatment) => treatment.name)).toEqual(['Milbemax'])
+    expect(reminders.reschedule).toHaveBeenCalledExactlyOnceWith(seme.id)
+    expect(repository.restore.mock.invocationCallOrder[0]).toBeLessThan(
+      reminders.reschedule.mock.invocationCallOrder[0]!,
+    )
+  })
+
   it('programme les rappels du traitement créé sur sa prochaine échéance', async () => {
     const store = useTreatmentsStore()
 
@@ -622,6 +639,7 @@ interface FakeTreatmentsRepository {
   create: Mock<TreatmentPlanService['create']>
   update: Mock<TreatmentPlanService['update']>
   remove: Mock<TreatmentsRepository['remove']>
+  restore: Mock<TreatmentsRepository['restore']>
   resume: Mock<TreatmentPlanService['resume']>
   listDoses: Mock<TreatmentsRepository['listDoses']>
   countDosesByAnimal: Mock<TreatmentsRepository['countDosesByAnimal']>
@@ -688,8 +706,14 @@ function createFakeRepository(): FakeTreatmentsRepository {
       return updated
     }),
     remove: vi.fn<TreatmentsRepository['remove']>(async (id) => {
+      const deletedAt = `supprimé ${id}`
       const treatment = living().find((candidate) => candidate.id === id)
-      if (treatment) treatment.deletedAt = new Date().toISOString()
+      if (treatment) treatment.deletedAt = deletedAt
+      return deletedAt
+    }),
+    restore: vi.fn<TreatmentsRepository['restore']>(async (id, deletedAt) => {
+      const treatment = treatments.find((candidate) => candidate.id === id)
+      if (treatment?.deletedAt === deletedAt) treatment.deletedAt = null
     }),
     resume: vi.fn<TreatmentPlanService['resume']>(async (id, input) => {
       const treatment = living().find((candidate) => candidate.id === id)

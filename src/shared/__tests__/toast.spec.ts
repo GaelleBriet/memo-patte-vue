@@ -47,6 +47,14 @@ describe('annonce du toast', () => {
     expect(vi.getTimerCount()).toBe(0)
   })
 
+  it('annonce un autre texte que celui affiché quand il est donné', () => {
+    showToast('Supprimé', { announcement: 'Milbemax supprimé' })
+    vi.advanceTimersByTime(ANNONCE_MS)
+
+    expect(toastMessage.value).toBe('Supprimé')
+    expect(toastAnnouncement.value).toBe('Milbemax supprimé')
+  })
+
   it('vide la région annoncée quand le toast se ferme', () => {
     showToast('Rappels activés')
     vi.advanceTimersByTime(ANNONCE_MS)

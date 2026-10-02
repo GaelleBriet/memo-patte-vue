@@ -38,10 +38,18 @@ import DateCalendar from '@/shared/components/DateCalendar.vue'
 import DatePickerSheet from '@/shared/components/DatePickerSheet.vue'
 import HistoryRow from '@/shared/components/HistoryRow.vue'
 import OverflowMenu from '@/shared/components/OverflowMenu.vue'
-import { dismissToast, runToastAction, toastAction, toastMessage } from '@/shared/utils/toast'
+import {
+  dismissToast,
+  runToastAction,
+  toastAction,
+  toastAnnouncement,
+  toastMessage,
+} from '@/shared/utils/toast'
 
 const TODAY = new Date('2026-09-28T21:00:00')
 const NBSP = / /g
+
+const REMOVED_AT = '2026-09-28T19:00:00.000Z'
 
 const LUNA: Animal = {
   id: 'luna',
@@ -87,6 +95,8 @@ const APPLIED = {
 
 let book: TreatmentWithHistory | null
 let remove: MockInstance
+let restore: MockInstance
+let reschedule: Mock<(id: string) => Promise<void>>
 let read: Mock<(id: string) => Promise<TreatmentWithHistory | null>>
 let push: MockInstance
 let service: {
@@ -112,12 +122,16 @@ beforeEach(async () => {
   read = vi.fn<(id: string) => Promise<TreatmentWithHistory | null>>(async (id) =>
     book !== null && id === book.id ? book : null,
   )
-  const repository = fakeTreatmentsRepository({ getWithHistory: read, remove: async () => {} })
+  const repository = fakeTreatmentsRepository({
+    getWithHistory: read,
+    remove: async () => REMOVED_AT,
+    restore: async () => {},
+  })
   remove = repository.remove
+  restore = repository.restore
   provideTreatmentsRepository(() => repository)
-  provideTreatmentRemindersService(() => ({
-    reschedule: vi.fn<(id: string) => Promise<void>>(async () => {}),
-  }))
+  reschedule = vi.fn<(id: string) => Promise<void>>(async () => {})
+  provideTreatmentRemindersService(() => ({ reschedule }))
   service = {
     noteMoment: vi.fn<TreatmentDosesService['noteMoment']>(),
     apply: vi.fn<TreatmentDosesService['apply']>(async () => APPLIED),
@@ -837,8 +851,30 @@ describe('TreatmentDetailView — barre du haut et fin du traitement', () => {
     await flushPromises()
 
     expect(remove).toHaveBeenCalledWith(METACAM.id)
-    expect(message()).toBe('Traitement Métacam supprimé')
+    expect(suppression.props('text')).toBe('Ses prises et ses rappels seront supprimés du carnet.')
+    expect(message()).toBe('Supprimé')
     expect(back).toHaveBeenCalled()
+  })
+
+  it('« Annuler » rétablit le traitement supprimé et ses rappels (planche A · V8 bis)', async () => {
+    vi.useFakeTimers({ now: TODAY, toFake: ['Date', 'setTimeout', 'clearTimeout'] })
+    vi.spyOn(router, 'back').mockImplementation(() => {})
+    const view = await monter()
+    dialogue(view, 'Supprimer Métacam ?').vm.$emit('confirm')
+    await flushPromises()
+    vi.advanceTimersByTime(100)
+
+    expect(toastAnnouncement.value).toBe('Métacam supprimé')
+    expect(toastAction.value).toMatchObject({
+      label: 'Annuler',
+      ariaLabel: 'Annuler la suppression de Métacam',
+    })
+    reschedule.mockClear()
+    runToastAction()
+    await flushPromises()
+
+    expect(restore).toHaveBeenCalledExactlyOnceWith(METACAM.id, REMOVED_AT)
+    expect(reschedule).toHaveBeenCalledExactlyOnceWith(METACAM.id)
   })
 
   it('arrête le traitement après confirmation', async () => {
