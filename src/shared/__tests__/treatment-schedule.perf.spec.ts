@@ -95,6 +95,41 @@ describe('performance', () => {
     expect(elapsed).toBeLessThan(200)
   })
 
+  it('« Toutes données » entre une prise ancienne et une ligne récente, sur un an à deux heures, s’écrit en moins de 150 ms', () => {
+    const gapped = {
+      periods: [period({ firstDueOn: '2025-10-01', times: ['08:00', '20:00'] })],
+      doses: [
+        givenAt('2025-10-01', '08:00', '2025-10-01'),
+        givenAt('2026-09-29', '20:00', '2026-09-30'),
+      ],
+      today: '2026-09-30',
+    }
+
+    const { result: written, elapsed } = fastest(() => {
+      const schedule = treatmentSchedule(gapped)
+      return schedule.unloggedDoses.map((due) =>
+        schedule.doseFor({ kind: 'given', due, givenOn: due.dueOn }),
+      )
+    })
+
+    expect(written).toHaveLength(726)
+    const after = treatmentSchedule({
+      ...gapped,
+      doses: [
+        ...gapped.doses,
+        ...written.map((fields, index) => ({
+          id: `dose-${index}`,
+          ...fields,
+          createdAt: '2026-09-30T12:00:00.000Z',
+          updatedAt: '2026-09-30T12:00:00.000Z',
+        })),
+      ],
+    })
+    expect(after.unloggedDoses).toEqual([])
+    expect(after.currentDoses).toHaveLength(2)
+    expect(elapsed).toBeLessThan(150)
+  })
+
   it('une prochaine échéance en 9999 est refusée sans rien calculer', () => {
     const forged = { ...givenAt('2026-09-01', '08:00', '2026-09-01'), nextDueDate: '9999-12-31' }
 

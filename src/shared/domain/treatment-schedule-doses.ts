@@ -56,20 +56,20 @@ function givenNextDueDate(others: State, due: Due, givenOn: string): string {
   const { frequency } = plan.period
   const restarted = shiftDate(givenOn, frequency, 1)
   const coversCurrent = others.currentDoses.some((current) => sameDue(current, due))
-  const hitsAMove = plan.steps.some(
-    ({ kind, dose }) =>
-      kind === 'move' && dose.dueOn > due.dueOn && landsOn(givenOn, dose.dueOn, frequency),
-  )
-  const dayIsComplete = pendingDues(plan, { from: due.dueOn, to: due.dueOn }).every((other) =>
-    sameDue(other, due),
-  )
+  const hitsAMove = () =>
+    plan.steps.some(
+      ({ kind, dose }) =>
+        kind === 'move' && dose.dueOn > due.dueOn && landsOn(givenOn, dose.dueOn, frequency),
+    )
+  const dayIsComplete = () =>
+    pendingDues(plan, { from: due.dueOn, to: due.dueOn }).every((other) => sameDue(other, due))
   const restarts =
-    coversCurrent &&
     givenOn !== due.dueOn &&
     next !== due.dueOn &&
-    dayIsComplete &&
     restarted > due.dueOn &&
-    !hitsAMove
+    coversCurrent &&
+    dayIsComplete() &&
+    !hitsAMove()
   return restarts ? restarted : next
 }
 
