@@ -460,7 +460,8 @@
         "undoMove": "Annuler le changement de date de la prise",
         "deleted": "Supprimé",
         "deletedLabel": "{name} supprimé",
-        "undoDelete": "Annuler la suppression de {name}"
+        "undoDelete": "Annuler la suppression de {name}",
+        "lastDose": "Dernière dose de {name} notée, à retrouver dans Traitements terminés."
       },
       "menu": {
         "remove": "Supprimer ce traitement"
@@ -527,7 +528,12 @@
         "both": "{name} : {given} et {missed} notés",
         "givenCount": "{n} prise | {n} prises",
         "missedCount": "{n} oubli | {n} oublis",
-        "undo": "Annuler les doses renseignées de {name}"
+        "undo": "Annuler les doses renseignées de {name}",
+        "finished": {
+          "given": "{name} : {n} prise notée, à retrouver dans Traitements terminés. | {name} : {n} prises notées, à retrouver dans Traitements terminés.",
+          "missed": "{name} : {n} oubli noté, à retrouver dans Traitements terminés. | {name} : {n} oublis notés, à retrouver dans Traitements terminés.",
+          "both": "{name} : {given} et {missed} notés, à retrouver dans Traitements terminés."
+        }
       },
       "days": {
         "title": "Choisir les jours",

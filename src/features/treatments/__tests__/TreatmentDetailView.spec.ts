@@ -91,6 +91,7 @@ const APPLIED = {
   undo: [{ action: 'delete' as const, id: 'nouvelle' }],
   alreadyGivenOn: null,
   postponement: null,
+  finishes: false,
   moved: null,
 }
 
@@ -275,6 +276,17 @@ describe('TreatmentDetailView — carte de la dose du moment', () => {
     await flushPromises()
 
     expect(service.undoBatch).toHaveBeenCalledWith(METACAM.id, APPLIED.undo)
+  })
+
+  it('dit où retrouver le traitement quand la prise notée le termine (TR-31)', async () => {
+    const view = await monter()
+    service.apply.mockResolvedValue({ ...APPLIED, finishes: true })
+
+    await view.findAll('.treatment-dose-card__done')[1]!.trigger('click')
+    await flushPromises()
+
+    expect(message()).toBe('Dernière dose de Métacam notée, à retrouver dans Traitements terminés.')
+    expect(toastAction.value?.ariaLabel).toBe('Annuler la prise de Métacam')
   })
 
   it('relit la fiche après la prise : il ne reste que l’heure à donner', async () => {
@@ -918,6 +930,23 @@ describe('TreatmentDetailView — barre du haut et fin du traitement', () => {
     expect(view.find('.treatment-detail__stop').exists()).toBe(false)
   })
 
+  it('terminé, propose de reprendre (TR-32)', async () => {
+    const view = await monter(
+      treatment(
+        [period({ startsOn: '2026-09-20', firstDueOn: '2026-09-20', endsOn: '2026-09-21' })],
+        [dose('2026-09-20', '2026-09-21'), dose('2026-09-21', '2026-09-22')],
+      ),
+    )
+
+    await view.get('.treatment-detail__resume-button').trigger('click')
+
+    expect(push).toHaveBeenCalledWith({
+      name: 'treatment-resume',
+      params: { id: METACAM.id },
+      query: { from: 'treatment-detail', reminder: `treatment:${METACAM.id}` },
+    })
+  })
+
   it('arrêté, dit quand, propose de reprendre, plus de modifier ni d’arrêter', async () => {
     const view = await monter(
       treatment([period({ stoppedOn: '2026-09-26' })], [dose('2026-09-01', '2026-09-02')]),
@@ -1038,6 +1067,23 @@ describe('TreatmentDetailView — doses non renseignées (TR-14 à TR-17)', () =
     )
 
     expect(texte(view.get('.treatment-unlogged__title'))).toBe(title)
+  })
+
+  it('dit où retrouver le traitement quand renseigner le termine (Q16)', async () => {
+    const view = await monter(
+      treatment(
+        [period({ stoppedOn: '2026-09-06' })],
+        [dose('2026-09-01', '2026-09-02'), dose('2026-09-02', '2026-09-03')],
+      ),
+    )
+    service.apply.mockResolvedValue({ ...APPLIED, finishes: true })
+
+    await boutons(view)[0]!.trigger('click')
+    await flushPromises()
+
+    expect(gestes().map(({ due }) => due.dueOn)).toEqual(['2026-09-03', '2026-09-04', '2026-09-05'])
+    expect(message()).toBe('Métacam : 3 prises notées, à retrouver dans Traitements terminés.')
+    expect(toastAction.value?.ariaLabel).toBe('Annuler les doses renseignées de Métacam')
   })
 
   it('« Toutes données » écrit toutes les doses en une fois, et « Annuler » défait tout', async () => {

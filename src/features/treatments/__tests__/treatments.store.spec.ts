@@ -536,6 +536,7 @@ describe('useTreatmentsStore — gestes d’un rappel', () => {
       undo: [{ action: 'delete' as const, id: 'p1' }],
       alreadyGivenOn: null,
       postponement: null,
+      finishes: false,
       moved: null,
       outcome: 'noted' as const,
       due: { periodId: seme.periodId, dueOn: '2026-09-20', dueTime: null },
@@ -575,6 +576,7 @@ describe('useTreatmentsStore — gestes d’un rappel', () => {
       undo: [{ action: 'restore' as const, id: 'p1' }],
       alreadyGivenOn: null,
       postponement: null,
+      finishes: false,
       moved: null,
     }
     doses.apply.mockResolvedValue(applied)

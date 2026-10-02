@@ -26,7 +26,8 @@ export type GestureContext = {
 }
 
 export type DoseActionTexts = {
-  done(applied: Pick<DoseChange, 'postponement' | 'moved'>): string
+  /** `finishes` : le geste a fait passer le traitement dans « Traitements terminés » (TR-31). */
+  done(applied: Pick<DoseChange, 'postponement' | 'moved'> & { finishes?: boolean }): string
   /** Nom du bouton « Annuler » lu par le lecteur d'écran. */
   undo: string
   already(givenOn: string): string
@@ -85,7 +86,8 @@ export function doseActionTexts(
       const time =
         severalTimes && gesture.due.dueTime !== null ? formatClockTime(gesture.due.dueTime) : null
       const date = gesture.givenOn === today ? null : day(gesture.givenOn)
-      const done = () => {
+      const done: DoseActionTexts['done'] = ({ finishes }) => {
+        if (finishes) return t('treatments.detail.toast.lastDose', { name })
         if (time === null) {
           return date === null
             ? t('treatments.sheet.toast.dose', named)
@@ -100,10 +102,11 @@ export function doseActionTexts(
     case 'log': {
       const missed = action.gestures.filter(({ kind }) => kind === 'missed').length
       const given = action.gestures.length - missed
-      const done = () => {
-        if (missed === 0) return t('treatments.unlogged.toast.given', { name, n: given }, given)
-        if (given === 0) return t('treatments.unlogged.toast.missed', { name, n: missed }, missed)
-        return t('treatments.unlogged.toast.both', {
+      const done: DoseActionTexts['done'] = ({ finishes }) => {
+        const toast = finishes ? 'treatments.unlogged.toast.finished' : 'treatments.unlogged.toast'
+        if (missed === 0) return t(`${toast}.given`, { name, n: given }, given)
+        if (given === 0) return t(`${toast}.missed`, { name, n: missed }, missed)
+        return t(`${toast}.both`, {
           name,
           given: t('treatments.unlogged.toast.givenCount', { n: given }, given),
           missed: t('treatments.unlogged.toast.missedCount', { n: missed }, missed),

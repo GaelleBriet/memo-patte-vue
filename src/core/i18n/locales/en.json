@@ -460,7 +460,8 @@
         "undoMove": "Undo the dose date change",
         "deleted": "Deleted",
         "deletedLabel": "{name} deleted",
-        "undoDelete": "Undo deleting {name}"
+        "undoDelete": "Undo deleting {name}",
+        "lastDose": "Last {name} dose logged, now in Finished treatments."
       },
       "menu": {
         "remove": "Delete this treatment"
@@ -527,7 +528,12 @@
         "both": "{name}: {given} and {missed} logged",
         "givenCount": "{n} dose | {n} doses",
         "missedCount": "{n} missed dose | {n} missed doses",
-        "undo": "Undo the doses logged for {name}"
+        "undo": "Undo the doses logged for {name}",
+        "finished": {
+          "given": "{name}: {n} dose logged, now in Finished treatments. | {name}: {n} doses logged, now in Finished treatments.",
+          "missed": "{name}: {n} missed dose logged, now in Finished treatments. | {name}: {n} missed doses logged, now in Finished treatments.",
+          "both": "{name}: {given} and {missed} logged, now in Finished treatments."
+        }
       },
       "days": {
         "title": "Choose days",

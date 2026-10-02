@@ -117,6 +117,7 @@ const NOTED: NotedMoment = {
   undo: [{ action: 'delete', id: 'p1' }],
   alreadyGivenOn: null,
   postponement: null,
+  finishes: false,
   moved: null,
   outcome: 'noted',
   due: { periodId: BRAVECTO.periodId, dueOn: '2026-09-28', dueTime: null },
@@ -253,6 +254,19 @@ describe('TreatmentReminderSheet — F2', () => {
 
     expect(undoDose).toHaveBeenCalledWith(BRAVECTO.id, NOTED.undo)
     expect(sheet.emitted('changed')).toHaveLength(2)
+  })
+
+  it('dit où retrouver le traitement quand la prise notée le termine (TR-31)', async () => {
+    recordDose.mockResolvedValue({ ...NOTED, finishes: true })
+    await monter()
+
+    bouton('.reminder-actions__done-today').click()
+    await flushPromises()
+
+    expect(toastMessage.value).toBe(
+      'Dernière dose de Bravecto notée, à retrouver dans Traitements terminés.',
+    )
+    expect(toastAction.value?.ariaLabel).toBe('Annuler la prise de Bravecto')
   })
 
   it('ne note qu’une prise sur un double tap', async () => {
@@ -539,6 +553,7 @@ describe('TreatmentReminderSheet — plusieurs heures par jour : l’heure est d
     undo: [{ action: 'delete' as const, id: 'p2' }],
     alreadyGivenOn: null,
     postponement: null,
+    finishes: false,
     moved: null,
   }
   let apply: MockInstance
