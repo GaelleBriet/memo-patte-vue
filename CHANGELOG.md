@@ -5,6 +5,14 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.56](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.55...memo-patte-v0.1.56) (2026-10-02)
+
+
+### ⚡ Performance
+
+* **shared:** ne calculer la journée complète et les déplacements que si la suite peut repartir ([6ebf537](https://github.com/GaelleBriet/memo-patte-vue/commit/6ebf5370ae422110dc72b9f792468f2e15b223fb))
+* **shared:** noter des doses en lot en temps linéaire ([786768b](https://github.com/GaelleBriet/memo-patte-vue/commit/786768b9f41f205ecce559f773e932a39b0a4e48))
+
 ## [0.1.55](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.54...memo-patte-v0.1.55) (2026-10-02)
 
 
