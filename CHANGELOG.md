@@ -5,6 +5,19 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.55](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.54...memo-patte-v0.1.55) (2026-10-02)
+
+
+### ✨ Fonctionnalités
+
+* **treatments:** fiche v2 — dose du moment, noter une prise, historique ([911503d](https://github.com/GaelleBriet/memo-patte-vue/commit/911503d771f9669c8173060d740433340e16267f))
+* **treatments:** formulaire v2 — créer, modifier, reprendre ([cf6845d](https://github.com/GaelleBriet/memo-patte-vue/commit/cf6845d8576a2b043ef88ee5d7b71d6f5913601f))
+
+
+### 🐛 Corrections
+
+* **treatments:** dire à partir de quand une reprise est possible ([644b2dd](https://github.com/GaelleBriet/memo-patte-vue/commit/644b2dd99a236e5bf10fe861f969f4c9990e3645))
+
 ## [0.1.54](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.53...memo-patte-v0.1.54) (2026-10-02)
 
 
