@@ -37,9 +37,9 @@ export function createTreatmentPlanService({
   }
 
   return {
-    /** Le traitement naît avec sa période, sans prise (TR-3). */
+    /** Le traitement naît avec sa période et les seules prises renseignées dans l'encart (TR-3). */
     async create(input: TreatmentCreationInput): Promise<Treatment> {
-      return (await treatments()).create(creationPlan(input, newId(), today()))
+      return (await treatments()).create(creationPlan(input, newId(), today(), newId))
     },
 
     /** Correction, nouvelle période ou déplacement de la prochaine dose, selon le carnet du jour. */

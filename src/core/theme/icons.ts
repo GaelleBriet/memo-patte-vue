@@ -15,6 +15,7 @@ import deleteIcon from '@material-symbols/svg-400/outlined/delete.svg?raw'
 import deleteSweep from '@material-symbols/svg-400/outlined/delete_sweep.svg?raw'
 import devices from '@material-symbols/svg-400/outlined/devices.svg?raw'
 import doNotDisturbOn from '@material-symbols/svg-400/outlined/do_not_disturb_on.svg?raw'
+import doneAll from '@material-symbols/svg-400/outlined/done_all.svg?raw'
 import download from '@material-symbols/svg-400/outlined/download.svg?raw'
 import edit from '@material-symbols/svg-400/outlined/edit.svg?raw'
 import editCalendar from '@material-symbols/svg-400/outlined/edit_calendar.svg?raw'
@@ -38,12 +39,14 @@ import notificationsActive from '@material-symbols/svg-400/outlined/notification
 import notificationsOff from '@material-symbols/svg-400/outlined/notifications_off.svg?raw'
 import openInNew from '@material-symbols/svg-400/outlined/open_in_new.svg?raw'
 import pestControl from '@material-symbols/svg-400/outlined/pest_control.svg?raw'
+import pendingActions from '@material-symbols/svg-400/outlined/pending_actions.svg?raw'
 import pets from '@material-symbols/svg-400/outlined/pets.svg?raw'
 import photoCamera from '@material-symbols/svg-400/outlined/photo_camera.svg?raw'
 import pictureAsPdf from '@material-symbols/svg-400/outlined/picture_as_pdf.svg?raw'
 import pill from '@material-symbols/svg-400/outlined/pill.svg?raw'
 import queryStats from '@material-symbols/svg-400/outlined/query_stats.svg?raw'
 import repeat from '@material-symbols/svg-400/outlined/repeat.svg?raw'
+import removeDone from '@material-symbols/svg-400/outlined/remove_done.svg?raw'
 import restartAlt from '@material-symbols/svg-400/outlined/restart_alt.svg?raw'
 import scale from '@material-symbols/svg-400/outlined/scale.svg?raw'
 import schedule from '@material-symbols/svg-400/outlined/schedule.svg?raw'
@@ -154,6 +157,7 @@ export const msIcons = {
   delete_sweep: deleteSweep,
   devices,
   do_not_disturb_on: doNotDisturbOn,
+  done_all: doneAll,
   download,
   edit,
   edit_calendar: editCalendar,
@@ -193,6 +197,7 @@ export const msIcons = {
   palette,
   pause,
   pest_control: pestControl,
+  pending_actions: pendingActions,
   pets,
   photo_camera: photoCamera,
   picture_as_pdf: pictureAsPdf,
@@ -203,6 +208,7 @@ export const msIcons = {
   radio_button_unchecked: radioButtonUnchecked,
   remove,
   repeat,
+  remove_done: removeDone,
   restart_alt: restartAlt,
   scale,
   schedule,

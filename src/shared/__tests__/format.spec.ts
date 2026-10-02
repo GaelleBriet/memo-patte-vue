@@ -8,6 +8,7 @@ import {
   formatClockTimes,
   formatQuantity,
   formatFullDate,
+  formatFullMonthYear,
   formatLongDate,
   formatMonthShort,
   formatMonthYear,
@@ -17,6 +18,8 @@ import {
   formatFullDayMonth,
   formatWeekdayDate,
   nonBreaking,
+  weekdayInitials,
+  weekStartsOn,
   withoutFinalDot,
 } from '../utils/format'
 import { applyLocale } from '@/core/i18n'
@@ -233,5 +236,23 @@ describe('withoutFinalDot', () => {
     expect(withoutFinalDot('10 oct.')).toBe('10 oct')
     expect(withoutFinalDot('10 mai')).toBe('10 mai')
     expect(withoutFinalDot('Oct 10')).toBe('Oct 10')
+  })
+})
+
+describe('mois d’un calendrier', () => {
+  afterEach(() => applyLocale('fr'))
+
+  it('écrit le mois en toutes lettres et commence la semaine le lundi', () => {
+    expect(formatFullMonthYear('2026-09-03')).toBe('septembre 2026')
+    expect(weekStartsOn()).toBe(1)
+    expect(weekdayInitials()).toEqual(['L', 'M', 'M', 'J', 'V', 'S', 'D'])
+  })
+
+  it('en anglais, commence la semaine le dimanche', () => {
+    applyLocale('en')
+
+    expect(formatFullMonthYear('2026-09-03')).toBe('September 2026')
+    expect(weekStartsOn()).toBe(0)
+    expect(weekdayInitials()).toEqual(['S', 'M', 'T', 'W', 'T', 'F', 'S'])
   })
 })

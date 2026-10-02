@@ -1,3 +1,4 @@
+import type { DoseWrite } from '../repository/treatment-doses.repository'
 import type { TreatmentWithHistory } from '../repository/treatments.repository'
 import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
@@ -85,6 +86,40 @@ export function treatment(
     periods,
     doses,
   }
+}
+
+/** Le carnet après un lot d'écritures, comme `applyBatch` le laisserait. */
+export function written(
+  history: TreatmentWithHistory,
+  writes: readonly DoseWrite[],
+  at = '2026-09-28T12:00:00.000Z',
+): TreatmentWithHistory {
+  const doses = writes.reduce((lines, write) => {
+    switch (write.action) {
+      case 'create':
+        return [
+          ...lines,
+          {
+            ...write.dose,
+            id: write.id,
+            treatmentId: write.treatmentId,
+            animalId: write.animalId,
+            createdAt: at,
+            updatedAt: at,
+            deletedAt: null,
+          },
+        ]
+      case 'rewrite':
+        return lines.map((line) =>
+          line.id === write.id ? { ...line, ...write.dose, updatedAt: at } : line,
+        )
+      case 'delete':
+        return lines.filter(({ id }) => id !== write.id)
+      case 'restore':
+        throw new Error('Une restauration ne se rejoue pas sur un carnet de test.')
+    }
+  }, history.doses)
+  return { ...history, doses }
 }
 
 /** Le même objet, espaces insécables remplacées : les attentes s'écrivent au clavier. */

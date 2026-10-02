@@ -13,6 +13,7 @@ import {
 
 import { fakeTreatmentsRepository } from './fake-treatments-repository'
 import { dose, missed, period, postponed, treatment } from './treatment-fixtures'
+import { DoseAlreadyLoggedError } from '../logic/treatment-dose-writes'
 import type { TreatmentWithHistory } from '../repository/treatments.repository'
 import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
 import type { TreatmentDosesService } from '../service/treatment-doses.service'
@@ -23,8 +24,10 @@ import {
   provideTreatmentStopService,
   provideTreatmentsRepository,
 } from '../store/treatments.store'
+import TreatmentChooseDays from '../views/TreatmentChooseDays.vue'
 import TreatmentDetailView from '../views/TreatmentDetailView.vue'
 import TreatmentDoseCard from '../views/TreatmentDoseCard.vue'
+import TreatmentUnloggedPrompt from '../views/TreatmentUnloggedPrompt.vue'
 import i18n from '@/core/i18n'
 import vuetify from '@/core/theme/vuetify'
 import type { Animal } from '@/features/animals/schema/animal.schema'
@@ -913,5 +916,289 @@ describe('TreatmentDetailView — barre du haut et fin du traitement', () => {
 
     expect(remove).toHaveBeenCalledWith(METACAM.id)
     expect(back).toHaveBeenCalled()
+  })
+})
+
+describe('TreatmentDetailView — doses non renseignées (TR-14 à TR-17)', () => {
+  /** Critère 1 de la spec : dernière prise le 2 sept., fiche ouverte le 28. */
+  const PANACUR = treatment(
+    [period()],
+    [dose('2026-09-01', '2026-09-02'), dose('2026-09-02', '2026-09-03')],
+  )
+  const UNE_SEULE = treatment([period({ startsOn: '2026-09-27', firstDueOn: '2026-09-27' })])
+
+  function boutons(view: VueWrapper) {
+    return view.findAll('.treatment-unlogged__action')
+  }
+
+  function gestes(): { kind: string; due: { dueOn: string } }[] {
+    const action = service.apply.mock.calls.at(-1)?.[1]
+    if (action?.kind !== 'log') throw new Error('Pas de lot écrit')
+    return [...action.gestures]
+  }
+
+  it('annonce les doses sous la carte, sans en faire un retard', async () => {
+    const view = await monter(PANACUR)
+
+    expect(texte(view.get('.treatment-unlogged__title'))).toBe('25 doses non renseignées')
+    expect(texte(view.get('.treatment-unlogged__subtitle'))).toBe('du 3 au 27 sept.')
+    expect(texte(view.get('.treatment-unlogged__note'))).toBe('Indique si elles ont été données.')
+    expect(textes(view, '.treatment-dose-card__label')).toEqual(['Dose du jour'])
+    expect(view.find('.treatment-dose-card__value--overdue').exists()).toBe(false)
+    expect(
+      view
+        .get('.treatment-dose-card')
+        .element.compareDocumentPosition(view.get('.treatment-unlogged').element) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+  })
+
+  it('propose « Toutes données » et « Choisir les jours » à égalité', async () => {
+    const [all, choose] = boutons(await monter(PANACUR))
+
+    expect([texte(all!), texte(choose!)]).toEqual(['Toutes données', 'Choisir les jours'])
+    expect(all!.attributes('aria-label')?.replace(NBSP, ' ')).toBe(
+      'Noter les 25 doses comme données, du 3 au 27 sept.',
+    )
+    expect(choose!.attributes('aria-label')?.replace(NBSP, ' ')).toBe(
+      'Choisir les jours où Métacam a été donné, du 3 au 27 sept.',
+    )
+    expect(all!.classes().filter((name) => !name.includes('--'))).toEqual(
+      choose!.classes().filter((name) => !name.includes('--')),
+    )
+  })
+
+  it('n’affiche aucun bandeau sans dose non renseignée', async () => {
+    const view = await monter(
+      treatment(
+        [period({ startsOn: '2026-09-27', firstDueOn: '2026-09-27' })],
+        [dose('2026-09-27', '2026-09-28')],
+      ),
+    )
+
+    expect(view.findComponent(TreatmentUnloggedPrompt).exists()).toBe(false)
+  })
+
+  it.each([
+    ['arrêté', period({ stoppedOn: '2026-09-20' }), '17 doses non renseignées'],
+    ['fini', period({ endsOn: '2026-09-10' }), '8 doses non renseignées'],
+  ])('garde le bandeau sur un traitement %s', async (_, closed, title) => {
+    const view = await monter(
+      treatment([closed], [dose('2026-09-01', '2026-09-02'), dose('2026-09-02', '2026-09-03')]),
+    )
+
+    expect(texte(view.get('.treatment-unlogged__title'))).toBe(title)
+  })
+
+  it('« Toutes données » écrit toutes les doses en une fois, et « Annuler » défait tout', async () => {
+    const view = await monter(PANACUR)
+    const undo = Array.from({ length: 25 }, (_, index) => ({
+      action: 'delete' as const,
+      id: `dose-${index}`,
+    }))
+    service.apply.mockResolvedValue({ ...APPLIED, undo })
+
+    await boutons(view)[0]!.trigger('click')
+    await flushPromises()
+
+    expect(service.apply).toHaveBeenCalledOnce()
+    expect(gestes()).toHaveLength(25)
+    expect(gestes().every(({ kind }) => kind === 'given')).toBe(true)
+    expect(gestes()[0]).toEqual({
+      kind: 'given',
+      due: { periodId: 'p-1', dueOn: '2026-09-03', dueTime: null },
+      givenOn: '2026-09-03',
+    })
+    expect(message()).toBe('Métacam : 25 prises notées')
+    expect(toastAction.value?.ariaLabel).toBe('Annuler les doses renseignées de Métacam')
+
+    runToastAction()
+    await flushPromises()
+
+    expect(service.undoBatch).toHaveBeenCalledExactlyOnceWith(METACAM.id, undo)
+  })
+
+  it('le bandeau reste tant que la relecture trouve des doses sans état', async () => {
+    const view = await monter(PANACUR)
+
+    await boutons(view)[0]!.trigger('click')
+    await flushPromises()
+
+    expect(read).toHaveBeenCalledTimes(2)
+    expect(texte(view.get('.treatment-unlogged__title'))).toBe('25 doses non renseignées')
+  })
+
+  it('pour une seule dose, propose « Donnée » et « Oubliée »', async () => {
+    const view = await monter(UNE_SEULE)
+
+    expect(texte(view.get('.treatment-unlogged__title'))).toBe('1 dose non renseignée')
+    expect(texte(view.get('.treatment-unlogged__subtitle'))).toBe('27 sept.')
+    expect(boutons(view).map(texte)).toEqual(['Donnée', 'Oubliée'])
+
+    await boutons(view)[1]!.trigger('click')
+    await flushPromises()
+
+    expect(gestes()).toEqual([
+      { kind: 'missed', due: { periodId: 'p-1', dueOn: '2026-09-27', dueTime: null } },
+    ])
+    expect(message()).toBe('Métacam : 1 oubli noté')
+
+    await boutons(view)[0]!.trigger('click')
+    await flushPromises()
+
+    expect(gestes()).toEqual([
+      {
+        kind: 'given',
+        due: { periodId: 'p-1', dueOn: '2026-09-27', dueTime: null },
+        givenOn: '2026-09-27',
+      },
+    ])
+  })
+
+  it('« Choisir les jours » s’ouvre tout coché ; 5 jours décochés, tout s’écrit en une fois', async () => {
+    const view = await monter(PANACUR)
+
+    await boutons(view)[1]!.trigger('click')
+    await flushPromises()
+    const screen = view.getComponent(TreatmentChooseDays)
+    const jours = () => dansLaFeuille('.choose-days-month__day[role="checkbox"]')
+    const valider = () => dansLaFeuille('.treatment-choose-days__submit')[0]!
+
+    expect(screen.props()).toMatchObject({ subtitle: 'Métacam · Luna · du 3 au 27 sept.' })
+    expect(jours()).toHaveLength(25)
+    expect(jours().every((jour) => jour.getAttribute('aria-checked') === 'true')).toBe(true)
+    expect(valider().textContent?.replace(NBSP, ' ').trim()).toBe('Valider : 25 données, 0 oubliée')
+
+    for (const jour of jours().slice(0, 5)) jour.click()
+    await flushPromises()
+
+    expect(valider().textContent?.replace(NBSP, ' ').trim()).toBe(
+      'Valider : 20 données, 5 oubliées',
+    )
+    expect(service.apply).not.toHaveBeenCalled()
+
+    valider().click()
+    await flushPromises()
+
+    expect(service.apply).toHaveBeenCalledOnce()
+    expect(
+      gestes()
+        .filter(({ kind }) => kind === 'missed')
+        .map(({ due }) => due.dueOn),
+    ).toEqual(['2026-09-03', '2026-09-04', '2026-09-05', '2026-09-06', '2026-09-07'])
+    expect(gestes().filter(({ kind }) => kind === 'given')).toHaveLength(20)
+    expect(message()).toBe('Métacam : 20 prises et 5 oublis notés')
+    expect(screen.props('modelValue')).toBe(false)
+  })
+
+  it('revenir en arrière de « Choisir les jours » n’écrit rien', async () => {
+    const view = await monter(PANACUR)
+    await boutons(view)[1]!.trigger('click')
+    await flushPromises()
+
+    dansLaFeuille('.pushed-screen__back').at(-1)!.click()
+    await flushPromises()
+
+    expect(view.getComponent(TreatmentChooseDays).props('modelValue')).toBe(false)
+    expect(service.apply).not.toHaveBeenCalled()
+  })
+
+  it('à plusieurs heures, un onglet par heure, et le bouton compte le total', async () => {
+    const view = await monter(
+      treatment([
+        period({ startsOn: '2026-09-25', firstDueOn: '2026-09-25', times: ['08:00', '20:00'] }),
+      ]),
+    )
+
+    await boutons(view)[1]!.trigger('click')
+    await flushPromises()
+    const onglets = () => dansLaFeuille('.treatment-choose-days__tab')
+    const jours = () => dansLaFeuille('.choose-days-month__day[role="checkbox"]')
+
+    expect(onglets().map((onglet) => onglet.textContent?.replace(NBSP, ' '))).toEqual([
+      '8 htout coché',
+      '20 htout coché',
+    ])
+    jours()[0]!.click()
+    onglets()[1]!.click()
+    await flushPromises()
+
+    expect(onglets()[1]!.getAttribute('aria-selected')).toBe('true')
+    expect(jours().every((jour) => jour.getAttribute('aria-checked') === 'true')).toBe(true)
+
+    jours()[2]!.click()
+    await flushPromises()
+    dansLaFeuille('.treatment-choose-days__submit')[0]!.click()
+    await flushPromises()
+
+    expect(
+      gestes()
+        .filter(({ kind }) => kind === 'missed')
+        .map(({ due }) => due),
+    ).toEqual([
+      { periodId: 'p-1', dueOn: '2026-09-25', dueTime: '08:00' },
+      { periodId: 'p-1', dueOn: '2026-09-27', dueTime: '20:00' },
+    ])
+    expect(gestes()).toHaveLength(6)
+  })
+
+  async function validerAvecDeuxOublis(view: VueWrapper) {
+    await boutons(view)[1]!.trigger('click')
+    await flushPromises()
+    for (const jour of dansLaFeuille('.choose-days-month__day[role="checkbox"]').slice(0, 2)) {
+      jour.click()
+    }
+    await flushPromises()
+    dansLaFeuille('.treatment-choose-days__submit')[0]!.click()
+    await flushPromises()
+  }
+
+  it('une dose déjà notée entre-temps : le calendrier, périmé, se ferme, et la fiche dit l’échec', async () => {
+    const view = await monter(PANACUR)
+    service.apply.mockRejectedValue(new DoseAlreadyLoggedError('Dose déjà notée'))
+
+    await validerAvecDeuxOublis(view)
+
+    expect(view.getComponent(TreatmentChooseDays).props('modelValue')).toBe(false)
+    expect(message()).toBe('La modification n’a pas abouti. Réessaie.')
+    expect(read).toHaveBeenCalledTimes(2)
+  })
+
+  it('tout autre échec : le calendrier reste ouvert, les cases telles que laissées', async () => {
+    const view = await monter(PANACUR)
+    service.apply.mockRejectedValue(new Error('base indisponible'))
+
+    await validerAvecDeuxOublis(view)
+
+    expect(view.getComponent(TreatmentChooseDays).props('modelValue')).toBe(true)
+    expect(message()).toBe('La modification n’a pas abouti. Réessaie.')
+    expect(
+      dansLaFeuille('.choose-days-month__day[role="checkbox"]').map((jour) =>
+        jour.getAttribute('aria-checked'),
+      ),
+    ).toEqual([...Array<string>(2).fill('false'), ...Array<string>(23).fill('true')])
+    expect(
+      dansLaFeuille('.treatment-choose-days__submit')[0]!.textContent?.replace(NBSP, ' ').trim(),
+    ).toBe('Valider : 23 données, 2 oubliées')
+
+    service.apply.mockResolvedValue(APPLIED)
+    dansLaFeuille('.treatment-choose-days__submit')[0]!.click()
+    await flushPromises()
+
+    expect(gestes().filter(({ kind }) => kind === 'missed')).toHaveLength(2)
+    expect(view.getComponent(TreatmentChooseDays).props('modelValue')).toBe(false)
+  })
+
+  it('un lot refusé dit l’échec, relit la fiche, et n’offre pas d’« Annuler »', async () => {
+    const view = await monter(PANACUR)
+    service.apply.mockRejectedValue(new Error('Échéance déjà notée'))
+
+    await boutons(view)[0]!.trigger('click')
+    await flushPromises()
+
+    expect(message()).toBe('La modification n’a pas abouti. Réessaie.')
+    expect(toastAction.value).toBeNull()
+    expect(read).toHaveBeenCalledTimes(2)
+    expect(view.findComponent(TreatmentUnloggedPrompt).exists()).toBe(true)
   })
 })

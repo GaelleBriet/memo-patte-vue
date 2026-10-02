@@ -112,6 +112,70 @@ describe('treatmentsRepository — créer et écrire un plan', () => {
       await expect(db.query('SELECT id FROM treatment_dose')).resolves.toEqual([])
     })
 
+    it('écrit les prises du plan avec le traitement et sa période, en une seule transaction', async () => {
+      const runMany = vi.spyOn(db, 'runMany')
+      const fields = { periodId: PANACUR, dueTime: '08:00' }
+
+      await repository.create({
+        ...PLAN,
+        settings: { ...REGLAGES, startsOn: '2026-09-26', firstDueOn: '2026-09-26' },
+        doses: [
+          {
+            id: REPORT,
+            dose: {
+              ...fields,
+              dueOn: '2026-09-26',
+              givenOn: '2026-09-26',
+              status: 'given',
+              nextDueDate: '2026-09-26',
+            },
+          },
+          {
+            id: SECONDE,
+            dose: {
+              ...fields,
+              dueOn: '2026-09-27',
+              givenOn: null,
+              status: 'missed',
+              nextDueDate: '2026-09-27',
+            },
+          },
+        ],
+      })
+
+      expect(runMany).toHaveBeenCalledOnce()
+      const history = await repository.getWithHistory(PANACUR)
+      expect(history?.doses.map(({ id }) => id).sort()).toEqual([SECONDE, REPORT])
+      expect(history?.doses).toMatchObject([
+        { treatmentId: PANACUR, animalId: MIETTE, periodId: PANACUR },
+        { treatmentId: PANACUR, animalId: MIETTE, periodId: PANACUR },
+      ])
+    })
+
+    it('n’écrit ni traitement ni période quand une prise du plan est refusée', async () => {
+      const dose = {
+        periodId: PANACUR,
+        dueOn: '2026-09-26',
+        dueTime: null,
+        givenOn: '2026-09-26',
+        status: 'given' as const,
+        nextDueDate: '2026-09-27',
+      }
+
+      await expect(
+        repository.create({
+          ...PLAN,
+          doses: [
+            { id: REPORT, dose },
+            { id: REPORT, dose },
+          ],
+        }),
+      ).rejects.toThrow(/UNIQUE constraint failed/)
+
+      await expect(db.query('SELECT id FROM treatment')).resolves.toEqual([])
+      await expect(db.query('SELECT id FROM treatment_period')).resolves.toEqual([])
+    })
+
     it('n’écrit rien quand la période est refusée par la base', async () => {
       await db.execute(
         `CREATE TRIGGER refuse BEFORE INSERT ON treatment_period

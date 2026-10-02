@@ -838,6 +838,296 @@ describe('TreatmentFormView — création (TR-1, TR-3)', () => {
   })
 })
 
+describe('TreatmentFormView — encart des doses passées (TR-3, planches A · V1 ter et V1 ter bis)', () => {
+  const NBSP = /\u00a0/g
+
+  async function saisirPanacur(wrapper: VueWrapper, firstDoseOn = '2026-09-03') {
+    await remplirMinimum(wrapper)
+    await champ(wrapper, 'treatment-first-dose-on').setValue(firstDoseOn)
+  }
+
+  function encart(wrapper: VueWrapper) {
+    return wrapper.find('.treatment-form__past-doses')
+  }
+
+  function texte(wrapper: VueWrapper, selecteur: string): string {
+    return wrapper.get(selecteur).text().replace(NBSP, ' ')
+  }
+
+  function gestes(wrapper: VueWrapper) {
+    return wrapper.findAll('.treatment-unlogged__action')
+  }
+
+  function dansLEcran(selecteur: string): HTMLButtonElement[] {
+    return [...document.body.querySelectorAll<HTMLButtonElement>(selecteur)]
+  }
+
+  const montes: VueWrapper[] = []
+
+  async function monterCreation() {
+    const wrapper = await monter({ animalId: MILO.id })
+    montes.push(wrapper)
+    return wrapper
+  }
+
+  beforeEach(() => {
+    vi.stubGlobal('visualViewport', {
+      addEventListener() {},
+      removeEventListener() {},
+      width: 412,
+      height: 915,
+      offsetTop: 0,
+    })
+  })
+
+  afterEach(() => {
+    for (const wrapper of montes.splice(0)) wrapper.unmount()
+    vi.unstubAllGlobals()
+  })
+
+  it('n’apparaît pas tant que la première prise n’est pas passée', async () => {
+    const wrapper = await monterCreation()
+
+    expect(encart(wrapper).exists()).toBe(false)
+
+    await remplirMinimum(wrapper)
+
+    expect(encart(wrapper).exists()).toBe(false)
+  })
+
+  it('annonce les échéances passées, juste avant « Créer », sans rien présélectionner', async () => {
+    const wrapper = await monterCreation()
+    await saisirPanacur(wrapper)
+
+    expect(texte(wrapper, '.treatment-unlogged__title')).toBe('25 doses prévues depuis le 3 sept.')
+    expect(texte(wrapper, '.treatment-unlogged__subtitle')).toBe('Ont-elles été données ?')
+    expect(texte(wrapper, '.treatment-unlogged__note')).toBe(
+      'Facultatif. Tu pourras aussi le faire depuis la fiche.',
+    )
+    expect(gestes(wrapper).map((geste) => geste.text())).toEqual([
+      'Toutes données',
+      'Choisir les jours',
+    ])
+    expect(wrapper.find('.treatment-unlogged__result').exists()).toBe(false)
+    expect(wrapper.get('.form-screen__fields').element.lastElementChild).toBe(
+      encart(wrapper).element,
+    )
+  })
+
+  it('non rempli, crée le traitement sans aucune prise', async () => {
+    const wrapper = await monterCreation()
+    await saisirPanacur(wrapper)
+
+    await soumettre(wrapper)
+
+    expect(create.mock.calls[0]?.[0]).not.toHaveProperty('pastDoses')
+  })
+
+  it('« Toutes données » résume la réponse sans rien écrire, puis « Créer » écrit tout', async () => {
+    const wrapper = await monterCreation()
+    await saisirPanacur(wrapper)
+
+    await gestes(wrapper)[0]!.trigger('click')
+
+    expect(texte(wrapper, '.treatment-unlogged__result-text')).toBe('25 données')
+    expect(texte(wrapper, '.treatment-unlogged__edit')).toBe('Modifier')
+    expect(gestes(wrapper)).toHaveLength(0)
+    expect(wrapper.find('.treatment-unlogged__note').exists()).toBe(false)
+    expect(create).not.toHaveBeenCalled()
+
+    await soumettre(wrapper)
+
+    const { pastDoses } = create.mock.calls[0]![0]
+    expect(create).toHaveBeenCalledOnce()
+    expect(pastDoses).toHaveLength(25)
+    expect(pastDoses?.[0]).toEqual({ dueOn: '2026-09-03', dueTime: null, status: 'given' })
+    expect(pastDoses?.at(-1)).toEqual({ dueOn: '2026-09-27', dueTime: null, status: 'given' })
+  })
+
+  it('« Choisir les jours » rend « 20 données, 5 oubliées », et « Modifier » le rouvre tel quel', async () => {
+    const wrapper = await monterCreation()
+    await saisirPanacur(wrapper)
+    const jours = () => dansLEcran('.choose-days-month__day[role="checkbox"]')
+    const valider = () => dansLEcran('.treatment-choose-days__submit')[0]!
+
+    await gestes(wrapper)[1]!.trigger('click')
+    await flushPromises()
+
+    expect(dansLEcran('.pushed-screen__subtitle').at(-1)?.textContent?.replace(NBSP, ' ')).toBe(
+      'Panacur · Milo · du 3 au 27 sept.',
+    )
+    expect(jours()).toHaveLength(25)
+
+    for (const jour of jours().slice(0, 5)) jour.click()
+    await flushPromises()
+    valider().click()
+    await flushPromises()
+
+    expect(texte(wrapper, '.treatment-unlogged__result-text')).toBe('20 données, 5 oubliées')
+    expect(create).not.toHaveBeenCalled()
+
+    await wrapper.get('.treatment-unlogged__edit').trigger('click')
+    await flushPromises()
+
+    expect(jours().filter((jour) => jour.getAttribute('aria-checked') === 'false')).toHaveLength(5)
+    expect(valider().textContent?.replace(NBSP, ' ').trim()).toBe(
+      'Valider : 20 données, 5 oubliées',
+    )
+
+    jours()[0]!.click()
+    await flushPromises()
+    valider().click()
+    await flushPromises()
+    await soumettre(wrapper)
+
+    const { pastDoses } = create.mock.calls[0]![0]
+    expect(
+      pastDoses?.filter(({ status }) => status === 'missed').map(({ dueOn }) => dueOn),
+    ).toEqual(['2026-09-04', '2026-09-05', '2026-09-06', '2026-09-07'])
+    expect(pastDoses?.filter(({ status }) => status === 'given')).toHaveLength(21)
+  })
+
+  it('pour une seule dose, propose « Donnée » et « Oubliée »', async () => {
+    const wrapper = await monterCreation()
+    await saisirPanacur(wrapper, '2026-09-27')
+
+    expect(texte(wrapper, '.treatment-unlogged__title')).toBe('1 dose prévue le 27 sept.')
+    expect(texte(wrapper, '.treatment-unlogged__subtitle')).toBe('A-t-elle été donnée ?')
+    expect(texte(wrapper, '.treatment-unlogged__note')).toBe(
+      'Facultatif. Tu pourras aussi le faire depuis la fiche.',
+    )
+    expect(gestes(wrapper).map((geste) => geste.text())).toEqual(['Donnée', 'Oubliée'])
+
+    await gestes(wrapper)[1]!.trigger('click')
+
+    expect(texte(wrapper, '.treatment-unlogged__result-text')).toBe('1 oubliée')
+
+    await soumettre(wrapper)
+
+    expect(create.mock.calls[0]![0].pastDoses).toEqual([
+      { dueOn: '2026-09-27', dueTime: null, status: 'missed' },
+    ])
+  })
+
+  it('compte la dose du moment déjà passée d’un mensuel : « Donnée » / « Oubliée » (Q42)', async () => {
+    const wrapper = await monterCreation()
+    await saisirPanacur(wrapper, '2026-09-07')
+    await choisirUnite(wrapper, 'month')
+    await flushPromises()
+
+    expect(texte(wrapper, '.treatment-unlogged__title')).toBe('1 dose prévue le 7 sept.')
+    expect(gestes(wrapper).map((geste) => geste.text())).toEqual(['Donnée', 'Oubliée'])
+
+    await gestes(wrapper)[0]!.trigger('click')
+
+    expect(texte(wrapper, '.treatment-unlogged__result-text')).toBe('1 donnée')
+
+    await soumettre(wrapper)
+
+    expect(create.mock.calls[0]![0].pastDoses).toEqual([
+      { dueOn: '2026-09-07', dueTime: null, status: 'given' },
+    ])
+  })
+
+  it('n’ouvre pas d’encart pour une dose du jour', async () => {
+    const wrapper = await monterCreation()
+    await saisirPanacur(wrapper, '2026-09-28')
+
+    expect(encart(wrapper).exists()).toBe(false)
+  })
+
+  it.each([
+    [
+      'la première prise',
+      (wrapper: VueWrapper) => champ(wrapper, 'treatment-first-dose-on').setValue('2026-09-10'),
+      '18 doses prévues depuis le 10 sept.',
+    ],
+    [
+      'la fréquence',
+      (wrapper: VueWrapper) => champ(wrapper, 'treatment-frequency-value').setValue('2'),
+      '13 doses prévues depuis le 3 sept.',
+    ],
+    [
+      'l’unité de la fréquence',
+      (wrapper: VueWrapper) => choisirUnite(wrapper, 'week'),
+      '4 doses prévues depuis le 3 sept.',
+    ],
+    [
+      'les heures',
+      (wrapper: VueWrapper) => ajouterHeure(wrapper, '08:00'),
+      '25 doses prévues depuis le 3 sept.',
+    ],
+    [
+      'la date de fin',
+      (wrapper: VueWrapper) => champ(wrapper, 'treatment-ends-on').setValue('2026-09-12'),
+      '10 doses prévues depuis le 3 sept.',
+    ],
+  ])('revient à son état de départ quand %s change', async (_, changer, titre) => {
+    const wrapper = await monterCreation()
+    await saisirPanacur(wrapper)
+    await gestes(wrapper)[0]!.trigger('click')
+
+    await changer(wrapper)
+    await flushPromises()
+
+    expect(wrapper.find('.treatment-unlogged__result').exists()).toBe(false)
+    expect(gestes(wrapper)).toHaveLength(2)
+    expect(texte(wrapper, '.treatment-unlogged__title')).toBe(titre)
+
+    await soumettre(wrapper)
+
+    expect(create.mock.calls[0]?.[0]).not.toHaveProperty('pastDoses')
+  })
+
+  it('garde la réponse quand seuls le nom, le type ou la posologie changent', async () => {
+    const wrapper = await monterCreation()
+    await saisirPanacur(wrapper)
+    await gestes(wrapper)[0]!.trigger('click')
+
+    await champ(wrapper, 'treatment-name').setValue('Panacur 250')
+    await types(wrapper)[2]!.trigger('click')
+    await unite(wrapper).setValue('tablet')
+    await raccourcis(wrapper)[1]!.trigger('click')
+
+    expect(texte(wrapper, '.treatment-unlogged__result-text')).toBe('25 données')
+  })
+
+  it('compte chaque heure d’un traitement à plusieurs heures', async () => {
+    const wrapper = await monterCreation()
+    await saisirPanacur(wrapper, '2026-09-26')
+    await ajouterHeure(wrapper, '08:00')
+    await ajouterHeure(wrapper, '20:00')
+    await flushPromises()
+
+    expect(texte(wrapper, '.treatment-unlogged__title')).toBe('4 doses prévues depuis le 26 sept.')
+
+    await gestes(wrapper)[0]!.trigger('click')
+    await soumettre(wrapper)
+
+    expect(create.mock.calls[0]![0].pastDoses).toEqual([
+      { dueOn: '2026-09-26', dueTime: '08:00', status: 'given' },
+      { dueOn: '2026-09-26', dueTime: '20:00', status: 'given' },
+      { dueOn: '2026-09-27', dueTime: '08:00', status: 'given' },
+      { dueOn: '2026-09-27', dueTime: '20:00', status: 'given' },
+    ])
+  })
+
+  it('n’existe ni à la modification ni à la reprise', async () => {
+    const edition = await monterEdition()
+    montes.push(edition)
+    expect(encart(edition).exists()).toBe(false)
+
+    getWithHistory.mockResolvedValue(milbemax([periode({ stoppedOn: '2026-08-01' })]))
+    const reprise = await monterReprise()
+    montes.push(reprise)
+    await champ(reprise, 'treatment-first-dose-on').setValue('2026-08-10')
+    await champ(reprise, 'treatment-frequency-value').setValue('1')
+    await choisirUnite(reprise, 'day')
+
+    expect(encart(reprise).exists()).toBe(false)
+  })
+})
+
 describe('TreatmentFormView — écran d’explication des notifications', () => {
   it('y passe après un traitement quand la permission n’a jamais été demandée', async () => {
     vi.mocked(shouldShowPriming).mockResolvedValueOnce(true)

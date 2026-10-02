@@ -2,6 +2,7 @@ import { z } from 'zod'
 
 import {
   calendarDaySchema,
+  clockTimeSchema,
   doseQuantitySchema,
   doseUnitSchema,
   hasWholeDosage,
@@ -42,9 +43,32 @@ function endsAfterFirstDose({
 /** Ce qu'un formulaire règle dans une période, hors ses dates de début et de première échéance. */
 export const treatmentRhythmSchema = z.object(rhythm).refine(hasWholeDosage, WHOLE_DOSAGE)
 
-/** Création : la première prise peut être passée, du jour ou future ; rien n'est noté comme donné. */
+/** Ce qui fait le calendrier d'un traitement en cours de saisie. */
+export const treatmentCalendarSchema = z.object({
+  firstDoseOn: calendarDaySchema,
+  frequency: treatmentFrequencySchema,
+  times: treatmentTimesSchema,
+  endsOn: calendarDaySchema.nullable(),
+})
+export type TreatmentCalendarInput = z.input<typeof treatmentCalendarSchema>
+
+/** Une échéance passée renseignée dans l'encart de création (TR-3). */
+export const pastDoseSchema = z.object({
+  dueOn: calendarDaySchema,
+  dueTime: clockTimeSchema.nullable(),
+  status: z.enum(['given', 'missed']),
+})
+export type PastDose = z.output<typeof pastDoseSchema>
+
+/** Création : la première prise peut être passée, du jour ou future ; seules les `pastDoses` sont notées. */
 export const treatmentCreationSchema = z
-  .object({ animalId: z.uuid(), ...identity, firstDoseOn: calendarDaySchema, ...rhythm })
+  .object({
+    animalId: z.uuid(),
+    ...identity,
+    firstDoseOn: calendarDaySchema,
+    ...rhythm,
+    pastDoses: z.array(pastDoseSchema).optional(),
+  })
   .refine(hasWholeDosage, WHOLE_DOSAGE)
   .refine(endsAfterFirstDose, END_AFTER_FIRST_DOSE)
 

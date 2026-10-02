@@ -322,6 +322,14 @@
         "dropHint": "L’ancien réglage était une erreur. Prochaine dose le {date}.",
         "cancel": "Annuler"
       },
+      "pastDoses": {
+        "title": "{n} dose prévue le {date} | {n} doses prévues depuis le {date}",
+        "question": "A-t-elle été donnée ? | Ont-elles été données ?",
+        "note": "Facultatif. Tu pourras aussi le faire depuis la fiche.",
+        "chooseDaysLabel": "Choisir les jours où la dose a été donnée, {when}",
+        "edit": "Modifier",
+        "editLabel": "Modifier les jours choisis"
+      },
       "submit": "Créer",
       "submitting": "Création…",
       "save": "Enregistrer",
@@ -495,6 +503,64 @@
         "postponedTo": "Dose reportée au {date}",
         "advancedTo": "Dose avancée au {date}",
         "undoMoveChange": "Annuler le changement de date du report"
+      }
+    },
+    "unlogged": {
+      "title": "{n} dose non renseignée | {n} doses non renseignées",
+      "range": "du {start} au {end}",
+      "note": "Indique si elle a été donnée. | Indique si elles ont été données.",
+      "allGiven": "Toutes données",
+      "chooseDays": "Choisir les jours",
+      "given": "Donnée",
+      "missed": "Oubliée",
+      "allGivenLabel": "Noter les {n} doses comme données, {when}",
+      "chooseDaysLabel": "Choisir les jours où {name} a été donné, {when}",
+      "givenLabel": "Noter la dose du {when} comme donnée",
+      "missedLabel": "Noter la dose du {when} comme oubliée",
+      "toast": {
+        "given": "{name} : {n} prise notée | {name} : {n} prises notées",
+        "missed": "{name} : {n} oubli noté | {name} : {n} oublis notés",
+        "both": "{name} : {given} et {missed} notés",
+        "givenCount": "{n} prise | {n} prises",
+        "missedCount": "{n} oubli | {n} oublis",
+        "undo": "Annuler les doses renseignées de {name}"
+      },
+      "days": {
+        "title": "Choisir les jours",
+        "back": "Retour sans enregistrer",
+        "help": "Coche les prises données. Les cases décochées seront notées « oubliée ».",
+        "helpByHour": "Coche les prises données, heure par heure. Les cases décochées seront notées « oubliée ».",
+        "hours": "Heures de prise",
+        "noTime": "Sans heure",
+        "tab": {
+          "allChecked": "tout coché",
+          "missed": "{n} oubliée | {n} oubliées",
+          "label": "Prises de {time}, {state}",
+          "allGiven": "toutes données",
+          "labelNoTime": "Prises sans heure, {state}"
+        },
+        "checkAll": "Tout cocher",
+        "uncheckAll": "Tout décocher",
+        "checkAllLabel": "Marquer la prise comme donnée | Marquer les {n} prises comme données",
+        "uncheckAllLabel": "Marquer la prise comme oubliée | Marquer les {n} prises comme oubliées",
+        "checkAllLabelAt": "Marquer la prise de {time} comme donnée | Marquer les {n} prises de {time} comme données",
+        "uncheckAllLabelAt": "Marquer la prise de {time} comme oubliée | Marquer les {n} prises de {time} comme oubliées",
+        "checkAllLabelNoTime": "Marquer la prise sans heure comme donnée | Marquer les {n} prises sans heure comme données",
+        "uncheckAllLabelNoTime": "Marquer la prise sans heure comme oubliée | Marquer les {n} prises sans heure comme oubliées",
+        "checkMonth": "Cocher le mois",
+        "uncheckMonth": "Décocher le mois",
+        "checkMonthLabel": "Cocher {month}",
+        "uncheckMonthLabel": "Décocher {month}",
+        "monthDays": "{n} jour | {n} jours",
+        "monthDaysAt": "{days} · {time}",
+        "dayGiven": "{date}, donnée",
+        "dayMissed": "{date}, oubliée",
+        "dayAt": "{date} à {time}",
+        "givenCount": "{n} donnée | {n} donnée | {n} données",
+        "missedCount": "{n} oubliée | {n} oubliée | {n} oubliées",
+        "counts": "{given}, {missed}",
+        "submit": "Valider : {counts}",
+        "submitLabel": "Valider : {counts}, {when}"
       }
     },
     "finished": {

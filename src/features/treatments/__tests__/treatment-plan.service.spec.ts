@@ -120,6 +120,43 @@ describe('treatmentPlanService', () => {
     })
   })
 
+  it('crée le traitement avec les doses passées renseignées dans l’encart, le reste à renseigner', async () => {
+    const created = await service.create({
+      ...MILBEMAX,
+      firstDoseOn: '2026-09-05',
+      pastDoses: [
+        { dueOn: '2026-09-05', dueTime: null, status: 'given' },
+        { dueOn: '2026-09-12', dueTime: null, status: 'missed' },
+      ],
+    })
+
+    const history = await historyOf(created.id)
+    const schedule = treatmentScheduleOf(history, today)
+    expect(
+      history.doses.map(({ dueOn, status, periodId }) => ({ dueOn, status, periodId })),
+    ).toEqual(
+      expect.arrayContaining([
+        { dueOn: '2026-09-05', status: 'given', periodId: created.id },
+        { dueOn: '2026-09-12', status: 'missed', periodId: created.id },
+      ]),
+    )
+    expect(history.doses).toHaveLength(2)
+    expect(schedule.unloggedDoses.map(({ dueOn }) => dueOn)).toEqual(['2026-09-19'])
+    expect(schedule.currentDoses.map(({ dueOn }) => dueOn)).toEqual(['2026-09-26'])
+  })
+
+  it('n’écrit rien quand une dose passée n’est pas une échéance du traitement', async () => {
+    await expect(
+      service.create({
+        ...MILBEMAX,
+        firstDoseOn: '2026-09-05',
+        pastDoses: [{ dueOn: '2026-09-06', dueTime: null, status: 'given' }],
+      }),
+    ).rejects.toThrow(RangeError)
+
+    await expect(db.query('SELECT id FROM treatment')).resolves.toEqual([])
+  })
+
   it('refuse une création que le moteur ne saurait pas relire, sans rien écrire', async () => {
     const refus = await service
       .create({

@@ -4,6 +4,7 @@ import { ZodError } from 'zod'
 
 import {
   assertReadable,
+  creationPastDues,
   creationPlan,
   editionDraft,
   editionPlan,
@@ -17,6 +18,7 @@ import { treatmentScheduleOf } from '../logic/treatment-schedule'
 import type { TreatmentWithHistory } from '../repository/treatments.repository'
 import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
 import type {
+  TreatmentCreationInput,
   TreatmentEditionInput,
   TreatmentResumptionInput,
 } from '../schema/treatment-form.schema'
@@ -148,6 +150,7 @@ describe('creationPlan', () => {
         reminderOffsetMinutes: null,
         reminderTime: null,
       },
+      doses: [],
     })
   })
 
@@ -189,6 +192,269 @@ describe('creationPlan', () => {
         '2026-09-28',
       ),
     ).toThrow(ZodError)
+  })
+})
+
+function createdSchedule(plan: ReturnType<typeof creationPlan>, today: string) {
+  const at = `${today}T12:00:00.000Z`
+  return treatmentScheduleOf(
+    {
+      periods: [period({ ...plan.settings, id: plan.id, createdAt: at, updatedAt: at })],
+      doses: (plan.doses ?? []).map(({ id, dose: fields }) => ({
+        ...dose(),
+        ...fields,
+        id,
+        createdAt: at,
+        updatedAt: at,
+      })),
+    },
+    today,
+  )
+}
+
+describe('creationPlan — doses passées renseignées dans l’encart (TR-3)', () => {
+  const PANACUR: TreatmentCreationInput = {
+    animalId: MILO,
+    name: 'Panacur',
+    type: 'deworming',
+    firstDoseOn: '2026-09-25',
+    frequency: { value: 1, unit: 'day' },
+    times: [],
+    doseQuantity: null,
+    doseUnit: null,
+    endsOn: null,
+  }
+  const ids = () => {
+    let next = 0
+    return () => `dose-${(next += 1)}`
+  }
+
+  it('annonce les échéances passées que la fiche dirait non renseignées', () => {
+    expect(creationPastDues(PANACUR, '2026-09-28')).toEqual([
+      { periodId: 'draft', dueOn: '2026-09-25', dueTime: null },
+      { periodId: 'draft', dueOn: '2026-09-26', dueTime: null },
+      { periodId: 'draft', dueOn: '2026-09-27', dueTime: null },
+    ])
+    expect(creationPastDues({ ...PANACUR, times: ['20:00', '08:00'] }, '2026-09-26')).toEqual([
+      { periodId: 'draft', dueOn: '2026-09-25', dueTime: '08:00' },
+      { periodId: 'draft', dueOn: '2026-09-25', dueTime: '20:00' },
+    ])
+    expect(creationPastDues({ ...PANACUR, endsOn: '2026-09-26' }, '2026-09-28')).toHaveLength(2)
+  })
+
+  it('n’annonce rien pour une première prise du jour ou future', () => {
+    expect(creationPastDues({ ...PANACUR, firstDoseOn: '2026-09-28' }, '2026-09-28')).toEqual([])
+    expect(creationPastDues({ ...PANACUR, firstDoseOn: '2026-09-29' }, '2026-09-28')).toEqual([])
+  })
+
+  it('annonce aussi la dose du moment déjà passée, jamais celle du jour (Q42)', () => {
+    const duesOn = (calendar: Partial<TreatmentCreationInput>, today = '2026-09-28') =>
+      creationPastDues({ ...PANACUR, ...calendar }, today).map(({ dueOn, dueTime }) =>
+        `${dueOn} ${dueTime ?? ''}`.trim(),
+      )
+
+    expect(duesOn({ firstDoseOn: '2026-09-07', frequency: { value: 1, unit: 'month' } })).toEqual([
+      '2026-09-07',
+    ])
+    expect(duesOn({ firstDoseOn: '2026-09-25', frequency: { value: 1, unit: 'week' } })).toEqual([
+      '2026-09-25',
+    ])
+    expect(duesOn({ firstDoseOn: '2026-09-14', frequency: { value: 1, unit: 'week' } })).toEqual([
+      '2026-09-14',
+      '2026-09-21',
+    ])
+    expect(
+      duesOn({
+        firstDoseOn: '2026-09-24',
+        frequency: { value: 2, unit: 'day' },
+        times: ['08:00', '20:00'],
+      }),
+    ).toEqual(['2026-09-24 08:00', '2026-09-24 20:00', '2026-09-26 08:00', '2026-09-26 20:00'])
+    expect(duesOn({ firstDoseOn: '2026-09-21', frequency: { value: 1, unit: 'week' } })).toEqual([
+      '2026-09-21',
+    ])
+    expect(duesOn({ firstDoseOn: '2026-09-28', frequency: { value: 1, unit: 'week' } })).toEqual([])
+  })
+
+  it('note la dose du moment en retard, donnée le jour prévu ou oubliée, sans décaler la suite', () => {
+    const MENSUEL: TreatmentCreationInput = {
+      ...PANACUR,
+      firstDoseOn: '2026-09-07',
+      frequency: { value: 1, unit: 'month' },
+    }
+
+    for (const status of ['given', 'missed'] as const) {
+      const plan = creationPlan(
+        { ...MENSUEL, pastDoses: [{ dueOn: '2026-09-07', dueTime: null, status }] },
+        TREATMENT,
+        '2026-09-28',
+        ids(),
+      )
+      const schedule = createdSchedule(plan, '2026-09-28')
+
+      expect(plan.doses?.[0]?.dose).toMatchObject({
+        status,
+        givenOn: status === 'given' ? '2026-09-07' : null,
+        nextDueDate: '2026-10-07',
+      })
+      expect(schedule.phase).toBe('upcoming')
+      expect(schedule.unloggedDoses).toEqual([])
+      expect(schedule.upcoming(3).map(({ dueOn }) => dueOn)).toEqual([
+        '2026-10-07',
+        '2026-11-07',
+        '2026-12-07',
+      ])
+    }
+  })
+
+  describe('le nombre annoncé est ce que la fiche aurait à noter du passé (matrice)', () => {
+    const TODAY = '2026-10-31'
+    const firsts = ['2026-10-31', '2026-10-30', '2026-10-29', '2026-10-01', '2026-08-31']
+    const frequencies = [
+      { value: 1, unit: 'day' },
+      { value: 2, unit: 'day' },
+      { value: 1, unit: 'week' },
+      { value: 1, unit: 'month' },
+    ] as const
+    const hours = [[], ['08:00'], ['08:00', '20:00'], ['08:00', '14:00', '20:00']]
+    const ends = [null, '2026-10-29', '2026-10-31', '2026-11-15']
+    const cases = firsts.flatMap((firstDoseOn) =>
+      frequencies.flatMap((frequency) =>
+        hours.flatMap((times) =>
+          ends
+            .filter((endsOn) => endsOn === null || endsOn >= firstDoseOn)
+            .map((endsOn) => ({ ...PANACUR, firstDoseOn, frequency, times, endsOn })),
+        ),
+      ),
+    )
+
+    it('couvre la matrice', () => {
+      expect(cases.length).toBeGreaterThan(280)
+    })
+
+    const slots = (dues: { dueOn: string; dueTime: string | null }[]) =>
+      dues.map(({ dueOn, dueTime }) => `${dueOn} ${dueTime ?? ''}`.trim())
+
+    it('annonce les non renseignées et les doses du moment passées du traitement créé sans réponse', () => {
+      const faulty = cases.filter((input) => {
+        const untouched = createdSchedule(creationPlan(input, TREATMENT, TODAY, ids()), TODAY)
+        const expected = [
+          ...untouched.unloggedDoses,
+          ...untouched.currentDoses.filter(({ dueOn }) => dueOn < TODAY),
+        ]
+        return slots(creationPastDues(input, TODAY)).join() !== slots(expected).join()
+      })
+
+      expect(faulty).toEqual([])
+    })
+
+    it('rempli en entier, la fiche n’a ni bandeau ni dose en retard, et la suite ne bouge pas', () => {
+      const faulty = cases.filter((input) => {
+        const untouched = createdSchedule(creationPlan(input, TREATMENT, TODAY, ids()), TODAY)
+        const pastDoses = creationPastDues(input, TODAY).map(({ dueOn, dueTime }, index) => ({
+          dueOn,
+          dueTime,
+          status: index % 3 === 1 ? ('missed' as const) : ('given' as const),
+        }))
+        const filled = createdSchedule(
+          creationPlan({ ...input, pastDoses }, TREATMENT, TODAY, ids()),
+          TODAY,
+        )
+        const sameSuite =
+          slots(filled.upcoming(6)).join() ===
+          slots(untouched.upcoming(6).filter(({ dueOn }) => dueOn >= TODAY)).join()
+        return !(
+          filled.unloggedDoses.length === 0 &&
+          filled.phase !== 'overdue' &&
+          filled.doses.length === pastDoses.length &&
+          sameSuite
+        )
+      })
+
+      expect(faulty).toEqual([])
+    })
+  })
+
+  it('n’annonce rien tant que la saisie ne fait pas un calendrier', () => {
+    expect(creationPastDues({ ...PANACUR, firstDoseOn: '' }, '2026-09-28')).toEqual([])
+    expect(
+      creationPastDues({ ...PANACUR, frequency: { value: Number.NaN, unit: 'day' } }, '2026-09-28'),
+    ).toEqual([])
+    expect(
+      creationPastDues(
+        { ...PANACUR, firstDoseOn: '1950-01-01', times: ['08:00', '20:00'] },
+        '2026-09-28',
+      ),
+    ).toEqual([])
+  })
+
+  it('écrit les prises choisies avec le traitement, sur sa période, sans déplacer la dose du jour', () => {
+    const plan = creationPlan(
+      {
+        ...PANACUR,
+        pastDoses: [
+          { dueOn: '2026-09-25', dueTime: null, status: 'given' },
+          { dueOn: '2026-09-26', dueTime: null, status: 'missed' },
+        ],
+      },
+      TREATMENT,
+      '2026-09-28',
+      ids(),
+    )
+
+    expect(plan.doses).toEqual([
+      {
+        id: 'dose-1',
+        dose: {
+          periodId: TREATMENT,
+          dueOn: '2026-09-25',
+          dueTime: null,
+          givenOn: '2026-09-25',
+          status: 'given',
+          nextDueDate: '2026-09-26',
+        },
+      },
+      {
+        id: 'dose-2',
+        dose: {
+          periodId: TREATMENT,
+          dueOn: '2026-09-26',
+          dueTime: null,
+          givenOn: null,
+          status: 'missed',
+          nextDueDate: '2026-09-27',
+        },
+      },
+    ])
+  })
+
+  it('sans réponse, ne note rien', () => {
+    expect(creationPlan(PANACUR, TREATMENT, '2026-09-28', ids()).doses).toEqual([])
+  })
+
+  it('refuse une dose qui n’est pas une échéance passée du traitement', () => {
+    expect(() =>
+      creationPlan(
+        { ...PANACUR, pastDoses: [{ dueOn: '2026-09-28', dueTime: null, status: 'given' }] },
+        TREATMENT,
+        '2026-09-28',
+        ids(),
+      ),
+    ).toThrow(RangeError)
+    expect(() =>
+      creationPlan(
+        {
+          ...PANACUR,
+          pastDoses: [
+            { dueOn: '2026-09-25', dueTime: null, status: 'given' },
+            { dueOn: '2026-09-25', dueTime: null, status: 'missed' },
+          ],
+        },
+        TREATMENT,
+        '2026-09-28',
+        ids(),
+      ),
+    ).toThrow(RangeError)
   })
 })
 

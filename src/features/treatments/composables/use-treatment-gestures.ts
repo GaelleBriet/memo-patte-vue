@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { todayIsoDate } from '@/core/app-lifecycle/today-iso-date'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import { showToast, showUndoableToast } from '@/shared/utils/toast'
-import type { DoseAction } from '../logic/treatment-dose-writes'
+import { DoseAlreadyLoggedError, type DoseAction } from '../logic/treatment-dose-writes'
 import {
   alreadyNotedText,
   doseActionTexts,
@@ -99,25 +99,50 @@ export function useTreatmentGestures(onChanged: () => void) {
     }, failed)
   }
 
+  async function applied(
+    treatment: Named,
+    action: DoseAction,
+    texts: DoseActionTexts,
+  ): Promise<void> {
+    try {
+      const change = await treatments.applyDoseAction(treatment.id, action)
+      if (change.alreadyGivenOn !== null) {
+        showToast(texts.already(change.alreadyGivenOn), { tone: 'info' })
+      } else if (change.undo.length > 0) {
+        undoable(texts.done(change), texts.undo, () =>
+          treatments.undoDoseAction(treatment.id, change.undo),
+        )
+      }
+    } finally {
+      onChanged()
+    }
+  }
+
   function applyDose(
     treatment: Named,
     action: DoseAction,
     texts: DoseActionTexts,
   ): Promise<boolean> {
-    return guarded(async () => {
+    return guarded(() => applied(treatment, action, texts), t('treatments.detail.errors.change'))
+  }
+
+  /** Lot de doses à renseigner ; `stale` : une dose était déjà notée, la liste montrée est périmée. */
+  async function logDoses(
+    treatment: Named,
+    action: DoseAction,
+    texts: DoseActionTexts,
+  ): Promise<'done' | 'stale' | 'failed'> {
+    let stale = false
+    const done = await guarded(async () => {
       try {
-        const applied = await treatments.applyDoseAction(treatment.id, action)
-        if (applied.alreadyGivenOn !== null) {
-          showToast(texts.already(applied.alreadyGivenOn), { tone: 'info' })
-        } else if (applied.undo.length > 0) {
-          undoable(texts.done(applied), texts.undo, () =>
-            treatments.undoDoseAction(treatment.id, applied.undo),
-          )
-        }
-      } finally {
-        onChanged()
+        await applied(treatment, action, texts)
+      } catch (cause) {
+        stale = cause instanceof DoseAlreadyLoggedError
+        throw cause
       }
     }, t('treatments.detail.errors.change'))
+    if (done) return 'done'
+    return stale ? 'stale' : 'failed'
   }
 
   /** Suppression définitive, confirmée par un dialogue avant d'arriver ici. */
@@ -129,5 +154,5 @@ export function useTreatmentGestures(onChanged: () => void) {
     }, texts.failed)
   }
 
-  return { isBusy, recordDose, stop, applyDose, removeTreatment }
+  return { isBusy, recordDose, stop, applyDose, logDoses, removeTreatment }
 }
