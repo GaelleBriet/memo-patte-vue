@@ -256,6 +256,19 @@ describe('treatmentDosesService', () => {
       expect(noted.due).toMatchObject({ dueOn: '2026-09-21', dueTime: '08:00' })
     })
 
+    it('deux prises notées en même temps : une seule ligne, la seconde répond « déjà notée »', async () => {
+      const hebdo = await creer('hebdo', HEBDO)
+
+      const [premiere, seconde] = await Promise.all([
+        service.noteMoment(hebdo, '2026-09-23'),
+        service.noteMoment(hebdo, '2026-09-23'),
+      ])
+
+      await expect(lignes(hebdo)).resolves.toHaveLength(1)
+      expect(premiere.undo).toHaveLength(1)
+      expect(seconde).toMatchObject({ undo: [], alreadyGivenOn: '2026-09-23', due: null })
+    })
+
     it('refuse une prise dans le futur ou un traitement fini, sans rien écrire', async () => {
       const metacam = await creer('metacam', DEUX_HEURES)
       await db.run('UPDATE treatment_period SET stopped_on = ? WHERE treatment_id = ?', [

@@ -171,6 +171,27 @@ describe('momentDue — ce que notent la feuille « À faire » et une notificat
     ).toEqual({ due: { periodId: 'p-1', dueOn: '2026-09-01', dueTime: '20:00' } })
   })
 
+  it('vise d’abord une échéance sans prise, une oubliée seulement s’il n’en reste aucune', () => {
+    const matinOublie = treatment(
+      [MATIN_ET_SOIR],
+      [missed('2026-09-01', '2026-09-01', { dueTime: '08:00' })],
+    )
+    const toutOublie = treatment(
+      [MATIN_ET_SOIR],
+      [
+        missed('2026-09-01', '2026-09-01', { dueTime: '08:00' }),
+        missed('2026-09-01', '2026-09-02', { dueTime: '20:00' }),
+      ],
+    )
+
+    expect(due(matinOublie, '2026-09-01')).toEqual({
+      due: { periodId: 'p-1', dueOn: '2026-09-01', dueTime: '20:00' },
+    })
+    expect(due(toutOublie, '2026-09-01')).toEqual({
+      due: { periodId: 'p-1', dueOn: '2026-09-01', dueTime: '08:00' },
+    })
+  })
+
   it('la dose en retard, pas le jour de la prise', () => {
     const hebdo = treatment([
       period({

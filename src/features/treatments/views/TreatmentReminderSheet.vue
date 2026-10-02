@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 
 import { useTreatmentGestures } from '../composables/use-treatment-gestures'
-import { treatmentScheduleOf } from '../logic/treatment-schedule'
+import { readableScheduleOf } from '../logic/treatment-schedule'
 import { otherDaySummary, treatmentSheetTexts } from '../logic/treatment-sheet'
 import type { TreatmentWithHistory } from '../repository/treatments.repository'
 import type { Treatment } from '../schema/treatment.schema'
@@ -66,7 +66,7 @@ const summary = computed(() =>
   treatment.value
     ? otherDaySummary(
         t,
-        history.value === null ? null : treatmentScheduleOf(history.value, today.value),
+        readableScheduleOf(history.value, today.value),
         givenOn.value ?? today.value,
         today.value,
       )

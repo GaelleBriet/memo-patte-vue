@@ -25,6 +25,8 @@ export type DoseWrite =
   | { action: 'delete'; id: string }
   | { action: 'restore'; id: string }
 
+type Step = { guard?: SqlStatement; statement: SqlStatement; inverse: DoseWrite }
+
 interface DoseRow {
   id: string
   period_id: string
@@ -138,6 +140,9 @@ function placeholders(values: readonly unknown[]): string {
   return values.map(() => '?').join(', ')
 }
 
+/** Un `create` vise une échéance qui a déjà une ligne visible de même nature : rien n'a été écrit. */
+export class DuplicateDueError extends Error {}
+
 export interface TreatmentDosesRepositoryDependencies {
   loadSupabaseClient?: () => Promise<SupabaseClient>
 }
@@ -195,6 +200,37 @@ export function createTreatmentDosesRepository(
       sql: 'UPDATE treatment_dose SET deleted_at = NULL, updated_at = ? WHERE id = ?',
       params: [updatedAt, id],
     }
+  }
+
+  function sameNature(status: DoseFields['status']): string {
+    return status === 'postponed' ? "status = 'postponed'" : "status <> 'postponed'"
+  }
+
+  function duplicateWhere(dose: DoseFields): { sql: string; params: SqlParam[] } {
+    return {
+      sql: `period_id = ? AND due_on = ? AND due_time IS ? AND ${NOT_DELETED}
+            AND ${sameNature(dose.status)}`,
+      params: [dose.periodId, dose.dueOn, dose.dueTime],
+    }
+  }
+
+  // Réinsère la ligne en double sous son propre identifiant : la clé primaire fait échouer le lot.
+  function duplicateGuardStatement(dose: DoseFields): SqlStatement {
+    const where = duplicateWhere(dose)
+    return {
+      sql: `INSERT INTO treatment_dose (${COLUMNS})
+            SELECT ${COLUMNS} FROM treatment_dose WHERE ${where.sql} LIMIT 1`,
+      params: where.params,
+    }
+  }
+
+  async function hasDuplicate(dose: DoseFields): Promise<boolean> {
+    const where = duplicateWhere(dose)
+    const rows = await db.query<{ id: string }>(
+      `SELECT id FROM treatment_dose WHERE ${where.sql} LIMIT 1`,
+      where.params,
+    )
+    return rows.length > 0
   }
 
   async function rowsById(ids: readonly string[]): Promise<Map<string, DoseRow>> {
@@ -286,7 +322,8 @@ export function createTreatmentDosesRepository(
 
     /**
      * Tout ou rien. Rend le lot inverse, à appliquer pour « Annuler » ; lève, sans rien écrire, pour
-     * une ligne à réécrire ou à supprimer qui n'est pas visible, ou à rétablir qui l'est.
+     * une ligne à réécrire ou à supprimer qui n'est pas visible, ou à rétablir qui l'est, et une
+     * `DuplicateDueError` pour une création en double.
      */
     async applyBatch(writes: readonly DoseWrite[], at: string): Promise<DoseWrite[]> {
       const existing = await rowsById(
@@ -297,10 +334,11 @@ export function createTreatmentDosesRepository(
         if (!row || row.deleted_at !== null) throw new Error(`Prise introuvable : ${id}`)
         return row
       }
-      const steps = writes.map((write): { statement: SqlStatement; inverse: DoseWrite } => {
+      const steps = writes.map((write): Step => {
         switch (write.action) {
           case 'create':
             return {
+              guard: duplicateGuardStatement(write.dose),
               statement: createStatement({ ...write, at }),
               inverse: { action: 'delete', id: write.id },
             }
@@ -325,7 +363,19 @@ export function createTreatmentDosesRepository(
             }
         }
       })
-      if (steps.length > 0) await db.runMany(steps.map(({ statement }) => statement))
+      if (steps.length === 0) return []
+      try {
+        await db.runMany(
+          steps.flatMap(({ guard, statement }) => (guard ? [guard, statement] : [statement])),
+        )
+      } catch (cause) {
+        for (const write of writes) {
+          if (write.action === 'create' && (await hasDuplicate(write.dose))) {
+            throw new DuplicateDueError(`Échéance déjà notée : ${write.id}`, { cause })
+          }
+        }
+        throw cause
+      }
       return steps.map(({ inverse }) => inverse).reverse()
     },
 

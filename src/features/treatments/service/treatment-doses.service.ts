@@ -5,6 +5,7 @@ import { hasSeveralTimes } from '../logic/treatment-gestures'
 import { momentDue } from '../logic/treatment-other-date'
 import { treatmentScheduleOf } from '../logic/treatment-schedule'
 import {
+  DuplicateDueError,
   getTreatmentDosesRepository,
   type DoseWrite,
   type TreatmentDosesRepository,
@@ -61,13 +62,35 @@ export function createTreatmentDosesService({
     return history
   }
 
+  async function alreadyNoted(action: DoseAction, treatmentId: string): Promise<string | null> {
+    if (action.kind !== 'note' || action.gesture.kind !== 'given') return null
+    const { due, givenOn } = action.gesture
+    const { doses: lines } = await historyOf(treatmentId)
+    const line = lines.find(
+      (dose) =>
+        dose.periodId === due.periodId &&
+        dose.dueOn === due.dueOn &&
+        dose.dueTime === due.dueTime &&
+        dose.status !== 'postponed',
+    )
+    return line === undefined ? null : (line.givenOn ?? givenOn)
+  }
+
   async function run(
     history: TreatmentWithHistory,
     schedule: TreatmentSchedule,
     action: DoseAction,
   ): Promise<AppliedDoseChange> {
     const { writes, ...change } = doseChange(history, schedule, action, () => crypto.randomUUID())
-    return { ...change, animalId: history.animalId, undo: await write(history.id, writes) }
+    const { animalId } = history
+    try {
+      return { ...change, animalId, undo: await write(history.id, writes) }
+    } catch (cause) {
+      const alreadyGivenOn =
+        cause instanceof DuplicateDueError ? await alreadyNoted(action, history.id) : null
+      if (alreadyGivenOn === null) throw cause
+      return { animalId, undo: [], alreadyGivenOn, postponement: null, moved: null }
+    }
   }
 
   return {
@@ -99,6 +122,7 @@ export function createTreatmentDosesService({
         kind: 'note',
         gesture: { kind: 'given', due, givenOn },
       })
+      if (applied.alreadyGivenOn !== null) return { ...applied, due: null, severalTimes: false }
       return { ...applied, due, severalTimes: hasSeveralTimes(history, due.periodId) }
     },
 

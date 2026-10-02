@@ -9,6 +9,20 @@ export function treatmentScheduleOf(treatment: History, today: string): Treatmen
   return treatmentSchedule({ periods: treatment.periods, doses: treatment.doses, today })
 }
 
+/** `null` sans traitement, ou quand le moteur d'échéances le refuse comme illisible. */
+export function readableScheduleOf(
+  treatment: History | null,
+  today: string,
+): TreatmentSchedule | null {
+  if (treatment === null) return null
+  try {
+    return treatmentScheduleOf(treatment, today)
+  } catch (cause) {
+    if (cause instanceof RangeError) return null
+    throw cause
+  }
+}
+
 export function currentPeriodOf(
   treatment: Pick<TreatmentWithHistory, 'periods'>,
   schedule: Pick<TreatmentSchedule, 'currentPeriodId'>,

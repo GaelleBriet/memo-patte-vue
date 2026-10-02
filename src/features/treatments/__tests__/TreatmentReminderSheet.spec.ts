@@ -277,6 +277,20 @@ describe('TreatmentReminderSheet — F2', () => {
     expect(toastAction.value).toBeNull()
   })
 
+  it('s’ouvre sans la ligne « Prochaine dose » quand le traitement est illisible', async () => {
+    vi.spyOn(useTreatmentsStore(), 'getWithHistory').mockResolvedValue({
+      ...HISTORY,
+      periods: [{ ...HISTORY.periods[0]!, times: ['8h'] }],
+    })
+    await monter()
+
+    bouton('.reminder-actions__row--other-date').click()
+    await flushPromises()
+
+    expect(texte('.treatment-reminder-sheet__dose-on')).toBe('Prise du mer. 23 sept. 2026')
+    expect(document.body.querySelector('.treatment-reminder-sheet__next-dose')).toBeNull()
+  })
+
   it('garde la feuille ouverte et dit l’échec quand la prise n’a pas pu être notée', async () => {
     recordDose.mockRejectedValue(new Error('base verrouillée'))
     const sheet = await monter()
