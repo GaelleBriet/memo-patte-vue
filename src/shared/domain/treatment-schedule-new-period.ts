@@ -27,10 +27,8 @@ export function newPeriod(state: State, frequency: Frequency, times: readonly st
   const periods = state.plans.map(({ period }) => period)
   const noted = notedOn(startsOn, periods, mergeDoses(state.input.doses))
   if (noted > 0 && noted < times.length) return { startsOn, firstDueOn: startsOn }
-  const current = state.open?.period.frequency
-  const sameRhythm = current?.value === frequency.value && current.unit === frequency.unit
   const dueToday = state.currentDoses.some((due) => due.dueOn === today)
-  if (noted === 0 && sameRhythm && dueToday) return { startsOn, firstDueOn: startsOn }
+  if (noted === 0 && dueToday) return { startsOn, firstDueOn: startsOn }
   const proposed = lastReference(state, frequency) ?? startsOn
   return { startsOn, firstDueOn: proposed > startsOn ? proposed : startsOn }
 }

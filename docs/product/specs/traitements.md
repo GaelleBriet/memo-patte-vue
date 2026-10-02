@@ -82,7 +82,8 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
 - **TR-7** La première échéance d'une période est sa première prise ; pour une période ouverte par
   « Modifier » (TR-28), c'est la dernière prise plus la nouvelle fréquence, jamais avant aujourd'hui
   (sinon aujourd'hui ; à plusieurs heures, aujourd'hui tant qu'il reste des heures du nouveau réglage
-  au-delà des prises déjà notées ce jour, spec Q24), proposée dans « Prochaine dose » et modifiable (spec Q7), avec l'aide « Calculée
+  au-delà des prises déjà notées ce jour, spec Q24 ; aujourd'hui aussi quand une dose est due
+  aujourd'hui et encore sans prise, spec Q36), proposée dans « Prochaine dose » et modifiable (spec Q7), avec l'aide « Calculée
   d'après la dernière prise : … Modifiable. » (lot A révisé, N3). Les suivantes se calculent depuis
   la **dernière ligne** plus la fréquence : date réelle d'une prise donnée, échéance d'une oubliée,
   nouvelle date d'un report (T1). En mois, le jour de référence est celui de la première échéance
@@ -257,14 +258,17 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
     notées depuis le dernier arrêt. (Garde technique, consignée au journal des décisions autonomes.)
   - **G4** Les heures couvertes sont les plus tôt du nouveau réglage, quel que soit l'ordre de saisie.
     (Garde technique, consignée au journal des décisions autonomes.)
-  - **G15** « Même rythme » : quand la fréquence ne change pas, que rien n'est noté pour aujourd'hui
-    et qu'une dose est due aujourd'hui, la nouvelle période commence par la dose du jour (heures
-    passées de 8 h et 20 h à 9 h et 21 h : 9 h et 21 h le jour même), même si la dose suivante avait
-    déjà été déplacée. (Validée par Gaelle, points validés en bloc du 2026-10-01.)
+  - **G15** « Dose du jour » : quand rien n'est noté pour aujourd'hui et qu'une dose est due
+    aujourd'hui, la nouvelle période commence par la dose du jour, que la fréquence change ou non
+    (heures passées de 8 h et 20 h à 9 h et 21 h : 9 h et 21 h le jour même ; quotidien passé à tous
+    les 2 jours : la dose du jour, puis le surlendemain), même si la dose suivante avait déjà été
+    déplacée. (Validée par Gaelle, points validés en bloc du 2026-10-01 ; étendue à un changement de
+    fréquence par la spec Q36.)
   - **G16** Pour « la dernière prise plus la nouvelle fréquence » (TR-7), une prise qui n'a pas fixé
-    la suite compte par son échéance, pas par sa date réelle (spec Q8) : la dose du 6 notée le 7,
-    fréquence passée à tous les 2 jours le 7, première dose le 8.
-    (Garde technique, consignée au journal des décisions autonomes.)
+    la suite compte par son échéance, pas par sa date réelle (spec Q8) : hebdomadaire, la dose du
+    8 sept. notée le 10 alors que la dose du moment est celle du 15, fréquence passée à tous les
+    10 jours le 17, première dose le 18. Quand une dose est due le jour du changement, G15 l'emporte
+    (spec Q36). (Garde technique, consignée au journal des décisions autonomes.)
   - **G5** Une période précédente ne garde aucune dose à partir du début de la suivante, même si
     celle-ci commence dans le futur (cas que l'app n'écrit pas).
     (Garde technique, consignée au journal des décisions autonomes.)
@@ -658,6 +662,12 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
   d'avant n'a plus de dose avant la date de fin, rien ne change. Raison : la seconde dose disparaissait
   sans rien dire. Écartée : TR-7 à la lettre (la suite repart du 10, le 7 nov. tombe après la fin).
   (Revue du moteur d'échéances du 2026-10-02, M11.)
+- 2026-10-02 — **Q36 : changer le rythme le jour même ne fait pas disparaître la dose du jour encore
+  sans prise** (TR-28, TR-7 ; étend G15). Quotidien, dose du 6 notée le 7 au matin, passage à « tous
+  les 2 jours » le 7 : la nouvelle période commence par la dose du 7, que la fréquence change ou non. À
+  plusieurs heures, Q24 reste la règle. Raison : la dose du 7 n'était plus ni à donner, ni à
+  renseigner, ni à venir. Écartée : la dernière prise plus la nouvelle fréquence même ce jour-là
+  (première dose le 8). (Revue du moteur d'échéances du 2026-10-02, M11.)
 
 ## 11. Questions ouvertes
 

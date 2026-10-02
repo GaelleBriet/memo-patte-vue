@@ -633,9 +633,8 @@ class Simulation {
     if (noted > 0 && noted < hours && period.firstDueOn !== today) {
       this.fail(`${gesture} : les heures restantes du jour sont perdues`)
     }
-    const sameRhythm = JSON.stringify(previous?.frequency) === JSON.stringify(period.frequency)
     const dueToday = before.currentDoses.some((due) => due.dueOn === today)
-    if (noted === 0 && sameRhythm && dueToday && left !== hours) {
+    if (noted === 0 && dueToday && left !== hours) {
       this.fail(`${gesture} : rien noté pour aujourd’hui, ${left} dose(s) sur ${hours} restent`)
     }
   }
