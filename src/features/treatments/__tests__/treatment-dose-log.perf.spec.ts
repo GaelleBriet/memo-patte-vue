@@ -51,8 +51,9 @@ function allGiven(history: ReturnType<typeof gap>) {
 
 describe('« Toutes données » entre une prise ancienne et la dose du jour', () => {
   it.each([
-    ['un an à une prise par jour', 365, [], 364, 500],
-    ['un an à deux prises par jour', 365, ['08:00', '20:00'], 729, 1500],
+    ['un an à une prise par jour', 365, [], 364, 200],
+    ['un an à deux prises par jour', 365, ['08:00', '20:00'], 729, 200],
+    ['trois ans à deux prises par jour', 1095, ['08:00', '20:00'], 2189, 600],
   ])('%s', (_, days, times, count, bound) => {
     const { result: writes, elapsed } = fastest(() => allGiven(gap(days, times)))
 
