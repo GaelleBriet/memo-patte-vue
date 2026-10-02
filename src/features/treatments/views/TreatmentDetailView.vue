@@ -141,9 +141,16 @@ async function noteOtherDate(due: Due, givenOn: string): Promise<void> {
   if (await note(due, givenOn)) isOtherDateOpen.value = false
 }
 
-function log(choice: DayChoice): Promise<boolean> {
-  const periodId = unlogged.value?.dues[0]?.periodId ?? ''
-  return apply({ kind: 'log', gestures: choiceGestures(choice) }, null, periodId)
+function log(choice: DayChoice): Promise<'done' | 'stale' | 'failed'> {
+  if (!treatment.value) return Promise.resolve('failed')
+  const action: DoseAction = { kind: 'log', gestures: choiceGestures(choice) }
+  const texts = doseActionTexts(
+    t,
+    { ...named.value, today: today.value, severalTimes: false },
+    action,
+    null,
+  )
+  return gestures.logDoses(treatment.value, action, texts)
 }
 
 function onUnloggedAction(action: PromptActionId): void {
@@ -153,8 +160,7 @@ function onUnloggedAction(action: PromptActionId): void {
 }
 
 async function logChosenDays(choice: DayChoice): Promise<void> {
-  await log(choice)
-  isChooseDaysOpen.value = false
+  if ((await log(choice)) !== 'failed') isChooseDaysOpen.value = false
 }
 
 function onLineAction(row: DoseRow, choice: DoseLineAction, bounds: MoveBounds | null): void {

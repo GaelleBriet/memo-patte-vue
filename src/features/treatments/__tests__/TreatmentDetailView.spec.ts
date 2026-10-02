@@ -13,6 +13,7 @@ import {
 
 import { fakeTreatmentsRepository } from './fake-treatments-repository'
 import { dose, missed, period, postponed, treatment } from './treatment-fixtures'
+import { DoseAlreadyLoggedError } from '../logic/treatment-dose-writes'
 import type { TreatmentWithHistory } from '../repository/treatments.repository'
 import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
 import type { TreatmentDosesService } from '../service/treatment-doses.service'
@@ -1060,7 +1061,7 @@ describe('TreatmentDetailView — doses non renseignées (TR-14 à TR-17)', () =
     await boutons(view)[1]!.trigger('click')
     await flushPromises()
     const screen = view.getComponent(TreatmentChooseDays)
-    const jours = () => dansLaFeuille('.treatment-choose-days__day[role="checkbox"]')
+    const jours = () => dansLaFeuille('.choose-days-month__day[role="checkbox"]')
     const valider = () => dansLaFeuille('.treatment-choose-days__submit')[0]!
 
     expect(screen.props()).toMatchObject({ subtitle: 'Métacam · Luna · du 3 au 27 sept.' })
@@ -1112,7 +1113,7 @@ describe('TreatmentDetailView — doses non renseignées (TR-14 à TR-17)', () =
     await boutons(view)[1]!.trigger('click')
     await flushPromises()
     const onglets = () => dansLaFeuille('.treatment-choose-days__tab')
-    const jours = () => dansLaFeuille('.treatment-choose-days__day[role="checkbox"]')
+    const jours = () => dansLaFeuille('.choose-days-month__day[role="checkbox"]')
 
     expect(onglets().map((onglet) => onglet.textContent?.replace(NBSP, ' '))).toEqual([
       '8 htout coché',
@@ -1139,6 +1140,53 @@ describe('TreatmentDetailView — doses non renseignées (TR-14 à TR-17)', () =
       { periodId: 'p-1', dueOn: '2026-09-27', dueTime: '20:00' },
     ])
     expect(gestes()).toHaveLength(6)
+  })
+
+  async function validerAvecDeuxOublis(view: VueWrapper) {
+    await boutons(view)[1]!.trigger('click')
+    await flushPromises()
+    for (const jour of dansLaFeuille('.choose-days-month__day[role="checkbox"]').slice(0, 2)) {
+      jour.click()
+    }
+    await flushPromises()
+    dansLaFeuille('.treatment-choose-days__submit')[0]!.click()
+    await flushPromises()
+  }
+
+  it('une dose déjà notée entre-temps : le calendrier, périmé, se ferme, et la fiche dit l’échec', async () => {
+    const view = await monter(PANACUR)
+    service.apply.mockRejectedValue(new DoseAlreadyLoggedError('Dose déjà notée'))
+
+    await validerAvecDeuxOublis(view)
+
+    expect(view.getComponent(TreatmentChooseDays).props('modelValue')).toBe(false)
+    expect(message()).toBe('La modification n’a pas abouti. Réessaie.')
+    expect(read).toHaveBeenCalledTimes(2)
+  })
+
+  it('tout autre échec : le calendrier reste ouvert, les cases telles que laissées', async () => {
+    const view = await monter(PANACUR)
+    service.apply.mockRejectedValue(new Error('base indisponible'))
+
+    await validerAvecDeuxOublis(view)
+
+    expect(view.getComponent(TreatmentChooseDays).props('modelValue')).toBe(true)
+    expect(message()).toBe('La modification n’a pas abouti. Réessaie.')
+    expect(
+      dansLaFeuille('.choose-days-month__day[role="checkbox"]').map((jour) =>
+        jour.getAttribute('aria-checked'),
+      ),
+    ).toEqual([...Array<string>(2).fill('false'), ...Array<string>(23).fill('true')])
+    expect(
+      dansLaFeuille('.treatment-choose-days__submit')[0]!.textContent?.replace(NBSP, ' ').trim(),
+    ).toBe('Valider : 23 données, 2 oubliées')
+
+    service.apply.mockResolvedValue(APPLIED)
+    dansLaFeuille('.treatment-choose-days__submit')[0]!.click()
+    await flushPromises()
+
+    expect(gestes().filter(({ kind }) => kind === 'missed')).toHaveLength(2)
+    expect(view.getComponent(TreatmentChooseDays).props('modelValue')).toBe(false)
   })
 
   it('un lot refusé dit l’échec, relit la fiche, et n’offre pas d’« Annuler »', async () => {

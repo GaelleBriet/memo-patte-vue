@@ -1,6 +1,11 @@
 import { todayIsoDate } from '@/core/app-lifecycle/today-iso-date'
 import type { Due, TreatmentSchedule } from '@/shared/domain/treatment-schedule'
-import { doseChange, type DoseAction, type DoseChange } from '../logic/treatment-dose-writes'
+import {
+  DoseAlreadyLoggedError,
+  doseChange,
+  type DoseAction,
+  type DoseChange,
+} from '../logic/treatment-dose-writes'
 import { hasSeveralTimes } from '../logic/treatment-gestures'
 import { momentDue, notifiedDue } from '../logic/treatment-other-date'
 import { treatmentScheduleOf } from '../logic/treatment-schedule'
@@ -93,6 +98,9 @@ export function createTreatmentDosesService({
     try {
       return { ...change, animalId, undo: await write(history.id, writes) }
     } catch (cause) {
+      if (cause instanceof DuplicateDueError && action.kind === 'log') {
+        throw new DoseAlreadyLoggedError(cause.message, { cause })
+      }
       const alreadyGivenOn =
         cause instanceof DuplicateDueError ? await alreadyNoted(action, history.id) : null
       if (alreadyGivenOn === null) throw cause
@@ -101,7 +109,10 @@ export function createTreatmentDosesService({
   }
 
   return {
-    /** Geste de la fiche, en une écriture ; lève quand le moteur d'échéances le refuse. */
+    /**
+     * Geste de la fiche, en une écriture ; lève quand le moteur d'échéances le refuse, et une
+     * `DoseAlreadyLoggedError` quand une dose d'un lot `log` est déjà notée.
+     */
     async apply(treatmentId: string, action: DoseAction): Promise<AppliedDoseChange> {
       const history = await historyOf(treatmentId)
       return run(history, treatmentScheduleOf(history, today()), action)

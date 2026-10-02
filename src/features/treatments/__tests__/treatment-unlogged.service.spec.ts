@@ -7,7 +7,6 @@ import { treatmentScheduleOf } from '../logic/treatment-schedule'
 import { choiceGestures } from '../logic/treatment-choose-days'
 import {
   createTreatmentDosesRepository,
-  DuplicateDueError,
   type TreatmentDosesRepository,
 } from '../repository/treatment-doses.repository'
 import {
@@ -142,6 +141,23 @@ describe('renseigner les doses non renseignées (TR-17)', () => {
     await expect(statuses()).resolves.toEqual({ missed: 1 })
   })
 
+  it('un autre échec d’écriture n’est pas pris pour une dose déjà notée', async () => {
+    const { unloggedDoses } = await schedule()
+    const failing = serviceWith(async () => {
+      throw new Error('base indisponible')
+    })
+
+    const refus = await failing
+      .apply(PANACUR, {
+        kind: 'log',
+        gestures: choiceGestures({ given: unloggedDoses, missed: [] }),
+      })
+      .catch((cause: unknown) => cause)
+
+    expect(refus).toBeInstanceOf(Error)
+    expect(refus).not.toBeInstanceOf(DoseAlreadyLoggedError)
+  })
+
   it('une dose notée pendant l’écriture : tout le lot échoue, rien n’est écrit à moitié', async () => {
     const { unloggedDoses } = await schedule()
     const late = serviceWith(async (writes, at) => {
@@ -157,7 +173,7 @@ describe('renseigner les doses non renseignées (TR-17)', () => {
         kind: 'log',
         gestures: choiceGestures({ given: unloggedDoses, missed: [] }),
       }),
-    ).rejects.toThrow(DuplicateDueError)
+    ).rejects.toThrow(DoseAlreadyLoggedError)
     await expect(statuses()).resolves.toEqual({ missed: 1 })
   })
 })
