@@ -606,6 +606,51 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
   (G1 à G5, G8 à G11, G16, G17) sont des conséquences techniques des règles décidées, consignées au
   journal des décisions autonomes. (Re-revues 3 et 4 du moteur d'échéances, #453.)
 
+- 2026-10-02 — **Q27 : corriger « Prochaine dose » d'un traitement sans prise l'annonce** (TR-9). Sans
+  prise dans la période, la première échéance est réécrite et les échéances passées d'avant cette date
+  ne sont plus à renseigner ; le champ le dit avant l'enregistrement : « Les 12 doses prévues avant
+  cette date ne seront plus à renseigner. » Raison : sans prise notée, c'est une erreur de saisie qu'on
+  corrige, mais rien ne doit disparaître sans être dit (principe 1). Écartée : garder ces doses à
+  renseigner (une ligne de déplacement sans prise, que le moteur ne tient pas). (Revue de #460.)
+- 2026-10-02 — **Q28 : une dose en retard garde sa date dans « Modifier »** (TR-7, TR-9). Le champ
+  « Prochaine dose » montre la date de la dose en retard, avec l'aide « Dose en retard depuis le
+  27 sept. » ; ne rien toucher n'écrit rien ; changée, la date est à partir d'aujourd'hui. Raison :
+  proposer aujourd'hui créerait un report à chaque enregistrement sans y toucher. Écartée : proposer
+  aujourd'hui et n'écrire que si le champ a été touché. (Revue de #460.)
+- 2026-10-02 — **Q29 : l'aide de « Prochaine dose » dit quand la date calculée est passée** (TR-7,
+  planche A · V1 quater) : « Calculée d'après la dernière prise : le 23 sept., déjà passé ; aujourd'hui
+  est proposé. Modifiable. » Écartée : masquer l'aide dans ce cas. (Revue de #460.)
+- 2026-10-02 — **Q30 : pas de date de fin avant l'arrivée d'un report** (TR-6, TR-9). Une date de fin
+  ramenée avant la date d'une dose reportée ou avancée est refusée : « La prochaine dose est reportée
+  au 8 oct. » Raison : sinon le traitement passe « terminé » avec une dose encore prévue. Écartée :
+  accepter et supprimer le report. (Revue de #460.)
+- 2026-10-02 — **Q31 : un traitement fini ou arrêté ne se modifie que par son nom et son type**
+  (TR-27, TR-28, TR-32) ; pour le reste, « Reprendre ». La reprise est possible dès le jour de l'arrêt.
+  Raison : corriger une période close réécrirait le passé ; une seule porte pour rouvrir un traitement.
+  Écartée : ouvrir une période depuis « Modifier » pour un traitement fini par sa date de fin. (Revue
+  de #460.)
+- 2026-10-02 — **Q32 : d'ici les rappels par heure (lot 4), « C'est fait » d'une notification ouvre la
+  feuille du soin quand une prise de la journée est déjà notée** (TR-20), au lieu de noter l'heure
+  suivante. Raison : la notification du matin, restée dans le volet après la prise de 8 h, noterait la
+  dose de 20 h pas encore donnée. Écartée : noter l'heure suivante avec un toast « Annuler ». (Re-revue
+  de #461.)
+- 2026-10-02 — **Q33 : depuis « À faire » et une notification, un second « Fait aujourd'hui » le même
+  jour répond « déjà notée aujourd'hui »** (TR-13, TR-21) quand il ne reste aucune dose du jour ni en
+  retard ; noter une dose en avance reste possible depuis la fiche. Raison : un second tap y est presque
+  toujours une erreur. Écartée : la prise en avance partout. (Re-revue de #461.)
+- 2026-10-02 — **Lot 3, points validés en bloc** : menu ⋮ déroulant d'une prise et calendrier dans la
+  feuille de « Fait à une autre date », comme le reste de l'app, à la place des feuilles des planches
+  A · V3 bis et V3 ter bis ; 3 lignes d'historique par période avant « Voir… » ; un groupe d'oubliées
+  qui se déplie ; formulaire aux patrons des formulaires existants (dates natives, « Optionnel ») ;
+  sélecteur de type compact à trois options ; carte d'une dose en retard sans titre ; « Fin du
+  traitement · Terminé le 10 oct. » quand la date de fin est atteinte ; « Ce traitement n'a plus de
+  dose à noter. » ; textes du champ « Prochaine dose » grisé (« Une dose plus lointaine est déjà
+  notée. », « Plus aucune date possible avant la date de fin. Change la date de fin pour déplacer
+  cette dose. », « Cette dose a déjà été déplacée, et sa nouvelle date est notée. ») ; « Cette heure
+  est déjà dans la liste. » ; anglais « until Oct 10 », à relire avec #353. Reportés : « 1er » pour le
+  premier du mois (#481), un report resté sans effet dans une période fermée (#482), un traitement
+  sans prise donnée dans le PDF (#483).
+
 ## 11. Questions ouvertes
 
 Posées par la relecture de cohérence du 2026-09-30 (`technical/relecture-coherence-2026-09-30-1.md`),

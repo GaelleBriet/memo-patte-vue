@@ -2022,3 +2022,26 @@ Données, DO-6). — Raison : testé sur le téléphone de Gaelle, aucune app n'
 échouait toujours ; un export JSON est une copie de secours à réimporter, pas un document à lire
 (principe 6, pas de bruit). — Alternatives écartées : ouvrir le JSON comme du texte brut (des lignes de
 code illisibles) ; garder le bouton et son message d'échec.
+
+2026-10-02 — **Lot 3 des traitements, décisions de Gaelle sur le formulaire et la fiche** (#460, #461),
+détaillées dans la spec Traitements §10 (Q27 à Q33 et points validés en bloc). Ce qui change
+l'existant : 1) corriger « Prochaine dose » d'un traitement sans prise annonce les doses qui ne seront
+plus à renseigner (Q27) ; 2) une dose en retard garde sa date dans « Modifier » (Q28) ; 3) pas de date
+de fin avant l'arrivée d'un report (Q30) ; 4) un traitement fini ou arrêté ne se modifie que par son
+nom et son type, le reste passe par « Reprendre », possible dès le jour de l'arrêt (Q31) ; 5) d'ici le
+lot 4, « C'est fait » d'une notification ouvre la feuille quand une prise du jour est déjà notée (Q32),
+et un second « Fait aujourd'hui » depuis « À faire » ou une notification répond « déjà notée
+aujourd'hui » (Q33). — Raison commune : rien ne s'écrit ni ne disparaît sans que la personne l'ait
+voulu et vu (principe 1). — Alternatives écartées : dans la spec, décision par décision.
+
+2026-10-02 — **Un seul chemin d'écriture des prises** (#461) : la fiche, la feuille « À faire » et le
+« C'est fait » d'une notification écrivent par le moteur d'échéances, en un lot et une transaction,
+avec son lot inverse pour « Annuler ». — Raison : deux chemins donnaient deux carnets (une prise sans
+heure faisait disparaître les doses du jour d'un traitement à plusieurs heures ; une dose en retard
+notée depuis la feuille laissait une dose non renseignée fantôme). — Alternative écartée : garder
+l'ancien chemin pour la feuille et la notification jusqu'aux lots 4 et 7.
+
+2026-10-02 — **`MainActivity` en `singleTop`** (#418) : avec un lecteur ouvert par « Ouvrir », l'icône
+de l'app ramène sur le lecteur, pas sur MémoPatte (testé par Gaelle sur son téléphone, accepté). —
+Raison : en `singleTask`, un achat est annulé quand l'app passe en arrière-plan pendant le paiement. —
+Alternative écartée : ouvrir le lecteur dans sa propre tâche (changerait le retour de #349).
