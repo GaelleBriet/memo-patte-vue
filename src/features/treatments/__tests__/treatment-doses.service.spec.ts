@@ -323,7 +323,7 @@ describe('treatmentDosesService', () => {
         outcome: 'noted',
         due: { dueOn: '2026-09-23', dueTime: '08:00' },
       })
-      expect(seconde).toMatchObject({ outcome: 'day-noted', undo: [], due: null })
+      expect(seconde).toMatchObject({ outcome: 'ask', undo: [], due: null })
       await expect(lignes(metacam)).resolves.toHaveLength(1)
     })
 
@@ -372,6 +372,73 @@ describe('treatmentDosesService', () => {
         alreadyGivenOn: '2026-09-23',
       })
       await expect(lignes(metacam)).resolves.toMatchObject([{ given_on: null }, { given_on: null }])
+    })
+
+    it('notification d’un jour passé non renseigné : rien n’est écrit, la feuille décidera', async () => {
+      const quotidien = await creer('quotidien', {
+        firstDueOn: '2026-09-18',
+        frequency: { value: 1, unit: 'day' },
+      })
+
+      const noted = await service.noteMoment(quotidien, '2026-09-23', {
+        notifiedDueOn: '2026-09-20',
+      })
+
+      expect(noted).toMatchObject({ outcome: 'ask', undo: [], due: null })
+      await expect(lignes(quotidien)).resolves.toEqual([])
+    })
+
+    it('notification de la veille touchée après minuit, à plusieurs heures : rien n’est écrit', async () => {
+      const metacam = await creer('metacam', { ...DEUX_HEURES, firstDueOn: '2026-09-22' })
+
+      const noted = await service.noteMoment(metacam, '2026-09-23', {
+        notifiedDueOn: '2026-09-22',
+      })
+
+      expect(noted).toMatchObject({ outcome: 'ask', undo: [] })
+      await expect(lignes(metacam)).resolves.toEqual([])
+    })
+
+    it('notification dont l’échéance est la dose du moment, du jour ou en retard : notée', async () => {
+      const metacam = await creer('metacam', DEUX_HEURES)
+      const hebdo = await creer('hebdo', HEBDO)
+
+      const duJour = await service.noteMoment(metacam, '2026-09-23', {
+        notifiedDueOn: '2026-09-23',
+      })
+      const enRetard = await service.noteMoment(hebdo, '2026-09-23', {
+        notifiedDueOn: '2026-09-18',
+      })
+
+      expect(duJour).toMatchObject({ outcome: 'noted', due: { dueOn: '2026-09-23' } })
+      expect(enRetard).toMatchObject({ outcome: 'noted', due: { dueOn: '2026-09-18' } })
+    })
+
+    it('lit le jour une seule fois : minuit pendant le geste ne repasse pas un oubli en donnée', async () => {
+      const metacam = await creer('metacam', { ...DEUX_HEURES, times: [] })
+      await service.apply(metacam, {
+        kind: 'note',
+        gesture: {
+          kind: 'missed',
+          due: { periodId: metacam, dueOn: '2026-09-23', dueTime: null },
+        },
+      })
+      const days = ['2026-09-23', '2026-09-24']
+      const aMinuit = createTreatmentDosesService({
+        treatments: () => treatments,
+        doses: () => createTreatmentDosesRepository(db),
+        reminders: { reschedule: async () => {} },
+        now: () => new Date(),
+        today: () => days.shift() ?? '2026-09-24',
+      })
+
+      const noted = await aMinuit.noteMoment(metacam, '2026-09-23')
+
+      expect(noted).toMatchObject({ outcome: 'already', undo: [] })
+      expect(days).toEqual(['2026-09-24'])
+      await expect(lignes(metacam)).resolves.toEqual([
+        { due_on: '2026-09-23', due_time: null, given_on: null },
+      ])
     })
 
     it('lève pour un traitement introuvable', async () => {

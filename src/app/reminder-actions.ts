@@ -104,7 +104,12 @@ export function createReminderActions({
 
   async function treatmentDone(id: string, dueDate: string): Promise<void> {
     const treatment = await (await treatments()).getById(id)
-    if (treatment === null || !isOngoing(treatment)) return openHome()
+    if (treatment === null) return openHome()
+    if (!isOngoing(treatment)) {
+      await openHome()
+      showToast(t('treatments.sheet.errors.noDoseLeft'), { tone: 'info' })
+      return
+    }
     const sheet: ReminderRequest = { kind: 'treatment', id, step: 'actions' }
     const { lastDoseDate } = treatment
     if (lastDoseDate !== null && isDoseNoted(treatment, dueDate)) {
@@ -123,7 +128,7 @@ export function createReminderActions({
       showToast(t('treatments.sheet.errors.dose'), { tone: 'error' })
       return openHome(sheet)
     }
-    if (noted.outcome === 'day-noted') return openHome(sheet)
+    if (noted.outcome === 'ask') return openHome(sheet)
     if (noted.outcome === 'none') {
       showToast(t('treatments.sheet.errors.noDoseLeft'), { tone: 'info' })
       return

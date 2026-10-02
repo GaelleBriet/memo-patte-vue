@@ -179,6 +179,24 @@ describe('doseChange — changer la date d’une prise', () => {
     })
   })
 
+  it('n’écrit rien quand la date choisie est celle de la prise, même avec un report derrière', () => {
+    const history = treatment(
+      [MENSUEL],
+      [
+        dose('2026-08-05', '2026-09-05'),
+        postponed('2026-09-05', '2026-09-20', { createdAt: '2026-09-02T08:00:00.000Z' }),
+      ],
+    )
+
+    expect(
+      change(history, '2026-08-20', {
+        kind: 'redate',
+        doseId: '2026-08-05',
+        givenOn: '2026-08-05',
+      }),
+    ).toEqual({ writes: [], alreadyGivenOn: null, postponement: null, moved: null })
+  })
+
   it('garde un report placé après la prise, réécrit pour viser la dose qu’elle fixe', () => {
     const history = treatment(
       [MENSUEL],

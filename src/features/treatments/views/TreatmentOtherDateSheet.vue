@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
+import TreatmentHourChoices from './TreatmentHourChoices.vue'
 import { givenDays, otherDatePlan, otherDateTexts } from '../logic/treatment-other-date'
 import BottomSheet from '@/shared/components/BottomSheet.vue'
 import DateCalendar from '@/shared/components/DateCalendar.vue'
@@ -57,8 +58,8 @@ function submitDay(): void {
   else if (plan.value.due) emit('note', plan.value.due, givenOn.value)
 }
 
-function pick(due: Due | null): void {
-  if (due !== null && givenOn.value !== null) emit('note', due, givenOn.value)
+function pick(due: Due): void {
+  if (givenOn.value !== null) emit('note', due, givenOn.value)
 }
 </script>
 
@@ -93,22 +94,7 @@ function pick(due: Due | null): void {
       </v-btn>
     </template>
 
-    <div v-else class="treatment-other-date__hours">
-      <button
-        v-for="choice in plan?.hours ?? []"
-        :key="choice.time"
-        type="button"
-        class="treatment-other-date__hour"
-        :disabled="busy || choice.due === null"
-        @click="pick(choice.due)"
-      >
-        <v-icon icon="ms:schedule" size="22" />
-        <span class="treatment-other-date__hour-text">
-          <span class="treatment-other-date__hour-label">{{ choice.label }}</span>
-          <span class="treatment-other-date__hour-detail">{{ choice.detail }}</span>
-        </span>
-      </button>
-    </div>
+    <TreatmentHourChoices v-else :hours="plan?.hours ?? []" :busy="busy" @pick="pick" />
   </BottomSheet>
 </template>
 
@@ -129,64 +115,5 @@ function pick(due: Due | null): void {
   font-weight: 700;
   letter-spacing: normal;
   text-transform: none;
-}
-
-.treatment-other-date__hours {
-  margin-top: 18px;
-  overflow: hidden;
-  border: 1px solid tokens.$color-card-border;
-  border-radius: tokens.$radius-tile;
-  background: rgb(var(--v-theme-surface));
-}
-
-.treatment-other-date__hour {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  width: 100%;
-  min-height: 64px;
-  padding: 10px 18px;
-  border: 0;
-  background: transparent;
-  color: inherit;
-  font-family: inherit;
-  text-align: start;
-  cursor: pointer;
-
-  .v-icon {
-    flex: 0 0 auto;
-    color: rgb(var(--v-theme-primary));
-  }
-
-  &:disabled {
-    cursor: default;
-    opacity: 0.6;
-  }
-
-  &:focus-visible {
-    outline: none;
-    background: rgba(var(--v-theme-primary), 0.06);
-  }
-}
-
-.treatment-other-date__hour + .treatment-other-date__hour {
-  border-top: 1px solid tokens.$color-divider;
-}
-
-.treatment-other-date__hour-text {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.treatment-other-date__hour-label {
-  font-size: 15.5px;
-  font-weight: 600;
-}
-
-.treatment-other-date__hour-detail {
-  margin-top: 2px;
-  color: tokens.$color-text-secondary;
-  font-size: 13px;
 }
 </style>

@@ -460,7 +460,8 @@
       },
       "errors": {
         "change": "Couldn’t save the change. Try again.",
-        "delete": "Couldn’t delete {name}. Try again."
+        "delete": "Couldn’t delete {name}. Try again.",
+        "unreadable": "This treatment contains unreadable data. You can delete it, or import an earlier export."
       }
     },
     "history": {

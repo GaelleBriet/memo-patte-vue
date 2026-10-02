@@ -118,10 +118,21 @@ export function stateWithoutDues(state: State, dues: Due[]): State {
   return build({ ...state.input, doses })
 }
 
-export function stateWithout(state: State, due: Due, today = state.input.today): State {
-  if (!state.noted.has(dueId(due)) && today === state.input.today) return state
+export function stateWithout(state: State, due: Due): State {
+  if (!state.noted.has(dueId(due))) return state
   const doses = state.input.doses.filter((dose) => !sameDue(dose, due))
-  return build({ ...state.input, doses, today })
+  return build({ ...state.input, doses })
+}
+
+// Le carnet sans cette prise, tel qu'il était ce jour-là : ni période ouverte depuis, ni arrêt décidé depuis.
+export function stateOn(state: State, due: Due, day: string): State {
+  const periods = state.input.periods
+    .filter((period) => period.startsOn <= day || period.id === due.periodId)
+    .map((period) =>
+      period.stoppedOn !== null && period.stoppedOn > day ? { ...period, stoppedOn: null } : period,
+    )
+  const doses = state.input.doses.filter((dose) => !sameDue(dose, due))
+  return build({ periods, doses, today: day })
 }
 
 // Une prise en avance vise le prochain jour d'échéance : deux jours couvrent chaque heure.

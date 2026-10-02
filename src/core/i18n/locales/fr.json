@@ -460,7 +460,8 @@
       },
       "errors": {
         "change": "La modification n’a pas abouti. Réessaie.",
-        "delete": "{name} n’a pas pu être supprimé. Réessaie."
+        "delete": "{name} n’a pas pu être supprimé. Réessaie.",
+        "unreadable": "Ce traitement contient une donnée illisible. Tu peux le supprimer, ou importer un export antérieur."
       }
     },
     "history": {

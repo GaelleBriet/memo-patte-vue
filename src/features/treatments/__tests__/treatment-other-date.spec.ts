@@ -7,6 +7,7 @@ import {
   momentDue,
   otherDatePlan,
   otherDateTexts,
+  sheetHours,
 } from '../logic/treatment-other-date'
 import { treatmentScheduleOf } from '../logic/treatment-schedule'
 import type { TreatmentWithHistory } from '../repository/treatments.repository'
@@ -277,6 +278,67 @@ describe('momentDue — ce que notent la feuille « À faire » et une notificat
     const fini = treatment([period({ stoppedOn: '2026-09-01' })])
 
     expect(due(fini, '2026-09-05')).toBeNull()
+  })
+})
+
+describe('sheetHours — heures que la feuille « À faire » demande avant d’écrire', () => {
+  const hours = (book: TreatmentWithHistory, today: string, givenOn = today) =>
+    plain(sheetHours(t, treatmentScheduleOf(book, today), givenOn, today)).map(({ time, due }) => [
+      time,
+      due?.dueOn ?? null,
+    ])
+
+  it('propose les heures du jour, même quand une seule reste sans prise', () => {
+    const book = treatment(
+      [MATIN_ET_SOIR],
+      [dose('2026-09-01', '2026-09-01', { dueTime: '08:00' })],
+    )
+
+    expect(hours(book, '2026-09-01')).toEqual([
+      ['08:00', null],
+      ['20:00', '2026-09-01'],
+    ])
+  })
+
+  it('aujourd’hui, ne laisse pas corriger une heure notée oubliée ; un autre jour, si', () => {
+    const book = treatment(
+      [MATIN_ET_SOIR],
+      [missed('2026-09-01', '2026-09-01', { dueTime: '08:00' })],
+    )
+
+    expect(hours(book, '2026-09-01')).toEqual([
+      ['08:00', null],
+      ['20:00', '2026-09-01'],
+    ])
+    expect(hours(book, '2026-09-02', '2026-09-01')).toEqual([
+      ['08:00', '2026-09-01'],
+      ['20:00', '2026-09-01'],
+    ])
+  })
+
+  it('propose les heures de la journée en retard quand aucune dose ne tombe aujourd’hui', () => {
+    const unJourSurDeux = treatment([
+      period({ frequency: { value: 2, unit: 'day' }, times: ['08:00', '20:00'] }),
+    ])
+
+    expect(hours(unJourSurDeux, '2026-09-02')).toEqual([
+      ['08:00', '2026-09-01'],
+      ['20:00', '2026-09-01'],
+    ])
+  })
+
+  it('ne demande rien sans heures multiples, ni quand il n’y a rien à noter', () => {
+    const toutNote = treatment(
+      [MATIN_ET_SOIR],
+      [
+        dose('2026-09-01', '2026-09-01', { dueTime: '08:00' }),
+        dose('2026-09-01', '2026-09-02', { dueTime: '20:00' }),
+      ],
+    )
+
+    expect(hours(treatment([period()]), '2026-09-01')).toEqual([])
+    expect(hours(treatment([period({ times: ['20:00'] })]), '2026-09-01')).toEqual([])
+    expect(hours(toutNote, '2026-09-01')).toEqual([])
   })
 })
 

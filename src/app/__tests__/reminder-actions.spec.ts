@@ -216,7 +216,7 @@ describe('« C’est fait » d’un vermifuge ou d’un antiparasitaire', () => 
   })
 
   it('ouvre la feuille du soin, sans rien noter ni dire, quand une prise de la journée est déjà notée', async () => {
-    record.mockResolvedValue({ ...NOTED, outcome: 'day-noted', undo: [], due: null })
+    record.mockResolvedValue({ ...NOTED, outcome: 'ask', undo: [], due: null })
 
     await handler()(done(`treatment:${BRAVECTO.id}:${TODAY}:due`))
 
@@ -226,6 +226,26 @@ describe('« C’est fait » d’un vermifuge ou d’un antiparasitaire', () => 
       name: 'home',
       query: { reminder: `treatment:${BRAVECTO.id}`, step: 'actions' },
     })
+  })
+
+  it('dit qu’un traitement arrêté n’a plus de dose à noter, sans rien écrire', async () => {
+    treatment = { ...BRAVECTO, stoppedOn: '2026-09-20' }
+
+    await handler()(done(`treatment:${BRAVECTO.id}:${TODAY}:due`))
+
+    expect(record).not.toHaveBeenCalled()
+    expect(toastMessage.value).toBe('Ce traitement n’a plus de dose à noter.')
+    expect(toastTone.value).toBe('info')
+    expect(currentPlace()).toEqual({ name: 'home', query: {} })
+  })
+
+  it('reste muet pour un traitement supprimé', async () => {
+    treatment = null
+
+    await handler()(done(`treatment:${BRAVECTO.id}:${TODAY}:due`))
+
+    expect(toastMessage.value).toBeNull()
+    expect(currentPlace()).toEqual({ name: 'home', query: {} })
   })
 
   it('dit qu’il n’y a plus de dose à noter, sans parler d’échec', async () => {

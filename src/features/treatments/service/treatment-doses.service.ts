@@ -38,10 +38,11 @@ export type AppliedDoseChange = Omit<DoseChange, 'writes'> & {
 
 export type NotedMoment = AppliedDoseChange & {
   /**
-   * `already` : l'échéance était déjà notée ; `none` : plus aucune dose à noter ; `day-noted` : une
-   * prise du jour de la notification est déjà notée. Rien n'est écrit hors de `noted`.
+   * `already` : l'échéance était déjà notée ; `none` : plus aucune dose à noter ; `ask` : la dose à
+   * noter n'est pas celle de la notification, à la personne de choisir. Rien n'est écrit hors de
+   * `noted`.
    */
-  outcome: 'noted' | 'already' | 'none' | 'day-noted'
+  outcome: 'noted' | 'already' | 'none' | 'ask'
   /** Échéance notée ; `null` hors de `noted`. */
   due: Due | null
   severalTimes: boolean
@@ -114,8 +115,9 @@ export function createTreatmentDosesService({
       givenOn: string,
       { notifiedDueOn = null }: { notifiedDueOn?: string | null } = {},
     ): Promise<NotedMoment> {
+      const day = today()
       const history = await historyOf(treatmentId)
-      const schedule = treatmentScheduleOf(history, today())
+      const schedule = treatmentScheduleOf(history, day)
       const nothing = {
         animalId: history.animalId,
         undo: [],
@@ -126,14 +128,17 @@ export function createTreatmentDosesService({
         severalTimes: false,
       }
       if (notifiedDueOn !== null && isDayNoted(schedule, notifiedDueOn)) {
-        return { ...nothing, outcome: 'day-noted' }
+        return { ...nothing, outcome: 'ask' }
       }
-      const target = momentDue(schedule, givenOn, today())
+      const target = momentDue(schedule, givenOn, day)
       if (target === null) return { ...nothing, outcome: 'none' }
       if ('alreadyGivenOn' in target) {
         return { ...nothing, outcome: 'already', alreadyGivenOn: target.alreadyGivenOn }
       }
       const { due } = target
+      if (notifiedDueOn !== null && due.dueOn !== notifiedDueOn) {
+        return { ...nothing, outcome: 'ask' }
+      }
       const applied = await run(history, schedule, {
         kind: 'note',
         gesture: { kind: 'given', due, givenOn },

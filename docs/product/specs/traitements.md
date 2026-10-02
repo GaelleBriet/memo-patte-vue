@@ -82,8 +82,10 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
 - **TR-7** La première échéance d'une période est sa première prise ; pour une période ouverte par
   « Modifier » (TR-28), c'est la dernière prise plus la nouvelle fréquence, jamais avant aujourd'hui
   (sinon aujourd'hui ; à plusieurs heures, aujourd'hui tant qu'il reste des heures du nouveau réglage
-  au-delà des prises déjà notées ce jour, spec Q24), proposée dans « Prochaine dose » et modifiable (spec Q7), avec l'aide « Calculée
-  d'après la dernière prise : … Modifiable. » (lot A révisé, N3). Les suivantes se calculent depuis
+  au-delà des prises déjà notées ce jour, spec Q24 ; aujourd'hui aussi quand une dose est due
+  aujourd'hui et encore sans prise, spec Q36), proposée dans « Prochaine dose » et modifiable (spec Q7), avec l'aide « Calculée
+  d'après la dernière prise : … Modifiable. » (lot A révisé, N3). Quand ni la fréquence ni les heures
+  ne changent, c'est la prochaine échéance du calendrier en cours, report compris (spec Q37). Les suivantes se calculent depuis
   la **dernière ligne** plus la fréquence : date réelle d'une prise donnée, échéance d'une oubliée,
   nouvelle date d'un report (T1). En mois, le jour de référence est celui de la première échéance
   (31 janv. → 28 févr. → 31 mars), ou le dernier jour du mois quand il n'existe pas, sans dériver ; une
@@ -96,7 +98,7 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
   - **G10** À plusieurs heures, une prise donnée un autre jour que son échéance ne refixe la suite que
     si elle est la dernière heure du jour et que les autres heures de ce jour sont déjà notées.
     (Garde technique, consignée au journal des décisions autonomes.)
-  - **G11** Une prise datée plus d'un intervalle avant son échéance ne refixe pas la suite.
+  - **G11** Une prise datée un intervalle ou plus avant son échéance ne refixe pas la suite.
     (Garde technique, consignée au journal des décisions autonomes.)
 - **TR-8** Aucune échéance après la date de fin.
 - **TR-9** « Prochaine dose » (« Modifier ») déplace la prochaine dose, plus tôt ou plus tard que
@@ -255,14 +257,17 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
     notées depuis le dernier arrêt. (Garde technique, consignée au journal des décisions autonomes.)
   - **G4** Les heures couvertes sont les plus tôt du nouveau réglage, quel que soit l'ordre de saisie.
     (Garde technique, consignée au journal des décisions autonomes.)
-  - **G15** « Même rythme » : quand la fréquence ne change pas, que rien n'est noté pour aujourd'hui
-    et qu'une dose est due aujourd'hui, la nouvelle période commence par la dose du jour (heures
-    passées de 8 h et 20 h à 9 h et 21 h : 9 h et 21 h le jour même), même si la dose suivante avait
-    déjà été déplacée. (Validée par Gaelle, points validés en bloc du 2026-10-01.)
+  - **G15** « Dose du jour » : quand rien n'est noté pour aujourd'hui et qu'une dose est due
+    aujourd'hui, la nouvelle période commence par la dose du jour, que la fréquence change ou non
+    (heures passées de 8 h et 20 h à 9 h et 21 h : 9 h et 21 h le jour même ; quotidien passé à tous
+    les 2 jours : la dose du jour, puis le surlendemain), même si la dose suivante avait déjà été
+    déplacée. (Validée par Gaelle, points validés en bloc du 2026-10-01 ; étendue à un changement de
+    fréquence par la spec Q36.)
   - **G16** Pour « la dernière prise plus la nouvelle fréquence » (TR-7), une prise qui n'a pas fixé
-    la suite compte par son échéance, pas par sa date réelle (spec Q8) : la dose du 6 notée le 7,
-    fréquence passée à tous les 2 jours le 7, première dose le 8.
-    (Garde technique, consignée au journal des décisions autonomes.)
+    la suite compte par son échéance, pas par sa date réelle (spec Q8) : hebdomadaire, la dose du
+    8 sept. notée le 10 alors que la dose du moment est celle du 15, fréquence passée à tous les
+    10 jours le 17, première dose le 18. Quand une dose est due le jour du changement, G15 l'emporte
+    (spec Q36). (Garde technique, consignée au journal des décisions autonomes.)
   - **G5** Une période précédente ne garde aucune dose à partir du début de la suivante, même si
     celle-ci commence dans le futur (cas que l'app n'écrit pas).
     (Garde technique, consignée au journal des décisions autonomes.)
@@ -650,9 +655,45 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
   est déjà dans la liste. » ; anglais « until Oct 10 », à relire avec #353. Reportés : « 1er » pour le
   premier du mois (#481), un report resté sans effet dans une période fermée (#482), un traitement
   sans prise donnée dans le PDF (#483).
+- 2026-10-02 — **Q36 : changer le rythme le jour même ne fait pas disparaître la dose du jour encore
+  sans prise** (TR-28, TR-7 ; étend G15). Quotidien, dose du 6 notée le 7 au matin, passage à « tous
+  les 2 jours » le 7 : la nouvelle période commence par la dose du 7, que la fréquence change ou non. À
+  plusieurs heures, Q24 reste la règle. Raison : la dose du 7 n'était plus ni à donner, ni à
+  renseigner, ni à venir. Écartée : la dernière prise plus la nouvelle fréquence même ce jour-là
+  (première dose le 8). (Revue du moteur d'échéances du 2026-10-02, M11.)
+- 2026-10-02 — **Q37 : sans changement de fréquence ni d'heures, la prochaine dose reste celle qui
+  était prévue** (TR-7, TR-28). Mensuel démarré le 31 janv., doses du 31 janv. et du 28 févr. données ;
+  posologie changée le 1er mars : la première dose de la nouvelle période est le 31 mars, pas le
+  28 mars. C'est la dose du moment si elle est due ou en retard (jamais avant aujourd'hui), sinon la
+  prochaine dose, report en vigueur compris. Raison : changer la posologie ne doit pas avancer la dose
+  de trois jours sans le dire. Écartée : la dernière prise plus la fréquence (28 févr. + 1 mois). À
+  plusieurs heures, la règle ne vaut que si aucune heure de la journée de la dose du moment n'est
+  notée ; sinon, la dernière prise plus la fréquence. Limite : quand la dose reprise est un jour borné
+  (28 févr. d'une suite du 31), la nouvelle période repart de ce jour (28 mars, 28 avr.…) ; la lever
+  demande un jour de référence porté par la période (#488).
+  (Revue du moteur d'échéances du 2026-10-02, M3.)
 
 ## 11. Questions ouvertes
 
 Posées par la relecture de cohérence du 2026-09-30 (`technical/relecture-coherence-2026-09-30-1.md`),
 toutes tranchées le 2026-09-30 : C1 (Q15), C2 (Q16), C5 (TR-30), C6 (TR-24), C7 (TR-13, RA-18), les
 trois dernières validées en bloc.
+
+Limites connues du moteur d'échéances, renvoyées à #488 (la ligne d'une prise ne dit pas si elle a
+fixé la suite ; revue du 2026-10-02) :
+
+- Une dose non renseignée notée à la date de son échéance, puis redatée, déplace encore la suite
+  (hebdomadaire, dose du 8 notée le 8 alors qu'on est le 20, redatée au 9 : dose du moment au 16 au
+  lieu du 15) (TR-24 bis).
+- Une dose du moment notée par erreur plus d'un intervalle avant son échéance, puis corrigée, ne
+  refixe pas la suite (notée le 1er, corrigée au 10 : 15 au lieu de 17) (TR-24 bis, G11).
+- En mois, départs les 29, 30 et 31 : une dose non renseignée notée le lendemain de son échéance, ou
+  redatée à ce lendemain, fait passer la suite au jour suivant (30 août notée le 31 : 31 oct.)
+  (TR-7, TR-18).
+- Une date de fin fait sauter la dose suivante d'une prise en retard (5 oct. et 2 nov., fin le 2 nov.,
+  première dose donnée le 10 : terminé) (TR-7, TR-8).
+- Une prise donnée un intervalle ou plus en avance garde l'ancienne suite (G11).
+- À plusieurs heures, quand une heure de la prochaine journée a été donnée en avance et qu'un réglage
+  change sans toucher la fréquence ni les heures, les heures restantes de cette journée ne sont plus
+  demandées (tous les 2 jours à 8 h et 20 h, 8 h du 3 donnée le 2, posologie changée le 2 : première
+  dose le 5) (TR-28, Q37).

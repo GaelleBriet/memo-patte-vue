@@ -49,8 +49,19 @@ export function movedDueOf(
   return { periodId: line.periodId, dueOn: line.nextDueDate, dueTime: line.dueTime }
 }
 
+function hasFields(line: NewTreatmentDose, dose: DoseFields): boolean {
+  return (
+    isSameDue(line, dose) &&
+    line.givenOn === dose.givenOn &&
+    line.status === dose.status &&
+    line.nextDueDate === dose.nextDueDate
+  )
+}
+
 function rewrites(lines: NewTreatmentDose[], dose: DoseFields): DoseWrite[] {
-  return lines.map(({ id }) => ({ action: 'rewrite', id, dose }))
+  return lines
+    .filter((line) => !hasFields(line, dose))
+    .map(({ id }) => ({ action: 'rewrite', id, dose }))
 }
 
 function deletes(ids: readonly string[]): DoseWrite[] {

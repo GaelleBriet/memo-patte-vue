@@ -403,8 +403,8 @@ describe('TreatmentDetailView — « Fait à une autre date »', () => {
       'Métacam · Luna · 28 sept.',
     )
     expect(
-      dansLaFeuille('.treatment-other-date__hour').map((hour) => [
-        hour.querySelector('.treatment-other-date__hour-detail')?.textContent?.replace(NBSP, ' '),
+      dansLaFeuille('.treatment-hours__hour').map((hour) => [
+        hour.querySelector('.treatment-hours__detail')?.textContent?.replace(NBSP, ' '),
         hour.disabled,
       ]),
     ).toEqual([
@@ -423,8 +423,8 @@ describe('TreatmentDetailView — « Fait à une autre date »', () => {
     await flushPromises()
 
     expect(
-      dansLaFeuille('.treatment-other-date__hour').map((hour) => [
-        hour.querySelector('.treatment-other-date__hour-detail')?.textContent?.replace(NBSP, ' '),
+      dansLaFeuille('.treatment-hours__hour').map((hour) => [
+        hour.querySelector('.treatment-hours__detail')?.textContent?.replace(NBSP, ' '),
         hour.disabled,
       ]),
     ).toEqual([
@@ -453,7 +453,7 @@ describe('TreatmentDetailView — « Fait à une autre date »', () => {
     dansLaFeuille('.treatment-other-date__submit')[0]!.click()
     await flushPromises()
 
-    expect(dansLaFeuille('.treatment-other-date__hour')).toHaveLength(0)
+    expect(dansLaFeuille('.treatment-hours__hour')).toHaveLength(0)
     expect(service.apply).toHaveBeenCalledWith(deuxPeriodes.id, {
       kind: 'note',
       gesture: {
@@ -469,7 +469,7 @@ describe('TreatmentDetailView — « Fait à une autre date »', () => {
     dansLaFeuille('.treatment-other-date__submit')[0]!.click()
     await flushPromises()
 
-    const [, soir] = dansLaFeuille('.treatment-other-date__hour')
+    const [, soir] = dansLaFeuille('.treatment-hours__hour')
     expect(soir!.textContent?.replace(NBSP, ' ')).toContain('Dose de 20 h · pas encore notée')
     soir!.click()
     await flushPromises()
@@ -530,10 +530,10 @@ describe('TreatmentDetailView — « Fait à une autre date »', () => {
     dansLaFeuille('.treatment-other-date__submit')[0]!.click()
     await flushPromises()
 
-    dansLaFeuille('.treatment-other-date__hour')[1]!.click()
+    dansLaFeuille('.treatment-hours__hour')[1]!.click()
     await flushPromises()
 
-    expect(dansLaFeuille('.treatment-other-date__hour')).toHaveLength(2)
+    expect(dansLaFeuille('.treatment-hours__hour')).toHaveLength(2)
     expect(view.findComponent(DateCalendar).exists()).toBe(false)
     expect(message()).toBe('La modification n’a pas abouti. Réessaie.')
   })
@@ -885,14 +885,33 @@ describe('TreatmentDetailView — barre du haut et fin du traitement', () => {
     })
   })
 
-  it('dit qu’un traitement est introuvable, ou illisible', async () => {
+  it('dit qu’un traitement est introuvable, ou n’a pas pu être lu', async () => {
     expect((await monter(null)).get('[role="alert"]').text()).toBe('Ce traitement est introuvable.')
     wrapper?.unmount()
+    read.mockRejectedValue(new Error('base indisponible'))
 
-    const illisible = await monter(treatment([period({ times: ['8h'] })]))
+    const enEchec = await monter()
 
-    expect(illisible.get('[role="alert"]').text()).toBe(
-      i18n.global.t('treatments.form.errors.load'),
+    expect(enEchec.get('[role="alert"]').text()).toBe(
+      'Ce traitement n’a pas pu être chargé. Réessaie.',
     )
+  })
+
+  it('dit qu’un traitement illisible ne se rechargera pas, et laisse le supprimer', async () => {
+    const back = vi.spyOn(router, 'back').mockImplementation(() => {})
+    const view = await monter(treatment([period({ times: ['8h'] })]))
+
+    expect(view.get('[role="alert"]').text()).toBe(
+      'Ce traitement contient une donnée illisible. Tu peux le supprimer, ou importer un export antérieur.',
+    )
+    expect(view.find('.treatment-detail__edit').exists()).toBe(false)
+
+    view.get('.pushed-screen__end').getComponent(OverflowMenu).vm.$emit('select', 'remove')
+    await flushPromises()
+    dialogue(view, 'Supprimer Métacam ?').vm.$emit('confirm')
+    await flushPromises()
+
+    expect(remove).toHaveBeenCalledWith(METACAM.id)
+    expect(back).toHaveBeenCalled()
   })
 })
