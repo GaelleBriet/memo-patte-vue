@@ -3084,3 +3084,29 @@ describe('changer la date d’une prise d’une période close (TR-24 bis, TR-28
     expect(scheduleOf(moved, '2026-09-24').unloggedDoses).toEqual([due('2026-09-18')])
   })
 })
+
+describe('en mois, le jour de référence ne dérive pas (TR-7)', () => {
+  it('tous les 3 mois depuis le 31 août : la dose du 30 nov. donnée à l’heure garde le 31 mai', () => {
+    const quarterly = period({ firstDueOn: '2026-08-31', frequency: { value: 3, unit: 'month' } })
+    const book = done(done(carnet(quarterly), '2026-08-31'), '2026-11-30')
+
+    expect(dueDays(scheduleOf(book, '2026-11-30').upcoming(3))).toEqual([
+      '2027-02-28',
+      '2027-05-31',
+      '2027-08-31',
+    ])
+  })
+
+  it('la dose du 30 nov. oubliée garde aussi le 31 mai', () => {
+    const quarterly = period({ firstDueOn: '2026-08-31', frequency: { value: 3, unit: 'month' } })
+    const book = record(done(carnet(quarterly), '2026-08-31'), '2026-11-30', {
+      kind: 'missed',
+      due: due('2026-11-30'),
+    })
+
+    expect(dueDays(scheduleOf(book, '2026-11-30').upcoming(2))).toEqual([
+      '2027-02-28',
+      '2027-05-31',
+    ])
+  })
+})
