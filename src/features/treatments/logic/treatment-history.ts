@@ -4,7 +4,6 @@ import { movedDueOf } from './treatment-dose-writes'
 import { periodSettingsText } from './treatment-rhythm'
 import type { TreatmentWithHistory } from '../repository/treatments.repository'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
-import type { Treatment } from '../schema/treatment.schema'
 import {
   isAdvanced,
   type MoveBounds,
@@ -279,30 +278,6 @@ export function treatmentHistory(
       }
     }),
   }
-}
-
-export type FinishedTreatmentRow = { id: string; name: string; detail: string }
-
-export function finishedTreatmentRows(
-  t: Translate,
-  treatments: Treatment[],
-  doseCounts: Record<string, number>,
-): FinishedTreatmentRow[] {
-  return treatments.flatMap((treatment) => {
-    if (treatment.stoppedOn === null) return []
-    const count = doseCounts[treatment.id] ?? 0
-    return [
-      {
-        id: treatment.id,
-        name: treatment.name,
-        detail: t(
-          'treatments.finished.row',
-          { date: formatLongDate(treatment.stoppedOn), n: count },
-          count,
-        ),
-      },
-    ]
-  })
 }
 
 export function treatmentDeleteTexts(t: Translate, name: string) {

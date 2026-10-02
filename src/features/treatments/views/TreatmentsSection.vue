@@ -1,10 +1,5 @@
 <script lang="ts">
-import type { ReminderCounts } from '@/shared/domain/reminders'
-
-export type TreatmentsSummary = ReminderCounts & {
-  /** Traitements en cours, avec ou sans rappel. */
-  ongoing: number
-}
+export type { TreatmentsSummary } from '../logic/treatment-carnet'
 </script>
 
 <script setup lang="ts">
@@ -12,13 +7,11 @@ import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
-import { finishedTreatmentRows } from '../logic/treatment-history'
-import { isOngoing } from '../logic/treatment-status'
+import { carnetTreatments, type TreatmentsSummary } from '../logic/treatment-carnet'
 import { useTreatmentsStore } from '../store/treatments.store'
 import DueStatusChip from '@/shared/components/DueStatusChip.vue'
 import SectionCard from '@/shared/components/SectionCard.vue'
 import { useAnimalScopedLoad } from '@/shared/composables/use-animal-scoped-load'
-import { buildReminders, type Reminder, type ReminderStatus } from '@/shared/domain/reminders'
 
 const props = defineProps<{
   animalId: string
@@ -34,9 +27,6 @@ const { t } = useI18n()
 const router = useRouter()
 const store = useTreatmentsStore()
 
-// Au changement d'animal, ou après un échec, le store porte déjà le nouvel animal mais encore l'ancienne liste.
-const treatments = computed(() => (isCurrent.value ? store.treatments.filter(isOngoing) : []))
-
 const { loadedFor } = useAnimalScopedLoad(
   () => props.animalId,
   (id) => store.loadForAnimal(id),
@@ -51,37 +41,12 @@ const hasError = computed(
     loadedFor.value === props.animalId && store.animalId === props.animalId && store.error !== null,
 )
 
-const reminders = computed(() =>
-  buildReminders(
-    treatments.value.map((treatment) => ({
-      kind: 'treatment',
-      id: treatment.id,
-      animalId: treatment.animalId,
-      label: treatment.name,
-      dueDate: treatment.nextDueDate,
-    })),
-    { today: props.today },
-  ),
+// Au changement d'animal, ou après un échec, le store porte déjà le nouvel animal mais encore l'ancienne liste.
+const carnet = computed(() =>
+  carnetTreatments(t, isCurrent.value ? store.treatments : [], props.today),
 )
-
-const rows = computed(() => {
-  const byId = new Map(reminders.value.reminders.map((reminder) => [reminder.id, reminder]))
-  return treatments.value.map((treatment) => {
-    const reminder = byId.get(treatment.id)
-    return {
-      id: treatment.id,
-      name: treatment.name,
-      type: t(`treatments.type.${treatment.type}`),
-      frequency: t(`treatments.frequency.${treatment.frequency.unit}`, treatment.frequency.value),
-      urgency: urgencyOf(reminder),
-      nextDose: nextDoseOf(reminder),
-    }
-  })
-})
-
-const finishedRows = computed(() =>
-  isCurrent.value ? finishedTreatmentRows(t, store.treatments, store.doseCounts) : [],
-)
+const rows = computed(() => carnet.value.ongoing)
+const finishedRows = computed(() => carnet.value.finished)
 const showsFinished = ref(false)
 
 watch(
@@ -91,32 +56,6 @@ watch(
   },
 )
 
-const summary = computed<TreatmentsSummary>(() => ({
-  total: reminders.value.total,
-  overdue: reminders.value.overdue,
-  ongoing: treatments.value.length,
-}))
-
-// Demain et plus tard partagent la même couleur grise : seule l'urgence du jour et le retard ressortent.
-function urgencyOf(reminder: Reminder | undefined): 'overdue' | 'today' | 'later' {
-  const status: ReminderStatus = reminder?.status ?? 'later'
-  return status === 'overdue' || status === 'today' ? status : 'later'
-}
-
-function nextDoseOf(reminder: Reminder | undefined): string | null {
-  if (!reminder) return null
-  switch (reminder.status) {
-    case 'overdue':
-      return t('treatments.section.nextDose.overdue', { n: -reminder.daysUntil })
-    case 'today':
-      return t('treatments.section.nextDose.today')
-    case 'tomorrow':
-      return t('treatments.section.nextDose.tomorrow')
-    case 'later':
-      return t('treatments.section.nextDose.later', { n: reminder.daysUntil })
-  }
-}
-
 function openDetail(id: string): void {
   void router.push({ name: 'treatment-detail', params: { id } })
 }
@@ -125,7 +64,11 @@ function addTreatment(): void {
   void router.push({ name: 'treatment-new', params: { animalId: props.animalId } })
 }
 
-watch(summary, (value) => emit('summary', value), { immediate: true })
+watch(
+  () => carnet.value.summary,
+  (value) => emit('summary', value),
+  { immediate: true },
+)
 </script>
 
 <template>
@@ -141,15 +84,21 @@ watch(summary, (value) => emit('summary', value), { immediate: true })
         <span class="treatment-row__name">{{ row.name }}</span>
         <span class="treatment-row__type">{{ row.type }}</span>
         <span
-          v-if="row.nextDose"
+          v-if="row.detail"
           class="treatment-row__next-dose"
-          :class="`treatment-row__next-dose--${row.urgency}`"
+          :class="`treatment-row__next-dose--${row.tone}`"
         >
-          {{ row.nextDose }}
+          {{ row.detail }}
         </span>
+        <span v-if="row.unlogged" class="treatment-row__unlogged">{{ row.unlogged }}</span>
       </span>
       <span class="treatment-row__end">
-        <DueStatusChip class="treatment-row__frequency" status="none" :label="row.frequency" />
+        <DueStatusChip
+          v-if="row.badge"
+          class="treatment-row__frequency"
+          status="none"
+          :label="row.badge"
+        />
         <v-icon class="treatment-row__chevron" icon="ms:chevron_right" size="22" />
       </span>
     </button>
@@ -258,6 +207,14 @@ watch(summary, (value) => emit('summary', value), { immediate: true })
   display: block;
   margin: 4px 0 0;
   color: tokens.$color-text-meta;
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.treatment-row__unlogged {
+  display: block;
+  margin: 2px 0 0;
+  color: tokens.$color-text-secondary;
   font-size: 12.5px;
   font-weight: 500;
 }

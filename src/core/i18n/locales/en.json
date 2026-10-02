@@ -370,13 +370,10 @@
       "title": "Active treatments",
       "empty": "No active treatments",
       "add": "Add a treatment",
-      "nextDose": {
-        "overdue": "Next dose overdue · {n}d",
-        "today": "Next dose today",
-        "tomorrow": "Next dose tomorrow",
-        "later": "Next dose in {n} days"
-      },
-      "error": "Couldn’t load treatments."
+      "error": "Couldn’t load treatments.",
+      "dose": "{label} · {value}",
+      "toLog": "To log",
+      "unreadable": "Unreadable data"
     },
     "sheet": {
       "subtitle": "{type} · {animal} · {frequency}",
@@ -575,7 +572,8 @@
     },
     "finished": {
       "title": "Finished treatments",
-      "row": "Stopped on {date} · {n} dose | Stopped on {date} · {n} doses"
+      "row": "{end} · {n} dose | {end} · {n} doses",
+      "doses": "{n} dose | {n} doses"
     },
     "stop": {
       "unlogged": "The dose due {when} is not logged. You can log it before stopping. | {n} doses, {when}, are not logged. You can log them before stopping.",

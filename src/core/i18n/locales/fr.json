@@ -370,13 +370,10 @@
       "title": "Traitements en cours",
       "empty": "Aucun traitement en cours",
       "add": "Ajouter un traitement",
-      "nextDose": {
-        "overdue": "Prochaine dose en retard · {n} j",
-        "today": "Prochaine dose aujourd’hui",
-        "tomorrow": "Prochaine dose demain",
-        "later": "Prochaine dose dans {n} jours"
-      },
-      "error": "Impossible de charger les traitements."
+      "error": "Impossible de charger les traitements.",
+      "dose": "{label} · {value}",
+      "toLog": "À renseigner",
+      "unreadable": "Donnée illisible"
     },
     "sheet": {
       "subtitle": "{type} · {animal} · {frequency}",
@@ -575,7 +572,8 @@
     },
     "finished": {
       "title": "Traitements terminés",
-      "row": "Arrêté le {date} · {n} prise | Arrêté le {date} · {n} prises"
+      "row": "{end} · {n} prise | {end} · {n} prises",
+      "doses": "{n} prise | {n} prises"
     },
     "stop": {
       "unlogged": "La dose du {when} n’est pas renseignée. Tu peux la noter avant d’arrêter. | {n} doses, {when}, ne sont pas renseignées. Tu peux les noter avant d’arrêter.",

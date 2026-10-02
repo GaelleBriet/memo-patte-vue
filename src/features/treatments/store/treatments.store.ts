@@ -38,14 +38,7 @@ import { recordUsageSignal } from '@/shared/utils/usage-signals'
 // Le store ne dépend que de ce qu'il appelle : la cascade de suppression (#102) n'est pas son affaire.
 type TreatmentsRepository = Pick<
   FullTreatmentsRepository,
-  | 'getById'
-  | 'listByAnimal'
-  | 'remove'
-  | 'restore'
-  | 'listDoses'
-  | 'countDosesByAnimal'
-  | 'getWithHistory'
-  | 'listWithHistoryByAnimal'
+  'getById' | 'remove' | 'restore' | 'listDoses' | 'getWithHistory' | 'listWithHistoryByAnimal'
 >
 
 export type TreatmentsRepositoryProvider = () =>
@@ -94,10 +87,8 @@ export function provideTreatmentPlanService(next: (() => TreatmentPlan) | null):
 }
 
 export const useTreatmentsStore = defineStore('treatments', () => {
-  /** Traitements de l'animal chargé, prochaine échéance croissante telle que rendue par le repository. */
-  const treatments = ref<Treatment[]>([])
-  /** Nombre de prises de chacun de ces traitements. */
-  const doseCounts = ref<Record<string, number>>({})
+  /** Traitements de l'animal chargé, avec leurs périodes et leurs prises, dans l'ordre de saisie. */
+  const treatments = ref<TreatmentWithHistory[]>([])
   /** Animal dont la liste est chargée, `null` tant qu'aucune n'a été demandée. */
   const animalId = ref<string | null>(null)
   /** Vrai pendant toute opération, chargement comme écriture. */
@@ -115,14 +106,10 @@ export const useTreatmentsStore = defineStore('treatments', () => {
   }
 
   async function refresh(repository: TreatmentsRepository, id: string): Promise<void> {
-    const [list, counts] = await Promise.all([
-      repository.listByAnimal(id),
-      repository.countDosesByAnimal(id),
-    ])
+    const list = await repository.listWithHistoryByAnimal(id)
     // Un chargement lancé entre-temps pour un autre animal a priorité sur cette réponse.
     if (animalId.value !== id) return
     treatments.value = list
-    doseCounts.value = counts
     hasLoaded.value = true
     error.value = null
   }
@@ -148,7 +135,6 @@ export const useTreatmentsStore = defineStore('treatments', () => {
 
   return {
     treatments,
-    doseCounts,
     animalId,
     isLoading,
     hasLoaded,

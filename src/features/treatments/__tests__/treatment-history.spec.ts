@@ -3,14 +3,12 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { dose, missed, period, plain, postponed, treatment } from './treatment-fixtures'
 import {
   LINES_BEFORE_TOGGLE,
-  finishedTreatmentRows,
   treatmentDeleteTexts,
   treatmentHistory,
 } from '../logic/treatment-history'
 import { treatmentScheduleOf } from '../logic/treatment-schedule'
 import type { TreatmentWithHistory } from '../repository/treatments.repository'
 import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
-import type { Treatment } from '../schema/treatment.schema'
 import i18n, { applyLocale } from '@/core/i18n'
 
 const t = i18n.global.t
@@ -413,33 +411,6 @@ describe('treatmentHistory — ce que deux appareils ou un import peuvent laisse
         ['1 oct. 2026', true],
         ['1 sept. 2026', false],
       ],
-    ])
-  })
-})
-
-describe('finishedTreatmentRows', () => {
-  const BRAVECTO: Treatment = {
-    id: 'bravecto',
-    animalId: 'boree',
-    name: 'Bravecto',
-    type: 'deworming',
-    periodId: 'bravecto',
-    frequency: { value: 1, unit: 'month' },
-    lastDoseDate: '2026-08-28',
-    nextDueDate: '2026-09-28',
-    stoppedOn: null,
-    createdAt: '2026-05-30T09:00:00.000Z',
-    updatedAt: '2026-05-30T09:00:00.000Z',
-    deletedAt: null,
-  }
-
-  it('annonce la date d’arrêt et le nombre de prises de chaque traitement terminé (F9)', () => {
-    const milbemax = { ...BRAVECTO, id: 'milbemax', name: 'Milbemax', stoppedOn: '2026-05-26' }
-    const drontal = { ...BRAVECTO, id: 'drontal', name: 'Drontal', stoppedOn: '2025-11-02' }
-
-    expect(finishedTreatmentRows(t, [milbemax, drontal], { milbemax: 2, drontal: 1 })).toEqual([
-      { id: 'milbemax', name: 'Milbemax', detail: 'Arrêté le 26 mai 2026 · 2 prises' },
-      { id: 'drontal', name: 'Drontal', detail: 'Arrêté le 2 nov. 2025 · 1 prise' },
     ])
   })
 })
