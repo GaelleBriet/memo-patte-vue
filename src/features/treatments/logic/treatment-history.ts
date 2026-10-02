@@ -136,7 +136,6 @@ function moveBoundsOf(schedule: HistorySchedule, dose: TreatmentDoseInput): Move
   }
 }
 
-/** « Reportée au 14 oct. 2026 (prévue le 10 oct.) », ou « Avancée au … ». */
 export function moveText(
   t: Translate,
   dose: Pick<TreatmentDoseInput, 'status' | 'dueOn' | 'nextDueDate'>,
@@ -227,7 +226,6 @@ function lastGiven(doses: TreatmentDoseInput[]): TreatmentDoseInput | undefined 
     )
 }
 
-/** Historique d'un traitement, par période, tel que le moteur d'échéances le rend. */
 export function treatmentHistory(
   t: Translate,
   treatment: Pick<TreatmentWithHistory, 'periods'>,

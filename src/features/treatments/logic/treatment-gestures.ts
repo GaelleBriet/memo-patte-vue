@@ -36,7 +36,6 @@ export function hasSeveralTimes(
   return (treatment.periods.find(({ id }) => id === periodId)?.times.length ?? 0) > 1
 }
 
-/** Textes du toast d'un geste sur une prise ou un report ; `line` : la ligne touchée, s'il y en a une. */
 export function doseActionTexts(
   t: Translate,
   { name, animal, today, severalTimes }: GestureContext,
@@ -165,10 +164,7 @@ export type DateChange = {
   action(date: string): DoseAction
 }
 
-/**
- * Ce que « Changer la date » propose pour une ligne : la date réelle d'une prise donnée, jusqu'à
- * aujourd'hui, ou la nouvelle date d'un report, entre les bornes du moteur d'échéances.
- */
+/** `null` : la ligne ne change pas de date (prise oubliée, report que le moteur ne déplace pas). */
 export function dateChangeOf(
   t: Translate,
   line: Line,

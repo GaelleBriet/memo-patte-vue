@@ -144,20 +144,24 @@ const { t } = useI18n()
   line-height: 1.2;
 }
 
+.treatment-dose-card__value--overdue,
+.treatment-dose-card__value--end {
+  font-size: 20px;
+}
+
 .treatment-dose-card__value--overdue {
   color: rgb(var(--v-theme-overdue));
 }
 
 .treatment-dose-card__value--end {
   color: rgb(var(--v-theme-on-surface));
-  font-size: 20px;
 }
 
 .treatment-dose-card__actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 4px 12px;
+  gap: 4px 10px;
   margin-top: 16px;
 }
 
@@ -174,12 +178,12 @@ const { t } = useI18n()
 
 .treatment-dose-card__other-date {
   min-height: tokens.$size-tap-target;
-  padding: 0 4px;
+  padding: 0;
   border: 0;
   background: transparent;
   color: rgb(var(--v-theme-primary));
   font-family: inherit;
-  font-size: 14.5px;
+  font-size: 13.5px;
   font-weight: 600;
   text-decoration: underline;
   text-underline-offset: 3px;
@@ -225,7 +229,6 @@ const { t } = useI18n()
 }
 
 .treatment-dose-card__other-date--below {
-  margin-top: 8px;
-  padding-inline: 0;
+  margin-block: 6px -12px;
 }
 </style>

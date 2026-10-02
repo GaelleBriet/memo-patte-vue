@@ -14,7 +14,6 @@ export type HourChoice = {
 
 type OtherDateSchedule = Pick<TreatmentSchedule, 'doses' | 'dueForDate'>
 
-/** Heures proposées par « À quelle heure ? » pour une prise notée ce jour-là. */
 export function hourChoices(
   t: Translate,
   schedule: OtherDateSchedule,

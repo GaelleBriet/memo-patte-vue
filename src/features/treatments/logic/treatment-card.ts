@@ -27,7 +27,6 @@ export type DoseCard = {
 
 type CardSchedule = Pick<TreatmentSchedule, 'phase' | 'currentDoses' | 'currentPeriodId'>
 
-/** Carte de la dose du moment : ce que le moteur d'échéances dit du traitement aujourd'hui. */
 export function doseCard(
   t: Translate,
   treatment: Pick<TreatmentWithHistory, 'name' | 'periods'>,
@@ -64,7 +63,6 @@ export function doseCard(
   }
 }
 
-/** Ce que la fiche propose selon l'état du traitement : un traitement arrêté se reprend, il ne se modifie pas. */
 export function detailActions({ phase }: Pick<TreatmentSchedule, 'phase'>) {
   return {
     canEdit: phase !== 'stopped',

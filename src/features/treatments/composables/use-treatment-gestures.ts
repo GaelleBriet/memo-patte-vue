@@ -80,7 +80,6 @@ export function useTreatmentGestures(onChanged: () => void) {
     }, failed)
   }
 
-  /** Geste de la fiche sur une prise ou un report ; l'écran est relu même après un refus. */
   function applyDose(
     treatment: Named,
     action: DoseAction,
