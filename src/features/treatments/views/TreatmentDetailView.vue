@@ -7,6 +7,7 @@ import TreatmentChooseDays from './TreatmentChooseDays.vue'
 import TreatmentDoseCard from './TreatmentDoseCard.vue'
 import TreatmentHistory from './TreatmentHistory.vue'
 import TreatmentOtherDateSheet from './TreatmentOtherDateSheet.vue'
+import TreatmentStopDialog from './TreatmentStopDialog.vue'
 import TreatmentUnloggedPrompt from './TreatmentUnloggedPrompt.vue'
 import { useTreatmentDetail } from '../composables/use-treatment-detail'
 import { useTreatmentGestures } from '../composables/use-treatment-gestures'
@@ -27,6 +28,7 @@ import {
   type DoseRow,
 } from '../logic/treatment-history'
 import { treatmentStopTexts } from '../logic/treatment-sheet'
+import { stopPrompt } from '../logic/treatment-stop'
 import { promptChoice, unloggedBanner, type PromptActionId } from '../logic/treatment-unlogged'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
@@ -81,8 +83,15 @@ const unlogged = computed(() =>
     ? unloggedBanner(t, treatment.value, schedule.value, today.value)
     : null,
 )
+const stopping = computed(() =>
+  treatment.value && schedule.value
+    ? stopPrompt(t, treatment.value, schedule.value, today.value)
+    : null,
+)
+const choosing = ref<'log' | 'stop'>('log')
+const chosen = computed(() => (choosing.value === 'stop' ? stopping.value : unlogged.value))
 const chooseDaysSubtitleText = computed(() =>
-  chooseDaysSubtitle(named.value.name, named.value.animal, unlogged.value?.when ?? null),
+  chooseDaysSubtitle(named.value.name, named.value.animal, chosen.value?.when ?? null),
 )
 const history = computed(() =>
   treatment.value && schedule.value ? treatmentHistory(t, treatment.value, schedule.value) : null,
@@ -153,14 +162,31 @@ function log(choice: DayChoice): Promise<'done' | 'stale' | 'failed'> {
   return gestures.logDoses(treatment.value, action, texts)
 }
 
+function logThenStop(choice: DayChoice): Promise<'done' | 'stale' | 'failed'> {
+  if (!treatment.value) return Promise.resolve('failed')
+  return gestures.stopLogging(treatment.value, choiceGestures(choice))
+}
+
+function chooseDays(purpose: 'log' | 'stop'): void {
+  choosing.value = purpose
+  isChooseDaysOpen.value = true
+}
+
 function onUnloggedAction(action: PromptActionId): void {
   if (!unlogged.value) return
-  if (action === 'choose-days') isChooseDaysOpen.value = true
+  if (action === 'choose-days') chooseDays('log')
   else void log(promptChoice(action, unlogged.value.dues))
 }
 
+function onStopAction(action: PromptActionId): void {
+  if (!stopping.value) return
+  if (action === 'choose-days') chooseDays('stop')
+  else void logThenStop(promptChoice(action, stopping.value.dues))
+}
+
 async function logChosenDays(choice: DayChoice): Promise<void> {
-  if ((await log(choice)) !== 'failed') isChooseDaysOpen.value = false
+  const result = await (choosing.value === 'stop' ? logThenStop(choice) : log(choice))
+  if (result !== 'failed') isChooseDaysOpen.value = false
 }
 
 function onLineAction(row: DoseRow, choice: DoseLineAction, bounds: MoveBounds | null): void {
@@ -298,8 +324,8 @@ async function remove(): Promise<void> {
     <TreatmentChooseDays
       v-model="isChooseDaysOpen"
       :subtitle="chooseDaysSubtitleText"
-      :dues="unlogged?.dues ?? []"
-      :when="unlogged?.when ?? ''"
+      :dues="chosen?.dues ?? []"
+      :when="chosen?.when ?? ''"
       :busy="gestures.isBusy.value"
       @confirm="logChosenDays"
     />
@@ -315,15 +341,12 @@ async function remove(): Promise<void> {
       @pick="changeDate"
     />
 
-    <ConfirmDialog
+    <TreatmentStopDialog
+      v-if="stopping"
       v-model="isStopDialogOpen"
-      :title="stopTexts.stopDialog.title"
-      :text="t('treatments.sheet.stopDialog.text')"
-      :cancel-label="t('treatments.sheet.stopDialog.cancel')"
-      :confirm-label="t('treatments.sheet.stopDialog.confirm')"
-      :cancel-aria-label="stopTexts.stopDialog.cancelLabel"
-      :confirm-aria-label="stopTexts.stopDialog.confirmLabel"
-      @confirm="stop"
+      :prompt="stopping"
+      @stop="stop"
+      @act="onStopAction"
     />
 
     <ConfirmDialog

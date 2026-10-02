@@ -401,7 +401,7 @@
       },
       "stopDialog": {
         "title": "Stop {name}?",
-        "text": "No more reminders for this treatment. Its past doses stay in the health record.",
+        "text": "No more reminders for {name}. Its doses stay in the health record.",
         "cancel": "Cancel",
         "cancelLabel": "Cancel, keep {name}",
         "confirm": "Stop",
@@ -411,9 +411,10 @@
         "dose": "{name} dose logged for {animal}",
         "doseOn": "{name} dose on {date} logged for {animal}",
         "undoDose": "Undo the {name} dose",
-        "stopped": "{name} stopped. It’s in Finished treatments.",
+        "stopped": "{name} stopped",
         "undoStop": "Undo stopping {name}",
-        "dayNoted": "Today’s doses are already logged."
+        "dayNoted": "Today’s doses are already logged.",
+        "stoppedFinished": "{name} stopped, now in Finished treatments."
       },
       "errors": {
         "dose": "Couldn’t log the dose. Try again.",
@@ -569,6 +570,16 @@
     "finished": {
       "title": "Finished treatments",
       "row": "Stopped on {date} · {n} dose | Stopped on {date} · {n} doses"
+    },
+    "stop": {
+      "unlogged": "The dose due {when} is not logged. You can log it before stopping. | {n} doses, {when}, are not logged. You can log them before stopping.",
+      "todayNote": "Today’s dose isn’t logged: if you gave it, tap “Done” before stopping.",
+      "withoutLogging": "Stop without logging",
+      "withoutLoggingLabel": "Stop {name} without logging the dose | Stop {name} without logging the {n} doses",
+      "allGivenLabel": "Log the {n} doses as given, {when}, then stop {name}",
+      "chooseDaysLabel": "Choose the days {name} was given, then stop",
+      "givenLabel": "Log the dose due {when} as given, then stop {name}",
+      "missedLabel": "Log the dose due {when} as missed, then stop {name}"
     }
   },
   "reminders": {

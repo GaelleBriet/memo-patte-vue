@@ -137,6 +137,26 @@ export function createTreatmentPeriodsRepository(
     return rows.map(toPeriodRecord)
   }
 
+  function stopStatement(
+    treatmentId: string,
+    stoppedOn: string,
+    updatedAt: string,
+  ): Required<SqlStatement> {
+    return {
+      sql: `UPDATE treatment_period SET stopped_on = ?, updated_at = ?
+            WHERE id = ${currentPeriodIdSql('?')} AND stopped_on IS NULL`,
+      params: [stoppedOn, updatedAt, treatmentId],
+    }
+  }
+
+  function undoStopStatement(treatmentId: string, updatedAt: string): Required<SqlStatement> {
+    return {
+      sql: `UPDATE treatment_period SET stopped_on = NULL, updated_at = ?
+            WHERE id = ${currentPeriodIdSql('?')} AND stopped_on IS NOT NULL`,
+      params: [updatedAt, treatmentId],
+    }
+  }
+
   return {
     entity: 'treatment_period',
 
@@ -216,21 +236,19 @@ export function createTreatmentPeriodsRepository(
 
     /** Faux quand la période en cours est déjà arrêtée, ou que le traitement n'en a pas : rien n'est écrit. */
     async stop(treatmentId: string, stoppedOn: string): Promise<boolean> {
-      const changes = await db.run(
-        `UPDATE treatment_period SET stopped_on = ?, updated_at = ?
-         WHERE id = ${currentPeriodIdSql('?')} AND stopped_on IS NULL`,
-        [stoppedOn, new Date().toISOString(), treatmentId],
-      )
-      return changes > 0
+      const { sql, params } = stopStatement(treatmentId, stoppedOn, new Date().toISOString())
+      return (await db.run(sql, params)) > 0
     },
 
     async undoStop(treatmentId: string): Promise<void> {
-      await db.run(
-        `UPDATE treatment_period SET stopped_on = NULL, updated_at = ?
-         WHERE id = ${currentPeriodIdSql('?')} AND stopped_on IS NOT NULL`,
-        [new Date().toISOString(), treatmentId],
-      )
+      const { sql, params } = undoStopStatement(treatmentId, new Date().toISOString())
+      await db.run(sql, params)
     },
+
+    /** L'arrêt, à jouer dans la transaction des prises renseignées avec lui. */
+    stopStatement,
+
+    undoStopStatement,
 
     markDeletedByTreatmentStatement(treatmentId: string, deletedAt: string): SqlStatement {
       return {

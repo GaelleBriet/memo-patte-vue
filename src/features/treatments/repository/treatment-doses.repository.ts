@@ -320,11 +320,16 @@ export function createTreatmentDosesRepository(
     markDeletedStatement,
 
     /**
-     * Tout ou rien. Rend le lot inverse, à appliquer pour « Annuler » ; lève, sans rien écrire, pour
+     * Tout ou rien, `also` compris : les instructions d'une autre table à jouer dans la même
+     * transaction. Rend le lot inverse, à appliquer pour « Annuler » ; lève, sans rien écrire, pour
      * une ligne à réécrire ou à supprimer qui n'est pas visible, ou à rétablir qui l'est, et une
      * `DuplicateDueError` pour une création en double.
      */
-    async applyBatch(writes: readonly DoseWrite[], at: string): Promise<DoseWrite[]> {
+    async applyBatch(
+      writes: readonly DoseWrite[],
+      at: string,
+      also: readonly SqlStatement[] = [],
+    ): Promise<DoseWrite[]> {
       const existing = await rowsById(
         writes.flatMap((write) => (write.action === 'create' ? [] : [write.id])),
       )
@@ -362,11 +367,12 @@ export function createTreatmentDosesRepository(
             }
         }
       })
-      if (steps.length === 0) return []
+      if (steps.length + also.length === 0) return []
       try {
-        await db.runMany(
-          steps.flatMap(({ guard, statement }) => (guard ? [guard, statement] : [statement])),
-        )
+        await db.runMany([
+          ...steps.flatMap(({ guard, statement }) => (guard ? [guard, statement] : [statement])),
+          ...also,
+        ])
       } catch (cause) {
         for (const write of writes) {
           if (write.action === 'create' && (await hasDuplicate(write.dose))) {

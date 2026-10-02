@@ -148,7 +148,12 @@ beforeEach(async () => {
   vi.spyOn(treatments, 'getWithHistory').mockResolvedValue(HISTORY)
   recordDose = vi.spyOn(treatments, 'noteMomentDose').mockResolvedValue(NOTED)
   undoDose = vi.spyOn(treatments, 'undoDoseAction').mockResolvedValue()
-  stop = vi.spyOn(treatments, 'stop').mockResolvedValue({ animalId: BOREE.id, stopped: true })
+  stop = vi.spyOn(treatments, 'stop').mockResolvedValue({
+    animalId: BOREE.id,
+    stopped: true,
+    finished: true,
+    undo: [],
+  })
   undoStop = vi.spyOn(treatments, 'undoStop').mockResolvedValue()
   await router.push({ name: 'home' })
   push = vi.spyOn(router, 'push').mockResolvedValue()
@@ -444,7 +449,7 @@ describe('TreatmentReminderSheet — F6, arrêter', () => {
 
     expect(texte('.confirm-dialog__title')).toBe('Arrêter Bravecto ?')
     expect(texte('.confirm-dialog__text')).toBe(
-      'Plus aucun rappel pour ce traitement. Ses prises passées restent dans le carnet.',
+      'Plus aucun rappel pour Bravecto. Ses prises restent dans le carnet.',
     )
     expect(bouton('.confirm-dialog__cancel').getAttribute('aria-label')).toBe(
       'Annuler, garder Bravecto',
@@ -457,15 +462,15 @@ describe('TreatmentReminderSheet — F6, arrêter', () => {
     bouton('.confirm-dialog__confirm').click()
     await flushPromises()
 
-    expect(stop).toHaveBeenCalledWith(BRAVECTO.id)
+    expect(stop).toHaveBeenCalledWith(BRAVECTO.id, [])
     expect(sheet.emitted('update:modelValue')).toEqual([[false]])
-    expect(toastMessage.value).toBe('Bravecto arrêté. Il est dans Traitements terminés.')
+    expect(toastMessage.value).toBe('Bravecto arrêté, à retrouver dans Traitements terminés.')
     expect(toastAction.value?.ariaLabel).toBe('Annuler l’arrêt de Bravecto')
 
     runToastAction()
     await flushPromises()
 
-    expect(undoStop).toHaveBeenCalledWith(BRAVECTO.id)
+    expect(undoStop).toHaveBeenCalledWith(BRAVECTO.id, [])
   })
 
   it('n’arrête rien quand on annule le dialogue', async () => {
@@ -493,7 +498,7 @@ describe('TreatmentReminderSheet — F6, arrêter', () => {
   })
 
   it('confirme sans « Annuler » quand le traitement était déjà arrêté', async () => {
-    stop.mockResolvedValue({ animalId: BOREE.id, stopped: false })
+    stop.mockResolvedValue({ animalId: BOREE.id, stopped: false, finished: true, undo: [] })
     const sheet = await monter()
 
     bouton('.treatment-reminder-sheet__stop').click()
@@ -502,7 +507,7 @@ describe('TreatmentReminderSheet — F6, arrêter', () => {
     await flushPromises()
 
     expect(sheet.emitted('update:modelValue')).toEqual([[false]])
-    expect(toastMessage.value).toBe('Bravecto arrêté. Il est dans Traitements terminés.')
+    expect(toastMessage.value).toBe('Bravecto arrêté, à retrouver dans Traitements terminés.')
     expect(toastAction.value).toBeNull()
   })
 })

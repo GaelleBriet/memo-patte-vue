@@ -32,6 +32,7 @@ import type {
 } from '../repository/treatments.repository'
 import { track } from '@/core/analytics'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
+import type { DoseGesture } from '@/shared/domain/treatment-schedule'
 import { recordUsageSignal } from '@/shared/utils/usage-signals'
 
 // Le store ne dépend que de ce qu'il appelle : la cascade de suppression (#102) n'est pas son affaire.
@@ -250,16 +251,21 @@ export const useTreatmentsStore = defineStore('treatments', () => {
       )
     },
 
-    async stop(treatmentId: string): Promise<StoppedTreatment> {
+    /** `gestures` : doses renseignées avec l'arrêt, dans le même geste. */
+    async stop(
+      treatmentId: string,
+      gestures: readonly DoseGesture[] = [],
+    ): Promise<StoppedTreatment> {
       return write(
-        () => stopProvider().stop(treatmentId),
+        () => stopProvider().stop(treatmentId, gestures),
         (stopped) => stopped.animalId,
       )
     },
 
-    async undoStop(treatmentId: string): Promise<void> {
+    /** `writes` : le lot `undo` rendu par `stop`. */
+    async undoStop(treatmentId: string, writes: readonly DoseWrite[] = []): Promise<void> {
       await write(
-        () => stopProvider().undo(treatmentId),
+        () => stopProvider().undo(treatmentId, writes),
         () => animalId.value,
       )
     },

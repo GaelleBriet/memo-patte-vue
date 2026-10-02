@@ -551,14 +551,19 @@ describe('useTreatmentsStore — gestes d’un rappel', () => {
   })
 
   it('arrête un traitement puis annule l’arrêt par son service', async () => {
-    stop.stop.mockResolvedValue({ animalId: MILO, stopped: true })
+    const undo = [{ action: 'delete' as const, id: 'p1' }]
+    const stopped = { animalId: MILO, stopped: true, finished: true, undo }
+    const gestures = [
+      { kind: 'missed' as const, due: { periodId: 'p', dueOn: '2026-09-19', dueTime: null } },
+    ]
+    stop.stop.mockResolvedValue(stopped)
     const store = useTreatmentsStore()
 
-    await expect(store.stop('t1')).resolves.toEqual({ animalId: MILO, stopped: true })
-    await store.undoStop('t1')
+    await expect(store.stop('t1', gestures)).resolves.toEqual(stopped)
+    await store.undoStop('t1', undo)
 
-    expect(stop.stop).toHaveBeenCalledWith('t1')
-    expect(stop.undo).toHaveBeenCalledWith('t1')
+    expect(stop.stop).toHaveBeenCalledWith('t1', gestures)
+    expect(stop.undo).toHaveBeenCalledWith('t1', undo)
   })
 
   it('applique un geste de la fiche puis son annulation par son service, et relit la liste', async () => {

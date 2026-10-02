@@ -273,7 +273,7 @@ async function edit(): Promise<void> {
     v-if="texts"
     v-model="isStopDialogOpen"
     :title="texts.stopDialog.title"
-    :text="t('treatments.sheet.stopDialog.text')"
+    :text="texts.stopDialog.text"
     :cancel-label="t('treatments.sheet.stopDialog.cancel')"
     :confirm-label="t('treatments.sheet.stopDialog.confirm')"
     :cancel-aria-label="texts.stopDialog.cancelLabel"

@@ -401,7 +401,7 @@
       },
       "stopDialog": {
         "title": "Arrêter {name} ?",
-        "text": "Plus aucun rappel pour ce traitement. Ses prises passées restent dans le carnet.",
+        "text": "Plus aucun rappel pour {name}. Ses prises restent dans le carnet.",
         "cancel": "Annuler",
         "cancelLabel": "Annuler, garder {name}",
         "confirm": "Arrêter",
@@ -411,9 +411,10 @@
         "dose": "Prise de {name} notée pour {animal}",
         "doseOn": "Prise de {name} du {date} notée pour {animal}",
         "undoDose": "Annuler la prise de {name}",
-        "stopped": "{name} arrêté. Il est dans Traitements terminés.",
+        "stopped": "{name} arrêté",
         "undoStop": "Annuler l’arrêt de {name}",
-        "dayNoted": "Les doses d’aujourd’hui sont déjà notées."
+        "dayNoted": "Les doses d’aujourd’hui sont déjà notées.",
+        "stoppedFinished": "{name} arrêté, à retrouver dans Traitements terminés."
       },
       "errors": {
         "dose": "La prise n’a pas pu être notée. Réessaie.",
@@ -569,6 +570,16 @@
     "finished": {
       "title": "Traitements terminés",
       "row": "Arrêté le {date} · {n} prise | Arrêté le {date} · {n} prises"
+    },
+    "stop": {
+      "unlogged": "La dose du {when} n’est pas renseignée. Tu peux la noter avant d’arrêter. | {n} doses, {when}, ne sont pas renseignées. Tu peux les noter avant d’arrêter.",
+      "todayNote": "La dose d’aujourd’hui n’est pas notée : si tu l’as donnée, touche « C’est fait » avant d’arrêter.",
+      "withoutLogging": "Arrêter sans renseigner",
+      "withoutLoggingLabel": "Arrêter {name} sans renseigner la dose | Arrêter {name} sans renseigner les {n} doses",
+      "allGivenLabel": "Noter les {n} doses comme données, {when}, puis arrêter {name}",
+      "chooseDaysLabel": "Choisir les jours où {name} a été donné, puis arrêter",
+      "givenLabel": "Noter la dose du {when} comme donnée, puis arrêter {name}",
+      "missedLabel": "Noter la dose du {when} comme oubliée, puis arrêter {name}"
     }
   },
   "reminders": {
