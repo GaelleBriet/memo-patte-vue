@@ -240,6 +240,9 @@
       "week": "Every week | Every {n} weeks",
       "month": "Every month | Every {n} months"
     },
+    "rhythm": {
+      "until": "until {date}"
+    },
     "form": {
       "title": "New treatment",
       "editTitle": "Edit {name}",
@@ -429,6 +432,22 @@
       "months": "in {n} month | in {n} months",
       "years": "in {n} year | in {n} years"
     }
+  },
+  "dosage": {
+    "unit": {
+      "tablet": "tablet | tablets",
+      "capsule": "capsule | capsules",
+      "pipette": "pipette | pipettes",
+      "collar": "collar | collars",
+      "ml": "ml",
+      "drop": "drop | drops",
+      "g": "g",
+      "sachet": "sachet | sachets",
+      "spray": "spray | sprays",
+      "application": "application | applications",
+      "dose": "dose | doses"
+    },
+    "value": "{quantity} {unit}"
   },
   "weight": {
     "unit": {

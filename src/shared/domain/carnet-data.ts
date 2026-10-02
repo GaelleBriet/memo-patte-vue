@@ -1,3 +1,5 @@
+import type { DoseUnit } from './dosage'
+
 /**
  * Les lignes du carnet telles qu'elles voyagent : fichier d'export (`export-format.ts`) aujourd'hui,
  * miroir Postgres de la synchronisation demain. Mêmes champs que les tables SQLite, sans `deletedAt`.
@@ -49,18 +51,7 @@ export type ExportTreatment = {
   updatedAt: string
 }
 
-export type ExportDoseUnit =
-  | 'tablet'
-  | 'capsule'
-  | 'pipette'
-  | 'collar'
-  | 'ml'
-  | 'drop'
-  | 'g'
-  | 'sachet'
-  | 'spray'
-  | 'application'
-  | 'dose'
+export type ExportDoseUnit = DoseUnit
 
 export type ExportTreatmentPeriod = {
   id: string

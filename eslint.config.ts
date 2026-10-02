@@ -54,6 +54,7 @@ const DYNAMIC_I18N_KEYS = [
   '/^vaccinations\\.section\\.status\\.(overdue|upToDate|none)$/',
   '/^settings\\.pdf\\.status\\.(overdue|upToDate|none)$/',
   '/^treatments\\.type\\.(deworming|antiparasitic|medication)$/',
+  '/^dosage\\.unit\\.(tablet|capsule|pipette|collar|ml|drop|g|sachet|spray|application|dose)$/',
   '/^treatments\\.(frequency|sheet\\.frequency|form\\.frequency\\.every|form\\.frequency\\.unit)\\.(day|week|month)$/',
   '/^home\\.reminder\\.(vaccination|deworming|antiparasitic|medication)$/',
   '/^home\\.row\\.spokenType\\.(vaccination|deworming|antiparasitic|medication)$/',
