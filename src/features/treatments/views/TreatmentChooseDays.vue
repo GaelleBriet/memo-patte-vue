@@ -89,6 +89,15 @@ watch(
   { immediate: true },
 )
 
+// Le total se lit sur `unchecked.size` : une case dont la dose sort de la liste ne doit pas y rester.
+watch(
+  () => props.dues,
+  (dues) => {
+    const known = new Set(dues.map(dayKey))
+    for (const key of unchecked) if (!known.has(key)) unchecked.delete(key)
+  },
+)
+
 // Les mois se montent au fil du défilement : un long historique n'en monte pas des dizaines d'un coup.
 watch(more, (sentinel, _previous, onCleanup) => {
   if (!sentinel) return
