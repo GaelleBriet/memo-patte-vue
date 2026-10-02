@@ -40,4 +40,15 @@ describe('locales', () => {
 
     expect(faulty).toEqual([])
   })
+
+  it.each([
+    ['fr', fr],
+    ['en', en],
+  ])('%s ne présente rien comme anonyme', (_, messages) => {
+    const faulty = leaves(messages)
+      .filter(([, value]) => typeof value === 'string' && /anonym/i.test(value))
+      .map(([key]) => key)
+
+    expect(faulty).toEqual([])
+  })
 })
