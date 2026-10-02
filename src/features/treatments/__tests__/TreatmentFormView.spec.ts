@@ -1956,15 +1956,25 @@ describe('TreatmentFormView — reprise (TR-32, planche V7)', () => {
     expect(replace).toHaveBeenCalledWith({ name: 'treatment-detail', params: { id: ID } })
   })
 
+  it('borne le sélecteur de la première prise à la première date acceptée, et la dit en anglais', async () => {
+    i18n.global.locale.value = 'en'
+    const wrapper = await monterReprise()
+
+    expect(champ(wrapper, 'treatment-first-dose-on').attributes('min')).toBe('2026-10-11')
+
+    await champ(wrapper, 'treatment-first-dose-on').setValue('2026-10-10')
+    await soumettre(wrapper)
+
+    expect(messages(wrapper)).toEqual(['The first dose can be on Oct 11 at the earliest.'])
+  })
+
   it('refuse une première prise avant la fin de la dernière période', async () => {
     const wrapper = await monterReprise()
     await champ(wrapper, 'treatment-first-dose-on').setValue('2026-10-10')
 
     await soumettre(wrapper)
 
-    expect(messages(wrapper)).toEqual([
-      'La première prise ne peut pas précéder la fin de la dernière période.',
-    ])
+    expect(messages(wrapper)).toEqual(['La première prise est possible à partir du 11 oct.'])
     expect(resume).not.toHaveBeenCalled()
   })
 

@@ -769,28 +769,27 @@ export type ResumptionDraft = {
   endedOn: string | null
   /** Durée à reproduire, première et dernière journée comprises ; `null` sans date de fin. */
   durationDays: number | null
+  /** Première date acceptée pour la première prise de la reprise. */
+  earliestOn: string
   /** Date de fin qui reproduit cette durée à partir de la première prise choisie. */
   endsOnFor(firstDoseOn: string): string | null
 }
 
-type ResumptionFloor = { from: string; after: string | null }
-
-// La nouvelle période commence sans rien retirer à la précédente : dès le jour de l'arrêt (G3), ou
-// après la date de fin et la dernière prise notée d'une période finie.
-function resumptionFloor(history: TreatmentWithHistory, period: TreatmentPeriodRecord) {
-  const after = latestOf([
-    lastNotedDueOn(history, period.id),
-    period.stoppedOn === null ? period.endsOn : null,
-  ])
-  const closedBeforeStop = period.stoppedOn !== null && after !== null && after <= period.stoppedOn
-  return {
-    from: latestOf([period.startsOn, period.stoppedOn]) ?? period.startsOn,
-    after: closedBeforeStop ? null : after,
-  } satisfies ResumptionFloor
+function dayAfter(day: string): string {
+  return formatISO(addDays(parseISO(day), 1), { representation: 'date' })
 }
 
-function respectsFloor({ from, after }: ResumptionFloor, firstDoseOn: string): boolean {
-  return firstDoseOn >= from && (after === null || firstDoseOn > after)
+// La nouvelle période ne retire rien à la précédente : dès le jour de l'arrêt (G3), qui garde ses
+// prises même notées en avance, ou au lendemain de la date de fin et de la dernière prise notée
+// d'une période finie.
+function resumptionEarliestOn(
+  history: TreatmentWithHistory,
+  period: TreatmentPeriodRecord,
+): string {
+  if (period.stoppedOn !== null)
+    return latestOf([period.startsOn, period.stoppedOn]) ?? period.stoppedOn
+  const after = latestOf([lastNotedDueOn(history, period.id), period.endsOn])
+  return latestOf([period.startsOn, after === null ? null : dayAfter(after)]) ?? period.startsOn
 }
 
 export function resumptionDraft(history: TreatmentWithHistory, today: string): ResumptionDraft {
@@ -805,6 +804,7 @@ export function resumptionDraft(history: TreatmentWithHistory, today: string): R
     canResume: schedule.phase === 'stopped' || schedule.phase === 'ended',
     startedOn: period.firstDueOn,
     endedOn: period.stoppedOn ?? period.endsOn,
+    earliestOn: resumptionEarliestOn(history, period),
     durationDays,
     endsOnFor: (firstDoseOn) =>
       durationDays === null || durationDays < 1 || !isCalendarDay(firstDoseOn)
@@ -815,19 +815,18 @@ export function resumptionDraft(history: TreatmentWithHistory, today: string): R
 
 /** Le schéma de « Reprendre », la première prise après la dernière période. */
 export function treatmentResumptionSchemaFor(history: TreatmentWithHistory, today: string) {
-  const { period } = resumptionDraft(history, today)
-  const floor = resumptionFloor(history, period)
+  const { period, earliestOn } = resumptionDraft(history, today)
   return treatmentResumptionSchema
-    .refine(({ firstDoseOn }) => respectsFloor(floor, firstDoseOn), {
+    .refine(({ firstDoseOn }) => firstDoseOn >= earliestOn, {
       path: ['firstDoseOn'],
-      message: 'beforePreviousPeriod',
+      message: 'tooEarly',
     })
     .superRefine(({ firstDoseOn, ...rhythm }, context) => {
       const settings = withRhythm(
         { ...settingsOf(period), startsOn: firstDoseOn, firstDueOn: firstDoseOn },
         rhythm,
       )
-      if (respectsFloor(floor, firstDoseOn) && startsTooFarBack(history, settings, today)) {
+      if (firstDoseOn >= earliestOn && startsTooFarBack(history, settings, today)) {
         context.addIssue(tooOld())
       }
     })

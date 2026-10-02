@@ -66,7 +66,7 @@ const FIELD_OF_PATH: Record<string, TreatmentFormErrorField> = {
 /** Motif d'un refus, porté par le message de l'erreur Zod. */
 const REASON_KEYS: Partial<Record<TreatmentFormErrorField, Record<string, string>>> = {
   firstDoseOn: {
-    beforePreviousPeriod: 'treatments.form.errors.firstDoseOnBeforePreviousPeriod',
+    tooEarly: 'treatments.form.errors.firstDoseOnTooEarly',
     tooOld: 'treatments.form.errors.firstDoseOnTooOld',
   },
   nextDoseOn: {

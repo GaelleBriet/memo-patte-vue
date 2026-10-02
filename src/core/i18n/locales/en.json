@@ -335,7 +335,7 @@
         "frequency": "Enter a frequency.",
         "frequencyMax": "Frequency must be at most 365.",
         "firstDoseOn": "Date is required.",
-        "firstDoseOnBeforePreviousPeriod": "The first dose can’t be before the end of the last period.",
+        "firstDoseOnTooEarly": "The first dose can be on {from} at the earliest.",
         "firstDoseOnTooOld": "This date is too far back for this schedule.",
         "nextDoseOn": "Date is required.",
         "nextDoseOnTooEarly": "Choose a date from {date} onward.",

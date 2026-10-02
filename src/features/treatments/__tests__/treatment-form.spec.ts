@@ -496,7 +496,7 @@ describe('validateTreatmentResumption (TR-32)', () => {
       validateTreatmentResumption(saisie({ firstDoseOn: '2026-07-31' }), ARRETE, TODAY),
     ).toEqual({
       success: false,
-      errors: { firstDoseOn: 'treatments.form.errors.firstDoseOnBeforePreviousPeriod' },
+      errors: { firstDoseOn: 'treatments.form.errors.firstDoseOnTooEarly' },
     })
   })
 

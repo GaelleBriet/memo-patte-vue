@@ -1689,7 +1689,8 @@ describe('resumptionPlan (TR-32)', () => {
       return result.success ? [] : result.error.issues.map((issue) => issue.message)
     }
 
-    expect(refus('2026-10-08')).toEqual(['beforePreviousPeriod'])
+    expect(refus('2026-10-08')).toEqual(['tooEarly'])
+    expect(resumptionDraft(history, '2026-11-02').earliestOn).toBe('2026-10-09')
     expect(refus('2026-10-09')).toEqual([])
   })
 
@@ -1725,6 +1726,57 @@ describe('resumptionPlan (TR-32)', () => {
       action: 'open',
       settings: { startsOn: '2026-10-02', firstDueOn: '2026-10-02' },
     })
+  })
+
+  it('accepte une reprise dès le jour de l’arrêt après une dose donnée en avance : l’ancienne période garde sa prise', () => {
+    const mensuel = period({
+      startsOn: '2026-09-05',
+      firstDueOn: '2026-09-05',
+      frequency: { value: 1, unit: 'month' },
+      stoppedOn: '2026-10-02',
+    })
+    const history = treatment(
+      [mensuel],
+      [
+        dose({ id: 'a', dueOn: '2026-09-05', givenOn: '2026-09-05', nextDueDate: '2026-10-05' }),
+        dose({ id: 'b', dueOn: '2026-10-05', givenOn: '2026-10-02', nextDueDate: '2026-11-02' }),
+      ],
+    )
+
+    expect(resumptionDraft(history, '2026-10-02').earliestOn).toBe('2026-10-02')
+    for (const firstDoseOn of ['2026-10-02', '2026-10-05']) {
+      const plan = resumptionPlan(
+        history,
+        { ...REPRISE, firstDoseOn, endsOn: null },
+        '2026-10-02',
+        IDS,
+      )
+      const after = treatmentScheduleOf(
+        {
+          ...history,
+          periods: [
+            mensuel,
+            {
+              ...mensuel,
+              ...(plan.period as { settings: object }).settings,
+              id: NEW_PERIOD,
+              stoppedOn: null,
+            },
+          ],
+        },
+        '2026-10-02',
+      )
+
+      expect(after.doses.map(({ id }) => id)).toEqual(['a', 'b'])
+      expect(after.unloggedDoses).toEqual([])
+      expect(after.currentDoses).toMatchObject([{ periodId: NEW_PERIOD, dueOn: firstDoseOn }])
+    }
+  })
+
+  it('donne la première date acceptée après une période finie par sa date de fin', () => {
+    const history = treatment([{ ...ARRETEE, stoppedOn: null }], [PRISE])
+
+    expect(resumptionDraft(history, '2026-11-02').earliestOn).toBe('2026-10-11')
   })
 
   it('refuse une première prise jusqu’à la date de fin d’une période finie', () => {

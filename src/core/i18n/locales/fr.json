@@ -335,7 +335,7 @@
         "frequency": "Indique une fréquence.",
         "frequencyMax": "La fréquence doit être de 365 maximum.",
         "firstDoseOn": "La date est obligatoire.",
-        "firstDoseOnBeforePreviousPeriod": "La première prise ne peut pas précéder la fin de la dernière période.",
+        "firstDoseOnTooEarly": "La première prise est possible à partir du {from}.",
         "firstDoseOnTooOld": "Cette date est trop ancienne pour ce rythme.",
         "nextDoseOn": "La date est obligatoire.",
         "nextDoseOnTooEarly": "Choisis une date à partir du {date}.",

@@ -224,6 +224,9 @@ function errorText(key: string | undefined): string | null {
   return t(key, {
     max: MAX_NAME_LENGTH,
     date: next ? formatFullDayMonth(next.earliest) : '',
+    from: previous.value
+      ? withoutFinalDot(formatDayMonthOrYear(previous.value.earliestOn, today.value))
+      : '',
     arrival: farthest ? withoutFinalDot(formatDayMonthOrYear(farthest.arrivesOn, today.value)) : '',
   })
 }
@@ -494,6 +497,7 @@ async function submit(): Promise<void> {
             v-model="values.firstDoseOn"
             class="form-field__input form-field__input--date"
             type="date"
+            :min="previous?.earliestOn"
             variant="outlined"
             hide-details
             aria-required="true"
