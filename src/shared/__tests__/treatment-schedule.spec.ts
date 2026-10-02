@@ -2,6 +2,7 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 
 import {
+  ScheduleTooLongError,
   isAdvanced,
   treatmentSchedule,
   type Due,
@@ -2882,6 +2883,26 @@ describe('entrées invalides : une erreur claire, jamais de boucle', () => {
     expect(scheduleWith({ firstDueOn: '1900-01-01', times: everyHour })).toThrow(
       /Calendrier de traitement trop long/,
     )
+  })
+
+  it('un calendrier trop long se reconnaît à son type, sans lire le message', () => {
+    const everyHour = Array.from({ length: 24 }, (_, hour) => `${String(hour).padStart(2, '0')}:00`)
+    const tooLong = scheduleWith({ firstDueOn: '1900-01-01', times: everyHour })
+
+    expect(tooLong).toThrow(RangeError)
+    expect(tooLong).toThrow(ScheduleTooLongError)
+  })
+
+  it('une donnée illisible n’est pas un calendrier trop long', () => {
+    let error: unknown
+    try {
+      scheduleWith({ firstDueOn: '2026-02-30' })()
+    } catch (caught) {
+      error = caught
+    }
+
+    expect(error).toBeInstanceOf(RangeError)
+    expect(error).not.toBeInstanceOf(ScheduleTooLongError)
   })
 })
 
