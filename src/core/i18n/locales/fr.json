@@ -477,7 +477,8 @@
     "history": {
       "period": {
         "since": "Depuis le {date}",
-        "range": "Du {from} au {to}"
+        "range": "Du {from} au {to}",
+        "single": "Le {date}"
       },
       "empty": "Aucune prise dans cette période pour l’instant",
       "dueAt": "{date} · {time}",

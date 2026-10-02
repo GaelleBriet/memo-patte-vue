@@ -477,7 +477,8 @@
     "history": {
       "period": {
         "since": "Since {date}",
-        "range": "{from} – {to}"
+        "range": "{from} – {to}",
+        "single": "{date}"
       },
       "empty": "No doses in this period yet",
       "dueAt": "{date} · {time}",

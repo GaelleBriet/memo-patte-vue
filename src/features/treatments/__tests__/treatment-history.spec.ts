@@ -308,6 +308,22 @@ describe('treatmentHistory — plusieurs périodes (planche A · V3)', () => {
     ])
   })
 
+  it('écrit « Le … » pour une période fermée le jour de son ouverture', () => {
+    const sameDay = { startsOn: '2026-10-02', firstDueOn: '2026-10-02' }
+    const reopened = period({ ...sameDay, id: 'p-3', createdAt: '2026-10-02T10:00:00.000Z' })
+    const stopped = treatment([period({ ...sameDay, stoppedOn: '2026-10-02' }), reopened])
+    const changed = treatment([period(sameDay), reopened])
+
+    for (const book of [stopped, changed]) {
+      expect(history(book, '2026-10-02').periods.map(({ head }) => head?.title)).toEqual([
+        'Depuis le 2 oct. 2026',
+        'Le 2 oct. 2026',
+      ])
+    }
+    applyLocale('en')
+    expect(history(stopped, '2026-10-02').periods[1]!.head?.title).toBe('Oct 2, 2026')
+  })
+
   it('regroupe des oubliées de plusieurs jours', () => {
     const book = treatment(
       [period()],

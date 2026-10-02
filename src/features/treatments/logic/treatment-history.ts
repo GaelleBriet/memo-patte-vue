@@ -79,8 +79,11 @@ function rangeDates(from: string, to: string): { from: string; to: string } {
 
 function headTitle(t: Translate, period: Period, next: Period | undefined): string {
   const end = lastDayOf(period, next)
-  return end === null
-    ? t('treatments.history.period.since', { date: formatLongDate(period.startsOn) })
+  if (end === null) {
+    return t('treatments.history.period.since', { date: formatLongDate(period.startsOn) })
+  }
+  return end <= period.startsOn
+    ? t('treatments.history.period.single', { date: formatLongDate(period.startsOn) })
     : t('treatments.history.period.range', rangeDates(period.startsOn, end))
 }
 
