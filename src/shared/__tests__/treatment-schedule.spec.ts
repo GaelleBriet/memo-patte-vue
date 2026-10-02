@@ -3031,3 +3031,56 @@ describe('changer la date d’une prise sans changer de date (TR-24 bis)', () =>
     expect(after.nextDue).toEqual(before.nextDue)
   })
 })
+
+describe('changer la date d’une prise d’une période close (TR-24 bis, TR-28)', () => {
+  function closedWeekly(): Carnet {
+    let book = done(carnet(weekly()), '2026-09-01')
+    book = done(book, '2026-09-10')
+    const dates = scheduleOf(book, '2026-09-24').newPeriod({ value: 1, unit: 'day' }, [])
+    const daily = period({ id: 'p2', ...dates, createdAt: '2026-09-24T09:00:00.000Z' })
+    return { ...book, periods: [...book.periods, daily] }
+  }
+
+  it('la dose du 8 donnée le 10 a fixé la suite au 17, seule dose à renseigner de l’ancienne période', () => {
+    const book = closedWeekly()
+
+    expect(lastDose(book)).toMatchObject({ dueOn: '2026-09-08', nextDueDate: '2026-09-17' })
+    expect(scheduleOf(book, '2026-09-24').unloggedDoses).toEqual([due('2026-09-17')])
+  })
+
+  it('redatée à la même date, rien ne change', () => {
+    const book = closedWeekly()
+    const schedule = scheduleOf(book, '2026-09-24')
+
+    expect(schedule.redate(lastDose(book).id, '2026-09-10')).toEqual({
+      dose: expect.objectContaining({ givenOn: '2026-09-10', nextDueDate: '2026-09-17' }),
+      postponement: null,
+    })
+    const moved = redate(book, '2026-09-24', lastDose(book).id, '2026-09-10')
+    expect(scheduleOf(moved, '2026-09-24').unloggedDoses).toEqual([due('2026-09-17')])
+  })
+
+  it('redatée au 11, la suite de sa période repart du 11, comme si la période était encore ouverte', () => {
+    const book = closedWeekly()
+
+    const moved = redate(book, '2026-09-24', lastDose(book).id, '2026-09-11')
+
+    expect(lastDose(moved)).toMatchObject({ givenOn: '2026-09-11', nextDueDate: '2026-09-18' })
+    const schedule = scheduleOf(moved, '2026-09-24')
+    expect(schedule.unloggedDoses).toEqual([due('2026-09-18')])
+    expect(schedule.currentDoses).toEqual([due('2026-09-24', null, 'p2')])
+  })
+
+  it('traitement arrêté depuis : redatée au 11, la suite d’avant l’arrêt repart du 11', () => {
+    let book = done(carnet(weekly()), '2026-09-01')
+    book = done(book, '2026-09-10')
+    const on8 = lastDose(book)
+    book = { ...book, periods: [weekly({ stoppedOn: '2026-09-20' })] }
+    expect(scheduleOf(book, '2026-09-24').unloggedDoses).toEqual([due('2026-09-17')])
+
+    const moved = redate(book, '2026-09-24', on8.id, '2026-09-11')
+
+    expect(lastDose(moved)).toMatchObject({ givenOn: '2026-09-11', nextDueDate: '2026-09-18' })
+    expect(scheduleOf(moved, '2026-09-24').unloggedDoses).toEqual([due('2026-09-18')])
+  })
+})

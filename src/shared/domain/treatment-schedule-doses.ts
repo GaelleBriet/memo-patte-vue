@@ -21,6 +21,7 @@ import {
   nearUpcoming,
   nextInSequence,
   planOf,
+  stateOn,
   stateWithout,
 } from './treatment-schedule-state'
 import type {
@@ -143,7 +144,7 @@ export function redate(state: State, doseId: string, givenOn: string): RedatedDo
       ? shiftDate(givenOn, plan.period.frequency, 1)
       : keepsSuite
         ? nextInSequence(stateWithout(state, dose), dose)
-        : givenNextDueDate(stateWithout(state, dose, givenOn), dose, givenOn)
+        : givenNextDueDate(stateOn(state, dose, givenOn), dose, givenOn)
     const fields: DoseFields = { ...dueOf(dose), givenOn, status: 'given', nextDueDate }
     const firstTime = [...plan.period.times].sort(compareText)[0] ?? null
     const followed = { periodId: dose.periodId, dueOn: nextDueDate, dueTime: firstTime }
