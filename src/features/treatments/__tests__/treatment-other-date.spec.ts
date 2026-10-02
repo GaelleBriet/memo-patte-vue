@@ -1,7 +1,13 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { dose, missed, period, plain, treatment } from './treatment-fixtures'
-import { givenDays, momentDue, otherDatePlan, otherDateTexts } from '../logic/treatment-other-date'
+import {
+  givenDays,
+  isDayNoted,
+  momentDue,
+  otherDatePlan,
+  otherDateTexts,
+} from '../logic/treatment-other-date'
 import { treatmentScheduleOf } from '../logic/treatment-schedule'
 import type { TreatmentWithHistory } from '../repository/treatments.repository'
 import i18n, { applyLocale } from '@/core/i18n'
@@ -222,6 +228,35 @@ describe('momentDue — ce que notent la feuille « À faire » et une notificat
     expect(due(book, '2026-09-03', '2026-09-01')).toEqual({
       due: { periodId: 'p-1', dueOn: '2026-09-01', dueTime: '08:00' },
     })
+  })
+
+  it('ne note pas la dose suivante en avance quand une prise a déjà été donnée aujourd’hui', () => {
+    const hebdo = treatment(
+      [
+        period({
+          frequency: { value: 1, unit: 'week' },
+          startsOn: '2026-09-25',
+          firstDueOn: '2026-09-25',
+        }),
+      ],
+      [dose('2026-09-25', '2026-10-08', { givenOn: '2026-10-01' })],
+    )
+
+    expect(due(hebdo, '2026-10-01')).toEqual({ alreadyGivenOn: '2026-10-01' })
+    expect(due(hebdo, '2026-10-02')).toEqual({
+      due: { periodId: 'p-1', dueOn: '2026-10-08', dueTime: null },
+    })
+  })
+
+  it('dit si une prise de la journée d’une notification est déjà notée', () => {
+    const book = treatment(
+      [MATIN_ET_SOIR],
+      [missed('2026-09-01', '2026-09-01', { dueTime: '08:00' })],
+    )
+    const schedule = treatmentScheduleOf(book, '2026-09-02')
+
+    expect(isDayNoted(schedule, '2026-09-01')).toBe(true)
+    expect(isDayNoted(schedule, '2026-09-02')).toBe(false)
   })
 
   it('ne vise rien pour un traitement fini', () => {

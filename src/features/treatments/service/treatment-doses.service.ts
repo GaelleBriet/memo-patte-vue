@@ -2,7 +2,7 @@ import { todayIsoDate } from '@/core/app-lifecycle/today-iso-date'
 import type { Due, TreatmentSchedule } from '@/shared/domain/treatment-schedule'
 import { doseChange, type DoseAction, type DoseChange } from '../logic/treatment-dose-writes'
 import { hasSeveralTimes } from '../logic/treatment-gestures'
-import { momentDue } from '../logic/treatment-other-date'
+import { isDayNoted, momentDue } from '../logic/treatment-other-date'
 import { treatmentScheduleOf } from '../logic/treatment-schedule'
 import {
   DuplicateDueError,
@@ -37,7 +37,12 @@ export type AppliedDoseChange = Omit<DoseChange, 'writes'> & {
 }
 
 export type NotedMoment = AppliedDoseChange & {
-  /** Échéance notée ; `null` quand elle l'était déjà. */
+  /**
+   * `already` : l'échéance était déjà notée ; `none` : plus aucune dose à noter ; `day-noted` : une
+   * prise du jour de la notification est déjà notée. Rien n'est écrit hors de `noted`.
+   */
+  outcome: 'noted' | 'already' | 'none' | 'day-noted'
+  /** Échéance notée ; `null` hors de `noted`. */
   due: Due | null
   severalTimes: boolean
 }
@@ -100,30 +105,46 @@ export function createTreatmentDosesService({
       return run(history, treatmentScheduleOf(history, today()), action)
     },
 
-    /** Prise notée sans échéance choisie (feuille « À faire », notification) ; lève s'il n'y a rien à noter. */
-    async noteMoment(treatmentId: string, givenOn: string): Promise<NotedMoment> {
+    /**
+     * Prise notée sans échéance choisie (feuille « À faire », notification) ; `notifiedDueOn` : le
+     * jour d'échéance de la notification touchée.
+     */
+    async noteMoment(
+      treatmentId: string,
+      givenOn: string,
+      { notifiedDueOn = null }: { notifiedDueOn?: string | null } = {},
+    ): Promise<NotedMoment> {
       const history = await historyOf(treatmentId)
       const schedule = treatmentScheduleOf(history, today())
+      const nothing = {
+        animalId: history.animalId,
+        undo: [],
+        alreadyGivenOn: null,
+        postponement: null,
+        moved: null,
+        due: null,
+        severalTimes: false,
+      }
+      if (notifiedDueOn !== null && isDayNoted(schedule, notifiedDueOn)) {
+        return { ...nothing, outcome: 'day-noted' }
+      }
       const target = momentDue(schedule, givenOn, today())
-      if (target === null) throw new Error(`Aucune dose à noter : ${treatmentId}`)
+      if (target === null) return { ...nothing, outcome: 'none' }
       if ('alreadyGivenOn' in target) {
-        return {
-          animalId: history.animalId,
-          undo: [],
-          alreadyGivenOn: target.alreadyGivenOn,
-          postponement: null,
-          moved: null,
-          due: null,
-          severalTimes: false,
-        }
+        return { ...nothing, outcome: 'already', alreadyGivenOn: target.alreadyGivenOn }
       }
       const { due } = target
       const applied = await run(history, schedule, {
         kind: 'note',
         gesture: { kind: 'given', due, givenOn },
       })
-      if (applied.alreadyGivenOn !== null) return { ...applied, due: null, severalTimes: false }
-      return { ...applied, due, severalTimes: hasSeveralTimes(history, due.periodId) }
+      if (applied.alreadyGivenOn !== null) return { ...nothing, ...applied, outcome: 'already' }
+      return {
+        ...applied,
+        outcome: 'noted',
+        due,
+        severalTimes: hasSeveralTimes(history, due.periodId),
+      }
     },
 
     async undoBatch(treatmentId: string, writes: readonly DoseWrite[]): Promise<void> {

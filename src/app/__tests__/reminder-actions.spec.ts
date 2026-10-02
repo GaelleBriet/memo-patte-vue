@@ -67,6 +67,7 @@ const NOTED: NotedMoment = {
   alreadyGivenOn: null,
   postponement: null,
   moved: null,
+  outcome: 'noted',
   due: { periodId: BRAVECTO.id, dueOn: TODAY, dueTime: null },
   severalTimes: false,
 }
@@ -129,7 +130,7 @@ describe('« C’est fait » d’un vermifuge ou d’un antiparasitaire', () => 
   it('ouvre l’accueil, note la prise du jour et relit « À faire »', async () => {
     await handler()(done(`treatment:${BRAVECTO.id}:${TODAY}:due`))
 
-    expect(record).toHaveBeenCalledExactlyOnceWith(BRAVECTO.id, TODAY)
+    expect(record).toHaveBeenCalledExactlyOnceWith(BRAVECTO.id, TODAY, { notifiedDueOn: TODAY })
     expect(currentPlace()).toEqual({ name: 'home', query: {} })
     expect(refreshHome).toHaveBeenCalledOnce()
     expect(refreshHome.mock.invocationCallOrder[0]).toBeGreaterThan(
@@ -162,7 +163,9 @@ describe('« C’est fait » d’un vermifuge ou d’un antiparasitaire', () => 
 
     await handler()(done(`treatment:${BRAVECTO.id}:2026-09-22:overdue`))
 
-    expect(record).toHaveBeenCalledExactlyOnceWith(BRAVECTO.id, TODAY)
+    expect(record).toHaveBeenCalledExactlyOnceWith(BRAVECTO.id, TODAY, {
+      notifiedDueOn: '2026-09-22',
+    })
   })
 
   it('note la prise depuis un cycle manqué, qui porte échéance + k × fréquence', async () => {
@@ -170,7 +173,7 @@ describe('« C’est fait » d’un vermifuge ou d’un antiparasitaire', () => 
 
     await handler()(done(`treatment:${BRAVECTO.id}:${TODAY}:due`))
 
-    expect(record).toHaveBeenCalledExactlyOnceWith(BRAVECTO.id, TODAY)
+    expect(record).toHaveBeenCalledExactlyOnceWith(BRAVECTO.id, TODAY, { notifiedDueOn: TODAY })
   })
 
   it('note la première prise d’un traitement sans prise, sans le dire « déjà noté »', async () => {
@@ -178,7 +181,7 @@ describe('« C’est fait » d’un vermifuge ou d’un antiparasitaire', () => 
 
     await handler()(done(`treatment:${BRAVECTO.id}:${TODAY}:overdue`))
 
-    expect(record).toHaveBeenCalledExactlyOnceWith(BRAVECTO.id, TODAY)
+    expect(record).toHaveBeenCalledExactlyOnceWith(BRAVECTO.id, TODAY, { notifiedDueOn: TODAY })
     expect(toastMessage.value).toBe('Prise de Bravecto notée pour Boree')
   })
 
@@ -197,11 +200,40 @@ describe('« C’est fait » d’un vermifuge ou d’un antiparasitaire', () => 
   })
 
   it('dit « déjà notée », sans « Annuler », quand le service n’a rien eu à écrire', async () => {
-    record.mockResolvedValue({ ...NOTED, undo: [], alreadyGivenOn: TODAY, due: null })
+    record.mockResolvedValue({
+      ...NOTED,
+      outcome: 'already',
+      undo: [],
+      alreadyGivenOn: TODAY,
+      due: null,
+    })
 
     await handler()(done(`treatment:${BRAVECTO.id}:${TODAY}:due`))
 
     expect(toastMessage.value).toBe('Prise de Bravecto déjà notée aujourd’hui pour Boree')
+    expect(toastTone.value).toBe('info')
+    expect(toastAction.value).toBeNull()
+  })
+
+  it('ouvre la feuille du soin, sans rien noter ni dire, quand une prise de la journée est déjà notée', async () => {
+    record.mockResolvedValue({ ...NOTED, outcome: 'day-noted', undo: [], due: null })
+
+    await handler()(done(`treatment:${BRAVECTO.id}:${TODAY}:due`))
+
+    expect(toastMessage.value).toBeNull()
+    expect(refreshHome).not.toHaveBeenCalled()
+    expect(currentPlace()).toEqual({
+      name: 'home',
+      query: { reminder: `treatment:${BRAVECTO.id}`, step: 'actions' },
+    })
+  })
+
+  it('dit qu’il n’y a plus de dose à noter, sans parler d’échec', async () => {
+    record.mockResolvedValue({ ...NOTED, outcome: 'none', undo: [], due: null })
+
+    await handler()(done(`treatment:${BRAVECTO.id}:${TODAY}:due`))
+
+    expect(toastMessage.value).toBe('Ce traitement n’a plus de dose à noter.')
     expect(toastTone.value).toBe('info')
     expect(toastAction.value).toBeNull()
   })

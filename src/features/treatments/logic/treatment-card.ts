@@ -59,7 +59,13 @@ export function doseCard(
     end:
       entries.length > 0
         ? null
-        : currentDoseText(t, { phase, due: null, today, stoppedOn: period?.stoppedOn ?? null }),
+        : currentDoseText(t, {
+            phase,
+            due: null,
+            today,
+            stoppedOn: period?.stoppedOn ?? null,
+            endsOn: period?.endsOn ?? null,
+          }),
   }
 }
 

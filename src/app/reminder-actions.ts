@@ -118,10 +118,15 @@ export function createReminderActions({
 
     await openHome()
     const givenOn = today()
-    const noted = await doses.noteMoment(id, givenOn).catch(() => null)
+    const noted = await doses.noteMoment(id, givenOn, { notifiedDueOn: dueDate }).catch(() => null)
     if (noted === null) {
       showToast(t('treatments.sheet.errors.dose'), { tone: 'error' })
       return openHome(sheet)
+    }
+    if (noted.outcome === 'day-noted') return openHome(sheet)
+    if (noted.outcome === 'none') {
+      showToast(t('treatments.sheet.errors.noDoseLeft'), { tone: 'info' })
+      return
     }
     void refreshHome()
     const { due } = noted

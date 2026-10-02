@@ -390,7 +390,8 @@
       },
       "errors": {
         "dose": "Couldn’t log the dose. Try again.",
-        "stop": "Couldn’t stop the treatment. Try again."
+        "stop": "Couldn’t stop the treatment. Try again.",
+        "noDoseLeft": "This treatment has no dose left to log."
       }
     },
     "detail": {
@@ -530,6 +531,7 @@
     "tomorrow": "tomorrow, {date}",
     "overdueSince": "overdue since {date}",
     "stoppedOn": "Stopped on {date}",
+    "endedOn": "Ended on {date}",
     "today": "Today",
     "todayAt": "Today · {time}"
   },

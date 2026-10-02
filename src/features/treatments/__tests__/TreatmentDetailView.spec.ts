@@ -859,7 +859,7 @@ describe('TreatmentDetailView — barre du haut et fin du traitement', () => {
     )
 
     expect(textes(view, '.treatment-dose-card__label')).toEqual(['Fin du traitement'])
-    expect(view.find('.treatment-dose-card__value').exists()).toBe(false)
+    expect(textes(view, '.treatment-dose-card__value')).toEqual(['Terminé le 21 sept.'])
     expect(view.find('.treatment-dose-card__done').exists()).toBe(false)
     expect(view.find('.treatment-dose-card__other-date').exists()).toBe(false)
     expect(view.find('.treatment-detail__stop').exists()).toBe(false)

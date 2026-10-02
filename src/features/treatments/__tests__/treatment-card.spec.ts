@@ -147,7 +147,7 @@ describe('doseCard', () => {
     expect(card(history, '2026-09-10')).toMatchObject({
       rhythm: 'Tous les jours · jusqu’au 3 sept.',
       entries: [],
-      end: { label: 'Fin du traitement', value: null },
+      end: { label: 'Fin du traitement', value: 'Terminé le 3 sept.' },
     })
   })
 

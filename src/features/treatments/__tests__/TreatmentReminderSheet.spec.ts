@@ -118,6 +118,7 @@ const NOTED: NotedMoment = {
   alreadyGivenOn: null,
   postponement: null,
   moved: null,
+  outcome: 'noted',
   due: { periodId: BRAVECTO.periodId, dueOn: '2026-09-28', dueTime: null },
   severalTimes: false,
 }
@@ -267,7 +268,13 @@ describe('TreatmentReminderSheet — F2', () => {
   })
 
   it('dit « déjà notée », sans « Annuler », quand la prise du jour l’était déjà', async () => {
-    recordDose.mockResolvedValue({ ...NOTED, undo: [], alreadyGivenOn: '2026-09-23', due: null })
+    recordDose.mockResolvedValue({
+      ...NOTED,
+      outcome: 'already',
+      undo: [],
+      alreadyGivenOn: '2026-09-23',
+      due: null,
+    })
     await monter()
 
     bouton('.reminder-actions__done-today').click()
@@ -289,6 +296,18 @@ describe('TreatmentReminderSheet — F2', () => {
 
     expect(texte('.treatment-reminder-sheet__dose-on')).toBe('Prise du mer. 23 sept. 2026')
     expect(document.body.querySelector('.treatment-reminder-sheet__next-dose')).toBeNull()
+  })
+
+  it('dit qu’il n’y a plus de dose à noter pour un traitement fini, sans parler d’échec', async () => {
+    recordDose.mockResolvedValue({ ...NOTED, outcome: 'none', undo: [], due: null })
+    const sheet = await monter()
+
+    bouton('.reminder-actions__done-today').click()
+    await flushPromises()
+
+    expect(toastMessage.value).toBe('Ce traitement n’a plus de dose à noter.')
+    expect(toastAction.value).toBeNull()
+    expect(sheet.emitted('update:modelValue')).toEqual([[false]])
   })
 
   it('garde la feuille ouverte et dit l’échec quand la prise n’a pas pu être notée', async () => {
