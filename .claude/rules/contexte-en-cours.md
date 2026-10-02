@@ -1,5 +1,32 @@
 # Contexte en cours (à mettre à jour à chaque lot)
 
+- 2026-10-02 : **reprendre ici.** Mergés : #474 (découpage de `treatment-schedule.ts` en dix
+  fichiers à plat, déplacement pur), #475 (#425, « anonymes » retiré), #477 (**socle du lot 3** :
+  `TreatmentWithHistory`, `treatmentScheduleOf`, traitement sans prise légal, type « médicament »,
+  écriture des prises par lot `applyBatch`, mise en forme posologie / heures / dose du moment, testé
+  sur le téléphone), #479 (#418, `singleTop`, testé sur le téléphone).
+  - **En branche, sans PR** : `feat/fiche-traitement-v2` (#461) et `feat/formulaire-traitement-v2`
+    (#460, qui contient la branche de la fiche : elle sert de branche d'intégration). Revues et
+    re-revues faites, décisions de Gaelle du jour appliquées (spec `traitements.md` §10, Q27 à Q33).
+    **Reste** : re-revue ciblée des derniers changements, test sur le téléphone des deux ensemble,
+    puis PR de #461, merge, PR de #460 (mise à jour avec `main`), merge. À rejouer sur l'appareil en
+    particulier : le filet de `applyBatch` contre une prise en double (il repose sur l'annulation du
+    lot quand une instruction échoue, prouvé seulement sur la base des tests) ; sélecteurs natifs
+    d'heure et de date du formulaire ; rappels reprogrammés après chaque écriture.
+  - **Ensuite** : #462 (bandeau, « Choisir les jours », encart), puis #463. Tickets créés : #481
+    (« 1er oct. »), #482 (report sans effet dans une période fermée, moteur), #483 (traitement sans
+    prise donnée dans le PDF). **Ne pas publier** : l'accueil, le Carnet et les rappels lisent encore
+    l'ancien modèle (un traitement à plusieurs heures y est « en retard » à tort, rappel quotidien à
+    9 h, date de fin inconnue) jusqu'à la fin du lot 3, au lot 4 et au lot 7.
+  - **Pièges du jour** : (1) toucher « Importer un export MémoPatte » par la WebView ouvre le
+    sélecteur de fichiers d'Android, qui reste devant : le champ `input[type=file]` est toujours dans
+    la page, lui donner le fichier directement (`DataTransfer`), sans toucher le bouton ; (2) la barre
+    du bas est cachée sur un écran poussé : revenir par `history.back()` ; (3) une notification se
+    rejoue par son intent (`am start` avec `LocalNotificationId`, `LocalNotificationUserAction`,
+    `LocalNotficationObject`, drapeaux `0x24000000`), après les contrôles d'usage ; (4) après une PR,
+    vérifier que `main` n'a pas bougé (release-please) avant d'enchaîner merge et suppression de
+    branche dans la même commande.
+
 - 2026-10-01 (soir) : **pause demandée par Gaelle, reprendre ici.** Lots 1 et 2 **mergés** : #464
   (#451, base neuve v9), #467 (#452, périodes et prises, v10), #470 (#454, export et import v3, carnet
   de démo), #468 (#455, miroirs Supabase v10 et ports de synchro, **migration appliquée au vrai projet
