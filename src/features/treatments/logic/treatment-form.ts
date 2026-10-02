@@ -14,6 +14,7 @@ import {
 } from '../schema/treatment-form.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 import type { FrequencyUnit, TreatmentType } from '../schema/treatment.schema'
+import { isCalendarDay } from '@/shared/domain/calendar-day'
 import { isClockTime, MAX_TIMES_PER_DAY } from '@/shared/domain/clock-time'
 import { formatDoseQuantity, TABLET_SHORTCUTS, type DoseUnit } from '@/shared/domain/dosage'
 import type { MoveRefusal } from '@/shared/domain/treatment-schedule'
@@ -44,7 +45,7 @@ const ERROR_KEYS = {
   endsOn: 'treatments.form.errors.endsOn',
 } as const
 
-export const TIMES_ERROR_KEY = ERROR_KEYS.times
+export const DUPLICATE_TIME_ERROR_KEY = 'treatments.form.errors.timesDuplicate'
 
 export type TreatmentFormErrorField = keyof typeof ERROR_KEYS
 export type TreatmentFormErrors = Partial<Record<TreatmentFormErrorField, string>>
@@ -76,6 +77,8 @@ const REASON_KEYS: Partial<Record<TreatmentFormErrorField, Record<string, string
     beforeFirstDose: 'treatments.form.errors.endsOnBeforeFirstDose',
     beforeNextDose: 'treatments.form.errors.endsOnBeforeNextDose',
     beforeLastDose: 'treatments.form.errors.endsOnBeforeLastDose',
+    beforePostponedDose: 'treatments.form.errors.endsOnBeforePostponedDose',
+    beforeAdvancedDose: 'treatments.form.errors.endsOnBeforeAdvancedDose',
   },
 }
 
@@ -262,7 +265,13 @@ export function editionDraftOf(
   history: TreatmentWithHistory,
   today: string,
 ): EditionDraft {
-  return editionDraft(history, rhythmOfValues(values), today)
+  const chosenOn = values.nextDoseOn.trim()
+  return editionDraft(
+    history,
+    rhythmOfValues(values),
+    today,
+    isCalendarDay(chosenOn) ? chosenOn : null,
+  )
 }
 
 /** « Prochaine dose » n'est envoyée que si elle est proposée : vide, elle est alors refusée. */

@@ -276,6 +276,9 @@
       "nextDoseOn": {
         "label": "Prochaine dose",
         "calculated": "Calculée d’après la dernière prise : {date}. Modifiable.",
+        "calculatedPassed": "Calculée d’après la dernière prise : le {date}, déjà passé ; aujourd’hui est proposé. Modifiable.",
+        "overdue": "Dose en retard depuis le {date}",
+        "dropped": "La dose prévue avant cette date ne sera plus à renseigner. | Les {n} doses prévues avant cette date ne seront plus à renseigner.",
         "refusal": {
           "laterLine": "Une dose plus lointaine est déjà reportée. Supprime ce report pour déplacer celle-ci.",
           "laterDose": "Une dose plus lointaine est déjà notée.",
@@ -323,12 +326,15 @@
         "nextDoseOnAfterEnd": "La prochaine dose ne peut pas dépasser la date de fin. Change la date de fin pour aller plus loin.",
         "nextDoseOnRefused": "Cette dose ne peut pas être déplacée.",
         "times": "Vérifie les heures du traitement.",
+        "timesDuplicate": "Cette heure est déjà dans la liste.",
         "dosageQuantity": "La quantité doit être un nombre supérieur à 0.",
         "dosageIncomplete": "Indique la quantité et l’unité, ou laisse les deux vides.",
         "endsOn": "Cette date n’existe pas.",
         "endsOnBeforeFirstDose": "La date de fin ne peut pas précéder la première prise.",
         "endsOnBeforeNextDose": "La date de fin ne peut pas précéder la prochaine dose.",
         "endsOnBeforeLastDose": "La date de fin ne peut pas précéder la dernière prise notée.",
+        "endsOnBeforePostponedDose": "La prochaine dose est reportée au {arrival}.",
+        "endsOnBeforeAdvancedDose": "La prochaine dose est avancée au {arrival}.",
         "notFound": "Ce traitement est introuvable.",
         "load": "Ce traitement n’a pas pu être chargé. Réessaie.",
         "save": "Le traitement n’a pas pu être enregistré. Réessaie."

@@ -9,7 +9,7 @@ import {
   editionDraftOf,
   emptyTreatmentFormValues,
   nextDoseRefusalKey,
-  TIMES_ERROR_KEY,
+  DUPLICATE_TIME_ERROR_KEY,
   treatmentFormValuesFrom,
   validateTreatmentCreation,
   validateTreatmentEdition,
@@ -58,7 +58,9 @@ const saveFailed = ref(false)
 const isSubmitting = ref(false)
 const endsOnTouched = ref(false)
 const hasDuplicateTime = ref(false)
-const duplicateTimeError = computed(() => (hasDuplicateTime.value ? TIMES_ERROR_KEY : undefined))
+const duplicateTimeError = computed(() =>
+  hasDuplicateTime.value ? DUPLICATE_TIME_ERROR_KEY : undefined,
+)
 
 function requireAnimalId(): string {
   if (props.animalId === undefined) throw new Error('Formulaire traitement ouvert sans animal.')
@@ -146,13 +148,27 @@ const unitOptions = computed(() =>
   })),
 )
 const nextDoseHelp = computed(() => {
-  if (nextDose.value === null) return null
-  const { refusal, calculatedOn } = nextDose.value
-  if (refusal !== null) return t(nextDoseRefusalKey(refusal))
-  if (calculatedOn === null) return null
-  return t('treatments.form.nextDoseOn.calculated', {
-    date: withoutFinalDot(formatDayMonthOrYear(calculatedOn, today.value)),
-  })
+  const help = nextDose.value?.help ?? null
+  if (help === null) return null
+  switch (help.kind) {
+    case 'refused':
+      return t(nextDoseRefusalKey(help.refusal))
+    case 'dropped':
+      return t('treatments.form.nextDoseOn.dropped', { n: help.count }, help.count)
+    case 'overdue':
+      return t('treatments.form.nextDoseOn.overdue', {
+        date: formatDayMonthOrYear(help.since, today.value),
+      })
+    case 'calculated-passed':
+      return t('treatments.form.nextDoseOn.calculatedPassed', {
+        date: formatDayMonthOrYear(help.on, today.value),
+      })
+    case 'calculated':
+      return t('treatments.form.nextDoseOn.calculated', {
+        date: withoutFinalDot(formatDayMonthOrYear(help.on, today.value)),
+      })
+  }
+  return null
 })
 const resumeInfo = computed(() => {
   if (previous.value === null || previous.value.endedOn === null) return null
@@ -172,8 +188,12 @@ const endsOnHelp = computed(() => {
 
 function errorText(key: string | undefined): string | null {
   if (key === undefined) return null
-  const date = nextDose.value ? formatFullDayMonth(nextDose.value.earliest) : ''
-  return t(key, { max: MAX_NAME_LENGTH, date })
+  const next = nextDose.value
+  return t(key, {
+    max: MAX_NAME_LENGTH,
+    date: next ? formatFullDayMonth(next.earliest) : '',
+    arrival: next ? withoutFinalDot(formatDayMonthOrYear(next.proposedOn, today.value)) : '',
+  })
 }
 
 watch(

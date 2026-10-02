@@ -330,12 +330,36 @@ describe('validateTreatmentEdition (TR-6, TR-9, TR-28)', () => {
     })
   })
 
-  it('n’envoie aucune prochaine dose pour un traitement fini', () => {
+  it('n’envoie aucune prochaine dose pour un traitement fini, verrouillé sur son nom et son type', () => {
     const fini = milbemax([period({ endsOn: '2026-08-01' })])
+    const values = edition({ endsOn: '2026-08-01', nextDoseOn: '' })
+
+    expect(editionDraftOf(values, fini, TODAY)).toMatchObject({ change: 'locked', nextDose: null })
+    expect(validateTreatmentEdition(values, fini, TODAY)).toMatchObject({
+      success: true,
+      data: { nextDoseOn: null },
+    })
+  })
+
+  it('donne à l’aide la date saisie dans « Prochaine dose »', () => {
+    const sansPrise = milbemax(
+      [
+        period({
+          startsOn: '2026-09-20',
+          firstDueOn: '2026-09-20',
+          frequency: { value: 1, unit: 'day' },
+        }),
+      ],
+      [],
+    )
 
     expect(
-      validateTreatmentEdition(edition({ endsOn: '2026-08-01', nextDoseOn: '' }), fini, TODAY),
-    ).toMatchObject({ success: true, data: { nextDoseOn: null } })
+      editionDraftOf(
+        edition({ frequencyValue: '1', frequencyUnit: 'day', nextDoseOn: '2026-10-01' }),
+        sansPrise,
+        TODAY,
+      ).nextDose?.help,
+    ).toEqual({ kind: 'dropped', count: 9 })
   })
 
   it.each([
@@ -387,7 +411,7 @@ describe('validateTreatmentEdition (TR-6, TR-9, TR-28)', () => {
     expect(editionDraftOf(edition(), milbemax(), TODAY).change).toBe('correct')
     expect(editionDraftOf(edition({ frequencyValue: '1' }), milbemax(), TODAY)).toMatchObject({
       change: 'open',
-      nextDose: { proposedOn: TODAY },
+      nextDose: { proposedOn: TODAY, help: { kind: 'calculated-passed', on: '2026-08-10' } },
     })
   })
 

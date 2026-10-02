@@ -223,6 +223,33 @@ describe('treatmentPlanService', () => {
     })
   })
 
+  it('reprend le jour même de l’arrêt, la prise de ce jour et l’ancienne période intactes (G3)', async () => {
+    today = '2026-10-02'
+    const { id } = await service.create({ ...MILBEMAX, firstDoseOn: '2026-09-25', endsOn: null })
+    await give(id, '2026-10-02', '2026-10-09')
+    await createTreatmentPeriodsRepository(db).stop(id, '2026-10-02')
+    const before = await historyOf(id)
+
+    await service.resume(id, {
+      firstDoseOn: '2026-10-02',
+      frequency: { value: 1, unit: 'week' },
+      times: [],
+      doseQuantity: 1,
+      doseUnit: 'tablet',
+      endsOn: null,
+    })
+
+    const after = await historyOf(id)
+    expect(after.periods[0]).toEqual(before.periods[0])
+    expect(after.doses).toEqual(before.doses)
+    expect(after.periods[1]).toMatchObject({ startsOn: '2026-10-02', firstDueOn: '2026-10-02' })
+    const schedule = treatmentScheduleOf(after, today)
+    expect(schedule.currentDoses).toMatchObject([
+      { periodId: after.periods[1]?.id, dueOn: '2026-10-02' },
+    ])
+    expect(schedule.doses).toHaveLength(1)
+  })
+
   describe('plusieurs heures par jour', () => {
     const METACAM: TreatmentCreationInput = {
       animalId: MILO,

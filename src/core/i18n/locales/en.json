@@ -276,6 +276,9 @@
       "nextDoseOn": {
         "label": "Next dose",
         "calculated": "Based on the last dose: {date}. You can change it.",
+        "calculatedPassed": "Based on the last dose: {date}, already passed; today is suggested. You can change it.",
+        "overdue": "Dose overdue since {date}",
+        "dropped": "The dose scheduled before this date will no longer need to be logged. | The {n} doses scheduled before this date will no longer need to be logged.",
         "refusal": {
           "laterLine": "A later dose is already postponed. Delete that postponement to move this one.",
           "laterDose": "A later dose is already logged.",
@@ -323,12 +326,15 @@
         "nextDoseOnAfterEnd": "The next dose can’t be after the end date. Change the end date to go further.",
         "nextDoseOnRefused": "This dose can’t be moved.",
         "times": "Check the treatment times.",
+        "timesDuplicate": "This time is already in the list.",
         "dosageQuantity": "Quantity must be a number greater than 0.",
         "dosageIncomplete": "Enter both the quantity and the unit, or leave both empty.",
         "endsOn": "This date doesn’t exist.",
         "endsOnBeforeFirstDose": "The end date can’t be before the first dose.",
         "endsOnBeforeNextDose": "The end date can’t be before the next dose.",
         "endsOnBeforeLastDose": "The end date can’t be before the last logged dose.",
+        "endsOnBeforePostponedDose": "The next dose is postponed to {arrival}.",
+        "endsOnBeforeAdvancedDose": "The next dose is moved up to {arrival}.",
         "notFound": "We can’t find this treatment.",
         "load": "Couldn’t load this treatment. Try again.",
         "save": "Couldn’t save this treatment. Try again."
