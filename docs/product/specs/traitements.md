@@ -710,7 +710,8 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
   jamais « donné »** (TR-19, TR-20, TR-22). Une dose notée oubliée se corrige par la fiche du
   traitement, pas par ces deux gestes. La feuille demande l'heure avant de noter quand le traitement
   en a plusieurs. Une notification ne note que la dose de son jour d'échéance ; sinon, la feuille
-  s'ouvre. Raison : ces gestes rapides ne doivent pas réécrire ce que le carnet dit déjà. Écartée :
+  s'ouvre, ou la fiche du traitement quand il n'est plus dans « À faire » : elle ne reste jamais sans
+  réponse. Un autre jour choisi dans « Fait à une autre date » garde TR-22. Raison : ces gestes rapides ne doivent pas réécrire ce que le carnet dit déjà. Écartée :
   laisser « Fait aujourd'hui » repasser un oubli en « donné » depuis la feuille. (Relecture
   d'ensemble du 2026-10-02, fiche #461.)
 
