@@ -11,6 +11,8 @@ import type {
   TreatmentScheduleInput,
 } from './treatment-schedule-types'
 
+export { ScheduleTooLongError } from './treatment-schedule-checks'
+
 export type {
   Frequency,
   TreatmentPeriodInput,
