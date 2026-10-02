@@ -3,12 +3,15 @@ import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 
+import TreatmentChooseDays from './TreatmentChooseDays.vue'
 import TreatmentDoseCard from './TreatmentDoseCard.vue'
 import TreatmentHistory from './TreatmentHistory.vue'
 import TreatmentOtherDateSheet from './TreatmentOtherDateSheet.vue'
+import TreatmentUnloggedPrompt from './TreatmentUnloggedPrompt.vue'
 import { useTreatmentDetail } from '../composables/use-treatment-detail'
 import { useTreatmentGestures } from '../composables/use-treatment-gestures'
 import { detailActions, doseCard } from '../logic/treatment-card'
+import { choiceGestures, chooseDaysSubtitle, type DayChoice } from '../logic/treatment-choose-days'
 import type { DoseAction } from '../logic/treatment-dose-writes'
 import {
   dateChangeOf,
@@ -24,6 +27,7 @@ import {
   type DoseRow,
 } from '../logic/treatment-history'
 import { treatmentStopTexts } from '../logic/treatment-sheet'
+import { promptChoice, unloggedBanner, type PromptActionId } from '../logic/treatment-unlogged'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
 import DatePickerSheet from '@/shared/components/DatePickerSheet.vue'
@@ -72,6 +76,14 @@ const card = computed(() =>
       })
     : null,
 )
+const unlogged = computed(() =>
+  treatment.value && schedule.value
+    ? unloggedBanner(t, treatment.value, schedule.value, today.value)
+    : null,
+)
+const chooseDaysSubtitleText = computed(() =>
+  chooseDaysSubtitle(named.value.name, named.value.animal, unlogged.value?.when ?? null),
+)
 const history = computed(() =>
   treatment.value && schedule.value ? treatmentHistory(t, treatment.value, schedule.value) : null,
 )
@@ -91,6 +103,7 @@ const menuItems = computed<OverflowMenuItem[]>(() => [
 ])
 
 const isOtherDateOpen = ref(false)
+const isChooseDaysOpen = ref(false)
 const isDatePickerOpen = ref(false)
 const isStopDialogOpen = ref(false)
 const isDeleteDialogOpen = ref(false)
@@ -126,6 +139,22 @@ function done(due: Due): void {
 
 async function noteOtherDate(due: Due, givenOn: string): Promise<void> {
   if (await note(due, givenOn)) isOtherDateOpen.value = false
+}
+
+function log(choice: DayChoice): Promise<boolean> {
+  const periodId = unlogged.value?.dues[0]?.periodId ?? ''
+  return apply({ kind: 'log', gestures: choiceGestures(choice) }, null, periodId)
+}
+
+function onUnloggedAction(action: PromptActionId): void {
+  if (!unlogged.value) return
+  if (action === 'choose-days') isChooseDaysOpen.value = true
+  else void log(promptChoice(action, unlogged.value.dues))
+}
+
+async function logChosenDays(choice: DayChoice): Promise<void> {
+  await log(choice)
+  isChooseDaysOpen.value = false
 }
 
 function onLineAction(row: DoseRow, choice: DoseLineAction, bounds: MoveBounds | null): void {
@@ -211,6 +240,14 @@ async function remove(): Promise<void> {
           @other-date="isOtherDateOpen = true"
         />
 
+        <TreatmentUnloggedPrompt
+          v-if="unlogged"
+          class="treatment-detail__unlogged"
+          :prompt="unlogged"
+          :busy="gestures.isBusy.value"
+          @act="onUnloggedAction"
+        />
+
         <TreatmentHistory :history="history" @select="onLineAction" />
 
         <button
@@ -250,6 +287,15 @@ async function remove(): Promise<void> {
       :min="animal?.birthDate ?? null"
       :busy="gestures.isBusy.value"
       @note="noteOtherDate"
+    />
+
+    <TreatmentChooseDays
+      v-model="isChooseDaysOpen"
+      :subtitle="chooseDaysSubtitleText"
+      :dues="unlogged?.dues ?? []"
+      :when="unlogged?.when ?? ''"
+      :busy="gestures.isBusy.value"
+      @confirm="logChosenDays"
     />
 
     <DatePickerSheet
@@ -314,6 +360,10 @@ async function remove(): Promise<void> {
 .treatment-detail__edit {
   width: tokens.$size-tap-target;
   height: tokens.$size-tap-target;
+}
+
+.treatment-detail__unlogged {
+  margin-inline: tokens.$padding-section-inline;
 }
 
 .treatment-detail__stop {

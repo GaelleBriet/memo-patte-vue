@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest'
 import { dose, period, treatment } from './treatment-fixtures'
 import { doseChange } from '../logic/treatment-dose-writes'
 import { treatmentScheduleOf } from '../logic/treatment-schedule'
-import { allGivenGestures } from '../logic/treatment-unlogged'
+import { choiceGestures } from '../logic/treatment-choose-days'
 
 const TODAY = '2026-09-28'
 
@@ -44,7 +44,7 @@ function allGiven(history: ReturnType<typeof gap>) {
   return doseChange(
     history,
     schedule,
-    { kind: 'log', gestures: allGivenGestures(schedule.unloggedDoses) },
+    { kind: 'log', gestures: choiceGestures({ given: schedule.unloggedDoses, missed: [] }) },
     () => String((id += 1)),
   ).writes
 }

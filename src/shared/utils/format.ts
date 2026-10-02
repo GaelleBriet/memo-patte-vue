@@ -60,6 +60,25 @@ export function formatMonthYear(isoDate: string): string {
   return format(parseISO(isoDate), 'MMM yyyy', { locale: DATE_LOCALES[currentLocale()] })
 }
 
+/** `septembre 2026` / `September 2026` — titre d'un mois de calendrier. */
+export function formatFullMonthYear(isoDate: string): string {
+  return format(parseISO(isoDate), 'LLLL yyyy', { locale: DATE_LOCALES[currentLocale()] })
+}
+
+/** Premier jour de la semaine dans la langue courante : 1 (lundi) en français, 0 (dimanche) en anglais. */
+export function weekStartsOn(): number {
+  return DATE_LOCALES[currentLocale()].options?.weekStartsOn ?? 0
+}
+
+/** `L M M J V S D` / `S M T W T F S`, dans l'ordre de la semaine de la langue courante. */
+export function weekdayInitials(): string[] {
+  const locale = DATE_LOCALES[currentLocale()]
+  const first = weekStartsOn()
+  return Array.from({ length: 7 }, (_, index) =>
+    format(new Date(2024, 0, 7 + first + index), 'EEEEE', { locale }).toLocaleUpperCase(),
+  )
+}
+
 /** `8 nov. 2026` / `Nov 8, 2026`. */
 export function formatLongDate(isoDate: string): string {
   return format(parseISO(isoDate), 'PP', { locale: DATE_LOCALES[currentLocale()] })

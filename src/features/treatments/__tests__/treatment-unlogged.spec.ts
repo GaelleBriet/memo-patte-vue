@@ -3,7 +3,14 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { dose, period, plain, treatment } from './treatment-fixtures'
 import { doseCard } from '../logic/treatment-card'
 import { treatmentScheduleOf } from '../logic/treatment-schedule'
-import { allGivenGestures, unloggedBanner, unloggedWhen } from '../logic/treatment-unlogged'
+import {
+  pastDosesOf,
+  pastDosesPrompt,
+  pastDosesResult,
+  promptChoice,
+  unloggedBanner,
+  unloggedWhen,
+} from '../logic/treatment-unlogged'
 import type { TreatmentWithHistory } from '../repository/treatments.repository'
 import i18n, { applyLocale } from '@/core/i18n'
 
@@ -22,14 +29,26 @@ function banner(history: TreatmentWithHistory, today = TODAY) {
 afterEach(() => applyLocale('fr'))
 
 describe('unloggedBanner (TR-15)', () => {
-  it('annonce les doses non renseignées et leur plage', () => {
+  it('annonce les doses non renseignées et leur plage, avec deux gestes à égalité', () => {
     expect(banner(PANACUR)).toMatchObject({
       title: '25 doses non renseignées',
-      when: 'du 3 au 27 sept.',
+      subtitle: 'du 3 au 27 sept.',
       note: 'Indique si elles ont été données.',
-      single: null,
-      allGivenLabel: 'Noter les 25 doses comme données, du 3 au 27 sept.',
-      chooseDaysLabel: 'Choisir les jours où Panacur a été donné, du 3 au 27 sept.',
+      when: 'du 3 au 27 sept.',
+      actions: [
+        {
+          id: 'all-given',
+          text: 'Toutes données',
+          icon: 'ms:done_all',
+          label: 'Noter les 25 doses comme données, du 3 au 27 sept.',
+        },
+        {
+          id: 'choose-days',
+          text: 'Choisir les jours',
+          icon: 'ms:calendar_month',
+          label: 'Choisir les jours où Panacur a été donné, du 3 au 27 sept.',
+        },
+      ],
     })
     expect(banner(PANACUR)?.dues).toHaveLength(25)
   })
@@ -39,7 +58,7 @@ describe('unloggedBanner (TR-15)', () => {
 
     expect(banner(history)).toMatchObject({
       title: '2 doses non renseignées',
-      when: '8 et 15 sept.',
+      subtitle: '8 et 15 sept.',
     })
   })
 
@@ -48,13 +67,23 @@ describe('unloggedBanner (TR-15)', () => {
 
     expect(banner(history)).toMatchObject({
       title: '1 dose non renseignée',
-      when: '27 sept.',
+      subtitle: '27 sept.',
       note: 'Indique si elle a été donnée.',
-      single: {
-        due: { periodId: 'p-1', dueOn: '2026-09-27', dueTime: null },
-        givenLabel: 'Noter la dose du 27 sept. comme donnée',
-        missedLabel: 'Noter la dose du 27 sept. comme oubliée',
-      },
+      dues: [{ periodId: 'p-1', dueOn: '2026-09-27', dueTime: null }],
+      actions: [
+        {
+          id: 'given',
+          text: 'Donnée',
+          icon: 'ms:check',
+          label: 'Noter la dose du 27 sept. comme donnée',
+        },
+        {
+          id: 'missed',
+          text: 'Oubliée',
+          icon: 'ms:close',
+          label: 'Noter la dose du 27 sept. comme oubliée',
+        },
+      ],
     })
   })
 
@@ -65,8 +94,8 @@ describe('unloggedBanner (TR-15)', () => {
     )
 
     expect(banner(history)).toMatchObject({
-      when: '27 sept. à 20 h',
-      single: { givenLabel: 'Noter la dose du 27 sept. à 20 h comme donnée' },
+      subtitle: '27 sept. à 20 h',
+      actions: [{ label: 'Noter la dose du 27 sept. à 20 h comme donnée' }, { id: 'missed' }],
     })
   })
 
@@ -75,7 +104,7 @@ describe('unloggedBanner (TR-15)', () => {
 
     expect(banner(history, '2026-09-04')).toMatchObject({
       title: '6 doses non renseignées',
-      when: '1, 2 et 3 sept.',
+      subtitle: '1, 2 et 3 sept.',
     })
   })
 
@@ -112,7 +141,7 @@ describe('unloggedBanner (TR-15)', () => {
 
     expect(banner(PANACUR)).toMatchObject({
       title: '25 doses not logged',
-      when: 'Sep 3 – Sep 27',
+      subtitle: 'Sep 3 – Sep 27',
       note: 'Tell us whether they were given.',
     })
   })
@@ -145,10 +174,94 @@ describe('unloggedWhen', () => {
   })
 })
 
-describe('allGivenGestures', () => {
-  it('note chaque dose donnée le jour de son échéance', () => {
-    const due = { periodId: 'p-1', dueOn: '2026-09-03', dueTime: null }
+describe('promptChoice', () => {
+  const dues = [
+    { periodId: 'p-1', dueOn: '2026-09-03', dueTime: null },
+    { periodId: 'p-1', dueOn: '2026-09-04', dueTime: null },
+  ]
 
-    expect(allGivenGestures([due])).toEqual([{ kind: 'given', due, givenOn: '2026-09-03' }])
+  it('répond pour toutes les doses d’un coup', () => {
+    expect(promptChoice('all-given', dues)).toEqual({ given: dues, missed: [] })
+    expect(promptChoice('given', dues.slice(0, 1))).toEqual({ given: [dues[0]], missed: [] })
+    expect(promptChoice('missed', dues.slice(0, 1))).toEqual({ given: [], missed: [dues[0]] })
+  })
+})
+
+describe('pastDosesPrompt — l’encart du formulaire de création (TR-3)', () => {
+  const draft = (dueOn: string, dueTime: string | null = null) => ({
+    periodId: 'draft',
+    dueOn,
+    dueTime,
+  })
+  const SEPTEMBRE = Array.from({ length: 25 }, (_, index) =>
+    draft(`2026-09-${String(index + 3).padStart(2, '0')}`),
+  )
+  const prompt = (dues: ReturnType<typeof draft>[], severalTimes = false) =>
+    plain(pastDosesPrompt(t, dues, TODAY, severalTimes))
+
+  it('annonce les échéances passées et pose la question', () => {
+    expect(prompt(SEPTEMBRE)).toMatchObject({
+      title: '25 doses prévues depuis le 3 sept.',
+      subtitle: 'Ont-elles été données ?',
+      note: 'Facultatif. Sinon, la fiche les affichera comme non renseignées.',
+      when: 'du 3 au 27 sept.',
+      actions: [
+        { id: 'all-given', label: 'Noter les 25 doses comme données, du 3 au 27 sept.' },
+        {
+          id: 'choose-days',
+          label: 'Choisir les jours où la dose a été donnée, du 3 au 27 sept.',
+        },
+      ],
+    })
+  })
+
+  it('propose « Donnée » et « Oubliée » pour une seule dose', () => {
+    expect(prompt([draft('2026-09-27')])).toMatchObject({
+      title: '1 dose prévue le 27 sept.',
+      subtitle: 'A-t-elle été donnée ?',
+      note: 'Facultatif. Sinon, la fiche l’affichera comme non renseignée.',
+      actions: [{ id: 'given' }, { id: 'missed' }],
+    })
+    expect(prompt([draft('2026-09-27', '20:00')], true)?.title).toBe(
+      '1 dose prévue le 27 sept. à 20 h',
+    )
+  })
+
+  it('n’existe pas sans échéance passée', () => {
+    expect(prompt([])).toBeNull()
+  })
+
+  it('résume la réponse, « Modifier » à côté', () => {
+    const [first, second, ...rest] = SEPTEMBRE
+
+    expect(plain(pastDosesResult(t, { given: SEPTEMBRE, missed: [] }))).toEqual({
+      text: '25 données',
+      edit: 'Modifier',
+      editLabel: 'Modifier les jours choisis',
+    })
+    expect(plain(pastDosesResult(t, { given: rest, missed: [first!, second!] })).text).toBe(
+      '23 données, 2 oubliées',
+    )
+  })
+
+  it('en anglais', () => {
+    applyLocale('en')
+
+    expect(prompt(SEPTEMBRE)).toMatchObject({
+      title: '25 doses scheduled since Sep 3',
+      subtitle: 'Were they given?',
+    })
+    expect(
+      pastDosesResult(t, { given: SEPTEMBRE.slice(5), missed: SEPTEMBRE.slice(0, 5) }),
+    ).toEqual({ text: '20 given, 5 missed', edit: 'Change', editLabel: 'Change the chosen days' })
+  })
+
+  it('rend à la création les doses de la réponse, sans leur période de brouillon', () => {
+    expect(
+      pastDosesOf({ given: [draft('2026-09-03')], missed: [draft('2026-09-04', '08:00')] }),
+    ).toEqual([
+      { dueOn: '2026-09-03', dueTime: null, status: 'given' },
+      { dueOn: '2026-09-04', dueTime: '08:00', status: 'missed' },
+    ])
   })
 })

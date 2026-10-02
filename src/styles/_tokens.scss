@@ -150,3 +150,9 @@ $shadow-menu: 0 8px 24px rgb(30 25 20 / 16%); // Ombre d'un menu ⋮
 $color-history-row-active: $color-badge-frequency-bg; // Ligne dont le menu ⋮ est ouvert
 $color-history-period-surface: $color-badge-frequency-bg; // Tête d'une période dans l'historique d'un traitement
 $color-last-dose-surface: $color-notice-surface; // Pastille « Dernière prise »
+
+// Doses non renseignées (bandeau de la fiche, encart du formulaire, « Choisir les jours »)
+$color-unlogged-surface: $color-notice-surface; // Fond du bandeau et de l'encart
+$color-unlogged-border: $color-priming-icon-surface; // Leur bordure
+$radius-unlogged: 20px; // Leurs coins
+$color-day-missed-border: $color-chart-arrow-disabled; // Contour d'un jour décoché

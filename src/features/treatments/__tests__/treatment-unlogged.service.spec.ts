@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory-db'
 import { DoseAlreadyLoggedError } from '../logic/treatment-dose-writes'
 import { treatmentScheduleOf } from '../logic/treatment-schedule'
-import { allGivenGestures } from '../logic/treatment-unlogged'
+import { choiceGestures } from '../logic/treatment-choose-days'
 import {
   createTreatmentDosesRepository,
   DuplicateDueError,
@@ -115,7 +115,7 @@ describe('renseigner les doses non renseignées (TR-17)', () => {
 
     const { undo } = await service.apply(PANACUR, {
       kind: 'log',
-      gestures: allGivenGestures(unloggedDoses),
+      gestures: choiceGestures({ given: unloggedDoses, missed: [] }),
     })
     await service.undoBatch(PANACUR, undo)
 
@@ -134,7 +134,10 @@ describe('renseigner les doses non renseignées (TR-17)', () => {
     })
 
     await expect(
-      service.apply(PANACUR, { kind: 'log', gestures: allGivenGestures(unloggedDoses) }),
+      service.apply(PANACUR, {
+        kind: 'log',
+        gestures: choiceGestures({ given: unloggedDoses, missed: [] }),
+      }),
     ).rejects.toThrow(DoseAlreadyLoggedError)
     await expect(statuses()).resolves.toEqual({ missed: 1 })
   })
@@ -150,7 +153,10 @@ describe('renseigner les doses non renseignées (TR-17)', () => {
     })
 
     await expect(
-      late.apply(PANACUR, { kind: 'log', gestures: allGivenGestures(unloggedDoses) }),
+      late.apply(PANACUR, {
+        kind: 'log',
+        gestures: choiceGestures({ given: unloggedDoses, missed: [] }),
+      }),
     ).rejects.toThrow(DuplicateDueError)
     await expect(statuses()).resolves.toEqual({ missed: 1 })
   })
