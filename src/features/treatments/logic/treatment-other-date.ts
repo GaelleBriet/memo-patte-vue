@@ -91,13 +91,13 @@ export function givenDays(schedule: DaySchedule): string[] {
  * jour-là, la dose du moment aujourd'hui, ou la règle sans heure (TR-13) un autre jour. Aujourd'hui,
  * une dose notée oubliée ne repasse jamais en donnée, et une dose à venir ne se note pas en avance
  * quand une prise a déjà été donnée ; un autre jour, choisi par la personne, un oubli se corrige
- * (TR-22). `null` : rien à noter.
+ * (TR-22). `dayNoted` : toutes les doses du jour sont notées, aucune donnée. `null` : rien à noter.
  */
 export function momentDue(
   schedule: OtherDateSchedule,
   givenOn: string,
   today: string,
-): { due: Due } | { alreadyGivenOn: string } | null {
+): { due: Due } | { alreadyGivenOn: string } | { dayNoted: true } | null {
   const dues = dayDues(schedule, givenOn)
   const open =
     dues.find(({ status }) => status === 'pending') ??
@@ -105,7 +105,7 @@ export function momentDue(
   if (open !== undefined) return { due: open.due }
   if (dues.length > 0) {
     const given = dues.find(({ status }) => status === 'given')
-    return { alreadyGivenOn: given?.givenOn ?? givenOn }
+    return given === undefined ? { dayNoted: true } : { alreadyGivenOn: given.givenOn ?? givenOn }
   }
   if (givenOn !== today) {
     const due = schedule.dueForDate(givenOn)

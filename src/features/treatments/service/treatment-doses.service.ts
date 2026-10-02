@@ -38,11 +38,12 @@ export type AppliedDoseChange = Omit<DoseChange, 'writes'> & {
 
 export type NotedMoment = AppliedDoseChange & {
   /**
-   * `already` : l'échéance était déjà notée ; `none` : plus aucune dose à noter ; `ask` : la dose à
+   * `already` : l'échéance était déjà notée ; `day-noted` : toutes les doses du jour sont notées,
+   * aucune donnée ; `none` : plus aucune dose à noter ; `ask` : la dose à
    * noter n'est pas celle de la notification, à la personne de choisir. Rien n'est écrit hors de
    * `noted`.
    */
-  outcome: 'noted' | 'already' | 'none' | 'ask'
+  outcome: 'noted' | 'already' | 'day-noted' | 'none' | 'ask'
   /** Échéance notée ; `null` hors de `noted`. */
   due: Due | null
   severalTimes: boolean
@@ -132,6 +133,7 @@ export function createTreatmentDosesService({
       }
       const target = momentDue(schedule, givenOn, day)
       if (target === null) return { ...nothing, outcome: 'none' }
+      if ('dayNoted' in target) return { ...nothing, outcome: 'day-noted' }
       if ('alreadyGivenOn' in target) {
         return { ...nothing, outcome: 'already', alreadyGivenOn: target.alreadyGivenOn }
       }

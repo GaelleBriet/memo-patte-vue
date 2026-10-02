@@ -202,7 +202,7 @@ describe('momentDue — ce que notent la feuille « À faire » et une notificat
       due: { periodId: 'p-1', dueOn: '2026-09-01', dueTime: '20:00' },
     })
     expect(due(soirDonne, '2026-09-01')).toEqual({ alreadyGivenOn: '2026-09-01' })
-    expect(due(toutOublie, '2026-09-01')).toEqual({ alreadyGivenOn: '2026-09-01' })
+    expect(due(toutOublie, '2026-09-01')).toEqual({ dayNoted: true })
   })
 
   it('un autre jour, choisi dans la feuille, un oubli repasse en donnée (TR-22)', () => {

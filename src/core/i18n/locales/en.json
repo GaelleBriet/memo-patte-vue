@@ -340,7 +340,8 @@
         "doseOn": "{name} dose on {date} logged for {animal}",
         "undoDose": "Undo the {name} dose",
         "stopped": "{name} stopped. It’s in Finished treatments.",
-        "undoStop": "Undo stopping {name}"
+        "undoStop": "Undo stopping {name}",
+        "dayNoted": "Today’s doses are already logged."
       },
       "errors": {
         "dose": "Couldn’t log the dose. Try again.",

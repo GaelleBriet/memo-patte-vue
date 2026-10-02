@@ -267,6 +267,17 @@ describe('TreatmentReminderSheet — F2', () => {
     expect(recordDose).toHaveBeenCalledOnce()
   })
 
+  it('dit que les doses du jour sont déjà notées quand aucune n’a été donnée aujourd’hui', async () => {
+    recordDose.mockResolvedValue({ ...NOTED, outcome: 'day-noted', undo: [], due: null })
+    await monter()
+
+    bouton('.reminder-actions__done-today').click()
+    await flushPromises()
+
+    expect(toastMessage.value).toBe('Les doses d’aujourd’hui sont déjà notées.')
+    expect(toastAction.value).toBeNull()
+  })
+
   it('dit « déjà notée », sans « Annuler », quand la prise du jour l’était déjà', async () => {
     recordDose.mockResolvedValue({
       ...NOTED,
