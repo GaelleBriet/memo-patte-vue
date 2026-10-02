@@ -1,4 +1,5 @@
-import { checkFrequency, invalid, isClockTime } from './treatment-schedule-checks'
+import { isClockTime } from './clock-time'
+import { checkFrequency, invalid } from './treatment-schedule-checks'
 import { latestOf, shiftDate } from './treatment-schedule-dues'
 import { mergeDoses } from './treatment-schedule-plan'
 import { fixesSuiteFromItsDate, referenceOf } from './treatment-schedule-sequence'

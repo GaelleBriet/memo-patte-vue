@@ -13,7 +13,6 @@ import {
 } from '../logic/treatment-form'
 import {
   FREQUENCY_UNITS,
-  MAX_FREQUENCY_VALUE,
   TREATMENT_TYPES,
   type FrequencyUnit,
   type Treatment,
@@ -21,6 +20,7 @@ import {
 import { useTreatmentsStore } from '../store/treatments.store'
 import { useToday } from '@/core/app-lifecycle/use-today'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
+import { MAX_FREQUENCY_VALUE } from '@/shared/domain/treatment-frequency'
 import { formatLongDate } from '@/shared/utils/format'
 import FormField from '@/shared/form/FormField.vue'
 import FormScreen from '@/shared/form/FormScreen.vue'

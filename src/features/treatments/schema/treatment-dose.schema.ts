@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 import type { TreatmentFrequency } from './treatment.schema'
+import { CLOCK_TIME_PATTERN } from '@/shared/domain/clock-time'
 
 export const DOSE_STATUSES = ['given', 'missed', 'postponed'] as const
 
@@ -10,7 +11,7 @@ export const treatmentDoseSchema = z.object({
   treatmentId: z.uuid(),
   animalId: z.uuid(),
   dueOn: z.iso.date(),
-  dueTime: z.iso.time({ precision: -1 }).nullable(),
+  dueTime: z.string().regex(CLOCK_TIME_PATTERN).nullable(),
   /** `null` pour une prise oubliée ou reportée. */
   givenOn: z.iso.date().nullable(),
   status: z.enum(DOSE_STATUSES),
