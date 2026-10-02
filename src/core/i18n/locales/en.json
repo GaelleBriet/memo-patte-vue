@@ -433,6 +433,19 @@
       "years": "in {n} year | in {n} years"
     }
   },
+  "currentDose": {
+    "label": {
+      "today": "Today’s dose",
+      "upcoming": "Next dose",
+      "end": "Treatment end"
+    },
+    "at": "{date} at {time}",
+    "tomorrow": "tomorrow, {date}",
+    "overdueSince": "overdue since {date}",
+    "stoppedOn": "Stopped on {date}",
+    "today": "Today",
+    "todayAt": "Today · {time}"
+  },
   "dosage": {
     "unit": {
       "tablet": "tablet | tablets",

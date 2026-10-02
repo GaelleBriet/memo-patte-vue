@@ -433,6 +433,19 @@
       "years": "dans {n} an | dans {n} ans"
     }
   },
+  "currentDose": {
+    "label": {
+      "today": "Dose du jour",
+      "upcoming": "Prochaine dose",
+      "end": "Fin du traitement"
+    },
+    "at": "{date} à {time}",
+    "tomorrow": "demain, {date}",
+    "overdueSince": "en retard depuis le {date}",
+    "stoppedOn": "Arrêté le {date}",
+    "today": "Aujourd’hui",
+    "todayAt": "Aujourd’hui · {time}"
+  },
   "dosage": {
     "unit": {
       "tablet": "comprimé | comprimés",
