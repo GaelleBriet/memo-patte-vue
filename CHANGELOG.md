@@ -5,6 +5,13 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.52](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.51...memo-patte-v0.1.52) (2026-10-02)
+
+
+### ✨ Fonctionnalités
+
+* **treatments:** socle du lot 3 — lecture par le moteur, traitement sans prise, type médicament ([4d02a71](https://github.com/GaelleBriet/memo-patte-vue/commit/4d02a71b731d5f67d704297b82f42d45f2336c7d))
+
 ## [0.1.51](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.50...memo-patte-v0.1.51) (2026-10-02)
 
 
