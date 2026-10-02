@@ -5,6 +5,14 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.51](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.50...memo-patte-v0.1.51) (2026-10-02)
+
+
+### 🐛 Corrections
+
+* **analytics:** retirer « anonymes » du libellé des statistiques d'usage ([27eb940](https://github.com/GaelleBriet/memo-patte-vue/commit/27eb94025e30a654f1f67392467cccdf5126d636))
+* **analytics:** retirer « anonymes » du libellé des statistiques d'usage ([6e13314](https://github.com/GaelleBriet/memo-patte-vue/commit/6e13314b7d1e76a678a423ef1c98ffcc77ed628d)), closes [#425](https://github.com/GaelleBriet/memo-patte-vue/issues/425)
+
 ## [0.1.50](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.49...memo-patte-v0.1.50) (2026-10-01)
 
 
