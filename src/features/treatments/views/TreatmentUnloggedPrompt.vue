@@ -64,7 +64,10 @@ const titleId = useId()
       </button>
     </div>
 
-    <p v-if="variant === 'inset'" class="treatment-unlogged__note treatment-unlogged__note--below">
+    <p
+      v-if="variant === 'inset' && !result"
+      class="treatment-unlogged__note treatment-unlogged__note--below"
+    >
       {{ prompt.note }}
     </p>
   </section>
@@ -132,7 +135,7 @@ const titleId = useId()
   gap: 6px;
   min-width: 0;
   min-height: tokens.$size-tap-target;
-  padding: 4px 8px;
+  padding: 4px;
   border: 1.5px solid rgb(var(--v-theme-primary));
   border-radius: tokens.$radius-pill;
   background: tokens.$color-field-surface;

@@ -157,8 +157,10 @@ function confirm(): void {
           :aria-label="month.title"
         >
           <div class="treatment-choose-days__month-head">
-            <h2 class="treatment-choose-days__month-title">{{ month.title }}</h2>
-            <span class="treatment-choose-days__month-count">{{ month.count }}</span>
+            <div class="treatment-choose-days__month-name">
+              <h2 class="treatment-choose-days__month-title">{{ month.title }}</h2>
+              <span class="treatment-choose-days__month-count">{{ month.count }}</span>
+            </div>
             <button
               v-if="month.toggle"
               type="button"
@@ -352,6 +354,15 @@ $size-day: 48px;
   padding-left: 8px;
 }
 
+.treatment-choose-days__month-name {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 8px;
+  min-width: 0;
+}
+
 .treatment-choose-days__month-title {
   margin: 0;
   font-family: tokens.$font-family-heading;
@@ -363,10 +374,12 @@ $size-day: 48px;
   color: tokens.$color-text-secondary;
   font-size: 12.5px;
   font-weight: 600;
+  white-space: nowrap;
 }
 
 .treatment-choose-days__month-toggle {
-  margin-inline-start: auto;
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 .treatment-choose-days__weekdays,

@@ -932,6 +932,7 @@ describe('TreatmentFormView — encart des doses passées (TR-3, planches A · V
     expect(texte(wrapper, '.treatment-unlogged__result-text')).toBe('25 données')
     expect(texte(wrapper, '.treatment-unlogged__edit')).toBe('Modifier')
     expect(gestes(wrapper)).toHaveLength(0)
+    expect(wrapper.find('.treatment-unlogged__note').exists()).toBe(false)
     expect(create).not.toHaveBeenCalled()
 
     await soumettre(wrapper)
