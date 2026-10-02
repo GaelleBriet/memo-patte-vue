@@ -244,11 +244,9 @@ describe('SettingsView', () => {
       const wrapper = await monter()
       const input = interrupteur(wrapper)
 
-      expect(wrapper.get('.settings-row--analytics').text()).toContain(
-        'Statistiques d’usage anonymes',
-      )
+      expect(wrapper.get('.settings-row--analytics').text()).toContain('Statistiques d’usage')
       expect([...input.element.labels!].map((label) => label.textContent?.trim())).toContain(
-        'Statistiques d’usage anonymes',
+        'Statistiques d’usage',
       )
     })
 

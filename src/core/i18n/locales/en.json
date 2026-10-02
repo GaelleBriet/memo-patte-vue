@@ -650,7 +650,7 @@
     },
     "privacy": {
       "title": "Privacy",
-      "analytics": "Anonymous usage statistics"
+      "analytics": "Usage statistics"
     },
     "about": {
       "title": "About",
@@ -773,7 +773,7 @@
   "analytics": {
     "consent": {
       "title": "Before you start",
-      "measured": "With your consent, MémoPatte measures anonymous usage statistics to improve the app: the screens you view and actions such as “vaccine added”.",
+      "measured": "With your consent, MémoPatte measures usage statistics to improve the app: the screens you view and actions such as “vaccine added”.",
       "never": "Never the content of your health record, never your pets’ names. This data is hosted in Europe.",
       "changeMind": "You can change your mind at any time in Settings → Privacy.",
       "refuse": "Decline",
