@@ -5,8 +5,10 @@ import { getDb } from '@/core/db/sqlite'
 import { guardedUpsert, type SyncRow } from '@/core/supabase/guarded-upsert'
 import { loadSupabaseClient } from '@/core/supabase/load-client'
 import { syncField, type SyncPullPage } from '@/core/sync/service/syncable-table'
+import { currentPeriodIdSql } from './treatment-periods.repository'
 import type { NewTreatmentDose, TreatmentDose } from '../schema/treatment-dose.schema'
 import type { FrequencyUnit } from '../schema/treatment.schema'
+import type { DoseFields } from '@/shared/domain/treatment-schedule'
 
 export type RestoredTreatmentDose = Omit<NewTreatmentDose, 'deletedAt'>
 export type TreatmentDoseVersion = Pick<
@@ -14,6 +16,15 @@ export type TreatmentDoseVersion = Pick<
   'id' | 'periodId' | 'treatmentId' | 'updatedAt' | 'deletedAt'
 >
 export type DoseDates = { givenOn: string; dueOn: string; nextDueDate: string }
+
+type DoseOwner = Pick<NewTreatmentDose, 'id' | 'treatmentId' | 'animalId'>
+
+/** Une écriture du moteur d'échéances ; `restore` ne sert qu'à défaire un `delete`. */
+export type DoseWrite =
+  | ({ action: 'create'; dose: DoseFields } & DoseOwner)
+  | { action: 'rewrite'; id: string; dose: DoseFields }
+  | { action: 'delete'; id: string }
+  | { action: 'restore'; id: string }
 
 interface DoseRow {
   id: string
@@ -82,17 +93,25 @@ function toDose(row: DoseWithFrequencyRow): TreatmentDose {
   }
 }
 
-/**
- * Sous-requête de la dernière ligne d'un traitement (`treatmentId` est une expression SQL) : la
- * prise non supprimée à l'échéance la plus tardive, jour puis heure, puis par saisie, puis par
- * identifiant.
- */
-export function headDoseIdSql(treatmentId: string): string {
-  return `(SELECT candidate.id FROM treatment_dose candidate
-           WHERE candidate.treatment_id = ${treatmentId} AND candidate.deleted_at IS NULL
+function lastOfPeriodSql(column: string, periodId: string, filter = ''): string {
+  return `(SELECT candidate.${column} FROM treatment_dose candidate
+           WHERE candidate.period_id = ${periodId} AND candidate.deleted_at IS NULL ${filter}
            ORDER BY candidate.due_on DESC, candidate.due_time DESC, candidate.created_at DESC,
              candidate.id DESC
            LIMIT 1)`
+}
+
+/**
+ * Sous-requête de la dernière ligne d'une période (`periodId` est une expression SQL) : la prise
+ * non supprimée à l'échéance la plus tardive, jour puis heure, puis par saisie, puis par identifiant.
+ */
+export function headDoseIdSql(periodId: string): string {
+  return lastOfPeriodSql('id', periodId)
+}
+
+/** Sous-requête de la date de la dernière prise donnée d'une période, dans l'ordre de `headDoseIdSql`. */
+export function lastGivenOnSql(periodId: string): string {
+  return lastOfPeriodSql('given_on', periodId, "AND candidate.status = 'given'")
 }
 
 function valuesOf(dose: NewTreatmentDose): SqlParam[] {
@@ -112,6 +131,21 @@ function valuesOf(dose: NewTreatmentDose): SqlParam[] {
   ]
 }
 
+function fieldsOf(row: DoseRow): DoseFields {
+  return {
+    periodId: row.period_id,
+    dueOn: row.due_on,
+    dueTime: row.due_time,
+    givenOn: row.given_on,
+    status: row.status,
+    nextDueDate: row.next_due_date,
+  }
+}
+
+function placeholders(values: readonly unknown[]): string {
+  return values.map(() => '?').join(', ')
+}
+
 export interface TreatmentDosesRepositoryDependencies {
   loadSupabaseClient?: () => Promise<SupabaseClient>
 }
@@ -126,6 +160,64 @@ export function createTreatmentDosesRepository(
     loadSupabaseClient: loadClient = loadSupabaseClient,
   }: TreatmentDosesRepositoryDependencies = {},
 ) {
+  function insertStatement(dose: NewTreatmentDose): SqlStatement {
+    return {
+      sql: `INSERT INTO treatment_dose (${COLUMNS}) VALUES (${PLACEHOLDERS})`,
+      params: valuesOf(dose),
+    }
+  }
+
+  function createStatement({
+    dose,
+    at,
+    ...owner
+  }: DoseOwner & { dose: DoseFields; at: string }): SqlStatement {
+    return insertStatement({ ...owner, ...dose, createdAt: at, updatedAt: at, deletedAt: null })
+  }
+
+  function rewriteStatement(id: string, dose: DoseFields, updatedAt: string): SqlStatement {
+    return {
+      sql: `UPDATE treatment_dose
+            SET period_id = ?, due_on = ?, due_time = ?, given_on = ?, status = ?,
+                next_due_date = ?, updated_at = ?
+            WHERE id = ? AND ${NOT_DELETED}`,
+      params: [
+        dose.periodId,
+        dose.dueOn,
+        dose.dueTime,
+        dose.givenOn,
+        dose.status,
+        dose.nextDueDate,
+        updatedAt,
+        id,
+      ],
+    }
+  }
+
+  function markDeletedStatement(ids: readonly string[], deletedAt: string): SqlStatement {
+    return {
+      sql: `UPDATE treatment_dose SET deleted_at = ?, updated_at = ?
+            WHERE id IN (${placeholders(ids)}) AND ${NOT_DELETED}`,
+      params: [deletedAt, deletedAt, ...ids],
+    }
+  }
+
+  function reviveStatement(id: string, updatedAt: string): SqlStatement {
+    return {
+      sql: 'UPDATE treatment_dose SET deleted_at = NULL, updated_at = ? WHERE id = ?',
+      params: [updatedAt, id],
+    }
+  }
+
+  async function rowsById(ids: readonly string[]): Promise<Map<string, DoseRow>> {
+    if (ids.length === 0) return new Map()
+    const rows = await db.query<DoseRow>(
+      `SELECT ${COLUMNS} FROM treatment_dose WHERE id IN (${placeholders(ids)})`,
+      [...ids],
+    )
+    return new Map(rows.map((row) => [row.id, row]))
+  }
+
   return {
     entity: 'treatment_dose',
 
@@ -164,6 +256,17 @@ export function createTreatmentDosesRepository(
       return rows.map(toDose)
     },
 
+    /** Prises visibles des traitements d'un animal, celles d'un même traitement la dernière d'abord. */
+    async listByAnimal(animalId: string): Promise<TreatmentDose[]> {
+      const rows = await db.query<DoseWithFrequencyRow>(
+        `${WITH_FREQUENCY}
+         WHERE dose.animal_id = ? AND dose.deleted_at IS NULL
+         ORDER BY dose.treatment_id, ${HEAD_FIRST}`,
+        [animalId],
+      )
+      return rows.map(toDose)
+    },
+
     async getById(id: string): Promise<TreatmentDose | null> {
       const rows = await db.query<DoseWithFrequencyRow>(
         `${WITH_FREQUENCY} WHERE dose.id = ? AND dose.deleted_at IS NULL`,
@@ -184,13 +287,17 @@ export function createTreatmentDosesRepository(
     },
 
     /**
-     * Faux pour une prise déjà supprimée ou la seule visible de son traitement : un traitement
-     * garde toujours au moins une prise.
+     * Faux pour une prise déjà supprimée, ou la seule visible de son traitement sauf `allowLast` :
+     * annuler la prise qu'on vient de noter réussit toujours.
      */
-    async remove(id: string, deletedAt: string): Promise<boolean> {
+    async remove(
+      id: string,
+      deletedAt: string,
+      { allowLast = false }: { allowLast?: boolean } = {},
+    ): Promise<boolean> {
       const changes = await db.run(
         `UPDATE treatment_dose SET deleted_at = ?, updated_at = ?
-         WHERE id = ? AND ${NOT_DELETED} AND ${otherVisibleDose()}`,
+         WHERE id = ? AND ${NOT_DELETED}${allowLast ? '' : ` AND ${otherVisibleDose()}`}`,
         [deletedAt, deletedAt, id],
       )
       return changes > 0
@@ -232,21 +339,69 @@ export function createTreatmentDosesRepository(
       }))
     },
 
-    insertStatement(dose: NewTreatmentDose): SqlStatement {
-      return {
-        sql: `INSERT INTO treatment_dose (${COLUMNS}) VALUES (${PLACEHOLDERS})`,
-        params: valuesOf(dose),
+    insertStatement,
+
+    /** Prise calculée par le moteur d'échéances : aucune garde par jour, l'unicité est celle de l'échéance. */
+    createStatement,
+
+    /** Sans effet sur une ligne supprimée. */
+    rewriteStatement,
+
+    markDeletedStatement,
+
+    /**
+     * Tout ou rien. Rend le lot inverse, à appliquer pour « Annuler » ; lève, sans rien écrire, pour
+     * une ligne à réécrire ou à supprimer qui n'est pas visible, ou à rétablir qui l'est.
+     */
+    async applyBatch(writes: readonly DoseWrite[], at: string): Promise<DoseWrite[]> {
+      const existing = await rowsById(
+        writes.flatMap((write) => (write.action === 'create' ? [] : [write.id])),
+      )
+      const visible = (id: string): DoseRow => {
+        const row = existing.get(id)
+        if (!row || row.deleted_at !== null) throw new Error(`Prise introuvable : ${id}`)
+        return row
       }
+      const steps = writes.map((write): { statement: SqlStatement; inverse: DoseWrite } => {
+        switch (write.action) {
+          case 'create':
+            return {
+              statement: createStatement({ ...write, at }),
+              inverse: { action: 'delete', id: write.id },
+            }
+          case 'rewrite':
+            return {
+              statement: rewriteStatement(write.id, write.dose, at),
+              inverse: { action: 'rewrite', id: write.id, dose: fieldsOf(visible(write.id)) },
+            }
+          case 'delete':
+            visible(write.id)
+            return {
+              statement: markDeletedStatement([write.id], at),
+              inverse: { action: 'restore', id: write.id },
+            }
+          case 'restore':
+            if ((existing.get(write.id)?.deleted_at ?? null) === null) {
+              throw new Error(`Prise non supprimée : ${write.id}`)
+            }
+            return {
+              statement: reviveStatement(write.id, at),
+              inverse: { action: 'delete', id: write.id },
+            }
+        }
+      })
+      if (steps.length > 0) await db.runMany(steps.map(({ statement }) => statement))
+      return steps.map(({ inverse }) => inverse).reverse()
     },
 
-    /** La dernière ligne garde sa date et son échéance ; elle n'est datée que si sa prochaine dose change. */
+    /** La dernière ligne de la période en cours garde sa date et son échéance ; elle n'est datée que si sa prochaine dose change. */
     updateHeadStatement(
       treatmentId: string,
       { nextDueDate, updatedAt }: Pick<NewTreatmentDose, 'nextDueDate' | 'updatedAt'>,
     ): SqlStatement {
       return {
         sql: `UPDATE treatment_dose SET next_due_date = ?, updated_at = ?
-              WHERE id = ${headDoseIdSql('?')} AND next_due_date <> ?`,
+              WHERE id = ${headDoseIdSql(currentPeriodIdSql('?'))} AND next_due_date <> ?`,
         params: [nextDueDate, updatedAt, treatmentId, nextDueDate],
       }
     },
@@ -272,12 +427,7 @@ export function createTreatmentDosesRepository(
       }
     },
 
-    reviveStatement(id: string, updatedAt: string): SqlStatement {
-      return {
-        sql: 'UPDATE treatment_dose SET deleted_at = NULL, updated_at = ? WHERE id = ?',
-        params: [updatedAt, id],
-      }
-    },
+    reviveStatement,
 
     /** Une prise existante garde sa période, son traitement et son animal : le reste suit le fichier. */
     restoreStatement(dose: RestoredTreatmentDose, exists: boolean): SqlStatement {

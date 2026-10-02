@@ -4,6 +4,9 @@ import {
   formatWeightAxis,
   formatWeightDelta,
   formatWeightInput,
+  formatClockTime,
+  formatClockTimes,
+  formatQuantity,
   formatFullDate,
   formatLongDate,
   formatMonthShort,
@@ -164,6 +167,62 @@ describe('en anglais', () => {
     expect(nonBreaking(formatDayMonthOrYear('2026-08-25', '2026-09-24'))).toBe('Aug\u00a025')
     expect(nonBreaking(formatDayMonthOrYear('2025-12-20', '2026-09-24'))).toBe(
       'Dec\u00a020,\u00a02025',
+    )
+  })
+})
+
+describe('formatQuantity', () => {
+  afterEach(() => applyLocale('fr'))
+
+  it('rend le nombre tel que saisi, au séparateur de la langue', () => {
+    expect(formatQuantity(0.3)).toBe('0,3')
+    expect(formatQuantity(2)).toBe('2')
+    expect(formatQuantity(1234.125)).toBe('1234,125')
+
+    applyLocale('en')
+    expect(formatQuantity(0.3)).toBe('0.3')
+  })
+})
+
+describe('formatClockTime', () => {
+  afterEach(() => applyLocale('fr'))
+
+  it('écrit l’heure à la française, minutes seulement quand il y en a', () => {
+    expect(formatClockTime('08:00')).toBe('8\u00a0h')
+    expect(formatClockTime('20:00')).toBe('20\u00a0h')
+    expect(formatClockTime('08:30')).toBe('8\u00a0h\u00a030')
+    expect(formatClockTime('20:05')).toBe('20\u00a0h\u00a005')
+    expect(formatClockTime('00:00')).toBe('0\u00a0h')
+  })
+
+  it('écrit l’heure anglaise sur 12 h', () => {
+    applyLocale('en')
+
+    expect(formatClockTime('08:00')).toBe('8\u00a0am')
+    expect(formatClockTime('20:00')).toBe('8\u00a0pm')
+    expect(formatClockTime('08:30')).toBe('8:30\u00a0am')
+    expect(formatClockTime('00:00')).toBe('12\u00a0am')
+    expect(formatClockTime('12:00')).toBe('12\u00a0pm')
+    expect(formatClockTime('12:05')).toBe('12:05\u00a0pm')
+  })
+})
+
+describe('formatClockTimes', () => {
+  afterEach(() => applyLocale('fr'))
+
+  it('énumère les heures dans l’ordre de la journée', () => {
+    expect(formatClockTimes(['20:00'])).toBe('20\u00a0h')
+    expect(formatClockTimes(['20:00', '08:00'])).toBe('8\u00a0h et 20\u00a0h')
+    expect(formatClockTimes(['08:00', '20:00', '14:00'])).toBe('8\u00a0h, 14\u00a0h et 20\u00a0h')
+    expect(formatClockTimes([])).toBe('')
+  })
+
+  it('énumère en anglais', () => {
+    applyLocale('en')
+
+    expect(formatClockTimes(['08:00', '20:00'])).toBe('8\u00a0am and 8\u00a0pm')
+    expect(formatClockTimes(['08:00', '14:00', '20:00'])).toBe(
+      '8\u00a0am, 2\u00a0pm, and 8\u00a0pm',
     )
   })
 })

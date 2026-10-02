@@ -6,13 +6,19 @@ import { guardedUpsert, type SyncRow } from '@/core/supabase/guarded-upsert'
 import { loadSupabaseClient } from '@/core/supabase/load-client'
 import { syncField, type SyncPullPage } from '@/core/sync/service/syncable-table'
 import { addFrequency } from '../logic/treatment-frequency'
-import { createTreatmentDosesRepository, headDoseIdSql } from './treatment-doses.repository'
+import {
+  createTreatmentDosesRepository,
+  headDoseIdSql,
+  lastGivenOnSql,
+} from './treatment-doses.repository'
 import {
   createTreatmentPeriodsRepository,
   currentPeriodIdSql,
 } from './treatment-periods.repository'
-import type { TreatmentDose } from '../schema/treatment-dose.schema'
+import type { NewTreatmentDose, TreatmentDose } from '../schema/treatment-dose.schema'
+import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 import {
+  treatmentEditSchema,
   treatmentEditSchemaAfter,
   treatmentInputSchema,
   type FrequencyUnit,
@@ -37,7 +43,7 @@ interface TreatmentWithHeadRow extends TreatmentRow {
   frequency_value: number
   frequency_unit: FrequencyUnit
   stopped_on: string | null
-  last_dose_date: string
+  last_dose_date: string | null
   next_due_date: string
 }
 
@@ -48,26 +54,91 @@ export type TreatmentRecord = Pick<
   'id' | 'animalId' | 'name' | 'type' | 'createdAt' | 'updatedAt'
 >
 export type RestoredTreatment = TreatmentRecord
+/** Ce que le moteur d'échéances lit : toutes les périodes, de la première à la dernière, et les prises visibles. */
+export type TreatmentWithHistory = TreatmentRecord & {
+  periods: TreatmentPeriodRecord[]
+  doses: NewTreatmentDose[]
+}
 
 const COLUMNS = 'id, animal_id, name, type, created_at, updated_at, deleted_at'
 
 /** Les traitements supprimés restent en base pour la synchronisation, jamais pour l'UI. */
 const NOT_DELETED = 'deleted_at IS NULL'
 
+const NEXT_DUE_DATE = 'COALESCE(head.next_due_date, period.first_due_on)'
+
 /**
- * La dernière ligne est datée de son échéance tant qu'elle n'a pas été donnée ; le traitement, de
- * la modification la plus récente entre lui et sa période en cours.
+ * La tête est la dernière ligne de la période en cours ; le traitement est daté de la modification
+ * la plus récente entre lui et cette période.
  */
 const VISIBLE_WITH_HEAD = `
   SELECT treatment.id, treatment.animal_id, treatment.name, treatment.type,
          period.id AS period_id, period.frequency_value, period.frequency_unit, period.stopped_on,
-         COALESCE(head.given_on, head.due_on) AS last_dose_date, head.next_due_date,
+         ${lastGivenOnSql('period.id')} AS last_dose_date,
+         ${NEXT_DUE_DATE} AS next_due_date,
          treatment.created_at, MAX(treatment.updated_at, period.updated_at) AS updated_at,
          treatment.deleted_at
   FROM treatment
   JOIN treatment_period period ON period.id = ${currentPeriodIdSql('treatment.id')}
-  JOIN treatment_dose head ON head.id = ${headDoseIdSql('treatment.id')}
+  LEFT JOIN treatment_dose head ON head.id = ${headDoseIdSql('period.id')}
   WHERE treatment.deleted_at IS NULL`
+
+function toRecord(row: TreatmentRow): TreatmentRecord {
+  return {
+    id: row.id,
+    animalId: row.animal_id,
+    name: row.name,
+    type: row.type,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  }
+}
+
+function groupBy<T>(rows: T[], keyOf: (row: T) => string): Map<string, T[]> {
+  const groups = new Map<string, T[]>()
+  for (const row of rows) {
+    const group = groups.get(keyOf(row))
+    if (group) group.push(row)
+    else groups.set(keyOf(row), [row])
+  }
+  return groups
+}
+
+/** Sans période visible, un traitement ne se lit pas ; les prises d'une période supprimée non plus. */
+function withHistory(
+  rows: TreatmentRow[],
+  periods: TreatmentPeriodRecord[],
+  doses: TreatmentDose[],
+): TreatmentWithHistory[] {
+  const periodsOf = groupBy(periods, ({ treatmentId }) => treatmentId)
+  const dosesOf = groupBy(doses, ({ periodId }) => periodId)
+  return rows.flatMap((row) => {
+    const own = periodsOf.get(row.id)
+    if (!own) return []
+    return [
+      {
+        ...toRecord(row),
+        periods: own,
+        doses: own.flatMap(({ id }) =>
+          (dosesOf.get(id) ?? []).map(({ frequency: _frequency, ...dose }) => dose),
+        ),
+      },
+    ]
+  })
+}
+
+/** La première échéance reste avant la date de fin, et la période reste après la précédente. */
+function checkFirstDue(firstDueOn: string, periods: TreatmentPeriodRecord[]): void {
+  const period = periods.at(-1)
+  const previous = periods.at(-2)
+  if (!period) return
+  const afterEnd = period.endsOn !== null && firstDueOn > period.endsOn
+  const beforePrevious =
+    previous !== undefined && firstDueOn < period.startsOn && firstDueOn <= previous.startsOn
+  if (afterEnd || beforePrevious) {
+    throw new RangeError(`Première échéance hors de sa période : ${firstDueOn}`)
+  }
+}
 
 function toTreatment(row: TreatmentWithHeadRow): Treatment {
   return {
@@ -119,8 +190,18 @@ export function createTreatmentsRepository(
     { resume }: { resume: boolean },
   ): Promise<Treatment> {
     const current = await requireVisible(id)
-    const data = treatmentEditSchemaAfter(current.lastDoseDate).parse(input)
+    const { lastDoseDate } = current
+    const schema =
+      lastDoseDate === null ? treatmentEditSchema : treatmentEditSchemaAfter(lastDoseDate)
+    const data = schema.parse(input)
     const updatedAt = new Date().toISOString()
+
+    const [ownPeriods, ownDoses] = await Promise.all([
+      periods.listByTreatment(id),
+      doses.listByTreatment(id),
+    ])
+    const hasLine = ownDoses.some(({ periodId }) => periodId === current.periodId)
+    if (!hasLine) checkFirstDue(data.nextDueDate, ownPeriods)
 
     await db.runMany([
       {
@@ -129,7 +210,9 @@ export function createTreatmentsRepository(
         params: [data.name, data.type, updatedAt, id, data.name, data.type],
       },
       periods.correctCurrentStatement(id, { frequency: data.frequency, resume, updatedAt }),
-      doses.updateHeadStatement(id, { nextDueDate: data.nextDueDate, updatedAt }),
+      hasLine
+        ? doses.updateHeadStatement(id, { nextDueDate: data.nextDueDate, updatedAt })
+        : periods.correctCurrentFirstDueStatement(id, { firstDueOn: data.nextDueDate, updatedAt }),
     ])
 
     return requireVisible(id)
@@ -144,7 +227,7 @@ export function createTreatmentsRepository(
     async listByAnimal(animalId: string): Promise<Treatment[]> {
       const rows = await db.query<TreatmentWithHeadRow>(
         `${VISIBLE_WITH_HEAD} AND treatment.animal_id = ?
-         ORDER BY head.next_due_date, treatment.created_at`,
+         ORDER BY ${NEXT_DUE_DATE}, treatment.created_at`,
         [animalId],
       )
       return rows.map(toTreatment)
@@ -153,7 +236,7 @@ export function createTreatmentsRepository(
     async listAll(): Promise<Treatment[]> {
       const rows = await db.query<TreatmentWithHeadRow>(
         `${VISIBLE_WITH_HEAD}
-         ORDER BY treatment.animal_id, head.next_due_date, treatment.created_at`,
+         ORDER BY treatment.animal_id, ${NEXT_DUE_DATE}, treatment.created_at`,
       )
       return rows.map(toTreatment)
     },
@@ -164,14 +247,45 @@ export function createTreatmentsRepository(
         `SELECT ${COLUMNS} FROM treatment WHERE ${NOT_DELETED}
          ORDER BY animal_id, created_at, id`,
       )
-      return rows.map((row) => ({
-        id: row.id,
-        animalId: row.animal_id,
-        name: row.name,
-        type: row.type,
-        createdAt: row.created_at,
-        updatedAt: row.updated_at,
-      }))
+      return rows.map(toRecord)
+    },
+
+    async getWithHistory(id: string): Promise<TreatmentWithHistory | null> {
+      const [rows, ownPeriods, ownDoses] = await Promise.all([
+        db.query<TreatmentRow>(`SELECT ${COLUMNS} FROM treatment WHERE ${NOT_DELETED} AND id = ?`, [
+          id,
+        ]),
+        periods.listByTreatment(id),
+        doses.listByTreatment(id),
+      ])
+      return withHistory(rows, ownPeriods, ownDoses)[0] ?? null
+    },
+
+    /** Dans l'ordre de saisie des traitements. */
+    async listWithHistoryByAnimal(animalId: string): Promise<TreatmentWithHistory[]> {
+      const [rows, ownPeriods, ownDoses] = await Promise.all([
+        db.query<TreatmentRow>(
+          `SELECT ${COLUMNS} FROM treatment WHERE ${NOT_DELETED} AND animal_id = ?
+           ORDER BY created_at, id`,
+          [animalId],
+        ),
+        periods.listByAnimal(animalId),
+        doses.listByAnimal(animalId),
+      ])
+      return withHistory(rows, ownPeriods, ownDoses)
+    },
+
+    /** Par animal, puis dans l'ordre de saisie des traitements. */
+    async listAllWithHistory(): Promise<TreatmentWithHistory[]> {
+      const [rows, allPeriods, allDoses] = await Promise.all([
+        db.query<TreatmentRow>(
+          `SELECT ${COLUMNS} FROM treatment WHERE ${NOT_DELETED}
+           ORDER BY animal_id, created_at, id`,
+        ),
+        periods.listAll(),
+        doses.listAll(),
+      ])
+      return withHistory(rows, allPeriods, allDoses)
     },
 
     /**
@@ -225,8 +339,9 @@ export function createTreatmentsRepository(
     },
 
     /**
-     * Corrige le nom, le type, la fréquence de la période en cours et la prochaine dose de la
-     * dernière ligne, dans une seule écriture ; la date de la prise et `animal_id` restent figés.
+     * Corrige le nom, le type, la fréquence de la période en cours et la prochaine dose, portée par
+     * la dernière ligne ou, sans prise, par la première échéance, dans une seule écriture ; la date
+     * de la prise et `animal_id` restent figés.
      */
     update(id: string, input: TreatmentEditInput): Promise<Treatment> {
       return writePlan(id, input, { resume: false })

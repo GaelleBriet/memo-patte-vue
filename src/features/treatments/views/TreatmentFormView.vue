@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 
 import {
+  FORM_TREATMENT_TYPES,
   editedNextDueDate,
   emptyTreatmentFormValues,
   nextDoseDate,
@@ -11,16 +12,11 @@ import {
   validateTreatmentEditForm,
   validateTreatmentForm,
 } from '../logic/treatment-form'
-import {
-  FREQUENCY_UNITS,
-  MAX_FREQUENCY_VALUE,
-  TREATMENT_TYPES,
-  type FrequencyUnit,
-  type Treatment,
-} from '../schema/treatment.schema'
+import { FREQUENCY_UNITS, type FrequencyUnit, type Treatment } from '../schema/treatment.schema'
 import { useTreatmentsStore } from '../store/treatments.store'
 import { useToday } from '@/core/app-lifecycle/use-today'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
+import { MAX_FREQUENCY_VALUE } from '@/shared/domain/treatment-frequency'
 import { formatLongDate } from '@/shared/utils/format'
 import FormField from '@/shared/form/FormField.vue'
 import FormScreen from '@/shared/form/FormScreen.vue'
@@ -86,7 +82,7 @@ const errorMessage = computed(() => {
 })
 const canSave = computed(() => !isLoading.value && !notFound.value && !loadFailed.value)
 const typeOptions = computed(() =>
-  TREATMENT_TYPES.map((type) => ({ value: type, label: t(`treatments.type.${type}`) })),
+  FORM_TREATMENT_TYPES.map((type) => ({ value: type, label: t(`treatments.type.${type}`) })),
 )
 const unitCount = computed(() => {
   const count = Number(values.value.frequencyValue)
@@ -307,7 +303,7 @@ async function submit(): Promise<void> {
           v-model="values.nextDueDate"
           class="form-field__input form-field__input--date"
           type="date"
-          :min="existing?.lastDoseDate"
+          :min="existing?.lastDoseDate ?? undefined"
           variant="outlined"
           hide-details
           aria-required="true"

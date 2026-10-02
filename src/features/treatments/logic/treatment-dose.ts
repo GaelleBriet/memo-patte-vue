@@ -34,7 +34,7 @@ export function nextDueAfterDose(
   treatment: Pick<Treatment, 'frequency' | 'lastDoseDate' | 'nextDueDate'>,
   givenOn: string,
 ): string {
-  return givenOn > treatment.lastDoseDate
+  return treatment.lastDoseDate === null || givenOn > treatment.lastDoseDate
     ? addFrequency(givenOn, treatment.frequency)
     : treatment.nextDueDate
 }

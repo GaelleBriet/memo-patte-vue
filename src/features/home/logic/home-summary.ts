@@ -55,13 +55,13 @@ export function dueBadge(t: Translate, reminder: Reminder): DueBadge {
 
 type Typed = Pick<HomeReminderSource, 'kind' | 'treatmentType'>
 
-type TypeKey = 'vaccination' | 'deworming' | 'antiparasitic'
+type TypeKey = 'vaccination' | 'deworming' | 'antiparasitic' | 'medication'
 
 function typeKey(source: Typed): TypeKey {
   return source.kind === 'vaccination' ? 'vaccination' : (source.treatmentType ?? 'deworming')
 }
 
-/** « Vaccin », « Vermifuge », « Antiparasitaire » : le titre d'une ligne est le nom du produit. */
+/** « Vaccin », « Vermifuge », « Médicament » : le titre d'une ligne est le nom du produit. */
 export function reminderType(t: Translate, source: Typed): string {
   return t(`home.reminder.${typeKey(source)}`)
 }

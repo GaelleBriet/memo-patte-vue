@@ -232,12 +232,16 @@
   "treatments": {
     "type": {
       "deworming": "Dewormer",
-      "antiparasitic": "Parasite control"
+      "antiparasitic": "Parasite control",
+      "medication": "Medication"
     },
     "frequency": {
       "day": "Every day | Every {n} days",
       "week": "Every week | Every {n} weeks",
       "month": "Every month | Every {n} months"
+    },
+    "rhythm": {
+      "until": "until {date}"
     },
     "form": {
       "title": "New treatment",
@@ -429,6 +433,35 @@
       "years": "in {n} year | in {n} years"
     }
   },
+  "currentDose": {
+    "label": {
+      "today": "Today’s dose",
+      "upcoming": "Next dose",
+      "end": "Treatment end"
+    },
+    "at": "{date} at {time}",
+    "tomorrow": "tomorrow, {date}",
+    "overdueSince": "overdue since {date}",
+    "stoppedOn": "Stopped on {date}",
+    "today": "Today",
+    "todayAt": "Today · {time}"
+  },
+  "dosage": {
+    "unit": {
+      "tablet": "tablet | tablets",
+      "capsule": "capsule | capsules",
+      "pipette": "pipette | pipettes",
+      "collar": "collar | collars",
+      "ml": "ml",
+      "drop": "drop | drops",
+      "g": "g",
+      "sachet": "sachet | sachets",
+      "spray": "spray | sprays",
+      "application": "application | applications",
+      "dose": "dose | doses"
+    },
+    "value": "{quantity} {unit}"
+  },
   "weight": {
     "unit": {
       "kg": "kg",
@@ -529,7 +562,8 @@
     "reminder": {
       "vaccination": "Vaccine",
       "deworming": "Dewormer",
-      "antiparasitic": "Parasite control"
+      "antiparasitic": "Parasite control",
+      "medication": "Medication"
     },
     "row": {
       "subtitle": "{type} · {animal}",
@@ -538,7 +572,8 @@
       "spokenType": {
         "vaccination": "vaccine",
         "deworming": "dewormer",
-        "antiparasitic": "parasite control"
+        "antiparasitic": "parasite control",
+        "medication": "medication"
       },
       "due": {
         "overdue": "{n} day overdue | {n} days overdue",

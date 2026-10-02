@@ -1,6 +1,7 @@
 import { differenceInCalendarDays, differenceInCalendarMonths } from 'date-fns'
 
-import { MAX_DUES, checkPastDay, invalid, isClockTime } from './treatment-schedule-checks'
+import { isClockTime } from './clock-time'
+import { MAX_DUES, checkPastDay, invalid } from './treatment-schedule-checks'
 import {
   DAYS_PER_STEP,
   compareText,

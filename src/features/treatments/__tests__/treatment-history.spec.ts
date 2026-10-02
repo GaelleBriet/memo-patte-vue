@@ -79,6 +79,16 @@ describe('doseHistory', () => {
     })
   })
 
+  it('ne met pas à part une prise d’une période précédente : la période en cours n’a pas de prise', () => {
+    const doses = monthly(2)
+
+    expect(doseHistory(doses, { ongoing: true, periodId: 'reprise' })).toEqual({
+      head: null,
+      others: { kind: 'list', doses },
+    })
+    expect(doseHistory(doses, { ongoing: true, periodId: 'bravecto' }).head).toBe(doses[0])
+  })
+
   it('liste toutes les prises d’un traitement arrêté (F9 ter)', () => {
     const doses = monthly(2)
 
@@ -180,6 +190,27 @@ describe('becomesHead', () => {
     expect(
       becomesHead(aUneHeure, { ...doses[2]!, createdAt: '2026-09-01T09:00:00.000Z' }, '2026-08-28'),
     ).toBe(false)
+  })
+})
+
+describe('traitement sans prise', () => {
+  const sansPrise = { ...BRAVECTO, lastDoseDate: null }
+
+  it('n’a ni dernière prise ni prises précédentes', () => {
+    expect(doseHistory([], { ongoing: true })).toEqual({
+      head: null,
+      others: { kind: 'list', doses: [] },
+    })
+  })
+
+  it('annonce sa première échéance et aucune prise', () => {
+    expect(
+      treatmentDetailTexts(t, sansPrise, { animal: 'Boree', today: TODAY, doses: [] }),
+    ).toMatchObject({
+      due: { date: '28 sept. 2026', delay: { text: 'dans 5 jours', overdue: false } },
+      counter: '0',
+      stopped: null,
+    })
   })
 })
 
