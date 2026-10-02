@@ -359,7 +359,7 @@ describe('validateTreatmentEdition (TR-6, TR-9, TR-28)', () => {
         sansPrise,
         TODAY,
       ).nextDose?.help,
-    ).toEqual({ kind: 'dropped', count: 9 })
+    ).toEqual({ kind: 'dropped', count: 8 })
   })
 
   it.each([

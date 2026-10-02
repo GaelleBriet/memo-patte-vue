@@ -448,6 +448,19 @@ describe('TreatmentFormView — heures du traitement (TR-5)', () => {
     }
   })
 
+  it('efface l’erreur de doublon dès que la liste change', async () => {
+    const wrapper = await monterCreation()
+    await ajouterHeure(wrapper, '08:00')
+    await ajouterHeure(wrapper, '20:00')
+    await ajouterHeure(wrapper, '20:00')
+    expect(messages(wrapper)).toEqual(['Cette heure est déjà dans la liste.'])
+
+    await wrapper.get('.treatment-times__remove').trigger('click')
+
+    expect(heures(wrapper)).toEqual(['20\u00a0h'])
+    expect(messages(wrapper)).toEqual([])
+  })
+
   it('retire une heure et en change une autre, chacune nommée pour le lecteur d’écran', async () => {
     const wrapper = await monterCreation()
     await ajouterHeure(wrapper, '08:00')
@@ -1236,14 +1249,14 @@ describe('TreatmentFormView — modification (TR-27, TR-28, planches V1 quater e
     await champ(wrapper, 'treatment-next-dose-on').setValue('2026-10-01')
 
     expect(aide(wrapper, 'next-dose-on')).toBe(
-      'Les 9 doses prévues avant cette date ne seront plus à renseigner.',
+      'Les 8 doses prévues avant cette date ne seront plus à renseigner.',
     )
 
     i18n.global.locale.value = 'en'
     await wrapper.vm.$nextTick()
 
     expect(aide(wrapper, 'next-dose-on')).toBe(
-      'The 9 doses scheduled before this date will no longer need to be logged.',
+      'The 8 doses scheduled before this date will no longer need to be logged.',
     )
   })
 
@@ -1294,6 +1307,10 @@ describe('TreatmentFormView — modification (TR-27, TR-28, planches V1 quater e
 
     expect(valeur(wrapper, 'treatment-next-dose-on')).toBe('2026-10-14')
     expect(messages(wrapper)).toEqual(['La prochaine dose est reportée au 14 oct.'])
+    i18n.global.locale.value = 'en'
+    await wrapper.vm.$nextTick()
+    expect(messages(wrapper)).toEqual(['The next dose is postponed to Oct 14.'])
+    i18n.global.locale.value = 'fr'
     expect(update).not.toHaveBeenCalled()
 
     await champ(wrapper, 'treatment-next-dose-on').setValue('2026-10-11')
@@ -1661,7 +1678,7 @@ describe('TreatmentFormView — envoi en cours', () => {
     expect(create).toHaveBeenCalledOnce()
   })
 
-  it('garde les boutons désactivés après l’écriture, le temps que la navigation aboutisse', async () => {
+  it('ne permet plus aucune écriture après une écriture réussie, « Annuler » restant utilisable', async () => {
     const wrapper = await monterCreation()
     await remplirMinimum(wrapper)
 
@@ -1669,7 +1686,37 @@ describe('TreatmentFormView — envoi en cours', () => {
     await soumettre(wrapper)
 
     expect(wrapper.get('.form-screen__submit').attributes('disabled')).toBeDefined()
+    expect(wrapper.get('.form-screen__cancel').attributes('disabled')).toBeUndefined()
     expect(create).toHaveBeenCalledOnce()
+  })
+
+  it('ne reste pas bloqué quand la navigation de retour échoue : pas de message d’échec, pas de seconde écriture', async () => {
+    replace.mockRejectedValue(new Error('navigation refusée'))
+    const wrapper = await monterCreation()
+    await remplirMinimum(wrapper)
+
+    await soumettre(wrapper)
+    await soumettre(wrapper)
+
+    expect(create).toHaveBeenCalledOnce()
+    expect(wrapper.find('.form-screen__save-error').exists()).toBe(false)
+    expect(wrapper.get('.form-screen__submit').text()).toBe('Créer')
+    expect(wrapper.get('.form-screen__submit').attributes('disabled')).toBeDefined()
+    expect(wrapper.get('.form-screen__cancel').attributes('disabled')).toBeUndefined()
+  })
+
+  it('retombe sur le Carnet quand le calcul de la route échoue après l’écriture, sans dire que l’enregistrement a échoué', async () => {
+    vi.mocked(shouldShowPriming).mockRejectedValueOnce(new Error('plugin indisponible'))
+    const wrapper = await monterCreation()
+    await remplirMinimum(wrapper)
+
+    await soumettre(wrapper)
+    await soumettre(wrapper)
+
+    expect(create).toHaveBeenCalledOnce()
+    expect(replace).toHaveBeenCalledExactlyOnceWith({ name: 'animals' })
+    expect(wrapper.find('.form-screen__save-error').exists()).toBe(false)
+    expect(wrapper.get('.form-screen__submit').attributes('disabled')).toBeDefined()
   })
 
   it('rend la main et prévient quand l’écriture échoue', async () => {

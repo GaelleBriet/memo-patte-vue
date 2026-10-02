@@ -52,9 +52,10 @@ export type NextDoseDraft = {
   latest: string | null
   refusal: MoveRefusal | null
   help: NextDoseHelp | null
-  /** La dose est déjà déplacée, et son arrivée dépasse la date de fin saisie. */
-  moveAfterEnd: 'postponed' | 'advanced' | null
 }
+
+/** Le déplacement en vigueur qui arrive le plus tard dans la période en cours. */
+export type FarthestMove = { doseId: string; arrivesOn: string; advanced: boolean }
 
 export type EditionDraft = {
   period: TreatmentPeriodRecord
@@ -62,13 +63,17 @@ export type EditionDraft = {
   change: 'locked' | 'correct' | 'open'
   /** `null` : aucune dose à venir. */
   nextDose: NextDoseDraft | null
+  /** La date de fin ne passe pas avant son arrivée. */
+  farthestMove: FarthestMove | null
 }
 
 export type PlanIds = { periodId: string; doseId: string }
 
-type Resolved = EditionDraft & {
+type Resolved = Omit<EditionDraft, 'farthestMove'> & {
   settings: TreatmentPeriodSettings
   move: MovedDose | null
+  /** Ligne de déplacement de la prochaine dose, que la saisie peut réécrire. */
+  movedLineId: string | null
   /** La première échéance vient de `newPeriod` : la date de fin doit la suivre. */
   proposesFirstDue: boolean
 }
@@ -186,15 +191,17 @@ function lastNotedDueOn(history: TreatmentWithHistory, periodId?: string): strin
   )
 }
 
-// La date calculée, sans le plancher d'aujourd'hui : le moteur la rend quand il se place au jour de la dernière prise notée.
+// La date calculée, sans le plancher d'aujourd'hui : le moteur la rend quand il se place au jour de
+// la dernière prise notée. Rendue ce jour-là même (journée incomplète, Q24), elle n'apprend rien.
 function calculatedFirstDue(history: TreatmentWithHistory, rhythm: TreatmentRhythm): string | null {
   const lastNotedOn = lastNotedDueOn(history)
   if (lastNotedOn === null) return null
   try {
-    return treatmentScheduleOf(history, lastNotedOn).newPeriod(
+    const { firstDueOn } = treatmentScheduleOf(history, lastNotedOn).newPeriod(
       rhythm.frequency,
       sortedTimes(rhythm.times),
-    ).firstDueOn
+    )
+    return firstDueOn > lastNotedOn ? firstDueOn : null
   } catch {
     return null
   }
@@ -223,19 +230,21 @@ function resolveOpened(
   change: 'open' | 'correct',
 ): Resolved {
   const schedule = treatmentScheduleOf(history, today)
-  const { startsOn, firstDueOn } = schedule.newPeriod(rhythm.frequency, sortedTimes(rhythm.times))
+  const opened = schedule.newPeriod(rhythm.frequency, sortedTimes(rhythm.times))
+  const { firstDueOn } = opened
+  const startsOn = change === 'open' ? opened.startsOn : period.startsOn
   return {
     period,
     change,
     proposesFirstDue: true,
+    movedLineId: null,
     nextDose: {
       change: 'first-due',
       proposedOn: firstDueOn,
-      earliest: startsOn,
+      earliest: opened.startsOn,
       latest: rhythm.endsOn,
       refusal: null,
       help: proposalHelp(history, schedule, rhythm, firstDueOn, today),
-      moveAfterEnd: null,
     },
     settings: withRhythm(
       { ...settingsOf(period), startsOn, firstDueOn: chosenOn ?? firstDueOn },
@@ -253,8 +262,11 @@ function droppedHelp(
   schedule: TreatmentSchedule,
   periodId: string,
   firstDueOn: string,
+  today: string,
 ): NextDoseHelp | null {
-  const count = [...schedule.unloggedDoses, ...schedule.currentDoses].filter(
+  // Une dose du jour est déplacée, pas perdue : seules comptent les doses non renseignées ou en retard.
+  const overdue = schedule.currentDoses.filter((due) => due.dueOn < today)
+  const count = [...schedule.unloggedDoses, ...overdue].filter(
     (due) => due.periodId === periodId && due.dueOn < firstDueOn,
   ).length
   return count > 0 ? { kind: 'dropped', count } : null
@@ -272,7 +284,6 @@ function resolveMoved(
   const refusal = schedule.moveRefusal(due)
   const latest = settings.endsOn
   const line = moveArrivingOn(schedule, due)
-  const arrivesAfterEnd = line !== undefined && latest !== null && due.dueOn > latest
   const inBounds =
     bounds !== null &&
     chosenOn !== null &&
@@ -287,6 +298,7 @@ function resolveMoved(
     period,
     change: 'correct',
     proposesFirstDue: false,
+    movedLineId: line?.id ?? null,
     nextDose: {
       change: 'move',
       proposedOn: due.dueOn,
@@ -295,7 +307,6 @@ function resolveMoved(
       refusal,
       help:
         refusal !== null ? { kind: 'refused', refusal } : (overdueHelp(due, today) ?? calculated),
-      moveAfterEnd: !arrivesAfterEnd ? null : isAdvanced(line) ? 'advanced' : 'postponed',
     },
     settings,
     move: inBounds ? schedule.move(due, chosenOn) : null,
@@ -329,6 +340,7 @@ function resolveCorrected(
       settings: corrected,
       move: null,
       proposesFirstDue: false,
+      movedLineId: null,
     }
   }
   if (schedule.nextDoseChange === 'move') {
@@ -349,9 +361,9 @@ function resolveCorrected(
       latest: rhythm.endsOn,
       refusal: null,
       help:
-        (changed && isCalendarDay(chosenOn) ? droppedHelp(schedule, period.id, chosenOn) : null) ??
-        overdueHelp(due, today),
-      moveAfterEnd: null,
+        (changed && isCalendarDay(chosenOn)
+          ? droppedHelp(schedule, period.id, chosenOn, today)
+          : null) ?? overdueHelp(due, today),
     },
     settings: {
       ...corrected,
@@ -359,6 +371,7 @@ function resolveCorrected(
       startsOn: firstDueOn < corrected.startsOn ? firstDueOn : corrected.startsOn,
     },
     move: null,
+    movedLineId: null,
   }
 }
 
@@ -400,6 +413,7 @@ function resolve(
       settings: settingsOf(period),
       move: null,
       proposesFirstDue: false,
+      movedLineId: null,
     }
   }
   const live = withoutStale(history, base)
@@ -428,13 +442,45 @@ export function editionDraft(
   chosenOn: string | null = null,
 ): EditionDraft {
   const { period, change, nextDose } = resolve(history, rhythm, chosenOn, today)
-  return { period, change, nextDose }
+  const farthestMove = change === 'locked' ? null : farthestMoveOf(history, period.id, today, null)
+  return { period, change, nextDose, farthestMove }
+}
+
+// Q30 : les déplacements que le moteur garde en vigueur dans la période, sauf ceux dont l'arrivée est notée.
+function farthestMoveOf(
+  history: TreatmentWithHistory,
+  periodId: string,
+  today: string,
+  exceptId: string | null,
+): FarthestMove | null {
+  const schedule = treatmentScheduleOf(history, today)
+  const locked = new Set(schedule.lockedMoveIds)
+  const farthest = schedule.doses
+    .filter(
+      (dose) =>
+        dose.status === 'postponed' &&
+        dose.periodId === periodId &&
+        dose.id !== exceptId &&
+        !locked.has(dose.id),
+    )
+    .reduce<(typeof schedule.doses)[number] | null>(
+      (latest, dose) => (latest === null || dose.nextDueDate > latest.nextDueDate ? dose : latest),
+      null,
+    )
+  return farthest === null
+    ? null
+    : { doseId: farthest.id, arrivesOn: farthest.nextDueDate, advanced: isAdvanced(farthest) }
 }
 
 type DateIssue = { path: 'nextDoseOn' | 'endsOn'; message: string }
 
 function editionIssues(history: TreatmentWithHistory, data: Edition, today: string): DateIssue[] {
-  const { period, change, nextDose, proposesFirstDue } = resolve(history, data, null, today)
+  const { period, change, nextDose, proposesFirstDue, movedLineId } = resolve(
+    history,
+    data,
+    null,
+    today,
+  )
   if (change === 'locked') return []
 
   const issues: DateIssue[] = []
@@ -449,9 +495,9 @@ function editionIssues(history: TreatmentWithHistory, data: Edition, today: stri
   }
   if (data.endsOn === null || issues.length > 0) return issues
 
-  if (nextDose !== null && nextDose.moveAfterEnd !== null && !changed) {
-    const reason =
-      nextDose.moveAfterEnd === 'advanced' ? 'beforeAdvancedDose' : 'beforePostponedDose'
+  const farthest = farthestMoveOf(history, period.id, today, changed ? movedLineId : null)
+  if (farthest !== null && data.endsOn !== period.endsOn && data.endsOn < farthest.arrivesOn) {
+    const reason = farthest.advanced ? 'beforeAdvancedDose' : 'beforePostponedDose'
     return [{ path: 'endsOn', message: reason }]
   }
   const setsFirstDue = nextDose?.change === 'first-due' && (proposesFirstDue || changed)

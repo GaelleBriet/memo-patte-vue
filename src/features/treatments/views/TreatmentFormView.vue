@@ -28,7 +28,7 @@ import FormScreen from '@/shared/form/FormScreen.vue'
 import FormSegmented from '@/shared/form/FormSegmented.vue'
 import { useFormValidation } from '@/shared/form/use-form-validation'
 import { primingReturnRoute, routeAfterReminderSaved } from '@/shared/domain/notification-priming'
-import { returnTo } from '@/shared/utils/return-to'
+import { returnTo, returnToOr } from '@/shared/utils/return-to'
 import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
 
 const props = defineProps<{
@@ -57,6 +57,8 @@ const loadFailed = ref(false)
 const saveFailed = ref(false)
 const isSubmitting = ref(false)
 const endsOnTouched = ref(false)
+/** Une écriture a réussi : plus aucune autre ne part de cet écran. */
+const isSaved = ref(false)
 const hasDuplicateTime = ref(false)
 const duplicateTimeError = computed(() =>
   hasDuplicateTime.value ? DUPLICATE_TIME_ERROR_KEY : undefined,
@@ -129,6 +131,7 @@ const errorMessage = computed(() => {
 })
 const canSave = computed(
   () =>
+    !isSaved.value &&
     !isLoading.value &&
     !notFound.value &&
     !loadFailed.value &&
@@ -189,12 +192,20 @@ const endsOnHelp = computed(() => {
 function errorText(key: string | undefined): string | null {
   if (key === undefined) return null
   const next = nextDose.value
+  const farthest = draft.value?.farthestMove ?? null
   return t(key, {
     max: MAX_NAME_LENGTH,
     date: next ? formatFullDayMonth(next.earliest) : '',
-    arrival: next ? withoutFinalDot(formatDayMonthOrYear(next.proposedOn, today.value)) : '',
+    arrival: farthest ? withoutFinalDot(formatDayMonthOrYear(farthest.arrivesOn, today.value)) : '',
   })
 }
+
+watch(
+  () => values.value.times,
+  () => {
+    hasDuplicateTime.value = false
+  },
+)
 
 watch(
   () => nextDose.value?.proposedOn,
@@ -273,6 +284,18 @@ function write(): (() => Promise<unknown>) | null {
   return result.success ? () => treatments.update(id, result.data) : null
 }
 
+async function leaveAfterSaving(): Promise<void> {
+  const safe = primingReturnRoute(from, reminder)
+  const target = await routeAfterReminderSaved({
+    hasDueDate: true,
+    animalName: animalName.value,
+    kind: 'treatment',
+    from,
+    reminder,
+  }).catch(() => safe)
+  await returnToOr(router, target, safe)
+}
+
 async function submit(): Promise<void> {
   if (isSubmitting.value || !canSave.value) return
 
@@ -281,26 +304,17 @@ async function submit(): Promise<void> {
 
   try {
     const pending = write()
-    if (pending === null) {
-      isSubmitting.value = false
-      return
-    }
+    if (pending === null) return
     await pending()
-    selectTargetAnimal()
-    returnTo(
-      router,
-      await routeAfterReminderSaved({
-        hasDueDate: true,
-        animalName: animalName.value,
-        kind: 'treatment',
-        from,
-        reminder,
-      }),
-    )
+    isSaved.value = true
   } catch {
     saveFailed.value = true
+    return
+  } finally {
     isSubmitting.value = false
   }
+  selectTargetAnimal()
+  await leaveAfterSaving()
 }
 </script>
 

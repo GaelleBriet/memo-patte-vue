@@ -27,17 +27,18 @@ const { t } = useI18n()
 
 function add(event: Event): void {
   const input = event.target as HTMLInputElement
-  emit('duplicate', isTimeTaken(props.modelValue, input.value))
-  emit('update:modelValue', withTime(props.modelValue, input.value))
+  const refused = isTimeTaken(props.modelValue, input.value)
+  if (!refused) emit('update:modelValue', withTime(props.modelValue, input.value))
+  emit('duplicate', refused)
   input.value = ''
 }
 
 function change(previous: string, event: Event): void {
   const input = event.target as HTMLInputElement
   const refused = isTimeTaken(props.modelValue, input.value, previous)
-  emit('duplicate', refused)
   if (refused) input.value = previous
   else emit('update:modelValue', withTimeChanged(props.modelValue, previous, input.value))
+  emit('duplicate', refused)
 }
 
 function remove(time: string): void {
