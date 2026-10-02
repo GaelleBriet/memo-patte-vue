@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ZodError } from 'zod'
 
 import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory-db'
+import { treatmentScheduleOf } from '../logic/treatment-schedule'
 import { createTreatmentDosesRepository } from '../repository/treatment-doses.repository'
 import { createTreatmentPeriodsRepository } from '../repository/treatment-periods.repository'
 import {
@@ -219,6 +220,130 @@ describe('treatmentPlanService', () => {
       stoppedOn: null,
       times: ['20:00'],
       doseQuantity: 0.5,
+    })
+  })
+
+  describe('plusieurs heures par jour', () => {
+    const METACAM: TreatmentCreationInput = {
+      animalId: MILO,
+      name: 'Métacam',
+      type: 'medication',
+      firstDoseOn: '2026-09-27',
+      frequency: { value: 1, unit: 'day' },
+      times: ['08:00', '20:00'],
+      doseQuantity: 0.5,
+      doseUnit: 'ml',
+      endsOn: null,
+    }
+
+    function reglages(changes: Partial<TreatmentEditionInput> = {}): TreatmentEditionInput {
+      const { animalId: _animalId, firstDoseOn: _firstDoseOn, ...plan } = METACAM
+      return { ...plan, nextDoseOn: null, ...changes }
+    }
+
+    async function giveAt(treatmentId: string, dueOn: string, dueTime: string): Promise<void> {
+      await createTreatmentDosesRepository(db).applyBatch(
+        [
+          {
+            action: 'create',
+            id: crypto.randomUUID(),
+            treatmentId,
+            animalId: MILO,
+            dose: {
+              periodId: treatmentId,
+              dueOn,
+              dueTime,
+              givenOn: dueOn,
+              status: 'given',
+              nextDueDate: dueOn,
+            },
+          },
+        ],
+        T0,
+      )
+    }
+
+    async function scheduleOf(id: string) {
+      return treatmentScheduleOf(await historyOf(id), today)
+    }
+
+    function times(dues: { dueOn: string; dueTime: string | null }[]): string[] {
+      return dues.map(({ dueOn, dueTime }) => `${dueOn} ${dueTime}`)
+    }
+
+    const TOUS_LES_2_JOURS = { frequency: { value: 2, unit: 'day' } } as const
+
+    it('déplace la journée entière par une seule ligne (Q21)', async () => {
+      const { id } = await service.create({
+        ...METACAM,
+        ...TOUS_LES_2_JOURS,
+        firstDoseOn: '2026-09-25',
+      })
+      await giveAt(id, '2026-09-25', '08:00')
+      await giveAt(id, '2026-09-25', '20:00')
+
+      await service.update(id, reglages({ ...TOUS_LES_2_JOURS, nextDoseOn: '2026-09-29' }))
+
+      const { periods, doses } = await historyOf(id)
+      expect(periods).toHaveLength(1)
+      expect(doses.filter(({ status }) => status === 'postponed')).toMatchObject([
+        { dueOn: '2026-09-27', dueTime: '08:00', nextDueDate: '2026-09-29' },
+      ])
+      const schedule = await scheduleOf(id)
+      expect(times(schedule.upcoming(3))).toEqual([
+        '2026-09-29 08:00',
+        '2026-09-29 20:00',
+        '2026-10-01 08:00',
+      ])
+      expect(schedule.unloggedDoses).toEqual([])
+    })
+
+    it('ne déplace que l’heure restante d’une journée dont la première prise est notée (Q21)', async () => {
+      const { id } = await service.create({ ...METACAM, ...TOUS_LES_2_JOURS })
+      await giveAt(id, '2026-09-27', '08:00')
+
+      await service.update(id, reglages({ ...TOUS_LES_2_JOURS, nextDoseOn: '2026-09-29' }))
+
+      const { doses } = await historyOf(id)
+      expect(doses.filter(({ status }) => status === 'postponed')).toMatchObject([
+        { dueOn: '2026-09-27', dueTime: '20:00', nextDueDate: '2026-09-29' },
+      ])
+      const schedule = await scheduleOf(id)
+      expect(times(schedule.upcoming(2))).toEqual(['2026-09-29 08:00', '2026-09-29 20:00'])
+      expect(schedule.unloggedDoses).toEqual([])
+    })
+
+    it('compte la prise de 8 h déjà notée pour la première heure du nouveau réglage : reste 21 h (Q24)', async () => {
+      const { id } = await service.create(METACAM)
+      await giveAt(id, '2026-09-27', '08:00')
+      await giveAt(id, '2026-09-27', '20:00')
+      await giveAt(id, '2026-09-28', '08:00')
+
+      await service.update(id, reglages({ times: ['09:00', '21:00'] }))
+
+      const { periods } = await historyOf(id)
+      expect(periods[1]).toMatchObject({
+        startsOn: '2026-09-28',
+        firstDueOn: '2026-09-28',
+        times: ['09:00', '21:00'],
+      })
+      const schedule = await scheduleOf(id)
+      expect(times(schedule.currentDoses)).toEqual(['2026-09-28 21:00'])
+      expect(schedule.unloggedDoses).toEqual([])
+    })
+
+    it('commence la nouvelle période par la dose du jour quand le rythme ne change pas et que rien n’est noté (G15)', async () => {
+      const { id } = await service.create(METACAM)
+      await giveAt(id, '2026-09-27', '08:00')
+      await giveAt(id, '2026-09-27', '20:00')
+
+      await service.update(id, reglages({ times: ['09:00', '21:00'] }))
+
+      const { periods } = await historyOf(id)
+      expect(periods[1]).toMatchObject({ startsOn: '2026-09-28', firstDueOn: '2026-09-28' })
+      const schedule = await scheduleOf(id)
+      expect(times(schedule.currentDoses)).toEqual(['2026-09-28 09:00', '2026-09-28 21:00'])
+      expect(schedule.unloggedDoses).toEqual([])
     })
   })
 
