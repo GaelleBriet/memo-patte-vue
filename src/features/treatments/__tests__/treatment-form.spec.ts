@@ -229,7 +229,7 @@ describe('heures du traitement (TR-5)', () => {
 
 describe('validateTreatmentCreation (TR-1, TR-4, TR-6)', () => {
   it('rend la création à écrire : animal de la route, nom nettoyé, quantité lue', () => {
-    expect(validateTreatmentCreation(saisie({ name: ' Panacur ' }), MILO)).toEqual({
+    expect(validateTreatmentCreation(saisie({ name: ' Panacur ' }), MILO, TODAY)).toEqual({
       success: true,
       data: {
         animalId: MILO,
@@ -255,6 +255,7 @@ describe('validateTreatmentCreation (TR-1, TR-4, TR-6)', () => {
         endsOn: '',
       }),
       MILO,
+      TODAY,
     )
 
     expect(result).toMatchObject({
@@ -270,7 +271,7 @@ describe('validateTreatmentCreation (TR-1, TR-4, TR-6)', () => {
   })
 
   it('dit ce qui manque dans un formulaire vide, sans erreur sur les champs facultatifs', () => {
-    expect(validateTreatmentCreation(emptyTreatmentFormValues(), MILO)).toEqual({
+    expect(validateTreatmentCreation(emptyTreatmentFormValues(), MILO, TODAY)).toEqual({
       success: false,
       errors: {
         name: 'treatments.form.errors.name',
@@ -296,11 +297,16 @@ describe('validateTreatmentCreation (TR-1, TR-4, TR-6)', () => {
       { firstDoseOn: 'treatments.form.errors.firstDoseOn' },
     ],
   ] as const)('refuse %o', (change, errors) => {
-    expect(validateTreatmentCreation(saisie(change), MILO)).toEqual({ success: false, errors })
+    expect(validateTreatmentCreation(saisie(change), MILO, TODAY)).toEqual({
+      success: false,
+      errors,
+    })
   })
 
   it('accepte une date de fin le jour de la première prise', () => {
-    expect(validateTreatmentCreation(saisie({ endsOn: '2026-09-29' }), MILO).success).toBe(true)
+    expect(validateTreatmentCreation(saisie({ endsOn: '2026-09-29' }), MILO, TODAY).success).toBe(
+      true,
+    )
   })
 })
 

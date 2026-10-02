@@ -81,7 +81,7 @@ function requireHistory(): TreatmentWithHistory {
 }
 
 const creation = useFormValidation(values, (current) =>
-  validateTreatmentCreation(current, requireAnimalId()),
+  validateTreatmentCreation(current, requireAnimalId(), today.value),
 )
 const edition = useFormValidation(values, (current) =>
   validateTreatmentEdition(current, requireHistory(), today.value, pastDuesChoice.value),

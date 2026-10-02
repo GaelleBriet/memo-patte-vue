@@ -2,13 +2,13 @@ import type { z } from 'zod'
 
 import {
   editionDraft,
+  treatmentCreationSchemaFor,
   treatmentEditionSchemaFor,
   treatmentResumptionSchemaFor,
   type EditionDraft,
 } from './treatment-plan'
 import type { TreatmentWithHistory } from '../repository/treatments.repository'
 import {
-  treatmentCreationSchema,
   treatmentRhythmSchema,
   type PastDuesChoice,
   type TreatmentRhythm,
@@ -67,6 +67,7 @@ const FIELD_OF_PATH: Record<string, TreatmentFormErrorField> = {
 const REASON_KEYS: Partial<Record<TreatmentFormErrorField, Record<string, string>>> = {
   firstDoseOn: {
     beforePreviousPeriod: 'treatments.form.errors.firstDoseOnBeforePreviousPeriod',
+    tooOld: 'treatments.form.errors.firstDoseOnTooOld',
   },
   nextDoseOn: {
     tooEarly: 'treatments.form.errors.nextDoseOnTooEarly',
@@ -103,7 +104,9 @@ const NAME_MAX_KEY = 'treatments.form.errors.nameMax'
 
 type FormResult<D> = { success: true; data: D } | { success: false; errors: TreatmentFormErrors }
 
-export type TreatmentCreationResult = FormResult<z.output<typeof treatmentCreationSchema>>
+export type TreatmentCreationResult = FormResult<
+  z.output<ReturnType<typeof treatmentCreationSchemaFor>>
+>
 export type TreatmentEditionResult =
   | { success: true; data: z.output<ReturnType<typeof treatmentEditionSchemaFor>> }
   | { success: false; errors: TreatmentFormErrors; needsPastDuesChoice: boolean }
@@ -250,9 +253,10 @@ function resultOf<D>(result: z.ZodSafeParseResult<D>): FormResult<D> {
 export function validateTreatmentCreation(
   values: TreatmentFormValues,
   animalId: string,
+  today: string,
 ): TreatmentCreationResult {
   return resultOf(
-    treatmentCreationSchema.safeParse({
+    treatmentCreationSchemaFor(today).safeParse({
       animalId,
       name: values.name,
       type: values.type,

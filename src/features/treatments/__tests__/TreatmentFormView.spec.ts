@@ -790,6 +790,24 @@ describe('TreatmentFormView — création (TR-1, TR-3)', () => {
     })
   })
 
+  it('refuse une première prise trop ancienne pour le rythme, sous son champ, sans rien écrire', async () => {
+    const wrapper = await monterCreation()
+    await remplirMinimum(wrapper)
+    await ajouterHeure(wrapper, '08:00')
+    await ajouterHeure(wrapper, '20:00')
+    await champ(wrapper, 'treatment-first-dose-on').setValue('1950-01-01')
+
+    await soumettre(wrapper)
+
+    expect(messages(wrapper)).toEqual(['Cette date est trop ancienne pour ce rythme.'])
+    expect(create).not.toHaveBeenCalled()
+
+    i18n.global.locale.value = 'en'
+    await wrapper.vm.$nextTick()
+
+    expect(messages(wrapper)).toEqual(['This date is too far back for this schedule.'])
+  })
+
   it('crée un médicament', async () => {
     const wrapper = await monterCreation()
     await remplirMinimum(wrapper)

@@ -1,12 +1,15 @@
+import { formatISO, parseISO, subDays } from 'date-fns'
 import { describe, expect, it } from 'vitest'
 import { ZodError } from 'zod'
 
 import {
+  assertReadable,
   creationPlan,
   editionDraft,
   editionPlan,
   resumptionDraft,
   resumptionPlan,
+  treatmentCreationSchemaFor,
   treatmentEditionSchemaFor,
   treatmentResumptionSchemaFor,
 } from '../logic/treatment-plan'
@@ -126,6 +129,7 @@ describe('creationPlan', () => {
         endsOn: '2026-10-10',
       },
       TREATMENT,
+      '2026-09-28',
     )
 
     expect(plan).toEqual({
@@ -161,6 +165,7 @@ describe('creationPlan', () => {
         endsOn: null,
       },
       TREATMENT,
+      '2026-09-28',
     )
 
     expect(plan.settings).toMatchObject({ startsOn: '2026-09-03', firstDueOn: '2026-09-03' })
@@ -181,8 +186,95 @@ describe('creationPlan', () => {
           endsOn: '2026-09-28',
         },
         TREATMENT,
+        '2026-09-28',
       ),
     ).toThrow(ZodError)
+  })
+})
+
+describe('plan que le moteur ne saurait pas relire', () => {
+  const TODAY = '2026-09-28'
+  const DEUX_FOIS_PAR_JOUR = {
+    animalId: MILO,
+    name: 'Métacam',
+    type: 'medication',
+    frequency: { value: 1, unit: 'day' },
+    times: ['08:00', '20:00'],
+    doseQuantity: null,
+    doseUnit: null,
+    endsOn: null,
+  } as const
+  const ilYA = (days: number) =>
+    formatISO(subDays(parseISO(TODAY), days), { representation: 'date' })
+
+  function refusCreation(firstDoseOn: string): string[] {
+    const result = treatmentCreationSchemaFor(TODAY).safeParse({
+      ...DEUX_FOIS_PAR_JOUR,
+      times: [...DEUX_FOIS_PAR_JOUR.times],
+      firstDoseOn,
+    })
+    return result.success
+      ? []
+      : result.error.issues.map((issue) => `${String(issue.path[0])}:${issue.message}`)
+  }
+
+  it('refuse à la création une première prise trop ancienne pour le rythme, sans plan', () => {
+    expect(refusCreation('1950-01-01')).toEqual(['firstDoseOn:tooOld'])
+    expect(() =>
+      creationPlan(
+        { ...DEUX_FOIS_PAR_JOUR, times: [...DEUX_FOIS_PAR_JOUR.times], firstDoseOn: '1950-01-01' },
+        TREATMENT,
+        TODAY,
+      ),
+    ).toThrow(ZodError)
+  })
+
+  it('accepte la première prise la plus ancienne que le moteur sait encore relire, refuse la veille', () => {
+    expect(refusCreation(ilYA(24_998))).toEqual([])
+    expect(refusCreation(ilYA(24_999))).toEqual(['firstDoseOn:tooOld'])
+  })
+
+  it('accepte une première prise de 1950 à un rythme qui tient', () => {
+    const result = treatmentCreationSchemaFor(TODAY).safeParse({
+      ...DEUX_FOIS_PAR_JOUR,
+      times: [],
+      frequency: { value: 1, unit: 'week' },
+      firstDoseOn: '1950-01-01',
+    })
+
+    expect(result.success).toBe(true)
+  })
+
+  it('refuse de même une reprise dont la première prise est trop ancienne', () => {
+    const history = treatment([
+      period({ startsOn: '1940-01-01', firstDueOn: '1940-01-01', stoppedOn: '1940-02-01' }),
+    ])
+    const result = treatmentResumptionSchemaFor(history, TODAY).safeParse({
+      firstDoseOn: '1950-01-01',
+      frequency: { value: 1, unit: 'day' },
+      times: ['08:00', '20:00'],
+      doseQuantity: null,
+      doseUnit: null,
+      endsOn: null,
+    })
+
+    expect(
+      result.error?.issues.map((issue) => `${String(issue.path[0])}:${issue.message}`),
+    ).toEqual(['firstDoseOn:tooOld'])
+  })
+
+  it('refuse une modification qui rendrait le calendrier illisible : heures ajoutées sur un très long historique', () => {
+    const ancien = period({
+      startsOn: '1950-01-01',
+      firstDueOn: '1950-01-01',
+      frequency: { value: 1, unit: 'day' },
+    })
+    const history = treatment([ancien])
+
+    expect(() => assertReadable(history, TODAY)).not.toThrow()
+    expect(() =>
+      assertReadable({ ...history, periods: [{ ...ancien, times: ['08:00', '20:00'] }] }, TODAY),
+    ).toThrow(RangeError)
   })
 })
 

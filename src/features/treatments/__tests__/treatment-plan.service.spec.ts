@@ -119,6 +119,22 @@ describe('treatmentPlanService', () => {
     })
   })
 
+  it('refuse une création que le moteur ne saurait pas relire, sans rien écrire', async () => {
+    const refus = await service
+      .create({
+        ...MILBEMAX,
+        firstDoseOn: '1950-01-01',
+        frequency: { value: 1, unit: 'day' },
+        times: ['08:00', '20:00'],
+        endsOn: null,
+      })
+      .catch((cause: unknown) => cause)
+
+    expect(refus).toBeInstanceOf(ZodError)
+    expect((refus as ZodError).issues).toMatchObject([{ path: ['firstDoseOn'], message: 'tooOld' }])
+    await expect(db.query('SELECT id FROM treatment')).resolves.toEqual([])
+  })
+
   it('refuse une création incohérente sans rien écrire', async () => {
     await expect(service.create({ ...MILBEMAX, doseUnit: null })).rejects.toBeInstanceOf(ZodError)
     await expect(service.create({ ...MILBEMAX, endsOn: '2026-09-25' })).rejects.toBeInstanceOf(

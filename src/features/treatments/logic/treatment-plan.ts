@@ -18,9 +18,10 @@ import {
   type TreatmentResumptionInput,
   type TreatmentRhythm,
 } from '../schema/treatment-form.schema'
-import type {
-  TreatmentPeriodRecord,
-  TreatmentPeriodSettings,
+import {
+  treatmentPeriodSettingsSchema,
+  type TreatmentPeriodRecord,
+  type TreatmentPeriodSettings,
 } from '../schema/treatment-period.schema'
 import { isCalendarDay } from '@/shared/domain/calendar-day'
 import {
@@ -593,34 +594,134 @@ export function editionPlan(
   if (change === 'locked') return { treatment, period: null, doses: [] }
 
   const doses = doseWrites(treatmentScheduleOf(history, today), move, ids.doseId)
-  if (change === 'open') {
-    return { treatment, period: { action: 'open', id: ids.periodId, settings }, doses }
+  const plan: TreatmentPlanWrite =
+    change === 'open'
+      ? { treatment, period: { action: 'open', id: ids.periodId, settings }, doses }
+      : {
+          treatment,
+          period: sameSettings(settings, settingsOf(period))
+            ? null
+            : { action: 'correct', settings },
+          doses,
+        }
+  assertReadable(historyAfter(history, period, plan, today), today)
+  return plan
+}
+
+function historyAfter(
+  history: TreatmentWithHistory,
+  current: TreatmentPeriodRecord,
+  plan: TreatmentPlanWrite,
+  today: string,
+): Pick<TreatmentWithHistory, 'periods' | 'doses'> {
+  const at = `${today}T23:59:59.999Z`
+  const stamps = {
+    treatmentId: history.id,
+    animalId: history.animalId,
+    createdAt: at,
+    updatedAt: at,
   }
+  const { period } = plan
+  const periods =
+    period === null
+      ? history.periods
+      : period.action === 'open'
+        ? [...history.periods, { ...draftPeriod(period.settings, at), id: period.id }]
+        : history.periods.map((other) =>
+            other.id === current.id ? { ...other, ...period.settings } : other,
+          )
+  const doses = plan.doses.reduce((lines, write) => {
+    if (write.action === 'delete') return lines.filter(({ id }) => id !== write.id)
+    if (write.action === 'create') {
+      return [...lines, { ...write.dose, ...stamps, id: write.id, deletedAt: null }]
+    }
+    return lines.map((line) =>
+      line.id === write.id ? { ...line, ...write.dose, updatedAt: at } : line,
+    )
+  }, history.doses)
+  return { periods, doses }
+}
+
+/** Lève la `RangeError` du moteur quand l'app ne saurait pas relire cet historique. */
+export function assertReadable(
+  history: Pick<TreatmentWithHistory, 'periods' | 'doses'>,
+  today: string,
+): void {
+  treatmentScheduleOf(history, today)
+}
+
+function isTooLong(cause: unknown): boolean {
+  return cause instanceof RangeError && cause.message.includes('trop long')
+}
+
+const DRAFT_ID = 'draft'
+
+function draftPeriod(settings: TreatmentPeriodSettings, at: string): TreatmentPeriodRecord {
   return {
-    treatment,
-    period: sameSettings(settings, settingsOf(period)) ? null : { action: 'correct', settings },
-    doses,
+    ...settings,
+    id: DRAFT_ID,
+    treatmentId: DRAFT_ID,
+    animalId: DRAFT_ID,
+    stoppedOn: null,
+    createdAt: at,
+    updatedAt: at,
+    deletedAt: null,
   }
 }
 
-export function creationPlan(input: TreatmentCreationInput, id: string): NewTreatmentPlan {
-  const { animalId, name, type, firstDoseOn, ...rhythm } = treatmentCreationSchema.parse(input)
-  return {
-    id,
-    animalId,
-    name,
-    type,
-    settings: withRhythm(
-      {
-        startsOn: firstDoseOn,
-        firstDueOn: firstDoseOn,
-        reminderOffsetMinutes: null,
-        reminderTime: null,
-        ...rhythm,
-      },
-      rhythm,
-    ),
+// Une première prise trop ancienne pour le rythme donnerait un calendrier que le moteur refuse de lire.
+function startsTooFarBack(
+  history: Pick<TreatmentWithHistory, 'periods' | 'doses'>,
+  settings: TreatmentPeriodSettings,
+  today: string,
+): boolean {
+  if (!treatmentPeriodSettingsSchema.safeParse(settings).success) return false
+  const at = `${today}T23:59:59.999Z`
+  try {
+    assertReadable({ ...history, periods: [...history.periods, draftPeriod(settings, at)] }, today)
+    return false
+  } catch (cause) {
+    if (isTooLong(cause)) return true
+    throw cause
   }
+}
+
+function tooOld() {
+  return { code: 'custom' as const, path: ['firstDoseOn'], message: 'tooOld' }
+}
+
+function creationSettings({
+  firstDoseOn,
+  ...rhythm
+}: TreatmentRhythm & { firstDoseOn: string }): TreatmentPeriodSettings {
+  return withRhythm(
+    {
+      startsOn: firstDoseOn,
+      firstDueOn: firstDoseOn,
+      reminderOffsetMinutes: null,
+      reminderTime: null,
+      ...rhythm,
+    },
+    rhythm,
+  )
+}
+
+/** Le schéma de création, qui refuse une première prise que le moteur ne saurait pas relire. */
+export function treatmentCreationSchemaFor(today: string) {
+  return treatmentCreationSchema.superRefine((data, context) => {
+    if (startsTooFarBack({ periods: [], doses: [] }, creationSettings(data), today)) {
+      context.addIssue(tooOld())
+    }
+  })
+}
+
+export function creationPlan(
+  input: TreatmentCreationInput,
+  id: string,
+  today: string,
+): NewTreatmentPlan {
+  const { animalId, name, type, ...plan } = treatmentCreationSchemaFor(today).parse(input)
+  return { id, animalId, name, type, settings: creationSettings(plan) }
 }
 
 export type ResumptionDraft = {
@@ -680,10 +781,20 @@ export function resumptionDraft(history: TreatmentWithHistory, today: string): R
 export function treatmentResumptionSchemaFor(history: TreatmentWithHistory, today: string) {
   const { period } = resumptionDraft(history, today)
   const floor = resumptionFloor(history, period)
-  return treatmentResumptionSchema.refine(({ firstDoseOn }) => respectsFloor(floor, firstDoseOn), {
-    path: ['firstDoseOn'],
-    message: 'beforePreviousPeriod',
-  })
+  return treatmentResumptionSchema
+    .refine(({ firstDoseOn }) => respectsFloor(floor, firstDoseOn), {
+      path: ['firstDoseOn'],
+      message: 'beforePreviousPeriod',
+    })
+    .superRefine(({ firstDoseOn, ...rhythm }, context) => {
+      const settings = withRhythm(
+        { ...settingsOf(period), startsOn: firstDoseOn, firstDueOn: firstDoseOn },
+        rhythm,
+      )
+      if (respectsFloor(floor, firstDoseOn) && startsTooFarBack(history, settings, today)) {
+        context.addIssue(tooOld())
+      }
+    })
 }
 
 /** Lève pour un traitement en cours ou une saisie refusée ; la période précédente n'est jamais touchée. */
