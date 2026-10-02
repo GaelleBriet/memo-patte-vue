@@ -62,7 +62,9 @@ const sheetTexts = computed(() =>
       })
     : null,
 )
-const history = computed(() => doseHistory(doses.value, { ongoing: ongoing.value }))
+const history = computed(() =>
+  doseHistory(doses.value, { ongoing: ongoing.value, periodId: treatment.value?.periodId }),
+)
 const listedDoses = computed(() =>
   history.value.others.kind === 'list' ? history.value.others.doses : [],
 )
@@ -267,7 +269,7 @@ async function remove(): Promise<void> {
           </template>
 
           <button
-            v-if="ongoing && doses.length > 1"
+            v-if="ongoing && doses.length > (history.head ? 1 : 0)"
             type="button"
             class="treatment-detail__toggle"
             :aria-expanded="showsPrevious"

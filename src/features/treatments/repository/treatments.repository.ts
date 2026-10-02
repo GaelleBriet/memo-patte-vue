@@ -6,7 +6,11 @@ import { guardedUpsert, type SyncRow } from '@/core/supabase/guarded-upsert'
 import { loadSupabaseClient } from '@/core/supabase/load-client'
 import { syncField, type SyncPullPage } from '@/core/sync/service/syncable-table'
 import { addFrequency } from '../logic/treatment-frequency'
-import { createTreatmentDosesRepository, headDoseIdSql } from './treatment-doses.repository'
+import {
+  createTreatmentDosesRepository,
+  headDoseIdSql,
+  lastGivenOnSql,
+} from './treatment-doses.repository'
 import {
   createTreatmentPeriodsRepository,
   currentPeriodIdSql,
@@ -64,19 +68,19 @@ const NOT_DELETED = 'deleted_at IS NULL'
 const NEXT_DUE_DATE = 'COALESCE(head.next_due_date, period.first_due_on)'
 
 /**
- * La dernière ligne est datée de son échéance tant qu'elle n'a pas été donnée ; le traitement, de
- * la modification la plus récente entre lui et sa période en cours.
+ * La tête est la dernière ligne de la période en cours ; le traitement est daté de la modification
+ * la plus récente entre lui et cette période.
  */
 const VISIBLE_WITH_HEAD = `
   SELECT treatment.id, treatment.animal_id, treatment.name, treatment.type,
          period.id AS period_id, period.frequency_value, period.frequency_unit, period.stopped_on,
-         COALESCE(head.given_on, head.due_on) AS last_dose_date,
+         ${lastGivenOnSql('period.id')} AS last_dose_date,
          ${NEXT_DUE_DATE} AS next_due_date,
          treatment.created_at, MAX(treatment.updated_at, period.updated_at) AS updated_at,
          treatment.deleted_at
   FROM treatment
   JOIN treatment_period period ON period.id = ${currentPeriodIdSql('treatment.id')}
-  LEFT JOIN treatment_dose head ON head.id = ${headDoseIdSql('treatment.id')}
+  LEFT JOIN treatment_dose head ON head.id = ${headDoseIdSql('period.id')}
   WHERE treatment.deleted_at IS NULL`
 
 function toRecord(row: TreatmentRow): TreatmentRecord {
@@ -121,6 +125,19 @@ function withHistory(
       },
     ]
   })
+}
+
+/** La première échéance reste avant la date de fin, et la période reste après la précédente. */
+function checkFirstDue(firstDueOn: string, periods: TreatmentPeriodRecord[]): void {
+  const period = periods.at(-1)
+  const previous = periods.at(-2)
+  if (!period) return
+  const afterEnd = period.endsOn !== null && firstDueOn > period.endsOn
+  const beforePrevious =
+    previous !== undefined && firstDueOn < period.startsOn && firstDueOn <= previous.startsOn
+  if (afterEnd || beforePrevious) {
+    throw new RangeError(`Première échéance hors de sa période : ${firstDueOn}`)
+  }
 }
 
 function toTreatment(row: TreatmentWithHeadRow): Treatment {
@@ -179,6 +196,13 @@ export function createTreatmentsRepository(
     const data = schema.parse(input)
     const updatedAt = new Date().toISOString()
 
+    const [ownPeriods, ownDoses] = await Promise.all([
+      periods.listByTreatment(id),
+      doses.listByTreatment(id),
+    ])
+    const hasLine = ownDoses.some(({ periodId }) => periodId === current.periodId)
+    if (!hasLine) checkFirstDue(data.nextDueDate, ownPeriods)
+
     await db.runMany([
       {
         sql: `UPDATE treatment SET name = ?, type = ?, updated_at = ?
@@ -186,9 +210,9 @@ export function createTreatmentsRepository(
         params: [data.name, data.type, updatedAt, id, data.name, data.type],
       },
       periods.correctCurrentStatement(id, { frequency: data.frequency, resume, updatedAt }),
-      lastDoseDate === null
-        ? periods.correctCurrentFirstDueStatement(id, { firstDueOn: data.nextDueDate, updatedAt })
-        : doses.updateHeadStatement(id, { nextDueDate: data.nextDueDate, updatedAt }),
+      hasLine
+        ? doses.updateHeadStatement(id, { nextDueDate: data.nextDueDate, updatedAt })
+        : periods.correctCurrentFirstDueStatement(id, { firstDueOn: data.nextDueDate, updatedAt }),
     ])
 
     return requireVisible(id)

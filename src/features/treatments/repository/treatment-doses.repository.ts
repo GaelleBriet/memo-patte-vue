@@ -5,6 +5,7 @@ import { getDb } from '@/core/db/sqlite'
 import { guardedUpsert, type SyncRow } from '@/core/supabase/guarded-upsert'
 import { loadSupabaseClient } from '@/core/supabase/load-client'
 import { syncField, type SyncPullPage } from '@/core/sync/service/syncable-table'
+import { currentPeriodIdSql } from './treatment-periods.repository'
 import type { NewTreatmentDose, TreatmentDose } from '../schema/treatment-dose.schema'
 import type { FrequencyUnit } from '../schema/treatment.schema'
 
@@ -82,17 +83,25 @@ function toDose(row: DoseWithFrequencyRow): TreatmentDose {
   }
 }
 
-/**
- * Sous-requête de la dernière ligne d'un traitement (`treatmentId` est une expression SQL) : la
- * prise non supprimée à l'échéance la plus tardive, jour puis heure, puis par saisie, puis par
- * identifiant.
- */
-export function headDoseIdSql(treatmentId: string): string {
-  return `(SELECT candidate.id FROM treatment_dose candidate
-           WHERE candidate.treatment_id = ${treatmentId} AND candidate.deleted_at IS NULL
+function lastOfPeriodSql(column: string, periodId: string, filter = ''): string {
+  return `(SELECT candidate.${column} FROM treatment_dose candidate
+           WHERE candidate.period_id = ${periodId} AND candidate.deleted_at IS NULL ${filter}
            ORDER BY candidate.due_on DESC, candidate.due_time DESC, candidate.created_at DESC,
              candidate.id DESC
            LIMIT 1)`
+}
+
+/**
+ * Sous-requête de la dernière ligne d'une période (`periodId` est une expression SQL) : la prise
+ * non supprimée à l'échéance la plus tardive, jour puis heure, puis par saisie, puis par identifiant.
+ */
+export function headDoseIdSql(periodId: string): string {
+  return lastOfPeriodSql('id', periodId)
+}
+
+/** Sous-requête de la date de la dernière prise donnée d'une période, dans l'ordre de `headDoseIdSql`. */
+export function lastGivenOnSql(periodId: string): string {
+  return lastOfPeriodSql('given_on', periodId, "AND candidate.status = 'given'")
 }
 
 function valuesOf(dose: NewTreatmentDose): SqlParam[] {
@@ -195,13 +204,17 @@ export function createTreatmentDosesRepository(
     },
 
     /**
-     * Faux pour une prise déjà supprimée ou la seule visible de son traitement : un traitement
-     * garde toujours au moins une prise.
+     * Faux pour une prise déjà supprimée, ou la seule visible de son traitement sauf `allowLast` :
+     * annuler la prise qu'on vient de noter réussit toujours.
      */
-    async remove(id: string, deletedAt: string): Promise<boolean> {
+    async remove(
+      id: string,
+      deletedAt: string,
+      { allowLast = false }: { allowLast?: boolean } = {},
+    ): Promise<boolean> {
       const changes = await db.run(
         `UPDATE treatment_dose SET deleted_at = ?, updated_at = ?
-         WHERE id = ? AND ${NOT_DELETED} AND ${otherVisibleDose()}`,
+         WHERE id = ? AND ${NOT_DELETED}${allowLast ? '' : ` AND ${otherVisibleDose()}`}`,
         [deletedAt, deletedAt, id],
       )
       return changes > 0
@@ -250,14 +263,14 @@ export function createTreatmentDosesRepository(
       }
     },
 
-    /** La dernière ligne garde sa date et son échéance ; elle n'est datée que si sa prochaine dose change. */
+    /** La dernière ligne de la période en cours garde sa date et son échéance ; elle n'est datée que si sa prochaine dose change. */
     updateHeadStatement(
       treatmentId: string,
       { nextDueDate, updatedAt }: Pick<NewTreatmentDose, 'nextDueDate' | 'updatedAt'>,
     ): SqlStatement {
       return {
         sql: `UPDATE treatment_dose SET next_due_date = ?, updated_at = ?
-              WHERE id = ${headDoseIdSql('?')} AND next_due_date <> ?`,
+              WHERE id = ${headDoseIdSql(currentPeriodIdSql('?'))} AND next_due_date <> ?`,
         params: [nextDueDate, updatedAt, treatmentId, nextDueDate],
       }
     },

@@ -65,7 +65,7 @@ export function createTreatmentDosesService({
     },
 
     async undo(treatmentId: string, doseId: string): Promise<void> {
-      const removed = await (await doses()).remove(doseId, now().toISOString())
+      const removed = await (await doses()).remove(doseId, now().toISOString(), { allowLast: true })
       if (!removed) throw new Error(`Prise non annulée : ${doseId}`)
       await reminders.reschedule(treatmentId)
     },
@@ -91,15 +91,22 @@ export function createTreatmentDosesService({
     ): Promise<DoseDateChange> {
       const date = treatmentInputSchema.shape.lastDoseDate.parse(givenOn)
       const repository = await doses()
-      const [dose, all] = await Promise.all([
+      const [dose, all, treatment] = await Promise.all([
         repository.getById(doseId),
         repository.listByTreatment(treatmentId),
+        (await treatments()).getById(treatmentId),
       ])
       if (dose === null) throw new Error(`Prise introuvable : ${doseId}`)
       if (dose.givenOn === null) throw new Error(`Prise non donnée : ${doseId}`)
 
       const { dates, postponementKept } = redatedDose(dose, date, {
-        isHead: becomesHead(all, dose, date),
+        isHead:
+          dose.periodId === treatment?.periodId &&
+          becomesHead(
+            all.filter(({ periodId }) => periodId === dose.periodId),
+            dose,
+            date,
+          ),
       })
       await writeDates(treatmentId, doseId, dates)
       return {

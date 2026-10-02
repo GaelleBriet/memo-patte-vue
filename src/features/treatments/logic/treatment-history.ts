@@ -25,13 +25,20 @@ export type DoseHistory = {
   others: { kind: 'list'; doses: TreatmentDose[] } | { kind: 'years'; groups: DoseYear[] }
 }
 
+/** La première ligne n'est la tête que si elle appartient à la période en cours. */
+function headOf(doses: TreatmentDose[], periodId?: string): TreatmentDose | null {
+  const first = doses[0]
+  if (!first) return null
+  return periodId === undefined || first.periodId === periodId ? first : null
+}
+
 /** `doses` : la tête d'abord, comme le repository les rend. */
 export function doseHistory(
   doses: TreatmentDose[],
-  { ongoing }: { ongoing: boolean },
+  { ongoing, periodId }: { ongoing: boolean; periodId?: string },
 ): DoseHistory {
-  const head = ongoing ? (doses[0] ?? null) : null
-  const others = ongoing ? doses.slice(1) : doses
+  const head = ongoing ? headOf(doses, periodId) : null
+  const others = head ? doses.slice(1) : doses
   if (doses.length <= DOSES_IN_A_LIST) return { head, others: { kind: 'list', doses: others } }
 
   const groups: DoseYear[] = []
@@ -93,7 +100,7 @@ export function treatmentDetailTexts(
 ) {
   const { name, frequency, stoppedOn } = treatment
   const oldest = doses.at(-1)
-  const previous = Math.max(doses.length - 1, 0)
+  const previous = doses.length - (headOf(doses, treatment.periodId) ? 1 : 0)
 
   return {
     subtitle: t('treatments.detail.subtitle', {

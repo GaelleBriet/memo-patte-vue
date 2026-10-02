@@ -34,3 +34,17 @@ export type TreatmentPeriodRecord = TreatmentPeriod & {
   reminderOffsetMinutes: ReminderOffsetMinutes | null
   reminderTime: string | null
 }
+
+/** Ce qu'un formulaire règle dans une période. */
+export type TreatmentPeriodSettings = Pick<
+  TreatmentPeriodRecord,
+  | 'startsOn'
+  | 'firstDueOn'
+  | 'endsOn'
+  | 'frequency'
+  | 'times'
+  | 'doseQuantity'
+  | 'doseUnit'
+  | 'reminderOffsetMinutes'
+  | 'reminderTime'
+>
