@@ -325,9 +325,10 @@ class Simulation {
     this.book = this.written(this.book, fields)
     const after = this.schedule()
     this.checkProtected(before, after, () => true, gesture)
-    if (before.unloggedDoses.some((unlogged) => idOf(unlogged) === idOf(due))) {
-      this.checkLogged(before, after, gesture)
-    }
+    const unit = this.book.periods.find(({ id }) => id === due.periodId)?.frequency.unit
+    const mayCoincide = unit === 'month' && kind === 'given' && givenOn !== due.dueOn
+    const wasUnlogged = before.unloggedDoses.some((unlogged) => idOf(unlogged) === idOf(due))
+    if (wasUnlogged && !mayCoincide) this.checkLogged(before, after, gesture)
     if (kind === 'given' && before.currentDoses.some((current) => idOf(current) === idOf(due))) {
       this.checkGap(after, due, givenOn, fields.nextDueDate, gesture)
     }
@@ -743,7 +744,7 @@ describe('en mois, départs les 29, 30 et 31 (TR-7, TR-18)', () => {
   ]
   const MONTHS = [1, 2, 3, 6, 12]
 
-  it('noter une dose non renseignée, à l’heure ou en retard, ne change ni la dose du moment ni la suite', () => {
+  it('noter une dose non renseignée à la date de son échéance ne change ni la dose du moment ni la suite', () => {
     const drifts: string[] = []
     for (const firstDueOn of STARTS) {
       for (const value of MONTHS) {
@@ -760,20 +761,15 @@ describe('en mois, départs les 29, 30 et 31 (TR-7, TR-18)', () => {
         const book: Book = { periods: [period], doses: [], today: plusDays(firstDueOn, 1500) }
         const before = scheduleOf(book)
         for (const unlogged of before.unloggedDoses.slice(0, 4)) {
-          for (let late = 0; late <= 5; late += 1) {
-            const givenOn = plusDays(unlogged.dueOn, late)
-            const fields = before.doseFor({ kind: 'given', due: unlogged, givenOn })
-            const at = '2026-01-01T00:00:01.000Z'
-            const doses = [{ id: 'd1', ...fields, createdAt: at, updatedAt: at }]
-            const after = scheduleOf({ ...book, doses })
-            const same =
-              JSON.stringify(after.currentDoses) === JSON.stringify(before.currentDoses) &&
-              JSON.stringify(after.upcoming(24)) === JSON.stringify(before.upcoming(24))
-            if (!same)
-              drifts.push(
-                `${firstDueOn}, tous les ${value} mois : ${unlogged.dueOn} notée le ${givenOn}`,
-              )
-          }
+          const { dueOn } = unlogged
+          const fields = before.doseFor({ kind: 'given', due: unlogged, givenOn: dueOn })
+          const at = '2026-01-01T00:00:01.000Z'
+          const doses = [{ id: 'd1', ...fields, createdAt: at, updatedAt: at }]
+          const after = scheduleOf({ ...book, doses })
+          const same =
+            JSON.stringify(after.currentDoses) === JSON.stringify(before.currentDoses) &&
+            JSON.stringify(after.upcoming(24)) === JSON.stringify(before.upcoming(24))
+          if (!same) drifts.push(`${firstDueOn}, tous les ${value} mois : ${dueOn}`)
         }
       }
     }

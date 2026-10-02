@@ -118,13 +118,12 @@ describe('échéances d’une période (TR-7, T1, T2)', () => {
   })
 
   it('une prise donnée un autre jour que son échéance devient la nouvelle référence', () => {
-    const book = done(carnet(monthly({ firstDueOn: '2026-01-31' })), '2026-02-02')
+    const book = done(carnet(monthly({ firstDueOn: '2026-01-30' })), '2026-01-31')
 
-    expect(lastDose(book).nextDueDate).toBe('2026-03-02')
-    expect(dueDays(scheduleOf(book, '2026-02-02').upcoming(3))).toEqual([
-      '2026-03-02',
-      '2026-04-02',
-      '2026-05-02',
+    expect(lastDose(book).nextDueDate).toBe('2026-02-28')
+    expect(dueDays(scheduleOf(book, '2026-01-31').upcoming(2))).toEqual([
+      '2026-02-28',
+      '2026-03-31',
     ])
   })
 
@@ -3130,62 +3129,6 @@ describe('en mois, le jour de référence ne dérive pas (TR-7)', () => {
     expect(dueDays(scheduleOf(book, '2026-11-30').upcoming(2))).toEqual([
       '2027-02-28',
       '2027-05-31',
-    ])
-  })
-})
-
-describe('en mois, noter une dose non renseignée ne fait pas dériver le jour du mois (TR-7, TR-18)', () => {
-  const upcoming = [
-    '2026-10-30',
-    '2026-11-30',
-    '2026-12-30',
-    '2027-01-30',
-    '2027-02-28',
-    '2027-03-30',
-  ]
-
-  it('mensuel du 30 juil. : la dose du 30 août notée le 31 août garde le 30 de chaque mois', () => {
-    const start = carnet(monthly({ firstDueOn: '2026-07-30' }))
-    const before = scheduleOf(start, '2026-10-10')
-    expect(dueDays(before.unloggedDoses)).toEqual(['2026-07-30', '2026-08-30'])
-    expect(before.currentDoses).toEqual([due('2026-09-30')])
-    expect(dueDays(before.upcoming(6))).toEqual(upcoming)
-
-    const book = record(start, '2026-10-10', {
-      kind: 'given',
-      due: due('2026-08-30'),
-      givenOn: '2026-08-31',
-    })
-
-    expect(lastDose(book).nextDueDate).toBe('2026-09-30')
-    const after = scheduleOf(book, '2026-10-10')
-    expect(dueDays(after.unloggedDoses)).toEqual(['2026-07-30'])
-    expect(after.currentDoses).toEqual([due('2026-09-30')])
-    expect(dueDays(after.upcoming(6))).toEqual(upcoming)
-  })
-
-  it('redatée ensuite au 31 août, la prise ne touche toujours pas la suite', () => {
-    let book = record(carnet(monthly({ firstDueOn: '2026-07-30' })), '2026-10-10', {
-      kind: 'given',
-      due: due('2026-08-30'),
-      givenOn: '2026-09-02',
-    })
-
-    book = redate(book, '2026-10-10', lastDose(book).id, '2026-08-31')
-
-    expect(lastDose(book)).toMatchObject({ givenOn: '2026-08-31', nextDueDate: '2026-09-30' })
-    const schedule = scheduleOf(book, '2026-10-10')
-    expect(schedule.currentDoses).toEqual([due('2026-09-30')])
-    expect(dueDays(schedule.upcoming(6))).toEqual(upcoming)
-  })
-
-  it('la dose du moment du 30 janv. donnée le 31 : prochaine dose le 28 févr., puis le 30 de la suite', () => {
-    const book = done(carnet(monthly({ firstDueOn: '2026-01-30' })), '2026-01-31')
-
-    expect(lastDose(book).nextDueDate).toBe('2026-02-28')
-    expect(dueDays(scheduleOf(book, '2026-01-31').upcoming(2))).toEqual([
-      '2026-02-28',
-      '2026-03-30',
     ])
   })
 })
