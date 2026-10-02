@@ -107,6 +107,10 @@ function selectUnit(unit: DoseUnit | null): void {
   flex: 0 0 92px;
 }
 
+.treatment-dosage__quantity :deep(.v-field__input) {
+  padding-inline: 6px;
+}
+
 .treatment-dosage__quantity :deep(input) {
   font-weight: 600;
   text-align: center;
@@ -115,6 +119,14 @@ function selectUnit(unit: DoseUnit | null): void {
 .treatment-dosage__unit {
   flex: 1 1 0;
   min-width: 0;
+}
+
+.treatment-dosage__unit :deep(.v-field__input) {
+  align-items: center;
+}
+
+.treatment-dosage__unit :deep(.v-field__input input) {
+  align-self: center;
 }
 
 .treatment-dosage__shortcuts {

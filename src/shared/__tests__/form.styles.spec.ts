@@ -179,6 +179,9 @@ describe('FormSegmented — contrat de style', () => {
     expect(declaration(css, '.form-segmented--compact .form-segmented__option', 'min-width')).toBe(
       '0',
     )
+    expect(declaration(css, '.form-segmented--compact .form-segmented__option', 'flex')).toBe(
+      '1 1 auto',
+    )
     expect(declaration(css, '.form-segmented--compact .form-segmented__option', 'font-size')).toBe(
       '13px',
     )

@@ -105,6 +105,9 @@ function remove(time: string): void {
 
 .treatment-times__remove {
   display: flex;
+  border: 0;
+  background: transparent;
+  color: inherit;
   align-items: center;
   justify-content: center;
   width: 44px;

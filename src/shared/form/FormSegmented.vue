@@ -109,6 +109,7 @@ function select(value: unknown): void {
 }
 
 .form-segmented--compact .form-segmented__option {
+  flex: 1 1 auto;
   min-width: 0;
   padding: 0 4px;
   border-radius: tokens.$radius-segment-compact;

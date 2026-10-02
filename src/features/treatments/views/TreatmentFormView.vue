@@ -558,6 +558,9 @@ async function submit(): Promise<void> {
 
 .treatment-form__clear {
   display: flex;
+  border: 0;
+  background: transparent;
+  color: rgb(var(--v-theme-primary));
   position: relative;
   z-index: 1;
   align-items: center;
