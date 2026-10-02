@@ -3167,3 +3167,43 @@ describe('en mois, noter une dose non renseignée ne fait pas dériver le jour d
     ])
   })
 })
+
+describe('une date de fin ne fait pas sauter une dose à cause d’un retard (TR-7, TR-8, Q35)', () => {
+  const fourWeeks = { value: 4, unit: 'week' } as const
+  const cure = period({ firstDueOn: '2026-10-05', endsOn: '2026-11-02', frequency: fourWeeks })
+
+  it('cure du 5 oct. et du 2 nov. : la première dose donnée le 10, la seconde reste prévue le 2 nov.', () => {
+    const book = done(carnet(cure), '2026-10-10')
+
+    expect(lastDose(book).nextDueDate).toBe('2026-11-02')
+    const schedule = scheduleOf(book, '2026-10-10')
+    expect(schedule.phase).toBe('upcoming')
+    expect(schedule.finished).toBe(false)
+    expect(schedule.currentDoses).toEqual([due('2026-11-02')])
+  })
+
+  it('donnée à l’heure puis redatée au 10, la seconde dose reste aussi le 2 nov.', () => {
+    const book = done(carnet(cure), '2026-10-05')
+
+    const moved = redate(book, '2026-10-12', lastDose(book).id, '2026-10-10')
+
+    expect(lastDose(moved).nextDueDate).toBe('2026-11-02')
+    expect(scheduleOf(moved, '2026-10-12').currentDoses).toEqual([due('2026-11-02')])
+  })
+
+  it('tant que la suite repartie tient avant la date de fin, elle repart de la date réelle', () => {
+    const longer = period({ firstDueOn: '2026-10-05', endsOn: '2026-11-30', frequency: fourWeeks })
+    const book = done(carnet(longer), '2026-10-10')
+
+    expect(lastDose(book).nextDueDate).toBe('2026-11-07')
+    expect(dueDays(scheduleOf(book, '2026-10-10').upcoming(3))).toEqual(['2026-11-07'])
+  })
+
+  it('sans dose de la grille avant la date de fin, rien ne change : le traitement est terminé', () => {
+    const short = period({ firstDueOn: '2026-10-05', endsOn: '2026-10-20', frequency: fourWeeks })
+    const book = done(carnet(short), '2026-10-10')
+
+    expect(lastDose(book).nextDueDate).toBe('2026-11-07')
+    expect(scheduleOf(book, '2026-10-10')).toMatchObject({ phase: 'ended', finished: true })
+  })
+})

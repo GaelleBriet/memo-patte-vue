@@ -98,7 +98,9 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
     (Garde technique, consignée au journal des décisions autonomes.)
   - **G11** Une prise datée plus d'un intervalle avant son échéance ne refixe pas la suite.
     (Garde technique, consignée au journal des décisions autonomes.)
-- **TR-8** Aucune échéance après la date de fin.
+- **TR-8** Aucune échéance après la date de fin. Un retard ne fait pas sauter une dose prévue : quand
+  la suite repartie de la date réelle (TR-7) placerait la dose suivante après la date de fin alors que
+  la suite d'avant la plaçait au plus tard ce jour-là, la dose suivante garde sa date (spec Q35).
 - **TR-9** « Prochaine dose » (« Modifier ») déplace la prochaine dose, plus tôt ou plus tard que
   l'échéance prévue, et recale la suite des échéances à partir de la nouvelle date. La date choisie va
   du lendemain de l'échéance qui précède (en pratique, de la dernière prise notée), jamais avant
@@ -650,6 +652,12 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
   est déjà dans la liste. » ; anglais « until Oct 10 », à relire avec #353. Reportés : « 1er » pour le
   premier du mois (#481), un report resté sans effet dans une période fermée (#482), un traitement
   sans prise donnée dans le PDF (#483).
+- 2026-10-02 — **Q35 : une date de fin ne fait pas sauter une dose prévue à cause d'un retard** (TR-7,
+  TR-8). Cure de deux doses toutes les 4 semaines, le 5 oct. et le 2 nov., fin le 2 nov. : la première
+  donnée le 10 oct., la seconde reste prévue le 2 nov. et le traitement n'est pas terminé. Si la suite
+  d'avant n'a plus de dose avant la date de fin, rien ne change. Raison : la seconde dose disparaissait
+  sans rien dire. Écartée : TR-7 à la lettre (la suite repart du 10, le 7 nov. tombe après la fin).
+  (Revue du moteur d'échéances du 2026-10-02, M11.)
 
 ## 11. Questions ouvertes
 

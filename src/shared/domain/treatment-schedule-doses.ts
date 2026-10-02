@@ -70,7 +70,9 @@ function givenNextDueDate(others: State, due: Due, givenOn: string): string {
     dayIsComplete &&
     restarted > due.dueOn &&
     !hitsAMove
-  return restarts ? restarted : next
+  const { endsOn } = plan.period
+  const skipsLastDose = endsOn !== null && restarted > endsOn && next <= endsOn
+  return restarts && !skipsLastDose ? restarted : next
 }
 
 function checkKnown(known: () => Set<string>, due: Due): void {
