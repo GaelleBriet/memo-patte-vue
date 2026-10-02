@@ -106,6 +106,15 @@ export function createTreatmentPeriodsRepository(
     loadSupabaseClient: loadClient = loadSupabaseClient,
   }: TreatmentPeriodsRepositoryDependencies = {},
 ) {
+  async function listVisible(scope = '', params: string[] = []): Promise<TreatmentPeriodRecord[]> {
+    const rows = await db.query<PeriodRow>(
+      `SELECT ${SYNC_COLUMNS} FROM treatment_period WHERE ${NOT_DELETED} ${scope}
+       ORDER BY treatment_id, starts_on, created_at, id`,
+      params,
+    )
+    return rows.map(toPeriodRecord)
+  }
+
   return {
     entity: 'treatment_period',
 
@@ -215,12 +224,16 @@ export function createTreatmentPeriodsRepository(
     },
 
     /** Périodes visibles, toutes colonnes comprises, celles d'un même traitement de la première à la dernière. */
-    async listAll(): Promise<TreatmentPeriodRecord[]> {
-      const rows = await db.query<PeriodRow>(
-        `SELECT ${SYNC_COLUMNS} FROM treatment_period WHERE ${NOT_DELETED}
-         ORDER BY treatment_id, starts_on, created_at, id`,
-      )
-      return rows.map(toPeriodRecord)
+    listAll(): Promise<TreatmentPeriodRecord[]> {
+      return listVisible()
+    },
+
+    listByTreatment(treatmentId: string): Promise<TreatmentPeriodRecord[]> {
+      return listVisible('AND treatment_id = ?', [treatmentId])
+    },
+
+    listByAnimal(animalId: string): Promise<TreatmentPeriodRecord[]> {
+      return listVisible('AND animal_id = ?', [animalId])
     },
 
     /** Lignes supprimées comprises : l'import compare les versions avant d'écrire. */

@@ -11,7 +11,8 @@ import {
   createTreatmentPeriodsRepository,
   currentPeriodIdSql,
 } from './treatment-periods.repository'
-import type { TreatmentDose } from '../schema/treatment-dose.schema'
+import type { NewTreatmentDose, TreatmentDose } from '../schema/treatment-dose.schema'
+import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 import {
   treatmentEditSchema,
   treatmentEditSchemaAfter,
@@ -49,6 +50,11 @@ export type TreatmentRecord = Pick<
   'id' | 'animalId' | 'name' | 'type' | 'createdAt' | 'updatedAt'
 >
 export type RestoredTreatment = TreatmentRecord
+/** Ce que le moteur d'échéances lit : toutes les périodes, de la première à la dernière, et les prises visibles. */
+export type TreatmentWithHistory = TreatmentRecord & {
+  periods: TreatmentPeriodRecord[]
+  doses: NewTreatmentDose[]
+}
 
 const COLUMNS = 'id, animal_id, name, type, created_at, updated_at, deleted_at'
 
@@ -72,6 +78,50 @@ const VISIBLE_WITH_HEAD = `
   JOIN treatment_period period ON period.id = ${currentPeriodIdSql('treatment.id')}
   LEFT JOIN treatment_dose head ON head.id = ${headDoseIdSql('treatment.id')}
   WHERE treatment.deleted_at IS NULL`
+
+function toRecord(row: TreatmentRow): TreatmentRecord {
+  return {
+    id: row.id,
+    animalId: row.animal_id,
+    name: row.name,
+    type: row.type,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  }
+}
+
+function groupBy<T>(rows: T[], keyOf: (row: T) => string): Map<string, T[]> {
+  const groups = new Map<string, T[]>()
+  for (const row of rows) {
+    const group = groups.get(keyOf(row))
+    if (group) group.push(row)
+    else groups.set(keyOf(row), [row])
+  }
+  return groups
+}
+
+/** Sans période visible, un traitement ne se lit pas ; les prises d'une période supprimée non plus. */
+function withHistory(
+  rows: TreatmentRow[],
+  periods: TreatmentPeriodRecord[],
+  doses: TreatmentDose[],
+): TreatmentWithHistory[] {
+  const periodsOf = groupBy(periods, ({ treatmentId }) => treatmentId)
+  const dosesOf = groupBy(doses, ({ periodId }) => periodId)
+  return rows.flatMap((row) => {
+    const own = periodsOf.get(row.id)
+    if (!own) return []
+    return [
+      {
+        ...toRecord(row),
+        periods: own,
+        doses: own.flatMap(({ id }) =>
+          (dosesOf.get(id) ?? []).map(({ frequency: _frequency, ...dose }) => dose),
+        ),
+      },
+    ]
+  })
+}
 
 function toTreatment(row: TreatmentWithHeadRow): Treatment {
   return {
@@ -173,14 +223,45 @@ export function createTreatmentsRepository(
         `SELECT ${COLUMNS} FROM treatment WHERE ${NOT_DELETED}
          ORDER BY animal_id, created_at, id`,
       )
-      return rows.map((row) => ({
-        id: row.id,
-        animalId: row.animal_id,
-        name: row.name,
-        type: row.type,
-        createdAt: row.created_at,
-        updatedAt: row.updated_at,
-      }))
+      return rows.map(toRecord)
+    },
+
+    async getWithHistory(id: string): Promise<TreatmentWithHistory | null> {
+      const [rows, ownPeriods, ownDoses] = await Promise.all([
+        db.query<TreatmentRow>(`SELECT ${COLUMNS} FROM treatment WHERE ${NOT_DELETED} AND id = ?`, [
+          id,
+        ]),
+        periods.listByTreatment(id),
+        doses.listByTreatment(id),
+      ])
+      return withHistory(rows, ownPeriods, ownDoses)[0] ?? null
+    },
+
+    /** Dans l'ordre de saisie des traitements. */
+    async listWithHistoryByAnimal(animalId: string): Promise<TreatmentWithHistory[]> {
+      const [rows, ownPeriods, ownDoses] = await Promise.all([
+        db.query<TreatmentRow>(
+          `SELECT ${COLUMNS} FROM treatment WHERE ${NOT_DELETED} AND animal_id = ?
+           ORDER BY created_at, id`,
+          [animalId],
+        ),
+        periods.listByAnimal(animalId),
+        doses.listByAnimal(animalId),
+      ])
+      return withHistory(rows, ownPeriods, ownDoses)
+    },
+
+    /** Par animal, puis dans l'ordre de saisie des traitements. */
+    async listAllWithHistory(): Promise<TreatmentWithHistory[]> {
+      const [rows, allPeriods, allDoses] = await Promise.all([
+        db.query<TreatmentRow>(
+          `SELECT ${COLUMNS} FROM treatment WHERE ${NOT_DELETED}
+           ORDER BY animal_id, created_at, id`,
+        ),
+        periods.listAll(),
+        doses.listAll(),
+      ])
+      return withHistory(rows, allPeriods, allDoses)
     },
 
     /**

@@ -164,6 +164,17 @@ export function createTreatmentDosesRepository(
       return rows.map(toDose)
     },
 
+    /** Prises visibles des traitements d'un animal, celles d'un même traitement la dernière d'abord. */
+    async listByAnimal(animalId: string): Promise<TreatmentDose[]> {
+      const rows = await db.query<DoseWithFrequencyRow>(
+        `${WITH_FREQUENCY}
+         WHERE dose.animal_id = ? AND dose.deleted_at IS NULL
+         ORDER BY dose.treatment_id, ${HEAD_FIRST}`,
+        [animalId],
+      )
+      return rows.map(toDose)
+    },
+
     async getById(id: string): Promise<TreatmentDose | null> {
       const rows = await db.query<DoseWithFrequencyRow>(
         `${WITH_FREQUENCY} WHERE dose.id = ? AND dose.deleted_at IS NULL`,
