@@ -177,10 +177,17 @@ describe('momentDue — ce que notent la feuille « À faire » et une notificat
     ).toEqual({ due: { periodId: 'p-1', dueOn: '2026-09-01', dueTime: '20:00' } })
   })
 
-  it('vise d’abord une échéance sans prise, une oubliée seulement s’il n’en reste aucune', () => {
+  it('aujourd’hui, ne vise que des échéances sans prise : une oubliée ne repasse jamais en donnée', () => {
     const matinOublie = treatment(
       [MATIN_ET_SOIR],
       [missed('2026-09-01', '2026-09-01', { dueTime: '08:00' })],
+    )
+    const soirDonne = treatment(
+      [MATIN_ET_SOIR],
+      [
+        missed('2026-09-01', '2026-09-01', { dueTime: '08:00' }),
+        dose('2026-09-01', '2026-09-02', { dueTime: '20:00' }),
+      ],
     )
     const toutOublie = treatment(
       [MATIN_ET_SOIR],
@@ -193,8 +200,15 @@ describe('momentDue — ce que notent la feuille « À faire » et une notificat
     expect(due(matinOublie, '2026-09-01')).toEqual({
       due: { periodId: 'p-1', dueOn: '2026-09-01', dueTime: '20:00' },
     })
-    expect(due(toutOublie, '2026-09-01')).toEqual({
-      due: { periodId: 'p-1', dueOn: '2026-09-01', dueTime: '08:00' },
+    expect(due(soirDonne, '2026-09-01')).toEqual({ alreadyGivenOn: '2026-09-01' })
+    expect(due(toutOublie, '2026-09-01')).toEqual({ alreadyGivenOn: '2026-09-01' })
+  })
+
+  it('un autre jour, choisi dans la feuille, un oubli repasse en donnée (TR-22)', () => {
+    const oublie = treatment([period()], [missed('2026-09-01', '2026-09-02')])
+
+    expect(due(oublie, '2026-09-03', '2026-09-01')).toEqual({
+      due: { periodId: 'p-1', dueOn: '2026-09-01', dueTime: null },
     })
   })
 

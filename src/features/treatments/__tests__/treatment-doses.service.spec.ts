@@ -326,6 +326,53 @@ describe('treatmentDosesService', () => {
       await expect(lignes(metacam)).resolves.toHaveLength(1)
     })
 
+    it('8 h marquée oubliée : la feuille puis la notification notent 20 h, jamais 8 h ; la fiche la corrige', async () => {
+      const metacam = await creer('metacam', DEUX_HEURES)
+      const matin = { periodId: metacam, dueOn: '2026-09-23', dueTime: '08:00' }
+      await service.apply(metacam, { kind: 'note', gesture: { kind: 'missed', due: matin } })
+
+      const soir = await service.noteMoment(metacam, '2026-09-23')
+      const feuille = await service.noteMoment(metacam, '2026-09-23')
+      const notification = await service.noteMoment(metacam, '2026-09-23', {
+        notifiedDueOn: '2026-09-22',
+      })
+
+      expect(soir.due).toMatchObject({ dueTime: '20:00' })
+      expect(feuille).toMatchObject({ outcome: 'already', undo: [], alreadyGivenOn: '2026-09-23' })
+      expect(notification).toMatchObject({ outcome: 'already', undo: [] })
+      await expect(lignes(metacam)).resolves.toEqual([
+        { due_on: '2026-09-23', due_time: '08:00', given_on: null },
+        { due_on: '2026-09-23', due_time: '20:00', given_on: '2026-09-23' },
+      ])
+
+      await service.apply(metacam, {
+        kind: 'note',
+        gesture: { kind: 'given', due: matin, givenOn: '2026-09-23' },
+      })
+
+      await expect(lignes(metacam)).resolves.toMatchObject([
+        { due_time: '08:00', given_on: '2026-09-23' },
+        { due_time: '20:00', given_on: '2026-09-23' },
+      ])
+    })
+
+    it('8 h et 20 h toutes deux oubliées : « déjà notée aujourd’hui », rien d’écrit', async () => {
+      const metacam = await creer('metacam', DEUX_HEURES)
+      for (const dueTime of ['08:00', '20:00']) {
+        await service.apply(metacam, {
+          kind: 'note',
+          gesture: { kind: 'missed', due: { periodId: metacam, dueOn: '2026-09-23', dueTime } },
+        })
+      }
+
+      await expect(service.noteMoment(metacam, '2026-09-23')).resolves.toMatchObject({
+        outcome: 'already',
+        undo: [],
+        alreadyGivenOn: '2026-09-23',
+      })
+      await expect(lignes(metacam)).resolves.toMatchObject([{ given_on: null }, { given_on: null }])
+    })
+
     it('lève pour un traitement introuvable', async () => {
       await expect(service.noteMoment('inconnu', '2026-09-23')).rejects.toThrow(
         'Traitement introuvable',

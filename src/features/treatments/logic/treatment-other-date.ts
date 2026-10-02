@@ -87,10 +87,11 @@ export function givenDays(schedule: DaySchedule): string[] {
 
 /**
  * Transition, tant que la feuille « À faire » et les notifications ne visent pas une heure
- * (lots 4 et 7) : la première échéance encore sans prise du jour de la prise, à défaut la première
- * oubliée ; sans échéance ce jour-là, la dose du moment aujourd'hui, ou la règle sans heure (TR-13)
- * un autre jour. Une dose à venir ne se note pas en avance le jour où une prise a déjà été donnée.
- * `null` : rien à noter.
+ * (lots 4 et 7) : la première échéance encore sans prise du jour de la prise ; sans échéance ce
+ * jour-là, la dose du moment aujourd'hui, ou la règle sans heure (TR-13) un autre jour. Aujourd'hui,
+ * une dose notée oubliée ne repasse jamais en donnée, et une dose à venir ne se note pas en avance
+ * quand une prise a déjà été donnée ; un autre jour, choisi par la personne, un oubli se corrige
+ * (TR-22). `null` : rien à noter.
  */
 export function momentDue(
   schedule: OtherDateSchedule,
@@ -100,10 +101,12 @@ export function momentDue(
   const dues = dayDues(schedule, givenOn)
   const open =
     dues.find(({ status }) => status === 'pending') ??
-    dues.find(({ status }) => status === 'missed')
+    (givenOn === today ? undefined : dues.find(({ status }) => status === 'missed'))
   if (open !== undefined) return { due: open.due }
-  const given = dues[0]
-  if (given !== undefined) return { alreadyGivenOn: given.givenOn ?? givenOn }
+  if (dues.length > 0) {
+    const given = dues.find(({ status }) => status === 'given')
+    return { alreadyGivenOn: given?.givenOn ?? givenOn }
+  }
   if (givenOn !== today) {
     const due = schedule.dueForDate(givenOn)
     return due === null ? null : { due }
