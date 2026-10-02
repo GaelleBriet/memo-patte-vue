@@ -73,6 +73,6 @@ export function detailActions({ phase }: Pick<TreatmentSchedule, 'phase'>) {
   return {
     canEdit: phase !== 'stopped',
     canStop: phase !== 'stopped' && phase !== 'ended',
-    canResume: phase === 'stopped',
+    canResume: phase === 'stopped' || phase === 'ended',
   }
 }

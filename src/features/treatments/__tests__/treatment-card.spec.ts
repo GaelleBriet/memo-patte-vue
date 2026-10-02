@@ -203,7 +203,7 @@ describe('detailActions', () => {
     expect(detailActions({ phase: 'ended' })).toEqual({
       canEdit: true,
       canStop: false,
-      canResume: false,
+      canResume: true,
     })
   })
 })
