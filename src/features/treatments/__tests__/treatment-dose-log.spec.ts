@@ -115,6 +115,22 @@ describe('doseChange — renseigner des doses en un lot', () => {
     ).toThrow(DoseAlreadyLoggedError)
   })
 
+  it('accepte avec les doses non renseignées la dose du moment en retard', () => {
+    const history = treatment(
+      [period({ frequency: { value: 1, unit: 'week' } })],
+      [dose('2026-09-01', '2026-09-08')],
+    )
+    const schedule = treatmentScheduleOf(history, '2026-09-24')
+    const dues = [...schedule.unloggedDoses, ...schedule.currentDoses]
+
+    const { writes } = log(history, '2026-09-24', dues.map(given))
+    const after = treatmentScheduleOf(written(history, writes), '2026-09-24')
+
+    expect(dues.map(({ dueOn }) => dueOn)).toEqual(['2026-09-08', '2026-09-15', '2026-09-22'])
+    expect(after.unloggedDoses).toEqual([])
+    expect(after.currentDoses.map(({ dueOn }) => dueOn)).toEqual(['2026-09-29'])
+  })
+
   it('emporte les lignes sans effet avec l’écriture', () => {
     const weekly = period({ frequency: { value: 1, unit: 'week' } })
     const history = treatment(
