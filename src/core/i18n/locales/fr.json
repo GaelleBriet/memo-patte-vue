@@ -344,7 +344,8 @@
       },
       "errors": {
         "dose": "La prise n’a pas pu être notée. Réessaie.",
-        "stop": "Le traitement n’a pas pu être arrêté. Réessaie."
+        "stop": "Le traitement n’a pas pu être arrêté. Réessaie.",
+        "noDoseLeft": "Ce traitement n’a plus de dose à noter."
       }
     },
     "detail": {
@@ -484,6 +485,7 @@
     "tomorrow": "demain, {date}",
     "overdueSince": "en retard depuis le {date}",
     "stoppedOn": "Arrêté le {date}",
+    "endedOn": "Terminé le {date}",
     "today": "Aujourd’hui",
     "todayAt": "Aujourd’hui · {time}"
   },

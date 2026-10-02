@@ -277,10 +277,53 @@ describe('treatmentDosesService', () => {
       ])
 
       await expect(service.noteMoment(bravecto, '2026-09-24')).rejects.toThrow('date future')
-      await expect(service.noteMoment(metacam, '2026-09-23')).rejects.toThrow('Aucune dose à noter')
+      await expect(service.noteMoment(metacam, '2026-09-23')).resolves.toMatchObject({
+        outcome: 'none',
+        undo: [],
+        due: null,
+      })
 
       await expect(visibleDoses()).resolves.toHaveLength(1)
       await expect(lignes(metacam)).resolves.toEqual([])
+    })
+
+    it('second « Fait aujourd’hui » le même jour : « déjà notée aujourd’hui », rien d’écrit ; la fiche note encore en avance', async () => {
+      const hebdo = await creer('hebdo', HEBDO)
+      await service.noteMoment(hebdo, '2026-09-23')
+
+      const second = await service.noteMoment(hebdo, '2026-09-23')
+
+      expect(second).toMatchObject({ outcome: 'already', undo: [], alreadyGivenOn: '2026-09-23' })
+      await expect(lignes(hebdo)).resolves.toHaveLength(1)
+
+      await service.apply(hebdo, {
+        kind: 'note',
+        gesture: {
+          kind: 'given',
+          due: { periodId: hebdo, dueOn: '2026-09-30', dueTime: null },
+          givenOn: '2026-09-23',
+        },
+      })
+
+      await expect(lignes(hebdo)).resolves.toEqual([
+        { due_on: '2026-09-18', due_time: null, given_on: '2026-09-23' },
+        { due_on: '2026-09-30', due_time: null, given_on: '2026-09-23' },
+      ])
+    })
+
+    it('notification d’un jour dont une prise est déjà notée : rien n’est écrit, la feuille décidera', async () => {
+      const metacam = await creer('metacam', DEUX_HEURES)
+      const notification = { notifiedDueOn: '2026-09-23' }
+
+      const premiere = await service.noteMoment(metacam, '2026-09-23', notification)
+      const seconde = await service.noteMoment(metacam, '2026-09-23', notification)
+
+      expect(premiere).toMatchObject({
+        outcome: 'noted',
+        due: { dueOn: '2026-09-23', dueTime: '08:00' },
+      })
+      expect(seconde).toMatchObject({ outcome: 'day-noted', undo: [], due: null })
+      await expect(lignes(metacam)).resolves.toHaveLength(1)
     })
 
     it('lève pour un traitement introuvable', async () => {

@@ -61,6 +61,10 @@ export function useTreatmentGestures(onChanged: () => void) {
       const noted = await treatments.noteMomentDose(treatment.id, givenOn)
       onChanged()
       const context = { ...named(treatment), today: todayIsoDate() }
+      if (noted.outcome === 'none') {
+        showToast(t('treatments.sheet.errors.noDoseLeft'), { tone: 'info' })
+        return
+      }
       if (noted.due === null) {
         showToast(alreadyNotedText(t, context, noted.alreadyGivenOn ?? givenOn), { tone: 'info' })
         return
