@@ -403,8 +403,8 @@ describe('TreatmentDetailView — « Fait à une autre date »', () => {
       'Métacam · Luna · 28 sept.',
     )
     expect(
-      dansLaFeuille('.treatment-other-date__hour').map((hour) => [
-        hour.querySelector('.treatment-other-date__hour-detail')?.textContent?.replace(NBSP, ' '),
+      dansLaFeuille('.treatment-hours__hour').map((hour) => [
+        hour.querySelector('.treatment-hours__detail')?.textContent?.replace(NBSP, ' '),
         hour.disabled,
       ]),
     ).toEqual([
@@ -423,8 +423,8 @@ describe('TreatmentDetailView — « Fait à une autre date »', () => {
     await flushPromises()
 
     expect(
-      dansLaFeuille('.treatment-other-date__hour').map((hour) => [
-        hour.querySelector('.treatment-other-date__hour-detail')?.textContent?.replace(NBSP, ' '),
+      dansLaFeuille('.treatment-hours__hour').map((hour) => [
+        hour.querySelector('.treatment-hours__detail')?.textContent?.replace(NBSP, ' '),
         hour.disabled,
       ]),
     ).toEqual([
@@ -453,7 +453,7 @@ describe('TreatmentDetailView — « Fait à une autre date »', () => {
     dansLaFeuille('.treatment-other-date__submit')[0]!.click()
     await flushPromises()
 
-    expect(dansLaFeuille('.treatment-other-date__hour')).toHaveLength(0)
+    expect(dansLaFeuille('.treatment-hours__hour')).toHaveLength(0)
     expect(service.apply).toHaveBeenCalledWith(deuxPeriodes.id, {
       kind: 'note',
       gesture: {
@@ -469,7 +469,7 @@ describe('TreatmentDetailView — « Fait à une autre date »', () => {
     dansLaFeuille('.treatment-other-date__submit')[0]!.click()
     await flushPromises()
 
-    const [, soir] = dansLaFeuille('.treatment-other-date__hour')
+    const [, soir] = dansLaFeuille('.treatment-hours__hour')
     expect(soir!.textContent?.replace(NBSP, ' ')).toContain('Dose de 20 h · pas encore notée')
     soir!.click()
     await flushPromises()
@@ -530,10 +530,10 @@ describe('TreatmentDetailView — « Fait à une autre date »', () => {
     dansLaFeuille('.treatment-other-date__submit')[0]!.click()
     await flushPromises()
 
-    dansLaFeuille('.treatment-other-date__hour')[1]!.click()
+    dansLaFeuille('.treatment-hours__hour')[1]!.click()
     await flushPromises()
 
-    expect(dansLaFeuille('.treatment-other-date__hour')).toHaveLength(2)
+    expect(dansLaFeuille('.treatment-hours__hour')).toHaveLength(2)
     expect(view.findComponent(DateCalendar).exists()).toBe(false)
     expect(message()).toBe('La modification n’a pas abouti. Réessaie.')
   })
