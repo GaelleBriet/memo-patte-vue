@@ -56,7 +56,7 @@ import {
 import { carnetSettingsSchema } from '../schema/carnet-settings.schema'
 import { isCalendarDay, MAX_CALENDAR_YEAR, MIN_CALENDAR_YEAR } from '@/shared/domain/calendar-day'
 import type { ExportAnimal } from '@/shared/domain/carnet-data'
-import { CLOCK_TIME_PATTERN } from '@/shared/domain/clock-time'
+import { CLOCK_TIME_PATTERN, MAX_TIMES_PER_DAY } from '@/shared/domain/clock-time'
 import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
 import {
   buildImportPlan,
@@ -85,7 +85,6 @@ export type ParsedExportFile =
 
 export const MAX_IMPORT_FILE_BYTES = 10 * 1024 * 1024
 const MAX_TEXT_LENGTH = 200
-const MAX_TIMES_PER_DAY = 24
 
 function isYearInRange(value: string): boolean {
   const year = Number(value.slice(0, 4))

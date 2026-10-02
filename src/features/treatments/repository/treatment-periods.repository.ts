@@ -6,10 +6,11 @@ import { guardedUpsert, type SyncRow } from '@/core/supabase/guarded-upsert'
 import { loadSupabaseClient } from '@/core/supabase/load-client'
 import { syncField, type SyncPullPage } from '@/core/sync/service/syncable-table'
 import type { TreatmentFrequency } from '../schema/treatment.schema'
-import type {
-  TreatmentPeriod,
-  TreatmentPeriodRecord,
-  TreatmentPeriodSettings,
+import {
+  treatmentPeriodSettingsSchema,
+  type TreatmentPeriod,
+  type TreatmentPeriodRecord,
+  type TreatmentPeriodSettings,
 } from '../schema/treatment-period.schema'
 
 export type RestoredTreatmentPeriod = Omit<TreatmentPeriodRecord, 'deletedAt'>
@@ -139,10 +140,24 @@ export function createTreatmentPeriodsRepository(
   return {
     entity: 'treatment_period',
 
-    /** Fin, heures, posologie et moment du rappel absents : la période n'en a pas. */
+    /**
+     * Fin, heures, posologie et moment du rappel absents : la période n'en a pas. Lève pour des
+     * réglages incohérents.
+     */
     insertStatement(
       period: TreatmentPeriod & Partial<TreatmentPeriodSettings> & { deletedAt: string | null },
     ): SqlStatement {
+      const settings = treatmentPeriodSettingsSchema.parse({
+        startsOn: period.startsOn,
+        firstDueOn: period.firstDueOn,
+        endsOn: period.endsOn ?? null,
+        frequency: period.frequency,
+        times: period.times ?? [],
+        doseQuantity: period.doseQuantity ?? null,
+        doseUnit: period.doseUnit ?? null,
+        reminderOffsetMinutes: period.reminderOffsetMinutes ?? null,
+        reminderTime: period.reminderTime ?? null,
+      })
       return {
         sql: `INSERT INTO treatment_period (${SYNC_COLUMNS})
               VALUES (${SYNC_COLUMN_NAMES.map(() => '?').join(', ')})`,
@@ -150,17 +165,17 @@ export function createTreatmentPeriodsRepository(
           period.id,
           period.treatmentId,
           period.animalId,
-          period.startsOn,
-          period.firstDueOn,
-          period.endsOn ?? null,
+          settings.startsOn,
+          settings.firstDueOn,
+          settings.endsOn,
           period.stoppedOn,
-          period.frequency.value,
-          period.frequency.unit,
-          timesColumn(period.times ?? []),
-          period.doseQuantity ?? null,
-          period.doseUnit ?? null,
-          period.reminderOffsetMinutes ?? null,
-          period.reminderTime ?? null,
+          settings.frequency.value,
+          settings.frequency.unit,
+          timesColumn(settings.times),
+          settings.doseQuantity,
+          settings.doseUnit,
+          settings.reminderOffsetMinutes,
+          settings.reminderTime,
           period.createdAt,
           period.updatedAt,
           period.deletedAt,
@@ -168,12 +183,16 @@ export function createTreatmentPeriodsRepository(
       }
     },
 
-    /** Tous les réglages de la période en cours, sauf son arrêt ; rien n'est daté si rien ne change. */
+    /**
+     * Tous les réglages de la période en cours, sauf son arrêt ; rien n'est daté si rien ne change.
+     * Lève pour des réglages incohérents.
+     */
     correctCurrentSettingsStatement(
       treatmentId: string,
-      settings: TreatmentPeriodSettings,
+      input: TreatmentPeriodSettings,
       updatedAt: string,
     ): SqlStatement {
+      const settings = treatmentPeriodSettingsSchema.parse(input)
       const values = [
         settings.startsOn,
         settings.firstDueOn,

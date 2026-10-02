@@ -33,13 +33,13 @@ function period(overrides: Partial<TreatmentPeriod> = {}): TreatmentPeriod {
     treatmentId: MILBEMAX,
     animalId: MIETTE,
     startsOn: '2026-01-10',
-    firstDueOn: '2026-01-10',
     frequency: { value: 3, unit: 'month' },
     stoppedOn: null,
     createdAt: T0,
     updatedAt: T0,
     deletedAt: null,
     ...overrides,
+    firstDueOn: overrides.firstDueOn ?? overrides.startsOn ?? '2026-01-10',
   }
 }
 
@@ -303,6 +303,18 @@ describe('treatmentPeriodsRepository', () => {
 
       const [, current] = await periods.listByTreatment(MILBEMAX)
       expect(current).toEqual({ ...COMPLETE, ...sans, updatedAt: NOW })
+    })
+
+    it('refuse d’insérer ou de corriger des réglages incohérents, sans rien écrire', async () => {
+      const sansUnite = { ...REGLAGES, doseUnit: null }
+      const finAvantLaPremiere = { ...REGLAGES, endsOn: '2026-02-10' }
+
+      expect(() => periods.insertStatement({ ...COMPLETE, ...sansUnite })).toThrow()
+      expect(() => periods.insertStatement({ ...COMPLETE, firstDueOn: '2026-02-09' })).toThrow()
+      expect(() => periods.correctCurrentSettingsStatement(MILBEMAX, sansUnite, NOW)).toThrow()
+      expect(() =>
+        periods.correctCurrentSettingsStatement(MILBEMAX, finAvantLaPremiere, NOW),
+      ).toThrow()
     })
 
     it('ne date pas une période dont aucun réglage ne change', async () => {
