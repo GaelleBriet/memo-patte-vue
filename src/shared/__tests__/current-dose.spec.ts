@@ -93,4 +93,13 @@ describe('dueTodayText', () => {
     expect(dueTodayText(t, due(TODAY, '20:00'))).toBe(`Today · 8${NBSP}pm`)
     expect(dueTodayText(t, due(TODAY))).toBe('Today')
   })
+
+  it('dit quand un traitement à date de fin s’est terminé, jamais avant cette date', () => {
+    expect(
+      currentDoseText(t, { phase: 'ended', due: null, today: TODAY, endsOn: '2026-09-10' }),
+    ).toEqual({ label: 'Fin du traitement', value: 'Terminé le 10 sept.' })
+    expect(
+      currentDoseText(t, { phase: 'ended', due: null, today: TODAY, endsOn: '2099-01-01' }),
+    ).toEqual({ label: 'Fin du traitement', value: null })
+  })
 })

@@ -1215,6 +1215,39 @@ describe('HomeView — feuille d’un rappel', () => {
     await vi.waitFor(() => expect(router.currentRoute.value.query).toEqual({}))
   })
 
+  it.each([
+    ['treatment', 'treatment-detail'],
+    ['vaccination', 'vaccination-detail'],
+  ])(
+    'ouvre la fiche quand la notification demande la feuille d’un soin absent de « À faire » (%s)',
+    async (kind, name) => {
+      const wrapper = await monter()
+      const push = vi.spyOn(router, 'push').mockResolvedValue()
+
+      await router.replace({
+        name: 'home',
+        query: { reminder: `${kind}:absent-de-la-liste`, step: 'actions' },
+      })
+      await flushPromises()
+
+      const calls = push.mock.calls
+      push.mockRestore()
+      expect(calls).toEqual([[{ name, params: { id: 'absent-de-la-liste' } }]])
+      expect(wrapper.getComponent(TreatmentReminderSheet).props('modelValue')).toBe(false)
+    },
+  )
+
+  it('n’ouvre rien au retour de « Modifier » quand le soin n’est plus dans « À faire »', async () => {
+    await router.replace({ name: 'home', query: { reminder: 'treatment:absent-de-la-liste' } })
+    const push = vi.spyOn(router, 'push').mockResolvedValue()
+
+    await monter()
+
+    const details = push.mock.calls.filter(([to]) => JSON.stringify(to).includes('detail'))
+    push.mockRestore()
+    expect(details).toEqual([])
+  })
+
   it('remplace la feuille ouverte par la feuille « Fait » que demande une notification', async () => {
     const wrapper = await monter()
     await wrapper.findAll('.reminder-row')[0]!.trigger('click')

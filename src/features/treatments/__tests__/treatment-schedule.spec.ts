@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
-import { currentPeriodOf, treatmentScheduleOf } from '../logic/treatment-schedule'
+import {
+  currentPeriodOf,
+  readableScheduleOf,
+  treatmentScheduleOf,
+} from '../logic/treatment-schedule'
 import type { TreatmentWithHistory } from '../repository/treatments.repository'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 
@@ -110,5 +114,13 @@ describe('currentPeriodOf', () => {
     const treatment = metacam([])
 
     expect(currentPeriodOf(treatment, treatmentScheduleOf(treatment, '2026-09-21'))).toBeNull()
+  })
+})
+
+describe('readableScheduleOf', () => {
+  it('rend le calendrier d’un traitement lisible, rien pour un traitement illisible ou absent', () => {
+    expect(readableScheduleOf(metacam([period()]), '2026-09-05')?.phase).toBe('today')
+    expect(readableScheduleOf(metacam([period({ times: ['8h'] })]), '2026-09-05')).toBeNull()
+    expect(readableScheduleOf(null, '2026-09-05')).toBeNull()
   })
 })

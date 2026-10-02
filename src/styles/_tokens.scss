@@ -146,5 +146,5 @@ $size-sheet-icon: 44px; // Cette pastille
 // Historique (détail d'un vaccin, d'un traitement, traitements terminés)
 $shadow-menu: 0 8px 24px rgb(30 25 20 / 16%); // Ombre d'un menu ⋮
 $color-history-row-active: $color-badge-frequency-bg; // Ligne dont le menu ⋮ est ouvert
-$color-history-stopped-surface: $color-badge-frequency-bg; // Bandeau « Arrêté le … »
+$color-history-period-surface: $color-badge-frequency-bg; // Tête d'une période dans l'historique d'un traitement
 $color-last-dose-surface: $color-notice-surface; // Pastille « Dernière prise »

@@ -15,7 +15,6 @@ export type TreatmentDoseVersion = Pick<
   NewTreatmentDose,
   'id' | 'periodId' | 'treatmentId' | 'updatedAt' | 'deletedAt'
 >
-export type DoseDates = { givenOn: string; dueOn: string; nextDueDate: string }
 
 type DoseOwner = Pick<NewTreatmentDose, 'id' | 'treatmentId' | 'animalId'>
 
@@ -25,6 +24,8 @@ export type DoseWrite =
   | { action: 'rewrite'; id: string; dose: DoseFields }
   | { action: 'delete'; id: string }
   | { action: 'restore'; id: string }
+
+type Step = { guard?: SqlStatement; statement: SqlStatement; inverse: DoseWrite }
 
 interface DoseRow {
   id: string
@@ -67,13 +68,6 @@ const WITH_FREQUENCY = `
   JOIN treatment_period period ON period.id = dose.period_id`
 
 const HEAD_FIRST = 'dose.due_on DESC, dose.due_time DESC, dose.created_at DESC, dose.id DESC'
-
-function otherVisibleDose(day?: string): string {
-  return `EXISTS (
-    SELECT 1 FROM treatment_dose other
-    WHERE other.treatment_id = treatment_dose.treatment_id AND other.id <> treatment_dose.id
-      AND other.deleted_at IS NULL${day ? ` AND other.given_on = ${day}` : ''})`
-}
 
 function toDose(row: DoseWithFrequencyRow): TreatmentDose {
   return {
@@ -146,14 +140,13 @@ function placeholders(values: readonly unknown[]): string {
   return values.map(() => '?').join(', ')
 }
 
+/** Un `create` vise une échéance qui a déjà une ligne visible de même nature : rien n'a été écrit. */
+export class DuplicateDueError extends Error {}
+
 export interface TreatmentDosesRepositoryDependencies {
   loadSupabaseClient?: () => Promise<SupabaseClient>
 }
 
-/**
- * Écrit seul une prise notée ou annulée ; ses autres écritures sont des instructions que le
- * repository des traitements ou un service joue.
- */
 export function createTreatmentDosesRepository(
   db: DbClient,
   {
@@ -209,6 +202,37 @@ export function createTreatmentDosesRepository(
     }
   }
 
+  function sameNature(status: DoseFields['status']): string {
+    return status === 'postponed' ? "status = 'postponed'" : "status <> 'postponed'"
+  }
+
+  function duplicateWhere(dose: DoseFields): { sql: string; params: SqlParam[] } {
+    return {
+      sql: `period_id = ? AND due_on = ? AND due_time IS ? AND ${NOT_DELETED}
+            AND ${sameNature(dose.status)}`,
+      params: [dose.periodId, dose.dueOn, dose.dueTime],
+    }
+  }
+
+  // Réinsère la ligne en double sous son propre identifiant : la clé primaire fait échouer le lot.
+  function duplicateGuardStatement(dose: DoseFields): SqlStatement {
+    const where = duplicateWhere(dose)
+    return {
+      sql: `INSERT INTO treatment_dose (${COLUMNS})
+            SELECT ${COLUMNS} FROM treatment_dose WHERE ${where.sql} LIMIT 1`,
+      params: where.params,
+    }
+  }
+
+  async function hasDuplicate(dose: DoseFields): Promise<boolean> {
+    const where = duplicateWhere(dose)
+    const rows = await db.query<{ id: string }>(
+      `SELECT id FROM treatment_dose WHERE ${where.sql} LIMIT 1`,
+      where.params,
+    )
+    return rows.length > 0
+  }
+
   async function rowsById(ids: readonly string[]): Promise<Map<string, DoseRow>> {
     if (ids.length === 0) return new Map()
     const rows = await db.query<DoseRow>(
@@ -220,20 +244,6 @@ export function createTreatmentDosesRepository(
 
   return {
     entity: 'treatment_dose',
-
-    /** Faux quand une prise visible du même jour existe déjà : un double tap n'en note qu'une. */
-    async record(dose: NewTreatmentDose): Promise<boolean> {
-      const changes = await db.run(
-        `INSERT INTO treatment_dose (${COLUMNS})
-         SELECT ${PLACEHOLDERS}
-         WHERE NOT EXISTS (
-           SELECT 1 FROM treatment_dose
-           WHERE treatment_id = ? AND given_on = ? AND ${NOT_DELETED}
-         )`,
-        [...valuesOf(dose), dose.treatmentId, dose.givenOn],
-      )
-      return changes > 0
-    },
 
     /** Prises visibles, la dernière ligne d'abord. */
     async listByTreatment(treatmentId: string): Promise<TreatmentDose[]> {
@@ -286,45 +296,6 @@ export function createTreatmentDosesRepository(
       return Object.fromEntries(rows.map((row) => [row.treatment_id, row.count]))
     },
 
-    /**
-     * Faux pour une prise déjà supprimée, ou la seule visible de son traitement sauf `allowLast` :
-     * annuler la prise qu'on vient de noter réussit toujours.
-     */
-    async remove(
-      id: string,
-      deletedAt: string,
-      { allowLast = false }: { allowLast?: boolean } = {},
-    ): Promise<boolean> {
-      const changes = await db.run(
-        `UPDATE treatment_dose SET deleted_at = ?, updated_at = ?
-         WHERE id = ? AND ${NOT_DELETED}${allowLast ? '' : ` AND ${otherVisibleDose()}`}`,
-        [deletedAt, deletedAt, id],
-      )
-      return changes > 0
-    },
-
-    /** Faux pour une prise visible, ou dont le jour a été noté entre-temps. */
-    async revive(id: string, updatedAt: string): Promise<boolean> {
-      const changes = await db.run(
-        `UPDATE treatment_dose SET deleted_at = NULL, updated_at = ?
-         WHERE id = ? AND deleted_at IS NOT NULL
-           AND NOT ${otherVisibleDose('treatment_dose.given_on')}`,
-        [updatedAt, id],
-      )
-      return changes > 0
-    },
-
-    /** Faux pour une prise supprimée, ou quand une autre prise visible occupe déjà ce jour. */
-    async changeDate(id: string, dates: DoseDates, updatedAt: string): Promise<boolean> {
-      const changes = await db.run(
-        `UPDATE treatment_dose
-         SET given_on = ?, due_on = ?, next_due_date = ?, updated_at = ?
-         WHERE id = ? AND ${NOT_DELETED} AND NOT ${otherVisibleDose('?')}`,
-        [dates.givenOn, dates.dueOn, dates.nextDueDate, updatedAt, id, dates.givenOn],
-      )
-      return changes > 0
-    },
-
     /** Lignes supprimées comprises : l'import compare les versions avant d'écrire. */
     async listVersions(): Promise<TreatmentDoseVersion[]> {
       const rows = await db.query<DoseVersionRow>(
@@ -351,7 +322,8 @@ export function createTreatmentDosesRepository(
 
     /**
      * Tout ou rien. Rend le lot inverse, à appliquer pour « Annuler » ; lève, sans rien écrire, pour
-     * une ligne à réécrire ou à supprimer qui n'est pas visible, ou à rétablir qui l'est.
+     * une ligne à réécrire ou à supprimer qui n'est pas visible, ou à rétablir qui l'est, et une
+     * `DuplicateDueError` pour une création en double.
      */
     async applyBatch(writes: readonly DoseWrite[], at: string): Promise<DoseWrite[]> {
       const existing = await rowsById(
@@ -362,10 +334,11 @@ export function createTreatmentDosesRepository(
         if (!row || row.deleted_at !== null) throw new Error(`Prise introuvable : ${id}`)
         return row
       }
-      const steps = writes.map((write): { statement: SqlStatement; inverse: DoseWrite } => {
+      const steps = writes.map((write): Step => {
         switch (write.action) {
           case 'create':
             return {
+              guard: duplicateGuardStatement(write.dose),
               statement: createStatement({ ...write, at }),
               inverse: { action: 'delete', id: write.id },
             }
@@ -390,7 +363,19 @@ export function createTreatmentDosesRepository(
             }
         }
       })
-      if (steps.length > 0) await db.runMany(steps.map(({ statement }) => statement))
+      if (steps.length === 0) return []
+      try {
+        await db.runMany(
+          steps.flatMap(({ guard, statement }) => (guard ? [guard, statement] : [statement])),
+        )
+      } catch (cause) {
+        for (const write of writes) {
+          if (write.action === 'create' && (await hasDuplicate(write.dose))) {
+            throw new DuplicateDueError(`Échéance déjà notée : ${write.id}`, { cause })
+          }
+        }
+        throw cause
+      }
       return steps.map(({ inverse }) => inverse).reverse()
     },
 

@@ -3,8 +3,14 @@ import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 
+import TreatmentHourChoices from './TreatmentHourChoices.vue'
 import { useTreatmentGestures } from '../composables/use-treatment-gestures'
+import { doseActionTexts } from '../logic/treatment-gestures'
+import { otherDateTexts, sheetHours } from '../logic/treatment-other-date'
+import { readableScheduleOf } from '../logic/treatment-schedule'
 import { otherDaySummary, treatmentSheetTexts } from '../logic/treatment-sheet'
+import type { DoseAction } from '../logic/treatment-dose-writes'
+import type { TreatmentWithHistory } from '../repository/treatments.repository'
 import type { Treatment } from '../schema/treatment.schema'
 import { useTreatmentsStore } from '../store/treatments.store'
 import { useToday } from '@/core/app-lifecycle/use-today'
@@ -13,6 +19,7 @@ import BottomSheet from '@/shared/components/BottomSheet.vue'
 import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
 import DateCalendar from '@/shared/components/DateCalendar.vue'
 import ReminderActions from '@/shared/components/ReminderActions.vue'
+import type { Due } from '@/shared/domain/treatment-schedule'
 import { REMINDER_QUERY_PARAM, reminderQueryValue } from '@/shared/domain/reminder-route'
 import { reminderIcon } from '@/shared/domain/reminders'
 import { showToast } from '@/shared/utils/toast'
@@ -36,7 +43,9 @@ const treatments = useTreatmentsStore()
 const { today, refresh: refreshToday } = useToday()
 
 const treatment = ref<Treatment | null>(null)
-const step = ref<'actions' | 'other-date'>('actions')
+const history = ref<TreatmentWithHistory | null>(null)
+const step = ref<'actions' | 'other-date' | 'hour'>('actions')
+const stepBeforeHour = ref<'actions' | 'other-date'>('actions')
 const givenOn = ref<string | null>(today.value)
 const gestures = useTreatmentGestures(() => emit('changed'))
 const isSubmitting = gestures.isBusy
@@ -61,15 +70,40 @@ const texts = computed(() =>
 )
 const summary = computed(() =>
   treatment.value
-    ? otherDaySummary(t, treatment.value, givenOn.value ?? today.value, today.value)
+    ? otherDaySummary(t, schedule.value, givenOn.value ?? today.value, today.value)
     : null,
 )
-const title = computed(() =>
-  step.value === 'actions' ? (treatment.value?.name ?? '') : t('treatments.sheet.otherDay.title'),
+const schedule = computed(() => readableScheduleOf(history.value, today.value))
+const named = computed(() => ({
+  name: treatment.value?.name ?? '',
+  animal: animal.value?.name ?? '',
+}))
+const hourTexts = computed(() =>
+  otherDateTexts(t, { ...named.value, today: today.value }, givenOn.value ?? today.value, true),
 )
-const subtitle = computed(() =>
-  step.value === 'actions' ? texts.value?.subtitle : texts.value?.otherDaySubtitle,
+const hours = computed(() =>
+  schedule.value === null
+    ? []
+    : sheetHours(t, schedule.value, givenOn.value ?? today.value, today.value),
 )
+const title = computed(() => {
+  if (step.value === 'actions') return treatment.value?.name ?? ''
+  return step.value === 'hour' ? hourTexts.value.hourTitle : t('treatments.sheet.otherDay.title')
+})
+const subtitle = computed(() => {
+  if (step.value === 'actions') return texts.value?.subtitle
+  return step.value === 'hour' ? hourTexts.value.hourSubtitle : texts.value?.otherDaySubtitle
+})
+const backLabel = computed(() => {
+  if (step.value === 'actions') return null
+  return step.value === 'hour' && stepBeforeHour.value === 'other-date'
+    ? t('treatments.detail.otherDate.back')
+    : t('treatments.sheet.otherDay.back')
+})
+
+function back(): void {
+  step.value = step.value === 'hour' ? stepBeforeHour.value : 'actions'
+}
 
 watch(
   open,
@@ -80,9 +114,18 @@ watch(
     givenOn.value = today.value
     errorMessage.value = null
     treatment.value = null
+    history.value = null
     if (!animals.hasLoaded) void animals.load()
     try {
-      treatment.value = props.treatmentId ? await treatments.getById(props.treatmentId) : null
+      const id = props.treatmentId
+      const [found, withHistory] = id
+        ? await Promise.all([
+            treatments.getById(id),
+            treatments.getWithHistory(id).catch(() => null),
+          ])
+        : [null, null]
+      history.value = withHistory
+      treatment.value = found
     } catch {
       treatment.value = null
     }
@@ -98,7 +141,29 @@ async function record(date: string): Promise<void> {
   const current = treatment.value
   if (isSubmitting.value || current === null) return
   errorMessage.value = null
+  givenOn.value = date
+  if (hours.value.length > 0) {
+    stepBeforeHour.value = step.value === 'other-date' ? 'other-date' : 'actions'
+    step.value = 'hour'
+    return
+  }
   if (await gestures.recordDose(current, date)) open.value = false
+  else errorMessage.value = t('treatments.sheet.errors.dose')
+}
+
+async function recordAt(due: Due): Promise<void> {
+  const current = treatment.value
+  const date = givenOn.value
+  if (isSubmitting.value || current === null || date === null) return
+  errorMessage.value = null
+  const action: DoseAction = { kind: 'note', gesture: { kind: 'given', due, givenOn: date } }
+  const toast = doseActionTexts(
+    t,
+    { ...named.value, today: today.value, severalTimes: true },
+    action,
+    null,
+  )
+  if (await gestures.applyDose(current, action, toast)) open.value = false
   else errorMessage.value = t('treatments.sheet.errors.dose')
 }
 
@@ -133,9 +198,9 @@ async function edit(): Promise<void> {
     :subtitle="subtitle"
     :close-label="t('reminderSheet.close')"
     :icon="treatment && step === 'actions' ? reminderIcon('treatment', treatment.type) : null"
-    :back-label="step === 'other-date' ? t('treatments.sheet.otherDay.back') : null"
+    :back-label="backLabel"
     :persistent="isSubmitting"
-    @back="step = 'actions'"
+    @back="back"
   >
     <template v-if="treatment && texts">
       <ReminderActions
@@ -162,6 +227,13 @@ async function edit(): Promise<void> {
         </template>
       </ReminderActions>
 
+      <TreatmentHourChoices
+        v-else-if="step === 'hour'"
+        :hours="hours"
+        :busy="isSubmitting"
+        @pick="recordAt"
+      />
+
       <div v-else-if="summary" class="treatment-reminder-sheet__other-date">
         <DateCalendar
           v-model="givenOn"
@@ -173,7 +245,9 @@ async function edit(): Promise<void> {
           <v-icon icon="ms:event_available" size="24" />
           <div>
             <p class="treatment-reminder-sheet__dose-on">{{ summary.doseOn }}</p>
-            <p class="treatment-reminder-sheet__next-dose">{{ summary.nextDose }}</p>
+            <p v-if="summary.nextDose" class="treatment-reminder-sheet__next-dose">
+              {{ summary.nextDose }}
+            </p>
           </div>
         </div>
         <v-btn

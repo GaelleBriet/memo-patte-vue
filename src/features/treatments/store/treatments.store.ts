@@ -3,8 +3,8 @@ import { ref } from 'vue'
 
 import {
   treatmentDosesService,
-  type DoseDateChange,
-  type RecordedDose,
+  type AppliedDoseChange,
+  type NotedMoment,
   type TreatmentDosesService,
 } from '../service/treatment-doses.service'
 import {
@@ -18,7 +18,8 @@ import {
 } from '../service/treatment-stop.service'
 import type { Treatment, TreatmentEditInput, TreatmentInput } from '../schema/treatment.schema'
 import type { TreatmentDose } from '../schema/treatment-dose.schema'
-import type { DoseDates } from '../repository/treatment-doses.repository'
+import type { DoseWrite } from '../repository/treatment-doses.repository'
+import type { DoseAction } from '../logic/treatment-dose-writes'
 import type {
   TreatmentsRepository as FullTreatmentsRepository,
   TreatmentWithHistory,
@@ -60,10 +61,7 @@ export function provideTreatmentRemindersService(next: (() => TreatmentReminders
   remindersProvider = next ?? (() => treatmentRemindersService)
 }
 
-type TreatmentDoses = Pick<
-  TreatmentDosesService,
-  'record' | 'undo' | 'remove' | 'undoRemove' | 'changeDate' | 'undoChangeDate'
->
+type TreatmentDoses = Pick<TreatmentDosesService, 'apply' | 'noteMoment' | 'undoBatch'>
 
 let dosesProvider: () => TreatmentDoses = () => treatmentDosesService
 
@@ -227,58 +225,6 @@ export const useTreatmentsStore = defineStore('treatments', () => {
       )
     },
 
-    /** Prise du jour ou d'un jour passé ; `doseId` vaut `null` si ce jour était déjà noté. */
-    async recordDose(treatmentId: string, givenOn: string): Promise<RecordedDose> {
-      return write(
-        () => dosesProvider().record(treatmentId, givenOn),
-        (recorded) => recorded.animalId,
-      )
-    },
-
-    async undoDose(treatmentId: string, doseId: string): Promise<void> {
-      await write(
-        () => dosesProvider().undo(treatmentId, doseId),
-        () => animalId.value,
-      )
-    },
-
-    async removeDose(treatmentId: string, doseId: string): Promise<void> {
-      await write(
-        () => dosesProvider().remove(treatmentId, doseId),
-        () => animalId.value,
-      )
-    },
-
-    async undoRemoveDose(treatmentId: string, doseId: string): Promise<void> {
-      await write(
-        () => dosesProvider().undoRemove(treatmentId, doseId),
-        () => animalId.value,
-      )
-    },
-
-    /** Renvoie les dates d'avant, pour « Annuler », et si un report manuel a été gardé. */
-    async changeDoseDate(
-      treatmentId: string,
-      doseId: string,
-      givenOn: string,
-    ): Promise<DoseDateChange> {
-      return write(
-        () => dosesProvider().changeDate(treatmentId, doseId, givenOn),
-        () => animalId.value,
-      )
-    },
-
-    async undoChangeDoseDate(
-      treatmentId: string,
-      doseId: string,
-      previous: DoseDates,
-    ): Promise<void> {
-      await write(
-        () => dosesProvider().undoChangeDate(treatmentId, doseId, previous),
-        () => animalId.value,
-      )
-    },
-
     async stop(treatmentId: string): Promise<StoppedTreatment> {
       return write(
         () => stopProvider().stop(treatmentId),
@@ -289,6 +235,29 @@ export const useTreatmentsStore = defineStore('treatments', () => {
     async undoStop(treatmentId: string): Promise<void> {
       await write(
         () => stopProvider().undo(treatmentId),
+        () => animalId.value,
+      )
+    },
+
+    /** Geste de la fiche sur une prise ou un report ; `undo` se passe à `undoDoseAction`. */
+    async applyDoseAction(treatmentId: string, action: DoseAction): Promise<AppliedDoseChange> {
+      return write(
+        () => dosesProvider().apply(treatmentId, action),
+        (applied) => applied.animalId,
+      )
+    },
+
+    /** Prise notée sans échéance choisie, depuis la feuille « À faire ». */
+    async noteMomentDose(treatmentId: string, givenOn: string): Promise<NotedMoment> {
+      return write(
+        () => dosesProvider().noteMoment(treatmentId, givenOn),
+        (noted) => noted.animalId,
+      )
+    },
+
+    async undoDoseAction(treatmentId: string, writes: readonly DoseWrite[]): Promise<void> {
+      await write(
+        () => dosesProvider().undoBatch(treatmentId, writes),
         () => animalId.value,
       )
     },

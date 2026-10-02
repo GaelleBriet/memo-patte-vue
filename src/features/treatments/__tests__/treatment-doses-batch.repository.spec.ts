@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory-db'
 import {
+  DuplicateDueError,
   createTreatmentDosesRepository,
   type DoseWrite,
   type TreatmentDosesRepository,
@@ -16,6 +17,7 @@ const PERIODE = 'metacam-1'
 const T0 = '2026-09-01T08:00:00.000Z'
 const T1 = '2026-09-28T09:00:00.000Z'
 const T2 = '2026-09-28T09:05:00.000Z'
+const T3 = '2026-09-28T09:05:04.000Z'
 
 function fields(overrides: Partial<DoseFields> = {}): DoseFields {
   return {
@@ -216,11 +218,11 @@ describe('treatmentDosesRepository — écrire ce que rend le moteur', () => {
       await expect(row('report')).resolves.toMatchObject({ deleted_at: T2 })
     })
 
-    it('rend le lot inverse, qui défait tout', async () => {
+    it('rend le lot inverse, qui défait tout et date chaque ligne de l’annulation', async () => {
       const before = await visible()
 
       const inverse = await doses.applyBatch(LOT, T2)
-      await doses.applyBatch(inverse, T2)
+      await doses.applyBatch(inverse, T3)
 
       await expect(visible()).resolves.toEqual(before)
       expect(inverse).toEqual([
@@ -228,6 +230,9 @@ describe('treatmentDosesRepository — écrire ce que rend le moteur', () => {
         { action: 'rewrite', id: 'matin', dose: MATIN },
         { action: 'delete', id: 'nouvelle' },
       ])
+      await expect(row('report')).resolves.toMatchObject({ updated_at: T3, deleted_at: null })
+      await expect(row('matin')).resolves.toMatchObject({ updated_at: T3 })
+      await expect(row('nouvelle')).resolves.toMatchObject({ updated_at: T3, deleted_at: T3 })
     })
 
     it('n’écrit rien quand une instruction échoue', async () => {
@@ -260,6 +265,56 @@ describe('treatmentDosesRepository — écrire ce que rend le moteur', () => {
       await expect(
         doses.applyBatch([{ action: 'rewrite', id: 'soir', dose: REDATEE }], T2),
       ).rejects.toThrow('Prise')
+    })
+
+    it('refuse de créer une seconde prise pour une échéance déjà notée, sans rien écrire', async () => {
+      const before = await visible()
+      const doublon: DoseWrite[] = [
+        { action: 'delete', id: 'soir' },
+        {
+          action: 'create',
+          id: 'doublon',
+          ...OWNER,
+          dose: fields({ givenOn: null, status: 'missed' }),
+        },
+      ]
+
+      await expect(doses.applyBatch(doublon, T2)).rejects.toBeInstanceOf(DuplicateDueError)
+
+      await expect(visible()).resolves.toEqual(before)
+    })
+
+    it('refuse un second report pour une échéance déjà reportée', async () => {
+      const second: DoseWrite = {
+        action: 'create',
+        id: 'second',
+        ...OWNER,
+        dose: fields({
+          dueOn: '2026-09-29',
+          givenOn: null,
+          status: 'postponed',
+          nextDueDate: '2026-10-03',
+        }),
+      }
+
+      await expect(doses.applyBatch([second], T2)).rejects.toBeInstanceOf(DuplicateDueError)
+    })
+
+    it('crée une prise pour une échéance qui n’a qu’un report, ou dont la prise est supprimée', async () => {
+      const prise: DoseWrite = {
+        action: 'create',
+        id: 'prise',
+        ...OWNER,
+        dose: fields({ dueOn: '2026-09-29', givenOn: '2026-09-29', nextDueDate: '2026-09-30' }),
+      }
+      await doses.applyBatch([{ action: 'delete', id: 'matin' }], T2)
+
+      await doses.applyBatch(
+        [prise, { action: 'create', id: 'matin-bis', ...OWNER, dose: MATIN }],
+        T3,
+      )
+
+      await expect(visible()).resolves.toHaveLength(4)
     })
 
     it('n’écrit rien pour un lot vide', async () => {

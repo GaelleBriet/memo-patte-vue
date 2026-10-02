@@ -1,10 +1,13 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 import { createMemoryHistory, createRouter, type Router } from 'vue-router'
 
 import i18n from '@/core/i18n'
 import type { ReminderAction } from '@/core/notifications'
 import type { Animal } from '@/features/animals/schema/animal.schema'
-import type { RecordedDose } from '@/features/treatments/service/treatment-doses.service'
+import type {
+  NotedMoment,
+  TreatmentDosesService,
+} from '@/features/treatments/service/treatment-doses.service'
 import type { Treatment } from '@/features/treatments/schema/treatment.schema'
 import type { Vaccination } from '@/features/vaccinations/schema/vaccination.schema'
 import {
@@ -58,6 +61,16 @@ const CARRE: Vaccination = {
 }
 
 const DOSE_ID = '44444444-4444-4444-8444-444444444444'
+const NOTED: NotedMoment = {
+  animalId: BOREE.id,
+  undo: [{ action: 'delete', id: DOSE_ID }],
+  alreadyGivenOn: null,
+  postponement: null,
+  moved: null,
+  outcome: 'noted',
+  due: { periodId: BRAVECTO.id, dueOn: TODAY, dueTime: null },
+  severalTimes: false,
+}
 
 function done(key: string): ReminderAction {
   return { key, action: 'done' }
@@ -68,8 +81,8 @@ const Vide = { render: () => null }
 let router: Router
 let treatment: Treatment | null
 let vaccination: Vaccination | null
-let record: ReturnType<typeof vi.fn<(id: string, givenOn: string) => Promise<RecordedDose>>>
-let undo: ReturnType<typeof vi.fn<(id: string, doseId: string) => Promise<void>>>
+let record: Mock<TreatmentDosesService['noteMoment']>
+let undo: Mock<TreatmentDosesService['undoBatch']>
 let refreshHome: ReturnType<typeof vi.fn<() => Promise<boolean>>>
 
 function handler() {
@@ -78,7 +91,7 @@ function handler() {
     animals: () => ({ getById: async (id) => (id === BOREE.id ? BOREE : null) }),
     treatments: () => ({ getById: async (id) => (treatment?.id === id ? treatment : null) }),
     vaccinations: () => ({ getById: async (id) => (vaccination?.id === id ? vaccination : null) }),
-    doses: { record, undo },
+    doses: { noteMoment: record, undoBatch: undo },
     refreshHome,
     t: i18n.global.t,
     today: () => TODAY,
@@ -96,11 +109,11 @@ beforeEach(async () => {
   await router.push({ name: 'animals' })
   treatment = BRAVECTO
   vaccination = CARRE
-  record = vi.fn<(id: string, givenOn: string) => Promise<RecordedDose>>(async (_id, givenOn) => {
+  record = vi.fn<TreatmentDosesService['noteMoment']>(async (_id, givenOn) => {
     treatment = { ...BRAVECTO, lastDoseDate: givenOn, nextDueDate: '2026-10-25' }
-    return { animalId: BOREE.id, doseId: DOSE_ID }
+    return NOTED
   })
-  undo = vi.fn<(id: string, doseId: string) => Promise<void>>(async () => {})
+  undo = vi.fn<TreatmentDosesService['undoBatch']>(async () => {})
   refreshHome = vi.fn<() => Promise<boolean>>(async () => true)
 })
 
@@ -117,7 +130,7 @@ describe('« C’est fait » d’un vermifuge ou d’un antiparasitaire', () => 
   it('ouvre l’accueil, note la prise du jour et relit « À faire »', async () => {
     await handler()(done(`treatment:${BRAVECTO.id}:${TODAY}:due`))
 
-    expect(record).toHaveBeenCalledExactlyOnceWith(BRAVECTO.id, TODAY)
+    expect(record).toHaveBeenCalledExactlyOnceWith(BRAVECTO.id, TODAY, { notifiedDueOn: TODAY })
     expect(currentPlace()).toEqual({ name: 'home', query: {} })
     expect(refreshHome).toHaveBeenCalledOnce()
     expect(refreshHome.mock.invocationCallOrder[0]).toBeGreaterThan(
@@ -142,7 +155,7 @@ describe('« C’est fait » d’un vermifuge ou d’un antiparasitaire', () => 
     runToastAction()
 
     await vi.waitFor(() => expect(refreshHome).toHaveBeenCalledOnce())
-    expect(undo).toHaveBeenCalledExactlyOnceWith(BRAVECTO.id, DOSE_ID)
+    expect(undo).toHaveBeenCalledExactlyOnceWith(BRAVECTO.id, NOTED.undo)
   })
 
   it('note la prise depuis la relance à J+3', async () => {
@@ -150,7 +163,9 @@ describe('« C’est fait » d’un vermifuge ou d’un antiparasitaire', () => 
 
     await handler()(done(`treatment:${BRAVECTO.id}:2026-09-22:overdue`))
 
-    expect(record).toHaveBeenCalledExactlyOnceWith(BRAVECTO.id, TODAY)
+    expect(record).toHaveBeenCalledExactlyOnceWith(BRAVECTO.id, TODAY, {
+      notifiedDueOn: '2026-09-22',
+    })
   })
 
   it('note la prise depuis un cycle manqué, qui porte échéance + k × fréquence', async () => {
@@ -158,7 +173,7 @@ describe('« C’est fait » d’un vermifuge ou d’un antiparasitaire', () => 
 
     await handler()(done(`treatment:${BRAVECTO.id}:${TODAY}:due`))
 
-    expect(record).toHaveBeenCalledExactlyOnceWith(BRAVECTO.id, TODAY)
+    expect(record).toHaveBeenCalledExactlyOnceWith(BRAVECTO.id, TODAY, { notifiedDueOn: TODAY })
   })
 
   it('note la première prise d’un traitement sans prise, sans le dire « déjà noté »', async () => {
@@ -166,8 +181,89 @@ describe('« C’est fait » d’un vermifuge ou d’un antiparasitaire', () => 
 
     await handler()(done(`treatment:${BRAVECTO.id}:${TODAY}:overdue`))
 
-    expect(record).toHaveBeenCalledExactlyOnceWith(BRAVECTO.id, TODAY)
+    expect(record).toHaveBeenCalledExactlyOnceWith(BRAVECTO.id, TODAY, { notifiedDueOn: TODAY })
     expect(toastMessage.value).toBe('Prise de Bravecto notée pour Boree')
+  })
+
+  it('dit l’heure notée quand le traitement en a plusieurs par jour', async () => {
+    record.mockResolvedValue({
+      ...NOTED,
+      due: { periodId: BRAVECTO.id, dueOn: TODAY, dueTime: '08:00' },
+      severalTimes: true,
+    })
+
+    await handler()(done(`treatment:${BRAVECTO.id}:${TODAY}:due`))
+
+    expect(toastMessage.value?.replaceAll('\u00a0', ' ')).toBe(
+      'Prise de 8 h de Bravecto notée pour Boree',
+    )
+  })
+
+  it('dit que les doses du jour sont déjà notées quand aucune n’a été donnée aujourd’hui', async () => {
+    record.mockResolvedValue({ ...NOTED, outcome: 'day-noted', undo: [], due: null })
+    await handler()(done(`treatment:${BRAVECTO.id}:${TODAY}:due`))
+
+    expect(toastMessage.value).toBe('Les doses d’aujourd’hui sont déjà notées.')
+    expect(toastAction.value).toBeNull()
+  })
+
+  it('dit « déjà notée », sans « Annuler », quand le service n’a rien eu à écrire', async () => {
+    record.mockResolvedValue({
+      ...NOTED,
+      outcome: 'already',
+      undo: [],
+      alreadyGivenOn: TODAY,
+      due: null,
+    })
+
+    await handler()(done(`treatment:${BRAVECTO.id}:${TODAY}:due`))
+
+    expect(toastMessage.value).toBe('Prise de Bravecto déjà notée aujourd’hui pour Boree')
+    expect(toastTone.value).toBe('info')
+    expect(toastAction.value).toBeNull()
+  })
+
+  it('ouvre la feuille du soin, sans rien noter ni dire, quand une prise de la journée est déjà notée', async () => {
+    record.mockResolvedValue({ ...NOTED, outcome: 'ask', undo: [], due: null })
+
+    await handler()(done(`treatment:${BRAVECTO.id}:${TODAY}:due`))
+
+    expect(toastMessage.value).toBeNull()
+    expect(refreshHome).not.toHaveBeenCalled()
+    expect(currentPlace()).toEqual({
+      name: 'home',
+      query: { reminder: `treatment:${BRAVECTO.id}`, step: 'actions' },
+    })
+  })
+
+  it('dit qu’un traitement arrêté n’a plus de dose à noter, sans rien écrire', async () => {
+    treatment = { ...BRAVECTO, stoppedOn: '2026-09-20' }
+
+    await handler()(done(`treatment:${BRAVECTO.id}:${TODAY}:due`))
+
+    expect(record).not.toHaveBeenCalled()
+    expect(toastMessage.value).toBe('Ce traitement n’a plus de dose à noter.')
+    expect(toastTone.value).toBe('info')
+    expect(currentPlace()).toEqual({ name: 'home', query: {} })
+  })
+
+  it('reste muet pour un traitement supprimé', async () => {
+    treatment = null
+
+    await handler()(done(`treatment:${BRAVECTO.id}:${TODAY}:due`))
+
+    expect(toastMessage.value).toBeNull()
+    expect(currentPlace()).toEqual({ name: 'home', query: {} })
+  })
+
+  it('dit qu’il n’y a plus de dose à noter, sans parler d’échec', async () => {
+    record.mockResolvedValue({ ...NOTED, outcome: 'none', undo: [], due: null })
+
+    await handler()(done(`treatment:${BRAVECTO.id}:${TODAY}:due`))
+
+    expect(toastMessage.value).toBe('Ce traitement n’a plus de dose à noter.')
+    expect(toastTone.value).toBe('info')
+    expect(toastAction.value).toBeNull()
   })
 
   it('ne note qu’une prise quand la même notification est traitée deux fois', async () => {
