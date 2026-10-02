@@ -763,9 +763,14 @@ function creationSchedule(
   return treatmentScheduleOf({ periods: [period], doses: [] }, today)
 }
 
+// Q42 : les doses non renseignées, et la dose du moment quand elle est déjà passée (jamais celle du jour).
+function pastDuesOfSchedule(schedule: TreatmentSchedule, today: string): Due[] {
+  return [...schedule.unloggedDoses, ...schedule.currentDoses.filter(({ dueOn }) => dueOn < today)]
+}
+
 /**
- * Échéances passées d'un traitement en cours de saisie (TR-3) : celles que sa fiche dirait non
- * renseignées. Vide tant que la saisie ne fait pas un calendrier que le moteur sait lire.
+ * Échéances déjà passées d'un traitement en cours de saisie (TR-3). Vide tant que la saisie ne fait
+ * pas un calendrier que le moteur sait lire.
  */
 export function creationPastDues(calendar: TreatmentCalendarInput, today: string): Due[] {
   const parsed = treatmentCalendarSchema.safeParse(calendar)
@@ -773,7 +778,7 @@ export function creationPastDues(calendar: TreatmentCalendarInput, today: string
   const settings = creationSettings({ ...parsed.data, doseQuantity: null, doseUnit: null })
   if (!treatmentPeriodSettingsSchema.safeParse(settings).success) return []
   try {
-    return creationSchedule(settings, DRAFT_ID, today).unloggedDoses
+    return pastDuesOfSchedule(creationSchedule(settings, DRAFT_ID, today), today)
   } catch (cause) {
     if (cause instanceof RangeError) return []
     throw cause
@@ -790,7 +795,7 @@ function pastDoseWrites(
   if (pastDoses.length === 0) return []
   const schedule = creationSchedule(settings, periodId, today)
   const pending = new Map(
-    schedule.unloggedDoses.map((due) => [`${due.dueOn} ${due.dueTime ?? ''}`, due]),
+    pastDuesOfSchedule(schedule, today).map((due) => [`${due.dueOn} ${due.dueTime ?? ''}`, due]),
   )
   return pastDoses.map(({ dueOn, dueTime, status }) => {
     const key = `${dueOn} ${dueTime ?? ''}`
@@ -806,7 +811,7 @@ function pastDoseWrites(
   })
 }
 
-/** Lève, sans plan, pour une saisie refusée ou une dose passée qui n'est pas une échéance à renseigner. */
+/** Lève, sans plan, pour une saisie refusée ou une dose passée qui n'est pas une échéance déjà tombée. */
 export function creationPlan(
   input: TreatmentCreationInput,
   id: string,

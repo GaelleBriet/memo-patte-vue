@@ -1009,6 +1009,33 @@ describe('TreatmentFormView — encart des doses passées (TR-3, planches A · V
     ])
   })
 
+  it('compte la dose du moment déjà passée d’un mensuel : « Donnée » / « Oubliée » (Q42)', async () => {
+    const wrapper = await monterCreation()
+    await saisirPanacur(wrapper, '2026-09-07')
+    await choisirUnite(wrapper, 'month')
+    await flushPromises()
+
+    expect(texte(wrapper, '.treatment-unlogged__title')).toBe('1 dose prévue le 7 sept.')
+    expect(gestes(wrapper).map((geste) => geste.text())).toEqual(['Donnée', 'Oubliée'])
+
+    await gestes(wrapper)[0]!.trigger('click')
+
+    expect(texte(wrapper, '.treatment-unlogged__result-text')).toBe('1 donnée')
+
+    await soumettre(wrapper)
+
+    expect(create.mock.calls[0]![0].pastDoses).toEqual([
+      { dueOn: '2026-09-07', dueTime: null, status: 'given' },
+    ])
+  })
+
+  it('n’ouvre pas d’encart pour une dose du jour', async () => {
+    const wrapper = await monterCreation()
+    await saisirPanacur(wrapper, '2026-09-28')
+
+    expect(encart(wrapper).exists()).toBe(false)
+  })
+
   it.each([
     [
       'la première prise',
@@ -1018,12 +1045,12 @@ describe('TreatmentFormView — encart des doses passées (TR-3, planches A · V
     [
       'la fréquence',
       (wrapper: VueWrapper) => champ(wrapper, 'treatment-frequency-value').setValue('2'),
-      '12 doses prévues depuis le 3 sept.',
+      '13 doses prévues depuis le 3 sept.',
     ],
     [
       'l’unité de la fréquence',
       (wrapper: VueWrapper) => choisirUnite(wrapper, 'week'),
-      '3 doses prévues depuis le 3 sept.',
+      '4 doses prévues depuis le 3 sept.',
     ],
     [
       'les heures',

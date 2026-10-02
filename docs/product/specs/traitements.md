@@ -65,8 +65,9 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
   et propose « Toutes données », « Choisir les jours » (ou « Donnée » / « Oubliée » pour une seule) ;
   non rempli, il devient le bandeau de la fiche. Rempli, il résume la réponse (« 25 données · Modifier »,
   « 20 données, 5 oubliées · Modifier ») ; rien n'est écrit avant « Créer », et il revient à son état de
-  départ si la première prise, la fréquence, les heures ou la date de fin changent. (Relecture, point 7 ;
-  décisions du 2026-09-28 ; lot A révisé, N1.)
+  départ si la première prise, la fréquence, les heures ou la date de fin changent. L'encart compte
+  aussi la dose du moment quand elle est déjà passée, jamais celle du jour ; non renseignée, elle reste
+  en retard sur la fiche (spec Q42). (Relecture, point 7 ; décisions du 2026-09-28 ; lot A révisé, N1.)
 - **TR-4** Posologie : une quantité (décimales permises) et une unité parmi 11 : comprimé, gélule,
   pipette, collier, ml, goutte, g, sachet, pulvérisation, application, dose. Comprimés affichés en
   fractions (¼, ½, ¾, 1 ½), avec des raccourcis « ¼ ½ ¾ 1 1 ½ » ; décimales pour les autres. Pluriel
@@ -714,6 +715,14 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
   réponse. Un autre jour choisi dans « Fait à une autre date » garde TR-22. Raison : ces gestes rapides ne doivent pas réécrire ce que le carnet dit déjà. Écartée :
   laisser « Fait aujourd'hui » repasser un oubli en « donné » depuis la feuille. (Relecture
   d'ensemble du 2026-10-02, fiche #461.)
+- 2026-10-02 — **Q42 : l'encart de création compte aussi la dose du moment déjà passée** (TR-3), en
+  plus des doses non renseignées ; une dose du jour n'y est jamais ; à plusieurs heures, la journée en
+  retard entière (Q23). Mensuel créé le 28 sept. avec « Première prise le 7 sept. » : « 1 dose prévue
+  le 7 sept. », « Donnée » / « Oubliée » ; donnée, elle est notée le jour prévu et la prochaine dose
+  est le 7 oct. Le bandeau de la fiche ne change pas (TR-15). Raison : l'aide de « Première prise le »
+  invite à saisir la dernière prise certaine ; sans cela, le traitement naît « en retard depuis le
+  7 sept. » alors que la personne vient de dire que la dose a été donnée. Écartée : limiter l'encart à
+  ce qui deviendra le bandeau. (Décision déléguée par Gaelle, encart #462.)
 
 ## 11. Questions ouvertes
 

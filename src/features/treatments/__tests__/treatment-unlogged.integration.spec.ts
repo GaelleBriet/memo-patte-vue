@@ -237,6 +237,43 @@ describe('doses non renseignées, du formulaire à la fiche, sur la même base',
     expect(texte('.treatment-unlogged__title')).toBe('25 doses non renseignées')
   })
 
+  async function saisirMensuelDu7(): Promise<void> {
+    await saisirPanacur()
+    await wrapper.findAll('.treatment-form__unit button')[2]!.trigger('click')
+    await wrapper.get('#treatment-first-dose-on').setValue('2026-09-07')
+    await flushPromises()
+  }
+
+  it.each([
+    [0, 'given'],
+    [1, 'missed'],
+  ])(
+    'mensuel du 7 sept. : la dose en retard renseignée dans l’encart, la fiche attend le 7 oct. (Q42, geste %i)',
+    async (geste, status) => {
+      await saisirMensuelDu7()
+
+      expect(texte('.treatment-unlogged__title')).toBe('1 dose prévue le 7 sept.')
+
+      await gestes()[geste]!.trigger('click')
+      await creerPuisOuvrirLaFiche()
+
+      await expect(prises()).resolves.toEqual([{ status, n: 1 }])
+      expect(texte('.treatment-dose-card__label')).toBe('Prochaine dose')
+      expect(texte('.treatment-dose-card__value')).toBe('7 oct.')
+      expect(wrapper.find('.treatment-dose-card__value--overdue').exists()).toBe(false)
+      expect(wrapper.find('.treatment-unlogged').exists()).toBe(false)
+    },
+  )
+
+  it('mensuel du 7 sept., encart laissé vide : la dose reste en retard sur la carte, sans bandeau', async () => {
+    await saisirMensuelDu7()
+    await creerPuisOuvrirLaFiche()
+
+    await expect(prises()).resolves.toEqual([])
+    expect(texte('.treatment-dose-card__value--overdue')).toBe('en retard depuis le 7 sept.')
+    expect(wrapper.find('.treatment-unlogged').exists()).toBe(false)
+  })
+
   it('« C’est fait » note la dose du jour, et le bandeau reste (critère 2)', async () => {
     await saisirPanacur()
     await creerPuisOuvrirLaFiche()
