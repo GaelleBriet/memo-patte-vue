@@ -440,6 +440,24 @@ describe('treatmentDosesService', () => {
       ])
     })
 
+    it('notification d’une dose déjà donnée en avance : « déjà notée », rien d’écrit', async () => {
+      await service.apply(bravecto, {
+        kind: 'note',
+        gesture: {
+          kind: 'given',
+          due: { periodId: bravecto, dueOn: '2026-09-28', dueTime: null },
+          givenOn: '2026-09-23',
+        },
+      })
+
+      const noted = await service.noteMoment(bravecto, '2026-09-23', {
+        notifiedDueOn: '2026-09-28',
+      })
+
+      expect(noted).toMatchObject({ outcome: 'already', undo: [], alreadyGivenOn: '2026-09-23' })
+      await expect(visibleDoses()).resolves.toHaveLength(2)
+    })
+
     it('lève pour un traitement introuvable', async () => {
       await expect(service.noteMoment('inconnu', '2026-09-23')).rejects.toThrow(
         'Traitement introuvable',

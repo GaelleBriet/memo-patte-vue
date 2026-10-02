@@ -119,9 +119,30 @@ export function momentDue(
   return current.dueOn > today && givenToday ? { alreadyGivenOn: today } : { due: current }
 }
 
-/** Transition (lot 4) : une prise, donnée ou oubliée, est déjà notée pour ce jour d'échéance. */
-export function isDayNoted(schedule: Pick<TreatmentSchedule, 'doses'>, dueOn: string): boolean {
-  return schedule.doses.some((dose) => dose.dueOn === dueOn && dose.status !== 'postponed')
+type MomentTarget = ReturnType<typeof momentDue>
+
+/**
+ * Transition (lot 4) : ce que note « C'est fait » d'une notification, qui porte un jour d'échéance
+ * et pas d'heure. Dans l'ordre : jour entièrement noté, « déjà notée » (ou `dayNoted` sans prise
+ * donnée) ; journée entamée, `ask` ; dose à noter d'un autre jour que celui notifié, `ask` ; sinon
+ * la dose que vise `momentDue`. `ask` : à la personne de choisir, rien n'est écrit.
+ */
+export function notifiedDue(
+  schedule: OtherDateSchedule,
+  notifiedDueOn: string,
+  today: string,
+): MomentTarget | 'ask' {
+  const dues = dayDues(schedule, notifiedDueOn)
+  const noted = dues.filter(({ status }) => status !== 'pending')
+  if (noted.length > 0) {
+    if (noted.length < dues.length) return 'ask'
+    const given = noted.find(({ status }) => status === 'given')
+    return given === undefined
+      ? { dayNoted: true }
+      : { alreadyGivenOn: given.givenOn ?? notifiedDueOn }
+  }
+  const target = momentDue(schedule, today, today)
+  return target !== null && 'due' in target && target.due.dueOn !== notifiedDueOn ? 'ask' : target
 }
 
 /**

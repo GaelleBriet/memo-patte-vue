@@ -18,6 +18,7 @@ import AnimalChipSelector, { type AnimalChipItem } from '@/shared/components/Ani
 import DueStatusChip from '@/shared/components/DueStatusChip.vue'
 import SectionCard from '@/shared/components/SectionCard.vue'
 import {
+  detailRoute,
   parseReminderRequest,
   REMINDER_STEP_QUERY_PARAM,
   withoutReminderRequest,
@@ -113,9 +114,10 @@ function takeReminderRequest(): ReminderRequest | null {
 // Le Carnet laisse un animal sélectionné dans le store partagé : l'accueil ne le reprend pas.
 onMounted(() => {
   animals.select(null)
+  const fromNotification = route.query[REMINDER_STEP_QUERY_PARAM] !== undefined
   const request = takeReminderRequest()
   void load().then(() => {
-    if (request) reopenReminder(request)
+    if (request) reopenReminder(request, { fromNotification })
   })
 })
 
@@ -129,7 +131,7 @@ watch(
     animals.select(null)
     isTreatmentSheetOpen.value = false
     isVaccinationSheetOpen.value = false
-    void load().then(() => reopenReminder(request))
+    void load().then(() => reopenReminder(request, { fromNotification: true }))
   },
 )
 
@@ -150,10 +152,18 @@ function openReminder(row: Pick<ReminderRow, 'kind' | 'id'>, step: ReminderStep 
   else isVaccinationSheetOpen.value = true
 }
 
-/** Retour de « Modifier » ou notification : la feuille s'ouvre si le rappel est dans « À faire ». */
-function reopenReminder({ step, ...reminder }: ReminderRequest): void {
+/**
+ * Retour de « Modifier » ou notification : la feuille s'ouvre si le rappel est dans « À faire » ;
+ * sinon une notification ouvre la fiche du soin, pour ne jamais rester sans réponse.
+ */
+function reopenReminder(
+  { step, ...reminder }: ReminderRequest,
+  { fromNotification }: { fromNotification: boolean },
+): void {
   if (rows.value.some((row) => row.kind === reminder.kind && row.id === reminder.id)) {
     openReminder(reminder, step)
+  } else if (fromNotification) {
+    void router.push(detailRoute(reminder))
   }
 }
 
