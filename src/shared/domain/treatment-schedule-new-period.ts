@@ -16,6 +16,21 @@ function lastReference(state: State, frequency: Frequency): string | undefined {
   return shiftDate(fixed ? referenceOf(last.dose) : last.dose.dueOn, frequency, 1)
 }
 
+function keepsSettings(state: State, frequency: Frequency, times: readonly string[]): boolean {
+  const current = state.open?.period
+  return (
+    current !== undefined &&
+    current.frequency.value === frequency.value &&
+    current.frequency.unit === frequency.unit &&
+    [...current.times].sort().join() === [...times].sort().join()
+  )
+}
+
+function untouchedCurrentDay(state: State): string | undefined {
+  const day = state.currentDoses[0]?.dueOn
+  return day === undefined || state.open?.noteDays.has(day) ? undefined : day
+}
+
 // Q24 : la nouvelle période commence aujourd'hui ; ses heures au-delà des prises du jour restent à donner.
 export function newPeriod(state: State, frequency: Frequency, times: readonly string[]): NewPeriod {
   checkFrequency(frequency, '')
@@ -27,10 +42,9 @@ export function newPeriod(state: State, frequency: Frequency, times: readonly st
   const periods = state.plans.map(({ period }) => period)
   const noted = notedOn(startsOn, periods, mergeDoses(state.input.doses))
   if (noted > 0 && noted < times.length) return { startsOn, firstDueOn: startsOn }
-  const current = state.open?.period.frequency
-  const sameRhythm = current?.value === frequency.value && current.unit === frequency.unit
   const dueToday = state.currentDoses.some((due) => due.dueOn === today)
-  if (noted === 0 && sameRhythm && dueToday) return { startsOn, firstDueOn: startsOn }
-  const proposed = lastReference(state, frequency) ?? startsOn
+  if (noted === 0 && dueToday) return { startsOn, firstDueOn: startsOn }
+  const scheduled = keepsSettings(state, frequency, times) ? untouchedCurrentDay(state) : undefined
+  const proposed = scheduled ?? lastReference(state, frequency) ?? startsOn
   return { startsOn, firstDueOn: proposed > startsOn ? proposed : startsOn }
 }

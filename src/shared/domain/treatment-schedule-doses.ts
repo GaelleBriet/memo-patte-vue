@@ -21,6 +21,7 @@ import {
   nearUpcoming,
   nextInSequence,
   planOf,
+  stateOn,
   stateWithout,
 } from './treatment-schedule-state'
 import type {
@@ -122,18 +123,28 @@ function movesLostBy(
     .filter((id) => stale.has(id))
 }
 
+function fieldsOf(dose: TreatmentDoseInput): DoseFields {
+  const { givenOn, status, nextDueDate } = dose
+  return { ...dueOf(dose), givenOn, status, nextDueDate }
+}
+
 export function redate(state: State, doseId: string, givenOn: string): RedatedDose {
   checkPastDay(givenOn, state.input.today, 'date réelle')
   for (const plan of state.plans) {
     const index = plan.steps.findIndex((step) => step.kind === 'note' && step.dose.id === doseId)
     const dose = plan.steps[index]?.dose
     if (dose?.status !== 'given') continue
+    if (givenOn === dose.givenOn) return { dose: fieldsOf(dose), postponement: null }
     const following = followingMove(plan, index)
     const next = following !== null && isLocked(plan, following) ? null : following
     const overtakes = next !== null && next.nextDueDate <= givenOn
+    const keepsSuite =
+      dose.givenOn !== dose.dueOn && !fixesSuiteFromItsDate(dose, plan.period.frequency)
     const nextDueDate = overtakes
       ? shiftDate(givenOn, plan.period.frequency, 1)
-      : givenNextDueDate(stateWithout(state, dose, givenOn), dose, givenOn)
+      : keepsSuite
+        ? dose.nextDueDate
+        : givenNextDueDate(stateOn(state, dose, givenOn), dose, givenOn)
     const fields: DoseFields = { ...dueOf(dose), givenOn, status: 'given', nextDueDate }
     const firstTime = [...plan.period.times].sort(compareText)[0] ?? null
     const followed = { periodId: dose.periodId, dueOn: nextDueDate, dueTime: firstTime }

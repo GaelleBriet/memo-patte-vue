@@ -17,6 +17,8 @@ const STATUSES: readonly string[] = ['given', 'missed', 'postponed']
 
 export const MAX_DUES = 50_000
 
+export class ScheduleTooLongError extends RangeError {}
+
 export function invalid(detail: string): RangeError {
   return new RangeError(`Calendrier de traitement invalide : ${detail}`)
 }
@@ -99,6 +101,8 @@ export function checkInput({ periods, doses, today }: TreatmentScheduleInput): v
     return sum + estimatedDues(period, closingDay(period, ordered[index + 1]), ownDoses, today)
   }, 0)
   if (total > MAX_DUES) {
-    throw new RangeError(`Calendrier de traitement trop long : environ ${total} échéances`)
+    throw new ScheduleTooLongError(
+      `Calendrier de traitement trop long : environ ${total} échéances`,
+    )
   }
 }
