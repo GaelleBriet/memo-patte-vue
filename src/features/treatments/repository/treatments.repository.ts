@@ -362,10 +362,6 @@ export function createTreatmentsRepository(
       return doses.listByTreatment(treatmentId)
     },
 
-    countDosesByAnimal(animalId: string): Promise<Record<string, number>> {
-      return doses.countByAnimal(animalId)
-    },
-
     /**
      * Rend l'instant de la suppression, à passer à `restore`. Sans effet sur un traitement inconnu
      * ou déjà supprimé : la date initiale est gardée.

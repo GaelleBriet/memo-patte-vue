@@ -285,16 +285,6 @@ export function createTreatmentDosesRepository(
       return row ? toDose(row) : null
     },
 
-    /** Nombre de prises visibles par traitement de l'animal. */
-    async countByAnimal(animalId: string): Promise<Record<string, number>> {
-      const rows = await db.query<{ treatment_id: string; count: number }>(
-        `SELECT treatment_id, COUNT(*) AS count FROM treatment_dose
-         WHERE animal_id = ? AND ${NOT_DELETED} GROUP BY treatment_id`,
-        [animalId],
-      )
-      return Object.fromEntries(rows.map((row) => [row.treatment_id, row.count]))
-    },
-
     /** Lignes supprimées comprises : l'import compare les versions avant d'écrire. */
     async listVersions(): Promise<TreatmentDoseVersion[]> {
       const rows = await db.query<DoseVersionRow>(

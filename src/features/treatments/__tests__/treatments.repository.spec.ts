@@ -805,17 +805,6 @@ describe('treatmentsRepository — périodes et prises', () => {
 
     expect(liste.map(({ id }) => id)).toEqual([created.id, ancienne])
   })
-
-  it('compte les prises de chaque traitement d’un animal', async () => {
-    const created = await seedTreatmentWithDose(db, bravecto)
-    await addDose(created.id, '2025-12-01', '2026-03-01')
-    const autre = await seedTreatmentWithDose(db, { ...bravecto, name: 'Milbemax' })
-
-    await expect(repository.countDosesByAnimal(MIETTE)).resolves.toEqual({
-      [created.id]: 2,
-      [autre.id]: 1,
-    })
-  })
 })
 
 describe('treatmentsRepository — import', () => {
