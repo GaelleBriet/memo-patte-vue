@@ -98,7 +98,7 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
   - **G10** À plusieurs heures, une prise donnée un autre jour que son échéance ne refixe la suite que
     si elle est la dernière heure du jour et que les autres heures de ce jour sont déjà notées.
     (Garde technique, consignée au journal des décisions autonomes.)
-  - **G11** Une prise datée plus d'un intervalle avant son échéance ne refixe pas la suite.
+  - **G11** Une prise datée un intervalle ou plus avant son échéance ne refixe pas la suite.
     (Garde technique, consignée au journal des décisions autonomes.)
 - **TR-8** Aucune échéance après la date de fin.
 - **TR-9** « Prochaine dose » (« Modifier ») déplace la prochaine dose, plus tôt ou plus tard que
@@ -687,8 +687,13 @@ fixé la suite ; revue du 2026-10-02) :
   lieu du 15) (TR-24 bis).
 - Une dose du moment notée par erreur plus d'un intervalle avant son échéance, puis corrigée, ne
   refixe pas la suite (notée le 1er, corrigée au 10 : 15 au lieu de 17) (TR-24 bis, G11).
-- En mois, départs les 29, 30 et 31 : une dose non renseignée notée le lendemain de son échéance fait
-  passer la suite au jour suivant (30 août notée le 31 : 31 oct.) (TR-7, TR-18).
+- En mois, départs les 29, 30 et 31 : une dose non renseignée notée le lendemain de son échéance, ou
+  redatée à ce lendemain, fait passer la suite au jour suivant (30 août notée le 31 : 31 oct.)
+  (TR-7, TR-18).
 - Une date de fin fait sauter la dose suivante d'une prise en retard (5 oct. et 2 nov., fin le 2 nov.,
   première dose donnée le 10 : terminé) (TR-7, TR-8).
 - Une prise donnée un intervalle ou plus en avance garde l'ancienne suite (G11).
+- À plusieurs heures, quand une heure de la prochaine journée a été donnée en avance et qu'un réglage
+  change sans toucher la fréquence ni les heures, les heures restantes de cette journée ne sont plus
+  demandées (tous les 2 jours à 8 h et 20 h, 8 h du 3 donnée le 2, posologie changée le 2 : première
+  dose le 5) (TR-28, Q37).
