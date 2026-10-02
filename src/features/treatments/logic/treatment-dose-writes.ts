@@ -11,6 +11,8 @@ import type {
 
 export type DoseAction =
   | { kind: 'note'; gesture: DoseGesture }
+  /** Doses à renseigner, écrites en un seul lot ; lève `DoseAlreadyLoggedError` si l'une est déjà notée. */
+  | { kind: 'log'; gestures: readonly DoseGesture[] }
   | { kind: 'remove'; doseId: string }
   | { kind: 'redate'; doseId: string; givenOn: string }
   | { kind: 'move'; doseId: string; to: string }
@@ -25,6 +27,8 @@ export type DoseChange = {
   /** Ce qu'un geste sur un report en a fait : sa ligne telle qu'écrite, ou `removed` ; `null` hors de ces gestes ou sans changement. */
   moved: DoseFields | 'removed' | null
 }
+
+export class DoseAlreadyLoggedError extends Error {}
 
 type History = Pick<TreatmentWithHistory, 'id' | 'animalId' | 'doses'>
 
@@ -122,6 +126,44 @@ function withoutStale(writes: DoseWrite[], schedule: TreatmentSchedule): DoseWri
   return [...unique, ...deletes(schedule.staleDoseIds.filter((id) => !touched.has(id)))]
 }
 
+function noteWrites(
+  history: History,
+  schedule: TreatmentSchedule,
+  gesture: DoseGesture,
+  lines: NewTreatmentDose[],
+  newId: () => string,
+): DoseWrite[] {
+  const dose = schedule.doseFor(gesture)
+  if (lines.length > 0) return rewrites(lines, dose)
+  return [
+    { action: 'create', id: newId(), treatmentId: history.id, animalId: history.animalId, dose },
+  ]
+}
+
+function dueKey({ periodId, dueOn, dueTime }: Due): string {
+  return `${periodId} ${dueOn} ${dueTime ?? ''}`
+}
+
+function logWrites(
+  history: History,
+  schedule: TreatmentSchedule,
+  gestures: readonly DoseGesture[],
+  newId: () => string,
+): DoseWrite[] {
+  const noted = new Set(schedule.doses.filter(({ status }) => status !== 'postponed').map(dueKey))
+  const logged = gestures.find(({ due }) => noted.has(dueKey(due)))
+  if (logged !== undefined) {
+    throw new DoseAlreadyLoggedError(`Dose déjà notée : ${dueKey(logged.due)}`)
+  }
+  const linesOfDue = new Map<string, NewTreatmentDose[]>()
+  for (const line of history.doses) {
+    linesOfDue.set(dueKey(line), [...(linesOfDue.get(dueKey(line)) ?? []), line])
+  }
+  return gestures.flatMap((gesture) =>
+    noteWrites(history, schedule, gesture, linesOfDue.get(dueKey(gesture.due)) ?? [], newId),
+  )
+}
+
 function changeOf(
   history: History,
   schedule: TreatmentSchedule,
@@ -136,17 +178,13 @@ function changeOf(
       if (gesture.kind === 'given' && noted?.status === 'given') {
         return { ...unchanged, writes: [], alreadyGivenOn: noted.givenOn }
       }
-      const dose = schedule.doseFor(gesture)
-      const lines = linesOf(history, gesture.due)
-      const created: DoseWrite = {
-        action: 'create',
-        id: newId(),
-        treatmentId: history.id,
-        animalId: history.animalId,
-        dose,
+      return {
+        ...unchanged,
+        writes: noteWrites(history, schedule, gesture, linesOf(history, gesture.due), newId),
       }
-      return { ...unchanged, writes: lines.length === 0 ? [created] : rewrites(lines, dose) }
     }
+    case 'log':
+      return { ...unchanged, writes: logWrites(history, schedule, action.gestures, newId) }
     case 'remove':
       return {
         ...unchanged,

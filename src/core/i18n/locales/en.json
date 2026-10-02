@@ -322,6 +322,14 @@
         "dropHint": "The previous setting was a mistake. Next dose on {date}.",
         "cancel": "Cancel"
       },
+      "pastDoses": {
+        "title": "{n} dose scheduled on {date} | {n} doses scheduled since {date}",
+        "question": "Was it given? | Were they given?",
+        "note": "Optional. Otherwise, the treatment page will show it as not logged. | Optional. Otherwise, the treatment page will show them as not logged.",
+        "chooseDaysLabel": "Choose the days the dose was given, {when}",
+        "edit": "Change",
+        "editLabel": "Change the chosen days"
+      },
       "submit": "Create",
       "submitting": "Creating…",
       "save": "Save",
@@ -495,6 +503,61 @@
         "postponedTo": "Dose postponed to {date}",
         "advancedTo": "Dose moved up to {date}",
         "undoMoveChange": "Undo the postponement date change"
+      }
+    },
+    "unlogged": {
+      "title": "{n} dose not logged | {n} doses not logged",
+      "range": "{start} – {end}",
+      "note": "Tell us whether it was given. | Tell us whether they were given.",
+      "allGiven": "All given",
+      "chooseDays": "Choose days",
+      "given": "Given",
+      "missed": "Missed",
+      "allGivenLabel": "Log the {n} doses as given, {when}",
+      "chooseDaysLabel": "Choose the days {name} was given, {when}",
+      "givenLabel": "Log the dose due {when} as given",
+      "missedLabel": "Log the dose due {when} as missed",
+      "toast": {
+        "given": "{name}: {n} dose logged | {name}: {n} doses logged",
+        "missed": "{name}: {n} missed dose logged | {name}: {n} missed doses logged",
+        "both": "{name}: {given} and {missed} logged",
+        "givenCount": "{n} dose | {n} doses",
+        "missedCount": "{n} missed dose | {n} missed doses",
+        "undo": "Undo the doses logged for {name}"
+      },
+      "days": {
+        "title": "Choose days",
+        "back": "Back without saving",
+        "help": "Check the doses given. Unchecked days will be marked missed.",
+        "helpByHour": "Check the doses given, hour by hour. Unchecked days will be marked missed.",
+        "hours": "Dose times",
+        "noTime": "No time",
+        "tab": {
+          "allChecked": "all checked",
+          "missed": "{n} missed | {n} missed",
+          "label": "{time} doses, {state}",
+          "allGiven": "all given"
+        },
+        "checkAll": "Check all",
+        "uncheckAll": "Uncheck all",
+        "checkAllLabel": "Mark the dose as given | Mark the {n} doses as given",
+        "uncheckAllLabel": "Mark the dose as missed | Mark the {n} doses as missed",
+        "checkAllLabelAt": "Mark the {time} dose as given | Mark the {n} {time} doses as given",
+        "uncheckAllLabelAt": "Mark the {time} dose as missed | Mark the {n} {time} doses as missed",
+        "checkMonth": "Check the month",
+        "uncheckMonth": "Uncheck the month",
+        "checkMonthLabel": "Check {month}",
+        "uncheckMonthLabel": "Uncheck {month}",
+        "monthDays": "{n} day | {n} days",
+        "monthDaysAt": "{days} · {time}",
+        "dayGiven": "{date}, given",
+        "dayMissed": "{date}, missed",
+        "dayAt": "{date} at {time}",
+        "givenCount": "{n} given | {n} given | {n} given",
+        "missedCount": "{n} missed | {n} missed | {n} missed",
+        "counts": "{given}, {missed}",
+        "submit": "Confirm: {counts}",
+        "submitLabel": "Confirm: {given} doses given and {missed} missed, {when}"
       }
     },
     "finished": {

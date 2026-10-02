@@ -252,3 +252,41 @@ describe('dateChangeOf — « Changer la date »', () => {
     expect(dateChangeOf(t, report, null, { today: TODAY, earliest: null })).toBeNull()
   })
 })
+
+describe('doseActionTexts — renseigner des doses en un lot', () => {
+  const due = (dueOn: string) => ({ periodId: 'p-1', dueOn, dueTime: null })
+  const given = (dueOn: string) => ({ kind: 'given' as const, due: due(dueOn), givenOn: dueOn })
+  const missed = (dueOn: string) => ({ kind: 'missed' as const, due: due(dueOn) })
+  const log = (gestures: (ReturnType<typeof given> | ReturnType<typeof missed>)[]) =>
+    texts(UNE_HEURE, { kind: 'log', gestures })
+
+  it('compte les prises et les oublis notés', () => {
+    const { done, undo } = log([
+      given('2026-09-03'),
+      given('2026-09-04'),
+      given('2026-09-05'),
+      given('2026-09-06'),
+      missed('2026-09-07'),
+    ])
+
+    expect(done()).toBe('Panacur : 4 prises et 1 oubli notés')
+    expect(undo).toBe('Annuler les doses renseignées de Panacur')
+  })
+
+  it('ne cite que ce qui a été noté', () => {
+    expect(log([given('2026-09-03')]).done()).toBe('Panacur : 1 prise notée')
+    expect(log([given('2026-09-03'), given('2026-09-04')]).done()).toBe('Panacur : 2 prises notées')
+    expect(log([missed('2026-09-03')]).done()).toBe('Panacur : 1 oubli noté')
+    expect(log([missed('2026-09-03'), missed('2026-09-04')]).done()).toBe(
+      'Panacur : 2 oublis notés',
+    )
+  })
+
+  it('en anglais', () => {
+    applyLocale('en')
+
+    expect(log([given('2026-09-03'), given('2026-09-04'), missed('2026-09-05')]).done()).toBe(
+      'Panacur: 2 doses and 1 missed dose logged',
+    )
+  })
+})

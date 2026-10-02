@@ -97,6 +97,20 @@ export function doseActionTexts(
       }
       return { done, undo: t('treatments.sheet.toast.undoDose', named), already }
     }
+    case 'log': {
+      const missed = action.gestures.filter(({ kind }) => kind === 'missed').length
+      const given = action.gestures.length - missed
+      const done = () => {
+        if (missed === 0) return t('treatments.unlogged.toast.given', { name, n: given }, given)
+        if (given === 0) return t('treatments.unlogged.toast.missed', { name, n: missed }, missed)
+        return t('treatments.unlogged.toast.both', {
+          name,
+          given: t('treatments.unlogged.toast.givenCount', { n: given }, given),
+          missed: t('treatments.unlogged.toast.missedCount', { n: missed }, missed),
+        })
+      }
+      return { done, undo: t('treatments.unlogged.toast.undo', { name }), already }
+    }
     case 'remove': {
       const removed = line ?? { dueOn: today, dueTime: null }
       return {
