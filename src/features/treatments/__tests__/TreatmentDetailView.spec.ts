@@ -885,14 +885,33 @@ describe('TreatmentDetailView — barre du haut et fin du traitement', () => {
     })
   })
 
-  it('dit qu’un traitement est introuvable, ou illisible', async () => {
+  it('dit qu’un traitement est introuvable, ou n’a pas pu être lu', async () => {
     expect((await monter(null)).get('[role="alert"]').text()).toBe('Ce traitement est introuvable.')
     wrapper?.unmount()
+    read.mockRejectedValue(new Error('base indisponible'))
 
-    const illisible = await monter(treatment([period({ times: ['8h'] })]))
+    const enEchec = await monter()
 
-    expect(illisible.get('[role="alert"]').text()).toBe(
-      i18n.global.t('treatments.form.errors.load'),
+    expect(enEchec.get('[role="alert"]').text()).toBe(
+      'Ce traitement n’a pas pu être chargé. Réessaie.',
     )
+  })
+
+  it('dit qu’un traitement illisible ne se rechargera pas, et laisse le supprimer', async () => {
+    const back = vi.spyOn(router, 'back').mockImplementation(() => {})
+    const view = await monter(treatment([period({ times: ['8h'] })]))
+
+    expect(view.get('[role="alert"]').text()).toBe(
+      'Ce traitement contient une donnée illisible. Tu peux le supprimer, ou importer un export antérieur.',
+    )
+    expect(view.find('.treatment-detail__edit').exists()).toBe(false)
+
+    view.get('.pushed-screen__end').getComponent(OverflowMenu).vm.$emit('select', 'remove')
+    await flushPromises()
+    dialogue(view, 'Supprimer Métacam ?').vm.$emit('confirm')
+    await flushPromises()
+
+    expect(remove).toHaveBeenCalledWith(METACAM.id)
+    expect(back).toHaveBeenCalled()
   })
 })

@@ -79,6 +79,13 @@ const actions = computed(() => (schedule.value ? detailActions(schedule.value) :
 const stopTexts = computed(() => treatmentStopTexts(t, named.value))
 const deleteTexts = computed(() => treatmentDeleteTexts(t, named.value.name))
 
+const failure = computed(() => {
+  if (unreadable.value) return t('treatments.detail.errors.unreadable')
+  return state.value === 'not-found'
+    ? t('treatments.form.errors.notFound')
+    : t('treatments.form.errors.load')
+})
+
 const menuItems = computed<OverflowMenuItem[]>(() => [
   { id: 'remove', label: t('treatments.detail.menu.remove'), icon: 'ms:delete', danger: true },
 ])
@@ -224,11 +231,7 @@ async function remove(): Promise<void> {
         class="section-card__card treatment-detail__message"
         role="alert"
       >
-        {{
-          state === 'not-found'
-            ? t('treatments.form.errors.notFound')
-            : t('treatments.form.errors.load')
-        }}
+        {{ failure }}
       </p>
 
       <div v-else class="treatment-detail__loading">
