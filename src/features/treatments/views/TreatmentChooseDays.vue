@@ -1,13 +1,18 @@
 <script setup lang="ts">
-import { computed, onScopeDispose, ref, watch } from 'vue'
+import { computed, onScopeDispose, reactive, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
+import TreatmentChooseDaysMonth from './TreatmentChooseDaysMonth.vue'
 import {
   choiceOf,
-  chooseDays,
+  chooseDaysLayout,
   dayKey,
-  toggledDay,
-  withDays,
+  missedAmong,
+  setDays,
+  submitTexts,
+  tabMonths,
+  tabTexts,
+  toggleDay,
   type DayChoice,
 } from '../logic/treatment-choose-days'
 import { onBackButton } from '@/core/app-lifecycle/back-button'
@@ -31,17 +36,31 @@ const emit = defineEmits<{
   confirm: [choice: DayChoice]
 }>()
 
+const MONTHS_PER_STEP = 6
+
 const open = defineModel<boolean>({ default: false })
 
 const { t } = useI18n()
 
-const unchecked = ref<Set<string>>(new Set())
+const unchecked = reactive(new Set<string>())
 const activeTab = ref('')
+const shownMonths = ref(MONTHS_PER_STEP)
+const more = useTemplateRef<HTMLElement>('more')
 
-const model = computed(() => chooseDays(t, props.dues, unchecked.value, props.when))
+const layout = computed(() => chooseDaysLayout(t, props.dues))
 const tab = computed(
-  () => model.value.tabs.find(({ id }) => id === activeTab.value) ?? model.value.tabs[0] ?? null,
+  () => layout.value.tabs.find(({ id }) => id === activeTab.value) ?? layout.value.tabs[0] ?? null,
 )
+const months = computed(() => (tab.value === null ? [] : tabMonths(t, tab.value)))
+const tabs = computed(() =>
+  layout.value.tabs.map((each) => ({
+    id: each.id,
+    title: each.title,
+    ...tabTexts(t, each, missedAmong(each.dues, unchecked), layout.value.hasTabs),
+  })),
+)
+const activeTexts = computed(() => tabs.value.find(({ id }) => id === tab.value?.id) ?? null)
+const submit = computed(() => submitTexts(t, props.dues.length, unchecked.size, props.when))
 
 let releaseBackButton: (() => void) | null = null
 
@@ -58,22 +77,50 @@ watch(
     releaseBack()
     if (!isOpen) return
     releaseBackButton = onBackButton(() => (open.value = false))
-    unchecked.value = new Set((props.choice?.missed ?? []).map(dayKey))
-    activeTab.value = model.value.tabs[0]?.id ?? ''
+    const known = new Set(props.dues.map(dayKey))
+    unchecked.clear()
+    setDays(
+      unchecked,
+      (props.choice?.missed ?? []).filter((due) => known.has(dayKey(due))),
+      false,
+    )
+    selectTab(layout.value.tabs[0]?.id ?? '')
   },
   { immediate: true },
 )
 
+// Les mois se montent au fil du défilement : un long historique n'en monte pas des dizaines d'un coup.
+watch(more, (sentinel, _previous, onCleanup) => {
+  if (!sentinel) return
+  if (typeof IntersectionObserver === 'undefined') {
+    shownMonths.value = Infinity
+    return
+  }
+  const observer = new IntersectionObserver(
+    (entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) shownMonths.value += MONTHS_PER_STEP
+    },
+    { rootMargin: '600px 0px' },
+  )
+  observer.observe(sentinel)
+  onCleanup(() => observer.disconnect())
+})
+
+function selectTab(id: string): void {
+  activeTab.value = id
+  shownMonths.value = MONTHS_PER_STEP
+}
+
 function toggle(due: Due): void {
-  unchecked.value = toggledDay(unchecked.value, due)
+  toggleDay(unchecked, due)
 }
 
 function setAll(dues: readonly Due[], checked: boolean): void {
-  unchecked.value = withDays(unchecked.value, dues, checked)
+  setDays(unchecked, dues, checked)
 }
 
 function confirm(): void {
-  emit('confirm', choiceOf(props.dues, unchecked.value))
+  emit('confirm', choiceOf(props.dues, unchecked))
 }
 </script>
 
@@ -93,17 +140,17 @@ function confirm(): void {
       :back-label="t('treatments.unlogged.days.back')"
       @back="open = false"
     >
-      <div v-if="tab" class="treatment-choose-days__content">
-        <p class="treatment-choose-days__help">{{ model.help }}</p>
+      <div v-if="tab && activeTexts" class="treatment-choose-days__content">
+        <p class="treatment-choose-days__help">{{ layout.help }}</p>
 
         <div
-          v-if="model.hasTabs"
+          v-if="layout.hasTabs"
           class="treatment-choose-days__tabs"
           role="tablist"
           :aria-label="t('treatments.unlogged.days.hours')"
         >
           <button
-            v-for="hour in model.tabs"
+            v-for="hour in tabs"
             :key="hour.id"
             type="button"
             role="tab"
@@ -111,7 +158,7 @@ function confirm(): void {
             :class="{ 'treatment-choose-days__tab--active': hour.id === tab.id }"
             :aria-selected="hour.id === tab.id"
             :aria-label="hour.label"
-            @click="activeTab = hour.id"
+            @click="selectTab(hour.id)"
           >
             <span class="treatment-choose-days__tab-title">{{ hour.title }}</span>
             <span class="treatment-choose-days__tab-state">{{ hour.state }}</span>
@@ -122,7 +169,7 @@ function confirm(): void {
           <button
             type="button"
             class="treatment-choose-days__link treatment-choose-days__link--check"
-            :aria-label="tab.checkAllLabel"
+            :aria-label="activeTexts.checkAllLabel"
             @click="setAll(tab.dues, true)"
           >
             <v-icon icon="ms:done_all" size="19" />
@@ -131,7 +178,7 @@ function confirm(): void {
           <button
             type="button"
             class="treatment-choose-days__link treatment-choose-days__link--uncheck"
-            :aria-label="tab.uncheckAllLabel"
+            :aria-label="activeTexts.uncheckAllLabel"
             @click="setAll(tab.dues, false)"
           >
             <v-icon icon="ms:remove_done" size="19" />
@@ -150,55 +197,17 @@ function confirm(): void {
           </span>
         </div>
 
-        <section
-          v-for="month in tab.months"
-          :key="month.id"
-          class="treatment-choose-days__month"
-          :aria-label="month.title"
-        >
-          <div class="treatment-choose-days__month-head">
-            <div class="treatment-choose-days__month-name">
-              <h2 class="treatment-choose-days__month-title">{{ month.title }}</h2>
-              <span class="treatment-choose-days__month-count">{{ month.count }}</span>
-            </div>
-            <button
-              v-if="month.toggle"
-              type="button"
-              class="treatment-choose-days__link treatment-choose-days__month-toggle"
-              :aria-label="month.toggle.label"
-              @click="setAll(month.dues, month.toggle.checks)"
-            >
-              {{ month.toggle.text }}
-            </button>
-          </div>
-          <div class="treatment-choose-days__weekdays" aria-hidden="true">
-            <span v-for="(weekday, index) in model.weekdays" :key="index">{{ weekday }}</span>
-          </div>
-          <div class="treatment-choose-days__days">
-            <span v-for="blank in month.blanks" :key="`blank-${blank}`" aria-hidden="true" />
-            <template v-for="cell in month.cells" :key="cell.day">
-              <button
-                v-if="cell.due"
-                type="button"
-                role="checkbox"
-                class="treatment-choose-days__day"
-                :class="{ 'treatment-choose-days__day--given': cell.checked }"
-                :aria-checked="cell.checked"
-                :aria-label="cell.label"
-                @click="toggle(cell.due)"
-              >
-                {{ cell.day }}
-              </button>
-              <span
-                v-else
-                class="treatment-choose-days__day treatment-choose-days__day--out"
-                aria-hidden="true"
-              >
-                {{ cell.day }}
-              </span>
-            </template>
-          </div>
-        </section>
+        <TreatmentChooseDaysMonth
+          v-for="month in months.slice(0, shownMonths)"
+          :key="`${tab.id} ${month.id}`"
+          :month="month"
+          :unchecked="unchecked"
+          :weekdays="layout.weekdays"
+          :alone="months.length === 1"
+          @toggle="toggle"
+          @set="setAll"
+        />
+        <div v-if="shownMonths < months.length" ref="more" aria-hidden="true" />
       </div>
 
       <template #actions>
@@ -208,11 +217,11 @@ function confirm(): void {
             variant="flat"
             color="primary"
             block
-            :aria-label="model.submitLabel"
+            :aria-label="submit.submitLabel"
             :disabled="busy"
             @click="confirm"
           >
-            {{ model.submit }}
+            {{ submit.submit }}
           </v-btn>
         </div>
       </template>
@@ -222,8 +231,6 @@ function confirm(): void {
 
 <style scoped lang="scss">
 @use '@/styles/tokens' as tokens;
-
-$size-day: 48px;
 
 .treatment-choose-days__content {
   display: flex;
@@ -340,101 +347,6 @@ $size-day: 48px;
 .treatment-choose-days__dot--given {
   background: rgb(var(--v-theme-primary));
   box-shadow: none;
-}
-
-.treatment-choose-days__month {
-  margin: 0 -8px;
-}
-
-.treatment-choose-days__month-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-height: tokens.$size-tap-target;
-  padding-left: 8px;
-}
-
-.treatment-choose-days__month-name {
-  display: flex;
-  flex: 1 1 auto;
-  flex-wrap: wrap;
-  align-items: baseline;
-  column-gap: 8px;
-  min-width: 0;
-}
-
-.treatment-choose-days__month-title {
-  margin: 0;
-  font-family: tokens.$font-family-heading;
-  font-size: 16px;
-  font-weight: 700;
-}
-
-.treatment-choose-days__month-count {
-  color: tokens.$color-text-secondary;
-  font-size: 12.5px;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.treatment-choose-days__month-toggle {
-  flex: 0 0 auto;
-  white-space: nowrap;
-}
-
-.treatment-choose-days__weekdays,
-.treatment-choose-days__days {
-  display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-}
-
-.treatment-choose-days__weekdays {
-  color: tokens.$color-text-meta;
-  font-size: 11.5px;
-  font-weight: 600;
-  text-align: center;
-}
-
-.treatment-choose-days__days {
-  row-gap: 4px;
-  margin-top: 6px;
-}
-
-.treatment-choose-days__day {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: $size-day;
-  height: $size-day;
-  margin: 0 auto;
-  padding: 0;
-  border: 0;
-  border-radius: 50%;
-  background: tokens.$color-field-surface;
-  box-shadow: inset 0 0 0 1.5px tokens.$color-day-missed-border;
-  color: tokens.$color-text-secondary;
-  font-family: inherit;
-  font-size: 14px;
-  font-weight: 500;
-  text-decoration: line-through;
-  cursor: pointer;
-  user-select: none;
-}
-
-.treatment-choose-days__day--given {
-  background: rgb(var(--v-theme-primary));
-  box-shadow: none;
-  color: tokens.$color-on-primary;
-  font-weight: 700;
-  text-decoration: none;
-}
-
-.treatment-choose-days__day--out {
-  background: transparent;
-  box-shadow: none;
-  color: tokens.$color-calendar-day-disabled;
-  text-decoration: none;
-  cursor: default;
 }
 
 .treatment-choose-days__actions {

@@ -17,8 +17,7 @@ export type Unchecked = ReadonlySet<string>
 export type DayChoice = { given: Due[]; missed: Due[] }
 
 export type ChooseDaysCell =
-  | { day: number; due: null }
-  | { day: number; due: Due; key: string; checked: boolean; label: string }
+  { day: number; due: null } | { day: number; due: Due; key: string; date: string }
 
 export type ChooseDaysMonth = {
   id: string
@@ -28,51 +27,50 @@ export type ChooseDaysMonth = {
   blanks: number
   cells: ChooseDaysCell[]
   dues: Due[]
-  /** `null` quand le calendrier n'a qu'un mois : « Tout cocher / Tout décocher » suffit. */
-  toggle: { checks: boolean; text: string; label: string } | null
 }
 
 export type ChooseDaysTab = {
   id: string
   title: string
-  state: string
-  label: string
+  /** Heure de l'onglet, telle qu'elle s'écrit ; `null` pour des doses sans heure. */
+  time: string | null
   dues: Due[]
-  months: ChooseDaysMonth[]
-  checkAllLabel: string
-  uncheckAllLabel: string
 }
 
-export type ChooseDays = {
+/** Ce qui ne dépend que des doses : les cases cochées n'y changent rien. */
+export type ChooseDaysLayout = {
   hasTabs: boolean
   tabs: ChooseDaysTab[]
   help: string
   weekdays: string[]
-  submit: string
-  submitLabel: string
+}
+
+export type ChooseDaysTabTexts = {
+  state: string
+  label: string
+  checkAllLabel: string
+  uncheckAllLabel: string
 }
 
 export function dayKey({ periodId, dueOn, dueTime }: Due): string {
   return `${periodId} ${dueOn} ${dueTime ?? ''}`
 }
 
-export function toggledDay(unchecked: Unchecked, due: Due): Set<string> {
-  const next = new Set(unchecked)
-  if (!next.delete(dayKey(due))) next.add(dayKey(due))
-  return next
+export function toggleDay(unchecked: Set<string>, due: Due): void {
+  if (!unchecked.delete(dayKey(due))) unchecked.add(dayKey(due))
 }
 
-export function withDays(
-  unchecked: Unchecked,
-  dues: readonly Due[],
-  checked: boolean,
-): Set<string> {
-  const next = new Set(unchecked)
+export function setDays(unchecked: Set<string>, dues: readonly Due[], checked: boolean): void {
   for (const due of dues) {
-    if (checked) next.delete(dayKey(due))
-    else next.add(dayKey(due))
+    if (checked) unchecked.delete(dayKey(due))
+    else unchecked.add(dayKey(due))
   }
-  return next
+}
+
+export function missedAmong(dues: readonly Due[], unchecked: Unchecked): number {
+  let missed = 0
+  for (const due of dues) if (unchecked.has(dayKey(due))) missed += 1
+  return missed
 }
 
 export function choiceOf(dues: readonly Due[], unchecked: Unchecked): DayChoice {
@@ -119,133 +117,144 @@ export function chooseDaysSubtitle(...parts: (string | null)[]): string {
 
 function groupBy<T>(items: readonly T[], keyOf: (item: T) => string): Map<string, T[]> {
   const groups = new Map<string, T[]>()
-  for (const item of items) groups.set(keyOf(item), [...(groups.get(keyOf(item)) ?? []), item])
+  for (const item of items) {
+    const group = groups.get(keyOf(item))
+    if (group) group.push(item)
+    else groups.set(keyOf(item), [item])
+  }
   return groups
 }
 
-function monthOf(
-  t: Translate,
-  id: string,
-  dues: Due[],
-  unchecked: Unchecked,
-  time: string | null,
-  alone: boolean,
-): ChooseDaysMonth {
+function monthOf(t: Translate, id: string, dues: Due[], time: string | null): ChooseDaysMonth {
   const first = parseISO(`${id}-01`)
-  const title = formatFullMonthYear(`${id}-01`)
   const byDay = new Map(dues.map((due) => [Number(due.dueOn.slice(8, 10)), due]))
-  const cells = Array.from({ length: getDaysInMonth(first) }, (_, index): ChooseDaysCell => {
-    const day = index + 1
-    const due = byDay.get(day)
-    if (due === undefined) return { day, due: null }
-    const checked = !unchecked.has(dayKey(due))
-    const date =
-      time === null
-        ? formatFullDayMonth(due.dueOn)
-        : t('treatments.unlogged.days.dayAt', { date: formatFullDayMonth(due.dueOn), time })
-    return {
-      day,
-      due,
-      key: dayKey(due),
-      checked,
-      label: checked
-        ? t('treatments.unlogged.days.dayGiven', { date })
-        : t('treatments.unlogged.days.dayMissed', { date }),
-    }
-  })
   const days = t('treatments.unlogged.days.monthDays', { n: dues.length }, dues.length)
-  const checks = dues.some((due) => unchecked.has(dayKey(due)))
   return {
     id,
-    title,
+    title: formatFullMonthYear(`${id}-01`),
     count: time === null ? days : t('treatments.unlogged.days.monthDaysAt', { days, time }),
     blanks: (getDay(first) - weekStartsOn() + 7) % 7,
-    cells,
-    dues,
-    toggle: alone
-      ? null
-      : checks
-        ? {
-            checks,
-            text: t('treatments.unlogged.days.checkMonth'),
-            label: t('treatments.unlogged.days.checkMonthLabel', { month: title }),
-          }
-        : {
-            checks,
-            text: t('treatments.unlogged.days.uncheckMonth'),
-            label: t('treatments.unlogged.days.uncheckMonthLabel', { month: title }),
-          },
-  }
-}
-
-function tabOf(
-  t: Translate,
-  id: string,
-  dues: Due[],
-  unchecked: Unchecked,
-  hasTabs: boolean,
-): ChooseDaysTab {
-  const time = id === '' ? null : formatClockTime(id)
-  const title = time ?? t('treatments.unlogged.days.noTime')
-  const missed = dues.filter((due) => unchecked.has(dayKey(due))).length
-  const months = groupBy(dues, ({ dueOn }) => dueOn.slice(0, 7))
-  const n = dues.length
-  const shownTime = hasTabs ? title : null
-  return {
-    id,
-    title,
-    state:
-      missed === 0
-        ? t('treatments.unlogged.days.tab.allChecked')
-        : t('treatments.unlogged.days.tab.missed', { n: missed }, missed),
-    label: t('treatments.unlogged.days.tab.label', {
-      time: title,
-      state:
-        missed === 0
-          ? t('treatments.unlogged.days.tab.allGiven')
-          : t('treatments.unlogged.days.tab.missed', { n: missed }, missed),
+    cells: Array.from({ length: getDaysInMonth(first) }, (_, index): ChooseDaysCell => {
+      const day = index + 1
+      const due = byDay.get(day)
+      if (due === undefined) return { day, due: null }
+      const date = formatFullDayMonth(due.dueOn)
+      return {
+        day,
+        due,
+        key: dayKey(due),
+        date: time === null ? date : t('treatments.unlogged.days.dayAt', { date, time }),
+      }
     }),
     dues,
-    months: [...months.keys()]
-      .sort()
-      .map((month) =>
-        monthOf(t, month, months.get(month) ?? [], unchecked, time, months.size === 1),
-      ),
-    checkAllLabel:
-      shownTime === null
-        ? t('treatments.unlogged.days.checkAllLabel', { n }, n)
-        : t('treatments.unlogged.days.checkAllLabelAt', { n, time: shownTime }, n),
-    uncheckAllLabel:
-      shownTime === null
-        ? t('treatments.unlogged.days.uncheckAllLabel', { n }, n)
-        : t('treatments.unlogged.days.uncheckAllLabelAt', { n, time: shownTime }, n),
   }
 }
 
-/** Un calendrier par heure de prise, mois par mois ; `when` dit la plage des doses au lecteur d'écran. */
-export function chooseDays(
+/** Les mois d'un onglet, sans ceux qui n'ont aucune dose. */
+export function tabMonths(t: Translate, { dues, time }: ChooseDaysTab): ChooseDaysMonth[] {
+  const months = groupBy(dues, ({ dueOn }) => dueOn.slice(0, 7))
+  return [...months.keys()].sort().map((id) => monthOf(t, id, months.get(id) ?? [], time))
+}
+
+/** `date` : celle d'une case, avec son heure quand l'onglet en a une. */
+export function dayLabel(t: Translate, date: string, checked: boolean): string {
+  return checked
+    ? t('treatments.unlogged.days.dayGiven', { date })
+    : t('treatments.unlogged.days.dayMissed', { date })
+}
+
+/** « Cocher le mois » dès qu'un de ses jours est décoché, « Décocher le mois » sinon. */
+export function monthToggle(
   t: Translate,
-  dues: readonly Due[],
-  unchecked: Unchecked,
+  { title }: ChooseDaysMonth,
+  missed: number,
+): { checks: boolean; text: string; label: string } {
+  return missed > 0
+    ? {
+        checks: true,
+        text: t('treatments.unlogged.days.checkMonth'),
+        label: t('treatments.unlogged.days.checkMonthLabel', { month: title }),
+      }
+    : {
+        checks: false,
+        text: t('treatments.unlogged.days.uncheckMonth'),
+        label: t('treatments.unlogged.days.uncheckMonthLabel', { month: title }),
+      }
+}
+
+function allLabels(
+  t: Translate,
+  { time, dues }: ChooseDaysTab,
+  hasTabs: boolean,
+): Pick<ChooseDaysTabTexts, 'checkAllLabel' | 'uncheckAllLabel'> {
+  const n = dues.length
+  if (!hasTabs) {
+    return {
+      checkAllLabel: t('treatments.unlogged.days.checkAllLabel', { n }, n),
+      uncheckAllLabel: t('treatments.unlogged.days.uncheckAllLabel', { n }, n),
+    }
+  }
+  if (time === null) {
+    return {
+      checkAllLabel: t('treatments.unlogged.days.checkAllLabelNoTime', { n }, n),
+      uncheckAllLabel: t('treatments.unlogged.days.uncheckAllLabelNoTime', { n }, n),
+    }
+  }
+  return {
+    checkAllLabel: t('treatments.unlogged.days.checkAllLabelAt', { n, time }, n),
+    uncheckAllLabel: t('treatments.unlogged.days.uncheckAllLabelAt', { n, time }, n),
+  }
+}
+
+/** `missed` : le nombre de cases décochées de l'onglet. */
+export function tabTexts(
+  t: Translate,
+  tab: ChooseDaysTab,
+  missed: number,
+  hasTabs: boolean,
+): ChooseDaysTabTexts {
+  const missedText = t('treatments.unlogged.days.tab.missed', { n: missed }, missed)
+  const state = missed === 0 ? t('treatments.unlogged.days.tab.allGiven') : missedText
+  return {
+    state: missed === 0 ? t('treatments.unlogged.days.tab.allChecked') : missedText,
+    label:
+      tab.time === null
+        ? t('treatments.unlogged.days.tab.labelNoTime', { state })
+        : t('treatments.unlogged.days.tab.label', { time: tab.time, state }),
+    ...allLabels(t, tab, hasTabs),
+  }
+}
+
+/** `when` dit les jours des doses au lecteur d'écran. */
+export function submitTexts(
+  t: Translate,
+  total: number,
+  missed: number,
   when: string,
-): ChooseDays {
+): { submit: string; submitLabel: string } {
+  const text = counts(t, total - missed, missed)
+  return {
+    submit: t('treatments.unlogged.days.submit', { counts: text }),
+    submitLabel: t('treatments.unlogged.days.submitLabel', { counts: text, when }),
+  }
+}
+
+/** Un onglet par heure de prise, les doses sans heure d'abord. */
+export function chooseDaysLayout(t: Translate, dues: readonly Due[]): ChooseDaysLayout {
   const byTime = groupBy(dues, ({ dueTime }) => dueTime ?? '')
   const hasTabs = byTime.size > 1
-  const { given, missed } = choiceOf(dues, unchecked)
   return {
     hasTabs,
-    tabs: [...byTime.keys()]
-      .sort()
-      .map((time) => tabOf(t, time, byTime.get(time) ?? [], unchecked, hasTabs)),
+    tabs: [...byTime.keys()].sort().map((id) => {
+      const time = id === '' ? null : formatClockTime(id)
+      return {
+        id,
+        title: time ?? t('treatments.unlogged.days.noTime'),
+        time,
+        dues: byTime.get(id) ?? [],
+      }
+    }),
     help: hasTabs ? t('treatments.unlogged.days.helpByHour') : t('treatments.unlogged.days.help'),
     weekdays: weekdayInitials(),
-    submit: t('treatments.unlogged.days.submit', {
-      counts: counts(t, given.length, missed.length),
-    }),
-    submitLabel: t('treatments.unlogged.days.submitLabel', {
-      given: given.length,
-      missed: missed.length,
-      when,
-    }),
   }
 }

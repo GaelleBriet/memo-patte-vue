@@ -947,7 +947,7 @@ describe('TreatmentFormView — encart des doses passées (TR-3, planches A · V
   it('« Choisir les jours » rend « 20 données, 5 oubliées », et « Modifier » le rouvre tel quel', async () => {
     const wrapper = await monterCreation()
     await saisirPanacur(wrapper)
-    const jours = () => dansLEcran('.treatment-choose-days__day[role="checkbox"]')
+    const jours = () => dansLEcran('.choose-days-month__day[role="checkbox"]')
     const valider = () => dansLEcran('.treatment-choose-days__submit')[0]!
 
     await gestes(wrapper)[1]!.trigger('click')

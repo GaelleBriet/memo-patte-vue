@@ -536,7 +536,8 @@
           "allChecked": "all checked",
           "missed": "{n} missed | {n} missed",
           "label": "{time} doses, {state}",
-          "allGiven": "all given"
+          "allGiven": "all given",
+          "labelNoTime": "Doses with no time, {state}"
         },
         "checkAll": "Check all",
         "uncheckAll": "Uncheck all",
@@ -544,6 +545,8 @@
         "uncheckAllLabel": "Mark the dose as missed | Mark the {n} doses as missed",
         "checkAllLabelAt": "Mark the {time} dose as given | Mark the {n} {time} doses as given",
         "uncheckAllLabelAt": "Mark the {time} dose as missed | Mark the {n} {time} doses as missed",
+        "checkAllLabelNoTime": "Mark the dose with no time as given | Mark the {n} doses with no time as given",
+        "uncheckAllLabelNoTime": "Mark the dose with no time as missed | Mark the {n} doses with no time as missed",
         "checkMonth": "Check the month",
         "uncheckMonth": "Uncheck the month",
         "checkMonthLabel": "Check {month}",
@@ -557,7 +560,7 @@
         "missedCount": "{n} missed | {n} missed | {n} missed",
         "counts": "{given}, {missed}",
         "submit": "Confirm: {counts}",
-        "submitLabel": "Confirm: {given} doses given and {missed} missed, {when}"
+        "submitLabel": "Confirm: {counts}, {when}"
       }
     },
     "finished": {

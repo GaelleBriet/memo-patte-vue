@@ -184,7 +184,7 @@ describe('doses non renseignées, du formulaire à la fiche, sur la même base',
     await saisirPanacur()
     await gestes()[1]!.trigger('click')
     await flushPromises()
-    for (const jour of dansLEcran('.treatment-choose-days__day[role="checkbox"]').slice(3, 5)) {
+    for (const jour of dansLEcran('.choose-days-month__day[role="checkbox"]').slice(3, 5)) {
       jour.click()
     }
     await flushPromises()
@@ -255,7 +255,7 @@ describe('doses non renseignées, du formulaire à la fiche, sur la même base',
 
     await gestes()[1]!.trigger('click')
     await flushPromises()
-    for (const jour of dansLEcran('.treatment-choose-days__day[role="checkbox"]').slice(-2)) {
+    for (const jour of dansLEcran('.choose-days-month__day[role="checkbox"]').slice(-2)) {
       jour.click()
     }
     await flushPromises()

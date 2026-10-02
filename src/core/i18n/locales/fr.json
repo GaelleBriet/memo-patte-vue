@@ -536,7 +536,8 @@
           "allChecked": "tout coché",
           "missed": "{n} oubliée | {n} oubliées",
           "label": "Prises de {time}, {state}",
-          "allGiven": "toutes données"
+          "allGiven": "toutes données",
+          "labelNoTime": "Prises sans heure, {state}"
         },
         "checkAll": "Tout cocher",
         "uncheckAll": "Tout décocher",
@@ -544,6 +545,8 @@
         "uncheckAllLabel": "Marquer la prise comme oubliée | Marquer les {n} prises comme oubliées",
         "checkAllLabelAt": "Marquer la prise de {time} comme donnée | Marquer les {n} prises de {time} comme données",
         "uncheckAllLabelAt": "Marquer la prise de {time} comme oubliée | Marquer les {n} prises de {time} comme oubliées",
+        "checkAllLabelNoTime": "Marquer la prise sans heure comme donnée | Marquer les {n} prises sans heure comme données",
+        "uncheckAllLabelNoTime": "Marquer la prise sans heure comme oubliée | Marquer les {n} prises sans heure comme oubliées",
         "checkMonth": "Cocher le mois",
         "uncheckMonth": "Décocher le mois",
         "checkMonthLabel": "Cocher {month}",
@@ -557,7 +560,7 @@
         "missedCount": "{n} oubliée | {n} oubliée | {n} oubliées",
         "counts": "{given}, {missed}",
         "submit": "Valider : {counts}",
-        "submitLabel": "Valider : {given} prises données et {missed} oubliées, {when}"
+        "submitLabel": "Valider : {counts}, {when}"
       }
     },
     "finished": {
