@@ -1,31 +1,45 @@
 # Contexte en cours (à mettre à jour à chaque lot)
 
-- 2026-10-02 : **reprendre ici.** Mergés : #474 (découpage de `treatment-schedule.ts` en dix
-  fichiers à plat, déplacement pur), #475 (#425, « anonymes » retiré), #477 (**socle du lot 3** :
-  `TreatmentWithHistory`, `treatmentScheduleOf`, traitement sans prise légal, type « médicament »,
-  écriture des prises par lot `applyBatch`, mise en forme posologie / heures / dose du moment, testé
-  sur le téléphone), #479 (#418, `singleTop`, testé sur le téléphone).
-  - **En branche, sans PR** : `feat/fiche-traitement-v2` (#461) et `feat/formulaire-traitement-v2`
-    (#460, qui contient la branche de la fiche : elle sert de branche d'intégration). Revues et
-    re-revues faites, décisions de Gaelle du jour appliquées (spec `traitements.md` §10, Q27 à Q33).
-    **Reste** : re-revue ciblée des derniers changements, test sur le téléphone des deux ensemble,
-    puis PR de #461, merge, PR de #460 (mise à jour avec `main`), merge. À rejouer sur l'appareil en
-    particulier : le filet de `applyBatch` contre une prise en double (il repose sur l'annulation du
-    lot quand une instruction échoue, prouvé seulement sur la base des tests) ; sélecteurs natifs
-    d'heure et de date du formulaire ; rappels reprogrammés après chaque écriture.
-  - **Ensuite** : #462 (bandeau, « Choisir les jours », encart), puis #463. Tickets créés : #481
-    (« 1er oct. »), #482 (report sans effet dans une période fermée, moteur), #483 (traitement sans
-    prise donnée dans le PDF). **Ne pas publier** : l'accueil, le Carnet et les rappels lisent encore
-    l'ancien modèle (un traitement à plusieurs heures y est « en retard » à tort, rappel quotidien à
-    9 h, date de fin inconnue) jusqu'à la fin du lot 3, au lot 4 et au lot 7.
+- 2026-10-02 (soir) : **reprendre ici.** Mergés dans la journée : #474 (découpage de
+  `treatment-schedule.ts` en fichiers à plat), #475 (#425, « anonymes » retiré), #477 (**socle du lot
+  3** : `TreatmentWithHistory`, `treatmentScheduleOf`, traitement sans prise, type « médicament »,
+  `applyBatch`), #479 (#418, `singleTop`), #489 (**correctifs du moteur** : redater sans décaler la
+  suite, `stateOn`, Q36, Q37, `ScheduleTooLongError`), #491 (**#461, fiche v2**), #493 (**#460,
+  formulaire v2**), plus #484 (décisions Q27 à Q33). Fiche et formulaire testés ensemble sur le
+  téléphone (MémoPatte Dev, vrai plugin SQLite, gestes à la main par Gaelle).
+  - **Relecture d'ensemble** demandée par Gaelle à un autre agent (coffre,
+    `revues/2026-10-02-analyse-doses-reports-oublis/`) : moteur sain, défauts aux jointures. Corrigés :
+    M1, M2 (redatage), P1 (notification qui notait une autre dose), P4, D6, U1, D5 / U7. Renvoyés :
+    **#488** (évolution du modèle de données : une donnée explicite « a refixé la suite » sur la prise
+    et un identifiant d'échéance ; prise un intervalle ou plus en avance, case « Décaler aussi les
+    doses suivantes », mois courts, date de fin après un retard — limites écrites au §11 de la spec ;
+    **avant toute publication**), #485 (écritures concurrentes, avant #83), #486 (rappels après une
+    reprogrammation ratée, lot 4), #487 (clarifier les modules, pas M8 avant le lot 7), #481 (« 1er »),
+    #482, #483.
+  - **Décisions de Gaelle du jour** : spec `traitements.md` §10, Q27 à Q33 et Q36 à Q41 (la question
+    à l'enregistrement quand un réglage change sur une période sans prise qui a des doses passées ;
+    un oubli ne redevient pas donné depuis la feuille ou une notification ; la feuille demande l'heure ;
+    une notification ne note que la dose de son jour d'échéance).
+  - **À faire ensuite, dans l'ordre** : #462 (bandeau, « Choisir les jours », encart du formulaire ;
+    mesurer « Toutes données » sur un long historique, note sur le ticket), puis #463 (arrêter,
+    terminer, supprimer avec « Annuler », ligne du Carnet ; libellé « Du 2 oct. au 1 oct. » noté sur
+    le ticket), puis #488, puis les lots 4 et 7. **Ne pas publier** : le Carnet, l'accueil et les
+    rappels lisent encore l'ancien modèle (traitement à plusieurs heures « en retard » à tort, rappel
+    quotidien à 9 h, date de fin inconnue) ; les décisions d'une notification passent encore par
+    `isDoseNoted` / `isTreatmentDueDate` de l'ancien modèle (une dose déjà donnée en avance ouvre la
+    fiche au lieu de dire « déjà notée »).
   - **Pièges du jour** : (1) toucher « Importer un export MémoPatte » par la WebView ouvre le
-    sélecteur de fichiers d'Android, qui reste devant : le champ `input[type=file]` est toujours dans
-    la page, lui donner le fichier directement (`DataTransfer`), sans toucher le bouton ; (2) la barre
-    du bas est cachée sur un écran poussé : revenir par `history.back()` ; (3) une notification se
-    rejoue par son intent (`am start` avec `LocalNotificationId`, `LocalNotificationUserAction`,
-    `LocalNotficationObject`, drapeaux `0x24000000`), après les contrôles d'usage ; (4) après une PR,
-    vérifier que `main` n'a pas bougé (release-please) avant d'enchaîner merge et suppression de
-    branche dans la même commande.
+    sélecteur de fichiers d'Android, qui reste devant : donner le fichier au champ
+    `input[type=file]` de la page (`DataTransfer`), sans toucher le bouton ; (2) la barre du bas est
+    cachée sur un écran poussé : revenir par `history.back()` ; (3) une notification se rejoue par
+    son intent (`am start` avec `LocalNotificationId`, `LocalNotificationUserAction`,
+    `LocalNotficationObject`, drapeaux `0x24000000`), après les contrôles d'usage ; (4) les noms
+    accessibles contiennent des espaces insécables : chercher un bouton en les normalisant ; un toast
+    en bas de l'écran recouvre le bouton du pied de page pendant 4 s ; (5) champs d'heure et de date :
+    poser la valeur par le setter natif plus `input` et `change`, sans ouvrir le sélecteur système ;
+    (6) après une PR, vérifier que `main` n'a pas bougé (release-please) avant d'enchaîner merge et
+    suppression de branche ; (7) ne pas remonter à Gaelle l'état de la vraie app ni d'un carnet de
+    test vidé : tout est donnée de test.
 
 - 2026-10-01 (soir) : **pause demandée par Gaelle, reprendre ici.** Lots 1 et 2 **mergés** : #464
   (#451, base neuve v9), #467 (#452, périodes et prises, v10), #470 (#454, export et import v3, carnet

@@ -2045,3 +2045,24 @@ l'ancien chemin pour la feuille et la notification jusqu'aux lots 4 et 7.
 de l'app ramène sur le lecteur, pas sur MémoPatte (testé par Gaelle sur son téléphone, accepté). —
 Raison : en `singleTask`, un achat est annulé quand l'app passe en arrière-plan pendant le paiement. —
 Alternative écartée : ouvrir le lecteur dans sa propre tâche (changerait le retour de #349).
+
+2026-10-02 — **Relecture d'ensemble des prises, reports et oublis, et ce qu'elle a changé** (#460,
+#461, #489), détail dans la spec Traitements §10 (Q36 à Q41) et §11. 1) Changer la fréquence ou les
+heures d'une période sans prise qui a déjà des doses passées pose la question à l'enregistrement :
+« Elles restent à renseigner », « Elles n'étaient pas à donner », « Annuler », chaque choix
+annonçant la prochaine dose qu'il écrit (Q38). 2) Depuis la feuille « À faire » et une notification,
+un oubli ne redevient jamais « donné », la feuille demande l'heure, et une notification ne note que
+la dose de son jour d'échéance (Q41). 3) Changer le rythme le jour d'une dose due garde la dose du
+jour (Q36) ; sans changement de fréquence ni d'heures, la prochaine dose reste celle prévue (Q37).
+4) Le formulaire refuse une saisie que le moteur ne saura pas relire (Q40). — Raison commune : rien
+ne s'écrit, ne disparaît ni n'apparaît sans que la personne l'ait vu et voulu. — Alternatives
+écartées : dans la spec, décision par décision.
+
+2026-10-02 — **Le modèle de données des prises évoluera avant la publication** (#488, décision de
+Gaelle). Une prise dira explicitement si elle a refixé la suite, et une dose pourra vivre hors de sa
+case d'origine : prise donnée en avance sans trou, report d'une seule dose (case « Décaler aussi les
+doses suivantes », cochée par défaut), mois courts, date de fin après un retard. — Raison : le moteur
+devine aujourd'hui ce qu'une ligne a fait, et chaque règle qui devine mieux un cas en casse un autre
+(revue adverse des correctifs du moteur). — Alternative écartée : continuer à corriger cas par cas
+dans le moteur.
+
