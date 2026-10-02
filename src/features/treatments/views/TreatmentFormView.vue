@@ -63,7 +63,8 @@ const endsOnTouched = ref(false)
 /** Une écriture a réussi : plus aucune autre ne part de cet écran. */
 const isSaved = ref(false)
 const hasDuplicateTime = ref(false)
-const pastDuesChoice = ref<PastDuesChoice | null>(null)
+/** La réponse vaut pour les échéances annoncées au moment où elle a été donnée. */
+const pastDuesAnswer = ref<{ choice: PastDuesChoice; dues: string } | null>(null)
 const isPastDuesOpen = ref(false)
 const duplicateTimeError = computed(() =>
   hasDuplicateTime.value ? DUPLICATE_TIME_ERROR_KEY : undefined,
@@ -104,6 +105,10 @@ const previous = computed(() =>
   mode === 'resume' && history.value !== null ? resumptionDraft(history.value, today.value) : null,
 )
 const nextDose = computed(() => draft.value?.nextDose ?? null)
+const announcedDues = computed(() => JSON.stringify(draft.value?.pastDues ?? []))
+const pastDuesChoice = computed(() =>
+  pastDuesAnswer.value?.dues === announcedDues.value ? pastDuesAnswer.value.choice : null,
+)
 const pastDues = computed(() =>
   draft.value === null || draft.value.pastDues.length === 0
     ? null
@@ -115,8 +120,12 @@ const targetAnimalId = computed(() => history.value?.animalId ?? props.animalId 
 const animalName = computed(
   () => animals.animals.find((animal) => animal.id === targetAnimalId.value)?.name ?? null,
 )
+const isReady = computed(
+  () => mode === 'create' || (history.value !== null && !notFound.value && !loadFailed.value),
+)
 const title = computed(() => {
-  if (history.value === null) return t('treatments.form.title')
+  if (mode === 'create') return t('treatments.form.title')
+  if (history.value === null || !isReady.value) return ''
   const name = { name: history.value.name }
   return mode === 'resume'
     ? t('treatments.form.resumeTitle', name)
@@ -172,6 +181,8 @@ const nextDoseHelp = computed(() => {
       return t('treatments.form.nextDoseOn.overdue', {
         date: formatDayMonthOrYear(help.since, today.value),
       })
+    case 'today':
+      return t('treatments.form.nextDoseOn.today')
     case 'calculated-passed':
       return t('treatments.form.nextDoseOn.calculatedPassed', {
         date: formatDayMonthOrYear(help.on, today.value),
@@ -220,7 +231,7 @@ watch(
 watch(
   () => [values.value.frequencyValue, values.value.frequencyUnit, values.value.times],
   () => {
-    pastDuesChoice.value = null
+    pastDuesAnswer.value = null
   },
 )
 
@@ -322,7 +333,7 @@ async function leaveAfterSaving(): Promise<void> {
 }
 
 function answerPastDues(choice: PastDuesChoice): Promise<void> {
-  pastDuesChoice.value = choice
+  pastDuesAnswer.value = { choice, dues: announcedDues.value }
   return submit()
 }
 
@@ -360,12 +371,16 @@ async function submit(): Promise<void> {
     @cancel="backToOrigin"
     @submit="submit"
   >
-    <p v-if="resumeInfo" class="treatment-form__info">
+    <div v-if="isLoading" class="treatment-form__loading">
+      <v-progress-circular indeterminate color="primary" :size="32" :width="3" />
+    </div>
+
+    <p v-if="isReady && resumeInfo" class="treatment-form__info">
       <v-icon icon="ms:info" size="19" />
       <span>{{ resumeInfo }}</span>
     </p>
 
-    <template v-if="mode !== 'resume'">
+    <template v-if="isReady && mode !== 'resume'">
       <FormField
         class="treatment-form__field--name"
         :label="t('treatments.form.name.label')"
@@ -410,7 +425,7 @@ async function submit(): Promise<void> {
       </FormField>
     </template>
 
-    <template v-if="hasSettings">
+    <template v-if="isReady && hasSettings">
       <FormField
         class="treatment-form__field--frequency"
         :label="t('treatments.form.frequency.label')"
@@ -594,6 +609,12 @@ async function submit(): Promise<void> {
 
 <style scoped lang="scss">
 @use '@/styles/tokens' as tokens;
+
+.treatment-form__loading {
+  display: flex;
+  justify-content: center;
+  padding-block: 48px;
+}
 
 .treatment-form__info {
   display: flex;

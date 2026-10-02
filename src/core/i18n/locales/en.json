@@ -277,6 +277,7 @@
         "label": "Next dose",
         "calculated": "Based on the last dose: {date}. You can change it.",
         "calculatedPassed": "Based on the last dose: {date}, already passed; today is suggested. You can change it.",
+        "today": "Today is suggested. You can change it.",
         "overdue": "Dose overdue since {date}",
         "dropped": "The dose scheduled before this date will no longer need to be logged. | The {n} doses scheduled before this date will no longer need to be logged.",
         "refusal": {

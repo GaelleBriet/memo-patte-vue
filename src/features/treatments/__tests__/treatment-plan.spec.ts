@@ -1198,6 +1198,27 @@ describe('editionPlan — échéances tombées d’une période sans prise', () 
     }
   })
 
+  it('dit qu’aujourd’hui est proposé quand le traitement n’a jamais été noté, dans les deux choix', () => {
+    const mensuel = treatment([
+      period({
+        startsOn: '2026-09-20',
+        firstDueOn: '2026-09-20',
+        frequency: { value: 1, unit: 'month' },
+      }),
+    ])
+    const input = saisie(mensuel, { frequency: { value: 2, unit: 'month' } })
+
+    expect(editionDraft(mensuel, input, '2026-10-02').nextDose).toMatchObject({
+      proposedOn: '2026-10-02',
+      help: { kind: 'today' },
+    })
+    for (const pastDues of ['keep', 'drop'] as const) {
+      expect(editionPlan(mensuel, { ...input, pastDues }, '2026-10-02', IDS).period).toMatchObject({
+        settings: { firstDueOn: '2026-10-02' },
+      })
+    }
+  })
+
   it('compte chaque heure d’une journée tombée', () => {
     const history = treatment([{ ...TOUS_LES_2_JOURS, times: ['08:00', '20:00'] }])
 

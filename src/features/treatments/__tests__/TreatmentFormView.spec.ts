@@ -1370,46 +1370,68 @@ describe('TreatmentFormView — modification (TR-27, TR-28, planches V1 quater e
     expect(update).toHaveBeenCalledWith(ID, expect.objectContaining({ name: 'Milbemax chat' }))
   })
 
-  it('prévient et n’autorise pas l’envoi quand le traitement est introuvable', async () => {
-    getWithHistory.mockResolvedValueOnce(null)
-    const wrapper = await monterEdition()
-
-    expect(wrapper.get('.form-screen__save-error').text()).toBe('Ce traitement est introuvable.')
+  function attenduSansFormulaire(wrapper: VueWrapper) {
+    expect(wrapper.get('.pushed-screen__title').text()).toBe('')
+    expect(wrapper.find('.form-field').exists()).toBe(false)
     expect(wrapper.get('.form-screen__submit').attributes('disabled')).toBeDefined()
+  }
+
+  it.each([
+    ['modification', monterEdition],
+    ['reprise', monterReprise],
+  ])(
+    'en %s, ne montre ni « Nouveau traitement » ni champ tant que le traitement charge',
+    async (_, monter) => {
+      getWithHistory.mockReturnValueOnce(new Promise<TreatmentWithHistory>(() => {}))
+      const wrapper = await monter()
+
+      attenduSansFormulaire(wrapper)
+      expect(wrapper.find('.treatment-form__loading').exists()).toBe(true)
+      expect(wrapper.find('.form-screen__save-error').exists()).toBe(false)
+
+      await soumettre(wrapper)
+
+      expect(update).not.toHaveBeenCalled()
+      expect(create).not.toHaveBeenCalled()
+    },
+  )
+
+  it.each([
+    ['modification', monterEdition],
+    ['reprise', monterReprise],
+  ])('en %s, prévient sans formulaire quand le traitement est introuvable', async (_, monter) => {
+    getWithHistory.mockResolvedValueOnce(null)
+    const wrapper = await monter()
+
+    attenduSansFormulaire(wrapper)
+    expect(wrapper.find('.treatment-form__loading').exists()).toBe(false)
+    expect(wrapper.get('.form-screen__save-error').text()).toBe('Ce traitement est introuvable.')
 
     await soumettre(wrapper)
 
     expect(update).not.toHaveBeenCalled()
+    expect(create).not.toHaveBeenCalled()
   })
 
-  it('prévient et n’écrase rien quand la fiche n’a pas pu être lue, ou est illisible', async () => {
+  it('prévient sans formulaire quand la fiche n’a pas pu être lue, ou est illisible', async () => {
     getWithHistory.mockRejectedValueOnce(new Error('base verrouillée'))
     const wrapper = await monterEdition()
 
+    attenduSansFormulaire(wrapper)
     expect(wrapper.get('.form-screen__save-error').text()).toBe(
       'Ce traitement n’a pas pu être chargé. Réessaie.',
     )
-    expect(wrapper.get('.form-screen__submit').attributes('disabled')).toBeDefined()
 
     getWithHistory.mockResolvedValueOnce(milbemax([periode({ times: ['8h'] })]))
     const illisible = await monterEdition()
 
+    attenduSansFormulaire(illisible)
     expect(illisible.get('.form-screen__save-error').text()).toBe(
       'Ce traitement n’a pas pu être chargé. Réessaie.',
     )
     await soumettre(illisible)
     expect(update).not.toHaveBeenCalled()
-  })
-
-  it('n’enregistre pas tant que la fiche n’est pas chargée', async () => {
-    getWithHistory.mockReturnValueOnce(new Promise<TreatmentWithHistory>(() => {}))
-    const wrapper = await monterEdition()
-
-    expect(wrapper.get('.form-screen__submit').attributes('disabled')).toBeDefined()
-
-    await soumettre(wrapper)
-
-    expect(update).not.toHaveBeenCalled()
+    expect(create).not.toHaveBeenCalled()
   })
 
   it('écrit l’aide de « Prochaine dose » en anglais', async () => {
@@ -1560,6 +1582,39 @@ describe('TreatmentFormView — échéances tombées d’une période sans prise
       ID,
       expect.objectContaining({ pastDues: 'keep', nextDoseOn: '2026-10-05' }),
     )
+  })
+
+  it('dit qu’aujourd’hui est proposé pour un traitement jamais noté', async () => {
+    const view = await corrigerLaFrequence()
+
+    expect(valeur(view, 'treatment-next-dose-on')).toBe('2026-09-28')
+    expect(aide(view, 'next-dose-on')).toBe('Aujourd’hui est proposé. Modifiable.')
+
+    i18n.global.locale.value = 'en'
+    await view.vm.$nextTick()
+
+    expect(aide(view, 'next-dose-on')).toBe('Today is suggested. You can change it.')
+  })
+
+  it('repose la question quand les échéances annoncées ont changé depuis la réponse', async () => {
+    const view = await corrigerLaFrequence()
+    await champ(view, 'treatment-ends-on').setValue('2026-09-20')
+    dansLaFeuille('.treatment-past-dues__choice--keep').click()
+    await flushPromises()
+    expect(messages(view)).toHaveLength(1)
+    expect(update).not.toHaveBeenCalled()
+
+    vi.setSystemTime(new Date('2026-09-30T08:00:00'))
+    simulateWebResume()
+    await view.vm.$nextTick()
+    await champ(view, 'treatment-ends-on').setValue('2026-12-31')
+    await soumettre(view)
+
+    expect(update).not.toHaveBeenCalled()
+    expect(feuille().props('modelValue')).toBe(true)
+    expect(feuille().props('texts')).toMatchObject({
+      title: '4 doses étaient prévues avant aujourd’hui',
+    })
   })
 
   it('repose la question quand la fréquence change de nouveau', async () => {

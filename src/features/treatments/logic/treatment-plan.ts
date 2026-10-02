@@ -40,6 +40,8 @@ export type NextDoseHelp =
   /** Échéances passées que la nouvelle première échéance fait disparaître. */
   | { kind: 'dropped'; count: number }
   | { kind: 'overdue'; since: string }
+  /** Aucune prise dans tout le traitement : faute de référence, aujourd'hui est proposé. */
+  | { kind: 'today' }
   | { kind: 'calculated'; on: string }
   /** La date calculée est passée : aujourd'hui est proposé à sa place. */
   | { kind: 'calculated-passed'; on: string }
@@ -217,7 +219,7 @@ function proposalHelp(
   proposedOn: string,
   today: string,
 ): NextDoseHelp | null {
-  if (!hasNote(schedule)) return null
+  if (!hasNote(schedule)) return proposedOn === today ? { kind: 'today' } : null
   const calculatedOn = calculatedFirstDue(history, rhythm)
   return calculatedOn !== null && calculatedOn < today && proposedOn === today
     ? { kind: 'calculated-passed', on: calculatedOn }
