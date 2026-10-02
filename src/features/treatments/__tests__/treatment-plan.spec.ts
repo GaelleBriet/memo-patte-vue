@@ -377,6 +377,137 @@ describe('editionPlan — fréquence, heures, posologie (TR-28)', () => {
   })
 })
 
+describe('editionPlan — période ouverte par « Modifier », encore sans prise (TR-7)', () => {
+  const HEBDO = period({
+    startsOn: '2026-09-25',
+    firstDueOn: '2026-09-25',
+    frequency: { value: 1, unit: 'week' },
+  })
+  const PRISE_DU_2 = dose({ dueOn: '2026-10-02', givenOn: '2026-10-02', nextDueDate: '2026-10-09' })
+  const QUINZAINE = period({
+    id: NEW_PERIOD,
+    startsOn: '2026-10-02',
+    firstDueOn: '2026-10-17',
+    frequency: { value: 15, unit: 'day' },
+    createdAt: '2026-10-02T09:00:00.000Z',
+  })
+
+  it('repropose la première échéance quand la fréquence est corrigée : dernière prise plus la nouvelle fréquence', () => {
+    const history = treatment([HEBDO, QUINZAINE], [PRISE_DU_2])
+    const input = saisie(history, { frequency: { value: 2, unit: 'day' } })
+
+    expect(editionDraft(history, input, '2026-10-02')).toMatchObject({
+      change: 'correct',
+      nextDose: {
+        change: 'first-due',
+        proposedOn: '2026-10-04',
+        earliest: '2026-10-02',
+        calculatedOn: '2026-10-04',
+      },
+    })
+    expect(editionPlan(history, input, '2026-10-02', IDS)).toMatchObject({
+      period: {
+        action: 'correct',
+        settings: {
+          startsOn: '2026-10-02',
+          firstDueOn: '2026-10-04',
+          frequency: { value: 2, unit: 'day' },
+        },
+      },
+      doses: [],
+    })
+  })
+
+  it('garde la première échéance choisie dans « Prochaine dose » avec la fréquence corrigée', () => {
+    const history = treatment([HEBDO, QUINZAINE], [PRISE_DU_2])
+
+    const plan = editionPlan(
+      history,
+      saisie(history, { frequency: { value: 2, unit: 'day' }, nextDoseOn: '2026-10-06' }),
+      '2026-10-02',
+      IDS,
+    )
+
+    expect(plan.period).toMatchObject({ settings: { firstDueOn: '2026-10-06' } })
+  })
+
+  it('garde la première échéance quand seule la posologie ou la date de fin change', () => {
+    const history = treatment([HEBDO, QUINZAINE], [PRISE_DU_2])
+    const input = saisie(history, { doseQuantity: 2, endsOn: '2026-12-31' })
+
+    expect(editionDraft(history, input, '2026-10-02').nextDose).toMatchObject({
+      proposedOn: '2026-10-17',
+      calculatedOn: null,
+    })
+    expect(editionPlan(history, input, '2026-10-02', IDS).period).toMatchObject({
+      settings: { firstDueOn: '2026-10-17', doseQuantity: 2 },
+    })
+  })
+
+  it('refuse une date de fin avant la première échéance reproposée', () => {
+    const history = treatment([HEBDO, QUINZAINE], [PRISE_DU_2])
+
+    expect(
+      champsRefuses(
+        history,
+        saisie(history, { frequency: { value: 1, unit: 'month' }, endsOn: '2026-10-20' }),
+        '2026-10-02',
+      ),
+    ).toEqual(['endsOn:beforeNextDose'])
+  })
+
+  it('à plusieurs heures, repropose d’après les prises du jour (Q24)', () => {
+    const matinEtSoir = period({
+      startsOn: '2026-09-25',
+      firstDueOn: '2026-09-25',
+      frequency: { value: 1, unit: 'day' },
+      times: ['08:00', '20:00'],
+    })
+    const neufHeures = period({
+      ...matinEtSoir,
+      id: NEW_PERIOD,
+      startsOn: '2026-10-02',
+      firstDueOn: '2026-10-02',
+      times: ['09:00', '21:00'],
+      createdAt: '2026-10-02T09:00:00.000Z',
+    })
+    const history = treatment(
+      [matinEtSoir, neufHeures],
+      [
+        dose({
+          dueOn: '2026-10-02',
+          dueTime: '08:00',
+          givenOn: '2026-10-02',
+          nextDueDate: '2026-10-02',
+        }),
+      ],
+    )
+
+    expect(
+      editionDraft(history, saisie(history, { times: ['09:00', '14:00', '21:00'] }), '2026-10-02')
+        .nextDose,
+    ).toMatchObject({ proposedOn: '2026-10-02' })
+    expect(
+      editionDraft(history, saisie(history, { times: ['09:00'] }), '2026-10-02').nextDose,
+    ).toMatchObject({ proposedOn: '2026-10-03' })
+  })
+
+  it('ne repropose rien pour une période ouverte par « Reprendre » : sa première prise a été saisie', () => {
+    const arretee = { ...HEBDO, stoppedOn: '2026-10-02' }
+    const finie = { ...HEBDO, endsOn: '2026-10-01' }
+    const input = (history: TreatmentWithHistory) =>
+      saisie(history, { frequency: { value: 2, unit: 'day' } })
+
+    for (const precedente of [arretee, finie]) {
+      const history = treatment([precedente, QUINZAINE], [])
+
+      expect(editionDraft(history, input(history), '2026-10-02').nextDose).toMatchObject({
+        proposedOn: '2026-10-17',
+      })
+    }
+  })
+})
+
 describe('editionPlan — « Prochaine dose » (TR-7, TR-9)', () => {
   it('propose la prochaine dose calculée d’après la dernière prise, avec les bornes du moteur', () => {
     const history = treatment([period()], [dose()])

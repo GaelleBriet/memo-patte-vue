@@ -54,7 +54,12 @@ export type EditionDraft = {
 
 export type PlanIds = { periodId: string; doseId: string }
 
-type Resolved = EditionDraft & { settings: TreatmentPeriodSettings; move: MovedDose | null }
+type Resolved = EditionDraft & {
+  settings: TreatmentPeriodSettings
+  move: MovedDose | null
+  /** La première échéance vient de `newPeriod` : la date de fin doit la suivre. */
+  proposesFirstDue: boolean
+}
 
 function sortedTimes(times: readonly string[]): string[] {
   return [...times].sort()
@@ -151,11 +156,13 @@ function resolveOpened(
   schedule: TreatmentSchedule,
   rhythm: TreatmentRhythm,
   chosenOn: string | null,
+  change: 'open' | 'correct',
 ): Resolved {
   const { startsOn, firstDueOn } = schedule.newPeriod(rhythm.frequency, sortedTimes(rhythm.times))
   return {
     period,
-    change: 'open',
+    change,
+    proposesFirstDue: true,
     nextDose: {
       change: 'first-due',
       proposedOn: firstDueOn,
@@ -191,7 +198,14 @@ function resolveCorrected(
   )
   const due = schedule.currentDoses[0]
   if (due === undefined || schedule.nextDoseChange === null) {
-    return { period, change: 'correct', nextDose: null, settings: corrected, move: null }
+    return {
+      period,
+      change: 'correct',
+      nextDose: null,
+      settings: corrected,
+      move: null,
+      proposesFirstDue: false,
+    }
   }
   const changed = chosenOn !== null && chosenOn !== due.dueOn
 
@@ -215,6 +229,7 @@ function resolveCorrected(
         startsOn: firstDueOn < corrected.startsOn ? firstDueOn : corrected.startsOn,
       },
       move: null,
+      proposesFirstDue: false,
     }
   }
 
@@ -239,6 +254,29 @@ function resolveCorrected(
     },
     settings: corrected,
     move: inBounds ? schedule.move(due, chosenOn) : null,
+    proposesFirstDue: false,
+  }
+}
+
+// TR-7 : une période ouverte par « Modifier » et encore sans prise se recalcule comme si elle s'ouvrait.
+function historyBeforeReopening(
+  history: TreatmentWithHistory,
+  period: TreatmentPeriodRecord,
+  rhythm: TreatmentRhythm,
+): TreatmentWithHistory | null {
+  const previous = orderPeriods(history.periods).at(-2)
+  const followsOpenPeriod =
+    previous !== undefined &&
+    previous.stoppedOn === null &&
+    (previous.endsOn === null || period.startsOn <= previous.endsOn)
+  const changesSchedule =
+    JSON.stringify([period.frequency, sortedTimes(period.times)]) !==
+    JSON.stringify([rhythm.frequency, sortedTimes(rhythm.times)])
+  if (!followsOpenPeriod || !changesSchedule) return null
+  return {
+    ...history,
+    periods: history.periods.filter(({ id }) => id !== period.id),
+    doses: history.doses.filter(({ periodId }) => periodId !== period.id),
   }
 }
 
@@ -251,13 +289,26 @@ function resolve(
   const base = treatmentScheduleOf(history, today)
   const period = currentPeriod(history, base)
   if (period.stoppedOn !== null) {
-    return { period, change: 'locked', nextDose: null, settings: settingsOf(period), move: null }
+    return {
+      period,
+      change: 'locked',
+      nextDose: null,
+      settings: settingsOf(period),
+      move: null,
+      proposesFirstDue: false,
+    }
   }
   const live = withoutStale(history, base)
   const next = rhythm ?? rhythmOf(period)
-  return base.currentPeriodHasDose && changesRhythm(period, next)
-    ? resolveOpened(period, treatmentScheduleOf(live, today), next, chosenOn)
-    : resolveCorrected(live, period, next, chosenOn, today)
+  if (base.currentPeriodHasDose) {
+    return changesRhythm(period, next)
+      ? resolveOpened(period, treatmentScheduleOf(live, today), next, chosenOn, 'open')
+      : resolveCorrected(live, period, next, chosenOn, today)
+  }
+  const before = historyBeforeReopening(live, period, next)
+  return before === null
+    ? resolveCorrected(live, period, next, chosenOn, today)
+    : resolveOpened(period, treatmentScheduleOf(before, today), next, chosenOn, 'correct')
 }
 
 /**
@@ -285,7 +336,7 @@ function lastNotedDueOn(history: TreatmentWithHistory, periodId: string): string
 type DateIssue = { path: 'nextDoseOn' | 'endsOn'; message: string }
 
 function editionIssues(history: TreatmentWithHistory, data: Edition, today: string): DateIssue[] {
-  const { period, change, nextDose } = resolve(history, data, null, today)
+  const { period, change, nextDose, proposesFirstDue } = resolve(history, data, null, today)
   if (change === 'locked') return []
 
   const issues: DateIssue[] = []
@@ -300,7 +351,7 @@ function editionIssues(history: TreatmentWithHistory, data: Edition, today: stri
   }
   if (data.endsOn === null || issues.length > 0) return issues
 
-  const setsFirstDue = nextDose?.change === 'first-due' && (change === 'open' || changed)
+  const setsFirstDue = nextDose?.change === 'first-due' && (proposesFirstDue || changed)
   if (setsFirstDue && data.endsOn < (chosenOn ?? nextDose.proposedOn)) {
     issues.push({ path: 'endsOn', message: 'beforeNextDose' })
   } else if (change === 'correct' && data.endsOn !== period.endsOn) {
