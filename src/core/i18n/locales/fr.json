@@ -350,20 +350,30 @@
     "detail": {
       "back": "Retour au carnet",
       "subtitle": "{type} · {animal}",
-      "nextDose": "Prochaine dose",
       "doneLabel": "C’est fait : noter la prise de {name} pour {animal}",
+      "doneLabelAt": "C’est fait : noter la dose de {time} du {date} de {name} pour {animal}",
       "doses": "Prises",
-      "since": "{n} depuis {month}",
+      "since": "{n} depuis le {date}",
       "last": "Dernière prise",
-      "setDose": "A fixé la dose du {date}",
       "showPrevious": "Voir la prise précédente | Voir les {n} prises précédentes",
       "hidePrevious": "Masquer les prises précédentes",
-      "year": "{year} · {n} prise | {year} · {n} prises",
+      "showOthers": "Voir l’autre prise de cette période | Voir les {n} autres prises de cette période",
+      "hideOthers": "Masquer les autres prises de cette période",
       "options": "Options pour la prise du {date}",
+      "optionsAt": "Options pour la prise du {date} à {time}",
       "remove": "Supprimer cette prise",
       "changeDateSubtitle": "Prise du {date}",
-      "stopped": "Arrêté le {date}. Aucun rappel.",
-      "wasFrequency": "Était {frequency}",
+      "otherDate": {
+        "next": "Suivant",
+        "back": "Retour au choix du jour",
+        "hourTitle": "À quelle heure ?",
+        "hourSubtitle": "{name} · {animal} · {date}",
+        "hour": {
+          "pending": "Dose de {time} · pas encore notée",
+          "given": "Dose de {time} · déjà notée",
+          "missed": "Dose de {time} · notée oubliée"
+        }
+      },
       "resumeHint": "Tu choisiras la date de la prochaine dose.",
       "resume": "Reprendre ce traitement",
       "toast": {
@@ -371,6 +381,7 @@
         "undoRemove": "Annuler la suppression de la prise du {date}",
         "moved": "Prise déplacée au {date}",
         "movedKept": "Prise déplacée au {date}. Prochaine dose gardée au {nextDue}, que tu avais reportée.",
+        "movedLost": "Prise déplacée au {date}. Ton report de la prochaine dose ne s’applique plus.",
         "undoMove": "Annuler le changement de date de la prise",
         "deleted": "Traitement {name} supprimé"
       },
@@ -380,13 +391,43 @@
       "deleteDialog": {
         "title": "Supprimer {name} ?",
         "text": "Ses prises et ses rappels seront supprimés du carnet. Cette action est définitive.",
-        "onlyDose": "C’est sa seule prise : le traitement {name} sera supprimé, avec ses rappels. Cette action est définitive.",
         "cancel": "Annuler",
         "confirm": "Supprimer"
       },
       "errors": {
         "change": "La modification n’a pas abouti. Réessaie.",
         "delete": "{name} n’a pas pu être supprimé. Réessaie."
+      }
+    },
+    "history": {
+      "period": {
+        "since": "Depuis le {date}",
+        "range": "Du {from} au {to}"
+      },
+      "empty": "Aucune prise dans cette période pour l’instant",
+      "dueAt": "{date} · {time}",
+      "givenOn": "Donnée le {date}",
+      "missed": "Oubliée · {when} | Oubliées · {when}",
+      "dayTimes": "{date}, {times}",
+      "days": "du {from} au {to}",
+      "postponed": "Reportée au {date} (prévue le {due})",
+      "advanced": "Avancée au {date} (prévue le {due})",
+      "moveOptions": "Options pour le report de la dose du {date}",
+      "menu": {
+        "markMissed": "Marquer comme oubliée",
+        "markGiven": "Marquer comme donnée",
+        "removeMove": "Supprimer ce report"
+      },
+      "toast": {
+        "doseAt": "Prise de {time} de {name} notée pour {animal}",
+        "doseAtOn": "Prise de {time} de {name} du {date} notée pour {animal}",
+        "missed": "Prise du {date} marquée comme oubliée",
+        "undoMissed": "Annuler le changement de la prise du {date}",
+        "moveRemoved": "Report supprimé",
+        "undoMoveRemoved": "Annuler la suppression du report",
+        "postponedTo": "Dose reportée au {date}",
+        "advancedTo": "Dose avancée au {date}",
+        "undoMoveChange": "Annuler le changement de date du report"
       }
     },
     "finished": {

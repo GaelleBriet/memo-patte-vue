@@ -1,11 +1,6 @@
 import { addFrequency } from './treatment-frequency'
-import type { NewTreatmentDose, TreatmentDose } from '../schema/treatment-dose.schema'
+import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
 import type { Treatment } from '../schema/treatment.schema'
-
-/** Jour d'une prise : sa date réelle, son échéance tant qu'elle n'a pas été donnée. */
-export function doseDay(dose: Pick<TreatmentDose, 'givenOn' | 'dueOn'>): string {
-  return dose.givenOn ?? dose.dueOn
-}
 
 /** Une prise donnée vise son propre jour : l'ordre des échéances reste celui des dates réelles. */
 export function doseGivenOn(

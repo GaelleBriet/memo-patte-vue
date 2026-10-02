@@ -350,20 +350,30 @@
     "detail": {
       "back": "Back to health record",
       "subtitle": "{type} · {animal}",
-      "nextDose": "Next dose",
       "doneLabel": "Done: log the {name} dose for {animal}",
+      "doneLabelAt": "Done: log the {time} dose of {name} for {animal}, {date}",
       "doses": "Doses",
-      "since": "{n} since {month}",
+      "since": "{n} since {date}",
       "last": "Last dose",
-      "setDose": "Set the next dose for {date}",
       "showPrevious": "Show the previous dose | Show the {n} previous doses",
       "hidePrevious": "Hide previous doses",
-      "year": "{year} · {n} dose | {year} · {n} doses",
+      "showOthers": "Show the other dose from this period | Show the {n} other doses from this period",
+      "hideOthers": "Hide the other doses from this period",
       "options": "Options for the dose on {date}",
+      "optionsAt": "Options for the dose on {date} at {time}",
       "remove": "Delete this dose",
       "changeDateSubtitle": "Dose on {date}",
-      "stopped": "Stopped on {date}. No reminders.",
-      "wasFrequency": "Was {frequency}",
+      "otherDate": {
+        "next": "Next",
+        "back": "Back to the day",
+        "hourTitle": "At what time?",
+        "hourSubtitle": "{name} · {animal} · {date}",
+        "hour": {
+          "pending": "{time} dose · not logged yet",
+          "given": "{time} dose · already logged",
+          "missed": "{time} dose · logged as missed"
+        }
+      },
       "resumeHint": "You’ll choose the date of the next dose.",
       "resume": "Resume this treatment",
       "toast": {
@@ -371,6 +381,7 @@
         "undoRemove": "Undo deleting the dose on {date}",
         "moved": "Dose moved to {date}",
         "movedKept": "Dose moved to {date}. Next dose kept on {nextDue}, as you had postponed it.",
+        "movedLost": "Dose moved to {date}. Your postponement of the next dose no longer applies.",
         "undoMove": "Undo the dose date change",
         "deleted": "{name} treatment deleted"
       },
@@ -380,13 +391,43 @@
       "deleteDialog": {
         "title": "Delete {name}?",
         "text": "Its doses and reminders will be deleted from the health record. This can’t be undone.",
-        "onlyDose": "This is its only dose: the {name} treatment will be deleted, along with its reminders. This can’t be undone.",
         "cancel": "Cancel",
         "confirm": "Delete"
       },
       "errors": {
         "change": "Couldn’t save the change. Try again.",
         "delete": "Couldn’t delete {name}. Try again."
+      }
+    },
+    "history": {
+      "period": {
+        "since": "Since {date}",
+        "range": "{from} – {to}"
+      },
+      "empty": "No doses in this period yet",
+      "dueAt": "{date} · {time}",
+      "givenOn": "Given on {date}",
+      "missed": "Missed · {when} | Missed · {when}",
+      "dayTimes": "{date}, {times}",
+      "days": "{from} – {to}",
+      "postponed": "Postponed to {date} (was due {due})",
+      "advanced": "Moved up to {date} (was due {due})",
+      "moveOptions": "Options for the postponement of the dose due {date}",
+      "menu": {
+        "markMissed": "Mark as missed",
+        "markGiven": "Mark as given",
+        "removeMove": "Delete this postponement"
+      },
+      "toast": {
+        "doseAt": "{time} {name} dose logged for {animal}",
+        "doseAtOn": "{time} {name} dose on {date} logged for {animal}",
+        "missed": "Dose on {date} marked as missed",
+        "undoMissed": "Undo the change to the dose on {date}",
+        "moveRemoved": "Postponement deleted",
+        "undoMoveRemoved": "Undo deleting the postponement",
+        "postponedTo": "Dose postponed to {date}",
+        "advancedTo": "Dose moved up to {date}",
+        "undoMoveChange": "Undo the postponement date change"
       }
     },
     "finished": {

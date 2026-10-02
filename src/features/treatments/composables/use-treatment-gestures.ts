@@ -4,12 +4,14 @@ import { useI18n } from 'vue-i18n'
 import { todayIsoDate } from '@/core/app-lifecycle/today-iso-date'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import { showToast, showUndoableToast } from '@/shared/utils/toast'
-import { doseDay } from '../logic/treatment-dose'
-import { doseGestureTexts, treatmentDeleteTexts } from '../logic/treatment-history'
+import type { DoseAction } from '../logic/treatment-dose-writes'
+import type { DoseActionTexts } from '../logic/treatment-gestures'
+import { treatmentDeleteTexts } from '../logic/treatment-history'
 import { doseToast } from '../logic/treatment-sheet'
-import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import type { Treatment } from '../schema/treatment.schema'
 import { useTreatmentsStore } from '../store/treatments.store'
+
+type Named = Pick<Treatment, 'id' | 'name' | 'animalId'>
 
 /**
  * Gestes sur un traitement et ses prises, chacun confirmé par un toast ; `onChanged` relit l'écran
@@ -22,7 +24,7 @@ export function useTreatmentGestures(onChanged: () => void) {
   const animals = useAnimalsStore()
   const isBusy = ref(false)
 
-  function named(treatment: Treatment) {
+  function named(treatment: Named) {
     return { name: treatment.name, animal: animals.byId(treatment.animalId)?.name ?? '' }
   }
 
@@ -50,7 +52,7 @@ export function useTreatmentGestures(onChanged: () => void) {
     })
   }
 
-  function recordDose(treatment: Treatment, givenOn: string, failed?: string): Promise<boolean> {
+  function recordDose(treatment: Named, givenOn: string, failed?: string): Promise<boolean> {
     return guarded(async () => {
       const { doseId } = await treatments.recordDose(treatment.id, givenOn)
       onChanged()
@@ -64,7 +66,7 @@ export function useTreatmentGestures(onChanged: () => void) {
     }, failed)
   }
 
-  function stop(treatment: Treatment, failed?: string): Promise<boolean> {
+  function stop(treatment: Named, failed?: string): Promise<boolean> {
     return guarded(async () => {
       const { stopped } = await treatments.stop(treatment.id)
       onChanged()
@@ -78,41 +80,36 @@ export function useTreatmentGestures(onChanged: () => void) {
     }, failed)
   }
 
-  function removeDose(dose: TreatmentDose): Promise<boolean> {
-    const { treatmentId, id } = dose
-    const texts = doseGestureTexts(t, doseDay(dose), todayIsoDate())
+  /** Geste de la fiche sur une prise ou un report ; l'écran est relu même après un refus. */
+  function applyDose(
+    treatment: Named,
+    action: DoseAction,
+    texts: DoseActionTexts,
+  ): Promise<boolean> {
     return guarded(async () => {
-      await treatments.removeDose(treatmentId, id)
-      onChanged()
-      undoable(texts.removed, texts.undoRemove, () => treatments.undoRemoveDose(treatmentId, id))
-    }, t('treatments.detail.errors.change'))
-  }
-
-  function changeDoseDate(dose: TreatmentDose, givenOn: string): Promise<boolean> {
-    const { treatmentId, id } = dose
-    const texts = doseGestureTexts(t, doseDay(dose), todayIsoDate())
-    return guarded(async () => {
-      const { previous, postponementKept } = await treatments.changeDoseDate(
-        treatmentId,
-        id,
-        givenOn,
-      )
-      onChanged()
-      const keptNextDue = postponementKept ? previous.nextDueDate : null
-      undoable(texts.moved(givenOn, keptNextDue), texts.undoMove, () =>
-        treatments.undoChangeDoseDate(treatmentId, id, previous),
-      )
+      try {
+        const applied = await treatments.applyDoseAction(treatment.id, action)
+        if (applied.alreadyGivenOn !== null) {
+          showToast(texts.already(applied.alreadyGivenOn), { tone: 'info' })
+        } else if (applied.undo.length > 0) {
+          undoable(texts.done(applied), texts.undo, () =>
+            treatments.undoDoseAction(treatment.id, applied.undo),
+          )
+        }
+      } finally {
+        onChanged()
+      }
     }, t('treatments.detail.errors.change'))
   }
 
   /** Suppression définitive, confirmée par un dialogue avant d'arriver ici. */
-  function removeTreatment(treatment: Treatment): Promise<boolean> {
-    const texts = treatmentDeleteTexts(t, treatment.name, { onlyDose: false })
+  function removeTreatment(treatment: Named): Promise<boolean> {
+    const texts = treatmentDeleteTexts(t, treatment.name)
     return guarded(async () => {
       await treatments.remove(treatment.id)
       showToast(texts.deleted)
     }, texts.failed)
   }
 
-  return { isBusy, recordDose, stop, removeDose, changeDoseDate, removeTreatment }
+  return { isBusy, recordDose, stop, applyDose, removeTreatment }
 }

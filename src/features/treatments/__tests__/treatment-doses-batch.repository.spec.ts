@@ -16,6 +16,7 @@ const PERIODE = 'metacam-1'
 const T0 = '2026-09-01T08:00:00.000Z'
 const T1 = '2026-09-28T09:00:00.000Z'
 const T2 = '2026-09-28T09:05:00.000Z'
+const T3 = '2026-09-28T09:05:04.000Z'
 
 function fields(overrides: Partial<DoseFields> = {}): DoseFields {
   return {
@@ -216,11 +217,11 @@ describe('treatmentDosesRepository — écrire ce que rend le moteur', () => {
       await expect(row('report')).resolves.toMatchObject({ deleted_at: T2 })
     })
 
-    it('rend le lot inverse, qui défait tout', async () => {
+    it('rend le lot inverse, qui défait tout et date chaque ligne de l’annulation', async () => {
       const before = await visible()
 
       const inverse = await doses.applyBatch(LOT, T2)
-      await doses.applyBatch(inverse, T2)
+      await doses.applyBatch(inverse, T3)
 
       await expect(visible()).resolves.toEqual(before)
       expect(inverse).toEqual([
@@ -228,6 +229,9 @@ describe('treatmentDosesRepository — écrire ce que rend le moteur', () => {
         { action: 'rewrite', id: 'matin', dose: MATIN },
         { action: 'delete', id: 'nouvelle' },
       ])
+      await expect(row('report')).resolves.toMatchObject({ updated_at: T3, deleted_at: null })
+      await expect(row('matin')).resolves.toMatchObject({ updated_at: T3 })
+      await expect(row('nouvelle')).resolves.toMatchObject({ updated_at: T3, deleted_at: T3 })
     })
 
     it('n’écrit rien quand une instruction échoue', async () => {

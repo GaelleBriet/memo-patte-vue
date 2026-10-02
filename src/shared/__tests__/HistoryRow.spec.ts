@@ -21,11 +21,11 @@ function monter(props: Record<string, unknown> = {}) {
 
 describe('HistoryRow', () => {
   it('écrit la date, la pastille et le détail quand ils sont donnés (F8)', () => {
-    const wrapper = monter({ badge: 'Dernière prise', detail: 'A fixé la dose du 28 sept.' })
+    const wrapper = monter({ badge: 'Dernière prise', detail: 'Donnée le 29 août 2026' })
 
     expect(wrapper.get('.history-row__date').text()).toBe('28 août 2026')
     expect(wrapper.get('.history-row__badge').text()).toBe('Dernière prise')
-    expect(wrapper.get('.history-row__detail').text()).toBe('A fixé la dose du 28 sept.')
+    expect(wrapper.get('.history-row__detail').text()).toBe('Donnée le 29 août 2026')
   })
 
   it('écrit la date en gras, en poids normal sur demande', () => {
@@ -35,11 +35,20 @@ describe('HistoryRow', () => {
     )
   })
 
+  it('écrit une ligne discrète en gris, avec son icône, sans menu quand elle n’a aucune action', () => {
+    const wrapper = monter({ muted: true, icon: 'ms:event_repeat', items: [] })
+
+    expect(wrapper.get('.history-row__date').classes()).toContain('history-row__date--muted')
+    expect(wrapper.find('.history-row__icon').exists()).toBe(true)
+    expect(wrapper.findComponent(OverflowMenu).exists()).toBe(false)
+  })
+
   it('se réduit à la date sans pastille ni détail', () => {
     const wrapper = monter()
 
     expect(wrapper.find('.history-row__badge').exists()).toBe(false)
     expect(wrapper.find('.history-row__detail').exists()).toBe(false)
+    expect(wrapper.find('.history-row__icon').exists()).toBe(false)
   })
 
   it('passe son menu et relaie l’action choisie', () => {

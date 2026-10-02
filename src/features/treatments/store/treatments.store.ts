@@ -3,7 +3,7 @@ import { ref } from 'vue'
 
 import {
   treatmentDosesService,
-  type DoseDateChange,
+  type AppliedDoseChange,
   type RecordedDose,
   type TreatmentDosesService,
 } from '../service/treatment-doses.service'
@@ -18,7 +18,8 @@ import {
 } from '../service/treatment-stop.service'
 import type { Treatment, TreatmentEditInput, TreatmentInput } from '../schema/treatment.schema'
 import type { TreatmentDose } from '../schema/treatment-dose.schema'
-import type { DoseDates } from '../repository/treatment-doses.repository'
+import type { DoseWrite } from '../repository/treatment-doses.repository'
+import type { DoseAction } from '../logic/treatment-dose-writes'
 import type {
   TreatmentsRepository as FullTreatmentsRepository,
   TreatmentWithHistory,
@@ -60,10 +61,7 @@ export function provideTreatmentRemindersService(next: (() => TreatmentReminders
   remindersProvider = next ?? (() => treatmentRemindersService)
 }
 
-type TreatmentDoses = Pick<
-  TreatmentDosesService,
-  'record' | 'undo' | 'remove' | 'undoRemove' | 'changeDate' | 'undoChangeDate'
->
+type TreatmentDoses = Pick<TreatmentDosesService, 'record' | 'undo' | 'apply' | 'undoBatch'>
 
 let dosesProvider: () => TreatmentDoses = () => treatmentDosesService
 
@@ -242,43 +240,6 @@ export const useTreatmentsStore = defineStore('treatments', () => {
       )
     },
 
-    async removeDose(treatmentId: string, doseId: string): Promise<void> {
-      await write(
-        () => dosesProvider().remove(treatmentId, doseId),
-        () => animalId.value,
-      )
-    },
-
-    async undoRemoveDose(treatmentId: string, doseId: string): Promise<void> {
-      await write(
-        () => dosesProvider().undoRemove(treatmentId, doseId),
-        () => animalId.value,
-      )
-    },
-
-    /** Renvoie les dates d'avant, pour « Annuler », et si un report manuel a été gardé. */
-    async changeDoseDate(
-      treatmentId: string,
-      doseId: string,
-      givenOn: string,
-    ): Promise<DoseDateChange> {
-      return write(
-        () => dosesProvider().changeDate(treatmentId, doseId, givenOn),
-        () => animalId.value,
-      )
-    },
-
-    async undoChangeDoseDate(
-      treatmentId: string,
-      doseId: string,
-      previous: DoseDates,
-    ): Promise<void> {
-      await write(
-        () => dosesProvider().undoChangeDate(treatmentId, doseId, previous),
-        () => animalId.value,
-      )
-    },
-
     async stop(treatmentId: string): Promise<StoppedTreatment> {
       return write(
         () => stopProvider().stop(treatmentId),
@@ -289,6 +250,21 @@ export const useTreatmentsStore = defineStore('treatments', () => {
     async undoStop(treatmentId: string): Promise<void> {
       await write(
         () => stopProvider().undo(treatmentId),
+        () => animalId.value,
+      )
+    },
+
+    /** Geste de la fiche sur une prise ou un report ; `undo` se passe à `undoDoseAction`. */
+    async applyDoseAction(treatmentId: string, action: DoseAction): Promise<AppliedDoseChange> {
+      return write(
+        () => dosesProvider().apply(treatmentId, action),
+        (applied) => applied.animalId,
+      )
+    },
+
+    async undoDoseAction(treatmentId: string, writes: readonly DoseWrite[]): Promise<void> {
+      await write(
+        () => dosesProvider().undoBatch(treatmentId, writes),
         () => animalId.value,
       )
     },

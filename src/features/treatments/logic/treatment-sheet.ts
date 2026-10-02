@@ -9,6 +9,18 @@ export type SheetTreatment = Pick<
   'name' | 'type' | 'frequency' | 'lastDoseDate' | 'nextDueDate'
 >
 
+/** Textes de « Arrêter ce traitement » et de son dialogue. */
+export function treatmentStopTexts(t: Translate, named: { name: string; animal: string }) {
+  return {
+    stopLabel: t('treatments.sheet.stopLabel', named),
+    stopDialog: {
+      title: t('treatments.sheet.stopDialog.title', named),
+      cancelLabel: t('treatments.sheet.stopDialog.cancelLabel', named),
+      confirmLabel: t('treatments.sheet.stopDialog.confirmLabel', named),
+    },
+  }
+}
+
 export function treatmentSheetTexts(
   t: Translate,
   treatment: SheetTreatment,
@@ -27,13 +39,8 @@ export function treatmentSheetTexts(
       date: formatDayMonthOrYear(treatment.nextDueDate, today),
     }),
     doneTodayLabel: t('treatments.sheet.doneTodayLabel', named),
-    stopLabel: t('treatments.sheet.stopLabel', named),
     otherDaySubtitle: t('treatments.sheet.otherDay.subtitle', named),
-    stopDialog: {
-      title: t('treatments.sheet.stopDialog.title', named),
-      cancelLabel: t('treatments.sheet.stopDialog.cancelLabel', named),
-      confirmLabel: t('treatments.sheet.stopDialog.confirmLabel', named),
-    },
+    ...treatmentStopTexts(t, named),
   }
 }
 

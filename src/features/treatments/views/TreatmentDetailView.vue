@@ -3,29 +3,36 @@ import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 
+import TreatmentDoseCard from './TreatmentDoseCard.vue'
+import TreatmentHistory from './TreatmentHistory.vue'
+import TreatmentOtherDateSheet from './TreatmentOtherDateSheet.vue'
 import { useTreatmentDetail } from '../composables/use-treatment-detail'
 import { useTreatmentGestures } from '../composables/use-treatment-gestures'
-import { doseDay } from '../logic/treatment-dose'
+import { detailActions, doseCard } from '../logic/treatment-card'
+import type { DoseAction } from '../logic/treatment-dose-writes'
 import {
-  doseDatesExcept,
-  doseGestureTexts,
-  doseHistory,
+  dateChangeOf,
+  doseActionTexts,
+  hasSeveralTimes,
+  lineAction,
+  type DateChange,
+} from '../logic/treatment-gestures'
+import {
   treatmentDeleteTexts,
-  treatmentDetailTexts,
+  treatmentHistory,
+  type DoseLineAction,
+  type DoseRow,
 } from '../logic/treatment-history'
-import { treatmentSheetTexts } from '../logic/treatment-sheet'
-import { isOngoing } from '../logic/treatment-status'
-import type { TreatmentDose } from '../schema/treatment-dose.schema'
-import { useToday } from '@/core/app-lifecycle/use-today'
+import { currentPeriodOf } from '../logic/treatment-schedule'
+import { treatmentStopTexts } from '../logic/treatment-sheet'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
 import DatePickerSheet from '@/shared/components/DatePickerSheet.vue'
-import HistoryRow from '@/shared/components/HistoryRow.vue'
-import NextDueCard from '@/shared/components/NextDueCard.vue'
 import OverflowMenu, { type OverflowMenuItem } from '@/shared/components/OverflowMenu.vue'
 import PushedScreen from '@/shared/components/PushedScreen.vue'
-import SectionCard from '@/shared/components/SectionCard.vue'
 import { originQuery } from '@/shared/domain/reminder-route'
+import { reminderIcon } from '@/shared/domain/reminders'
+import type { Due, MoveBounds } from '@/shared/domain/treatment-schedule'
 import { returnTo } from '@/shared/utils/return-to'
 
 const props = defineProps<{
@@ -36,109 +43,97 @@ const { t } = useI18n()
 const router = useRouter()
 const route = useRoute()
 const animals = useAnimalsStore()
-const { today } = useToday()
 
-const { data, state, reload } = useTreatmentDetail(() => props.id)
+const { treatment, schedule, today, state, unreadable, reload } = useTreatmentDetail(() => props.id)
 const gestures = useTreatmentGestures(() => void reload())
 
-const treatment = computed(() => data.value?.treatment ?? null)
-const doses = computed(() => data.value?.doses ?? [])
-const ongoing = computed(() => treatment.value !== null && isOngoing(treatment.value))
 const animal = computed(() => (treatment.value ? animals.byId(treatment.value.animalId) : null))
-const texts = computed(() =>
+const named = computed(() => ({
+  name: treatment.value?.name ?? '',
+  animal: animal.value?.name ?? '',
+}))
+const subtitle = computed(() =>
   treatment.value
-    ? treatmentDetailTexts(t, treatment.value, {
-        animal: animal.value?.name ?? '',
-        today: today.value,
-        doses: doses.value,
+    ? t('treatments.detail.subtitle', {
+        type: t(`treatments.type.${treatment.value.type}`),
+        animal: named.value.animal,
       })
     : null,
 )
-const sheetTexts = computed(() =>
-  treatment.value
-    ? treatmentSheetTexts(t, treatment.value, {
-        animal: animal.value?.name ?? '',
+const period = computed(() =>
+  treatment.value && schedule.value ? currentPeriodOf(treatment.value, schedule.value) : null,
+)
+const card = computed(() =>
+  treatment.value && schedule.value
+    ? doseCard(t, treatment.value, schedule.value, {
+        animal: named.value.animal,
         today: today.value,
       })
     : null,
 )
 const history = computed(() =>
-  doseHistory(doses.value, { ongoing: ongoing.value, periodId: treatment.value?.periodId }),
+  treatment.value && schedule.value ? treatmentHistory(t, treatment.value, schedule.value) : null,
 )
-const listedDoses = computed(() =>
-  history.value.others.kind === 'list' ? history.value.others.doses : [],
-)
-const yearGroups = computed(() =>
-  history.value.others.kind === 'years' ? history.value.others.groups : [],
-)
+const actions = computed(() => (schedule.value ? detailActions(schedule.value) : null))
+const stopTexts = computed(() => treatmentStopTexts(t, named.value))
+const deleteTexts = computed(() => treatmentDeleteTexts(t, named.value.name))
 
-const showsPrevious = ref(false)
-const openYears = ref<string[]>([])
-
-function toggleYear(year: string): void {
-  openYears.value = openYears.value.includes(year)
-    ? openYears.value.filter((open) => open !== year)
-    : [...openYears.value, year]
-}
-
-const doseItems = computed<OverflowMenuItem[]>(() => [
-  { id: 'changeDate', label: t('history.changeDate'), icon: 'ms:edit_calendar' },
-  { id: 'remove', label: t('treatments.detail.remove'), icon: 'ms:delete', danger: true },
-])
 const menuItems = computed<OverflowMenuItem[]>(() => [
   { id: 'remove', label: t('treatments.detail.menu.remove'), icon: 'ms:delete', danger: true },
 ])
 
-const moving = ref<TreatmentDose | null>(null)
+const isOtherDateOpen = ref(false)
 const isDatePickerOpen = ref(false)
-const movingTexts = computed(() =>
-  moving.value ? doseGestureTexts(t, doseDay(moving.value), today.value) : null,
-)
-const excludedDates = computed(() =>
-  moving.value ? doseDatesExcept(doses.value, moving.value.id) : [],
-)
-
 const isStopDialogOpen = ref(false)
 const isDeleteDialogOpen = ref(false)
-const deleteFromOnlyDose = ref(false)
-const deleteTexts = computed(() =>
-  treatment.value
-    ? treatmentDeleteTexts(t, treatment.value.name, { onlyDose: deleteFromOnlyDose.value })
-    : null,
-)
+const changing = ref<{ row: DoseRow; change: DateChange } | null>(null)
 
 onMounted(() => {
   if (!animals.hasLoaded) void animals.load()
 })
 
-function askDelete(onlyDose: boolean): void {
-  deleteFromOnlyDose.value = onlyDose
-  isDeleteDialogOpen.value = true
+function apply(action: DoseAction, line: Due | null, periodId: string): Promise<boolean> {
+  if (!treatment.value) return Promise.resolve(false)
+  const texts = doseActionTexts(
+    t,
+    {
+      ...named.value,
+      today: today.value,
+      severalTimes: hasSeveralTimes(treatment.value, periodId),
+    },
+    action,
+    line,
+  )
+  return gestures.applyDose(treatment.value, action, texts)
 }
 
-function onDoseAction(dose: TreatmentDose, action: string): void {
-  if (action === 'changeDate') {
-    moving.value = dose
-    isDatePickerOpen.value = true
-  } else if (doses.value.length === 1) {
-    askDelete(true)
-  } else {
-    void gestures.removeDose(dose)
+function note(due: Due, givenOn: string): Promise<boolean> {
+  return apply({ kind: 'note', gesture: { kind: 'given', due, givenOn } }, null, due.periodId)
+}
+
+async function noteOtherDate(due: Due, givenOn: string): Promise<void> {
+  if (await note(due, givenOn)) isOtherDateOpen.value = false
+}
+
+function onLineAction(row: DoseRow, choice: DoseLineAction, bounds: MoveBounds | null): void {
+  const action = lineAction(row.dose, choice)
+  if (action !== null) {
+    void apply(action, row.dose, row.dose.periodId)
+    return
   }
+  const change = dateChangeOf(t, row.dose, bounds, {
+    today: today.value,
+    earliest: animal.value?.birthDate ?? null,
+  })
+  if (change === null) return
+  changing.value = { row, change }
+  isDatePickerOpen.value = true
 }
 
-function onHeadAction(action: string): void {
-  if (history.value.head) onDoseAction(history.value.head, action)
-}
-
-function move(givenOn: string): void {
-  if (moving.value) void gestures.changeDoseDate(moving.value, givenOn)
-}
-
-function done(): void {
-  if (treatment.value) {
-    void gestures.recordDose(treatment.value, today.value, t('treatments.sheet.errors.dose'))
-  }
+function changeDate(date: string): void {
+  if (!changing.value) return
+  const { row, change } = changing.value
+  void apply(change.action(date), row.dose, row.dose.periodId)
 }
 
 function stop(): void {
@@ -171,125 +166,44 @@ async function remove(): Promise<void> {
   <PushedScreen
     class="treatment-detail"
     :title="treatment?.name ?? ''"
-    :subtitle="texts?.subtitle"
+    :subtitle="subtitle"
     subtitle-tone="secondary"
     :back-label="t('treatments.detail.back')"
     @back="backToCarnet"
   >
     <template v-if="treatment" #end>
+      <v-btn
+        v-if="actions?.canEdit"
+        class="treatment-detail__edit"
+        icon="ms:edit"
+        variant="text"
+        color="primary"
+        :aria-label="t('reminderSheet.edit')"
+        @click="edit"
+      />
       <OverflowMenu
         :label="t('history.moreOptions')"
         :items="menuItems"
-        @select="askDelete(false)"
+        @select="isDeleteDialogOpen = true"
       />
     </template>
 
     <div class="treatment-detail__content">
-      <template v-if="treatment && texts">
-        <NextDueCard
-          v-if="texts.due"
-          :label="t('treatments.detail.nextDose')"
-          :date="texts.due.date"
-          :delay="texts.due.delay.text"
-          :overdue="texts.due.delay.overdue"
-          :done-aria-label="texts.doneLabel"
+      <template v-if="treatment && card && history && actions">
+        <TreatmentDoseCard
+          :card="card"
           :busy="gestures.isBusy.value"
-          @done="done"
-          @edit="edit"
-        >
-          <template #top>
-            <p class="treatment-detail__frequency">
-              <v-icon icon="ms:repeat" size="22" />
-              <span>{{ texts.frequency }}</span>
-            </p>
-          </template>
-        </NextDueCard>
+          @done="note($event, today)"
+          @other-date="isOtherDateOpen = true"
+        />
 
-        <div v-else-if="texts.stopped" class="treatment-detail__stopped">
-          <p class="treatment-detail__stopped-notice">
-            <v-icon icon="ms:do_not_disturb_on" size="22" />
-            <span>{{ texts.stopped.notice }}</span>
-          </p>
-          <p class="treatment-detail__frequency treatment-detail__frequency--past">
-            <v-icon icon="ms:repeat" size="22" />
-            <span>{{ texts.stopped.wasFrequency }}</span>
-          </p>
-        </div>
-
-        <SectionCard :title="t('treatments.detail.doses')" :counter="texts.counter">
-          <HistoryRow
-            v-if="history.head"
-            :date="texts.dose(history.head).date"
-            :badge="t('treatments.detail.last')"
-            :detail="texts.headDetail"
-            :options-label="texts.dose(history.head).optionsLabel"
-            :items="doseItems"
-            @select="onHeadAction"
-          />
-
-          <template v-if="!ongoing || showsPrevious">
-            <HistoryRow
-              v-for="dose in listedDoses"
-              :key="dose.id"
-              :date="texts.dose(dose).date"
-              :regular="ongoing"
-              :options-label="texts.dose(dose).optionsLabel"
-              :items="doseItems"
-              @select="onDoseAction(dose, $event)"
-            />
-            <template v-for="group in yearGroups" :key="group.year">
-              <button
-                type="button"
-                class="treatment-detail__year"
-                :aria-expanded="openYears.includes(group.year)"
-                @click="toggleYear(group.year)"
-              >
-                <span>{{ texts.year(group) }}</span>
-                <v-icon
-                  :icon="
-                    openYears.includes(group.year)
-                      ? 'ms:keyboard_arrow_up'
-                      : 'ms:keyboard_arrow_down'
-                  "
-                  size="22"
-                />
-              </button>
-              <template v-if="openYears.includes(group.year)">
-                <HistoryRow
-                  v-for="dose in group.doses"
-                  :key="dose.id"
-                  :date="texts.dose(dose).date"
-                  :regular="ongoing"
-                  :options-label="texts.dose(dose).optionsLabel"
-                  :items="doseItems"
-                  @select="onDoseAction(dose, $event)"
-                />
-              </template>
-            </template>
-          </template>
-
-          <button
-            v-if="ongoing && doses.length > (history.head ? 1 : 0)"
-            type="button"
-            class="treatment-detail__toggle"
-            :aria-expanded="showsPrevious"
-            @click="showsPrevious = !showsPrevious"
-          >
-            <span>{{
-              showsPrevious ? t('treatments.detail.hidePrevious') : texts.showPrevious
-            }}</span>
-            <v-icon
-              :icon="showsPrevious ? 'ms:keyboard_arrow_up' : 'ms:keyboard_arrow_down'"
-              size="22"
-            />
-          </button>
-        </SectionCard>
+        <TreatmentHistory :history="history" @select="onLineAction" />
 
         <button
-          v-if="ongoing && sheetTexts"
+          v-if="actions.canStop"
           type="button"
           class="treatment-detail__stop"
-          :aria-label="sheetTexts.stopLabel"
+          :aria-label="stopTexts.stopLabel"
           :disabled="gestures.isBusy.value"
           @click="isStopDialogOpen = true"
         >
@@ -299,7 +213,7 @@ async function remove(): Promise<void> {
       </template>
 
       <p
-        v-else-if="state === 'not-found' || state === 'error'"
+        v-else-if="state === 'not-found' || state === 'error' || unreadable"
         class="section-card__card treatment-detail__message"
         role="alert"
       >
@@ -315,32 +229,43 @@ async function remove(): Promise<void> {
       </div>
     </div>
 
+    <TreatmentOtherDateSheet
+      v-if="treatment && schedule && period"
+      v-model="isOtherDateOpen"
+      :name="named.name"
+      :animal="named.animal"
+      :icon="reminderIcon('treatment', treatment.type)"
+      :schedule="schedule"
+      :period="period"
+      :today="today"
+      :min="animal?.birthDate ?? null"
+      :busy="gestures.isBusy.value"
+      @note="noteOtherDate"
+    />
+
     <DatePickerSheet
       v-model="isDatePickerOpen"
       :title="t('history.changeDate')"
-      :subtitle="movingTexts?.changeDateSubtitle"
+      :subtitle="changing?.change.subtitle"
       :close-label="t('reminderSheet.close')"
-      :date="moving?.givenOn ?? null"
-      :min="animal?.birthDate ?? null"
-      :max="today"
-      :excluded="excludedDates"
-      @pick="move"
+      :date="changing?.change.date ?? null"
+      :min="changing?.change.min ?? null"
+      :max="changing?.change.max ?? null"
+      @pick="changeDate"
     />
 
     <ConfirmDialog
-      v-if="sheetTexts"
       v-model="isStopDialogOpen"
-      :title="sheetTexts.stopDialog.title"
+      :title="stopTexts.stopDialog.title"
       :text="t('treatments.sheet.stopDialog.text')"
       :cancel-label="t('treatments.sheet.stopDialog.cancel')"
       :confirm-label="t('treatments.sheet.stopDialog.confirm')"
-      :cancel-aria-label="sheetTexts.stopDialog.cancelLabel"
-      :confirm-aria-label="sheetTexts.stopDialog.confirmLabel"
+      :cancel-aria-label="stopTexts.stopDialog.cancelLabel"
+      :confirm-aria-label="stopTexts.stopDialog.confirmLabel"
       @confirm="stop"
     />
 
     <ConfirmDialog
-      v-if="deleteTexts"
       v-model="isDeleteDialogOpen"
       :title="deleteTexts.title"
       :text="deleteTexts.text"
@@ -349,7 +274,7 @@ async function remove(): Promise<void> {
       @confirm="remove"
     />
 
-    <template v-if="treatment && !ongoing" #actions>
+    <template v-if="treatment && actions?.canResume" #actions>
       <div class="treatment-detail__resume">
         <p class="treatment-detail__resume-hint">{{ t('treatments.detail.resumeHint') }}</p>
         <v-btn
@@ -377,92 +302,9 @@ async function remove(): Promise<void> {
   padding: 12px 0 32px;
 }
 
-.treatment-detail__frequency {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin: 0;
-  color: tokens.$color-text-secondary;
-  font-size: 15.5px;
-  font-weight: 600;
-
-  .v-icon {
-    color: rgb(var(--v-theme-primary));
-  }
-}
-
-.treatment-detail__frequency--past .v-icon {
-  color: tokens.$color-text-meta;
-}
-
-.treatment-detail__stopped {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  margin-inline: tokens.$padding-section-inline;
-}
-
-.treatment-detail__stopped-notice {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin: 0;
-  padding: 14px 16px;
-  border-radius: tokens.$radius-notice;
-  background: tokens.$color-history-stopped-surface;
-  color: tokens.$color-text-secondary;
-  font-size: 15.5px;
-  font-weight: 600;
-
-  .v-icon {
-    flex: 0 0 auto;
-  }
-}
-
-.treatment-detail__stopped .treatment-detail__frequency--past {
-  padding-inline-start: 4px;
-}
-
-.treatment-detail__year,
-.treatment-detail__toggle {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  width: 100%;
-  min-height: tokens.$height-add-row;
-  padding: 0 20px;
-  border: 0;
-  border-top: 1px solid tokens.$color-divider;
-  background: transparent;
-  font-family: inherit;
-  text-align: start;
-  cursor: pointer;
-
-  &:focus-visible {
-    outline: none;
-    background: rgba(var(--v-theme-primary), 0.06);
-  }
-}
-
-.treatment-detail__year {
-  color: rgb(var(--v-theme-on-surface));
-  font-size: 15px;
-  font-weight: 700;
-
-  .v-icon {
-    color: tokens.$color-text-meta;
-  }
-}
-
-.treatment-detail__toggle {
-  color: rgb(var(--v-theme-primary));
-  font-size: 15px;
-  font-weight: 700;
-}
-
-.treatment-detail__year:first-child {
-  border-top: 0;
+.treatment-detail__edit {
+  width: tokens.$size-tap-target;
+  height: tokens.$size-tap-target;
 }
 
 .treatment-detail__stop {

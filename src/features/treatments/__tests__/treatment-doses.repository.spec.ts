@@ -394,72 +394,11 @@ describe('treatmentDosesRepository — historique', () => {
     await expect(doses.countByAnimal(VASCO)).resolves.toEqual({ [bravecto]: 1 })
   })
 
-  it('ne supprime jamais la seule prise visible d’un traitement', async () => {
-    await expect(doses.remove(milbemax, NOW)).resolves.toBe(false)
-
-    await expect(ligne(milbemax)).resolves.toMatchObject([{ deleted_at: null }])
-  })
-
-  it('ne compte pas une prise supprimée : la restante, seule visible, est gardée', async () => {
-    await doses.record(prisePlan('p1', '2026-04-10'))
-    await doses.remove('p1', EARLIER)
-
-    await expect(doses.remove(milbemax, NOW)).resolves.toBe(false)
-
-    await expect(doses.listByTreatment(milbemax)).resolves.toMatchObject([{ id: milbemax }])
-  })
-
-  it('supprime une prise quand une autre reste visible, et le dit', async () => {
-    await doses.record(prisePlan('p1', '2026-04-10'))
-
+  it('supprime la seule prise visible d’un traitement, et le dit', async () => {
     await expect(doses.remove(milbemax, NOW)).resolves.toBe(true)
 
-    await expect(doses.listByTreatment(milbemax)).resolves.toMatchObject([{ id: 'p1' }])
-  })
-
-  it('rétablit une prise supprimée, sans toucher sa date ni son échéance', async () => {
-    await doses.record(prisePlan('p1', '2026-04-10'))
-    await doses.remove('p1', EARLIER)
-
-    await expect(doses.revive('p1', NOW)).resolves.toBe(true)
-
-    await expect(doses.getById('p1')).resolves.toEqual(lue('p1', '2026-04-10'))
-    await expect(doses.revive('p1', NOW)).resolves.toBe(false)
-  })
-
-  it('ne rétablit pas une prise dont le jour a été noté entre-temps', async () => {
-    await doses.record(prisePlan('p1', '2026-04-10'))
-    await doses.remove('p1', EARLIER)
-    await doses.record(prisePlan('p2', '2026-04-10'))
-
-    await expect(doses.revive('p1', NOW)).resolves.toBe(false)
-  })
-
-  it('change la date d’une prise avec l’échéance qu’elle vise et sa prochaine dose', async () => {
-    await doses.record(prisePlan('p1', '2026-04-10'))
-
-    await expect(
-      doses.changeDate(
-        'p1',
-        { givenOn: '2026-04-12', dueOn: '2026-04-11', nextDueDate: '2026-05-12' },
-        LATER,
-      ),
-    ).resolves.toBe(true)
-
-    await expect(doses.getById('p1')).resolves.toEqual(
-      lue('p1', '2026-04-12', { dueOn: '2026-04-11', nextDueDate: '2026-05-12', updatedAt: LATER }),
-    )
-  })
-
-  it('ne déplace pas une prise sur le jour d’une autre, ni une prise supprimée', async () => {
-    await doses.record(prisePlan('p1', '2026-04-10'))
-    await doses.record(prisePlan('p2', '2026-05-10'))
-    const dates = { givenOn: '2026-05-10', dueOn: '2026-05-10', nextDueDate: '2026-08-10' }
-
-    await expect(doses.changeDate('p1', dates, LATER)).resolves.toBe(false)
-    await doses.remove('p2', NOW)
-    await expect(doses.changeDate('p2', dates, LATER)).resolves.toBe(false)
-    await expect(doses.changeDate('p1', dates, LATER)).resolves.toBe(true)
+    await expect(ligne(milbemax)).resolves.toMatchObject([{ deleted_at: NOW }])
+    await expect(doses.remove(milbemax, LATER)).resolves.toBe(false)
   })
 
   it('laisse la dernière ligne garder sa date et son échéance quand sa prochaine dose change', async () => {

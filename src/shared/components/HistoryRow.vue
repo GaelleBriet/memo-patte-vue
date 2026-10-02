@@ -8,11 +8,16 @@ withDefaults(
     badge?: string | null
     /** Date en poids normal : une prise précédente, sous la dernière mise en avant. */
     regular?: boolean
+    /** Ligne discrète, en gris : une prise oubliée, un report. */
+    muted?: boolean
+    /** Icône avant le texte d'une ligne discrète. */
+    icon?: string | null
     /** Nom du menu ⋮ de la ligne, date en toutes lettres. */
     optionsLabel: string
+    /** Vide : la ligne n'a pas de menu. */
     items: readonly OverflowMenuItem[]
   }>(),
-  { detail: null, badge: null, regular: false },
+  { detail: null, badge: null, regular: false, muted: false, icon: null },
 )
 
 const emit = defineEmits<{
@@ -22,16 +27,24 @@ const emit = defineEmits<{
 
 <template>
   <div class="history-row">
+    <v-icon v-if="icon" class="history-row__icon" :icon="icon" size="22" />
     <div class="history-row__text">
       <p class="history-row__line">
-        <span class="history-row__date" :class="{ 'history-row__date--regular': regular }">{{
-          date
-        }}</span>
+        <span
+          class="history-row__date"
+          :class="{ 'history-row__date--regular': regular, 'history-row__date--muted': muted }"
+          >{{ date }}</span
+        >
         <span v-if="badge" class="history-row__badge">{{ badge }}</span>
       </p>
       <p v-if="detail" class="history-row__detail">{{ detail }}</p>
     </div>
-    <OverflowMenu :label="optionsLabel" :items="items" @select="emit('select', $event)" />
+    <OverflowMenu
+      v-if="items.length > 0"
+      :label="optionsLabel"
+      :items="items"
+      @select="emit('select', $event)"
+    />
   </div>
 </template>
 
@@ -76,6 +89,17 @@ const emit = defineEmits<{
 
 .history-row__date--regular {
   font-weight: 500;
+}
+
+.history-row__date--muted {
+  color: tokens.$color-text-secondary;
+  font-weight: 500;
+}
+
+.history-row__icon {
+  flex: 0 0 auto;
+  margin-inline-end: 4px;
+  color: tokens.$color-text-secondary;
 }
 
 .history-row__badge {

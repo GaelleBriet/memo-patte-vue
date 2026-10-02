@@ -15,7 +15,6 @@ export type TreatmentDoseVersion = Pick<
   NewTreatmentDose,
   'id' | 'periodId' | 'treatmentId' | 'updatedAt' | 'deletedAt'
 >
-export type DoseDates = { givenOn: string; dueOn: string; nextDueDate: string }
 
 type DoseOwner = Pick<NewTreatmentDose, 'id' | 'treatmentId' | 'animalId'>
 
@@ -67,13 +66,6 @@ const WITH_FREQUENCY = `
   JOIN treatment_period period ON period.id = dose.period_id`
 
 const HEAD_FIRST = 'dose.due_on DESC, dose.due_time DESC, dose.created_at DESC, dose.id DESC'
-
-function otherVisibleDose(day?: string): string {
-  return `EXISTS (
-    SELECT 1 FROM treatment_dose other
-    WHERE other.treatment_id = treatment_dose.treatment_id AND other.id <> treatment_dose.id
-      AND other.deleted_at IS NULL${day ? ` AND other.given_on = ${day}` : ''})`
-}
 
 function toDose(row: DoseWithFrequencyRow): TreatmentDose {
   return {
@@ -286,41 +278,12 @@ export function createTreatmentDosesRepository(
       return Object.fromEntries(rows.map((row) => [row.treatment_id, row.count]))
     },
 
-    /**
-     * Faux pour une prise déjà supprimée, ou la seule visible de son traitement sauf `allowLast` :
-     * annuler la prise qu'on vient de noter réussit toujours.
-     */
-    async remove(
-      id: string,
-      deletedAt: string,
-      { allowLast = false }: { allowLast?: boolean } = {},
-    ): Promise<boolean> {
+    /** Faux pour une prise déjà supprimée. */
+    async remove(id: string, deletedAt: string): Promise<boolean> {
       const changes = await db.run(
         `UPDATE treatment_dose SET deleted_at = ?, updated_at = ?
-         WHERE id = ? AND ${NOT_DELETED}${allowLast ? '' : ` AND ${otherVisibleDose()}`}`,
+         WHERE id = ? AND ${NOT_DELETED}`,
         [deletedAt, deletedAt, id],
-      )
-      return changes > 0
-    },
-
-    /** Faux pour une prise visible, ou dont le jour a été noté entre-temps. */
-    async revive(id: string, updatedAt: string): Promise<boolean> {
-      const changes = await db.run(
-        `UPDATE treatment_dose SET deleted_at = NULL, updated_at = ?
-         WHERE id = ? AND deleted_at IS NOT NULL
-           AND NOT ${otherVisibleDose('treatment_dose.given_on')}`,
-        [updatedAt, id],
-      )
-      return changes > 0
-    },
-
-    /** Faux pour une prise supprimée, ou quand une autre prise visible occupe déjà ce jour. */
-    async changeDate(id: string, dates: DoseDates, updatedAt: string): Promise<boolean> {
-      const changes = await db.run(
-        `UPDATE treatment_dose
-         SET given_on = ?, due_on = ?, next_due_date = ?, updated_at = ?
-         WHERE id = ? AND ${NOT_DELETED} AND NOT ${otherVisibleDose('?')}`,
-        [dates.givenOn, dates.dueOn, dates.nextDueDate, updatedAt, id, dates.givenOn],
       )
       return changes > 0
     },

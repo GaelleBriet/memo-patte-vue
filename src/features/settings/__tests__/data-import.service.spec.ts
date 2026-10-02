@@ -1286,9 +1286,21 @@ describe('data-import.service', () => {
       const b = createRepositories(phoneB)
 
       at('2026-09-05T09:00:00.000Z')
-      await b.doses.changeDate(
-        milbemax.id,
-        { givenOn: '2026-06-20', dueOn: '2026-06-20', nextDueDate: '2026-09-20' },
+      await b.doses.applyBatch(
+        [
+          {
+            action: 'rewrite',
+            id: milbemax.id,
+            dose: {
+              periodId: milbemax.periodId,
+              dueOn: '2026-06-20',
+              dueTime: null,
+              givenOn: '2026-06-20',
+              status: 'given',
+              nextDueDate: '2026-09-20',
+            },
+          },
+        ],
         new Date().toISOString(),
       )
       at('2026-09-05T10:00:00.000Z')

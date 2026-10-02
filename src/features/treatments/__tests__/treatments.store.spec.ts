@@ -461,10 +461,8 @@ describe('useTreatmentsStore — gestes d’un rappel', () => {
   const doses = {
     record: vi.fn<TreatmentDosesService['record']>(),
     undo: vi.fn<TreatmentDosesService['undo']>().mockResolvedValue(),
-    remove: vi.fn<TreatmentDosesService['remove']>().mockResolvedValue(),
-    undoRemove: vi.fn<TreatmentDosesService['undoRemove']>().mockResolvedValue(),
-    changeDate: vi.fn<TreatmentDosesService['changeDate']>(),
-    undoChangeDate: vi.fn<TreatmentDosesService['undoChangeDate']>().mockResolvedValue(),
+    apply: vi.fn<TreatmentDosesService['apply']>(),
+    undoBatch: vi.fn<TreatmentDosesService['undoBatch']>().mockResolvedValue(),
   }
   const stop = {
     stop: vi.fn<TreatmentStopService['stop']>(),
@@ -517,25 +515,27 @@ describe('useTreatmentsStore — gestes d’un rappel', () => {
     expect(stop.undo).toHaveBeenCalledWith('t1')
   })
 
-  it('supprime une prise, la rétablit, change sa date puis l’annule, par son service', async () => {
+  it('applique un geste de la fiche puis son annulation par son service, et relit la liste', async () => {
     const seme = repository.seed(vermifuge())
     const store = useTreatmentsStore()
     await store.loadForAnimal(MILO)
-    const avant = { givenOn: '2026-09-20', dueOn: '2026-09-20', nextDueDate: '2026-12-20' }
-    const changement = { previous: avant, postponementKept: true }
-    doses.changeDate.mockResolvedValue(changement)
+    const applied = {
+      animalId: MILO,
+      undo: [{ action: 'restore' as const, id: 'p1' }],
+      alreadyGivenOn: null,
+      postponement: null,
+    }
+    doses.apply.mockResolvedValue(applied)
     repository.listByAnimal.mockClear()
 
-    await store.removeDose(seme.id, 'p1')
-    await store.undoRemoveDose(seme.id, 'p1')
-    await expect(store.changeDoseDate(seme.id, 'p1', '2026-09-18')).resolves.toEqual(changement)
-    await store.undoChangeDoseDate(seme.id, 'p1', avant)
+    await expect(store.applyDoseAction(seme.id, { kind: 'remove', doseId: 'p1' })).resolves.toEqual(
+      applied,
+    )
+    await store.undoDoseAction(seme.id, applied.undo)
 
-    expect(doses.remove).toHaveBeenCalledWith(seme.id, 'p1')
-    expect(doses.undoRemove).toHaveBeenCalledWith(seme.id, 'p1')
-    expect(doses.changeDate).toHaveBeenCalledWith(seme.id, 'p1', '2026-09-18')
-    expect(doses.undoChangeDate).toHaveBeenCalledWith(seme.id, 'p1', avant)
-    expect(repository.listByAnimal).toHaveBeenCalledTimes(4)
+    expect(doses.apply).toHaveBeenCalledWith(seme.id, { kind: 'remove', doseId: 'p1' })
+    expect(doses.undoBatch).toHaveBeenCalledWith(seme.id, applied.undo)
+    expect(repository.listByAnimal).toHaveBeenCalledTimes(2)
   })
 
   it('propage l’échec d’un geste', async () => {

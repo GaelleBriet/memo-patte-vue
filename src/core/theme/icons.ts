@@ -10,6 +10,7 @@ import cloudDone from '@material-symbols/svg-400/outlined/cloud_done.svg?raw'
 import cloudOff from '@material-symbols/svg-400/outlined/cloud_off.svg?raw'
 import creditCard from '@material-symbols/svg-400/outlined/credit_card.svg?raw'
 import dataObject from '@material-symbols/svg-400/outlined/data_object.svg?raw'
+import dateRange from '@material-symbols/svg-400/outlined/date_range.svg?raw'
 import deleteIcon from '@material-symbols/svg-400/outlined/delete.svg?raw'
 import deleteSweep from '@material-symbols/svg-400/outlined/delete_sweep.svg?raw'
 import devices from '@material-symbols/svg-400/outlined/devices.svg?raw'
@@ -21,6 +22,8 @@ import error from '@material-symbols/svg-400/outlined/error.svg?raw'
 import errorFill from '@material-symbols/svg-400/outlined/error-fill.svg?raw'
 import event from '@material-symbols/svg-400/outlined/event.svg?raw'
 import eventAvailable from '@material-symbols/svg-400/outlined/event_available.svg?raw'
+import eventBusy from '@material-symbols/svg-400/outlined/event_busy.svg?raw'
+import eventRepeat from '@material-symbols/svg-400/outlined/event_repeat.svg?raw'
 import folderOff from '@material-symbols/svg-400/outlined/folder_off.svg?raw'
 import history from '@material-symbols/svg-400/outlined/history.svg?raw'
 import home from '@material-symbols/svg-400/outlined/home.svg?raw'
@@ -38,6 +41,7 @@ import pestControl from '@material-symbols/svg-400/outlined/pest_control.svg?raw
 import pets from '@material-symbols/svg-400/outlined/pets.svg?raw'
 import photoCamera from '@material-symbols/svg-400/outlined/photo_camera.svg?raw'
 import pictureAsPdf from '@material-symbols/svg-400/outlined/picture_as_pdf.svg?raw'
+import pill from '@material-symbols/svg-400/outlined/pill.svg?raw'
 import queryStats from '@material-symbols/svg-400/outlined/query_stats.svg?raw'
 import repeat from '@material-symbols/svg-400/outlined/repeat.svg?raw'
 import restartAlt from '@material-symbols/svg-400/outlined/restart_alt.svg?raw'
@@ -145,6 +149,7 @@ export const msIcons = {
   colorize,
   credit_card: creditCard,
   data_object: dataObject,
+  date_range: dateRange,
   delete: deleteIcon,
   delete_sweep: deleteSweep,
   devices,
@@ -156,6 +161,8 @@ export const msIcons = {
   error_fill: errorFill,
   event,
   event_available: eventAvailable,
+  event_busy: eventBusy,
+  event_repeat: eventRepeat,
   first_page: firstPage,
   folder_off: folderOff,
   fullscreen,
@@ -189,6 +196,7 @@ export const msIcons = {
   pets,
   photo_camera: photoCamera,
   picture_as_pdf: pictureAsPdf,
+  pill,
   play_arrow: playArrow,
   query_stats: queryStats,
   radio_button_checked: radioButtonChecked,
