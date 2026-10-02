@@ -5,6 +5,13 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.53](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.52...memo-patte-v0.1.53) (2026-10-02)
+
+
+### 🐛 Corrections
+
+* **android:** lancer MainActivity en singleTop ([20d3d8c](https://github.com/GaelleBriet/memo-patte-vue/commit/20d3d8c87703519570bae09d9bcbcfbc147a8fd1))
+
 ## [0.1.52](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.51...memo-patte-v0.1.52) (2026-10-02)
 
 
