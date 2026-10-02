@@ -17,6 +17,7 @@ import {
   formatFullDayMonth,
   formatWeekdayDate,
   nonBreaking,
+  withoutFinalDot,
 } from '../utils/format'
 import { applyLocale } from '@/core/i18n'
 
@@ -224,5 +225,13 @@ describe('formatClockTimes', () => {
     expect(formatClockTimes(['08:00', '14:00', '20:00'])).toBe(
       '8\u00a0am, 2\u00a0pm, and 8\u00a0pm',
     )
+  })
+})
+
+describe('withoutFinalDot', () => {
+  it('retire le point d’une abréviation qui précède le point final, et rien d’autre', () => {
+    expect(withoutFinalDot('10 oct.')).toBe('10 oct')
+    expect(withoutFinalDot('10 mai')).toBe('10 mai')
+    expect(withoutFinalDot('Oct 10')).toBe('Oct 10')
   })
 })

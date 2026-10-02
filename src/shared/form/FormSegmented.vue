@@ -15,6 +15,8 @@ const props = defineProps<{
   modelValue: T | null
   options: readonly SegmentedOption<T>[]
   labelId?: string
+  /** Trois libellés sur une ligne : options serrées, l'option cochée sans coche. */
+  compact?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -31,10 +33,10 @@ function select(value: unknown): void {
 <template>
   <v-btn-toggle
     class="form-segmented"
-    :class="{ 'form-segmented--stacked': isStacked }"
+    :class="{ 'form-segmented--stacked': isStacked, 'form-segmented--compact': compact }"
     role="radiogroup"
     :aria-labelledby="labelId"
-    divided
+    :divided="!compact"
     variant="flat"
     base-color="surface"
     color="primary"
@@ -56,7 +58,7 @@ function select(value: unknown): void {
         <span class="form-segmented__hint">{{ option.hint }}</span>
       </span>
       <template v-else>
-        <v-icon v-if="modelValue === option.value" icon="ms:check" size="18" />
+        <v-icon v-if="!compact && modelValue === option.value" icon="ms:check" size="18" />
         <span>{{ option.label }}</span>
       </template>
     </v-btn>
@@ -95,6 +97,23 @@ function select(value: unknown): void {
 .form-segmented__option--selected {
   color: tokens.$color-on-primary;
   font-weight: 700;
+}
+
+.form-segmented--compact {
+  height: tokens.$height-segmented-compact;
+  gap: 2px;
+  padding: 3px;
+  border-color: tokens.$color-field-border;
+  border-radius: tokens.$radius-field;
+  background: tokens.$color-field-surface;
+}
+
+.form-segmented--compact .form-segmented__option {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0 4px;
+  border-radius: tokens.$radius-segment-compact;
+  font-size: 13px;
 }
 
 .form-segmented__stack {

@@ -1,5 +1,6 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { ZodError } from 'zod'
 import type { DbClient } from '@/core/db/db-client'
 import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory-db'
 import { getDb } from '@/core/db/sqlite'
@@ -33,13 +34,13 @@ function period(overrides: Partial<TreatmentPeriod> = {}): TreatmentPeriod {
     treatmentId: MILBEMAX,
     animalId: MIETTE,
     startsOn: '2026-01-10',
-    firstDueOn: '2026-01-10',
     frequency: { value: 3, unit: 'month' },
     stoppedOn: null,
     createdAt: T0,
     updatedAt: T0,
     deletedAt: null,
     ...overrides,
+    firstDueOn: overrides.firstDueOn ?? overrides.startsOn ?? '2026-01-10',
   }
 }
 
@@ -203,41 +204,6 @@ describe('treatmentPeriodsRepository', () => {
 
       await expect(row(REPRISE)).resolves.toMatchObject({ stopped_on: null, updated_at: NOW })
     })
-
-    it('corrige la fréquence de la période en cours, sans la remettre en cours', async () => {
-      await periods.stop(MILBEMAX, '2026-03-01')
-
-      await db.runMany([
-        periods.correctCurrentStatement(MILBEMAX, {
-          frequency: { value: 2, unit: 'week' },
-          resume: false,
-          updatedAt: NOW,
-        }),
-      ])
-
-      await expect(row(REPRISE)).resolves.toMatchObject({
-        frequency_value: 2,
-        frequency_unit: 'week',
-        stopped_on: '2026-03-01',
-        starts_on: '2026-02-15',
-        updated_at: NOW,
-      })
-      await expect(row(MILBEMAX)).resolves.toMatchObject({ frequency_value: 3, updated_at: T0 })
-    })
-
-    it('remet en cours la période corrigée par une reprise', async () => {
-      await periods.stop(MILBEMAX, '2026-03-01')
-
-      await db.runMany([
-        periods.correctCurrentStatement(MILBEMAX, {
-          frequency: { value: 3, unit: 'month' },
-          resume: true,
-          updatedAt: NOW,
-        }),
-      ])
-
-      await expect(row(REPRISE)).resolves.toMatchObject({ stopped_on: null, updated_at: NOW })
-    })
   })
 
   describe('période complète', () => {
@@ -303,6 +269,22 @@ describe('treatmentPeriodsRepository', () => {
 
       const [, current] = await periods.listByTreatment(MILBEMAX)
       expect(current).toEqual({ ...COMPLETE, ...sans, updatedAt: NOW })
+    })
+
+    it('refuse d’insérer ou de corriger des réglages incohérents, sans rien écrire', async () => {
+      const sansUnite = { ...REGLAGES, doseUnit: null }
+      const finAvantLaPremiere = { ...REGLAGES, endsOn: '2026-02-10' }
+
+      expect(() => periods.insertStatement({ ...COMPLETE, ...sansUnite })).toThrow(ZodError)
+      expect(() => periods.insertStatement({ ...COMPLETE, firstDueOn: '2026-02-09' })).toThrow(
+        ZodError,
+      )
+      expect(() => periods.correctCurrentSettingsStatement(MILBEMAX, sansUnite, NOW)).toThrow(
+        ZodError,
+      )
+      expect(() =>
+        periods.correctCurrentSettingsStatement(MILBEMAX, finAvantLaPremiere, NOW),
+      ).toThrow(ZodError)
     })
 
     it('ne date pas une période dont aucun réglage ne change', async () => {

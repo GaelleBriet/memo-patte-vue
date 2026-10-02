@@ -1,6 +1,8 @@
 import { z } from 'zod'
 
 import { treatmentFrequencySchema } from './treatment.schema'
+import { isCalendarDay } from '@/shared/domain/calendar-day'
+import { CLOCK_TIME_PATTERN, MAX_TIMES_PER_DAY } from '@/shared/domain/clock-time'
 import { DOSE_UNITS, type DoseUnit } from '@/shared/domain/dosage'
 
 export const treatmentPeriodSchema = z.object({
@@ -48,3 +50,39 @@ export type TreatmentPeriodSettings = Pick<
   | 'reminderOffsetMinutes'
   | 'reminderTime'
 >
+
+export const calendarDaySchema = z.string().refine(isCalendarDay)
+export const clockTimeSchema = z.string().regex(CLOCK_TIME_PATTERN)
+
+export const treatmentTimesSchema = z
+  .array(clockTimeSchema)
+  .max(MAX_TIMES_PER_DAY)
+  .refine((times) => new Set(times).size === times.length)
+
+export const doseQuantitySchema = z.number().positive()
+
+export function hasWholeDosage({
+  doseQuantity,
+  doseUnit,
+}: Pick<TreatmentPeriodSettings, 'doseQuantity' | 'doseUnit'>): boolean {
+  return (doseQuantity === null) === (doseUnit === null)
+}
+
+/** Garde de toute écriture d'une période : ce qu'elle laisse passer se réimporte. */
+export const treatmentPeriodSettingsSchema = z
+  .object({
+    startsOn: calendarDaySchema,
+    firstDueOn: calendarDaySchema,
+    endsOn: calendarDaySchema.nullable(),
+    frequency: treatmentFrequencySchema,
+    times: treatmentTimesSchema,
+    doseQuantity: doseQuantitySchema.nullable(),
+    doseUnit: doseUnitSchema.nullable(),
+    reminderOffsetMinutes: z.literal([...REMINDER_OFFSETS_MINUTES]).nullable(),
+    reminderTime: clockTimeSchema.nullable(),
+  })
+  .refine(hasWholeDosage, { path: ['doseUnit'] })
+  .refine(({ startsOn, firstDueOn }) => firstDueOn >= startsOn, { path: ['firstDueOn'] })
+  .refine(({ firstDueOn, endsOn }) => endsOn === null || endsOn >= firstDueOn, {
+    path: ['endsOn'],
+  })

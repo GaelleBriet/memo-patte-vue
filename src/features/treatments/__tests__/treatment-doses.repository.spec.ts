@@ -8,8 +8,8 @@ import {
   getTreatmentDosesRepository,
   type TreatmentDosesRepository,
 } from '../repository/treatment-doses.repository'
-import { createTreatmentsRepository } from '../repository/treatments.repository'
 import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
+import { seedTreatmentWithDose } from './seed-treatment'
 
 vi.mock('@/core/db/sqlite', () => ({ getDb: vi.fn<() => Promise<DbClient>>() }))
 
@@ -77,10 +77,9 @@ describe('treatmentDosesRepository', () => {
       [MIETTE, T0, T0, VASCO, T0, T0],
     )
     doses = createTreatmentDosesRepository(db)
-    const treatments = createTreatmentsRepository(db)
-    milbemax = (await treatments.create({ ...plan, animalId: MIETTE, name: 'Milbemax' })).id
-    drontal = (await treatments.create({ ...plan, animalId: MIETTE, name: 'Drontal' })).id
-    bravecto = (await treatments.create({ ...plan, animalId: VASCO, name: 'Bravecto' })).id
+    milbemax = (await seedTreatmentWithDose(db, { ...plan, animalId: MIETTE, name: 'Milbemax' })).id
+    drontal = (await seedTreatmentWithDose(db, { ...plan, animalId: MIETTE, name: 'Drontal' })).id
+    bravecto = (await seedTreatmentWithDose(db, { ...plan, animalId: VASCO, name: 'Bravecto' })).id
     await db.run(
       'UPDATE treatment_dose SET deleted_at = ?, updated_at = ? WHERE treatment_id = ?',
       [EARLIER, EARLIER, drontal],
@@ -236,9 +235,8 @@ describe('treatmentDosesRepository — historique', () => {
       [MIETTE, T0, T0, VASCO, T0, T0],
     )
     doses = createTreatmentDosesRepository(db)
-    const treatments = createTreatmentsRepository(db)
-    milbemax = (await treatments.create({ ...plan, animalId: MIETTE, name: 'Milbemax' })).id
-    bravecto = (await treatments.create({ ...plan, animalId: VASCO, name: 'Bravecto' })).id
+    milbemax = (await seedTreatmentWithDose(db, { ...plan, animalId: MIETTE, name: 'Milbemax' })).id
+    bravecto = (await seedTreatmentWithDose(db, { ...plan, animalId: VASCO, name: 'Bravecto' })).id
   })
 
   afterEach(() => {
@@ -292,20 +290,6 @@ describe('treatmentDosesRepository — historique', () => {
 
     await expect(doses.countByAnimal(MIETTE)).resolves.toEqual({ [milbemax]: 2 })
     await expect(doses.countByAnimal(VASCO)).resolves.toEqual({ [bravecto]: 1 })
-  })
-
-  it('laisse la dernière ligne garder sa date et son échéance quand sa prochaine dose change', async () => {
-    await db.runMany([
-      doses.insertStatement(prisePlan('p1', '2026-04-12', { dueOn: '2026-04-10' })),
-    ])
-
-    await db.runMany([
-      doses.updateHeadStatement(milbemax, { nextDueDate: '2026-09-01', updatedAt: LATER }),
-    ])
-
-    await expect(doses.getById('p1')).resolves.toEqual(
-      lue('p1', '2026-04-12', { dueOn: '2026-04-10', nextDueDate: '2026-09-01', updatedAt: LATER }),
-    )
   })
 })
 

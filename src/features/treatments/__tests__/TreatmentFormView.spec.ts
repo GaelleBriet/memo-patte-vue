@@ -4,7 +4,15 @@ import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } fr
 import { createMemoryHistory, createRouter, type Router } from 'vue-router'
 
 import TreatmentFormView from '../views/TreatmentFormView.vue'
-import type { Treatment, TreatmentEditInput, TreatmentInput } from '../schema/treatment.schema'
+import type { TreatmentWithHistory } from '../repository/treatments.repository'
+import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
+import type {
+  TreatmentCreationInput,
+  TreatmentEditionInput,
+  TreatmentResumptionInput,
+} from '../schema/treatment-form.schema'
+import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
+import type { Treatment } from '../schema/treatment.schema'
 import { useTreatmentsStore } from '../store/treatments.store'
 import type { Animal } from '@/features/animals/schema/animal.schema'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
@@ -12,7 +20,6 @@ import { simulateWebResume } from '@/core/app-lifecycle/__tests__/simulate-resum
 import i18n from '@/core/i18n'
 import router from '@/router'
 import vuetify from '@/core/theme/vuetify'
-import { todayIsoDate } from '@/core/app-lifecycle/today-iso-date'
 import { shouldShowPriming } from '@/core/notifications/permission'
 import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
 
@@ -53,6 +60,9 @@ async function retourAndroid(): Promise<void> {
   await arrive
 }
 
+const AUJOURDHUI = '2026-09-28T09:41:00'
+const AT = '2026-07-10T09:00:00.000Z'
+
 const MILO: Animal = {
   id: '11111111-1111-4111-8111-111111111111',
   name: 'Milo',
@@ -60,34 +70,94 @@ const MILO: Animal = {
   breed: null,
   birthDate: null,
   photoPath: null,
-  createdAt: '2026-09-09T09:00:00.000Z',
-  updatedAt: '2026-09-09T09:00:00.000Z',
+  createdAt: AT,
+  updatedAt: AT,
   deletedAt: null,
 }
 
-const BRAVECTO: Treatment = {
-  id: '22222222-2222-4222-8222-222222222222',
+const ID = '22222222-2222-4222-8222-222222222222'
+
+function periode(overrides: Partial<TreatmentPeriodRecord> = {}): TreatmentPeriodRecord {
+  return {
+    id: ID,
+    treatmentId: ID,
+    animalId: MILO.id,
+    startsOn: '2026-07-10',
+    firstDueOn: '2026-07-10',
+    endsOn: null,
+    stoppedOn: null,
+    frequency: { value: 3, unit: 'month' },
+    times: [],
+    doseQuantity: 1,
+    doseUnit: 'tablet',
+    reminderOffsetMinutes: null,
+    reminderTime: null,
+    createdAt: AT,
+    updatedAt: AT,
+    deletedAt: null,
+    ...overrides,
+  }
+}
+
+function prise(overrides: Partial<NewTreatmentDose> = {}): NewTreatmentDose {
+  return {
+    id: 'd-1',
+    periodId: ID,
+    treatmentId: ID,
+    animalId: MILO.id,
+    dueOn: '2026-07-10',
+    dueTime: null,
+    givenOn: '2026-07-10',
+    status: 'given',
+    nextDueDate: '2026-10-10',
+    createdAt: AT,
+    updatedAt: AT,
+    deletedAt: null,
+    ...overrides,
+  }
+}
+
+function milbemax(
+  periods: TreatmentPeriodRecord[] = [periode()],
+  doses: NewTreatmentDose[] = [prise()],
+): TreatmentWithHistory {
+  return {
+    id: ID,
+    animalId: MILO.id,
+    name: 'Milbemax',
+    type: 'deworming',
+    createdAt: AT,
+    updatedAt: AT,
+    periods,
+    doses,
+  }
+}
+
+const ECRIT: Treatment = {
+  id: ID,
   animalId: MILO.id,
-  name: 'Bravecto',
-  type: 'antiparasitic',
-  periodId: '22222222-2222-4222-8222-222222222222',
+  name: 'Milbemax',
+  type: 'deworming',
+  periodId: ID,
   frequency: { value: 3, unit: 'month' },
-  lastDoseDate: '2026-06-24',
-  nextDueDate: '2026-09-24',
+  lastDoseDate: '2026-07-10',
+  nextDueDate: '2026-10-10',
   stoppedOn: null,
-  createdAt: '2026-09-09T09:00:00.000Z',
-  updatedAt: '2026-09-09T09:00:00.000Z',
+  createdAt: AT,
+  updatedAt: AT,
   deletedAt: null,
 }
 
 let loadAnimals: MockInstance
-let create: MockInstance<(input: TreatmentInput) => Promise<Treatment>>
-let update: MockInstance<(id: string, input: TreatmentEditInput) => Promise<Treatment>>
-let getById: MockInstance<(id: string) => Promise<Treatment | null>>
+let create: MockInstance<(input: TreatmentCreationInput) => Promise<Treatment>>
+let update: MockInstance<(id: string, input: TreatmentEditionInput) => Promise<Treatment>>
+let resume: MockInstance<(id: string, input: TreatmentResumptionInput) => Promise<Treatment>>
+let getWithHistory: MockInstance<(id: string) => Promise<TreatmentWithHistory | null>>
 let replace: MockInstance
 let routeur: Router
 
 beforeEach(async () => {
+  vi.useFakeTimers({ toFake: ['Date'], now: new Date(AUJOURDHUI) })
   setActivePinia(createPinia())
   const animals = useAnimalsStore()
   loadAnimals = vi.spyOn(animals, 'load').mockImplementation(async () => {
@@ -96,9 +166,10 @@ beforeEach(async () => {
     return true
   })
   const treatments = useTreatmentsStore()
-  create = vi.spyOn(treatments, 'create').mockResolvedValue(BRAVECTO)
-  update = vi.spyOn(treatments, 'update').mockResolvedValue(BRAVECTO)
-  getById = vi.spyOn(treatments, 'getById').mockResolvedValue(BRAVECTO)
+  create = vi.spyOn(treatments, 'create').mockResolvedValue(ECRIT)
+  update = vi.spyOn(treatments, 'update').mockResolvedValue(ECRIT)
+  resume = vi.spyOn(treatments, 'resume').mockResolvedValue(ECRIT)
+  getWithHistory = vi.spyOn(treatments, 'getWithHistory').mockResolvedValue(milbemax())
   routeur = routeurMemoire()
   await routeur.push('/animals')
   replace = vi.spyOn(routeur, 'replace').mockResolvedValue()
@@ -107,11 +178,12 @@ beforeEach(async () => {
 afterEach(() => {
   vi.restoreAllMocks()
   vi.useRealTimers()
+  i18n.global.locale.value = 'fr'
 })
 
-async function monterCreation(animalId = MILO.id) {
+async function monter(props: { animalId?: string; id?: string; resume?: boolean }) {
   const wrapper = mount(TreatmentFormView, {
-    props: { animalId },
+    props,
     global: { plugins: [vuetify, i18n, routeur] },
     attachTo: document.body,
   })
@@ -119,15 +191,9 @@ async function monterCreation(animalId = MILO.id) {
   return wrapper
 }
 
-async function monterEdition(id = BRAVECTO.id) {
-  const wrapper = mount(TreatmentFormView, {
-    props: { id },
-    global: { plugins: [vuetify, i18n, routeur] },
-    attachTo: document.body,
-  })
-  await flushPromises()
-  return wrapper
-}
+const monterCreation = (animalId = MILO.id) => monter({ animalId })
+const monterEdition = () => monter({ id: ID })
+const monterReprise = () => monter({ id: ID, resume: true })
 
 function champ(wrapper: VueWrapper, id: string) {
   return wrapper.get(`#${id}`)
@@ -160,11 +226,42 @@ function messages(wrapper: VueWrapper): string[] {
   return wrapper.findAll('.form-field__error').map((noeud) => noeud.text())
 }
 
+function libelles(wrapper: VueWrapper): string[] {
+  return wrapper.findAll('.form-field__label > span:first-child').map((noeud) => noeud.text())
+}
+
+function aide(wrapper: VueWrapper, field: string): string | undefined {
+  const noeud = wrapper.find(`.treatment-form__field--${field} .form-field__help`)
+  return noeud.exists() ? noeud.text() : undefined
+}
+
+function heures(wrapper: VueWrapper): string[] {
+  return wrapper.findAll('.treatment-times__chip').map((chip) => chip.text())
+}
+
+async function choisirHeure(wrapper: VueWrapper, selecteur: string, heure: string) {
+  const input = wrapper.get(selecteur)
+  ;(input.element as HTMLInputElement).value = heure
+  await input.trigger('change')
+}
+
+const ajouterHeure = (wrapper: VueWrapper, heure: string) =>
+  choisirHeure(wrapper, '.treatment-times__input--add', heure)
+
+function unite(wrapper: VueWrapper) {
+  return wrapper.findComponent({ name: 'VSelect' })
+}
+
+function raccourcis(wrapper: VueWrapper) {
+  return wrapper.findAll('.treatment-dosage__shortcut')
+}
+
 async function remplirMinimum(wrapper: VueWrapper) {
-  await champ(wrapper, 'treatment-name').setValue('Bravecto')
-  await types(wrapper)[1]!.trigger('click')
-  await champ(wrapper, 'treatment-frequency-value').setValue('3')
-  await champ(wrapper, 'treatment-last-dose-date').setValue('2026-06-24')
+  await champ(wrapper, 'treatment-name').setValue('Panacur')
+  await types(wrapper)[0]!.trigger('click')
+  await champ(wrapper, 'treatment-frequency-value').setValue('1')
+  await choisirUnite(wrapper, 'day')
+  await champ(wrapper, 'treatment-first-dose-on').setValue('2026-09-29')
 }
 
 async function soumettre(wrapper: VueWrapper) {
@@ -172,7 +269,7 @@ async function soumettre(wrapper: VueWrapper) {
   await flushPromises()
 }
 
-describe('TreatmentFormView — structure', () => {
+describe('TreatmentFormView — structure (TR-1, planche V1)', () => {
   it('affiche « Nouveau traitement », la flèche de retour et l’animal en sous-titre', async () => {
     const wrapper = await monterCreation()
 
@@ -182,55 +279,59 @@ describe('TreatmentFormView — structure', () => {
     expect(loadAnimals).toHaveBeenCalledOnce()
   })
 
-  it('rend les quatre champs du schéma, tous obligatoires', async () => {
+  it('rend les champs dans l’ordre de la planche, quatre obligatoires et trois facultatifs', async () => {
     const wrapper = await monterCreation()
 
-    expect(wrapper.findAll('.form-field')).toHaveLength(4)
+    expect(libelles(wrapper)).toEqual([
+      'Nom du produit',
+      'Type',
+      'Fréquence',
+      'Première prise le',
+      'Heures du traitement',
+      'Posologie',
+      'Date de fin',
+    ])
     expect(wrapper.findAll('.form-field__required')).toHaveLength(4)
-    expect(wrapper.findAll('.form-field__optional')).toHaveLength(0)
+    expect(wrapper.findAll('.form-field__optional')).toHaveLength(3)
   })
 
   it('n’offre aucun sélecteur d’animal : l’animal est un fait, pas un choix', async () => {
     const wrapper = await monterCreation()
 
     expect(wrapper.find('.animal-chip-selector').exists()).toBe(false)
-    expect(wrapper.findAll('[role="radiogroup"]')).toHaveLength(2)
   })
 
-  it('propose vermifuge et antiparasitaire en choix exclusifs, aucun présélectionné', async () => {
+  it('propose les trois types en choix exclusifs, aucun présélectionné', async () => {
     const wrapper = await monterCreation()
 
-    expect(types(wrapper).map((bouton) => bouton.text())).toEqual(['Vermifuge', 'Antiparasitaire'])
+    expect(types(wrapper).map((bouton) => bouton.text())).toEqual([
+      'Vermifuge',
+      'Antiparasitaire',
+      'Médicament',
+    ])
     expect(types(wrapper).map((bouton) => bouton.attributes('aria-checked'))).toEqual([
       'false',
       'false',
+      'false',
     ])
+    expect(wrapper.get('.treatment-form__field--type .form-segmented').classes()).toContain(
+      'form-segmented--compact',
+    )
   })
 
-  it('saisit la fréquence en « Tous les » + entier + unité, l’unité au mois par défaut', async () => {
+  it('saisit la fréquence sur une ligne : « Tous les », un entier, l’unité au mois par défaut', async () => {
     const wrapper = await monterCreation()
     const nombre = champ(wrapper, 'treatment-frequency-value')
+    const ligne = wrapper.get('.treatment-form__frequency')
 
-    expect(wrapper.get('.treatment-form__frequency').text()).toContain('Tous les')
+    expect(ligne.text()).toContain('Tous les')
+    expect(ligne.find('#treatment-frequency-value').exists()).toBe(true)
+    expect(ligne.find('.treatment-form__unit').attributes('role')).toBe('radiogroup')
     expect(nombre.attributes('inputmode')).toBe('numeric')
     expect(nombre.attributes('min')).toBe('1')
     expect(nombre.attributes('max')).toBe('365')
+    expect(nombre.attributes('placeholder')).toBe('1')
     expect(uniteCochee(wrapper)).toBe('month')
-  })
-
-  it('choisit l’unité parmi trois boutons sur leur propre ligne, jamais dans un select', async () => {
-    const wrapper = await monterCreation()
-
-    expect(wrapper.findComponent({ name: 'VSelect' }).exists()).toBe(false)
-    expect(wrapper.findAll('select')).toHaveLength(0)
-    expect(unites(wrapper)).toHaveLength(3)
-    expect(wrapper.get('.treatment-form__unit').attributes('role')).toBe('radiogroup')
-    expect(wrapper.find('.treatment-form__frequency-row .treatment-form__unit').exists()).toBe(
-      false,
-    )
-    expect(wrapper.find('.treatment-form__frequency-row #treatment-frequency-value').exists()).toBe(
-      true,
-    )
   })
 
   it('garde l’unité cochée quand on la retape : une fréquence a toujours une unité', async () => {
@@ -241,59 +342,281 @@ describe('TreatmentFormView — structure', () => {
     expect(uniteCochee(wrapper)).toBe('month')
   })
 
-  it('accorde le mot de liaison à l’unité : « Toutes les 2 semaines »', async () => {
+  it('accorde le mot de liaison et les libellés d’unité à la saisie', async () => {
     const wrapper = await monterCreation()
     await champ(wrapper, 'treatment-frequency-value').setValue('2')
 
+    expect(unites(wrapper).map((bouton) => bouton.text())).toEqual(['jours', 'semaines', 'mois'])
     expect(wrapper.get('#treatment-frequency-every').text()).toBe('Tous les')
 
     await choisirUnite(wrapper, 'week')
 
     expect(wrapper.get('#treatment-frequency-every').text()).toBe('Toutes les')
 
-    await choisirUnite(wrapper, 'day')
-
-    expect(wrapper.get('#treatment-frequency-every').text()).toBe('Tous les')
-  })
-
-  it('accorde les libellés d’unité au nombre saisi', async () => {
-    const wrapper = await monterCreation()
-    await champ(wrapper, 'treatment-frequency-value').setValue('2')
-
-    expect(unites(wrapper).map((bouton) => bouton.text())).toEqual(['jours', 'semaines', 'mois'])
-
     await champ(wrapper, 'treatment-frequency-value').setValue('1')
 
     expect(unites(wrapper).map((bouton) => bouton.text())).toEqual(['jour', 'semaine', 'mois'])
   })
 
-  it('borne la date de la dernière prise à aujourd’hui', async () => {
+  it('demande la première prise sans la borner, avec l’aide de TR-2', async () => {
     const wrapper = await monterCreation()
-    const date = champ(wrapper, 'treatment-last-dose-date')
+    const date = champ(wrapper, 'treatment-first-dose-on')
 
     expect(date.attributes('type')).toBe('date')
-    expect(date.attributes('max')).toBe(todayIsoDate())
+    expect(date.attributes('min')).toBeUndefined()
+    expect(date.attributes('max')).toBeUndefined()
+    expect(aide(wrapper, 'first-dose-on')).toBe(
+      'Déjà en cours\u00a0? Indique la dernière prise certaine\u00a0: l’historique commencera là.',
+    )
+    expect(date.attributes('aria-describedby')).toBe(
+      wrapper.get('.treatment-form__field--first-dose-on .form-field__help').attributes('id'),
+    )
+  })
+
+  it('n’a ni « Prochaine dose » ni encart d’information à la création', async () => {
+    const wrapper = await monterCreation()
+
+    expect(wrapper.find('#treatment-next-dose-on').exists()).toBe(false)
+    expect(wrapper.find('.treatment-form__info').exists()).toBe(false)
+  })
+
+  it('écrit les textes anglais du glossaire', async () => {
+    i18n.global.locale.value = 'en'
+    const wrapper = await monterCreation()
+
+    expect(libelles(wrapper)).toEqual([
+      'Product name',
+      'Type',
+      'Frequency',
+      'First dose on',
+      'Treatment times',
+      'Dosage',
+      'End date',
+    ])
+    expect(types(wrapper).map((bouton) => bouton.text())).toEqual([
+      'Dewormer',
+      'Parasite control',
+      'Medication',
+    ])
+    expect(wrapper.get('.treatment-times__add').text()).toBe('Add a time')
+    expect(wrapper.get('.form-screen__submit').text()).toBe('Create')
+    expect(aide(wrapper, 'ends-on')).toBe('No dose will be scheduled after this date.')
   })
 })
 
-describe('TreatmentFormView — aperçu de la prochaine dose', () => {
-  it('ne montre rien tant que fréquence et date ne sont pas valides', async () => {
+describe('TreatmentFormView — heures du traitement (TR-5)', () => {
+  it('part sans heure, avec « Ajouter une heure »', async () => {
     const wrapper = await monterCreation()
-    await champ(wrapper, 'treatment-frequency-value').setValue('3')
 
-    expect(wrapper.find('.treatment-form__next-dose').exists()).toBe(false)
+    expect(heures(wrapper)).toEqual([])
+    expect(wrapper.get('.treatment-times__add').text()).toBe('Ajouter une heure')
+    expect(wrapper.get('.treatment-times__input--add').attributes('type')).toBe('time')
   })
 
-  it('calcule la prochaine dose en direct dès que fréquence et date sont valides', async () => {
+  it('ajoute plusieurs heures, rangées dans l’ordre de la journée, quelle que soit la fréquence', async () => {
     const wrapper = await monterCreation()
-    await champ(wrapper, 'treatment-frequency-value').setValue('3')
-    await champ(wrapper, 'treatment-last-dose-date').setValue('2026-06-24')
+    await champ(wrapper, 'treatment-frequency-value').setValue('2')
 
-    expect(wrapper.get('.treatment-form__next-dose').text()).toBe('Prochaine dose le 24 sept. 2026')
+    await ajouterHeure(wrapper, '20:00')
+    await ajouterHeure(wrapper, '08:00')
 
-    await choisirUnite(wrapper, 'week')
+    expect(heures(wrapper)).toEqual(['8\u00a0h', '20\u00a0h'])
+    expect((wrapper.get('.treatment-times__input--add').element as HTMLInputElement).value).toBe('')
+  })
 
-    expect(wrapper.get('.treatment-form__next-dose').text()).toBe('Prochaine dose le 15 juil. 2026')
+  it('refuse une heure déjà présente, à l’ajout comme au changement, sans retirer de puce, et le dit', async () => {
+    const wrapper = await monterCreation()
+    await ajouterHeure(wrapper, '08:00')
+    await ajouterHeure(wrapper, '20:00')
+
+    await ajouterHeure(wrapper, '20:00')
+
+    expect(heures(wrapper)).toEqual(['8\u00a0h', '20\u00a0h'])
+    expect(messages(wrapper)).toEqual(['Cette heure est déjà dans la liste.'])
+
+    await choisirHeure(wrapper, '.treatment-times__chip input', '09:00')
+    expect(messages(wrapper)).toEqual([])
+
+    await choisirHeure(wrapper, '.treatment-times__chip input', '20:00')
+
+    expect(heures(wrapper)).toEqual(['9\u00a0h', '20\u00a0h'])
+    expect(messages(wrapper)).toEqual(['Cette heure est déjà dans la liste.'])
+    const erreur = wrapper.get('.treatment-form__field--times .form-field__error')
+    for (const input of wrapper.findAll('.treatment-times__input')) {
+      expect(input.attributes('aria-describedby')).toBe(erreur.attributes('id'))
+      expect(input.attributes('aria-invalid')).toBe('true')
+    }
+  })
+
+  it('efface l’erreur de doublon dès que la liste change', async () => {
+    const wrapper = await monterCreation()
+    await ajouterHeure(wrapper, '08:00')
+    await ajouterHeure(wrapper, '20:00')
+    await ajouterHeure(wrapper, '20:00')
+    expect(messages(wrapper)).toEqual(['Cette heure est déjà dans la liste.'])
+
+    await wrapper.get('.treatment-times__remove').trigger('click')
+
+    expect(heures(wrapper)).toEqual(['20\u00a0h'])
+    expect(messages(wrapper)).toEqual([])
+  })
+
+  it('retire une heure et en change une autre, chacune nommée pour le lecteur d’écran', async () => {
+    const wrapper = await monterCreation()
+    await ajouterHeure(wrapper, '08:00')
+    await ajouterHeure(wrapper, '20:00')
+    const [matin] = wrapper.findAll('.treatment-times__chip')
+
+    expect(matin!.get('input').attributes('aria-label')).toBe('Heure 8\u00a0h, modifier')
+    expect(matin!.get('.treatment-times__remove').attributes('aria-label')).toBe('Retirer 8\u00a0h')
+
+    await matin!.get('.treatment-times__remove').trigger('click')
+    await choisirHeure(wrapper, '.treatment-times__chip input', '07:30')
+
+    expect(heures(wrapper)).toEqual(['7\u00a0h\u00a030'])
+  })
+
+  it('écrit les heures à l’anglaise', async () => {
+    i18n.global.locale.value = 'en'
+    const wrapper = await monterCreation()
+
+    await ajouterHeure(wrapper, '20:00')
+
+    expect(heures(wrapper)).toEqual(['8\u00a0pm'])
+    expect(wrapper.get('.treatment-times__remove').attributes('aria-label')).toBe(
+      'Remove 8\u00a0pm',
+    )
+  })
+})
+
+describe('TreatmentFormView — posologie (TR-4)', () => {
+  it('propose une quantité libre et les onze unités, sans raccourci tant que l’unité n’est pas le comprimé', async () => {
+    const wrapper = await monterCreation()
+
+    expect(champ(wrapper, 'treatment-dose-quantity').attributes('inputmode')).toBe('decimal')
+    expect(champ(wrapper, 'treatment-dose-quantity').attributes('placeholder')).toBe('Quantité')
+    expect(
+      (unite(wrapper).props('items') as { title: string }[]).map(({ title }) => title),
+    ).toEqual([
+      'comprimé',
+      'gélule',
+      'pipette',
+      'collier',
+      'ml',
+      'goutte',
+      'g',
+      'sachet',
+      'pulvérisation',
+      'application',
+      'dose',
+    ])
+    expect(raccourcis(wrapper)).toHaveLength(0)
+
+    await unite(wrapper).setValue('ml')
+
+    expect(raccourcis(wrapper)).toHaveLength(0)
+  })
+
+  it('montre les raccourcis « ¼ ½ ¾ 1 1 ½ » pour les comprimés et coche celui de la quantité', async () => {
+    const wrapper = await monterCreation()
+    await unite(wrapper).setValue('tablet')
+
+    expect(raccourcis(wrapper).map((bouton) => bouton.text())).toEqual([
+      '¼',
+      '½',
+      '¾',
+      '1',
+      '1\u00a0½',
+    ])
+
+    await raccourcis(wrapper)[1]!.trigger('click')
+
+    expect(valeur(wrapper, 'treatment-dose-quantity')).toBe('½')
+    expect(raccourcis(wrapper).map((bouton) => bouton.attributes('aria-checked'))).toEqual([
+      'false',
+      'true',
+      'false',
+      'false',
+      'false',
+    ])
+    expect(raccourcis(wrapper)[4]!.attributes('aria-label')).toBe('1\u00a0½\u00a0comprimé')
+  })
+
+  it('récrit la quantité en fraction quand l’unité devient le comprimé, en décimale sinon', async () => {
+    const wrapper = await monterCreation()
+    await champ(wrapper, 'treatment-dose-quantity').setValue('0,5')
+
+    await unite(wrapper).setValue('tablet')
+    expect(valeur(wrapper, 'treatment-dose-quantity')).toBe('½')
+
+    await unite(wrapper).setValue('ml')
+    expect(valeur(wrapper, 'treatment-dose-quantity')).toBe('0,5')
+  })
+
+  it('accorde les unités à la quantité, en français comme en anglais', async () => {
+    const wrapper = await monterCreation()
+    await champ(wrapper, 'treatment-dose-quantity').setValue('2')
+
+    expect((unite(wrapper).props('items') as { title: string }[])[0]!.title).toBe('comprimés')
+
+    i18n.global.locale.value = 'en'
+    await wrapper.vm.$nextTick()
+
+    expect((unite(wrapper).props('items') as { title: string }[])[0]!.title).toBe('tablets')
+  })
+
+  it('refuse une quantité sans unité, une unité sans quantité et une quantité illisible', async () => {
+    const wrapper = await monterCreation()
+    await remplirMinimum(wrapper)
+    await champ(wrapper, 'treatment-dose-quantity').setValue('2')
+
+    await soumettre(wrapper)
+    expect(messages(wrapper)).toEqual(['Indique la quantité et l’unité, ou laisse les deux vides.'])
+
+    await unite(wrapper).setValue('ml')
+    await champ(wrapper, 'treatment-dose-quantity').setValue('deux')
+    expect(messages(wrapper)).toEqual(['La quantité doit être un nombre supérieur à 0.'])
+
+    await champ(wrapper, 'treatment-dose-quantity').setValue('')
+    expect(messages(wrapper)).toEqual(['Indique la quantité et l’unité, ou laisse les deux vides.'])
+    expect(create).not.toHaveBeenCalled()
+  })
+})
+
+describe('TreatmentFormView — date de fin (TR-6)', () => {
+  it('est facultative, avec son aide, et se vide par son bouton', async () => {
+    const wrapper = await monterCreation()
+
+    expect(aide(wrapper, 'ends-on')).toBe('Aucune dose ne sera prévue après cette date.')
+    expect(wrapper.find('.treatment-form__clear').exists()).toBe(false)
+
+    await champ(wrapper, 'treatment-ends-on').setValue('2026-10-10')
+
+    expect(wrapper.get('.treatment-form__clear').attributes('aria-label')).toBe(
+      'Effacer la date de fin',
+    )
+
+    await wrapper.get('.treatment-form__clear').trigger('click')
+
+    expect(valeur(wrapper, 'treatment-ends-on')).toBe('')
+  })
+
+  it('borne le sélecteur à la première prise et refuse une date antérieure', async () => {
+    const wrapper = await monterCreation()
+    await remplirMinimum(wrapper)
+
+    expect(champ(wrapper, 'treatment-ends-on').attributes('min')).toBe('2026-09-29')
+
+    await champ(wrapper, 'treatment-ends-on').setValue('2026-09-28')
+    await soumettre(wrapper)
+
+    expect(messages(wrapper)).toEqual(['La date de fin ne peut pas précéder la première prise.'])
+    expect(create).not.toHaveBeenCalled()
+
+    await champ(wrapper, 'treatment-ends-on').setValue('2026-09-29')
+    await soumettre(wrapper)
+
+    expect(create).toHaveBeenCalledOnce()
   })
 })
 
@@ -312,60 +635,82 @@ describe('TreatmentFormView — validation', () => {
     expect(create).not.toHaveBeenCalled()
   })
 
-  it('refuse une date dans le futur', async () => {
+  it('n’affiche aucune erreur pendant la saisie avant tout envoi', async () => {
     const wrapper = await monterCreation()
-    await remplirMinimum(wrapper)
-    await champ(wrapper, 'treatment-last-dose-date').setValue('2999-01-01')
 
+    await champ(wrapper, 'treatment-name').setValue('P')
+    await champ(wrapper, 'treatment-frequency-value').setValue('999')
+
+    expect(messages(wrapper)).toEqual([])
+    expect(champ(wrapper, 'treatment-frequency-value').attributes('aria-invalid')).toBe('false')
+  })
+
+  it('efface l’erreur d’un champ dès qu’il est corrigé, sans nouvel envoi', async () => {
+    const wrapper = await monterCreation()
     await soumettre(wrapper)
 
-    expect(messages(wrapper)).toEqual(['La date ne peut pas être dans le futur.'])
+    await champ(wrapper, 'treatment-name').setValue('Panacur')
+
+    expect(messages(wrapper)).toEqual([
+      'Choisis un type.',
+      'Indique une fréquence.',
+      'La date est obligatoire.',
+    ])
+    expect(champ(wrapper, 'treatment-name').attributes('aria-invalid')).toBe('false')
+    expect(champ(wrapper, 'treatment-name').attributes('aria-describedby')).toBeUndefined()
+
+    await remplirMinimum(wrapper)
+
+    expect(messages(wrapper)).toEqual([])
     expect(create).not.toHaveBeenCalled()
   })
 
-  it('dit le plafond en rouvrant une ligne dont la fréquence le dépasse', async () => {
-    getById.mockResolvedValue({ ...BRAVECTO, frequency: { value: 10_000_000, unit: 'month' } })
-    const wrapper = await monterEdition()
+  it('dit le plafond de la fréquence', async () => {
+    const wrapper = await monterCreation()
+    await remplirMinimum(wrapper)
+    await champ(wrapper, 'treatment-frequency-value').setValue('366')
 
     await soumettre(wrapper)
 
     expect(messages(wrapper)).toEqual(['La fréquence doit être de 365 maximum.'])
-    expect(update).not.toHaveBeenCalled()
   })
 
-  it('efface les messages dès que le formulaire redevient valide', async () => {
+  it('relie chaque contrôle en erreur à son message et le marque invalide', async () => {
     const wrapper = await monterCreation()
+
     await soumettre(wrapper)
 
-    await remplirMinimum(wrapper)
-    await soumettre(wrapper)
+    const lie = (controle: string, field: string) => {
+      const erreur = wrapper.get(`.treatment-form__field--${field} .form-field__error`)
+      expect(wrapper.get(controle).attributes('aria-describedby')).toContain(
+        erreur.attributes('id'),
+      )
+      expect(wrapper.get(controle).attributes('aria-invalid')).toBe('true')
+    }
+    lie('#treatment-name', 'name')
+    lie('.treatment-form__field--type .form-segmented', 'type')
+    lie('#treatment-frequency-value', 'frequency')
+    lie('#treatment-first-dose-on', 'first-dose-on')
+  })
 
-    expect(messages(wrapper)).toEqual([])
+  it('nomme le champ nombre par le libellé « Fréquence » et le mot de liaison', async () => {
+    const wrapper = await monterCreation()
+
+    const ids = champ(wrapper, 'treatment-frequency-value')
+      .attributes('aria-labelledby')!
+      .split(' ')
+    expect(wrapper.get(`#${ids[0]}`).text()).toContain('Fréquence')
+    expect(wrapper.get(`#${ids[1]}`).text()).toBe('Tous les')
   })
 })
 
 describe('TreatmentFormView — longueur du nom', () => {
   const limite = 'a'.repeat(MAX_NAME_LENGTH)
 
-  afterEach(() => {
-    i18n.global.locale.value = 'fr'
-  })
-
   it('borne la saisie du nom à 80 caractères, collage compris', async () => {
     const wrapper = await monterCreation()
 
     expect(champ(wrapper, 'treatment-name').attributes('maxlength')).toBe('80')
-  })
-
-  it('accepte un nom de 80 caractères', async () => {
-    const wrapper = await monterCreation()
-    await remplirMinimum(wrapper)
-    await champ(wrapper, 'treatment-name').setValue(limite)
-
-    await soumettre(wrapper)
-
-    expect(messages(wrapper)).toEqual([])
-    expect(create.mock.calls[0]![0]).toMatchObject({ name: limite })
   })
 
   it.each([
@@ -394,80 +739,83 @@ describe('TreatmentFormView — longueur du nom', () => {
   })
 })
 
-describe('TreatmentFormView — revalidation après envoi', () => {
-  it('n’affiche aucune erreur pendant la saisie avant tout envoi', async () => {
+describe('TreatmentFormView — création (TR-1, TR-3)', () => {
+  it('porte le bouton « Créer »', async () => {
     const wrapper = await monterCreation()
 
-    await champ(wrapper, 'treatment-name').setValue('B')
-    await champ(wrapper, 'treatment-last-dose-date').setValue('2999-01-01')
-
-    expect(messages(wrapper)).toEqual([])
-    expect(champ(wrapper, 'treatment-last-dose-date').attributes('aria-invalid')).toBe('false')
+    expect(wrapper.get('.form-screen__submit').text()).toBe('Créer')
   })
 
-  it('efface l’erreur d’un champ dès qu’il est corrigé, sans nouvel envoi', async () => {
-    const wrapper = await monterCreation()
-    await soumettre(wrapper)
-
-    await champ(wrapper, 'treatment-name').setValue('Bravecto')
-
-    expect(messages(wrapper)).toEqual([
-      'Choisis un type.',
-      'Indique une fréquence.',
-      'La date est obligatoire.',
-    ])
-    expect(champ(wrapper, 'treatment-name').attributes('aria-invalid')).toBe('false')
-    expect(champ(wrapper, 'treatment-name').attributes('aria-describedby')).toBeUndefined()
-  })
-
-  it('efface toutes les erreurs une fois les quatre champs remplis, sans rien écrire', async () => {
-    const wrapper = await monterCreation()
-    await soumettre(wrapper)
-
-    await remplirMinimum(wrapper)
-
-    expect(messages(wrapper)).toEqual([])
-    expect(create).not.toHaveBeenCalled()
-  })
-
-  it('change le message quand le motif de l’erreur change', async () => {
-    const wrapper = await monterCreation()
-    await soumettre(wrapper)
-
-    await champ(wrapper, 'treatment-last-dose-date').setValue('2999-01-01')
-
-    expect(messages(wrapper)).toContain('La date ne peut pas être dans le futur.')
-    expect(messages(wrapper)).not.toContain('La date est obligatoire.')
-  })
-})
-
-describe('TreatmentFormView — création', () => {
-  it('écrit par le store avec l’animal de la route et la fréquence en couple', async () => {
+  it('écrit par le store le traitement de la planche V1, première prise demain, sans rien noter comme donné', async () => {
     const wrapper = await monterCreation()
     await remplirMinimum(wrapper)
+    await ajouterHeure(wrapper, '20:00')
+    await unite(wrapper).setValue('tablet')
+    await raccourcis(wrapper)[1]!.trigger('click')
+    await champ(wrapper, 'treatment-ends-on').setValue('2026-10-10')
 
     await soumettre(wrapper)
 
     expect(create).toHaveBeenCalledExactlyOnceWith({
       animalId: MILO.id,
-      name: 'Bravecto',
-      type: 'antiparasitic',
-      frequency: { value: 3, unit: 'month' },
-      lastDoseDate: '2026-06-24',
+      name: 'Panacur',
+      type: 'deworming',
+      firstDoseOn: '2026-09-29',
+      frequency: { value: 1, unit: 'day' },
+      times: ['20:00'],
+      doseQuantity: 0.5,
+      doseUnit: 'tablet',
+      endsOn: '2026-10-10',
     })
     expect(update).not.toHaveBeenCalled()
   })
 
-  it('envoie l’unité choisie dans le sélecteur', async () => {
+  it('accepte une première prise passée, sans heure, posologie ni date de fin', async () => {
     const wrapper = await monterCreation()
     await remplirMinimum(wrapper)
-    await choisirUnite(wrapper, 'day')
+    await champ(wrapper, 'treatment-first-dose-on').setValue('2026-09-03')
 
     await soumettre(wrapper)
 
-    expect(create).toHaveBeenCalledWith(
-      expect.objectContaining({ frequency: { value: 3, unit: 'day' } }),
-    )
+    expect(create).toHaveBeenCalledExactlyOnceWith({
+      animalId: MILO.id,
+      name: 'Panacur',
+      type: 'deworming',
+      firstDoseOn: '2026-09-03',
+      frequency: { value: 1, unit: 'day' },
+      times: [],
+      doseQuantity: null,
+      doseUnit: null,
+      endsOn: null,
+    })
+  })
+
+  it('refuse une première prise trop ancienne pour le rythme, sous son champ, sans rien écrire', async () => {
+    const wrapper = await monterCreation()
+    await remplirMinimum(wrapper)
+    await ajouterHeure(wrapper, '08:00')
+    await ajouterHeure(wrapper, '20:00')
+    await champ(wrapper, 'treatment-first-dose-on').setValue('1950-01-01')
+
+    await soumettre(wrapper)
+
+    expect(messages(wrapper)).toEqual(['Cette date est trop ancienne pour ce rythme.'])
+    expect(create).not.toHaveBeenCalled()
+
+    i18n.global.locale.value = 'en'
+    await wrapper.vm.$nextTick()
+
+    expect(messages(wrapper)).toEqual(['This date is too far back for this schedule.'])
+  })
+
+  it('crée un médicament', async () => {
+    const wrapper = await monterCreation()
+    await remplirMinimum(wrapper)
+    await types(wrapper)[2]!.trigger('click')
+
+    await soumettre(wrapper)
+
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({ type: 'medication' }))
   })
 
   it('revient au Carnet une fois le traitement créé', async () => {
@@ -622,7 +970,7 @@ describe('TreatmentFormView — pile de navigation', () => {
     const wrapper = await monterCreation()
     await remplirMinimum(wrapper)
     await soumettre(wrapper)
-    expect(routeur.currentRoute.value.name).toBe('animals')
+    await vi.waitFor(() => expect(routeur.currentRoute.value.name).toBe('animals'))
 
     await retourAndroid()
 
@@ -634,7 +982,7 @@ describe('TreatmentFormView — pile de navigation', () => {
     const wrapper = await monterCreation()
     await remplirMinimum(wrapper)
     await soumettre(wrapper)
-    expect(routeur.currentRoute.value.name).toBe('notifications-priming')
+    await vi.waitFor(() => expect(routeur.currentRoute.value.name).toBe('notifications-priming'))
     await routeur.replace({ name: 'animals' })
 
     await retourAndroid()
@@ -653,168 +1001,767 @@ describe('TreatmentFormView — pile de navigation', () => {
   })
 })
 
-describe('TreatmentFormView — édition', () => {
-  it('titre « Modifier Bravecto », animal en sous-titre, champs pré-remplis', async () => {
+describe('TreatmentFormView — modification (TR-27, TR-28, planches V1 quater et quinquies)', () => {
+  it('titre « Modifier Milbemax », bouton « Enregistrer », champs préremplis par la période en cours', async () => {
+    getWithHistory.mockResolvedValue(
+      milbemax([periode({ times: ['20:00', '08:00'], endsOn: '2026-12-31' })]),
+    )
     const wrapper = await monterEdition()
 
-    expect(getById).toHaveBeenCalledWith(BRAVECTO.id)
-    expect(wrapper.get('.pushed-screen__title').text()).toBe('Modifier Bravecto')
+    expect(getWithHistory).toHaveBeenCalledWith(ID)
+    expect(wrapper.get('.pushed-screen__title').text()).toBe('Modifier Milbemax')
     expect(wrapper.get('.pushed-screen__subtitle').text()).toBe('Pour Milo')
-    expect(valeur(wrapper, 'treatment-name')).toBe('Bravecto')
-    expect(types(wrapper)[1]!.attributes('aria-checked')).toBe('true')
+    expect(wrapper.get('.form-screen__submit').text()).toBe('Enregistrer')
+    expect(valeur(wrapper, 'treatment-name')).toBe('Milbemax')
+    expect(types(wrapper)[0]!.attributes('aria-checked')).toBe('true')
     expect(valeur(wrapper, 'treatment-frequency-value')).toBe('3')
     expect(uniteCochee(wrapper)).toBe('month')
-    expect(valeur(wrapper, 'treatment-next-due-date')).toBe('2026-09-24')
-    expect(wrapper.get('.treatment-form__field--next-due-date label').text()).toContain(
-      'Prochaine dose',
-    )
-    expect(wrapper.find('#treatment-last-dose-date').exists()).toBe(false)
-    expect(wrapper.find('.treatment-form__next-dose').exists()).toBe(false)
-    expect(wrapper.get('.form-screen__submit').text()).toBe('Enregistrer')
+    expect(heures(wrapper)).toEqual(['8\u00a0h', '20\u00a0h'])
+    expect(valeur(wrapper, 'treatment-dose-quantity')).toBe('1')
+    expect(unite(wrapper).props('modelValue')).toBe('tablet')
+    expect(valeur(wrapper, 'treatment-ends-on')).toBe('2026-12-31')
+    expect(wrapper.find('#treatment-first-dose-on').exists()).toBe(false)
   })
 
   it('garde le titre d’origine pendant qu’on retape le nom', async () => {
     const wrapper = await monterEdition()
 
-    await champ(wrapper, 'treatment-name').setValue('Bravecto Plus')
+    await champ(wrapper, 'treatment-name').setValue('Autre nom')
 
-    expect(wrapper.get('.pushed-screen__title').text()).toBe('Modifier Bravecto')
+    expect(wrapper.get('.pushed-screen__title').text()).toBe('Modifier Milbemax')
   })
 
-  it('met à jour par le store avec l’identifiant de la route, sans animal ni dernière prise', async () => {
+  it('propose « Prochaine dose » d’après la dernière prise, jamais avant aujourd’hui, avec son aide (TR-7)', async () => {
     const wrapper = await monterEdition()
-    await champ(wrapper, 'treatment-name').setValue('Bravecto Plus')
+    const date = champ(wrapper, 'treatment-next-dose-on')
 
-    await soumettre(wrapper)
-
-    expect(update).toHaveBeenCalledExactlyOnceWith(BRAVECTO.id, {
-      name: 'Bravecto Plus',
-      type: 'antiparasitic',
-      frequency: { value: 3, unit: 'month' },
-      nextDueDate: '2026-09-24',
-    })
-    expect(create).not.toHaveBeenCalled()
-    expect(replace).toHaveBeenCalledWith({ name: 'animals' })
-  })
-
-  it('propose une nouvelle prochaine dose quand la fréquence change : dernière prise + fréquence', async () => {
-    const wrapper = await monterEdition()
-
-    await champ(wrapper, 'treatment-frequency-value').setValue('1')
-    expect(valeur(wrapper, 'treatment-next-due-date')).toBe('2026-07-24')
-
-    await choisirUnite(wrapper, 'week')
-    expect(valeur(wrapper, 'treatment-next-due-date')).toBe('2026-07-01')
-
-    await soumettre(wrapper)
-
-    expect(update).toHaveBeenCalledWith(BRAVECTO.id, {
-      name: 'Bravecto',
-      type: 'antiparasitic',
-      frequency: { value: 1, unit: 'week' },
-      nextDueDate: '2026-07-01',
-    })
-  })
-
-  it('garde un report saisi avec la nouvelle fréquence dans la même saisie', async () => {
-    const wrapper = await monterEdition()
-
-    await champ(wrapper, 'treatment-frequency-value').setValue('1')
-    await champ(wrapper, 'treatment-next-due-date').setValue('2026-08-02')
-    await soumettre(wrapper)
-
-    expect(update).toHaveBeenCalledWith(BRAVECTO.id, {
-      name: 'Bravecto',
-      type: 'antiparasitic',
-      frequency: { value: 1, unit: 'month' },
-      nextDueDate: '2026-08-02',
-    })
-  })
-
-  it('reporte la prochaine dose sans toucher la fréquence', async () => {
-    const wrapper = await monterEdition()
-
-    await champ(wrapper, 'treatment-next-due-date').setValue('2026-10-10')
-    await soumettre(wrapper)
-
-    expect(update).toHaveBeenCalledWith(
-      BRAVECTO.id,
-      expect.objectContaining({
-        frequency: { value: 3, unit: 'month' },
-        nextDueDate: '2026-10-10',
-      }),
+    expect(libelles(wrapper)).toContain('Prochaine dose')
+    expect(valeur(wrapper, 'treatment-next-dose-on')).toBe('2026-10-10')
+    expect(date.attributes('min')).toBe('2026-09-28')
+    expect(date.attributes('max')).toBeUndefined()
+    expect(aide(wrapper, 'next-dose-on')).toBe(
+      'Calculée d’après la dernière prise\u00a0: 10 oct. Modifiable.',
     )
   })
 
-  it('rend la prochaine dose enregistrée, report compris, quand la fréquence revient à celle du plan', async () => {
-    getById.mockResolvedValueOnce({ ...BRAVECTO, nextDueDate: '2026-10-05' })
+  it('corrige le nom et le type sans changer la prochaine dose (TR-27)', async () => {
     const wrapper = await monterEdition()
-    expect(valeur(wrapper, 'treatment-next-due-date')).toBe('2026-10-05')
+    await champ(wrapper, 'treatment-name').setValue('Milbemax chat')
+    await types(wrapper)[2]!.trigger('click')
 
-    await champ(wrapper, 'treatment-frequency-value').setValue('2')
-    expect(valeur(wrapper, 'treatment-next-due-date')).toBe('2026-08-24')
-
-    await champ(wrapper, 'treatment-frequency-value').setValue('3')
-    expect(valeur(wrapper, 'treatment-next-due-date')).toBe('2026-10-05')
-  })
-
-  it('borne le champ de la prochaine dose à la date de la dernière prise', async () => {
-    const wrapper = await monterEdition()
-
-    expect(champ(wrapper, 'treatment-next-due-date').attributes('min')).toBe('2026-06-24')
-
-    await champ(wrapper, 'treatment-next-due-date').setValue('2026-06-01')
     await soumettre(wrapper)
 
+    expect(update).toHaveBeenCalledExactlyOnceWith(ID, {
+      name: 'Milbemax chat',
+      type: 'medication',
+      frequency: { value: 3, unit: 'month' },
+      times: [],
+      doseQuantity: 1,
+      doseUnit: 'tablet',
+      endsOn: null,
+      nextDoseOn: '2026-10-10',
+    })
+    expect(create).not.toHaveBeenCalled()
+  })
+
+  it('reporte la prochaine dose : la date choisie part au store, l’aide garde la date calculée (V1 quinquies)', async () => {
+    const wrapper = await monterEdition()
+
+    await champ(wrapper, 'treatment-next-dose-on').setValue('2026-10-14')
+
+    expect(aide(wrapper, 'next-dose-on')).toBe(
+      'Calculée d’après la dernière prise\u00a0: 10 oct. Modifiable.',
+    )
+
+    await soumettre(wrapper)
+
+    expect(update).toHaveBeenCalledWith(ID, expect.objectContaining({ nextDoseOn: '2026-10-14' }))
+  })
+
+  it('propose aujourd’hui quand la fréquence change après des prises : une nouvelle période s’ouvrira (V1 quater)', async () => {
+    getWithHistory.mockResolvedValue(
+      milbemax(
+        [periode({ frequency: { value: 1, unit: 'week' }, doseUnit: 'pipette' })],
+        [prise({ dueOn: '2026-09-08', givenOn: '2026-09-08', nextDueDate: '2026-09-15' })],
+      ),
+    )
+    const wrapper = await monterEdition()
+    await champ(wrapper, 'treatment-next-dose-on').setValue('2026-10-02')
+
+    await choisirUnite(wrapper, 'day')
+    await champ(wrapper, 'treatment-frequency-value').setValue('15')
+
+    expect(valeur(wrapper, 'treatment-next-dose-on')).toBe('2026-09-28')
+    expect(champ(wrapper, 'treatment-next-dose-on').attributes('min')).toBe('2026-09-28')
+    expect(aide(wrapper, 'next-dose-on')).toBe(
+      'Calculée d’après la dernière prise\u00a0: le 23 sept., déjà passé\u00a0; aujourd’hui est proposé. Modifiable.',
+    )
+
+    await soumettre(wrapper)
+
+    expect(update).toHaveBeenCalledWith(
+      ID,
+      expect.objectContaining({ frequency: { value: 15, unit: 'day' }, nextDoseOn: '2026-09-28' }),
+    )
+  })
+
+  it('rend la prochaine dose proposée quand la fréquence revient à celle de la période', async () => {
+    const wrapper = await monterEdition()
+
+    await champ(wrapper, 'treatment-frequency-value').setValue('1')
+    expect(valeur(wrapper, 'treatment-next-dose-on')).toBe('2026-09-28')
+
+    await champ(wrapper, 'treatment-frequency-value').setValue('3')
+    expect(valeur(wrapper, 'treatment-next-dose-on')).toBe('2026-10-10')
+  })
+
+  it('borne « Prochaine dose » à la date de fin saisie, et le dit quand elle est dépassée (Q20)', async () => {
+    const wrapper = await monterEdition()
+    await champ(wrapper, 'treatment-ends-on').setValue('2026-10-31')
+
+    expect(champ(wrapper, 'treatment-next-dose-on').attributes('max')).toBe('2026-10-31')
+
+    await champ(wrapper, 'treatment-next-dose-on').setValue('2026-11-01')
+    await soumettre(wrapper)
+
+    expect(messages(wrapper)).toEqual([
+      'La prochaine dose ne peut pas dépasser la date de fin. Change la date de fin pour aller plus loin.',
+    ])
     expect(update).not.toHaveBeenCalled()
-    expect(messages(wrapper)).toEqual(['La prochaine dose ne peut pas précéder la dernière prise.'])
+  })
+
+  it('refuse une prochaine dose avant aujourd’hui, en donnant la première date possible', async () => {
+    const wrapper = await monterEdition()
+    await champ(wrapper, 'treatment-next-dose-on').setValue('2026-09-27')
+
+    await soumettre(wrapper)
+
+    expect(messages(wrapper)).toEqual(['Choisis une date à partir du 28 septembre.'])
+    expect(update).not.toHaveBeenCalled()
   })
 
   it('exige une prochaine dose', async () => {
     const wrapper = await monterEdition()
+    await champ(wrapper, 'treatment-next-dose-on').setValue('')
 
-    await champ(wrapper, 'treatment-next-due-date').setValue('')
     await soumettre(wrapper)
 
-    expect(update).not.toHaveBeenCalled()
     expect(messages(wrapper)).toEqual(['La date est obligatoire.'])
+    expect(update).not.toHaveBeenCalled()
   })
 
-  it('prévient et n’autorise pas l’envoi quand le traitement est introuvable', async () => {
-    getById.mockResolvedValueOnce(null)
+  it('refuse une date de fin avant la dernière prise notée (TR-6)', async () => {
+    getWithHistory.mockResolvedValue(
+      milbemax(
+        [periode({ frequency: { value: 1, unit: 'week' } })],
+        [prise({ dueOn: '2026-09-26', givenOn: '2026-09-26', nextDueDate: '2026-10-03' })],
+      ),
+    )
+    const wrapper = await monterEdition()
+    await champ(wrapper, 'treatment-ends-on').setValue('2026-09-25')
+
+    await soumettre(wrapper)
+
+    expect(messages(wrapper)).toEqual([
+      'La date de fin ne peut pas précéder la dernière prise notée.',
+    ])
+    expect(update).not.toHaveBeenCalled()
+  })
+
+  it('grise « Prochaine dose » et dit pourquoi quand une dose plus lointaine est déjà reportée (Q26)', async () => {
+    getWithHistory.mockResolvedValue(
+      milbemax(
+        [
+          periode({
+            frequency: { value: 1, unit: 'day' },
+            startsOn: '2026-09-20',
+            firstDueOn: '2026-09-20',
+          }),
+        ],
+        [
+          prise({
+            dueOn: '2026-10-05',
+            givenOn: null,
+            status: 'postponed',
+            nextDueDate: '2026-10-07',
+          }),
+        ],
+      ),
+    )
     const wrapper = await monterEdition()
 
-    expect(wrapper.get('.form-screen__save-error').text()).toBe('Ce traitement est introuvable.')
+    expect(champ(wrapper, 'treatment-next-dose-on').attributes('disabled')).toBeDefined()
+    expect(aide(wrapper, 'next-dose-on')).toBe(
+      'Une dose plus lointaine est déjà reportée. Supprime ce report pour déplacer celle-ci.',
+    )
+  })
+
+  it('ne propose pas « Prochaine dose » sans prise notée d’aide calculée', async () => {
+    getWithHistory.mockResolvedValue(
+      milbemax([periode({ startsOn: '2026-10-10', firstDueOn: '2026-10-10' })], []),
+    )
+    const wrapper = await monterEdition()
+
+    expect(valeur(wrapper, 'treatment-next-dose-on')).toBe('2026-10-10')
+    expect(aide(wrapper, 'next-dose-on')).toBeUndefined()
+  })
+
+  it('ne laisse corriger que le nom et le type d’un traitement fini par sa date de fin', async () => {
+    getWithHistory.mockResolvedValue(milbemax([periode({ endsOn: '2026-08-01' })]))
+    const wrapper = await monterEdition()
+
+    expect(libelles(wrapper)).toEqual(['Nom du produit', 'Type'])
+
+    await types(wrapper)[2]!.trigger('click')
+    await soumettre(wrapper)
+
+    expect(update).toHaveBeenCalledWith(
+      ID,
+      expect.objectContaining({ type: 'medication', endsOn: '2026-08-01', nextDoseOn: null }),
+    )
+  })
+
+  it('garde la date d’une dose en retard et le dit ; changée, elle n’accepte qu’une date à partir d’aujourd’hui', async () => {
+    getWithHistory.mockResolvedValue(
+      milbemax(
+        [periode({ frequency: { value: 1, unit: 'week' } })],
+        [prise({ dueOn: '2026-09-20', givenOn: '2026-09-20', nextDueDate: '2026-09-27' })],
+      ),
+    )
+    const wrapper = await monterEdition()
+
+    expect(valeur(wrapper, 'treatment-next-dose-on')).toBe('2026-09-27')
+    expect(aide(wrapper, 'next-dose-on')).toBe('Dose en retard depuis le 27 sept.')
+
+    await soumettre(wrapper)
+    expect(update).toHaveBeenCalledExactlyOnceWith(
+      ID,
+      expect.objectContaining({ nextDoseOn: '2026-09-27' }),
+    )
+
+    const autre = await monterEdition()
+    await champ(autre, 'treatment-next-dose-on').setValue('2026-09-26')
+    await soumettre(autre)
+
+    expect(messages(autre)).toEqual(['Choisis une date à partir du 28 septembre.'])
+  })
+
+  it('annonce les doses qui ne seront plus à renseigner quand la première échéance d’un traitement sans prise change', async () => {
+    getWithHistory.mockResolvedValue(
+      milbemax(
+        [
+          periode({
+            frequency: { value: 1, unit: 'day' },
+            startsOn: '2026-09-20',
+            firstDueOn: '2026-09-20',
+          }),
+        ],
+        [],
+      ),
+    )
+    const wrapper = await monterEdition()
+
+    expect(valeur(wrapper, 'treatment-next-dose-on')).toBe('2026-09-28')
+    expect(aide(wrapper, 'next-dose-on')).toBeUndefined()
+
+    await champ(wrapper, 'treatment-next-dose-on').setValue('2026-10-01')
+
+    expect(aide(wrapper, 'next-dose-on')).toBe(
+      'Les 8 doses prévues avant cette date ne seront plus à renseigner.',
+    )
+
+    i18n.global.locale.value = 'en'
+    await wrapper.vm.$nextTick()
+
+    expect(aide(wrapper, 'next-dose-on')).toBe(
+      'The 8 doses scheduled before this date will no longer need to be logged.',
+    )
+  })
+
+  it('l’annonce au singulier pour une seule dose', async () => {
+    getWithHistory.mockResolvedValue(
+      milbemax(
+        [
+          periode({
+            frequency: { value: 1, unit: 'week' },
+            startsOn: '2026-09-27',
+            firstDueOn: '2026-09-27',
+          }),
+        ],
+        [],
+      ),
+    )
+    const wrapper = await monterEdition()
+
+    expect(aide(wrapper, 'next-dose-on')).toBe('Dose en retard depuis le 27 sept.')
+
+    await champ(wrapper, 'treatment-next-dose-on').setValue('2026-09-30')
+
+    expect(aide(wrapper, 'next-dose-on')).toBe(
+      'La dose prévue avant cette date ne sera plus à renseigner.',
+    )
+  })
+
+  it('refuse une date de fin avant l’arrivée d’un report, et l’accepte quand « Prochaine dose » repasse avant elle', async () => {
+    getWithHistory.mockResolvedValue(
+      milbemax(
+        [periode()],
+        [
+          prise(),
+          prise({
+            id: 'd-report',
+            dueOn: '2026-10-10',
+            givenOn: null,
+            status: 'postponed',
+            nextDueDate: '2026-10-14',
+          }),
+        ],
+      ),
+    )
+    const wrapper = await monterEdition()
+    await champ(wrapper, 'treatment-ends-on').setValue('2026-10-12')
+
+    await soumettre(wrapper)
+
+    expect(valeur(wrapper, 'treatment-next-dose-on')).toBe('2026-10-14')
+    expect(messages(wrapper)).toEqual(['La prochaine dose est reportée au 14 oct.'])
+    i18n.global.locale.value = 'en'
+    await wrapper.vm.$nextTick()
+    expect(messages(wrapper)).toEqual(['The next dose is postponed to Oct 14.'])
+    i18n.global.locale.value = 'fr'
+    expect(update).not.toHaveBeenCalled()
+
+    await champ(wrapper, 'treatment-next-dose-on').setValue('2026-10-11')
+    await soumettre(wrapper)
+
+    expect(update).toHaveBeenCalledWith(
+      ID,
+      expect.objectContaining({ endsOn: '2026-10-12', nextDoseOn: '2026-10-11' }),
+    )
+  })
+
+  it('nomme « une dose » quand le report en cause n’est pas celui de la prochaine dose', async () => {
+    getWithHistory.mockResolvedValue(
+      milbemax(
+        [
+          periode({
+            startsOn: '2026-09-11',
+            firstDueOn: '2026-09-11',
+            frequency: { value: 1, unit: 'week' },
+          }),
+        ],
+        [
+          prise({ dueOn: '2026-09-11', givenOn: '2026-09-11', nextDueDate: '2026-09-18' }),
+          prise({
+            id: 'd-report',
+            dueOn: '2026-10-09',
+            givenOn: null,
+            status: 'postponed',
+            nextDueDate: '2026-10-20',
+          }),
+        ],
+      ),
+    )
+    const wrapper = await monterEdition()
+    await champ(wrapper, 'treatment-ends-on').setValue('2026-10-15')
+
+    await soumettre(wrapper)
+
+    expect(messages(wrapper)).toEqual(['Une dose est reportée au 20 oct.'])
+    expect(update).not.toHaveBeenCalled()
+
+    i18n.global.locale.value = 'en'
+    await wrapper.vm.$nextTick()
+
+    expect(messages(wrapper)).toEqual(['A dose is postponed to Oct 20.'])
+  })
+
+  it('ne laisse corriger que le nom et le type d’un traitement arrêté', async () => {
+    getWithHistory.mockResolvedValue(milbemax([periode({ stoppedOn: '2026-08-01' })]))
+    const wrapper = await monterEdition()
+
+    expect(libelles(wrapper)).toEqual(['Nom du produit', 'Type'])
+
+    await champ(wrapper, 'treatment-name').setValue('Milbemax chat')
+    await soumettre(wrapper)
+
+    expect(update).toHaveBeenCalledWith(ID, expect.objectContaining({ name: 'Milbemax chat' }))
+  })
+
+  function attenduSansFormulaire(wrapper: VueWrapper) {
+    expect(wrapper.get('.pushed-screen__title').text()).toBe('')
+    expect(wrapper.find('.form-field').exists()).toBe(false)
     expect(wrapper.get('.form-screen__submit').attributes('disabled')).toBeDefined()
+  }
+
+  it.each([
+    ['modification', monterEdition],
+    ['reprise', monterReprise],
+  ])(
+    'en %s, ne montre ni « Nouveau traitement » ni champ tant que le traitement charge',
+    async (_, monter) => {
+      getWithHistory.mockReturnValueOnce(new Promise<TreatmentWithHistory>(() => {}))
+      const wrapper = await monter()
+
+      attenduSansFormulaire(wrapper)
+      expect(wrapper.find('.treatment-form__loading').exists()).toBe(true)
+      expect(wrapper.find('.form-screen__save-error').exists()).toBe(false)
+
+      await soumettre(wrapper)
+
+      expect(update).not.toHaveBeenCalled()
+      expect(create).not.toHaveBeenCalled()
+    },
+  )
+
+  it.each([
+    ['modification', monterEdition],
+    ['reprise', monterReprise],
+  ])('en %s, prévient sans formulaire quand le traitement est introuvable', async (_, monter) => {
+    getWithHistory.mockResolvedValueOnce(null)
+    const wrapper = await monter()
+
+    attenduSansFormulaire(wrapper)
+    expect(wrapper.find('.treatment-form__loading').exists()).toBe(false)
+    expect(wrapper.get('.form-screen__save-error').text()).toBe('Ce traitement est introuvable.')
 
     await soumettre(wrapper)
 
     expect(update).not.toHaveBeenCalled()
+    expect(create).not.toHaveBeenCalled()
   })
 
-  it('prévient et n’écrase rien quand la fiche n’a pas pu être lue', async () => {
-    getById.mockRejectedValueOnce(new Error('base verrouillée'))
+  it('prévient sans formulaire quand la fiche n’a pas pu être lue, ou est illisible', async () => {
+    getWithHistory.mockRejectedValueOnce(new Error('base verrouillée'))
     const wrapper = await monterEdition()
 
+    attenduSansFormulaire(wrapper)
     expect(wrapper.get('.form-screen__save-error').text()).toBe(
       'Ce traitement n’a pas pu être chargé. Réessaie.',
     )
-    expect(wrapper.get('.form-screen__submit').attributes('disabled')).toBeDefined()
 
-    await soumettre(wrapper)
+    getWithHistory.mockResolvedValueOnce(milbemax([periode({ times: ['8h'] })]))
+    const illisible = await monterEdition()
 
+    attenduSansFormulaire(illisible)
+    expect(illisible.get('.form-screen__save-error').text()).toBe(
+      'Ce traitement n’a pas pu être chargé. Réessaie.',
+    )
+    await soumettre(illisible)
     expect(update).not.toHaveBeenCalled()
+    expect(create).not.toHaveBeenCalled()
   })
 
-  it('n’enregistre pas tant que la fiche n’est pas chargée', async () => {
-    getById.mockReturnValueOnce(new Promise<Treatment>(() => {}))
+  it('écrit l’aide de « Prochaine dose » en anglais', async () => {
+    i18n.global.locale.value = 'en'
     const wrapper = await monterEdition()
 
-    expect(wrapper.get('.form-screen__submit').attributes('disabled')).toBeDefined()
+    expect(wrapper.get('.pushed-screen__title').text()).toBe('Edit Milbemax')
+    expect(wrapper.get('.form-screen__submit').text()).toBe('Save')
+    expect(aide(wrapper, 'next-dose-on')).toBe('Based on the last dose: Oct 10. You can change it.')
+
+    await champ(wrapper, 'treatment-frequency-value').setValue('1')
+
+    expect(aide(wrapper, 'next-dose-on')).toBe(
+      'Based on the last dose: Aug 10, already passed; today is suggested. You can change it.',
+    )
+  })
+})
+
+describe('TreatmentFormView — échéances tombées d’une période sans prise', () => {
+  const SANS_PRISE = () =>
+    milbemax(
+      [
+        periode({
+          startsOn: '2026-09-22',
+          firstDueOn: '2026-09-23',
+          frequency: { value: 2, unit: 'day' },
+        }),
+      ],
+      [],
+    )
+
+  function feuille() {
+    return wrapper!.findComponent({ name: 'TreatmentPastDuesSheet' })
+  }
+
+  function dansLaFeuille(selector: string): HTMLElement {
+    const found = document.body.querySelector<HTMLElement>(selector)
+    if (!found) throw new Error(`Rien pour ${selector}`)
+    return found
+  }
+
+  let wrapper: VueWrapper | null = null
+
+  async function corrigerLaFrequence() {
+    getWithHistory.mockResolvedValue(SANS_PRISE())
+    wrapper = await monterEdition()
+    await champ(wrapper, 'treatment-frequency-value').setValue('3')
+    await soumettre(wrapper)
+    return wrapper
+  }
+
+  beforeEach(() => {
+    vi.stubGlobal('visualViewport', {
+      addEventListener() {},
+      removeEventListener() {},
+      width: 412,
+      height: 915,
+      offsetTop: 0,
+    })
+  })
+
+  afterEach(() => {
+    wrapper?.unmount()
+    wrapper = null
+    document.body.innerHTML = ''
+    vi.unstubAllGlobals()
+  })
+
+  it('pose la question à « Enregistrer », sans rien écrire', async () => {
+    await corrigerLaFrequence()
+
+    expect(update).not.toHaveBeenCalled()
+    expect(feuille().props('modelValue')).toBe(true)
+    expect(feuille().props('texts')).toMatchObject({
+      title: '3 doses étaient prévues avant aujourd’hui',
+      text: 'Les 23, 25 et 27 sept., au rythme «\u00a0tous les 2 jours\u00a0».',
+      keep: 'Elles restent à renseigner',
+      drop: 'Elles n’étaient pas à donner',
+    })
+    expect(dansLaFeuille('.treatment-past-dues__choice--keep').textContent).toContain(
+      'Le nouveau rythme commence aujourd’hui.',
+    )
+    expect(dansLaFeuille('.treatment-past-dues__choice--drop').textContent).toContain(
+      'L’ancien réglage était une erreur.',
+    )
+  })
+
+  it('« Elles restent à renseigner » enregistre avec ce choix et la prochaine dose que la feuille annonçait', async () => {
+    await corrigerLaFrequence()
+    expect(feuille().props('texts')).toMatchObject({
+      keepHint: 'Le nouveau rythme commence aujourd’hui. Prochaine dose le 28 sept.',
+      dropHint: 'L’ancien réglage était une erreur. Prochaine dose le 28 sept.',
+    })
+
+    dansLaFeuille('.treatment-past-dues__choice--keep').click()
+    await flushPromises()
+
+    expect(update).toHaveBeenCalledExactlyOnceWith(
+      ID,
+      expect.objectContaining({
+        frequency: { value: 3, unit: 'day' },
+        pastDues: 'keep',
+        nextDoseOn: '2026-09-28',
+      }),
+    )
+  })
+
+  it('« Elles n’étaient pas à donner » enregistre avec ce choix', async () => {
+    await corrigerLaFrequence()
+
+    dansLaFeuille('.treatment-past-dues__choice--drop').click()
+    await flushPromises()
+
+    expect(update).toHaveBeenCalledExactlyOnceWith(
+      ID,
+      expect.objectContaining({ pastDues: 'drop' }),
+    )
+  })
+
+  it('« Annuler » revient au formulaire : rien d’écrit, saisie gardée', async () => {
+    const view = await corrigerLaFrequence()
+
+    dansLaFeuille('.treatment-past-dues__cancel').click()
+    await flushPromises()
+
+    expect(update).not.toHaveBeenCalled()
+    expect(feuille().props('modelValue')).toBe(false)
+    expect(valeur(view, 'treatment-frequency-value')).toBe('3')
+    expect(view.get('.form-screen__submit').attributes('disabled')).toBeUndefined()
+  })
+
+  it('annonce et écrit la « Prochaine dose » choisie à la main quand elle vaut pour le choix', async () => {
+    getWithHistory.mockResolvedValue(SANS_PRISE())
+    wrapper = await monterEdition()
+    await champ(wrapper, 'treatment-frequency-value').setValue('3')
+    await champ(wrapper, 'treatment-next-dose-on').setValue('2026-10-05')
+    await soumettre(wrapper)
+
+    expect(feuille().props('texts')).toMatchObject({
+      keepHint: 'Le nouveau rythme commence aujourd’hui. Prochaine dose le 5 oct.',
+      dropHint: 'L’ancien réglage était une erreur. Prochaine dose le 5 oct.',
+    })
+
+    dansLaFeuille('.treatment-past-dues__choice--keep').click()
+    await flushPromises()
+
+    expect(update).toHaveBeenCalledExactlyOnceWith(
+      ID,
+      expect.objectContaining({ pastDues: 'keep', nextDoseOn: '2026-10-05' }),
+    )
+  })
+
+  it('annonce et écrit la date calculée du chemin quand la date choisie à la main n’y vaut pas', async () => {
+    getWithHistory.mockResolvedValue(SANS_PRISE())
+    wrapper = await monterEdition()
+    await champ(wrapper, 'treatment-frequency-value').setValue('3')
+    await champ(wrapper, 'treatment-next-dose-on').setValue('2026-10-05')
+    await champ(wrapper, 'treatment-ends-on').setValue('2026-10-01')
+    await soumettre(wrapper)
+
+    expect(feuille().props('texts')).toMatchObject({
+      dropHint: 'L’ancien réglage était une erreur. Prochaine dose le 28 sept.',
+    })
+
+    dansLaFeuille('.treatment-past-dues__choice--drop').click()
+    await flushPromises()
+
+    expect(update).toHaveBeenCalledExactlyOnceWith(
+      ID,
+      expect.objectContaining({ pastDues: 'drop', nextDoseOn: '2026-09-28', endsOn: '2026-10-01' }),
+    )
+  })
+
+  it('annonce pour chaque choix la date que ce choix écrit, quand elles diffèrent', async () => {
+    getWithHistory.mockResolvedValue(
+      milbemax(
+        [
+          periode({
+            startsOn: '2026-09-11',
+            firstDueOn: '2026-09-11',
+            frequency: { value: 1, unit: 'week' },
+          }),
+          periode({
+            id: '66666666-6666-4666-8666-666666666666',
+            startsOn: '2026-09-25',
+            firstDueOn: '2026-09-25',
+            frequency: { value: 10, unit: 'day' },
+            createdAt: '2026-09-25T09:00:00.000Z',
+          }),
+        ],
+        [
+          prise({ id: 'a', dueOn: '2026-09-11', givenOn: '2026-09-11', nextDueDate: '2026-09-18' }),
+          prise({ id: 'b', dueOn: '2026-09-18', givenOn: '2026-09-18', nextDueDate: '2026-09-25' }),
+        ],
+      ),
+    )
+    wrapper = await monterEdition()
+    await champ(wrapper, 'treatment-frequency-value').setValue('20')
+    await soumettre(wrapper)
+
+    expect(feuille().props('texts')).toMatchObject({
+      title: '1 dose était prévue avant aujourd’hui',
+      keepHint: 'Le nouveau rythme commence aujourd’hui. Prochaine dose le 8 oct.',
+      dropHint: 'L’ancien réglage était une erreur. Prochaine dose le 28 sept.',
+    })
+
+    dansLaFeuille('.treatment-past-dues__choice--keep').click()
+    await flushPromises()
+
+    expect(update).toHaveBeenCalledExactlyOnceWith(
+      ID,
+      expect.objectContaining({ pastDues: 'keep', nextDoseOn: '2026-10-08' }),
+    )
+  })
+
+  it('dit qu’aujourd’hui est proposé pour un traitement jamais noté', async () => {
+    const view = await corrigerLaFrequence()
+
+    expect(valeur(view, 'treatment-next-dose-on')).toBe('2026-09-28')
+    expect(aide(view, 'next-dose-on')).toBe('Aujourd’hui est proposé. Modifiable.')
+
+    i18n.global.locale.value = 'en'
+    await view.vm.$nextTick()
+
+    expect(aide(view, 'next-dose-on')).toBe('Today is suggested. You can change it.')
+  })
+
+  it('repose la question quand les échéances annoncées ont changé depuis la réponse', async () => {
+    const view = await corrigerLaFrequence()
+    await champ(view, 'treatment-ends-on').setValue('2026-09-20')
+    dansLaFeuille('.treatment-past-dues__choice--keep').click()
+    await flushPromises()
+    expect(messages(view)).toHaveLength(1)
+    expect(update).not.toHaveBeenCalled()
+
+    vi.setSystemTime(new Date('2026-09-30T08:00:00'))
+    simulateWebResume()
+    await view.vm.$nextTick()
+    await champ(view, 'treatment-ends-on').setValue('2026-12-31')
+    await soumettre(view)
+
+    expect(update).not.toHaveBeenCalled()
+    expect(feuille().props('modelValue')).toBe(true)
+    expect(feuille().props('texts')).toMatchObject({
+      title: '4 doses étaient prévues avant aujourd’hui',
+    })
+  })
+
+  it('repose la question quand la fréquence change de nouveau', async () => {
+    const view = await corrigerLaFrequence()
+    dansLaFeuille('.treatment-past-dues__cancel').click()
+    await flushPromises()
+
+    await champ(view, 'treatment-frequency-value').setValue('4')
+    await soumettre(view)
+
+    expect(update).not.toHaveBeenCalled()
+    expect(feuille().props('modelValue')).toBe(true)
+  })
+
+  it('pose la question pour des heures seules changées', async () => {
+    getWithHistory.mockResolvedValue(SANS_PRISE())
+    wrapper = await monterEdition()
+    await ajouterHeure(wrapper, '09:00')
 
     await soumettre(wrapper)
 
     expect(update).not.toHaveBeenCalled()
+    expect(feuille().props('modelValue')).toBe(true)
+  })
+
+  it('ne pose aucune question pour la posologie, le nom ou la date de fin', async () => {
+    getWithHistory.mockResolvedValue(SANS_PRISE())
+    wrapper = await monterEdition()
+    await champ(wrapper, 'treatment-name').setValue('Autre')
+    await champ(wrapper, 'treatment-dose-quantity').setValue('2')
+    await champ(wrapper, 'treatment-ends-on').setValue('2026-12-31')
+
+    await soumettre(wrapper)
+
+    expect(feuille().exists()).toBe(false)
+    expect(update).toHaveBeenCalledOnce()
+  })
+
+  it('ne pose aucune question quand une prise est notée dans la période : nouvelle période sans question (TR-28)', async () => {
+    wrapper = await monterEdition()
+    await champ(wrapper, 'treatment-frequency-value').setValue('1')
+
+    await soumettre(wrapper)
+
+    expect(feuille().exists()).toBe(false)
+    expect(update).toHaveBeenCalledOnce()
+  })
+
+  it('ne pose jamais la question à la création ni à la reprise', async () => {
+    wrapper = await monterCreation()
+    await remplirMinimum(wrapper)
+    await champ(wrapper, 'treatment-first-dose-on').setValue('2026-09-03')
+    await soumettre(wrapper)
+
+    expect(feuille().exists()).toBe(false)
+    expect(create).toHaveBeenCalledOnce()
+    wrapper.unmount()
+
+    getWithHistory.mockResolvedValue(milbemax([periode({ stoppedOn: '2026-08-01' })]))
+    wrapper = await monterReprise()
+    await champ(wrapper, 'treatment-frequency-value').setValue('1')
+    await champ(wrapper, 'treatment-first-dose-on').setValue('2026-09-29')
+    await soumettre(wrapper)
+
+    expect(feuille().exists()).toBe(false)
+    expect(resume).toHaveBeenCalledOnce()
   })
 })
 
@@ -830,7 +1777,7 @@ describe('TreatmentFormView — retour vers l’écran d’origine', () => {
     })
     await routeur.push({
       name: 'treatment-edit',
-      params: { id: BRAVECTO.id },
+      params: { id: ID },
       query: reminder ? { from, reminder } : { from },
     })
     replace = vi.spyOn(routeur, 'replace').mockResolvedValue()
@@ -846,7 +1793,7 @@ describe('TreatmentFormView — retour vers l’écran d’origine', () => {
   })
 
   it('rend à l’accueil le rappel dont la feuille se rouvre, à l’enregistrement comme à l’annulation', async () => {
-    const reminder = `treatment:${BRAVECTO.id}`
+    const reminder = `treatment:${ID}`
     const enregistre = await monterDepuis('home', reminder)
     await soumettre(enregistre)
     expect(replace).toHaveBeenLastCalledWith({ name: 'home', query: { reminder } })
@@ -888,24 +1835,96 @@ describe('TreatmentFormView — retour vers l’écran d’origine', () => {
   })
 })
 
-describe('TreatmentFormView — reprise d’un traitement arrêté (F9 ter)', () => {
-  const MILBEMAX: Treatment = {
-    ...BRAVECTO,
-    name: 'Milbemax',
-    type: 'deworming',
-    frequency: { value: 15, unit: 'day' },
-    lastDoseDate: '2026-05-21',
-    nextDueDate: '2026-06-05',
-    stoppedOn: '2026-05-26',
-  }
-  let resume: MockInstance<(id: string, input: TreatmentEditInput) => Promise<Treatment>>
+describe('TreatmentFormView — reprise (TR-32, planche V7)', () => {
+  const PANACUR = periode({
+    frequency: { value: 1, unit: 'day' },
+    startsOn: '2026-10-06',
+    firstDueOn: '2026-10-06',
+    endsOn: '2026-10-10',
+    times: ['20:00'],
+    doseQuantity: 0.5,
+  })
+  const DERNIERE = prise({
+    dueOn: '2026-10-10',
+    dueTime: '20:00',
+    givenOn: '2026-10-10',
+    nextDueDate: '2026-10-11',
+  })
 
-  async function monterReprise(from?: string) {
-    getById.mockResolvedValue(MILBEMAX)
-    resume = vi.spyOn(useTreatmentsStore(), 'resume').mockResolvedValue({
-      ...MILBEMAX,
-      stoppedOn: null,
-    })
+  function panacur(periods = [PANACUR]): TreatmentWithHistory {
+    return { ...milbemax(periods, [DERNIERE]), name: 'Panacur' }
+  }
+
+  beforeEach(() => {
+    vi.setSystemTime(new Date('2026-11-02T09:41:00'))
+    getWithHistory.mockResolvedValue(panacur())
+  })
+
+  it('titre « Reprendre Panacur », bouton « Reprendre », sans nom ni type', async () => {
+    const wrapper = await monterReprise()
+
+    expect(wrapper.get('.pushed-screen__title').text()).toBe('Reprendre Panacur')
+    expect(wrapper.get('.form-screen__submit').text()).toBe('Reprendre')
+    expect(libelles(wrapper)).toEqual([
+      'Fréquence',
+      'Première prise le',
+      'Heures du traitement',
+      'Posologie',
+      'Date de fin',
+    ])
+    expect(wrapper.find('#treatment-name').exists()).toBe(false)
+  })
+
+  it('reprend les réglages de la dernière période, tous modifiables, et le dit', async () => {
+    const wrapper = await monterReprise()
+
+    expect(wrapper.get('.treatment-form__info').text()).toBe(
+      'Réglages de la dernière période, du 6 oct. au 10 oct. Tout reste modifiable.',
+    )
+    expect(valeur(wrapper, 'treatment-frequency-value')).toBe('1')
+    expect(uniteCochee(wrapper)).toBe('day')
+    expect(heures(wrapper)).toEqual(['20\u00a0h'])
+    expect(valeur(wrapper, 'treatment-dose-quantity')).toBe('½')
+    expect(unite(wrapper).props('modelValue')).toBe('tablet')
+  })
+
+  it('demande la première prise : vide au départ, « Reprendre » indisponible tant qu’elle manque', async () => {
+    const wrapper = await monterReprise()
+
+    expect(valeur(wrapper, 'treatment-first-dose-on')).toBe('')
+    expect(valeur(wrapper, 'treatment-ends-on')).toBe('')
+    expect(wrapper.get('.form-screen__submit').attributes('disabled')).toBeDefined()
+    expect(aide(wrapper, 'ends-on')).toBe('Même durée que la dernière fois\u00a0: 5 jours.')
+
+    await soumettre(wrapper)
+
+    expect(resume).not.toHaveBeenCalled()
+  })
+
+  it('propose une date de fin de même durée dès que la première prise est choisie (V7 bis)', async () => {
+    const wrapper = await monterReprise()
+
+    await champ(wrapper, 'treatment-first-dose-on').setValue('2026-11-03')
+
+    expect(valeur(wrapper, 'treatment-ends-on')).toBe('2026-11-07')
+    expect(aide(wrapper, 'ends-on')).toBe(
+      '5 jours, comme la dernière fois. Aucune dose ne sera prévue après cette date.',
+    )
+    expect(wrapper.get('.form-screen__submit').attributes('disabled')).toBeUndefined()
+  })
+
+  it('garde une date de fin choisie à la main quand la première prise change', async () => {
+    const wrapper = await monterReprise()
+    await champ(wrapper, 'treatment-first-dose-on').setValue('2026-11-03')
+    await champ(wrapper, 'treatment-ends-on').setValue('2026-11-20')
+
+    await champ(wrapper, 'treatment-first-dose-on').setValue('2026-11-05')
+
+    expect(valeur(wrapper, 'treatment-ends-on')).toBe('2026-11-20')
+    expect(aide(wrapper, 'ends-on')).toBe('Aucune dose ne sera prévue après cette date.')
+  })
+
+  it('reprend par le store avec la première prise choisie, sans nom ni type, puis revient au détail', async () => {
     routeur = createRouter({
       history: createMemoryHistory(),
       routes: [
@@ -916,63 +1935,87 @@ describe('TreatmentFormView — reprise d’un traitement arrêté (F9 ter)', ()
     })
     await routeur.push({
       name: 'treatment-resume',
-      params: { id: MILBEMAX.id },
-      query: from ? { from, reminder: `treatment:${MILBEMAX.id}` } : {},
+      params: { id: ID },
+      query: { from: 'treatment-detail', reminder: `treatment:${ID}` },
     })
     replace = vi.spyOn(routeur, 'replace').mockResolvedValue()
-    const wrapper = mount(TreatmentFormView, {
-      props: { id: MILBEMAX.id, resume: true },
-      global: { plugins: [vuetify, i18n, routeur] },
-      attachTo: document.body,
-    })
-    await flushPromises()
-    return wrapper
-  }
-
-  it('laisse la prochaine dose à choisir, le plan pré-rempli', async () => {
     const wrapper = await monterReprise()
-
-    expect(valeur(wrapper, 'treatment-name')).toBe('Milbemax')
-    expect(valeur(wrapper, 'treatment-frequency-value')).toBe('15')
-    expect(valeur(wrapper, 'treatment-next-due-date')).toBe('')
-  })
-
-  it('exige la prochaine dose avant de reprendre', async () => {
-    const wrapper = await monterReprise()
+    await champ(wrapper, 'treatment-first-dose-on').setValue('2026-11-03')
 
     await soumettre(wrapper)
 
-    expect(resume).not.toHaveBeenCalled()
-    expect(wrapper.get('.treatment-form__field--next-due-date').text()).toContain(
-      'La date est obligatoire.',
-    )
-  })
-
-  it('reprend le traitement avec la prochaine dose choisie, puis revient à son détail', async () => {
-    const wrapper = await monterReprise('treatment-detail')
-    await champ(wrapper, 'treatment-next-due-date').setValue('2026-10-01')
-
-    await soumettre(wrapper)
-
-    expect(resume).toHaveBeenCalledExactlyOnceWith(MILBEMAX.id, {
-      name: 'Milbemax',
-      type: 'deworming',
-      frequency: { value: 15, unit: 'day' },
-      nextDueDate: '2026-10-01',
+    expect(resume).toHaveBeenCalledExactlyOnceWith(ID, {
+      firstDoseOn: '2026-11-03',
+      frequency: { value: 1, unit: 'day' },
+      times: ['20:00'],
+      doseQuantity: 0.5,
+      doseUnit: 'tablet',
+      endsOn: '2026-11-07',
     })
     expect(update).not.toHaveBeenCalled()
-    expect(replace).toHaveBeenCalledWith({
-      name: 'treatment-detail',
-      params: { id: MILBEMAX.id },
-    })
+    expect(replace).toHaveBeenCalledWith({ name: 'treatment-detail', params: { id: ID } })
+  })
+
+  it('borne le sélecteur de la première prise à la première date acceptée, et la dit en anglais', async () => {
+    i18n.global.locale.value = 'en'
+    const wrapper = await monterReprise()
+
+    expect(champ(wrapper, 'treatment-first-dose-on').attributes('min')).toBe('2026-10-11')
+
+    await champ(wrapper, 'treatment-first-dose-on').setValue('2026-10-10')
+    await soumettre(wrapper)
+
+    expect(messages(wrapper)).toEqual(['The first dose can be on Oct 11 at the earliest.'])
+  })
+
+  it('refuse une première prise avant la fin de la dernière période', async () => {
+    const wrapper = await monterReprise()
+    await champ(wrapper, 'treatment-first-dose-on').setValue('2026-10-10')
+
+    await soumettre(wrapper)
+
+    expect(messages(wrapper)).toEqual(['La première prise est possible à partir du 11 oct.'])
+    expect(resume).not.toHaveBeenCalled()
+  })
+
+  it('date la dernière période de son arrêt, sans durée à reprendre, pour un traitement arrêté', async () => {
+    getWithHistory.mockResolvedValue(
+      panacur([{ ...PANACUR, endsOn: null, stoppedOn: '2026-10-12' }]),
+    )
+    const wrapper = await monterReprise()
+
+    expect(wrapper.get('.treatment-form__info').text()).toBe(
+      'Réglages de la dernière période, du 6 oct. au 12 oct. Tout reste modifiable.',
+    )
+    expect(aide(wrapper, 'ends-on')).toBe('Aucune dose ne sera prévue après cette date.')
+  })
+
+  it('ne reprend pas un traitement en cours', async () => {
+    getWithHistory.mockResolvedValue(panacur([{ ...PANACUR, endsOn: null }]))
+    const wrapper = await monterReprise()
+
+    expect(wrapper.get('.form-screen__save-error').text()).toBe('Ce traitement est introuvable.')
+    expect(wrapper.get('.form-screen__submit').attributes('disabled')).toBeDefined()
+  })
+
+  it('écrit la reprise en anglais', async () => {
+    i18n.global.locale.value = 'en'
+    const wrapper = await monterReprise()
+
+    expect(wrapper.get('.pushed-screen__title').text()).toBe('Resume Panacur')
+    expect(wrapper.get('.form-screen__submit').text()).toBe('Resume')
+    expect(wrapper.get('.treatment-form__info').text()).toBe(
+      'Settings from the last period, Oct 6 – Oct 10. Everything can be changed.',
+    )
+    expect(aide(wrapper, 'ends-on')).toBe('Same length as last time: 5 days.')
   })
 
   it('ouvre la reprise depuis l’identifiant du traitement', () => {
-    const route = router.resolve(`/treatments/${MILBEMAX.id}/resume`)
+    const route = router.resolve(`/treatments/${ID}/resume`)
     const props = route.matched[0]!.props.default as (r: typeof route) => unknown
 
     expect(route.name).toBe('treatment-resume')
-    expect(props(route)).toEqual({ id: MILBEMAX.id, resume: true })
+    expect(props(route)).toEqual({ id: ID, resume: true })
   })
 })
 
@@ -993,14 +2036,8 @@ describe('TreatmentFormView — envoi en cours', () => {
     expect(wrapper.get('.form-screen__submit').attributes('disabled')).toBeDefined()
     expect(wrapper.get('.form-screen__cancel').attributes('disabled')).toBeDefined()
 
-    terminer(BRAVECTO)
+    terminer(ECRIT)
     await flushPromises()
-  })
-
-  it('montre un exemple de fréquence dans le champ nombre vide', async () => {
-    const wrapper = await monterCreation()
-
-    expect(wrapper.get('#treatment-frequency-value').attributes('placeholder')).toBe('1')
   })
 
   it('bascule sur « Enregistrement… » en édition', async () => {
@@ -1022,6 +2059,47 @@ describe('TreatmentFormView — envoi en cours', () => {
     await flushPromises()
 
     expect(create).toHaveBeenCalledOnce()
+  })
+
+  it('ne permet plus aucune écriture après une écriture réussie, « Annuler » restant utilisable', async () => {
+    const wrapper = await monterCreation()
+    await remplirMinimum(wrapper)
+
+    await soumettre(wrapper)
+    await soumettre(wrapper)
+
+    expect(wrapper.get('.form-screen__submit').attributes('disabled')).toBeDefined()
+    expect(wrapper.get('.form-screen__cancel').attributes('disabled')).toBeUndefined()
+    expect(create).toHaveBeenCalledOnce()
+  })
+
+  it('ne reste pas bloqué quand la navigation de retour échoue : pas de message d’échec, pas de seconde écriture', async () => {
+    replace.mockRejectedValue(new Error('navigation refusée'))
+    const wrapper = await monterCreation()
+    await remplirMinimum(wrapper)
+
+    await soumettre(wrapper)
+    await soumettre(wrapper)
+
+    expect(create).toHaveBeenCalledOnce()
+    expect(wrapper.find('.form-screen__save-error').exists()).toBe(false)
+    expect(wrapper.get('.form-screen__submit').text()).toBe('Créer')
+    expect(wrapper.get('.form-screen__submit').attributes('disabled')).toBeDefined()
+    expect(wrapper.get('.form-screen__cancel').attributes('disabled')).toBeUndefined()
+  })
+
+  it('retombe sur le Carnet quand le calcul de la route échoue après l’écriture, sans dire que l’enregistrement a échoué', async () => {
+    vi.mocked(shouldShowPriming).mockRejectedValueOnce(new Error('plugin indisponible'))
+    const wrapper = await monterCreation()
+    await remplirMinimum(wrapper)
+
+    await soumettre(wrapper)
+    await soumettre(wrapper)
+
+    expect(create).toHaveBeenCalledOnce()
+    expect(replace).toHaveBeenCalledExactlyOnceWith({ name: 'animals' })
+    expect(wrapper.find('.form-screen__save-error').exists()).toBe(false)
+    expect(wrapper.get('.form-screen__submit').attributes('disabled')).toBeDefined()
   })
 
   it('rend la main et prévient quand l’écriture échoue', async () => {
@@ -1049,78 +2127,30 @@ describe('TreatmentFormView — routes', () => {
   })
 
   it('ouvre l’édition depuis l’identifiant du traitement, sans animal dans l’URL', () => {
-    const route = router.resolve(`/treatments/${BRAVECTO.id}/edit`)
+    const route = router.resolve(`/treatments/${ID}/edit`)
 
     expect(route.name).toBe('treatment-edit')
-    expect(route.params).toEqual({ id: BRAVECTO.id })
+    expect(route.params).toEqual({ id: ID })
     expect(route.matched[0]?.props.default).toBe(true)
   })
 })
 
-function expectLie(wrapper: VueWrapper, controle: string, champ: string) {
-  const idErreur = wrapper.get(`${champ} .form-field__error`).attributes('id')
-
-  expect(idErreur).toBeTruthy()
-  expect(wrapper.get(controle).attributes('aria-describedby')).toBe(idErreur)
-  expect(wrapper.get(controle).attributes('aria-invalid')).toBe('true')
-}
-
-describe('TreatmentFormView — accessibilité des erreurs', () => {
-  it('relie chaque contrôle en erreur à son message et le marque invalide', async () => {
-    const wrapper = await monterCreation()
-
-    await soumettre(wrapper)
-
-    expect(messages(wrapper)).toHaveLength(4)
-    expectLie(wrapper, '#treatment-name', '.treatment-form__field--name')
-    expectLie(
-      wrapper,
-      '.treatment-form__field--type .form-segmented',
-      '.treatment-form__field--type',
-    )
-    expectLie(wrapper, '#treatment-frequency-value', '.treatment-form__field--frequency')
-    expectLie(wrapper, '#treatment-last-dose-date', '.treatment-form__field--last-dose-date')
-  })
-
-  it('nomme le champ nombre par le libellé « Fréquence » et le mot de liaison', async () => {
-    const wrapper = await monterCreation()
-
-    const ids = champ(wrapper, 'treatment-frequency-value')
-      .attributes('aria-labelledby')!
-      .split(' ')
-    expect(ids).toHaveLength(2)
-    expect(wrapper.get(`#${ids[0]}`).text()).toContain('Fréquence')
-    expect(wrapper.get(`#${ids[1]}`).text()).toBe('Tous les')
-  })
-
-  it('annonce la prochaine dose dans une région polie, présente avant même l’aperçu', async () => {
-    const wrapper = await monterCreation()
-    const region = wrapper.get('[aria-live="polite"]')
-
-    expect(region.text()).toBe('')
-
-    await champ(wrapper, 'treatment-frequency-value').setValue('3')
-    await champ(wrapper, 'treatment-last-dose-date').setValue('2026-06-24')
-
-    expect(wrapper.get('[aria-live="polite"]').text()).toBe('Prochaine dose le 24 sept. 2026')
-  })
-})
-
 describe('TreatmentFormView — changement de jour', () => {
-  it('accepte la date du nouveau jour après un retour au premier plan', async () => {
-    vi.useFakeTimers({ now: new Date('2026-09-09T23:30:00'), toFake: ['Date'] })
-    const wrapper = await monterCreation()
+  it('repropose « Prochaine dose » d’après le nouveau jour après un retour au premier plan', async () => {
+    getWithHistory.mockResolvedValue(
+      milbemax(
+        [periode({ frequency: { value: 1, unit: 'day' } })],
+        [prise({ dueOn: '2026-09-27', givenOn: '2026-09-27', nextDueDate: '2026-09-28' })],
+      ),
+    )
+    const wrapper = await monterEdition()
+    expect(valeur(wrapper, 'treatment-next-dose-on')).toBe('2026-09-28')
 
-    vi.setSystemTime(new Date('2026-09-10T08:00:00'))
+    vi.setSystemTime(new Date('2026-09-30T08:00:00'))
     simulateWebResume()
     await wrapper.vm.$nextTick()
-    expect(champ(wrapper, 'treatment-last-dose-date').attributes('max')).toBe('2026-09-10')
 
-    await remplirMinimum(wrapper)
-    await champ(wrapper, 'treatment-last-dose-date').setValue('2026-09-10')
-    await soumettre(wrapper)
-
-    expect(messages(wrapper)).toEqual([])
-    expect(create).toHaveBeenCalledWith(expect.objectContaining({ lastDoseDate: '2026-09-10' }))
+    expect(champ(wrapper, 'treatment-next-dose-on').attributes('min')).toBe('2026-09-30')
+    expect(valeur(wrapper, 'treatment-next-dose-on')).toBe('2026-09-30')
   })
 })

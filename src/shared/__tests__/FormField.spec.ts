@@ -110,3 +110,32 @@ describe('FormField — liaison du contrôle à son erreur', () => {
     expect(ids[0]).not.toBe(ids[1])
   })
 })
+
+describe('FormField — aide', () => {
+  const CONTROLE =
+    '<template #default="{ describedby }"><input id="treatment-end" :aria-describedby="describedby" /></template>'
+  const AIDE = 'Aucune dose ne sera prévue après cette date.'
+
+  it('affiche l’aide sous le contrôle et la lui relie', () => {
+    const wrapper = monter({ controlId: 'treatment-end', help: AIDE }, CONTROLE)
+
+    const aide = wrapper.get('.form-field__help')
+    expect(aide.text()).toBe(AIDE)
+    expect(wrapper.get('#treatment-end').attributes('aria-describedby')).toBe(aide.attributes('id'))
+  })
+
+  it('relie le contrôle à son aide puis à son erreur', () => {
+    const wrapper = monter(
+      { controlId: 'treatment-end', help: AIDE, error: 'Date refusée.' },
+      CONTROLE,
+    )
+
+    expect(wrapper.get('#treatment-end').attributes('aria-describedby')).toBe(
+      `${wrapper.get('.form-field__help').attributes('id')} ${wrapper.get('.form-field__error').attributes('id')}`,
+    )
+  })
+
+  it('ne rend aucune aide sans texte', () => {
+    expect(monter({ controlId: 'treatment-end' }).find('.form-field__help').exists()).toBe(false)
+  })
+})

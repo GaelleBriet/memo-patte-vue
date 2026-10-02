@@ -14,6 +14,7 @@ import { createVaccinationInjectionsRepository } from '@/features/vaccinations/r
 import { createVaccinationsRepository } from '@/features/vaccinations/repository/vaccinations.repository'
 import { createVaccinationInjectionsService } from '@/features/vaccinations/service/vaccination-injections.service'
 import { createWeightRepository } from '@/features/weight/repository/weight.repository'
+import { seededTreatments } from '@/features/treatments/__tests__/seed-treatment'
 
 const USER_ID = '99999999-9999-4999-8999-999999999999'
 
@@ -47,6 +48,7 @@ async function createDevice(client: SupabaseClient) {
     animals,
     vaccinations,
     treatments,
+    seed: seededTreatments(db),
     weight,
     onRemindersOutdated,
     injectionDone: createVaccinationInjectionsService({
@@ -79,7 +81,7 @@ async function createCarnet(device: Device) {
     lastInjectionDate: '2025-09-20',
     dueDate: '2026-09-20',
   })
-  const bravecto = await device.treatments.create({
+  const bravecto = await device.seed.create({
     animalId: milo.id,
     name: 'Bravecto',
     type: 'antiparasitic',
@@ -190,7 +192,7 @@ describe('synchro de l’historique entre deux appareils', () => {
       lastInjectionDate: '2025-09-20',
       dueDate: '2026-09-20',
     })
-    await phone.treatments.update(bravecto.id, {
+    await phone.seed.update(bravecto.id, {
       name: 'Bravecto Plus',
       type: 'antiparasitic',
       frequency: { value: 1, unit: 'month' },

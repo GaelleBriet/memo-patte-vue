@@ -14,8 +14,11 @@ import {
 } from '@/features/animals/repository/animals.repository'
 import { DOSE_STATUSES } from '@/features/treatments/schema/treatment-dose.schema'
 import {
+  doseQuantitySchema,
   doseUnitSchema,
+  hasWholeDosage,
   REMINDER_OFFSETS_MINUTES,
+  treatmentTimesSchema,
 } from '@/features/treatments/schema/treatment-period.schema'
 import {
   treatmentFrequencySchema,
@@ -85,7 +88,6 @@ export type ParsedExportFile =
 
 export const MAX_IMPORT_FILE_BYTES = 10 * 1024 * 1024
 const MAX_TEXT_LENGTH = 200
-const MAX_TIMES_PER_DAY = 24
 
 function isYearInRange(value: string): boolean {
   const year = Number(value.slice(0, 4))
@@ -159,17 +161,14 @@ const periodFileSchema = z
     endsOn: day.nullable(),
     stoppedOn: day.nullable(),
     frequency: treatmentFrequencySchema,
-    times: z
-      .array(clockTime)
-      .max(MAX_TIMES_PER_DAY)
-      .refine((times) => new Set(times).size === times.length),
-    doseQuantity: z.number().positive().nullable(),
+    times: treatmentTimesSchema,
+    doseQuantity: doseQuantitySchema.nullable(),
     doseUnit: doseUnitSchema.nullable(),
     reminderOffsetMinutes: z.literal([...REMINDER_OFFSETS_MINUTES]).nullable(),
     reminderTime: clockTime.nullable(),
     ...timestamps,
   })
-  .refine((period) => (period.doseQuantity === null) === (period.doseUnit === null))
+  .refine(hasWholeDosage)
   .refine(({ startsOn, firstDueOn, endsOn, stoppedOn }) =>
     [firstDueOn, endsOn, stoppedOn].every((date) => date === null || date >= startsOn),
   )

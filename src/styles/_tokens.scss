@@ -76,6 +76,8 @@ $height-quick-tile: 78px; // Tuile d'action rapide
 $height-field: 52px; // Champ de formulaire
 $height-segmented: 48px; // Segmented control d'un formulaire
 $height-segmented-stacked: 56px; // Segmented control à options sur deux lignes
+$height-segmented-compact: 54px; // Segmented control compact, à trois libellés
+$radius-segment-compact: 11px; // Option d'un segmented control compact
 
 $size-tap-target: 48px; // Zone de tap minimale d'un contrôle (Material)
 $size-chip-avatar: 32px; // Avatar rond dans une chip

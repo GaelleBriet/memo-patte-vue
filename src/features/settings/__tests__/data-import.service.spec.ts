@@ -37,6 +37,8 @@ import { createTreatmentsRepository } from '@/features/treatments/repository/tre
 import { createVaccinationInjectionsRepository } from '@/features/vaccinations/repository/vaccination-injections.repository'
 import { createVaccinationsRepository } from '@/features/vaccinations/repository/vaccinations.repository'
 import { createWeightRepository } from '@/features/weight/repository/weight.repository'
+import { seededTreatments } from '@/features/treatments/__tests__/seed-treatment'
+import { createTreatmentPlanService } from '@/features/treatments/service/treatment-plan.service'
 
 const NOW = new Date('2026-09-15T10:00:00.000Z')
 const LUNA_PHOTO = IMPORT_FIXTURE.animals[0]!.photoFileName!
@@ -61,6 +63,7 @@ function createRepositories(client: InMemoryDb) {
     vaccinations: createVaccinationsRepository(client),
     injections: createVaccinationInjectionsRepository(client),
     treatments: createTreatmentsRepository(client),
+    seed: seededTreatments(client),
     periods: createTreatmentPeriodsRepository(client),
     doses: createTreatmentDosesRepository(client),
     weight: createWeightRepository(client),
@@ -864,7 +867,7 @@ describe('data-import.service', () => {
         name: 'Rage',
         lastInjectionDate: '2025-01-01',
       })
-      const bravecto = await repositories.treatments.create({
+      const bravecto = await repositories.seed.create({
         animalId: rex.id,
         name: 'Bravecto',
         type: 'antiparasitic',
@@ -1039,7 +1042,7 @@ describe('data-import.service', () => {
         updatedAt: '2026-05-18T08:00:00.000Z',
         deletedAt: null,
       })
-      const bravecto = await phone.treatments.create({
+      const bravecto = await phone.seed.create({
         animalId: milo.id,
         name: 'Bravecto',
         type: 'antiparasitic',
@@ -1058,7 +1061,7 @@ describe('data-import.service', () => {
           }),
         ),
       ])
-      const drontal = await phone.treatments.create({
+      const drontal = await phone.seed.create({
         animalId: milo.id,
         name: 'Drontal',
         type: 'deworming',
@@ -1086,6 +1089,63 @@ describe('data-import.service', () => {
       expect(before.treatmentDoses).toHaveLength(3)
       await expect(carnet()).resolves.toEqual(before)
       expect(syncReminders).toHaveBeenCalledOnce()
+      source.close()
+    })
+
+    it('un traitement créé puis modifié par le formulaire, nouvelle période comprise, revient à l’identique', async () => {
+      const source = await createInMemoryDb()
+      await source.execute('PRAGMA foreign_keys = ON')
+      const phone = createRepositories(source)
+      const luna = await phone.animals.create({ name: 'Luna', species: 'cat' })
+      const form = createTreatmentPlanService({
+        treatments: () => phone.treatments,
+        today: () => '2026-09-28',
+        newId: () => crypto.randomUUID(),
+      })
+      const reglages = {
+        frequency: { value: 1, unit: 'day' as const },
+        times: ['20:00', '08:00'],
+        doseQuantity: 0.5,
+        doseUnit: 'ml' as const,
+        endsOn: '2026-10-10',
+      }
+      const metacam = await form.create({
+        animalId: luna.id,
+        name: 'Métacam',
+        type: 'medication',
+        firstDoseOn: '2026-09-27',
+        ...reglages,
+      })
+      await source.runMany([
+        phone.doses.insertStatement({
+          ...prise({
+            id: crypto.randomUUID(),
+            treatmentId: metacam.id,
+            animalId: luna.id,
+            givenOn: '2026-09-27',
+            nextDueDate: '2026-09-27',
+            at: '2026-09-27T08:00:00.000Z',
+          }),
+          dueTime: '08:00',
+        }),
+      ])
+      const edition = { name: 'Métacam', type: 'medication' as const, ...reglages }
+      await form.update(metacam.id, { ...edition, doseQuantity: 0.3, nextDoseOn: null })
+      await form.update(metacam.id, { ...edition, doseQuantity: 0.3, nextDoseOn: '2026-09-30' })
+
+      await importerOn(db, () => NOW).importData(await exported(source), 'replace')
+
+      const before = await carnet(source)
+      expect(before.treatmentPeriods).toHaveLength(2)
+      expect(
+        before.treatmentPeriods
+          .map(({ firstDueOn, doseQuantity }) => [firstDueOn, doseQuantity])
+          .sort(),
+      ).toEqual([
+        ['2026-09-27', 0.5],
+        ['2026-09-30', 0.3],
+      ])
+      await expect(carnet()).resolves.toEqual(before)
       source.close()
     })
 
@@ -1153,7 +1213,7 @@ describe('data-import.service', () => {
       at('2026-09-01T08:00:00.000Z')
       const a = createRepositories(phoneA)
       const luna = await a.animals.create({ name: 'Luna', species: 'cat' })
-      const milbemax = await a.treatments.create({
+      const milbemax = await a.seed.create({
         animalId: luna.id,
         name: 'Milbémax',
         type: 'deworming',
@@ -1205,7 +1265,7 @@ describe('data-import.service', () => {
       at('2026-09-01T08:00:00.000Z')
       const a = createRepositories(phoneA)
       const luna = await a.animals.create({ name: 'Luna', species: 'cat' })
-      const milbemax = await a.treatments.create({
+      const milbemax = await a.seed.create({
         animalId: luna.id,
         name: 'Milbémax',
         type: 'deworming',
@@ -1215,7 +1275,7 @@ describe('data-import.service', () => {
       await importerOn(phoneB).importData(await exported(phoneA), 'replace')
 
       at('2026-09-05T08:00:00.000Z')
-      await createRepositories(phoneB).treatments.update(milbemax.id, {
+      await createRepositories(phoneB).seed.update(milbemax.id, {
         name: 'Milbémax chat',
         type: 'deworming',
         frequency: { value: 3, unit: 'month' },
@@ -1244,7 +1304,7 @@ describe('data-import.service', () => {
       at('2026-09-01T08:00:00.000Z')
       const a = createRepositories(phoneA)
       const luna = await a.animals.create({ name: 'Luna', species: 'cat' })
-      const milbemax = await a.treatments.create({
+      const milbemax = await a.seed.create({
         animalId: luna.id,
         name: 'Milbémax',
         type: 'deworming',
@@ -1257,7 +1317,7 @@ describe('data-import.service', () => {
       at('2026-09-05T09:00:00.000Z')
       await b.periods.stop(milbemax.id, '2026-09-05')
       at('2026-09-05T10:00:00.000Z')
-      await a.treatments.update(milbemax.id, {
+      await a.seed.update(milbemax.id, {
         name: 'Milbémax chat',
         type: 'deworming',
         frequency: { value: 3, unit: 'month' },
@@ -1284,7 +1344,7 @@ describe('data-import.service', () => {
       at('2026-09-01T08:00:00.000Z')
       const a = createRepositories(phoneA)
       const luna = await a.animals.create({ name: 'Luna', species: 'cat' })
-      const milbemax = await a.treatments.create({
+      const milbemax = await a.seed.create({
         animalId: luna.id,
         name: 'Milbémax',
         type: 'deworming',
@@ -1313,7 +1373,7 @@ describe('data-import.service', () => {
         new Date().toISOString(),
       )
       at('2026-09-05T10:00:00.000Z')
-      await a.treatments.update(milbemax.id, {
+      await a.seed.update(milbemax.id, {
         name: 'Milbémax chat',
         type: 'deworming',
         frequency: { value: 3, unit: 'month' },
@@ -1344,7 +1404,7 @@ describe('data-import.service', () => {
       at('2026-09-01T08:00:00.000Z')
       const a = createRepositories(phoneA)
       const luna = await a.animals.create({ name: 'Luna', species: 'cat' })
-      const milbemax = await a.treatments.create({
+      const milbemax = await a.seed.create({
         animalId: luna.id,
         name: 'Milbémax',
         type: 'deworming',
@@ -1355,7 +1415,7 @@ describe('data-import.service', () => {
       await importerOn(phoneB).importData(await exported(phoneA), 'replace')
 
       at('2026-09-10T08:00:00.000Z')
-      await a.treatments.update(milbemax.id, {
+      await a.seed.update(milbemax.id, {
         name: 'Milbémax',
         type: 'deworming',
         frequency: { value: 1, unit: 'month' },

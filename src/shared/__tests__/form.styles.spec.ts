@@ -59,6 +59,11 @@ describe('FormScreen — contrat de style', () => {
 describe('FormField — contrat de style', () => {
   const css = cssDe('FormField.vue')
 
+  it('écrit l’aide en texte secondaire, sous le contrôle', () => {
+    expect(declaration(css, '.form-field__help', 'color')).toBe('#68625c')
+    expect(declaration(css, '.form-field__help', 'font-size')).toBe('12.5px')
+  })
+
   it('donne aux champs la surface, le rayon et la hauteur de la maquette', () => {
     expect(
       declaration(css, '.form-field :deep(.form-field__input .v-field)', 'border-radius'),
@@ -166,6 +171,21 @@ describe('FormField — contrat de style', () => {
 
 describe('FormSegmented — contrat de style', () => {
   const css = cssDe('FormSegmented.vue')
+
+  it('donne au sélecteur compact le rayon d’un champ et des options qui se partagent la largeur', () => {
+    expect(declaration(css, '.form-segmented--compact', 'height')).toBe('54px')
+    expect(declaration(css, '.form-segmented--compact', 'border-radius')).toBe('14px')
+    expect(declaration(css, '.form-segmented--compact', 'padding')).toBe('3px')
+    expect(declaration(css, '.form-segmented--compact .form-segmented__option', 'min-width')).toBe(
+      '0',
+    )
+    expect(declaration(css, '.form-segmented--compact .form-segmented__option', 'flex')).toBe(
+      '1 1 auto',
+    )
+    expect(declaration(css, '.form-segmented--compact .form-segmented__option', 'font-size')).toBe(
+      '13px',
+    )
+  })
 
   it('fait du sélecteur une pilule bordée de 48 px', () => {
     expect(declaration(css, '.form-segmented', 'height')).toBe('48px')

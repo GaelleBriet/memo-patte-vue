@@ -21,6 +21,7 @@ import {
   type TreatmentDosesService,
 } from '../service/treatment-doses.service'
 import { createTreatmentRemindersService } from '../service/treatment-reminders.service'
+import { seedTreatmentWithDose } from './seed-treatment'
 
 const BOREE = '11111111-1111-4111-8111-111111111111'
 const NOW = new Date('2026-09-23T08:00:00.000Z')
@@ -72,7 +73,7 @@ describe('treatmentDosesService', () => {
       now: () => new Date(),
     })
     bravecto = (
-      await treatments.create({
+      await seedTreatmentWithDose(db, {
         animalId: BOREE,
         name: 'Bravecto',
         type: 'deworming',

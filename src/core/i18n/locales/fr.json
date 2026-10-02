@@ -246,9 +246,10 @@
     "form": {
       "title": "Nouveau traitement",
       "editTitle": "Modifier {name}",
+      "resumeTitle": "Reprendre {name}",
       "forAnimal": "Pour {name}",
       "name": {
-        "label": "Nom",
+        "label": "Nom du produit",
         "placeholder": "Ex. Bravecto"
       },
       "type": {
@@ -268,27 +269,90 @@
           "month": "mois"
         }
       },
-      "lastDoseDate": {
-        "label": "Date de la dernière prise"
+      "firstDoseOn": {
+        "label": "Première prise le",
+        "help": "Déjà en cours ? Indique la dernière prise certaine : l’historique commencera là."
       },
-      "nextDueDate": {
-        "label": "Prochaine dose"
+      "nextDoseOn": {
+        "label": "Prochaine dose",
+        "calculated": "Calculée d’après la dernière prise : {date}. Modifiable.",
+        "scheduled": "Prochaine dose prévue : {date}. Modifiable.",
+        "calculatedPassed": "Calculée d’après la dernière prise : le {date}, déjà passé ; aujourd’hui est proposé. Modifiable.",
+        "today": "Aujourd’hui est proposé. Modifiable.",
+        "overdue": "Dose en retard depuis le {date}",
+        "dropped": "La dose prévue avant cette date ne sera plus à renseigner. | Les {n} doses prévues avant cette date ne seront plus à renseigner.",
+        "refusal": {
+          "laterLine": "Une dose plus lointaine est déjà reportée. Supprime ce report pour déplacer celle-ci.",
+          "laterDose": "Une dose plus lointaine est déjà notée.",
+          "noDateLeft": "Plus aucune date possible avant la date de fin. Change la date de fin pour déplacer cette dose.",
+          "arrivalLogged": "Cette dose a déjà été déplacée, et sa nouvelle date est notée."
+        }
       },
-      "nextDose": "Prochaine dose le {date}",
+      "times": {
+        "label": "Heures du traitement",
+        "add": "Ajouter une heure",
+        "change": "Heure {time}, modifier",
+        "remove": "Retirer {time}"
+      },
+      "dosage": {
+        "label": "Posologie",
+        "quantity": "Quantité",
+        "unit": "Unité",
+        "shortcuts": "Quantités courantes"
+      },
+      "endsOn": {
+        "label": "Date de fin",
+        "help": "Aucune dose ne sera prévue après cette date.",
+        "clear": "Effacer la date de fin",
+        "sameDuration": "Même durée que la dernière fois : {duration}.",
+        "repeatedDuration": "{duration}, comme la dernière fois. Aucune dose ne sera prévue après cette date.",
+        "days": "{n} jour | {n} jours"
+      },
+      "resumeInfo": "Réglages de la dernière période, du {start} au {end}. Tout reste modifiable.",
+      "pastDues": {
+        "title": "{n} dose était prévue avant aujourd’hui | {n} doses étaient prévues avant aujourd’hui",
+        "text": {
+          "one": "Le {date}, au rythme « {rhythm} ».",
+          "list": "Les {dates}, au rythme « {rhythm} ».",
+          "range": "Du {start} au {end}, au rythme « {rhythm} »."
+        },
+        "keep": "Elle reste à renseigner | Elles restent à renseigner",
+        "keepHint": "Le nouveau rythme commence aujourd’hui. Prochaine dose le {date}.",
+        "drop": "Elle n’était pas à donner | Elles n’étaient pas à donner",
+        "dropHint": "L’ancien réglage était une erreur. Prochaine dose le {date}.",
+        "cancel": "Annuler"
+      },
       "submit": "Créer",
       "submitting": "Création…",
       "save": "Enregistrer",
       "saving": "Enregistrement…",
+      "resume": "Reprendre",
+      "resuming": "Reprise…",
       "errors": {
         "name": "Le nom est obligatoire.",
         "nameMax": "Le nom ne peut pas dépasser {max} caractères.",
         "type": "Choisis un type.",
         "frequency": "Indique une fréquence.",
         "frequencyMax": "La fréquence doit être de 365 maximum.",
-        "lastDoseDate": "La date est obligatoire.",
-        "lastDoseDateFuture": "La date ne peut pas être dans le futur.",
-        "nextDueDate": "La date est obligatoire.",
-        "nextDueDateBeforeLastDose": "La prochaine dose ne peut pas précéder la dernière prise.",
+        "firstDoseOn": "La date est obligatoire.",
+        "firstDoseOnTooEarly": "La première prise est possible à partir du {from}.",
+        "firstDoseOnTooOld": "Cette date est trop ancienne pour ce rythme.",
+        "nextDoseOn": "La date est obligatoire.",
+        "nextDoseOnTooEarly": "Choisis une date à partir du {date}.",
+        "nextDoseOnAfterEnd": "La prochaine dose ne peut pas dépasser la date de fin. Change la date de fin pour aller plus loin.",
+        "nextDoseOnRefused": "Cette dose ne peut pas être déplacée.",
+        "times": "Vérifie les heures du traitement.",
+        "timesDuplicate": "Cette heure est déjà dans la liste.",
+        "dosageQuantity": "La quantité doit être un nombre supérieur à 0.",
+        "dosageIncomplete": "Indique la quantité et l’unité, ou laisse les deux vides.",
+        "endsOn": "Cette date n’existe pas.",
+        "endsOnBeforeFirstDose": "La date de fin ne peut pas précéder la première prise.",
+        "endsOnBeforeNextDose": "La date de fin ne peut pas précéder la prochaine dose.",
+        "endsOnBeforeLastDose": "La date de fin ne peut pas précéder la dernière prise notée.",
+        "endsOnBeforePostponedDose": "La prochaine dose est reportée au {arrival}.",
+        "endsOnBeforeAdvancedDose": "La prochaine dose est avancée au {arrival}.",
+        "endsOnBeforeFarPostponedDose": "Une dose est reportée au {arrival}.",
+        "endsOnBeforeFarAdvancedDose": "Une dose est avancée au {arrival}.",
         "notFound": "Ce traitement est introuvable.",
         "load": "Ce traitement n’a pas pu être chargé. Réessaie.",
         "save": "Le traitement n’a pas pu être enregistré. Réessaie."

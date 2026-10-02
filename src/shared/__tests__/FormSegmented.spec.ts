@@ -116,3 +116,36 @@ describe('FormSegmented — options sur deux lignes', () => {
     expect(boutons[1]!.find('.v-icon').exists()).toBe(false)
   })
 })
+
+describe('FormSegmented — sélecteur compact', () => {
+  const TYPES = [
+    { value: 'deworming', label: 'Vermifuge' },
+    { value: 'antiparasitic', label: 'Antiparasitaire' },
+    { value: 'medication', label: 'Médicament' },
+  ] as const
+
+  function monterTypes(modelValue: (typeof TYPES)[number]['value'] | null = 'deworming') {
+    return mount(FormSegmented, {
+      props: { modelValue, options: TYPES, compact: true },
+      global: { plugins: [vuetify] },
+    })
+  }
+
+  it('marque l’option cochée par sa couleur seule : la coche prendrait la place d’un libellé', () => {
+    const wrapper = monterTypes()
+
+    expect(wrapper.get('.form-segmented').classes()).toContain('form-segmented--compact')
+    expect(wrapper.findAll('button')[0]!.attributes('aria-checked')).toBe('true')
+    expect(wrapper.find('.v-icon').exists()).toBe(false)
+  })
+
+  it('reste une pilule à coche sans la variante', () => {
+    const wrapper = mount(FormSegmented, {
+      props: { modelValue: 'deworming', options: TYPES },
+      global: { plugins: [vuetify] },
+    })
+
+    expect(wrapper.get('.form-segmented').classes()).not.toContain('form-segmented--compact')
+    expect(wrapper.find('.v-icon').exists()).toBe(true)
+  })
+})

@@ -5,7 +5,6 @@ import { getDb } from '@/core/db/sqlite'
 import { guardedUpsert, type SyncRow } from '@/core/supabase/guarded-upsert'
 import { loadSupabaseClient } from '@/core/supabase/load-client'
 import { syncField, type SyncPullPage } from '@/core/sync/service/syncable-table'
-import { addFrequency } from '../logic/treatment-frequency'
 import {
   createTreatmentDosesRepository,
   headDoseIdSql,
@@ -16,17 +15,18 @@ import {
   currentPeriodIdSql,
 } from './treatment-periods.repository'
 import type { NewTreatmentDose, TreatmentDose } from '../schema/treatment-dose.schema'
-import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
+import type {
+  TreatmentPeriodRecord,
+  TreatmentPeriodSettings,
+} from '../schema/treatment-period.schema'
 import {
-  treatmentEditSchema,
-  treatmentEditSchemaAfter,
   treatmentInputSchema,
+  treatmentTypeSchema,
   type FrequencyUnit,
   type Treatment,
-  type TreatmentInput,
-  type TreatmentEditInput,
   type TreatmentType,
 } from '../schema/treatment.schema'
+import type { DoseFields } from '@/shared/domain/treatment-schedule'
 
 interface TreatmentRow {
   id: string
@@ -58,6 +58,26 @@ export type RestoredTreatment = TreatmentRecord
 export type TreatmentWithHistory = TreatmentRecord & {
   periods: TreatmentPeriodRecord[]
   doses: NewTreatmentDose[]
+}
+
+/** Un traitement à créer avec sa première période, sans prise. */
+export type NewTreatmentPlan = Pick<Treatment, 'id' | 'animalId' | 'name' | 'type'> & {
+  settings: TreatmentPeriodSettings
+}
+
+export type PlannedDoseWrite =
+  | { action: 'create'; id: string; dose: DoseFields }
+  | { action: 'rewrite'; id: string; dose: DoseFields }
+  | { action: 'delete'; id: string }
+
+/** Ce que « Modifier » ou « Reprendre » écrit en une fois ; `null` : rien à écrire dans cette table. */
+export type TreatmentPlanWrite = {
+  treatment: Pick<Treatment, 'name' | 'type'> | null
+  period:
+    | { action: 'correct'; settings: TreatmentPeriodSettings }
+    | { action: 'open'; id: string; settings: TreatmentPeriodSettings }
+    | null
+  doses: PlannedDoseWrite[]
 }
 
 const COLUMNS = 'id, animal_id, name, type, created_at, updated_at, deleted_at'
@@ -127,19 +147,6 @@ function withHistory(
   })
 }
 
-/** La première échéance reste avant la date de fin, et la période reste après la précédente. */
-function checkFirstDue(firstDueOn: string, periods: TreatmentPeriodRecord[]): void {
-  const period = periods.at(-1)
-  const previous = periods.at(-2)
-  if (!period) return
-  const afterEnd = period.endsOn !== null && firstDueOn > period.endsOn
-  const beforePrevious =
-    previous !== undefined && firstDueOn < period.startsOn && firstDueOn <= previous.startsOn
-  if (afterEnd || beforePrevious) {
-    throw new RangeError(`Première échéance hors de sa période : ${firstDueOn}`)
-  }
-}
-
 function toTreatment(row: TreatmentWithHeadRow): Treatment {
   return {
     id: row.id,
@@ -184,38 +191,26 @@ export function createTreatmentsRepository(
     return treatment
   }
 
-  async function writePlan(
-    id: string,
-    input: TreatmentEditInput,
-    { resume }: { resume: boolean },
-  ): Promise<Treatment> {
-    const current = await requireVisible(id)
-    const { lastDoseDate } = current
-    const schema =
-      lastDoseDate === null ? treatmentEditSchema : treatmentEditSchemaAfter(lastDoseDate)
-    const data = schema.parse(input)
-    const updatedAt = new Date().toISOString()
+  function identityOf({ name, type }: Pick<Treatment, 'name' | 'type'>) {
+    return {
+      name: treatmentInputSchema.shape.name.parse(name),
+      type: treatmentTypeSchema.parse(type),
+    }
+  }
 
-    const [ownPeriods, ownDoses] = await Promise.all([
-      periods.listByTreatment(id),
-      doses.listByTreatment(id),
-    ])
-    const hasLine = ownDoses.some(({ periodId }) => periodId === current.periodId)
-    if (!hasLine) checkFirstDue(data.nextDueDate, ownPeriods)
-
-    await db.runMany([
-      {
-        sql: `UPDATE treatment SET name = ?, type = ?, updated_at = ?
-              WHERE id = ? AND ${NOT_DELETED} AND (name <> ? OR type <> ?)`,
-        params: [data.name, data.type, updatedAt, id, data.name, data.type],
-      },
-      periods.correctCurrentStatement(id, { frequency: data.frequency, resume, updatedAt }),
-      hasLine
-        ? doses.updateHeadStatement(id, { nextDueDate: data.nextDueDate, updatedAt })
-        : periods.correctCurrentFirstDueStatement(id, { firstDueOn: data.nextDueDate, updatedAt }),
-    ])
-
-    return requireVisible(id)
+  function doseStatement(
+    write: PlannedDoseWrite,
+    { id: treatmentId, animalId }: Treatment,
+    at: string,
+  ): SqlStatement {
+    switch (write.action) {
+      case 'create':
+        return doses.createStatement({ id: write.id, treatmentId, animalId, dose: write.dose, at })
+      case 'rewrite':
+        return doses.rewriteStatement(write.id, write.dose, at)
+      case 'delete':
+        return doses.markDeletedStatement([write.id], at)
+    }
   }
 
   return {
@@ -289,67 +284,71 @@ export function createTreatmentsRepository(
     },
 
     /**
-     * Le traitement, sa première période et sa première prise, donnée le jour de la dernière prise,
-     * en une seule écriture ; période et prise portent l'identifiant du traitement.
+     * Le traitement et sa première période, de même identifiant, en une seule écriture : aucune
+     * prise n'est notée à la création.
      */
-    async create(input: TreatmentInput): Promise<Treatment> {
-      const data = treatmentInputSchema.parse(input)
+    async create(plan: NewTreatmentPlan): Promise<Treatment> {
+      const { name, type } = identityOf(plan)
       const now = new Date().toISOString()
-      const id = crypto.randomUUID()
-      const stamps = { createdAt: now, updatedAt: now, deletedAt: null }
-      const treatment: Treatment = {
-        ...data,
-        id,
-        periodId: id,
-        nextDueDate: addFrequency(data.lastDoseDate, data.frequency),
-        stoppedOn: null,
-        ...stamps,
-      }
 
       await db.runMany([
         {
           sql: `INSERT INTO treatment (${COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, NULL)`,
-          params: [id, data.animalId, data.name, data.type, now, now],
+          params: [plan.id, plan.animalId, name, type, now, now],
         },
         periods.insertStatement({
-          id,
-          treatmentId: id,
-          animalId: data.animalId,
-          startsOn: data.lastDoseDate,
-          firstDueOn: data.lastDoseDate,
-          frequency: data.frequency,
+          ...plan.settings,
+          id: plan.id,
+          treatmentId: plan.id,
+          animalId: plan.animalId,
           stoppedOn: null,
-          ...stamps,
-        }),
-        doses.insertStatement({
-          id,
-          periodId: id,
-          treatmentId: id,
-          animalId: data.animalId,
-          dueOn: data.lastDoseDate,
-          dueTime: null,
-          givenOn: data.lastDoseDate,
-          status: 'given',
-          nextDueDate: treatment.nextDueDate,
-          ...stamps,
+          createdAt: now,
+          updatedAt: now,
+          deletedAt: null,
         }),
       ])
 
-      return treatment
+      return requireVisible(plan.id)
     },
 
     /**
-     * Corrige le nom, le type, la fréquence de la période en cours et la prochaine dose, portée par
-     * la dernière ligne ou, sans prise, par la première échéance, dans une seule écriture ; la date
-     * de la prise et `animal_id` restent figés.
+     * Nom et type, réglages de la période en cours ou nouvelle période, lignes de déplacement :
+     * tout ou rien. Une ligne que rien ne change n'est pas datée ; `animal_id` reste figé.
      */
-    update(id: string, input: TreatmentEditInput): Promise<Treatment> {
-      return writePlan(id, input, { resume: false })
-    },
+    async applyPlan(id: string, plan: TreatmentPlanWrite): Promise<Treatment> {
+      const current = await requireVisible(id)
+      const at = new Date().toISOString()
+      const statements: SqlStatement[] = []
 
-    /** Comme `update`, et la période en cours repart : son historique reste le sien. */
-    resume(id: string, input: TreatmentEditInput): Promise<Treatment> {
-      return writePlan(id, input, { resume: true })
+      if (plan.treatment !== null) {
+        const { name, type } = identityOf(plan.treatment)
+        statements.push({
+          sql: `UPDATE treatment SET name = ?, type = ?, updated_at = ?
+                WHERE id = ? AND ${NOT_DELETED} AND (name <> ? OR type <> ?)`,
+          params: [name, type, at, id, name, type],
+        })
+      }
+      if (plan.period?.action === 'correct') {
+        statements.push(periods.correctCurrentSettingsStatement(id, plan.period.settings, at))
+      }
+      if (plan.period?.action === 'open') {
+        statements.push(
+          periods.insertStatement({
+            ...plan.period.settings,
+            id: plan.period.id,
+            treatmentId: id,
+            animalId: current.animalId,
+            stoppedOn: null,
+            createdAt: at,
+            updatedAt: at,
+            deletedAt: null,
+          }),
+        )
+      }
+      statements.push(...plan.doses.map((write) => doseStatement(write, current, at)))
+
+      if (statements.length > 0) await db.runMany(statements)
+      return requireVisible(id)
     },
 
     listDoses(treatmentId: string): Promise<TreatmentDose[]> {
