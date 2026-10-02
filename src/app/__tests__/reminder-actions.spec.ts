@@ -199,6 +199,14 @@ describe('« C’est fait » d’un vermifuge ou d’un antiparasitaire', () => 
     )
   })
 
+  it('dit que les doses du jour sont déjà notées quand aucune n’a été donnée aujourd’hui', async () => {
+    record.mockResolvedValue({ ...NOTED, outcome: 'day-noted', undo: [], due: null })
+    await handler()(done(`treatment:${BRAVECTO.id}:${TODAY}:due`))
+
+    expect(toastMessage.value).toBe('Les doses d’aujourd’hui sont déjà notées.')
+    expect(toastAction.value).toBeNull()
+  })
+
   it('dit « déjà notée », sans « Annuler », quand le service n’a rien eu à écrire', async () => {
     record.mockResolvedValue({
       ...NOTED,

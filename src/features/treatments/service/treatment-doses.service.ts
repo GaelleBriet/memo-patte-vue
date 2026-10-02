@@ -2,7 +2,7 @@ import { todayIsoDate } from '@/core/app-lifecycle/today-iso-date'
 import type { Due, TreatmentSchedule } from '@/shared/domain/treatment-schedule'
 import { doseChange, type DoseAction, type DoseChange } from '../logic/treatment-dose-writes'
 import { hasSeveralTimes } from '../logic/treatment-gestures'
-import { isDayNoted, momentDue } from '../logic/treatment-other-date'
+import { momentDue, notifiedDue } from '../logic/treatment-other-date'
 import { treatmentScheduleOf } from '../logic/treatment-schedule'
 import {
   DuplicateDueError,
@@ -38,11 +38,12 @@ export type AppliedDoseChange = Omit<DoseChange, 'writes'> & {
 
 export type NotedMoment = AppliedDoseChange & {
   /**
-   * `already` : l'échéance était déjà notée ; `none` : plus aucune dose à noter ; `ask` : la dose à
-   * noter n'est pas celle de la notification, à la personne de choisir. Rien n'est écrit hors de
+   * `already` : l'échéance était déjà notée ; `day-noted` : toutes les doses du jour sont notées,
+   * aucune donnée ; `none` : plus aucune dose à noter ; `ask` : la dose à
+   * noter n'est pas clairement celle de la notification, à la personne de choisir. Rien n'est écrit hors de
    * `noted`.
    */
-  outcome: 'noted' | 'already' | 'none' | 'ask'
+  outcome: 'noted' | 'already' | 'day-noted' | 'none' | 'ask'
   /** Échéance notée ; `null` hors de `noted`. */
   due: Due | null
   severalTimes: boolean
@@ -127,18 +128,17 @@ export function createTreatmentDosesService({
         due: null,
         severalTimes: false,
       }
-      if (notifiedDueOn !== null && isDayNoted(schedule, notifiedDueOn)) {
-        return { ...nothing, outcome: 'ask' }
-      }
-      const target = momentDue(schedule, givenOn, day)
+      const target =
+        notifiedDueOn === null
+          ? momentDue(schedule, givenOn, day)
+          : notifiedDue(schedule, notifiedDueOn, day)
+      if (target === 'ask') return { ...nothing, outcome: 'ask' }
       if (target === null) return { ...nothing, outcome: 'none' }
+      if ('dayNoted' in target) return { ...nothing, outcome: 'day-noted' }
       if ('alreadyGivenOn' in target) {
         return { ...nothing, outcome: 'already', alreadyGivenOn: target.alreadyGivenOn }
       }
       const { due } = target
-      if (notifiedDueOn !== null && due.dueOn !== notifiedDueOn) {
-        return { ...nothing, outcome: 'ask' }
-      }
       const applied = await run(history, schedule, {
         kind: 'note',
         gesture: { kind: 'given', due, givenOn },

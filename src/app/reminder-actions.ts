@@ -133,6 +133,10 @@ export function createReminderActions({
       showToast(t('treatments.sheet.errors.noDoseLeft'), { tone: 'info' })
       return
     }
+    if (noted.outcome === 'day-noted') {
+      showToast(t('treatments.sheet.toast.dayNoted'), { tone: 'info' })
+      return
+    }
     void refreshHome()
     const { due } = noted
     if (due === null) {

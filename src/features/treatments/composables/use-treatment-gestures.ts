@@ -65,6 +65,10 @@ export function useTreatmentGestures(onChanged: () => void) {
         showToast(t('treatments.sheet.errors.noDoseLeft'), { tone: 'info' })
         return
       }
+      if (noted.outcome === 'day-noted') {
+        showToast(t('treatments.sheet.toast.dayNoted'), { tone: 'info' })
+        return
+      }
       if (noted.due === null) {
         showToast(alreadyNotedText(t, context, noted.alreadyGivenOn ?? givenOn), { tone: 'info' })
         return

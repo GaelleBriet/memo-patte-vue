@@ -3,8 +3,8 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { dose, missed, period, plain, treatment } from './treatment-fixtures'
 import {
   givenDays,
-  isDayNoted,
   momentDue,
+  notifiedDue,
   otherDatePlan,
   otherDateTexts,
   sheetHours,
@@ -202,7 +202,7 @@ describe('momentDue — ce que notent la feuille « À faire » et une notificat
       due: { periodId: 'p-1', dueOn: '2026-09-01', dueTime: '20:00' },
     })
     expect(due(soirDonne, '2026-09-01')).toEqual({ alreadyGivenOn: '2026-09-01' })
-    expect(due(toutOublie, '2026-09-01')).toEqual({ alreadyGivenOn: '2026-09-01' })
+    expect(due(toutOublie, '2026-09-01')).toEqual({ dayNoted: true })
   })
 
   it('un autre jour, choisi dans la feuille, un oubli repasse en donnée (TR-22)', () => {
@@ -263,21 +263,70 @@ describe('momentDue — ce que notent la feuille « À faire » et une notificat
     })
   })
 
-  it('dit si une prise de la journée d’une notification est déjà notée', () => {
-    const book = treatment(
-      [MATIN_ET_SOIR],
-      [missed('2026-09-01', '2026-09-01', { dueTime: '08:00' })],
-    )
-    const schedule = treatmentScheduleOf(book, '2026-09-02')
-
-    expect(isDayNoted(schedule, '2026-09-01')).toBe(true)
-    expect(isDayNoted(schedule, '2026-09-02')).toBe(false)
-  })
-
   it('ne vise rien pour un traitement fini', () => {
     const fini = treatment([period({ stoppedOn: '2026-09-01' })])
 
     expect(due(fini, '2026-09-05')).toBeNull()
+  })
+})
+
+describe('notifiedDue — ce que note « C’est fait » d’une notification, garde par garde', () => {
+  const HEBDO = period({ frequency: { value: 1, unit: 'week' } })
+  const target = (book: TreatmentWithHistory, today: string, notifiedDueOn: string) =>
+    notifiedDue(treatmentScheduleOf(book, today), notifiedDueOn, today)
+
+  it('1. toutes les échéances du jour notifié sont notées, une donnée : « déjà notée », à sa date', () => {
+    const enAvance = treatment(
+      [
+        period({
+          frequency: { value: 1, unit: 'month' },
+          startsOn: '2026-09-05',
+          firstDueOn: '2026-09-05',
+        }),
+      ],
+      [
+        dose('2026-09-05', '2026-10-05'),
+        dose('2026-10-05', '2026-11-02', { givenOn: '2026-10-02' }),
+      ],
+    )
+
+    expect(target(enAvance, '2026-10-02', '2026-10-05')).toEqual({ alreadyGivenOn: '2026-10-02' })
+  })
+
+  it('2. toutes notées, aucune donnée : les doses du jour sont déjà notées', () => {
+    const oubliee = treatment([HEBDO], [missed('2026-09-01', '2026-09-08')])
+
+    expect(target(oubliee, '2026-09-02', '2026-09-01')).toEqual({ dayNoted: true })
+  })
+
+  it('3. journée entamée à plusieurs heures : à la personne de choisir (Q32)', () => {
+    const entamee = treatment(
+      [MATIN_ET_SOIR],
+      [dose('2026-09-01', '2026-09-01', { dueTime: '08:00' })],
+    )
+
+    expect(target(entamee, '2026-09-01', '2026-09-01')).toBe('ask')
+  })
+
+  it('4. échéance notifiée sans prise qui n’est pas la dose du moment : à la personne de choisir (P1)', () => {
+    const quotidien = treatment([period()])
+
+    expect(target(quotidien, '2026-09-05', '2026-09-03')).toBe('ask')
+  })
+
+  it('5. échéance notifiée qui est la dose du moment, du jour ou en retard : notée', () => {
+    expect(target(treatment([MATIN_ET_SOIR]), '2026-09-01', '2026-09-01')).toEqual({
+      due: { periodId: 'p-1', dueOn: '2026-09-01', dueTime: '08:00' },
+    })
+    expect(target(treatment([HEBDO]), '2026-09-04', '2026-09-01')).toEqual({
+      due: { periodId: 'p-1', dueOn: '2026-09-01', dueTime: null },
+    })
+  })
+
+  it('6. plus rien à noter : rien', () => {
+    const fini = treatment([period({ stoppedOn: '2026-09-01' })])
+
+    expect(target(fini, '2026-09-05', '2026-09-03')).toBeNull()
   })
 })
 

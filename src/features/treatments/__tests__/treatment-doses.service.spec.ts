@@ -357,7 +357,7 @@ describe('treatmentDosesService', () => {
       ])
     })
 
-    it('8 h et 20 h toutes deux oubliées : « déjà notée aujourd’hui », rien d’écrit', async () => {
+    it('8 h et 20 h toutes deux oubliées : les doses du jour sont déjà notées, rien d’écrit', async () => {
       const metacam = await creer('metacam', DEUX_HEURES)
       for (const dueTime of ['08:00', '20:00']) {
         await service.apply(metacam, {
@@ -367,9 +367,9 @@ describe('treatmentDosesService', () => {
       }
 
       await expect(service.noteMoment(metacam, '2026-09-23')).resolves.toMatchObject({
-        outcome: 'already',
+        outcome: 'day-noted',
         undo: [],
-        alreadyGivenOn: '2026-09-23',
+        alreadyGivenOn: null,
       })
       await expect(lignes(metacam)).resolves.toMatchObject([{ given_on: null }, { given_on: null }])
     })
@@ -434,11 +434,29 @@ describe('treatmentDosesService', () => {
 
       const noted = await aMinuit.noteMoment(metacam, '2026-09-23')
 
-      expect(noted).toMatchObject({ outcome: 'already', undo: [] })
+      expect(noted).toMatchObject({ outcome: 'day-noted', undo: [] })
       expect(days).toEqual(['2026-09-24'])
       await expect(lignes(metacam)).resolves.toEqual([
         { due_on: '2026-09-23', due_time: null, given_on: null },
       ])
+    })
+
+    it('notification d’une dose déjà donnée en avance : « déjà notée », rien d’écrit', async () => {
+      await service.apply(bravecto, {
+        kind: 'note',
+        gesture: {
+          kind: 'given',
+          due: { periodId: bravecto, dueOn: '2026-09-28', dueTime: null },
+          givenOn: '2026-09-23',
+        },
+      })
+
+      const noted = await service.noteMoment(bravecto, '2026-09-23', {
+        notifiedDueOn: '2026-09-28',
+      })
+
+      expect(noted).toMatchObject({ outcome: 'already', undo: [], alreadyGivenOn: '2026-09-23' })
+      await expect(visibleDoses()).resolves.toHaveLength(2)
     })
 
     it('lève pour un traitement introuvable', async () => {

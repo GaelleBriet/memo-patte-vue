@@ -404,7 +404,8 @@
         "doseOn": "Prise de {name} du {date} notée pour {animal}",
         "undoDose": "Annuler la prise de {name}",
         "stopped": "{name} arrêté. Il est dans Traitements terminés.",
-        "undoStop": "Annuler l’arrêt de {name}"
+        "undoStop": "Annuler l’arrêt de {name}",
+        "dayNoted": "Les doses d’aujourd’hui sont déjà notées."
       },
       "errors": {
         "dose": "La prise n’a pas pu être notée. Réessaie.",
