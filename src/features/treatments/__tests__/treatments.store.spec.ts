@@ -459,8 +459,7 @@ describe('useTreatmentsStore', () => {
 
 describe('useTreatmentsStore — gestes d’un rappel', () => {
   const doses = {
-    record: vi.fn<TreatmentDosesService['record']>(),
-    undo: vi.fn<TreatmentDosesService['undo']>().mockResolvedValue(),
+    noteMoment: vi.fn<TreatmentDosesService['noteMoment']>(),
     apply: vi.fn<TreatmentDosesService['apply']>(),
     undoBatch: vi.fn<TreatmentDosesService['undoBatch']>().mockResolvedValue(),
   }
@@ -480,28 +479,26 @@ describe('useTreatmentsStore — gestes d’un rappel', () => {
     vi.clearAllMocks()
   })
 
-  it('note une prise par son service puis relit la liste affichée de l’animal', async () => {
+  it('note la dose du moment par son service puis relit la liste affichée de l’animal', async () => {
     const seme = repository.seed(vermifuge())
     const store = useTreatmentsStore()
     await store.loadForAnimal(MILO)
-    doses.record.mockResolvedValue({ animalId: MILO, doseId: 'p1' })
+    const noted = {
+      animalId: MILO,
+      undo: [{ action: 'delete' as const, id: 'p1' }],
+      alreadyGivenOn: null,
+      postponement: null,
+      moved: null,
+      due: { periodId: seme.periodId, dueOn: '2026-09-20', dueTime: null },
+      severalTimes: false,
+    }
+    doses.noteMoment.mockResolvedValue(noted)
     repository.listByAnimal.mockClear()
 
-    await expect(store.recordDose(seme.id, '2026-09-20')).resolves.toEqual({
-      animalId: MILO,
-      doseId: 'p1',
-    })
+    await expect(store.noteMomentDose(seme.id, '2026-09-20')).resolves.toEqual(noted)
 
-    expect(doses.record).toHaveBeenCalledWith(seme.id, '2026-09-20')
+    expect(doses.noteMoment).toHaveBeenCalledWith(seme.id, '2026-09-20')
     expect(repository.listByAnimal).toHaveBeenCalledWith(MILO)
-  })
-
-  it('annule une prise par son service', async () => {
-    const store = useTreatmentsStore()
-
-    await store.undoDose('t1', 'p1')
-
-    expect(doses.undo).toHaveBeenCalledWith('t1', 'p1')
   })
 
   it('arrête un traitement puis annule l’arrêt par son service', async () => {
@@ -524,6 +521,7 @@ describe('useTreatmentsStore — gestes d’un rappel', () => {
       undo: [{ action: 'restore' as const, id: 'p1' }],
       alreadyGivenOn: null,
       postponement: null,
+      moved: null,
     }
     doses.apply.mockResolvedValue(applied)
     repository.listByAnimal.mockClear()
@@ -539,10 +537,10 @@ describe('useTreatmentsStore — gestes d’un rappel', () => {
   })
 
   it('propage l’échec d’un geste', async () => {
-    doses.record.mockRejectedValue(new Error('base verrouillée'))
+    doses.noteMoment.mockRejectedValue(new Error('base verrouillée'))
     const store = useTreatmentsStore()
 
-    await expect(store.recordDose('t1', '2026-09-20')).rejects.toThrow('base verrouillée')
+    await expect(store.noteMomentDose('t1', '2026-09-20')).rejects.toThrow('base verrouillée')
     expect(store.isLoading).toBe(false)
   })
 })

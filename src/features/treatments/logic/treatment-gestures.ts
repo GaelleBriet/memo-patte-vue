@@ -1,7 +1,12 @@
 import type { DoseAction, DoseChange } from './treatment-dose-writes'
 import { moveText, type DoseLineAction } from './treatment-history'
 import type { TreatmentWithHistory } from '../repository/treatments.repository'
-import type { Due, MoveBounds, TreatmentDoseInput } from '@/shared/domain/treatment-schedule'
+import {
+  isAdvanced,
+  type Due,
+  type MoveBounds,
+  type TreatmentDoseInput,
+} from '@/shared/domain/treatment-schedule'
 import {
   formatClockTime,
   formatDayMonthOrYear,
@@ -21,7 +26,7 @@ export type GestureContext = {
 }
 
 export type DoseActionTexts = {
-  done(applied: Pick<DoseChange, 'postponement'>): string
+  done(applied: Pick<DoseChange, 'postponement' | 'moved'>): string
   /** Nom du bouton « Annuler » lu par le lecteur d'écran. */
   undo: string
   already(givenOn: string): string
@@ -36,6 +41,21 @@ export function hasSeveralTimes(
   return (treatment.periods.find(({ id }) => id === periodId)?.times.length ?? 0) > 1
 }
 
+/** « Prise de X déjà notée aujourd'hui pour Y », ou « du {date} » un autre jour. */
+export function alreadyNotedText(
+  t: Translate,
+  { name, animal, today }: Pick<GestureContext, 'name' | 'animal' | 'today'>,
+  givenOn: string,
+): string {
+  return givenOn === today
+    ? t('notifications.action.alreadyDoseToday', { name, animal })
+    : t('notifications.action.alreadyDose', {
+        name,
+        animal,
+        date: formatDayMonthOrYear(givenOn, today),
+      })
+}
+
 export function doseActionTexts(
   t: Translate,
   { name, animal, today, severalTimes }: GestureContext,
@@ -48,10 +68,7 @@ export function doseActionTexts(
     severalTimes && dueTime !== null
       ? t('currentDose.at', { date: day(dueOn), time: formatClockTime(dueTime) })
       : day(dueOn)
-  const already = (givenOn: string) =>
-    givenOn === today
-      ? t('notifications.action.alreadyDoseToday', named)
-      : t('notifications.action.alreadyDose', { ...named, date: day(givenOn) })
+  const already = (givenOn: string) => alreadyNotedText(t, { name, animal, today }, givenOn)
 
   switch (action.kind) {
     case 'note': {
@@ -106,25 +123,19 @@ export function doseActionTexts(
         already,
       }
     }
-    case 'move': {
-      const origin = line?.dueOn ?? action.to
-      if (action.to === origin) {
-        return {
-          done: () => t('treatments.history.toast.moveRemoved'),
-          undo: t('treatments.history.toast.undoMoveRemoved'),
-          already,
-        }
-      }
-      const date = day(action.to)
+    case 'move':
       return {
-        done: () =>
-          action.to < origin
+        done: ({ moved }) => {
+          if (moved === null || moved === 'removed')
+            return t('treatments.history.toast.moveRemoved')
+          const date = day(moved.nextDueDate)
+          return isAdvanced(moved)
             ? t('treatments.history.toast.advancedTo', { date })
-            : t('treatments.history.toast.postponedTo', { date }),
+            : t('treatments.history.toast.postponedTo', { date })
+        },
         undo: t('treatments.history.toast.undoMoveChange'),
         already,
       }
-    }
     case 'remove-move':
       return {
         done: () => t('treatments.history.toast.moveRemoved'),
@@ -140,7 +151,7 @@ type Line = Pick<
 >
 
 /** Geste d'un choix du menu ⋮ ; `null` pour « Changer la date », qui attend le jour choisi. */
-export function lineAction(line: Line, choice: DoseLineAction): DoseAction | null {
+export function lineAction(line: Line, choice: DoseLineAction, today: string): DoseAction | null {
   const due = { periodId: line.periodId, dueOn: line.dueOn, dueTime: line.dueTime }
   switch (choice) {
     case 'remove':
@@ -150,7 +161,10 @@ export function lineAction(line: Line, choice: DoseLineAction): DoseAction | nul
     case 'mark-missed':
       return { kind: 'note', gesture: { kind: 'missed', due } }
     case 'mark-given':
-      return { kind: 'note', gesture: { kind: 'given', due, givenOn: line.dueOn } }
+      return {
+        kind: 'note',
+        gesture: { kind: 'given', due, givenOn: line.dueOn > today ? today : line.dueOn },
+      }
     case 'change-date':
       return null
   }

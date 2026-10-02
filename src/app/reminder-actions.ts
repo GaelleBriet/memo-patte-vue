@@ -9,7 +9,7 @@ import {
 } from '@/features/animals/repository/animals.repository'
 import { useHomeStore } from '@/features/home/store/home.store'
 import { isDoseNoted, isTreatmentDueDate } from '@/features/treatments/logic/treatment-reminders'
-import { doseToast } from '@/features/treatments/logic/treatment-sheet'
+import { doseActionTexts } from '@/features/treatments/logic/treatment-gestures'
 import { isOngoing } from '@/features/treatments/logic/treatment-status'
 import {
   getTreatmentsRepository,
@@ -42,7 +42,7 @@ export type ReminderActionsDependencies = {
   animals: Provider<Pick<AnimalsRepository, 'getById'>>
   treatments: Provider<Pick<TreatmentsRepository, 'getById'>>
   vaccinations: Provider<Pick<VaccinationsRepository, 'getById'>>
-  doses: Pick<TreatmentDosesService, 'record' | 'undo'>
+  doses: Pick<TreatmentDosesService, 'noteMoment' | 'undoBatch'>
   refreshHome: () => unknown
   t: Translate
   today: () => string
@@ -97,17 +97,18 @@ export function createReminderActions({
     showToast(message, { tone: 'info' })
   }
 
+  const ALREADY_DOSE: AlreadyNotedTexts = {
+    today: (named) => t('notifications.action.alreadyDoseToday', named),
+    on: (named) => t('notifications.action.alreadyDose', named),
+  }
+
   async function treatmentDone(id: string, dueDate: string): Promise<void> {
     const treatment = await (await treatments()).getById(id)
     if (treatment === null || !isOngoing(treatment)) return openHome()
     const sheet: ReminderRequest = { kind: 'treatment', id, step: 'actions' }
     const { lastDoseDate } = treatment
     if (lastDoseDate !== null && isDoseNoted(treatment, dueDate)) {
-      const texts: AlreadyNotedTexts = {
-        today: (named) => t('notifications.action.alreadyDoseToday', named),
-        on: (named) => t('notifications.action.alreadyDose', named),
-      }
-      return alreadyNoted(texts, {
+      return alreadyNoted(ALREADY_DOSE, {
         animalId: treatment.animalId,
         name: treatment.name,
         doneOn: lastDoseDate,
@@ -117,23 +118,31 @@ export function createReminderActions({
 
     await openHome()
     const givenOn = today()
-    const recorded = await doses.record(id, givenOn).catch(() => null)
-    if (recorded === null) {
+    const noted = await doses.noteMoment(id, givenOn).catch(() => null)
+    if (noted === null) {
       showToast(t('treatments.sheet.errors.dose'), { tone: 'error' })
       return openHome(sheet)
     }
     void refreshHome()
-    const named = { name: treatment.name, animal: await animalName(treatment.animalId) }
-    const message = doseToast(t, { ...named, givenOn, today: givenOn })
-    const { doseId } = recorded
-    if (doseId === null) {
-      showToast(message)
-      return
+    const { due } = noted
+    if (due === null) {
+      return alreadyNoted(ALREADY_DOSE, {
+        animalId: treatment.animalId,
+        name: treatment.name,
+        doneOn: noted.alreadyGivenOn ?? givenOn,
+      })
     }
-    showUndoableToast(message, {
+    const named = { name: treatment.name, animal: await animalName(treatment.animalId) }
+    const texts = doseActionTexts(
+      t,
+      { ...named, today: givenOn, severalTimes: noted.severalTimes },
+      { kind: 'note', gesture: { kind: 'given', due, givenOn } },
+      null,
+    )
+    showUndoableToast(texts.done(noted), {
       label: t('reminderSheet.undo'),
-      ariaLabel: t('treatments.sheet.toast.undoDose', named),
-      undo: () => doses.undo(id, doseId),
+      ariaLabel: texts.undo,
+      undo: () => doses.undoBatch(id, noted.undo),
       onUndone: () => void refreshHome(),
       failedMessage: t('reminderSheet.undoFailed'),
     })

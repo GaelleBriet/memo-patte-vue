@@ -4,7 +4,9 @@ import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 
 import { useTreatmentGestures } from '../composables/use-treatment-gestures'
+import { treatmentScheduleOf } from '../logic/treatment-schedule'
 import { otherDaySummary, treatmentSheetTexts } from '../logic/treatment-sheet'
+import type { TreatmentWithHistory } from '../repository/treatments.repository'
 import type { Treatment } from '../schema/treatment.schema'
 import { useTreatmentsStore } from '../store/treatments.store'
 import { useToday } from '@/core/app-lifecycle/use-today'
@@ -36,6 +38,7 @@ const treatments = useTreatmentsStore()
 const { today, refresh: refreshToday } = useToday()
 
 const treatment = ref<Treatment | null>(null)
+const history = ref<TreatmentWithHistory | null>(null)
 const step = ref<'actions' | 'other-date'>('actions')
 const givenOn = ref<string | null>(today.value)
 const gestures = useTreatmentGestures(() => emit('changed'))
@@ -61,7 +64,12 @@ const texts = computed(() =>
 )
 const summary = computed(() =>
   treatment.value
-    ? otherDaySummary(t, treatment.value, givenOn.value ?? today.value, today.value)
+    ? otherDaySummary(
+        t,
+        history.value === null ? null : treatmentScheduleOf(history.value, today.value),
+        givenOn.value ?? today.value,
+        today.value,
+      )
     : null,
 )
 const title = computed(() =>
@@ -80,9 +88,18 @@ watch(
     givenOn.value = today.value
     errorMessage.value = null
     treatment.value = null
+    history.value = null
     if (!animals.hasLoaded) void animals.load()
     try {
-      treatment.value = props.treatmentId ? await treatments.getById(props.treatmentId) : null
+      const id = props.treatmentId
+      const [found, withHistory] = id
+        ? await Promise.all([
+            treatments.getById(id),
+            treatments.getWithHistory(id).catch(() => null),
+          ])
+        : [null, null]
+      history.value = withHistory
+      treatment.value = found
     } catch {
       treatment.value = null
     }
@@ -173,7 +190,9 @@ async function edit(): Promise<void> {
           <v-icon icon="ms:event_available" size="24" />
           <div>
             <p class="treatment-reminder-sheet__dose-on">{{ summary.doseOn }}</p>
-            <p class="treatment-reminder-sheet__next-dose">{{ summary.nextDose }}</p>
+            <p v-if="summary.nextDose" class="treatment-reminder-sheet__next-dose">
+              {{ summary.nextDose }}
+            </p>
           </div>
         </div>
         <v-btn

@@ -1,37 +1,56 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { dose, missed, period, plain, treatment } from './treatment-fixtures'
-import { givenDueDays, hourChoices, otherDateTexts } from '../logic/treatment-other-date'
+import { givenDays, momentDue, otherDatePlan, otherDateTexts } from '../logic/treatment-other-date'
 import { treatmentScheduleOf } from '../logic/treatment-schedule'
+import type { TreatmentWithHistory } from '../repository/treatments.repository'
 import i18n, { applyLocale } from '@/core/i18n'
 
 const t = i18n.global.t
 const MATIN_ET_SOIR = period({ times: ['20:00', '08:00'] })
+const NEUF_HEURES = period({
+  startsOn: '2026-09-20',
+  firstDueOn: '2026-09-20',
+  times: ['09:00'],
+})
+const PUIS_MATIN_ET_SOIR = period({
+  id: 'p-2',
+  startsOn: '2026-09-28',
+  firstDueOn: '2026-09-28',
+  times: ['08:00', '20:00'],
+  createdAt: '2026-09-28T08:00:00.000Z',
+})
+
+function plan(book: TreatmentWithHistory, today: string, givenOn: string) {
+  return plain(otherDatePlan(t, treatmentScheduleOf(book, today), givenOn))
+}
 
 afterEach(() => applyLocale('fr'))
 
-describe('hourChoices — « À quelle heure ? » (planche A · V3 ter ter)', () => {
+describe('otherDatePlan — « À quelle heure ? » (planche A · V3 ter ter)', () => {
   it('propose chaque heure du jour, dans l’ordre, avec l’échéance qu’elle vise', () => {
     const book = treatment(
       [MATIN_ET_SOIR],
       [dose('2026-09-27', '2026-09-28', { dueTime: '20:00' })],
     )
-    const schedule = treatmentScheduleOf(book, '2026-09-28')
 
-    expect(plain(hourChoices(t, schedule, MATIN_ET_SOIR, '2026-09-28'))).toEqual([
-      {
-        time: '08:00',
-        label: '8 h',
-        detail: 'Dose de 8 h · pas encore notée',
-        due: { periodId: 'p-1', dueOn: '2026-09-28', dueTime: '08:00' },
-      },
-      {
-        time: '20:00',
-        label: '20 h',
-        detail: 'Dose de 20 h · pas encore notée',
-        due: { periodId: 'p-1', dueOn: '2026-09-28', dueTime: '20:00' },
-      },
-    ])
+    expect(plan(book, '2026-09-28', '2026-09-28')).toEqual({
+      due: null,
+      hours: [
+        {
+          time: '08:00',
+          label: '8 h',
+          detail: 'Dose de 8 h · pas encore notée',
+          due: { periodId: 'p-1', dueOn: '2026-09-28', dueTime: '08:00' },
+        },
+        {
+          time: '20:00',
+          label: '20 h',
+          detail: 'Dose de 20 h · pas encore notée',
+          due: { periodId: 'p-1', dueOn: '2026-09-28', dueTime: '20:00' },
+        },
+      ],
+    })
   })
 
   it('ne propose pas de noter une heure déjà donnée ce jour-là (TR-21)', () => {
@@ -42,9 +61,8 @@ describe('hourChoices — « À quelle heure ? » (planche A · V3 ter ter)', ()
         missed('2026-09-27', '2026-09-28', { dueTime: '20:00' }),
       ],
     )
-    const schedule = treatmentScheduleOf(book, '2026-09-28')
 
-    expect(plain(hourChoices(t, schedule, MATIN_ET_SOIR, '2026-09-27'))).toEqual([
+    expect(plan(book, '2026-09-28', '2026-09-27').hours).toEqual([
       { time: '08:00', label: '8 h', detail: 'Dose de 8 h · déjà notée', due: null },
       {
         time: '20:00',
@@ -55,19 +73,51 @@ describe('hourChoices — « À quelle heure ? » (planche A · V3 ter ter)', ()
     ])
   })
 
-  it('vise une dose non renseignée d’un jour passé', () => {
-    const book = treatment([MATIN_ET_SOIR])
-    const schedule = treatmentScheduleOf(book, '2026-09-03')
+  it('propose les heures de la période qui couvre le jour choisi, pas celles de la période en cours', () => {
+    const book = treatment([NEUF_HEURES, PUIS_MATIN_ET_SOIR])
 
-    expect(hourChoices(t, schedule, MATIN_ET_SOIR, '2026-09-01').map(({ due }) => due)).toEqual([
-      { periodId: 'p-1', dueOn: '2026-09-01', dueTime: '08:00' },
-      { periodId: 'p-1', dueOn: '2026-09-01', dueTime: '20:00' },
+    expect(plan(book, '2026-09-29', '2026-09-24')).toEqual({
+      hours: [],
+      due: { periodId: 'p-1', dueOn: '2026-09-24', dueTime: '09:00' },
+    })
+    expect(plan(book, '2026-09-29', '2026-09-28').hours.map(({ due }) => due)).toEqual([
+      { periodId: 'p-2', dueOn: '2026-09-28', dueTime: '08:00' },
+      { periodId: 'p-2', dueOn: '2026-09-28', dueTime: '20:00' },
     ])
+  })
+
+  it('ne présente jamais comme dose du jour choisi une échéance d’un autre jour', () => {
+    const unJourSurDeux = treatment([
+      period({ frequency: { value: 2, unit: 'day' }, times: ['08:00', '20:00'] }),
+    ])
+
+    expect(plan(unJourSurDeux, '2026-09-04', '2026-09-04')).toEqual({
+      hours: [],
+      due: { periodId: 'p-1', dueOn: '2026-09-03', dueTime: '20:00' },
+    })
+  })
+
+  it('sans échéance ce jour-là, une prise en avance vise la prochaine (TR-13)', () => {
+    const mensuel = treatment(
+      [period({ frequency: { value: 1, unit: 'month' } })],
+      [dose('2026-09-01', '2026-10-01')],
+    )
+
+    expect(plan(mensuel, '2026-09-20', '2026-09-20')).toEqual({
+      hours: [],
+      due: { periodId: 'p-1', dueOn: '2026-10-01', dueTime: null },
+    })
+  })
+
+  it('ne note rien pour un jour dont la seule échéance est déjà donnée', () => {
+    const book = treatment([period()], [dose('2026-09-01', '2026-09-02')])
+
+    expect(plan(book, '2026-09-02', '2026-09-01')).toEqual({ hours: [], due: null })
   })
 })
 
-describe('givenDueDays', () => {
-  it('rend les jours dont l’échéance est déjà donnée : une autre prise ne s’y note pas', () => {
+describe('givenDays', () => {
+  it('rend les jours dont toutes les échéances sont données', () => {
     const book = treatment(
       [period()],
       [
@@ -77,10 +127,86 @@ describe('givenDueDays', () => {
       ],
     )
 
-    expect(givenDueDays(treatmentScheduleOf(book, '2026-09-04'))).toEqual([
-      '2026-09-01',
-      '2026-09-03',
+    expect(givenDays(treatmentScheduleOf(book, '2026-09-04'))).toEqual(['2026-09-01', '2026-09-03'])
+  })
+
+  it('garde un jour d’une ancienne période à plusieurs heures dont une seule est donnée', () => {
+    const book = treatment(
+      [
+        period({ times: ['08:00', '20:00'] }),
+        period({
+          id: 'p-2',
+          startsOn: '2026-09-03',
+          firstDueOn: '2026-09-03',
+          times: ['09:00'],
+          createdAt: '2026-09-03T08:00:00.000Z',
+        }),
+      ],
+      [
+        dose('2026-09-01', '2026-09-01', { dueTime: '08:00' }),
+        dose('2026-09-02', '2026-09-02', { dueTime: '08:00' }),
+        dose('2026-09-02', '2026-09-03', { dueTime: '20:00' }),
+      ],
+    )
+
+    expect(givenDays(treatmentScheduleOf(book, '2026-09-04'))).toEqual(['2026-09-02'])
+  })
+})
+
+describe('momentDue — ce que notent la feuille « À faire » et une notification', () => {
+  const due = (book: TreatmentWithHistory, today: string, givenOn = today) =>
+    momentDue(treatmentScheduleOf(book, today), givenOn, today)
+
+  it('à plusieurs heures, la première heure du jour encore sans prise', () => {
+    const book = treatment([MATIN_ET_SOIR])
+
+    expect(due(book, '2026-09-01')).toEqual({
+      due: { periodId: 'p-1', dueOn: '2026-09-01', dueTime: '08:00' },
+    })
+    expect(
+      due(
+        treatment([MATIN_ET_SOIR], [dose('2026-09-01', '2026-09-01', { dueTime: '08:00' })]),
+        '2026-09-01',
+      ),
+    ).toEqual({ due: { periodId: 'p-1', dueOn: '2026-09-01', dueTime: '20:00' } })
+  })
+
+  it('la dose en retard, pas le jour de la prise', () => {
+    const hebdo = treatment([
+      period({
+        frequency: { value: 1, unit: 'week' },
+        startsOn: '2026-09-25',
+        firstDueOn: '2026-09-25',
+      }),
     ])
+
+    expect(due(hebdo, '2026-10-01')).toEqual({
+      due: { periodId: 'p-1', dueOn: '2026-09-25', dueTime: null },
+    })
+  })
+
+  it('dit « déjà notée » quand tout le jour est donné, sans viser la dose suivante', () => {
+    const book = treatment([period()], [dose('2026-09-01', '2026-09-02')])
+
+    expect(due(book, '2026-09-01')).toEqual({ alreadyGivenOn: '2026-09-01' })
+    expect(due(book, '2026-09-02', '2026-09-01')).toEqual({ alreadyGivenOn: '2026-09-01' })
+  })
+
+  it('une autre date vise la première échéance sans prise de ce jour, sinon la règle sans heure', () => {
+    const book = treatment(
+      [MATIN_ET_SOIR],
+      [dose('2026-09-01', '2026-09-02', { dueTime: '20:00' })],
+    )
+
+    expect(due(book, '2026-09-03', '2026-09-01')).toEqual({
+      due: { periodId: 'p-1', dueOn: '2026-09-01', dueTime: '08:00' },
+    })
+  })
+
+  it('ne vise rien pour un traitement fini', () => {
+    const fini = treatment([period({ stoppedOn: '2026-09-01' })])
+
+    expect(due(fini, '2026-09-05')).toBeNull()
   })
 })
 

@@ -1,6 +1,8 @@
 import { todayIsoDate } from '@/core/app-lifecycle/today-iso-date'
-import { doseGivenOn } from '../logic/treatment-dose'
+import type { Due, TreatmentSchedule } from '@/shared/domain/treatment-schedule'
 import { doseChange, type DoseAction, type DoseChange } from '../logic/treatment-dose-writes'
+import { hasSeveralTimes } from '../logic/treatment-gestures'
+import { momentDue } from '../logic/treatment-other-date'
 import { treatmentScheduleOf } from '../logic/treatment-schedule'
 import {
   getTreatmentDosesRepository,
@@ -10,8 +12,8 @@ import {
 import {
   getTreatmentsRepository,
   type TreatmentsRepository,
+  type TreatmentWithHistory,
 } from '../repository/treatments.repository'
-import { treatmentInputSchema } from '../schema/treatment.schema'
 import {
   treatmentRemindersService,
   type TreatmentRemindersService,
@@ -20,23 +22,23 @@ import {
 type Provider<T> = () => T | Promise<T>
 
 export type TreatmentDosesDependencies = {
-  treatments: Provider<Pick<TreatmentsRepository, 'getById' | 'getWithHistory'>>
-  doses: Provider<Pick<TreatmentDosesRepository, 'record' | 'remove' | 'applyBatch'>>
+  treatments: Provider<Pick<TreatmentsRepository, 'getWithHistory'>>
+  doses: Provider<Pick<TreatmentDosesRepository, 'applyBatch'>>
   reminders: Pick<TreatmentRemindersService, 'reschedule'>
   now: () => Date
   today?: () => string
 }
 
-export type RecordedDose = {
-  animalId: string
-  /** `null` quand une prise du même jour était déjà notée : rien n'a été écrit. */
-  doseId: string | null
-}
-
-export type AppliedDoseChange = Pick<DoseChange, 'alreadyGivenOn' | 'postponement'> & {
+export type AppliedDoseChange = Omit<DoseChange, 'writes'> & {
   animalId: string
   /** Lot inverse, à passer à `undoBatch` ; vide quand rien n'a été écrit. */
   undo: DoseWrite[]
+}
+
+export type NotedMoment = AppliedDoseChange & {
+  /** Échéance notée ; `null` quand elle l'était déjà. */
+  due: Due | null
+  severalTimes: boolean
 }
 
 export function createTreatmentDosesService({
@@ -53,41 +55,51 @@ export function createTreatmentDosesService({
     return inverse
   }
 
+  async function historyOf(treatmentId: string): Promise<TreatmentWithHistory> {
+    const history = await (await treatments()).getWithHistory(treatmentId)
+    if (history === null) throw new Error(`Traitement introuvable : ${treatmentId}`)
+    return history
+  }
+
+  async function run(
+    history: TreatmentWithHistory,
+    schedule: TreatmentSchedule,
+    action: DoseAction,
+  ): Promise<AppliedDoseChange> {
+    const { writes, ...change } = doseChange(history, schedule, action, () => crypto.randomUUID())
+    return { ...change, animalId: history.animalId, undo: await write(history.id, writes) }
+  }
+
   return {
-    /** Lève pour une date future ou un traitement introuvable. */
-    async record(treatmentId: string, givenOn: string): Promise<RecordedDose> {
-      const date = treatmentInputSchema.shape.lastDoseDate.parse(givenOn)
-      const treatment = await (await treatments()).getById(treatmentId)
-      if (treatment === null) throw new Error(`Traitement introuvable : ${treatmentId}`)
-
-      const dose = doseGivenOn(treatment, date, {
-        id: crypto.randomUUID(),
-        at: now().toISOString(),
-      })
-      const recorded = await (await doses()).record(dose)
-      await reminders.reschedule(treatmentId)
-      return { animalId: treatment.animalId, doseId: recorded ? dose.id : null }
-    },
-
-    async undo(treatmentId: string, doseId: string): Promise<void> {
-      const removed = await (await doses()).remove(doseId, now().toISOString())
-      if (!removed) throw new Error(`Prise non annulée : ${doseId}`)
-      await reminders.reschedule(treatmentId)
-    },
-
     /** Geste de la fiche, en une écriture ; lève quand le moteur d'échéances le refuse. */
     async apply(treatmentId: string, action: DoseAction): Promise<AppliedDoseChange> {
-      const history = await (await treatments()).getWithHistory(treatmentId)
-      if (history === null) throw new Error(`Traitement introuvable : ${treatmentId}`)
+      const history = await historyOf(treatmentId)
+      return run(history, treatmentScheduleOf(history, today()), action)
+    },
 
-      const { writes, alreadyGivenOn, postponement } = doseChange(
-        history,
-        treatmentScheduleOf(history, today()),
-        action,
-        () => crypto.randomUUID(),
-      )
-      const undo = await write(treatmentId, writes)
-      return { animalId: history.animalId, undo, alreadyGivenOn, postponement }
+    /** Prise notée sans échéance choisie (feuille « À faire », notification) ; lève s'il n'y a rien à noter. */
+    async noteMoment(treatmentId: string, givenOn: string): Promise<NotedMoment> {
+      const history = await historyOf(treatmentId)
+      const schedule = treatmentScheduleOf(history, today())
+      const target = momentDue(schedule, givenOn, today())
+      if (target === null) throw new Error(`Aucune dose à noter : ${treatmentId}`)
+      if ('alreadyGivenOn' in target) {
+        return {
+          animalId: history.animalId,
+          undo: [],
+          alreadyGivenOn: target.alreadyGivenOn,
+          postponement: null,
+          moved: null,
+          due: null,
+          severalTimes: false,
+        }
+      }
+      const { due } = target
+      const applied = await run(history, schedule, {
+        kind: 'note',
+        gesture: { kind: 'given', due, givenOn },
+      })
+      return { ...applied, due, severalTimes: hasSeveralTimes(history, due.periodId) }
     },
 
     async undoBatch(treatmentId: string, writes: readonly DoseWrite[]): Promise<void> {

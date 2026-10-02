@@ -23,7 +23,6 @@ import {
   type DoseLineAction,
   type DoseRow,
 } from '../logic/treatment-history'
-import { currentPeriodOf } from '../logic/treatment-schedule'
 import { treatmentStopTexts } from '../logic/treatment-sheet'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
@@ -44,8 +43,13 @@ const router = useRouter()
 const route = useRoute()
 const animals = useAnimalsStore()
 
-const { treatment, schedule, today, state, unreadable, reload } = useTreatmentDetail(() => props.id)
-const gestures = useTreatmentGestures(() => void reload())
+const { treatment, schedule, today, refreshToday, state, unreadable, reload } = useTreatmentDetail(
+  () => props.id,
+)
+const gestures = useTreatmentGestures(() => {
+  refreshToday()
+  void reload()
+})
 
 const animal = computed(() => (treatment.value ? animals.byId(treatment.value.animalId) : null))
 const named = computed(() => ({
@@ -59,9 +63,6 @@ const subtitle = computed(() =>
         animal: named.value.animal,
       })
     : null,
-)
-const period = computed(() =>
-  treatment.value && schedule.value ? currentPeriodOf(treatment.value, schedule.value) : null,
 )
 const card = computed(() =>
   treatment.value && schedule.value
@@ -111,12 +112,18 @@ function note(due: Due, givenOn: string): Promise<boolean> {
   return apply({ kind: 'note', gesture: { kind: 'given', due, givenOn } }, null, due.periodId)
 }
 
+function done(due: Due): void {
+  refreshToday()
+  void note(due, today.value)
+}
+
 async function noteOtherDate(due: Due, givenOn: string): Promise<void> {
   if (await note(due, givenOn)) isOtherDateOpen.value = false
 }
 
 function onLineAction(row: DoseRow, choice: DoseLineAction, bounds: MoveBounds | null): void {
-  const action = lineAction(row.dose, choice)
+  refreshToday()
+  const action = lineAction(row.dose, choice, today.value)
   if (action !== null) {
     void apply(action, row.dose, row.dose.periodId)
     return
@@ -193,7 +200,7 @@ async function remove(): Promise<void> {
         <TreatmentDoseCard
           :card="card"
           :busy="gestures.isBusy.value"
-          @done="note($event, today)"
+          @done="done"
           @other-date="isOtherDateOpen = true"
         />
 
@@ -230,13 +237,12 @@ async function remove(): Promise<void> {
     </div>
 
     <TreatmentOtherDateSheet
-      v-if="treatment && schedule && period"
+      v-if="treatment && schedule"
       v-model="isOtherDateOpen"
       :name="named.name"
       :animal="named.animal"
       :icon="reminderIcon('treatment', treatment.type)"
       :schedule="schedule"
-      :period="period"
       :today="today"
       :min="animal?.birthDate ?? null"
       :busy="gestures.isBusy.value"

@@ -142,10 +142,6 @@ export interface TreatmentDosesRepositoryDependencies {
   loadSupabaseClient?: () => Promise<SupabaseClient>
 }
 
-/**
- * Écrit seul une prise notée ou annulée ; ses autres écritures sont des instructions que le
- * repository des traitements ou un service joue.
- */
 export function createTreatmentDosesRepository(
   db: DbClient,
   {
@@ -213,20 +209,6 @@ export function createTreatmentDosesRepository(
   return {
     entity: 'treatment_dose',
 
-    /** Faux quand une prise visible du même jour existe déjà : un double tap n'en note qu'une. */
-    async record(dose: NewTreatmentDose): Promise<boolean> {
-      const changes = await db.run(
-        `INSERT INTO treatment_dose (${COLUMNS})
-         SELECT ${PLACEHOLDERS}
-         WHERE NOT EXISTS (
-           SELECT 1 FROM treatment_dose
-           WHERE treatment_id = ? AND given_on = ? AND ${NOT_DELETED}
-         )`,
-        [...valuesOf(dose), dose.treatmentId, dose.givenOn],
-      )
-      return changes > 0
-    },
-
     /** Prises visibles, la dernière ligne d'abord. */
     async listByTreatment(treatmentId: string): Promise<TreatmentDose[]> {
       const rows = await db.query<DoseWithFrequencyRow>(
@@ -276,16 +258,6 @@ export function createTreatmentDosesRepository(
         [animalId],
       )
       return Object.fromEntries(rows.map((row) => [row.treatment_id, row.count]))
-    },
-
-    /** Faux pour une prise déjà supprimée. */
-    async remove(id: string, deletedAt: string): Promise<boolean> {
-      const changes = await db.run(
-        `UPDATE treatment_dose SET deleted_at = ?, updated_at = ?
-         WHERE id = ? AND ${NOT_DELETED}`,
-        [deletedAt, deletedAt, id],
-      )
-      return changes > 0
     },
 
     /** Lignes supprimées comprises : l'import compare les versions avant d'écrire. */

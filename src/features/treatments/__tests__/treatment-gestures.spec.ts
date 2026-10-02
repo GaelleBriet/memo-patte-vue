@@ -15,7 +15,7 @@ const TODAY = '2026-09-28'
 const SOIR = { periodId: 'p-1', dueOn: '2026-09-28', dueTime: '20:00' }
 const UNE_HEURE = { name: 'Panacur', animal: 'Pixel', today: TODAY, severalTimes: false }
 const DEUX_HEURES = { name: 'Métacam', animal: 'Luna', today: TODAY, severalTimes: true }
-const RIEN = { postponement: null }
+const RIEN = { postponement: null, moved: null }
 
 function texts(
   context: typeof UNE_HEURE,
@@ -107,10 +107,10 @@ describe('doseActionTexts — corriger une prise', () => {
     })
 
     expect(done()).toBe('Prise déplacée au 28 août')
-    expect(done({ postponement: { kept: true, nextDueDate: '2026-10-10' } })).toBe(
+    expect(done({ ...RIEN, postponement: { kept: true, nextDueDate: '2026-10-10' } })).toBe(
       'Prise déplacée au 28 août. Prochaine dose gardée au 10 oct., que tu avais reportée.',
     )
-    expect(done({ postponement: { kept: false } })).toBe(
+    expect(done({ ...RIEN, postponement: { kept: false } })).toBe(
       'Prise déplacée au 28 août. Ton report de la prochaine dose ne s’applique plus.',
     )
     expect(undo).toBe('Annuler le changement de date de la prise')
@@ -119,7 +119,7 @@ describe('doseActionTexts — corriger une prise', () => {
   it('ne double pas le point d’une date abrégée', () => {
     const { done } = texts(UNE_HEURE, { kind: 'redate', doseId: 'x', givenOn: '2026-07-08' })
 
-    expect(done({ postponement: { kept: true, nextDueDate: '2027-01-15' } })).toBe(
+    expect(done({ ...RIEN, postponement: { kept: true, nextDueDate: '2027-01-15' } })).toBe(
       'Prise déplacée au 8 juil. Prochaine dose gardée au 15 janv. 2027, que tu avais reportée.',
     )
   })
@@ -137,13 +137,25 @@ describe('doseActionTexts — ligne « Reportée »', () => {
     )
   })
 
-  it('annonce la nouvelle date, reportée, avancée ou revenue à l’échéance', () => {
-    const to = (date: string) =>
-      texts(UNE_HEURE, { kind: 'move', doseId: REPORT.id, to: date }, REPORT).done()
+  it('annonce ce que le moteur a écrit : reportée, avancée, ou report disparu', () => {
+    const { done, undo } = texts(UNE_HEURE, { kind: 'move', doseId: REPORT.id, to: '2026-10-16' })
+    const ligne = (dueOn: string, nextDueDate: string) => ({
+      ...RIEN,
+      moved: {
+        periodId: 'p-1',
+        dueOn,
+        dueTime: null,
+        givenOn: null,
+        status: 'postponed' as const,
+        nextDueDate,
+      },
+    })
 
-    expect(to('2026-10-16')).toBe('Dose reportée au 16 oct.')
-    expect(to('2026-10-08')).toBe('Dose avancée au 8 oct.')
-    expect(to('2026-10-10')).toBe('Report supprimé')
+    expect(done(ligne('2026-10-10', '2026-10-16'))).toBe('Dose reportée au 16 oct.')
+    expect(done(ligne('2026-10-10', '2026-10-08'))).toBe('Dose avancée au 8 oct.')
+    expect(done(ligne('2026-10-20', '2026-10-16'))).toBe('Dose avancée au 16 oct.')
+    expect(done({ ...RIEN, moved: 'removed' })).toBe('Report supprimé')
+    expect(undo).toBe('Annuler le changement de date du report')
   })
 })
 
@@ -165,23 +177,34 @@ describe('lineAction — menu ⋮ d’une ligne de l’historique', () => {
   const DUE = { periodId: 'p-1', dueOn: '2026-09-27', dueTime: '20:00' }
 
   it('traduit chaque choix du menu en geste', () => {
-    expect(lineAction(PRISE, 'remove')).toEqual({ kind: 'remove', doseId: PRISE.id })
-    expect(lineAction(PRISE, 'remove-move')).toEqual({ kind: 'remove-move', doseId: PRISE.id })
-    expect(lineAction(PRISE, 'mark-missed')).toEqual({
+    expect(lineAction(PRISE, 'remove', TODAY)).toEqual({ kind: 'remove', doseId: PRISE.id })
+    expect(lineAction(PRISE, 'remove-move', TODAY)).toEqual({
+      kind: 'remove-move',
+      doseId: PRISE.id,
+    })
+    expect(lineAction(PRISE, 'mark-missed', TODAY)).toEqual({
       kind: 'note',
       gesture: { kind: 'missed', due: DUE },
     })
   })
 
   it('« Marquer comme donnée » note la prise au jour de son échéance', () => {
-    expect(lineAction(PRISE, 'mark-given')).toEqual({
+    expect(lineAction(PRISE, 'mark-given', TODAY)).toEqual({
       kind: 'note',
       gesture: { kind: 'given', due: DUE, givenOn: '2026-09-27' },
     })
   })
 
+  it('« Marquer comme donnée » une dose à venir marquée oubliée la note aujourd’hui, jamais dans le futur', () => {
+    const aVenir = dose('2026-10-05', '2026-10-06', { givenOn: null, status: 'missed' })
+
+    expect(lineAction(aVenir, 'mark-given', TODAY)).toMatchObject({
+      gesture: { kind: 'given', givenOn: TODAY },
+    })
+  })
+
   it('« Changer la date » attend le jour choisi', () => {
-    expect(lineAction(PRISE, 'change-date')).toBeNull()
+    expect(lineAction(PRISE, 'change-date', TODAY)).toBeNull()
   })
 })
 

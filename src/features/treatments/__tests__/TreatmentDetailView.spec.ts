@@ -79,6 +79,7 @@ const APPLIED = {
   undo: [{ action: 'delete' as const, id: 'nouvelle' }],
   alreadyGivenOn: null,
   postponement: null,
+  moved: null,
 }
 
 let book: TreatmentWithHistory | null
@@ -86,7 +87,7 @@ let remove: MockInstance
 let read: Mock<(id: string) => Promise<TreatmentWithHistory | null>>
 let push: MockInstance
 let service: {
-  [K in 'record' | 'undo' | 'apply' | 'undoBatch']: Mock<TreatmentDosesService[K]>
+  [K in 'apply' | 'noteMoment' | 'undoBatch']: Mock<TreatmentDosesService[K]>
 }
 let stop: { [K in 'stop' | 'undo']: Mock<TreatmentStopService[K]> }
 let wrapper: VueWrapper | null = null
@@ -115,8 +116,7 @@ beforeEach(async () => {
     reschedule: vi.fn<(id: string) => Promise<void>>(async () => {}),
   }))
   service = {
-    record: vi.fn<TreatmentDosesService['record']>(),
-    undo: vi.fn<TreatmentDosesService['undo']>(async () => {}),
+    noteMoment: vi.fn<TreatmentDosesService['noteMoment']>(),
     apply: vi.fn<TreatmentDosesService['apply']>(async () => APPLIED),
     undoBatch: vi.fn<TreatmentDosesService['undoBatch']>(async () => {}),
   }
@@ -290,6 +290,27 @@ describe('TreatmentDetailView — carte de la dose du moment', () => {
     expect(service.apply).toHaveBeenCalledOnce()
   })
 
+  it('passé minuit, écran resté ouvert, « C’est fait » note la prise au jour qu’il est', async () => {
+    const view = await monter()
+    vi.setSystemTime(new Date('2026-09-29T00:05:00'))
+
+    await view.findAll('.treatment-dose-card__done')[0]!.trigger('click')
+    await flushPromises()
+
+    expect(service.apply).toHaveBeenCalledWith(METACAM.id, {
+      kind: 'note',
+      gesture: {
+        kind: 'given',
+        due: { periodId: 'p-1', dueOn: '2026-09-28', dueTime: '08:00' },
+        givenOn: '2026-09-29',
+      },
+    })
+    expect(textes(view, '.treatment-dose-card__value')).toEqual([
+      '29 sept. à 8 h',
+      '29 sept. à 20 h',
+    ])
+  })
+
   it('dit sans « Annuler » qu’une échéance était déjà notée', async () => {
     service.apply.mockResolvedValue({ ...APPLIED, undo: [], alreadyGivenOn: '2026-09-28' })
     const view = await monter()
@@ -368,11 +389,10 @@ describe('TreatmentDetailView — « Fait à une autre date »', () => {
       modelValue: '2026-09-28',
       min: '2023-04-10',
       max: '2026-09-28',
-      excluded: [],
+      excluded: ['2026-09-27'],
     })
     expect(dansLaFeuille('.treatment-other-date__submit')[0]!.textContent?.trim()).toBe('Suivant')
 
-    await choisirLeJour(view, '2026-09-27')
     dansLaFeuille('.treatment-other-date__submit')[0]!.click()
     await flushPromises()
 
@@ -380,7 +400,7 @@ describe('TreatmentDetailView — « Fait à une autre date »', () => {
       'À quelle heure ?',
     )
     expect(dansLaFeuille('.bottom-sheet__subtitle')[0]!.textContent).toBe(
-      'Métacam · Luna · 27 sept.',
+      'Métacam · Luna · 28 sept.',
     )
     expect(
       dansLaFeuille('.treatment-other-date__hour').map((hour) => [
@@ -388,9 +408,60 @@ describe('TreatmentDetailView — « Fait à une autre date »', () => {
         hour.disabled,
       ]),
     ).toEqual([
-      ['Dose de 8 h · déjà notée', true],
-      ['Dose de 20 h · déjà notée', true],
+      ['Dose de 8 h · pas encore notée', false],
+      ['Dose de 20 h · pas encore notée', false],
     ])
+  })
+
+  it('grise l’heure déjà donnée du jour choisi', async () => {
+    const view = await ouvrir(
+      treatment([MATIN_ET_SOIR], [dose('2026-09-27', '2026-09-27', { dueTime: '08:00' })]),
+    )
+
+    await choisirLeJour(view, '2026-09-27')
+    dansLaFeuille('.treatment-other-date__submit')[0]!.click()
+    await flushPromises()
+
+    expect(
+      dansLaFeuille('.treatment-other-date__hour').map((hour) => [
+        hour.querySelector('.treatment-other-date__hour-detail')?.textContent?.replace(NBSP, ' '),
+        hour.disabled,
+      ]),
+    ).toEqual([
+      ['Dose de 8 h · déjà notée', true],
+      ['Dose de 20 h · pas encore notée', false],
+    ])
+  })
+
+  it('pour un jour d’une période à une seule heure, note sans demander l’heure, à l’échéance de ce jour', async () => {
+    const deuxPeriodes = treatment([
+      period({ startsOn: '2026-09-20', firstDueOn: '2026-09-20', times: ['09:00'] }),
+      {
+        ...MATIN_ET_SOIR,
+        id: 'p-2',
+        startsOn: '2026-09-27',
+        firstDueOn: '2026-09-27',
+        createdAt: '2026-09-27T08:00:00.000Z',
+      },
+    ])
+    const view = await ouvrir(deuxPeriodes)
+
+    await choisirLeJour(view, '2026-09-24')
+    expect(dansLaFeuille('.treatment-other-date__submit')[0]!.textContent?.trim()).toBe(
+      'Noter la prise du 24 sept.',
+    )
+    dansLaFeuille('.treatment-other-date__submit')[0]!.click()
+    await flushPromises()
+
+    expect(dansLaFeuille('.treatment-other-date__hour')).toHaveLength(0)
+    expect(service.apply).toHaveBeenCalledWith(deuxPeriodes.id, {
+      kind: 'note',
+      gesture: {
+        kind: 'given',
+        due: { periodId: 'p-1', dueOn: '2026-09-24', dueTime: '09:00' },
+        givenOn: '2026-09-24',
+      },
+    })
   })
 
   it('note l’heure touchée en un tap, pour le jour choisi, et ferme la feuille', async () => {
@@ -692,6 +763,17 @@ describe('TreatmentDetailView — ligne « Reportée » (planche A · V1 quinqui
       max: null,
     })
 
+    service.apply.mockResolvedValue({
+      ...APPLIED,
+      moved: {
+        periodId: 'p-1',
+        dueOn: '2026-10-10',
+        dueTime: null,
+        givenOn: null,
+        status: 'postponed',
+        nextDueDate: '2026-10-16',
+      },
+    })
     calendrier.vm.$emit('pick', '2026-10-16')
     await flushPromises()
 

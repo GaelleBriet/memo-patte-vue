@@ -5,9 +5,12 @@ import { todayIsoDate } from '@/core/app-lifecycle/today-iso-date'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import { showToast, showUndoableToast } from '@/shared/utils/toast'
 import type { DoseAction } from '../logic/treatment-dose-writes'
-import type { DoseActionTexts } from '../logic/treatment-gestures'
+import {
+  alreadyNotedText,
+  doseActionTexts,
+  type DoseActionTexts,
+} from '../logic/treatment-gestures'
 import { treatmentDeleteTexts } from '../logic/treatment-history'
-import { doseToast } from '../logic/treatment-sheet'
 import type { Treatment } from '../schema/treatment.schema'
 import { useTreatmentsStore } from '../store/treatments.store'
 
@@ -52,17 +55,25 @@ export function useTreatmentGestures(onChanged: () => void) {
     })
   }
 
+  /** Prise notée sans échéance choisie : le service vise la dose du moment. */
   function recordDose(treatment: Named, givenOn: string, failed?: string): Promise<boolean> {
     return guarded(async () => {
-      const { doseId } = await treatments.recordDose(treatment.id, givenOn)
+      const noted = await treatments.noteMomentDose(treatment.id, givenOn)
       onChanged()
-      const message = doseToast(t, { ...named(treatment), givenOn, today: todayIsoDate() })
-      if (doseId === null) showToast(message)
-      else {
-        undoable(message, t('treatments.sheet.toast.undoDose', named(treatment)), () =>
-          treatments.undoDose(treatment.id, doseId),
-        )
+      const context = { ...named(treatment), today: todayIsoDate() }
+      if (noted.due === null) {
+        showToast(alreadyNotedText(t, context, noted.alreadyGivenOn ?? givenOn), { tone: 'info' })
+        return
       }
+      const texts = doseActionTexts(
+        t,
+        { ...context, severalTimes: noted.severalTimes },
+        { kind: 'note', gesture: { kind: 'given', due: noted.due, givenOn } },
+        null,
+      )
+      undoable(texts.done(noted), texts.undo, () =>
+        treatments.undoDoseAction(treatment.id, noted.undo),
+      )
     }, failed)
   }
 

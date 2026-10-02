@@ -2,13 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
-import {
-  givenDueDays,
-  hourChoices,
-  otherDateDue,
-  otherDateTexts,
-} from '../logic/treatment-other-date'
-import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
+import { givenDays, otherDatePlan, otherDateTexts } from '../logic/treatment-other-date'
 import BottomSheet from '@/shared/components/BottomSheet.vue'
 import DateCalendar from '@/shared/components/DateCalendar.vue'
 import type { Due, TreatmentSchedule } from '@/shared/domain/treatment-schedule'
@@ -19,7 +13,6 @@ const props = withDefaults(
     animal: string
     icon: string
     schedule: TreatmentSchedule
-    period: Pick<TreatmentPeriodRecord, 'times'>
     today: string
     min?: string | null
     busy?: boolean
@@ -44,7 +37,10 @@ watch(open, (isOpen) => {
   givenOn.value = props.today
 })
 
-const severalTimes = computed(() => props.period.times.length > 1)
+const plan = computed(() =>
+  givenOn.value === null ? null : otherDatePlan(t, props.schedule, givenOn.value),
+)
+const severalTimes = computed(() => (plan.value?.hours.length ?? 0) > 0)
 const texts = computed(() =>
   otherDateTexts(
     t,
@@ -53,18 +49,12 @@ const texts = computed(() =>
     severalTimes.value,
   ),
 )
-const excluded = computed(() => (severalTimes.value ? [] : givenDueDays(props.schedule)))
-const dayDue = computed(() =>
-  severalTimes.value ? null : otherDateDue(props.schedule, givenOn.value),
-)
-const choices = computed(() =>
-  givenOn.value === null ? [] : hourChoices(t, props.schedule, props.period, givenOn.value),
-)
+const excluded = computed(() => givenDays(props.schedule))
 
 function submitDay(): void {
-  if (givenOn.value === null) return
+  if (givenOn.value === null || plan.value === null) return
   if (severalTimes.value) step.value = 'hour'
-  else if (dayDue.value) emit('note', dayDue.value, givenOn.value)
+  else if (plan.value.due) emit('note', plan.value.due, givenOn.value)
 }
 
 function pick(due: Due | null): void {
@@ -96,7 +86,7 @@ function pick(due: Due | null): void {
         class="treatment-other-date__submit"
         variant="flat"
         color="primary"
-        :disabled="busy || givenOn === null || (!severalTimes && dayDue === null)"
+        :disabled="busy || plan === null || (!severalTimes && plan.due === null)"
         @click="submitDay"
       >
         {{ texts.submit }}
@@ -105,7 +95,7 @@ function pick(due: Due | null): void {
 
     <div v-else class="treatment-other-date__hours">
       <button
-        v-for="choice in choices"
+        v-for="choice in plan?.hours ?? []"
         :key="choice.time"
         type="button"
         class="treatment-other-date__hour"

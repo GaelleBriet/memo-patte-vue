@@ -163,9 +163,9 @@ describe('synchro de l’historique entre deux appareils', () => {
     await tablet.sync()
 
     later()
-    await phone.doseDone.record(bravecto.id, '2026-09-25')
+    await phone.doseDone.noteMoment(bravecto.id, '2026-09-25')
     later()
-    await tablet.doseDone.record(bravecto.id, '2026-09-25')
+    await tablet.doseDone.noteMoment(bravecto.id, '2026-09-25')
     await phone.sync()
     await tablet.sync()
     await phone.sync()
@@ -201,7 +201,7 @@ describe('synchro de l’historique entre deux appareils', () => {
       injectedOn: '2026-09-25',
       nextDueDate: '2027-09-25',
     })
-    await tablet.doseDone.record(bravecto.id, '2026-09-25')
+    await tablet.doseDone.noteMoment(bravecto.id, '2026-09-25')
     await phone.sync()
     await tablet.sync()
     await phone.sync()
@@ -255,7 +255,7 @@ describe('synchro de l’historique entre deux appareils', () => {
       await tablet.sync()
       tablet.onRemindersOutdated.mockClear()
       later()
-      await phone.doseDone.record(bravecto.id, '2026-09-25')
+      await phone.doseDone.noteMoment(bravecto.id, '2026-09-25')
       await phone.sync()
       server.cutPull('weight_entry')
 

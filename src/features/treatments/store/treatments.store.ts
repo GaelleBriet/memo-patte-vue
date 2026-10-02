@@ -4,7 +4,7 @@ import { ref } from 'vue'
 import {
   treatmentDosesService,
   type AppliedDoseChange,
-  type RecordedDose,
+  type NotedMoment,
   type TreatmentDosesService,
 } from '../service/treatment-doses.service'
 import {
@@ -61,7 +61,7 @@ export function provideTreatmentRemindersService(next: (() => TreatmentReminders
   remindersProvider = next ?? (() => treatmentRemindersService)
 }
 
-type TreatmentDoses = Pick<TreatmentDosesService, 'record' | 'undo' | 'apply' | 'undoBatch'>
+type TreatmentDoses = Pick<TreatmentDosesService, 'apply' | 'noteMoment' | 'undoBatch'>
 
 let dosesProvider: () => TreatmentDoses = () => treatmentDosesService
 
@@ -225,21 +225,6 @@ export const useTreatmentsStore = defineStore('treatments', () => {
       )
     },
 
-    /** Prise du jour ou d'un jour passé ; `doseId` vaut `null` si ce jour était déjà noté. */
-    async recordDose(treatmentId: string, givenOn: string): Promise<RecordedDose> {
-      return write(
-        () => dosesProvider().record(treatmentId, givenOn),
-        (recorded) => recorded.animalId,
-      )
-    },
-
-    async undoDose(treatmentId: string, doseId: string): Promise<void> {
-      await write(
-        () => dosesProvider().undo(treatmentId, doseId),
-        () => animalId.value,
-      )
-    },
-
     async stop(treatmentId: string): Promise<StoppedTreatment> {
       return write(
         () => stopProvider().stop(treatmentId),
@@ -259,6 +244,14 @@ export const useTreatmentsStore = defineStore('treatments', () => {
       return write(
         () => dosesProvider().apply(treatmentId, action),
         (applied) => applied.animalId,
+      )
+    },
+
+    /** Prise notée sans échéance choisie, depuis la feuille « À faire ». */
+    async noteMomentDose(treatmentId: string, givenOn: string): Promise<NotedMoment> {
+      return write(
+        () => dosesProvider().noteMoment(treatmentId, givenOn),
+        (noted) => noted.animalId,
       )
     },
 

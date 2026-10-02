@@ -1,5 +1,6 @@
-import { nextDueAfterDose } from './treatment-dose'
+import { momentDue } from './treatment-other-date'
 import type { Treatment } from '../schema/treatment.schema'
+import type { TreatmentSchedule } from '@/shared/domain/treatment-schedule'
 import { formatDayMonthOrYear, formatLongDate, formatWeekdayDate } from '@/shared/utils/format'
 
 export type Translate = (key: string, named?: Record<string, unknown>, plural?: number) => string
@@ -44,39 +45,32 @@ export function treatmentSheetTexts(
   }
 }
 
-/** Récapitulatif de F3 : la prise choisie et la prochaine dose qu'elle fixera. */
+type SummarySchedule = Pick<
+  TreatmentSchedule,
+  'doses' | 'unloggedDoses' | 'currentDoses' | 'dueForDate' | 'doseFor'
+>
+
+/** Récapitulatif de F3 : la prise choisie et la prochaine dose qu'elle fixera ; `nextDose` : `null` sans dose à noter ce jour-là. */
 export function otherDaySummary(
   t: Translate,
-  treatment: SheetTreatment,
+  schedule: SummarySchedule | null,
   givenOn: string,
   today: string,
 ) {
+  const target = schedule === null ? null : momentDue(schedule, givenOn, today)
+  const next =
+    schedule !== null && target !== null && 'due' in target
+      ? schedule.doseFor({ kind: 'given', due: target.due, givenOn }).nextDueDate
+      : null
   return {
     doseOn: t('treatments.sheet.otherDay.doseOn', { date: formatWeekdayDate(givenOn) }),
-    nextDose: t('treatments.sheet.otherDay.nextDose', {
-      date: formatLongDate(nextDueAfterDose(treatment, givenOn)),
-    }),
+    nextDose:
+      next === null
+        ? null
+        : t('treatments.sheet.otherDay.nextDose', { date: formatLongDate(next) }),
     submit:
       givenOn === today
         ? t('treatments.sheet.otherDay.submitToday')
         : t('treatments.sheet.otherDay.submit', { date: formatDayMonthOrYear(givenOn, today) }),
   }
-}
-
-export function doseToast(
-  t: Translate,
-  {
-    name,
-    animal,
-    givenOn,
-    today,
-  }: { name: string; animal: string; givenOn: string; today: string },
-): string {
-  return givenOn === today
-    ? t('treatments.sheet.toast.dose', { name, animal })
-    : t('treatments.sheet.toast.doseOn', {
-        name,
-        animal,
-        date: formatDayMonthOrYear(givenOn, today),
-      })
 }

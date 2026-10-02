@@ -22,6 +22,8 @@ export type DoseChange = {
   alreadyGivenOn: string | null
   /** Déplacement qui suivait une prise redatée : gardé à sa date, ou perdu. */
   postponement: { kept: true; nextDueDate: string } | { kept: false } | null
+  /** Ce qu'un geste sur un report en a fait : sa ligne telle qu'écrite, ou `removed` ; `null` hors de ces gestes ou sans changement. */
+  moved: DoseFields | 'removed' | null
 }
 
 type History = Pick<TreatmentWithHistory, 'id' | 'animalId' | 'doses'>
@@ -55,31 +57,58 @@ function deletes(ids: readonly string[]): DoseWrite[] {
   return ids.map((id) => ({ action: 'delete', id }))
 }
 
-function movedWrites(history: History, moved: MovedDose, newId: () => string): DoseWrite[] {
+function otherMovesOf(history: History, id: string): string[] {
+  const line = history.doses.find((dose) => dose.id === id)
+  if (line === undefined) return []
+  return linesOf(history, line)
+    .filter((other) => other.status === 'postponed' && other.id !== id)
+    .map((other) => other.id)
+}
+
+function movedChange(
+  history: History,
+  moved: MovedDose,
+  newId: () => string,
+): Pick<DoseChange, 'writes' | 'moved'> {
   switch (moved.action) {
     case 'create':
-      return [
-        {
-          action: 'create',
-          id: newId(),
-          treatmentId: history.id,
-          animalId: history.animalId,
-          dose: moved.dose,
-        },
-      ]
+      return {
+        writes: [
+          {
+            action: 'create',
+            id: newId(),
+            treatmentId: history.id,
+            animalId: history.animalId,
+            dose: moved.dose,
+          },
+        ],
+        moved: moved.dose,
+      }
     case 'rewrite':
-      return [{ action: 'rewrite', id: moved.doseId, dose: moved.dose }]
+      return {
+        writes: [
+          { action: 'rewrite', id: moved.doseId, dose: moved.dose },
+          ...deletes(otherMovesOf(history, moved.doseId)),
+        ],
+        moved: moved.dose,
+      }
     case 'delete':
-      return deletes([moved.doseId])
+      return {
+        writes: deletes([moved.doseId, ...otherMovesOf(history, moved.doseId)]),
+        moved: 'removed',
+      }
     case 'none':
-      return []
+      return { writes: [], moved: null }
   }
 }
 
 function withoutStale(writes: DoseWrite[], schedule: TreatmentSchedule): DoseWrite[] {
   if (writes.length === 0) return writes
-  const touched = new Set(writes.map(({ id }) => id))
-  return [...writes, ...deletes(schedule.staleDoseIds.filter((id) => !touched.has(id)))]
+  const unique = writes.filter(
+    (write, index) => writes.findIndex(({ id }) => id === write.id) === index,
+  )
+  const touched = new Set(unique.map(({ id }) => id))
+  return [...unique, ...deletes(schedule.staleDoseIds.filter((id) => !touched.has(id)))]
 }
 
 function changeOf(
@@ -88,13 +117,13 @@ function changeOf(
   action: DoseAction,
   newId: () => string,
 ): DoseChange {
-  const unchanged = { alreadyGivenOn: null, postponement: null }
+  const unchanged = { alreadyGivenOn: null, postponement: null, moved: null }
   switch (action.kind) {
     case 'note': {
       const { gesture } = action
       const noted = schedule.doses.find((dose) => isSameDue(dose, gesture.due))
       if (gesture.kind === 'given' && noted?.status === 'given') {
-        return { writes: [], alreadyGivenOn: noted.givenOn, postponement: null }
+        return { ...unchanged, writes: [], alreadyGivenOn: noted.givenOn }
       }
       const dose = schedule.doseFor(gesture)
       const lines = linesOf(history, gesture.due)
@@ -116,32 +145,31 @@ function changeOf(
       const { dose, postponement } = schedule.redate(action.doseId, action.givenOn)
       const writes = rewrites(linesOf(history, lineById(history, action.doseId)), dose)
       if (postponement === null) return { ...unchanged, writes }
+      const others = postponement.doseIds.flatMap((id) => otherMovesOf(history, id))
       if (!postponement.kept) {
         return {
-          writes: [...writes, ...deletes(postponement.doseIds)],
-          alreadyGivenOn: null,
+          ...unchanged,
+          writes: [...writes, ...deletes([...postponement.doseIds, ...others])],
           postponement: { kept: false },
         }
       }
       const { line } = postponement
       return {
+        ...unchanged,
         writes: [
           ...writes,
           ...postponement.doseIds.map((id): DoseWrite => ({ action: 'rewrite', id, dose: line })),
+          ...deletes(others.filter((id) => !postponement.doseIds.includes(id))),
         ],
-        alreadyGivenOn: null,
         postponement: { kept: true, nextDueDate: line.nextDueDate },
       }
     }
     case 'move': {
       const moved = schedule.move(movedDueOf(lineById(history, action.doseId)), action.to)
-      return { ...unchanged, writes: movedWrites(history, moved, newId) }
+      return { ...unchanged, ...movedChange(history, moved, newId) }
     }
     case 'remove-move':
-      return {
-        ...unchanged,
-        writes: movedWrites(history, schedule.removeMove(action.doseId), newId),
-      }
+      return { ...unchanged, ...movedChange(history, schedule.removeMove(action.doseId), newId) }
   }
 }
 

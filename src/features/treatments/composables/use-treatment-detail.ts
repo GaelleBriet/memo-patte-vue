@@ -9,7 +9,7 @@ import { useTreatmentsStore } from '../store/treatments.store'
 /** Un traitement, ses périodes et ses prises, avec son calendrier du jour ; `unreadable` : le moteur le refuse. */
 export function useTreatmentDetail(id: () => string) {
   const store = useTreatmentsStore()
-  const { today } = useToday()
+  const { today, refresh: refreshToday } = useToday()
   const { data, state, reload } = useDetailLoad(id, (treatmentId) =>
     store.getWithHistory(treatmentId),
   )
@@ -25,5 +25,5 @@ export function useTreatmentDetail(id: () => string) {
   })
   const unreadable = computed(() => data.value !== null && schedule.value === null)
 
-  return { treatment: data, schedule, today, state, unreadable, reload }
+  return { treatment: data, schedule, today, refreshToday, state, unreadable, reload }
 }
