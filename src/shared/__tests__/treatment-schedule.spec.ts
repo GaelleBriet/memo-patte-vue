@@ -3229,6 +3229,40 @@ describe('sans changer la fréquence ni les heures, la prochaine dose reste cell
     })
   })
 
+  describe('tous les 2 jours à 8 h et 20 h : une journée entamée garde l’ancien calcul', () => {
+    const twoDays = { value: 2, unit: 'day' } as const
+    const times = ['08:00', '20:00']
+    const start = carnet(period({ firstDueOn: '2026-10-01', frequency: twoDays, times }))
+    const firstDay = done(done(start, '2026-10-01'), '2026-10-01')
+
+    it('8 h du 3 donnée, 20 h non, posologie changée le 4 : prochaine dose le 5', () => {
+      const book = done(firstDay, '2026-10-03')
+      expect(scheduleOf(book, '2026-10-04').currentDoses).toEqual([due('2026-10-03', '20:00')])
+
+      expect(scheduleOf(book, '2026-10-04').newPeriod(twoDays, times)).toEqual({
+        startsOn: '2026-10-04',
+        firstDueOn: '2026-10-05',
+      })
+    })
+
+    it('8 h du 3 donnée en avance le 2, posologie changée le 2 : la journée du 3 n’est pas redemandée', () => {
+      const book = done(firstDay, '2026-10-02')
+      expect(scheduleOf(book, '2026-10-02').currentDoses).toEqual([due('2026-10-03', '20:00')])
+
+      expect(scheduleOf(book, '2026-10-02').newPeriod(twoDays, times)).toEqual({
+        startsOn: '2026-10-02',
+        firstDueOn: '2026-10-05',
+      })
+    })
+
+    it('aucune heure du 3 notée, posologie changée le 2 : prochaine dose le 3', () => {
+      expect(scheduleOf(firstDay, '2026-10-02').newPeriod(twoDays, times)).toEqual({
+        startsOn: '2026-10-02',
+        firstDueOn: '2026-10-03',
+      })
+    })
+  })
+
   it('les heures changent : la dernière prise plus la fréquence, comme avant', () => {
     const book = done(
       done(carnet(monthly({ firstDueOn: '2027-01-31' })), '2027-01-31'),

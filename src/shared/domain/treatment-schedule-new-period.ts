@@ -26,6 +26,11 @@ function keepsSettings(state: State, frequency: Frequency, times: readonly strin
   )
 }
 
+function untouchedCurrentDay(state: State): string | undefined {
+  const day = state.currentDoses[0]?.dueOn
+  return day === undefined || state.open?.noteDays.has(day) ? undefined : day
+}
+
 // Q24 : la nouvelle période commence aujourd'hui ; ses heures au-delà des prises du jour restent à donner.
 export function newPeriod(state: State, frequency: Frequency, times: readonly string[]): NewPeriod {
   checkFrequency(frequency, '')
@@ -39,9 +44,7 @@ export function newPeriod(state: State, frequency: Frequency, times: readonly st
   if (noted > 0 && noted < times.length) return { startsOn, firstDueOn: startsOn }
   const dueToday = state.currentDoses.some((due) => due.dueOn === today)
   if (noted === 0 && dueToday) return { startsOn, firstDueOn: startsOn }
-  const scheduled = keepsSettings(state, frequency, times)
-    ? state.currentDoses[0]?.dueOn
-    : undefined
+  const scheduled = keepsSettings(state, frequency, times) ? untouchedCurrentDay(state) : undefined
   const proposed = scheduled ?? lastReference(state, frequency) ?? startsOn
   return { startsOn, firstDueOn: proposed > startsOn ? proposed : startsOn }
 }
