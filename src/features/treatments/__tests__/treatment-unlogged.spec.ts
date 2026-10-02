@@ -203,7 +203,7 @@ describe('pastDosesPrompt — l’encart du formulaire de création (TR-3)', () 
     expect(prompt(SEPTEMBRE)).toMatchObject({
       title: '25 doses prévues depuis le 3 sept.',
       subtitle: 'Ont-elles été données ?',
-      note: 'Facultatif. Sinon, la fiche les affichera comme non renseignées.',
+      note: 'Facultatif. Tu pourras aussi le faire depuis la fiche.',
       when: 'du 3 au 27 sept.',
       actions: [
         { id: 'all-given', label: 'Noter les 25 doses comme données, du 3 au 27 sept.' },
@@ -219,7 +219,7 @@ describe('pastDosesPrompt — l’encart du formulaire de création (TR-3)', () 
     expect(prompt([draft('2026-09-27')])).toMatchObject({
       title: '1 dose prévue le 27 sept.',
       subtitle: 'A-t-elle été donnée ?',
-      note: 'Facultatif. Sinon, la fiche l’affichera comme non renseignée.',
+      note: 'Facultatif. Tu pourras aussi le faire depuis la fiche.',
       actions: [{ id: 'given' }, { id: 'missed' }],
     })
     expect(prompt([draft('2026-09-27', '20:00')], true)?.title).toBe(

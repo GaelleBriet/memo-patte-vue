@@ -902,7 +902,7 @@ describe('TreatmentFormView — encart des doses passées (TR-3, planches A · V
     expect(texte(wrapper, '.treatment-unlogged__title')).toBe('25 doses prévues depuis le 3 sept.')
     expect(texte(wrapper, '.treatment-unlogged__subtitle')).toBe('Ont-elles été données ?')
     expect(texte(wrapper, '.treatment-unlogged__note')).toBe(
-      'Facultatif. Sinon, la fiche les affichera comme non renseignées.',
+      'Facultatif. Tu pourras aussi le faire depuis la fiche.',
     )
     expect(gestes(wrapper).map((geste) => geste.text())).toEqual([
       'Toutes données',
@@ -994,7 +994,7 @@ describe('TreatmentFormView — encart des doses passées (TR-3, planches A · V
     expect(texte(wrapper, '.treatment-unlogged__title')).toBe('1 dose prévue le 27 sept.')
     expect(texte(wrapper, '.treatment-unlogged__subtitle')).toBe('A-t-elle été donnée ?')
     expect(texte(wrapper, '.treatment-unlogged__note')).toBe(
-      'Facultatif. Sinon, la fiche l’affichera comme non renseignée.',
+      'Facultatif. Tu pourras aussi le faire depuis la fiche.',
     )
     expect(gestes(wrapper).map((geste) => geste.text())).toEqual(['Donnée', 'Oubliée'])
 

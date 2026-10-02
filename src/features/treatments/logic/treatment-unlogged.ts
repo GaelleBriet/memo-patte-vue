@@ -154,7 +154,7 @@ export function pastDosesPrompt(
     dues: [...dues],
     title: t('treatments.form.pastDoses.title', { n: count, date }, count),
     subtitle: t('treatments.form.pastDoses.question', {}, count),
-    note: t('treatments.form.pastDoses.note', {}, count),
+    note: t('treatments.form.pastDoses.note'),
     when,
     actions: actionsOf(t, count, when, t('treatments.form.pastDoses.chooseDaysLabel', { when })),
   }

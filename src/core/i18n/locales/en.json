@@ -325,7 +325,7 @@
       "pastDoses": {
         "title": "{n} dose scheduled on {date} | {n} doses scheduled since {date}",
         "question": "Was it given? | Were they given?",
-        "note": "Optional. Otherwise, the treatment page will show it as not logged. | Optional. Otherwise, the treatment page will show them as not logged.",
+        "note": "Optional. You can also do it from the treatment page.",
         "chooseDaysLabel": "Choose the days the dose was given, {when}",
         "edit": "Change",
         "editLabel": "Change the chosen days"

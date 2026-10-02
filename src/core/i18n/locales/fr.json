@@ -325,7 +325,7 @@
       "pastDoses": {
         "title": "{n} dose prévue le {date} | {n} doses prévues depuis le {date}",
         "question": "A-t-elle été donnée ? | Ont-elles été données ?",
-        "note": "Facultatif. Sinon, la fiche l’affichera comme non renseignée. | Facultatif. Sinon, la fiche les affichera comme non renseignées.",
+        "note": "Facultatif. Tu pourras aussi le faire depuis la fiche.",
         "chooseDaysLabel": "Choisir les jours où la dose a été donnée, {when}",
         "edit": "Modifier",
         "editLabel": "Modifier les jours choisis"
