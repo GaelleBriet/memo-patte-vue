@@ -46,10 +46,14 @@ export function treatmentEditSchemaAfter(lastDoseDate: string) {
   })
 }
 
-/** Le traitement et sa période en cours, avec la dernière prise et la prochaine dose qu'elle fixe. */
+/**
+ * Le traitement et sa période en cours, avec la dernière prise et la prochaine dose qu'elle fixe ;
+ * sans prise, la prochaine dose est la première échéance de la période.
+ */
 export const treatmentSchema = treatmentInputSchema.extend({
   id: z.uuid(),
   periodId: z.uuid(),
+  lastDoseDate: z.iso.date().nullable(),
   nextDueDate: z.iso.date(),
   /** `null` tant que la période en cours n'est pas arrêtée. */
   stoppedOn: z.iso.date().nullable(),

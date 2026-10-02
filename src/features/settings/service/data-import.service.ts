@@ -239,8 +239,7 @@ const exportFileSchema = z
   })
   .refine((file) => {
     const withPeriod = new Set(file.treatmentPeriods.map(({ treatmentId }) => treatmentId))
-    const withDose = new Set(file.treatmentDoses.map(({ treatmentId }) => treatmentId))
-    return file.treatments.every(({ id }) => withPeriod.has(id) && withDose.has(id))
+    return file.treatments.every(({ id }) => withPeriod.has(id))
   })
 
 const versionSchema = z.object({ schemaVersion: z.number().int().positive() })

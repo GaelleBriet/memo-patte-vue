@@ -183,6 +183,27 @@ describe('becomesHead', () => {
   })
 })
 
+describe('traitement sans prise', () => {
+  const sansPrise = { ...BRAVECTO, lastDoseDate: null }
+
+  it('n’a ni dernière prise ni prises précédentes', () => {
+    expect(doseHistory([], { ongoing: true })).toEqual({
+      head: null,
+      others: { kind: 'list', doses: [] },
+    })
+  })
+
+  it('annonce sa première échéance et aucune prise', () => {
+    expect(
+      treatmentDetailTexts(t, sansPrise, { animal: 'Boree', today: TODAY, doses: [] }),
+    ).toMatchObject({
+      due: { date: '28 sept. 2026', delay: { text: 'dans 5 jours', overdue: false } },
+      counter: '0',
+      stopped: null,
+    })
+  })
+})
+
 describe('treatmentDetailTexts', () => {
   it('décrit un traitement en cours et ses prises (F8)', () => {
     const doses = monthly(4)

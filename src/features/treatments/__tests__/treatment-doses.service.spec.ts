@@ -104,6 +104,20 @@ describe('treatmentDosesService', () => {
     expect(dueDates()[0]).toBe('2026-10-23')
   })
 
+  it('note la première prise d’un traitement sans prise', async () => {
+    await db.run('UPDATE treatment_dose SET deleted_at = updated_at WHERE treatment_id = ?', [
+      bravecto,
+    ])
+
+    await service.record(bravecto, '2026-09-23')
+
+    await expect(treatments.getById(bravecto)).resolves.toMatchObject({
+      lastDoseDate: '2026-09-23',
+      nextDueDate: '2026-10-23',
+    })
+    expect(dueDates()[0]).toBe('2026-10-23')
+  })
+
   it('note une prise à une date passée, échéance calculée depuis cette date', async () => {
     await service.record(bravecto, '2026-09-20')
 

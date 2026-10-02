@@ -60,7 +60,7 @@ export function treatmentFormValuesFrom(treatment: Treatment): TreatmentFormValu
     type: treatment.type,
     frequencyValue: String(treatment.frequency.value),
     frequencyUnit: treatment.frequency.unit,
-    lastDoseDate: treatment.lastDoseDate,
+    lastDoseDate: treatment.lastDoseDate ?? '',
     nextDueDate: treatment.nextDueDate,
   }
 }
@@ -137,7 +137,7 @@ export function nextDoseDate(values: TreatmentFormValues): string | null {
 
 /**
  * Prochaine dose que « Modifier » propose : la dernière prise plus la fréquence saisie, ou celle
- * enregistrée, report compris, tant que la fréquence reste celle du plan.
+ * enregistrée, report compris, tant que la fréquence reste celle du plan ou qu'aucune prise n'existe.
  */
 export function editedNextDueDate(
   values: TreatmentFormValues,
@@ -147,8 +147,7 @@ export function editedNextDueDate(
   if (!frequency.success) return null
 
   const { value, unit } = frequency.data
-  if (value === treatment.frequency.value && unit === treatment.frequency.unit) {
-    return treatment.nextDueDate
-  }
+  const unchanged = value === treatment.frequency.value && unit === treatment.frequency.unit
+  if (unchanged || treatment.lastDoseDate === null) return treatment.nextDueDate
   return addFrequency(treatment.lastDoseDate, frequency.data)
 }

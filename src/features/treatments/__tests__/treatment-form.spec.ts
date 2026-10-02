@@ -264,9 +264,40 @@ describe('editedNextDueDate — prochaine dose proposée par « Modifier »', ()
     expect(editedNextDueDate(treatmentFormValuesFrom(REPORTE), REPORTE)).toBe('2026-10-05')
   })
 
+  it('garde la première échéance d’un traitement sans prise, quelle que soit la fréquence', () => {
+    const sansPrise = { ...BRAVECTO, lastDoseDate: null, nextDueDate: '2026-10-05' }
+
+    expect(
+      editedNextDueDate(
+        { ...treatmentFormValuesFrom(sansPrise), frequencyValue: '1', frequencyUnit: 'month' },
+        sansPrise,
+      ),
+    ).toBe('2026-10-05')
+  })
+
   it('ne propose rien tant que la fréquence saisie n’est pas valide', () => {
     expect(
       editedNextDueDate({ ...treatmentFormValuesFrom(REPORTE), frequencyValue: '' }, REPORTE),
     ).toBeNull()
+  })
+})
+
+describe('traitement sans prise', () => {
+  const sansPrise = { ...BRAVECTO, lastDoseDate: null, nextDueDate: '2026-10-05' }
+
+  it('préremplit « Modifier » sans dernière prise', () => {
+    expect(treatmentFormValuesFrom(sansPrise)).toMatchObject({
+      lastDoseDate: '',
+      nextDueDate: '2026-10-05',
+    })
+  })
+
+  it('accepte une prochaine dose à n’importe quelle date : aucune prise ne la borne', () => {
+    const resultat = validateTreatmentEditForm({
+      ...treatmentFormValuesFrom(sansPrise),
+      nextDueDate: '2026-09-01',
+    })
+
+    expect(resultat.success && resultat.data.nextDueDate).toBe('2026-09-01')
   })
 })

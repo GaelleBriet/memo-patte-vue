@@ -42,4 +42,8 @@ describe('nextDueAfterDose', () => {
     expect(nextDueAfterDose(derniereLe28, '2026-08-01')).toBe('2026-09-28')
     expect(nextDueAfterDose(derniereLe28, '2026-08-28')).toBe('2026-09-28')
   })
+
+  it('calcule la prochaine dose depuis la première prise d’un traitement sans prise', () => {
+    expect(nextDueAfterDose({ ...BRAVECTO, lastDoseDate: null }, '2026-09-23')).toBe('2026-10-23')
+  })
 })

@@ -86,12 +86,14 @@ describe('parseExportFile', () => {
     expect(result.ok && result.file.data.treatments[0]?.type).toBe('medication')
   })
 
-  it('refuse un traitement sans aucune prise, que l’app ne sait pas encore afficher', () => {
+  it('accepte un traitement sans aucune prise', () => {
     const text = withDocument((document) => {
       document.treatmentDoses = rows(document, 'treatmentDoses').slice(1)
     })
+    const result = parseExportFile(text)
 
-    expect(parseExportFile(text)).toEqual(INVALID)
+    expect(result.ok && result.file.data.treatmentDoses).toHaveLength(3)
+    expect(result.ok && result.file.data.treatments).toHaveLength(2)
   })
 
   describe('instants', () => {

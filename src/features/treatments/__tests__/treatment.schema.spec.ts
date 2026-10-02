@@ -192,6 +192,22 @@ describe('treatmentSchema', () => {
     expect(treatmentSchema.safeParse({ ...treatment, nextDueDate: undefined }).success).toBe(false)
     expect(treatmentSchema.safeParse({ ...treatment, periodId: undefined }).success).toBe(false)
   })
+
+  it('accepte un traitement sans prise : aucune dernière prise', () => {
+    const treatment = {
+      ...validInput,
+      id: '22222222-2222-4222-8222-222222222222',
+      periodId: '22222222-2222-4222-8222-222222222222',
+      lastDoseDate: null,
+      nextDueDate: '2026-06-01',
+      stoppedOn: null,
+      createdAt: '2026-03-01T10:00:00.000Z',
+      updatedAt: '2026-03-01T10:00:00.000Z',
+      deletedAt: null,
+    }
+
+    expect(treatmentSchema.parse(treatment)).toEqual(treatment)
+  })
 })
 
 describe('treatmentDoseSchema', () => {

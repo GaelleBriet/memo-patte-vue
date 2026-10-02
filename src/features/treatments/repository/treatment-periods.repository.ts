@@ -160,6 +160,19 @@ export function createTreatmentPeriodsRepository(
       }
     },
 
+    /** La période en cours ne commence jamais après sa première échéance. */
+    correctCurrentFirstDueStatement(
+      treatmentId: string,
+      { firstDueOn, updatedAt }: { firstDueOn: string; updatedAt: string },
+    ): SqlStatement {
+      return {
+        sql: `UPDATE treatment_period
+              SET first_due_on = ?, starts_on = MIN(starts_on, ?), updated_at = ?
+              WHERE id = ${currentPeriodIdSql('?')} AND first_due_on <> ?`,
+        params: [firstDueOn, firstDueOn, updatedAt, treatmentId, firstDueOn],
+      }
+    },
+
     /** Faux quand la période en cours est déjà arrêtée, ou que le traitement n'en a pas : rien n'est écrit. */
     async stop(treatmentId: string, stoppedOn: string): Promise<boolean> {
       const changes = await db.run(

@@ -13,6 +13,7 @@ import {
 } from './treatment-periods.repository'
 import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import {
+  treatmentEditSchema,
   treatmentEditSchemaAfter,
   treatmentInputSchema,
   type FrequencyUnit,
@@ -37,7 +38,7 @@ interface TreatmentWithHeadRow extends TreatmentRow {
   frequency_value: number
   frequency_unit: FrequencyUnit
   stopped_on: string | null
-  last_dose_date: string
+  last_dose_date: string | null
   next_due_date: string
 }
 
@@ -54,6 +55,8 @@ const COLUMNS = 'id, animal_id, name, type, created_at, updated_at, deleted_at'
 /** Les traitements supprimés restent en base pour la synchronisation, jamais pour l'UI. */
 const NOT_DELETED = 'deleted_at IS NULL'
 
+const NEXT_DUE_DATE = 'COALESCE(head.next_due_date, period.first_due_on)'
+
 /**
  * La dernière ligne est datée de son échéance tant qu'elle n'a pas été donnée ; le traitement, de
  * la modification la plus récente entre lui et sa période en cours.
@@ -61,12 +64,13 @@ const NOT_DELETED = 'deleted_at IS NULL'
 const VISIBLE_WITH_HEAD = `
   SELECT treatment.id, treatment.animal_id, treatment.name, treatment.type,
          period.id AS period_id, period.frequency_value, period.frequency_unit, period.stopped_on,
-         COALESCE(head.given_on, head.due_on) AS last_dose_date, head.next_due_date,
+         COALESCE(head.given_on, head.due_on) AS last_dose_date,
+         ${NEXT_DUE_DATE} AS next_due_date,
          treatment.created_at, MAX(treatment.updated_at, period.updated_at) AS updated_at,
          treatment.deleted_at
   FROM treatment
   JOIN treatment_period period ON period.id = ${currentPeriodIdSql('treatment.id')}
-  JOIN treatment_dose head ON head.id = ${headDoseIdSql('treatment.id')}
+  LEFT JOIN treatment_dose head ON head.id = ${headDoseIdSql('treatment.id')}
   WHERE treatment.deleted_at IS NULL`
 
 function toTreatment(row: TreatmentWithHeadRow): Treatment {
@@ -119,7 +123,10 @@ export function createTreatmentsRepository(
     { resume }: { resume: boolean },
   ): Promise<Treatment> {
     const current = await requireVisible(id)
-    const data = treatmentEditSchemaAfter(current.lastDoseDate).parse(input)
+    const { lastDoseDate } = current
+    const schema =
+      lastDoseDate === null ? treatmentEditSchema : treatmentEditSchemaAfter(lastDoseDate)
+    const data = schema.parse(input)
     const updatedAt = new Date().toISOString()
 
     await db.runMany([
@@ -129,7 +136,9 @@ export function createTreatmentsRepository(
         params: [data.name, data.type, updatedAt, id, data.name, data.type],
       },
       periods.correctCurrentStatement(id, { frequency: data.frequency, resume, updatedAt }),
-      doses.updateHeadStatement(id, { nextDueDate: data.nextDueDate, updatedAt }),
+      lastDoseDate === null
+        ? periods.correctCurrentFirstDueStatement(id, { firstDueOn: data.nextDueDate, updatedAt })
+        : doses.updateHeadStatement(id, { nextDueDate: data.nextDueDate, updatedAt }),
     ])
 
     return requireVisible(id)
@@ -144,7 +153,7 @@ export function createTreatmentsRepository(
     async listByAnimal(animalId: string): Promise<Treatment[]> {
       const rows = await db.query<TreatmentWithHeadRow>(
         `${VISIBLE_WITH_HEAD} AND treatment.animal_id = ?
-         ORDER BY head.next_due_date, treatment.created_at`,
+         ORDER BY ${NEXT_DUE_DATE}, treatment.created_at`,
         [animalId],
       )
       return rows.map(toTreatment)
@@ -153,7 +162,7 @@ export function createTreatmentsRepository(
     async listAll(): Promise<Treatment[]> {
       const rows = await db.query<TreatmentWithHeadRow>(
         `${VISIBLE_WITH_HEAD}
-         ORDER BY treatment.animal_id, head.next_due_date, treatment.created_at`,
+         ORDER BY treatment.animal_id, ${NEXT_DUE_DATE}, treatment.created_at`,
       )
       return rows.map(toTreatment)
     },
@@ -225,8 +234,9 @@ export function createTreatmentsRepository(
     },
 
     /**
-     * Corrige le nom, le type, la fréquence de la période en cours et la prochaine dose de la
-     * dernière ligne, dans une seule écriture ; la date de la prise et `animal_id` restent figés.
+     * Corrige le nom, le type, la fréquence de la période en cours et la prochaine dose, portée par
+     * la dernière ligne ou, sans prise, par la première échéance, dans une seule écriture ; la date
+     * de la prise et `animal_id` restent figés.
      */
     update(id: string, input: TreatmentEditInput): Promise<Treatment> {
       return writePlan(id, input, { resume: false })
