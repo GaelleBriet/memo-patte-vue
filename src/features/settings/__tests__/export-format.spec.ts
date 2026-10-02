@@ -320,6 +320,46 @@ describe('toCsvTables', () => {
     ])
   })
 
+  it('exporte un médicament sans prise : sa première échéance, aucune dernière prise', () => {
+    const stamps = { createdAt: '2026-09-14T08:00:00.000Z', updatedAt: '2026-09-14T08:00:00.000Z' }
+    const data = {
+      ...EXPORT_FIXTURE,
+      treatments: [
+        ...EXPORT_FIXTURE.treatments,
+        {
+          id: 't-metacam',
+          animalId: LUNA_ID,
+          name: 'Métacam',
+          type: 'medication' as const,
+          ...stamps,
+        },
+      ],
+      treatmentPeriods: [
+        ...EXPORT_FIXTURE.treatmentPeriods,
+        periodOf({
+          id: 'p-metacam',
+          treatmentId: 't-metacam',
+          animalId: LUNA_ID,
+          startsOn: '2026-09-14',
+          firstDueOn: '2026-10-05',
+          ...stamps,
+        }),
+      ],
+    }
+
+    expect(lines(toCsvTables(data, 'kg')['traitements.csv'])).toContain(
+      `t-metacam;${LUNA_ID};Luna;Métacam;medication;;2026-10-05`,
+    )
+    expect(exportReminders(data)).toContainEqual({
+      kind: 'treatment',
+      sourceId: 't-metacam',
+      animalId: LUNA_ID,
+      name: 'Métacam',
+      dueDate: '2026-10-05',
+    })
+    expect(JSON.parse(toJsonExport(data, META)).treatments.at(-1).type).toBe('medication')
+  })
+
   it('écrit une ligne par période, avec ses réglages : fin, heures, posologie, moment du rappel', () => {
     expect(lines(tables['periodes.csv'])).toEqual([
       'id;treatmentId;treatmentName;animalId;animalName;startsOn;firstDueOn;endsOn;stoppedOn;frequencyValue;frequencyUnit;times;doseQuantity;doseUnit;reminderOffsetMinutes;reminderTime',

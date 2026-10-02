@@ -44,7 +44,7 @@ export type ExportTreatment = {
   id: string
   animalId: string
   name: string
-  type: 'deworming' | 'antiparasitic'
+  type: 'deworming' | 'antiparasitic' | 'medication'
   createdAt: string
   updatedAt: string
 }

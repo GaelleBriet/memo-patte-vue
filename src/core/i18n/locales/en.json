@@ -232,7 +232,8 @@
   "treatments": {
     "type": {
       "deworming": "Dewormer",
-      "antiparasitic": "Parasite control"
+      "antiparasitic": "Parasite control",
+      "medication": "Medication"
     },
     "frequency": {
       "day": "Every day | Every {n} days",
@@ -529,7 +530,8 @@
     "reminder": {
       "vaccination": "Vaccine",
       "deworming": "Dewormer",
-      "antiparasitic": "Parasite control"
+      "antiparasitic": "Parasite control",
+      "medication": "Medication"
     },
     "row": {
       "subtitle": "{type} · {animal}",
@@ -538,7 +540,8 @@
       "spokenType": {
         "vaccination": "vaccine",
         "deworming": "dewormer",
-        "antiparasitic": "parasite control"
+        "antiparasitic": "parasite control",
+        "medication": "medication"
       },
       "due": {
         "overdue": "{n} day overdue | {n} days overdue",

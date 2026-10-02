@@ -80,6 +80,12 @@ describe('parseExportFile', () => {
     expect(result.ok).toBe(true)
   })
 
+  it('accepte le type « médicament »', () => {
+    const result = parseExportFile(forged('treatments', 'type', 'medication'))
+
+    expect(result.ok && result.file.data.treatments[0]?.type).toBe('medication')
+  })
+
   it('refuse un traitement sans aucune prise, que l’app ne sait pas encore afficher', () => {
     const text = withDocument((document) => {
       document.treatmentDoses = rows(document, 'treatmentDoses').slice(1)

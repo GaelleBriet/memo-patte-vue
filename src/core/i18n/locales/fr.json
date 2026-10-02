@@ -232,7 +232,8 @@
   "treatments": {
     "type": {
       "deworming": "Vermifuge",
-      "antiparasitic": "Antiparasitaire"
+      "antiparasitic": "Antiparasitaire",
+      "medication": "Médicament"
     },
     "frequency": {
       "day": "Tous les jours | Tous les {n} jours",
@@ -529,7 +530,8 @@
     "reminder": {
       "vaccination": "Vaccin",
       "deworming": "Vermifuge",
-      "antiparasitic": "Antiparasitaire"
+      "antiparasitic": "Antiparasitaire",
+      "medication": "Médicament"
     },
     "row": {
       "subtitle": "{type} · {animal}",
@@ -538,7 +540,8 @@
       "spokenType": {
         "vaccination": "vaccin",
         "deworming": "vermifuge",
-        "antiparasitic": "antiparasitaire"
+        "antiparasitic": "antiparasitaire",
+        "medication": "médicament"
       },
       "due": {
         "overdue": "en retard de {n} jour | en retard de {n} jours",

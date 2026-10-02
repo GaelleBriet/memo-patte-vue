@@ -21,8 +21,8 @@ const validInput = {
 } as const
 
 describe('listes fermées', () => {
-  it('expose deux types et trois unités', () => {
-    expect(TREATMENT_TYPES).toEqual(['deworming', 'antiparasitic'])
+  it('expose trois types et trois unités', () => {
+    expect(TREATMENT_TYPES).toEqual(['deworming', 'antiparasitic', 'medication'])
     expect(FREQUENCY_UNITS).toEqual(['day', 'week', 'month'])
   })
 })
