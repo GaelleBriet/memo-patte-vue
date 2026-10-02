@@ -143,7 +143,7 @@ export function redate(state: State, doseId: string, givenOn: string): RedatedDo
     const nextDueDate = overtakes
       ? shiftDate(givenOn, plan.period.frequency, 1)
       : keepsSuite
-        ? nextInSequence(stateWithout(state, dose), dose)
+        ? dose.nextDueDate
         : givenNextDueDate(stateOn(state, dose, givenOn), dose, givenOn)
     const fields: DoseFields = { ...dueOf(dose), givenOn, status: 'given', nextDueDate }
     const firstTime = [...plan.period.times].sort(compareText)[0] ?? null

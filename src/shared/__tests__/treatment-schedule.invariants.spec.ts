@@ -365,6 +365,23 @@ class Simulation {
     }
   }
 
+  // TR-24 bis, Q8 : redater une prise donnée un autre jour, qui n'a pas fixé la suite, ne déplace rien.
+  private checkKeptSuite(
+    before: TreatmentSchedule,
+    dose: TreatmentDoseInput,
+    gesture: string,
+  ): void {
+    const frequency = this.book.periods.find(({ id }) => id === dose.periodId)?.frequency
+    if (frequency === undefined || frequency.unit === 'month' || dose.givenOn === null) return
+    const fixedTheSuite = shifted(dose.givenOn, frequency, 1) === dose.nextDueDate
+    if (dose.givenOn === dose.dueOn || fixedTheSuite) return
+    const pending = (schedule: TreatmentSchedule) =>
+      JSON.stringify([schedule.currentDoses.map(idOf), schedule.upcoming(60).map(idOf)])
+    if (pending(this.schedule()) !== pending(before)) {
+      this.fail(`${gesture} : la suite passe de ${pending(before)} à ${pending(this.schedule())}`)
+    }
+  }
+
   // (f) Hors déplacement, la dose qui suit une prise de la dose du moment est à un intervalle : ni avant, ni après.
   private checkGap(
     after: TreatmentSchedule,
@@ -563,6 +580,7 @@ class Simulation {
             : line,
         ),
     }
+    this.checkKeptSuite(before, dose, gesture)
     const suiteMoved = fields.nextDueDate !== dose.nextDueDate || dropped.length > 0
     const key = `${dose.dueOn} ${dose.dueTime ?? ''}`
     this.checkProtected(
