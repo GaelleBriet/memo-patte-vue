@@ -5,6 +5,27 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.54](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.53...memo-patte-v0.1.54) (2026-10-02)
+
+
+### ✨ Fonctionnalités
+
+* **shared:** reconnaître un calendrier trop long par son type ([4f2f5cc](https://github.com/GaelleBriet/memo-patte-vue/commit/4f2f5cc7012b6e015b1d6238974fff8a34a9fd3f))
+
+
+### 🐛 Corrections
+
+* **shared:** changer le rythme le jour d'une dose sans prise garde la dose du jour ([bb75ab8](https://github.com/GaelleBriet/memo-patte-vue/commit/bb75ab89267e223cf14ac98748119333fa536ceb))
+* **shared:** moteur d'échéances — redater sans décaler la suite, dose du jour gardée, prochaine dose prévue ([fff74f7](https://github.com/GaelleBriet/memo-patte-vue/commit/fff74f7cb6fe2a00a3b6cbdc64478fd7bce54ecb))
+* **shared:** noter une dose non renseignée ne fait plus dériver le jour du mois ([f04a33d](https://github.com/GaelleBriet/memo-patte-vue/commit/f04a33d66255a9b812a03b00ce0a9aae080744b3))
+* **shared:** redater une prise d'une période close ou arrêtée depuis ([aa6380e](https://github.com/GaelleBriet/memo-patte-vue/commit/aa6380e209290e1764d2a03ec5a27b1e714ab61a))
+* **shared:** redater une prise qui n'a pas fixé la suite garde sa prochaine échéance écrite ([83cce97](https://github.com/GaelleBriet/memo-patte-vue/commit/83cce979192dd378064956fd4485b8d183e2c964))
+* **shared:** redater une prise qui n'a pas fixé la suite ne la déplace plus ([626f2e0](https://github.com/GaelleBriet/memo-patte-vue/commit/626f2e0fac409793a6436a13a79d32d341e22def))
+* **shared:** sans changer la fréquence ni les heures, la prochaine dose reste celle prévue ([20d8fae](https://github.com/GaelleBriet/memo-patte-vue/commit/20d8fae021c7d02c6c6bf496348132e323e04d22))
+* **shared:** une date de fin ne fait plus sauter la dose suivante d'une prise en retard ([abf8c58](https://github.com/GaelleBriet/memo-patte-vue/commit/abf8c582014dbe623ae3f3ec8b93bfad3d8e48ad))
+* **shared:** une dose notée à son échéance garde le jour de référence du mois ([4f5e36e](https://github.com/GaelleBriet/memo-patte-vue/commit/4f5e36e27b30ce61b7f5969797502222aaaa49f1))
+* **shared:** une journée entamée garde l'ancien calcul quand rien ne change ([71b5221](https://github.com/GaelleBriet/memo-patte-vue/commit/71b522156961e9f2247945dc5728e84834f4d0d8))
+
 ## [0.1.53](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.52...memo-patte-v0.1.53) (2026-10-02)
 
 
