@@ -26,6 +26,7 @@ import {
 import { isCalendarDay } from '@/shared/domain/calendar-day'
 import {
   isAdvanced,
+  ScheduleTooLongError,
   type Due,
   type MoveRefusal,
   type MovedDose,
@@ -222,9 +223,12 @@ function proposalHelp(
 ): NextDoseHelp | null {
   if (!hasNote(schedule)) return proposedOn === today ? { kind: 'today' } : null
   const calculatedOn = calculatedFirstDue(history, rhythm)
-  return calculatedOn !== null && calculatedOn < today && proposedOn === today
-    ? { kind: 'calculated-passed', on: calculatedOn }
-    : { kind: 'calculated', on: proposedOn }
+  if (calculatedOn === null || calculatedOn === proposedOn) {
+    return { kind: 'calculated', on: proposedOn }
+  }
+  if (proposedOn !== today) return null
+  // Q36 : la dose du jour ouvre la période, la date ne vient pas de la dernière prise.
+  return calculatedOn < today ? { kind: 'calculated-passed', on: calculatedOn } : { kind: 'today' }
 }
 
 function resolveOpened(
@@ -235,9 +239,11 @@ function resolveOpened(
   today: string,
   change: 'open' | 'correct',
 ): Resolved {
-  const schedule = treatmentScheduleOf(history, today)
+  // Une période corrigée se recalcule au jour de son ouverture : l'historique d'avant s'arrêtait là.
+  const openedOn = change === 'correct' && period.startsOn < today ? period.startsOn : today
+  const schedule = treatmentScheduleOf(history, openedOn)
   const opened = schedule.newPeriod(rhythm.frequency, sortedTimes(rhythm.times))
-  const { firstDueOn } = opened
+  const firstDueOn = opened.firstDueOn < today ? today : opened.firstDueOn
   const startsOn = change === 'open' ? opened.startsOn : period.startsOn
   return {
     period,
@@ -247,7 +253,7 @@ function resolveOpened(
     nextDose: {
       change: 'first-due',
       proposedOn: firstDueOn,
-      earliest: opened.startsOn,
+      earliest: today,
       latest: rhythm.endsOn,
       refusal: null,
       help: proposalHelp(history, schedule, rhythm, firstDueOn, today),
@@ -651,7 +657,7 @@ export function assertReadable(
 }
 
 function isTooLong(cause: unknown): boolean {
-  return cause instanceof RangeError && cause.message.includes('trop long')
+  return cause instanceof ScheduleTooLongError
 }
 
 const DRAFT_ID = 'draft'

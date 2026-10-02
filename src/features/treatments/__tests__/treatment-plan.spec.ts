@@ -1051,6 +1051,51 @@ describe('editionDraft — aides de « Prochaine dose »', () => {
     })
   })
 
+  it('dit seulement qu’aujourd’hui est proposé quand la dose du jour ouvre la nouvelle période (Q36)', () => {
+    const hebdo = period({
+      startsOn: '2026-09-14',
+      firstDueOn: '2026-09-14',
+      frequency: { value: 1, unit: 'week' },
+    })
+    const history = treatment(
+      [hebdo],
+      [dose({ dueOn: '2026-09-21', givenOn: '2026-09-21', nextDueDate: '2026-09-28' })],
+    )
+
+    expect(
+      editionDraft(
+        history,
+        saisie(history, { frequency: { value: 2, unit: 'week' } }),
+        '2026-09-28',
+      ).nextDose,
+    ).toMatchObject({ proposedOn: '2026-09-28', help: { kind: 'today' } })
+  })
+
+  it('garde « calculée d’après la dernière prise » quand seule la posologie change (Q37)', () => {
+    const history = treatment([period()], [dose()])
+
+    expect(
+      editionDraft(history, saisie(history, { doseQuantity: 0.5 }), '2026-09-28').nextDose,
+    ).toMatchObject({ proposedOn: '2026-10-10', help: { kind: 'calculated', on: '2026-10-10' } })
+  })
+
+  it('propose la dose en retard à aujourd’hui quand seule la posologie change, en disant la date prévue déjà passée (Q37)', () => {
+    const hebdo = period({
+      startsOn: '2026-09-14',
+      firstDueOn: '2026-09-14',
+      frequency: { value: 1, unit: 'week' },
+    })
+    const history = treatment(
+      [hebdo],
+      [dose({ dueOn: '2026-09-14', givenOn: '2026-09-14', nextDueDate: '2026-09-21' })],
+    )
+
+    const { nextDose } = editionDraft(history, saisie(history, { doseQuantity: 0.5 }), '2026-09-30')
+
+    expect(nextDose).toMatchObject({ proposedOn: '2026-09-30' })
+    expect(nextDose?.help).toEqual({ kind: 'calculated-passed', on: '2026-09-21' })
+  })
+
   it('garde l’aide courte quand la date calculée est aujourd’hui ou plus tard', () => {
     const history = treatment([period()], [dose()])
 

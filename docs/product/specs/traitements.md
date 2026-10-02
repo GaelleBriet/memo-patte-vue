@@ -245,7 +245,9 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
   pour le reste de la journée : les prises déjà notées aujourd'hui comptent pour les premières heures
   du nouveau réglage, les heures suivantes restent à donner ; il ne reste aucune dose de l'ancien
   réglage aujourd'hui (spec Q24) ; les prises passées gardent leurs réglages ; les échéances de l'ancien rythme restées sans
-  prise avant aujourd'hui restent à renseigner, comme après un arrêt (TR-30). (P9 Q1 ; spec Q7)
+  prise avant aujourd'hui restent à renseigner, comme après un arrêt (TR-30). Exception au « sans
+  question » : sans prise notée mais avec des échéances déjà tombées, changer la fréquence ou les
+  heures pose la question à l'enregistrement (spec Q38). (P9 Q1 ; spec Q7)
 
   Gardes du moteur d'échéances (#453) :
   - **G1** Seules les prises dont l'échéance est le jour du changement comptent pour les premières
@@ -672,6 +674,41 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
   (28 févr. d'une suite du 31), la nouvelle période repart de ce jour (28 mars, 28 avr.…) ; la lever
   demande un jour de référence porté par la période (#488).
   (Revue du moteur d'échéances du 2026-10-02, M3.)
+- 2026-10-02 — **Q38 : changer la fréquence ou les heures d'une période sans prise qui a déjà des
+  échéances tombées pose la question à l'enregistrement** (TR-28, exception au « sans question » ;
+  TR-9). Tous les 2 jours depuis le 3 oct., aucune prise notée, fréquence passée à 3 jours le 8 : une
+  feuille annonce « 3 doses étaient prévues avant aujourd'hui », « Les 3, 5 et 7 oct., au rythme
+  « tous les 2 jours ». » (une plage au-delà de trois dates). « Elles restent à renseigner » ouvre
+  une nouvelle période à partir d'aujourd'hui : la période en cours n'est pas réécrite, ses
+  échéances tombées restent à renseigner, dose en retard comprise. « Elles n'étaient pas à donner »
+  corrige la période : réglages remplacés, première échéance recalculée, les échéances tombées
+  sortent du carnet. « Annuler » revient au formulaire, rien n'est écrit. Les échéances tombées sont
+  les doses non renseignées de la période en cours et sa dose du moment en retard. Aucune question
+  pour le nom, le type, la posologie ou la date de fin seuls, ni sans échéance tombée, ni quand une
+  prise est notée dans la période (TR-28). Raison : rien ne disparaît ni n'apparaît dans le carnet
+  sans que la personne l'ait choisi. Écartées : corriger en annonçant seulement ; ouvrir toujours une
+  période. (Relecture d'ensemble du 2026-10-02, formulaire #460.)
+- 2026-10-02 — **Q39 : après cette question, sur un traitement jamais noté, aujourd'hui est
+  proposé** (TR-7, Q38). Sans aucune prise dans tout le traitement, il n'y a pas de « dernière
+  prise » d'où calculer : dans les deux choix, « Prochaine dose » propose aujourd'hui, avec l'aide
+  « Aujourd'hui est proposé. Modifiable. ». Raison : le champ dit d'où vient sa date. Écartée : une
+  date sans aide. (Décision déléguée par Gaelle, formulaire #460.)
+- 2026-10-02 — **Q40 : le formulaire refuse une saisie que le moteur ne saura pas relire** (TR-1,
+  TR-28, TR-32). À la création, à la modification et à la reprise, le plan est relu par le moteur
+  d'échéances avant toute écriture ; une première prise trop ancienne pour le rythme (1er janv. 1950,
+  tous les jours, deux heures par jour) est refusée sous « Première prise le » : « Cette date est trop
+  ancienne pour ce rythme. » ; rien n'est écrit. Une fiche déjà illisible (import, synchronisation)
+  le dit : « Ce traitement contient une donnée illisible. Tu peux le supprimer, ou importer un export
+  antérieur. ». Raison : un traitement que l'app ne sait plus afficher est perdu pour la personne.
+  Écartée : accepter la saisie et laisser la fiche en échec. (Relecture d'ensemble du 2026-10-02,
+  D5 et U7.)
+- 2026-10-02 — **Q41 : depuis la feuille « À faire » et une notification, un oubli ne redevient
+  jamais « donné »** (TR-19, TR-20, TR-22). Une dose notée oubliée se corrige par la fiche du
+  traitement, pas par ces deux gestes. La feuille demande l'heure avant de noter quand le traitement
+  en a plusieurs. Une notification ne note que la dose de son jour d'échéance ; sinon, la feuille
+  s'ouvre. Raison : ces gestes rapides ne doivent pas réécrire ce que le carnet dit déjà. Écartée :
+  laisser « Fait aujourd'hui » repasser un oubli en « donné » depuis la feuille. (Relecture
+  d'ensemble du 2026-10-02, fiche #461.)
 
 ## 11. Questions ouvertes
 
