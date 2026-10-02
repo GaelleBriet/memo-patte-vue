@@ -1,6 +1,7 @@
 import type { z } from 'zod'
 
 import {
+  creationPastDues,
   editionDraft,
   treatmentCreationSchemaFor,
   treatmentEditionSchemaFor,
@@ -10,6 +11,7 @@ import {
 import type { TreatmentWithHistory } from '../repository/treatments.repository'
 import {
   treatmentRhythmSchema,
+  type PastDose,
   type PastDuesChoice,
   type TreatmentRhythm,
 } from '../schema/treatment-form.schema'
@@ -18,7 +20,7 @@ import type { FrequencyUnit, TreatmentType } from '../schema/treatment.schema'
 import { isCalendarDay } from '@/shared/domain/calendar-day'
 import { isClockTime, MAX_TIMES_PER_DAY } from '@/shared/domain/clock-time'
 import { formatDoseQuantity, TABLET_SHORTCUTS, type DoseUnit } from '@/shared/domain/dosage'
-import type { MoveRefusal } from '@/shared/domain/treatment-schedule'
+import type { Due, MoveRefusal } from '@/shared/domain/treatment-schedule'
 
 export interface TreatmentFormValues {
   name: string
@@ -250,10 +252,12 @@ function resultOf<D>(result: z.ZodSafeParseResult<D>): FormResult<D> {
     : { success: false, errors: errorsOf(result.error.issues) }
 }
 
+/** `pastDoses` : la réponse de l'encart des doses passées, `null` s'il n'est pas rempli. */
 export function validateTreatmentCreation(
   values: TreatmentFormValues,
   animalId: string,
   today: string,
+  pastDoses: PastDose[] | null = null,
 ): TreatmentCreationResult {
   return resultOf(
     treatmentCreationSchemaFor(today).safeParse({
@@ -262,7 +266,17 @@ export function validateTreatmentCreation(
       type: values.type,
       firstDoseOn: values.firstDoseOn.trim(),
       ...rhythmInput(values),
+      ...(pastDoses === null ? {} : { pastDoses }),
     }),
+  )
+}
+
+/** Échéances passées que l'encart de création annonce (TR-3), d'après la saisie en cours. */
+export function creationPastDuesOf(values: TreatmentFormValues, today: string): Due[] {
+  const { frequency, times, endsOn } = rhythmInput(values)
+  return creationPastDues(
+    { firstDoseOn: values.firstDoseOn.trim(), frequency, times, endsOn },
+    today,
   )
 }
 
@@ -321,4 +335,10 @@ export function validateTreatmentResumption(
       ...rhythmInput(values),
     }),
   )
+}
+
+/** Ce dont dépend une réponse de l'encart : changé, la réponse ne vaut plus (TR-3). */
+export function pastDosesBasis(values: TreatmentFormValues, dues: readonly Due[]): string {
+  const { firstDoseOn, frequencyValue, frequencyUnit, times, endsOn } = values
+  return JSON.stringify([firstDoseOn, frequencyValue, frequencyUnit, times, endsOn, dues.length])
 }

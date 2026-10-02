@@ -2,11 +2,13 @@ import { describe, expect, it } from 'vitest'
 
 import {
   canAddTime,
+  creationPastDuesOf,
   doseQuantityTextFor,
   editionDraftOf,
   emptyTreatmentFormValues,
   isTimeTaken,
   parseDoseQuantity,
+  pastDosesBasis,
   rhythmOfValues,
   tabletShortcuts,
   treatmentFormValuesFrom,
@@ -224,6 +226,48 @@ describe('heures du traitement (TR-5)', () => {
     expect(canAddTime(toutes.slice(1))).toBe(true)
     expect(canAddTime(toutes)).toBe(false)
     expect(withTime(toutes, '00:30')).toEqual(toutes)
+  })
+})
+
+describe('encart des doses passées (TR-3)', () => {
+  const passee = saisie({ firstDoseOn: '2026-09-25', times: [], endsOn: '' })
+
+  it('annonce les échéances passées de la saisie en cours', () => {
+    expect(creationPastDuesOf(passee, TODAY).map(({ dueOn }) => dueOn)).toEqual([
+      '2026-09-25',
+      '2026-09-26',
+      '2026-09-27',
+    ])
+    expect(creationPastDuesOf(saisie(), TODAY)).toEqual([])
+    expect(creationPastDuesOf({ ...passee, frequencyValue: '' }, TODAY)).toEqual([])
+    expect(creationPastDuesOf({ ...passee, endsOn: '2026-09-26' }, TODAY)).toHaveLength(2)
+  })
+
+  it('joint à la création les doses renseignées, seulement quand l’encart est rempli', () => {
+    const answered = validateTreatmentCreation(passee, MILO, TODAY, [
+      { dueOn: '2026-09-25', dueTime: null, status: 'given' },
+    ])
+
+    expect(answered).toMatchObject({
+      success: true,
+      data: { pastDoses: [{ dueOn: '2026-09-25', dueTime: null, status: 'given' }] },
+    })
+    expect(validateTreatmentCreation(passee, MILO, TODAY)).not.toHaveProperty('data.pastDoses')
+  })
+
+  it('une réponse ne vaut que pour la première prise, la fréquence, les heures, la date de fin et les doses annoncées', () => {
+    const dues = creationPastDuesOf(passee, TODAY)
+    const basis = pastDosesBasis(passee, dues)
+
+    expect(
+      pastDosesBasis({ ...passee, name: 'Autre', type: 'medication', doseQuantity: '2' }, dues),
+    ).toBe(basis)
+    expect(pastDosesBasis({ ...passee, firstDoseOn: '2026-09-24' }, dues)).not.toBe(basis)
+    expect(pastDosesBasis({ ...passee, frequencyValue: '2' }, dues)).not.toBe(basis)
+    expect(pastDosesBasis({ ...passee, frequencyUnit: 'week' }, dues)).not.toBe(basis)
+    expect(pastDosesBasis({ ...passee, times: ['08:00'] }, dues)).not.toBe(basis)
+    expect(pastDosesBasis({ ...passee, endsOn: '2026-12-31' }, dues)).not.toBe(basis)
+    expect(pastDosesBasis(passee, dues.slice(1))).not.toBe(basis)
   })
 })
 

@@ -3,13 +3,18 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 
+import TreatmentChooseDays from './TreatmentChooseDays.vue'
 import TreatmentDosageField from './TreatmentDosageField.vue'
 import TreatmentPastDuesSheet from './TreatmentPastDuesSheet.vue'
 import TreatmentTimesField from './TreatmentTimesField.vue'
+import TreatmentUnloggedPrompt from './TreatmentUnloggedPrompt.vue'
+import { chooseDaysSubtitle, type DayChoice } from '../logic/treatment-choose-days'
 import {
+  creationPastDuesOf,
   editionDraftOf,
   emptyTreatmentFormValues,
   nextDoseRefusalKey,
+  pastDosesBasis,
   DUPLICATE_TIME_ERROR_KEY,
   treatmentFormValuesFrom,
   validateTreatmentCreation,
@@ -18,6 +23,13 @@ import {
 } from '../logic/treatment-form'
 import { pastDuesTexts } from '../logic/treatment-past-dues'
 import { resumptionDraft } from '../logic/treatment-plan'
+import {
+  pastDosesOf,
+  pastDosesPrompt,
+  pastDosesResult,
+  promptChoice,
+  type PromptActionId,
+} from '../logic/treatment-unlogged'
 import type { TreatmentWithHistory } from '../repository/treatments.repository'
 import type { PastDuesChoice } from '../schema/treatment-form.schema'
 import { FREQUENCY_UNITS, TREATMENT_TYPES, type FrequencyUnit } from '../schema/treatment.schema'
@@ -66,6 +78,9 @@ const hasDuplicateTime = ref(false)
 /** La réponse vaut pour les échéances annoncées au moment où elle a été donnée. */
 const pastDuesAnswer = ref<{ choice: PastDuesChoice; dues: string } | null>(null)
 const isPastDuesOpen = ref(false)
+/** Réponse de l'encart des doses passées : rien n'est écrit avant « Créer ». */
+const pastDosesAnswer = ref<DayChoice | null>(null)
+const isChooseDaysOpen = ref(false)
 const duplicateTimeError = computed(() =>
   hasDuplicateTime.value ? DUPLICATE_TIME_ERROR_KEY : undefined,
 )
@@ -81,7 +96,12 @@ function requireHistory(): TreatmentWithHistory {
 }
 
 const creation = useFormValidation(values, (current) =>
-  validateTreatmentCreation(current, requireAnimalId(), today.value),
+  validateTreatmentCreation(
+    current,
+    requireAnimalId(),
+    today.value,
+    pastDosesAnswer.value === null ? null : pastDosesOf(pastDosesAnswer.value),
+  ),
 )
 const edition = useFormValidation(values, (current) =>
   validateTreatmentEdition(current, requireHistory(), today.value, pastDuesChoice.value),
@@ -118,6 +138,19 @@ const pastDues = computed(() => {
     : pastDuesTexts(t, current.pastDues, current.period, current.pastDuesNextDose)
 })
 const hasSettings = computed(() => draft.value?.change !== 'locked')
+const pastDoses = computed(() =>
+  mode === 'create'
+    ? pastDosesPrompt(
+        t,
+        creationPastDuesOf(values.value, today.value),
+        today.value,
+        values.value.times.length > 1,
+      )
+    : null,
+)
+const pastDosesAnswered = computed(() =>
+  pastDosesAnswer.value === null ? null : pastDosesResult(t, pastDosesAnswer.value),
+)
 
 const targetAnimalId = computed(() => history.value?.animalId ?? props.animalId ?? null)
 const animalName = computed(
@@ -246,6 +279,13 @@ watch(
 )
 
 watch(
+  () => pastDosesBasis(values.value, pastDoses.value?.dues ?? []),
+  () => {
+    pastDosesAnswer.value = null
+  },
+)
+
+watch(
   () => nextDose.value?.proposedOn,
   (proposedOn) => {
     values.value.nextDoseOn = proposedOn ?? ''
@@ -340,6 +380,17 @@ async function leaveAfterSaving(): Promise<void> {
     reminder,
   }).catch(() => safe)
   await returnToOr(router, target, safe)
+}
+
+function onPastDosesAction(action: PromptActionId): void {
+  if (pastDoses.value === null) return
+  if (action === 'choose-days') isChooseDaysOpen.value = true
+  else pastDosesAnswer.value = promptChoice(action, pastDoses.value.dues)
+}
+
+function answerPastDoses(choice: DayChoice): void {
+  pastDosesAnswer.value = choice
+  isChooseDaysOpen.value = false
 }
 
 function answerPastDues(choice: PastDuesChoice): Promise<void> {
@@ -608,6 +659,27 @@ async function submit(): Promise<void> {
         </template>
       </FormField>
     </template>
+
+    <TreatmentUnloggedPrompt
+      v-if="isReady && pastDoses"
+      class="treatment-form__past-doses"
+      variant="inset"
+      :prompt="pastDoses"
+      :result="pastDosesAnswered"
+      :busy="isSubmitting"
+      @act="onPastDosesAction"
+      @edit="isChooseDaysOpen = true"
+    />
+
+    <TreatmentChooseDays
+      v-if="pastDoses"
+      v-model="isChooseDaysOpen"
+      :subtitle="chooseDaysSubtitle(values.name, animalName, pastDoses.when)"
+      :dues="pastDoses.dues"
+      :when="pastDoses.when"
+      :choice="pastDosesAnswer"
+      @confirm="answerPastDoses"
+    />
 
     <TreatmentPastDuesSheet
       v-if="pastDues"
