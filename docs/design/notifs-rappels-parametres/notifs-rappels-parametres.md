@@ -36,7 +36,7 @@ Maquettes de référence : `MémoPatte v2 - Notifications-selection.png` (P1 à 
 - Plus (payant) : « MémoPatte Plus » / « Plus annuel jusqu'au 14/09/2027 » ou « Plus à vie »
 - Compte : e-mail / « Se déconnecter » / « Supprimer mon compte »
 - Données : « Exporter mes données » / « Rien à exporter pour l'instant » / « Importer un export MémoPatte » / « Export PDF »
-- Confidentialité : « Politique de confidentialité » / « Statistiques d'usage anonymes » / « Gérer mon abonnement » / « Google Play »
+- Confidentialité : « Politique de confidentialité » / « Statistiques d'usage » / « Gérer mon abonnement » / « Google Play »
 - À propos : « Version » / « 2.4.0 »
 - Export : « Exporter tes données » / « Choisis un format. » / « JSON » « Pour réimporter dans MémoPatte » / « CSV » « Pour un tableur » / « Exporter » → « Préparation… » → « Partager via »
 - Import : « Importer un export » / « Des données existent déjà sur cet appareil. » / « Fusionner » « Ajoute ce qui manque, garde tes données actuelles. » / « Remplacer » « Remplace toutes tes données actuelles. » / « Continuer »
