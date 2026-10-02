@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { useId } from 'vue'
+import { computed, useId } from 'vue'
 import { useI18n } from 'vue-i18n'
 
-defineProps<{
+const props = defineProps<{
   label: string
   /** Identifiant du contrôle : rend un `<label for>`. */
   controlId?: string
@@ -10,10 +10,19 @@ defineProps<{
   labelId?: string
   required?: boolean
   error?: string | null
+  help?: string | null
 }>()
 
 const { t } = useI18n()
 const errorId = useId()
+const helpId = useId()
+
+const describedby = computed(
+  () =>
+    [props.help ? helpId : null, props.error ? errorId : null]
+      .filter((id) => id !== null)
+      .join(' ') || undefined,
+)
 </script>
 
 <template>
@@ -30,7 +39,8 @@ const errorId = useId()
       </span>
       <span v-else class="form-field__optional">{{ t('form.optional') }}</span>
     </component>
-    <slot :describedby="error ? errorId : undefined" :invalid="Boolean(error)" />
+    <slot :describedby="describedby" :invalid="Boolean(error)" />
+    <p v-if="help" :id="helpId" class="form-field__help">{{ help }}</p>
     <p v-if="error" :id="errorId" class="form-field__error">
       <v-icon icon="ms:error_fill" size="16" />
       <span>{{ error }}</span>
@@ -120,6 +130,14 @@ const errorId = useId()
 .form-field :deep(.form-field__input--number input::-webkit-inner-spin-button) {
   appearance: none;
   margin: 0;
+}
+
+.form-field__help {
+  margin-top: 6px;
+  color: tokens.$color-text-secondary;
+  font-size: 12.5px;
+  line-height: 1.4;
+  text-wrap: pretty;
 }
 
 .form-field__error {

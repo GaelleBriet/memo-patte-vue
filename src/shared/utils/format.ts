@@ -86,6 +86,11 @@ export function formatDayMonthOrYear(isoDate: string, today: string): string {
     : formatLongDate(isoDate)
 }
 
+/** `10 oct` en fin de phrase : le point de l'abréviation sert de point final. */
+export function withoutFinalDot(text: string): string {
+  return text.endsWith('.') ? text.slice(0, -1) : text
+}
+
 /** `25 août`, `Dec 20, 2025` d'un seul tenant : aucun retour à la ligne à l'intérieur. */
 export function nonBreaking(text: string): string {
   return text.replaceAll(' ', '\u00a0')
