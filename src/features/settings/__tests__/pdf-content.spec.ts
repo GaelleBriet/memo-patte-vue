@@ -120,6 +120,12 @@ describe('buildCarnetPdfContent', () => {
     expect(content.weightEntries).toHaveLength(2)
   })
 
+  it('laisse hors du PDF un traitement sans prise donnée, comme un vaccin sans injection', () => {
+    const data = { ...DATA, treatmentDoses: [] }
+
+    expect(buildCarnetPdfContent(data, ANIMAL_ID, TODAY)?.treatments).toEqual([])
+  })
+
   it('classe chaque échéance en retard, à jour ou sans rappel', () => {
     const content = buildCarnetPdfContent(DATA, ANIMAL_ID, TODAY)!
 

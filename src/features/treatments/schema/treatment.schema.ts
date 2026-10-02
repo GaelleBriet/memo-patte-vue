@@ -2,8 +2,9 @@ import { isFuture, parseISO } from 'date-fns'
 import { z } from 'zod'
 
 import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
+import { MAX_FREQUENCY_VALUE } from '@/shared/domain/treatment-frequency'
 
-export const TREATMENT_TYPES = ['deworming', 'antiparasitic'] as const
+export const TREATMENT_TYPES = ['deworming', 'antiparasitic', 'medication'] as const
 export const FREQUENCY_UNITS = ['day', 'week', 'month'] as const
 
 export const treatmentTypeSchema = z.enum(TREATMENT_TYPES)
@@ -11,9 +12,6 @@ export type TreatmentType = z.output<typeof treatmentTypeSchema>
 
 export const frequencyUnitSchema = z.enum(FREQUENCY_UNITS)
 export type FrequencyUnit = z.output<typeof frequencyUnitSchema>
-
-/** Au-delà, la saisie n'a plus de sens pour un carnet, et le calcul des échéances déraille. */
-export const MAX_FREQUENCY_VALUE = 365
 
 export const treatmentFrequencySchema = z.object({
   value: z.number().int().positive().max(MAX_FREQUENCY_VALUE),
@@ -48,10 +46,14 @@ export function treatmentEditSchemaAfter(lastDoseDate: string) {
   })
 }
 
-/** Le traitement et sa période en cours, avec la dernière prise et la prochaine dose qu'elle fixe. */
+/**
+ * Le traitement et sa période en cours, avec la dernière prise et la prochaine dose qu'elle fixe ;
+ * sans prise, la prochaine dose est la première échéance de la période.
+ */
 export const treatmentSchema = treatmentInputSchema.extend({
   id: z.uuid(),
   periodId: z.uuid(),
+  lastDoseDate: z.iso.date().nullable(),
   nextDueDate: z.iso.date(),
   /** `null` tant que la période en cours n'est pas arrêtée. */
   stoppedOn: z.iso.date().nullable(),

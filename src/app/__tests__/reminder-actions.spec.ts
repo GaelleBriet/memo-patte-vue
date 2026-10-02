@@ -161,6 +161,15 @@ describe('« C’est fait » d’un vermifuge ou d’un antiparasitaire', () => 
     expect(record).toHaveBeenCalledExactlyOnceWith(BRAVECTO.id, TODAY)
   })
 
+  it('note la première prise d’un traitement sans prise, sans le dire « déjà noté »', async () => {
+    treatment = { ...BRAVECTO, lastDoseDate: null }
+
+    await handler()(done(`treatment:${BRAVECTO.id}:${TODAY}:overdue`))
+
+    expect(record).toHaveBeenCalledExactlyOnceWith(BRAVECTO.id, TODAY)
+    expect(toastMessage.value).toBe('Prise de Bravecto notée pour Boree')
+  })
+
   it('ne note qu’une prise quand la même notification est traitée deux fois', async () => {
     const act = handler()
 

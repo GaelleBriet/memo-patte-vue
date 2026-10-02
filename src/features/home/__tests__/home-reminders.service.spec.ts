@@ -71,6 +71,14 @@ describe('homeRemindersService', () => {
     expect(sources).toEqual([expect.objectContaining({ id: 'v2', dueDate: null })])
   })
 
+  it('annonce un traitement sans prise à sa première échéance', async () => {
+    const sansPrise = { ...BRAVECTO, lastDoseDate: null, nextDueDate: '2026-10-05' }
+
+    const sources = await service([], [sansPrise]).listSources()
+
+    expect(sources).toEqual([expect.objectContaining({ id: 't1', dueDate: '2026-10-05' })])
+  })
+
   it('écarte un traitement arrêté : ni dans « À faire » ni en prochain rappel', async () => {
     const sources = await service([], [{ ...BRAVECTO, stoppedOn: '2026-09-20' }]).listSources()
 

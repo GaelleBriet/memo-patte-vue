@@ -201,6 +201,32 @@ describe('data-import.service', () => {
     await expect(service.hasLocalData()).resolves.toBe(true)
   })
 
+  it('importe un médicament sans prise : visible, prochaine dose à sa première échéance', async () => {
+    const { service } = setup()
+    const [milbemax] = IMPORT_FIXTURE.treatments
+    const data: ExportData = {
+      ...IMPORT_FIXTURE,
+      treatments: IMPORT_FIXTURE.treatments.map((treatment) =>
+        treatment.id === milbemax!.id ? { ...treatment, type: 'medication' } : treatment,
+      ),
+      treatmentPeriods: IMPORT_FIXTURE.treatmentPeriods.map((period) =>
+        period.treatmentId === milbemax!.id ? { ...period, firstDueOn: '2026-10-05' } : period,
+      ),
+      treatmentDoses: IMPORT_FIXTURE.treatmentDoses.filter(
+        ({ treatmentId }) => treatmentId !== milbemax!.id,
+      ),
+    }
+
+    await service.importData({ schemaVersion: 3, data }, 'replace')
+
+    await expect(repositories.treatments.getById(milbemax!.id)).resolves.toMatchObject({
+      type: 'medication',
+      lastDoseDate: null,
+      nextDueDate: '2026-10-05',
+    })
+    await expect(carnet()).resolves.toEqual(withoutPhotos(data))
+  })
+
   it('importe un export dans une base vide : réglages, périodes, prises oubliées et reports à l’identique', async () => {
     const { service } = setup()
 

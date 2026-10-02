@@ -9,7 +9,11 @@ import {
   type RestoredTreatmentPeriod,
   type TreatmentPeriodsRepository,
 } from '../repository/treatment-periods.repository'
-import type { TreatmentPeriod } from '../schema/treatment-period.schema'
+import type {
+  TreatmentPeriod,
+  TreatmentPeriodRecord,
+  TreatmentPeriodSettings,
+} from '../schema/treatment-period.schema'
 
 vi.mock('@/core/db/sqlite', () => ({ getDb: vi.fn<() => Promise<DbClient>>() }))
 
@@ -233,6 +237,80 @@ describe('treatmentPeriodsRepository', () => {
       ])
 
       await expect(row(REPRISE)).resolves.toMatchObject({ stopped_on: null, updated_at: NOW })
+    })
+  })
+
+  describe('période complète', () => {
+    const REGLAGES: TreatmentPeriodSettings = {
+      startsOn: '2026-02-10',
+      firstDueOn: '2026-02-11',
+      endsOn: '2026-03-10',
+      frequency: { value: 1, unit: 'day' },
+      times: ['08:00', '20:00'],
+      doseQuantity: 0.5,
+      doseUnit: 'tablet',
+      reminderOffsetMinutes: 30,
+      reminderTime: null,
+    }
+    const COMPLETE: TreatmentPeriodRecord = {
+      ...period({ id: REPRISE, createdAt: EARLIER, updatedAt: EARLIER }),
+      ...REGLAGES,
+    }
+
+    it('insère une période avec tous ses réglages et la relit à l’identique', async () => {
+      await db.runMany([periods.insertStatement(COMPLETE)])
+
+      await expect(periods.listByTreatment(MILBEMAX)).resolves.toEqual([
+        expect.objectContaining({ id: MILBEMAX }),
+        COMPLETE,
+      ])
+    })
+
+    it('corrige tous les réglages de la période en cours, sans toucher à son arrêt ni aux autres périodes', async () => {
+      await db.runMany([
+        periods.insertStatement(
+          period({ id: REPRISE, startsOn: '2026-02-01', stoppedOn: '2026-02-20' }),
+        ),
+      ])
+
+      await db.runMany([periods.correctCurrentSettingsStatement(MILBEMAX, REGLAGES, NOW)])
+
+      const [first, current] = await periods.listByTreatment(MILBEMAX)
+      expect(current).toEqual({
+        ...period({ id: REPRISE, stoppedOn: '2026-02-20', updatedAt: NOW }),
+        ...REGLAGES,
+      })
+      expect(first).toMatchObject({
+        id: MILBEMAX,
+        frequency: { value: 3, unit: 'month' },
+        updatedAt: T0,
+      })
+      await expect(row(BRAVECTO)).resolves.toMatchObject({ updated_at: T0 })
+    })
+
+    it('efface la fin, les heures, la posologie et le moment du rappel', async () => {
+      await db.runMany([periods.insertStatement(COMPLETE)])
+      const sans: TreatmentPeriodSettings = {
+        ...REGLAGES,
+        endsOn: null,
+        times: [],
+        doseQuantity: null,
+        doseUnit: null,
+        reminderOffsetMinutes: null,
+      }
+
+      await db.runMany([periods.correctCurrentSettingsStatement(MILBEMAX, sans, NOW)])
+
+      const [, current] = await periods.listByTreatment(MILBEMAX)
+      expect(current).toEqual({ ...COMPLETE, ...sans, updatedAt: NOW })
+    })
+
+    it('ne date pas une période dont aucun réglage ne change', async () => {
+      await db.runMany([periods.insertStatement(COMPLETE)])
+
+      await db.runMany([periods.correctCurrentSettingsStatement(MILBEMAX, REGLAGES, NOW)])
+
+      await expect(row(REPRISE)).resolves.toMatchObject({ updated_at: EARLIER })
     })
   })
 

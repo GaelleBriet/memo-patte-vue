@@ -111,6 +111,16 @@ describe('reminderType et reminderIcon', () => {
     expect(reminderType(t, antiparasitic)).toBe('Antiparasitaire')
     expect(reminderIcon(antiparasitic)).toBe('ms:pest_control')
   })
+
+  it('donne le type et l’icône d’un médicament', () => {
+    const medication = {
+      ...reminder({ kind: 'treatment', label: 'Métacam' }),
+      treatmentType: 'medication' as const,
+    }
+
+    expect(reminderType(t, medication)).toBe('Médicament')
+    expect(reminderIcon(medication)).toBe('ms:medication')
+  })
 })
 
 describe('upToDateText', () => {

@@ -6,7 +6,11 @@ import { guardedUpsert, type SyncRow } from '@/core/supabase/guarded-upsert'
 import { loadSupabaseClient } from '@/core/supabase/load-client'
 import { syncField, type SyncPullPage } from '@/core/sync/service/syncable-table'
 import type { TreatmentFrequency } from '../schema/treatment.schema'
-import type { TreatmentPeriod, TreatmentPeriodRecord } from '../schema/treatment-period.schema'
+import type {
+  TreatmentPeriod,
+  TreatmentPeriodRecord,
+  TreatmentPeriodSettings,
+} from '../schema/treatment-period.schema'
 
 export type RestoredTreatmentPeriod = Omit<TreatmentPeriodRecord, 'deletedAt'>
 export type TreatmentPeriodVersion = Pick<
@@ -63,6 +67,23 @@ export interface TreatmentPeriodsRepositoryDependencies {
 
 const TIMES_SEPARATOR = ','
 
+const SETTINGS_COLUMNS = [
+  'starts_on',
+  'first_due_on',
+  'ends_on',
+  'frequency_value',
+  'frequency_unit',
+  'times',
+  'dose_quantity',
+  'dose_unit',
+  'reminder_offset_minutes',
+  'reminder_time',
+]
+
+function timesColumn(times: readonly string[]): string | null {
+  return times.length > 0 ? times.join(TIMES_SEPARATOR) : null
+}
+
 function toPeriodRecord(row: PeriodRow): TreatmentPeriodRecord {
   return {
     id: row.id,
@@ -106,27 +127,71 @@ export function createTreatmentPeriodsRepository(
     loadSupabaseClient: loadClient = loadSupabaseClient,
   }: TreatmentPeriodsRepositoryDependencies = {},
 ) {
+  async function listVisible(scope = '', params: string[] = []): Promise<TreatmentPeriodRecord[]> {
+    const rows = await db.query<PeriodRow>(
+      `SELECT ${SYNC_COLUMNS} FROM treatment_period WHERE ${NOT_DELETED} ${scope}
+       ORDER BY treatment_id, starts_on, created_at, id`,
+      params,
+    )
+    return rows.map(toPeriodRecord)
+  }
+
   return {
     entity: 'treatment_period',
 
-    insertStatement(period: TreatmentPeriod): SqlStatement {
+    /** Fin, heures, posologie et moment du rappel absents : la période n'en a pas. */
+    insertStatement(
+      period: TreatmentPeriod & Partial<TreatmentPeriodSettings> & { deletedAt: string | null },
+    ): SqlStatement {
       return {
-        sql: `INSERT INTO treatment_period (id, treatment_id, animal_id, starts_on, first_due_on,
-                stopped_on, frequency_value, frequency_unit, created_at, updated_at, deleted_at)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        sql: `INSERT INTO treatment_period (${SYNC_COLUMNS})
+              VALUES (${SYNC_COLUMN_NAMES.map(() => '?').join(', ')})`,
         params: [
           period.id,
           period.treatmentId,
           period.animalId,
           period.startsOn,
           period.firstDueOn,
+          period.endsOn ?? null,
           period.stoppedOn,
           period.frequency.value,
           period.frequency.unit,
+          timesColumn(period.times ?? []),
+          period.doseQuantity ?? null,
+          period.doseUnit ?? null,
+          period.reminderOffsetMinutes ?? null,
+          period.reminderTime ?? null,
           period.createdAt,
           period.updatedAt,
           period.deletedAt,
         ],
+      }
+    },
+
+    /** Tous les réglages de la période en cours, sauf son arrêt ; rien n'est daté si rien ne change. */
+    correctCurrentSettingsStatement(
+      treatmentId: string,
+      settings: TreatmentPeriodSettings,
+      updatedAt: string,
+    ): SqlStatement {
+      const values = [
+        settings.startsOn,
+        settings.firstDueOn,
+        settings.endsOn,
+        settings.frequency.value,
+        settings.frequency.unit,
+        timesColumn(settings.times),
+        settings.doseQuantity,
+        settings.doseUnit,
+        settings.reminderOffsetMinutes,
+        settings.reminderTime,
+      ]
+      return {
+        sql: `UPDATE treatment_period
+              SET ${SETTINGS_COLUMNS.map((column) => `${column} = ?`).join(', ')}, updated_at = ?
+              WHERE id = ${currentPeriodIdSql('?')}
+                AND (${SETTINGS_COLUMNS.map((column) => `${column} IS NOT ?`).join(' OR ')})`,
+        params: [...values, updatedAt, treatmentId, ...values],
       }
     },
 
@@ -157,6 +222,19 @@ export function createTreatmentPeriodsRepository(
           frequency.value,
           frequency.unit,
         ],
+      }
+    },
+
+    /** La période en cours ne commence jamais après sa première échéance. */
+    correctCurrentFirstDueStatement(
+      treatmentId: string,
+      { firstDueOn, updatedAt }: { firstDueOn: string; updatedAt: string },
+    ): SqlStatement {
+      return {
+        sql: `UPDATE treatment_period
+              SET first_due_on = ?, starts_on = MIN(starts_on, ?), updated_at = ?
+              WHERE id = ${currentPeriodIdSql('?')} AND first_due_on <> ?`,
+        params: [firstDueOn, firstDueOn, updatedAt, treatmentId, firstDueOn],
       }
     },
 
@@ -202,12 +280,16 @@ export function createTreatmentPeriodsRepository(
     },
 
     /** Périodes visibles, toutes colonnes comprises, celles d'un même traitement de la première à la dernière. */
-    async listAll(): Promise<TreatmentPeriodRecord[]> {
-      const rows = await db.query<PeriodRow>(
-        `SELECT ${SYNC_COLUMNS} FROM treatment_period WHERE ${NOT_DELETED}
-         ORDER BY treatment_id, starts_on, created_at, id`,
-      )
-      return rows.map(toPeriodRecord)
+    listAll(): Promise<TreatmentPeriodRecord[]> {
+      return listVisible()
+    },
+
+    listByTreatment(treatmentId: string): Promise<TreatmentPeriodRecord[]> {
+      return listVisible('AND treatment_id = ?', [treatmentId])
+    },
+
+    listByAnimal(animalId: string): Promise<TreatmentPeriodRecord[]> {
+      return listVisible('AND animal_id = ?', [animalId])
     },
 
     /** Lignes supprimées comprises : l'import compare les versions avant d'écrire. */
@@ -233,7 +315,7 @@ export function createTreatmentPeriodsRepository(
         period.stoppedOn,
         period.frequency.value,
         period.frequency.unit,
-        period.times.length > 0 ? period.times.join(TIMES_SEPARATOR) : null,
+        timesColumn(period.times),
         period.doseQuantity,
         period.doseUnit,
         period.reminderOffsetMinutes,

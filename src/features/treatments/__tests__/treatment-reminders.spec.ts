@@ -245,6 +245,13 @@ describe('isDoseNoted', () => {
     expect(isDoseNoted(daily, '2026-09-25')).toBe(false)
   })
 
+  it('ne tient aucune échéance pour notée tant que le traitement n’a pas de prise', () => {
+    const sansPrise = { ...plan, lastDoseDate: null, nextDueDate: '2026-08-25' }
+
+    expect(isDoseNoted(sansPrise, '2026-08-25')).toBe(false)
+    expect(isDoseNoted(sansPrise, '2026-08-27')).toBe(false)
+  })
+
   it('ne tient pas pour notée une échéance reportée sans prise', () => {
     expect(isDoseNoted({ ...plan, nextDueDate: '2026-10-05' }, '2026-09-25')).toBe(false)
   })

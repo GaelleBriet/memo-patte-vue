@@ -6,7 +6,10 @@ import type { Treatment, TreatmentEditInput, TreatmentInput } from '../schema/tr
 import type { TreatmentDosesService } from '../service/treatment-doses.service'
 import type { TreatmentRemindersService } from '../service/treatment-reminders.service'
 import type { TreatmentStopService } from '../service/treatment-stop.service'
-import type { TreatmentsRepository } from '../repository/treatments.repository'
+import type {
+  TreatmentsRepository,
+  TreatmentWithHistory,
+} from '../repository/treatments.repository'
 import {
   provideTreatmentDosesService,
   provideTreatmentRemindersService,
@@ -544,6 +547,44 @@ describe('useTreatmentsStore — gestes d’un rappel', () => {
   })
 })
 
+describe('useTreatmentsStore — traitement avec ses périodes et ses prises', () => {
+  const METACAM: TreatmentWithHistory = {
+    id: 't1',
+    animalId: LUNA,
+    name: 'Métacam',
+    type: 'medication',
+    createdAt: '2026-09-09T09:00:00.000Z',
+    updatedAt: '2026-09-09T09:00:00.000Z',
+    periods: [],
+    doses: [],
+  }
+
+  it('lit un traitement tel que le repository le rend, sans toucher à la liste affichée', async () => {
+    repository.getWithHistory.mockResolvedValue(METACAM)
+    const store = useTreatmentsStore()
+
+    await expect(store.getWithHistory('t1')).resolves.toBe(METACAM)
+    expect(repository.getWithHistory).toHaveBeenCalledExactlyOnceWith('t1')
+    expect(store.treatments).toEqual([])
+    expect(store.isLoading).toBe(false)
+  })
+
+  it('lit les traitements d’un animal', async () => {
+    repository.listWithHistoryByAnimal.mockResolvedValue([METACAM])
+    const store = useTreatmentsStore()
+
+    await expect(store.listWithHistoryByAnimal(LUNA)).resolves.toEqual([METACAM])
+    expect(repository.listWithHistoryByAnimal).toHaveBeenCalledExactlyOnceWith(LUNA)
+    expect(store.animalId).toBeNull()
+  })
+
+  it('laisse remonter l’échec de la lecture', async () => {
+    repository.getWithHistory.mockRejectedValue(new Error('base verrouillée'))
+
+    await expect(useTreatmentsStore().getWithHistory('t1')).rejects.toThrow('base verrouillée')
+  })
+})
+
 interface FakeTreatmentsRepository {
   seed(input: TreatmentInput): Treatment
   getById: Mock<TreatmentsRepository['getById']>
@@ -554,6 +595,8 @@ interface FakeTreatmentsRepository {
   resume: Mock<TreatmentsRepository['resume']>
   listDoses: Mock<TreatmentsRepository['listDoses']>
   countDosesByAnimal: Mock<TreatmentsRepository['countDosesByAnimal']>
+  getWithHistory: Mock<TreatmentsRepository['getWithHistory']>
+  listWithHistoryByAnimal: Mock<TreatmentsRepository['listWithHistoryByAnimal']>
 }
 
 // Même contrat que `treatments.repository.ts`, sans SQLite. `update` remplace l'objet : la liste du store ne bouge que si elle est relue.
@@ -624,5 +667,7 @@ function createFakeRepository(): FakeTreatmentsRepository {
     }),
     listDoses: vi.fn<TreatmentsRepository['listDoses']>(async () => []),
     countDosesByAnimal: vi.fn<TreatmentsRepository['countDosesByAnimal']>(async () => ({})),
+    getWithHistory: vi.fn<TreatmentsRepository['getWithHistory']>(async () => null),
+    listWithHistoryByAnimal: vi.fn<TreatmentsRepository['listWithHistoryByAnimal']>(async () => []),
   }
 }

@@ -19,7 +19,10 @@ import {
 import type { Treatment, TreatmentEditInput, TreatmentInput } from '../schema/treatment.schema'
 import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import type { DoseDates } from '../repository/treatment-doses.repository'
-import type { TreatmentsRepository as FullTreatmentsRepository } from '../repository/treatments.repository'
+import type {
+  TreatmentsRepository as FullTreatmentsRepository,
+  TreatmentWithHistory,
+} from '../repository/treatments.repository'
 import { track } from '@/core/analytics'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import { recordUsageSignal } from '@/shared/utils/usage-signals'
@@ -35,6 +38,8 @@ type TreatmentsRepository = Pick<
   | 'resume'
   | 'listDoses'
   | 'countDosesByAnimal'
+  | 'getWithHistory'
+  | 'listWithHistoryByAnimal'
 >
 
 export type TreatmentsRepositoryProvider = () =>
@@ -158,6 +163,15 @@ export const useTreatmentsStore = defineStore('treatments', () => {
 
     async getById(id: string): Promise<Treatment | null> {
       return (await requireRepository()).getById(id)
+    },
+
+    /** Le traitement, toutes ses périodes et ses prises : l'entrée de `treatmentScheduleOf`. */
+    async getWithHistory(id: string): Promise<TreatmentWithHistory | null> {
+      return (await requireRepository()).getWithHistory(id)
+    },
+
+    async listWithHistoryByAnimal(id: string): Promise<TreatmentWithHistory[]> {
+      return (await requireRepository()).listWithHistoryByAnimal(id)
     },
 
     /** Prises visibles, la tête d'abord ; la liste affichée ne change pas. */

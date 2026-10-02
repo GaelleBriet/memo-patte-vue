@@ -1,6 +1,7 @@
 import { differenceInCalendarDays } from 'date-fns'
 
 import { isCalendarDay } from './calendar-day'
+import { isClockTime } from './clock-time'
 import { MAX_FREQUENCY_VALUE } from './treatment-frequency'
 import { DAYS_PER_STEP, compareText, previousDay, toDate } from './treatment-schedule-dues'
 import { closingDay, orderPeriods } from './treatment-schedule-plan'
@@ -18,10 +19,6 @@ export const MAX_DUES = 50_000
 
 export function invalid(detail: string): RangeError {
   return new RangeError(`Calendrier de traitement invalide : ${detail}`)
-}
-
-export function isClockTime(time: unknown): time is string {
-  return typeof time === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(time)
 }
 
 export function checkDay(day: unknown, label: string): void {

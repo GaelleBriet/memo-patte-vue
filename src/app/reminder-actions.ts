@@ -101,7 +101,8 @@ export function createReminderActions({
     const treatment = await (await treatments()).getById(id)
     if (treatment === null || !isOngoing(treatment)) return openHome()
     const sheet: ReminderRequest = { kind: 'treatment', id, step: 'actions' }
-    if (isDoseNoted(treatment, dueDate)) {
+    const { lastDoseDate } = treatment
+    if (lastDoseDate !== null && isDoseNoted(treatment, dueDate)) {
       const texts: AlreadyNotedTexts = {
         today: (named) => t('notifications.action.alreadyDoseToday', named),
         on: (named) => t('notifications.action.alreadyDose', named),
@@ -109,7 +110,7 @@ export function createReminderActions({
       return alreadyNoted(texts, {
         animalId: treatment.animalId,
         name: treatment.name,
-        doneOn: treatment.lastDoseDate,
+        doneOn: lastDoseDate,
       })
     }
     if (!isTreatmentDueDate(treatment, dueDate)) return openHome(sheet)

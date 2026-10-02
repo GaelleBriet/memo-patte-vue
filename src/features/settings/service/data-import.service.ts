@@ -54,7 +54,9 @@ import {
   type CarnetSettingsRepository,
 } from '../repository/carnet-settings.repository'
 import { carnetSettingsSchema } from '../schema/carnet-settings.schema'
+import { isCalendarDay, MAX_CALENDAR_YEAR, MIN_CALENDAR_YEAR } from '@/shared/domain/calendar-day'
 import type { ExportAnimal } from '@/shared/domain/carnet-data'
+import { CLOCK_TIME_PATTERN } from '@/shared/domain/clock-time'
 import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
 import {
   buildImportPlan,
@@ -82,29 +84,17 @@ export type ParsedExportFile =
   { ok: true; file: ImportFile } | { ok: false; reason: ImportFileError }
 
 export const MAX_IMPORT_FILE_BYTES = 10 * 1024 * 1024
-export const MIN_IMPORT_YEAR = 1900
-export const MAX_IMPORT_YEAR = 2199
 const MAX_TEXT_LENGTH = 200
 const MAX_TIMES_PER_DAY = 24
 
-const DAY = /^(\d{4})-(\d{2})-(\d{2})$/
-
 function isYearInRange(value: string): boolean {
   const year = Number(value.slice(0, 4))
-  return year >= MIN_IMPORT_YEAR && year <= MAX_IMPORT_YEAR
-}
-
-function isCalendarDay(value: string): boolean {
-  const match = DAY.exec(value)
-  if (!match || !isYearInRange(value)) return false
-  const [year, month, dayOfMonth] = [Number(match[1]), Number(match[2]), Number(match[3])]
-  const date = new Date(Date.UTC(year, month - 1, dayOfMonth))
-  return date.getUTCMonth() === month - 1 && date.getUTCDate() === dayOfMonth
+  return year >= MIN_CALENDAR_YEAR && year <= MAX_CALENDAR_YEAR
 }
 
 const day = z.string().refine(isCalendarDay)
 const pastDay = day.refine((value) => !isFuture(parseISO(value)))
-const clockTime = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/)
+const clockTime = z.string().regex(CLOCK_TIME_PATTERN)
 // La synchronisation compare les instants comme des chaînes : un seul format entre en base.
 const instant = z.iso
   .datetime()
@@ -249,8 +239,7 @@ const exportFileSchema = z
   })
   .refine((file) => {
     const withPeriod = new Set(file.treatmentPeriods.map(({ treatmentId }) => treatmentId))
-    const withDose = new Set(file.treatmentDoses.map(({ treatmentId }) => treatmentId))
-    return file.treatments.every(({ id }) => withPeriod.has(id) && withDose.has(id))
+    return file.treatments.every(({ id }) => withPeriod.has(id))
   })
 
 const versionSchema = z.object({ schemaVersion: z.number().int().positive() })

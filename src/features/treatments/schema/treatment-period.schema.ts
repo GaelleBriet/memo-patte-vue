@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 import { treatmentFrequencySchema } from './treatment.schema'
+import { DOSE_UNITS, type DoseUnit } from '@/shared/domain/dosage'
 
 export const treatmentPeriodSchema = z.object({
   id: z.uuid(),
@@ -18,22 +19,7 @@ export const treatmentPeriodSchema = z.object({
 
 export type TreatmentPeriod = z.output<typeof treatmentPeriodSchema>
 
-export const DOSE_UNITS = [
-  'tablet',
-  'capsule',
-  'pipette',
-  'collar',
-  'ml',
-  'drop',
-  'g',
-  'sachet',
-  'spray',
-  'application',
-  'dose',
-] as const
-
 export const doseUnitSchema = z.enum(DOSE_UNITS)
-export type DoseUnit = z.output<typeof doseUnitSchema>
 
 export const REMINDER_OFFSETS_MINUTES = [0, 15, 30, 60] as const
 export type ReminderOffsetMinutes = (typeof REMINDER_OFFSETS_MINUTES)[number]
@@ -48,3 +34,17 @@ export type TreatmentPeriodRecord = TreatmentPeriod & {
   reminderOffsetMinutes: ReminderOffsetMinutes | null
   reminderTime: string | null
 }
+
+/** Ce qu'un formulaire règle dans une période. */
+export type TreatmentPeriodSettings = Pick<
+  TreatmentPeriodRecord,
+  | 'startsOn'
+  | 'firstDueOn'
+  | 'endsOn'
+  | 'frequency'
+  | 'times'
+  | 'doseQuantity'
+  | 'doseUnit'
+  | 'reminderOffsetMinutes'
+  | 'reminderTime'
+>

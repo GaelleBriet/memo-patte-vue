@@ -28,12 +28,17 @@ export function formatWeightAxis(value: number): string {
   }).format(roundToDecimal(value))
 }
 
-/** Poids à corriger dans un champ : `24,55` tel que proposé, sans l'arrondi de l'affichage. */
-export function formatWeightInput(value: number): string {
+/** Un nombre tel que saisi, au séparateur de la langue : `0,3`, `0.3`. */
+export function formatQuantity(value: number): string {
   return new Intl.NumberFormat(currentLocale(), {
     maximumFractionDigits: 20,
     useGrouping: false,
   }).format(value)
+}
+
+/** Poids à corriger dans un champ : `24,55` tel que proposé, sans l'arrondi de l'affichage. */
+export function formatWeightInput(value: number): string {
+  return formatQuantity(value)
 }
 
 /** `+0,5`, `−0,3`, ou `±0,0` quand rien ne bouge à la décimale près. */
@@ -107,4 +112,25 @@ export function formatFullDate(isoDate: string): string {
 /** `08/11/2026` / `11/08/2026`. */
 export function formatNumericDate(isoDate: string): string {
   return format(parseISO(isoDate), 'P', { locale: DATE_LOCALES[currentLocale()] })
+}
+
+const NBSP = '\u00a0'
+
+/** Heure `HH:mm` : `8 h`, `8 h 30` / `8 am`, `8:30 pm`, espaces insécables. */
+export function formatClockTime(time: string): string {
+  const hours = Number(time.slice(0, 2))
+  const minutes = time.slice(3, 5)
+  if (currentLocale() === 'fr') {
+    return minutes === '00' ? `${hours}${NBSP}h` : `${hours}${NBSP}h${NBSP}${minutes}`
+  }
+  const clock = hours % 12 === 0 ? 12 : hours % 12
+  const period = hours < 12 ? 'am' : 'pm'
+  return `${minutes === '00' ? clock : `${clock}:${minutes}`}${NBSP}${period}`
+}
+
+/** `8 h et 20 h` / `8 am and 8 pm`, dans l'ordre de la journée. */
+export function formatClockTimes(times: readonly string[]): string {
+  return new Intl.ListFormat(currentLocale(), { style: 'long', type: 'conjunction' }).format(
+    [...times].sort().map(formatClockTime),
+  )
 }
