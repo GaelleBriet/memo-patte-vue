@@ -307,6 +307,19 @@
         "days": "{n} day | {n} days"
       },
       "resumeInfo": "Settings from the last period, {start} – {end}. Everything can be changed.",
+      "pastDues": {
+        "title": "{n} dose was scheduled before today | {n} doses were scheduled before today",
+        "text": {
+          "one": "On {date}, on the “{rhythm}” schedule.",
+          "list": "On {dates}, on the “{rhythm}” schedule.",
+          "range": "From {start} to {end}, on the “{rhythm}” schedule."
+        },
+        "keep": "Keep it to log | Keep them to log",
+        "keepHint": "The new schedule starts today.",
+        "drop": "It wasn’t meant to be given | They weren’t meant to be given",
+        "dropHint": "The previous setting was a mistake.",
+        "cancel": "Cancel"
+      },
       "submit": "Create",
       "submitting": "Creating…",
       "save": "Save",

@@ -129,12 +129,95 @@ describe('treatmentPlanService', () => {
   })
 
   it('corrige les réglages d’une période sans prise (TR-28)', async () => {
-    const { id } = await service.create(MILBEMAX)
+    const { id } = await service.create({ ...MILBEMAX, firstDoseOn: '2026-10-01' })
 
     await service.update(id, saisie({ frequency: { value: 2, unit: 'day' }, times: ['08:00'] }))
 
     await expect(historyOf(id)).resolves.toMatchObject({
       periods: [{ id, frequency: { value: 2, unit: 'day' }, times: ['08:00'] }],
+    })
+  })
+
+  describe('échéances tombées d’une période sans prise dont le rythme change', () => {
+    const TOUS_LES_2_JOURS: TreatmentCreationInput = {
+      ...MILBEMAX,
+      firstDoseOn: '2026-10-03',
+      frequency: { value: 2, unit: 'day' },
+      endsOn: null,
+    }
+
+    function correction(changes: Partial<TreatmentEditionInput> = {}): TreatmentEditionInput {
+      return saisie({ frequency: { value: 3, unit: 'day' }, endsOn: null, ...changes })
+    }
+
+    function jours(dues: { dueOn: string; dueTime: string | null }[]): string[] {
+      return dues.map(({ dueOn, dueTime }) => (dueTime === null ? dueOn : `${dueOn} ${dueTime}`))
+    }
+
+    beforeEach(() => {
+      today = '2026-10-08'
+    })
+
+    it('n’écrit rien tant que la question n’a pas de réponse', async () => {
+      const { id } = await service.create(TOUS_LES_2_JOURS)
+      const before = await historyOf(id)
+
+      await expect(service.update(id, correction())).rejects.toBeInstanceOf(ZodError)
+
+      await expect(historyOf(id)).resolves.toEqual(before)
+    })
+
+    it('« Elles restent à renseigner » : nouvelle période aujourd’hui, les 3, 5 et 7 oct. restent à renseigner', async () => {
+      const { id } = await service.create(TOUS_LES_2_JOURS)
+      const [before] = (await historyOf(id)).periods
+
+      await service.update(id, correction({ pastDues: 'keep' }))
+
+      const history = await historyOf(id)
+      expect(history.periods[0]).toEqual(before)
+      expect(history.periods[1]).toMatchObject({
+        startsOn: '2026-10-08',
+        firstDueOn: '2026-10-08',
+        frequency: { value: 3, unit: 'day' },
+      })
+      const schedule = treatmentScheduleOf(history, today)
+      expect(jours(schedule.unloggedDoses)).toEqual(['2026-10-03', '2026-10-05', '2026-10-07'])
+      expect(jours(schedule.currentDoses)).toEqual(['2026-10-08'])
+      expect(schedule.phase).toBe('today')
+    })
+
+    it('« Elles n’étaient pas à donner » : la période est corrigée, plus rien à renseigner, première échéance aujourd’hui', async () => {
+      const { id } = await service.create(TOUS_LES_2_JOURS)
+
+      await service.update(id, correction({ pastDues: 'drop' }))
+
+      const history = await historyOf(id)
+      expect(history.periods).toHaveLength(1)
+      expect(history.periods[0]).toMatchObject({
+        startsOn: '2026-10-03',
+        firstDueOn: '2026-10-08',
+        frequency: { value: 3, unit: 'day' },
+      })
+      const schedule = treatmentScheduleOf(history, today)
+      expect(schedule.unloggedDoses).toEqual([])
+      expect(jours(schedule.currentDoses)).toEqual(['2026-10-08'])
+    })
+
+    it('à plusieurs heures, garde chaque heure tombée à renseigner', async () => {
+      const { id } = await service.create({ ...TOUS_LES_2_JOURS, times: ['08:00', '20:00'] })
+
+      await service.update(id, correction({ times: ['09:00', '21:00'], pastDues: 'keep' }))
+
+      const schedule = treatmentScheduleOf(await historyOf(id), today)
+      expect(jours(schedule.unloggedDoses)).toEqual([
+        '2026-10-03 08:00',
+        '2026-10-03 20:00',
+        '2026-10-05 08:00',
+        '2026-10-05 20:00',
+        '2026-10-07 08:00',
+        '2026-10-07 20:00',
+      ])
+      expect(jours(schedule.currentDoses)).toEqual(['2026-10-08 09:00', '2026-10-08 21:00'])
     })
   })
 

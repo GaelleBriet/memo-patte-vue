@@ -10,6 +10,7 @@ import type { TreatmentWithHistory } from '../repository/treatments.repository'
 import {
   treatmentCreationSchema,
   treatmentRhythmSchema,
+  type PastDuesChoice,
   type TreatmentRhythm,
 } from '../schema/treatment-form.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
@@ -103,9 +104,9 @@ const NAME_MAX_KEY = 'treatments.form.errors.nameMax'
 type FormResult<D> = { success: true; data: D } | { success: false; errors: TreatmentFormErrors }
 
 export type TreatmentCreationResult = FormResult<z.output<typeof treatmentCreationSchema>>
-export type TreatmentEditionResult = FormResult<
-  z.output<ReturnType<typeof treatmentEditionSchemaFor>>
->
+export type TreatmentEditionResult =
+  | { success: true; data: z.output<ReturnType<typeof treatmentEditionSchemaFor>> }
+  | { success: false; errors: TreatmentFormErrors; needsPastDuesChoice: boolean }
 export type TreatmentResumptionResult = FormResult<
   z.output<ReturnType<typeof treatmentResumptionSchemaFor>>
 >
@@ -276,21 +277,33 @@ export function editionDraftOf(
   )
 }
 
-/** « Prochaine dose » n'est envoyée que si elle est proposée : vide, elle est alors refusée. */
+/**
+ * « Prochaine dose » n'est envoyée que si elle est proposée : vide, elle est alors refusée. Avec une
+ * réponse `pastDues`, la date proposée laissée telle quelle se recalcule pour le chemin choisi.
+ * `needsPastDuesChoice` : la saisie est valide, il reste à poser la question des échéances tombées.
+ */
 export function validateTreatmentEdition(
   values: TreatmentFormValues,
   history: TreatmentWithHistory,
   today: string,
+  pastDues: PastDuesChoice | null = null,
 ): TreatmentEditionResult {
   const { nextDose } = editionDraftOf(values, history, today)
-  return resultOf(
-    treatmentEditionSchemaFor(history, today).safeParse({
-      name: values.name,
-      type: values.type,
-      ...rhythmInput(values),
-      nextDoseOn: nextDose === null ? null : values.nextDoseOn.trim(),
-    }),
-  )
+  const typed = values.nextDoseOn.trim()
+  const keepsProposal = pastDues !== null && typed === nextDose?.proposedOn
+  const result = treatmentEditionSchemaFor(history, today).safeParse({
+    name: values.name,
+    type: values.type,
+    ...rhythmInput(values),
+    nextDoseOn: nextDose === null || keepsProposal ? null : typed,
+    ...(pastDues === null ? {} : { pastDues }),
+  })
+  if (result.success) return { success: true, data: result.data }
+  return {
+    success: false,
+    errors: errorsOf(result.error.issues),
+    needsPastDuesChoice: result.error.issues.every(({ path }) => path[0] === 'pastDues'),
+  }
 }
 
 export function validateTreatmentResumption(

@@ -48,9 +48,18 @@ export const treatmentCreationSchema = z
   .refine(hasWholeDosage, WHOLE_DOSAGE)
   .refine(endsAfterFirstDose, END_AFTER_FIRST_DOSE)
 
+/** Échéances tombées d'une période sans prise dont le rythme change : à renseigner, ou jamais dues. */
+export const pastDuesChoiceSchema = z.enum(['keep', 'drop'])
+export type PastDuesChoice = z.output<typeof pastDuesChoiceSchema>
+
 /** « Modifier » : `nextDoseOn` vaut `null` quand « Prochaine dose » garde la date proposée. */
 export const treatmentEditionSchema = z
-  .object({ ...identity, ...rhythm, nextDoseOn: calendarDaySchema.nullable() })
+  .object({
+    ...identity,
+    ...rhythm,
+    nextDoseOn: calendarDaySchema.nullable(),
+    pastDues: pastDuesChoiceSchema.optional(),
+  })
   .refine(hasWholeDosage, WHOLE_DOSAGE)
 
 /** « Reprendre » : ni nom ni type, la première prise est demandée. */

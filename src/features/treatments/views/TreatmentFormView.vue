@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 
 import TreatmentDosageField from './TreatmentDosageField.vue'
+import TreatmentPastDuesSheet from './TreatmentPastDuesSheet.vue'
 import TreatmentTimesField from './TreatmentTimesField.vue'
 import {
   editionDraftOf,
@@ -15,8 +16,10 @@ import {
   validateTreatmentEdition,
   validateTreatmentResumption,
 } from '../logic/treatment-form'
+import { pastDuesTexts } from '../logic/treatment-past-dues'
 import { resumptionDraft } from '../logic/treatment-plan'
 import type { TreatmentWithHistory } from '../repository/treatments.repository'
+import type { PastDuesChoice } from '../schema/treatment-form.schema'
 import { FREQUENCY_UNITS, TREATMENT_TYPES, type FrequencyUnit } from '../schema/treatment.schema'
 import { useTreatmentsStore } from '../store/treatments.store'
 import { useToday } from '@/core/app-lifecycle/use-today'
@@ -60,6 +63,8 @@ const endsOnTouched = ref(false)
 /** Une écriture a réussi : plus aucune autre ne part de cet écran. */
 const isSaved = ref(false)
 const hasDuplicateTime = ref(false)
+const pastDuesChoice = ref<PastDuesChoice | null>(null)
+const isPastDuesOpen = ref(false)
 const duplicateTimeError = computed(() =>
   hasDuplicateTime.value ? DUPLICATE_TIME_ERROR_KEY : undefined,
 )
@@ -78,7 +83,7 @@ const creation = useFormValidation(values, (current) =>
   validateTreatmentCreation(current, requireAnimalId()),
 )
 const edition = useFormValidation(values, (current) =>
-  validateTreatmentEdition(current, requireHistory(), today.value),
+  validateTreatmentEdition(current, requireHistory(), today.value, pastDuesChoice.value),
 )
 const resumption = useFormValidation(values, (current) =>
   validateTreatmentResumption(current, requireHistory(), today.value),
@@ -99,6 +104,11 @@ const previous = computed(() =>
   mode === 'resume' && history.value !== null ? resumptionDraft(history.value, today.value) : null,
 )
 const nextDose = computed(() => draft.value?.nextDose ?? null)
+const pastDues = computed(() =>
+  draft.value === null || draft.value.pastDues.length === 0
+    ? null
+    : pastDuesTexts(t, draft.value.pastDues, draft.value.period),
+)
 const hasSettings = computed(() => draft.value?.change !== 'locked')
 
 const targetAnimalId = computed(() => history.value?.animalId ?? props.animalId ?? null)
@@ -208,6 +218,13 @@ watch(
 )
 
 watch(
+  () => [values.value.frequencyValue, values.value.frequencyUnit, values.value.times],
+  () => {
+    pastDuesChoice.value = null
+  },
+)
+
+watch(
   () => nextDose.value?.proposedOn,
   (proposedOn) => {
     values.value.nextDoseOn = proposedOn ?? ''
@@ -280,8 +297,16 @@ function write(): (() => Promise<unknown>) | null {
     const result = resumption.validate()
     return result.success ? () => treatments.resume(id, result.data) : null
   }
-  const result = edition.validate()
-  return result.success ? () => treatments.update(id, result.data) : null
+  edition.validate()
+  const result = validateTreatmentEdition(
+    values.value,
+    requireHistory(),
+    today.value,
+    pastDuesChoice.value,
+  )
+  if (result.success) return () => treatments.update(id, result.data)
+  isPastDuesOpen.value = result.needsPastDuesChoice
+  return null
 }
 
 async function leaveAfterSaving(): Promise<void> {
@@ -294,6 +319,11 @@ async function leaveAfterSaving(): Promise<void> {
     reminder,
   }).catch(() => safe)
   await returnToOr(router, target, safe)
+}
+
+function answerPastDues(choice: PastDuesChoice): Promise<void> {
+  pastDuesChoice.value = choice
+  return submit()
 }
 
 async function submit(): Promise<void> {
@@ -552,6 +582,13 @@ async function submit(): Promise<void> {
         </template>
       </FormField>
     </template>
+
+    <TreatmentPastDuesSheet
+      v-if="pastDues"
+      v-model="isPastDuesOpen"
+      :texts="pastDues"
+      @choose="answerPastDues"
+    />
   </FormScreen>
 </template>
 

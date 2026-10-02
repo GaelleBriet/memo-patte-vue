@@ -307,6 +307,19 @@
         "days": "{n} jour | {n} jours"
       },
       "resumeInfo": "Réglages de la dernière période, du {start} au {end}. Tout reste modifiable.",
+      "pastDues": {
+        "title": "{n} dose était prévue avant aujourd’hui | {n} doses étaient prévues avant aujourd’hui",
+        "text": {
+          "one": "Le {date}, au rythme « {rhythm} ».",
+          "list": "Les {dates}, au rythme « {rhythm} ».",
+          "range": "Du {start} au {end}, au rythme « {rhythm} »."
+        },
+        "keep": "Elle reste à renseigner | Elles restent à renseigner",
+        "keepHint": "Le nouveau rythme commence aujourd’hui.",
+        "drop": "Elle n’était pas à donner | Elles n’étaient pas à donner",
+        "dropHint": "L’ancien réglage était une erreur.",
+        "cancel": "Annuler"
+      },
       "submit": "Créer",
       "submitting": "Création…",
       "save": "Enregistrer",

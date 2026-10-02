@@ -139,3 +139,29 @@ export function formatClockTimes(times: readonly string[]): string {
     [...times].sort().map(formatClockTime),
   )
 }
+
+function dayNumber(isoDate: string): string {
+  return String(Number(isoDate.slice(8, 10)))
+}
+
+function sameMonth(days: readonly string[]): boolean {
+  return days.every((day) => day.slice(0, 7) === days[0]?.slice(0, 7))
+}
+
+/** `3, 5 et 7 oct.` / `Oct 3, 5, and 7` : des jours d'un même mois n'écrivent le mois qu'une fois. */
+export function formatDayList(days: readonly string[]): string {
+  const locale = currentLocale()
+  const monthAt = locale === 'fr' ? days.length - 1 : 0
+  const compact = sameMonth(days)
+  return new Intl.ListFormat(locale, { style: 'long', type: 'conjunction' }).format(
+    days.map((day, index) =>
+      !compact || index === monthAt ? formatDayMonth(day) : dayNumber(day),
+    ),
+  )
+}
+
+/** Les deux bouts d'une plage : `3` et `15 oct.` dans un même mois en français, sinon chaque date entière. */
+export function formatDayRange(first: string, last: string): { start: string; end: string } {
+  const compact = currentLocale() === 'fr' && sameMonth([first, last])
+  return { start: compact ? dayNumber(first) : formatDayMonth(first), end: formatDayMonth(last) }
+}

@@ -1105,6 +1105,172 @@ describe('editionPlan — date de fin et report en vigueur', () => {
   })
 })
 
+describe('editionPlan — échéances tombées d’une période sans prise', () => {
+  const TOUS_LES_2_JOURS = period({
+    startsOn: '2026-10-02',
+    firstDueOn: '2026-10-03',
+    frequency: { value: 2, unit: 'day' },
+  })
+  const TODAY = '2026-10-08'
+  const TROIS_JOURS = { frequency: { value: 3, unit: 'day' } } as const
+
+  function jours(dues: { dueOn: string; dueTime: string | null }[]): string[] {
+    return dues.map(({ dueOn, dueTime }) => (dueTime === null ? dueOn : `${dueOn} ${dueTime}`))
+  }
+
+  function apres(history: TreatmentWithHistory, plan: ReturnType<typeof editionPlan>) {
+    const { period: write } = plan
+    if (write === null) return treatmentScheduleOf(history, TODAY)
+    const [current] = history.periods.slice(-1)
+    const periods =
+      write.action === 'open'
+        ? [
+            ...history.periods,
+            { ...current!, ...write.settings, id: write.id, createdAt: `${TODAY}T10:00:00.000Z` },
+          ]
+        : [...history.periods.slice(0, -1), { ...current!, ...write.settings }]
+    return treatmentScheduleOf({ ...history, periods }, TODAY)
+  }
+
+  it('annonce les échéances tombées et ne décide pas seule', () => {
+    const history = treatment([TOUS_LES_2_JOURS])
+    const input = saisie(history, TROIS_JOURS)
+
+    expect(jours(editionDraft(history, input, TODAY).pastDues)).toEqual([
+      '2026-10-03',
+      '2026-10-05',
+      '2026-10-07',
+    ])
+    expect(champsRefuses(history, input, TODAY)).toEqual(['pastDues:required'])
+    expect(() => editionPlan(history, input, TODAY, IDS)).toThrow(ZodError)
+  })
+
+  it('« Elles restent à renseigner » ouvre une période aujourd’hui : les trois doses restent à renseigner', () => {
+    const history = treatment([TOUS_LES_2_JOURS])
+
+    const plan = editionPlan(
+      history,
+      saisie(history, { ...TROIS_JOURS, pastDues: 'keep' }),
+      TODAY,
+      IDS,
+    )
+
+    expect(plan.period).toMatchObject({
+      action: 'open',
+      settings: { startsOn: TODAY, firstDueOn: TODAY, frequency: { value: 3, unit: 'day' } },
+    })
+    const schedule = apres(history, plan)
+    expect(jours(schedule.unloggedDoses)).toEqual(['2026-10-03', '2026-10-05', '2026-10-07'])
+    expect(jours(schedule.currentDoses)).toEqual([TODAY])
+  })
+
+  it('« Elles n’étaient pas à donner » corrige la période : plus rien à renseigner, première échéance aujourd’hui', () => {
+    const history = treatment([TOUS_LES_2_JOURS])
+
+    const plan = editionPlan(
+      history,
+      saisie(history, { ...TROIS_JOURS, pastDues: 'drop' }),
+      TODAY,
+      IDS,
+    )
+
+    expect(plan.period).toMatchObject({
+      action: 'correct',
+      settings: { startsOn: '2026-10-02', firstDueOn: TODAY, frequency: { value: 3, unit: 'day' } },
+    })
+    const schedule = apres(history, plan)
+    expect(schedule.unloggedDoses).toEqual([])
+    expect(jours(schedule.currentDoses)).toEqual([TODAY])
+  })
+
+  it('garde une « Prochaine dose » choisie à la main quand elle vaut pour le chemin choisi, la refuse sinon', () => {
+    const history = treatment([TOUS_LES_2_JOURS])
+    const input = (changes: Partial<TreatmentEditionInput>) =>
+      saisie(history, { ...TROIS_JOURS, nextDoseOn: '2026-10-12', ...changes })
+
+    for (const pastDues of ['keep', 'drop'] as const) {
+      expect(editionPlan(history, input({ pastDues }), TODAY, IDS).period).toMatchObject({
+        settings: { firstDueOn: '2026-10-12' },
+      })
+      expect(champsRefuses(history, input({ pastDues, endsOn: '2026-10-10' }), TODAY)).toEqual([
+        'nextDoseOn:afterEnd',
+      ])
+    }
+  })
+
+  it('compte chaque heure d’une journée tombée', () => {
+    const history = treatment([{ ...TOUS_LES_2_JOURS, times: ['08:00', '20:00'] }])
+
+    expect(jours(editionDraft(history, saisie(history, TROIS_JOURS), TODAY).pastDues)).toEqual([
+      '2026-10-03 08:00',
+      '2026-10-03 20:00',
+      '2026-10-05 08:00',
+      '2026-10-05 20:00',
+      '2026-10-07 08:00',
+      '2026-10-07 20:00',
+    ])
+  })
+
+  it('pose la question pour des heures seules changées, pas pour la posologie, la date de fin, le nom ou le type', () => {
+    const history = treatment([TOUS_LES_2_JOURS])
+    const tombees = (changes: Partial<TreatmentEditionInput>) =>
+      editionDraft(history, saisie(history, changes), TODAY).pastDues.length
+
+    expect(tombees({ times: ['09:00'] })).toBe(3)
+    expect(tombees({ doseQuantity: 2 })).toBe(0)
+    expect(tombees({ endsOn: '2026-12-31' })).toBe(0)
+    expect(tombees({ name: 'Autre', type: 'medication' })).toBe(0)
+    expect(champsRefuses(history, saisie(history, { doseQuantity: 2 }), TODAY)).toEqual([])
+  })
+
+  it('ne pose aucune question sans échéance tombée, ni quand une prise est notée dans la période (TR-28)', () => {
+    const futur = treatment([{ ...TOUS_LES_2_JOURS, firstDueOn: '2026-10-09' }])
+    const notee = treatment(
+      [TOUS_LES_2_JOURS],
+      [dose({ dueOn: '2026-10-03', givenOn: '2026-10-03', nextDueDate: '2026-10-05' })],
+    )
+
+    expect(editionDraft(futur, saisie(futur, TROIS_JOURS), TODAY).pastDues).toEqual([])
+    expect(champsRefuses(futur, saisie(futur, TROIS_JOURS), TODAY)).toEqual([])
+    expect(editionDraft(notee, saisie(notee, TROIS_JOURS), TODAY)).toMatchObject({
+      change: 'open',
+      pastDues: [],
+    })
+    expect(champsRefuses(notee, saisie(notee, TROIS_JOURS), TODAY)).toEqual([])
+  })
+
+  it('n’annonce qu’une dose quand une seule est tombée', () => {
+    const history = treatment([{ ...TOUS_LES_2_JOURS, firstDueOn: '2026-10-07' }])
+
+    expect(jours(editionDraft(history, saisie(history, TROIS_JOURS), TODAY).pastDues)).toEqual([
+      '2026-10-07',
+    ])
+  })
+
+  it('pose aussi la question pour une période ouverte par « Modifier », et garde alors l’ancienne période intacte', () => {
+    const hebdo = period({
+      startsOn: '2026-09-18',
+      firstDueOn: '2026-09-18',
+      frequency: { value: 1, unit: 'week' },
+    })
+    const ouverte = { ...TOUS_LES_2_JOURS, id: NEW_PERIOD, createdAt: '2026-10-02T09:00:00.000Z' }
+    const history = treatment(
+      [hebdo, ouverte],
+      [dose({ dueOn: '2026-09-25', givenOn: '2026-09-25', nextDueDate: '2026-10-02' })],
+    )
+    const ids = { ...IDS, periodId: '55555555-5555-4555-8555-555555555555' }
+
+    expect(editionDraft(history, saisie(history, TROIS_JOURS), TODAY).pastDues).toHaveLength(3)
+    const plan = editionPlan(
+      history,
+      saisie(history, { ...TROIS_JOURS, pastDues: 'keep' }),
+      TODAY,
+      ids,
+    )
+    expect(plan.period).toMatchObject({ action: 'open', settings: { startsOn: TODAY } })
+  })
+})
+
 describe('resumptionPlan (TR-32)', () => {
   const ARRETEE = period({
     frequency: { value: 1, unit: 'day' },

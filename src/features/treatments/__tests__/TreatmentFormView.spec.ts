@@ -1428,6 +1428,207 @@ describe('TreatmentFormView — modification (TR-27, TR-28, planches V1 quater e
   })
 })
 
+describe('TreatmentFormView — échéances tombées d’une période sans prise', () => {
+  const SANS_PRISE = () =>
+    milbemax(
+      [
+        periode({
+          startsOn: '2026-09-22',
+          firstDueOn: '2026-09-23',
+          frequency: { value: 2, unit: 'day' },
+        }),
+      ],
+      [],
+    )
+
+  function feuille() {
+    return wrapper!.findComponent({ name: 'TreatmentPastDuesSheet' })
+  }
+
+  function dansLaFeuille(selector: string): HTMLElement {
+    const found = document.body.querySelector<HTMLElement>(selector)
+    if (!found) throw new Error(`Rien pour ${selector}`)
+    return found
+  }
+
+  let wrapper: VueWrapper | null = null
+
+  async function corrigerLaFrequence() {
+    getWithHistory.mockResolvedValue(SANS_PRISE())
+    wrapper = await monterEdition()
+    await champ(wrapper, 'treatment-frequency-value').setValue('3')
+    await soumettre(wrapper)
+    return wrapper
+  }
+
+  beforeEach(() => {
+    vi.stubGlobal('visualViewport', {
+      addEventListener() {},
+      removeEventListener() {},
+      width: 412,
+      height: 915,
+      offsetTop: 0,
+    })
+  })
+
+  afterEach(() => {
+    wrapper?.unmount()
+    wrapper = null
+    document.body.innerHTML = ''
+    vi.unstubAllGlobals()
+  })
+
+  it('pose la question à « Enregistrer », sans rien écrire', async () => {
+    await corrigerLaFrequence()
+
+    expect(update).not.toHaveBeenCalled()
+    expect(feuille().props('modelValue')).toBe(true)
+    expect(feuille().props('texts')).toMatchObject({
+      title: '3 doses étaient prévues avant aujourd’hui',
+      text: 'Les 23, 25 et 27 sept., au rythme «\u00a0tous les 2 jours\u00a0».',
+      keep: 'Elles restent à renseigner',
+      drop: 'Elles n’étaient pas à donner',
+    })
+    expect(dansLaFeuille('.treatment-past-dues__choice--keep').textContent).toContain(
+      'Le nouveau rythme commence aujourd’hui.',
+    )
+    expect(dansLaFeuille('.treatment-past-dues__choice--drop').textContent).toContain(
+      'L’ancien réglage était une erreur.',
+    )
+  })
+
+  it('« Elles restent à renseigner » enregistre avec ce choix, la prochaine dose laissée au moteur', async () => {
+    await corrigerLaFrequence()
+
+    dansLaFeuille('.treatment-past-dues__choice--keep').click()
+    await flushPromises()
+
+    expect(update).toHaveBeenCalledExactlyOnceWith(
+      ID,
+      expect.objectContaining({
+        frequency: { value: 3, unit: 'day' },
+        pastDues: 'keep',
+        nextDoseOn: null,
+      }),
+    )
+  })
+
+  it('« Elles n’étaient pas à donner » enregistre avec ce choix', async () => {
+    await corrigerLaFrequence()
+
+    dansLaFeuille('.treatment-past-dues__choice--drop').click()
+    await flushPromises()
+
+    expect(update).toHaveBeenCalledExactlyOnceWith(
+      ID,
+      expect.objectContaining({ pastDues: 'drop' }),
+    )
+  })
+
+  it('« Annuler » revient au formulaire : rien d’écrit, saisie gardée', async () => {
+    const view = await corrigerLaFrequence()
+
+    dansLaFeuille('.treatment-past-dues__cancel').click()
+    await flushPromises()
+
+    expect(update).not.toHaveBeenCalled()
+    expect(feuille().props('modelValue')).toBe(false)
+    expect(valeur(view, 'treatment-frequency-value')).toBe('3')
+    expect(view.get('.form-screen__submit').attributes('disabled')).toBeUndefined()
+  })
+
+  it('garde une « Prochaine dose » choisie à la main, et la refuse quand elle ne vaut pas pour le choix', async () => {
+    getWithHistory.mockResolvedValue(SANS_PRISE())
+    wrapper = await monterEdition()
+    await champ(wrapper, 'treatment-frequency-value').setValue('3')
+    await champ(wrapper, 'treatment-next-dose-on').setValue('2026-10-05')
+    await champ(wrapper, 'treatment-ends-on').setValue('2026-10-01')
+    await soumettre(wrapper)
+
+    dansLaFeuille('.treatment-past-dues__choice--keep').click()
+    await flushPromises()
+
+    expect(update).not.toHaveBeenCalled()
+    expect(messages(wrapper)).toEqual([
+      'La prochaine dose ne peut pas dépasser la date de fin. Change la date de fin pour aller plus loin.',
+    ])
+
+    await champ(wrapper, 'treatment-ends-on').setValue('2026-10-31')
+    await soumettre(wrapper)
+
+    expect(update).toHaveBeenCalledExactlyOnceWith(
+      ID,
+      expect.objectContaining({ pastDues: 'keep', nextDoseOn: '2026-10-05' }),
+    )
+  })
+
+  it('repose la question quand la fréquence change de nouveau', async () => {
+    const view = await corrigerLaFrequence()
+    dansLaFeuille('.treatment-past-dues__cancel').click()
+    await flushPromises()
+
+    await champ(view, 'treatment-frequency-value').setValue('4')
+    await soumettre(view)
+
+    expect(update).not.toHaveBeenCalled()
+    expect(feuille().props('modelValue')).toBe(true)
+  })
+
+  it('pose la question pour des heures seules changées', async () => {
+    getWithHistory.mockResolvedValue(SANS_PRISE())
+    wrapper = await monterEdition()
+    await ajouterHeure(wrapper, '09:00')
+
+    await soumettre(wrapper)
+
+    expect(update).not.toHaveBeenCalled()
+    expect(feuille().props('modelValue')).toBe(true)
+  })
+
+  it('ne pose aucune question pour la posologie, le nom ou la date de fin', async () => {
+    getWithHistory.mockResolvedValue(SANS_PRISE())
+    wrapper = await monterEdition()
+    await champ(wrapper, 'treatment-name').setValue('Autre')
+    await champ(wrapper, 'treatment-dose-quantity').setValue('2')
+    await champ(wrapper, 'treatment-ends-on').setValue('2026-12-31')
+
+    await soumettre(wrapper)
+
+    expect(feuille().exists()).toBe(false)
+    expect(update).toHaveBeenCalledOnce()
+  })
+
+  it('ne pose aucune question quand une prise est notée dans la période : nouvelle période sans question (TR-28)', async () => {
+    wrapper = await monterEdition()
+    await champ(wrapper, 'treatment-frequency-value').setValue('1')
+
+    await soumettre(wrapper)
+
+    expect(feuille().exists()).toBe(false)
+    expect(update).toHaveBeenCalledOnce()
+  })
+
+  it('ne pose jamais la question à la création ni à la reprise', async () => {
+    wrapper = await monterCreation()
+    await remplirMinimum(wrapper)
+    await champ(wrapper, 'treatment-first-dose-on').setValue('2026-09-03')
+    await soumettre(wrapper)
+
+    expect(feuille().exists()).toBe(false)
+    expect(create).toHaveBeenCalledOnce()
+    wrapper.unmount()
+
+    getWithHistory.mockResolvedValue(milbemax([periode({ stoppedOn: '2026-08-01' })]))
+    wrapper = await monterReprise()
+    await champ(wrapper, 'treatment-frequency-value').setValue('1')
+    await champ(wrapper, 'treatment-first-dose-on').setValue('2026-09-29')
+    await soumettre(wrapper)
+
+    expect(feuille().exists()).toBe(false)
+    expect(resume).toHaveBeenCalledOnce()
+  })
+})
+
 describe('TreatmentFormView — retour vers l’écran d’origine', () => {
   async function monterDepuis(from: string, reminder?: string) {
     routeur = createRouter({

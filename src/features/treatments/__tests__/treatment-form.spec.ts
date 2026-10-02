@@ -324,7 +324,7 @@ describe('validateTreatmentEdition (TR-6, TR-9, TR-28)', () => {
   })
 
   it('exige la prochaine dose quand elle est proposée', () => {
-    expect(validateTreatmentEdition(edition({ nextDoseOn: '' }), milbemax(), TODAY)).toEqual({
+    expect(validateTreatmentEdition(edition({ nextDoseOn: '' }), milbemax(), TODAY)).toMatchObject({
       success: false,
       errors: { nextDoseOn: 'treatments.form.errors.nextDoseOn' },
     })
@@ -374,7 +374,7 @@ describe('validateTreatmentEdition (TR-6, TR-9, TR-28)', () => {
       { endsOn: 'treatments.form.errors.endsOnBeforeNextDose' },
     ],
   ] as const)('refuse %o', (change, errors) => {
-    expect(validateTreatmentEdition(edition(change), milbemax(), TODAY)).toEqual({
+    expect(validateTreatmentEdition(edition(change), milbemax(), TODAY)).toMatchObject({
       success: false,
       errors,
     })
@@ -401,9 +401,44 @@ describe('validateTreatmentEdition (TR-6, TR-9, TR-28)', () => {
         deuxPrises,
         '2026-10-20',
       ),
-    ).toEqual({
+    ).toMatchObject({
       success: false,
       errors: { endsOn: 'treatments.form.errors.endsOnBeforeLastDose' },
+    })
+  })
+
+  it('dit quand il ne reste qu’à poser la question des échéances tombées, et prend la réponse', () => {
+    const sansPrise = milbemax(
+      [
+        period({
+          startsOn: '2026-09-22',
+          firstDueOn: '2026-09-23',
+          frequency: { value: 2, unit: 'day' },
+        }),
+      ],
+      [],
+    )
+    const values = {
+      ...treatmentFormValuesFrom(sansPrise, sansPrise.periods[0]!),
+      frequencyValue: '3',
+    }
+    const saisi = {
+      ...values,
+      nextDoseOn: editionDraftOf(values, sansPrise, TODAY).nextDose!.proposedOn,
+    }
+
+    expect(validateTreatmentEdition(saisi, sansPrise, TODAY)).toEqual({
+      success: false,
+      errors: {},
+      needsPastDuesChoice: true,
+    })
+    expect(validateTreatmentEdition(saisi, sansPrise, TODAY, 'keep')).toMatchObject({
+      success: true,
+      data: { pastDues: 'keep', nextDoseOn: null },
+    })
+    expect(validateTreatmentEdition({ ...saisi, name: '' }, sansPrise, TODAY)).toMatchObject({
+      success: false,
+      needsPastDuesChoice: false,
     })
   })
 
