@@ -64,9 +64,8 @@ export function sequenceAfter(
   const floor = keyOf(dose)
   const restarted = { origin: reference, firstStep: 1, floor }
   const restarts = shiftDate(reference, period.frequency, 1) === dose.nextDueDate
-  const clamps = period.frequency.unit === 'month' && reference === dose.dueOn
-  if (restarts && !clamps) return restarted
-  // En mois, le 30 nov. plus 3 mois vaut aussi le 28 févr. de la suite du 31 : la suite qui continue l'emporte.
+  if (restarts && period.frequency.unit !== 'month') return restarted
+  // En mois, le 31 août plus 1 mois vaut aussi le 30 sept. de la suite du 30 : la suite qui continue l'emporte.
   const continued = { ...current, floor }
   if (firstDueOf(continued, period).dueOn === dose.nextDueDate) return continued
   return restarts ? restarted : { origin: dose.nextDueDate, firstStep: 0, floor }
