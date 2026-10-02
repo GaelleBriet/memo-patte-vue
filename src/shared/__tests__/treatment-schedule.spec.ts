@@ -3262,3 +3262,58 @@ describe('changer le rythme le jour d’une dose encore sans prise garde la dose
     })
   })
 })
+
+describe('sans changer la fréquence ni les heures, la prochaine dose reste celle prévue (TR-7, Q37)', () => {
+  const everyMonth = { value: 1, unit: 'month' } as const
+
+  it.each([
+    { firstDueOn: '2027-01-31', february: '2027-02-28', today: '2027-03-01', next: '2027-03-31' },
+    { firstDueOn: '2027-01-30', february: '2027-02-28', today: '2027-03-01', next: '2027-03-30' },
+    { firstDueOn: '2028-01-31', february: '2028-02-29', today: '2028-03-01', next: '2028-03-31' },
+  ])(
+    'mensuel du $firstDueOn, posologie changée le $today : prochaine dose le $next',
+    ({ firstDueOn, february, today, next }) => {
+      const book = done(done(carnet(monthly({ firstDueOn })), firstDueOn), february)
+
+      expect(scheduleOf(book, today).newPeriod(everyMonth, [])).toEqual({
+        startsOn: today,
+        firstDueOn: next,
+      })
+    },
+  )
+
+  it('un report en vigueur est gardé', () => {
+    let book = done(carnet(weekly()), '2026-09-01')
+    book = record(book, '2026-09-05', {
+      kind: 'postponed',
+      due: due('2026-09-08'),
+      to: '2026-09-11',
+    })
+
+    expect(scheduleOf(book, '2026-09-05').newPeriod({ value: 1, unit: 'week' }, [])).toEqual({
+      startsOn: '2026-09-05',
+      firstDueOn: '2026-09-11',
+    })
+  })
+
+  it('une dose en retard : la nouvelle période commence aujourd’hui', () => {
+    const book = done(carnet(weekly()), '2026-09-01')
+
+    expect(scheduleOf(book, '2026-09-10').newPeriod({ value: 1, unit: 'week' }, [])).toEqual({
+      startsOn: '2026-09-10',
+      firstDueOn: '2026-09-10',
+    })
+  })
+
+  it('les heures changent : la dernière prise plus la fréquence, comme avant', () => {
+    const book = done(
+      done(carnet(monthly({ firstDueOn: '2027-01-31' })), '2027-01-31'),
+      '2027-02-28',
+    )
+
+    expect(scheduleOf(book, '2027-03-01').newPeriod(everyMonth, ['08:00'])).toEqual({
+      startsOn: '2027-03-01',
+      firstDueOn: '2027-03-28',
+    })
+  })
+})

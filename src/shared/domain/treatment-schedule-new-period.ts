@@ -16,6 +16,16 @@ function lastReference(state: State, frequency: Frequency): string | undefined {
   return shiftDate(fixed ? referenceOf(last.dose) : last.dose.dueOn, frequency, 1)
 }
 
+function keepsSettings(state: State, frequency: Frequency, times: readonly string[]): boolean {
+  const current = state.open?.period
+  return (
+    current !== undefined &&
+    current.frequency.value === frequency.value &&
+    current.frequency.unit === frequency.unit &&
+    [...current.times].sort().join() === [...times].sort().join()
+  )
+}
+
 // Q24 : la nouvelle période commence aujourd'hui ; ses heures au-delà des prises du jour restent à donner.
 export function newPeriod(state: State, frequency: Frequency, times: readonly string[]): NewPeriod {
   checkFrequency(frequency, '')
@@ -29,6 +39,9 @@ export function newPeriod(state: State, frequency: Frequency, times: readonly st
   if (noted > 0 && noted < times.length) return { startsOn, firstDueOn: startsOn }
   const dueToday = state.currentDoses.some((due) => due.dueOn === today)
   if (noted === 0 && dueToday) return { startsOn, firstDueOn: startsOn }
-  const proposed = lastReference(state, frequency) ?? startsOn
+  const scheduled = keepsSettings(state, frequency, times)
+    ? state.currentDoses[0]?.dueOn
+    : undefined
+  const proposed = scheduled ?? lastReference(state, frequency) ?? startsOn
   return { startsOn, firstDueOn: proposed > startsOn ? proposed : startsOn }
 }

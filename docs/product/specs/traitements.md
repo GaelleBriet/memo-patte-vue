@@ -84,7 +84,8 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
   (sinon aujourd'hui ; à plusieurs heures, aujourd'hui tant qu'il reste des heures du nouveau réglage
   au-delà des prises déjà notées ce jour, spec Q24 ; aujourd'hui aussi quand une dose est due
   aujourd'hui et encore sans prise, spec Q36), proposée dans « Prochaine dose » et modifiable (spec Q7), avec l'aide « Calculée
-  d'après la dernière prise : … Modifiable. » (lot A révisé, N3). Les suivantes se calculent depuis
+  d'après la dernière prise : … Modifiable. » (lot A révisé, N3). Quand ni la fréquence ni les heures
+  ne changent, c'est la prochaine échéance du calendrier en cours, report compris (spec Q37). Les suivantes se calculent depuis
   la **dernière ligne** plus la fréquence : date réelle d'une prise donnée, échéance d'une oubliée,
   nouvelle date d'un report (T1). En mois, le jour de référence est celui de la première échéance
   (31 janv. → 28 févr. → 31 mars), ou le dernier jour du mois quand il n'existe pas, sans dériver ; une
@@ -668,6 +669,13 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
   plusieurs heures, Q24 reste la règle. Raison : la dose du 7 n'était plus ni à donner, ni à
   renseigner, ni à venir. Écartée : la dernière prise plus la nouvelle fréquence même ce jour-là
   (première dose le 8). (Revue du moteur d'échéances du 2026-10-02, M11.)
+- 2026-10-02 — **Q37 : sans changement de fréquence ni d'heures, la prochaine dose reste celle qui
+  était prévue** (TR-7, TR-28). Mensuel démarré le 31 janv., doses du 31 janv. et du 28 févr. données ;
+  posologie changée le 1er mars : la première dose de la nouvelle période est le 31 mars, pas le
+  28 mars. C'est la dose du moment si elle est due ou en retard (jamais avant aujourd'hui), sinon la
+  prochaine dose, report en vigueur compris. Raison : changer la posologie ne doit pas avancer la dose
+  de trois jours sans le dire. Écartée : la dernière prise plus la fréquence (28 févr. + 1 mois).
+  (Revue du moteur d'échéances du 2026-10-02, M3.)
 
 ## 11. Questions ouvertes
 
