@@ -129,7 +129,7 @@ describe('treatmentDosesRepository', () => {
 
   it('liste les prises visibles de tous les traitements, avec la fréquence de leur période', async () => {
     const recente = prise(milbemax, 'recente', '2026-04-10', { nextDueDate: '2026-07-10' })
-    await doses.record(recente)
+    await db.runMany([doses.insertStatement(recente)])
 
     const liste = await doses.listAll()
 
@@ -212,108 +212,6 @@ describe('treatmentDosesRepository', () => {
   })
 })
 
-describe('treatmentDosesRepository — noter et annuler une prise', () => {
-  let db: InMemoryDb
-  let doses: TreatmentDosesRepository
-  let milbemax: string
-
-  function prisePlan(id: string, givenOn: string) {
-    return prise(milbemax, id, givenOn)
-  }
-
-  function prises() {
-    return db.query<{ id: string; given_on: string; deleted_at: string | null }>(
-      'SELECT id, given_on, deleted_at FROM treatment_dose WHERE treatment_id = ? ORDER BY given_on, id',
-      [milbemax],
-    )
-  }
-
-  beforeEach(async () => {
-    db = await createInMemoryDb()
-    await db.execute('PRAGMA foreign_keys = ON')
-    await db.run(
-      `INSERT INTO animal (id, name, species, created_at, updated_at)
-       VALUES (?, 'Miette', 'cat', ?, ?)`,
-      [MIETTE, T0, T0],
-    )
-    doses = createTreatmentDosesRepository(db)
-    milbemax = (await seedTreatmentWithDose(db, { ...plan, animalId: MIETTE, name: 'Milbemax' })).id
-  })
-
-  afterEach(() => {
-    db.close()
-  })
-
-  it('note une prise et le dit', async () => {
-    await expect(doses.record(prisePlan('p1', '2026-09-20'))).resolves.toBe(true)
-
-    await expect(prises()).resolves.toEqual([
-      { id: milbemax, given_on: '2026-01-10', deleted_at: null },
-      { id: 'p1', given_on: '2026-09-20', deleted_at: null },
-    ])
-  })
-
-  it('écrit la prise donnée telle quelle, rattachée à sa période', async () => {
-    await doses.record(prisePlan('p1', '2026-09-20'))
-
-    await expect(db.query('SELECT * FROM treatment_dose WHERE id = ?', ['p1'])).resolves.toEqual([
-      {
-        id: 'p1',
-        period_id: milbemax,
-        treatment_id: milbemax,
-        animal_id: MIETTE,
-        due_on: '2026-09-20',
-        due_time: null,
-        given_on: '2026-09-20',
-        status: 'given',
-        next_due_date: '2026-12-20',
-        created_at: NOW,
-        updated_at: NOW,
-        deleted_at: null,
-      },
-    ])
-  })
-
-  it('ne note pas une seconde prise du même jour pour le même traitement', async () => {
-    await doses.record(prisePlan('p1', '2026-09-20'))
-
-    await expect(doses.record(prisePlan('p2', '2026-09-20'))).resolves.toBe(false)
-
-    await expect(prises()).resolves.toHaveLength(2)
-  })
-
-  it('note de nouveau une prise dont celle du même jour a été annulée', async () => {
-    await doses.record(prisePlan('p1', '2026-09-20'))
-    await doses.remove('p1', NOW)
-
-    await expect(doses.record(prisePlan('p2', '2026-09-20'))).resolves.toBe(true)
-  })
-
-  it('annule une prise par une date de suppression, sans toucher les autres', async () => {
-    await doses.record(prisePlan('p1', '2026-09-20'))
-
-    await doses.remove('p1', NOW)
-
-    await expect(prises()).resolves.toEqual([
-      { id: milbemax, given_on: '2026-01-10', deleted_at: null },
-      { id: 'p1', given_on: '2026-09-20', deleted_at: NOW },
-    ])
-  })
-
-  it('ne change pas la date d’une prise déjà annulée', async () => {
-    await doses.record(prisePlan('p1', '2026-09-20'))
-    await doses.remove('p1', EARLIER)
-
-    await doses.remove('p1', NOW)
-
-    await expect(prises()).resolves.toContainEqual({
-      id: 'p1',
-      given_on: '2026-09-20',
-      deleted_at: EARLIER,
-    })
-  })
-})
-
 describe('treatmentDosesRepository — historique', () => {
   let db: InMemoryDb
   let doses: TreatmentDosesRepository
@@ -326,10 +224,6 @@ describe('treatmentDosesRepository — historique', () => {
 
   function lue(id: string, givenOn: string, surcharges: Partial<NewTreatmentDose> = {}) {
     return { ...prisePlan(id, givenOn, surcharges), ...TRIMESTRIELLE }
-  }
-
-  function ligne(id: string) {
-    return db.query('SELECT * FROM treatment_dose WHERE id = ?', [id])
   }
 
   beforeEach(async () => {
@@ -350,10 +244,10 @@ describe('treatmentDosesRepository — historique', () => {
   })
 
   it('liste les prises visibles d’un traitement, la tête d’abord', async () => {
-    await doses.record(prisePlan('ancienne', '2025-10-10'))
-    await doses.record(prisePlan('recente', '2026-04-10'))
-    await doses.record(prisePlan('annulee', '2026-05-10'))
-    await doses.remove('annulee', NOW)
+    await db.runMany([doses.insertStatement(prisePlan('ancienne', '2025-10-10'))])
+    await db.runMany([doses.insertStatement(prisePlan('recente', '2026-04-10'))])
+    await db.runMany([doses.insertStatement(prisePlan('annulee', '2026-05-10'))])
+    await db.runMany([doses.markDeletedStatement(['annulee'], NOW)])
 
     const liste = await doses.listByTreatment(milbemax)
 
@@ -362,11 +256,19 @@ describe('treatmentDosesRepository — historique', () => {
   })
 
   it('trie par échéance, jour puis heure, puis par saisie, jamais par date réelle', async () => {
-    await doses.record(
-      prisePlan('tardive', '2026-04-20', { dueOn: '2026-04-10', createdAt: LATER }),
-    )
-    await doses.record(prisePlan('matin', '2026-04-12', { dueOn: '2026-04-10', dueTime: '08:00' }))
-    await doses.record(prisePlan('avance', '2026-04-05', { dueOn: '2026-04-11' }))
+    await db.runMany([
+      doses.insertStatement(
+        prisePlan('tardive', '2026-04-20', { dueOn: '2026-04-10', createdAt: LATER }),
+      ),
+    ])
+    await db.runMany([
+      doses.insertStatement(
+        prisePlan('matin', '2026-04-12', { dueOn: '2026-04-10', dueTime: '08:00' }),
+      ),
+    ])
+    await db.runMany([
+      doses.insertStatement(prisePlan('avance', '2026-04-05', { dueOn: '2026-04-11' })),
+    ])
 
     const liste = await doses.listByTreatment(milbemax)
 
@@ -374,88 +276,20 @@ describe('treatmentDosesRepository — historique', () => {
   })
 
   it('lit une prise visible, jamais une prise supprimée', async () => {
-    await doses.record(prisePlan('p1', '2026-04-10'))
+    await db.runMany([doses.insertStatement(prisePlan('p1', '2026-04-10'))])
 
     await expect(doses.getById('p1')).resolves.toEqual(lue('p1', '2026-04-10'))
-    await doses.remove('p1', NOW)
+    await db.runMany([doses.markDeletedStatement(['p1'], NOW)])
     await expect(doses.getById('p1')).resolves.toBeNull()
   })
 
   it('compte les prises visibles de chaque traitement d’un animal', async () => {
-    await doses.record(prisePlan('p1', '2026-04-10'))
-    await doses.record(prisePlan('p2', '2026-05-10'))
-    await doses.remove('p2', NOW)
+    await db.runMany([doses.insertStatement(prisePlan('p1', '2026-04-10'))])
+    await db.runMany([doses.insertStatement(prisePlan('p2', '2026-05-10'))])
+    await db.runMany([doses.markDeletedStatement(['p2'], NOW)])
 
     await expect(doses.countByAnimal(MIETTE)).resolves.toEqual({ [milbemax]: 2 })
     await expect(doses.countByAnimal(VASCO)).resolves.toEqual({ [bravecto]: 1 })
-  })
-
-  it('ne supprime jamais la seule prise visible d’un traitement', async () => {
-    await expect(doses.remove(milbemax, NOW)).resolves.toBe(false)
-
-    await expect(ligne(milbemax)).resolves.toMatchObject([{ deleted_at: null }])
-  })
-
-  it('ne compte pas une prise supprimée : la restante, seule visible, est gardée', async () => {
-    await doses.record(prisePlan('p1', '2026-04-10'))
-    await doses.remove('p1', EARLIER)
-
-    await expect(doses.remove(milbemax, NOW)).resolves.toBe(false)
-
-    await expect(doses.listByTreatment(milbemax)).resolves.toMatchObject([{ id: milbemax }])
-  })
-
-  it('supprime une prise quand une autre reste visible, et le dit', async () => {
-    await doses.record(prisePlan('p1', '2026-04-10'))
-
-    await expect(doses.remove(milbemax, NOW)).resolves.toBe(true)
-
-    await expect(doses.listByTreatment(milbemax)).resolves.toMatchObject([{ id: 'p1' }])
-  })
-
-  it('rétablit une prise supprimée, sans toucher sa date ni son échéance', async () => {
-    await doses.record(prisePlan('p1', '2026-04-10'))
-    await doses.remove('p1', EARLIER)
-
-    await expect(doses.revive('p1', NOW)).resolves.toBe(true)
-
-    await expect(doses.getById('p1')).resolves.toEqual(lue('p1', '2026-04-10'))
-    await expect(doses.revive('p1', NOW)).resolves.toBe(false)
-  })
-
-  it('ne rétablit pas une prise dont le jour a été noté entre-temps', async () => {
-    await doses.record(prisePlan('p1', '2026-04-10'))
-    await doses.remove('p1', EARLIER)
-    await doses.record(prisePlan('p2', '2026-04-10'))
-
-    await expect(doses.revive('p1', NOW)).resolves.toBe(false)
-  })
-
-  it('change la date d’une prise avec l’échéance qu’elle vise et sa prochaine dose', async () => {
-    await doses.record(prisePlan('p1', '2026-04-10'))
-
-    await expect(
-      doses.changeDate(
-        'p1',
-        { givenOn: '2026-04-12', dueOn: '2026-04-11', nextDueDate: '2026-05-12' },
-        LATER,
-      ),
-    ).resolves.toBe(true)
-
-    await expect(doses.getById('p1')).resolves.toEqual(
-      lue('p1', '2026-04-12', { dueOn: '2026-04-11', nextDueDate: '2026-05-12', updatedAt: LATER }),
-    )
-  })
-
-  it('ne déplace pas une prise sur le jour d’une autre, ni une prise supprimée', async () => {
-    await doses.record(prisePlan('p1', '2026-04-10'))
-    await doses.record(prisePlan('p2', '2026-05-10'))
-    const dates = { givenOn: '2026-05-10', dueOn: '2026-05-10', nextDueDate: '2026-08-10' }
-
-    await expect(doses.changeDate('p1', dates, LATER)).resolves.toBe(false)
-    await doses.remove('p2', NOW)
-    await expect(doses.changeDate('p2', dates, LATER)).resolves.toBe(false)
-    await expect(doses.changeDate('p1', dates, LATER)).resolves.toBe(true)
   })
 })
 

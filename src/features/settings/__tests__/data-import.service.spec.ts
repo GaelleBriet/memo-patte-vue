@@ -34,7 +34,6 @@ import { createTreatmentDosesRepository } from '@/features/treatments/repository
 import { createTreatmentPeriodsRepository } from '@/features/treatments/repository/treatment-periods.repository'
 import type { NewTreatmentDose } from '@/features/treatments/schema/treatment-dose.schema'
 import { createTreatmentsRepository } from '@/features/treatments/repository/treatments.repository'
-import { createTreatmentDosesService } from '@/features/treatments/service/treatment-doses.service'
 import { createVaccinationInjectionsRepository } from '@/features/vaccinations/repository/vaccination-injections.repository'
 import { createVaccinationsRepository } from '@/features/vaccinations/repository/vaccinations.repository'
 import { createWeightRepository } from '@/features/weight/repository/weight.repository'
@@ -1050,16 +1049,18 @@ describe('data-import.service', () => {
         frequency: { value: 3, unit: 'month' },
         lastDoseDate: '2026-03-01',
       })
-      await phone.doses.record(
-        prise({
-          id: crypto.randomUUID(),
-          treatmentId: bravecto.id,
-          animalId: milo.id,
-          givenOn: '2026-06-01',
-          nextDueDate: '2026-09-01',
-          at: '2026-06-01T08:00:00.000Z',
-        }),
-      )
+      await client.runMany([
+        phone.doses.insertStatement(
+          prise({
+            id: crypto.randomUUID(),
+            treatmentId: bravecto.id,
+            animalId: milo.id,
+            givenOn: '2026-06-01',
+            nextDueDate: '2026-09-01',
+            at: '2026-06-01T08:00:00.000Z',
+          }),
+        ),
+      ])
       const drontal = await phone.seed.create({
         animalId: milo.id,
         name: 'Drontal',
@@ -1115,17 +1116,19 @@ describe('data-import.service', () => {
         firstDoseOn: '2026-09-27',
         ...reglages,
       })
-      await phone.doses.record({
-        ...prise({
-          id: crypto.randomUUID(),
-          treatmentId: metacam.id,
-          animalId: luna.id,
-          givenOn: '2026-09-27',
-          nextDueDate: '2026-09-27',
-          at: '2026-09-27T08:00:00.000Z',
+      await source.runMany([
+        phone.doses.insertStatement({
+          ...prise({
+            id: crypto.randomUUID(),
+            treatmentId: metacam.id,
+            animalId: luna.id,
+            givenOn: '2026-09-27',
+            nextDueDate: '2026-09-27',
+            at: '2026-09-27T08:00:00.000Z',
+          }),
+          dueTime: '08:00',
         }),
-        dueTime: '08:00',
-      })
+      ])
       const edition = { name: 'Métacam', type: 'medication' as const, ...reglages }
       await form.update(metacam.id, { ...edition, doseQuantity: 0.3, nextDoseOn: null })
       await form.update(metacam.id, { ...edition, doseQuantity: 0.3, nextDoseOn: '2026-09-30' })
@@ -1220,23 +1223,31 @@ describe('data-import.service', () => {
       await importerOn(phoneB).importData(await exported(phoneA), 'replace')
 
       at('2026-09-09T08:00:00.000Z')
-      await createTreatmentDosesRepository(phoneB).record(
-        prise({
-          id: crypto.randomUUID(),
-          treatmentId: milbemax.id,
-          animalId: luna.id,
-          givenOn: '2026-09-09',
-          nextDueDate: '2026-09-16',
-          at: '2026-09-09T08:00:00.000Z',
-        }),
-      )
+      await phoneB.runMany([
+        createTreatmentDosesRepository(phoneB).insertStatement(
+          prise({
+            id: crypto.randomUUID(),
+            treatmentId: milbemax.id,
+            animalId: luna.id,
+            givenOn: '2026-09-09',
+            nextDueDate: '2026-09-16',
+            at: '2026-09-09T08:00:00.000Z',
+          }),
+        ),
+      ])
       at('2026-09-10T08:00:00.000Z')
-      await createTreatmentDosesService({
-        treatments: () => a.treatments,
-        doses: () => a.doses,
-        reminders: { reschedule: async () => {} },
-        now: () => new Date(),
-      }).record(milbemax.id, '2026-09-10')
+      await phoneA.runMany([
+        a.doses.insertStatement(
+          prise({
+            id: crypto.randomUUID(),
+            treatmentId: milbemax.id,
+            animalId: luna.id,
+            givenOn: '2026-09-10',
+            nextDueDate: '2026-09-17',
+            at: '2026-09-10T08:00:00.000Z',
+          }),
+        ),
+      ])
 
       await importerOn(phoneA).importData(await exported(phoneB), 'merge')
 
@@ -1344,9 +1355,21 @@ describe('data-import.service', () => {
       const b = createRepositories(phoneB)
 
       at('2026-09-05T09:00:00.000Z')
-      await b.doses.changeDate(
-        milbemax.id,
-        { givenOn: '2026-06-20', dueOn: '2026-06-20', nextDueDate: '2026-09-20' },
+      await b.doses.applyBatch(
+        [
+          {
+            action: 'rewrite',
+            id: milbemax.id,
+            dose: {
+              periodId: milbemax.periodId,
+              dueOn: '2026-06-20',
+              dueTime: null,
+              givenOn: '2026-06-20',
+              status: 'given',
+              nextDueDate: '2026-09-20',
+            },
+          },
+        ],
         new Date().toISOString(),
       )
       at('2026-09-05T10:00:00.000Z')
@@ -1399,16 +1422,18 @@ describe('data-import.service', () => {
         nextDueDate: '2026-07-15',
       })
       at('2026-09-12T08:00:00.000Z')
-      await createTreatmentDosesRepository(phoneB).record(
-        prise({
-          id: crypto.randomUUID(),
-          treatmentId: milbemax.id,
-          animalId: luna.id,
-          givenOn: '2026-09-12',
-          nextDueDate: '2026-12-12',
-          at: '2026-09-12T08:00:00.000Z',
-        }),
-      )
+      await phoneB.runMany([
+        createTreatmentDosesRepository(phoneB).insertStatement(
+          prise({
+            id: crypto.randomUUID(),
+            treatmentId: milbemax.id,
+            animalId: luna.id,
+            givenOn: '2026-09-12',
+            nextDueDate: '2026-12-12',
+            at: '2026-09-12T08:00:00.000Z',
+          }),
+        ),
+      ])
 
       at('2026-09-20T08:00:00.000Z')
       const [fromA, fromB] = [await exported(phoneA), await exported(phoneB)]

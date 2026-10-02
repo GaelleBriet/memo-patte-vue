@@ -14,7 +14,9 @@ import {
 } from 'vitest'
 
 import TreatmentReminderSheet from '../views/TreatmentReminderSheet.vue'
+import type { TreatmentWithHistory } from '../repository/treatments.repository'
 import type { Treatment } from '../schema/treatment.schema'
+import type { NotedMoment } from '../service/treatment-doses.service'
 import { useTreatmentsStore } from '../store/treatments.store'
 import { installBackButton } from '@/core/app-lifecycle/back-button'
 import i18n from '@/core/i18n'
@@ -65,6 +67,61 @@ const BRAVECTO: Treatment = {
   deletedAt: null,
 }
 
+const AT = '2026-09-01T09:00:00.000Z'
+const HISTORY: TreatmentWithHistory = {
+  id: BRAVECTO.id,
+  animalId: BRAVECTO.animalId,
+  name: BRAVECTO.name,
+  type: BRAVECTO.type,
+  createdAt: AT,
+  updatedAt: AT,
+  periods: [
+    {
+      id: BRAVECTO.periodId,
+      treatmentId: BRAVECTO.id,
+      animalId: BRAVECTO.animalId,
+      startsOn: '2026-08-28',
+      firstDueOn: '2026-08-28',
+      endsOn: null,
+      stoppedOn: null,
+      frequency: BRAVECTO.frequency,
+      times: [],
+      doseQuantity: null,
+      doseUnit: null,
+      reminderOffsetMinutes: null,
+      reminderTime: null,
+      createdAt: AT,
+      updatedAt: AT,
+      deletedAt: null,
+    },
+  ],
+  doses: [
+    {
+      id: 'p0',
+      periodId: BRAVECTO.periodId,
+      treatmentId: BRAVECTO.id,
+      animalId: BRAVECTO.animalId,
+      dueOn: '2026-08-28',
+      dueTime: null,
+      givenOn: '2026-08-28',
+      status: 'given',
+      nextDueDate: '2026-09-28',
+      createdAt: AT,
+      updatedAt: AT,
+      deletedAt: null,
+    },
+  ],
+}
+const NOTED: NotedMoment = {
+  animalId: BRAVECTO.animalId,
+  undo: [{ action: 'delete', id: 'p1' }],
+  alreadyGivenOn: null,
+  postponement: null,
+  moved: null,
+  due: { periodId: BRAVECTO.periodId, dueOn: '2026-09-28', dueTime: null },
+  severalTimes: false,
+}
+
 let wrapper: VueWrapper | null = null
 let recordDose: MockInstance
 let undoDose: MockInstance
@@ -87,10 +144,9 @@ beforeEach(async () => {
   animals.hasLoaded = true
   const treatments = useTreatmentsStore()
   vi.spyOn(treatments, 'getById').mockResolvedValue(BRAVECTO)
-  recordDose = vi
-    .spyOn(treatments, 'recordDose')
-    .mockResolvedValue({ animalId: BOREE.id, doseId: 'p1' })
-  undoDose = vi.spyOn(treatments, 'undoDose').mockResolvedValue()
+  vi.spyOn(treatments, 'getWithHistory').mockResolvedValue(HISTORY)
+  recordDose = vi.spyOn(treatments, 'noteMomentDose').mockResolvedValue(NOTED)
+  undoDose = vi.spyOn(treatments, 'undoDoseAction').mockResolvedValue()
   stop = vi.spyOn(treatments, 'stop').mockResolvedValue({ animalId: BOREE.id, stopped: true })
   undoStop = vi.spyOn(treatments, 'undoStop').mockResolvedValue()
   await router.push({ name: 'home' })
@@ -189,7 +245,7 @@ describe('TreatmentReminderSheet — F2', () => {
     runToastAction()
     await flushPromises()
 
-    expect(undoDose).toHaveBeenCalledWith(BRAVECTO.id, 'p1')
+    expect(undoDose).toHaveBeenCalledWith(BRAVECTO.id, NOTED.undo)
     expect(sheet.emitted('changed')).toHaveLength(2)
   })
 
@@ -197,7 +253,7 @@ describe('TreatmentReminderSheet — F2', () => {
     let terminer: () => void = () => {}
     recordDose.mockReturnValue(
       new Promise((resolve) => {
-        terminer = () => resolve({ animalId: BOREE.id, doseId: 'p1' })
+        terminer = () => resolve(NOTED)
       }),
     )
     await monter()
@@ -210,15 +266,29 @@ describe('TreatmentReminderSheet — F2', () => {
     expect(recordDose).toHaveBeenCalledOnce()
   })
 
-  it('confirme sans « Annuler » quand la prise du jour était déjà notée', async () => {
-    recordDose.mockResolvedValue({ animalId: BOREE.id, doseId: null })
+  it('dit « déjà notée », sans « Annuler », quand la prise du jour l’était déjà', async () => {
+    recordDose.mockResolvedValue({ ...NOTED, undo: [], alreadyGivenOn: '2026-09-23', due: null })
     await monter()
 
     bouton('.reminder-actions__done-today').click()
     await flushPromises()
 
-    expect(toastMessage.value).toBe('Prise de Bravecto notée pour Boree')
+    expect(toastMessage.value).toBe('Prise de Bravecto déjà notée aujourd’hui pour Boree')
     expect(toastAction.value).toBeNull()
+  })
+
+  it('s’ouvre sans la ligne « Prochaine dose » quand le traitement est illisible', async () => {
+    vi.spyOn(useTreatmentsStore(), 'getWithHistory').mockResolvedValue({
+      ...HISTORY,
+      periods: [{ ...HISTORY.periods[0]!, times: ['8h'] }],
+    })
+    await monter()
+
+    bouton('.reminder-actions__row--other-date').click()
+    await flushPromises()
+
+    expect(texte('.treatment-reminder-sheet__dose-on')).toBe('Prise du mer. 23 sept. 2026')
+    expect(document.body.querySelector('.treatment-reminder-sheet__next-dose')).toBeNull()
   })
 
   it('garde la feuille ouverte et dit l’échec quand la prise n’a pas pu être notée', async () => {

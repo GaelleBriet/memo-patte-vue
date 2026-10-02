@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { ZodError } from 'zod'
 
+import { todayIsoDate } from '@/core/app-lifecycle/today-iso-date'
 import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory-db'
 import i18n from '@/core/i18n'
 import { createAnimalsRepository } from '@/features/animals/repository/animals.repository'
@@ -9,6 +9,7 @@ import {
   createFakeNotifications,
   type FakeNotifications,
 } from '@/shared/__tests__/fake-notifications'
+import { treatmentScheduleOf } from '../logic/treatment-schedule'
 import { createTreatmentDosesRepository } from '../repository/treatment-doses.repository'
 import { createTreatmentPeriodsRepository } from '../repository/treatment-periods.repository'
 import {
@@ -20,7 +21,7 @@ import {
   type TreatmentDosesService,
 } from '../service/treatment-doses.service'
 import { createTreatmentRemindersService } from '../service/treatment-reminders.service'
-import { seedHeadEdit, seedTreatmentWithDose } from './seed-treatment'
+import { seedTreatmentWithDose } from './seed-treatment'
 
 const BOREE = '11111111-1111-4111-8111-111111111111'
 const NOW = new Date('2026-09-23T08:00:00.000Z')
@@ -88,491 +89,358 @@ describe('treatmentDosesService', () => {
     vi.useRealTimers()
   })
 
-  it('note la prise du jour : nouvelle tête, prochaine dose recalculée, rappels reprogrammés', async () => {
-    expect(dueDates()[0]).toBe('2026-09-28')
+  describe('noter la dose du moment — feuille « À faire » et notification', () => {
+    const LUNA_AT = '2026-09-01T08:00:00.000Z'
 
-    const recorded = await service.record(bravecto, '2026-09-23')
+    async function creer(
+      id: string,
+      settings: {
+        firstDueOn: string
+        frequency: { value: number; unit: 'day' | 'week' | 'month' }
+        times?: string[]
+      },
+    ): Promise<string> {
+      await db.runMany([
+        {
+          sql: `INSERT INTO treatment (id, animal_id, name, type, created_at, updated_at)
+                VALUES (?, ?, 'Métacam', 'medication', ?, ?)`,
+          params: [id, BOREE, LUNA_AT, LUNA_AT],
+        },
+        createTreatmentPeriodsRepository(db).insertStatement({
+          id,
+          treatmentId: id,
+          animalId: BOREE,
+          startsOn: settings.firstDueOn,
+          firstDueOn: settings.firstDueOn,
+          frequency: settings.frequency,
+          times: settings.times ?? [],
+          stoppedOn: null,
+          createdAt: LUNA_AT,
+          updatedAt: LUNA_AT,
+          deletedAt: null,
+        }),
+      ])
+      return id
+    }
 
-    expect(recorded).toEqual({ animalId: BOREE, doseId: expect.any(String) })
-    await expect(visibleDoses()).resolves.toEqual([
-      { given_on: '2026-08-28', next_due_date: '2026-09-28' },
-      { given_on: '2026-09-23', next_due_date: '2026-10-23' },
-    ])
-    await expect(treatments.getById(bravecto)).resolves.toMatchObject({
-      lastDoseDate: '2026-09-23',
-      nextDueDate: '2026-10-23',
-    })
-    expect(dueDates()[0]).toBe('2026-10-23')
-  })
-
-  it('note la première prise d’un traitement sans prise', async () => {
-    await db.run('UPDATE treatment_dose SET deleted_at = updated_at WHERE treatment_id = ?', [
-      bravecto,
-    ])
-
-    await service.record(bravecto, '2026-09-23')
-
-    await expect(treatments.getById(bravecto)).resolves.toMatchObject({
-      lastDoseDate: '2026-09-23',
-      nextDueDate: '2026-10-23',
-    })
-    expect(dueDates()[0]).toBe('2026-10-23')
-  })
-
-  it('annule la première prise d’un traitement sans prise : plus aucune prise, rappels sur la première échéance', async () => {
-    await db.run('UPDATE treatment_dose SET deleted_at = updated_at WHERE treatment_id = ?', [
-      bravecto,
-    ])
-    await db.run('UPDATE treatment_period SET first_due_on = ? WHERE treatment_id = ?', [
-      '2026-09-30',
-      bravecto,
-    ])
-    const { doseId } = await service.record(bravecto, '2026-09-23')
-    expect(dueDates()[0]).toBe('2026-10-23')
-
-    await service.undo(bravecto, doseId!)
-
-    await expect(visibleDoses()).resolves.toEqual([])
-    await expect(treatments.getById(bravecto)).resolves.toMatchObject({
-      lastDoseDate: null,
-      nextDueDate: '2026-09-30',
-    })
-    expect(dueDates()[0]).toBe('2026-09-30')
-  })
-
-  it('note une prise à une date passée, échéance calculée depuis cette date', async () => {
-    await service.record(bravecto, '2026-09-20')
-
-    await expect(treatments.getById(bravecto)).resolves.toMatchObject({
-      lastDoseDate: '2026-09-20',
-      nextDueDate: '2026-10-20',
-    })
-  })
-
-  describe('échéance visée', () => {
-    function dueOns() {
-      return db.query<{ given_on: string; due_on: string; status: string; period_id: string }>(
-        `SELECT given_on, due_on, status, period_id FROM treatment_dose
-         WHERE treatment_id = ? AND deleted_at IS NULL ORDER BY given_on`,
-        [bravecto],
+    function lignes(id: string) {
+      return db.query<{ due_on: string; due_time: string | null; given_on: string | null }>(
+        `SELECT due_on, due_time, given_on FROM treatment_dose
+         WHERE treatment_id = ? AND deleted_at IS NULL ORDER BY due_on, due_time`,
+        [id],
       )
     }
 
-    it.each([
-      ['en avance', '2026-09-23'],
-      ['en retard', '2026-10-02'],
-      ['pour un jour d’avant la dernière', '2026-08-01'],
-    ])('une prise donnée %s vise son propre jour, dans la période en cours', async (_, day) => {
-      vi.setSystemTime(new Date('2026-10-02T08:00:00.000Z'))
-
-      await service.record(bravecto, day)
-
-      await expect(dueOns()).resolves.toContainEqual({
-        given_on: day,
-        due_on: day,
-        status: 'given',
-        period_id: bravecto,
-      })
-    })
-
-    it('une prise notée pour un jour d’avant la dernière ne devient pas la dernière', async () => {
-      await service.record(bravecto, '2026-08-01')
-
-      await expect(treatments.getById(bravecto)).resolves.toMatchObject({
-        lastDoseDate: '2026-08-28',
-        nextDueDate: '2026-09-28',
-      })
-    })
-
-    it('après une prise en avance, une prochaine dose avancée à la main reste notable', async () => {
-      await service.record(bravecto, '2026-09-23')
-      await seedHeadEdit(db, bravecto, {
-        name: 'Bravecto',
-        type: 'deworming',
-        frequency: { value: 1, unit: 'month' },
-        nextDueDate: '2026-09-25',
-      })
-      vi.setSystemTime(new Date('2026-09-25T08:00:00.000Z'))
-
-      await service.record(bravecto, '2026-09-25')
-
-      await expect(treatments.getById(bravecto)).resolves.toMatchObject({
-        lastDoseDate: '2026-09-25',
-        nextDueDate: '2026-10-25',
-      })
-    })
-
-    it('un quotidien rattrapé après coup garde son historique dans l’ordre des dates, et sa dernière prise après une suppression', async () => {
-      vi.setSystemTime(new Date('2026-09-01T08:00:00.000Z'))
-      const panacur = (
-        await seedTreatmentWithDose(db, {
-          animalId: BOREE,
-          name: 'Panacur',
-          type: 'deworming',
-          frequency: { value: 1, unit: 'day' },
-          lastDoseDate: '2026-09-01',
-        })
-      ).id
-      vi.setSystemTime(new Date('2026-09-02T08:00:00.000Z'))
-      await service.record(panacur, '2026-09-02')
-      vi.setSystemTime(new Date('2026-09-05T08:00:00.000Z'))
-      const { doseId } = await service.record(panacur, '2026-09-05')
-      vi.setSystemTime(new Date('2026-09-05T08:01:00.000Z'))
-      await service.record(panacur, '2026-09-04')
-      vi.setSystemTime(new Date('2026-09-05T08:02:00.000Z'))
-      await service.record(panacur, '2026-09-03')
-
-      expect((await treatments.listDoses(panacur)).map(({ givenOn }) => givenOn)).toEqual([
-        '2026-09-05',
-        '2026-09-04',
-        '2026-09-03',
-        '2026-09-02',
-        '2026-09-01',
-      ])
-
-      await service.remove(panacur, doseId!)
-
-      await expect(treatments.getById(panacur)).resolves.toMatchObject({
-        lastDoseDate: '2026-09-04',
-        nextDueDate: '2026-09-05',
-      })
-    })
-  })
-
-  it('ne note qu’une prise sur un double tap', async () => {
-    const [premier, second] = await Promise.all([
-      service.record(bravecto, '2026-09-23'),
-      service.record(bravecto, '2026-09-23'),
-    ])
-
-    expect([premier.doseId, second.doseId].filter((id) => id !== null)).toHaveLength(1)
-    await expect(visibleDoses()).resolves.toHaveLength(2)
-  })
-
-  it('refuse une prise dans le futur, sans rien écrire', async () => {
-    await expect(service.record(bravecto, '2026-09-24')).rejects.toThrow(ZodError)
-
-    await expect(visibleDoses()).resolves.toHaveLength(1)
-  })
-
-  it('annule la prise : la précédente redevient la tête, ses rappels reviennent', async () => {
-    const { doseId } = await service.record(bravecto, '2026-09-23')
-
-    await service.undo(bravecto, doseId!)
-
-    await expect(treatments.getById(bravecto)).resolves.toMatchObject({
-      lastDoseDate: '2026-08-28',
-      nextDueDate: '2026-09-28',
-    })
-    expect(dueDates()[0]).toBe('2026-09-28')
-  })
-
-  describe('historique', () => {
-    async function noter(givenOn: string): Promise<string> {
-      const { doseId } = await service.record(bravecto, givenOn)
-      if (doseId === null) throw new Error('prise non notée')
-      return doseId
+    async function fiche(id: string) {
+      const history = await treatments.getWithHistory(id)
+      return treatmentScheduleOf(history!, todayIsoDate())
     }
 
-    it('supprime la dernière prise : la précédente redevient la tête, ses rappels reviennent', async () => {
-      const derniere = await noter('2026-09-23')
+    const DEUX_HEURES = {
+      firstDueOn: '2026-09-23',
+      frequency: { value: 1, unit: 'day' as const },
+      times: ['08:00', '20:00'],
+    }
+    const HEBDO = { firstDueOn: '2026-09-18', frequency: { value: 1, unit: 'week' as const } }
 
-      await service.remove(bravecto, derniere)
+    it('note en avance la prochaine dose d’un mensuel, rappels reprogrammés', async () => {
+      const noted = await service.noteMoment(bravecto, '2026-09-23')
 
-      await expect(treatments.getById(bravecto)).resolves.toMatchObject({
-        lastDoseDate: '2026-08-28',
-        nextDueDate: '2026-09-28',
+      expect(noted).toMatchObject({
+        animalId: BOREE,
+        alreadyGivenOn: null,
+        due: { periodId: bravecto, dueOn: '2026-09-28', dueTime: null },
+        severalTimes: false,
       })
-      expect(dueDates()[0]).toBe('2026-09-28')
-    })
-
-    it('refuse de supprimer la seule prise d’un traitement', async () => {
-      await expect(service.remove(bravecto, bravecto)).rejects.toThrow('Prise non supprimée')
-
-      await expect(visibleDoses()).resolves.toHaveLength(1)
-    })
-
-    it('rétablit une prise supprimée (Annuler)', async () => {
-      const derniere = await noter('2026-09-23')
-      await service.remove(bravecto, derniere)
-
-      await service.undoRemove(bravecto, derniere)
-
-      await expect(treatments.getById(bravecto)).resolves.toMatchObject({
-        nextDueDate: '2026-10-23',
-      })
-      expect(dueDates()[0]).toBe('2026-10-23')
-    })
-
-    it('change la date de la dernière prise : la prochaine dose est recalculée', async () => {
-      const derniere = await noter('2026-09-23')
-
-      const changement = await service.changeDate(bravecto, derniere, '2026-09-21')
-
-      expect(changement).toEqual({
-        previous: { givenOn: '2026-09-23', dueOn: '2026-09-23', nextDueDate: '2026-10-23' },
-        postponementKept: false,
-      })
-      await expect(visibleDoses()).resolves.toEqual([
-        { given_on: '2026-08-28', next_due_date: '2026-09-28' },
-        { given_on: '2026-09-21', next_due_date: '2026-10-21' },
-      ])
-      expect(dueDates()[0]).toBe('2026-10-21')
-    })
-
-    it('remet les dates d’avant le changement (Annuler)', async () => {
-      const derniere = await noter('2026-09-23')
-      const { previous } = await service.changeDate(bravecto, derniere, '2026-09-21')
-
-      await service.undoChangeDate(bravecto, derniere, previous)
-
       await expect(treatments.getById(bravecto)).resolves.toMatchObject({
         lastDoseDate: '2026-09-23',
         nextDueDate: '2026-10-23',
       })
-      await expect(
-        db.query('SELECT due_on FROM treatment_dose WHERE id = ?', [derniere]),
-      ).resolves.toEqual([{ due_on: '2026-09-23' }])
+      expect(dueDates()[0]).toBe('2026-10-23')
+
+      await service.undoBatch(bravecto, noted.undo)
+
+      expect(dueDates()[0]).toBe('2026-09-28')
     })
 
-    it('garde un report manuel quand la prise est déplacée, et le dit', async () => {
-      const trimestriel = (
-        await seedTreatmentWithDose(db, {
-          animalId: BOREE,
-          name: 'Bravecto trimestriel',
-          type: 'antiparasitic',
-          frequency: { value: 3, unit: 'month' },
-          lastDoseDate: '2026-08-28',
-        })
-      ).id
-      await seedHeadEdit(db, trimestriel, {
-        name: 'Bravecto trimestriel',
-        type: 'antiparasitic',
-        frequency: { value: 3, unit: 'month' },
-        nextDueDate: '2026-12-15',
+    it('(a) à 8 h et 20 h, note la première heure sans prise : la fiche garde la dose de 20 h du jour', async () => {
+      const metacam = await creer('metacam', DEUX_HEURES)
+
+      const noted = await service.noteMoment(metacam, '2026-09-23')
+
+      expect(noted).toMatchObject({
+        due: { dueOn: '2026-09-23', dueTime: '08:00' },
+        severalTimes: true,
       })
-
-      const changement = await service.changeDate(trimestriel, trimestriel, '2026-08-27')
-
-      expect(changement.postponementKept).toBe(true)
-      await expect(treatments.getById(trimestriel)).resolves.toMatchObject({
-        lastDoseDate: '2026-08-27',
-        nextDueDate: '2026-12-15',
+      await expect(lignes(metacam)).resolves.toEqual([
+        { due_on: '2026-09-23', due_time: '08:00', given_on: '2026-09-23' },
+      ])
+      await expect(fiche(metacam)).resolves.toMatchObject({
+        phase: 'today',
+        currentDoses: [{ dueOn: '2026-09-23', dueTime: '20:00' }],
       })
     })
 
-    it('ne dit pas « report gardé » pour une prise d’une période précédente', async () => {
-      await seedHeadEdit(db, bravecto, {
-        name: 'Bravecto',
-        type: 'deworming',
-        frequency: { value: 1, unit: 'month' },
-        nextDueDate: '2026-10-15',
+    it('(b) fiche d’abord, puis feuille le même jour : l’heure suivante, puis « déjà notée », sans rien écrire', async () => {
+      const metacam = await creer('metacam', DEUX_HEURES)
+      await service.apply(metacam, {
+        kind: 'note',
+        gesture: {
+          kind: 'given',
+          due: { periodId: metacam, dueOn: '2026-09-23', dueTime: '08:00' },
+          givenOn: '2026-09-23',
+        },
       })
-      await db.runMany([
-        createTreatmentPeriodsRepository(db).insertStatement({
-          id: 'reprise',
-          treatmentId: bravecto,
-          animalId: BOREE,
-          startsOn: '2026-09-20',
-          firstDueOn: '2026-11-01',
-          frequency: { value: 1, unit: 'month' },
-          stoppedOn: null,
-          createdAt: NOW.toISOString(),
-          updatedAt: NOW.toISOString(),
-          deletedAt: null,
-        }),
+
+      const soir = await service.noteMoment(metacam, '2026-09-23')
+      const encore = await service.noteMoment(metacam, '2026-09-23')
+
+      expect(soir.due).toMatchObject({ dueOn: '2026-09-23', dueTime: '20:00' })
+      expect(encore).toMatchObject({ undo: [], alreadyGivenOn: '2026-09-23', due: null })
+      await expect(lignes(metacam)).resolves.toHaveLength(2)
+    })
+
+    it('(b) feuille d’abord, puis fiche : la fiche dit « déjà notée » pour l’heure notée par la feuille', async () => {
+      const metacam = await creer('metacam', DEUX_HEURES)
+      await service.noteMoment(metacam, '2026-09-23')
+
+      const applied = await service.apply(metacam, {
+        kind: 'note',
+        gesture: {
+          kind: 'given',
+          due: { periodId: metacam, dueOn: '2026-09-23', dueTime: '08:00' },
+          givenOn: '2026-09-23',
+        },
+      })
+
+      expect(applied).toMatchObject({ undo: [], alreadyGivenOn: '2026-09-23' })
+      await expect(lignes(metacam)).resolves.toHaveLength(1)
+    })
+
+    it('(c) dose en retard notée aujourd’hui : elle vise son échéance, aucune dose non renseignée', async () => {
+      const hebdo = await creer('hebdo', HEBDO)
+
+      await service.noteMoment(hebdo, '2026-09-23')
+
+      await expect(lignes(hebdo)).resolves.toEqual([
+        { due_on: '2026-09-18', due_time: null, given_on: '2026-09-23' },
+      ])
+      await expect(fiche(hebdo)).resolves.toMatchObject({ phase: 'upcoming', unloggedDoses: [] })
+    })
+
+    it('(c) la feuille et la fiche écrivent la même ligne, dans un ordre comme dans l’autre', async () => {
+      const parLaFeuille = await creer('feuille', HEBDO)
+      const parLaFiche = await creer('fiche', HEBDO)
+
+      await service.noteMoment(parLaFeuille, '2026-09-23')
+      await service.apply(parLaFiche, {
+        kind: 'note',
+        gesture: {
+          kind: 'given',
+          due: { periodId: parLaFiche, dueOn: '2026-09-18', dueTime: null },
+          givenOn: '2026-09-23',
+        },
+      })
+
+      await expect(lignes(parLaFeuille)).resolves.toEqual(await lignes(parLaFiche))
+      await expect(service.noteMoment(parLaFiche, '2026-09-18')).resolves.toMatchObject({
+        undo: [],
+        alreadyGivenOn: '2026-09-23',
+      })
+    })
+
+    it('« Fait à une autre date » vise la première échéance sans prise de ce jour', async () => {
+      const metacam = await creer('metacam', { ...DEUX_HEURES, firstDueOn: '2026-09-20' })
+
+      const noted = await service.noteMoment(metacam, '2026-09-21')
+
+      expect(noted.due).toMatchObject({ dueOn: '2026-09-21', dueTime: '08:00' })
+    })
+
+    it('deux prises notées en même temps : une seule ligne, la seconde répond « déjà notée »', async () => {
+      const hebdo = await creer('hebdo', HEBDO)
+
+      const [premiere, seconde] = await Promise.all([
+        service.noteMoment(hebdo, '2026-09-23'),
+        service.noteMoment(hebdo, '2026-09-23'),
       ])
 
-      const changement = await service.changeDate(bravecto, bravecto, '2026-08-27')
-
-      expect(changement.postponementKept).toBe(false)
-      await expect(treatments.getById(bravecto)).resolves.toMatchObject({
-        lastDoseDate: null,
-        nextDueDate: '2026-11-01',
-      })
+      await expect(lignes(hebdo)).resolves.toHaveLength(1)
+      expect(premiere.undo).toHaveLength(1)
+      expect(seconde).toMatchObject({ undo: [], alreadyGivenOn: '2026-09-23', due: null })
     })
 
-    it('une prise qui devient la dernière fixe la prochaine dose avec la fréquence de sa période', async () => {
-      const ancienne = await noter('2026-06-01')
-      await seedHeadEdit(db, bravecto, {
-        name: 'Bravecto',
-        type: 'deworming',
-        frequency: { value: 3, unit: 'month' },
-        nextDueDate: '2026-11-28',
-      })
-
-      await service.changeDate(bravecto, ancienne, '2026-09-01')
-
-      await expect(treatments.getById(bravecto)).resolves.toMatchObject({
-        lastDoseDate: '2026-09-01',
-        nextDueDate: '2026-12-01',
-      })
-      expect(dueDates()[0]).toBe('2026-12-01')
-    })
-
-    it('une prise qui cesse d’être la dernière rend la main à la précédente et à son échéance', async () => {
-      const derniere = await noter('2026-09-10')
-
-      await service.changeDate(bravecto, derniere, '2026-08-01')
-
-      await expect(treatments.getById(bravecto)).resolves.toMatchObject({
-        lastDoseDate: '2026-08-28',
-        nextDueDate: '2026-09-28',
-      })
-      await expect(visibleDoses()).resolves.toEqual([
-        { given_on: '2026-08-01', next_due_date: '2026-09-01' },
-        { given_on: '2026-08-28', next_due_date: '2026-09-28' },
+    it('refuse une prise dans le futur ou un traitement fini, sans rien écrire', async () => {
+      const metacam = await creer('metacam', DEUX_HEURES)
+      await db.run('UPDATE treatment_period SET stopped_on = ? WHERE treatment_id = ?', [
+        '2026-09-23',
+        metacam,
       ])
+
+      await expect(service.noteMoment(bravecto, '2026-09-24')).rejects.toThrow('date future')
+      await expect(service.noteMoment(metacam, '2026-09-23')).rejects.toThrow('Aucune dose à noter')
+
+      await expect(visibleDoses()).resolves.toHaveLength(1)
+      await expect(lignes(metacam)).resolves.toEqual([])
     })
 
-    it('ne dit pas « report gardé » quand la dernière passe avant la précédente', async () => {
-      const trimestriel = (
-        await seedTreatmentWithDose(db, {
-          animalId: BOREE,
-          name: 'Bravecto trimestriel',
-          type: 'antiparasitic',
-          frequency: { value: 3, unit: 'month' },
-          lastDoseDate: '2026-08-28',
-        })
-      ).id
-      await service.record(trimestriel, '2026-07-01')
-      await seedHeadEdit(db, trimestriel, {
-        name: 'Bravecto trimestriel',
-        type: 'antiparasitic',
-        frequency: { value: 3, unit: 'month' },
-        nextDueDate: '2026-12-15',
-      })
-
-      const changement = await service.changeDate(trimestriel, trimestriel, '2026-06-15')
-
-      expect(changement.postponementKept).toBe(false)
-      await expect(treatments.getById(trimestriel)).resolves.toMatchObject({
-        lastDoseDate: '2026-07-01',
-      })
+    it('lève pour un traitement introuvable', async () => {
+      await expect(service.noteMoment('inconnu', '2026-09-23')).rejects.toThrow(
+        'Traitement introuvable',
+      )
     })
+  })
 
-    it('une prise précédente redatée recalcule sa prochaine dose, sans devenir la dernière', async () => {
-      const precedente = await noter('2026-06-01')
+  describe('gestes de la fiche, calculés par le moteur', () => {
+    const DOSE_DE_SEPTEMBRE = { periodId: '', dueOn: '2026-09-28', dueTime: null }
 
-      await service.changeDate(bravecto, precedente, '2026-06-05')
+    function septembre() {
+      return { ...DOSE_DE_SEPTEMBRE, periodId: bravecto }
+    }
 
-      await expect(visibleDoses()).resolves.toContainEqual({
-        given_on: '2026-06-05',
-        next_due_date: '2026-07-05',
-      })
-      await expect(treatments.getById(bravecto)).resolves.toMatchObject({
-        lastDoseDate: '2026-08-28',
-        nextDueDate: '2026-09-28',
-      })
-    })
-
-    it('après un changement de fréquence, une prise précédente redatée garde sa prochaine dose, lue comme un report', async () => {
-      const precedente = await noter('2026-06-01')
-      await seedHeadEdit(db, bravecto, {
-        name: 'Bravecto',
-        type: 'deworming',
-        frequency: { value: 3, unit: 'month' },
-        nextDueDate: '2026-11-28',
-      })
-
-      const changement = await service.changeDate(bravecto, precedente, '2026-06-05')
-
-      expect(changement.postponementKept).toBe(false)
-      await expect(visibleDoses()).resolves.toContainEqual({
-        given_on: '2026-06-05',
-        next_due_date: '2026-07-01',
-      })
-    })
-
-    it('sur un traitement arrêté dont la fréquence a changé, la dernière redatée garde sa prochaine dose, lue comme un report', async () => {
-      await createTreatmentPeriodsRepository(db).stop(bravecto, '2026-09-01')
-      await db.run(
-        `UPDATE treatment_period SET frequency_value = 3, frequency_unit = 'month'
-         WHERE treatment_id = ?`,
+    function rows() {
+      return db.query<{
+        due_on: string
+        given_on: string | null
+        status: string
+        next_due_date: string
+        updated_at: string
+        deleted_at: string | null
+      }>(
+        `SELECT due_on, given_on, status, next_due_date, updated_at, deleted_at
+         FROM treatment_dose WHERE treatment_id = ? ORDER BY due_on`,
         [bravecto],
       )
+    }
 
-      const changement = await service.changeDate(bravecto, bravecto, '2026-08-25')
+    it('note la dose du moment en avance : la suite repart de la date réelle, rappels reprogrammés', async () => {
+      const applied = await service.apply(bravecto, {
+        kind: 'note',
+        gesture: { kind: 'given', due: septembre(), givenOn: '2026-09-23' },
+      })
 
-      expect(changement.postponementKept).toBe(true)
-      await expect(visibleDoses()).resolves.toEqual([
-        { given_on: '2026-08-25', next_due_date: '2026-09-28' },
+      expect(applied).toMatchObject({ animalId: BOREE, alreadyGivenOn: null, postponement: null })
+      expect(applied.undo).toEqual([{ action: 'delete', id: expect.any(String) }])
+      await expect(rows()).resolves.toMatchObject([
+        { due_on: '2026-08-28', given_on: '2026-08-28', next_due_date: '2026-09-28' },
+        { due_on: '2026-09-28', given_on: '2026-09-23', next_due_date: '2026-10-23' },
       ])
+      expect(dueDates()[0]).toBe('2026-10-23')
     })
 
-    it('garde l’historique dans l’ordre des dates et la dernière prise la plus tardive, quels que soient les gestes', async () => {
-      let seed = 452
-      const random = (max: number) => {
-        seed = (seed * 1103515245 + 12345) % 2147483648
-        return seed % max
-      }
-      const day = () => `2026-09-${String(1 + random(23)).padStart(2, '0')}`
+    it('« Annuler » rejoue le lot inverse à son propre instant : la ligne est datée de l’annulation', async () => {
+      const { undo } = await service.apply(bravecto, {
+        kind: 'note',
+        gesture: { kind: 'given', due: septembre(), givenOn: '2026-09-23' },
+      })
+      const later = new Date('2026-09-23T08:00:04.000Z')
+      vi.setSystemTime(later)
 
-      for (let step = 0; step < 60; step += 1) {
-        const doses = await treatments.listDoses(bravecto)
-        const target = doses[random(doses.length)]!
-        const gesture = random(3)
-        if (gesture === 0) await service.record(bravecto, day())
-        else if (gesture === 1) await service.changeDate(bravecto, target.id, day()).catch(() => {})
-        else await service.remove(bravecto, target.id).catch(() => {})
+      await service.undoBatch(bravecto, undo)
 
-        const days = (await treatments.listDoses(bravecto)).map(({ givenOn }) => givenOn)
-        expect(days).toEqual([...days].sort().reverse())
-        expect((await treatments.getById(bravecto))?.lastDoseDate).toBe(days[0])
-      }
+      await expect(rows()).resolves.toMatchObject([
+        { due_on: '2026-08-28', deleted_at: null, updated_at: NOW.toISOString() },
+        {
+          due_on: '2026-09-28',
+          deleted_at: later.toISOString(),
+          updated_at: later.toISOString(),
+        },
+      ])
+      expect(dueDates()[0]).toBe('2026-09-28')
     })
 
-    it('refuse de redater une prise qui n’a pas été donnée', async () => {
-      await db.run(
-        `INSERT INTO treatment_dose (id, period_id, treatment_id, animal_id, due_on, status,
-           next_due_date, created_at, updated_at)
-         VALUES ('oubliee', ?, ?, ?, '2026-09-28', 'missed', '2026-10-28', ?, ?)`,
-        [bravecto, bravecto, BOREE, NOW.toISOString(), NOW.toISOString()],
-      )
+    it('n’écrit rien pour une échéance déjà donnée, et dit quand elle l’a été', async () => {
+      const applied = await service.apply(bravecto, {
+        kind: 'note',
+        gesture: {
+          kind: 'given',
+          due: { periodId: bravecto, dueOn: '2026-08-28', dueTime: null },
+          givenOn: '2026-09-23',
+        },
+      })
 
-      await expect(service.changeDate(bravecto, 'oubliee', '2026-09-20')).rejects.toThrow(
-        'Prise non donnée',
-      )
+      expect(applied).toEqual({
+        animalId: BOREE,
+        undo: [],
+        alreadyGivenOn: '2026-08-28',
+        postponement: null,
+        moved: null,
+      })
+      await expect(visibleDoses()).resolves.toHaveLength(1)
     })
 
-    it('refuse une date future ou déjà notée, sans rien écrire', async () => {
-      const derniere = await noter('2026-09-23')
+    it('supprime la seule prise : le traitement reste, son échéance revient', async () => {
+      const { undo } = await service.apply(bravecto, { kind: 'remove', doseId: bravecto })
 
-      await expect(service.changeDate(bravecto, derniere, '2026-09-24')).rejects.toThrow(ZodError)
-      await expect(service.changeDate(bravecto, derniere, '2026-08-28')).rejects.toThrow(
-        'Prise non modifiée',
-      )
+      await expect(visibleDoses()).resolves.toEqual([])
+      await expect(treatments.getById(bravecto)).resolves.toMatchObject({
+        lastDoseDate: null,
+        nextDueDate: '2026-08-28',
+      })
+
+      await service.undoBatch(bravecto, undo)
 
       await expect(visibleDoses()).resolves.toEqual([
         { given_on: '2026-08-28', next_due_date: '2026-09-28' },
-        { given_on: '2026-09-23', next_due_date: '2026-10-23' },
+      ])
+      expect(dueDates()[0]).toBe('2026-09-28')
+    })
+
+    it('marque oubliée la seule prise donnée', async () => {
+      await service.apply(bravecto, {
+        kind: 'note',
+        gesture: {
+          kind: 'missed',
+          due: { periodId: bravecto, dueOn: '2026-08-28', dueTime: null },
+        },
+      })
+
+      await expect(rows()).resolves.toMatchObject([
+        { due_on: '2026-08-28', given_on: null, status: 'missed', next_due_date: '2026-09-28' },
       ])
     })
-  })
 
-  it('dit l’échec d’une annulation qui n’a rien supprimé', async () => {
-    const { doseId } = await service.record(bravecto, '2026-09-23')
-    await service.undo(bravecto, doseId!)
+    it('change la date d’une prise et dit le report gardé', async () => {
+      await service.apply(bravecto, {
+        kind: 'note',
+        gesture: { kind: 'given', due: septembre(), givenOn: '2026-09-23' },
+      })
+      const [, prise] = await treatments.listDoses(bravecto).then((doses) => doses.reverse())
+      await db.run(
+        `INSERT INTO treatment_dose (id, period_id, treatment_id, animal_id, due_on, due_time,
+           given_on, status, next_due_date, created_at, updated_at)
+         VALUES ('report', ?, ?, ?, '2026-10-23', NULL, NULL, 'postponed', '2026-10-30', ?, ?)`,
+        [bravecto, bravecto, BOREE, '2026-09-23T09:00:00.000Z', '2026-09-23T09:00:00.000Z'],
+      )
 
-    await expect(service.undo(bravecto, doseId!)).rejects.toThrow('Prise non annulée')
+      const applied = await service.apply(bravecto, {
+        kind: 'redate',
+        doseId: prise!.id,
+        givenOn: '2026-09-21',
+      })
 
-    await expect(visibleDoses()).resolves.toEqual([
-      { given_on: '2026-08-28', next_due_date: '2026-09-28' },
-    ])
-  })
+      expect(applied.postponement).toEqual({ kept: true, nextDueDate: '2026-10-30' })
+      await expect(rows()).resolves.toMatchObject([
+        { due_on: '2026-08-28' },
+        { due_on: '2026-09-28', given_on: '2026-09-21', next_due_date: '2026-10-21' },
+        { due_on: '2026-10-21', status: 'postponed', next_due_date: '2026-10-30' },
+      ])
+    })
 
-  it('annule la prise du jour même quand elle est devenue la seule', async () => {
-    const { doseId } = await service.record(bravecto, '2026-09-23')
-    await service.remove(bravecto, bravecto)
+    it('n’écrit rien quand le moteur refuse le geste', async () => {
+      await expect(
+        service.apply(bravecto, { kind: 'redate', doseId: bravecto, givenOn: '2026-09-24' }),
+      ).rejects.toThrow(RangeError)
 
-    await service.undo(bravecto, doseId!)
+      await expect(visibleDoses()).resolves.toEqual([
+        { given_on: '2026-08-28', next_due_date: '2026-09-28' },
+      ])
+    })
 
-    await expect(visibleDoses()).resolves.toEqual([])
-  })
-
-  it('lève pour un traitement introuvable', async () => {
-    await expect(
-      service.record('99999999-9999-4999-8999-999999999999', '2026-09-23'),
-    ).rejects.toThrow('Traitement introuvable')
+    it('lève pour un traitement introuvable', async () => {
+      await expect(
+        service.apply('99999999-9999-4999-8999-999999999999', { kind: 'remove', doseId: 'x' }),
+      ).rejects.toThrow('Traitement introuvable')
+    })
   })
 })

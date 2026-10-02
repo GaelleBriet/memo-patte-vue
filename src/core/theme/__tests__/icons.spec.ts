@@ -41,6 +41,10 @@ const iconesDesMaquettes = [
   'delete',
   'repeat',
   'restart_alt',
+  'pill',
+  'date_range',
+  'event_repeat',
+  'event_busy',
 ] as const
 
 describe('registre d’icônes Material Symbols', () => {

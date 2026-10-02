@@ -1,297 +1,422 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
+import { dose, missed, period, plain, postponed, treatment } from './treatment-fixtures'
 import {
-  becomesHead,
-  doseDatesExcept,
-  redatedDose,
-  doseGestureTexts,
-  doseHistory,
+  LINES_BEFORE_TOGGLE,
   finishedTreatmentRows,
   treatmentDeleteTexts,
-  treatmentDetailTexts,
+  treatmentHistory,
 } from '../logic/treatment-history'
-import type { TreatmentDose } from '../schema/treatment-dose.schema'
+import { treatmentScheduleOf } from '../logic/treatment-schedule'
+import type { TreatmentWithHistory } from '../repository/treatments.repository'
+import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
 import type { Treatment } from '../schema/treatment.schema'
 import i18n, { applyLocale } from '@/core/i18n'
 
 const t = i18n.global.t
-const TODAY = '2026-09-23'
 
-function dose(givenOn: string, overrides: Partial<TreatmentDose> = {}): TreatmentDose {
-  return {
-    id: `prise-${givenOn}`,
-    periodId: 'bravecto',
-    treatmentId: 'bravecto',
-    animalId: 'boree',
-    dueOn: givenOn,
-    dueTime: null,
-    givenOn,
-    status: 'given',
-    nextDueDate: '2026-09-28',
-    frequency: { value: 1, unit: 'month' },
-    createdAt: '2026-09-01T09:00:00.000Z',
-    updatedAt: '2026-09-01T09:00:00.000Z',
-    deletedAt: null,
-    ...overrides,
-  }
+function history(book: TreatmentWithHistory, today: string) {
+  return plain(treatmentHistory(t, book, treatmentScheduleOf(book, today)))
 }
 
-const BRAVECTO: Treatment = {
-  id: 'bravecto',
-  animalId: 'boree',
-  name: 'Bravecto',
-  type: 'deworming',
-  periodId: 'bravecto',
-  frequency: { value: 1, unit: 'month' },
-  lastDoseDate: '2026-08-28',
-  nextDueDate: '2026-09-28',
-  stoppedOn: null,
-  createdAt: '2026-05-30T09:00:00.000Z',
-  updatedAt: '2026-05-30T09:00:00.000Z',
-  deletedAt: null,
+function titles(book: TreatmentWithHistory, today: string): string[][] {
+  return history(book, today).periods.map(({ lines }) => lines.map(({ title }) => title))
 }
 
-/** Prises mensuelles, la plus récente d'abord, comme le repository les rend. */
-function monthly(count: number, from = '2026-08-28'): TreatmentDose[] {
-  const [year, month, day] = from.split('-').map(Number) as [number, number, number]
-  return Array.from({ length: count }, (_, index) => {
-    const date = new Date(year, month - 1 - index, day)
-    const iso = [
-      date.getFullYear(),
-      String(date.getMonth() + 1).padStart(2, '0'),
-      String(date.getDate()).padStart(2, '0'),
-    ].join('-')
-    return dose(iso)
+/** Une prise donnée chaque jour, à chaque heure de la période. */
+function daily(
+  from: number,
+  to: number,
+  times: (string | null)[],
+  overrides: Partial<NewTreatmentDose> = {},
+): NewTreatmentDose[] {
+  return Array.from({ length: to - from + 1 }, (_, index) => {
+    const day = `2026-09-${String(from + index).padStart(2, '0')}`
+    return times.map((dueTime) => dose(day, day, { dueTime, ...overrides }))
+  }).flat()
+}
+
+afterEach(() => applyLocale('fr'))
+
+describe('treatmentHistory — une période (planches A · V1 quinquies bis, V5 bis)', () => {
+  const TRIMESTRIEL = period({
+    frequency: { value: 3, unit: 'month' },
+    startsOn: '2025-10-10',
+    firstDueOn: '2025-10-10',
   })
-}
+  const MILBEMAX = treatment(
+    [TRIMESTRIEL],
+    [
+      dose('2025-10-10', '2026-01-10'),
+      dose('2026-01-10', '2026-04-10'),
+      dose('2026-04-10', '2026-07-10'),
+      dose('2026-07-10', '2026-10-10'),
+      postponed('2026-10-10', '2026-10-14', { createdAt: '2026-09-28T08:00:00.000Z' }),
+    ],
+  )
 
-afterEach(() => {
-  applyLocale('fr')
-})
+  it('compte les prises données depuis la première, sans tête de période', () => {
+    const { counter, periods } = history(MILBEMAX, '2026-09-28')
 
-describe('doseHistory', () => {
-  it('met la dernière prise à part tant que le traitement est en cours (F8)', () => {
-    const doses = monthly(4)
+    expect(counter).toBe('4 depuis le 10 oct. 2025')
+    expect(periods).toHaveLength(1)
+    expect(periods[0]).toMatchObject({ head: null, emptyText: null })
+  })
 
-    expect(doseHistory(doses, { ongoing: true })).toEqual({
-      head: doses[0],
-      others: { kind: 'list', doses: doses.slice(1) },
+  it('met le report en ligne discrète, la dernière prise en avant, le reste derrière « Voir »', () => {
+    const [only] = history(MILBEMAX, '2026-09-28').periods
+
+    expect(only!.lines).toMatchObject([
+      {
+        kind: 'move',
+        title: 'Reportée au 14 oct. 2026 (prévue le 10 oct.)',
+        actions: ['change-date', 'remove-move'],
+        bounds: { earliest: '2026-09-28', latest: null },
+        optionsLabel: 'Options pour le report de la dose du 10 octobre 2026',
+      },
+      {
+        kind: 'given',
+        title: '10 juil. 2026',
+        detail: null,
+        isLast: true,
+        actions: ['change-date', 'mark-missed', 'remove'],
+        optionsLabel: 'Options pour la prise du 10 juillet 2026',
+      },
+      { kind: 'given', title: '10 avr. 2026', isLast: false },
+      { kind: 'given', title: '10 janv. 2026' },
+      { kind: 'given', title: '10 oct. 2025' },
+    ])
+    expect(only).toMatchObject({
+      visibleLines: LINES_BEFORE_TOGGLE,
+      toggle: {
+        show: 'Voir les 2 prises précédentes',
+        hide: 'Masquer les prises précédentes',
+      },
     })
   })
 
-  it('ne met pas à part une prise d’une période précédente : la période en cours n’a pas de prise', () => {
-    const doses = monthly(2)
+  it('dit « Avancée » quand la nouvelle date précède l’échéance', () => {
+    const book = treatment(
+      [TRIMESTRIEL],
+      [
+        dose('2026-07-10', '2026-10-10'),
+        postponed('2026-10-10', '2026-10-08', { createdAt: '2026-09-28T08:00:00.000Z' }),
+      ],
+    )
 
-    expect(doseHistory(doses, { ongoing: true, periodId: 'reprise' })).toEqual({
-      head: null,
-      others: { kind: 'list', doses },
+    expect(titles(book, '2026-09-28')[0]![0]).toBe('Avancée au 8 oct. 2026 (prévue le 10 oct.)')
+  })
+
+  it('retire son menu à un report dont la dose d’arrivée est notée (Q25)', () => {
+    const book = treatment(
+      [TRIMESTRIEL],
+      [
+        dose('2026-07-10', '2026-10-10'),
+        postponed('2026-10-10', '2026-10-14', { createdAt: '2026-09-28T08:00:00.000Z' }),
+        dose('2026-10-14', '2027-01-14', { createdAt: '2026-10-14T08:00:00.000Z' }),
+      ],
+    )
+
+    expect(history(book, '2026-10-20').periods[0]!.lines).toMatchObject([
+      { kind: 'given', title: '14 oct. 2026', isLast: true },
+      {
+        kind: 'move',
+        title: 'Reportée au 14 oct. 2026 (prévue le 10 oct.)',
+        actions: [],
+        bounds: null,
+      },
+      { kind: 'given', title: '10 juil. 2026' },
+    ])
+  })
+
+  it('garde l’échéance en titre d’une prise notée un autre jour, sans heure pour une seule heure', () => {
+    const panacur = treatment(
+      [
+        period({
+          startsOn: '2026-10-06',
+          firstDueOn: '2026-10-06',
+          endsOn: '2026-10-10',
+          times: ['20:00'],
+        }),
+      ],
+      [dose('2026-10-06', '2026-10-07', { dueTime: '20:00', givenOn: '2026-10-07' })],
+    )
+
+    expect(history(panacur, '2026-10-07')).toMatchObject({
+      counter: '1 depuis le 6 oct. 2026',
+      periods: [
+        {
+          lines: [
+            { kind: 'given', title: '6 oct. 2026', detail: 'Donnée le 7 oct. 2026', isLast: true },
+          ],
+          toggle: null,
+        },
+      ],
     })
-    expect(doseHistory(doses, { ongoing: true, periodId: 'bravecto' }).head).toBe(doses[0])
   })
 
-  it('liste toutes les prises d’un traitement arrêté (F9 ter)', () => {
-    const doses = monthly(2)
+  it('dit qu’aucune prise n’est notée', () => {
+    const book = treatment([period({ startsOn: '2026-09-29', firstDueOn: '2026-09-29' })])
 
-    expect(doseHistory(doses, { ongoing: false })).toEqual({
-      head: null,
-      others: { kind: 'list', doses },
-    })
-  })
-
-  it('garde une liste simple jusqu’à 12 prises', () => {
-    expect(doseHistory(monthly(12), { ongoing: true }).others.kind).toBe('list')
-  })
-
-  it('au-delà de 12 prises, regroupe les autres par année, la plus récente d’abord', () => {
-    const doses = monthly(20)
-
-    const { head, others } = doseHistory(doses, { ongoing: true })
-
-    expect(head).toBe(doses[0])
-    expect(others).toEqual({
-      kind: 'years',
-      groups: [
-        { year: '2026', doses: doses.slice(1, 8) },
-        { year: '2025', doses: doses.slice(8, 20) },
+    expect(history(book, '2026-09-28')).toEqual({
+      counter: null,
+      periods: [
+        {
+          id: 'p-1',
+          head: null,
+          lines: [],
+          emptyText: 'Aucune prise dans cette période pour l’instant',
+          visibleLines: 0,
+          toggle: null,
+        },
       ],
     })
   })
 })
 
-describe('redatedDose', () => {
-  const QUINZE_JOURS = { value: 15, unit: 'day' } as const
-  const TROIS_MOIS = { value: 3, unit: 'month' } as const
+describe('treatmentHistory — plusieurs périodes (planche A · V3)', () => {
+  const AVANT = period({ times: ['08:00'], doseQuantity: 0.5, doseUnit: 'ml' })
+  const DEPUIS = period({
+    id: 'p-2',
+    startsOn: '2026-09-21',
+    firstDueOn: '2026-09-21',
+    times: ['08:00', '20:00'],
+    doseQuantity: 0.3,
+    doseUnit: 'ml',
+    createdAt: '2026-09-21T08:00:00.000Z',
+  })
+  const METACAM = treatment(
+    [AVANT, DEPUIS],
+    [
+      ...daily(1, 17, ['08:00']),
+      missed('2026-09-18', '2026-09-19', { dueTime: '08:00' }),
+      ...daily(19, 20, ['08:00']),
+      ...daily(21, 24, ['08:00', '20:00'], { periodId: 'p-2' }),
+      missed('2026-09-25', '2026-09-25', { dueTime: '08:00', periodId: 'p-2' }),
+      missed('2026-09-25', '2026-09-26', { dueTime: '20:00', periodId: 'p-2' }),
+      ...daily(26, 27, ['08:00', '20:00'], { periodId: 'p-2' }),
+      dose('2026-09-28', '2026-09-28', { dueTime: '08:00', periodId: 'p-2' }),
+    ],
+  )
 
-  it('recalcule la prochaine dose depuis la nouvelle date, avec la fréquence de sa période', () => {
-    const prise = dose('2026-08-28', { nextDueDate: '2026-09-12', frequency: QUINZE_JOURS })
+  it('compte les seules prises données', () => {
+    expect(history(METACAM, '2026-09-28').counter).toBe('32 depuis le 1 sept. 2026')
+  })
 
-    expect(redatedDose(prise, '2026-08-25', { isHead: false })).toEqual({
-      dates: { givenOn: '2026-08-25', dueOn: '2026-08-25', nextDueDate: '2026-09-09' },
-      postponementKept: false,
+  it('met en tête de chaque période ses dates et ses réglages, la plus récente d’abord', () => {
+    expect(history(METACAM, '2026-09-28').periods.map(({ head }) => head)).toEqual([
+      { title: 'Depuis le 21 sept. 2026', settings: 'Tous les jours · 8 h et 20 h · 0,3 ml' },
+      { title: 'Du 1 sept. au 20 sept. 2026', settings: 'Tous les jours · 8 h · 0,5 ml' },
+    ])
+  })
+
+  it('donne l’heure des prises d’une période à plusieurs heures, et regroupe les oubliées qui se suivent', () => {
+    const [current, previous] = titles(METACAM, '2026-09-28')
+
+    expect(current!.slice(0, 8)).toEqual([
+      '28 sept. 2026 · 8 h',
+      '27 sept. 2026 · 20 h',
+      '27 sept. 2026 · 8 h',
+      '26 sept. 2026 · 20 h',
+      '26 sept. 2026 · 8 h',
+      'Oubliées · 25 sept. 2026, 8 h et 20 h',
+      '24 sept. 2026 · 20 h',
+      '24 sept. 2026 · 8 h',
+    ])
+    expect(previous!.slice(0, 4)).toEqual([
+      '20 sept. 2026',
+      '19 sept. 2026',
+      'Oubliée · 18 sept. 2026',
+      '17 sept. 2026',
+    ])
+  })
+
+  it('garde chaque prise oubliée d’un groupe, avec son menu', () => {
+    const group = history(METACAM, '2026-09-28').periods[0]!.lines[5]
+
+    expect(group).toMatchObject({
+      kind: 'missed',
+      rows: [
+        {
+          title: 'Oubliée · 25 sept. 2026, 20 h',
+          actions: ['mark-given', 'remove'],
+          optionsLabel: 'Options pour la prise du 25 septembre 2026 à 20 h',
+        },
+        { title: 'Oubliée · 25 sept. 2026, 8 h' },
+      ],
     })
   })
 
-  it('garde une prochaine dose reportée à la main, et le dit', () => {
-    const prise = dose('2026-08-28', { nextDueDate: '2026-12-15', frequency: TROIS_MOIS })
+  it('replie chaque période après ses premières lignes, et compte les prises repliées', () => {
+    const [current, previous] = history(METACAM, '2026-09-28').periods
 
-    expect(redatedDose(prise, '2026-08-27', { isHead: true })).toEqual({
-      dates: { givenOn: '2026-08-27', dueOn: '2026-08-27', nextDueDate: '2026-12-15' },
-      postponementKept: true,
+    expect(current!.toggle).toEqual({
+      show: 'Voir les 12 autres prises de cette période',
+      hide: 'Masquer les autres prises de cette période',
+    })
+    expect(previous!.toggle).toEqual({
+      show: 'Voir les 17 prises précédentes',
+      hide: 'Masquer les prises précédentes',
     })
   })
 
-  it('ne dit pas « report gardé » pour une prise qui n’est plus la dernière', () => {
-    const prise = dose('2026-08-28', { nextDueDate: '2026-12-15', frequency: TROIS_MOIS })
+  it('met « Dernière prise » sur la dernière donnée, une seule fois', () => {
+    const lines = history(METACAM, '2026-09-28').periods.flatMap(({ lines }) => lines)
 
-    expect(redatedDose(prise, '2026-07-01', { isHead: false })).toEqual({
-      dates: { givenOn: '2026-07-01', dueOn: '2026-07-01', nextDueDate: '2026-12-15' },
-      postponementKept: false,
+    expect(lines.filter((line) => line.kind === 'given' && line.isLast)).toMatchObject([
+      { title: '28 sept. 2026 · 8 h' },
+    ])
+  })
+
+  it('dit qu’une période ouverte par « Modifier » n’a pas encore de prise', () => {
+    const book = treatment(
+      [
+        period({ frequency: { value: 1, unit: 'week' } }),
+        period({
+          id: 'p-2',
+          startsOn: '2026-09-29',
+          firstDueOn: '2026-09-29',
+          frequency: { value: 15, unit: 'day' },
+          createdAt: '2026-09-29T08:00:00.000Z',
+        }),
+      ],
+      [dose('2026-09-01', '2026-09-08'), dose('2026-09-08', '2026-09-15')],
+    )
+
+    expect(history(book, '2026-09-29').periods[0]).toMatchObject({
+      head: { title: 'Depuis le 29 sept. 2026', settings: 'Tous les 15 jours' },
+      lines: [],
+      emptyText: 'Aucune prise dans cette période pour l’instant',
     })
   })
 
-  it('recalcule un report qui ne resterait pas strictement après la nouvelle date', () => {
-    const prise = dose('2026-08-28', { nextDueDate: '2026-09-10', frequency: TROIS_MOIS })
-
-    expect(redatedDose(prise, '2026-09-10', { isHead: true })).toEqual({
-      dates: { givenOn: '2026-09-10', dueOn: '2026-09-10', nextDueDate: '2026-12-10' },
-      postponementKept: false,
-    })
-    expect(redatedDose(prise, '2026-09-15', { isHead: true })).toEqual({
-      dates: { givenOn: '2026-09-15', dueOn: '2026-09-15', nextDueDate: '2026-12-15' },
-      postponementKept: false,
-    })
-  })
-})
-
-describe('becomesHead', () => {
-  const doses = [
-    dose('2026-08-28', { id: 'tete', createdAt: '2026-08-28T09:00:00.000Z' }),
-    dose('2026-07-28', { id: 'avant', createdAt: '2026-07-28T09:00:00.000Z' }),
-    dose('2026-06-28', { id: 'ancienne', createdAt: '2026-06-28T09:00:00.000Z' }),
-  ]
-
-  it('dit si la prise déplacée passe devant toutes les autres', () => {
-    expect(becomesHead(doses, doses[2]!, '2026-09-01')).toBe(true)
-    expect(becomesHead(doses, doses[2]!, '2026-08-01')).toBe(false)
-    expect(becomesHead(doses, doses[0]!, '2026-08-20')).toBe(true)
-    expect(becomesHead(doses, doses[0]!, '2026-07-01')).toBe(false)
-  })
-
-  it('départage une même date comme la tête en base : saisie la plus récente, puis identifiant', () => {
-    expect(becomesHead(doses, doses[2]!, '2026-08-28')).toBe(false)
-    expect(
-      becomesHead(doses, { ...doses[2]!, createdAt: '2026-09-01T09:00:00.000Z' }, '2026-08-28'),
-    ).toBe(true)
-  })
-
-  it('à échéance égale, une prise sans heure passe avant une prise à une heure', () => {
-    const aUneHeure = [{ ...doses[0]!, dueTime: '08:00' }, doses[1]!, doses[2]!]
-
-    expect(
-      becomesHead(aUneHeure, { ...doses[2]!, createdAt: '2026-09-01T09:00:00.000Z' }, '2026-08-28'),
-    ).toBe(false)
-  })
-})
-
-describe('traitement sans prise', () => {
-  const sansPrise = { ...BRAVECTO, lastDoseDate: null }
-
-  it('n’a ni dernière prise ni prises précédentes', () => {
-    expect(doseHistory([], { ongoing: true })).toEqual({
-      head: null,
-      others: { kind: 'list', doses: [] },
-    })
-  })
-
-  it('annonce sa première échéance et aucune prise', () => {
-    expect(
-      treatmentDetailTexts(t, sansPrise, { animal: 'Boree', today: TODAY, doses: [] }),
-    ).toMatchObject({
-      due: { date: '28 sept. 2026', delay: { text: 'dans 5 jours', overdue: false } },
-      counter: '0',
-      stopped: null,
-    })
-  })
-})
-
-describe('treatmentDetailTexts', () => {
-  it('décrit un traitement en cours et ses prises (F8)', () => {
-    const doses = monthly(4)
-
-    expect(
-      treatmentDetailTexts(t, BRAVECTO, { animal: 'Boree', today: TODAY, doses }),
-    ).toMatchObject({
-      subtitle: 'Vermifuge · Boree',
-      frequency: 'Tous les mois',
-      due: { date: '28 sept. 2026', delay: { text: 'dans 5 jours', overdue: false } },
-      doneLabel: 'C’est fait : noter la prise de Bravecto pour Boree',
-      counter: '4 depuis mai 2026',
-      headDetail: 'A fixé la dose du 28 sept.',
-      showPrevious: 'Voir les 3 prises précédentes',
-      stopped: null,
-    })
-  })
-
-  it('dit « la prise précédente » quand il n’y en a qu’une', () => {
-    expect(
-      treatmentDetailTexts(t, BRAVECTO, { animal: 'Boree', today: TODAY, doses: monthly(2) })
-        .showPrevious,
-    ).toBe('Voir la prise précédente')
-  })
-
-  it('décrit un traitement arrêté sans rappel ni prochaine dose (F9 ter)', () => {
-    const milbemax = {
-      ...BRAVECTO,
-      name: 'Milbemax',
-      frequency: { value: 15, unit: 'day' },
-      stoppedOn: '2026-05-26',
-    } as const
-
-    expect(
-      treatmentDetailTexts(t, milbemax, {
-        animal: 'Boree',
-        today: TODAY,
-        doses: [dose('2026-05-21'), dose('2026-05-07')],
+  it('écrit « Du … au … » pour une période arrêtée ou à date de fin', () => {
+    const book = treatment([
+      period({ stoppedOn: '2026-09-10' }),
+      period({
+        id: 'p-2',
+        startsOn: '2026-11-03',
+        firstDueOn: '2026-11-03',
+        endsOn: '2026-11-07',
+        createdAt: '2026-11-03T08:00:00.000Z',
       }),
-    ).toMatchObject({
-      due: null,
-      counter: '2',
-      stopped: {
-        notice: 'Arrêté le 26 mai 2026. Aucun rappel.',
-        wasFrequency: 'Était tous les 15 jours',
-      },
-    })
+    ])
+
+    expect(history(book, '2026-11-03').periods.map(({ head }) => head?.title)).toEqual([
+      'Du 3 nov. au 7 nov. 2026',
+      'Du 1 sept. au 10 sept. 2026',
+    ])
   })
 
-  it('libelle une année de prises et le menu d’une prise', () => {
-    const texts = treatmentDetailTexts(t, BRAVECTO, {
-      animal: 'Boree',
-      today: TODAY,
-      doses: monthly(2),
-    })
+  it('regroupe des oubliées de plusieurs jours', () => {
+    const book = treatment(
+      [period()],
+      [
+        dose('2026-09-01', '2026-09-02'),
+        missed('2026-09-02', '2026-09-03'),
+        missed('2026-09-03', '2026-09-04'),
+        missed('2026-09-04', '2026-09-05'),
+        dose('2026-09-05', '2026-09-06'),
+      ],
+    )
 
-    expect(texts.year({ year: '2025', doses: monthly(12) })).toBe('2025 · 12 prises')
-    expect(texts.year({ year: '2024', doses: monthly(1) })).toBe('2024 · 1 prise')
-    expect(texts.dose(dose('2026-07-28'))).toEqual({
-      date: '28 juil. 2026',
-      optionsLabel: 'Options pour la prise du 28 juillet 2026',
-    })
+    expect(titles(book, '2026-09-05')[0]).toEqual([
+      '5 sept. 2026',
+      'Oubliées · du 2 sept. au 4 sept. 2026',
+      '1 sept. 2026',
+    ])
   })
 
-  it('suit la langue courante', () => {
+  it('s’écrit en anglais', () => {
     applyLocale('en')
 
+    const { counter, periods } = history(METACAM, '2026-09-28')
+
+    expect(counter).toBe('32 since Sep 1, 2026')
+    expect(periods.map(({ head }) => head?.title)).toEqual([
+      'Since Sep 21, 2026',
+      'Sep 1 – Sep 20, 2026',
+    ])
+    expect(periods[0]!.lines[5]!.title).toBe('Missed · Sep 25, 2026, 8 am and 8 pm')
+    expect(periods[0]!.toggle!.show).toBe('Show the 12 other doses from this period')
+  })
+})
+
+describe('treatmentHistory — ce que deux appareils ou un import peuvent laisser', () => {
+  it('ne montre qu’une prise par échéance, avec l’état de la ligne modifiée en dernier (critère 12)', () => {
+    const book = treatment(
+      [period({ times: ['08:00', '20:00'] })],
+      [
+        dose('2026-09-01', '2026-09-01', { id: 'ici', dueTime: '08:00' }),
+        missed('2026-09-01', '2026-09-01', {
+          id: 'ailleurs',
+          dueTime: '08:00',
+          updatedAt: '2026-09-01T12:00:00.000Z',
+        }),
+        dose('2026-09-01', '2026-09-02', { dueTime: '20:00' }),
+      ],
+    )
+
+    expect(titles(book, '2026-09-01')[0]).toEqual([
+      '1 sept. 2026 · 20 h',
+      'Oubliée · 1 sept. 2026, 8 h',
+    ])
+  })
+
+  it('deux périodes qui se chevauchent : « Dernière prise » reste la dernière donnée, « N prises » les seules données', () => {
+    const book = treatment(
+      [
+        period({ frequency: { value: 1, unit: 'month' } }),
+        period({
+          id: 'p-2',
+          startsOn: '2026-09-15',
+          firstDueOn: '2026-09-15',
+          frequency: { value: 1, unit: 'month' },
+          createdAt: '2026-09-15T08:00:00.000Z',
+        }),
+      ],
+      [
+        dose('2026-09-01', '2026-10-01'),
+        dose('2026-10-01', '2026-11-01'),
+        missed('2026-11-01', '2026-12-01'),
+        dose('2026-09-15', '2026-10-15', { periodId: 'p-2' }),
+      ],
+    )
+
+    const { counter, periods } = history(book, '2026-11-02')
+
+    expect(counter).toBe('3 depuis le 1 sept. 2026')
     expect(
-      treatmentDetailTexts(t, BRAVECTO, { animal: 'Boree', today: TODAY, doses: monthly(4) }),
-    ).toMatchObject({
-      subtitle: 'Dewormer · Boree',
-      counter: '4 since May 2026',
-      headDetail: 'Set the next dose for Sep 28',
-    })
+      periods.map(({ lines }) =>
+        lines.map((line) => [line.title, line.kind === 'given' && line.isLast]),
+      ),
+    ).toEqual([
+      [['15 sept. 2026', false]],
+      [
+        ['Oubliée · 1 nov. 2026', false],
+        ['1 oct. 2026', true],
+        ['1 sept. 2026', false],
+      ],
+    ])
   })
 })
 
 describe('finishedTreatmentRows', () => {
+  const BRAVECTO: Treatment = {
+    id: 'bravecto',
+    animalId: 'boree',
+    name: 'Bravecto',
+    type: 'deworming',
+    periodId: 'bravecto',
+    frequency: { value: 1, unit: 'month' },
+    lastDoseDate: '2026-08-28',
+    nextDueDate: '2026-09-28',
+    stoppedOn: null,
+    createdAt: '2026-05-30T09:00:00.000Z',
+    updatedAt: '2026-05-30T09:00:00.000Z',
+    deletedAt: null,
+  }
+
   it('annonce la date d’arrêt et le nombre de prises de chaque traitement terminé (F9)', () => {
     const milbemax = { ...BRAVECTO, id: 'milbemax', name: 'Milbemax', stoppedOn: '2026-05-26' }
     const drontal = { ...BRAVECTO, id: 'drontal', name: 'Drontal', stoppedOn: '2025-11-02' }
@@ -303,76 +428,15 @@ describe('finishedTreatmentRows', () => {
   })
 })
 
-describe('doseDatesExcept', () => {
-  it('rend les jours des autres prises', () => {
-    expect(doseDatesExcept(monthly(3), 'prise-2026-08-28')).toEqual(['2026-07-28', '2026-06-28'])
-  })
-})
-
-describe('doseGestureTexts', () => {
-  it('annonce la suppression et le déplacement d’une prise (F8)', () => {
-    const texts = doseGestureTexts(t, '2026-07-28', TODAY)
-
-    expect(texts.changeDateSubtitle).toBe('Prise du 28 juil. 2026')
-    expect(texts.removed).toBe('Prise du 28 juil. supprimée')
-    expect(texts.undoRemove).toBe('Annuler la suppression de la prise du 28 juillet 2026')
-    expect(texts.moved('2026-07-30')).toBe('Prise déplacée au 30 juil.')
-    expect(texts.moved('2026-07-30', null)).toBe('Prise déplacée au 30 juil.')
-    expect(texts.undoMove).toBe('Annuler le changement de date de la prise')
-  })
-})
-
-describe('doseGestureTexts — report gardé', () => {
-  it('dit la prochaine dose gardée quand le report n’a pas suivi le déplacement', () => {
-    const texts = doseGestureTexts(t, '2026-08-28', TODAY)
-
-    expect(texts.moved('2026-08-27', '2026-12-15')).toBe(
-      'Prise déplacée au 27\u00a0août. Prochaine dose gardée au 15\u00a0déc., que tu avais reportée.',
-    )
-    expect(texts.moved('2026-08-27', '2027-01-15')).toBe(
-      'Prise déplacée au 27\u00a0août. Prochaine dose gardée au 15\u00a0janv.\u00a02027, que tu avais reportée.',
-    )
-  })
-
-  it('ne double pas le point quand la date se termine par une abréviation', () => {
-    expect(doseGestureTexts(t, '2026-07-10', TODAY).moved('2026-07-08', '2026-11-04')).toBe(
-      'Prise déplacée au 8\u00a0juil. Prochaine dose gardée au 4\u00a0nov., que tu avais reportée.',
-    )
-  })
-
-  it('suit la langue courante', () => {
-    applyLocale('en')
-
-    expect(doseGestureTexts(t, '2026-08-28', TODAY).moved('2026-08-27', '2026-12-15')).toBe(
-      'Dose moved to Aug\u00a027. Next dose kept on Dec\u00a015, as you had postponed it.',
-    )
-  })
-})
-
 describe('treatmentDeleteTexts', () => {
   it('confirme la suppression du traitement, avec ses prises et ses rappels', () => {
-    expect(treatmentDeleteTexts(t, 'Bravecto', { onlyDose: false })).toEqual({
-      title: 'Supprimer Bravecto\u00a0?',
+    expect(treatmentDeleteTexts(t, 'Bravecto')).toEqual({
+      title: 'Supprimer Bravecto ?',
       text: 'Ses prises et ses rappels seront supprimés du carnet. Cette action est définitive.',
       cancel: 'Annuler',
       confirm: 'Supprimer',
       deleted: 'Traitement Bravecto supprimé',
       failed: 'Bravecto n’a pas pu être supprimé. Réessaie.',
     })
-  })
-
-  it('dit en anglais que c’est sa seule prise', () => {
-    applyLocale('en')
-
-    expect(treatmentDeleteTexts(t, 'Bravecto', { onlyDose: true })).toMatchObject({
-      text: 'This is its only dose: the Bravecto treatment will be deleted, along with its reminders. This can’t be undone.',
-      deleted: 'Bravecto treatment deleted',
-    })
-  })
-
-  it('explique que supprimer la seule prise supprime le traitement', () => {
-    expect(treatmentDeleteTexts(t, 'Bravecto', { onlyDose: true }).text).toBe(
-      'C’est sa seule prise\u00a0: le traitement Bravecto sera supprimé, avec ses rappels. Cette action est définitive.',
-    )
   })
 })
