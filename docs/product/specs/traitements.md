@@ -666,7 +666,11 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
   posologie changée le 1er mars : la première dose de la nouvelle période est le 31 mars, pas le
   28 mars. C'est la dose du moment si elle est due ou en retard (jamais avant aujourd'hui), sinon la
   prochaine dose, report en vigueur compris. Raison : changer la posologie ne doit pas avancer la dose
-  de trois jours sans le dire. Écartée : la dernière prise plus la fréquence (28 févr. + 1 mois).
+  de trois jours sans le dire. Écartée : la dernière prise plus la fréquence (28 févr. + 1 mois). À
+  plusieurs heures, la règle ne vaut que si aucune heure de la journée de la dose du moment n'est
+  notée ; sinon, la dernière prise plus la fréquence. Limite : quand la dose reprise est un jour borné
+  (28 févr. d'une suite du 31), la nouvelle période repart de ce jour (28 mars, 28 avr.…) ; la lever
+  demande un jour de référence porté par la période (#488).
   (Revue du moteur d'échéances du 2026-10-02, M3.)
 
 ## 11. Questions ouvertes
@@ -674,3 +678,17 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
 Posées par la relecture de cohérence du 2026-09-30 (`technical/relecture-coherence-2026-09-30-1.md`),
 toutes tranchées le 2026-09-30 : C1 (Q15), C2 (Q16), C5 (TR-30), C6 (TR-24), C7 (TR-13, RA-18), les
 trois dernières validées en bloc.
+
+Limites connues du moteur d'échéances, renvoyées à #488 (la ligne d'une prise ne dit pas si elle a
+fixé la suite ; revue du 2026-10-02) :
+
+- Une dose non renseignée notée à la date de son échéance, puis redatée, déplace encore la suite
+  (hebdomadaire, dose du 8 notée le 8 alors qu'on est le 20, redatée au 9 : dose du moment au 16 au
+  lieu du 15) (TR-24 bis).
+- Une dose du moment notée par erreur plus d'un intervalle avant son échéance, puis corrigée, ne
+  refixe pas la suite (notée le 1er, corrigée au 10 : 15 au lieu de 17) (TR-24 bis, G11).
+- En mois, départs les 29, 30 et 31 : une dose non renseignée notée le lendemain de son échéance fait
+  passer la suite au jour suivant (30 août notée le 31 : 31 oct.) (TR-7, TR-18).
+- Une date de fin fait sauter la dose suivante d'une prise en retard (5 oct. et 2 nov., fin le 2 nov.,
+  première dose donnée le 10 : terminé) (TR-7, TR-8).
+- Une prise donnée un intervalle ou plus en avance garde l'ancienne suite (G11).
