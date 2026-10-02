@@ -9,6 +9,7 @@ import {
   editionDraftOf,
   emptyTreatmentFormValues,
   nextDoseRefusalKey,
+  TIMES_ERROR_KEY,
   treatmentFormValuesFrom,
   validateTreatmentCreation,
   validateTreatmentEdition,
@@ -56,6 +57,8 @@ const loadFailed = ref(false)
 const saveFailed = ref(false)
 const isSubmitting = ref(false)
 const endsOnTouched = ref(false)
+const hasDuplicateTime = ref(false)
+const duplicateTimeError = computed(() => (hasDuplicateTime.value ? TIMES_ERROR_KEY : undefined))
 
 function requireAnimalId(): string {
   if (props.animalId === undefined) throw new Error('Formulaire traitement ouvert sans animal.')
@@ -258,7 +261,10 @@ async function submit(): Promise<void> {
 
   try {
     const pending = write()
-    if (pending === null) return
+    if (pending === null) {
+      isSubmitting.value = false
+      return
+    }
     await pending()
     selectTargetAnimal()
     returnTo(
@@ -273,7 +279,6 @@ async function submit(): Promise<void> {
     )
   } catch {
     saveFailed.value = true
-  } finally {
     isSubmitting.value = false
   }
 }
@@ -447,9 +452,17 @@ async function submit(): Promise<void> {
         class="treatment-form__field--times"
         :label="t('treatments.form.times.label')"
         label-id="treatment-times-label"
-        :error="errorText(errors.times)"
+        :error="errorText(errors.times ?? duplicateTimeError)"
       >
-        <TreatmentTimesField v-model="values.times" label-id="treatment-times-label" />
+        <template #default="{ describedby, invalid }">
+          <TreatmentTimesField
+            v-model="values.times"
+            label-id="treatment-times-label"
+            :describedby="describedby"
+            :invalid="invalid"
+            @duplicate="hasDuplicateTime = $event"
+          />
+        </template>
       </FormField>
 
       <FormField
@@ -565,9 +578,8 @@ async function submit(): Promise<void> {
   z-index: 1;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
-  margin-inline-end: 4px;
+  width: tokens.$size-tap-target;
+  height: tokens.$size-tap-target;
   border-radius: tokens.$radius-pill;
 }
 

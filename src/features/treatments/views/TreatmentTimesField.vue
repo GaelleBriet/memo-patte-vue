@@ -1,29 +1,43 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 
-import { canAddTime, withTime, withTimeChanged, withoutTime } from '../logic/treatment-form'
+import {
+  canAddTime,
+  isTimeTaken,
+  withTime,
+  withTimeChanged,
+  withoutTime,
+} from '../logic/treatment-form'
 import { formatClockTime } from '@/shared/utils/format'
 
 const props = defineProps<{
   modelValue: readonly string[]
   labelId: string
+  describedby?: string
+  invalid?: boolean
 }>()
 
 const emit = defineEmits<{
   'update:modelValue': [times: string[]]
+  /** Vrai quand l'heure saisie est déjà celle d'une autre puce : rien n'a changé. */
+  duplicate: [refused: boolean]
 }>()
 
 const { t } = useI18n()
 
 function add(event: Event): void {
   const input = event.target as HTMLInputElement
+  emit('duplicate', isTimeTaken(props.modelValue, input.value))
   emit('update:modelValue', withTime(props.modelValue, input.value))
   input.value = ''
 }
 
 function change(previous: string, event: Event): void {
-  const { value } = event.target as HTMLInputElement
-  emit('update:modelValue', withTimeChanged(props.modelValue, previous, value))
+  const input = event.target as HTMLInputElement
+  const refused = isTimeTaken(props.modelValue, input.value, previous)
+  emit('duplicate', refused)
+  if (refused) input.value = previous
+  else emit('update:modelValue', withTimeChanged(props.modelValue, previous, input.value))
 }
 
 function remove(time: string): void {
@@ -41,6 +55,8 @@ function remove(time: string): void {
           type="time"
           :value="time"
           :aria-label="t('treatments.form.times.change', { time: formatClockTime(time) })"
+          :aria-describedby="describedby"
+          :aria-invalid="invalid"
           @change="change(time, $event)"
         />
       </span>
@@ -60,6 +76,8 @@ function remove(time: string): void {
         class="treatment-times__input treatment-times__input--add"
         type="time"
         :aria-label="t('treatments.form.times.add')"
+        :aria-describedby="describedby"
+        :aria-invalid="invalid"
         @change="add"
       />
     </span>
@@ -90,7 +108,7 @@ function remove(time: string): void {
 
 .treatment-times__chip {
   gap: 2px;
-  padding: 0 2px 0 16px;
+  padding: 0 0 0 16px;
   border: 1.5px solid rgb(var(--v-theme-primary));
   background: tokens.$color-notice-surface;
   font-size: 15px;
@@ -110,8 +128,8 @@ function remove(time: string): void {
   color: inherit;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
+  width: tokens.$size-tap-target;
+  height: tokens.$size-tap-target;
   border-radius: tokens.$radius-pill;
 }
 

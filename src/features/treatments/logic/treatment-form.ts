@@ -44,6 +44,8 @@ const ERROR_KEYS = {
   endsOn: 'treatments.form.errors.endsOn',
 } as const
 
+export const TIMES_ERROR_KEY = ERROR_KEYS.times
+
 export type TreatmentFormErrorField = keyof typeof ERROR_KEYS
 export type TreatmentFormErrors = Partial<Record<TreatmentFormErrorField, string>>
 
@@ -179,8 +181,15 @@ export function withoutTime(times: readonly string[], time: string): string[] {
   return times.filter((other) => other !== time)
 }
 
+/** L'heure est déjà celle d'une autre puce que `except`. */
+export function isTimeTaken(times: readonly string[], time: string, except?: string): boolean {
+  return time !== except && times.includes(time)
+}
+
+/** Une heure illisible ou déjà prise ne change rien. */
 export function withTimeChanged(times: readonly string[], previous: string, time: string) {
-  return isClockTime(time) ? withTime(withoutTime(times, previous), time) : [...times]
+  if (!isClockTime(time) || isTimeTaken(times, time, previous)) return [...times]
+  return withTime(withoutTime(times, previous), time)
 }
 
 function frequencyOf(values: TreatmentFormValues) {

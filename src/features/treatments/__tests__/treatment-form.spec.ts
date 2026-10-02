@@ -5,6 +5,7 @@ import {
   doseQuantityTextFor,
   editionDraftOf,
   emptyTreatmentFormValues,
+  isTimeTaken,
   parseDoseQuantity,
   rhythmOfValues,
   tabletShortcuts,
@@ -203,8 +204,15 @@ describe('heures du traitement (TR-5)', () => {
   it('retire une heure et en change une autre', () => {
     expect(withoutTime(['08:00', '20:00'], '08:00')).toEqual(['20:00'])
     expect(withTimeChanged(['08:00', '20:00'], '20:00', '07:30')).toEqual(['07:30', '08:00'])
-    expect(withTimeChanged(['08:00', '20:00'], '20:00', '08:00')).toEqual(['08:00'])
+    expect(withTimeChanged(['08:00', '20:00'], '20:00', '08:00')).toEqual(['08:00', '20:00'])
+    expect(withTimeChanged(['08:00', '20:00'], '20:00', '20:00')).toEqual(['08:00', '20:00'])
     expect(withTimeChanged(['08:00'], '08:00', '')).toEqual(['08:00'])
+  })
+
+  it('reconnaît une heure déjà prise par une autre puce', () => {
+    expect(isTimeTaken(['08:00', '20:00'], '20:00')).toBe(true)
+    expect(isTimeTaken(['08:00', '20:00'], '20:00', '20:00')).toBe(false)
+    expect(isTimeTaken(['08:00', '20:00'], '09:00')).toBe(false)
   })
 
   it('s’arrête à 24 heures par jour', () => {

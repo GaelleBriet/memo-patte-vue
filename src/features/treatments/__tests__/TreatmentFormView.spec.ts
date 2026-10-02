@@ -424,13 +424,28 @@ describe('TreatmentFormView — heures du traitement (TR-5)', () => {
     expect((wrapper.get('.treatment-times__input--add').element as HTMLInputElement).value).toBe('')
   })
 
-  it('n’ajoute pas deux fois la même heure', async () => {
+  it('refuse une heure déjà présente, à l’ajout comme au changement, sans retirer de puce, et le dit', async () => {
     const wrapper = await monterCreation()
+    await ajouterHeure(wrapper, '08:00')
+    await ajouterHeure(wrapper, '20:00')
 
     await ajouterHeure(wrapper, '20:00')
-    await ajouterHeure(wrapper, '20:00')
 
-    expect(heures(wrapper)).toEqual(['20\u00a0h'])
+    expect(heures(wrapper)).toEqual(['8\u00a0h', '20\u00a0h'])
+    expect(messages(wrapper)).toEqual(['Vérifie les heures du traitement.'])
+
+    await choisirHeure(wrapper, '.treatment-times__chip input', '09:00')
+    expect(messages(wrapper)).toEqual([])
+
+    await choisirHeure(wrapper, '.treatment-times__chip input', '20:00')
+
+    expect(heures(wrapper)).toEqual(['9\u00a0h', '20\u00a0h'])
+    expect(messages(wrapper)).toEqual(['Vérifie les heures du traitement.'])
+    const erreur = wrapper.get('.treatment-form__field--times .form-field__error')
+    for (const input of wrapper.findAll('.treatment-times__input')) {
+      expect(input.attributes('aria-describedby')).toBe(erreur.attributes('id'))
+      expect(input.attributes('aria-invalid')).toBe('true')
+    }
   })
 
   it('retire une heure et en change une autre, chacune nommée pour le lecteur d’écran', async () => {
@@ -1515,6 +1530,17 @@ describe('TreatmentFormView — envoi en cours', () => {
     void wrapper.get('.form-screen__submit').trigger('click')
     await flushPromises()
 
+    expect(create).toHaveBeenCalledOnce()
+  })
+
+  it('garde les boutons désactivés après l’écriture, le temps que la navigation aboutisse', async () => {
+    const wrapper = await monterCreation()
+    await remplirMinimum(wrapper)
+
+    await soumettre(wrapper)
+    await soumettre(wrapper)
+
+    expect(wrapper.get('.form-screen__submit').attributes('disabled')).toBeDefined()
     expect(create).toHaveBeenCalledOnce()
   })
 
