@@ -1056,7 +1056,7 @@ describe('editionPlan — date de fin et report en vigueur', () => {
         saisie(history, { endsOn: '2026-10-15', nextDoseOn: null }),
         '2026-10-03',
       ),
-    ).toEqual(['endsOn:beforePostponedDose'])
+    ).toEqual(['endsOn:beforeFarPostponedDose'])
     expect(
       champsRefuses(
         history,
@@ -1064,6 +1064,32 @@ describe('editionPlan — date de fin et report en vigueur', () => {
         '2026-10-03',
       ),
     ).toEqual([])
+  })
+
+  it('ne compare plus la date de fin à un report de l’ancienne période quand la saisie en ouvre une nouvelle', () => {
+    const hebdo = period({
+      startsOn: '2026-09-25',
+      firstDueOn: '2026-09-25',
+      frequency: { value: 1, unit: 'week' },
+    })
+    const history = treatment(
+      [hebdo],
+      [
+        dose({ dueOn: '2026-10-02', givenOn: '2026-10-02', nextDueDate: '2026-10-09' }),
+        dose({ ...REPORTEE, dueOn: '2026-10-09', nextDueDate: '2026-10-20' }),
+      ],
+    )
+    const input = saisie(history, {
+      frequency: { value: 2, unit: 'week' },
+      endsOn: '2026-10-15',
+      nextDoseOn: '2026-10-10',
+    })
+
+    expect(champsRefuses(history, input, '2026-10-03')).toEqual([])
+    expect(editionPlan(history, input, '2026-10-03', IDS).period).toMatchObject({
+      action: 'open',
+      settings: { firstDueOn: '2026-10-10', endsOn: '2026-10-15' },
+    })
   })
 
   it('accepte une date de fin le jour d’arrivée du report', () => {

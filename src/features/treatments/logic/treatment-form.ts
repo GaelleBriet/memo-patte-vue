@@ -79,6 +79,8 @@ const REASON_KEYS: Partial<Record<TreatmentFormErrorField, Record<string, string
     beforeLastDose: 'treatments.form.errors.endsOnBeforeLastDose',
     beforePostponedDose: 'treatments.form.errors.endsOnBeforePostponedDose',
     beforeAdvancedDose: 'treatments.form.errors.endsOnBeforeAdvancedDose',
+    beforeFarPostponedDose: 'treatments.form.errors.endsOnBeforeFarPostponedDose',
+    beforeFarAdvancedDose: 'treatments.form.errors.endsOnBeforeFarAdvancedDose',
   },
 }
 

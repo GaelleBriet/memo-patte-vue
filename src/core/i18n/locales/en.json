@@ -335,6 +335,8 @@
         "endsOnBeforeLastDose": "The end date can’t be before the last logged dose.",
         "endsOnBeforePostponedDose": "The next dose is postponed to {arrival}.",
         "endsOnBeforeAdvancedDose": "The next dose is moved up to {arrival}.",
+        "endsOnBeforeFarPostponedDose": "A dose is postponed to {arrival}.",
+        "endsOnBeforeFarAdvancedDose": "A dose is moved up to {arrival}.",
         "notFound": "We can’t find this treatment.",
         "load": "Couldn’t load this treatment. Try again.",
         "save": "Couldn’t save this treatment. Try again."

@@ -495,9 +495,13 @@ function editionIssues(history: TreatmentWithHistory, data: Edition, today: stri
   }
   if (data.endsOn === null || issues.length > 0) return issues
 
-  const farthest = farthestMoveOf(history, period.id, today, changed ? movedLineId : null)
+  const farthest =
+    change === 'correct'
+      ? farthestMoveOf(history, period.id, today, changed ? movedLineId : null)
+      : null
   if (farthest !== null && data.endsOn !== period.endsOn && data.endsOn < farthest.arrivesOn) {
-    const reason = farthest.advanced ? 'beforeAdvancedDose' : 'beforePostponedDose'
+    const which = farthest.doseId === movedLineId ? '' : 'Far'
+    const reason = farthest.advanced ? `before${which}AdvancedDose` : `before${which}PostponedDose`
     return [{ path: 'endsOn', message: reason }]
   }
   const setsFirstDue = nextDose?.change === 'first-due' && (proposesFirstDue || changed)

@@ -335,6 +335,8 @@
         "endsOnBeforeLastDose": "La date de fin ne peut pas précéder la dernière prise notée.",
         "endsOnBeforePostponedDose": "La prochaine dose est reportée au {arrival}.",
         "endsOnBeforeAdvancedDose": "La prochaine dose est avancée au {arrival}.",
+        "endsOnBeforeFarPostponedDose": "Une dose est reportée au {arrival}.",
+        "endsOnBeforeFarAdvancedDose": "Une dose est avancée au {arrival}.",
         "notFound": "Ce traitement est introuvable.",
         "load": "Ce traitement n’a pas pu être chargé. Réessaie.",
         "save": "Le traitement n’a pas pu être enregistré. Réessaie."

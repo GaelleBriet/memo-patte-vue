@@ -1322,6 +1322,42 @@ describe('TreatmentFormView — modification (TR-27, TR-28, planches V1 quater e
     )
   })
 
+  it('nomme « une dose » quand le report en cause n’est pas celui de la prochaine dose', async () => {
+    getWithHistory.mockResolvedValue(
+      milbemax(
+        [
+          periode({
+            startsOn: '2026-09-11',
+            firstDueOn: '2026-09-11',
+            frequency: { value: 1, unit: 'week' },
+          }),
+        ],
+        [
+          prise({ dueOn: '2026-09-11', givenOn: '2026-09-11', nextDueDate: '2026-09-18' }),
+          prise({
+            id: 'd-report',
+            dueOn: '2026-10-09',
+            givenOn: null,
+            status: 'postponed',
+            nextDueDate: '2026-10-20',
+          }),
+        ],
+      ),
+    )
+    const wrapper = await monterEdition()
+    await champ(wrapper, 'treatment-ends-on').setValue('2026-10-15')
+
+    await soumettre(wrapper)
+
+    expect(messages(wrapper)).toEqual(['Une dose est reportée au 20 oct.'])
+    expect(update).not.toHaveBeenCalled()
+
+    i18n.global.locale.value = 'en'
+    await wrapper.vm.$nextTick()
+
+    expect(messages(wrapper)).toEqual(['A dose is postponed to Oct 20.'])
+  })
+
   it('ne laisse corriger que le nom et le type d’un traitement arrêté', async () => {
     getWithHistory.mockResolvedValue(milbemax([periode({ stoppedOn: '2026-08-01' })]))
     const wrapper = await monterEdition()
