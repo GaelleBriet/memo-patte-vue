@@ -60,9 +60,10 @@ export type TreatmentWithHistory = TreatmentRecord & {
   doses: NewTreatmentDose[]
 }
 
-/** Un traitement à créer avec sa première période, sans prise. */
+/** Un traitement à créer avec sa première période, et les prises renseignées à la création (TR-3). */
 export type NewTreatmentPlan = Pick<Treatment, 'id' | 'animalId' | 'name' | 'type'> & {
   settings: TreatmentPeriodSettings
+  doses?: { id: string; dose: DoseFields }[]
 }
 
 export type PlannedDoseWrite =
@@ -283,10 +284,7 @@ export function createTreatmentsRepository(
       return withHistory(rows, allPeriods, allDoses)
     },
 
-    /**
-     * Le traitement et sa première période, de même identifiant, en une seule écriture : aucune
-     * prise n'est notée à la création.
-     */
+    /** Le traitement, sa première période, de même identifiant, et les prises du plan : tout ou rien. */
     async create(plan: NewTreatmentPlan): Promise<Treatment> {
       const { name, type } = identityOf(plan)
       const now = new Date().toISOString()
@@ -306,6 +304,15 @@ export function createTreatmentsRepository(
           updatedAt: now,
           deletedAt: null,
         }),
+        ...(plan.doses ?? []).map(({ id, dose }) =>
+          doses.createStatement({
+            id,
+            treatmentId: plan.id,
+            animalId: plan.animalId,
+            dose,
+            at: now,
+          }),
+        ),
       ])
 
       return requireVisible(plan.id)
