@@ -14,8 +14,11 @@ import {
 } from '@/features/animals/repository/animals.repository'
 import { DOSE_STATUSES } from '@/features/treatments/schema/treatment-dose.schema'
 import {
+  doseQuantitySchema,
   doseUnitSchema,
+  hasWholeDosage,
   REMINDER_OFFSETS_MINUTES,
+  treatmentTimesSchema,
 } from '@/features/treatments/schema/treatment-period.schema'
 import {
   treatmentFrequencySchema,
@@ -56,7 +59,7 @@ import {
 import { carnetSettingsSchema } from '../schema/carnet-settings.schema'
 import { isCalendarDay, MAX_CALENDAR_YEAR, MIN_CALENDAR_YEAR } from '@/shared/domain/calendar-day'
 import type { ExportAnimal } from '@/shared/domain/carnet-data'
-import { CLOCK_TIME_PATTERN, MAX_TIMES_PER_DAY } from '@/shared/domain/clock-time'
+import { CLOCK_TIME_PATTERN } from '@/shared/domain/clock-time'
 import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
 import {
   buildImportPlan,
@@ -158,17 +161,14 @@ const periodFileSchema = z
     endsOn: day.nullable(),
     stoppedOn: day.nullable(),
     frequency: treatmentFrequencySchema,
-    times: z
-      .array(clockTime)
-      .max(MAX_TIMES_PER_DAY)
-      .refine((times) => new Set(times).size === times.length),
-    doseQuantity: z.number().positive().nullable(),
+    times: treatmentTimesSchema,
+    doseQuantity: doseQuantitySchema.nullable(),
     doseUnit: doseUnitSchema.nullable(),
     reminderOffsetMinutes: z.literal([...REMINDER_OFFSETS_MINUTES]).nullable(),
     reminderTime: clockTime.nullable(),
     ...timestamps,
   })
-  .refine((period) => (period.doseQuantity === null) === (period.doseUnit === null))
+  .refine(hasWholeDosage)
   .refine(({ startsOn, firstDueOn, endsOn, stoppedOn }) =>
     [firstDueOn, endsOn, stoppedOn].every((date) => date === null || date >= startsOn),
   )
