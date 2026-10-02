@@ -283,7 +283,7 @@ export function editionDraftOf(
 
 /**
  * « Prochaine dose » n'est envoyée que si elle est proposée : vide, elle est alors refusée. Avec une
- * réponse `pastDues`, la date proposée laissée telle quelle se recalcule pour le chemin choisi.
+ * réponse `pastDues`, la date envoyée est celle que la question a annoncée pour ce choix.
  * `needsPastDuesChoice` : la saisie est valide, il reste à poser la question des échéances tombées.
  */
 export function validateTreatmentEdition(
@@ -292,14 +292,14 @@ export function validateTreatmentEdition(
   today: string,
   pastDues: PastDuesChoice | null = null,
 ): TreatmentEditionResult {
-  const { nextDose } = editionDraftOf(values, history, today)
+  const { nextDose, pastDuesNextDose } = editionDraftOf(values, history, today)
   const typed = values.nextDoseOn.trim()
-  const keepsProposal = pastDues !== null && typed === nextDose?.proposedOn
+  const announcedOn = pastDues === null ? null : (pastDuesNextDose?.[pastDues] ?? null)
   const result = treatmentEditionSchemaFor(history, today).safeParse({
     name: values.name,
     type: values.type,
     ...rhythmInput(values),
-    nextDoseOn: nextDose === null || keepsProposal ? null : typed,
+    nextDoseOn: announcedOn ?? (nextDose === null ? null : typed),
     ...(pastDues === null ? {} : { pastDues }),
   })
   if (result.success) return { success: true, data: result.data }

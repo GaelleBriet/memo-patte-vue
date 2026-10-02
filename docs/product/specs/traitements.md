@@ -682,7 +682,11 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
   une nouvelle période à partir d'aujourd'hui : la période en cours n'est pas réécrite, ses
   échéances tombées restent à renseigner, dose en retard comprise. « Elles n'étaient pas à donner »
   corrige la période : réglages remplacés, première échéance recalculée, les échéances tombées
-  sortent du carnet. « Annuler » revient au formulaire, rien n'est écrit. Les échéances tombées sont
+  sortent du carnet. Chaque choix annonce sa prochaine dose dans son sous-texte (« Le nouveau rythme
+  commence aujourd'hui. Prochaine dose le 15 oct. », « L'ancien réglage était une erreur. Prochaine
+  dose le 4 oct. ») : c'est la date que ce choix écrit, celle saisie dans « Prochaine dose » quand
+  elle vaut pour ce chemin, sinon celle qu'il calcule ; aucune date n'est écrite sans avoir été vue.
+  « Annuler » revient au formulaire, rien n'est écrit. Les échéances tombées sont
   les doses non renseignées de la période en cours et sa dose du moment en retard. Aucune question
   pour le nom, le type, la posologie ou la date de fin seuls, ni sans échéance tombée, ni quand une
   prise est notée dans la période (TR-28). Raison : rien ne disparaît ni n'apparaît dans le carnet

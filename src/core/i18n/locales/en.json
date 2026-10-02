@@ -276,6 +276,7 @@
       "nextDoseOn": {
         "label": "Next dose",
         "calculated": "Based on the last dose: {date}. You can change it.",
+        "scheduled": "Next scheduled dose: {date}. You can change it.",
         "calculatedPassed": "Based on the last dose: {date}, already passed; today is suggested. You can change it.",
         "today": "Today is suggested. You can change it.",
         "overdue": "Dose overdue since {date}",
@@ -316,9 +317,9 @@
           "range": "From {start} to {end}, on the “{rhythm}” schedule."
         },
         "keep": "Keep it to log | Keep them to log",
-        "keepHint": "The new schedule starts today.",
+        "keepHint": "The new schedule starts today. Next dose on {date}.",
         "drop": "It wasn’t meant to be given | They weren’t meant to be given",
-        "dropHint": "The previous setting was a mistake.",
+        "dropHint": "The previous setting was a mistake. Next dose on {date}.",
         "cancel": "Cancel"
       },
       "submit": "Create",

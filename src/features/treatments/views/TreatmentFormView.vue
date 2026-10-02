@@ -105,15 +105,18 @@ const previous = computed(() =>
   mode === 'resume' && history.value !== null ? resumptionDraft(history.value, today.value) : null,
 )
 const nextDose = computed(() => draft.value?.nextDose ?? null)
-const announcedDues = computed(() => JSON.stringify(draft.value?.pastDues ?? []))
+const announcedDues = computed(() =>
+  JSON.stringify([draft.value?.pastDues ?? [], draft.value?.pastDuesNextDose ?? null]),
+)
 const pastDuesChoice = computed(() =>
   pastDuesAnswer.value?.dues === announcedDues.value ? pastDuesAnswer.value.choice : null,
 )
-const pastDues = computed(() =>
-  draft.value === null || draft.value.pastDues.length === 0
+const pastDues = computed(() => {
+  const current = draft.value
+  return current === null || current.pastDuesNextDose === null
     ? null
-    : pastDuesTexts(t, draft.value.pastDues, draft.value.period),
-)
+    : pastDuesTexts(t, current.pastDues, current.period, current.pastDuesNextDose)
+})
 const hasSettings = computed(() => draft.value?.change !== 'locked')
 
 const targetAnimalId = computed(() => history.value?.animalId ?? props.animalId ?? null)
@@ -183,6 +186,10 @@ const nextDoseHelp = computed(() => {
       })
     case 'today':
       return t('treatments.form.nextDoseOn.today')
+    case 'scheduled':
+      return t('treatments.form.nextDoseOn.scheduled', {
+        date: withoutFinalDot(formatDayMonthOrYear(help.on, today.value)),
+      })
     case 'calculated-passed':
       return t('treatments.form.nextDoseOn.calculatedPassed', {
         date: formatDayMonthOrYear(help.on, today.value),

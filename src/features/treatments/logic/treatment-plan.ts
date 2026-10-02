@@ -45,6 +45,8 @@ export type NextDoseHelp =
   /** Aucune prise dans tout le traitement : faute de référence, aujourd'hui est proposé. */
   | { kind: 'today' }
   | { kind: 'calculated'; on: string }
+  /** Date reprise du calendrier en cours, report compris (Q37). */
+  | { kind: 'scheduled'; on: string }
   /** La date calculée est passée : aujourd'hui est proposé à sa place. */
   | { kind: 'calculated-passed'; on: string }
 
@@ -72,11 +74,13 @@ export type EditionDraft = {
   farthestMove: FarthestMove | null
   /** Échéances tombées que le nouveau rythme laisserait à renseigner ou retirerait : la question est à poser. */
   pastDues: Due[]
+  /** La première échéance que chaque réponse écrirait ; `null` sans question à poser. */
+  pastDuesNextDose: Record<PastDuesChoice, string> | null
 }
 
 export type PlanIds = { periodId: string; doseId: string }
 
-type Resolved = Omit<EditionDraft, 'farthestMove' | 'pastDues'> & {
+type Resolved = Omit<EditionDraft, 'farthestMove' | 'pastDues' | 'pastDuesNextDose'> & {
   settings: TreatmentPeriodSettings
   move: MovedDose | null
   /** Ligne de déplacement de la prochaine dose, que la saisie peut réécrire. */
@@ -217,18 +221,25 @@ function calculatedFirstDue(history: TreatmentWithHistory, rhythm: TreatmentRhyt
 function proposalHelp(
   history: TreatmentWithHistory,
   schedule: TreatmentSchedule,
+  period: TreatmentPeriodRecord,
   rhythm: TreatmentRhythm,
   proposedOn: string,
   today: string,
 ): NextDoseHelp | null {
-  if (!hasNote(schedule)) return proposedOn === today ? { kind: 'today' } : null
-  const calculatedOn = calculatedFirstDue(history, rhythm)
-  if (calculatedOn === null || calculatedOn === proposedOn) {
-    return { kind: 'calculated', on: proposedOn }
+  const todayHelp: NextDoseHelp | null = proposedOn === today ? { kind: 'today' } : null
+  if (!hasNote(schedule)) return todayHelp
+  if (!changesSchedule(period, rhythm)) {
+    // Q37 : la date est celle du calendrier en cours, report compris, pas un calcul depuis la dernière prise.
+    const due = schedule.currentDoses[0]
+    if (due === undefined) return null
+    if (due.dueOn === proposedOn) return { kind: 'scheduled', on: proposedOn }
+    return proposedOn === today ? overdueHelp(due, today) : null
   }
-  if (proposedOn !== today) return null
-  // Q36 : la dose du jour ouvre la période, la date ne vient pas de la dernière prise.
-  return calculatedOn < today ? { kind: 'calculated-passed', on: calculatedOn } : { kind: 'today' }
+  const calculatedOn = calculatedFirstDue(history, rhythm)
+  if (calculatedOn === proposedOn) return { kind: 'calculated', on: proposedOn }
+  return calculatedOn !== null && calculatedOn < today && proposedOn === today
+    ? { kind: 'calculated-passed', on: calculatedOn }
+    : todayHelp
 }
 
 function resolveOpened(
@@ -256,7 +267,7 @@ function resolveOpened(
       earliest: today,
       latest: rhythm.endsOn,
       refusal: null,
-      help: proposalHelp(history, schedule, rhythm, firstDueOn, today),
+      help: proposalHelp(history, schedule, period, rhythm, firstDueOn, today),
     },
     settings: withRhythm(
       { ...settingsOf(period), startsOn, firstDueOn: chosenOn ?? firstDueOn },
@@ -481,7 +492,26 @@ export function editionDraft(
 ): EditionDraft {
   const { period, change, nextDose, pastDues } = resolve(history, rhythm, chosenOn, today)
   const farthestMove = change === 'locked' ? null : farthestMoveOf(history, period.id, today, null)
-  return { period, change, nextDose, farthestMove, pastDues }
+  const touchedOn = chosenOn !== nextDose?.proposedOn ? chosenOn : null
+  // Aucune date n'est écrite sans avoir été vue : la date saisie quand elle vaut pour ce chemin, sinon celle qu'il calcule.
+  const nextDoseFor = (choice: PastDuesChoice): string => {
+    const answered = resolve(history, rhythm, null, today, choice).nextDose
+    if (answered === null) return touchedOn ?? today
+    const fits =
+      touchedOn !== null &&
+      touchedOn >= answered.earliest &&
+      (answered.latest === null || touchedOn <= answered.latest)
+    return fits ? touchedOn : answered.proposedOn
+  }
+  return {
+    period,
+    change,
+    nextDose,
+    farthestMove,
+    pastDues,
+    pastDuesNextDose:
+      pastDues.length === 0 ? null : { keep: nextDoseFor('keep'), drop: nextDoseFor('drop') },
+  }
 }
 
 // Q30 : les déplacements que le moteur garde en vigueur dans la période, sauf ceux dont l'arrivée est notée.

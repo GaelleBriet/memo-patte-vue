@@ -1,3 +1,4 @@
+import type { PastDuesChoice } from '../schema/treatment-form.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 import type { Due } from '@/shared/domain/treatment-schedule'
 import {
@@ -5,6 +6,7 @@ import {
   formatDayList,
   formatDayMonth,
   formatDayRange,
+  withoutFinalDot,
 } from '@/shared/utils/format'
 
 type Translate = (key: string, named: Record<string, unknown>, plural: number) => string
@@ -20,6 +22,10 @@ export type PastDuesTexts = {
 }
 
 const MAX_LISTED_DAYS = 3
+
+function sentenceDate(day: string): string {
+  return withoutFinalDot(formatDayMonth(day))
+}
 
 function rhythmText(
   t: Translate,
@@ -43,11 +49,15 @@ function datesText(t: Translate, days: readonly string[], rhythm: string): strin
   return t('treatments.form.pastDues.text.range', { ...formatDayRange(first, last), rhythm }, 1)
 }
 
-/** Les textes de la question posée avant d'enregistrer : `dues` vient du moteur, `period` porte l'ancien rythme. */
+/**
+ * Les textes de la question posée avant d'enregistrer : `dues` vient du moteur, `period` porte
+ * l'ancien rythme, `nextDose` la première échéance que chaque réponse écrirait.
+ */
 export function pastDuesTexts(
   t: Translate,
   dues: readonly Due[],
   period: Pick<TreatmentPeriodRecord, 'frequency' | 'times'>,
+  nextDose: Record<PastDuesChoice, string>,
 ): PastDuesTexts {
   const count = dues.length
   const days = [...new Set(dues.map(({ dueOn }) => dueOn))].sort()
@@ -55,9 +65,9 @@ export function pastDuesTexts(
     title: t('treatments.form.pastDues.title', { n: count }, count),
     text: datesText(t, days, rhythmText(t, period)),
     keep: t('treatments.form.pastDues.keep', {}, count),
-    keepHint: t('treatments.form.pastDues.keepHint', {}, 1),
+    keepHint: t('treatments.form.pastDues.keepHint', { date: sentenceDate(nextDose.keep) }, 1),
     drop: t('treatments.form.pastDues.drop', {}, count),
-    dropHint: t('treatments.form.pastDues.dropHint', {}, 1),
+    dropHint: t('treatments.form.pastDues.dropHint', { date: sentenceDate(nextDose.drop) }, 1),
     cancel: t('treatments.form.pastDues.cancel', {}, 1),
   }
 }

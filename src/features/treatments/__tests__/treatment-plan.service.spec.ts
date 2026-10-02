@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ZodError } from 'zod'
 
 import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory-db'
+import { editionDraft } from '../logic/treatment-plan'
 import { treatmentScheduleOf } from '../logic/treatment-schedule'
 import { createTreatmentDosesRepository } from '../repository/treatment-doses.repository'
 import { createTreatmentPeriodsRepository } from '../repository/treatment-periods.repository'
@@ -217,6 +218,77 @@ describe('treatmentPlanService', () => {
       const schedule = treatmentScheduleOf(history, today)
       expect(schedule.unloggedDoses).toEqual([])
       expect(jours(schedule.currentDoses)).toEqual(['2026-10-08'])
+    })
+
+    describe('la date écrite est celle que la question annonçait', () => {
+      async function gaelle() {
+        return (await service.create(TOUS_LES_2_JOURS)).id
+      }
+
+      async function plusieursHeures() {
+        return (await service.create({ ...TOUS_LES_2_JOURS, times: ['08:00', '20:00'] })).id
+      }
+
+      // Hebdomadaire, prises des 18 et 25 sept. ; le 2 oct., dose due sans prise, fréquence à 10 jours.
+      async function ouverteParModifier() {
+        today = '2026-10-02'
+        const { id } = await service.create({
+          ...MILBEMAX,
+          firstDoseOn: '2026-09-18',
+          endsOn: null,
+        })
+        await give(id, '2026-09-18', '2026-09-25')
+        await give(id, '2026-09-25', '2026-10-02')
+        await service.update(id, saisie({ frequency: { value: 10, unit: 'day' }, endsOn: null }))
+        today = '2026-10-04'
+        return id
+      }
+
+      it.each([
+        ['le scénario de Gaelle', gaelle, { value: 3, unit: 'day' }, '2026-10-08', '2026-10-08'],
+        [
+          'plusieurs heures',
+          plusieursHeures,
+          { value: 3, unit: 'day' },
+          '2026-10-08',
+          '2026-10-08',
+        ],
+        [
+          'une période ouverte par « Modifier »',
+          ouverteParModifier,
+          { value: 20, unit: 'day' },
+          '2026-10-15',
+          '2026-10-04',
+        ],
+      ] as const)('%s', async (_, prepare, frequency, keep, drop) => {
+        for (const [pastDues, expected] of [
+          ['keep', keep],
+          ['drop', drop],
+        ] as const) {
+          db.close()
+          db = await createInMemoryDb()
+          await db.execute('PRAGMA foreign_keys = ON')
+          await db.run(
+            `INSERT INTO animal (id, name, species, created_at, updated_at)
+             VALUES (?, 'Milo', 'dog', ?, ?)`,
+            [MILO, T0, T0],
+          )
+          treatments = createTreatmentsRepository(db)
+          today = '2026-10-08'
+          const id = await prepare()
+          const history = await historyOf(id)
+          const current = history.periods.at(-1)!
+          const input = {
+            ...correction({ frequency, times: current.times }),
+          }
+          const announced = editionDraft(history, input, today).pastDuesNextDose
+
+          expect(announced?.[pastDues]).toBe(expected)
+          await service.update(id, { ...input, pastDues, nextDoseOn: announced![pastDues] })
+
+          expect((await historyOf(id)).periods.at(-1)?.firstDueOn).toBe(expected)
+        }
+      })
     })
 
     it('à plusieurs heures, garde chaque heure tombée à renseigner', async () => {

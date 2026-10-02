@@ -276,6 +276,7 @@
       "nextDoseOn": {
         "label": "Prochaine dose",
         "calculated": "Calculée d’après la dernière prise : {date}. Modifiable.",
+        "scheduled": "Prochaine dose prévue : {date}. Modifiable.",
         "calculatedPassed": "Calculée d’après la dernière prise : le {date}, déjà passé ; aujourd’hui est proposé. Modifiable.",
         "today": "Aujourd’hui est proposé. Modifiable.",
         "overdue": "Dose en retard depuis le {date}",
@@ -316,9 +317,9 @@
           "range": "Du {start} au {end}, au rythme « {rhythm} »."
         },
         "keep": "Elle reste à renseigner | Elles restent à renseigner",
-        "keepHint": "Le nouveau rythme commence aujourd’hui.",
+        "keepHint": "Le nouveau rythme commence aujourd’hui. Prochaine dose le {date}.",
         "drop": "Elle n’était pas à donner | Elles n’étaient pas à donner",
-        "dropHint": "L’ancien réglage était une erreur.",
+        "dropHint": "L’ancien réglage était une erreur. Prochaine dose le {date}.",
         "cancel": "Annuler"
       },
       "submit": "Créer",

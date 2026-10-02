@@ -440,7 +440,7 @@ describe('validateTreatmentEdition (TR-6, TR-9, TR-28)', () => {
     })
     expect(validateTreatmentEdition(saisi, sansPrise, TODAY, 'keep')).toMatchObject({
       success: true,
-      data: { pastDues: 'keep', nextDoseOn: null },
+      data: { pastDues: 'keep', nextDoseOn: TODAY },
     })
     expect(validateTreatmentEdition({ ...saisi, name: '' }, sansPrise, TODAY)).toMatchObject({
       success: false,
