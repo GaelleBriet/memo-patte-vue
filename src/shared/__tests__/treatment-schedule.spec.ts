@@ -2919,3 +2919,115 @@ describe('appels invalides', () => {
     expect(() => schedule.newPeriod({ value: 0, unit: 'day' }, [])).toThrow(/fréquence/)
   })
 })
+
+describe('changer la date d’une prise notée pour une dose non renseignée (TR-24 bis, Q8)', () => {
+  function lateNote(
+    start: TreatmentPeriodInput,
+    today: string,
+    unlogged: string,
+    givenOn: string,
+  ): Carnet {
+    const book = done(carnet(start), start.firstDueOn)
+    return record(book, today, { kind: 'given', due: due(unlogged), givenOn })
+  }
+
+  it('Milo, hebdomadaire : la dose du 8 notée le 9 laisse la dose du moment au 15', () => {
+    const book = lateNote(weekly(), '2026-09-20', '2026-09-08', '2026-09-09')
+
+    expect(lastDose(book)).toMatchObject({ dueOn: '2026-09-08', nextDueDate: '2026-09-15' })
+    const schedule = scheduleOf(book, '2026-09-20')
+    expect(schedule.currentDoses).toEqual([due('2026-09-15')])
+    expect(schedule.nextDue).toEqual(due('2026-09-22'))
+  })
+
+  it.each(['2026-09-08', '2026-09-09', '2026-09-10', '2026-09-16'])(
+    'redatée au %s, elle ne touche pas la suite',
+    (givenOn) => {
+      const book = lateNote(weekly(), '2026-09-20', '2026-09-08', '2026-09-09')
+
+      const moved = redate(book, '2026-09-20', lastDose(book).id, givenOn)
+
+      expect(lastDose(moved)).toMatchObject({ givenOn, nextDueDate: '2026-09-15' })
+      const schedule = scheduleOf(moved, '2026-09-20')
+      expect(schedule.unloggedDoses).toEqual([])
+      expect(schedule.currentDoses).toEqual([due('2026-09-15')])
+      expect(schedule.nextDue).toEqual(due('2026-09-22'))
+    },
+  )
+
+  it.each([
+    {
+      name: 'toutes les 2 semaines',
+      start: period({ firstDueOn: '2026-08-01', frequency: { value: 2, unit: 'week' } }),
+      today: '2026-10-01',
+      unlogged: '2026-08-15',
+      givenOn: '2026-08-16',
+      redatedTo: '2026-08-17',
+    },
+    {
+      name: 'tous les mois',
+      start: monthly({ firstDueOn: '2026-06-10' }),
+      today: '2026-09-20',
+      unlogged: '2026-07-10',
+      givenOn: '2026-07-12',
+      redatedTo: '2026-07-13',
+    },
+    {
+      name: 'tous les 3 jours',
+      start: period({ firstDueOn: '2026-09-01', frequency: { value: 3, unit: 'day' } }),
+      today: '2026-09-20',
+      unlogged: '2026-09-07',
+      givenOn: '2026-09-08',
+      redatedTo: '2026-09-09',
+    },
+    {
+      name: 'tous les jours',
+      start: period({ firstDueOn: '2026-09-01' }),
+      today: '2026-09-20',
+      unlogged: '2026-09-07',
+      givenOn: '2026-09-08',
+      redatedTo: '2026-09-09',
+    },
+  ])(
+    '$name : ni la ligne ni le calendrier ne changent',
+    ({ start, today, unlogged, givenOn, redatedTo }) => {
+      const book = lateNote(start, today, unlogged, givenOn)
+      const before = scheduleOf(book, today)
+
+      const moved = redate(book, today, lastDose(book).id, redatedTo)
+
+      expect(lastDose(moved).nextDueDate).toBe(lastDose(book).nextDueDate)
+      const after = scheduleOf(moved, today)
+      expect(after.unloggedDoses).toEqual(before.unloggedDoses)
+      expect(after.currentDoses).toEqual(before.currentDoses)
+      expect(after.upcoming(6)).toEqual(before.upcoming(6))
+    },
+  )
+})
+
+describe('changer la date d’une prise sans changer de date (TR-24 bis)', () => {
+  it('tous les 12 mois à 8 h et 20 h : la prise de 8 h supprimée, celle de 20 h redatée au même jour garde sa suite', () => {
+    const yearly = period({
+      firstDueOn: '2027-01-30',
+      frequency: { value: 12, unit: 'month' },
+      times: ['08:00', '20:00'],
+    })
+    let book = done(carnet(yearly), '2027-02-03', '2027-02-02')
+    const at8 = lastDose(book)
+    book = done(book, '2027-02-03', '2027-02-02')
+    expect(lastDose(book)).toMatchObject({ dueTime: '20:00', nextDueDate: '2028-02-02' })
+    book = withoutDose(book, at8.id)
+    const before = scheduleOf(book, '2027-02-03')
+
+    expect(before.redate(lastDose(book).id, '2027-02-02')).toEqual({
+      dose: expect.objectContaining({ givenOn: '2027-02-02', nextDueDate: '2028-02-02' }),
+      postponement: null,
+    })
+    const after = scheduleOf(
+      redate(book, '2027-02-03', lastDose(book).id, '2027-02-02'),
+      '2027-02-03',
+    )
+    expect(after.currentDoses).toEqual(before.currentDoses)
+    expect(after.nextDue).toEqual(before.nextDue)
+  })
+})
