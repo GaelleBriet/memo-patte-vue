@@ -3,6 +3,7 @@ import { addDays, format } from 'date-fns'
 import { describe, expect, it } from 'vitest'
 
 import {
+  FORM_TREATMENT_TYPES,
   emptyTreatmentFormValues,
   editedNextDueDate,
   nextDoseDate,
@@ -279,6 +280,20 @@ describe('editedNextDueDate — prochaine dose proposée par « Modifier »', ()
     expect(
       editedNextDueDate({ ...treatmentFormValuesFrom(REPORTE), frequencyValue: '' }, REPORTE),
     ).toBeNull()
+  })
+})
+
+describe('type médicament', () => {
+  it('n’est pas proposé par le sélecteur à boutons, trop étroit pour trois libellés', () => {
+    expect(FORM_TREATMENT_TYPES).toEqual(['deworming', 'antiparasitic'])
+  })
+
+  it('reste celui d’un médicament importé que « Modifier » enregistre', () => {
+    const metacam = { ...BRAVECTO, name: 'Métacam', type: 'medication' as const }
+
+    const resultat = validateTreatmentEditForm(treatmentFormValuesFrom(metacam))
+
+    expect(resultat.success && resultat.data.type).toBe('medication')
   })
 })
 

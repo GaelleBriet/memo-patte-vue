@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 
 import {
+  FORM_TREATMENT_TYPES,
   editedNextDueDate,
   emptyTreatmentFormValues,
   nextDoseDate,
@@ -11,12 +12,7 @@ import {
   validateTreatmentEditForm,
   validateTreatmentForm,
 } from '../logic/treatment-form'
-import {
-  FREQUENCY_UNITS,
-  TREATMENT_TYPES,
-  type FrequencyUnit,
-  type Treatment,
-} from '../schema/treatment.schema'
+import { FREQUENCY_UNITS, type FrequencyUnit, type Treatment } from '../schema/treatment.schema'
 import { useTreatmentsStore } from '../store/treatments.store'
 import { useToday } from '@/core/app-lifecycle/use-today'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
@@ -86,7 +82,7 @@ const errorMessage = computed(() => {
 })
 const canSave = computed(() => !isLoading.value && !notFound.value && !loadFailed.value)
 const typeOptions = computed(() =>
-  TREATMENT_TYPES.map((type) => ({ value: type, label: t(`treatments.type.${type}`) })),
+  FORM_TREATMENT_TYPES.map((type) => ({ value: type, label: t(`treatments.type.${type}`) })),
 )
 const unitCount = computed(() => {
   const count = Number(values.value.frequencyValue)

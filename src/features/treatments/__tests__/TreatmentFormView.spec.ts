@@ -200,13 +200,8 @@ describe('TreatmentFormView — structure', () => {
   it('propose vermifuge et antiparasitaire en choix exclusifs, aucun présélectionné', async () => {
     const wrapper = await monterCreation()
 
-    expect(types(wrapper).map((bouton) => bouton.text())).toEqual([
-      'Vermifuge',
-      'Antiparasitaire',
-      'Médicament',
-    ])
+    expect(types(wrapper).map((bouton) => bouton.text())).toEqual(['Vermifuge', 'Antiparasitaire'])
     expect(types(wrapper).map((bouton) => bouton.attributes('aria-checked'))).toEqual([
-      'false',
       'false',
       'false',
     ])

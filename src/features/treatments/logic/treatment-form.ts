@@ -12,6 +12,12 @@ import {
   type TreatmentType,
 } from '../schema/treatment.schema'
 
+/** Trois libellés ne tiennent pas dans le sélecteur à boutons du formulaire. */
+export const FORM_TREATMENT_TYPES = [
+  'deworming',
+  'antiparasitic',
+] as const satisfies readonly TreatmentType[]
+
 export interface TreatmentFormValues {
   name: string
   type: TreatmentType | null
