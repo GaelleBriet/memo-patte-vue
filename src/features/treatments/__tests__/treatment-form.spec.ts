@@ -1,318 +1,442 @@
-// @vitest-environment node
-import { addDays, format } from 'date-fns'
 import { describe, expect, it } from 'vitest'
 
 import {
-  FORM_TREATMENT_TYPES,
+  canAddTime,
+  doseQuantityTextFor,
+  editionDraftOf,
   emptyTreatmentFormValues,
-  editedNextDueDate,
-  nextDoseDate,
+  parseDoseQuantity,
+  rhythmOfValues,
+  tabletShortcuts,
   treatmentFormValuesFrom,
-  validateTreatmentEditForm,
-  validateTreatmentForm,
+  validateTreatmentCreation,
+  validateTreatmentEdition,
+  validateTreatmentResumption,
+  withTime,
+  withTimeChanged,
+  withoutTime,
   type TreatmentFormValues,
 } from '../logic/treatment-form'
-import type { Treatment } from '../schema/treatment.schema'
-import { todayIsoDate } from '@/core/app-lifecycle/today-iso-date'
-import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
+import type { TreatmentWithHistory } from '../repository/treatments.repository'
+import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
+import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
+import { MAX_TIMES_PER_DAY } from '@/shared/domain/clock-time'
 
-const BRAVECTO: Treatment = {
-  id: '22222222-2222-4222-8222-222222222222',
-  animalId: '11111111-1111-4111-8111-111111111111',
-  name: 'Bravecto',
-  type: 'antiparasitic',
-  periodId: '22222222-2222-4222-8222-222222222222',
-  frequency: { value: 3, unit: 'month' },
-  lastDoseDate: '2026-06-24',
-  nextDueDate: '2026-09-24',
-  stoppedOn: null,
-  createdAt: '2026-09-09T09:00:00.000Z',
-  updatedAt: '2026-09-09T09:00:00.000Z',
-  deletedAt: null,
-}
+const AT = '2026-07-01T08:00:00.000Z'
+const MILO = '11111111-1111-4111-8111-111111111111'
+const TREATMENT = '22222222-2222-4222-8222-222222222222'
+const TODAY = '2026-09-28'
 
-function valeurs(surcharges: Partial<TreatmentFormValues> = {}): TreatmentFormValues {
+function period(overrides: Partial<TreatmentPeriodRecord> = {}): TreatmentPeriodRecord {
   return {
-    ...emptyTreatmentFormValues(),
-    name: 'Bravecto',
-    type: 'antiparasitic',
-    frequencyValue: '3',
-    frequencyUnit: 'month',
-    lastDoseDate: '2026-06-24',
-    ...surcharges,
+    id: TREATMENT,
+    treatmentId: TREATMENT,
+    animalId: MILO,
+    startsOn: '2026-07-10',
+    firstDueOn: '2026-07-10',
+    endsOn: null,
+    stoppedOn: null,
+    frequency: { value: 3, unit: 'month' },
+    times: [],
+    doseQuantity: 1.5,
+    doseUnit: 'tablet',
+    reminderOffsetMinutes: null,
+    reminderTime: null,
+    createdAt: AT,
+    updatedAt: AT,
+    deletedAt: null,
+    ...overrides,
   }
 }
 
-function donnees(surcharges: Partial<TreatmentFormValues> = {}) {
-  const resultat = validateTreatmentForm(valeurs(surcharges))
-
-  if (!resultat.success) throw new Error(`Validation refusée : ${JSON.stringify(resultat.errors)}`)
-
-  return resultat.data
+const PRISE: NewTreatmentDose = {
+  id: 'd-1',
+  periodId: TREATMENT,
+  treatmentId: TREATMENT,
+  animalId: MILO,
+  dueOn: '2026-07-10',
+  dueTime: null,
+  givenOn: '2026-07-10',
+  status: 'given',
+  nextDueDate: '2026-10-10',
+  createdAt: AT,
+  updatedAt: AT,
+  deletedAt: null,
 }
 
-function erreurs(surcharges: Partial<TreatmentFormValues> = {}) {
-  const resultat = validateTreatmentForm(valeurs(surcharges))
-
-  if (resultat.success) throw new Error('Validation acceptée alors qu’elle devait échouer')
-
-  return resultat.errors
+function milbemax(
+  periods: TreatmentPeriodRecord[] = [period()],
+  doses: NewTreatmentDose[] = [PRISE],
+): TreatmentWithHistory {
+  return {
+    id: TREATMENT,
+    animalId: MILO,
+    name: 'Milbemax',
+    type: 'deworming',
+    createdAt: AT,
+    updatedAt: AT,
+    periods,
+    doses,
+  }
 }
 
-describe('emptyTreatmentFormValues', () => {
-  it('part de champs vides, sans type choisi, l’unité au mois', () => {
+function saisie(changes: Partial<TreatmentFormValues> = {}): TreatmentFormValues {
+  return {
+    name: 'Panacur',
+    type: 'deworming',
+    frequencyValue: '1',
+    frequencyUnit: 'day',
+    firstDoseOn: '2026-09-29',
+    nextDoseOn: '',
+    times: ['20:00'],
+    doseQuantity: '½',
+    doseUnit: 'tablet',
+    endsOn: '2026-10-10',
+    ...changes,
+  }
+}
+
+function edition(changes: Partial<TreatmentFormValues> = {}): TreatmentFormValues {
+  return {
+    ...treatmentFormValuesFrom(milbemax(), period()),
+    nextDoseOn: '2026-10-10',
+    ...changes,
+  }
+}
+
+describe('valeurs du formulaire', () => {
+  it('part d’un formulaire vide, l’unité de fréquence au mois', () => {
     expect(emptyTreatmentFormValues()).toEqual({
       name: '',
       type: null,
       frequencyValue: '',
       frequencyUnit: 'month',
-      lastDoseDate: '',
-      nextDueDate: '',
+      firstDoseOn: '',
+      nextDoseOn: '',
+      times: [],
+      doseQuantity: '',
+      doseUnit: null,
+      endsOn: '',
     })
   })
-})
 
-describe('treatmentFormValuesFrom', () => {
-  it('pré-remplit les champs depuis un traitement, prochaine dose comprise, sans l’animal', () => {
-    expect(treatmentFormValuesFrom(BRAVECTO)).toEqual({
-      name: 'Bravecto',
-      type: 'antiparasitic',
+  it('reprend les réglages d’une période, la quantité d’un comprimé en fraction', () => {
+    const reglages = period({ times: ['20:00', '08:00'], endsOn: '2026-10-10' })
+
+    expect(treatmentFormValuesFrom(milbemax(), reglages)).toEqual({
+      name: 'Milbemax',
+      type: 'deworming',
       frequencyValue: '3',
       frequencyUnit: 'month',
-      lastDoseDate: '2026-06-24',
-      nextDueDate: '2026-09-24',
-    })
-  })
-})
-
-describe('validateTreatmentForm — données', () => {
-  it('ne contient jamais d’animal : il vient de la route ou du traitement existant', () => {
-    expect(donnees()).not.toHaveProperty('animalId')
-  })
-
-  it('rend la fréquence en couple valeur entière + unité', () => {
-    expect(donnees()).toEqual({
-      name: 'Bravecto',
-      type: 'antiparasitic',
-      frequency: { value: 3, unit: 'month' },
-      lastDoseDate: '2026-06-24',
+      firstDoseOn: '',
+      nextDoseOn: '',
+      times: ['08:00', '20:00'],
+      doseQuantity: '1\u00a0½',
+      doseUnit: 'tablet',
+      endsOn: '2026-10-10',
     })
   })
 
-  it('supprime les espaces autour du nom et de la valeur de fréquence', () => {
-    expect(donnees({ name: '  Bravecto  ', frequencyValue: ' 2 ' })).toMatchObject({
-      name: 'Bravecto',
-      frequency: { value: 2 },
-    })
-  })
-})
-
-describe('validateTreatmentForm — nom et type', () => {
-  it('refuse un nom vide ou fait d’espaces', () => {
-    expect(erreurs({ name: '' }).name).toBe('treatments.form.errors.name')
-    expect(erreurs({ name: '   ' }).name).toBe('treatments.form.errors.name')
-  })
-
-  it('refuse un type non choisi', () => {
-    expect(erreurs({ type: null }).type).toBe('treatments.form.errors.type')
-  })
-
-  it('accepte un nom de 80 caractères, refuse 81 avec un message distinct', () => {
-    const limite = 'a'.repeat(MAX_NAME_LENGTH)
-
-    expect(donnees({ name: limite }).name).toBe(limite)
-    expect(erreurs({ name: `${limite}a` }).name).toBe('treatments.form.errors.nameMax')
-  })
-})
-
-describe('validateTreatmentForm — fréquence', () => {
-  it('refuse une valeur absente', () => {
-    expect(erreurs({ frequencyValue: '' }).frequency).toBe('treatments.form.errors.frequency')
-  })
-
-  it('refuse zéro, un négatif, un décimal ou du texte', () => {
-    for (const frequencyValue of ['0', '-1', '1.5', 'abc']) {
-      expect(erreurs({ frequencyValue }).frequency).toBe('treatments.form.errors.frequency')
-    }
-  })
-
-  it('dit le plafond quand la valeur le dépasse, au lieu de la croire absente', () => {
-    expect(erreurs({ frequencyValue: '10000000' }).frequency).toBe(
-      'treatments.form.errors.frequencyMax',
+  it('laisse la posologie vide quand la période n’en a pas', () => {
+    const values = treatmentFormValuesFrom(
+      milbemax(),
+      period({ doseQuantity: null, doseUnit: null }),
     )
-    expect(erreurs({ frequencyValue: '366' }).frequency).toBe('treatments.form.errors.frequencyMax')
-  })
 
-  it('accepte chaque unité', () => {
-    expect(donnees({ frequencyUnit: 'day' }).frequency.unit).toBe('day')
-    expect(donnees({ frequencyUnit: 'week' }).frequency.unit).toBe('week')
+    expect(values).toMatchObject({ doseQuantity: '', doseUnit: null, endsOn: '' })
   })
 })
 
-describe('validateTreatmentForm — date de la dernière prise', () => {
-  it('refuse une date absente', () => {
-    expect(erreurs({ lastDoseDate: '' }).lastDoseDate).toBe('treatments.form.errors.lastDoseDate')
+describe('quantité de la posologie (TR-4)', () => {
+  it.each([
+    ['', null],
+    ['  ', null],
+    ['2', 2],
+    ['0,5', 0.5],
+    ['0.3', 0.3],
+    ['½', 0.5],
+    ['¼', 0.25],
+    ['1 ½', 1.5],
+    ['1\u00a0¾', 1.75],
+  ])('lit « %s »', (text, quantity) => {
+    expect(parseDoseQuantity(text)).toBe(quantity)
   })
 
-  it('refuse une date dans le futur, avec un message distinct', () => {
-    const demain = format(addDays(new Date(), 1), 'yyyy-MM-dd')
+  it.each(['un', '1/2', '-1', '1,', '½ 1'])('ne lit pas « %s »', (text) => {
+    expect(parseDoseQuantity(text)).toBeNaN()
+  })
 
-    expect(erreurs({ lastDoseDate: demain }).lastDoseDate).toBe(
-      'treatments.form.errors.lastDoseDateFuture',
+  it('récrit la quantité pour l’unité choisie : fraction pour un comprimé, décimale sinon', () => {
+    expect(doseQuantityTextFor('0,5', 'tablet')).toBe('½')
+    expect(doseQuantityTextFor('½', 'ml')).toBe('0,5')
+    expect(doseQuantityTextFor('1.5', 'tablet')).toBe('1\u00a0½')
+    expect(doseQuantityTextFor('0,3', 'tablet')).toBe('0,3')
+  })
+
+  it('garde une saisie illisible, vide ou sans unité telle quelle', () => {
+    expect(doseQuantityTextFor('un', 'tablet')).toBe('un')
+    expect(doseQuantityTextFor('', 'tablet')).toBe('')
+    expect(doseQuantityTextFor('0,5', null)).toBe('0,5')
+  })
+
+  it('propose les raccourcis « ¼ ½ ¾ 1 1 ½ » des comprimés', () => {
+    expect(tabletShortcuts()).toEqual([
+      { value: 0.25, label: '¼' },
+      { value: 0.5, label: '½' },
+      { value: 0.75, label: '¾' },
+      { value: 1, label: '1' },
+      { value: 1.5, label: '1\u00a0½' },
+    ])
+  })
+})
+
+describe('heures du traitement (TR-5)', () => {
+  it('ajoute une heure dans l’ordre de la journée', () => {
+    expect(withTime(['20:00'], '08:00')).toEqual(['08:00', '20:00'])
+  })
+
+  it('ignore une heure déjà présente ou illisible', () => {
+    expect(withTime(['08:00'], '08:00')).toEqual(['08:00'])
+    expect(withTime(['08:00'], '')).toEqual(['08:00'])
+  })
+
+  it('retire une heure et en change une autre', () => {
+    expect(withoutTime(['08:00', '20:00'], '08:00')).toEqual(['20:00'])
+    expect(withTimeChanged(['08:00', '20:00'], '20:00', '07:30')).toEqual(['07:30', '08:00'])
+    expect(withTimeChanged(['08:00', '20:00'], '20:00', '08:00')).toEqual(['08:00'])
+    expect(withTimeChanged(['08:00'], '08:00', '')).toEqual(['08:00'])
+  })
+
+  it('s’arrête à 24 heures par jour', () => {
+    const toutes = Array.from(
+      { length: MAX_TIMES_PER_DAY },
+      (_, hour) => `${String(hour).padStart(2, '0')}:00`,
     )
-  })
 
-  it('accepte la date du jour', () => {
-    expect(donnees({ lastDoseDate: todayIsoDate() }).lastDoseDate).toBe(todayIsoDate())
-  })
-})
-
-describe('validateTreatmentForm — plusieurs erreurs', () => {
-  it('signale tous les champs vides en même temps', () => {
-    expect(erreurs(emptyTreatmentFormValues())).toEqual({
-      name: 'treatments.form.errors.name',
-      type: 'treatments.form.errors.type',
-      frequency: 'treatments.form.errors.frequency',
-      lastDoseDate: 'treatments.form.errors.lastDoseDate',
-    })
+    expect(canAddTime(toutes.slice(1))).toBe(true)
+    expect(canAddTime(toutes)).toBe(false)
+    expect(withTime(toutes, '00:30')).toEqual(toutes)
   })
 })
 
-describe('nextDoseDate — aperçu en direct', () => {
-  it('calcule la prochaine dose dès que fréquence et date sont valides, sans le reste', () => {
-    expect(nextDoseDate(valeurs({ name: '', type: null }))).toBe('2026-09-24')
-    expect(nextDoseDate(valeurs({ frequencyValue: '2', frequencyUnit: 'week' }))).toBe('2026-07-08')
-  })
-
-  it('ne rend rien tant que la fréquence ou la date manque ou est invalide', () => {
-    expect(nextDoseDate(valeurs({ frequencyValue: '' }))).toBeNull()
-    expect(nextDoseDate(valeurs({ frequencyValue: '0' }))).toBeNull()
-    expect(nextDoseDate(valeurs({ lastDoseDate: '' }))).toBeNull()
-    expect(nextDoseDate(valeurs({ lastDoseDate: '2999-01-01' }))).toBeNull()
-  })
-})
-
-describe('validateTreatmentEditForm — Modifier', () => {
-  const edition = (surcharges: Partial<TreatmentFormValues> = {}) =>
-    validateTreatmentEditForm({ ...treatmentFormValuesFrom(BRAVECTO), ...surcharges })
-
-  it('rend le plan et la prochaine dose, sans la dernière prise ni l’animal', () => {
-    expect(edition({ nextDueDate: '2026-10-01' })).toEqual({
+describe('validateTreatmentCreation (TR-1, TR-4, TR-6)', () => {
+  it('rend la création à écrire : animal de la route, nom nettoyé, quantité lue', () => {
+    expect(validateTreatmentCreation(saisie({ name: ' Panacur ' }), MILO)).toEqual({
       success: true,
       data: {
-        name: 'Bravecto',
-        type: 'antiparasitic',
-        frequency: { value: 3, unit: 'month' },
-        nextDueDate: '2026-10-01',
+        animalId: MILO,
+        name: 'Panacur',
+        type: 'deworming',
+        firstDoseOn: '2026-09-29',
+        frequency: { value: 1, unit: 'day' },
+        times: ['20:00'],
+        doseQuantity: 0.5,
+        doseUnit: 'tablet',
+        endsOn: '2026-10-10',
       },
     })
   })
 
-  it('n’exige pas de toucher la dernière prise', () => {
-    expect(edition({ lastDoseDate: '' }).success).toBe(true)
-  })
+  it('accepte une première prise passée, sans heure, sans posologie ni date de fin', () => {
+    const result = validateTreatmentCreation(
+      saisie({
+        firstDoseOn: '2026-09-03',
+        times: [],
+        doseQuantity: '',
+        doseUnit: null,
+        endsOn: '',
+      }),
+      MILO,
+    )
 
-  it('refuse une prochaine dose avant la dernière prise, avec un message distinct', () => {
-    expect(edition({ nextDueDate: '2026-06-23' })).toEqual({
-      success: false,
-      errors: { nextDueDate: 'treatments.form.errors.nextDueDateBeforeLastDose' },
-    })
-    expect(edition({ nextDueDate: '2026-06-24' }).success).toBe(true)
-  })
-
-  it('exige une prochaine dose', () => {
-    expect(edition({ nextDueDate: '' })).toEqual({
-      success: false,
-      errors: { nextDueDate: 'treatments.form.errors.nextDueDate' },
-    })
-  })
-
-  it('refuse un nom de 81 caractères avec le même message qu’à la création', () => {
-    const limite = 'a'.repeat(MAX_NAME_LENGTH)
-
-    expect(edition({ name: limite }).success).toBe(true)
-    expect(edition({ name: `${limite}a` })).toEqual({
-      success: false,
-      errors: { name: 'treatments.form.errors.nameMax' },
+    expect(result).toMatchObject({
+      success: true,
+      data: {
+        firstDoseOn: '2026-09-03',
+        times: [],
+        doseQuantity: null,
+        doseUnit: null,
+        endsOn: null,
+      },
     })
   })
 
-  it('garde les messages du nom, du type et de la fréquence', () => {
-    expect(edition({ name: '', type: null, frequencyValue: '' })).toEqual({
+  it('dit ce qui manque dans un formulaire vide, sans erreur sur les champs facultatifs', () => {
+    expect(validateTreatmentCreation(emptyTreatmentFormValues(), MILO)).toEqual({
       success: false,
       errors: {
         name: 'treatments.form.errors.name',
         type: 'treatments.form.errors.type',
         frequency: 'treatments.form.errors.frequency',
+        firstDoseOn: 'treatments.form.errors.firstDoseOn',
       },
     })
   })
-})
 
-describe('editedNextDueDate — prochaine dose proposée par « Modifier »', () => {
-  const REPORTE = { ...BRAVECTO, nextDueDate: '2026-10-05' }
-
-  it('propose la dernière prise plus la nouvelle fréquence quand la fréquence change', () => {
-    expect(
-      editedNextDueDate(
-        { ...treatmentFormValuesFrom(REPORTE), frequencyValue: '1', frequencyUnit: 'month' },
-        REPORTE,
-      ),
-    ).toBe('2026-07-24')
+  it.each([
+    [{ frequencyValue: '366' }, { frequency: 'treatments.form.errors.frequencyMax' }],
+    [{ frequencyValue: '1,5' }, { frequency: 'treatments.form.errors.frequency' }],
+    [{ name: 'a'.repeat(81) }, { name: 'treatments.form.errors.nameMax' }],
+    [{ doseQuantity: 'un' }, { dosage: 'treatments.form.errors.dosageQuantity' }],
+    [{ doseQuantity: '0' }, { dosage: 'treatments.form.errors.dosageQuantity' }],
+    [{ doseQuantity: '' }, { dosage: 'treatments.form.errors.dosageIncomplete' }],
+    [{ doseUnit: null }, { dosage: 'treatments.form.errors.dosageIncomplete' }],
+    [{ endsOn: '2026-09-28' }, { endsOn: 'treatments.form.errors.endsOnBeforeFirstDose' }],
+    [{ endsOn: '2026-02-30' }, { endsOn: 'treatments.form.errors.endsOn' }],
+    [
+      { firstDoseOn: '2200-01-01', endsOn: '' },
+      { firstDoseOn: 'treatments.form.errors.firstDoseOn' },
+    ],
+  ] as const)('refuse %o', (change, errors) => {
+    expect(validateTreatmentCreation(saisie(change), MILO)).toEqual({ success: false, errors })
   })
 
-  it('rend la prochaine dose enregistrée, report compris, quand la fréquence revient à celle du plan', () => {
-    expect(editedNextDueDate(treatmentFormValuesFrom(REPORTE), REPORTE)).toBe('2026-10-05')
-  })
-
-  it('garde la première échéance d’un traitement sans prise, quelle que soit la fréquence', () => {
-    const sansPrise = { ...BRAVECTO, lastDoseDate: null, nextDueDate: '2026-10-05' }
-
-    expect(
-      editedNextDueDate(
-        { ...treatmentFormValuesFrom(sansPrise), frequencyValue: '1', frequencyUnit: 'month' },
-        sansPrise,
-      ),
-    ).toBe('2026-10-05')
-  })
-
-  it('ne propose rien tant que la fréquence saisie n’est pas valide', () => {
-    expect(
-      editedNextDueDate({ ...treatmentFormValuesFrom(REPORTE), frequencyValue: '' }, REPORTE),
-    ).toBeNull()
+  it('accepte une date de fin le jour de la première prise', () => {
+    expect(validateTreatmentCreation(saisie({ endsOn: '2026-09-29' }), MILO).success).toBe(true)
   })
 })
 
-describe('type médicament', () => {
-  it('n’est pas proposé par le sélecteur à boutons, trop étroit pour trois libellés', () => {
-    expect(FORM_TREATMENT_TYPES).toEqual(['deworming', 'antiparasitic'])
+describe('validateTreatmentEdition (TR-6, TR-9, TR-28)', () => {
+  it('rend la modification à écrire, la prochaine dose telle que saisie', () => {
+    expect(validateTreatmentEdition(edition({ name: 'Milbemax chat' }), milbemax(), TODAY)).toEqual(
+      {
+        success: true,
+        data: {
+          name: 'Milbemax chat',
+          type: 'deworming',
+          frequency: { value: 3, unit: 'month' },
+          times: [],
+          doseQuantity: 1.5,
+          doseUnit: 'tablet',
+          endsOn: null,
+          nextDoseOn: '2026-10-10',
+        },
+      },
+    )
   })
 
-  it('reste celui d’un médicament importé que « Modifier » enregistre', () => {
-    const metacam = { ...BRAVECTO, name: 'Métacam', type: 'medication' as const }
-
-    const resultat = validateTreatmentEditForm(treatmentFormValuesFrom(metacam))
-
-    expect(resultat.success && resultat.data.type).toBe('medication')
-  })
-})
-
-describe('traitement sans prise', () => {
-  const sansPrise = { ...BRAVECTO, lastDoseDate: null, nextDueDate: '2026-10-05' }
-
-  it('préremplit « Modifier » sans dernière prise', () => {
-    expect(treatmentFormValuesFrom(sansPrise)).toMatchObject({
-      lastDoseDate: '',
-      nextDueDate: '2026-10-05',
+  it('exige la prochaine dose quand elle est proposée', () => {
+    expect(validateTreatmentEdition(edition({ nextDoseOn: '' }), milbemax(), TODAY)).toEqual({
+      success: false,
+      errors: { nextDoseOn: 'treatments.form.errors.nextDoseOn' },
     })
   })
 
-  it('accepte une prochaine dose à n’importe quelle date : aucune prise ne la borne', () => {
-    const resultat = validateTreatmentEditForm({
-      ...treatmentFormValuesFrom(sansPrise),
-      nextDueDate: '2026-09-01',
-    })
+  it('n’envoie aucune prochaine dose pour un traitement fini', () => {
+    const fini = milbemax([period({ endsOn: '2026-08-01' })])
 
-    expect(resultat.success && resultat.data.nextDueDate).toBe('2026-09-01')
+    expect(
+      validateTreatmentEdition(edition({ endsOn: '2026-08-01', nextDoseOn: '' }), fini, TODAY),
+    ).toMatchObject({ success: true, data: { nextDoseOn: null } })
+  })
+
+  it.each([
+    [{ nextDoseOn: '2026-09-27' }, { nextDoseOn: 'treatments.form.errors.nextDoseOnTooEarly' }],
+    [
+      { nextDoseOn: '2026-10-20', endsOn: '2026-10-15' },
+      { nextDoseOn: 'treatments.form.errors.nextDoseOnAfterEnd' },
+    ],
+    [{ endsOn: '2026-07-09' }, { endsOn: 'treatments.form.errors.endsOnBeforeFirstDose' }],
+    [
+      { frequencyValue: '1', endsOn: '2026-09-01', nextDoseOn: TODAY },
+      { endsOn: 'treatments.form.errors.endsOnBeforeNextDose' },
+    ],
+  ] as const)('refuse %o', (change, errors) => {
+    expect(validateTreatmentEdition(edition(change), milbemax(), TODAY)).toEqual({
+      success: false,
+      errors,
+    })
+  })
+
+  it('refuse une date de fin avant la dernière prise notée', () => {
+    const deuxPrises = milbemax(
+      [period()],
+      [
+        PRISE,
+        {
+          ...PRISE,
+          id: 'd-2',
+          dueOn: '2026-10-10',
+          givenOn: '2026-10-10',
+          nextDueDate: '2027-01-10',
+        },
+      ],
+    )
+
+    expect(
+      validateTreatmentEdition(
+        edition({ endsOn: '2026-10-09', nextDoseOn: '2027-01-10' }),
+        deuxPrises,
+        '2026-10-20',
+      ),
+    ).toEqual({
+      success: false,
+      errors: { endsOn: 'treatments.form.errors.endsOnBeforeLastDose' },
+    })
+  })
+
+  it('suit la saisie en cours : nouvelle période dès que la fréquence change, correction sinon', () => {
+    expect(editionDraftOf(edition(), milbemax(), TODAY).change).toBe('correct')
+    expect(editionDraftOf(edition({ frequencyValue: '1' }), milbemax(), TODAY)).toMatchObject({
+      change: 'open',
+      nextDose: { proposedOn: TODAY },
+    })
+  })
+
+  it('garde les réglages enregistrés tant que la saisie n’est pas valide', () => {
+    expect(rhythmOfValues(edition({ frequencyValue: '' }))).toBeNull()
+    expect(editionDraftOf(edition({ frequencyValue: '' }), milbemax(), TODAY)).toMatchObject({
+      change: 'correct',
+      nextDose: { proposedOn: '2026-10-10' },
+    })
+  })
+})
+
+describe('validateTreatmentResumption (TR-32)', () => {
+  const ARRETE = milbemax([period({ stoppedOn: '2026-08-01' })])
+
+  it('rend la reprise à écrire, sans nom ni type', () => {
+    expect(
+      validateTreatmentResumption(saisie({ firstDoseOn: '2026-10-01' }), ARRETE, TODAY),
+    ).toEqual({
+      success: true,
+      data: {
+        firstDoseOn: '2026-10-01',
+        frequency: { value: 1, unit: 'day' },
+        times: ['20:00'],
+        doseQuantity: 0.5,
+        doseUnit: 'tablet',
+        endsOn: '2026-10-10',
+      },
+    })
+  })
+
+  it('exige la première prise', () => {
+    expect(validateTreatmentResumption(saisie({ firstDoseOn: '' }), ARRETE, TODAY)).toEqual({
+      success: false,
+      errors: { firstDoseOn: 'treatments.form.errors.firstDoseOn' },
+    })
+  })
+
+  it('refuse une première prise avant la fin de la dernière période', () => {
+    expect(
+      validateTreatmentResumption(saisie({ firstDoseOn: '2026-07-31' }), ARRETE, TODAY),
+    ).toEqual({
+      success: false,
+      errors: { firstDoseOn: 'treatments.form.errors.firstDoseOnBeforePreviousPeriod' },
+    })
+  })
+
+  it('refuse une date de fin avant la première prise', () => {
+    expect(
+      validateTreatmentResumption(
+        saisie({ firstDoseOn: '2026-10-01', endsOn: '2026-09-30' }),
+        ARRETE,
+        TODAY,
+      ),
+    ).toEqual({
+      success: false,
+      errors: { endsOn: 'treatments.form.errors.endsOnBeforeFirstDose' },
+    })
   })
 })

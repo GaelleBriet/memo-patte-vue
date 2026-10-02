@@ -5,7 +5,6 @@ import { getDb } from '@/core/db/sqlite'
 import { guardedUpsert, type SyncRow } from '@/core/supabase/guarded-upsert'
 import { loadSupabaseClient } from '@/core/supabase/load-client'
 import { syncField, type SyncPullPage } from '@/core/sync/service/syncable-table'
-import { currentPeriodIdSql } from './treatment-periods.repository'
 import type { NewTreatmentDose, TreatmentDose } from '../schema/treatment-dose.schema'
 import type { FrequencyUnit } from '../schema/treatment.schema'
 import type { DoseFields } from '@/shared/domain/treatment-schedule'
@@ -392,18 +391,6 @@ export function createTreatmentDosesRepository(
       })
       if (steps.length > 0) await db.runMany(steps.map(({ statement }) => statement))
       return steps.map(({ inverse }) => inverse).reverse()
-    },
-
-    /** La dernière ligne de la période en cours garde sa date et son échéance ; elle n'est datée que si sa prochaine dose change. */
-    updateHeadStatement(
-      treatmentId: string,
-      { nextDueDate, updatedAt }: Pick<NewTreatmentDose, 'nextDueDate' | 'updatedAt'>,
-    ): SqlStatement {
-      return {
-        sql: `UPDATE treatment_dose SET next_due_date = ?, updated_at = ?
-              WHERE id = ${headDoseIdSql(currentPeriodIdSql('?'))} AND next_due_date <> ?`,
-        params: [nextDueDate, updatedAt, treatmentId, nextDueDate],
-      }
     },
 
     markDeletedByTreatmentStatement(treatmentId: string, deletedAt: string): SqlStatement {

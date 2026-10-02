@@ -30,6 +30,7 @@ import {
   type AnimalDeletionService,
 } from '../service/animal-deletion.service'
 import { createAnimalsRepository, type AnimalsRepository } from '../repository/animals.repository'
+import { seedTreatmentWithDose } from '@/features/treatments/__tests__/seed-treatment'
 
 vi.mock('@/core/db/sqlite', () => ({ getDb: vi.fn<() => Promise<DbClient>>() }))
 vi.mock('@/core/notifications', () => ({
@@ -170,14 +171,14 @@ describe('animalDeletionService', () => {
     vi.useFakeTimers({ now: new Date('2026-03-01T10:00:00.000Z') })
     const miette = await animals.create({ name: 'Miette', species: 'cat' })
     const vasco = await animals.create({ name: 'Vasco', species: 'dog' })
-    await treatments.create({
+    await seedTreatmentWithDose(db, {
       animalId: miette.id,
       name: 'Milbemax',
       type: 'deworming',
       frequency: { value: 3, unit: 'month' },
       lastDoseDate: '2026-01-10',
     })
-    const vascoTreatment = await treatments.create({
+    const vascoTreatment = await seedTreatmentWithDose(db, {
       animalId: vasco.id,
       name: 'Bravecto',
       type: 'antiparasitic',
@@ -208,7 +209,7 @@ describe('animalDeletionService', () => {
       name: 'Rage',
       lastInjectionDate: '2024-03-01',
     })
-    const milbemax = await treatments.create({
+    const milbemax = await seedTreatmentWithDose(db, {
       animalId: miette.id,
       name: 'Milbemax',
       type: 'deworming',
@@ -309,7 +310,7 @@ describe('animalDeletionService', () => {
       lastInjectionDate: '2024-03-01',
       dueDate: '2027-03-01',
     })
-    const milbemax = await treatments.create({
+    const milbemax = await seedTreatmentWithDose(db, {
       animalId: miette.id,
       name: 'Milbemax',
       type: 'deworming',
@@ -518,7 +519,7 @@ describe('animalDeletionService', () => {
       lastInjectionDate: '2024-03-01',
     })
     await weight.create({ animalId: miette.id, weightKg: 4.1, measuredOn: '2026-01-10' })
-    const milbemax = await treatments.create({
+    const milbemax = await seedTreatmentWithDose(db, {
       animalId: miette.id,
       name: 'Milbemax',
       type: 'deworming',

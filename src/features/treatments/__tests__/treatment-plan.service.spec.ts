@@ -1,0 +1,230 @@
+// @vitest-environment node
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { ZodError } from 'zod'
+
+import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory-db'
+import { createTreatmentDosesRepository } from '../repository/treatment-doses.repository'
+import { createTreatmentPeriodsRepository } from '../repository/treatment-periods.repository'
+import {
+  createTreatmentsRepository,
+  type TreatmentsRepository,
+} from '../repository/treatments.repository'
+import type { TreatmentCreationInput, TreatmentEditionInput } from '../schema/treatment-form.schema'
+import {
+  createTreatmentPlanService,
+  type TreatmentPlanService,
+} from '../service/treatment-plan.service'
+
+const MILO = '11111111-1111-4111-8111-111111111111'
+const T0 = '2026-09-01T08:00:00.000Z'
+
+const MILBEMAX: TreatmentCreationInput = {
+  animalId: MILO,
+  name: 'Milbemax',
+  type: 'deworming',
+  firstDoseOn: '2026-09-26',
+  frequency: { value: 1, unit: 'week' },
+  times: [],
+  doseQuantity: 1,
+  doseUnit: 'tablet',
+  endsOn: '2026-10-10',
+}
+
+function saisie(changes: Partial<TreatmentEditionInput> = {}): TreatmentEditionInput {
+  const { animalId: _animalId, firstDoseOn: _firstDoseOn, ...plan } = MILBEMAX
+  return { ...plan, nextDoseOn: null, ...changes }
+}
+
+describe('treatmentPlanService', () => {
+  let db: InMemoryDb
+  let treatments: TreatmentsRepository
+  let service: TreatmentPlanService
+  let today: string
+
+  beforeEach(async () => {
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date(T0) })
+    today = '2026-09-28'
+    db = await createInMemoryDb()
+    await db.execute('PRAGMA foreign_keys = ON')
+    await db.run(
+      `INSERT INTO animal (id, name, species, created_at, updated_at)
+       VALUES (?, 'Milo', 'dog', ?, ?)`,
+      [MILO, T0, T0],
+    )
+    treatments = createTreatmentsRepository(db)
+    service = createTreatmentPlanService({
+      treatments: () => treatments,
+      today: () => today,
+      newId: () => crypto.randomUUID(),
+    })
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+    db.close()
+  })
+
+  async function give(treatmentId: string, dueOn: string, nextDueDate: string): Promise<void> {
+    await createTreatmentDosesRepository(db).applyBatch(
+      [
+        {
+          action: 'create',
+          id: crypto.randomUUID(),
+          treatmentId,
+          animalId: MILO,
+          dose: {
+            periodId: treatmentId,
+            dueOn,
+            dueTime: null,
+            givenOn: dueOn,
+            status: 'given',
+            nextDueDate,
+          },
+        },
+      ],
+      T0,
+    )
+  }
+
+  async function historyOf(id: string) {
+    const history = await treatments.getWithHistory(id)
+    if (history === null) throw new Error('introuvable')
+    return history
+  }
+
+  it('crée le traitement avec sa période, sans rien noter comme donné (TR-3)', async () => {
+    const created = await service.create({ ...MILBEMAX, firstDoseOn: '2026-09-03' })
+
+    expect(created).toMatchObject({
+      name: 'Milbemax',
+      periodId: created.id,
+      lastDoseDate: null,
+      nextDueDate: '2026-09-03',
+    })
+    await expect(historyOf(created.id)).resolves.toMatchObject({
+      periods: [
+        {
+          id: created.id,
+          startsOn: '2026-09-03',
+          firstDueOn: '2026-09-03',
+          endsOn: '2026-10-10',
+          frequency: { value: 1, unit: 'week' },
+          times: [],
+          doseQuantity: 1,
+          doseUnit: 'tablet',
+        },
+      ],
+      doses: [],
+    })
+  })
+
+  it('refuse une création incohérente sans rien écrire', async () => {
+    await expect(service.create({ ...MILBEMAX, doseUnit: null })).rejects.toBeInstanceOf(ZodError)
+    await expect(service.create({ ...MILBEMAX, endsOn: '2026-09-25' })).rejects.toBeInstanceOf(
+      ZodError,
+    )
+
+    await expect(db.query('SELECT id FROM treatment')).resolves.toEqual([])
+  })
+
+  it('corrige les réglages d’une période sans prise (TR-28)', async () => {
+    const { id } = await service.create(MILBEMAX)
+
+    await service.update(id, saisie({ frequency: { value: 2, unit: 'day' }, times: ['08:00'] }))
+
+    await expect(historyOf(id)).resolves.toMatchObject({
+      periods: [{ id, frequency: { value: 2, unit: 'day' }, times: ['08:00'] }],
+    })
+  })
+
+  it('ouvre une nouvelle période aujourd’hui quand une prise est notée, l’ancienne intacte (TR-28)', async () => {
+    const { id } = await service.create(MILBEMAX)
+    await give(id, '2026-09-26', '2026-10-03')
+    const [before] = (await historyOf(id)).periods
+
+    const updated = await service.update(id, saisie({ frequency: { value: 2, unit: 'day' } }))
+
+    const { periods } = await historyOf(id)
+    expect(periods).toHaveLength(2)
+    expect(periods[0]).toEqual(before)
+    expect(periods[1]).toMatchObject({
+      startsOn: '2026-09-28',
+      firstDueOn: '2026-09-28',
+      frequency: { value: 2, unit: 'day' },
+      doseQuantity: 1,
+      doseUnit: 'tablet',
+      endsOn: '2026-10-10',
+    })
+    expect(updated.periodId).toBe(periods[1]?.id)
+  })
+
+  it('reporte la prochaine dose par une ligne « Reportée », sans période nouvelle (TR-9)', async () => {
+    const { id } = await service.create(MILBEMAX)
+    await give(id, '2026-09-26', '2026-10-03')
+
+    const updated = await service.update(id, saisie({ nextDoseOn: '2026-10-06' }))
+
+    expect(updated).toMatchObject({ lastDoseDate: '2026-09-26', nextDueDate: '2026-10-06' })
+    const { periods, doses } = await historyOf(id)
+    expect(periods).toHaveLength(1)
+    expect(doses).toMatchObject([
+      { dueOn: '2026-10-03', givenOn: null, status: 'postponed', nextDueDate: '2026-10-06' },
+      { dueOn: '2026-09-26', status: 'given' },
+    ])
+  })
+
+  it('refuse une prochaine dose après la date de fin d’une période qui a déjà une prise, sans rien écrire (Q20)', async () => {
+    const { id } = await service.create(MILBEMAX)
+    await give(id, '2026-09-26', '2026-10-03')
+    const before = await historyOf(id)
+
+    const refus = await service
+      .update(id, saisie({ name: 'Autre', nextDoseOn: '2026-11-01' }))
+      .catch((cause: unknown) => cause)
+
+    expect(refus).toBeInstanceOf(ZodError)
+    expect((refus as ZodError).issues).toMatchObject([
+      { path: ['nextDoseOn'], message: 'afterEnd' },
+    ])
+    await expect(historyOf(id)).resolves.toEqual(before)
+  })
+
+  it('reprend un traitement arrêté dans une nouvelle période, la précédente intacte (TR-32)', async () => {
+    const { id } = await service.create(MILBEMAX)
+    await give(id, '2026-09-26', '2026-10-03')
+    await createTreatmentPeriodsRepository(db).stop(id, '2026-09-28')
+    const [before] = (await historyOf(id)).periods
+    today = '2026-11-02'
+
+    const resumed = await service.resume(id, {
+      firstDoseOn: '2026-11-03',
+      frequency: { value: 1, unit: 'day' },
+      times: ['20:00'],
+      doseQuantity: 0.5,
+      doseUnit: 'tablet',
+      endsOn: '2026-11-07',
+    })
+
+    expect(resumed).toMatchObject({
+      stoppedOn: null,
+      lastDoseDate: null,
+      nextDueDate: '2026-11-03',
+    })
+    const { periods } = await historyOf(id)
+    expect(periods[0]).toEqual(before)
+    expect(periods[1]).toMatchObject({
+      startsOn: '2026-11-03',
+      firstDueOn: '2026-11-03',
+      endsOn: '2026-11-07',
+      stoppedOn: null,
+      times: ['20:00'],
+      doseQuantity: 0.5,
+    })
+  })
+
+  it('échoue pour un traitement introuvable', async () => {
+    await expect(service.update('inconnu', saisie())).rejects.toThrow(
+      'Traitement introuvable : inconnu',
+    )
+  })
+})

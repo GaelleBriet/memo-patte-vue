@@ -20,6 +20,7 @@ import {
   type TreatmentDosesService,
 } from '../service/treatment-doses.service'
 import { createTreatmentRemindersService } from '../service/treatment-reminders.service'
+import { seedHeadEdit, seedTreatmentWithDose } from './seed-treatment'
 
 const BOREE = '11111111-1111-4111-8111-111111111111'
 const NOW = new Date('2026-09-23T08:00:00.000Z')
@@ -71,7 +72,7 @@ describe('treatmentDosesService', () => {
       now: () => new Date(),
     })
     bravecto = (
-      await treatments.create({
+      await seedTreatmentWithDose(db, {
         animalId: BOREE,
         name: 'Bravecto',
         type: 'deworming',
@@ -185,7 +186,7 @@ describe('treatmentDosesService', () => {
 
     it('après une prise en avance, une prochaine dose avancée à la main reste notable', async () => {
       await service.record(bravecto, '2026-09-23')
-      await treatments.update(bravecto, {
+      await seedHeadEdit(db, bravecto, {
         name: 'Bravecto',
         type: 'deworming',
         frequency: { value: 1, unit: 'month' },
@@ -204,7 +205,7 @@ describe('treatmentDosesService', () => {
     it('un quotidien rattrapé après coup garde son historique dans l’ordre des dates, et sa dernière prise après une suppression', async () => {
       vi.setSystemTime(new Date('2026-09-01T08:00:00.000Z'))
       const panacur = (
-        await treatments.create({
+        await seedTreatmentWithDose(db, {
           animalId: BOREE,
           name: 'Panacur',
           type: 'deworming',
@@ -336,7 +337,7 @@ describe('treatmentDosesService', () => {
 
     it('garde un report manuel quand la prise est déplacée, et le dit', async () => {
       const trimestriel = (
-        await treatments.create({
+        await seedTreatmentWithDose(db, {
           animalId: BOREE,
           name: 'Bravecto trimestriel',
           type: 'antiparasitic',
@@ -344,7 +345,7 @@ describe('treatmentDosesService', () => {
           lastDoseDate: '2026-08-28',
         })
       ).id
-      await treatments.update(trimestriel, {
+      await seedHeadEdit(db, trimestriel, {
         name: 'Bravecto trimestriel',
         type: 'antiparasitic',
         frequency: { value: 3, unit: 'month' },
@@ -361,7 +362,7 @@ describe('treatmentDosesService', () => {
     })
 
     it('ne dit pas « report gardé » pour une prise d’une période précédente', async () => {
-      await treatments.update(bravecto, {
+      await seedHeadEdit(db, bravecto, {
         name: 'Bravecto',
         type: 'deworming',
         frequency: { value: 1, unit: 'month' },
@@ -393,7 +394,7 @@ describe('treatmentDosesService', () => {
 
     it('une prise qui devient la dernière fixe la prochaine dose avec la fréquence de sa période', async () => {
       const ancienne = await noter('2026-06-01')
-      await treatments.update(bravecto, {
+      await seedHeadEdit(db, bravecto, {
         name: 'Bravecto',
         type: 'deworming',
         frequency: { value: 3, unit: 'month' },
@@ -426,7 +427,7 @@ describe('treatmentDosesService', () => {
 
     it('ne dit pas « report gardé » quand la dernière passe avant la précédente', async () => {
       const trimestriel = (
-        await treatments.create({
+        await seedTreatmentWithDose(db, {
           animalId: BOREE,
           name: 'Bravecto trimestriel',
           type: 'antiparasitic',
@@ -435,7 +436,7 @@ describe('treatmentDosesService', () => {
         })
       ).id
       await service.record(trimestriel, '2026-07-01')
-      await treatments.update(trimestriel, {
+      await seedHeadEdit(db, trimestriel, {
         name: 'Bravecto trimestriel',
         type: 'antiparasitic',
         frequency: { value: 3, unit: 'month' },
@@ -467,7 +468,7 @@ describe('treatmentDosesService', () => {
 
     it('après un changement de fréquence, une prise précédente redatée garde sa prochaine dose, lue comme un report', async () => {
       const precedente = await noter('2026-06-01')
-      await treatments.update(bravecto, {
+      await seedHeadEdit(db, bravecto, {
         name: 'Bravecto',
         type: 'deworming',
         frequency: { value: 3, unit: 'month' },

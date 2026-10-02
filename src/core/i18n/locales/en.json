@@ -246,9 +246,10 @@
     "form": {
       "title": "New treatment",
       "editTitle": "Edit {name}",
+      "resumeTitle": "Resume {name}",
       "forAnimal": "For {name}",
       "name": {
-        "label": "Name",
+        "label": "Product name",
         "placeholder": "e.g. Bravecto"
       },
       "type": {
@@ -268,27 +269,66 @@
           "month": "month | months"
         }
       },
-      "lastDoseDate": {
-        "label": "Date of last dose"
+      "firstDoseOn": {
+        "label": "First dose on",
+        "help": "Already started? Enter the last dose you’re certain of: the history will start there."
       },
-      "nextDueDate": {
-        "label": "Next dose"
+      "nextDoseOn": {
+        "label": "Next dose",
+        "calculated": "Based on the last dose: {date}. You can change it.",
+        "refusal": {
+          "laterLine": "A later dose is already postponed. Delete that postponement to move this one.",
+          "laterDose": "A later dose is already logged.",
+          "noDateLeft": "No date left before the end date. Change the end date to move this dose.",
+          "arrivalLogged": "This dose was already moved, and its new date is logged."
+        }
       },
-      "nextDose": "Next dose on {date}",
+      "times": {
+        "label": "Treatment times",
+        "add": "Add a time",
+        "change": "Time {time}, change",
+        "remove": "Remove {time}"
+      },
+      "dosage": {
+        "label": "Dosage",
+        "quantity": "Quantity",
+        "unit": "Unit",
+        "shortcuts": "Common quantities"
+      },
+      "endsOn": {
+        "label": "End date",
+        "help": "No dose will be scheduled after this date.",
+        "clear": "Clear end date",
+        "sameDuration": "Same length as last time: {duration}.",
+        "repeatedDuration": "{duration}, same as last time. No dose will be scheduled after this date.",
+        "days": "{n} day | {n} days"
+      },
+      "resumeInfo": "Settings from the last period, {start} – {end}. Everything can be changed.",
       "submit": "Create",
       "submitting": "Creating…",
       "save": "Save",
       "saving": "Saving…",
+      "resume": "Resume",
+      "resuming": "Resuming…",
       "errors": {
         "name": "Name is required.",
         "nameMax": "Name can’t be longer than {max} characters.",
         "type": "Choose a type.",
         "frequency": "Enter a frequency.",
         "frequencyMax": "Frequency must be at most 365.",
-        "lastDoseDate": "Date is required.",
-        "lastDoseDateFuture": "Date can’t be in the future.",
-        "nextDueDate": "Date is required.",
-        "nextDueDateBeforeLastDose": "The next dose can’t be before the last dose.",
+        "firstDoseOn": "Date is required.",
+        "firstDoseOnBeforePreviousPeriod": "The first dose can’t be before the end of the last period.",
+        "nextDoseOn": "Date is required.",
+        "nextDoseOnTooEarly": "Choose a date from {date} onward.",
+        "nextDoseOnAfterEnd": "The next dose can’t be after the end date. Change the end date to go further.",
+        "nextDoseOnRefused": "This dose can’t be moved.",
+        "times": "Check the treatment times.",
+        "dosageQuantity": "Quantity must be a number greater than 0.",
+        "dosageIncomplete": "Enter both the quantity and the unit, or leave both empty.",
+        "endsOn": "This date doesn’t exist.",
+        "endsOnBeforeFirstDose": "The end date can’t be before the first dose.",
+        "endsOnBeforeNextDose": "The end date can’t be before the next dose.",
+        "endsOnBeforeLastDose": "The end date can’t be before the last logged dose.",
         "notFound": "We can’t find this treatment.",
         "load": "Couldn’t load this treatment. Try again.",
         "save": "Couldn’t save this treatment. Try again."

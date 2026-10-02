@@ -7,6 +7,7 @@ import {
   type RecordedDose,
   type TreatmentDosesService,
 } from '../service/treatment-doses.service'
+import { treatmentPlanService, type TreatmentPlanService } from '../service/treatment-plan.service'
 import {
   treatmentRemindersService,
   type TreatmentRemindersService,
@@ -16,7 +17,12 @@ import {
   type StoppedTreatment,
   type TreatmentStopService,
 } from '../service/treatment-stop.service'
-import type { Treatment, TreatmentEditInput, TreatmentInput } from '../schema/treatment.schema'
+import type {
+  TreatmentCreationInput,
+  TreatmentEditionInput,
+  TreatmentResumptionInput,
+} from '../schema/treatment-form.schema'
+import type { Treatment } from '../schema/treatment.schema'
 import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import type { DoseDates } from '../repository/treatment-doses.repository'
 import type {
@@ -32,10 +38,7 @@ type TreatmentsRepository = Pick<
   FullTreatmentsRepository,
   | 'getById'
   | 'listByAnimal'
-  | 'create'
-  | 'update'
   | 'remove'
-  | 'resume'
   | 'listDoses'
   | 'countDosesByAnimal'
   | 'getWithHistory'
@@ -79,6 +82,15 @@ let stopProvider: () => TreatmentStop = () => treatmentStopService
 /** `null` rétablit le service réel. */
 export function provideTreatmentStopService(next: (() => TreatmentStop) | null): void {
   stopProvider = next ?? (() => treatmentStopService)
+}
+
+type TreatmentPlan = Pick<TreatmentPlanService, 'create' | 'update' | 'resume'>
+
+let planProvider: () => TreatmentPlan = () => treatmentPlanService
+
+/** `null` rétablit le service réel. */
+export function provideTreatmentPlanService(next: (() => TreatmentPlan) | null): void {
+  planProvider = next ?? (() => treatmentPlanService)
 }
 
 export const useTreatmentsStore = defineStore('treatments', () => {
@@ -179,10 +191,10 @@ export const useTreatmentsStore = defineStore('treatments', () => {
       return (await requireRepository()).listDoses(treatmentId)
     },
 
-    async create(input: TreatmentInput): Promise<Treatment> {
+    async create(input: TreatmentCreationInput): Promise<Treatment> {
       const created = await write(
-        async (repository) => {
-          const treatment = await repository.create(input)
+        async () => {
+          const treatment = await planProvider().create(input)
           await remindersProvider().reschedule(treatment.id)
           return treatment
         },
@@ -194,10 +206,10 @@ export const useTreatmentsStore = defineStore('treatments', () => {
       return created
     },
 
-    async update(id: string, input: TreatmentEditInput): Promise<Treatment> {
+    async update(id: string, input: TreatmentEditionInput): Promise<Treatment> {
       return write(
-        async (repository) => {
-          const updated = await repository.update(id, input)
+        async () => {
+          const updated = await planProvider().update(id, input)
           await remindersProvider().reschedule(id)
           return updated
         },
@@ -205,11 +217,11 @@ export const useTreatmentsStore = defineStore('treatments', () => {
       )
     },
 
-    /** Le traitement arrêté repart avec la prochaine dose choisie. */
-    async resume(id: string, input: TreatmentEditInput): Promise<Treatment> {
+    /** Le traitement fini ou arrêté repart dans une nouvelle période, à la première prise choisie. */
+    async resume(id: string, input: TreatmentResumptionInput): Promise<Treatment> {
       return write(
-        async (repository) => {
-          const resumed = await repository.resume(id, input)
+        async () => {
+          const resumed = await planProvider().resume(id, input)
           await remindersProvider().reschedule(id)
           return resumed
         },

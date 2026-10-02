@@ -214,49 +214,6 @@ export function createTreatmentPeriodsRepository(
       }
     },
 
-    /**
-     * « Modifier » corrige la période en cours ; une reprise la remet en cours. Une période que
-     * rien ne change n'est pas datée : sa version resterait sinon la plus récente à la fusion.
-     */
-    correctCurrentStatement(
-      treatmentId: string,
-      {
-        frequency,
-        resume,
-        updatedAt,
-      }: { frequency: TreatmentFrequency; resume: boolean; updatedAt: string },
-    ): SqlStatement {
-      return {
-        sql: `UPDATE treatment_period
-              SET frequency_value = ?, frequency_unit = ?,
-                  ${resume ? 'stopped_on = NULL, ' : ''}updated_at = ?
-              WHERE id = ${currentPeriodIdSql('?')}
-                AND (frequency_value <> ? OR frequency_unit <> ?
-                     ${resume ? 'OR stopped_on IS NOT NULL' : ''})`,
-        params: [
-          frequency.value,
-          frequency.unit,
-          updatedAt,
-          treatmentId,
-          frequency.value,
-          frequency.unit,
-        ],
-      }
-    },
-
-    /** La période en cours ne commence jamais après sa première échéance. */
-    correctCurrentFirstDueStatement(
-      treatmentId: string,
-      { firstDueOn, updatedAt }: { firstDueOn: string; updatedAt: string },
-    ): SqlStatement {
-      return {
-        sql: `UPDATE treatment_period
-              SET first_due_on = ?, starts_on = MIN(starts_on, ?), updated_at = ?
-              WHERE id = ${currentPeriodIdSql('?')} AND first_due_on <> ?`,
-        params: [firstDueOn, firstDueOn, updatedAt, treatmentId, firstDueOn],
-      }
-    },
-
     /** Faux quand la période en cours est déjà arrêtée, ou que le traitement n'en a pas : rien n'est écrit. */
     async stop(treatmentId: string, stoppedOn: string): Promise<boolean> {
       const changes = await db.run(

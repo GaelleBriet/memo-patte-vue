@@ -26,6 +26,7 @@ import {
   MAX_SCHEDULED_REMINDERS,
 } from '@/shared/domain/due-reminders-schedule'
 import { createRemindersSync, installRemindersSync } from '../reminders-sync'
+import { seededTreatments } from '@/features/treatments/__tests__/seed-treatment'
 
 const NOW = new Date(2026, 8, 15, 12)
 
@@ -39,6 +40,7 @@ function createRepositories(client: InMemoryDb) {
     animals: createAnimalsRepository(client),
     vaccinations: createVaccinationsRepository(client),
     treatments: createTreatmentsRepository(client),
+    seed: seededTreatments(client),
   }
 }
 
@@ -99,7 +101,7 @@ describe('appareil restauré, aucune notification programmée', () => {
       name: 'Rage',
       lastInjectionDate: '2025-10-15',
     })
-    const milbemax = await repositories.treatments.create({
+    const milbemax = await repositories.seed.create({
       animalId: luna.id,
       name: 'Milbemax',
       type: 'deworming',
@@ -264,7 +266,7 @@ describe('appareil restauré, aucune notification programmée', () => {
 
   it('reprend les cycles à venir d’un traitement récurrent dont l’échéance notée est périmée', async () => {
     const luna = await seedAnimal('Luna', 'cat')
-    const milbemax = await repositories.treatments.create({
+    const milbemax = await repositories.seed.create({
       animalId: luna.id,
       name: 'Milbemax',
       type: 'deworming',
@@ -351,7 +353,7 @@ describe('traitement arrêté, exporté puis réimporté', () => {
     const source = await createInMemoryDb()
     const phone = createRepositories(source)
     const luna = await phone.animals.create({ name: 'Luna', species: 'cat' })
-    const milbemax = await phone.treatments.create({
+    const milbemax = await phone.seed.create({
       animalId: luna.id,
       name: 'Milbemax',
       type: 'deworming',

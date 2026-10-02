@@ -4,9 +4,6 @@ import {
   TREATMENT_TYPES,
   treatmentInputSchema,
   treatmentSchema,
-  treatmentEditSchema,
-  treatmentEditSchemaAfter,
-  treatmentFormSchema,
 } from '../schema/treatment.schema'
 import { DOSE_STATUSES, treatmentDoseSchema } from '../schema/treatment-dose.schema'
 import { treatmentPeriodSchema } from '../schema/treatment-period.schema'
@@ -119,59 +116,6 @@ describe('treatmentInputSchema', () => {
   it('ignore une échéance fournie : elle est calculée, jamais saisie', () => {
     expect(treatmentInputSchema.parse({ ...validInput, nextDueDate: '2030-01-01' })).toEqual(
       validInput,
-    )
-  })
-})
-
-describe('treatmentFormSchema', () => {
-  it('ignore un animalId fourni : il vient de la route', () => {
-    expect(treatmentFormSchema.parse({ ...validInput, name: 'Milbemax' })).toEqual({
-      name: 'Milbemax',
-      type: 'antiparasitic',
-      frequency: { value: 3, unit: 'month' },
-      lastDoseDate: '2026-03-01',
-    })
-  })
-})
-
-describe('treatmentEditSchema', () => {
-  const edition = {
-    name: 'Bravecto',
-    type: 'antiparasitic',
-    frequency: { value: 3, unit: 'month' },
-    nextDueDate: '2026-06-15',
-  } as const
-
-  it('modifie le plan et la prochaine dose, saisissable, sans la date de la dernière prise', () => {
-    expect(treatmentEditSchema.parse({ ...edition, lastDoseDate: '2026-03-01' })).toEqual(edition)
-  })
-
-  it('borne le nom à 80 caractères en modification aussi', () => {
-    const limite = 'a'.repeat(MAX_NAME_LENGTH)
-
-    expect(treatmentEditSchema.safeParse({ ...edition, name: limite }).success).toBe(true)
-    expect(treatmentEditSchema.safeParse({ ...edition, name: `${limite}a` }).success).toBe(false)
-  })
-
-  it('ignore un animalId fourni : le rattachement est figé', () => {
-    expect(treatmentEditSchema.parse({ ...edition, animalId: validInput.animalId })).toEqual(
-      edition,
-    )
-  })
-
-  it('borne la prochaine dose à partir de la dernière prise', () => {
-    const schema = treatmentEditSchemaAfter('2026-06-15')
-
-    expect(schema.safeParse({ ...edition, nextDueDate: '2026-06-15' }).success).toBe(true)
-    const avant = schema.safeParse({ ...edition, nextDueDate: '2026-06-14' })
-    expect(avant.success).toBe(false)
-    expect(avant.error?.issues[0]?.path).toEqual(['nextDueDate'])
-  })
-
-  it('exige une prochaine dose valide', () => {
-    expect(treatmentEditSchema.safeParse({ ...edition, nextDueDate: '' }).success).toBe(false)
-    expect(treatmentEditSchema.safeParse({ ...edition, nextDueDate: '15/06/2026' }).success).toBe(
-      false,
     )
   })
 })

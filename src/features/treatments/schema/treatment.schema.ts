@@ -19,7 +19,7 @@ export const treatmentFrequencySchema = z.object({
 })
 export type TreatmentFrequency = z.output<typeof treatmentFrequencySchema>
 
-/** L'échéance n'en fait pas partie : le repository la calcule à partir de la dernière prise et de la fréquence. */
+/** Ce que le traitement lu porte de son plan ; le formulaire a ses schémas dans `treatment-form.schema.ts`. */
 export const treatmentInputSchema = z.object({
   animalId: z.uuid(),
   name: z.string().trim().min(1).max(MAX_NAME_LENGTH),
@@ -27,24 +27,6 @@ export const treatmentInputSchema = z.object({
   frequency: treatmentFrequencySchema,
   lastDoseDate: z.iso.date().refine((value) => !isFuture(parseISO(value))),
 })
-
-/** Formulaire de création : l'animal vient de la route. */
-export const treatmentFormSchema = treatmentInputSchema.omit({ animalId: true })
-
-/**
- * « Modifier » : le plan et la prochaine dose, portée par la prise de tête. La date de cette prise
- * ne s'y change pas, et le rattachement à l'animal est figé.
- */
-export const treatmentEditSchema = treatmentInputSchema
-  .pick({ name: true, type: true, frequency: true })
-  .extend({ nextDueDate: z.iso.date() })
-
-/** La prochaine dose ne précède jamais la dernière prise. */
-export function treatmentEditSchemaAfter(lastDoseDate: string) {
-  return treatmentEditSchema.refine((data) => data.nextDueDate >= lastDoseDate, {
-    path: ['nextDueDate'],
-  })
-}
 
 /**
  * Le traitement et sa période en cours, avec la dernière prise et la prochaine dose qu'elle fixe ;
@@ -64,5 +46,4 @@ export const treatmentSchema = treatmentInputSchema.extend({
 })
 
 export type TreatmentInput = z.input<typeof treatmentInputSchema>
-export type TreatmentEditInput = z.input<typeof treatmentEditSchema>
 export type Treatment = z.output<typeof treatmentSchema>
