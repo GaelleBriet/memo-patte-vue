@@ -20,10 +20,18 @@
     à l'enregistrement quand un réglage change sur une période sans prise qui a des doses passées ;
     un oubli ne redevient pas donné depuis la feuille ou une notification ; la feuille demande l'heure ;
     une notification ne note que la dose de son jour d'échéance).
-  - **À faire ensuite, dans l'ordre** : #462 (bandeau, « Choisir les jours », encart du formulaire ;
-    mesurer « Toutes données » sur un long historique, note sur le ticket), puis #463 (arrêter,
-    terminer, supprimer avec « Annuler », ligne du Carnet ; libellé « Du 2 oct. au 1 oct. » noté sur
-    le ticket), puis #488, puis les lots 4 et 7. **Ne pas publier** : le Carnet, l'accueil et les
+  - **Fin de journée** : mergés aussi #495 (moteur : noter des doses en lot en temps linéaire, zéro
+    écart prouvé contre l'ancien moteur) et **#497 (#462, doses non renseignées : bandeau, « Choisir
+    les jours », encart de création ; Q42 : l'encart compte la dose du moment déjà passée)**, testé
+    sur le téléphone. **#463 est en branche, sans PR** : `feat/cycle-de-vie-traitement` (dialogue
+    d'arrêt avec les doses à renseigner en une transaction, toasts de fin, « Supprimer » avec
+    « Annuler », « Reprendre » depuis un terminé, **ligne du Carnet lue par le moteur**, 4 727 tests),
+    livrée par son agent le soir, **ni relue ni testée sur le téléphone**. Huit questions de l'agent
+    attendent (structure de la ligne du Carnet face à la planche B · V15, couleur du badge
+    « À renseigner », textes du dialogue d'arrêt à une dose) : en autonomie, les trancher et les
+    consigner au journal de Gaelle, sauf la structure de la ligne (ticket à part proposé).
+  - **À faire ensuite, dans l'ordre** : #463 (merger `main` dans la branche, revue indépendante,
+    corrections, test sur le téléphone avec Gaelle, PR, merge), puis #488, puis les lots 4 et 7. **Ne pas publier** : le Carnet, l'accueil et les
     rappels lisent encore l'ancien modèle (traitement à plusieurs heures « en retard » à tort, rappel
     quotidien à 9 h, date de fin inconnue) ; les décisions d'une notification passent encore par
     `isDoseNoted` / `isTreatmentDueDate` de l'ancien modèle (une dose déjà donnée en avance ouvre la
