@@ -100,11 +100,11 @@ defineExpose({
 </template>
 
 <style scoped lang="scss">
+@use '@/styles/tokens' as tokens;
+
 .treatment-dose-card__dose:focus {
   outline: none;
 }
-
-@use '@/styles/tokens' as tokens;
 
 .treatment-dose-card {
   margin-inline: tokens.$padding-section-inline;
