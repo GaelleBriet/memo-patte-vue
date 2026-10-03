@@ -97,7 +97,7 @@ export function useTreatmentGestures(onChanged: () => void) {
     try {
       const result = await treatments.stop(treatment.id, doses)
       const message = stoppedText(t, treatment.name, result.finished)
-      if (!result.stopped) showToast(message)
+      if (!result.stopped) showToast(message, { tone: 'info' })
       else {
         undoable(message, t('treatments.sheet.toast.undoStop', named(treatment)), () =>
           treatments.undoStop(treatment.id, result.undo),

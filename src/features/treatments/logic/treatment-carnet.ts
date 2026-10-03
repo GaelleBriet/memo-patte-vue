@@ -157,13 +157,10 @@ export type ScheduleCache = {
   read(treatment: TreatmentWithHistory, today: string): TreatmentSchedule | null
 }
 
-// Une prise supprimée disparaît de la liste sans changer la date la plus récente : le nombre de lignes compte aussi.
+// Chaque ligne compte : une ligne synchronisée peut être réécrite avec une date plus ancienne que la plus récente.
 function versionOf({ updatedAt, periods, doses }: TreatmentWithHistory, today: string): string {
-  const latest = [...periods, ...doses].reduce(
-    (max, line) => (line.updatedAt > max ? line.updatedAt : max),
-    updatedAt,
-  )
-  return `${today} ${periods.length} ${doses.length} ${latest}`
+  const lines = [...periods, ...doses].map((line) => `${line.id}:${line.updatedAt}`)
+  return [today, updatedAt, ...lines].join(' ')
 }
 
 /** Calendriers gardés d'un rendu à l'autre : seul un traitement modifié, ou un autre jour, est relu. */

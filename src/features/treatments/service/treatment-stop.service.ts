@@ -64,6 +64,19 @@ export function createTreatmentStopService({
     return history
   }
 
+  /** Rien à écrire : traitement déjà arrêté, ou fini par sa date de fin ; `null` sinon. */
+  function unchanged(history: TreatmentWithHistory): StoppedTreatment | null {
+    const schedule = readableScheduleOf(history, today())
+    const isStopped = (history.periods.at(-1)?.stoppedOn ?? null) !== null
+    if (!isStopped && schedule?.phase !== 'ended') return null
+    return {
+      animalId: history.animalId,
+      stopped: false,
+      finished: schedule?.finished ?? false,
+      undo: [],
+    }
+  }
+
   async function logAndStop(
     history: TreatmentWithHistory,
     gestures: readonly DoseGesture[],
@@ -90,26 +103,33 @@ export function createTreatmentStopService({
     /**
      * Période en cours arrêtée aujourd'hui, et les doses de `gestures` renseignées dans la même
      * transaction : plus aucun rappel, les prises restent. Rien n'est écrit pour un traitement déjà
-     * arrêté ou fini par sa date de fin. Lève pour un traitement introuvable, quand la période a été
-     * arrêtée entre-temps, et une `DoseAlreadyLoggedError` quand une dose du lot est déjà notée.
+     * arrêté ou fini par sa date de fin, y compris arrêté ailleurs entre la lecture et l'écriture.
+     * Lève pour un traitement introuvable, et une `DoseAlreadyLoggedError` quand une dose du lot est
+     * déjà notée.
      */
     async stop(
       treatmentId: string,
       gestures: readonly DoseGesture[] = [],
     ): Promise<StoppedTreatment> {
       const history = await historyOf(treatmentId)
-      const { animalId } = history
-      const before = readableScheduleOf(history, today())
-      const isStopped = (history.periods.at(-1)?.stoppedOn ?? null) !== null
-      if (isStopped || before?.phase === 'ended') {
-        return { animalId, stopped: false, finished: before?.finished ?? false, undo: [] }
-      }
+      const notStopped = unchanged(history)
+      if (notStopped !== null) return notStopped
 
-      const undo = gestures.length > 0 ? await logAndStop(history, gestures) : []
+      let undo: DoseWrite[] = []
+      if (gestures.length > 0) {
+        try {
+          undo = await logAndStop(history, gestures)
+        } catch (cause) {
+          if (cause instanceof DoseAlreadyLoggedError) throw cause
+          const stoppedElsewhere = unchanged(await historyOf(treatmentId))
+          if (stoppedElsewhere === null) throw cause
+          return stoppedElsewhere
+        }
+      }
       const stopped = gestures.length > 0 || (await (await periods()).stop(treatmentId, today()))
       await reminders.reschedule(treatmentId)
       const finished = readableScheduleOf(await historyOf(treatmentId), today())?.finished ?? false
-      return { animalId, stopped, finished, undo }
+      return { animalId: history.animalId, stopped, finished, undo }
     },
 
     /** Défait l'arrêt et, avec lui, les prises de `writes`, en une transaction. */

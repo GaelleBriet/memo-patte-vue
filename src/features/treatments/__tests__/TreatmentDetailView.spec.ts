@@ -45,6 +45,7 @@ import {
   toastAction,
   toastAnnouncement,
   toastMessage,
+  toastTone,
 } from '@/shared/utils/toast'
 
 const TODAY = new Date('2026-09-28T21:00:00')
@@ -1440,6 +1441,20 @@ describe('TreatmentDetailView — arrêter avec des doses à renseigner (TR-30, 
     await flushPromises()
 
     expect(gestes().map(({ due }) => due.dueOn)).toEqual(['2026-09-14', '2026-09-21'])
+  })
+
+  it('arrêté ailleurs entre-temps : informe, sans « Annuler », et relit la fiche', async () => {
+    stop.stop.mockResolvedValue({ animalId: LUNA.id, stopped: false, finished: false, undo: [] })
+    const view = await monter(PANACUR)
+    read.mockClear()
+
+    ;(await ouvrir(view)).vm.$emit('act', 'all-given')
+    await flushPromises()
+
+    expect(message()).toBe('Métacam arrêté')
+    expect(toastTone.value).toBe('info')
+    expect(toastAction.value).toBeNull()
+    expect(read).toHaveBeenCalled()
   })
 
   it('garde le calendrier ouvert quand l’arrêt échoue', async () => {

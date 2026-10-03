@@ -177,6 +177,29 @@ describe('carnetTreatments — une ligne par traitement en cours (TR-36)', () =>
     )
   })
 
+  it('recalcule une ligne réécrite avec un updatedAt plus ancien que le maximum', () => {
+    const cache = carnetScheduleCache()
+    const noted = dose('2026-09-03', '2026-09-04', { updatedAt: '2026-09-28T08:00:05.000Z' })
+    const book = { ...PANACUR, doses: [...PANACUR.doses, noted] }
+    carnetTreatments(t, [book], TODAY, cache)
+    const schedule = vi.spyOn(engine, 'treatmentSchedule')
+    const [first] = book.periods
+    const weekly = {
+      ...book,
+      periods: [
+        {
+          ...first!,
+          frequency: { value: 1, unit: 'week' as const },
+          updatedAt: '2026-09-28T08:00:03.000Z',
+        },
+      ],
+    }
+
+    carnetTreatments(t, [weekly], TODAY, cache)
+
+    expect(schedule).toHaveBeenCalledOnce()
+  })
+
   it('recalcule un traitement dont une prise a disparu, et tous le lendemain', () => {
     const cache = carnetScheduleCache()
     carnetTreatments(t, [MILBEMAX, PANACUR], TODAY, cache)

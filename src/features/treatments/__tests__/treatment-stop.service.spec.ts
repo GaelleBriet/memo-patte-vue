@@ -242,7 +242,12 @@ describe('treatmentStopService', () => {
         newId: () => crypto.randomUUID(),
       })
 
-      await expect(racing.stop(panacur, [given('2026-09-20')])).rejects.toThrow('UNIQUE')
+      await expect(racing.stop(panacur, [given('2026-09-20')])).resolves.toEqual({
+        animalId: BOREE,
+        stopped: false,
+        finished: false,
+        undo: [],
+      })
 
       const [periods, written] = await rows()
       expect(periods).toMatchObject([{ stopped_on: '2026-09-22' }])
