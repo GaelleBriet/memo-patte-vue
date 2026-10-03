@@ -149,6 +149,16 @@ export function createTreatmentPeriodsRepository(
     }
   }
 
+  // Réinsère la période déjà arrêtée sous son propre identifiant : la clé primaire fait échouer le lot.
+  function notStoppedGuardStatement(treatmentId: string): Required<SqlStatement> {
+    return {
+      sql: `INSERT INTO treatment_period (${SYNC_COLUMNS})
+            SELECT ${SYNC_COLUMNS} FROM treatment_period
+            WHERE id = ${currentPeriodIdSql('?')} AND stopped_on IS NOT NULL`,
+      params: [treatmentId],
+    }
+  }
+
   function undoStopStatement(treatmentId: string, updatedAt: string): Required<SqlStatement> {
     return {
       sql: `UPDATE treatment_period SET stopped_on = NULL, updated_at = ?
@@ -247,6 +257,9 @@ export function createTreatmentPeriodsRepository(
 
     /** L'arrêt, à jouer dans la transaction des prises renseignées avec lui. */
     stopStatement,
+
+    /** Fait échouer la transaction quand la période en cours est déjà arrêtée. */
+    notStoppedGuardStatement,
 
     undoStopStatement,
 

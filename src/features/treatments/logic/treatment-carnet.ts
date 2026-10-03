@@ -1,4 +1,4 @@
-import { currentPeriodOf, readableScheduleOf } from './treatment-schedule'
+import { currentPeriodOf, endedOnOf, readableScheduleOf } from './treatment-schedule'
 import type { TreatmentWithHistory } from '../repository/treatments.repository'
 import { currentDoseText } from '@/shared/domain/current-dose'
 import type { ReminderCounts } from '@/shared/domain/reminders'
@@ -22,7 +22,7 @@ export type CarnetTreatmentRow = {
 export type FinishedTreatmentRow = { id: string; name: string; detail: string }
 
 export type TreatmentsSummary = ReminderCounts & {
-  /** Lignes de « Traitements en cours », traitements à renseigner compris. */
+  /** Lignes de « Traitements en cours », traitements à renseigner et illisibles compris. */
   ongoing: number
 }
 
@@ -62,7 +62,7 @@ function endText(
     due: null,
     today,
     stoppedOn: period?.stoppedOn ?? null,
-    endsOn: period?.endsOn ?? null,
+    endsOn: endedOnOf(treatment, schedule, today),
   }).value
 }
 
@@ -140,9 +140,13 @@ function urgency({ schedule }: Read): string {
   return isOpen(schedule) && due !== undefined ? `0 ${due.dueOn} ${due.dueTime ?? ''}` : '1'
 }
 
-function endDay({ treatment, schedule }: Read & { schedule: TreatmentSchedule }): string {
-  const period = currentPeriodOf(treatment, schedule)
-  return period?.stoppedOn ?? period?.endsOn ?? ''
+function endDay(
+  { treatment, schedule }: Read & { schedule: TreatmentSchedule },
+  today: string,
+): string {
+  return (
+    currentPeriodOf(treatment, schedule)?.stoppedOn ?? endedOnOf(treatment, schedule, today) ?? ''
+  )
 }
 
 function compare(a: string, b: string): number {
@@ -175,12 +179,12 @@ export function carnetTreatments(
     ongoing: ongoing.map((read) => ongoingRow(t, read, today)),
     finished: reads
       .filter(isFinished)
-      .sort((a, b) => compare(endDay(b), endDay(a)))
+      .sort((a, b) => compare(endDay(b, today), endDay(a, today)))
       .map((read) => finishedRow(t, read, today)),
     summary: {
       total: due.length,
       overdue: due.filter(({ schedule }) => schedule?.phase === 'overdue').length,
-      ongoing: ongoing.filter(({ schedule }) => schedule !== null).length,
+      ongoing: ongoing.length,
     },
   }
 }

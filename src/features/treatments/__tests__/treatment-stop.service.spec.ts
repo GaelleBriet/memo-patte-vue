@@ -208,6 +208,62 @@ describe('treatmentStopService', () => {
       expect(reminded()).toBe(true)
     })
 
+    it('n’écrit rien pour un traitement déjà arrêté, même avec des doses', async () => {
+      await service.stop(panacur)
+      const runMany = vi.spyOn(db, 'runMany')
+
+      await expect(service.stop(panacur, [given('2026-09-20')])).resolves.toMatchObject({
+        stopped: false,
+        undo: [],
+      })
+
+      expect(runMany).not.toHaveBeenCalled()
+      const [, doses] = await rows()
+      expect(doses).toEqual([])
+    })
+
+    it('n’écrit rien quand la période est arrêtée ailleurs entre la lecture et l’écriture', async () => {
+      const doses = createTreatmentDosesRepository(db)
+      const racing = createTreatmentStopService({
+        treatments: () => treatments,
+        periods: () => createTreatmentPeriodsRepository(db),
+        doses: () => ({
+          applyBatch: async (writes, at, also) => {
+            await db.run(
+              "UPDATE treatment_period SET stopped_on = '2026-09-22' WHERE treatment_id = ?",
+              [panacur],
+            )
+            return doses.applyBatch(writes, at, also)
+          },
+        }),
+        reminders: { reschedule: async () => {} },
+        today: () => '2026-09-23',
+        now: () => new Date(),
+        newId: () => crypto.randomUUID(),
+      })
+
+      await expect(racing.stop(panacur, [given('2026-09-20')])).rejects.toThrow('UNIQUE')
+
+      const [periods, written] = await rows()
+      expect(periods).toMatchObject([{ stopped_on: '2026-09-22' }])
+      expect(written).toEqual([])
+    })
+
+    it('n’arrête pas un traitement fini par sa date de fin', async () => {
+      await db.run("UPDATE treatment_period SET ends_on = '2026-09-21' WHERE treatment_id = ?", [
+        panacur,
+      ])
+
+      await expect(service.stop(panacur)).resolves.toMatchObject({ stopped: false, undo: [] })
+      await expect(service.stop(panacur, [given('2026-09-20')])).resolves.toMatchObject({
+        stopped: false,
+      })
+
+      const [periods, doses] = await rows()
+      expect(periods).toMatchObject([{ stopped_on: null }])
+      expect(doses).toEqual([])
+    })
+
     it('n’arrête rien quand une dose du lot est déjà notée', async () => {
       await service.stop(panacur, [given('2026-09-20')])
       await service.undo(panacur, [])

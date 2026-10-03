@@ -27,7 +27,10 @@ type Provider<T> = () => T | Promise<T>
 export type TreatmentStopDependencies = {
   treatments: Provider<Pick<TreatmentsRepository, 'getWithHistory'>>
   periods: Provider<
-    Pick<TreatmentPeriodsRepository, 'stop' | 'undoStop' | 'stopStatement' | 'undoStopStatement'>
+    Pick<
+      TreatmentPeriodsRepository,
+      'stop' | 'undoStop' | 'stopStatement' | 'notStoppedGuardStatement' | 'undoStopStatement'
+    >
   >
   doses: Provider<Pick<TreatmentDosesRepository, 'applyBatch'>>
   reminders: Pick<TreatmentRemindersService, 'reschedule'>
@@ -68,9 +71,13 @@ export function createTreatmentStopService({
     const schedule = treatmentScheduleOf(history, today())
     const { writes } = doseChange(history, schedule, { kind: 'log', gestures }, newId)
     const at = now().toISOString()
-    const stop = (await periods()).stopStatement(history.id, today(), at)
+    const repository = await periods()
+    const stop = [
+      repository.notStoppedGuardStatement(history.id),
+      repository.stopStatement(history.id, today(), at),
+    ]
     try {
-      return await (await doses()).applyBatch(writes, at, [stop])
+      return await (await doses()).applyBatch(writes, at, stop)
     } catch (cause) {
       if (cause instanceof DuplicateDueError) {
         throw new DoseAlreadyLoggedError(cause.message, { cause })
@@ -82,8 +89,9 @@ export function createTreatmentStopService({
   return {
     /**
      * Période en cours arrêtée aujourd'hui, et les doses de `gestures` renseignées dans la même
-     * transaction : plus aucun rappel, les prises restent. Lève pour un traitement introuvable, et
-     * une `DoseAlreadyLoggedError`, sans rien écrire, quand une dose du lot est déjà notée.
+     * transaction : plus aucun rappel, les prises restent. Rien n'est écrit pour un traitement déjà
+     * arrêté ou fini par sa date de fin. Lève pour un traitement introuvable, quand la période a été
+     * arrêtée entre-temps, et une `DoseAlreadyLoggedError` quand une dose du lot est déjà notée.
      */
     async stop(
       treatmentId: string,
@@ -91,10 +99,10 @@ export function createTreatmentStopService({
     ): Promise<StoppedTreatment> {
       const history = await historyOf(treatmentId)
       const { animalId } = history
+      const before = readableScheduleOf(history, today())
       const isStopped = (history.periods.at(-1)?.stoppedOn ?? null) !== null
-      if (isStopped) {
-        const finished = readableScheduleOf(history, today())?.finished ?? false
-        return { animalId, stopped: false, finished, undo: [] }
+      if (isStopped || before?.phase === 'ended') {
+        return { animalId, stopped: false, finished: before?.finished ?? false, undo: [] }
       }
 
       const undo = gestures.length > 0 ? await logAndStop(history, gestures) : []

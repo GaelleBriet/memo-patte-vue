@@ -263,7 +263,7 @@ describe('TreatmentsSection — lignes', () => {
     await row.trigger('click')
 
     expect(push).toHaveBeenCalledWith({ name: 'treatment-detail', params: { id: illisible.id } })
-    expect(resume(wrapper)).toEqual([{ total: 1, overdue: 0, ongoing: 1 }])
+    expect(resume(wrapper)).toEqual([{ total: 1, overdue: 0, ongoing: 2 }])
   })
 })
 

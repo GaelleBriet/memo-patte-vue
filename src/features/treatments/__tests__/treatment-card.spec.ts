@@ -180,6 +180,37 @@ describe('doseCard', () => {
   })
 })
 
+describe('doseCard — fin du traitement', () => {
+  /** Hebdomadaire jusqu'au 30 sept. : la dernière échéance, le 28, est notée. */
+  const FINI_AVANT = treatment(
+    [
+      period({
+        frequency: { value: 1, unit: 'week' },
+        startsOn: '2026-09-07',
+        firstDueOn: '2026-09-07',
+        endsOn: '2026-09-30',
+      }),
+    ],
+    [
+      dose('2026-09-07', '2026-09-14'),
+      dose('2026-09-14', '2026-09-21'),
+      dose('2026-09-21', '2026-09-28'),
+      dose('2026-09-28', '2026-10-05'),
+    ],
+  )
+
+  it('dit la date de la dernière échéance quand le traitement finit avant sa date de fin', () => {
+    expect(card(FINI_AVANT, '2026-09-29').end).toEqual({
+      label: 'Fin du traitement',
+      value: 'Terminé le 28 sept.',
+    })
+  })
+
+  it('garde la date de fin une fois atteinte', () => {
+    expect(card(FINI_AVANT, '2026-10-02').end?.value).toBe('Terminé le 30 sept.')
+  })
+})
+
 describe('detailActions', () => {
   it('propose d’arrêter et de modifier un traitement en cours', () => {
     expect(detailActions({ phase: 'today' })).toEqual({

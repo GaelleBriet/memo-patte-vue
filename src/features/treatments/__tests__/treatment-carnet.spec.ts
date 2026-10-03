@@ -142,7 +142,7 @@ describe('carnetTreatments — une ligne par traitement en cours (TR-36)', () =>
       { name: 'Milbemax' },
       { id: 'abîmé', badge: null, detail: 'Donnée illisible', tone: 'later', unlogged: null },
     ])
-    expect(summary).toEqual({ total: 1, overdue: 0, ongoing: 1 })
+    expect(summary).toEqual({ total: 1, overdue: 0, ongoing: 2 })
   })
 
   it('range le plus urgent d’abord, les traitements à renseigner ensuite', () => {
@@ -200,6 +200,21 @@ describe('carnetTreatments — traitements terminés (TR-31)', () => {
       { id: 'advocate', name: 'Advocate', detail: 'Arrêté le 4 sept. · 2 prises' },
     ])
     expect(summary).toEqual({ total: 1, overdue: 0, ongoing: 1 })
+  })
+
+  it('date un traitement fini avant sa date de fin de sa dernière échéance', () => {
+    const avant = named(
+      'Drontal',
+      [period({ ...HEBDO, endsOn: '2026-09-30' })],
+      [
+        dose('2026-09-07', '2026-09-14'),
+        dose('2026-09-14', '2026-09-21'),
+        dose('2026-09-21', '2026-09-28'),
+        dose('2026-09-28', '2026-10-05'),
+      ],
+    )
+
+    expect(carnet([avant], '2026-09-29').finished[0]!.detail).toBe('Terminé le 28 sept. · 4 prises')
   })
 
   it('accorde le nombre de prises, et donne l’année d’une autre année', () => {
