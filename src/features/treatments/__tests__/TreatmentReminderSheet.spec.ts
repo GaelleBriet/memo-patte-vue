@@ -786,3 +786,68 @@ describe('TreatmentReminderSheet — traitement fini par sa date de fin', () => 
     expect(document.body.querySelector('.treatment-reminder-sheet__stop')).toBeNull()
   })
 })
+
+describe('TreatmentReminderSheet — confirmation simple de l’arrêt', () => {
+  function boutons(): string[] {
+    return [...document.body.querySelectorAll('.confirm-dialog__actions .v-btn')].map((button) =>
+      (button.textContent ?? '').trim(),
+    )
+  }
+
+  async function ouvrirArret(): Promise<void> {
+    bouton('.treatment-reminder-sheet__stop').click()
+    await flushPromises()
+  }
+
+  it('rien à renseigner : confirmation simple, sans phrase sur la dose du jour (V6 bis)', async () => {
+    await monter()
+    await ouvrirArret()
+
+    expect(texte('.confirm-dialog__text')).toBe(
+      'Plus aucun rappel pour Bravecto. Ses prises restent dans le carnet.',
+    )
+    expect(document.body.querySelector('.confirm-dialog__note')).toBeNull()
+    expect(boutons()).toEqual(['Annuler', 'Arrêter'])
+  })
+
+  it('dit que la dose du jour n’est pas notée, même sans dose à renseigner (Q9)', async () => {
+    vi.spyOn(useTreatmentsStore(), 'getWithHistory').mockResolvedValue({
+      ...HISTORY,
+      periods: [
+        {
+          ...HISTORY.periods[0]!,
+          frequency: { value: 1, unit: 'day' },
+          startsOn: '2026-09-23',
+          firstDueOn: '2026-09-23',
+        },
+      ],
+      doses: [],
+    })
+    await monter()
+    await ouvrirArret()
+
+    expect(boutons()).toEqual(['Annuler', 'Arrêter'])
+    expect(texte('.confirm-dialog__note')?.replace(/\u00a0/g, ' ')).toBe(
+      'La dose d’aujourd’hui n’est pas notée : si tu l’as donnée, touche « C’est fait » avant d’arrêter.',
+    )
+  })
+
+  it('traitement illisible : confirmation simple, et l’arrêt marche', async () => {
+    vi.spyOn(useTreatmentsStore(), 'getWithHistory').mockResolvedValue({
+      ...HISTORY,
+      periods: [{ ...HISTORY.periods[0]!, times: ['8h'] }],
+    })
+    const sheet = await monter()
+    await ouvrirArret()
+
+    expect(texte('.confirm-dialog__text')).toBe(
+      'Plus aucun rappel pour Bravecto. Ses prises restent dans le carnet.',
+    )
+    expect(boutons()).toEqual(['Annuler', 'Arrêter'])
+    bouton('.confirm-dialog__confirm').click()
+    await flushPromises()
+
+    expect(stop).toHaveBeenCalledWith(BRAVECTO.id, [])
+    expect(sheet.emitted('update:modelValue')).toEqual([[false]])
+  })
+})
