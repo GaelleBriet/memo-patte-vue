@@ -153,6 +153,34 @@ function compare(a: string, b: string): number {
   return a < b ? -1 : a > b ? 1 : 0
 }
 
+export type ScheduleCache = {
+  read(treatment: TreatmentWithHistory, today: string): TreatmentSchedule | null
+}
+
+// Une prise supprimée disparaît de la liste sans changer la date la plus récente : le nombre de lignes compte aussi.
+function versionOf({ updatedAt, periods, doses }: TreatmentWithHistory, today: string): string {
+  const latest = [...periods, ...doses].reduce(
+    (max, line) => (line.updatedAt > max ? line.updatedAt : max),
+    updatedAt,
+  )
+  return `${today} ${periods.length} ${doses.length} ${latest}`
+}
+
+/** Calendriers gardés d'un rendu à l'autre : seul un traitement modifié, ou un autre jour, est relu. */
+export function carnetScheduleCache(): ScheduleCache {
+  const entries = new Map<string, { version: string; schedule: TreatmentSchedule | null }>()
+  return {
+    read(treatment, today) {
+      const version = versionOf(treatment, today)
+      const known = entries.get(treatment.id)
+      if (known?.version === version) return known.schedule
+      const schedule = readableScheduleOf(treatment, today)
+      entries.set(treatment.id, { version, schedule })
+      return schedule
+    },
+  }
+}
+
 /**
  * Les traitements d'un animal tels que le Carnet les montre, lus par le moteur d'échéances, une
  * fois chacun : en cours (à renseigner compris, TR-31) et terminés.
@@ -161,10 +189,11 @@ export function carnetTreatments(
   t: Translate,
   treatments: readonly TreatmentWithHistory[],
   today: string,
+  schedules: ScheduleCache = carnetScheduleCache(),
 ): CarnetTreatments {
   const reads = treatments.map((treatment): Read => ({
     treatment,
-    schedule: readableScheduleOf(treatment, today),
+    schedule: schedules.read(treatment, today),
   }))
   const isFinished = (read: Read): read is Read & { schedule: TreatmentSchedule } =>
     read.schedule !== null && read.schedule.finished

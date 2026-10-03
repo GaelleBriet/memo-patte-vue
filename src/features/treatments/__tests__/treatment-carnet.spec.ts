@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { dose, missed, period, plain, treatment } from './treatment-fixtures'
-import { carnetTreatments } from '../logic/treatment-carnet'
+import { carnetScheduleCache, carnetTreatments } from '../logic/treatment-carnet'
 import type { TreatmentWithHistory } from '../repository/treatments.repository'
 import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
@@ -160,6 +160,33 @@ describe('carnetTreatments — une ligne par traitement en cours (TR-36)', () =>
     carnet([MILBEMAX, PANACUR])
 
     expect(schedule).toHaveBeenCalledTimes(2)
+  })
+
+  it('après un geste, ne recalcule que le traitement touché', () => {
+    const cache = carnetScheduleCache()
+    carnetTreatments(t, [MILBEMAX, PANACUR], TODAY, cache)
+    const schedule = vi.spyOn(engine, 'treatmentSchedule')
+    const noted = dose('2026-09-03', '2026-09-04', { updatedAt: '2026-09-28T10:00:00.000Z' })
+    const touched = { ...PANACUR, doses: [...PANACUR.doses, noted] }
+
+    const after = carnetTreatments(t, [MILBEMAX, touched], TODAY, cache)
+
+    expect(schedule).toHaveBeenCalledOnce()
+    expect(after.ongoing.find(({ name }) => name === 'Panacur')?.unlogged).toBe(
+      '24 doses non renseignées',
+    )
+  })
+
+  it('recalcule un traitement dont une prise a disparu, et tous le lendemain', () => {
+    const cache = carnetScheduleCache()
+    carnetTreatments(t, [MILBEMAX, PANACUR], TODAY, cache)
+    const schedule = vi.spyOn(engine, 'treatmentSchedule')
+
+    carnetTreatments(t, [MILBEMAX, { ...PANACUR, doses: PANACUR.doses.slice(1) }], TODAY, cache)
+    expect(schedule).toHaveBeenCalledOnce()
+
+    carnetTreatments(t, [MILBEMAX, PANACUR], '2026-09-29', cache)
+    expect(schedule).toHaveBeenCalledTimes(3)
   })
 
   it('s’écrit en anglais', () => {

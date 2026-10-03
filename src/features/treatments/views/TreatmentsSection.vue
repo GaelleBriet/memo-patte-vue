@@ -7,7 +7,11 @@ import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
-import { carnetTreatments, type TreatmentsSummary } from '../logic/treatment-carnet'
+import {
+  carnetScheduleCache,
+  carnetTreatments,
+  type TreatmentsSummary,
+} from '../logic/treatment-carnet'
 import { useTreatmentsStore } from '../store/treatments.store'
 import DueStatusChip from '@/shared/components/DueStatusChip.vue'
 import SectionCard from '@/shared/components/SectionCard.vue'
@@ -42,8 +46,9 @@ const hasError = computed(
 )
 
 // Au changement d'animal, ou après un échec, le store porte déjà le nouvel animal mais encore l'ancienne liste.
+const schedules = carnetScheduleCache()
 const carnet = computed(() =>
-  carnetTreatments(t, isCurrent.value ? store.treatments : [], props.today),
+  carnetTreatments(t, isCurrent.value ? store.treatments : [], props.today, schedules),
 )
 const rows = computed(() => carnet.value.ongoing)
 const finishedRows = computed(() => carnet.value.finished)
