@@ -5,6 +5,13 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.57](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.56...memo-patte-v0.1.57) (2026-10-03)
+
+
+### ✨ Fonctionnalités
+
+* **treatments:** doses non renseignées — bandeau, « Choisir les jours », encart ([d93cdef](https://github.com/GaelleBriet/memo-patte-vue/commit/d93cdef5ac46c7e736515e86a48f3629faf8433e))
+
 ## [0.1.56](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.55...memo-patte-v0.1.56) (2026-10-02)
 
 
