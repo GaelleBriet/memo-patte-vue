@@ -326,6 +326,7 @@ async function remove(): Promise<void> {
       :subtitle="chooseDaysSubtitleText"
       :dues="chosen?.dues ?? []"
       :when="chosen?.when ?? ''"
+      :stopping="choosing === 'stop'"
       :busy="gestures.isBusy.value"
       @confirm="logChosenDays"
     />

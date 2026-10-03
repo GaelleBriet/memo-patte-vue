@@ -567,7 +567,9 @@
         "missedCount": "{n} missed | {n} missed | {n} missed",
         "counts": "{given}, {missed}",
         "submit": "Confirm: {counts}",
-        "submitLabel": "Confirm: {counts}, {when}"
+        "submitLabel": "Confirm: {counts}, {when}",
+        "submitStop": "Confirm and stop: {counts}",
+        "submitStopLabel": "Confirm and stop: {counts}, {when}"
       }
     },
     "finished": {

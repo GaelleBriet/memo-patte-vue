@@ -567,7 +567,9 @@
         "missedCount": "{n} oubliée | {n} oubliée | {n} oubliées",
         "counts": "{given}, {missed}",
         "submit": "Valider : {counts}",
-        "submitLabel": "Valider : {counts}, {when}"
+        "submitLabel": "Valider : {counts}, {when}",
+        "submitStop": "Valider et arrêter : {counts}",
+        "submitStopLabel": "Valider et arrêter : {counts}, {when}"
       }
     },
     "finished": {

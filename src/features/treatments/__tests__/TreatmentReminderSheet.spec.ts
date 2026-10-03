@@ -13,6 +13,7 @@ import {
   type MockInstance,
 } from 'vitest'
 
+import TreatmentChooseDays from '../views/TreatmentChooseDays.vue'
 import TreatmentReminderSheet from '../views/TreatmentReminderSheet.vue'
 import type { TreatmentWithHistory } from '../repository/treatments.repository'
 import type { Treatment } from '../schema/treatment.schema'
@@ -690,5 +691,98 @@ describe('TreatmentReminderSheet — plusieurs heures par jour : l’heure est d
 
     expect(recordDose).toHaveBeenCalledWith(BRAVECTO.id, '2026-09-23')
     expect(apply).not.toHaveBeenCalled()
+  })
+})
+
+describe('TreatmentReminderSheet — arrêter avec des doses à renseigner (TR-30)', () => {
+  /** Quotidien depuis le 20 sept., rien de noté : trois doses à renseigner, dose du jour le 23. */
+  const QUOTIDIEN: TreatmentWithHistory = {
+    ...HISTORY,
+    periods: [
+      {
+        ...HISTORY.periods[0]!,
+        frequency: { value: 1, unit: 'day' },
+        startsOn: '2026-09-20',
+        firstDueOn: '2026-09-20',
+      },
+    ],
+    doses: [],
+  }
+
+  function boutons(): string[] {
+    return [...document.body.querySelectorAll('.confirm-dialog__actions .v-btn')].map((button) =>
+      (button.textContent ?? '').trim(),
+    )
+  }
+
+  function gestes(): { due: { dueOn: string } }[] {
+    return [...(stop.mock.calls.at(-1)?.[1] ?? [])]
+  }
+
+  beforeEach(() => {
+    vi.spyOn(useTreatmentsStore(), 'getWithHistory').mockResolvedValue(QUOTIDIEN)
+  })
+
+  it('propose de renseigner les doses, puis arrête en un geste', async () => {
+    const sheet = await monter()
+
+    bouton('.treatment-reminder-sheet__stop').click()
+    await flushPromises()
+
+    expect(texte('.confirm-dialog__text')).toBe(
+      '3 doses, 20, 21 et 22 sept., ne sont pas renseignées. Tu peux les noter avant d’arrêter.',
+    )
+    expect(texte('.confirm-dialog__note')).toContain('La dose d’aujourd’hui n’est pas notée')
+    expect(boutons()).toEqual([
+      'Toutes données',
+      'Choisir les jours',
+      'Arrêter sans renseigner',
+      'Annuler',
+    ])
+
+    ;[...document.body.querySelectorAll<HTMLButtonElement>('.confirm-dialog__actions .v-btn')]
+      .find((button) => button.textContent?.includes('Toutes données'))!
+      .click()
+    await flushPromises()
+
+    expect(stop).toHaveBeenCalledOnce()
+    expect(gestes().map(({ due }) => due.dueOn)).toEqual(['2026-09-20', '2026-09-21', '2026-09-22'])
+    expect(sheet.emitted('update:modelValue')).toEqual([[false]])
+    expect(toastMessage.value).toBe('Bravecto arrêté, à retrouver dans Traitements terminés.')
+  })
+
+  it('« Choisir les jours » ouvre le calendrier, dont le bouton dit qu’il arrête aussi', async () => {
+    const sheet = await monter()
+    bouton('.treatment-reminder-sheet__stop').click()
+    await flushPromises()
+
+    ;[...document.body.querySelectorAll<HTMLButtonElement>('.confirm-dialog__actions .v-btn')]
+      .find((button) => button.textContent?.includes('Choisir les jours'))!
+      .click()
+    await flushPromises()
+    const calendrier = sheet.getComponent(TreatmentChooseDays)
+
+    expect(calendrier.props()).toMatchObject({ modelValue: true, stopping: true })
+    expect(calendrier.props('dues')).toHaveLength(3)
+    const [oubliee, ...donnees] = calendrier.props('dues')
+    calendrier.vm.$emit('confirm', { given: donnees, missed: [oubliee] })
+    await flushPromises()
+
+    expect(gestes()).toHaveLength(3)
+    expect(calendrier.props('modelValue')).toBe(false)
+    expect(sheet.emitted('update:modelValue')).toEqual([[false]])
+  })
+})
+
+describe('TreatmentReminderSheet — traitement fini par sa date de fin', () => {
+  it('ne propose pas d’arrêter', async () => {
+    vi.spyOn(useTreatmentsStore(), 'getWithHistory').mockResolvedValue({
+      ...HISTORY,
+      periods: [{ ...HISTORY.periods[0]!, endsOn: '2026-09-21' }],
+    })
+
+    await monter()
+
+    expect(document.body.querySelector('.treatment-reminder-sheet__stop')).toBeNull()
   })
 })
