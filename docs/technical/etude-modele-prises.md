@@ -25,7 +25,7 @@ vérifié dans le code, sans exécution ; **attendu** = conséquence d'un choix 
 - Traçabilité (§6) : en v1, `created_by_device` et `updated_by_device` sur les tables synchronisées et
   une table `device` (modèle et date d'installation) ; rien à l'écran, l'information est dans l'export.
   L'historique complet viendra avec le partage (v2).
-- Une seule question reste ouverte, apparue avec N6 : N8 (§5.2), la case de « Supprimer ce report ».
+- Plus aucune question ouverte : N8, dernière réponse, retire la case de « Supprimer ce report » (§5.1).
 
 ## 1. Diagnostic
 
@@ -360,7 +360,7 @@ devient la référence : ancré au 31 août, 30 sept., 31 oct.).
 | « Fait à une autre date » | prise + décalage ancré à la date réelle | prise seule | case seulement si la date diffère de l'échéance ; jamais pour une dose non renseignée (N1), ni pour une prise d'un traitement de tous les jours (N3) ; plus espacé à plusieurs heures, seulement si la prise complète la journée (G10). Pixel du vendredi au lundi 19 : cochée, la suite passe au lundi ; décochée, elle reste le vendredi. Luna, 30 août donnée le 31 : cochée 30 sept., 31 oct., 30 nov. ; décochée 30 sept., 30 oct., 30 nov. (Q3). Prise en plus et prise d'une dose déplacée seule (Q2 c) : pas de case |
 | « Changer la date » d'une prise | prise réécrite ; décalage écrit, ou réancré à la nouvelle date | prise réécrite ; le décalage de cette échéance est supprimé | mêmes conditions que la ligne précédente ; la case se rouvre comme laissée (N2) : cochée s'il existe une ligne de décalage pour cette échéance |
 | « Changer la date » d'un report | report réécrit ; décalage écrit ou réancré | report réécrit ; décalage supprimé | mêmes bornes que « Prochaine dose » ; rouverte comme laissée (N2) ; avec « Prochaine dose », seul geste à case pour un traitement de tous les jours (N3) |
-| « Supprimer ce report » | voir N8 (§5.2) | — | N6 : supprimer le report laisse son décalage |
+| « Supprimer ce report » | pas de case (N8) | — | supprime le report seul, son décalage reste (N6) ; toast « Report supprimé. Les doses suivantes restent décalées. » · Annuler ; revenir à l'ancien rythme passe par « Supprimer ce décalage » |
 | « C'est fait » en un tap, dose en retard | prise + décalage, sans question | — | date de fin : voir plus bas (Q4) |
 
 Décocher la case dans « Changer la date » supprime la ligne de décalage : c'est un choix de la
@@ -370,7 +370,7 @@ personne, pas une cascade.
 reports : « Doses suivantes décalées · prochaine le 26 oct. » (libellé à fixer avec la maquette). Menu ⋮ :
 « Supprimer ce décalage », toast et « Annuler ». Quand une dose plus loin dans la période est déjà
 notée, supprimer le décalage est refusé, avec l'aide « Une dose plus lointaine est déjà notée. » (Q6
-transposée, à confirmer avec N8).
+transposée, N8).
 
 **Date de fin, avec la case** (Q4) : quand le décalage ferait passer la dose suivante après la date de
 fin, un message sous la case le dit (« Avec le décalage, la dose du 2 nov. ne sera plus prévue (date de
@@ -445,7 +445,7 @@ le décalage en nouvelle période ou porté par la ligne de report (§2.7).
 
 ## 4. Plan de livraison
 
-Dans l'ordre. Préalable : réponse à N8 (§5.2).
+Dans l'ordre. Toutes les questions ont leur réponse (§5.1).
 
 **1. `feat(db): schéma v11 — prise en plus, ligne de décalage, jour de référence, appareils`**
 
@@ -495,7 +495,7 @@ copie dans le coffre)
 - [ ] Q2 : bornes du report seul, refus G7, prise d'une dose déplacée seule sans décalage
 - [ ] N2 : la case se rouvre comme laissée ; décocher supprime le décalage de cette échéance
 - [ ] N6 : supprimer une prise ou un report laisse son décalage, toast et « Annuler » ; « Supprimer ce
-  report » selon N8
+  report » sans case (N8)
 - [ ] N7 : ligne de décalage visible, « Supprimer ce décalage », toast, « Annuler », refus quand une
   dose plus lointaine est notée
 - [ ] Message sous la case quand le décalage fait perdre une dose à cause de la date de fin
@@ -525,7 +525,7 @@ traitement et une prise, export v4 puis import. Ensuite base restaurée, build d
 Pour les tickets 3, 5 et 6 : les gestes (prise en plus, case cochée et décochée dans chaque geste,
 suppression d'une prise et d'un décalage) et la reprogrammation des rappels qui suit.
 
-## 5. Décisions de Gaelle et question restante
+## 5. Décisions de Gaelle
 
 ### 5.1 Décisions du 2026-10-03
 
@@ -557,21 +557,11 @@ suppression d'une prise et d'un décalage) et la reprogrammation des rappels qui
 - **N7** : la ligne de décalage est toujours visible, discrète, au même endroit que les reports :
   « Doses suivantes décalées · prochaine le 26 oct. », menu ⋮ « Supprimer ce décalage », toast et
   « Annuler » ; libellé avec la maquette.
+- **N8** : « Supprimer ce report » n'a plus de case ; il ne supprime que le report (toast « Report
+  supprimé. Les doses suivantes restent décalées. » · Annuler). Revenir à l'ancien rythme passe par
+  « Supprimer ce décalage », refusé quand une dose plus loin dans la période est notée (garde de Q6,
+  transposée). Raison : une ligne, un geste, comme N6 pour une prise ; aucune cascade dans l'app.
 - **T1, T2, T3** : voir §6.8.
-
-### 5.2 Question que N6 fait apparaître
-
-**N8 — « Supprimer ce report » garde-t-il sa case ?**
-Pixel, vermifuge le vendredi ; la dose du 16 est reportée au lundi 19, case cochée : l'historique
-montre « Reportée au 19 oct. (prévue le 16 oct.) » et « Doses suivantes décalées · prochaine le
-26 oct. ». Avec N6, supprimer le report laisse le décalage, et le décalage a son propre « Supprimer ».
-La case « Remettre aussi les doses suivantes à l'ancien rythme » de Q6 supprimerait les deux d'un geste,
-une cascade choisie. Je recommande de **retirer cette case** : « Supprimer ce report » ne supprime que
-le report (toast « Report supprimé. Les doses suivantes restent décalées. » · Annuler), et revenir à
-l'ancien rythme passe par « Supprimer ce décalage », refusé quand une dose plus loin est notée (la garde
-de Q6, transposée). Raison : une ligne, un geste, comme N6 pour une prise ; les deux lignes sont
-visibles côte à côte. Alternative : garder la case (un geste de moins pour tout annuler, mais la seule
-cascade de l'app).
 
 ## 6. Traçabilité : qui a écrit quoi, depuis quel appareil
 
