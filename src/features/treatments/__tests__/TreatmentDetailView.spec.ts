@@ -1368,6 +1368,28 @@ describe('TreatmentDetailView — arrêter avec des doses à renseigner (TR-30, 
     expect(stop.undo).toHaveBeenCalledExactlyOnceWith(METACAM.id, UNDO)
   })
 
+  it('donne le focus à la fin du traitement quand « Arrêter » disparaît', async () => {
+    const view = await monter(PANACUR)
+    stop.stop.mockImplementation(async () => {
+      book = treatment([period({ stoppedOn: '2026-09-28' })], PANACUR.doses)
+      return { animalId: LUNA.id, stopped: true, finished: false, undo: [] }
+    })
+
+    ;(await ouvrir(view)).vm.$emit('stop')
+    await flushPromises()
+
+    expect(view.find('.treatment-detail__stop').exists()).toBe(false)
+    expect(document.activeElement?.classList).toContain('treatment-dose-card__dose')
+  })
+
+  it('le calendrier ouvert depuis l’arrêt dit qu’il arrête aussi', async () => {
+    const view = await monter(PANACUR)
+    ;(await ouvrir(view)).vm.$emit('act', 'choose-days')
+    await flushPromises()
+
+    expect(view.getComponent(TreatmentChooseDays).props('stopping')).toBe(true)
+  })
+
   it('« Arrêter sans renseigner » arrête seulement, et le traitement reste à renseigner', async () => {
     stop.stop.mockResolvedValue({ animalId: LUNA.id, stopped: true, finished: false, undo: [] })
     const view = await monter(PANACUR)

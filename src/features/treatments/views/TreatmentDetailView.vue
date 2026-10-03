@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 
@@ -121,6 +121,17 @@ const changing = ref<{ row: DoseRow; change: DateChange } | null>(null)
 onMounted(() => {
   if (!animals.hasLoaded) void animals.load()
 })
+
+const doseCardRef = useTemplateRef<InstanceType<typeof TreatmentDoseCard>>('doseCard')
+
+watch(
+  () => actions.value?.canStop,
+  async (canStop, could) => {
+    if (could !== true || canStop !== false) return
+    await nextTick()
+    doseCardRef.value?.focusEnd()
+  },
+)
 
 function apply(action: DoseAction, line: Due | null, periodId: string): Promise<boolean> {
   if (!treatment.value) return Promise.resolve(false)
@@ -266,6 +277,7 @@ async function remove(): Promise<void> {
     <div class="treatment-detail__content">
       <template v-if="treatment && card && history && actions">
         <TreatmentDoseCard
+          ref="doseCard"
           :card="card"
           :busy="gestures.isBusy.value"
           @done="done"
