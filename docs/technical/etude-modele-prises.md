@@ -20,14 +20,16 @@ vérifié dans le code, sans exécution ; **attendu** = conséquence d'un choix 
   cinq gestes ; seul « C'est fait » en un tap sur une dose en retard décale sans rien demander.
 - La prise en avance d'un intervalle ou plus est une **prise en plus** (Q1) : rangée sous sa date
   réelle, elle ne couvre aucune échéance et la suite repart d'elle.
-- Recommandation, confirmée par ces réponses : **option A + option C**. Sur la prise, une colonne
-  `fixes_suite` qui enregistre le choix de la case et un état `extra` ; sur la période, un jour de
-  référence `reference_on`. Pas d'identifiant d'échéance (option B). Le §2.6 vérifie la case dans
-  chacun des gestes.
+- Recommandation, confirmée par ces réponses : **option A + option C**. Sur la prise, le choix de la
+  case et un état `extra` ; sur la période, un jour de référence `reference_on`. Pas d'identifiant
+  d'échéance (option B). Le §2.6 vérifie la case dans chacun des gestes.
+- Sur la proposition de Gaelle de séparer le report d'une dose du décalage du rythme (§2.7) :
+  recommandé, **le décalage comme ligne à part dans les prises** (état `shift`), plutôt qu'une nouvelle
+  période. Il remplace alors la colonne `fixes_suite`.
 - Nouvelle demande (§6) : savoir quel appareil, et plus tard quelle personne, a écrit chaque donnée.
   Recommandé : deux colonnes d'appareil sur chaque table synchronisée dès la v1, la table d'historique
   avec le partage (v2).
-- Questions encore ouvertes : quatre sur la case (§5.2), trois sur la traçabilité (§6.8).
+- Questions encore ouvertes : trois sur le décalage (§5.2), trois sur la traçabilité (§6.8).
 
 ## 1. Diagnostic
 
@@ -150,7 +152,7 @@ d'échéance), C (jour de référence sur la période, à ajouter à A ou à B).
 - `fixes_suite` (0 / 1, obligatoire) : **l'état de la case « Décaler aussi les doses suivantes »**
   au moment du geste (décision du 2026-10-03). Prise donnée : 1 = la suite repart de la date réelle
   **quand elle diffère de l'échéance**, sinon elle continue (le jour de référence d'un mensuel est
-  gardé) ; 0 = la suite garde ses jours. Sans case (dose non renseignée, Q8, si §5.2 le confirme) : 0.
+  gardé) ; 0 = la suite garde ses jours. Sans case (dose non renseignée, N1 ; prise d'un traitement de tous les jours, N3) : 0.
   « C'est fait » en un tap : le moteur choisit et l'écrit (§2.6). Oubliée : toujours 0. Report :
   1 = la suite repart de la nouvelle date, 0 = seule cette dose bouge.
 - `status` gagne `extra` : une **prise en plus**, notée un intervalle ou plus avant la prochaine dose.
@@ -307,9 +309,9 @@ perdue à cause de la date de fin).
 | Geste | Ce qui s'écrit | Points précis |
 | --- | --- | --- |
 | « Prochaine dose » (formulaire, report) | ligne `postponed`, `fixes_suite` = case | décochée : au plus la veille de la dose suivante (Q2 a) ; dose suivante déjà notée : refus G7 (Q2 b) ; à plusieurs heures, la journée part entière (Q21) |
-| « Fait à une autre date » | prise, `fixes_suite` = case | case seulement si la date diffère de l'échéance ; Pixel le vendredi, dose du 16 donnée le lundi 19 : cochée, la suite passe au lundi ; décochée, elle reste le vendredi ; Luna depuis le 30 juil., dose du 30 août donnée le 31 : cochée 30 sept., 31 oct., 30 nov. ; décochée 30 sept., 30 oct., 30 nov. (Q3). La prise en plus n'a pas de case : la suite repart toujours d'elle. La prise d'une dose déplacée seule non plus : elle ne décale jamais les suivantes (Q2 c), `fixes_suite` = 0 |
-| « Changer la date » d'une prise | prise réécrite : `given_on`, `fixes_suite` = case | décochée, un report qui suit ne bouge pas ; cochée, TR-24 bis comme aujourd'hui ; préremplissage : §5.2, N2 |
-| « Changer la date » d'un report | report réécrit : `next_due_date`, `fixes_suite` = case | mêmes bornes que « Prochaine dose » |
+| « Fait à une autre date » | prise, `fixes_suite` = case | case seulement si la date diffère de l'échéance, jamais pour une dose non renseignée (N1, Q8) ni pour un traitement de tous les jours, avec ou sans heures (N3) ; plus espacé à plusieurs heures, seulement si la prise complète la journée (G10) ; Pixel le vendredi, dose du 16 donnée le lundi 19 : cochée, la suite passe au lundi ; décochée, elle reste le vendredi ; Luna depuis le 30 juil., dose du 30 août donnée le 31 : cochée 30 sept., 31 oct., 30 nov. ; décochée 30 sept., 30 oct., 30 nov. (Q3). La prise en plus n'a pas de case : la suite repart toujours d'elle. La prise d'une dose déplacée seule non plus : elle ne décale jamais les suivantes (Q2 c), `fixes_suite` = 0 |
+| « Changer la date » d'une prise | prise réécrite : `given_on`, `fixes_suite` = case | mêmes conditions que « Fait à une autre date » ; décochée, un report qui suit ne bouge pas ; cochée, TR-24 bis comme aujourd'hui ; la case se rouvre comme elle avait été laissée (N2) |
+| « Changer la date » d'un report | report réécrit : `next_due_date`, `fixes_suite` = case | mêmes bornes que « Prochaine dose » ; la case se rouvre comme laissée (N2) ; avec « Prochaine dose » et « Supprimer ce report », seul geste à case pour un traitement de tous les jours (N3) |
 | « Supprimer ce report » | case « Remettre aussi les doses suivantes à l'ancien rythme » : cochée, la ligne est supprimée (comme aujourd'hui) ; décochée, voir plus bas | grisée et décochée, avec l'aide « Une dose plus lointaine est déjà notée. », dès qu'une dose plus loin dans la période est notée (Q6) ; un report qui ne décalait pas la suite n'a pas de case |
 | « C'est fait » en un tap, dose en retard | prise, `fixes_suite` = 1, sans question | exception à la date de fin : voir plus bas (Q4) |
 
@@ -332,7 +334,69 @@ est vrai par rapport à l'ancien rythme. Graine 13503355 (§1.6) : la case est g
 plus loin) ; la dose revient au 10 et la ligne devient « Reportée au 13 (prévue le 12) », dont l'oubli
 du 13 est la dose d'arrivée : rien n'est orphelin (attendu, non prototypé). Écartée : une colonne
 `suite_from` (« la suite repart de cette date ») à la place du drapeau ; plus générale, mais elle crée
-une ligne sans dose et un libellé nouveau. Le libellé est une question (§5.2, N4).
+une ligne sans dose et un libellé nouveau. Gaelle a accepté ce libellé (N4) et proposé de séparer le
+report du décalage : comparaison et nouvelle recommandation au §2.7, qui remplace ce paragraphe si
+elle est retenue.
+
+### 2.7 Report d'une dose et décalage du rythme : liés ou séparés ? (N4, 2026-10-03)
+
+Gaelle propose de séparer le report d'une dose du décalage du rythme : « un report individuel ne
+devrait peut-être pas être lié au report global, même si c'est le report individuel qui a permis de
+créer le report global ». Trois représentations, comparées sur le même carnet : Pixel, vermifuge le
+vendredi ; dose du 16 reportée au lundi 19, case cochée (19, 26, 2 nov.). Ensuite deux suites : (1)
+report supprimé, case décochée (attendu : 16, puis 26, 2 nov.) ; (2) l'inverse, décalage annulé et
+report gardé (attendu : 19, puis 23, 30).
+
+- **(a) Lignes liées** (proposition du §2.6) : une ligne de report porte `fixes_suite`. Supprimer le
+  report case décochée le réécrit en report de l'échéance suivante de l'ancien rythme.
+- **(b) Le décalage comme nouvelle période** : le report reste une ligne simple ; le décalage ouvre
+  une période aux mêmes réglages, qui commence le jour du geste (comme « Modifier », TR-28, Q24), avec
+  le 19 pour première échéance.
+- **(c) Le décalage comme ligne à part dans les prises** : le report reste une ligne simple
+  (`postponed`, la dose seule) ; le décalage est une autre ligne de la même échéance, état `shift`
+  (`due_on` = l'échéance d'origine, `next_due_date` = la date dont le rythme repart, sans dose). Les
+  deux se suppriment séparément. La colonne `fixes_suite` disparaît : cocher la case, c'est écrire la
+  ligne de décalage.
+
+| | (a) lignes liées | (b) nouvelle période | (c) ligne de décalage à part |
+| --- | --- | --- | --- |
+| Après le report cochée, historique | « Reportée au 19 oct. (prévue le 16 oct.) », puis 19, 26 | deux blocs de période : le premier finit avec la ligne de report, le second (« Toutes les semaines ») commence par le 19 | une ligne « Reportée au 19 oct. (prévue le 16 oct.) » ; le décalage, de même échéance, ne s'affiche pas en plus (comme Q13 pour une prise) |
+| Suite (1) : report supprimé, décochée | 16 ; « Reportée au 26 oct. (prévue le 23 oct.) », une ligne que la personne n'a pas faite ; 26 | 16 ; la période suivante doit être réécrite pour commencer au 26 (sinon le 19 reste une dose en trop) | 16 ; la ligne de décalage reste seule : 26, 2 nov. ; son affichage seule est à décider (§5.2, N7) |
+| Suite (2) : décalage annulé, report gardé | la ligne passe à `fixes_suite` = 0 : 19, 23, 30 | la période ouverte est supprimée : 19, 23, 30 | la ligne de décalage est supprimée : 19, 23, 30 |
+| « Annuler » | lot inverse d'une table (`applyBatch`, existe) | lot sur deux tables avec son inverse : `applyPlan` écrit périodes et prises ensemble mais sans inverse (lu) ; à créer | lot inverse d'une table, deux lignes |
+| Synchro | une ligne, toujours cohérente | deux lignes de deux tables ; arrivée de l'une sans l'autre : le 16 apparaît à renseigner, ou une dose en trop le 19 | deux lignes indépendantes ; chacune seule donne un état voulu (report seul : 19, 23 ; décalage seul : 16, 26) |
+| Export | `fixesSuite` | rien de neuf, une période de plus | état `shift` de plus, pas de `fixesSuite` |
+| Moteur | le drapeau lu par `sequenceAfter` | un report dont l'arrivée tombe dans la période suivante : aujourd'hui interdit (refus `previous-period`, échéances coupées à la fin de période, lu), à inventer ; G5 évité seulement si la période commence le jour du geste | la ligne de décalage est un point de redémarrage sans dose (`sequenceAfter`), placée après l'échéance d'origine ; le reste comme (a) |
+| Lien report ↔ décalage (N2 : la case se rouvre comme laissée) | sur la même ligne | aucun : il faut une colonne de lien, ou deviner (période ouverte le jour du report, première échéance égale à l'arrivée) | la même échéance (période, jour, heure) : la présence de la ligne de décalage dit l'état de la case |
+| Prises (« Fait à une autre date », « C'est fait » en un tap) | même drapeau | ne s'appliquerait pas : une période par prise en retard serait illisible ; il resterait `fixes_suite` pour les prises, deux mécanismes pour une même idée | même ligne de décalage : prise de la dose du 16 le 19, case cochée = prise + ligne de décalage |
+| Formulaire | rien | une période sans nouveau réglage, à expliquer à l'écran et dans le PDF | rien |
+| Q2, Q4, Q6, N2, N3 | tenus | Q6 et la suite (1) demandent de réécrire une période ; N2 demande un lien | tenus ; Q6 (case grisée) = supprimer le report seul ; graine 13503355 : la ligne de décalage garde l'oubli du 13 sur la grille |
+| Effort | moyen (référence) | grand | moyen, un peu plus que (a) : une famille de lignes, deux lignes par geste coché |
+
+**Recommandation : (c).** Elle fait ce que propose Gaelle (le report et le décalage vivent et se
+suppriment séparément) sans les défauts de (b) : une seule table, un seul lot avec son inverse, aucun
+report qui traverse deux périodes, et chaque ligne arrivée seule par la synchro donne un état voulu. Elle
+supprime la ligne fabriquée de (a) (« Reportée au 26 oct. (prévue le 23 oct.) »), qui n'a plus lieu
+d'être. La même ligne sert aux prises : un seul mécanisme pour « Décaler aussi les doses suivantes ».
+
+**Écartée : (b).** Les périodes représentent un changement de réglages, voulu et rare ; en faire
+l'outil d'un report multiplierait les blocs dans l'historique et le PDF. Elle demande un lien explicite
+entre report et période (ou une devinette), une écriture sur deux tables pour un geste de la fiche
+avec son « Annuler », et elle laisserait les prises sur un autre mécanisme.
+
+**Écartée aussi : (a)**, qui reste valable si Gaelle préfère une seule ligne : elle coûte un peu moins,
+mais lie les deux et fabrique une ligne à la suppression.
+
+**Si (c) est retenue**, voici ce qui change ailleurs dans l'étude (attendu, non prototypé) :
+
+- §2.1 et §2.5 : pas de colonne `fixes_suite` ; `status` gagne `shift` en plus d'`extra`. Une ligne de
+  décalage d'une prise a pour `next_due_date` la date réelle de la prise ; celle d'un report, sa
+  nouvelle date. Le rythme repart de cette date au pas suivant (16 donné le 19 : 26 ; Luna, 30 août
+  donné le 31 : 30 sept., 31 oct.).
+- §2.6 : chaque « case cochée » écrit ou garde la ligne de décalage, chaque « décochée » la supprime ou
+  ne l'écrit pas ; « C'est fait » en un tap l'écrit, sauf la règle de la demi-fréquence.
+- Supprimer une prise supprime sa ligne de décalage (§5.2, N6).
+- Identité à l'affichage : une famille de plus (prise, prise en plus, report, décalage).
 
 ## 3. Recommandation
 
@@ -348,6 +412,9 @@ une « prise en plus » (Q1), et `fixes_suite` enregistre la case.
    reprend un jour borné), pour une colonne.
 3. La prise en plus suit la règle de Gaelle sans exception de date : les dates du ticket (16, 9, 8) en
    découlent, et aucune date n'apparaît deux fois dans l'historique.
+
+**Décalage du rythme** : recommandé comme ligne à part (§2.7, (c)), à valider par Gaelle (N5). Le
+plan ci-dessous vaut pour les deux formes ; seule la colonne `fixes_suite` devient l'état `shift`.
 
 **Écartée : B.** Elle ne servait qu'à afficher la prise en avance comme couvrant la dose prévue, que
 Q1 n'a pas retenu. Son identité dépend d'autres lignes (cascades de réécriture, orphelins entre
@@ -368,7 +435,8 @@ appareils).
 - Une prise en plus ne se note qu'à partir de la dernière ligne de la période (garde du type G8).
   « Changer la date » d'une prise en plus lui fait viser l'échéance que viserait une prise notée à la
   nouvelle date (TR-13) : c'est ce qui règle 3b.
-- « Supprimer ce report » décochée : réécriture en report de l'échéance suivante (§2.6).
+- « Supprimer ce report » décochée : réécriture en report de l'échéance suivante (§2.6) si (a) est
+  gardée ; suppression du seul report si la ligne de décalage (c) est retenue (§2.7, recommandé).
 - Fusion à l'affichage : la prise gagne sur un report de la même échéance (Q5) ; à `updated_at` égal,
   l'identifiant d'appareil départage (§6).
 - Export v4, CSV complété, v3 refusé jusqu'à #469 ; miroir Supabase par `alter`, après contrôle des
@@ -380,7 +448,7 @@ Préalable : réponses aux questions du §5.2 et du §6.8 ; maquette de la case 
 
 **1. `feat(db): schéma v11 — choix de décalage, prise en plus, jour de référence, appareil`**
 
-- [ ] v11 : `fixes_suite`, état `extra`, `reference_on`, `created_by_device` et `updated_by_device` sur
+- [ ] v11 : `fixes_suite` (ou l'état `shift`, selon N5), état `extra`, `reference_on`, `created_by_device` et `updated_by_device` sur
   les huit tables synchronisées ; seulement `DROP`, `CREATE`, `INSERT`, `PRAGMA`
 - [ ] Identifiant d'appareil tiré au hasard au premier lancement, gardé hors de la sauvegarde d'Android
   (§6.6) ; chaque écriture des repositories le pose (test qui passe en revue toutes les écritures)
@@ -419,7 +487,10 @@ demander avant de coder)
 - [ ] Q6 : case de « Supprimer ce report » grisée avec son aide ; décochée, la dose revient seule
   (graine 13503355 rejouée)
 - [ ] Message sous la case quand le décalage fait perdre une dose à cause de la date de fin
-- [ ] Préremplissage, dose non renseignée et plusieurs heures selon §5.2 ; rejoué sur le téléphone
+- [ ] N1 à N3 : la case se rouvre comme laissée ; jamais de case pour une dose non renseignée ni sur
+  une prise d'un traitement de tous les jours ; plus espacé à plusieurs heures, seulement quand la
+  prise complète la journée
+- [ ] Report et décalage supprimables séparément (§2.7, selon N5) ; rejoué sur le téléphone
 
 **5. `fix(treatments): « C'est fait » en un tap après un retard et date de fin`**
 
@@ -465,37 +536,42 @@ rappels qui suit.
   l'ancien rythme » est grisée, avec l'aide « Une dose plus lointaine est déjà notée. », dès qu'une dose
   plus loin dans la période est notée ; décochée, seule la dose revient à sa date.
 
-### 5.2 Questions restantes sur la case
+Suite, réponses aux questions de la case (même jour) :
 
-**N1 — Une dose non renseignée notée à une autre date : la case apparaît-elle ?**
-Pixel, vermifuge hebdomadaire. Le 20 sept., la dose du 8 n'est pas renseignée, la dose du moment est
-celle du 15. On note la dose du 8 « Fait à une autre date » le 9. Cochée par défaut, la suite
-repartirait du 9 : la dose du moment passerait du 15 au 16. Je recommande **pas de case** pour une dose
-non renseignée : la suite ne bouge pas (Q8, TR-18). Raison : on renseigne le passé, on ne veut pas
-déplacer ce qui reste à donner ; une case cochée par défaut le ferait sans qu'on le cherche.
-Alternative : la case, mais décochée par défaut dans ce seul cas (une exception au « cochée par défaut »).
+- **N1** : pas de case pour une dose non renseignée rattrapée (Q8 gardé). Remarque de Gaelle : pour un
+  traitement quotidien, une dose n'est jamais « donnée le lendemain » (le lendemain, c'est la dose du
+  lendemain, celle de la veille est oubliée) ; les exemples sont hebdomadaires ou mensuels.
+- **N2** : « Changer la date » rouvre la case telle qu'elle avait été laissée.
+- **N3** : traitement de tous les jours, avec ou sans heures, jamais de case sur une prise (une dose
+  est donnée son jour ou elle est oubliée) ; la case n'apparaît que pour un report. Traitement plus
+  espacé à plusieurs heures : case seulement quand la prise complète la journée (G10). Plus espacé
+  sans heure : case comme décidé.
+- **N4** : ligne « Reportée au 26 oct. (prévue le 23 oct.) » acceptée, avec la proposition de séparer
+  le report d'une dose du décalage du rythme, étudiée au §2.7.
 
-**N2 — « Changer la date » : la case reprend-elle le choix d'origine ?**
-Milo, dose du 16 reportée seule au 19 (décochée). Plus tard, « Changer la date » du report au 20. Je
-recommande que la case s'ouvre **comme elle avait été laissée** (ici décochée), et cochée pour un
-nouveau geste. Raison : c'est le critère du ticket (« Changer la date d'un report garde le choix fait à
-la création ») ; rouvrir cochée décalerait la suite sans que la personne l'ait voulu. Même règle pour
-« Changer la date » d'une prise. Alternative : toujours cochée, comme les autres gestes.
+### 5.2 Questions restantes sur le décalage
 
-**N3 — À plusieurs heures par jour : quand la case apparaît-elle ?**
-Luna, Métacam à 8 h et 20 h. La dose de 8 h du 27 est notée le 28. Avec G10, une prise ne peut
-refixer la suite que si elle est la dernière heure du jour et que les autres sont notées. Je recommande :
-dans « Fait à une autre date » et « Changer la date » d'une prise, la case n'apparaît **que si la prise
-complète la journée** ; dans les reports, elle apparaît toujours (la journée part entière, Q21).
-Raison : ailleurs, cochée ou décochée donneraient le même calendrier, la case ne servirait à rien.
-Alternative : toujours l'afficher, et décaler à partir de la première heure notée (G10 à revoir).
+**N5 — Le décalage du rythme, une ligne à part ?**
+Pixel, vermifuge le vendredi. La dose du 16 est reportée au lundi 19, case cochée : 19, 26, 2 nov.
+Plus tard, on supprime le report en gardant le nouveau rythme : 16, puis 26, 2 nov. Je recommande de
+ranger le décalage dans **une ligne à part** de l'historique des prises, supprimable seule (§2.7, (c)).
+Raison : le report et le décalage vivent séparément, comme tu le proposes, sans créer de période ni de
+ligne fabriquée. Alternatives : une nouvelle période à chaque décalage (blocs de période multipliés,
+écriture sur deux tables, un lien à stocker) ; une seule ligne qui porte les deux (§2.6, (a)).
 
-**N4 — « Supprimer ce report » décochée : quelle ligne dans l'historique ?**
-Milo, dose du 16 reportée au 19 avec la suite (19, 26, 2 nov.), puis « Supprimer ce report » décochée :
-16, puis 26, 2 nov. Je recommande que l'historique montre « Reportée au 26 oct. (prévue le 23 oct.) »
-(§2.6). Raison : c'est vrai par rapport à l'ancien rythme, et ça n'ajoute ni colonne ni libellé.
-Alternative : une ligne nouvelle « Doses suivantes gardées au rythme du 19 oct. » (une colonne et un
-libellé de plus).
+**N6 — Supprimer une prise qui avait décalé la suite : le décalage part-il avec elle ?**
+Luna, antiparasitaire mensuel depuis le 30 juil. ; la dose du 30 août est donnée le 31, case cochée
+(30 sept., 31 oct., 30 nov.). Puis on supprime cette prise (TR-26). Je recommande que **le décalage
+parte avec la prise** : la suite revient au 30 (30 oct.). Raison : c'est ce qui se passe aujourd'hui, et
+la personne efface ce qu'elle avait noté, pas seulement la date. Alternative : garder le décalage seul
+(la suite reste au 31 ; il faudrait une case de plus sur « Supprimer »).
+
+**N7 — Un décalage resté seul : que montre l'historique ?**
+Après N5 (report du 16 supprimé, rythme gardé), le carnet montre 16, puis 26 : dix jours d'écart sans
+explication. Je recommande une ligne discrète « Doses suivantes décalées · prochaine le 26 oct. »,
+seulement quand le décalage n'accompagne ni prise ni report de la même échéance. Raison : l'écart se
+comprend, et la ligne n'apparaît que dans ce cas rare (Q13 interdit la ligne « A fixé la dose » pour
+une prise). Alternative : rien (l'écart reste inexpliqué). Libellé à voir avec la maquette.
 
 ## 6. Traçabilité : qui a écrit quoi, depuis quel appareil
 
