@@ -161,7 +161,11 @@ function close(): void {
 // Le titre commence à 34 px du bord : la pilule à 12 px, 18 px sous elle.
 .bottom-sheet__panel {
   position: relative;
+  min-height: 0;
   padding: 34px 20px 24px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-radius: inherit;
 }
 
 // La pilule visible (36 × 4) reste à 12 px du bord ; la zone de tap descend sur le titre.

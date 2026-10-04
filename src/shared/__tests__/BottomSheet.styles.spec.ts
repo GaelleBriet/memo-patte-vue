@@ -53,6 +53,12 @@ describe('BottomSheet — contrat de style', () => {
     expect(declaration('.bottom-sheet__panel', 'padding')).toBe('34px 20px 24px')
     expect(declaration('.bottom-sheet__header', 'margin-top')).toBeUndefined()
   })
+
+  it('fait défiler le panneau quand il dépasse la hauteur de l’écran, sous les coins arrondis', () => {
+    expect(declaration('.bottom-sheet__panel', 'min-height')).toBe('0')
+    expect(declaration('.bottom-sheet__panel', 'overflow-y')).toBe('auto')
+    expect(declaration('.bottom-sheet__panel', 'border-radius')).toBe('inherit')
+  })
 })
 
 describe('Feuilles modales — le patron reste à BottomSheet', () => {
