@@ -1,25 +1,31 @@
 import { differenceInCalendarDays, differenceInCalendarMonths } from 'date-fns'
 
-import { keyOf, shiftDate, toDate } from './treatment-schedule-dues'
+import { keyOf, previousDay, shiftDate, toDate } from './treatment-schedule-dues'
 import type {
   Due,
   Frequency,
   Sequence,
-  Step,
   TreatmentDoseInput,
   TreatmentPeriodInput,
 } from './treatment-schedule-types'
 
-export function referenceOf(dose: TreatmentDoseInput): string {
-  return dose.status === 'given' && dose.givenOn !== null ? dose.givenOn : dose.dueOn
-}
-
-export function fixesSuiteFromItsDate(dose: TreatmentDoseInput, frequency: Frequency): boolean {
-  return shiftDate(referenceOf(dose), frequency, 1) === dose.nextDueDate
-}
-
+// La grille part du jour de référence quand elle passe par la première échéance (le 31 d'un mensuel).
 export function initialSequence(period: TreatmentPeriodInput): Sequence {
-  return { origin: period.firstDueOn, firstStep: 0, floor: '' }
+  const fromFirstDue = { origin: period.firstDueOn, firstStep: 0, floor: '' }
+  if (period.referenceOn >= period.firstDueOn) return fromFirstDue
+  const fromReference = {
+    origin: period.referenceOn,
+    firstStep: 0,
+    floor: `${previousDay(period.firstDueOn)} ~`,
+  }
+  return firstDueOf(fromReference, period).dueOn === period.firstDueOn
+    ? fromReference
+    : fromFirstDue
+}
+
+// Après la journée d'origine (`floor`), les échéances suivent le rythme ancré : ancrage + 1 pas, + 2 pas…
+export function shiftedSequence(shift: TreatmentDoseInput, floor = `${shift.dueOn} ~`): Sequence {
+  return { origin: shift.nextDueDate, firstStep: 1, floor }
 }
 
 function firstStepFrom(sequence: Sequence, { value, unit }: Frequency, day: string): number {
@@ -54,37 +60,12 @@ export function firstDueOf(sequence: Sequence, period: TreatmentPeriodInput): Du
   return sequenceDues(sequence, period).next().value
 }
 
-export function sequenceAfter(
-  { kind, dose }: Step,
-  period: TreatmentPeriodInput,
-  current: Sequence,
-): Sequence {
-  if (kind === 'move') return { origin: dose.nextDueDate, firstStep: 0, floor: current.floor }
-  const reference = referenceOf(dose)
-  const floor = keyOf(dose)
-  const restarted = { origin: reference, firstStep: 1, floor }
-  const restarts = shiftDate(reference, period.frequency, 1) === dose.nextDueDate
-  const clamps = period.frequency.unit === 'month' && reference === dose.dueOn
-  if (restarts && !clamps) return restarted
-  // En mois, le 30 nov. plus 3 mois vaut aussi le 28 févr. de la suite du 31 : la suite qui continue l'emporte.
-  const continued = { ...current, floor }
-  if (firstDueOf(continued, period).dueOn === dose.nextDueDate) return continued
-  return restarts ? restarted : { origin: dose.nextDueDate, firstStep: 0, floor }
-}
-
-// Les échéances déjà produites restent sous la main : une ligne sans effet ne fait rien recalculer.
-type Cursor = { dues: Generator<Due, never>; ahead: Due[] }
-
-export function cursorOn(sequence: Sequence, period: TreatmentPeriodInput): Cursor {
-  return { dues: sequenceDues(sequence, period), ahead: [] }
-}
-
-export function duesLeftBefore({ dose }: Step, cursor: Cursor): Due[] {
-  const key = keyOf(dose)
-  let after = cursor.ahead.at(-1)
-  while (after === undefined || keyOf(after) <= key) {
-    after = cursor.dues.next().value
-    cursor.ahead.push(after)
+// Échéances d'une suite jusqu'au début de la suivante (`end`, clé incluse).
+export function duesUntil(sequence: Sequence, period: TreatmentPeriodInput, end: string): Due[] {
+  const dues: Due[] = []
+  for (const due of sequenceDues(sequence, period)) {
+    if (keyOf(due) > end) break
+    dues.push(due)
   }
-  return cursor.ahead.filter((due) => keyOf(due) < key)
+  return dues
 }

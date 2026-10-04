@@ -75,8 +75,8 @@ describe('performance', () => {
   it('« Toutes données » sur deux ans à deux heures s’écrit en moins de 200 ms', () => {
     const { result: written, elapsed } = fastest(() => {
       const schedule = treatmentSchedule({ ...input, doses: [] })
-      return schedule.unloggedDoses.map((due) =>
-        schedule.doseFor({ kind: 'given', due, givenOn: due.dueOn }),
+      return schedule.unloggedDoses.map(
+        (due) => schedule.doseFor({ kind: 'given', due, givenOn: due.dueOn }).dose,
       )
     })
 
@@ -107,8 +107,8 @@ describe('performance', () => {
 
     const { result: written, elapsed } = fastest(() => {
       const schedule = treatmentSchedule(gapped)
-      return schedule.unloggedDoses.map((due) =>
-        schedule.doseFor({ kind: 'given', due, givenOn: due.dueOn }),
+      return schedule.unloggedDoses.map(
+        (due) => schedule.doseFor({ kind: 'given', due, givenOn: due.dueOn }).dose,
       )
     })
 
@@ -152,8 +152,8 @@ describe('lignes sans effet sur des échéances à renseigner (fichier forgé)',
 
     const { result: written, elapsed } = fastest(() => {
       const schedule = treatmentSchedule({ ...input, doses: neutral })
-      return schedule.unloggedDoses.map((due) =>
-        schedule.doseFor({ kind: 'given', due, givenOn: due.dueOn }),
+      return schedule.unloggedDoses.map(
+        (due) => schedule.doseFor({ kind: 'given', due, givenOn: due.dueOn }).dose,
       )
     })
 

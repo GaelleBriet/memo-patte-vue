@@ -4,8 +4,8 @@ export type TreatmentPeriodInput = {
   id: string
   startsOn: string
   firstDueOn: string
-  /** Origine de la grille ; lue à partir du ticket #502, la première échéance en attendant. */
-  referenceOn?: string
+  /** Origine de la grille des échéances (le 31 d'un mensuel), la première échéance par défaut. */
+  referenceOn: string
   endsOn: string | null
   stoppedOn: string | null
   frequency: Frequency
@@ -25,7 +25,10 @@ export type TreatmentDoseInput = {
   /** `null` pour une prise oubliée ou reportée. */
   givenOn: string | null
   status: DoseStatus
-  /** Prochaine échéance fixée par la prise ; pour un report, sa nouvelle date. */
+  /**
+   * Pour un report, sa nouvelle date ; pour une ligne de décalage, sa date d'ancrage ; pour une prise,
+   * la prochaine échéance calculée au geste, que le moteur ne relit pas.
+   */
   nextDueDate: string
   createdAt: string
   updatedAt: string
@@ -52,22 +55,33 @@ export type DoseFields = Pick<
   'periodId' | 'dueOn' | 'dueTime' | 'givenOn' | 'status' | 'nextDueDate'
 >
 
-/**
- * `postponement` : le déplacement gardé (TR-24 bis), à réécrire avec `line` (il vise désormais
- * l'échéance que fixe la prise corrigée), ou ceux que la nouvelle date laisse sans effet, à supprimer.
- */
-export type RedatedDose = {
-  dose: DoseFields
-  postponement:
-    { doseIds: string[]; kept: true; line: DoseFields } | { doseIds: string[]; kept: false } | null
-}
-
-/** Ligne de déplacement à créer, à réécrire (Q18), à supprimer quand la dose revient à sa date, ou rien. */
-export type MovedDose =
+/** Une ligne à créer, à réécrire, à supprimer, ou rien. */
+export type LineChange =
   | { action: 'create'; dose: DoseFields }
   | { action: 'rewrite'; dose: DoseFields; doseId: string }
   | { action: 'delete'; doseId: string }
   | { action: 'none' }
+
+/** La prise à écrire, et la ligne de décalage qui fait repartir la suite de sa date réelle. */
+export type NotedDose = { dose: DoseFields; shift: DoseFields | null }
+
+/**
+ * `shift` : la ligne de décalage de la prise, réancrée à sa nouvelle date, créée ou supprimée.
+ * `postponement` : le report qui la suit (TR-24 bis), gardé et réécrit avec `line` et son décalage
+ * avec `shiftLine` (ils visent désormais l'échéance que fixe la prise corrigée), ou dépassé : ses
+ * lignes, décalage compris, sont à supprimer.
+ */
+export type RedatedDose = {
+  dose: DoseFields
+  shift: LineChange
+  postponement:
+    | { doseIds: string[]; kept: true; line: DoseFields; shiftIds: string[]; shiftLine: DoseFields }
+    | { doseIds: string[]; kept: false }
+    | null
+}
+
+/** Le report (créé, réécrit Q18, supprimé quand la dose revient à sa date) et sa ligne de décalage. */
+export type MovedDose = { report: LineChange; shift: LineChange }
 
 /** Bornes de « Prochaine dose » (TR-9) ; `latest` : la date de fin, `null` sans date de fin. */
 export type MoveBounds = { earliest: string; latest: string | null }
@@ -80,7 +94,7 @@ export type MoveBounds = { earliest: string; latest: string | null }
 export type MoveRefusal =
   'previous-period' | 'later-line' | 'later-dose' | 'no-date-left' | 'arrival-logged'
 
-export type NewPeriod = { startsOn: string; firstDueOn: string }
+export type NewPeriod = { startsOn: string; firstDueOn: string; referenceOn: string }
 
 export type TreatmentSchedule = {
   phase: TreatmentPhase
@@ -92,19 +106,22 @@ export type TreatmentSchedule = {
   nextDue: Due | null
   /** Doses non renseignées (TR-13), jamais comptées comme des retards. */
   unloggedDoses: Due[]
-  /** Lignes de l'historique, une par échéance (la plus récemment modifiée) ; sans les déplacements sans effet. */
+  /**
+   * Lignes de l'historique, une par échéance et par famille (prise, report, décalage), la plus
+   * récemment modifiée ; sans les reports sans effet.
+   */
   doses: TreatmentDoseInput[]
   /** Déplacements sans effet (dépassés, revenus à leur date) : à supprimer avec la prochaine écriture. */
   staleDoseIds: string[]
   currentPeriodId: string | null
-  /** TR-28 : une prise, même oubliée ou reportée, existe dans la période en cours. */
+  /** TR-28 : une prise, même oubliée ou reportée, existe dans la période en cours (un décalage seul ne compte pas). */
   currentPeriodHasDose: boolean
   /** Échéances sans prise à partir d'aujourd'hui inclus. */
   upcoming(limit: number): Due[]
   /** Échéance visée par une prise notée à cette date, à cette heure s'il y en a plusieurs. */
   dueForDate(givenOn: string, time?: string | null): Due | null
-  /** Champs de la prise à écrire, calculés sur le carnet d'avant le geste (renseigner : un appel par dose). */
-  doseFor(gesture: DoseGesture): DoseFields
+  /** Lignes à écrire, calculées sur le carnet d'avant le geste (renseigner : un appel par dose). */
+  doseFor(gesture: DoseGesture): NotedDose
   /** TR-24 bis : nouvelle date d'une prise donnée. */
   redate(doseId: string, givenOn: string): RedatedDose
   /**
@@ -120,7 +137,7 @@ export type TreatmentSchedule = {
   moveRefusal(due: Due): MoveRefusal | null
   /** Déplacements dont la dose d'arrivée est notée (Q25) : ni « Changer la date » ni « Supprimer ce report ». */
   lockedMoveIds: string[]
-  /** « Supprimer ce report » (TR-24) : la ligne à supprimer ; lève si elle est verrouillée (Q25). */
+  /** « Supprimer ce report » (TR-24) : la ligne à supprimer, son décalage reste (N8) ; lève si elle est verrouillée (Q25). */
   removeMove(doseId: string): MovedDose
   /** Dates d'une période ouverte par « Modifier » (TR-28, Q7, Q24), selon ses heures. */
   newPeriod(frequency: Frequency, times: readonly string[]): NewPeriod
@@ -128,15 +145,19 @@ export type TreatmentSchedule = {
 
 export type Sequence = { origin: string; firstStep: number; floor: string }
 
-export type Step = { kind: 'note' | 'move'; dose: TreatmentDoseInput; position: string }
+export type Step = { kind: 'note' | 'move' | 'shift'; dose: TreatmentDoseInput; position: string }
 
 export type PeriodPlan = {
   period: TreatmentPeriodInput
   closesOn: string | null
   steps: Step[]
   stale: TreatmentDoseInput[]
+  /** La suite de la période, puis celles des lignes de décalage, dans l'ordre. */
   anchors: { position: string; sequence: Sequence }[]
+  /** Échéances avant la dernière suite, et jours d'arrivée des reports. */
   between: Due[]
+  /** Jour d'origine d'un report → sa première clé : la journée part à partir de là (Q21). */
+  removals: Map<string, string>
   noteKeys: Set<string>
   noteDays: Set<string>
   covered: Set<string>
@@ -150,6 +171,8 @@ export type DueEntry = { due: Due; status: DoseStatus | null }
 export type State = {
   input: TreatmentScheduleInput
   noted: Set<string>
+  /** Échéances qui ont une ligne lue par le moteur : prise, report ou décalage en vigueur. */
+  lines: Set<string>
   plans: PeriodPlan[]
   open: PeriodPlan | null
   phase: TreatmentPhase
