@@ -9,7 +9,7 @@ import { syncField, type SyncPullPage } from '@/core/sync/service/syncable-table
 import type { NewTreatmentDose, TreatmentDose } from '../schema/treatment-dose.schema'
 import type { FrequencyUnit } from '../schema/treatment.schema'
 import type { Stamped } from '@/shared/domain/carnet-data'
-import type { DoseFields } from '@/shared/domain/treatment-schedule'
+import { familyOf, type DoseFields } from '@/shared/domain/treatment-schedule'
 
 export type RestoredTreatmentDose = Omit<Stamped<NewTreatmentDose>, 'deletedAt'>
 export type TreatmentDoseVersion = Pick<
@@ -99,7 +99,7 @@ function toRecord(row: DoseWithFrequencyRow): Stamped<TreatmentDose> {
   }
 }
 
-function lastOfPeriodSql(column: string, periodId: string, filter = ''): string {
+function lastOfPeriodSql(column: string, periodId: string, filter: string): string {
   return `(SELECT candidate.${column} FROM treatment_dose candidate
            WHERE candidate.period_id = ${periodId} AND candidate.deleted_at IS NULL ${filter}
            ORDER BY candidate.due_on DESC, candidate.due_time DESC, candidate.created_at DESC,
@@ -109,10 +109,11 @@ function lastOfPeriodSql(column: string, periodId: string, filter = ''): string 
 
 /**
  * Sous-requête de la dernière ligne d'une période (`periodId` est une expression SQL) : la prise
- * non supprimée à l'échéance la plus tardive, jour puis heure, puis par saisie, puis par identifiant.
+ * ou le report non supprimé à l'échéance la plus tardive, jour puis heure, puis par saisie, puis
+ * par identifiant ; une ligne de décalage n'en est jamais une.
  */
 export function headDoseIdSql(periodId: string): string {
-  return lastOfPeriodSql('id', periodId)
+  return lastOfPeriodSql('id', periodId, "AND candidate.status <> 'shift'")
 }
 
 /** Sous-requête de la date de la dernière prise donnée d'une période, dans l'ordre de `headDoseIdSql`. */
@@ -221,15 +222,13 @@ export function createTreatmentDosesRepository(
     }
   }
 
-  function sameNature(status: DoseFields['status']): string {
-    return status === 'postponed' ? "status = 'postponed'" : "status <> 'postponed'"
-  }
-
+  // Q5 : une échéance a au plus une ligne visible par famille (prise, prise en plus, report, décalage).
   function duplicateWhere(dose: DoseFields): { sql: string; params: SqlParam[] } {
+    const family = familyOf(dose) === 'note' ? ['given', 'missed'] : [dose.status]
     return {
       sql: `period_id = ? AND due_on = ? AND due_time IS ? AND ${NOT_DELETED}
-            AND ${sameNature(dose.status)}`,
-      params: [dose.periodId, dose.dueOn, dose.dueTime],
+            AND status IN (${placeholders(family)})`,
+      params: [dose.periodId, dose.dueOn, dose.dueTime, ...family],
     }
   }
 

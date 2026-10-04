@@ -4,8 +4,10 @@ import { describe, expect, it } from 'vitest'
 
 import {
   treatmentSchedule,
+  type DoseFields,
   type Due,
   type Frequency,
+  type LineChange,
   type TreatmentDoseInput,
   type TreatmentPeriodInput,
   type TreatmentSchedule,
@@ -102,6 +104,14 @@ function idOf({ periodId, dueOn, dueTime }: Due): string {
   return `${periodId} ${dueOn} ${dueTime ?? ''}`
 }
 
+function isNote({ status }: Pick<TreatmentDoseInput, 'status'>): boolean {
+  return status === 'given' || status === 'missed'
+}
+
+function familyOf({ status }: Pick<TreatmentDoseInput, 'status'>): string {
+  return isNote({ status }) ? 'note' : status
+}
+
 function scheduleOf({ periods, doses, today }: Book): TreatmentSchedule {
   return treatmentSchedule({ periods, doses, today })
 }
@@ -126,6 +136,7 @@ function newBook(random: Random): Book {
     id: 'p1',
     startsOn: firstDueOn,
     firstDueOn,
+    referenceOn: firstDueOn,
     endsOn: random() < 0.3 ? plusDays(firstDueOn, int(random, 3, 60)) : null,
     stoppedOn: null,
     frequency: pick(random, FREQUENCIES) ?? { value: 1, unit: 'day' },
@@ -139,12 +150,16 @@ class Simulation {
   private stamp = 0
   private redated = false
   readonly log: string[] = []
+  // Tirage à part : les graines déjà connues rejouent les mêmes gestes.
+  private readonly shiftRandom: Random
 
   constructor(
     public book: Book,
     private readonly random: Random,
     private readonly seed: number,
-  ) {}
+  ) {
+    this.shiftRandom = mulberry32(seed ^ 0x5f3759df)
+  }
 
   fail(message: string): never {
     throw new Error(
@@ -165,17 +180,16 @@ class Simulation {
     }
   }
 
-  private written(
-    book: Book,
-    fields: Omit<TreatmentDoseInput, 'id' | 'createdAt' | 'updatedAt'>,
-  ): Book {
+  // Comme le repository : une ligne par échéance et par famille, réécrite si elle existe déjà.
+  private written(book: Book, fields: DoseFields): Book {
     const at = this.at()
-    const existing = book.doses.find((dose) => idOf(dose) === idOf(fields))
-    if (
-      existing !== undefined &&
-      existing.status === 'postponed' &&
-      fields.status !== 'postponed'
-    ) {
+    const existing = book.doses.find(
+      (dose) => idOf(dose) === idOf(fields) && familyOf(dose) === familyOf(fields),
+    )
+    const reported = book.doses.some(
+      (dose) => idOf(dose) === idOf(fields) && dose.status === 'postponed',
+    )
+    if (reported && isNote(fields)) {
       this.fail(`deux lignes pour l’échéance ${idOf(fields)} : un déplacement et une prise`)
     }
     const doses = existing
@@ -184,26 +198,29 @@ class Simulation {
     return { ...book, doses }
   }
 
-  private afterMove(due: Due, to: string): Book {
-    const moved = scheduleOf(this.book).move(due, to)
-    const { doses } = this.book
-    switch (moved.action) {
+  private applied(book: Book, change: LineChange): Book {
+    switch (change.action) {
       case 'none':
-        return this.book
+        return book
       case 'create':
-        return this.written(this.book, moved.dose)
+        return this.written(book, change.dose)
       case 'delete':
-        return { ...this.book, doses: doses.filter(({ id }) => id !== moved.doseId) }
+        return { ...book, doses: book.doses.filter(({ id }) => id !== change.doseId) }
       case 'rewrite': {
         const at = this.at()
         return {
-          ...this.book,
-          doses: doses.map((line) =>
-            line.id === moved.doseId ? { ...line, ...moved.dose, updatedAt: at } : line,
+          ...book,
+          doses: book.doses.map((line) =>
+            line.id === change.doseId ? { ...line, ...change.dose, updatedAt: at } : line,
           ),
         }
       }
     }
+  }
+
+  private afterMove(due: Due, to: string): Book {
+    const { report, shift } = scheduleOf(this.book).move(due, to)
+    return this.applied(this.applied(this.book, shift), report)
   }
 
   private checkProtected(
@@ -243,7 +260,7 @@ class Simulation {
     }
     const period = this.book.periods.find(({ id }) => id === due.periodId)
     if (period === undefined) return this.fail('période inconnue')
-    const noted = new Set(after.doses.filter(({ status }) => status !== 'postponed').map(idOf))
+    const noted = new Set(after.doses.filter(isNote).map(idOf))
     // Revenue à sa date d'origine, la dose retrouve la suite d'avant ; un déplacement plus loin garde la sienne.
     const backToOrigin = moved.doses.length < this.book.doses.length
     const laterMove = after.doses.some(
@@ -316,22 +333,64 @@ class Simulation {
     const gesture = `${this.book.today} ${kind} ${idOf(due)} le ${givenOn}`
     this.log.push(gesture)
     let fields
+    let wroteShift = false
     try {
-      fields =
+      const noted =
         kind === 'given' ? before.doseFor({ kind, due, givenOn }) : before.doseFor({ kind, due })
+      fields = noted.dose
+      wroteShift = noted.shift !== null
+      if (noted.shift !== null) this.book = this.written(this.book, noted.shift)
     } catch (error) {
       return this.fail(`${gesture} : ${String(error)}`)
     }
     this.book = this.written(this.book, fields)
     const after = this.schedule()
     this.checkProtected(before, after, () => true, gesture)
+    this.checkWritten(after, due, fields.nextDueDate, gesture)
     const unit = this.book.periods.find(({ id }) => id === due.periodId)?.frequency.unit
     const mayCoincide = unit === 'month' && kind === 'given' && givenOn !== due.dueOn
     const wasUnlogged = before.unloggedDoses.some((unlogged) => idOf(unlogged) === idOf(due))
     if (wasUnlogged && !mayCoincide) this.checkLogged(before, after, gesture)
-    if (kind === 'given' && before.currentDoses.some((current) => idOf(current) === idOf(due))) {
+    if (
+      kind === 'given' &&
+      before.currentDoses.some((current) => idOf(current) === idOf(due)) &&
+      !this.isMovedOnItsOwn(before, due, wroteShift)
+    ) {
       this.checkGap(after, due, givenOn, fields.nextDueDate, gesture)
     }
+  }
+
+  // La prochaine dose écrite sur la dernière prise est la première échéance en attente qui la suit :
+  // c'est elle que le Carnet, l'accueil et les rappels lisent.
+  private checkWritten(after: TreatmentSchedule, due: Due, nextDueDate: string, gesture: string) {
+    const period = this.book.periods.find(({ id }) => id === due.periodId)
+    const key = idOf(due)
+    const later = (other: Due) => other.periodId === due.periodId && idOf(other) > key
+    if (after.doses.some((dose) => isNote(dose) && later(dose))) return
+    const expected = pendingOf(after).filter(later)[0]?.dueOn
+    const end = period?.endsOn ?? null
+    if (expected === undefined || (end !== null && nextDueDate > end)) return
+    if (nextDueDate !== expected) {
+      this.fail(
+        `${gesture} : prochaine dose écrite au ${nextDueDate}, le calendrier dit ${expected}`,
+      )
+    }
+  }
+
+  // Un décalage resté seul, ou une dose déplacée sans décalage : les doses suivantes gardent leur jour.
+  private isMovedOnItsOwn(before: TreatmentSchedule, due: Due, wroteShift: boolean): boolean {
+    const shiftOn = (line: Due) =>
+      before.doses.some(
+        (dose) =>
+          dose.status === 'shift' && dose.periodId === line.periodId && dose.dueOn === line.dueOn,
+      )
+    const movedHere = before.doses.filter(
+      (dose) =>
+        dose.status === 'postponed' &&
+        dose.periodId === due.periodId &&
+        dose.nextDueDate === due.dueOn,
+    )
+    return (shiftOn(due) && !wroteShift) || movedHere.some((move) => !shiftOn(move))
   }
 
   // TR-18, Q8 : renseigner ne déplace ni la dose du moment ni les échéances à venir.
@@ -353,9 +412,13 @@ class Simulation {
   private checkSameDate(before: TreatmentSchedule, dose: TreatmentDoseInput): void {
     if (dose.givenOn === null) return
     const gesture = `${this.book.today} redater ${idOf(dose)} à la même date`
-    const { dose: fields, postponement } = before.redate(dose.id, dose.givenOn)
-    if (fields.nextDueDate !== dose.nextDueDate || postponement !== null) {
-      this.fail(`${gesture} : ligne réécrite ${JSON.stringify({ fields, postponement })}`)
+    const { dose: fields, shift, postponement } = before.redate(dose.id, dose.givenOn)
+    if (
+      fields.nextDueDate !== dose.nextDueDate ||
+      shift.action !== 'none' ||
+      postponement !== null
+    ) {
+      this.fail(`${gesture} : ligne réécrite ${JSON.stringify({ fields, shift, postponement })}`)
     }
     const doses = this.book.doses.map((line) =>
       line.id === dose.id ? { ...line, ...fields } : line,
@@ -365,16 +428,9 @@ class Simulation {
     }
   }
 
-  // TR-24 bis, Q8 : redater une prise donnée un autre jour, qui n'a pas fixé la suite, ne déplace rien.
-  private checkKeptSuite(
-    before: TreatmentSchedule,
-    dose: TreatmentDoseInput,
-    gesture: string,
-  ): void {
-    const frequency = this.book.periods.find(({ id }) => id === dose.periodId)?.frequency
-    if (frequency === undefined || frequency.unit === 'month' || dose.givenOn === null) return
-    const fixedTheSuite = shifted(dose.givenOn, frequency, 1) === dose.nextDueDate
-    if (dose.givenOn === dose.dueOn || fixedTheSuite) return
+  // TR-24 bis, Q8 : redater une prise sans toucher à aucun décalage ni report ne déplace rien.
+  private checkKeptSuite(before: TreatmentSchedule, untouched: boolean, gesture: string): void {
+    if (!untouched) return
     const pending = (schedule: TreatmentSchedule) =>
       JSON.stringify([schedule.currentDoses.map(idOf), schedule.upcoming(60).map(idOf)])
     if (pending(this.schedule()) !== pending(before)) {
@@ -423,10 +479,11 @@ class Simulation {
     }
   }
 
-  // (g) Une échéance n'a jamais deux lignes : ni une dose à donner sur l'échéance d'une ligne, ni un déplacement sur place.
+  // (g) Une échéance n'a jamais deux lignes : ni une dose à donner sur l'échéance d'une ligne, ni un
+  // déplacement sur place. Un décalage seul laisse son échéance d'origine à donner (§2.6, règle 2).
   private checkOneLinePerDue(): void {
     const schedule = this.schedule()
-    const lines = new Set(schedule.doses.map(idOf))
+    const lines = new Set(schedule.doses.filter(({ status }) => status !== 'shift').map(idOf))
     const doubled = pendingOf(schedule).find((due) => lines.has(idOf(due)))
     if (doubled !== undefined)
       this.fail(`dose à donner sur une échéance déjà en ligne : ${idOf(doubled)}`)
@@ -438,10 +495,7 @@ class Simulation {
 
   // TR-26 : une prise supprimée rend son échéance, à donner ou à renseigner.
   private delete(before: TreatmentSchedule): void {
-    const line = pick(
-      this.random,
-      before.doses.filter(({ status }) => status !== 'postponed'),
-    )
+    const line = pick(this.random, before.doses.filter(isNote))
     if (line === undefined) return
     const gesture = `${this.book.today} supprimer la prise ${idOf(line)}`
     this.log.push(gesture)
@@ -487,10 +541,7 @@ class Simulation {
     if (line === undefined) return
     const gesture = `${this.book.today} supprimer le déplacement ${idOf(line)}`
     const arrivalLogged = before.doses.some(
-      (dose) =>
-        dose.status !== 'postponed' &&
-        dose.periodId === line.periodId &&
-        dose.dueOn === line.nextDueDate,
+      (dose) => isNote(dose) && dose.periodId === line.periodId && dose.dueOn === line.nextDueDate,
     )
     if (before.lockedMoveIds.includes(line.id) !== arrivalLogged) {
       this.fail(
@@ -507,6 +558,39 @@ class Simulation {
     if (refused) return
     this.log.push(gesture)
     this.book = { ...this.book, doses: this.book.doses.filter(({ id }) => id !== line.id) }
+    this.checkProtected(
+      before,
+      this.schedule(),
+      (due) => due.periodId !== line.periodId || due.dueOn !== line.nextDueDate,
+      gesture,
+    )
+  }
+
+  // N6, N7 : un décalage se supprime seul ; ce qui précède sa journée d'origine reste.
+  private unshift(before: TreatmentSchedule): void {
+    // « Supprimer ce décalage » et ses refus viennent avec #505 : seul un décalage resté seul, sans
+    // aucune ligne plus loin dans sa période, est tiré ici.
+    const isAlone = (shift: TreatmentDoseInput) =>
+      !before.doses.some(
+        (dose) =>
+          dose.periodId === shift.periodId &&
+          dose.id !== shift.id &&
+          (dose.dueOn > shift.dueOn || (dose.status === 'postponed' && idOf(dose) === idOf(shift))),
+      )
+    const line = pick(
+      this.shiftRandom,
+      before.doses.filter((dose) => dose.status === 'shift' && isAlone(dose)),
+    )
+    if (line === undefined) return
+    const gesture = `${this.book.today} supprimer le décalage ${idOf(line)}`
+    this.log.push(gesture)
+    this.book = { ...this.book, doses: this.book.doses.filter(({ id }) => id !== line.id) }
+    this.checkProtected(
+      before,
+      this.schedule(),
+      (due) => due.periodId !== line.periodId || due.dueOn <= line.dueOn,
+      gesture,
+    )
   }
 
   private stop(before: TreatmentSchedule): void {
@@ -535,6 +619,7 @@ class Simulation {
       id: `p${periods.length + 1}`,
       startsOn: today,
       firstDueOn,
+      referenceOn: firstDueOn,
       endsOn: this.random() < 0.2 ? plusDays(firstDueOn, int(this.random, 3, 40)) : null,
       stoppedOn: null,
       frequency: pick(this.random, FREQUENCIES) ?? { value: 1, unit: 'day' },
@@ -566,22 +651,29 @@ class Simulation {
     const gesture = `${this.book.today} redater ${idOf(dose)} au ${givenOn}`
     this.redated = true
     this.log.push(gesture)
-    const { dose: fields, postponement } = before.redate(dose.id, givenOn)
+    const { dose: fields, shift, postponement } = before.redate(dose.id, givenOn)
     const dropped = postponement?.kept === false ? postponement.doseIds : []
     const at = this.at()
-    this.book = {
-      ...this.book,
-      doses: this.book.doses
-        .filter(({ id }) => !dropped.includes(id))
-        .map((line) => (line.id === dose.id ? { ...line, ...fields, updatedAt: at } : line))
-        .map((line) =>
-          postponement?.kept === true && postponement.doseIds.includes(line.id)
-            ? { ...line, ...postponement.line, updatedAt: at }
-            : line,
-        ),
+    const rewritten = (line: TreatmentDoseInput): TreatmentDoseInput => {
+      if (line.id === dose.id) return { ...line, ...fields, updatedAt: at }
+      if (postponement?.kept !== true) return line
+      if (postponement.doseIds.includes(line.id)) {
+        return { ...line, ...postponement.line, updatedAt: at }
+      }
+      return postponement.shiftIds.includes(line.id)
+        ? { ...line, ...postponement.shiftLine, updatedAt: at }
+        : line
     }
-    this.checkKeptSuite(before, dose, gesture)
-    const suiteMoved = fields.nextDueDate !== dose.nextDueDate || dropped.length > 0
+    this.book = this.applied(
+      {
+        ...this.book,
+        doses: this.book.doses.filter(({ id }) => !dropped.includes(id)).map(rewritten),
+      },
+      shift,
+    )
+    this.checkKeptSuite(before, shift.action === 'none' && postponement === null, gesture)
+    const suiteMoved =
+      fields.nextDueDate !== dose.nextDueDate || shift.action !== 'none' || postponement !== null
     const key = `${dose.dueOn} ${dose.dueTime ?? ''}`
     this.checkProtected(
       before,
@@ -640,8 +732,7 @@ class Simulation {
     const lastStop = periods.map(({ stoppedOn }) => stoppedOn !== null).lastIndexOf(true)
     const stopped = new Set(periods.slice(0, lastStop + 1).map(({ id }) => id))
     const noted = before.doses.filter(
-      ({ status, dueOn, periodId }) =>
-        status !== 'postponed' && dueOn === today && !stopped.has(periodId),
+      (dose) => isNote(dose) && dose.dueOn === today && !stopped.has(dose.periodId),
     ).length
     const hours = Math.max(1, period.times.length)
     const left = pending.filter((due) => due.periodId === period.id && due.dueOn === today).length
@@ -678,6 +769,7 @@ class Simulation {
   }
 
   step(): void {
+    if (this.shiftRandom() < 0.08) this.unshift(this.schedule())
     const before = this.schedule()
     const { today } = this.book
     switch (pick(this.random, GESTURES)) {
@@ -770,6 +862,7 @@ describe('en mois, départs les 29, 30 et 31 (TR-7, TR-18)', () => {
           id: 'p1',
           startsOn: firstDueOn,
           firstDueOn,
+          referenceOn: firstDueOn,
           endsOn: null,
           stoppedOn: null,
           frequency: { value, unit: 'month' },
@@ -780,7 +873,7 @@ describe('en mois, départs les 29, 30 et 31 (TR-7, TR-18)', () => {
         const before = scheduleOf(book)
         for (const unlogged of before.unloggedDoses.slice(0, 4)) {
           const { dueOn } = unlogged
-          const fields = before.doseFor({ kind: 'given', due: unlogged, givenOn: dueOn })
+          const fields = before.doseFor({ kind: 'given', due: unlogged, givenOn: dueOn }).dose
           const at = '2026-01-01T00:00:01.000Z'
           const doses = [{ id: 'd1', ...fields, createdAt: at, updatedAt: at }]
           const after = scheduleOf({ ...book, doses })

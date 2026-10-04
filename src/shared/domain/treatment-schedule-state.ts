@@ -1,16 +1,16 @@
 import { invalid } from './treatment-schedule-checks'
-import { dueId, keyOf, nextDay, previousDay, sameDue } from './treatment-schedule-dues'
+import { dueId, nextDay, previousDay, sameDue } from './treatment-schedule-dues'
 import {
   closingDay,
+  isNoteLine,
+  isShiftLine,
   mergeDoses,
+  nextDueAfter,
   notesOf,
   orderPeriods,
   pendingDues,
   planPeriod,
-  positionOf,
-  sequenceAt,
 } from './treatment-schedule-plan'
-import { sequenceDues } from './treatment-schedule-sequence'
 import type {
   Due,
   PeriodPlan,
@@ -51,7 +51,7 @@ export function notedOn(
   )
   const changed = new Set(sinceLastStop.map(({ id }) => id))
   return doses.filter(
-    (dose) => dose.status !== 'postponed' && dose.dueOn === day && changed.has(dose.periodId),
+    (dose) => isNoteLine(dose) && dose.dueOn === day && changed.has(dose.periodId),
   ).length
 }
 
@@ -72,7 +72,8 @@ export function build(input: TreatmentScheduleInput): State {
     .slice(0, -1)
     .flatMap((plan) => pendingDues(plan, { to: previousDay(today) }))
   const noted = new Set(plans.flatMap(notesOf).map(dueId))
-  const closed = { input, noted, plans, open: null, currentDoses: [] }
+  const lines = new Set(plans.flatMap(({ steps }) => steps.map(({ dose }) => dueId(dose))))
+  const closed = { input, noted, lines, plans, open: null, currentDoses: [] }
 
   if (current === undefined) return { ...closed, phase: 'ended', unloggedDoses: unlogged }
   const { stoppedOn, endsOn } = current.period
@@ -104,13 +105,9 @@ export function planOf(state: State, periodId: string): PeriodPlan {
   return plan
 }
 
+// La prochaine échéance du calendrier après celle-ci, prises comprises : reports et décalages en vigueur.
 export function nextInSequence(state: State, due: Due): string {
-  const plan = planOf(state, due.periodId)
-  const key = keyOf(due)
-  const dues = sequenceDues(sequenceAt(plan, positionOf(key, 1)), plan.period, due.dueOn)
-  let next = dues.next().value
-  while (keyOf(next) <= key) next = dues.next().value
-  return next.dueOn
+  return nextDueAfter(planOf(state, due.periodId), due).dueOn
 }
 
 export function stateWithoutDues(state: State, dues: Due[]): State {
@@ -118,21 +115,17 @@ export function stateWithoutDues(state: State, dues: Due[]): State {
   return build({ ...state.input, doses })
 }
 
+// Le carnet sans aucune ligne de cette échéance.
 export function stateWithout(state: State, due: Due): State {
-  if (!state.noted.has(dueId(due))) return state
-  const doses = state.input.doses.filter((dose) => !sameDue(dose, due))
-  return build({ ...state.input, doses })
+  if (!state.lines.has(dueId(due))) return state
+  return stateWithoutDues(state, [due])
 }
 
-// Le carnet sans cette prise, tel qu'il était ce jour-là : ni période ouverte depuis, ni arrêt décidé depuis.
-export function stateOn(state: State, due: Due, day: string): State {
-  const periods = state.input.periods
-    .filter((period) => period.startsOn <= day || period.id === due.periodId)
-    .map((period) =>
-      period.stoppedOn !== null && period.stoppedOn > day ? { ...period, stoppedOn: null } : period,
-    )
-  const doses = state.input.doses.filter((dose) => !sameDue(dose, due))
-  return build({ periods, doses, today: day })
+// Le carnet sans la prise de cette échéance, ni le report qu'elle bat (Q5) : son décalage reste.
+export function stateWithoutNote(state: State, due: Due): State {
+  if (!state.lines.has(dueId(due))) return state
+  const doses = state.input.doses.filter((dose) => !sameDue(dose, due) || isShiftLine(dose))
+  return build({ ...state.input, doses })
 }
 
 // Une prise en avance vise le prochain jour d'échéance : deux jours couvrent chaque heure.

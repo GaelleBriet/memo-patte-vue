@@ -94,6 +94,7 @@ const APPLIED = {
   postponement: null,
   finishes: false,
   moved: null,
+  shiftKept: false,
 }
 
 let book: TreatmentWithHistory | null

@@ -1515,7 +1515,14 @@ describe('TreatmentFormView — modification (TR-27, TR-28, planches V1 quater e
   it('garde la date d’une dose en retard et le dit ; changée, elle n’accepte qu’une date à partir d’aujourd’hui', async () => {
     getWithHistory.mockResolvedValue(
       milbemax(
-        [periode({ frequency: { value: 1, unit: 'week' } })],
+        [
+          periode({
+            frequency: { value: 1, unit: 'week' },
+            startsOn: '2026-09-20',
+            firstDueOn: '2026-09-20',
+            referenceOn: '2026-09-20',
+          }),
+        ],
         [prise({ dueOn: '2026-09-20', givenOn: '2026-09-20', nextDueDate: '2026-09-27' })],
       ),
     )

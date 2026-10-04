@@ -15,7 +15,7 @@ const TODAY = '2026-09-28'
 const SOIR = { periodId: 'p-1', dueOn: '2026-09-28', dueTime: '20:00' }
 const UNE_HEURE = { name: 'Panacur', animal: 'Pixel', today: TODAY, severalTimes: false }
 const DEUX_HEURES = { name: 'Métacam', animal: 'Luna', today: TODAY, severalTimes: true }
-const RIEN = { postponement: null, moved: null }
+const RIEN = { postponement: null, moved: null, shiftKept: false }
 
 function texts(
   context: typeof UNE_HEURE,
@@ -97,6 +97,25 @@ describe('doseActionTexts — corriger une prise', () => {
     expect(texts(DEUX_HEURES, action, HIER_SOIR).done()).toBe('Prise du 27 sept. à 20 h supprimée')
   })
 
+  it('dit que les doses suivantes restent décalées quand la prise laisse son décalage (N6)', () => {
+    const action: DoseAction = { kind: 'remove', doseId: HIER_SOIR.id }
+
+    expect(texts(UNE_HEURE, action, HIER_SOIR).done({ ...RIEN, shiftKept: true })).toBe(
+      'Prise du 27 sept. supprimée. Les doses suivantes restent décalées.',
+    )
+  })
+
+  it('dit que les doses suivantes restent décalées quand la prise oubliée garde son décalage', () => {
+    const action: DoseAction = {
+      kind: 'note',
+      gesture: { kind: 'missed', due: { periodId: 'p-1', dueOn: '2026-09-27', dueTime: null } },
+    }
+
+    expect(texts(UNE_HEURE, action, HIER_SOIR).done({ ...RIEN, shiftKept: true })).toBe(
+      'Prise du 27 sept. marquée comme oubliée. Les doses suivantes restent décalées.',
+    )
+  })
+
   it('annonce la prise marquée oubliée', () => {
     const action: DoseAction = {
       kind: 'note',
@@ -147,6 +166,12 @@ describe('doseActionTexts — ligne « Reportée »', () => {
     expect(texts(UNE_HEURE, { kind: 'remove-move', doseId: REPORT.id }, REPORT).done()).toBe(
       'Report supprimé',
     )
+    expect(
+      texts(UNE_HEURE, { kind: 'remove-move', doseId: REPORT.id }, REPORT).done({
+        ...RIEN,
+        shiftKept: true,
+      }),
+    ).toBe('Report supprimé. Les doses suivantes restent décalées.')
   })
 
   it('annonce ce que le moteur a écrit : reportée, avancée, ou report disparu', () => {

@@ -5,6 +5,7 @@ import {
   type DoseFields,
   type DoseGesture,
   type Due,
+  type LineChange,
   type TreatmentDoseInput,
   type TreatmentPeriodInput,
   type TreatmentSchedule,
@@ -25,6 +26,7 @@ export function period(overrides: Partial<TreatmentPeriodInput> = {}): Treatment
     id: 'p1',
     startsOn: firstDueOn,
     firstDueOn,
+    referenceOn: firstDueOn,
     endsOn: null,
     stoppedOn: null,
     frequency: { value: 1, unit: 'day' },
@@ -74,28 +76,59 @@ export function stored(fields: DoseFields, id = `dose-${stamp + 1}`): TreatmentD
 
 export type Gesture = DoseGesture | { kind: 'postponed'; due: Due; to: string }
 
+/** Applique une écriture du moteur comme le repository : une ligne créée, réécrite ou supprimée. */
+export function applied(book: Carnet, change: LineChange): Carnet {
+  switch (change.action) {
+    case 'none':
+      return book
+    case 'create':
+      return { ...book, doses: [...book.doses, stored(change.dose)] }
+    case 'delete':
+      return { ...book, doses: book.doses.filter(({ id }) => id !== change.doseId) }
+    case 'rewrite':
+      return rewritten(book, [change.doseId], change.dose)
+  }
+}
+
+function rewritten(book: Carnet, ids: readonly string[], fields: DoseFields): Carnet {
+  return {
+    ...book,
+    doses: book.doses.map((line) =>
+      ids.includes(line.id) ? { ...line, ...fields, updatedAt: nextStamp() } : line,
+    ),
+  }
+}
+
+function sameDueAndStatus(line: TreatmentDoseInput, fields: DoseFields): boolean {
+  return (
+    line.periodId === fields.periodId &&
+    line.dueOn === fields.dueOn &&
+    line.dueTime === fields.dueTime &&
+    line.status === fields.status
+  )
+}
+
 /** Écrit le geste comme le ferait le repository ; un déplacement réécrit sa ligne s'il en a une (Q18). */
 export function record(book: Carnet, today: string, gesture: Gesture): Carnet {
   const schedule = scheduleOf(book, today)
   if (gesture.kind !== 'postponed') {
-    return { ...book, doses: [...book.doses, stored(schedule.doseFor(gesture))] }
+    const { dose, shift } = schedule.doseFor(gesture)
+    const existing =
+      shift === null ? [] : book.doses.filter((line) => sameDueAndStatus(line, shift))
+    const withShift =
+      shift === null
+        ? book
+        : existing.length > 0
+          ? rewritten(
+              book,
+              existing.map(({ id }) => id),
+              shift,
+            )
+          : { ...book, doses: [...book.doses, stored(shift)] }
+    return { ...withShift, doses: [...withShift.doses, stored(dose)] }
   }
-  const moved = schedule.move(gesture.due, gesture.to)
-  switch (moved.action) {
-    case 'none':
-      return book
-    case 'create':
-      return { ...book, doses: [...book.doses, stored(moved.dose)] }
-    case 'delete':
-      return { ...book, doses: book.doses.filter(({ id }) => id !== moved.doseId) }
-    case 'rewrite':
-      return {
-        ...book,
-        doses: book.doses.map((line) =>
-          line.id === moved.doseId ? { ...line, ...moved.dose, updatedAt: nextStamp() } : line,
-        ),
-      }
-  }
+  const { report, shift } = schedule.move(gesture.due, gesture.to)
+  return applied(applied(book, shift), report)
 }
 
 /** Ligne de déplacement écrite telle quelle, sans passer par le moteur (synchro, fichier importé). */
@@ -133,18 +166,18 @@ export function withoutDose(book: Carnet, id: string): Carnet {
   return { ...book, doses: book.doses.filter((dose) => dose.id !== id) }
 }
 
-/** Corrige une prise comme le ferait le repository : ligne recalculée, déplacements non gardés supprimés. */
+/** Corrige une prise comme le ferait le repository : ligne recalculée, décalage et report qui suit compris. */
 export function redate(book: Carnet, today: string, doseId: string, givenOn: string): Carnet {
-  const { dose: fields, postponement } = scheduleOf(book, today).redate(doseId, givenOn)
-  const dropped = postponement?.kept === false ? postponement.doseIds : []
-  const kept = postponement?.kept === true ? postponement : null
-  return {
-    ...book,
-    doses: book.doses
-      .filter(({ id }) => !dropped.includes(id))
-      .map((dose) => (dose.id === doseId ? { ...dose, ...fields, updatedAt: nextStamp() } : dose))
-      .map((dose) =>
-        kept?.doseIds.includes(dose.id) ? { ...dose, ...kept.line, updatedAt: nextStamp() } : dose,
-      ),
+  const { dose: fields, shift, postponement } = scheduleOf(book, today).redate(doseId, givenOn)
+  let result = applied(rewritten(book, [doseId], fields), shift)
+  if (postponement?.kept === false) {
+    result = {
+      ...result,
+      doses: result.doses.filter(({ id }) => !postponement.doseIds.includes(id)),
+    }
+  } else if (postponement?.kept === true) {
+    result = rewritten(result, postponement.doseIds, postponement.line)
+    result = rewritten(result, postponement.shiftIds, postponement.shiftLine)
   }
+  return result
 }

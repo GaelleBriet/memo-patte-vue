@@ -52,6 +52,7 @@ function checkPeriod(period: TreatmentPeriodInput): void {
   checkFrequency(period.frequency, label)
   checkDay(period.startsOn, `${label}début`)
   checkDay(period.firstDueOn, `${label}première échéance`)
+  checkDay(period.referenceOn, `${label}jour de référence`)
   checkOptionalDay(period.endsOn, `${label}fin`)
   checkOptionalDay(period.stoppedOn, `${label}arrêt`)
   const { times } = period

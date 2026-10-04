@@ -450,6 +450,7 @@
       "resume": "Resume this treatment",
       "toast": {
         "removed": "Dose on {date} deleted",
+        "removedShiftKept": "Dose on {date} deleted. The following doses stay shifted.",
         "undoRemove": "Undo deleting the dose on {date}",
         "moved": "Dose moved to {date}",
         "movedKept": "Dose moved to {date}. Next dose kept on {nextDue}, as you had postponed it.",
@@ -499,8 +500,10 @@
         "doseAt": "{time} {name} dose logged for {animal}",
         "doseAtOn": "{time} {name} dose on {date} logged for {animal}",
         "missed": "Dose on {date} marked as missed",
+        "missedShiftKept": "Dose on {date} marked as missed. The following doses stay shifted.",
         "undoMissed": "Undo the change to the dose on {date}",
         "moveRemoved": "Postponement deleted",
+        "moveRemovedShiftKept": "Postponement deleted. The following doses stay shifted.",
         "undoMoveRemoved": "Undo deleting the postponement",
         "postponedTo": "Dose postponed to {date}",
         "advancedTo": "Dose moved up to {date}",

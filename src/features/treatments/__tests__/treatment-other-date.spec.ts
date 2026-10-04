@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { dose, missed, period, plain, treatment } from './treatment-fixtures'
+import { dose, missed, period, plain, shifted, treatment } from './treatment-fixtures'
 import {
   givenDays,
   momentDue,
@@ -254,7 +254,10 @@ describe('momentDue — ce que notent la feuille « À faire » et une notificat
           firstDueOn: '2026-09-25',
         }),
       ],
-      [dose('2026-09-25', '2026-10-08', { givenOn: '2026-10-01' })],
+      [
+        dose('2026-09-25', '2026-10-08', { givenOn: '2026-10-01' }),
+        shifted('2026-09-25', '2026-10-01'),
+      ],
     )
 
     expect(due(hebdo, '2026-10-01')).toEqual({ alreadyGivenOn: '2026-10-01' })

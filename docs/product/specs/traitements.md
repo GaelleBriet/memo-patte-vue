@@ -730,21 +730,16 @@ Posées par la relecture de cohérence du 2026-09-30 (`technical/relecture-coher
 toutes tranchées le 2026-09-30 : C1 (Q15), C2 (Q16), C5 (TR-30), C6 (TR-24), C7 (TR-13, RA-18), les
 trois dernières validées en bloc.
 
-Limites connues du moteur d'échéances, renvoyées à #488 (la ligne d'une prise ne dit pas si elle a
-fixé la suite ; revue du 2026-10-02) :
+Limites connues du moteur d'échéances, renvoyées à #488 (la ligne d'une prise ne disait pas si elle
+avait fixé la suite ; revue du 2026-10-02). Fermées par la ligne de décalage et le jour de référence
+de la période (#502, étude `technical/etude-modele-prises.md` §2.6) : la dose non renseignée redatée
+(dose du moment au 15), la dose du moment notée par erreur puis corrigée (17), les départs les 29, 30
+et 31 (30 oct., 30 nov.) et le jour borné repris par Q37 (31 mars, 30 avr.). Restent :
 
-- Une dose non renseignée notée à la date de son échéance, puis redatée, déplace encore la suite
-  (hebdomadaire, dose du 8 notée le 8 alors qu'on est le 20, redatée au 9 : dose du moment au 16 au
-  lieu du 15) (TR-24 bis).
-- Une dose du moment notée par erreur plus d'un intervalle avant son échéance, puis corrigée, ne
-  refixe pas la suite (notée le 1er, corrigée au 10 : 15 au lieu de 17) (TR-24 bis, G11).
-- En mois, départs les 29, 30 et 31 : une dose non renseignée notée le lendemain de son échéance, ou
-  redatée à ce lendemain, fait passer la suite au jour suivant (30 août notée le 31 : 31 oct.)
-  (TR-7, TR-18).
 - Une date de fin fait sauter la dose suivante d'une prise en retard (5 oct. et 2 nov., fin le 2 nov.,
-  première dose donnée le 10 : terminé) (TR-7, TR-8).
-- Une prise donnée un intervalle ou plus en avance garde l'ancienne suite (G11).
+  première dose donnée le 10 : terminé) (TR-7, TR-8) : #506.
+- Une prise donnée un intervalle ou plus en avance garde l'ancienne suite (G11) : prise en plus, #503.
 - À plusieurs heures, quand une heure de la prochaine journée a été donnée en avance et qu'un réglage
   change sans toucher la fréquence ni les heures, les heures restantes de cette journée ne sont plus
   demandées (tous les 2 jours à 8 h et 20 h, 8 h du 3 donnée le 2, posologie changée le 2 : première
-  dose le 5) (TR-28, Q37).
+  dose le 5) (TR-28, Q37) : règle du moteur, hors modèle.

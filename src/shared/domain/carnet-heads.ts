@@ -64,13 +64,13 @@ export function vaccinationHeads(
   return headsOf(vaccinationHistories(injections))
 }
 
-/** Dernière ligne de chaque période, dans l'ordre de `headDoseIdSql`. */
+/** Dernière ligne de chaque période, hors lignes de décalage, dans l'ordre de `headDoseIdSql`. */
 export function periodHeads(
   doses: readonly ExportTreatmentDose[],
 ): Map<string, ExportTreatmentDose> {
   return headsOf(
     historiesBy(
-      doses,
+      doses.filter(({ status }) => status !== 'shift'),
       ({ periodId }) => periodId,
       ({ dueOn, dueTime }) => `${dueOn} ${dueTime ?? ''}`,
     ),

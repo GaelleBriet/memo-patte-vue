@@ -61,7 +61,7 @@ export function otherDaySummary(
   const target = schedule === null ? null : momentDue(schedule, givenOn, today)
   const next =
     schedule !== null && target !== null && 'due' in target
-      ? schedule.doseFor({ kind: 'given', due: target.due, givenOn }).nextDueDate
+      ? schedule.doseFor({ kind: 'given', due: target.due, givenOn }).dose.nextDueDate
       : null
   return {
     doseOn: t('treatments.sheet.otherDay.doseOn', { date: formatWeekdayDate(givenOn) }),

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { dose, missed, period, plain, treatment } from './treatment-fixtures'
+import { dose, missed, period, plain, shifted, treatment } from './treatment-fixtures'
 import { detailActions, doseCard } from '../logic/treatment-card'
 import { treatmentScheduleOf } from '../logic/treatment-schedule'
 import type { TreatmentWithHistory } from '../repository/treatments.repository'
@@ -113,6 +113,7 @@ describe('doseCard', () => {
       [
         dose('2026-08-02', '2026-09-02'),
         dose('2026-09-02', '2026-10-28', { givenOn: '2026-09-28' }),
+        shifted('2026-09-02', '2026-09-28'),
       ],
     )
     const schedule = treatmentScheduleOf(history, '2026-09-28')

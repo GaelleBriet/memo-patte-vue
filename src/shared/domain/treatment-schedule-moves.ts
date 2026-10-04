@@ -8,12 +8,22 @@ import {
   shiftDate,
   uniqueSorted,
 } from './treatment-schedule-dues'
-import { isMove, notesOf, pendingDues, positionOf, sequenceAt } from './treatment-schedule-plan'
+import {
+  isMove,
+  isNoteLine,
+  isShift,
+  notesOf,
+  pendingDues,
+  positionOf,
+  sequenceAt,
+  shiftOn,
+} from './treatment-schedule-plan'
 import { sequenceDues } from './treatment-schedule-sequence'
 import { planOf, stateWithoutDues, visiblePending } from './treatment-schedule-state'
 import type {
   DoseFields,
   Due,
+  LineChange,
   MoveBounds,
   MoveRefusal,
   MovedDose,
@@ -55,7 +65,7 @@ function dayBeforeMove(state: State, moved: Due): string {
   }
   return (
     latestOf([
-      ...plan.steps.map(({ dose }) => dose.dueOn),
+      ...plan.steps.filter((step) => !isShift(step)).map(({ dose }) => dose.dueOn),
       ...notesOf(plan).map((dose) => dose.givenOn),
       ...dueDaysOf(pending),
       ...earlier,
@@ -64,13 +74,14 @@ function dayBeforeMove(state: State, moved: Due): string {
   )
 }
 
-// Le moteur ne tient pas une dose déplacée quand une ligne existe déjà plus loin, même sans effet.
+// Le moteur ne tient pas une dose déplacée quand une ligne existe déjà plus loin, même sans effet ;
+// un décalage plus loin garde la main après son jour d'origine.
 function boundsOf(state: State, moved: Due): MoveBounds | MoveRefusal {
   const { today } = state.input
   const plan = planOf(state, moved.periodId)
   const lines = [...plan.steps.map(({ dose }) => dose), ...plan.stale]
   const later = lines.filter((dose) => dose.dueOn > moved.dueOn)
-  if (later.some((dose) => dose.status !== 'postponed')) return 'later-dose'
+  if (later.some(isNoteLine)) return 'later-dose'
   if (later.length > 0) return 'later-line'
   const afterPrevious = nextDay(dayBeforeMove(state, moved))
   const earliest = latestOf([today, plan.period.startsOn, afterPrevious]) ?? today
@@ -108,7 +119,7 @@ export function removeMove(state: State, doseId: string): MovedDose {
       )
     }
     if (inForce !== undefined || plan.stale.some(({ id }) => id === doseId)) {
-      return { action: 'delete', doseId }
+      return { report: { action: 'delete', doseId }, shift: { action: 'none' } }
     }
   }
   throw new RangeError(`Aucun déplacement à supprimer : ${doseId}`)
@@ -163,6 +174,18 @@ export function movedFields(due: Due, to: string): DoseFields {
   return { ...dueOf(due), givenOn: null, status: 'postponed', nextDueDate: to }
 }
 
+export function shiftFields(due: Due, anchoredOn: string): DoseFields {
+  return { ...dueOf(due), givenOn: null, status: 'shift', nextDueDate: anchoredOn }
+}
+
+// Le report et son décalage ont la même échéance d'origine et la même date (§2.6, règle 4).
+function shiftAlong(shift: TreatmentDoseInput | undefined, origin: Due, to: string): LineChange {
+  const dose = shiftFields(origin, to)
+  return shift === undefined
+    ? { action: 'create', dose }
+    : { action: 'rewrite', dose, doseId: shift.id }
+}
+
 export function move(state: State, due: Due, to: string): MovedDose {
   const plan = planOf(state, due.periodId)
   checkMovable(state, plan, due)
@@ -176,15 +199,27 @@ export function move(state: State, due: Due, to: string): MovedDose {
   if (bounds.latest !== null && to > bounds.latest) {
     throw invalid(`nouvelle date ${to} : après la date de fin`)
   }
+  const none = { report: { action: 'none' }, shift: { action: 'none' } } as const
   const existing = movingStep(plan, due)
   if (existing === undefined) {
     const moved = firstPendingOfDay(state, due)
-    return to === moved.dueOn
-      ? { action: 'none' }
-      : { action: 'create', dose: movedFields(moved, to) }
+    if (to === moved.dueOn) return none
+    return {
+      report: { action: 'create', dose: movedFields(moved, to) },
+      shift: shiftAlong(shiftOn(plan, moved), moved, to),
+    }
   }
-  if (to === due.dueOn) return { action: 'none' }
+  if (to === due.dueOn) return none
   const replaced = originOf(state, existing, due)
-  if (to === replaced.dueOn) return { action: 'delete', doseId: existing.id }
-  return { action: 'rewrite', dose: movedFields(replaced, to), doseId: existing.id }
+  const shift = shiftOn(plan, existing)
+  if (to === replaced.dueOn) {
+    return {
+      report: { action: 'delete', doseId: existing.id },
+      shift: shift === undefined ? { action: 'none' } : { action: 'delete', doseId: shift.id },
+    }
+  }
+  return {
+    report: { action: 'rewrite', dose: movedFields(replaced, to), doseId: existing.id },
+    shift: shiftAlong(shift, replaced, to),
+  }
 }
