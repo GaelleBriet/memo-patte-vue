@@ -75,7 +75,10 @@ export function doseActionTexts(
       const { gesture } = action
       if (gesture.kind === 'missed') {
         return {
-          done: () => t('treatments.history.toast.missed', { date: dueDay(gesture.due) }),
+          done: ({ shiftKept }) =>
+            shiftKept
+              ? t('treatments.history.toast.missedShiftKept', { date: dueDay(gesture.due) })
+              : t('treatments.history.toast.missed', { date: dueDay(gesture.due) }),
           undo: t('treatments.history.toast.undoMissed', {
             date: formatFullDate(gesture.due.dueOn),
           }),

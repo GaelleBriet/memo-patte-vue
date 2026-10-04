@@ -169,6 +169,46 @@ describe('Q5 : entre deux appareils, une prise l’emporte sur un report de la m
     expect(schedule.doses.map(({ id }) => id)).toEqual([prise.id])
     expect(dueDays(schedule.upcoming(1))).toEqual(['2026-09-15'])
   })
+
+  it('le décalage du report battu reste : une ligne autonome', () => {
+    const line = (status: 'given' | 'postponed' | 'shift') =>
+      stored({
+        periodId: 'p1',
+        dueOn: '2026-09-08',
+        dueTime: null,
+        givenOn: status === 'given' ? '2026-09-08' : null,
+        status,
+        nextDueDate: status === 'given' ? '2026-09-15' : '2026-09-10',
+      })
+    const shift = line('shift')
+    const report = line('postponed')
+    const prise = line('given')
+    const schedule = scheduleOf(
+      { ...carnet(weekly()), doses: [shift, report, prise] },
+      '2026-09-09',
+    )
+
+    expect(schedule.staleDoseIds).toEqual([report.id])
+    expect(schedule.doses.map(({ id }) => id)).toEqual([shift.id, prise.id])
+    expect(dueDays(schedule.upcoming(2))).toEqual(['2026-09-17', '2026-09-24'])
+  })
+})
+
+describe('un décalage ne retombe jamais sur le jour d’un report', () => {
+  it('« C’est fait » en retard dont le rythme tomberait sur l’arrivée d’un report n’écrit aucun décalage', () => {
+    let book = record(carnet(weekly({ firstDueOn: '2026-10-01' })), '2026-10-03', {
+      kind: 'postponed',
+      due: due('2026-10-08'),
+      to: '2026-10-12',
+    })
+    book = done(book, '2026-10-05')
+
+    expect(shiftsOf(book).map(({ dueOn }) => dueOn)).toEqual(['2026-10-08'])
+    expect(dueDays(scheduleOf(book, '2026-10-05').upcoming(2))).toEqual([
+      '2026-10-12',
+      '2026-10-19',
+    ])
+  })
 })
 
 describe('les limites du §11 de la spec, fermées par la ligne de décalage', () => {

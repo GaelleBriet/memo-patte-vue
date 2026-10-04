@@ -172,6 +172,23 @@ describe('doseChange — supprimer une prise qui a décalé la suite (N6)', () =
     expect(shiftKept).toBe(true)
   })
 
+  it('« Marquer comme oubliée » garde le décalage, et le geste le dit', () => {
+    const due = { periodId: 'p-1', dueOn: '2026-09-01', dueTime: null }
+    const { writes, shiftKept } = change(LATE, '2026-09-05', {
+      kind: 'note',
+      gesture: { kind: 'missed', due },
+    })
+
+    expect(writes).toEqual([
+      expect.objectContaining({
+        action: 'rewrite',
+        id: '2026-09-01',
+        dose: expect.objectContaining({ status: 'missed' }),
+      }),
+    ])
+    expect(shiftKept).toBe(true)
+  })
+
   it('« C’est fait » en retard écrit la prise et sa ligne de décalage', () => {
     const history = treatment([period({ frequency: { value: 1, unit: 'week' } })])
     const due = { periodId: 'p-1', dueOn: '2026-09-01', dueTime: null }

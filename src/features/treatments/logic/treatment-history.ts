@@ -170,7 +170,7 @@ function linesOf(
   lastGivenId: string | undefined,
 ): HistoryLine[] {
   const lines: HistoryLine[] = []
-  // La ligne de décalage s'affichera avec sa maquette (#505).
+  // La ligne de décalage n'a pas encore sa maquette.
   for (const dose of doses.filter(({ status }) => status !== 'shift')) {
     if (dose.status === 'postponed') {
       lines.push(moveLine(t, schedule, dose))

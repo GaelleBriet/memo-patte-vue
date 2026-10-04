@@ -498,6 +498,7 @@
         "doseAt": "Prise de {time} de {name} notée pour {animal}",
         "doseAtOn": "Prise de {time} de {name} du {date} notée pour {animal}",
         "missed": "Prise du {date} marquée comme oubliée",
+        "missedShiftKept": "Prise du {date} marquée comme oubliée. Les doses suivantes restent décalées.",
         "undoMissed": "Annuler le changement de la prise du {date}",
         "moveRemoved": "Report supprimé",
         "moveRemovedShiftKept": "Report supprimé. Les doses suivantes restent décalées.",

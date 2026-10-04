@@ -93,6 +93,17 @@ describe('doseActionTexts — corriger une prise', () => {
     )
   })
 
+  it('dit que les doses suivantes restent décalées quand la prise oubliée garde son décalage', () => {
+    const action: DoseAction = {
+      kind: 'note',
+      gesture: { kind: 'missed', due: { periodId: 'p-1', dueOn: '2026-09-27', dueTime: null } },
+    }
+
+    expect(texts(UNE_HEURE, action, HIER_SOIR).done({ ...RIEN, shiftKept: true })).toBe(
+      'Prise du 27 sept. marquée comme oubliée. Les doses suivantes restent décalées.',
+    )
+  })
+
   it('annonce la prise marquée oubliée', () => {
     const action: DoseAction = {
       kind: 'note',

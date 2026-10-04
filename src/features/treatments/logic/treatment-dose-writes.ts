@@ -29,7 +29,7 @@ export type DoseChange = {
   postponement: { kept: true; nextDueDate: string } | { kept: false } | null
   /** Ce qu'un geste sur un report en a fait : sa ligne telle qu'écrite, ou `removed` ; `null` hors de ces gestes ou sans changement. */
   moved: DoseFields | 'removed' | null
-  /** La prise ou le report supprimé laisse sa ligne de décalage : les doses suivantes restent décalées (N6). */
+  /** La prise supprimée ou marquée oubliée, ou le report supprimé, laisse sa ligne de décalage (N6). */
   shiftKept: boolean
 }
 
@@ -204,15 +204,14 @@ function changeOf(
       if (gesture.kind === 'given' && noted?.status === 'given') {
         return { ...unchanged, writes: [], alreadyGivenOn: noted.givenOn }
       }
+      const notes = linesOf(history, gesture.due, 'note')
       return {
         ...unchanged,
-        writes: noteWrites(
-          history,
-          schedule,
-          gesture,
-          linesOf(history, gesture.due, 'note'),
-          newId,
-        ),
+        writes: noteWrites(history, schedule, gesture, notes, newId),
+        shiftKept:
+          gesture.kind === 'missed' &&
+          notes.length > 0 &&
+          linesOf(history, gesture.due, 'shift').length > 0,
       }
     }
     case 'log':
