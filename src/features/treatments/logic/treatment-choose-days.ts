@@ -225,18 +225,24 @@ export function tabTexts(
   }
 }
 
-/** `when` dit les jours des doses au lecteur d'écran. */
+/** `when` dit les jours des doses au lecteur d'écran ; `stopping` : le choix arrête aussi le traitement. */
 export function submitTexts(
   t: Translate,
   total: number,
   missed: number,
   when: string,
+  stopping = false,
 ): { submit: string; submitLabel: string } {
   const text = counts(t, total - missed, missed)
-  return {
-    submit: t('treatments.unlogged.days.submit', { counts: text }),
-    submitLabel: t('treatments.unlogged.days.submitLabel', { counts: text, when }),
-  }
+  return stopping
+    ? {
+        submit: t('treatments.unlogged.days.submitStop', { counts: text }),
+        submitLabel: t('treatments.unlogged.days.submitStopLabel', { counts: text, when }),
+      }
+    : {
+        submit: t('treatments.unlogged.days.submit', { counts: text }),
+        submitLabel: t('treatments.unlogged.days.submitLabel', { counts: text, when }),
+      }
 }
 
 /** Un onglet par heure de prise, les doses sans heure d'abord. */

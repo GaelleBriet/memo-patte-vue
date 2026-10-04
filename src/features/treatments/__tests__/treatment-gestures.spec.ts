@@ -58,6 +58,18 @@ describe('doseActionTexts — noter une prise (TR-23 bis)', () => {
     )
   })
 
+  it('dit où retrouver le traitement quand cette prise le termine (TR-31)', () => {
+    const { done } = texts(DEUX_HEURES, given(TODAY))
+
+    expect(done({ ...RIEN, finishes: true })).toBe(
+      'Dernière dose de Métacam notée, à retrouver dans Traitements terminés.',
+    )
+    applyLocale('en')
+    expect(texts(DEUX_HEURES, given(TODAY)).done({ ...RIEN, finishes: true })).toBe(
+      'Last Métacam dose logged, now in Finished treatments.',
+    )
+  })
+
   it('dit qu’une échéance est déjà notée, aujourd’hui ou un autre jour', () => {
     const { already } = texts(UNE_HEURE, given(TODAY))
 
@@ -282,11 +294,34 @@ describe('doseActionTexts — renseigner des doses en un lot', () => {
     )
   })
 
+  it('dit où retrouver le traitement quand renseigner le termine (Q16)', () => {
+    const TERMINE = { ...RIEN, finishes: true }
+    const both = log([
+      given('2026-09-03'),
+      given('2026-09-04'),
+      given('2026-09-05'),
+      given('2026-09-06'),
+      missed('2026-09-07'),
+    ])
+
+    expect(both.done(TERMINE)).toBe(
+      'Panacur : 4 prises et 1 oubli notés, à retrouver dans Traitements terminés.',
+    )
+    expect(log([given('2026-09-03')]).done(TERMINE)).toBe(
+      'Panacur : 1 prise notée, à retrouver dans Traitements terminés.',
+    )
+    expect(log([missed('2026-09-03'), missed('2026-09-04')]).done(TERMINE)).toBe(
+      'Panacur : 2 oublis notés, à retrouver dans Traitements terminés.',
+    )
+  })
+
   it('en anglais', () => {
     applyLocale('en')
+    const mixed = log([given('2026-09-03'), given('2026-09-04'), missed('2026-09-05')])
 
-    expect(log([given('2026-09-03'), given('2026-09-04'), missed('2026-09-05')]).done()).toBe(
-      'Panacur: 2 doses and 1 missed dose logged',
+    expect(mixed.done()).toBe('Panacur: 2 doses and 1 missed dose logged')
+    expect(mixed.done({ ...RIEN, finishes: true })).toBe(
+      'Panacur: 2 doses and 1 missed dose logged, now in Finished treatments.',
     )
   })
 })

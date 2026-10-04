@@ -32,18 +32,13 @@ import type {
 } from '../repository/treatments.repository'
 import { track } from '@/core/analytics'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
+import type { DoseGesture } from '@/shared/domain/treatment-schedule'
 import { recordUsageSignal } from '@/shared/utils/usage-signals'
 
 // Le store ne dépend que de ce qu'il appelle : la cascade de suppression (#102) n'est pas son affaire.
 type TreatmentsRepository = Pick<
   FullTreatmentsRepository,
-  | 'getById'
-  | 'listByAnimal'
-  | 'remove'
-  | 'listDoses'
-  | 'countDosesByAnimal'
-  | 'getWithHistory'
-  | 'listWithHistoryByAnimal'
+  'getById' | 'remove' | 'restore' | 'listDoses' | 'getWithHistory' | 'listWithHistoryByAnimal'
 >
 
 export type TreatmentsRepositoryProvider = () =>
@@ -92,10 +87,8 @@ export function provideTreatmentPlanService(next: (() => TreatmentPlan) | null):
 }
 
 export const useTreatmentsStore = defineStore('treatments', () => {
-  /** Traitements de l'animal chargé, prochaine échéance croissante telle que rendue par le repository. */
-  const treatments = ref<Treatment[]>([])
-  /** Nombre de prises de chacun de ces traitements. */
-  const doseCounts = ref<Record<string, number>>({})
+  /** Traitements de l'animal chargé, avec leurs périodes et leurs prises, dans l'ordre de saisie. */
+  const treatments = ref<TreatmentWithHistory[]>([])
   /** Animal dont la liste est chargée, `null` tant qu'aucune n'a été demandée. */
   const animalId = ref<string | null>(null)
   /** Vrai pendant toute opération, chargement comme écriture. */
@@ -113,14 +106,10 @@ export const useTreatmentsStore = defineStore('treatments', () => {
   }
 
   async function refresh(repository: TreatmentsRepository, id: string): Promise<void> {
-    const [list, counts] = await Promise.all([
-      repository.listByAnimal(id),
-      repository.countDosesByAnimal(id),
-    ])
+    const list = await repository.listWithHistoryByAnimal(id)
     // Un chargement lancé entre-temps pour un autre animal a priorité sur cette réponse.
     if (animalId.value !== id) return
     treatments.value = list
-    doseCounts.value = counts
     hasLoaded.value = true
     error.value = null
   }
@@ -146,7 +135,6 @@ export const useTreatmentsStore = defineStore('treatments', () => {
 
   return {
     treatments,
-    doseCounts,
     animalId,
     isLoading,
     hasLoaded,
@@ -227,26 +215,43 @@ export const useTreatmentsStore = defineStore('treatments', () => {
       )
     },
 
-    async remove(id: string): Promise<void> {
+    /** Rend l'instant de la suppression, à passer à `undoRemove`. */
+    async remove(id: string): Promise<string> {
+      return write(
+        async (repository) => {
+          const deletedAt = await repository.remove(id)
+          await remindersProvider().reschedule(id)
+          return deletedAt
+        },
+        () => animalId.value,
+      )
+    },
+
+    async undoRemove(id: string, deletedAt: string): Promise<void> {
       await write(
         async (repository) => {
-          await repository.remove(id)
+          await repository.restore(id, deletedAt)
           await remindersProvider().reschedule(id)
         },
         () => animalId.value,
       )
     },
 
-    async stop(treatmentId: string): Promise<StoppedTreatment> {
+    /** `gestures` : doses renseignées avec l'arrêt, dans le même geste. */
+    async stop(
+      treatmentId: string,
+      gestures: readonly DoseGesture[] = [],
+    ): Promise<StoppedTreatment> {
       return write(
-        () => stopProvider().stop(treatmentId),
+        () => stopProvider().stop(treatmentId, gestures),
         (stopped) => stopped.animalId,
       )
     },
 
-    async undoStop(treatmentId: string): Promise<void> {
+    /** `writes` : le lot `undo` rendu par `stop`. */
+    async undoStop(treatmentId: string, writes: readonly DoseWrite[] = []): Promise<void> {
       await write(
-        () => stopProvider().undo(treatmentId),
+        () => stopProvider().undo(treatmentId, writes),
         () => animalId.value,
       )
     },

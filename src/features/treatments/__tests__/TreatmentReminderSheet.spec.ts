@@ -13,6 +13,7 @@ import {
   type MockInstance,
 } from 'vitest'
 
+import TreatmentChooseDays from '../views/TreatmentChooseDays.vue'
 import TreatmentReminderSheet from '../views/TreatmentReminderSheet.vue'
 import type { TreatmentWithHistory } from '../repository/treatments.repository'
 import type { Treatment } from '../schema/treatment.schema'
@@ -117,6 +118,7 @@ const NOTED: NotedMoment = {
   undo: [{ action: 'delete', id: 'p1' }],
   alreadyGivenOn: null,
   postponement: null,
+  finishes: false,
   moved: null,
   outcome: 'noted',
   due: { periodId: BRAVECTO.periodId, dueOn: '2026-09-28', dueTime: null },
@@ -148,7 +150,12 @@ beforeEach(async () => {
   vi.spyOn(treatments, 'getWithHistory').mockResolvedValue(HISTORY)
   recordDose = vi.spyOn(treatments, 'noteMomentDose').mockResolvedValue(NOTED)
   undoDose = vi.spyOn(treatments, 'undoDoseAction').mockResolvedValue()
-  stop = vi.spyOn(treatments, 'stop').mockResolvedValue({ animalId: BOREE.id, stopped: true })
+  stop = vi.spyOn(treatments, 'stop').mockResolvedValue({
+    animalId: BOREE.id,
+    stopped: true,
+    finished: true,
+    undo: [],
+  })
   undoStop = vi.spyOn(treatments, 'undoStop').mockResolvedValue()
   await router.push({ name: 'home' })
   push = vi.spyOn(router, 'push').mockResolvedValue()
@@ -248,6 +255,19 @@ describe('TreatmentReminderSheet — F2', () => {
 
     expect(undoDose).toHaveBeenCalledWith(BRAVECTO.id, NOTED.undo)
     expect(sheet.emitted('changed')).toHaveLength(2)
+  })
+
+  it('dit où retrouver le traitement quand la prise notée le termine (TR-31)', async () => {
+    recordDose.mockResolvedValue({ ...NOTED, finishes: true })
+    await monter()
+
+    bouton('.reminder-actions__done-today').click()
+    await flushPromises()
+
+    expect(toastMessage.value).toBe(
+      'Dernière dose de Bravecto notée, à retrouver dans Traitements terminés.',
+    )
+    expect(toastAction.value?.ariaLabel).toBe('Annuler la prise de Bravecto')
   })
 
   it('ne note qu’une prise sur un double tap', async () => {
@@ -444,7 +464,7 @@ describe('TreatmentReminderSheet — F6, arrêter', () => {
 
     expect(texte('.confirm-dialog__title')).toBe('Arrêter Bravecto ?')
     expect(texte('.confirm-dialog__text')).toBe(
-      'Plus aucun rappel pour ce traitement. Ses prises passées restent dans le carnet.',
+      'Plus aucun rappel pour Bravecto. Ses prises restent dans le carnet.',
     )
     expect(bouton('.confirm-dialog__cancel').getAttribute('aria-label')).toBe(
       'Annuler, garder Bravecto',
@@ -457,15 +477,15 @@ describe('TreatmentReminderSheet — F6, arrêter', () => {
     bouton('.confirm-dialog__confirm').click()
     await flushPromises()
 
-    expect(stop).toHaveBeenCalledWith(BRAVECTO.id)
+    expect(stop).toHaveBeenCalledWith(BRAVECTO.id, [])
     expect(sheet.emitted('update:modelValue')).toEqual([[false]])
-    expect(toastMessage.value).toBe('Bravecto arrêté. Il est dans Traitements terminés.')
+    expect(toastMessage.value).toBe('Bravecto arrêté, à retrouver dans Traitements terminés.')
     expect(toastAction.value?.ariaLabel).toBe('Annuler l’arrêt de Bravecto')
 
     runToastAction()
     await flushPromises()
 
-    expect(undoStop).toHaveBeenCalledWith(BRAVECTO.id)
+    expect(undoStop).toHaveBeenCalledWith(BRAVECTO.id, [])
   })
 
   it('n’arrête rien quand on annule le dialogue', async () => {
@@ -493,7 +513,7 @@ describe('TreatmentReminderSheet — F6, arrêter', () => {
   })
 
   it('confirme sans « Annuler » quand le traitement était déjà arrêté', async () => {
-    stop.mockResolvedValue({ animalId: BOREE.id, stopped: false })
+    stop.mockResolvedValue({ animalId: BOREE.id, stopped: false, finished: true, undo: [] })
     const sheet = await monter()
 
     bouton('.treatment-reminder-sheet__stop').click()
@@ -502,7 +522,7 @@ describe('TreatmentReminderSheet — F6, arrêter', () => {
     await flushPromises()
 
     expect(sheet.emitted('update:modelValue')).toEqual([[false]])
-    expect(toastMessage.value).toBe('Bravecto arrêté. Il est dans Traitements terminés.')
+    expect(toastMessage.value).toBe('Bravecto arrêté, à retrouver dans Traitements terminés.')
     expect(toastAction.value).toBeNull()
   })
 })
@@ -534,6 +554,7 @@ describe('TreatmentReminderSheet — plusieurs heures par jour : l’heure est d
     undo: [{ action: 'delete' as const, id: 'p2' }],
     alreadyGivenOn: null,
     postponement: null,
+    finishes: false,
     moved: null,
   }
   let apply: MockInstance
@@ -670,5 +691,163 @@ describe('TreatmentReminderSheet — plusieurs heures par jour : l’heure est d
 
     expect(recordDose).toHaveBeenCalledWith(BRAVECTO.id, '2026-09-23')
     expect(apply).not.toHaveBeenCalled()
+  })
+})
+
+describe('TreatmentReminderSheet — arrêter avec des doses à renseigner (TR-30)', () => {
+  /** Quotidien depuis le 20 sept., rien de noté : trois doses à renseigner, dose du jour le 23. */
+  const QUOTIDIEN: TreatmentWithHistory = {
+    ...HISTORY,
+    periods: [
+      {
+        ...HISTORY.periods[0]!,
+        frequency: { value: 1, unit: 'day' },
+        startsOn: '2026-09-20',
+        firstDueOn: '2026-09-20',
+      },
+    ],
+    doses: [],
+  }
+
+  function boutons(): string[] {
+    return [...document.body.querySelectorAll('.confirm-dialog__actions .v-btn')].map((button) =>
+      (button.textContent ?? '').trim(),
+    )
+  }
+
+  function gestes(): { due: { dueOn: string } }[] {
+    return [...(stop.mock.calls.at(-1)?.[1] ?? [])]
+  }
+
+  beforeEach(() => {
+    vi.spyOn(useTreatmentsStore(), 'getWithHistory').mockResolvedValue(QUOTIDIEN)
+  })
+
+  it('propose de renseigner les doses, puis arrête en un geste', async () => {
+    const sheet = await monter()
+
+    bouton('.treatment-reminder-sheet__stop').click()
+    await flushPromises()
+
+    expect(texte('.confirm-dialog__text')).toBe(
+      '3 doses, 20, 21 et 22 sept., ne sont pas renseignées. Tu peux les noter avant d’arrêter.',
+    )
+    expect(texte('.confirm-dialog__note')).toContain('La dose d’aujourd’hui n’est pas notée')
+    expect(boutons()).toEqual([
+      'Toutes données',
+      'Choisir les jours',
+      'Arrêter sans renseigner',
+      'Annuler',
+    ])
+
+    ;[...document.body.querySelectorAll<HTMLButtonElement>('.confirm-dialog__actions .v-btn')]
+      .find((button) => button.textContent?.includes('Toutes données'))!
+      .click()
+    await flushPromises()
+
+    expect(stop).toHaveBeenCalledOnce()
+    expect(gestes().map(({ due }) => due.dueOn)).toEqual(['2026-09-20', '2026-09-21', '2026-09-22'])
+    expect(sheet.emitted('update:modelValue')).toEqual([[false]])
+    expect(toastMessage.value).toBe('Bravecto arrêté, à retrouver dans Traitements terminés.')
+  })
+
+  it('« Choisir les jours » ouvre le calendrier, dont le bouton dit qu’il arrête aussi', async () => {
+    const sheet = await monter()
+    bouton('.treatment-reminder-sheet__stop').click()
+    await flushPromises()
+
+    ;[...document.body.querySelectorAll<HTMLButtonElement>('.confirm-dialog__actions .v-btn')]
+      .find((button) => button.textContent?.includes('Choisir les jours'))!
+      .click()
+    await flushPromises()
+    const calendrier = sheet.getComponent(TreatmentChooseDays)
+
+    expect(calendrier.props()).toMatchObject({ modelValue: true, stopping: true })
+    expect(calendrier.props('dues')).toHaveLength(3)
+    const [oubliee, ...donnees] = calendrier.props('dues')
+    calendrier.vm.$emit('confirm', { given: donnees, missed: [oubliee] })
+    await flushPromises()
+
+    expect(gestes()).toHaveLength(3)
+    expect(calendrier.props('modelValue')).toBe(false)
+    expect(sheet.emitted('update:modelValue')).toEqual([[false]])
+  })
+})
+
+describe('TreatmentReminderSheet — traitement fini par sa date de fin', () => {
+  it('ne propose pas d’arrêter', async () => {
+    vi.spyOn(useTreatmentsStore(), 'getWithHistory').mockResolvedValue({
+      ...HISTORY,
+      periods: [{ ...HISTORY.periods[0]!, endsOn: '2026-09-21' }],
+    })
+
+    await monter()
+
+    expect(document.body.querySelector('.treatment-reminder-sheet__stop')).toBeNull()
+  })
+})
+
+describe('TreatmentReminderSheet — confirmation simple de l’arrêt', () => {
+  function boutons(): string[] {
+    return [...document.body.querySelectorAll('.confirm-dialog__actions .v-btn')].map((button) =>
+      (button.textContent ?? '').trim(),
+    )
+  }
+
+  async function ouvrirArret(): Promise<void> {
+    bouton('.treatment-reminder-sheet__stop').click()
+    await flushPromises()
+  }
+
+  it('rien à renseigner : confirmation simple, sans phrase sur la dose du jour (V6 bis)', async () => {
+    await monter()
+    await ouvrirArret()
+
+    expect(texte('.confirm-dialog__text')).toBe(
+      'Plus aucun rappel pour Bravecto. Ses prises restent dans le carnet.',
+    )
+    expect(document.body.querySelector('.confirm-dialog__note')).toBeNull()
+    expect(boutons()).toEqual(['Annuler', 'Arrêter'])
+  })
+
+  it('dit que la dose du jour n’est pas notée, même sans dose à renseigner (Q9)', async () => {
+    vi.spyOn(useTreatmentsStore(), 'getWithHistory').mockResolvedValue({
+      ...HISTORY,
+      periods: [
+        {
+          ...HISTORY.periods[0]!,
+          frequency: { value: 1, unit: 'day' },
+          startsOn: '2026-09-23',
+          firstDueOn: '2026-09-23',
+        },
+      ],
+      doses: [],
+    })
+    await monter()
+    await ouvrirArret()
+
+    expect(boutons()).toEqual(['Annuler', 'Arrêter'])
+    expect(texte('.confirm-dialog__note')?.replace(/\u00a0/g, ' ')).toBe(
+      'La dose d’aujourd’hui n’est pas notée : si tu l’as donnée, touche « C’est fait » avant d’arrêter.',
+    )
+  })
+
+  it('traitement illisible : confirmation simple, et l’arrêt marche', async () => {
+    vi.spyOn(useTreatmentsStore(), 'getWithHistory').mockResolvedValue({
+      ...HISTORY,
+      periods: [{ ...HISTORY.periods[0]!, times: ['8h'] }],
+    })
+    const sheet = await monter()
+    await ouvrirArret()
+
+    expect(texte('.confirm-dialog__text')).toBe(
+      'Plus aucun rappel pour Bravecto. Ses prises restent dans le carnet.',
+    )
+    expect(boutons()).toEqual(['Annuler', 'Arrêter'])
+    bouton('.confirm-dialog__confirm').click()
+    await flushPromises()
+
+    expect(stop).toHaveBeenCalledWith(BRAVECTO.id, [])
+    expect(sheet.emitted('update:modelValue')).toEqual([[false]])
   })
 })

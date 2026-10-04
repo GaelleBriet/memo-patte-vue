@@ -97,6 +97,41 @@ describe('ConfirmDialog', () => {
     expect(bouton('confirm').classList).toContain('bg-primary')
   })
 
+  it('ajoute un second paragraphe quand une note est donnée', async () => {
+    await monter({ note: 'La dose d’aujourd’hui n’est pas notée.' })
+
+    expect(
+      [...document.body.querySelectorAll('.confirm-dialog__text')].map((p) => p.textContent),
+    ).toEqual(['Plus aucun rappel pour ce traitement.', 'La dose d’aujourd’hui n’est pas notée.'])
+  })
+
+  it('empile les gestes ajoutés, la confirmation en texte, « Annuler » en dernier', async () => {
+    wrapper = mount(ConfirmDialog, {
+      props: {
+        modelValue: true,
+        title: 'Arrêter Panacur ?',
+        text: '25 doses ne sont pas renseignées.',
+        cancelLabel: 'Annuler',
+        confirmLabel: 'Arrêter sans renseigner',
+      },
+      slots: { choices: '<button class="v-btn">Toutes données</button>' },
+      global: { plugins: [vuetify], stubs: { transition: false } },
+      attachTo: document.body,
+    })
+    await flushPromises()
+
+    const actions = document.body.querySelector('.confirm-dialog__actions')!
+    expect(actions.classList).toContain('confirm-dialog__actions--stacked')
+    expect([...actions.querySelectorAll('.v-btn')].map((a) => a.textContent?.trim())).toEqual([
+      'Toutes données',
+      'Arrêter sans renseigner',
+      'Annuler',
+    ])
+    expect(bouton('confirm').classList).toContain('text-primary')
+    bouton('confirm').click()
+    expect(wrapper.emitted('confirm')).toHaveLength(1)
+  })
+
   it('donne le focus initial à « Annuler »', async () => {
     await monter({ modelValue: false })
 

@@ -137,6 +137,36 @@ export function createTreatmentPeriodsRepository(
     return rows.map(toPeriodRecord)
   }
 
+  function stopStatement(
+    treatmentId: string,
+    stoppedOn: string,
+    updatedAt: string,
+  ): Required<SqlStatement> {
+    return {
+      sql: `UPDATE treatment_period SET stopped_on = ?, updated_at = ?
+            WHERE id = ${currentPeriodIdSql('?')} AND stopped_on IS NULL`,
+      params: [stoppedOn, updatedAt, treatmentId],
+    }
+  }
+
+  // Réinsère la période déjà arrêtée sous son propre identifiant : la clé primaire fait échouer le lot.
+  function notStoppedGuardStatement(treatmentId: string): Required<SqlStatement> {
+    return {
+      sql: `INSERT INTO treatment_period (${SYNC_COLUMNS})
+            SELECT ${SYNC_COLUMNS} FROM treatment_period
+            WHERE id = ${currentPeriodIdSql('?')} AND stopped_on IS NOT NULL`,
+      params: [treatmentId],
+    }
+  }
+
+  function undoStopStatement(treatmentId: string, updatedAt: string): Required<SqlStatement> {
+    return {
+      sql: `UPDATE treatment_period SET stopped_on = NULL, updated_at = ?
+            WHERE id = ${currentPeriodIdSql('?')} AND stopped_on IS NOT NULL`,
+      params: [updatedAt, treatmentId],
+    }
+  }
+
   return {
     entity: 'treatment_period',
 
@@ -216,27 +246,41 @@ export function createTreatmentPeriodsRepository(
 
     /** Faux quand la période en cours est déjà arrêtée, ou que le traitement n'en a pas : rien n'est écrit. */
     async stop(treatmentId: string, stoppedOn: string): Promise<boolean> {
-      const changes = await db.run(
-        `UPDATE treatment_period SET stopped_on = ?, updated_at = ?
-         WHERE id = ${currentPeriodIdSql('?')} AND stopped_on IS NULL`,
-        [stoppedOn, new Date().toISOString(), treatmentId],
-      )
-      return changes > 0
+      const { sql, params } = stopStatement(treatmentId, stoppedOn, new Date().toISOString())
+      return (await db.run(sql, params)) > 0
     },
 
     async undoStop(treatmentId: string): Promise<void> {
-      await db.run(
-        `UPDATE treatment_period SET stopped_on = NULL, updated_at = ?
-         WHERE id = ${currentPeriodIdSql('?')} AND stopped_on IS NOT NULL`,
-        [new Date().toISOString(), treatmentId],
-      )
+      const { sql, params } = undoStopStatement(treatmentId, new Date().toISOString())
+      await db.run(sql, params)
     },
+
+    /** L'arrêt, à jouer dans la transaction des prises renseignées avec lui. */
+    stopStatement,
+
+    /** Fait échouer la transaction quand la période en cours est déjà arrêtée. */
+    notStoppedGuardStatement,
+
+    undoStopStatement,
 
     markDeletedByTreatmentStatement(treatmentId: string, deletedAt: string): SqlStatement {
       return {
         sql: `UPDATE treatment_period SET deleted_at = ?, updated_at = ?
               WHERE treatment_id = ? AND ${NOT_DELETED}`,
         params: [deletedAt, deletedAt, treatmentId],
+      }
+    },
+
+    /** Les périodes supprimées à cet instant, avec leur traitement. */
+    reviveByTreatmentStatement(
+      treatmentId: string,
+      deletedAt: string,
+      updatedAt: string,
+    ): SqlStatement {
+      return {
+        sql: `UPDATE treatment_period SET deleted_at = NULL, updated_at = ?
+              WHERE treatment_id = ? AND deleted_at = ?`,
+        params: [updatedAt, treatmentId, deletedAt],
       }
     },
 

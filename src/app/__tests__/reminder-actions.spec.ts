@@ -66,6 +66,7 @@ const NOTED: NotedMoment = {
   undo: [{ action: 'delete', id: DOSE_ID }],
   alreadyGivenOn: null,
   postponement: null,
+  finishes: false,
   moved: null,
   outcome: 'noted',
   due: { periodId: BRAVECTO.id, dueOn: TODAY, dueTime: null },
