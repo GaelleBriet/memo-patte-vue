@@ -1,5 +1,33 @@
 # Contexte en cours (à mettre à jour à chaque lot)
 
+- 2026-10-04 : **reprendre ici.** Gaelle malade, travail en autonomie complète. **Étude du modèle des
+  prises (#488) terminée** (PR #508, `docs/technical/etude-modele-prises.md`, décisions de Gaelle du
+  2026-10-03 au §5.1) : case « Décaler aussi les doses suivantes » partout où une date de dose change
+  (sauf « C'est fait » en un tap, dose rattrapée, prise d'un traitement de tous les jours), **ligne de
+  décalage à part** (`shift`, autonome, toujours visible, supprimable seule), **chaque ligne se supprime
+  seule**, prise en plus (`extra`), une prise l'emporte sur un report entre deux appareils, appareil de
+  création / modification sur chaque ligne. Plan : #501 à #507.
+  - **Mergés** : #514 (#463, cycle de vie d'un traitement, testé sur le téléphone), #516 (import :
+    instant sans secondes accepté avec zod 4.6), Dependabot #510, #509, #513, #512, #511, **#517 (#501,
+    schéma v11 : migration rejouée sur le téléphone v10 remplie → v11, migration Supabase appliquée au
+    vrai projet par la CI, job vert)**, #518 (#515, feuilles du bas qui défilent en paysage), release
+    0.1.57 (#498), **#519 (#502, le moteur lit les lignes de décalage**, testé sur le téléphone).
+  - **Ne pas publier** : le décalage n'est ni visible ni supprimable avant #505 ; l'accueil, la feuille
+    « À faire » et les rappels lisent encore l'ancien modèle (lot 7).
+  - **À faire ensuite, dans l'ordre** : #503 (prise en plus) ; #504 (maquette : prompt prêt dans le
+    coffre, `design/prompt-maquettes-decalage.md`, à coller par Gaelle dans Claude Design) puis #505 (la
+    case et la ligne de décalage ; y trancher la suppression du décalage d'un report qui avait dépassé
+    la dose suivante) ; #506 ; #507 ; puis lots 4 et 7, #500, #487, #485, #486.
+  - **À redire à Gaelle** (journal du 2026-10-04) : `device.model` = « fabricant modèle » (« Nothing
+    A059 ») car Android ne donne pas le nom commercial ; « Marquer comme oubliée » garde le décalage ;
+    garde `hitsAMove`.
+  - **Pièges du jour** : (1) `adb devices` vide alors que le téléphone est branché : `adb kill-server`
+    puis `start-server` ; (2) le téléphone passe en paysage : une feuille du bas débordait (#515, corrigé),
+    viser après `scrollIntoView` ; (3) une base v11 ne redescend pas en v10 : après un test, installer
+    le build de `main` puis restaurer le fichier de base sauvegardé ; (4) un test de garde statique
+    (`device-stamps.integration.spec.ts`) exige `updated_by_device` dans chaque `SET … updated_at` : toute
+    nouvelle écriture doit poser l'appareil.
+
 - 2026-10-02 (soir) : **reprendre ici.** Mergés dans la journée : #474 (découpage de
   `treatment-schedule.ts` en fichiers à plat), #475 (#425, « anonymes » retiré), #477 (**socle du lot
   3** : `TreatmentWithHistory`, `treatmentScheduleOf`, traitement sans prise, type « médicament »,
