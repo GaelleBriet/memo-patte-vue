@@ -276,12 +276,12 @@ comme `"medication"` avant le lot 3. La dernière ligne d'un traitement
 
 Les appareils qui ont écrit dans le carnet. L'identifiant est tiré au hasard au premier lancement et
 rangé dans le stockage du WebView, exclu de la sauvegarde d'Android : jamais un identifiant matériel
-ni publicitaire. Nom lisible : le modèle et la date d'installation.
+ni publicitaire. Nom lisible : le fabricant suivi du modèle, et la date d'installation.
 
 | Champ         | Type                  | Notes                                                     |
 | ------------- | --------------------- | --------------------------------------------------------- |
 | `id`          | UUID                  | Repris par `createdByDevice` et `updatedByDevice`         |
-| `model`       | texte \| `null`       | Modèle donné par le système, 200 caractères au plus       |
+| `model`       | texte \| `null`       | Fabricant puis modèle (« samsung SM-X710 »), 200 car. max |
 | `installedAt` | ISO 8601 UTC          | Premier lancement de l'app sur cet appareil               |
 | `createdAt`   | ISO 8601 UTC          |                                                           |
 | `updatedAt`   | ISO 8601 UTC          |                                                           |

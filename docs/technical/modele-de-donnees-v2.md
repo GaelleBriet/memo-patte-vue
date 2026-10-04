@@ -182,7 +182,7 @@ développement peuvent être effacées. Rien de l'existant n'est à récupérer.
   ligne `postponed` par déplacement (voir §5, 2026-10-01).
 - `sync_state` : gagne la date de la dernière synchronisation réussie (PL-17, alerte du nuage après
   7 jours).
-- `device` (v11, étude #488 §6) : `id` (tiré au hasard au premier lancement), `model`?,
+- `device` (v11, étude #488 §6) : `id` (tiré au hasard au premier lancement), `model`? (fabricant puis modèle),
   `installed_at`, dates d'audit ; synchronisée avec Plus. Les huit tables synchronisées portent
   `created_by_device` et `updated_by_device` (l'appareil qui a créé la ligne, celui qui a écrit sa
   valeur actuelle).
