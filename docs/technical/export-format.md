@@ -1,4 +1,4 @@
-# Format d'export des données (#80, v3 : #454)
+# Format d'export des données (#80, v3 : #454, v4 : #501)
 
 Contrat entre l'export (Paramètres → « Exporter mes données ») et l'import (#84, section
 [Import](#import--importer-un-export-mémopatte)).
@@ -89,7 +89,7 @@ Date du nom de fichier : minute locale de l'export. Encodage UTF-8, sans BOM, in
 
 ```json
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "exportedAt": "2026-10-01T08:30:00.000Z",
   "appVersion": "0.1.48",
   "carnetSettings": null,
@@ -100,6 +100,7 @@ Date du nom de fichier : minute locale de l'export. Encodage UTF-8, sans BOM, in
   "treatmentPeriods": [],
   "treatmentDoses": [],
   "weightEntries": [],
+  "devices": [],
   "reminders": []
 }
 ```
@@ -112,16 +113,23 @@ son historique (prise donnée, oubliée ou reportée) se rattache à sa période
 voyagent avec lui. Une ligne enfant n'est exportée qu'avec son parent : une injection avec son
 vaccin, une période avec son traitement, une prise avec sa période.
 
+**Version 4** (#501, étude [`etude-modele-prises.md`](etude-modele-prises.md) §2.6 et §6) : chaque
+ligne du carnet (réglages, animaux, vaccins, injections, traitements, périodes, prises, pesées) porte
+en plus `createdByDevice` et `updatedByDevice`, les identifiants (UUID) de l'appareil qui l'a créée
+et de celui qui a écrit sa valeur actuelle ; une période porte son jour de référence `referenceOn` ;
+une prise peut valoir `"extra"` (prise en plus) ou `"shift"` (ligne de décalage) ; le fichier porte
+la liste des appareils (`devices[]`). Le CSV ne reprend ni les appareils ni leurs identifiants.
+
 | Champ           | Type                   | Sens                                                                 |
 | --------------- | ---------------------- | -------------------------------------------------------------------- |
 | `schemaVersion` | entier                 | Version du contrat. Toute rupture (champ retiré, renommé, sens changé) l'incrémente ; un ajout de champ optionnel ne l'incrémente pas |
 | `exportedAt`    | ISO 8601 UTC           | Instant de l'export                                                  |
 | `appVersion`    | texte                  | Version de l'app (`package.json`) qui a produit le fichier           |
 
-L'import n'accepte **que la version 3** (spec Données DO-8) : un `schemaVersion` supérieur est refusé
+L'import n'accepte **que la version 4** (spec Données DO-8) : un `schemaVersion` supérieur est refusé
 (« Cet export vient d'une version plus récente de l'app. »), un `schemaVersion` inférieur aussi
-(« Cet export vient d'une version plus ancienne de MémoPatte. Il ne peut plus être importé. »). Les formats v1 (jusqu'à la 0.1.40) et v2
-(jusqu'à la 0.1.48) ne se relisent plus, sans conversion : l'app n'est pas publiée, les fichiers
+(« Cet export vient d'une version plus ancienne de MémoPatte. Il ne peut plus être importé. »). Les formats v1 (jusqu'à la 0.1.40), v2
+(jusqu'à la 0.1.48) et v3 (jusqu'à la 0.1.56) ne se relisent plus, sans conversion : l'app n'est pas publiée, les fichiers
 existants ne portent que des données de test (décision du 2026-09-29).
 
 Dates : une date civile s'écrit `AAAA-MM-JJ`, existe au calendrier et tombe entre 1900 et 2199 ; un
@@ -213,6 +221,7 @@ n'en exporte pas, et l'import le refuse jusqu'au lot 3, comme `"medication"`.
 | `animalId`              | UUID                                                          | Toujours celui de son traitement                                      |
 | `startsOn`              | `AAAA-MM-JJ`                                                  | Début de la période                                                   |
 | `firstDueOn`            | `AAAA-MM-JJ`                                                  | Première échéance de la période                                       |
+| `referenceOn`           | `AAAA-MM-JJ`                                                  | Origine de la grille des échéances ; par défaut, la première échéance |
 | `endsOn`                | `AAAA-MM-JJ` \| `null`                                        | Date de fin, facultative                                              |
 | `stoppedOn`             | `AAAA-MM-JJ` \| `null`                                        | Date d'arrêt, `null` en cours                                         |
 | `frequency`             | `{ "value": 1 à 365, "unit": "day" \| "week" \| "month" }`    |                                                                       |
@@ -242,12 +251,14 @@ la décrit dans le fichier.
 | `dueOn`       | `AAAA-MM-JJ`                             | Jour de l'échéance couverte                                              |
 | `dueTime`     | `HH:mm` \| `null`                        | Heure de l'échéance ; `null` sans heure                                  |
 | `givenOn`     | `AAAA-MM-JJ` \| `null`                   | Date réelle, jamais dans le futur ; `null` pour une oubliée ou un report |
-| `status`      | `"given"` \| `"missed"` \| `"postponed"` | Donnée, oubliée, reportée                                                |
+| `status`      | `"given"` \| `"missed"` \| `"postponed"` \| `"extra"` \| `"shift"` | Donnée, oubliée, reportée, prise en plus, ligne de décalage |
 | `nextDueDate` | `AAAA-MM-JJ`                             | Prochaine échéance fixée par la ligne ; pour un report, sa nouvelle date |
 | `createdAt`   | ISO 8601 UTC                             |                                                                          |
 | `updatedAt`   | ISO 8601 UTC                             |                                                                          |
 
-`givenOn` est renseigné si et seulement si `status` vaut `"given"`. La dernière ligne d'un traitement
+`givenOn` est renseigné si et seulement si `status` vaut `"given"`. Les états `"extra"` et `"shift"`
+entrent dans le format v4, mais l'import les refuse tant que l'app ne sait pas les lire (#502, #503),
+comme `"medication"` avant le lot 3. La dernière ligne d'un traitement
 (la « tête » : `dueOn`, puis `dueTime`, puis `createdAt`, puis `id`) fait foi pour la prochaine dose.
 
 ### `weightEntries[]`
@@ -260,6 +271,20 @@ la décrit dans le fichier.
 | `measuredOn` | `AAAA-MM-JJ` | Jamais dans le futur                          |
 | `createdAt`  | ISO 8601 UTC |                                               |
 | `updatedAt`  | ISO 8601 UTC |                                               |
+
+### `devices[]`
+
+Les appareils qui ont écrit dans le carnet. L'identifiant est tiré au hasard au premier lancement et
+rangé dans le stockage du WebView, exclu de la sauvegarde d'Android : jamais un identifiant matériel
+ni publicitaire. Nom lisible : le modèle et la date d'installation.
+
+| Champ         | Type                  | Notes                                                     |
+| ------------- | --------------------- | --------------------------------------------------------- |
+| `id`          | UUID                  | Repris par `createdByDevice` et `updatedByDevice`         |
+| `model`       | texte \| `null`       | Modèle donné par le système, 200 caractères au plus       |
+| `installedAt` | ISO 8601 UTC          | Premier lancement de l'app sur cet appareil               |
+| `createdAt`   | ISO 8601 UTC          |                                                           |
+| `updatedAt`   | ISO 8601 UTC          |                                                           |
 
 ### `reminders[]` — dérivé, ignoré à l'import
 
@@ -298,8 +323,8 @@ d'écriture ne journalise que le type de l'erreur).
   - fichier de plus de 10 Mo (refusé sans être lu : c'est ce qui borne le nombre de lignes), pas du
     JSON, pas d'entier `schemaVersion` strictement positif, champ obligatoire absent ou mal formé →
     « Ce fichier n'est pas un export MémoPatte. » ;
-  - **la version tranche avant toute validation** : `schemaVersion` supérieur à 3 → « Cet export
-    vient d'une version plus récente de l'app. » ; inférieur à 3 → « Cet export vient d'une version
+  - **la version tranche avant toute validation** : `schemaVersion` supérieur à 4 → « Cet export
+    vient d'une version plus récente de l'app. » ; inférieur à 4 → « Cet export vient d'une version
     plus ancienne de MémoPatte. Il ne peut plus être importé. » ; dans les deux cas, quel que soit le reste du contenu ;
   - chaque champ a son type exact (un booléen n'est pas `1`, un nombre n'est pas du texte), ses
     valeurs fermées (espèce, type, unité de fréquence, état d'une prise, motif du départ, unité de
@@ -378,6 +403,10 @@ d'écriture ne journalise que le type de l'erreur).
   fichier, dans toutes les tables (la ligne voyage entière, comme dans la synchronisation, et deux
   appareils départagent alors la « tête » de la même façon), et l'heure de l'import comme
   `updatedAt` : la synchronisation « la plus récente gagne » ne revient ainsi jamais en arrière.
+  L'appareil suit la date : une ligne nouvelle garde son `updatedByDevice`, une ligne déjà présente
+  prend l'appareil qui importe ; `createdByDevice` vient toujours du fichier.
+- **Appareils** : jamais effacés, même en remplacement ; un appareil absent est ajouté, un appareil
+  connu n'est réécrit que si le fichier en porte une version plus récente.
 - **Transaction** : chaque repository fournit ses instructions (`markAllDeletedStatement`,
   `restoreStatement`, `reviveStatement`), jouées ensemble par `animalsRepository.runImport` en une
   seule transaction, dans l'ordre des clés étrangères (réglages, animaux, vaccins, injections,
