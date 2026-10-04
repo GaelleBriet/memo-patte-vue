@@ -12,6 +12,7 @@ import type {
 } from './treatment-schedule-types'
 
 export { ScheduleTooLongError } from './treatment-schedule-checks'
+export { familyOf, isNoteLine, type Family } from './treatment-schedule-plan'
 
 export type {
   Frequency,

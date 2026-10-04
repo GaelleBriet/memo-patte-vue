@@ -16,14 +16,12 @@ import {
 import { isLocked, movedFields, shiftFields } from './treatment-schedule-moves'
 import {
   compareCreation,
-  familyOf,
   hasFallen,
   notesOf,
   pendingDues,
   positionOf,
   sequenceAt,
   shiftOn,
-  type Family,
 } from './treatment-schedule-plan'
 import { firstDueOf, shiftedSequence } from './treatment-schedule-sequence'
 import { nearUpcoming, nextInSequence, planOf, stateWithout } from './treatment-schedule-state'
@@ -53,20 +51,32 @@ function landsOn(from: string, day: string, frequency: Frequency): boolean {
   return differenceInCalendarDays(target, start) % (value * DAYS_PER_STEP[unit]) === 0
 }
 
-// La suite ne repart de la date réelle (T2) que pour la dose du moment, à la dernière heure du jour
-// (une heure plus tardive reportée garde la main), si la dose suivante tombe après l'échéance
-// couverte, et jamais sur l'échéance d'origine d'un report.
+// Le rythme ancré à la date réelle ne retombe jamais sur le jour d'origine ni le jour d'arrivée d'un
+// report qui suit ; une heure plus tardive reportée garde la main sur sa journée.
+function hitsAMove(
+  plan: PeriodPlan,
+  due: Due,
+  givenOn: string,
+  except: TreatmentDoseInput | null = null,
+): boolean {
+  const { frequency } = plan.period
+  return plan.steps.some(
+    ({ kind, dose }) =>
+      kind === 'move' &&
+      dose !== except &&
+      (dose.dueOn === due.dueOn
+        ? keyOf(dose) > keyOf(due)
+        : dose.dueOn > due.dueOn &&
+          (landsOn(givenOn, dose.dueOn, frequency) ||
+            landsOn(givenOn, dose.nextDueDate, frequency))),
+  )
+}
+
+// La suite ne repart de la date réelle (T2) que pour la dose du moment, à la dernière heure du jour,
+// si la dose suivante tombe après l'échéance couverte.
 function restartsFrom(others: State, due: Due, givenOn: string, next: string): boolean {
   const plan = planOf(others, due.periodId)
   const { frequency } = plan.period
-  const hitsAMove = () =>
-    plan.steps.some(
-      ({ kind, dose }) =>
-        kind === 'move' &&
-        (dose.dueOn === due.dueOn
-          ? keyOf(dose) > keyOf(due)
-          : dose.dueOn > due.dueOn && landsOn(givenOn, dose.dueOn, frequency)),
-    )
   const dayIsComplete = () =>
     pendingDues(plan, { from: due.dueOn, to: due.dueOn }).every((other) => sameDue(other, due))
   return (
@@ -75,8 +85,13 @@ function restartsFrom(others: State, due: Due, givenOn: string, next: string): b
     shiftDate(givenOn, frequency, 1) > due.dueOn &&
     others.currentDoses.some((current) => sameDue(current, due)) &&
     dayIsComplete() &&
-    !hitsAMove()
+    !hitsAMove(plan, due, givenOn)
   )
+}
+
+// La première dose du rythme ancré à la date réelle, après la journée de la prise.
+function restartedOn(plan: PeriodPlan, due: Due, givenOn: string): string {
+  return firstDueOf({ origin: givenOn, firstStep: 1, floor: `${due.dueOn} ~` }, plan.period).dueOn
 }
 
 function checkKnown(known: () => Set<string>, due: Due): void {
@@ -95,13 +110,12 @@ export function doseFor(state: State, known: () => Set<string>, gesture: DoseGes
       const { givenOn } = gesture
       checkPastDay(givenOn, state.input.today, 'date réelle')
       const restarts = restartsFrom(others, due, givenOn, next)
-      const { frequency } = planOf(others, due.periodId).period
       return {
         dose: {
           ...dueOf(due),
           givenOn,
           status: 'given',
-          nextDueDate: restarts ? shiftDate(givenOn, frequency, 1) : next,
+          nextDueDate: restarts ? restartedOn(planOf(others, due.periodId), due, givenOn) : next,
         },
         shift: restarts ? shiftFields(due, givenOn) : null,
       }
@@ -112,12 +126,6 @@ export function doseFor(state: State, known: () => Set<string>, gesture: DoseGes
         shift: null,
       }
   }
-}
-
-function sameDueLines(state: State, line: TreatmentDoseInput, family: Family): string[] {
-  return state.input.doses
-    .filter((dose) => sameDue(dose, line) && familyOf(dose) === family)
-    .map(({ id }) => id)
 }
 
 // TR-24 bis ne vaut que pour une prise qui décale la suite, avant le report qui suit sa journée.
@@ -159,25 +167,39 @@ export function redate(state: State, doseId: string, givenOn: string): RedatedDo
     if (givenOn === dose.givenOn) {
       return { dose: fieldsOf(dose), shift: { action: 'none' }, postponement: null }
     }
-    const { frequency } = plan.period
     const shift = shiftOn(plan, dose)
     const others = stateWithout(state, dose)
     const next = nextInSequence(others, dose)
+    const followingOfShift = shift === undefined ? null : followingMove(plan, dose, shift)
+    // Le décalage reste tel quel quand le rythme de la nouvelle date retomberait sur un report.
+    const keepsShift =
+      shift !== undefined &&
+      givenOn !== dose.dueOn &&
+      hitsAMove(planOf(others, dose.periodId), dose, givenOn, followingOfShift)
     const shifts =
-      shift === undefined ? restartsFrom(others, dose, givenOn, next) : givenOn !== dose.dueOn
-    const nextDueDate = shifts ? shiftDate(givenOn, frequency, 1) : next
+      shift === undefined
+        ? restartsFrom(others, dose, givenOn, next)
+        : givenOn !== dose.dueOn && !keepsShift
+    const nextDueDate = shifts
+      ? restartedOn(plan, dose, givenOn)
+      : keepsShift
+        ? nextInSequence(state, dose)
+        : next
     const fields: DoseFields = { ...dueOf(dose), givenOn, status: 'given', nextDueDate }
     const redated = {
       dose: fields,
-      shift: shiftChange(shift, shifts ? shiftFields(dose, givenOn) : null),
+      shift: keepsShift
+        ? ({ action: 'none' } as const)
+        : shiftChange(shift, shifts ? shiftFields(dose, givenOn) : null),
     }
-    const following = shift === undefined && !shifts ? null : followingMove(plan, dose, shift)
+    const following =
+      shift !== undefined ? followingOfShift : shifts ? followingMove(plan, dose, shift) : null
     const move = following !== null && isLocked(plan, following) ? null : following
     if (move === null) return { ...redated, postponement: null }
-    const moveIds = sameDueLines(state, move, 'move')
-    const moveShiftIds = sameDueLines(state, move, 'shift')
+    const moveShift = shiftOn(plan, move)
+    const moveShiftIds = moveShift === undefined ? [] : [moveShift.id]
     if (move.nextDueDate <= givenOn) {
-      return { ...redated, postponement: { doseIds: [...moveIds, ...moveShiftIds], kept: false } }
+      return { ...redated, postponement: { doseIds: [move.id, ...moveShiftIds], kept: false } }
     }
     const firstTime = [...plan.period.times].sort(compareText)[0] ?? null
     const followed = { periodId: dose.periodId, dueOn: nextDueDate, dueTime: firstTime }
@@ -188,7 +210,7 @@ export function redate(state: State, doseId: string, givenOn: string): RedatedDo
     return {
       ...redated,
       postponement: {
-        doseIds: moveIds,
+        doseIds: [move.id],
         kept: true,
         line: movedFields(target, move.nextDueDate),
         shiftIds: moveShiftIds,

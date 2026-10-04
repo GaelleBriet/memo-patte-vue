@@ -548,11 +548,18 @@ class Simulation {
 
   // N6, N7 : un décalage se supprime seul ; ce qui précède sa journée d'origine reste.
   private unshift(before: TreatmentSchedule): void {
-    // Le décalage d'un report garde ses règles pour #505 : seul un décalage resté seul est tiré ici.
-    const reported = new Set(before.doses.filter(({ status }) => status === 'postponed').map(idOf))
+    // « Supprimer ce décalage » et ses refus viennent avec #505 : seul un décalage resté seul, sans
+    // aucune ligne plus loin dans sa période, est tiré ici.
+    const isAlone = (shift: TreatmentDoseInput) =>
+      !before.doses.some(
+        (dose) =>
+          dose.periodId === shift.periodId &&
+          dose.id !== shift.id &&
+          (dose.dueOn > shift.dueOn || (dose.status === 'postponed' && idOf(dose) === idOf(shift))),
+      )
     const line = pick(
       this.shiftRandom,
-      before.doses.filter(({ status, ...due }) => status === 'shift' && !reported.has(idOf(due))),
+      before.doses.filter((dose) => dose.status === 'shift' && isAlone(dose)),
     )
     if (line === undefined) return
     const gesture = `${this.book.today} supprimer le décalage ${idOf(line)}`

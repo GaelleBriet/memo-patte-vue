@@ -278,7 +278,9 @@ export function nextDueAfter(plan: PeriodPlan, due: Due): Due {
   const key = keyOf(due)
   const isAfter = (other: Due) => keyOf(other) > key && !isRemoved(plan, other)
   const bounded = plan.between.find(isAfter)
-  for (const other of sequenceDues(plan.anchors.at(-1)!.sequence, plan.period, due.dueOn)) {
+  const tail = sequenceDues(plan.anchors.at(-1)!.sequence, plan.period, due.dueOn)
+  for (;;) {
+    const other = tail.next().value
     if (bounded !== undefined && keyOf(other) >= keyOf(bounded)) return bounded
     if (isAfter(other)) return other
   }
