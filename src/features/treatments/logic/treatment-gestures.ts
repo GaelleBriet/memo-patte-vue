@@ -26,7 +26,7 @@ export type GestureContext = {
 }
 
 export type DoseActionTexts = {
-  done(applied: Pick<DoseChange, 'postponement' | 'moved'>): string
+  done(applied: Pick<DoseChange, 'postponement' | 'moved' | 'shiftKept'>): string
   /** Nom du bouton « Annuler » lu par le lecteur d'écran. */
   undo: string
   already(givenOn: string): string
@@ -114,7 +114,10 @@ export function doseActionTexts(
     case 'remove': {
       const removed = line ?? { dueOn: today, dueTime: null }
       return {
-        done: () => t('treatments.detail.toast.removed', { date: dueDay(removed) }),
+        done: ({ shiftKept }) =>
+          shiftKept
+            ? t('treatments.detail.toast.removedShiftKept', { date: dueDay(removed) })
+            : t('treatments.detail.toast.removed', { date: dueDay(removed) }),
         undo: t('treatments.detail.toast.undoRemove', { date: formatFullDate(removed.dueOn) }),
         already,
       }
@@ -152,7 +155,10 @@ export function doseActionTexts(
       }
     case 'remove-move':
       return {
-        done: () => t('treatments.history.toast.moveRemoved'),
+        done: ({ shiftKept }) =>
+          shiftKept
+            ? t('treatments.history.toast.moveRemovedShiftKept')
+            : t('treatments.history.toast.moveRemoved'),
         undo: t('treatments.history.toast.undoMoveRemoved'),
         already,
       }

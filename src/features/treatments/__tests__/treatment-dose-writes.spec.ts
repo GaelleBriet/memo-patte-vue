@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { dose, missed, period, postponed, treatment } from './treatment-fixtures'
+import { dose, missed, period, postponed, shifted, treatment } from './treatment-fixtures'
 import { doseChange, movedDueOf, type DoseAction } from '../logic/treatment-dose-writes'
 import { treatmentScheduleOf } from '../logic/treatment-schedule'
 import type { TreatmentWithHistory } from '../repository/treatments.repository'
@@ -34,6 +34,7 @@ describe('doseChange — noter une prise', () => {
       alreadyGivenOn: null,
       postponement: null,
       moved: null,
+      shiftKept: false,
     })
   })
 
@@ -68,7 +69,13 @@ describe('doseChange — noter une prise', () => {
         kind: 'note',
         gesture: { kind: 'given', due, givenOn: '2026-09-02' },
       }),
-    ).toEqual({ writes: [], alreadyGivenOn: '2026-09-01', postponement: null, moved: null })
+    ).toEqual({
+      writes: [],
+      alreadyGivenOn: '2026-09-01',
+      postponement: null,
+      moved: null,
+      shiftKept: false,
+    })
   })
 
   it('repasse en « donnée » toutes les lignes d’une échéance notée oubliée', () => {
@@ -146,11 +153,79 @@ describe('doseChange — supprimer une prise', () => {
   })
 })
 
+describe('doseChange — supprimer une prise qui a décalé la suite (N6)', () => {
+  const LATE = treatment(
+    [period({ frequency: { value: 1, unit: 'week' } })],
+    [
+      dose('2026-09-01', '2026-09-10', { givenOn: '2026-09-03' }),
+      shifted('2026-09-01', '2026-09-03'),
+    ],
+  )
+
+  it('supprime la prise seule : son décalage reste, et le geste le dit', () => {
+    const { writes, shiftKept } = change(LATE, '2026-09-05', {
+      kind: 'remove',
+      doseId: '2026-09-01',
+    })
+
+    expect(writes).toEqual([{ action: 'delete', id: '2026-09-01' }])
+    expect(shiftKept).toBe(true)
+  })
+
+  it('« C’est fait » en retard écrit la prise et sa ligne de décalage', () => {
+    const history = treatment([period({ frequency: { value: 1, unit: 'week' } })])
+    const due = { periodId: 'p-1', dueOn: '2026-09-01', dueTime: null }
+
+    expect(
+      change(history, '2026-09-03', {
+        kind: 'note',
+        gesture: { kind: 'given', due, givenOn: '2026-09-03' },
+      }).writes,
+    ).toEqual([
+      {
+        action: 'create',
+        id: 'nouvelle',
+        ...OWNER,
+        dose: { ...due, givenOn: '2026-09-03', status: 'given', nextDueDate: '2026-09-10' },
+      },
+      {
+        action: 'create',
+        id: 'nouvelle',
+        ...OWNER,
+        dose: { ...due, givenOn: null, status: 'shift', nextDueDate: '2026-09-03' },
+      },
+    ])
+  })
+
+  it('noter de nouveau la dose réancre le décalage resté seul au lieu d’en créer un autre', () => {
+    const alone = treatment(LATE.periods, [shifted('2026-09-01', '2026-09-03')])
+    const due = { periodId: 'p-1', dueOn: '2026-09-01', dueTime: null }
+
+    expect(
+      change(alone, '2026-09-04', {
+        kind: 'note',
+        gesture: { kind: 'given', due, givenOn: '2026-09-04' },
+      }).writes,
+    ).toEqual([
+      expect.objectContaining({
+        action: 'create',
+        dose: expect.objectContaining({ status: 'given' }),
+      }),
+      {
+        action: 'rewrite',
+        id: 'décalage 2026-09-01',
+        dose: { ...due, givenOn: null, status: 'shift', nextDueDate: '2026-09-04' },
+      },
+    ])
+  })
+})
+
 describe('doseChange — changer la date d’une prise', () => {
   const MENSUEL = period({ frequency: { value: 1, unit: 'month' }, firstDueOn: '2026-08-05' })
 
-  it('réécrit la prise et la prochaine dose qu’elle fixe', () => {
+  it('réécrit la prise et écrit le décalage qu’elle fixe désormais', () => {
     const history = treatment([MENSUEL], [dose('2026-08-05', '2026-09-05')])
+    const due = { periodId: 'p-1', dueOn: '2026-08-05', dueTime: null }
 
     expect(
       change(history, '2026-08-20', {
@@ -163,19 +238,19 @@ describe('doseChange — changer la date d’une prise', () => {
         {
           action: 'rewrite',
           id: '2026-08-05',
-          dose: {
-            periodId: 'p-1',
-            dueOn: '2026-08-05',
-            dueTime: null,
-            givenOn: '2026-08-07',
-            status: 'given',
-            nextDueDate: '2026-09-07',
-          },
+          dose: { ...due, givenOn: '2026-08-07', status: 'given', nextDueDate: '2026-09-07' },
+        },
+        {
+          action: 'create',
+          id: 'nouvelle',
+          ...OWNER,
+          dose: { ...due, givenOn: null, status: 'shift', nextDueDate: '2026-08-07' },
         },
       ],
       alreadyGivenOn: null,
       postponement: null,
       moved: null,
+      shiftKept: false,
     })
   })
 
@@ -185,6 +260,7 @@ describe('doseChange — changer la date d’une prise', () => {
       [
         dose('2026-08-05', '2026-09-05'),
         postponed('2026-09-05', '2026-09-20', { createdAt: '2026-09-02T08:00:00.000Z' }),
+        shifted('2026-09-05', '2026-09-20', { createdAt: '2026-09-02T08:00:00.000Z' }),
       ],
     )
 
@@ -194,17 +270,25 @@ describe('doseChange — changer la date d’une prise', () => {
         doseId: '2026-08-05',
         givenOn: '2026-08-05',
       }),
-    ).toEqual({ writes: [], alreadyGivenOn: null, postponement: null, moved: null })
+    ).toEqual({
+      writes: [],
+      alreadyGivenOn: null,
+      postponement: null,
+      moved: null,
+      shiftKept: false,
+    })
   })
 
-  it('garde un report placé après la prise, réécrit pour viser la dose qu’elle fixe', () => {
+  it('garde un report placé après la prise : lui et son décalage visent la dose qu’elle fixe', () => {
     const history = treatment(
       [MENSUEL],
       [
         dose('2026-08-05', '2026-09-05'),
         postponed('2026-09-05', '2026-09-20', { createdAt: '2026-09-02T08:00:00.000Z' }),
+        shifted('2026-09-05', '2026-09-20', { createdAt: '2026-09-02T08:00:00.000Z' }),
       ],
     )
+    const retargeted = { periodId: 'p-1', dueOn: '2026-09-07', dueTime: null, givenOn: null }
 
     const { writes, postponement } = change(history, '2026-08-20', {
       kind: 'redate',
@@ -215,27 +299,31 @@ describe('doseChange — changer la date d’une prise', () => {
     expect(postponement).toEqual({ kept: true, nextDueDate: '2026-09-20' })
     expect(writes).toEqual([
       expect.objectContaining({ action: 'rewrite', id: '2026-08-05' }),
+      expect.objectContaining({
+        action: 'create',
+        dose: expect.objectContaining({ status: 'shift' }),
+      }),
       {
         action: 'rewrite',
         id: 'report 2026-09-05',
-        dose: {
-          periodId: 'p-1',
-          dueOn: '2026-09-07',
-          dueTime: null,
-          givenOn: null,
-          status: 'postponed',
-          nextDueDate: '2026-09-20',
-        },
+        dose: { ...retargeted, status: 'postponed', nextDueDate: '2026-09-20' },
+      },
+      {
+        action: 'rewrite',
+        id: 'décalage 2026-09-05',
+        dose: { ...retargeted, status: 'shift', nextDueDate: '2026-09-20' },
       },
     ])
   })
 
-  it('supprime un report que la nouvelle date dépasse', () => {
+  it('supprime un report que la nouvelle date dépasse, avec son décalage', () => {
     const history = treatment(
       [MENSUEL],
       [
-        dose('2026-08-05', '2026-09-05'),
-        postponed('2026-09-05', '2026-09-10', { createdAt: '2026-09-02T08:00:00.000Z' }),
+        dose('2026-08-05', '2026-09-07', { givenOn: '2026-08-07' }),
+        shifted('2026-08-05', '2026-08-07'),
+        postponed('2026-09-07', '2026-09-10', { createdAt: '2026-09-02T08:00:00.000Z' }),
+        shifted('2026-09-07', '2026-09-10', { createdAt: '2026-09-02T08:00:00.000Z' }),
       ],
     )
 
@@ -248,7 +336,9 @@ describe('doseChange — changer la date d’une prise', () => {
     expect(postponement).toEqual({ kept: false })
     expect(writes).toEqual([
       expect.objectContaining({ action: 'rewrite', id: '2026-08-05' }),
-      { action: 'delete', id: 'report 2026-09-05' },
+      expect.objectContaining({ action: 'rewrite', id: 'décalage 2026-08-05' }),
+      { action: 'delete', id: 'report 2026-09-07' },
+      { action: 'delete', id: 'décalage 2026-09-07' },
     ])
   })
 })
@@ -260,6 +350,7 @@ describe('doseChange — ligne « Reportée »', () => {
     [
       dose('2026-09-01', '2026-09-08'),
       postponed('2026-09-08', '2026-09-10', { createdAt: '2026-09-02T08:00:00.000Z' }),
+      shifted('2026-09-08', '2026-09-10', { createdAt: '2026-09-02T08:00:00.000Z' }),
     ],
   )
 
@@ -271,13 +362,19 @@ describe('doseChange — ligne « Reportée »', () => {
     })
   })
 
-  it('supprime le report', () => {
-    expect(
-      change(REPORTEE, '2026-09-05', { kind: 'remove-move', doseId: 'report 2026-09-08' }).writes,
-    ).toEqual([{ action: 'delete', id: 'report 2026-09-08' }])
+  it('supprime le report seul : son décalage reste (N8)', () => {
+    const { writes, shiftKept } = change(REPORTEE, '2026-09-05', {
+      kind: 'remove-move',
+      doseId: 'report 2026-09-08',
+    })
+
+    expect(writes).toEqual([{ action: 'delete', id: 'report 2026-09-08' }])
+    expect(shiftKept).toBe(true)
   })
 
-  it('change sa date en réécrivant la ligne, avec son échéance d’origine', () => {
+  it('change sa date en réécrivant la ligne et son décalage, avec leur échéance d’origine', () => {
+    const origin = { periodId: 'p-1', dueOn: '2026-09-08', dueTime: null, givenOn: null }
+
     expect(
       change(REPORTEE, '2026-09-05', {
         kind: 'move',
@@ -288,26 +385,27 @@ describe('doseChange — ligne « Reportée »', () => {
       {
         action: 'rewrite',
         id: 'report 2026-09-08',
-        dose: {
-          periodId: 'p-1',
-          dueOn: '2026-09-08',
-          dueTime: null,
-          givenOn: null,
-          status: 'postponed',
-          nextDueDate: '2026-09-12',
-        },
+        dose: { ...origin, status: 'postponed', nextDueDate: '2026-09-12' },
+      },
+      {
+        action: 'rewrite',
+        id: 'décalage 2026-09-08',
+        dose: { ...origin, status: 'shift', nextDueDate: '2026-09-12' },
       },
     ])
   })
 
-  it('remise à sa date d’origine, la dose n’a plus de ligne', () => {
+  it('remise à sa date d’origine, la dose n’a plus ni report ni décalage', () => {
     expect(
       change(REPORTEE, '2026-09-05', {
         kind: 'move',
         doseId: 'report 2026-09-08',
         to: '2026-09-08',
       }).writes,
-    ).toEqual([{ action: 'delete', id: 'report 2026-09-08' }])
+    ).toEqual([
+      { action: 'delete', id: 'report 2026-09-08' },
+      { action: 'delete', id: 'décalage 2026-09-08' },
+    ])
   })
 })
 
@@ -332,7 +430,7 @@ describe('doseChange — déplacements sans effet', () => {
     ])
   })
 
-  it('réécrit celui de l’échéance notée : une seule ligne par échéance', () => {
+  it('noter l’échéance crée sa prise ; le report sans effet part avec l’écriture', () => {
     const due = { periodId: 'p-1', dueOn: '2026-09-08', dueTime: null }
 
     expect(
@@ -342,63 +440,86 @@ describe('doseChange — déplacements sans effet', () => {
       }).writes,
     ).toEqual([
       {
-        action: 'rewrite',
-        id: 'report 2026-09-08',
+        action: 'create',
+        id: 'nouvelle',
+        ...OWNER,
         dose: { ...due, givenOn: '2026-09-08', status: 'given', nextDueDate: '2026-09-15' },
       },
+      { action: 'delete', id: 'report 2026-09-08' },
     ])
   })
 })
 
 describe('doseChange — deux lignes de report pour la même échéance (TR-25)', () => {
   const HEBDO = period({ frequency: { value: 1, unit: 'week' } })
-  const ICI = postponed('2026-09-08', '2026-09-10', {
+  const ICI = postponed('2026-09-09', '2026-09-11', {
     id: 'ici',
-    createdAt: '2026-09-02T08:00:00.000Z',
-    updatedAt: '2026-09-03T08:00:00.000Z',
+    createdAt: '2026-09-04T08:00:00.000Z',
+    updatedAt: '2026-09-05T08:00:00.000Z',
   })
-  const AILLEURS = postponed('2026-09-08', '2026-09-11', {
+  const AILLEURS = postponed('2026-09-09', '2026-09-12', {
     id: 'ailleurs',
-    createdAt: '2026-09-02T09:00:00.000Z',
-    updatedAt: '2026-09-02T09:00:00.000Z',
+    createdAt: '2026-09-04T09:00:00.000Z',
+    updatedAt: '2026-09-04T09:00:00.000Z',
   })
-  const DEUX = treatment([HEBDO], [dose('2026-09-01', '2026-09-08'), ICI, AILLEURS])
+  const DEUX = treatment(
+    [HEBDO],
+    [
+      dose('2026-09-01', '2026-09-09', { givenOn: '2026-09-02' }),
+      shifted('2026-09-01', '2026-09-02'),
+      ICI,
+      AILLEURS,
+      shifted('2026-09-09', '2026-09-11', { createdAt: '2026-09-04T08:00:00.000Z' }),
+    ],
+  )
   const ids = (writes: { action: string; id: string }[]) =>
     writes.map(({ action, id }) => `${action} ${id}`).sort()
 
-  it('« Supprimer ce report » supprime les deux', () => {
+  it('« Supprimer ce report » supprime les deux, pas leur décalage', () => {
     const { writes } = change(DEUX, '2026-09-05', { kind: 'remove-move', doseId: 'ici' })
 
     expect(ids(writes)).toEqual(['delete ailleurs', 'delete ici'])
   })
 
-  it('« Changer la date » ne laisse qu’une ligne en vigueur', () => {
+  it('« Changer la date » ne laisse qu’une ligne en vigueur, et réancre le décalage', () => {
     const { writes, moved } = change(DEUX, '2026-09-05', {
       kind: 'move',
       doseId: 'ici',
-      to: '2026-09-12',
+      to: '2026-09-13',
     })
 
-    expect(ids(writes)).toEqual(['delete ailleurs', 'rewrite ici'])
-    expect(moved).toMatchObject({ dueOn: '2026-09-08', nextDueDate: '2026-09-12' })
+    expect(ids(writes)).toEqual(['delete ailleurs', 'rewrite décalage 2026-09-09', 'rewrite ici'])
+    expect(moved).toMatchObject({ dueOn: '2026-09-09', nextDueDate: '2026-09-13' })
   })
 
-  it('une prise redatée garde ou perd les deux', () => {
+  it('une prise redatée garde ou perd les deux, et leur décalage', () => {
     const kept = change(DEUX, '2026-09-05', {
       kind: 'redate',
       doseId: '2026-09-01',
       givenOn: '2026-08-31',
     })
-    const lost = change(DEUX, '2026-09-11', {
+    const lost = change(DEUX, '2026-09-12', {
       kind: 'redate',
       doseId: '2026-09-01',
-      givenOn: '2026-09-11',
+      givenOn: '2026-09-12',
     })
 
-    expect(kept.postponement).toEqual({ kept: true, nextDueDate: '2026-09-10' })
-    expect(ids(kept.writes)).toEqual(['delete ailleurs', 'rewrite 2026-09-01', 'rewrite ici'])
+    expect(kept.postponement).toEqual({ kept: true, nextDueDate: '2026-09-11' })
+    expect(ids(kept.writes)).toEqual([
+      'delete ailleurs',
+      'rewrite 2026-09-01',
+      'rewrite décalage 2026-09-01',
+      'rewrite décalage 2026-09-09',
+      'rewrite ici',
+    ])
     expect(lost.postponement).toEqual({ kept: false })
-    expect(ids(lost.writes)).toEqual(['delete ailleurs', 'delete ici', 'rewrite 2026-09-01'])
+    expect(ids(lost.writes)).toEqual([
+      'delete ailleurs',
+      'delete décalage 2026-09-09',
+      'delete ici',
+      'rewrite 2026-09-01',
+      'rewrite décalage 2026-09-01',
+    ])
   })
 
   it('sans les lignes sans effet du moteur, les lignes sœurs suivent quand même', () => {
@@ -417,6 +538,7 @@ describe('doseChange — ce que le moteur a fait d’un report', () => {
     [
       dose('2026-09-01', '2026-09-08'),
       postponed('2026-09-08', '2026-09-10', { createdAt: '2026-09-02T08:00:00.000Z' }),
+      shifted('2026-09-08', '2026-09-10', { createdAt: '2026-09-02T08:00:00.000Z' }),
     ],
   )
 

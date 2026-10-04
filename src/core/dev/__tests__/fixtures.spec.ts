@@ -229,7 +229,7 @@ describe('applyFixtures', () => {
       'treatment period dose dose',
       'treatment period dose dose dose dose dose',
       'treatment period dose dose period dose',
-      'treatment period dose dose dose',
+      'treatment period dose dose dose dose',
     ])
     expect(written.flat().every(({ exists }) => exists === false)).toBe(true)
   })

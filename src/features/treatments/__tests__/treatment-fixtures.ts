@@ -73,6 +73,20 @@ export function postponed(
   })
 }
 
+/** Ligne de décalage : après la journée de `dueOn`, les doses suivent le rythme ancré à `anchoredOn`. */
+export function shifted(
+  dueOn: string,
+  anchoredOn: string,
+  overrides: Partial<NewTreatmentDose> = {},
+): NewTreatmentDose {
+  return dose(dueOn, anchoredOn, {
+    id: `décalage ${dueOn}`,
+    givenOn: null,
+    status: 'shift',
+    ...overrides,
+  })
+}
+
 export function treatment(
   periods: TreatmentPeriodRecord[],
   doses: NewTreatmentDose[] = [],

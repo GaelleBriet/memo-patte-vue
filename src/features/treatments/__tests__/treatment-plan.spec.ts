@@ -29,7 +29,8 @@ const MILO = '11111111-1111-4111-8111-111111111111'
 const TREATMENT = '22222222-2222-4222-8222-222222222222'
 const NEW_PERIOD = '33333333-3333-4333-8333-333333333333'
 const NEW_DOSE = '44444444-4444-4444-8444-444444444444'
-const IDS = { periodId: NEW_PERIOD, doseId: NEW_DOSE }
+const NEW_SHIFT = '55555555-5555-4555-8555-555555555555'
+const IDS = { periodId: NEW_PERIOD, doseId: NEW_DOSE, shiftId: NEW_SHIFT }
 
 function period(overrides: Partial<TreatmentPeriodRecord> = {}): TreatmentPeriodRecord {
   return {
@@ -38,7 +39,7 @@ function period(overrides: Partial<TreatmentPeriodRecord> = {}): TreatmentPeriod
     animalId: MILO,
     startsOn: '2026-07-10',
     firstDueOn: '2026-07-10',
-    referenceOn: '2026-07-10',
+    referenceOn: overrides.firstDueOn ?? '2026-07-10',
     endsOn: null,
     stoppedOn: null,
     frequency: { value: 3, unit: 'month' },
@@ -581,6 +582,7 @@ describe('editionPlan — fréquence, heures, posologie (TR-28)', () => {
 
     expect(plan.period).toEqual({
       action: 'correct',
+      referenceOn: '2026-10-10',
       settings: {
         startsOn: '2026-10-10',
         firstDueOn: '2026-10-10',
@@ -617,6 +619,7 @@ describe('editionPlan — fréquence, heures, posologie (TR-28)', () => {
     expect(editionPlan(history, input, '2026-09-29', IDS).period).toEqual({
       action: 'open',
       id: NEW_PERIOD,
+      referenceOn: '2026-09-29',
       settings: {
         startsOn: '2026-09-29',
         firstDueOn: '2026-09-29',
@@ -946,6 +949,18 @@ describe('editionPlan — « Prochaine dose » (TR-7, TR-9)', () => {
             nextDueDate: '2026-10-14',
           },
         },
+        {
+          action: 'create',
+          id: NEW_SHIFT,
+          dose: {
+            periodId: TREATMENT,
+            dueOn: '2026-10-10',
+            dueTime: null,
+            givenOn: null,
+            status: 'shift',
+            nextDueDate: '2026-10-14',
+          },
+        },
       ],
     })
   })
@@ -962,6 +977,7 @@ describe('editionPlan — « Prochaine dose » (TR-7, TR-9)', () => {
 
     expect(plan.doses).toMatchObject([
       { action: 'create', dose: { dueOn: '2026-10-10', nextDueDate: '2026-10-08' } },
+      { action: 'create', dose: { status: 'shift', nextDueDate: '2026-10-08' } },
     ])
   })
 
@@ -974,9 +990,10 @@ describe('editionPlan — « Prochaine dose » (TR-7, TR-9)', () => {
     createdAt: '2026-09-20T08:00:00.000Z',
     updatedAt: '2026-09-20T08:00:00.000Z',
   })
+  const REPORT_SHIFT = { ...REPORT, id: 'd-2s', status: 'shift' as const }
 
   it('garde en aide la date calculée d’une dose déjà reportée, et réécrit sa ligne (Q18)', () => {
-    const history = treatment([period()], [dose(), REPORT])
+    const history = treatment([period()], [dose(), REPORT, REPORT_SHIFT])
 
     expect(editionDraft(history, null, '2026-09-28').nextDose).toMatchObject({
       proposedOn: '2026-10-14',
@@ -986,15 +1003,19 @@ describe('editionPlan — « Prochaine dose » (TR-7, TR-9)', () => {
       editionPlan(history, saisie(history, { nextDoseOn: '2026-10-18' }), '2026-09-28', IDS).doses,
     ).toMatchObject([
       { action: 'rewrite', id: 'd-2', dose: { dueOn: '2026-10-10', nextDueDate: '2026-10-18' } },
+      { action: 'rewrite', id: 'd-2s', dose: { status: 'shift', nextDueDate: '2026-10-18' } },
     ])
   })
 
-  it('supprime la ligne quand la dose revient à sa date d’origine', () => {
-    const history = treatment([period()], [dose(), REPORT])
+  it('supprime la ligne et son décalage quand la dose revient à sa date d’origine', () => {
+    const history = treatment([period()], [dose(), REPORT, REPORT_SHIFT])
 
     expect(
       editionPlan(history, saisie(history, { nextDoseOn: '2026-10-10' }), '2026-09-28', IDS).doses,
-    ).toEqual([{ action: 'delete', id: 'd-2' }])
+    ).toEqual([
+      { action: 'delete', id: 'd-2' },
+      { action: 'delete', id: 'd-2s' },
+    ])
   })
 
   it('n’écrit rien quand « Prochaine dose » garde la date proposée', () => {
@@ -1018,7 +1039,14 @@ describe('editionPlan — « Prochaine dose » (TR-7, TR-9)', () => {
 
   it('accepte une prochaine dose au-delà de l’ancienne fin quand la date de fin change dans la même saisie', () => {
     const history = treatment(
-      [period({ frequency: { value: 1, unit: 'week' }, endsOn: '2026-10-10' })],
+      [
+        period({
+          frequency: { value: 1, unit: 'week' },
+          startsOn: '2026-09-26',
+          firstDueOn: '2026-09-26',
+          endsOn: '2026-10-10',
+        }),
+      ],
       [dose({ dueOn: '2026-09-26', givenOn: '2026-09-26', nextDueDate: '2026-10-03' })],
     )
 
@@ -1032,6 +1060,7 @@ describe('editionPlan — « Prochaine dose » (TR-7, TR-9)', () => {
     expect(plan.period).toMatchObject({ action: 'correct', settings: { endsOn: '2026-11-05' } })
     expect(plan.doses).toMatchObject([
       { action: 'create', dose: { dueOn: '2026-10-03', nextDueDate: '2026-10-08' } },
+      { action: 'create', dose: { status: 'shift', nextDueDate: '2026-10-08' } },
     ])
   })
 
@@ -1279,6 +1308,7 @@ describe('editionDraft — aides de « Prochaine dose »', () => {
       editionPlan(history, saisie(history, { nextDoseOn: '2026-10-02' }), '2026-10-02', IDS).doses,
     ).toMatchObject([
       { action: 'create', dose: { dueOn: '2026-09-27', nextDueDate: '2026-10-02' } },
+      { action: 'create', dose: { status: 'shift', nextDueDate: '2026-10-02' } },
     ])
   })
 
@@ -1363,6 +1393,13 @@ describe('editionDraft — aides de « Prochaine dose »', () => {
           status: 'postponed',
           nextDueDate: '2026-10-20',
         }),
+        dose({
+          id: 'rs',
+          dueOn: '2026-10-09',
+          givenOn: null,
+          status: 'shift',
+          nextDueDate: '2026-10-20',
+        }),
       ],
     )
     const du31 = treatment(
@@ -1385,6 +1422,35 @@ describe('editionDraft — aides de « Prochaine dose »', () => {
     expect(
       editionDraft(du31, saisie(du31, { doseQuantity: 0.5 }), '2026-03-01').nextDose,
     ).toMatchObject({ proposedOn: '2026-03-31', help: { kind: 'scheduled', on: '2026-03-31' } })
+  })
+
+  it('mensuel du 31, posologie changée le 20 févr. : la nouvelle période garde le 31 comme jour de référence', () => {
+    const du31 = treatment(
+      [
+        period({
+          startsOn: '2027-01-31',
+          firstDueOn: '2027-01-31',
+          frequency: { value: 1, unit: 'month' },
+        }),
+      ],
+      [dose({ dueOn: '2027-01-31', givenOn: '2027-01-31', nextDueDate: '2027-02-28' })],
+    )
+
+    expect(
+      editionPlan(du31, saisie(du31, { doseQuantity: 0.5 }), '2027-02-20', IDS).period,
+    ).toMatchObject({
+      action: 'open',
+      referenceOn: '2027-01-31',
+      settings: { startsOn: '2027-02-20', firstDueOn: '2027-02-28' },
+    })
+    expect(
+      editionPlan(
+        du31,
+        saisie(du31, { doseQuantity: 0.5, nextDoseOn: '2027-03-02' }),
+        '2027-02-20',
+        IDS,
+      ).period,
+    ).toMatchObject({ referenceOn: '2027-03-02', settings: { firstDueOn: '2027-03-02' } })
   })
 
   it('ne dit pas « calculée d’après la dernière prise » pour une période ouverte un jour à prises notées puis corrigée plus tard', () => {
@@ -1462,6 +1528,7 @@ describe('editionPlan — date de fin et report en vigueur', () => {
     nextDueDate: '2026-10-14',
   })
   const AVANCEE = { ...REPORTEE, nextDueDate: '2026-10-08' }
+  const DECALAGE = { ...REPORTEE, id: 'd-shift', status: 'shift' as const }
 
   it('refuse une date de fin avant l’arrivée d’un report, sans rien écrire', () => {
     const history = treatment([period()], [dose(), REPORTEE])
@@ -1489,7 +1556,7 @@ describe('editionPlan — date de fin et report en vigueur', () => {
   })
 
   it('accepte la date de fin quand « Prochaine dose » est remise avant elle dans la même saisie', () => {
-    const history = treatment([period()], [dose(), REPORTEE])
+    const history = treatment([period()], [dose(), REPORTEE, DECALAGE])
 
     const plan = editionPlan(
       history,
@@ -1505,6 +1572,7 @@ describe('editionPlan — date de fin et report en vigueur', () => {
         id: 'd-report',
         dose: { dueOn: '2026-10-10', nextDueDate: '2026-10-11' },
       },
+      { action: 'rewrite', id: 'd-shift', dose: { status: 'shift', nextDueDate: '2026-10-11' } },
     ])
   })
 
@@ -1897,6 +1965,7 @@ describe('resumptionPlan (TR-32)', () => {
       period: {
         action: 'open',
         id: NEW_PERIOD,
+        referenceOn: '2026-11-03',
         settings: {
           startsOn: '2026-11-03',
           firstDueOn: '2026-11-03',

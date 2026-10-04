@@ -376,9 +376,12 @@ describe('treatmentPlanService', () => {
     expect(updated).toMatchObject({ lastDoseDate: '2026-09-26', nextDueDate: '2026-10-06' })
     const { periods, doses } = await historyOf(id)
     expect(periods).toHaveLength(1)
-    expect(doses).toMatchObject([
+    expect(doses.filter(({ status }) => status !== 'shift')).toMatchObject([
       { dueOn: '2026-10-03', givenOn: null, status: 'postponed', nextDueDate: '2026-10-06' },
       { dueOn: '2026-09-26', status: 'given' },
+    ])
+    expect(doses.filter(({ status }) => status === 'shift')).toMatchObject([
+      { dueOn: '2026-10-03', nextDueDate: '2026-10-06' },
     ])
   })
 

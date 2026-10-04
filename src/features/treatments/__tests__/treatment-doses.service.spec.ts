@@ -43,7 +43,7 @@ describe('treatmentDosesService', () => {
   function visibleDoses() {
     return db.query<{ given_on: string; next_due_date: string }>(
       `SELECT given_on, next_due_date FROM treatment_dose
-       WHERE treatment_id = ? AND deleted_at IS NULL ORDER BY given_on`,
+       WHERE treatment_id = ? AND deleted_at IS NULL AND status <> 'shift' ORDER BY given_on`,
       [bravecto],
     )
   }
@@ -126,7 +126,8 @@ describe('treatmentDosesService', () => {
     function lignes(id: string) {
       return db.query<{ due_on: string; due_time: string | null; given_on: string | null }>(
         `SELECT due_on, due_time, given_on FROM treatment_dose
-         WHERE treatment_id = ? AND deleted_at IS NULL ORDER BY due_on, due_time`,
+         WHERE treatment_id = ? AND deleted_at IS NULL AND status <> 'shift'
+         ORDER BY due_on, due_time`,
         [id],
       )
     }
@@ -266,7 +267,7 @@ describe('treatmentDosesService', () => {
       ])
 
       await expect(lignes(hebdo)).resolves.toHaveLength(1)
-      expect(premiere.undo).toHaveLength(1)
+      expect(premiere.undo).toHaveLength(2)
       expect(seconde).toMatchObject({ undo: [], alreadyGivenOn: '2026-09-23', due: null })
     })
 
@@ -483,7 +484,7 @@ describe('treatmentDosesService', () => {
         deleted_at: string | null
       }>(
         `SELECT due_on, given_on, status, next_due_date, updated_at, deleted_at
-         FROM treatment_dose WHERE treatment_id = ? ORDER BY due_on`,
+         FROM treatment_dose WHERE treatment_id = ? AND status <> 'shift' ORDER BY due_on`,
         [bravecto],
       )
     }
@@ -495,7 +496,13 @@ describe('treatmentDosesService', () => {
       })
 
       expect(applied).toMatchObject({ animalId: BOREE, alreadyGivenOn: null, postponement: null })
-      expect(applied.undo).toEqual([{ action: 'delete', id: expect.any(String) }])
+      expect(applied.undo).toEqual([
+        { action: 'delete', id: expect.any(String) },
+        { action: 'delete', id: expect.any(String) },
+      ])
+      await expect(
+        db.query(`SELECT due_on, next_due_date FROM treatment_dose WHERE status = 'shift'`),
+      ).resolves.toEqual([{ due_on: '2026-09-28', next_due_date: '2026-09-23' }])
       await expect(rows()).resolves.toMatchObject([
         { due_on: '2026-08-28', given_on: '2026-08-28', next_due_date: '2026-09-28' },
         { due_on: '2026-09-28', given_on: '2026-09-23', next_due_date: '2026-10-23' },
@@ -540,6 +547,7 @@ describe('treatmentDosesService', () => {
         alreadyGivenOn: '2026-08-28',
         postponement: null,
         moved: null,
+        shiftKept: false,
       })
       await expect(visibleDoses()).resolves.toHaveLength(1)
     })
@@ -580,7 +588,9 @@ describe('treatmentDosesService', () => {
         kind: 'note',
         gesture: { kind: 'given', due: septembre(), givenOn: '2026-09-23' },
       })
-      const [, prise] = await treatments.listDoses(bravecto).then((doses) => doses.reverse())
+      const prise = (await treatments.listDoses(bravecto)).find(
+        ({ dueOn, status }) => dueOn === '2026-09-28' && status === 'given',
+      )
       await db.run(
         `INSERT INTO treatment_dose (id, period_id, treatment_id, animal_id, due_on, due_time,
            given_on, status, next_due_date, created_at, updated_at, created_by_device, updated_by_device)

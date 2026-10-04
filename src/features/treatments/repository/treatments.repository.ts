@@ -79,12 +79,15 @@ export type PlannedDoseWrite =
   | { action: 'rewrite'; id: string; dose: DoseFields }
   | { action: 'delete'; id: string }
 
-/** Ce que « Modifier » ou « Reprendre » écrit en une fois ; `null` : rien à écrire dans cette table. */
+/**
+ * Ce que « Modifier » ou « Reprendre » écrit en une fois ; `null` : rien à écrire dans cette table.
+ * `referenceOn` absent : le jour de référence suit la première échéance.
+ */
 export type TreatmentPlanWrite = {
   treatment: Pick<Treatment, 'name' | 'type'> | null
   period:
-    | { action: 'correct'; settings: TreatmentPeriodSettings }
-    | { action: 'open'; id: string; settings: TreatmentPeriodSettings }
+    | { action: 'correct'; settings: TreatmentPeriodSettings; referenceOn?: string }
+    | { action: 'open'; id: string; settings: TreatmentPeriodSettings; referenceOn?: string }
     | null
   doses: PlannedDoseWrite[]
 }
@@ -357,12 +360,14 @@ export function createTreatmentsRepository(
         })
       }
       if (plan.period?.action === 'correct') {
-        statements.push(periods.correctCurrentSettingsStatement(id, plan.period.settings, at))
+        const { settings, referenceOn } = plan.period
+        statements.push(periods.correctCurrentSettingsStatement(id, settings, at, referenceOn))
       }
       if (plan.period?.action === 'open') {
         statements.push(
           periods.insertStatement({
             ...plan.period.settings,
+            referenceOn: plan.period.referenceOn,
             id: plan.period.id,
             treatmentId: id,
             animalId: current.animalId,

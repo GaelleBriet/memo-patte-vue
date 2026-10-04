@@ -119,6 +119,7 @@ const NOTED: NotedMoment = {
   alreadyGivenOn: null,
   postponement: null,
   moved: null,
+  shiftKept: false,
   outcome: 'noted',
   due: { periodId: BRAVECTO.periodId, dueOn: '2026-09-28', dueTime: null },
   severalTimes: false,
@@ -536,6 +537,7 @@ describe('TreatmentReminderSheet — plusieurs heures par jour : l’heure est d
     alreadyGivenOn: null,
     postponement: null,
     moved: null,
+    shiftKept: false,
   }
   let apply: MockInstance
 

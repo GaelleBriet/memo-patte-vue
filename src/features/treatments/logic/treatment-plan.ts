@@ -29,8 +29,10 @@ import {
 import { isCalendarDay } from '@/shared/domain/calendar-day'
 import {
   isAdvanced,
+  isNoteLine,
   ScheduleTooLongError,
   type Due,
+  type LineChange,
   type MoveRefusal,
   type MovedDose,
   type TreatmentSchedule,
@@ -81,10 +83,12 @@ export type EditionDraft = {
   pastDuesNextDose: Record<PastDuesChoice, string> | null
 }
 
-export type PlanIds = { periodId: string; doseId: string }
+export type PlanIds = { periodId: string; doseId: string; shiftId: string }
 
 type Resolved = Omit<EditionDraft, 'farthestMove' | 'pastDues' | 'pastDuesNextDose'> & {
   settings: TreatmentPeriodSettings
+  /** Origine de la grille de la période écrite (le 31 d'un mensuel), sa première échéance sinon. */
+  referenceOn: string
   move: MovedDose | null
   /** Ligne de déplacement de la prochaine dose, que la saisie peut réécrire. */
   movedLineId: string | null
@@ -151,7 +155,7 @@ function latestOf(days: (string | null | undefined)[]): string | null {
 
 function hasNote(schedule: TreatmentSchedule, periodId?: string): boolean {
   return schedule.doses.some(
-    (dose) => dose.status !== 'postponed' && (periodId === undefined || dose.periodId === periodId),
+    (dose) => isNoteLine(dose) && (periodId === undefined || dose.periodId === periodId),
   )
 }
 
@@ -197,10 +201,7 @@ function moveArrivingOn(schedule: TreatmentSchedule, due: Due) {
 function lastNotedDueOn(history: TreatmentWithHistory, periodId?: string): string | null {
   return latestOf(
     history.doses
-      .filter(
-        (dose) =>
-          dose.status !== 'postponed' && (periodId === undefined || dose.periodId === periodId),
-      )
+      .filter((dose) => isNoteLine(dose) && (periodId === undefined || dose.periodId === periodId))
       .map((dose) => dose.dueOn),
   )
 }
@@ -259,11 +260,13 @@ function resolveOpened(
   const opened = schedule.newPeriod(rhythm.frequency, sortedTimes(rhythm.times))
   const firstDueOn = opened.firstDueOn < today ? today : opened.firstDueOn
   const startsOn = change === 'open' ? opened.startsOn : period.startsOn
+  const writtenOn = chosenOn ?? firstDueOn
   return {
     period,
     change,
     proposesFirstDue: true,
     movedLineId: null,
+    referenceOn: writtenOn === opened.firstDueOn ? opened.referenceOn : writtenOn,
     nextDose: {
       change: 'first-due',
       proposedOn: firstDueOn,
@@ -272,10 +275,7 @@ function resolveOpened(
       refusal: null,
       help: proposalHelp(history, schedule, period, rhythm, firstDueOn, today),
     },
-    settings: withRhythm(
-      { ...settingsOf(period), startsOn, firstDueOn: chosenOn ?? firstDueOn },
-      rhythm,
-    ),
+    settings: withRhythm({ ...settingsOf(period), startsOn, firstDueOn: writtenOn }, rhythm),
     move: null,
   }
 }
@@ -335,6 +335,7 @@ function resolveMoved(
         refusal !== null ? { kind: 'refused', refusal } : (overdueHelp(due, today) ?? calculated),
     },
     settings,
+    referenceOn: period.referenceOn,
     move: inBounds ? schedule.move(due, chosenOn) : null,
   }
 }
@@ -364,6 +365,7 @@ function resolveCorrected(
       change: 'correct',
       nextDose: null,
       settings: corrected,
+      referenceOn: period.referenceOn,
       move: null,
       proposesFirstDue: false,
       movedLineId: null,
@@ -376,6 +378,9 @@ function resolveCorrected(
   const previous = orderPeriods(history.periods).at(-2)
   const changed = chosenOn !== null && chosenOn !== due.dueOn
   const firstDueOn = changed ? chosenOn : corrected.firstDueOn
+  const sameGrid =
+    firstDueOn === period.firstDueOn &&
+    JSON.stringify(corrected.frequency) === JSON.stringify(period.frequency)
   return {
     period,
     change: 'correct',
@@ -396,6 +401,7 @@ function resolveCorrected(
       firstDueOn,
       startsOn: firstDueOn < corrected.startsOn ? firstDueOn : corrected.startsOn,
     },
+    referenceOn: sameGrid ? period.referenceOn : firstDueOn,
     move: null,
     movedLineId: null,
   }
@@ -455,6 +461,7 @@ function resolve(
       change: 'locked',
       nextDose: null,
       settings: settingsOf(period),
+      referenceOn: period.referenceOn,
       move: null,
       proposesFirstDue: false,
       movedLineId: null,
@@ -602,16 +609,23 @@ export function treatmentEditionSchemaFor(history: TreatmentWithHistory, today: 
   })
 }
 
-function doseWrites(schedule: TreatmentSchedule, move: MovedDose | null, doseId: string) {
-  const writes: PlannedDoseWrite[] = schedule.staleDoseIds.map((id) => ({ action: 'delete', id }))
-  if (move === null || move.action === 'none') return writes
-  if (move.action === 'delete') return [...writes, { action: 'delete' as const, id: move.doseId }]
-  return [
-    ...writes,
-    move.action === 'create'
-      ? { action: 'create' as const, id: doseId, dose: move.dose }
-      : { action: 'rewrite' as const, id: move.doseId, dose: move.dose },
-  ]
+function lineWrite(change: LineChange, newId: string): PlannedDoseWrite[] {
+  switch (change.action) {
+    case 'none':
+      return []
+    case 'delete':
+      return [{ action: 'delete', id: change.doseId }]
+    case 'create':
+      return [{ action: 'create', id: newId, dose: change.dose }]
+    case 'rewrite':
+      return [{ action: 'rewrite', id: change.doseId, dose: change.dose }]
+  }
+}
+
+function doseWrites(schedule: TreatmentSchedule, move: MovedDose | null, ids: PlanIds) {
+  const stale: PlannedDoseWrite[] = schedule.staleDoseIds.map((id) => ({ action: 'delete', id }))
+  if (move === null) return stale
+  return [...stale, ...lineWrite(move.report, ids.doseId), ...lineWrite(move.shift, ids.shiftId)]
 }
 
 /** Lève une `ZodError` pour une saisie refusée : rien n'est alors à écrire. */
@@ -622,7 +636,7 @@ export function editionPlan(
   ids: PlanIds,
 ): TreatmentPlanWrite {
   const data = treatmentEditionSchemaFor(history, today).parse(input)
-  const { period, change, settings, move } = resolve(
+  const { period, change, settings, referenceOn, move } = resolve(
     history,
     data,
     data.nextDoseOn,
@@ -632,15 +646,15 @@ export function editionPlan(
   const treatment = { name: data.name, type: data.type }
   if (change === 'locked') return { treatment, period: null, doses: [] }
 
-  const doses = doseWrites(treatmentScheduleOf(history, today), move, ids.doseId)
+  const doses = doseWrites(treatmentScheduleOf(history, today), move, ids)
   const plan: TreatmentPlanWrite =
     change === 'open'
-      ? { treatment, period: { action: 'open', id: ids.periodId, settings }, doses }
+      ? { treatment, period: { action: 'open', id: ids.periodId, settings, referenceOn }, doses }
       : {
           treatment,
           period: sameSettings(settings, settingsOf(period))
             ? null
-            : { action: 'correct', settings },
+            : { action: 'correct', settings, referenceOn },
           doses,
         }
   assertReadable(historyAfter(history, period, plan, today), today)
@@ -665,9 +679,22 @@ function historyAfter(
     period === null
       ? history.periods
       : period.action === 'open'
-        ? [...history.periods, { ...draftPeriod(period.settings, at), id: period.id }]
+        ? [
+            ...history.periods,
+            {
+              ...draftPeriod(period.settings, at),
+              id: period.id,
+              referenceOn: period.referenceOn ?? period.settings.firstDueOn,
+            },
+          ]
         : history.periods.map((other) =>
-            other.id === current.id ? { ...other, ...period.settings } : other,
+            other.id === current.id
+              ? {
+                  ...other,
+                  ...period.settings,
+                  referenceOn: period.referenceOn ?? period.settings.firstDueOn,
+                }
+              : other,
           )
   const doses = plan.doses.reduce((lines, write) => {
     if (write.action === 'delete') return lines.filter(({ id }) => id !== write.id)
@@ -807,7 +834,7 @@ function pastDoseWrites(
       id: newId(),
       dose: schedule.doseFor(
         status === 'given' ? { kind: 'given', due, givenOn: dueOn } : { kind: 'missed', due },
-      ),
+      ).dose,
     }
   })
 }
@@ -923,7 +950,8 @@ export function resumptionPlan(
         { ...settingsOf(period), startsOn: firstDoseOn, firstDueOn: firstDoseOn },
         rhythm,
       ),
+      referenceOn: firstDoseOn,
     },
-    doses: doseWrites(treatmentScheduleOf(history, today), null, ids.doseId),
+    doses: doseWrites(treatmentScheduleOf(history, today), null, ids),
   }
 }

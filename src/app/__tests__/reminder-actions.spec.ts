@@ -67,6 +67,7 @@ const NOTED: NotedMoment = {
   alreadyGivenOn: null,
   postponement: null,
   moved: null,
+  shiftKept: false,
   outcome: 'noted',
   due: { periodId: BRAVECTO.id, dueOn: TODAY, dueTime: null },
   severalTimes: false,

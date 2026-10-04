@@ -225,6 +225,13 @@ describe('buildDemoCarnet', () => {
         status: 'postponed',
         nextDueDate: '2026-08-16',
       },
+      {
+        dueOn: '2026-08-13',
+        dueTime: null,
+        givenOn: null,
+        status: 'shift',
+        nextDueDate: '2026-08-16',
+      },
       expect.objectContaining({
         dueOn: '2026-08-16',
         givenOn: '2026-08-16',
@@ -242,7 +249,8 @@ describe('buildDemoCarnet', () => {
       for (const { doses } of periods) {
         const keys = doses.map(({ dueOn, dueTime }) => `${dueOn} ${dueTime ?? ''}`)
         expect(keys).toEqual([...keys].sort())
-        expect(new Set(keys).size).toBe(keys.length)
+        const lines = doses.map(({ status }, index) => `${keys[index]} ${status}`)
+        expect(new Set(lines).size).toBe(lines.length)
       }
     }
   })

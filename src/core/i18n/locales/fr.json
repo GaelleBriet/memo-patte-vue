@@ -452,6 +452,7 @@
       "resume": "Reprendre ce traitement",
       "toast": {
         "removed": "Prise du {date} supprimée",
+        "removedShiftKept": "Prise du {date} supprimée. Les doses suivantes restent décalées.",
         "undoRemove": "Annuler la suppression de la prise du {date}",
         "moved": "Prise déplacée au {date}",
         "movedKept": "Prise déplacée au {date}. Prochaine dose gardée au {nextDue}, que tu avais reportée.",
@@ -499,6 +500,7 @@
         "missed": "Prise du {date} marquée comme oubliée",
         "undoMissed": "Annuler le changement de la prise du {date}",
         "moveRemoved": "Report supprimé",
+        "moveRemovedShiftKept": "Report supprimé. Les doses suivantes restent décalées.",
         "undoMoveRemoved": "Annuler la suppression du report",
         "postponedTo": "Dose reportée au {date}",
         "advancedTo": "Dose avancée au {date}",

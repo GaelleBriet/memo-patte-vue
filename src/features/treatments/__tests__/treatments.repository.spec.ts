@@ -464,6 +464,18 @@ describe('treatmentsRepository — périodes et prises', () => {
     })
   })
 
+  it('une ligne de décalage n’est jamais la tête : la prise de la même échéance la reste', async () => {
+    const created = await seedTreatmentWithDose(db, bravecto)
+
+    await addDose(created.id, '2026-06-01', '2026-09-03', { givenOn: '2026-06-03' })
+    await addDose(created.id, '2026-06-01', '2026-06-03', { givenOn: null, status: 'shift' })
+
+    await expect(repository.getById(created.id)).resolves.toMatchObject({
+      lastDoseDate: '2026-06-03',
+      nextDueDate: '2026-09-03',
+    })
+  })
+
   it('sans prise donnée, une ligne reportée ne donne aucune dernière prise', async () => {
     await addWithoutDose('reporte', '2026-03-05')
 

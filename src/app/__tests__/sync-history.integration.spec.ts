@@ -174,7 +174,7 @@ describe('synchro de l’historique entre deux appareils', () => {
 
     const phoneDoses = await phone.treatments.listDoses(bravecto.id)
     const tabletDoses = await tablet.treatments.listDoses(bravecto.id)
-    expect(phoneDoses).toHaveLength(3)
+    expect(phoneDoses.filter(({ status }) => status !== 'shift')).toHaveLength(3)
     expect(tabletDoses.map(({ id }) => id)).toEqual(phoneDoses.map(({ id }) => id))
     await expect(tablet.treatments.getById(bravecto.id)).resolves.toEqual(
       await phone.treatments.getById(bravecto.id),

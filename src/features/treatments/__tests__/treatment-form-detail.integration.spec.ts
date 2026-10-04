@@ -206,7 +206,7 @@ describe('formulaire et fiche d’un traitement, sur la même base', () => {
     expect(lignes()).toEqual([REPORT, '10 juil. 2026'])
   })
 
-  it('le report du formulaire a son menu dans l’historique, et « Supprimer ce report » remet la dose à sa date dans le formulaire', async () => {
+  it('le report du formulaire a son menu dans l’historique, et « Supprimer ce report » remet la dose à sa date dans le formulaire, son décalage restant (N8)', async () => {
     await ouvrirLeFormulaire()
     await wrapper.get('#treatment-next-dose-on').setValue('2026-10-14')
     await enregistrer()
@@ -224,8 +224,8 @@ describe('formulaire et fiche d’un traitement, sur la même base', () => {
 
     expect(lignes()).toEqual(['10 juil. 2026'])
     await expect(
-      db.query('SELECT status FROM treatment_dose WHERE deleted_at IS NULL'),
-    ).resolves.toEqual([{ status: 'given' }])
+      db.query('SELECT status FROM treatment_dose WHERE deleted_at IS NULL ORDER BY status'),
+    ).resolves.toEqual([{ status: 'given' }, { status: 'shift' }])
 
     await ouvrirLeFormulaire()
 

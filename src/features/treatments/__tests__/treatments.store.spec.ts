@@ -520,6 +520,7 @@ describe('useTreatmentsStore — gestes d’un rappel', () => {
       alreadyGivenOn: null,
       postponement: null,
       moved: null,
+      shiftKept: false,
       outcome: 'noted' as const,
       due: { periodId: seme.periodId, dueOn: '2026-09-20', dueTime: null },
       severalTimes: false,
@@ -554,6 +555,7 @@ describe('useTreatmentsStore — gestes d’un rappel', () => {
       alreadyGivenOn: null,
       postponement: null,
       moved: null,
+      shiftKept: false,
     }
     doses.apply.mockResolvedValue(applied)
     repository.listByAnimal.mockClear()

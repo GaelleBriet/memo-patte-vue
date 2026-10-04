@@ -401,10 +401,7 @@ describe('parseExportFile', () => {
       ['une période qui n’est pas un UUID', { periodId: 'p-1' }],
       ['une prise sans période', { periodId: undefined }],
       ['une prise en plus, que l’app ne sait pas encore lire', { status: 'extra' }],
-      [
-        'une ligne de décalage, que l’app ne sait pas encore lire',
-        { status: 'shift', givenOn: null },
-      ],
+      ['une ligne de décalage avec une date réelle', { status: 'shift', givenOn: '2026-09-01' }],
       ['une prise sans l’appareil qui l’a créée', { createdByDevice: undefined }],
       ['un appareil qui n’est pas un UUID', { updatedByDevice: 'pixel' }],
     ])('refuse %s', (_, change) => {
@@ -429,6 +426,22 @@ describe('parseExportFile', () => {
         ['missed', null],
         ['given', '2026-09-12'],
       ])
+    })
+
+    it('accepte une ligne de décalage, qui porte sa date d’ancrage', () => {
+      const result = parseExportFile(
+        withDocument((document) => {
+          Object.assign(panacur(document).matin, {
+            status: 'shift',
+            givenOn: null,
+            nextDueDate: '2026-09-02',
+          })
+        }),
+      )
+
+      expect(result.ok && result.file.data.treatmentDoses.map(({ status }) => status)).toContain(
+        'shift',
+      )
     })
   })
 

@@ -83,6 +83,7 @@ const APPLIED = {
   alreadyGivenOn: null,
   postponement: null,
   moved: null,
+  shiftKept: false,
 }
 
 let book: TreatmentWithHistory | null
