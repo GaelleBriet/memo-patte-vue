@@ -672,7 +672,8 @@ class Simulation {
       shift,
     )
     this.checkKeptSuite(before, shift.action === 'none' && postponement === null, gesture)
-    const suiteMoved = fields.nextDueDate !== dose.nextDueDate || dropped.length > 0
+    const suiteMoved =
+      fields.nextDueDate !== dose.nextDueDate || shift.action !== 'none' || postponement !== null
     const key = `${dose.dueOn} ${dose.dueTime ?? ''}`
     this.checkProtected(
       before,
