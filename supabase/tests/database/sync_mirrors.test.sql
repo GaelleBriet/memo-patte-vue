@@ -35,41 +35,43 @@ $$;
 create temp table mirror (name text primary key);
 insert into mirror values
   ('animal'), ('weight_entry'), ('carnet_settings'), ('vaccination'), ('vaccination_injection'),
-  ('treatment'), ('treatment_period'), ('treatment_dose');
+  ('treatment'), ('treatment_period'), ('treatment_dose'), ('device');
 grant select on mirror to authenticated, anon;
 
 -- Une ligne par miroir sous le compte donné, chacune avec un server_updated_at forgé.
 create function pg_temp.carnet_of(account uuid) returns text language sql as $fn$
   select format($$
   insert into public.animal (user_id, id, name, species, birth_date_approximate, departure_reason,
-    created_at, updated_at, server_updated_at)
+    created_at, updated_at, created_by_device, updated_by_device, server_updated_at)
   values ('%1$s', '00000000-0000-4000-8000-0000000000a1', 'Luna',
-    'cat', 1, 'rehomed', '2026-01-01T00:00:00Z', now() + interval '3 days', '2001-01-01T00:00:00Z');
-  insert into public.weight_entry (user_id, id, animal_id, weight_kg, measured_on, created_at, updated_at, server_updated_at)
+    'cat', 1, 'rehomed', '2026-01-01T00:00:00Z', now() + interval '3 days', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', '2001-01-01T00:00:00Z');
+  insert into public.weight_entry (user_id, id, animal_id, weight_kg, measured_on, created_at, updated_at, created_by_device, updated_by_device, server_updated_at)
   values ('%1$s', '00000000-0000-4000-8000-0000000000a2',
-    '00000000-0000-4000-8000-0000000000a1', 4.2, '2026-01-01', now(), now(), '2001-01-01T00:00:00Z');
-  insert into public.carnet_settings (user_id, id, vaccine_reminder_time, remind_before_due, created_at, updated_at, server_updated_at)
-  values ('%1$s', '00000000-0000-0000-0000-000000000000', '18:30', 0, now(), now(), '2001-01-01T00:00:00Z');
-  insert into public.vaccination (user_id, id, animal_id, name, planned_due_date, created_at, updated_at, server_updated_at)
+    '00000000-0000-4000-8000-0000000000a1', 4.2, '2026-01-01', now(), now(), 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', '2001-01-01T00:00:00Z');
+  insert into public.carnet_settings (user_id, id, vaccine_reminder_time, remind_before_due, created_at, updated_at, created_by_device, updated_by_device, server_updated_at)
+  values ('%1$s', '00000000-0000-0000-0000-000000000000', '18:30', 0, now(), now(), 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', '2001-01-01T00:00:00Z');
+  insert into public.vaccination (user_id, id, animal_id, name, planned_due_date, created_at, updated_at, created_by_device, updated_by_device, server_updated_at)
   values ('%1$s', '00000000-0000-4000-8000-0000000000a3',
-    '00000000-0000-4000-8000-0000000000a1', 'Typhus', '2026-06-01', now(), now(), '2001-01-01T00:00:00Z');
-  insert into public.vaccination_injection (user_id, id, vaccination_id, animal_id, injected_on, created_at, updated_at, server_updated_at)
+    '00000000-0000-4000-8000-0000000000a1', 'Typhus', '2026-06-01', now(), now(), 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', '2001-01-01T00:00:00Z');
+  insert into public.vaccination_injection (user_id, id, vaccination_id, animal_id, injected_on, created_at, updated_at, created_by_device, updated_by_device, server_updated_at)
   values ('%1$s', '00000000-0000-4000-8000-0000000000a4',
-    '00000000-0000-4000-8000-0000000000a3', '00000000-0000-4000-8000-0000000000a1', '2026-01-01', now(), now(), '2001-01-01T00:00:00Z');
-  insert into public.treatment (user_id, id, animal_id, name, type, created_at, updated_at, server_updated_at)
+    '00000000-0000-4000-8000-0000000000a3', '00000000-0000-4000-8000-0000000000a1', '2026-01-01', now(), now(), 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', '2001-01-01T00:00:00Z');
+  insert into public.treatment (user_id, id, animal_id, name, type, created_at, updated_at, created_by_device, updated_by_device, server_updated_at)
   values ('%1$s', '00000000-0000-4000-8000-0000000000a5',
-    '00000000-0000-4000-8000-0000000000a1', 'Amoxicilline', 'medication', now(), now(), '2001-01-01T00:00:00Z');
+    '00000000-0000-4000-8000-0000000000a1', 'Amoxicilline', 'medication', now(), now(), 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', '2001-01-01T00:00:00Z');
   insert into public.treatment_period (user_id, id, treatment_id, animal_id, starts_on, first_due_on,
-    ends_on, frequency_value, frequency_unit, times, dose_quantity, dose_unit, reminder_offset_minutes,
-    created_at, updated_at, server_updated_at)
+    reference_on, ends_on, frequency_value, frequency_unit, times, dose_quantity, dose_unit, reminder_offset_minutes,
+    created_at, updated_at, created_by_device, updated_by_device, server_updated_at)
   values ('%1$s', '00000000-0000-4000-8000-0000000000a6',
     '00000000-0000-4000-8000-0000000000a5', '00000000-0000-4000-8000-0000000000a1', '2026-01-01',
-    '2026-01-01', '2026-01-10', 1, 'day', '08:00,20:00', 0.5, 'tablet', 15, now(), now(), '2001-01-01T00:00:00Z');
+    '2026-01-01', '2026-01-01', '2026-01-10', 1, 'day', '08:00,20:00', 0.5, 'tablet', 15, now(), now(), 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', '2001-01-01T00:00:00Z');
   insert into public.treatment_dose (user_id, id, period_id, treatment_id, animal_id, due_on, due_time,
-    given_on, status, next_due_date, created_at, updated_at, server_updated_at)
+    given_on, status, next_due_date, created_at, updated_at, created_by_device, updated_by_device, server_updated_at)
   values ('%1$s', '00000000-0000-4000-8000-0000000000a7',
     '00000000-0000-4000-8000-0000000000a6', '00000000-0000-4000-8000-0000000000a5',
-    '00000000-0000-4000-8000-0000000000a1', '2026-01-01', '08:00', null, 'missed', '2026-01-01', now(), now(), '2001-01-01T00:00:00Z');
+    '00000000-0000-4000-8000-0000000000a1', '2026-01-01', '08:00', null, 'missed', '2026-01-01', now(), now(), 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', '2001-01-01T00:00:00Z');
+  insert into public.device (user_id, id, model, installed_at, created_at, updated_at, server_updated_at)
+  values ('%1$s', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'Pixel 8', now(), now(), now(), '2001-01-01T00:00:00Z');
 $$, account);
 $fn$;
 create temp table carnet as
@@ -81,7 +83,7 @@ grant select on carnet to authenticated;
 select is(
   (select count(*)::int from pg_class c join mirror m on c.oid = ('public.' || m.name)::regclass
    where c.relrowsecurity and c.relforcerowsecurity),
-  8, 'RLS activée et forcée sur les huit miroirs');
+  9, 'RLS activée et forcée sur les neuf miroirs');
 
 select is(
   (select array_agg(cmd order by cmd) from pg_policies
@@ -119,12 +121,12 @@ select is(
    where has_table_privilege('authenticated', 'public.' || m.name, 'SELECT')
      and has_table_privilege('authenticated', 'public.' || m.name, 'INSERT')
      and has_column_privilege('authenticated', 'public.' || m.name, 'updated_at', 'UPDATE')),
-  8, 'authenticated lit, crée et met à jour');
+  9, 'authenticated lit, crée et met à jour');
 
 select is(
   (select count(*)::int from pg_constraint k join mirror m on k.conrelid = ('public.' || m.name)::regclass
    where k.contype = 'f' and k.confrelid = 'auth.users'::regclass and k.confdeltype = 'c'),
-  8, 'chaque miroir référence auth.users avec on delete cascade');
+  9, 'chaque miroir référence auth.users avec on delete cascade');
 
 select is(
   (select count(*)::int from pg_constraint k join mirror m on k.conrelid = ('public.' || m.name)::regclass
@@ -177,8 +179,9 @@ select is(
   (select array[(select count(*) from public.animal), (select count(*) from public.weight_entry),
      (select count(*) from public.carnet_settings), (select count(*) from public.vaccination),
      (select count(*) from public.vaccination_injection), (select count(*) from public.treatment),
-     (select count(*) from public.treatment_period), (select count(*) from public.treatment_dose)]),
-  array[1, 1, 1, 1, 1, 1, 1, 1]::bigint[], 'il relit ses lignes');
+     (select count(*) from public.treatment_period), (select count(*) from public.treatment_dose),
+     (select count(*) from public.device)]),
+  array[1, 1, 1, 1, 1, 1, 1, 1, 1]::bigint[], 'il relit ses lignes');
 
 select results_eq(
   format($$ select server_updated_at > now() - interval '1 minute' from public.%I $$, name),
@@ -206,8 +209,10 @@ select throws_ok($$ truncate public.plus_entitlements $$, '42501', null, 'il ne 
 
 -- Listes fermées et limites du schéma local.
 select throws_ok(format($$
-  insert into public.animal (user_id, id, name, species, created_at, updated_at)
-  values ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', gen_random_uuid(), %s, %L, now(), now())
+  insert into public.animal (user_id, id, name, species, created_at, updated_at,
+    created_by_device, updated_by_device)
+  values ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', gen_random_uuid(), %s, %L, now(), now(),
+    'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee')
 $$, name, species), '23514', null, label)
 from (values
   ('''Rex''', 'rabbit', 'espèce hors liste refusée'),
@@ -241,6 +246,14 @@ from (values
 select throws_ok($$ update public.treatment_dose set status = 'skipped' $$, '23514', null,
   'état de prise hors liste refusé');
 
+select lives_ok($$
+  update public.treatment_dose set status = 'extra', given_on = '2026-01-01', updated_at = now();
+  update public.treatment_dose set status = 'shift', given_on = null, updated_at = now();
+$$, 'prise en plus et ligne de décalage acceptées');
+
+select throws_ok($$ update public.device set model = repeat('x', 201) $$, '23514', null,
+  'modèle d''appareil de plus de 200 caractères refusé');
+
 select throws_ok(format($$ update public.carnet_settings set %s $$, change), '23514', null, label)
 from (values
   ('vaccine_reminder_time = ''24:00''', 'heure des rappels invalide refusée'),
@@ -248,8 +261,9 @@ from (values
 ) as bad (change, label);
 
 select throws_ok($$
-  insert into public.carnet_settings (user_id, id, created_at, updated_at)
-  values ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', gen_random_uuid(), now(), now())
+  insert into public.carnet_settings (user_id, id, created_at, updated_at, created_by_device,
+    updated_by_device)
+  values ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', gen_random_uuid(), now(), now(), 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee')
 $$, '23514', null, 'une seule ligne de réglages par compte');
 
 -- Un autre compte Plus ne voit ni ne touche ces lignes.
@@ -259,7 +273,8 @@ select is(
   (select (select count(*) from public.animal) + (select count(*) from public.weight_entry)
      + (select count(*) from public.carnet_settings) + (select count(*) from public.vaccination)
      + (select count(*) from public.vaccination_injection) + (select count(*) from public.treatment)
-     + (select count(*) from public.treatment_period) + (select count(*) from public.treatment_dose)),
+     + (select count(*) from public.treatment_period) + (select count(*) from public.treatment_dose)
+     + (select count(*) from public.device)),
   0::bigint, 'un autre compte ne lit aucune ligne');
 
 select is_empty(format(
@@ -280,25 +295,33 @@ select throws_ok($$
 $$, '42501', null, 'il n''écrase pas les réglages d''un autre');
 
 select throws_ok($$
-  insert into public.weight_entry (user_id, id, animal_id, weight_kg, measured_on, created_at, updated_at)
+  insert into public.weight_entry (user_id, id, animal_id, weight_kg, measured_on, created_at, updated_at,
+    created_by_device, updated_by_device)
   values ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', gen_random_uuid(),
-    '00000000-0000-4000-8000-0000000000a1', 9, '2026-01-01', now(), now())
+    '00000000-0000-4000-8000-0000000000a1', 9, '2026-01-01', now(), now(), 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee')
 $$, '23503', null, 'il ne rattache pas une pesée à l''animal d''un autre');
 
 select throws_ok($$
   insert into public.treatment_period (user_id, id, treatment_id, animal_id, starts_on, first_due_on,
-    frequency_value, frequency_unit, created_at, updated_at)
+    reference_on, frequency_value, frequency_unit, created_at, updated_at, created_by_device,
+    updated_by_device)
   values ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', gen_random_uuid(),
     '00000000-0000-4000-8000-0000000000a5', '00000000-0000-4000-8000-0000000000a1', '2026-01-01',
-    '2026-01-01', 1, 'day', now(), now())
+    '2026-01-01', '2026-01-01', 1, 'day', now(), now(), 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee')
 $$, '23503', null, 'il ne rattache pas une période au traitement d''un autre');
 
 select lives_ok($$
-  insert into public.animal (user_id, id, name, species, created_at, updated_at)
-  values ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', '00000000-0000-4000-8000-0000000000a1', 'Milo', 'dog', now(), now());
-  insert into public.carnet_settings (user_id, id, created_at, updated_at)
-  values ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', '00000000-0000-0000-0000-000000000000', now(), now());
-$$, 'il écrit son propre carnet, avec les mêmes identifiants');
+  insert into public.animal (user_id, id, name, species, created_at, updated_at, created_by_device,
+    updated_by_device)
+  values ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', '00000000-0000-4000-8000-0000000000a1', 'Milo', 'dog',
+    now(), now(), 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee');
+  insert into public.carnet_settings (user_id, id, created_at, updated_at, created_by_device,
+    updated_by_device)
+  values ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', '00000000-0000-0000-0000-000000000000', now(), now(),
+    'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee');
+  insert into public.device (user_id, id, installed_at, created_at, updated_at)
+  values ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', now(), now(), now());
+$$, 'il écrit son propre carnet et son appareil, avec les mêmes identifiants');
 
 -- Sans Plus : lecture seule.
 select pg_temp.as_user('c');
@@ -350,8 +373,9 @@ select is(
      (select count(*) from public.carnet_settings), (select count(*) from public.vaccination),
      (select count(*) from public.vaccination_injection), (select count(*) from public.treatment),
      (select count(*) from public.treatment_period), (select count(*) from public.treatment_dose),
+     (select count(*) from public.device),
      (select count(*) from public.plus_entitlements where user_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa')]),
-  array[2, 1, 2, 1, 1, 1, 1, 1, 0]::bigint[],
+  array[2, 1, 2, 1, 1, 1, 1, 1, 2, 0]::bigint[],
   'compte supprimé : ses lignes partent en cascade, celles des autres restent');
 
 select * from finish();
