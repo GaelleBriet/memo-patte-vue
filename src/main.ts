@@ -11,6 +11,7 @@ import { installRemindersSync } from '@/app/reminders-sync'
 import { createDefaultSyncDependencies, installSync } from '@/app/sync'
 import { initAnalytics } from '@/core/analytics'
 import { installBackButton } from '@/core/app-lifecycle/back-button'
+import { registerCurrentDevice } from '@/core/device/register-device'
 import vuetify from '@/core/theme/vuetify'
 import i18n, { applyLocale, detectLocale } from '@/core/i18n'
 import { getAnimalsRepository } from '@/features/animals/repository/animals.repository'
@@ -57,6 +58,7 @@ if (import.meta.env.DEV) {
   const { applyDevFixtures } = await import('@/core/dev/fixtures')
   await applyDevFixtures()
 }
+void registerCurrentDevice()
 
 app.mount('#app')
 installReminderActions(router, reminderActions(router))

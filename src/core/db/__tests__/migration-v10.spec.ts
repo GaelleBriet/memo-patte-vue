@@ -67,7 +67,7 @@ async function schema(db: InMemoryDb): Promise<{ type: string; name: string; sql
 
 async function freshSchema(): Promise<{ type: string; name: string; sql: string }[]> {
   const fresh = await createSqlJsDbClient()
-  await applyMigrations(fresh)
+  await applyMigrations(fresh, 10)
   const rows = await schema(fresh)
   fresh.close()
   return rows
@@ -91,13 +91,13 @@ describe.each([
   })
 
   it('porte la base en version 10', async () => {
-    await applyMigrations(db)
+    await applyMigrations(db, 10)
 
     expect(await userVersion(db)).toBe(10)
   })
 
   it('efface les traitements et leurs prises, données de test', async () => {
-    await applyMigrations(db)
+    await applyMigrations(db, 10)
 
     for (const table of ['treatment', 'treatment_period', 'treatment_dose']) {
       await expect(db.query(`SELECT * FROM ${table}`)).resolves.toEqual([])
@@ -105,7 +105,7 @@ describe.each([
   })
 
   it('garde le reste du carnet, réglages et synchronisation compris', async () => {
-    await applyMigrations(db)
+    await applyMigrations(db, 10)
 
     await expect(db.query('SELECT id FROM animal')).resolves.toEqual([{ id: MILO }])
     await expect(db.query('SELECT id FROM vaccination')).resolves.toEqual([{ id: RAGE }])
@@ -125,7 +125,7 @@ describe.each([
       cursors: await db.query('SELECT * FROM sync_pull_cursor ORDER BY entity'),
     }
 
-    await applyMigrations(db)
+    await applyMigrations(db, 10)
 
     expect({
       outbox: await db.query('SELECT * FROM sync_outbox ORDER BY entity, entity_id'),
@@ -138,7 +138,7 @@ describe.each([
     await db.execute('CREATE VIEW treatment_period AS SELECT 1 AS id')
     const schemaAvant = await schema(db)
 
-    await expect(applyMigrations(db)).rejects.toThrow(/views may not be indexed/)
+    await expect(applyMigrations(db, 10)).rejects.toThrow(/views may not be indexed/)
 
     expect(await userVersion(db)).toBe(9)
     expect(await schema(db)).toEqual(schemaAvant)
@@ -148,13 +148,13 @@ describe.each([
   })
 
   it('donne exactement le schéma d’une installation neuve, sans reste de la v9', async () => {
-    await applyMigrations(db)
+    await applyMigrations(db, 10)
 
     expect(await schema(db)).toEqual(await freshSchema())
   })
 
   it('laisse des clés étrangères cohérentes et actives', async () => {
-    await applyMigrations(db)
+    await applyMigrations(db, 10)
     await db.execute('PRAGMA foreign_keys = ON')
 
     await expect(db.query('PRAGMA foreign_key_check')).resolves.toEqual([])

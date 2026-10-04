@@ -4,11 +4,11 @@ import { createInMemoryDb, type InMemoryDb } from './in-memory-db'
 
 const NOW = '2026-09-08T10:00:00.000Z'
 
-const INSERT_ANIMAL = `INSERT INTO animal (id, name, species, created_at, updated_at)
-  VALUES (?, ?, 'dog', '${NOW}', '${NOW}')`
+const INSERT_ANIMAL = `INSERT INTO animal (id, name, species, created_at, updated_at, created_by_device, updated_by_device)
+  VALUES (?, ?, 'dog', '${NOW}', '${NOW}', 'appareil-test', 'appareil-test')`
 
-const INSERT_VACCINATION = `INSERT INTO vaccination (id, animal_id, name, created_at, updated_at)
-  VALUES (?, ?, ?, '${NOW}', '${NOW}')`
+const INSERT_VACCINATION = `INSERT INTO vaccination (id, animal_id, name, created_at, updated_at, created_by_device, updated_by_device)
+  VALUES (?, ?, ?, '${NOW}', '${NOW}', 'appareil-test', 'appareil-test')`
 
 async function rejection(promise: Promise<unknown>): Promise<Error> {
   try {
