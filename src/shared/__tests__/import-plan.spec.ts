@@ -34,6 +34,7 @@ import {
 } from '@/features/settings/__tests__/import-fixture'
 
 const IMPORTED_AT = '2026-09-15T10:00:00.000Z'
+const IMPORTEUR = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc'
 const OLD = '2025-01-01T00:00:00.000Z'
 const LUNA_PHOTO = IMPORT_FIXTURE.animals[0]!.photoFileName!
 const LUNA_UPDATED_AT = IMPORT_FIXTURE.animals[0]!.updatedAt
@@ -46,6 +47,7 @@ const EMPTY: LocalCarnet = {
   treatmentPeriods: [],
   treatmentDoses: [],
   weightEntries: [],
+  devices: [],
 }
 
 function localInjection(id: string, overrides: Partial<LocalInjection> = {}): LocalInjection {
@@ -89,6 +91,7 @@ function planResult(overrides: Partial<ImportPlanInput> = {}) {
     local: EMPTY,
     photosOnDevice: new Set(),
     importedAt: IMPORTED_AT,
+    deviceId: IMPORTEUR,
     ...overrides,
   })
 }
@@ -180,6 +183,7 @@ describe('buildImportPlan', () => {
       expect(buildPlan({ local }).carnetSettings).toEqual({
         ...IMPORT_FIXTURE.carnetSettings,
         updatedAt: IMPORTED_AT,
+        updatedByDevice: IMPORTEUR,
       })
     })
 
@@ -360,7 +364,7 @@ describe('buildImportPlan', () => {
       })
 
       expect(chppilInjections(plan)).toEqual([
-        { row: { ...moved, updatedAt: IMPORTED_AT }, exists: true },
+        { row: { ...moved, updatedAt: IMPORTED_AT, updatedByDevice: IMPORTEUR }, exists: true },
       ])
     })
 
@@ -452,7 +456,11 @@ describe('buildImportPlan', () => {
 
         expect(chppilInjections(plan)).toEqual([
           {
-            row: { ...IMPORT_FIXTURE.vaccinationInjections[0], updatedAt: IMPORTED_AT },
+            row: {
+              ...IMPORT_FIXTURE.vaccinationInjections[0],
+              updatedAt: IMPORTED_AT,
+              updatedByDevice: IMPORTEUR,
+            },
             exists: true,
           },
           { row: ancienne, exists: false },
@@ -505,7 +513,14 @@ describe('buildImportPlan', () => {
       expect(ids(plan.treatmentPeriods)).toEqual([MILBEMAX_ID])
       expect(panacurDoses(plan)).toEqual([
         { row: IMPORT_FIXTURE.treatmentDoses[1], exists: false },
-        { row: { ...IMPORT_FIXTURE.treatmentDoses[2], updatedAt: IMPORTED_AT }, exists: true },
+        {
+          row: {
+            ...IMPORT_FIXTURE.treatmentDoses[2],
+            updatedAt: IMPORTED_AT,
+            updatedByDevice: IMPORTEUR,
+          },
+          exists: true,
+        },
       ])
     })
 
@@ -565,7 +580,14 @@ describe('buildImportPlan', () => {
       const plan = buildPlan({ file: importFile(newerTreatment), local })
 
       expect(plan.treatmentPeriods.filter(({ row }) => row.treatmentId === PANACUR_ID)).toEqual([
-        { row: { ...IMPORT_FIXTURE.treatmentPeriods[1], updatedAt: IMPORTED_AT }, exists: true },
+        {
+          row: {
+            ...IMPORT_FIXTURE.treatmentPeriods[1],
+            updatedAt: IMPORTED_AT,
+            updatedByDevice: IMPORTEUR,
+          },
+          exists: true,
+        },
       ])
       expect(plan.revivedPeriods).toEqual(['periode-hors-fichier'])
       expect(panacurDoses(plan).map(({ row, exists }) => [row.id, exists])).toEqual([

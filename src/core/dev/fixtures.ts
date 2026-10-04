@@ -1,6 +1,7 @@
 import { clearAllTables } from '@/core/db/clear-all-tables'
 import type { DbClient } from '@/core/db/db-client'
 import { getDb } from '@/core/db/sqlite'
+import { currentDeviceId } from '@/core/device/device-identity'
 import {
   getAnimalsRepository,
   type AnimalsRepository,
@@ -106,7 +107,13 @@ export async function applyFixtures({
  * s'écrivent comme un import, en une transaction : l'app ne sait pas encore saisir tous ces cas.
  */
 async function seedDemoCarnet(repositories: FixturesRepositories, today: Date): Promise<void> {
-  const stamps = { createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
+  const device = currentDeviceId()
+  const stamps = {
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    createdByDevice: device,
+    updatedByDevice: device,
+  }
   for (const { animal, vaccinations, treatments, weights } of buildDemoCarnet(today)) {
     const { id: animalId } = await repositories.animals.create(animal)
     for (const { history = [], ...vaccination } of vaccinations) {
@@ -146,6 +153,7 @@ async function seedDemoCarnet(repositories: FixturesRepositories, today: Date): 
                 reminderOffsetMinutes: null,
                 reminderTime: null,
                 ...period,
+                referenceOn: period.firstDueOn ?? period.startsOn,
                 ...stamps,
                 id: periodId,
                 treatmentId,

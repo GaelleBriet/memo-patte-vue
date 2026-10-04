@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory-db'
+import { createDeviceRepository } from '@/core/device/device.repository'
 import { createAnimalsRepository } from '@/features/animals/repository/animals.repository'
 import { toJsonExport } from '@/features/settings/logic/export-format'
 import { createCarnetSettingsRepository } from '@/features/settings/repository/carnet-settings.repository'
@@ -43,6 +44,7 @@ describe('carnet de démo dans une vraie base', () => {
       treatmentPeriods: () => repositories.treatmentPeriods,
       treatmentDoses: () => repositories.treatmentDoses,
       weight: () => repositories.weight,
+      devices: () => createDeviceRepository(db),
       deliver: async () => 'shared',
       now: () => TODAY,
       appVersion: 'test',

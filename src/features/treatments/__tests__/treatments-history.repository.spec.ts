@@ -4,30 +4,32 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory-db'
 import { treatmentScheduleOf } from '../logic/treatment-schedule'
 import { createTreatmentDosesRepository } from '../repository/treatment-doses.repository'
-import {
-  createTreatmentPeriodsRepository,
-  type RestoredTreatmentPeriod,
-} from '../repository/treatment-periods.repository'
+import { createTreatmentPeriodsRepository } from '../repository/treatment-periods.repository'
 import {
   createTreatmentsRepository,
   type TreatmentsRepository,
 } from '../repository/treatments.repository'
 import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
+import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 
 const LUNA = '11111111-1111-4111-8111-111111111111'
 const MILO = '22222222-2222-4222-8222-222222222222'
 const AT = '2026-09-01T08:00:00.000Z'
 const STAMPS = { createdAt: AT, updatedAt: AT }
+const DEVICES = { createdByDevice: 'appareil-test', updatedByDevice: 'appareil-test' }
 
 const METACAM = { id: 'metacam', animalId: LUNA, name: 'Métacam', type: 'medication' } as const
 const PANACUR = { id: 'panacur', animalId: MILO, name: 'Panacur', type: 'deworming' } as const
 
+type PeriodFields = Omit<TreatmentPeriodRecord, 'deletedAt'>
+
 function period(
-  overrides: Pick<RestoredTreatmentPeriod, 'id' | 'treatmentId' | 'animalId' | 'startsOn'> &
-    Partial<RestoredTreatmentPeriod>,
-): RestoredTreatmentPeriod {
+  overrides: Pick<PeriodFields, 'id' | 'treatmentId' | 'animalId' | 'startsOn'> &
+    Partial<PeriodFields>,
+): PeriodFields {
   return {
-    firstDueOn: overrides.startsOn,
+    firstDueOn: overrides.firstDueOn ?? overrides.startsOn,
+    referenceOn: overrides.firstDueOn ?? overrides.startsOn,
     endsOn: null,
     stoppedOn: null,
     frequency: { value: 1, unit: 'day' },
@@ -117,15 +119,15 @@ describe('treatmentsRepository — traitement avec ses périodes et ses prises',
     const doses = createTreatmentDosesRepository(db)
     await db.runMany([
       {
-        sql: `INSERT INTO animal (id, name, species, created_at, updated_at)
-              VALUES (?, 'Luna', 'cat', ?, ?), (?, 'Milo', 'dog', ?, ?)`,
+        sql: `INSERT INTO animal (id, name, species, created_at, updated_at, created_by_device, updated_by_device)
+              VALUES (?, 'Luna', 'cat', ?, ?, 'appareil-test', 'appareil-test'), (?, 'Milo', 'dog', ?, ?, 'appareil-test', 'appareil-test')`,
         params: [LUNA, AT, AT, MILO, AT, AT],
       },
-      repository.restoreStatement({ ...METACAM, ...STAMPS }, false),
-      repository.restoreStatement({ ...PANACUR, ...STAMPS }, false),
-      periods.restoreStatement(EN_COURS, false),
-      periods.restoreStatement(PREMIERE, false),
-      periods.restoreStatement(DE_PANACUR, false),
+      repository.restoreStatement({ ...METACAM, ...STAMPS, ...DEVICES }, false),
+      repository.restoreStatement({ ...PANACUR, ...STAMPS, ...DEVICES }, false),
+      periods.restoreStatement({ ...EN_COURS, ...DEVICES }, false),
+      periods.restoreStatement({ ...PREMIERE, ...DEVICES }, false),
+      periods.restoreStatement({ ...DE_PANACUR, ...DEVICES }, false),
       ...[SOIR_27, MATIN_27, MATIN_20, SUPPRIMEE].map((row) => doses.insertStatement(row)),
     ])
   })

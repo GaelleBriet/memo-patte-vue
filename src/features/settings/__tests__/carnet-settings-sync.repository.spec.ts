@@ -21,6 +21,8 @@ const LOCAL_ROW = {
   created_at: T_LOCAL,
   updated_at: T_LOCAL,
   deleted_at: null,
+  created_by_device: 'appareil-test',
+  updated_by_device: 'appareil-test',
 }
 
 function remoteSettings(overrides: Record<string, string | number | null> = {}) {
@@ -40,8 +42,8 @@ describe('carnetSettingsRepository — port de synchronisation', () => {
 
   async function insertLocalRow() {
     await db.run(
-      `INSERT INTO carnet_settings (id, vaccine_reminder_time, remind_before_due, created_at, updated_at)
-       VALUES (?, '18:30', 0, ?, ?)`,
+      `INSERT INTO carnet_settings (id, vaccine_reminder_time, remind_before_due, created_at, updated_at, created_by_device, updated_by_device)
+       VALUES (?, '18:30', 0, ?, ?, 'appareil-test', 'appareil-test')`,
       [CARNET_SETTINGS_ID, T_LOCAL, T_LOCAL],
     )
   }
@@ -65,6 +67,8 @@ describe('carnetSettingsRepository — port de synchronisation', () => {
     await expect(repository.getRowForPush(CARNET_SETTINGS_ID)).resolves.toEqual({
       ...LOCAL_ROW,
       deleted_at: T_NEW,
+      created_by_device: 'appareil-test',
+      updated_by_device: 'appareil-test',
     })
   })
 

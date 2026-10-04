@@ -26,8 +26,8 @@ const ANIMAL_INCONNU = '33333333-3333-4333-8333-333333333333'
 
 async function seedAnimal(db: InMemoryDb, id: string, name: string) {
   await db.run(
-    `INSERT INTO animal (id, name, species, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?)`,
+    `INSERT INTO animal (id, name, species, created_at, updated_at, created_by_device, updated_by_device)
+     VALUES (?, ?, ?, ?, ?, 'appareil-test', 'appareil-test')`,
     [id, name, 'cat', '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z'],
   )
 }
@@ -320,10 +320,13 @@ describe('vaccinationsRepository', () => {
 
       const statement = repository.markDeletedByAnimalStatement(MIETTE, '2026-03-01T10:00:00.000Z')
 
-      expect(statement).toEqual({
-        sql: 'UPDATE vaccination SET deleted_at = ?, updated_at = ? WHERE animal_id = ? AND deleted_at IS NULL',
-        params: ['2026-03-01T10:00:00.000Z', '2026-03-01T10:00:00.000Z', MIETTE],
-      })
+      expect(statement.sql).toMatch(/^UPDATE vaccination SET deleted_at = \?/)
+      expect(statement.params).toEqual([
+        '2026-03-01T10:00:00.000Z',
+        '2026-03-01T10:00:00.000Z',
+        expect.any(String),
+        MIETTE,
+      ])
       await expect(repository.getById(rage.id)).resolves.toEqual(rage)
     })
 
@@ -443,6 +446,8 @@ describe('vaccinationsRepository — injections', () => {
         created_at: carre.createdAt,
         updated_at: carre.createdAt,
         deleted_at: null,
+        created_by_device: expect.any(String),
+        updated_by_device: expect.any(String),
       },
     ])
   })
@@ -538,8 +543,8 @@ describe('vaccinationsRepository — injections', () => {
 
   it('lit un vaccin sans injection, son rappel prévu pour prochain rappel', async () => {
     await db.run(
-      `INSERT INTO vaccination (id, animal_id, name, planned_due_date, created_at, updated_at)
-       VALUES ('sans-injection', ?, 'Leucose', '2026-10-05', '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z')`,
+      `INSERT INTO vaccination (id, animal_id, name, planned_due_date, created_at, updated_at, created_by_device, updated_by_device)
+       VALUES ('sans-injection', ?, 'Leucose', '2026-10-05', '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z', 'appareil-test', 'appareil-test')`,
       [MIETTE],
     )
     const leucose: Vaccination = {
@@ -561,8 +566,8 @@ describe('vaccinationsRepository — injections', () => {
   it('range après les autres un vaccin sans injection', async () => {
     await repository.create({ animalId: MIETTE, name: 'Typhus', lastInjectionDate: '2025-09-12' })
     await db.run(
-      `INSERT INTO vaccination (id, animal_id, name, planned_due_date, created_at, updated_at)
-       VALUES ('sans-injection', ?, 'Leucose', '2026-10-05', '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z')`,
+      `INSERT INTO vaccination (id, animal_id, name, planned_due_date, created_at, updated_at, created_by_device, updated_by_device)
+       VALUES ('sans-injection', ?, 'Leucose', '2026-10-05', '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z', 'appareil-test', 'appareil-test')`,
       [MIETTE],
     )
 
@@ -721,9 +726,14 @@ describe('vaccinationsRepository — import', () => {
   let repository: VaccinationsRepository
   let injections: VaccinationInjectionsRepository
 
+  const PAR_FICHIER = {
+    createdByDevice: 'appareil-du-fichier',
+    updatedByDevice: 'appareil-du-fichier',
+  }
+
   function restore(vaccination: ImportedVaccination, exists: boolean) {
     return db.runMany([
-      repository.restoreStatement({ ...vaccination, plannedDueDate: null }, exists),
+      repository.restoreStatement({ ...vaccination, ...PAR_FICHIER, plannedDueDate: null }, exists),
       injections.restoreStatement(
         {
           id: vaccination.id,
@@ -733,6 +743,7 @@ describe('vaccinationsRepository — import', () => {
           nextDueDate: vaccination.dueDate,
           createdAt: vaccination.createdAt,
           updatedAt: vaccination.updatedAt,
+          ...PAR_FICHIER,
         },
         exists,
       ),
@@ -784,6 +795,7 @@ describe('vaccinationsRepository — import', () => {
       plannedDueDate: '2026-11-02',
       createdAt: IMPORTE.createdAt,
       updatedAt: IMPORTE.updatedAt,
+      ...PAR_FICHIER,
     }
 
     await db.runMany([repository.restoreStatement(prevu, false)])

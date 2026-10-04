@@ -40,8 +40,8 @@ describe('vaccinationInjectionsRepository', () => {
     db = await createInMemoryDb()
     await db.execute('PRAGMA foreign_keys = ON')
     await db.run(
-      `INSERT INTO animal (id, name, species, created_at, updated_at)
-       VALUES (?, 'Miette', 'cat', ?, ?), (?, 'Vasco', 'dog', ?, ?)`,
+      `INSERT INTO animal (id, name, species, created_at, updated_at, created_by_device, updated_by_device)
+       VALUES (?, 'Miette', 'cat', ?, ?, 'appareil-test', 'appareil-test'), (?, 'Vasco', 'dog', ?, ?, 'appareil-test', 'appareil-test')`,
       [MIETTE, T0, T0, VASCO, T0, T0],
     )
     injections = createVaccinationInjectionsRepository(db)
@@ -113,7 +113,11 @@ describe('vaccinationInjectionsRepository', () => {
     const liste = await injections.listAll()
 
     expect(liste.map(({ id }) => id).sort()).toEqual(['rappel', rage, chppi].sort())
-    expect(liste).toContainEqual(rappel)
+    expect(liste).toContainEqual({
+      ...rappel,
+      createdByDevice: expect.any(String),
+      updatedByDevice: expect.any(String),
+    })
   })
 
   it('restaure une injection existante aux valeurs du fichier, date de création comprise, sans changer son vaccin ni son animal', async () => {
@@ -127,6 +131,8 @@ describe('vaccinationInjectionsRepository', () => {
           nextDueDate: '2026-06-01',
           createdAt: NOW,
           updatedAt: NOW,
+          createdByDevice: 'appareil-du-fichier',
+          updatedByDevice: 'appareil-du-fichier',
         },
         true,
       ),
@@ -166,6 +172,8 @@ describe('vaccinationInjectionsRepository', () => {
       nextDueDate: null,
       createdAt: T0,
       updatedAt: NOW,
+      createdByDevice: 'appareil-du-fichier',
+      updatedByDevice: 'appareil-du-fichier',
     }
 
     await db.runMany([injections.restoreStatement(injection, false)])
@@ -182,6 +190,8 @@ describe('vaccinationInjectionsRepository', () => {
         created_at: T0,
         updated_at: NOW,
         deleted_at: null,
+        created_by_device: 'appareil-du-fichier',
+        updated_by_device: 'appareil-du-fichier',
       },
     ])
   })
@@ -204,8 +214,8 @@ describe('vaccinationInjectionsRepository — noter et annuler une injection', (
     db = await createInMemoryDb()
     await db.execute('PRAGMA foreign_keys = ON')
     await db.run(
-      `INSERT INTO animal (id, name, species, created_at, updated_at)
-       VALUES (?, 'Miette', 'cat', ?, ?)`,
+      `INSERT INTO animal (id, name, species, created_at, updated_at, created_by_device, updated_by_device)
+       VALUES (?, 'Miette', 'cat', ?, ?, 'appareil-test', 'appareil-test')`,
       [MIETTE, T0, T0],
     )
     injections = createVaccinationInjectionsRepository(db)

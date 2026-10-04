@@ -29,6 +29,7 @@ import {
   PANACUR_SOIR_ID,
 } from './import-fixture'
 import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory-db'
+import { createDeviceRepository } from '@/core/device/device.repository'
 import { createAnimalsRepository } from '@/features/animals/repository/animals.repository'
 import { createTreatmentDosesRepository } from '@/features/treatments/repository/treatment-doses.repository'
 import { createTreatmentPeriodsRepository } from '@/features/treatments/repository/treatment-periods.repository'
@@ -41,6 +42,7 @@ import { seededTreatments } from '@/features/treatments/__tests__/seed-treatment
 import { createTreatmentPlanService } from '@/features/treatments/service/treatment-plan.service'
 
 const NOW = new Date('2026-09-15T10:00:00.000Z')
+const IMPORTEUR = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc'
 const LUNA_PHOTO = IMPORT_FIXTURE.animals[0]!.photoFileName!
 const TABLES = [
   'carnet_settings',
@@ -67,6 +69,7 @@ function createRepositories(client: InMemoryDb) {
     periods: createTreatmentPeriodsRepository(client),
     doses: createTreatmentDosesRepository(client),
     weight: createWeightRepository(client),
+    devices: createDeviceRepository(client),
   }
 }
 
@@ -105,6 +108,8 @@ function importerOn(
     treatmentPeriods: () => to.periods,
     treatmentDoses: () => to.doses,
     weight: () => to.weight,
+    devices: () => to.devices,
+    deviceId: () => IMPORTEUR,
     photoExists: async () => false,
     syncReminders: async () => undefined,
     now,
@@ -131,6 +136,7 @@ function sorted(data: ExportData): ExportData {
     treatmentPeriods: byId(data.treatmentPeriods),
     treatmentDoses: byId(data.treatmentDoses),
     weightEntries: byId(data.weightEntries),
+    devices: byId(data.devices),
   }
 }
 
@@ -145,6 +151,7 @@ async function carnet(client: InMemoryDb = db): Promise<ExportData> {
     treatmentPeriods: () => from.periods,
     treatmentDoses: () => from.doses,
     weight: () => from.weight,
+    devices: () => from.devices,
     deliver: async () => 'shared',
     now: () => NOW,
     appVersion: 'test',
@@ -219,7 +226,7 @@ describe('data-import.service', () => {
       ),
     }
 
-    await service.importData({ schemaVersion: 3, data }, 'replace')
+    await service.importData({ schemaVersion: 4, data }, 'replace')
 
     await expect(repositories.treatments.getById(milbemax!.id)).resolves.toMatchObject({
       type: 'medication',

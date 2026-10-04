@@ -2,6 +2,12 @@ import { isFuture, parseISO } from 'date-fns'
 import { z } from 'zod'
 
 import { syncAllReminders } from '@/app/reminders-sync'
+import { currentDeviceId } from '@/core/device/device-identity'
+import {
+  getDeviceRepository,
+  MAX_MODEL_LENGTH,
+  type DeviceRepository,
+} from '@/core/device/device.repository'
 import { isPhotoFileName, photoExists } from '@/core/photos/photo-storage'
 import {
   animalInputSchema,
@@ -88,6 +94,8 @@ export type ParsedExportFile =
 
 export const MAX_IMPORT_FILE_BYTES = 10 * 1024 * 1024
 const MAX_TEXT_LENGTH = 200
+// Dans le format v4, refusés à l'import tant que l'app ne sait pas les lire (#502, #503).
+const UNREAD_STATUSES: readonly string[] = ['extra', 'shift']
 
 function isYearInRange(value: string): boolean {
   const year = Number(value.slice(0, 4))
@@ -103,6 +111,7 @@ const instant = z.iso
   .refine(isYearInRange)
   .transform((value) => new Date(value).toISOString())
 const timestamps = { createdAt: instant, updatedAt: instant }
+const stamps = { ...timestamps, createdByDevice: z.uuid(), updatedByDevice: z.uuid() }
 const optionalName = z
   .string()
   .trim()
@@ -110,7 +119,7 @@ const optionalName = z
   .nullable()
   .transform((value) => value || null)
 
-const carnetSettingsFileSchema = carnetSettingsSchema.extend(timestamps)
+const carnetSettingsFileSchema = carnetSettingsSchema.extend(stamps)
 
 const animalFileSchema = z.object({
   id: z.uuid(),
@@ -123,7 +132,7 @@ const animalFileSchema = z.object({
   unfollowedOn: day.nullable(),
   departureReason: departureReasonSchema.nullable(),
   departureDate: day.nullable(),
-  ...timestamps,
+  ...stamps,
 })
 
 const vaccinationFileSchema = z.object({
@@ -131,7 +140,7 @@ const vaccinationFileSchema = z.object({
   animalId: z.uuid(),
   name: vaccinationInputSchema.shape.name,
   plannedDueDate: day.nullable(),
-  ...timestamps,
+  ...stamps,
 })
 
 const injectionFileSchema = z.object({
@@ -140,7 +149,7 @@ const injectionFileSchema = z.object({
   animalId: z.uuid(),
   injectedOn: pastDay,
   nextDueDate: day.nullable(),
-  ...timestamps,
+  ...stamps,
 })
 
 const treatmentFileSchema = z.object({
@@ -148,7 +157,7 @@ const treatmentFileSchema = z.object({
   animalId: z.uuid(),
   name: treatmentInputSchema.shape.name,
   type: treatmentTypeSchema,
-  ...timestamps,
+  ...stamps,
 })
 
 const periodFileSchema = z
@@ -158,6 +167,7 @@ const periodFileSchema = z
     animalId: z.uuid(),
     startsOn: day,
     firstDueOn: day,
+    referenceOn: day,
     endsOn: day.nullable(),
     stoppedOn: day.nullable(),
     frequency: treatmentFrequencySchema,
@@ -166,7 +176,7 @@ const periodFileSchema = z
     doseUnit: doseUnitSchema.nullable(),
     reminderOffsetMinutes: z.literal([...REMINDER_OFFSETS_MINUTES]).nullable(),
     reminderTime: clockTime.nullable(),
-    ...timestamps,
+    ...stamps,
   })
   .refine(hasWholeDosage)
   .refine(({ startsOn, firstDueOn, endsOn, stoppedOn }) =>
@@ -182,9 +192,9 @@ const doseFileSchema = z
     dueOn: day,
     dueTime: clockTime.nullable(),
     givenOn: pastDay.nullable(),
-    status: z.enum(DOSE_STATUSES),
+    status: z.enum(DOSE_STATUSES).refine((status) => !UNREAD_STATUSES.includes(status)),
     nextDueDate: day,
-    ...timestamps,
+    ...stamps,
   })
   .refine((dose) => (dose.status === 'given') === (dose.givenOn !== null))
 
@@ -193,6 +203,13 @@ const weightEntryFileSchema = z.object({
   animalId: z.uuid(),
   weightKg: weightEntryInputSchema.shape.weightKg,
   measuredOn: pastDay,
+  ...stamps,
+})
+
+const deviceFileSchema = z.object({
+  id: z.uuid(),
+  model: z.string().max(MAX_MODEL_LENGTH).nullable(),
+  installedAt: instant,
   ...timestamps,
 })
 
@@ -213,6 +230,7 @@ const exportFileSchema = z
     treatmentPeriods: z.array(periodFileSchema),
     treatmentDoses: z.array(doseFileSchema),
     weightEntries: z.array(weightEntryFileSchema),
+    devices: z.array(deviceFileSchema),
   })
   .refine((file) =>
     [
@@ -223,6 +241,7 @@ const exportFileSchema = z
       file.treatmentPeriods,
       file.treatmentDoses,
       file.weightEntries,
+      file.devices,
     ].every(hasUniqueIds),
   )
   .refine((file) => {
@@ -290,6 +309,7 @@ export function parseExportFile(text: string): ParsedExportFile {
     treatmentPeriods,
     treatmentDoses,
     weightEntries,
+    devices,
   } = file.data
   return {
     ok: true,
@@ -304,6 +324,7 @@ export function parseExportFile(text: string): ParsedExportFile {
         treatmentPeriods,
         treatmentDoses,
         weightEntries,
+        devices,
       },
     },
   }
@@ -328,6 +349,8 @@ export type DataImportDependencies = {
   treatmentPeriods: Provider<Pick<TreatmentPeriodsRepository, EventImportMethods>>
   treatmentDoses: Provider<Pick<TreatmentDosesRepository, EventImportMethods>>
   weight: Provider<Pick<WeightRepository, ImportMethods>>
+  devices: Provider<Pick<DeviceRepository, 'listVersions' | 'restoreStatement'>>
+  deviceId: () => string
   photoExists: (fileName: string) => Promise<boolean>
   syncReminders: () => Promise<void>
   now: () => Date
@@ -342,6 +365,8 @@ export function createDataImportService({
   treatmentPeriods,
   treatmentDoses,
   weight,
+  devices,
+  deviceId,
   photoExists,
   syncReminders,
   now,
@@ -376,6 +401,7 @@ export function createDataImportService({
         periodsRepository,
         dosesRepository,
         weightRepository,
+        devicesRepository,
       ] = await Promise.all([
         carnetSettings(),
         animals(),
@@ -385,6 +411,7 @@ export function createDataImportService({
         treatmentPeriods(),
         treatmentDoses(),
         weight(),
+        devices(),
       ])
       const [
         settingsVersion,
@@ -395,6 +422,7 @@ export function createDataImportService({
         periodVersions,
         doseVersions,
         weightVersions,
+        deviceVersions,
         photosOnDevice,
       ] = await Promise.all([
         settingsRepository.getVersion(),
@@ -405,6 +433,7 @@ export function createDataImportService({
         periodsRepository.listVersions(),
         dosesRepository.listVersions(),
         weightRepository.listVersions(),
+        devicesRepository.listVersions(),
         devicePhotos(data.animals),
       ])
 
@@ -421,9 +450,11 @@ export function createDataImportService({
           treatmentPeriods: periodVersions,
           treatmentDoses: doseVersions,
           weightEntries: weightVersions,
+          devices: deviceVersions,
         },
         photosOnDevice,
         importedAt,
+        deviceId: deviceId(),
       })
 
       if (!result.ok) throw new ImportRefusedError(result.refused.reason)
@@ -458,6 +489,7 @@ export function createDataImportService({
         ...write(plan.treatmentDoses, dosesRepository.restoreStatement),
         ...plan.revivedDoses.map((id) => dosesRepository.reviveStatement(id, importedAt)),
         ...write(plan.weightEntries, weightRepository.restoreStatement),
+        ...write(plan.devices, devicesRepository.restoreStatement),
       ])
       await syncReminders()
     },
@@ -475,6 +507,8 @@ export const dataImportService = createDataImportService({
   treatmentPeriods: getTreatmentPeriodsRepository,
   treatmentDoses: getTreatmentDosesRepository,
   weight: getWeightRepository,
+  devices: getDeviceRepository,
+  deviceId: currentDeviceId,
   photoExists,
   syncReminders: syncAllReminders,
   now: () => new Date(),

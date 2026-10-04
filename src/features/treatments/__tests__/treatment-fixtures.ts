@@ -12,6 +12,7 @@ export function period(overrides: Partial<TreatmentPeriodRecord> = {}): Treatmen
     animalId: 'luna',
     startsOn: '2026-09-01',
     firstDueOn: '2026-09-01',
+    referenceOn: overrides.firstDueOn ?? '2026-09-01',
     endsOn: null,
     stoppedOn: null,
     frequency: { value: 1, unit: 'day' },

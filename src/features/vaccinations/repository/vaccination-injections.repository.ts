@@ -2,12 +2,15 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 
 import type { DbClient, SqlStatement } from '@/core/db/db-client'
 import { getDb } from '@/core/db/sqlite'
+import { currentDeviceId } from '@/core/device/device-identity'
 import { guardedUpsert, type SyncRow } from '@/core/supabase/guarded-upsert'
 import { loadSupabaseClient } from '@/core/supabase/load-client'
 import { syncField, type SyncPullPage } from '@/core/sync/service/syncable-table'
 import type { VaccinationInjection } from '../schema/vaccination-injection.schema'
+import type { Stamped } from '@/shared/domain/carnet-data'
 
-export type RestoredVaccinationInjection = Omit<VaccinationInjection, 'deletedAt'>
+export type VaccinationInjectionRecord = Stamped<VaccinationInjection>
+export type RestoredVaccinationInjection = Omit<VaccinationInjectionRecord, 'deletedAt'>
 export type VaccinationInjectionVersion = Pick<
   VaccinationInjection,
   'id' | 'vaccinationId' | 'updatedAt' | 'deletedAt'
@@ -24,12 +27,15 @@ interface InjectionRow {
   created_at: string
   updated_at: string
   deleted_at: string | null
+  created_by_device: string
+  updated_by_device: string
 }
 
 type InjectionVersionRow = Pick<InjectionRow, 'id' | 'vaccination_id' | 'updated_at' | 'deleted_at'>
 
 const COLUMNS =
-  'id, vaccination_id, animal_id, injected_on, next_due_date, created_at, updated_at, deleted_at'
+  'id, vaccination_id, animal_id, injected_on, next_due_date, created_at, updated_at, deleted_at, ' +
+  'created_by_device, updated_by_device'
 
 const NOT_DELETED = 'deleted_at IS NULL'
 
@@ -46,6 +52,14 @@ function toInjection(row: InjectionRow): VaccinationInjection {
   }
 }
 
+function toRecord(row: InjectionRow): VaccinationInjectionRecord {
+  return {
+    ...toInjection(row),
+    createdByDevice: row.created_by_device,
+    updatedByDevice: row.updated_by_device,
+  }
+}
+
 /**
  * Sous-requête de la tête d'un vaccin (`vaccinationId` est une expression SQL) : l'injection non
  * supprimée la plus récente par date, puis par saisie, puis par identifiant.
@@ -59,6 +73,7 @@ export function headInjectionIdSql(vaccinationId: string): string {
 
 export interface VaccinationInjectionsRepositoryDependencies {
   loadSupabaseClient?: () => Promise<SupabaseClient>
+  deviceId?: () => string
 }
 
 /**
@@ -69,11 +84,12 @@ export function createVaccinationInjectionsRepository(
   db: DbClient,
   {
     loadSupabaseClient: loadClient = loadSupabaseClient,
+    deviceId = currentDeviceId,
   }: VaccinationInjectionsRepositoryDependencies = {},
 ) {
   function insertStatement(injection: VaccinationInjection): SqlStatement {
     return {
-      sql: `INSERT INTO vaccination_injection (${COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      sql: `INSERT INTO vaccination_injection (${COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       params: [
         injection.id,
         injection.vaccinationId,
@@ -83,6 +99,8 @@ export function createVaccinationInjectionsRepository(
         injection.createdAt,
         injection.updatedAt,
         injection.deletedAt,
+        deviceId(),
+        deviceId(),
       ],
     }
   }
@@ -106,12 +124,12 @@ export function createVaccinationInjectionsRepository(
     },
 
     /** Injections visibles de tous les vaccins, celles d'un même vaccin la tête d'abord. */
-    async listAll(): Promise<VaccinationInjection[]> {
+    async listAll(): Promise<VaccinationInjectionRecord[]> {
       const rows = await db.query<InjectionRow>(
         `SELECT ${COLUMNS} FROM vaccination_injection WHERE ${NOT_DELETED}
          ORDER BY vaccination_id, injected_on DESC, created_at DESC, id DESC`,
       )
-      return rows.map(toInjection)
+      return rows.map(toRecord)
     },
 
     async getById(id: string): Promise<VaccinationInjection | null> {
@@ -129,13 +147,13 @@ export function createVaccinationInjectionsRepository(
      */
     async remove(id: string, deletedAt: string): Promise<boolean> {
       const changes = await db.run(
-        `UPDATE vaccination_injection SET deleted_at = ?, updated_at = ?
+        `UPDATE vaccination_injection SET deleted_at = ?, updated_at = ?, updated_by_device = ?
          WHERE id = ? AND ${NOT_DELETED}
            AND EXISTS (
              SELECT 1 FROM vaccination_injection other
              WHERE other.vaccination_id = vaccination_injection.vaccination_id
                AND other.id <> vaccination_injection.id AND other.deleted_at IS NULL)`,
-        [deletedAt, deletedAt, id],
+        [deletedAt, deletedAt, deviceId(), id],
       )
       return changes > 0
     },
@@ -143,9 +161,9 @@ export function createVaccinationInjectionsRepository(
     /** Faux pour une injection encore visible. */
     async revive(id: string, updatedAt: string): Promise<boolean> {
       const changes = await db.run(
-        `UPDATE vaccination_injection SET deleted_at = NULL, updated_at = ?
+        `UPDATE vaccination_injection SET deleted_at = NULL, updated_at = ?, updated_by_device = ?
          WHERE id = ? AND deleted_at IS NOT NULL`,
-        [updatedAt, id],
+        [updatedAt, deviceId(), id],
       )
       return changes > 0
     },
@@ -153,9 +171,10 @@ export function createVaccinationInjectionsRepository(
     /** Faux pour une injection supprimée. */
     async changeDate(id: string, dates: InjectionDates, updatedAt: string): Promise<boolean> {
       const changes = await db.run(
-        `UPDATE vaccination_injection SET injected_on = ?, next_due_date = ?, updated_at = ?
+        `UPDATE vaccination_injection
+         SET injected_on = ?, next_due_date = ?, updated_at = ?, updated_by_device = ?
          WHERE id = ? AND ${NOT_DELETED}`,
-        [dates.injectedOn, dates.nextDueDate, updatedAt, id],
+        [dates.injectedOn, dates.nextDueDate, updatedAt, deviceId(), id],
       )
       return changes > 0
     },
@@ -184,37 +203,42 @@ export function createVaccinationInjectionsRepository(
       }: Pick<VaccinationInjection, 'injectedOn' | 'nextDueDate' | 'updatedAt'>,
     ): SqlStatement {
       return {
-        sql: `UPDATE vaccination_injection SET injected_on = ?, next_due_date = ?, updated_at = ?
+        sql: `UPDATE vaccination_injection
+              SET injected_on = ?, next_due_date = ?, updated_at = ?, updated_by_device = ?
               WHERE id = ${headInjectionIdSql('?')}`,
-        params: [injectedOn, nextDueDate, updatedAt, vaccinationId],
+        params: [injectedOn, nextDueDate, updatedAt, deviceId(), vaccinationId],
       }
     },
 
     markDeletedByVaccinationStatement(vaccinationId: string, deletedAt: string): SqlStatement {
       return {
-        sql: `UPDATE vaccination_injection SET deleted_at = ?, updated_at = ? WHERE vaccination_id = ? AND ${NOT_DELETED}`,
-        params: [deletedAt, deletedAt, vaccinationId],
+        sql: `UPDATE vaccination_injection SET deleted_at = ?, updated_at = ?, updated_by_device = ?
+              WHERE vaccination_id = ? AND ${NOT_DELETED}`,
+        params: [deletedAt, deletedAt, deviceId(), vaccinationId],
       }
     },
 
     markDeletedByAnimalStatement(animalId: string, deletedAt: string): SqlStatement {
       return {
-        sql: `UPDATE vaccination_injection SET deleted_at = ?, updated_at = ? WHERE animal_id = ? AND ${NOT_DELETED}`,
-        params: [deletedAt, deletedAt, animalId],
+        sql: `UPDATE vaccination_injection SET deleted_at = ?, updated_at = ?, updated_by_device = ?
+              WHERE animal_id = ? AND ${NOT_DELETED}`,
+        params: [deletedAt, deletedAt, deviceId(), animalId],
       }
     },
 
     markAllDeletedStatement(deletedAt: string): SqlStatement {
       return {
-        sql: `UPDATE vaccination_injection SET deleted_at = ?, updated_at = ? WHERE ${NOT_DELETED}`,
-        params: [deletedAt, deletedAt],
+        sql: `UPDATE vaccination_injection SET deleted_at = ?, updated_at = ?, updated_by_device = ?
+              WHERE ${NOT_DELETED}`,
+        params: [deletedAt, deletedAt, deviceId()],
       }
     },
 
     reviveStatement(id: string, updatedAt: string): SqlStatement {
       return {
-        sql: 'UPDATE vaccination_injection SET deleted_at = NULL, updated_at = ? WHERE id = ?',
-        params: [updatedAt, id],
+        sql: `UPDATE vaccination_injection SET deleted_at = NULL, updated_at = ?, updated_by_device = ?
+              WHERE id = ?`,
+        params: [updatedAt, deviceId(), id],
       }
     },
 
@@ -224,18 +248,21 @@ export function createVaccinationInjectionsRepository(
         ? {
             sql: `UPDATE vaccination_injection
                   SET injected_on = ?, next_due_date = ?, created_at = ?, updated_at = ?,
-                      deleted_at = NULL
+                      deleted_at = NULL, created_by_device = ?, updated_by_device = ?
                   WHERE id = ?`,
             params: [
               injection.injectedOn,
               injection.nextDueDate,
               injection.createdAt,
               injection.updatedAt,
+              injection.createdByDevice,
+              injection.updatedByDevice,
               injection.id,
             ],
           }
         : {
-            sql: `INSERT INTO vaccination_injection (${COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?, NULL)`,
+            sql: `INSERT INTO vaccination_injection (${COLUMNS})
+                  VALUES (?, ?, ?, ?, ?, ?, ?, NULL, ?, ?)`,
             params: [
               injection.id,
               injection.vaccinationId,
@@ -244,6 +271,8 @@ export function createVaccinationInjectionsRepository(
               injection.nextDueDate,
               injection.createdAt,
               injection.updatedAt,
+              injection.createdByDevice,
+              injection.updatedByDevice,
             ],
           }
     },
@@ -287,12 +316,13 @@ export function createVaccinationInjectionsRepository(
     applyRemoteRowStatement(row: SyncRow): SqlStatement {
       return {
         sql: `INSERT INTO vaccination_injection (${COLUMNS})
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
               ON CONFLICT (id) DO UPDATE SET
                 vaccination_id = excluded.vaccination_id, animal_id = excluded.animal_id,
                 injected_on = excluded.injected_on, next_due_date = excluded.next_due_date,
                 created_at = excluded.created_at, updated_at = excluded.updated_at,
-                deleted_at = excluded.deleted_at
+                deleted_at = excluded.deleted_at, created_by_device = excluded.created_by_device,
+                updated_by_device = excluded.updated_by_device
               WHERE excluded.updated_at > vaccination_injection.updated_at`,
         params: [
           row.id,
@@ -303,6 +333,8 @@ export function createVaccinationInjectionsRepository(
           syncField(row, 'created_at'),
           row.updated_at,
           syncField(row, 'deleted_at'),
+          syncField(row, 'created_by_device'),
+          syncField(row, 'updated_by_device'),
         ],
       }
     },

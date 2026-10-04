@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { simulateWebResume } from '@/core/app-lifecycle/__tests__/simulate-resume'
 import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory-db'
+import { createDeviceRepository } from '@/core/device/device.repository'
 import i18n from '@/core/i18n'
 import { createCarnetSettingsRepository } from '@/features/settings/repository/carnet-settings.repository'
 import { createAnimalsRepository } from '@/features/animals/repository/animals.repository'
@@ -323,6 +324,7 @@ describe('traitement arrêté, exporté puis réimporté', () => {
       treatmentPeriods: () => createTreatmentPeriodsRepository(client),
       treatmentDoses: () => createTreatmentDosesRepository(client),
       weight: () => createWeightRepository(client),
+      devices: () => createDeviceRepository(client),
       deliver: async (file) => {
         files.push(file.content as string)
         return 'shared'
@@ -343,6 +345,8 @@ describe('traitement arrêté, exporté puis réimporté', () => {
       treatmentPeriods: () => createTreatmentPeriodsRepository(db),
       treatmentDoses: () => createTreatmentDosesRepository(db),
       weight: () => createWeightRepository(db),
+      devices: () => createDeviceRepository(db),
+      deviceId: () => 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
       photoExists: async () => false,
       syncReminders: restoredDevice(),
       now: () => NOW,

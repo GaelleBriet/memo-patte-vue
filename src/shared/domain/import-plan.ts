@@ -2,6 +2,7 @@ import type {
   ExportAnimal,
   ExportCarnetSettings,
   ExportData,
+  ExportDevice,
   ExportTreatment,
   ExportTreatmentDose,
   ExportTreatmentPeriod,
@@ -12,10 +13,10 @@ import type {
 
 export type ImportMode = 'merge' | 'replace'
 
-export type ImportFile = { schemaVersion: 3; data: ExportData }
+export type ImportFile = { schemaVersion: 4; data: ExportData }
 
-type Stamped = { id: string; updatedAt: string }
-type Deletable = Stamped & { deletedAt: string | null }
+type Versioned = { id: string; updatedAt: string }
+type Deletable = Versioned & { deletedAt: string | null }
 
 export type LocalAnimal = Deletable & { photoPath: string | null }
 export type LocalEntry = Deletable & { animalId: string }
@@ -23,6 +24,7 @@ export type LocalInjection = Deletable & { vaccinationId: string }
 export type LocalPeriod = LocalEntry & { treatmentId: string }
 export type LocalDose = Deletable & { periodId: string; treatmentId: string }
 export type LocalSettings = { updatedAt: string; deletedAt: string | null }
+export type LocalDevice = Deletable
 
 export type LocalCarnet = {
   carnetSettings: LocalSettings | null
@@ -33,6 +35,7 @@ export type LocalCarnet = {
   treatmentPeriods: LocalPeriod[]
   treatmentDoses: LocalDose[]
   weightEntries: LocalEntry[]
+  devices: LocalDevice[]
 }
 
 export type LocalEvent = Deletable & { parentId: string }
@@ -55,6 +58,8 @@ export type ImportPlan = {
   treatmentDoses: PlannedWrite<ExportTreatmentDose>[]
   revivedDoses: string[]
   weightEntries: PlannedWrite<ExportWeightEntry>[]
+  /** Jamais effacés, même en remplacement : ils nomment les appareils des lignes du carnet. */
+  devices: PlannedWrite<ExportDevice>[]
 }
 
 export type ImportEntity =
@@ -82,6 +87,8 @@ export type ImportPlanInput = {
   local: LocalCarnet
   photosOnDevice: ReadonlySet<string>
   importedAt: string
+  /** L'appareil qui importe : il devient l'auteur de toute ligne déjà présente qu'il réécrit. */
+  deviceId: string
 }
 
 /** Date de suppression d'un animal ou d'un parent que le fichier rend visible, par identifiant. */
@@ -212,6 +219,16 @@ function findMisplacedDose(data: ExportData, local: LocalCarnet): RefusedEntry |
   return undefined
 }
 
+function planDevices(devices: ExportDevice[], local: LocalDevice[]): PlannedWrite<ExportDevice>[] {
+  const known = byId(local)
+  return devices.flatMap((device) => {
+    const existing = known.get(device.id)
+    return existing === undefined || Date.parse(device.updatedAt) > Date.parse(existing.updatedAt)
+      ? [{ row: device, exists: existing !== undefined }]
+      : []
+  })
+}
+
 /**
  * Traduit les entrées d'un fichier et l'état local en écritures à jouer, sans toucher à la base.
  *
@@ -229,6 +246,7 @@ export function buildImportPlan({
   local,
   photosOnDevice,
   importedAt,
+  deviceId,
 }: ImportPlanInput): ImportPlanResult {
   const events = eventTables(data, local)
   const refused =
@@ -244,8 +262,13 @@ export function buildImportPlan({
     replaceLocalData ||
     existing === null ||
     Date.parse(incoming.updatedAt) > Date.parse(existing.updatedAt)
-  const dated = <T extends { updatedAt: string }>(row: T, existing: unknown): T =>
-    existing === undefined || existing === null ? row : { ...row, updatedAt: importedAt }
+  const dated = <T extends { updatedAt: string; updatedByDevice: string }>(
+    row: T,
+    existing: unknown,
+  ): T =>
+    existing === undefined || existing === null
+      ? row
+      : { ...row, updatedAt: importedAt, updatedByDevice: deviceId }
 
   const localAnimals = byId(local.animals)
   const photoOwners = new Map(
@@ -287,7 +310,7 @@ export function buildImportPlan({
     }
   }
 
-  function planEntries<T extends Stamped & { animalId: string }>(
+  function planEntries<T extends Versioned & { animalId: string; updatedByDevice: string }>(
     rows: T[],
     versions: LocalEntry[],
   ): PlannedWrite<T>[] {
@@ -305,7 +328,7 @@ export function buildImportPlan({
   }
 
   /** `keeps` : condition de plus pour écrire ou ramener une ligne, par son identifiant. */
-  function planEvents<E extends Stamped>(
+  function planEvents<E extends Versioned & { updatedByDevice: string }>(
     table: EventTable<E>,
     parents: PlannedWrite<{ id: string }>[],
     keeps: (id: string) => boolean = () => true,
@@ -384,6 +407,7 @@ export function buildImportPlan({
       treatmentDoses: doses.writes,
       revivedDoses: doses.revived,
       weightEntries: planEntries(data.weightEntries, local.weightEntries),
+      devices: planDevices(data.devices, local.devices),
     },
   }
 }

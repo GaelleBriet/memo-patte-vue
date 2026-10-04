@@ -1,5 +1,10 @@
 import type { DoseUnit } from './dosage'
 
+/** L'appareil qui a créé la ligne, et celui qui a écrit sa valeur actuelle (suppression comprise). */
+export type DeviceStamps = { createdByDevice: string; updatedByDevice: string }
+
+export type Stamped<T> = T & DeviceStamps
+
 /**
  * Les lignes du carnet telles qu'elles voyagent : fichier d'export (`export-format.ts`) aujourd'hui,
  * miroir Postgres de la synchronisation demain. Mêmes champs que les tables SQLite, sans `deletedAt`.
@@ -18,6 +23,8 @@ export type ExportAnimal = {
   departureDate: string | null
   createdAt: string
   updatedAt: string
+  createdByDevice: string
+  updatedByDevice: string
 }
 
 export type ExportVaccination = {
@@ -28,6 +35,8 @@ export type ExportVaccination = {
   plannedDueDate: string | null
   createdAt: string
   updatedAt: string
+  createdByDevice: string
+  updatedByDevice: string
 }
 
 export type ExportVaccinationInjection = {
@@ -38,6 +47,8 @@ export type ExportVaccinationInjection = {
   nextDueDate: string | null
   createdAt: string
   updatedAt: string
+  createdByDevice: string
+  updatedByDevice: string
 }
 
 export type ExportFrequency = { value: number; unit: 'day' | 'week' | 'month' }
@@ -49,6 +60,8 @@ export type ExportTreatment = {
   type: 'deworming' | 'antiparasitic' | 'medication'
   createdAt: string
   updatedAt: string
+  createdByDevice: string
+  updatedByDevice: string
 }
 
 export type ExportDoseUnit = DoseUnit
@@ -59,6 +72,8 @@ export type ExportTreatmentPeriod = {
   animalId: string
   startsOn: string
   firstDueOn: string
+  /** Origine de la grille des échéances. */
+  referenceOn: string
   endsOn: string | null
   stoppedOn: string | null
   frequency: ExportFrequency
@@ -70,6 +85,8 @@ export type ExportTreatmentPeriod = {
   reminderTime: string | null
   createdAt: string
   updatedAt: string
+  createdByDevice: string
+  updatedByDevice: string
 }
 
 export type ExportTreatmentDose = {
@@ -81,10 +98,12 @@ export type ExportTreatmentDose = {
   dueTime: string | null
   /** `null` pour une prise oubliée ou reportée. */
   givenOn: string | null
-  status: 'given' | 'missed' | 'postponed'
+  status: 'given' | 'missed' | 'postponed' | 'extra' | 'shift'
   nextDueDate: string
   createdAt: string
   updatedAt: string
+  createdByDevice: string
+  updatedByDevice: string
 }
 
 export type ExportWeightEntry = {
@@ -94,11 +113,24 @@ export type ExportWeightEntry = {
   measuredOn: string
   createdAt: string
   updatedAt: string
+  createdByDevice: string
+  updatedByDevice: string
 }
 
 export type ExportCarnetSettings = {
   vaccineReminderTime: string
   remindBeforeDue: boolean
+  createdAt: string
+  updatedAt: string
+  createdByDevice: string
+  updatedByDevice: string
+}
+
+/** Un appareil qui a écrit dans le carnet : son nom lisible est son modèle et sa date d'installation. */
+export type ExportDevice = {
+  id: string
+  model: string | null
+  installedAt: string
   createdAt: string
   updatedAt: string
 }
@@ -113,4 +145,5 @@ export type ExportData = {
   treatmentPeriods: ExportTreatmentPeriod[]
   treatmentDoses: ExportTreatmentDose[]
   weightEntries: ExportWeightEntry[]
+  devices: ExportDevice[]
 }

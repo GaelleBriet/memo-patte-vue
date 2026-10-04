@@ -726,8 +726,8 @@ describe('createSyncCycle', () => {
           }
         })(),
         applyRemoteRowStatement: (remote) => ({
-          sql: `INSERT INTO animal (id, name, species, created_at, updated_at)
-                VALUES (?, ?, 'cat', ?, ?)
+          sql: `INSERT INTO animal (id, name, species, created_at, updated_at, created_by_device, updated_by_device)
+                VALUES (?, ?, 'cat', ?, ?, 'appareil-test', 'appareil-test')
                 ON CONFLICT (id) DO UPDATE SET
                   name = excluded.name, updated_at = excluded.updated_at
                 WHERE excluded.updated_at > animal.updated_at`,

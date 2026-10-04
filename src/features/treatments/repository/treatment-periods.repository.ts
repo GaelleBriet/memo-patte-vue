@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 
 import type { DbClient, SqlStatement } from '@/core/db/db-client'
 import { getDb } from '@/core/db/sqlite'
+import { currentDeviceId } from '@/core/device/device-identity'
 import { guardedUpsert, type SyncRow } from '@/core/supabase/guarded-upsert'
 import { loadSupabaseClient } from '@/core/supabase/load-client'
 import { syncField, type SyncPullPage } from '@/core/sync/service/syncable-table'
@@ -12,8 +13,10 @@ import {
   type TreatmentPeriodRecord,
   type TreatmentPeriodSettings,
 } from '../schema/treatment-period.schema'
+import type { Stamped } from '@/shared/domain/carnet-data'
 
-export type RestoredTreatmentPeriod = Omit<TreatmentPeriodRecord, 'deletedAt'>
+export type StampedTreatmentPeriod = Stamped<TreatmentPeriodRecord>
+export type RestoredTreatmentPeriod = Omit<StampedTreatmentPeriod, 'deletedAt'>
 export type TreatmentPeriodVersion = Pick<
   TreatmentPeriod,
   'id' | 'treatmentId' | 'animalId' | 'updatedAt' | 'deletedAt'
@@ -25,6 +28,7 @@ interface PeriodRow {
   animal_id: string
   starts_on: string
   first_due_on: string
+  reference_on: string
   ends_on: string | null
   stopped_on: string | null
   frequency_value: number
@@ -37,6 +41,8 @@ interface PeriodRow {
   created_at: string
   updated_at: string
   deleted_at: string | null
+  created_by_device: string
+  updated_by_device: string
 }
 
 const NOT_DELETED = 'deleted_at IS NULL'
@@ -47,6 +53,7 @@ const SYNC_COLUMN_NAMES = [
   'animal_id',
   'starts_on',
   'first_due_on',
+  'reference_on',
   'ends_on',
   'stopped_on',
   'frequency_value',
@@ -59,11 +66,14 @@ const SYNC_COLUMN_NAMES = [
   'created_at',
   'updated_at',
   'deleted_at',
+  'created_by_device',
+  'updated_by_device',
 ]
 const SYNC_COLUMNS = SYNC_COLUMN_NAMES.join(', ')
 
 export interface TreatmentPeriodsRepositoryDependencies {
   loadSupabaseClient?: () => Promise<SupabaseClient>
+  deviceId?: () => string
 }
 
 const TIMES_SEPARATOR = ','
@@ -92,6 +102,7 @@ function toPeriodRecord(row: PeriodRow): TreatmentPeriodRecord {
     animalId: row.animal_id,
     startsOn: row.starts_on,
     firstDueOn: row.first_due_on,
+    referenceOn: row.reference_on,
     endsOn: row.ends_on,
     stoppedOn: row.stopped_on,
     frequency: { value: row.frequency_value, unit: row.frequency_unit },
@@ -104,6 +115,14 @@ function toPeriodRecord(row: PeriodRow): TreatmentPeriodRecord {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     deletedAt: row.deleted_at,
+  }
+}
+
+function toStampedPeriod(row: PeriodRow): StampedTreatmentPeriod {
+  return {
+    ...toPeriodRecord(row),
+    createdByDevice: row.created_by_device,
+    updatedByDevice: row.updated_by_device,
   }
 }
 
@@ -126,26 +145,31 @@ export function createTreatmentPeriodsRepository(
   db: DbClient,
   {
     loadSupabaseClient: loadClient = loadSupabaseClient,
+    deviceId = currentDeviceId,
   }: TreatmentPeriodsRepositoryDependencies = {},
 ) {
-  async function listVisible(scope = '', params: string[] = []): Promise<TreatmentPeriodRecord[]> {
-    const rows = await db.query<PeriodRow>(
+  async function visibleRows(scope = '', params: string[] = []): Promise<PeriodRow[]> {
+    return db.query<PeriodRow>(
       `SELECT ${SYNC_COLUMNS} FROM treatment_period WHERE ${NOT_DELETED} ${scope}
        ORDER BY treatment_id, starts_on, created_at, id`,
       params,
     )
-    return rows.map(toPeriodRecord)
+  }
+
+  async function listVisible(scope = '', params: string[] = []): Promise<TreatmentPeriodRecord[]> {
+    return (await visibleRows(scope, params)).map(toPeriodRecord)
   }
 
   return {
     entity: 'treatment_period',
 
     /**
-     * Fin, heures, posologie et moment du rappel absents : la période n'en a pas. Lève pour des
-     * réglages incohérents.
+     * Fin, heures, posologie et moment du rappel absents : la période n'en a pas ; jour de
+     * référence absent : sa première échéance. Lève pour des réglages incohérents.
      */
     insertStatement(
-      period: TreatmentPeriod & Partial<TreatmentPeriodSettings> & { deletedAt: string | null },
+      period: TreatmentPeriod &
+        Partial<TreatmentPeriodSettings> & { deletedAt: string | null; referenceOn?: string },
     ): SqlStatement {
       const settings = treatmentPeriodSettingsSchema.parse({
         startsOn: period.startsOn,
@@ -167,6 +191,7 @@ export function createTreatmentPeriodsRepository(
           period.animalId,
           settings.startsOn,
           settings.firstDueOn,
+          period.referenceOn ?? settings.firstDueOn,
           settings.endsOn,
           period.stoppedOn,
           settings.frequency.value,
@@ -179,13 +204,15 @@ export function createTreatmentPeriodsRepository(
           period.createdAt,
           period.updatedAt,
           period.deletedAt,
+          deviceId(),
+          deviceId(),
         ],
       }
     },
 
     /**
-     * Tous les réglages de la période en cours, sauf son arrêt ; rien n'est daté si rien ne change.
-     * Lève pour des réglages incohérents.
+     * Tous les réglages de la période en cours, sauf son arrêt ; le jour de référence suit la
+     * première échéance. Rien n'est daté si rien ne change. Lève pour des réglages incohérents.
      */
     correctCurrentSettingsStatement(
       treatmentId: string,
@@ -207,57 +234,64 @@ export function createTreatmentPeriodsRepository(
       ]
       return {
         sql: `UPDATE treatment_period
-              SET ${SETTINGS_COLUMNS.map((column) => `${column} = ?`).join(', ')}, updated_at = ?
+              SET ${SETTINGS_COLUMNS.map((column) => `${column} = ?`).join(', ')},
+                  reference_on = ?, updated_at = ?, updated_by_device = ?
               WHERE id = ${currentPeriodIdSql('?')}
                 AND (${SETTINGS_COLUMNS.map((column) => `${column} IS NOT ?`).join(' OR ')})`,
-        params: [...values, updatedAt, treatmentId, ...values],
+        params: [...values, settings.firstDueOn, updatedAt, deviceId(), treatmentId, ...values],
       }
     },
 
     /** Faux quand la période en cours est déjà arrêtée, ou que le traitement n'en a pas : rien n'est écrit. */
     async stop(treatmentId: string, stoppedOn: string): Promise<boolean> {
       const changes = await db.run(
-        `UPDATE treatment_period SET stopped_on = ?, updated_at = ?
+        `UPDATE treatment_period SET stopped_on = ?, updated_at = ?, updated_by_device = ?
          WHERE id = ${currentPeriodIdSql('?')} AND stopped_on IS NULL`,
-        [stoppedOn, new Date().toISOString(), treatmentId],
+        [stoppedOn, new Date().toISOString(), deviceId(), treatmentId],
       )
       return changes > 0
     },
 
     async undoStop(treatmentId: string): Promise<void> {
       await db.run(
-        `UPDATE treatment_period SET stopped_on = NULL, updated_at = ?
+        `UPDATE treatment_period SET stopped_on = NULL, updated_at = ?, updated_by_device = ?
          WHERE id = ${currentPeriodIdSql('?')} AND stopped_on IS NOT NULL`,
-        [new Date().toISOString(), treatmentId],
+        [new Date().toISOString(), deviceId(), treatmentId],
       )
     },
 
     markDeletedByTreatmentStatement(treatmentId: string, deletedAt: string): SqlStatement {
       return {
-        sql: `UPDATE treatment_period SET deleted_at = ?, updated_at = ?
+        sql: `UPDATE treatment_period SET deleted_at = ?, updated_at = ?, updated_by_device = ?
               WHERE treatment_id = ? AND ${NOT_DELETED}`,
-        params: [deletedAt, deletedAt, treatmentId],
+        params: [deletedAt, deletedAt, deviceId(), treatmentId],
       }
     },
 
     markDeletedByAnimalStatement(animalId: string, deletedAt: string): SqlStatement {
       return {
-        sql: `UPDATE treatment_period SET deleted_at = ?, updated_at = ?
+        sql: `UPDATE treatment_period SET deleted_at = ?, updated_at = ?, updated_by_device = ?
               WHERE animal_id = ? AND ${NOT_DELETED}`,
-        params: [deletedAt, deletedAt, animalId],
+        params: [deletedAt, deletedAt, deviceId(), animalId],
       }
     },
 
     markAllDeletedStatement(deletedAt: string): SqlStatement {
       return {
-        sql: `UPDATE treatment_period SET deleted_at = ?, updated_at = ? WHERE ${NOT_DELETED}`,
-        params: [deletedAt, deletedAt],
+        sql: `UPDATE treatment_period SET deleted_at = ?, updated_at = ?, updated_by_device = ?
+              WHERE ${NOT_DELETED}`,
+        params: [deletedAt, deletedAt, deviceId()],
       }
     },
 
     /** Périodes visibles, toutes colonnes comprises, celles d'un même traitement de la première à la dernière. */
     listAll(): Promise<TreatmentPeriodRecord[]> {
       return listVisible()
+    },
+
+    /** Comme `listAll`, appareils compris : ce que l'export emporte. */
+    async listRecords(): Promise<StampedTreatmentPeriod[]> {
+      return (await visibleRows()).map(toStampedPeriod)
     },
 
     listByTreatment(treatmentId: string): Promise<TreatmentPeriodRecord[]> {
@@ -287,6 +321,7 @@ export function createTreatmentPeriodsRepository(
       const values = [
         period.startsOn,
         period.firstDueOn,
+        period.referenceOn,
         period.endsOn,
         period.stoppedOn,
         period.frequency.value,
@@ -299,27 +334,30 @@ export function createTreatmentPeriodsRepository(
         period.createdAt,
         period.updatedAt,
       ]
+      const devices = [period.createdByDevice, period.updatedByDevice]
       return exists
         ? {
             sql: `UPDATE treatment_period
-                  SET starts_on = ?, first_due_on = ?, ends_on = ?, stopped_on = ?,
-                      frequency_value = ?, frequency_unit = ?, times = ?, dose_quantity = ?,
-                      dose_unit = ?, reminder_offset_minutes = ?, reminder_time = ?,
-                      created_at = ?, updated_at = ?, deleted_at = NULL
+                  SET starts_on = ?, first_due_on = ?, reference_on = ?, ends_on = ?,
+                      stopped_on = ?, frequency_value = ?, frequency_unit = ?, times = ?,
+                      dose_quantity = ?, dose_unit = ?, reminder_offset_minutes = ?,
+                      reminder_time = ?, created_at = ?, updated_at = ?, deleted_at = NULL,
+                      created_by_device = ?, updated_by_device = ?
                   WHERE id = ?`,
-            params: [...values, period.id],
+            params: [...values, ...devices, period.id],
           }
         : {
             sql: `INSERT INTO treatment_period (${SYNC_COLUMNS})
-                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)`,
-            params: [period.id, period.treatmentId, period.animalId, ...values],
+                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?)`,
+            params: [period.id, period.treatmentId, period.animalId, ...values, ...devices],
           }
     },
 
     reviveStatement(id: string, updatedAt: string): SqlStatement {
       return {
-        sql: 'UPDATE treatment_period SET deleted_at = NULL, updated_at = ? WHERE id = ?',
-        params: [updatedAt, id],
+        sql: `UPDATE treatment_period SET deleted_at = NULL, updated_at = ?, updated_by_device = ?
+              WHERE id = ?`,
+        params: [updatedAt, deviceId(), id],
       }
     },
 

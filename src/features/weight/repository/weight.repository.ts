@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 
 import type { DbClient, SqlStatement } from '@/core/db/db-client'
 import { getDb } from '@/core/db/sqlite'
+import { currentDeviceId } from '@/core/device/device-identity'
 import { guardedUpsert, type SyncRow } from '@/core/supabase/guarded-upsert'
 import { loadSupabaseClient } from '@/core/supabase/load-client'
 import { syncField, type SyncPullPage } from '@/core/sync/service/syncable-table'
@@ -12,6 +13,7 @@ import {
   type WeightEntryInput,
   type WeightEntryUpdateInput,
 } from '../schema/weight.schema'
+import type { Stamped } from '@/shared/domain/carnet-data'
 
 interface WeightEntryRow {
   id: string
@@ -21,12 +23,17 @@ interface WeightEntryRow {
   created_at: string
   updated_at: string
   deleted_at: string | null
+  created_by_device: string
+  updated_by_device: string
 }
 
 export type WeightEntryVersion = Pick<WeightEntry, 'id' | 'animalId' | 'updatedAt' | 'deletedAt'>
-export type RestoredWeightEntry = Omit<WeightEntry, 'deletedAt'>
+export type WeightEntryRecord = Stamped<WeightEntry>
+export type RestoredWeightEntry = Omit<WeightEntryRecord, 'deletedAt'>
 
-const COLUMNS = 'id, animal_id, weight_kg, measured_on, created_at, updated_at, deleted_at'
+const COLUMNS =
+  'id, animal_id, weight_kg, measured_on, created_at, updated_at, deleted_at, ' +
+  'created_by_device, updated_by_device'
 
 /** Les pesées supprimées restent en base pour la synchronisation, jamais pour l'UI. */
 const NOT_DELETED = 'deleted_at IS NULL'
@@ -43,8 +50,17 @@ function toWeightEntry(row: WeightEntryRow): WeightEntry {
   }
 }
 
+function toRecord(row: WeightEntryRow): WeightEntryRecord {
+  return {
+    ...toWeightEntry(row),
+    createdByDevice: row.created_by_device,
+    updatedByDevice: row.updated_by_device,
+  }
+}
+
 export interface WeightRepositoryDependencies {
   loadSupabaseClient?: () => Promise<SupabaseClient>
+  deviceId?: () => string
 }
 
 function newEntry(input: WeightEntryInput, createdAt: string): WeightEntry {
@@ -57,9 +73,9 @@ function newEntry(input: WeightEntryInput, createdAt: string): WeightEntry {
   }
 }
 
-function insertStatement(entry: WeightEntry): SqlStatement {
+function insertStatement(entry: WeightEntry, device: string): SqlStatement {
   return {
-    sql: `INSERT INTO weight_entry (${COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    sql: `INSERT INTO weight_entry (${COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     params: [
       entry.id,
       entry.animalId,
@@ -68,13 +84,18 @@ function insertStatement(entry: WeightEntry): SqlStatement {
       entry.createdAt,
       entry.updatedAt,
       entry.deletedAt,
+      device,
+      device,
     ],
   }
 }
 
 export function createWeightRepository(
   db: DbClient,
-  { loadSupabaseClient: loadClient = loadSupabaseClient }: WeightRepositoryDependencies = {},
+  {
+    loadSupabaseClient: loadClient = loadSupabaseClient,
+    deviceId = currentDeviceId,
+  }: WeightRepositoryDependencies = {},
 ) {
   async function getById(id: string): Promise<WeightEntry | null> {
     const rows = await db.query<WeightEntryRow>(
@@ -101,16 +122,25 @@ export function createWeightRepository(
       return rows.map(toWeightEntry)
     },
 
+    /** Pesées visibles de tous les animaux, toutes colonnes comprises. */
+    async listRecords(): Promise<WeightEntryRecord[]> {
+      const rows = await db.query<WeightEntryRow>(
+        `SELECT ${COLUMNS} FROM weight_entry WHERE ${NOT_DELETED}
+         ORDER BY animal_id, measured_on, created_at`,
+      )
+      return rows.map(toRecord)
+    },
+
     async create(input: WeightEntryInput): Promise<WeightEntry> {
       const entry = newEntry(input, new Date().toISOString())
-      const { sql, params } = insertStatement(entry)
+      const { sql, params } = insertStatement(entry, deviceId())
       await db.run(sql, params)
       return entry
     },
 
     /** Instruction fournie sans être exécutée : la création d'un animal la joue dans sa transaction. */
     createStatement(input: WeightEntryInput, createdAt: string): SqlStatement {
-      return insertStatement(newEntry(input, createdAt))
+      return insertStatement(newEntry(input, createdAt), deviceId())
     },
 
     /** `animal_id` reste hors du `SET` : le rattachement est figé à la création. */
@@ -120,9 +150,9 @@ export function createWeightRepository(
 
       const changes = await db.run(
         `UPDATE weight_entry
-         SET weight_kg = ?, measured_on = ?, updated_at = ?
+         SET weight_kg = ?, measured_on = ?, updated_at = ?, updated_by_device = ?
          WHERE id = ? AND ${NOT_DELETED}`,
-        [data.weightKg, data.measuredOn, updatedAt, id],
+        [data.weightKg, data.measuredOn, updatedAt, deviceId(), id],
       )
 
       if (changes === 0) {
@@ -140,26 +170,28 @@ export function createWeightRepository(
     async remove(id: string): Promise<void> {
       const deletedAt = new Date().toISOString()
       await db.run(
-        `UPDATE weight_entry SET deleted_at = ?, updated_at = ? WHERE id = ? AND ${NOT_DELETED}`,
-        [deletedAt, deletedAt, id],
+        `UPDATE weight_entry SET deleted_at = ?, updated_at = ?, updated_by_device = ?
+         WHERE id = ? AND ${NOT_DELETED}`,
+        [deletedAt, deletedAt, deviceId(), id],
       )
     },
 
     /** Sans effet sur une pesée visible, inconnue, ou dont l'animal a été supprimé. */
     async undoRemove(id: string): Promise<void> {
       await db.run(
-        `UPDATE weight_entry SET deleted_at = NULL, updated_at = ?
+        `UPDATE weight_entry SET deleted_at = NULL, updated_at = ?, updated_by_device = ?
          WHERE id = ? AND deleted_at IS NOT NULL
            AND animal_id IN (SELECT id FROM animal WHERE deleted_at IS NULL)`,
-        [new Date().toISOString(), id],
+        [new Date().toISOString(), deviceId(), id],
       )
     },
 
     /** Instruction fournie sans être exécutée : la suppression d'un animal la joue dans sa transaction. */
     markDeletedByAnimalStatement(animalId: string, deletedAt: string): SqlStatement {
       return {
-        sql: `UPDATE weight_entry SET deleted_at = ?, updated_at = ? WHERE animal_id = ? AND ${NOT_DELETED}`,
-        params: [deletedAt, deletedAt, animalId],
+        sql: `UPDATE weight_entry SET deleted_at = ?, updated_at = ?, updated_by_device = ?
+              WHERE animal_id = ? AND ${NOT_DELETED}`,
+        params: [deletedAt, deletedAt, deviceId(), animalId],
       }
     },
 
@@ -176,25 +208,27 @@ export function createWeightRepository(
 
     markAllDeletedStatement(deletedAt: string): SqlStatement {
       return {
-        sql: `UPDATE weight_entry SET deleted_at = ?, updated_at = ? WHERE ${NOT_DELETED}`,
-        params: [deletedAt, deletedAt],
+        sql: `UPDATE weight_entry SET deleted_at = ?, updated_at = ?, updated_by_device = ?
+              WHERE ${NOT_DELETED}`,
+        params: [deletedAt, deletedAt, deviceId()],
       }
     },
 
     /** Reprend les dates du fichier importé et rend la ligne visible, sans la changer d'animal. */
     restoreStatement(entry: RestoredWeightEntry, exists: boolean): SqlStatement {
       const { id, animalId, weightKg, measuredOn, createdAt, updatedAt } = entry
+      const devices = [entry.createdByDevice, entry.updatedByDevice]
       return exists
         ? {
             sql: `UPDATE weight_entry
                   SET weight_kg = ?, measured_on = ?, created_at = ?, updated_at = ?,
-                      deleted_at = NULL
+                      deleted_at = NULL, created_by_device = ?, updated_by_device = ?
                   WHERE id = ?`,
-            params: [weightKg, measuredOn, createdAt, updatedAt, id],
+            params: [weightKg, measuredOn, createdAt, updatedAt, ...devices, id],
           }
         : {
-            sql: `INSERT INTO weight_entry (${COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, NULL)`,
-            params: [id, animalId, weightKg, measuredOn, createdAt, updatedAt],
+            sql: `INSERT INTO weight_entry (${COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, NULL, ?, ?)`,
+            params: [id, animalId, weightKg, measuredOn, createdAt, updatedAt, ...devices],
           }
     },
 
@@ -234,11 +268,13 @@ export function createWeightRepository(
     applyRemoteRowStatement(row: SyncRow): SqlStatement {
       return {
         sql: `INSERT INTO weight_entry (${COLUMNS})
-              VALUES (?, ?, ?, ?, ?, ?, ?)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
               ON CONFLICT (id) DO UPDATE SET
                 animal_id = excluded.animal_id, weight_kg = excluded.weight_kg,
                 measured_on = excluded.measured_on, created_at = excluded.created_at,
-                updated_at = excluded.updated_at, deleted_at = excluded.deleted_at
+                updated_at = excluded.updated_at, deleted_at = excluded.deleted_at,
+                created_by_device = excluded.created_by_device,
+                updated_by_device = excluded.updated_by_device
               WHERE excluded.updated_at > weight_entry.updated_at`,
         params: [
           row.id,
@@ -248,6 +284,8 @@ export function createWeightRepository(
           syncField(row, 'created_at'),
           row.updated_at,
           syncField(row, 'deleted_at'),
+          syncField(row, 'created_by_device'),
+          syncField(row, 'updated_by_device'),
         ],
       }
     },

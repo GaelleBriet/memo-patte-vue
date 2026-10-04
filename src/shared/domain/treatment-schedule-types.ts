@@ -4,6 +4,8 @@ export type TreatmentPeriodInput = {
   id: string
   startsOn: string
   firstDueOn: string
+  /** Origine de la grille ; lue à partir du ticket #502, la première échéance en attendant. */
+  referenceOn?: string
   endsOn: string | null
   stoppedOn: string | null
   frequency: Frequency
@@ -12,7 +14,8 @@ export type TreatmentPeriodInput = {
   createdAt: string
 }
 
-export type DoseStatus = 'given' | 'missed' | 'postponed'
+/** `extra` : prise en plus ; `shift` : ligne de décalage des doses suivantes. */
+export type DoseStatus = 'given' | 'missed' | 'postponed' | 'extra' | 'shift'
 
 export type TreatmentDoseInput = {
   id: string

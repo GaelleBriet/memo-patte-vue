@@ -12,6 +12,7 @@ import type { TreatmentDose } from '@/features/treatments/schema/treatment-dose.
 import type { TreatmentPeriodRecord } from '@/features/treatments/schema/treatment-period.schema'
 import type { VaccinationInjection } from '@/features/vaccinations/schema/vaccination-injection.schema'
 import type { WeightEntry } from '@/features/weight/schema/weight.schema'
+import type { Stamped } from '@/shared/domain/carnet-data'
 
 const NOW = new Date('2026-09-15T10:30:00')
 
@@ -20,28 +21,27 @@ const animals: AnimalRecord[] = EXPORT_FIXTURE.animals.map(({ photoFileName, ...
   photoPath: photoFileName,
   deletedAt: null,
 }))
-const injections: VaccinationInjection[] = EXPORT_FIXTURE.vaccinationInjections.map((row) => ({
+const injections: Stamped<VaccinationInjection>[] = EXPORT_FIXTURE.vaccinationInjections.map(
+  (row) => ({
+    ...row,
+    deletedAt: null,
+  }),
+)
+const periods: Stamped<TreatmentPeriodRecord>[] = EXPORT_FIXTURE.treatmentPeriods.map((row) => ({
   ...row,
   deletedAt: null,
 }))
-const periods: TreatmentPeriodRecord[] = EXPORT_FIXTURE.treatmentPeriods.map((row) => ({
-  ...row,
-  deletedAt: null,
-}))
-const doses: TreatmentDose[] = EXPORT_FIXTURE.treatmentDoses.map((row) => ({
+const doses: Stamped<TreatmentDose>[] = EXPORT_FIXTURE.treatmentDoses.map((row) => ({
   ...row,
   frequency: { value: 3, unit: 'month' },
   deletedAt: null,
 }))
-const weightEntries: WeightEntry[] = EXPORT_FIXTURE.weightEntries.map((row) => ({
+const weightEntries: Stamped<WeightEntry>[] = EXPORT_FIXTURE.weightEntries.map((row) => ({
   ...row,
   deletedAt: null,
 }))
 
 function setup(overrides: Partial<DataExportDependencies> = {}) {
-  const listByAnimal = vi.fn<(animalId: string) => Promise<WeightEntry[]>>(async (animalId) =>
-    weightEntries.filter((entry) => entry.animalId === animalId),
-  )
   const deliver = vi.fn<DataExportDependencies['deliver']>(async () => 'shared')
   const service = createDataExportService({
     carnetSettings: () => ({ getRecord: async () => EXPORT_FIXTURE.carnetSettings }),
@@ -49,16 +49,17 @@ function setup(overrides: Partial<DataExportDependencies> = {}) {
     vaccinations: () => ({ listRecords: async () => EXPORT_FIXTURE.vaccinations }),
     vaccinationInjections: () => ({ listAll: async () => injections }),
     treatments: async () => ({ listRecords: async () => EXPORT_FIXTURE.treatments }),
-    treatmentPeriods: () => ({ listAll: async () => periods }),
-    treatmentDoses: () => ({ listAll: async () => doses }),
-    weight: () => ({ listByAnimal }),
+    treatmentPeriods: () => ({ listRecords: async () => periods }),
+    treatmentDoses: () => ({ listRecords: async () => doses }),
+    weight: () => ({ listRecords: async () => weightEntries }),
+    devices: () => ({ listRecords: async () => EXPORT_FIXTURE.devices }),
     deliver,
     now: () => NOW,
     appVersion: '0.1.24',
     weightUnit: () => 'kg',
     ...overrides,
   })
-  return { service, deliver, listByAnimal }
+  return { service, deliver }
 }
 
 function delivered(deliver: ReturnType<typeof setup>['deliver']): ExportFile {
@@ -67,10 +68,20 @@ function delivered(deliver: ReturnType<typeof setup>['deliver']): ExportFile {
 
 describe('data-export.service', () => {
   it('rassemble le carnet complet depuis les repositories, sans suppression logique', async () => {
-    const { service, listByAnimal } = setup()
+    const { service } = setup()
 
     await expect(service.collect()).resolves.toEqual(EXPORT_FIXTURE)
-    expect(listByAnimal.mock.calls.map(([id]) => id)).toEqual([LUNA_ID, MILO_ID])
+  })
+
+  it('n’exporte pas les pesées d’un animal non exporté', async () => {
+    const stray = { ...weightEntries[0]!, id: 'w-orpheline', animalId: 'a-supprime' }
+    const { service } = setup({
+      weight: () => ({ listRecords: async () => [stray, ...weightEntries] }),
+    })
+
+    const { weightEntries: exported } = await service.collect()
+
+    expect(exported.map(({ animalId }) => animalId)).toEqual([LUNA_ID, MILO_ID])
   })
 
   it('exporte `null` pour des réglages du carnet jamais touchés', async () => {
@@ -97,7 +108,7 @@ describe('data-export.service', () => {
   it('n’exporte ni la période d’un traitement non exporté, ni la prise d’une période non exportée', async () => {
     const stray = { ...periods[0]!, id: 'p-orpheline', treatmentId: 't-supprime' }
     const { service } = setup({
-      treatmentPeriods: () => ({ listAll: async () => [stray, periods[1]!] }),
+      treatmentPeriods: () => ({ listRecords: async () => [stray, periods[1]!] }),
     })
 
     const { treatmentPeriods, treatmentDoses } = await service.collect()
@@ -107,7 +118,7 @@ describe('data-export.service', () => {
   })
 
   it('exporte chaque ligne d’un traitement, oubliée ou reportée comprise, sans la fréquence de sa période', async () => {
-    const reportee: TreatmentDose = {
+    const reportee: Stamped<TreatmentDose> = {
       ...doses[0]!,
       id: 'd-reportee',
       dueOn: '2026-09-15',
@@ -116,7 +127,7 @@ describe('data-export.service', () => {
       nextDueDate: '2026-09-20',
     }
     const { service } = setup({
-      treatmentDoses: () => ({ listAll: async () => [reportee, ...doses] }),
+      treatmentDoses: () => ({ listRecords: async () => [reportee, ...doses] }),
     })
 
     const { treatmentDoses } = await service.collect()

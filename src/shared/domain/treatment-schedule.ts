@@ -38,8 +38,17 @@ export function isAdvanced(
   return dose.status === 'postponed' && dose.nextDueDate < dose.dueOn
 }
 
-export function treatmentSchedule(input: TreatmentScheduleInput): TreatmentSchedule {
-  checkInput(input)
+// Retiré quand le moteur lira la prise en plus et la ligne de décalage (#502, #503).
+function withoutNewFamilies(input: TreatmentScheduleInput): TreatmentScheduleInput {
+  return {
+    ...input,
+    doses: input.doses.filter(({ status }) => status !== 'extra' && status !== 'shift'),
+  }
+}
+
+export function treatmentSchedule(checked: TreatmentScheduleInput): TreatmentSchedule {
+  checkInput(checked)
+  const input = withoutNewFamilies(checked)
   const state = build(input)
   const currentPeriodId = state.plans.at(-1)?.period.id ?? null
   const staleDoseIds = state.plans.flatMap((plan) => plan.stale.map(({ id }) => id))

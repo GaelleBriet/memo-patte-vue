@@ -17,12 +17,12 @@ describe('weightRepository — port de synchronisation', () => {
     db = await createInMemoryDb()
     repository = createWeightRepository(db)
     await db.run(
-      `INSERT INTO animal (id, name, species, created_at, updated_at) VALUES (?, 'Milo', 'dog', ?, ?)`,
+      `INSERT INTO animal (id, name, species, created_at, updated_at, created_by_device, updated_by_device) VALUES (?, 'Milo', 'dog', ?, ?, 'appareil-test', 'appareil-test')`,
       [ANIMAL_ID, T_LOCAL, T_LOCAL],
     )
     await db.run(
-      `INSERT INTO weight_entry (id, animal_id, weight_kg, measured_on, created_at, updated_at)
-       VALUES (?, ?, 4.2, '2026-01-01', ?, ?)`,
+      `INSERT INTO weight_entry (id, animal_id, weight_kg, measured_on, created_at, updated_at, created_by_device, updated_by_device)
+       VALUES (?, ?, 4.2, '2026-01-01', ?, ?, 'appareil-test', 'appareil-test')`,
       [WEIGHT_ENTRY_ID, ANIMAL_ID, T_LOCAL, T_LOCAL],
     )
   })
@@ -53,6 +53,8 @@ describe('weightRepository — port de synchronisation', () => {
       created_at: T_LOCAL,
       updated_at: '2026-01-01T00:00:00.000Z',
       deleted_at: null,
+      created_by_device: 'appareil-test',
+      updated_by_device: 'appareil-test',
     }
 
     await db.runMany([repository.applyRemoteRowStatement(remote)])
@@ -69,6 +71,8 @@ describe('weightRepository — port de synchronisation', () => {
       created_at: T_LOCAL,
       updated_at: T_NEW,
       deleted_at: null,
+      created_by_device: 'appareil-test',
+      updated_by_device: 'appareil-test',
     }
 
     await db.runMany([repository.applyRemoteRowStatement(remote)])
@@ -88,6 +92,8 @@ describe('weightRepository — port de synchronisation', () => {
       created_at: T_LOCAL,
       updated_at: T_NEW,
       deleted_at: T_NEW,
+      created_by_device: 'appareil-test',
+      updated_by_device: 'appareil-test',
     }
 
     await db.runMany([repository.applyRemoteRowStatement(remote)])
@@ -114,6 +120,8 @@ describe('weightRepository — port de synchronisation', () => {
     await expect(repository.getRowForPush(WEIGHT_ENTRY_ID)).resolves.toMatchObject({
       updated_at: '2026-01-02T09:00:04.000Z',
       deleted_at: null,
+      created_by_device: 'appareil-test',
+      updated_by_device: 'appareil-test',
     })
   })
 })

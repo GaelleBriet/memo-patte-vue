@@ -13,6 +13,12 @@ export const LUNA_ID = '33333333-3333-4333-8333-333333333333'
 
 type Stamps = { createdAt: string; updatedAt: string }
 
+export const FIXTURE_DEVICE = 'ffffffff-ffff-4fff-8fff-ffffffffffff'
+export const BY_FIXTURE_DEVICE = {
+  createdByDevice: FIXTURE_DEVICE,
+  updatedByDevice: FIXTURE_DEVICE,
+}
+
 export type SummaryAnimal = Pick<
   ExportAnimal,
   'id' | 'name' | 'species' | 'breed' | 'birthDate' | 'photoFileName' | keyof Stamps
@@ -45,6 +51,7 @@ export function animalOf(animal: SummaryAnimal): ExportAnimal {
     unfollowedOn: null,
     departureReason: null,
     departureDate: null,
+    ...BY_FIXTURE_DEVICE,
     ...animal,
   }
 }
@@ -58,6 +65,7 @@ export function periodOf(
 ): ExportTreatmentPeriod {
   return {
     firstDueOn: period.startsOn,
+    referenceOn: period.firstDueOn ?? period.startsOn,
     endsOn: null,
     stoppedOn: null,
     frequency: { value: 1, unit: 'month' },
@@ -66,6 +74,7 @@ export function periodOf(
     doseUnit: null,
     reminderOffsetMinutes: null,
     reminderTime: null,
+    ...BY_FIXTURE_DEVICE,
     ...period,
   }
 }
@@ -87,6 +96,7 @@ export function carnetOf({
       plannedDueDate: null,
       createdAt,
       updatedAt,
+      ...BY_FIXTURE_DEVICE,
     })),
     vaccinationInjections: vaccinations.map((vaccination) => ({
       id: vaccination.id,
@@ -96,6 +106,7 @@ export function carnetOf({
       nextDueDate: vaccination.dueDate,
       createdAt: vaccination.createdAt,
       updatedAt: vaccination.updatedAt,
+      ...BY_FIXTURE_DEVICE,
     })),
     treatments: treatments.map(({ id, animalId, name, type, createdAt, updatedAt }) => ({
       id,
@@ -104,6 +115,7 @@ export function carnetOf({
       type,
       createdAt,
       updatedAt,
+      ...BY_FIXTURE_DEVICE,
     })),
     treatmentPeriods: treatments.map((treatment) =>
       periodOf({
@@ -115,6 +127,7 @@ export function carnetOf({
         stoppedOn: treatment.stoppedOn ?? null,
         createdAt: treatment.createdAt,
         updatedAt: treatment.updatedAt,
+        ...BY_FIXTURE_DEVICE,
       }),
     ),
     treatmentDoses: treatments.map((treatment) => ({
@@ -129,8 +142,10 @@ export function carnetOf({
       nextDueDate: treatment.nextDueDate,
       createdAt: treatment.createdAt,
       updatedAt: treatment.updatedAt,
+      ...BY_FIXTURE_DEVICE,
     })),
     weightEntries,
+    devices: [],
   }
 }
 
@@ -140,6 +155,7 @@ const PANACUR = {
   animalId: MILO_ID,
   createdAt: '2026-09-10T07:00:00.000Z',
   updatedAt: '2026-09-10T07:00:00.000Z',
+  ...BY_FIXTURE_DEVICE,
 } as const
 
 export const EXPORT_FIXTURE: ExportData = {
@@ -148,6 +164,7 @@ export const EXPORT_FIXTURE: ExportData = {
     remindBeforeDue: false,
     createdAt: '2026-01-10T08:00:00.000Z',
     updatedAt: '2026-03-01T08:00:00.000Z',
+    ...BY_FIXTURE_DEVICE,
   },
   animals: [
     animalOf({
@@ -160,6 +177,7 @@ export const EXPORT_FIXTURE: ExportData = {
       photoFileName: '0f6c1c9e-5d6b-4b43-9a57-2f1d8b0c7a11.jpg',
       createdAt: '2026-01-10T08:00:00.000Z',
       updatedAt: '2026-02-01T08:00:00.000Z',
+      ...BY_FIXTURE_DEVICE,
     }),
     animalOf({
       id: MILO_ID,
@@ -173,6 +191,7 @@ export const EXPORT_FIXTURE: ExportData = {
       departureDate: '2026-09-12',
       createdAt: '2026-01-12T08:00:00.000Z',
       updatedAt: '2026-01-12T08:00:00.000Z',
+      ...BY_FIXTURE_DEVICE,
     }),
   ],
   vaccinations: [
@@ -183,6 +202,7 @@ export const EXPORT_FIXTURE: ExportData = {
       plannedDueDate: null,
       createdAt: '2026-01-12T08:05:00.000Z',
       updatedAt: '2026-01-12T08:05:00.000Z',
+      ...BY_FIXTURE_DEVICE,
     },
     {
       id: 'v-typhus',
@@ -191,6 +211,7 @@ export const EXPORT_FIXTURE: ExportData = {
       plannedDueDate: null,
       createdAt: '2026-01-10T08:05:00.000Z',
       updatedAt: '2026-01-10T08:05:00.000Z',
+      ...BY_FIXTURE_DEVICE,
     },
     {
       id: 'v-leucose',
@@ -199,6 +220,7 @@ export const EXPORT_FIXTURE: ExportData = {
       plannedDueDate: '2026-11-02',
       createdAt: '2026-01-10T08:06:00.000Z',
       updatedAt: '2026-01-10T08:06:00.000Z',
+      ...BY_FIXTURE_DEVICE,
     },
   ],
   vaccinationInjections: [
@@ -210,6 +232,7 @@ export const EXPORT_FIXTURE: ExportData = {
       nextDueDate: '2026-09-01',
       createdAt: '2026-01-12T08:05:00.000Z',
       updatedAt: '2026-01-12T08:05:00.000Z',
+      ...BY_FIXTURE_DEVICE,
     },
     {
       id: 'i-chppil-2024',
@@ -219,6 +242,7 @@ export const EXPORT_FIXTURE: ExportData = {
       nextDueDate: '2025-09-01',
       createdAt: '2026-01-12T08:06:00.000Z',
       updatedAt: '2026-01-12T08:06:00.000Z',
+      ...BY_FIXTURE_DEVICE,
     },
     {
       id: 'i-typhus',
@@ -228,6 +252,7 @@ export const EXPORT_FIXTURE: ExportData = {
       nextDueDate: null,
       createdAt: '2026-01-10T08:05:00.000Z',
       updatedAt: '2026-01-10T08:05:00.000Z',
+      ...BY_FIXTURE_DEVICE,
     },
   ],
   treatments: [
@@ -238,6 +263,7 @@ export const EXPORT_FIXTURE: ExportData = {
       type: 'deworming',
       createdAt: '2026-01-10T08:10:00.000Z',
       updatedAt: '2026-06-15T08:10:00.000Z',
+      ...BY_FIXTURE_DEVICE,
     },
     {
       id: 't-panacur',
@@ -246,6 +272,7 @@ export const EXPORT_FIXTURE: ExportData = {
       type: 'deworming',
       createdAt: PANACUR.createdAt,
       updatedAt: PANACUR.updatedAt,
+      ...BY_FIXTURE_DEVICE,
     },
   ],
   treatmentPeriods: [
@@ -257,6 +284,7 @@ export const EXPORT_FIXTURE: ExportData = {
       frequency: { value: 3, unit: 'month' },
       createdAt: '2026-01-10T08:10:00.000Z',
       updatedAt: '2026-06-15T08:10:00.000Z',
+      ...BY_FIXTURE_DEVICE,
     }),
     periodOf({
       id: 'p-panacur',
@@ -271,6 +299,7 @@ export const EXPORT_FIXTURE: ExportData = {
       reminderOffsetMinutes: 30,
       createdAt: PANACUR.createdAt,
       updatedAt: PANACUR.updatedAt,
+      ...BY_FIXTURE_DEVICE,
     }),
   ],
   treatmentDoses: [
@@ -286,6 +315,7 @@ export const EXPORT_FIXTURE: ExportData = {
       nextDueDate: '2026-09-15',
       createdAt: '2026-06-15T08:10:00.000Z',
       updatedAt: '2026-06-15T08:10:00.000Z',
+      ...BY_FIXTURE_DEVICE,
     },
     {
       id: 'd-milbemax-03',
@@ -299,6 +329,7 @@ export const EXPORT_FIXTURE: ExportData = {
       nextDueDate: '2026-06-15',
       createdAt: '2026-01-10T08:10:00.000Z',
       updatedAt: '2026-01-10T08:10:00.000Z',
+      ...BY_FIXTURE_DEVICE,
     },
     {
       ...PANACUR,
@@ -327,6 +358,7 @@ export const EXPORT_FIXTURE: ExportData = {
       measuredOn: '2025-12-24',
       createdAt: '2026-01-10T08:15:00.000Z',
       updatedAt: '2026-01-10T08:15:00.000Z',
+      ...BY_FIXTURE_DEVICE,
     },
     {
       id: 'w-milo-1',
@@ -335,6 +367,16 @@ export const EXPORT_FIXTURE: ExportData = {
       measuredOn: '2026-08-30',
       createdAt: '2026-08-30T08:15:00.000Z',
       updatedAt: '2026-08-30T08:15:00.000Z',
+      ...BY_FIXTURE_DEVICE,
+    },
+  ],
+  devices: [
+    {
+      id: FIXTURE_DEVICE,
+      model: 'Pixel 8',
+      installedAt: '2026-01-10T07:55:00.000Z',
+      createdAt: '2026-01-10T07:55:00.000Z',
+      updatedAt: '2026-01-10T07:55:00.000Z',
     },
   ],
 }

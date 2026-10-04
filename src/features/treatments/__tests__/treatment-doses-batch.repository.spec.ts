@@ -69,13 +69,13 @@ describe('treatmentDosesRepository — écrire ce que rend le moteur', () => {
     doses = createTreatmentDosesRepository(db)
     await db.runMany([
       {
-        sql: `INSERT INTO animal (id, name, species, created_at, updated_at)
-              VALUES (?, 'Luna', 'cat', ?, ?)`,
+        sql: `INSERT INTO animal (id, name, species, created_at, updated_at, created_by_device, updated_by_device)
+              VALUES (?, 'Luna', 'cat', ?, ?, 'appareil-test', 'appareil-test')`,
         params: [LUNA, T0, T0],
       },
       {
-        sql: `INSERT INTO treatment (id, animal_id, name, type, created_at, updated_at)
-              VALUES (?, ?, 'Métacam', 'medication', ?, ?)`,
+        sql: `INSERT INTO treatment (id, animal_id, name, type, created_at, updated_at, created_by_device, updated_by_device)
+              VALUES (?, ?, 'Métacam', 'medication', ?, ?, 'appareil-test', 'appareil-test')`,
         params: [METACAM, LUNA, T0, T0],
       },
       createTreatmentPeriodsRepository(db).insertStatement({

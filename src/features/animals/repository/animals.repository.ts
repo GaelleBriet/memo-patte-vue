@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 
 import type { DbClient, SqlStatement } from '@/core/db/db-client'
 import { getDb } from '@/core/db/sqlite'
+import { currentDeviceId } from '@/core/device/device-identity'
 import { guardedUpsert, type SyncRow } from '@/core/supabase/guarded-upsert'
 import { loadSupabaseClient } from '@/core/supabase/load-client'
 import { syncField, type SyncPullPage } from '@/core/sync/service/syncable-table'
@@ -26,6 +27,8 @@ interface AnimalRow {
   created_at: string
   updated_at: string
   deleted_at: string | null
+  created_by_device: string
+  updated_by_device: string
 }
 
 export type AnimalVersion = Pick<Animal, 'id' | 'photoPath' | 'updatedAt' | 'deletedAt'>
@@ -33,11 +36,13 @@ export type RestoredAnimal = Omit<AnimalRecord, 'deletedAt'>
 
 const COLUMNS =
   'id, name, species, breed, birth_date, birth_date_approximate, photo_path, unfollowed_on, ' +
-  'departure_reason, departure_date, created_at, updated_at, deleted_at'
+  'departure_reason, departure_date, created_at, updated_at, deleted_at, created_by_device, ' +
+  'updated_by_device'
 
 const INSERT = `INSERT INTO animal
-  (id, name, species, breed, birth_date, photo_path, created_at, updated_at)
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+  (id, name, species, breed, birth_date, photo_path, created_at, updated_at, created_by_device,
+   updated_by_device)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
 /** Les animaux supprimés restent en base pour la synchronisation, jamais pour l'UI. */
 const NOT_DELETED = 'deleted_at IS NULL'
@@ -63,16 +68,22 @@ function toAnimalRecord(row: AnimalRow): AnimalRecord {
     unfollowedOn: row.unfollowed_on,
     departureReason: row.departure_reason as AnimalRecord['departureReason'],
     departureDate: row.departure_date,
+    createdByDevice: row.created_by_device,
+    updatedByDevice: row.updated_by_device,
   }
 }
 
 export interface AnimalsRepositoryDependencies {
   loadSupabaseClient?: () => Promise<SupabaseClient>
+  deviceId?: () => string
 }
 
 export function createAnimalsRepository(
   db: DbClient,
-  { loadSupabaseClient: loadClient = loadSupabaseClient }: AnimalsRepositoryDependencies = {},
+  {
+    loadSupabaseClient: loadClient = loadSupabaseClient,
+    deviceId = currentDeviceId,
+  }: AnimalsRepositoryDependencies = {},
 ) {
   async function getById(id: string): Promise<Animal | null> {
     const rows = await db.query<AnimalRow>(
@@ -132,6 +143,8 @@ export function createAnimalsRepository(
             animal.photoPath,
             animal.createdAt,
             animal.updatedAt,
+            deviceId(),
+            deviceId(),
           ],
         },
         ...related(animal),
@@ -146,9 +159,19 @@ export function createAnimalsRepository(
 
       const changes = await db.run(
         `UPDATE animal
-         SET name = ?, species = ?, breed = ?, birth_date = ?, photo_path = ?, updated_at = ?
+         SET name = ?, species = ?, breed = ?, birth_date = ?, photo_path = ?, updated_at = ?,
+             updated_by_device = ?
          WHERE id = ? AND ${NOT_DELETED}`,
-        [data.name, data.species, data.breed, data.birthDate, data.photoPath, updatedAt, id],
+        [
+          data.name,
+          data.species,
+          data.breed,
+          data.birthDate,
+          data.photoPath,
+          updatedAt,
+          deviceId(),
+          id,
+        ],
       )
 
       if (changes === 0) {
@@ -170,8 +193,9 @@ export function createAnimalsRepository(
     ): Promise<void> {
       await db.runMany([
         {
-          sql: `UPDATE animal SET deleted_at = ?, updated_at = ? WHERE id = ? AND ${NOT_DELETED}`,
-          params: [deletedAt, deletedAt, id],
+          sql: `UPDATE animal SET deleted_at = ?, updated_at = ?, updated_by_device = ?
+                WHERE id = ? AND ${NOT_DELETED}`,
+          params: [deletedAt, deletedAt, deviceId(), id],
         },
         ...cascade,
       ])
@@ -190,8 +214,9 @@ export function createAnimalsRepository(
 
     markAllDeletedStatement(deletedAt: string): SqlStatement {
       return {
-        sql: `UPDATE animal SET deleted_at = ?, updated_at = ? WHERE ${NOT_DELETED}`,
-        params: [deletedAt, deletedAt],
+        sql: `UPDATE animal SET deleted_at = ?, updated_at = ?, updated_by_device = ?
+              WHERE ${NOT_DELETED}`,
+        params: [deletedAt, deletedAt, deviceId()],
       }
     },
 
@@ -210,19 +235,21 @@ export function createAnimalsRepository(
         animal.createdAt,
         animal.updatedAt,
       ]
+      const devices = [animal.createdByDevice, animal.updatedByDevice]
       return exists
         ? {
             sql: `UPDATE animal
                   SET name = ?, species = ?, breed = ?, birth_date = ?, birth_date_approximate = ?,
                       photo_path = ?, unfollowed_on = ?, departure_reason = ?, departure_date = ?,
-                      created_at = ?, updated_at = ?, deleted_at = NULL
+                      created_at = ?, updated_at = ?, deleted_at = NULL, created_by_device = ?,
+                      updated_by_device = ?
                   WHERE id = ?`,
-            params: [...values, animal.id],
+            params: [...values, ...devices, animal.id],
           }
         : {
             sql: `INSERT INTO animal (${COLUMNS})
-                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)`,
-            params: [animal.id, ...values],
+                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?)`,
+            params: [animal.id, ...values, ...devices],
           }
     },
 
@@ -264,7 +291,7 @@ export function createAnimalsRepository(
     applyRemoteRowStatement(row: SyncRow): SqlStatement {
       return {
         sql: `INSERT INTO animal (${COLUMNS})
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
               ON CONFLICT (id) DO UPDATE SET
                 name = excluded.name, species = excluded.species, breed = excluded.breed,
                 birth_date = excluded.birth_date,
@@ -272,7 +299,9 @@ export function createAnimalsRepository(
                 photo_path = excluded.photo_path, unfollowed_on = excluded.unfollowed_on,
                 departure_reason = excluded.departure_reason,
                 departure_date = excluded.departure_date, created_at = excluded.created_at,
-                updated_at = excluded.updated_at, deleted_at = excluded.deleted_at
+                updated_at = excluded.updated_at, deleted_at = excluded.deleted_at,
+                created_by_device = excluded.created_by_device,
+                updated_by_device = excluded.updated_by_device
               WHERE excluded.updated_at > animal.updated_at`,
         params: [
           row.id,
@@ -288,6 +317,8 @@ export function createAnimalsRepository(
           syncField(row, 'created_at'),
           row.updated_at,
           syncField(row, 'deleted_at'),
+          syncField(row, 'created_by_device'),
+          syncField(row, 'updated_by_device'),
         ],
       }
     },
