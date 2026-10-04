@@ -333,10 +333,12 @@ class Simulation {
     const gesture = `${this.book.today} ${kind} ${idOf(due)} le ${givenOn}`
     this.log.push(gesture)
     let fields
+    let wroteShift = false
     try {
       const noted =
         kind === 'given' ? before.doseFor({ kind, due, givenOn }) : before.doseFor({ kind, due })
       fields = noted.dose
+      wroteShift = noted.shift !== null
       if (noted.shift !== null) this.book = this.written(this.book, noted.shift)
     } catch (error) {
       return this.fail(`${gesture} : ${String(error)}`)
@@ -344,6 +346,7 @@ class Simulation {
     this.book = this.written(this.book, fields)
     const after = this.schedule()
     this.checkProtected(before, after, () => true, gesture)
+    this.checkWritten(after, due, fields.nextDueDate, gesture)
     const unit = this.book.periods.find(({ id }) => id === due.periodId)?.frequency.unit
     const mayCoincide = unit === 'month' && kind === 'given' && givenOn !== due.dueOn
     const wasUnlogged = before.unloggedDoses.some((unlogged) => idOf(unlogged) === idOf(due))
@@ -351,14 +354,31 @@ class Simulation {
     if (
       kind === 'given' &&
       before.currentDoses.some((current) => idOf(current) === idOf(due)) &&
-      !this.isMovedOnItsOwn(before, due)
+      !this.isMovedOnItsOwn(before, due, wroteShift)
     ) {
       this.checkGap(after, due, givenOn, fields.nextDueDate, gesture)
     }
   }
 
+  // La prochaine dose écrite sur la dernière prise est la première échéance en attente qui la suit :
+  // c'est elle que le Carnet, l'accueil et les rappels lisent.
+  private checkWritten(after: TreatmentSchedule, due: Due, nextDueDate: string, gesture: string) {
+    const period = this.book.periods.find(({ id }) => id === due.periodId)
+    const key = idOf(due)
+    const later = (other: Due) => other.periodId === due.periodId && idOf(other) > key
+    if (after.doses.some((dose) => isNote(dose) && later(dose))) return
+    const expected = pendingOf(after).filter(later)[0]?.dueOn
+    const end = period?.endsOn ?? null
+    if (expected === undefined || (end !== null && nextDueDate > end)) return
+    if (nextDueDate !== expected) {
+      this.fail(
+        `${gesture} : prochaine dose écrite au ${nextDueDate}, le calendrier dit ${expected}`,
+      )
+    }
+  }
+
   // Un décalage resté seul, ou une dose déplacée sans décalage : les doses suivantes gardent leur jour.
-  private isMovedOnItsOwn(before: TreatmentSchedule, due: Due): boolean {
+  private isMovedOnItsOwn(before: TreatmentSchedule, due: Due, wroteShift: boolean): boolean {
     const shiftOn = (line: Due) =>
       before.doses.some(
         (dose) =>
@@ -370,7 +390,7 @@ class Simulation {
         dose.periodId === due.periodId &&
         dose.nextDueDate === due.dueOn,
     )
-    return shiftOn(due) || movedHere.some((move) => !shiftOn(move))
+    return (shiftOn(due) && !wroteShift) || movedHere.some((move) => !shiftOn(move))
   }
 
   // TR-18, Q8 : renseigner ne déplace ni la dose du moment ni les échéances à venir.

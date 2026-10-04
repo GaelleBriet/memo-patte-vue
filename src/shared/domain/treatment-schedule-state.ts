@@ -3,6 +3,7 @@ import { dueId, nextDay, previousDay, sameDue } from './treatment-schedule-dues'
 import {
   closingDay,
   isNoteLine,
+  isShiftLine,
   mergeDoses,
   nextDueAfter,
   notesOf,
@@ -114,10 +115,17 @@ export function stateWithoutDues(state: State, dues: Due[]): State {
   return build({ ...state.input, doses })
 }
 
-// Le carnet sans aucune ligne de cette échéance : le geste qui la note la réécrit entière.
+// Le carnet sans aucune ligne de cette échéance.
 export function stateWithout(state: State, due: Due): State {
   if (!state.lines.has(dueId(due))) return state
   return stateWithoutDues(state, [due])
+}
+
+// Le carnet sans la prise de cette échéance, ni le report qu'elle bat (Q5) : son décalage reste.
+export function stateWithoutNote(state: State, due: Due): State {
+  if (!state.lines.has(dueId(due))) return state
+  const doses = state.input.doses.filter((dose) => !sameDue(dose, due) || isShiftLine(dose))
+  return build({ ...state.input, doses })
 }
 
 // Une prise en avance vise le prochain jour d'échéance : deux jours couvrent chaque heure.

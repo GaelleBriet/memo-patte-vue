@@ -66,6 +66,18 @@ describe('une ligne de décalage autonome (N6) : rien ne se supprime en cascade'
     expect(schedule.doses).toEqual([expect.objectContaining({ status: 'shift' })])
   })
 
+  it('la dose d’origine notée de nouveau, la prochaine dose écrite suit le décalage resté seul', () => {
+    const alone = withoutDose(pixel, lastDose(pixel).id)
+    const due16 = due('2026-10-16')
+    const schedule = scheduleOf(alone, '2026-10-20')
+
+    expect(schedule.doseFor({ kind: 'given', due: due16, givenOn: '2026-10-16' })).toEqual({
+      dose: expect.objectContaining({ nextDueDate: '2026-10-26' }),
+      shift: null,
+    })
+    expect(schedule.doseFor({ kind: 'missed', due: due16 }).dose.nextDueDate).toBe('2026-10-26')
+  })
+
   it('seule, elle ne fait disparaître ni son échéance d’origine ni ce qui la précède', () => {
     const shiftOnly: Carnet = {
       ...carnet(weekly()),

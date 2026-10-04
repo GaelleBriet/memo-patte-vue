@@ -515,7 +515,7 @@ describe('changer la date d’une prise (TR-24 bis, T3)', () => {
         dueTime: null,
         givenOn: '2026-08-28',
         status: 'given',
-        nextDueDate: '2026-09-28',
+        nextDueDate: '2026-10-10',
       },
       shift: {
         action: 'create',
@@ -2072,7 +2072,7 @@ describe('contre-exemples trouvés par le test d’invariants', () => {
     const movedShift = book.doses.find(({ status }) => status === 'shift')
 
     expect(scheduleOf(book, '2026-09-09').redate(september8.id, '2026-09-04')).toEqual({
-      dose: expect.objectContaining({ givenOn: '2026-09-04', nextDueDate: '2026-09-11' }),
+      dose: expect.objectContaining({ givenOn: '2026-09-04', nextDueDate: '2026-09-10' }),
       shift: {
         action: 'create',
         dose: expect.objectContaining({ dueOn: '2026-09-08', nextDueDate: '2026-09-04' }),
