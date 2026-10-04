@@ -28,7 +28,9 @@ import {
   PANACUR_REPORT_ID,
   PANACUR_SOIR_ID,
 } from './import-fixture'
+import { FIXTURE_DEVICE } from './export-fixture'
 import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory-db'
+import { createDeviceRepository } from '@/core/device/device.repository'
 import { createAnimalsRepository } from '@/features/animals/repository/animals.repository'
 import { createTreatmentDosesRepository } from '@/features/treatments/repository/treatment-doses.repository'
 import { createTreatmentPeriodsRepository } from '@/features/treatments/repository/treatment-periods.repository'
@@ -41,6 +43,7 @@ import { seededTreatments } from '@/features/treatments/__tests__/seed-treatment
 import { createTreatmentPlanService } from '@/features/treatments/service/treatment-plan.service'
 
 const NOW = new Date('2026-09-15T10:00:00.000Z')
+const IMPORTEUR = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc'
 const LUNA_PHOTO = IMPORT_FIXTURE.animals[0]!.photoFileName!
 const TABLES = [
   'carnet_settings',
@@ -67,6 +70,7 @@ function createRepositories(client: InMemoryDb) {
     periods: createTreatmentPeriodsRepository(client),
     doses: createTreatmentDosesRepository(client),
     weight: createWeightRepository(client),
+    devices: createDeviceRepository(client),
   }
 }
 
@@ -105,6 +109,8 @@ function importerOn(
     treatmentPeriods: () => to.periods,
     treatmentDoses: () => to.doses,
     weight: () => to.weight,
+    devices: () => to.devices,
+    deviceId: () => IMPORTEUR,
     photoExists: async () => false,
     syncReminders: async () => undefined,
     now,
@@ -131,6 +137,7 @@ function sorted(data: ExportData): ExportData {
     treatmentPeriods: byId(data.treatmentPeriods),
     treatmentDoses: byId(data.treatmentDoses),
     weightEntries: byId(data.weightEntries),
+    devices: byId(data.devices),
   }
 }
 
@@ -145,6 +152,7 @@ async function carnet(client: InMemoryDb = db): Promise<ExportData> {
     treatmentPeriods: () => from.periods,
     treatmentDoses: () => from.doses,
     weight: () => from.weight,
+    devices: () => from.devices,
     deliver: async () => 'shared',
     now: () => NOW,
     appVersion: 'test',
@@ -219,7 +227,7 @@ describe('data-import.service', () => {
       ),
     }
 
-    await service.importData({ schemaVersion: 3, data }, 'replace')
+    await service.importData({ schemaVersion: 4, data }, 'replace')
 
     await expect(repositories.treatments.getById(milbemax!.id)).resolves.toMatchObject({
       type: 'medication',
@@ -523,6 +531,58 @@ describe('data-import.service', () => {
       expect(data.animals.map(({ createdAt }) => createdAt).sort()).toEqual(
         IMPORT_FIXTURE.animals.map(({ createdAt }) => createdAt).sort(),
       )
+    })
+
+    it('une entrée déjà présente prend l’appareil qui importe, une entrée nouvelle garde le sien', async () => {
+      const { service } = setup()
+      await service.importData(IMPORT_FILE, 'replace')
+      const [luna] = (await carnet()).animals
+
+      await service.importData(IMPORT_FILE, 'replace')
+
+      const [lunaAgain] = (await carnet()).animals
+      expect(luna).toMatchObject({
+        createdByDevice: FIXTURE_DEVICE,
+        updatedByDevice: FIXTURE_DEVICE,
+      })
+      expect(lunaAgain).toMatchObject({
+        createdByDevice: FIXTURE_DEVICE,
+        updatedByDevice: IMPORTEUR,
+      })
+    })
+  })
+
+  describe('appareils', () => {
+    it('garde les appareils de l’appareil qui importe, même en remplacement', async () => {
+      const { service } = setup()
+      await repositories.devices.register(
+        { id: IMPORTEUR, installedAt: '2026-09-01T00:00:00.000Z' },
+        'Galaxy Tab S9',
+      )
+
+      await service.importData(IMPORT_FILE, 'replace')
+
+      await expect(repositories.devices.listRecords()).resolves.toEqual([
+        ...IMPORT_FIXTURE.devices,
+        expect.objectContaining({ id: IMPORTEUR, model: 'Galaxy Tab S9' }),
+      ])
+    })
+
+    it('garde la version la plus récente d’un appareil connu des deux côtés', async () => {
+      const { service } = setup()
+      const [pixel] = IMPORT_FIXTURE.devices
+      await db.runMany([
+        repositories.devices.restoreStatement(
+          { ...pixel!, model: 'Pixel 8 Pro', updatedAt: '2026-09-14T00:00:00.000Z' },
+          false,
+        ),
+      ])
+
+      await service.importData(IMPORT_FILE, 'merge')
+
+      await expect(repositories.devices.listRecords()).resolves.toMatchObject([
+        { id: pixel!.id, model: 'Pixel 8 Pro' },
+      ])
     })
   })
 

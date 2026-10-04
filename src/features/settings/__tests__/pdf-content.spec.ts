@@ -23,6 +23,8 @@ const SUMMARY: CarnetSummary = {
       photoFileName: null,
       createdAt: '2026-01-01T00:00:00.000Z',
       updatedAt: '2026-01-01T00:00:00.000Z',
+      createdByDevice: 'appareil-test',
+      updatedByDevice: 'appareil-test',
     },
     {
       id: OTHER_ANIMAL_ID,
@@ -33,6 +35,8 @@ const SUMMARY: CarnetSummary = {
       photoFileName: 'luna.jpg',
       createdAt: '2026-01-01T00:00:00.000Z',
       updatedAt: '2026-01-01T00:00:00.000Z',
+      createdByDevice: 'appareil-test',
+      updatedByDevice: 'appareil-test',
     },
   ],
   vaccinations: [
@@ -44,6 +48,8 @@ const SUMMARY: CarnetSummary = {
       dueDate: '2026-01-01',
       createdAt: '2026-01-01T00:00:00.000Z',
       updatedAt: '2026-01-01T00:00:00.000Z',
+      createdByDevice: 'appareil-test',
+      updatedByDevice: 'appareil-test',
     },
     {
       id: 'v-none',
@@ -53,6 +59,8 @@ const SUMMARY: CarnetSummary = {
       dueDate: null,
       createdAt: '2026-01-01T00:00:00.000Z',
       updatedAt: '2026-01-01T00:00:00.000Z',
+      createdByDevice: 'appareil-test',
+      updatedByDevice: 'appareil-test',
     },
     {
       id: 'v-other-animal',
@@ -62,6 +70,8 @@ const SUMMARY: CarnetSummary = {
       dueDate: '2027-01-01',
       createdAt: '2026-01-01T00:00:00.000Z',
       updatedAt: '2026-01-01T00:00:00.000Z',
+      createdByDevice: 'appareil-test',
+      updatedByDevice: 'appareil-test',
     },
   ],
   treatments: [
@@ -75,6 +85,8 @@ const SUMMARY: CarnetSummary = {
       nextDueDate: '2026-09-01',
       createdAt: '2026-01-01T00:00:00.000Z',
       updatedAt: '2026-01-01T00:00:00.000Z',
+      createdByDevice: 'appareil-test',
+      updatedByDevice: 'appareil-test',
     },
   ],
   weightEntries: [
@@ -85,6 +97,8 @@ const SUMMARY: CarnetSummary = {
       measuredOn: '2026-06-01',
       createdAt: '2026-01-01T00:00:00.000Z',
       updatedAt: '2026-01-01T00:00:00.000Z',
+      createdByDevice: 'appareil-test',
+      updatedByDevice: 'appareil-test',
     },
     {
       id: 'w-1',
@@ -93,6 +107,8 @@ const SUMMARY: CarnetSummary = {
       measuredOn: '2026-01-01',
       createdAt: '2026-01-01T00:00:00.000Z',
       updatedAt: '2026-01-01T00:00:00.000Z',
+      createdByDevice: 'appareil-test',
+      updatedByDevice: 'appareil-test',
     },
   ],
 }
@@ -188,6 +204,8 @@ describe('buildCarnetPdfContent — historique', () => {
       nextDueDate: null,
       createdAt: AT,
       updatedAt: AT,
+      createdByDevice: 'appareil-test',
+      updatedByDevice: 'appareil-test',
     }
   }
 
@@ -213,6 +231,8 @@ describe('buildCarnetPdfContent — historique', () => {
             frequency,
             createdAt: AT,
             updatedAt: AT,
+            createdByDevice: 'appareil-test',
+            updatedByDevice: 'appareil-test',
           }),
         ),
       ],
@@ -228,6 +248,8 @@ describe('buildCarnetPdfContent — historique', () => {
         nextDueDate: '2027-01-01',
         createdAt: AT,
         updatedAt: AT,
+        createdByDevice: 'appareil-test',
+        updatedByDevice: 'appareil-test',
       })),
     }
   }

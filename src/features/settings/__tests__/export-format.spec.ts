@@ -9,7 +9,7 @@ import {
   toCsvTables,
   toJsonExport,
 } from '../logic/export-format'
-import { EXPORT_FIXTURE, LUNA_ID, MILO_ID, periodOf } from './export-fixture'
+import { EXPORT_FIXTURE, FIXTURE_DEVICE, LUNA_ID, MILO_ID, periodOf } from './export-fixture'
 
 const META = { exportedAt: new Date('2026-09-15T10:30:00'), appVersion: '0.1.24' }
 const BOM = '\uFEFF'
@@ -166,7 +166,7 @@ describe('toJsonExport', () => {
 
   it('versionne le document pour l’import', () => {
     expect(parsed.schemaVersion).toBe(EXPORT_SCHEMA_VERSION)
-    expect(parsed.schemaVersion).toBe(3)
+    expect(parsed.schemaVersion).toBe(4)
     expect(parsed.exportedAt).toBe(META.exportedAt.toISOString())
     expect(parsed.appVersion).toBe('0.1.24')
   })
@@ -184,6 +184,7 @@ describe('toJsonExport', () => {
       'treatmentPeriods',
       'treatmentDoses',
       'weightEntries',
+      'devices',
       'reminders',
     ])
     const { reminders, schemaVersion: _, exportedAt: __, appVersion: ___, ...tables } = parsed
@@ -214,6 +215,7 @@ describe('toJsonExport', () => {
       animalId: MILO_ID,
       startsOn: '2026-09-10',
       firstDueOn: '2026-09-10',
+      referenceOn: '2026-09-10',
       endsOn: '2026-09-20',
       stoppedOn: null,
       frequency: { value: 1, unit: 'day' },
@@ -224,6 +226,8 @@ describe('toJsonExport', () => {
       reminderTime: null,
       createdAt: '2026-09-10T07:00:00.000Z',
       updatedAt: '2026-09-10T07:00:00.000Z',
+      createdByDevice: FIXTURE_DEVICE,
+      updatedByDevice: FIXTURE_DEVICE,
     })
   })
 
@@ -240,7 +244,21 @@ describe('toJsonExport', () => {
       nextDueDate: '2026-09-11',
       createdAt: '2026-09-10T07:00:00.000Z',
       updatedAt: '2026-09-10T07:00:00.000Z',
+      createdByDevice: FIXTURE_DEVICE,
+      updatedByDevice: FIXTURE_DEVICE,
     })
+  })
+
+  it('porte les appareils qui ont écrit dans le carnet, nommés par leur modèle et leur installation', () => {
+    expect(parsed.devices).toEqual([
+      {
+        id: FIXTURE_DEVICE,
+        model: 'Pixel 8',
+        installedAt: '2026-01-10T07:55:00.000Z',
+        createdAt: '2026-01-10T07:55:00.000Z',
+        updatedAt: '2026-01-10T07:55:00.000Z',
+      },
+    ])
   })
 
   it('ne répète pas sur un parent la date ni l’échéance portées par ses événements', () => {
@@ -251,6 +269,8 @@ describe('toJsonExport', () => {
       'plannedDueDate',
       'createdAt',
       'updatedAt',
+      'createdByDevice',
+      'updatedByDevice',
     ])
     expect(Object.keys(parsed.treatments[0])).toEqual([
       'id',
@@ -259,6 +279,8 @@ describe('toJsonExport', () => {
       'type',
       'createdAt',
       'updatedAt',
+      'createdByDevice',
+      'updatedByDevice',
     ])
   })
 
@@ -321,7 +343,12 @@ describe('toCsvTables', () => {
   })
 
   it('exporte un médicament sans prise : sa première échéance, aucune dernière prise', () => {
-    const stamps = { createdAt: '2026-09-14T08:00:00.000Z', updatedAt: '2026-09-14T08:00:00.000Z' }
+    const stamps = {
+      createdAt: '2026-09-14T08:00:00.000Z',
+      updatedAt: '2026-09-14T08:00:00.000Z',
+      createdByDevice: 'appareil-test',
+      updatedByDevice: 'appareil-test',
+    }
     const data = {
       ...EXPORT_FIXTURE,
       treatments: [

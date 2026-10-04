@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 
 import type { DbClient, SqlStatement } from '@/core/db/db-client'
 import { getDb } from '@/core/db/sqlite'
+import { currentDeviceId } from '@/core/device/device-identity'
 import { guardedUpsert, type SyncRow } from '@/core/supabase/guarded-upsert'
 import { loadSupabaseClient } from '@/core/supabase/load-client'
 import { syncField, type SyncPullPage } from '@/core/sync/service/syncable-table'
@@ -17,6 +18,7 @@ import {
   type VaccinationInput,
   type VaccinationUpdateInput,
 } from '../schema/vaccination.schema'
+import type { DeviceStamps } from '@/shared/domain/carnet-data'
 
 interface VaccinationRow {
   id: string
@@ -26,9 +28,14 @@ interface VaccinationRow {
   created_at: string
   updated_at: string
   deleted_at: string | null
+  created_by_device: string
+  updated_by_device: string
 }
 
-interface VaccinationWithHeadRow extends Omit<VaccinationRow, 'planned_due_date'> {
+interface VaccinationWithHeadRow extends Omit<
+  VaccinationRow,
+  'planned_due_date' | 'created_by_device' | 'updated_by_device'
+> {
   last_injection_date: string | null
   due_date: string | null
 }
@@ -38,10 +45,12 @@ export type VaccinationVersion = Pick<Vaccination, 'id' | 'animalId' | 'updatedA
 export type VaccinationRecord = Pick<
   Vaccination,
   'id' | 'animalId' | 'name' | 'createdAt' | 'updatedAt'
-> & { plannedDueDate: string | null }
+> & { plannedDueDate: string | null } & DeviceStamps
 export type RestoredVaccination = VaccinationRecord
 
-const COLUMNS = 'id, animal_id, name, planned_due_date, created_at, updated_at, deleted_at'
+const COLUMNS =
+  'id, animal_id, name, planned_due_date, created_at, updated_at, deleted_at, created_by_device, ' +
+  'updated_by_device'
 
 /** Les vaccins supprimés restent en base pour la synchronisation, jamais pour l'UI. */
 const NOT_DELETED = 'deleted_at IS NULL'
@@ -72,13 +81,17 @@ function toVaccination(row: VaccinationWithHeadRow): Vaccination {
 
 export interface VaccinationsRepositoryDependencies {
   loadSupabaseClient?: () => Promise<SupabaseClient>
+  deviceId?: () => string
 }
 
 export function createVaccinationsRepository(
   db: DbClient,
-  { loadSupabaseClient: loadClient = loadSupabaseClient }: VaccinationsRepositoryDependencies = {},
+  {
+    loadSupabaseClient: loadClient = loadSupabaseClient,
+    deviceId = currentDeviceId,
+  }: VaccinationsRepositoryDependencies = {},
 ) {
-  const injections = createVaccinationInjectionsRepository(db)
+  const injections = createVaccinationInjectionsRepository(db, { deviceId })
 
   async function getById(id: string): Promise<Vaccination | null> {
     const rows = await db.query<VaccinationWithHeadRow>(
@@ -132,6 +145,8 @@ export function createVaccinationsRepository(
         plannedDueDate: row.planned_due_date,
         createdAt: row.created_at,
         updatedAt: row.updated_at,
+        createdByDevice: row.created_by_device,
+        updatedByDevice: row.updated_by_device,
       }))
     },
 
@@ -148,8 +163,16 @@ export function createVaccinationsRepository(
 
       await db.runMany([
         {
-          sql: `INSERT INTO vaccination (${COLUMNS}) VALUES (?, ?, ?, NULL, ?, ?, NULL)`,
-          params: [vaccination.id, vaccination.animalId, vaccination.name, now, now],
+          sql: `INSERT INTO vaccination (${COLUMNS}) VALUES (?, ?, ?, NULL, ?, ?, NULL, ?, ?)`,
+          params: [
+            vaccination.id,
+            vaccination.animalId,
+            vaccination.name,
+            now,
+            now,
+            deviceId(),
+            deviceId(),
+          ],
         },
         injections.insertStatement({
           id: vaccination.id,
@@ -174,8 +197,9 @@ export function createVaccinationsRepository(
 
       await db.runMany([
         {
-          sql: `UPDATE vaccination SET name = ?, updated_at = ? WHERE id = ? AND ${NOT_DELETED}`,
-          params: [data.name, updatedAt, id],
+          sql: `UPDATE vaccination SET name = ?, updated_at = ?, updated_by_device = ?
+                WHERE id = ? AND ${NOT_DELETED}`,
+          params: [data.name, updatedAt, deviceId(), id],
         },
         injections.updateHeadStatement(id, {
           injectedOn: data.lastInjectionDate,
@@ -196,8 +220,9 @@ export function createVaccinationsRepository(
       const deletedAt = new Date().toISOString()
       await db.runMany([
         {
-          sql: `UPDATE vaccination SET deleted_at = ?, updated_at = ? WHERE id = ? AND ${NOT_DELETED}`,
-          params: [deletedAt, deletedAt, id],
+          sql: `UPDATE vaccination SET deleted_at = ?, updated_at = ?, updated_by_device = ?
+                WHERE id = ? AND ${NOT_DELETED}`,
+          params: [deletedAt, deletedAt, deviceId(), id],
         },
         injections.markDeletedByVaccinationStatement(id, deletedAt),
       ])
@@ -206,8 +231,9 @@ export function createVaccinationsRepository(
     /** Instruction fournie sans être exécutée : la suppression d'un animal la joue dans sa transaction. */
     markDeletedByAnimalStatement(animalId: string, deletedAt: string): SqlStatement {
       return {
-        sql: `UPDATE vaccination SET deleted_at = ?, updated_at = ? WHERE animal_id = ? AND ${NOT_DELETED}`,
-        params: [deletedAt, deletedAt, animalId],
+        sql: `UPDATE vaccination SET deleted_at = ?, updated_at = ?, updated_by_device = ?
+              WHERE animal_id = ? AND ${NOT_DELETED}`,
+        params: [deletedAt, deletedAt, deviceId(), animalId],
       }
     },
 
@@ -224,25 +250,27 @@ export function createVaccinationsRepository(
 
     markAllDeletedStatement(deletedAt: string): SqlStatement {
       return {
-        sql: `UPDATE vaccination SET deleted_at = ?, updated_at = ? WHERE ${NOT_DELETED}`,
-        params: [deletedAt, deletedAt],
+        sql: `UPDATE vaccination SET deleted_at = ?, updated_at = ?, updated_by_device = ?
+              WHERE ${NOT_DELETED}`,
+        params: [deletedAt, deletedAt, deviceId()],
       }
     },
 
     /** Reprend les dates du fichier importé et rend la ligne visible, sans la changer d'animal. */
     restoreStatement(vaccination: RestoredVaccination, exists: boolean): SqlStatement {
       const { id, animalId, name, plannedDueDate, createdAt, updatedAt } = vaccination
+      const devices = [vaccination.createdByDevice, vaccination.updatedByDevice]
       return exists
         ? {
             sql: `UPDATE vaccination
                   SET name = ?, planned_due_date = ?, created_at = ?, updated_at = ?,
-                      deleted_at = NULL
+                      deleted_at = NULL, created_by_device = ?, updated_by_device = ?
                   WHERE id = ?`,
-            params: [name, plannedDueDate, createdAt, updatedAt, id],
+            params: [name, plannedDueDate, createdAt, updatedAt, ...devices, id],
           }
         : {
-            sql: `INSERT INTO vaccination (${COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, NULL)`,
-            params: [id, animalId, name, plannedDueDate, createdAt, updatedAt],
+            sql: `INSERT INTO vaccination (${COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, NULL, ?, ?)`,
+            params: [id, animalId, name, plannedDueDate, createdAt, updatedAt, ...devices],
           }
     },
 
@@ -282,12 +310,13 @@ export function createVaccinationsRepository(
     applyRemoteRowStatement(row: SyncRow): SqlStatement {
       return {
         sql: `INSERT INTO vaccination (${COLUMNS})
-              VALUES (?, ?, ?, ?, ?, ?, ?)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
               ON CONFLICT (id) DO UPDATE SET
                 animal_id = excluded.animal_id, name = excluded.name,
                 planned_due_date = excluded.planned_due_date,
                 created_at = excluded.created_at, updated_at = excluded.updated_at,
-                deleted_at = excluded.deleted_at
+                deleted_at = excluded.deleted_at, created_by_device = excluded.created_by_device,
+                updated_by_device = excluded.updated_by_device
               WHERE excluded.updated_at > vaccination.updated_at`,
         params: [
           row.id,
@@ -297,6 +326,8 @@ export function createVaccinationsRepository(
           syncField(row, 'created_at'),
           row.updated_at,
           syncField(row, 'deleted_at'),
+          syncField(row, 'created_by_device'),
+          syncField(row, 'updated_by_device'),
         ],
       }
     },

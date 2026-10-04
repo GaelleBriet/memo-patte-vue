@@ -1,6 +1,7 @@
 import { watch } from 'vue'
 
 import { onAppResume } from '@/core/app-lifecycle/app-resume'
+import { getDeviceRepository } from '@/core/device/device.repository'
 import { createLocalSyncContext } from '@/core/sync/service/local-sync-context'
 import { onNetworkOnline } from '@/core/sync/service/network-status'
 import type { SyncCycleOutbox } from '@/core/sync/service/sync-cycle'
@@ -50,6 +51,7 @@ export async function installSync(deps: SyncDependencies): Promise<() => void> {
 /** Composition réelle : les repositories sur la base de l'appareil, le statut Plus des stores. */
 export async function createDefaultSyncDependencies(): Promise<SyncDependencies> {
   const tables: SyncableTable[] = [
+    await getDeviceRepository(),
     await getAnimalsRepository(),
     await getVaccinationsRepository(),
     await getVaccinationInjectionsRepository(),

@@ -49,8 +49,8 @@ describe('treatmentPlanService', () => {
     db = await createInMemoryDb()
     await db.execute('PRAGMA foreign_keys = ON')
     await db.run(
-      `INSERT INTO animal (id, name, species, created_at, updated_at)
-       VALUES (?, 'Milo', 'dog', ?, ?)`,
+      `INSERT INTO animal (id, name, species, created_at, updated_at, created_by_device, updated_by_device)
+       VALUES (?, 'Milo', 'dog', ?, ?, 'appareil-test', 'appareil-test')`,
       [MILO, T0, T0],
     )
     treatments = createTreatmentsRepository(db)
@@ -306,8 +306,8 @@ describe('treatmentPlanService', () => {
           db = await createInMemoryDb()
           await db.execute('PRAGMA foreign_keys = ON')
           await db.run(
-            `INSERT INTO animal (id, name, species, created_at, updated_at)
-             VALUES (?, 'Milo', 'dog', ?, ?)`,
+            `INSERT INTO animal (id, name, species, created_at, updated_at, created_by_device, updated_by_device)
+             VALUES (?, 'Milo', 'dog', ?, ?, 'appareil-test', 'appareil-test')`,
             [MILO, T0, T0],
           )
           treatments = createTreatmentsRepository(db)

@@ -81,6 +81,8 @@ describe('carnetSettingsRepository', () => {
         created_at: '2026-10-01T08:00:00.000Z',
         updated_at: '2026-10-02T08:00:00.000Z',
         deleted_at: null,
+        created_by_device: expect.any(String),
+        updated_by_device: expect.any(String),
       },
     ])
   })
@@ -120,6 +122,8 @@ describe('carnetSettingsRepository', () => {
       remindBeforeDue: false,
       createdAt: '2026-01-10T08:00:00.000Z',
       updatedAt: '2026-02-01T08:00:00.000Z',
+      createdByDevice: 'appareil-du-fichier',
+      updatedByDevice: 'appareil-du-fichier',
     }
     const LATER = '2030-01-01T09:00:00.000Z'
 

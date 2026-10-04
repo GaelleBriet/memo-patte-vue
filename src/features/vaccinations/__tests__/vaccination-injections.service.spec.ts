@@ -45,8 +45,8 @@ describe('vaccinationInjectionsService', () => {
     db = await createInMemoryDb()
     await db.execute('PRAGMA foreign_keys = ON')
     await db.run(
-      `INSERT INTO animal (id, name, species, created_at, updated_at)
-       VALUES (?, 'Boree', 'dog', ?, ?)`,
+      `INSERT INTO animal (id, name, species, created_at, updated_at, created_by_device, updated_by_device)
+       VALUES (?, 'Boree', 'dog', ?, ?, 'appareil-test', 'appareil-test')`,
       [BOREE, NOW.toISOString(), NOW.toISOString()],
     )
     vaccinations = createVaccinationsRepository(db)

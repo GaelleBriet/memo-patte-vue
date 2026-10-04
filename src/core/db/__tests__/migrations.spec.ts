@@ -10,6 +10,8 @@ const MILO = '11111111-1111-4111-8111-111111111111'
 const RAGE = '33333333-3333-4333-8333-333333333333'
 const BRAVECTO = '44444444-4444-4444-8444-444444444444'
 const CARNET_SETTINGS_ID = '00000000-0000-0000-0000-000000000000'
+const APPAREIL = '99999999-9999-4999-8999-999999999999'
+const PAR_APPAREIL = { created_by_device: APPAREIL, updated_by_device: APPAREIL }
 
 const LIMITE = 'a'.repeat(MAX_NAME_LENGTH)
 const TROP_LONG = `${LIMITE}a`
@@ -53,6 +55,7 @@ function insertAnimal(db: InMemoryDb, values: Record<string, string | number | n
     species: 'dog',
     created_at: NOW,
     updated_at: NOW,
+    ...PAR_APPAREIL,
     ...values,
   }
   const names = Object.keys(row)
@@ -63,9 +66,9 @@ function insertAnimal(db: InMemoryDb, values: Record<string, string | number | n
 }
 
 describe('migrations', () => {
-  it('contient la v9, qui crée le schéma entier, puis la v10 des traitements', () => {
-    expect(migrations.map(({ toVersion }) => toVersion)).toEqual([9, 10])
-    expect(DATABASE_VERSION).toBe(10)
+  it('contient la v9 et la v11, qui créent le schéma entier, et la v10 des traitements', () => {
+    expect(migrations.map(({ toVersion }) => toVersion)).toEqual([9, 10, 11])
+    expect(DATABASE_VERSION).toBe(11)
   })
 })
 
@@ -107,6 +110,7 @@ describe('schéma sur une installation neuve', () => {
     expect(rows.map(({ name }) => name)).toEqual([
       'animal',
       'carnet_settings',
+      'device',
       'sync_outbox',
       'sync_pull_cursor',
       'sync_state',
@@ -156,6 +160,8 @@ describe('schéma sur une installation neuve', () => {
         'created_at',
         'updated_at',
         'deleted_at',
+        'created_by_device',
+        'updated_by_device',
       ])
     })
 
@@ -200,6 +206,8 @@ describe('schéma sur une installation neuve', () => {
       'created_at',
       'updated_at',
       'deleted_at',
+      'created_by_device',
+      'updated_by_device',
     ])
     expect(await foreignKeys(db, 'weight_entry')).toMatchObject([
       { table: 'animal', from: 'animal_id', to: 'id', on_delete: 'CASCADE' },
@@ -216,6 +224,8 @@ describe('schéma sur une installation neuve', () => {
         'created_at',
         'updated_at',
         'deleted_at',
+        'created_by_device',
+        'updated_by_device',
       ])
       expect((await columns(db, 'vaccination')).get('planned_due_date')?.notnull).toBe(0)
       expect(await foreignKeys(db, 'vaccination')).toMatchObject([
@@ -228,8 +238,9 @@ describe('schéma sur une installation neuve', () => {
 
       await expect(
         db.run(
-          `INSERT INTO vaccination (id, animal_id, name, planned_due_date, created_at, updated_at)
-           VALUES (?, ?, 'Rage', '2026-10-05', ?, ?)`,
+          `INSERT INTO vaccination (id, animal_id, name, planned_due_date, created_at, updated_at,
+           created_by_device, updated_by_device)
+           VALUES (?, ?, 'Rage', '2026-10-05', ?, ?, '${APPAREIL}', '${APPAREIL}')`,
           [RAGE, MILO, NOW, NOW],
         ),
       ).resolves.toBe(1)
@@ -238,8 +249,9 @@ describe('schéma sur une installation neuve', () => {
     it('refuse un vaccin rattaché à un animal inexistant', async () => {
       await expect(
         db.run(
-          `INSERT INTO vaccination (id, animal_id, name, created_at, updated_at)
-           VALUES (?, 'inconnu', 'Rage', ?, ?)`,
+          `INSERT INTO vaccination (id, animal_id, name, created_at, updated_at,
+           created_by_device, updated_by_device)
+           VALUES (?, 'inconnu', 'Rage', ?, ?, '${APPAREIL}', '${APPAREIL}')`,
           [RAGE, NOW, NOW],
         ),
       ).rejects.toThrow(/FOREIGN KEY constraint failed/)
@@ -255,6 +267,8 @@ describe('schéma sur une installation neuve', () => {
         'created_at',
         'updated_at',
         'deleted_at',
+        'created_by_device',
+        'updated_by_device',
       ])
     })
   })
@@ -271,6 +285,7 @@ describe('schéma sur une installation neuve', () => {
         type: 'antiparasitic',
         created_at: NOW,
         updated_at: NOW,
+        ...PAR_APPAREIL,
         ...values,
       }
       const names = Object.keys(row)
@@ -287,10 +302,12 @@ describe('schéma sur une installation neuve', () => {
         animal_id: MILO,
         starts_on: '2026-07-08',
         first_due_on: '2026-07-08',
+        reference_on: '2026-07-08',
         frequency_value: 3,
         frequency_unit: 'month',
         created_at: NOW,
         updated_at: NOW,
+        ...PAR_APPAREIL,
         ...values,
       }
       const names = Object.keys(row)
@@ -313,6 +330,7 @@ describe('schéma sur une installation neuve', () => {
         next_due_date: '2026-10-08',
         created_at: NOW,
         updated_at: NOW,
+        ...PAR_APPAREIL,
         ...values,
       }
       const names = Object.keys(row)
@@ -336,6 +354,8 @@ describe('schéma sur une installation neuve', () => {
         'created_at',
         'updated_at',
         'deleted_at',
+        'created_by_device',
+        'updated_by_device',
       ])
       expect(await foreignKeys(db, 'treatment')).toMatchObject([
         { table: 'animal', from: 'animal_id', to: 'id', on_delete: 'CASCADE' },
@@ -362,6 +382,7 @@ describe('schéma sur une installation neuve', () => {
         'animal_id',
         'starts_on',
         'first_due_on',
+        'reference_on',
         'ends_on',
         'stopped_on',
         'frequency_value',
@@ -374,6 +395,8 @@ describe('schéma sur une installation neuve', () => {
         'created_at',
         'updated_at',
         'deleted_at',
+        'created_by_device',
+        'updated_by_device',
       ])
       expect(await foreignKeys(db, 'treatment_period')).toEqual(
         expect.arrayContaining([
@@ -478,6 +501,8 @@ describe('schéma sur une installation neuve', () => {
         'created_at',
         'updated_at',
         'deleted_at',
+        'created_by_device',
+        'updated_by_device',
       ])
       expect(await foreignKeys(db, 'treatment_dose')).toEqual(
         expect.arrayContaining(
@@ -492,13 +517,26 @@ describe('schéma sur une installation neuve', () => {
       )
     })
 
-    it.each(['given', 'missed', 'postponed'])('accepte une prise à l’état %s', async (status) => {
-      await insertTreatment()
-      await insertPeriod()
+    it.each(['given', 'missed', 'postponed', 'extra', 'shift'])(
+      'accepte une prise à l’état %s',
+      async (status) => {
+        await insertTreatment()
+        await insertPeriod()
 
-      await expect(
-        insertDose({ status, given_on: status === 'given' ? '2026-07-08' : null }),
-      ).resolves.toBe(1)
+        await expect(
+          insertDose({
+            status,
+            given_on: ['given', 'extra'].includes(status) ? '2026-07-08' : null,
+          }),
+        ).resolves.toBe(1)
+      },
+    )
+
+    it('exige le jour de référence de la période', async () => {
+      await insertTreatment()
+
+      expect((await columns(db, 'treatment_period')).get('reference_on')?.notnull).toBe(1)
+      await expect(insertPeriod({ reference_on: null })).rejects.toThrow(/NOT NULL/)
     })
 
     it('garde une prise sans heure ni date réelle', async () => {
@@ -524,7 +562,13 @@ describe('schéma sur une installation neuve', () => {
 
   describe('carnet_settings', () => {
     function insertSettings(values: Record<string, string | number | null> = {}) {
-      const row = { id: CARNET_SETTINGS_ID, created_at: NOW, updated_at: NOW, ...values }
+      const row = {
+        id: CARNET_SETTINGS_ID,
+        created_at: NOW,
+        updated_at: NOW,
+        ...PAR_APPAREIL,
+        ...values,
+      }
       const names = Object.keys(row)
       return db.run(
         `INSERT INTO carnet_settings (${names.join(', ')})
@@ -590,6 +634,41 @@ describe('schéma sur une installation neuve', () => {
     ])
   })
 
+  describe('appareils', () => {
+    it('garde chaque appareil : identifiant, modèle et date d’installation', async () => {
+      expect(await columnNames(db, 'device')).toEqual([
+        'id',
+        'model',
+        'installed_at',
+        'created_at',
+        'updated_at',
+        'deleted_at',
+      ])
+      expect((await columns(db, 'device')).get('model')?.notnull).toBe(0)
+    })
+
+    it.each([
+      'animal',
+      'weight_entry',
+      'carnet_settings',
+      'vaccination',
+      'vaccination_injection',
+      'treatment',
+      'treatment_period',
+      'treatment_dose',
+    ])('exige sur %s l’appareil qui a créé la ligne et celui qui l’a modifiée', async (table) => {
+      const tableColumns = await columns(db, table)
+
+      expect(tableColumns.get('created_by_device')?.notnull).toBe(1)
+      expect(tableColumns.get('updated_by_device')?.notnull).toBe(1)
+    })
+
+    it('refuse une ligne sans appareil', async () => {
+      await expect(insertAnimal(db, { created_by_device: null })).rejects.toThrow(/NOT NULL/)
+      await expect(insertAnimal(db, { updated_by_device: null })).rejects.toThrow(/NOT NULL/)
+    })
+  })
+
   it('met en file d’envoi chaque table synchronisée, réglages et périodes compris', async () => {
     const outboxTriggers = (await schemaObjects(db, 'trigger')).filter((name) =>
       name.includes('_outbox_'),
@@ -599,6 +678,7 @@ describe('schéma sur une installation neuve', () => {
       [
         'animal',
         'carnet_settings',
+        'device',
         'treatment',
         'treatment_dose',
         'treatment_period',
@@ -616,13 +696,15 @@ describe('schéma sur une installation neuve', () => {
       await insertAnimal(db)
       await db.runMany([
         {
-          sql: `INSERT INTO vaccination (id, animal_id, name, created_at, updated_at)
-                VALUES (?, ?, 'Rage', ?, ?)`,
+          sql: `INSERT INTO vaccination (id, animal_id, name, created_at, updated_at,
+           created_by_device, updated_by_device)
+                VALUES (?, ?, 'Rage', ?, ?, '${APPAREIL}', '${APPAREIL}')`,
           params: [RAGE, MILO, NOW, NOW],
         },
         {
-          sql: `INSERT INTO treatment (id, animal_id, name, type, created_at, updated_at)
-                VALUES (?, ?, 'Bravecto', 'antiparasitic', ?, ?)`,
+          sql: `INSERT INTO treatment (id, animal_id, name, type, created_at, updated_at,
+           created_by_device, updated_by_device)
+                VALUES (?, ?, 'Bravecto', 'antiparasitic', ?, ?, '${APPAREIL}', '${APPAREIL}')`,
           params: [BRAVECTO, MILO, NOW, NOW],
         },
       ])
@@ -630,20 +712,24 @@ describe('schéma sur une installation neuve', () => {
 
     const insertions = {
       'le nom d’un animal': (name: string) => ({
-        sql: `INSERT INTO animal (id, name, species, created_at, updated_at) VALUES ('a-neuf', ?, 'dog', ?, ?)`,
+        sql: `INSERT INTO animal (id, name, species, created_at, updated_at,
+           created_by_device, updated_by_device) VALUES ('a-neuf', ?, 'dog', ?, ?, '${APPAREIL}', '${APPAREIL}')`,
         params: [name, NOW, NOW],
       }),
       'la race d’un animal': (breed: string) => ({
-        sql: `INSERT INTO animal (id, name, species, breed, created_at, updated_at) VALUES ('a-neuf', 'Luna', 'cat', ?, ?, ?)`,
+        sql: `INSERT INTO animal (id, name, species, breed, created_at, updated_at,
+           created_by_device, updated_by_device) VALUES ('a-neuf', 'Luna', 'cat', ?, ?, ?, '${APPAREIL}', '${APPAREIL}')`,
         params: [breed, NOW, NOW],
       }),
       'le nom d’un vaccin': (name: string) => ({
-        sql: `INSERT INTO vaccination (id, animal_id, name, created_at, updated_at) VALUES ('v-neuf', ?, ?, ?, ?)`,
+        sql: `INSERT INTO vaccination (id, animal_id, name, created_at, updated_at,
+           created_by_device, updated_by_device) VALUES ('v-neuf', ?, ?, ?, ?, '${APPAREIL}', '${APPAREIL}')`,
         params: [MILO, name, NOW, NOW],
       }),
       'le nom d’un traitement': (name: string) => ({
-        sql: `INSERT INTO treatment (id, animal_id, name, type, created_at, updated_at)
-              VALUES ('t-neuf', ?, ?, 'deworming', ?, ?)`,
+        sql: `INSERT INTO treatment (id, animal_id, name, type, created_at, updated_at,
+           created_by_device, updated_by_device)
+              VALUES ('t-neuf', ?, ?, 'deworming', ?, ?, '${APPAREIL}', '${APPAREIL}')`,
         params: [MILO, name, NOW, NOW],
       }),
     }

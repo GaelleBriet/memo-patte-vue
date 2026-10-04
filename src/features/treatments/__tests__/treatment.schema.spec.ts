@@ -180,8 +180,8 @@ describe('treatmentDoseSchema', () => {
     )
   })
 
-  it('accepte les trois états, et une prise sans date réelle', () => {
-    expect(DOSE_STATUSES).toEqual(['given', 'missed', 'postponed'])
+  it('accepte les cinq états, et une prise sans date réelle', () => {
+    expect(DOSE_STATUSES).toEqual(['given', 'missed', 'postponed', 'extra', 'shift'])
     expect(
       treatmentDoseSchema.safeParse({ ...dose, status: 'missed', givenOn: null }).success,
     ).toBe(true)

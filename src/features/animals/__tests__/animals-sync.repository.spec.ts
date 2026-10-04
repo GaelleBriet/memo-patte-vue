@@ -84,8 +84,8 @@ describe('animalsRepository — port de synchronisation', () => {
     db = await createInMemoryDb()
     repository = createAnimalsRepository(db)
     await db.run(
-      `INSERT INTO animal (id, name, species, created_at, updated_at)
-       VALUES (?, 'Milo', 'dog', ?, ?)`,
+      `INSERT INTO animal (id, name, species, created_at, updated_at, created_by_device, updated_by_device)
+       VALUES (?, 'Milo', 'dog', ?, ?, 'appareil-test', 'appareil-test')`,
       [ANIMAL_ID, T_LOCAL, T_LOCAL],
     )
   })
@@ -125,6 +125,8 @@ describe('animalsRepository — port de synchronisation', () => {
       created_at: T_OLD,
       updated_at: T_OLD,
       deleted_at: null,
+      created_by_device: 'appareil-test',
+      updated_by_device: 'appareil-test',
     }
 
     await db.runMany([repository.applyRemoteRowStatement(remote)])
@@ -151,6 +153,8 @@ describe('animalsRepository — port de synchronisation', () => {
       created_at: T_LOCAL,
       updated_at: T_LOCAL,
       deleted_at: null,
+      created_by_device: 'appareil-test',
+      updated_by_device: 'appareil-test',
     }
 
     await db.runMany([repository.applyRemoteRowStatement(remote)])
@@ -176,6 +180,8 @@ describe('animalsRepository — port de synchronisation', () => {
       created_at: T_LOCAL,
       updated_at: T_NEW,
       deleted_at: null,
+      created_by_device: 'appareil-test',
+      updated_by_device: 'appareil-test',
     }
 
     await db.runMany([repository.applyRemoteRowStatement(remote)])
@@ -209,6 +215,8 @@ describe('animalsRepository — port de synchronisation', () => {
       created_at: T_LOCAL,
       updated_at: T_NEW,
       deleted_at: T_NEW,
+      created_by_device: 'appareil-test',
+      updated_by_device: 'appareil-test',
     }
 
     await db.runMany([repository.applyRemoteRowStatement(remote)])
@@ -237,6 +245,8 @@ describe('animalsRepository — port de synchronisation', () => {
       created_at: T_NEW,
       updated_at: T_NEW,
       deleted_at: null,
+      created_by_device: 'appareil-test',
+      updated_by_device: 'appareil-test',
     }
 
     await db.runMany([repository.applyRemoteRowStatement(remote)])

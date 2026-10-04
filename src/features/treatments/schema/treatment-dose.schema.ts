@@ -3,7 +3,7 @@ import { z } from 'zod'
 import type { TreatmentFrequency } from './treatment.schema'
 import { CLOCK_TIME_PATTERN } from '@/shared/domain/clock-time'
 
-export const DOSE_STATUSES = ['given', 'missed', 'postponed'] as const
+export const DOSE_STATUSES = ['given', 'missed', 'postponed', 'extra', 'shift'] as const
 
 export const treatmentDoseSchema = z.object({
   id: z.uuid(),

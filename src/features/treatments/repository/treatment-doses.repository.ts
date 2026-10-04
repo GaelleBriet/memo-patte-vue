@@ -2,14 +2,16 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 
 import type { DbClient, SqlParam, SqlStatement } from '@/core/db/db-client'
 import { getDb } from '@/core/db/sqlite'
+import { currentDeviceId } from '@/core/device/device-identity'
 import { guardedUpsert, type SyncRow } from '@/core/supabase/guarded-upsert'
 import { loadSupabaseClient } from '@/core/supabase/load-client'
 import { syncField, type SyncPullPage } from '@/core/sync/service/syncable-table'
 import type { NewTreatmentDose, TreatmentDose } from '../schema/treatment-dose.schema'
 import type { FrequencyUnit } from '../schema/treatment.schema'
+import type { Stamped } from '@/shared/domain/carnet-data'
 import type { DoseFields } from '@/shared/domain/treatment-schedule'
 
-export type RestoredTreatmentDose = Omit<NewTreatmentDose, 'deletedAt'>
+export type RestoredTreatmentDose = Omit<Stamped<NewTreatmentDose>, 'deletedAt'>
 export type TreatmentDoseVersion = Pick<
   NewTreatmentDose,
   'id' | 'periodId' | 'treatmentId' | 'updatedAt' | 'deletedAt'
@@ -39,6 +41,8 @@ interface DoseRow {
   created_at: string
   updated_at: string
   deleted_at: string | null
+  created_by_device: string
+  updated_by_device: string
 }
 
 interface DoseWithFrequencyRow extends DoseRow {
@@ -52,7 +56,8 @@ type DoseVersionRow = Pick<
 >
 
 const COLUMNS =
-  'id, period_id, treatment_id, animal_id, due_on, due_time, given_on, status, next_due_date, created_at, updated_at, deleted_at'
+  'id, period_id, treatment_id, animal_id, due_on, due_time, given_on, status, next_due_date, ' +
+  'created_at, updated_at, deleted_at, created_by_device, updated_by_device'
 
 const COLUMN_NAMES = COLUMNS.split(', ')
 const PLACEHOLDERS = COLUMN_NAMES.map(() => '?').join(', ')
@@ -86,6 +91,14 @@ function toDose(row: DoseWithFrequencyRow): TreatmentDose {
   }
 }
 
+function toRecord(row: DoseWithFrequencyRow): Stamped<TreatmentDose> {
+  return {
+    ...toDose(row),
+    createdByDevice: row.created_by_device,
+    updatedByDevice: row.updated_by_device,
+  }
+}
+
 function lastOfPeriodSql(column: string, periodId: string, filter = ''): string {
   return `(SELECT candidate.${column} FROM treatment_dose candidate
            WHERE candidate.period_id = ${periodId} AND candidate.deleted_at IS NULL ${filter}
@@ -107,7 +120,7 @@ export function lastGivenOnSql(periodId: string): string {
   return lastOfPeriodSql('given_on', periodId, "AND candidate.status = 'given'")
 }
 
-function valuesOf(dose: NewTreatmentDose): SqlParam[] {
+function valuesOf(dose: Stamped<NewTreatmentDose>): SqlParam[] {
   return [
     dose.id,
     dose.periodId,
@@ -121,6 +134,8 @@ function valuesOf(dose: NewTreatmentDose): SqlParam[] {
     dose.createdAt,
     dose.updatedAt,
     dose.deletedAt,
+    dose.createdByDevice,
+    dose.updatedByDevice,
   ]
 }
 
@@ -144,18 +159,21 @@ export class DuplicateDueError extends Error {}
 
 export interface TreatmentDosesRepositoryDependencies {
   loadSupabaseClient?: () => Promise<SupabaseClient>
+  deviceId?: () => string
 }
 
 export function createTreatmentDosesRepository(
   db: DbClient,
   {
     loadSupabaseClient: loadClient = loadSupabaseClient,
+    deviceId = currentDeviceId,
   }: TreatmentDosesRepositoryDependencies = {},
 ) {
   function insertStatement(dose: NewTreatmentDose): SqlStatement {
+    const device = deviceId()
     return {
       sql: `INSERT INTO treatment_dose (${COLUMNS}) VALUES (${PLACEHOLDERS})`,
-      params: valuesOf(dose),
+      params: valuesOf({ ...dose, createdByDevice: device, updatedByDevice: device }),
     }
   }
 
@@ -171,7 +189,7 @@ export function createTreatmentDosesRepository(
     return {
       sql: `UPDATE treatment_dose
             SET period_id = ?, due_on = ?, due_time = ?, given_on = ?, status = ?,
-                next_due_date = ?, updated_at = ?
+                next_due_date = ?, updated_at = ?, updated_by_device = ?
             WHERE id = ? AND ${NOT_DELETED}`,
       params: [
         dose.periodId,
@@ -181,6 +199,7 @@ export function createTreatmentDosesRepository(
         dose.status,
         dose.nextDueDate,
         updatedAt,
+        deviceId(),
         id,
       ],
     }
@@ -188,16 +207,17 @@ export function createTreatmentDosesRepository(
 
   function markDeletedStatement(ids: readonly string[], deletedAt: string): SqlStatement {
     return {
-      sql: `UPDATE treatment_dose SET deleted_at = ?, updated_at = ?
+      sql: `UPDATE treatment_dose SET deleted_at = ?, updated_at = ?, updated_by_device = ?
             WHERE id IN (${placeholders(ids)}) AND ${NOT_DELETED}`,
-      params: [deletedAt, deletedAt, ...ids],
+      params: [deletedAt, deletedAt, deviceId(), ...ids],
     }
   }
 
   function reviveStatement(id: string, updatedAt: string): SqlStatement {
     return {
-      sql: 'UPDATE treatment_dose SET deleted_at = NULL, updated_at = ? WHERE id = ?',
-      params: [updatedAt, id],
+      sql: `UPDATE treatment_dose SET deleted_at = NULL, updated_at = ?, updated_by_device = ?
+            WHERE id = ?`,
+      params: [updatedAt, deviceId(), id],
     }
   }
 
@@ -263,6 +283,16 @@ export function createTreatmentDosesRepository(
          ORDER BY dose.treatment_id, ${HEAD_FIRST}`,
       )
       return rows.map(toDose)
+    },
+
+    /** Comme `listAll`, toutes colonnes comprises : ce que l'export emporte. */
+    async listRecords(): Promise<Stamped<TreatmentDose>[]> {
+      const rows = await db.query<DoseWithFrequencyRow>(
+        `${WITH_FREQUENCY}
+         WHERE dose.deleted_at IS NULL
+         ORDER BY dose.treatment_id, ${HEAD_FIRST}`,
+      )
+      return rows.map(toRecord)
     },
 
     /** Prises visibles des traitements d'un animal, celles d'un même traitement la dernière d'abord. */
@@ -376,8 +406,9 @@ export function createTreatmentDosesRepository(
 
     markDeletedByTreatmentStatement(treatmentId: string, deletedAt: string): SqlStatement {
       return {
-        sql: `UPDATE treatment_dose SET deleted_at = ?, updated_at = ? WHERE treatment_id = ? AND ${NOT_DELETED}`,
-        params: [deletedAt, deletedAt, treatmentId],
+        sql: `UPDATE treatment_dose SET deleted_at = ?, updated_at = ?, updated_by_device = ?
+              WHERE treatment_id = ? AND ${NOT_DELETED}`,
+        params: [deletedAt, deletedAt, deviceId(), treatmentId],
       }
     },
 
@@ -388,23 +419,25 @@ export function createTreatmentDosesRepository(
       updatedAt: string,
     ): SqlStatement {
       return {
-        sql: `UPDATE treatment_dose SET deleted_at = NULL, updated_at = ?
+        sql: `UPDATE treatment_dose SET deleted_at = NULL, updated_at = ?, updated_by_device = ?
               WHERE treatment_id = ? AND deleted_at = ?`,
-        params: [updatedAt, treatmentId, deletedAt],
+        params: [updatedAt, deviceId(), treatmentId, deletedAt],
       }
     },
 
     markDeletedByAnimalStatement(animalId: string, deletedAt: string): SqlStatement {
       return {
-        sql: `UPDATE treatment_dose SET deleted_at = ?, updated_at = ? WHERE animal_id = ? AND ${NOT_DELETED}`,
-        params: [deletedAt, deletedAt, animalId],
+        sql: `UPDATE treatment_dose SET deleted_at = ?, updated_at = ?, updated_by_device = ?
+              WHERE animal_id = ? AND ${NOT_DELETED}`,
+        params: [deletedAt, deletedAt, deviceId(), animalId],
       }
     },
 
     markAllDeletedStatement(deletedAt: string): SqlStatement {
       return {
-        sql: `UPDATE treatment_dose SET deleted_at = ?, updated_at = ? WHERE ${NOT_DELETED}`,
-        params: [deletedAt, deletedAt],
+        sql: `UPDATE treatment_dose SET deleted_at = ?, updated_at = ?, updated_by_device = ?
+              WHERE ${NOT_DELETED}`,
+        params: [deletedAt, deletedAt, deviceId()],
       }
     },
 
@@ -416,7 +449,8 @@ export function createTreatmentDosesRepository(
         ? {
             sql: `UPDATE treatment_dose
                   SET due_on = ?, due_time = ?, given_on = ?, status = ?, next_due_date = ?,
-                      created_at = ?, updated_at = ?, deleted_at = NULL
+                      created_at = ?, updated_at = ?, deleted_at = NULL, created_by_device = ?,
+                      updated_by_device = ?
                   WHERE id = ?`,
             params: [
               dose.dueOn,
@@ -426,6 +460,8 @@ export function createTreatmentDosesRepository(
               dose.nextDueDate,
               dose.createdAt,
               dose.updatedAt,
+              dose.createdByDevice,
+              dose.updatedByDevice,
               dose.id,
             ],
           }
@@ -480,7 +516,8 @@ export function createTreatmentDosesRepository(
                 due_time = excluded.due_time, given_on = excluded.given_on,
                 status = excluded.status, next_due_date = excluded.next_due_date,
                 created_at = excluded.created_at, updated_at = excluded.updated_at,
-                deleted_at = excluded.deleted_at
+                deleted_at = excluded.deleted_at, created_by_device = excluded.created_by_device,
+                updated_by_device = excluded.updated_by_device
               WHERE excluded.updated_at > treatment_dose.updated_at`,
         params: [
           row.id,
@@ -495,6 +532,8 @@ export function createTreatmentDosesRepository(
           syncField(row, 'created_at'),
           row.updated_at,
           syncField(row, 'deleted_at'),
+          syncField(row, 'created_by_device'),
+          syncField(row, 'updated_by_device'),
         ],
       }
     },

@@ -127,8 +127,9 @@ describe.each([
     await expect(db.query('PRAGMA foreign_key_check')).resolves.toEqual([])
     await expect(
       db.run(
-        `INSERT INTO weight_entry (id, animal_id, weight_kg, measured_on, created_at, updated_at)
-         VALUES (?, ?, 8.5, '2026-01-10', ?, ?)`,
+        `INSERT INTO weight_entry (id, animal_id, weight_kg, measured_on, created_at, updated_at,
+           created_by_device, updated_by_device)
+         VALUES (?, ?, 8.5, '2026-01-10', ?, ?, 'appareil-test', 'appareil-test')`,
         [PESEE, MILO, T1, T1],
       ),
     ).rejects.toThrow(/FOREIGN KEY constraint failed/)

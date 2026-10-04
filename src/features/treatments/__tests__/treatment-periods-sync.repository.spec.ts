@@ -23,6 +23,7 @@ const LOCAL_ROW = {
   animal_id: ANIMAL_ID,
   starts_on: '2026-01-01',
   first_due_on: '2026-01-02',
+  reference_on: '2026-01-02',
   ends_on: '2026-01-31',
   stopped_on: null,
   frequency_value: 1,
@@ -35,6 +36,8 @@ const LOCAL_ROW = {
   created_at: T_LOCAL,
   updated_at: T_LOCAL,
   deleted_at: null,
+  created_by_device: 'appareil-test',
+  updated_by_device: 'appareil-test',
 }
 
 function remotePeriod(overrides: Record<string, string | number | null> = {}) {
@@ -58,21 +61,21 @@ describe('treatmentPeriodsRepository — port de synchronisation', () => {
       loadSupabaseClient: async () => server.client,
     })
     await db.run(
-      `INSERT INTO animal (id, name, species, created_at, updated_at) VALUES (?, 'Luna', 'cat', ?, ?)`,
+      `INSERT INTO animal (id, name, species, created_at, updated_at, created_by_device, updated_by_device) VALUES (?, 'Luna', 'cat', ?, ?, 'appareil-test', 'appareil-test')`,
       [ANIMAL_ID, T_LOCAL, T_LOCAL],
     )
     await db.run(
-      `INSERT INTO treatment (id, animal_id, name, type, created_at, updated_at)
-       VALUES (?, ?, 'Amoxicilline', 'medication', ?, ?)`,
+      `INSERT INTO treatment (id, animal_id, name, type, created_at, updated_at, created_by_device, updated_by_device)
+       VALUES (?, ?, 'Amoxicilline', 'medication', ?, ?, 'appareil-test', 'appareil-test')`,
       [TREATMENT_ID, ANIMAL_ID, T_LOCAL, T_LOCAL],
     )
     await db.run(
       `INSERT INTO treatment_period
          (id, treatment_id, animal_id, starts_on, first_due_on, ends_on, frequency_value,
           frequency_unit, times, dose_quantity, dose_unit, reminder_offset_minutes, created_at,
-          updated_at)
+          updated_at, reference_on, created_by_device, updated_by_device)
        VALUES (?, ?, ?, '2026-01-01', '2026-01-02', '2026-01-31', 1, 'day', '08:00,20:00', 0.5,
-               'tablet', 15, ?, ?)`,
+               'tablet', 15, ?, ?, '2026-01-02', 'appareil-test', 'appareil-test')`,
       [TREATMENT_ID, TREATMENT_ID, ANIMAL_ID, T_LOCAL, T_LOCAL],
     )
   })
@@ -91,6 +94,8 @@ describe('treatmentPeriodsRepository — port de synchronisation', () => {
     await expect(repository.getRowForPush(TREATMENT_ID)).resolves.toEqual({
       ...LOCAL_ROW,
       deleted_at: T_NEW,
+      created_by_device: 'appareil-test',
+      updated_by_device: 'appareil-test',
     })
   })
 
@@ -133,6 +138,8 @@ describe('treatmentPeriodsRepository — port de synchronisation', () => {
       dose_quantity: 2,
       dose_unit: 'ml',
       deleted_at: T_NEW,
+      created_by_device: 'appareil-test',
+      updated_by_device: 'appareil-test',
     })
 
     await db.runMany([repository.applyRemoteRowStatement(remote)])

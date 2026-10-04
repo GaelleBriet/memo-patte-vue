@@ -29,7 +29,7 @@ function dueOf({ periodId, dueOn, dueTime }: Due): Due {
 
 function dayDues(schedule: DaySchedule, day: string): DayDue[] {
   const notes = schedule.doses.flatMap((dose): DayDue[] =>
-    dose.dueOn === day && dose.status !== 'postponed'
+    dose.dueOn === day && (dose.status === 'given' || dose.status === 'missed')
       ? [{ due: dueOf(dose), status: dose.status, givenOn: dose.givenOn }]
       : [],
   )

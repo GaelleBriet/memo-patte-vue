@@ -37,6 +37,7 @@ function period(overrides: Partial<TreatmentPeriodRecord> = {}): TreatmentPeriod
     animalId: MILO,
     startsOn: '2026-07-10',
     firstDueOn: '2026-07-10',
+    referenceOn: '2026-07-10',
     endsOn: null,
     stoppedOn: null,
     frequency: { value: 3, unit: 'month' },

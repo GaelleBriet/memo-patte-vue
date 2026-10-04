@@ -32,7 +32,7 @@ export async function insertAnimal(
   name = 'Miette',
 ): Promise<void> {
   await db.run(
-    `INSERT INTO animal (id, name, species, created_at, updated_at) VALUES (?, ?, 'cat', ?, ?)`,
+    `INSERT INTO animal (id, name, species, created_at, updated_at, created_by_device, updated_by_device) VALUES (?, ?, 'cat', ?, ?, 'appareil-test', 'appareil-test')`,
     [id, name, updatedAt, updatedAt],
   )
 }
@@ -48,8 +48,8 @@ export async function insertVaccination(
   updatedAt: string,
 ): Promise<void> {
   await db.run(
-    `INSERT INTO vaccination (id, animal_id, name, created_at, updated_at)
-     VALUES (?, ?, 'Rage', ?, ?)`,
+    `INSERT INTO vaccination (id, animal_id, name, created_at, updated_at, created_by_device, updated_by_device)
+     VALUES (?, ?, 'Rage', ?, ?, 'appareil-test', 'appareil-test')`,
     [id, animalId, updatedAt, updatedAt],
   )
 }
@@ -69,8 +69,8 @@ export async function insertTreatment(
   updatedAt: string,
 ): Promise<void> {
   await db.run(
-    `INSERT INTO treatment (id, animal_id, name, type, created_at, updated_at)
-     VALUES (?, ?, 'Bravecto', 'antiparasitic', ?, ?)`,
+    `INSERT INTO treatment (id, animal_id, name, type, created_at, updated_at, created_by_device, updated_by_device)
+     VALUES (?, ?, 'Bravecto', 'antiparasitic', ?, ?, 'appareil-test', 'appareil-test')`,
     [id, animalId, updatedAt, updatedAt],
   )
 }
@@ -85,8 +85,8 @@ export async function insertTreatmentPeriod(
   await db.run(
     `INSERT INTO treatment_period
        (id, treatment_id, animal_id, starts_on, first_due_on, frequency_value, frequency_unit,
-        created_at, updated_at)
-     VALUES (?, ?, ?, '2026-01-01', '2026-01-01', 1, 'month', ?, ?)`,
+        created_at, updated_at, reference_on, created_by_device, updated_by_device)
+     VALUES (?, ?, ?, '2026-01-01', '2026-01-01', 1, 'month', ?, ?, '2026-01-01', 'appareil-test', 'appareil-test')`,
     [id, treatmentId, animalId, updatedAt, updatedAt],
   )
 }
@@ -108,8 +108,8 @@ export async function insertVaccinationInjection(
 ): Promise<void> {
   await db.run(
     `INSERT INTO vaccination_injection
-       (id, vaccination_id, animal_id, injected_on, next_due_date, created_at, updated_at)
-     VALUES (?, ?, ?, '2026-01-01', '2027-01-01', ?, ?)`,
+       (id, vaccination_id, animal_id, injected_on, next_due_date, created_at, updated_at, created_by_device, updated_by_device)
+     VALUES (?, ?, ?, '2026-01-01', '2027-01-01', ?, ?, 'appareil-test', 'appareil-test')`,
     [id, vaccinationId, animalId, updatedAt, updatedAt],
   )
 }
@@ -125,8 +125,8 @@ export async function insertTreatmentDose(
   await db.run(
     `INSERT INTO treatment_dose
        (id, period_id, treatment_id, animal_id, due_on, given_on, status, next_due_date,
-        created_at, updated_at)
-     VALUES (?, ?, ?, ?, '2026-01-01', '2026-01-01', 'given', '2026-02-01', ?, ?)`,
+        created_at, updated_at, created_by_device, updated_by_device)
+     VALUES (?, ?, ?, ?, '2026-01-01', '2026-01-01', 'given', '2026-02-01', ?, ?, 'appareil-test', 'appareil-test')`,
     [id, periodId, treatmentId, animalId, updatedAt, updatedAt],
   )
 }
@@ -142,8 +142,8 @@ export async function insertWeightEntry(
   updatedAt: string,
 ): Promise<void> {
   await db.run(
-    `INSERT INTO weight_entry (id, animal_id, weight_kg, measured_on, created_at, updated_at)
-     VALUES (?, ?, 4.2, '2026-01-01', ?, ?)`,
+    `INSERT INTO weight_entry (id, animal_id, weight_kg, measured_on, created_at, updated_at, created_by_device, updated_by_device)
+     VALUES (?, ?, 4.2, '2026-01-01', ?, ?, 'appareil-test', 'appareil-test')`,
     [id, animalId, updatedAt, updatedAt],
   )
 }
@@ -161,11 +161,10 @@ export async function insertCarnetSettings(
   id: string,
   updatedAt: string,
 ): Promise<void> {
-  await db.run(`INSERT INTO carnet_settings (id, created_at, updated_at) VALUES (?, ?, ?)`, [
-    id,
-    updatedAt,
-    updatedAt,
-  ])
+  await db.run(
+    `INSERT INTO carnet_settings (id, created_at, updated_at, created_by_device, updated_by_device) VALUES (?, ?, ?, 'appareil-test', 'appareil-test')`,
+    [id, updatedAt, updatedAt],
+  )
 }
 
 export async function touchCarnetSettings(

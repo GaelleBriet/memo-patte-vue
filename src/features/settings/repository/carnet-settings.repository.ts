@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 
 import type { DbClient, SqlStatement } from '@/core/db/db-client'
 import { getDb } from '@/core/db/sqlite'
+import { currentDeviceId } from '@/core/device/device-identity'
 import { guardedUpsert, type SyncRow } from '@/core/supabase/guarded-upsert'
 import { loadSupabaseClient } from '@/core/supabase/load-client'
 import { syncField, type SyncPullPage } from '@/core/sync/service/syncable-table'
@@ -10,6 +11,7 @@ import {
   DEFAULT_CARNET_SETTINGS,
   type CarnetSettings,
 } from '../schema/carnet-settings.schema'
+import type { DeviceStamps } from '@/shared/domain/carnet-data'
 
 /** Le même sur tous les appareils : deux appareils Plus écrivent la même ligne. */
 export const CARNET_SETTINGS_ID = '00000000-0000-0000-0000-000000000000'
@@ -20,10 +22,15 @@ interface CarnetSettingsRow {
   created_at: string
   updated_at: string
   deleted_at: string | null
+  created_by_device: string
+  updated_by_device: string
 }
 
 /** Les réglages tels que leur ligne les enregistre : ce que l'export emporte et que l'import écrit. */
-export type CarnetSettingsRecord = CarnetSettings & { createdAt: string; updatedAt: string }
+export type CarnetSettingsRecord = CarnetSettings & {
+  createdAt: string
+  updatedAt: string
+} & DeviceStamps
 export type CarnetSettingsVersion = { updatedAt: string; deletedAt: string | null }
 
 const SYNC_COLUMN_NAMES = [
@@ -33,11 +40,14 @@ const SYNC_COLUMN_NAMES = [
   'created_at',
   'updated_at',
   'deleted_at',
+  'created_by_device',
+  'updated_by_device',
 ]
 const SYNC_COLUMNS = SYNC_COLUMN_NAMES.join(', ')
 
 export interface CarnetSettingsRepositoryDependencies {
   loadSupabaseClient?: () => Promise<SupabaseClient>
+  deviceId?: () => string
 }
 
 /**
@@ -48,6 +58,7 @@ export function createCarnetSettingsRepository(
   db: DbClient,
   {
     loadSupabaseClient: loadClient = loadSupabaseClient,
+    deviceId = currentDeviceId,
   }: CarnetSettingsRepositoryDependencies = {},
 ) {
   async function row(): Promise<CarnetSettingsRow | undefined> {
@@ -67,6 +78,8 @@ export function createCarnetSettingsRepository(
       remindBeforeDue: found.remind_before_due === 1,
       createdAt: found.created_at,
       updatedAt: found.updated_at,
+      createdByDevice: found.created_by_device,
+      updatedByDevice: found.updated_by_device,
     }
   }
 
@@ -94,9 +107,9 @@ export function createCarnetSettingsRepository(
 
     markDeletedStatement(deletedAt: string): SqlStatement {
       return {
-        sql: `UPDATE carnet_settings SET deleted_at = ?, updated_at = ?
+        sql: `UPDATE carnet_settings SET deleted_at = ?, updated_at = ?, updated_by_device = ?
               WHERE id = ? AND deleted_at IS NULL`,
-        params: [deletedAt, deletedAt, CARNET_SETTINGS_ID],
+        params: [deletedAt, deletedAt, deviceId(), CARNET_SETTINGS_ID],
       }
     },
 
@@ -104,18 +117,21 @@ export function createCarnetSettingsRepository(
     restoreStatement(settings: CarnetSettingsRecord): SqlStatement {
       return {
         sql: `INSERT INTO carnet_settings (${SYNC_COLUMNS})
-              VALUES (?, ?, ?, ?, ?, NULL)
+              VALUES (?, ?, ?, ?, ?, NULL, ?, ?)
               ON CONFLICT (id) DO UPDATE SET
                 vaccine_reminder_time = excluded.vaccine_reminder_time,
                 remind_before_due = excluded.remind_before_due,
                 created_at = excluded.created_at, updated_at = excluded.updated_at,
-                deleted_at = NULL`,
+                deleted_at = NULL, created_by_device = excluded.created_by_device,
+                updated_by_device = excluded.updated_by_device`,
         params: [
           CARNET_SETTINGS_ID,
           settings.vaccineReminderTime,
           settings.remindBeforeDue ? 1 : 0,
           settings.createdAt,
           settings.updatedAt,
+          settings.createdByDevice,
+          settings.updatedByDevice,
         ],
       }
     },
@@ -123,21 +139,24 @@ export function createCarnetSettingsRepository(
     async update(changes: Partial<CarnetSettings>): Promise<CarnetSettings> {
       const settings = carnetSettingsSchema.parse({ ...(await get()), ...changes })
       const now = new Date().toISOString()
+      const device = deviceId()
 
       await db.run(
-        `INSERT INTO carnet_settings
-           (id, vaccine_reminder_time, remind_before_due, created_at, updated_at, deleted_at)
-         VALUES (?, ?, ?, ?, ?, NULL)
+        `INSERT INTO carnet_settings (${SYNC_COLUMNS})
+         VALUES (?, ?, ?, ?, ?, NULL, ?, ?)
          ON CONFLICT (id) DO UPDATE SET
            vaccine_reminder_time = excluded.vaccine_reminder_time,
            remind_before_due = excluded.remind_before_due,
-           updated_at = excluded.updated_at, deleted_at = NULL`,
+           updated_at = excluded.updated_at, deleted_at = NULL,
+           updated_by_device = excluded.updated_by_device`,
         [
           CARNET_SETTINGS_ID,
           settings.vaccineReminderTime,
           settings.remindBeforeDue ? 1 : 0,
           now,
           now,
+          device,
+          device,
         ],
       )
 

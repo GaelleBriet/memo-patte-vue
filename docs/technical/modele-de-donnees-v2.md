@@ -168,18 +168,24 @@ développement peuvent être effacées. Rien de l'existant n'est à récupérer.
   ce jour-là comptent pour les premières heures du nouveau réglage, spec Traitements Q24),
   `first_due_on` (première échéance : la première prise pour une première période ou une reprise, la
   dernière prise plus la nouvelle fréquence pour une période ouverte par « Modifier », jamais avant
-  aujourd'hui et modifiable, spec Traitements TR-7, Q7), `ends_on`? (date de fin),
+  aujourd'hui et modifiable, spec Traitements TR-7, Q7), `reference_on` (origine de la grille, par
+  défaut la première échéance, v11 : étude #488 §2.3), `ends_on`? (date de fin),
   `stopped_on`?,
   `frequency_value`, `frequency_unit`, `times`?, `dose_quantity`?, `dose_unit`?,
   `reminder_offset_minutes`?, `reminder_time`?, dates d'audit. Ordre des périodes : `starts_on`, puis
   `created_at` (pas de lien explicite à la précédente).
 - `treatment_dose` : `id`, `period_id`, `treatment_id`, `animal_id`, `due_on`, `due_time`?, `given_on`?
-  (vide pour une oubliée ou reportée), `status` (`given`, `missed`, `postponed`), `next_due_date`, dates
+  (vide pour une oubliée ou reportée), `status` (`given`, `missed`, `postponed`, et depuis v11 `extra`
+  pour une prise en plus, `shift` pour une ligne de décalage : étude #488 §2.6), `next_due_date`, dates
   d'audit. **Dernière prise** : tri par
   `due_on`, `due_time`, `created_at`, `id` (et non plus par `given_on`, vide pour une oubliée). Une
   ligne `postponed` par déplacement (voir §5, 2026-10-01).
 - `sync_state` : gagne la date de la dernière synchronisation réussie (PL-17, alerte du nuage après
   7 jours).
+- `device` (v11, étude #488 §6) : `id` (tiré au hasard au premier lancement), `model`? (fabricant puis modèle),
+  `installed_at`, dates d'audit ; synchronisée avec Plus. Les huit tables synchronisées portent
+  `created_by_device` et `updated_by_device` (l'appareil qui a créé la ligne, celui qui a écrit sa
+  valeur actuelle).
 - Index sur les clés étrangères ; suppression logique partout.
 
 ## 5. Décisions

@@ -1,6 +1,7 @@
 import { isFuture, parseISO } from 'date-fns'
 import { z } from 'zod'
 
+import type { DeviceStamps } from '@/shared/domain/carnet-data'
 import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
 import { MAX_WEIGHT_KG } from '@/shared/domain/weight-bounds'
 
@@ -45,10 +46,11 @@ export type AnimalCreationInput = z.input<typeof animalCreationInputSchema>
 export type Animal = z.output<typeof animalSchema>
 
 /** L'animal avec toutes ses colonnes : ce que l'export emporte et que l'import écrit. */
-export type AnimalRecord = Animal & {
-  birthDateApproximate: boolean
-  /** `null` tant que l'animal est suivi. */
-  unfollowedOn: string | null
-  departureReason: DepartureReason | null
-  departureDate: string | null
-}
+export type AnimalRecord = Animal &
+  DeviceStamps & {
+    birthDateApproximate: boolean
+    /** `null` tant que l'animal est suivi. */
+    unfollowedOn: string | null
+    departureReason: DepartureReason | null
+    departureDate: string | null
+  }
