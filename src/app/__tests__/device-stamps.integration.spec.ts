@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory-db'
 import { createAnimalsRepository } from '@/features/animals/repository/animals.repository'
 import { createCarnetSettingsRepository } from '@/features/settings/repository/carnet-settings.repository'
+import { createTreatmentPeriodsRepository } from '@/features/treatments/repository/treatment-periods.repository'
 import { createTreatmentsRepository } from '@/features/treatments/repository/treatments.repository'
 import { createVaccinationsRepository } from '@/features/vaccinations/repository/vaccinations.repository'
 import { createWeightRepository } from '@/features/weight/repository/weight.repository'
@@ -149,6 +150,59 @@ describe('appareil posé à chaque écriture', () => {
       await expect(
         stamps('carnet_settings', '00000000-0000-0000-0000-000000000000'),
       ).resolves.toEqual(expected)
+    })
+
+    it('note l’appareil qui rétablit une ligne, et celui qui efface tout le carnet', async () => {
+      const animals = createAnimalsRepository(db, { deviceId })
+      const weight = createWeightRepository(db, { deviceId })
+      const treatments = createTreatmentsRepository(db, { deviceId })
+      const milo = await animals.create({ name: 'Milo', species: 'dog' })
+      const pesee = await weight.create({
+        animalId: milo.id,
+        weightKg: 8,
+        measuredOn: '2026-09-01',
+      })
+      const id = crypto.randomUUID()
+      await treatments.create({
+        id,
+        animalId: milo.id,
+        name: 'Bravecto',
+        type: 'antiparasitic',
+        settings: {
+          startsOn: '2026-09-01',
+          firstDueOn: '2026-09-01',
+          endsOn: null,
+          frequency: { value: 3, unit: 'month' },
+          times: [],
+          doseQuantity: null,
+          doseUnit: null,
+          reminderOffsetMinutes: null,
+          reminderTime: null,
+        },
+      })
+      await weight.remove(pesee.id)
+      await treatments.remove(id)
+
+      device = TABLETTE
+      await weight.undoRemove(pesee.id)
+      await db.runMany([
+        createTreatmentPeriodsRepository(db, { deviceId }).reviveStatement(
+          id,
+          '2026-09-02T08:00:00.000Z',
+        ),
+      ])
+
+      const expected = { created_by_device: PIXEL, updated_by_device: TABLETTE }
+      await expect(stamps('weight_entry', pesee.id)).resolves.toEqual(expected)
+      await expect(stamps('treatment_period', id)).resolves.toEqual(expected)
+
+      await db.runMany([
+        animals.markAllDeletedStatement('2026-09-03T08:00:00.000Z'),
+        weight.markAllDeletedStatement('2026-09-03T08:00:00.000Z'),
+      ])
+
+      await expect(stamps('animal', milo.id)).resolves.toEqual(expected)
+      await expect(stamps('weight_entry', pesee.id)).resolves.toEqual(expected)
     })
 
     it('reprend l’appareil d’une ligne tirée de la synchronisation, pas celui qui la reçoit', async () => {

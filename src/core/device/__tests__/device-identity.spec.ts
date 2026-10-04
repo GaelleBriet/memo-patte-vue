@@ -58,6 +58,19 @@ describe('identité de l’appareil', () => {
     expect(currentDeviceId()).toMatch(UUID)
   })
 
+  it.each([
+    ['un identifiant qui n’est pas un UUID', { id: 'pixel', installedAt: NOW.toISOString() }],
+    ['une date d’installation illisible', { id: crypto.randomUUID(), installedAt: 'hier' }],
+  ])('remplace %s par un nouvel appareil', (_, saved) => {
+    localStorage.setItem(DEVICE_STORAGE_KEY, JSON.stringify(saved))
+
+    const device = currentDevice()
+
+    expect(device.id).toMatch(UUID)
+    expect(device).not.toEqual(saved)
+    expect(device.installedAt).toBe(NOW.toISOString())
+  })
+
   it('garde un identifiant pour la session quand le stockage est indisponible', () => {
     vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
       throw new Error('stockage indisponible')
