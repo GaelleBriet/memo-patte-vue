@@ -29,3 +29,19 @@ export function currentPeriodOf(
 ): TreatmentPeriodRecord | null {
   return treatment.periods.find(({ id }) => id === schedule.currentPeriodId) ?? null
 }
+
+/** Fin d'un traitement fini : sa date de fin une fois atteinte, sinon sa dernière échéance notée. */
+export function endedOnOf(
+  treatment: Pick<TreatmentWithHistory, 'periods'>,
+  schedule: Pick<TreatmentSchedule, 'phase' | 'currentPeriodId' | 'doses'>,
+  today: string,
+): string | null {
+  const period = currentPeriodOf(treatment, schedule)
+  if (schedule.phase !== 'ended' || period === null) return null
+  if (period.endsOn !== null && period.endsOn <= today) return period.endsOn
+  const noted = schedule.doses
+    .filter((dose) => dose.periodId === period.id && dose.status !== 'postponed')
+    .map(({ dueOn }) => dueOn)
+    .sort()
+  return noted.at(-1) ?? period.endsOn
+}

@@ -28,8 +28,10 @@ const props = withDefaults(
     /** Réponse déjà donnée, à rouvrir telle quelle ; sinon tout est coché. */
     choice?: DayChoice | null
     busy?: boolean
+    /** Ouvert depuis « Arrêter » : valider arrête aussi le traitement. */
+    stopping?: boolean
   }>(),
-  { choice: null, busy: false },
+  { choice: null, busy: false, stopping: false },
 )
 
 const emit = defineEmits<{
@@ -60,7 +62,9 @@ const tabs = computed(() =>
   })),
 )
 const activeTexts = computed(() => tabs.value.find(({ id }) => id === tab.value?.id) ?? null)
-const submit = computed(() => submitTexts(t, props.dues.length, unchecked.size, props.when))
+const submit = computed(() =>
+  submitTexts(t, props.dues.length, unchecked.size, props.when, props.stopping),
+)
 
 let releaseBackButton: (() => void) | null = null
 

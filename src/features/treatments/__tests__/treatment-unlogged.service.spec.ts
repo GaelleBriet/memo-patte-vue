@@ -124,6 +124,61 @@ describe('renseigner les doses non renseignées (TR-17)', () => {
     expect((await schedule()).unloggedDoses).toEqual(unloggedDoses)
   })
 
+  describe('dit quand le geste termine le traitement (TR-31)', () => {
+    async function logAll() {
+      const { unloggedDoses } = await schedule()
+      return serviceWith(doses.applyBatch).apply(PANACUR, {
+        kind: 'log',
+        gestures: choiceGestures({ given: unloggedDoses, missed: [] }),
+      })
+    }
+
+    function setCurrentPeriod(column: 'stopped_on' | 'ends_on', day: string) {
+      return db.run(`UPDATE treatment_period SET ${column} = ? WHERE treatment_id = ?`, [
+        day,
+        PANACUR,
+      ])
+    }
+
+    it('pas pour un traitement en cours, même tout renseigné', async () => {
+      await expect(logAll()).resolves.toMatchObject({ finishes: false })
+    })
+
+    it('quand renseigner ne laisse plus rien à un traitement arrêté', async () => {
+      await setCurrentPeriod('stopped_on', TODAY)
+
+      await expect(logAll()).resolves.toMatchObject({ finishes: true })
+    })
+
+    it('quand la dernière dose d’un traitement à date de fin est notée', async () => {
+      await setCurrentPeriod('ends_on', TODAY)
+      await logAll()
+      const [due] = (await schedule()).currentDoses
+
+      const noted = await serviceWith(doses.applyBatch).apply(PANACUR, {
+        kind: 'note',
+        gesture: { kind: 'given', due: due!, givenOn: TODAY },
+      })
+
+      expect(due).toMatchObject({ dueOn: TODAY })
+      expect(noted.finishes).toBe(true)
+      expect((await schedule()).finished).toBe(true)
+    })
+
+    it('pas quand il reste une dose à renseigner après la date de fin', async () => {
+      await setCurrentPeriod('ends_on', '2026-09-27')
+      const [first, ...rest] = (await schedule()).unloggedDoses
+
+      const logged = await serviceWith(doses.applyBatch).apply(PANACUR, {
+        kind: 'log',
+        gestures: choiceGestures({ given: rest, missed: [] }),
+      })
+
+      expect(first).toBeDefined()
+      expect(logged.finishes).toBe(false)
+    })
+  })
+
   it('une dose notée entre-temps, vue à la relecture : rien n’est écrit', async () => {
     const { unloggedDoses } = await schedule()
     const service = serviceWith(doses.applyBatch)

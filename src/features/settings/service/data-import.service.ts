@@ -108,6 +108,7 @@ const clockTime = z.string().regex(CLOCK_TIME_PATTERN)
 // La synchronisation compare les instants comme des chaînes : un seul format entre en base.
 const instant = z.iso
   .datetime()
+  .or(z.iso.datetime({ precision: -1 }))
   .refine(isYearInRange)
   .transform((value) => new Date(value).toISOString())
 const timestamps = { createdAt: instant, updatedAt: instant }

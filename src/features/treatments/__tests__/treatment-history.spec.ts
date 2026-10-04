@@ -3,14 +3,12 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { dose, missed, period, plain, postponed, treatment } from './treatment-fixtures'
 import {
   LINES_BEFORE_TOGGLE,
-  finishedTreatmentRows,
   treatmentDeleteTexts,
   treatmentHistory,
 } from '../logic/treatment-history'
 import { treatmentScheduleOf } from '../logic/treatment-schedule'
 import type { TreatmentWithHistory } from '../repository/treatments.repository'
 import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
-import type { Treatment } from '../schema/treatment.schema'
 import i18n, { applyLocale } from '@/core/i18n'
 
 const t = i18n.global.t
@@ -308,6 +306,22 @@ describe('treatmentHistory — plusieurs périodes (planche A · V3)', () => {
     ])
   })
 
+  it('écrit « Le … » pour une période fermée le jour de son ouverture', () => {
+    const sameDay = { startsOn: '2026-10-02', firstDueOn: '2026-10-02' }
+    const reopened = period({ ...sameDay, id: 'p-3', createdAt: '2026-10-02T10:00:00.000Z' })
+    const stopped = treatment([period({ ...sameDay, stoppedOn: '2026-10-02' }), reopened])
+    const changed = treatment([period(sameDay), reopened])
+
+    for (const book of [stopped, changed]) {
+      expect(history(book, '2026-10-02').periods.map(({ head }) => head?.title)).toEqual([
+        'Depuis le 2 oct. 2026',
+        'Le 2 oct. 2026',
+      ])
+    }
+    applyLocale('en')
+    expect(history(stopped, '2026-10-02').periods[1]!.head?.title).toBe('Oct 2, 2026')
+  })
+
   it('regroupe des oubliées de plusieurs jours', () => {
     const book = treatment(
       [period()],
@@ -401,41 +415,16 @@ describe('treatmentHistory — ce que deux appareils ou un import peuvent laisse
   })
 })
 
-describe('finishedTreatmentRows', () => {
-  const BRAVECTO: Treatment = {
-    id: 'bravecto',
-    animalId: 'boree',
-    name: 'Bravecto',
-    type: 'deworming',
-    periodId: 'bravecto',
-    frequency: { value: 1, unit: 'month' },
-    lastDoseDate: '2026-08-28',
-    nextDueDate: '2026-09-28',
-    stoppedOn: null,
-    createdAt: '2026-05-30T09:00:00.000Z',
-    updatedAt: '2026-05-30T09:00:00.000Z',
-    deletedAt: null,
-  }
-
-  it('annonce la date d’arrêt et le nombre de prises de chaque traitement terminé (F9)', () => {
-    const milbemax = { ...BRAVECTO, id: 'milbemax', name: 'Milbemax', stoppedOn: '2026-05-26' }
-    const drontal = { ...BRAVECTO, id: 'drontal', name: 'Drontal', stoppedOn: '2025-11-02' }
-
-    expect(finishedTreatmentRows(t, [milbemax, drontal], { milbemax: 2, drontal: 1 })).toEqual([
-      { id: 'milbemax', name: 'Milbemax', detail: 'Arrêté le 26 mai 2026 · 2 prises' },
-      { id: 'drontal', name: 'Drontal', detail: 'Arrêté le 2 nov. 2025 · 1 prise' },
-    ])
-  })
-})
-
 describe('treatmentDeleteTexts', () => {
   it('confirme la suppression du traitement, avec ses prises et ses rappels', () => {
     expect(treatmentDeleteTexts(t, 'Bravecto')).toEqual({
       title: 'Supprimer Bravecto ?',
-      text: 'Ses prises et ses rappels seront supprimés du carnet. Cette action est définitive.',
+      text: 'Ses prises et ses rappels seront supprimés du carnet.',
       cancel: 'Annuler',
       confirm: 'Supprimer',
-      deleted: 'Traitement Bravecto supprimé',
+      deleted: 'Supprimé',
+      deletedLabel: 'Bravecto supprimé',
+      undo: 'Annuler la suppression de Bravecto',
       failed: 'Bravecto n’a pas pu être supprimé. Réessaie.',
     })
   })

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useTemplateRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import type { DoseCard } from '../logic/treatment-card'
@@ -12,6 +13,13 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+
+const end = useTemplateRef<HTMLElement>('end')
+
+defineExpose({
+  /** Donne le focus à la fin du traitement, quand le geste qui l'avait vient de disparaître. */
+  focusEnd: () => end.value?.focus({ preventScroll: true }),
+})
 </script>
 
 <template>
@@ -33,7 +41,7 @@ const { t } = useI18n()
       </p>
     </div>
 
-    <div v-if="card.end" class="treatment-dose-card__dose">
+    <div v-if="card.end" ref="end" class="treatment-dose-card__dose" tabindex="-1">
       <p v-if="card.end.label" class="treatment-dose-card__label">{{ card.end.label }}</p>
       <p v-if="card.end.value" class="treatment-dose-card__value treatment-dose-card__value--end">
         {{ card.end.value }}
@@ -93,6 +101,10 @@ const { t } = useI18n()
 
 <style scoped lang="scss">
 @use '@/styles/tokens' as tokens;
+
+.treatment-dose-card__dose:focus {
+  outline: none;
+}
 
 .treatment-dose-card {
   margin-inline: tokens.$padding-section-inline;

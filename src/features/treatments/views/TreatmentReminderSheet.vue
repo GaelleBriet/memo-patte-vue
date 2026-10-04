@@ -3,12 +3,18 @@ import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 
+import TreatmentChooseDays from './TreatmentChooseDays.vue'
 import TreatmentHourChoices from './TreatmentHourChoices.vue'
+import TreatmentStopDialog from './TreatmentStopDialog.vue'
 import { useTreatmentGestures } from '../composables/use-treatment-gestures'
+import { detailActions } from '../logic/treatment-card'
+import { choiceGestures, chooseDaysSubtitle, type DayChoice } from '../logic/treatment-choose-days'
 import { doseActionTexts } from '../logic/treatment-gestures'
 import { otherDateTexts, sheetHours } from '../logic/treatment-other-date'
 import { readableScheduleOf } from '../logic/treatment-schedule'
 import { otherDaySummary, treatmentSheetTexts } from '../logic/treatment-sheet'
+import { stopPrompt } from '../logic/treatment-stop'
+import { promptChoice, type PromptActionId } from '../logic/treatment-unlogged'
 import type { DoseAction } from '../logic/treatment-dose-writes'
 import type { TreatmentWithHistory } from '../repository/treatments.repository'
 import type { Treatment } from '../schema/treatment.schema'
@@ -16,10 +22,9 @@ import { useTreatmentsStore } from '../store/treatments.store'
 import { useToday } from '@/core/app-lifecycle/use-today'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import BottomSheet from '@/shared/components/BottomSheet.vue'
-import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
 import DateCalendar from '@/shared/components/DateCalendar.vue'
 import ReminderActions from '@/shared/components/ReminderActions.vue'
-import type { Due } from '@/shared/domain/treatment-schedule'
+import type { Due, TreatmentSchedule } from '@/shared/domain/treatment-schedule'
 import { REMINDER_QUERY_PARAM, reminderQueryValue } from '@/shared/domain/reminder-route'
 import { reminderIcon } from '@/shared/domain/reminders'
 import { showToast } from '@/shared/utils/toast'
@@ -78,6 +83,22 @@ const named = computed(() => ({
   name: treatment.value?.name ?? '',
   animal: animal.value?.name ?? '',
 }))
+// Traitement illisible : la confirmation simple, sans dose à renseigner.
+const NO_SCHEDULE: Pick<TreatmentSchedule, 'phase' | 'currentDoses' | 'unloggedDoses'> = {
+  phase: 'upcoming',
+  currentDoses: [],
+  unloggedDoses: [],
+}
+const stopping = computed(() =>
+  stopPrompt(
+    t,
+    history.value ?? { name: named.value.name, periods: [] },
+    schedule.value ?? NO_SCHEDULE,
+    today.value,
+  ),
+)
+const canStop = computed(() => schedule.value === null || detailActions(schedule.value).canStop)
+const isChooseDaysOpen = ref(false)
 const hourTexts = computed(() =>
   otherDateTexts(t, { ...named.value, today: today.value }, givenOn.value ?? today.value, true),
 )
@@ -175,6 +196,24 @@ async function stop(): Promise<void> {
   else errorMessage.value = t('treatments.sheet.errors.stop')
 }
 
+async function logThenStop(choice: DayChoice): Promise<void> {
+  const current = treatment.value
+  if (isSubmitting.value || current === null) return
+  errorMessage.value = null
+  const result = await gestures.stopLogging(current, choiceGestures(choice))
+  if (result === 'failed') {
+    errorMessage.value = t('treatments.sheet.errors.stop')
+    return
+  }
+  isChooseDaysOpen.value = false
+  open.value = false
+}
+
+function onStopAction(action: PromptActionId): void {
+  if (action === 'choose-days') isChooseDaysOpen.value = true
+  else void logThenStop(promptChoice(action, stopping.value.dues))
+}
+
 // L'écran d'accueil garde le rappel dans son adresse : le retour, bouton Android compris, rouvre la feuille.
 async function edit(): Promise<void> {
   const current = treatment.value
@@ -213,7 +252,7 @@ async function edit(): Promise<void> {
         @other-date="step = 'other-date'"
         @edit="edit"
       >
-        <template #footer>
+        <template v-if="canStop" #footer>
           <button
             type="button"
             class="treatment-reminder-sheet__stop"
@@ -269,16 +308,22 @@ async function edit(): Promise<void> {
     </template>
   </BottomSheet>
 
-  <ConfirmDialog
+  <TreatmentStopDialog
     v-if="texts"
     v-model="isStopDialogOpen"
-    :title="texts.stopDialog.title"
-    :text="t('treatments.sheet.stopDialog.text')"
-    :cancel-label="t('treatments.sheet.stopDialog.cancel')"
-    :confirm-label="t('treatments.sheet.stopDialog.confirm')"
-    :cancel-aria-label="texts.stopDialog.cancelLabel"
-    :confirm-aria-label="texts.stopDialog.confirmLabel"
-    @confirm="stop"
+    :prompt="stopping"
+    @stop="stop"
+    @act="onStopAction"
+  />
+
+  <TreatmentChooseDays
+    v-model="isChooseDaysOpen"
+    :subtitle="chooseDaysSubtitle(named.name, named.animal, stopping.when)"
+    :dues="stopping.dues"
+    :when="stopping.when"
+    :busy="isSubmitting"
+    stopping
+    @confirm="logThenStop"
   />
 </template>
 

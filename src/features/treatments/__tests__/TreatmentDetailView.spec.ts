@@ -27,6 +27,7 @@ import {
 import TreatmentChooseDays from '../views/TreatmentChooseDays.vue'
 import TreatmentDetailView from '../views/TreatmentDetailView.vue'
 import TreatmentDoseCard from '../views/TreatmentDoseCard.vue'
+import TreatmentStopDialog from '../views/TreatmentStopDialog.vue'
 import TreatmentUnloggedPrompt from '../views/TreatmentUnloggedPrompt.vue'
 import i18n from '@/core/i18n'
 import vuetify from '@/core/theme/vuetify'
@@ -38,10 +39,19 @@ import DateCalendar from '@/shared/components/DateCalendar.vue'
 import DatePickerSheet from '@/shared/components/DatePickerSheet.vue'
 import HistoryRow from '@/shared/components/HistoryRow.vue'
 import OverflowMenu from '@/shared/components/OverflowMenu.vue'
-import { dismissToast, runToastAction, toastAction, toastMessage } from '@/shared/utils/toast'
+import {
+  dismissToast,
+  runToastAction,
+  toastAction,
+  toastAnnouncement,
+  toastMessage,
+  toastTone,
+} from '@/shared/utils/toast'
 
 const TODAY = new Date('2026-09-28T21:00:00')
 const NBSP = / /g
+
+const REMOVED_AT = '2026-09-28T19:00:00.000Z'
 
 const LUNA: Animal = {
   id: 'luna',
@@ -82,11 +92,14 @@ const APPLIED = {
   undo: [{ action: 'delete' as const, id: 'nouvelle' }],
   alreadyGivenOn: null,
   postponement: null,
+  finishes: false,
   moved: null,
 }
 
 let book: TreatmentWithHistory | null
 let remove: MockInstance
+let restore: MockInstance
+let reschedule: Mock<(id: string) => Promise<void>>
 let read: Mock<(id: string) => Promise<TreatmentWithHistory | null>>
 let push: MockInstance
 let service: {
@@ -112,12 +125,16 @@ beforeEach(async () => {
   read = vi.fn<(id: string) => Promise<TreatmentWithHistory | null>>(async (id) =>
     book !== null && id === book.id ? book : null,
   )
-  const repository = fakeTreatmentsRepository({ getWithHistory: read, remove: async () => {} })
+  const repository = fakeTreatmentsRepository({
+    getWithHistory: read,
+    remove: async () => REMOVED_AT,
+    restore: async () => {},
+  })
   remove = repository.remove
+  restore = repository.restore
   provideTreatmentsRepository(() => repository)
-  provideTreatmentRemindersService(() => ({
-    reschedule: vi.fn<(id: string) => Promise<void>>(async () => {}),
-  }))
+  reschedule = vi.fn<(id: string) => Promise<void>>(async () => {})
+  provideTreatmentRemindersService(() => ({ reschedule }))
   service = {
     noteMoment: vi.fn<TreatmentDosesService['noteMoment']>(),
     apply: vi.fn<TreatmentDosesService['apply']>(async () => APPLIED),
@@ -125,7 +142,12 @@ beforeEach(async () => {
   }
   provideTreatmentDosesService(() => service)
   stop = {
-    stop: vi.fn<TreatmentStopService['stop']>(async () => ({ animalId: LUNA.id, stopped: true })),
+    stop: vi.fn<TreatmentStopService['stop']>(async () => ({
+      animalId: LUNA.id,
+      stopped: true,
+      finished: true,
+      undo: [],
+    })),
     undo: vi.fn<TreatmentStopService['undo']>(async () => {}),
   }
   provideTreatmentStopService(() => stop)
@@ -255,6 +277,17 @@ describe('TreatmentDetailView — carte de la dose du moment', () => {
     await flushPromises()
 
     expect(service.undoBatch).toHaveBeenCalledWith(METACAM.id, APPLIED.undo)
+  })
+
+  it('dit où retrouver le traitement quand la prise notée le termine (TR-31)', async () => {
+    const view = await monter()
+    service.apply.mockResolvedValue({ ...APPLIED, finishes: true })
+
+    await view.findAll('.treatment-dose-card__done')[1]!.trigger('click')
+    await flushPromises()
+
+    expect(message()).toBe('Dernière dose de Métacam notée, à retrouver dans Traitements terminés.')
+    expect(toastAction.value?.ariaLabel).toBe('Annuler la prise de Métacam')
   })
 
   it('relit la fiche après la prise : il ne reste que l’heure à donner', async () => {
@@ -837,20 +870,50 @@ describe('TreatmentDetailView — barre du haut et fin du traitement', () => {
     await flushPromises()
 
     expect(remove).toHaveBeenCalledWith(METACAM.id)
-    expect(message()).toBe('Traitement Métacam supprimé')
+    expect(suppression.props('text')).toBe('Ses prises et ses rappels seront supprimés du carnet.')
+    expect(message()).toBe('Supprimé')
     expect(back).toHaveBeenCalled()
   })
 
-  it('arrête le traitement après confirmation', async () => {
+  it('« Annuler » rétablit le traitement supprimé et ses rappels (planche A · V8 bis)', async () => {
+    vi.useFakeTimers({ now: TODAY, toFake: ['Date', 'setTimeout', 'clearTimeout'] })
+    vi.spyOn(router, 'back').mockImplementation(() => {})
     const view = await monter()
+    dialogue(view, 'Supprimer Métacam ?').vm.$emit('confirm')
+    await flushPromises()
+    vi.advanceTimersByTime(100)
+
+    expect(toastAnnouncement.value).toBe('Métacam supprimé')
+    expect(toastAction.value).toMatchObject({
+      label: 'Annuler',
+      ariaLabel: 'Annuler la suppression de Métacam',
+    })
+    reschedule.mockClear()
+    runToastAction()
+    await flushPromises()
+
+    expect(restore).toHaveBeenCalledExactlyOnceWith(METACAM.id, REMOVED_AT)
+    expect(reschedule).toHaveBeenCalledExactlyOnceWith(METACAM.id)
+  })
+
+  it('sans dose à renseigner, arrête après une confirmation simple (planche A · V6 bis)', async () => {
+    const view = await monter(MILBEMAX)
 
     await view.get('.treatment-detail__stop').trigger('click')
     const arret = dialogue(view, 'Arrêter Métacam ?')
-    expect(arret.props('modelValue')).toBe(true)
+    expect(arret.props()).toMatchObject({
+      modelValue: true,
+      text: 'Plus aucun rappel pour Métacam. Ses prises restent dans le carnet.',
+      note: null,
+      confirmLabel: 'Arrêter',
+    })
+    expect(view.findComponent(TreatmentStopDialog).props('prompt').actions).toEqual([])
     arret.vm.$emit('confirm')
     await flushPromises()
 
-    expect(stop.stop).toHaveBeenCalledWith(METACAM.id)
+    expect(stop.stop).toHaveBeenCalledWith(METACAM.id, [])
+    expect(message()).toBe('Métacam arrêté, à retrouver dans Traitements terminés.')
+    expect(toastAction.value?.ariaLabel).toBe('Annuler l’arrêt de Métacam')
   })
 
   it('après la date de fin, dit la fin du traitement, sans dose ni geste (TR-12)', async () => {
@@ -866,6 +929,23 @@ describe('TreatmentDetailView — barre du haut et fin du traitement', () => {
     expect(view.find('.treatment-dose-card__done').exists()).toBe(false)
     expect(view.find('.treatment-dose-card__other-date').exists()).toBe(false)
     expect(view.find('.treatment-detail__stop').exists()).toBe(false)
+  })
+
+  it('terminé, propose de reprendre (TR-32)', async () => {
+    const view = await monter(
+      treatment(
+        [period({ startsOn: '2026-09-20', firstDueOn: '2026-09-20', endsOn: '2026-09-21' })],
+        [dose('2026-09-20', '2026-09-21'), dose('2026-09-21', '2026-09-22')],
+      ),
+    )
+
+    await view.get('.treatment-detail__resume-button').trigger('click')
+
+    expect(push).toHaveBeenCalledWith({
+      name: 'treatment-resume',
+      params: { id: METACAM.id },
+      query: { from: 'treatment-detail', reminder: `treatment:${METACAM.id}` },
+    })
   })
 
   it('arrêté, dit quand, propose de reprendre, plus de modifier ni d’arrêter', async () => {
@@ -988,6 +1068,23 @@ describe('TreatmentDetailView — doses non renseignées (TR-14 à TR-17)', () =
     )
 
     expect(texte(view.get('.treatment-unlogged__title'))).toBe(title)
+  })
+
+  it('dit où retrouver le traitement quand renseigner le termine (Q16)', async () => {
+    const view = await monter(
+      treatment(
+        [period({ stoppedOn: '2026-09-06' })],
+        [dose('2026-09-01', '2026-09-02'), dose('2026-09-02', '2026-09-03')],
+      ),
+    )
+    service.apply.mockResolvedValue({ ...APPLIED, finishes: true })
+
+    await boutons(view)[0]!.trigger('click')
+    await flushPromises()
+
+    expect(gestes().map(({ due }) => due.dueOn)).toEqual(['2026-09-03', '2026-09-04', '2026-09-05'])
+    expect(message()).toBe('Métacam : 3 prises notées, à retrouver dans Traitements terminés.')
+    expect(toastAction.value?.ariaLabel).toBe('Annuler les doses renseignées de Métacam')
   })
 
   it('« Toutes données » écrit toutes les doses en une fois, et « Annuler » défait tout', async () => {
@@ -1200,5 +1297,177 @@ describe('TreatmentDetailView — doses non renseignées (TR-14 à TR-17)', () =
     expect(toastAction.value).toBeNull()
     expect(read).toHaveBeenCalledTimes(2)
     expect(view.findComponent(TreatmentUnloggedPrompt).exists()).toBe(true)
+  })
+})
+
+describe('TreatmentDetailView — arrêter avec des doses à renseigner (TR-30, planche A · V6)', () => {
+  /** Dernière prise le 2 sept., fiche ouverte le 28 : 25 doses non renseignées, dose du jour non notée. */
+  const PANACUR = treatment(
+    [period()],
+    [dose('2026-09-01', '2026-09-02'), dose('2026-09-02', '2026-09-03')],
+  )
+  const UNDO = [{ action: 'delete' as const, id: 'renseignée' }]
+
+  async function ouvrir(view: VueWrapper) {
+    await view.get('.treatment-detail__stop').trigger('click')
+    await flushPromises()
+    return view.getComponent(TreatmentStopDialog)
+  }
+
+  function gestes(): { kind: string; due: { dueOn: string } }[] {
+    return [...(stop.stop.mock.calls.at(-1)?.[1] ?? [])]
+  }
+
+  function boutons(): string[] {
+    return dansLaFeuille('.confirm-dialog__actions .v-btn').map((button) =>
+      (button.textContent ?? '').trim(),
+    )
+  }
+
+  beforeEach(() => {
+    stop.stop.mockResolvedValue({ animalId: LUNA.id, stopped: true, finished: true, undo: UNDO })
+  })
+
+  it('annonce les doses et la dose du jour, avec quatre gestes empilés', async () => {
+    const view = await monter(PANACUR)
+    const arret = (await ouvrir(view)).getComponent(ConfirmDialog)
+
+    expect(arret.props('text').replace(NBSP, ' ')).toBe(
+      '25 doses, du 3 au 27 sept., ne sont pas renseignées. Tu peux les noter avant d’arrêter.',
+    )
+    expect(String(arret.props('note')).replace(NBSP, ' ')).toBe(
+      'La dose d’aujourd’hui n’est pas notée : si tu l’as donnée, touche « C’est fait » avant d’arrêter.',
+    )
+    expect(boutons()).toEqual([
+      'Toutes données',
+      'Choisir les jours',
+      'Arrêter sans renseigner',
+      'Annuler',
+    ])
+  })
+
+  it('« Toutes données » renseigne les 25 doses et arrête, en un geste qu’« Annuler » défait', async () => {
+    const view = await monter(PANACUR)
+    const arret = await ouvrir(view)
+
+    arret.vm.$emit('act', 'all-given')
+    await flushPromises()
+
+    expect(service.apply).not.toHaveBeenCalled()
+    expect(stop.stop).toHaveBeenCalledOnce()
+    expect(gestes()).toHaveLength(25)
+    expect(gestes()[0]).toEqual({
+      kind: 'given',
+      due: { periodId: 'p-1', dueOn: '2026-09-03', dueTime: null },
+      givenOn: '2026-09-03',
+    })
+    expect(message()).toBe('Métacam arrêté, à retrouver dans Traitements terminés.')
+
+    runToastAction()
+    await flushPromises()
+
+    expect(stop.undo).toHaveBeenCalledExactlyOnceWith(METACAM.id, UNDO)
+  })
+
+  it('donne le focus à la fin du traitement quand « Arrêter » disparaît', async () => {
+    const view = await monter(PANACUR)
+    stop.stop.mockImplementation(async () => {
+      book = treatment([period({ stoppedOn: '2026-09-28' })], PANACUR.doses)
+      return { animalId: LUNA.id, stopped: true, finished: false, undo: [] }
+    })
+
+    ;(await ouvrir(view)).vm.$emit('stop')
+    await flushPromises()
+
+    expect(view.find('.treatment-detail__stop').exists()).toBe(false)
+    expect(document.activeElement?.classList).toContain('treatment-dose-card__dose')
+  })
+
+  it('le calendrier ouvert depuis l’arrêt dit qu’il arrête aussi', async () => {
+    const view = await monter(PANACUR)
+    ;(await ouvrir(view)).vm.$emit('act', 'choose-days')
+    await flushPromises()
+
+    expect(view.getComponent(TreatmentChooseDays).props('stopping')).toBe(true)
+  })
+
+  it('« Arrêter sans renseigner » arrête seulement, et le traitement reste à renseigner', async () => {
+    stop.stop.mockResolvedValue({ animalId: LUNA.id, stopped: true, finished: false, undo: [] })
+    const view = await monter(PANACUR)
+
+    ;(await ouvrir(view)).vm.$emit('stop')
+    await flushPromises()
+
+    expect(stop.stop).toHaveBeenCalledWith(METACAM.id, [])
+    expect(message()).toBe('Métacam arrêté')
+  })
+
+  it('« Choisir les jours » ouvre le calendrier des doses, puis arrête avec le choix', async () => {
+    const view = await monter(PANACUR)
+    ;(await ouvrir(view)).vm.$emit('act', 'choose-days')
+    await flushPromises()
+    const calendrier = view.getComponent(TreatmentChooseDays)
+
+    expect(calendrier.props()).toMatchObject({ modelValue: true, when: 'du 3 au 27 sept.' })
+    expect(calendrier.props('dues')).toHaveLength(25)
+    const [oubliee, ...donnees] = calendrier.props('dues')
+    calendrier.vm.$emit('confirm', { given: donnees, missed: [oubliee] })
+    await flushPromises()
+
+    expect(service.apply).not.toHaveBeenCalled()
+    expect(gestes().map(({ kind }) => kind)).toEqual([...Array(24).fill('given'), 'missed'])
+    expect(calendrier.props('modelValue')).toBe(false)
+  })
+
+  it('compte la dose en retard parmi les doses à renseigner', async () => {
+    const view = await monter(
+      treatment(
+        [
+          period({
+            frequency: { value: 1, unit: 'week' },
+            startsOn: '2026-09-07',
+            firstDueOn: '2026-09-07',
+          }),
+        ],
+        [dose('2026-09-07', '2026-09-14')],
+      ),
+    )
+    const arret = await ouvrir(view)
+
+    expect(arret.getComponent(ConfirmDialog).props('text').replace(NBSP, ' ')).toBe(
+      '2 doses, 14 et 21 sept., ne sont pas renseignées. Tu peux les noter avant d’arrêter.',
+    )
+    arret.vm.$emit('act', 'all-given')
+    await flushPromises()
+
+    expect(gestes().map(({ due }) => due.dueOn)).toEqual(['2026-09-14', '2026-09-21'])
+  })
+
+  it('arrêté ailleurs entre-temps : informe, sans « Annuler », et relit la fiche', async () => {
+    stop.stop.mockResolvedValue({ animalId: LUNA.id, stopped: false, finished: false, undo: [] })
+    const view = await monter(PANACUR)
+    read.mockClear()
+
+    ;(await ouvrir(view)).vm.$emit('act', 'all-given')
+    await flushPromises()
+
+    expect(message()).toBe('Métacam arrêté')
+    expect(toastTone.value).toBe('info')
+    expect(toastAction.value).toBeNull()
+    expect(read).toHaveBeenCalled()
+  })
+
+  it('garde le calendrier ouvert quand l’arrêt échoue', async () => {
+    stop.stop.mockRejectedValue(new Error('base verrouillée'))
+    const view = await monter(PANACUR)
+    ;(await ouvrir(view)).vm.$emit('act', 'choose-days')
+    await flushPromises()
+    const calendrier = view.getComponent(TreatmentChooseDays)
+
+    calendrier.vm.$emit('confirm', { given: calendrier.props('dues'), missed: [] })
+    await flushPromises()
+
+    expect(calendrier.props('modelValue')).toBe(true)
+    expect(message()).toBe('Le traitement n’a pas pu être arrêté. Réessaie.')
   })
 })

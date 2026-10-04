@@ -536,6 +536,7 @@ describe('treatmentDosesService', () => {
 
       expect(applied).toEqual({
         animalId: BOREE,
+        finishes: false,
         undo: [],
         alreadyGivenOn: '2026-08-28',
         postponement: null,

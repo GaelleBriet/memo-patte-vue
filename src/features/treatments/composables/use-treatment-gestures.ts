@@ -11,8 +11,10 @@ import {
   type DoseActionTexts,
 } from '../logic/treatment-gestures'
 import { treatmentDeleteTexts } from '../logic/treatment-history'
+import { stoppedText } from '../logic/treatment-stop'
 import type { Treatment } from '../schema/treatment.schema'
 import { useTreatmentsStore } from '../store/treatments.store'
+import type { DoseGesture } from '@/shared/domain/treatment-schedule'
 
 type Named = Pick<Treatment, 'id' | 'name' | 'animalId'>
 
@@ -45,13 +47,19 @@ export function useTreatmentGestures(onChanged: () => void) {
     }
   }
 
-  function undoable(message: string, ariaLabel: string, undo: () => Promise<unknown>): void {
+  function undoable(
+    message: string,
+    ariaLabel: string,
+    undo: () => Promise<unknown>,
+    announcement?: string,
+  ): void {
     showUndoableToast(message, {
       label: t('reminderSheet.undo'),
       ariaLabel,
       undo,
       onUndone: onChanged,
       failedMessage: t('reminderSheet.undoFailed'),
+      announcement,
     })
   }
 
@@ -85,18 +93,31 @@ export function useTreatmentGestures(onChanged: () => void) {
     }, failed)
   }
 
-  function stop(treatment: Named, failed?: string): Promise<boolean> {
-    return guarded(async () => {
-      const { stopped } = await treatments.stop(treatment.id)
-      onChanged()
-      const message = t('treatments.sheet.toast.stopped', named(treatment))
-      if (!stopped) showToast(message)
+  async function stopped(treatment: Named, doses: readonly DoseGesture[]): Promise<void> {
+    try {
+      const result = await treatments.stop(treatment.id, doses)
+      const message = stoppedText(t, treatment.name, result.finished)
+      if (!result.stopped) showToast(message, { tone: 'info' })
       else {
         undoable(message, t('treatments.sheet.toast.undoStop', named(treatment)), () =>
-          treatments.undoStop(treatment.id),
+          treatments.undoStop(treatment.id, result.undo),
         )
       }
-    }, failed)
+    } finally {
+      onChanged()
+    }
+  }
+
+  function stop(treatment: Named, failed?: string): Promise<boolean> {
+    return guarded(() => stopped(treatment, []), failed)
+  }
+
+  /** Doses renseignées puis arrêt, en un geste qu'un seul « Annuler » défait. */
+  function stopLogging(
+    treatment: Named,
+    doses: readonly DoseGesture[],
+  ): Promise<'done' | 'stale' | 'failed'> {
+    return staleAware(() => stopped(treatment, doses), t('treatments.sheet.errors.stop'))
   }
 
   async function applied(
@@ -126,33 +147,46 @@ export function useTreatmentGestures(onChanged: () => void) {
     return guarded(() => applied(treatment, action, texts), t('treatments.detail.errors.change'))
   }
 
-  /** Lot de doses à renseigner ; `stale` : une dose était déjà notée, la liste montrée est périmée. */
-  async function logDoses(
-    treatment: Named,
-    action: DoseAction,
-    texts: DoseActionTexts,
+  /** `stale` : une dose était déjà notée, la liste montrée est périmée. */
+  async function staleAware(
+    action: () => Promise<void>,
+    failed: string,
   ): Promise<'done' | 'stale' | 'failed'> {
     let stale = false
     const done = await guarded(async () => {
       try {
-        await applied(treatment, action, texts)
+        await action()
       } catch (cause) {
         stale = cause instanceof DoseAlreadyLoggedError
         throw cause
       }
-    }, t('treatments.detail.errors.change'))
+    }, failed)
     if (done) return 'done'
     return stale ? 'stale' : 'failed'
   }
 
-  /** Suppression définitive, confirmée par un dialogue avant d'arriver ici. */
+  /** Lot de doses à renseigner. */
+  function logDoses(
+    treatment: Named,
+    action: DoseAction,
+    texts: DoseActionTexts,
+  ): Promise<'done' | 'stale' | 'failed'> {
+    return staleAware(() => applied(treatment, action, texts), t('treatments.detail.errors.change'))
+  }
+
+  /** Confirmée par un dialogue avant d'arriver ici ; « Annuler » rétablit ce que ce geste a supprimé. */
   function removeTreatment(treatment: Named): Promise<boolean> {
     const texts = treatmentDeleteTexts(t, treatment.name)
     return guarded(async () => {
-      await treatments.remove(treatment.id)
-      showToast(texts.deleted)
+      const deletedAt = await treatments.remove(treatment.id)
+      undoable(
+        texts.deleted,
+        texts.undo,
+        () => treatments.undoRemove(treatment.id, deletedAt),
+        texts.deletedLabel,
+      )
     }, texts.failed)
   }
 
-  return { isBusy, recordDose, stop, applyDose, logDoses, removeTreatment }
+  return { isBusy, recordDose, stop, stopLogging, applyDose, logDoses, removeTreatment }
 }

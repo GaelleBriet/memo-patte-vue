@@ -315,16 +315,6 @@ export function createTreatmentDosesRepository(
       return row ? toDose(row) : null
     },
 
-    /** Nombre de prises visibles par traitement de l'animal. */
-    async countByAnimal(animalId: string): Promise<Record<string, number>> {
-      const rows = await db.query<{ treatment_id: string; count: number }>(
-        `SELECT treatment_id, COUNT(*) AS count FROM treatment_dose
-         WHERE animal_id = ? AND ${NOT_DELETED} GROUP BY treatment_id`,
-        [animalId],
-      )
-      return Object.fromEntries(rows.map((row) => [row.treatment_id, row.count]))
-    },
-
     /** Lignes supprimées comprises : l'import compare les versions avant d'écrire. */
     async listVersions(): Promise<TreatmentDoseVersion[]> {
       const rows = await db.query<DoseVersionRow>(
@@ -350,11 +340,16 @@ export function createTreatmentDosesRepository(
     markDeletedStatement,
 
     /**
-     * Tout ou rien. Rend le lot inverse, à appliquer pour « Annuler » ; lève, sans rien écrire, pour
+     * Tout ou rien, `also` compris : les instructions d'une autre table à jouer dans la même
+     * transaction. Rend le lot inverse, à appliquer pour « Annuler » ; lève, sans rien écrire, pour
      * une ligne à réécrire ou à supprimer qui n'est pas visible, ou à rétablir qui l'est, et une
      * `DuplicateDueError` pour une création en double.
      */
-    async applyBatch(writes: readonly DoseWrite[], at: string): Promise<DoseWrite[]> {
+    async applyBatch(
+      writes: readonly DoseWrite[],
+      at: string,
+      also: readonly SqlStatement[] = [],
+    ): Promise<DoseWrite[]> {
       const existing = await rowsById(
         writes.flatMap((write) => (write.action === 'create' ? [] : [write.id])),
       )
@@ -392,11 +387,12 @@ export function createTreatmentDosesRepository(
             }
         }
       })
-      if (steps.length === 0) return []
+      if (steps.length + also.length === 0) return []
       try {
-        await db.runMany(
-          steps.flatMap(({ guard, statement }) => (guard ? [guard, statement] : [statement])),
-        )
+        await db.runMany([
+          ...steps.flatMap(({ guard, statement }) => (guard ? [guard, statement] : [statement])),
+          ...also,
+        ])
       } catch (cause) {
         for (const write of writes) {
           if (write.action === 'create' && (await hasDuplicate(write.dose))) {
@@ -413,6 +409,19 @@ export function createTreatmentDosesRepository(
         sql: `UPDATE treatment_dose SET deleted_at = ?, updated_at = ?, updated_by_device = ?
               WHERE treatment_id = ? AND ${NOT_DELETED}`,
         params: [deletedAt, deletedAt, deviceId(), treatmentId],
+      }
+    },
+
+    /** Les prises supprimées à cet instant, avec leur traitement. */
+    reviveByTreatmentStatement(
+      treatmentId: string,
+      deletedAt: string,
+      updatedAt: string,
+    ): SqlStatement {
+      return {
+        sql: `UPDATE treatment_dose SET deleted_at = NULL, updated_at = ?, updated_by_device = ?
+              WHERE treatment_id = ? AND deleted_at = ?`,
+        params: [updatedAt, deviceId(), treatmentId, deletedAt],
       }
     },
 
