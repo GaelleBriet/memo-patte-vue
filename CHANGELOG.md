@@ -5,6 +5,39 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.57](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.56...memo-patte-v0.1.57) (2026-10-04)
+
+
+### ✨ Fonctionnalités
+
+* **db:** appareils, jour de référence et export v4 dans les repositories ([1851256](https://github.com/GaelleBriet/memo-patte-vue/commit/18512564a1a6a0a7c54c8c4b1852a4b59d5a51e8))
+* **db:** migration v11 et identifiant d'appareil tiré au hasard ([86cd2b9](https://github.com/GaelleBriet/memo-patte-vue/commit/86cd2b921d5415e3486885a1aff8d853d52086cf))
+* **db:** schéma v11 — prise en plus, ligne de décalage, jour de référence, appareils ([a8b3f43](https://github.com/GaelleBriet/memo-patte-vue/commit/a8b3f43a24207bcadec12a478d0b232515e4979d))
+* **device:** nom lisible de l'appareil, fabricant suivi du modèle ([0125e51](https://github.com/GaelleBriet/memo-patte-vue/commit/0125e512a6ec80e8211d956218bd9688a08a5793))
+* **sync:** miroirs Supabase v11, colonnes d'appareil et table device ([03409f4](https://github.com/GaelleBriet/memo-patte-vue/commit/03409f4c59ca704f77bcd9d9027d7dfdfa350024))
+* **treatments:** arrêter, terminer, reprendre et supprimer un traitement ([e90a241](https://github.com/GaelleBriet/memo-patte-vue/commit/e90a241c017f1c95ba0e3e242292b52d6d2cd472))
+* **treatments:** doses non renseignées — bandeau, « Choisir les jours », encart ([d93cdef](https://github.com/GaelleBriet/memo-patte-vue/commit/d93cdef5ac46c7e736515e86a48f3629faf8433e))
+* **treatments:** le Carnet lit ses traitements par le moteur d'échéances ([921a6c5](https://github.com/GaelleBriet/memo-patte-vue/commit/921a6c5bab69e34157a85ad305ed9fd0c7f0ad76))
+
+
+### 🐛 Corrections
+
+* **device:** identifiant relu validé, modèle de données et tests d'appareil complétés ([0e2761e](https://github.com/GaelleBriet/memo-patte-vue/commit/0e2761e5710025e751d26a0639229ea920629d40))
+* **import:** accepte un instant sans secondes avec zod 4.6 ([5bc6b9f](https://github.com/GaelleBriet/memo-patte-vue/commit/5bc6b9f7827003acd215df92d219513e32c65209))
+* **import:** accepte un instant sans secondes avec zod 4.6 ([1d15311](https://github.com/GaelleBriet/memo-patte-vue/commit/1d153119acc10e6eaaccf4ce417f6369029dda3b))
+* **shared:** faire défiler une feuille du bas plus haute que l'écran ([8ef3cd5](https://github.com/GaelleBriet/memo-patte-vue/commit/8ef3cd55afac6931343eca70c5c7444eebf17580))
+* **shared:** faire défiler une feuille du bas plus haute que l'écran ([1c9a809](https://github.com/GaelleBriet/memo-patte-vue/commit/1c9a809ca0356708c7c2037256d2018f99db928e)), closes [#515](https://github.com/GaelleBriet/memo-patte-vue/issues/515)
+* **treatments:** arrêt gardé, fin datée et compteur complet ([b12e945](https://github.com/GaelleBriet/memo-patte-vue/commit/b12e94509e51f83900b3a4bf54da004d4498bfdc))
+* **treatments:** clé du cache sur chaque ligne ; arrêt fait ailleurs reconnu après l'échec du lot ([20bf3f1](https://github.com/GaelleBriet/memo-patte-vue/commit/20bf3f117451c80f484cb3192d1f9d2aaf0ee916))
+* **treatments:** la feuille « À faire » arrête avec le dialogue des doses à renseigner ([880b2aa](https://github.com/GaelleBriet/memo-patte-vue/commit/880b2aad428a9c3104a644d7b549c870bfa731b9))
+* **treatments:** le focus va à la fin du traitement quand « Arrêter » disparaît ([3280676](https://github.com/GaelleBriet/memo-patte-vue/commit/3280676f06021eb526397b47d20c92e315bffc4c))
+* **treatments:** règle de focus de la carte après l'import des jetons ([7cb1893](https://github.com/GaelleBriet/memo-patte-vue/commit/7cb1893d21f5da1625ad0b74613ab1c6ed546f6c))
+
+
+### ⚡ Performance
+
+* **treatments:** le Carnet ne recalcule que le traitement touché ([07d8998](https://github.com/GaelleBriet/memo-patte-vue/commit/07d8998ffa125f6e044349a5b1df8e9a1e16d03b))
+
 ## [0.1.56](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.55...memo-patte-v0.1.56) (2026-10-02)
 
 
