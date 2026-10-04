@@ -1,4 +1,4 @@
-import { currentPeriodOf } from './treatment-schedule'
+import { currentPeriodOf, endedOnOf } from './treatment-schedule'
 import { periodRhythmText } from './treatment-rhythm'
 import type { TreatmentWithHistory } from '../repository/treatments.repository'
 import { currentDoseText } from '@/shared/domain/current-dose'
@@ -25,7 +25,7 @@ export type DoseCard = {
   end: { label: string | null; value: string | null } | null
 }
 
-type CardSchedule = Pick<TreatmentSchedule, 'phase' | 'currentDoses' | 'currentPeriodId'>
+type CardSchedule = Pick<TreatmentSchedule, 'phase' | 'currentDoses' | 'currentPeriodId' | 'doses'>
 
 export function doseCard(
   t: Translate,
@@ -64,7 +64,7 @@ export function doseCard(
             due: null,
             today,
             stoppedOn: period?.stoppedOn ?? null,
-            endsOn: period?.endsOn ?? null,
+            endsOn: endedOnOf(treatment, schedule, today),
           }),
   }
 }
@@ -73,6 +73,6 @@ export function detailActions({ phase }: Pick<TreatmentSchedule, 'phase'>) {
   return {
     canEdit: phase !== 'stopped',
     canStop: phase !== 'stopped' && phase !== 'ended',
-    canResume: phase === 'stopped',
+    canResume: phase === 'stopped' || phase === 'ended',
   }
 }

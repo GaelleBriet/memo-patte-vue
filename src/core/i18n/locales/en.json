@@ -370,13 +370,10 @@
       "title": "Active treatments",
       "empty": "No active treatments",
       "add": "Add a treatment",
-      "nextDose": {
-        "overdue": "Next dose overdue · {n}d",
-        "today": "Next dose today",
-        "tomorrow": "Next dose tomorrow",
-        "later": "Next dose in {n} days"
-      },
-      "error": "Couldn’t load treatments."
+      "error": "Couldn’t load treatments.",
+      "dose": "{label} · {value}",
+      "toLog": "To log",
+      "unreadable": "Unreadable data"
     },
     "sheet": {
       "subtitle": "{type} · {animal} · {frequency}",
@@ -401,7 +398,7 @@
       },
       "stopDialog": {
         "title": "Stop {name}?",
-        "text": "No more reminders for this treatment. Its past doses stay in the health record.",
+        "text": "No more reminders for {name}. Its doses stay in the health record.",
         "cancel": "Cancel",
         "cancelLabel": "Cancel, keep {name}",
         "confirm": "Stop",
@@ -411,9 +408,10 @@
         "dose": "{name} dose logged for {animal}",
         "doseOn": "{name} dose on {date} logged for {animal}",
         "undoDose": "Undo the {name} dose",
-        "stopped": "{name} stopped. It’s in Finished treatments.",
+        "stopped": "{name} stopped",
         "undoStop": "Undo stopping {name}",
-        "dayNoted": "Today’s doses are already logged."
+        "dayNoted": "Today’s doses are already logged.",
+        "stoppedFinished": "{name} stopped, now in Finished treatments."
       },
       "errors": {
         "dose": "Couldn’t log the dose. Try again.",
@@ -458,14 +456,17 @@
         "movedKept": "Dose moved to {date}. Next dose kept on {nextDue}, as you had postponed it.",
         "movedLost": "Dose moved to {date}. Your postponement of the next dose no longer applies.",
         "undoMove": "Undo the dose date change",
-        "deleted": "{name} treatment deleted"
+        "deleted": "Deleted",
+        "deletedLabel": "{name} deleted",
+        "undoDelete": "Undo deleting {name}",
+        "lastDose": "Last {name} dose logged, now in Finished treatments."
       },
       "menu": {
         "remove": "Delete this treatment"
       },
       "deleteDialog": {
         "title": "Delete {name}?",
-        "text": "Its doses and reminders will be deleted from the health record. This can’t be undone.",
+        "text": "Its doses and reminders will be removed from the health record.",
         "cancel": "Cancel",
         "confirm": "Delete"
       },
@@ -478,7 +479,8 @@
     "history": {
       "period": {
         "since": "Since {date}",
-        "range": "{from} – {to}"
+        "range": "{from} – {to}",
+        "single": "{date}"
       },
       "empty": "No doses in this period yet",
       "dueAt": "{date} · {time}",
@@ -526,7 +528,12 @@
         "both": "{name}: {given} and {missed} logged",
         "givenCount": "{n} dose | {n} doses",
         "missedCount": "{n} missed dose | {n} missed doses",
-        "undo": "Undo the doses logged for {name}"
+        "undo": "Undo the doses logged for {name}",
+        "finished": {
+          "given": "{name}: {n} dose logged, now in Finished treatments. | {name}: {n} doses logged, now in Finished treatments.",
+          "missed": "{name}: {n} missed dose logged, now in Finished treatments. | {name}: {n} missed doses logged, now in Finished treatments.",
+          "both": "{name}: {given} and {missed} logged, now in Finished treatments."
+        }
       },
       "days": {
         "title": "Choose days",
@@ -563,12 +570,25 @@
         "missedCount": "{n} missed | {n} missed | {n} missed",
         "counts": "{given}, {missed}",
         "submit": "Confirm: {counts}",
-        "submitLabel": "Confirm: {counts}, {when}"
+        "submitLabel": "Confirm: {counts}, {when}",
+        "submitStop": "Confirm and stop: {counts}",
+        "submitStopLabel": "Confirm and stop: {counts}, {when}"
       }
     },
     "finished": {
       "title": "Finished treatments",
-      "row": "Stopped on {date} · {n} dose | Stopped on {date} · {n} doses"
+      "row": "{end} · {n} dose | {end} · {n} doses",
+      "doses": "{n} dose | {n} doses"
+    },
+    "stop": {
+      "unlogged": "The dose due {when} is not logged. You can log it before stopping. | {n} doses, {when}, are not logged. You can log them before stopping.",
+      "todayNote": "Today’s dose isn’t logged: if you gave it, tap “Done” before stopping.",
+      "withoutLogging": "Stop without logging",
+      "withoutLoggingLabel": "Stop {name} without logging the dose | Stop {name} without logging the {n} doses",
+      "allGivenLabel": "Log the {n} doses as given, {when}, then stop {name}",
+      "chooseDaysLabel": "Choose the days {name} was given, then stop",
+      "givenLabel": "Log the dose due {when} as given, then stop {name}",
+      "missedLabel": "Log the dose due {when} as missed, then stop {name}"
     }
   },
   "reminders": {

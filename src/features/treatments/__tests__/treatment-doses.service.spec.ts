@@ -543,6 +543,7 @@ describe('treatmentDosesService', () => {
 
       expect(applied).toEqual({
         animalId: BOREE,
+        finishes: false,
         undo: [],
         alreadyGivenOn: '2026-08-28',
         postponement: null,
@@ -607,7 +608,7 @@ describe('treatmentDosesService', () => {
       expect(applied.postponement).toEqual({ kept: true, nextDueDate: '2026-10-30' })
       await expect(rows()).resolves.toMatchObject([
         { due_on: '2026-08-28' },
-        { due_on: '2026-09-28', given_on: '2026-09-21', next_due_date: '2026-10-21' },
+        { due_on: '2026-09-28', given_on: '2026-09-21', next_due_date: '2026-10-30' },
         { due_on: '2026-10-21', status: 'postponed', next_due_date: '2026-10-30' },
       ])
     })

@@ -370,13 +370,10 @@
       "title": "Traitements en cours",
       "empty": "Aucun traitement en cours",
       "add": "Ajouter un traitement",
-      "nextDose": {
-        "overdue": "Prochaine dose en retard · {n} j",
-        "today": "Prochaine dose aujourd’hui",
-        "tomorrow": "Prochaine dose demain",
-        "later": "Prochaine dose dans {n} jours"
-      },
-      "error": "Impossible de charger les traitements."
+      "error": "Impossible de charger les traitements.",
+      "dose": "{label} · {value}",
+      "toLog": "À renseigner",
+      "unreadable": "Donnée illisible"
     },
     "sheet": {
       "subtitle": "{type} · {animal} · {frequency}",
@@ -401,7 +398,7 @@
       },
       "stopDialog": {
         "title": "Arrêter {name} ?",
-        "text": "Plus aucun rappel pour ce traitement. Ses prises passées restent dans le carnet.",
+        "text": "Plus aucun rappel pour {name}. Ses prises restent dans le carnet.",
         "cancel": "Annuler",
         "cancelLabel": "Annuler, garder {name}",
         "confirm": "Arrêter",
@@ -411,9 +408,10 @@
         "dose": "Prise de {name} notée pour {animal}",
         "doseOn": "Prise de {name} du {date} notée pour {animal}",
         "undoDose": "Annuler la prise de {name}",
-        "stopped": "{name} arrêté. Il est dans Traitements terminés.",
+        "stopped": "{name} arrêté",
         "undoStop": "Annuler l’arrêt de {name}",
-        "dayNoted": "Les doses d’aujourd’hui sont déjà notées."
+        "dayNoted": "Les doses d’aujourd’hui sont déjà notées.",
+        "stoppedFinished": "{name} arrêté, à retrouver dans Traitements terminés."
       },
       "errors": {
         "dose": "La prise n’a pas pu être notée. Réessaie.",
@@ -458,14 +456,17 @@
         "movedKept": "Prise déplacée au {date}. Prochaine dose gardée au {nextDue}, que tu avais reportée.",
         "movedLost": "Prise déplacée au {date}. Ton report de la prochaine dose ne s’applique plus.",
         "undoMove": "Annuler le changement de date de la prise",
-        "deleted": "Traitement {name} supprimé"
+        "deleted": "Supprimé",
+        "deletedLabel": "{name} supprimé",
+        "undoDelete": "Annuler la suppression de {name}",
+        "lastDose": "Dernière dose de {name} notée, à retrouver dans Traitements terminés."
       },
       "menu": {
         "remove": "Supprimer ce traitement"
       },
       "deleteDialog": {
         "title": "Supprimer {name} ?",
-        "text": "Ses prises et ses rappels seront supprimés du carnet. Cette action est définitive.",
+        "text": "Ses prises et ses rappels seront supprimés du carnet.",
         "cancel": "Annuler",
         "confirm": "Supprimer"
       },
@@ -478,7 +479,8 @@
     "history": {
       "period": {
         "since": "Depuis le {date}",
-        "range": "Du {from} au {to}"
+        "range": "Du {from} au {to}",
+        "single": "Le {date}"
       },
       "empty": "Aucune prise dans cette période pour l’instant",
       "dueAt": "{date} · {time}",
@@ -526,7 +528,12 @@
         "both": "{name} : {given} et {missed} notés",
         "givenCount": "{n} prise | {n} prises",
         "missedCount": "{n} oubli | {n} oublis",
-        "undo": "Annuler les doses renseignées de {name}"
+        "undo": "Annuler les doses renseignées de {name}",
+        "finished": {
+          "given": "{name} : {n} prise notée, à retrouver dans Traitements terminés. | {name} : {n} prises notées, à retrouver dans Traitements terminés.",
+          "missed": "{name} : {n} oubli noté, à retrouver dans Traitements terminés. | {name} : {n} oublis notés, à retrouver dans Traitements terminés.",
+          "both": "{name} : {given} et {missed} notés, à retrouver dans Traitements terminés."
+        }
       },
       "days": {
         "title": "Choisir les jours",
@@ -563,12 +570,25 @@
         "missedCount": "{n} oubliée | {n} oubliée | {n} oubliées",
         "counts": "{given}, {missed}",
         "submit": "Valider : {counts}",
-        "submitLabel": "Valider : {counts}, {when}"
+        "submitLabel": "Valider : {counts}, {when}",
+        "submitStop": "Valider et arrêter : {counts}",
+        "submitStopLabel": "Valider et arrêter : {counts}, {when}"
       }
     },
     "finished": {
       "title": "Traitements terminés",
-      "row": "Arrêté le {date} · {n} prise | Arrêté le {date} · {n} prises"
+      "row": "{end} · {n} prise | {end} · {n} prises",
+      "doses": "{n} prise | {n} prises"
+    },
+    "stop": {
+      "unlogged": "La dose du {when} n’est pas renseignée. Tu peux la noter avant d’arrêter. | {n} doses, {when}, ne sont pas renseignées. Tu peux les noter avant d’arrêter.",
+      "todayNote": "La dose d’aujourd’hui n’est pas notée : si tu l’as donnée, touche « C’est fait » avant d’arrêter.",
+      "withoutLogging": "Arrêter sans renseigner",
+      "withoutLoggingLabel": "Arrêter {name} sans renseigner la dose | Arrêter {name} sans renseigner les {n} doses",
+      "allGivenLabel": "Noter les {n} doses comme données, {when}, puis arrêter {name}",
+      "chooseDaysLabel": "Choisir les jours où {name} a été donné, puis arrêter",
+      "givenLabel": "Noter la dose du {when} comme donnée, puis arrêter {name}",
+      "missedLabel": "Noter la dose du {when} comme oubliée, puis arrêter {name}"
     }
   },
   "reminders": {

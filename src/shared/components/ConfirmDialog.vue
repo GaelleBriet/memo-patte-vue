@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onScopeDispose, useTemplateRef, watch } from 'vue'
+import { computed, onScopeDispose, useTemplateRef, watch } from 'vue'
 
 import { onBackButton } from '@/core/app-lifecycle/back-button'
 
@@ -7,6 +7,8 @@ const props = withDefaults(
   defineProps<{
     title: string
     text: string
+    /** Second paragraphe, sous le texte. */
+    note?: string | null
     cancelLabel: string
     confirmLabel: string
     cancelAriaLabel?: string
@@ -14,13 +16,16 @@ const props = withDefaults(
     /** `danger` : action destructive, en couleur système d'erreur ; `primary` : action principale. */
     tone?: 'danger' | 'primary'
   }>(),
-  { cancelAriaLabel: undefined, confirmAriaLabel: undefined, tone: 'danger' },
+  { note: null, cancelAriaLabel: undefined, confirmAriaLabel: undefined, tone: 'danger' },
 )
 
 const emit = defineEmits<{
   confirm: []
   cancel: []
 }>()
+/** Le slot `choices` ajoute des gestes : les actions s'empilent, la confirmation en texte, « Annuler » en dernier. */
+const slots = defineSlots<{ choices?: () => unknown }>()
+const isStacked = computed(() => slots.choices !== undefined)
 
 const open = defineModel<boolean>({ default: false })
 
@@ -88,7 +93,22 @@ function confirm(): void {
     <div class="confirm-dialog__panel" :class="`confirm-dialog__panel--${props.tone}`">
       <h2 class="confirm-dialog__title">{{ props.title }}</h2>
       <p class="confirm-dialog__text">{{ props.text }}</p>
-      <div class="confirm-dialog__actions">
+      <p v-if="props.note" class="confirm-dialog__text confirm-dialog__note">{{ props.note }}</p>
+      <div
+        class="confirm-dialog__actions"
+        :class="{ 'confirm-dialog__actions--stacked': isStacked }"
+      >
+        <slot name="choices" />
+        <v-btn
+          v-if="isStacked"
+          class="confirm-dialog__confirm"
+          variant="text"
+          color="primary"
+          :aria-label="props.confirmAriaLabel"
+          @click="confirm"
+        >
+          {{ props.confirmLabel }}
+        </v-btn>
         <v-btn
           ref="cancelButton"
           class="confirm-dialog__cancel"
@@ -99,6 +119,7 @@ function confirm(): void {
           {{ props.cancelLabel }}
         </v-btn>
         <v-btn
+          v-if="!isStacked"
           class="confirm-dialog__confirm"
           :variant="props.tone === 'danger' ? 'text' : 'flat'"
           :color="props.tone === 'danger' ? 'error' : 'primary'"
@@ -147,12 +168,22 @@ function confirm(): void {
   line-height: 1.5;
 }
 
+.confirm-dialog__note {
+  margin-top: 8px;
+}
+
 .confirm-dialog__actions {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 8px;
   margin-top: 20px;
+}
+
+.confirm-dialog__actions--stacked {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: stretch;
 }
 
 .confirm-dialog__actions .v-btn {

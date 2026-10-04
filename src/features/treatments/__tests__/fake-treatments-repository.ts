@@ -6,10 +6,9 @@ export type StoreTreatmentsRepository = Awaited<ReturnType<TreatmentsRepositoryP
 /** Repository du store des traitements, vide par défaut : un test ne fournit que ce qu'il lit. */
 export function fakeTreatmentsRepository(methods: Partial<StoreTreatmentsRepository> = {}) {
   return fakeRepository<StoreTreatmentsRepository>({
-    listByAnimal: async () => [],
+    listWithHistoryByAnimal: async () => [],
     getById: async () => null,
     listDoses: async () => [],
-    countDosesByAnimal: async () => ({}),
     ...methods,
   })
 }

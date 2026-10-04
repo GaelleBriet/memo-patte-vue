@@ -21,10 +21,16 @@ import i18n from '@/core/i18n'
 import router from '@/router'
 import vuetify from '@/core/theme/vuetify'
 import AnimalChipSelector from '@/shared/components/AnimalChipSelector.vue'
-import type { Treatment } from '@/features/treatments/schema/treatment.schema'
-import type { TreatmentsRepository } from '@/features/treatments/repository/treatments.repository'
+import type {
+  TreatmentsRepository,
+  TreatmentWithHistory,
+} from '@/features/treatments/repository/treatments.repository'
 import { provideTreatmentsRepository } from '@/features/treatments/store/treatments.store'
 import { fakeTreatmentsRepository } from '@/features/treatments/__tests__/fake-treatments-repository'
+import {
+  period,
+  treatment as treatmentWith,
+} from '@/features/treatments/__tests__/treatment-fixtures'
 import TreatmentsSection from '@/features/treatments/views/TreatmentsSection.vue'
 import type { Vaccination } from '@/features/vaccinations/schema/vaccination.schema'
 import type { VaccinationsRepository } from '@/features/vaccinations/repository/vaccinations.repository'
@@ -99,18 +105,24 @@ function vaccination(animalId: string, dueDate: string | null): Vaccination {
   }
 }
 
-function treatment(animalId: string, nextDueDate: string): Treatment {
+/** Trimestriel sans prise : sa première dose, `firstDueOn`, est la dose du moment. */
+function treatment(animalId: string, firstDueOn: string): TreatmentWithHistory {
+  const id = crypto.randomUUID()
   return {
-    id: crypto.randomUUID(),
+    ...treatmentWith([
+      period({
+        id,
+        treatmentId: id,
+        animalId,
+        startsOn: firstDueOn,
+        firstDueOn,
+        frequency: { value: 3, unit: 'month' },
+      }),
+    ]),
+    id,
     animalId,
     name: 'Bravecto',
     type: 'antiparasitic',
-    periodId: crypto.randomUUID(),
-    frequency: { value: 3, unit: 'month' },
-    lastDoseDate: '2026-06-24',
-    nextDueDate,
-    stoppedOn: null,
-    ...STAMPS,
   }
 }
 
@@ -121,12 +133,12 @@ function weight(animalId: string, weightKg: number, measuredOn: string): WeightE
 let store: ReturnType<typeof useAnimalsStore>
 let animals: Animal[]
 let vaccinations: Vaccination[]
-let treatments: Treatment[]
+let treatments: TreatmentWithHistory[]
 let weights: WeightEntry[]
 let load: MockInstance
 let push: MockInstance
 let listVaccinations: Mock<VaccinationsRepository['listByAnimal']>
-let listTreatments: Mock<TreatmentsRepository['listByAnimal']>
+let listTreatments: Mock<TreatmentsRepository['listWithHistoryByAnimal']>
 let listWeights: Mock<WeightRepository['listByAnimal']>
 
 beforeEach(async () => {
@@ -146,14 +158,14 @@ beforeEach(async () => {
   listVaccinations = vi.fn<VaccinationsRepository['listByAnimal']>(async (id) =>
     vaccinations.filter((v) => v.animalId === id),
   )
-  listTreatments = vi.fn<TreatmentsRepository['listByAnimal']>(async (id) =>
+  listTreatments = vi.fn<TreatmentsRepository['listWithHistoryByAnimal']>(async (id) =>
     treatments.filter((t) => t.animalId === id),
   )
   listWeights = vi.fn<WeightRepository['listByAnimal']>(async (id) =>
     weights.filter((w) => w.animalId === id),
   )
   const vaccinationsRepository = fakeVaccinationsRepository({ listByAnimal: listVaccinations })
-  const treatmentsRepository = fakeTreatmentsRepository({ listByAnimal: listTreatments })
+  const treatmentsRepository = fakeTreatmentsRepository({ listWithHistoryByAnimal: listTreatments })
   const weightRepository = fakeWeightRepository({ listByAnimal: listWeights })
   provideVaccinationsRepository(() => vaccinationsRepository)
   provideTreatmentsRepository(() => treatmentsRepository)
@@ -485,13 +497,13 @@ describe('CarnetView — retour au premier plan', () => {
   it('passe une dose du jour en retard quand l’app revient le lendemain', async () => {
     treatments = [treatment(MILO.id, '2026-09-09')]
     const wrapper = await monter()
-    expect(wrapper.get('.treatment-row__next-dose').text()).toBe('Prochaine dose aujourd’hui')
+    expect(wrapper.get('.treatment-row__next-dose').text()).toBe('Dose du jour · 9 sept.')
 
     vi.setSystemTime(new Date('2026-09-10T08:00:00'))
     simulateWebResume()
     await flushPromises()
 
-    expect(wrapper.get('.treatment-row__next-dose').text()).toBe('Prochaine dose en retard · 1 j')
+    expect(wrapper.get('.treatment-row__next-dose').text()).toBe('En retard depuis le 9 sept.')
     expect(stat(wrapper, 1)).toMatchObject({ value: '1', sub: 'en retard' })
   })
 

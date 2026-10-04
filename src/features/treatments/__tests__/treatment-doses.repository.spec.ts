@@ -222,7 +222,6 @@ describe('treatmentDosesRepository — historique', () => {
   let db: InMemoryDb
   let doses: TreatmentDosesRepository
   let milbemax: string
-  let bravecto: string
 
   function prisePlan(id: string, givenOn: string, surcharges: Partial<NewTreatmentDose> = {}) {
     return prise(milbemax, id, givenOn, surcharges)
@@ -242,7 +241,7 @@ describe('treatmentDosesRepository — historique', () => {
     )
     doses = createTreatmentDosesRepository(db)
     milbemax = (await seedTreatmentWithDose(db, { ...plan, animalId: MIETTE, name: 'Milbemax' })).id
-    bravecto = (await seedTreatmentWithDose(db, { ...plan, animalId: VASCO, name: 'Bravecto' })).id
+    await seedTreatmentWithDose(db, { ...plan, animalId: VASCO, name: 'Bravecto' })
   })
 
   afterEach(() => {
@@ -287,15 +286,6 @@ describe('treatmentDosesRepository — historique', () => {
     await expect(doses.getById('p1')).resolves.toEqual(lue('p1', '2026-04-10'))
     await db.runMany([doses.markDeletedStatement(['p1'], NOW)])
     await expect(doses.getById('p1')).resolves.toBeNull()
-  })
-
-  it('compte les prises visibles de chaque traitement d’un animal', async () => {
-    await db.runMany([doses.insertStatement(prisePlan('p1', '2026-04-10'))])
-    await db.runMany([doses.insertStatement(prisePlan('p2', '2026-05-10'))])
-    await db.runMany([doses.markDeletedStatement(['p2'], NOW)])
-
-    await expect(doses.countByAnimal(MIETTE)).resolves.toEqual({ [milbemax]: 2 })
-    await expect(doses.countByAnimal(VASCO)).resolves.toEqual({ [bravecto]: 1 })
   })
 })
 

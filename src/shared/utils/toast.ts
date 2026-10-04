@@ -15,6 +15,8 @@ export type ToastOptions = {
   durationMs?: number
   tone?: ToastTone
   action?: ToastAction
+  /** Texte lu par le lecteur d'écran quand le message affiché seul ne dit pas de quoi il parle. */
+  announcement?: string
 }
 
 const DEFAULT_DURATION_MS = 3000
@@ -50,7 +52,8 @@ export function showToast(message: string, options: ToastOptions = {}): void {
   currentAction.value = options.action ?? null
   announcement.value = ''
   // Vidé puis réécrit dans la même tâche, un texte identique n'est pas relu par les lecteurs d'écran.
-  announceTimer = setTimeout(() => (announcement.value = message), ANNOUNCE_DELAY_MS)
+  const announced = options.announcement ?? message
+  announceTimer = setTimeout(() => (announcement.value = announced), ANNOUNCE_DELAY_MS)
   durationMs = options.durationMs ?? (options.action ? ACTION_DURATION_MS : DEFAULT_DURATION_MS)
   dismissTimer = setTimeout(dismissToast, durationMs)
 }
@@ -81,11 +84,13 @@ export type UndoOptions = {
   onUndone: () => void
   /** Affiché en toast d'échec si l'annulation lève. */
   failedMessage: string
+  announcement?: string
 }
 
 /** Confirme un geste réversible ; « Annuler » le défait. */
 export function showUndoableToast(message: string, options: UndoOptions): void {
   showToast(message, {
+    announcement: options.announcement,
     action: {
       label: options.label,
       ariaLabel: options.ariaLabel,

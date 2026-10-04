@@ -8,7 +8,11 @@ import {
 } from '../logic/treatment-dose-writes'
 import { hasSeveralTimes } from '../logic/treatment-gestures'
 import { momentDue, notifiedDue } from '../logic/treatment-other-date'
-import { treatmentScheduleOf } from '../logic/treatment-schedule'
+import {
+  currentPeriodOf,
+  readableScheduleOf,
+  treatmentScheduleOf,
+} from '../logic/treatment-schedule'
 import {
   DuplicateDueError,
   getTreatmentDosesRepository,
@@ -37,6 +41,8 @@ export type TreatmentDosesDependencies = {
 
 export type AppliedDoseChange = Omit<DoseChange, 'writes'> & {
   animalId: string
+  /** Le geste a terminé le traitement : plus rien à noter ni à renseigner (TR-31). */
+  finishes: boolean
   /** Lot inverse, à passer à `undoBatch` ; vide quand rien n'a été écrit. */
   undo: DoseWrite[]
 }
@@ -74,6 +80,16 @@ export function createTreatmentDosesService({
     return history
   }
 
+  // Seule une période close ou à date de fin peut se terminer : les autres ne sont pas relues.
+  async function finishedBy(
+    before: TreatmentWithHistory,
+    schedule: TreatmentSchedule,
+  ): Promise<boolean> {
+    const current = currentPeriodOf(before, schedule)
+    if (schedule.finished || (current?.endsOn ?? current?.stoppedOn ?? null) === null) return false
+    return readableScheduleOf(await historyOf(before.id), today())?.finished ?? false
+  }
+
   async function alreadyNoted(action: DoseAction, treatmentId: string): Promise<string | null> {
     if (action.kind !== 'note' || action.gesture.kind !== 'given') return null
     const { due, givenOn } = action.gesture
@@ -96,7 +112,9 @@ export function createTreatmentDosesService({
     const { writes, ...change } = doseChange(history, schedule, action, () => crypto.randomUUID())
     const { animalId } = history
     try {
-      return { ...change, animalId, undo: await write(history.id, writes) }
+      const undo = await write(history.id, writes)
+      const finishes = undo.length > 0 && (await finishedBy(history, schedule))
+      return { ...change, animalId, finishes, undo }
     } catch (cause) {
       if (cause instanceof DuplicateDueError && action.kind === 'log') {
         throw new DoseAlreadyLoggedError(cause.message, { cause })
@@ -106,6 +124,7 @@ export function createTreatmentDosesService({
       if (alreadyGivenOn === null) throw cause
       return {
         animalId,
+        finishes: false,
         undo: [],
         alreadyGivenOn,
         postponement: null,
@@ -139,6 +158,7 @@ export function createTreatmentDosesService({
       const schedule = treatmentScheduleOf(history, day)
       const nothing = {
         animalId: history.animalId,
+        finishes: false,
         undo: [],
         alreadyGivenOn: null,
         postponement: null,

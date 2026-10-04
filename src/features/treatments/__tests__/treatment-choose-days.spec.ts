@@ -109,6 +109,26 @@ describe('chooseDaysLayout — un calendrier par mois (TR-16)', () => {
     )
   })
 
+  it('ouvert depuis l’arrêt, le bouton dit qu’il arrête aussi le traitement', () => {
+    const missed = keys(
+      SEPTEMBRE,
+      '2026-09-05',
+      '2026-09-06',
+      '2026-09-12',
+      '2026-09-13',
+      '2026-09-20',
+    )
+
+    expect(plain(submitTexts(t, 25, missedAmong(SEPTEMBRE, missed), WHEN, true))).toEqual({
+      submit: 'Valider et arrêter : 20 données, 5 oubliées',
+      submitLabel: 'Valider et arrêter : 20 données, 5 oubliées, du 3 au 27 sept.',
+    })
+    applyLocale('en')
+    expect(submitTexts(t, 25, 5, 'Sep 3 – Sep 27', true).submit).toBe(
+      'Confirm and stop: 20 given, 5 missed',
+    )
+  })
+
   it('accorde le libellé lu par le lecteur d’écran au singulier', () => {
     const one = SEPTEMBRE.slice(0, 1)
 

@@ -16,6 +16,7 @@ export function treatmentStopTexts(t: Translate, named: { name: string; animal: 
     stopLabel: t('treatments.sheet.stopLabel', named),
     stopDialog: {
       title: t('treatments.sheet.stopDialog.title', named),
+      text: t('treatments.sheet.stopDialog.text', named),
       cancelLabel: t('treatments.sheet.stopDialog.cancelLabel', named),
       confirmLabel: t('treatments.sheet.stopDialog.confirmLabel', named),
     },

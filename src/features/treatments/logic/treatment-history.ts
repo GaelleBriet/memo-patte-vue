@@ -4,7 +4,6 @@ import { movedDueOf } from './treatment-dose-writes'
 import { periodSettingsText } from './treatment-rhythm'
 import type { TreatmentWithHistory } from '../repository/treatments.repository'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
-import type { Treatment } from '../schema/treatment.schema'
 import {
   isAdvanced,
   type MoveBounds,
@@ -79,8 +78,11 @@ function rangeDates(from: string, to: string): { from: string; to: string } {
 
 function headTitle(t: Translate, period: Period, next: Period | undefined): string {
   const end = lastDayOf(period, next)
-  return end === null
-    ? t('treatments.history.period.since', { date: formatLongDate(period.startsOn) })
+  if (end === null) {
+    return t('treatments.history.period.since', { date: formatLongDate(period.startsOn) })
+  }
+  return end <= period.startsOn
+    ? t('treatments.history.period.single', { date: formatLongDate(period.startsOn) })
     : t('treatments.history.period.range', rangeDates(period.startsOn, end))
 }
 
@@ -279,37 +281,15 @@ export function treatmentHistory(
   }
 }
 
-export type FinishedTreatmentRow = { id: string; name: string; detail: string }
-
-export function finishedTreatmentRows(
-  t: Translate,
-  treatments: Treatment[],
-  doseCounts: Record<string, number>,
-): FinishedTreatmentRow[] {
-  return treatments.flatMap((treatment) => {
-    if (treatment.stoppedOn === null) return []
-    const count = doseCounts[treatment.id] ?? 0
-    return [
-      {
-        id: treatment.id,
-        name: treatment.name,
-        detail: t(
-          'treatments.finished.row',
-          { date: formatLongDate(treatment.stoppedOn), n: count },
-          count,
-        ),
-      },
-    ]
-  })
-}
-
 export function treatmentDeleteTexts(t: Translate, name: string) {
   return {
     title: t('treatments.detail.deleteDialog.title', { name }),
     text: t('treatments.detail.deleteDialog.text'),
     cancel: t('treatments.detail.deleteDialog.cancel'),
     confirm: t('treatments.detail.deleteDialog.confirm'),
-    deleted: t('treatments.detail.toast.deleted', { name }),
+    deleted: t('treatments.detail.toast.deleted'),
+    deletedLabel: t('treatments.detail.toast.deletedLabel', { name }),
+    undo: t('treatments.detail.toast.undoDelete', { name }),
     failed: t('treatments.detail.errors.delete', { name }),
   }
 }

@@ -388,12 +388,11 @@ export function createTreatmentsRepository(
       return doses.listByTreatment(treatmentId)
     },
 
-    countDosesByAnimal(animalId: string): Promise<Record<string, number>> {
-      return doses.countByAnimal(animalId)
-    },
-
-    /** Sans effet sur un traitement inconnu ou déjà supprimé : la date initiale est gardée. */
-    async remove(id: string): Promise<void> {
+    /**
+     * Rend l'instant de la suppression, à passer à `restore`. Sans effet sur un traitement inconnu
+     * ou déjà supprimé : la date initiale est gardée.
+     */
+    async remove(id: string): Promise<string> {
       const deletedAt = new Date().toISOString()
       await db.runMany([
         {
@@ -403,6 +402,21 @@ export function createTreatmentsRepository(
         },
         periods.markDeletedByTreatmentStatement(id, deletedAt),
         doses.markDeletedByTreatmentStatement(id, deletedAt),
+      ])
+      return deletedAt
+    },
+
+    /** Rétablit le traitement, ses périodes et ses prises supprimés à cet instant, et eux seuls. */
+    async restore(id: string, deletedAt: string): Promise<void> {
+      const at = new Date().toISOString()
+      await db.runMany([
+        {
+          sql: `UPDATE treatment SET deleted_at = NULL, updated_at = ?, updated_by_device = ?
+                WHERE id = ? AND deleted_at = ?`,
+          params: [at, deviceId(), id, deletedAt],
+        },
+        periods.reviveByTreatmentStatement(id, deletedAt, at),
+        doses.reviveByTreatmentStatement(id, deletedAt, at),
       ])
     },
 
