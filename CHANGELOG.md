@@ -5,6 +5,14 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.58](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.57...memo-patte-v0.1.58) (2026-10-04)
+
+
+### 🐛 Corrections
+
+* **treatments:** le moteur lit les lignes de décalage au lieu de deviner ([3f4ba21](https://github.com/GaelleBriet/memo-patte-vue/commit/3f4ba216dd230b8b208b2a0bfc878b6b2fbd7a1f))
+* **treatments:** une correction ne supprime les décalages que si la grille change ([5d49f7d](https://github.com/GaelleBriet/memo-patte-vue/commit/5d49f7d5b2e6149e9c66f4ce98b3756645ce1bcd))
+
 ## [0.1.57](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.56...memo-patte-v0.1.57) (2026-10-04)
 
 
