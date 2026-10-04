@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { parseExportFile } from '../service/data-import.service'
-import { IMPORT_FILE, importFixtureJson, LUNA_ID, MILO_ID } from './import-fixture'
+import { IMPORT_FILE, IMPORT_FIXTURE, importFixtureJson, LUNA_ID, MILO_ID } from './import-fixture'
 import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
 
 const LIMITE = 'a'.repeat(MAX_NAME_LENGTH)
@@ -400,6 +400,13 @@ describe('parseExportFile', () => {
       ['une prochaine échéance après 2199', { nextDueDate: '2200-01-01' }],
       ['une période qui n’est pas un UUID', { periodId: 'p-1' }],
       ['une prise sans période', { periodId: undefined }],
+      ['une prise en plus, que l’app ne sait pas encore lire', { status: 'extra' }],
+      [
+        'une ligne de décalage, que l’app ne sait pas encore lire',
+        { status: 'shift', givenOn: null },
+      ],
+      ['une prise sans l’appareil qui l’a créée', { createdByDevice: undefined }],
+      ['un appareil qui n’est pas un UUID', { updatedByDevice: 'pixel' }],
     ])('refuse %s', (_, change) => {
       const text = withDocument((document) => Object.assign(panacur(document).matin, change))
 
@@ -422,6 +429,35 @@ describe('parseExportFile', () => {
         ['missed', null],
         ['given', '2026-09-12'],
       ])
+    })
+  })
+
+  describe('jour de référence et appareils', () => {
+    it('relit le jour de référence de chaque période et les appareils du carnet', () => {
+      const result = parseExportFile(importFixtureJson())
+
+      expect(
+        result.ok && result.file.data.treatmentPeriods.map((period) => period.referenceOn),
+      ).toEqual(['2026-06-15', '2026-09-01'])
+      expect(result.ok && result.file.data.devices).toEqual(IMPORT_FIXTURE.devices)
+    })
+
+    it.each([
+      ['une période sans jour de référence', 'treatmentPeriods', { referenceOn: undefined }],
+      ['un appareil sans date d’installation', 'devices', { installedAt: undefined }],
+      ['un modèle d’appareil de plus de 200 caractères', 'devices', { model: 'a'.repeat(201) }],
+    ])('refuse %s', (_, table, change) => {
+      const text = withDocument((document) => Object.assign(rows(document, table)[0]!, change))
+
+      expect(parseExportFile(text)).toEqual(INVALID)
+    })
+
+    it('refuse un fichier sans liste d’appareils', () => {
+      const text = withDocument((document) => {
+        delete document.devices
+      })
+
+      expect(parseExportFile(text)).toEqual(INVALID)
     })
   })
 

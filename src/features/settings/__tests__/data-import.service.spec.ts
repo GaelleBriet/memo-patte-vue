@@ -28,6 +28,7 @@ import {
   PANACUR_REPORT_ID,
   PANACUR_SOIR_ID,
 } from './import-fixture'
+import { FIXTURE_DEVICE } from './export-fixture'
 import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory-db'
 import { createDeviceRepository } from '@/core/device/device.repository'
 import { createAnimalsRepository } from '@/features/animals/repository/animals.repository'
@@ -530,6 +531,58 @@ describe('data-import.service', () => {
       expect(data.animals.map(({ createdAt }) => createdAt).sort()).toEqual(
         IMPORT_FIXTURE.animals.map(({ createdAt }) => createdAt).sort(),
       )
+    })
+
+    it('une entrée déjà présente prend l’appareil qui importe, une entrée nouvelle garde le sien', async () => {
+      const { service } = setup()
+      await service.importData(IMPORT_FILE, 'replace')
+      const [luna] = (await carnet()).animals
+
+      await service.importData(IMPORT_FILE, 'replace')
+
+      const [lunaAgain] = (await carnet()).animals
+      expect(luna).toMatchObject({
+        createdByDevice: FIXTURE_DEVICE,
+        updatedByDevice: FIXTURE_DEVICE,
+      })
+      expect(lunaAgain).toMatchObject({
+        createdByDevice: FIXTURE_DEVICE,
+        updatedByDevice: IMPORTEUR,
+      })
+    })
+  })
+
+  describe('appareils', () => {
+    it('garde les appareils de l’appareil qui importe, même en remplacement', async () => {
+      const { service } = setup()
+      await repositories.devices.register(
+        { id: IMPORTEUR, installedAt: '2026-09-01T00:00:00.000Z' },
+        'Galaxy Tab S9',
+      )
+
+      await service.importData(IMPORT_FILE, 'replace')
+
+      await expect(repositories.devices.listRecords()).resolves.toEqual([
+        ...IMPORT_FIXTURE.devices,
+        expect.objectContaining({ id: IMPORTEUR, model: 'Galaxy Tab S9' }),
+      ])
+    })
+
+    it('garde la version la plus récente d’un appareil connu des deux côtés', async () => {
+      const { service } = setup()
+      const [pixel] = IMPORT_FIXTURE.devices
+      await db.runMany([
+        repositories.devices.restoreStatement(
+          { ...pixel!, model: 'Pixel 8 Pro', updatedAt: '2026-09-14T00:00:00.000Z' },
+          false,
+        ),
+      ])
+
+      await service.importData(IMPORT_FILE, 'merge')
+
+      await expect(repositories.devices.listRecords()).resolves.toMatchObject([
+        { id: pixel!.id, model: 'Pixel 8 Pro' },
+      ])
     })
   })
 
