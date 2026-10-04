@@ -11,7 +11,7 @@ import {
 import { recordedWeightIn, type WeightUnit } from '@/shared/domain/weight-unit'
 
 /** Contrat documenté dans `docs/technical/export-format.md` : toute rupture incrémente la version. */
-export const EXPORT_SCHEMA_VERSION = 3
+export const EXPORT_SCHEMA_VERSION = 4
 
 export type ExportFormat = 'json' | 'csv'
 
@@ -109,6 +109,7 @@ export function toJsonExport(data: ExportData, meta: ExportMeta): string {
     treatmentPeriods: data.treatmentPeriods,
     treatmentDoses: data.treatmentDoses,
     weightEntries: data.weightEntries,
+    devices: data.devices,
     reminders: exportReminders(data),
   }
   return JSON.stringify(document, null, 2)

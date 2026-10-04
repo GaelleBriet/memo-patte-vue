@@ -39,8 +39,8 @@ const bravecto = {
 
 async function seedAnimal(db: InMemoryDb, id: string, name: string) {
   await db.run(
-    `INSERT INTO animal (id, name, species, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?)`,
+    `INSERT INTO animal (id, name, species, created_at, updated_at, created_by_device, updated_by_device)
+     VALUES (?, ?, ?, ?, ?, 'appareil-test', 'appareil-test')`,
     [id, name, 'cat', '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z'],
   )
 }
@@ -64,8 +64,8 @@ async function insertRaw(db: InMemoryDb, overrides: Partial<Record<string, strin
     ...overrides,
   }
   await db.run(
-    `INSERT INTO treatment (id, animal_id, name, type, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO treatment (id, animal_id, name, type, created_at, updated_at, created_by_device, updated_by_device)
+     VALUES (?, ?, ?, ?, ?, ?, 'appareil-test', 'appareil-test')`,
     Object.values(row),
   )
 }
@@ -217,6 +217,8 @@ describe('treatmentsRepository', () => {
         'created_at',
         'updated_at',
         'deleted_at',
+        'created_by_device',
+        'updated_by_device',
       ])
       expect(columns.find((column) => column.name === 'id')?.pk).toBe(1)
       expect(columns.find((column) => column.name === 'deleted_at')?.notnull).toBe(0)
@@ -245,10 +247,13 @@ describe('treatmentsRepository', () => {
 
       const statement = repository.markDeletedByAnimalStatement(MIETTE, '2026-03-01T10:00:00.000Z')
 
-      expect(statement).toEqual({
-        sql: 'UPDATE treatment SET deleted_at = ?, updated_at = ? WHERE animal_id = ? AND deleted_at IS NULL',
-        params: ['2026-03-01T10:00:00.000Z', '2026-03-01T10:00:00.000Z', MIETTE],
-      })
+      expect(statement.sql).toMatch(/^UPDATE treatment SET deleted_at = \?/)
+      expect(statement.params).toEqual([
+        '2026-03-01T10:00:00.000Z',
+        '2026-03-01T10:00:00.000Z',
+        expect.any(String),
+        MIETTE,
+      ])
       await expect(repository.getById(created.id)).resolves.toEqual(created)
     })
 
@@ -825,9 +830,14 @@ describe('treatmentsRepository — import', () => {
   let periods: TreatmentPeriodsRepository
   let doses: TreatmentDosesRepository
 
+  const PAR_FICHIER = {
+    createdByDevice: 'appareil-du-fichier',
+    updatedByDevice: 'appareil-du-fichier',
+  }
+
   function restore(treatment: ImportedTreatment, exists: boolean) {
     return db.runMany([
-      repository.restoreStatement(treatment, exists),
+      repository.restoreStatement({ ...treatment, ...PAR_FICHIER }, exists),
       periods.restoreStatement(
         {
           id: treatment.id,
@@ -835,6 +845,7 @@ describe('treatmentsRepository — import', () => {
           animalId: treatment.animalId,
           startsOn: treatment.lastDoseDate,
           firstDueOn: treatment.lastDoseDate,
+          referenceOn: treatment.lastDoseDate,
           endsOn: null,
           frequency: treatment.frequency,
           stoppedOn: treatment.stoppedOn ?? null,
@@ -845,6 +856,7 @@ describe('treatmentsRepository — import', () => {
           reminderTime: null,
           createdAt: treatment.createdAt,
           updatedAt: treatment.updatedAt,
+          ...PAR_FICHIER,
         },
         exists,
       ),
@@ -861,6 +873,7 @@ describe('treatmentsRepository — import', () => {
           nextDueDate: treatment.nextDueDate,
           createdAt: treatment.createdAt,
           updatedAt: treatment.updatedAt,
+          ...PAR_FICHIER,
         },
         exists,
       ),
@@ -983,6 +996,8 @@ describe('treatmentsRepository — import', () => {
         type: vivant.type,
         createdAt: vivant.createdAt,
         updatedAt: vivant.updatedAt,
+        createdByDevice: expect.any(String),
+        updatedByDevice: expect.any(String),
       },
     ])
   })

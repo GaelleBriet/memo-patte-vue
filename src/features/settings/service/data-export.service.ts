@@ -1,3 +1,4 @@
+import { getDeviceRepository, type DeviceRepository } from '@/core/device/device.repository'
 import i18n from '@/core/i18n'
 import {
   getAnimalsRepository,
@@ -49,9 +50,10 @@ export type DataExportDependencies = {
   vaccinations: Provider<Pick<VaccinationsRepository, 'listRecords'>>
   vaccinationInjections: Provider<Pick<VaccinationInjectionsRepository, 'listAll'>>
   treatments: Provider<Pick<TreatmentsRepository, 'listRecords'>>
-  treatmentPeriods: Provider<Pick<TreatmentPeriodsRepository, 'listAll'>>
-  treatmentDoses: Provider<Pick<TreatmentDosesRepository, 'listAll'>>
-  weight: Provider<Pick<WeightRepository, 'listByAnimal'>>
+  treatmentPeriods: Provider<Pick<TreatmentPeriodsRepository, 'listRecords'>>
+  treatmentDoses: Provider<Pick<TreatmentDosesRepository, 'listRecords'>>
+  weight: Provider<Pick<WeightRepository, 'listRecords'>>
+  devices: Provider<Pick<DeviceRepository, 'listRecords'>>
   deliver: (file: ExportFile, mode: DeliveryMode) => Promise<DeliveryOutcome>
   now: () => Date
   appVersion: string
@@ -78,6 +80,7 @@ export function createDataExportService({
   treatmentPeriods,
   treatmentDoses,
   weight,
+  devices,
   deliver,
   now,
   appVersion,
@@ -93,6 +96,7 @@ export function createDataExportService({
       periodsRepository,
       dosesRepository,
       weightRepository,
+      devicesRepository,
     ] = await Promise.all([
       carnetSettings(),
       animals(),
@@ -102,6 +106,7 @@ export function createDataExportService({
       treatmentPeriods(),
       treatmentDoses(),
       weight(),
+      devices(),
     ])
     const [
       settings,
@@ -111,18 +116,20 @@ export function createDataExportService({
       treatmentRows,
       allPeriods,
       allDoses,
+      allWeights,
+      deviceRows,
     ] = await Promise.all([
       settingsRepository.getRecord(),
       animalsRepository.listRecords(),
       vaccinationsRepository.listRecords(),
       injectionsRepository.listAll(),
       treatmentsRepository.listRecords(),
-      periodsRepository.listAll(),
-      dosesRepository.listAll(),
+      periodsRepository.listRecords(),
+      dosesRepository.listRecords(),
+      weightRepository.listRecords(),
+      devicesRepository.listRecords(),
     ])
-    const weightRows = (
-      await Promise.all(animalRows.map((animal) => weightRepository.listByAnimal(animal.id)))
-    ).flat()
+    const weightRows = childrenOf(animalRows, allWeights, ({ animalId }) => animalId)
     const periodRows = childrenOf(treatmentRows, allPeriods, ({ treatmentId }) => treatmentId)
     const exportedPeriods = new Set(periodRows.map(({ id }) => id))
     const doseRows = childrenOf(treatmentRows, allDoses, ({ treatmentId }) => treatmentId).filter(
@@ -135,6 +142,8 @@ export function createDataExportService({
         remindBeforeDue: settings.remindBeforeDue,
         createdAt: settings.createdAt,
         updatedAt: settings.updatedAt,
+        createdByDevice: settings.createdByDevice,
+        updatedByDevice: settings.updatedByDevice,
       },
       animals: animalRows.map((animal) => ({
         id: animal.id,
@@ -149,6 +158,8 @@ export function createDataExportService({
         departureDate: animal.departureDate,
         createdAt: animal.createdAt,
         updatedAt: animal.updatedAt,
+        createdByDevice: animal.createdByDevice,
+        updatedByDevice: animal.updatedByDevice,
       })),
       vaccinations: vaccinationRows.map((vaccination) => ({
         id: vaccination.id,
@@ -157,6 +168,8 @@ export function createDataExportService({
         plannedDueDate: vaccination.plannedDueDate,
         createdAt: vaccination.createdAt,
         updatedAt: vaccination.updatedAt,
+        createdByDevice: vaccination.createdByDevice,
+        updatedByDevice: vaccination.updatedByDevice,
       })),
       vaccinationInjections: childrenOf(
         vaccinationRows,
@@ -170,6 +183,8 @@ export function createDataExportService({
         nextDueDate: injection.nextDueDate,
         createdAt: injection.createdAt,
         updatedAt: injection.updatedAt,
+        createdByDevice: injection.createdByDevice,
+        updatedByDevice: injection.updatedByDevice,
       })),
       treatments: treatmentRows.map((treatment) => ({
         id: treatment.id,
@@ -178,6 +193,8 @@ export function createDataExportService({
         type: treatment.type,
         createdAt: treatment.createdAt,
         updatedAt: treatment.updatedAt,
+        createdByDevice: treatment.createdByDevice,
+        updatedByDevice: treatment.updatedByDevice,
       })),
       treatmentPeriods: periodRows.map((period) => ({
         id: period.id,
@@ -185,6 +202,7 @@ export function createDataExportService({
         animalId: period.animalId,
         startsOn: period.startsOn,
         firstDueOn: period.firstDueOn,
+        referenceOn: period.referenceOn,
         endsOn: period.endsOn,
         stoppedOn: period.stoppedOn,
         frequency: { value: period.frequency.value, unit: period.frequency.unit },
@@ -195,6 +213,8 @@ export function createDataExportService({
         reminderTime: period.reminderTime,
         createdAt: period.createdAt,
         updatedAt: period.updatedAt,
+        createdByDevice: period.createdByDevice,
+        updatedByDevice: period.updatedByDevice,
       })),
       treatmentDoses: doseRows.map((dose) => ({
         id: dose.id,
@@ -208,6 +228,8 @@ export function createDataExportService({
         nextDueDate: dose.nextDueDate,
         createdAt: dose.createdAt,
         updatedAt: dose.updatedAt,
+        createdByDevice: dose.createdByDevice,
+        updatedByDevice: dose.updatedByDevice,
       })),
       weightEntries: weightRows.map((entry) => ({
         id: entry.id,
@@ -216,6 +238,15 @@ export function createDataExportService({
         measuredOn: entry.measuredOn,
         createdAt: entry.createdAt,
         updatedAt: entry.updatedAt,
+        createdByDevice: entry.createdByDevice,
+        updatedByDevice: entry.updatedByDevice,
+      })),
+      devices: deviceRows.map((device) => ({
+        id: device.id,
+        model: device.model,
+        installedAt: device.installedAt,
+        createdAt: device.createdAt,
+        updatedAt: device.updatedAt,
       })),
     }
   }
@@ -243,6 +274,7 @@ export const dataExportService = createDataExportService({
   treatmentPeriods: getTreatmentPeriodsRepository,
   treatmentDoses: getTreatmentDosesRepository,
   weight: getWeightRepository,
+  devices: getDeviceRepository,
   deliver: (file, mode) =>
     deliverExportFile(file, mode, i18n.global.t('settings.export.shareTitle')),
   now: () => new Date(),

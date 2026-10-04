@@ -50,8 +50,8 @@ describe('treatmentsRepository — créer et écrire un plan', () => {
     db = await createInMemoryDb()
     await db.execute('PRAGMA foreign_keys = ON')
     await db.run(
-      `INSERT INTO animal (id, name, species, created_at, updated_at)
-       VALUES (?, 'Miette', 'cat', ?, ?)`,
+      `INSERT INTO animal (id, name, species, created_at, updated_at, created_by_device, updated_by_device)
+       VALUES (?, 'Miette', 'cat', ?, ?, 'appareil-test', 'appareil-test')`,
       [MIETTE, T0, T0],
     )
     repository = createTreatmentsRepository(db)

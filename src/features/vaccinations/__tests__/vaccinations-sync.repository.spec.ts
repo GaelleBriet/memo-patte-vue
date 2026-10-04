@@ -19,17 +19,17 @@ describe('vaccinationsRepository — port de synchronisation', () => {
     db = await createInMemoryDb()
     repository = createVaccinationsRepository(db)
     await db.run(
-      `INSERT INTO animal (id, name, species, created_at, updated_at) VALUES (?, 'Milo', 'dog', ?, ?)`,
+      `INSERT INTO animal (id, name, species, created_at, updated_at, created_by_device, updated_by_device) VALUES (?, 'Milo', 'dog', ?, ?, 'appareil-test', 'appareil-test')`,
       [ANIMAL_ID, T_LOCAL, T_LOCAL],
     )
     await db.run(
-      `INSERT INTO vaccination (id, animal_id, name, created_at, updated_at)
-       VALUES (?, ?, 'Rage', ?, ?)`,
+      `INSERT INTO vaccination (id, animal_id, name, created_at, updated_at, created_by_device, updated_by_device)
+       VALUES (?, ?, 'Rage', ?, ?, 'appareil-test', 'appareil-test')`,
       [VACCINATION_ID, ANIMAL_ID, T_LOCAL, T_LOCAL],
     )
     await db.run(
-      `INSERT INTO vaccination_injection (id, vaccination_id, animal_id, injected_on, next_due_date, created_at, updated_at)
-       VALUES (?, ?, ?, '2026-01-01', '2027-01-01', ?, ?)`,
+      `INSERT INTO vaccination_injection (id, vaccination_id, animal_id, injected_on, next_due_date, created_at, updated_at, created_by_device, updated_by_device)
+       VALUES (?, ?, ?, '2026-01-01', '2027-01-01', ?, ?, 'appareil-test', 'appareil-test')`,
       [VACCINATION_ID, VACCINATION_ID, ANIMAL_ID, T_LOCAL, T_LOCAL],
     )
   })
@@ -55,6 +55,8 @@ describe('vaccinationsRepository — port de synchronisation', () => {
       created_at: T_LOCAL,
       updated_at: T_LOCAL,
       deleted_at: T_NEW,
+      created_by_device: 'appareil-test',
+      updated_by_device: 'appareil-test',
     })
   })
 
@@ -66,6 +68,8 @@ describe('vaccinationsRepository — port de synchronisation', () => {
       created_at: T_LOCAL,
       updated_at: '2026-01-01T00:00:00.000Z',
       deleted_at: null,
+      created_by_device: 'appareil-test',
+      updated_by_device: 'appareil-test',
     }
 
     await db.runMany([repository.applyRemoteRowStatement(remote)])
@@ -82,6 +86,8 @@ describe('vaccinationsRepository — port de synchronisation', () => {
       created_at: T_LOCAL,
       updated_at: T_NEW,
       deleted_at: null,
+      created_by_device: 'appareil-test',
+      updated_by_device: 'appareil-test',
     }
 
     await db.runMany([repository.applyRemoteRowStatement(remote)])
@@ -105,6 +111,8 @@ describe('vaccinationsRepository — port de synchronisation', () => {
       created_at: T_LOCAL,
       updated_at: T_NEW,
       deleted_at: T_NEW,
+      created_by_device: 'appareil-test',
+      updated_by_device: 'appareil-test',
     }
 
     await db.runMany([repository.applyRemoteRowStatement(remote)])

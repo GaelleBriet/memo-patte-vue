@@ -72,8 +72,8 @@ describe('treatmentDosesRepository', () => {
     db = await createInMemoryDb()
     await db.execute('PRAGMA foreign_keys = ON')
     await db.run(
-      `INSERT INTO animal (id, name, species, created_at, updated_at)
-       VALUES (?, 'Miette', 'cat', ?, ?), (?, 'Vasco', 'dog', ?, ?)`,
+      `INSERT INTO animal (id, name, species, created_at, updated_at, created_by_device, updated_by_device)
+       VALUES (?, 'Miette', 'cat', ?, ?, 'appareil-test', 'appareil-test'), (?, 'Vasco', 'dog', ?, ?, 'appareil-test', 'appareil-test')`,
       [MIETTE, T0, T0, VASCO, T0, T0],
     )
     doses = createTreatmentDosesRepository(db)
@@ -148,6 +148,8 @@ describe('treatmentDosesRepository', () => {
           givenOn: null,
           status: 'postponed',
           nextDueDate: '2026-02-24',
+          createdByDevice: 'appareil-du-fichier',
+          updatedByDevice: 'appareil-du-fichier',
         },
         true,
       ),
@@ -187,6 +189,8 @@ describe('treatmentDosesRepository', () => {
       ...prise(milbemax, 'nouvelle', '2025-10-10'),
       nextDueDate: '2026-01-10',
       createdAt: T0,
+      createdByDevice: 'appareil-du-fichier',
+      updatedByDevice: 'appareil-du-fichier',
     }
 
     await db.runMany([doses.restoreStatement(dose, false)])
@@ -207,6 +211,8 @@ describe('treatmentDosesRepository', () => {
         created_at: T0,
         updated_at: NOW,
         deleted_at: null,
+        created_by_device: 'appareil-du-fichier',
+        updated_by_device: 'appareil-du-fichier',
       },
     ])
   })
@@ -229,8 +235,8 @@ describe('treatmentDosesRepository — historique', () => {
     db = await createInMemoryDb()
     await db.execute('PRAGMA foreign_keys = ON')
     await db.run(
-      `INSERT INTO animal (id, name, species, created_at, updated_at)
-       VALUES (?, 'Miette', 'cat', ?, ?), (?, 'Vasco', 'dog', ?, ?)`,
+      `INSERT INTO animal (id, name, species, created_at, updated_at, created_by_device, updated_by_device)
+       VALUES (?, 'Miette', 'cat', ?, ?, 'appareil-test', 'appareil-test'), (?, 'Vasco', 'dog', ?, ?, 'appareil-test', 'appareil-test')`,
       [MIETTE, T0, T0, VASCO, T0, T0],
     )
     doses = createTreatmentDosesRepository(db)

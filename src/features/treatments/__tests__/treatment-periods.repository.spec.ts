@@ -77,13 +77,13 @@ describe('treatmentPeriodsRepository', () => {
     await db.execute('PRAGMA foreign_keys = ON')
     await db.runMany([
       {
-        sql: `INSERT INTO animal (id, name, species, created_at, updated_at)
-              VALUES (?, 'Miette', 'cat', ?, ?), (?, 'Vasco', 'dog', ?, ?)`,
+        sql: `INSERT INTO animal (id, name, species, created_at, updated_at, created_by_device, updated_by_device)
+              VALUES (?, 'Miette', 'cat', ?, ?, 'appareil-test', 'appareil-test'), (?, 'Vasco', 'dog', ?, ?, 'appareil-test', 'appareil-test')`,
         params: [MIETTE, T0, T0, VASCO, T0, T0],
       },
       {
-        sql: `INSERT INTO treatment (id, animal_id, name, type, created_at, updated_at)
-              VALUES (?, ?, 'Milbemax', 'deworming', ?, ?), (?, ?, 'Bravecto', 'antiparasitic', ?, ?)`,
+        sql: `INSERT INTO treatment (id, animal_id, name, type, created_at, updated_at, created_by_device, updated_by_device)
+              VALUES (?, ?, 'Milbemax', 'deworming', ?, ?, 'appareil-test', 'appareil-test'), (?, ?, 'Bravecto', 'antiparasitic', ?, ?, 'appareil-test', 'appareil-test')`,
         params: [MILBEMAX, MIETTE, T0, T0, BRAVECTO, VASCO, T0, T0],
       },
     ])
@@ -221,6 +221,7 @@ describe('treatmentPeriodsRepository', () => {
     const COMPLETE: TreatmentPeriodRecord = {
       ...period({ id: REPRISE, createdAt: EARLIER, updatedAt: EARLIER }),
       ...REGLAGES,
+      referenceOn: REGLAGES.firstDueOn,
     }
 
     it('insère une période avec tous ses réglages et la relit à l’identique', async () => {
@@ -245,6 +246,7 @@ describe('treatmentPeriodsRepository', () => {
       expect(current).toEqual({
         ...period({ id: REPRISE, stoppedOn: '2026-02-20', updatedAt: NOW }),
         ...REGLAGES,
+        referenceOn: REGLAGES.firstDueOn,
       })
       expect(first).toMatchObject({
         id: MILBEMAX,
@@ -331,6 +333,7 @@ describe('treatmentPeriodsRepository', () => {
       animalId: MIETTE,
       startsOn: '2026-02-10',
       firstDueOn: '2026-02-11',
+      referenceOn: '2026-01-31',
       endsOn: '2026-03-10',
       stoppedOn: '2026-02-20',
       frequency: { value: 1, unit: 'day' },
@@ -341,12 +344,14 @@ describe('treatmentPeriodsRepository', () => {
       reminderTime: null,
       createdAt: EARLIER,
       updatedAt: NOW,
+      createdByDevice: 'appareil-du-fichier',
+      updatedByDevice: 'appareil-du-fichier',
     }
 
     it('insère une période importée avec toutes ses colonnes et la relit à l’identique', async () => {
       await db.runMany([periods.restoreStatement(COMPLETE, false)])
 
-      const listed = await periods.listAll()
+      const listed = await periods.listRecords()
 
       expect(listed.find(({ id }) => id === REPRISE)).toEqual({ ...COMPLETE, deletedAt: null })
       await expect(
@@ -359,6 +364,7 @@ describe('treatmentPeriodsRepository', () => {
 
       expect(listed.find(({ id }) => id === MILBEMAX)).toEqual({
         ...period(),
+        referenceOn: '2026-01-10',
         endsOn: null,
         times: [],
         doseQuantity: null,
@@ -387,7 +393,7 @@ describe('treatmentPeriodsRepository', () => {
         ),
       ])
 
-      const listed = await periods.listAll()
+      const listed = await periods.listRecords()
       expect(listed.find(({ id }) => id === MILBEMAX)).toEqual({
         ...COMPLETE,
         id: MILBEMAX,

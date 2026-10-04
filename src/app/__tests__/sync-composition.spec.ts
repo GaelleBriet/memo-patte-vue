@@ -11,6 +11,10 @@ vi.mock('@/core/sync/service/local-sync-context', () => ({
     async () => ({ outbox: {}, cycle: { runCycle: async () => {} } }) as LocalSyncContext,
   ),
 }))
+vi.mock('@/core/device/device.repository', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  getDeviceRepository: async () => ({ entity: 'device' }),
+}))
 vi.mock('@/features/animals/repository/animals.repository', async (importOriginal) => ({
   ...(await importOriginal<object>()),
   getAnimalsRepository: async () => ({ entity: 'animal' }),

@@ -13,7 +13,7 @@ import type {
 } from './treatment-schedule-types'
 
 const UNITS: readonly string[] = ['day', 'week', 'month']
-const STATUSES: readonly string[] = ['given', 'missed', 'postponed']
+const STATUSES: readonly string[] = ['given', 'missed', 'postponed', 'extra', 'shift']
 
 export const MAX_DUES = 50_000
 

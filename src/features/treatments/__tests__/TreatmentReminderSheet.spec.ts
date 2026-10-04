@@ -83,6 +83,7 @@ const HISTORY: TreatmentWithHistory = {
       animalId: BRAVECTO.animalId,
       startsOn: '2026-08-28',
       firstDueOn: '2026-08-28',
+      referenceOn: '2026-08-28',
       endsOn: null,
       stoppedOn: null,
       frequency: BRAVECTO.frequency,

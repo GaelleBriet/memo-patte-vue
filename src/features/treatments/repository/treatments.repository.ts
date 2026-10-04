@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 
 import type { DbClient, SqlStatement } from '@/core/db/db-client'
 import { getDb } from '@/core/db/sqlite'
+import { currentDeviceId } from '@/core/device/device-identity'
 import { guardedUpsert, type SyncRow } from '@/core/supabase/guarded-upsert'
 import { loadSupabaseClient } from '@/core/supabase/load-client'
 import { syncField, type SyncPullPage } from '@/core/sync/service/syncable-table'
@@ -26,6 +27,7 @@ import {
   type Treatment,
   type TreatmentType,
 } from '../schema/treatment.schema'
+import type { Stamped } from '@/shared/domain/carnet-data'
 import type { DoseFields } from '@/shared/domain/treatment-schedule'
 
 interface TreatmentRow {
@@ -36,9 +38,14 @@ interface TreatmentRow {
   created_at: string
   updated_at: string
   deleted_at: string | null
+  created_by_device: string
+  updated_by_device: string
 }
 
-interface TreatmentWithHeadRow extends TreatmentRow {
+interface TreatmentWithHeadRow extends Omit<
+  TreatmentRow,
+  'created_by_device' | 'updated_by_device'
+> {
   period_id: string
   frequency_value: number
   frequency_unit: FrequencyUnit
@@ -53,7 +60,8 @@ export type TreatmentRecord = Pick<
   Treatment,
   'id' | 'animalId' | 'name' | 'type' | 'createdAt' | 'updatedAt'
 >
-export type RestoredTreatment = TreatmentRecord
+export type StampedTreatmentRecord = Stamped<TreatmentRecord>
+export type RestoredTreatment = StampedTreatmentRecord
 /** Ce que le moteur d'échéances lit : toutes les périodes, de la première à la dernière, et les prises visibles. */
 export type TreatmentWithHistory = TreatmentRecord & {
   periods: TreatmentPeriodRecord[]
@@ -81,7 +89,8 @@ export type TreatmentPlanWrite = {
   doses: PlannedDoseWrite[]
 }
 
-const COLUMNS = 'id, animal_id, name, type, created_at, updated_at, deleted_at'
+const COLUMNS =
+  'id, animal_id, name, type, created_at, updated_at, deleted_at, created_by_device, updated_by_device'
 
 /** Les traitements supprimés restent en base pour la synchronisation, jamais pour l'UI. */
 const NOT_DELETED = 'deleted_at IS NULL'
@@ -112,6 +121,14 @@ function toRecord(row: TreatmentRow): TreatmentRecord {
     type: row.type,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+  }
+}
+
+function toStampedRecord(row: TreatmentRow): StampedTreatmentRecord {
+  return {
+    ...toRecord(row),
+    createdByDevice: row.created_by_device,
+    updatedByDevice: row.updated_by_device,
   }
 }
 
@@ -167,14 +184,18 @@ function toTreatment(row: TreatmentWithHeadRow): Treatment {
 
 export interface TreatmentsRepositoryDependencies {
   loadSupabaseClient?: () => Promise<SupabaseClient>
+  deviceId?: () => string
 }
 
 export function createTreatmentsRepository(
   db: DbClient,
-  { loadSupabaseClient: loadClient = loadSupabaseClient }: TreatmentsRepositoryDependencies = {},
+  {
+    loadSupabaseClient: loadClient = loadSupabaseClient,
+    deviceId = currentDeviceId,
+  }: TreatmentsRepositoryDependencies = {},
 ) {
-  const periods = createTreatmentPeriodsRepository(db)
-  const doses = createTreatmentDosesRepository(db)
+  const periods = createTreatmentPeriodsRepository(db, { deviceId })
+  const doses = createTreatmentDosesRepository(db, { deviceId })
 
   async function getById(id: string): Promise<Treatment | null> {
     const rows = await db.query<TreatmentWithHeadRow>(`${VISIBLE_WITH_HEAD} AND treatment.id = ?`, [
@@ -238,12 +259,12 @@ export function createTreatmentsRepository(
     },
 
     /** Traitements visibles, qu'ils aient ou non une prise. */
-    async listRecords(): Promise<TreatmentRecord[]> {
+    async listRecords(): Promise<StampedTreatmentRecord[]> {
       const rows = await db.query<TreatmentRow>(
         `SELECT ${COLUMNS} FROM treatment WHERE ${NOT_DELETED}
          ORDER BY animal_id, created_at, id`,
       )
-      return rows.map(toRecord)
+      return rows.map(toStampedRecord)
     },
 
     async getWithHistory(id: string): Promise<TreatmentWithHistory | null> {
@@ -291,8 +312,8 @@ export function createTreatmentsRepository(
 
       await db.runMany([
         {
-          sql: `INSERT INTO treatment (${COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, NULL)`,
-          params: [plan.id, plan.animalId, name, type, now, now],
+          sql: `INSERT INTO treatment (${COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, NULL, ?, ?)`,
+          params: [plan.id, plan.animalId, name, type, now, now, deviceId(), deviceId()],
         },
         periods.insertStatement({
           ...plan.settings,
@@ -330,9 +351,9 @@ export function createTreatmentsRepository(
       if (plan.treatment !== null) {
         const { name, type } = identityOf(plan.treatment)
         statements.push({
-          sql: `UPDATE treatment SET name = ?, type = ?, updated_at = ?
+          sql: `UPDATE treatment SET name = ?, type = ?, updated_at = ?, updated_by_device = ?
                 WHERE id = ? AND ${NOT_DELETED} AND (name <> ? OR type <> ?)`,
-          params: [name, type, at, id, name, type],
+          params: [name, type, at, deviceId(), id, name, type],
         })
       }
       if (plan.period?.action === 'correct') {
@@ -370,8 +391,9 @@ export function createTreatmentsRepository(
       const deletedAt = new Date().toISOString()
       await db.runMany([
         {
-          sql: `UPDATE treatment SET deleted_at = ?, updated_at = ? WHERE id = ? AND ${NOT_DELETED}`,
-          params: [deletedAt, deletedAt, id],
+          sql: `UPDATE treatment SET deleted_at = ?, updated_at = ?, updated_by_device = ?
+                WHERE id = ? AND ${NOT_DELETED}`,
+          params: [deletedAt, deletedAt, deviceId(), id],
         },
         periods.markDeletedByTreatmentStatement(id, deletedAt),
         doses.markDeletedByTreatmentStatement(id, deletedAt),
@@ -384,8 +406,9 @@ export function createTreatmentsRepository(
       const at = new Date().toISOString()
       await db.runMany([
         {
-          sql: 'UPDATE treatment SET deleted_at = NULL, updated_at = ? WHERE id = ? AND deleted_at = ?',
-          params: [at, id, deletedAt],
+          sql: `UPDATE treatment SET deleted_at = NULL, updated_at = ?, updated_by_device = ?
+                WHERE id = ? AND deleted_at = ?`,
+          params: [at, deviceId(), id, deletedAt],
         },
         periods.reviveByTreatmentStatement(id, deletedAt, at),
         doses.reviveByTreatmentStatement(id, deletedAt, at),
@@ -395,8 +418,9 @@ export function createTreatmentsRepository(
     /** Instruction fournie sans être exécutée : la suppression d'un animal la joue dans sa transaction. */
     markDeletedByAnimalStatement(animalId: string, deletedAt: string): SqlStatement {
       return {
-        sql: `UPDATE treatment SET deleted_at = ?, updated_at = ? WHERE animal_id = ? AND ${NOT_DELETED}`,
-        params: [deletedAt, deletedAt, animalId],
+        sql: `UPDATE treatment SET deleted_at = ?, updated_at = ?, updated_by_device = ?
+              WHERE animal_id = ? AND ${NOT_DELETED}`,
+        params: [deletedAt, deletedAt, deviceId(), animalId],
       }
     },
 
@@ -413,24 +437,34 @@ export function createTreatmentsRepository(
 
     markAllDeletedStatement(deletedAt: string): SqlStatement {
       return {
-        sql: `UPDATE treatment SET deleted_at = ?, updated_at = ? WHERE ${NOT_DELETED}`,
-        params: [deletedAt, deletedAt],
+        sql: `UPDATE treatment SET deleted_at = ?, updated_at = ?, updated_by_device = ?
+              WHERE ${NOT_DELETED}`,
+        params: [deletedAt, deletedAt, deviceId()],
       }
     },
 
     /** Rend la ligne visible sans la changer d'animal. */
     restoreStatement(treatment: RestoredTreatment, exists: boolean): SqlStatement {
-      const values = [treatment.name, treatment.type, treatment.createdAt, treatment.updatedAt]
+      const values = [
+        treatment.name,
+        treatment.type,
+        treatment.createdAt,
+        treatment.updatedAt,
+        treatment.createdByDevice,
+        treatment.updatedByDevice,
+      ]
       return exists
         ? {
             sql: `UPDATE treatment
-                  SET name = ?, type = ?, created_at = ?, updated_at = ?, deleted_at = NULL
+                  SET name = ?, type = ?, created_at = ?, updated_at = ?, created_by_device = ?,
+                      updated_by_device = ?, deleted_at = NULL
                   WHERE id = ?`,
             params: [...values, treatment.id],
           }
         : {
-            sql: `INSERT INTO treatment (id, animal_id, name, type, created_at, updated_at)
-                  VALUES (?, ?, ?, ?, ?, ?)`,
+            sql: `INSERT INTO treatment (id, animal_id, name, type, created_at, updated_at,
+                    created_by_device, updated_by_device)
+                  VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
             params: [treatment.id, treatment.animalId, ...values],
           }
     },
@@ -470,11 +504,12 @@ export function createTreatmentsRepository(
     applyRemoteRowStatement(row: SyncRow): SqlStatement {
       return {
         sql: `INSERT INTO treatment (${COLUMNS})
-              VALUES (?, ?, ?, ?, ?, ?, ?)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
               ON CONFLICT (id) DO UPDATE SET
                 animal_id = excluded.animal_id, name = excluded.name, type = excluded.type,
                 created_at = excluded.created_at, updated_at = excluded.updated_at,
-                deleted_at = excluded.deleted_at
+                deleted_at = excluded.deleted_at, created_by_device = excluded.created_by_device,
+                updated_by_device = excluded.updated_by_device
               WHERE excluded.updated_at > treatment.updated_at`,
         params: [
           row.id,
@@ -484,6 +519,8 @@ export function createTreatmentsRepository(
           syncField(row, 'created_at'),
           row.updated_at,
           syncField(row, 'deleted_at'),
+          syncField(row, 'created_by_device'),
+          syncField(row, 'updated_by_device'),
         ],
       }
     },

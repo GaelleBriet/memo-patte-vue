@@ -32,6 +32,8 @@ function remoteDose(overrides: Record<string, string | number | null> = {}) {
     created_at: T_NEW,
     updated_at: T_NEW,
     deleted_at: null,
+    created_by_device: 'appareil-test',
+    updated_by_device: 'appareil-test',
     ...overrides,
   }
 }
@@ -49,26 +51,26 @@ describe('treatmentDosesRepository — port de synchronisation', () => {
       loadSupabaseClient: async () => server.client,
     })
     await db.run(
-      `INSERT INTO animal (id, name, species, created_at, updated_at) VALUES (?, 'Luna', 'cat', ?, ?)`,
+      `INSERT INTO animal (id, name, species, created_at, updated_at, created_by_device, updated_by_device) VALUES (?, 'Luna', 'cat', ?, ?, 'appareil-test', 'appareil-test')`,
       [ANIMAL_ID, T_LOCAL, T_LOCAL],
     )
     await db.run(
-      `INSERT INTO treatment (id, animal_id, name, type, created_at, updated_at)
-       VALUES (?, ?, 'Bravecto', 'antiparasitic', ?, ?)`,
+      `INSERT INTO treatment (id, animal_id, name, type, created_at, updated_at, created_by_device, updated_by_device)
+       VALUES (?, ?, 'Bravecto', 'antiparasitic', ?, ?, 'appareil-test', 'appareil-test')`,
       [TREATMENT_ID, ANIMAL_ID, T_LOCAL, T_LOCAL],
     )
     await db.run(
       `INSERT INTO treatment_period
          (id, treatment_id, animal_id, starts_on, first_due_on, frequency_value, frequency_unit,
-          created_at, updated_at)
-       VALUES (?, ?, ?, '2026-01-01', '2026-01-01', 1, 'month', ?, ?)`,
+          created_at, updated_at, reference_on, created_by_device, updated_by_device)
+       VALUES (?, ?, ?, '2026-01-01', '2026-01-01', 1, 'month', ?, ?, '2026-01-01', 'appareil-test', 'appareil-test')`,
       [TREATMENT_ID, TREATMENT_ID, ANIMAL_ID, T_LOCAL, T_LOCAL],
     )
     await db.run(
       `INSERT INTO treatment_dose
          (id, period_id, treatment_id, animal_id, due_on, given_on, status, next_due_date,
-          created_at, updated_at)
-       VALUES (?, ?, ?, ?, '2026-01-01', '2026-01-01', 'given', '2026-02-01', ?, ?)`,
+          created_at, updated_at, created_by_device, updated_by_device)
+       VALUES (?, ?, ?, ?, '2026-01-01', '2026-01-01', 'given', '2026-02-01', ?, ?, 'appareil-test', 'appareil-test')`,
       [TREATMENT_ID, TREATMENT_ID, TREATMENT_ID, ANIMAL_ID, T_LOCAL, T_LOCAL],
     )
   })
@@ -97,6 +99,8 @@ describe('treatmentDosesRepository — port de synchronisation', () => {
       created_at: T_LOCAL,
       updated_at: T_LOCAL,
       deleted_at: T_NEW,
+      created_by_device: 'appareil-test',
+      updated_by_device: 'appareil-test',
     })
   })
 
@@ -184,6 +188,8 @@ describe('treatmentDosesRepository — port de synchronisation', () => {
           created_at: PG_LOCAL,
           updated_at: PG_LOCAL,
           deleted_at: null,
+          created_by_device: 'appareil-test',
+          updated_by_device: 'appareil-test',
         },
       ],
       cursor: pushed?.server_updated_at,

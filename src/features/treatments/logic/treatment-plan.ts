@@ -698,6 +698,7 @@ const DRAFT_ID = 'draft'
 function draftPeriod(settings: TreatmentPeriodSettings, at: string): TreatmentPeriodRecord {
   return {
     ...settings,
+    referenceOn: settings.firstDueOn,
     id: DRAFT_ID,
     treatmentId: DRAFT_ID,
     animalId: DRAFT_ID,

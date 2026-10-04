@@ -53,8 +53,8 @@ describe('treatmentDosesService', () => {
     db = await createInMemoryDb()
     await db.execute('PRAGMA foreign_keys = ON')
     await db.run(
-      `INSERT INTO animal (id, name, species, created_at, updated_at)
-       VALUES (?, 'Boree', 'dog', ?, ?)`,
+      `INSERT INTO animal (id, name, species, created_at, updated_at, created_by_device, updated_by_device)
+       VALUES (?, 'Boree', 'dog', ?, ?, 'appareil-test', 'appareil-test')`,
       [BOREE, NOW.toISOString(), NOW.toISOString()],
     )
     treatments = createTreatmentsRepository(db)
@@ -102,8 +102,8 @@ describe('treatmentDosesService', () => {
     ): Promise<string> {
       await db.runMany([
         {
-          sql: `INSERT INTO treatment (id, animal_id, name, type, created_at, updated_at)
-                VALUES (?, ?, 'Métacam', 'medication', ?, ?)`,
+          sql: `INSERT INTO treatment (id, animal_id, name, type, created_at, updated_at, created_by_device, updated_by_device)
+                VALUES (?, ?, 'Métacam', 'medication', ?, ?, 'appareil-test', 'appareil-test')`,
           params: [id, BOREE, LUNA_AT, LUNA_AT],
         },
         createTreatmentPeriodsRepository(db).insertStatement({
@@ -584,8 +584,8 @@ describe('treatmentDosesService', () => {
       const [, prise] = await treatments.listDoses(bravecto).then((doses) => doses.reverse())
       await db.run(
         `INSERT INTO treatment_dose (id, period_id, treatment_id, animal_id, due_on, due_time,
-           given_on, status, next_due_date, created_at, updated_at)
-         VALUES ('report', ?, ?, ?, '2026-10-23', NULL, NULL, 'postponed', '2026-10-30', ?, ?)`,
+           given_on, status, next_due_date, created_at, updated_at, created_by_device, updated_by_device)
+         VALUES ('report', ?, ?, ?, '2026-10-23', NULL, NULL, 'postponed', '2026-10-30', ?, ?, 'appareil-test', 'appareil-test')`,
         [bravecto, bravecto, BOREE, '2026-09-23T09:00:00.000Z', '2026-09-23T09:00:00.000Z'],
       )
 

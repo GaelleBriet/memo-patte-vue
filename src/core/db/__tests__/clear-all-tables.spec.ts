@@ -8,17 +8,18 @@ const NOW = '2026-09-13T10:00:00.000Z'
 describe('migrationTableNames', () => {
   it('liste une fois chaque table créée par les migrations, dans leur ordre de dernière création', () => {
     expect(migrationTableNames()).toEqual([
+      'device',
       'animal',
       'weight_entry',
       'carnet_settings',
       'vaccination',
       'vaccination_injection',
-      'sync_outbox',
-      'sync_state',
-      'sync_pull_cursor',
       'treatment',
       'treatment_period',
       'treatment_dose',
+      'sync_outbox',
+      'sync_state',
+      'sync_pull_cursor',
     ])
   })
 
@@ -57,45 +58,45 @@ describe('clearAllTables', () => {
     await db.execute('PRAGMA foreign_keys = ON')
     await db.runMany([
       {
-        sql: `INSERT INTO animal (id, name, species, created_at, updated_at, deleted_at)
-              VALUES ('a-1', 'Vasco', 'dog', ?, ?, NULL), ('a-2', 'Miette', 'cat', ?, ?, ?)`,
+        sql: `INSERT INTO animal (id, name, species, created_at, updated_at, deleted_at, created_by_device, updated_by_device)
+              VALUES ('a-1', 'Vasco', 'dog', ?, ?, NULL, 'appareil-test', 'appareil-test'), ('a-2', 'Miette', 'cat', ?, ?, ?, 'appareil-test', 'appareil-test')`,
         params: [NOW, NOW, NOW, NOW, NOW],
       },
       {
-        sql: `INSERT INTO vaccination (id, animal_id, name, created_at, updated_at, deleted_at)
-              VALUES ('v-1', 'a-1', 'Rage', ?, ?, ?)`,
+        sql: `INSERT INTO vaccination (id, animal_id, name, created_at, updated_at, deleted_at, created_by_device, updated_by_device)
+              VALUES ('v-1', 'a-1', 'Rage', ?, ?, ?, 'appareil-test', 'appareil-test')`,
         params: [NOW, NOW, NOW],
       },
       {
-        sql: `INSERT INTO vaccination_injection (id, vaccination_id, animal_id, injected_on, created_at, updated_at, deleted_at)
-              VALUES ('v-1', 'v-1', 'a-1', '2026-01-15', ?, ?, ?)`,
+        sql: `INSERT INTO vaccination_injection (id, vaccination_id, animal_id, injected_on, created_at, updated_at, deleted_at, created_by_device, updated_by_device)
+              VALUES ('v-1', 'v-1', 'a-1', '2026-01-15', ?, ?, ?, 'appareil-test', 'appareil-test')`,
         params: [NOW, NOW, NOW],
       },
       {
-        sql: `INSERT INTO weight_entry (id, animal_id, weight_kg, measured_on, created_at, updated_at)
-              VALUES ('w-1', 'a-1', 24.5, '2026-09-01', ?, ?)`,
+        sql: `INSERT INTO weight_entry (id, animal_id, weight_kg, measured_on, created_at, updated_at, created_by_device, updated_by_device)
+              VALUES ('w-1', 'a-1', 24.5, '2026-09-01', ?, ?, 'appareil-test', 'appareil-test')`,
         params: [NOW, NOW],
       },
       {
-        sql: `INSERT INTO carnet_settings (id, vaccine_reminder_time, created_at, updated_at)
-              VALUES ('00000000-0000-0000-0000-000000000000', '08:30', ?, ?)`,
+        sql: `INSERT INTO carnet_settings (id, vaccine_reminder_time, created_at, updated_at, created_by_device, updated_by_device)
+              VALUES ('00000000-0000-0000-0000-000000000000', '08:30', ?, ?, 'appareil-test', 'appareil-test')`,
         params: [NOW, NOW],
       },
       {
-        sql: `INSERT INTO treatment (id, animal_id, name, type, created_at, updated_at)
-              VALUES ('t-1', 'a-2', 'Milbemax', 'deworming', ?, ?)`,
+        sql: `INSERT INTO treatment (id, animal_id, name, type, created_at, updated_at, created_by_device, updated_by_device)
+              VALUES ('t-1', 'a-2', 'Milbemax', 'deworming', ?, ?, 'appareil-test', 'appareil-test')`,
         params: [NOW, NOW],
       },
       {
         sql: `INSERT INTO treatment_period (id, treatment_id, animal_id, starts_on, first_due_on,
-                frequency_value, frequency_unit, created_at, updated_at)
-              VALUES ('t-1', 't-1', 'a-2', '2026-08-01', '2026-08-01', 3, 'month', ?, ?)`,
+                frequency_value, frequency_unit, created_at, updated_at, reference_on, created_by_device, updated_by_device)
+              VALUES ('t-1', 't-1', 'a-2', '2026-08-01', '2026-08-01', 3, 'month', ?, ?, '2026-08-01', 'appareil-test', 'appareil-test')`,
         params: [NOW, NOW],
       },
       {
         sql: `INSERT INTO treatment_dose (id, period_id, treatment_id, animal_id, due_on, given_on,
-                status, next_due_date, created_at, updated_at)
-              VALUES ('t-1', 't-1', 't-1', 'a-2', '2026-08-01', '2026-08-01', 'given', '2026-11-01', ?, ?)`,
+                status, next_due_date, created_at, updated_at, created_by_device, updated_by_device)
+              VALUES ('t-1', 't-1', 't-1', 'a-2', '2026-08-01', '2026-08-01', 'given', '2026-11-01', ?, ?, 'appareil-test', 'appareil-test')`,
         params: [NOW, NOW],
       },
     ])
@@ -124,7 +125,7 @@ describe('clearAllTables', () => {
 
     await expect(
       db.run(
-        `INSERT INTO animal (id, name, species, created_at, updated_at) VALUES ('a-3', 'Nala', 'cat', ?, ?)`,
+        `INSERT INTO animal (id, name, species, created_at, updated_at, created_by_device, updated_by_device) VALUES ('a-3', 'Nala', 'cat', ?, ?, 'appareil-test', 'appareil-test')`,
         [NOW, NOW],
       ),
     ).resolves.toBe(1)

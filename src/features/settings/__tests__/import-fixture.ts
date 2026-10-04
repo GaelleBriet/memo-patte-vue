@@ -1,4 +1,4 @@
-import { animalOf, periodOf } from './export-fixture'
+import { animalOf, BY_FIXTURE_DEVICE, FIXTURE_DEVICE, periodOf } from './export-fixture'
 import { toJsonExport } from '../logic/export-format'
 import type { ExportData } from '@/shared/domain/carnet-data'
 import type { ImportFile } from '@/shared/domain/import-plan'
@@ -23,6 +23,7 @@ const PANACUR = {
   animalId: MILO_ID,
   createdAt: '2026-09-01T07:00:00.000Z',
   updatedAt: '2026-09-01T07:00:00.000Z',
+  ...BY_FIXTURE_DEVICE,
 } as const
 
 /**
@@ -35,6 +36,7 @@ export const IMPORT_FIXTURE: ExportData = {
     remindBeforeDue: false,
     createdAt: '2026-01-10T08:00:00.000Z',
     updatedAt: '2026-03-01T08:00:00.000Z',
+    ...BY_FIXTURE_DEVICE,
   },
   animals: [
     animalOf({
@@ -47,6 +49,7 @@ export const IMPORT_FIXTURE: ExportData = {
       photoFileName: '0f6c1c9e-5d6b-4b43-9a57-2f1d8b0c7a11.jpg',
       createdAt: '2026-01-10T08:00:00.000Z',
       updatedAt: '2026-02-01T08:00:00.000Z',
+      ...BY_FIXTURE_DEVICE,
     }),
     animalOf({
       id: MILO_ID,
@@ -57,6 +60,7 @@ export const IMPORT_FIXTURE: ExportData = {
       photoFileName: null,
       createdAt: '2026-01-12T08:00:00.000Z',
       updatedAt: '2026-01-12T08:00:00.000Z',
+      ...BY_FIXTURE_DEVICE,
     }),
   ],
   vaccinations: [
@@ -67,6 +71,7 @@ export const IMPORT_FIXTURE: ExportData = {
       plannedDueDate: null,
       createdAt: '2026-01-12T08:05:00.000Z',
       updatedAt: '2026-01-12T08:05:00.000Z',
+      ...BY_FIXTURE_DEVICE,
     },
     {
       id: TYPHUS_ID,
@@ -75,6 +80,7 @@ export const IMPORT_FIXTURE: ExportData = {
       plannedDueDate: null,
       createdAt: '2026-01-10T08:05:00.000Z',
       updatedAt: '2026-01-10T08:05:00.000Z',
+      ...BY_FIXTURE_DEVICE,
     },
     {
       id: LEUCOSE_ID,
@@ -83,6 +89,7 @@ export const IMPORT_FIXTURE: ExportData = {
       plannedDueDate: '2026-11-02',
       createdAt: '2026-01-10T08:06:00.000Z',
       updatedAt: '2026-01-10T08:06:00.000Z',
+      ...BY_FIXTURE_DEVICE,
     },
   ],
   vaccinationInjections: [
@@ -94,6 +101,7 @@ export const IMPORT_FIXTURE: ExportData = {
       nextDueDate: '2026-09-01',
       createdAt: '2026-01-12T08:05:00.000Z',
       updatedAt: '2026-01-12T08:05:00.000Z',
+      ...BY_FIXTURE_DEVICE,
     },
     {
       id: TYPHUS_ID,
@@ -103,6 +111,7 @@ export const IMPORT_FIXTURE: ExportData = {
       nextDueDate: null,
       createdAt: '2026-01-10T08:05:00.000Z',
       updatedAt: '2026-01-10T08:05:00.000Z',
+      ...BY_FIXTURE_DEVICE,
     },
   ],
   treatments: [
@@ -113,6 +122,7 @@ export const IMPORT_FIXTURE: ExportData = {
       type: 'deworming',
       createdAt: '2026-01-10T08:10:00.000Z',
       updatedAt: '2026-06-15T08:10:00.000Z',
+      ...BY_FIXTURE_DEVICE,
     },
     {
       id: PANACUR_ID,
@@ -121,6 +131,7 @@ export const IMPORT_FIXTURE: ExportData = {
       type: 'deworming',
       createdAt: PANACUR.createdAt,
       updatedAt: PANACUR.updatedAt,
+      ...BY_FIXTURE_DEVICE,
     },
   ],
   treatmentPeriods: [
@@ -132,6 +143,7 @@ export const IMPORT_FIXTURE: ExportData = {
       frequency: { value: 3, unit: 'month' },
       createdAt: '2026-01-10T08:10:00.000Z',
       updatedAt: '2026-06-15T08:10:00.000Z',
+      ...BY_FIXTURE_DEVICE,
     }),
     periodOf({
       id: PANACUR_PERIOD_ID,
@@ -146,6 +158,7 @@ export const IMPORT_FIXTURE: ExportData = {
       reminderOffsetMinutes: 30,
       createdAt: PANACUR.createdAt,
       updatedAt: PANACUR.updatedAt,
+      ...BY_FIXTURE_DEVICE,
     }),
   ],
   treatmentDoses: [
@@ -161,6 +174,7 @@ export const IMPORT_FIXTURE: ExportData = {
       nextDueDate: '2026-09-15',
       createdAt: '2026-01-10T08:10:00.000Z',
       updatedAt: '2026-06-15T08:10:00.000Z',
+      ...BY_FIXTURE_DEVICE,
     },
     {
       ...PANACUR,
@@ -198,6 +212,7 @@ export const IMPORT_FIXTURE: ExportData = {
       measuredOn: '2025-12-24',
       createdAt: '2026-01-10T08:15:00.000Z',
       updatedAt: '2026-01-10T08:15:00.000Z',
+      ...BY_FIXTURE_DEVICE,
     },
     {
       id: MILO_WEIGHT_ID,
@@ -206,14 +221,24 @@ export const IMPORT_FIXTURE: ExportData = {
       measuredOn: '2026-08-30',
       createdAt: '2026-08-30T08:15:00.000Z',
       updatedAt: '2026-08-30T08:15:00.000Z',
+      ...BY_FIXTURE_DEVICE,
+    },
+  ],
+  devices: [
+    {
+      id: FIXTURE_DEVICE,
+      model: 'Pixel 8',
+      installedAt: '2026-01-10T07:55:00.000Z',
+      createdAt: '2026-01-10T07:55:00.000Z',
+      updatedAt: '2026-01-10T07:55:00.000Z',
     },
   ],
 }
 
-export const IMPORT_FILE: ImportFile = { schemaVersion: 3, data: IMPORT_FIXTURE }
+export const IMPORT_FILE: ImportFile = { schemaVersion: 4, data: IMPORT_FIXTURE }
 
 export function importFile(data: ExportData = IMPORT_FIXTURE): ImportFile {
-  return { schemaVersion: 3, data }
+  return { schemaVersion: 4, data }
 }
 
 export function importFixtureJson(data: ExportData = IMPORT_FIXTURE): string {

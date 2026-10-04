@@ -3275,3 +3275,39 @@ describe('sans changer la fréquence ni les heures, la prochaine dose reste cell
     })
   })
 })
+
+describe('prise en plus et ligne de décalage, pas encore lues par le moteur (#502, #503)', () => {
+  it('laissent le calendrier tel qu’il serait sans elles', () => {
+    const book = done(carnet(weekly()), '2026-09-03')
+    const withNewLines: Carnet = {
+      ...book,
+      doses: [
+        ...book.doses,
+        stored({
+          periodId: 'p1',
+          dueOn: '2026-09-05',
+          dueTime: null,
+          givenOn: '2026-09-05',
+          status: 'extra',
+          nextDueDate: '2026-09-12',
+        }),
+        stored({
+          periodId: 'p1',
+          dueOn: '2026-09-10',
+          dueTime: null,
+          givenOn: null,
+          status: 'shift',
+          nextDueDate: '2026-09-11',
+        }),
+      ],
+    }
+
+    const expected = scheduleOf(book, '2026-09-20')
+    const actual = scheduleOf(withNewLines, '2026-09-20')
+
+    expect(actual.doses).toEqual(expected.doses)
+    expect(actual.unloggedDoses).toEqual(expected.unloggedDoses)
+    expect(actual.currentDoses).toEqual(expected.currentDoses)
+    expect(actual.upcoming(5)).toEqual(expected.upcoming(5))
+  })
+})

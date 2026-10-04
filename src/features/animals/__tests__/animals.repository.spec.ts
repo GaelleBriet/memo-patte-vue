@@ -74,8 +74,8 @@ describe('animalsRepository', () => {
     it('les joue dans la même transaction, avec l’animal créé', async () => {
       const created = await repository.create({ name: 'Pixel', species: 'cat' }, (animal) => [
         {
-          sql: `INSERT INTO weight_entry (id, animal_id, weight_kg, measured_on, created_at, updated_at)
-                VALUES ('w1', ?, 1.2, '2026-09-28', ?, ?)`,
+          sql: `INSERT INTO weight_entry (id, animal_id, weight_kg, measured_on, created_at, updated_at, created_by_device, updated_by_device)
+                VALUES ('w1', ?, 1.2, '2026-09-28', ?, ?, 'appareil-test', 'appareil-test')`,
           params: [animal.id, animal.createdAt, animal.createdAt],
         },
       ])
@@ -276,8 +276,8 @@ describe('animalsRepository', () => {
     it('applique les instructions de la cascade dans la même transaction', async () => {
       const miette = await repository.create({ name: 'Miette', species: 'cat' })
       await db.run(
-        `INSERT INTO vaccination (id, animal_id, name, created_at, updated_at)
-         VALUES ('v1', ?, 'Rage', '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z')`,
+        `INSERT INTO vaccination (id, animal_id, name, created_at, updated_at, created_by_device, updated_by_device)
+         VALUES ('v1', ?, 'Rage', '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z', 'appareil-test', 'appareil-test')`,
         [miette.id],
       )
 
@@ -384,6 +384,8 @@ describe('animalsRepository — import', () => {
     departureDate: '2026-01-15',
     createdAt: '2026-01-10T08:00:00.000Z',
     updatedAt: '2026-02-01T08:00:00.000Z',
+    createdByDevice: 'appareil-du-fichier',
+    updatedByDevice: 'appareil-du-fichier',
   } as const
 
   let db: InMemoryDb
@@ -415,6 +417,8 @@ describe('animalsRepository — import', () => {
         unfollowedOn: null,
         departureReason: null,
         departureDate: null,
+        createdByDevice: expect.any(String),
+        updatedByDevice: expect.any(String),
       },
     ])
   })
@@ -475,8 +479,8 @@ describe('animalsRepository — import', () => {
 
   it('n’écrit rien quand une instruction de l’import échoue', async () => {
     const orpheline = {
-      sql: `INSERT INTO vaccination (id, animal_id, name, created_at, updated_at)
-            VALUES ('v', 'animal-absent', 'Rage', 'x', 'x')`,
+      sql: `INSERT INTO vaccination (id, animal_id, name, created_at, updated_at, created_by_device, updated_by_device)
+            VALUES ('v', 'animal-absent', 'Rage', 'x', 'x', 'appareil-test', 'appareil-test')`,
     }
 
     await expect(

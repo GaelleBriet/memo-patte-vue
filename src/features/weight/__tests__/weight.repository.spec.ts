@@ -10,8 +10,8 @@ const ANIMAL_INCONNU = '33333333-3333-4333-8333-333333333333'
 
 async function seedAnimal(db: InMemoryDb, id: string, name: string) {
   await db.run(
-    `INSERT INTO animal (id, name, species, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?)`,
+    `INSERT INTO animal (id, name, species, created_at, updated_at, created_by_device, updated_by_device)
+     VALUES (?, ?, ?, ?, ?, 'appareil-test', 'appareil-test')`,
     [id, name, 'cat', '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z'],
   )
 }
@@ -275,6 +275,8 @@ describe('weightRepository', () => {
         'created_at',
         'updated_at',
         'deleted_at',
+        'created_by_device',
+        'updated_by_device',
       ])
       expect(columns.find((column) => column.name === 'id')?.pk).toBe(1)
       expect(columns.find((column) => column.name === 'weight_kg')).toMatchObject({
@@ -340,10 +342,13 @@ describe('weightRepository', () => {
 
       const statement = repository.markDeletedByAnimalStatement(MIETTE, '2026-03-01T10:00:00.000Z')
 
-      expect(statement).toEqual({
-        sql: 'UPDATE weight_entry SET deleted_at = ?, updated_at = ? WHERE animal_id = ? AND deleted_at IS NULL',
-        params: ['2026-03-01T10:00:00.000Z', '2026-03-01T10:00:00.000Z', MIETTE],
-      })
+      expect(statement.sql).toMatch(/^UPDATE weight_entry SET deleted_at = \?/)
+      expect(statement.params).toEqual([
+        '2026-03-01T10:00:00.000Z',
+        '2026-03-01T10:00:00.000Z',
+        expect.any(String),
+        MIETTE,
+      ])
       await expect(repository.getById(created.id)).resolves.toEqual(created)
     })
 
@@ -444,6 +449,8 @@ describe('weightRepository — import', () => {
     measuredOn: '2025-12-24',
     createdAt: '2026-01-10T08:15:00.000Z',
     updatedAt: '2026-01-10T08:15:00.000Z',
+    createdByDevice: 'appareil-du-fichier',
+    updatedByDevice: 'appareil-du-fichier',
   }
 
   let db: InMemoryDb
@@ -464,7 +471,7 @@ describe('weightRepository — import', () => {
   it('insère une pesée importée avec son identifiant et ses dates d’origine', async () => {
     await db.runMany([repository.restoreStatement(IMPORTE, false)])
 
-    await expect(repository.getById(IMPORTE.id)).resolves.toEqual({ ...IMPORTE, deletedAt: null })
+    await expect(repository.listRecords()).resolves.toEqual([{ ...IMPORTE, deletedAt: null }])
   })
 
   it('écrase une pesée existante, même supprimée, et la rend visible', async () => {
@@ -478,7 +485,7 @@ describe('weightRepository — import', () => {
 
     await db.runMany([repository.restoreStatement(importe, true)])
 
-    await expect(repository.getById(IMPORTE.id)).resolves.toEqual({ ...importe, deletedAt: null })
+    await expect(repository.listRecords()).resolves.toEqual([{ ...importe, deletedAt: null }])
   })
 
   it('ne déplace pas une pesée existante vers l’animal du fichier', async () => {

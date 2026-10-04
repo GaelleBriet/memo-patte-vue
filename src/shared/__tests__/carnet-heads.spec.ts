@@ -29,6 +29,8 @@ function injection(
     nextDueDate: null,
     createdAt,
     updatedAt: createdAt,
+    createdByDevice: 'appareil-test',
+    updatedByDevice: 'appareil-test',
   }
 }
 
@@ -49,6 +51,8 @@ function dose(
     nextDueDate: '2027-01-01',
     createdAt: AT,
     updatedAt: AT,
+    createdByDevice: 'appareil-test',
+    updatedByDevice: 'appareil-test',
     ...overrides,
   }
 }
@@ -64,6 +68,7 @@ function period(
     animalId: 'milo',
     startsOn,
     firstDueOn: startsOn,
+    referenceOn: startsOn,
     endsOn: null,
     stoppedOn: null,
     frequency: { value: 3, unit: 'month' },
@@ -74,6 +79,8 @@ function period(
     reminderTime: null,
     createdAt: AT,
     updatedAt: AT,
+    createdByDevice: 'appareil-test',
+    updatedByDevice: 'appareil-test',
     ...overrides,
   }
 }
