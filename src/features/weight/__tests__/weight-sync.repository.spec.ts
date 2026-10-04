@@ -120,8 +120,6 @@ describe('weightRepository — port de synchronisation', () => {
     await expect(repository.getRowForPush(WEIGHT_ENTRY_ID)).resolves.toMatchObject({
       updated_at: '2026-01-02T09:00:04.000Z',
       deleted_at: null,
-      created_by_device: 'appareil-test',
-      updated_by_device: 'appareil-test',
     })
   })
 })

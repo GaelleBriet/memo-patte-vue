@@ -127,7 +127,7 @@ describe.each([
     await db.execute('CREATE VIEW device AS SELECT 1 AS id')
     const schemaAvant = await schema(db)
 
-    await expect(applyMigrations(db)).rejects.toThrow()
+    await expect(applyMigrations(db)).rejects.toThrow(/use DROP VIEW/)
 
     expect(await userVersion(db)).toBe(10)
     expect(await schema(db)).toEqual(schemaAvant)

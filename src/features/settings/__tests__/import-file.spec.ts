@@ -144,7 +144,7 @@ describe('parseExportFile', () => {
   })
 
   describe('version', () => {
-    it.each([1, 2])(
+    it.each([1, 2, 3])(
       'signale un export d’une version plus ancienne (v%i), quel que soit son contenu',
       (schemaVersion) => {
         expect(parseExportFile(JSON.stringify({ schemaVersion, animals: [] }))).toEqual({
@@ -158,7 +158,7 @@ describe('parseExportFile', () => {
     )
 
     it('signale un export d’une version plus récente, quel que soit son contenu', () => {
-      const text = JSON.stringify({ schemaVersion: 4, pets: [] })
+      const text = JSON.stringify({ schemaVersion: 5, pets: [] })
 
       expect(parseExportFile(text)).toEqual({ ok: false, reason: 'newer' })
     })
@@ -562,7 +562,7 @@ describe('parseExportFile', () => {
 
     parseExportFile(importFixtureJson())
     parseExportFile(forged('animals', 'name', TROP_LONG))
-    parseExportFile('{ "schemaVersion": 3, "animals": "secret" }')
+    parseExportFile('{ "schemaVersion": 4, "animals": "secret" }')
     parseExportFile('secret')
 
     for (const spy of spies) expect(spy).not.toHaveBeenCalled()

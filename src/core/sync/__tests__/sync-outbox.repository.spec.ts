@@ -128,10 +128,16 @@ describe('syncOutboxRepository', () => {
       await insertTreatmentDose(db, 'd-1', 'p-1', 't-1', ANIMAL_ID, T1)
       await insertVaccination(db, 'v-1', ANIMAL_ID, T1)
       await insertVaccinationInjection(db, 'i-1', 'v-1', ANIMAL_ID, T1)
+      await db.run(
+        `INSERT INTO device (id, model, installed_at, created_at, updated_at)
+         VALUES ('appareil', NULL, ?, ?, ?)`,
+        [T1, T1, T1],
+      )
 
       const pending = await repository.listPending()
 
       expect(pending).toEqual([
+        { entity: 'device', entityId: 'appareil', queuedAt: T1, attempts: 0 },
         { entity: 'animal', entityId: ANIMAL_ID, queuedAt: T1, attempts: 0 },
         { entity: 'vaccination', entityId: 'v-1', queuedAt: T1, attempts: 0 },
         { entity: 'vaccination_injection', entityId: 'i-1', queuedAt: T1, attempts: 0 },

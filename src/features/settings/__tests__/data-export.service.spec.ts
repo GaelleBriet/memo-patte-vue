@@ -146,7 +146,7 @@ describe('data-export.service', () => {
     expect(file.name).toBe('memopatte-export-20260915-1030.json')
     const document = JSON.parse(file.content as string)
     expect(document).toMatchObject({
-      schemaVersion: 3,
+      schemaVersion: 4,
       exportedAt: NOW.toISOString(),
       appVersion: '0.1.24',
     })
