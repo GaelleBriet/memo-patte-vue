@@ -628,6 +628,20 @@ function doseWrites(schedule: TreatmentSchedule, move: MovedDose | null, ids: Pl
   return [...stale, ...lineWrite(move.report, ids.doseId), ...lineWrite(move.shift, ids.shiftId)]
 }
 
+// Corriger une période sans prise refixe sa grille : ses décalages restés seuls partent avec.
+function shiftDeletes(
+  history: TreatmentWithHistory,
+  periodId: string,
+  writes: PlannedDoseWrite[],
+): PlannedDoseWrite[] {
+  const lines = history.doses.filter((dose) => dose.periodId === periodId)
+  if (lines.some((dose) => dose.status !== 'shift')) return []
+  const written = new Set(writes.map(({ id }) => id))
+  return lines
+    .filter(({ id }) => !written.has(id))
+    .map(({ id }): PlannedDoseWrite => ({ action: 'delete', id }))
+}
+
 /** Lève une `ZodError` pour une saisie refusée : rien n'est alors à écrire. */
 export function editionPlan(
   history: TreatmentWithHistory,
@@ -647,15 +661,14 @@ export function editionPlan(
   if (change === 'locked') return { treatment, period: null, doses: [] }
 
   const doses = doseWrites(treatmentScheduleOf(history, today), move, ids)
+  const corrects = change === 'correct' && !sameSettings(settings, settingsOf(period))
   const plan: TreatmentPlanWrite =
     change === 'open'
       ? { treatment, period: { action: 'open', id: ids.periodId, settings, referenceOn }, doses }
       : {
           treatment,
-          period: sameSettings(settings, settingsOf(period))
-            ? null
-            : { action: 'correct', settings, referenceOn },
-          doses,
+          period: corrects ? { action: 'correct', settings, referenceOn } : null,
+          doses: corrects ? [...doses, ...shiftDeletes(history, period.id, doses)] : doses,
         }
   assertReadable(historyAfter(history, period, plan, today), today)
   return plan

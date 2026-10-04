@@ -909,6 +909,51 @@ describe('editionPlan — période ouverte par « Modifier », encore sans prise
   })
 })
 
+describe('editionPlan — correction d’une période qui n’a plus qu’un décalage (TR-28)', () => {
+  const vendredi = period({
+    startsOn: '2026-10-16',
+    firstDueOn: '2026-10-16',
+    frequency: { value: 1, unit: 'week' },
+  })
+  const decalage = dose({
+    id: 'decalage',
+    dueOn: '2026-10-16',
+    givenOn: null,
+    status: 'shift',
+    nextDueDate: '2026-10-19',
+  })
+  const history = treatment([vendredi], [decalage])
+
+  it.each([
+    ['2026-10-25', ['2026-10-25', '2026-11-01', '2026-11-08']],
+    ['2026-10-14', ['2026-10-14', '2026-10-21', '2026-10-28']],
+  ])(
+    'corrigée au %s, la grille repart de la date choisie : le décalage est supprimé',
+    (on, dues) => {
+      const plan = editionPlan(history, saisie(history, { nextDoseOn: on }), '2026-10-12', IDS)
+
+      expect(plan.period).toMatchObject({ action: 'correct', settings: { firstDueOn: on } })
+      expect(plan.doses).toEqual([{ action: 'delete', id: 'decalage' }])
+      const corrected = treatment(
+        [
+          {
+            ...vendredi,
+            startsOn: on < vendredi.startsOn ? on : vendredi.startsOn,
+            firstDueOn: on,
+            referenceOn: on,
+          },
+        ],
+        [],
+      )
+      expect(
+        treatmentScheduleOf(corrected, '2026-10-12')
+          .upcoming(3)
+          .map(({ dueOn }) => dueOn),
+      ).toEqual(dues)
+    },
+  )
+})
+
 describe('editionPlan — « Prochaine dose » (TR-7, TR-9)', () => {
   it('propose la prochaine dose calculée d’après la dernière prise, avec les bornes du moteur', () => {
     const history = treatment([period()], [dose()])
