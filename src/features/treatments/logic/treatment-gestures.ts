@@ -27,7 +27,9 @@ export type GestureContext = {
 
 export type DoseActionTexts = {
   /** `finishes` : le geste a fait passer le traitement dans « Traitements terminés » (TR-31). */
-  done(applied: Pick<DoseChange, 'postponement' | 'moved'> & { finishes?: boolean }): string
+  done(
+    applied: Pick<DoseChange, 'postponement' | 'moved' | 'shiftKept'> & { finishes?: boolean },
+  ): string
   /** Nom du bouton « Annuler » lu par le lecteur d'écran. */
   undo: string
   already(givenOn: string): string
@@ -76,7 +78,10 @@ export function doseActionTexts(
       const { gesture } = action
       if (gesture.kind === 'missed') {
         return {
-          done: () => t('treatments.history.toast.missed', { date: dueDay(gesture.due) }),
+          done: ({ shiftKept }) =>
+            shiftKept
+              ? t('treatments.history.toast.missedShiftKept', { date: dueDay(gesture.due) })
+              : t('treatments.history.toast.missed', { date: dueDay(gesture.due) }),
           undo: t('treatments.history.toast.undoMissed', {
             date: formatFullDate(gesture.due.dueOn),
           }),
@@ -127,7 +132,10 @@ export function doseActionTexts(
     case 'remove': {
       const removed = line ?? { dueOn: today, dueTime: null }
       return {
-        done: () => t('treatments.detail.toast.removed', { date: dueDay(removed) }),
+        done: ({ shiftKept }) =>
+          shiftKept
+            ? t('treatments.detail.toast.removedShiftKept', { date: dueDay(removed) })
+            : t('treatments.detail.toast.removed', { date: dueDay(removed) }),
         undo: t('treatments.detail.toast.undoRemove', { date: formatFullDate(removed.dueOn) }),
         already,
       }
@@ -165,7 +173,10 @@ export function doseActionTexts(
       }
     case 'remove-move':
       return {
-        done: () => t('treatments.history.toast.moveRemoved'),
+        done: ({ shiftKept }) =>
+          shiftKept
+            ? t('treatments.history.toast.moveRemovedShiftKept')
+            : t('treatments.history.toast.moveRemoved'),
         undo: t('treatments.history.toast.undoMoveRemoved'),
         already,
       }

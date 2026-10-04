@@ -82,7 +82,7 @@ describe('carnet de démo dans une vraie base', () => {
       'Panacur',
     ])
     expect(data.treatmentPeriods).toHaveLength(7)
-    expect(data.treatmentDoses).toHaveLength(29)
+    expect(data.treatmentDoses).toHaveLength(30)
   })
 
   it('s’exporte en un fichier v4 que l’import accepte : le jeu de démo est un carnet valide', async () => {
@@ -106,7 +106,7 @@ describe('carnet de démo dans une vraie base', () => {
     expect(periodsOf('Frontline')[0]?.endsOn).not.toBeNull()
     expect(periodsOf('Milbemax').map(({ stoppedOn }) => stoppedOn !== null)).toEqual([true, false])
     expect(new Set(treatmentDoses.map(({ status }) => status))).toEqual(
-      new Set(['given', 'missed', 'postponed']),
+      new Set(['given', 'missed', 'postponed', 'shift']),
     )
   })
 

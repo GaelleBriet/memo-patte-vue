@@ -172,7 +172,8 @@ function linesOf(
   lastGivenId: string | undefined,
 ): HistoryLine[] {
   const lines: HistoryLine[] = []
-  for (const dose of doses) {
+  // La ligne de décalage n'a pas encore sa maquette.
+  for (const dose of doses.filter(({ status }) => status !== 'shift')) {
     if (dose.status === 'postponed') {
       lines.push(moveLine(t, schedule, dose))
       continue

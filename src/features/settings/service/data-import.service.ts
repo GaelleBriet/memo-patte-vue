@@ -94,8 +94,8 @@ export type ParsedExportFile =
 
 export const MAX_IMPORT_FILE_BYTES = 10 * 1024 * 1024
 const MAX_TEXT_LENGTH = 200
-// Dans le format v4, refusés à l'import tant que l'app ne sait pas les lire (#502, #503).
-const UNREAD_STATUSES: readonly string[] = ['extra', 'shift']
+// Dans le format v4, refusée à l'import tant que l'app ne sait pas la lire (#503).
+const UNREAD_STATUSES: readonly string[] = ['extra']
 
 function isYearInRange(value: string): boolean {
   const year = Number(value.slice(0, 4))

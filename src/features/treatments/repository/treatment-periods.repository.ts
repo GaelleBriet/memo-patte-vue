@@ -8,6 +8,7 @@ import { loadSupabaseClient } from '@/core/supabase/load-client'
 import { syncField, type SyncPullPage } from '@/core/sync/service/syncable-table'
 import type { TreatmentFrequency } from '../schema/treatment.schema'
 import {
+  calendarDaySchema,
   treatmentPeriodSettingsSchema,
   type TreatmentPeriod,
   type TreatmentPeriodRecord,
@@ -242,12 +243,14 @@ export function createTreatmentPeriodsRepository(
 
     /**
      * Tous les réglages de la période en cours, sauf son arrêt ; le jour de référence suit la
-     * première échéance. Rien n'est daté si rien ne change. Lève pour des réglages incohérents.
+     * première échéance sauf mention. Rien n'est daté si rien ne change. Lève pour des réglages
+     * incohérents.
      */
     correctCurrentSettingsStatement(
       treatmentId: string,
       input: TreatmentPeriodSettings,
       updatedAt: string,
+      referenceOn?: string,
     ): SqlStatement {
       const settings = treatmentPeriodSettingsSchema.parse(input)
       const values = [
@@ -268,7 +271,14 @@ export function createTreatmentPeriodsRepository(
                   reference_on = ?, updated_at = ?, updated_by_device = ?
               WHERE id = ${currentPeriodIdSql('?')}
                 AND (${SETTINGS_COLUMNS.map((column) => `${column} IS NOT ?`).join(' OR ')})`,
-        params: [...values, settings.firstDueOn, updatedAt, deviceId(), treatmentId, ...values],
+        params: [
+          ...values,
+          calendarDaySchema.parse(referenceOn ?? settings.firstDueOn),
+          updatedAt,
+          deviceId(),
+          treatmentId,
+          ...values,
+        ],
       }
     },
 

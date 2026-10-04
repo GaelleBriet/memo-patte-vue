@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { dose, missed, period, plain, postponed, treatment } from './treatment-fixtures'
+import { dose, missed, period, plain, postponed, shifted, treatment } from './treatment-fixtures'
 import {
   LINES_BEFORE_TOGGLE,
   treatmentDeleteTexts,
@@ -91,6 +91,15 @@ describe('treatmentHistory — une période (planches A · V1 quinquies bis, V5 
         hide: 'Masquer les prises précédentes',
       },
     })
+  })
+
+  it('ne montre pas encore la ligne de décalage qui accompagne le report (#505)', () => {
+    const book = treatment(MILBEMAX.periods, [
+      ...MILBEMAX.doses,
+      shifted('2026-10-10', '2026-10-14', { createdAt: '2026-09-28T08:00:00.000Z' }),
+    ])
+
+    expect(titles(book, '2026-09-28')).toEqual(titles(MILBEMAX, '2026-09-28'))
   })
 
   it('dit « Avancée » quand la nouvelle date précède l’échéance', () => {

@@ -1,6 +1,10 @@
 import type { TreatmentWithHistory } from '../repository/treatments.repository'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
-import { treatmentSchedule, type TreatmentSchedule } from '@/shared/domain/treatment-schedule'
+import {
+  isNoteLine,
+  treatmentSchedule,
+  type TreatmentSchedule,
+} from '@/shared/domain/treatment-schedule'
 
 type History = Pick<TreatmentWithHistory, 'periods' | 'doses'>
 
@@ -40,7 +44,7 @@ export function endedOnOf(
   if (schedule.phase !== 'ended' || period === null) return null
   if (period.endsOn !== null && period.endsOn <= today) return period.endsOn
   const noted = schedule.doses
-    .filter((dose) => dose.periodId === period.id && dose.status !== 'postponed')
+    .filter((dose) => dose.periodId === period.id && isNoteLine(dose))
     .map(({ dueOn }) => dueOn)
     .sort()
   return noted.at(-1) ?? period.endsOn

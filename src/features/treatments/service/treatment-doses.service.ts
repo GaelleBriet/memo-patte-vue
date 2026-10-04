@@ -1,5 +1,5 @@
 import { todayIsoDate } from '@/core/app-lifecycle/today-iso-date'
-import type { Due, TreatmentSchedule } from '@/shared/domain/treatment-schedule'
+import { isNoteLine, type Due, type TreatmentSchedule } from '@/shared/domain/treatment-schedule'
 import {
   DoseAlreadyLoggedError,
   doseChange,
@@ -99,7 +99,7 @@ export function createTreatmentDosesService({
         dose.periodId === due.periodId &&
         dose.dueOn === due.dueOn &&
         dose.dueTime === due.dueTime &&
-        dose.status !== 'postponed',
+        isNoteLine(dose),
     )
     return line === undefined ? null : (line.givenOn ?? givenOn)
   }
@@ -129,6 +129,7 @@ export function createTreatmentDosesService({
         alreadyGivenOn,
         postponement: null,
         moved: null,
+        shiftKept: false,
       }
     }
   }
@@ -162,6 +163,7 @@ export function createTreatmentDosesService({
         alreadyGivenOn: null,
         postponement: null,
         moved: null,
+        shiftKept: false,
         due: null,
         severalTimes: false,
       }

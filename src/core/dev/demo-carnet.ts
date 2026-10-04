@@ -99,6 +99,11 @@ function postponed(from: Date, to: Date): DemoDose {
   }
 }
 
+/** Le décalage qui accompagne un report : les doses suivantes repartent de sa nouvelle date. */
+function shifted(from: Date, to: Date): DemoDose {
+  return { dueOn: day(from), dueTime: null, givenOn: null, status: 'shift', nextDueDate: day(to) }
+}
+
 /** `count` prises mensuelles jusqu'à `last`, chacune fixant la suivante. */
 function monthlyDoses(last: Date, count: number): DemoDose[] {
   return Array.from({ length: count }, (_, index) =>
@@ -266,6 +271,7 @@ export function buildDemoCarnet(today: Date): DemoAnimal[] {
               doses: [
                 given(frontlineStart, frontlineDue),
                 postponed(frontlineDue, frontlineGiven),
+                shifted(frontlineDue, frontlineGiven),
                 given(frontlineGiven, addMonths(frontlineGiven, 1)),
               ],
             },

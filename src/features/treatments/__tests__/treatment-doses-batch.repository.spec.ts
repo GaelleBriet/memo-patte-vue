@@ -317,6 +317,27 @@ describe('treatmentDosesRepository — écrire ce que rend le moteur', () => {
       await expect(visible()).resolves.toHaveLength(4)
     })
 
+    it('crée le décalage d’une échéance reportée, mais jamais un second décalage (Q5)', async () => {
+      const shift = (id: string): DoseWrite => ({
+        action: 'create',
+        id,
+        ...OWNER,
+        dose: fields({
+          dueOn: '2026-09-29',
+          givenOn: null,
+          status: 'shift',
+          nextDueDate: '2026-10-03',
+        }),
+      })
+
+      await doses.applyBatch([shift('decalage')], T2)
+
+      await expect(doses.applyBatch([shift('second')], T3)).rejects.toBeInstanceOf(
+        DuplicateDueError,
+      )
+      await expect(row('decalage')).resolves.toMatchObject({ deleted_at: null })
+    })
+
     it('n’écrit rien pour un lot vide', async () => {
       await expect(doses.applyBatch([], T2)).resolves.toEqual([])
     })
