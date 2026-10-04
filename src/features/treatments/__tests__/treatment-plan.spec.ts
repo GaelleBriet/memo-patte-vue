@@ -925,6 +925,22 @@ describe('editionPlan — correction d’une période qui n’a plus qu’un dé
   const history = treatment([vendredi], [decalage])
 
   it.each([
+    ['la posologie seule', { doseQuantity: 0.5 }],
+    ['la date de fin seule', { endsOn: '2026-12-31' }],
+  ])('corrigée sur %s, la grille ne change pas : le décalage reste', (_, changes) => {
+    const plan = editionPlan(history, saisie(history, changes), '2026-10-12', IDS)
+
+    expect(plan.period).toMatchObject({ action: 'correct', settings: changes })
+    expect(plan.doses).toEqual([])
+    const corrected = treatment([{ ...vendredi, ...changes }], [decalage])
+    expect(
+      treatmentScheduleOf(corrected, '2026-10-12')
+        .upcoming(3)
+        .map(({ dueOn }) => dueOn),
+    ).toEqual(['2026-10-16', '2026-10-26', '2026-11-02'])
+  })
+
+  it.each([
     ['2026-10-25', ['2026-10-25', '2026-11-01', '2026-11-08']],
     ['2026-10-14', ['2026-10-14', '2026-10-21', '2026-10-28']],
   ])(

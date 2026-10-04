@@ -628,6 +628,13 @@ function doseWrites(schedule: TreatmentSchedule, move: MovedDose | null, ids: Pl
   return [...stale, ...lineWrite(move.report, ids.doseId), ...lineWrite(move.shift, ids.shiftId)]
 }
 
+function changesGrid(period: TreatmentPeriodRecord, settings: TreatmentPeriodSettings): boolean {
+  return (
+    settings.firstDueOn !== period.firstDueOn ||
+    JSON.stringify(settings.frequency) !== JSON.stringify(period.frequency)
+  )
+}
+
 // Corriger une période sans prise refixe sa grille : ses décalages restés seuls partent avec.
 function shiftDeletes(
   history: TreatmentWithHistory,
@@ -668,7 +675,10 @@ export function editionPlan(
       : {
           treatment,
           period: corrects ? { action: 'correct', settings, referenceOn } : null,
-          doses: corrects ? [...doses, ...shiftDeletes(history, period.id, doses)] : doses,
+          doses:
+            corrects && changesGrid(period, settings)
+              ? [...doses, ...shiftDeletes(history, period.id, doses)]
+              : doses,
         }
   assertReadable(historyAfter(history, period, plan, today), today)
   return plan
