@@ -14,7 +14,13 @@ import {
   toDate,
   uniqueSorted,
 } from './treatment-schedule-dues'
-import { isLocked, movedFields, shiftFields } from './treatment-schedule-moves'
+import {
+  isLocked,
+  makesMovePass,
+  movedFields,
+  passesNextById,
+  shiftFields,
+} from './treatment-schedule-moves'
 import {
   compareCreation,
   hasFallen,
@@ -106,8 +112,21 @@ function restartsFrom(others: State, due: Due, givenOn: string, next: string): b
     others.currentDoses.some((current) => sameDue(current, due)) &&
     dayIsComplete() &&
     !hitsAMove(plan, due, givenOn) &&
-    !isMovedAlone(plan, due)
+    !isMovedAlone(plan, due) &&
+    !makesReportPass(others, others, due, givenOn)
   )
+}
+
+// Q2 a : le rythme ancré à la date réelle ne fait jamais passer la dose suivante à un report seul.
+function makesReportPass(before: State, base: State, due: Due, givenOn: string): boolean {
+  const plan = planOf(base, due.periodId)
+  const origin = shiftDueOf(plan, due)
+  const prise: DoseFields = { ...dueOf(due), givenOn, status: 'given', nextDueDate: givenOn }
+  const after = stateAfter(base, [
+    { id: shiftOn(plan, origin)?.id ?? null, fields: shiftFields(origin, givenOn) },
+    { id: null, fields: prise },
+  ])
+  return makesMovePass(before, after, due.periodId, due.dueOn)
 }
 
 // La première dose du rythme ancré à la date réelle, après la journée qui porte le décalage.
@@ -118,8 +137,8 @@ function restartedOn(plan: PeriodPlan, due: Due, givenOn: string): string {
 
 type Written = { id: string | null; fields: DoseFields | null }
 
-// La prochaine échéance que le calendrier montrera une fois ces lignes écrites (`fields` nul : supprimée).
-function nextAfter(state: State, due: Due, written: Written[]): string {
+// Le carnet une fois ces lignes écrites (`fields` nul : supprimée).
+function stateAfter(state: State, written: Written[]): State {
   const at = '9999-12-31T23:59:59.999Z'
   const touched = new Set(written.map(({ id }) => id))
   const doses = [
@@ -130,7 +149,12 @@ function nextAfter(state: State, due: Due, written: Written[]): string {
         : [{ ...fields, id: id ?? `écrite-${index}`, createdAt: at, updatedAt: at }],
     ),
   ]
-  return nextInSequence(build({ ...state.input, doses }), due)
+  return build({ ...state.input, doses })
+}
+
+// La prochaine échéance que le calendrier montrera une fois ces lignes écrites.
+function nextAfter(state: State, due: Due, written: Written[]): string {
+  return nextInSequence(stateAfter(state, written), due)
 }
 
 function checkKnown(known: () => Set<string>, due: Due): void {
@@ -359,7 +383,8 @@ export function redate(
     const hitsReport =
       ownShift !== undefined &&
       givenOn !== dose.dueOn &&
-      hitsAMove(planOf(others, dose.periodId), dose, givenOn, followingOfShift)
+      (hitsAMove(planOf(others, dose.periodId), dose, givenOn, followingOfShift) ||
+        makesReportPass(state, others, dose, givenOn))
     const offersShift =
       ownShift === undefined ? restartsFrom(others, dose, givenOn, next) : givenOn !== dose.dueOn
     const keepsShift = shiftsFollowing && hitsReport
@@ -370,20 +395,28 @@ export function redate(
       keepsShift || shift?.nextDueDate === wanted?.nextDueDate
         ? ({ action: 'none' } as const)
         : shiftChange(shift, wanted)
-    const postponement = postponementAfter(plan, dose, ownShift, shifts, givenOn, restartsOn)
     const fields: DoseFields = { ...dueOf(dose), givenOn, status: 'given', nextDueDate: next }
-    const written: Written[] = [
+    const writtenWith = (kept: RedatedDose['postponement']): Written[] => [
       { id: dose.id, fields },
       ...lineWritten(shiftLine),
-      ...(postponement === null
+      ...(kept === null
         ? []
-        : postponement.kept
+        : kept.kept
           ? [
-              ...postponement.doseIds.map((id) => ({ id, fields: postponement.line })),
-              ...postponement.shiftIds.map((id) => ({ id, fields: postponement.shiftLine })),
+              ...kept.doseIds.map((id) => ({ id, fields: kept.line })),
+              ...kept.shiftIds.map((id) => ({ id, fields: kept.shiftLine })),
             ]
-          : postponement.doseIds.map((id) => ({ id, fields: null }))),
+          : kept.doseIds.map((id) => ({ id, fields: null }))),
     ]
+    const following = postponementAfter(plan, dose, ownShift, shifts, givenOn, restartsOn)
+    // Un report seul qui passerait la dose suivante (Q2 a) est dépassé, comme celui qui précède la prise.
+    const postponement =
+      following?.kept === true &&
+      following.shiftIds.length === 0 &&
+      following.doseIds.some((id) => passesNextById(stateAfter(state, writtenWith(following)), id))
+        ? { doseIds: following.doseIds, kept: false as const }
+        : following
+    const written = writtenWith(postponement)
     const nextDueDate = nextAfter(state, dose, written)
     return { dose: { ...fields, nextDueDate }, shift: shiftLine, postponement, offersShift }
   }

@@ -28,9 +28,11 @@ import {
   pendingDues,
   shiftDueOf,
 } from './treatment-schedule-plan'
+import { firstDueOf, shiftedSequence } from './treatment-schedule-sequence'
 import { build, knownDues, planOf } from './treatment-schedule-state'
 import type {
   TreatmentDoseInput,
+  TreatmentPeriodInput,
   TreatmentSchedule,
   TreatmentScheduleInput,
 } from './treatment-schedule-types'
@@ -60,6 +62,14 @@ export type {
   RedateLimits,
   TreatmentSchedule,
 } from './treatment-schedule-types'
+
+/** « Doses suivantes décalées · prochaine le … » : la première échéance du rythme ancré. */
+export function shiftedNextOn(
+  shift: Pick<TreatmentDoseInput, 'dueOn' | 'nextDueDate'>,
+  period: TreatmentPeriodInput,
+): string {
+  return firstDueOf(shiftedSequence(shift), period).dueOn
+}
 
 /** « Avancée au … » plutôt que « Reportée au … » : la nouvelle date précède l'échéance remplacée. */
 export function isAdvanced(
