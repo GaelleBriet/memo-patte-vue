@@ -30,7 +30,7 @@ function traitement(name: string): PdfTreatmentRow {
     name,
     lastDoseDate: '2026-08-01',
     previousDoses: [],
-    extraDoseDates: [],
+    lastDoseExtra: false,
     nextDueDate: '2026-11-01',
     stoppedOn: null,
     state: 'upToDate',
@@ -123,8 +123,10 @@ describe('renderCarnetPdf — prise en plus', () => {
         {
           ...traitement('Milbemax'),
           lastDoseDate: '2026-10-09',
-          previousDoses: [{ kind: 'dates', dates: ['2026-10-02'] }],
-          extraDoseDates: ['2026-10-09'],
+          lastDoseExtra: true,
+          previousDoses: [
+            { kind: 'dates', dates: ['2026-10-09', '2026-10-02'], extras: [false, true] },
+          ],
         },
       ],
     }
@@ -134,7 +136,7 @@ describe('renderCarnetPdf — prise en plus', () => {
     expect(lisibles).toEqual(
       expect.arrayContaining([
         'Dernière prise : 09/10/2026 (prise en plus)',
-        'Prises précédentes : 02/10/2026',
+        'Prises précédentes : 09/10/2026 · 02/10/2026 (prise en plus)',
       ]),
     )
   })
