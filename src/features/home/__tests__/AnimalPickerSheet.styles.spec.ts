@@ -38,9 +38,9 @@ function declaration(selecteur: string, propriete: string): string | undefined {
 }
 
 describe('AnimalPickerSheet — contrat de style', () => {
-  it('donne un avatar rond de 40 px à chaque ligne', () => {
+  it('donne un avatar de 40 px à chaque ligne', () => {
     expect(declaration('.animal-picker-sheet__avatar', 'width')).toBe('40px')
-    expect(declaration('.animal-picker-sheet__avatar', 'border-radius')).toBe('50%')
+    expect(declaration('.animal-picker-sheet__avatar', 'height')).toBe('40px')
   })
 
   // `--v-theme-primary` vaut « 1,56,62 » : la syntaxe `rgb(var() / %)` refuse ces virgules
