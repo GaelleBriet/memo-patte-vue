@@ -1,7 +1,24 @@
 import { checkInput } from './treatment-schedule-checks'
-import { doseFor, dueForDate, redate, redateLimits, upcoming } from './treatment-schedule-doses'
+import {
+  doseFor,
+  dueForDate,
+  offersShift,
+  redate,
+  redateLimits,
+  redateOffersShift,
+  upcoming,
+} from './treatment-schedule-doses'
 import { nextDay } from './treatment-schedule-dues'
-import { checkMovable, isLocked, move, moveBounds, removeMove } from './treatment-schedule-moves'
+import {
+  checkMovable,
+  isLocked,
+  move,
+  moveBounds,
+  moveRemovalRefusal,
+  removeMove,
+  removeShift,
+  shiftRemovalRefusal,
+} from './treatment-schedule-moves'
 import { newPeriod } from './treatment-schedule-new-period'
 import {
   isExtraLine,
@@ -37,6 +54,8 @@ export type {
   MovedDose,
   MoveBounds,
   MoveRefusal,
+  MoveRemovalRefusal,
+  ShiftRemovalRefusal,
   NewPeriod,
   RedateLimits,
   TreatmentSchedule,
@@ -76,9 +95,14 @@ export function treatmentSchedule(input: TreatmentScheduleInput): TreatmentSched
     upcoming: (limit) => upcoming(state, limit),
     dueForDate: (givenOn, time = null) => dueForDate(state, givenOn, time),
     doseFor: (gesture) => doseFor(state, knownOnce, gesture),
-    redate: (doseId, givenOn) => redate(state, doseId, givenOn),
+    redate: (doseId, givenOn, shiftsFollowing = true) => {
+      const { dose, shift, postponement } = redate(state, doseId, givenOn, shiftsFollowing)
+      return { dose, shift, postponement }
+    },
+    redateOffersShift: (doseId, givenOn) => redateOffersShift(state, doseId, givenOn),
+    offersShift: (due, givenOn) => offersShift(state, knownOnce, due, givenOn),
     redateLimits: (doseId) => redateLimits(state, doseId),
-    move: (due, to) => move(state, due, to),
+    move: (due, to, shiftsFollowing = true) => move(state, due, to, shiftsFollowing),
     nextDoseChange:
       state.open === null
         ? null
@@ -87,14 +111,14 @@ export function treatmentSchedule(input: TreatmentScheduleInput): TreatmentSched
             )
           ? 'move'
           : 'correction',
-    moveBounds: (due) => {
+    moveBounds: (due, shiftsFollowing = true) => {
       checkMovable(state, planOf(state, due.periodId), due)
-      const bounds = moveBounds(state, due)
+      const bounds = moveBounds(state, due, shiftsFollowing)
       return typeof bounds === 'string' ? null : bounds
     },
-    moveRefusal: (due) => {
+    moveRefusal: (due, shiftsFollowing = true) => {
       checkMovable(state, planOf(state, due.periodId), due)
-      const bounds = moveBounds(state, due)
+      const bounds = moveBounds(state, due, shiftsFollowing)
       return typeof bounds === 'string' ? bounds : null
     },
     lockedMoveIds: state.plans.flatMap((plan) =>
@@ -104,6 +128,9 @@ export function treatmentSchedule(input: TreatmentScheduleInput): TreatmentSched
         .map(({ dose }) => dose.id),
     ),
     removeMove: (doseId) => removeMove(state, doseId),
+    moveRemovalRefusal: (doseId) => moveRemovalRefusal(state, doseId),
+    removeShift: (doseId) => removeShift(state, doseId),
+    shiftRemovalRefusal: (doseId) => shiftRemovalRefusal(state, doseId),
     shiftDueOf: (due) => shiftDueOf(planOf(state, due.periodId), due),
     newPeriod: (frequency, times) => newPeriod(state, frequency, times),
   }

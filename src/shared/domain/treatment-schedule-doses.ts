@@ -84,6 +84,14 @@ function hitsAMove(
   )
 }
 
+// Q2 c : la dose d'un report sans décalage, donnée un autre jour, ne décale pas les suivantes.
+function isMovedAlone(plan: PeriodPlan, due: Due): boolean {
+  return plan.steps.some(
+    ({ kind, dose }) =>
+      kind === 'move' && dose.nextDueDate === due.dueOn && shiftOn(plan, dose) === undefined,
+  )
+}
+
 // La suite ne repart de la date réelle (T2) que pour la dose du moment, à la dernière heure du jour,
 // si la dose suivante tombe après l'échéance couverte.
 function restartsFrom(others: State, due: Due, givenOn: string, next: string): boolean {
@@ -97,7 +105,8 @@ function restartsFrom(others: State, due: Due, givenOn: string, next: string): b
     shiftDate(givenOn, frequency, 1) > due.dueOn &&
     others.currentDoses.some((current) => sameDue(current, due)) &&
     dayIsComplete() &&
-    !hitsAMove(plan, due, givenOn)
+    !hitsAMove(plan, due, givenOn) &&
+    !isMovedAlone(plan, due)
   )
 }
 
@@ -189,7 +198,7 @@ export function doseFor(state: State, known: () => Set<string>, gesture: DoseGes
       checkPastDay(givenOn, state.input.today, 'date réelle')
       if (isExtra(others, due, givenOn)) return extraFor(others, due, givenOn)
       const plan = planOf(others, due.periodId)
-      const restarts = restartsFrom(others, due, givenOn, next)
+      const restarts = gesture.shiftsFollowing !== false && restartsFrom(others, due, givenOn, next)
       const shift = restarts ? shiftFields(shiftDueOf(plan, due), givenOn) : null
       const dose: DoseFields = { ...dueOf(due), givenOn, status: 'given', nextDueDate: next }
       if (shift === null) return { dose, shift }
@@ -300,17 +309,39 @@ function redateExtra(state: State, extra: TreatmentDoseInput, givenOn: string): 
   return { dose: noted.dose, shift, postponement: null }
 }
 
+/** La case de « Fait à une autre date » : la prise, cochée, écrirait un décalage. */
+export function offersShift(
+  state: State,
+  known: () => Set<string>,
+  due: Due,
+  givenOn: string,
+): boolean {
+  return doseFor(state, known, { kind: 'given', due, givenOn }).shift !== null
+}
+
+export function redateOffersShift(state: State, doseId: string, givenOn: string): boolean {
+  if (extraOf(state, doseId) !== undefined) return false
+  return redate(state, doseId, givenOn).offersShift
+}
+
 // N2 : une prise qui a décalé la suite la décale encore, depuis sa nouvelle date ; une autre se
 // recalcule comme notée ce jour-là, sur le carnet d'aujourd'hui (une dose non renseignée ne décale rien).
-export function redate(state: State, doseId: string, givenOn: string): RedatedDose {
+// Case décochée, son décalage est supprimé, ou rendu à son report pour une dose avancée (G18).
+export function redate(
+  state: State,
+  doseId: string,
+  givenOn: string,
+  shiftsFollowing = true,
+): RedatedDose & { offersShift: boolean } {
   checkPastDay(givenOn, state.input.today, 'date réelle')
   const extra = extraOf(state, doseId)
-  if (extra !== undefined) return redateExtra(state, extra, givenOn)
+  if (extra !== undefined) return { ...redateExtra(state, extra, givenOn), offersShift: false }
   for (const plan of state.plans) {
     const dose = notesOf(plan).find((note) => note.id === doseId)
     if (dose?.status !== 'given') continue
     if (givenOn === dose.givenOn) {
-      return { dose: fieldsOf(dose), shift: { action: 'none' }, postponement: null }
+      const offersShift = shiftOn(plan, shiftDueOf(plan, dose)) !== undefined
+      return { dose: fieldsOf(dose), shift: { action: 'none' }, postponement: null, offersShift }
     }
     const lastExtraDay = lastExtraDayOf(state, dose)
     if (lastExtraDay !== null && givenOn <= lastExtraDay) {
@@ -325,14 +356,14 @@ export function redate(state: State, doseId: string, givenOn: string): RedatedDo
     const next = nextInSequence(others, dose)
     const followingOfShift = shift === undefined ? null : followingMove(plan, dose, shift)
     // Le décalage reste tel quel quand le rythme de la nouvelle date retomberait sur un report.
-    const keepsShift =
+    const hitsReport =
       ownShift !== undefined &&
       givenOn !== dose.dueOn &&
       hitsAMove(planOf(others, dose.periodId), dose, givenOn, followingOfShift)
-    const shifts =
-      ownShift === undefined
-        ? restartsFrom(others, dose, givenOn, next)
-        : givenOn !== dose.dueOn && !keepsShift
+    const offersShift =
+      ownShift === undefined ? restartsFrom(others, dose, givenOn, next) : givenOn !== dose.dueOn
+    const keepsShift = shiftsFollowing && hitsReport
+    const shifts = shiftsFollowing && offersShift && !hitsReport
     const restartsOn = shifts ? restartedOn(plan, dose, givenOn) : next
     const wanted = shifts ? shiftFields(origin, givenOn) : shift === undefined ? null : reportShift
     const shiftLine =
@@ -354,7 +385,7 @@ export function redate(state: State, doseId: string, givenOn: string): RedatedDo
           : postponement.doseIds.map((id) => ({ id, fields: null }))),
     ]
     const nextDueDate = nextAfter(state, dose, written)
-    return { dose: { ...fields, nextDueDate }, shift: shiftLine, postponement }
+    return { dose: { ...fields, nextDueDate }, shift: shiftLine, postponement, offersShift }
   }
   throw new RangeError(`Aucune prise donnée ni prise en plus à redater : ${doseId}`)
 }

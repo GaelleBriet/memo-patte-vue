@@ -47,8 +47,10 @@ export type Due = { periodId: string; dueOn: string; dueTime: string | null }
 /** `ended` : date de fin passée, dernière échéance notée, ou aucune période. */
 export type TreatmentPhase = 'upcoming' | 'today' | 'overdue' | 'ended' | 'stopped'
 
+/** `shiftsFollowing` : la case « Décaler aussi les doses suivantes », cochée par défaut. */
 export type DoseGesture =
-  { kind: 'given'; due: Due; givenOn: string } | { kind: 'missed'; due: Due }
+  | { kind: 'given'; due: Due; givenOn: string; shiftsFollowing?: boolean }
+  | { kind: 'missed'; due: Due }
 
 export type DoseFields = Pick<
   TreatmentDoseInput,
@@ -89,10 +91,24 @@ export type MoveBounds = { earliest: string; latest: string | null }
 /**
  * Pourquoi une dose ne se déplace pas : dose d'une période précédente ; dose plus lointaine déjà
  * déplacée (Q26) ou déjà notée ; plus aucune date avant la date de fin ; ligne de déplacement dont
- * la dose d'arrivée est déjà notée (Q25).
+ * la dose d'arrivée est déjà notée (Q25) ; seule, plus aucune date avant la dose suivante (Q2 a).
  */
 export type MoveRefusal =
-  'previous-period' | 'later-line' | 'later-dose' | 'no-date-left' | 'arrival-logged'
+  | 'previous-period'
+  | 'later-line'
+  | 'later-dose'
+  | 'no-date-left'
+  | 'arrival-logged'
+  | 'no-date-alone'
+
+/**
+ * Pourquoi un décalage ne se supprime pas : une dose plus loin dans la période est notée (N8) ; son
+ * report a dépassé la dose suivante, qui resterait seul hors des bornes de Q2 a.
+ */
+export type ShiftRemovalRefusal = 'later-dose' | 'move-past-next'
+
+/** Un report supprimé ramènerait sa dose (`dueOn`) à moins d'une demi-fréquence de la suivante. */
+export type MoveRemovalRefusal = { dueOn: string; nextOn: string }
 
 export type RedateLimits = { lastExtraDay: string | null; takenDays: string[] }
 
@@ -135,7 +151,11 @@ export type TreatmentSchedule = {
    * TR-24 bis : nouvelle date d'une prise donnée. Une prise en plus vise alors l'échéance d'une prise
    * notée à cette date : elle peut redevenir une prise de la dose prévue.
    */
-  redate(doseId: string, givenOn: string): RedatedDose
+  redate(doseId: string, givenOn: string, shiftsFollowing?: boolean): RedatedDose
+  /** La case « Décaler aussi les doses suivantes » de « Changer la date » vers ce jour. */
+  redateOffersShift(doseId: string, givenOn: string): boolean
+  /** La case de « Fait à une autre date » : la prise ferait repartir la suite de sa date réelle. */
+  offersShift(due: Due, givenOn: string): boolean
   /**
    * Chemin de « Prochaine dose » (TR-9, TR-28) : sans prise dans la période, elle corrige la première
    * échéance (`firstDueOn` réécrit, sans ligne ni bornes de déplacement) ; sinon elle déplace la dose.
@@ -146,16 +166,27 @@ export type TreatmentSchedule = {
    * (elle y deviendrait une prise en plus) ; une prise en plus ne va pas sur un jour qui en a déjà une.
    */
   redateLimits(doseId: string): RedateLimits
-  /** Déplace la dose, plus tôt ou plus tard (TR-9, Q17, Q18) ; une ligne réécrite peut changer d'échéance d'origine. */
-  move(due: Due, to: string): MovedDose
+  /**
+   * Déplace la dose, plus tôt ou plus tard (TR-9, Q17, Q18) ; une ligne réécrite peut changer
+   * d'échéance d'origine. Sans `shiftsFollowing`, le report va seul et le décalage de son échéance
+   * est supprimé.
+   */
+  move(due: Due, to: string, shiftsFollowing?: boolean): MovedDose
   /** Bornes d'un déplacement, pas d'une correction de première échéance ; `null` : voir `moveRefusal`. */
-  moveBounds(due: Due): MoveBounds | null
+  moveBounds(due: Due, shiftsFollowing?: boolean): MoveBounds | null
   /** Raison pour laquelle cette dose ne se déplace pas, `null` si elle se déplace. */
-  moveRefusal(due: Due): MoveRefusal | null
+  moveRefusal(due: Due, shiftsFollowing?: boolean): MoveRefusal | null
   /** Déplacements dont la dose d'arrivée est notée (Q25) : ni « Changer la date » ni « Supprimer ce report ». */
   lockedMoveIds: string[]
-  /** « Supprimer ce report » (TR-24) : la ligne à supprimer, son décalage reste (N8) ; lève si elle est verrouillée (Q25). */
+  /**
+   * « Supprimer ce report » (TR-24) : la ligne à supprimer, son décalage reste (N8) ; lève si elle
+   * est verrouillée (Q25) ou refusée (`moveRemovalRefusal`).
+   */
   removeMove(doseId: string): MovedDose
+  moveRemovalRefusal(doseId: string): MoveRemovalRefusal | null
+  /** « Supprimer ce décalage » (N7) : la ligne seule ; lève si `shiftRemovalRefusal` la refuse. */
+  removeShift(doseId: string): LineChange
+  shiftRemovalRefusal(doseId: string): ShiftRemovalRefusal | null
   /** L'échéance qui porte le décalage d'une prise : pour une dose avancée, son échéance d'origine (G18). */
   shiftDueOf(due: Due): Due
   /** Dates d'une période ouverte par « Modifier » (TR-28, Q7, Q24), selon ses heures. */

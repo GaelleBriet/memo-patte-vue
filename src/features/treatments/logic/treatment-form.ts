@@ -94,6 +94,7 @@ const REFUSAL_KEYS: Record<MoveRefusal, string> = {
   'no-date-left': 'treatments.form.nextDoseOn.refusal.noDateLeft',
   'arrival-logged': 'treatments.form.nextDoseOn.refusal.arrivalLogged',
   'previous-period': 'treatments.form.errors.nextDoseOnRefused',
+  'no-date-alone': 'treatments.form.errors.nextDoseOnRefused',
 }
 
 /** Texte d'aide du champ « Prochaine dose » grisé. */

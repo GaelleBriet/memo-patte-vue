@@ -1,11 +1,16 @@
+import { differenceInCalendarDays } from 'date-fns'
+
 import { checkDay, invalid } from './treatment-schedule-checks'
 import {
+  dueId,
   dueOf,
   keyOf,
   latestOf,
   nextDay,
+  previousDay,
   sameDue,
   shiftDate,
+  toDate,
   uniqueSorted,
 } from './treatment-schedule-dues'
 import {
@@ -19,15 +24,17 @@ import {
   shiftOn,
 } from './treatment-schedule-plan'
 import { sequenceDues } from './treatment-schedule-sequence'
-import { planOf, stateWithoutDues, visiblePending } from './treatment-schedule-state'
+import { build, planOf, stateWithoutDues, visiblePending } from './treatment-schedule-state'
 import type {
   DoseFields,
   Due,
   LineChange,
   MoveBounds,
   MoveRefusal,
+  MoveRemovalRefusal,
   MovedDose,
   PeriodPlan,
+  ShiftRemovalRefusal,
   State,
   TreatmentDoseInput,
 } from './treatment-schedule-types'
@@ -108,6 +115,34 @@ const REFUSALS: Record<MoveRefusal, string> = {
   'later-dose': 'une dose plus lointaine est déjà notée',
   'no-date-left': 'plus aucune date avant la date de fin',
   'arrival-logged': 'la dose d’arrivée de son déplacement est déjà notée',
+  'no-date-alone': 'seule, plus aucune date avant la dose suivante',
+}
+
+function withoutLine(state: State, doseId: string): State {
+  return build({ ...state.input, doses: state.input.doses.filter(({ id }) => id !== doseId) })
+}
+
+// La première journée d'échéance sans prise après ce jour.
+function nextPendingDay(plan: PeriodPlan, day: string): string | null {
+  return pendingDues(plan, { from: nextDay(day), limit: 1 })[0]?.dueOn ?? null
+}
+
+function daysBetween(from: string, to: string): number {
+  return differenceInCalendarDays(toDate(to), toDate(from))
+}
+
+// La dose revenue à son échéance d'origine tomberait à moins d'une demi-fréquence de la suivante.
+export function moveRemovalRefusal(state: State, doseId: string): MoveRemovalRefusal | null {
+  const move = state.plans
+    .flatMap((plan) => plan.steps.filter(isMove))
+    .find(({ dose }) => dose.id === doseId)?.dose
+  if (move === undefined) return null
+  const plan = planOf(withoutLine(state, doseId), move.periodId)
+  const back = pendingDues(plan, { from: move.dueOn, to: move.dueOn })[0]
+  const nextOn = back === undefined ? null : nextPendingDay(plan, back.dueOn)
+  if (back === undefined || nextOn === null) return null
+  const step = daysBetween(back.dueOn, shiftDate(back.dueOn, plan.period.frequency, 1))
+  return 2 * daysBetween(back.dueOn, nextOn) < step ? { dueOn: back.dueOn, nextOn } : null
 }
 
 export function removeMove(state: State, doseId: string): MovedDose {
@@ -118,6 +153,9 @@ export function removeMove(state: State, doseId: string): MovedDose {
         `Ce déplacement ne se supprime plus : sa dose d’arrivée est déjà notée (${doseId})`,
       )
     }
+    if (inForce !== undefined && moveRemovalRefusal(state, doseId) !== null) {
+      throw new RangeError(`Ce report ramènerait sa dose trop près de la suivante (${doseId})`)
+    }
     if (inForce !== undefined || plan.stale.some(({ id }) => id === doseId)) {
       return { report: { action: 'delete', doseId }, shift: { action: 'none' } }
     }
@@ -125,14 +163,99 @@ export function removeMove(state: State, doseId: string): MovedDose {
   throw new RangeError(`Aucun déplacement à supprimer : ${doseId}`)
 }
 
-export function moveBounds(state: State, due: Due): MoveBounds | MoveRefusal {
+// Le décalage en vigueur d'une journée : il agit après elle entière, quelle que soit l'heure qui le porte.
+function dayShiftOf(plan: PeriodPlan, day: string): TreatmentDoseInput | undefined {
+  return plan.steps.find((step) => isShift(step) && step.dose.dueOn === day)?.dose
+}
+
+function shiftLineOf(state: State, doseId: string): TreatmentDoseInput {
+  const shift = state.plans
+    .flatMap((plan) => plan.steps.filter(isShift))
+    .find(({ dose }) => dose.id === doseId)?.dose
+  if (shift === undefined) throw new RangeError(`Aucun décalage à supprimer : ${doseId}`)
+  return shift
+}
+
+// N8 : la prise de la dose déplacée elle-même, à son jour d'arrivée, n'est pas une dose plus lointaine.
+// Un report seul arrive avant la dose suivante (Q2 a), lue sans lui.
+function passesNext(state: State, move: TreatmentDoseInput): boolean {
+  const without = planOf(stateWithoutDues(state, [move]), move.periodId)
+  const nextOn = nextPendingDay(without, move.dueOn)
+  return nextOn !== null && move.nextDueDate >= nextOn
+}
+
+// Les reports seuls qu'un décalage en moins ferait passer au-delà de la dose suivante : le sien, ou
+// un autre plus loin dans la période.
+function passedMoves(state: State, shift: TreatmentDoseInput): TreatmentDoseInput[] {
+  const without = withoutLine(state, shift.id)
+  const plan = planOf(without, shift.periodId)
+  return plan.steps
+    .filter(isMove)
+    .map(({ dose }) => dose)
+    .filter(
+      (move) =>
+        move.dueOn >= shift.dueOn &&
+        move.nextDueDate > move.dueOn &&
+        dayShiftOf(plan, move.dueOn) === undefined &&
+        passesNext(without, move) &&
+        !(dueId(move) !== dueId(shift) && passesNext(state, move)),
+    )
+}
+
+// N8 : la prise de la dose déplacée elle-même, à son jour d'arrivée, n'est pas une dose plus lointaine.
+export function shiftRemovalRefusal(state: State, doseId: string): ShiftRemovalRefusal | null {
+  const shift = shiftLineOf(state, doseId)
+  const plan = planOf(state, shift.periodId)
+  const report = plan.steps.filter(isMove).find(({ dose }) => dueId(dose) === dueId(shift))?.dose
+  const later = notesOf(plan).filter(
+    (note) => note.dueOn > shift.dueOn && note.dueOn !== report?.nextDueDate,
+  )
+  if (later.length > 0) return 'later-dose'
+  return passedMoves(state, shift).length > 0 ? 'move-past-next' : null
+}
+
+export function removeShift(state: State, doseId: string): LineChange {
+  const refusal = shiftRemovalRefusal(state, doseId)
+  if (refusal !== null) throw new RangeError(`Ce décalage ne se supprime pas : ${refusal}`)
+  return { action: 'delete', doseId }
+}
+
+// Q2 a : seule, la dose va au plus la veille de la suivante, dans le calendrier sans son report ni
+// le décalage de son échéance, que le geste supprime.
+function aloneBounds(state: State, due: Due, bounds: MoveBounds): MoveBounds | MoveRefusal {
+  const plan = planOf(state, due.periodId)
+  const existing = movingStep(plan, due)
+  const moved =
+    existing === undefined ? firstPendingOfDay(state, due) : originOf(state, existing, due)
+  const dayShift = dayShiftOf(plan, existing?.dueOn ?? moved.dueOn)
+  const without = stateWithoutDues(
+    state,
+    [moved, existing, dayShift].filter((line) => line !== undefined),
+  )
+  const nextOn = nextPendingDay(planOf(without, due.periodId), moved.dueOn)
+  if (nextOn === null) return bounds
+  const latest = previousDay(nextOn)
+  const capped = bounds.latest !== null && bounds.latest < latest ? bounds.latest : latest
+  const onlyItsDay = bounds.earliest === capped && capped === moved.dueOn
+  return capped < bounds.earliest || onlyItsDay
+    ? 'no-date-alone'
+    : { earliest: bounds.earliest, latest: capped }
+}
+
+export function moveBounds(
+  state: State,
+  due: Due,
+  shiftsFollowing = true,
+): MoveBounds | MoveRefusal {
   const plan = planOf(state, due.periodId)
   if (plan !== state.open) return 'previous-period'
   const existing = movingStep(plan, due)
   if (existing !== undefined && isLocked(plan, existing)) return 'arrival-logged'
-  return existing === undefined
-    ? boundsOf(state, firstPendingOfDay(state, due))
-    : boundsOf(stateWithoutDues(state, [existing]), originOf(state, existing, due))
+  const bounds =
+    existing === undefined
+      ? boundsOf(state, firstPendingOfDay(state, due))
+      : boundsOf(stateWithoutDues(state, [existing]), originOf(state, existing, due))
+  return shiftsFollowing || typeof bounds === 'string' ? bounds : aloneBounds(state, due, bounds)
 }
 
 // Une heure revenue sur la journée d'origine de la ligne : la journée repart de sa première heure sans prise.
@@ -186,18 +309,29 @@ function shiftAlong(shift: TreatmentDoseInput | undefined, origin: Due, to: stri
     : { action: 'rewrite', dose, doseId: shift.id }
 }
 
-export function move(state: State, due: Due, to: string): MovedDose {
+// Décochée, la case supprime le décalage de l'échéance déplacée : le report va seul.
+function shiftChangeOf(
+  shift: TreatmentDoseInput | undefined,
+  origin: Due,
+  to: string,
+  shiftsFollowing: boolean,
+): LineChange {
+  if (shiftsFollowing) return shiftAlong(shift, origin, to)
+  return shift === undefined ? { action: 'none' } : { action: 'delete', doseId: shift.id }
+}
+
+export function move(state: State, due: Due, to: string, shiftsFollowing = true): MovedDose {
   const plan = planOf(state, due.periodId)
   checkMovable(state, plan, due)
   checkDay(to, 'nouvelle date')
   if (to < state.input.today) throw invalid(`nouvelle date ${to} : date passée`)
-  const bounds = moveBounds(state, due)
+  const bounds = moveBounds(state, due, shiftsFollowing)
   if (typeof bounds === 'string') {
     throw invalid(`cette dose ne se déplace pas (${bounds} : ${REFUSALS[bounds]})`)
   }
   if (to < bounds.earliest) throw invalid(`nouvelle date ${to} : pas après l’échéance précédente`)
   if (bounds.latest !== null && to > bounds.latest) {
-    throw invalid(`nouvelle date ${to} : après la date de fin`)
+    throw invalid(`nouvelle date ${to} : après la date de fin ou la dose suivante`)
   }
   const none = { report: { action: 'none' }, shift: { action: 'none' } } as const
   const existing = movingStep(plan, due)
@@ -206,12 +340,17 @@ export function move(state: State, due: Due, to: string): MovedDose {
     if (to === moved.dueOn) return none
     return {
       report: { action: 'create', dose: movedFields(moved, to) },
-      shift: shiftAlong(shiftOn(plan, moved), moved, to),
+      shift: shiftChangeOf(
+        shiftsFollowing ? shiftOn(plan, moved) : dayShiftOf(plan, moved.dueOn),
+        moved,
+        to,
+        shiftsFollowing,
+      ),
     }
   }
   if (to === due.dueOn) return none
   const replaced = originOf(state, existing, due)
-  const shift = shiftOn(plan, existing)
+  const shift = shiftsFollowing ? shiftOn(plan, existing) : dayShiftOf(plan, existing.dueOn)
   if (to === replaced.dueOn) {
     return {
       report: { action: 'delete', doseId: existing.id },
@@ -220,6 +359,6 @@ export function move(state: State, due: Due, to: string): MovedDose {
   }
   return {
     report: { action: 'rewrite', dose: movedFields(replaced, to), doseId: existing.id },
-    shift: shiftAlong(shift, replaced, to),
+    shift: shiftChangeOf(shift, replaced, to, shiftsFollowing),
   }
 }
