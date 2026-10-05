@@ -17,7 +17,7 @@ export type AnimalChipSelectorMode = 'filter' | 'switch'
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 
-import { animalAvatarGradientCss } from '../domain/animal-avatar-gradient'
+import AnimalAvatar from './AnimalAvatar.vue'
 
 withDefaults(
   defineProps<{
@@ -75,16 +75,7 @@ function onSelect(value: unknown) {
           :aria-pressed="mode === 'filter' ? selectedId === animal.id : undefined"
         >
           <template #prepend>
-            <span
-              class="animal-chip__avatar"
-              :style="{ backgroundImage: animalAvatarGradientCss(animal.id) }"
-            >
-              <img
-                v-if="animal.photoUrl"
-                :src="animal.photoUrl"
-                :alt="t('animals.chipSelector.photoAlt', { name: animal.name })"
-              />
-            </span>
+            <AnimalAvatar class="animal-chip__avatar" :animal="animal" />
           </template>
           <span class="animal-chip__name">{{ animal.name }}</span>
         </v-chip>
@@ -198,8 +189,6 @@ $tap-overflow-chip: (tokens.$size-tap-target - tokens.$height-chip) * 0.5;
 }
 
 .animal-chip__avatar {
-  display: block;
-  overflow: hidden;
   flex: 0 0 auto;
   width: tokens.$size-chip-avatar;
   height: tokens.$size-chip-avatar;
@@ -208,14 +197,6 @@ $tap-overflow-chip: (tokens.$size-tap-target - tokens.$height-chip) * 0.5;
   // l'avatar au bord : c'est lui qui détache le filet clair de la chip crème.
   outline: tokens.$width-chip-avatar-ring solid tokens.$color-on-primary;
   outline-offset: -(tokens.$width-chip-avatar-ring + 0.5px);
-  background-size: cover;
-
-  img {
-    display: block;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
 }
 
 .animal-chip__name {

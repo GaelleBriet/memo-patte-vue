@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 
-import { animalAvatarGradientCss } from '@/shared/domain/animal-avatar-gradient'
+import AnimalAvatar from '@/shared/components/AnimalAvatar.vue'
 import BottomSheet from '@/shared/components/BottomSheet.vue'
 
 export type AnimalPickerItem = {
   id: string
   name: string
+  photoUrl?: string | null
 }
 
 defineProps<{
@@ -37,10 +38,7 @@ function pick(animalId: string): void {
     <ul class="animal-picker-sheet__list">
       <li v-for="animal in animals" :key="animal.id">
         <button type="button" class="animal-picker-sheet__animal" @click="pick(animal.id)">
-          <span
-            class="animal-picker-sheet__avatar"
-            :style="{ backgroundImage: animalAvatarGradientCss(animal.id) }"
-          />
+          <AnimalAvatar class="animal-picker-sheet__avatar" :animal="animal" />
           <span class="animal-picker-sheet__name">{{ animal.name }}</span>
         </button>
       </li>
@@ -94,7 +92,6 @@ function pick(animalId: string): void {
   flex: 0 0 auto;
   width: tokens.$size-picker-avatar;
   height: tokens.$size-picker-avatar;
-  border-radius: 50%;
 }
 
 .animal-picker-sheet__name {
