@@ -46,6 +46,7 @@ et une relecture s'y réfère plutôt que de rouvrir le débat.
 | Non renseignée           | not logged                       | not recorded                             | « 3 doses non renseignées » = 3 doses not logged                        |
 | À renseigner             | To log                           | To record                                | groupe et badge de « À faire »                                          |
 | Dose du jour             | today's dose                     | daily dose                               | « Dose du jour · 28 sept. à 20 h » = Today's dose · Sep 28 at 8 pm      |
+| Prise en plus            | extra dose                       | additional dose                          | « 9 oct. 2026 · Prise en plus » = Oct 9, 2026 · Extra dose               |
 | Reportée au …            | postponed to …                   | —                                        | « Reportée au 14 oct. (prévue le 10 oct.) » = Postponed to Oct 14 (was due Oct 10) |
 | Fréquence                | frequency                        | interval, how often                       |                                                                         |
 | Traitements terminés     | Finished treatments              | Stopped, Past, Completed treatments      | les traitements arrêtés ou arrivés à leur date de fin                   |

@@ -283,6 +283,30 @@ describe('buildCarnetPdfContent — historique', () => {
     expect(row.previousDoses).toEqual([{ kind: 'dates', dates: ['2026-05-01'] }])
   })
 
+  it('compte une prise en plus comme une dose donnée, à sa date réelle', () => {
+    const { treatmentPeriods, treatmentDoses } = historyOf([dose('2026-04-01'), dose('2026-05-01')])
+    const [, mai] = treatmentDoses
+    const data = {
+      ...DATA,
+      treatmentPeriods,
+      treatmentDoses: [
+        ...treatmentDoses,
+        {
+          ...mai!,
+          id: 'd-en-plus',
+          dueOn: '2026-05-08',
+          givenOn: '2026-05-08',
+          status: 'extra' as const,
+        },
+      ],
+    }
+
+    const row = buildCarnetPdfContent(data, ANIMAL_ID, TODAY)!.treatments[0]!
+
+    expect(row.lastDoseDate).toBe('2026-05-08')
+    expect(row.previousDoses).toEqual([{ kind: 'dates', dates: ['2026-05-01', '2026-04-01'] }])
+  })
+
   it('liste toutes les injections d’un vaccin, la plus récente d’abord, jamais regroupées', () => {
     const years = ['2021-01-01', '2025-01-01', '2022-01-01', '2024-01-01', '2023-01-01']
     const data = {

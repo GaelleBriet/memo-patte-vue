@@ -400,7 +400,11 @@ describe('parseExportFile', () => {
       ['une prochaine échéance après 2199', { nextDueDate: '2200-01-01' }],
       ['une période qui n’est pas un UUID', { periodId: 'p-1' }],
       ['une prise sans période', { periodId: undefined }],
-      ['une prise en plus, que l’app ne sait pas encore lire', { status: 'extra' }],
+      ['une prise en plus sans date réelle', { status: 'extra', givenOn: null }],
+      [
+        'une prise en plus qui n’est pas rangée sous sa date réelle',
+        { status: 'extra', dueOn: '2026-09-02', givenOn: '2026-09-01' },
+      ],
       ['une ligne de décalage avec une date réelle', { status: 'shift', givenOn: '2026-09-01' }],
       ['une prise sans l’appareil qui l’a créée', { createdByDevice: undefined }],
       ['un appareil qui n’est pas un UUID', { updatedByDevice: 'pixel' }],
@@ -426,6 +430,23 @@ describe('parseExportFile', () => {
         ['missed', null],
         ['given', '2026-09-12'],
       ])
+    })
+
+    it('accepte une prise en plus, rangée sous sa date réelle', () => {
+      const result = parseExportFile(
+        withDocument((document) => {
+          Object.assign(panacur(document).matin, {
+            status: 'extra',
+            dueOn: '2026-09-01',
+            givenOn: '2026-09-01',
+            nextDueDate: '2026-09-02',
+          })
+        }),
+      )
+
+      expect(result.ok && result.file.data.treatmentDoses.map(({ status }) => status)).toContain(
+        'extra',
+      )
     })
 
     it('accepte une ligne de décalage, qui porte sa date d’ancrage', () => {

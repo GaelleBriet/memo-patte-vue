@@ -99,8 +99,14 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
   - **G10** À plusieurs heures, une prise donnée un autre jour que son échéance ne refixe la suite que
     si elle est la dernière heure du jour et que les autres heures de ce jour sont déjà notées.
     (Garde technique, consignée au journal des décisions autonomes.)
-  - **G11** Une prise datée un intervalle ou plus avant son échéance ne refixe pas la suite.
-    (Garde technique, consignée au journal des décisions autonomes.)
+  - **G11** Une prise datée un intervalle ou plus avant son échéance est une **prise en plus**
+    (#503, étude `technical/etude-modele-prises.md` §2.6, Q1) : rangée sous sa date réelle, elle ne
+    couvre aucune échéance, n'écrit aucune ligne de décalage, et la suite repart d'elle. Hebdomadaire,
+    dose du 16 donnée le 9 : « 9 oct. 2026 · Prise en plus », prochaine dose le 16 ; donnée le 2 :
+    prochaine le 9. Second « C'est fait » du jour d'un quotidien : prise en plus, la dose du lendemain
+    reste à donner. Elle ne se note qu'après toutes les lignes de sa période, sans dose à donner ou à
+    renseigner avant elle ; sinon la prise couvre la dose visée sans refixer la suite. À plusieurs
+    heures par jour, une heure donnée en avance couvre son échéance (G10).
 - **TR-8** Aucune échéance après la date de fin.
 - **TR-9** « Prochaine dose » (« Modifier ») déplace la prochaine dose, plus tôt ou plus tard que
   l'échéance prévue, et recale la suite des échéances à partir de la nouvelle date. La date choisie va
@@ -206,7 +212,9 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
 
 ### 4.5 Corriger une prise
 
-- **TR-24** Menu ⋮ d'une prise : changer la date, supprimer, « Marquer comme donnée / oubliée » ; d'une
+- **TR-24** Menu ⋮ d'une prise : changer la date, supprimer, « Marquer comme donnée / oubliée » ;
+  d'une prise en plus : « Changer la date » et « Supprimer cette prise » seulement (décision du
+  2026-10-05 ; changer sa date la fait viser ce que viserait une prise notée ce jour-là, TR-13) ; d'une
   ligne « Reportée au … » ou « Avancée au … » : « Changer la date », « Supprimer ce report » (la suite
   repart de la ligne précédente ; l'échéance d'origine redevient la dose du moment ou une dose non
   renseignée) ; un toast
@@ -738,7 +746,6 @@ et 31 (30 oct., 30 nov.) et le jour borné repris par Q37 (31 mars, 30 avr.). Re
 
 - Une date de fin fait sauter la dose suivante d'une prise en retard (5 oct. et 2 nov., fin le 2 nov.,
   première dose donnée le 10 : terminé) (TR-7, TR-8) : #506.
-- Une prise donnée un intervalle ou plus en avance garde l'ancienne suite (G11) : prise en plus, #503.
 - À plusieurs heures, quand une heure de la prochaine journée a été donnée en avance et qu'un réglage
   change sans toucher la fréquence ni les heures, les heures restantes de cette journée ne sont plus
   demandées (tous les 2 jours à 8 h et 20 h, 8 h du 3 donnée le 2, posologie changée le 2 : première

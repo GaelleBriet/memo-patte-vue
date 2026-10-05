@@ -256,9 +256,8 @@ la décrit dans le fichier.
 | `createdAt`   | ISO 8601 UTC                             |                                                                          |
 | `updatedAt`   | ISO 8601 UTC                             |                                                                          |
 
-`givenOn` est renseigné si et seulement si `status` vaut `"given"`. Les états `"extra"` et `"shift"`
-entrent dans le format v4, mais l'import les refuse tant que l'app ne sait pas les lire (#502, #503),
-comme `"medication"` avant le lot 3. La dernière ligne d'un traitement
+`givenOn` est renseigné si et seulement si `status` vaut `"given"` ou `"extra"`. Une prise en plus
+(`"extra"`, #503) est rangée sous sa date réelle : son `dueOn` vaut son `givenOn`. La dernière ligne d'un traitement
 (la « tête » : `dueOn`, puis `dueTime`, puis `createdAt`, puis `id`) fait foi pour la prochaine dose.
 
 ### `weightEntries[]`
