@@ -23,7 +23,7 @@ import i18n, { applyLocale } from '@/core/i18n'
 const t = i18n.global.t
 
 function history(book: TreatmentWithHistory, today: string) {
-  return plain(treatmentHistory(t, book, treatmentScheduleOf(book, today)))
+  return plain(treatmentHistory(t, book, treatmentScheduleOf(book, today), today))
 }
 
 function titles(book: TreatmentWithHistory, today: string): string[][] {
@@ -102,13 +102,23 @@ describe('treatmentHistory — une période (planches A · V1 quinquies bis, V5 
     })
   })
 
-  it('ne montre pas encore la ligne de décalage qui accompagne le report (#505)', () => {
+  it('montre la ligne de décalage sous le report, discrète, avec la prochaine dose (V31)', () => {
     const book = treatment(MILBEMAX.periods, [
       ...MILBEMAX.doses,
       shifted('2026-10-10', '2026-10-14', { createdAt: '2026-09-28T08:00:00.000Z' }),
     ])
 
-    expect(titles(book, '2026-09-28')).toEqual(titles(MILBEMAX, '2026-09-28'))
+    const [only] = history(book, '2026-09-28').periods
+    expect(only!.lines.slice(0, 2)).toMatchObject([
+      { kind: 'move', title: 'Reportée au 14 oct. 2026 (prévue le 10 oct.)' },
+      {
+        kind: 'shift',
+        title: 'Doses suivantes décalées · prochaine le 14 janv. 2027',
+        optionsLabel: 'Options pour le décalage des doses suivantes du 10 octobre 2026',
+        actions: ['remove-shift'],
+      },
+    ])
+    expect(only!.lines[1]).not.toHaveProperty('refused')
   })
 
   it('dit « Avancée » quand la nouvelle date précède l’échéance', () => {
@@ -478,6 +488,83 @@ describe('treatmentHistory — ce que deux appareils ou un import peuvent laisse
         ['1 sept. 2026', false],
       ],
     ])
+  })
+})
+
+describe('treatmentHistory — la ligne de décalage et ses refus (V31, V31 ter, V30 bis)', () => {
+  // Pixel, vermifuge tous les vendredis ; la dose du 16 oct. reportée au lundi 19, la suite décalée.
+  const VENDREDI = period({
+    startsOn: '2026-10-09',
+    firstDueOn: '2026-10-09',
+    frequency: { value: 1, unit: 'week' },
+  })
+  const PIXEL = [
+    dose('2026-10-09', '2026-10-16'),
+    shifted('2026-10-16', '2026-10-19'),
+    postponed('2026-10-16', '2026-10-19'),
+  ]
+
+  function line(book: TreatmentWithHistory, today: string, kind: string) {
+    return history(book, today).periods[0]!.lines.find((other) => other.kind === kind)!
+  }
+
+  it('discrète sous son report, « Supprimer ce décalage » permis', () => {
+    const book = treatment([VENDREDI], PIXEL)
+
+    expect(titles(book, '2026-10-15')).toEqual([
+      [
+        'Reportée au 19 oct. 2026 (prévue le 16 oct.)',
+        'Doses suivantes décalées · prochaine le 26 oct.',
+        '9 oct. 2026',
+      ],
+    ])
+    expect(line(book, '2026-10-15', 'shift')).not.toHaveProperty('refused')
+  })
+
+  it('grisée quand une dose plus lointaine est notée', () => {
+    const book = treatment([VENDREDI], [...PIXEL, dose('2026-10-26', '2026-11-02')])
+
+    expect(line(book, '2026-10-27', 'shift').refused).toEqual({
+      'remove-shift': 'Une dose plus lointaine est déjà notée.',
+    })
+  })
+
+  it('grisée quand son report a dépassé la dose suivante (décision du 2026-10-05)', () => {
+    const book = treatment(
+      [VENDREDI],
+      [
+        dose('2026-10-09', '2026-10-16'),
+        shifted('2026-10-16', '2026-10-24'),
+        postponed('2026-10-16', '2026-10-24'),
+      ],
+    )
+
+    expect(line(book, '2026-10-15', 'shift').refused).toEqual({
+      'remove-shift': 'Change d’abord la date du report.',
+    })
+  })
+
+  it('« Supprimer ce report » grisé quand la dose reviendrait la veille de la suivante', () => {
+    const JEUDI = period({
+      startsOn: '2026-11-19',
+      firstDueOn: '2026-11-19',
+      frequency: { value: 1, unit: 'week' },
+    })
+    const book = treatment(
+      [JEUDI],
+      [
+        dose('2026-11-19', '2026-11-26'),
+        shifted('2026-11-26', '2026-11-20'),
+        postponed('2026-11-26', '2026-11-20'),
+      ],
+    )
+
+    const report = line(book, '2026-11-19', 'move')
+    expect(report.actions).toEqual(['change-date', 'remove-move'])
+    expect(report.refused).toEqual({
+      'remove-move':
+        'Supprime d’abord le décalage des doses suivantes : la dose du 26 nov. tomberait la veille de la suivante.',
+    })
   })
 })
 

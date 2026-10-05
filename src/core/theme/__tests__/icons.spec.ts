@@ -44,6 +44,7 @@ const iconesDesMaquettes = [
   'pill',
   'date_range',
   'event_repeat',
+  'event_upcoming',
   'event_busy',
 ] as const
 

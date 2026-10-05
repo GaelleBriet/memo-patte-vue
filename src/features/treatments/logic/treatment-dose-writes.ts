@@ -18,9 +18,11 @@ export type DoseAction =
   /** Doses à renseigner, écrites en un seul lot ; lève `DoseAlreadyLoggedError` si l'une est déjà notée. */
   | { kind: 'log'; gestures: readonly DoseGesture[] }
   | { kind: 'remove'; doseId: string }
-  | { kind: 'redate'; doseId: string; givenOn: string }
-  | { kind: 'move'; doseId: string; to: string }
+  /** `shiftsFollowing` : la case « Décaler aussi les doses suivantes », cochée par défaut. */
+  | { kind: 'redate'; doseId: string; givenOn: string; shiftsFollowing?: boolean }
+  | { kind: 'move'; doseId: string; to: string; shiftsFollowing?: boolean }
   | { kind: 'remove-move'; doseId: string }
+  | { kind: 'remove-shift'; doseId: string }
 
 export type DoseChange = {
   writes: DoseWrite[]
@@ -257,7 +259,11 @@ function changeOf(
       if (familyOf(lineById(history, action.doseId)) === 'extra') {
         return { ...unchanged, writes: extraRedateWrites(history, schedule, action, newId) }
       }
-      const { dose, shift, postponement } = schedule.redate(action.doseId, action.givenOn)
+      const { dose, shift, postponement } = schedule.redate(
+        action.doseId,
+        action.givenOn,
+        action.shiftsFollowing,
+      )
       const writes = [
         ...rewrites(sisterLines(history, action.doseId), dose),
         ...lineWrites(history, shift, newId),
@@ -287,7 +293,11 @@ function changeOf(
       }
     }
     case 'move': {
-      const moved = schedule.move(movedDueOf(lineById(history, action.doseId)), action.to)
+      const moved = schedule.move(
+        movedDueOf(lineById(history, action.doseId)),
+        action.to,
+        action.shiftsFollowing,
+      )
       return { ...unchanged, ...movedChange(history, moved, newId) }
     }
     case 'remove-move':
@@ -295,6 +305,11 @@ function changeOf(
         ...unchanged,
         ...movedChange(history, schedule.removeMove(action.doseId), newId),
         shiftKept: keepsShift(history, schedule, action.doseId),
+      }
+    case 'remove-shift':
+      return {
+        ...unchanged,
+        writes: lineWrites(history, schedule.removeShift(action.doseId), newId),
       }
   }
 }

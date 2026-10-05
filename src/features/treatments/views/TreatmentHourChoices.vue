@@ -2,11 +2,27 @@
 import type { HourChoice } from '../logic/treatment-other-date'
 import type { Due } from '@/shared/domain/treatment-schedule'
 
-withDefaults(defineProps<{ hours: HourChoice[]; busy?: boolean }>(), { busy: false })
+const props = withDefaults(
+  defineProps<{
+    hours: HourChoice[]
+    busy?: boolean
+    /** L'heure se choisit, puis s'enregistre ailleurs ; sinon un tap note la dose. */
+    selectable?: boolean
+  }>(),
+  { busy: false, selectable: false },
+)
 
 const emit = defineEmits<{
   pick: [due: Due]
 }>()
+
+const selected = defineModel<string | null>({ default: null })
+
+function choose(choice: HourChoice): void {
+  if (choice.due === null) return
+  if (props.selectable) selected.value = choice.time
+  else emit('pick', choice.due)
+}
 </script>
 
 <template>
@@ -16,10 +32,15 @@ const emit = defineEmits<{
       :key="choice.time"
       type="button"
       class="treatment-hours__hour"
+      :class="{ 'treatment-hours__hour--selected': selectable && selected === choice.time }"
       :disabled="busy || choice.due === null"
-      @click="choice.due && emit('pick', choice.due)"
+      :aria-pressed="selectable ? selected === choice.time : undefined"
+      @click="choose(choice)"
     >
-      <v-icon icon="ms:schedule" size="22" />
+      <v-icon
+        :icon="selectable && selected === choice.time ? 'ms:check_circle_fill' : 'ms:schedule'"
+        size="22"
+      />
       <span class="treatment-hours__text">
         <span class="treatment-hours__label">{{ choice.label }}</span>
         <span class="treatment-hours__detail">{{ choice.detail }}</span>
@@ -68,6 +89,10 @@ const emit = defineEmits<{
     outline: none;
     background: rgba(var(--v-theme-primary), 0.06);
   }
+}
+
+.treatment-hours__hour--selected {
+  background: tokens.$color-notice-surface;
 }
 
 .treatment-hours__hour + .treatment-hours__hour {

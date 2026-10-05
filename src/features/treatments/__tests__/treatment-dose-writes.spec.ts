@@ -443,6 +443,51 @@ describe('doseChange — ligne « Reportée »', () => {
     ])
   })
 
+  it('case décochée, réécrit la ligne et supprime son décalage (N2)', () => {
+    expect(
+      change(REPORTEE, '2026-09-05', {
+        kind: 'move',
+        doseId: 'report 2026-09-08',
+        to: '2026-09-12',
+        shiftsFollowing: false,
+      }).writes,
+    ).toEqual([
+      {
+        action: 'rewrite',
+        id: 'report 2026-09-08',
+        dose: {
+          periodId: 'p-1',
+          dueOn: '2026-09-08',
+          dueTime: null,
+          givenOn: null,
+          status: 'postponed',
+          nextDueDate: '2026-09-12',
+        },
+      },
+      { action: 'delete', id: 'décalage 2026-09-08' },
+    ])
+  })
+
+  it('« Supprimer ce décalage » supprime la ligne seule ; le report reste (N7)', () => {
+    expect(
+      change(REPORTEE, '2026-09-05', { kind: 'remove-shift', doseId: 'décalage 2026-09-08' }),
+    ).toMatchObject({
+      writes: [{ action: 'delete', id: 'décalage 2026-09-08' }],
+      shiftKept: false,
+    })
+  })
+
+  it('« Supprimer ce décalage » refusé quand une dose plus lointaine est notée', () => {
+    const plusLoin = treatment(REPORTEE.periods, [
+      ...REPORTEE.doses,
+      dose('2026-09-17', '2026-09-24'),
+    ])
+
+    expect(() =>
+      change(plusLoin, '2026-09-18', { kind: 'remove-shift', doseId: 'décalage 2026-09-08' }),
+    ).toThrow(RangeError)
+  })
+
   it('remise à sa date d’origine, la dose n’a plus ni report ni décalage', () => {
     expect(
       change(REPORTEE, '2026-09-05', {

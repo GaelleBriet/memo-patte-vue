@@ -8,6 +8,7 @@ import {
   treatmentResumptionSchemaFor,
   type EditionDraft,
 } from './treatment-plan'
+import { shiftHelpText, type ShiftHelp } from './treatment-shift-box'
 import type { TreatmentWithHistory } from '../repository/treatments.repository'
 import {
   treatmentRhythmSchema,
@@ -21,6 +22,9 @@ import { isCalendarDay } from '@/shared/domain/calendar-day'
 import { isClockTime, MAX_TIMES_PER_DAY } from '@/shared/domain/clock-time'
 import { formatDoseQuantity, TABLET_SHORTCUTS, type DoseUnit } from '@/shared/domain/dosage'
 import type { Due, MoveRefusal } from '@/shared/domain/treatment-schedule'
+import { formatDayMonthOrYear, withoutFinalDot } from '@/shared/utils/format'
+
+type Translate = (key: string, named?: Record<string, unknown>, plural?: number) => string
 
 export interface TreatmentFormValues {
   name: string
@@ -31,6 +35,8 @@ export interface TreatmentFormValues {
   firstDoseOn: string
   /** Modification : la date proposée tant qu'elle n'est pas changée. */
   nextDoseOn: string
+  /** Modification : la case « Décaler aussi les doses suivantes », cochée par défaut. */
+  shiftsFollowing: boolean
   times: string[]
   doseQuantity: string
   doseUnit: DoseUnit | null
@@ -74,6 +80,7 @@ const REASON_KEYS: Partial<Record<TreatmentFormErrorField, Record<string, string
   nextDoseOn: {
     tooEarly: 'treatments.form.errors.nextDoseOnTooEarly',
     afterEnd: 'treatments.form.errors.nextDoseOnAfterEnd',
+    afterNextDose: 'treatments.form.errors.nextDoseOnAfterNextDose',
     refused: 'treatments.form.errors.nextDoseOnRefused',
   },
   dosage: { incomplete: 'treatments.form.errors.dosageIncomplete' },
@@ -95,6 +102,29 @@ const REFUSAL_KEYS: Record<MoveRefusal, string> = {
   'arrival-logged': 'treatments.form.nextDoseOn.refusal.arrivalLogged',
   'previous-period': 'treatments.form.errors.nextDoseOnRefused',
   'no-date-alone': 'treatments.form.errors.nextDoseOnRefused',
+}
+
+/** L'aide sous la case « Décaler aussi les doses suivantes » de « Prochaine dose ». */
+export function nextDoseShiftHelp(
+  t: Translate,
+  draft: Pick<EditionDraft, 'nextDose' | 'period'>,
+  values: Pick<TreatmentFormValues, 'nextDoseOn' | 'shiftsFollowing'>,
+  today: string,
+): ShiftHelp | null {
+  const shift = draft.nextDose?.shift ?? null
+  if (shift === null) return null
+  const chosenOn = values.nextDoseOn.trim()
+  if (!values.shiftsFollowing && shift.aloneLatest !== null && chosenOn > shift.aloneLatest) {
+    const date = withoutFinalDot(formatDayMonthOrYear(shift.aloneLatest, today))
+    return { text: t('treatments.shift.aloneLatest', { date }), warning: true }
+  }
+  const following = values.shiftsFollowing ? shift.following : shift.followingAlone
+  return shiftHelpText(
+    t,
+    draft.period,
+    { shifts: values.shiftsFollowing, following, lost: shift.lost },
+    today,
+  )
 }
 
 /** Texte d'aide du champ « Prochaine dose » grisé. */
@@ -125,6 +155,7 @@ export function emptyTreatmentFormValues(): TreatmentFormValues {
     frequencyUnit: 'month',
     firstDoseOn: '',
     nextDoseOn: '',
+    shiftsFollowing: true,
     times: [],
     doseQuantity: '',
     doseUnit: null,
@@ -144,6 +175,7 @@ export function treatmentFormValuesFrom(
     frequencyUnit: period.frequency.unit,
     firstDoseOn: '',
     nextDoseOn: '',
+    shiftsFollowing: true,
     times: [...period.times].sort(),
     doseQuantity:
       period.doseQuantity === null || period.doseUnit === null
@@ -293,6 +325,7 @@ export function editionDraftOf(
     rhythmOfValues(values),
     today,
     isCalendarDay(chosenOn) ? chosenOn : null,
+    values.shiftsFollowing,
   )
 }
 
@@ -315,6 +348,7 @@ export function validateTreatmentEdition(
     type: values.type,
     ...rhythmInput(values),
     nextDoseOn: announcedOn ?? (nextDose === null ? null : typed),
+    ...(values.shiftsFollowing ? {} : { shiftsFollowing: false }),
     ...(pastDues === null ? {} : { pastDues }),
   })
   if (result.success) return { success: true, data: result.data }

@@ -6,6 +6,7 @@ import { useRoute, useRouter } from 'vue-router'
 import TreatmentChooseDays from './TreatmentChooseDays.vue'
 import TreatmentDosageField from './TreatmentDosageField.vue'
 import TreatmentPastDuesSheet from './TreatmentPastDuesSheet.vue'
+import TreatmentShiftCheckbox from './TreatmentShiftCheckbox.vue'
 import TreatmentTimesField from './TreatmentTimesField.vue'
 import TreatmentUnloggedPrompt from './TreatmentUnloggedPrompt.vue'
 import { chooseDaysSubtitle, type DayChoice } from '../logic/treatment-choose-days'
@@ -14,6 +15,7 @@ import {
   editionDraftOf,
   emptyTreatmentFormValues,
   nextDoseRefusalKey,
+  nextDoseShiftHelp,
   pastDosesBasis,
   DUPLICATE_TIME_ERROR_KEY,
   treatmentFormValuesFrom,
@@ -125,6 +127,9 @@ const previous = computed(() =>
   mode === 'resume' && history.value !== null ? resumptionDraft(history.value, today.value) : null,
 )
 const nextDose = computed(() => draft.value?.nextDose ?? null)
+const nextDoseShift = computed(() =>
+  draft.value === null ? null : nextDoseShiftHelp(t, draft.value, values.value, today.value),
+)
 const announcedDues = computed(() =>
   JSON.stringify([draft.value?.pastDues ?? [], draft.value?.pastDuesNextDose ?? null]),
 )
@@ -257,6 +262,7 @@ function errorText(key: string | undefined): string | null {
   return t(key, {
     max: MAX_NAME_LENGTH,
     date: next ? formatFullDayMonth(next.earliest) : '',
+    latest: next?.latest ? formatFullDayMonth(next.latest) : '',
     from: previous.value
       ? withoutFinalDot(formatDayMonthOrYear(previous.value.earliestOn, today.value))
       : '',
@@ -589,6 +595,13 @@ async function submit(): Promise<void> {
         </template>
       </FormField>
 
+      <TreatmentShiftCheckbox
+        v-if="nextDose?.shift"
+        v-model="values.shiftsFollowing"
+        class="treatment-form__shift"
+        :help="nextDoseShift"
+      />
+
       <FormField
         class="treatment-form__field--times"
         :label="t('treatments.form.times.label')"
@@ -692,6 +705,11 @@ async function submit(): Promise<void> {
 
 <style scoped lang="scss">
 @use '@/styles/tokens' as tokens;
+
+// La case suit l'aide de « Prochaine dose » qu'elle complète (V28).
+.treatment-form__shift {
+  margin-top: -20px;
+}
 
 .treatment-form__loading {
   display: flex;

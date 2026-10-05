@@ -1369,6 +1369,31 @@ describe('TreatmentFormView — modification (TR-27, TR-28, planches V1 quater e
     expect(update).toHaveBeenCalledWith(ID, expect.objectContaining({ nextDoseOn: '2026-10-14' }))
   })
 
+  it('montre la case « Décaler aussi les doses suivantes », cochée, et l’envoie décochée (V28)', async () => {
+    const wrapper = await monterEdition()
+    expect(wrapper.find('.treatment-shift').exists()).toBe(false)
+
+    await champ(wrapper, 'treatment-next-dose-on').setValue('2026-10-14')
+
+    const caseDecaler = wrapper.get<HTMLInputElement>('.treatment-shift__input')
+    expect(caseDecaler.element.checked).toBe(true)
+    expect(wrapper.get('.treatment-shift__label').text()).toBe('Décaler aussi les doses suivantes')
+    expect(wrapper.get('.treatment-shift__help').text().replaceAll(' ', ' ')).toBe(
+      'Les doses suivantes passeront au 14 janv. 2027, puis tous les 3 mois.',
+    )
+
+    await caseDecaler.setValue(false)
+
+    expect(wrapper.get('.treatment-shift__help').text().replaceAll(' ', ' ')).toBe(
+      'Seule cette dose change. Les suivantes restent prévues le 10 janv. 2027, puis tous les 3 mois.',
+    )
+    await soumettre(wrapper)
+    expect(update).toHaveBeenCalledWith(
+      ID,
+      expect.objectContaining({ nextDoseOn: '2026-10-14', shiftsFollowing: false }),
+    )
+  })
+
   it('propose aujourd’hui quand la fréquence change après des prises : une nouvelle période s’ouvrira (V1 quater)', async () => {
     getWithHistory.mockResolvedValue(
       milbemax(

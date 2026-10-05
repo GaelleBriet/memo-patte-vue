@@ -243,6 +243,60 @@ describe('lineAction — menu ⋮ d’une ligne de l’historique', () => {
   it('« Changer la date » attend le jour choisi', () => {
     expect(lineAction(PRISE, 'change-date', TODAY)).toBeNull()
   })
+
+  it('« Supprimer ce décalage » supprime la ligne de décalage seule', () => {
+    expect(lineAction(PRISE, 'remove-shift', TODAY)).toEqual({
+      kind: 'remove-shift',
+      doseId: PRISE.id,
+    })
+  })
+})
+
+describe('doseActionTexts — « Supprimer ce décalage » (V31 quater)', () => {
+  const action: DoseAction = { kind: 'remove-shift', doseId: 'décalage' }
+
+  function done(restored: { nextOn: string | null; weekly: boolean } | null) {
+    return plain(doseActionTexts(t, UNE_HEURE, action, null, restored).done(RIEN))
+  }
+
+  it('dit le jour où reviennent les doses suivantes, avec « Annuler »', () => {
+    expect(done({ nextOn: '2026-10-23', weekly: true })).toBe(
+      'Décalage supprimé. Les doses suivantes reviennent au vendredi.',
+    )
+    expect(doseActionTexts(t, UNE_HEURE, action, null).undo).toBe(
+      'Annuler la suppression du décalage',
+    )
+  })
+
+  it('hors d’un rythme en semaines, la prochaine dose ; sans elle, le geste seul', () => {
+    expect(done({ nextOn: '2026-10-22', weekly: false })).toBe(
+      'Décalage supprimé. Prochaine dose le 22 oct.',
+    )
+    expect(done(null)).toBe('Décalage supprimé')
+  })
+
+  it('en anglais', () => {
+    applyLocale('en')
+
+    expect(done({ nextOn: '2026-10-23', weekly: true })).toBe(
+      'Move deleted. The following doses go back to Friday.',
+    )
+  })
+})
+
+describe('dateChangeOf — la case « Décaler aussi les doses suivantes »', () => {
+  it('décochée, le geste le dit au moteur ; cochée, rien de plus', () => {
+    const prise = dose('2026-09-06', '2026-09-07', { givenOn: '2026-09-07' })
+    const change = dateChangeOf(t, prise, null, { today: TODAY, earliest: null })!
+
+    expect(change.action('2026-09-08', false)).toEqual({
+      kind: 'redate',
+      doseId: prise.id,
+      givenOn: '2026-09-08',
+      shiftsFollowing: false,
+    })
+    expect(change.action('2026-09-08', true)).not.toHaveProperty('shiftsFollowing')
+  })
 })
 
 describe('dateChangeOf — « Changer la date »', () => {
