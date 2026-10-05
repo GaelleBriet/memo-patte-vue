@@ -2066,3 +2066,25 @@ devine aujourd'hui ce qu'une ligne a fait, et chaque règle qui devine mieux un 
 (revue adverse des correctifs du moteur). — Alternative écartée : continuer à corriger cas par cas
 dans le moteur.
 
+
+2026-10-03 — **Modèle des prises : réponses de Gaelle à l'étude** (#488, détail dans
+`docs/technical/etude-modele-prises.md` §5.1, plan #501 à #507). Dès qu'une date de dose change, la
+case « Décaler aussi les doses suivantes », cochée par défaut, apparaît dans « Prochaine dose », « Fait
+à une autre date » et « Changer la date » d'une prise ou d'un report ; jamais pour « C'est fait » en un
+tap, une dose rattrapée ni une prise d'un traitement de tous les jours. Le décalage est une ligne à part
+(« Doses suivantes décalées »), toujours visible et supprimable seule : chaque ligne se supprime seule,
+rien en cascade. Une dose donnée un intervalle ou plus en avance est une « Prise en plus ». Entre deux
+appareils, une prise l'emporte sur un report. Chaque ligne garde l'appareil qui l'a créée et modifiée
+en dernier ; rien à l'écran en v1, l'historique complet viendra avec le partage. — Raison : la
+personne décide en voyant les dates, et le moteur lit ce qu'elle a choisi au lieu de le deviner. —
+Alternatives écartées : une nouvelle période par décalage (report qui traverse deux périodes,
+historique encombré) ; une exception de fin de mois ; une distance minimale fixe après une date de fin.
+
+2026-10-05 — **Maquettes « Décaler les doses suivantes » validées** (#504, planches V28 à V32 de
+`docs/design/v1-specs/decaler-doses-suivantes.html`, renumérotées : le fichier les nomme V9 à V13).
+Corrections tranchées par Gaelle : la ligne d'une prise en plus porte l'année (« 9 oct. 2026 · Prise
+en plus ») ; le libellé est « Prise en plus » ; le sous-titre « Jour et heure » de « Changer la date »
+seulement pour un traitement à heures ; le menu d'une prise en plus n'a que « Changer la date » et
+« Supprimer cette prise ». — Raison : une prise en plus n'était pas prévue, elle ne peut pas être
+oubliée ; si elle n'a pas eu lieu, on la supprime. — Alternative écartée : garder « Marquer comme
+oubliée », qui laisserait une ligne sans objet.
