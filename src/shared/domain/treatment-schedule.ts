@@ -9,6 +9,7 @@ import {
   isShiftLine,
   mergeDoses,
   pendingDues,
+  shiftDueOf,
 } from './treatment-schedule-plan'
 import { build, knownDues, planOf } from './treatment-schedule-state'
 import type {
@@ -103,6 +104,7 @@ export function treatmentSchedule(input: TreatmentScheduleInput): TreatmentSched
         .map(({ dose }) => dose.id),
     ),
     removeMove: (doseId) => removeMove(state, doseId),
+    shiftDueOf: (due) => shiftDueOf(planOf(state, due.periodId), due),
     newPeriod: (frequency, times) => newPeriod(state, frequency, times),
   }
 }

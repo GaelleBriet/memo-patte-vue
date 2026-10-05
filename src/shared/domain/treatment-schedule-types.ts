@@ -156,6 +156,8 @@ export type TreatmentSchedule = {
   lockedMoveIds: string[]
   /** « Supprimer ce report » (TR-24) : la ligne à supprimer, son décalage reste (N8) ; lève si elle est verrouillée (Q25). */
   removeMove(doseId: string): MovedDose
+  /** L'échéance qui porte le décalage d'une prise : pour une dose avancée, son échéance d'origine (G18). */
+  shiftDueOf(due: Due): Due
   /** Dates d'une période ouverte par « Modifier » (TR-28, Q7, Q24), selon ses heures. */
   newPeriod(frequency: Frequency, times: readonly string[]): NewPeriod
 }
