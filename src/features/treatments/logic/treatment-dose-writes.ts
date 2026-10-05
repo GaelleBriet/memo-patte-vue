@@ -38,6 +38,8 @@ export type DoseChange = {
   heldBy?: string
   /** Prise notée en retard sans case : les journées que son décalage fait sortir de la date de fin (Q4). */
   lostToEnd?: string[]
+  /** Les journées que ce décalage, non écrit, aurait fait sortir de la date de fin (Q4). */
+  keptToEnd?: string[]
 }
 
 export class DoseAlreadyLoggedError extends Error {}
@@ -249,6 +251,7 @@ function changeOf(
         writes: noteWrites(history, written, notes, newId),
         ...(written.heldBy === undefined ? {} : { heldBy: written.heldBy }),
         ...(written.lostToEnd === undefined ? {} : { lostToEnd: written.lostToEnd }),
+        ...(written.keptToEnd === undefined ? {} : { keptToEnd: written.keptToEnd }),
         shiftKept:
           gesture.kind === 'missed' && notes.length > 0 && hasShift(history, schedule, gesture.due),
       }

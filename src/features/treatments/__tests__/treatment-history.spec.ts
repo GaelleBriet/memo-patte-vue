@@ -544,6 +544,26 @@ describe('treatmentHistory — la ligne de décalage et ses refus (V31, V31 ter,
     })
   })
 
+  it('grisée quand un report seul qui suit sortirait du rythme rétabli : supprimer ce report d’abord', () => {
+    const book = treatment(
+      [VENDREDI],
+      [
+        dose('2026-10-09', '2026-10-16'),
+        shifted('2026-10-16', '2026-10-19'),
+        postponed('2026-10-16', '2026-10-19'),
+        postponed('2026-10-26', '2026-10-23'),
+      ],
+    )
+
+    expect(line(book, '2026-10-15', 'shift').refused).toEqual({
+      'remove-shift': 'Supprime d’abord le report du 23 oct.',
+    })
+    applyLocale('en')
+    expect(line(book, '2026-10-15', 'shift').refused).toEqual({
+      'remove-shift': 'Delete the postponement of Oct 23 first.',
+    })
+  })
+
   it('« Supprimer ce report » grisé quand la dose reviendrait la veille de la suivante', () => {
     const JEUDI = period({
       startsOn: '2026-11-19',

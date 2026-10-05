@@ -335,6 +335,20 @@ describe('doseActionTexts — prise en retard dont le décalage fait sauter des 
     ).toBe('Panacur dose logged for Pixel. The Oct 30 dose is no longer scheduled (end date).')
   })
 
+  it('sans décalage, le toast dit la dose qui reste prévue', () => {
+    const { done } = doseActionTexts(t, UNE_HEURE, action, null)
+
+    expect(plain(done({ ...RIEN, keptToEnd: ['2026-11-02'] }))).toBe(
+      'Prise de Panacur notée pour Pixel. La dose du 2 nov. reste prévue.',
+    )
+    applyLocale('en')
+    expect(
+      plain(
+        doseActionTexts(t, UNE_HEURE, action, null).done({ ...RIEN, keptToEnd: ['2026-11-02'] }),
+      ),
+    ).toBe('Panacur dose logged for Pixel. The Nov 2 dose stays scheduled.')
+  })
+
   it('le traitement terminé, le toast de la dernière dose l’emporte', () => {
     const { done } = doseActionTexts(t, UNE_HEURE, action, null)
 

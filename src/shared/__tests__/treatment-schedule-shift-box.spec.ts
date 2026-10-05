@@ -242,6 +242,7 @@ describe('« Supprimer ce décalage » (N7, N8)', () => {
     const id = shiftsOf(far)[0]!.id
 
     expect(schedule.shiftRemovalRefusal(id)).toBe('move-past-next')
+    expect(schedule.strandedMoveOn(id)).toBeNull()
     expect(() => schedule.removeShift(id)).toThrow(RangeError)
   })
 
@@ -252,7 +253,8 @@ describe('« Supprimer ce décalage » (N7, N8)', () => {
       const schedule = scheduleOf(alone, '2026-10-15')
       const id = shiftsOf(alone)[0]!.id
 
-      expect(schedule.shiftRemovalRefusal(id)).toBe('move-past-next')
+      expect(schedule.shiftRemovalRefusal(id)).toBe('move-off-rhythm')
+      expect(schedule.strandedMoveOn(id)).toBe(to)
       expect(() => schedule.removeShift(id)).toThrow(RangeError)
     },
   )

@@ -279,10 +279,11 @@ describe('« C’est fait » en un tap après un retard, face à la date de fin 
       givenOn: '2026-10-21',
     })
 
-    it('donnée le lundi 19 : pas de décalage, le 23 et le 30 restent', () => {
+    it('donnée le lundi 19 : pas de décalage, le 23 et le 30 restent, la dose gardée est dite', () => {
       expect(lundi19).toEqual({
         dose: expect.objectContaining({ nextDueDate: '2026-10-23' }),
         shift: null,
+        keptToEnd: ['2026-10-30'],
       })
       expect(dueDays(scheduleOf(done(vendredi, '2026-10-19'), '2026-10-19').upcoming(3))).toEqual([
         '2026-10-23',

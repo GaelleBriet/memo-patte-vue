@@ -250,9 +250,14 @@ export function redateLimits(state: State, doseId: string): RedateLimits {
 
 // Q4, sans case : le décalage qui ferait sortir des doses de la date de fin ne s'écrit pas quand la
 // dose suivante tombe au moins une demi-fréquence après la prise ; écrit, il dit les journées perdues.
-function endCut(others: State, due: Due, givenOn: string, written: Written[]): 'kept' | string[] {
+function endCut(
+  others: State,
+  due: Due,
+  givenOn: string,
+  written: Written[],
+): { kept: boolean; days: string[] } {
   const { endsOn, frequency } = planOf(others, due.periodId).period
-  if (endsOn === null) return []
+  if (endsOn === null) return { kept: false, days: [] }
   const daysLeft = (state: State) => [
     ...new Set(
       pendingDues(planOf(state, due.periodId), { from: nextDay(due.dueOn) }).map(
@@ -262,8 +267,8 @@ function endCut(others: State, due: Due, givenOn: string, written: Written[]): '
   ]
   const kept = daysLeft(stateAfter(others, written.slice(0, 1)))
   const shifted = daysLeft(stateAfter(others, written))
-  if (shifted.length >= kept.length) return []
-  return isWithinHalfStep(givenOn, kept[0]!, frequency) ? kept.slice(shifted.length) : 'kept'
+  if (shifted.length >= kept.length) return { kept: false, days: [] }
+  return { kept: !isWithinHalfStep(givenOn, kept[0]!, frequency), days: kept.slice(shifted.length) }
 }
 
 export function doseFor(state: State, known: () => Set<string>, gesture: DoseGesture): NotedDose {
@@ -293,10 +298,13 @@ export function doseFor(state: State, known: () => Set<string>, gesture: DoseGes
         { id: null, fields: dose },
         { id: shiftOn(plan, shift)?.id ?? null, fields: shift },
       ]
-      const cut = gesture.shiftsFollowing === undefined ? endCut(others, due, givenOn, written) : []
-      if (cut === 'kept') return { dose, shift: null }
+      const cut =
+        gesture.shiftsFollowing === undefined
+          ? endCut(others, due, givenOn, written)
+          : { kept: false, days: [] }
+      if (cut.kept) return { dose, shift: null, keptToEnd: cut.days }
       const shifted = { dose: { ...dose, nextDueDate: nextAfter(others, due, written) }, shift }
-      return cut.length === 0 ? shifted : { ...shifted, lostToEnd: cut }
+      return cut.days.length === 0 ? shifted : { ...shifted, lostToEnd: cut.days }
     }
     case 'missed':
       return {

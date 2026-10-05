@@ -228,19 +228,26 @@ export function shiftRemovalRefusal(state: State, doseId: string): ShiftRemovalR
   )
   if (later.length > 0) return 'later-dose'
   const without = withoutLine(state, doseId)
-  const passed = passedMoveOn(state, without, shift.periodId, shift.dueOn)
-  return passed !== null || strandsMove(without, shift) ? 'move-past-next' : null
+  if (passedMoveOn(state, without, shift.periodId, shift.dueOn) !== null) return 'move-past-next'
+  return strandedMove(without, shift) === undefined ? null : 'move-off-rhythm'
+}
+
+/** L'arrivée du report seul qui bloque « Supprimer ce décalage » (`move-off-rhythm`), sinon `null`. */
+export function strandedMoveOn(state: State, doseId: string): string | null {
+  if (shiftRemovalRefusal(state, doseId) !== 'move-off-rhythm') return null
+  const shift = shiftLineOf(state, doseId)
+  return strandedMove(withoutLine(state, doseId), shift)?.nextDueDate ?? null
 }
 
 // Un report seul qui suit, dont l'échéance d'origine ne serait plus une échéance du rythme rétabli.
-function strandsMove(without: State, shift: TreatmentDoseInput): boolean {
+function strandedMove(without: State, shift: TreatmentDoseInput): TreatmentDoseInput | undefined {
   const plan = planOf(without, shift.periodId)
   return plan.steps
     .filter(isMove)
-    .some(
+    .find(
       ({ dose }) =>
         dose.dueOn > shift.dueOn && shiftOn(plan, dose) === undefined && !isOnRhythm(without, dose),
-    )
+    )?.dose
 }
 
 function isOnRhythm(state: State, move: TreatmentDoseInput): boolean {

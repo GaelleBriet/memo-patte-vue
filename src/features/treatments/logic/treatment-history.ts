@@ -8,6 +8,7 @@ import {
   isAdvanced,
   shiftedNextOn,
   type MoveBounds,
+  type ShiftRemovalRefusal,
   type TreatmentDoseInput,
   type TreatmentSchedule,
 } from '@/shared/domain/treatment-schedule'
@@ -17,6 +18,7 @@ import {
   formatDayMonthOrYear,
   formatFullDate,
   formatLongDate,
+  withoutFinalDot,
 } from '@/shared/utils/format'
 
 export type Translate = (key: string, named?: Record<string, unknown>, plural?: number) => string
@@ -62,7 +64,12 @@ export type TreatmentHistory = { counter: string | null; periods: HistoryPeriod[
 
 type HistorySchedule = Pick<
   TreatmentSchedule,
-  'doses' | 'lockedMoveIds' | 'moveBounds' | 'moveRemovalRefusal' | 'shiftRemovalRefusal'
+  | 'doses'
+  | 'lockedMoveIds'
+  | 'moveBounds'
+  | 'moveRemovalRefusal'
+  | 'shiftRemovalRefusal'
+  | 'strandedMoveOn'
 >
 type Period = TreatmentPeriodRecord
 
@@ -206,7 +213,20 @@ function moveLine(
 const SHIFT_REFUSALS = {
   'later-dose': 'treatments.history.refusal.shiftLaterDose',
   'move-past-next': 'treatments.history.refusal.shiftMovePastNext',
+  'move-off-rhythm': 'treatments.history.refusal.shiftMoveOffRhythm',
 } as const
+
+function shiftRefusalText(
+  t: Translate,
+  schedule: HistorySchedule,
+  dose: TreatmentDoseInput,
+  refusal: ShiftRemovalRefusal,
+): string {
+  const strandedOn = refusal === 'move-off-rhythm' ? schedule.strandedMoveOn(dose.id) : null
+  if (strandedOn === null) return t(SHIFT_REFUSALS[refusal])
+  const date = withoutFinalDot(formatDayMonthOrYear(strandedOn, dose.dueOn))
+  return t(SHIFT_REFUSALS[refusal], { date })
+}
 
 function shiftLine(
   t: Translate,
@@ -222,7 +242,9 @@ function shiftLine(
     title: t('treatments.history.shift', { date: formatDayMonthOrYear(nextOn, dose.dueOn) }),
     optionsLabel: t('treatments.history.shiftOptions', { date: formatFullDate(dose.dueOn) }),
     actions: ['remove-shift'],
-    ...(refusal === null ? {} : { refused: { 'remove-shift': t(SHIFT_REFUSALS[refusal]) } }),
+    ...(refusal === null
+      ? {}
+      : { refused: { 'remove-shift': shiftRefusalText(t, schedule, dose, refusal) } }),
   }
 }
 

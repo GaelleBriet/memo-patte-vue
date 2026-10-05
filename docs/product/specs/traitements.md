@@ -118,7 +118,8 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
     en retard décale la suite, avec sa ligne de décalage. Quand ce décalage ferait sortir des doses
     de la date de fin, la règle porte sur la dose suivante : si elle tombe au moins une
     demi-fréquence après la prise (la moitié des jours entre la prise et la même date plus un
-    intervalle), rien n'est décalé et aucune dose n'est perdue ; plus près, le décalage est écrit et
+    intervalle), rien n'est décalé, aucune dose n'est perdue et le toast le dit (« Prise de Panacur notée pour
+    Pixel. La dose du 30 oct. reste prévue. ») ; plus près, le décalage est écrit et
     le toast dit la dose qui n'est plus prévue (« Prise de Panacur notée pour Pixel. La dose du
     30 oct. n'est plus prévue (date de fin). » · Annuler). Quand il n'en reste aucune, le traitement
     se termine : « Dernière dose de Panacur notée, à retrouver dans Traitements terminés. » · Annuler
@@ -276,7 +277,7 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
     la dose du 30. Une correction refusée dans un seul état de la case n'est permise que dans
     l'autre (jours grisés). Restent refusés : « Fait à une autre date » coché et « Supprimer ce
     décalage », grisé aussi quand un report seul qui le suit n'aurait plus son échéance d'origine
-    dans le rythme rétabli (« Change d'abord la date du report. » ; vendredi, décalage du 16 au 19,
+    dans le rythme rétabli (« Supprime d'abord le report du 23 oct. » ; vendredi, décalage du 16 au 19,
     dose du 26 avancée seule au 23 : sans le décalage, la dose du 23 et la dose avancée tomberaient
     ensemble ; graine 2157, #506). « C'est fait » en un tap, la notification et la feuille « À faire » notent la prise
     sans décalage (« La suite ne bouge pas : un report est prévu le 28 oct. »). (Décisions de Gaelle

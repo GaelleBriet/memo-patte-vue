@@ -981,7 +981,13 @@ class Simulation {
       })
       return !pendingOf(restored).some((due) => idOf(due) === idOf(move))
     })
-    const expected = laterNote ? 'later-dose' : pastNext || stranded ? 'move-past-next' : null
+    const expected = laterNote
+      ? 'later-dose'
+      : pastNext
+        ? 'move-past-next'
+        : stranded
+          ? 'move-off-rhythm'
+          : null
     const refusal = before.shiftRemovalRefusal(line.id)
     if (refusal !== expected) {
       this.fail(`${gesture} : refus ${String(refusal)}, attendu ${String(expected)}`)

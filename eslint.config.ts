@@ -50,7 +50,7 @@ const DYNAMIC_I18N_KEYS = [
   '/^treatments\\.form\\.errors\\.(name|nameMax|type|frequency|frequencyMax|firstDoseOn|firstDoseOnTooEarly|firstDoseOnTooOld|nextDoseOn|nextDoseOnTooEarly|nextDoseOnAfterEnd|nextDoseOnAfterNextDose|nextDoseOnRefused|times|timesDuplicate|dosageQuantity|dosageIncomplete|endsOn|endsOnBeforeFirstDose|endsOnBeforeNextDose|endsOnBeforeLastDose|endsOnBeforePostponedDose|endsOnBeforeAdvancedDose|endsOnBeforeFarPostponedDose|endsOnBeforeFarAdvancedDose)$/',
   '/^treatments\\.form\\.nextDoseOn\\.refusal\\.(laterLine|laterDose|noDateLeft|arrivalLogged)$/',
   '/^treatments\\.shift\\.(moved|kept)\\.(weekly|every)$/',
-  '/^treatments\\.history\\.refusal\\.(shiftLaterDose|shiftMovePastNext)$/',
+  '/^treatments\\.history\\.refusal\\.(shiftLaterDose|shiftMovePastNext|shiftMoveOffRhythm)$/',
   '/^treatments\\.form\\.(submit|submitting|save|saving|resume|resuming)$/',
   '/^weight\\.form\\.errors\\.(animalId|weightKg|weightKgMax|measuredOn|measuredOnFuture)$/',
   '/^weight\\.(unit|unitName)\\.(kg|lb)$/',
