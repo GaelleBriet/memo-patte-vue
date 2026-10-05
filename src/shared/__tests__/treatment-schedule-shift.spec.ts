@@ -365,3 +365,59 @@ describe('la famille M6 du test d’invariants : aucune échéance ne disparaît
     ])
   })
 })
+
+describe('un décalage resté seul sur le jour d’arrivée d’une dose avancée garde son échéance (#523)', () => {
+  const leftOver = (dueOn: string, anchoredOn: string) =>
+    stored({
+      periodId: 'p1',
+      dueOn,
+      dueTime: null,
+      givenOn: null,
+      status: 'shift',
+      nextDueDate: anchoredOn,
+    })
+
+  it('graine 1663 : la dose avancée donnée la veille, la prochaine dose écrite est celle du calendrier', () => {
+    const today = '2026-03-09'
+    let book = done(carnet(weekly({ firstDueOn: '2026-03-06' })), today, '2026-03-06')
+    book = { ...book, doses: [leftOver('2026-03-10', '2026-03-08'), ...book.doses] }
+    book = record(book, today, { kind: 'postponed', due: due('2026-03-15'), to: '2026-03-10' })
+    book = record(book, today, { kind: 'given', due: due('2026-03-10'), givenOn: today })
+
+    expect(lastDose(book).nextDueDate).toBe('2026-03-16')
+    expect(dueDays(scheduleOf(book, today).upcoming(2))).toEqual(['2026-03-16', '2026-03-23'])
+  })
+
+  it('graine 14529 : « Supprimer ce report » ne fait disparaître aucune dose', () => {
+    let book = done(carnet(weekly({ firstDueOn: '2026-03-12' })), '2026-03-15')
+    book = { ...book, doses: [leftOver('2026-03-20', '2026-03-19'), ...book.doses] }
+    expect(dueDays(scheduleOf(book, '2026-03-18').upcoming(1))).toEqual(['2026-03-26'])
+
+    book = record(book, '2026-03-18', {
+      kind: 'postponed',
+      due: due('2026-03-26'),
+      to: '2026-03-20',
+    })
+    const report = lastDose(book)
+    expect(dueDays(scheduleOf(book, '2026-03-18').upcoming(2))).toEqual([
+      '2026-03-20',
+      '2026-03-27',
+    ])
+
+    const removed = withoutDose(book, report.id)
+    expect(dueDays(scheduleOf(removed, '2026-03-18').upcoming(2))).toEqual([
+      '2026-03-26',
+      '2026-03-27',
+    ])
+  })
+
+  it('graine 3180 : la dose avancée de nouveau ne reste pas à donner à son jour d’arrivée', () => {
+    const today = '2026-03-14'
+    let book = done(carnet(weekly({ firstDueOn: '2026-03-10' })), today, '2026-03-10')
+    book = { ...book, doses: [leftOver('2026-03-15', '2026-03-14'), ...book.doses] }
+    book = record(book, today, { kind: 'postponed', due: due('2026-03-21'), to: '2026-03-17' })
+    book = record(book, today, { kind: 'postponed', due: due('2026-03-17'), to: '2026-03-15' })
+
+    expect(dueDays(scheduleOf(book, today).upcoming(2))).toEqual(['2026-03-15', '2026-03-22'])
+  })
+})

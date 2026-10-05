@@ -97,15 +97,18 @@ function stepOf(dose: TreatmentDoseInput, shiftDay: (shift: TreatmentDoseInput) 
   }
 }
 
-// La dose avancée reste la dose de son jour d'origine : un décalage posé sur son jour d'arrivée agit
-// après ce jour d'origine, et l'emporte sur le décalage du report, plus ancien.
+// La dose avancée reste la dose de son jour d'origine : un décalage écrit sur son jour d'arrivée après
+// le report est le sien et agit après ce jour d'origine ; plus ancien, il reste celui de son échéance.
 function shiftDayOf(doses: TreatmentDoseInput[]): (shift: TreatmentDoseInput) => string {
-  const origins = new Map(
+  const advanced = new Map(
     doses
       .filter((dose) => familyOf(dose) === 'move' && dose.nextDueDate < dose.dueOn)
-      .map((move) => [move.nextDueDate, move.dueOn]),
+      .map((move) => [move.nextDueDate, move]),
   )
-  return (shift) => origins.get(shift.dueOn) ?? shift.dueOn
+  return (shift) => {
+    const move = advanced.get(shift.dueOn)
+    return move !== undefined && isMoreRecent(shift, move) ? move.dueOn : shift.dueOn
+  }
 }
 
 function stepsOf(
@@ -181,6 +184,31 @@ function arrivalsOf(period: TreatmentPeriodInput, moves: TreatmentDoseInput[]): 
   )
 }
 
+// Deux décalages qui agissent après le même jour : le plus récent vaut (§2.6, règle 3). L'ancien
+// rythme s'arrête à l'échéance d'origine du décalage (règle 1), même quand il agit après un jour plus loin.
+function shiftAnchors(steps: Step[], shiftDay: (shift: TreatmentDoseInput) => string) {
+  const latest = new Map<string, TreatmentDoseInput>()
+  for (const { position, dose } of steps.filter(isShift)) {
+    const kept = latest.get(position)
+    if (kept === undefined || isMoreRecent(dose, kept)) latest.set(position, dose)
+  }
+  return [...latest].map(([position, dose]) => ({
+    position,
+    sequence: shiftedSequence(dose, `${shiftDay(dose)} ~`),
+    cut: `${dose.dueOn} ~`,
+  }))
+}
+
+function endsOf(cuts: string[]): string[] {
+  const ends: string[] = []
+  for (let index = cuts.length - 1; index >= 0; index -= 1) {
+    const cut = cuts[index] ?? ''
+    const later = ends[0]
+    ends.unshift(later === undefined || cut < later ? cut : later)
+  }
+  return ends
+}
+
 export function planPeriod(
   period: TreatmentPeriodInput,
   closesOn: string | null,
@@ -197,20 +225,17 @@ export function planPeriod(
     doses.filter((dose) => !unread.has(dose)),
     shiftDay,
   )
+  const shifts = shiftAnchors(steps, shiftDay)
   const anchors = [
     { position: '', sequence: initialSequence(period) },
-    ...steps.filter(isShift).map(({ position, dose }) => ({
-      position,
-      sequence: shiftedSequence(dose, `${shiftDay(dose)} ~`),
-    })),
+    ...shifts.map(({ position, sequence }) => ({ position, sequence })),
   ]
-  const sequences = anchors.map(({ sequence }) => sequence)
+  const ends = endsOf(shifts.map(({ cut }) => cut))
   const moves = steps.filter(isMove).map(({ dose }) => dose)
   const between = [
-    ...sequences.slice(0, -1).flatMap((sequence, index) => {
-      const end = sequences[index + 1]?.floor ?? ''
-      return duesUntil(sequence, period, end)
-    }),
+    ...anchors
+      .slice(0, -1)
+      .flatMap(({ sequence }, index) => duesUntil(sequence, period, ends[index] ?? '')),
     ...arrivalsOf(period, moves),
   ]
   return {
