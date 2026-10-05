@@ -55,8 +55,6 @@ const GESTURES = [
 const FIRST_SEED = Number(process.env.INVARIANTS_FROM ?? 1)
 const CARNETS = Number(process.env.INVARIANTS_SEEDS ?? 150)
 const STEPS = Number(process.env.INVARIANTS_STEPS ?? 24)
-// Défauts connus du moteur, antérieurs à la prise en plus : #523.
-const KNOWN_FAILURES = new Set([1663, 3180, 14529])
 const TIMEOUT = 30_000 + CARNETS * STEPS * 5
 
 function mulberry32(seed: number): Random {
@@ -1035,7 +1033,6 @@ describe('invariants du moteur, sur des carnets et des gestes tirés au sort (gr
     () => {
       const failures: string[] = []
       for (let seed = FIRST_SEED; seed < FIRST_SEED + CARNETS; seed += 1) {
-        if (KNOWN_FAILURES.has(seed)) continue
         const random = mulberry32(seed)
         const simulation = new Simulation(newBook(random), random, seed)
         try {
