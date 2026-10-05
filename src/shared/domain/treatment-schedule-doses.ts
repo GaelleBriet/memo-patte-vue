@@ -9,14 +9,22 @@ import {
   dueOf,
   keyOf,
   nextDay,
+  previousDay,
   sameDue,
   shiftDate,
   toDate,
   uniqueSorted,
 } from './treatment-schedule-dues'
-import { isLocked, movedFields, shiftFields } from './treatment-schedule-moves'
+import {
+  isLocked,
+  movedFields,
+  passedMove,
+  passedMoveOn,
+  shiftFields,
+} from './treatment-schedule-moves'
 import {
   compareCreation,
+  familyOf,
   hasFallen,
   mergeDoses,
   notesOf,
@@ -34,6 +42,7 @@ import {
   nextInSequence,
   planOf,
   stateWithout,
+  stateWithoutDues,
   stateWithoutNote,
 } from './treatment-schedule-state'
 import type {
@@ -46,6 +55,7 @@ import type {
   NotedDose,
   PeriodPlan,
   RedateLimits,
+  RedateRefusal,
   RedatedDose,
   State,
   TreatmentDoseInput,
@@ -84,6 +94,14 @@ function hitsAMove(
   )
 }
 
+// Q2 c : la dose d'un report sans décalage, donnée un autre jour, ne décale pas les suivantes.
+function isMovedAlone(plan: PeriodPlan, due: Due): boolean {
+  return plan.steps.some(
+    ({ kind, dose }) =>
+      kind === 'move' && dose.nextDueDate === due.dueOn && shiftOn(plan, dose) === undefined,
+  )
+}
+
 // La suite ne repart de la date réelle (T2) que pour la dose du moment, à la dernière heure du jour,
 // si la dose suivante tombe après l'échéance couverte.
 function restartsFrom(others: State, due: Due, givenOn: string, next: string): boolean {
@@ -97,8 +115,36 @@ function restartsFrom(others: State, due: Due, givenOn: string, next: string): b
     shiftDate(givenOn, frequency, 1) > due.dueOn &&
     others.currentDoses.some((current) => sameDue(current, due)) &&
     dayIsComplete() &&
-    !hitsAMove(plan, due, givenOn)
+    !hitsAMove(plan, due, givenOn) &&
+    !isMovedAlone(plan, due)
   )
+}
+
+// Q2 a : le rythme ancré à la date réelle ferait passer la dose suivante à ce report seul (son arrivée).
+function passedByShift(others: State, due: Due, givenOn: string): string | null {
+  const plan = planOf(others, due.periodId)
+  const origin = shiftDueOf(plan, due)
+  const prise: DoseFields = { ...dueOf(due), givenOn, status: 'given', nextDueDate: givenOn }
+  const after = stateAfter(others, [
+    { id: shiftOn(plan, origin)?.id ?? null, fields: shiftFields(origin, givenOn) },
+    { id: null, fields: prise },
+  ])
+  return passedMoveOn(others, after, due.periodId, due.dueOn)
+}
+
+/** La case de « Fait à une autre date » cochée ferait passer ce report seul (son arrivée), refusée. */
+export function noteRefusal(
+  state: State,
+  known: () => Set<string>,
+  due: Due,
+  givenOn: string,
+): string | null {
+  checkKnown(known, due)
+  checkPastDay(givenOn, state.input.today, 'date réelle')
+  const others = stateWithoutNote(state, due)
+  if (isExtra(others, due, givenOn)) return null
+  if (!restartsFrom(others, due, givenOn, nextInSequence(others, due))) return null
+  return passedByShift(others, due, givenOn)
 }
 
 // La première dose du rythme ancré à la date réelle, après la journée qui porte le décalage.
@@ -109,8 +155,8 @@ function restartedOn(plan: PeriodPlan, due: Due, givenOn: string): string {
 
 type Written = { id: string | null; fields: DoseFields | null }
 
-// La prochaine échéance que le calendrier montrera une fois ces lignes écrites (`fields` nul : supprimée).
-function nextAfter(state: State, due: Due, written: Written[]): string {
+// Le carnet une fois ces lignes écrites (`fields` nul : supprimée).
+function stateAfter(state: State, written: Written[]): State {
   const at = '9999-12-31T23:59:59.999Z'
   const touched = new Set(written.map(({ id }) => id))
   const doses = [
@@ -121,7 +167,30 @@ function nextAfter(state: State, due: Due, written: Written[]): string {
         : [{ ...fields, id: id ?? `écrite-${index}`, createdAt: at, updatedAt: at }],
     ),
   ]
-  return nextInSequence(build({ ...state.input, doses }), due)
+  return build({ ...state.input, doses })
+}
+
+// Comme le repository (TR-25) : une ligne réécrite ou supprimée emporte ses sœurs, même échéance et même famille.
+function withSisters(state: State, written: Written[]): Written[] {
+  const touched = new Set(written.map(({ id }) => id))
+  const sisters = written.flatMap(({ id }) => {
+    const line = state.input.doses.find((dose) => dose.id === id)
+    if (line === undefined) return []
+    return state.input.doses
+      .filter(
+        (other) =>
+          !touched.has(other.id) &&
+          dueId(other) === dueId(line) &&
+          familyOf(other) === familyOf(line),
+      )
+      .map((other): Written => ({ id: other.id, fields: null }))
+  })
+  return [...written, ...sisters]
+}
+
+// La prochaine échéance que le calendrier montrera une fois ces lignes écrites.
+function nextAfter(state: State, due: Due, written: Written[]): string {
+  return nextInSequence(stateAfter(state, written), due)
 }
 
 function checkKnown(known: () => Set<string>, due: Due): void {
@@ -189,10 +258,18 @@ export function doseFor(state: State, known: () => Set<string>, gesture: DoseGes
       checkPastDay(givenOn, state.input.today, 'date réelle')
       if (isExtra(others, due, givenOn)) return extraFor(others, due, givenOn)
       const plan = planOf(others, due.periodId)
-      const restarts = restartsFrom(others, due, givenOn, next)
+      const wanted = gesture.shiftsFollowing !== false && restartsFrom(others, due, givenOn, next)
+      const passed = wanted ? passedByShift(others, due, givenOn) : null
+      // Case cochée : refusé ; « C'est fait » sans case : la prise seule, le décalage n'est pas demandé.
+      if (passed !== null && gesture.shiftsFollowing === true) {
+        throw new RangeError(
+          `Le décalage ferait passer le report du ${passed} après la dose suivante`,
+        )
+      }
+      const restarts = wanted && passed === null
       const shift = restarts ? shiftFields(shiftDueOf(plan, due), givenOn) : null
       const dose: DoseFields = { ...dueOf(due), givenOn, status: 'given', nextDueDate: next }
-      if (shift === null) return { dose, shift }
+      if (shift === null) return passed === null ? { dose, shift } : { dose, shift, heldBy: passed }
       const nextDueDate = nextAfter(others, due, [
         { id: null, fields: dose },
         { id: shiftOn(plan, shift)?.id ?? null, fields: shift },
@@ -300,17 +377,126 @@ function redateExtra(state: State, extra: TreatmentDoseInput, givenOn: string): 
   return { dose: noted.dose, shift, postponement: null }
 }
 
+function laterDay(a: string, b: string): string {
+  return a > b ? a : b
+}
+
+/**
+ * I2 : le report seul qu'une correction ferait passer suit. Il vise l'échéance du nouveau calendrier
+ * la plus proche de son ancienne arrivée et garde cette date quand elle reste dans les bornes de
+ * Q2 a ; sinon elle s'en approche, jamais avant aujourd'hui. `null` : aucune date ne convient.
+ */
+function followingReport(
+  state: State,
+  dose: TreatmentDoseInput,
+  after: State,
+  moved: TreatmentDoseInput,
+  postponement: RedatedDose['postponement'],
+): RedatedDose['postponement'] {
+  const original = state.input.doses.find(({ id }) => id === moved.id)
+  if (original === undefined) return null
+  if (postponement !== null && !postponement.doseIds.includes(moved.id)) return null
+  const plan = planOf(stateWithoutDues(after, [moved]), dose.periodId)
+  const was = original.nextDueDate
+  const horizon = shiftDate(was, plan.period.frequency, 2)
+  const days = [
+    ...new Set(
+      pendingDues(plan, { from: nextDay(dose.dueOn), to: horizon }).map(({ dueOn }) => dueOn),
+    ),
+  ].sort(compareText)
+  const distance = (day: string) => Math.abs(differenceInCalendarDays(toDate(day), toDate(was)))
+  const targetDay = days.reduce<string | undefined>(
+    (best, day) => (best === undefined || distance(day) < distance(best) ? day : best),
+    undefined,
+  )
+  if (targetDay === undefined) return null
+  const index = days.indexOf(targetDay)
+  const previous = days[index - 1] ?? dose.dueOn
+  const earliest = laterDay(state.input.today, nextDay(previous))
+  const nextOn = days[index + 1]
+  const latest = nextOn === undefined ? null : previousDay(nextOn)
+  if (latest !== null && earliest > latest) return null
+  const arrival = was < earliest ? earliest : latest !== null && was > latest ? latest : was
+  if (arrival === targetDay) return { doseIds: [moved.id], kept: false, followedOn: arrival }
+  const target = pendingDues(plan, { from: targetDay, to: targetDay })[0]
+  if (target === undefined) return null
+  return {
+    doseIds: [moved.id],
+    kept: true,
+    line: movedFields(target, arrival),
+    shiftIds: [],
+    shiftLine: shiftFields(target, arrival),
+    followed: true,
+  }
+}
+
+/** La case de « Fait à une autre date » : la prise, cochée, écrirait un décalage. */
+export function offersShift(
+  state: State,
+  known: () => Set<string>,
+  due: Due,
+  givenOn: string,
+): boolean {
+  return (
+    doseFor(state, known, { kind: 'given', due, givenOn }).shift !== null ||
+    noteRefusal(state, known, due, givenOn) !== null
+  )
+}
+
+/** Ce jour ferait passer la dose suivante à un report seul (Q2 a) : son jour d'arrivée. */
+export class RedateRefusedError extends RangeError {
+  constructor(
+    readonly passedOn: string,
+    readonly offersShift: boolean,
+    readonly reason: RedateRefusal['reason'] = 'passes',
+  ) {
+    super(`La prise corrigée ferait passer le report du ${passedOn} après la dose suivante`)
+  }
+}
+
+export function redateRefusal(
+  state: State,
+  doseId: string,
+  givenOn: string,
+  shiftsFollowing = true,
+): RedateRefusal | null {
+  try {
+    redate(state, doseId, givenOn, shiftsFollowing)
+    return null
+  } catch (cause) {
+    if (cause instanceof RedateRefusedError) return { on: cause.passedOn, reason: cause.reason }
+    throw cause
+  }
+}
+
+export function redateOffersShift(state: State, doseId: string, givenOn: string): boolean {
+  if (extraOf(state, doseId) !== undefined) return false
+  try {
+    return redate(state, doseId, givenOn).offersShift
+  } catch (cause) {
+    if (cause instanceof RedateRefusedError) return cause.offersShift
+    throw cause
+  }
+}
+
 // N2 : une prise qui a décalé la suite la décale encore, depuis sa nouvelle date ; une autre se
 // recalcule comme notée ce jour-là, sur le carnet d'aujourd'hui (une dose non renseignée ne décale rien).
-export function redate(state: State, doseId: string, givenOn: string): RedatedDose {
+// Case décochée, son décalage est supprimé, ou rendu à son report pour une dose avancée (G18).
+export function redate(
+  state: State,
+  doseId: string,
+  givenOn: string,
+  shiftsFollowing = true,
+): RedatedDose & { offersShift: boolean } {
   checkPastDay(givenOn, state.input.today, 'date réelle')
   const extra = extraOf(state, doseId)
-  if (extra !== undefined) return redateExtra(state, extra, givenOn)
+  if (extra !== undefined) return { ...redateExtra(state, extra, givenOn), offersShift: false }
   for (const plan of state.plans) {
     const dose = notesOf(plan).find((note) => note.id === doseId)
     if (dose?.status !== 'given') continue
     if (givenOn === dose.givenOn) {
-      return { dose: fieldsOf(dose), shift: { action: 'none' }, postponement: null }
+      const offersShift = shiftOn(plan, shiftDueOf(plan, dose)) !== undefined
+      return { dose: fieldsOf(dose), shift: { action: 'none' }, postponement: null, offersShift }
     }
     const lastExtraDay = lastExtraDayOf(state, dose)
     if (lastExtraDay !== null && givenOn <= lastExtraDay) {
@@ -325,36 +511,82 @@ export function redate(state: State, doseId: string, givenOn: string): RedatedDo
     const next = nextInSequence(others, dose)
     const followingOfShift = shift === undefined ? null : followingMove(plan, dose, shift)
     // Le décalage reste tel quel quand le rythme de la nouvelle date retomberait sur un report.
-    const keepsShift =
+    const hitsReport =
       ownShift !== undefined &&
       givenOn !== dose.dueOn &&
       hitsAMove(planOf(others, dose.periodId), dose, givenOn, followingOfShift)
-    const shifts =
-      ownShift === undefined
-        ? restartsFrom(others, dose, givenOn, next)
-        : givenOn !== dose.dueOn && !keepsShift
-    const restartsOn = shifts ? restartedOn(plan, dose, givenOn) : next
-    const wanted = shifts ? shiftFields(origin, givenOn) : shift === undefined ? null : reportShift
-    const shiftLine =
-      keepsShift || shift?.nextDueDate === wanted?.nextDueDate
-        ? ({ action: 'none' } as const)
-        : shiftChange(shift, wanted)
-    const postponement = postponementAfter(plan, dose, ownShift, shifts, givenOn, restartsOn)
+    const offersShift =
+      ownShift === undefined ? restartsFrom(others, dose, givenOn, next) : givenOn !== dose.dueOn
     const fields: DoseFields = { ...dueOf(dose), givenOn, status: 'given', nextDueDate: next }
-    const written: Written[] = [
-      { id: dose.id, fields },
-      ...lineWritten(shiftLine),
-      ...(postponement === null
-        ? []
-        : postponement.kept
-          ? [
-              ...postponement.doseIds.map((id) => ({ id, fields: postponement.line })),
-              ...postponement.shiftIds.map((id) => ({ id, fields: postponement.shiftLine })),
-            ]
-          : postponement.doseIds.map((id) => ({ id, fields: null }))),
-    ]
-    const nextDueDate = nextAfter(state, dose, written)
-    return { dose: { ...fields, nextDueDate }, shift: shiftLine, postponement }
+    const linesFor = (flag: boolean) => {
+      const shifts = flag && offersShift && !hitsReport
+      const restartsOn = shifts ? restartedOn(plan, dose, givenOn) : next
+      const wanted = shifts
+        ? shiftFields(origin, givenOn)
+        : shift === undefined
+          ? null
+          : reportShift
+      const shiftLine =
+        (flag && hitsReport) || shift?.nextDueDate === wanted?.nextDueDate
+          ? ({ action: 'none' } as const)
+          : shiftChange(shift, wanted)
+      const writtenWith = (kept: RedatedDose['postponement']): Written[] => [
+        { id: dose.id, fields },
+        ...lineWritten(shiftLine),
+        ...(kept === null
+          ? []
+          : kept.kept
+            ? [
+                ...kept.doseIds.map((id) => ({ id, fields: kept.line })),
+                ...kept.shiftIds.map((id) => ({ id, fields: kept.shiftLine })),
+              ]
+            : kept.doseIds.map((id) => ({ id, fields: null }))),
+      ]
+      const kept = postponementAfter(plan, dose, ownShift, shifts, givenOn, restartsOn)
+      // Un report seul suit vers l'échéance la plus proche de son arrivée (I2), pas vers celle que fixe la prise.
+      const lone = kept?.kept === true && kept.shiftIds.length === 0 && shifts
+      const original = lone ? state.input.doses.find(({ id }) => id === kept.doseIds[0]) : undefined
+      const base = stateAfter(state, withSisters(state, writtenWith(null)))
+      const follows =
+        original === undefined ? null : followingReport(state, dose, base, original, kept)
+      const same =
+        follows?.kept === true &&
+        kept?.kept === true &&
+        keyOf(follows.line) === keyOf(kept.line) &&
+        follows.line.nextDueDate === kept.line.nextDueDate
+      const postponement = follows === null || same ? kept : follows
+      const after = stateAfter(state, withSisters(state, writtenWith(postponement)))
+      const passed = passedMove(state, after, dose.periodId, dose.dueOn)
+      return { shiftLine, postponement, writtenWith, after, passed }
+    }
+    const chosen = linesFor(shiftsFollowing)
+    let { postponement } = chosen
+    if (chosen.passed !== null) {
+      // I2 : refusée dans les deux états de la case, la correction fait suivre le report.
+      const otherState = linesFor(!shiftsFollowing).passed === null
+      const followed = otherState
+        ? null
+        : followingReport(state, dose, chosen.after, chosen.passed, chosen.postponement)
+      const passes =
+        followed === null ||
+        passedMove(
+          state,
+          stateAfter(state, withSisters(state, chosen.writtenWith(followed))),
+          dose.periodId,
+          dose.dueOn,
+        ) !== null
+      if (passes) {
+        const was = state.input.doses.find(({ id }) => id === chosen.passed?.id)
+        throw new RedateRefusedError(
+          was?.nextDueDate ?? chosen.passed.nextDueDate,
+          offersShift,
+          otherState ? 'passes' : 'stuck',
+        )
+      }
+      postponement = followed
+    }
+    const nextDueDate = nextAfter(state, dose, chosen.writtenWith(postponement))
+    return { dose: { ...fields, nextDueDate }, shift: chosen.shiftLine, postponement, offersShift }
   }
   throw new RangeError(`Aucune prise donnée ni prise en plus à redater : ${doseId}`)
 }

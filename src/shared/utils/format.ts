@@ -179,6 +179,27 @@ export function formatDayList(days: readonly string[]): string {
   )
 }
 
+const WEEKDAY_DAY_MONTH_PATTERNS = { fr: 'EEEE d MMM', en: 'EEEE, MMM d' }
+
+/** `vendredi 16 oct.` / `Friday, Oct 16`. */
+export function formatWeekdayDayMonth(isoDate: string): string {
+  return formatIn(isoDate, WEEKDAY_DAY_MONTH_PATTERNS)
+}
+
+/** `lundi` / `Monday`. */
+export function formatWeekday(isoDate: string): string {
+  return format(parseISO(isoDate), 'EEEE', { locale: DATE_LOCALES[currentLocale()] })
+}
+
+/** `23, 30 oct.`, `26 oct., 2 nov.` / `Oct 23, 30`, `Oct 26, Nov 2` : des dates à venir. */
+export function formatDaySeries(days: readonly string[]): string {
+  const monthAt = currentLocale() === 'fr' ? days.length - 1 : 0
+  const compact = sameMonth(days)
+  return days
+    .map((day, index) => (!compact || index === monthAt ? formatDayMonth(day) : dayNumber(day)))
+    .join(', ')
+}
+
 /** Les deux bouts d'une plage : `3` et `15 oct.` dans un même mois en français, sinon chaque date entière. */
 export function formatDayRange(first: string, last: string): { start: string; end: string } {
   const compact = currentLocale() === 'fr' && sameMonth([first, last])

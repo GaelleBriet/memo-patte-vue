@@ -373,6 +373,18 @@ devient la référence : ancré au 31 août, 30 sept., 31 oct.).
 Décocher la case dans « Changer la date » supprime la ligne de décalage : c'est un choix de la
 personne, pas une cascade.
 
+**Report seul et dose suivante** (Q2 a, décisions du 2026-10-05, #505) : aucun geste ne fait passer
+un report seul (sans décalage sur sa journée) après la dose suivante, et aucun ne le fait disparaître
+par ricochet. « Changer la date » d'une prise refusé dans un seul état de la case : le jour est grisé
+dans cet état (« Ce jour ferait passer le report du 22 oct. après la dose suivante… »). Quand la
+correction change le rythme, le report seul qui la suit vise l'échéance la plus proche de son
+ancienne arrivée et garde cette date dans les bornes de Q2 a, sinon s'en approche sans passer avant
+aujourd'hui ; sans date possible, la correction est refusée (« Avec ce jour, la dose que tu avais reportée au 30 oct. ne pourrait plus tomber au bon moment. Change d'abord la date de ce report. »). L'aide l'annonce (« La dose que tu avais reportée au 30 oct. reste prévue ce jour-là. »). Restent
+refusés, faute de pouvoir faire suivre le report : « Fait à une autre date » coché (décocher suffit)
+et « Supprimer ce décalage » (« Change d'abord la date du report »). « C'est fait » en un tap, la
+notification et la feuille « À faire » notent la prise sans son décalage, et le toast le dit (« La
+suite ne bouge pas : un report est prévu le 28 oct. »).
+
 **La ligne de décalage dans l'historique** (N7) : toujours visible, discrète, au même endroit que les
 reports : « Doses suivantes décalées · prochaine le 26 oct. » (libellé à fixer avec la maquette). Menu ⋮ :
 « Supprimer ce décalage », toast et « Annuler ». Quand une dose plus loin dans la période est déjà
@@ -561,6 +573,9 @@ suppression d'une prise et d'un décalage) et la reprogrammation des rappels qui
 - **N3** : traitement de tous les jours, avec ou sans heures, jamais de case sur une prise ; la case
   n'apparaît que pour un report. Plus espacé à plusieurs heures : seulement quand la prise complète la
   journée (G10). Plus espacé sans heure : case comme décidé.
+  Précisé le 2026-10-05 (#505) : pour un traitement de tous les jours, le report non plus n'a pas de
+  case, car décochée elle ne laisserait aucune date (la veille de la dose suivante est le jour même) ;
+  son report décale toujours la suite.
 - **N4** : séparer le report d'une dose du décalage du rythme (comparaison au §2.7).
 - **N5** : le décalage est une ligne à part dans les prises (état `shift`), supprimable seule.
 - **N6** : chaque ligne se supprime seule, rien en cascade. Supprimer une prise qui avait décalé la

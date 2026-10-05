@@ -243,6 +243,122 @@ describe('lineAction — menu ⋮ d’une ligne de l’historique', () => {
   it('« Changer la date » attend le jour choisi', () => {
     expect(lineAction(PRISE, 'change-date', TODAY)).toBeNull()
   })
+
+  it('« Supprimer ce décalage » supprime la ligne de décalage seule', () => {
+    expect(lineAction(PRISE, 'remove-shift', TODAY)).toEqual({
+      kind: 'remove-shift',
+      doseId: PRISE.id,
+    })
+  })
+})
+
+describe('doseActionTexts — la correction fait suivre un report seul (I2)', () => {
+  it('le toast dit la nouvelle date du report', () => {
+    const { done } = doseActionTexts(
+      t,
+      UNE_HEURE,
+      { kind: 'redate', doseId: 'prise', givenOn: '2026-09-16' },
+      null,
+    )
+
+    expect(
+      plain(
+        done({ ...RIEN, postponement: { kept: true, nextDueDate: '2026-09-29', followed: true } }),
+      ),
+    ).toBe('Prise déplacée au 16 sept. Le report suit : dose reportée au 29 sept.')
+  })
+})
+
+describe('doseActionTexts — supprimer une prise en plus', () => {
+  it('le toast et « Annuler » disent « prise en plus »', () => {
+    const enPlus = { dueOn: '2026-10-05', dueTime: null, status: 'extra' as const }
+    const action: DoseAction = { kind: 'remove', doseId: 'en plus' }
+
+    const fr = doseActionTexts(t, UNE_HEURE, action, enPlus)
+    expect(plain(fr.done(RIEN))).toBe('Prise en plus du 5 oct. supprimée')
+    expect(fr.undo).toBe('Annuler la suppression de la prise en plus du 5 octobre 2026')
+
+    applyLocale('en')
+    const en = doseActionTexts(t, UNE_HEURE, action, enPlus)
+    expect(plain(en.done(RIEN))).toBe('Extra dose of Oct 5 deleted')
+    expect(en.undo).toBe('Undo deleting the extra dose of October 5, 2026')
+  })
+})
+
+describe('doseActionTexts — prise notée sans son décalage, un report seul suit (M1)', () => {
+  it('le toast dit que la suite ne bouge pas', () => {
+    const due = { periodId: 'p-1', dueOn: '2026-09-25', dueTime: null }
+    const { done } = doseActionTexts(
+      t,
+      UNE_HEURE,
+      { kind: 'note', gesture: { kind: 'given', due, givenOn: TODAY } },
+      null,
+    )
+
+    expect(plain(done({ ...RIEN, heldBy: '2026-10-28' }))).toBe(
+      'Prise de Panacur notée pour Pixel. La suite ne bouge pas : un report est prévu le 28 oct.',
+    )
+    applyLocale('en')
+    expect(
+      plain(
+        doseActionTexts(
+          t,
+          UNE_HEURE,
+          { kind: 'note', gesture: { kind: 'given', due, givenOn: TODAY } },
+          null,
+        ).done({ ...RIEN, heldBy: '2026-10-28' }),
+      ),
+    ).toBe(
+      'Panacur dose logged for Pixel. The schedule doesn’t move: a postponement is planned on Oct 28.',
+    )
+  })
+})
+
+describe('doseActionTexts — « Supprimer ce décalage » (V31 quater)', () => {
+  const action: DoseAction = { kind: 'remove-shift', doseId: 'décalage' }
+
+  function done(restored: { nextOn: string | null; weekly: boolean } | null) {
+    return plain(doseActionTexts(t, UNE_HEURE, action, null, restored).done(RIEN))
+  }
+
+  it('dit le jour où reviennent les doses suivantes, avec « Annuler »', () => {
+    expect(done({ nextOn: '2026-10-23', weekly: true })).toBe(
+      'Décalage supprimé. Les doses suivantes reviennent au vendredi.',
+    )
+    expect(doseActionTexts(t, UNE_HEURE, action, null).undo).toBe(
+      'Annuler la suppression du décalage',
+    )
+  })
+
+  it('hors d’un rythme en semaines, la prochaine dose ; sans elle, le geste seul', () => {
+    expect(done({ nextOn: '2026-10-22', weekly: false })).toBe(
+      'Décalage supprimé. Prochaine dose le 22 oct.',
+    )
+    expect(done(null)).toBe('Décalage supprimé')
+  })
+
+  it('en anglais', () => {
+    applyLocale('en')
+
+    expect(done({ nextOn: '2026-10-23', weekly: true })).toBe(
+      'Move deleted. The following doses go back to Friday.',
+    )
+  })
+})
+
+describe('dateChangeOf — la case « Décaler aussi les doses suivantes »', () => {
+  it('décochée, le geste le dit au moteur ; cochée, rien de plus', () => {
+    const prise = dose('2026-09-06', '2026-09-07', { givenOn: '2026-09-07' })
+    const change = dateChangeOf(t, prise, null, { today: TODAY, earliest: null })!
+
+    expect(change.action('2026-09-08', false)).toEqual({
+      kind: 'redate',
+      doseId: prise.id,
+      givenOn: '2026-09-08',
+      shiftsFollowing: false,
+    })
+    expect(change.action('2026-09-08', true)).not.toHaveProperty('shiftsFollowing')
+  })
 })
 
 describe('dateChangeOf — « Changer la date »', () => {

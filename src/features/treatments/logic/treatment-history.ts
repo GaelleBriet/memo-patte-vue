@@ -1,4 +1,4 @@
-import { format, parseISO, subDays } from 'date-fns'
+import { differenceInCalendarDays, format, parseISO, subDays } from 'date-fns'
 
 import { movedDueOf } from './treatment-dose-writes'
 import { periodSettingsText } from './treatment-rhythm'
@@ -6,6 +6,7 @@ import type { TreatmentWithHistory } from '../repository/treatments.repository'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 import {
   isAdvanced,
+  shiftedNextOn,
   type MoveBounds,
   type TreatmentDoseInput,
   type TreatmentSchedule,
@@ -23,7 +24,8 @@ export type Translate = (key: string, named?: Record<string, unknown>, plural?: 
 /** Lignes d'une période montrées avant « Voir les prises précédentes ». */
 export const LINES_BEFORE_TOGGLE = 3
 
-export type DoseLineAction = 'change-date' | 'mark-missed' | 'mark-given' | 'remove' | 'remove-move'
+export type DoseLineAction =
+  'change-date' | 'mark-missed' | 'mark-given' | 'remove' | 'remove-move' | 'remove-shift'
 
 export type DoseRow = {
   dose: TreatmentDoseInput
@@ -31,6 +33,8 @@ export type DoseRow = {
   optionsLabel: string
   /** Vide : la ligne n'a pas de menu. */
   actions: DoseLineAction[]
+  /** Actions grisées, avec l'aide qui dit pourquoi. */
+  refused?: Partial<Record<DoseLineAction, string>>
 }
 
 export type HistoryLine =
@@ -41,6 +45,8 @@ export type HistoryLine =
   | (DoseRow & { kind: 'missed'; rows: DoseRow[] })
   /** `bounds` : dates entre lesquelles le report se déplace, `null` s'il ne se déplace pas. */
   | (DoseRow & { kind: 'move'; bounds: MoveBounds | null })
+  /** Ligne de décalage des doses suivantes (N7). */
+  | (DoseRow & { kind: 'shift' })
 
 export type HistoryPeriod = {
   id: string
@@ -54,7 +60,10 @@ export type HistoryPeriod = {
 
 export type TreatmentHistory = { counter: string | null; periods: HistoryPeriod[] }
 
-type HistorySchedule = Pick<TreatmentSchedule, 'doses' | 'lockedMoveIds' | 'moveBounds'>
+type HistorySchedule = Pick<
+  TreatmentSchedule,
+  'doses' | 'lockedMoveIds' | 'moveBounds' | 'moveRemovalRefusal' | 'shiftRemovalRefusal'
+>
 type Period = TreatmentPeriodRecord
 
 function byStartDescending(a: Period, b: Period): number {
@@ -153,17 +162,84 @@ export function moveText(
     : t('treatments.history.postponed', dates)
 }
 
-function moveLine(t: Translate, schedule: HistorySchedule, dose: TreatmentDoseInput): HistoryLine {
+function daysBetween(from: string, to: string): number {
+  return differenceInCalendarDays(parseISO(to), parseISO(from))
+}
+
+// Décision du 2026-10-05 : la dose revenue à sa date tomberait trop près de la suivante.
+function moveRemovalHint(
+  t: Translate,
+  schedule: HistorySchedule,
+  dose: TreatmentDoseInput,
+  today: string,
+): string | null {
+  const refusal = schedule.moveRemovalRefusal(dose.id)
+  if (refusal === null) return null
+  const days = daysBetween(refusal.dueOn, refusal.nextOn)
+  return t(
+    'treatments.history.refusal.moveTooClose',
+    { date: formatDayMonthOrYear(refusal.dueOn, today), n: days },
+    days,
+  )
+}
+
+function moveLine(
+  t: Translate,
+  schedule: HistorySchedule,
+  dose: TreatmentDoseInput,
+  today: string,
+): HistoryLine {
   const bounds = moveBoundsOf(schedule, dose)
   const isLocked = schedule.lockedMoveIds.includes(dose.id)
+  const hint = isLocked ? null : moveRemovalHint(t, schedule, dose, today)
   return {
     kind: 'move',
     dose,
     title: moveText(t, dose),
     optionsLabel: t('treatments.history.moveOptions', { date: formatFullDate(dose.dueOn) }),
     actions: isLocked ? [] : bounds === null ? ['remove-move'] : ['change-date', 'remove-move'],
+    ...(hint === null ? {} : { refused: { 'remove-move': hint } }),
     bounds,
   }
+}
+
+const SHIFT_REFUSALS = {
+  'later-dose': 'treatments.history.refusal.shiftLaterDose',
+  'move-past-next': 'treatments.history.refusal.shiftMovePastNext',
+} as const
+
+function shiftLine(
+  t: Translate,
+  schedule: HistorySchedule,
+  dose: TreatmentDoseInput,
+  period: Period,
+): HistoryLine {
+  const nextOn = shiftedNextOn(dose, period)
+  const refusal = schedule.shiftRemovalRefusal(dose.id)
+  return {
+    kind: 'shift',
+    dose,
+    title: t('treatments.history.shift', { date: formatDayMonthOrYear(nextOn, dose.dueOn) }),
+    optionsLabel: t('treatments.history.shiftOptions', { date: formatFullDate(dose.dueOn) }),
+    actions: ['remove-shift'],
+    ...(refusal === null ? {} : { refused: { 'remove-shift': t(SHIFT_REFUSALS[refusal]) } }),
+  }
+}
+
+const FAMILY_RANK: Record<TreatmentDoseInput['status'], number> = {
+  postponed: 0,
+  given: 1,
+  missed: 1,
+  extra: 1,
+  shift: 2,
+}
+
+// Du plus récent au plus ancien ; sur une même échéance, le report, la prise, puis le décalage.
+function displayOrder(doses: TreatmentDoseInput[]): TreatmentDoseInput[] {
+  const key = ({ dueOn, dueTime }: TreatmentDoseInput) => `${dueOn} ${dueTime ?? ''}`
+  return [...doses].sort((a, b) =>
+    key(a) === key(b) ? FAMILY_RANK[a.status] - FAMILY_RANK[b.status] : key(a) < key(b) ? 1 : -1,
+  )
 }
 
 function linesOf(
@@ -171,13 +247,16 @@ function linesOf(
   schedule: HistorySchedule,
   period: Period,
   doses: TreatmentDoseInput[],
-  lastGivenId: string | undefined,
+  { lastGivenId, today }: { lastGivenId: string | undefined; today: string },
 ): HistoryLine[] {
   const lines: HistoryLine[] = []
-  // La ligne de décalage n'a pas encore sa maquette.
-  for (const dose of doses.filter(({ status }) => status !== 'shift')) {
+  for (const dose of displayOrder([...doses].reverse())) {
     if (dose.status === 'postponed') {
-      lines.push(moveLine(t, schedule, dose))
+      lines.push(moveLine(t, schedule, dose, today))
+      continue
+    }
+    if (dose.status === 'shift') {
+      lines.push(shiftLine(t, schedule, dose, period))
       continue
     }
     if (dose.status === 'extra') {
@@ -226,7 +305,12 @@ function linesOf(
 function notesIn(lines: HistoryLine[]): number {
   return lines.reduce(
     (count, line) =>
-      count + (line.kind === 'missed' ? line.rows.length : line.kind === 'move' ? 0 : 1),
+      count +
+      (line.kind === 'missed'
+        ? line.rows.length
+        : line.kind === 'move' || line.kind === 'shift'
+          ? 0
+          : 1),
     0,
   )
 }
@@ -246,6 +330,7 @@ export function treatmentHistory(
   t: Translate,
   treatment: Pick<TreatmentWithHistory, 'periods'>,
   schedule: HistorySchedule,
+  today: string,
 ): TreatmentHistory {
   const periods = [...treatment.periods].sort(byStartDescending)
   const given = schedule.doses.filter(({ status }) => status === 'given' || status === 'extra')
@@ -262,8 +347,8 @@ export function treatmentHistory(
             date: formatLongDate(oldest.dueOn),
           }),
     periods: periods.map((period, index): HistoryPeriod => {
-      const doses = schedule.doses.filter((dose) => dose.periodId === period.id).reverse()
-      const lines = linesOf(t, schedule, period, doses, last?.id)
+      const doses = schedule.doses.filter((dose) => dose.periodId === period.id)
+      const lines = linesOf(t, schedule, period, doses, { lastGivenId: last?.id, today })
       const hidden = notesIn(lines.slice(LINES_BEFORE_TOGGLE))
       const others = index === 0 && !isAlone
       return {

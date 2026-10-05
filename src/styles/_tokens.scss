@@ -111,6 +111,9 @@ $color-toast-icon: $color-priming-icon-surface; // Coche du toast
 $color-reminders-off-surface: #f2f0ec; // Fond du bandeau « rappels désactivés »
 $color-reminders-off-border: #e1ddd8; // Bordure de ce bandeau
 $color-reminders-off-text: #47413c; // Première ligne de ce bandeau
+$color-shift-warning-surface: $color-reminders-off-surface; // Avertissement discret sous « Décaler aussi les doses suivantes » (V28 bis)
+$color-shift-warning-border: $color-reminders-off-border; // Bordure de cet avertissement
+$color-shift-warning-text: $color-reminders-off-text; // Texte de cet avertissement
 
 // Bandeau d'information teinté (sauvegarde en pause…). Teinte proche de celle
 // d'une carte de choix cochée, mais c'est une information et non un état de

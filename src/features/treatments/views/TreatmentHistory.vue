@@ -31,10 +31,18 @@ const menu = computed<Record<DoseLineAction, Omit<OverflowMenuItem, 'id'>>>(() =
     icon: 'ms:delete',
     danger: true,
   },
+  'remove-shift': {
+    label: t('treatments.history.menu.removeShift'),
+    icon: 'ms:delete',
+    danger: true,
+  },
 }))
 
-function itemsOf(actions: DoseLineAction[]): OverflowMenuItem[] {
-  return actions.map((id) => ({ ...menu.value[id], id }))
+function itemsOf({ actions, refused = {} }: DoseRow): OverflowMenuItem[] {
+  return actions.map((id) => {
+    const hint = refused[id]
+    return { ...menu.value[id], id, ...(hint === undefined ? {} : { hint }) }
+  })
 }
 
 const openPeriods = ref<string[]>([])
@@ -82,7 +90,7 @@ function select(row: DoseRow, action: string, bounds: MoveBounds | null = null):
           :badge="line.isLast ? t('treatments.detail.last') : null"
           :detail="line.detail"
           :options-label="line.optionsLabel"
-          :items="itemsOf(line.actions)"
+          :items="itemsOf(line)"
           @select="select(line, $event)"
         />
         <HistoryRow
@@ -90,7 +98,7 @@ function select(row: DoseRow, action: string, bounds: MoveBounds | null = null):
           class="treatment-history__item"
           :date="line.title"
           :options-label="line.optionsLabel"
-          :items="itemsOf(line.actions)"
+          :items="itemsOf(line)"
           @select="select(line, $event)"
         />
         <HistoryRow
@@ -100,8 +108,18 @@ function select(row: DoseRow, action: string, bounds: MoveBounds | null = null):
           icon="ms:event_repeat"
           :date="line.title"
           :options-label="line.optionsLabel"
-          :items="itemsOf(line.actions)"
+          :items="itemsOf(line)"
           @select="select(line, $event, line.bounds)"
+        />
+        <HistoryRow
+          v-else-if="line.kind === 'shift'"
+          class="treatment-history__item treatment-history__shift"
+          muted
+          icon="ms:event_upcoming"
+          :date="line.title"
+          :options-label="line.optionsLabel"
+          :items="itemsOf(line)"
+          @select="select(line, $event)"
         />
         <HistoryRow
           v-else-if="line.rows.length === 1"
@@ -109,7 +127,7 @@ function select(row: DoseRow, action: string, bounds: MoveBounds | null = null):
           muted
           :date="line.title"
           :options-label="line.optionsLabel"
-          :items="itemsOf(line.actions)"
+          :items="itemsOf(line)"
           @select="select(line, $event)"
         />
         <template v-else>
@@ -137,7 +155,7 @@ function select(row: DoseRow, action: string, bounds: MoveBounds | null = null):
               muted
               :date="row.title"
               :options-label="row.optionsLabel"
-              :items="itemsOf(row.actions)"
+              :items="itemsOf(row)"
               @select="select(row, $event)"
             />
           </template>

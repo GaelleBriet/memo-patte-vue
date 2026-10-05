@@ -167,8 +167,18 @@ export function withoutDose(book: Carnet, id: string): Carnet {
 }
 
 /** Corrige une prise comme le ferait le repository : ligne recalculée, décalage et report qui suit compris. */
-export function redate(book: Carnet, today: string, doseId: string, givenOn: string): Carnet {
-  const { dose: fields, shift, postponement } = scheduleOf(book, today).redate(doseId, givenOn)
+export function redate(
+  book: Carnet,
+  today: string,
+  doseId: string,
+  givenOn: string,
+  shiftsFollowing = true,
+): Carnet {
+  const {
+    dose: fields,
+    shift,
+    postponement,
+  } = scheduleOf(book, today).redate(doseId, givenOn, shiftsFollowing)
   let result = applied(rewritten(book, [doseId], fields), shift)
   if (postponement?.kept === false) {
     result = {
