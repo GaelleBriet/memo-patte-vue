@@ -521,6 +521,7 @@
         "shiftRemovedOn": "Décalage supprimé. Prochaine dose le {date}.",
         "undoShiftRemoved": "Annuler la suppression du décalage"
       },
+      "shiftWithoutNext": "Doses suivantes décalées",
       "shift": "Doses suivantes décalées · prochaine le {date}",
       "shiftOptions": "Options pour le décalage des doses suivantes du {date}",
       "refusal": {
