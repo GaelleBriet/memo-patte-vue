@@ -66,9 +66,17 @@ export type LineChange =
 
 /**
  * La prise à écrire, et la ligne de décalage qui fait repartir la suite de sa date réelle ;
- * `heldBy` : sans case, le décalage n'est pas écrit, il ferait passer ce report seul (son arrivée).
+ * `heldBy` : sans case, le décalage n'est pas écrit, il ferait passer ce report seul (son arrivée) ;
+ * `lostToEnd` : sans case, les journées que le décalage fait sortir de la date de fin (Q4) ;
+ * `keptToEnd` : celles qu'il aurait fait sortir, gardées parce qu'il n'est pas écrit.
  */
-export type NotedDose = { dose: DoseFields; shift: DoseFields | null; heldBy?: string }
+export type NotedDose = {
+  dose: DoseFields
+  shift: DoseFields | null
+  heldBy?: string
+  lostToEnd?: string[]
+  keptToEnd?: string[]
+}
 
 /**
  * `shift` : la ligne de décalage de la prise, réancrée à sa nouvelle date, créée ou supprimée.
@@ -117,7 +125,7 @@ export type MoveRefusal =
  * Pourquoi un décalage ne se supprime pas : une dose plus loin dans la période est notée (N8) ; son
  * report a dépassé la dose suivante, qui resterait seul hors des bornes de Q2 a.
  */
-export type ShiftRemovalRefusal = 'later-dose' | 'move-past-next'
+export type ShiftRemovalRefusal = 'later-dose' | 'move-past-next' | 'move-off-rhythm'
 
 /** Un report supprimé ramènerait sa dose (`dueOn`) à moins d'une demi-fréquence de la suivante. */
 export type MoveRemovalRefusal = { dueOn: string; nextOn: string }
@@ -212,6 +220,8 @@ export type TreatmentSchedule = {
   /** « Supprimer ce décalage » (N7) : la ligne seule ; lève si `shiftRemovalRefusal` la refuse. */
   removeShift(doseId: string): LineChange
   shiftRemovalRefusal(doseId: string): ShiftRemovalRefusal | null
+  /** `move-off-rhythm` : l'arrivée du report seul à supprimer d'abord. */
+  strandedMoveOn(doseId: string): string | null
   /** L'échéance qui porte le décalage d'une prise : pour une dose avancée, son échéance d'origine (G18). */
   shiftDueOf(due: Due): Due
   /** Dates d'une période ouverte par « Modifier » (TR-28, Q7, Q24), selon ses heures. */

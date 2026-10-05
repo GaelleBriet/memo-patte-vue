@@ -20,6 +20,7 @@ import {
   removeMove,
   removeShift,
   shiftRemovalRefusal,
+  strandedMoveOn,
 } from './treatment-schedule-moves'
 import { newPeriod } from './treatment-schedule-new-period'
 import {
@@ -147,6 +148,7 @@ export function treatmentSchedule(input: TreatmentScheduleInput): TreatmentSched
     moveRemovalRefusal: (doseId) => moveRemovalRefusal(state, doseId),
     removeShift: (doseId) => removeShift(state, doseId),
     shiftRemovalRefusal: (doseId) => shiftRemovalRefusal(state, doseId),
+    strandedMoveOn: (doseId) => strandedMoveOn(state, doseId),
     shiftDueOf: (due) => shiftDueOf(planOf(state, due.periodId), due),
     newPeriod: (frequency, times) => newPeriod(state, frequency, times),
   }

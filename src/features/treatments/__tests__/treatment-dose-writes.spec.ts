@@ -143,6 +143,31 @@ describe('doseChange — « C’est fait » en retard avant un report seul (M1)'
   })
 })
 
+describe('doseChange — « C’est fait » en retard, une dose sort de la date de fin (Q4, #506)', () => {
+  it('écrit la prise et le décalage, et dit la dose perdue', () => {
+    const history = treatment(
+      [
+        period({
+          frequency: { value: 1, unit: 'week' },
+          startsOn: '2026-10-16',
+          firstDueOn: '2026-10-16',
+          endsOn: '2026-10-30',
+        }),
+      ],
+      [],
+    )
+    const due = { periodId: 'p-1', dueOn: '2026-10-16', dueTime: null }
+
+    const noted = change(history, '2026-10-21', {
+      kind: 'note',
+      gesture: { kind: 'given', due, givenOn: '2026-10-21' },
+    })
+
+    expect(noted.lostToEnd).toEqual(['2026-10-30'])
+    expect(noted.writes.map(({ action }) => action)).toEqual(['create', 'create'])
+  })
+})
+
 describe('doseChange — supprimer une prise', () => {
   it('supprime la seule prise du traitement', () => {
     const history = treatment([period()], [dose('2026-09-01', '2026-09-02')])

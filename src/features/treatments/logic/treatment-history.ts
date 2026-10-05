@@ -8,6 +8,7 @@ import {
   isAdvanced,
   shiftedNextOn,
   type MoveBounds,
+  type ShiftRemovalRefusal,
   type TreatmentDoseInput,
   type TreatmentSchedule,
 } from '@/shared/domain/treatment-schedule'
@@ -17,6 +18,7 @@ import {
   formatDayMonthOrYear,
   formatFullDate,
   formatLongDate,
+  withoutFinalDot,
 } from '@/shared/utils/format'
 
 export type Translate = (key: string, named?: Record<string, unknown>, plural?: number) => string
@@ -62,7 +64,13 @@ export type TreatmentHistory = { counter: string | null; periods: HistoryPeriod[
 
 type HistorySchedule = Pick<
   TreatmentSchedule,
-  'doses' | 'lockedMoveIds' | 'moveBounds' | 'moveRemovalRefusal' | 'shiftRemovalRefusal'
+  | 'doses'
+  | 'lockedMoveIds'
+  | 'moveBounds'
+  | 'moveRemovalRefusal'
+  | 'shiftRemovalRefusal'
+  | 'strandedMoveOn'
+  | 'currentPeriodId'
 >
 type Period = TreatmentPeriodRecord
 
@@ -206,23 +214,56 @@ function moveLine(
 const SHIFT_REFUSALS = {
   'later-dose': 'treatments.history.refusal.shiftLaterDose',
   'move-past-next': 'treatments.history.refusal.shiftMovePastNext',
+  'move-off-rhythm': 'treatments.history.refusal.shiftMoveOffRhythm',
 } as const
+
+function shiftRefusalText(
+  t: Translate,
+  schedule: HistorySchedule,
+  dose: TreatmentDoseInput,
+  refusal: ShiftRemovalRefusal,
+): string {
+  const strandedOn = refusal === 'move-off-rhythm' ? schedule.strandedMoveOn(dose.id) : null
+  if (strandedOn === null) return t(SHIFT_REFUSALS[refusal])
+  const date = withoutFinalDot(formatDayMonthOrYear(strandedOn, dose.dueOn))
+  return t(SHIFT_REFUSALS[refusal], { date })
+}
+
+// Période close, arrêtée ou finie par sa date de fin : plus de prochaine dose à annoncer.
+function hasNextAfterShift(
+  schedule: HistorySchedule,
+  period: Period,
+  nextOn: string,
+  today: string,
+): boolean {
+  const { endsOn } = period
+  return (
+    period.id === schedule.currentPeriodId &&
+    period.stoppedOn === null &&
+    (endsOn === null || (nextOn <= endsOn && endsOn >= today))
+  )
+}
 
 function shiftLine(
   t: Translate,
   schedule: HistorySchedule,
   dose: TreatmentDoseInput,
   period: Period,
+  today: string,
 ): HistoryLine {
   const nextOn = shiftedNextOn(dose, period)
   const refusal = schedule.shiftRemovalRefusal(dose.id)
   return {
     kind: 'shift',
     dose,
-    title: t('treatments.history.shift', { date: formatDayMonthOrYear(nextOn, dose.dueOn) }),
+    title: hasNextAfterShift(schedule, period, nextOn, today)
+      ? t('treatments.history.shift', { date: formatDayMonthOrYear(nextOn, dose.dueOn) })
+      : t('treatments.history.shiftWithoutNext'),
     optionsLabel: t('treatments.history.shiftOptions', { date: formatFullDate(dose.dueOn) }),
     actions: ['remove-shift'],
-    ...(refusal === null ? {} : { refused: { 'remove-shift': t(SHIFT_REFUSALS[refusal]) } }),
+    ...(refusal === null
+      ? {}
+      : { refused: { 'remove-shift': shiftRefusalText(t, schedule, dose, refusal) } }),
   }
 }
 
@@ -256,7 +297,7 @@ function linesOf(
       continue
     }
     if (dose.status === 'shift') {
-      lines.push(shiftLine(t, schedule, dose, period))
+      lines.push(shiftLine(t, schedule, dose, period, today))
       continue
     }
     if (dose.status === 'extra') {

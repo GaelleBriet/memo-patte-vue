@@ -521,10 +521,12 @@
         "shiftRemovedOn": "Décalage supprimé. Prochaine dose le {date}.",
         "undoShiftRemoved": "Annuler la suppression du décalage"
       },
+      "shiftWithoutNext": "Doses suivantes décalées",
       "shift": "Doses suivantes décalées · prochaine le {date}",
       "shiftOptions": "Options pour le décalage des doses suivantes du {date}",
       "refusal": {
         "shiftLaterDose": "Une dose plus lointaine est déjà notée.",
+        "shiftMoveOffRhythm": "Supprime d’abord le report du {date}.",
         "shiftMovePastNext": "Change d’abord la date du report.",
         "moveTooClose": "Supprime d’abord le décalage des doses suivantes : la dose du {date} tomberait la veille de la suivante. | Supprime d’abord le décalage des doses suivantes : la dose du {date} tomberait {n} jours avant la suivante."
       }
@@ -626,6 +628,8 @@
       "save": "Enregistrer",
       "passesMove": "Ce jour ferait passer le report du {date} après la dose suivante : change d’abord la date du report.",
       "passesMoveUncheck": "Ce jour ferait passer le report du {date} après la dose suivante : décoche la case, ou change d’abord la date du report.",
+      "suiteKept": "{done}. La dose du {dates} reste prévue. | {done}. Les doses du {dates} restent prévues.",
+      "suiteCut": "{done}. La dose du {dates} n’est plus prévue (date de fin). | {done}. Les doses du {dates} ne sont plus prévues (date de fin).",
       "suiteHeld": "{done}. La suite ne bouge pas : un report est prévu le {date}.",
       "stuckMove": "Avec ce jour, la dose que tu avais reportée au {date} ne pourrait plus tomber au bon moment. Change d’abord la date de ce report.",
       "reportFollows": "La dose que tu avais reportée au {date} reste prévue ce jour-là.",

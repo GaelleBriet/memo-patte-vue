@@ -521,10 +521,12 @@
         "shiftRemovedOn": "Move deleted. Next dose on {date}.",
         "undoShiftRemoved": "Undo deleting the move"
       },
+      "shiftWithoutNext": "Following doses moved",
       "shift": "Following doses moved · next on {date}",
       "shiftOptions": "Options for the move of the doses after {date}",
       "refusal": {
         "shiftLaterDose": "A later dose is already logged.",
+        "shiftMoveOffRhythm": "Delete the postponement of {date} first.",
         "shiftMovePastNext": "Change the postponement date first.",
         "moveTooClose": "Delete the move of the following doses first: the {date} dose would fall the day before the next one. | Delete the move of the following doses first: the {date} dose would fall {n} days before the next one."
       }
@@ -626,6 +628,8 @@
       "save": "Save",
       "passesMove": "This day would push the postponement of {date} past the next dose: change the postponement date first.",
       "passesMoveUncheck": "This day would push the postponement of {date} past the next dose: untick the box, or change the postponement date first.",
+      "suiteKept": "{done}. The {dates} dose stays scheduled. | {done}. The {dates} doses stay scheduled.",
+      "suiteCut": "{done}. The {dates} dose is no longer scheduled (end date). | {done}. The {dates} doses are no longer scheduled (end date).",
       "suiteHeld": "{done}. The schedule doesn’t move: a postponement is planned on {date}.",
       "stuckMove": "With this day, the dose you had postponed to {date} could no longer fall at the right time. Change the date of this postponement first.",
       "reportFollows": "The dose you had postponed to {date} stays planned on that day.",

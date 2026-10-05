@@ -1,16 +1,14 @@
-import { differenceInCalendarDays } from 'date-fns'
-
 import { checkDay, invalid } from './treatment-schedule-checks'
 import {
   dueId,
   dueOf,
+  isWithinHalfStep,
   keyOf,
   latestOf,
   nextDay,
   previousDay,
   sameDue,
   shiftDate,
-  toDate,
   uniqueSorted,
 } from './treatment-schedule-dues'
 import {
@@ -127,10 +125,6 @@ function nextPendingDay(plan: PeriodPlan, day: string): string | null {
   return pendingDues(plan, { from: nextDay(day), limit: 1 })[0]?.dueOn ?? null
 }
 
-function daysBetween(from: string, to: string): number {
-  return differenceInCalendarDays(toDate(to), toDate(from))
-}
-
 // La dose revenue à son échéance d'origine tomberait à moins d'une demi-fréquence de la suivante.
 export function moveRemovalRefusal(state: State, doseId: string): MoveRemovalRefusal | null {
   const move = state.plans
@@ -141,8 +135,9 @@ export function moveRemovalRefusal(state: State, doseId: string): MoveRemovalRef
   const back = pendingDues(plan, { from: move.dueOn, to: move.dueOn })[0]
   const nextOn = back === undefined ? null : nextPendingDay(plan, back.dueOn)
   if (back === undefined || nextOn === null) return null
-  const step = daysBetween(back.dueOn, shiftDate(back.dueOn, plan.period.frequency, 1))
-  return 2 * daysBetween(back.dueOn, nextOn) < step ? { dueOn: back.dueOn, nextOn } : null
+  return isWithinHalfStep(back.dueOn, nextOn, plan.period.frequency)
+    ? { dueOn: back.dueOn, nextOn }
+    : null
 }
 
 export function removeMove(state: State, doseId: string): MovedDose {
@@ -232,8 +227,34 @@ export function shiftRemovalRefusal(state: State, doseId: string): ShiftRemovalR
     (note) => note.dueOn > shift.dueOn && note.dueOn !== report?.nextDueDate,
   )
   if (later.length > 0) return 'later-dose'
-  const passed = passedMoveOn(state, withoutLine(state, doseId), shift.periodId, shift.dueOn)
-  return passed === null ? null : 'move-past-next'
+  const without = withoutLine(state, doseId)
+  if (passedMoveOn(state, without, shift.periodId, shift.dueOn) !== null) return 'move-past-next'
+  return strandedMove(without, shift) === undefined ? null : 'move-off-rhythm'
+}
+
+/** L'arrivée du report seul qui bloque « Supprimer ce décalage » (`move-off-rhythm`), sinon `null`. */
+export function strandedMoveOn(state: State, doseId: string): string | null {
+  if (shiftRemovalRefusal(state, doseId) !== 'move-off-rhythm') return null
+  const shift = shiftLineOf(state, doseId)
+  return strandedMove(withoutLine(state, doseId), shift)?.nextDueDate ?? null
+}
+
+// Un report seul qui suit, dont l'échéance d'origine ne serait plus une échéance du rythme rétabli.
+function strandedMove(without: State, shift: TreatmentDoseInput): TreatmentDoseInput | undefined {
+  const plan = planOf(without, shift.periodId)
+  return plan.steps
+    .filter(isMove)
+    .find(
+      ({ dose }) =>
+        dose.dueOn > shift.dueOn && shiftOn(plan, dose) === undefined && !isOnRhythm(without, dose),
+    )?.dose
+}
+
+function isOnRhythm(state: State, move: TreatmentDoseInput): boolean {
+  const plan = planOf(stateWithoutDues(state, [move]), move.periodId)
+  return pendingDues(plan, { from: move.dueOn, to: move.dueOn }).some(
+    (due) => keyOf(due) === keyOf(move),
+  )
 }
 
 export function removeShift(state: State, doseId: string): LineChange {

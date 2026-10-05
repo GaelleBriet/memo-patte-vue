@@ -213,6 +213,116 @@ describe('un décalage ne retombe jamais sur le jour d’un report', () => {
   })
 })
 
+describe('« C’est fait » en un tap après un retard, face à la date de fin (Q4, #506)', () => {
+  const pixel = carnet(
+    period({
+      firstDueOn: '2026-10-05',
+      endsOn: '2026-11-02',
+      frequency: { value: 4, unit: 'week' },
+    }),
+  )
+
+  it.each(['2026-10-10', '2026-10-19'])(
+    'donnée le %s, au moins une demi-fréquence avant : pas de décalage, la dose du 2 nov. reste',
+    (today) => {
+      const book = done(pixel, today)
+      const schedule = scheduleOf(book, today)
+
+      expect(shiftsOf(book)).toEqual([])
+      expect(lastDose(book).nextDueDate).toBe('2026-11-02')
+      expect(schedule.finished).toBe(false)
+      expect(dueDays(schedule.upcoming(3))).toEqual(['2026-11-02'])
+    },
+  )
+
+  it.each(['2026-10-20', '2026-10-25', '2026-11-01'])(
+    'donnée le %s, à moins d’une demi-fréquence : le décalage est écrit, le traitement est terminé',
+    (today) => {
+      const book = done(pixel, today)
+
+      expect(shiftsOf(book)).toEqual([
+        expect.objectContaining({ dueOn: '2026-10-05', nextDueDate: today }),
+      ])
+      expect(scheduleOf(book, today).finished).toBe(true)
+    },
+  )
+
+  it('case cochée : le décalage est écrit, même loin de la dose suivante (V28 bis)', () => {
+    const book = record(pixel, '2026-10-10', {
+      kind: 'given',
+      due: due('2026-10-05'),
+      givenOn: '2026-10-10',
+      shiftsFollowing: true,
+    })
+
+    expect(shiftsOf(book)).toHaveLength(1)
+    expect(scheduleOf(book, '2026-10-10').finished).toBe(true)
+  })
+
+  it('mensuel du 5, fin le 5 nov. : donnée le 20 oct., le 5 nov. reste ; le 21, terminé', () => {
+    const luna = carnet(monthly({ firstDueOn: '2026-10-05', endsOn: '2026-11-05' }))
+
+    expect(shiftsOf(done(luna, '2026-10-20'))).toEqual([])
+    expect(scheduleOf(done(luna, '2026-10-21'), '2026-10-21').finished).toBe(true)
+  })
+
+  describe('plusieurs doses avant la date de fin : la règle porte sur la dose suivante', () => {
+    const vendredi = carnet(weekly({ firstDueOn: '2026-10-16', endsOn: '2026-10-30' }))
+    const lundi19 = scheduleOf(vendredi, '2026-10-19').doseFor({
+      kind: 'given',
+      due: due('2026-10-16'),
+      givenOn: '2026-10-19',
+    })
+    const mercredi21 = scheduleOf(vendredi, '2026-10-21').doseFor({
+      kind: 'given',
+      due: due('2026-10-16'),
+      givenOn: '2026-10-21',
+    })
+
+    it('donnée le lundi 19 : pas de décalage, le 23 et le 30 restent, la dose gardée est dite', () => {
+      expect(lundi19).toEqual({
+        dose: expect.objectContaining({ nextDueDate: '2026-10-23' }),
+        shift: null,
+        keptToEnd: ['2026-10-30'],
+      })
+      expect(dueDays(scheduleOf(done(vendredi, '2026-10-19'), '2026-10-19').upcoming(3))).toEqual([
+        '2026-10-23',
+        '2026-10-30',
+      ])
+    })
+
+    it('donnée le mercredi 21 : décalage au 28, la dose du 30 est annoncée perdue', () => {
+      expect(mercredi21).toMatchObject({
+        dose: { nextDueDate: '2026-10-28' },
+        shift: { nextDueDate: '2026-10-21' },
+        lostToEnd: ['2026-10-30'],
+      })
+    })
+
+    it('la dernière dose seule, perdue, est aussi annoncée', () => {
+      const noted = scheduleOf(pixel, '2026-10-25').doseFor({
+        kind: 'given',
+        due: due('2026-10-05'),
+        givenOn: '2026-10-25',
+      })
+
+      expect(noted.lostToEnd).toEqual(['2026-11-02'])
+    })
+  })
+
+  it('un décalage qui ne fait perdre aucune dose est écrit comme d’habitude', () => {
+    const book = done(
+      carnet(weekly({ firstDueOn: '2026-10-16', endsOn: '2026-10-31' })),
+      '2026-10-17',
+    )
+    expect(shiftsOf(book)).toHaveLength(1)
+    expect(dueDays(scheduleOf(book, '2026-10-17').upcoming(3))).toEqual([
+      '2026-10-24',
+      '2026-10-31',
+    ])
+  })
+})
+
 describe('les limites du §11 de la spec, fermées par la ligne de décalage', () => {
   it('3a : dose non renseignée du 8 notée le 8, redatée au 9 → dose du moment le 15', () => {
     const milo = record(done(carnet(weekly()), '2026-09-01'), '2026-09-20', {

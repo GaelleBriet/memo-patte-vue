@@ -521,6 +521,35 @@ describe('treatmentHistory — la ligne de décalage et ses refus (V31, V31 ter,
     expect(line(book, '2026-10-15', 'shift')).not.toHaveProperty('refused')
   })
 
+  it('sans « prochaine » quand la suite décalée dépasse la date de fin : traitement terminé', () => {
+    const MERCREDI = period({
+      startsOn: '2026-09-30',
+      firstDueOn: '2026-09-30',
+      endsOn: '2026-10-07',
+      frequency: { value: 1, unit: 'week' },
+    })
+    const book = treatment(
+      [MERCREDI],
+      [
+        shifted('2026-09-30', '2026-10-05'),
+        dose('2026-09-30', '2026-10-12', { givenOn: '2026-10-05' }),
+      ],
+    )
+
+    expect(line(book, '2026-10-05', 'shift')).toMatchObject({
+      title: 'Doses suivantes décalées',
+      actions: ['remove-shift'],
+    })
+    applyLocale('en')
+    expect(line(book, '2026-10-05', 'shift').title).toBe('Following doses moved')
+  })
+
+  it('sans « prochaine » quand la période est arrêtée', () => {
+    const arrete = treatment([{ ...VENDREDI, stoppedOn: '2026-10-17' }], PIXEL)
+
+    expect(line(arrete, '2026-10-17', 'shift').title).toBe('Doses suivantes décalées')
+  })
+
   it('grisée quand une dose plus lointaine est notée', () => {
     const book = treatment([VENDREDI], [...PIXEL, dose('2026-10-26', '2026-11-02')])
 
@@ -541,6 +570,26 @@ describe('treatmentHistory — la ligne de décalage et ses refus (V31, V31 ter,
 
     expect(line(book, '2026-10-15', 'shift').refused).toEqual({
       'remove-shift': 'Change d’abord la date du report.',
+    })
+  })
+
+  it('grisée quand un report seul qui suit sortirait du rythme rétabli : supprimer ce report d’abord', () => {
+    const book = treatment(
+      [VENDREDI],
+      [
+        dose('2026-10-09', '2026-10-16'),
+        shifted('2026-10-16', '2026-10-19'),
+        postponed('2026-10-16', '2026-10-19'),
+        postponed('2026-10-26', '2026-10-23'),
+      ],
+    )
+
+    expect(line(book, '2026-10-15', 'shift').refused).toEqual({
+      'remove-shift': 'Supprime d’abord le report du 23 oct.',
+    })
+    applyLocale('en')
+    expect(line(book, '2026-10-15', 'shift').refused).toEqual({
+      'remove-shift': 'Delete the postponement of Oct 23 first.',
     })
   })
 

@@ -99,6 +99,7 @@ describe('treatmentDosesService', () => {
         firstDueOn: string
         frequency: { value: number; unit: 'day' | 'week' | 'month' }
         times?: string[]
+        endsOn?: string
       },
     ): Promise<string> {
       await db.runMany([
@@ -113,6 +114,7 @@ describe('treatmentDosesService', () => {
           animalId: BOREE,
           startsOn: settings.firstDueOn,
           firstDueOn: settings.firstDueOn,
+          endsOn: settings.endsOn ?? null,
           frequency: settings.frequency,
           times: settings.times ?? [],
           stoppedOn: null,
@@ -443,6 +445,95 @@ describe('treatmentDosesService', () => {
 
       expect(duJour).toMatchObject({ outcome: 'noted', due: { dueOn: '2026-09-23' } })
       expect(enRetard).toMatchObject({ outcome: 'noted', due: { dueOn: '2026-09-18' } })
+    })
+
+    describe('dose en retard et date de fin, sans case (Q4, #506)', () => {
+      const QUATRE_SEMAINES = { value: 4, unit: 'week' as const }
+      const loin = { firstDueOn: '2026-09-15', frequency: QUATRE_SEMAINES, endsOn: '2026-10-13' }
+      const proche = { firstDueOn: '2026-09-01', frequency: QUATRE_SEMAINES, endsOn: '2026-09-29' }
+
+      function decalages(id: string) {
+        return db.query(
+          `SELECT due_on FROM treatment_dose
+           WHERE treatment_id = ? AND deleted_at IS NULL AND status = 'shift'`,
+          [id],
+        )
+      }
+
+      it('la dose prévue au moins une demi-fréquence après : elle reste, par la feuille et la notification', async () => {
+        const feuille = await creer('feuille', loin)
+        const notification = await creer('notification', loin)
+
+        const parLaFeuille = await service.noteMoment(feuille, '2026-09-23')
+        const parLaNotification = await service.noteMoment(notification, '2026-09-23', {
+          notifiedDueOn: '2026-09-15',
+        })
+
+        for (const [id, noted] of [
+          [feuille, parLaFeuille],
+          [notification, parLaNotification],
+        ] as const) {
+          expect(noted).toMatchObject({ outcome: 'noted', finishes: false })
+          await expect(decalages(id)).resolves.toEqual([])
+          await expect(fiche(id)).resolves.toMatchObject({
+            finished: false,
+            currentDoses: [{ dueOn: '2026-10-13' }],
+          })
+        }
+      })
+
+      it('plusieurs doses avant la fin : la dose suivante loin, rien ne bouge ; proche, la dose perdue est dite', async () => {
+        const SEMAINE = { value: 1, unit: 'week' as const }
+        const loinLundi = await creer('loin', {
+          firstDueOn: '2026-09-21',
+          frequency: SEMAINE,
+          endsOn: '2026-10-05',
+        })
+        const procheVendredi = await creer('proche', {
+          firstDueOn: '2026-09-18',
+          frequency: SEMAINE,
+          endsOn: '2026-10-02',
+        })
+
+        const garde = await service.noteMoment(loinLundi, '2026-09-23')
+        const coupe = await service.noteMoment(procheVendredi, '2026-09-23', {
+          notifiedDueOn: '2026-09-18',
+        })
+
+        expect(garde).not.toHaveProperty('lostToEnd')
+        await expect(decalages(loinLundi)).resolves.toEqual([])
+        expect(coupe).toMatchObject({
+          outcome: 'noted',
+          finishes: false,
+          lostToEnd: ['2026-10-02'],
+        })
+        await expect(decalages(procheVendredi)).resolves.toEqual([{ due_on: '2026-09-18' }])
+      })
+
+      it('à moins d’une demi-fréquence : le traitement se termine, par la feuille, la notification et la fiche', async () => {
+        const feuille = await creer('feuille', proche)
+        const notification = await creer('notification', proche)
+        const parLaFiche = await creer('fiche', proche)
+
+        const notes = [
+          await service.noteMoment(feuille, '2026-09-23'),
+          await service.noteMoment(notification, '2026-09-23', { notifiedDueOn: '2026-09-01' }),
+          await service.apply(parLaFiche, {
+            kind: 'note',
+            gesture: {
+              kind: 'given',
+              due: { periodId: parLaFiche, dueOn: '2026-09-01', dueTime: null },
+              givenOn: '2026-09-23',
+            },
+          }),
+        ]
+
+        for (const noted of notes) expect(noted).toMatchObject({ finishes: true })
+        for (const id of [feuille, notification, parLaFiche]) {
+          await expect(decalages(id)).resolves.toEqual([{ due_on: '2026-09-01' }])
+          await expect(fiche(id)).resolves.toMatchObject({ finished: true })
+        }
+      })
     })
 
     it('lit le jour une seule fois : minuit pendant le geste ne repasse pas un oubli en donnée', async () => {
