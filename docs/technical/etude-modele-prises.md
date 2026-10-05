@@ -339,6 +339,12 @@ devient la référence : ancré au 31 août, 30 sept., 31 oct.).
 4. Un report sur une échéance qui a une ligne de décalage arrive à sa nouvelle date ; la suite reste
    celle du décalage. Report et décalage du même geste ont donc la même date (19) ; séparés ensuite,
    chacun garde la sienne.
+5. Le décalage d'une dose avancée est rangé sous son échéance d'origine, celle de son report : une
+   prise notée un autre jour réancre ce décalage à sa date réelle, et la corriger au jour d'arrivée le
+   ramène à ce jour. Une ligne de décalage du jour d'arrivée est celle de cette échéance-là, jamais
+   celle de la dose avancée. Le moteur ne devine donc rien par l'heure d'écriture des lignes, et
+   « Annuler » rend le calendrier d'avant (#523). Vendredi, dose du 16 avancée au 13 avec décalage,
+   puis donnée le 12 : décalage du 16 ancré au 12, prochaine dose le 19.
 
 **N6, rejoué à la main sur les exemples** (attendu) :
 

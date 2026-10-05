@@ -153,6 +153,12 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
   - **G14** Un déplacement ne remplace que l'échéance qu'il vise : si la suite change sans lui (prise
     supprimée, TR-26), l'échéance qui réapparaît reste à donner ou à renseigner.
     (Validée par Gaelle, points validés en bloc du 2026-10-01.)
+  - **G18** Le décalage d'une dose avancée est rangé sous son échéance d'origine, avec celui de son
+    report : une prise notée un autre jour le réancre à sa date réelle ; corrigée au jour d'arrivée,
+    elle le ramène à ce jour. Un décalage du jour d'arrivée reste celui de cette échéance : le calendrier
+    ne dépend jamais de l'heure d'écriture des lignes, et « Annuler » rend le calendrier d'avant.
+    Vendredi, dose du 16 avancée au 13 avec décalage, puis donnée le 12 : prochaine dose le 19.
+    (Garde technique, consignée au journal des décisions autonomes.)
 - **TR-10** Dose du moment : la dernière échéance jusqu'à aujourd'hui inclus, si elle est encore sans
   prise ; à défaut, la prochaine. Traitement à plusieurs heures : on raisonne par journée (spec Q23).
   Les heures encore sans prise de la dernière journée d'échéance arrivée sont ensemble la dose du
