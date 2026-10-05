@@ -5,6 +5,43 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.59](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.58...memo-patte-v0.1.59) (2026-10-05)
+
+
+### ✨ Fonctionnalités
+
+* **settings:** l'import accepte la prise en plus ([ed7a64d](https://github.com/GaelleBriet/memo-patte-vue/commit/ed7a64db05896ea3b0c6b04dfe258fec97f12f32))
+* **treatments:** « Décaler aussi les doses suivantes » et la ligne de décalage ([469e7c6](https://github.com/GaelleBriet/memo-patte-vue/commit/469e7c6d5a54a4917deb3226da0ea2a956a4cbcc))
+* **treatments:** « Décaler aussi les doses suivantes » et la ligne de décalage ([2513f1a](https://github.com/GaelleBriet/memo-patte-vue/commit/2513f1a27f2ffe57ec3b5342969dcfe75a0dfc7c)), closes [#505](https://github.com/GaelleBriet/memo-patte-vue/issues/505)
+* **treatments:** le moteur lit la prise en plus ([f6361e3](https://github.com/GaelleBriet/memo-patte-vue/commit/f6361e3bfc27ffd79b93bb7527c3eb290a1b330d))
+* **treatments:** le moteur sait décocher « Décaler aussi les doses suivantes » ([0a8415e](https://github.com/GaelleBriet/memo-patte-vue/commit/0a8415e98a94c0c195f4f2fbeb35c58c6eb38dd3))
+* **treatments:** prise en plus (dose donnée un intervalle ou plus en avance) ([0eb8adf](https://github.com/GaelleBriet/memo-patte-vue/commit/0eb8adf108c02e090e7681a2a208e313581319af))
+* **treatments:** prise en plus dans l'historique, son menu et ses écritures ([deb1b84](https://github.com/GaelleBriet/memo-patte-vue/commit/deb1b8411034aac7d5f47ac06cea4c6634d6c1ee))
+
+
+### 🐛 Corrections
+
+* **home, weight:** photo de l'animal dans « Ajouter une pesée » et « Pour quel animal ? » ([f80cb78](https://github.com/GaelleBriet/memo-patte-vue/commit/f80cb78d88d2b47ce1ead4c9ec92375112dc4d53))
+* **home, weight:** photo de l'animal dans les feuilles pesée et « Pour quel animal ? » ([becdd96](https://github.com/GaelleBriet/memo-patte-vue/commit/becdd965d27efe4f9bdddedabe7630eecec762ca)), closes [#529](https://github.com/GaelleBriet/memo-patte-vue/issues/529)
+* **settings:** le PDF marque la prise en plus par sa ligne, pas par sa date ([795ab38](https://github.com/GaelleBriet/memo-patte-vue/commit/795ab384989a70432e54a72f620fd018a940253f))
+* **treatments:** « C'est fait » en retard face à la date de fin ([fbd1fc1](https://github.com/GaelleBriet/memo-patte-vue/commit/fbd1fc1b5cc0f57d9fc726de258082f31d325ac4))
+* **treatments:** « C'est fait » en un tap garde la dernière dose avant la date de fin ([e04aad5](https://github.com/GaelleBriet/memo-patte-vue/commit/e04aad5b99ce1f06bf30cf871aa0b5bc0e2363e4)), closes [#506](https://github.com/GaelleBriet/memo-patte-vue/issues/506)
+* **treatments:** date de fin, la dose suivante décide et le toast dit la dose qui saute ([219c008](https://github.com/GaelleBriet/memo-patte-vue/commit/219c0088c4727c5bc567810c78844803f2b99754)), closes [#506](https://github.com/GaelleBriet/memo-patte-vue/issues/506)
+* **treatments:** décalage bloqué par un report hors rythme, et dose gardée dite ([58d252d](https://github.com/GaelleBriet/memo-patte-vue/commit/58d252dc9077f5f504c1a5af39c3ea6924f0b164)), closes [#506](https://github.com/GaelleBriet/memo-patte-vue/issues/506)
+* **treatments:** la ligne de décalage n'annonce plus de prochaine dose après la fin ([9e5a5dc](https://github.com/GaelleBriet/memo-patte-vue/commit/9e5a5dc6129e1129aad85a4bf9bfb7d1da70fb56)), closes [#506](https://github.com/GaelleBriet/memo-patte-vue/issues/506)
+* **treatments:** le décalage d'une dose avancée est rangé sous son échéance d'origine ([ebd4a53](https://github.com/GaelleBriet/memo-patte-vue/commit/ebd4a53064ad5e577596bb41c2c8636b4456c703))
+* **treatments:** le décalage d'une dose avancée s'écrit sous son échéance d'origine ([5f986f2](https://github.com/GaelleBriet/memo-patte-vue/commit/5f986f25698ce127876af2fe31498bedbce8f19d))
+* **treatments:** le moteur ne lit plus la prise en plus, corrections de revue ([3dd78b1](https://github.com/GaelleBriet/memo-patte-vue/commit/3dd78b16da230d4c2758d893a95bd8d4f51a051d))
+* **treatments:** le report seul suit vers l'échéance la plus proche de son arrivée (I2) ([f67912b](https://github.com/GaelleBriet/memo-patte-vue/commit/f67912b6372710f5ed7e39ebd158c72d86961f47))
+* **treatments:** le toast cherche le décalage d'une dose avancée sous son échéance d'origine ([75afde3](https://github.com/GaelleBriet/memo-patte-vue/commit/75afde3fc816db04084f9a545d2fb57bf68ebb23))
+* **treatments:** refuser le geste qui ferait passer un report seul après la dose suivante ([0bcb6ce](https://github.com/GaelleBriet/memo-patte-vue/commit/0bcb6ce6bce6a1fa0d1031902480f459036608bd))
+* **treatments:** suites de la revue de [#505](https://github.com/GaelleBriet/memo-patte-vue/issues/505) ([00bc981](https://github.com/GaelleBriet/memo-patte-vue/commit/00bc9812aebeecf8fa26ea62542f02ae4c46d764))
+* **treatments:** textes validés pour le report qui suit et ses refus ([771557a](https://github.com/GaelleBriet/memo-patte-vue/commit/771557ad8ea17ab5a76a4c59bb2d6798364b2766))
+* **treatments:** un décalage resté seul sur le jour d'arrivée d'une dose avancée garde son échéance ([2f307d4](https://github.com/GaelleBriet/memo-patte-vue/commit/2f307d45715d57628f3beb5f7d2c05154fdae3cb))
+* **treatments:** un report seul ne passe jamais la dose suivante (Q2 a) ([2c779df](https://github.com/GaelleBriet/memo-patte-vue/commit/2c779df5b5362ef172a9a9d07d99fd1ec6c405d2))
+* **treatments:** une prise en plus ne change jamais le calendrier ([449229b](https://github.com/GaelleBriet/memo-patte-vue/commit/449229bd2b942b345f68af7d91925947891c6963))
+* **treatments:** une prise en plus ne fait pas perdre une dose due ([dee4d26](https://github.com/GaelleBriet/memo-patte-vue/commit/dee4d2699e01ea343e3dd620e1a34ace1b2b1c60))
+
 ## [0.1.58](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.57...memo-patte-v0.1.58) (2026-10-04)
 
 
