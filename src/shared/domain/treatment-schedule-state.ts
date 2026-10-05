@@ -2,6 +2,7 @@ import { invalid } from './treatment-schedule-checks'
 import { dueId, nextDay, previousDay, sameDue } from './treatment-schedule-dues'
 import {
   closingDay,
+  isExtraLine,
   isNoteLine,
   isShiftLine,
   mergeDoses,
@@ -110,8 +111,11 @@ export function nextInSequence(state: State, due: Due): string {
   return nextDueAfter(planOf(state, due.periodId), due).dueOn
 }
 
+// Une prise en plus est rangée sous sa date réelle : elle n'est jamais une ligne de l'échéance retirée.
 export function stateWithoutDues(state: State, dues: Due[]): State {
-  const doses = state.input.doses.filter((dose) => !dues.some((due) => sameDue(dose, due)))
+  const doses = state.input.doses.filter(
+    (dose) => isExtraLine(dose) || !dues.some((due) => sameDue(dose, due)),
+  )
   return build({ ...state.input, doses })
 }
 
@@ -124,7 +128,9 @@ export function stateWithout(state: State, due: Due): State {
 // Le carnet sans la prise de cette échéance, ni le report qu'elle bat (Q5) : son décalage reste.
 export function stateWithoutNote(state: State, due: Due): State {
   if (!state.lines.has(dueId(due))) return state
-  const doses = state.input.doses.filter((dose) => !sameDue(dose, due) || isShiftLine(dose))
+  const doses = state.input.doses.filter(
+    (dose) => !sameDue(dose, due) || isShiftLine(dose) || isExtraLine(dose),
+  )
   return build({ ...state.input, doses })
 }
 

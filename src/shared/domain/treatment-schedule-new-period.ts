@@ -12,7 +12,10 @@ function lastReference(state: State, frequency: Frequency): string | undefined {
   const last = plan === undefined ? undefined : lines(plan.steps).at(-1)
   if (plan === undefined || last === undefined) return undefined
   if (last.kind === 'move') return last.dose.nextDueDate
-  const reference = shiftOn(plan, last.dose)?.nextDueDate ?? last.dose.dueOn
+  const reference =
+    last.kind === 'extra'
+      ? last.dose.dueOn
+      : (shiftOn(plan, last.dose)?.nextDueDate ?? last.dose.dueOn)
   return shiftDate(reference, frequency, 1)
 }
 

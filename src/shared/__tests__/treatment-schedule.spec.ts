@@ -685,9 +685,11 @@ describe('changer la date d’une prise (TR-24 bis, T3)', () => {
     const schedule = scheduleOf(book, '2026-10-02')
 
     expect(() => schedule.redate('inconnue', '2026-10-01')).toThrow(
-      'Aucune prise donnée à redater : inconnue',
+      'Aucune prise donnée ni prise en plus à redater : inconnue',
     )
-    expect(() => schedule.redate(report.id, '2026-10-01')).toThrow('Aucune prise donnée à redater')
+    expect(() => schedule.redate(report.id, '2026-10-01')).toThrow(
+      'Aucune prise donnée ni prise en plus à redater',
+    )
   })
 })
 
@@ -3443,33 +3445,5 @@ describe('sans changer la fréquence ni les heures, la prochaine dose reste cell
       firstDueOn: '2027-03-28',
       referenceOn: '2027-03-28',
     })
-  })
-})
-
-describe('prise en plus, pas encore lue par le moteur (#503)', () => {
-  it('laisse le calendrier tel qu’il serait sans elle', () => {
-    const book = done(carnet(weekly()), '2026-09-03')
-    const withNewLines: Carnet = {
-      ...book,
-      doses: [
-        ...book.doses,
-        stored({
-          periodId: 'p1',
-          dueOn: '2026-09-05',
-          dueTime: null,
-          givenOn: '2026-09-05',
-          status: 'extra',
-          nextDueDate: '2026-09-12',
-        }),
-      ],
-    }
-
-    const expected = scheduleOf(book, '2026-09-20')
-    const actual = scheduleOf(withNewLines, '2026-09-20')
-
-    expect(actual.doses).toEqual(expected.doses)
-    expect(actual.unloggedDoses).toEqual(expected.unloggedDoses)
-    expect(actual.currentDoses).toEqual(expected.currentDoses)
-    expect(actual.upcoming(5)).toEqual(expected.upcoming(5))
   })
 })

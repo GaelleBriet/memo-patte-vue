@@ -120,9 +120,15 @@ export type TreatmentSchedule = {
   upcoming(limit: number): Due[]
   /** Échéance visée par une prise notée à cette date, à cette heure s'il y en a plusieurs. */
   dueForDate(givenOn: string, time?: string | null): Due | null
-  /** Lignes à écrire, calculées sur le carnet d'avant le geste (renseigner : un appel par dose). */
+  /**
+   * Lignes à écrire, calculées sur le carnet d'avant le geste (renseigner : un appel par dose). Donnée
+   * un intervalle ou plus avant son échéance, la prise est une prise en plus, rangée sous sa date réelle.
+   */
   doseFor(gesture: DoseGesture): NotedDose
-  /** TR-24 bis : nouvelle date d'une prise donnée. */
+  /**
+   * TR-24 bis : nouvelle date d'une prise donnée. Une prise en plus vise alors l'échéance d'une prise
+   * notée à cette date : elle peut redevenir une prise de la dose prévue.
+   */
   redate(doseId: string, givenOn: string): RedatedDose
   /**
    * Chemin de « Prochaine dose » (TR-9, TR-28) : sans prise dans la période, elle corrige la première
@@ -145,14 +151,18 @@ export type TreatmentSchedule = {
 
 export type Sequence = { origin: string; firstStep: number; floor: string }
 
-export type Step = { kind: 'note' | 'move' | 'shift'; dose: TreatmentDoseInput; position: string }
+export type Step = {
+  kind: 'note' | 'extra' | 'move' | 'shift'
+  dose: TreatmentDoseInput
+  position: string
+}
 
 export type PeriodPlan = {
   period: TreatmentPeriodInput
   closesOn: string | null
   steps: Step[]
   stale: TreatmentDoseInput[]
-  /** La suite de la période, puis celles des lignes de décalage, dans l'ordre. */
+  /** La suite de la période, puis celles des prises en plus et des lignes de décalage, dans l'ordre. */
   anchors: { position: string; sequence: Sequence }[]
   /** Échéances avant la dernière suite, et jours d'arrivée des reports. */
   between: Due[]
@@ -171,7 +181,7 @@ export type DueEntry = { due: Due; status: DoseStatus | null }
 export type State = {
   input: TreatmentScheduleInput
   noted: Set<string>
-  /** Échéances qui ont une ligne lue par le moteur : prise, report ou décalage en vigueur. */
+  /** Échéances qui ont une ligne lue par le moteur : prise, prise en plus, report ou décalage en vigueur. */
   lines: Set<string>
   plans: PeriodPlan[]
   open: PeriodPlan | null

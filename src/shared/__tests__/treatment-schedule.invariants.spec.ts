@@ -150,8 +150,9 @@ class Simulation {
   private stamp = 0
   private redated = false
   readonly log: string[] = []
-  // Tirage à part : les graines déjà connues rejouent les mêmes gestes.
+  // Tirages à part : les graines déjà connues rejouent les mêmes gestes.
   private readonly shiftRandom: Random
+  private readonly extraRandom: Random
 
   constructor(
     public book: Book,
@@ -159,6 +160,7 @@ class Simulation {
     private readonly seed: number,
   ) {
     this.shiftRandom = mulberry32(seed ^ 0x5f3759df)
+    this.extraRandom = mulberry32(seed ^ 0x2545f491)
   }
 
   fail(message: string): never {
@@ -346,6 +348,7 @@ class Simulation {
     this.book = this.written(this.book, fields)
     const after = this.schedule()
     this.checkProtected(before, after, () => true, gesture)
+    if (fields.status === 'extra') return this.checkExtra(after, due, fields, gesture)
     this.checkWritten(after, due, fields.nextDueDate, gesture)
     const unit = this.book.periods.find(({ id }) => id === due.periodId)?.frequency.unit
     const mayCoincide = unit === 'month' && kind === 'given' && givenOn !== due.dueOn
@@ -375,6 +378,91 @@ class Simulation {
         `${gesture} : prochaine dose écrite au ${nextDueDate}, le calendrier dit ${expected}`,
       )
     }
+  }
+
+  // Prise en plus : rangée sous sa date réelle, un intervalle ou plus avant la dose visée ; la suite
+  // repart d'elle, et la dose visée reste à donner quand le rythme repris y retombe.
+  private checkExtra(after: TreatmentSchedule, due: Due, extra: DoseFields, gesture: string): void {
+    const period = this.book.periods.find(({ id }) => id === due.periodId)
+    if (period === undefined) return this.fail('période inconnue')
+    const { givenOn } = extra
+    if (givenOn === null || extra.dueOn !== givenOn || extra.dueTime !== due.dueTime) {
+      this.fail(`${gesture} : prise en plus mal rangée ${JSON.stringify(extra)}`)
+    }
+    if (period.times.length > 1) this.fail(`${gesture} : prise en plus à plusieurs heures`)
+    const soonest = shifted(extra.dueOn, period.frequency, 1)
+    if (soonest > due.dueOn) this.fail(`${gesture} : prise en plus à moins d’un intervalle`)
+    this.checkWritten(after, extra, extra.nextDueDate, gesture)
+    const next = pendingOf(after).find(
+      (other) => other.periodId === due.periodId && other.dueOn > extra.dueOn,
+    )
+    if (next !== undefined && next.dueOn < soonest) {
+      this.fail(`${gesture} : dose suivante le ${next.dueOn}, avant le ${soonest}`)
+    }
+    const kept = period.endsOn === null || due.dueOn <= period.endsOn
+    const isPending = pendingOf(after).some((other) => idOf(other) === idOf(due))
+    if (kept && landsOn(extra.dueOn, due.dueOn, period.frequency) && !isPending) {
+      this.fail(`${gesture} : la dose visée ${idOf(due)} n’est plus à donner`)
+    }
+  }
+
+  // « C'est fait » sur une dose à venir, aujourd'hui ou la veille : une prise en plus si elle est assez loin.
+  private ahead(before: TreatmentSchedule): void {
+    const [current] = before.currentDoses
+    if (current === undefined || current.dueOn <= this.book.today) return
+    const givenOn = plusDays(this.book.today, -int(this.extraRandom, 0, 1))
+    if (givenOn >= current.dueOn) return
+    let target: Due | null
+    try {
+      target = givenOn === this.book.today ? current : before.dueForDate(givenOn, current.dueTime)
+    } catch (error) {
+      return this.fail(`${this.book.today} viser une prise le ${givenOn} : ${String(error)}`)
+    }
+    if (target === null) return
+    const isNoted = before.doses.some((dose) => isNote(dose) && idOf(dose) === idOf(target))
+    if (!isNoted) this.note(before, target, 'given', givenOn)
+  }
+
+  // Changer la date d'une prise en plus, comme le repository : sa ligne réécrite, ou remplacée par
+  // la ligne de l'échéance qu'elle vise désormais.
+  private redateExtra(before: TreatmentSchedule): void {
+    const extra = pick(
+      this.extraRandom,
+      before.doses.filter(({ status }) => status === 'extra'),
+    )
+    if (extra === undefined) return
+    const givenOn = plusDays(this.book.today, -int(this.extraRandom, 0, 6))
+    const gesture = `${this.book.today} redater la prise en plus ${idOf(extra)} au ${givenOn}`
+    this.log.push(gesture)
+    let redated
+    try {
+      redated = before.redate(extra.id, givenOn)
+    } catch (error) {
+      if (error instanceof RangeError && String(error).includes('Aucune dose à viser')) return
+      return this.fail(`${gesture} : ${String(error)}`)
+    }
+    const { dose: fields, shift } = redated
+    this.redated = true
+    const book = { ...this.book, doses: this.book.doses.filter(({ id }) => id !== extra.id) }
+    this.book = this.written(this.applied(book, shift), fields)
+    this.checkProtected(before, this.schedule(), (due) => due.dueOn <= extra.dueOn, gesture)
+  }
+
+  private deleteExtra(before: TreatmentSchedule): void {
+    const extra = pick(
+      this.extraRandom,
+      before.doses.filter(({ status }) => status === 'extra'),
+    )
+    if (extra === undefined) return
+    const gesture = `${this.book.today} supprimer la prise en plus ${idOf(extra)}`
+    this.log.push(gesture)
+    this.book = { ...this.book, doses: this.book.doses.filter(({ id }) => id !== extra.id) }
+    this.checkProtected(
+      before,
+      this.schedule(),
+      (due) => due.periodId !== extra.periodId || due.dueOn <= extra.dueOn,
+      gesture,
+    )
   }
 
   // Un décalage resté seul, ou une dose déplacée sans décalage : les doses suivantes gardent leur jour.
@@ -480,10 +568,12 @@ class Simulation {
   }
 
   // (g) Une échéance n'a jamais deux lignes : ni une dose à donner sur l'échéance d'une ligne, ni un
-  // déplacement sur place. Un décalage seul laisse son échéance d'origine à donner (§2.6, règle 2).
+  // déplacement sur place. Un décalage seul laisse son échéance d'origine à donner (§2.6, règle 2) ;
+  // une prise en plus, rangée sous sa date réelle, ne couvre aucune échéance.
   private checkOneLinePerDue(): void {
     const schedule = this.schedule()
-    const lines = new Set(schedule.doses.filter(({ status }) => status !== 'shift').map(idOf))
+    const covering = schedule.doses.filter(({ status }) => status !== 'shift' && status !== 'extra')
+    const lines = new Set(covering.map(idOf))
     const doubled = pendingOf(schedule).find((due) => lines.has(idOf(due)))
     if (doubled !== undefined)
       this.fail(`dose à donner sur une échéance déjà en ligne : ${idOf(doubled)}`)
@@ -770,6 +860,10 @@ class Simulation {
 
   step(): void {
     if (this.shiftRandom() < 0.08) this.unshift(this.schedule())
+    const extraGesture = this.extraRandom()
+    if (extraGesture < 0.1) this.ahead(this.schedule())
+    else if (extraGesture < 0.13) this.redateExtra(this.schedule())
+    else if (extraGesture < 0.15) this.deleteExtra(this.schedule())
     const before = this.schedule()
     const { today } = this.book
     switch (pick(this.random, GESTURES)) {

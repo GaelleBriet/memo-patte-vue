@@ -289,7 +289,7 @@ describe('treatmentDosesService', () => {
       await expect(lignes(metacam)).resolves.toEqual([])
     })
 
-    it('second « Fait aujourd’hui » le même jour : « déjà notée aujourd’hui », rien d’écrit ; la fiche note encore en avance', async () => {
+    it('second « Fait aujourd’hui » le même jour : « déjà notée aujourd’hui », rien d’écrit ; la fiche note une prise en plus', async () => {
       const hebdo = await creer('hebdo', HEBDO)
       await service.noteMoment(hebdo, '2026-09-23')
 
@@ -309,7 +309,14 @@ describe('treatmentDosesService', () => {
 
       await expect(lignes(hebdo)).resolves.toEqual([
         { due_on: '2026-09-18', due_time: null, given_on: '2026-09-23' },
-        { due_on: '2026-09-30', due_time: null, given_on: '2026-09-23' },
+        { due_on: '2026-09-23', due_time: null, given_on: '2026-09-23' },
+      ])
+      await expect(treatments.getById(hebdo)).resolves.toMatchObject({
+        lastDoseDate: '2026-09-23',
+        nextDueDate: '2026-09-30',
+      })
+      expect((await fiche(hebdo)).currentDoses).toEqual([
+        { periodId: hebdo, dueOn: '2026-09-30', dueTime: null },
       ])
     })
 

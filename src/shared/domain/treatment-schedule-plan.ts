@@ -51,6 +51,10 @@ export function isShiftLine(dose: Pick<TreatmentDoseInput, 'status'>): boolean {
   return dose.status === 'shift'
 }
 
+export function isExtraLine(dose: Pick<TreatmentDoseInput, 'status'>): boolean {
+  return dose.status === 'extra'
+}
+
 export function mergeDoses(doses: readonly TreatmentDoseInput[]): TreatmentDoseInput[] {
   const latest = new Map<string, TreatmentDoseInput>()
   for (const dose of doses) {
@@ -79,7 +83,8 @@ export function compareCreation(a: TreatmentDoseInput, b: TreatmentDoseInput): n
 }
 
 // Avancé (Q17), un report agit au début de sa nouvelle date ; reporté, après les prises de son jour
-// d'origine. Un décalage agit après toute sa journée d'origine, et après le report de cette journée.
+// d'origine. Un décalage agit après toute sa journée d'origine, et après le report de cette journée ;
+// une prise en plus, après toute sa journée.
 function stepOf(dose: TreatmentDoseInput, shiftDay: (shift: TreatmentDoseInput) => string): Step {
   switch (familyOf(dose)) {
     case 'move': {
@@ -88,6 +93,8 @@ function stepOf(dose: TreatmentDoseInput, shiftDay: (shift: TreatmentDoseInput) 
     }
     case 'shift':
       return { kind: 'shift', dose, position: positionOf(`${shiftDay(dose)} ~`, 1) }
+    case 'extra':
+      return { kind: 'extra', dose, position: positionOf(`${dose.dueOn} ~`, 1) }
     default:
       return { kind: 'note', dose, position: positionOf(keyOf(dose), 1) }
   }
@@ -123,6 +130,17 @@ export function isMove(step: Step): boolean {
 
 export function isShift(step: Step): boolean {
   return step.kind === 'shift'
+}
+
+export function isExtra(step: Step): boolean {
+  return step.kind === 'extra'
+}
+
+// La suite repart d'une prise en plus, après sa journée, comme d'un décalage ancré à sa date.
+function anchorOf({ kind, dose }: Step, shiftDay: (shift: TreatmentDoseInput) => string): Sequence {
+  return kind === 'extra'
+    ? { origin: dose.dueOn, firstStep: 1, floor: `${dose.dueOn} ~` }
+    : shiftedSequence(dose, `${shiftDay(dose)} ~`)
 }
 
 // Un report laisse tomber l'échéance qu'il remplace ; une dose avancée, non ; un décalage n'est pas une dose.
@@ -195,10 +213,9 @@ export function planPeriod(
   )
   const anchors = [
     { position: '', sequence: initialSequence(period) },
-    ...steps.filter(isShift).map(({ position, dose }) => ({
-      position,
-      sequence: shiftedSequence(dose, `${shiftDay(dose)} ~`),
-    })),
+    ...steps
+      .filter((step) => isShift(step) || isExtra(step))
+      .map((step) => ({ position: step.position, sequence: anchorOf(step, shiftDay) })),
   ]
   const sequences = anchors.map(({ sequence }) => sequence)
   const moves = steps.filter(isMove).map(({ dose }) => dose)

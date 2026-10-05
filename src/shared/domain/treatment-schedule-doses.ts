@@ -8,6 +8,7 @@ import {
   dueId,
   dueOf,
   keyOf,
+  latestOf,
   sameDue,
   shiftDate,
   toDate,
@@ -26,6 +27,7 @@ import {
 import { firstDueOf, shiftedSequence } from './treatment-schedule-sequence'
 import {
   build,
+  knownDues,
   nearUpcoming,
   nextInSequence,
   planOf,
@@ -124,6 +126,34 @@ function checkKnown(known: () => Set<string>, due: Due): void {
   }
 }
 
+// Une prise un intervalle ou plus avant sa dose est une prise en plus, si elle suit toutes les lignes
+// de sa période et ne laisse derrière elle aucune dose à donner ; à plusieurs heures, l'heure reste (G10).
+function isExtra(state: State, due: Due, givenOn: string): boolean {
+  const plan = planOf(state, due.periodId)
+  const { frequency, times, startsOn } = plan.period
+  const lineDay = ({ dose }: PeriodPlan['steps'][number]) =>
+    latestOf([dose.dueOn, dose.givenOn, dose.status === 'postponed' ? dose.nextDueDate : null])
+  return (
+    plan === state.open &&
+    times.length <= 1 &&
+    shiftDate(givenOn, frequency, 1) <= due.dueOn &&
+    (state.plans[0] === plan || givenOn >= startsOn) &&
+    plan.steps.every((step) => step.kind === 'shift' || (lineDay(step) ?? '') <= givenOn) &&
+    state.unloggedDoses.every((unlogged) => unlogged.dueOn <= givenOn) &&
+    state.currentDoses.every((current) => current.dueOn > givenOn)
+  )
+}
+
+function extraFor(state: State, due: Due, givenOn: string): NotedDose {
+  const extraDue = { periodId: due.periodId, dueOn: givenOn, dueTime: due.dueTime }
+  const existing = planOf(state, due.periodId).steps.find(
+    ({ kind, dose }) => kind === 'extra' && sameDue(dose, extraDue),
+  )
+  const dose: DoseFields = { ...extraDue, givenOn, status: 'extra', nextDueDate: givenOn }
+  const nextDueDate = nextAfter(state, extraDue, [{ id: existing?.dose.id ?? null, fields: dose }])
+  return { dose: { ...dose, nextDueDate }, shift: null }
+}
+
 export function doseFor(state: State, known: () => Set<string>, gesture: DoseGesture): NotedDose {
   const { due } = gesture
   checkKnown(known, due)
@@ -133,6 +163,7 @@ export function doseFor(state: State, known: () => Set<string>, gesture: DoseGes
     case 'given': {
       const { givenOn } = gesture
       checkPastDay(givenOn, state.input.today, 'date réelle')
+      if (isExtra(others, due, givenOn)) return extraFor(others, due, givenOn)
       const restarts = restartsFrom(others, due, givenOn, next)
       const shift = restarts ? shiftFields(due, givenOn) : null
       const dose: DoseFields = { ...dueOf(due), givenOn, status: 'given', nextDueDate: next }
@@ -223,11 +254,32 @@ function postponementAfter(
   }
 }
 
+// Une prise en plus redatée est notée de nouveau à cette date, sans elle : elle vise ce que viserait
+// une prise notée ce jour-là, et peut redevenir la prise de la dose prévue.
+function redateExtra(state: State, extra: TreatmentDoseInput, givenOn: string): RedatedDose {
+  const none = { action: 'none' } as const
+  if (givenOn === extra.givenOn) return { dose: fieldsOf(extra), shift: none, postponement: null }
+  const doses = state.input.doses.filter(
+    (dose) => !(dose.status === 'extra' && sameDue(dose, extra)),
+  )
+  const others = build({ ...state.input, doses })
+  const due = dueForDate(others, givenOn, null)
+  if (due === null) throw new RangeError(`Aucune dose à viser le ${givenOn}`)
+  const noted = doseFor(others, () => knownDues(others), { kind: 'given', due, givenOn })
+  const shift =
+    noted.shift === null
+      ? none
+      : shiftChange(shiftOn(planOf(others, due.periodId), due), noted.shift)
+  return { dose: noted.dose, shift, postponement: null }
+}
+
 // N2 : une prise qui a décalé la suite la décale encore, depuis sa nouvelle date ; une autre se
 // recalcule comme notée ce jour-là, sur le carnet d'aujourd'hui (une dose non renseignée ne décale rien).
 export function redate(state: State, doseId: string, givenOn: string): RedatedDose {
   checkPastDay(givenOn, state.input.today, 'date réelle')
   for (const plan of state.plans) {
+    const extra = plan.steps.find(({ kind, dose }) => kind === 'extra' && dose.id === doseId)
+    if (extra !== undefined) return redateExtra(state, extra.dose, givenOn)
     const dose = notesOf(plan).find((note) => note.id === doseId)
     if (dose?.status !== 'given') continue
     if (givenOn === dose.givenOn) {
@@ -267,7 +319,7 @@ export function redate(state: State, doseId: string, givenOn: string): RedatedDo
     const nextDueDate = nextAfter(state, dose, written)
     return { dose: { ...fields, nextDueDate }, shift: shiftLine, postponement }
   }
-  throw new RangeError(`Aucune prise donnée à redater : ${doseId}`)
+  throw new RangeError(`Aucune prise donnée ni prise en plus à redater : ${doseId}`)
 }
 
 export function upcoming(state: State, limit: number): Due[] {
