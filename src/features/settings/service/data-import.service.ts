@@ -94,8 +94,6 @@ export type ParsedExportFile =
 
 export const MAX_IMPORT_FILE_BYTES = 10 * 1024 * 1024
 const MAX_TEXT_LENGTH = 200
-// Dans le format v4, refusée à l'import tant que l'app ne sait pas la lire (#503).
-const UNREAD_STATUSES: readonly string[] = ['extra']
 
 function isYearInRange(value: string): boolean {
   const year = Number(value.slice(0, 4))
@@ -193,11 +191,12 @@ const doseFileSchema = z
     dueOn: day,
     dueTime: clockTime.nullable(),
     givenOn: pastDay.nullable(),
-    status: z.enum(DOSE_STATUSES).refine((status) => !UNREAD_STATUSES.includes(status)),
+    status: z.enum(DOSE_STATUSES),
     nextDueDate: day,
     ...stamps,
   })
-  .refine((dose) => (dose.status === 'given') === (dose.givenOn !== null))
+  .refine((dose) => ['given', 'extra'].includes(dose.status) === (dose.givenOn !== null))
+  .refine((dose) => dose.status !== 'extra' || dose.dueOn === dose.givenOn)
 
 const weightEntryFileSchema = z.object({
   id: z.uuid(),

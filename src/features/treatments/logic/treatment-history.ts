@@ -35,6 +35,8 @@ export type DoseRow = {
 
 export type HistoryLine =
   | (DoseRow & { kind: 'given'; detail: string | null; isLast: boolean })
+  /** Prise en plus : jamais « Dernière prise », que la dernière prise prévue garde. */
+  | (DoseRow & { kind: 'extra' })
   /** Prises oubliées qui se suivent ; `dose` et `actions` sont ceux de la plus récente. */
   | (DoseRow & { kind: 'missed'; rows: DoseRow[] })
   /** `bounds` : dates entre lesquelles le report se déplace, `null` s'il ne se déplace pas. */
@@ -178,6 +180,17 @@ function linesOf(
       lines.push(moveLine(t, schedule, dose))
       continue
     }
+    if (dose.status === 'extra') {
+      const date = formatLongDate(dose.givenOn ?? dose.dueOn)
+      lines.push({
+        kind: 'extra',
+        dose,
+        title: t('treatments.history.extra', { date }),
+        optionsLabel: t('treatments.history.extraOptions', { date: formatFullDate(dose.dueOn) }),
+        actions: ['change-date', 'remove'],
+      })
+      continue
+    }
     if (dose.status === 'given') {
       lines.push({
         kind: 'given',
@@ -213,7 +226,7 @@ function linesOf(
 function notesIn(lines: HistoryLine[]): number {
   return lines.reduce(
     (count, line) =>
-      count + (line.kind === 'missed' ? line.rows.length : line.kind === 'given' ? 1 : 0),
+      count + (line.kind === 'missed' ? line.rows.length : line.kind === 'move' ? 0 : 1),
     0,
   )
 }
@@ -235,7 +248,7 @@ export function treatmentHistory(
   schedule: HistorySchedule,
 ): TreatmentHistory {
   const periods = [...treatment.periods].sort(byStartDescending)
-  const given = schedule.doses.filter((dose) => dose.status === 'given')
+  const given = schedule.doses.filter(({ status }) => status === 'given' || status === 'extra')
   const oldest = given[0]
   const last = lastGiven(schedule.doses)
   const isAlone = periods.length === 1

@@ -94,6 +94,8 @@ export type MoveBounds = { earliest: string; latest: string | null }
 export type MoveRefusal =
   'previous-period' | 'later-line' | 'later-dose' | 'no-date-left' | 'arrival-logged'
 
+export type RedateLimits = { lastExtraDay: string | null; takenDays: string[] }
+
 export type NewPeriod = { startsOn: string; firstDueOn: string; referenceOn: string }
 
 export type TreatmentSchedule = {
@@ -114,21 +116,36 @@ export type TreatmentSchedule = {
   /** Déplacements sans effet (dépassés, revenus à leur date) : à supprimer avec la prochaine écriture. */
   staleDoseIds: string[]
   currentPeriodId: string | null
-  /** TR-28 : une prise, même oubliée ou reportée, existe dans la période en cours (un décalage seul ne compte pas). */
+  /**
+   * TR-28 : une prise, même oubliée ou reportée, existe dans la période en cours (un décalage seul ne
+   * compte pas, une prise en plus non plus).
+   */
   currentPeriodHasDose: boolean
   /** Échéances sans prise à partir d'aujourd'hui inclus. */
   upcoming(limit: number): Due[]
   /** Échéance visée par une prise notée à cette date, à cette heure s'il y en a plusieurs. */
   dueForDate(givenOn: string, time?: string | null): Due | null
-  /** Lignes à écrire, calculées sur le carnet d'avant le geste (renseigner : un appel par dose). */
+  /**
+   * Lignes à écrire, calculées sur le carnet d'avant le geste (renseigner : un appel par dose). Donnée
+   * un intervalle ou plus avant son échéance, la prise est une prise en plus, rangée sous sa date
+   * réelle : elle ne change pas le calendrier.
+   */
   doseFor(gesture: DoseGesture): NotedDose
-  /** TR-24 bis : nouvelle date d'une prise donnée. */
+  /**
+   * TR-24 bis : nouvelle date d'une prise donnée. Une prise en plus vise alors l'échéance d'une prise
+   * notée à cette date : elle peut redevenir une prise de la dose prévue.
+   */
   redate(doseId: string, givenOn: string): RedatedDose
   /**
    * Chemin de « Prochaine dose » (TR-9, TR-28) : sans prise dans la période, elle corrige la première
    * échéance (`firstDueOn` réécrit, sans ligne ni bornes de déplacement) ; sinon elle déplace la dose.
    */
   nextDoseChange: 'correction' | 'move' | null
+  /**
+   * Jours que « Changer la date » refuse : une prise donnée ne descend pas à `lastExtraDay` ou avant
+   * (elle y deviendrait une prise en plus) ; une prise en plus ne va pas sur un jour qui en a déjà une.
+   */
+  redateLimits(doseId: string): RedateLimits
   /** Déplace la dose, plus tôt ou plus tard (TR-9, Q17, Q18) ; une ligne réécrite peut changer d'échéance d'origine. */
   move(due: Due, to: string): MovedDose
   /** Bornes d'un déplacement, pas d'une correction de première échéance ; `null` : voir `moveRefusal`. */

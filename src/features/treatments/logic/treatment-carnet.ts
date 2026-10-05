@@ -121,7 +121,9 @@ function finishedRow(
   read: Read & { schedule: TreatmentSchedule },
   today: string,
 ): FinishedTreatmentRow {
-  const given = read.schedule.doses.filter(({ status }) => status === 'given').length
+  const given = read.schedule.doses.filter(
+    ({ status }) => status === 'given' || status === 'extra',
+  ).length
   const end = endText(t, read, today)
   return {
     id: read.treatment.id,

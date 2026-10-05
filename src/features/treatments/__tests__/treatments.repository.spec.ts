@@ -476,6 +476,30 @@ describe('treatmentsRepository — périodes et prises', () => {
     })
   })
 
+  it('une prise en plus n’est jamais la tête : la prochaine dose reste celle de la dernière prise prévue', async () => {
+    const created = await seedTreatmentWithDose(db, bravecto)
+
+    await addDose(created.id, '2026-04-01', '2099-01-01', {
+      givenOn: '2026-04-01',
+      status: 'extra',
+    })
+
+    await expect(repository.getById(created.id)).resolves.toMatchObject({
+      lastDoseDate: '2026-04-01',
+      nextDueDate: '2026-06-01',
+    })
+  })
+
+  it('une période qui n’a que des prises en plus garde sa première échéance', async () => {
+    await addWithoutDose('en-plus', '2026-03-05')
+
+    await addDose('en-plus', '2026-03-02', '2099-01-01', { givenOn: '2026-03-02', status: 'extra' })
+
+    await expect(repository.getById('en-plus')).resolves.toMatchObject({
+      nextDueDate: '2026-03-05',
+    })
+  })
+
   it('sans prise donnée, une ligne reportée ne donne aucune dernière prise', async () => {
     await addWithoutDose('reporte', '2026-03-05')
 

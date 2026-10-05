@@ -1,9 +1,15 @@
 import { checkInput } from './treatment-schedule-checks'
-import { doseFor, dueForDate, redate, upcoming } from './treatment-schedule-doses'
+import { doseFor, dueForDate, redate, redateLimits, upcoming } from './treatment-schedule-doses'
 import { nextDay } from './treatment-schedule-dues'
 import { checkMovable, isLocked, move, moveBounds, removeMove } from './treatment-schedule-moves'
 import { newPeriod } from './treatment-schedule-new-period'
-import { isMove, isShiftLine, mergeDoses, pendingDues } from './treatment-schedule-plan'
+import {
+  isExtraLine,
+  isMove,
+  isShiftLine,
+  mergeDoses,
+  pendingDues,
+} from './treatment-schedule-plan'
 import { build, knownDues, planOf } from './treatment-schedule-state'
 import type {
   TreatmentDoseInput,
@@ -31,6 +37,7 @@ export type {
   MoveBounds,
   MoveRefusal,
   NewPeriod,
+  RedateLimits,
   TreatmentSchedule,
 } from './treatment-schedule-types'
 
@@ -41,14 +48,8 @@ export function isAdvanced(
   return dose.status === 'postponed' && dose.nextDueDate < dose.dueOn
 }
 
-// Retiré quand le moteur lira la prise en plus (#503).
-function withoutExtraDoses(input: TreatmentScheduleInput): TreatmentScheduleInput {
-  return { ...input, doses: input.doses.filter(({ status }) => status !== 'extra') }
-}
-
-export function treatmentSchedule(checked: TreatmentScheduleInput): TreatmentSchedule {
-  checkInput(checked)
-  const input = withoutExtraDoses(checked)
+export function treatmentSchedule(input: TreatmentScheduleInput): TreatmentSchedule {
+  checkInput(input)
   const state = build(input)
   const currentPeriodId = state.plans.at(-1)?.period.id ?? null
   const staleDoseIds = state.plans.flatMap((plan) => plan.stale.map(({ id }) => id))
@@ -69,12 +70,13 @@ export function treatmentSchedule(checked: TreatmentScheduleInput): TreatmentSch
     staleDoseIds,
     currentPeriodId,
     currentPeriodHasDose: doses.some(
-      (dose) => dose.periodId === currentPeriodId && !isShiftLine(dose),
+      (dose) => dose.periodId === currentPeriodId && !isShiftLine(dose) && !isExtraLine(dose),
     ),
     upcoming: (limit) => upcoming(state, limit),
     dueForDate: (givenOn, time = null) => dueForDate(state, givenOn, time),
     doseFor: (gesture) => doseFor(state, knownOnce, gesture),
     redate: (doseId, givenOn) => redate(state, doseId, givenOn),
+    redateLimits: (doseId) => redateLimits(state, doseId),
     move: (due, to) => move(state, due, to),
     nextDoseChange:
       state.open === null

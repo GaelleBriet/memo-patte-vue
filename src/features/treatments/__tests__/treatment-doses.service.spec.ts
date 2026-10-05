@@ -10,6 +10,7 @@ import {
   type FakeNotifications,
 } from '@/shared/__tests__/fake-notifications'
 import { treatmentScheduleOf } from '../logic/treatment-schedule'
+import type { DoseAction } from '../logic/treatment-dose-writes'
 import { createTreatmentDosesRepository } from '../repository/treatment-doses.repository'
 import { createTreatmentPeriodsRepository } from '../repository/treatment-periods.repository'
 import {
@@ -271,6 +272,28 @@ describe('treatmentDosesService', () => {
       expect(seconde).toMatchObject({ undo: [], alreadyGivenOn: '2026-09-23', due: null })
     })
 
+    it('deux prises en plus notées en même temps : une seule ligne, la seconde répond « déjà notée »', async () => {
+      const hebdo = await creer('hebdo', HEBDO)
+      await service.noteMoment(hebdo, '2026-09-23')
+      const enPlus: DoseAction = {
+        kind: 'note',
+        gesture: {
+          kind: 'given',
+          due: { periodId: hebdo, dueOn: '2026-09-30', dueTime: null },
+          givenOn: '2026-09-23',
+        },
+      }
+
+      const [premiere, seconde] = await Promise.all([
+        service.apply(hebdo, enPlus),
+        service.apply(hebdo, enPlus),
+      ])
+
+      await expect(lignes(hebdo)).resolves.toHaveLength(2)
+      expect(premiere.undo).toHaveLength(1)
+      expect(seconde).toMatchObject({ undo: [], alreadyGivenOn: '2026-09-23' })
+    })
+
     it('refuse une prise dans le futur ou un traitement fini, sans rien écrire', async () => {
       const metacam = await creer('metacam', DEUX_HEURES)
       await db.run('UPDATE treatment_period SET stopped_on = ? WHERE treatment_id = ?', [
@@ -289,7 +312,7 @@ describe('treatmentDosesService', () => {
       await expect(lignes(metacam)).resolves.toEqual([])
     })
 
-    it('second « Fait aujourd’hui » le même jour : « déjà notée aujourd’hui », rien d’écrit ; la fiche note encore en avance', async () => {
+    it('second « Fait aujourd’hui » le même jour : « déjà notée aujourd’hui », rien d’écrit ; la fiche note une prise en plus', async () => {
       const hebdo = await creer('hebdo', HEBDO)
       await service.noteMoment(hebdo, '2026-09-23')
 
@@ -309,7 +332,14 @@ describe('treatmentDosesService', () => {
 
       await expect(lignes(hebdo)).resolves.toEqual([
         { due_on: '2026-09-18', due_time: null, given_on: '2026-09-23' },
-        { due_on: '2026-09-30', due_time: null, given_on: '2026-09-23' },
+        { due_on: '2026-09-23', due_time: null, given_on: '2026-09-23' },
+      ])
+      await expect(treatments.getById(hebdo)).resolves.toMatchObject({
+        lastDoseDate: '2026-09-23',
+        nextDueDate: '2026-09-30',
+      })
+      expect((await fiche(hebdo)).currentDoses).toEqual([
+        { periodId: hebdo, dueOn: '2026-09-30', dueTime: null },
       ])
     })
 

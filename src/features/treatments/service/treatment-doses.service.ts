@@ -97,9 +97,9 @@ export function createTreatmentDosesService({
     const line = lines.find(
       (dose) =>
         dose.periodId === due.periodId &&
-        dose.dueOn === due.dueOn &&
         dose.dueTime === due.dueTime &&
-        isNoteLine(dose),
+        ((dose.dueOn === due.dueOn && isNoteLine(dose)) ||
+          (dose.dueOn === givenOn && dose.status === 'extra')),
     )
     return line === undefined ? null : (line.givenOn ?? givenOn)
   }

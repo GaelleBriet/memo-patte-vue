@@ -46,8 +46,9 @@ const FULL_CONTENT: CarnetPdfContent = {
       lastDoseDate: '2026-06-01',
       previousDoses: [
         { kind: 'range', count: 12, from: '2025-06-01', to: '2026-05-01' },
-        { kind: 'dates', dates: ['2024-12-01', '2024-11-01'] },
+        { kind: 'dates', dates: ['2024-12-01', '2024-11-01'], extras: [false, false] },
       ],
+      lastDoseExtra: false,
       nextDueDate: '2026-09-01',
       stoppedOn: null,
       state: 'upToDate',

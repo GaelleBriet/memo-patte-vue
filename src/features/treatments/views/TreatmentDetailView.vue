@@ -210,6 +210,7 @@ function onLineAction(row: DoseRow, choice: DoseLineAction, bounds: MoveBounds |
   const change = dateChangeOf(t, row.dose, bounds, {
     today: today.value,
     earliest: animal.value?.birthDate ?? null,
+    limits: schedule.value?.redateLimits(row.dose.id) ?? null,
   })
   if (change === null) return
   changing.value = { row, change }
@@ -351,6 +352,7 @@ async function remove(): Promise<void> {
       :date="changing?.change.date ?? null"
       :min="changing?.change.min ?? null"
       :max="changing?.change.max ?? null"
+      :excluded="changing?.change.excluded ?? []"
       @pick="changeDate"
     />
 

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { dose, missed, period, plain, shifted, treatment } from './treatment-fixtures'
+import { dose, extra, missed, period, plain, shifted, treatment } from './treatment-fixtures'
 import {
   givenDays,
   momentDue,
@@ -137,6 +137,17 @@ describe('givenDays', () => {
     expect(givenDays(treatmentScheduleOf(book, '2026-09-04'))).toEqual(['2026-09-01', '2026-09-03'])
   })
 
+  it('rend aussi le jour d’une prise en plus, même sans échéance ce jour-là', () => {
+    const hebdo = period({
+      frequency: { value: 1, unit: 'week' },
+      startsOn: '2026-10-16',
+      firstDueOn: '2026-10-16',
+    })
+    const book = treatment([hebdo], [extra('2026-10-09', '2026-10-16')])
+
+    expect(givenDays(treatmentScheduleOf(book, '2026-10-10'))).toEqual(['2026-10-09'])
+  })
+
   it('garde un jour d’une ancienne période à plusieurs heures dont une seule est donnée', () => {
     const book = treatment(
       [
@@ -264,6 +275,21 @@ describe('momentDue — ce que notent la feuille « À faire » et une notificat
     expect(due(hebdo, '2026-10-02')).toEqual({
       due: { periodId: 'p-1', dueOn: '2026-10-08', dueTime: null },
     })
+  })
+
+  it('après une prise en plus du jour, dit « déjà notée » au lieu de noter la dose suivante', () => {
+    const hebdo = treatment(
+      [
+        period({
+          frequency: { value: 1, unit: 'week' },
+          startsOn: '2026-10-16',
+          firstDueOn: '2026-10-16',
+        }),
+      ],
+      [extra('2026-10-09', '2026-10-16')],
+    )
+
+    expect(due(hebdo, '2026-10-09')).toEqual({ alreadyGivenOn: '2026-10-09' })
   })
 
   it('ne vise rien pour un traitement fini', () => {

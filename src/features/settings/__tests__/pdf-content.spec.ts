@@ -280,7 +280,57 @@ describe('buildCarnetPdfContent — historique', () => {
     const row = buildCarnetPdfContent(data, ANIMAL_ID, TODAY)!.treatments[0]!
 
     expect(row.lastDoseDate).toBe('2026-05-20')
-    expect(row.previousDoses).toEqual([{ kind: 'dates', dates: ['2026-05-01'] }])
+    expect(row.previousDoses).toEqual([{ kind: 'dates', dates: ['2026-05-01'], extras: [false] }])
+  })
+
+  it('compte une prise en plus comme une dose donnée, à sa date réelle', () => {
+    const { treatmentPeriods, treatmentDoses } = historyOf([dose('2026-04-01'), dose('2026-05-01')])
+    const [, mai] = treatmentDoses
+    const data = {
+      ...DATA,
+      treatmentPeriods,
+      treatmentDoses: [
+        ...treatmentDoses,
+        {
+          ...mai!,
+          id: 'd-en-plus',
+          dueOn: '2026-05-08',
+          givenOn: '2026-05-08',
+          status: 'extra' as const,
+          nextDueDate: '2099-01-01',
+        },
+      ],
+    }
+
+    const row = buildCarnetPdfContent(data, ANIMAL_ID, TODAY)!.treatments[0]!
+
+    expect(row.lastDoseDate).toBe('2026-05-08')
+    expect(row.lastDoseExtra).toBe(true)
+    expect(row.nextDueDate).not.toBe('2099-01-01')
+    expect(row.previousDoses).toEqual([
+      { kind: 'dates', dates: ['2026-05-01', '2026-04-01'], extras: [false, false] },
+    ])
+  })
+
+  it('ne marque que la prise en plus, pas la prise donnée le même jour', () => {
+    const { treatmentPeriods, treatmentDoses } = historyOf([dose('2026-04-01'), dose('2026-05-01')])
+    const [, mai] = treatmentDoses
+    const data = {
+      ...DATA,
+      treatmentPeriods,
+      treatmentDoses: [...treatmentDoses, { ...mai!, id: 'd-en-plus', status: 'extra' as const }],
+    }
+
+    const row = buildCarnetPdfContent(data, ANIMAL_ID, TODAY)!.treatments[0]!
+    const marks = [
+      row.lastDoseExtra,
+      ...row.previousDoses.flatMap((series) => (series.kind === 'dates' ? series.extras : [])),
+    ]
+
+    expect(marks.filter(Boolean)).toHaveLength(1)
+    expect(row.previousDoses).toEqual([
+      expect.objectContaining({ dates: ['2026-05-01', '2026-04-01'] }),
+    ])
   })
 
   it('liste toutes les injections d’un vaccin, la plus récente d’abord, jamais regroupées', () => {
@@ -305,7 +355,11 @@ describe('buildCarnetPdfContent — historique', () => {
 
     expect(row.lastDoseDate).toBe('2026-06-01')
     expect(row.previousDoses).toEqual([
-      { kind: 'dates', dates: ['2026-05-01', '2026-04-01', '2026-03-01'] },
+      {
+        kind: 'dates',
+        dates: ['2026-05-01', '2026-04-01', '2026-03-01'],
+        extras: [false, false, false],
+      },
     ])
     expect(treatmentRow([dose('2026-06-01')]).previousDoses).toEqual([])
   })
@@ -339,8 +393,8 @@ describe('buildCarnetPdfContent — historique', () => {
     )
 
     expect(row.previousDoses).toEqual([
-      { kind: 'dates', dates: ['2026-02-13'] },
-      { kind: 'dates', dates: ['2026-01-22', '2026-01-01'] },
+      { kind: 'dates', dates: ['2026-02-13'], extras: [false] },
+      { kind: 'dates', dates: ['2026-01-22', '2026-01-01'], extras: [false, false] },
     ])
   })
 
@@ -360,11 +414,15 @@ describe('buildCarnetPdfContent — historique', () => {
     ])
 
     expect(quarterlyThenMonthly.previousDoses).toEqual([
-      { kind: 'dates', dates: ['2026-04-02', '2026-03-02', '2026-01-01'] },
+      {
+        kind: 'dates',
+        dates: ['2026-04-02', '2026-03-02', '2026-01-01'],
+        extras: [false, false, false],
+      },
     ])
     expect(monthlyThenQuarterly.previousDoses).toEqual([
-      { kind: 'dates', dates: ['2026-06-02', '2026-03-02'] },
-      { kind: 'dates', dates: ['2026-01-01'] },
+      { kind: 'dates', dates: ['2026-06-02', '2026-03-02'], extras: [false, false] },
+      { kind: 'dates', dates: ['2026-01-01'], extras: [false] },
     ])
   })
 

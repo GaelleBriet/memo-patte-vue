@@ -156,9 +156,10 @@ Les §2.1 à §2.5 comparent les options telles qu'elles ont été proposées, a
   « C'est fait » en un tap : le moteur choisit et l'écrit (§2.6). Oubliée : toujours 0. Report :
   1 = la suite repart de la nouvelle date, 0 = seule cette dose bouge.
 - `status` gagne `extra` : une **prise en plus**, notée un intervalle ou plus avant la prochaine dose.
-  Elle est rangée sous sa date réelle (`due_on` = `given_on`), ne couvre aucune échéance, et la suite
-  repart d'elle. Exemples : première prise le 16, notée le 9 → prise en plus le 9, prochaine le 16 ;
-  notée le 2 → prochaine le 9 ; tous les 3 jours, notée le 5 pour le 8 → prochaine le 8 ; second
+  Elle est rangée sous sa date réelle (`due_on` = `given_on`), ne couvre aucune échéance et ne change
+  jamais le calendrier (décision de Gaelle du 2026-10-05, §5.1 ; la reprise de la suite depuis elle,
+  proposée ici d'abord, est abandonnée). Exemples : première prise le 16, notée le 9, le 7 ou le 2 →
+  prise en plus, prochaine le 16 ; tous les 3 jours, notée le 5 pour le 8 → prochaine le 8 ; second
   « C'est fait » du jour d'un quotidien → prise en plus, le lendemain garde sa dose.
 - `next_due_date` reste : date d'arrivée d'un report (le moteur la lit) ; pour une prise, valeur
   calculée et écrite par le moteur, qu'il ne relit plus (le Carnet, l'accueil et les rappels la lisent
@@ -312,7 +313,7 @@ l'affichage :
 
 | Famille | État | Porte | Effet sur la suite |
 | --- | --- | --- | --- |
-| Prise | `given`, `missed` ; `extra` (prise en plus, rangée sous sa date réelle) | `given_on` | aucun, sauf la prise en plus, qui fait toujours repartir la suite d'elle |
+| Prise | `given`, `missed` ; `extra` (prise en plus, rangée sous sa date réelle) | `given_on` | aucun ; la prise en plus ne change jamais le calendrier (2026-10-05) |
 | Report | `postponed` | `next_due_date` = nouvelle date de la dose | la dose seule bouge ; les suivantes gardent leurs jours |
 | Décalage | `shift` | `next_due_date` = **date d'ancrage** du nouveau rythme | les échéances **après** l'échéance d'origine suivent le rythme ancré : ancrage + 1 pas, + 2 pas… |
 
@@ -435,9 +436,9 @@ le décalage en nouvelle période ou porté par la ligne de report (§2.7).
 - Le moteur n'ignore plus une ligne écrite à la lecture, sauf deux lignes de même famille sur la même
   échéance (la plus récente) et un report revenu à sa date. Un report dépassé (TR-24 bis) est supprimé
   par l'écriture.
-- Une prise en plus ne se note qu'à partir de la dernière ligne de la période (garde du type G8) ;
-  « Changer la date » d'une prise en plus lui fait viser l'échéance que viserait une prise notée à la
-  nouvelle date (TR-13), ce qui règle 3b.
+- Une prise en plus ne change jamais le calendrier (2026-10-05) : la garde du type G8 proposée ici
+  n'a plus d'objet. « Changer la date » d'une prise en plus lui fait viser l'échéance que viserait une
+  prise notée à la nouvelle date (TR-13), ce qui règle 3b.
 - Fusion à l'affichage : une prise gagne sur un report de la même échéance (Q5) ; entre deux lignes de
   même famille, `updated_at` puis, à égalité, l'identifiant d'appareil (§2.5, §6).
 - Export v4 (états `extra`, `shift`, `referenceOn`, colonnes d'appareil, appareils), v3 refusé jusqu'à
@@ -474,7 +475,7 @@ Dans l'ordre. Toutes les questions ont leur réponse (§5.1).
 
 **3. `feat(treatments): prise en plus (prise donnée un intervalle ou plus en avance)`**
 
-- [ ] Première prise le 16 : notée le 13 → 20 ; le 9 → 16 ; le 2 → 9 ; tous les 3 jours, le 8 noté le 5 → 8
+- [ ] Première prise le 16 : notée le 13 → 20 ; le 9, le 7 ou le 2 → 16 (2026-10-05) ; tous les 3 jours, le 8 noté le 5 → 8
 - [ ] Second « C'est fait » du jour d'un quotidien : le lendemain garde sa dose
 - [ ] Libellé de l'historique et du PDF selon la maquette ; « Annuler » rend l'état d'avant
 - [ ] Q8 et G10 inchangés ; G11 et TR-13 réécrites dans la spec
@@ -531,6 +532,11 @@ suppression d'une prise et d'un décalage) et la reprogrammation des rappels qui
 
 - **Q1** : option A, « Prise en plus » (libellé avec la maquette). À plusieurs heures par jour, une
   heure donnée en avance couvre son échéance comme aujourd'hui (G10 inchangée).
+- **Q1, précisée le 2026-10-05** : une prise en plus ne change jamais le calendrier. Les doses
+  prévues restent toutes à leur date, la prise en plus s'ajoute seulement à l'historique.
+  Hebdomadaire du vendredi, dose du 16 prévue : donnée le mercredi 7, le 9 ou le 2, la prochaine
+  reste le 16, puis 23, 30 ; notée avant le début de la période, idem. La reprise de la suite depuis
+  la prise en plus (§2.1) et l'exemple « donnée le 2 → prochaine le 9 » sont abandonnés.
 - **Q2** : un report seul va au plus jusqu'à la veille de la dose suivante ; si la dose suivante est
   notée, refus G7 ; la dose déplacée seule puis donnée un autre jour ne décale pas les suivantes.
 - **Q3**, principe général : dès qu'une date de dose change, l'app propose « Décaler aussi les doses

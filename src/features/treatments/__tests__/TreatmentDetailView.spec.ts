@@ -739,8 +739,9 @@ describe('TreatmentDetailView — menu ⋮ d’une prise', () => {
       title: 'Changer la date',
       subtitle: 'Prise du 10 juil. 2026',
       date: '2026-07-10',
-      min: '2023-04-10',
+      min: '2026-04-11',
       max: '2026-09-28',
+      excluded: [],
     })
 
     calendrier.vm.$emit('pick', '2026-07-08')

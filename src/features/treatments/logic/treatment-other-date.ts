@@ -1,4 +1,4 @@
-import type { Due, TreatmentSchedule } from '@/shared/domain/treatment-schedule'
+import type { Due, TreatmentDoseInput, TreatmentSchedule } from '@/shared/domain/treatment-schedule'
 import { formatClockTime, formatDayMonthOrYear } from '@/shared/utils/format'
 
 export type Translate = (key: string, named?: Record<string, unknown>, plural?: number) => string
@@ -77,11 +77,13 @@ export function otherDatePlan(
   return { hours: [], due: only.status === 'given' ? null : only.due }
 }
 
-/** Jours dont toutes les échéances sont données : une autre prise ne s'y note pas. */
+function isGiven({ status }: Pick<TreatmentDoseInput, 'status'>): boolean {
+  return status === 'given' || status === 'extra'
+}
+
+/** Jours dont toutes les échéances sont données, ou qui ont une prise en plus : une autre prise ne s'y note pas. */
 export function givenDays(schedule: DaySchedule): string[] {
-  const days = new Set(
-    schedule.doses.filter(({ status }) => status === 'given').map(({ dueOn }) => dueOn),
-  )
+  const days = new Set(schedule.doses.filter(isGiven).map(({ dueOn }) => dueOn))
   return [...days].filter((day) => dayDues(schedule, day).every(({ status }) => status === 'given'))
 }
 
@@ -113,9 +115,7 @@ export function momentDue(
   }
   const current = schedule.currentDoses[0]
   if (current === undefined) return null
-  const givenToday = schedule.doses.some(
-    (dose) => dose.status === 'given' && dose.givenOn === today,
-  )
+  const givenToday = schedule.doses.some((dose) => isGiven(dose) && dose.givenOn === today)
   return current.dueOn > today && givenToday ? { alreadyGivenOn: today } : { due: current }
 }
 

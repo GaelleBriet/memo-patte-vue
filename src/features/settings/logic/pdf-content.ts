@@ -6,6 +6,7 @@ import type { ExportData, ExportFrequency } from '@/shared/domain/carnet-data'
 import {
   currentPeriods,
   givenDoseHistories,
+  periodHeads,
   vaccinationHistories,
   type GivenDose,
 } from '@/shared/domain/carnet-heads'
@@ -23,13 +24,17 @@ export type PdfVaccinationRow = {
 
 /** Prises régulières d'un traitement : listées jusqu'à trois, résumées au-delà. */
 export type PdfDoseSeries =
-  { kind: 'dates'; dates: string[] } | { kind: 'range'; count: number; from: string; to: string }
+  /** `extras[i]` : la prise de `dates[i]` est une prise en plus. */
+  | { kind: 'dates'; dates: string[]; extras: boolean[] }
+  | { kind: 'range'; count: number; from: string; to: string }
 
 export type PdfTreatmentRow = {
   name: string
   lastDoseDate: string
   /** Les prises avant la dernière, par séries, la plus récente d'abord. */
   previousDoses: PdfDoseSeries[]
+  /** La dernière prise est une prise en plus. */
+  lastDoseExtra: boolean
   /** `null` pour un traitement arrêté : il n'a plus d'échéance. */
   nextDueDate: string | null
   stoppedOn: string | null
@@ -67,7 +72,7 @@ const MAX_LISTED_DOSES = 3
 const SERIES_GAP_FACTOR = 1.5
 const DAYS_PER_UNIT = { day: 1, week: 7, month: 365.25 / 12 }
 
-type DatedDose = { givenOn: string; frequency: ExportFrequency }
+type DatedDose = { givenOn: string; frequency: ExportFrequency; extra: boolean }
 
 // Fréquence de la période de la prise précédente : le rythme auquel la suivante est attendue.
 function isSameSeries(previous: DatedDose, next: DatedDose): boolean {
@@ -87,7 +92,7 @@ function doseSeries(doses: readonly DatedDose[]): PdfDoseSeries[] {
   return series.reverse().map((group): PdfDoseSeries => {
     const dates = group.map(({ givenOn }) => givenOn)
     return dates.length <= MAX_LISTED_DOSES
-      ? { kind: 'dates', dates: dates.reverse() }
+      ? { kind: 'dates', dates: dates.reverse(), extras: group.map(({ extra }) => extra).reverse() }
       : { kind: 'range', count: dates.length, from: dates[0]!, to: dates.at(-1)! }
   })
 }
@@ -109,11 +114,12 @@ export function buildCarnetPdfContent(
 
   const injections = vaccinationHistories(data.vaccinationInjections)
   const doses = givenDoseHistories(data.treatmentDoses)
+  const heads = periodHeads(data.treatmentDoses)
   const periods = currentPeriods(data.treatmentPeriods)
   const frequencies = new Map(data.treatmentPeriods.map(({ id, frequency }) => [id, frequency]))
-  const dated = ({ givenOn, periodId }: GivenDose): DatedDose[] => {
+  const dated = ({ givenOn, periodId, status }: GivenDose): DatedDose[] => {
     const frequency = frequencies.get(periodId)
-    return frequency ? [{ givenOn, frequency }] : []
+    return frequency ? [{ givenOn, frequency, extra: status === 'extra' }] : []
   }
 
   const vaccinations: PdfVaccinationRow[] = data.vaccinations
@@ -140,12 +146,14 @@ export function buildCarnetPdfContent(
       const [head, ...previous] = doses.get(item.id) ?? []
       const period = periods.get(item.id)
       if (!head || !period) return []
-      const nextDueDate = period.stoppedOn ? null : head.nextDueDate
+      const planned = heads.get(period.id)?.nextDueDate ?? period.firstDueOn
+      const nextDueDate = period.stoppedOn ? null : planned
       return [
         {
           name: item.name,
           lastDoseDate: head.givenOn,
           previousDoses: doseSeries(previous.flatMap(dated)),
+          lastDoseExtra: head.status === 'extra',
           nextDueDate,
           stoppedOn: period.stoppedOn,
           state: dueState(nextDueDate, today, 'treatment'),

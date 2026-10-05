@@ -146,6 +146,16 @@ describe('têtes du carnet', () => {
     ])
   })
 
+  it('ne prend jamais une prise en plus ni une ligne de décalage pour la tête d’une période', () => {
+    const heads = periodHeads([
+      dose('prise', '2026-09-18'),
+      dose('en plus', '2026-09-18', { status: 'extra', createdAt: '2026-09-18T10:00:00.000Z' }),
+      dose('seule', '2026-09-20', { periodId: 'reprise', status: 'extra' }),
+    ])
+
+    expect([...heads].map(([period, head]) => [period, head.id])).toEqual([['bravecto', 'prise']])
+  })
+
   it('range les prises données par leur date réelle, sans les oubliées ni les reportées', () => {
     const histories = givenDoseHistories([
       dose('a-l-heure', '2026-09-02'),

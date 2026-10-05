@@ -51,6 +51,10 @@ export function isShiftLine(dose: Pick<TreatmentDoseInput, 'status'>): boolean {
   return dose.status === 'shift'
 }
 
+export function isExtraLine(dose: Pick<TreatmentDoseInput, 'status'>): boolean {
+  return dose.status === 'extra'
+}
+
 export function mergeDoses(doses: readonly TreatmentDoseInput[]): TreatmentDoseInput[] {
   const latest = new Map<string, TreatmentDoseInput>()
   for (const dose of doses) {

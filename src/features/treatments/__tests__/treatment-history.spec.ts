@@ -1,6 +1,15 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { dose, missed, period, plain, postponed, shifted, treatment } from './treatment-fixtures'
+import {
+  dose,
+  extra,
+  missed,
+  period,
+  plain,
+  postponed,
+  shifted,
+  treatment,
+} from './treatment-fixtures'
 import {
   LINES_BEFORE_TOGGLE,
   treatmentDeleteTexts,
@@ -362,6 +371,54 @@ describe('treatmentHistory — plusieurs périodes (planche A · V3)', () => {
     ])
     expect(periods[0]!.lines[5]!.title).toBe('Missed · Sep 25, 2026, 8 am and 8 pm')
     expect(periods[0]!.toggle!.show).toBe('Show the 12 other doses from this period')
+  })
+})
+
+describe('treatmentHistory — prise en plus (planches V32, V32 bis)', () => {
+  const HEBDO = period({
+    frequency: { value: 1, unit: 'week' },
+    startsOn: '2026-09-04',
+    firstDueOn: '2026-09-04',
+  })
+  const MILBEMAX = treatment(
+    [HEBDO],
+    [
+      ...['2026-09-04', '2026-09-11', '2026-09-18', '2026-09-25'].map((day, index, all) =>
+        dose(day, all[index + 1] ?? '2026-10-02'),
+      ),
+      dose('2026-10-02', '2026-10-09'),
+      extra('2026-10-02', '2026-10-09', { createdAt: '2026-10-02T09:00:00.000Z' }),
+    ],
+  )
+
+  it('« 2 oct. 2026 · Prise en plus », sans « Dernière prise », qui reste sur la dernière prise prévue', () => {
+    const [only] = history(MILBEMAX, '2026-10-03').periods
+
+    expect(only!.lines.slice(0, 2)).toMatchObject([
+      {
+        kind: 'extra',
+        title: '2 oct. 2026 · Prise en plus',
+        optionsLabel: 'Options pour la prise en plus du 2 octobre 2026',
+        actions: ['change-date', 'remove'],
+      },
+      { kind: 'given', title: '2 oct. 2026', isLast: true },
+    ])
+    expect(only!.lines[0]).not.toHaveProperty('isLast')
+  })
+
+  it('compte la prise en plus parmi les prises, repliées comprises', () => {
+    const { counter, periods } = history(MILBEMAX, '2026-10-03')
+
+    expect(counter).toBe('6 depuis le 4 sept. 2026')
+    expect(periods[0]!.toggle!.show).toBe('Voir les 3 prises précédentes')
+  })
+
+  it('s’écrit en anglais', () => {
+    applyLocale('en')
+
+    expect(history(MILBEMAX, '2026-10-03').periods[0]!.lines[0]!.title).toBe(
+      'Oct 2, 2026 · Extra dose',
+    )
   })
 })
 
