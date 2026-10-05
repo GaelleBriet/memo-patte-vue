@@ -116,9 +116,12 @@ export function headDoseIdSql(periodId: string): string {
   return lastOfPeriodSql('id', periodId, "AND candidate.status <> 'shift'")
 }
 
-/** Sous-requête de la date de la dernière prise donnée d'une période, dans l'ordre de `headDoseIdSql`. */
+/**
+ * Sous-requête de la date de la dernière prise donnée d'une période, prise en plus comprise, dans
+ * l'ordre de `headDoseIdSql`.
+ */
 export function lastGivenOnSql(periodId: string): string {
-  return lastOfPeriodSql('given_on', periodId, "AND candidate.status = 'given'")
+  return lastOfPeriodSql('given_on', periodId, "AND candidate.status IN ('given', 'extra')")
 }
 
 function valuesOf(dose: Stamped<NewTreatmentDose>): SqlParam[] {

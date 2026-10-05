@@ -9,6 +9,7 @@ import {
   type Family,
   type LineChange,
   type MovedDose,
+  type NotedDose,
   type TreatmentSchedule,
 } from '@/shared/domain/treatment-schedule'
 
@@ -146,17 +147,17 @@ function familyWrites(
   return lines.length > 0 ? rewrites(lines, dose) : [created(history, dose, newId)]
 }
 
+// Une prise en plus est rangée sous sa date réelle, avec les lignes de sa famille.
 function noteWrites(
   history: History,
-  schedule: TreatmentSchedule,
-  gesture: DoseGesture,
+  { dose, shift }: NotedDose,
   notes: NewTreatmentDose[],
   newId: () => string,
 ): DoseWrite[] {
-  const { dose, shift } = schedule.doseFor(gesture)
-  const writes = familyWrites(history, dose, notes, newId)
+  const lines = familyOf(dose) === 'note' ? notes : linesOf(history, dose, familyOf(dose))
+  const writes = familyWrites(history, dose, lines, newId)
   if (shift === null) return writes
-  return [...writes, ...familyWrites(history, shift, linesOf(history, gesture.due, 'shift'), newId)]
+  return [...writes, ...familyWrites(history, shift, linesOf(history, shift, 'shift'), newId)]
 }
 
 function dueKey({ periodId, dueOn, dueTime }: Due): string {
@@ -179,13 +180,36 @@ function logWrites(
     notesOfDue.set(dueKey(line), [...(notesOfDue.get(dueKey(line)) ?? []), line])
   }
   return gestures.flatMap((gesture) =>
-    noteWrites(history, schedule, gesture, notesOfDue.get(dueKey(gesture.due)) ?? [], newId),
+    noteWrites(
+      history,
+      schedule.doseFor(gesture),
+      notesOfDue.get(dueKey(gesture.due)) ?? [],
+      newId,
+    ),
   )
 }
 
 function keepsShift(history: History, id: string): boolean {
   const line = lineById(history, id)
-  return linesOf(history, line, 'shift').length > 0
+  return familyOf(line) !== 'extra' && linesOf(history, line, 'shift').length > 0
+}
+
+// Redatée, une prise en plus prend la place d'une ligne de l'échéance qu'elle vise désormais, ou
+// garde la sienne.
+function extraRedateWrites(
+  history: History,
+  schedule: TreatmentSchedule,
+  { doseId, givenOn }: { doseId: string; givenOn: string },
+  newId: () => string,
+): DoseWrite[] {
+  const { dose, shift } = schedule.redate(doseId, givenOn)
+  const extras = sisterLines(history, doseId)
+  const targets = linesOf(history, dose, familyOf(dose)).filter((line) => !extras.includes(line))
+  const lines =
+    targets.length > 0
+      ? [...rewrites(targets, dose), ...deletes(extras.map(({ id }) => id))]
+      : rewrites(extras, dose)
+  return [...lines, ...lineWrites(history, shift, newId)]
 }
 
 function changeOf(
@@ -204,10 +228,15 @@ function changeOf(
       if (gesture.kind === 'given' && noted?.status === 'given') {
         return { ...unchanged, writes: [], alreadyGivenOn: noted.givenOn }
       }
+      const written = schedule.doseFor(gesture)
+      const isRepeated =
+        familyOf(written.dose) === 'extra' &&
+        schedule.doses.some((dose) => familyOf(dose) === 'extra' && isSameDue(dose, written.dose))
+      if (isRepeated) return { ...unchanged, writes: [], alreadyGivenOn: written.dose.givenOn }
       const notes = linesOf(history, gesture.due, 'note')
       return {
         ...unchanged,
-        writes: noteWrites(history, schedule, gesture, notes, newId),
+        writes: noteWrites(history, written, notes, newId),
         shiftKept:
           gesture.kind === 'missed' &&
           notes.length > 0 &&
@@ -223,6 +252,9 @@ function changeOf(
         shiftKept: keepsShift(history, action.doseId),
       }
     case 'redate': {
+      if (familyOf(lineById(history, action.doseId)) === 'extra') {
+        return { ...unchanged, writes: extraRedateWrites(history, schedule, action, newId) }
+      }
       const { dose, shift, postponement } = schedule.redate(action.doseId, action.givenOn)
       const writes = [
         ...rewrites(sisterLines(history, action.doseId), dose),

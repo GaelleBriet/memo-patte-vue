@@ -264,6 +264,16 @@ describe('dateChangeOf — « Changer la date »', () => {
     })
   })
 
+  it('d’une prise en plus : sa date réelle, avec son nom', () => {
+    const prise = dose('2026-09-09', '2026-09-16', { status: 'extra' })
+
+    expect(dateChangeOf(t, prise, null, { today: TODAY, earliest: null })).toMatchObject({
+      subtitle: 'Prise en plus du 9 sept. 2026',
+      date: '2026-09-09',
+      max: TODAY,
+    })
+  })
+
   it('d’un report : sa nouvelle date, entre les bornes du moteur', () => {
     const report = dose('2026-10-10', '2026-10-14', { givenOn: null, status: 'postponed' })
     const bounds = { earliest: '2026-09-28', latest: '2026-12-31' }

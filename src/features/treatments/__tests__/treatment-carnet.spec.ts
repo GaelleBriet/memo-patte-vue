@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { dose, missed, period, plain, treatment } from './treatment-fixtures'
+import { dose, extra, missed, period, plain, treatment } from './treatment-fixtures'
 import { carnetScheduleCache, carnetTreatments } from '../logic/treatment-carnet'
 import type { TreatmentWithHistory } from '../repository/treatments.repository'
 import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
@@ -265,6 +265,16 @@ describe('carnetTreatments — traitements terminés (TR-31)', () => {
     )
 
     expect(carnet([avant], '2026-09-29').finished[0]!.detail).toBe('Terminé le 28 sept. · 4 prises')
+  })
+
+  it('compte une prise en plus parmi les prises', () => {
+    const arrete = named(
+      'Drontal',
+      [period({ startsOn: '2026-09-20', firstDueOn: '2026-09-20', stoppedOn: '2026-09-21' })],
+      [dose('2026-09-20', '2026-09-21'), extra('2026-09-20', '2026-09-21')],
+    )
+
+    expect(carnet([arrete]).finished[0]!.detail).toBe('Arrêté le 21 sept. · 2 prises')
   })
 
   it('accorde le nombre de prises, et donne l’année d’une autre année', () => {

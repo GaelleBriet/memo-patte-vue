@@ -87,6 +87,15 @@ export function shifted(
   })
 }
 
+/** Prise en plus, rangée sous sa date réelle. */
+export function extra(
+  givenOn: string,
+  nextDueDate: string,
+  overrides: Partial<NewTreatmentDose> = {},
+): NewTreatmentDose {
+  return dose(givenOn, nextDueDate, { id: `en plus ${givenOn}`, status: 'extra', ...overrides })
+}
+
 export function treatment(
   periods: TreatmentPeriodRecord[],
   doses: NewTreatmentDose[] = [],

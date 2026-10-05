@@ -234,8 +234,12 @@ export function dateChangeOf(
     }
   }
   if (line.givenOn === null) return null
+  const date = formatLongDate(line.givenOn)
   return {
-    subtitle: t('treatments.detail.changeDateSubtitle', { date: formatLongDate(line.givenOn) }),
+    subtitle:
+      line.status === 'extra'
+        ? t('treatments.detail.changeDateSubtitleExtra', { date })
+        : t('treatments.detail.changeDateSubtitle', { date }),
     date: line.givenOn,
     min: earliest,
     max: today,

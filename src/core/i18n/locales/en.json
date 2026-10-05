@@ -435,6 +435,7 @@
       "optionsAt": "Options for the dose on {date} at {time}",
       "remove": "Delete this dose",
       "changeDateSubtitle": "Dose on {date}",
+      "changeDateSubtitleExtra": "Extra dose on {date}",
       "otherDate": {
         "next": "Next",
         "back": "Back to the day",
@@ -485,6 +486,8 @@
       "empty": "No doses in this period yet",
       "dueAt": "{date} · {time}",
       "givenOn": "Given on {date}",
+      "extra": "{date} · Extra dose",
+      "extraOptions": "Options for the extra dose on {date}",
       "missed": "Missed · {when} | Missed · {when}",
       "dayTimes": "{date}, {times}",
       "days": "{from} – {to}",

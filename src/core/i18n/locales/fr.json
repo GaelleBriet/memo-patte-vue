@@ -435,6 +435,7 @@
       "optionsAt": "Options pour la prise du {date} à {time}",
       "remove": "Supprimer cette prise",
       "changeDateSubtitle": "Prise du {date}",
+      "changeDateSubtitleExtra": "Prise en plus du {date}",
       "otherDate": {
         "next": "Suivant",
         "back": "Retour au choix du jour",
@@ -485,6 +486,8 @@
       "empty": "Aucune prise dans cette période pour l’instant",
       "dueAt": "{date} · {time}",
       "givenOn": "Donnée le {date}",
+      "extra": "{date} · Prise en plus",
+      "extraOptions": "Options pour la prise en plus du {date}",
       "missed": "Oubliée · {when} | Oubliées · {when}",
       "dayTimes": "{date}, {times}",
       "days": "du {from} au {to}",

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { dose, missed, period, postponed, shifted, treatment } from './treatment-fixtures'
+import { dose, extra, missed, period, postponed, shifted, treatment } from './treatment-fixtures'
 import { doseChange, movedDueOf, type DoseAction } from '../logic/treatment-dose-writes'
 import { treatmentScheduleOf } from '../logic/treatment-schedule'
 import type { TreatmentWithHistory } from '../repository/treatments.repository'
@@ -571,5 +571,161 @@ describe('doseChange — ce que le moteur a fait d’un report', () => {
     expect(
       change(REPORTEE, '2026-09-05', { kind: 'remove', doseId: '2026-09-01' }).moved,
     ).toBeNull()
+  })
+})
+
+describe('doseChange — prise en plus (#503)', () => {
+  const WEEKLY = period({
+    startsOn: '2026-10-16',
+    firstDueOn: '2026-10-16',
+    frequency: { value: 1, unit: 'week' },
+  })
+  const due16 = { periodId: 'p-1', dueOn: '2026-10-16', dueTime: null }
+
+  it('dose du 16 donnée le 9 : crée une prise en plus sous sa date réelle', () => {
+    const history = treatment([WEEKLY])
+
+    expect(
+      change(history, '2026-10-09', {
+        kind: 'note',
+        gesture: { kind: 'given', due: due16, givenOn: '2026-10-09' },
+      }).writes,
+    ).toEqual([
+      {
+        action: 'create',
+        id: 'nouvelle',
+        ...OWNER,
+        dose: {
+          periodId: 'p-1',
+          dueOn: '2026-10-09',
+          dueTime: null,
+          givenOn: '2026-10-09',
+          status: 'extra',
+          nextDueDate: '2026-10-16',
+        },
+      },
+    ])
+  })
+
+  it('la même prise en plus notée de nouveau n’écrit rien, et dit quand', () => {
+    const history = treatment([WEEKLY], [extra('2026-10-09', '2026-10-16')])
+
+    expect(
+      change(history, '2026-10-09', {
+        kind: 'note',
+        gesture: { kind: 'given', due: due16, givenOn: '2026-10-09' },
+      }),
+    ).toEqual(expect.objectContaining({ writes: [], alreadyGivenOn: '2026-10-09' }))
+  })
+
+  it('quotidien, second « C’est fait » du jour : prise en plus à côté de la prise du jour', () => {
+    const history = treatment([period()], [dose('2026-09-02', '2026-09-03')])
+    const due3 = { periodId: 'p-1', dueOn: '2026-09-03', dueTime: null }
+
+    expect(
+      change(history, '2026-09-02', {
+        kind: 'note',
+        gesture: { kind: 'given', due: due3, givenOn: '2026-09-02' },
+      }).writes,
+    ).toEqual([
+      expect.objectContaining({
+        action: 'create',
+        dose: expect.objectContaining({ dueOn: '2026-09-02', status: 'extra' }),
+      }),
+    ])
+  })
+
+  it('supprimée, seule sa ligne part, sans parler de décalage', () => {
+    const history = treatment([WEEKLY], [extra('2026-10-09', '2026-10-16')])
+
+    expect(change(history, '2026-10-10', { kind: 'remove', doseId: 'en plus 2026-10-09' })).toEqual(
+      expect.objectContaining({
+        writes: [{ action: 'delete', id: 'en plus 2026-10-09' }],
+        shiftKept: false,
+      }),
+    )
+  })
+
+  it('redatée un intervalle en avance, sa ligne est réécrite à la nouvelle date', () => {
+    const history = treatment([WEEKLY], [extra('2026-10-09', '2026-10-16')])
+
+    expect(
+      change(history, '2026-10-09', {
+        kind: 'redate',
+        doseId: 'en plus 2026-10-09',
+        givenOn: '2026-10-02',
+      }).writes,
+    ).toEqual([
+      {
+        action: 'rewrite',
+        id: 'en plus 2026-10-09',
+        dose: expect.objectContaining({
+          dueOn: '2026-10-02',
+          givenOn: '2026-10-02',
+          status: 'extra',
+          nextDueDate: '2026-10-09',
+        }),
+      },
+    ])
+  })
+
+  it('redatée après sa dose, elle devient la prise de la dose du moment, avec son décalage', () => {
+    const history = treatment(
+      [period({ frequency: { value: 1, unit: 'week' } })],
+      [dose('2026-09-01', '2026-09-08'), extra('2026-09-01', '2026-09-08')],
+    )
+
+    expect(
+      change(history, '2026-09-10', {
+        kind: 'redate',
+        doseId: 'en plus 2026-09-01',
+        givenOn: '2026-09-10',
+      }).writes,
+    ).toEqual([
+      {
+        action: 'rewrite',
+        id: 'en plus 2026-09-01',
+        dose: expect.objectContaining({
+          dueOn: '2026-09-08',
+          givenOn: '2026-09-10',
+          status: 'given',
+          nextDueDate: '2026-09-17',
+        }),
+      },
+      expect.objectContaining({
+        action: 'create',
+        dose: expect.objectContaining({ dueOn: '2026-09-08', status: 'shift' }),
+      }),
+    ])
+  })
+
+  it('redatée sur une dose notée oubliée, elle la repasse en donnée et sa ligne part', () => {
+    const history = treatment(
+      [period({ frequency: { value: 1, unit: 'week' } })],
+      [
+        dose('2026-09-01', '2026-09-08'),
+        missed('2026-09-08', '2026-09-15'),
+        extra('2026-09-08', '2026-09-15'),
+      ],
+    )
+
+    expect(
+      change(history, '2026-09-12', {
+        kind: 'redate',
+        doseId: 'en plus 2026-09-08',
+        givenOn: '2026-09-09',
+      }).writes,
+    ).toEqual([
+      {
+        action: 'rewrite',
+        id: '2026-09-08',
+        dose: expect.objectContaining({ dueOn: '2026-09-08', status: 'given' }),
+      },
+      { action: 'delete', id: 'en plus 2026-09-08' },
+      expect.objectContaining({
+        action: 'create',
+        dose: expect.objectContaining({ dueOn: '2026-09-08', status: 'shift' }),
+      }),
+    ])
   })
 })
