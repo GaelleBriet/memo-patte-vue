@@ -295,6 +295,7 @@ watch(
   () => nextDose.value?.proposedOn,
   (proposedOn) => {
     values.value.nextDoseOn = proposedOn ?? ''
+    values.value.shiftsFollowing = nextDose.value?.shiftInitial ?? true
   },
 )
 
@@ -316,6 +317,7 @@ function open(loaded: TreatmentWithHistory): void {
     values.value = {
       ...treatmentFormValuesFrom(loaded, first.period),
       nextDoseOn: first.nextDose?.proposedOn ?? '',
+      shiftsFollowing: first.nextDose?.shiftInitial ?? true,
     }
   }
   history.value = loaded

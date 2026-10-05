@@ -620,7 +620,8 @@
       "aloneLatest": "On its own, this dose can go up to {date}. Tick “Also move the following doses” to go further.",
       "recap": "{due} dose, given on {given}",
       "recapAt": "{due}, {time} dose, given on {given}",
-      "save": "Save"
+      "save": "Save",
+      "passesMove": "This day would push the postponement of {date} past the next dose: change the postponement date first."
     }
   },
   "reminders": {

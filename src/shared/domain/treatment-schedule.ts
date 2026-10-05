@@ -4,8 +4,10 @@ import {
   dueForDate,
   offersShift,
   redate,
+  noteRefusal,
   redateLimits,
   redateOffersShift,
+  redateRefusal,
   upcoming,
 } from './treatment-schedule-doses'
 import { nextDay } from './treatment-schedule-dues'
@@ -110,6 +112,9 @@ export function treatmentSchedule(input: TreatmentScheduleInput): TreatmentSched
       return { dose, shift, postponement }
     },
     redateOffersShift: (doseId, givenOn) => redateOffersShift(state, doseId, givenOn),
+    redateRefusal: (doseId, givenOn, shiftsFollowing = true) =>
+      redateRefusal(state, doseId, givenOn, shiftsFollowing),
+    noteRefusal: (due, givenOn) => noteRefusal(state, knownOnce, due, givenOn),
     offersShift: (due, givenOn) => offersShift(state, knownOnce, due, givenOn),
     redateLimits: (doseId) => redateLimits(state, doseId),
     move: (due, to, shiftsFollowing = true) => move(state, due, to, shiftsFollowing),

@@ -1025,6 +1025,7 @@ describe('editionPlan — « Prochaine dose » (TR-7, TR-9)', () => {
       refusal: null,
       help: { kind: 'calculated', on: '2026-10-10' },
       shift: null,
+      shiftInitial: true,
     })
   })
 
@@ -1188,6 +1189,7 @@ describe('editionPlan — « Prochaine dose » (TR-7, TR-9)', () => {
       refusal: null,
       help: null,
       shift: null,
+      shiftInitial: true,
     })
     const plan = editionPlan(
       history,
@@ -2281,6 +2283,23 @@ describe('« Prochaine dose » et la case « Décaler aussi les doses suivantes 
       following: ['2026-10-26'],
       lost: ['2026-10-30'],
     })
+  })
+
+  it('se rouvre telle qu’elle a été laissée (N2) : décochée sur un report sans décalage', () => {
+    const report = (lines: NewTreatmentDose[]) =>
+      treatment([VENDREDI], [dose({ dueOn: '2026-10-09', givenOn: '2026-10-09' }), ...lines])
+    const seul = dose({
+      id: 'report',
+      dueOn: '2026-10-16',
+      givenOn: null,
+      status: 'postponed',
+      nextDueDate: '2026-10-19',
+    })
+    const decalage = { ...seul, id: 'decalage', status: 'shift' as const }
+
+    expect(editionDraft(PIXEL, null, TODAY).nextDose?.shiftInitial).toBe(true)
+    expect(editionDraft(report([seul]), null, TODAY).nextDose?.shiftInitial).toBe(false)
+    expect(editionDraft(report([seul, decalage]), null, TODAY).nextDose?.shiftInitial).toBe(true)
   })
 
   it('décochée, la date va au plus la veille de la dose suivante (Q2 a)', () => {

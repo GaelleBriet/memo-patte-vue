@@ -205,6 +205,41 @@ describe('dateChangeBox — « Changer la date » (V30, N2)', () => {
   })
 })
 
+describe('Q2 a : les jours qui feraient passer un report seul sont refusés', () => {
+  // Vendredis ; prise du 9 oct., dose du 16 reportée seule au jeudi 22.
+  const SEUL = treatment(
+    [VENDREDI],
+    [...PIXEL.doses, dose('2026-10-09', '2026-10-16'), postponed('2026-10-16', '2026-10-22')],
+  )
+  const today = '2026-10-12'
+
+  it('« Changer la date » grise ces jours et le dit', () => {
+    const prise = SEUL.doses[1]!
+    const change = dateChangeOf(t, prise, null, { today, earliest: null })!
+    const box = dateChangeBox(t, prise, carnet(SEUL, today), change.action)!
+
+    expect(box.refusedDays(true)).toContain('2026-10-07')
+    expect(box.refusedDays(false)).not.toContain('2026-10-07')
+    expect(box.view('2026-10-07', true)).toMatchObject({ blocked: true })
+    expect(plain(box.view('2026-10-07', true).help!.text)).toBe(
+      'Ce jour ferait passer le report du 22 oct. après la dose suivante : change d’abord la date du report.',
+    )
+  })
+
+  it('« Fait à une autre date » coché le refuse, décoché le permet', () => {
+    const late = treatment([VENDREDI], [...PIXEL.doses, postponed('2026-10-16', '2026-10-22')])
+    const due9 = { periodId: 'p-1', dueOn: '2026-10-09', dueTime: null }
+
+    expect(otherDateBox(t, due9, '2026-10-14', carnet(late, '2026-10-14'), true)).toMatchObject({
+      shown: true,
+      blocked: true,
+    })
+    expect(
+      otherDateBox(t, due9, '2026-10-14', carnet(late, '2026-10-14'), false).blocked,
+    ).toBeUndefined()
+  })
+})
+
 describe('restoredSuiteFor — le toast de « Supprimer ce décalage » (V31 quater)', () => {
   it('la prochaine dose après la dose déplacée, sans le décalage', () => {
     const history = treatment(

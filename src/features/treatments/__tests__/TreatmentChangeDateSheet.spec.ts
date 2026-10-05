@@ -26,6 +26,7 @@ afterEach(() => {
 const BOX: DateChangeBox = {
   initial: false,
   aloneMax: '2026-10-22',
+  refusedDays: () => [],
   view: (date, shifts) =>
     date === '2026-10-24' && !shifts
       ? { shown: true, help: { text: 'Seule, au plus tard le 22.', warning: true }, blocked: true }

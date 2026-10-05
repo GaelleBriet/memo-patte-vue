@@ -422,9 +422,9 @@ class Simulation {
     due: Due,
     kind: 'given' | 'missed',
     givenOn: string,
-    shiftsFollowing = true,
+    shiftsFollowing?: boolean,
   ): void {
-    const box = shiftsFollowing ? '' : ', case décochée'
+    const box = shiftsFollowing === false ? ', case décochée' : ''
     const gesture = `${this.book.today} ${kind} ${idOf(due)} le ${givenOn}${box}`
     this.log.push(gesture)
     let fields
@@ -434,23 +434,27 @@ class Simulation {
         kind === 'given'
           ? before.doseFor({ kind, due, givenOn, shiftsFollowing })
           : before.doseFor({ kind, due })
-      if (!shiftsFollowing && noted.shift !== null) this.fail(`${gesture} : un décalage est écrit`)
+      if (shiftsFollowing === false && noted.shift !== null) {
+        this.fail(`${gesture} : un décalage est écrit`)
+      }
       fields = noted.dose
       wroteShift = noted.shift !== null
       if (noted.shift !== null) this.book = this.written(this.book, noted.shift)
     } catch (error) {
       return this.fail(`${gesture} : ${String(error)}`)
     }
+    const noteFrom = this.book
     this.book = this.written(this.book, fields)
     const after = this.schedule()
     this.checkProtected(before, after, () => true, gesture)
+    this.checkNoPassedMove(noteFrom, gesture)
     if (fields.status === 'extra') return this.checkExtra(before, after, due, fields, gesture)
     this.checkWritten(after, due, fields.nextDueDate, gesture)
     const unit = this.book.periods.find(({ id }) => id === due.periodId)?.frequency.unit
     const mayCoincide = unit === 'month' && kind === 'given' && givenOn !== due.dueOn
     const wasUnlogged = before.unloggedDoses.some((unlogged) => idOf(unlogged) === idOf(due))
     if (wasUnlogged && !mayCoincide) this.checkLogged(before, after, gesture)
-    if (!shiftsFollowing) return this.checkKeptDays(before, after, due, gesture)
+    if (shiftsFollowing === false) return this.checkKeptDays(before, after, due, gesture)
     if (
       kind === 'given' &&
       before.currentDoses.some((current) => idOf(current) === idOf(due)) &&
@@ -458,6 +462,38 @@ class Simulation {
     ) {
       this.checkGap(after, due, givenOn, fields.nextDueDate, gesture)
     }
+  }
+
+  // Q2 a, recalculée à part : les reports seuls (sans décalage sur leur journée) qui arrivent
+  // après la dose suivante, lue sans leurs lignes.
+  private passedMoves(book: Book): Set<string> {
+    const schedule = this.schedule(book)
+    const passed = schedule.doses.filter((move) => {
+      if (move.status !== 'postponed' || move.nextDueDate <= move.dueOn) return false
+      const shifted = schedule.doses.some(
+        (other) =>
+          other.status === 'shift' &&
+          other.periodId === move.periodId &&
+          other.dueOn === move.dueOn,
+      )
+      if (shifted) return false
+      const without = this.schedule({
+        ...book,
+        doses: book.doses.filter((dose) => idOf(dose) !== idOf(move) || dose.status === 'extra'),
+      })
+      const nextOn = pendingOf(without).find(
+        (due) => due.periodId === move.periodId && due.dueOn > move.dueOn,
+      )?.dueOn
+      return nextOn !== undefined && move.nextDueDate >= nextOn
+    })
+    return new Set(passed.map(({ id }) => id))
+  }
+
+  // Une prise notée ou corrigée ne fait jamais passer la dose suivante à un report seul.
+  private checkNoPassedMove(from: Book, gesture: string): void {
+    const already = this.passedMoves(from)
+    const passed = [...this.passedMoves(this.book)].filter((id) => !already.has(id))
+    if (passed.length > 0) this.fail(`${gesture} : un report seul passe la dose suivante`)
   }
 
   // Case décochée : seule la dose notée change, les suivantes gardent leur jour.
@@ -962,6 +998,17 @@ class Simulation {
     const unchecked = before.redateOffersShift(dose.id, givenOn) && this.unchecks()
     const box = unchecked ? ', case décochée' : ''
     const gesture = `${this.book.today} redater ${idOf(dose)} au ${givenOn}${box}`
+    if (before.redateRefusal(dose.id, givenOn, !unchecked) !== null) {
+      let thrown = false
+      try {
+        before.redate(dose.id, givenOn, !unchecked)
+      } catch {
+        thrown = true
+      }
+      if (!thrown) this.fail(`${gesture} : refusé mais accepté`)
+      return
+    }
+    const redateFrom = this.book
     this.redated = true
     this.log.push(gesture)
     const { dose: fields, shift, postponement } = before.redate(dose.id, givenOn, !unchecked)
@@ -989,6 +1036,7 @@ class Simulation {
       shift,
     )
     this.checkKeptSuite(before, shift.action === 'none' && postponement === null, gesture)
+    this.checkNoPassedMove(redateFrom, gesture)
     const suiteMoved =
       fields.nextDueDate !== dose.nextDueDate || shift.action !== 'none' || postponement !== null
     const key = `${dose.dueOn} ${dose.dueTime ?? ''}`
@@ -1135,7 +1183,22 @@ class Simulation {
         if (due === null || isNoted) break
         const offered = before.offersShift(due, givenOn)
         this.checkOffer(before, due, givenOn, offered)
-        this.note(before, due, 'given', givenOn, !(offered && this.unchecks()))
+        if (!offered) {
+          this.note(before, due, 'given', givenOn)
+          break
+        }
+        const checked = !this.unchecks()
+        if (checked && before.noteRefusal(due, givenOn) !== null) {
+          let thrown = false
+          try {
+            before.doseFor({ kind: 'given', due, givenOn, shiftsFollowing: true })
+          } catch {
+            thrown = true
+          }
+          if (!thrown) this.fail(`${today} noter ${idOf(due)} le ${givenOn} : refusé mais accepté`)
+          break
+        }
+        this.note(before, due, 'given', givenOn, checked)
         break
       }
       case 'move':

@@ -40,6 +40,7 @@ watch(open, (isOpen) => {
 })
 
 const view = computed(() => props.box?.view(chosen.value, shifts.value) ?? null)
+const refused = computed(() => [...props.excluded, ...(props.box?.refusedDays(shifts.value) ?? [])])
 const canSave = computed(
   () => chosen.value !== null && chosen.value !== props.date && view.value?.blocked !== true,
 )
@@ -66,7 +67,7 @@ function save(): void {
       class="treatment-change-date__calendar"
       :min="min"
       :max="max"
-      :excluded="excluded"
+      :excluded="refused"
     />
     <TreatmentShiftCheckbox
       v-if="view?.shown"
@@ -74,6 +75,9 @@ function save(): void {
       class="treatment-change-date__shift"
       :help="view.help"
     />
+    <p v-else-if="view?.help" class="treatment-change-date__refused" role="status">
+      {{ view.help.text }}
+    </p>
     <v-btn
       class="treatment-change-date__save"
       variant="flat"
@@ -96,6 +100,17 @@ function save(): void {
 
 .treatment-change-date__shift {
   margin-top: 12px;
+}
+
+.treatment-change-date__refused {
+  margin: 12px 0 0;
+  padding: 10px 14px;
+  border: 1px solid tokens.$color-shift-warning-border;
+  border-radius: 12px;
+  background: tokens.$color-shift-warning-surface;
+  color: tokens.$color-shift-warning-text;
+  font-size: 14px;
+  line-height: 1.45;
 }
 
 .treatment-change-date__save {

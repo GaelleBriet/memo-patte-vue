@@ -80,6 +80,8 @@ export type NextDoseDraft = {
   help: NextDoseHelp | null
   /** `null` : pas de case, la date ne déplace aucune dose ou la dose ne peut aller seule. */
   shift: NextDoseShift | null
+  /** N2 : la case rouverte telle qu'elle a été laissée, cochée sans report ou avec son décalage. */
+  shiftInitial: boolean
 }
 
 /** Le déplacement en vigueur qui arrive le plus tard dans la période en cours. */
@@ -291,6 +293,7 @@ function resolveOpened(
       refusal: null,
       help: proposalHelp(history, schedule, period, rhythm, firstDueOn, today),
       shift: null,
+      shiftInitial: true,
     },
     settings: withRhythm({ ...settingsOf(period), startsOn, firstDueOn: writtenOn }, rhythm),
     move: null,
@@ -415,6 +418,12 @@ function resolveMoved(
       help:
         refusal !== null ? { kind: 'refused', refusal } : (overdueHelp(due, today) ?? calculated),
       shift,
+      shiftInitial:
+        line === undefined ||
+        schedule.doses.some(
+          (dose) =>
+            dose.status === 'shift' && dose.periodId === line.periodId && dose.dueOn === line.dueOn,
+        ),
     },
     settings,
     referenceOn: period.referenceOn,
@@ -478,6 +487,7 @@ function resolveCorrected(
           ? droppedHelp(schedule, period.id, chosenOn, today)
           : null) ?? overdueHelp(due, today),
       shift: null,
+      shiftInitial: true,
     },
     settings: {
       ...corrected,

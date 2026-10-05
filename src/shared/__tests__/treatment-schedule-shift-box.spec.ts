@@ -273,3 +273,58 @@ describe('« Supprimer ce report » grisé : la dose reviendrait trop près de l
     expect(scheduleOf(book, '2026-10-15').moveRemovalRefusal(id)).toBeNull()
   })
 })
+
+describe('Q2 a : rien ne fait passer la dose suivante à un report seul', () => {
+  // Vendredis ; la dose du 9 en retard, celle du 16 reportée seule au jeudi 22.
+  const report: Carnet = {
+    ...carnet(weekly({ firstDueOn: '2026-10-02' })),
+    doses: [
+      stored({
+        periodId: 'p1',
+        dueOn: '2026-10-02',
+        dueTime: null,
+        givenOn: '2026-10-02',
+        status: 'given',
+        nextDueDate: '2026-10-09',
+      }),
+      stored({
+        periodId: 'p1',
+        dueOn: '2026-10-16',
+        dueTime: null,
+        givenOn: null,
+        status: 'postponed',
+        nextDueDate: '2026-10-22',
+      }),
+    ],
+  }
+  const late = { kind: 'given' as const, due: due('2026-10-09'), givenOn: '2026-10-14' }
+
+  it('« Fait à une autre date » coché est refusé ; la case reste proposée', () => {
+    const schedule = scheduleOf(report, '2026-10-14')
+
+    expect(schedule.offersShift(due('2026-10-09'), '2026-10-14')).toBe(true)
+    expect(schedule.noteRefusal(due('2026-10-09'), '2026-10-14')).toBe('2026-10-22')
+    expect(() => schedule.doseFor({ ...late, shiftsFollowing: true })).toThrow(RangeError)
+    expect(schedule.doseFor({ ...late, shiftsFollowing: false }).shift).toBeNull()
+  })
+
+  it('« C’est fait » en retard, sans case : la prise seule', () => {
+    expect(scheduleOf(report, '2026-10-14').doseFor(late).shift).toBeNull()
+  })
+
+  it('« Changer la date » vers un jour qui le ferait passer est refusé', () => {
+    const noted = record(report, '2026-10-09', {
+      kind: 'given',
+      due: due('2026-10-09'),
+      givenOn: '2026-10-09',
+    })
+    const schedule = scheduleOf(noted, '2026-10-12')
+    const id = lastDose(noted).id
+
+    expect(schedule.redateRefusal(id, '2026-10-07')).toBe('2026-10-22')
+    expect(() => schedule.redate(id, '2026-10-07')).toThrow(RangeError)
+    expect(schedule.redateOffersShift(id, '2026-10-07')).toBe(true)
+    expect(schedule.redateRefusal(id, '2026-10-07', false)).toBeNull()
+    expect(schedule.redateRefusal(id, '2026-10-10')).toBe('2026-10-22')
+  })
+})

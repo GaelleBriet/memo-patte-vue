@@ -1,3 +1,5 @@
+import { format, parseISO, subDays } from 'date-fns'
+
 import { doseChange, type DoseAction } from './treatment-dose-writes'
 import { treatmentScheduleOf } from './treatment-schedule'
 import type { DoseWrite } from '../repository/treatment-doses.repository'
@@ -174,6 +176,22 @@ export type DateChangeBox = {
   /** Dernier jour d'un report seul (Q2 a) ; `null` : pas d'autre borne que la date de fin. */
   aloneMax: string | null
   view(date: string | null, shifts: boolean): ShiftBoxView
+  /** Jours grisés : ils feraient passer la dose suivante à un report seul (Q2 a). */
+  refusedDays(shifts: boolean): string[]
+}
+
+// Les jours que la correction peut viser sans parcourir des années d'historique.
+const REFUSAL_WINDOW_DAYS = 62
+
+function passesMoveHelp(t: Translate, passedOn: string, today: string): ShiftHelp {
+  const date = formatDayMonthOrYear(passedOn, today)
+  return { text: t('treatments.shift.passesMove', { date }), warning: true }
+}
+
+function daysUpTo(today: string, count: number): string[] {
+  return Array.from({ length: count }, (_, index) =>
+    format(subDays(parseISO(today), index), 'yyyy-MM-dd'),
+  )
 }
 
 function hasShiftLine(history: History, { periodId, dueOn }: Pick<Line, 'periodId' | 'dueOn'>) {
@@ -210,6 +228,7 @@ export function dateChangeBox(
     return {
       initial: hasShiftLine(history, line),
       aloneMax,
+      refusedDays: () => [],
       view: (date, shifts) => {
         if (date === null || date === line.nextDueDate) return { shown: true, help: null }
         if (!shifts && aloneMax !== null && date > aloneMax) {
@@ -227,8 +246,22 @@ export function dateChangeBox(
   return {
     initial: hasShiftLine(history, schedule.shiftDueOf(line)),
     aloneMax: null,
+    refusedDays: (shifts) => {
+      const { lastExtraDay } = schedule.redateLimits(line.id)
+      return daysUpTo(today, REFUSAL_WINDOW_DAYS).filter(
+        (day) =>
+          day !== givenOn &&
+          (lastExtraDay === null || day > lastExtraDay) &&
+          schedule.redateRefusal(line.id, day, shifts) !== null,
+      )
+    },
     view: (date, shifts) => {
-      const shown = date !== null && date !== givenOn && schedule.redateOffersShift(line.id, date)
+      if (date === null || date === givenOn) return { shown: false, help: null }
+      const shown = schedule.redateOffersShift(line.id, date)
+      const passedOn = schedule.redateRefusal(line.id, date, shifts)
+      if (passedOn !== null) {
+        return { shown, help: passesMoveHelp(t, passedOn, today), blocked: true }
+      }
       if (!shown) return { shown: false, help: null }
       return { shown, help: help(date, shifts, line.dueOn, laterOf(line.dueOn, date)) }
     },
@@ -246,6 +279,9 @@ export function otherDateBox(
   if (due === null || givenOn === null || !schedule.offersShift(due, givenOn)) {
     return { shown: false, help: null }
   }
+  const passedOn = shifts ? schedule.noteRefusal(due, givenOn) : null
+  if (passedOn !== null)
+    return { shown: true, help: passesMoveHelp(t, passedOn, today), blocked: true }
   const gesture = { kind: 'given' as const, due, givenOn, shiftsFollowing: shifts }
   return {
     shown: true,

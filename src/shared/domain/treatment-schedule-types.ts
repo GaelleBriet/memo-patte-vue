@@ -154,6 +154,13 @@ export type TreatmentSchedule = {
   redate(doseId: string, givenOn: string, shiftsFollowing?: boolean): RedatedDose
   /** La case « Décaler aussi les doses suivantes » de « Changer la date » vers ce jour. */
   redateOffersShift(doseId: string, givenOn: string): boolean
+  /**
+   * Q2 a : « Changer la date » vers ce jour, avec cet état de la case, ferait passer la dose suivante
+   * à un report seul : son jour d'arrivée ; `null` si le geste est permis.
+   */
+  redateRefusal(doseId: string, givenOn: string, shiftsFollowing?: boolean): string | null
+  /** Q2 a : même refus pour « Fait à une autre date », case cochée. */
+  noteRefusal(due: Due, givenOn: string): string | null
   /** La case de « Fait à une autre date » : la prise ferait repartir la suite de sa date réelle. */
   offersShift(due: Due, givenOn: string): boolean
   /**

@@ -561,6 +561,9 @@ suppression d'une prise et d'un décalage) et la reprogrammation des rappels qui
 - **N3** : traitement de tous les jours, avec ou sans heures, jamais de case sur une prise ; la case
   n'apparaît que pour un report. Plus espacé à plusieurs heures : seulement quand la prise complète la
   journée (G10). Plus espacé sans heure : case comme décidé.
+  Précisé le 2026-10-05 (#505) : pour un traitement de tous les jours, le report non plus n'a pas de
+  case, car décochée elle ne laisserait aucune date (la veille de la dose suivante est le jour même) ;
+  son report décale toujours la suite.
 - **N4** : séparer le report d'une dose du décalage du rythme (comparaison au §2.7).
 - **N5** : le décalage est une ligne à part dans les prises (état `shift`), supprimable seule.
 - **N6** : chaque ligne se supprime seule, rien en cascade. Supprimer une prise qui avait décalé la

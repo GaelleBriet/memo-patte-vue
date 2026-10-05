@@ -620,7 +620,8 @@
       "aloneLatest": "Seule, cette dose va au plus tard au {date}. Coche « Décaler aussi les doses suivantes » pour aller plus loin.",
       "recap": "Dose du {due}, donnée le {given}",
       "recapAt": "Dose de {time} du {due}, donnée le {given}",
-      "save": "Enregistrer"
+      "save": "Enregistrer",
+      "passesMove": "Ce jour ferait passer le report du {date} après la dose suivante : change d’abord la date du report."
     }
   },
   "reminders": {

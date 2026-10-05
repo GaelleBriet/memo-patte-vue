@@ -177,14 +177,6 @@ function shiftLineOf(state: State, doseId: string): TreatmentDoseInput {
 }
 
 // N8 : la prise de la dose déplacée elle-même, à son jour d'arrivée, n'est pas une dose plus lointaine.
-/** Ce report en vigueur passe la dose suivante (Q2 a). */
-export function passesNextById(state: State, doseId: string): boolean {
-  const move = state.plans
-    .flatMap((plan) => plan.steps.filter(isMove))
-    .find(({ dose }) => dose.id === doseId)?.dose
-  return move !== undefined && move.nextDueDate > move.dueOn && passesNext(state, move)
-}
-
 // Un report seul arrive avant la dose suivante (Q2 a), lue sans lui.
 function passesNext(state: State, move: TreatmentDoseInput): boolean {
   const without = planOf(stateWithoutDues(state, [move]), move.periodId)
@@ -193,7 +185,7 @@ function passesNext(state: State, move: TreatmentDoseInput): boolean {
 }
 
 // Les reports seuls, sans décalage sur leur journée, qui passent la dose suivante.
-function passingAlone(state: State, periodId: string, fromDay: string): string[] {
+function passingAlone(state: State, periodId: string, fromDay: string): TreatmentDoseInput[] {
   const plan = planOf(state, periodId)
   return plan.steps
     .filter(isMove)
@@ -205,18 +197,22 @@ function passingAlone(state: State, periodId: string, fromDay: string): string[]
         dayShiftOf(plan, move.dueOn) === undefined &&
         passesNext(state, move),
     )
-    .map(({ id }) => id)
 }
 
-/** Q2 a : un geste qui ferait passer la dose suivante à un report seul, à partir de ce jour. */
-export function makesMovePass(
+/**
+ * Q2 a : le report seul qu'un geste ferait passer après la dose suivante, à partir de ce jour ; son
+ * jour d'arrivée, `null` sans report passé.
+ */
+export function passedMoveOn(
   before: State,
   after: State,
   periodId: string,
   fromDay: string,
-): boolean {
-  const already = new Set(passingAlone(before, periodId, fromDay))
-  return passingAlone(after, periodId, fromDay).some((id) => !already.has(id))
+): string | null {
+  const already = new Set(passingAlone(before, periodId, fromDay).map(({ id }) => id))
+  return (
+    passingAlone(after, periodId, fromDay).find(({ id }) => !already.has(id))?.nextDueDate ?? null
+  )
 }
 
 // N8 : la prise de la dose déplacée elle-même, à son jour d'arrivée, n'est pas une dose plus lointaine.
@@ -228,8 +224,8 @@ export function shiftRemovalRefusal(state: State, doseId: string): ShiftRemovalR
     (note) => note.dueOn > shift.dueOn && note.dueOn !== report?.nextDueDate,
   )
   if (later.length > 0) return 'later-dose'
-  const passes = makesMovePass(state, withoutLine(state, doseId), shift.periodId, shift.dueOn)
-  return passes ? 'move-past-next' : null
+  const passed = passedMoveOn(state, withoutLine(state, doseId), shift.periodId, shift.dueOn)
+  return passed === null ? null : 'move-past-next'
 }
 
 export function removeShift(state: State, doseId: string): LineChange {
