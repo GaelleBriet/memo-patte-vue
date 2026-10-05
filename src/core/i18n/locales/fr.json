@@ -626,7 +626,13 @@
       "save": "Enregistrer",
       "passesMove": "Ce jour ferait passer le report du {date} après la dose suivante : change d’abord la date du report.",
       "passesMoveUncheck": "Ce jour ferait passer le report du {date} après la dose suivante : décoche la case, ou change d’abord la date du report.",
-      "suiteHeld": "{done}. La suite ne bouge pas : un report est prévu le {date}."
+      "suiteHeld": "{done}. La suite ne bouge pas : un report est prévu le {date}.",
+      "stuckMove": "Change d’abord la date du report du {date}.",
+      "reportFollows": "Le report du {date} suit.",
+      "movedAfterReport": "Dose reportée le {report}, puis le {date} et {every}.",
+      "keptAfterReport": "Seule cette dose change. Dose reportée le {report}, puis le {date} et {every}.",
+      "movedBeforeReport": "Les doses suivantes passeront au {date}, puis dose reportée le {report}",
+      "keptBeforeReport": "Seule cette dose change. Les suivantes restent prévues le {date}, puis dose reportée le {report}"
     }
   },
   "reminders": {

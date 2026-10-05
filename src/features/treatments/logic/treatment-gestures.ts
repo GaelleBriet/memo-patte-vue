@@ -176,7 +176,7 @@ export function doseActionTexts(
         done: ({ postponement }) =>
           postponement === null
             ? t('treatments.detail.toast.moved', { date })
-            : postponement.kept && postponement.adjusted === true
+            : postponement.kept && postponement.followed === true
               ? t('treatments.detail.toast.movedFollowed', {
                   date: sentenceDate,
                   nextDue: nonBreaking(withoutFinalDot(day(postponement.nextDueDate))),

@@ -263,7 +263,7 @@ describe('doseActionTexts — la correction fait suivre un report seul (I2)', ()
 
     expect(
       plain(
-        done({ ...RIEN, postponement: { kept: true, nextDueDate: '2026-09-29', adjusted: true } }),
+        done({ ...RIEN, postponement: { kept: true, nextDueDate: '2026-09-29', followed: true } }),
       ),
     ).toBe('Prise déplacée au 16 sept. Le report suit : dose reportée au 29 sept.')
   })

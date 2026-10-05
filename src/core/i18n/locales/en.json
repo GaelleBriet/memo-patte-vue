@@ -626,7 +626,13 @@
       "save": "Save",
       "passesMove": "This day would push the postponement of {date} past the next dose: change the postponement date first.",
       "passesMoveUncheck": "This day would push the postponement of {date} past the next dose: untick the box, or change the postponement date first.",
-      "suiteHeld": "{done}. The schedule doesn’t move: a postponement is planned on {date}."
+      "suiteHeld": "{done}. The schedule doesn’t move: a postponement is planned on {date}.",
+      "stuckMove": "Change the date of the {date} postponement first.",
+      "reportFollows": "The {date} postponement follows.",
+      "movedAfterReport": "Postponed dose on {report}, then {date} and {every}.",
+      "keptAfterReport": "Only this dose changes. Postponed dose on {report}, then {date} and {every}.",
+      "movedBeforeReport": "The following doses will move to {date}, then postponed dose on {report}.",
+      "keptBeforeReport": "Only this dose changes. The following ones stay on {date}, then postponed dose on {report}."
     }
   },
   "reminders": {

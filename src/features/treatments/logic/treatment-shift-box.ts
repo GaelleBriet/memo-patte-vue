@@ -114,12 +114,15 @@ export function shiftHelpText(
     following,
     lost,
     weekdayOn = null,
+    arrivals = [],
   }: {
     shifts: boolean
     following: string[]
     lost: string[]
     /** Le jour qui nomme le rythme : l'ancrage du décalage, sinon une dose qui n'est pas un report. */
     weekdayOn?: string | null
+    /** Jours d'arrivée des reports : une dose reportée est nommée à part. */
+    arrivals?: readonly string[]
   },
   today: string,
 ): ShiftHelp | null {
@@ -132,12 +135,28 @@ export function shiftHelpText(
   if (first === undefined) return null
   const way = shifts ? 'moved' : 'kept'
   const { unit, value } = period.frequency
+  const [, second] = shown
+  const every = t(`treatments.sheet.frequency.${unit}`, { n: value }, value)
+  const day = (date: string) => formatDayMonthOrYear(date, today)
+  if (second !== undefined && arrivals.includes(first)) {
+    const named = { report: day(first), date: day(second), every }
+    const text = shifts
+      ? t('treatments.shift.movedAfterReport', named)
+      : t('treatments.shift.keptAfterReport', named)
+    return { text, warning: false }
+  }
+  if (second !== undefined && arrivals.includes(second)) {
+    const named = { date: day(first), report: day(second) }
+    const text = shifts
+      ? t('treatments.shift.movedBeforeReport', named)
+      : t('treatments.shift.keptBeforeReport', named)
+    return { text, warning: false }
+  }
   const weekday = formatWeekday(weekdayOn ?? first)
   if (unit === 'week' && shown.every((day) => formatWeekday(day) === weekday)) {
     const named = { weekday, dates: withoutFinalDot(formatDaySeries(shown)) }
     return { text: t(`treatments.shift.${way}.weekly`, named), warning: false }
   }
-  const every = t(`treatments.sheet.frequency.${unit}`, { n: value }, value)
   const date = formatDayMonthOrYear(first, today)
   return { text: t(`treatments.shift.${way}.every`, { date, every }), warning: false }
 }
@@ -177,7 +196,12 @@ export function shiftHelpOf(
       .map(({ nextDueDate }) => nextDueDate),
   )
   const weekdayOn = shifts ? newDay : (following.find((day) => !arrivals.has(day)) ?? null)
-  return shiftHelpText(t, period, { shifts, following, lost, weekdayOn }, today)
+  return shiftHelpText(
+    t,
+    period,
+    { shifts, following, lost, weekdayOn, arrivals: [...arrivals] },
+    today,
+  )
 }
 
 type Line = Pick<
@@ -212,6 +236,27 @@ function passesMoveHelp(
     ? t('treatments.shift.passesMoveUncheck', { date })
     : t('treatments.shift.passesMove', { date })
   return { text, warning: true }
+}
+
+function stuckMoveHelp(t: Translate, movedOn: string, today: string): ShiftHelp {
+  const date = withoutFinalDot(formatDayMonthOrYear(movedOn, today))
+  return { text: t('treatments.shift.stuckMove', { date }), warning: true }
+}
+
+// I2 : la correction fait suivre ce report seul ; sa date d'arrivée d'avant.
+function followedReportOn(
+  history: History,
+  schedule: TreatmentSchedule,
+  doseId: string,
+  date: string,
+  shifts: boolean,
+): string | null {
+  const { postponement } = schedule.redate(doseId, date, shifts)
+  if (postponement === null) return null
+  const follows = postponement.kept ? postponement.followed === true : postponement.followedOn
+  if (follows === undefined || follows === false) return null
+  const [movedId] = postponement.doseIds
+  return history.doses.find(({ id }) => id === movedId)?.nextDueDate ?? null
 }
 
 function daysUpTo(today: string, count: number): string[] {
@@ -284,12 +329,22 @@ export function dateChangeBox(
     view: (date, shifts) => {
       if (date === null || date === givenOn) return { shown: false, help: null }
       const shown = schedule.redateOffersShift(line.id, date)
-      const passedOn = schedule.redateRefusal(line.id, date, shifts)
-      if (passedOn !== null) {
-        return { shown, help: passesMoveHelp(t, passedOn, today), blocked: true }
+      const refusal = schedule.redateRefusal(line.id, date, shifts)
+      if (refusal !== null) {
+        const refused =
+          refusal.reason === 'stuck'
+            ? stuckMoveHelp(t, refusal.on, today)
+            : passesMoveHelp(t, refusal.on, today)
+        return { shown, help: refused, blocked: true }
       }
-      if (!shown) return { shown: false, help: null }
-      return { shown, help: help(date, shifts, line.dueOn, laterOf(line.dueOn, date)) }
+      const follows = followedReportOn(history, schedule, line.id, date, shifts)
+      const suite = shown ? help(date, shifts, line.dueOn, laterOf(line.dueOn, date)) : null
+      if (follows === null) return shown ? { shown, help: suite } : { shown: false, help: null }
+      const sentence = t('treatments.shift.reportFollows', {
+        date: formatDayMonthOrYear(follows, today),
+      })
+      const text = suite === null ? sentence : `${suite.text} ${sentence}`
+      return { shown, help: { text, warning: suite?.warning ?? false } }
     },
   }
 }

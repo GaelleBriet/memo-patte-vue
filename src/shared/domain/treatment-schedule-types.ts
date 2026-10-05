@@ -86,10 +86,11 @@ export type RedatedDose = {
         line: DoseFields
         shiftIds: string[]
         shiftLine: DoseFields
-        /** I2 : la date du report suit dans les bornes de Q2 a, elle a changé. */
-        adjusted?: boolean
+        /** I2 : le report seul suit la correction, dans les bornes de Q2 a. */
+        followed?: true
       }
-    | { doseIds: string[]; kept: false }
+    /** `followedOn` (I2) : le report suit jusqu'à une échéance de ce jour, sa ligne devient inutile. */
+    | { doseIds: string[]; kept: false; followedOn?: string }
     | null
 }
 
@@ -120,6 +121,12 @@ export type ShiftRemovalRefusal = 'later-dose' | 'move-past-next'
 
 /** Un report supprimé ramènerait sa dose (`dueOn`) à moins d'une demi-fréquence de la suivante. */
 export type MoveRemovalRefusal = { dueOn: string; nextOn: string }
+
+/**
+ * Q2 a : le report seul (son arrivée) que la correction ferait passer ; `passes` : refusée dans cet
+ * état de la case seulement ; `stuck` : le report ne peut suivre à aucune date.
+ */
+export type RedateRefusal = { on: string; reason: 'passes' | 'stuck' }
 
 export type RedateLimits = { lastExtraDay: string | null; takenDays: string[] }
 
@@ -169,7 +176,7 @@ export type TreatmentSchedule = {
    * Q2 a : « Changer la date » vers ce jour, avec cet état de la case, ferait passer la dose suivante
    * à un report seul : son jour d'arrivée ; `null` si le geste est permis.
    */
-  redateRefusal(doseId: string, givenOn: string, shiftsFollowing?: boolean): string | null
+  redateRefusal(doseId: string, givenOn: string, shiftsFollowing?: boolean): RedateRefusal | null
   /** Q2 a : même refus pour « Fait à une autre date », case cochée. */
   noteRefusal(due: Due, givenOn: string): string | null
   /** La case de « Fait à une autre date » : la prise ferait repartir la suite de sa date réelle. */

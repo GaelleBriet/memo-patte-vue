@@ -29,7 +29,7 @@ export type DoseChange = {
   /** Date d'une prise déjà donnée pour cette échéance : rien n'est écrit. */
   alreadyGivenOn: string | null
   /** Déplacement qui suivait une prise redatée : gardé à sa date, ou perdu. */
-  postponement: { kept: true; nextDueDate: string; adjusted?: boolean } | { kept: false } | null
+  postponement: { kept: true; nextDueDate: string; followed?: true } | { kept: false } | null
   /** Ce qu'un geste sur un report en a fait : sa ligne telle qu'écrite, ou `removed` ; `null` hors de ces gestes ou sans changement. */
   moved: DoseFields | 'removed' | null
   /** La prise supprimée ou marquée oubliée, ou le report supprimé, laisse sa ligne de décalage (N6). */
@@ -274,10 +274,14 @@ function changeOf(
       if (postponement === null) return { ...unchanged, writes }
       if (!postponement.kept) {
         const lost = postponement.doseIds.flatMap((id) => [id, ...sistersOf(history, id)])
+        const { followedOn } = postponement
         return {
           ...unchanged,
           writes: [...writes, ...deletes([...new Set(lost)])],
-          postponement: { kept: false },
+          postponement:
+            followedOn === undefined
+              ? { kept: false }
+              : { kept: true, nextDueDate: followedOn, followed: true },
         }
       }
       const kept = (ids: string[], line: DoseFields) =>
@@ -295,7 +299,7 @@ function changeOf(
         postponement: {
           kept: true,
           nextDueDate: postponement.line.nextDueDate,
-          ...(postponement.adjusted === true ? { adjusted: true } : {}),
+          ...(postponement.followed === true ? { followed: true as const } : {}),
         },
       }
     }

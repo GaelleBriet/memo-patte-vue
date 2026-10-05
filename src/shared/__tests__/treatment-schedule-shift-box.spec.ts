@@ -317,22 +317,42 @@ describe('I2 : une correction refusée dans les deux états de la case fait suiv
   const today = '2026-10-27'
 
   it.each([true, false])(
-    'accepté, case %s : le report vise le 23, au plus la veille du 30',
+    'accepté, case %s : le report garde le 30, qui retombe sur une dose du rythme',
     (box) => {
       const schedule = scheduleOf(book, today)
 
       expect(schedule.redateRefusal(prise16.id, '2026-10-16', box)).toBeNull()
       expect(schedule.redate(prise16.id, '2026-10-16', box).postponement).toMatchObject({
-        kept: true,
-        adjusted: true,
-        line: { dueOn: '2026-10-23', status: 'postponed', nextDueDate: '2026-10-29' },
+        kept: false,
+        followedOn: '2026-10-30',
       })
       const after = redate(book, today, prise16.id, '2026-10-16', box)
       const next = scheduleOf(after, today)
       expect(next.unloggedDoses).toEqual([])
-      expect(dueDays(next.upcoming(3))).toEqual(['2026-10-29', '2026-10-30', '2026-11-06'])
+      expect(next.currentDoses).toEqual([due('2026-10-23')])
+      expect(dueDays(next.upcoming(2))).toEqual(['2026-10-30', '2026-11-06'])
     },
   )
+
+  it('au samedi 17, case cochée : le report vise le 31, la plus proche de son arrivée', () => {
+    const { postponement } = scheduleOf(book, today).redate(prise16.id, '2026-10-17', true)
+
+    expect(postponement).toMatchObject({
+      kept: true,
+      followed: true,
+      line: { dueOn: '2026-10-31', status: 'postponed', nextDueDate: '2026-10-30' },
+    })
+    const next = scheduleOf(redate(book, today, prise16.id, '2026-10-17', true), today)
+    expect(dueDays(next.upcoming(3))).toEqual(['2026-10-30', '2026-11-07', '2026-11-14'])
+  })
+
+  it('au lundi 12, case cochée : jamais avant aujourd’hui ni contre la dose suivante', () => {
+    const next = scheduleOf(redate(book, today, prise16.id, '2026-10-12', true), today)
+    const moves = next.doses.filter(({ status }) => status === 'postponed')
+
+    expect(moves.every(({ nextDueDate }) => nextDueDate >= today)).toBe(true)
+    expect(dueDays(next.upcoming(2))).toEqual(['2026-10-30', '2026-11-09'])
+  })
 })
 
 describe('Q2 a : rien ne fait passer la dose suivante à un report seul', () => {
@@ -382,10 +402,10 @@ describe('Q2 a : rien ne fait passer la dose suivante à un report seul', () => 
     const schedule = scheduleOf(noted, '2026-10-12')
     const id = lastDose(noted).id
 
-    expect(schedule.redateRefusal(id, '2026-10-07')).toBe('2026-10-22')
+    // Le report, plus ancien que la prise, ne la suit pas (TR-24 bis) : refusé dans cet état seul.
+    expect(schedule.redateRefusal(id, '2026-10-07')).toEqual({ on: '2026-10-22', reason: 'passes' })
     expect(() => schedule.redate(id, '2026-10-07')).toThrow(RangeError)
     expect(schedule.redateOffersShift(id, '2026-10-07')).toBe(true)
     expect(schedule.redateRefusal(id, '2026-10-07', false)).toBeNull()
-    expect(schedule.redateRefusal(id, '2026-10-10')).toBe('2026-10-22')
   })
 })

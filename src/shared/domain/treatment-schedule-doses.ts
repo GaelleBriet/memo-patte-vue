@@ -55,6 +55,7 @@ import type {
   NotedDose,
   PeriodPlan,
   RedateLimits,
+  RedateRefusal,
   RedatedDose,
   State,
   TreatmentDoseInput,
@@ -376,31 +377,14 @@ function redateExtra(state: State, extra: TreatmentDoseInput, givenOn: string): 
   return { dose: noted.dose, shift, postponement: null }
 }
 
-// Les journées encore à donner après ce jour : jusqu'à la veille de `before`, ou les `count` premières.
-function pendingDaysOf(
-  state: State,
-  periodId: string,
-  after: string,
-  bound: { before: string } | { count: number },
-): string[] {
-  const plan = planOf(state, periodId)
-  const from = nextDay(after)
-  if ('before' in bound) {
-    const to = previousDay(bound.before)
-    return to < from ? [] : uniqueDays(pendingDues(plan, { from, to }).map(({ dueOn }) => dueOn))
-  }
-  const limit = bound.count * Math.max(1, plan.period.times.length)
-  return uniqueDays(pendingDues(plan, { from, limit }).map(({ dueOn }) => dueOn))
-}
-
-function uniqueDays(days: string[]): string[] {
-  return [...new Set(days)].sort(compareText)
+function laterDay(a: string, b: string): string {
+  return a > b ? a : b
 }
 
 /**
- * I2 : le report seul qu'une correction ferait passer vise, dans le nouveau calendrier, l'échéance de
- * même rang après la prise ; sa date reste dans les bornes de Q2 a, la veille de la dose suivante au
- * plus. `null` quand il n'a pas d'échéance à viser ou qu'un autre report suit déjà la prise.
+ * I2 : le report seul qu'une correction ferait passer suit. Il vise l'échéance du nouveau calendrier
+ * la plus proche de son ancienne arrivée et garde cette date quand elle reste dans les bornes de
+ * Q2 a ; sinon elle s'en approche, jamais avant aujourd'hui. `null` : aucune date ne convient.
  */
 function followingReport(
   state: State,
@@ -412,26 +396,37 @@ function followingReport(
   const original = state.input.doses.find(({ id }) => id === moved.id)
   if (original === undefined) return null
   if (postponement !== null && !postponement.doseIds.includes(moved.id)) return null
-  const { periodId } = dose
-  const before = stateWithoutDues(state, [original])
-  const rank = pendingDaysOf(before, periodId, dose.dueOn, { before: original.dueOn }).length
-  const without = stateWithoutDues(after, [moved])
-  const days = pendingDaysOf(without, periodId, dose.dueOn, { count: rank + 2 })
-  const targetDay = days[rank]
+  const plan = planOf(stateWithoutDues(after, [moved]), dose.periodId)
+  const was = original.nextDueDate
+  const horizon = shiftDate(was, plan.period.frequency, 2)
+  const days = [
+    ...new Set(
+      pendingDues(plan, { from: nextDay(dose.dueOn), to: horizon }).map(({ dueOn }) => dueOn),
+    ),
+  ].sort(compareText)
+  const distance = (day: string) => Math.abs(differenceInCalendarDays(toDate(day), toDate(was)))
+  const targetDay = days.reduce<string | undefined>(
+    (best, day) => (best === undefined || distance(day) < distance(best) ? day : best),
+    undefined,
+  )
   if (targetDay === undefined) return null
-  const target = pendingDues(planOf(without, periodId), { from: targetDay, to: targetDay })[0]
-  if (target === undefined) return null
-  const nextOn = days[rank + 1]
+  const index = days.indexOf(targetDay)
+  const previous = days[index - 1] ?? dose.dueOn
+  const earliest = laterDay(state.input.today, nextDay(previous))
+  const nextOn = days[index + 1]
   const latest = nextOn === undefined ? null : previousDay(nextOn)
-  const arrival = latest !== null && moved.nextDueDate > latest ? latest : moved.nextDueDate
-  if (arrival === target.dueOn) return { doseIds: [moved.id], kept: false }
+  if (latest !== null && earliest > latest) return null
+  const arrival = was < earliest ? earliest : latest !== null && was > latest ? latest : was
+  if (arrival === targetDay) return { doseIds: [moved.id], kept: false, followedOn: arrival }
+  const target = pendingDues(plan, { from: targetDay, to: targetDay })[0]
+  if (target === undefined) return null
   return {
     doseIds: [moved.id],
     kept: true,
     line: movedFields(target, arrival),
     shiftIds: [],
     shiftLine: shiftFields(target, arrival),
-    ...(arrival === moved.nextDueDate ? {} : { adjusted: true }),
+    followed: true,
   }
 }
 
@@ -453,6 +448,7 @@ export class RedateRefusedError extends RangeError {
   constructor(
     readonly passedOn: string,
     readonly offersShift: boolean,
+    readonly reason: RedateRefusal['reason'] = 'passes',
   ) {
     super(`La prise corrigée ferait passer le report du ${passedOn} après la dose suivante`)
   }
@@ -463,12 +459,12 @@ export function redateRefusal(
   doseId: string,
   givenOn: string,
   shiftsFollowing = true,
-): string | null {
+): RedateRefusal | null {
   try {
     redate(state, doseId, givenOn, shiftsFollowing)
     return null
   } catch (cause) {
-    if (cause instanceof RedateRefusedError) return cause.passedOn
+    if (cause instanceof RedateRefusedError) return { on: cause.passedOn, reason: cause.reason }
     throw cause
   }
 }
@@ -546,7 +542,19 @@ export function redate(
               ]
             : kept.doseIds.map((id) => ({ id, fields: null }))),
       ]
-      const postponement = postponementAfter(plan, dose, ownShift, shifts, givenOn, restartsOn)
+      const kept = postponementAfter(plan, dose, ownShift, shifts, givenOn, restartsOn)
+      // Un report seul suit vers l'échéance la plus proche de son arrivée (I2), pas vers celle que fixe la prise.
+      const lone = kept?.kept === true && kept.shiftIds.length === 0 && shifts
+      const original = lone ? state.input.doses.find(({ id }) => id === kept.doseIds[0]) : undefined
+      const base = stateAfter(state, withSisters(state, writtenWith(null)))
+      const follows =
+        original === undefined ? null : followingReport(state, dose, base, original, kept)
+      const same =
+        follows?.kept === true &&
+        kept?.kept === true &&
+        keyOf(follows.line) === keyOf(kept.line) &&
+        follows.line.nextDueDate === kept.line.nextDueDate
+      const postponement = follows === null || same ? kept : follows
       const after = stateAfter(state, withSisters(state, writtenWith(postponement)))
       const passed = passedMove(state, after, dose.periodId, dose.dueOn)
       return { shiftLine, postponement, writtenWith, after, passed }
@@ -555,10 +563,10 @@ export function redate(
     let { postponement } = chosen
     if (chosen.passed !== null) {
       // I2 : refusée dans les deux états de la case, la correction fait suivre le report.
-      const followed =
-        linesFor(!shiftsFollowing).passed === null
-          ? null
-          : followingReport(state, dose, chosen.after, chosen.passed, chosen.postponement)
+      const otherState = linesFor(!shiftsFollowing).passed === null
+      const followed = otherState
+        ? null
+        : followingReport(state, dose, chosen.after, chosen.passed, chosen.postponement)
       const passes =
         followed === null ||
         passedMove(
@@ -567,7 +575,14 @@ export function redate(
           dose.periodId,
           dose.dueOn,
         ) !== null
-      if (passes) throw new RedateRefusedError(chosen.passed.nextDueDate, offersShift)
+      if (passes) {
+        const was = state.input.doses.find(({ id }) => id === chosen.passed?.id)
+        throw new RedateRefusedError(
+          was?.nextDueDate ?? chosen.passed.nextDueDate,
+          offersShift,
+          otherState ? 'passes' : 'stuck',
+        )
+      }
       postponement = followed
     }
     const nextDueDate = nextAfter(state, dose, chosen.writtenWith(postponement))

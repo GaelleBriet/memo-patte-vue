@@ -62,6 +62,7 @@ export type {
   ShiftRemovalRefusal,
   NewPeriod,
   RedateLimits,
+  RedateRefusal,
   TreatmentSchedule,
 } from './treatment-schedule-types'
 
