@@ -316,6 +316,9 @@ describe('I2 : la correction fait suivre le report seul, et l’aide dit le cale
       })
       expect(schedule.redateRefusal(prise.id, date, true)).toBeNull()
       expect(box.view(date, false).blocked).toBe(true)
+      expect(plain(box.view(date, false).help!.text)).toBe(
+        'Avec ce jour, la dose que tu avais reportée au 30 oct. tomberait après la suivante. Coche « Décaler aussi les doses suivantes », ou change d’abord la date de ce report.',
+      )
       expect(box.refusedDays(false)).toContain(date)
     },
   )
@@ -334,7 +337,9 @@ describe('I2 : la correction fait suivre le report seul, et l’aide dit le cale
 
       expect(text).toContain(plain(formatDayMonth(first!)).split(' ')[0]!)
       expect(text).toContain(String(Number(second!.slice(8))))
-      expect(text.includes('Le report du 30 oct. suit.')).toBe(follows(date, true))
+      expect(
+        text.includes('La dose que tu avais reportée au 30 oct. reste prévue ce jour-là.'),
+      ).toBe(follows(date, true))
     },
   )
 
@@ -345,13 +350,15 @@ describe('I2 : la correction fait suivre le report seul, et l’aide dit le cale
 
       expect(after.doses.some(({ status }) => status === 'postponed')).toBe(false)
       expect(after.upcoming(2).map(({ dueOn }) => dueOn)).toEqual(['2026-10-30', '2026-11-06'])
-      expect(plain(box.view('2026-10-16', shifts).help!.text)).toBe('Le report du 30 oct. suit.')
+      expect(plain(box.view('2026-10-16', shifts).help!.text)).toBe(
+        'La dose que tu avais reportée au 30 oct. reste prévue ce jour-là.',
+      )
     },
   )
 
   it('au 17, case cochée : le report garde le 30 et vise le samedi 31 ; l’aide suit le calendrier', () => {
     expect(plain(box.view('2026-10-17', true).help!.text)).toBe(
-      'Les doses suivantes passeront au 24 oct., puis dose reportée le 30 oct. Le report du 30 oct. suit.',
+      'Les doses suivantes passeront au 24 oct., puis dose reportée le 30 oct. La dose que tu avais reportée au 30 oct. reste prévue ce jour-là.',
     )
     const after = saved('2026-10-17', true)
     expect(after.currentDoses.map(({ dueOn }) => dueOn)).toEqual(['2026-10-24'])

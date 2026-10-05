@@ -379,8 +379,7 @@ par ricochet. « Changer la date » d'une prise refusé dans un seul état de la
 dans cet état (« Ce jour ferait passer le report du 22 oct. après la dose suivante… »). Quand la
 correction change le rythme, le report seul qui la suit vise l'échéance la plus proche de son
 ancienne arrivée et garde cette date dans les bornes de Q2 a, sinon s'en approche sans passer avant
-aujourd'hui ; sans date possible, la correction est refusée (« Change d'abord la date du report du 30
-oct. »). L'aide l'annonce (« Le report du 30 oct. suit. »). Restent
+aujourd'hui ; sans date possible, la correction est refusée (« Avec ce jour, la dose que tu avais reportée au 30 oct. ne pourrait plus tomber au bon moment. Change d'abord la date de ce report. »). L'aide l'annonce (« La dose que tu avais reportée au 30 oct. reste prévue ce jour-là. »). Restent
 refusés, faute de pouvoir faire suivre le report : « Fait à une autre date » coché (décocher suffit)
 et « Supprimer ce décalage » (« Change d'abord la date du report »). « C'est fait » en un tap, la
 notification et la feuille « À faire » notent la prise sans son décalage, et le toast le dit (« La

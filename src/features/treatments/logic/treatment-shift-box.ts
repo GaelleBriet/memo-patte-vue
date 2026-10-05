@@ -239,8 +239,14 @@ function passesMoveHelp(
 }
 
 function stuckMoveHelp(t: Translate, movedOn: string, today: string): ShiftHelp {
-  const date = withoutFinalDot(formatDayMonthOrYear(movedOn, today))
+  const date = formatDayMonthOrYear(movedOn, today)
   return { text: t('treatments.shift.stuckMove', { date }), warning: true }
+}
+
+// Refusé case décochée alors que cocher la case suffirait.
+function passesMoveCheckHelp(t: Translate, movedOn: string, today: string): ShiftHelp {
+  const date = formatDayMonthOrYear(movedOn, today)
+  return { text: t('treatments.shift.passesMoveCheck', { date }), warning: true }
 }
 
 // I2 : la correction fait suivre ce report seul ; sa date d'arrivée d'avant.
@@ -334,7 +340,9 @@ export function dateChangeBox(
         const refused =
           refusal.reason === 'stuck'
             ? stuckMoveHelp(t, refusal.on, today)
-            : passesMoveHelp(t, refusal.on, today)
+            : !shifts && shown
+              ? passesMoveCheckHelp(t, refusal.on, today)
+              : passesMoveHelp(t, refusal.on, today)
         return { shown, help: refused, blocked: true }
       }
       const follows = followedReportOn(history, schedule, line.id, date, shifts)

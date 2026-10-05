@@ -108,7 +108,7 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
     fait » du jour d'un quotidien : prise en plus, la dose du lendemain reste à donner. Seule la fiche
     note une prise en plus : sur la feuille « À faire » et depuis une notification, un second geste du
     jour répond « déjà notée » (Q33). « Changer la date » d'une prise en plus ne va jamais sur un jour
-    qui en a déjà une (jours grisés) ; sans dose à viser (traitement terminé ou arrêté), elle reste une
+    qui en a déjà une (jours grisés ; décochée, l'aide propose de cocher la case) ; sans dose à viser (traitement terminé ou arrêté), elle reste une
     prise en plus à la nouvelle date. À plusieurs heures par jour, une heure donnée en avance couvre son
     échéance (G10).
 - **TR-8** Aucune échéance après la date de fin.
@@ -252,8 +252,8 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
     correction de date change le rythme, un report seul qui la suit vise l'échéance du nouveau
     calendrier la plus proche de son ancienne arrivée et garde cette date si elle reste dans les
     bornes de Q2 a ; sinon elle s'en approche, jamais avant aujourd'hui ; si aucune date ne convient,
-    la correction est refusée (« Change d'abord la date du report du 30 oct. »). L'aide sous la case
-    l'annonce (« Le report du 30 oct. suit. ») et le toast le dit (« Prise déplacée au 17 oct. Le
+    la correction est refusée (« Avec ce jour, la dose que tu avais reportée au 30 oct. ne pourrait plus tomber au bon moment. Change d'abord la date de ce report. »). L'aide sous la case
+    l'annonce (« La dose que tu avais reportée au 30 oct. reste prévue ce jour-là. ») et le toast le dit (« Prise déplacée au 17 oct. Le
     report suit : dose reportée au 30 oct. »). Hebdomadaire du vendredi, aujourd'hui le 27, dose du
     16 donnée le 19 avec décalage, dose du 26 reportée seule au 30 : prise corrigée au samedi 17,
     « Avancée au 30 oct. (prévue le 31 oct.) », puis 7 nov. ; corrigée au 16, le report retombe sur
