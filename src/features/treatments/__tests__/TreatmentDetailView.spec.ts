@@ -893,6 +893,47 @@ describe('TreatmentDetailView — « Décaler aussi les doses suivantes » (V29,
     expect(toastAction.value?.ariaLabel).toBe('Annuler la suppression du décalage')
   })
 
+  it('« Fait à une autre date » refusé case cochée : rien ne s’enregistre ; décochée, la prise seule (Q2 a)', async () => {
+    vi.setSystemTime(new Date('2026-10-14T21:00:00'))
+    const view = await monter(
+      treatment(
+        [
+          {
+            ...VENDREDI,
+            startsOn: '2026-10-02',
+            firstDueOn: '2026-10-02',
+            referenceOn: '2026-10-02',
+          },
+        ],
+        [dose('2026-10-02', '2026-10-09'), postponed('2026-10-16', '2026-10-22')],
+      ),
+    )
+    await view.get('.treatment-dose-card__other-date').trigger('click')
+    await flushPromises()
+
+    const enregistrer = () => dansLaFeuille('.treatment-other-date__submit')[0]!
+    expect(enregistrer().disabled).toBe(true)
+    expect(dansLaFeuille('.treatment-shift__help')[0]!.textContent?.replace(NBSP, ' ')).toBe(
+      'Ce jour ferait passer le report du 22 oct. après la dose suivante : décoche la case, ou change d’abord la date du report.',
+    )
+
+    ;(dansLaFeuille('.treatment-shift__input')[0] as unknown as HTMLInputElement).click()
+    await flushPromises()
+    expect(enregistrer().disabled).toBe(false)
+    enregistrer().click()
+    await flushPromises()
+
+    expect(service.apply).toHaveBeenCalledWith(METACAM.id, {
+      kind: 'note',
+      gesture: {
+        kind: 'given',
+        due: { periodId: 'p-1', dueOn: '2026-10-09', dueTime: null },
+        givenOn: '2026-10-14',
+        shiftsFollowing: false,
+      },
+    })
+  })
+
   it('« Fait à une autre date » : récapitulatif, case cochée, envoyée décochée', async () => {
     const view = await monter(treatment([VENDREDI], [dose('2026-09-18', '2026-09-25')]))
     await view.get('.treatment-dose-card__other-date').trigger('click')

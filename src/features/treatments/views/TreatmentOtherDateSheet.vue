@@ -6,11 +6,11 @@ import TreatmentHourChoices from './TreatmentHourChoices.vue'
 import TreatmentShiftCheckbox from './TreatmentShiftCheckbox.vue'
 import { hasSeveralTimes } from '../logic/treatment-gestures'
 import { givenDays, otherDatePlan, otherDateTexts } from '../logic/treatment-other-date'
-import { otherDateBox, otherDateRecap } from '../logic/treatment-shift-box'
+import { otherDateBox, otherDateNote, otherDateRecap } from '../logic/treatment-shift-box'
 import type { TreatmentWithHistory } from '../repository/treatments.repository'
 import BottomSheet from '@/shared/components/BottomSheet.vue'
 import DateCalendar from '@/shared/components/DateCalendar.vue'
-import type { Due, TreatmentSchedule } from '@/shared/domain/treatment-schedule'
+import type { DoseGesture, TreatmentSchedule } from '@/shared/domain/treatment-schedule'
 
 const props = withDefaults(
   defineProps<{
@@ -27,7 +27,7 @@ const props = withDefaults(
 )
 
 const emit = defineEmits<{
-  note: [due: Due, givenOn: string, shiftsFollowing: boolean]
+  note: [gesture: DoseGesture]
 }>()
 
 const open = defineModel<boolean>({ default: false })
@@ -85,13 +85,15 @@ const box = computed(() =>
   ),
 )
 
+const gesture = computed(() => otherDateNote(due.value, givenOn.value, box.value, shifts.value))
+
 function submit(): void {
   if (givenOn.value === null || plan.value === null) return
   if (step.value === 'day' && severalTimes.value) {
     step.value = 'hour'
     return
   }
-  if (due.value) emit('note', due.value, givenOn.value, box.value.shown ? shifts.value : true)
+  if (gesture.value !== null) emit('note', gesture.value)
 }
 </script>
 
@@ -138,7 +140,7 @@ function submit(): void {
       class="treatment-other-date__submit"
       variant="flat"
       color="primary"
-      :disabled="busy || plan === null || (!(step === 'day' && severalTimes) && due === null)"
+      :disabled="busy || plan === null || (!(step === 'day' && severalTimes) && gesture === null)"
       @click="submit"
     >
       {{ step === 'hour' ? t('treatments.shift.save') : texts.submit }}

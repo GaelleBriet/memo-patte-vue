@@ -6,7 +6,7 @@ import type { DoseWrite } from '../repository/treatment-doses.repository'
 import type { TreatmentWithHistory } from '../repository/treatments.repository'
 import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
-import type { Due, TreatmentSchedule } from '@/shared/domain/treatment-schedule'
+import type { DoseGesture, Due, TreatmentSchedule } from '@/shared/domain/treatment-schedule'
 import {
   formatClockTime,
   formatDayMonthOrYear,
@@ -109,7 +109,18 @@ export function lostDays(
 export function shiftHelpText(
   t: Translate,
   period: Pick<TreatmentPeriodRecord, 'frequency'>,
-  { shifts, following, lost }: { shifts: boolean; following: string[]; lost: string[] },
+  {
+    shifts,
+    following,
+    lost,
+    weekdayOn = null,
+  }: {
+    shifts: boolean
+    following: string[]
+    lost: string[]
+    /** Le jour qui nomme le rythme : l'ancrage du décalage, sinon une dose qui n'est pas un report. */
+    weekdayOn?: string | null
+  },
   today: string,
 ): ShiftHelp | null {
   if (shifts && lost.length > 0) {
@@ -121,8 +132,9 @@ export function shiftHelpText(
   if (first === undefined) return null
   const way = shifts ? 'moved' : 'kept'
   const { unit, value } = period.frequency
-  if (unit === 'week') {
-    const named = { weekday: formatWeekday(first), dates: withoutFinalDot(formatDaySeries(shown)) }
+  const weekday = formatWeekday(weekdayOn ?? first)
+  if (unit === 'week' && shown.every((day) => formatWeekday(day) === weekday)) {
+    const named = { weekday, dates: withoutFinalDot(formatDaySeries(shown)) }
     return { text: t(`treatments.shift.${way}.weekly`, named), warning: false }
   }
   const every = t(`treatments.sheet.frequency.${unit}`, { n: value }, value)
@@ -159,7 +171,13 @@ export function shiftHelpOf(
   if (period === undefined || after === null) return null
   const following = pendingDaysAfter(after, period, newDay)
   const lost = lostDays(pendingDaysAfter(schedule, period, currentDay), following, period)
-  return shiftHelpText(t, period, { shifts, following, lost }, today)
+  const arrivals = new Set(
+    after.doses
+      .filter((dose) => dose.status === 'postponed' && dose.periodId === periodId)
+      .map(({ nextDueDate }) => nextDueDate),
+  )
+  const weekdayOn = shifts ? newDay : (following.find((day) => !arrivals.has(day)) ?? null)
+  return shiftHelpText(t, period, { shifts, following, lost, weekdayOn }, today)
 }
 
 type Line = Pick<
@@ -183,9 +201,17 @@ export type DateChangeBox = {
 // Les jours que la correction peut viser sans parcourir des années d'historique.
 const REFUSAL_WINDOW_DAYS = 62
 
-function passesMoveHelp(t: Translate, passedOn: string, today: string): ShiftHelp {
+function passesMoveHelp(
+  t: Translate,
+  passedOn: string,
+  today: string,
+  canUncheck = false,
+): ShiftHelp {
   const date = formatDayMonthOrYear(passedOn, today)
-  return { text: t('treatments.shift.passesMove', { date }), warning: true }
+  const text = canUncheck
+    ? t('treatments.shift.passesMoveUncheck', { date })
+    : t('treatments.shift.passesMove', { date })
+  return { text, warning: true }
 }
 
 function daysUpTo(today: string, count: number): string[] {
@@ -280,8 +306,9 @@ export function otherDateBox(
     return { shown: false, help: null }
   }
   const passedOn = shifts ? schedule.noteRefusal(due, givenOn) : null
-  if (passedOn !== null)
-    return { shown: true, help: passesMoveHelp(t, passedOn, today), blocked: true }
+  if (passedOn !== null) {
+    return { shown: true, help: passesMoveHelp(t, passedOn, today, true), blocked: true }
+  }
   const gesture = { kind: 'given' as const, due, givenOn, shiftsFollowing: shifts }
   return {
     shown: true,
@@ -294,6 +321,22 @@ export function otherDateBox(
       today,
     }),
   }
+}
+
+/**
+ * Ce que « Fait à une autre date » enregistre : `null` sans dose ou quand le geste est refusé ; la
+ * case montrée, son état part au moteur, qui refuse un décalage impossible au lieu de l'omettre.
+ */
+export function otherDateNote(
+  due: Due | null,
+  givenOn: string | null,
+  view: ShiftBoxView,
+  shifts: boolean,
+): DoseGesture | null {
+  if (due === null || givenOn === null || view.blocked === true) return null
+  return view.shown
+    ? { kind: 'given', due, givenOn, shiftsFollowing: shifts }
+    : { kind: 'given', due, givenOn }
 }
 
 /** « Dose du vendredi 16 oct., donnée le lundi 19 oct. » ; `null` quand la prise est à son jour. */

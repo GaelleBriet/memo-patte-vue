@@ -119,6 +119,30 @@ describe('doseChange — noter une prise', () => {
   })
 })
 
+describe('doseChange — « C’est fait » en retard avant un report seul (M1)', () => {
+  it('note la prise seule et dit le report qui garde la suite', () => {
+    const history = treatment(
+      [
+        period({
+          frequency: { value: 1, unit: 'week' },
+          startsOn: '2026-10-02',
+          firstDueOn: '2026-10-02',
+        }),
+      ],
+      [dose('2026-10-02', '2026-10-09'), postponed('2026-10-16', '2026-10-22')],
+    )
+    const due = { periodId: 'p-1', dueOn: '2026-10-09', dueTime: null }
+
+    const noted = change(history, '2026-10-14', {
+      kind: 'note',
+      gesture: { kind: 'given', due, givenOn: '2026-10-14' },
+    })
+
+    expect(noted.heldBy).toBe('2026-10-22')
+    expect(noted.writes.map(({ action }) => action)).toEqual(['create'])
+  })
+})
+
 describe('doseChange — supprimer une prise', () => {
   it('supprime la seule prise du traitement', () => {
     const history = treatment([period()], [dose('2026-09-01', '2026-09-02')])

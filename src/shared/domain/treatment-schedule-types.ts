@@ -64,8 +64,11 @@ export type LineChange =
   | { action: 'delete'; doseId: string }
   | { action: 'none' }
 
-/** La prise à écrire, et la ligne de décalage qui fait repartir la suite de sa date réelle. */
-export type NotedDose = { dose: DoseFields; shift: DoseFields | null }
+/**
+ * La prise à écrire, et la ligne de décalage qui fait repartir la suite de sa date réelle ;
+ * `heldBy` : sans case, le décalage n'est pas écrit, il ferait passer ce report seul (son arrivée).
+ */
+export type NotedDose = { dose: DoseFields; shift: DoseFields | null; heldBy?: string }
 
 /**
  * `shift` : la ligne de décalage de la prise, réancrée à sa nouvelle date, créée ou supprimée.
@@ -77,7 +80,15 @@ export type RedatedDose = {
   dose: DoseFields
   shift: LineChange
   postponement:
-    | { doseIds: string[]; kept: true; line: DoseFields; shiftIds: string[]; shiftLine: DoseFields }
+    | {
+        doseIds: string[]
+        kept: true
+        line: DoseFields
+        shiftIds: string[]
+        shiftLine: DoseFields
+        /** I2 : la date du report suit dans les bornes de Q2 a, elle a changé. */
+        adjusted?: boolean
+      }
     | { doseIds: string[]; kept: false }
     | null
 }

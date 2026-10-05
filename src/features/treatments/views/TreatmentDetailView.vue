@@ -38,7 +38,7 @@ import OverflowMenu, { type OverflowMenuItem } from '@/shared/components/Overflo
 import PushedScreen from '@/shared/components/PushedScreen.vue'
 import { originQuery } from '@/shared/domain/reminder-route'
 import { reminderIcon } from '@/shared/domain/reminders'
-import type { Due, MoveBounds } from '@/shared/domain/treatment-schedule'
+import type { DoseGesture, Due, MoveBounds } from '@/shared/domain/treatment-schedule'
 import { returnTo } from '@/shared/utils/return-to'
 
 const props = defineProps<{
@@ -152,11 +152,8 @@ function apply(action: DoseAction, line: Due | null, periodId: string): Promise<
   return gestures.applyDose(treatment.value, action, texts)
 }
 
-function note(due: Due, givenOn: string, shiftsFollowing = true): Promise<boolean> {
-  const gesture = shiftsFollowing
-    ? { kind: 'given' as const, due, givenOn }
-    : { kind: 'given' as const, due, givenOn, shiftsFollowing }
-  return apply({ kind: 'note', gesture }, null, due.periodId)
+function note(due: Due, givenOn: string): Promise<boolean> {
+  return apply({ kind: 'note', gesture: { kind: 'given', due, givenOn } }, null, due.periodId)
 }
 
 function done(due: Due): void {
@@ -164,8 +161,10 @@ function done(due: Due): void {
   void note(due, today.value)
 }
 
-async function noteOtherDate(due: Due, givenOn: string, shiftsFollowing: boolean): Promise<void> {
-  if (await note(due, givenOn, shiftsFollowing)) isOtherDateOpen.value = false
+async function noteOtherDate(gesture: DoseGesture): Promise<void> {
+  if (await apply({ kind: 'note', gesture }, null, gesture.due.periodId)) {
+    isOtherDateOpen.value = false
+  }
 }
 
 function log(choice: DayChoice): Promise<'done' | 'stale' | 'failed'> {

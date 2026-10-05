@@ -248,6 +248,16 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
     dit alors « prévue le » avec la nouvelle échéance (prise du 5 sept. corrigée au 28 août :
     « Reportée au 10 oct. (prévue le 28 sept.) »).
     (Validée par Gaelle, points validés en bloc du 2026-10-01.)
+  - **G19** Un report seul (sans décalage) ne passe jamais la dose suivante (Q2 a). Une correction
+    qui le ferait passer, case cochée ou décochée, le fait suivre comme en G12 : il vise l'échéance
+    de même rang après la prise, sa date ramenée au plus la veille de la dose suivante ; toast
+    « Prise déplacée au 16 oct. Le report suit : dose reportée au 29 oct. » · Annuler. Hebdomadaire
+    du vendredi, dose du 16 donnée le 19 avec décalage, dose du 26 reportée seule au 30, prise
+    corrigée au 16 : « Reportée au 29 oct. (prévue le 23 oct.) », puis 30 oct. Refusée dans un seul
+    état de la case, la correction n'est permise que dans l'autre (jours grisés). Restent refusés :
+    « Fait à une autre date » coché et « Supprimer ce décalage ». « C'est fait » en un tap, la
+    notification et la feuille « À faire » notent la prise sans décalage (« La suite ne bouge pas :
+    un report est prévu le 28 oct. »). (Décisions de Gaelle du 2026-10-05, #505.)
 - **TR-25** Une correction s'applique à toutes les lignes de la même échéance, jour et heure (deux
   appareils), et devient la modification la plus récente. (Relecture, point 5)
 - **TR-26** Pas de règle de « seule prise » : supprimer la seule prise garde le traitement (son

@@ -454,8 +454,11 @@
         "removed": "Dose on {date} deleted",
         "removedShiftKept": "Dose on {date} deleted. The following doses stay moved.",
         "undoRemove": "Undo deleting the dose on {date}",
+        "removedExtra": "Extra dose of {date} deleted",
+        "undoRemoveExtra": "Undo deleting the extra dose of {date}",
         "moved": "Dose moved to {date}",
         "movedKept": "Dose moved to {date}. Next dose kept on {nextDue}, as you had postponed it.",
+        "movedFollowed": "Dose moved to {date}. The postponement follows: dose postponed to {nextDue}.",
         "movedLost": "Dose moved to {date}. Your postponement of the next dose no longer applies.",
         "undoMove": "Undo the dose date change",
         "deleted": "Deleted",
@@ -621,7 +624,9 @@
       "recap": "{due} dose, given on {given}",
       "recapAt": "{due}, {time} dose, given on {given}",
       "save": "Save",
-      "passesMove": "This day would push the postponement of {date} past the next dose: change the postponement date first."
+      "passesMove": "This day would push the postponement of {date} past the next dose: change the postponement date first.",
+      "passesMoveUncheck": "This day would push the postponement of {date} past the next dose: untick the box, or change the postponement date first.",
+      "suiteHeld": "{done}. The schedule doesn’t move: a postponement is planned on {date}."
     }
   },
   "reminders": {

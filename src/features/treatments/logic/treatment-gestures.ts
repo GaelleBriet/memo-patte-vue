@@ -33,14 +33,17 @@ export type GestureContext = {
 export type DoseActionTexts = {
   /** `finishes` : le geste a fait passer le traitement dans « Traitements terminés » (TR-31). */
   done(
-    applied: Pick<DoseChange, 'postponement' | 'moved' | 'shiftKept'> & { finishes?: boolean },
+    applied: Pick<DoseChange, 'postponement' | 'moved' | 'shiftKept'> & {
+      finishes?: boolean
+      heldBy?: string | null
+    },
   ): string
   /** Nom du bouton « Annuler » lu par le lecteur d'écran. */
   undo: string
   already(givenOn: string): string
 }
 
-type DueDay = Pick<Due, 'dueOn' | 'dueTime'>
+type DueDay = Pick<Due, 'dueOn' | 'dueTime'> & { status?: TreatmentDoseInput['status'] }
 
 export function hasSeveralTimes(
   treatment: Pick<TreatmentWithHistory, 'periods'>,
@@ -100,8 +103,7 @@ export function doseActionTexts(
       const time =
         severalTimes && gesture.due.dueTime !== null ? formatClockTime(gesture.due.dueTime) : null
       const date = gesture.givenOn === today ? null : day(gesture.givenOn)
-      const done: DoseActionTexts['done'] = ({ finishes }) => {
-        if (finishes) return t('treatments.detail.toast.lastDose', { name })
+      const noted = (): string => {
         if (time === null) {
           return date === null
             ? t('treatments.sheet.toast.dose', named)
@@ -110,6 +112,14 @@ export function doseActionTexts(
         return date === null
           ? t('treatments.history.toast.doseAt', { ...named, time })
           : t('treatments.history.toast.doseAtOn', { ...named, time, date })
+      }
+      const done: DoseActionTexts['done'] = ({ finishes, heldBy = null }) => {
+        if (finishes) return t('treatments.detail.toast.lastDose', { name })
+        if (heldBy === null) return noted()
+        return t('treatments.shift.suiteHeld', {
+          done: noted(),
+          date: withoutFinalDot(day(heldBy)),
+        })
       }
       return { done, undo: t('treatments.sheet.toast.undoDose', named), already }
     }
@@ -140,6 +150,15 @@ export function doseActionTexts(
     }
     case 'remove': {
       const removed = line ?? { dueOn: today, dueTime: null }
+      if (removed.status === 'extra') {
+        return {
+          done: () => t('treatments.detail.toast.removedExtra', { date: day(removed.dueOn) }),
+          undo: t('treatments.detail.toast.undoRemoveExtra', {
+            date: formatFullDate(removed.dueOn),
+          }),
+          already,
+        }
+      }
       return {
         done: ({ shiftKept }) =>
           shiftKept
@@ -157,12 +176,17 @@ export function doseActionTexts(
         done: ({ postponement }) =>
           postponement === null
             ? t('treatments.detail.toast.moved', { date })
-            : postponement.kept
-              ? t('treatments.detail.toast.movedKept', {
+            : postponement.kept && postponement.adjusted === true
+              ? t('treatments.detail.toast.movedFollowed', {
                   date: sentenceDate,
-                  nextDue: nonBreaking(day(postponement.nextDueDate)),
+                  nextDue: nonBreaking(withoutFinalDot(day(postponement.nextDueDate))),
                 })
-              : t('treatments.detail.toast.movedLost', { date: sentenceDate }),
+              : postponement.kept
+                ? t('treatments.detail.toast.movedKept', {
+                    date: sentenceDate,
+                    nextDue: nonBreaking(day(postponement.nextDueDate)),
+                  })
+                : t('treatments.detail.toast.movedLost', { date: sentenceDate }),
         undo: t('treatments.detail.toast.undoMove'),
         already,
       }

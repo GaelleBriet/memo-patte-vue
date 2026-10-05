@@ -274,6 +274,67 @@ describe('« Supprimer ce report » grisé : la dose reviendrait trop près de l
   })
 })
 
+describe('I2 : une correction refusée dans les deux états de la case fait suivre le report', () => {
+  // Vendredis ; le 16 donnée le lundi 19 avec décalage (26, 2 nov.), le 26 reporté seul au 30.
+  const prise16 = stored({
+    periodId: 'p1',
+    dueOn: '2026-10-16',
+    dueTime: null,
+    givenOn: '2026-10-19',
+    status: 'given',
+    nextDueDate: '2026-10-26',
+  })
+  const book: Carnet = {
+    ...carnet(weekly({ firstDueOn: '2026-10-09' })),
+    doses: [
+      stored({
+        periodId: 'p1',
+        dueOn: '2026-10-09',
+        dueTime: null,
+        givenOn: '2026-10-09',
+        status: 'given',
+        nextDueDate: '2026-10-16',
+      }),
+      prise16,
+      stored({
+        periodId: 'p1',
+        dueOn: '2026-10-16',
+        dueTime: null,
+        givenOn: null,
+        status: 'shift',
+        nextDueDate: '2026-10-19',
+      }),
+      stored({
+        periodId: 'p1',
+        dueOn: '2026-10-26',
+        dueTime: null,
+        givenOn: null,
+        status: 'postponed',
+        nextDueDate: '2026-10-30',
+      }),
+    ],
+  }
+  const today = '2026-10-27'
+
+  it.each([true, false])(
+    'accepté, case %s : le report vise le 23, au plus la veille du 30',
+    (box) => {
+      const schedule = scheduleOf(book, today)
+
+      expect(schedule.redateRefusal(prise16.id, '2026-10-16', box)).toBeNull()
+      expect(schedule.redate(prise16.id, '2026-10-16', box).postponement).toMatchObject({
+        kept: true,
+        adjusted: true,
+        line: { dueOn: '2026-10-23', status: 'postponed', nextDueDate: '2026-10-29' },
+      })
+      const after = redate(book, today, prise16.id, '2026-10-16', box)
+      const next = scheduleOf(after, today)
+      expect(next.unloggedDoses).toEqual([])
+      expect(dueDays(next.upcoming(3))).toEqual(['2026-10-29', '2026-10-30', '2026-11-06'])
+    },
+  )
+})
+
 describe('Q2 a : rien ne fait passer la dose suivante à un report seul', () => {
   // Vendredis ; la dose du 9 en retard, celle du 16 reportée seule au jeudi 22.
   const report: Carnet = {

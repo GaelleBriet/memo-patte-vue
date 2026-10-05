@@ -373,6 +373,18 @@ devient la référence : ancré au 31 août, 30 sept., 31 oct.).
 Décocher la case dans « Changer la date » supprime la ligne de décalage : c'est un choix de la
 personne, pas une cascade.
 
+**Report seul et dose suivante** (Q2 a, décisions du 2026-10-05, #505) : aucun geste ne fait passer
+un report seul (sans décalage sur sa journée) après la dose suivante, et aucun ne le fait disparaître
+par ricochet. « Changer la date » d'une prise refusé dans un seul état de la case : le jour est grisé
+dans cet état (« Ce jour ferait passer le report du 22 oct. après la dose suivante… »). Refusé dans
+les deux états : le geste est accepté et le report suit, comme en G12 : il vise l'échéance de même
+rang après la prise dans le nouveau calendrier, sa date ramenée au plus la veille de la dose
+suivante ; toast « Prise déplacée au 16 oct. Le report suit : dose reportée au 29 oct. ». Restent
+refusés, faute de pouvoir faire suivre le report : « Fait à une autre date » coché (décocher suffit)
+et « Supprimer ce décalage » (« Change d'abord la date du report »). « C'est fait » en un tap, la
+notification et la feuille « À faire » notent la prise sans son décalage, et le toast le dit (« La
+suite ne bouge pas : un report est prévu le 28 oct. »).
+
 **La ligne de décalage dans l'historique** (N7) : toujours visible, discrète, au même endroit que les
 reports : « Doses suivantes décalées · prochaine le 26 oct. » (libellé à fixer avec la maquette). Menu ⋮ :
 « Supprimer ce décalage », toast et « Annuler ». Quand une dose plus loin dans la période est déjà

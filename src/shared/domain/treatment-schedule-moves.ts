@@ -209,10 +209,18 @@ export function passedMoveOn(
   periodId: string,
   fromDay: string,
 ): string | null {
+  return passedMove(before, after, periodId, fromDay)?.nextDueDate ?? null
+}
+
+/** Le report seul lui-même, tel qu'il est dans `after`. */
+export function passedMove(
+  before: State,
+  after: State,
+  periodId: string,
+  fromDay: string,
+): TreatmentDoseInput | null {
   const already = new Set(passingAlone(before, periodId, fromDay).map(({ id }) => id))
-  return (
-    passingAlone(after, periodId, fromDay).find(({ id }) => !already.has(id))?.nextDueDate ?? null
-  )
+  return passingAlone(after, periodId, fromDay).find(({ id }) => !already.has(id)) ?? null
 }
 
 // N8 : la prise de la dose déplacée elle-même, à son jour d'arrivée, n'est pas une dose plus lointaine.

@@ -454,8 +454,11 @@
         "removed": "Prise du {date} supprimée",
         "removedShiftKept": "Prise du {date} supprimée. Les doses suivantes restent décalées.",
         "undoRemove": "Annuler la suppression de la prise du {date}",
+        "removedExtra": "Prise en plus du {date} supprimée",
+        "undoRemoveExtra": "Annuler la suppression de la prise en plus du {date}",
         "moved": "Prise déplacée au {date}",
         "movedKept": "Prise déplacée au {date}. Prochaine dose gardée au {nextDue}, que tu avais reportée.",
+        "movedFollowed": "Prise déplacée au {date}. Le report suit : dose reportée au {nextDue}.",
         "movedLost": "Prise déplacée au {date}. Ton report de la prochaine dose ne s’applique plus.",
         "undoMove": "Annuler le changement de date de la prise",
         "deleted": "Supprimé",
@@ -621,7 +624,9 @@
       "recap": "Dose du {due}, donnée le {given}",
       "recapAt": "Dose de {time} du {due}, donnée le {given}",
       "save": "Enregistrer",
-      "passesMove": "Ce jour ferait passer le report du {date} après la dose suivante : change d’abord la date du report."
+      "passesMove": "Ce jour ferait passer le report du {date} après la dose suivante : change d’abord la date du report.",
+      "passesMoveUncheck": "Ce jour ferait passer le report du {date} après la dose suivante : décoche la case, ou change d’abord la date du report.",
+      "suiteHeld": "{done}. La suite ne bouge pas : un report est prévu le {date}."
     }
   },
   "reminders": {

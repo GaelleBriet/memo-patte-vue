@@ -122,7 +122,12 @@ export function nextDoseShiftHelp(
   return shiftHelpText(
     t,
     draft.period,
-    { shifts: values.shiftsFollowing, following, lost: shift.lost },
+    {
+      shifts: values.shiftsFollowing,
+      following,
+      lost: shift.lost,
+      weekdayOn: values.shiftsFollowing ? chosenOn : null,
+    },
     today,
   )
 }

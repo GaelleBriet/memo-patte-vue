@@ -29,11 +29,13 @@ export type DoseChange = {
   /** Date d'une prise déjà donnée pour cette échéance : rien n'est écrit. */
   alreadyGivenOn: string | null
   /** Déplacement qui suivait une prise redatée : gardé à sa date, ou perdu. */
-  postponement: { kept: true; nextDueDate: string } | { kept: false } | null
+  postponement: { kept: true; nextDueDate: string; adjusted?: boolean } | { kept: false } | null
   /** Ce qu'un geste sur un report en a fait : sa ligne telle qu'écrite, ou `removed` ; `null` hors de ces gestes ou sans changement. */
   moved: DoseFields | 'removed' | null
   /** La prise supprimée ou marquée oubliée, ou le report supprimé, laisse sa ligne de décalage (N6). */
   shiftKept: boolean
+  /** Prise notée sans son décalage, qui ferait passer ce report seul : son arrivée (Q2 a). */
+  heldBy?: string
 }
 
 export class DoseAlreadyLoggedError extends Error {}
@@ -243,6 +245,7 @@ function changeOf(
       return {
         ...unchanged,
         writes: noteWrites(history, written, notes, newId),
+        ...(written.heldBy === undefined ? {} : { heldBy: written.heldBy }),
         shiftKept:
           gesture.kind === 'missed' && notes.length > 0 && hasShift(history, schedule, gesture.due),
       }
@@ -289,7 +292,11 @@ function changeOf(
           ...kept(postponement.doseIds, postponement.line),
           ...kept(postponement.shiftIds, postponement.shiftLine),
         ],
-        postponement: { kept: true, nextDueDate: postponement.line.nextDueDate },
+        postponement: {
+          kept: true,
+          nextDueDate: postponement.line.nextDueDate,
+          ...(postponement.adjusted === true ? { adjusted: true } : {}),
+        },
       }
     }
     case 'move': {

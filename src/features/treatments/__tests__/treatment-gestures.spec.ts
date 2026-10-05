@@ -252,6 +252,68 @@ describe('lineAction — menu ⋮ d’une ligne de l’historique', () => {
   })
 })
 
+describe('doseActionTexts — la correction fait suivre un report seul (I2)', () => {
+  it('le toast dit la nouvelle date du report', () => {
+    const { done } = doseActionTexts(
+      t,
+      UNE_HEURE,
+      { kind: 'redate', doseId: 'prise', givenOn: '2026-09-16' },
+      null,
+    )
+
+    expect(
+      plain(
+        done({ ...RIEN, postponement: { kept: true, nextDueDate: '2026-09-29', adjusted: true } }),
+      ),
+    ).toBe('Prise déplacée au 16 sept. Le report suit : dose reportée au 29 sept.')
+  })
+})
+
+describe('doseActionTexts — supprimer une prise en plus', () => {
+  it('le toast et « Annuler » disent « prise en plus »', () => {
+    const enPlus = { dueOn: '2026-10-05', dueTime: null, status: 'extra' as const }
+    const action: DoseAction = { kind: 'remove', doseId: 'en plus' }
+
+    const fr = doseActionTexts(t, UNE_HEURE, action, enPlus)
+    expect(plain(fr.done(RIEN))).toBe('Prise en plus du 5 oct. supprimée')
+    expect(fr.undo).toBe('Annuler la suppression de la prise en plus du 5 octobre 2026')
+
+    applyLocale('en')
+    const en = doseActionTexts(t, UNE_HEURE, action, enPlus)
+    expect(plain(en.done(RIEN))).toBe('Extra dose of Oct 5 deleted')
+    expect(en.undo).toBe('Undo deleting the extra dose of October 5, 2026')
+  })
+})
+
+describe('doseActionTexts — prise notée sans son décalage, un report seul suit (M1)', () => {
+  it('le toast dit que la suite ne bouge pas', () => {
+    const due = { periodId: 'p-1', dueOn: '2026-09-25', dueTime: null }
+    const { done } = doseActionTexts(
+      t,
+      UNE_HEURE,
+      { kind: 'note', gesture: { kind: 'given', due, givenOn: TODAY } },
+      null,
+    )
+
+    expect(plain(done({ ...RIEN, heldBy: '2026-10-28' }))).toBe(
+      'Prise de Panacur notée pour Pixel. La suite ne bouge pas : un report est prévu le 28 oct.',
+    )
+    applyLocale('en')
+    expect(
+      plain(
+        doseActionTexts(
+          t,
+          UNE_HEURE,
+          { kind: 'note', gesture: { kind: 'given', due, givenOn: TODAY } },
+          null,
+        ).done({ ...RIEN, heldBy: '2026-10-28' }),
+      ),
+    ).toBe(
+      'Panacur dose logged for Pixel. The schedule doesn’t move: a postponement is planned on Oct 28.',
+    )
+  })
+})
+
 describe('doseActionTexts — « Supprimer ce décalage » (V31 quater)', () => {
   const action: DoseAction = { kind: 'remove-shift', doseId: 'décalage' }
 
