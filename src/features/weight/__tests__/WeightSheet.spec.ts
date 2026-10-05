@@ -8,6 +8,7 @@ import { useWeightStore } from '../store/weight.store'
 import type { Animal } from '@/features/animals/schema/animal.schema'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import { simulateWebResume } from '@/core/app-lifecycle/__tests__/simulate-resume'
+import { forgetPhotoUrls } from '@/core/photos/use-photo-urls'
 import i18n from '@/core/i18n'
 import { getMsIconPath } from '@/core/theme/icons'
 import vuetify from '@/core/theme/vuetify'
@@ -21,6 +22,11 @@ import {
   toastMessage,
   toastTone,
 } from '@/shared/utils/toast'
+
+vi.mock('@/core/photos/photo-storage', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  photoDisplayUrl: vi.fn<(name: string) => Promise<string>>(async (name) => `url:${name}`),
+}))
 
 const MILO: Animal = {
   id: '11111111-1111-4111-8111-111111111111',
@@ -86,6 +92,7 @@ afterEach(() => {
   wrapper?.unmount()
   wrapper = null
   document.body.innerHTML = ''
+  forgetPhotoUrls()
   dismissToast()
   applyWeightUnit('kg')
   vi.restoreAllMocks()
@@ -245,6 +252,21 @@ describe('WeightSheet — sans animal (P2)', () => {
     expect(
       Array.from(feuille().querySelectorAll('.animal-chip__name')).map((n) => n.textContent),
     ).toEqual(['Milo', 'Luna'])
+  })
+
+  it('montre la photo de l’animal qui en a une, le dégradé pour l’autre', async () => {
+    vi.spyOn(useAnimalsStore(), 'load').mockImplementation(async () => {
+      const animals = useAnimalsStore()
+      animals.animals = [{ ...MILO, photoPath: 'milo.jpg' }, LUNA]
+      animals.hasLoaded = true
+      return true
+    })
+    await monter(null)
+    await flushPromises()
+
+    const [milo, luna] = [...feuille().querySelectorAll('.animal-chip')]
+    expect(milo?.querySelector('img')?.getAttribute('src')).toBe('url:milo.jpg')
+    expect(luna?.querySelector('img')).toBeNull()
   })
 
   it('grise les champs tant qu’aucun animal n’est choisi', async () => {

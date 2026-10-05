@@ -10,6 +10,7 @@ import {
 import type { WeightEntry } from '../schema/weight.schema'
 import { useWeightStore } from '../store/weight.store'
 import { useToday } from '@/core/app-lifecycle/use-today'
+import { usePhotoUrls } from '@/core/photos/use-photo-urls'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import AnimalChipSelector, { type AnimalChipItem } from '@/shared/components/AnimalChipSelector.vue'
 import BottomSheet from '@/shared/components/BottomSheet.vue'
@@ -68,8 +69,13 @@ const subtitle = computed(() => {
   const name = knownAnimalId.value ? animals.byId(knownAnimalId.value)?.name : null
   return name ? t('weight.form.forAnimal', { name }) : null
 })
+const photoUrl = usePhotoUrls(() => animals.animals.map((animal) => animal.photoPath))
 const chips = computed<AnimalChipItem[]>(() =>
-  animals.animals.map((animal) => ({ id: animal.id, name: animal.name })),
+  animals.animals.map((animal) => ({
+    id: animal.id,
+    name: animal.name,
+    photoUrl: photoUrl(animal.photoPath),
+  })),
 )
 const submitLabel = computed(() =>
   pending.value === 'save' ? t('weight.form.submitting') : t('weight.form.submit'),

@@ -1,7 +1,7 @@
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import AnimalPickerSheet from '../views/AnimalPickerSheet.vue'
+import AnimalPickerSheet, { type AnimalPickerItem } from '../views/AnimalPickerSheet.vue'
 import i18n from '@/core/i18n'
 import vuetify from '@/core/theme/vuetify'
 import { animalAvatarGradientCss } from '@/shared/domain/animal-avatar-gradient'
@@ -37,9 +37,9 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-async function monter(modelValue = true) {
+async function monter(modelValue = true, animals: AnimalPickerItem[] = [MILO, LUNA]) {
   wrapper = mount(AnimalPickerSheet, {
-    props: { modelValue, animals: [MILO, LUNA] },
+    props: { modelValue, animals },
     global: { plugins: [vuetify, i18n] },
     attachTo: document.body,
   })
@@ -76,6 +76,20 @@ describe('AnimalPickerSheet', () => {
     expect(lignes().map((ligne) => ligne.textContent?.trim())).toEqual(['Milo', 'Luna'])
     const avatar = lignes()[1]!.querySelector<HTMLElement>('.animal-picker-sheet__avatar')
     expect(avatar?.getAttribute('style')).toContain(enRgb(animalAvatarGradientCss(LUNA.id)))
+  })
+
+  it('montre la photo de l’animal qui en a une, le dégradé pour l’autre', async () => {
+    await monter(true, [
+      { ...MILO, photoUrl: 'blob:photo-milo' },
+      { ...LUNA, photoUrl: null },
+    ])
+
+    const [milo, luna] = lignes().map((ligne) =>
+      ligne.querySelector<HTMLElement>('.animal-picker-sheet__avatar'),
+    )
+    expect(milo?.querySelector('img')?.getAttribute('src')).toBe('blob:photo-milo')
+    expect(luna?.querySelector('img')).toBeNull()
+    expect(luna?.getAttribute('style')).toContain(enRgb(animalAvatarGradientCss(LUNA.id)))
   })
 
   it('n’a pas de bouton Annuler : la poignée ferme la feuille', async () => {
