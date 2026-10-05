@@ -1,4 +1,4 @@
-import { addDays, addMonths, addWeeks, formatISO } from 'date-fns'
+import { addDays, addMonths, addWeeks, differenceInCalendarDays, formatISO } from 'date-fns'
 
 import type { Due, Frequency } from './treatment-schedule-types'
 
@@ -24,6 +24,11 @@ export function shiftDate(date: string, { value, unit }: Frequency, steps: numbe
         ? addWeeks(start, amount)
         : addMonths(start, amount)
   return toDay(shifted)
+}
+
+export function isWithinHalfStep(from: string, day: string, frequency: Frequency): boolean {
+  const step = differenceInCalendarDays(toDate(shiftDate(from, frequency, 1)), toDate(from))
+  return 2 * differenceInCalendarDays(toDate(day), toDate(from)) < step
 }
 
 export function nextDay(date: string): string {

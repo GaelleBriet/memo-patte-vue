@@ -7,6 +7,7 @@ import {
   compareText,
   dueId,
   dueOf,
+  isWithinHalfStep,
   keyOf,
   nextDay,
   previousDay,
@@ -247,6 +248,26 @@ export function redateLimits(state: State, doseId: string): RedateLimits {
   return { lastExtraDay: given === undefined ? null : lastExtraDayOf(state, given), takenDays: [] }
 }
 
+// Q4, sans case : le décalage qui ferait sortir la dernière dose de la date de fin ne s'écrit pas
+// quand elle tombe au moins une demi-fréquence après la prise.
+function keepsLastDose(others: State, due: Due, givenOn: string, written: Written[]): boolean {
+  const { endsOn, frequency } = planOf(others, due.periodId).period
+  if (endsOn === null) return false
+  const daysLeft = (state: State) => [
+    ...new Set(
+      pendingDues(planOf(state, due.periodId), { from: nextDay(due.dueOn) }).map(
+        ({ dueOn }) => dueOn,
+      ),
+    ),
+  ]
+  const kept = daysLeft(stateAfter(others, written.slice(0, 1)))
+  return (
+    kept.length === 1 &&
+    daysLeft(stateAfter(others, written)).length === 0 &&
+    !isWithinHalfStep(givenOn, kept[0]!, frequency)
+  )
+}
+
 export function doseFor(state: State, known: () => Set<string>, gesture: DoseGesture): NotedDose {
   const { due } = gesture
   checkKnown(known, due)
@@ -270,11 +291,14 @@ export function doseFor(state: State, known: () => Set<string>, gesture: DoseGes
       const shift = restarts ? shiftFields(shiftDueOf(plan, due), givenOn) : null
       const dose: DoseFields = { ...dueOf(due), givenOn, status: 'given', nextDueDate: next }
       if (shift === null) return passed === null ? { dose, shift } : { dose, shift, heldBy: passed }
-      const nextDueDate = nextAfter(others, due, [
+      const written = [
         { id: null, fields: dose },
         { id: shiftOn(plan, shift)?.id ?? null, fields: shift },
-      ])
-      return { dose: { ...dose, nextDueDate }, shift }
+      ]
+      if (gesture.shiftsFollowing === undefined && keepsLastDose(others, due, givenOn, written)) {
+        return { dose, shift: null }
+      }
+      return { dose: { ...dose, nextDueDate: nextAfter(others, due, written) }, shift }
     }
     case 'missed':
       return {

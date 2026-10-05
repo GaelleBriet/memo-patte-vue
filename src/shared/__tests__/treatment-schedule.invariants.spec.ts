@@ -155,6 +155,20 @@ function newBook(random: Random): Book {
   return { periods: [period], doses: [], today: plusDays(firstDueOn, int(random, -2, 3)) }
 }
 
+// Date de fin proche : la dernière dose est la deuxième ou la troisième de la période.
+function withCloseEnd(book: Book, steps: number): Book {
+  const periods = book.periods.map((period) => ({
+    ...period,
+    endsOn: shifted(period.firstDueOn, period.frequency, steps),
+  }))
+  return { ...book, periods }
+}
+
+function isWithinHalfStep(from: string, day: string, frequency: Frequency): boolean {
+  const step = differenceInCalendarDays(parseISO(shifted(from, frequency, 1)), parseISO(from))
+  return 2 * differenceInCalendarDays(parseISO(day), parseISO(from)) < step
+}
+
 class Simulation {
   private stamp = 0
   private redated = false
@@ -172,6 +186,8 @@ class Simulation {
     this.shiftRandom = mulberry32(seed ^ 0x5f3759df)
     this.extraRandom = mulberry32(seed ^ 0x2545f491)
     this.boxRandom = mulberry32(seed ^ 0x1b873593)
+    const endRandom = mulberry32(seed ^ 0x68e31da4)
+    if (endRandom() < 0.2) this.book = withCloseEnd(book, int(endRandom, 1, 2))
   }
 
   // La case « Décaler aussi les doses suivantes », décochée une fois sur trois quand le geste la propose.
@@ -454,6 +470,9 @@ class Simulation {
     const mayCoincide = unit === 'month' && kind === 'given' && givenOn !== due.dueOn
     const wasUnlogged = before.unloggedDoses.some((unlogged) => idOf(unlogged) === idOf(due))
     if (wasUnlogged && !mayCoincide) this.checkLogged(before, after, gesture)
+    if (kind === 'given' && shiftsFollowing === undefined) {
+      this.checkLastDose(before, after, due, givenOn, gesture)
+    }
     if (shiftsFollowing === false) return this.checkKeptDays(before, after, due, gesture)
     if (
       kind === 'given' &&
@@ -462,6 +481,32 @@ class Simulation {
     ) {
       this.checkGap(after, due, givenOn, fields.nextDueDate, gesture)
     }
+  }
+
+  // Q4, sans case : la dernière dose ne disparaît que si elle tombait à moins d'une demi-fréquence
+  // après la prise, et le traitement est alors terminé.
+  private checkLastDose(
+    before: TreatmentSchedule,
+    after: TreatmentSchedule,
+    due: Due,
+    givenOn: string,
+    gesture: string,
+  ): void {
+    const period = this.book.periods.find(({ id }) => id === due.periodId)
+    if (period === undefined || period.endsOn === null) return
+    const daysAfter = (schedule: TreatmentSchedule) => [
+      ...new Set(
+        pendingOf(schedule)
+          .filter((other) => other.periodId === due.periodId && other.dueOn > due.dueOn)
+          .map(({ dueOn }) => dueOn),
+      ),
+    ]
+    const [last, ...more] = daysAfter(before)
+    if (last === undefined || more.length > 0 || daysAfter(after).length > 0) return
+    if (!isWithinHalfStep(givenOn, last, period.frequency)) {
+      this.fail(`${gesture} : la dernière dose du ${last} disparaît (date de fin)`)
+    }
+    if (after.currentDoses.length > 0) this.fail(`${gesture} : dernière dose notée, pas terminé`)
   }
 
   // Q2 a, recalculée à part : les reports seuls (sans décalage sur leur journée) qui arrivent

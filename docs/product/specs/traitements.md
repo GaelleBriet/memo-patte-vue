@@ -112,6 +112,18 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
     prise en plus à la nouvelle date. À plusieurs heures par jour, une heure donnée en avance couvre son
     échéance (G10).
 - **TR-8** Aucune échéance après la date de fin.
+
+  Garde du moteur d'échéances (#506) :
+  - **G20** « C'est fait » sans case (fiche en un tap, feuille « À faire », notification) sur une dose
+    en retard décale la suite, avec sa ligne de décalage. Quand ce décalage ferait passer la dernière
+    dose prévue après la date de fin, elle reste prévue et rien n'est décalé, sauf si elle tombe à
+    moins d'une demi-fréquence après la prise (moins de la moitié des jours entre la prise et la même
+    date plus un intervalle) : le décalage est alors écrit et le traitement se termine, toast
+    « Dernière dose de Panacur notée, à retrouver dans Traitements terminés. » · Annuler (TR-31).
+    Toutes les 4 semaines, 5 oct. et 2 nov., fin le 2 nov. : donnée le 10 ou le 19 oct., le 2 nov.
+    reste ; donnée le 20 ou le 25 oct., ou le 1er nov., terminé. Le choix est écrit : changer la date
+    de fin ensuite ne le rejoue pas. Avec la case, la personne choisit, avertie de la dose perdue
+    (V28 bis). (Décision de Gaelle du 2026-10-03, Q4.)
 - **TR-9** « Prochaine dose » (« Modifier ») déplace la prochaine dose, plus tôt ou plus tard que
   l'échéance prévue, et recale la suite des échéances à partir de la nouvelle date. La date choisie va
   du lendemain de l'échéance qui précède (en pratique, de la dernière prise notée), jamais avant
@@ -769,8 +781,10 @@ de la période (#502, étude `technical/etude-modele-prises.md` §2.6) : la dose
 (dose du moment au 15), la dose du moment notée par erreur puis corrigée (17), les départs les 29, 30
 et 31 (30 oct., 30 nov.) et le jour borné repris par Q37 (31 mars, 30 avr.). Restent :
 
-- Une date de fin fait sauter la dose suivante d'une prise en retard (5 oct. et 2 nov., fin le 2 nov.,
-  première dose donnée le 10 : terminé) (TR-7, TR-8) : #506.
+- « C'est fait » sans case sur une dose en retard, quand il reste **plusieurs** doses avant la date
+  de fin : le décalage fait encore disparaître la dernière sans le dire (vendredi, 16, 23 et 30 oct.,
+  fin le 30 ; dose du 16 donnée le lundi 19 : 26 oct., le 30 n'est plus prévu). G20 ne règle que la
+  dernière dose prévue ; question posée à Gaelle (#506).
 - À plusieurs heures, quand une heure de la prochaine journée a été donnée en avance et qu'un réglage
   change sans toucher la fréquence ni les heures, les heures restantes de cette journée ne sont plus
   demandées (tous les 2 jours à 8 h et 20 h, 8 h du 3 donnée le 2, posologie changée le 2 : première

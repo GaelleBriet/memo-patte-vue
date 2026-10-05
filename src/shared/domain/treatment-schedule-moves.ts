@@ -1,16 +1,14 @@
-import { differenceInCalendarDays } from 'date-fns'
-
 import { checkDay, invalid } from './treatment-schedule-checks'
 import {
   dueId,
   dueOf,
+  isWithinHalfStep,
   keyOf,
   latestOf,
   nextDay,
   previousDay,
   sameDue,
   shiftDate,
-  toDate,
   uniqueSorted,
 } from './treatment-schedule-dues'
 import {
@@ -127,10 +125,6 @@ function nextPendingDay(plan: PeriodPlan, day: string): string | null {
   return pendingDues(plan, { from: nextDay(day), limit: 1 })[0]?.dueOn ?? null
 }
 
-function daysBetween(from: string, to: string): number {
-  return differenceInCalendarDays(toDate(to), toDate(from))
-}
-
 // La dose revenue à son échéance d'origine tomberait à moins d'une demi-fréquence de la suivante.
 export function moveRemovalRefusal(state: State, doseId: string): MoveRemovalRefusal | null {
   const move = state.plans
@@ -141,8 +135,9 @@ export function moveRemovalRefusal(state: State, doseId: string): MoveRemovalRef
   const back = pendingDues(plan, { from: move.dueOn, to: move.dueOn })[0]
   const nextOn = back === undefined ? null : nextPendingDay(plan, back.dueOn)
   if (back === undefined || nextOn === null) return null
-  const step = daysBetween(back.dueOn, shiftDate(back.dueOn, plan.period.frequency, 1))
-  return 2 * daysBetween(back.dueOn, nextOn) < step ? { dueOn: back.dueOn, nextOn } : null
+  return isWithinHalfStep(back.dueOn, nextOn, plan.period.frequency)
+    ? { dueOn: back.dueOn, nextOn }
+    : null
 }
 
 export function removeMove(state: State, doseId: string): MovedDose {

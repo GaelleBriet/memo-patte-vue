@@ -213,6 +213,70 @@ describe('un décalage ne retombe jamais sur le jour d’un report', () => {
   })
 })
 
+describe('« C’est fait » en un tap après un retard, face à la date de fin (Q4, #506)', () => {
+  const pixel = carnet(
+    period({
+      firstDueOn: '2026-10-05',
+      endsOn: '2026-11-02',
+      frequency: { value: 4, unit: 'week' },
+    }),
+  )
+
+  it.each(['2026-10-10', '2026-10-19'])(
+    'donnée le %s, au moins une demi-fréquence avant : pas de décalage, la dose du 2 nov. reste',
+    (today) => {
+      const book = done(pixel, today)
+      const schedule = scheduleOf(book, today)
+
+      expect(shiftsOf(book)).toEqual([])
+      expect(lastDose(book).nextDueDate).toBe('2026-11-02')
+      expect(schedule.finished).toBe(false)
+      expect(dueDays(schedule.upcoming(3))).toEqual(['2026-11-02'])
+    },
+  )
+
+  it.each(['2026-10-20', '2026-10-25', '2026-11-01'])(
+    'donnée le %s, à moins d’une demi-fréquence : le décalage est écrit, le traitement est terminé',
+    (today) => {
+      const book = done(pixel, today)
+
+      expect(shiftsOf(book)).toEqual([
+        expect.objectContaining({ dueOn: '2026-10-05', nextDueDate: today }),
+      ])
+      expect(scheduleOf(book, today).finished).toBe(true)
+    },
+  )
+
+  it('case cochée : le décalage est écrit, même loin de la dose suivante (V28 bis)', () => {
+    const book = record(pixel, '2026-10-10', {
+      kind: 'given',
+      due: due('2026-10-05'),
+      givenOn: '2026-10-10',
+      shiftsFollowing: true,
+    })
+
+    expect(shiftsOf(book)).toHaveLength(1)
+    expect(scheduleOf(book, '2026-10-10').finished).toBe(true)
+  })
+
+  it('mensuel du 5, fin le 5 nov. : donnée le 20 oct., le 5 nov. reste ; le 21, terminé', () => {
+    const luna = carnet(monthly({ firstDueOn: '2026-10-05', endsOn: '2026-11-05' }))
+
+    expect(shiftsOf(done(luna, '2026-10-20'))).toEqual([])
+    expect(scheduleOf(done(luna, '2026-10-21'), '2026-10-21').finished).toBe(true)
+  })
+
+  it('un décalage qui garde la dernière dose avant la date de fin est écrit comme d’habitude', () => {
+    const book = done(
+      carnet(weekly({ firstDueOn: '2026-10-16', endsOn: '2026-10-30' })),
+      '2026-10-17',
+    )
+
+    expect(shiftsOf(book)).toHaveLength(1)
+    expect(dueDays(scheduleOf(book, '2026-10-17').upcoming(3))).toEqual(['2026-10-24'])
+  })
+})
+
 describe('les limites du §11 de la spec, fermées par la ligne de décalage', () => {
   it('3a : dose non renseignée du 8 notée le 8, redatée au 9 → dose du moment le 15', () => {
     const milo = record(done(carnet(weekly()), '2026-09-01'), '2026-09-20', {
