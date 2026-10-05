@@ -1551,7 +1551,7 @@ describe('une ligne par déplacement (Q18)', () => {
       schedule.doseFor({ kind: 'given', due: target ?? due('2026-09-14'), givenOn: '2026-09-15' }),
     ).toMatchObject({
       dose: { dueOn: '2026-09-14', givenOn: '2026-09-15', nextDueDate: '2026-09-22' },
-      shift: { dueOn: '2026-09-14', status: 'shift', nextDueDate: '2026-09-15' },
+      shift: { dueOn: '2026-09-15', status: 'shift', nextDueDate: '2026-09-15' },
     })
   })
 })

@@ -189,9 +189,13 @@ function logWrites(
   )
 }
 
-function keepsShift(history: History, id: string): boolean {
+function keepsShift(history: History, schedule: TreatmentSchedule, id: string): boolean {
   const line = lineById(history, id)
-  return familyOf(line) !== 'extra' && linesOf(history, line, 'shift').length > 0
+  return familyOf(line) !== 'extra' && hasShift(history, schedule, line)
+}
+
+function hasShift(history: History, schedule: TreatmentSchedule, due: Due): boolean {
+  return linesOf(history, schedule.shiftDueOf(due), 'shift').length > 0
 }
 
 // Redatée, une prise en plus prend la place d'une ligne de l'échéance qu'elle vise désormais, ou
@@ -238,9 +242,7 @@ function changeOf(
         ...unchanged,
         writes: noteWrites(history, written, notes, newId),
         shiftKept:
-          gesture.kind === 'missed' &&
-          notes.length > 0 &&
-          linesOf(history, gesture.due, 'shift').length > 0,
+          gesture.kind === 'missed' && notes.length > 0 && hasShift(history, schedule, gesture.due),
       }
     }
     case 'log':
@@ -249,7 +251,7 @@ function changeOf(
       return {
         ...unchanged,
         writes: deletes(sisterLines(history, action.doseId).map(({ id }) => id)),
-        shiftKept: keepsShift(history, action.doseId),
+        shiftKept: keepsShift(history, schedule, action.doseId),
       }
     case 'redate': {
       if (familyOf(lineById(history, action.doseId)) === 'extra') {
@@ -292,7 +294,7 @@ function changeOf(
       return {
         ...unchanged,
         ...movedChange(history, schedule.removeMove(action.doseId), newId),
-        shiftKept: keepsShift(history, action.doseId),
+        shiftKept: keepsShift(history, schedule, action.doseId),
       }
   }
 }

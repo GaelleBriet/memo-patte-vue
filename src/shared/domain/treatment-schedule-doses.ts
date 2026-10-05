@@ -23,6 +23,7 @@ import {
   pendingDues,
   positionOf,
   sequenceAt,
+  shiftDueOf,
   shiftOn,
 } from './treatment-schedule-plan'
 import { firstDueOf, shiftedSequence } from './treatment-schedule-sequence'
@@ -100,9 +101,10 @@ function restartsFrom(others: State, due: Due, givenOn: string, next: string): b
   )
 }
 
-// La première dose du rythme ancré à la date réelle, après la journée de la prise.
+// La première dose du rythme ancré à la date réelle, après la journée qui porte le décalage.
 function restartedOn(plan: PeriodPlan, due: Due, givenOn: string): string {
-  return firstDueOf({ origin: givenOn, firstStep: 1, floor: `${due.dueOn} ~` }, plan.period).dueOn
+  const floor = `${shiftDueOf(plan, due).dueOn} ~`
+  return firstDueOf({ origin: givenOn, firstStep: 1, floor }, plan.period).dueOn
 }
 
 type Written = { id: string | null; fields: DoseFields | null }
@@ -186,13 +188,14 @@ export function doseFor(state: State, known: () => Set<string>, gesture: DoseGes
       const { givenOn } = gesture
       checkPastDay(givenOn, state.input.today, 'date réelle')
       if (isExtra(others, due, givenOn)) return extraFor(others, due, givenOn)
+      const plan = planOf(others, due.periodId)
       const restarts = restartsFrom(others, due, givenOn, next)
-      const shift = restarts ? shiftFields(due, givenOn) : null
+      const shift = restarts ? shiftFields(shiftDueOf(plan, due), givenOn) : null
       const dose: DoseFields = { ...dueOf(due), givenOn, status: 'given', nextDueDate: next }
       if (shift === null) return { dose, shift }
       const nextDueDate = nextAfter(others, due, [
         { id: null, fields: dose },
-        { id: shiftOn(planOf(others, due.periodId), due)?.id ?? null, fields: shift },
+        { id: shiftOn(plan, shift)?.id ?? null, fields: shift },
       ])
       return { dose: { ...dose, nextDueDate }, shift }
     }
@@ -293,7 +296,7 @@ function redateExtra(state: State, extra: TreatmentDoseInput, givenOn: string): 
   const shift =
     noted.shift === null
       ? none
-      : shiftChange(shiftOn(planOf(state, due.periodId), due), noted.shift)
+      : shiftChange(shiftOn(planOf(state, due.periodId), noted.shift), noted.shift)
   return { dose: noted.dose, shift, postponement: null }
 }
 
@@ -313,24 +316,30 @@ export function redate(state: State, doseId: string, givenOn: string): RedatedDo
     if (lastExtraDay !== null && givenOn <= lastExtraDay) {
       throw new RangeError(`Le ${givenOn} ferait de la prise ${doseId} une prise en plus`)
     }
-    const shift = shiftOn(plan, dose)
+    const origin = shiftDueOf(plan, dose)
+    const shift = shiftOn(plan, origin)
+    // Une dose avancée sans décalage à elle garde celui de son report, ancré à son jour d'arrivée.
+    const reportShift = sameDue(origin, dose) ? null : shiftFields(origin, dose.dueOn)
+    const ownShift = shift?.nextDueDate === reportShift?.nextDueDate ? undefined : shift
     const others = stateWithout(state, dose)
     const next = nextInSequence(others, dose)
     const followingOfShift = shift === undefined ? null : followingMove(plan, dose, shift)
     // Le décalage reste tel quel quand le rythme de la nouvelle date retomberait sur un report.
     const keepsShift =
-      shift !== undefined &&
+      ownShift !== undefined &&
       givenOn !== dose.dueOn &&
       hitsAMove(planOf(others, dose.periodId), dose, givenOn, followingOfShift)
     const shifts =
-      shift === undefined
+      ownShift === undefined
         ? restartsFrom(others, dose, givenOn, next)
         : givenOn !== dose.dueOn && !keepsShift
     const restartsOn = shifts ? restartedOn(plan, dose, givenOn) : next
-    const shiftLine = keepsShift
-      ? ({ action: 'none' } as const)
-      : shiftChange(shift, shifts ? shiftFields(dose, givenOn) : null)
-    const postponement = postponementAfter(plan, dose, shift, shifts, givenOn, restartsOn)
+    const wanted = shifts ? shiftFields(origin, givenOn) : shift === undefined ? null : reportShift
+    const shiftLine =
+      keepsShift || shift?.nextDueDate === wanted?.nextDueDate
+        ? ({ action: 'none' } as const)
+        : shiftChange(shift, wanted)
+    const postponement = postponementAfter(plan, dose, ownShift, shifts, givenOn, restartsOn)
     const fields: DoseFields = { ...dueOf(dose), givenOn, status: 'given', nextDueDate: next }
     const written: Written[] = [
       { id: dose.id, fields },

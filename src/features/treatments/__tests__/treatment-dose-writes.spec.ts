@@ -189,6 +189,37 @@ describe('doseChange — supprimer une prise qui a décalé la suite (N6)', () =
     expect(shiftKept).toBe(true)
   })
 
+  describe('la prise d’une dose avancée : son décalage est sous l’échéance d’origine (G18)', () => {
+    const ADVANCED = treatment(
+      [period({ frequency: { value: 1, unit: 'week' } })],
+      [
+        dose('2026-09-01', '2026-09-08'),
+        postponed('2026-09-08', '2026-09-06'),
+        shifted('2026-09-08', '2026-09-05'),
+        dose('2026-09-06', '2026-09-12', { givenOn: '2026-09-05' }),
+      ],
+    )
+
+    it('supprimer la prise garde le décalage, et le geste le dit', () => {
+      const { writes, shiftKept } = change(ADVANCED, '2026-09-07', {
+        kind: 'remove',
+        doseId: '2026-09-06',
+      })
+
+      expect(writes).toEqual([{ action: 'delete', id: '2026-09-06' }])
+      expect(shiftKept).toBe(true)
+    })
+
+    it('« Marquer comme oubliée » garde le décalage, et le geste le dit', () => {
+      const due = { periodId: 'p-1', dueOn: '2026-09-06', dueTime: null }
+
+      expect(
+        change(ADVANCED, '2026-09-07', { kind: 'note', gesture: { kind: 'missed', due } })
+          .shiftKept,
+      ).toBe(true)
+    })
+  })
+
   it('« C’est fait » en retard écrit la prise et sa ligne de décalage', () => {
     const history = treatment([period({ frequency: { value: 1, unit: 'week' } })])
     const due = { periodId: 'p-1', dueOn: '2026-09-01', dueTime: null }

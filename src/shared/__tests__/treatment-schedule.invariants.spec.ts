@@ -55,8 +55,6 @@ const GESTURES = [
 const FIRST_SEED = Number(process.env.INVARIANTS_FROM ?? 1)
 const CARNETS = Number(process.env.INVARIANTS_SEEDS ?? 150)
 const STEPS = Number(process.env.INVARIANTS_STEPS ?? 24)
-// Défauts connus du moteur, antérieurs à la prise en plus : #523.
-const KNOWN_FAILURES = new Set([1663, 3180, 14529])
 const TIMEOUT = 30_000 + CARNETS * STEPS * 5
 
 function mulberry32(seed: number): Random {
@@ -871,13 +869,18 @@ class Simulation {
   }
 
   step(): void {
+    const unshifted = this.book
     if (this.shiftRandom() < 0.08) this.unshift(this.schedule())
+    this.checkUndo(unshifted)
     const extraGesture = this.extraRandom()
+    const extraFrom = this.book
     if (extraGesture < 0.1) this.ahead(this.schedule())
     else if (extraGesture < 0.13) this.redateExtra(this.schedule())
     else if (extraGesture < 0.15) this.deleteExtra(this.schedule())
+    this.checkUndo(extraFrom)
     const before = this.schedule()
     const { today } = this.book
+    const start = this.book
     switch (pick(this.random, GESTURES)) {
       case 'give': {
         const due = pick(this.random, before.currentDoses)
@@ -930,11 +933,30 @@ class Simulation {
       default:
         this.book = { ...this.book, today: plusDays(today, int(this.random, 1, 4)) }
     }
+    if (this.book.periods === start.periods) this.checkUndo(start)
     this.checkFinished(this.book)
     this.purgeStale()
     this.checkWholeDay()
     this.checkOneLinePerDue()
     this.checkGhost()
+  }
+
+  // « Annuler », comme le repository : les lignes créées supprimées, les autres rétablies et datées
+  // de l'annulation ; le calendrier redevient celui d'avant le geste.
+  private checkUndo(start: Book): void {
+    if (this.book.doses === start.doses || this.book.today !== start.today) return
+    const at = this.at()
+    const after = new Map(this.book.doses.map((line) => [line.id, JSON.stringify(line)]))
+    const doses = start.doses.map((line) =>
+      after.get(line.id) === JSON.stringify(line) ? line : { ...line, updatedAt: at },
+    )
+    const undone = this.schedule({ ...start, doses })
+    const expected = this.schedule(start)
+    const shown = (schedule: TreatmentSchedule) =>
+      JSON.stringify({ calendar: calendarOf(schedule), next: schedule.nextDue })
+    if (shown(undone) !== shown(expected)) {
+      this.fail(`annuler ${this.log.at(-1) ?? ''} : ${shown(expected)} → ${shown(undone)}`)
+    }
   }
 
   private checkRefused(gesture: () => unknown, label: string): void {
@@ -1035,7 +1057,6 @@ describe('invariants du moteur, sur des carnets et des gestes tirés au sort (gr
     () => {
       const failures: string[] = []
       for (let seed = FIRST_SEED; seed < FIRST_SEED + CARNETS; seed += 1) {
-        if (KNOWN_FAILURES.has(seed)) continue
         const random = mulberry32(seed)
         const simulation = new Simulation(newBook(random), random, seed)
         try {

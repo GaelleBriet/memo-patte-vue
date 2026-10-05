@@ -1,4 +1,4 @@
-import { compareText, dueId, keyOf, uniqueSorted } from './treatment-schedule-dues'
+import { compareText, dueId, dueOf, keyOf, uniqueSorted } from './treatment-schedule-dues'
 import {
   duesUntil,
   initialSequence,
@@ -84,36 +84,22 @@ export function compareCreation(a: TreatmentDoseInput, b: TreatmentDoseInput): n
 
 // Avancé (Q17), un report agit au début de sa nouvelle date ; reporté, après les prises de son jour
 // d'origine. Un décalage agit après toute sa journée d'origine, et après le report de cette journée.
-function stepOf(dose: TreatmentDoseInput, shiftDay: (shift: TreatmentDoseInput) => string): Step {
+function stepOf(dose: TreatmentDoseInput): Step {
   switch (familyOf(dose)) {
     case 'move': {
       const actsOn = dose.nextDueDate < dose.dueOn ? `${dose.nextDueDate} ` : `${dose.dueOn} ~`
       return { kind: 'move', dose, position: positionOf(actsOn, 0) }
     }
     case 'shift':
-      return { kind: 'shift', dose, position: positionOf(`${shiftDay(dose)} ~`, 1) }
+      return { kind: 'shift', dose, position: positionOf(`${dose.dueOn} ~`, 1) }
     default:
       return { kind: 'note', dose, position: positionOf(keyOf(dose), 1) }
   }
 }
 
-// La dose avancée reste la dose de son jour d'origine : un décalage posé sur son jour d'arrivée agit
-// après ce jour d'origine, et l'emporte sur le décalage du report, plus ancien.
-function shiftDayOf(doses: TreatmentDoseInput[]): (shift: TreatmentDoseInput) => string {
-  const origins = new Map(
-    doses
-      .filter((dose) => familyOf(dose) === 'move' && dose.nextDueDate < dose.dueOn)
-      .map((move) => [move.nextDueDate, move.dueOn]),
-  )
-  return (shift) => origins.get(shift.dueOn) ?? shift.dueOn
-}
-
-function stepsOf(
-  doses: TreatmentDoseInput[],
-  shiftDay: (shift: TreatmentDoseInput) => string,
-): Step[] {
+function stepsOf(doses: TreatmentDoseInput[]): Step[] {
   return doses
-    .map((dose) => stepOf(dose, shiftDay))
+    .map(stepOf)
     .sort((a, b) => compareText(a.position, b.position) || compareCreation(a.dose, b.dose))
 }
 
@@ -191,17 +177,13 @@ export function planPeriod(
   const noteKeys = new Set(notes.map(keyOf))
   const noteDays = new Set(notes.map((dose) => dose.dueOn))
   const stale = staleLines(doses, noteKeys, noteDays)
-  const shiftDay = shiftDayOf(doses)
   const unread = new Set(stale)
-  const steps = stepsOf(
-    doses.filter((dose) => !unread.has(dose)),
-    shiftDay,
-  )
+  const steps = stepsOf(doses.filter((dose) => !unread.has(dose)))
   const anchors = [
     { position: '', sequence: initialSequence(period) },
     ...steps.filter(isShift).map(({ position, dose }) => ({
       position,
-      sequence: shiftedSequence(dose, `${shiftDay(dose)} ~`),
+      sequence: shiftedSequence(dose),
     })),
   ]
   const sequences = anchors.map(({ sequence }) => sequence)
@@ -292,6 +274,15 @@ export function nextDueAfter(plan: PeriodPlan, due: Due): Due {
 
 export function notesOf(plan: PeriodPlan): TreatmentDoseInput[] {
   return plan.steps.filter(isNote).map(({ dose }) => dose)
+}
+
+/** L'échéance qui porte le décalage d'une prise : pour une dose avancée, son échéance d'origine. */
+export function shiftDueOf(plan: PeriodPlan, due: Due): Due {
+  const advanced = plan.steps.find(
+    ({ kind, dose }) =>
+      kind === 'move' && dose.nextDueDate === due.dueOn && dose.nextDueDate < dose.dueOn,
+  )
+  return advanced === undefined ? due : dueOf(advanced.dose)
 }
 
 /** La ligne de décalage en vigueur sur cette échéance. */
