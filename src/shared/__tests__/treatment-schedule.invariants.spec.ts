@@ -400,7 +400,8 @@ class Simulation {
       this.fail(`${gesture} : dose suivante le ${next.dueOn}, avant le ${soonest}`)
     }
     const kept = period.endsOn === null || due.dueOn <= period.endsOn
-    const isPending = pendingOf(after).some((other) => idOf(other) === idOf(due))
+    const horizon = after.upcoming(2000)
+    const isPending = [...pendingOf(after), ...horizon].some((other) => idOf(other) === idOf(due))
     if (kept && landsOn(extra.dueOn, due.dueOn, period.frequency) && !isPending) {
       this.fail(`${gesture} : la dose visée ${idOf(due)} n’est plus à donner`)
     }

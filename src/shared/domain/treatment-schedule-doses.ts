@@ -127,7 +127,7 @@ function checkKnown(known: () => Set<string>, due: Due): void {
 }
 
 // Une prise un intervalle ou plus avant sa dose est une prise en plus, si elle suit toutes les lignes
-// de sa période et ne laisse derrière elle aucune dose à donner ; à plusieurs heures, l'heure reste (G10).
+// de sa période et que son rythme garde toute dose due ; à plusieurs heures, l'heure reste (G10).
 function isExtra(state: State, due: Due, givenOn: string): boolean {
   const plan = planOf(state, due.periodId)
   const { frequency, times, startsOn } = plan.period
@@ -140,7 +140,11 @@ function isExtra(state: State, due: Due, givenOn: string): boolean {
     (state.plans[0] === plan || givenOn >= startsOn) &&
     plan.steps.every((step) => step.kind === 'shift' || (lineDay(step) ?? '') <= givenOn) &&
     state.unloggedDoses.every((unlogged) => unlogged.dueOn <= givenOn) &&
-    state.currentDoses.every((current) => current.dueOn > givenOn)
+    state.currentDoses.every(
+      (current) =>
+        current.dueOn > givenOn &&
+        (current.dueOn > state.input.today || landsOn(givenOn, current.dueOn, frequency)),
+    )
   )
 }
 

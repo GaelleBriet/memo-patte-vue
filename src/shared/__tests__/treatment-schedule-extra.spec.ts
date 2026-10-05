@@ -140,6 +140,21 @@ describe('prise en plus : une dose donnée un intervalle ou plus en avance (#503
     ).toEqual({ dose: expect.objectContaining({ status: 'extra' }), shift: null })
   })
 
+  it('une dose en retard que le rythme de la prise en plus ne retrouverait pas reste due', () => {
+    const every2 = carnet(
+      period({ firstDueOn: '2026-03-05', frequency: { value: 2, unit: 'day' } }),
+    )
+    const book = record(every2, '2026-03-06', {
+      kind: 'given',
+      due: due('2026-03-05'),
+      givenOn: '2026-02-28',
+    })
+
+    expect(lastDose(book)).toEqual(
+      expect.objectContaining({ dueOn: '2026-03-05', status: 'given' }),
+    )
+  })
+
   it('une dose en retard notée le jour même n’est jamais une prise en plus', () => {
     const book = done(carnet(weekly({ firstDueOn: '2026-10-02' })), '2026-10-12')
 
