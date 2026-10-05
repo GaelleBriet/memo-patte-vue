@@ -244,6 +244,26 @@ describe('« Supprimer ce décalage » (N7, N8)', () => {
     expect(schedule.shiftRemovalRefusal(id)).toBe('move-past-next')
     expect(() => schedule.removeShift(id)).toThrow(RangeError)
   })
+
+  it.each(['2026-10-22', '2026-10-23', '2026-10-24'])(
+    'refusée quand un report seul qui suit ne tomberait plus sur le rythme rétabli : 26 avancée au %s (graine 2157)',
+    (to) => {
+      const alone = moved(report, '2026-10-15', '2026-10-26', to, false)
+      const schedule = scheduleOf(alone, '2026-10-15')
+      const id = shiftsOf(alone)[0]!.id
+
+      expect(schedule.shiftRemovalRefusal(id)).toBe('move-past-next')
+      expect(() => schedule.removeShift(id)).toThrow(RangeError)
+    },
+  )
+
+  it('un report seul d’avant le décalage ne la bloque pas', () => {
+    const before = moved(pixel, '2026-10-15', '2026-10-16', '2026-10-17', false)
+    const shifted = moved(before, '2026-10-15', '2026-10-23', '2026-10-26', true)
+    const id = shiftsOf(shifted)[0]!.id
+
+    expect(scheduleOf(shifted, '2026-10-15').shiftRemovalRefusal(id)).toBeNull()
+  })
 })
 
 describe('« Supprimer ce report » grisé : la dose reviendrait trop près de la suivante (2026-10-05)', () => {

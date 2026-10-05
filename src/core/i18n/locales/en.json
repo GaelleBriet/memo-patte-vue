@@ -626,6 +626,7 @@
       "save": "Save",
       "passesMove": "This day would push the postponement of {date} past the next dose: change the postponement date first.",
       "passesMoveUncheck": "This day would push the postponement of {date} past the next dose: untick the box, or change the postponement date first.",
+      "suiteCut": "{done}. The {dates} dose is no longer scheduled (end date). | {done}. The {dates} doses are no longer scheduled (end date).",
       "suiteHeld": "{done}. The schedule doesn’t move: a postponement is planned on {date}.",
       "stuckMove": "With this day, the dose you had postponed to {date} could no longer fall at the right time. Change the date of this postponement first.",
       "reportFollows": "The dose you had postponed to {date} stays planned on that day.",

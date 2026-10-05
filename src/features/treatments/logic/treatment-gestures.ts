@@ -13,6 +13,7 @@ import {
 import {
   formatClockTime,
   formatDayMonthOrYear,
+  formatDaySeries,
   formatFullDate,
   formatLongDate,
   formatWeekday,
@@ -36,6 +37,7 @@ export type DoseActionTexts = {
     applied: Pick<DoseChange, 'postponement' | 'moved' | 'shiftKept'> & {
       finishes?: boolean
       heldBy?: string | null
+      lostToEnd?: readonly string[]
     },
   ): string
   /** Nom du bouton « Annuler » lu par le lecteur d'écran. */
@@ -113,8 +115,12 @@ export function doseActionTexts(
           ? t('treatments.history.toast.doseAt', { ...named, time })
           : t('treatments.history.toast.doseAtOn', { ...named, time, date })
       }
-      const done: DoseActionTexts['done'] = ({ finishes, heldBy = null }) => {
+      const done: DoseActionTexts['done'] = ({ finishes, heldBy = null, lostToEnd = [] }) => {
         if (finishes) return t('treatments.detail.toast.lastDose', { name })
+        if (lostToEnd.length > 0) {
+          const dates = formatDaySeries(lostToEnd)
+          return t('treatments.shift.suiteCut', { done: noted(), dates }, lostToEnd.length)
+        }
         if (heldBy === null) return noted()
         return t('treatments.shift.suiteHeld', {
           done: noted(),

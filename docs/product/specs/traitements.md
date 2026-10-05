@@ -115,15 +115,19 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
 
   Garde du moteur d'échéances (#506) :
   - **G20** « C'est fait » sans case (fiche en un tap, feuille « À faire », notification) sur une dose
-    en retard décale la suite, avec sa ligne de décalage. Quand ce décalage ferait passer la dernière
-    dose prévue après la date de fin, elle reste prévue et rien n'est décalé, sauf si elle tombe à
-    moins d'une demi-fréquence après la prise (moins de la moitié des jours entre la prise et la même
-    date plus un intervalle) : le décalage est alors écrit et le traitement se termine, toast
-    « Dernière dose de Panacur notée, à retrouver dans Traitements terminés. » · Annuler (TR-31).
-    Toutes les 4 semaines, 5 oct. et 2 nov., fin le 2 nov. : donnée le 10 ou le 19 oct., le 2 nov.
-    reste ; donnée le 20 ou le 25 oct., ou le 1er nov., terminé. Le choix est écrit : changer la date
-    de fin ensuite ne le rejoue pas. Avec la case, la personne choisit, avertie de la dose perdue
-    (V28 bis). (Décision de Gaelle du 2026-10-03, Q4.)
+    en retard décale la suite, avec sa ligne de décalage. Quand ce décalage ferait sortir des doses
+    de la date de fin, la règle porte sur la dose suivante : si elle tombe au moins une
+    demi-fréquence après la prise (la moitié des jours entre la prise et la même date plus un
+    intervalle), rien n'est décalé et aucune dose n'est perdue ; plus près, le décalage est écrit et
+    le toast dit la dose qui n'est plus prévue (« Prise de Panacur notée pour Pixel. La dose du
+    30 oct. n'est plus prévue (date de fin). » · Annuler). Quand il n'en reste aucune, le traitement
+    se termine : « Dernière dose de Panacur notée, à retrouver dans Traitements terminés. » · Annuler
+    (TR-31). Vendredi, 16, 23 et 30 oct., fin le 30 : dose du 16 donnée le lundi 19, 23 et 30
+    restent ; donnée le mercredi 21, 28 oct., la dose du 30 saute. Toutes les 4 semaines, 5 oct. et
+    2 nov., fin le 2 nov. : donnée le 10 ou le 19 oct., le 2 nov. reste ; donnée le 20 ou le 25 oct.,
+    ou le 1er nov., terminé. Le choix est écrit : changer la date de fin ensuite ne le rejoue pas. Avec
+    la case, la personne choisit, avertie de la dose perdue (V28 bis). (Décisions de Gaelle du
+    2026-10-03, Q4, et du 2026-10-05, #506.)
 - **TR-9** « Prochaine dose » (« Modifier ») déplace la prochaine dose, plus tôt ou plus tard que
   l'échéance prévue, et recale la suite des échéances à partir de la nouvelle date. La date choisie va
   du lendemain de l'échéance qui précède (en pratique, de la dernière prise notée), jamais avant
@@ -271,7 +275,10 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
     « Avancée au 30 oct. (prévue le 31 oct.) », puis 7 nov. ; corrigée au 16, le report retombe sur
     la dose du 30. Une correction refusée dans un seul état de la case n'est permise que dans
     l'autre (jours grisés). Restent refusés : « Fait à une autre date » coché et « Supprimer ce
-    décalage ». « C'est fait » en un tap, la notification et la feuille « À faire » notent la prise
+    décalage », grisé aussi quand un report seul qui le suit n'aurait plus son échéance d'origine
+    dans le rythme rétabli (« Change d'abord la date du report. » ; vendredi, décalage du 16 au 19,
+    dose du 26 avancée seule au 23 : sans le décalage, la dose du 23 et la dose avancée tomberaient
+    ensemble ; graine 2157, #506). « C'est fait » en un tap, la notification et la feuille « À faire » notent la prise
     sans décalage (« La suite ne bouge pas : un report est prévu le 28 oct. »). (Décisions de Gaelle
     du 2026-10-05, #505.)
 - **TR-25** Une correction s'applique à toutes les lignes de la même échéance, jour et heure (deux
@@ -779,12 +786,9 @@ Limites connues du moteur d'échéances, renvoyées à #488 (la ligne d'une pris
 avait fixé la suite ; revue du 2026-10-02). Fermées par la ligne de décalage et le jour de référence
 de la période (#502, étude `technical/etude-modele-prises.md` §2.6) : la dose non renseignée redatée
 (dose du moment au 15), la dose du moment notée par erreur puis corrigée (17), les départs les 29, 30
-et 31 (30 oct., 30 nov.) et le jour borné repris par Q37 (31 mars, 30 avr.). Restent :
+et 31 (30 oct., 30 nov.) et le jour borné repris par Q37 (31 mars, 30 avr.). La date de fin qui
+faisait sauter une dose après une prise en retard est fermée par G20 (#506). Reste :
 
-- « C'est fait » sans case sur une dose en retard, quand il reste **plusieurs** doses avant la date
-  de fin : le décalage fait encore disparaître la dernière sans le dire (vendredi, 16, 23 et 30 oct.,
-  fin le 30 ; dose du 16 donnée le lundi 19 : 26 oct., le 30 n'est plus prévu). G20 ne règle que la
-  dernière dose prévue ; question posée à Gaelle (#506).
 - À plusieurs heures, quand une heure de la prochaine journée a été donnée en avance et qu'un réglage
   change sans toucher la fréquence ni les heures, les heures restantes de cette journée ne sont plus
   demandées (tous les 2 jours à 8 h et 20 h, 8 h du 3 donnée le 2, posologie changée le 2 : première

@@ -266,14 +266,59 @@ describe('« C’est fait » en un tap après un retard, face à la date de fin 
     expect(scheduleOf(done(luna, '2026-10-21'), '2026-10-21').finished).toBe(true)
   })
 
-  it('un décalage qui garde la dernière dose avant la date de fin est écrit comme d’habitude', () => {
+  describe('plusieurs doses avant la date de fin : la règle porte sur la dose suivante', () => {
+    const vendredi = carnet(weekly({ firstDueOn: '2026-10-16', endsOn: '2026-10-30' }))
+    const lundi19 = scheduleOf(vendredi, '2026-10-19').doseFor({
+      kind: 'given',
+      due: due('2026-10-16'),
+      givenOn: '2026-10-19',
+    })
+    const mercredi21 = scheduleOf(vendredi, '2026-10-21').doseFor({
+      kind: 'given',
+      due: due('2026-10-16'),
+      givenOn: '2026-10-21',
+    })
+
+    it('donnée le lundi 19 : pas de décalage, le 23 et le 30 restent', () => {
+      expect(lundi19).toEqual({
+        dose: expect.objectContaining({ nextDueDate: '2026-10-23' }),
+        shift: null,
+      })
+      expect(dueDays(scheduleOf(done(vendredi, '2026-10-19'), '2026-10-19').upcoming(3))).toEqual([
+        '2026-10-23',
+        '2026-10-30',
+      ])
+    })
+
+    it('donnée le mercredi 21 : décalage au 28, la dose du 30 est annoncée perdue', () => {
+      expect(mercredi21).toMatchObject({
+        dose: { nextDueDate: '2026-10-28' },
+        shift: { nextDueDate: '2026-10-21' },
+        lostToEnd: ['2026-10-30'],
+      })
+    })
+
+    it('la dernière dose seule, perdue, est aussi annoncée', () => {
+      const noted = scheduleOf(pixel, '2026-10-25').doseFor({
+        kind: 'given',
+        due: due('2026-10-05'),
+        givenOn: '2026-10-25',
+      })
+
+      expect(noted.lostToEnd).toEqual(['2026-11-02'])
+    })
+  })
+
+  it('un décalage qui ne fait perdre aucune dose est écrit comme d’habitude', () => {
     const book = done(
-      carnet(weekly({ firstDueOn: '2026-10-16', endsOn: '2026-10-30' })),
+      carnet(weekly({ firstDueOn: '2026-10-16', endsOn: '2026-10-31' })),
       '2026-10-17',
     )
-
     expect(shiftsOf(book)).toHaveLength(1)
-    expect(dueDays(scheduleOf(book, '2026-10-17').upcoming(3))).toEqual(['2026-10-24'])
+    expect(dueDays(scheduleOf(book, '2026-10-17').upcoming(3))).toEqual([
+      '2026-10-24',
+      '2026-10-31',
+    ])
   })
 })
 

@@ -381,7 +381,8 @@ correction change le rythme, le report seul qui la suit vise l'échéance la plu
 ancienne arrivée et garde cette date dans les bornes de Q2 a, sinon s'en approche sans passer avant
 aujourd'hui ; sans date possible, la correction est refusée (« Avec ce jour, la dose que tu avais reportée au 30 oct. ne pourrait plus tomber au bon moment. Change d'abord la date de ce report. »). L'aide l'annonce (« La dose que tu avais reportée au 30 oct. reste prévue ce jour-là. »). Restent
 refusés, faute de pouvoir faire suivre le report : « Fait à une autre date » coché (décocher suffit)
-et « Supprimer ce décalage » (« Change d'abord la date du report »). « C'est fait » en un tap, la
+et « Supprimer ce décalage » (« Change d'abord la date du report »), grisé aussi quand un report seul
+qui le suit n'aurait plus son échéance d'origine dans le rythme rétabli (graine 2157, #506). « C'est fait » en un tap, la
 notification et la feuille « À faire » notent la prise sans son décalage, et le toast le dit (« La
 suite ne bouge pas : un report est prévu le 28 oct. »).
 
@@ -400,8 +401,11 @@ prévue tombe au moins une demi-fréquence après la prise ; alors pas de décal
 (23 jours) ; donnée le 1ᵉʳ nov. : terminé. Le choix est écrit : changer la date de fin ensuite ne le
 rejoue pas. Livré par #506 (G20 de la spec) : la demi-fréquence se compte en jours, de la prise à la
 même date plus un intervalle (donnée le 19 oct., le 2 nov. reste ; le 20, terminé) ; la feuille
-« À faire » et la notification passent par le même calcul que la fiche. Reste ouverte : plusieurs
-doses avant la date de fin (spec, §11).
+« À faire » et la notification passent par le même calcul que la fiche. Plusieurs doses avant la date
+de fin (décision du 2026-10-05) : la règle porte sur la dose suivante ; loin, rien ne bouge ; proche,
+le décalage est écrit et le toast dit la dose qui saute (vendredi, 16, 23, 30, fin le 30 : donnée le
+lundi 19, 23 et 30 restent ; le mercredi 21, 28, « La dose du 30 oct. n'est plus prévue (date de
+fin). »).
 
 **Ce qui change par rapport au §2.1 et au §2.5** : `status` gagne `shift` (en plus d'`extra`), sans
 colonne `fixes_suite` ; le moteur lit les lignes de décalage là où il aurait lu le drapeau

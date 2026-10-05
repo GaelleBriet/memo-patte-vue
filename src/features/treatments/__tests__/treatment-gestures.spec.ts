@@ -314,6 +314,36 @@ describe('doseActionTexts — prise notée sans son décalage, un report seul su
   })
 })
 
+describe('doseActionTexts — prise en retard dont le décalage fait sauter des doses (Q4, #506)', () => {
+  const due = { periodId: 'p-1', dueOn: '2026-09-25', dueTime: null }
+  const action: DoseAction = { kind: 'note', gesture: { kind: 'given', due, givenOn: TODAY } }
+
+  it('le toast dit la dose qui n’est plus prévue', () => {
+    const { done } = doseActionTexts(t, UNE_HEURE, action, null)
+
+    expect(plain(done({ ...RIEN, lostToEnd: ['2026-10-30'] }))).toBe(
+      'Prise de Panacur notée pour Pixel. La dose du 30 oct. n’est plus prévue (date de fin).',
+    )
+    expect(plain(done({ ...RIEN, lostToEnd: ['2026-10-23', '2026-10-30'] }))).toBe(
+      'Prise de Panacur notée pour Pixel. Les doses du 23, 30 oct. ne sont plus prévues (date de fin).',
+    )
+    applyLocale('en')
+    expect(
+      plain(
+        doseActionTexts(t, UNE_HEURE, action, null).done({ ...RIEN, lostToEnd: ['2026-10-30'] }),
+      ),
+    ).toBe('Panacur dose logged for Pixel. The Oct 30 dose is no longer scheduled (end date).')
+  })
+
+  it('le traitement terminé, le toast de la dernière dose l’emporte', () => {
+    const { done } = doseActionTexts(t, UNE_HEURE, action, null)
+
+    expect(plain(done({ ...RIEN, finishes: true, lostToEnd: ['2026-10-30'] }))).toBe(
+      'Dernière dose de Panacur notée, à retrouver dans Traitements terminés.',
+    )
+  })
+})
+
 describe('doseActionTexts — « Supprimer ce décalage » (V31 quater)', () => {
   const action: DoseAction = { kind: 'remove-shift', doseId: 'décalage' }
 

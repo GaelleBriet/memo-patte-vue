@@ -227,8 +227,27 @@ export function shiftRemovalRefusal(state: State, doseId: string): ShiftRemovalR
     (note) => note.dueOn > shift.dueOn && note.dueOn !== report?.nextDueDate,
   )
   if (later.length > 0) return 'later-dose'
-  const passed = passedMoveOn(state, withoutLine(state, doseId), shift.periodId, shift.dueOn)
-  return passed === null ? null : 'move-past-next'
+  const without = withoutLine(state, doseId)
+  const passed = passedMoveOn(state, without, shift.periodId, shift.dueOn)
+  return passed !== null || strandsMove(without, shift) ? 'move-past-next' : null
+}
+
+// Un report seul qui suit, dont l'échéance d'origine ne serait plus une échéance du rythme rétabli.
+function strandsMove(without: State, shift: TreatmentDoseInput): boolean {
+  const plan = planOf(without, shift.periodId)
+  return plan.steps
+    .filter(isMove)
+    .some(
+      ({ dose }) =>
+        dose.dueOn > shift.dueOn && shiftOn(plan, dose) === undefined && !isOnRhythm(without, dose),
+    )
+}
+
+function isOnRhythm(state: State, move: TreatmentDoseInput): boolean {
+  const plan = planOf(stateWithoutDues(state, [move]), move.periodId)
+  return pendingDues(plan, { from: move.dueOn, to: move.dueOn }).some(
+    (due) => keyOf(due) === keyOf(move),
+  )
 }
 
 export function removeShift(state: State, doseId: string): LineChange {

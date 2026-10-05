@@ -66,9 +66,15 @@ export type LineChange =
 
 /**
  * La prise à écrire, et la ligne de décalage qui fait repartir la suite de sa date réelle ;
- * `heldBy` : sans case, le décalage n'est pas écrit, il ferait passer ce report seul (son arrivée).
+ * `heldBy` : sans case, le décalage n'est pas écrit, il ferait passer ce report seul (son arrivée) ;
+ * `lostToEnd` : sans case, les journées que le décalage fait sortir de la date de fin (Q4).
  */
-export type NotedDose = { dose: DoseFields; shift: DoseFields | null; heldBy?: string }
+export type NotedDose = {
+  dose: DoseFields
+  shift: DoseFields | null
+  heldBy?: string
+  lostToEnd?: string[]
+}
 
 /**
  * `shift` : la ligne de décalage de la prise, réancrée à sa nouvelle date, créée ou supprimée.

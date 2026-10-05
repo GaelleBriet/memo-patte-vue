@@ -482,6 +482,34 @@ describe('treatmentDosesService', () => {
         }
       })
 
+      it('plusieurs doses avant la fin : la dose suivante loin, rien ne bouge ; proche, la dose perdue est dite', async () => {
+        const SEMAINE = { value: 1, unit: 'week' as const }
+        const loinLundi = await creer('loin', {
+          firstDueOn: '2026-09-21',
+          frequency: SEMAINE,
+          endsOn: '2026-10-05',
+        })
+        const procheVendredi = await creer('proche', {
+          firstDueOn: '2026-09-18',
+          frequency: SEMAINE,
+          endsOn: '2026-10-02',
+        })
+
+        const garde = await service.noteMoment(loinLundi, '2026-09-23')
+        const coupe = await service.noteMoment(procheVendredi, '2026-09-23', {
+          notifiedDueOn: '2026-09-18',
+        })
+
+        expect(garde).not.toHaveProperty('lostToEnd')
+        await expect(decalages(loinLundi)).resolves.toEqual([])
+        expect(coupe).toMatchObject({
+          outcome: 'noted',
+          finishes: false,
+          lostToEnd: ['2026-10-02'],
+        })
+        await expect(decalages(procheVendredi)).resolves.toEqual([{ due_on: '2026-09-18' }])
+      })
+
       it('à moins d’une demi-fréquence : le traitement se termine, par la feuille, la notification et la fiche', async () => {
         const feuille = await creer('feuille', proche)
         const notification = await creer('notification', proche)

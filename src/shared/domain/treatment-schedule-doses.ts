@@ -248,11 +248,11 @@ export function redateLimits(state: State, doseId: string): RedateLimits {
   return { lastExtraDay: given === undefined ? null : lastExtraDayOf(state, given), takenDays: [] }
 }
 
-// Q4, sans case : le décalage qui ferait sortir la dernière dose de la date de fin ne s'écrit pas
-// quand elle tombe au moins une demi-fréquence après la prise.
-function keepsLastDose(others: State, due: Due, givenOn: string, written: Written[]): boolean {
+// Q4, sans case : le décalage qui ferait sortir des doses de la date de fin ne s'écrit pas quand la
+// dose suivante tombe au moins une demi-fréquence après la prise ; écrit, il dit les journées perdues.
+function endCut(others: State, due: Due, givenOn: string, written: Written[]): 'kept' | string[] {
   const { endsOn, frequency } = planOf(others, due.periodId).period
-  if (endsOn === null) return false
+  if (endsOn === null) return []
   const daysLeft = (state: State) => [
     ...new Set(
       pendingDues(planOf(state, due.periodId), { from: nextDay(due.dueOn) }).map(
@@ -261,11 +261,9 @@ function keepsLastDose(others: State, due: Due, givenOn: string, written: Writte
     ),
   ]
   const kept = daysLeft(stateAfter(others, written.slice(0, 1)))
-  return (
-    kept.length === 1 &&
-    daysLeft(stateAfter(others, written)).length === 0 &&
-    !isWithinHalfStep(givenOn, kept[0]!, frequency)
-  )
+  const shifted = daysLeft(stateAfter(others, written))
+  if (shifted.length >= kept.length) return []
+  return isWithinHalfStep(givenOn, kept[0]!, frequency) ? kept.slice(shifted.length) : 'kept'
 }
 
 export function doseFor(state: State, known: () => Set<string>, gesture: DoseGesture): NotedDose {
@@ -295,10 +293,10 @@ export function doseFor(state: State, known: () => Set<string>, gesture: DoseGes
         { id: null, fields: dose },
         { id: shiftOn(plan, shift)?.id ?? null, fields: shift },
       ]
-      if (gesture.shiftsFollowing === undefined && keepsLastDose(others, due, givenOn, written)) {
-        return { dose, shift: null }
-      }
-      return { dose: { ...dose, nextDueDate: nextAfter(others, due, written) }, shift }
+      const cut = gesture.shiftsFollowing === undefined ? endCut(others, due, givenOn, written) : []
+      if (cut === 'kept') return { dose, shift: null }
+      const shifted = { dose: { ...dose, nextDueDate: nextAfter(others, due, written) }, shift }
+      return cut.length === 0 ? shifted : { ...shifted, lostToEnd: cut }
     }
     case 'missed':
       return {
