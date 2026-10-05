@@ -264,14 +264,25 @@ describe('dateChangeOf — « Changer la date »', () => {
     })
   })
 
-  it('d’une prise en plus : sa date réelle, avec son nom', () => {
+  it('d’une prise en plus : sa date réelle, avec son nom, sans les jours qui en ont déjà une', () => {
     const prise = dose('2026-09-09', '2026-09-16', { status: 'extra' })
+    const limits = { lastExtraDay: null, takenDays: ['2026-09-08'] }
 
-    expect(dateChangeOf(t, prise, null, { today: TODAY, earliest: null })).toMatchObject({
+    expect(dateChangeOf(t, prise, null, { today: TODAY, earliest: null, limits })).toMatchObject({
       subtitle: 'Prise en plus du 9 sept. 2026',
       date: '2026-09-09',
       max: TODAY,
+      excluded: ['2026-09-08'],
     })
+  })
+
+  it('d’une prise donnée : jamais un intervalle ou plus avant son échéance', () => {
+    const prise = dose('2026-09-16', '2026-09-23')
+    const limits = { lastExtraDay: '2026-09-09', takenDays: [] }
+
+    expect(
+      dateChangeOf(t, prise, null, { today: TODAY, earliest: '2022-04-10', limits }),
+    ).toMatchObject({ min: '2026-09-10', excluded: [] })
   })
 
   it('d’un report : sa nouvelle date, entre les bornes du moteur', () => {

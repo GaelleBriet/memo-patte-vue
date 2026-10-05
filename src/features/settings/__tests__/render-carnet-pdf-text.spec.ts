@@ -30,6 +30,7 @@ function traitement(name: string): PdfTreatmentRow {
     name,
     lastDoseDate: '2026-08-01',
     previousDoses: [],
+    extraDoseDates: [],
     nextDueDate: '2026-11-01',
     stoppedOn: null,
     state: 'upToDate',
@@ -111,6 +112,31 @@ describe('renderCarnetPdf — caractères hors de la police', () => {
 
     expect(defauts).toEqual([])
     expect(textes(content)).toEqual(expect.arrayContaining(['Milo', 'Rage', '—']))
+  })
+})
+
+describe('renderCarnetPdf — prise en plus', () => {
+  it('marque la date d’une prise en plus', () => {
+    const content: CarnetPdfContent = {
+      ...carnet({}, []),
+      treatments: [
+        {
+          ...traitement('Milbemax'),
+          lastDoseDate: '2026-10-09',
+          previousDoses: [{ kind: 'dates', dates: ['2026-10-02'] }],
+          extraDoseDates: ['2026-10-09'],
+        },
+      ],
+    }
+
+    const lisibles = textes(content).map((texte) => texte.replace(/\s/gu, ' '))
+
+    expect(lisibles).toEqual(
+      expect.arrayContaining([
+        'Dernière prise : 09/10/2026 (prise en plus)',
+        'Prises précédentes : 02/10/2026',
+      ]),
+    )
   })
 })
 

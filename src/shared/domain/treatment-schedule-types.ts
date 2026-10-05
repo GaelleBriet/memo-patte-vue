@@ -94,6 +94,8 @@ export type MoveBounds = { earliest: string; latest: string | null }
 export type MoveRefusal =
   'previous-period' | 'later-line' | 'later-dose' | 'no-date-left' | 'arrival-logged'
 
+export type RedateLimits = { lastExtraDay: string | null; takenDays: string[] }
+
 export type NewPeriod = { startsOn: string; firstDueOn: string; referenceOn: string }
 
 export type TreatmentSchedule = {
@@ -114,7 +116,10 @@ export type TreatmentSchedule = {
   /** Déplacements sans effet (dépassés, revenus à leur date) : à supprimer avec la prochaine écriture. */
   staleDoseIds: string[]
   currentPeriodId: string | null
-  /** TR-28 : une prise, même oubliée ou reportée, existe dans la période en cours (un décalage seul ne compte pas). */
+  /**
+   * TR-28 : une prise, même oubliée ou reportée, existe dans la période en cours (un décalage seul ne
+   * compte pas, une prise en plus non plus).
+   */
   currentPeriodHasDose: boolean
   /** Échéances sans prise à partir d'aujourd'hui inclus. */
   upcoming(limit: number): Due[]
@@ -136,6 +141,11 @@ export type TreatmentSchedule = {
    * échéance (`firstDueOn` réécrit, sans ligne ni bornes de déplacement) ; sinon elle déplace la dose.
    */
   nextDoseChange: 'correction' | 'move' | null
+  /**
+   * Jours que « Changer la date » refuse : une prise donnée ne descend pas à `lastExtraDay` ou avant
+   * (elle y deviendrait une prise en plus) ; une prise en plus ne va pas sur un jour qui en a déjà une.
+   */
+  redateLimits(doseId: string): RedateLimits
   /** Déplace la dose, plus tôt ou plus tard (TR-9, Q17, Q18) ; une ligne réécrite peut changer d'échéance d'origine. */
   move(due: Due, to: string): MovedDose
   /** Bornes d'un déplacement, pas d'une correction de première échéance ; `null` : voir `moveRefusal`. */
@@ -152,11 +162,7 @@ export type TreatmentSchedule = {
 
 export type Sequence = { origin: string; firstStep: number; floor: string }
 
-export type Step = {
-  kind: 'note' | 'extra' | 'move' | 'shift'
-  dose: TreatmentDoseInput
-  position: string
-}
+export type Step = { kind: 'note' | 'move' | 'shift'; dose: TreatmentDoseInput; position: string }
 
 export type PeriodPlan = {
   period: TreatmentPeriodInput
@@ -182,7 +188,7 @@ export type DueEntry = { due: Due; status: DoseStatus | null }
 export type State = {
   input: TreatmentScheduleInput
   noted: Set<string>
-  /** Échéances qui ont une ligne lue par le moteur : prise, prise en plus, report ou décalage en vigueur. */
+  /** Échéances qui ont une ligne lue par le moteur : prise, report ou décalage en vigueur. */
   lines: Set<string>
   plans: PeriodPlan[]
   open: PeriodPlan | null

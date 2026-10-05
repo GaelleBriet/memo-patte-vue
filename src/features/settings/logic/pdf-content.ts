@@ -6,6 +6,7 @@ import type { ExportData, ExportFrequency } from '@/shared/domain/carnet-data'
 import {
   currentPeriods,
   givenDoseHistories,
+  periodHeads,
   vaccinationHistories,
   type GivenDose,
 } from '@/shared/domain/carnet-heads'
@@ -30,6 +31,8 @@ export type PdfTreatmentRow = {
   lastDoseDate: string
   /** Les prises avant la dernière, par séries, la plus récente d'abord. */
   previousDoses: PdfDoseSeries[]
+  /** Dates des prises en plus, marquées comme telles. */
+  extraDoseDates: string[]
   /** `null` pour un traitement arrêté : il n'a plus d'échéance. */
   nextDueDate: string | null
   stoppedOn: string | null
@@ -109,6 +112,7 @@ export function buildCarnetPdfContent(
 
   const injections = vaccinationHistories(data.vaccinationInjections)
   const doses = givenDoseHistories(data.treatmentDoses)
+  const heads = periodHeads(data.treatmentDoses)
   const periods = currentPeriods(data.treatmentPeriods)
   const frequencies = new Map(data.treatmentPeriods.map(({ id, frequency }) => [id, frequency]))
   const dated = ({ givenOn, periodId }: GivenDose): DatedDose[] => {
@@ -140,12 +144,16 @@ export function buildCarnetPdfContent(
       const [head, ...previous] = doses.get(item.id) ?? []
       const period = periods.get(item.id)
       if (!head || !period) return []
-      const nextDueDate = period.stoppedOn ? null : head.nextDueDate
+      const planned = heads.get(period.id)?.nextDueDate ?? period.firstDueOn
+      const nextDueDate = period.stoppedOn ? null : planned
       return [
         {
           name: item.name,
           lastDoseDate: head.givenOn,
           previousDoses: doseSeries(previous.flatMap(dated)),
+          extraDoseDates: [head, ...previous]
+            .filter(({ status }) => status === 'extra')
+            .map(({ givenOn }) => givenOn),
           nextDueDate,
           stoppedOn: period.stoppedOn,
           state: dueState(nextDueDate, today, 'treatment'),

@@ -59,7 +59,8 @@ export function notedOn(
 export function build(input: TreatmentScheduleInput): State {
   const { today } = input
   const periods = orderPeriods(input.periods)
-  const doses = mergeDoses(input.doses)
+  // Une prise en plus ne change jamais le calendrier : le moteur ne la lit pas.
+  const doses = mergeDoses(input.doses).filter((dose) => !isExtraLine(dose))
   const plans = periods.map((period, index) =>
     planPeriod(
       period,

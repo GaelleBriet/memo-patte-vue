@@ -297,6 +297,7 @@ describe('buildCarnetPdfContent — historique', () => {
           dueOn: '2026-05-08',
           givenOn: '2026-05-08',
           status: 'extra' as const,
+          nextDueDate: '2099-01-01',
         },
       ],
     }
@@ -304,6 +305,8 @@ describe('buildCarnetPdfContent — historique', () => {
     const row = buildCarnetPdfContent(data, ANIMAL_ID, TODAY)!.treatments[0]!
 
     expect(row.lastDoseDate).toBe('2026-05-08')
+    expect(row.extraDoseDates).toEqual(['2026-05-08'])
+    expect(row.nextDueDate).not.toBe('2099-01-01')
     expect(row.previousDoses).toEqual([{ kind: 'dates', dates: ['2026-05-01', '2026-04-01'] }])
   })
 

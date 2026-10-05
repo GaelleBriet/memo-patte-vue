@@ -184,8 +184,14 @@ function numericDates(dates: string[]): string {
   return dates.map(formatNumericDate).join(' · ')
 }
 
-function doseSeriesLabel(series: PdfDoseSeries, t: Translate): string {
-  if (series.kind === 'dates') return numericDates(series.dates)
+function doseDate(date: string, extras: string[], t: Translate): string {
+  const day = formatNumericDate(date)
+  return extras.includes(date) ? t('settings.pdf.history.extraDose', { date: day }) : day
+}
+
+function doseSeriesLabel(series: PdfDoseSeries, extras: string[], t: Translate): string {
+  if (series.kind === 'dates')
+    return series.dates.map((date) => doseDate(date, extras, t)).join(' · ')
   return t('settings.pdf.history.doseRange', {
     count: series.count,
     from: formatNumericDate(series.from),
@@ -194,9 +200,12 @@ function doseSeriesLabel(series: PdfDoseSeries, t: Translate): string {
 }
 
 function doseHistory(row: PdfTreatmentRow, t: Translate): string[] {
-  const last = t('settings.pdf.history.lastDose', { date: formatNumericDate(row.lastDoseDate) })
+  const extras = row.extraDoseDates
+  const last = t('settings.pdf.history.lastDose', {
+    date: doseDate(row.lastDoseDate, extras, t),
+  })
   if (row.previousDoses.length === 0) return [last]
-  const series = row.previousDoses.map((item) => doseSeriesLabel(item, t)).join(' · ')
+  const series = row.previousDoses.map((item) => doseSeriesLabel(item, extras, t)).join(' · ')
   return [last, t('settings.pdf.history.previousDoses', { series })]
 }
 

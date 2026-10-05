@@ -203,7 +203,7 @@ describe('prise en plus : une dose donnée un intervalle ou plus en avance (#503
     expect(after.upcoming(3)).toEqual(before.upcoming(3))
   })
 
-  it('compte comme une prise de la période (TR-28) et suit l’historique', () => {
+  it('ne compte pas comme une prise de la période (TR-28) : la période se corrige, et l’historique la garde', () => {
     const book = record(pixel, '2026-10-09', {
       kind: 'given',
       due: due('2026-10-16'),
@@ -211,9 +211,29 @@ describe('prise en plus : une dose donnée un intervalle ou plus en avance (#503
     })
     const schedule = scheduleOf(book, '2026-10-09')
 
-    expect(schedule.currentPeriodHasDose).toBe(true)
-    expect(schedule.nextDoseChange).toBe('move')
+    expect(schedule.currentPeriodHasDose).toBe(false)
+    expect(schedule.nextDoseChange).toBe('correction')
     expect(schedule.doses).toEqual([expect.objectContaining({ status: 'extra' })])
+  })
+
+  it('un report après une prise en plus reste gardé quand la prise d’avant change de date', () => {
+    let book = done(carnet(weekly({ firstDueOn: '2026-10-02' })), '2026-10-04')
+    const october2 = lastDose(book)
+    book = done(book, '2026-10-04')
+    expect(lastDose(book).status).toBe('extra')
+    book = record(book, '2026-10-04', {
+      kind: 'postponed',
+      due: due('2026-10-11'),
+      to: '2026-10-13',
+    })
+
+    const redated = redate(book, '2026-10-04', october2.id, '2026-10-03')
+
+    expect(dueDays(scheduleOf(redated, '2026-10-04').upcoming(3))).toEqual([
+      '2026-10-13',
+      '2026-10-20',
+      '2026-10-27',
+    ])
   })
 
   it('une nouvelle période part de la dernière prise prévue, pas de la prise en plus', () => {
@@ -277,6 +297,42 @@ describe('« Changer la date » d’une prise en plus : elle vise l’échéance
     expect(scheduleOf(moved, '2026-10-09').currentDoses).toEqual([due('2026-10-16')])
   })
 
+  it('sur un traitement arrêté, elle reste une prise en plus à la nouvelle date', () => {
+    const stopped = carnet(weekly({ firstDueOn: '2026-10-16', stoppedOn: '2026-10-12' }))
+    const book = record(pixel, '2026-10-09', {
+      kind: 'given',
+      due: due('2026-10-16'),
+      givenOn: '2026-10-09',
+    })
+    const extra = lastDose(book)
+    const later = { ...book, periods: stopped.periods }
+
+    expect(scheduleOf(later, '2026-10-20').redate(extra.id, '2026-10-08').dose).toEqual(
+      expect.objectContaining({ dueOn: '2026-10-08', givenOn: '2026-10-08', status: 'extra' }),
+    )
+  })
+
+  it('refuse un jour qui a déjà une prise en plus, et le dit dans ses limites', () => {
+    let book = record(pixel, '2026-10-09', {
+      kind: 'given',
+      due: due('2026-10-16'),
+      givenOn: '2026-10-08',
+    })
+    book = record(book, '2026-10-09', {
+      kind: 'given',
+      due: due('2026-10-16'),
+      givenOn: '2026-10-09',
+    })
+    const extra = lastDose(book)
+    const schedule = scheduleOf(book, '2026-10-09')
+
+    expect(schedule.redateLimits(extra.id)).toEqual({
+      lastExtraDay: null,
+      takenDays: ['2026-10-08'],
+    })
+    expect(() => schedule.redate(extra.id, '2026-10-08')).toThrow('prise en plus')
+  })
+
   it('à la même date, rien ne change', () => {
     const book = record(pixel, '2026-10-09', {
       kind: 'given',
@@ -294,5 +350,17 @@ describe('« Changer la date » d’une prise en plus : elle vise l’échéance
       shift: { action: 'none' },
       postponement: null,
     })
+  })
+})
+
+describe('« Changer la date » d’une prise donnée : jamais un intervalle ou plus avant son échéance', () => {
+  it('donne le dernier jour qui en ferait une prise en plus, et refuse ces jours', () => {
+    const book = done(carnet(weekly({ firstDueOn: '2026-10-16' })), '2026-10-16')
+    const given = lastDose(book)
+    const schedule = scheduleOf(book, '2026-10-20')
+
+    expect(schedule.redateLimits(given.id)).toEqual({ lastExtraDay: '2026-10-09', takenDays: [] })
+    expect(() => schedule.redate(given.id, '2026-10-09')).toThrow('prise en plus')
+    expect(schedule.redate(given.id, '2026-10-10').dose.givenOn).toBe('2026-10-10')
   })
 })

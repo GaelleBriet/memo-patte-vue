@@ -669,6 +669,21 @@ describe('doseChange — prise en plus (#503)', () => {
     ])
   })
 
+  it('refuse de la dater d’un jour qui a déjà une prise en plus : deux lignes ne fusionnent jamais', () => {
+    const history = treatment(
+      [WEEKLY],
+      [extra('2026-10-08', '2026-10-16'), extra('2026-10-09', '2026-10-16')],
+    )
+
+    expect(() =>
+      change(history, '2026-10-09', {
+        kind: 'redate',
+        doseId: 'en plus 2026-10-09',
+        givenOn: '2026-10-08',
+      }),
+    ).toThrow('prise en plus')
+  })
+
   it('redatée après sa dose, elle devient la prise de la dose du moment, avec son décalage', () => {
     const history = treatment(
       [period({ frequency: { value: 1, unit: 'week' } })],

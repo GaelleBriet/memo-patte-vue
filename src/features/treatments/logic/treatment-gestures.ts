@@ -1,3 +1,5 @@
+import { addDays, format, parseISO } from 'date-fns'
+
 import type { DoseAction, DoseChange } from './treatment-dose-writes'
 import { moveText, type DoseLineAction } from './treatment-history'
 import type { TreatmentWithHistory } from '../repository/treatments.repository'
@@ -5,6 +7,7 @@ import {
   isAdvanced,
   type Due,
   type MoveBounds,
+  type RedateLimits,
   type TreatmentDoseInput,
 } from '@/shared/domain/treatment-schedule'
 import {
@@ -213,6 +216,8 @@ export type DateChange = {
   date: string
   min: string | null
   max: string | null
+  /** Jours grisés : ceux qui ont déjà une prise en plus. */
+  excluded: string[]
   action(date: string): DoseAction
 }
 
@@ -221,7 +226,11 @@ export function dateChangeOf(
   t: Translate,
   line: Line,
   bounds: MoveBounds | null,
-  { today, earliest }: { today: string; earliest: string | null },
+  {
+    today,
+    earliest,
+    limits = null,
+  }: { today: string; earliest: string | null; limits?: RedateLimits | null },
 ): DateChange | null {
   if (line.status === 'postponed') {
     if (bounds === null) return null
@@ -230,19 +239,30 @@ export function dateChangeOf(
       date: line.nextDueDate,
       min: bounds.earliest,
       max: bounds.latest,
+      excluded: [],
       action: (to) => ({ kind: 'move', doseId: line.id, to }),
     }
   }
   if (line.givenOn === null) return null
   const date = formatLongDate(line.givenOn)
+  // M1 : une prise donnée ne descend pas au jour où elle deviendrait une prise en plus.
+  const afterExtra =
+    limits === null || limits.lastExtraDay === null
+      ? null
+      : format(addDays(parseISO(limits.lastExtraDay), 1), 'yyyy-MM-dd')
   return {
     subtitle:
       line.status === 'extra'
         ? t('treatments.detail.changeDateSubtitleExtra', { date })
         : t('treatments.detail.changeDateSubtitle', { date }),
     date: line.givenOn,
-    min: earliest,
+    min:
+      [earliest, afterExtra]
+        .filter((day) => day !== null)
+        .sort()
+        .at(-1) ?? null,
     max: today,
+    excluded: limits?.takenDays ?? [],
     action: (givenOn) => ({ kind: 'redate', doseId: line.id, givenOn }),
   }
 }

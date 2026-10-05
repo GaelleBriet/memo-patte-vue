@@ -84,7 +84,6 @@ export function compareCreation(a: TreatmentDoseInput, b: TreatmentDoseInput): n
 
 // Avancé (Q17), un report agit au début de sa nouvelle date ; reporté, après les prises de son jour
 // d'origine. Un décalage agit après toute sa journée d'origine, et après le report de cette journée.
-// Une prise en plus ne change jamais le calendrier : elle se range après sa journée.
 function stepOf(dose: TreatmentDoseInput, shiftDay: (shift: TreatmentDoseInput) => string): Step {
   switch (familyOf(dose)) {
     case 'move': {
@@ -93,8 +92,6 @@ function stepOf(dose: TreatmentDoseInput, shiftDay: (shift: TreatmentDoseInput) 
     }
     case 'shift':
       return { kind: 'shift', dose, position: positionOf(`${shiftDay(dose)} ~`, 1) }
-    case 'extra':
-      return { kind: 'extra', dose, position: positionOf(`${dose.dueOn} ~`, 1) }
     default:
       return { kind: 'note', dose, position: positionOf(keyOf(dose), 1) }
   }

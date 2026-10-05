@@ -999,6 +999,7 @@
       "history": {
         "injections": "Injections : {dates}",
         "lastDose": "Dernière prise : {date}",
+        "extraDose": "{date} (prise en plus)",
         "previousDoses": "Prises précédentes : {series}",
         "doseRange": "{count} prises du {from} au {to}"
       },

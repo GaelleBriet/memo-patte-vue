@@ -8,6 +8,7 @@ import {
   dueId,
   dueOf,
   keyOf,
+  nextDay,
   sameDue,
   shiftDate,
   toDate,
@@ -17,6 +18,7 @@ import { isLocked, movedFields, shiftFields } from './treatment-schedule-moves'
 import {
   compareCreation,
   hasFallen,
+  mergeDoses,
   notesOf,
   pendingDues,
   positionOf,
@@ -42,6 +44,7 @@ import type {
   LineChange,
   NotedDose,
   PeriodPlan,
+  RedateLimits,
   RedatedDose,
   State,
   TreatmentDoseInput,
@@ -133,13 +136,44 @@ function isExtra(state: State, due: Due, givenOn: string): boolean {
 }
 
 // Sa prochaine dose est la première échéance sans prise après elle : le calendrier ne bouge pas.
-function extraFor(state: State, due: Due, givenOn: string): NotedDose {
-  const extraDue = { periodId: due.periodId, dueOn: givenOn, dueTime: due.dueTime }
-  const next = pendingDues(planOf(state, due.periodId), { from: givenOn, limit: 2 }).find(
-    (pending) => keyOf(pending) > keyOf(extraDue),
+function extraFields(state: State, at: Due, otherwise: string): DoseFields {
+  const next = pendingDues(planOf(state, at.periodId), { from: at.dueOn, limit: 2 }).find(
+    (pending) => keyOf(pending) > keyOf(at),
   )
-  const nextDueDate = next?.dueOn ?? due.dueOn
-  return { dose: { ...extraDue, givenOn, status: 'extra', nextDueDate }, shift: null }
+  return { ...dueOf(at), givenOn: at.dueOn, status: 'extra', nextDueDate: next?.dueOn ?? otherwise }
+}
+
+function extraFor(state: State, due: Due, givenOn: string): NotedDose {
+  const at = { periodId: due.periodId, dueOn: givenOn, dueTime: due.dueTime }
+  return { dose: extraFields(state, at, due.dueOn), shift: null }
+}
+
+// Le dernier jour d'où une prise de cette échéance serait un intervalle ou plus en avance.
+function lastExtraDayOf(state: State, line: TreatmentDoseInput): string | null {
+  const { frequency, times } = planOf(state, line.periodId).period
+  if (times.length > 1) return null
+  let day = shiftDate(line.dueOn, frequency, -1)
+  while (shiftDate(nextDay(day), frequency, 1) <= line.dueOn) day = nextDay(day)
+  return day
+}
+
+function extraOf(state: State, doseId: string): TreatmentDoseInput | undefined {
+  return mergeDoses(state.input.doses).find(({ id, status }) => id === doseId && status === 'extra')
+}
+
+export function redateLimits(state: State, doseId: string): RedateLimits {
+  const extra = extraOf(state, doseId)
+  if (extra !== undefined) {
+    const takenDays = mergeDoses(state.input.doses)
+      .filter((dose) => dose.status === 'extra' && dose.periodId === extra.periodId)
+      .map(({ dueOn }) => dueOn)
+      .filter((day) => day !== extra.dueOn)
+    return { lastExtraDay: null, takenDays }
+  }
+  const given = state.plans
+    .flatMap(notesOf)
+    .find(({ id, status }) => id === doseId && status === 'given')
+  return { lastExtraDay: given === undefined ? null : lastExtraDayOf(state, given), takenDays: [] }
 }
 
 export function doseFor(state: State, known: () => Set<string>, gesture: DoseGesture): NotedDose {
@@ -242,22 +276,24 @@ function postponementAfter(
   }
 }
 
-// Une prise en plus redatée est notée de nouveau à cette date, sans elle : elle vise ce que viserait
-// une prise notée ce jour-là, et peut redevenir la prise de la dose prévue.
+// Une prise en plus redatée est notée de nouveau à cette date : elle vise ce que viserait une prise
+// notée ce jour-là, et peut redevenir la prise de la dose prévue ; sans dose à viser, elle reste en plus.
 function redateExtra(state: State, extra: TreatmentDoseInput, givenOn: string): RedatedDose {
   const none = { action: 'none' } as const
   if (givenOn === extra.givenOn) return { dose: fieldsOf(extra), shift: none, postponement: null }
-  const doses = state.input.doses.filter(
-    (dose) => !(dose.status === 'extra' && sameDue(dose, extra)),
-  )
-  const others = build({ ...state.input, doses })
-  const due = dueForDate(others, givenOn, null)
-  if (due === null) throw new RangeError(`Aucune dose à viser le ${givenOn}`)
-  const noted = doseFor(others, () => knownDues(others), { kind: 'given', due, givenOn })
+  if (redateLimits(state, extra.id).takenDays.includes(givenOn)) {
+    throw new RangeError(`Le ${givenOn} a déjà une prise en plus`)
+  }
+  const due = dueForDate(state, givenOn, null)
+  if (due === null || isExtra(state, due, givenOn)) {
+    const at = { periodId: extra.periodId, dueOn: givenOn, dueTime: extra.dueTime }
+    return { dose: extraFields(state, at, extra.nextDueDate), shift: none, postponement: null }
+  }
+  const noted = doseFor(state, () => knownDues(state), { kind: 'given', due, givenOn })
   const shift =
     noted.shift === null
       ? none
-      : shiftChange(shiftOn(planOf(others, due.periodId), due), noted.shift)
+      : shiftChange(shiftOn(planOf(state, due.periodId), due), noted.shift)
   return { dose: noted.dose, shift, postponement: null }
 }
 
@@ -265,13 +301,17 @@ function redateExtra(state: State, extra: TreatmentDoseInput, givenOn: string): 
 // recalcule comme notée ce jour-là, sur le carnet d'aujourd'hui (une dose non renseignée ne décale rien).
 export function redate(state: State, doseId: string, givenOn: string): RedatedDose {
   checkPastDay(givenOn, state.input.today, 'date réelle')
+  const extra = extraOf(state, doseId)
+  if (extra !== undefined) return redateExtra(state, extra, givenOn)
   for (const plan of state.plans) {
-    const extra = plan.steps.find(({ kind, dose }) => kind === 'extra' && dose.id === doseId)
-    if (extra !== undefined) return redateExtra(state, extra.dose, givenOn)
     const dose = notesOf(plan).find((note) => note.id === doseId)
     if (dose?.status !== 'given') continue
     if (givenOn === dose.givenOn) {
       return { dose: fieldsOf(dose), shift: { action: 'none' }, postponement: null }
+    }
+    const lastExtraDay = lastExtraDayOf(state, dose)
+    if (lastExtraDay !== null && givenOn <= lastExtraDay) {
+      throw new RangeError(`Le ${givenOn} ferait de la prise ${doseId} une prise en plus`)
     }
     const shift = shiftOn(plan, dose)
     const others = stateWithout(state, dose)

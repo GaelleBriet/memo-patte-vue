@@ -635,13 +635,16 @@ function changesGrid(period: TreatmentPeriodRecord, settings: TreatmentPeriodSet
   )
 }
 
-// Corriger une période sans prise refixe sa grille : ses décalages restés seuls partent avec.
+// Corriger une période sans prise refixe sa grille : ses décalages restés seuls partent avec, ses
+// prises en plus restent.
 function shiftDeletes(
   history: TreatmentWithHistory,
   periodId: string,
   writes: PlannedDoseWrite[],
 ): PlannedDoseWrite[] {
-  const lines = history.doses.filter((dose) => dose.periodId === periodId)
+  const lines = history.doses.filter(
+    (dose) => dose.periodId === periodId && dose.status !== 'extra',
+  )
   if (lines.some((dose) => dose.status !== 'shift')) return []
   const written = new Set(writes.map(({ id }) => id))
   return lines

@@ -432,13 +432,19 @@ class Simulation {
     )
     if (extra === undefined) return
     const givenOn = plusDays(this.book.today, -int(this.extraRandom, 0, 6))
+    if (before.redateLimits(extra.id).takenDays.includes(givenOn)) {
+      this.checkRefused(
+        () => before.redate(extra.id, givenOn),
+        `redater ${idOf(extra)} au ${givenOn}`,
+      )
+      return
+    }
     const gesture = `${this.book.today} redater la prise en plus ${idOf(extra)} au ${givenOn}`
     this.log.push(gesture)
     let redated
     try {
       redated = before.redate(extra.id, givenOn)
     } catch (error) {
-      if (error instanceof RangeError && String(error).includes('Aucune dose à viser')) return
       return this.fail(`${gesture} : ${String(error)}`)
     }
     const { dose: fields, shift } = redated
@@ -735,6 +741,15 @@ class Simulation {
     if (dose === undefined) return
     this.checkSameDate(before, dose)
     const givenOn = plusDays(this.book.today, -int(this.random, 0, 6))
+    // M1 : une prise donnée ne devient jamais une prise en plus par « Changer la date ».
+    const { lastExtraDay } = before.redateLimits(dose.id)
+    if (lastExtraDay !== null && givenOn <= lastExtraDay) {
+      this.checkRefused(
+        () => before.redate(dose.id, givenOn),
+        `redater ${idOf(dose)} au ${givenOn}`,
+      )
+      return
+    }
     const gesture = `${this.book.today} redater ${idOf(dose)} au ${givenOn}`
     this.redated = true
     this.log.push(gesture)
@@ -919,6 +934,40 @@ class Simulation {
     this.purgeStale()
     this.checkWholeDay()
     this.checkOneLinePerDue()
+    this.checkGhost()
+  }
+
+  private checkRefused(gesture: () => unknown, label: string): void {
+    try {
+      gesture()
+    } catch (error) {
+      if (String(error).includes('prise en plus')) return
+    }
+    this.fail(`${label} : accepté, ou refusé pour une autre raison`)
+  }
+
+  // Fantôme : le carnet privé de ses prises en plus a le même calendrier, et les gestes y ont les
+  // mêmes bornes.
+  private checkGhost(): void {
+    const ghost = {
+      ...this.book,
+      doses: this.book.doses.filter(({ status }) => status !== 'extra'),
+    }
+    const [real, without] = [this.schedule(), this.schedule(ghost)]
+    const gestures = (schedule: TreatmentSchedule) => {
+      const [current] = schedule.currentDoses
+      return JSON.stringify({
+        calendar: calendarOf(schedule),
+        bounds: current === undefined ? null : schedule.moveBounds(current),
+        refusal: current === undefined ? null : schedule.moveRefusal(current),
+        change: schedule.nextDoseChange,
+        hasDose: schedule.currentPeriodHasDose,
+        stale: schedule.staleDoseIds,
+      })
+    }
+    if (gestures(real) !== gestures(without)) {
+      this.fail(`fantôme : ${gestures(real)} ≠ ${gestures(without)}`)
+    }
   }
 
   // Comme le repository : les déplacements sans effet partent avec l'écriture.

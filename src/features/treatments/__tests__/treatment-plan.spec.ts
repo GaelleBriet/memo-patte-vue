@@ -970,6 +970,49 @@ describe('editionPlan — correction d’une période qui n’a plus qu’un dé
   )
 })
 
+describe('editionPlan — période qui n’a que des prises en plus (TR-28)', () => {
+  const vendredi = period({
+    startsOn: '2026-10-16',
+    firstDueOn: '2026-10-16',
+    frequency: { value: 1, unit: 'week' },
+  })
+  const enPlus = dose({
+    id: 'en-plus',
+    dueOn: '2026-10-09',
+    givenOn: '2026-10-09',
+    status: 'extra',
+    nextDueDate: '2026-10-16',
+  })
+  const history = treatment([vendredi], [enPlus])
+
+  it('se corrige comme une période sans prise, et garde sa prise en plus', () => {
+    const plan = editionPlan(
+      history,
+      saisie(history, { nextDoseOn: '2026-10-23' }),
+      '2026-10-12',
+      IDS,
+    )
+
+    expect(plan.period).toMatchObject({ action: 'correct', settings: { firstDueOn: '2026-10-23' } })
+    expect(plan.doses).toEqual([])
+  })
+
+  it('avec un décalage resté seul, seul le décalage part', () => {
+    const decalage = dose({
+      id: 'decalage',
+      dueOn: '2026-10-16',
+      givenOn: null,
+      status: 'shift',
+      nextDueDate: '2026-10-19',
+    })
+    const both = treatment([vendredi], [enPlus, decalage])
+
+    const plan = editionPlan(both, saisie(both, { nextDoseOn: '2026-10-23' }), '2026-10-12', IDS)
+
+    expect(plan.doses).toEqual([{ action: 'delete', id: 'decalage' }])
+  })
+})
+
 describe('editionPlan — « Prochaine dose » (TR-7, TR-9)', () => {
   it('propose la prochaine dose calculée d’après la dernière prise, avec les bornes du moteur', () => {
     const history = treatment([period()], [dose()])
