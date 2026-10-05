@@ -82,6 +82,8 @@ export const treatmentEditionSchema = z
     ...identity,
     ...rhythm,
     nextDoseOn: calendarDaySchema.nullable(),
+    /** La case « Décaler aussi les doses suivantes », cochée par défaut. */
+    shiftsFollowing: z.boolean().optional(),
     pastDues: pastDuesChoiceSchema.optional(),
   })
   .refine(hasWholeDosage, WHOLE_DOSAGE)

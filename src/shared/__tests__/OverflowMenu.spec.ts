@@ -74,6 +74,38 @@ describe('OverflowMenu', () => {
     wrapper.unmount()
   })
 
+  it('grise une action refusée, avec l’aide qui dit pourquoi, sans l’émettre', async () => {
+    const wrapper = mount(OverflowMenu, {
+      props: {
+        label: 'Options pour le décalage',
+        items: [
+          {
+            id: 'remove-shift',
+            label: 'Supprimer ce décalage',
+            icon: 'ms:delete',
+            danger: true,
+            hint: 'Une dose plus lointaine est déjà notée.',
+          },
+        ],
+      },
+      global: { plugins: [vuetify], stubs: { transition: false } },
+      attachTo: document.body,
+    })
+    await wrapper.get('.overflow-menu__button').trigger('click')
+    await flushPromises()
+
+    const [item] = items()
+    expect(item?.getAttribute('aria-disabled')).toBe('true')
+    expect(item?.classList).not.toContain('overflow-menu__item--danger')
+    expect(item?.querySelector('.overflow-menu__hint')?.textContent).toBe(
+      'Une dose plus lointaine est déjà notée.',
+    )
+    item?.click()
+    await flushPromises()
+    expect(wrapper.emitted('select')).toBeUndefined()
+    wrapper.unmount()
+  })
+
   it('se présente comme un menu d’actions au lecteur d’écran', async () => {
     const wrapper = await ouvrir()
 

@@ -12,7 +12,7 @@ import {
 } from 'vitest'
 
 import { fakeTreatmentsRepository } from './fake-treatments-repository'
-import { dose, missed, period, postponed, treatment } from './treatment-fixtures'
+import { dose, missed, period, postponed, shifted, treatment } from './treatment-fixtures'
 import { DoseAlreadyLoggedError } from '../logic/treatment-dose-writes'
 import type { TreatmentWithHistory } from '../repository/treatments.repository'
 import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
@@ -25,6 +25,7 @@ import {
   provideTreatmentsRepository,
 } from '../store/treatments.store'
 import TreatmentChooseDays from '../views/TreatmentChooseDays.vue'
+import TreatmentChangeDateSheet from '../views/TreatmentChangeDateSheet.vue'
 import TreatmentDetailView from '../views/TreatmentDetailView.vue'
 import TreatmentDoseCard from '../views/TreatmentDoseCard.vue'
 import TreatmentStopDialog from '../views/TreatmentStopDialog.vue'
@@ -36,7 +37,6 @@ import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import router from '@/router'
 import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
 import DateCalendar from '@/shared/components/DateCalendar.vue'
-import DatePickerSheet from '@/shared/components/DatePickerSheet.vue'
 import HistoryRow from '@/shared/components/HistoryRow.vue'
 import OverflowMenu from '@/shared/components/OverflowMenu.vue'
 import {
@@ -501,7 +501,7 @@ describe('TreatmentDetailView — « Fait à une autre date »', () => {
     })
   })
 
-  it('note l’heure touchée en un tap, pour le jour choisi, et ferme la feuille', async () => {
+  it('note l’heure choisie, puis « Enregistrer », pour le jour choisi, et ferme la feuille (V29 bis)', async () => {
     const view = await ouvrir()
     dansLaFeuille('.treatment-other-date__submit')[0]!.click()
     await flushPromises()
@@ -509,6 +509,13 @@ describe('TreatmentDetailView — « Fait à une autre date »', () => {
     const [, soir] = dansLaFeuille('.treatment-hours__hour')
     expect(soir!.textContent?.replace(NBSP, ' ')).toContain('Dose de 20 h · pas encore notée')
     soir!.click()
+    await flushPromises()
+    expect(service.apply).not.toHaveBeenCalled()
+    expect(soir!.getAttribute('aria-pressed')).toBe('true')
+    expect(dansLaFeuille('.treatment-other-date__submit')[0]!.textContent?.trim()).toBe(
+      'Enregistrer',
+    )
+    dansLaFeuille('.treatment-other-date__submit')[0]!.click()
     await flushPromises()
 
     expect(service.apply).toHaveBeenCalledWith(METACAM.id, {
@@ -568,6 +575,8 @@ describe('TreatmentDetailView — « Fait à une autre date »', () => {
     await flushPromises()
 
     dansLaFeuille('.treatment-hours__hour')[1]!.click()
+    await flushPromises()
+    dansLaFeuille('.treatment-other-date__submit')[0]!.click()
     await flushPromises()
 
     expect(dansLaFeuille('.treatment-hours__hour')).toHaveLength(2)
@@ -733,10 +742,9 @@ describe('TreatmentDetailView — menu ⋮ d’une prise', () => {
 
     await choisir(view, '10 juil. 2026', 'change-date')
 
-    const calendrier = view.getComponent(DatePickerSheet)
+    const calendrier = view.getComponent(TreatmentChangeDateSheet)
     expect(calendrier.props()).toMatchObject({
       modelValue: true,
-      title: 'Changer la date',
       subtitle: 'Prise du 10 juil. 2026',
       date: '2026-07-10',
       min: '2026-04-11',
@@ -744,7 +752,7 @@ describe('TreatmentDetailView — menu ⋮ d’une prise', () => {
       excluded: [],
     })
 
-    calendrier.vm.$emit('pick', '2026-07-08')
+    calendrier.vm.$emit('save', '2026-07-08', true)
     await flushPromises()
 
     expect(service.apply).toHaveBeenCalledWith(MILBEMAX.id, {
@@ -792,7 +800,7 @@ describe('TreatmentDetailView — ligne « Reportée » (planche A · V1 quinqui
 
     await choisir(view, REPORT, 'change-date')
 
-    const calendrier = view.getComponent(DatePickerSheet)
+    const calendrier = view.getComponent(TreatmentChangeDateSheet)
     expect(calendrier.props()).toMatchObject({
       modelValue: true,
       subtitle: REPORT,
@@ -812,7 +820,7 @@ describe('TreatmentDetailView — ligne « Reportée » (planche A · V1 quinqui
         nextDueDate: '2026-10-16',
       },
     })
-    calendrier.vm.$emit('pick', '2026-10-16')
+    calendrier.vm.$emit('save', '2026-10-16', true)
     await flushPromises()
 
     expect(service.apply).toHaveBeenCalledWith(MILBEMAX.id, {
@@ -839,6 +847,124 @@ describe('TreatmentDetailView — ligne « Reportée » (planche A · V1 quinqui
 
     expect(report.props('items')).toEqual([])
     expect(report.findComponent(OverflowMenu).exists()).toBe(false)
+  })
+})
+
+describe('TreatmentDetailView — « Décaler aussi les doses suivantes » (V29, V31)', () => {
+  // Vermifuge tous les vendredis ; aujourd'hui lundi 28 sept.
+  const VENDREDI = period({
+    frequency: { value: 1, unit: 'week' },
+    startsOn: '2026-09-18',
+    firstDueOn: '2026-09-18',
+  })
+  const DECALAGE = 'Doses suivantes décalées · prochaine le 6 oct.'
+
+  it('la ligne de décalage, discrète, se supprime seule, toast avec « Annuler »', async () => {
+    const view = await monter(
+      treatment(
+        [VENDREDI],
+        [
+          dose('2026-09-18', '2026-09-25'),
+          shifted('2026-09-25', '2026-09-29'),
+          postponed('2026-09-25', '2026-09-29'),
+        ],
+      ),
+    )
+
+    expect(lignes(view)).toEqual([
+      'Reportée au 29 sept. 2026 (prévue le 25 sept.)',
+      DECALAGE,
+      '18 sept. 2026',
+    ])
+    expect(ligne(view, DECALAGE).props()).toMatchObject({ muted: true, icon: 'ms:event_upcoming' })
+    expect(
+      ligne(view, DECALAGE)
+        .props('items')
+        .map(({ label }: { label: string }) => label),
+    ).toEqual(['Supprimer ce décalage'])
+
+    await choisir(view, DECALAGE, 'remove-shift')
+
+    expect(service.apply).toHaveBeenCalledWith(METACAM.id, {
+      kind: 'remove-shift',
+      doseId: 'décalage 2026-09-25',
+    })
+    expect(message()).toBe('Décalage supprimé. Les doses suivantes reviennent au vendredi.')
+    expect(toastAction.value?.ariaLabel).toBe('Annuler la suppression du décalage')
+  })
+
+  it('« Fait à une autre date » refusé case cochée : rien ne s’enregistre ; décochée, la prise seule (Q2 a)', async () => {
+    vi.setSystemTime(new Date('2026-10-14T21:00:00'))
+    const view = await monter(
+      treatment(
+        [
+          {
+            ...VENDREDI,
+            startsOn: '2026-10-02',
+            firstDueOn: '2026-10-02',
+            referenceOn: '2026-10-02',
+          },
+        ],
+        [dose('2026-10-02', '2026-10-09'), postponed('2026-10-16', '2026-10-22')],
+      ),
+    )
+    await view.get('.treatment-dose-card__other-date').trigger('click')
+    await flushPromises()
+
+    const enregistrer = () => dansLaFeuille('.treatment-other-date__submit')[0]!
+    expect(enregistrer().disabled).toBe(true)
+    expect(dansLaFeuille('.treatment-shift__help')[0]!.textContent?.replace(NBSP, ' ')).toBe(
+      'Ce jour ferait passer le report du 22 oct. après la dose suivante : décoche la case, ou change d’abord la date du report.',
+    )
+
+    ;(dansLaFeuille('.treatment-shift__input')[0] as unknown as HTMLInputElement).click()
+    await flushPromises()
+    expect(enregistrer().disabled).toBe(false)
+    enregistrer().click()
+    await flushPromises()
+
+    expect(service.apply).toHaveBeenCalledWith(METACAM.id, {
+      kind: 'note',
+      gesture: {
+        kind: 'given',
+        due: { periodId: 'p-1', dueOn: '2026-10-09', dueTime: null },
+        givenOn: '2026-10-14',
+        shiftsFollowing: false,
+      },
+    })
+  })
+
+  it('« Fait à une autre date » : récapitulatif, case cochée, envoyée décochée', async () => {
+    const view = await monter(treatment([VENDREDI], [dose('2026-09-18', '2026-09-25')]))
+    await view.get('.treatment-dose-card__other-date').trigger('click')
+    await flushPromises()
+
+    expect(dansLaFeuille('.treatment-other-date__recap')[0]!.textContent).toBe(
+      'Dose du vendredi 25 sept., donnée le lundi 28 sept.',
+    )
+    const caseDecaler = dansLaFeuille('.treatment-shift__input')[0] as unknown as HTMLInputElement
+    expect(caseDecaler.checked).toBe(true)
+    expect(dansLaFeuille('.treatment-shift__help')[0]!.textContent?.replace(NBSP, ' ')).toBe(
+      'Les doses suivantes passeront au lundi : 5, 12 oct.',
+    )
+
+    caseDecaler.click()
+    await flushPromises()
+    expect(dansLaFeuille('.treatment-shift__help')[0]!.textContent?.replace(NBSP, ' ')).toBe(
+      'Seule cette dose change. Les suivantes restent le vendredi : 2, 9 oct.',
+    )
+    dansLaFeuille('.treatment-other-date__submit')[0]!.click()
+    await flushPromises()
+
+    expect(service.apply).toHaveBeenCalledWith(METACAM.id, {
+      kind: 'note',
+      gesture: {
+        kind: 'given',
+        due: { periodId: 'p-1', dueOn: '2026-09-25', dueTime: null },
+        givenOn: '2026-09-28',
+        shiftsFollowing: false,
+      },
+    })
   })
 })
 

@@ -348,6 +348,7 @@
         "nextDoseOn": "Date is required.",
         "nextDoseOnTooEarly": "Choose a date from {date} onward.",
         "nextDoseOnAfterEnd": "The next dose can’t be after the end date. Change the end date to go further.",
+        "nextDoseOnAfterNextDose": "Choose a date up to {latest}.",
         "nextDoseOnRefused": "This dose can’t be moved.",
         "times": "Check the treatment times.",
         "timesDuplicate": "This time is already in the list.",
@@ -451,10 +452,13 @@
       "resume": "Resume this treatment",
       "toast": {
         "removed": "Dose on {date} deleted",
-        "removedShiftKept": "Dose on {date} deleted. The following doses stay shifted.",
+        "removedShiftKept": "Dose on {date} deleted. The following doses stay moved.",
         "undoRemove": "Undo deleting the dose on {date}",
+        "removedExtra": "Extra dose of {date} deleted",
+        "undoRemoveExtra": "Undo deleting the extra dose of {date}",
         "moved": "Dose moved to {date}",
         "movedKept": "Dose moved to {date}. Next dose kept on {nextDue}, as you had postponed it.",
+        "movedFollowed": "Dose moved to {date}. The postponement follows: dose postponed to {nextDue}.",
         "movedLost": "Dose moved to {date}. Your postponement of the next dose no longer applies.",
         "undoMove": "Undo the dose date change",
         "deleted": "Deleted",
@@ -497,20 +501,32 @@
       "menu": {
         "markMissed": "Mark as missed",
         "markGiven": "Mark as given",
-        "removeMove": "Delete this postponement"
+        "removeMove": "Delete this postponement",
+        "removeShift": "Delete this move"
       },
       "toast": {
         "doseAt": "{time} {name} dose logged for {animal}",
         "doseAtOn": "{time} {name} dose on {date} logged for {animal}",
         "missed": "Dose on {date} marked as missed",
-        "missedShiftKept": "Dose on {date} marked as missed. The following doses stay shifted.",
+        "missedShiftKept": "Dose on {date} marked as missed. The following doses stay moved.",
         "undoMissed": "Undo the change to the dose on {date}",
         "moveRemoved": "Postponement deleted",
-        "moveRemovedShiftKept": "Postponement deleted. The following doses stay shifted.",
+        "moveRemovedShiftKept": "Postponement deleted. The following doses stay moved.",
         "undoMoveRemoved": "Undo deleting the postponement",
         "postponedTo": "Dose postponed to {date}",
         "advancedTo": "Dose moved up to {date}",
-        "undoMoveChange": "Undo the postponement date change"
+        "undoMoveChange": "Undo the postponement date change",
+        "shiftRemoved": "Move deleted",
+        "shiftRemovedWeekday": "Move deleted. The following doses go back to {weekday}.",
+        "shiftRemovedOn": "Move deleted. Next dose on {date}.",
+        "undoShiftRemoved": "Undo deleting the move"
+      },
+      "shift": "Following doses moved · next on {date}",
+      "shiftOptions": "Options for the move of the doses after {date}",
+      "refusal": {
+        "shiftLaterDose": "A later dose is already logged.",
+        "shiftMovePastNext": "Change the postponement date first.",
+        "moveTooClose": "Delete the move of the following doses first: the {date} dose would fall the day before the next one. | Delete the move of the following doses first: the {date} dose would fall {n} days before the next one."
       }
     },
     "unlogged": {
@@ -592,6 +608,32 @@
       "chooseDaysLabel": "Choose the days {name} was given, then stop",
       "givenLabel": "Log the dose due {when} as given, then stop {name}",
       "missedLabel": "Log the dose due {when} as missed, then stop {name}"
+    },
+    "shift": {
+      "label": "Also move the following doses",
+      "moved": {
+        "weekly": "The following doses will move to {weekday}: {dates}.",
+        "every": "The following doses will move to {date}, then {every}."
+      },
+      "kept": {
+        "weekly": "Only this dose changes. The following ones stay on {weekday}: {dates}.",
+        "every": "Only this dose changes. The following ones stay on {date}, then {every}."
+      },
+      "lost": "With the move, the {dates} dose will no longer be scheduled (end date). | With the move, the {dates} doses will no longer be scheduled (end date).",
+      "aloneLatest": "On its own, this dose can go up to {date}. Tick “Also move the following doses” to go further.",
+      "recap": "{due} dose, given on {given}",
+      "recapAt": "{due}, {time} dose, given on {given}",
+      "save": "Save",
+      "passesMove": "This day would push the postponement of {date} past the next dose: change the postponement date first.",
+      "passesMoveUncheck": "This day would push the postponement of {date} past the next dose: untick the box, or change the postponement date first.",
+      "suiteHeld": "{done}. The schedule doesn’t move: a postponement is planned on {date}.",
+      "stuckMove": "With this day, the dose you had postponed to {date} could no longer fall at the right time. Change the date of this postponement first.",
+      "reportFollows": "The dose you had postponed to {date} stays planned on that day.",
+      "movedAfterReport": "Postponed dose on {report}, then {date} and {every}.",
+      "keptAfterReport": "Only this dose changes. Postponed dose on {report}, then {date} and {every}.",
+      "movedBeforeReport": "The following doses will move to {date}, then postponed dose on {report}.",
+      "keptBeforeReport": "Only this dose changes. The following ones stay on {date}, then postponed dose on {report}.",
+      "passesMoveCheck": "With this day, the dose you had postponed to {date} would fall after the next one. Tick “Also move the following doses”, or change the date of this postponement first."
     }
   },
   "reminders": {

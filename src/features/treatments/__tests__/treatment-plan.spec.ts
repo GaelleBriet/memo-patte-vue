@@ -1024,6 +1024,8 @@ describe('editionPlan — « Prochaine dose » (TR-7, TR-9)', () => {
       latest: null,
       refusal: null,
       help: { kind: 'calculated', on: '2026-10-10' },
+      shift: null,
+      shiftInitial: true,
     })
   })
 
@@ -1186,6 +1188,8 @@ describe('editionPlan — « Prochaine dose » (TR-7, TR-9)', () => {
       latest: null,
       refusal: null,
       help: null,
+      shift: null,
+      shiftInitial: true,
     })
     const plan = editionPlan(
       history,
@@ -2247,5 +2251,80 @@ describe('resumptionPlan (TR-32)', () => {
     expect(() =>
       resumptionPlan(history, { ...REPRISE, endsOn: '2026-11-02' }, '2026-11-02', IDS),
     ).toThrow(ZodError)
+  })
+})
+
+describe('« Prochaine dose » et la case « Décaler aussi les doses suivantes » (V28, Q2)', () => {
+  // Pixel, vermifuge tous les vendredis, dernière prise le 9 oct. : prochaine dose le 16.
+  const VENDREDI = period({
+    startsOn: '2026-10-09',
+    firstDueOn: '2026-10-09',
+    frequency: { value: 1, unit: 'week' },
+  })
+  const PIXEL = treatment([VENDREDI], [dose({ dueOn: '2026-10-09', givenOn: '2026-10-09' })])
+  const TODAY = '2026-10-14'
+
+  it('la case apparaît quand la date change, avec les doses qui suivraient, cochée ou non', () => {
+    expect(editionDraft(PIXEL, null, TODAY).nextDose?.shift).toBeNull()
+
+    const shift = editionDraft(PIXEL, null, TODAY, '2026-10-19').nextDose?.shift
+    expect(shift?.following.slice(0, 2)).toEqual(['2026-10-26', '2026-11-02'])
+    expect(shift?.followingAlone.slice(0, 2)).toEqual(['2026-10-23', '2026-10-30'])
+    expect(shift).toMatchObject({ lost: [], aloneLatest: '2026-10-22' })
+  })
+
+  it('dit la dose que la date de fin ferait perdre (V28 bis)', () => {
+    const fin = treatment(
+      [{ ...VENDREDI, endsOn: '2026-10-30' }],
+      [dose({ dueOn: '2026-10-09', givenOn: '2026-10-09' })],
+    )
+
+    expect(editionDraft(fin, null, TODAY, '2026-10-19').nextDose?.shift).toMatchObject({
+      following: ['2026-10-26'],
+      lost: ['2026-10-30'],
+    })
+  })
+
+  it('se rouvre telle qu’elle a été laissée (N2) : décochée sur un report sans décalage', () => {
+    const report = (lines: NewTreatmentDose[]) =>
+      treatment([VENDREDI], [dose({ dueOn: '2026-10-09', givenOn: '2026-10-09' }), ...lines])
+    const seul = dose({
+      id: 'report',
+      dueOn: '2026-10-16',
+      givenOn: null,
+      status: 'postponed',
+      nextDueDate: '2026-10-19',
+    })
+    const decalage = { ...seul, id: 'decalage', status: 'shift' as const }
+
+    expect(editionDraft(PIXEL, null, TODAY).nextDose?.shiftInitial).toBe(true)
+    expect(editionDraft(report([seul]), null, TODAY).nextDose?.shiftInitial).toBe(false)
+    expect(editionDraft(report([seul, decalage]), null, TODAY).nextDose?.shiftInitial).toBe(true)
+  })
+
+  it('décochée, la date va au plus la veille de la dose suivante (Q2 a)', () => {
+    const seule = (nextDoseOn: string) => saisie(PIXEL, { nextDoseOn, shiftsFollowing: false })
+
+    expect(editionDraft(PIXEL, null, TODAY, '2026-10-19', false).nextDose?.latest).toBe(
+      '2026-10-22',
+    )
+    expect(champsRefuses(PIXEL, seule('2026-10-24'), TODAY)).toEqual(['nextDoseOn:afterNextDose'])
+    expect(champsRefuses(PIXEL, seule('2026-10-22'), TODAY)).toEqual([])
+  })
+
+  it('décochée, écrit le report seul ; cochée, le report et son décalage', () => {
+    const seul = editionPlan(
+      PIXEL,
+      saisie(PIXEL, { nextDoseOn: '2026-10-19', shiftsFollowing: false }),
+      TODAY,
+      IDS,
+    )
+    const decale = editionPlan(PIXEL, saisie(PIXEL, { nextDoseOn: '2026-10-19' }), TODAY, IDS)
+
+    expect(seul.doses.map(({ action, id }) => [action, id])).toEqual([['create', NEW_DOSE]])
+    expect(decale.doses.map(({ action, id }) => [action, id])).toEqual([
+      ['create', NEW_DOSE],
+      ['create', NEW_SHIFT],
+    ])
   })
 })

@@ -48,6 +48,7 @@ et une relecture s'y réfère plutôt que de rouvrir le débat.
 | Dose du jour             | today's dose                     | daily dose                               | « Dose du jour · 28 sept. à 20 h » = Today's dose · Sep 28 at 8 pm      |
 | Prise en plus            | extra dose                       | additional dose                          | « 9 oct. 2026 · Prise en plus » = Oct 9, 2026 · Extra dose               |
 | Reportée au …            | postponed to …                   | —                                        | « Reportée au 14 oct. (prévue le 10 oct.) » = Postponed to Oct 14 (was due Oct 10) |
+| Décalage (des doses suivantes) | move (following doses moved) | shift                                    | « Doses suivantes décalées · prochaine le 26 oct. » = Following doses moved · next on Oct 26 ; « Décaler aussi les doses suivantes » = Also move the following doses |
 | Fréquence                | frequency                        | interval, how often                       |                                                                         |
 | Traitements terminés     | Finished treatments              | Stopped, Past, Completed treatments      | les traitements arrêtés ou arrivés à leur date de fin                   |
 | Pesée                    | weigh-in                         | weighing, weight entry, weight log        | « Ajouter une pesée » = Add a weigh-in, partout                          |

@@ -18,20 +18,24 @@ export type DoseAction =
   /** Doses à renseigner, écrites en un seul lot ; lève `DoseAlreadyLoggedError` si l'une est déjà notée. */
   | { kind: 'log'; gestures: readonly DoseGesture[] }
   | { kind: 'remove'; doseId: string }
-  | { kind: 'redate'; doseId: string; givenOn: string }
-  | { kind: 'move'; doseId: string; to: string }
+  /** `shiftsFollowing` : la case « Décaler aussi les doses suivantes », cochée par défaut. */
+  | { kind: 'redate'; doseId: string; givenOn: string; shiftsFollowing?: boolean }
+  | { kind: 'move'; doseId: string; to: string; shiftsFollowing?: boolean }
   | { kind: 'remove-move'; doseId: string }
+  | { kind: 'remove-shift'; doseId: string }
 
 export type DoseChange = {
   writes: DoseWrite[]
   /** Date d'une prise déjà donnée pour cette échéance : rien n'est écrit. */
   alreadyGivenOn: string | null
   /** Déplacement qui suivait une prise redatée : gardé à sa date, ou perdu. */
-  postponement: { kept: true; nextDueDate: string } | { kept: false } | null
+  postponement: { kept: true; nextDueDate: string; followed?: true } | { kept: false } | null
   /** Ce qu'un geste sur un report en a fait : sa ligne telle qu'écrite, ou `removed` ; `null` hors de ces gestes ou sans changement. */
   moved: DoseFields | 'removed' | null
   /** La prise supprimée ou marquée oubliée, ou le report supprimé, laisse sa ligne de décalage (N6). */
   shiftKept: boolean
+  /** Prise notée sans son décalage, qui ferait passer ce report seul : son arrivée (Q2 a). */
+  heldBy?: string
 }
 
 export class DoseAlreadyLoggedError extends Error {}
@@ -241,6 +245,7 @@ function changeOf(
       return {
         ...unchanged,
         writes: noteWrites(history, written, notes, newId),
+        ...(written.heldBy === undefined ? {} : { heldBy: written.heldBy }),
         shiftKept:
           gesture.kind === 'missed' && notes.length > 0 && hasShift(history, schedule, gesture.due),
       }
@@ -257,7 +262,11 @@ function changeOf(
       if (familyOf(lineById(history, action.doseId)) === 'extra') {
         return { ...unchanged, writes: extraRedateWrites(history, schedule, action, newId) }
       }
-      const { dose, shift, postponement } = schedule.redate(action.doseId, action.givenOn)
+      const { dose, shift, postponement } = schedule.redate(
+        action.doseId,
+        action.givenOn,
+        action.shiftsFollowing,
+      )
       const writes = [
         ...rewrites(sisterLines(history, action.doseId), dose),
         ...lineWrites(history, shift, newId),
@@ -265,10 +274,14 @@ function changeOf(
       if (postponement === null) return { ...unchanged, writes }
       if (!postponement.kept) {
         const lost = postponement.doseIds.flatMap((id) => [id, ...sistersOf(history, id)])
+        const { followedOn } = postponement
         return {
           ...unchanged,
           writes: [...writes, ...deletes([...new Set(lost)])],
-          postponement: { kept: false },
+          postponement:
+            followedOn === undefined
+              ? { kept: false }
+              : { kept: true, nextDueDate: followedOn, followed: true },
         }
       }
       const kept = (ids: string[], line: DoseFields) =>
@@ -283,11 +296,19 @@ function changeOf(
           ...kept(postponement.doseIds, postponement.line),
           ...kept(postponement.shiftIds, postponement.shiftLine),
         ],
-        postponement: { kept: true, nextDueDate: postponement.line.nextDueDate },
+        postponement: {
+          kept: true,
+          nextDueDate: postponement.line.nextDueDate,
+          ...(postponement.followed === true ? { followed: true as const } : {}),
+        },
       }
     }
     case 'move': {
-      const moved = schedule.move(movedDueOf(lineById(history, action.doseId)), action.to)
+      const moved = schedule.move(
+        movedDueOf(lineById(history, action.doseId)),
+        action.to,
+        action.shiftsFollowing,
+      )
       return { ...unchanged, ...movedChange(history, moved, newId) }
     }
     case 'remove-move':
@@ -295,6 +316,11 @@ function changeOf(
         ...unchanged,
         ...movedChange(history, schedule.removeMove(action.doseId), newId),
         shiftKept: keepsShift(history, schedule, action.doseId),
+      }
+    case 'remove-shift':
+      return {
+        ...unchanged,
+        writes: lineWrites(history, schedule.removeShift(action.doseId), newId),
       }
   }
 }

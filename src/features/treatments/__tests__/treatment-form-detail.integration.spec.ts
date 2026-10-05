@@ -30,6 +30,7 @@ const MILO = '11111111-1111-4111-8111-111111111111'
 const AT = '2026-07-10T09:00:00.000Z'
 const TODAY = '2026-09-28'
 const REPORT = 'Reportée au 14 oct. 2026 (prévue le 10 oct.)'
+const DECALAGE = 'Doses suivantes décalées · prochaine le 14 janv. 2027'
 const Vide = { render: () => null }
 
 describe('formulaire et fiche d’un traitement, sur la même base', () => {
@@ -203,7 +204,7 @@ describe('formulaire et fiche d’un traitement, sur la même base', () => {
 
     expect(wrapper.find('.treatment-detail').exists()).toBe(true)
     expect(texte()).toContain('14 oct.')
-    expect(lignes()).toEqual([REPORT, '10 juil. 2026'])
+    expect(lignes()).toEqual([REPORT, DECALAGE, '10 juil. 2026'])
   })
 
   it('le report du formulaire a son menu dans l’historique, et « Supprimer ce report » remet la dose à sa date dans le formulaire, son décalage restant (N8)', async () => {
@@ -222,7 +223,7 @@ describe('formulaire et fiche d’un traitement, sur la même base', () => {
     report.vm.$emit('select', 'remove-move')
     await flushPromises()
 
-    expect(lignes()).toEqual(['10 juil. 2026'])
+    expect(lignes()).toEqual([DECALAGE, '10 juil. 2026'])
     await expect(
       db.query('SELECT status FROM treatment_dose WHERE deleted_at IS NULL ORDER BY status'),
     ).resolves.toEqual([{ status: 'given' }, { status: 'shift' }])

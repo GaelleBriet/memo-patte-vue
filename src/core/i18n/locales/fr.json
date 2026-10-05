@@ -348,6 +348,7 @@
         "nextDoseOn": "La date est obligatoire.",
         "nextDoseOnTooEarly": "Choisis une date à partir du {date}.",
         "nextDoseOnAfterEnd": "La prochaine dose ne peut pas dépasser la date de fin. Change la date de fin pour aller plus loin.",
+        "nextDoseOnAfterNextDose": "Choisis une date jusqu’au {latest}.",
         "nextDoseOnRefused": "Cette dose ne peut pas être déplacée.",
         "times": "Vérifie les heures du traitement.",
         "timesDuplicate": "Cette heure est déjà dans la liste.",
@@ -453,8 +454,11 @@
         "removed": "Prise du {date} supprimée",
         "removedShiftKept": "Prise du {date} supprimée. Les doses suivantes restent décalées.",
         "undoRemove": "Annuler la suppression de la prise du {date}",
+        "removedExtra": "Prise en plus du {date} supprimée",
+        "undoRemoveExtra": "Annuler la suppression de la prise en plus du {date}",
         "moved": "Prise déplacée au {date}",
         "movedKept": "Prise déplacée au {date}. Prochaine dose gardée au {nextDue}, que tu avais reportée.",
+        "movedFollowed": "Prise déplacée au {date}. Le report suit : dose reportée au {nextDue}.",
         "movedLost": "Prise déplacée au {date}. Ton report de la prochaine dose ne s’applique plus.",
         "undoMove": "Annuler le changement de date de la prise",
         "deleted": "Supprimé",
@@ -497,7 +501,8 @@
       "menu": {
         "markMissed": "Marquer comme oubliée",
         "markGiven": "Marquer comme donnée",
-        "removeMove": "Supprimer ce report"
+        "removeMove": "Supprimer ce report",
+        "removeShift": "Supprimer ce décalage"
       },
       "toast": {
         "doseAt": "Prise de {time} de {name} notée pour {animal}",
@@ -510,7 +515,18 @@
         "undoMoveRemoved": "Annuler la suppression du report",
         "postponedTo": "Dose reportée au {date}",
         "advancedTo": "Dose avancée au {date}",
-        "undoMoveChange": "Annuler le changement de date du report"
+        "undoMoveChange": "Annuler le changement de date du report",
+        "shiftRemoved": "Décalage supprimé",
+        "shiftRemovedWeekday": "Décalage supprimé. Les doses suivantes reviennent au {weekday}.",
+        "shiftRemovedOn": "Décalage supprimé. Prochaine dose le {date}.",
+        "undoShiftRemoved": "Annuler la suppression du décalage"
+      },
+      "shift": "Doses suivantes décalées · prochaine le {date}",
+      "shiftOptions": "Options pour le décalage des doses suivantes du {date}",
+      "refusal": {
+        "shiftLaterDose": "Une dose plus lointaine est déjà notée.",
+        "shiftMovePastNext": "Change d’abord la date du report.",
+        "moveTooClose": "Supprime d’abord le décalage des doses suivantes : la dose du {date} tomberait la veille de la suivante. | Supprime d’abord le décalage des doses suivantes : la dose du {date} tomberait {n} jours avant la suivante."
       }
     },
     "unlogged": {
@@ -592,6 +608,32 @@
       "chooseDaysLabel": "Choisir les jours où {name} a été donné, puis arrêter",
       "givenLabel": "Noter la dose du {when} comme donnée, puis arrêter {name}",
       "missedLabel": "Noter la dose du {when} comme oubliée, puis arrêter {name}"
+    },
+    "shift": {
+      "label": "Décaler aussi les doses suivantes",
+      "moved": {
+        "weekly": "Les doses suivantes passeront au {weekday} : {dates}.",
+        "every": "Les doses suivantes passeront au {date}, puis {every}."
+      },
+      "kept": {
+        "weekly": "Seule cette dose change. Les suivantes restent le {weekday} : {dates}.",
+        "every": "Seule cette dose change. Les suivantes restent prévues le {date}, puis {every}."
+      },
+      "lost": "Avec le décalage, la dose du {dates} ne sera plus prévue (date de fin). | Avec le décalage, les doses du {dates} ne seront plus prévues (date de fin).",
+      "aloneLatest": "Seule, cette dose va au plus tard au {date}. Coche « Décaler aussi les doses suivantes » pour aller plus loin.",
+      "recap": "Dose du {due}, donnée le {given}",
+      "recapAt": "Dose de {time} du {due}, donnée le {given}",
+      "save": "Enregistrer",
+      "passesMove": "Ce jour ferait passer le report du {date} après la dose suivante : change d’abord la date du report.",
+      "passesMoveUncheck": "Ce jour ferait passer le report du {date} après la dose suivante : décoche la case, ou change d’abord la date du report.",
+      "suiteHeld": "{done}. La suite ne bouge pas : un report est prévu le {date}.",
+      "stuckMove": "Avec ce jour, la dose que tu avais reportée au {date} ne pourrait plus tomber au bon moment. Change d’abord la date de ce report.",
+      "reportFollows": "La dose que tu avais reportée au {date} reste prévue ce jour-là.",
+      "movedAfterReport": "Dose reportée le {report}, puis le {date} et {every}.",
+      "keptAfterReport": "Seule cette dose change. Dose reportée le {report}, puis le {date} et {every}.",
+      "movedBeforeReport": "Les doses suivantes passeront au {date}, puis dose reportée le {report}",
+      "keptBeforeReport": "Seule cette dose change. Les suivantes restent prévues le {date}, puis dose reportée le {report}",
+      "passesMoveCheck": "Avec ce jour, la dose que tu avais reportée au {date} tomberait après la suivante. Coche « Décaler aussi les doses suivantes », ou change d’abord la date de ce report."
     }
   },
   "reminders": {

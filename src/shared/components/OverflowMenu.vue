@@ -5,6 +5,8 @@ export type OverflowMenuItem = {
   icon: string
   /** Action destructive, en couleur système d'erreur. */
   danger?: boolean
+  /** Action grisée : l'aide qui dit pourquoi elle est refusée. */
+  hint?: string
 }
 </script>
 
@@ -58,7 +60,9 @@ watch(isOpen, async (open) => {
   }
 })
 
-function choose(id: string): void {
+function choose(item: OverflowMenuItem): void {
+  if (item.hint !== undefined) return
+  const { id } = item
   isOpen.value = false
   focusButton()
   emit('select', id)
@@ -87,14 +91,19 @@ function choose(id: string): void {
         v-for="item in items"
         :key="item.id"
         class="overflow-menu__item"
-        :class="{ 'overflow-menu__item--danger': item.danger }"
+        :class="{
+          'overflow-menu__item--danger': item.danger && !item.hint,
+          'overflow-menu__item--refused': item.hint,
+        }"
         role="menuitem"
-        @click="choose(item.id)"
+        :aria-disabled="item.hint ? 'true' : undefined"
+        @click="choose(item)"
       >
         <template #prepend>
           <v-icon class="overflow-menu__icon" :icon="item.icon" size="22" />
         </template>
         <v-list-item-title class="overflow-menu__label">{{ item.label }}</v-list-item-title>
+        <p v-if="item.hint" class="overflow-menu__hint">{{ item.hint }}</p>
       </v-list-item>
     </v-list>
   </v-menu>
@@ -143,6 +152,22 @@ function choose(id: string): void {
   font-weight: 600;
   line-height: 1.3;
   white-space: normal;
+}
+
+.overflow-menu__item--refused {
+  cursor: default;
+
+  .overflow-menu__icon,
+  .overflow-menu__label {
+    color: tokens.$color-text-secondary;
+  }
+}
+
+.overflow-menu__hint {
+  margin: 2px 0 0;
+  color: tokens.$color-text-secondary;
+  font-size: 13px;
+  line-height: 1.35;
 }
 
 .overflow-menu__item--danger .overflow-menu__icon,

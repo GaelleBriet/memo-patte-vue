@@ -2,6 +2,7 @@ import { addDays, differenceInCalendarDays, formatISO, parseISO } from 'date-fns
 import type { z } from 'zod'
 
 import { currentPeriodOf, treatmentScheduleOf } from './treatment-schedule'
+import { lostDays, pendingDaysAfter } from './treatment-shift-box'
 import type {
   NewTreatmentPlan,
   PlannedDoseWrite,
@@ -55,15 +56,32 @@ export type NextDoseHelp =
   /** La date calculée est passée : aujourd'hui est proposé à sa place. */
   | { kind: 'calculated-passed'; on: string }
 
+/**
+ * La case « Décaler aussi les doses suivantes » sous la date choisie : les journées qui suivraient la
+ * dose déplacée, et celles que le décalage ferait sortir de la date de fin (Q4).
+ */
+export type NextDoseShift = {
+  following: string[]
+  /** Case décochée ; vide quand la dose ne peut pas aller seule à cette date. */
+  followingAlone: string[]
+  lost: string[]
+  /** Dernier jour d'un report seul (Q2 a), `null` sans autre borne que la date de fin. */
+  aloneLatest: string | null
+}
+
 export type NextDoseDraft = {
   /** `first-due` : la date choisie devient la première échéance de la période ; `move` : une ligne « Reportée / Avancée ». */
   change: 'first-due' | 'move'
   proposedOn: string
   earliest: string
-  /** La date de fin saisie, `null` sans date de fin. */
+  /** La date de fin saisie, ou la veille de la dose suivante pour un report seul ; `null` sans borne. */
   latest: string | null
   refusal: MoveRefusal | null
   help: NextDoseHelp | null
+  /** `null` : pas de case, la date ne déplace aucune dose ou la dose ne peut aller seule. */
+  shift: NextDoseShift | null
+  /** N2 : la case rouverte telle qu'elle a été laissée, cochée sans report ou avec son décalage. */
+  shiftInitial: boolean
 }
 
 /** Le déplacement en vigueur qui arrive le plus tard dans la période en cours. */
@@ -274,6 +292,8 @@ function resolveOpened(
       latest: rhythm.endsOn,
       refusal: null,
       help: proposalHelp(history, schedule, period, rhythm, firstDueOn, today),
+      shift: null,
+      shiftInitial: true,
     },
     settings: withRhythm({ ...settingsOf(period), startsOn, firstDueOn: writtenOn }, rhythm),
     move: null,
@@ -298,17 +318,72 @@ function droppedHelp(
   return count > 0 ? { kind: 'dropped', count } : null
 }
 
+function dosesWith(history: TreatmentWithHistory, { report, shift }: MovedDose, today: string) {
+  const at = `${today}T23:59:59.999Z`
+  const owner = { treatmentId: history.id, animalId: history.animalId, deletedAt: null }
+  return [report, shift].reduce((doses, change, index) => {
+    switch (change.action) {
+      case 'none':
+        return doses
+      case 'delete':
+        return doses.filter(({ id }) => id !== change.doseId)
+      case 'rewrite':
+        return doses.map((dose) =>
+          dose.id === change.doseId ? { ...dose, ...change.dose, updatedAt: at } : dose,
+        )
+      case 'create':
+        return [
+          ...doses,
+          { ...change.dose, ...owner, id: `apercu-${index}`, createdAt: at, updatedAt: at },
+        ]
+    }
+  }, history.doses)
+}
+
+// La case n'apparaît que si la dose change vraiment de date et peut aller seule (Q2 a).
+function shiftOf(
+  book: TreatmentWithHistory,
+  schedule: TreatmentSchedule,
+  due: Due,
+  chosenOn: string,
+  today: string,
+): NextDoseShift | null {
+  const period = book.periods.find(({ id }) => id === due.periodId)
+  const alone = schedule.moveBounds(due, false)
+  if (period === undefined || alone === null) return null
+  const checked = schedule.move(due, chosenOn, true)
+  if (checked.report.action !== 'create' && checked.report.action !== 'rewrite') return null
+  const followingWith = (moved: MovedDose) =>
+    pendingDaysAfter(
+      treatmentScheduleOf({ ...book, doses: dosesWith(book, moved, today) }, today),
+      period,
+      chosenOn,
+    )
+  const following = followingWith(checked)
+  const fitsAlone = alone.latest === null || chosenOn <= alone.latest
+  const followingAlone = fitsAlone ? followingWith(schedule.move(due, chosenOn, false)) : []
+  const before = pendingDaysAfter(schedule, period, due.dueOn)
+  return {
+    following,
+    followingAlone,
+    lost: lostDays(before, following, period),
+    aloneLatest: alone.latest,
+  }
+}
+
 function resolveMoved(
   period: TreatmentPeriodRecord,
+  book: TreatmentWithHistory,
   schedule: TreatmentSchedule,
   due: Due,
   settings: TreatmentPeriodSettings,
-  chosenOn: string | null,
+  { chosenOn, shiftsFollowing }: Choice,
   today: string,
 ): Resolved {
   const bounds = schedule.moveBounds(due)
   const refusal = schedule.moveRefusal(due)
-  const latest = settings.endsOn
+  const alone = shiftsFollowing ? null : schedule.moveBounds(due, false)
+  const latest = alone?.latest ?? settings.endsOn
   const line = moveArrivingOn(schedule, due)
   const inBounds =
     bounds !== null &&
@@ -317,6 +392,15 @@ function resolveMoved(
     isCalendarDay(chosenOn) &&
     chosenOn >= bounds.earliest &&
     (latest === null || chosenOn <= latest)
+  const shift =
+    bounds !== null &&
+    chosenOn !== null &&
+    chosenOn !== due.dueOn &&
+    isCalendarDay(chosenOn) &&
+    chosenOn >= bounds.earliest &&
+    (settings.endsOn === null || chosenOn <= settings.endsOn)
+      ? shiftOf(book, schedule, due, chosenOn, today)
+      : null
   const calculated: NextDoseHelp | null = hasNote(schedule, period.id)
     ? { kind: 'calculated', on: line?.dueOn ?? due.dueOn }
     : null
@@ -333,10 +417,17 @@ function resolveMoved(
       refusal,
       help:
         refusal !== null ? { kind: 'refused', refusal } : (overdueHelp(due, today) ?? calculated),
+      shift,
+      shiftInitial:
+        line === undefined ||
+        schedule.doses.some(
+          (dose) =>
+            dose.status === 'shift' && dose.periodId === line.periodId && dose.dueOn === line.dueOn,
+        ),
     },
     settings,
     referenceOn: period.referenceOn,
-    move: inBounds ? schedule.move(due, chosenOn) : null,
+    move: inBounds ? schedule.move(due, chosenOn, shiftsFollowing) : null,
   }
 }
 
@@ -344,21 +435,21 @@ function resolveCorrected(
   history: TreatmentWithHistory,
   period: TreatmentPeriodRecord,
   rhythm: TreatmentRhythm,
-  chosenOn: string | null,
+  choice: Choice,
   today: string,
 ): Resolved {
+  const { chosenOn } = choice
   const corrected = withRhythm(settingsOf(period), rhythm)
-  const schedule = treatmentScheduleOf(withPeriodSettings(history, period.id, corrected), today)
+  const book = withPeriodSettings(history, period.id, corrected)
+  const schedule = treatmentScheduleOf(book, today)
   const due = schedule.currentDoses[0]
   if (due === undefined || schedule.nextDoseChange === null) {
     // Un report dont l'arrivée dépasse la date de fin saisie : la dose se lit avec la date de fin d'avant.
-    const kept = treatmentScheduleOf(
-      withPeriodSettings(history, period.id, { ...corrected, endsOn: period.endsOn }),
-      today,
-    )
+    const keptBook = withPeriodSettings(history, period.id, { ...corrected, endsOn: period.endsOn })
+    const kept = treatmentScheduleOf(keptBook, today)
     const moved = kept.currentDoses[0]
     if (moved !== undefined && moveArrivingOn(kept, moved) !== undefined) {
-      return resolveMoved(period, kept, moved, corrected, chosenOn, today)
+      return resolveMoved(period, keptBook, kept, moved, corrected, choice, today)
     }
     return {
       period,
@@ -372,7 +463,7 @@ function resolveCorrected(
     }
   }
   if (schedule.nextDoseChange === 'move') {
-    return resolveMoved(period, schedule, due, corrected, chosenOn, today)
+    return resolveMoved(period, book, schedule, due, corrected, choice, today)
   }
 
   const previous = orderPeriods(history.periods).at(-2)
@@ -395,6 +486,8 @@ function resolveCorrected(
         (changed && isCalendarDay(chosenOn)
           ? droppedHelp(schedule, period.id, chosenOn, today)
           : null) ?? overdueHelp(due, today),
+      shift: null,
+      shiftInitial: true,
     },
     settings: {
       ...corrected,
@@ -446,13 +539,17 @@ function pastDuesOf(
 
 type Answered = Resolved & { pastDues: Due[] }
 
+/** La date saisie dans « Prochaine dose » et la case « Décaler aussi les doses suivantes ». */
+type Choice = { chosenOn: string | null; shiftsFollowing: boolean }
+
 function resolve(
   history: TreatmentWithHistory,
   rhythm: TreatmentRhythm | null,
-  chosenOn: string | null,
+  choice: Choice,
   today: string,
   pastDuesChoice?: PastDuesChoice,
 ): Answered {
+  const { chosenOn } = choice
   const base = treatmentScheduleOf(history, today)
   const period = currentPeriod(history, base)
   if (period.stoppedOn !== null || base.phase === 'ended') {
@@ -473,7 +570,7 @@ function resolve(
   if (base.currentPeriodHasDose) {
     const resolved = changesRhythm(period, next)
       ? resolveOpened(period, live, next, chosenOn, today, 'open')
-      : resolveCorrected(live, period, next, chosenOn, today)
+      : resolveCorrected(live, period, next, choice, today)
     return { ...resolved, pastDues: [] }
   }
   const pastDues = pastDuesOf(treatmentScheduleOf(live, today), period, next, today)
@@ -484,7 +581,7 @@ function resolve(
     changesSchedule(period, next) && (pastDues.length > 0 || followsOpenPeriod(live, period))
   const resolved = recalculated
     ? resolveOpened(period, withoutPeriod(live, period.id), next, chosenOn, today, 'correct')
-    : resolveCorrected(live, period, next, chosenOn, today)
+    : resolveCorrected(live, period, next, choice, today)
   return { ...resolved, pastDues }
 }
 
@@ -499,13 +596,25 @@ export function editionDraft(
   rhythm: TreatmentRhythm | null,
   today: string,
   chosenOn: string | null = null,
+  shiftsFollowing = true,
 ): EditionDraft {
-  const { period, change, nextDose, pastDues } = resolve(history, rhythm, chosenOn, today)
+  const { period, change, nextDose, pastDues } = resolve(
+    history,
+    rhythm,
+    { chosenOn, shiftsFollowing },
+    today,
+  )
   const farthestMove = change === 'locked' ? null : farthestMoveOf(history, period.id, today, null)
   const touchedOn = chosenOn !== nextDose?.proposedOn ? chosenOn : null
   // Aucune date n'est écrite sans avoir été vue : la date saisie quand elle vaut pour ce chemin, sinon celle qu'il calcule.
   const nextDoseFor = (choice: PastDuesChoice): string => {
-    const answered = resolve(history, rhythm, null, today, choice).nextDose
+    const answered = resolve(
+      history,
+      rhythm,
+      { chosenOn: null, shiftsFollowing },
+      today,
+      choice,
+    ).nextDose
     if (answered === null) return touchedOn ?? today
     const fits =
       touchedOn !== null &&
@@ -553,10 +662,11 @@ function farthestMoveOf(
 type DateIssue = { path: 'nextDoseOn' | 'endsOn' | 'pastDues'; message: string }
 
 function editionIssues(history: TreatmentWithHistory, data: Edition, today: string): DateIssue[] {
+  const shiftsFollowing = data.shiftsFollowing ?? true
   const { period, change, nextDose, proposesFirstDue, movedLineId, pastDues } = resolve(
     history,
     data,
-    null,
+    { chosenOn: null, shiftsFollowing },
     today,
     data.pastDues,
   )
@@ -572,7 +682,8 @@ function editionIssues(history: TreatmentWithHistory, data: Edition, today: stri
     if (nextDose.refusal !== null) issues.push({ path: 'nextDoseOn', message: 'refused' })
     else if (chosenOn < nextDose.earliest) issues.push({ path: 'nextDoseOn', message: 'tooEarly' })
     else if (nextDose.latest !== null && chosenOn > nextDose.latest) {
-      issues.push({ path: 'nextDoseOn', message: 'afterEnd' })
+      const pastNext = !shiftsFollowing && (data.endsOn === null || chosenOn <= data.endsOn)
+      issues.push({ path: 'nextDoseOn', message: pastNext ? 'afterNextDose' : 'afterEnd' })
     }
   }
   if (data.endsOn === null || issues.length > 0) return issues
@@ -663,7 +774,7 @@ export function editionPlan(
   const { period, change, settings, referenceOn, move } = resolve(
     history,
     data,
-    data.nextDoseOn,
+    { chosenOn: data.nextDoseOn, shiftsFollowing: data.shiftsFollowing ?? true },
     today,
     data.pastDues,
   )

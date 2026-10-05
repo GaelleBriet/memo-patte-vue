@@ -17,6 +17,9 @@ import {
   formatDayMonthOrYear,
   formatFullDayMonth,
   formatWeekdayDate,
+  formatWeekday,
+  formatWeekdayDayMonth,
+  formatDaySeries,
   nonBreaking,
   weekdayInitials,
   weekStartsOn,
@@ -254,5 +257,25 @@ describe('mois d’un calendrier', () => {
     expect(formatFullMonthYear('2026-09-03')).toBe('September 2026')
     expect(weekStartsOn()).toBe(0)
     expect(weekdayInitials()).toEqual(['S', 'M', 'T', 'W', 'T', 'F', 'S'])
+  })
+})
+
+describe('jours d’une suite de doses', () => {
+  afterEach(() => applyLocale('fr'))
+
+  it('écrit le jour de la semaine et la suite, le mois une fois dans un même mois', () => {
+    expect(formatWeekday('2026-10-26')).toBe('lundi')
+    expect(formatWeekdayDayMonth('2026-10-16')).toBe('vendredi 16 oct.')
+    expect(formatDaySeries(['2026-10-26', '2026-11-02'])).toBe('26 oct., 2 nov.')
+    expect(formatDaySeries(['2026-10-23', '2026-10-30'])).toBe('23, 30 oct.')
+  })
+
+  it('en anglais', () => {
+    applyLocale('en')
+
+    expect(formatWeekday('2026-10-26')).toBe('Monday')
+    expect(formatWeekdayDayMonth('2026-10-16')).toBe('Friday, Oct 16')
+    expect(formatDaySeries(['2026-10-26', '2026-11-02'])).toBe('Oct 26, Nov 2')
+    expect(formatDaySeries(['2026-10-23', '2026-10-30'])).toBe('Oct 23, 30')
   })
 })

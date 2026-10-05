@@ -24,7 +24,10 @@ export function initialSequence(period: TreatmentPeriodInput): Sequence {
 }
 
 // Après la journée d'origine (`floor`), les échéances suivent le rythme ancré : ancrage + 1 pas, + 2 pas…
-export function shiftedSequence(shift: TreatmentDoseInput, floor = `${shift.dueOn} ~`): Sequence {
+export function shiftedSequence(
+  shift: Pick<TreatmentDoseInput, 'dueOn' | 'nextDueDate'>,
+  floor = `${shift.dueOn} ~`,
+): Sequence {
   return { origin: shift.nextDueDate, firstStep: 1, floor }
 }
 

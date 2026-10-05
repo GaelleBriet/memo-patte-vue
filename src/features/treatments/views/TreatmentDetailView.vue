@@ -3,6 +3,7 @@ import { computed, nextTick, onMounted, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 
+import TreatmentChangeDateSheet from './TreatmentChangeDateSheet.vue'
 import TreatmentChooseDays from './TreatmentChooseDays.vue'
 import TreatmentDoseCard from './TreatmentDoseCard.vue'
 import TreatmentHistory from './TreatmentHistory.vue'
@@ -28,16 +29,16 @@ import {
   type DoseRow,
 } from '../logic/treatment-history'
 import { treatmentStopTexts } from '../logic/treatment-sheet'
+import { dateChangeBox, restoredSuiteFor, type DateChangeBox } from '../logic/treatment-shift-box'
 import { stopPrompt } from '../logic/treatment-stop'
 import { promptChoice, unloggedBanner, type PromptActionId } from '../logic/treatment-unlogged'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
-import DatePickerSheet from '@/shared/components/DatePickerSheet.vue'
 import OverflowMenu, { type OverflowMenuItem } from '@/shared/components/OverflowMenu.vue'
 import PushedScreen from '@/shared/components/PushedScreen.vue'
 import { originQuery } from '@/shared/domain/reminder-route'
 import { reminderIcon } from '@/shared/domain/reminders'
-import type { Due, MoveBounds } from '@/shared/domain/treatment-schedule'
+import type { DoseGesture, Due, MoveBounds } from '@/shared/domain/treatment-schedule'
 import { returnTo } from '@/shared/utils/return-to'
 
 const props = defineProps<{
@@ -94,7 +95,9 @@ const chooseDaysSubtitleText = computed(() =>
   chooseDaysSubtitle(named.value.name, named.value.animal, chosen.value?.when ?? null),
 )
 const history = computed(() =>
-  treatment.value && schedule.value ? treatmentHistory(t, treatment.value, schedule.value) : null,
+  treatment.value && schedule.value
+    ? treatmentHistory(t, treatment.value, schedule.value, today.value)
+    : null,
 )
 const actions = computed(() => (schedule.value ? detailActions(schedule.value) : null))
 const stopTexts = computed(() => treatmentStopTexts(t, named.value))
@@ -116,7 +119,7 @@ const isChooseDaysOpen = ref(false)
 const isDatePickerOpen = ref(false)
 const isStopDialogOpen = ref(false)
 const isDeleteDialogOpen = ref(false)
-const changing = ref<{ row: DoseRow; change: DateChange } | null>(null)
+const changing = ref<{ row: DoseRow; change: DateChange; box: DateChangeBox | null } | null>(null)
 
 onMounted(() => {
   if (!animals.hasLoaded) void animals.load()
@@ -144,6 +147,7 @@ function apply(action: DoseAction, line: Due | null, periodId: string): Promise<
     },
     action,
     line,
+    restoredSuiteFor(treatment.value, action, today.value),
   )
   return gestures.applyDose(treatment.value, action, texts)
 }
@@ -157,8 +161,10 @@ function done(due: Due): void {
   void note(due, today.value)
 }
 
-async function noteOtherDate(due: Due, givenOn: string): Promise<void> {
-  if (await note(due, givenOn)) isOtherDateOpen.value = false
+async function noteOtherDate(gesture: DoseGesture): Promise<void> {
+  if (await apply({ kind: 'note', gesture }, null, gesture.due.periodId)) {
+    isOtherDateOpen.value = false
+  }
 }
 
 function log(choice: DayChoice): Promise<'done' | 'stale' | 'failed'> {
@@ -212,15 +218,21 @@ function onLineAction(row: DoseRow, choice: DoseLineAction, bounds: MoveBounds |
     earliest: animal.value?.birthDate ?? null,
     limits: schedule.value?.redateLimits(row.dose.id) ?? null,
   })
-  if (change === null) return
-  changing.value = { row, change }
+  if (change === null || !treatment.value || !schedule.value) return
+  const box = dateChangeBox(
+    t,
+    row.dose,
+    { history: treatment.value, schedule: schedule.value, today: today.value },
+    change.action,
+  )
+  changing.value = { row, change, box }
   isDatePickerOpen.value = true
 }
 
-function changeDate(date: string): void {
+function changeDate(date: string, shiftsFollowing: boolean): void {
   if (!changing.value) return
   const { row, change } = changing.value
-  void apply(change.action(date), row.dose, row.dose.periodId)
+  void apply(change.action(date, shiftsFollowing), row.dose, row.dose.periodId)
 }
 
 function stop(): void {
@@ -327,6 +339,7 @@ async function remove(): Promise<void> {
       :name="named.name"
       :animal="named.animal"
       :icon="reminderIcon('treatment', treatment.type)"
+      :history="treatment"
       :schedule="schedule"
       :today="today"
       :min="animal?.birthDate ?? null"
@@ -344,16 +357,16 @@ async function remove(): Promise<void> {
       @confirm="logChosenDays"
     />
 
-    <DatePickerSheet
+    <TreatmentChangeDateSheet
       v-model="isDatePickerOpen"
-      :title="t('history.changeDate')"
-      :subtitle="changing?.change.subtitle"
-      :close-label="t('reminderSheet.close')"
+      :subtitle="changing?.change.subtitle ?? null"
       :date="changing?.change.date ?? null"
       :min="changing?.change.min ?? null"
       :max="changing?.change.max ?? null"
       :excluded="changing?.change.excluded ?? []"
-      @pick="changeDate"
+      :box="changing?.box ?? null"
+      :busy="gestures.isBusy.value"
+      @save="changeDate"
     />
 
     <TreatmentStopDialog

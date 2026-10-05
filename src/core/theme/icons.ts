@@ -25,6 +25,7 @@ import event from '@material-symbols/svg-400/outlined/event.svg?raw'
 import eventAvailable from '@material-symbols/svg-400/outlined/event_available.svg?raw'
 import eventBusy from '@material-symbols/svg-400/outlined/event_busy.svg?raw'
 import eventRepeat from '@material-symbols/svg-400/outlined/event_repeat.svg?raw'
+import eventUpcoming from '@material-symbols/svg-400/outlined/event_upcoming.svg?raw'
 import folderOff from '@material-symbols/svg-400/outlined/folder_off.svg?raw'
 import history from '@material-symbols/svg-400/outlined/history.svg?raw'
 import home from '@material-symbols/svg-400/outlined/home.svg?raw'
@@ -167,6 +168,7 @@ export const msIcons = {
   event_available: eventAvailable,
   event_busy: eventBusy,
   event_repeat: eventRepeat,
+  event_upcoming: eventUpcoming,
   first_page: firstPage,
   folder_off: folderOff,
   fullscreen,
