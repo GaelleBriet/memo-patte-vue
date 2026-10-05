@@ -663,7 +663,7 @@ describe('doseChange — prise en plus (#503)', () => {
           dueOn: '2026-10-02',
           givenOn: '2026-10-02',
           status: 'extra',
-          nextDueDate: '2026-10-09',
+          nextDueDate: '2026-10-16',
         }),
       },
     ])

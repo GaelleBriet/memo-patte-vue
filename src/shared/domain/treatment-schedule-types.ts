@@ -122,7 +122,8 @@ export type TreatmentSchedule = {
   dueForDate(givenOn: string, time?: string | null): Due | null
   /**
    * Lignes à écrire, calculées sur le carnet d'avant le geste (renseigner : un appel par dose). Donnée
-   * un intervalle ou plus avant son échéance, la prise est une prise en plus, rangée sous sa date réelle.
+   * un intervalle ou plus avant son échéance, la prise est une prise en plus, rangée sous sa date
+   * réelle : elle ne change pas le calendrier.
    */
   doseFor(gesture: DoseGesture): NotedDose
   /**
@@ -162,7 +163,7 @@ export type PeriodPlan = {
   closesOn: string | null
   steps: Step[]
   stale: TreatmentDoseInput[]
-  /** La suite de la période, puis celles des prises en plus et des lignes de décalage, dans l'ordre. */
+  /** La suite de la période, puis celles des lignes de décalage, dans l'ordre. */
   anchors: { position: string; sequence: Sequence }[]
   /** Échéances avant la dernière suite, et jours d'arrivée des reports. */
   between: Due[]

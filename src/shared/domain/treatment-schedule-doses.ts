@@ -8,7 +8,6 @@ import {
   dueId,
   dueOf,
   keyOf,
-  latestOf,
   sameDue,
   shiftDate,
   toDate,
@@ -126,36 +125,21 @@ function checkKnown(known: () => Set<string>, due: Due): void {
   }
 }
 
-// Une prise un intervalle ou plus avant sa dose est une prise en plus, si elle suit toutes les lignes
-// de sa période et que son rythme garde toute dose due ; à plusieurs heures, l'heure reste (G10).
+// Une prise un intervalle ou plus avant sa dose est une prise en plus ; à plusieurs heures, l'heure
+// donnée en avance couvre son échéance (G10).
 function isExtra(state: State, due: Due, givenOn: string): boolean {
-  const plan = planOf(state, due.periodId)
-  const { frequency, times, startsOn } = plan.period
-  const lineDay = ({ dose }: PeriodPlan['steps'][number]) =>
-    latestOf([dose.dueOn, dose.givenOn, dose.status === 'postponed' ? dose.nextDueDate : null])
-  return (
-    plan === state.open &&
-    times.length <= 1 &&
-    shiftDate(givenOn, frequency, 1) <= due.dueOn &&
-    (state.plans[0] === plan || givenOn >= startsOn) &&
-    plan.steps.every((step) => step.kind === 'shift' || (lineDay(step) ?? '') <= givenOn) &&
-    state.unloggedDoses.every((unlogged) => unlogged.dueOn <= givenOn) &&
-    state.currentDoses.every(
-      (current) =>
-        current.dueOn > givenOn &&
-        (current.dueOn > state.input.today || landsOn(givenOn, current.dueOn, frequency)),
-    )
-  )
+  const { frequency, times } = planOf(state, due.periodId).period
+  return times.length <= 1 && shiftDate(givenOn, frequency, 1) <= due.dueOn
 }
 
+// Sa prochaine dose est la première échéance sans prise après elle : le calendrier ne bouge pas.
 function extraFor(state: State, due: Due, givenOn: string): NotedDose {
   const extraDue = { periodId: due.periodId, dueOn: givenOn, dueTime: due.dueTime }
-  const existing = planOf(state, due.periodId).steps.find(
-    ({ kind, dose }) => kind === 'extra' && sameDue(dose, extraDue),
+  const next = pendingDues(planOf(state, due.periodId), { from: givenOn, limit: 2 }).find(
+    (pending) => keyOf(pending) > keyOf(extraDue),
   )
-  const dose: DoseFields = { ...extraDue, givenOn, status: 'extra', nextDueDate: givenOn }
-  const nextDueDate = nextAfter(state, extraDue, [{ id: existing?.dose.id ?? null, fields: dose }])
-  return { dose: { ...dose, nextDueDate }, shift: null }
+  const nextDueDate = next?.dueOn ?? due.dueOn
+  return { dose: { ...extraDue, givenOn, status: 'extra', nextDueDate }, shift: null }
 }
 
 export function doseFor(state: State, known: () => Set<string>, gesture: DoseGesture): NotedDose {

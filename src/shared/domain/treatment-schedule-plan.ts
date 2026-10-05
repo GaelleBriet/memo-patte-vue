@@ -83,8 +83,8 @@ export function compareCreation(a: TreatmentDoseInput, b: TreatmentDoseInput): n
 }
 
 // Avancé (Q17), un report agit au début de sa nouvelle date ; reporté, après les prises de son jour
-// d'origine. Un décalage agit après toute sa journée d'origine, et après le report de cette journée ;
-// une prise en plus, après toute sa journée.
+// d'origine. Un décalage agit après toute sa journée d'origine, et après le report de cette journée.
+// Une prise en plus ne change jamais le calendrier : elle se range après sa journée.
 function stepOf(dose: TreatmentDoseInput, shiftDay: (shift: TreatmentDoseInput) => string): Step {
   switch (familyOf(dose)) {
     case 'move': {
@@ -130,17 +130,6 @@ export function isMove(step: Step): boolean {
 
 export function isShift(step: Step): boolean {
   return step.kind === 'shift'
-}
-
-export function isExtra(step: Step): boolean {
-  return step.kind === 'extra'
-}
-
-// La suite repart d'une prise en plus, après sa journée, comme d'un décalage ancré à sa date.
-function anchorOf({ kind, dose }: Step, shiftDay: (shift: TreatmentDoseInput) => string): Sequence {
-  return kind === 'extra'
-    ? { origin: dose.dueOn, firstStep: 1, floor: `${dose.dueOn} ~` }
-    : shiftedSequence(dose, `${shiftDay(dose)} ~`)
 }
 
 // Un report laisse tomber l'échéance qu'il remplace ; une dose avancée, non ; un décalage n'est pas une dose.
@@ -213,9 +202,10 @@ export function planPeriod(
   )
   const anchors = [
     { position: '', sequence: initialSequence(period) },
-    ...steps
-      .filter((step) => isShift(step) || isExtra(step))
-      .map((step) => ({ position: step.position, sequence: anchorOf(step, shiftDay) })),
+    ...steps.filter(isShift).map(({ position, dose }) => ({
+      position,
+      sequence: shiftedSequence(dose, `${shiftDay(dose)} ~`),
+    })),
   ]
   const sequences = anchors.map(({ sequence }) => sequence)
   const moves = steps.filter(isMove).map(({ dose }) => dose)

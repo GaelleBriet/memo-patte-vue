@@ -2051,14 +2051,17 @@ describe('contre-exemples trouvés par le test d’invariants', () => {
     expect(scheduleOf(book, '2026-03-10').currentDoses).toEqual([due('2026-03-22', '08:00')])
   })
 
-  it('une prise datée plus d’un intervalle avant son échéance ne refixe pas la suite', () => {
+  it('une prise datée plus d’un intervalle avant son échéance ne change pas le calendrier', () => {
     const book = record(done(carnet(weekly()), '2026-09-01'), '2026-09-02', {
       kind: 'given',
       due: due('2026-09-08'),
       givenOn: '2026-08-27',
     })
 
-    expect(lastDose(book).nextDueDate).toBe('2026-09-15')
+    expect(lastDose(book)).toEqual(
+      expect.objectContaining({ status: 'extra', nextDueDate: '2026-09-08' }),
+    )
+    expect(scheduleOf(book, '2026-09-02').currentDoses).toEqual([due('2026-09-08')])
   })
 
   it('une prise redatée garde le déplacement qui la suit en le rattachant à la dose qu’elle fixe', () => {
@@ -2860,13 +2863,13 @@ describe('refus de déplacement : une dose plus lointaine déjà reportée, ou d
   })
 
   it('dose plus lointaine déjà notée : « later-dose »', () => {
-    const book = record(carnet(weekly()), '2026-09-01', {
+    const book = record(carnet(weekly()), '2026-09-02', {
       kind: 'given',
       due: due('2026-09-08'),
-      givenOn: '2026-09-01',
+      givenOn: '2026-09-02',
     })
 
-    expect(scheduleOf(book, '2026-09-01').moveRefusal(due('2026-09-01'))).toBe('later-dose')
+    expect(scheduleOf(book, '2026-09-02').moveRefusal(due('2026-09-01'))).toBe('later-dose')
   })
 })
 

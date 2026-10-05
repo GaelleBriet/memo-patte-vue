@@ -39,22 +39,21 @@ describe('prise en plus : une dose donnée un intervalle ou plus en avance (#503
     expect(dueDays(schedule.upcoming(2))).toEqual(['2026-10-16', '2026-10-23'])
   })
 
-  it('dose du 16 donnée le 2 : la suite repart de la prise en plus, prochaine le 9', () => {
-    const book = record(pixel, '2026-10-02', {
-      kind: 'given',
-      due: due('2026-10-16'),
-      givenOn: '2026-10-02',
-    })
+  it.each(['2026-10-07', '2026-10-02'])(
+    'hebdomadaire du vendredi, dose du 16 donnée le %s : la prochaine reste le 16, puis 23, 30',
+    (givenOn) => {
+      const book = record(pixel, givenOn, { kind: 'given', due: due('2026-10-16'), givenOn })
 
-    expect(lastDose(book)).toEqual(
-      expect.objectContaining({ dueOn: '2026-10-02', status: 'extra', nextDueDate: '2026-10-09' }),
-    )
-    expect(dueDays(scheduleOf(book, '2026-10-02').upcoming(3))).toEqual([
-      '2026-10-09',
-      '2026-10-16',
-      '2026-10-23',
-    ])
-  })
+      expect(lastDose(book)).toEqual(
+        expect.objectContaining({ dueOn: givenOn, status: 'extra', nextDueDate: '2026-10-16' }),
+      )
+      expect(dueDays(scheduleOf(book, givenOn).upcoming(3))).toEqual([
+        '2026-10-16',
+        '2026-10-23',
+        '2026-10-30',
+      ])
+    },
+  )
 
   it('tous les 3 jours, dose du 8 donnée le 5 : prochaine le 8', () => {
     const every3 = carnet(
@@ -140,7 +139,7 @@ describe('prise en plus : une dose donnée un intervalle ou plus en avance (#503
     ).toEqual({ dose: expect.objectContaining({ status: 'extra' }), shift: null })
   })
 
-  it('une dose en retard que le rythme de la prise en plus ne retrouverait pas reste due', () => {
+  it('ne change jamais le calendrier, même avec une dose en retard hors de son rythme', () => {
     const every2 = carnet(
       period({ firstDueOn: '2026-03-05', frequency: { value: 2, unit: 'day' } }),
     )
@@ -149,10 +148,15 @@ describe('prise en plus : une dose donnée un intervalle ou plus en avance (#503
       due: due('2026-03-05'),
       givenOn: '2026-02-28',
     })
+    const before = scheduleOf(every2, '2026-03-06')
+    const after = scheduleOf(book, '2026-03-06')
 
     expect(lastDose(book)).toEqual(
-      expect.objectContaining({ dueOn: '2026-03-05', status: 'given' }),
+      expect.objectContaining({ dueOn: '2026-02-28', status: 'extra' }),
     )
+    expect(after.currentDoses).toEqual(before.currentDoses)
+    expect(after.unloggedDoses).toEqual(before.unloggedDoses)
+    expect(after.upcoming(5)).toEqual(before.upcoming(5))
   })
 
   it('une dose en retard notée le jour même n’est jamais une prise en plus', () => {
@@ -161,31 +165,29 @@ describe('prise en plus : une dose donnée un intervalle ou plus en avance (#503
     expect(lastDose(book).status).toBe('given')
   })
 
-  it('une prise datée avant la dernière ligne de la période couvre la dose prévue, sans refixer la suite', () => {
-    const book = record(done(carnet(weekly()), '2026-09-01'), '2026-09-02', {
+  it('notée avant le début de la période, la dose prévue reste', () => {
+    const book = record(pixel, '2026-10-02', {
       kind: 'given',
-      due: due('2026-09-08'),
-      givenOn: '2026-08-25',
+      due: due('2026-10-16'),
+      givenOn: '2026-09-25',
     })
 
-    expect(lastDose(book)).toEqual(
-      expect.objectContaining({ dueOn: '2026-09-08', status: 'given', nextDueDate: '2026-09-15' }),
-    )
+    expect(lastDose(book).status).toBe('extra')
+    expect(scheduleOf(book, '2026-10-02').currentDoses).toEqual([due('2026-10-16')])
   })
 
-  it('une dose non renseignée plus loin que la date choisie : pas de prise en plus', () => {
+  it('notée avant une dose non renseignée, celle-ci reste à renseigner', () => {
     const late = carnet(weekly({ firstDueOn: '2026-09-01' }))
-    const schedule = scheduleOf(late, '2026-09-20')
-    const target = schedule.unloggedDoses[0]!
+    const book = record(late, '2026-09-20', {
+      kind: 'given',
+      due: due('2026-09-15'),
+      givenOn: '2026-09-02',
+    })
+    const schedule = scheduleOf(book, '2026-09-20')
 
-    expect(target).toEqual(due('2026-09-01'))
-    expect(
-      scheduleOf(late, '2026-09-20').doseFor({
-        kind: 'given',
-        due: due('2026-09-15'),
-        givenOn: '2026-09-02',
-      }).dose.status,
-    ).toBe('given')
+    expect(lastDose(book).status).toBe('extra')
+    expect(dueDays(schedule.unloggedDoses)).toEqual(['2026-09-01', '2026-09-08'])
+    expect(schedule.currentDoses).toEqual([due('2026-09-15')])
   })
 
   it('supprimée, la prise en plus rend le calendrier d’avant', () => {
@@ -214,23 +216,16 @@ describe('prise en plus : une dose donnée un intervalle ou plus en avance (#503
     expect(schedule.doses).toEqual([expect.objectContaining({ status: 'extra' })])
   })
 
-  it('hors du rythme, la suite repart de la prise en plus : dose du 16 donnée le 7, prochaine le 14', () => {
-    const book = record(pixel, '2026-10-07', {
+  it('une nouvelle période part de la dernière prise prévue, pas de la prise en plus', () => {
+    const daily = carnet(period({ firstDueOn: '2026-10-02' }))
+    const book = record(done(daily, '2026-10-02'), '2026-10-04', {
       kind: 'given',
-      due: due('2026-10-16'),
-      givenOn: '2026-10-07',
+      due: due('2026-10-05'),
+      givenOn: '2026-10-04',
     })
 
-    expect(lastDose(book)).toEqual(
-      expect.objectContaining({ dueOn: '2026-10-07', status: 'extra', nextDueDate: '2026-10-14' }),
-    )
-  })
-
-  it('une nouvelle période repart de la prise en plus', () => {
-    const daily = carnet(period({ firstDueOn: '2026-10-02' }))
-    const book = done(done(daily, '2026-10-02'), '2026-10-02')
-
-    expect(scheduleOf(book, '2026-10-02').newPeriod({ value: 2, unit: 'day' }, []).firstDueOn).toBe(
+    expect(lastDose(book).status).toBe('extra')
+    expect(scheduleOf(book, '2026-10-04').newPeriod({ value: 2, unit: 'day' }, []).firstDueOn).toBe(
       '2026-10-04',
     )
   })
@@ -279,7 +274,7 @@ describe('« Changer la date » d’une prise en plus : elle vise l’échéance
     expect(lastDose(moved)).toEqual(
       expect.objectContaining({ dueOn: '2026-10-02', givenOn: '2026-10-02', status: 'extra' }),
     )
-    expect(scheduleOf(moved, '2026-10-09').currentDoses).toEqual([due('2026-10-09')])
+    expect(scheduleOf(moved, '2026-10-09').currentDoses).toEqual([due('2026-10-16')])
   })
 
   it('à la même date, rien ne change', () => {

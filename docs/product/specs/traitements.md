@@ -101,11 +101,11 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
     (Garde technique, consignée au journal des décisions autonomes.)
   - **G11** Une prise datée un intervalle ou plus avant son échéance est une **prise en plus**
     (#503, étude `technical/etude-modele-prises.md` §2.6, Q1) : rangée sous sa date réelle, elle ne
-    couvre aucune échéance, n'écrit aucune ligne de décalage, et la suite repart d'elle. Hebdomadaire,
-    dose du 16 donnée le 9 : « 9 oct. 2026 · Prise en plus », prochaine dose le 16 ; donnée le 2 :
-    prochaine le 9. Second « C'est fait » du jour d'un quotidien : prise en plus, la dose du lendemain
-    reste à donner. Elle ne se note qu'après toutes les lignes de sa période, sans dose à donner ou à
-    renseigner avant elle ; sinon la prise couvre la dose visée sans refixer la suite. À plusieurs
+    couvre aucune échéance, n'écrit aucune ligne de décalage et **ne change jamais le calendrier** :
+    les doses prévues restent toutes à leur date (décision de Gaelle du 2026-10-05). Hebdomadaire du
+    vendredi, dose du 16 donnée le mercredi 7, le 9 ou le 2 : « 9 oct. 2026 · Prise en plus », la
+    prochaine dose reste le 16, puis 23, 30 ; notée avant le début de la période, idem. Second « C'est
+    fait » du jour d'un quotidien : prise en plus, la dose du lendemain reste à donner. À plusieurs
     heures par jour, une heure donnée en avance couvre son échéance (G10).
 - **TR-8** Aucune échéance après la date de fin.
 - **TR-9** « Prochaine dose » (« Modifier ») déplace la prochaine dose, plus tôt ou plus tard que

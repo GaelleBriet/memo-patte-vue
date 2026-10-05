@@ -5,17 +5,16 @@ import { isShift, mergeDoses, positionOf, sequenceAt, shiftOn } from './treatmen
 import { notedOn } from './treatment-schedule-state'
 import type { Frequency, NewPeriod, State } from './treatment-schedule-types'
 
-// Q8 : une prise qui n'a pas décalé la suite compte par son échéance, pas par sa date réelle.
+// Q8 : une prise qui n'a pas décalé la suite compte par son échéance, pas par sa date réelle ; une
+// prise en plus ne compte pas.
 function lastReference(state: State, frequency: Frequency): string | undefined {
-  const lines = (steps: State['plans'][number]['steps']) => steps.filter((step) => !isShift(step))
+  const lines = (steps: State['plans'][number]['steps']) =>
+    steps.filter((step) => !isShift(step) && step.kind !== 'extra')
   const plan = state.plans.filter(({ steps }) => lines(steps).length > 0).at(-1)
   const last = plan === undefined ? undefined : lines(plan.steps).at(-1)
   if (plan === undefined || last === undefined) return undefined
   if (last.kind === 'move') return last.dose.nextDueDate
-  const reference =
-    last.kind === 'extra'
-      ? last.dose.dueOn
-      : (shiftOn(plan, last.dose)?.nextDueDate ?? last.dose.dueOn)
+  const reference = shiftOn(plan, last.dose)?.nextDueDate ?? last.dose.dueOn
   return shiftDate(reference, frequency, 1)
 }
 
