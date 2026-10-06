@@ -1585,6 +1585,10 @@ describe('TreatmentDetailView — arrêter avec des doses à renseigner (TR-30, 
     return [...(stop.stop.mock.calls.at(-1)?.[1] ?? [])]
   }
 
+  function focusSur(className: string): void {
+    expect(document.activeElement?.classList).toContain(className)
+  }
+
   function boutons(): string[] {
     return dansLaFeuille('.confirm-dialog__actions .v-btn').map((button) =>
       (button.textContent ?? '').trim(),
@@ -1643,11 +1647,14 @@ describe('TreatmentDetailView — arrêter avec des doses à renseigner (TR-30, 
       return { animalId: LUNA.id, stopped: true, finished: false, undo: [] }
     })
 
-    ;(await ouvrir(view)).vm.$emit('stop')
+    const arret = await ouvrir(view)
+    await vi.waitFor(() => focusSur('confirm-dialog__cancel'), { interval: 5 })
+
+    arret.vm.$emit('stop')
     await flushPromises()
 
     expect(view.find('.treatment-detail__stop').exists()).toBe(false)
-    expect(document.activeElement?.classList).toContain('treatment-dose-card__dose')
+    focusSur('treatment-dose-card__dose')
   })
 
   it('le calendrier ouvert depuis l’arrêt dit qu’il arrête aussi', async () => {
