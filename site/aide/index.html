@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Aide · MémoPatte</title>
+    <meta
+      name="description"
+      content="Aide de MémoPatte&nbsp;: que faire quand les rappels n’arrivent pas, ou arrivent en retard."
+    />
+    <link rel="icon" href="/icon.png" />
+    <link rel="stylesheet" href="/style.css" />
+    <link rel="alternate" hreflang="fr" href="https://memopatte.gaelle-briet.fr/aide/" />
+    <link rel="alternate" hreflang="en" href="https://memopatte.gaelle-briet.fr/en/help/" />
+    <link rel="alternate" hreflang="x-default" href="https://memopatte.gaelle-briet.fr/aide/" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a href="/"><img src="/icon.png" alt="" width="32" height="32" />MémoPatte</a>
+    </header>
+    <main class="document">
+      <h1>Aide de MémoPatte</h1>
+      <p class="updated">
+        Dernière mise à jour&nbsp;: <time datetime="2026-10-06">6&nbsp;octobre 2026</time>
+      </p>
+
+      <section id="rappels">
+        <h2>Rappels</h2>
+        <p>
+          MémoPatte programme tes rappels sur le téléphone lui-même&nbsp;: ils arrivent même sans
+          connexion Internet. C’est Android qui les affiche, et plusieurs réglages du téléphone
+          peuvent les bloquer ou les retarder. Si un rappel n’arrive pas, ou arrive en retard,
+          vérifie ces points dans l’ordre.
+        </p>
+        <p>
+          Les chemins indiqués sont ceux d’Android&nbsp;14 à 16 sur un téléphone Google Pixel. Sur
+          d’autres marques (Samsung, Xiaomi, Oppo…), les menus et leurs noms peuvent changer&nbsp;:
+          utilise alors la recherche de l’application Paramètres.
+        </p>
+
+        <h3 id="rappels-notifications">1. Autoriser les notifications de MémoPatte</h3>
+        <p>
+          Sans cette autorisation, Android n’affiche aucun rappel. MémoPatte la demande quand ton
+          carnet a un premier soin à venir. Si elle a été refusée&nbsp;:
+        </p>
+        <ol>
+          <li>Ouvre l’application Paramètres du téléphone.</li>
+          <li>Touche Notifications › Notifications des applis.</li>
+          <li>
+            Touche MémoPatte. Si elle n’apparaît pas, choisis «&nbsp;Toutes les applis&nbsp;» dans
+            le menu déroulant.
+          </li>
+          <li>Active «&nbsp;Toutes les notifications de MémoPatte&nbsp;».</li>
+          <li>
+            Vérifie que la catégorie «&nbsp;Rappels&nbsp;» est activée&nbsp;: c’est elle qui porte
+            tes rappels.
+          </li>
+        </ol>
+        <p>
+          Dans MémoPatte, Paramètres › Rappels indique si les notifications sont autorisées, avec un
+          lien vers ce réglage quand elles sont désactivées.
+        </p>
+
+        <h3 id="rappels-batterie">2. Économie de batterie et mise en veille</h3>
+        <p>
+          Pour économiser la batterie, Android limite les applications quand tu ne les utilises pas.
+          Quand MémoPatte est trop limitée, tes rappels peuvent arriver en retard, ou ne pas arriver
+          du tout.
+        </p>
+        <ol>
+          <li>Ouvre l’application Paramètres du téléphone.</li>
+          <li>Touche Applications › Voir toutes les applis › MémoPatte.</li>
+          <li>Touche Utilisation de la batterie par les applis.</li>
+          <li>
+            Active «&nbsp;Autoriser l’utilisation en arrière-plan&nbsp;», puis touche ce libellé
+            pour choisir entre «&nbsp;Optimisée&nbsp;» et «&nbsp;Sans restriction&nbsp;». Sur
+            certaines versions d’Android, les choix «&nbsp;Sans restriction&nbsp;»,
+            «&nbsp;Optimisée&nbsp;» et «&nbsp;Limitée&nbsp;» s’affichent directement.
+          </li>
+        </ol>
+        <ul>
+          <li>
+            <strong>Limitée</strong> (utilisation en arrière-plan désactivée)&nbsp;: Android ne
+            laisse plus MémoPatte agir quand tu ne l’utilises pas. Tes rappels peuvent ne pas
+            arriver du tout. À éviter.
+          </li>
+          <li>
+            <strong>Optimisée</strong> (choix par défaut)&nbsp;: Android adapte ce que fait
+            MémoPatte à ta façon de l’utiliser. Tes rappels arrivent, parfois avec du retard.
+          </li>
+          <li>
+            <strong>Sans restriction</strong>&nbsp;: Android ne retarde plus tes rappels pour
+            économiser la batterie. Android précise que ce choix peut solliciter davantage la
+            batterie. Choisis-le si tes rappels arrivent souvent en retard.
+          </li>
+        </ul>
+        <p>
+          L’économiseur de batterie (Paramètres › Batterie › Économiseur de batterie) peut lui aussi
+          retarder tes rappels tant qu’il est activé.
+        </p>
+        <p>
+          Enfin, si MémoPatte n’est pas utilisée pendant plusieurs mois, Android peut la mettre en
+          pause&nbsp;: il lui retire ses autorisations, dont celle des notifications. Ouvrir
+          MémoPatte ou toucher l’un de ses rappels suffit à l’éviter. Pour l’empêcher&nbsp;:
+          Paramètres › Applications › Voir toutes les applis › MémoPatte, puis désactive
+          «&nbsp;Suspendre l’activité si inutilisée&nbsp;».
+        </p>
+
+        <h3 id="rappels-precis">3. Rappels précis</h3>
+        <p>
+          Sans rappels précis, Android peut décaler tes rappels pour économiser la batterie&nbsp;:
+          un rappel n’arrive jamais avant l’heure prévue, en principe dans l’heure qui suit, et
+          parfois plus tard quand le téléphone économise sa batterie. Avec les rappels précis,
+          Android affiche chaque rappel à l’heure prévue. Ils permettent aussi de choisir un rappel
+          15&nbsp;ou 30&nbsp;minutes avant l’heure d’un traitement.
+        </p>
+        <p>
+          Les rappels précis sont facultatifs&nbsp;: sans eux, tes rappels arrivent quand même,
+          parfois en retard. Ils sont utiles pour un traitement qui se donne à heure fixe.
+        </p>
+        <p>Pour les activer depuis MémoPatte&nbsp;:</p>
+        <ol>
+          <li>Ouvre Paramètres › Rappels et active «&nbsp;Rappels précis&nbsp;».</li>
+          <li>
+            Touche «&nbsp;Ouvrir les réglages&nbsp;»&nbsp;: Android ouvre l’écran «&nbsp;Alarmes et
+            rappels&nbsp;».
+          </li>
+          <li>
+            Active «&nbsp;Autoriser à définir des alarmes et des rappels&nbsp;», puis reviens dans
+            MémoPatte.
+          </li>
+        </ol>
+        <p>
+          Ou depuis les réglages du téléphone&nbsp;: Paramètres › Applications › Accès spéciaux des
+          applis › Alarmes et rappels › MémoPatte, puis active «&nbsp;Autoriser à définir des
+          alarmes et des rappels&nbsp;».
+        </p>
+        <p>
+          Si cette autorisation est retirée, tes rappels continuent d’arriver, de façon moins
+          précise. Si tu retires cette autorisation, Android ferme MémoPatte et supprime ses rappels
+          déjà programmés. Ouvre l’app une fois&nbsp;: elle les reprogramme aussitôt. MémoPatte
+          indique alors que tes rappels peuvent arriver en retard, et garde tes choix&nbsp;: ils
+          redeviennent précis dès que l’autorisation est rendue. Sur un nouveau téléphone, Android
+          ne reprend pas cette autorisation, même quand il transfère MémoPatte&nbsp;: il faut la
+          redonner.
+        </p>
+
+        <h3 id="rappels-limites">4. Ce que MémoPatte ne peut pas faire seule</h3>
+        <ul>
+          <li>
+            <strong>Téléphone éteint</strong>&nbsp;: aucun rappel ne peut arriver sur un téléphone
+            éteint. Au redémarrage, MémoPatte reprogramme tes rappels, et ceux qui devaient arriver
+            pendant ce temps s’affichent. Si le téléphone est resté longtemps éteint, ouvre
+            MémoPatte une fois&nbsp;: elle recalcule tous tes rappels.
+          </li>
+          <li>
+            <strong>Longtemps sans ouvrir l’app</strong>&nbsp;: MémoPatte programme tes rappels à
+            l’avance, mais pas indéfiniment. Le dernier rappel programmé invite à ouvrir
+            MémoPatte&nbsp;: l’ouvrir suffit à programmer la suite.
+          </li>
+          <li>
+            <strong>Forcer l’arrêt</strong>&nbsp;: si tu touches «&nbsp;Forcer l’arrêt&nbsp;» dans
+            les informations de l’app, Android peut annuler tous ses rappels. Ouvre MémoPatte une
+            fois pour les reprogrammer.
+          </li>
+          <li>
+            <strong>Désinstallation</strong>&nbsp;: désinstaller MémoPatte efface ses rappels. Si tu
+            la réinstalles et retrouves ton carnet (sauvegarde Android, import d’un export ou
+            MémoPatte Plus), autorise de nouveau ses notifications, et ses rappels précis si tu les
+            utilisais.
+          </li>
+        </ul>
+        <p>
+          Toujours pas de rappel&nbsp;? Écris-nous à
+          <a href="mailto:memopatte@gaelle-briet.fr">memopatte@gaelle-briet.fr</a>, en précisant le
+          modèle de ton téléphone et sa version d’Android.
+        </p>
+      </section>
+    </main>
+    <footer>
+      Une app de <a href="https://www.gaelle-briet.fr">Gaëlle Briet</a> ·
+      <a href="/confidentialite/">Confidentialité</a> ·
+      <a href="https://www.gaelle-briet.fr/mentions-legales/">Mentions légales</a> ·
+      <a href="/en/help/" hreflang="en" lang="en">English</a>
+    </footer>
+  </body>
+</html>
