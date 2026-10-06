@@ -1,7 +1,12 @@
 import type { TodoDueItem, TodoItem } from './todo-items'
 import type { HomeReminderSource } from '../service/home-reminders.service'
 import type { DueStatus } from '@/shared/components/DueStatusChip.vue'
-import type { TodoRequest } from '@/shared/domain/reminder-route'
+import {
+  todoReminderValue,
+  type ReminderRef,
+  type TodoDue,
+  type TodoRequest,
+} from '@/shared/domain/reminder-route'
 import { reminderIcon as sharedReminderIcon, type ReminderStatus } from '@/shared/domain/reminders'
 import { formatClockTime, formatFullDayMonth, formatLongDate } from '@/shared/utils/format'
 
@@ -184,6 +189,18 @@ export function reminderRows(
       }),
     }
   })
+}
+
+/** La ligne dont la feuille se rouvre : celle de l'échéance demandée, sinon la première du soin. */
+export function rowToReopen(
+  rows: readonly ReminderRow[],
+  { kind, id, due }: ReminderRef & { due?: TodoDue },
+): ReminderRow | undefined {
+  const ofReminder = rows.filter(
+    ({ opens, request }) => opens === 'sheet' && request.kind === kind && request.id === id,
+  )
+  const wanted = due === undefined ? null : todoReminderValue({ kind, id, due })
+  return ofReminder.find(({ request }) => todoReminderValue(request) === wanted) ?? ofReminder[0]
 }
 
 export function nextReminderText(

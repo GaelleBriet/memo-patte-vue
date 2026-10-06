@@ -7,6 +7,7 @@ import {
   parseReminderRequest,
   reminderQueryValue,
   reminderSheetQuery,
+  todoReminderValue,
   withoutReminderRequest,
 } from '../domain/reminder-route'
 import { returnTo } from '../utils/return-to'
@@ -26,6 +27,49 @@ describe('paramètre de retour vers la feuille d’un rappel', () => {
     expect(parseReminderQuery('weight:w1')).toBeNull()
     expect(parseReminderQuery('treatment:')).toBeNull()
     expect(parseReminderQuery('treatment:t1:x')).toBeNull()
+  })
+})
+
+describe('échéance de la ligne de « À faire » gardée pour le retour de « Modifier »', () => {
+  it('écrit l’échéance après le rappel, et la relit avec la demande de feuille', () => {
+    const value = todoReminderValue({
+      kind: 'treatment',
+      id: 't1',
+      due: { dueOn: '2026-10-06', dueTime: '08:00' },
+    })
+
+    expect(value).toBe('treatment:t1:2026-10-06T08:00')
+    expect(parseReminderQuery(value)).toEqual({ kind: 'treatment', id: 't1' })
+    expect(parseReminderRequest({ reminder: value })).toEqual({
+      kind: 'treatment',
+      id: 't1',
+      step: 'actions',
+      due: { dueOn: '2026-10-06', dueTime: '08:00' },
+    })
+  })
+
+  it('écrit une échéance sans heure, les doses non renseignées, ou rien pour un vaccin', () => {
+    const sans = todoReminderValue({
+      kind: 'treatment',
+      id: 't1',
+      due: { dueOn: '2026-10-06', dueTime: null },
+    })
+    const nonRenseignees = todoReminderValue({ kind: 'treatment', id: 't1', due: 'unlogged' })
+
+    expect(sans).toBe('treatment:t1:2026-10-06')
+    expect(parseReminderRequest({ reminder: sans })?.due).toEqual({
+      dueOn: '2026-10-06',
+      dueTime: null,
+    })
+    expect(nonRenseignees).toBe('treatment:t1:unlogged')
+    expect(parseReminderRequest({ reminder: nonRenseignees })?.due).toBe('unlogged')
+    expect(todoReminderValue({ kind: 'vaccination', id: 'v1', due: null })).toBe('vaccination:v1')
+    expect(parseReminderRequest({ reminder: 'vaccination:v1' })).not.toHaveProperty('due')
+  })
+
+  it('ignore une échéance mal formée', () => {
+    expect(parseReminderQuery('treatment:t1:2026-10-06T25:00')).toBeNull()
+    expect(parseReminderQuery('treatment:t1:06-10-2026')).toBeNull()
   })
 })
 

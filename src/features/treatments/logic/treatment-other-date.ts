@@ -169,26 +169,6 @@ export function notifiedDue(
   return target !== null && 'due' in target && target.due.dueOn !== notifiedDueOn ? 'ask' : target
 }
 
-/**
- * Heures que la feuille « À faire » demande avant d'écrire : celles de la journée que viserait
- * `momentDue`, quand elle en a plusieurs. Vide : un tap suffit, ou il n'y a rien à noter.
- */
-export function sheetHours(
-  t: Translate,
-  schedule: OtherDateSchedule,
-  givenOn: string,
-  today: string,
-): HourChoice[] {
-  const target = momentDue(schedule, givenOn, today)
-  if (target === null || !('due' in target)) return []
-  const timed = dayDues(schedule, target.due.dueOn).filter(({ due }) => due.dueTime !== null)
-  if (timed.length < 2) return []
-  return timed.map((entry) => {
-    const choice = hourChoice(t, entry)
-    return entry.status === 'missed' && givenOn === today ? { ...choice, due: null } : choice
-  })
-}
-
 export function otherDateTexts(
   t: Translate,
   { name, animal, today }: { name: string; animal: string; today: string },
