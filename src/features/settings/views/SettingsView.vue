@@ -1,99 +1,26 @@
 <script setup lang="ts">
-import { computed, defineAsyncComponent, ref, useId, useTemplateRef } from 'vue'
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
-import ExportSheet from './ExportSheet.vue'
-import ImportSheet from './ImportSheet.vue'
-import { useExportAvailability } from '../composables/use-export-availability'
 import { remindersSummary } from '../logic/reminders-settings'
-import type { PdfExportAnimal } from './PdfExportSheet.vue'
-
-const PdfExportSheet = defineAsyncComponent(() => import('./PdfExportSheet.vue'))
-import { promptNotificationsIfReminders } from '@/app/reminders-priming'
-import { hasConsent, optIn, optOut } from '@/core/analytics'
 import { useExactReminders } from '@/core/notifications/use-exact-reminders'
 import { useRemindersPermission } from '../composables/use-reminders-permission'
-import { useAnimalsStore } from '@/features/animals/store/animals.store'
-import AccountSection from '@/features/auth/views/AccountSection.vue'
-import PlusSection from '@/features/purchase/views/PlusSection.vue'
-import { usePurchaseStore } from '@/features/purchase/store/purchase.store'
-import PlusBadge from '@/shared/components/PlusBadge.vue'
+import AccountEntrySection from '@/features/auth/views/AccountEntrySection.vue'
+import PlusEntrySection from '@/features/purchase/views/PlusEntrySection.vue'
 import PushedScreen from '@/shared/components/PushedScreen.vue'
-import SectionCard from '@/shared/components/SectionCard.vue'
-import { WEIGHT_UNITS, type WeightUnit } from '@/shared/domain/weight-unit'
-import { chooseWeightUnit, currentWeightUnit } from '@/shared/domain/weight-unit-preference'
-import FormSegmented from '@/shared/form/FormSegmented.vue'
+import SettingsRubricRow from '@/shared/components/SettingsRubricRow.vue'
 
 const { t } = useI18n()
 const router = useRouter()
-const animals = useAnimalsStore()
-const purchase = usePurchaseStore()
 const notifications = useRemindersPermission()
 const { status: exactReminders } = useExactReminders()
-const remindersHint = computed(() => remindersSummary(notifications.value, exactReminders.value))
+const remindersHint = computed(() => {
+  const summary = remindersSummary(notifications.value, exactReminders.value)
+  return summary && t(`settings.reminders.summary.${summary}`)
+})
 
 const appVersion = import.meta.env.VITE_APP_VERSION
-const isExportSheetOpen = ref(false)
-const isPdfExportSheetOpen = ref(false)
-const hasOpenedPdfExportSheet = ref(false)
-const importSheet = useTemplateRef('importSheet')
-const isImporting = ref(false)
-const shareAnalytics = ref(hasConsent())
-const weightUnitLabelId = useId()
-const weightUnit = computed(currentWeightUnit)
-const weightUnitOptions = computed(() =>
-  WEIGHT_UNITS.map((unit) => ({
-    value: unit,
-    label: t(`weight.unit.${unit}`),
-    hint: t(`weight.unitName.${unit}`),
-    ariaLabel: t(`settings.data.weightUnit.spoken.${unit}`),
-  })),
-)
-
-const { hasLoadFailed, hasNothingToExport, canExport, retryLoad } = useExportAvailability()
-const isFreePlan = computed(() => purchase.status.plan === 'none')
-const pdfExportAnimals = computed<PdfExportAnimal[]>(() =>
-  animals.animals.map((animal) => ({ id: animal.id, name: animal.name, species: animal.species })),
-)
-
-function onExportRow(): void {
-  if (hasLoadFailed.value) retryLoad()
-  else isExportSheetOpen.value = true
-}
-
-function onExportPdfRow(): void {
-  if (hasLoadFailed.value) {
-    retryLoad()
-  } else if (isFreePlan.value) {
-    void router.push({ name: 'plus', query: { from: 'pdf' } })
-  } else {
-    hasOpenedPdfExportSheet.value = true
-    isPdfExportSheetOpen.value = true
-  }
-}
-
-function onImported(): void {
-  void animals.load()
-  void promptNotificationsIfReminders(router, 'settings')
-}
-
-function onWeightUnitChange(unit: WeightUnit | null): void {
-  if (unit) chooseWeightUnit(unit)
-}
-
-function onShareAnalyticsChange(enabled: boolean | null): void {
-  shareAnalytics.value = enabled === true
-  void (shareAnalytics.value ? optIn() : optOut())
-}
-
-function openReminders(): void {
-  void router.push({ name: 'settings-reminders' })
-}
-
-function openBackup(): void {
-  void router.push({ name: 'settings-backup' })
-}
 
 function goHome(): void {
   void router.push({ name: 'home' })
@@ -108,168 +35,45 @@ function goHome(): void {
     @back="goHome"
   >
     <div class="settings__content">
-      <div class="settings__entry">
-        <button type="button" class="settings-row settings-row--reminders" @click="openReminders">
-          <v-icon class="settings-row__icon" icon="ms:notifications" size="22" />
-          <span class="settings-row__text">
-            <span class="settings-row__label">{{ t('settings.reminders.title') }}</span>
-            <span v-if="remindersHint" class="settings-row__hint">
-              {{ t(`settings.reminders.summary.${remindersHint}`) }}
-            </span>
-          </span>
-          <v-icon class="settings-row__chevron" icon="ms:chevron_right" size="20" />
-        </button>
-        <button type="button" class="settings-row settings-row--backup" @click="openBackup">
-          <v-icon class="settings-row__icon" icon="ms:backup" size="22" />
-          <span class="settings-row__text">
-            <span class="settings-row__label">{{ t('settings.backup.title') }}</span>
-            <span class="settings-row__hint">{{ t('settings.backup.summary') }}</span>
-          </span>
-          <v-icon class="settings-row__chevron" icon="ms:chevron_right" size="20" />
-        </button>
+      <div class="settings-card settings__entry">
+        <SettingsRubricRow
+          class="settings-row--reminders"
+          icon="ms:notifications"
+          :label="t('settings.reminders.title')"
+          :hint="remindersHint"
+          :to="{ name: 'settings-reminders' }"
+        />
+        <SettingsRubricRow
+          class="settings-row--backup"
+          icon="ms:backup"
+          :label="t('settings.backup.title')"
+          :hint="t('settings.backup.summary')"
+          :to="{ name: 'settings-backup' }"
+        />
+        <SettingsRubricRow
+          class="settings-row--data"
+          icon="ms:tune"
+          :label="t('settings.data.title')"
+          :hint="t('settings.data.summary')"
+          :to="{ name: 'settings-data' }"
+        />
+        <PlusEntrySection />
+        <AccountEntrySection />
+        <SettingsRubricRow
+          class="settings-row--privacy"
+          icon="ms:lock"
+          :label="t('settings.privacy.title')"
+          :to="{ name: 'settings-privacy' }"
+        />
+        <SettingsRubricRow
+          class="settings-row--about"
+          icon="ms:info"
+          :label="t('settings.about.title')"
+          :hint="t('settings.about.summary', { version: appVersion })"
+          :to="{ name: 'settings-about' }"
+        />
       </div>
-
-      <PlusSection />
-
-      <AccountSection />
-
-      <SectionCard :title="t('settings.data.title')">
-        <div class="settings-row settings-row--weight-unit">
-          <div class="settings__weight-unit-heading">
-            <v-icon class="settings-row__icon" icon="ms:scale" size="22" />
-            <span class="settings-row__text">
-              <span :id="weightUnitLabelId" class="settings-row__label">
-                {{ t('settings.data.weightUnit.label') }}
-              </span>
-              <span class="settings-row__hint">{{ t('settings.data.weightUnit.hint') }}</span>
-            </span>
-          </div>
-          <FormSegmented
-            :model-value="weightUnit"
-            :options="weightUnitOptions"
-            :label-id="weightUnitLabelId"
-            @update:model-value="onWeightUnitChange"
-          />
-        </div>
-        <button
-          type="button"
-          class="settings-row settings-row--export"
-          :class="{ 'settings-row--disabled': !canExport && !hasLoadFailed }"
-          :disabled="!canExport && !hasLoadFailed"
-          @click="onExportRow"
-        >
-          <v-icon class="settings-row__icon" icon="ms:ios_share" size="22" />
-          <span class="settings-row__text">
-            <span class="settings-row__label">{{ t('settings.data.export') }}</span>
-            <span v-if="hasLoadFailed" class="settings-row__hint settings-row__hint--error">
-              {{ t('settings.data.loadError') }}
-            </span>
-            <span v-else-if="hasNothingToExport" class="settings-row__hint">
-              {{ t('settings.data.exportEmpty') }}
-            </span>
-          </span>
-          <v-icon
-            v-if="canExport"
-            class="settings-row__chevron"
-            icon="ms:chevron_right"
-            size="20"
-          />
-        </button>
-        <button
-          type="button"
-          class="settings-row settings-row--export-pdf"
-          :class="{ 'settings-row--disabled': !canExport && !hasLoadFailed }"
-          :disabled="!canExport && !hasLoadFailed"
-          @click="onExportPdfRow"
-        >
-          <span class="settings-row__icon settings__pdf-icon">
-            <v-icon icon="ms:picture_as_pdf" size="22" />
-            <PlusBadge v-if="isFreePlan" class="settings__plus-badge" />
-          </span>
-          <span class="settings-row__text">
-            <span class="settings-row__label">{{ t('settings.data.exportPdf') }}</span>
-            <span v-if="hasLoadFailed" class="settings-row__hint settings-row__hint--error">
-              {{ t('settings.data.loadError') }}
-            </span>
-            <span v-else-if="hasNothingToExport" class="settings-row__hint">
-              {{ t('settings.data.exportEmpty') }}
-            </span>
-            <span v-else-if="isFreePlan" class="d-sr-only">
-              {{ t('settings.data.exportPdfPlus') }}
-            </span>
-          </span>
-          <v-icon
-            v-if="canExport"
-            class="settings-row__chevron"
-            icon="ms:chevron_right"
-            size="20"
-          />
-        </button>
-        <button
-          type="button"
-          class="settings-row settings-row--import"
-          :class="{ 'settings-row--busy': isImporting }"
-          :disabled="isImporting"
-          :aria-busy="isImporting"
-          @click="importSheet?.pickFile()"
-        >
-          <v-icon class="settings-row__icon" icon="ms:download" size="22" />
-          <span class="settings-row__text">
-            <span class="settings-row__label">{{ t('settings.data.import') }}</span>
-            <span v-if="isImporting" class="settings-row__hint" role="status">
-              {{ t('settings.import.importing') }}
-            </span>
-          </span>
-          <v-progress-circular
-            v-if="isImporting"
-            class="settings-row__spinner"
-            indeterminate
-            :size="18"
-            :width="2"
-          />
-          <v-icon v-else class="settings-row__chevron" icon="ms:chevron_right" size="20" />
-        </button>
-      </SectionCard>
-
-      <SectionCard :title="t('settings.privacy.title')">
-        <label class="settings-row settings-row--analytics" for="settings-analytics">
-          <v-icon class="settings-row__icon" icon="ms:query_stats" size="22" />
-          <span class="settings-row__text">
-            <span class="settings-row__label">{{ t('settings.privacy.analytics') }}</span>
-          </span>
-          <v-switch
-            id="settings-analytics"
-            role="switch"
-            class="settings-row__switch"
-            :model-value="shareAnalytics"
-            color="primary"
-            inset
-            size="small"
-            hide-details
-            density="compact"
-            :ripple="false"
-            @update:model-value="onShareAnalyticsChange"
-          />
-        </label>
-      </SectionCard>
-
-      <SectionCard :title="t('settings.about.title')">
-        <div class="settings-row settings-row--version">
-          <span class="settings-row__text">
-            <span class="settings-row__label">{{ t('settings.about.version') }}</span>
-          </span>
-          <span class="settings-row__value">{{ appVersion }}</span>
-        </div>
-      </SectionCard>
     </div>
-
-    <ExportSheet v-model="isExportSheetOpen" />
-    <PdfExportSheet
-      v-if="hasOpenedPdfExportSheet"
-      v-model="isPdfExportSheetOpen"
-      :animals="pdfExportAnimals"
-    />
-    <ImportSheet ref="importSheet" v-model:busy="isImporting" @imported="onImported" />
   </PushedScreen>
 </template>
 
@@ -277,40 +81,10 @@ function goHome(): void {
 @use '@/styles/tokens' as tokens;
 
 .settings__content {
-  display: flex;
-  flex-direction: column;
-  gap: tokens.$gap-settings-sections;
   padding-block: 12px 32px;
 }
 
 .settings__entry {
   margin-inline: tokens.$padding-section-inline;
-  overflow: hidden;
-  border: 1px solid tokens.$color-card-border;
-  border-radius: tokens.$radius-card;
-  background: rgb(var(--v-theme-surface));
-}
-
-.settings-row--weight-unit {
-  flex-direction: column;
-  align-items: stretch;
-  gap: 12px;
-  padding-block: 14px 16px;
-}
-
-.settings__weight-unit-heading {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.settings__pdf-icon {
-  position: relative;
-  display: inline-flex;
-}
-
-.settings__plus-badge {
-  top: -10px;
-  right: -8px;
 }
 </style>
