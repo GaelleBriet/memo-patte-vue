@@ -53,7 +53,7 @@ const GESTURES = [
 ] as const
 // Campagne longue, hors `vitest run` : INVARIANTS_SEEDS=20000 (et INVARIANTS_FROM, INVARIANTS_STEPS).
 const FIRST_SEED = Number(process.env.INVARIANTS_FROM ?? 1)
-const CARNETS = Number(process.env.INVARIANTS_SEEDS ?? 60)
+const CARNETS = Number(process.env.INVARIANTS_SEEDS ?? 150)
 const STEPS = Number(process.env.INVARIANTS_STEPS ?? 24)
 const TIMEOUT = 30_000 + CARNETS * STEPS * 5
 

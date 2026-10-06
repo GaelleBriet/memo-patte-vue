@@ -24,6 +24,7 @@ import type {
   PdfWeightRow,
 } from '../logic/pdf-content'
 import i18n from '@/core/i18n'
+import { currentWeightUnit } from '@/shared/domain/weight-unit-preference'
 
 // A4 : les marges latérales du carnet, et 10 mm en haut et en bas, loin de la marge non imprimable.
 const ZONE: PdfBounds = { left: 18, right: 192, top: 10, bottom: 287 }
@@ -128,15 +129,15 @@ const MOT_SANS_ESPACE = avec({
   treatments: [{ ...TRAITEMENT_LONG, name: MOT_80 }],
 })
 
-// Les mêmes carnets servent à plusieurs tests : chacun n'est rendu et relu qu'une fois par langue.
+// Les mêmes carnets servent à plusieurs tests : chacun n'est rendu et relu qu'une fois par réglage.
 const rendus = new WeakMap<CarnetPdfContent, Map<string, PdfPage[]>>()
 
 function pages(content: CarnetPdfContent): PdfPage[] {
-  const langue = i18n.global.locale.value
-  const parLangue = rendus.get(content) ?? new Map<string, PdfPage[]>()
-  rendus.set(content, parLangue)
-  const doc = parLangue.get(langue) ?? readPdfPages(renderCarnetPdf(content, '0.1.24', null))
-  parLangue.set(langue, doc)
+  const reglage = `${i18n.global.locale.value} ${currentWeightUnit()} ${new Date().toDateString()}`
+  const parReglage = rendus.get(content) ?? new Map<string, PdfPage[]>()
+  rendus.set(content, parReglage)
+  const doc = parReglage.get(reglage) ?? readPdfPages(renderCarnetPdf(content, '0.1.24', null))
+  parReglage.set(reglage, doc)
   return doc
 }
 
