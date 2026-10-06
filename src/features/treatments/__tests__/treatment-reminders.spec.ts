@@ -1,195 +1,195 @@
 // @vitest-environment node
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 
 import i18n from '@/core/i18n'
-import { REMINDER_DONE_ACTION_TYPE } from '@/core/notifications/reminder-actions'
+import { parseReminderKey } from '@/shared/domain/due-reminders'
+import type { CarnetReminderSettings } from '@/shared/domain/reminder-plan'
 import type { TreatmentFrequency } from '../schema/treatment.schema'
-import { addFrequency } from '../logic/treatment-frequency'
-import type * as TreatmentFrequencyModule from '../logic/treatment-frequency'
+import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
+import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
 import { isDoseNoted, isTreatmentDueDate, treatmentReminders } from '../logic/treatment-reminders'
-
-vi.mock('../logic/treatment-frequency', async (importOriginal) => {
-  const original = await importOriginal<typeof TreatmentFrequencyModule>()
-  return { addFrequency: vi.fn<typeof original.addFrequency>(original.addFrequency) }
-})
+import { dose, missed, period, postponed, shifted, treatment } from './treatment-fixtures'
 
 const t = i18n.global.t
-const ID = '44444444-4444-4444-8444-444444444444'
 const LUNA = { name: 'Luna', deletedAt: null }
+const SETTINGS: CarnetReminderSettings = { vaccineReminderTime: '09:00', remindBeforeDue: true }
 const MONTHLY: TreatmentFrequency = { value: 1, unit: 'month' }
-const MILBEMAX = {
-  id: ID,
-  name: 'Milbemax',
-  type: 'deworming' as const,
-  frequency: MONTHLY,
-  nextDueDate: '2026-10-15',
-  stoppedOn: null,
-  deletedAt: null,
-}
+const WEEKLY: TreatmentFrequency = { value: 1, unit: 'week' }
 const NOW = new Date(2026, 8, 15, 12)
 
 afterEach(() => {
   i18n.global.locale.value = 'fr'
 })
 
-/** `yyyy-MM-dd:moment` de chaque rappel programmé. */
-function slots(nextDueDate: string, now: Date, frequency: TreatmentFrequency = MONTHLY): string[] {
-  return treatmentReminders(t, { ...MILBEMAX, nextDueDate, frequency }, LUNA, now).map(({ key }) =>
-    key.slice(`treatment:${ID}:`.length),
-  )
+type Options = { now?: Date; settings?: CarnetReminderSettings }
+
+function remindersOf(
+  overrides: Partial<TreatmentPeriodRecord>,
+  doses: NewTreatmentDose[] = [],
+  { now = NOW, settings = SETTINGS }: Options = {},
+) {
+  return treatmentReminders(t, treatment([period(overrides)], doses), LUNA, settings, now)
+}
+
+/** Espaces insécables remplacées : les attentes s'écrivent au clavier. */
+const typed = (text = '') => text.replace(/\s/gu, ' ')
+
+/** `jour heure moment` de chaque rappel programmé, dans l'ordre. */
+function slots(
+  overrides: Partial<TreatmentPeriodRecord>,
+  doses: NewTreatmentDose[] = [],
+  options: Options = {},
+): string[] {
+  return (remindersOf(overrides, doses, options).care?.reminders ?? []).map(({ key }) => {
+    const parsed = parseReminderKey(key)!
+    return `${parsed.dueDate} ${parsed.dueTime ?? '-'} ${parsed.moment}`
+  })
 }
 
 describe('treatmentReminders', () => {
-  it('produit les rappels de l’échéance avec le type, le nom et l’animal', () => {
-    expect(treatmentReminders(t, MILBEMAX, LUNA, NOW).slice(0, 3)).toEqual([
-      {
-        key: `treatment:${ID}:2026-10-15:before`,
-        title: 'Vermifuge Milbemax de Luna dans 3 jours',
-        body: 'Vérifie qu’il te reste une dose.',
-        at: new Date(2026, 9, 12, 9),
-      },
-      {
-        key: `treatment:${ID}:2026-10-15:due`,
-        title: 'Vermifuge Milbemax de Luna aujourd’hui',
-        body: 'Note la prise dans MémoPatte pour programmer la suivante.',
-        at: new Date(2026, 9, 15, 9),
-        actionTypeId: REMINDER_DONE_ACTION_TYPE,
-      },
-      {
-        key: `treatment:${ID}:2026-10-15:overdue`,
-        title: 'Vermifuge Milbemax de Luna en retard de 3 jours',
-        body: 'Pense à donner la dose, puis note la prise dans MémoPatte.',
-        at: new Date(2026, 9, 18, 9),
-        actionTypeId: REMINDER_DONE_ACTION_TYPE,
-      },
+  it('quotidien à 8 h et 20 h : un rappel à chaque heure, jamais à 9 h', () => {
+    const { care } = remindersOf(
+      { startsOn: '2026-09-14', firstDueOn: '2026-09-14', times: ['08:00', '20:00'] },
+      [
+        dose('2026-09-14', '2026-09-15', { dueTime: '08:00' }),
+        dose('2026-09-14', '2026-09-15', { dueTime: '20:00' }),
+        dose('2026-09-15', '2026-09-16', { dueTime: '08:00' }),
+      ],
+    )
+
+    expect(care?.reminders.slice(0, 3).map(({ at, title }) => [at, typed(title)])).toEqual([
+      [new Date(2026, 8, 15, 20), 'Métacam de Luna à 20 h'],
+      [new Date(2026, 8, 16, 8), 'Métacam de Luna à 8 h'],
+      [new Date(2026, 8, 16, 20), 'Métacam de Luna à 20 h'],
     ])
+    expect(care?.reminders.every(({ at }) => at.getHours() !== 9)).toBe(true)
+  })
+
+  it('sans heure, sonne à l’heure choisie pour le rappel, 9 h par défaut', () => {
+    const at = (reminderTime: string | null) =>
+      remindersOf({
+        firstDueOn: '2026-10-01',
+        frequency: MONTHLY,
+        reminderTime,
+      }).care?.reminders.find(({ key }) => key.endsWith(':due'))?.at
+
+    expect(at(null)).toEqual(new Date(2026, 9, 1, 9))
+    expect(at('07:30')).toEqual(new Date(2026, 9, 1, 7, 30))
+  })
+
+  it('« 1 h avant » avance le rappel d’une heure', () => {
+    const { care } = remindersOf({
+      firstDueOn: '2026-09-16',
+      times: ['20:00'],
+      reminderOffsetMinutes: 60,
+    })
+
+    expect(care?.reminders[0]?.at).toEqual(new Date(2026, 8, 16, 19))
+  })
+
+  it('aucun rappel après la date de fin', () => {
+    expect(slots({ firstDueOn: '2026-09-15', times: ['20:00'], endsOn: '2026-09-17' })).toEqual([
+      '2026-09-15 20:00 due',
+      '2026-09-16 20:00 due',
+      '2026-09-17 20:00 due',
+    ])
+  })
+
+  it('suit un report : le rappel sonne au jour d’arrivée, plus au jour prévu', () => {
+    const keys = slots({ firstDueOn: '2026-09-17', frequency: WEEKLY }, [
+      postponed('2026-09-17', '2026-09-19'),
+    ])
+
+    expect(keys.filter((slot) => slot.endsWith(' due')).slice(0, 2)).toEqual([
+      '2026-09-19 - due',
+      '2026-09-24 - due',
+    ])
+  })
+
+  it('suit une ligne de décalage : la suite repart de sa date d’ancrage', () => {
+    const keys = slots({ startsOn: '2026-09-03', firstDueOn: '2026-09-03', frequency: WEEKLY }, [
+      dose('2026-09-03', '2026-09-10'),
+      dose('2026-09-10', '2026-09-19', { givenOn: '2026-09-12' }),
+      shifted('2026-09-10', '2026-09-12'),
+    ])
+
+    expect(keys.filter((slot) => slot.endsWith(' due')).slice(0, 2)).toEqual([
+      '2026-09-19 - due',
+      '2026-09-26 - due',
+    ])
+  })
+
+  it('ne rappelle plus une échéance déjà donnée', () => {
+    const keys = slots({ firstDueOn: '2026-09-16', frequency: MONTHLY }, [
+      dose('2026-09-16', '2026-10-16', { givenOn: '2026-09-14' }),
+    ])
+
+    expect(keys.some((slot) => slot.startsWith('2026-09-16'))).toBe(false)
+    expect(keys).toContain('2026-10-16 - due')
+  })
+
+  it('suit « Me prévenir avant l’échéance »', () => {
+    const settings = { ...SETTINGS, remindBeforeDue: false }
+
+    expect(slots({ firstDueOn: '2026-10-01', frequency: MONTHLY })).toContain('2026-10-01 - before')
+    expect(slots({ firstDueOn: '2026-10-01', frequency: MONTHLY }, [], { settings })).not.toContain(
+      '2026-10-01 - before',
+    )
+  })
+
+  it('aucun rappel pour un traitement arrêté', () => {
+    expect(slots({ firstDueOn: '2026-09-16', stoppedOn: '2026-09-15' })).toEqual([])
+  })
+
+  it('Q40 : un traitement illisible n’a pas de rappel et ne lève pas', () => {
+    const illegible = remindersOf({ firstDueOn: '2026-02-30' })
+
+    expect(illegible.care).toBeNull()
+    expect(illegible.isNoted('2026-09-15', null)).toBe(false)
+  })
+
+  it('aucun rappel quand l’animal est supprimé ou introuvable', () => {
+    const history = treatment([period({ firstDueOn: '2026-09-16' })])
+    const deleted = { name: 'Luna', deletedAt: '2026-09-15T08:00:00.000Z' }
+
+    expect(treatmentReminders(t, history, deleted, SETTINGS, NOW).care).toBeNull()
+    expect(treatmentReminders(t, history, null, SETTINGS, NOW).care).toBeNull()
   })
 
   it('traduit les rappels en anglais', () => {
     i18n.global.locale.value = 'en'
-    const bravecto = { ...MILBEMAX, name: 'Bravecto', type: 'antiparasitic' as const }
 
-    const [before, due, overdue] = treatmentReminders(t, bravecto, LUNA, NOW)
+    expect(
+      typed(remindersOf({ firstDueOn: '2026-09-16', times: ['20:00'] }).care?.reminders[0]?.title),
+    ).toBe('Luna’s Métacam at 8 pm')
+  })
+})
 
-    expect(before?.title).toBe('Bravecto (Parasite control) for Luna in 3 days')
-    expect(before?.body).toBe('Check you still have a dose on hand.')
-    expect(due?.title).toBe('Bravecto (Parasite control) for Luna today')
-    expect(due?.body).toBe('Log the dose in MémoPatte to schedule the next one.')
-    expect(overdue?.title).toBe('Bravecto (Parasite control) for Luna is 3 days overdue')
-    expect(overdue?.body).toBe('Remember to give the dose, then log it in MémoPatte.')
+describe('treatmentReminders, échéances notées (RA-19)', () => {
+  const { isNoted } = remindersOf(
+    { startsOn: '2026-09-13', firstDueOn: '2026-09-13', times: ['08:00', '20:00'] },
+    [
+      dose('2026-09-13', '2026-09-14', { dueTime: '08:00' }),
+      missed('2026-09-13', '2026-09-14', { dueTime: '20:00' }),
+      dose('2026-09-14', '2026-09-15', { dueTime: '08:00' }),
+      postponed('2026-09-15', '2026-09-16', { dueTime: '08:00' }),
+    ],
+  )
+
+  it('une échéance donnée ou oubliée est notée, à son heure seulement', () => {
+    expect(isNoted('2026-09-13', '08:00')).toBe(true)
+    expect(isNoted('2026-09-13', '20:00')).toBe(true)
+    expect(isNoted('2026-09-14', '08:00')).toBe(true)
+    expect(isNoted('2026-09-14', '20:00')).toBe(false)
   })
 
-  it('programme tous les cycles qui tombent dans les 60 jours', () => {
-    expect(slots('2026-10-15', NOW)).toEqual([
-      '2026-10-15:before',
-      '2026-10-15:due',
-      '2026-10-15:overdue',
-      '2026-11-15:before',
-    ])
+  it('une échéance reportée n’est pas notée', () => {
+    expect(isNoted('2026-09-15', '08:00')).toBe(false)
   })
 
-  it('programme toutes les semaines d’un traitement hebdomadaire sur 60 jours', () => {
-    const result = slots('2026-09-16', NOW, { value: 1, unit: 'week' })
-
-    expect(result.filter((slot) => slot.endsWith(':due'))).toEqual([
-      '2026-09-16:due',
-      '2026-09-23:due',
-      '2026-09-30:due',
-      '2026-10-07:due',
-      '2026-10-14:due',
-      '2026-10-21:due',
-      '2026-10-28:due',
-      '2026-11-04:due',
-      '2026-11-11:due',
-    ])
-    expect(result).toHaveLength(26)
-    expect(result.at(-1)).toBe('2026-11-11:overdue')
-  })
-
-  it('programme le premier cycle d’un traitement toutes les 12 semaines, au-delà de 60 jours', () => {
-    expect(slots('2026-12-08', NOW, { value: 12, unit: 'week' })).toEqual([
-      '2026-12-08:before',
-      '2026-12-08:due',
-      '2026-12-08:overdue',
-    ])
-  })
-
-  it('ne programme pas une relance qui tomberait après la prise suivante, tous les deux jours', () => {
-    const result = slots('2026-09-16', NOW, { value: 2, unit: 'day' })
-
-    expect(result.every((slot) => slot.endsWith(':due'))).toBe(true)
-    expect(result).toHaveLength(30)
-  })
-
-  it('saute directement au premier cycle utile d’un traitement oublié depuis des années', () => {
-    vi.mocked(addFrequency).mockClear()
-
-    const result = slots('2016-09-15', NOW, { value: 1, unit: 'day' })
-
-    expect(result[0]).toBe('2026-09-16:due')
-    expect(vi.mocked(addFrequency).mock.calls.length).toBeLessThan(80)
-  })
-
-  it('passe aux rappels de juin quand la prise de mai n’est pas notée', () => {
-    expect(slots('2026-05-15', new Date(2026, 4, 20, 12)).slice(0, 3)).toEqual([
-      '2026-06-15:before',
-      '2026-06-15:due',
-      '2026-06-15:overdue',
-    ])
-  })
-
-  it('relance d’abord la prise manquée tant que ses trois jours de retard sont à venir', () => {
-    expect(slots('2026-05-15', new Date(2026, 4, 16, 12)).slice(0, 2)).toEqual([
-      '2026-05-15:overdue',
-      '2026-06-15:before',
-    ])
-  })
-
-  it('rattrape plusieurs cycles manqués sans dériver en fin de mois', () => {
-    expect(slots('2026-01-31', new Date(2026, 4, 2, 12))).toEqual([
-      '2026-04-30:overdue',
-      '2026-05-31:before',
-      '2026-05-31:due',
-      '2026-05-31:overdue',
-      '2026-06-30:before',
-      '2026-06-30:due',
-    ])
-  })
-
-  it('cale une échéance du 31 sur le 30 du mois suivant', () => {
-    expect(slots('2026-05-31', new Date(2026, 5, 1, 12))).toContain('2026-06-30:due')
-  })
-
-  it('ne sonne qu’une fois par jour pour un traitement quotidien', () => {
-    const result = treatmentReminders(
-      t,
-      { ...MILBEMAX, nextDueDate: '2026-09-16', frequency: { value: 1, unit: 'day' } },
-      LUNA,
-      NOW,
-    )
-
-    expect(result).toHaveLength(60)
-    expect(result.every(({ key }) => key.endsWith(':due'))).toBe(true)
-    expect(new Set(result.map(({ at }) => at.getTime())).size).toBe(60)
-  })
-
-  it('ne produit rien pour un traitement supprimé', () => {
-    const deleted = { ...MILBEMAX, deletedAt: '2026-09-15T08:00:00.000Z' }
-
-    expect(treatmentReminders(t, deleted, LUNA, NOW)).toEqual([])
-  })
-
-  it('ne produit rien pour un traitement arrêté', () => {
-    const stopped = { ...MILBEMAX, stoppedOn: '2026-09-14' }
-
-    expect(treatmentReminders(t, stopped, LUNA, NOW)).toEqual([])
-  })
-
-  it('ne produit rien quand l’animal est supprimé ou introuvable', () => {
-    const deleted = { ...LUNA, deletedAt: '2026-09-15T08:00:00.000Z' }
-
-    expect(treatmentReminders(t, MILBEMAX, deleted, NOW)).toEqual([])
-    expect(treatmentReminders(t, MILBEMAX, null, NOW)).toEqual([])
+  it('B4 : une clé de l’ancienne forme, sans heure, est notée dès qu’une prise de son jour l’est', () => {
+    expect(isNoted('2026-09-14', null)).toBe(true)
+    expect(isNoted('2026-09-15', null)).toBe(false)
   })
 })
 

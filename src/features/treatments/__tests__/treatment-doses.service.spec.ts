@@ -296,6 +296,47 @@ describe('treatmentDosesService', () => {
       expect(seconde).toMatchObject({ undo: [], alreadyGivenOn: '2026-09-23' })
     })
 
+    function dueSlots(id: string): string[] {
+      return [...notifications.pending.keys()]
+        .filter((key) => key.startsWith(`treatment:${id}:`) && key.endsWith(':due'))
+        .map((key) => key.split(':').slice(2, 4).join(' '))
+        .sort()
+    }
+
+    it('RA-13 : une prise en plus reprogramme le soin sans changer son calendrier', async () => {
+      const hebdo = await creer('hebdo', HEBDO)
+      await service.noteMoment(hebdo, '2026-09-23')
+      const before = dueSlots(hebdo)
+      expect(before[0]).toBe('2026-09-30 ')
+      notifications.scheduleReminders.mockClear()
+
+      await service.apply(hebdo, {
+        kind: 'note',
+        gesture: {
+          kind: 'given',
+          due: { periodId: hebdo, dueOn: '2026-09-30', dueTime: null },
+          givenOn: '2026-09-23',
+        },
+      })
+
+      expect(notifications.scheduleReminders).toHaveBeenCalledOnce()
+      expect(dueSlots(hebdo)).toEqual(before)
+    })
+
+    it('RA-13 : à 8 h et 20 h avec une date de fin, un rappel par heure et rien après la fin', async () => {
+      const metacam = await creer('metacam', { ...DEUX_HEURES, endsOn: '2026-09-25' })
+
+      await service.noteMoment(metacam, '2026-09-23')
+
+      expect(dueSlots(metacam)).toEqual([
+        '2026-09-23 2000',
+        '2026-09-24 0800',
+        '2026-09-24 2000',
+        '2026-09-25 0800',
+        '2026-09-25 2000',
+      ])
+    })
+
     it('refuse une prise dans le futur ou un traitement fini, sans rien écrire', async () => {
       const metacam = await creer('metacam', DEUX_HEURES)
       await db.run('UPDATE treatment_period SET stopped_on = ? WHERE treatment_id = ?', [
