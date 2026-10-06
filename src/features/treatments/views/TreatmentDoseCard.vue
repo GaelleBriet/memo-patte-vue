@@ -5,11 +5,15 @@ import { useI18n } from 'vue-i18n'
 import type { DoseCard } from '../logic/treatment-card'
 import type { Due } from '@/shared/domain/treatment-schedule'
 
-withDefaults(defineProps<{ card: DoseCard; busy?: boolean }>(), { busy: false })
+withDefaults(defineProps<{ card: DoseCard; lessPrecise?: string | null; busy?: boolean }>(), {
+  lessPrecise: null,
+  busy: false,
+})
 
 const emit = defineEmits<{
   done: [due: Due]
   otherDate: []
+  reactivate: []
 }>()
 
 const { t } = useI18n()
@@ -39,6 +43,18 @@ defineExpose({
         <v-icon icon="ms:pill" size="20" />
         <span>{{ card.dosage }}</span>
       </p>
+      <div v-if="lessPrecise" class="treatment-dose-card__less-precise">
+        <v-icon icon="ms:alarm_off" size="18" />
+        <span>{{ lessPrecise }}</span>
+        <button
+          type="button"
+          class="treatment-dose-card__reactivate"
+          :aria-label="t('treatments.detail.reminder.reactivateLabel')"
+          @click="emit('reactivate')"
+        >
+          {{ t('treatments.detail.reminder.reactivate') }}
+        </button>
+      </div>
     </div>
 
     <div v-if="card.end" ref="end" class="treatment-dose-card__dose" tabindex="-1">
@@ -136,6 +152,39 @@ defineExpose({
     flex: 0 0 auto;
     color: rgb(var(--v-theme-primary));
   }
+}
+
+.treatment-dose-card__less-precise {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 4px 4px 12px;
+  border: 1px solid tokens.$color-less-precise-border;
+  border-radius: tokens.$radius-field;
+  background: tokens.$color-less-precise-surface;
+  color: tokens.$color-less-precise-text;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+
+  > .v-icon {
+    flex: 0 0 auto;
+  }
+
+  > span {
+    flex: 1 1 auto;
+  }
+}
+
+.treatment-dose-card__reactivate {
+  flex: 0 0 auto;
+  min-height: tokens.$size-tap-target;
+  padding: 0 12px;
+  border: 0;
+  background: transparent;
+  color: rgb(var(--v-theme-primary));
+  font-size: 14px;
+  font-weight: 700;
 }
 
 .treatment-dose-card__label {

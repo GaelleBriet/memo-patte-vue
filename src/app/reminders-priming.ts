@@ -9,9 +9,10 @@ import {
   getAnimalsRepository,
   type AnimalsRepository,
 } from '@/features/animals/repository/animals.repository'
-import type { Treatment } from '@/features/treatments/schema/treatment.schema'
+import { readableScheduleOf } from '@/features/treatments/logic/treatment-schedule'
 import {
   getTreatmentsRepository,
+  type TreatmentWithHistory,
   type TreatmentsRepository,
 } from '@/features/treatments/repository/treatments.repository'
 import type { Vaccination } from '@/features/vaccinations/schema/vaccination.schema'
@@ -27,13 +28,17 @@ type Provider<T> = () => T | Promise<T>
 export type CarnetDueDates = {
   animals: Pick<Animal, 'id' | 'deletedAt'>[]
   vaccinations: Pick<Vaccination, 'animalId' | 'dueDate' | 'deletedAt'>[]
-  treatments: Pick<Treatment, 'animalId' | 'deletedAt' | 'stoppedOn'>[]
+  treatments: Pick<TreatmentWithHistory, 'animalId' | 'periods' | 'doses'>[]
 }
 
-/**
- * Un vaccin compte tant que sa relance est programmée ; un traitement en cours toujours, ses rappels
- * suivant la fréquence même quand sa dernière échéance est passée.
- */
+/** D'après le moteur : ni fini, ni arrêté, ni illisible, avec une dose du moment ou à venir. */
+function hasUpcomingDose(treatment: CarnetDueDates['treatments'][number], today: string): boolean {
+  const schedule = readableScheduleOf(treatment, today)
+  if (schedule === null || schedule.phase === 'ended' || schedule.phase === 'stopped') return false
+  return schedule.currentDoses.length > 0 || schedule.upcoming(1).length > 0
+}
+
+/** Un vaccin compte tant que sa relance est programmée ; un traitement tant qu'il a une dose à venir. */
 export function hasUpcomingDueDates(
   { animals, vaccinations, treatments }: CarnetDueDates,
   today: string,
@@ -42,16 +47,17 @@ export function hasUpcomingDueDates(
     animals.filter((animal) => animal.deletedAt === null).map((animal) => animal.id),
   )
   const lastRemindedDueDate = format(subDays(parseISO(today), DAYS_OVERDUE), 'yyyy-MM-dd')
-  const isActive = (entry: { animalId: string; deletedAt: string | null }) =>
-    entry.deletedAt === null && activeAnimals.has(entry.animalId)
-
   return (
     vaccinations.some(
       (vaccination) =>
-        isActive(vaccination) &&
+        vaccination.deletedAt === null &&
+        activeAnimals.has(vaccination.animalId) &&
         vaccination.dueDate !== null &&
         vaccination.dueDate >= lastRemindedDueDate,
-    ) || treatments.some((treatment) => isActive(treatment) && treatment.stoppedOn === null)
+    ) ||
+    treatments.some(
+      (treatment) => activeAnimals.has(treatment.animalId) && hasUpcomingDose(treatment, today),
+    )
   )
 }
 
@@ -60,7 +66,7 @@ export type RemindersPrimingDependencies = {
   shouldShowPriming: () => Promise<boolean>
   animals: Provider<Pick<AnimalsRepository, 'list'>>
   vaccinations: Provider<Pick<VaccinationsRepository, 'listAll'>>
-  treatments: Provider<Pick<TreatmentsRepository, 'listAll'>>
+  treatments: Provider<Pick<TreatmentsRepository, 'listAllWithHistory'>>
   today: () => string
 }
 
@@ -86,7 +92,7 @@ export function createRemindersPriming({
       const [animalRows, vaccinationRows, treatmentRows] = await Promise.all([
         animalsRepository.list(),
         vaccinationsRepository.listAll(),
-        treatmentsRepository.listAll(),
+        treatmentsRepository.listAllWithHistory(),
       ])
       const carnet = {
         animals: animalRows,

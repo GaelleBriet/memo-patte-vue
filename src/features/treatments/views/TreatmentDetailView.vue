@@ -13,7 +13,7 @@ import TreatmentStopDialog from './TreatmentStopDialog.vue'
 import TreatmentUnloggedPrompt from './TreatmentUnloggedPrompt.vue'
 import { useTreatmentDetail } from '../composables/use-treatment-detail'
 import { useTreatmentGestures } from '../composables/use-treatment-gestures'
-import { detailActions, doseCard } from '../logic/treatment-card'
+import { detailActions, doseCard, lessPreciseReminder } from '../logic/treatment-card'
 import { choiceGestures, chooseDaysSubtitle, type DayChoice } from '../logic/treatment-choose-days'
 import type { DoseAction } from '../logic/treatment-dose-writes'
 import {
@@ -38,8 +38,10 @@ import {
 } from '../logic/treatment-shift-box'
 import { stopPrompt } from '../logic/treatment-stop'
 import { promptChoice, unloggedBanner, type PromptActionId } from '../logic/treatment-unlogged'
+import { useExactReminders } from '@/core/notifications/use-exact-reminders'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
+import ExactRemindersExplainer from '@/shared/components/ExactRemindersExplainer.vue'
 import OverflowMenu, { type OverflowMenuItem } from '@/shared/components/OverflowMenu.vue'
 import PushedScreen from '@/shared/components/PushedScreen.vue'
 import { originQuery } from '@/shared/domain/reminder-route'
@@ -83,6 +85,13 @@ const card = computed(() =>
         animal: named.value.animal,
         today: today.value,
       })
+    : null,
+)
+const exactReminders = useExactReminders()
+const isExplainerOpen = ref(false)
+const lessPrecise = computed(() =>
+  treatment.value && schedule.value
+    ? lessPreciseReminder(t, treatment.value, schedule.value, exactReminders.status.value)
     : null,
 )
 const unlogged = computed(() =>
@@ -307,9 +316,11 @@ async function remove(): Promise<void> {
         <TreatmentDoseCard
           ref="doseCard"
           :card="card"
+          :less-precise="lessPrecise"
           :busy="gestures.isBusy.value"
           @done="done"
           @other-date="isOtherDateOpen = true"
+          @reactivate="isExplainerOpen = true"
         />
 
         <TreatmentUnloggedPrompt
@@ -413,6 +424,12 @@ async function remove(): Promise<void> {
       :cancel-label="deleteTexts.cancel"
       :confirm-label="deleteTexts.confirm"
       @confirm="remove"
+    />
+
+    <ExactRemindersExplainer
+      v-if="lessPrecise"
+      v-model="isExplainerOpen"
+      :back-label="t('treatments.detail.reminder.explainerBack', { name: named.name })"
     />
 
     <template v-if="treatment && actions?.canResume" #actions>

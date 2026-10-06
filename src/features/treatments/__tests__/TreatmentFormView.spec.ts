@@ -20,11 +20,29 @@ import { simulateWebResume } from '@/core/app-lifecycle/__tests__/simulate-resum
 import i18n from '@/core/i18n'
 import router from '@/router'
 import vuetify from '@/core/theme/vuetify'
-import { shouldShowPriming } from '@/core/notifications/permission'
+import {
+  getExactRemindersStatus,
+  markExactRemindersSuggested,
+  wasExactRemindersSuggested,
+  type ExactRemindersStatus,
+} from '@/core/notifications/exact-reminders'
+import {
+  getNotificationPermissionStatus,
+  shouldShowPriming,
+  type NotificationPermissionStatus,
+} from '@/core/notifications/permission'
 import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
 
 vi.mock('@/core/notifications/permission', () => ({
   shouldShowPriming: vi.fn<() => Promise<boolean>>(async () => false),
+  getNotificationPermissionStatus: vi.fn<() => Promise<NotificationPermissionStatus>>(),
+}))
+
+vi.mock('@/core/notifications/exact-reminders', () => ({
+  getExactRemindersStatus: vi.fn<() => Promise<ExactRemindersStatus>>(),
+  openExactRemindersSettings: vi.fn<() => Promise<ExactRemindersStatus>>(),
+  wasExactRemindersSuggested: vi.fn<() => boolean>(),
+  markExactRemindersSuggested: vi.fn<() => void>(),
 }))
 
 // Le vrai routeur ne sert qu'aux tests de routes (`resolve`) : naviguer avec lui chargerait
@@ -159,6 +177,10 @@ let routeur: Router
 
 beforeEach(async () => {
   vi.useFakeTimers({ toFake: ['Date'], now: new Date(AUJOURDHUI) })
+  vi.mocked(getExactRemindersStatus).mockResolvedValue('unavailable')
+  vi.mocked(getNotificationPermissionStatus).mockResolvedValue('granted')
+  vi.mocked(wasExactRemindersSuggested).mockReturnValue(false)
+  vi.mocked(markExactRemindersSuggested).mockClear()
   setActivePinia(createPinia())
   const animals = useAnimalsStore()
   loadAnimals = vi.spyOn(animals, 'load').mockImplementation(async () => {
@@ -289,6 +311,7 @@ describe('TreatmentFormView — structure (TR-1, planche V1)', () => {
       'Fréquence',
       'Première prise le',
       'Heures du traitement',
+      'Rappel',
       'Posologie',
       'Date de fin',
     ])
@@ -391,6 +414,7 @@ describe('TreatmentFormView — structure (TR-1, planche V1)', () => {
       'Frequency',
       'First dose on',
       'Treatment times',
+      'Reminder',
       'Dosage',
       'End date',
     ])
@@ -487,6 +511,195 @@ describe('TreatmentFormView — heures du traitement (TR-5)', () => {
     expect(wrapper.get('.treatment-times__remove').attributes('aria-label')).toBe(
       'Remove 8\u00a0pm',
     )
+  })
+})
+
+describe('TreatmentFormView — champ « Rappel » (RA-7, RA-8, RA-23, planches V1 et V2)', () => {
+  beforeEach(() => {
+    vi.stubGlobal('visualViewport', {
+      addEventListener() {},
+      removeEventListener() {},
+      width: 412,
+      height: 915,
+      offsetTop: 0,
+    })
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    // Les tests suivants lisent les écrans poussés dans l'ordre du document.
+    document.querySelector('body > .v-overlay-container')?.remove()
+  })
+
+  function moments(wrapper: VueWrapper): string[] {
+    return wrapper.findAll('.treatment-reminder__choice').map((choix) => choix.text())
+  }
+
+  function momentCoche(wrapper: VueWrapper): string | undefined {
+    return wrapper
+      .findAll('.treatment-reminder__choice')
+      .find((choix) => choix.attributes('aria-checked') === 'true')
+      ?.text()
+  }
+
+  async function choisirMoment(wrapper: VueWrapper, texte: string) {
+    const choix = wrapper.findAll('.treatment-reminder__choice').find((c) => c.text() === texte)
+    await choix!.trigger('click')
+  }
+
+  it('sans heure, propose l’heure du rappel, 9 h par défaut, et l’écrit une fois changée (RA-8)', async () => {
+    const wrapper = await monterCreation()
+    const heure = wrapper.get('.treatment-reminder__time')
+
+    expect(heure.text()).toBe('À 9 h')
+    expect(heure.get('input').attributes('aria-label')).toBe('Heure du rappel, 9 h. Modifier.')
+    expect(aide(wrapper, 'reminder')).toBe('Sans heure de traitement, choisis l’heure du rappel.')
+
+    await remplirMinimum(wrapper)
+    await choisirHeure(wrapper, '.treatment-reminder__time-input', '07:30')
+    await soumettre(wrapper)
+
+    expect(create.mock.calls[0]![0]).toMatchObject({ times: [], reminderTime: '07:30' })
+  })
+
+  it('avec une heure, « À l’heure » coché et « 1 h avant », sans rappels précis (RA-7)', async () => {
+    const wrapper = await monterCreation()
+    await ajouterHeure(wrapper, '21:00')
+
+    expect(wrapper.find('.treatment-reminder__time').exists()).toBe(false)
+    expect(moments(wrapper)).toEqual(['À l’heure', '1 h avant'])
+    expect(momentCoche(wrapper)).toBe('À l’heure')
+    expect(wrapper.get('.treatment-reminder__choices').attributes('role')).toBe('radiogroup')
+    expect(aide(wrapper, 'reminder')).toBeUndefined()
+
+    await remplirMinimum(wrapper)
+    await choisirMoment(wrapper, '1 h avant')
+    await soumettre(wrapper)
+
+    expect(create.mock.calls[0]![0]).toMatchObject({ reminderOffsetMinutes: 60 })
+  })
+
+  it('propose aussi « 15 min avant » et « 30 min avant » avec les rappels précis actifs, et en anglais', async () => {
+    vi.mocked(getExactRemindersStatus).mockResolvedValue('precise')
+    i18n.global.locale.value = 'en'
+    const wrapper = await monterCreation()
+    await ajouterHeure(wrapper, '08:00')
+    await ajouterHeure(wrapper, '20:00')
+
+    expect(moments(wrapper)).toEqual([
+      'At the time',
+      '15 min before',
+      '30 min before',
+      '1 hour before',
+    ])
+    expect(aide(wrapper, 'reminder')).toBe('For each time: 8 am and 8 pm.')
+    expect(wrapper.find('.treatment-reminder__suggest').exists()).toBe(false)
+  })
+
+  it('dit que le rappel vaut pour chaque heure (V1 bis)', async () => {
+    const wrapper = await monterCreation()
+    await ajouterHeure(wrapper, '08:00')
+    await ajouterHeure(wrapper, '20:00')
+
+    expect(aide(wrapper, 'reminder')).toBe('Pour chaque heure : 8 h et 20 h.')
+  })
+
+  it('corrige seulement le rappel d’un traitement qui a des prises (B3)', async () => {
+    vi.mocked(getExactRemindersStatus).mockResolvedValue('precise')
+    getWithHistory.mockResolvedValue(milbemax([periode({ times: ['21:00'] })]))
+    const wrapper = await monterEdition()
+
+    await choisirMoment(wrapper, '30 min avant')
+    await soumettre(wrapper)
+
+    expect(update.mock.calls[0]![1]).toMatchObject({ times: ['21:00'], reminderOffsetMinutes: 30 })
+  })
+
+  describe('rappels précis retirés (V2 ter)', () => {
+    beforeEach(() => {
+      vi.mocked(getExactRemindersStatus).mockResolvedValue('removed')
+      getWithHistory.mockResolvedValue(
+        milbemax([periode({ times: ['21:00'], reminderOffsetMinutes: 30 })]),
+      )
+    })
+
+    it('garde le choix fait, dit « Peut arriver en retard » et ouvre l’écran d’explication par son lien', async () => {
+      const wrapper = await monterEdition()
+
+      expect(moments(wrapper)).toEqual(['À l’heure', '30 min avant', '1 h avant'])
+      expect(momentCoche(wrapper)).toBe('30 min avant')
+      const encart = wrapper.get('.treatment-reminder__less-precise')
+      expect(encart.text()).toContain('Peut arriver en retard : les rappels précis sont désactivés')
+      expect(encart.get('button').text()).toBe('Réactiver les rappels précis')
+
+      await encart.get('button').trigger('click')
+      await flushPromises()
+
+      expect(document.body.textContent).toContain('Recevoir les rappels à l’heure pile')
+      wrapper.unmount()
+    })
+
+    it('garde le rappel quand on modifie autre chose', async () => {
+      const wrapper = await monterEdition()
+
+      await champ(wrapper, 'treatment-name').setValue('Milbemax chat')
+      await soumettre(wrapper)
+
+      expect(update.mock.calls[0]![1]).toMatchObject({ reminderOffsetMinutes: 30 })
+      expect(wrapper.find('.treatment-reminder__suggest').exists()).toBe(false)
+    })
+  })
+
+  describe('suggestion des rappels précis (V2, RA-23)', () => {
+    beforeEach(() => {
+      vi.mocked(getExactRemindersStatus).mockResolvedValue('never-enabled')
+    })
+
+    it('apparaît une fois, quand le traitement reçoit sa première heure, et ouvre l’écran d’explication', async () => {
+      const wrapper = await monterCreation()
+      expect(wrapper.find('.treatment-reminder__suggest').exists()).toBe(false)
+
+      await ajouterHeure(wrapper, '21:00')
+      await flushPromises()
+
+      const suggestion = wrapper.get('.treatment-reminder__suggest')
+      expect(suggestion.text()).toBe('Pour un rappel à l’heure pile, active les rappels précis')
+      expect(markExactRemindersSuggested).toHaveBeenCalledOnce()
+
+      await suggestion.trigger('click')
+      await flushPromises()
+      expect(document.body.textContent).toContain('Recevoir les rappels à l’heure pile')
+      wrapper.unmount()
+    })
+
+    it('ne revient pas quand elle a déjà été faite sur ce téléphone', async () => {
+      vi.mocked(wasExactRemindersSuggested).mockReturnValue(true)
+      const wrapper = await monterCreation()
+
+      await ajouterHeure(wrapper, '21:00')
+      await flushPromises()
+
+      expect(wrapper.find('.treatment-reminder__suggest').exists()).toBe(false)
+    })
+
+    it('n’apparaît pas tant que les notifications ne sont pas autorisées', async () => {
+      vi.mocked(getNotificationPermissionStatus).mockResolvedValue('unasked')
+      const wrapper = await monterCreation()
+
+      await ajouterHeure(wrapper, '21:00')
+      await flushPromises()
+
+      expect(wrapper.find('.treatment-reminder__suggest').exists()).toBe(false)
+      expect(markExactRemindersSuggested).not.toHaveBeenCalled()
+    })
+
+    it('n’apparaît pas à l’ouverture d’un traitement qui a déjà une heure', async () => {
+      getWithHistory.mockResolvedValue(milbemax([periode({ times: ['21:00'] })]))
+      const wrapper = await monterEdition()
+
+      expect(wrapper.find('.treatment-reminder__suggest').exists()).toBe(false)
+      expect(markExactRemindersSuggested).not.toHaveBeenCalled()
+    })
   })
 })
 
@@ -2193,10 +2406,23 @@ describe('TreatmentFormView — reprise (TR-32, planche V7)', () => {
       'Fréquence',
       'Première prise le',
       'Heures du traitement',
+      'Rappel',
       'Posologie',
       'Date de fin',
     ])
     expect(wrapper.find('#treatment-name').exists()).toBe(false)
+  })
+
+  it('reprend le rappel de la dernière période et l’écrit avec la reprise', async () => {
+    getWithHistory.mockResolvedValue(panacur([{ ...PANACUR, reminderOffsetMinutes: 60 }]))
+    const wrapper = await monterReprise()
+
+    expect(wrapper.get('.treatment-reminder__choice[aria-checked="true"]').text()).toBe('1 h avant')
+
+    await champ(wrapper, 'treatment-first-dose-on').setValue('2026-11-03')
+    await soumettre(wrapper)
+
+    expect(resume.mock.calls[0]![1]).toMatchObject({ reminderOffsetMinutes: 60 })
   })
 
   it('reprend les réglages de la dernière période, tous modifiables, et le dit', async () => {

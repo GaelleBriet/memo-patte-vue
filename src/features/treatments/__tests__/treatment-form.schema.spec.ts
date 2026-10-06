@@ -75,6 +75,27 @@ describe('treatmentRhythmSchema', () => {
     expect(accepte({ frequency: { value: 1.5, unit: 'day' } })).toBe(false)
     expect(accepte({ endsOn: '2026-02-30' })).toBe(false)
   })
+
+  it('garde le rappel choisi : un des quatre moments, ou une heure, ou rien (RA-7, RA-8)', () => {
+    const accepte = (changes: object) =>
+      treatmentRhythmSchema.safeParse({ ...REGLAGES, ...changes }).success
+
+    for (const reminderOffsetMinutes of [0, 15, 30, 60, null]) {
+      expect(accepte({ reminderOffsetMinutes })).toBe(true)
+    }
+    expect(accepte({ reminderOffsetMinutes: 45 })).toBe(false)
+    expect(accepte({ reminderTime: '07:30' })).toBe(true)
+    expect(accepte({ reminderTime: null })).toBe(true)
+    expect(accepte({ reminderTime: '7 h 30' })).toBe(false)
+    expect(
+      treatmentRhythmSchema.parse({ ...REGLAGES, reminderOffsetMinutes: 30, reminderTime: null }),
+    ).toEqual({ ...REGLAGES, reminderOffsetMinutes: 30, reminderTime: null })
+  })
+
+  it('laisse le rappel absent : la période garde alors le sien', () => {
+    expect(treatmentRhythmSchema.parse(REGLAGES)).not.toHaveProperty('reminderOffsetMinutes')
+    expect(treatmentRhythmSchema.parse(REGLAGES)).not.toHaveProperty('reminderTime')
+  })
 })
 
 describe('treatmentCreationSchema', () => {
@@ -141,6 +162,11 @@ describe('treatmentResumptionSchema', () => {
     expect(
       treatmentResumptionSchema.parse({ ...REPRISE, name: 'Autre', type: 'deworming' }),
     ).toEqual(REPRISE)
+  })
+
+  it('reprend avec le rappel saisi', () => {
+    const avecRappel = { ...REPRISE, reminderOffsetMinutes: 60, reminderTime: '08:00' }
+    expect(treatmentResumptionSchema.parse(avecRappel)).toEqual(avecRappel)
   })
 
   it('exige la première prise et refuse une date de fin qui la précède', () => {

@@ -167,3 +167,8 @@ $color-exact-reminders-hero-surface: $color-notice-surface; // Pastille de l’i
 $radius-reminders-settings-card: 18px; // Coins d'une carte de réglage
 $color-reminders-settings-neutral-surface: $color-reminders-off-surface; // Fond de l'état « pas encore activés » ou « désactivées », et de « peuvent arriver en retard »
 $color-reminders-settings-neutral-text: $color-reminders-off-text; // Leur première ligne
+$color-exact-reminders-suggest-surface: $color-notice-surface; // Suggestion du formulaire (V2)
+$color-exact-reminders-suggest-border: $color-priming-icon-surface; // Sa bordure
+$color-less-precise-surface: $color-reminders-off-surface; // « Peut arriver en retard » (V2 ter, V2 quater)
+$color-less-precise-border: $color-reminders-off-border; // Sa bordure
+$color-less-precise-text: $color-reminders-off-text; // Son texte

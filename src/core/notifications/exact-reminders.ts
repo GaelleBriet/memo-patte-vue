@@ -22,6 +22,25 @@ function markEverGranted(): void {
   }
 }
 
+const SUGGESTED_KEY = 'memopatte.notifications.exactSuggested'
+
+/** La suggestion du formulaire, une seule fois par téléphone (RA-23). */
+export function wasExactRemindersSuggested(): boolean {
+  try {
+    return localStorage.getItem(SUGGESTED_KEY) === 'true'
+  } catch {
+    return true
+  }
+}
+
+export function markExactRemindersSuggested(): void {
+  try {
+    localStorage.setItem(SUGGESTED_KEY, 'true')
+  } catch {
+    // Sans stockage, la suggestion se lit déjà faite.
+  }
+}
+
 async function readAccess(): Promise<boolean | null> {
   let granted: boolean
   try {

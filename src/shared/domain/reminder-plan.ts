@@ -12,10 +12,10 @@ import {
   DAYS_BEFORE_DUE,
   DAYS_OVERDUE,
   dueReminderKey,
+  parseReminderKey,
   type DueReminderEntry,
   type DueReminderMoment,
 } from './due-reminders'
-import { remindersWithinCap } from './due-reminders-schedule'
 import type { Due, TreatmentPeriodInput, TreatmentSchedule } from './treatment-schedule'
 import { DAYS_PER_STEP, toDate, uniqueSorted } from './treatment-schedule-dues'
 
@@ -60,6 +60,10 @@ export type CareReminders = {
 export const MAX_REMINDERS_PER_CARE = 60
 
 export const DEFAULT_REMINDER_TIME = '09:00'
+export const DEFAULT_CARNET_REMINDER_SETTINGS: CarnetReminderSettings = {
+  vaccineReminderTime: DEFAULT_REMINDER_TIME,
+  remindBeforeDue: true,
+}
 export const DAYS_BEFORE_VACCINATION = 14
 
 const WITH_DONE_ACTION: ReadonlySet<DueReminderMoment> = new Set(['due', 'overdue'])
@@ -223,6 +227,57 @@ export function vaccinationReminderPlan(
   ].filter(({ at }) => at > now)
 
   return { entry, reminders, complete: true, relay }
+}
+
+const FIRST_DUE = 0
+const FIRST_SPAN = 1
+const LATER = 2
+
+function dueSlot({ dueDate, dueTime }: { dueDate: string; dueTime: string | null }): string {
+  return `${dueDate} ${dueTime ?? ''}`
+}
+
+/** Échéance à venir la plus proche de chaque entrée, jour et heure, d'après les rappels du jour même. */
+function firstUpcomingByEntry(reminders: Reminder[]): Map<string, string> {
+  const first = new Map<string, string>()
+
+  for (const { key } of reminders) {
+    const parsed = parseReminderKey(key)
+    if (parsed === null || parsed.moment !== 'due') continue
+    const known = first.get(parsed.entry)
+    if (known === undefined || dueSlot(parsed) < known) first.set(parsed.entry, dueSlot(parsed))
+  }
+
+  return first
+}
+
+/** Prévenance et relance comptent avec la première échéance quand elles visent son jour. */
+function rankOf(reminder: Reminder, first: Map<string, string>): number {
+  const parsed = parseReminderKey(reminder.key)
+  const slot = parsed === null ? undefined : first.get(parsed.entry)
+  if (parsed === null || slot === undefined) return LATER
+  if (parsed.moment === 'due') return slot === dueSlot(parsed) ? FIRST_DUE : LATER
+
+  return slot.startsWith(`${parsed.dueDate} `) ? FIRST_SPAN : LATER
+}
+
+/**
+ * Rappels tenant sous le plafond, triés dans le temps : la première échéance à venir de chaque
+ * entrée passe avant le reste, si lointaine soit-elle, puis les plus proches remplissent la place.
+ */
+export function remindersWithinCap(reminders: Reminder[], limit: number): Reminder[] {
+  const byDate = [...reminders].sort((a, b) => compareAsc(a.at, b.at))
+  const max = Math.max(limit, 0)
+  if (byDate.length <= max) return byDate
+
+  const first = firstUpcomingByEntry(byDate)
+
+  return byDate
+    .map((reminder, order) => ({ reminder, order, rank: rankOf(reminder, first) }))
+    .sort((a, b) => a.rank - b.rank || a.order - b.order)
+    .slice(0, max)
+    .sort((a, b) => a.order - b.order)
+    .map(({ reminder }) => reminder)
 }
 
 function withRelay(reminder: Reminder, relay: string): Reminder {
