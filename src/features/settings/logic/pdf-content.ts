@@ -1,12 +1,12 @@
 import { differenceInCalendarDays, format, parseISO } from 'date-fns'
 
 import { EXPORT_FILE_TIME } from './export-format'
+import { treatmentOutlooks, type TreatmentOutlook } from './treatment-outlook'
 import { buildReminders, type ReminderKind } from '@/shared/domain/reminders'
 import type { ExportData, ExportFrequency } from '@/shared/domain/carnet-data'
 import {
   currentPeriods,
   givenDoseHistories,
-  periodHeads,
   vaccinationHistories,
   type GivenDose,
 } from '@/shared/domain/carnet-heads'
@@ -35,9 +35,7 @@ export type PdfTreatmentRow = {
   previousDoses: PdfDoseSeries[]
   /** La dernière prise est une prise en plus. */
   lastDoseExtra: boolean
-  /** `null` pour un traitement arrêté : il n'a plus d'échéance. */
-  nextDueDate: string | null
-  stoppedOn: string | null
+  due: TreatmentOutlook
   state: PdfDueState
 }
 
@@ -104,6 +102,15 @@ function byDueDateAscending(a: { dueDate: string | null }, b: { dueDate: string 
   return a.dueDate.localeCompare(b.dueDate)
 }
 
+function treatmentState(due: TreatmentOutlook): PdfDueState {
+  if (due.kind !== 'due') return 'none'
+  return due.overdue ? 'overdue' : 'upToDate'
+}
+
+function dueKey(due: TreatmentOutlook): { dueDate: string | null } {
+  return { dueDate: due.kind === 'due' ? `${due.dueOn} ${due.dueTime ?? ''}` : null }
+}
+
 export function buildCarnetPdfContent(
   data: ExportData,
   animalId: string,
@@ -114,7 +121,7 @@ export function buildCarnetPdfContent(
 
   const injections = vaccinationHistories(data.vaccinationInjections)
   const doses = givenDoseHistories(data.treatmentDoses)
-  const heads = periodHeads(data.treatmentDoses)
+  const outlook = treatmentOutlooks(data, today)
   const periods = currentPeriods(data.treatmentPeriods)
   const frequencies = new Map(data.treatmentPeriods.map(({ id, frequency }) => [id, frequency]))
   const dated = ({ givenOn, periodId, status }: GivenDose): DatedDose[] => {
@@ -146,21 +153,19 @@ export function buildCarnetPdfContent(
       const [head, ...previous] = doses.get(item.id) ?? []
       const period = periods.get(item.id)
       if (!head || !period) return []
-      const planned = heads.get(period.id)?.nextDueDate ?? period.firstDueOn
-      const nextDueDate = period.stoppedOn ? null : planned
+      const due = outlook(item.id)
       return [
         {
           name: item.name,
           lastDoseDate: head.givenOn,
           previousDoses: doseSeries(previous.flatMap(dated)),
           lastDoseExtra: head.status === 'extra',
-          nextDueDate,
-          stoppedOn: period.stoppedOn,
-          state: dueState(nextDueDate, today, 'treatment'),
+          due,
+          state: treatmentState(due),
         },
       ]
     })
-    .sort((a, b) => byDueDateAscending({ dueDate: a.nextDueDate }, { dueDate: b.nextDueDate }))
+    .sort((a, b) => byDueDateAscending(dueKey(a.due), dueKey(b.due)))
 
   const weightEntries: PdfWeightRow[] = data.weightEntries
     .filter((item) => item.animalId === animalId)

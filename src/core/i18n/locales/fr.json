@@ -1195,7 +1195,11 @@
       "treatments": {
         "title": "Traitements",
         "empty": "Aucun traitement enregistré.",
-        "stopped": "Arrêté le {date}"
+        "stopped": "Arrêté le {date}",
+        "ended": "Terminé le {date}",
+        "dueAt": "{date} à {time}",
+        "unreadable": "Donnée illisible",
+        "noDate": "—"
       },
       "weight": {
         "title": "Poids",
