@@ -50,7 +50,7 @@ export type SheetDoneTarget =
   | { kind: 'confirm'; due: Due }
   | { kind: 'already'; givenOn: string }
   | { kind: 'missed' }
-  | { kind: 'detail' }
+  | { kind: 'detail'; dueOn: string }
   | { kind: 'none' }
 
 function givenOnDay(schedule: Pick<TreatmentSchedule, 'doses'>, day: string): boolean {
@@ -81,7 +81,8 @@ export function sheetDoneTarget(
     return { kind: 'already', givenOn: today }
   }
   const given = { kind: 'given', due: pending.due, givenOn: today } as const
-  if (schedule.doseFor(given).dose.status === 'extra') return { kind: 'detail' }
+  if (schedule.doseFor(given).dose.status === 'extra')
+    return { kind: 'detail', dueOn: pending.due.dueOn }
   const tapped = doneGesture(schedule, pending.due, today)
   return tapped.confirm
     ? { kind: 'confirm', due: pending.due }

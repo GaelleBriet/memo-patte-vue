@@ -142,7 +142,10 @@ describe('sheetDoneTarget — « Fait aujourd’hui » vise l’échéance de la
       )
       const schedule = treatmentScheduleOf(book, '2026-10-16')
 
-      expect(sheetDoneTarget(schedule, LIGNE, '2026-10-16')).toEqual({ kind: 'detail' })
+      expect(sheetDoneTarget(schedule, LIGNE, '2026-10-16')).toEqual({
+        kind: 'detail',
+        dueOn: '2026-11-16',
+      })
     })
 
     it('avec une prise du jour, « déjà notée » (Q33)', () => {

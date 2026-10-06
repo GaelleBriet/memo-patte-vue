@@ -158,7 +158,7 @@ async function note(gesture: DoseGesture): Promise<void> {
 }
 
 const actions = useTreatmentSheetActions(
-  { schedule, doseDue, today, named },
+  { treatmentId: computed(() => history.value?.id ?? null), schedule, doseDue, today, named },
   {
     note: (gesture) => void note(gesture),
     confirm: (due) => {
