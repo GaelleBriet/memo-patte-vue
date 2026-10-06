@@ -74,4 +74,22 @@ describe('DueStatusChip — contrat de style', () => {
     expect(declaration(css, '.due-status-chip--none', 'color')).toBe('#5c5751')
     expect(declaration(css, '.due-status-chip--none', 'font-weight')).toBe('600')
   })
+
+  it('borde « À renseigner » de turquoise, sans fond, en pétrole (Q6 du 2026-10-06)', () => {
+    expect(declaration(css, '.due-status-chip--to-log', 'box-shadow')).toBe(
+      'inset 0 0 0 1.5px #b9e4e7',
+    )
+    expect(declaration(css, '.due-status-chip--to-log', 'background')).toBe('transparent')
+    expect(declaration(css, '.due-status-chip--to-log', 'color')).toBe(
+      'rgb(var(--v-theme-primary))',
+    )
+  })
+
+  it('borde « Prévu le … » d’un vaccin jamais fait comme « À renseigner » (B · V11)', () => {
+    for (const propriete of ['box-shadow', 'background', 'color']) {
+      expect(declaration(css, '.due-status-chip--planned', propriete)).toBe(
+        declaration(css, '.due-status-chip--to-log', propriete),
+      )
+    }
+  })
 })

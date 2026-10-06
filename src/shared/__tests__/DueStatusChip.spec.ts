@@ -26,7 +26,10 @@ describe('DueStatusChip', () => {
     expect(wrapper.find('svg').exists()).toBe(true)
   })
 
-  it.each(['today', 'tomorrow', 'later', 'none'] as const)('accepte le statut %s', (status) => {
-    expect(monter({ status, label: 'x' }).classes()).toContain(`due-status-chip--${status}`)
-  })
+  it.each(['today', 'tomorrow', 'later', 'none', 'to-log', 'planned'] as const)(
+    'accepte le statut %s',
+    (status) => {
+      expect(monter({ status, label: 'x' }).classes()).toContain(`due-status-chip--${status}`)
+    },
+  )
 })
