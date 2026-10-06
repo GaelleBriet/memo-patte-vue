@@ -382,13 +382,15 @@ describe('treatmentReminderPlan, RA-6', () => {
     ])
   })
 
-  it('aucun rappel après la date de fin, relance comprise', () => {
+  const ENDING = {
+    firstDueOn: '2026-10-12',
+    frequency: { value: 1, unit: 'week' as const },
+    endsOn: '2026-10-19',
+  }
+
+  it('aucun rappel du jour ni prévenance après la date de fin ; la relance de la dernière dose est envoyée', () => {
     const { reminders } = plan({
-      input: {
-        firstDueOn: '2026-10-12',
-        frequency: { value: 1, unit: 'week' },
-        endsOn: '2026-10-19',
-      },
+      input: ENDING,
       today: '2026-10-06',
       now: new Date(2026, 9, 6, 12),
     })
@@ -399,7 +401,50 @@ describe('treatmentReminderPlan, RA-6', () => {
       '2026-10-12::overdue',
       '2026-10-19::before',
       '2026-10-19::due',
+      '2026-10-19::overdue',
     ])
+    expect(reminders.at(-1)?.at).toEqual(new Date(2026, 9, 22, 9))
+  })
+
+  it('la relance de la dernière dose reste programmée quand l’app s’ouvre après la date de fin', () => {
+    const { reminders } = plan({
+      input: ENDING,
+      doses: [
+        {
+          periodId: 'p1',
+          dueOn: '2026-10-12',
+          dueTime: null,
+          givenOn: '2026-10-12',
+          status: 'given',
+          nextDueDate: '2026-10-19',
+        },
+      ],
+      today: '2026-10-20',
+      now: new Date(2026, 9, 20, 12),
+    })
+
+    expect(reminders.map(({ key, at }) => [slot(key), at])).toEqual([
+      ['2026-10-19::overdue', new Date(2026, 9, 22, 9)],
+    ])
+  })
+
+  it('après la date de fin, rien quand la dernière dose est notée', () => {
+    const lastNoted = {
+      periodId: 'p1',
+      dueOn: '2026-10-19',
+      dueTime: null,
+      givenOn: '2026-10-19',
+      status: 'given' as const,
+      nextDueDate: '2026-10-26',
+    }
+    const { reminders } = plan({
+      input: ENDING,
+      doses: [lastNoted],
+      today: '2026-10-20',
+      now: new Date(2026, 9, 20, 12),
+    })
+
+    expect(reminders).toEqual([])
   })
 
   it('aucun rappel pour un traitement arrêté', () => {

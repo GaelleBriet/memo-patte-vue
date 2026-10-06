@@ -17,7 +17,7 @@ import {
 } from './due-reminders'
 import { remindersWithinCap } from './due-reminders-schedule'
 import type { Due, TreatmentPeriodInput, TreatmentSchedule } from './treatment-schedule'
-import { DAYS_PER_STEP, toDate, uniqueSorted } from './treatment-schedule-dues'
+import { DAYS_PER_STEP, shiftDate, toDate, uniqueSorted } from './treatment-schedule-dues'
 
 export type ReminderTranslate = (
   key: string,
@@ -35,7 +35,7 @@ export type TreatmentReminderSource = {
   name: string
   animalName: string
   period: TreatmentReminderPeriod
-  schedule: Pick<TreatmentSchedule, 'currentDoses' | 'upcoming'>
+  schedule: Pick<TreatmentSchedule, 'phase' | 'currentDoses' | 'unloggedDoses' | 'upcoming'>
 }
 
 export type VaccinationReminderSource = {
@@ -93,10 +93,19 @@ function byDay(dues: readonly Due[]): Map<string, Due[]> {
   return days
 }
 
-function upcomingAndCurrent({ period, schedule }: TreatmentReminderSource): Due[] {
+/** Une fois la date de fin passée, la dernière dose garde sa relance : elle était prévue avant la fin. */
+function lastDoseAfterEnd({ period, schedule }: TreatmentReminderSource): Due[] {
+  const lastDay = schedule.unloggedDoses.at(-1)?.dueOn
+  if (schedule.phase !== 'ended' || period.endsOn === null || lastDay === undefined) return []
+  if (shiftDate(lastDay, period.frequency, 1) <= period.endsOn) return []
+  return schedule.unloggedDoses.filter(({ dueOn }) => dueOn === lastDay)
+}
+
+function upcomingAndCurrent(source: TreatmentReminderSource): Due[] {
+  const { period, schedule } = source
   const perDay = Math.max(1, period.times.length)
   const fetched = schedule.upcoming(MAX_REMINDERS_PER_CARE + 2 * perDay + 1)
-  return uniqueSorted([...schedule.currentDoses, ...fetched])
+  return uniqueSorted([...lastDoseAfterEnd(source), ...schedule.currentDoses, ...fetched])
 }
 
 export function treatmentReminderPlan(
@@ -153,11 +162,7 @@ export function treatmentReminderPlan(
     const overdue = shiftDay(day, DAYS_OVERDUE)
     const next = dayList[index + 1]
     const nothingNoted = period.times.every((time) => dues.some((due) => due.dueTime === time))
-    if (
-      nothingNoted &&
-      (next === undefined || overdue < next) &&
-      (period.endsOn === null || overdue <= period.endsOn)
-    ) {
+    if (nothingNoted && (next === undefined || overdue < next)) {
       all.push(
         reminder(entry, first, 'overdue', atOf(overdue, first.time), {
           title: t('reminders.plan.treatment.overdueTitle', { ...named, days: DAYS_OVERDUE }),
