@@ -9,6 +9,7 @@ import { MAX_SCHEDULED_REMINDERS } from '../domain/due-reminders-schedule'
 import {
   MAX_REMINDERS_PER_CARE,
   plannedReminders,
+  remindersWithinCap,
   treatmentReminderPlan,
   vaccinationReminderPlan,
   type CarnetReminderSettings,
@@ -784,3 +785,47 @@ function dayAfter(day: string, count: number): string {
   date.setDate(date.getDate() + count)
   return date.toISOString().slice(0, 10)
 }
+
+describe('remindersWithinCap', () => {
+  function reminder(key: string, at: Date): Reminder {
+    return { key, title: 'titre', body: 'corps', at }
+  }
+
+  it('réserve la première échéance à venir de chaque entrée, jamais une suivante', () => {
+    const first = reminder(`treatment:${ID}:2026-11-10:due`, new Date(2026, 10, 10, 9))
+    const second = reminder(`treatment:${ID}:2026-12-10:due`, new Date(2026, 11, 10, 9))
+    const others = Array.from({ length: 5 }, (_, index) =>
+      reminder(`vaccination:${index}:2026-09-20:due`, new Date(2026, 8, 20 + index, 9)),
+    )
+
+    const kept = remindersWithinCap([first, second, ...others], others.length + 1)
+
+    expect(kept.map(({ key }) => key)).toContain(first.key)
+    expect(kept.map(({ key }) => key)).not.toContain(second.key)
+  })
+
+  it('remplit la place restante par les rappels les plus proches', () => {
+    const due = reminder(`treatment:${ID}:2026-12-10:due`, new Date(2026, 11, 10, 9))
+    const near = reminder(`treatment:${ID}:2026-12-10:before`, new Date(2026, 11, 7, 9))
+    const far = reminder(`treatment:${ID}:2026-12-10:overdue`, new Date(2026, 11, 13, 9))
+
+    expect(remindersWithinCap([far, due, near], 2)).toEqual([near, due])
+  })
+
+  it('à plusieurs heures, réserve la première heure à venir et la relance de son jour', () => {
+    const morning = reminder(`treatment:${ID}:2026-12-10:0800:due`, new Date(2026, 11, 10, 8))
+    const evening = reminder(`treatment:${ID}:2026-12-10:2000:due`, new Date(2026, 11, 10, 20))
+    const overdue = reminder(`treatment:${ID}:2026-12-10:0800:overdue`, new Date(2026, 11, 13, 8))
+    const others = Array.from({ length: 5 }, (_, index) =>
+      reminder(`vaccination:${index}:2026-09-20::due`, new Date(2026, 8, 20 + index, 9)),
+    )
+
+    const kept = remindersWithinCap([evening, overdue, morning, ...others], others.length + 2)
+
+    expect(kept.map(({ key }) => key)).toEqual([
+      ...others.map(({ key }) => key),
+      morning.key,
+      overdue.key,
+    ])
+  })
+})
