@@ -5,6 +5,7 @@ import type {
   RouteLocationRaw,
 } from 'vue-router'
 
+import { isClockTime } from './clock-time'
 import type { ReminderKind } from './reminders'
 
 /** Rappel de l'écran d'origine : sa feuille se rouvre sur l'accueil, son détail se retrouve sur le Carnet. */
@@ -32,15 +33,39 @@ export function parseReminderQuery(value: unknown): ReminderRef | null {
 /** Étape à laquelle la feuille s'ouvre : ses actions, ou « Fait » (F5) pour un vaccin. */
 export const REMINDER_STEP_QUERY_PARAM = 'step'
 
+const DUE_QUERY_PARAM = 'due'
+const TIME_QUERY_PARAM = 'time'
+const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/
+
 export type ReminderStep = 'actions' | 'done'
 
-export type ReminderRequest = ReminderRef & { step: ReminderStep }
+/** L'échéance d'une notification ; `dueTime` à `null` : sans heure, ou toute la journée (relance). */
+export type NotifiedDue = { dueOn: string; dueTime: string | null }
 
-export function reminderSheetQuery({ kind, id, step }: ReminderRequest): LocationQueryRaw {
-  return {
-    [REMINDER_QUERY_PARAM]: reminderQueryValue({ kind, id }),
-    [REMINDER_STEP_QUERY_PARAM]: step,
+/** `given-when` : « Donnée quand ? » d'une notification d'un jour passé (V5). */
+export type ReminderRequest = ReminderRef &
+  ({ step: ReminderStep } | { step: 'given-when'; due: NotifiedDue })
+
+export function reminderSheetQuery(request: ReminderRequest): LocationQueryRaw {
+  const query: LocationQueryRaw = {
+    [REMINDER_QUERY_PARAM]: reminderQueryValue(request),
+    [REMINDER_STEP_QUERY_PARAM]: request.step,
   }
+  if (request.step !== 'given-when') return query
+  const { dueOn, dueTime } = request.due
+  return {
+    ...query,
+    [DUE_QUERY_PARAM]: dueOn,
+    ...(dueTime === null ? {} : { [TIME_QUERY_PARAM]: dueTime }),
+  }
+}
+
+function notifiedDueOf(query: LocationQuery | LocationQueryRaw): NotifiedDue | null {
+  const dueOn = query[DUE_QUERY_PARAM]
+  const dueTime = query[TIME_QUERY_PARAM] ?? null
+  if (typeof dueOn !== 'string' || !ISO_DAY.test(dueOn)) return null
+  if (dueTime !== null && !isClockTime(dueTime)) return null
+  return { dueOn, dueTime }
 }
 
 export function parseReminderRequest(
@@ -48,11 +73,20 @@ export function parseReminderRequest(
 ): ReminderRequest | null {
   const ref = parseReminderQuery(query[REMINDER_QUERY_PARAM])
   if (ref === null) return null
-  return { ...ref, step: query[REMINDER_STEP_QUERY_PARAM] === 'done' ? 'done' : 'actions' }
+  const step = query[REMINDER_STEP_QUERY_PARAM]
+  const due = step === 'given-when' ? notifiedDueOf(query) : null
+  if (due !== null) return { ...ref, step: 'given-when', due }
+  return { ...ref, step: step === 'done' ? 'done' : 'actions' }
 }
 
 export function withoutReminderRequest(query: LocationQuery): LocationQuery {
-  const { [REMINDER_QUERY_PARAM]: _reminder, [REMINDER_STEP_QUERY_PARAM]: _step, ...rest } = query
+  const {
+    [REMINDER_QUERY_PARAM]: _reminder,
+    [REMINDER_STEP_QUERY_PARAM]: _step,
+    [DUE_QUERY_PARAM]: _due,
+    [TIME_QUERY_PARAM]: _time,
+    ...rest
+  } = query
   return rest
 }
 
@@ -82,7 +116,7 @@ export function originQuery(route: Pick<RouteLocationNormalizedLoaded, 'name' | 
 }
 
 /** L'échéance que vise une ligne de « À faire » : une dose (jour, heure), ou les doses non renseignées. */
-export type TodoDue = { dueOn: string; dueTime: string | null } | 'unlogged'
+export type TodoDue = NotifiedDue | 'unlogged'
 
 /** Ce que la feuille d'un soin reçoit d'une ligne de « À faire » ; `due` à `null` pour un vaccin. */
 export type TodoRequest = ReminderRef & { due: TodoDue | null }

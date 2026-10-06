@@ -57,6 +57,50 @@ describe('feuille d’un rappel demandée à l’accueil', () => {
     ).toEqual({
       from: 'home',
     })
+    expect(
+      withoutReminderRequest({
+        reminder: 'treatment:t1',
+        step: 'given-when',
+        due: '2026-10-06',
+        time: '20:00',
+        from: 'home',
+      }),
+    ).toEqual({ from: 'home' })
+  })
+
+  it('« Donnée quand ? » porte l’échéance de la notification, avec ou sans heure', () => {
+    const request = {
+      kind: 'treatment',
+      id: 't1',
+      step: 'given-when',
+      due: { dueOn: '2026-10-06', dueTime: '20:00' },
+    } as const
+    const query = reminderSheetQuery(request)
+
+    expect(query).toEqual({
+      reminder: 'treatment:t1',
+      step: 'given-when',
+      due: '2026-10-06',
+      time: '20:00',
+    })
+    expect(parseReminderRequest(query)).toEqual(request)
+    expect(
+      parseReminderRequest({ reminder: 'treatment:t1', step: 'given-when', due: '2026-10-06' }),
+    ).toEqual({ ...request, due: { dueOn: '2026-10-06', dueTime: null } })
+  })
+
+  it('« Donnée quand ? » sans échéance lisible ouvre les actions', () => {
+    expect(parseReminderRequest({ reminder: 'treatment:t1', step: 'given-when' })?.step).toBe(
+      'actions',
+    )
+    expect(
+      parseReminderRequest({
+        reminder: 'treatment:t1',
+        step: 'given-when',
+        due: '2026-10-06',
+        time: '25:00',
+      })?.step,
+    ).toBe('actions')
   })
 })
 

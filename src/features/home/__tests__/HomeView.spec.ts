@@ -30,6 +30,7 @@ import type * as DataImport from '@/features/settings/service/data-import.servic
 import { importFixtureJson } from '@/features/settings/__tests__/import-fixture'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import { useTreatmentsStore } from '@/features/treatments/store/treatments.store'
+import TreatmentGivenWhenSheet from '@/features/treatments/views/TreatmentGivenWhenSheet.vue'
 import TreatmentReminderSheet from '@/features/treatments/views/TreatmentReminderSheet.vue'
 import { useVaccinationsStore } from '@/features/vaccinations/store/vaccinations.store'
 import VaccinationReminderSheet from '@/features/vaccinations/views/VaccinationReminderSheet.vue'
@@ -1439,6 +1440,50 @@ describe('HomeView — feuille d’un rappel', () => {
     const details = push.mock.calls.filter(([to]) => JSON.stringify(to).includes('detail'))
     push.mockRestore()
     expect(details).toEqual([])
+  })
+
+  it('ouvre « Donnée quand ? » demandé par une notification d’un jour passé (V5), puis l’efface de l’adresse', async () => {
+    vi.spyOn(useTreatmentsStore(), 'getWithHistory').mockReturnValue(new Promise(() => {}))
+    await router.replace({
+      name: 'home',
+      query: {
+        reminder: `treatment:${VERMIFUGE_LUNA_AUJOURDHUI.id}`,
+        step: 'given-when',
+        due: '2026-09-20',
+        time: '20:00',
+      },
+    })
+
+    const wrapper = await monter()
+
+    expect(wrapper.getComponent(TreatmentGivenWhenSheet).props()).toMatchObject({
+      modelValue: true,
+      treatmentId: VERMIFUGE_LUNA_AUJOURDHUI.id,
+      due: { dueOn: '2026-09-20', dueTime: '20:00' },
+    })
+    expect(wrapper.getComponent(TreatmentReminderSheet).props('modelValue')).toBe(false)
+    await vi.waitFor(() => expect(router.currentRoute.value.query).toEqual({}))
+  })
+
+  it('ouvre la feuille du soin quand « Donnée quand ? » n’a plus rien à noter', async () => {
+    vi.spyOn(useTreatmentsStore(), 'getWithHistory').mockReturnValue(new Promise(() => {}))
+    await router.replace({
+      name: 'home',
+      query: {
+        reminder: `treatment:${VERMIFUGE_LUNA_AUJOURDHUI.id}`,
+        step: 'given-when',
+        due: '2026-09-20',
+      },
+    })
+    const wrapper = await monter()
+
+    wrapper.getComponent(TreatmentGivenWhenSheet).vm.$emit('unavailable')
+    await flushPromises()
+
+    expect(wrapper.getComponent(TreatmentReminderSheet).props()).toMatchObject({
+      modelValue: true,
+      treatmentId: VERMIFUGE_LUNA_AUJOURDHUI.id,
+    })
   })
 
   it('remplace la feuille ouverte par la feuille « Fait » que demande une notification', async () => {
