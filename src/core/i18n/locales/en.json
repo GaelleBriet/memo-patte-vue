@@ -684,6 +684,26 @@
         },
         "after": "{done}. {revealed}"
       }
+    },
+    "givenWhen": {
+      "title": "Given when?",
+      "due": "Due {date}",
+      "dueAt": "Due {date} at {time}",
+      "dosageDue": "{dosage} · due {date}",
+      "dosageDueAt": "{dosage} · due {date} at {time}",
+      "scheduled": "The scheduled day",
+      "scheduledAt": "The scheduled day, at {time}",
+      "scheduledLabel": "Given on the scheduled day, {date}",
+      "scheduledLabelAt": "Given on the scheduled day, {date} at {time}",
+      "today": "Today",
+      "todayLabel": "Given today, {date}",
+      "other": "Another day",
+      "otherLabel": "Given on another day: choose the day",
+      "everyDay": "Given on {date}",
+      "everyDayAt": "Given on {date} at {time}",
+      "everyDayLabel": "Given on {date}",
+      "everyDayLabelAt": "Given on {date} at {time}",
+      "back": "Back to “Given when?”"
     }
   },
   "reminders": {
@@ -966,6 +986,63 @@
   "settings": {
     "open": "Settings",
     "title": "Settings",
+    "reminders": {
+      "title": "Reminders",
+      "summary": {
+        "allowedExact": "Allowed · exact reminders",
+        "allowed": "Allowed",
+        "notYet": "Not turned on yet",
+        "off": "Off"
+      },
+      "granted": {
+        "title": "Notifications allowed",
+        "hint": "Your reminders arrive as usual."
+      },
+      "notificationSettings": {
+        "label": "Notification settings",
+        "hint": "Opens Android settings"
+      },
+      "unasked": {
+        "title": "Reminders not turned on yet",
+        "hint": "MémoPatte hasn’t asked for permission to send notifications yet.",
+        "action": "Turn on reminders"
+      },
+      "disabled": {
+        "title": "Notifications off",
+        "hint": "You’re not getting any reminders for now.",
+        "action": "Turn on in settings"
+      },
+      "exact": {
+        "label": "Exact reminders",
+        "hint": {
+          "allowed": "Allowed in Android",
+          "pitch": "To get every reminder right on time",
+          "off": "Off in Android",
+          "notYetOn": "No effect until notifications are on",
+          "notificationsOff": "No effect while notifications are off",
+          "allowedNotYetOn": "Allowed in Android · no effect until notifications are on",
+          "allowedNotificationsOff": "Allowed in Android · no effect while notifications are off",
+          "offNotYetOn": "Off in Android · no effect until notifications are on",
+          "offNotificationsOff": "Off in Android · no effect while notifications are off"
+        },
+        "precise": "Android permission granted: your reminders arrive right on time.",
+        "lessPrecise": "Off · your reminders may arrive late",
+        "reactivate": "Turn back on"
+      },
+      "remindBeforeDue": {
+        "label": "Remind me before it’s due",
+        "hint": "Vaccines: 2 weeks before. Treatments: 3 days before."
+      },
+      "vaccineTime": {
+        "label": "Vaccine reminder time",
+        "change": "Vaccine reminder time, {time}. Tap to change it."
+      },
+      "help": {
+        "label": "I’m not getting my reminders",
+        "hint": "Help page on the website"
+      },
+      "saveError": "The setting couldn’t be saved. Try again."
+    },
     "account": {
       "title": "Account",
       "signOut": {

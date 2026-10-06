@@ -1,7 +1,12 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
 
-import { dueReminderPrefix, isDoneForDue, parseReminderKey } from '../domain/due-reminders'
+import {
+  dueReminderPrefix,
+  isDoneForDue,
+  isLegacyReminderKey,
+  parseReminderKey,
+} from '../domain/due-reminders'
 
 const ID = '22222222-2222-4222-8222-222222222222'
 const ENTRY = { kind: 'vaccination', id: ID } as const
@@ -30,6 +35,17 @@ describe('parseReminderKey', () => {
     ['une clé à rallonge', `vaccination:${ID}:2026-10-15:due:2`],
   ])('ne lit pas %s', (_, key) => {
     expect(parseReminderKey(key)).toBeNull()
+  })
+})
+
+describe('isLegacyReminderKey', () => {
+  it.each([
+    [`treatment:${ID}:2026-10-15:due`, true],
+    [`treatment:${ID}:2026-10-15:2000:due`, false],
+    [`treatment:${ID}:2026-10-15::overdue`, false],
+    [`treatment:${ID}:2026-10-15:soon`, false],
+  ])('%s : %s', (key, expected) => {
+    expect(isLegacyReminderKey(key)).toBe(expected)
   })
 })
 
