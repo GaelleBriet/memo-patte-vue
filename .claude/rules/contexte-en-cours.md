@@ -1,5 +1,29 @@
 # Contexte en cours (à mettre à jour à chaque lot)
 
+- 2026-10-05 : **reprendre ici.** Mergés : #522 (maquettes « Décaler les doses suivantes », planches
+  **V28 à V32**, nommées V9 à V13 dans le fichier : voir `docs/design/v1-specs/README.md`), #524 (#503,
+  **prise en plus** : ne change jamais le calendrier), #526 (#523, décalage d'une dose avancée écrit sous
+  son échéance d'origine, G18), **#530 (#505, la case « Décaler aussi les doses suivantes » et la ligne
+  de décalage)**, #531 (#529, photos dans deux feuilles), #532 (#506, « C'est fait » en retard face à
+  la date de fin, G20), puis la release 0.1.59. `main` à **5 036 tests**. #503, #505 et #506 testés
+  sur le téléphone. Décisions de Gaelle du 3 et du 5 octobre dans `decisions-log.md` et la spec
+  (G18 à G20) ; arbitrages en autonomie dans son journal.
+  - **Campagne d'invariants** (`src/shared/__tests__/treatment-schedule.invariants.spec.ts`) : verte sans
+    exclusion ; variables `INVARIANTS_FROM`, `INVARIANTS_SEEDS`, `INVARIANTS_STEPS` ; séries d'usage :
+    20 000 × 24, 5 000 × 40, 3 000 × 40 depuis 60 000 000 et 85 000 000 ; elle rejoue « Annuler ».
+  - **Ne pas publier** : l'accueil, la feuille « À faire » et les rappels lisent encore l'ancien calcul
+    (lots 4 et 7).
+  - **À faire ensuite, dans l'ordre** (accord de Gaelle du 2026-10-06) : lots 4 et 7 (#527 avec le
+    lot 7), #528, #507.
+  - **Questions en attente pour Gaelle** (son journal) : « Terminé le {dernière échéance} » alors que la
+    dose a été donnée plus tard ; une dose reportée seule à deux jours d'une dose décalée ; trois choix
+    de cohérence tranchés seuls (prise en plus et « Modifier », redatage borné, oubli qui garde son
+    décalage).
+  - **Pièges** : (1) le dossier temporaire est vidé à chaque nouvelle journée : recréer les scripts
+    (CDP, fusion) avant de s'en servir ; (2) ne jamais enchaîner une suppression de branche après un
+    merge sans la conditionner au merge réussi (`gh pr view --json state` = `MERGED`) ; (3) `adb devices`
+    vide : `adb kill-server` puis `start-server`, puis vérifier l'USB.
+
 - 2026-10-04 : **reprendre ici.** Gaelle malade, travail en autonomie complète. **Étude du modèle des
   prises (#488) terminée** (PR #508, `docs/technical/etude-modele-prises.md`, décisions de Gaelle du
   2026-10-03 au §5.1) : case « Décaler aussi les doses suivantes » partout où une date de dose change
