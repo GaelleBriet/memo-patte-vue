@@ -1,6 +1,7 @@
 import { format, parseISO, subDays } from 'date-fns'
 
 import { doseChange, type DoseAction } from './treatment-dose-writes'
+import { revealedDues, revealedDuesText } from './treatment-revealed-dues'
 import { treatmentScheduleOf } from './treatment-schedule'
 import type { DoseWrite } from '../repository/treatment-doses.repository'
 import type { TreatmentWithHistory } from '../repository/treatments.repository'
@@ -196,12 +197,17 @@ export function shiftHelpOf(
       .map(({ nextDueDate }) => nextDueDate),
   )
   const weekdayOn = shifts ? newDay : (following.find((day) => !arrivals.has(day)) ?? null)
-  return shiftHelpText(
+  const help = shiftHelpText(
     t,
     period,
     { shifts, following, lost, weekdayOn, arrivals: [...arrivals] },
     today,
   )
+  const revealed = revealedDuesText(t, revealedDues(schedule, after, today), 'help')
+  if (revealed === null) return help
+  return help === null
+    ? { text: revealed, warning: false }
+    : { ...help, text: `${help.text} ${revealed}` }
 }
 
 type Line = Pick<

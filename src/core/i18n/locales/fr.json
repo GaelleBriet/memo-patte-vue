@@ -637,7 +637,22 @@
       "keptAfterReport": "Seule cette dose change. Dose reportée le {report}, puis le {date} et {every}.",
       "movedBeforeReport": "Les doses suivantes passeront au {date}, puis dose reportée le {report}",
       "keptBeforeReport": "Seule cette dose change. Les suivantes restent prévues le {date}, puis dose reportée le {report}",
-      "passesMoveCheck": "Avec ce jour, la dose que tu avais reportée au {date} tomberait après la suivante. Coche « Décaler aussi les doses suivantes », ou change d’abord la date de ce report."
+      "passesMoveCheck": "Avec ce jour, la dose que tu avais reportée au {date} tomberait après la suivante. Coche « Décaler aussi les doses suivantes », ou change d’abord la date de ce report.",
+      "revealed": {
+        "help": {
+          "unlogged": "La dose du {dates} sera à renseigner. | Les doses du {dates} seront à renseigner.",
+          "overdue": "La dose du {dates} sera en retard. | Les doses du {dates} seront en retard.",
+          "unloggedThen": "La dose du {dates} sera à renseigner ; | Les doses du {dates} seront à renseigner ;",
+          "thenOverdue": "celle du {dates}, en retard. | celles du {dates}, en retard."
+        },
+        "toast": {
+          "unlogged": "La dose du {dates} est à renseigner. | Les doses du {dates} sont à renseigner.",
+          "overdue": "La dose du {dates} est en retard. | Les doses du {dates} sont en retard.",
+          "unloggedThen": "La dose du {dates} est à renseigner ; | Les doses du {dates} sont à renseigner ;",
+          "thenOverdue": "celle du {dates}, en retard. | celles du {dates}, en retard."
+        },
+        "after": "{done}. {revealed}"
+      }
     }
   },
   "reminders": {
