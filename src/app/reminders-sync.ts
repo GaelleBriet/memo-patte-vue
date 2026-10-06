@@ -69,8 +69,13 @@ function fingerprint(
   return JSON.stringify([key, time, title, body, actionTypeId ?? null])
 }
 
-function isAlreadyScheduled(pending: ScheduledReminder[], wanted: Reminder[]): boolean {
+function isAlreadyScheduled(
+  pending: ScheduledReminder[],
+  wanted: Reminder[],
+  exact: boolean,
+): boolean {
   if (pending.length !== wanted.length) return false
+  if (pending.some((reminder) => reminder.exact !== exact)) return false
   const scheduled = new Set(pending.map((reminder) => fingerprint(reminder, pendingTime(reminder))))
   return wanted.every((reminder) => scheduled.has(fingerprint(reminder, reminder.at.getTime())))
 }
@@ -99,7 +104,7 @@ export type RemindersSyncDependencies = {
   treatments: Provider<Pick<TreatmentsRepository, 'listAll'>>
   notifications: Pick<
     ReminderNotifications,
-    'checkPermission' | 'rescheduleAll' | 'listScheduled' | 'removeDelivered'
+    'checkPermission' | 'canScheduleExact' | 'rescheduleAll' | 'listScheduled' | 'removeDelivered'
   >
   t: Translate
   now: () => Date
@@ -158,7 +163,7 @@ export function createRemindersSync({
 
       const wanted = remindersWithinCap(reminders, MAX_SCHEDULED_REMINDERS)
       const kept = scheduled.filter(({ id }) => !noted.includes(id))
-      if (isAlreadyScheduled(kept, wanted)) return
+      if (isAlreadyScheduled(kept, wanted, await notifications.canScheduleExact())) return
       await notifications.rescheduleAll(wanted)
     } catch (cause) {
       console.warn('Rappels non reconstruits :', cause)

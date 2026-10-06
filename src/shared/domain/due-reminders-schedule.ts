@@ -7,6 +7,7 @@ import { dueReminderPrefix, parseReminderKey, type DueReminderEntry } from './du
 export type ReminderNotifications = Pick<
   typeof notifications,
   | 'checkPermission'
+  | 'canScheduleExact'
   | 'scheduleReminders'
   | 'cancelReminders'
   | 'rescheduleAll'

@@ -527,7 +527,7 @@ describe('animalDeletionService', () => {
       lastDoseDate: '2026-01-10',
     })
     const key = `treatment:${milbemax.id}:2026-04-10:due`
-    vi.mocked(listScheduled).mockResolvedValue([{ id: 1, key, title: '', body: '' }])
+    vi.mocked(listScheduled).mockResolvedValue([{ id: 1, key, title: '', body: '', exact: false }])
 
     await animalDeletionService.remove(miette.id)
 

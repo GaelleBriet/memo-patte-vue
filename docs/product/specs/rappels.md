@@ -138,7 +138,9 @@ par jour gérées au-delà d'une notification par heure (#365, plus tard) ; alar
   le formulaire affichent « Moins précis : les rappels précis sont désactivés », avec le lien pour les
   réactiver ; la fiche d'un traitement à heure(s) ajoute alors, sous les heures, une ligne discrète
   « Rappel 30 min avant · moins précis » avec « Réactiver » (spec Q6) ; réactivés, tout redevient
-  précis sans rien ressaisir. (P3 Q3 ; recherche ; spec Q3, 2026-09-29)
+  précis sans rien ressaisir. Retirer l'accès dans les réglages d'Android arrête l'app et annule toutes
+  ses alarmes exactes : les rappels ne reviennent, en inexact, qu'à la prochaine ouverture de l'app
+  (#535). (P3 Q3 ; recherche ; spec Q3, 2026-09-29)
 - **RA-24** Lien « Je ne reçois pas mes rappels » vers la page Aide du site, depuis Paramètres › Rappels
   et le bandeau. (Décision du 2026-09-29)
 

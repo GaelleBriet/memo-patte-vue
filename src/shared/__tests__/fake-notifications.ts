@@ -5,6 +5,7 @@ import type { ReminderNotifications } from '../domain/due-reminders-schedule'
 
 export type FakeNotifications = {
   checkPermission: Mock<() => Promise<boolean>>
+  canScheduleExact: Mock<() => Promise<boolean>>
   scheduleReminders: Mock<(reminders: Reminder[]) => Promise<void>>
   cancelReminders: Mock<(keys: string[]) => Promise<void>>
   rescheduleAll: Mock<(reminders: Reminder[]) => Promise<void>>
@@ -16,10 +17,14 @@ export type FakeNotifications = {
   idOf: (key: string) => number
 }
 
-/** Permission accordée par défaut ; les rappels programmés restent en attente jusqu'à annulation. */
+/**
+ * Permission accordée et rappels précis inactifs par défaut ; les rappels programmés restent en
+ * attente jusqu'à annulation.
+ */
 export function createFakeNotifications(): FakeNotifications & ReminderNotifications {
   const pending = new Map<string, Reminder>()
   const ids = new Map<string, number>()
+  const exactKeys = new Set<string>()
 
   function idOf(key: string): number {
     const known = ids.get(key)
@@ -28,22 +33,36 @@ export function createFakeNotifications(): FakeNotifications & ReminderNotificat
     return ids.size
   }
 
+  const canScheduleExact = vi.fn<() => Promise<boolean>>().mockResolvedValue(false)
+
+  async function place(reminders: Reminder[]): Promise<void> {
+    const exact = await canScheduleExact()
+    for (const reminder of reminders) {
+      pending.set(reminder.key, reminder)
+      if (exact) exactKeys.add(reminder.key)
+      else exactKeys.delete(reminder.key)
+    }
+  }
+
   return {
     pending,
     idOf,
     checkPermission: vi.fn<() => Promise<boolean>>().mockResolvedValue(true),
-    scheduleReminders: vi.fn<(reminders: Reminder[]) => Promise<void>>(async (reminders) => {
-      for (const reminder of reminders) pending.set(reminder.key, reminder)
-    }),
+    canScheduleExact,
+    scheduleReminders: vi.fn<(reminders: Reminder[]) => Promise<void>>(place),
     cancelReminders: vi.fn<(keys: string[]) => Promise<void>>(async (keys) => {
       for (const key of keys) pending.delete(key)
     }),
     rescheduleAll: vi.fn<(reminders: Reminder[]) => Promise<void>>(async (reminders) => {
       pending.clear()
-      for (const reminder of reminders) pending.set(reminder.key, reminder)
+      await place(reminders)
     }),
     listScheduled: vi.fn<() => Promise<ScheduledReminder[]>>(async () =>
-      [...pending.values()].map((reminder) => ({ id: idOf(reminder.key), ...reminder })),
+      [...pending.values()].map((reminder) => ({
+        id: idOf(reminder.key),
+        ...reminder,
+        exact: exactKeys.has(reminder.key),
+      })),
     ),
     removeDelivered: vi.fn<(removed: number[]) => Promise<void>>(async (removed) => {
       for (const key of pending.keys()) {

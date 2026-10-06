@@ -258,7 +258,7 @@ describe('notedDeliveredIds', () => {
   const NOW = new Date(2026, 8, 25, 12).getTime()
 
   function scheduled(id: number, key: string | undefined, at: Date | undefined) {
-    return { id, key, title: 'titre', body: 'corps', at }
+    return { id, key, title: 'titre', body: 'corps', at, exact: false }
   }
 
   it('désigne les notifications déjà affichées dont l’entrée tient l’échéance pour notée', () => {

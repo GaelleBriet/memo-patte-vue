@@ -38,6 +38,7 @@ const iconesDesMaquettes = [
   'info_fill',
   'error_fill',
   'more_vert',
+  'alarm',
   'delete',
   'repeat',
   'restart_alt',
