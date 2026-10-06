@@ -87,22 +87,16 @@ watch(
     >
       <span class="treatment-row__text">
         <span class="treatment-row__name">{{ row.name }}</span>
-        <span class="treatment-row__type">{{ row.type }}</span>
-        <span
-          v-if="row.detail"
-          class="treatment-row__next-dose"
-          :class="`treatment-row__next-dose--${row.tone}`"
-        >
-          {{ row.detail }}
-        </span>
+        <span v-if="row.detail" class="treatment-row__detail">{{ row.detail }}</span>
         <span v-if="row.unlogged" class="treatment-row__unlogged">{{ row.unlogged }}</span>
       </span>
       <span class="treatment-row__end">
         <DueStatusChip
           v-if="row.badge"
-          class="treatment-row__frequency"
-          status="none"
-          :label="row.badge"
+          class="treatment-row__badge"
+          :status="row.badge.status"
+          :label="row.badge.label"
+          :icon="row.badge.status === 'overdue' ? 'ms:error' : null"
         />
         <v-icon class="treatment-row__chevron" icon="ms:chevron_right" size="22" />
       </span>
@@ -177,7 +171,7 @@ watch(
   margin-inline-start: auto;
 }
 
-.treatment-row__frequency {
+.treatment-row__badge {
   margin-inline-start: auto;
 }
 
@@ -201,37 +195,12 @@ watch(
   font-weight: 700;
 }
 
-.treatment-row__type {
-  display: block;
-  margin: 2px 0 0;
-  color: tokens.$color-text-secondary;
-  font-size: 12.5px;
-}
-
-.treatment-row__next-dose {
-  display: block;
-  margin: 4px 0 0;
-  color: tokens.$color-text-meta;
-  font-size: 12.5px;
-  font-weight: 500;
-}
-
+.treatment-row__detail,
 .treatment-row__unlogged {
   display: block;
   margin: 2px 0 0;
   color: tokens.$color-text-secondary;
   font-size: 12.5px;
-  font-weight: 500;
-}
-
-.treatment-row__next-dose--today {
-  color: rgb(var(--v-theme-on-today-container));
-  font-weight: 700;
-}
-
-.treatment-row__next-dose--overdue {
-  color: rgb(var(--v-theme-overdue));
-  font-weight: 700;
 }
 
 .finished-treatments {

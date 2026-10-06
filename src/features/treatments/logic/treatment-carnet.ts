@@ -1,20 +1,20 @@
+import { differenceInCalendarDays, parseISO } from 'date-fns'
+
 import { currentPeriodOf, endedOnOf, readableScheduleOf } from './treatment-schedule'
 import type { TreatmentWithHistory } from '../repository/treatments.repository'
 import { currentDoseText } from '@/shared/domain/current-dose'
 import type { ReminderCounts } from '@/shared/domain/reminders'
-import type { Due, TreatmentSchedule } from '@/shared/domain/treatment-schedule'
+import type { TreatmentSchedule } from '@/shared/domain/treatment-schedule'
+import { formatClockTimes } from '@/shared/utils/format'
 
 export type Translate = (key: string, named?: Record<string, unknown>, plural?: number) => string
 
 export type CarnetTreatmentRow = {
   id: string
   name: string
-  type: string
-  /** La fréquence, ou « À renseigner » pour un traitement fini ou arrêté ; `null` : illisible. */
-  badge: string | null
-  /** Dose du moment, fin du traitement, ou « Donnée illisible ». */
+  /** Rythme et heures, fin du traitement, ou « Donnée illisible ». */
   detail: string | null
-  tone: 'overdue' | 'today' | 'later'
+  badge: { status: 'overdue' | 'to-log'; label: string } | null
   /** « 3 doses non renseignées » ; jamais un retard (TR-14). */
   unlogged: string | null
 }
@@ -34,21 +34,8 @@ export type CarnetTreatments = {
 
 type Read = { treatment: TreatmentWithHistory; schedule: TreatmentSchedule | null }
 
-const TONES = { overdue: 'overdue', today: 'today', upcoming: 'later' } as const
-
-function capitalized(text: string): string {
-  return text.charAt(0).toLocaleUpperCase() + text.slice(1)
-}
-
 function isOpen(schedule: TreatmentSchedule): boolean {
   return schedule.phase !== 'ended' && schedule.phase !== 'stopped'
-}
-
-/** Une ligne par traitement : à plusieurs heures encore à donner, la journée, sans heure. */
-function momentDue({ currentDoses }: TreatmentSchedule): Due | null {
-  const [first] = currentDoses
-  if (first === undefined) return null
-  return currentDoses.length > 1 ? { ...first, dueTime: null } : first
 }
 
 function endText(
@@ -66,52 +53,47 @@ function endText(
   }).value
 }
 
+function rhythmText(t: Translate, read: Read & { schedule: TreatmentSchedule }): string | null {
+  const period = currentPeriodOf(read.treatment, read.schedule)
+  if (period === null) return null
+  const { value, unit } = period.frequency
+  const frequency = t(`treatments.frequency.${unit}`, { n: value }, value)
+  return period.times.length === 0
+    ? frequency
+    : t('treatments.section.rhythm', { frequency, times: formatClockTimes(period.times) })
+}
+
+function overdueBadge(
+  t: Translate,
+  schedule: TreatmentSchedule,
+  today: string,
+): CarnetTreatmentRow['badge'] {
+  const [due] = schedule.currentDoses
+  if (schedule.phase !== 'overdue' || due === undefined) return null
+  const days = differenceInCalendarDays(parseISO(today), parseISO(due.dueOn))
+  return { status: 'overdue', label: t('treatments.section.overdue', { n: days }, days) }
+}
+
 function ongoingRow(t: Translate, read: Read, today: string): CarnetTreatmentRow {
   const { treatment, schedule } = read
-  const base = {
-    id: treatment.id,
-    name: treatment.name,
-    type: t(`treatments.type.${treatment.type}`),
-  }
+  const base = { id: treatment.id, name: treatment.name }
   if (schedule === null) {
-    return {
-      ...base,
-      badge: null,
-      detail: t('treatments.section.unreadable'),
-      tone: 'later',
-      unlogged: null,
-    }
+    return { ...base, detail: t('treatments.section.unreadable'), badge: null, unlogged: null }
   }
   const count = schedule.unloggedDoses.length
   const unlogged = count === 0 ? null : t('treatments.unlogged.title', { n: count }, count)
-  const due = momentDue(schedule)
-  if (!isOpen(schedule) || due === null) {
+  if (!isOpen(schedule) || schedule.currentDoses.length === 0) {
     return {
       ...base,
-      badge: count === 0 ? null : t('treatments.section.toLog'),
       detail: endText(t, { treatment, schedule }, today),
-      tone: 'later',
+      badge: count === 0 ? null : { status: 'to-log', label: t('treatments.section.toLog') },
       unlogged,
     }
   }
-  const period = currentPeriodOf(treatment, schedule)
-  const { label, value } = currentDoseText(t, { phase: schedule.phase, due, today })
   return {
     ...base,
-    badge:
-      period === null
-        ? null
-        : t(
-            `treatments.frequency.${period.frequency.unit}`,
-            { n: period.frequency.value },
-            period.frequency.value,
-          ),
-    detail:
-      label === null
-        ? capitalized(value ?? '')
-        : t('treatments.section.dose', { label, value: value ?? '' }),
-    tone:
-      schedule.phase === 'overdue' || schedule.phase === 'today' ? TONES[schedule.phase] : 'later',
+    detail: rhythmText(t, { treatment, schedule }),
+    badge: overdueBadge(t, schedule, today),
     unlogged,
   }
 }

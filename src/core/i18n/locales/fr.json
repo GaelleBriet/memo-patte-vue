@@ -140,13 +140,15 @@
       "empty": "Aucun vaccin enregistré",
       "add": "Ajouter un vaccin",
       "status": {
-        "overdue": "En retard",
+        "overdue": "En retard · {n} j",
         "upToDate": "À jour",
+        "planned": "Prévu le {date}",
         "none": "Pas de rappel"
       },
       "detail": {
         "overdue": "Échéance passée",
-        "validUntil": "Valide jusqu’à {month}",
+        "nextOn": "Prochain rappel le {date}",
+        "firstVaccine": "Premier vaccin · aucune injection notée",
         "none": "Pas de rappel programmé"
       },
       "error": "Impossible de charger les vaccins."
@@ -389,7 +391,8 @@
       "empty": "Aucun traitement en cours",
       "add": "Ajouter un traitement",
       "error": "Impossible de charger les traitements.",
-      "dose": "{label} · {value}",
+      "rhythm": "{frequency} à {times}",
+      "overdue": "En retard · {n} j",
       "toLog": "À renseigner",
       "unreadable": "Donnée illisible"
     },

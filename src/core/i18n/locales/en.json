@@ -140,13 +140,15 @@
       "empty": "No vaccines yet",
       "add": "Add a vaccine",
       "status": {
-        "overdue": "Overdue",
+        "overdue": "Overdue · {n}d",
         "upToDate": "Up to date",
+        "planned": "Planned {date}",
         "none": "No reminder"
       },
       "detail": {
         "overdue": "Due date has passed",
-        "validUntil": "Valid until {month}",
+        "nextOn": "Next reminder on {date}",
+        "firstVaccine": "First vaccine · no injection logged",
         "none": "No reminder set"
       },
       "error": "Couldn’t load vaccines."
@@ -389,7 +391,8 @@
       "empty": "No active treatments",
       "add": "Add a treatment",
       "error": "Couldn’t load treatments.",
-      "dose": "{label} · {value}",
+      "rhythm": "{frequency} at {times}",
+      "overdue": "Overdue · {n}d",
       "toLog": "To log",
       "unreadable": "Unreadable data"
     },
