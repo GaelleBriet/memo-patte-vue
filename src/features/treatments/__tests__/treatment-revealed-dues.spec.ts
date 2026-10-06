@@ -334,3 +334,31 @@ describe('le toast du geste annonce les doses passées', () => {
     )
   })
 })
+
+describe('l’aide sous la case ne cite que des dates à venir', () => {
+  it('hebdomadaire : les doses passées sont dans la phrase des doses passées', () => {
+    expect(plain(changeDateHelp(HEBDO, PRISE_16, '2026-10-12', HEBDO_TODAY))).toBe(
+      'Les doses suivantes passeront au 2 nov., puis toutes les semaines. La dose du 19 oct. sera à renseigner.',
+    )
+  })
+
+  it('mensuel', () => {
+    expect(plain(changeDateHelp(MENSUEL, PRISE_30, '2026-09-28', MENS_TODAY))).toBe(
+      'Les doses suivantes passeront au 28 déc., puis tous les mois. La dose du 28 oct. sera à renseigner ; celle du 28 nov., en retard.',
+    )
+  })
+
+  it('« Fait à une autre date »', () => {
+    const help = otherDateBox(
+      t,
+      due('2026-10-23'),
+      '2026-10-19',
+      { history: AUTRE, schedule: treatmentScheduleOf(AUTRE, HEBDO_TODAY), today: HEBDO_TODAY },
+      true,
+    ).help?.text
+
+    expect(plain(help)).toBe(
+      'Les doses suivantes passeront au 2 nov., puis toutes les semaines. La dose du 26 oct. sera en retard.',
+    )
+  })
+})

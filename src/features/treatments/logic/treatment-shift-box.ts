@@ -189,8 +189,9 @@ export function shiftHelpOf(
   const period = history.periods.find(({ id }) => id === periodId)
   const after = scheduleAfter(history, schedule, action, today)
   if (period === undefined || after === null) return null
-  const following = pendingDaysAfter(after, period, newDay)
-  const lost = lostDays(pendingDaysAfter(schedule, period, currentDay), following, period)
+  const pending = pendingDaysAfter(after, period, newDay)
+  const lost = lostDays(pendingDaysAfter(schedule, period, currentDay), pending, period)
+  const following = pending.filter((day) => day >= today)
   const arrivals = new Set(
     after.doses
       .filter((dose) => dose.status === 'postponed' && dose.periodId === periodId)
