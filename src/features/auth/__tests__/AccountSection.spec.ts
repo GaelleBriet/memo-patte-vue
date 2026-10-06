@@ -85,10 +85,10 @@ describe('AccountSection — avec un compte Plus', () => {
     writePlusAccount({ userId: USER_ID })
   })
 
-  it('affiche la section Compte avec la déconnexion', async () => {
+  it('affiche la déconnexion, sans redire le titre de la page', async () => {
     const wrapper = await monter()
 
-    expect(wrapper.get('.section-card__title').text()).toBe('Compte')
+    expect(wrapper.find('.section-card__title').exists()).toBe(false)
     expect(wrapper.get('.settings-row--sign-out').text()).toBe('Se déconnecter')
   })
 

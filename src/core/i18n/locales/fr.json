@@ -69,7 +69,6 @@
       "back": "Retour",
       "edit": "Modifier la fiche",
       "exportPdf": "Exporter en PDF",
-      "exportPdfPlus": "Exporter en PDF, fonction MémoPatte Plus",
       "photo": {
         "avatarLabel": "Gérer la photo de {name}",
         "sheetTitle": "Photo de {name}",
@@ -1110,6 +1109,7 @@
     },
     "data": {
       "title": "Mes données",
+      "summary": "Unité, export, PDF, import",
       "weightUnit": {
         "label": "Unité de poids",
         "hint": "Pour afficher et saisir les pesées",
@@ -1118,20 +1118,29 @@
           "lb": "Livres, lb"
         }
       },
+      "exportSection": "Exporter",
       "export": "Exporter mes données",
+      "exportHint": "JSON ou CSV",
       "exportEmpty": "Rien à exporter pour l’instant",
       "exportPdf": "Exporter en PDF",
-      "exportPdfPlus": "Fonction MémoPatte Plus",
+      "exportPdfHint": "Tous les animaux ou un seul",
+      "importSection": "Importer",
       "import": "Importer un export MémoPatte",
       "loadError": "La base locale n’a pas répondu. Touche pour réessayer."
     },
     "privacy": {
       "title": "Confidentialité",
-      "analytics": "Statistiques d’usage"
+      "analytics": "Statistiques d’usage",
+      "policy": "Politique de confidentialité",
+      "policyHint": "Sur le site"
     },
     "about": {
       "title": "À propos",
-      "version": "Version"
+      "summary": "MémoPatte {version}",
+      "version": "Version",
+      "website": "Site de MémoPatte",
+      "websiteHint": "memopatte.gaelle-briet.fr",
+      "legalNotice": "Mentions légales"
     },
     "export": {
       "title": "Exporter tes données",
@@ -1387,8 +1396,9 @@
     "later": "Plus tard",
     "settings": {
       "discover": "Découvrir MémoPatte Plus",
-      "discoverHint": "Sauvegarde cloud, export PDF, plusieurs appareils",
-      "alreadySubscribed": "Je suis déjà abonné",
+      "summary": "Ton carnet ne disparaît jamais",
+      "discoverHint": "Sauvegarde cloud, plusieurs appareils",
+      "alreadySubscribed": "J’ai déjà MémoPatte Plus",
       "alreadySubscribedHint": "Retrouve ton carnet sauvegardé sur un autre appareil",
       "status": {
         "monthly": "Plus mensuel jusqu’au {date}",
