@@ -1,5 +1,6 @@
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
+import { createRouter, createWebHistory, type Router } from 'vue-router'
 import {
   afterEach,
   beforeEach,
@@ -38,7 +39,8 @@ import {
 import vuetify from '@/core/theme/vuetify'
 import type { Animal } from '@/features/animals/schema/animal.schema'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
-import router from '@/router'
+import { routes } from '@/router'
+import { sansEcran } from '@/router/__tests__/routeur-memoire'
 import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
 import DateCalendar from '@/shared/components/DateCalendar.vue'
 import HistoryRow from '@/shared/components/HistoryRow.vue'
@@ -117,6 +119,7 @@ let service: {
 }
 let stop: { [K in 'stop' | 'undo']: Mock<TreatmentStopService[K]> }
 let wrapper: VueWrapper | null = null
+let router: Router
 
 beforeEach(async () => {
   vi.useFakeTimers({ now: TODAY, toFake: ['Date'] })
@@ -162,6 +165,7 @@ beforeEach(async () => {
     undo: vi.fn<TreatmentStopService['undo']>(async () => {}),
   }
   provideTreatmentStopService(() => stop)
+  router = createRouter({ history: createWebHistory(), routes: routes.map(sansEcran) })
   await router.push({ name: 'animals' })
   await router.push({ name: 'treatment-detail', params: { id: METACAM.id } })
   push = vi.spyOn(router, 'push').mockResolvedValue()
@@ -176,6 +180,7 @@ afterEach(() => {
   provideTreatmentRemindersService(null)
   provideTreatmentDosesService(null)
   provideTreatmentStopService(null)
+  router.options.history.destroy()
   vi.restoreAllMocks()
   vi.unstubAllGlobals()
   vi.useRealTimers()
@@ -1585,6 +1590,10 @@ describe('TreatmentDetailView — arrêter avec des doses à renseigner (TR-30, 
     return [...(stop.stop.mock.calls.at(-1)?.[1] ?? [])]
   }
 
+  function focusSur(className: string): void {
+    expect(document.activeElement?.classList).toContain(className)
+  }
+
   function boutons(): string[] {
     return dansLaFeuille('.confirm-dialog__actions .v-btn').map((button) =>
       (button.textContent ?? '').trim(),
@@ -1643,11 +1652,14 @@ describe('TreatmentDetailView — arrêter avec des doses à renseigner (TR-30, 
       return { animalId: LUNA.id, stopped: true, finished: false, undo: [] }
     })
 
-    ;(await ouvrir(view)).vm.$emit('stop')
+    const arret = await ouvrir(view)
+    await vi.waitFor(() => focusSur('confirm-dialog__cancel'), { interval: 5 })
+
+    arret.vm.$emit('stop')
     await flushPromises()
 
     expect(view.find('.treatment-detail__stop').exists()).toBe(false)
-    expect(document.activeElement?.classList).toContain('treatment-dose-card__dose')
+    focusSur('treatment-dose-card__dose')
   })
 
   it('le calendrier ouvert depuis l’arrêt dit qu’il arrête aussi', async () => {

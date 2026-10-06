@@ -61,6 +61,15 @@ export async function getNotificationPermissionStatus(): Promise<NotificationPer
   return 'unasked'
 }
 
+/** Faux tant qu'Android n'a jamais montré sa demande : après « Plus tard », elle peut encore paraître. */
+export async function hasAndroidAskedNotifications(): Promise<boolean> {
+  try {
+    return (await LocalNotifications.checkPermissions()).display !== 'prompt'
+  } catch {
+    return true
+  }
+}
+
 /** Vrai tant que la permission n'est pas accordée et que l'écran d'explication n'a jamais eu de réponse. */
 export async function shouldShowPriming(): Promise<boolean> {
   return (await getNotificationPermissionStatus()) === 'unasked'

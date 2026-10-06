@@ -44,6 +44,22 @@ vi.mock('../service/data-import.service', async (importOriginal) => ({
 
 vi.mock('@/app/reminders-priming', () => ({ promptNotificationsIfReminders }))
 
+const notifications = vi.hoisted(() => ({
+  status: 'granted' as string,
+  exact: 'precise' as string,
+  androidAsked: true,
+}))
+
+vi.mock('@/core/notifications/permission', () => ({
+  getNotificationPermissionStatus: async () => notifications.status,
+  hasAndroidAskedNotifications: async () => notifications.androidAsked,
+}))
+
+vi.mock('@/core/notifications/exact-reminders', () => ({
+  getExactRemindersStatus: async () => notifications.exact,
+  openExactRemindersSettings: async () => notifications.exact,
+}))
+
 const authAvailable = vi.hoisted(() => vi.fn<() => boolean>(() => true))
 
 vi.mock('@/shared/utils/auth-available', () => ({ authAvailable }))
@@ -83,6 +99,9 @@ beforeEach(async () => {
   promptNotificationsIfReminders.mockClear()
   authAvailable.mockReturnValue(true)
   consent.granted = false
+  notifications.status = 'granted'
+  notifications.exact = 'precise'
+  notifications.androidAsked = true
   optIn.mockReset().mockImplementation(async () => void (consent.granted = true))
   optOut.mockReset().mockImplementation(async () => void (consent.granted = false))
   setActivePinia(createPinia())
@@ -173,6 +192,49 @@ describe('SettingsView', () => {
     await ligne.trigger('click')
 
     expect(push).toHaveBeenCalledWith({ name: 'settings-backup' })
+  })
+
+  describe('Rappels', () => {
+    it('ouvre la page « Rappels » depuis la première entrée de l’écran (V19)', async () => {
+      const wrapper = await monter()
+
+      const entree = wrapper.get('.settings-row--reminders')
+      expect(wrapper.findAll('.settings-row')[0]!.element).toBe(entree.element)
+      expect(entree.text()).toContain('Rappels')
+      await entree.trigger('click')
+
+      expect(push).toHaveBeenCalledWith({ name: 'settings-reminders' })
+    })
+
+    it.each([
+      ['granted', 'precise', 'Autorisés · rappels précis'],
+      ['granted', 'removed', 'Autorisés'],
+      ['unasked', 'never-enabled', 'Pas encore activés'],
+      ['disabled', 'precise', 'Désactivés'],
+    ])('résume l’état des notifications %s, rappels précis %s', async (status, exact, resume) => {
+      notifications.status = status
+      notifications.exact = exact
+      const wrapper = await monter()
+
+      expect(wrapper.get('.settings-row--reminders .settings-row__hint').text()).toBe(resume)
+    })
+
+    it('après « Plus tard », Android n’ayant jamais demandé : « Pas encore activés » (RA-21)', async () => {
+      notifications.status = 'disabled'
+      notifications.androidAsked = false
+      const wrapper = await monter()
+
+      expect(wrapper.get('.settings-row--reminders .settings-row__hint').text()).toBe(
+        'Pas encore activés',
+      )
+    })
+
+    it('ne résume rien tant qu’Android n’a pas répondu', async () => {
+      notifications.status = 'unavailable'
+      const wrapper = await monter()
+
+      expect(wrapper.find('.settings-row--reminders .settings-row__hint').exists()).toBe(false)
+    })
   })
 
   describe('MémoPatte Plus', () => {
