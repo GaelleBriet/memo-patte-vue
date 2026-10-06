@@ -337,9 +337,8 @@ describe('I2 : la correction fait suivre le report seul, et l’aide dit le cale
 
       expect(text).toContain(plain(formatDayMonth(first!)).split(' ')[0]!)
       expect(text).toContain(String(Number(second!.slice(8))))
-      expect(
-        text.includes('La dose que tu avais reportée au 30 oct. reste prévue ce jour-là.'),
-      ).toBe(follows(date, true))
+      expect(text.includes('30 oct.')).toBe(follows(date, true))
+      expect(text.match(/30 oct\./g)?.length ?? 0).toBeLessThanOrEqual(1)
     },
   )
 
@@ -350,15 +349,16 @@ describe('I2 : la correction fait suivre le report seul, et l’aide dit le cale
 
       expect(after.doses.some(({ status }) => status === 'postponed')).toBe(false)
       expect(after.upcoming(2).map(({ dueOn }) => dueOn)).toEqual(['2026-10-30', '2026-11-06'])
+      expect(after.currentDoses.map(({ dueOn }) => dueOn)).toEqual(['2026-10-23'])
       expect(plain(box.view('2026-10-16', shifts).help!.text)).toBe(
-        'La dose que tu avais reportée au 30 oct. reste prévue ce jour-là.',
+        'La dose du 23 oct. sera en retard. La dose que tu avais reportée au 30 oct. reste prévue ce jour-là.',
       )
     },
   )
 
   it('au 17, case cochée : le report garde le 30 et vise le samedi 31 ; l’aide suit le calendrier', () => {
     expect(plain(box.view('2026-10-17', true).help!.text)).toBe(
-      'Les doses suivantes passeront au 24 oct., puis dose reportée le 30 oct. La dose que tu avais reportée au 30 oct. reste prévue ce jour-là.',
+      'Dose reportée le 30 oct., puis le 7 nov. et toutes les semaines. La dose du 24 oct. sera en retard.',
     )
     const after = saved('2026-10-17', true)
     expect(after.currentDoses.map(({ dueOn }) => dueOn)).toEqual(['2026-10-24'])

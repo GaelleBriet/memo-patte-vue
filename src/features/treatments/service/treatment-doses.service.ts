@@ -8,11 +8,13 @@ import {
 } from '../logic/treatment-dose-writes'
 import { hasSeveralTimes } from '../logic/treatment-gestures'
 import { momentDue, notifiedDue } from '../logic/treatment-other-date'
+import { revealedDues, type RevealedDues } from '../logic/treatment-revealed-dues'
 import {
   currentPeriodOf,
   readableScheduleOf,
   treatmentScheduleOf,
 } from '../logic/treatment-schedule'
+import { dosesAfter } from '../logic/treatment-shift-box'
 import {
   DuplicateDueError,
   getTreatmentDosesRepository,
@@ -45,6 +47,8 @@ export type AppliedDoseChange = Omit<DoseChange, 'writes'> & {
   finishes: boolean
   /** Lot inverse, à passer à `undoBatch` ; vide quand rien n'a été écrit. */
   undo: DoseWrite[]
+  /** Après une prise notée ou redatée : les doses passées qu'elle fait apparaître. */
+  revealed?: RevealedDues
 }
 
 export type NotedMoment = AppliedDoseChange & {
@@ -104,6 +108,19 @@ export function createTreatmentDosesService({
     return line === undefined ? null : (line.givenOn ?? givenOn)
   }
 
+  function revealedBy(
+    history: TreatmentWithHistory,
+    schedule: TreatmentSchedule,
+    action: DoseAction,
+    writes: readonly DoseWrite[],
+  ): RevealedDues | null {
+    const reveals =
+      action.kind === 'redate' || (action.kind === 'note' && action.gesture.kind === 'given')
+    if (!reveals || writes.length === 0) return null
+    const after = { ...history, doses: dosesAfter(history.doses, writes) }
+    return revealedDues(schedule, treatmentScheduleOf(after, today()), today())
+  }
+
   async function run(
     history: TreatmentWithHistory,
     schedule: TreatmentSchedule,
@@ -114,7 +131,8 @@ export function createTreatmentDosesService({
     try {
       const undo = await write(history.id, writes)
       const finishes = undo.length > 0 && (await finishedBy(history, schedule))
-      return { ...change, animalId, finishes, undo }
+      const revealed = revealedBy(history, schedule, action, writes)
+      return { ...change, animalId, finishes, undo, ...(revealed === null ? {} : { revealed }) }
     } catch (cause) {
       if (cause instanceof DuplicateDueError && action.kind === 'log') {
         throw new DoseAlreadyLoggedError(cause.message, { cause })

@@ -637,7 +637,22 @@
       "keptAfterReport": "Only this dose changes. Postponed dose on {report}, then {date} and {every}.",
       "movedBeforeReport": "The following doses will move to {date}, then postponed dose on {report}.",
       "keptBeforeReport": "Only this dose changes. The following ones stay on {date}, then postponed dose on {report}.",
-      "passesMoveCheck": "With this day, the dose you had postponed to {date} would fall after the next one. Tick “Also move the following doses”, or change the date of this postponement first."
+      "passesMoveCheck": "With this day, the dose you had postponed to {date} would fall after the next one. Tick “Also move the following doses”, or change the date of this postponement first.",
+      "revealed": {
+        "help": {
+          "unlogged": "The {dates} dose will need to be logged. | The {dates} doses will need to be logged.",
+          "overdue": "The {dates} dose will be overdue. | The {dates} doses will be overdue.",
+          "unloggedThen": "The {dates} dose will need to be logged; | The {dates} doses will need to be logged;",
+          "thenOverdue": "the {dates} one will be overdue. | the {dates} ones will be overdue."
+        },
+        "toast": {
+          "unlogged": "The {dates} dose needs to be logged. | The {dates} doses need to be logged.",
+          "overdue": "The {dates} dose is overdue. | The {dates} doses are overdue.",
+          "unloggedThen": "The {dates} dose needs to be logged; | The {dates} doses need to be logged;",
+          "thenOverdue": "the {dates} one is overdue. | the {dates} ones are overdue."
+        },
+        "after": "{done}. {revealed}"
+      }
     }
   },
   "reminders": {

@@ -282,6 +282,11 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
     ensemble ; graine 2157, #506). « C'est fait » en un tap, la notification et la feuille « À faire » notent la prise
     sans décalage (« La suite ne bouge pas : un report est prévu le 28 oct. »). (Décisions de Gaelle
     du 2026-10-05, #505.)
+  - **G21** Quand une prise notée ou corrigée fait repartir la suite plus tôt, l'aide sous la case
+    et le toast annoncent les doses passées qui deviennent à renseigner ou en retard, et seulement
+    celles-là : une dose déjà en retard avant le geste n'est pas répétée. Vendredi, aujourd'hui le
+    27 oct., dose du 16 notée le lundi 19 avec décalage (la dose du 26 est en retard) ; la prise
+    corrigée au 12 : « La dose du 19 oct. sera à renseigner. » (#528 ; textes à valider par Gaelle.)
 - **TR-25** Une correction s'applique à toutes les lignes de la même échéance, jour et heure (deux
   appareils), et devient la modification la plus récente. (Relecture, point 5)
 - **TR-26** Pas de règle de « seule prise » : supprimer la seule prise garde le traitement (son
