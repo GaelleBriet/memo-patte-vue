@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRoute, useRouter } from 'vue-router'
 
 import TreatmentChooseDays from './TreatmentChooseDays.vue'
 import TreatmentDoneConfirm from './TreatmentDoneConfirm.vue'
@@ -9,17 +8,13 @@ import TreatmentOtherDateSheet from './TreatmentOtherDateSheet.vue'
 import TreatmentStopDialog from './TreatmentStopDialog.vue'
 import TreatmentUnloggedPrompt from './TreatmentUnloggedPrompt.vue'
 import { useTreatmentGestures } from '../composables/use-treatment-gestures'
+import { useTreatmentSheetActions } from '../composables/use-treatment-sheet-actions'
 import { detailActions } from '../logic/treatment-card'
 import { choiceGestures, chooseDaysSubtitle, type DayChoice } from '../logic/treatment-choose-days'
 import type { DoseAction } from '../logic/treatment-dose-writes'
-import { alreadyNotedText, doseActionTexts, hasSeveralTimes } from '../logic/treatment-gestures'
+import { doseActionTexts, hasSeveralTimes } from '../logic/treatment-gestures'
 import { readableScheduleOf } from '../logic/treatment-schedule'
-import {
-  sheetDoneTarget,
-  sheetOtherDateMin,
-  sheetPeriod,
-  treatmentSheetTexts,
-} from '../logic/treatment-sheet'
+import { sheetOtherDateMin, sheetPeriod, treatmentSheetTexts } from '../logic/treatment-sheet'
 import { stopPrompt } from '../logic/treatment-stop'
 import { promptChoice, unloggedBanner, type PromptActionId } from '../logic/treatment-unlogged'
 import type { TreatmentWithHistory } from '../repository/treatments.repository'
@@ -28,12 +23,7 @@ import { useToday } from '@/core/app-lifecycle/use-today'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import BottomSheet from '@/shared/components/BottomSheet.vue'
 import ReminderActions from '@/shared/components/ReminderActions.vue'
-import {
-  REMINDER_QUERY_PARAM,
-  todoReminderValue,
-  type NotifiedDue,
-  type TodoDue,
-} from '@/shared/domain/reminder-route'
+import type { NotifiedDue, TodoDue } from '@/shared/domain/reminder-route'
 import { reminderIcon } from '@/shared/domain/reminders'
 import type { DoseGesture, Due, TreatmentSchedule } from '@/shared/domain/treatment-schedule'
 import { showToast } from '@/shared/utils/toast'
@@ -55,8 +45,6 @@ const emit = defineEmits<{
 const open = defineModel<boolean>({ default: false })
 
 const { t } = useI18n()
-const router = useRouter()
-const route = useRoute()
 const animals = useAnimalsStore()
 const treatments = useTreatmentsStore()
 const { today, refresh: refreshToday } = useToday()
@@ -169,33 +157,22 @@ async function note(gesture: DoseGesture): Promise<void> {
   if (await gestures.applyDose(current, action, toast)) open.value = false
 }
 
+const actions = useTreatmentSheetActions(
+  { schedule, doseDue, today, named },
+  {
+    note: (gesture) => void note(gesture),
+    confirm: (due) => {
+      confirming.value = due
+      isConfirmOpen.value = true
+    },
+    close: () => (open.value = false),
+    changed: () => emit('changed'),
+  },
+)
+
 function doneToday(): void {
   refreshToday()
-  if (isBusy.value || schedule.value === null) return
-  if (doseDue.value === null) {
-    open.value = false
-    showToast(t('treatments.sheet.errors.noDoseLeft'), { tone: 'info' })
-    return
-  }
-  const target = sheetDoneTarget(schedule.value, doseDue.value, today.value)
-  switch (target.kind) {
-    case 'note':
-      void note(target.gesture)
-      return
-    case 'confirm':
-      confirming.value = target.due
-      isConfirmOpen.value = true
-      return
-    case 'already':
-      open.value = false
-      showToast(alreadyNotedText(t, { ...named.value, today: today.value }, target.givenOn), {
-        tone: 'info',
-      })
-      return
-    case 'none':
-      open.value = false
-      emit('changed')
-  }
+  if (!isBusy.value) actions.doneToday()
 }
 
 function onChildModel(shown: boolean): void {
@@ -261,18 +238,8 @@ function onChosenDays(choice: DayChoice): void {
   void (choosing.value === 'stop' ? logThenStop(choice) : log(choice))
 }
 
-// L'accueil garde le rappel et son échéance dans son adresse : le retour, bouton Android compris, rouvre la feuille.
-async function edit(): Promise<void> {
-  const current = history.value
-  if (current === null) return
-  const reminder = todoReminderValue({ kind: 'treatment', id: current.id, due: props.due })
-  open.value = false
-  await router.replace({ query: { ...route.query, [REMINDER_QUERY_PARAM]: reminder } })
-  await router.push({
-    name: 'treatment-edit',
-    params: { id: current.id },
-    query: { from: String(route.name ?? ''), [REMINDER_QUERY_PARAM]: reminder },
-  })
+function edit(): void {
+  if (history.value !== null) void actions.edit(history.value.id, props.due)
 }
 </script>
 

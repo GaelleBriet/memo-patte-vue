@@ -106,7 +106,7 @@ describe('sheetDoneTarget — « Fait aujourd’hui » vise l’échéance de la
     )
   })
 
-  it('échéance notée oubliée entre-temps : rien à noter, l’oubli reste (Q41)', () => {
+  it('échéance notée oubliée entre-temps : l’oubli reste, et la feuille le dit (Q41)', () => {
     const book = treatment(
       [VENDREDI],
       [dose('2026-10-09', '2026-10-16'), missed('2026-10-16', '2026-10-23')],
@@ -114,6 +114,15 @@ describe('sheetDoneTarget — « Fait aujourd’hui » vise l’échéance de la
     const schedule = treatmentScheduleOf(book, '2026-10-19')
 
     expect(sheetDoneTarget(schedule, { dueOn: '2026-10-16', dueTime: null }, '2026-10-19')).toEqual(
+      { kind: 'missed' },
+    )
+  })
+
+  it('échéance qui n’est plus au calendrier : rien à noter', () => {
+    const book = treatment([VENDREDI], [dose('2026-10-09', '2026-10-16')])
+    const schedule = treatmentScheduleOf(book, '2026-10-19')
+
+    expect(sheetDoneTarget(schedule, { dueOn: '2026-10-14', dueTime: null }, '2026-10-19')).toEqual(
       { kind: 'none' },
     )
   })

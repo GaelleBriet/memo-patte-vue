@@ -49,6 +49,7 @@ export type SheetDoneTarget =
   | { kind: 'note'; gesture: DoseGesture }
   | { kind: 'confirm'; due: Due }
   | { kind: 'already'; givenOn: string }
+  | { kind: 'missed' }
   | { kind: 'none' }
 
 function givenOnDay(schedule: Pick<TreatmentSchedule, 'doses'>, day: string): boolean {
@@ -71,9 +72,8 @@ export function sheetDoneTarget(
   const pending = dues.find(({ status }) => status === 'pending')
   if (pending === undefined) {
     const given = dues.find(({ status }) => status === 'given')
-    return given === undefined
-      ? { kind: 'none' }
-      : { kind: 'already', givenOn: given.givenOn ?? due.dueOn }
+    if (given !== undefined) return { kind: 'already', givenOn: given.givenOn ?? due.dueOn }
+    return dues.some(({ status }) => status === 'missed') ? { kind: 'missed' } : { kind: 'none' }
   }
   if (pending.due.dueOn > today && givenOnDay(schedule, today)) {
     return { kind: 'already', givenOn: today }

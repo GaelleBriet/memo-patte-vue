@@ -426,7 +426,8 @@
         "stopped": "{name} stopped",
         "undoStop": "Undo stopping {name}",
         "dayNoted": "Today’s doses are already logged.",
-        "stoppedFinished": "{name} stopped, now in Finished treatments."
+        "stoppedFinished": "{name} stopped, now in Finished treatments.",
+        "alreadyMissed": "This dose is marked as missed."
       },
       "errors": {
         "dose": "Couldn’t log the dose. Try again.",

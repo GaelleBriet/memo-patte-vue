@@ -426,7 +426,8 @@
         "stopped": "{name} arrêté",
         "undoStop": "Annuler l’arrêt de {name}",
         "dayNoted": "Les doses d’aujourd’hui sont déjà notées.",
-        "stoppedFinished": "{name} arrêté, à retrouver dans Traitements terminés."
+        "stoppedFinished": "{name} arrêté, à retrouver dans Traitements terminés.",
+        "alreadyMissed": "Cette dose est notée oubliée."
       },
       "errors": {
         "dose": "La prise n’a pas pu être notée. Réessaie.",

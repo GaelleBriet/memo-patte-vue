@@ -414,6 +414,32 @@ describe('TreatmentReminderSheet — F2, la feuille de l’échéance touchée',
     expect(toastAction.value).toBeNull()
   })
 
+  it('échéance notée oubliée entre-temps : la feuille le dit, sans rien écrire (Q41)', async () => {
+    lePlus(
+      {
+        ...HEBDO,
+        doses: [
+          ...HEBDO.doses,
+          dose('2026-10-16', '2026-10-23', {
+            animalId: BOREE.id,
+            givenOn: null,
+            status: 'missed',
+          }),
+        ],
+      },
+      '2026-10-19',
+    )
+    const sheet = await monter(LIGNE_16)
+
+    bouton('.reminder-actions__done-today').click()
+    await flushPromises()
+
+    expect(apply).not.toHaveBeenCalled()
+    expect(toastMessage.value).toBe('Cette dose est notée oubliée.')
+    expect(toastAction.value).toBeNull()
+    expect(sheet.emitted('update:modelValue')).toEqual([[false]])
+  })
+
   it('garde la feuille ouverte quand la prise n’a pas pu être notée', async () => {
     lePlus(HEBDO, '2026-10-16')
     apply.mockRejectedValue(new Error('base verrouillée'))
