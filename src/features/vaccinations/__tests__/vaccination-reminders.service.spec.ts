@@ -49,6 +49,7 @@ beforeEach(() => {
   service = createVaccinationRemindersService({
     vaccinations: () => ({ getById: getVaccination }),
     animals: () => ({ getById }),
+    settings: async () => ({ vaccineReminderTime: '09:00', remindBeforeDue: true }),
     notifications,
     t: i18n.global.t,
     now: () => new Date(2026, 8, 15, 12),
@@ -65,18 +66,37 @@ describe('vaccinationRemindersService', () => {
     expect(getVaccination).toHaveBeenCalledWith(CHPPI.id)
     expect(getById).toHaveBeenCalledWith(MILO.id)
     expect([...notifications.pending.keys()]).toEqual([
-      `vaccination:${CHPPI.id}:2026-10-15:before`,
-      `vaccination:${CHPPI.id}:2026-10-15:due`,
-      `vaccination:${CHPPI.id}:2026-10-15:overdue`,
+      `vaccination:${CHPPI.id}:2026-10-15::before`,
+      `vaccination:${CHPPI.id}:2026-10-15::due`,
+      `vaccination:${CHPPI.id}:2026-10-15::overdue`,
     ])
     expect(
       notifications.scheduleReminders.mock.calls.flatMap(([reminders]) =>
         reminders.map((reminder) => reminder.title),
       ),
     ).toEqual([
-      'CHPPi de Milo dans 3 jours',
+      'CHPPi de Milo dans 2 semaines',
       'CHPPi de Milo aujourd’hui',
       'CHPPi de Milo en retard de 3 jours',
+    ])
+  })
+
+  it('RA-9 : programme à l’heure des rappels de vaccins du carnet', async () => {
+    service = createVaccinationRemindersService({
+      vaccinations: () => ({ getById: getVaccination }),
+      animals: () => ({ getById }),
+      settings: async () => ({ vaccineReminderTime: '18:30', remindBeforeDue: true }),
+      notifications,
+      t: i18n.global.t,
+      now: () => new Date(2026, 8, 15, 12),
+    })
+
+    await service.reschedule(CHPPI.id)
+
+    expect([...notifications.pending.values()].map(({ at }) => at)).toEqual([
+      new Date(2026, 9, 1, 18, 30),
+      new Date(2026, 9, 15, 18, 30),
+      new Date(2026, 9, 18, 18, 30),
     ])
   })
 
@@ -124,9 +144,9 @@ describe('vaccinationRemindersService', () => {
     await reprogrammation
 
     expect([...notifications.pending.keys()]).toEqual([
-      `vaccination:${CHPPI.id}:2027-05-15:before`,
-      `vaccination:${CHPPI.id}:2027-05-15:due`,
-      `vaccination:${CHPPI.id}:2027-05-15:overdue`,
+      `vaccination:${CHPPI.id}:2027-05-15::before`,
+      `vaccination:${CHPPI.id}:2027-05-15::due`,
+      `vaccination:${CHPPI.id}:2027-05-15::overdue`,
     ])
   })
 
@@ -136,9 +156,9 @@ describe('vaccinationRemindersService', () => {
     await service.reschedule(CHPPI.id)
 
     expect([...notifications.pending.keys()]).toEqual([
-      `vaccination:${CHPPI.id}:2027-05-15:before`,
-      `vaccination:${CHPPI.id}:2027-05-15:due`,
-      `vaccination:${CHPPI.id}:2027-05-15:overdue`,
+      `vaccination:${CHPPI.id}:2027-05-15::before`,
+      `vaccination:${CHPPI.id}:2027-05-15::due`,
+      `vaccination:${CHPPI.id}:2027-05-15::overdue`,
     ])
   })
 

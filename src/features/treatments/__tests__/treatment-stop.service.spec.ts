@@ -102,7 +102,7 @@ describe('treatmentStopService', () => {
     await service.undo(bravecto)
 
     await expect(treatments.getById(bravecto)).resolves.toMatchObject({ stoppedOn: null })
-    expect([...notifications.pending.keys()]).toContain(`treatment:${bravecto}:2026-09-28:due`)
+    expect([...notifications.pending.keys()]).toContain(`treatment:${bravecto}:2026-09-28::due`)
   })
 
   it('dit qu’un traitement déjà arrêté ne l’a pas été de nouveau', async () => {

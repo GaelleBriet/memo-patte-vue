@@ -4,6 +4,7 @@ import { createMemoryHistory, createRouter } from 'vue-router'
 import { ANALYTICS_CONSENT_ROUTE, installConsentGate, shouldAskConsent } from '../analytics-consent'
 import { createRemindersPriming } from '../reminders-priming'
 import type { ConsentStatus } from '@/core/analytics'
+import { period, treatment } from '@/features/treatments/__tests__/treatment-fixtures'
 
 const Vide = { render: () => null }
 
@@ -77,12 +78,11 @@ describe('installConsentGate', () => {
       }),
       vaccinations: () => ({ listAll: async () => [] }),
       treatments: () => ({
-        listAll: async () => [
+        listAllWithHistory: async () => [
           {
-            id: '44444444-4444-4444-8444-444444444444',
+            ...treatment([period({ firstDueOn: '2026-10-01' })]),
             animalId: '11111111-1111-4111-8111-111111111111',
-            deletedAt: null,
-          } as never,
+          },
         ],
       }),
       today: () => '2026-09-15',

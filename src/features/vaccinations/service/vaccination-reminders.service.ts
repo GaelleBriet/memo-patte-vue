@@ -3,13 +3,14 @@ import {
   getAnimalsRepository,
   type AnimalsRepository,
 } from '@/features/animals/repository/animals.repository'
-import type { Translate } from '@/shared/domain/due-reminders'
 import {
+  carnetReminderSettings,
   reminderNotifications,
   replaceDueReminders,
   type ReminderNotifications,
 } from '@/shared/domain/due-reminders-schedule'
-import { isInjectionNoted, vaccinationReminders } from '../logic/vaccination-reminders'
+import type { CarnetReminderSettings, ReminderTranslate } from '@/shared/domain/reminder-plan'
+import { vaccinationReminders } from '../logic/vaccination-reminders'
 import {
   getVaccinationsRepository,
   type VaccinationsRepository,
@@ -20,8 +21,9 @@ type Provider<T> = () => T | Promise<T>
 export type VaccinationRemindersDependencies = {
   vaccinations: Provider<Pick<VaccinationsRepository, 'getById'>>
   animals: Provider<Pick<AnimalsRepository, 'getById'>>
+  settings?: Provider<CarnetReminderSettings>
   notifications: ReminderNotifications
-  t: Translate
+  t: ReminderTranslate
   now: () => Date
 }
 
@@ -29,6 +31,7 @@ export type VaccinationRemindersDependencies = {
 export function createVaccinationRemindersService({
   vaccinations,
   animals,
+  settings = carnetReminderSettings,
   notifications,
   t,
   now,
@@ -38,12 +41,9 @@ export function createVaccinationRemindersService({
     async reschedule(id: string): Promise<void> {
       await replaceDueReminders(notifications, { kind: 'vaccination', id }, async () => {
         const vaccination = await (await vaccinations()).getById(id)
-        if (vaccination === null) return { reminders: [], isNoted: () => false }
+        if (vaccination === null) return { care: null, isNoted: () => false }
         const animal = await (await animals()).getById(vaccination.animalId)
-        return {
-          reminders: vaccinationReminders(t, vaccination, animal, now()),
-          isNoted: (dueDate: string) => isInjectionNoted(vaccination, dueDate),
-        }
+        return vaccinationReminders(t, vaccination, animal, await settings(), now())
       })
     },
   }
