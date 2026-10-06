@@ -30,12 +30,15 @@ const props = withDefaults(
     busy?: boolean
     /** « Donnée quand ? » : l'échéance de la notification, que le jour choisi ne change pas. */
     notified?: NotifiedDue | null
+    /** Flèche de l'étape du jour, qui émet `back` : la feuille qui l'a ouverte reprend la main. */
+    backLabel?: string | null
   }>(),
-  { min: null, busy: false, notified: null },
+  { min: null, busy: false, notified: null, backLabel: null },
 )
 
 const emit = defineEmits<{
   note: [gesture: DoseGesture]
+  back: []
 }>()
 
 const open = defineModel<boolean>({ default: false })
@@ -116,9 +119,9 @@ function submit(): void {
     :subtitle="step === 'day' ? texts.daySubtitle : texts.hourSubtitle"
     :close-label="t('reminderSheet.close')"
     :icon="step === 'day' ? icon : null"
-    :back-label="step === 'hour' ? t('treatments.detail.otherDate.back') : null"
+    :back-label="step === 'hour' ? t('treatments.detail.otherDate.back') : backLabel"
     :persistent="busy"
-    @back="step = 'day'"
+    @back="step === 'hour' ? (step = 'day') : emit('back')"
   >
     <DateCalendar
       v-if="step === 'day'"

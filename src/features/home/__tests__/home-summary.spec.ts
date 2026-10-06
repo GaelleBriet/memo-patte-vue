@@ -8,6 +8,7 @@ import {
   reminderIcon,
   reminderRows,
   reminderType,
+  rowToReopen,
   scopeCounter,
   upToDateText,
 } from '../logic/home-summary'
@@ -365,6 +366,43 @@ describe('reminderRows', () => {
     expect(rows.map((row) => row.subtitle)).toEqual(['Vaccin', 'Vermifuge', 'Vermifuge'])
     expect(rows[1]?.ariaLabel).toBe('Milbemax, vermifuge, aujourd’hui. Ouvre les actions.')
     expect(rows[2]?.ariaLabel).toBe('Panacur, vermifuge, donnée illisible. Ouvre le traitement.')
+  })
+})
+
+describe('rowToReopen', () => {
+  const names = { animalNames: new Map([['luna', 'Luna']]), showAnimal: true }
+  const metacam = (dueTime: string) =>
+    reminder({
+      key: `treatment:t3:2026-09-09T${dueTime}`,
+      kind: 'treatment',
+      id: 't3',
+      animalId: 'luna',
+      label: 'Métacam',
+      treatmentType: 'medication',
+      dueOn: '2026-09-09',
+      dueTime,
+      status: 'today',
+      daysUntil: 0,
+    })
+  const rows = reminderRows(t, [metacam('08:00'), metacam('20:00'), TO_LOG, UNREADABLE], names)
+  const ref = { kind: 'treatment' as const, id: 't3' }
+
+  it('la ligne de l’échéance demandée', () => {
+    expect(rowToReopen(rows, { ...ref, due: { dueOn: '2026-09-09', dueTime: '20:00' } })?.key).toBe(
+      'treatment:t3:2026-09-09T20:00',
+    )
+    expect(rowToReopen(rows, { ...ref, due: 'unlogged' })?.key).toBe('treatment:t3:unlogged')
+  })
+
+  it('la première ligne du soin sans échéance, ou quand la sienne a quitté la liste', () => {
+    expect(rowToReopen(rows, ref)?.key).toBe('treatment:t3:2026-09-09T08:00')
+    expect(rowToReopen(rows, { ...ref, due: { dueOn: '2026-09-01', dueTime: '08:00' } })?.key).toBe(
+      'treatment:t3:2026-09-09T08:00',
+    )
+  })
+
+  it('jamais une ligne qui ouvre la fiche', () => {
+    expect(rowToReopen(rows, { kind: 'treatment', id: 't4' })).toBeUndefined()
   })
 })
 

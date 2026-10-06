@@ -406,11 +406,8 @@
       "stop": "Arrêter ce traitement",
       "stopLabel": "Arrêter le traitement {name}. Demande confirmation.",
       "otherDay": {
-        "title": "Fait à une autre date",
         "subtitle": "{name} · {animal}",
         "back": "Retour aux actions",
-        "doseOn": "Prise du {date}",
-        "nextDose": "Prochaine dose : {date}",
         "submit": "Noter la prise du {date}",
         "submitToday": "Noter la prise d’aujourd’hui"
       },
