@@ -57,61 +57,92 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-describe('carnetTreatments — une ligne par traitement en cours (TR-36)', () => {
-  it('à venir : la prochaine dose, en gris, et le badge de fréquence', () => {
+describe('carnetTreatments — une ligne par traitement en cours (TR-36, B · V15)', () => {
+  it('à venir : le rythme et la prochaine dose, sans badge (B · V14)', () => {
     expect(row(MILBEMAX)).toEqual({
       id: 'milbemax',
       name: 'Milbemax',
-      type: 'Vermifuge',
-      badge: 'Tous les 3 mois',
-      detail: 'Prochaine dose · 10 oct.',
-      tone: 'later',
+      detail: 'Tous les 3 mois · prochaine dose le 10 oct.',
+      badge: null,
       unlogged: null,
     })
   })
 
-  it('du jour : « Dose du jour », avec son heure', () => {
+  it('du jour : le rythme, son heure et la dose du moment, sans badge', () => {
     const soirs = A_JOUR.map(({ dueOn }) => dose(dueOn, dueOn, { dueTime: '20:00' }))
     const metacam = named('Métacam', [period({ times: ['20:00'] })], soirs, 'medication')
 
     expect(row(metacam)).toMatchObject({
-      type: 'Médicament',
-      detail: 'Dose du jour · 28 sept. à 20 h',
-      tone: 'today',
-      badge: 'Tous les jours',
+      detail: 'Tous les jours à 20 h · prochaine dose le 28 sept.',
+      badge: null,
     })
   })
 
-  it('à plusieurs heures : une seule ligne, sans heure tant qu’il en reste plusieurs', () => {
-    const matinEtSoir = period({ times: ['08:00', '20:00'] })
+  it('avec une date de fin : la période plutôt que la prochaine dose (B · V11)', () => {
+    const soirs = A_JOUR.map(({ dueOn }) => dose(dueOn, dueOn, { dueTime: '20:00' }))
+    const jusquAu = period({ times: ['20:00'], endsOn: '2026-10-10' })
+    const surDeuxMois = period({ endsOn: '2026-11-03' })
+
+    expect(row(named('Panacur', [jusquAu], soirs)).detail).toBe(
+      'Tous les jours à 20 h · du 1 sept. au 10 oct.',
+    )
+    expect(row(named('Panacur', [surDeuxMois], A_JOUR)).detail).toBe(
+      'Tous les jours · du 1 sept. au 3 nov.',
+    )
+  })
+
+  it('avec une date de fin l’année suivante : la fin porte son année', () => {
+    const saison = period({
+      frequency: { value: 1, unit: 'month' },
+      startsOn: '2026-08-06',
+      firstDueOn: '2026-08-06',
+      endsOn: '2027-02-06',
+    })
+    const frontline = named('Frontline', [saison], [dose('2026-08-06', '2026-08-06')])
+
+    expect(row(frontline, '2026-08-20').detail).toBe('Tous les mois · du 6 août au 6 févr. 2027')
+    applyLocale('en')
+    expect(row(frontline, '2026-08-20').detail).toBe('Every month · Aug 6 – Feb 6, 2027')
+  })
+
+  it('avec une date de fin dans le même mois : « du 6 au 10 oct. »', () => {
+    const court = period({ startsOn: '2026-09-25', firstDueOn: '2026-09-25', endsOn: '2026-09-30' })
+    const donnees = ['2026-09-25', '2026-09-26', '2026-09-27'].map((day) => dose(day, day))
+
+    expect(row(named('Panacur', [court], donnees)).detail).toBe(
+      'Tous les jours · du 25 au 30 sept.',
+    )
+  })
+
+  it('à plusieurs heures : une seule ligne, toutes les heures dans le rythme', () => {
+    const matinEtSoir = period({ times: ['20:00', '08:00'] })
     const hier = A_JOUR.flatMap(({ dueOn }) => [
       dose(dueOn, dueOn, { dueTime: '08:00' }),
       dose(dueOn, dueOn, { dueTime: '20:00' }),
     ])
-    const matin = dose(TODAY, TODAY, { dueTime: '08:00' })
 
-    expect(row(named('Métacam', [matinEtSoir], hier)).detail).toBe('Dose du jour · 28 sept.')
-    expect(row(named('Métacam', [matinEtSoir], [...hier, matin])).detail).toBe(
-      'Dose du jour · 28 sept. à 20 h',
+    expect(row(named('Métacam', [matinEtSoir], hier)).detail).toBe(
+      'Tous les jours à 8 h et 20 h · prochaine dose le 28 sept.',
     )
     expect(carnet([named('Métacam', [matinEtSoir], hier)]).ongoing).toHaveLength(1)
   })
 
-  it('en retard : le dit en corail, depuis le jour de la dose', () => {
+  it('en retard : badge « En retard · N j », compté depuis le jour de la dose, sans complément', () => {
     const advocate = named('Advocate', [HEBDO], [dose('2026-09-07', '2026-09-14')])
 
-    expect(row(advocate, '2026-09-16')).toMatchObject({
-      detail: 'En retard depuis le 14 sept.',
-      tone: 'overdue',
+    expect(row(advocate, '2026-09-20')).toEqual({
+      id: 'advocate',
+      name: 'Advocate',
+      detail: 'Toutes les semaines',
+      badge: { status: 'overdue', label: 'En retard · 6 j' },
       unlogged: null,
     })
   })
 
   it('des doses non renseignées s’ajoutent sous la ligne, jamais comme un retard (TR-14)', () => {
     expect(row(PANACUR)).toMatchObject({
-      detail: 'Dose du jour · 28 sept.',
-      tone: 'today',
-      badge: 'Tous les jours',
+      detail: 'Tous les jours · prochaine dose le 28 sept.',
+      badge: null,
       unlogged: '25 doses non renseignées',
     })
     expect(carnet([PANACUR]).summary).toEqual({ total: 1, overdue: 0, ongoing: 1 })
@@ -122,13 +153,22 @@ describe('carnetTreatments — une ligne par traitement en cours (TR-36)', () =>
     const fini = named('Drontal', [period({ endsOn: '2026-09-04' })], PANACUR.doses)
     const { ongoing, finished, summary } = carnet([arrete, fini])
 
-    expect(ongoing).toMatchObject([
-      { name: 'Panacur', badge: 'À renseigner', detail: 'Arrêté le 6 sept.', tone: 'later' },
-      { name: 'Drontal', badge: 'À renseigner', detail: 'Terminé le 4 sept.', tone: 'later' },
-    ])
-    expect(ongoing.map(({ unlogged }) => unlogged)).toEqual([
-      '3 doses non renseignées',
-      '2 doses non renseignées',
+    const toLog = { status: 'to-log', label: 'À renseigner' }
+    expect(ongoing).toEqual([
+      {
+        id: 'panacur',
+        name: 'Panacur',
+        detail: 'Arrêté le 6 sept.',
+        badge: toLog,
+        unlogged: '3 doses non renseignées',
+      },
+      {
+        id: 'drontal',
+        name: 'Drontal',
+        detail: 'Terminé le 4 sept.',
+        badge: toLog,
+        unlogged: '2 doses non renseignées',
+      },
     ])
     expect(finished).toEqual([])
     expect(summary).toEqual({ total: 0, overdue: 0, ongoing: 2 })
@@ -140,7 +180,7 @@ describe('carnetTreatments — une ligne par traitement en cours (TR-36)', () =>
 
     expect(ongoing).toMatchObject([
       { name: 'Milbemax' },
-      { id: 'abîmé', badge: null, detail: 'Donnée illisible', tone: 'later', unlogged: null },
+      { id: 'abîmé', badge: null, detail: 'Donnée illisible', unlogged: null },
     ])
     expect(summary).toEqual({ total: 1, overdue: 0, ongoing: 2 })
   })
@@ -214,14 +254,21 @@ describe('carnetTreatments — une ligne par traitement en cours (TR-36)', () =>
 
   it('s’écrit en anglais', () => {
     applyLocale('en')
+    const soir = named('Métacam', [period({ times: ['20:00'] })], [], 'medication')
+    const advocate = named('Advocate', [HEBDO], [dose('2026-09-07', '2026-09-14')])
 
-    expect(row(PANACUR)).toMatchObject({
-      detail: 'Today’s dose · Sep 28',
-      unlogged: '25 doses not logged',
+    const court = period({ startsOn: '2026-09-25', firstDueOn: '2026-09-25', endsOn: '2026-09-30' })
+
+    expect(row(soir).detail).toBe('Every day at 8 pm · next dose on Sep 28')
+    expect(row(named('Panacur', [court])).detail).toBe('Every day · Sep 25 – Sep 30')
+    expect(row(advocate, '2026-09-20').badge).toEqual({
+      status: 'overdue',
+      label: 'Overdue · 6d',
     })
-    expect(row(named('Panacur', [period({ stoppedOn: '2026-09-06' })], PANACUR.doses)).badge).toBe(
-      'To log',
-    )
+    expect(row(PANACUR).unlogged).toBe('25 doses not logged')
+    expect(
+      row(named('Panacur', [period({ stoppedOn: '2026-09-06' })], PANACUR.doses)).badge,
+    ).toEqual({ status: 'to-log', label: 'To log' })
   })
 })
 

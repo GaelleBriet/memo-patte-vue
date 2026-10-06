@@ -17,14 +17,26 @@ function cssDuBadge(): string {
   return compileString(bloc, { importers: [aliasSrc] }).css
 }
 
+function selecteurs(regle: string): string[] {
+  return regle.split(',').map((selecteur) => selecteur.trim().replace(/\s+/g, ' '))
+}
+
 function declaration(css: string, selecteur: string, propriete: string): string | undefined {
   for (const regle of css.matchAll(/([^{}]+)\{([^}]*)\}/g)) {
-    if (regle[1]!.trim().replace(/\s+/g, ' ') !== selecteur) continue
+    const liste = selecteurs(regle[1]!)
+    if (liste.join(', ') !== selecteur && !liste.includes(selecteur)) continue
 
     return new RegExp(`(?:^|;)\\s*${propriete}:\\s*([^;]+)`).exec(regle[2]!)?.[1]?.trim()
   }
 
   return undefined
+}
+
+function regleCommune(css: string, ...attendus: string[]): boolean {
+  return [...css.matchAll(/([^{}]+)\{/g)].some((regle) => {
+    const liste = selecteurs(regle[1]!)
+    return attendus.every((selecteur) => liste.includes(selecteur))
+  })
 }
 
 describe('DueStatusChip — contrat de style', () => {
@@ -83,5 +95,9 @@ describe('DueStatusChip — contrat de style', () => {
     expect(declaration(css, '.due-status-chip--to-log', 'color')).toBe(
       'rgb(var(--v-theme-primary))',
     )
+  })
+
+  it('borde « Prévu le … » d’un vaccin jamais fait par la règle de « À renseigner » (B · V11)', () => {
+    expect(regleCommune(css, '.due-status-chip--to-log', '.due-status-chip--planned')).toBe(true)
   })
 })

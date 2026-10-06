@@ -47,7 +47,7 @@ const LISTES = [
     fichier: 'src/features/treatments/views/TreatmentsSection.vue',
     ligne: '.treatment-row',
     titre: '.treatment-row__name',
-    badge: '.treatment-row__frequency',
+    badge: '.treatment-row__badge',
   },
 ] as const
 

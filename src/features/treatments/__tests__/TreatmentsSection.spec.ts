@@ -103,7 +103,7 @@ function ligne(wrapper: ReturnType<typeof mount>, index = 0) {
 }
 
 function texte(element: { text(): string }): string {
-  return element.text().replace(NBSP, ' ')
+  return element.text().replaceAll(NBSP, ' ')
 }
 
 function resume(wrapper: ReturnType<typeof mount>) {
@@ -140,98 +140,92 @@ describe('TreatmentsSection — chargement', () => {
   })
 })
 
-describe('TreatmentsSection — lignes', () => {
-  it('affiche nom, type et badge de fréquence neutre', async () => {
+describe('TreatmentsSection — lignes (B · V15)', () => {
+  it('affiche le nom, le rythme et la prochaine dose, sans type ni badge quand rien n’est en retard', async () => {
     treatments = [treatment()]
     const wrapper = await monter()
     const row = ligne(wrapper)
 
     expect(row.get('.treatment-row__name').text()).toBe('Bravecto')
-    expect(row.get('.treatment-row__type').text()).toBe('Antiparasitaire')
-    expect(row.get('.treatment-row__frequency').text()).toBe('Tous les 3 mois')
-    expect(row.get('.treatment-row__frequency').classes()).toEqual(
-      expect.arrayContaining(['due-status-chip', 'due-status-chip--none']),
+    expect(texte(row.get('.treatment-row__detail'))).toBe(
+      'Tous les 3 mois · prochaine dose le 24 sept.',
     )
+    expect(row.find('.treatment-row__type').exists()).toBe(false)
+    expect(row.find('.treatment-row__badge').exists()).toBe(false)
   })
 
-  it('traduit le type vermifuge', async () => {
-    treatments = [treatment({ name: 'Milbemax', type: 'deworming' })]
-    const wrapper = await monter()
-
-    expect(ligne(wrapper).get('.treatment-row__type').text()).toBe('Vermifuge')
-  })
-
-  it('accorde la fréquence selon l’unité et le nombre', async () => {
+  it('accorde le rythme selon l’unité et le nombre', async () => {
     treatments = [
       treatment({ period: { frequency: { value: 4, unit: 'week' } } }),
       treatment({ period: { frequency: { value: 15, unit: 'day' } } }),
       treatment({ period: { frequency: { value: 1, unit: 'month' } } }),
-      treatment({ period: { frequency: { value: 1, unit: 'day' } } }),
     ]
     const wrapper = await monter()
 
-    expect(wrapper.findAll('.treatment-row__frequency').map((n) => n.text())).toEqual([
-      'Toutes les 4 semaines',
-      'Tous les 15 jours',
-      'Tous les mois',
-      'Tous les jours',
+    expect(wrapper.findAll('.treatment-row__detail').map(texte)).toEqual([
+      'Toutes les 4 semaines · prochaine dose le 24 sept.',
+      'Tous les 15 jours · prochaine dose le 24 sept.',
+      'Tous les mois · prochaine dose le 24 sept.',
     ])
   })
 
-  it('annonce la prochaine dose en gris quand elle est loin', async () => {
-    treatments = [treatment()]
-    const wrapper = await monter()
-    const nextDose = ligne(wrapper).get('.treatment-row__next-dose')
-
-    expect(texte(nextDose)).toBe('Prochaine dose · 24 sept.')
-    expect(nextDose.classes()).toContain('treatment-row__next-dose--later')
-    expect(nextDose.classes()).not.toContain('treatment-row__next-dose--today')
-    expect(nextDose.classes()).not.toContain('treatment-row__next-dose--overdue')
-  })
-
-  it('annonce la prochaine dose demain', async () => {
-    treatments = [treatment(firstDue('2026-09-10'))]
+  it('donne les heures avec le rythme : « Tous les jours à 8 h et 20 h »', async () => {
+    treatments = [treatment({ period: { ...QUOTIDIEN, times: ['08:00', '20:00'] } })]
     const wrapper = await monter()
 
-    expect(texte(ligne(wrapper).get('.treatment-row__next-dose'))).toBe(
-      'Prochaine dose · demain, 10 sept.',
+    expect(texte(ligne(wrapper).get('.treatment-row__detail'))).toBe(
+      'Tous les jours à 8 h et 20 h · prochaine dose le 9 sept.',
     )
   })
 
-  it('passe en ambre le jour même', async () => {
-    treatments = [treatment(firstDue(TODAY))]
+  it('donne la période d’un traitement qui a une date de fin : « du 1 au 15 sept. »', async () => {
+    treatments = [treatment({ period: { ...QUOTIDIEN, endsOn: '2026-09-15' }, doses: DEUX_PRISES })]
     const wrapper = await monter()
-    const nextDose = ligne(wrapper).get('.treatment-row__next-dose')
 
-    expect(texte(nextDose)).toBe('Dose du jour · 9 sept.')
-    expect(nextDose.classes()).toContain('treatment-row__next-dose--today')
+    expect(texte(ligne(wrapper).get('.treatment-row__detail'))).toBe(
+      'Tous les jours · du 1 au 15 sept.',
+    )
   })
 
-  it('passe en corail quand la dose du moment est en retard', async () => {
+  it('en retard, le rythme seul', async () => {
     treatments = [treatment(firstDue('2026-09-07'))]
     const wrapper = await monter()
-    const nextDose = ligne(wrapper).get('.treatment-row__next-dose')
 
-    expect(texte(nextDose)).toBe('En retard depuis le 7 sept.')
-    expect(nextDose.classes()).toContain('treatment-row__next-dose--overdue')
+    expect(texte(ligne(wrapper).get('.treatment-row__detail'))).toBe('Tous les 3 mois')
+  })
+
+  it('le jour même, ni badge ni couleur', async () => {
+    treatments = [treatment(firstDue(TODAY))]
+    const wrapper = await monter()
+
+    expect(ligne(wrapper).find('.treatment-row__badge').exists()).toBe(false)
+  })
+
+  it('en retard : badge « En retard · N j » en corail, avec son icône', async () => {
+    treatments = [treatment(firstDue('2026-09-07'))]
+    const wrapper = await monter()
+    const badge = ligne(wrapper).get('.treatment-row__badge')
+
+    expect(badge.text()).toBe('En retard · 2 j')
+    expect(badge.classes()).toContain('due-status-chip--overdue')
+    expect(badge.find('svg').exists()).toBe(true)
     expect(ligne(wrapper).find('.treatment-row__unlogged').exists()).toBe(false)
   })
 
-  it('ajoute les doses non renseignées sous la ligne, sans rouge (TR-14, TR-36)', async () => {
+  it('ajoute les doses non renseignées sous la ligne, sans rouge ni badge (TR-14, TR-36)', async () => {
     treatments = [treatment({ name: 'Panacur', period: QUOTIDIEN, doses: DEUX_PRISES })]
     const wrapper = await monter()
     const row = ligne(wrapper)
 
-    expect(texte(row.get('.treatment-row__next-dose'))).toBe('Dose du jour · 9 sept.')
-    expect(row.get('.treatment-row__next-dose').classes()).not.toContain(
-      'treatment-row__next-dose--overdue',
+    expect(texte(row.get('.treatment-row__detail'))).toBe(
+      'Tous les jours · prochaine dose le 9 sept.',
     )
     expect(texte(row.get('.treatment-row__unlogged'))).toBe('6 doses non renseignées')
-    expect(row.get('.treatment-row__frequency').text()).toBe('Tous les jours')
+    expect(row.find('.treatment-row__badge').exists()).toBe(false)
     expect(resume(wrapper)).toEqual([{ total: 1, overdue: 0, ongoing: 1 }])
   })
 
-  it('garde en cours un traitement arrêté qui a des doses à renseigner, badge « À renseigner »', async () => {
+  it('garde en cours un traitement arrêté qui a des doses à renseigner, badge « À renseigner » turquoise', async () => {
     treatments = [
       treatment({
         name: 'Panacur',
@@ -241,10 +235,12 @@ describe('TreatmentsSection — lignes', () => {
     ]
     const wrapper = await monter()
     const row = ligne(wrapper)
+    const badge = row.get('.treatment-row__badge')
 
-    expect(row.get('.treatment-row__frequency').text()).toBe('À renseigner')
-    expect(row.get('.treatment-row__frequency').classes()).toContain('due-status-chip--none')
-    expect(texte(row.get('.treatment-row__next-dose'))).toBe('Arrêté le 6 sept.')
+    expect(badge.text()).toBe('À renseigner')
+    expect(badge.classes()).toContain('due-status-chip--to-log')
+    expect(badge.find('svg').exists()).toBe(false)
+    expect(texte(row.get('.treatment-row__detail'))).toBe('Arrêté le 6 sept.')
     expect(texte(row.get('.treatment-row__unlogged'))).toBe('3 doses non renseignées')
     expect(wrapper.find('.finished-treatments').exists()).toBe(false)
     expect(resume(wrapper)).toEqual([{ total: 0, overdue: 0, ongoing: 1 }])
@@ -258,8 +254,8 @@ describe('TreatmentsSection — lignes', () => {
     const row = ligne(wrapper, 1)
 
     expect(row.get('.treatment-row__name').text()).toBe('Abîmé')
-    expect(row.get('.treatment-row__next-dose').text()).toBe('Donnée illisible')
-    expect(row.find('.treatment-row__frequency').exists()).toBe(false)
+    expect(row.get('.treatment-row__detail').text()).toBe('Donnée illisible')
+    expect(row.find('.treatment-row__badge').exists()).toBe(false)
     await row.trigger('click')
 
     expect(push).toHaveBeenCalledWith({ name: 'treatment-detail', params: { id: illisible.id } })

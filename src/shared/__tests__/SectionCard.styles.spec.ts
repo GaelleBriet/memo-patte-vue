@@ -43,13 +43,11 @@ describe('SectionCard — contrat de style', () => {
     expect(declaration(css, '.section-card__counter', 'white-space')).toBe('nowrap')
   })
 
-  it('arrondit la carte à 22 px, lignes de 76 px séparées d’un filet et barre d’urgence de 3 px', () => {
+  it('arrondit la carte à 22 px, lignes de 76 px séparées d’un filet, sans barre d’urgence (B · V15)', () => {
     expect(declaration(css, '.section-card__card', 'border-radius')).toBe('22px')
     expect(declaration(css, '.section-card__row', 'min-height')).toBe('76px')
-    expect(declaration(css, '.section-card__row::before', 'width')).toBe('3px')
-    expect(declaration(css, '.section-card__row--overdue::before', 'background')).toBe(
-      'rgb(var(--v-theme-overdue))',
-    )
+    expect(declaration(css, '.section-card__row::before', 'width')).toBeUndefined()
+    expect(declaration(css, '.section-card__row--overdue::before', 'background')).toBeUndefined()
   })
 
   it('tient l’état vide dans la hauteur d’une ligne d’ajout, sans la marge du paragraphe', () => {

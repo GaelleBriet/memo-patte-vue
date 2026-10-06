@@ -497,13 +497,13 @@ describe('CarnetView — retour au premier plan', () => {
   it('passe une dose du jour en retard quand l’app revient le lendemain', async () => {
     treatments = [treatment(MILO.id, '2026-09-09')]
     const wrapper = await monter()
-    expect(wrapper.get('.treatment-row__next-dose').text()).toBe('Dose du jour · 9 sept.')
+    expect(wrapper.find('.treatment-row__badge').exists()).toBe(false)
 
     vi.setSystemTime(new Date('2026-09-10T08:00:00'))
     simulateWebResume()
     await flushPromises()
 
-    expect(wrapper.get('.treatment-row__next-dose').text()).toBe('En retard depuis le 9 sept.')
+    expect(wrapper.get('.treatment-row__badge').text()).toBe('En retard · 1 j')
     expect(stat(wrapper, 1)).toMatchObject({ value: '1', sub: 'en retard' })
   })
 

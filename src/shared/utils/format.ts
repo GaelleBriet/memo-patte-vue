@@ -205,3 +205,10 @@ export function formatDayRange(first: string, last: string): { start: string; en
   const compact = currentLocale() === 'fr' && sameMonth([first, last])
   return { start: compact ? dayNumber(first) : formatDayMonth(first), end: formatDayMonth(last) }
 }
+
+/** `6 août` – `6 févr. 2027` : la fin porte son année quand elle diffère de celle du début. */
+export function formatPeriodRange(first: string, last: string): { start: string; end: string } {
+  return first.slice(0, 4) === last.slice(0, 4)
+    ? formatDayRange(first, last)
+    : { start: formatDayMonth(first), end: formatLongDate(last) }
+}
