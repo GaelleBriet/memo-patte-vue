@@ -167,7 +167,7 @@ describe('sheetDoneTarget — « Fait aujourd’hui » vise l’échéance de la
   })
 })
 
-describe('treatmentSheetTexts — sous-titre et « Prochaine dose » lus par le moteur', () => {
+describe('treatmentSheetTexts — sous-titre et échéance lus par le moteur', () => {
   const named = { name: 'Milbemax', type: 'deworming' as const }
 
   it('la fréquence de la période de l’échéance et le jour de la ligne', () => {
@@ -183,7 +183,25 @@ describe('treatmentSheetTexts — sous-titre et « Prochaine dose » lus par le 
     )
 
     expect(plain(texts.subtitle)).toBe('Vermifuge · Pixel · toutes les semaines')
-    expect(plain(texts.due)).toBe('Prochaine dose le 16 oct.')
+    expect(plain(texts.due)).toBe('En retard depuis le 16 oct.')
+  })
+
+  it('« Prochaine dose » seulement pour une échéance d’aujourd’hui ou à venir (TR-10)', () => {
+    const due = (dueOn: string) =>
+      treatmentSheetTexts(
+        t,
+        named,
+        MATIN_ET_SOIR,
+        { dueOn, dueTime: '20:00' },
+        {
+          animal: 'Pixel',
+          today: '2026-10-19',
+        },
+      ).due
+
+    expect(plain(due('2026-10-19'))).toBe('Prochaine dose le 19 oct. à 20 h')
+    expect(plain(due('2026-10-20'))).toBe('Prochaine dose le 20 oct. à 20 h')
+    expect(plain(due('2026-10-18'))).toBe('En retard depuis le 18 oct. à 20 h')
   })
 
   it('l’heure de la ligne, l’année hors de l’année en cours', () => {
@@ -196,7 +214,7 @@ describe('treatmentSheetTexts — sous-titre et « Prochaine dose » lus par le 
     )
 
     expect(plain(texts.subtitle)).toBe('Vermifuge · Pixel · tous les jours')
-    expect(plain(texts.due)).toBe('Prochaine dose le 30 déc. 2025 à 20 h')
+    expect(plain(texts.due)).toBe('En retard depuis le 30 déc. 2025 à 20 h')
   })
 
   it('pas de « Prochaine dose » sur la feuille des doses non renseignées', () => {
@@ -219,7 +237,21 @@ describe('treatmentSheetTexts — sous-titre et « Prochaine dose » lus par le 
     )
 
     expect(plain(texts.subtitle)).toBe('Dewormer · Pixel · every day')
-    expect(plain(texts.due)).toBe('Next dose on Oct 16 at 8 am')
+    expect(plain(texts.due)).toBe('Overdue since Oct 16 at 8 am')
+    expect(
+      plain(
+        treatmentSheetTexts(
+          t,
+          named,
+          VENDREDI,
+          { dueOn: '2026-10-23', dueTime: null },
+          {
+            animal: 'Pixel',
+            today: '2026-10-19',
+          },
+        ).due,
+      ),
+    ).toBe('Next dose on Oct 23')
   })
 })
 

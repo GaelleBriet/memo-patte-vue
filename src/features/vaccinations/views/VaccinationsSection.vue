@@ -158,8 +158,8 @@ watch(summary, (value) => emit('summary', value), { immediate: true })
 }
 
 .vaccination-row__text {
-  flex: 1 1 auto;
-  min-width: 0;
+  flex: 1 1 0;
+  max-width: 100%;
 }
 
 .vaccination-row__name {

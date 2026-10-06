@@ -406,6 +406,7 @@
         "month": "every month | every {n} months"
       },
       "nextDose": "Next dose on {date}",
+      "overdueSince": "Overdue since {date}",
       "doneTodayLabel": "Done today: log the {name} dose for {animal}",
       "editHint": "Date or frequency",
       "stop": "Stop this treatment",
