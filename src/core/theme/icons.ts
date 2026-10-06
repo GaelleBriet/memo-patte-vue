@@ -60,6 +60,7 @@ import schedule from '@material-symbols/svg-400/outlined/schedule.svg?raw'
 import settings from '@material-symbols/svg-400/outlined/settings.svg?raw'
 import settingsBackupRestore from '@material-symbols/svg-400/outlined/settings_backup_restore.svg?raw'
 import share from '@material-symbols/svg-400/outlined/share.svg?raw'
+import shield from '@material-symbols/svg-400/outlined/shield.svg?raw'
 import showChart from '@material-symbols/svg-400/outlined/show_chart.svg?raw'
 import starShine from '@material-symbols/svg-400/outlined/star_shine.svg?raw'
 import storefront from '@material-symbols/svg-400/outlined/storefront.svg?raw'
@@ -231,6 +232,7 @@ export const msIcons = {
   settings,
   settings_backup_restore: settingsBackupRestore,
   share,
+  shield,
   shift,
   show_chart: showChart,
   star_shine: starShine,

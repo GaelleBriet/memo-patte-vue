@@ -30,6 +30,7 @@ import VaccinationReminderSheet from '@/features/vaccinations/views/VaccinationR
 import WeightSheet from '@/features/weight/views/WeightSheet.vue'
 import AnimalChipSelector from '@/shared/components/AnimalChipSelector.vue'
 import { forgetPhotoUrls } from '@/core/photos/use-photo-urls'
+import { recordUsageSignal } from '@/shared/utils/usage-signals'
 import {
   getNotificationPermissionStatus,
   openNotificationSettings,
@@ -48,6 +49,7 @@ vi.mock('@/core/notifications/permission', () => ({
   getNotificationPermissionStatus: vi.fn<() => Promise<NotificationPermissionStatus>>(
     async () => 'granted',
   ),
+  hasAndroidAskedNotifications: vi.fn<() => Promise<boolean>>(async () => true),
   openNotificationSettings: vi.fn<() => Promise<void>>(async () => {}),
 }))
 
@@ -120,8 +122,18 @@ let listSources: Mock<HomeRemindersService['listSources']>
 let loadAnimals: MockInstance
 let push: MockInstance
 
+function memoryStorage(): Pick<Storage, 'getItem' | 'setItem' | 'removeItem'> {
+  const items = new Map<string, string>()
+  return {
+    getItem: (key) => items.get(key) ?? null,
+    setItem: (key, value) => void items.set(key, value),
+    removeItem: (key) => void items.delete(key),
+  }
+}
+
 beforeEach(async () => {
   vi.useFakeTimers({ now: TODAY, toFake: ['Date'] })
+  vi.stubGlobal('localStorage', memoryStorage())
   forgetPhotoUrls()
   setActivePinia(createPinia())
   animalsStore = useAnimalsStore()
@@ -429,6 +441,7 @@ describe('HomeView — rappels désactivés', () => {
     const banner = wrapper.get('.home-reminders-off')
     expect(banner.text()).toContain('Les rappels sont désactivés')
     expect(banner.get('.home-reminders-off__link').text()).toBe('Activer dans les réglages')
+    expect(banner.get('.home-reminders-off__help').text()).toBe('Je ne reçois pas mes rappels')
     const todo = wrapper.get('.home-todo').element
     expect(banner.element.compareDocumentPosition(todo)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
   })
@@ -448,9 +461,18 @@ describe('HomeView — rappels désactivés', () => {
     permissionStatus.mockResolvedValue('disabled')
     const wrapper = await monter()
 
-    await wrapper.get('.home-reminders-off__link').trigger('click')
+    await wrapper.get('.home-reminders-off__enable').trigger('click')
 
     expect(openNotificationSettings).toHaveBeenCalledOnce()
+  })
+
+  it('n’affiche qu’un message à la fois : le bandeau, pas la carte « protéger »', async () => {
+    permissionStatus.mockResolvedValue('disabled')
+    recordUsageSignal('care')
+    const wrapper = await monter()
+
+    expect(wrapper.find('.home-reminders-off').exists()).toBe(true)
+    expect(wrapper.find('.home-message').exists()).toBe(false)
   })
 
   it('disparaît au retour des réglages quand la permission a été accordée', async () => {
@@ -462,6 +484,23 @@ describe('HomeView — rappels désactivés', () => {
     simulateWebResume()
     await flushPromises()
 
+    expect(wrapper.find('.home-reminders-off').exists()).toBe(false)
+  })
+})
+
+describe('HomeView — cartes sur la sauvegarde', () => {
+  it('place la carte « protéger » sous « À faire », avant « Actions rapides »', async () => {
+    recordUsageSignal('care')
+    sources = [ANTIPARASITAIRE_MILO_3J]
+    const wrapper = await monter()
+
+    const card = wrapper.get('.home-message--protect').element
+    expect(wrapper.get('.home-todo').element.compareDocumentPosition(card)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    )
+    expect(card.compareDocumentPosition(wrapper.get('.home-quick-actions').element)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    )
     expect(wrapper.find('.home-reminders-off').exists()).toBe(false)
   })
 })
@@ -780,6 +819,25 @@ describe('HomeView — A5 premier lancement, aucun animal', () => {
     expect(wrapper.get('.home-welcome__text').text()).toBe(
       'Le carnet de santé de tes animaux, toujours à jour.',
     )
+    expect(wrapper.get('.home-welcome__local').text()).toBe(
+      'Ton carnet reste sur ton téléphone. Gratuit, sans compte.',
+    )
+  })
+
+  it('garde l’accès aux Paramètres', async () => {
+    const wrapper = await monter()
+
+    const settings = wrapper.get('.home-welcome__settings')
+    expect(settings.attributes('aria-label')).toBe('Paramètres')
+    await settings.trigger('click')
+
+    expect(push).toHaveBeenCalledWith({ name: 'settings' })
+  })
+
+  it('ne propose pas encore de retrouver un carnet MémoPatte Plus', async () => {
+    const wrapper = await monter()
+
+    expect(wrapper.text()).not.toContain('Retrouver mon carnet')
   })
 
   it('mène au formulaire de création', async () => {

@@ -501,7 +501,7 @@ describe('useTreatmentsStore', () => {
     repository.resume.mockRejectedValueOnce(new Error('base indisponible'))
     const store = useTreatmentsStore()
 
-    await expect(store.resume(seme.id, reprise())).rejects.toThrow()
+    await expect(store.resume(seme.id, reprise())).rejects.toThrow('base indisponible')
 
     expect(recordUsageSignal).not.toHaveBeenCalled()
   })
