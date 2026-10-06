@@ -48,6 +48,9 @@ const iconesDesMaquettes = [
   'event_repeat',
   'event_upcoming',
   'event_busy',
+  'backup',
+  'mobile',
+  'star',
 ] as const
 
 describe('registre d’icônes Material Symbols', () => {

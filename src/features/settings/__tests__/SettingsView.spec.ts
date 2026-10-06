@@ -164,6 +164,17 @@ describe('SettingsView', () => {
     expect(wrapper.text()).not.toMatch(/Compte|Export PDF|Politique/)
   })
 
+  it('ouvre la rubrique Sauvegarde, « Sur ce téléphone »', async () => {
+    const wrapper = await monter()
+    const ligne = wrapper.get('.settings-row--backup')
+
+    expect(ligne.get('.settings-row__label').text()).toBe('Sauvegarde')
+    expect(ligne.get('.settings-row__hint').text()).toBe('Sur ce téléphone')
+    await ligne.trigger('click')
+
+    expect(push).toHaveBeenCalledWith({ name: 'settings-backup' })
+  })
+
   describe('MémoPatte Plus', () => {
     it('ouvre l’écran sur la découverte de Plus, avant les autres sections', async () => {
       const wrapper = await monter()
