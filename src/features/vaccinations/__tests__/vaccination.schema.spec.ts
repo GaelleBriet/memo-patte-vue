@@ -39,16 +39,33 @@ describe('vaccinationInputSchema', () => {
     expect(vaccinationInputSchema.safeParse({ ...validInput, animalId: 'a1' }).success).toBe(false)
   })
 
-  it('rejette une date de dernière injection future, absente ou mal formée', () => {
+  it('rejette une date de dernière injection future ou mal formée', () => {
     expect(
       vaccinationInputSchema.safeParse({ ...validInput, lastInjectionDate: '2099-01-01' }).success,
     ).toBe(false)
     expect(
       vaccinationInputSchema.safeParse({ ...validInput, lastInjectionDate: '12/06/2025' }).success,
     ).toBe(false)
+  })
+
+  it('accepte un vaccin sans injection avec son rendez-vous prévu', () => {
+    const { lastInjectionDate: _injection, ...prevu } = validInput
+
+    expect(vaccinationInputSchema.parse({ ...prevu, dueDate: '2026-10-05' })).toMatchObject({
+      lastInjectionDate: null,
+      dueDate: '2026-10-05',
+    })
     expect(
-      vaccinationInputSchema.safeParse({ ...validInput, lastInjectionDate: null }).success,
-    ).toBe(false)
+      vaccinationInputSchema.safeParse({ ...prevu, lastInjectionDate: null, dueDate: '2026-10-05' })
+        .success,
+    ).toBe(true)
+  })
+
+  it('refuse un vaccin sans injection ni prochain rappel, l’erreur sur le prochain rappel', () => {
+    const result = vaccinationInputSchema.safeParse({ ...validInput, lastInjectionDate: null })
+
+    expect(result.success).toBe(false)
+    expect(result.error?.issues.map((issue) => issue.path)).toEqual([['dueDate']])
   })
 
   it('accepte une date de dernière injection passée ou aujourd’hui', () => {
@@ -79,5 +96,17 @@ describe('vaccinationInputSchema', () => {
     expect(vaccinationInputSchema.parse({ ...validInput, dueDate: '2020-01-15' }).dueDate).toBe(
       '2020-01-15',
     )
+  })
+})
+
+describe('vaccinationUpdateSchema', () => {
+  it('ne porte que le nom et le prochain rappel : la date d’injection ne se change pas ici', () => {
+    expect(
+      vaccinationUpdateSchema.parse({
+        name: ' Rage ',
+        lastInjectionDate: '2025-06-12',
+        dueDate: null,
+      }),
+    ).toEqual({ name: 'Rage', dueDate: null })
   })
 })

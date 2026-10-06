@@ -109,10 +109,14 @@
         "placeholder": "Ex. Rage"
       },
       "lastInjectionDate": {
-        "label": "Date d’injection"
+        "label": "Date de l’injection",
+        "help": "Laisse vide si l’injection n’a pas encore eu lieu."
       },
-      "dueDate": {
-        "label": "Prochaine échéance"
+      "nextReminder": {
+        "label": "Prochain rappel"
+      },
+      "plannedDate": {
+        "help": "Rendez-vous prévu : le vaccin sera « {status} »."
       },
       "submit": "Créer",
       "submitting": "Création…",
@@ -127,9 +131,10 @@
       "errors": {
         "name": "Le nom du vaccin est obligatoire.",
         "nameMax": "Le nom du vaccin ne peut pas dépasser {max} caractères.",
-        "lastInjectionDate": "La date d’injection est obligatoire.",
-        "lastInjectionDateFuture": "La date d’injection ne peut pas être dans le futur.",
-        "dueDate": "La date d’échéance est invalide.",
+        "lastInjectionDate": "La date de l’injection est invalide.",
+        "lastInjectionDateFuture": "La date de l’injection ne peut pas être dans le futur.",
+        "plannedDate": "Choisis la date du rendez-vous prévu.",
+        "plannedDatePast": "Le rendez-vous ne peut pas être dans le passé.",
         "notFound": "Ce vaccin est introuvable.",
         "load": "Ce vaccin n’a pas pu être chargé. Réessaie.",
         "save": "Le vaccin n’a pas pu être enregistré. Réessaie."
@@ -166,6 +171,7 @@
         "nextReminder": "Prochain rappel",
         "hint": "Reporte la date indiquée par ton vétérinaire.",
         "choices": {
+          "oneMonth": "Dans 1 mois",
           "oneYear": "Dans 1 an",
           "threeYears": "Dans 3 ans",
           "otherDate": "Autre date",

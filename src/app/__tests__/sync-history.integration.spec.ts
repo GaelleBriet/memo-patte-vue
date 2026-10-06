@@ -189,7 +189,6 @@ describe('synchro de l’historique entre deux appareils', () => {
     later()
     await phone.vaccinations.update(carre.id, {
       name: 'Carré (CHPPi)',
-      lastInjectionDate: '2025-09-20',
       dueDate: '2026-09-20',
     })
     await phone.seed.update(bravecto.id, {
