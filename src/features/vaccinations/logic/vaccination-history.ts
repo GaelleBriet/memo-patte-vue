@@ -114,7 +114,9 @@ export function vaccinationDetailTexts(
   return {
     subtitle: t('vaccinations.sheet.subtitle', { animal }),
     top: isPlanned
-      ? t(`vaccinations.detail.${isAppointmentDay ? 'firstVaccineShort' : 'firstVaccine'}`)
+      ? isAppointmentDay
+        ? t('vaccinations.detail.firstVaccineShort')
+        : t('vaccinations.detail.firstVaccine')
       : null,
     due: dueDate === null ? null : nextReminderDue(t, dueDate, today),
     note: isAppointmentDay ? t('vaccinations.detail.noInjection') : null,
