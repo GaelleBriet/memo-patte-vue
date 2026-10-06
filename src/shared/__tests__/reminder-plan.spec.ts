@@ -15,7 +15,16 @@ import {
   type TreatmentReminderPeriod,
 } from '../domain/reminder-plan'
 import type { TreatmentPeriodInput } from '../domain/treatment-schedule'
-import { carnet, period, scheduleOf, stored } from './treatment-schedule-fixtures'
+import {
+  carnet,
+  due,
+  period,
+  record,
+  scheduleOf,
+  stored,
+  weekly,
+  type Carnet,
+} from './treatment-schedule-fixtures'
 
 const t = i18n.global.t
 const ID = '55555555-5555-4555-8555-555555555555'
@@ -47,11 +56,22 @@ type Setup = {
   now: Date
   settings?: CarnetReminderSettings
   id?: string
+  /** Carnet déjà écrit par les gestes du moteur, à la place de `doses`. */
+  book?: Carnet
 }
 
-function plan({ input = {}, reminders = {}, doses = [], today, now, settings, id = ID }: Setup) {
-  const periodInput = period(input)
-  const book = { ...carnet(periodInput), doses: doses.map((fields) => stored(fields)) }
+function plan({
+  input = {},
+  reminders = {},
+  doses = [],
+  today,
+  now,
+  settings,
+  id = ID,
+  ...rest
+}: Setup) {
+  const periodInput = rest.book?.periods[0] ?? period(input)
+  const book = rest.book ?? { ...carnet(periodInput), doses: doses.map((fields) => stored(fields)) }
   return treatmentReminderPlan(
     t,
     {
@@ -443,6 +463,46 @@ describe('treatmentReminderPlan, RA-6', () => {
       today: '2026-10-20',
       now: new Date(2026, 9, 20, 12),
     })
+
+    expect(reminders).toEqual([])
+  })
+
+  const SHORT = weekly({ firstDueOn: '2026-10-05', endsOn: '2026-10-21' })
+
+  it('après la date de fin, la relance suit un report de la dernière dose', () => {
+    const book = record(carnet(SHORT), '2026-10-14', {
+      kind: 'postponed',
+      due: due('2026-10-19'),
+      to: '2026-10-21',
+    })
+    const { reminders } = plan({ book, today: '2026-10-22', now: new Date(2026, 9, 22, 12) })
+
+    expect(reminders.map(({ key, at }) => [slot(key), at])).toEqual([
+      ['2026-10-21::overdue', new Date(2026, 9, 24, 9)],
+    ])
+  })
+
+  it('après la date de fin, la relance suit un décalage de la dernière dose', () => {
+    const book = record(carnet(SHORT), '2026-10-13', {
+      kind: 'given',
+      due: due('2026-10-12'),
+      givenOn: '2026-10-13',
+      shiftsFollowing: true,
+    })
+    const { reminders } = plan({ book, today: '2026-10-22', now: new Date(2026, 9, 22, 12) })
+
+    expect(reminders.map(({ key, at }) => [slot(key), at])).toEqual([
+      ['2026-10-20::overdue', new Date(2026, 9, 23, 9)],
+    ])
+  })
+
+  it('après la date de fin, aucune relance pour une dose plus ancienne que la dernière', () => {
+    const book = record(carnet(SHORT), '2026-10-21', {
+      kind: 'given',
+      due: due('2026-10-19'),
+      givenOn: '2026-10-21',
+    })
+    const { reminders } = plan({ book, today: '2026-10-22', now: new Date(2026, 9, 22, 12) })
 
     expect(reminders).toEqual([])
   })

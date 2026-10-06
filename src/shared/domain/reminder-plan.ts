@@ -17,7 +17,7 @@ import {
 } from './due-reminders'
 import { remindersWithinCap } from './due-reminders-schedule'
 import type { Due, TreatmentPeriodInput, TreatmentSchedule } from './treatment-schedule'
-import { DAYS_PER_STEP, shiftDate, toDate, uniqueSorted } from './treatment-schedule-dues'
+import { DAYS_PER_STEP, toDate, uniqueSorted } from './treatment-schedule-dues'
 
 export type ReminderTranslate = (
   key: string,
@@ -35,7 +35,10 @@ export type TreatmentReminderSource = {
   name: string
   animalName: string
   period: TreatmentReminderPeriod
-  schedule: Pick<TreatmentSchedule, 'phase' | 'currentDoses' | 'unloggedDoses' | 'upcoming'>
+  schedule: Pick<
+    TreatmentSchedule,
+    'phase' | 'currentDoses' | 'unloggedDoses' | 'upcoming' | 'lastDueDay'
+  >
 }
 
 export type VaccinationReminderSource = {
@@ -94,10 +97,9 @@ function byDay(dues: readonly Due[]): Map<string, Due[]> {
 }
 
 /** Une fois la date de fin passée, la dernière dose garde sa relance : elle était prévue avant la fin. */
-function lastDoseAfterEnd({ period, schedule }: TreatmentReminderSource): Due[] {
-  const lastDay = schedule.unloggedDoses.at(-1)?.dueOn
-  if (schedule.phase !== 'ended' || period.endsOn === null || lastDay === undefined) return []
-  if (shiftDate(lastDay, period.frequency, 1) <= period.endsOn) return []
+function lastDoseAfterEnd({ schedule }: TreatmentReminderSource): Due[] {
+  if (schedule.phase !== 'ended') return []
+  const lastDay = schedule.lastDueDay()
   return schedule.unloggedDoses.filter(({ dueOn }) => dueOn === lastDay)
 }
 
