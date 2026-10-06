@@ -1052,6 +1052,26 @@
         }
       }
     },
+    "backup": {
+      "title": "Backup",
+      "summary": "On this phone",
+      "local": {
+        "title": "Your health record is on this phone",
+        "hint": "It only leaves this phone if you export it, or through Android backup."
+      },
+      "risk": "If this phone is lost, your health record may be too. A copy or Plus prevents that.",
+      "android": {
+        "title": "Android backup",
+        "body": "If your phone’s backup is on, Android may keep a copy of your health record. Without photos or your settings, and with no guarantee: don’t count on it to recover everything."
+      },
+      "copy": {
+        "title": "Copy of your health record",
+        "export": "Export a copy",
+        "exportHint": "To Google Drive, an email or a computer"
+      },
+      "plus": "MémoPatte Plus adds a guaranteed cloud backup, photos included, and restores it on a new phone.",
+      "discoverPlus": "Explore MémoPatte Plus"
+    },
     "data": {
       "title": "My data",
       "weightUnit": {

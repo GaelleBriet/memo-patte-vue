@@ -15,6 +15,7 @@ export function useDataExport(
   async function run(format: ExportFormat, mode: DeliveryMode): Promise<ExportRunOutcome> {
     const outcome = await exportRun.run(mode, () => service.exportData(format, mode))
     if (isSaved(outcome) || outcome === 'shared') recordUsageSignal('export')
+    if (format === 'json' && outcome === 'shared') recordUsageSignal('jsonShare')
     return outcome
   }
 

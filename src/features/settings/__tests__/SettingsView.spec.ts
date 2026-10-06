@@ -183,6 +183,17 @@ describe('SettingsView', () => {
     expect(wrapper.text()).not.toMatch(/Compte|Export PDF|Politique/)
   })
 
+  it('ouvre la rubrique Sauvegarde, « Sur ce téléphone »', async () => {
+    const wrapper = await monter()
+    const ligne = wrapper.get('.settings-row--backup')
+
+    expect(ligne.get('.settings-row__label').text()).toBe('Sauvegarde')
+    expect(ligne.get('.settings-row__hint').text()).toBe('Sur ce téléphone')
+    await ligne.trigger('click')
+
+    expect(push).toHaveBeenCalledWith({ name: 'settings-backup' })
+  })
+
   describe('Rappels', () => {
     it('ouvre la page « Rappels » depuis la première entrée de l’écran (V19)', async () => {
       const wrapper = await monter()

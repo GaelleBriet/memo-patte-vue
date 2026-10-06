@@ -36,6 +36,25 @@ describe('useDataExport', () => {
 
     await run('json', mode)
 
+    expect(recordUsageSignal).toHaveBeenCalledWith('export')
+  })
+
+  it('retient un export JSON partagé à part', async () => {
+    const { run } = useDataExport({ exportData: async () => 'shared' }, port('granted'))
+
+    await run('json', 'share')
+
+    expect(vi.mocked(recordUsageSignal).mock.calls).toEqual([['export'], ['jsonShare']])
+  })
+
+  it.each([
+    ['un JSON enregistré', 'json', 'save', { status: 'saved', file: null }],
+    ['un CSV partagé', 'csv', 'share', 'shared'],
+  ] as const)('ne retient pas %s comme partage JSON', async (_, format, mode, outcome) => {
+    const { run } = useDataExport({ exportData: async () => outcome }, port('granted'))
+
+    await run(format, mode)
+
     expect(recordUsageSignal).toHaveBeenCalledExactlyOnceWith('export')
   })
 

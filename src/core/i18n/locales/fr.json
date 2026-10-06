@@ -1052,6 +1052,26 @@
         }
       }
     },
+    "backup": {
+      "title": "Sauvegarde",
+      "summary": "Sur ce téléphone",
+      "local": {
+        "title": "Ton carnet est sur ce téléphone",
+        "hint": "Il ne quitte ce téléphone que si tu l’exportes, ou par la sauvegarde d’Android."
+      },
+      "risk": "Si ce téléphone est perdu, ton carnet peut l’être aussi. Une copie ou Plus l’évite.",
+      "android": {
+        "title": "Sauvegarde d’Android",
+        "body": "Si la sauvegarde de ton téléphone est active, Android peut garder une copie de ton carnet. Sans les photos ni tes réglages, et sans garantie : ne compte pas dessus pour tout retrouver."
+      },
+      "copy": {
+        "title": "Copie de ton carnet",
+        "export": "Exporter une copie",
+        "exportHint": "Vers Google Drive, un e-mail ou un ordinateur"
+      },
+      "plus": "MémoPatte Plus ajoute une sauvegarde cloud garantie, photos comprises, et la restaure sur un nouveau téléphone.",
+      "discoverPlus": "Découvrir MémoPatte Plus"
+    },
     "data": {
       "title": "Mes données",
       "weightUnit": {
