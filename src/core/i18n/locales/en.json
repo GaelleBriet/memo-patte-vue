@@ -406,11 +406,8 @@
       "stop": "Stop this treatment",
       "stopLabel": "Stop the {name} treatment. Asks for confirmation.",
       "otherDay": {
-        "title": "Done on another day",
         "subtitle": "{name} · {animal}",
         "back": "Back to actions",
-        "doseOn": "Dose on {date}",
-        "nextDose": "Next dose: {date}",
         "submit": "Log the dose on {date}",
         "submitToday": "Log today’s dose"
       },
@@ -429,7 +426,8 @@
         "stopped": "{name} stopped",
         "undoStop": "Undo stopping {name}",
         "dayNoted": "Today’s doses are already logged.",
-        "stoppedFinished": "{name} stopped, now in Finished treatments."
+        "stoppedFinished": "{name} stopped, now in Finished treatments.",
+        "alreadyMissed": "This dose is marked as missed."
       },
       "errors": {
         "dose": "Couldn’t log the dose. Try again.",

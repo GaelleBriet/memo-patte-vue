@@ -6,8 +6,8 @@ import type { PromptActionId, PromptResult, UnloggedPrompt } from '../logic/trea
 withDefaults(
   defineProps<{
     prompt: UnloggedPrompt
-    /** `banner` : la note suit le sous-titre ; `inset` : elle ferme l'encart. */
-    variant?: 'banner' | 'inset'
+    /** `banner` : la note suit le sous-titre ; `inset` : elle ferme l'encart ; `compact` : sans note. */
+    variant?: 'banner' | 'inset' | 'compact'
     /** Réponse déjà donnée : elle remplace les deux gestes. */
     result?: PromptResult | null
     busy?: boolean

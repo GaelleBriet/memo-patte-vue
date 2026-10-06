@@ -743,6 +743,10 @@ describe('HomeView — traitements lus par le moteur d’échéances', () => {
   const PIXEL = animal('55555555-5555-4555-8555-555555555555', 'Pixel')
   const BOTH = ['08:00', '20:00']
 
+  beforeEach(() => {
+    vi.spyOn(useTreatmentsStore(), 'getWithHistory').mockReturnValue(new Promise(() => {}))
+  })
+
   afterEach(() => applyLocale('fr'))
 
   function lunaTreatment(
@@ -876,6 +880,55 @@ describe('HomeView — traitements lus par le moteur d’échéances', () => {
     const feuille = wrapper.getComponent(TreatmentReminderSheet)
     expect(feuille.props('modelValue')).toBe(true)
     expect(feuille.props('treatmentId')).toBe(METACAM.id)
+    expect(feuille.props('due')).toBe('unlogged')
+  })
+
+  it('ouvre la feuille sur l’échéance de la ligne touchée', async () => {
+    sources = [METACAM]
+    const wrapper = await monter()
+
+    await wrapper.findAll('.reminder-row')[1]!.trigger('click')
+
+    expect(wrapper.getComponent(TreatmentReminderSheet).props('due')).toEqual({
+      dueOn: '2026-09-09',
+      dueTime: '20:00',
+    })
+  })
+
+  it.each([
+    ['2026-09-09T20:00', { dueOn: '2026-09-09', dueTime: '20:00' }],
+    ['2026-09-09T08:00', { dueOn: '2026-09-09', dueTime: '08:00' }],
+    ['unlogged', 'unlogged'],
+  ])(
+    'rouvre la feuille sur la même échéance au retour de « Modifier » (%s)',
+    async (due, attendu) => {
+      sources = [METACAM]
+      await router.replace({ name: 'home', query: { reminder: `treatment:${METACAM.id}:${due}` } })
+
+      const wrapper = await monter()
+
+      expect(wrapper.getComponent(TreatmentReminderSheet).props()).toMatchObject({
+        modelValue: true,
+        treatmentId: METACAM.id,
+        due: attendu,
+      })
+      await vi.waitFor(() => expect(router.currentRoute.value.query).toEqual({}))
+    },
+  )
+
+  it('rouvre la première ligne du soin quand son échéance a quitté « À faire »', async () => {
+    sources = [METACAM]
+    await router.replace({
+      name: 'home',
+      query: { reminder: `treatment:${METACAM.id}:2026-09-01T08:00` },
+    })
+
+    const wrapper = await monter()
+
+    expect(wrapper.getComponent(TreatmentReminderSheet).props()).toMatchObject({
+      modelValue: true,
+      due: { dueOn: '2026-09-09', dueTime: '08:00' },
+    })
   })
 
   it('traitement illisible : ligne neutre « Donnée illisible » qui ouvre la fiche (B2)', async () => {
@@ -1326,18 +1379,7 @@ describe('HomeView — feuille d’un rappel', () => {
       updatedAt: '2026-09-01T09:00:00.000Z',
       deletedAt: null,
     }
-    vi.spyOn(useTreatmentsStore(), 'getById').mockResolvedValue({
-      id: VERMIFUGE_LUNA_AUJOURDHUI.id,
-      animalId: LUNA.id,
-      name: 'Milbemax',
-      type: 'deworming',
-      periodId: VERMIFUGE_LUNA_AUJOURDHUI.id,
-      frequency: { value: 1, unit: 'month' },
-      lastDoseDate: '2026-08-09',
-      nextDueDate: '2026-09-09',
-      stoppedOn: null,
-      ...dates,
-    })
+    vi.spyOn(useTreatmentsStore(), 'getWithHistory').mockReturnValue(new Promise(() => {}))
     vi.spyOn(useVaccinationsStore(), 'getById').mockResolvedValue({
       id: CHPPIL_MILO_RETARD.id,
       animalId: MILO.id,
