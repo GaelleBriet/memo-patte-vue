@@ -3,7 +3,11 @@ import { computed, onMounted, ref, useId, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
-import { enableRemindersRoute, exactRemindersRow } from '../logic/reminders-settings'
+import {
+  enableRemindersRoute,
+  exactRemindersAction,
+  exactRemindersRow,
+} from '../logic/reminders-settings'
 import type { CarnetSettings } from '../schema/carnet-settings.schema'
 import { useCarnetSettingsStore } from '../store/carnet-settings.store'
 import { currentLocale } from '@/core/i18n'
@@ -22,7 +26,7 @@ const { t } = useI18n()
 const router = useRouter()
 const store = useCarnetSettingsStore()
 const { status: notifications } = useNotificationPermission()
-const { status: exact } = useExactReminders()
+const { status: exact, openSettings } = useExactReminders()
 
 const exactSwitchId = useId()
 const remindBeforeId = useId()
@@ -64,9 +68,10 @@ async function onVaccineTimeChange(event: Event): Promise<void> {
   }
 }
 
-function openExplainer(event: Event): void {
+function onExactSwitch(event: Event): void {
   event.preventDefault()
-  isExplainerOpen.value = true
+  if (exactRemindersAction(exact.value) === 'androidSettings') void openSettings()
+  else isExplainerOpen.value = true
 }
 
 function enableReminders(): void {
@@ -167,7 +172,7 @@ function goBack(): void {
             hide-details
             density="compact"
             :ripple="false"
-            @click="openExplainer"
+            @click="onExactSwitch"
           />
         </label>
         <p

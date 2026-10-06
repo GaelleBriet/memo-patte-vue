@@ -174,6 +174,17 @@ describe('RemindersSettingsView — rappels précis (RA-23)', () => {
     expect(vue.find('.reminders-settings__precise').exists()).toBe(false)
   })
 
+  it('accordés : toucher l’interrupteur ouvre directement « Alarmes et rappels » d’Android', async () => {
+    const vue = await monter()
+
+    await vue.get('.reminders-settings__exact input').trigger('click')
+    await flushPromises()
+
+    expect(openExactRemindersSettings).toHaveBeenCalledOnce()
+    expect(document.body.querySelector('.exact-reminders')).toBeNull()
+    expect(vue.get<HTMLInputElement>('.reminders-settings__exact input').element.checked).toBe(true)
+  })
+
   it('V20 quater : retirés, « Moins précis » et « Réactiver » ouvre l’explication', async () => {
     exact.mockResolvedValue('removed')
     const vue = await monter()

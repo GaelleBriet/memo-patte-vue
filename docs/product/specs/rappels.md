@@ -140,7 +140,10 @@ par jour gérées au-delà d'une notification par heure (#365, plus tard) ; alar
   « Rappel 30 min avant · moins précis » avec « Réactiver » (spec Q6) ; réactivés, tout redevient
   précis sans rien ressaisir. Retirer l'accès dans les réglages d'Android arrête l'app et annule toutes
   ses alarmes exactes : les rappels ne reviennent, en inexact, qu'à la prochaine ouverture de l'app
-  (#535). (P3 Q3 ; recherche ; spec Q3, 2026-09-29)
+  (#535). L'explication ne sert qu'à les activer (jamais activés, ou retirés avec « Réactiver ») :
+  déjà accordés, toucher leur interrupteur dans Paramètres › Rappels ouvre directement l'écran
+  d'Android « Alarmes et rappels » (décision de Gaelle du 2026-10-06, #540). (P3 Q3 ; recherche ; spec
+  Q3, 2026-09-29)
 - **RA-24** Lien « Je ne reçois pas mes rappels » vers la page Aide du site, depuis Paramètres › Rappels
   et le bandeau. (Décision du 2026-09-29)
 

@@ -29,6 +29,13 @@ export function enableRemindersRoute(
   return null
 }
 
+/** L'explication ne sert qu'à les activer : déjà accordés, Android directement (RA-23). */
+export function exactRemindersAction(
+  exact: ExactRemindersStatus | null,
+): 'androidSettings' | 'explainer' {
+  return exact === 'precise' ? 'androidSettings' : 'explainer'
+}
+
 export function remindersSummary(
   notifications: NotificationPermissionStatus | null,
   exact: ExactRemindersStatus | null,

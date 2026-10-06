@@ -2,9 +2,23 @@ import { describe, expect, it } from 'vitest'
 
 import {
   enableRemindersRoute,
+  exactRemindersAction,
   exactRemindersRow,
   remindersSummary,
 } from '../logic/reminders-settings'
+
+describe('exactRemindersAction — toucher l’interrupteur « Rappels précis »', () => {
+  it('déjà accordés : l’écran Android « Alarmes et rappels » directement', () => {
+    expect(exactRemindersAction('precise')).toBe('androidSettings')
+  })
+
+  it.each(['never-enabled', 'removed', 'unavailable', null] as const)(
+    '%s : l’écran d’explication d’abord',
+    (status) => {
+      expect(exactRemindersAction(status)).toBe('explainer')
+    },
+  )
+})
 
 describe('enableRemindersRoute — bouton sous l’état des notifications', () => {
   it('jamais demandées : l’écran d’explication d’abord (RA-21)', () => {
