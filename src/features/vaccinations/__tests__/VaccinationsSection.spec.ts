@@ -149,12 +149,12 @@ describe('VaccinationsSection — ordre des lignes', () => {
 })
 
 describe('VaccinationsSection — lignes et badges', () => {
-  it('marque un vaccin en retard : barre corail, « Échéance passée », badge error', async () => {
+  it('marque un vaccin en retard : « Échéance passée », badge error, sans barre (B · V15)', async () => {
     vaccinations = [vaccination({ name: 'CHPPi', dueDate: '2026-09-08' })]
     const wrapper = await monter()
     const row = ligne(wrapper, 0)
 
-    expect(row.classes()).toContain('vaccination-row--overdue')
+    expect(row.classes()).not.toContain('section-card__row--overdue')
     expect(row.get('.vaccination-row__name').text()).toBe('CHPPi')
     expect(row.get('.vaccination-row__detail').text()).toBe('Échéance passée')
     const badge = row.get('.vaccination-row__badge')
@@ -168,7 +168,7 @@ describe('VaccinationsSection — lignes et badges', () => {
     const wrapper = await monter()
     const row = ligne(wrapper, 0)
 
-    expect(row.classes()).not.toContain('vaccination-row--overdue')
+    expect(row.classes()).not.toContain('section-card__row--overdue')
     expect(texte(row.get('.vaccination-row__detail'))).toBe('Prochain rappel le 12 déc.')
     const badge = row.get('.vaccination-row__badge')
     expect(badge.classes()).toContain('due-status-chip--up-to-date')
@@ -217,7 +217,7 @@ describe('VaccinationsSection — lignes et badges', () => {
     const wrapper = await monter()
     const row = ligne(wrapper, 0)
 
-    expect(row.classes()).not.toContain('vaccination-row--overdue')
+    expect(row.classes()).not.toContain('section-card__row--overdue')
     expect(row.get('.vaccination-row__detail').text()).toBe('Pas de rappel programmé')
     const badge = row.get('.vaccination-row__badge')
     expect(badge.classes()).toContain('due-status-chip--none')

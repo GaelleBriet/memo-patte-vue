@@ -96,10 +96,6 @@ watch(summary, (value) => emit('summary', value), { immediate: true })
       :key="row.id"
       type="button"
       class="section-card__row vaccination-row"
-      :class="{
-        'section-card__row--overdue': row.badge.status === 'overdue',
-        'vaccination-row--overdue': row.badge.status === 'overdue',
-      }"
       @click="openDetail(row.id)"
     >
       <span class="vaccination-row__text">
