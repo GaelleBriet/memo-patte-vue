@@ -43,6 +43,7 @@ const BOREE: Animal = {
   species: 'dog',
   breed: 'Bouvier bernois',
   birthDate: '2026-04-10',
+  birthDateApproximate: false,
   photoPath: null,
   createdAt: '2026-09-01T09:00:00.000Z',
   updatedAt: '2026-09-01T09:00:00.000Z',

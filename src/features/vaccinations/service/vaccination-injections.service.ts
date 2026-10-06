@@ -1,3 +1,5 @@
+import { z } from 'zod'
+
 import { injectionOn } from '../logic/vaccination-done'
 import { injectionDatesOn, needsNewReminder } from '../logic/vaccination-history'
 import {
@@ -9,7 +11,7 @@ import {
   getVaccinationsRepository,
   type VaccinationsRepository,
 } from '../repository/vaccinations.repository'
-import { vaccinationInputSchema } from '../schema/vaccination.schema'
+import { dueDateSchema, injectionDateSchema } from '../schema/vaccination.schema'
 import {
   vaccinationRemindersService,
   type VaccinationRemindersService,
@@ -37,12 +39,10 @@ export type RecordedInjection = {
   injectionId: string
 }
 
-const injectionInputSchema = vaccinationInputSchema
-  .pick({ lastInjectionDate: true, dueDate: true })
-  .transform(({ lastInjectionDate, dueDate }) => ({
-    injectedOn: lastInjectionDate,
-    nextDueDate: dueDate,
-  }))
+const injectionInputSchema = z.object({
+  injectedOn: injectionDateSchema,
+  nextDueDate: dueDateSchema,
+})
 
 /** Rappel choisi avec le déplacement : une date valide, strictement après l'injection, ou aucune. */
 const redatedInjectionSchema = injectionInputSchema.refine(
@@ -59,10 +59,7 @@ export function createVaccinationInjectionsService({
   return {
     /** Lève pour une injection future ou un vaccin introuvable. */
     async record(vaccinationId: string, input: InjectionInput): Promise<RecordedInjection> {
-      const data = injectionInputSchema.parse({
-        lastInjectionDate: input.injectedOn,
-        dueDate: input.nextDueDate,
-      })
+      const data = injectionInputSchema.parse(input)
       const vaccination = await (await vaccinations()).getById(vaccinationId)
       if (vaccination === null) throw new Error(`Vaccin introuvable : ${vaccinationId}`)
 
@@ -103,7 +100,7 @@ export function createVaccinationInjectionsService({
       injectionId: string,
       injectedOn: string,
     ): Promise<InjectionDates> {
-      const date = vaccinationInputSchema.shape.lastInjectionDate.parse(injectedOn)
+      const date = injectionDateSchema.parse(injectedOn)
       const injection = await requireInjection(injectionId)
       if (needsNewReminder(injection, date)) {
         throw new Error(`Prochain rappel à choisir : ${injectionId}`)
@@ -119,10 +116,7 @@ export function createVaccinationInjectionsService({
       injectionId: string,
       dates: InjectionDates,
     ): Promise<InjectionDates> {
-      const data = redatedInjectionSchema.parse({
-        lastInjectionDate: dates.injectedOn,
-        dueDate: dates.nextDueDate,
-      })
+      const data = redatedInjectionSchema.parse(dates)
       const injection = await requireInjection(injectionId)
 
       await writeDates(vaccinationId, injectionId, data)
