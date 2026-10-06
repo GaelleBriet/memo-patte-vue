@@ -2,6 +2,7 @@ import { addDays, format, parseISO } from 'date-fns'
 
 import type { DoseAction, DoseChange } from './treatment-dose-writes'
 import { moveText, type DoseLineAction } from './treatment-history'
+import { revealedDuesText, type RevealedDues } from './treatment-revealed-dues'
 import type { TreatmentWithHistory } from '../repository/treatments.repository'
 import {
   isAdvanced,
@@ -39,6 +40,7 @@ export type DoseActionTexts = {
       heldBy?: string | null
       lostToEnd?: readonly string[]
       keptToEnd?: readonly string[]
+      revealed?: RevealedDues
     },
   ): string
   /** Nom du bouton « Annuler » lu par le lecteur d'écran. */
@@ -72,6 +74,12 @@ export function alreadyNotedText(
 
 /** Après « Supprimer ce décalage », la prochaine dose et la fréquence de sa période. */
 export type RestoredSuite = { nextOn: string | null; weekly: boolean }
+
+function withRevealed(t: Translate, done: string, revealed: RevealedDues | undefined): string {
+  const text = revealed === undefined ? null : revealedDuesText(t, revealed, 'toast')
+  if (text === null) return done
+  return t('treatments.shift.revealed.after', { done: withoutFinalDot(done), revealed: text })
+}
 
 export function doseActionTexts(
   t: Translate,
@@ -120,7 +128,7 @@ export function doseActionTexts(
         done: noted(),
         dates: formatDaySeries(days),
       })
-      const done: DoseActionTexts['done'] = (applied) => {
+      const told: DoseActionTexts['done'] = (applied) => {
         const { finishes, heldBy = null, lostToEnd = [], keptToEnd = [] } = applied
         if (finishes) return t('treatments.detail.toast.lastDose', { name })
         if (lostToEnd.length > 0) {
@@ -135,6 +143,8 @@ export function doseActionTexts(
           date: withoutFinalDot(day(heldBy)),
         })
       }
+      const done: DoseActionTexts['done'] = (applied) =>
+        withRevealed(t, told(applied), applied.revealed)
       return { done, undo: t('treatments.sheet.toast.undoDose', named), already }
     }
     case 'log': {
@@ -186,21 +196,22 @@ export function doseActionTexts(
       const date = day(action.givenOn)
       // Le point d'abréviation (« juil. ») sert aussi de point final à la phrase.
       const sentenceDate = nonBreaking(date.replace(/\.$/, ''))
-      return {
-        done: ({ postponement }) =>
-          postponement === null
-            ? t('treatments.detail.toast.moved', { date })
-            : postponement.kept && postponement.followed === true
-              ? t('treatments.detail.toast.movedFollowed', {
+      const moved: DoseActionTexts['done'] = ({ postponement }) =>
+        postponement === null
+          ? t('treatments.detail.toast.moved', { date })
+          : postponement.kept && postponement.followed === true
+            ? t('treatments.detail.toast.movedFollowed', {
+                date: sentenceDate,
+                nextDue: nonBreaking(withoutFinalDot(day(postponement.nextDueDate))),
+              })
+            : postponement.kept
+              ? t('treatments.detail.toast.movedKept', {
                   date: sentenceDate,
-                  nextDue: nonBreaking(withoutFinalDot(day(postponement.nextDueDate))),
+                  nextDue: nonBreaking(day(postponement.nextDueDate)),
                 })
-              : postponement.kept
-                ? t('treatments.detail.toast.movedKept', {
-                    date: sentenceDate,
-                    nextDue: nonBreaking(day(postponement.nextDueDate)),
-                  })
-                : t('treatments.detail.toast.movedLost', { date: sentenceDate }),
+              : t('treatments.detail.toast.movedLost', { date: sentenceDate })
+      return {
+        done: (applied) => withRevealed(t, moved(applied), applied.revealed),
         undo: t('treatments.detail.toast.undoMove'),
         already,
       }
