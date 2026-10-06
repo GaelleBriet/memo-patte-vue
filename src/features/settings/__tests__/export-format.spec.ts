@@ -12,6 +12,9 @@ import {
 import { EXPORT_FIXTURE, FIXTURE_DEVICE, LUNA_ID, MILO_ID, periodOf } from './export-fixture'
 
 const META = { exportedAt: new Date('2026-09-15T10:30:00'), appVersion: '0.1.24' }
+const TODAY = '2026-09-11'
+/** Jour de `META.exportedAt` : celui que lisent le JSON et l'archive. */
+const EXPORT_DAY = '2026-09-15'
 const BOM = '\uFEFF'
 
 function lines(csv: string): string[] {
@@ -29,7 +32,7 @@ describe('exportFileName', () => {
 
 describe('exportReminders', () => {
   it('liste l’échéance de la dernière injection ou ligne de chaque parent, la plus proche d’abord', () => {
-    expect(exportReminders(EXPORT_FIXTURE)).toEqual([
+    expect(exportReminders(EXPORT_FIXTURE, TODAY)).toEqual([
       {
         kind: 'vaccination',
         sourceId: 'v-chppil',
@@ -70,10 +73,12 @@ describe('exportReminders', () => {
       })),
     }
 
-    expect(exportReminders(data).filter(({ kind }) => kind === 'vaccination')).toMatchObject([
-      { sourceId: 'v-chppil', dueDate: '2026-09-01' },
-      { sourceId: 'v-leucose', dueDate: '2030-01-01' },
-    ])
+    expect(exportReminders(data, TODAY).filter(({ kind }) => kind === 'vaccination')).toMatchObject(
+      [
+        { sourceId: 'v-chppil', dueDate: '2026-09-01' },
+        { sourceId: 'v-leucose', dueDate: '2030-01-01' },
+      ],
+    )
   })
 
   it('donne la première échéance d’une période qui n’a encore aucune ligne', () => {
@@ -84,9 +89,9 @@ describe('exportReminders', () => {
       ),
     }
 
-    expect(exportReminders(data).find(({ sourceId }) => sourceId === 't-panacur')?.dueDate).toBe(
-      '2026-09-10',
-    )
+    expect(
+      exportReminders(data, '2026-09-05').find(({ sourceId }) => sourceId === 't-panacur')?.dueDate,
+    ).toBe('2026-09-10')
   })
 
   it('lit la période en cours : la reprise d’un traitement arrêté, pas la période d’avant', () => {
@@ -108,9 +113,9 @@ describe('exportReminders', () => {
       ],
     }
 
-    expect(exportReminders(data).find(({ sourceId }) => sourceId === 't-milbemax')?.dueDate).toBe(
-      '2026-10-01',
-    )
+    expect(
+      exportReminders(data, TODAY).find(({ sourceId }) => sourceId === 't-milbemax')?.dueDate,
+    ).toBe('2026-10-01')
   })
 
   it('n’annonce rien après la date de fin d’un traitement', () => {
@@ -121,7 +126,7 @@ describe('exportReminders', () => {
       ),
     }
 
-    expect(exportReminders(data).map(({ sourceId }) => sourceId)).not.toContain('t-panacur')
+    expect(exportReminders(data, TODAY).map(({ sourceId }) => sourceId)).not.toContain('t-panacur')
   })
 })
 
@@ -135,11 +140,11 @@ describe('exportReminders, traitement arrêté', () => {
   }
 
   it('écarte un traitement arrêté des échéances du JSON et de rappels.csv', () => {
-    expect(exportReminders(ARRETE).map((reminder) => reminder.sourceId)).toEqual([
+    expect(exportReminders(ARRETE, TODAY).map((reminder) => reminder.sourceId)).toEqual([
       'v-chppil',
       'v-leucose',
     ])
-    expect(lines(toCsvTables(ARRETE, 'kg')['rappels.csv'])).toEqual([
+    expect(lines(toCsvTables(ARRETE, 'kg', TODAY)['rappels.csv'])).toEqual([
       'kind;sourceId;animalId;animalName;name;dueDate',
       `vaccination;v-chppil;${MILO_ID};Milo;CHPPiL;2026-09-01`,
       `vaccination;v-leucose;${LUNA_ID};Luna;Leucose;2026-11-02`,
@@ -189,7 +194,7 @@ describe('toJsonExport', () => {
     ])
     const { reminders, schemaVersion: _, exportedAt: __, appVersion: ___, ...tables } = parsed
     expect(tables).toEqual(EXPORT_FIXTURE)
-    expect(reminders).toEqual(exportReminders(EXPORT_FIXTURE))
+    expect(reminders).toEqual(exportReminders(EXPORT_FIXTURE, EXPORT_DAY))
   })
 
   it('écrit `null` pour des réglages du carnet jamais touchés', () => {
@@ -291,7 +296,7 @@ describe('toJsonExport', () => {
 })
 
 describe('toCsvTables', () => {
-  const tables = toCsvTables(EXPORT_FIXTURE, 'kg')
+  const tables = toCsvTables(EXPORT_FIXTURE, 'kg', TODAY)
 
   it('produit un fichier par table', () => {
     expect(Object.keys(tables)).toEqual([
@@ -374,10 +379,10 @@ describe('toCsvTables', () => {
       ],
     }
 
-    expect(lines(toCsvTables(data, 'kg')['traitements.csv'])).toContain(
+    expect(lines(toCsvTables(data, 'kg', TODAY)['traitements.csv'])).toContain(
       `t-metacam;${LUNA_ID};Luna;Métacam;medication;;2026-10-05`,
     )
-    expect(exportReminders(data)).toContainEqual({
+    expect(exportReminders(data, TODAY)).toContainEqual({
       kind: 'treatment',
       sourceId: 't-metacam',
       animalId: LUNA_ID,
@@ -428,14 +433,14 @@ describe('toCsvTables', () => {
       ...EXPORT_FIXTURE,
       weightEntries: [{ ...EXPORT_FIXTURE.weightEntries[0]!, weightKg: 54.1 * 0.45359237 }],
     }
-    const tables = toCsvTables(data, 'kg')
+    const tables = toCsvTables(data, 'kg', TODAY)
 
     expect(lines(tables['poids.csv'])[1]).toMatch(/;24,54$/)
     expect(JSON.parse(toJsonExport(data, META)).weightEntries[0].weightKg).toBe(54.1 * 0.45359237)
   })
 
   it('écrit les poids en livres quand c’est l’unité choisie, l’unité dans le titre de colonne', () => {
-    const enLivres = toCsvTables(EXPORT_FIXTURE, 'lb')
+    const enLivres = toCsvTables(EXPORT_FIXTURE, 'lb', TODAY)
 
     expect(lines(enLivres['poids.csv'])).toEqual([
       'id;animalId;animalName;measuredOn;weightLb',
@@ -469,7 +474,7 @@ describe('toCsvTables', () => {
         { ...EXPORT_FIXTURE.vaccinations[1]!, name: '\rToux' },
       ],
     }
-    const tables = toCsvTables(data, 'kg')
+    const tables = toCsvTables(data, 'kg', TODAY)
 
     expect(lines(tables['animaux.csv'])[1]).toContain(`;"'=HYPERLINK(""x"")";dog;'+33 croisé;`)
     expect(lines(tables['animaux.csv'])[2]).toContain(";'-Luna;cat;'@home;2019-03-02;")
@@ -484,7 +489,7 @@ describe('toCsvTables', () => {
       ...EXPORT_FIXTURE,
       vaccinations: [{ ...EXPORT_FIXTURE.vaccinations[0]!, name: 'Rage\nrappel' }],
     }
-    expect(toCsvTables(data, 'kg')['vaccins.csv']).toContain(';"Rage\nrappel";')
+    expect(toCsvTables(data, 'kg', TODAY)['vaccins.csv']).toContain(';"Rage\nrappel";')
   })
 })
 
@@ -504,7 +509,7 @@ describe('buildExportFile', () => {
     expect(file.content).toBeInstanceOf(Uint8Array)
 
     const entries = unzipSync(file.content as Uint8Array)
-    const tables = toCsvTables(EXPORT_FIXTURE, 'lb')
+    const tables = toCsvTables(EXPORT_FIXTURE, 'lb', EXPORT_DAY)
     expect(Object.keys(entries)).toEqual(Object.keys(tables))
     for (const [name, csv] of Object.entries(tables)) {
       expect(Array.from(entries[name]!)).toEqual(Array.from(strToU8(csv)))

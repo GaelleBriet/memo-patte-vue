@@ -1,7 +1,7 @@
 import { jsPDF } from 'jspdf'
 
 import { weightText } from '@/shared/domain/weight-display'
-import { formatLongDate, formatNumericDate } from '@/shared/utils/format'
+import { formatClockTime, formatLongDate, formatNumericDate } from '@/shared/utils/format'
 import i18n from '@/core/i18n'
 import { drawWeightChart, weightChartHeight } from './pdf-weight-chart'
 import { pdfText } from './pdf-text'
@@ -173,11 +173,26 @@ export function renderCarnetPdf(
   return new Uint8Array(doc.output('arraybuffer'))
 }
 
-function treatmentDueLabel(row: PdfTreatmentRow, t: Translate): string {
-  if (row.stoppedOn) {
-    return t('settings.pdf.treatments.stopped', { date: formatNumericDate(row.stoppedOn) })
+function treatmentDueLabel({ due }: PdfTreatmentRow, t: Translate): string {
+  switch (due.kind) {
+    case 'due':
+      return due.dueTime === null
+        ? formatNumericDate(due.dueOn)
+        : t('settings.pdf.treatments.dueAt', {
+            date: formatNumericDate(due.dueOn),
+            time: formatClockTime(due.dueTime),
+          })
+    case 'stopped':
+      return due.on === null
+        ? t('settings.pdf.status.none')
+        : t('settings.pdf.treatments.stopped', { date: formatNumericDate(due.on) })
+    case 'ended':
+      return due.on === null
+        ? t('settings.pdf.status.none')
+        : t('settings.pdf.treatments.ended', { date: formatNumericDate(due.on) })
+    case 'unreadable':
+      return t('settings.pdf.treatments.unreadable')
   }
-  return row.nextDueDate ? formatNumericDate(row.nextDueDate) : t('settings.pdf.status.none')
 }
 
 function numericDates(dates: string[]): string {

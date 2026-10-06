@@ -1,13 +1,9 @@
 import { format } from 'date-fns'
 import { strToU8, zipSync, type Zippable } from 'fflate'
 
-import type { ExportData, ExportTreatment } from '@/shared/domain/carnet-data'
-import {
-  currentPeriods,
-  givenDoseHistories,
-  periodHeads,
-  vaccinationHeads,
-} from '@/shared/domain/carnet-heads'
+import { outlookDueDate, treatmentOutlooks } from './treatment-outlook'
+import type { ExportData } from '@/shared/domain/carnet-data'
+import { givenDoseHistories, vaccinationHeads } from '@/shared/domain/carnet-heads'
 import { recordedWeightIn, type WeightUnit } from '@/shared/domain/weight-unit'
 
 /** Contrat documenté dans `docs/technical/export-format.md` : toute rupture incrémente la version. */
@@ -41,25 +37,10 @@ export function exportFileName(exportFormat: ExportFormat, exportedAt: Date): st
   return `memopatte-export-${format(exportedAt, EXPORT_FILE_TIME)}.${extension}`
 }
 
-/**
- * Prochaine échéance de chaque traitement en cours : celle que fixe la dernière ligne de sa période
- * en cours, sa première échéance tant qu'elle n'a aucune ligne. Rien pour un traitement arrêté, ou
- * dont la date de fin est passée.
- */
-function nextDueDates(data: ExportData): (treatment: ExportTreatment) => string | null {
-  const periods = currentPeriods(data.treatmentPeriods)
-  const heads = periodHeads(data.treatmentDoses)
-  return (treatment) => {
-    const period = periods.get(treatment.id)
-    if (!period || period.stoppedOn) return null
-    const dueDate = heads.get(period.id)?.nextDueDate ?? period.firstDueOn
-    return period.endsOn !== null && dueDate > period.endsOn ? null : dueDate
-  }
-}
-
-export function exportReminders(data: ExportData): ExportReminder[] {
+/** `today` : `yyyy-MM-dd`, jour de l'export ; les échéances des traitements viennent du moteur. */
+export function exportReminders(data: ExportData, today: string): ExportReminder[] {
   const injections = vaccinationHeads(data.vaccinationInjections)
-  const nextDueDate = nextDueDates(data)
+  const outlook = treatmentOutlooks(data, today)
   const reminders: ExportReminder[] = [
     ...data.vaccinations.flatMap((vaccination): ExportReminder[] => {
       const head = injections.get(vaccination.id)
@@ -77,7 +58,7 @@ export function exportReminders(data: ExportData): ExportReminder[] {
         : []
     }),
     ...data.treatments.flatMap((treatment): ExportReminder[] => {
-      const dueDate = nextDueDate(treatment)
+      const dueDate = outlookDueDate(outlook(treatment.id))
       return dueDate
         ? [
             {
@@ -110,7 +91,7 @@ export function toJsonExport(data: ExportData, meta: ExportMeta): string {
     treatmentDoses: data.treatmentDoses,
     weightEntries: data.weightEntries,
     devices: data.devices,
-    reminders: exportReminders(data),
+    reminders: exportReminders(data, format(meta.exportedAt, 'yyyy-MM-dd')),
   }
   return JSON.stringify(document, null, 2)
 }
@@ -155,14 +136,14 @@ function namesById(rows: { id: string; name: string }[]): (id: string) => string
 const WEIGHT_COLUMNS: Record<WeightUnit, string> = { kg: 'weightKg', lb: 'weightLb' }
 
 /** Poids dans l'unité choisie, nommée par le titre de colonne ; le JSON reste en kg. */
-export function toCsvTables(data: ExportData, weightUnit: WeightUnit): CsvTables {
+export function toCsvTables(data: ExportData, weightUnit: WeightUnit, today: string): CsvTables {
   const weightColumn = WEIGHT_COLUMNS[weightUnit]
   const animalName = namesById(data.animals)
   const vaccinationName = namesById(data.vaccinations)
   const treatmentName = namesById(data.treatments)
   const injections = vaccinationHeads(data.vaccinationInjections)
   const givenDoses = givenDoseHistories(data.treatmentDoses)
-  const nextDueDate = nextDueDates(data)
+  const outlook = treatmentOutlooks(data, today)
 
   return {
     'animaux.csv': csv(
@@ -237,7 +218,7 @@ export function toCsvTables(data: ExportData, weightUnit: WeightUnit): CsvTables
         treatment.name,
         treatment.type,
         givenDoses.get(treatment.id)?.[0]?.givenOn ?? null,
-        nextDueDate(treatment),
+        outlookDueDate(outlook(treatment.id)),
       ]),
     ),
     'periodes.csv': csv(
@@ -318,7 +299,7 @@ export function toCsvTables(data: ExportData, weightUnit: WeightUnit): CsvTables
     ),
     'rappels.csv': csv(
       ['kind', 'sourceId', 'animalId', 'animalName', 'name', 'dueDate'],
-      exportReminders(data).map((reminder) => [
+      exportReminders(data, today).map((reminder) => [
         reminder.kind,
         reminder.sourceId,
         reminder.animalId,
@@ -343,7 +324,8 @@ export function buildExportFile(
   }
 
   const entries: Zippable = {}
-  for (const [fileName, content] of Object.entries(toCsvTables(data, weightUnit))) {
+  const today = format(meta.exportedAt, 'yyyy-MM-dd')
+  for (const [fileName, content] of Object.entries(toCsvTables(data, weightUnit, today))) {
     entries[fileName] = [strToU8(content), { mtime: meta.exportedAt }]
   }
   return { name, content: zipSync(entries) }

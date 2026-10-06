@@ -1098,7 +1098,10 @@
       "treatments": {
         "title": "Treatments",
         "empty": "No treatment recorded.",
-        "stopped": "Stopped on {date}"
+        "stopped": "Stopped on {date}",
+        "ended": "Ended on {date}",
+        "dueAt": "{date} at {time}",
+        "unreadable": "Unreadable data"
       },
       "weight": {
         "title": "Weight",

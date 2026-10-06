@@ -50,8 +50,7 @@ function traitements(count: number): PdfTreatmentRow[] {
     lastDoseDate: '2026-08-01',
     previousDoses: [{ kind: 'range', count: 6, from: '2025-08-01', to: '2026-05-01' }],
     lastDoseExtra: false,
-    nextDueDate: '2026-11-01',
-    stoppedOn: null,
+    due: { kind: 'due', dueOn: '2026-11-01', dueTime: null, overdue: false },
     state: 'upToDate',
   }))
 }
@@ -92,8 +91,7 @@ const TRAITEMENT_LONG: PdfTreatmentRow = {
   lastDoseDate: '2026-08-01',
   previousDoses: [],
   lastDoseExtra: false,
-  nextDueDate: '2026-11-01',
-  stoppedOn: null,
+  due: { kind: 'due', dueOn: '2026-11-01', dueTime: null, overdue: false },
   state: 'upToDate',
 }
 
@@ -102,8 +100,7 @@ const ARRETE: PdfTreatmentRow = {
   lastDoseDate: '2026-06-01',
   previousDoses: [{ kind: 'dates', dates: ['2026-05-18'], extras: [false] }],
   lastDoseExtra: false,
-  nextDueDate: null,
-  stoppedOn: '2026-06-20',
+  due: { kind: 'stopped', on: '2026-06-20' },
   state: 'none',
 }
 
