@@ -259,6 +259,21 @@ describe('reminderRows', () => {
     expect(row?.ariaLabel).toBe('Milbemax, vermifuge, Luna, aujourd’hui à 20 h. Ouvre les actions.')
   })
 
+  it('nomme l’heure d’une dose en retard pour TalkBack, sans la mettre dans le badge (Q5)', () => {
+    const matin = reminder({ kind: 'treatment', label: 'Métacam', daysUntil: -1, dueTime: '08:00' })
+    const options = { animalNames: names, showAnimal: false }
+
+    expect(reminderRows(t, [matin], options)[0]).toMatchObject({
+      badge: { text: 'En retard · 1 j' },
+      ariaLabel: 'Métacam, vermifuge, en retard de 1 jour, prise de 8 h. Ouvre les actions.',
+    })
+    applyLocale('en')
+    expect(reminderRows(t, [matin], options)[0]?.ariaLabel).toBe(
+      'Métacam, dewormer, 1 day overdue, 8 am dose. Opens actions.',
+    )
+    applyLocale('fr')
+  })
+
   it('annonce une échéance à venir avec son délai et sa date', () => {
     const bravecto = reminder({
       kind: 'treatment',

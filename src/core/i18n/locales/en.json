@@ -895,6 +895,7 @@
       },
       "due": {
         "overdue": "{n} day overdue | {n} days overdue",
+        "overdueAt": "{n} day overdue, {time} dose | {n} days overdue, {time} dose",
         "today": "today",
         "todayAt": "today at {time}",
         "tomorrow": "tomorrow",

@@ -895,6 +895,7 @@
       },
       "due": {
         "overdue": "en retard de {n} jour | en retard de {n} jours",
+        "overdueAt": "en retard de {n} jour, prise de {time} | en retard de {n} jours, prise de {time}",
         "today": "aujourd’hui",
         "todayAt": "aujourd’hui à {time}",
         "tomorrow": "demain",

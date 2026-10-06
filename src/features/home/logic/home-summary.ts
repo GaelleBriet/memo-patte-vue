@@ -80,6 +80,9 @@ function spokenDue(t: Translate, item: TodoDueItem): string {
   if (item.status === 'today' && item.dueTime !== null) {
     return t('home.row.due.todayAt', { time: formatClockTime(item.dueTime) })
   }
+  if (item.status === 'overdue' && item.dueTime !== null) {
+    return t('home.row.due.overdueAt', { n: days, time: formatClockTime(item.dueTime) }, days)
+  }
   if (item.status !== 'later') return t(`home.row.due.${item.status}`, { n: days }, days)
   return t('home.row.due.later', { n: days, date: formatFullDayMonth(item.dueOn) }, days)
 }
