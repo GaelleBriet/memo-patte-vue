@@ -1,20 +1,29 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, useId } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 
 import {
   emptyVaccinationFormValues,
   enteredInjectionDate,
+  hasInjection,
+  minPlannedDate,
+  plannedDateHelp,
+  reminderSummary,
   validateVaccinationForm,
   vaccinationFormValuesFrom,
+  withInjectionDate,
+  type VaccinationFormContext,
 } from '../logic/vaccination-form'
+import { earliestOtherDate } from '../logic/vaccination-sheet'
 import type { Vaccination } from '../schema/vaccination.schema'
 import { useVaccinationsStore } from '../store/vaccinations.store'
+import NextReminderChoices from './NextReminderChoices.vue'
 import VaccinationReminderSheet from './VaccinationReminderSheet.vue'
 import { useToday } from '@/core/app-lifecycle/use-today'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
+import DatePickerSheet from '@/shared/components/DatePickerSheet.vue'
 import FormField from '@/shared/form/FormField.vue'
 import FormScreen from '@/shared/form/FormScreen.vue'
 import { useFormValidation } from '@/shared/form/use-form-validation'
@@ -36,14 +45,23 @@ const animals = useAnimalsStore()
 const vaccinations = useVaccinationsStore()
 
 const values = ref(emptyVaccinationFormValues())
-const { errors, validate } = useFormValidation(values, validateVaccinationForm)
 const existing = ref<Vaccination | null>(null)
+const { today } = useToday()
+const context = computed((): VaccinationFormContext => ({
+  today: today.value,
+  currentPlannedDate:
+    existing.value?.lastInjectionDate === null ? (existing.value.dueDate ?? undefined) : undefined,
+}))
+const { errors, validate } = useFormValidation(values, (current) =>
+  validateVaccinationForm(current, context.value),
+)
 const notFound = ref(false)
 const isLoading = ref(props.id !== undefined)
 const loadFailed = ref(false)
 const saveFailed = ref(false)
 const isSubmitting = ref(false)
-const { today: maxInjectionDate } = useToday()
+const reminderLabelId = useId()
+const isOtherDateOpen = ref(false)
 
 const isEdit = computed(() => props.id !== undefined)
 const targetAnimalId = computed(() => existing.value?.animalId ?? props.animalId ?? null)
@@ -71,6 +89,15 @@ const errorMessage = computed(() => {
   return null
 })
 const canSave = computed(() => !isLoading.value && !notFound.value && !loadFailed.value)
+const isInjected = computed(() => hasInjection(values.value))
+const injectionHelp = computed(() =>
+  isInjected.value ? null : t('vaccinations.form.lastInjectionDate.help'),
+)
+const plannedHelp = computed(() => plannedDateHelp(t, values.value.plannedDate, today.value))
+const summary = computed(() => reminderSummary(t, values.value))
+const otherDate = computed(() =>
+  values.value.reminder?.kind === 'otherDate' ? values.value.reminder.date : null,
+)
 
 onMounted(async () => {
   if (props.id !== undefined) {
@@ -131,6 +158,14 @@ async function submit(): Promise<void> {
   await save()
 }
 
+function enterInjectionDate(date: string): void {
+  values.value = withInjectionDate(values.value, date)
+}
+
+function pickOtherDate(date: string): void {
+  values.value.reminder = { kind: 'otherDate', date }
+}
+
 function noteBooster(): void {
   doneSheetInjectedOn.value = enteredInjectionDate(values.value)
   isDoneSheetOpen.value = true
@@ -147,7 +182,7 @@ async function save(): Promise<void> {
 
   try {
     if (props.id !== undefined) {
-      await vaccinations.update(props.id, result.data)
+      await vaccinations.update(props.id, { name: result.data.name, dueDate: result.data.dueDate })
     } else {
       await vaccinations.create({ animalId: requireAnimalId(), ...result.data })
     }
@@ -207,46 +242,66 @@ async function save(): Promise<void> {
     </FormField>
 
     <FormField
+      v-if="!isEdit"
       class="vaccination-form__field--last-injection-date"
       :label="t('vaccinations.form.lastInjectionDate.label')"
       control-id="vaccination-last-injection-date"
-      required
+      :help="injectionHelp"
       :error="errors.lastInjectionDate ? t(errors.lastInjectionDate) : null"
     >
       <template #default="{ describedby, invalid }">
         <v-text-field
           id="vaccination-last-injection-date"
-          v-model="values.lastInjectionDate"
+          :model-value="values.lastInjectionDate"
           :aria-describedby="describedby"
           :aria-invalid="invalid"
           class="form-field__input form-field__input--date"
           type="date"
-          :max="maxInjectionDate"
+          :max="today"
           variant="outlined"
           hide-details
-          aria-required="true"
           append-inner-icon="ms:calendar_month"
           :error="invalid"
+          @update:model-value="enterInjectionDate"
         />
       </template>
     </FormField>
 
     <FormField
-      class="vaccination-form__field--due-date"
-      :label="t('vaccinations.form.dueDate.label')"
-      control-id="vaccination-due-date"
-      :error="errors.dueDate ? t(errors.dueDate) : null"
+      v-if="isInjected"
+      class="vaccination-form__field--next-reminder"
+      :label="t('vaccinations.form.nextReminder.label')"
+      :label-id="reminderLabelId"
+    >
+      <NextReminderChoices
+        v-model="values.reminder"
+        :label-id="reminderLabelId"
+        @other-date="isOtherDateOpen = true"
+      />
+      <p v-if="summary" class="vaccination-form__summary" aria-live="polite">{{ summary }}</p>
+    </FormField>
+
+    <FormField
+      v-else
+      class="vaccination-form__field--next-reminder"
+      :label="t('vaccinations.form.nextReminder.label')"
+      control-id="vaccination-planned-date"
+      required
+      :help="plannedHelp"
+      :error="errors.plannedDate ? t(errors.plannedDate) : null"
     >
       <template #default="{ describedby, invalid }">
         <v-text-field
-          id="vaccination-due-date"
-          v-model="values.dueDate"
+          id="vaccination-planned-date"
+          v-model="values.plannedDate"
           :aria-describedby="describedby"
           :aria-invalid="invalid"
           class="form-field__input form-field__input--date"
           type="date"
+          :min="minPlannedDate(context)"
           variant="outlined"
           hide-details
+          aria-required="true"
           append-inner-icon="ms:calendar_month"
           :error="invalid"
         />
@@ -265,6 +320,14 @@ async function save(): Promise<void> {
     @cancel="save"
     @confirm="noteBooster"
   />
+  <DatePickerSheet
+    v-model="isOtherDateOpen"
+    :title="t('vaccinations.sheet.dueDate.title')"
+    :close-label="t('reminderSheet.close')"
+    :date="otherDate"
+    :min="earliestOtherDate(today)"
+    @pick="pickOtherDate"
+  />
   <VaccinationReminderSheet
     v-if="sameName"
     v-model="isDoneSheetOpen"
@@ -275,3 +338,12 @@ async function save(): Promise<void> {
     @changed="selectTargetAnimal"
   />
 </template>
+
+<style scoped lang="scss">
+.vaccination-form__summary {
+  margin: 10px 0 0;
+  color: rgb(var(--v-theme-primary));
+  font-size: 14px;
+  font-weight: 600;
+}
+</style>
