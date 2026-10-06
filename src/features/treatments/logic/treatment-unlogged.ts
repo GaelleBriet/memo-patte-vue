@@ -111,13 +111,18 @@ export function promptChoice(
   return action === 'missed' ? { given: [], missed: [...dues] } : { given: [...dues], missed: [] }
 }
 
-/** `null` sans dose non renseignée : le bandeau ne tient qu'à elles, quelle que soit la phase. */
+/**
+ * `null` sans dose non renseignée : le bandeau ne tient qu'à elles, quelle que soit la phase.
+ * Jamais pour un animal qu'on ne suit plus (TR-37).
+ */
 export function unloggedBanner(
   t: Translate,
   treatment: Pick<TreatmentWithHistory, 'name' | 'periods'>,
   schedule: Pick<TreatmentSchedule, 'unloggedDoses'>,
   today: string,
+  { followed = true }: { followed?: boolean } = {},
 ): UnloggedPrompt | null {
+  if (!followed) return null
   const dues = schedule.unloggedDoses
   const [first] = dues
   if (first === undefined) return null

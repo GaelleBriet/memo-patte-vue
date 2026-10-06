@@ -87,3 +87,33 @@ describe('carnetVaccinationRow — ligne d’un vaccin (VA-16, B · V11 et V15)'
     })
   })
 })
+
+describe('carnetVaccinationRow — animal qu’on ne suit plus (VA-16, B · V15 ter)', () => {
+  function unfollowedRow(lastInjectionDate: string | null, dueDate: string | null) {
+    const { badge, detail } = carnetVaccinationRow(t, { lastInjectionDate, dueDate }, TODAY, {
+      followed: false,
+    })
+    return { badge, detail: detail.replaceAll(' ', ' ') }
+  }
+
+  it('sans badge, « Dernière injection le … » avec l’année, même en retard', () => {
+    expect(unfollowedRow('2026-01-12', '2026-09-30')).toEqual({
+      badge: null,
+      detail: 'Dernière injection le 12 janv. 2026',
+    })
+    expect(unfollowedRow('2025-01-12', null).detail).toBe('Dernière injection le 12 janv. 2025')
+  })
+
+  it('« Premier vaccin · aucune injection notée » pour un vaccin jamais fait', () => {
+    expect(unfollowedRow(null, '2026-10-09')).toEqual({
+      badge: null,
+      detail: 'Premier vaccin · aucune injection notée',
+    })
+  })
+
+  it('s’écrit en anglais', () => {
+    applyLocale('en')
+
+    expect(unfollowedRow('2026-01-12', null).detail).toBe('Last injection on Jan 12, 2026')
+  })
+})

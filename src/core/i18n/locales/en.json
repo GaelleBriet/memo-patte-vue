@@ -83,6 +83,7 @@
         "close": "Close"
       },
       "subtitleSeparator": " · ",
+      "until": "until {date}",
       "stats": {
         "weight": "Weight",
         "reminders": "Reminders",
@@ -119,6 +120,14 @@
         "cancel": "Cancel",
         "confirm": "Delete"
       },
+      "unfollowed": {
+        "link": "Pets you no longer follow ({n})",
+        "banner": "You’re no longer following {name}: no reminders are sent. {name}’s health record stays as it is.",
+        "addDate": "Add a date",
+        "editDate": "Edit the date",
+        "follow": "Follow again",
+        "followLabel": "Follow {name} again: {name}’s reminders resume"
+      },
       "toast": {
         "unfollowed": "You’re no longer following {name}",
         "unfollowedAnnouncement": "You’re no longer following {name}. {name}’s reminders are off.",
@@ -130,6 +139,32 @@
         "failed": "Couldn’t save the change. Try again.",
         "deleteFailed": "Couldn’t delete {name}’s record. Try again."
       }
+    },
+    "departure": {
+      "lead": "Everything is optional and stays in {name}’s health record.",
+      "reason": "Reason",
+      "reasons": {
+        "death": "Passed away",
+        "rehomed": "With someone else",
+        "other": "Other"
+      },
+      "date": {
+        "label": "Departure date",
+        "help": "Today at the latest.",
+        "clear": "Clear the date"
+      },
+      "save": "Save",
+      "errors": {
+        "future": "The departure date can’t be in the future.",
+        "invalid": "The departure date is invalid.",
+        "save": "Couldn’t save the date. Try again.",
+        "notFound": "This pet no longer exists."
+      }
+    },
+    "unfollowedList": {
+      "title": "Pets you no longer follow",
+      "back": "Back",
+      "open": "Open {name}’s health record"
     }
   },
   "vaccinations": {
@@ -186,6 +221,7 @@
       "detail": {
         "overdue": "Due date has passed",
         "nextOn": "Next reminder on {date}",
+        "lastInjection": "Last injection on {date}",
         "firstVaccine": "First vaccine · no injection logged",
         "none": "No reminder set"
       },

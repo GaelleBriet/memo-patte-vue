@@ -40,6 +40,8 @@ const MILO: Animal = {
   updatedAt: '2026-09-09T09:00:00.000Z',
   deletedAt: null,
   unfollowedOn: null,
+  departureReason: null,
+  departureDate: null,
 }
 
 const LUNA: Animal = { ...MILO, id: '33333333-3333-4333-8333-333333333333', name: 'Luna' }

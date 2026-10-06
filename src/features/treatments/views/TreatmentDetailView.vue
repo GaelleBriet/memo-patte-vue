@@ -96,7 +96,9 @@ const lessPrecise = computed(() =>
 )
 const unlogged = computed(() =>
   treatment.value && schedule.value
-    ? unloggedBanner(t, treatment.value, schedule.value, today.value)
+    ? unloggedBanner(t, treatment.value, schedule.value, today.value, {
+        followed: (animal.value?.unfollowedOn ?? null) === null,
+      })
     : null,
 )
 const stopping = computed(() =>

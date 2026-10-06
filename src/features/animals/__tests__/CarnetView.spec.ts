@@ -87,6 +87,8 @@ function animal(id: string, name: string, overrides: Partial<Animal> = {}): Anim
     updatedAt: '2026-09-09T09:00:00.000Z',
     deletedAt: null,
     unfollowedOn: null,
+    departureReason: null,
+    departureDate: null,
     ...overrides,
   }
 }
@@ -612,6 +614,7 @@ describe('CarnetView — chargement et erreur', () => {
       restore: vi.fn<AnimalsRepository['restore']>(),
       getDeparture: vi.fn<AnimalsRepository['getDeparture']>(),
       setDeparture: vi.fn<AnimalsRepository['setDeparture']>(),
+      setDepartureDetails: vi.fn<AnimalsRepository['setDepartureDetails']>(),
       listRecords: vi.fn<AnimalsRepository['listRecords']>(),
       listVersions: vi.fn<AnimalsRepository['listVersions']>(),
       markAllDeletedStatement: vi.fn<AnimalsRepository['markAllDeletedStatement']>(),
@@ -1102,6 +1105,126 @@ describe('CarnetView — options de l’animal', () => {
       const wrapper = await monterAttache()
 
       expect(wrapper.text()).not.toContain('Supprimer Milo')
+    })
+  })
+})
+
+describe('CarnetView — animaux qu’on ne suit plus (AN-10)', () => {
+  const LUNA_GONE = { ...LUNA, breed: 'Européenne', unfollowedOn: '2026-09-01' }
+  const PIXEL_GONE = animal('55555555-5555-4555-8555-555555555555', 'Pixel', {
+    unfollowedOn: '2026-08-01',
+  })
+
+  function ligneNonSuivis(wrapper: ReturnType<typeof mount>) {
+    return wrapper.find('.carnet-unfollowed-link')
+  }
+
+  function texte(element: { text(): string }): string {
+    return element.text().replace(/\s+/g, ' ').trim()
+  }
+
+  it('n’affiche pas la ligne quand tous les animaux sont suivis', async () => {
+    const wrapper = await monter()
+
+    expect(ligneNonSuivis(wrapper).exists()).toBe(false)
+  })
+
+  it('affiche « Animaux que tu ne suis plus (N) » sous la dernière section, sur un animal suivi', async () => {
+    animals = [MILO, LUNA_GONE, PIXEL_GONE]
+
+    const wrapper = await monter()
+
+    expect(texte(ligneNonSuivis(wrapper))).toBe('Animaux que tu ne suis plus (2)')
+    const sections = wrapper.get('.carnet__sections').element
+    expect(sections.lastElementChild).toBe(ligneNonSuivis(wrapper).element)
+  })
+
+  it('ouvre le carnet du seul animal qu’on ne suit plus', async () => {
+    animals = [MILO, LUNA_GONE]
+    const wrapper = await monter()
+
+    await ligneNonSuivis(wrapper).trigger('click')
+
+    expect(store.selectedAnimalId).toBe(LUNA.id)
+    expect(wrapper.get('.carnet-header__name').text()).toBe('Luna')
+    expect(push).not.toHaveBeenCalled()
+  })
+
+  it('ouvre la liste dès deux animaux qu’on ne suit plus', async () => {
+    animals = [MILO, LUNA_GONE, PIXEL_GONE]
+    const wrapper = await monter()
+
+    await ligneNonSuivis(wrapper).trigger('click')
+
+    expect(push).toHaveBeenCalledExactlyOnceWith({ name: 'unfollowed-animals' })
+  })
+
+  describe('carnet d’un animal qu’on ne suit plus (V15 ter)', () => {
+    beforeEach(() => {
+      animals = [MILO, LUNA_GONE]
+      store.select(LUNA.id)
+    })
+
+    it('annonce qu’aucun rappel n’est envoyé, et propose « Ajouter une date » et « Suivre de nouveau »', async () => {
+      const wrapper = await monter()
+
+      expect(texte(wrapper.get('.carnet-unfollowed__banner'))).toBe(
+        'Tu ne suis plus Luna : aucun rappel n’est envoyé. Son carnet reste tel quel.',
+      )
+      expect(wrapper.findAll('.carnet-unfollowed__action').map(texte)).toEqual([
+        'Ajouter une date',
+        'Suivre de nouveau',
+      ])
+      expect(wrapper.get('.carnet-header__subtitle').text()).toBe('Européenne')
+    })
+
+    it('n’a ni bandeau ni boutons pour un animal suivi', async () => {
+      store.select(MILO.id)
+      const wrapper = await monter()
+
+      expect(wrapper.find('.carnet-unfollowed').exists()).toBe(false)
+    })
+
+    it('ouvre « Ajouter une date »', async () => {
+      const wrapper = await monter()
+
+      await wrapper.findAll('.carnet-unfollowed__action')[0]!.trigger('click')
+
+      expect(push).toHaveBeenCalledExactlyOnceWith({
+        name: 'animal-departure',
+        params: { id: LUNA.id },
+      })
+    })
+
+    it('Q5 : « Modifier la date » et « jusqu’au … » une fois la date saisie, sans le motif', async () => {
+      animals = [MILO, { ...LUNA_GONE, departureReason: 'death', departureDate: '2026-08-28' }]
+      const wrapper = await monter()
+
+      expect(texte(wrapper.findAll('.carnet-unfollowed__action')[0]!)).toBe('Modifier la date')
+      expect(texte(wrapper.get('.carnet-header__subtitle'))).toBe('jusqu’au 28 août 2026')
+      expect(wrapper.text()).not.toContain('Décès')
+    })
+
+    it('« Suivre de nouveau » suit l’animal, comme depuis « Options »', async () => {
+      const follow = vi.spyOn(store, 'follow').mockResolvedValue(null)
+      const wrapper = await monter()
+
+      await wrapper.findAll('.carnet-unfollowed__action')[1]!.trigger('click')
+      await flushPromises()
+
+      expect(follow).toHaveBeenCalledExactlyOnceWith(LUNA.id)
+    })
+
+    it('VA-16 : la section des vaccins sait que l’animal n’est plus suivi', async () => {
+      const wrapper = await monter()
+
+      expect(wrapper.getComponent(VaccinationsSection).props('followed')).toBe(false)
+    })
+
+    it('critère 4 : reste exportable en PDF', async () => {
+      const wrapper = await monter()
+
+      expect(wrapper.find('.carnet-header__export-pdf').exists()).toBe(true)
     })
   })
 })

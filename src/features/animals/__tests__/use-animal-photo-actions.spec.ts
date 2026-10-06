@@ -27,6 +27,8 @@ const MILO: Animal = {
   updatedAt: '2026-09-09T09:00:00.000Z',
   deletedAt: null,
   unfollowedOn: null,
+  departureReason: null,
+  departureDate: null,
 }
 
 const PHOTO: PickedPhoto = { base64: 'TUlMTw==', previewUrl: 'data:image/jpeg;base64,TUlMTw==' }

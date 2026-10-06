@@ -59,9 +59,9 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-async function monter(animalId = MILO) {
+async function monter(animalId = MILO, { followed = true } = {}) {
   const wrapper = mount(VaccinationsSection, {
-    props: { animalId, today: TODAY },
+    props: { animalId, today: TODAY, followed },
     global: { plugins: [vuetify, i18n, router] },
   })
   await flushPromises()
@@ -325,5 +325,21 @@ describe('VaccinationsSection — résumé pour le bandeau', () => {
 
     const summaries = wrapper.emitted('summary') ?? []
     expect(summaries[summaries.length - 1]).toEqual([{ total: 2, overdue: 1 }])
+  })
+})
+
+describe('VaccinationsSection — animal qu’on ne suit plus (VA-16)', () => {
+  it('montre la dernière injection, sans badge ni rappel compté', async () => {
+    vaccinations = [
+      vaccination({ name: 'Rage', lastInjectionDate: '2026-01-12', dueDate: '2026-09-01' }),
+      vaccination({ name: 'Leucose', lastInjectionDate: null, dueDate: '2026-10-05' }),
+    ]
+    const wrapper = await monter(MILO, { followed: false })
+
+    expect(wrapper.findAll('.due-status-chip')).toHaveLength(0)
+    expect(texte(ligne(wrapper, 0))).toContain('Dernière injection le 12 janv. 2026')
+    expect(texte(ligne(wrapper, 1))).toContain('Premier vaccin · aucune injection notée')
+    const summaries = wrapper.emitted('summary') ?? []
+    expect(summaries[summaries.length - 1]).toEqual([{ total: 0, overdue: 0 }])
   })
 })

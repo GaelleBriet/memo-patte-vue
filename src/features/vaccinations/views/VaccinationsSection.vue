@@ -20,11 +20,16 @@ import SectionCard from '@/shared/components/SectionCard.vue'
 import { useAnimalScopedLoad } from '@/shared/composables/use-animal-scoped-load'
 import { buildReminders } from '@/shared/domain/reminders'
 
-const props = defineProps<{
-  animalId: string
-  /** Date civile `yyyy-MM-dd`, calculée par l'écran. */
-  today: string
-}>()
+const props = withDefaults(
+  defineProps<{
+    animalId: string
+    /** Date civile `yyyy-MM-dd`, calculée par l'écran. */
+    today: string
+    /** Faux pour un animal qu'on ne suit plus : ni badge ni rappel (VA-16). */
+    followed?: boolean
+  }>(),
+  { followed: true },
+)
 
 const emit = defineEmits<{
   summary: [summary: VaccinationsSummary]
@@ -60,11 +65,12 @@ const rows = computed(() =>
   [...vaccinations.value].sort(byDueDate).map((vaccination) => ({
     id: vaccination.id,
     name: vaccination.name,
-    ...carnetVaccinationRow(t, vaccination, props.today),
+    ...carnetVaccinationRow(t, vaccination, props.today, { followed: props.followed }),
   })),
 )
 
 const summary = computed<VaccinationsSummary>(() => {
+  if (!props.followed) return { total: 0, overdue: 0 }
   const { total, overdue } = buildReminders(
     vaccinations.value.map((vaccination) => ({
       kind: 'vaccination',
@@ -104,6 +110,7 @@ watch(summary, (value) => emit('summary', value), { immediate: true })
       </span>
       <span class="vaccination-row__end">
         <DueStatusChip
+          v-if="row.badge"
           class="vaccination-row__badge"
           :status="row.badge.status"
           :label="row.badge.label"

@@ -77,6 +77,8 @@ const MILO: Animal = {
   updatedAt: '2026-09-09T09:00:00.000Z',
   deletedAt: null,
   unfollowedOn: null,
+  departureReason: null,
+  departureDate: null,
 }
 
 const MILO_COMPLET: Animal = {

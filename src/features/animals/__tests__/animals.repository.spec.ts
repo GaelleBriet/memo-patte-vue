@@ -381,12 +381,57 @@ describe('animalsRepository', () => {
       await repository.setDeparture(luna.id, DEPARTED)
 
       await expect(repository.getDeparture(luna.id)).resolves.toEqual(DEPARTED)
-      await expect(repository.getById(luna.id)).resolves.toMatchObject({
-        unfollowedOn: '2026-09-28',
-      })
+      await expect(repository.getById(luna.id)).resolves.toMatchObject(DEPARTED)
       await expect(repository.list()).resolves.toEqual([
-        expect.objectContaining({ id: luna.id, unfollowedOn: '2026-09-28' }),
+        expect.objectContaining({ id: luna.id, ...DEPARTED }),
       ])
+    })
+
+    it('change le motif et la date du départ sans toucher au jour où le suivi a cessé', async () => {
+      const luna = await repository.create({ name: 'Luna', species: 'cat' })
+      await repository.setDeparture(luna.id, DEPARTED)
+
+      await repository.setDepartureDetails(luna.id, {
+        departureReason: 'rehomed',
+        departureDate: null,
+      })
+
+      await expect(repository.getDeparture(luna.id)).resolves.toEqual({
+        unfollowedOn: '2026-09-28',
+        departureReason: 'rehomed',
+        departureDate: null,
+      })
+    })
+
+    it('n’écrit aucun départ sur un animal suivi', async () => {
+      const luna = await repository.create({ name: 'Luna', species: 'cat' })
+
+      await repository.setDepartureDetails(luna.id, {
+        departureReason: 'death',
+        departureDate: '2026-09-27',
+      })
+
+      await expect(repository.getDeparture(luna.id)).resolves.toEqual(FOLLOWED)
+    })
+
+    it('date le changement du départ pour la synchronisation', async () => {
+      vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-09-28T08:00:00.000Z') })
+      try {
+        const luna = await repository.create({ name: 'Luna', species: 'cat' })
+        await repository.setDeparture(luna.id, DEPARTED)
+        vi.setSystemTime(new Date('2026-10-02T08:00:00.000Z'))
+
+        await repository.setDepartureDetails(luna.id, {
+          departureReason: null,
+          departureDate: '2026-09-20',
+        })
+
+        await expect(
+          db.query('SELECT updated_at FROM animal WHERE id = ?', [luna.id]),
+        ).resolves.toEqual([{ updated_at: '2026-10-02T08:00:00.000Z' }])
+      } finally {
+        vi.useRealTimers()
+      }
     })
 
     it('date la modification pour la synchronisation', async () => {

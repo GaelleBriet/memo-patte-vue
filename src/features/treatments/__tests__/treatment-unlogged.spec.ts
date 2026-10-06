@@ -53,6 +53,12 @@ describe('unloggedBanner (TR-15)', () => {
     expect(banner(PANACUR)?.dues).toHaveLength(25)
   })
 
+  it('TR-37 : aucun bandeau pour un animal qu’on ne suit plus', () => {
+    const schedule = treatmentScheduleOf(PANACUR, TODAY)
+
+    expect(unloggedBanner(t, PANACUR, schedule, TODAY, { followed: false })).toBeNull()
+  })
+
   it('cite les jours quand il y en a trois au plus', () => {
     const history = treatment([HEBDO], [dose('2026-09-01', '2026-09-08')])
 

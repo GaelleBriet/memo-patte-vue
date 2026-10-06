@@ -45,6 +45,8 @@ const DYNAMIC_I18N_KEYS = [
   '/^nav\\.(home|animals)$/',
   '/^animals\\.form\\.species\\.(dog|cat)$/',
   '/^animals\\.age\\.(year|month|week)$/',
+  '/^animals\\.departure\\.reasons\\.(death|rehomed|other)$/',
+  '/^animals\\.departure\\.errors\\.(future|invalid)$/',
   '/^animals\\.form\\.errors\\.(name|nameMax|species|breedMax|birthDate|initialWeightKg|initialWeightKgMax)$/',
   '/^vaccinations\\.form\\.errors\\.(name|nameMax|lastInjectionDate|lastInjectionDateFuture|plannedDate|plannedDatePast)$/',
   '/^treatments\\.form\\.errors\\.(name|nameMax|type|frequency|frequencyMax|firstDoseOn|firstDoseOnTooEarly|firstDoseOnTooOld|nextDoseOn|nextDoseOnTooEarly|nextDoseOnAfterEnd|nextDoseOnAfterNextDose|nextDoseOnRefused|times|timesDuplicate|dosageQuantity|dosageIncomplete|endsOn|endsOnBeforeFirstDose|endsOnBeforeNextDose|endsOnBeforeLastDose|endsOnBeforePostponedDose|endsOnBeforeAdvancedDose|endsOnBeforeFarPostponedDose|endsOnBeforeFarAdvancedDose)$/',

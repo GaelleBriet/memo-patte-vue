@@ -76,6 +76,8 @@ const LUNA: Animal = {
   updatedAt: '2026-09-01T09:00:00.000Z',
   deletedAt: null,
   unfollowedOn: null,
+  departureReason: null,
+  departureDate: null,
 }
 
 const MATIN_ET_SOIR = period({ times: ['08:00', '20:00'], doseQuantity: 0.3, doseUnit: 'ml' })
@@ -1330,6 +1332,14 @@ describe('TreatmentDetailView — doses non renseignées (TR-14 à TR-17)', () =
         .element.compareDocumentPosition(view.get('.treatment-unlogged').element) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy()
+  })
+
+  it('TR-37 : rien à renseigner pour un animal qu’on ne suit plus', async () => {
+    useAnimalsStore().animals = [{ ...LUNA, unfollowedOn: '2026-09-20' }]
+
+    const view = await monter(PANACUR)
+
+    expect(view.findComponent(TreatmentUnloggedPrompt).exists()).toBe(false)
   })
 
   it('propose « Toutes données » et « Choisir les jours » à égalité', async () => {
