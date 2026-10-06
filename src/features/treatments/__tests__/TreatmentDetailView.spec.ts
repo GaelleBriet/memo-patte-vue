@@ -654,7 +654,7 @@ describe('TreatmentDetailView — historique', () => {
     expect(view.get('.section-card__counter').text()).toBe('5 depuis le 19 sept. 2026')
     expect(textes(view, '.treatment-history__head-title')).toEqual([
       'Depuis le 21 sept. 2026',
-      'Du 1 sept. au 20 sept. 2026',
+      'Du 1er sept. au 20 sept. 2026',
     ])
     expect(textes(view, '.treatment-history__head-settings')).toEqual([
       'Tous les jours · 8 h et 20 h · 0,3 ml',
@@ -1125,6 +1125,31 @@ describe('TreatmentDetailView — barre du haut et fin du traitement', () => {
       params: { id: METACAM.id },
       query: { from: 'treatment-detail', reminder: `treatment:${METACAM.id}` },
     })
+  })
+
+  it('ouverte depuis le Carnet, la flèche s’appelle « Retour au carnet »', async () => {
+    const view = await monter()
+
+    expect(view.get('.pushed-screen__back').attributes('aria-label')).toBe('Retour au carnet')
+  })
+
+  it('ouverte depuis la feuille « À faire », la flèche ramène à l’accueil (#569)', async () => {
+    push.mockRestore()
+    await router.push({ name: 'home' })
+    await router.push({
+      name: 'treatment-detail',
+      params: { id: METACAM.id },
+      query: { from: 'home' },
+    })
+    const back = vi.spyOn(router, 'back').mockImplementation(() => {})
+    const replace = vi.spyOn(router, 'replace').mockResolvedValue()
+    const view = await monter()
+
+    expect(view.get('.pushed-screen__back').attributes('aria-label')).toBe('Retour à l’accueil')
+    await view.get('.pushed-screen__back').trigger('click')
+
+    expect(back).toHaveBeenCalled()
+    expect(replace).not.toHaveBeenCalled()
   })
 
   it('« Supprimer ce traitement » est dans le menu ⋮, et demande confirmation', async () => {
