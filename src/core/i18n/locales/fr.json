@@ -940,8 +940,27 @@
     "welcome": {
       "title": "Bienvenue sur MémoPatte",
       "text": "Le carnet de santé de tes animaux, toujours à jour.",
+      "local": "Ton carnet reste sur ton téléphone. Gratuit, sans compte.",
       "create": "Créer mon premier animal",
       "import": "Importer un export MémoPatte"
+    },
+    "messages": {
+      "close": "Fermer ce message",
+      "protect": {
+        "title": "Ton carnet est sur ce téléphone. Voici comment le protéger",
+        "seeHow": "Voir comment",
+        "seeHowLabel": "Voir comment protéger ton carnet"
+      },
+      "quarterly": {
+        "title": "Ton carnet n’existe que sur ce téléphone.",
+        "body": "Mets une copie à l’abri.",
+        "exportLabel": "Exporter une copie de ton carnet",
+        "plus": "Découvrir Plus",
+        "plusLabel": "Découvrir MémoPatte Plus",
+        "stop": "Ne plus me le proposer",
+        "stopLabel": "Ne plus me proposer ce message",
+        "close": "Masquer jusqu’au prochain trimestre"
+      }
     }
   },
   "form": {
@@ -970,7 +989,10 @@
     },
     "disabled": {
       "title": "Les rappels sont désactivés",
-      "openSettings": "Activer dans les réglages"
+      "openSettings": "Activer dans les réglages",
+      "enable": "Activer les rappels",
+      "help": "Je ne reçois pas mes rappels",
+      "helpLabel": "Je ne reçois pas mes rappels : voir l’aide"
     },
     "exact": {
       "title": "Rappels précis",
