@@ -654,7 +654,7 @@ describe('TreatmentDetailView — historique', () => {
     expect(view.get('.section-card__counter').text()).toBe('5 depuis le 19 sept. 2026')
     expect(textes(view, '.treatment-history__head-title')).toEqual([
       'Depuis le 21 sept. 2026',
-      'Du 1 sept. au 20 sept. 2026',
+      'Du 1er sept. au 20 sept. 2026',
     ])
     expect(textes(view, '.treatment-history__head-settings')).toEqual([
       'Tous les jours · 8 h et 20 h · 0,3 ml',

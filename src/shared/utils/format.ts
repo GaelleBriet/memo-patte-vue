@@ -79,18 +79,27 @@ export function weekdayInitials(): string[] {
   )
 }
 
-/** `8 nov. 2026` / `Nov 8, 2026`. */
-export function formatLongDate(isoDate: string): string {
-  return format(parseISO(isoDate), 'PP', { locale: DATE_LOCALES[currentLocale()] })
-}
-
+const LONG_DATE_PATTERNS = { fr: 'd MMM yyyy', en: 'PP' }
 const DAY_MONTH_PATTERNS = { fr: 'd MMM', en: 'MMM d' }
 const FULL_DAY_MONTH_PATTERNS = { fr: 'd MMMM', en: 'MMMM d' }
 const WEEKDAY_DATE_PATTERNS = { fr: 'EEE d MMM yyyy', en: 'EEE, MMM d, yyyy' }
 
+function isFirstOfMonth(isoDate: string): boolean {
+  return isoDate.slice(8, 10) === '01'
+}
+
 function formatIn(isoDate: string, patterns: Record<'fr' | 'en', string>): string {
   const locale = currentLocale()
-  return format(parseISO(isoDate), patterns[locale], { locale: DATE_LOCALES[locale] })
+  const pattern =
+    locale === 'fr' && isFirstOfMonth(isoDate)
+      ? patterns.fr.replace(/\bd\b/, "d'er'")
+      : patterns[locale]
+  return format(parseISO(isoDate), pattern, { locale: DATE_LOCALES[locale] })
+}
+
+/** `8 nov. 2026`, `1er oct. 2026` / `Nov 8, 2026`. */
+export function formatLongDate(isoDate: string): string {
+  return formatIn(isoDate, LONG_DATE_PATTERNS)
 }
 
 /** `28 sept.` / `Sep 28`. */
@@ -129,8 +138,7 @@ const FULL_DATE_PATTERNS = { fr: 'd MMMM yyyy', en: 'MMMM d, yyyy' }
 
 /** `3 février 2026` / `February 3, 2026` — une date lue par le lecteur d'écran. */
 export function formatFullDate(isoDate: string): string {
-  const locale = currentLocale()
-  return format(parseISO(isoDate), FULL_DATE_PATTERNS[locale], { locale: DATE_LOCALES[locale] })
+  return formatIn(isoDate, FULL_DATE_PATTERNS)
 }
 
 /** `08/11/2026` / `11/08/2026`. */
@@ -160,6 +168,7 @@ export function formatClockTimes(times: readonly string[]): string {
 }
 
 function dayNumber(isoDate: string): string {
+  if (currentLocale() === 'fr' && isFirstOfMonth(isoDate)) return '1er'
   return String(Number(isoDate.slice(8, 10)))
 }
 

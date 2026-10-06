@@ -104,7 +104,7 @@ describe('unloggedBanner (TR-15)', () => {
 
     expect(banner(history, '2026-09-04')).toMatchObject({
       title: '6 doses non renseignées',
-      subtitle: '1, 2 et 3 sept.',
+      subtitle: '1er, 2 et 3 sept.',
     })
   })
 

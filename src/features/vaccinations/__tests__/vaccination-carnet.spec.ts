@@ -42,7 +42,7 @@ describe('carnetVaccinationRow — ligne d’un vaccin (VA-16, B · V11 et V15)'
       detail: 'Premier vaccin · aucune injection notée',
     })
     expect(row(null, TODAY).badge).toEqual({ status: 'planned', label: 'Prévu le 6 oct.' })
-    expect(row(null, '2027-02-01').badge?.label).toBe('Prévu le 1 févr. 2027')
+    expect(row(null, '2027-02-01').badge?.label).toBe('Prévu le 1er févr. 2027')
   })
 
   it('jamais fait et passé : en retard, comme un rappel', () => {

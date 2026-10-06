@@ -84,10 +84,10 @@ describe('carnetTreatments — une ligne par traitement en cours (TR-36, B · V1
     const surDeuxMois = period({ endsOn: '2026-11-03' })
 
     expect(row(named('Panacur', [jusquAu], soirs)).detail).toBe(
-      'Tous les jours à 20 h · du 1 sept. au 10 oct.',
+      'Tous les jours à 20 h · du 1er sept. au 10 oct.',
     )
     expect(row(named('Panacur', [surDeuxMois], A_JOUR)).detail).toBe(
-      'Tous les jours · du 1 sept. au 3 nov.',
+      'Tous les jours · du 1er sept. au 3 nov.',
     )
   })
 
