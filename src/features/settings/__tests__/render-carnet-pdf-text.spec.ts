@@ -31,8 +31,7 @@ function traitement(name: string): PdfTreatmentRow {
     lastDoseDate: '2026-08-01',
     previousDoses: [],
     lastDoseExtra: false,
-    nextDueDate: '2026-11-01',
-    stoppedOn: null,
+    due: { kind: 'due', dueOn: '2026-11-01', dueTime: null, overdue: false },
     state: 'upToDate',
   }
 }
@@ -154,6 +153,6 @@ describe('emoji retirés du PDF seulement', () => {
     const json = JSON.parse(toJsonExport(data, { exportedAt: new Date(), appVersion: '0.1.24' }))
 
     expect(json.animals[0].name).toBe('Luna 🐱')
-    expect(toCsvTables(data, 'kg')['animaux.csv']).toContain(`${LUNA_ID};Luna 🐱;cat`)
+    expect(toCsvTables(data, 'kg', '2026-09-15')['animaux.csv']).toContain(`${LUNA_ID};Luna 🐱;cat`)
   })
 })

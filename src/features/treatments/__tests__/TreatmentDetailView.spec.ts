@@ -1,5 +1,6 @@
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
+import { createRouter, createWebHistory, type Router } from 'vue-router'
 import {
   afterEach,
   beforeEach,
@@ -38,7 +39,8 @@ import {
 import vuetify from '@/core/theme/vuetify'
 import type { Animal } from '@/features/animals/schema/animal.schema'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
-import router from '@/router'
+import { routes } from '@/router'
+import { sansEcran } from '@/router/__tests__/routeur-memoire'
 import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
 import DateCalendar from '@/shared/components/DateCalendar.vue'
 import HistoryRow from '@/shared/components/HistoryRow.vue'
@@ -117,6 +119,7 @@ let service: {
 }
 let stop: { [K in 'stop' | 'undo']: Mock<TreatmentStopService[K]> }
 let wrapper: VueWrapper | null = null
+let router: Router
 
 beforeEach(async () => {
   vi.useFakeTimers({ now: TODAY, toFake: ['Date'] })
@@ -162,6 +165,7 @@ beforeEach(async () => {
     undo: vi.fn<TreatmentStopService['undo']>(async () => {}),
   }
   provideTreatmentStopService(() => stop)
+  router = createRouter({ history: createWebHistory(), routes: routes.map(sansEcran) })
   await router.push({ name: 'animals' })
   await router.push({ name: 'treatment-detail', params: { id: METACAM.id } })
   push = vi.spyOn(router, 'push').mockResolvedValue()
@@ -176,6 +180,7 @@ afterEach(() => {
   provideTreatmentRemindersService(null)
   provideTreatmentDosesService(null)
   provideTreatmentStopService(null)
+  router.options.history.destroy()
   vi.restoreAllMocks()
   vi.unstubAllGlobals()
   vi.useRealTimers()

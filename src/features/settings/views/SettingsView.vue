@@ -1,15 +1,19 @@
 <script setup lang="ts">
-import { computed, defineAsyncComponent, onMounted, ref, useId, useTemplateRef } from 'vue'
+import { computed, defineAsyncComponent, ref, useId, useTemplateRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
 import ExportSheet from './ExportSheet.vue'
 import ImportSheet from './ImportSheet.vue'
+import { useExportAvailability } from '../composables/use-export-availability'
+import { remindersSummary } from '../logic/reminders-settings'
 import type { PdfExportAnimal } from './PdfExportSheet.vue'
 
 const PdfExportSheet = defineAsyncComponent(() => import('./PdfExportSheet.vue'))
 import { promptNotificationsIfReminders } from '@/app/reminders-priming'
 import { hasConsent, optIn, optOut } from '@/core/analytics'
+import { useExactReminders } from '@/core/notifications/use-exact-reminders'
+import { useRemindersPermission } from '../composables/use-reminders-permission'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import AccountSection from '@/features/auth/views/AccountSection.vue'
 import PlusSection from '@/features/purchase/views/PlusSection.vue'
@@ -25,6 +29,9 @@ const { t } = useI18n()
 const router = useRouter()
 const animals = useAnimalsStore()
 const purchase = usePurchaseStore()
+const notifications = useRemindersPermission()
+const { status: exactReminders } = useExactReminders()
+const remindersHint = computed(() => remindersSummary(notifications.value, exactReminders.value))
 
 const appVersion = import.meta.env.VITE_APP_VERSION
 const isExportSheetOpen = ref(false)
@@ -44,22 +51,20 @@ const weightUnitOptions = computed(() =>
   })),
 )
 
-const hasLoadFailed = computed(() => animals.error !== null)
-const hasNothingToExport = computed(() => animals.hasLoaded && animals.animals.length === 0)
-const canExport = computed(() => animals.hasLoaded && animals.animals.length > 0)
+const { hasLoadFailed, hasNothingToExport, canExport, retryLoad } = useExportAvailability()
 const isFreePlan = computed(() => purchase.status.plan === 'none')
 const pdfExportAnimals = computed<PdfExportAnimal[]>(() =>
   animals.animals.map((animal) => ({ id: animal.id, name: animal.name, species: animal.species })),
 )
 
 function onExportRow(): void {
-  if (hasLoadFailed.value) void animals.load()
+  if (hasLoadFailed.value) retryLoad()
   else isExportSheetOpen.value = true
 }
 
 function onExportPdfRow(): void {
   if (hasLoadFailed.value) {
-    void animals.load()
+    retryLoad()
   } else if (isFreePlan.value) {
     void router.push({ name: 'plus', query: { from: 'pdf' } })
   } else {
@@ -67,10 +72,6 @@ function onExportPdfRow(): void {
     isPdfExportSheetOpen.value = true
   }
 }
-
-onMounted(() => {
-  if (!animals.hasLoaded) void animals.load()
-})
 
 function onImported(): void {
   void animals.load()
@@ -86,6 +87,14 @@ function onShareAnalyticsChange(enabled: boolean | null): void {
   void (shareAnalytics.value ? optIn() : optOut())
 }
 
+function openReminders(): void {
+  void router.push({ name: 'settings-reminders' })
+}
+
+function openBackup(): void {
+  void router.push({ name: 'settings-backup' })
+}
+
 function goHome(): void {
   void router.push({ name: 'home' })
 }
@@ -99,6 +108,27 @@ function goHome(): void {
     @back="goHome"
   >
     <div class="settings__content">
+      <div class="settings__entry">
+        <button type="button" class="settings-row settings-row--reminders" @click="openReminders">
+          <v-icon class="settings-row__icon" icon="ms:notifications" size="22" />
+          <span class="settings-row__text">
+            <span class="settings-row__label">{{ t('settings.reminders.title') }}</span>
+            <span v-if="remindersHint" class="settings-row__hint">
+              {{ t(`settings.reminders.summary.${remindersHint}`) }}
+            </span>
+          </span>
+          <v-icon class="settings-row__chevron" icon="ms:chevron_right" size="20" />
+        </button>
+        <button type="button" class="settings-row settings-row--backup" @click="openBackup">
+          <v-icon class="settings-row__icon" icon="ms:backup" size="22" />
+          <span class="settings-row__text">
+            <span class="settings-row__label">{{ t('settings.backup.title') }}</span>
+            <span class="settings-row__hint">{{ t('settings.backup.summary') }}</span>
+          </span>
+          <v-icon class="settings-row__chevron" icon="ms:chevron_right" size="20" />
+        </button>
+      </div>
+
       <PlusSection />
 
       <AccountSection />
@@ -253,6 +283,14 @@ function goHome(): void {
   padding-block: 12px 32px;
 }
 
+.settings__entry {
+  margin-inline: tokens.$padding-section-inline;
+  overflow: hidden;
+  border: 1px solid tokens.$color-card-border;
+  border-radius: tokens.$radius-card;
+  background: rgb(var(--v-theme-surface));
+}
+
 .settings-row--weight-unit {
   flex-direction: column;
   align-items: stretch;
@@ -274,29 +312,5 @@ function goHome(): void {
 .settings__plus-badge {
   top: -10px;
   right: -8px;
-}
-
-.settings-row__switch {
-  flex: 0 0 auto;
-  --v-switch-inset-thumb-off-scale: 1;
-
-  :deep(.v-switch__track) {
-    min-width: 44px;
-    background-color: tokens.$color-switch-track-off;
-    opacity: 1;
-  }
-
-  :deep(.v-selection-control--dirty .v-switch__track) {
-    background-color: rgb(var(--v-theme-primary));
-  }
-
-  :deep(.v-switch__thumb) {
-    background-color: tokens.$color-switch-thumb;
-    box-shadow: tokens.$shadow-switch-thumb;
-  }
-
-  :deep(.v-selection-control__input::before) {
-    display: none;
-  }
 }
 </style>

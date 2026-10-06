@@ -42,7 +42,23 @@ describe('signaux d’usage', () => {
       photo: { count: 1, lastAt: NOW.toISOString() },
       entry: { count: 2, lastAt: NOW.toISOString() },
       export: { count: 0, lastAt: null },
+      jsonShare: { count: 0, lastAt: null },
     })
+  })
+
+  it('retient à part le dernier export JSON partagé', () => {
+    recordUsageSignal('jsonShare')
+
+    expect(readUsageSignals().jsonShare).toEqual({ count: 1, lastAt: NOW.toISOString() })
+  })
+
+  it('relit un enregistrement antérieur au partage JSON sans le perdre', () => {
+    localStorage.setItem(
+      USAGE_SIGNALS_STORAGE_KEY,
+      JSON.stringify({ export: { count: 2, lastAt: '2026-09-01T08:00:00Z' } }),
+    )
+
+    expect(readUsageSignals().jsonShare).toEqual({ count: 0, lastAt: null })
   })
 
   it('plafonne le compteur', () => {

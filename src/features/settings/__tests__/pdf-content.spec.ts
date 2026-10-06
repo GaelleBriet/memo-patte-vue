@@ -163,11 +163,9 @@ describe('buildCarnetPdfContent', () => {
 
     const content = buildCarnetPdfContent(data, ANIMAL_ID, TODAY)!
 
-    expect(
-      content.treatments.map((row) => [row.name, row.nextDueDate, row.stoppedOn, row.state]),
-    ).toEqual([
-      ['Milbémax', '2026-09-01', null, 'upToDate'],
-      ['Drontal', null, '2026-06-20', 'none'],
+    expect(content.treatments.map((row) => [row.name, row.due, row.state])).toEqual([
+      ['Milbémax', { kind: 'due', dueOn: '2026-09-01', dueTime: null, overdue: false }, 'upToDate'],
+      ['Drontal', { kind: 'stopped', on: '2026-06-20' }, 'none'],
     ])
   })
 
@@ -306,7 +304,7 @@ describe('buildCarnetPdfContent — historique', () => {
 
     expect(row.lastDoseDate).toBe('2026-05-08')
     expect(row.lastDoseExtra).toBe(true)
-    expect(row.nextDueDate).not.toBe('2099-01-01')
+    expect(row.due).not.toMatchObject({ dueOn: '2099-01-01' })
     expect(row.previousDoses).toEqual([
       { kind: 'dates', dates: ['2026-05-01', '2026-04-01'], extras: [false, false] },
     ])
