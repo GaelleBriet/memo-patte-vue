@@ -30,7 +30,8 @@ export type PdfDoseSeries =
 
 export type PdfTreatmentRow = {
   name: string
-  lastDoseDate: string
+  /** `null` : aucune prise donnée, le traitement figure par sa prochaine dose. */
+  lastDoseDate: string | null
   /** Les prises avant la dernière, par séries, la plus récente d'abord. */
   previousDoses: PdfDoseSeries[]
   /** La dernière prise est une prise en plus. */
@@ -107,6 +108,10 @@ function treatmentState(due: TreatmentOutlook): PdfDueState {
   return due.overdue ? 'overdue' : 'upToDate'
 }
 
+function isUpcoming(due: TreatmentOutlook): boolean {
+  return due.kind === 'due' && !due.overdue
+}
+
 function dueKey(due: TreatmentOutlook): { dueDate: string | null } {
   return { dueDate: due.kind === 'due' ? `${due.dueOn} ${due.dueTime ?? ''}` : null }
 }
@@ -151,15 +156,14 @@ export function buildCarnetPdfContent(
     .filter((item) => item.animalId === animalId)
     .flatMap((item) => {
       const [head, ...previous] = doses.get(item.id) ?? []
-      const period = periods.get(item.id)
-      if (!head || !period) return []
       const due = outlook(item.id)
+      if (!periods.has(item.id) || (!head && !isUpcoming(due))) return []
       return [
         {
           name: item.name,
-          lastDoseDate: head.givenOn,
+          lastDoseDate: head?.givenOn ?? null,
           previousDoses: doseSeries(previous.flatMap(dated)),
-          lastDoseExtra: head.status === 'extra',
+          lastDoseExtra: head?.status === 'extra',
           due,
           state: treatmentState(due),
         },

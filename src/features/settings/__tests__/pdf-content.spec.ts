@@ -136,10 +136,45 @@ describe('buildCarnetPdfContent', () => {
     expect(content.weightEntries).toHaveLength(2)
   })
 
-  it('laisse hors du PDF un traitement sans prise donnée, comme un vaccin sans injection', () => {
-    const data = { ...DATA, treatmentDoses: [] }
+  it('garde un traitement dont la première prise est à venir, sans dernière prise', () => {
+    const data = {
+      ...DATA,
+      treatmentPeriods: DATA.treatmentPeriods.map((period) => ({
+        ...period,
+        startsOn: '2026-07-10',
+        firstDueOn: '2026-07-10',
+        referenceOn: '2026-07-10',
+      })),
+      treatmentDoses: [],
+    }
 
-    expect(buildCarnetPdfContent(data, ANIMAL_ID, TODAY)?.treatments).toEqual([])
+    expect(buildCarnetPdfContent(data, ANIMAL_ID, TODAY)?.treatments).toEqual([
+      {
+        name: 'Milbémax',
+        lastDoseDate: null,
+        previousDoses: [],
+        lastDoseExtra: false,
+        due: { kind: 'due', dueOn: '2026-07-10', dueTime: null, overdue: false },
+        state: 'upToDate',
+      },
+    ])
+  })
+
+  it('garde un traitement qui n’a que des doses oubliées, avec sa prochaine dose', () => {
+    const [dose] = DATA.treatmentDoses
+    const data = {
+      ...DATA,
+      treatmentDoses: [{ ...dose!, givenOn: null, status: 'missed' as const }],
+    }
+
+    const [row] = buildCarnetPdfContent(data, ANIMAL_ID, TODAY)!.treatments
+
+    expect(row).toMatchObject({
+      name: 'Milbémax',
+      lastDoseDate: null,
+      previousDoses: [],
+      due: { kind: 'due', dueOn: '2026-09-01', overdue: false },
+    })
   })
 
   it('classe chaque échéance en retard, à jour ou sans rappel', () => {

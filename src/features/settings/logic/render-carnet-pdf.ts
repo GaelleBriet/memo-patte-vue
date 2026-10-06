@@ -216,6 +216,11 @@ function doseSeriesLabel(series: PdfDoseSeries, t: Translate): string {
 }
 
 function doseHistory(row: PdfTreatmentRow, t: Translate): string[] {
+  if (row.lastDoseDate === null) {
+    return row.due.kind === 'due'
+      ? [t('settings.pdf.history.noDose', { date: formatNumericDate(row.due.dueOn) })]
+      : []
+  }
   const last = t('settings.pdf.history.lastDose', {
     date: doseDate(row.lastDoseDate, row.lastDoseExtra, t),
   })

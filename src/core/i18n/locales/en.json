@@ -1243,6 +1243,7 @@
       },
       "history": {
         "injections": "Injections: {dates}",
+        "noDose": "No doses · next dose on {date}",
         "lastDose": "Last dose: {date}",
         "extraDose": "{date} (extra dose)",
         "previousDoses": "Previous doses: {series}",

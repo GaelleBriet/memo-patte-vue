@@ -134,6 +134,17 @@ describe('renderCarnetPdf — historique', () => {
     ).toBeDefined()
   })
 
+  it('écrit « Aucune prise » et la prochaine dose sous un traitement sans prise donnée', () => {
+    const content: CarnetPdfContent = {
+      ...FULL_CONTENT,
+      treatments: [{ ...FULL_CONTENT.treatments[0]!, lastDoseDate: null, previousDoses: [] }],
+    }
+    const written = readPdf(renderCarnetPdf(content, '0.1.24', null)).texts.map(({ text }) => text)
+
+    expect(written).toContain('Aucune prise · prochaine dose le 01/09/2026')
+    expect(written.some((text) => text.startsWith('Dernière prise'))).toBe(false)
+  })
+
   it('écrit l’historique sous sa ligne, en retrait, sans descendre sous 9 pt', () => {
     const traitement = find('Milbémax')!
     const derniere = find('Dernière prise\u00a0: 01/06/2026')!
