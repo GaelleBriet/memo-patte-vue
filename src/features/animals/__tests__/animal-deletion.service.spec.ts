@@ -30,6 +30,7 @@ import {
   type AnimalDeletionService,
 } from '../service/animal-deletion.service'
 import { createAnimalsRepository, type AnimalsRepository } from '../repository/animals.repository'
+import { createAnimalRemindersService } from '../service/animal-reminders.service'
 import { seedTreatmentWithDose } from '@/features/treatments/__tests__/seed-treatment'
 
 vi.mock('@/core/db/sqlite', () => ({ getDb: vi.fn<() => Promise<DbClient>>() }))
@@ -55,6 +56,17 @@ describe('animalDeletionService', () => {
   let service: AnimalDeletionService
   let notifications: FakeNotifications
   let photos: { deletePhoto: Mock<PhotoStorage['deletePhoto']> }
+  let rescheduled: string[]
+
+  function reminders() {
+    return createAnimalRemindersService({
+      vaccinations: () => vaccinations,
+      treatments: () => treatments,
+      vaccinationReminders: { reschedule: async (id) => void rescheduled.push(id) },
+      treatmentReminders: { reschedule: async (id) => void rescheduled.push(id) },
+      notifications,
+    })
+  }
 
   beforeEach(async () => {
     db = await createInMemoryDb()
@@ -65,6 +77,7 @@ describe('animalDeletionService', () => {
     treatments = createTreatmentsRepository(db)
     notifications = createFakeNotifications()
     photos = { deletePhoto: vi.fn<PhotoStorage['deletePhoto']>().mockResolvedValue() }
+    rescheduled = []
     service = createAnimalDeletionService(
       () => animals,
       [
@@ -75,7 +88,7 @@ describe('animalDeletionService', () => {
         () => createTreatmentPeriodsRepository(db),
         () => createTreatmentDosesRepository(db),
       ],
-      { vaccinations: () => vaccinations, treatments: () => treatments, notifications },
+      reminders(),
       photos,
     )
   })
@@ -285,9 +298,10 @@ describe('animalDeletionService', () => {
           markDeletedByAnimalStatement: () => ({
             sql: 'UPDATE table_inexistante SET deleted_at = 1',
           }),
+          reviveByAnimalStatement: () => ({ sql: 'SELECT 1' }),
         }),
       ],
-      { vaccinations: () => vaccinations, treatments: () => treatments, notifications },
+      reminders(),
       photos,
     )
 
@@ -353,9 +367,10 @@ describe('animalDeletionService', () => {
           markDeletedByAnimalStatement: () => ({
             sql: 'UPDATE table_inexistante SET deleted_at = 1',
           }),
+          reviveByAnimalStatement: () => ({ sql: 'SELECT 1' }),
         }),
       ],
-      { vaccinations: () => vaccinations, treatments: () => treatments, notifications },
+      reminders(),
       photos,
     )
 
@@ -364,24 +379,48 @@ describe('animalDeletionService', () => {
     expect(notifications.cancelReminders).not.toHaveBeenCalled()
   })
 
-  it('efface la copie de la photo de l’animal', async () => {
+  it('AN-12 : garde la photo à la suppression, et l’efface ensuite par forgetPhoto', async () => {
     const miette = await animals.create({
       name: 'Miette',
       species: 'cat',
       photoPath: '2f5b0d18-0f3a-4c11-9a7e-1d2c3b4a5e6f.jpg',
     })
 
-    await service.remove(miette.id)
+    const removal = await service.remove(miette.id)
+    expect(photos.deletePhoto).not.toHaveBeenCalled()
+
+    await service.forgetPhoto(removal!)
 
     expect(photos.deletePhoto).toHaveBeenCalledExactlyOnceWith(
       '2f5b0d18-0f3a-4c11-9a7e-1d2c3b4a5e6f.jpg',
     )
   })
 
+  it('rend l’animal, sa photo et la date de la suppression', async () => {
+    vi.useFakeTimers({ now: new Date('2026-03-01T10:00:00.000Z') })
+    const miette = await animals.create({ name: 'Miette', species: 'cat', photoPath: 'm.jpg' })
+
+    await expect(service.remove(miette.id)).resolves.toEqual({
+      animalId: miette.id,
+      deletedAt: '2026-03-01T10:00:00.000Z',
+      photoPath: 'm.jpg',
+    })
+  })
+
   it('n’efface aucun fichier quand l’animal n’a pas de photo', async () => {
     const miette = await animals.create({ name: 'Miette', species: 'cat' })
 
-    await service.remove(miette.id)
+    await service.forgetPhoto((await service.remove(miette.id))!)
+
+    expect(photos.deletePhoto).not.toHaveBeenCalled()
+  })
+
+  it('n’efface pas la photo d’un animal rendu par « Annuler »', async () => {
+    const miette = await animals.create({ name: 'Miette', species: 'cat', photoPath: 'm.jpg' })
+    const removal = (await service.remove(miette.id))!
+    await service.restore(removal)
+
+    await service.forgetPhoto(removal)
 
     expect(photos.deletePhoto).not.toHaveBeenCalled()
   })
@@ -402,7 +441,7 @@ describe('animalDeletionService', () => {
     notifications.pending.set(key, { key, title: '', body: '', at: new Date() })
     photos.deletePhoto.mockRejectedValue(new Error('File does not exist'))
 
-    await expect(service.remove(miette.id)).resolves.toBeUndefined()
+    await expect(service.forgetPhoto((await service.remove(miette.id))!)).resolves.toBeUndefined()
 
     await expect(animals.getById(miette.id)).resolves.toBeNull()
     expect([...notifications.pending.keys()]).toEqual([])
@@ -421,9 +460,10 @@ describe('animalDeletionService', () => {
           markDeletedByAnimalStatement: () => ({
             sql: 'UPDATE table_inexistante SET deleted_at = 1',
           }),
+          reviveByAnimalStatement: () => ({ sql: 'SELECT 1' }),
         }),
       ],
-      { vaccinations: () => vaccinations, treatments: () => treatments, notifications },
+      reminders(),
       photos,
     )
 
@@ -432,17 +472,12 @@ describe('animalDeletionService', () => {
     expect(photos.deletePhoto).not.toHaveBeenCalled()
   })
 
-  it('n’efface pas deux fois le fichier d’un animal déjà supprimé', async () => {
-    const miette = await animals.create({
-      name: 'Miette',
-      species: 'cat',
-      photoPath: 'unique.jpg',
-    })
+  it('ne rend rien pour un animal déjà supprimé ou inconnu', async () => {
+    const miette = await animals.create({ name: 'Miette', species: 'cat' })
     await service.remove(miette.id)
 
-    await service.remove(miette.id)
-
-    expect(photos.deletePhoto).toHaveBeenCalledExactlyOnceWith('unique.jpg')
+    await expect(service.remove(miette.id)).resolves.toBeNull()
+    await expect(service.remove('inconnu')).resolves.toBeNull()
   })
 
   it('ne change aucune date déjà posée lors d’une seconde suppression', async () => {
@@ -481,6 +516,96 @@ describe('animalDeletionService', () => {
     await expect(vaccinationTombstones(miette.id)).resolves.toEqual([
       { deleted_at: '2026-03-01T10:00:00.000Z', updated_at: '2026-03-01T10:00:00.000Z' },
     ])
+  })
+
+  describe('restore (« Annuler »)', () => {
+    const TABLES = [
+      'vaccination',
+      'vaccination_injection',
+      'weight_entry',
+      'treatment',
+      'treatment_period',
+      'treatment_dose',
+    ]
+
+    async function deletedAtByTable(animalId: string): Promise<Record<string, unknown[]>> {
+      const entries = await Promise.all(
+        TABLES.map(async (table) => {
+          const rows = await db.query<{ deleted_at: string | null }>(
+            `SELECT deleted_at FROM ${table} WHERE animal_id = ? ORDER BY id`,
+            [animalId],
+          )
+          return [table, rows.map(({ deleted_at }) => deleted_at)] as const
+        }),
+      )
+      return Object.fromEntries(entries)
+    }
+
+    async function seedCarnet(animalId: string) {
+      const rage = await vaccinations.create({
+        animalId,
+        name: 'Rage',
+        lastInjectionDate: '2024-03-01',
+        dueDate: '2027-03-01',
+      })
+      await weight.create({ animalId, weightKg: 4.1, measuredOn: '2026-01-10' })
+      const milbemax = await seedTreatmentWithDose(db, {
+        animalId,
+        name: 'Milbemax',
+        type: 'deworming',
+        frequency: { value: 3, unit: 'month' },
+        lastDoseDate: '2026-01-10',
+      })
+      return { rage, milbemax }
+    }
+
+    it('critère 5 : rend l’animal et tout son carnet supprimés avec lui, puis ses rappels', async () => {
+      vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-03-01T10:00:00.000Z') })
+      const miette = await animals.create({ name: 'Miette', species: 'cat' })
+      const { rage, milbemax } = await seedCarnet(miette.id)
+      const before = await deletedAtByTable(miette.id)
+      const removal = (await service.remove(miette.id))!
+      vi.setSystemTime(new Date('2026-03-01T10:00:03.000Z'))
+
+      await service.restore(removal)
+
+      await expect(animals.getById(miette.id)).resolves.toMatchObject({ deletedAt: null })
+      await expect(deletedAtByTable(miette.id)).resolves.toEqual(before)
+      expect(rescheduled.sort()).toEqual([rage.id, milbemax.id].sort())
+      await expect(
+        db.query('SELECT updated_at FROM treatment WHERE id = ?', [milbemax.id]),
+      ).resolves.toEqual([{ updated_at: '2026-03-01T10:00:03.000Z' }])
+    })
+
+    it('laisse supprimé ce qui l’était avant l’animal', async () => {
+      vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-03-01T10:00:00.000Z') })
+      const miette = await animals.create({ name: 'Miette', species: 'cat' })
+      const { rage } = await seedCarnet(miette.id)
+      await vaccinations.remove(rage.id)
+      vi.setSystemTime(new Date('2026-03-01T10:01:00.000Z'))
+      const removal = (await service.remove(miette.id))!
+
+      await service.restore(removal)
+
+      await expect(vaccinationTombstones(miette.id)).resolves.toEqual([
+        { deleted_at: '2026-03-01T10:00:00.000Z', updated_at: '2026-03-01T10:00:00.000Z' },
+      ])
+    })
+
+    it('ne touche pas aux autres animaux supprimés', async () => {
+      vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-03-01T10:00:00.000Z') })
+      const miette = await animals.create({ name: 'Miette', species: 'cat' })
+      const vasco = await animals.create({ name: 'Vasco', species: 'dog' })
+      await seedCarnet(vasco.id)
+      const removal = (await service.remove(miette.id))!
+      await service.remove(vasco.id)
+
+      await service.restore(removal)
+
+      await expect(animals.getById(vasco.id)).resolves.toBeNull()
+      const vascoRows = await deletedAtByTable(vasco.id)
+      expect(Object.values(vascoRows).flat()).not.toContain(null)
+    })
   })
 
   it('conserve toutes les lignes en base : jamais de DELETE', async () => {
@@ -529,7 +654,8 @@ describe('animalDeletionService', () => {
     const key = `treatment:${milbemax.id}:2026-04-10:due`
     vi.mocked(listScheduled).mockResolvedValue([{ id: 1, key, title: '', body: '', exact: false }])
 
-    await animalDeletionService.remove(miette.id)
+    const removal = await animalDeletionService.remove(miette.id)
+    await animalDeletionService.forgetPhoto(removal!)
 
     expect(vi.mocked(cancelReminders)).toHaveBeenCalledExactlyOnceWith([key])
     expect(vi.mocked(deletePhoto)).toHaveBeenCalledExactlyOnceWith('branchee.jpg')

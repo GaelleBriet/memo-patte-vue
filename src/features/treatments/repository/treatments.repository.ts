@@ -429,6 +429,15 @@ export function createTreatmentsRepository(
       }
     },
 
+    /** Les lignes supprimées à cet instant, avec leur animal. */
+    reviveByAnimalStatement(animalId: string, deletedAt: string, updatedAt: string): SqlStatement {
+      return {
+        sql: `UPDATE treatment SET deleted_at = NULL, updated_at = ?, updated_by_device = ?
+              WHERE animal_id = ? AND deleted_at = ?`,
+        params: [updatedAt, deviceId(), animalId, deletedAt],
+      }
+    },
+
     /** Lignes supprimées comprises : l'import compare les versions avant d'écrire. */
     async listVersions(): Promise<TreatmentVersion[]> {
       const rows = await db.query<TreatmentRow>(`SELECT ${COLUMNS} FROM treatment`)

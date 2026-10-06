@@ -26,6 +26,7 @@ const LUNA: Animal = {
   createdAt: '2026-09-01T09:00:00.000Z',
   updatedAt: '2026-09-01T09:00:00.000Z',
   deletedAt: null,
+  unfollowedOn: null,
 }
 
 const SETTINGS: CarnetReminderSettings = { vaccineReminderTime: '09:00', remindBeforeDue: true }

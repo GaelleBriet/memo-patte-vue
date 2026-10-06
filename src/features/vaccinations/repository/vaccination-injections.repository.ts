@@ -226,6 +226,15 @@ export function createVaccinationInjectionsRepository(
       }
     },
 
+    /** Les lignes supprimées à cet instant, avec leur animal. */
+    reviveByAnimalStatement(animalId: string, deletedAt: string, updatedAt: string): SqlStatement {
+      return {
+        sql: `UPDATE vaccination_injection SET deleted_at = NULL, updated_at = ?, updated_by_device = ?
+              WHERE animal_id = ? AND deleted_at = ?`,
+        params: [updatedAt, deviceId(), animalId, deletedAt],
+      }
+    },
+
     markAllDeletedStatement(deletedAt: string): SqlStatement {
       return {
         sql: `UPDATE vaccination_injection SET deleted_at = ?, updated_at = ?, updated_by_device = ?

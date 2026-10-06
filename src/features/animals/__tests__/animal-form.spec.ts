@@ -24,6 +24,7 @@ const MILO: Animal = {
   createdAt: '2026-09-09T09:00:00.000Z',
   updatedAt: '2026-09-09T09:00:00.000Z',
   deletedAt: null,
+  unfollowedOn: null,
 }
 
 function valeurs(surcharges: Partial<AnimalFormValues> = {}): AnimalFormValues {

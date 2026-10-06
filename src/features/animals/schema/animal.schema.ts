@@ -34,6 +34,8 @@ export const animalSchema = animalInputSchema.extend({
   updatedAt: z.iso.datetime(),
   /** Suppression logique : `null` tant que l'animal existe. */
   deletedAt: z.iso.datetime().nullable(),
+  /** `null` tant que l'animal est suivi. */
+  unfollowedOn: z.iso.date().nullable(),
 })
 
 export const DEPARTURE_REASONS = ['death', 'rehomed', 'other'] as const
@@ -45,12 +47,16 @@ export type AnimalInput = z.input<typeof animalInputSchema>
 export type AnimalCreationInput = z.input<typeof animalCreationInputSchema>
 export type Animal = z.output<typeof animalSchema>
 
+/** Suivi de l'animal : tout à `null` tant qu'il est suivi. */
+export type Departure = {
+  unfollowedOn: string | null
+  departureReason: DepartureReason | null
+  departureDate: string | null
+}
+
 /** L'animal avec toutes ses colonnes : ce que l'export emporte et que l'import écrit. */
 export type AnimalRecord = Animal &
-  DeviceStamps & {
+  DeviceStamps &
+  Departure & {
     birthDateApproximate: boolean
-    /** `null` tant que l'animal est suivi. */
-    unfollowedOn: string | null
-    departureReason: DepartureReason | null
-    departureDate: string | null
   }

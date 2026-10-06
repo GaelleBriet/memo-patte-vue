@@ -23,6 +23,7 @@ const LUNA: Animal = {
   createdAt: STAMP,
   updatedAt: STAMP,
   deletedAt: null,
+  unfollowedOn: null,
 }
 const SETTINGS = { vaccineReminderTime: '09:00', remindBeforeDue: true }
 

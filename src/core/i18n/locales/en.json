@@ -96,6 +96,31 @@
       "welcome": {
         "title": "Welcome to MémoPatte",
         "create": "Add my first pet"
+      },
+      "options": {
+        "open": "{name}’s options",
+        "title": "Options",
+        "close": "Close",
+        "unfollow": "Stop following {name}",
+        "unfollowHint": "{name}’s reminders and ongoing treatments stop. {name}’s health record stays intact.",
+        "follow": "Follow {name} again",
+        "delete": "Delete {name}"
+      },
+      "deleteDialog": {
+        "title": "Delete {name}?",
+        "text": "{name}’s entire health record will be deleted: vaccines, treatments, weigh-ins, photo.",
+        "cancel": "Cancel",
+        "confirm": "Delete"
+      },
+      "toast": {
+        "unfollowed": "You’re no longer following {name}",
+        "followed": "You’re following {name} again. Stopped treatments don’t restart on their own: restart each one with “Resume”.",
+        "deleted": "{name}’s record deleted",
+        "undoUnfollow": "Undo and follow {name} again",
+        "undoFollow": "Undo and stop following {name}",
+        "undoDelete": "Undo deleting {name}",
+        "failed": "Couldn’t save the change. Try again.",
+        "deleteFailed": "Couldn’t delete {name}’s record. Try again."
       }
     }
   },
