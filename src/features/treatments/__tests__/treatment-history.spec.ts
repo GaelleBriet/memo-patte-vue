@@ -226,13 +226,13 @@ describe('treatmentHistory — plusieurs périodes (planche A · V3)', () => {
   )
 
   it('compte les seules prises données', () => {
-    expect(history(METACAM, '2026-09-28').counter).toBe('32 depuis le 1 sept. 2026')
+    expect(history(METACAM, '2026-09-28').counter).toBe('32 depuis le 1er sept. 2026')
   })
 
   it('met en tête de chaque période ses dates et ses réglages, la plus récente d’abord', () => {
     expect(history(METACAM, '2026-09-28').periods.map(({ head }) => head)).toEqual([
       { title: 'Depuis le 21 sept. 2026', settings: 'Tous les jours · 8 h et 20 h · 0,3 ml' },
-      { title: 'Du 1 sept. au 20 sept. 2026', settings: 'Tous les jours · 8 h · 0,5 ml' },
+      { title: 'Du 1er sept. au 20 sept. 2026', settings: 'Tous les jours · 8 h · 0,5 ml' },
     ])
   })
 
@@ -330,7 +330,7 @@ describe('treatmentHistory — plusieurs périodes (planche A · V3)', () => {
 
     expect(history(book, '2026-11-03').periods.map(({ head }) => head?.title)).toEqual([
       'Du 3 nov. au 7 nov. 2026',
-      'Du 1 sept. au 10 sept. 2026',
+      'Du 1er sept. au 10 sept. 2026',
     ])
   })
 
@@ -365,7 +365,7 @@ describe('treatmentHistory — plusieurs périodes (planche A · V3)', () => {
     expect(titles(book, '2026-09-05')[0]).toEqual([
       '5 sept. 2026',
       'Oubliées · du 2 sept. au 4 sept. 2026',
-      '1 sept. 2026',
+      '1er sept. 2026',
     ])
   })
 
@@ -448,8 +448,8 @@ describe('treatmentHistory — ce que deux appareils ou un import peuvent laisse
     )
 
     expect(titles(book, '2026-09-01')[0]).toEqual([
-      '1 sept. 2026 · 20 h',
-      'Oubliée · 1 sept. 2026, 8 h',
+      '1er sept. 2026 · 20 h',
+      'Oubliée · 1er sept. 2026, 8 h',
     ])
   })
 
@@ -475,7 +475,7 @@ describe('treatmentHistory — ce que deux appareils ou un import peuvent laisse
 
     const { counter, periods } = history(book, '2026-11-02')
 
-    expect(counter).toBe('3 depuis le 1 sept. 2026')
+    expect(counter).toBe('3 depuis le 1er sept. 2026')
     expect(
       periods.map(({ lines }) =>
         lines.map((line) => [line.title, line.kind === 'given' && line.isLast]),
@@ -483,9 +483,9 @@ describe('treatmentHistory — ce que deux appareils ou un import peuvent laisse
     ).toEqual([
       [['15 sept. 2026', false]],
       [
-        ['Oubliée · 1 nov. 2026', false],
-        ['1 oct. 2026', true],
-        ['1 sept. 2026', false],
+        ['Oubliée · 1er nov. 2026', false],
+        ['1er oct. 2026', true],
+        ['1er sept. 2026', false],
       ],
     ])
   })

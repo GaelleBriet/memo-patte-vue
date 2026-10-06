@@ -11,23 +11,24 @@ declare module 'vue-i18n' {
 
 export type AppLocale = 'fr' | 'en'
 
-const FALLBACK_LOCALE: AppLocale = 'fr'
+const SOURCE_LOCALE: AppLocale = 'fr'
+const DEVICE_FALLBACK_LOCALE: AppLocale = 'en'
 
 function isAppLocale(code: string): code is AppLocale {
   return code === 'fr' || code === 'en'
 }
 
-/** Première langue livrée parmi les préférences du système (`navigator.languages`), sinon le français. */
+/** Première langue livrée parmi les préférences du système (`navigator.languages`), sinon l’anglais. */
 export function detectLocale(languages: readonly string[]): AppLocale {
   const codes = languages.map((tag) => tag.split('-')[0]!.toLowerCase())
 
-  return codes.find(isAppLocale) ?? FALLBACK_LOCALE
+  return codes.find(isAppLocale) ?? DEVICE_FALLBACK_LOCALE
 }
 
 const i18n = createI18n({
   legacy: false,
-  locale: FALLBACK_LOCALE,
-  fallbackLocale: FALLBACK_LOCALE,
+  locale: SOURCE_LOCALE,
+  fallbackLocale: SOURCE_LOCALE,
   messages: { fr, en },
 })
 

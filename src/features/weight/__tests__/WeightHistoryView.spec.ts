@@ -586,7 +586,7 @@ describe('WeightHistoryView — historique par pages', () => {
     expect(wrapper.get('.weight-history__current-label').text()).toBe('Pesée du 15 mars 2026')
     expect(wrapper.get('.weight-history__current').text()).toBe('15,4')
     expect(wrapper.get('.weight-history__delta').text()).toBe(
-      '+0,7\u00a0kg depuis le\u00a01\u00a0mars',
+      '+0,7\u00a0kg depuis le\u00a01er\u00a0mars',
     )
   })
 })
