@@ -24,10 +24,11 @@ import type {
   PdfWeightRow,
 } from '../logic/pdf-content'
 import i18n from '@/core/i18n'
+import { formatLongDate } from '@/shared/utils/format'
 
 // A4 : les marges latérales du carnet, et 10 mm en haut et en bas, loin de la marge non imprimable.
 const ZONE: PdfBounds = { left: 18, right: 192, top: 10, bottom: 287 }
-const FOOTER = 'Généré le 15 sept. 2026 — MémoPatte 0.1.24'
+const FOOTER = `Généré le ${formatLongDate('2026-09-15')} — MémoPatte 0.1.24`
 const SECTION_TITLES = ['Vaccins', 'Traitements', 'Poids']
 const ETATS = ['À jour', 'En retard', 'Pas de rappel']
 // La mise en page laisse au moins 5,7 mm sous l'en-tête (un titre de section) et 4,6 mm sur le pied.

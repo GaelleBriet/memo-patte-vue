@@ -123,10 +123,7 @@ async function monter(props: Record<string, unknown> = {}) {
 }
 
 function texte(selecteur: string): string | undefined {
-  return document.body
-    .querySelector(selecteur)
-    ?.textContent?.replace(/[ \n]+/g, ' ')
-    .trim()
+  return document.body.querySelector(selecteur)?.textContent?.replace(/\s+/g, ' ').trim()
 }
 
 function bouton(selecteur: string): HTMLButtonElement {

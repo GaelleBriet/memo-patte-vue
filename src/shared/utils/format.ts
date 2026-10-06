@@ -7,6 +7,13 @@ const DATE_LOCALES = { fr, en: enUS }
 
 const MINUS = '−'
 
+const NBSP = '\u00a0'
+
+function formatDate(isoDate: string, pattern: string): string {
+  const locale = DATE_LOCALES[currentLocale()]
+  return format(parseISO(isoDate), pattern, { locale }).replaceAll(' ', NBSP)
+}
+
 function roundToDecimal(value: number): number {
   return Math.round(value * 10) / 10
 }
@@ -57,12 +64,12 @@ export function formatMonthShort(isoDate: string): string {
 
 /** `déc. 2026` / `Dec 2026` — mois et année d'une validité. */
 export function formatMonthYear(isoDate: string): string {
-  return format(parseISO(isoDate), 'MMM yyyy', { locale: DATE_LOCALES[currentLocale()] })
+  return formatDate(isoDate, 'MMM yyyy')
 }
 
 /** `septembre 2026` / `September 2026` — titre d'un mois de calendrier. */
 export function formatFullMonthYear(isoDate: string): string {
-  return format(parseISO(isoDate), 'LLLL yyyy', { locale: DATE_LOCALES[currentLocale()] })
+  return formatDate(isoDate, 'LLLL yyyy')
 }
 
 /** Premier jour de la semaine dans la langue courante : 1 (lundi) en français, 0 (dimanche) en anglais. */
@@ -94,7 +101,7 @@ function formatIn(isoDate: string, patterns: Record<'fr' | 'en', string>): strin
     locale === 'fr' && isFirstOfMonth(isoDate)
       ? patterns.fr.replace(/\bd\b/, "d'er'")
       : patterns[locale]
-  return format(parseISO(isoDate), pattern, { locale: DATE_LOCALES[locale] })
+  return formatDate(isoDate, pattern)
 }
 
 /** `8 nov. 2026`, `1er oct. 2026` / `Nov 8, 2026`. */
@@ -119,11 +126,6 @@ export function withoutFinalDot(text: string): string {
   return text.endsWith('.') ? text.slice(0, -1) : text
 }
 
-/** `25 août`, `Dec 20, 2025` d'un seul tenant : aucun retour à la ligne à l'intérieur. */
-export function nonBreaking(text: string): string {
-  return text.replaceAll(' ', '\u00a0')
-}
-
 /** `28 septembre` / `September 28` — lu par le lecteur d'écran. */
 export function formatFullDayMonth(isoDate: string): string {
   return formatIn(isoDate, FULL_DAY_MONTH_PATTERNS)
@@ -145,8 +147,6 @@ export function formatFullDate(isoDate: string): string {
 export function formatNumericDate(isoDate: string): string {
   return format(parseISO(isoDate), 'P', { locale: DATE_LOCALES[currentLocale()] })
 }
-
-const NBSP = '\u00a0'
 
 /** Heure `HH:mm` : `8 h`, `8 h 30` / `8 am`, `8:30 pm`, espaces insécables. */
 export function formatClockTime(time: string): string {
