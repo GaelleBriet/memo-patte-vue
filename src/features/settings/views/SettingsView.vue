@@ -5,12 +5,15 @@ import { useRouter } from 'vue-router'
 
 import ExportSheet from './ExportSheet.vue'
 import ImportSheet from './ImportSheet.vue'
+import { remindersSummary } from '../logic/reminders-settings'
 import { useExportAvailability } from '../composables/use-export-availability'
 import type { PdfExportAnimal } from './PdfExportSheet.vue'
 
 const PdfExportSheet = defineAsyncComponent(() => import('./PdfExportSheet.vue'))
 import { promptNotificationsIfReminders } from '@/app/reminders-priming'
 import { hasConsent, optIn, optOut } from '@/core/analytics'
+import { useExactReminders } from '@/core/notifications/use-exact-reminders'
+import { useNotificationPermission } from '@/core/notifications/use-notification-permission'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import AccountSection from '@/features/auth/views/AccountSection.vue'
 import PlusSection from '@/features/purchase/views/PlusSection.vue'
@@ -26,6 +29,9 @@ const { t } = useI18n()
 const router = useRouter()
 const animals = useAnimalsStore()
 const purchase = usePurchaseStore()
+const { status: notifications } = useNotificationPermission()
+const { status: exactReminders } = useExactReminders()
+const remindersHint = computed(() => remindersSummary(notifications.value, exactReminders.value))
 
 const appVersion = import.meta.env.VITE_APP_VERSION
 const isExportSheetOpen = ref(false)
@@ -81,6 +87,10 @@ function onShareAnalyticsChange(enabled: boolean | null): void {
   void (shareAnalytics.value ? optIn() : optOut())
 }
 
+function openReminders(): void {
+  void router.push({ name: 'settings-reminders' })
+}
+
 function openBackup(): void {
   void router.push({ name: 'settings-backup' })
 }
@@ -99,6 +109,16 @@ function goHome(): void {
   >
     <div class="settings__content">
       <div class="settings__entry">
+        <button type="button" class="settings-row settings-row--reminders" @click="openReminders">
+          <v-icon class="settings-row__icon" icon="ms:notifications" size="22" />
+          <span class="settings-row__text">
+            <span class="settings-row__label">{{ t('settings.reminders.title') }}</span>
+            <span v-if="remindersHint" class="settings-row__hint">
+              {{ t(`settings.reminders.summary.${remindersHint}`) }}
+            </span>
+          </span>
+          <v-icon class="settings-row__chevron" icon="ms:chevron_right" size="20" />
+        </button>
         <button type="button" class="settings-row settings-row--backup" @click="openBackup">
           <v-icon class="settings-row__icon" icon="ms:backup" size="22" />
           <span class="settings-row__text">
@@ -292,29 +312,5 @@ function goHome(): void {
 .settings__plus-badge {
   top: -10px;
   right: -8px;
-}
-
-.settings-row__switch {
-  flex: 0 0 auto;
-  --v-switch-inset-thumb-off-scale: 1;
-
-  :deep(.v-switch__track) {
-    min-width: 44px;
-    background-color: tokens.$color-switch-track-off;
-    opacity: 1;
-  }
-
-  :deep(.v-selection-control--dirty .v-switch__track) {
-    background-color: rgb(var(--v-theme-primary));
-  }
-
-  :deep(.v-switch__thumb) {
-    background-color: tokens.$color-switch-thumb;
-    box-shadow: tokens.$shadow-switch-thumb;
-  }
-
-  :deep(.v-selection-control__input::before) {
-    display: none;
-  }
 }
 </style>

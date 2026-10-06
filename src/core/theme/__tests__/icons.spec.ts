@@ -51,6 +51,10 @@ const iconesDesMaquettes = [
   'backup',
   'mobile',
   'star',
+  'notifications',
+  'tune',
+  'alarm_off',
+  'help',
 ] as const
 
 describe('registre d’icônes Material Symbols', () => {

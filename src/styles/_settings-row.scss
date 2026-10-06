@@ -98,3 +98,28 @@ a.settings-row {
     color: tokens.$color-settings-row-disabled;
   }
 }
+
+// Préfixé par la ligne : passe devant les styles de Vuetify, chargés avant.
+.settings-row .settings-row__switch {
+  flex: 0 0 auto;
+  --v-switch-inset-thumb-off-scale: 1;
+
+  .v-switch__track {
+    min-width: 44px;
+    background-color: tokens.$color-switch-track-off;
+    opacity: 1;
+  }
+
+  .v-selection-control--dirty .v-switch__track {
+    background-color: rgb(var(--v-theme-primary));
+  }
+
+  .v-switch__thumb {
+    background-color: tokens.$color-switch-thumb;
+    box-shadow: tokens.$shadow-switch-thumb;
+  }
+
+  .v-selection-control__input::before {
+    display: none;
+  }
+}

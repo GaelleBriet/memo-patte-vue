@@ -4,6 +4,7 @@ import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
 import { installConsentGate } from '@/app/analytics-consent'
+import { installCarnetSettingsReminders } from '@/app/carnet-settings-reminders'
 import { installPageviewTracking } from '@/app/analytics-pageview'
 import { installReminderActions, reminderActions } from '@/app/reminder-actions'
 import { installLaunchPriming } from '@/app/reminders-priming'
@@ -20,6 +21,8 @@ import { useAuthStore } from '@/features/auth/store/auth.store'
 import { installPlusAccountLink } from '@/features/purchase/service/plus-account-link.service'
 import { usePurchaseStore } from '@/features/purchase/store/purchase.store'
 import { clearExports } from '@/features/settings/logic/export-delivery'
+import { getCarnetSettingsRepository } from '@/features/settings/repository/carnet-settings.repository'
+import { provideCarnetSettingsRepository } from '@/features/settings/store/carnet-settings.store'
 import { getTreatmentsRepository } from '@/features/treatments/repository/treatments.repository'
 import { provideTreatmentsRepository } from '@/features/treatments/store/treatments.store'
 import { getVaccinationsRepository } from '@/features/vaccinations/repository/vaccinations.repository'
@@ -33,6 +36,7 @@ provideAnimalsRepository(getAnimalsRepository)
 provideVaccinationsRepository(getVaccinationsRepository)
 provideWeightRepository(getWeightRepository)
 provideTreatmentsRepository(getTreatmentsRepository)
+provideCarnetSettingsRepository(getCarnetSettingsRepository)
 
 const app = createApp(App)
 
@@ -63,6 +67,7 @@ void registerCurrentDevice()
 app.mount('#app')
 installReminderActions(router, reminderActions(router))
 installRemindersSync()
+installCarnetSettingsReminders()
 installLaunchPriming(router)
 void usePurchaseStore().verifyKnownStatus()
 installPlusAccountLink(() => useAuthStore().userId)
