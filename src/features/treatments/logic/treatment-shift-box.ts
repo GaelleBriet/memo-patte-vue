@@ -1,6 +1,7 @@
 import { format, parseISO, subDays } from 'date-fns'
 
 import { doseChange, type DoseAction } from './treatment-dose-writes'
+import { revealedDues, revealedDuesText } from './treatment-revealed-dues'
 import { treatmentScheduleOf } from './treatment-schedule'
 import type { DoseWrite } from '../repository/treatment-doses.repository'
 import type { TreatmentWithHistory } from '../repository/treatments.repository'
@@ -146,7 +147,7 @@ export function shiftHelpText(
     return { text, warning: false }
   }
   if (second !== undefined && arrivals.includes(second)) {
-    const named = { date: day(first), report: day(second) }
+    const named = { date: day(first), report: withoutFinalDot(day(second)) }
     const text = shifts
       ? t('treatments.shift.movedBeforeReport', named)
       : t('treatments.shift.keptBeforeReport', named)
@@ -161,6 +162,65 @@ export function shiftHelpText(
   return { text: t(`treatments.shift.${way}.every`, { date, every }), warning: false }
 }
 
+type GestureHelp = {
+  action: DoseAction
+  periodId: string
+  currentDay: string
+  newDay: string
+  shifts: boolean
+  today: string
+}
+
+// La phrase des doses suivantes nomme un report : « Dose reportée le … ».
+function namesReport(
+  { shifts, following, lost }: { shifts: boolean; following: string[]; lost: string[] },
+  arrivals: ReadonlySet<string>,
+): boolean {
+  if (shifts && lost.length > 0) return false
+  const [first, second] = following
+  return second !== undefined && (arrivals.has(first!) || arrivals.has(second))
+}
+
+function revealedHelpText(
+  t: Translate,
+  schedule: TreatmentSchedule,
+  after: TreatmentSchedule,
+  today: string,
+): string | null {
+  return revealedDuesText(t, revealedDues(schedule, after, today), 'help')
+}
+
+function suiteHelpOf(
+  t: Translate,
+  history: History,
+  schedule: TreatmentSchedule,
+  { action, periodId, currentDay, newDay, shifts, today }: GestureHelp,
+): { help: ShiftHelp | null; namesReport: boolean } {
+  const period = history.periods.find(({ id }) => id === periodId)
+  const after = scheduleAfter(history, schedule, action, today)
+  if (period === undefined || after === null) return { help: null, namesReport: false }
+  const pending = pendingDaysAfter(after, period, newDay)
+  const lost = lostDays(pendingDaysAfter(schedule, period, currentDay), pending, period)
+  const following = pending.filter((day) => day >= today)
+  const arrivals = new Set(
+    after.doses
+      .filter((dose) => dose.status === 'postponed' && dose.periodId === periodId)
+      .map(({ nextDueDate }) => nextDueDate),
+  )
+  const weekdayOn = shifts ? newDay : (following.find((day) => !arrivals.has(day)) ?? null)
+  const help = shiftHelpText(
+    t,
+    period,
+    { shifts, following, lost, weekdayOn, arrivals: [...arrivals] },
+    today,
+  )
+  const named = namesReport({ shifts, following, lost }, arrivals)
+  const revealed = revealedHelpText(t, schedule, after, today)
+  if (revealed === null) return { help, namesReport: named }
+  const text = help === null ? revealed : `${help.text} ${revealed}`
+  return { help: { text, warning: help?.warning ?? false }, namesReport: named }
+}
+
 /**
  * L'aide d'un geste de la fiche, calculée sur le calendrier qu'il laisserait : `currentDay`, le jour
  * de la dose avant le geste ; `newDay`, après.
@@ -169,39 +229,9 @@ export function shiftHelpOf(
   t: Translate,
   history: History,
   schedule: TreatmentSchedule,
-  {
-    action,
-    periodId,
-    currentDay,
-    newDay,
-    shifts,
-    today,
-  }: {
-    action: DoseAction
-    periodId: string
-    currentDay: string
-    newDay: string
-    shifts: boolean
-    today: string
-  },
+  gesture: GestureHelp,
 ): ShiftHelp | null {
-  const period = history.periods.find(({ id }) => id === periodId)
-  const after = scheduleAfter(history, schedule, action, today)
-  if (period === undefined || after === null) return null
-  const following = pendingDaysAfter(after, period, newDay)
-  const lost = lostDays(pendingDaysAfter(schedule, period, currentDay), following, period)
-  const arrivals = new Set(
-    after.doses
-      .filter((dose) => dose.status === 'postponed' && dose.periodId === periodId)
-      .map(({ nextDueDate }) => nextDueDate),
-  )
-  const weekdayOn = shifts ? newDay : (following.find((day) => !arrivals.has(day)) ?? null)
-  return shiftHelpText(
-    t,
-    period,
-    { shifts, following, lost, weekdayOn, arrivals: [...arrivals] },
-    today,
-  )
+  return suiteHelpOf(t, history, schedule, gesture).help
 }
 
 type Line = Pick<
@@ -288,8 +318,8 @@ export function dateChangeBox(
   { history, schedule, today }: Carnet,
   action: (date: string, shifts: boolean) => DoseAction,
 ): DateChangeBox | null {
-  const help = (date: string, shifts: boolean, currentDay: string, newDay: string) =>
-    shiftHelpOf(t, history, schedule, {
+  const suiteOf = (date: string, shifts: boolean, currentDay: string, newDay: string) =>
+    suiteHelpOf(t, history, schedule, {
       action: action(date, shifts),
       periodId: line.periodId,
       currentDay,
@@ -297,6 +327,8 @@ export function dateChangeBox(
       shifts,
       today,
     })
+  const help = (date: string, shifts: boolean, currentDay: string, newDay: string) =>
+    suiteOf(date, shifts, currentDay, newDay).help
   if (line.status === 'postponed') {
     const due = { periodId: line.periodId, dueOn: line.nextDueDate, dueTime: line.dueTime }
     const alone = schedule.moveBounds(due, false)
@@ -346,13 +378,16 @@ export function dateChangeBox(
         return { shown, help: refused, blocked: true }
       }
       const follows = followedReportOn(history, schedule, line.id, date, shifts)
-      const suite = shown ? help(date, shifts, line.dueOn, laterOf(line.dueOn, date)) : null
-      if (follows === null) return shown ? { shown, help: suite } : { shown: false, help: null }
-      const sentence = t('treatments.shift.reportFollows', {
-        date: formatDayMonthOrYear(follows, today),
-      })
-      const text = suite === null ? sentence : `${suite.text} ${sentence}`
-      return { shown, help: { text, warning: suite?.warning ?? false } }
+      const suite = shown ? suiteOf(date, shifts, line.dueOn, laterOf(line.dueOn, date)) : null
+      const after = shown ? null : scheduleAfter(history, schedule, action(date, true), today)
+      const first = suite?.help?.text ?? (after && revealedHelpText(t, schedule, after, today))
+      const sentence =
+        follows === null || suite?.namesReport === true
+          ? null
+          : t('treatments.shift.reportFollows', { date: formatDayMonthOrYear(follows, today) })
+      const text = [first, sentence].filter((part) => part !== null && part !== undefined)
+      if (text.length === 0) return { shown, help: null }
+      return { shown, help: { text: text.join(' '), warning: suite?.help?.warning ?? false } }
     },
   }
 }

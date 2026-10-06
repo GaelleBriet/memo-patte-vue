@@ -226,6 +226,11 @@ export type TreatmentSchedule = {
   shiftDueOf(due: Due): Due
   /** Dates d'une période ouverte par « Modifier » (TR-28, Q7, Q24), selon ses heures. */
   newPeriod(frequency: Frequency, times: readonly string[]): NewPeriod
+  /**
+   * Dernière journée d'échéance de la période en cours, reports et décalages compris, notée ou non ;
+   * `null` sans période ou pour une période sans fin.
+   */
+  lastDueDay(): string | null
 }
 
 export type Sequence = { origin: string; firstStep: number; floor: string }

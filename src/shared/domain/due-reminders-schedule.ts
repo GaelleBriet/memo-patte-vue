@@ -44,7 +44,11 @@ const FIRST_DUE = 0
 const FIRST_SPAN = 1
 const LATER = 2
 
-/** Échéance à venir la plus proche de chaque entrée, d'après les rappels du jour même. */
+function dueSlot({ dueDate, dueTime }: { dueDate: string; dueTime: string | null }): string {
+  return `${dueDate} ${dueTime ?? ''}`
+}
+
+/** Échéance à venir la plus proche de chaque entrée, jour et heure, d'après les rappels du jour même. */
 function firstUpcomingByEntry(reminders: Reminder[]): Map<string, string> {
   const first = new Map<string, string>()
 
@@ -52,17 +56,20 @@ function firstUpcomingByEntry(reminders: Reminder[]): Map<string, string> {
     const parsed = parseReminderKey(key)
     if (parsed === null || parsed.moment !== 'due') continue
     const known = first.get(parsed.entry)
-    if (known === undefined || parsed.dueDate < known) first.set(parsed.entry, parsed.dueDate)
+    if (known === undefined || dueSlot(parsed) < known) first.set(parsed.entry, dueSlot(parsed))
   }
 
   return first
 }
 
+/** Prévenance et relance comptent avec la première échéance quand elles visent son jour. */
 function rankOf(reminder: Reminder, first: Map<string, string>): number {
   const parsed = parseReminderKey(reminder.key)
-  if (parsed === null || first.get(parsed.entry) !== parsed.dueDate) return LATER
+  const slot = parsed === null ? undefined : first.get(parsed.entry)
+  if (parsed === null || slot === undefined) return LATER
+  if (parsed.moment === 'due') return slot === dueSlot(parsed) ? FIRST_DUE : LATER
 
-  return parsed.moment === 'due' ? FIRST_DUE : FIRST_SPAN
+  return slot.startsWith(`${parsed.dueDate} `) ? FIRST_SPAN : LATER
 }
 
 /**

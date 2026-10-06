@@ -73,6 +73,23 @@ describe('remindersWithinCap', () => {
 
     expect(remindersWithinCap([far, due, near], 2)).toEqual([near, due])
   })
+
+  it('à plusieurs heures, réserve la première heure à venir et la relance de son jour', () => {
+    const morning = reminder(`treatment:${ID}:2026-12-10:0800:due`, new Date(2026, 11, 10, 8))
+    const evening = reminder(`treatment:${ID}:2026-12-10:2000:due`, new Date(2026, 11, 10, 20))
+    const overdue = reminder(`treatment:${ID}:2026-12-10:0800:overdue`, new Date(2026, 11, 13, 8))
+    const others = Array.from({ length: 5 }, (_, index) =>
+      reminder(`vaccination:${index}:2026-09-20::due`, new Date(2026, 8, 20 + index, 9)),
+    )
+
+    const kept = remindersWithinCap([evening, overdue, morning, ...others], others.length + 2)
+
+    expect(kept.map(({ key }) => key)).toEqual([
+      ...others.map(({ key }) => key),
+      morning.key,
+      overdue.key,
+    ])
+  })
 })
 
 describe('replaceDueReminders', () => {

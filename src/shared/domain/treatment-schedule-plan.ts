@@ -260,6 +260,18 @@ export function pendingDues(plan: PeriodPlan, { from = '', to, limit = Infinity 
   return uniqueSorted([...plan.between.filter(isPending), ...tail]).slice(0, limit)
 }
 
+/** Dernière journée d'échéance de la période, prises comprises ; `null` pour une période sans fin. */
+export function lastDueDay(plan: PeriodPlan): string | null {
+  if (plan.period.endsOn === null && plan.closesOn === null) return null
+  const isKept = (due: Due) => isWithinPeriod(plan, due.dueOn) && !isRemoved(plan, due)
+  let last = plan.between.filter(isKept).at(-1)?.dueOn ?? null
+  for (const due of sequenceDues(plan.anchors.at(-1)!.sequence, plan.period)) {
+    if (!isWithinPeriod(plan, due.dueOn)) break
+    if (isKept(due) && (last === null || due.dueOn > last)) last = due.dueOn
+  }
+  return last
+}
+
 export function nextDueAfter(plan: PeriodPlan, due: Due): Due {
   const key = keyOf(due)
   const isAfter = (other: Due) => keyOf(other) > key && !isRemoved(plan, other)
