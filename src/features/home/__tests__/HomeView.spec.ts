@@ -13,10 +13,16 @@ import {
 
 import AnimalPickerSheet from '../views/AnimalPickerSheet.vue'
 import HomeView from '../views/HomeView.vue'
-import type { HomeReminderSource, HomeRemindersService } from '../service/home-reminders.service'
+import { given, givenDays, monthlyFrom, period, treatment, vaccination } from './home-sources'
+import type {
+  HomeReminderSource,
+  HomeRemindersService,
+  HomeTreatmentSource,
+  HomeVaccinationSource,
+} from '../service/home-reminders.service'
 import { provideHomeRemindersService, useHomeStore } from '../store/home.store'
 import { simulateWebResume } from '@/core/app-lifecycle/__tests__/simulate-resume'
-import i18n from '@/core/i18n'
+import i18n, { applyLocale } from '@/core/i18n'
 import router from '@/router'
 import vuetify from '@/core/theme/vuetify'
 import type { Animal } from '@/features/animals/schema/animal.schema'
@@ -86,16 +92,18 @@ function animal(id: string, name: string): Animal {
 const MILO = animal('11111111-1111-4111-8111-111111111111', 'Milo')
 const LUNA = animal('33333333-3333-4333-8333-333333333333', 'Luna')
 
-function source(overrides: Partial<HomeReminderSource>): HomeReminderSource {
-  return {
-    kind: 'vaccination',
-    id: crypto.randomUUID(),
-    animalId: MILO.id,
-    label: 'CHPPiL',
-    dueDate: '2026-09-07',
-    treatmentType: null,
-    ...overrides,
+type SourceInput =
+  | Partial<HomeVaccinationSource>
+  | (Partial<Omit<HomeTreatmentSource, 'kind'>> & { kind: 'treatment'; dueDate?: string })
+
+/** Un traitement mensuel sans prise, dont la première échéance tombe à `dueDate`. */
+function source(overrides: SourceInput): HomeReminderSource {
+  const base = { id: crypto.randomUUID(), animalId: MILO.id, label: 'CHPPiL' }
+  if (overrides.kind === 'treatment') {
+    const { dueDate = '2026-09-07', ...rest } = overrides
+    return monthlyFrom(dueDate, { ...base, treatmentType: 'deworming', ...rest })
   }
+  return vaccination({ ...base, ...overrides })
 }
 
 const CHPPIL_MILO_RETARD = source({ id: 'v1', label: 'CHPPiL', dueDate: '2026-09-07' })
@@ -288,8 +296,8 @@ describe('HomeView — A1 tous les animaux, avec rappels', () => {
     const wrapper = await monter()
 
     expect(wrapper.get('.home-todo .section-card__title').text()).toBe('À faire')
-    expect(wrapper.get('.home-todo .section-card__counter').text()).toBe('3 rappels')
-    expect(wrapper.get('.home-overdue-banner').text()).toBe('1 rappel en retard')
+    expect(wrapper.get('.home-todo .section-card__counter').text()).toBe('3 soins')
+    expect(wrapper.get('.home-overdue-banner').text()).toBe('1 soin en retard')
   })
 
   it('liste les rappels dans une seule carte, du plus urgent au moins urgent, titrés du produit, type et animal dessous', async () => {
@@ -350,14 +358,14 @@ describe('HomeView — A1 tous les animaux, avec rappels', () => {
     sources = [CHPPIL_MILO_RETARD, source({ id: 'v4', animalId: LUNA.id, dueDate: '2026-09-01' })]
     const wrapper = await monter()
 
-    expect(wrapper.get('.home-overdue-banner').text()).toBe('2 rappels en retard')
+    expect(wrapper.get('.home-overdue-banner').text()).toBe('2 soins en retard')
   })
   it('arrive toujours sur la vue de tous les animaux, même si le Carnet en a sélectionné un', async () => {
     animalsStore.select(LUNA.id)
     const wrapper = await monter()
 
     expect(animalsStore.selectedAnimalId).toBeNull()
-    expect(wrapper.get('.home-todo .section-card__counter').text()).toBe('3 rappels')
+    expect(wrapper.get('.home-todo .section-card__counter').text()).toBe('3 soins')
     expect(rows(wrapper).map((row) => row.subtitle)).toEqual([
       'Vaccin · Milo',
       'Vermifuge · Luna',
@@ -376,7 +384,7 @@ describe('HomeView — A1 tous les animaux, avec rappels', () => {
     const wrapper = await monter()
 
     expect(listSources).toHaveBeenCalledTimes(2)
-    expect(wrapper.get('.home-todo .section-card__counter').text()).toBe('4 rappels')
+    expect(wrapper.get('.home-todo .section-card__counter').text()).toBe('4 soins')
   })
 })
 
@@ -518,7 +526,7 @@ describe('HomeView — A2 animal sélectionné, avec rappels', () => {
     await flushPromises()
 
     expect(animalsStore.selectedAnimalId).toBe(MILO.id)
-    expect(wrapper.get('.home-todo .section-card__counter').text()).toBe('Milo · 2 rappels')
+    expect(wrapper.get('.home-todo .section-card__counter').text()).toBe('Milo · 2 soins')
     expect(rows(wrapper)).toEqual([
       {
         title: 'CHPPiL',
@@ -541,7 +549,7 @@ describe('HomeView — A2 animal sélectionné, avec rappels', () => {
     await wrapper.findAll('.animal-chip')[1]!.trigger('click')
     await flushPromises()
 
-    expect(wrapper.get('.home-todo .section-card__counter').text()).toBe('Luna · 1 rappel')
+    expect(wrapper.get('.home-todo .section-card__counter').text()).toBe('Luna · 1 soin')
     expect(wrapper.find('.home-overdue-banner').exists()).toBe(false)
     expect(rows(wrapper)).toHaveLength(1)
   })
@@ -555,7 +563,7 @@ describe('HomeView — A2 animal sélectionné, avec rappels', () => {
     await flushPromises()
 
     expect(animalsStore.selectedAnimalId).toBeNull()
-    expect(wrapper.get('.home-todo .section-card__counter').text()).toBe('3 rappels')
+    expect(wrapper.get('.home-todo .section-card__counter').text()).toBe('3 soins')
   })
 })
 
@@ -578,7 +586,7 @@ describe('HomeView — A3 animal sélectionné, aucun rappel', () => {
     expect(wrapper.find('.home-todo .section-card__card').exists()).toBe(false)
     expect(wrapper.find('.home-overdue-banner').exists()).toBe(false)
     expect(wrapper.get('.home-up-to-date__title').text()).toBe('Tout est à jour')
-    expect(wrapper.get('.home-up-to-date__text').text()).toBe('Aucun rappel à venir pour Milo.')
+    expect(wrapper.get('.home-up-to-date__text').text()).toBe('Aucun soin à venir pour Milo.')
   })
 
   it('ouvre le Carnet de l’animal sélectionné par le lien texte', async () => {
@@ -599,7 +607,7 @@ describe('HomeView — A4 tous les animaux, aucun rappel', () => {
     expect(wrapper.find('.home-todo .section-card__counter').exists()).toBe(false)
     expect(wrapper.find('.home-todo .section-card__card').exists()).toBe(false)
     expect(wrapper.get('.home-up-to-date__text').text()).toBe(
-      'Milo et Luna n’ont aucun rappel à venir.',
+      'Milo et Luna n’ont aucun soin à venir.',
     )
   })
 
@@ -656,13 +664,13 @@ describe('HomeView — fenêtre de 30 jours, aujourd’hui compris', () => {
     sources = [TYPHUS_LUNA_J30, RAGE_LUNA_J29, RETARD_ANCIEN, CARRE_MILO_2027]
     const wrapper = await monter()
 
-    expect(wrapper.get('.home-todo .section-card__counter').text()).toBe('2 rappels')
-    expect(wrapper.get('.home-overdue-banner').text()).toBe('1 rappel en retard')
+    expect(wrapper.get('.home-todo .section-card__counter').text()).toBe('2 soins')
+    expect(wrapper.get('.home-overdue-banner').text()).toBe('1 soin en retard')
 
     await wrapper.findAll('.animal-chip')[1]!.trigger('click')
     await flushPromises()
 
-    expect(wrapper.get('.home-todo .section-card__counter').text()).toBe('Luna · 1 rappel')
+    expect(wrapper.get('.home-todo .section-card__counter').text()).toBe('Luna · 1 soin')
   })
 
   it('n’annonce pas de prochain rappel tant que la liste en montre', async () => {
@@ -680,9 +688,7 @@ describe('HomeView — fenêtre de 30 jours, aujourd’hui compris', () => {
 
     expect(wrapper.get('.home-todo .section-card__counter').text()).toBe('Milo')
     expect(wrapper.get('.home-up-to-date__title').text()).toBe('Tout est à jour')
-    expect(upToDateLines(wrapper)).toEqual([
-      'Prochain rappel\u00a0: Carré le 26\u00a0août\u00a02027',
-    ])
+    expect(upToDateLines(wrapper)).toEqual(['Prochain soin\u00a0: Carré le 26\u00a0août\u00a02027'])
   })
 
   it('annonce le prochain rappel sans prénom quand le foyer n’a qu’un animal', async () => {
@@ -690,9 +696,7 @@ describe('HomeView — fenêtre de 30 jours, aujourd’hui compris', () => {
     sources = [CARRE_MILO_2027]
     const wrapper = await monter()
 
-    expect(upToDateLines(wrapper)).toEqual([
-      'Prochain rappel\u00a0: Carré le 26\u00a0août\u00a02027',
-    ])
+    expect(upToDateLines(wrapper)).toEqual(['Prochain soin\u00a0: Carré le 26\u00a0août\u00a02027'])
   })
 
   it('nomme l’animal du prochain rappel dans la vue de tous les animaux', async () => {
@@ -702,7 +706,7 @@ describe('HomeView — fenêtre de 30 jours, aujourd’hui compris', () => {
     expect(wrapper.find('.home-todo .section-card__counter').exists()).toBe(false)
     expect(wrapper.find('.home-overdue-banner').exists()).toBe(false)
     expect(upToDateLines(wrapper)).toEqual([
-      'Prochain rappel\u00a0: Typhus pour Luna le 9\u00a0oct.\u00a02026',
+      'Prochain soin\u00a0: Typhus pour Luna le 9\u00a0oct.\u00a02026',
     ])
   })
 
@@ -710,7 +714,7 @@ describe('HomeView — fenêtre de 30 jours, aujourd’hui compris', () => {
     sources = [SANS_ECHEANCE]
     const wrapper = await monter()
 
-    expect(upToDateLines(wrapper)).toEqual(['Milo et Luna n’ont aucun rappel à venir.'])
+    expect(upToDateLines(wrapper)).toEqual(['Milo et Luna n’ont aucun soin à venir.'])
   })
 
   it('fait entrer une échéance à J+30 dans la liste quand l’app revient le lendemain', async () => {
@@ -723,7 +727,7 @@ describe('HomeView — fenêtre de 30 jours, aujourd’hui compris', () => {
     await flushPromises()
 
     expect(wrapper.find('.home-up-to-date__next').exists()).toBe(false)
-    expect(wrapper.get('.home-todo .section-card__counter').text()).toBe('1 rappel')
+    expect(wrapper.get('.home-todo .section-card__counter').text()).toBe('1 soin')
     expect(rows(wrapper)).toEqual([
       {
         title: 'Typhus',
@@ -732,6 +736,187 @@ describe('HomeView — fenêtre de 30 jours, aujourd’hui compris', () => {
         status: 'reminder-row--later',
       },
     ])
+  })
+})
+
+describe('HomeView — traitements lus par le moteur d’échéances', () => {
+  const PIXEL = animal('55555555-5555-4555-8555-555555555555', 'Pixel')
+  const BOTH = ['08:00', '20:00']
+
+  afterEach(() => applyLocale('fr'))
+
+  function lunaTreatment(
+    overrides: Partial<HomeTreatmentSource> & Pick<HomeTreatmentSource, 'periods'>,
+  ): HomeTreatmentSource {
+    return treatment({ id: crypto.randomUUID(), animalId: LUNA.id, ...overrides })
+  }
+
+  /** Quotidien à 8 h et 20 h depuis le 5 sept., la prise de 20 h d'hier non notée. */
+  const METACAM = lunaTreatment({
+    periods: [period({ firstDueOn: '2026-09-05', times: BOTH })],
+    doses: [...givenDays('2026-09-05', '2026-09-07', BOTH), given('2026-09-08', '08:00')],
+  })
+
+  it('Milo en retard, Luna aujourd’hui à 21 h, Pixel dans 3 jours : dans cet ordre, « 1 soin en retard » (Accueil §4, critère 1)', async () => {
+    animals = [MILO, LUNA, PIXEL]
+    sources = [
+      source({ kind: 'treatment', label: 'Panacur', animalId: PIXEL.id, dueDate: '2026-09-12' }),
+      lunaTreatment({
+        label: 'Métacam',
+        periods: [period({ firstDueOn: '2026-09-09', times: ['21:00'] })],
+      }),
+      source({ kind: 'treatment', label: 'Advocate', dueDate: '2026-09-07' }),
+    ]
+    const wrapper = await monter()
+
+    expect(rows(wrapper).map(({ title, badge }) => [title, badge])).toEqual([
+      ['Advocate', 'En retard · 2 j'],
+      ['Métacam', 'Aujourd’hui · 21 h'],
+      ['Panacur', 'Dans 3 jours'],
+    ])
+    expect(wrapper.get('.home-overdue-banner').text()).toBe('1 soin en retard')
+    expect(wrapper.get('.home-todo .section-card__counter').text()).toBe('3 soins')
+  })
+
+  it('quotidien à deux heures, 20 h d’hier non notée : les deux prises du jour, sans retard, et « À renseigner »', async () => {
+    sources = [METACAM]
+    const wrapper = await monter()
+
+    expect(rows(wrapper)).toEqual([
+      {
+        title: 'Métacam',
+        subtitle: 'Médicament · Luna',
+        badge: 'Aujourd’hui · 8 h',
+        status: 'reminder-row--today',
+      },
+      {
+        title: 'Métacam',
+        subtitle: 'Médicament · Luna',
+        badge: 'Aujourd’hui · 20 h',
+        status: 'reminder-row--today',
+      },
+      {
+        title: 'Métacam',
+        subtitle: 'Médicament · Luna',
+        badge: 'À renseigner',
+        status: 'reminder-row--to-log',
+      },
+    ])
+    expect(wrapper.find('.home-overdue-banner').exists()).toBe(false)
+    expect(wrapper.get('.home-todo .section-card__counter').text()).toBe('2 soins')
+    expect(wrapper.get('.home-todo__group').text()).toBe('À renseigner')
+    expect(wrapper.get('.reminder-row--to-log .reminder-row__unlogged').text()).toBe(
+      '1 dose non renseignée',
+    )
+  })
+
+  it('la prise de 8 h notée, sa ligne disparaît et celle de 20 h reste (Accueil §4, critère 3)', async () => {
+    sources = [{ ...METACAM, doses: [...METACAM.doses, given('2026-09-09', '08:00')] }]
+    const wrapper = await monter()
+
+    expect(rows(wrapper).map(({ badge }) => badge)).toEqual(['Aujourd’hui · 20 h', 'À renseigner'])
+  })
+
+  it('fini avec deux doses non renseignées : après les soins, « À renseigner », hors du compteur (Accueil §4, critère 2 ; Traitements §8, critère 8)', async () => {
+    sources = [
+      lunaTreatment({
+        label: 'Milbemax',
+        treatmentType: 'deworming',
+        periods: [period({ firstDueOn: '2026-09-01', endsOn: '2026-09-05' })],
+        doses: givenDays('2026-09-01', '2026-09-03'),
+      }),
+      CHPPIL_MILO_RETARD,
+    ]
+    const wrapper = await monter()
+
+    expect(rows(wrapper).map(({ title, badge }) => [title, badge])).toEqual([
+      ['CHPPiL', 'En retard · 2 j'],
+      ['Milbemax', 'À renseigner'],
+    ])
+    expect(wrapper.get('.reminder-row--to-log .reminder-row__unlogged').text()).toBe(
+      '2 doses non renseignées',
+    )
+    expect(wrapper.get('.home-overdue-banner').text()).toBe('1 soin en retard')
+    expect(wrapper.get('.home-todo .section-card__counter').text()).toBe('1 soin')
+  })
+
+  it('arrêté avec des doses à renseigner : il reste dans « À faire », jamais « Tout est à jour »', async () => {
+    sources = [
+      lunaTreatment({
+        periods: [period({ firstDueOn: '2026-09-01', stoppedOn: '2026-09-05' })],
+        doses: givenDays('2026-09-01', '2026-09-03'),
+      }),
+    ]
+    const wrapper = await monter()
+
+    expect(rows(wrapper).map(({ badge }) => badge)).toEqual(['À renseigner'])
+    expect(wrapper.find('.home-up-to-date').exists()).toBe(false)
+    expect(wrapper.find('.home-todo .section-card__counter').exists()).toBe(false)
+  })
+
+  it('après la date de fin, tout noté : plus rien, « Tout est à jour »', async () => {
+    sources = [
+      lunaTreatment({
+        periods: [period({ firstDueOn: '2026-09-01', endsOn: '2026-09-05' })],
+        doses: givenDays('2026-09-01', '2026-09-05'),
+      }),
+    ]
+    const wrapper = await monter()
+
+    expect(rows(wrapper)).toEqual([])
+    expect(upToDateLines(wrapper)).toEqual(['Milo et Luna n’ont aucun soin à venir.'])
+  })
+
+  it('ouvre la feuille du traitement depuis sa ligne « À renseigner »', async () => {
+    sources = [METACAM]
+    const wrapper = await monter()
+
+    await wrapper.get('.reminder-row--to-log').trigger('click')
+
+    const feuille = wrapper.getComponent(TreatmentReminderSheet)
+    expect(feuille.props('modelValue')).toBe(true)
+    expect(feuille.props('treatmentId')).toBe(METACAM.id)
+  })
+
+  it('traitement illisible : ligne neutre « Donnée illisible » qui ouvre la fiche (B2)', async () => {
+    const illisible = lunaTreatment({
+      label: 'Panacur',
+      periods: [period({ frequency: { value: 0, unit: 'day' } })],
+    })
+    sources = [illisible]
+    const wrapper = await monter()
+
+    expect(rows(wrapper)).toEqual([
+      {
+        title: 'Panacur',
+        subtitle: 'Médicament · Luna',
+        badge: 'Donnée illisible',
+        status: 'reminder-row--unreadable',
+      },
+    ])
+    expect(wrapper.get('.reminder-row').attributes('aria-label')).toBe(
+      'Panacur, médicament, Luna, donnée illisible. Ouvre le traitement.',
+    )
+    expect(wrapper.find('.home-up-to-date').exists()).toBe(false)
+
+    await wrapper.get('.reminder-row').trigger('click')
+
+    expect(push).toHaveBeenCalledWith({ name: 'treatment-detail', params: { id: illisible.id } })
+    expect(wrapper.getComponent(TreatmentReminderSheet).props('modelValue')).toBe(false)
+  })
+
+  it('dit les mêmes lignes en anglais', async () => {
+    applyLocale('en')
+    sources = [METACAM]
+    const wrapper = await monter()
+
+    expect(rows(wrapper).map(({ badge }) => badge)).toEqual([
+      'Today · 8 am',
+      'Today · 8 pm',
+      'To log',
+    ])
+    expect(wrapper.get('.home-todo__group').text()).toBe('To log')
+    expect(wrapper.get('.home-todo .section-card__counter').text()).toBe('2 reminders')
   })
 })
 
@@ -749,7 +934,7 @@ describe('HomeView — un seul animal', () => {
     const wrapper = await monter()
 
     expect(chipsPressees(wrapper)).toEqual(['true'])
-    expect(wrapper.get('.home-todo .section-card__counter').text()).toBe('Milo · 2 rappels')
+    expect(wrapper.get('.home-todo .section-card__counter').text()).toBe('Milo · 2 soins')
     expect(rows(wrapper).map((row) => row.subtitle)).toEqual(['Vaccin', 'Antiparasitaire'])
   })
 
@@ -757,7 +942,7 @@ describe('HomeView — un seul animal', () => {
     const wrapper = await monter()
 
     expect(wrapper.get('.home-todo .section-card__counter').text()).toBe('Milo')
-    expect(wrapper.get('.home-up-to-date__text').text()).toBe('Aucun rappel à venir pour Milo.')
+    expect(wrapper.get('.home-up-to-date__text').text()).toBe('Aucun soin à venir pour Milo.')
   })
 
   it('garde sa chip sélectionnée quand on la tape', async () => {
@@ -770,7 +955,7 @@ describe('HomeView — un seul animal', () => {
 
     expect(chipsPressees(wrapper)).toEqual(['true'])
     expect(wrapper.get('.animal-chip').classes()).toContain('animal-chip--selected')
-    expect(wrapper.get('.home-todo .section-card__counter').text()).toBe('Milo · 1 rappel')
+    expect(wrapper.get('.home-todo .section-card__counter').text()).toBe('Milo · 1 soin')
   })
 
   it('revient sur « tous » à l’ouverture suivante quand un deuxième animal est arrivé', async () => {
@@ -783,7 +968,7 @@ describe('HomeView — un seul animal', () => {
     const wrapper = await monter()
 
     expect(chipsPressees(wrapper)).toEqual(['false', 'false'])
-    expect(wrapper.get('.home-todo .section-card__counter').text()).toBe('2 rappels')
+    expect(wrapper.get('.home-todo .section-card__counter').text()).toBe('2 soins')
   })
 
   it('sélectionne l’animal restant à l’ouverture suivante quand le foyer redescend à un', async () => {
@@ -797,7 +982,7 @@ describe('HomeView — un seul animal', () => {
     const wrapper = await monter()
 
     expect(chipsPressees(wrapper)).toEqual(['true'])
-    expect(wrapper.get('.home-todo .section-card__counter').text()).toBe('Milo · 1 rappel')
+    expect(wrapper.get('.home-todo .section-card__counter').text()).toBe('Milo · 1 soin')
   })
 })
 
@@ -1226,7 +1411,15 @@ describe('HomeView — feuille d’un rappel', () => {
   })
 
   it('ne rouvre rien quand le rappel modifié a quitté « À faire »', async () => {
-    sources = [{ ...VERMIFUGE_LUNA_AUJOURDHUI, dueDate: '2026-12-01' }, CHPPIL_MILO_RETARD]
+    sources = [
+      source({
+        kind: 'treatment',
+        id: VERMIFUGE_LUNA_AUJOURDHUI.id,
+        animalId: LUNA.id,
+        dueDate: '2026-12-01',
+      }),
+      CHPPIL_MILO_RETARD,
+    ]
     await router.replace({
       name: 'home',
       query: { reminder: `treatment:${VERMIFUGE_LUNA_AUJOURDHUI.id}` },

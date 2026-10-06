@@ -14,8 +14,6 @@ import TreatmentReminderSheet from '@/features/treatments/views/TreatmentReminde
 import VaccinationReminderSheet from '@/features/vaccinations/views/VaccinationReminderSheet.vue'
 import WeightSheet from '@/features/weight/views/WeightSheet.vue'
 import AnimalChipSelector, { type AnimalChipItem } from '@/shared/components/AnimalChipSelector.vue'
-import DueStatusChip from '@/shared/components/DueStatusChip.vue'
-import SectionCard from '@/shared/components/SectionCard.vue'
 import {
   detailRoute,
   parseReminderRequest,
@@ -24,9 +22,11 @@ import {
   type NotifiedDue,
   type ReminderRequest,
   type ReminderStep,
+  type TodoRequest,
 } from '@/shared/domain/reminder-route'
 import AnimalPickerSheet from './AnimalPickerSheet.vue'
 import HomeMessages from './HomeMessages.vue'
+import HomeTodoCard from './HomeTodoCard.vue'
 import { useHomeStore } from '../store/home.store'
 import {
   nextReminderText,
@@ -37,6 +37,7 @@ import {
   type ReminderRow,
 } from '../logic/home-summary'
 import { currentAnimalId } from '../logic/current-animal'
+import { todoItems } from '../logic/todo-items'
 import { buildTodo } from '../logic/todo-window'
 
 const { t } = useI18n()
@@ -74,19 +75,15 @@ const currentName = computed(
   () => animals.animals.find((animal) => animal.id === currentId.value)?.name ?? null,
 )
 
-const summary = computed(() =>
-  buildTodo(home.sources, {
-    today: today.value,
-    animalId: currentId.value ?? undefined,
-  }),
-)
+const items = computed(() => todoItems(home.sources, today.value))
+const summary = computed(() => buildTodo(items.value, { animalId: currentId.value ?? undefined }))
 
 const rowOptions = computed(() => ({
   animalNames: new Map(animals.animals.map((animal) => [animal.id, animal.name])),
   showAnimal: currentName.value === null,
 }))
 
-const rows = computed(() => reminderRows(t, summary.value.reminders, rowOptions.value))
+const rows = computed(() => reminderRows(t, summary.value.items, rowOptions.value))
 
 const counter = computed(() =>
   scopeCounter(t, { total: summary.value.total, animalName: currentName.value }),
@@ -140,18 +137,23 @@ type FormRoute = 'treatment-new' | 'vaccination-new'
 const pendingForm = ref<FormRoute | null>(null)
 const isPickerOpen = ref(false)
 const isWeightSheetOpen = ref(false)
-const openedReminder = ref<Pick<ReminderRow, 'kind' | 'id'> | null>(null)
+const openedReminder = ref<TodoRequest | null>(null)
 const openedStep = ref<ReminderStep>('actions')
 const isTreatmentSheetOpen = ref(false)
 const isVaccinationSheetOpen = ref(false)
 const givenWhen = ref<{ id: string; due: NotifiedDue } | null>(null)
 const isGivenWhenOpen = ref(false)
 
-function openReminder(row: Pick<ReminderRow, 'kind' | 'id'>, step: ReminderStep = 'actions'): void {
-  openedReminder.value = { kind: row.kind, id: row.id }
+function openReminder(request: TodoRequest, step: ReminderStep = 'actions'): void {
+  openedReminder.value = request
   openedStep.value = step
-  if (row.kind === 'treatment') isTreatmentSheetOpen.value = true
+  if (request.kind === 'treatment') isTreatmentSheetOpen.value = true
   else isVaccinationSheetOpen.value = true
+}
+
+function openRow(row: ReminderRow): void {
+  if (row.opens === 'detail') void router.push(detailRoute(row.request))
+  else openReminder(row.request)
 }
 
 /** Hors de « À faire », une notification ouvre la fiche du soin : jamais sans réponse. */
@@ -166,8 +168,12 @@ function reopenReminder(
     return
   }
   const reminder = { kind, id }
-  if (rows.value.some((row) => row.kind === kind && row.id === id)) {
-    openReminder(reminder, request.step)
+  const row = rows.value.find(
+    (candidate) =>
+      candidate.opens === 'sheet' && candidate.request.kind === kind && candidate.request.id === id,
+  )
+  if (row) {
+    openReminder(row.request, request.step)
   } else if (fromNotification) {
     void router.push(detailRoute(reminder))
   }
@@ -281,58 +287,15 @@ function openCarnet(): void {
 
       <HomeMessages place="aboveTodo" />
 
-      <SectionCard class="home-todo" :title="t('home.todo.title')" :counter="counter">
-        <template #intro>
-          <div v-if="banner" class="home-overdue-banner" role="status">
-            <v-icon icon="ms:error" size="20" />
-            <span>{{ banner }}</span>
-          </div>
-
-          <div v-if="rows.length === 0" class="home-up-to-date">
-            <div class="home-up-to-date__row">
-              <span class="home-up-to-date__dot">
-                <v-icon icon="ms:check" size="24" />
-              </span>
-              <div>
-                <p class="home-up-to-date__title">{{ t('home.upToDate.title') }}</p>
-                <p v-if="nextReminder" class="home-up-to-date__next">{{ nextReminder }}</p>
-                <p v-else class="home-up-to-date__text">{{ upToDate }}</p>
-              </div>
-            </div>
-            <button type="button" class="home-up-to-date__add" @click="openCarnet">
-              <v-icon icon="ms:add" size="20" />
-              <span>{{ t('home.upToDate.add') }}</span>
-            </button>
-          </div>
-        </template>
-
-        <template v-if="rows.length > 0" #default>
-          <button
-            v-for="row in rows"
-            :key="row.id"
-            type="button"
-            class="section-card__row reminder-row"
-            :class="`reminder-row--${row.status}`"
-            :aria-label="row.ariaLabel"
-            @click="openReminder(row)"
-          >
-            <v-icon class="reminder-row__icon" :icon="row.icon" size="24" />
-            <span class="reminder-row__text">
-              <span class="reminder-row__title">{{ row.title }}</span>
-              <span class="reminder-row__subtitle">{{ row.subtitle }}</span>
-            </span>
-            <span class="reminder-row__end">
-              <DueStatusChip
-                class="reminder-row__badge"
-                :status="row.status"
-                :label="row.badge.text"
-                :icon="row.badge.icon"
-              />
-              <v-icon class="reminder-row__chevron" icon="ms:chevron_right" size="22" />
-            </span>
-          </button>
-        </template>
-      </SectionCard>
+      <HomeTodoCard
+        :rows="rows"
+        :counter="counter"
+        :banner="banner"
+        :next-reminder="nextReminder"
+        :up-to-date="upToDate"
+        @open="openRow"
+        @add="openCarnet"
+      />
 
       <HomeMessages place="belowTodo" />
 
@@ -458,165 +421,6 @@ function openCarnet(): void {
 
 .home-reminders-off + .home-todo {
   margin-top: 22px;
-}
-
-.home-overdue-banner {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 14px;
-  padding: 11px 14px;
-  border-radius: 14px;
-  background: rgb(var(--v-theme-overdue-container));
-  color: rgb(var(--v-theme-on-overdue-container));
-  font-size: 13.5px;
-  font-weight: 700;
-}
-
-.reminder-row {
-  // Sous 380 px, un titre d'un seul mot long et un badge d'échéance ne tiennent
-  // pas côte à côte : le badge passe dessous plutôt que le mot soit coupé en deux.
-  flex-wrap: wrap;
-  gap: 14px;
-  width: 100%;
-  padding-inline-end: 12px;
-  border: 0;
-  background: transparent;
-  color: inherit;
-  font-family: inherit;
-  text-align: start;
-  cursor: pointer;
-
-  @media (hover: hover) {
-    &:hover {
-      background: rgba(var(--v-theme-primary), 0.04);
-    }
-  }
-
-  &:focus-visible {
-    outline: none;
-    background: rgba(var(--v-theme-primary), 0.06);
-  }
-}
-
-.reminder-row + .reminder-row {
-  border-top: 1px solid tokens.$color-divider;
-}
-
-.reminder-row__end {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-inline-start: auto;
-}
-
-.reminder-row__badge {
-  margin-inline-start: auto;
-}
-
-.reminder-row__chevron {
-  flex: 0 0 auto;
-  color: tokens.$color-settings-chevron;
-}
-
-.reminder-row--overdue::before {
-  background: rgb(var(--v-theme-overdue));
-}
-
-.reminder-row--today::before {
-  background: rgb(var(--v-theme-today));
-}
-
-.reminder-row--tomorrow::before,
-.reminder-row--later::before {
-  background: rgb(var(--v-theme-soon));
-}
-
-.reminder-row__icon {
-  flex: 0 0 auto;
-  color: rgb(var(--v-theme-primary));
-}
-
-.reminder-row__text {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
-.reminder-row__title {
-  display: block;
-  margin: 0;
-  // `anywhere` ramenait la largeur minimale du titre à zéro : la colonne cédait au
-  // badge et coupait « Antiparasitaire » en deux dès 360 px.
-  overflow-wrap: break-word;
-  font-size: 15.5px;
-  font-weight: 700;
-}
-
-.reminder-row__subtitle {
-  display: block;
-  margin: 2px 0 0;
-  color: tokens.$color-text-secondary;
-  font-size: 13px;
-}
-
-.home-up-to-date__row {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.home-up-to-date__dot {
-  display: inline-flex;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
-  width: tokens.$size-status-dot;
-  height: tokens.$size-status-dot;
-  border-radius: 50%;
-  background: rgb(var(--v-theme-up-to-date));
-  color: rgb(var(--v-theme-on-up-to-date));
-}
-
-.home-up-to-date__title {
-  margin: 0;
-  font-family: tokens.$font-family-heading;
-  font-size: 18px;
-  font-weight: 700;
-}
-
-.home-up-to-date__text,
-.home-up-to-date__next {
-  margin: 2px 0 0;
-  color: tokens.$color-text-secondary;
-  font-size: 14px;
-}
-
-.home-up-to-date__add {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 22px;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: rgb(var(--v-theme-primary));
-  font-family: inherit;
-  font-size: 15px;
-  font-weight: 700;
-  cursor: pointer;
-
-  @include tap.tap-target;
-
-  @media (hover: hover) {
-    &:hover {
-      color: rgb(var(--v-theme-primary-darken-1));
-    }
-  }
-
-  &:focus-visible {
-    color: rgb(var(--v-theme-primary-darken-1));
-  }
 }
 
 .home-quick-actions {

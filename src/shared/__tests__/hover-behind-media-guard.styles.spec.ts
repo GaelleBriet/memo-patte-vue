@@ -23,7 +23,7 @@ const REGLES = [
     selecteur: '.animal-picker-sheet__animal',
   },
   {
-    fichier: 'src/features/home/views/HomeView.vue',
+    fichier: 'src/features/home/views/HomeTodoCard.vue',
     selecteur: '.home-up-to-date__add',
   },
   {

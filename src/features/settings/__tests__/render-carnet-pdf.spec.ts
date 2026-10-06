@@ -49,8 +49,7 @@ const FULL_CONTENT: CarnetPdfContent = {
         { kind: 'dates', dates: ['2024-12-01', '2024-11-01'], extras: [false, false] },
       ],
       lastDoseExtra: false,
-      nextDueDate: '2026-09-01',
-      stoppedOn: null,
+      due: { kind: 'due', dueOn: '2026-09-01', dueTime: null, overdue: false },
       state: 'upToDate',
     },
   ],
@@ -96,6 +95,26 @@ describe('renderCarnetPdf', () => {
       renderCarnetPdf(FULL_CONTENT, '0.1.24', 'data:image/jpeg;base64,invalide'),
     ).not.toThrow()
   })
+})
+
+describe('renderCarnetPdf — traitement sans date de fin ni d’arrêt', () => {
+  it.each([
+    { kind: 'stopped', on: null },
+    { kind: 'ended', on: null },
+  ] as const)(
+    'écrit « — » dans la colonne de l’échéance, « Pas de rappel » une seule fois ($kind)',
+    (due) => {
+      const content: CarnetPdfContent = {
+        ...FULL_CONTENT,
+        vaccinations: [],
+        treatments: [{ ...FULL_CONTENT.treatments[0]!, due, state: 'none' }],
+      }
+      const texts = readPdf(renderCarnetPdf(content, '0.1.24', null)).texts.map(({ text }) => text)
+
+      expect(texts).toContain('—')
+      expect(texts.filter((text) => text === 'Pas de rappel')).toHaveLength(1)
+    },
+  )
 })
 
 describe('renderCarnetPdf — historique', () => {
