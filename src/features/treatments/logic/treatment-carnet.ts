@@ -4,7 +4,7 @@ import { currentDoseText } from '@/shared/domain/current-dose'
 import { overdueDays } from '@/shared/domain/due-delay'
 import type { ReminderCounts } from '@/shared/domain/reminders'
 import type { TreatmentSchedule } from '@/shared/domain/treatment-schedule'
-import { formatClockTimes } from '@/shared/utils/format'
+import { formatClockTimes, formatDayMonthOrYear, formatDayRange } from '@/shared/utils/format'
 
 export type Translate = (key: string, named?: Record<string, unknown>, plural?: number) => string
 
@@ -52,14 +52,26 @@ function endText(
   }).value
 }
 
-function rhythmText(t: Translate, read: Read & { schedule: TreatmentSchedule }): string | null {
+function rhythmText(
+  t: Translate,
+  read: Read & { schedule: TreatmentSchedule },
+  today: string,
+): string | null {
   const period = currentPeriodOf(read.treatment, read.schedule)
   if (period === null) return null
   const { value, unit } = period.frequency
   const frequency = t(`treatments.frequency.${unit}`, { n: value }, value)
-  return period.times.length === 0
-    ? frequency
-    : t('treatments.section.rhythm', { frequency, times: formatClockTimes(period.times) })
+  const rhythm =
+    period.times.length === 0
+      ? frequency
+      : t('treatments.section.rhythm', { frequency, times: formatClockTimes(period.times) })
+  const [due] = read.schedule.currentDoses
+  if (read.schedule.phase === 'overdue' || due === undefined) return rhythm
+  const complement =
+    period.endsOn === null
+      ? t('treatments.section.nextDose', { date: formatDayMonthOrYear(due.dueOn, today) })
+      : t('treatments.section.range', formatDayRange(period.startsOn, period.endsOn))
+  return `${rhythm} · ${complement}`
 }
 
 function overdueBadge(
@@ -91,7 +103,7 @@ function ongoingRow(t: Translate, read: Read, today: string): CarnetTreatmentRow
   }
   return {
     ...base,
-    detail: rhythmText(t, { treatment, schedule }),
+    detail: rhythmText(t, { treatment, schedule }, today),
     badge: overdueBadge(t, schedule, today),
     unlogged,
   }

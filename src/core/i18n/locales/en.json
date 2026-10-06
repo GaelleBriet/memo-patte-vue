@@ -392,6 +392,8 @@
       "add": "Add a treatment",
       "error": "Couldn’t load treatments.",
       "rhythm": "{frequency} at {times}",
+      "nextDose": "next dose on {date}",
+      "range": "{start} – {end}",
       "overdue": "Overdue · {n}d",
       "toLog": "To log",
       "unreadable": "Unreadable data"

@@ -392,6 +392,8 @@
       "add": "Ajouter un traitement",
       "error": "Impossible de charger les traitements.",
       "rhythm": "{frequency} à {times}",
+      "nextDose": "prochaine dose le {date}",
+      "range": "du {start} au {end}",
       "overdue": "En retard · {n} j",
       "toLog": "À renseigner",
       "unreadable": "Donnée illisible"

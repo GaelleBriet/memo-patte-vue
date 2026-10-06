@@ -141,13 +141,15 @@ describe('TreatmentsSection — chargement', () => {
 })
 
 describe('TreatmentsSection — lignes (B · V15)', () => {
-  it('affiche le nom et le rythme, sans type ni badge quand rien n’est en retard', async () => {
+  it('affiche le nom, le rythme et la prochaine dose, sans type ni badge quand rien n’est en retard', async () => {
     treatments = [treatment()]
     const wrapper = await monter()
     const row = ligne(wrapper)
 
     expect(row.get('.treatment-row__name').text()).toBe('Bravecto')
-    expect(texte(row.get('.treatment-row__detail'))).toBe('Tous les 3 mois')
+    expect(texte(row.get('.treatment-row__detail'))).toBe(
+      'Tous les 3 mois · prochaine dose le 24 sept.',
+    )
     expect(row.find('.treatment-row__type').exists()).toBe(false)
     expect(row.find('.treatment-row__badge').exists()).toBe(false)
   })
@@ -161,9 +163,9 @@ describe('TreatmentsSection — lignes (B · V15)', () => {
     const wrapper = await monter()
 
     expect(wrapper.findAll('.treatment-row__detail').map(texte)).toEqual([
-      'Toutes les 4 semaines',
-      'Tous les 15 jours',
-      'Tous les mois',
+      'Toutes les 4 semaines · prochaine dose le 24 sept.',
+      'Tous les 15 jours · prochaine dose le 24 sept.',
+      'Tous les mois · prochaine dose le 24 sept.',
     ])
   })
 
@@ -171,7 +173,25 @@ describe('TreatmentsSection — lignes (B · V15)', () => {
     treatments = [treatment({ period: { ...QUOTIDIEN, times: ['08:00', '20:00'] } })]
     const wrapper = await monter()
 
-    expect(texte(ligne(wrapper).get('.treatment-row__detail'))).toBe('Tous les jours à 8 h et 20 h')
+    expect(texte(ligne(wrapper).get('.treatment-row__detail'))).toBe(
+      'Tous les jours à 8 h et 20 h · prochaine dose le 9 sept.',
+    )
+  })
+
+  it('donne la période d’un traitement qui a une date de fin : « du 1 au 15 sept. »', async () => {
+    treatments = [treatment({ period: { ...QUOTIDIEN, endsOn: '2026-09-15' }, doses: DEUX_PRISES })]
+    const wrapper = await monter()
+
+    expect(texte(ligne(wrapper).get('.treatment-row__detail'))).toBe(
+      'Tous les jours · du 1 au 15 sept.',
+    )
+  })
+
+  it('en retard, le rythme seul', async () => {
+    treatments = [treatment(firstDue('2026-09-07'))]
+    const wrapper = await monter()
+
+    expect(texte(ligne(wrapper).get('.treatment-row__detail'))).toBe('Tous les 3 mois')
   })
 
   it('le jour même, ni badge ni couleur', async () => {
@@ -197,7 +217,9 @@ describe('TreatmentsSection — lignes (B · V15)', () => {
     const wrapper = await monter()
     const row = ligne(wrapper)
 
-    expect(texte(row.get('.treatment-row__detail'))).toBe('Tous les jours')
+    expect(texte(row.get('.treatment-row__detail'))).toBe(
+      'Tous les jours · prochaine dose le 9 sept.',
+    )
     expect(texte(row.get('.treatment-row__unlogged'))).toBe('6 doses non renseignées')
     expect(row.find('.treatment-row__badge').exists()).toBe(false)
     expect(resume(wrapper)).toEqual([{ total: 1, overdue: 0, ongoing: 1 }])
