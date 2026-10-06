@@ -117,7 +117,7 @@ function goBack(): void {
 
 .backup-settings__card {
   border: 1px solid tokens.$color-card-border;
-  border-radius: tokens.$radius-backup-settings-card;
+  border-radius: tokens.$radius-reminders-settings-card;
   background: rgb(var(--v-theme-surface));
 }
 

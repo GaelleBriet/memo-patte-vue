@@ -13,7 +13,7 @@ import { useCarnetSettingsStore } from '../store/carnet-settings.store'
 import { currentLocale } from '@/core/i18n'
 import { openNotificationSettings } from '@/core/notifications/permission'
 import { useExactReminders } from '@/core/notifications/use-exact-reminders'
-import { useNotificationPermission } from '@/core/notifications/use-notification-permission'
+import { useRemindersPermission } from '../composables/use-reminders-permission'
 import ExactRemindersExplainer from '@/shared/components/ExactRemindersExplainer.vue'
 import PushedScreen from '@/shared/components/PushedScreen.vue'
 import { remindersHelpUrl } from '@/shared/domain/help-page'
@@ -25,7 +25,7 @@ import { showToast } from '@/shared/utils/toast'
 const { t } = useI18n()
 const router = useRouter()
 const store = useCarnetSettingsStore()
-const { status: notifications } = useNotificationPermission()
+const notifications = useRemindersPermission()
 const { status: exact, openSettings } = useExactReminders()
 
 const exactSwitchId = useId()

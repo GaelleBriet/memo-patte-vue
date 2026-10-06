@@ -1,11 +1,30 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  displayedNotificationsStatus,
   enableRemindersRoute,
   exactRemindersAction,
   exactRemindersRow,
   remindersSummary,
 } from '../logic/reminders-settings'
+
+describe('displayedNotificationsStatus — état montré dans Paramètres (RA-21, RA-22)', () => {
+  it('« Plus tard » sans demande d’Android : toujours « pas encore activés »', () => {
+    expect(displayedNotificationsStatus('disabled', false)).toBe('unasked')
+  })
+
+  it('refusées dans Android : « désactivées »', () => {
+    expect(displayedNotificationsStatus('disabled', true)).toBe('disabled')
+  })
+
+  it('n’annonce rien tant qu’on ne sait pas si Android a demandé', () => {
+    expect(displayedNotificationsStatus('disabled', null)).toBeNull()
+  })
+
+  it.each(['granted', 'unasked', 'unavailable', null] as const)('%s : inchangé', (status) => {
+    expect(displayedNotificationsStatus(status, false)).toBe(status)
+  })
+})
 
 describe('exactRemindersAction — toucher l’interrupteur « Rappels précis »', () => {
   it('déjà accordés : l’écran Android « Alarmes et rappels » directement', () => {

@@ -20,6 +20,19 @@ export type ExactRemindersRow = {
   notice: 'precise' | 'lessPrecise' | null
 }
 
+/**
+ * Après « Plus tard », le statut dit `disabled` alors qu'Android n'a jamais demandé : l'écran
+ * d'explication reste la voie (RA-21). `null` tant qu'on ne sait pas si Android a demandé.
+ */
+export function displayedNotificationsStatus(
+  status: NotificationPermissionStatus | null,
+  androidAsked: boolean | null,
+): NotificationPermissionStatus | null {
+  if (status !== 'disabled') return status
+  if (androidAsked === null) return null
+  return androidAsked ? 'disabled' : 'unasked'
+}
+
 /** Jamais demandées : l'écran d'explication d'abord ; refusées : seuls les réglages d'Android peuvent les rendre. */
 export function enableRemindersRoute(
   notifications: NotificationPermissionStatus | null,

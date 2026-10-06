@@ -48,13 +48,13 @@ const iconesDesMaquettes = [
   'event_repeat',
   'event_upcoming',
   'event_busy',
-  'backup',
-  'mobile',
-  'star',
   'notifications',
   'tune',
   'alarm_off',
   'help',
+  'backup',
+  'mobile',
+  'star',
   'shield',
 ] as const
 

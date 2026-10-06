@@ -14,6 +14,7 @@ import {
 } from '@/core/notifications/exact-reminders'
 import {
   getNotificationPermissionStatus,
+  hasAndroidAskedNotifications,
   openNotificationSettings,
   type NotificationPermissionStatus,
 } from '@/core/notifications/permission'
@@ -23,6 +24,7 @@ import { toastMessage, toastTone } from '@/shared/utils/toast'
 
 vi.mock('@/core/notifications/permission', () => ({
   getNotificationPermissionStatus: vi.fn<() => Promise<NotificationPermissionStatus>>(),
+  hasAndroidAskedNotifications: vi.fn<() => Promise<boolean>>(),
   openNotificationSettings: vi.fn<() => Promise<void>>(async () => {}),
 }))
 
@@ -37,6 +39,7 @@ vi.mock('@/core/app-lifecycle/back-button', () => ({
 
 const NBSP = /[  ]/g
 const permission = vi.mocked(getNotificationPermissionStatus)
+const androidAsked = vi.mocked(hasAndroidAskedNotifications)
 const exact = vi.mocked(getExactRemindersStatus)
 
 let saved: CarnetSettings
@@ -62,6 +65,7 @@ beforeEach(async () => {
   })
   provideCarnetSettingsRepository(() => ({ get, update }))
   permission.mockResolvedValue('granted')
+  androidAsked.mockResolvedValue(true)
   exact.mockResolvedValue('precise')
   vi.mocked(openExactRemindersSettings).mockResolvedValue('precise')
   router = routeurMemoire()
@@ -138,6 +142,21 @@ describe('RemindersSettingsView — état des notifications', () => {
 
     await vi.waitFor(() => expect(router.currentRoute.value.name).toBe('notifications-priming'))
     expect(router.currentRoute.value.query).toEqual({ from: 'settings-reminders' })
+    expect(openNotificationSettings).not.toHaveBeenCalled()
+  })
+
+  it('après « Plus tard », Android n’ayant jamais demandé : toujours « Activer les rappels » (RA-21)', async () => {
+    permission.mockResolvedValue('disabled')
+    androidAsked.mockResolvedValue(false)
+    const vue = await monter()
+
+    expect(texte(vue.get('.reminders-settings__status'))).toContain('Rappels pas encore activés')
+    const action = vue.get('.reminders-settings__enable')
+    expect(texte(action)).toBe('Activer les rappels')
+
+    await action.trigger('click')
+
+    await vi.waitFor(() => expect(router.currentRoute.value.name).toBe('notifications-priming'))
     expect(openNotificationSettings).not.toHaveBeenCalled()
   })
 
