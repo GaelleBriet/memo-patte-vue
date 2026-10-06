@@ -25,7 +25,7 @@ export function treatmentStopTexts(t: Translate, named: { name: string; animal: 
 
 type SheetSchedule = Pick<
   TreatmentSchedule,
-  'doses' | 'unloggedDoses' | 'currentDoses' | 'offersShift' | 'noteRefusal'
+  'doses' | 'unloggedDoses' | 'currentDoses' | 'offersShift' | 'noteRefusal' | 'doseFor'
 >
 
 /** La période de l'échéance de la ligne, sinon la dernière. */
@@ -50,6 +50,7 @@ export type SheetDoneTarget =
   | { kind: 'confirm'; due: Due }
   | { kind: 'already'; givenOn: string }
   | { kind: 'missed' }
+  | { kind: 'detail' }
   | { kind: 'none' }
 
 function givenOnDay(schedule: Pick<TreatmentSchedule, 'doses'>, day: string): boolean {
@@ -61,7 +62,8 @@ function givenOnDay(schedule: Pick<TreatmentSchedule, 'doses'>, day: string): bo
 /**
  * « Fait aujourd'hui » de la feuille, sur l'échéance de sa ligne (TR-13) : `confirm` quand la prise
  * décalerait la suite (G20). Une dose à venir après une prise du jour, ou déjà donnée, est « déjà
- * notée » (Q33) ; une échéance notée oubliée n'a rien à noter (Q41).
+ * notée » (Q33) ; une échéance notée oubliée n'a rien à noter (Q41). Une prise en plus ne se note que
+ * sur la fiche (G11) : `detail`.
  */
 export function sheetDoneTarget(
   schedule: SheetSchedule,
@@ -78,6 +80,8 @@ export function sheetDoneTarget(
   if (pending.due.dueOn > today && givenOnDay(schedule, today)) {
     return { kind: 'already', givenOn: today }
   }
+  const given = { kind: 'given', due: pending.due, givenOn: today } as const
+  if (schedule.doseFor(given).dose.status === 'extra') return { kind: 'detail' }
   const tapped = doneGesture(schedule, pending.due, today)
   return tapped.confirm
     ? { kind: 'confirm', due: pending.due }

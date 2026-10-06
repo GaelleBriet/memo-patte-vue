@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { dose, extra, missed, period, plain, treatment } from './treatment-fixtures'
+import { dose, extra, missed, period, plain, postponed, treatment } from './treatment-fixtures'
 import { treatmentScheduleOf } from '../logic/treatment-schedule'
 import {
   sheetDoneTarget,
@@ -125,6 +125,42 @@ describe('sheetDoneTarget — « Fait aujourd’hui » vise l’échéance de la
     expect(sheetDoneTarget(schedule, { dueOn: '2026-10-14', dueTime: null }, '2026-10-19')).toEqual(
       { kind: 'none' },
     )
+  })
+
+  describe('mensuel dont la dose est reportée de 40 jours (#569)', () => {
+    const MENSUEL = period({
+      startsOn: '2026-09-16',
+      firstDueOn: '2026-09-16',
+      frequency: { value: 1, unit: 'month' },
+    })
+    const LIGNE = { dueOn: '2026-11-16', dueTime: null }
+
+    it('« Fait aujourd’hui » ne note pas de prise en plus : la fiche s’ouvre (G11)', () => {
+      const book = treatment(
+        [MENSUEL],
+        [dose('2026-09-16', '2026-10-16'), postponed('2026-10-16', '2026-11-25')],
+      )
+      const schedule = treatmentScheduleOf(book, '2026-10-16')
+
+      expect(sheetDoneTarget(schedule, LIGNE, '2026-10-16')).toEqual({ kind: 'detail' })
+    })
+
+    it('avec une prise du jour, « déjà notée » (Q33)', () => {
+      const book = treatment(
+        [MENSUEL],
+        [
+          dose('2026-09-16', '2026-10-16'),
+          postponed('2026-10-16', '2026-11-25'),
+          extra('2026-10-16', '2026-11-25'),
+        ],
+      )
+      const schedule = treatmentScheduleOf(book, '2026-10-16')
+
+      expect(sheetDoneTarget(schedule, LIGNE, '2026-10-16')).toEqual({
+        kind: 'already',
+        givenOn: '2026-10-16',
+      })
+    })
   })
 })
 
