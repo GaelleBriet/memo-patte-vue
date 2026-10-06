@@ -4,7 +4,7 @@ import { Capacitor } from '@capacitor/core'
 import { Directory, Filesystem, type FilesystemPlugin } from '@capacitor/filesystem'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { deletePhoto, photoDisplayUrl, photoExists, savePhoto } from '../photo-storage'
+import { deletePhoto, listPhotos, photoDisplayUrl, photoExists, savePhoto } from '../photo-storage'
 
 vi.mock('@capacitor/filesystem', async (importOriginal) => ({
   ...(await importOriginal<typeof FilesystemModule>()),
@@ -13,6 +13,7 @@ vi.mock('@capacitor/filesystem', async (importOriginal) => ({
     deleteFile: vi.fn<FilesystemPlugin['deleteFile']>(),
     stat: vi.fn<FilesystemPlugin['stat']>(),
     readFile: vi.fn<FilesystemPlugin['readFile']>(),
+    readdir: vi.fn<FilesystemPlugin['readdir']>(),
   },
 }))
 
@@ -20,6 +21,7 @@ const writeFile = vi.mocked(Filesystem.writeFile)
 const deleteFile = vi.mocked(Filesystem.deleteFile)
 const stat = vi.mocked(Filesystem.stat)
 const readFile = vi.mocked(Filesystem.readFile)
+const readdir = vi.mocked(Filesystem.readdir)
 
 beforeEach(() => {
   vi.restoreAllMocks()
@@ -140,5 +142,35 @@ describe('photoExists', () => {
 
     await expect(photoExists('absente.jpg')).resolves.toBe(false)
     await expect(photoExists('../secrets.txt')).resolves.toBe(false)
+  })
+})
+
+describe('listPhotos', () => {
+  function entry(name: string, type: 'file' | 'directory' = 'file') {
+    return { name, type, size: 1, ctime: 0, mtime: 0, uri: `file:///data/${name}` }
+  }
+
+  it('rend les seules photos de l’app rangées sous photos/', async () => {
+    readdir
+      .mockResolvedValueOnce({ files: [entry('photos', 'directory'), entry('autre.db')] })
+      .mockResolvedValueOnce({
+        files: [
+          entry('3f2b-a1.jpg'),
+          entry('notes.txt'),
+          entry('sous-dossier.jpg', 'directory'),
+          entry('.cache.jpg'),
+          entry('photo.png'),
+        ],
+      })
+
+    expect(await listPhotos()).toEqual(['3f2b-a1.jpg'])
+    expect(readdir).toHaveBeenLastCalledWith({ path: 'photos', directory: Directory.Data })
+  })
+
+  it('ne lit pas photos/ tant qu’aucune photo n’a été enregistrée', async () => {
+    readdir.mockResolvedValueOnce({ files: [entry('autre.db')] })
+
+    expect(await listPhotos()).toEqual([])
+    expect(readdir).toHaveBeenCalledExactlyOnceWith({ path: '', directory: Directory.Data })
   })
 })
