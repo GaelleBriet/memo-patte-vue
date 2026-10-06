@@ -174,6 +174,7 @@ let resume: MockInstance<(id: string, input: TreatmentResumptionInput) => Promis
 let getWithHistory: MockInstance<(id: string) => Promise<TreatmentWithHistory | null>>
 let replace: MockInstance
 let routeur: Router
+const formulairesMontes: VueWrapper[] = []
 
 beforeEach(async () => {
   vi.useFakeTimers({ toFake: ['Date'], now: new Date(AUJOURDHUI) })
@@ -199,6 +200,7 @@ beforeEach(async () => {
 })
 
 afterEach(() => {
+  for (const wrapper of formulairesMontes.splice(0)) if (wrapper.exists()) wrapper.unmount()
   vi.restoreAllMocks()
   vi.useRealTimers()
   i18n.global.locale.value = 'fr'
@@ -210,6 +212,7 @@ async function monter(props: { animalId?: string; id?: string; resume?: boolean 
     global: { plugins: [vuetify, i18n, routeur] },
     attachTo: document.body,
   })
+  formulairesMontes.push(wrapper)
   await flushPromises()
   return wrapper
 }
