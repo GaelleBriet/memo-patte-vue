@@ -24,6 +24,7 @@ import {
   weekdayInitials,
   weekStartsOn,
   withoutFinalDot,
+  formatPeriodRange,
 } from '../utils/format'
 import { applyLocale } from '@/core/i18n'
 
@@ -277,5 +278,33 @@ describe('jours d’une suite de doses', () => {
     expect(formatWeekdayDayMonth('2026-10-16')).toBe('Friday, Oct 16')
     expect(formatDaySeries(['2026-10-26', '2026-11-02'])).toBe('Oct 26, Nov 2')
     expect(formatDaySeries(['2026-10-23', '2026-10-30'])).toBe('Oct 23, 30')
+  })
+})
+
+describe('formatPeriodRange', () => {
+  afterEach(() => applyLocale('fr'))
+
+  it('reprend formatDayRange dans une même année', () => {
+    expect(formatPeriodRange('2026-10-06', '2026-10-10')).toEqual({ start: '6', end: '10 oct.' })
+    expect(formatPeriodRange('2026-09-01', '2026-10-10')).toEqual({
+      start: '1 sept.',
+      end: '10 oct.',
+    })
+  })
+
+  it('date la fin de son année quand elle diffère de celle du début', () => {
+    expect(formatPeriodRange('2026-08-06', '2027-02-06')).toEqual({
+      start: '6 août',
+      end: '6 févr. 2027',
+    })
+  })
+
+  it('en anglais', () => {
+    applyLocale('en')
+
+    expect(formatPeriodRange('2026-08-06', '2027-02-06')).toEqual({
+      start: 'Aug 6',
+      end: 'Feb 6, 2027',
+    })
   })
 })

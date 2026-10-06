@@ -91,6 +91,20 @@ describe('carnetTreatments — une ligne par traitement en cours (TR-36, B · V1
     )
   })
 
+  it('avec une date de fin l’année suivante : la fin porte son année', () => {
+    const saison = period({
+      frequency: { value: 1, unit: 'month' },
+      startsOn: '2026-08-06',
+      firstDueOn: '2026-08-06',
+      endsOn: '2027-02-06',
+    })
+    const frontline = named('Frontline', [saison], [dose('2026-08-06', '2026-08-06')])
+
+    expect(row(frontline, '2026-08-20').detail).toBe('Tous les mois · du 6 août au 6 févr. 2027')
+    applyLocale('en')
+    expect(row(frontline, '2026-08-20').detail).toBe('Every month · Aug 6 – Feb 6, 2027')
+  })
+
   it('avec une date de fin dans le même mois : « du 6 au 10 oct. »', () => {
     const court = period({ startsOn: '2026-09-25', firstDueOn: '2026-09-25', endsOn: '2026-09-30' })
     const donnees = ['2026-09-25', '2026-09-26', '2026-09-27'].map((day) => dose(day, day))

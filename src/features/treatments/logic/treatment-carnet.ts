@@ -4,7 +4,7 @@ import { currentDoseText } from '@/shared/domain/current-dose'
 import { overdueDays } from '@/shared/domain/due-delay'
 import type { ReminderCounts } from '@/shared/domain/reminders'
 import type { TreatmentSchedule } from '@/shared/domain/treatment-schedule'
-import { formatClockTimes, formatDayMonthOrYear, formatDayRange } from '@/shared/utils/format'
+import { formatClockTimes, formatDayMonthOrYear, formatPeriodRange } from '@/shared/utils/format'
 
 export type Translate = (key: string, named?: Record<string, unknown>, plural?: number) => string
 
@@ -70,7 +70,7 @@ function rhythmText(
   const complement =
     period.endsOn === null
       ? t('treatments.section.nextDose', { date: formatDayMonthOrYear(due.dueOn, today) })
-      : t('treatments.section.range', formatDayRange(period.startsOn, period.endsOn))
+      : t('treatments.section.range', formatPeriodRange(period.startsOn, period.endsOn))
   return `${rhythm} · ${complement}`
 }
 
