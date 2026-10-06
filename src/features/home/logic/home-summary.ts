@@ -1,11 +1,9 @@
+import type { TodoDueItem, TodoItem } from './todo-items'
 import type { HomeReminderSource } from '../service/home-reminders.service'
-import {
-  reminderIcon as sharedReminderIcon,
-  type Reminder,
-  type ReminderKind,
-  type ReminderStatus,
-} from '@/shared/domain/reminders'
-import { formatFullDayMonth, formatLongDate } from '@/shared/utils/format'
+import type { DueStatus } from '@/shared/components/DueStatusChip.vue'
+import type { TodoRequest } from '@/shared/domain/reminder-route'
+import { reminderIcon as sharedReminderIcon, type ReminderStatus } from '@/shared/domain/reminders'
+import { formatClockTime, formatFullDayMonth, formatLongDate } from '@/shared/utils/format'
 
 export type Translate = (key: string, named?: Record<string, unknown>, plural?: number) => string
 
@@ -36,6 +34,7 @@ export function overdueBanner(t: Translate, overdue: number): string | null {
 export type DueBadge = {
   text: string
   icon: string | null
+  status: DueStatus
 }
 
 const DUE_ICONS: Record<ReminderStatus, string | null> = {
@@ -45,12 +44,18 @@ const DUE_ICONS: Record<ReminderStatus, string | null> = {
   later: 'ms:schedule',
 }
 
-export function dueBadge(t: Translate, reminder: Reminder): DueBadge {
-  const days = Math.abs(reminder.daysUntil)
-  return {
-    text: t(`home.due.${reminder.status}`, { n: days }, days),
-    icon: DUE_ICONS[reminder.status],
+/** « Aujourd’hui · 20 h » : une dose du jour garde son heure, même passée (TR-11). */
+export function dueBadge(t: Translate, item: TodoItem): DueBadge {
+  if (item.group === 'to-log') return { text: t('home.due.toLog'), icon: null, status: 'to-log' }
+  if (item.group === 'unreadable') {
+    return { text: t('home.due.unreadable'), icon: null, status: 'none' }
   }
+  const days = Math.abs(item.daysUntil)
+  const text =
+    item.status === 'today' && item.dueTime !== null
+      ? t('home.due.todayAt', { time: formatClockTime(item.dueTime) })
+      : t(`home.due.${item.status}`, { n: days }, days)
+  return { text, icon: DUE_ICONS[item.status], status: item.status }
 }
 
 type Typed = Pick<HomeReminderSource, 'kind' | 'treatmentType'>
@@ -70,10 +75,13 @@ export function reminderIcon(source: Typed): string {
   return sharedReminderIcon(source.kind, source.treatmentType)
 }
 
-function spokenDue(t: Translate, reminder: Reminder): string {
-  const days = Math.abs(reminder.daysUntil)
-  if (reminder.status !== 'later') return t(`home.row.due.${reminder.status}`, { n: days }, days)
-  return t('home.row.due.later', { n: days, date: formatFullDayMonth(reminder.dueDate) }, days)
+function spokenDue(t: Translate, item: TodoDueItem): string {
+  const days = Math.abs(item.daysUntil)
+  if (item.status === 'today' && item.dueTime !== null) {
+    return t('home.row.due.todayAt', { time: formatClockTime(item.dueTime) })
+  }
+  if (item.status !== 'later') return t(`home.row.due.${item.status}`, { n: days }, days)
+  return t('home.row.due.later', { n: days, date: formatFullDayMonth(item.dueOn) }, days)
 }
 
 export type UpToDateInput = {
@@ -89,13 +97,20 @@ export function upToDateText(t: Translate, { animalName, allNames }: UpToDateInp
 }
 
 export type ReminderRow = {
-  id: string
-  kind: ReminderKind
-  status: ReminderStatus
+  key: string
+  /** `to-log` : sous l'intitulé « À renseigner », en fin de liste. */
+  group: 'due' | 'to-log'
+  /** Ce que la feuille reçoit : le soin et l'échéance de la ligne. */
+  request: TodoRequest
+  /** Une ligne illisible ouvre la fiche du traitement, pas sa feuille. */
+  opens: 'sheet' | 'detail'
+  tone: ReminderStatus | 'to-log' | 'unreadable'
   icon: string
   title: string
   /** « Vermifuge · Boree », sans l'animal quand un seul est affiché. */
   subtitle: string
+  /** « 3 doses non renseignées », sous une ligne « À renseigner ». */
+  unlogged: string | null
   badge: DueBadge
   /** Nom lu par le lecteur d'écran : produit, type, animal, échéance, puis ce que fait le tap. */
   ariaLabel: string
@@ -106,45 +121,79 @@ export type ReminderRowsOptions = {
   showAnimal: boolean
 }
 
+function requestOf(item: TodoItem): TodoRequest {
+  const ref = { kind: item.kind, id: item.id }
+  if (item.group === 'to-log') return { ...ref, due: 'unlogged' }
+  if (item.group === 'unreadable' || item.kind === 'vaccination') return { ...ref, due: null }
+  return { ...ref, due: { dueOn: item.dueOn, dueTime: item.dueTime } }
+}
+
+function unloggedText(t: Translate, item: TodoItem): string | null {
+  if (item.group !== 'to-log') return null
+  return t('home.row.unlogged', { n: item.unlogged }, item.unlogged)
+}
+
+function spokenState(t: Translate, item: TodoItem, unlogged: string | null): string {
+  if (item.group === 'to-log') return t('home.row.due.toLog', { unlogged })
+  if (item.group === 'unreadable') return t('home.row.due.unreadable')
+  return spokenDue(t, item)
+}
+
+function ariaLabelOf(
+  t: Translate,
+  item: TodoItem,
+  spoken: { title: string; type: string; animal: string | undefined; due: string },
+): string {
+  const single = spoken.animal === undefined
+  if (item.group === 'unreadable') {
+    return single
+      ? t('home.row.labelUnreadableSingle', spoken)
+      : t('home.row.labelUnreadable', spoken)
+  }
+  return single ? t('home.row.labelSingle', spoken) : t('home.row.label', spoken)
+}
+
 export function reminderRows(
   t: Translate,
-  reminders: Reminder<HomeReminderSource>[],
+  items: TodoItem[],
   { animalNames, showAnimal }: ReminderRowsOptions,
 ): ReminderRow[] {
-  return reminders.map((reminder) => {
-    const type = reminderType(t, reminder)
-    const animal = showAnimal ? animalNames.get(reminder.animalId) : undefined
-    const spoken = {
-      title: reminder.label,
-      type: t(`home.row.spokenType.${typeKey(reminder)}`),
-      animal,
-      due: spokenDue(t, reminder),
-    }
+  return items.map((item) => {
+    const type = reminderType(t, item)
+    const animal = showAnimal ? animalNames.get(item.animalId) : undefined
+    const unlogged = unloggedText(t, item)
     return {
-      id: reminder.id,
-      kind: reminder.kind,
-      status: reminder.status,
-      icon: reminderIcon(reminder),
-      title: reminder.label,
+      key: item.key,
+      group: item.group === 'to-log' ? 'to-log' : 'due',
+      request: requestOf(item),
+      opens: item.group === 'unreadable' ? 'detail' : 'sheet',
+      tone: item.group === 'due' ? item.status : item.group,
+      icon: reminderIcon(item),
+      title: item.label,
       subtitle: animal === undefined ? type : t('home.row.subtitle', { type, animal }),
-      badge: dueBadge(t, reminder),
-      ariaLabel:
-        animal === undefined ? t('home.row.labelSingle', spoken) : t('home.row.label', spoken),
+      unlogged,
+      badge: dueBadge(t, item),
+      ariaLabel: ariaLabelOf(t, item, {
+        title: item.label,
+        type: t(`home.row.spokenType.${typeKey(item)}`),
+        animal,
+        due: spokenState(t, item, unlogged),
+      }),
     }
   })
 }
 
 export function nextReminderText(
   t: Translate,
-  reminder: Reminder<HomeReminderSource> | null,
+  item: TodoDueItem | null,
   { animalNames, showAnimal }: ReminderRowsOptions,
 ): string | null {
-  if (reminder === null) return null
+  if (item === null) return null
   const params = {
-    reminder: reminder.label,
-    date: formatLongDate(reminder.dueDate).replaceAll(' ', '\u00a0'),
+    reminder: item.label,
+    date: formatLongDate(item.dueOn).replaceAll(' ', ' '),
   }
-  const name = showAnimal ? animalNames.get(reminder.animalId) : undefined
+  const name = showAnimal ? animalNames.get(item.animalId) : undefined
   if (name === undefined) return t('home.upToDate.nextForAnimal', params)
   return t('home.upToDate.nextForMany', { ...params, name })
 }

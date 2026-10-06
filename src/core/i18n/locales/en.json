@@ -851,7 +851,8 @@
       "title": "To do",
       "count": "{n} reminder | {n} reminders",
       "scoped": "{name} · {count}",
-      "overdueBanner": "{n} overdue reminder | {n} overdue reminders"
+      "overdueBanner": "{n} overdue reminder | {n} overdue reminders",
+      "toLog": "To log"
     },
     "reminder": {
       "vaccination": "Vaccine",
@@ -861,8 +862,11 @@
     },
     "row": {
       "subtitle": "{type} · {animal}",
+      "unlogged": "{n} dose not logged | {n} doses not logged",
       "label": "{title}, {type}, {animal}, {due}. Opens actions.",
       "labelSingle": "{title}, {type}, {due}. Opens actions.",
+      "labelUnreadable": "{title}, {type}, {animal}, {due}. Opens the treatment.",
+      "labelUnreadableSingle": "{title}, {type}, {due}. Opens the treatment.",
       "spokenType": {
         "vaccination": "vaccine",
         "deworming": "dewormer",
@@ -872,15 +876,21 @@
       "due": {
         "overdue": "{n} day overdue | {n} days overdue",
         "today": "today",
+        "todayAt": "today at {time}",
         "tomorrow": "tomorrow",
-        "later": "in {n} day, on {date} | in {n} days, on {date}"
+        "later": "in {n} day, on {date} | in {n} days, on {date}",
+        "toLog": "to log, {unlogged}",
+        "unreadable": "unreadable data"
       }
     },
     "due": {
       "overdue": "Overdue · {n}d",
       "today": "Today",
+      "todayAt": "Today · {time}",
       "tomorrow": "Tomorrow",
-      "later": "In {n} day | In {n} days"
+      "later": "In {n} day | In {n} days",
+      "toLog": "To log",
+      "unreadable": "Unreadable data"
     },
     "upToDate": {
       "title": "All up to date",

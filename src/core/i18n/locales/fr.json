@@ -849,9 +849,10 @@
     },
     "todo": {
       "title": "À faire",
-      "count": "{n} rappel | {n} rappels",
+      "count": "{n} soin | {n} soins",
       "scoped": "{name} · {count}",
-      "overdueBanner": "{n} rappel en retard | {n} rappels en retard"
+      "overdueBanner": "{n} soin en retard | {n} soins en retard",
+      "toLog": "À renseigner"
     },
     "reminder": {
       "vaccination": "Vaccin",
@@ -861,8 +862,11 @@
     },
     "row": {
       "subtitle": "{type} · {animal}",
+      "unlogged": "{n} dose non renseignée | {n} doses non renseignées",
       "label": "{title}, {type}, {animal}, {due}. Ouvre les actions.",
       "labelSingle": "{title}, {type}, {due}. Ouvre les actions.",
+      "labelUnreadable": "{title}, {type}, {animal}, {due}. Ouvre le traitement.",
+      "labelUnreadableSingle": "{title}, {type}, {due}. Ouvre le traitement.",
       "spokenType": {
         "vaccination": "vaccin",
         "deworming": "vermifuge",
@@ -872,22 +876,28 @@
       "due": {
         "overdue": "en retard de {n} jour | en retard de {n} jours",
         "today": "aujourd’hui",
+        "todayAt": "aujourd’hui à {time}",
         "tomorrow": "demain",
-        "later": "dans {n} jour, le {date} | dans {n} jours, le {date}"
+        "later": "dans {n} jour, le {date} | dans {n} jours, le {date}",
+        "toLog": "à renseigner, {unlogged}",
+        "unreadable": "donnée illisible"
       }
     },
     "due": {
       "overdue": "En retard · {n} j",
       "today": "Aujourd’hui",
+      "todayAt": "Aujourd’hui · {time}",
       "tomorrow": "Demain",
-      "later": "Dans {n} jour | Dans {n} jours"
+      "later": "Dans {n} jour | Dans {n} jours",
+      "toLog": "À renseigner",
+      "unreadable": "Donnée illisible"
     },
     "upToDate": {
       "title": "Tout est à jour",
-      "forAnimal": "Aucun rappel à venir pour {name}.",
-      "forMany": "{names} n’ont aucun rappel à venir.",
-      "nextForAnimal": "Prochain rappel : {reminder} le {date}",
-      "nextForMany": "Prochain rappel : {reminder} pour {name} le {date}",
+      "forAnimal": "Aucun soin à venir pour {name}.",
+      "forMany": "{names} n’ont aucun soin à venir.",
+      "nextForAnimal": "Prochain soin : {reminder} le {date}",
+      "nextForMany": "Prochain soin : {reminder} pour {name} le {date}",
       "namesSeparator": ", ",
       "namesLast": " et ",
       "add": "Ajouter un vaccin ou un traitement"
