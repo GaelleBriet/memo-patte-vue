@@ -121,7 +121,9 @@
             "dog": "Common combinations · dog",
             "cat": "Common combinations · cat"
           },
-          "useTyped": "Use “{name}”"
+          "useTyped": "Use “{name}”",
+          "spoken": "{label}. Abbreviations {aliases}.",
+          "count": "{n} suggestion | {n} suggestions"
         }
       },
       "lastInjectionDate": {
@@ -261,7 +263,7 @@
       "rabies": "rabies",
       "kennelCough": "kennel cough",
       "leishmaniosis": "leishmaniosis",
-      "panleukopenia": "panleukopenia",
+      "panleukopenia": "panleucopenia",
       "catFlu": "cat flu (herpesvirus, calicivirus)",
       "chlamydiosis": "chlamydia",
       "felineLeukaemia": "feline leukaemia"

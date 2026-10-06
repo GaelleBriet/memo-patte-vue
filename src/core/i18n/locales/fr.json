@@ -121,7 +121,9 @@
             "dog": "Combinaisons courantes · chien",
             "cat": "Combinaisons courantes · chat"
           },
-          "useTyped": "Utiliser « {name} »"
+          "useTyped": "Utiliser « {name} »",
+          "spoken": "{label}. Sigles {aliases}.",
+          "count": "{n} proposition | {n} propositions"
         }
       },
       "lastInjectionDate": {

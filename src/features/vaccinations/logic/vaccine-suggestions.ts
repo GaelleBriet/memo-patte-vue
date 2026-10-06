@@ -87,6 +87,15 @@ export function carnetVaccineNames(
   return names
 }
 
+/** Nom lu par TalkBack : les sigles en phrase, sans le point médian de l'affichage. */
+export function combinationSpokenName(t: Translate, combination: LabelledCombination): string {
+  if (combination.aliases.length === 0) return combination.label
+  return t('vaccinations.form.name.suggestions.spoken', {
+    label: combination.label,
+    aliases: combination.aliases.join(', '),
+  })
+}
+
 export function usedForText(t: Translate, animalNames: readonly string[]): string {
   return t('vaccinations.form.name.usedFor', { names: formatList(animalNames) })
 }

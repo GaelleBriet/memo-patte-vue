@@ -5,8 +5,10 @@ import {
   carnetVaccineNames,
   labelledCombinations,
   suggestVaccineNames,
+  combinationSpokenName,
   usedForText,
   type CarnetVaccineName,
+  type LabelledCombination,
 } from '../logic/vaccine-suggestions'
 import { useVaccinationsStore } from '../store/vaccinations.store'
 import type { AnimalSpecies } from '@/features/animals/schema/animal.schema'
@@ -39,13 +41,18 @@ export function useVaccineNameSuggestions(name: Ref<string>, species: Ref<Animal
   const suggestions = computed(() =>
     suggestVaccineNames(name.value, carnet.value, combinations.value),
   )
-  const hasSuggestions = computed(
-    () => suggestions.value.carnet.length + suggestions.value.combinations.length > 0,
+  const count = computed(
+    () => suggestions.value.carnet.length + suggestions.value.combinations.length,
   )
+  const hasSuggestions = computed(() => count.value > 0)
 
   return {
     suggestions,
     hasSuggestions,
+    countText: computed(() =>
+      t('vaccinations.form.name.suggestions.count', { n: count.value }, count.value),
+    ),
     usedFor: (animalNames: readonly string[]) => usedForText(t, animalNames),
+    spokenName: (combination: LabelledCombination) => combinationSpokenName(t, combination),
   }
 }

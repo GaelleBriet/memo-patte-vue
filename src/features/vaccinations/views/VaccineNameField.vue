@@ -14,7 +14,7 @@ const props = defineProps<{
 const name = defineModel<string>({ required: true })
 
 const { t } = useI18n()
-const { suggestions, hasSuggestions, usedFor } = useVaccineNameSuggestions(
+const { suggestions, hasSuggestions, countText, usedFor, spokenName } = useVaccineNameSuggestions(
   name,
   toRef(props, 'species'),
 )
@@ -65,6 +65,7 @@ function choose(value: string): void {
         @blur="isTyping = false"
         @keydown.escape="isTyping = false"
       />
+      <p class="vaccine-name-field__live" aria-live="polite">{{ isOpen ? countText : '' }}</p>
       <div
         v-if="isOpen"
         :id="listId"
@@ -113,6 +114,7 @@ function choose(value: string): void {
             type="button"
             role="option"
             aria-selected="false"
+            :aria-label="spokenName(combination)"
             class="vaccine-name-field__option"
             @click="choose(combination.label)"
           >
@@ -153,6 +155,15 @@ function choose(value: string): void {
   border-radius: tokens.$radius-field;
   background: tokens.$color-field-surface;
   box-shadow: 0 6px 18px rgb(30 25 20 / 10%);
+}
+
+.vaccine-name-field__live {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 .vaccine-name-field__heading {

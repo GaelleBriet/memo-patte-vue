@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 
 import {
   carnetVaccineNames,
+  combinationSpokenName,
   labelledCombinations,
   suggestVaccineNames,
   usedForText,
@@ -54,7 +55,7 @@ describe('labelledCombinations', () => {
       'Distemper, hepatitis, parvovirus, parainfluenza',
     )
     expect(labelledCombinations(t, 'cat').map(({ label }) => label)).toContain(
-      'Panleukopenia, cat flu (herpesvirus, calicivirus), feline leukaemia',
+      'Panleucopenia, cat flu (herpesvirus, calicivirus), feline leukaemia',
     )
   })
 
@@ -80,6 +81,26 @@ describe('labelledCombinations', () => {
       )
       expect(combination, `${species} : ${diseases.join(', ')}`).toBeDefined()
     }
+  })
+})
+
+describe('combinationSpokenName', () => {
+  afterEach(() => applyLocale('fr'))
+
+  it('lit le libellé puis les sigles, sans le point médian', () => {
+    expect(
+      combinationSpokenName(t, { label: 'Carré, hépatite, parvovirose', aliases: ['CHP', 'DAP'] }),
+    ).toBe('Carré, hépatite, parvovirose. Sigles CHP, DAP.')
+    expect(combinationSpokenName(t, { label: 'Rage', aliases: [] })).toBe('Rage')
+
+    applyLocale('en')
+
+    expect(
+      combinationSpokenName(t, {
+        label: 'Distemper, hepatitis, parvovirus',
+        aliases: ['CHP', 'DAP'],
+      }),
+    ).toBe('Distemper, hepatitis, parvovirus. Abbreviations CHP, DAP.')
   })
 })
 

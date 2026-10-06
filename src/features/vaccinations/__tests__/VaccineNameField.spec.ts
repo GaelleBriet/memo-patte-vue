@@ -99,6 +99,24 @@ describe('VaccineNameField', () => {
     expect(texte(wrapper)).not.toContain('Typhus')
   })
 
+  it('donne à TalkBack le libellé et les sigles d’une combinaison, et le nombre de propositions', async () => {
+    const wrapper = await monter()
+    const live = () => wrapper.get('[aria-live="polite"]').text()
+
+    expect(live()).toBe('')
+
+    await wrapper.find('input').setValue('chp')
+
+    expect(wrapper.findAll('[role="option"]')[1]!.attributes('aria-label')).toBe(
+      'Carré, hépatite, parvovirose. Sigles CHP, DAP.',
+    )
+    expect(live()).toBe('6 propositions')
+
+    await wrapper.find('input').setValue('dhppil')
+
+    expect(live()).toBe('1 proposition')
+  })
+
   it('remplit le champ avec la proposition choisie et ferme la liste', async () => {
     const wrapper = await monter()
 
