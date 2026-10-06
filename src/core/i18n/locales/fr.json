@@ -681,6 +681,26 @@
         },
         "after": "{done}. {revealed}"
       }
+    },
+    "givenWhen": {
+      "title": "Donnée quand ?",
+      "due": "Prévue {date}",
+      "dueAt": "Prévue {date} à {time}",
+      "dosageDue": "{dosage} · prévue {date}",
+      "dosageDueAt": "{dosage} · prévue {date} à {time}",
+      "scheduled": "Le jour prévu",
+      "scheduledAt": "Le jour prévu, à {time}",
+      "scheduledLabel": "Donnée le jour prévu, {date}",
+      "scheduledLabelAt": "Donnée le jour prévu, {date} à {time}",
+      "today": "Aujourd’hui",
+      "todayLabel": "Donnée aujourd’hui, {date}",
+      "other": "Une autre date",
+      "otherLabel": "Donnée à une autre date : choisir le jour",
+      "everyDay": "Donnée le {date}",
+      "everyDayAt": "Donnée le {date} à {time}",
+      "everyDayLabel": "Donnée le {date}",
+      "everyDayLabelAt": "Donnée le {date} à {time}",
+      "back": "Retour à « Donnée quand ? »"
     }
   },
   "reminders": {

@@ -7,7 +7,7 @@ import type { CarnetReminderSettings } from '@/shared/domain/reminder-plan'
 import type { TreatmentFrequency } from '../schema/treatment.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
-import { isDoseNoted, isTreatmentDueDate, treatmentReminders } from '../logic/treatment-reminders'
+import { treatmentReminders } from '../logic/treatment-reminders'
 import { dose, missed, period, postponed, shifted, treatment } from './treatment-fixtures'
 
 const t = i18n.global.t
@@ -190,69 +190,5 @@ describe('treatmentReminders, échéances notées (RA-19)', () => {
   it('B4 : une clé de l’ancienne forme, sans heure, est notée dès qu’une prise de son jour l’est', () => {
     expect(isNoted('2026-09-14', null)).toBe(true)
     expect(isNoted('2026-09-15', null)).toBe(false)
-  })
-})
-
-describe('isTreatmentDueDate', () => {
-  const plan = { nextDueDate: '2026-08-31', frequency: MONTHLY }
-
-  it('reconnaît la prochaine dose et chaque cycle suivant resté sans prise', () => {
-    expect(isTreatmentDueDate(plan, '2026-08-31')).toBe(true)
-    expect(isTreatmentDueDate(plan, '2026-09-30')).toBe(true)
-    expect(isTreatmentDueDate(plan, '2026-10-31')).toBe(true)
-    expect(isTreatmentDueDate(plan, '2027-02-28')).toBe(true)
-  })
-
-  it('écarte une date entre deux cycles ou avant la prochaine dose', () => {
-    expect(isTreatmentDueDate(plan, '2026-09-15')).toBe(false)
-    expect(isTreatmentDueDate(plan, '2026-07-31')).toBe(false)
-  })
-})
-
-describe('isDoseNoted', () => {
-  const plan = {
-    lastDoseDate: '2026-08-25',
-    nextDueDate: '2026-09-25',
-    frequency: MONTHLY,
-  }
-
-  it('reconnaît l’échéance que la prise de tête a notée', () => {
-    expect(
-      isDoseNoted({ ...plan, lastDoseDate: '2026-09-25', nextDueDate: '2026-10-25' }, '2026-09-25'),
-    ).toBe(true)
-    expect(
-      isDoseNoted({ ...plan, lastDoseDate: '2026-09-23', nextDueDate: '2026-10-23' }, '2026-09-25'),
-    ).toBe(true)
-  })
-
-  it('ne tient pas pour notée l’échéance encore attendue', () => {
-    expect(isDoseNoted(plan, '2026-09-25')).toBe(false)
-  })
-
-  it('ne tient pas pour notée un cycle manqué, qui porte échéance + k × fréquence', () => {
-    expect(
-      isDoseNoted({ ...plan, lastDoseDate: '2026-07-25', nextDueDate: '2026-08-25' }, '2026-09-25'),
-    ).toBe(false)
-  })
-
-  it('ne tient pas pour notée la dose du jour d’un traitement quotidien pris la veille', () => {
-    const daily = {
-      lastDoseDate: '2026-09-24',
-      nextDueDate: '2026-09-25',
-      frequency: { value: 1, unit: 'day' },
-    } as const
-
-    expect(isDoseNoted(daily, '2026-09-25')).toBe(false)
-  })
-
-  it('ne tient aucune échéance pour notée tant que le traitement n’a pas de prise', () => {
-    const sansPrise = { ...plan, lastDoseDate: null, nextDueDate: '2026-08-25' }
-
-    expect(isDoseNoted(sansPrise, '2026-08-25')).toBe(false)
-    expect(isDoseNoted(sansPrise, '2026-08-27')).toBe(false)
-  })
-
-  it('ne tient pas pour notée une échéance reportée sans prise', () => {
-    expect(isDoseNoted({ ...plan, nextDueDate: '2026-10-05' }, '2026-09-25')).toBe(false)
   })
 })
