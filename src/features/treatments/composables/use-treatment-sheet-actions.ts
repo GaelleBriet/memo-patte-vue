@@ -5,15 +5,18 @@ import { useRoute, useRouter } from 'vue-router'
 import { alreadyNotedText } from '../logic/treatment-gestures'
 import { sheetDoneTarget } from '../logic/treatment-sheet'
 import {
+  originQuery,
   REMINDER_QUERY_PARAM,
   todoReminderValue,
   type NotifiedDue,
   type TodoDue,
 } from '@/shared/domain/reminder-route'
 import type { DoseGesture, Due, TreatmentSchedule } from '@/shared/domain/treatment-schedule'
+import { formatDayMonthOrYear, withoutFinalDot } from '@/shared/utils/format'
 import { showToast } from '@/shared/utils/toast'
 
 type SheetState = {
+  treatmentId: Ref<string | null>
   schedule: Ref<TreatmentSchedule | null>
   doseDue: Ref<NotifiedDue | null>
   today: Ref<string>
@@ -29,7 +32,7 @@ type SheetHandlers = {
 
 /** « Fait aujourd'hui » et « Modifier » de la feuille « À faire », sur l'échéance de sa ligne. */
 export function useTreatmentSheetActions(
-  { schedule, doseDue, today, named }: SheetState,
+  { treatmentId, schedule, doseDue, today, named }: SheetState,
   { note, confirm, close, changed }: SheetHandlers,
 ) {
   const { t } = useI18n()
@@ -39,6 +42,17 @@ export function useTreatmentSheetActions(
   function info(message: string): void {
     close()
     showToast(message, { tone: 'info' })
+  }
+
+  function openDetail(dueOn: string): void {
+    if (treatmentId.value === null) return
+    const date = withoutFinalDot(formatDayMonthOrYear(dueOn, today.value))
+    info(t('treatments.sheet.toast.extraOnDetail', { animal: named.value.animal, date }))
+    void router.push({
+      name: 'treatment-detail',
+      params: { id: treatmentId.value },
+      query: originQuery(route),
+    })
   }
 
   function doneToday(): void {
@@ -60,6 +74,9 @@ export function useTreatmentSheetActions(
         return
       case 'missed':
         info(t('treatments.sheet.toast.alreadyMissed'))
+        return
+      case 'detail':
+        openDetail(target.dueOn)
         return
       case 'none':
         close()
