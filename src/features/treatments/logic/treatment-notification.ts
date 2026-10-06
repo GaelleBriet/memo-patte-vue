@@ -53,7 +53,7 @@ export function isEveryDay({ frequency }: Pick<TreatmentPeriodRecord, 'frequency
   return frequency.value === 1 && frequency.unit === 'day'
 }
 
-function isExtraOn(schedule: Pick<TreatmentSchedule, 'doseFor'>, due: Due, givenOn: string) {
+export function isExtraOn(schedule: Pick<TreatmentSchedule, 'doseFor'>, due: Due, givenOn: string) {
   try {
     return schedule.doseFor({ kind: 'given', due, givenOn }).dose.status === 'extra'
   } catch (cause) {

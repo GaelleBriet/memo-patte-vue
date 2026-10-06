@@ -433,7 +433,8 @@
         "undoStop": "Annuler l’arrêt de {name}",
         "dayNoted": "Les doses d’aujourd’hui sont déjà notées.",
         "stoppedFinished": "{name} arrêté, à retrouver dans Traitements terminés.",
-        "alreadyMissed": "Cette dose est notée oubliée."
+        "alreadyMissed": "Cette dose est notée oubliée.",
+        "extraOnDetail": "La dose de {animal} est prévue le {date}. Une prise en plus se note depuis la fiche."
       },
       "errors": {
         "dose": "La prise n’a pas pu être notée. Réessaie.",
@@ -443,6 +444,7 @@
     },
     "detail": {
       "back": "Retour au carnet",
+      "backHome": "Retour à l’accueil",
       "subtitle": "{type} · {animal}",
       "doneLabel": "C’est fait : noter la prise de {name} pour {animal}",
       "doneLabelAt": "C’est fait : noter la dose de {time} du {date} de {name} pour {animal}",

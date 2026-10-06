@@ -433,7 +433,8 @@
         "undoStop": "Undo stopping {name}",
         "dayNoted": "Today’s doses are already logged.",
         "stoppedFinished": "{name} stopped, now in Finished treatments.",
-        "alreadyMissed": "This dose is marked as missed."
+        "alreadyMissed": "This dose is marked as missed.",
+        "extraOnDetail": "{animal}’s dose is due on {date}. An extra dose can be logged from the treatment page."
       },
       "errors": {
         "dose": "Couldn’t log the dose. Try again.",
@@ -443,6 +444,7 @@
     },
     "detail": {
       "back": "Back to health record",
+      "backHome": "Back to home",
       "subtitle": "{type} · {animal}",
       "doneLabel": "Done: log the {name} dose for {animal}",
       "doneLabelAt": "Done: log the {time} dose of {name} for {animal}, {date}",
