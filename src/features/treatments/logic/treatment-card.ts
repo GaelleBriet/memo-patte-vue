@@ -1,6 +1,7 @@
 import { currentPeriodOf, endedOnOf } from './treatment-schedule'
 import { periodRhythmText } from './treatment-rhythm'
 import type { TreatmentWithHistory } from '../repository/treatments.repository'
+import type { ExactRemindersStatus } from '@/core/notifications'
 import { currentDoseText } from '@/shared/domain/current-dose'
 import { dosageText } from '@/shared/domain/dosage'
 import type { Due, TreatmentSchedule } from '@/shared/domain/treatment-schedule'
@@ -67,6 +68,19 @@ export function doseCard(
             endsOn: endedOnOf(treatment, schedule, today),
           }),
   }
+}
+
+/** « Rappel 30 min avant · moins précis » sous les heures, rappels précis retirés (TR-34). */
+export function lessPreciseReminder(
+  t: Translate,
+  treatment: Pick<TreatmentWithHistory, 'periods'>,
+  schedule: CardSchedule,
+  exact: ExactRemindersStatus | null,
+): string | null {
+  if (exact !== 'removed' || schedule.currentDoses.length === 0) return null
+  const period = currentPeriodOf(treatment, schedule)
+  if (period === null || period.times.length === 0) return null
+  return t(`treatments.detail.reminder.lessPrecise.${period.reminderOffsetMinutes ?? 0}`)
 }
 
 export function detailActions({ phase }: Pick<TreatmentSchedule, 'phase'>) {

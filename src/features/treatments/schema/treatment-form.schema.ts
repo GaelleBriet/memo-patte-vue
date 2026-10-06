@@ -6,6 +6,7 @@ import {
   doseQuantitySchema,
   doseUnitSchema,
   hasWholeDosage,
+  REMINDER_OFFSETS_MINUTES,
   treatmentTimesSchema,
 } from './treatment-period.schema'
 import {
@@ -25,6 +26,12 @@ const rhythm = {
   doseQuantity: doseQuantitySchema.nullable(),
   doseUnit: doseUnitSchema.nullable(),
   endsOn: calendarDaySchema.nullable(),
+  /** Absents, la période garde son rappel ; `null`, le rappel par défaut (RA-7, RA-8). */
+  reminderOffsetMinutes: z
+    .literal([...REMINDER_OFFSETS_MINUTES])
+    .nullable()
+    .optional(),
+  reminderTime: clockTimeSchema.nullable().optional(),
 }
 
 const WHOLE_DOSAGE = { path: ['doseUnit'], message: 'incomplete' }

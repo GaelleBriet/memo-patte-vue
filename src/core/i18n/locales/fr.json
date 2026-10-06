@@ -294,6 +294,23 @@
         "change": "Heure {time}, modifier",
         "remove": "Retirer {time}"
       },
+      "reminder": {
+        "label": "Rappel",
+        "offset": {
+          "0": "À l’heure",
+          "15": "15 min avant",
+          "30": "30 min avant",
+          "60": "1 h avant"
+        },
+        "eachTime": "Pour chaque heure : {times}.",
+        "at": "À {time}",
+        "atLabel": "Heure du rappel, {time}. Modifier.",
+        "noTimeHelp": "Sans heure de traitement, choisis l’heure du rappel.",
+        "lessPrecise": "Moins précis : les rappels précis sont désactivés",
+        "reactivate": "Réactiver les rappels précis",
+        "suggest": "Pour un rappel à l’heure pile, active les rappels précis",
+        "explainerBack": "Retour au formulaire"
+      },
       "dosage": {
         "label": "Posologie",
         "quantity": "Quantité",
@@ -447,6 +464,17 @@
           "given": "Dose de {time} · déjà notée",
           "missed": "Dose de {time} · notée oubliée"
         }
+      },
+      "reminder": {
+        "lessPrecise": {
+          "0": "Rappel à l’heure · moins précis",
+          "15": "Rappel 15 min avant · moins précis",
+          "30": "Rappel 30 min avant · moins précis",
+          "60": "Rappel 1 h avant · moins précis"
+        },
+        "reactivate": "Réactiver",
+        "reactivateLabel": "Réactiver les rappels précis",
+        "explainerBack": "Retour à {name}"
       },
       "resumeHint": "Tu choisiras la date de la prochaine dose.",
       "resume": "Reprendre ce traitement",

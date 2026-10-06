@@ -9,7 +9,9 @@ import {
   isTimeTaken,
   parseDoseQuantity,
   pastDosesBasis,
+  reminderOffsetChoices,
   rhythmOfValues,
+  suggestsExactReminders,
   tabletShortcuts,
   treatmentFormValuesFrom,
   validateTreatmentCreation,
@@ -97,6 +99,8 @@ function saisie(changes: Partial<TreatmentFormValues> = {}): TreatmentFormValues
     doseQuantity: '½',
     doseUnit: 'tablet',
     endsOn: '2026-10-10',
+    reminderOffset: null,
+    reminderTime: null,
     ...changes,
   }
 }
@@ -123,6 +127,8 @@ describe('valeurs du formulaire', () => {
       doseQuantity: '',
       doseUnit: null,
       endsOn: '',
+      reminderOffset: null,
+      reminderTime: null,
     })
   })
 
@@ -141,6 +147,17 @@ describe('valeurs du formulaire', () => {
       doseQuantity: '1\u00a0½',
       doseUnit: 'tablet',
       endsOn: '2026-10-10',
+      reminderOffset: null,
+      reminderTime: null,
+    })
+  })
+
+  it('reprend le rappel de la période, pour « Modifier » comme pour « Reprendre » (TR-32)', () => {
+    const reglages = period({ times: ['21:00'], reminderOffsetMinutes: 30, reminderTime: '07:30' })
+
+    expect(treatmentFormValuesFrom(milbemax(), reglages)).toMatchObject({
+      reminderOffset: 30,
+      reminderTime: '07:30',
     })
   })
 
@@ -151,6 +168,78 @@ describe('valeurs du formulaire', () => {
     )
 
     expect(values).toMatchObject({ doseQuantity: '', doseUnit: null, endsOn: '' })
+  })
+})
+
+describe('champ « Rappel » (RA-7, RA-8, RA-23)', () => {
+  it('propose les quatre moments avec les rappels précis actifs', () => {
+    expect(reminderOffsetChoices('precise', null)).toEqual([0, 15, 30, 60])
+  })
+
+  it.each(['never-enabled', 'removed', 'unavailable', null] as const)(
+    'sans rappels précis (%s), seulement « À l’heure » et « 1 h avant »',
+    (status) => {
+      expect(reminderOffsetChoices(status, null)).toEqual([0, 60])
+      expect(reminderOffsetChoices(status, 0)).toEqual([0, 60])
+    },
+  )
+
+  it('garde le choix déjà fait, à sa place, quand les rappels précis ne sont plus actifs (V2 ter)', () => {
+    expect(reminderOffsetChoices('removed', 30)).toEqual([0, 30, 60])
+    expect(reminderOffsetChoices('never-enabled', 15)).toEqual([0, 15, 60])
+  })
+
+  it('envoie le rappel saisi avec les réglages', () => {
+    const result = validateTreatmentCreation(
+      saisie({ reminderOffset: 60, reminderTime: '07:30' }),
+      MILO,
+      TODAY,
+    )
+
+    expect(result).toMatchObject({
+      success: true,
+      data: { reminderOffsetMinutes: 60, reminderTime: '07:30' },
+    })
+  })
+
+  describe('suggestion des rappels précis (RA-23)', () => {
+    const contexte = {
+      exact: 'never-enabled',
+      notifications: 'granted',
+      alreadySuggested: false,
+    } as const
+
+    it('la propose quand le traitement reçoit sa première heure, notifications autorisées', () => {
+      expect(suggestsExactReminders([], ['21:00'], contexte)).toBe(true)
+    })
+
+    it('ne la propose pas pour une heure de plus, ni pour une heure retirée', () => {
+      expect(suggestsExactReminders(['08:00'], ['08:00', '20:00'], contexte)).toBe(false)
+      expect(suggestsExactReminders(['08:00'], [], contexte)).toBe(false)
+    })
+
+    it('ne la propose qu’une fois', () => {
+      expect(suggestsExactReminders([], ['21:00'], { ...contexte, alreadySuggested: true })).toBe(
+        false,
+      )
+    })
+
+    it.each([
+      ['precise', 'granted'],
+      ['removed', 'granted'],
+      ['unavailable', 'granted'],
+      [null, 'granted'],
+      ['never-enabled', 'unasked'],
+      ['never-enabled', 'disabled'],
+      ['never-enabled', null],
+    ] as const)(
+      'ne la propose pas avec les rappels précis %s et les notifications %s',
+      (exact, notifications) => {
+        expect(suggestsExactReminders([], ['21:00'], { ...contexte, exact, notifications })).toBe(
+          false,
+        )
+      },
+    )
   })
 })
 

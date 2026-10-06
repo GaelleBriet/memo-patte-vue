@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { dose, missed, period, plain, shifted, treatment } from './treatment-fixtures'
-import { detailActions, doseCard } from '../logic/treatment-card'
+import { detailActions, doseCard, lessPreciseReminder } from '../logic/treatment-card'
 import { treatmentScheduleOf } from '../logic/treatment-schedule'
 import type { TreatmentWithHistory } from '../repository/treatments.repository'
 import i18n, { applyLocale } from '@/core/i18n'
@@ -237,5 +237,41 @@ describe('detailActions', () => {
       canStop: false,
       canResume: true,
     })
+  })
+})
+
+describe('lessPreciseReminder (TR-34, Rappels Q6)', () => {
+  const EN_COURS = treatment(
+    [{ ...MATIN_ET_SOIR, reminderOffsetMinutes: 30 }],
+    [dose('2026-09-27', '2026-09-28', { dueTime: '20:00' })],
+  )
+
+  function ligne(history: TreatmentWithHistory, exact: Parameters<typeof lessPreciseReminder>[3]) {
+    return lessPreciseReminder(t, history, treatmentScheduleOf(history, '2026-09-28'), exact)
+  }
+
+  it('dit le rappel choisi, moins précis, quand les rappels précis ont été retirés', () => {
+    expect(ligne(EN_COURS, 'removed')).toBe('Rappel 30\u00a0min avant · moins précis')
+  })
+
+  it('dit « à l’heure » pour un rappel jamais choisi, et chaque moment en anglais', () => {
+    const aLHeure = treatment([MATIN_ET_SOIR])
+    expect(ligne(aLHeure, 'removed')).toBe('Rappel à l’heure · moins précis')
+
+    applyLocale('en')
+    expect(ligne(EN_COURS, 'removed')).toBe('Reminder 30 min before · less precise')
+    expect(ligne(aLHeure, 'removed')).toBe('Reminder at the time · less precise')
+  })
+
+  it.each(['precise', 'never-enabled', 'unavailable', null] as const)(
+    'ne dit rien quand les rappels précis ne sont pas retirés (%s)',
+    (exact) => {
+      expect(ligne(EN_COURS, exact)).toBeNull()
+    },
+  )
+
+  it('ne dit rien pour un traitement sans heure, ni pour un traitement arrêté', () => {
+    expect(ligne(treatment([period()]), 'removed')).toBeNull()
+    expect(ligne(treatment([{ ...MATIN_ET_SOIR, stoppedOn: '2026-09-20' }]), 'removed')).toBeNull()
   })
 })

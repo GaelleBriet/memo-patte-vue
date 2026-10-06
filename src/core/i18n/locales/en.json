@@ -294,6 +294,23 @@
         "change": "Time {time}, change",
         "remove": "Remove {time}"
       },
+      "reminder": {
+        "label": "Reminder",
+        "offset": {
+          "0": "At the time",
+          "15": "15 min before",
+          "30": "30 min before",
+          "60": "1 hour before"
+        },
+        "eachTime": "For each time: {times}.",
+        "at": "At {time}",
+        "atLabel": "Reminder time, {time}. Change.",
+        "noTimeHelp": "With no treatment time, choose the reminder time.",
+        "lessPrecise": "Less precise: exact reminders are off",
+        "reactivate": "Turn exact reminders back on",
+        "suggest": "For a reminder right on time, turn on exact reminders",
+        "explainerBack": "Back to the form"
+      },
       "dosage": {
         "label": "Dosage",
         "quantity": "Quantity",
@@ -447,6 +464,17 @@
           "given": "{time} dose · already logged",
           "missed": "{time} dose · logged as missed"
         }
+      },
+      "reminder": {
+        "lessPrecise": {
+          "0": "Reminder at the time · less precise",
+          "15": "Reminder 15 min before · less precise",
+          "30": "Reminder 30 min before · less precise",
+          "60": "Reminder 1 hour before · less precise"
+        },
+        "reactivate": "Turn back on",
+        "reactivateLabel": "Turn exact reminders back on",
+        "explainerBack": "Back to {name}"
       },
       "resumeHint": "You’ll choose the date of the next dose.",
       "resume": "Resume this treatment",

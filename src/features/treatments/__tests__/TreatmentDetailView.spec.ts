@@ -31,6 +31,10 @@ import TreatmentDoseCard from '../views/TreatmentDoseCard.vue'
 import TreatmentStopDialog from '../views/TreatmentStopDialog.vue'
 import TreatmentUnloggedPrompt from '../views/TreatmentUnloggedPrompt.vue'
 import i18n from '@/core/i18n'
+import {
+  getExactRemindersStatus,
+  type ExactRemindersStatus,
+} from '@/core/notifications/exact-reminders'
 import vuetify from '@/core/theme/vuetify'
 import type { Animal } from '@/features/animals/schema/animal.schema'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
@@ -47,6 +51,11 @@ import {
   toastMessage,
   toastTone,
 } from '@/shared/utils/toast'
+
+vi.mock('@/core/notifications/exact-reminders', () => ({
+  getExactRemindersStatus: vi.fn<() => Promise<ExactRemindersStatus>>(),
+  openExactRemindersSettings: vi.fn<() => Promise<ExactRemindersStatus>>(),
+}))
 
 const TODAY = new Date('2026-09-28T21:00:00')
 const NBSP = / /g
@@ -111,6 +120,7 @@ let wrapper: VueWrapper | null = null
 
 beforeEach(async () => {
   vi.useFakeTimers({ now: TODAY, toFake: ['Date'] })
+  vi.mocked(getExactRemindersStatus).mockResolvedValue('precise')
   vi.stubGlobal('visualViewport', {
     addEventListener() {},
     removeEventListener() {},
@@ -224,6 +234,33 @@ function dialogue(view: VueWrapper, title: string) {
 function message(): string | undefined {
   return toastMessage.value?.replace(NBSP, ' ')
 }
+
+describe('TreatmentDetailView — rappels précis retirés (TR-34, planche A · V2 quater)', () => {
+  it('dit sous les heures « Rappel 30 min avant · moins précis », et « Réactiver » ouvre l’écran d’explication', async () => {
+    vi.mocked(getExactRemindersStatus).mockResolvedValue('removed')
+    const view = await monter(treatment([{ ...MATIN_ET_SOIR, reminderOffsetMinutes: 30 }], HIER))
+    const ligne = view.get('.treatment-dose-card__less-precise')
+
+    expect(texte(ligne.get('span'))).toBe('Rappel 30 min avant · moins précis')
+    expect(ligne.get('button').text()).toBe('Réactiver')
+    expect(ligne.get('button').attributes('aria-label')).toBe('Réactiver les rappels précis')
+
+    await ligne.get('button').trigger('click')
+    await flushPromises()
+
+    expect(document.body.textContent).toContain('Recevoir les rappels à l’heure pile')
+  })
+
+  it('ne dit rien quand les rappels précis sont actifs, ni pour un traitement sans heure', async () => {
+    const actifs = await monter()
+    expect(actifs.find('.treatment-dose-card__less-precise').exists()).toBe(false)
+    actifs.unmount()
+
+    vi.mocked(getExactRemindersStatus).mockResolvedValue('removed')
+    const sansHeure = await monter(MILBEMAX)
+    expect(sansHeure.find('.treatment-dose-card__less-precise').exists()).toBe(false)
+  })
+})
 
 describe('TreatmentDetailView — carte de la dose du moment', () => {
   it('présente le traitement, son rythme et sa posologie (planche A · V3 ter)', async () => {
