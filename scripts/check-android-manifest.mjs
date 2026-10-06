@@ -14,6 +14,10 @@ const ALLOWED_PERMISSIONS = new Map([
   ['android.permission.INTERNET', 'notre manifest — Supabase, RevenueCat'],
   ['android.permission.POST_NOTIFICATIONS', 'notre manifest — rappels, demandée au premier rappel'],
   [
+    'android.permission.SCHEDULE_EXACT_ALARM',
+    'notre manifest — option « Rappels précis », accordée dans « Alarmes et rappels », jamais au lancement',
+  ],
+  [
     'android.permission.READ_EXTERNAL_STORAGE',
     'notre manifest — export enregistré dans Documents, Android 7 à 10, au premier enregistrement',
   ],
@@ -32,6 +36,13 @@ const ALLOWED_PERMISSIONS = new Map([
     `${APP_ID}.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`,
     'androidx.core — permission de signature interne, jamais visible du Play Store',
   ],
+])
+
+/** Jamais déclarées, quel que soit le plugin qui les apporte (CLAUDE.md, Conformité). */
+const FORBIDDEN_PERMISSIONS = new Map([
+  ['android.permission.USE_EXACT_ALARM', 'réservée aux réveils et agendas par la politique Play'],
+  ['android.permission.READ_MEDIA_IMAGES', 'photos par le Photo Picker système'],
+  ['android.permission.READ_MEDIA_VIDEO', 'photos par le Photo Picker système'],
 ])
 
 /** Réservées aux anciennes versions d'Android : au-delà, l'app ne doit jamais les demander. */
@@ -102,7 +113,9 @@ const features = declarationsOf(manifest, 'uses-feature').map((declaration) =>
 
 const failures = []
 for (const permission of permissions) {
-  if (!ALLOWED_PERMISSIONS.has(permission)) {
+  if (FORBIDDEN_PERMISSIONS.has(permission)) {
+    failures.push(`permission interdite : ${permission} (${FORBIDDEN_PERMISSIONS.get(permission)})`)
+  } else if (!ALLOWED_PERMISSIONS.has(permission)) {
     failures.push(`permission inattendue : ${permission}`)
   }
 }

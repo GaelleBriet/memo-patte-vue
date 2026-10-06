@@ -13,6 +13,7 @@ import {
 export type ReminderNotifications = Pick<
   typeof notifications,
   | 'checkPermission'
+  | 'canScheduleExact'
   | 'scheduleReminders'
   | 'cancelReminders'
   | 'rescheduleAll'

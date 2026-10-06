@@ -422,6 +422,21 @@ export function otherDateBox(
 }
 
 /**
+ * « C'est fait » aujourd'hui : `confirm` quand la prise pourrait décaler la suite, la case est alors
+ * demandée ; sinon la prise seule, d'un tap. Un report seul qui bloque le décalage (Q2 a) reste un tap.
+ */
+export function doneGesture(
+  schedule: Pick<TreatmentSchedule, 'offersShift' | 'noteRefusal'>,
+  due: Due,
+  today: string,
+): { confirm: true } | { confirm: false; gesture: DoseGesture } {
+  if (schedule.offersShift(due, today) && schedule.noteRefusal(due, today) === null) {
+    return { confirm: true }
+  }
+  return { confirm: false, gesture: { kind: 'given', due, givenOn: today } }
+}
+
+/**
  * Ce que « Fait à une autre date » enregistre : `null` sans dose ou quand le geste est refusé ; la
  * case montrée, son état part au moteur, qui refuse un décalage impossible au lieu de l'omettre.
  */

@@ -274,12 +274,14 @@ Le job `android` de la CI (§8) fait tourner la variante `debug` sur chaque PR. 
 contrôle local, à passer avant chaque upload sur la Play Console (check-list §3.4 point 11 de
 `conformite-play-store-rgpd.md`).
 
-Permissions attendues à ce jour : `INTERNET`, `POST_NOTIFICATIONS`, et `READ/WRITE_EXTERNAL_STORAGE` limitées
+Permissions attendues à ce jour : `INTERNET`, `POST_NOTIFICATIONS`, `SCHEDULE_EXACT_ALARM` (option « Rappels
+précis », accordée par l'utilisateur dans « Alarmes et rappels »), et `READ/WRITE_EXTERNAL_STORAGE` limitées
 à Android 10 et moins par `maxSdkVersion="29"`, que le contrôle vérifie aussi (notre manifest),
 `RECEIVE_BOOT_COMPLETED` et `WAKE_LOCK` (`@capacitor/local-notifications`, indispensables pour reprogrammer les
 rappels après un redémarrage), `ACCESS_NETWORK_STATE` (RevenueCat), `com.android.vending.BILLING` (Play Billing)
 et la permission de signature `DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` d'`androidx.core`. Aucun `uses-feature` :
 la photo passe par le Photo Picker système, jamais par la caméra déclarée comme fonctionnalité requise.
+Interdites, avec leur propre message d'échec : `USE_EXACT_ALARM`, `READ_MEDIA_IMAGES` et `READ_MEDIA_VIDEO`.
 
 ## 7. Version de l'app
 

@@ -909,6 +909,21 @@
       "title": "Reminders are off",
       "openSettings": "Turn on in settings"
     },
+    "exact": {
+      "title": "Exact reminders",
+      "subtitle": "Android setting",
+      "heroTitle": "Get reminders right on time",
+      "heroText": "Without this permission, Android may delay a reminder: never early, often by a few minutes, sometimes by an hour or more when the phone is saving battery.",
+      "steps": {
+        "open": "Tap “{action}”.",
+        "allow": "In “Alarms & reminders”, allow MémoPatte.",
+        "back": "Come back to MémoPatte: your choice is saved."
+      },
+      "skip": "You can skip this: your reminders will still arrive, sometimes late.",
+      "open": "Open settings",
+      "openLabel": "Open the Android Alarms & reminders setting",
+      "later": "Not now"
+    },
     "action": {
       "done": "Done",
       "alreadyDose": "{name} dose on {date} already logged for {animal}",

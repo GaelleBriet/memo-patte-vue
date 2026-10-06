@@ -113,22 +113,22 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
     échéance (G10).
 - **TR-8** Aucune échéance après la date de fin.
 
-  Garde du moteur d'échéances (#506) :
-  - **G20** « C'est fait » sans case (fiche en un tap, feuille « À faire », notification) sur une dose
-    en retard décale la suite, avec sa ligne de décalage. Quand ce décalage ferait sortir des doses
-    de la date de fin, la règle porte sur la dose suivante : si elle tombe au moins une
-    demi-fréquence après la prise (la moitié des jours entre la prise et la même date plus un
-    intervalle), rien n'est décalé, aucune dose n'est perdue et le toast le dit (« Prise de Panacur notée pour
-    Pixel. La dose du 30 oct. reste prévue. ») ; plus près, le décalage est écrit et
-    le toast dit la dose qui n'est plus prévue (« Prise de Panacur notée pour Pixel. La dose du
-    30 oct. n'est plus prévue (date de fin). » · Annuler). Quand il n'en reste aucune, le traitement
-    se termine : « Dernière dose de Panacur notée, à retrouver dans Traitements terminés. » · Annuler
-    (TR-31). Vendredi, 16, 23 et 30 oct., fin le 30 : dose du 16 donnée le lundi 19, 23 et 30
-    restent ; donnée le mercredi 21, 28 oct., la dose du 30 saute. Toutes les 4 semaines, 5 oct. et
-    2 nov., fin le 2 nov. : donnée le 10 ou le 19 oct., le 2 nov. reste ; donnée le 20 ou le 25 oct.,
-    ou le 1er nov., terminé. Le choix est écrit : changer la date de fin ensuite ne le rejoue pas. Avec
-    la case, la personne choisit, avertie de la dose perdue (V28 bis). (Décisions de Gaelle du
-    2026-10-03, Q4, et du 2026-10-05, #506.)
+  Garde du moteur d'échéances (#506, réécrite par #536) :
+  - **G20** « C'est fait » ne décale jamais la suite sans l'aval de la personne (principe du
+    2026-10-06). Quand la prise décalerait la suite (la case de « Fait à une autre date » serait
+    proposée : dose en retard ou donnée en avance, N1, N3, G10), « C'est fait » ouvre une
+    confirmation : « Dose du vendredi 16 oct., donnée le lundi 19 oct. », la case « Décaler aussi les
+    doses suivantes » cochée par défaut et son aide, qui montre les dates, cochée comme décochée, ou la
+    dose perdue à cause de la date de fin (V28 bis), puis « Enregistrer » et « Annuler », qui n'écrit
+    rien. Restent un tap, sans rien décaler : la dose du jour, une prise sans case, et une prise dont le
+    décalage ferait passer un report seul (Q2 a, G19 : le toast le dit). « Annuler » du toast défait
+    tout le geste ; quand la prise termine le traitement, le toast le dit (TR-31). Le décalage
+    automatique et la règle de la demi-fréquence face à la date de fin disparaissent des gestes de
+    l'app : la fiche les a quittés avec #536, la notification les quitte avec #539 et la feuille
+    « À faire » avec #543, qui reprennent la même confirmation. Vendredi, 16, 23 et 30 oct., fin le
+    30 : dose du 16 donnée le lundi 19, cochée, 26 oct., et l'aide dit « Avec le décalage, la dose du
+    30 oct. ne sera plus prévue (date de fin). » ; décochée, 23 et 30 restent. (Décision de Gaelle du
+    2026-10-06, qui revient sur celles du 2026-10-03, Q4, et du 2026-10-05, #506.)
 - **TR-9** « Prochaine dose » (« Modifier ») déplace la prochaine dose, plus tôt ou plus tard que
   l'échéance prévue, et recale la suite des échéances à partir de la nouvelle date. La date choisie va
   du lendemain de l'échéance qui précède (en pratique, de la dernière prise notée), jamais avant
@@ -221,8 +221,8 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
 ### 4.4 Noter une prise
 
 - **TR-19** Depuis « À faire » ou la feuille du soin : « Fait aujourd'hui », « Fait à une autre
-  date ». Depuis la fiche : « C'est fait » (aujourd'hui, un tap) et un lien « Fait à une autre date »
-  toujours à côté. (Existant ; G2)
+  date ». Depuis la fiche : « C'est fait » (aujourd'hui, un tap, sauf quand la prise décalerait la suite :
+  confirmation, G20) et un lien « Fait à une autre date » toujours à côté. (Existant ; G2)
 - **TR-20** Depuis une notification : « C'est fait » note aujourd'hui l'échéance de la notification
   (TR-13) si la notification est du jour ;
   plus tard, l'app demande « Donnée quand ? » (le jour prévu, aujourd'hui, une autre date), sur
@@ -279,7 +279,7 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
     décalage », grisé aussi quand un report seul qui le suit n'aurait plus son échéance d'origine
     dans le rythme rétabli (« Supprime d'abord le report du 23 oct. » ; vendredi, décalage du 16 au 19,
     dose du 26 avancée seule au 23 : sans le décalage, la dose du 23 et la dose avancée tomberaient
-    ensemble ; graine 2157, #506). « C'est fait » en un tap, la notification et la feuille « À faire » notent la prise
+    ensemble ; graine 2157, #506). « C'est fait », la notification et la feuille « À faire » notent la prise
     sans décalage (« La suite ne bouge pas : un report est prévu le 28 oct. »). (Décisions de Gaelle
     du 2026-10-05, #505.)
   - **G21** Quand une prise notée ou corrigée fait repartir la suite plus tôt, l'aide sous la case
@@ -793,7 +793,7 @@ avait fixé la suite ; revue du 2026-10-02). Fermées par la ligne de décalage 
 de la période (#502, étude `technical/etude-modele-prises.md` §2.6) : la dose non renseignée redatée
 (dose du moment au 15), la dose du moment notée par erreur puis corrigée (17), les départs les 29, 30
 et 31 (30 oct., 30 nov.) et le jour borné repris par Q37 (31 mars, 30 avr.). La date de fin qui
-faisait sauter une dose après une prise en retard est fermée par G20 (#506). Reste :
+faisait sauter une dose après une prise en retard est fermée par la case et son avertissement (G20, #536). Reste :
 
 - À plusieurs heures, quand une heure de la prochaine journée a été donnée en avance et qu'un réglage
   change sans toucher la fréquence ni les heures, les heures restantes de cette journée ne sont plus

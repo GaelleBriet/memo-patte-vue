@@ -187,7 +187,7 @@ export type TreatmentSchedule = {
   redateRefusal(doseId: string, givenOn: string, shiftsFollowing?: boolean): RedateRefusal | null
   /** Q2 a : même refus pour « Fait à une autre date », case cochée. */
   noteRefusal(due: Due, givenOn: string): string | null
-  /** La case de « Fait à une autre date » : la prise ferait repartir la suite de sa date réelle. */
+  /** La case d’une prise notée : elle ferait repartir la suite de sa date réelle, date de fin comprise. */
   offersShift(due: Due, givenOn: string): boolean
   /**
    * Chemin de « Prochaine dose » (TR-9, TR-28) : sans prise dans la période, elle corrige la première

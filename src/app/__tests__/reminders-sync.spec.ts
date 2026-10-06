@@ -203,6 +203,25 @@ describe('syncAllReminders', () => {
     expect(notifications.rescheduleAll).not.toHaveBeenCalled()
   })
 
+  it('reprogramme les mêmes rappels quand l’accès aux rappels précis change', async () => {
+    listVaccinations.mockResolvedValue([
+      vaccination('22222222-2222-4222-8222-222222222222', MILO.id, '2026-10-15'),
+    ])
+    await sync()()
+    const inexact = notifications.rescheduleAll.mock.calls[0]?.[0]
+
+    notifications.canScheduleExact.mockResolvedValue(true)
+    await sync()()
+    notifications.canScheduleExact.mockResolvedValue(false)
+    await sync()()
+
+    expect(notifications.rescheduleAll.mock.calls.map(([reminders]) => reminders)).toEqual([
+      inexact,
+      inexact,
+      inexact,
+    ])
+  })
+
   it('reprogramme quand un texte en attente diffère', async () => {
     listVaccinations.mockResolvedValue([
       vaccination('22222222-2222-4222-8222-222222222222', MILO.id, '2026-10-15'),
