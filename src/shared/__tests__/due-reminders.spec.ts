@@ -199,6 +199,7 @@ describe('parseReminderKey', () => {
     expect(parseReminderKey(key)).toEqual({
       entry: `vaccination:${ID}`,
       dueDate: '2026-10-15',
+      dueTime: null,
       moment: 'before',
     })
   })

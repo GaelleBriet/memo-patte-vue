@@ -27,6 +27,7 @@ import {
   isExtraLine,
   isMove,
   isShiftLine,
+  lastDueDay,
   mergeDoses,
   pendingDues,
   shiftDueOf,
@@ -151,5 +152,9 @@ export function treatmentSchedule(input: TreatmentScheduleInput): TreatmentSched
     strandedMoveOn: (doseId) => strandedMoveOn(state, doseId),
     shiftDueOf: (due) => shiftDueOf(planOf(state, due.periodId), due),
     newPeriod: (frequency, times) => newPeriod(state, frequency, times),
+    lastDueDay: () => {
+      const current = state.plans.at(-1)
+      return current === undefined ? null : lastDueDay(current)
+    },
   }
 }

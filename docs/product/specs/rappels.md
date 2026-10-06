@@ -57,7 +57,10 @@ par jour gérées au-delà d'une notification par heure (#365, plus tard) ; alar
   de la première prise (« Médicament de Luna dans 3 jours, à 8 h et 20 h ») ; une seule relance, si
   aucune prise de ce jour n'est notée. (Spec Q2, 2026-09-29)
 - **RA-6** Aucun rappel pour une dose non renseignée, après la date de fin, pour un traitement arrêté,
-  ou pour un animal qu'on ne suit plus. (Spec Traitements TR-14 ; P10)
+  ou pour un animal qu'on ne suit plus. (Spec Traitements TR-14 ; P10) Exception : la relance de la
+  dernière dose prévue avant la date de fin est envoyée, même si elle tombe après la date de fin (par
+  exemple, un hebdomadaire qui finit le 19 oct., dose du 19 non notée : relance le 22). Les rappels du
+  jour et les prévenances restent bornés par la date de fin. (Décision de Gaelle du 2026-10-06, #534)
 
 ### 4.2 Moment du rappel
 

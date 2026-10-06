@@ -671,6 +671,26 @@
       "dueBody": "Log the dose in MémoPatte to schedule the next one.",
       "overdueTitle": "{name} ({type}) for {animal} is {days} days overdue",
       "overdueBody": "Remember to give the dose, then log it in MémoPatte."
+    },
+    "plan": {
+      "treatment": {
+        "dueAt": "{animal}’s {name} at {time}",
+        "dueToday": "{animal}’s {name} today",
+        "beforeAt": "{animal}’s {name} in {days} days, at {times}",
+        "before": "{animal}’s {name} in {days} days",
+        "beforeBody": "Check you still have a dose.",
+        "overdueTitle": "{animal}’s {name} is {days} days overdue",
+        "overdueBody": "Remember to give the dose, then log it in MémoPatte."
+      },
+      "vaccination": {
+        "beforeTitle": "{animal}’s {name} in {weeks} weeks",
+        "beforeBody": "On {date}. Remember to book a vet appointment.",
+        "dueTitle": "{animal}’s {name} today",
+        "dueBody": "Log the vaccine in MémoPatte once it’s done.",
+        "overdueTitle": "{animal}’s {name} is {days} days overdue",
+        "overdueBody": "Book a vet appointment, then log the vaccine in MémoPatte."
+      },
+      "relay": "To keep getting {animal}’s reminders, open MémoPatte."
     }
   },
   "reminderSheet": {
