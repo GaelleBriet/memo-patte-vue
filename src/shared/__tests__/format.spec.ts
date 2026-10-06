@@ -20,6 +20,7 @@ import {
   formatWeekday,
   formatWeekdayDayMonth,
   formatDaySeries,
+  formatDayList,
   nonBreaking,
   weekdayInitials,
   weekStartsOn,
@@ -106,7 +107,7 @@ describe('mois et dates', () => {
 
   it('écrit une date complète, mois en toutes lettres, pour le lecteur d’écran', () => {
     expect(formatFullDate('2026-02-03')).toBe('3 février 2026')
-    expect(formatFullDate('2026-09-01')).toBe('1 septembre 2026')
+    expect(formatFullDate('2026-09-01')).toBe('1er septembre 2026')
   })
 
   it('écrit le jour et le mois abrégé, sans l’année', () => {
@@ -287,7 +288,7 @@ describe('formatPeriodRange', () => {
   it('reprend formatDayRange dans une même année', () => {
     expect(formatPeriodRange('2026-10-06', '2026-10-10')).toEqual({ start: '6', end: '10 oct.' })
     expect(formatPeriodRange('2026-09-01', '2026-10-10')).toEqual({
-      start: '1 sept.',
+      start: '1er sept.',
       end: '10 oct.',
     })
   })
@@ -305,6 +306,50 @@ describe('formatPeriodRange', () => {
     expect(formatPeriodRange('2026-08-06', '2027-02-06')).toEqual({
       start: 'Aug 6',
       end: 'Feb 6, 2027',
+    })
+  })
+})
+
+describe('premier jour du mois', () => {
+  afterEach(() => applyLocale('fr'))
+
+  it('écrit « 1er » dans tous les formats français', () => {
+    expect(formatDayMonth('2026-10-01')).toBe('1er oct.')
+    expect(formatLongDate('2026-10-01')).toBe('1er oct. 2026')
+    expect(formatDayMonthOrYear('2025-10-01', '2026-10-06')).toBe('1er oct. 2025')
+    expect(formatFullDayMonth('2026-10-01')).toBe('1er octobre')
+    expect(formatFullDate('2026-10-01')).toBe('1er octobre 2026')
+    expect(formatWeekdayDate('2026-10-01')).toBe('jeu. 1er oct. 2026')
+    expect(formatWeekdayDayMonth('2026-10-01')).toBe('jeudi 1er oct.')
+    expect(formatDaySeries(['2026-10-01', '2026-10-08'])).toBe('1er, 8 oct.')
+    expect(formatDayList(['2026-10-01', '2026-10-03'])).toBe('1er et 3 oct.')
+    expect(formatPeriodRange('2026-09-01', '2026-09-20')).toEqual({
+      start: '1er',
+      end: '20 sept.',
+    })
+    expect(formatPeriodRange('2026-10-01', '2027-02-01')).toEqual({
+      start: '1er oct.',
+      end: '1er févr. 2027',
+    })
+  })
+
+  it('n’écrit « 1er » que pour le premier jour, ni « 11 » ni « 21 »', () => {
+    expect(formatDayMonth('2026-10-11')).toBe('11 oct.')
+    expect(formatLongDate('2026-10-21')).toBe('21 oct. 2026')
+    expect(formatNumericDate('2026-10-01')).toBe('01/10/2026')
+  })
+
+  it('ne change rien en anglais', () => {
+    applyLocale('en')
+
+    expect(formatDayMonth('2026-10-01')).toBe('Oct 1')
+    expect(formatLongDate('2026-10-01')).toBe('Oct 1, 2026')
+    expect(formatFullDate('2026-10-01')).toBe('October 1, 2026')
+    expect(formatWeekdayDate('2026-10-01')).toBe('Thu, Oct 1, 2026')
+    expect(formatDaySeries(['2026-10-01', '2026-10-08'])).toBe('Oct 1, 8')
+    expect(formatPeriodRange('2026-09-01', '2026-09-20')).toEqual({
+      start: 'Sep 1',
+      end: 'Sep 20',
     })
   })
 })
