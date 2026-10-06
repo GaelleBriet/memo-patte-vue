@@ -166,6 +166,7 @@
         "nextReminder": "Next reminder",
         "hint": "Use the date your vet gave you.",
         "choices": {
+          "oneMonth": "In 1 month",
           "oneYear": "In 1 year",
           "threeYears": "In 3 years",
           "otherDate": "Other date",

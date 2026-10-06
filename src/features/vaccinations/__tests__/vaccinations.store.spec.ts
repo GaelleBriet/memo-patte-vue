@@ -265,13 +265,11 @@ describe('useVaccinationsStore', () => {
 
     const updated = await store.update(seme.id, {
       name: 'Rage (rappel)',
-      lastInjectionDate: '2026-04-01',
       dueDate: '2027-04-01',
     })
 
     expect(repository.update).toHaveBeenCalledWith(seme.id, {
       name: 'Rage (rappel)',
-      lastInjectionDate: '2026-04-01',
       dueDate: '2027-04-01',
     })
     expect(updated.name).toBe('Rage (rappel)')
@@ -304,7 +302,6 @@ describe('useVaccinationsStore', () => {
 
     const updated = await store.update(seme.id, {
       name: 'Rage',
-      lastInjectionDate: '2026-03-12',
       dueDate: '2027-03-12',
     })
 
@@ -353,9 +350,9 @@ describe('useVaccinationsStore', () => {
     await store.loadForAnimal(MILO)
 
     repository.update.mockRejectedValueOnce(new Error('vaccin introuvable'))
-    await expect(
-      store.update(seme.id, { name: 'Rage', lastInjectionDate: '2026-03-12', dueDate: null }),
-    ).rejects.toThrow('vaccin introuvable')
+    await expect(store.update(seme.id, { name: 'Rage', dueDate: null })).rejects.toThrow(
+      'vaccin introuvable',
+    )
 
     repository.remove.mockRejectedValueOnce(new Error('base verrouillée'))
     await expect(store.remove(seme.id)).rejects.toThrow('base verrouillée')
@@ -522,7 +519,7 @@ function createFakeRepository(): FakeVaccinationsRepository {
       id: crypto.randomUUID(),
       animalId: input.animalId,
       name: input.name,
-      lastInjectionDate: input.lastInjectionDate,
+      lastInjectionDate: input.lastInjectionDate ?? null,
       dueDate: input.dueDate ?? null,
       createdAt: now,
       updatedAt: now,
@@ -548,7 +545,6 @@ function createFakeRepository(): FakeVaccinationsRepository {
       const next = {
         ...current,
         name: input.name,
-        lastInjectionDate: input.lastInjectionDate,
         dueDate: input.dueDate ?? null,
         updatedAt: new Date().toISOString(),
       }

@@ -166,6 +166,7 @@
         "nextReminder": "Prochain rappel",
         "hint": "Reporte la date indiquée par ton vétérinaire.",
         "choices": {
+          "oneMonth": "Dans 1 mois",
           "oneYear": "Dans 1 an",
           "threeYears": "Dans 3 ans",
           "otherDate": "Autre date",
