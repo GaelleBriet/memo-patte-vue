@@ -203,6 +203,9 @@
       "back": "Retour au carnet",
       "nextReminder": "Prochain rappel",
       "noReminder": "Pas de rappel programmé",
+      "today": "Aujourd’hui",
+      "overdueSince": "En retard depuis le {date}",
+      "firstVaccine": "Premier vaccin · aucune injection notée",
       "doneLabel": "C’est fait : noter l’injection de {name} pour {animal} et choisir le prochain rappel",
       "injections": "Injections",
       "chosen": {

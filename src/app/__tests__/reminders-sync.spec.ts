@@ -80,13 +80,14 @@ const SETTINGS: CarnetReminderSettings = { vaccineReminderTime: '09:00', remindB
 let notifications: FakeNotifications
 let list: ReturnType<typeof vi.fn<() => Promise<Animal[]>>>
 let listVaccinations: ReturnType<typeof vi.fn<() => Promise<Vaccination[]>>>
+let listAllReplacedDues: ReturnType<typeof vi.fn<() => Promise<Map<string, string[]>>>>
 let listTreatments: ReturnType<typeof vi.fn<() => Promise<TreatmentWithHistory[]>>>
 let getSettings: ReturnType<typeof vi.fn<() => Promise<CarnetReminderSettings>>>
 
 function sync() {
   return createRemindersSync({
     animals: () => ({ list }),
-    vaccinations: () => ({ listAll: listVaccinations }),
+    vaccinations: () => ({ listAll: listVaccinations, listAllReplacedDues }),
     treatments: () => ({ listAllWithHistory: listTreatments }),
     carnetSettings: () => ({ get: getSettings }),
     notifications,
@@ -109,6 +110,7 @@ beforeEach(() => {
   notifications = createFakeNotifications()
   list = vi.fn<() => Promise<Animal[]>>().mockResolvedValue([MILO, LUNA])
   listVaccinations = vi.fn<() => Promise<Vaccination[]>>().mockResolvedValue([])
+  listAllReplacedDues = vi.fn<() => Promise<Map<string, string[]>>>().mockResolvedValue(new Map())
   listTreatments = vi.fn<() => Promise<TreatmentWithHistory[]>>().mockResolvedValue([])
   getSettings = vi.fn<() => Promise<CarnetReminderSettings>>().mockResolvedValue(SETTINGS)
 })
@@ -282,6 +284,7 @@ describe('syncAllReminders', () => {
       lastInjectionDate: '2026-09-14',
     }
     listVaccinations.mockResolvedValue([carre])
+    listAllReplacedDues.mockResolvedValue(new Map([[carre.id, ['2026-09-14']]]))
     listTreatments.mockResolvedValue([
       milbemax(
         {

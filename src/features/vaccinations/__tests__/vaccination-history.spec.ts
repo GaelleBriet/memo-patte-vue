@@ -148,29 +148,60 @@ describe('injectionRows', () => {
 })
 
 describe('vaccinationDetailTexts', () => {
+  const carre: { name: string; dueDate: string | null; lastInjectionDate: string | null } = {
+    name: 'Carré',
+    dueDate: '2027-08-26',
+    lastInjectionDate: '2026-08-26',
+  }
+  const textes = (vaccination: Partial<typeof carre> = {}, today = TODAY) =>
+    vaccinationDetailTexts(
+      t,
+      { ...carre, ...vaccination },
+      { animal: 'Boree', today, injections: 3 },
+    )
+
   it('annonce le prochain rappel, son délai et le nombre d’injections (F7)', () => {
-    expect(
-      vaccinationDetailTexts(
-        t,
-        { name: 'Carré', dueDate: '2027-08-26' },
-        { animal: 'Boree', today: TODAY, injections: 3 },
-      ),
-    ).toEqual({
+    expect(textes()).toEqual({
       subtitle: 'Vaccin · Boree',
-      due: { date: '26 août 2027', delay: { text: 'dans 11 mois', overdue: false } },
+      top: null,
+      due: { value: '26 août 2027', delay: 'dans 11 mois', tone: null },
       doneLabel: 'C’est fait : noter l’injection de Carré pour Boree et choisir le prochain rappel',
       counter: '3',
     })
   })
 
   it('n’annonce aucun rappel quand le dernier choix est « Pas de rappel »', () => {
-    expect(
-      vaccinationDetailTexts(
-        t,
-        { name: 'Carré', dueDate: null },
-        { animal: 'Boree', today: TODAY, injections: 1 },
-      ).due,
-    ).toBeNull()
+    expect(textes({ dueDate: null }).due).toBeNull()
+  })
+
+  it('dit « Aujourd’hui » le jour même, en ambre (VA-17)', () => {
+    expect(textes({ dueDate: TODAY }).due).toEqual({
+      value: 'Aujourd’hui',
+      delay: null,
+      tone: 'today',
+    })
+  })
+
+  it('dit depuis quand un rappel est en retard, jamais « en retard de N jours » (VA-17, Q4)', () => {
+    expect(textes({ dueDate: '2026-09-05' }).due).toEqual({
+      value: 'En retard depuis le 5 sept.',
+      delay: null,
+      tone: 'overdue',
+    })
+    expect(textes({ dueDate: '2025-12-05' }).due?.value).toBe('En retard depuis le 5 déc. 2025')
+  })
+
+  it('annonce un vaccin prévu sous le même libellé, avec « Premier vaccin » (V11 quinquies)', () => {
+    const prevu = textes({ lastInjectionDate: null, dueDate: '2026-09-22' })
+    expect(prevu.top).toBe('Premier vaccin · aucune injection notée')
+    expect(prevu.due?.value).toBe('En retard depuis le 22 sept.')
+  })
+
+  it('parle anglais', () => {
+    applyLocale('en')
+    expect(textes({ dueDate: TODAY }).due?.value).toBe('Today')
+    expect(textes({ dueDate: '2026-09-05' }).due?.value).toBe('Overdue since Sep 5')
+    expect(textes({ lastInjectionDate: null }).top).toBe('First vaccine · no injection logged')
   })
 })
 
@@ -222,7 +253,7 @@ describe('vaccinationDeleteTexts', () => {
     expect(
       vaccinationDetailTexts(
         t,
-        { name: 'Carré', dueDate: null },
+        { name: 'Carré', dueDate: null, lastInjectionDate: '2026-08-26' },
         { animal: 'Boree', today: TODAY, injections: 1 },
       ).doneLabel,
     ).toBe('Done: log the Carré injection for Boree and choose the next reminder')

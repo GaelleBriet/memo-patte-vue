@@ -2,7 +2,7 @@ import { nextReminderDate } from './vaccination-done'
 import type { InjectionDates } from '../repository/vaccination-injections.repository'
 import type { VaccinationInjection } from '../schema/vaccination-injection.schema'
 import type { Vaccination } from '../schema/vaccination.schema'
-import { dueDelayText, type DueDelayText } from '@/shared/domain/due-delay'
+import { dueDelayText } from '@/shared/domain/due-delay'
 import { formatDayMonthOrYear, formatFullDate, formatLongDate } from '@/shared/utils/format'
 
 export type Translate = (key: string, named?: Record<string, unknown>, plural?: number) => string
@@ -69,25 +69,46 @@ export function injectionRows(t: Translate, injections: VaccinationInjection[]):
   }))
 }
 
+export type NextReminderTone = 'today' | 'overdue' | null
+
 export type VaccinationDetailTexts = {
   subtitle: string
-  due: { date: string; delay: DueDelayText } | null
+  /** Ligne du haut de la carte, pour un vaccin encore sans injection. */
+  top: string | null
+  due: { value: string; delay: string | null; tone: NextReminderTone } | null
   doneLabel: string
   counter: string
 }
 
+function nextReminderDue(t: Translate, dueDate: string, today: string) {
+  if (dueDate === today) {
+    return { value: t('vaccinations.detail.today'), delay: null, tone: 'today' as const }
+  }
+  if (dueDate < today) {
+    const date = formatDayMonthOrYear(dueDate, today)
+    return {
+      value: t('vaccinations.detail.overdueSince', { date }),
+      delay: null,
+      tone: 'overdue' as const,
+    }
+  }
+  return {
+    value: formatLongDate(dueDate),
+    delay: dueDelayText(t, dueDate, today).text,
+    tone: null,
+  }
+}
+
 export function vaccinationDetailTexts(
   t: Translate,
-  vaccination: Pick<Vaccination, 'name' | 'dueDate'>,
+  vaccination: Pick<Vaccination, 'name' | 'dueDate' | 'lastInjectionDate'>,
   { animal, today, injections }: { animal: string; today: string; injections: number },
 ): VaccinationDetailTexts {
-  const { name, dueDate } = vaccination
+  const { name, dueDate, lastInjectionDate } = vaccination
   return {
     subtitle: t('vaccinations.sheet.subtitle', { animal }),
-    due:
-      dueDate === null
-        ? null
-        : { date: formatLongDate(dueDate), delay: dueDelayText(t, dueDate, today) },
+    top: lastInjectionDate === null ? t('vaccinations.detail.firstVaccine') : null,
+    due: dueDate === null ? null : nextReminderDue(t, dueDate, today),
     doneLabel: t('vaccinations.detail.doneLabel', { name, animal }),
     counter: String(injections),
   }

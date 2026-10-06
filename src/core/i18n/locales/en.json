@@ -203,6 +203,9 @@
       "back": "Back to health record",
       "nextReminder": "Next reminder",
       "noReminder": "No reminder set",
+      "today": "Today",
+      "overdueSince": "Overdue since {date}",
+      "firstVaccine": "First vaccine · no injection logged",
       "doneLabel": "Done: log the {name} injection for {animal} and choose the next reminder",
       "injections": "Injections",
       "chosen": {

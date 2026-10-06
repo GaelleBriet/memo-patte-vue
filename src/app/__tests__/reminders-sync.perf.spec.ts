@@ -59,7 +59,7 @@ describe('performance des rappels', () => {
     const notifications = createFakeNotifications()
     const sync = createRemindersSync({
       animals: () => ({ list: async () => [LUNA] }),
-      vaccinations: () => ({ listAll: async () => [] }),
+      vaccinations: () => ({ listAll: async () => [], listAllReplacedDues: async () => new Map() }),
       treatments: () => ({ listAllWithHistory: async () => CARNET }),
       carnetSettings: () => ({ get: async () => SETTINGS }),
       notifications,

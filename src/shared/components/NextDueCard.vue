@@ -3,27 +3,27 @@ import { useI18n } from 'vue-i18n'
 
 withDefaults(
   defineProps<{
-    /** « Prochain rappel », « Prochaine dose ». */
+    /** « Prochain rappel ». */
     label: string
-    /** Date de l'échéance ; absente, `emptyText` la remplace. */
-    date?: string | null
-    /** « dans 11 mois », « en retard de 3 jours ». */
+    /** « 26 août 2027 », « Aujourd’hui », « En retard depuis le 5 oct. » ; absente, `emptyText`. */
+    value?: string | null
+    /** « dans 11 mois ». */
     delay?: string | null
-    overdue?: boolean
+    tone?: 'today' | 'overdue' | null
     emptyText?: string | null
     doneAriaLabel: string
     busy?: boolean
   }>(),
-  { date: null, delay: null, overdue: false, emptyText: null, busy: false },
+  { value: null, delay: null, tone: null, emptyText: null, busy: false },
 )
 
 const emit = defineEmits<{
   done: []
-  edit: []
+  otherDate: []
 }>()
 
 defineSlots<{
-  /** Ligne au-dessus de l'échéance, séparée par un filet (fréquence d'un traitement). */
+  /** Ligne au-dessus de l'échéance, séparée par un filet. */
   top?(): unknown
 }>()
 
@@ -36,14 +36,11 @@ const { t } = useI18n()
       <slot name="top" />
     </div>
     <p class="next-due-card__label">{{ label }}</p>
-    <p v-if="date" class="next-due-card__due">
-      <span class="next-due-card__date">{{ date }}</span>
-      <span
-        v-if="delay"
-        class="next-due-card__delay"
-        :class="{ 'next-due-card__delay--overdue': overdue }"
-        >{{ delay }}</span
-      >
+    <p v-if="value" class="next-due-card__due">
+      <span class="next-due-card__value" :class="tone ? `next-due-card__value--${tone}` : null">{{
+        value
+      }}</span>
+      <span v-if="delay" class="next-due-card__delay">{{ delay }}</span>
     </p>
     <p v-else class="next-due-card__empty">{{ emptyText }}</p>
     <div class="next-due-card__actions">
@@ -58,16 +55,14 @@ const { t } = useI18n()
       >
         {{ t('history.done') }}
       </v-btn>
-      <v-btn
-        class="next-due-card__edit"
-        variant="outlined"
-        color="primary"
-        prepend-icon="ms:edit"
+      <button
+        type="button"
+        class="next-due-card__other-date"
         :disabled="busy"
-        @click="emit('edit')"
+        @click="emit('otherDate')"
       >
-        {{ t('reminderSheet.edit') }}
-      </v-btn>
+        {{ t('reminderSheet.doneOtherDay') }}
+      </button>
     </div>
   </section>
 </template>
@@ -106,7 +101,7 @@ const { t } = useI18n()
   margin: 4px 0 0;
 }
 
-.next-due-card__date {
+.next-due-card__value {
   color: rgb(var(--v-theme-primary));
   font-family: tokens.$font-family-heading;
   font-size: 26px;
@@ -114,15 +109,19 @@ const { t } = useI18n()
   line-height: 1.2;
 }
 
+.next-due-card__value--today {
+  color: rgb(var(--v-theme-on-today-container));
+}
+
+.next-due-card__value--overdue {
+  color: rgb(var(--v-theme-on-overdue-container));
+  font-size: 20px;
+}
+
 .next-due-card__delay {
   color: tokens.$color-text-secondary;
   font-size: 14px;
   font-weight: 500;
-}
-
-.next-due-card__delay--overdue {
-  color: rgb(var(--v-theme-overdue));
-  font-weight: 700;
 }
 
 .next-due-card__empty {
@@ -133,14 +132,17 @@ const { t } = useI18n()
 }
 
 .next-due-card__actions {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
   margin-top: 16px;
 }
 
-.next-due-card__actions .v-btn {
+.next-due-card__done {
+  flex: 0 0 auto;
   height: 48px;
+  padding-inline: 22px;
   border-radius: tokens.$radius-pill;
   font-size: 15.5px;
   font-weight: 700;
@@ -148,7 +150,27 @@ const { t } = useI18n()
   text-transform: none;
 }
 
-.next-due-card__edit {
-  border-width: 1.5px;
+.next-due-card__other-date {
+  min-height: tokens.$size-tap-target;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: rgb(var(--v-theme-primary));
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.6;
+  }
+
+  &:focus-visible {
+    outline: none;
+    text-decoration-thickness: 2px;
+  }
 }
 </style>
