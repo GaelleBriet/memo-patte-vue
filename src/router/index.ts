@@ -126,6 +126,11 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('@/features/settings/views/PrivacySettingsView.vue'),
   },
   {
+    path: '/settings/help',
+    name: 'settings-help',
+    component: () => import('@/features/settings/views/HelpContactSettingsView.vue'),
+  },
+  {
     path: '/settings/about',
     name: 'settings-about',
     component: () => import('@/features/settings/views/AboutSettingsView.vue'),

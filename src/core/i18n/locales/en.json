@@ -1137,6 +1137,31 @@
       "policy": "Privacy policy",
       "policyHint": "On the website"
     },
+    "help": {
+      "title": "Help & contact",
+      "page": "Help page",
+      "pageHint": "FAQ, on the website",
+      "write": "Email us",
+      "writeHint": "Opens a prefilled email",
+      "suggest": "Something’s missing",
+      "suggestHint": "Suggest a feature",
+      "mailContent": "The prefilled message includes the app and Android versions, never the content of your health record.",
+      "mail": {
+        "subject": {
+          "question": "MémoPatte: question",
+          "suggestion": "MémoPatte: suggestion"
+        },
+        "appVersion": "App version: {version}",
+        "androidVersion": "Android version: {version}"
+      },
+      "noMailApp": {
+        "body": "No email app is installed. Write to us at this address:",
+        "copy": "Copy",
+        "copied": "Address copied",
+        "copyFailed": "The address couldn’t be copied.",
+        "close": "Close"
+      }
+    },
     "about": {
       "title": "About",
       "summary": "MémoPatte {version}",

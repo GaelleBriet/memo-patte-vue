@@ -61,6 +61,10 @@ const iconesDesMaquettes = [
   'gavel',
   'language',
   'upload_file',
+  'menu_book',
+  'mail',
+  'lightbulb',
+  'content_copy',
 ] as const
 
 describe('registre d’icônes Material Symbols', () => {

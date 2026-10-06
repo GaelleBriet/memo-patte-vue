@@ -1137,6 +1137,31 @@
       "policy": "Politique de confidentialité",
       "policyHint": "Sur le site"
     },
+    "help": {
+      "title": "Aide et contact",
+      "page": "Page d’aide",
+      "pageHint": "Questions fréquentes, sur le site",
+      "write": "Nous écrire",
+      "writeHint": "Ouvre un e-mail prérempli",
+      "suggest": "Il me manque quelque chose",
+      "suggestHint": "Suggère une fonction",
+      "mailContent": "Le message prérempli contient la version de l’app et d’Android, jamais le contenu de ton carnet.",
+      "mail": {
+        "subject": {
+          "question": "MémoPatte : question",
+          "suggestion": "MémoPatte : suggestion"
+        },
+        "appVersion": "Version de l’app : {version}",
+        "androidVersion": "Version d’Android : {version}"
+      },
+      "noMailApp": {
+        "body": "Aucune app de messagerie n’est installée. Écris-nous à cette adresse :",
+        "copy": "Copier",
+        "copied": "Adresse copiée",
+        "copyFailed": "L’adresse n’a pas pu être copiée.",
+        "close": "Fermer"
+      }
+    },
     "about": {
       "title": "À propos",
       "summary": "MémoPatte {version}",
