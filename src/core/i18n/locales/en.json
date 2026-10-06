@@ -37,11 +37,17 @@
         "placeholder": "e.g. Labrador"
       },
       "birthDate": {
-        "label": "Date of birth"
+        "label": "Date of birth",
+        "approximate": {
+          "label": "Approximate date",
+          "unavailable": "Available once a date is entered.",
+          "willShow": "Age will show as “{age}”."
+        }
       },
-      "initialWeightKg": {
-        "label": "Starting weight",
-        "placeholder": "0.0"
+      "weight": {
+        "label": "Weight",
+        "placeholder": "0.0",
+        "help": "It becomes the first weigh-in, dated {date}."
       },
       "submit": "Create",
       "submitting": "Creating…",
@@ -63,7 +69,8 @@
     "age": {
       "year": "{n} year | {n} years",
       "month": "{n} month | {n} months",
-      "week": "less than a week | {n} week | {n} weeks"
+      "week": "less than a week | {n} week | {n} weeks",
+      "approximate": "about {age}"
     },
     "carnet": {
       "back": "Back",

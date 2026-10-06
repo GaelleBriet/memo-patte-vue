@@ -24,7 +24,7 @@ import VaccinationsSection, {
 import WeightSection, { type WeightSectionSummary } from '@/features/weight/views/WeightSection.vue'
 import AnimalChipSelector, { type AnimalChipItem } from '@/shared/components/AnimalChipSelector.vue'
 import PlusBadge from '@/shared/components/PlusBadge.vue'
-import { animalAge } from '@/shared/domain/animal-age'
+import { animalAgeText } from '@/shared/domain/animal-age'
 import { animalAvatarGradientCss } from '@/shared/domain/animal-avatar-gradient'
 import { weightDeltaText } from '@/shared/domain/weight-delta'
 import { weightText } from '@/shared/domain/weight-display'
@@ -93,8 +93,9 @@ async function applyPhoto(action: () => Promise<boolean>): Promise<void> {
 
 const subtitle = computed(() => {
   if (!animal.value) return null
-  const age = animalAge(animal.value.birthDate, today.value)
-  const parts = [animal.value.breed, age && t(`animals.age.${age.unit}`, age.value)]
+  const { breed, birthDate, birthDateApproximate } = animal.value
+  const age = animalAgeText(t, { birthDate, approximate: birthDateApproximate }, today.value)
+  const parts = [breed, age]
   const text = parts.filter(Boolean).join(t('animals.carnet.subtitleSeparator'))
   return text || null
 })
