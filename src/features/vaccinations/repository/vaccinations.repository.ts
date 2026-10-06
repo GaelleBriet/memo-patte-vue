@@ -248,6 +248,10 @@ export function createVaccinationsRepository(
       }))
     },
 
+    eraseAllStatement(): SqlStatement {
+      return { sql: 'DELETE FROM vaccination' }
+    },
+
     markAllDeletedStatement(deletedAt: string): SqlStatement {
       return {
         sql: `UPDATE vaccination SET deleted_at = ?, updated_at = ?, updated_by_device = ?

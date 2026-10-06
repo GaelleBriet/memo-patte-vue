@@ -440,6 +440,10 @@ export function createTreatmentsRepository(
       }))
     },
 
+    eraseAllStatement(): SqlStatement {
+      return { sql: 'DELETE FROM treatment' }
+    },
+
     markAllDeletedStatement(deletedAt: string): SqlStatement {
       return {
         sql: `UPDATE treatment SET deleted_at = ?, updated_at = ?, updated_by_device = ?

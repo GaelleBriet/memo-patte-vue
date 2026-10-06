@@ -106,6 +106,11 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('@/features/settings/views/BackupSettingsView.vue'),
   },
   {
+    path: '/settings/backup/erase',
+    name: 'settings-erase',
+    component: () => import('@/features/settings/views/EraseDataView.vue'),
+  },
+  {
     path: '/plus',
     name: 'plus',
     component: () => import('@/features/purchase/views/PlusView.vue'),

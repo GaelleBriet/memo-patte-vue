@@ -583,6 +583,8 @@ describe('CarnetView — chargement et erreur', () => {
       listRecords: vi.fn<AnimalsRepository['listRecords']>(),
       listVersions: vi.fn<AnimalsRepository['listVersions']>(),
       markAllDeletedStatement: vi.fn<AnimalsRepository['markAllDeletedStatement']>(),
+      eraseAllStatement: vi.fn<AnimalsRepository['eraseAllStatement']>(),
+      eraseAll: vi.fn<AnimalsRepository['eraseAll']>(),
       restoreStatement: vi.fn<AnimalsRepository['restoreStatement']>(),
       runImport: vi.fn<AnimalsRepository['runImport']>(),
       entity: 'animal',

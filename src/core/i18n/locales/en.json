@@ -1108,6 +1108,33 @@
       "plus": "MémoPatte Plus adds a guaranteed cloud backup, photos included, and restores it on a new phone.",
       "discoverPlus": "Explore MémoPatte Plus"
     },
+    "erase": {
+      "screenTitle": "Erase data",
+      "screenSubtitle": "on this phone",
+      "title": "Erase this phone’s data",
+      "removed": "The whole health record is removed from this phone: pets, treatments, vaccines, weights and photos.",
+      "removedSignedIn": "The health record is removed from this phone.",
+      "unsynced": "Your latest changes aren’t in your cloud backup yet. Go online and wait for the backup, or export a copy.",
+      "cloudKept": "Your cloud backup is not affected: you can restore it on this phone or another.",
+      "signOut": "This device will be signed out of your account.",
+      "copy": "Before erasing, export a copy of your health record.",
+      "reminders": "No more reminders will ring on this phone.",
+      "exports": "Exports saved in Documents › MémoPatte stay on the phone.",
+      "restart": "After erasing, MémoPatte restarts as on first launch.",
+      "continue": "Continue",
+      "cancel": "Cancel",
+      "confirm": {
+        "title": "Erase this phone’s data?",
+        "text": "Without a copy, your health record can’t be recovered.",
+        "erase": "Erase"
+      },
+      "final": {
+        "title": "Erase permanently?",
+        "text": "All MémoPatte data will be erased from this phone.",
+        "erase": "Erase permanently"
+      },
+      "error": "Couldn’t erase the data. Try again."
+    },
     "data": {
       "title": "My data",
       "weightUnit": {

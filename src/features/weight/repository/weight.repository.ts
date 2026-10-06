@@ -206,6 +206,10 @@ export function createWeightRepository(
       }))
     },
 
+    eraseAllStatement(): SqlStatement {
+      return { sql: 'DELETE FROM weight_entry' }
+    },
+
     markAllDeletedStatement(deletedAt: string): SqlStatement {
       return {
         sql: `UPDATE weight_entry SET deleted_at = ?, updated_at = ?, updated_by_device = ?

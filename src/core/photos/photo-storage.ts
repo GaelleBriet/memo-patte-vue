@@ -32,6 +32,20 @@ export async function deletePhoto(name: string): Promise<void> {
   await Filesystem.deleteFile({ path: photoPath(name), directory: Directory.Data })
 }
 
+/** Sans effet quand le dossier n'existe pas : aucune photo n'a encore été enregistrée. */
+export async function deleteAllPhotos(): Promise<void> {
+  const options = { path: PHOTOS_DIR, directory: Directory.Data }
+  try {
+    await Filesystem.rmdir({ ...options, recursive: true })
+  } catch (cause) {
+    const stillThere = await Filesystem.stat(options).then(
+      () => true,
+      () => false,
+    )
+    if (stillThere) throw cause
+  }
+}
+
 /** Sonde par `stat` seul : l'import vérifie tout un carnet sans lire une seule image. */
 export async function photoExists(name: string): Promise<boolean> {
   try {

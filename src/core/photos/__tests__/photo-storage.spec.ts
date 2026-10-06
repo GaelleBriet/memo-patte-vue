@@ -4,13 +4,20 @@ import { Capacitor } from '@capacitor/core'
 import { Directory, Filesystem, type FilesystemPlugin } from '@capacitor/filesystem'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { deletePhoto, photoDisplayUrl, photoExists, savePhoto } from '../photo-storage'
+import {
+  deleteAllPhotos,
+  deletePhoto,
+  photoDisplayUrl,
+  photoExists,
+  savePhoto,
+} from '../photo-storage'
 
 vi.mock('@capacitor/filesystem', async (importOriginal) => ({
   ...(await importOriginal<typeof FilesystemModule>()),
   Filesystem: {
     writeFile: vi.fn<FilesystemPlugin['writeFile']>(),
     deleteFile: vi.fn<FilesystemPlugin['deleteFile']>(),
+    rmdir: vi.fn<FilesystemPlugin['rmdir']>(),
     stat: vi.fn<FilesystemPlugin['stat']>(),
     readFile: vi.fn<FilesystemPlugin['readFile']>(),
   },
@@ -18,6 +25,7 @@ vi.mock('@capacitor/filesystem', async (importOriginal) => ({
 
 const writeFile = vi.mocked(Filesystem.writeFile)
 const deleteFile = vi.mocked(Filesystem.deleteFile)
+const rmdir = vi.mocked(Filesystem.rmdir)
 const stat = vi.mocked(Filesystem.stat)
 const readFile = vi.mocked(Filesystem.readFile)
 
@@ -70,6 +78,41 @@ describe('deletePhoto', () => {
   it('refuse un nom qui sortirait de photos/', async () => {
     await expect(deletePhoto('../base.db')).rejects.toThrow('Nom de photo invalide')
     expect(deleteFile).not.toHaveBeenCalled()
+  })
+})
+
+describe('deleteAllPhotos', () => {
+  it('supprime le dossier photos/ de Directory.Data et tout son contenu', async () => {
+    rmdir.mockResolvedValue()
+
+    await deleteAllPhotos()
+
+    expect(rmdir).toHaveBeenCalledExactlyOnceWith({
+      path: 'photos',
+      directory: Directory.Data,
+      recursive: true,
+    })
+  })
+
+  it('ne lève pas quand le dossier n’a jamais été créé', async () => {
+    rmdir.mockRejectedValue(new Error('Folder does not exist.'))
+    stat.mockRejectedValue(new Error('Entry does not exist.'))
+
+    await expect(deleteAllPhotos()).resolves.toBeUndefined()
+  })
+
+  it('propage un échec quand le dossier est toujours là', async () => {
+    rmdir.mockRejectedValue(new Error('accès refusé'))
+    stat.mockResolvedValue({
+      uri: '',
+      type: 'directory',
+      size: 0,
+      ctime: 0,
+      mtime: 0,
+      name: 'photos',
+    })
+
+    await expect(deleteAllPhotos()).rejects.toThrow('accès refusé')
   })
 })
 
