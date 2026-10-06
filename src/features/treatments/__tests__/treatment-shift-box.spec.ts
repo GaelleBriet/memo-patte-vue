@@ -6,6 +6,7 @@ import { dateChangeOf } from '../logic/treatment-gestures'
 import { treatmentScheduleOf } from '../logic/treatment-schedule'
 import {
   dateChangeBox,
+  doneGesture,
   dosesAfter,
   otherDateBox,
   otherDateNote,
@@ -436,5 +437,65 @@ describe('restoredSuiteFor — le toast de « Supprimer ce décalage » (V31 qua
     expect(restoredSuiteFor(history, { kind: 'remove', doseId: '2026-10-09' }, '2026-10-15')).toBe(
       null,
     )
+  })
+})
+
+describe('doneGesture — « C’est fait » de la fiche : rien ne se décale sans l’aval (2026-10-06)', () => {
+  it('une dose du jour se note d’un tap', () => {
+    expect(doneGesture(treatmentScheduleOf(PIXEL, '2026-10-16'), DUE_16, '2026-10-16')).toEqual({
+      confirm: false,
+      gesture: { kind: 'given', due: DUE_16, givenOn: '2026-10-16' },
+    })
+  })
+
+  it('une dose en retard demande la confirmation', () => {
+    expect(doneGesture(treatmentScheduleOf(PIXEL, '2026-10-19'), DUE_16, '2026-10-19')).toEqual({
+      confirm: true,
+    })
+  })
+
+  it('une dose donnée en avance aussi', () => {
+    expect(doneGesture(treatmentScheduleOf(PIXEL, '2026-10-14'), DUE_16, '2026-10-14')).toEqual({
+      confirm: true,
+    })
+  })
+
+  it('avec une date de fin, même loin de la dose suivante (V28 bis)', () => {
+    const ended = treatment([{ ...VENDREDI, endsOn: '2026-10-30' }], PIXEL.doses)
+
+    expect(doneGesture(treatmentScheduleOf(ended, '2026-10-19'), DUE_16, '2026-10-19')).toEqual({
+      confirm: true,
+    })
+  })
+
+  it('tous les jours, pas de case : un tap qui ne décale rien (N3)', () => {
+    const daily = treatment([period({ startsOn: '2026-10-14', firstDueOn: '2026-10-14' })])
+    const due14 = { periodId: 'p-1', dueOn: '2026-10-14', dueTime: null }
+    const schedule = treatmentScheduleOf(daily, '2026-10-15')
+    const done = doneGesture(schedule, due14, '2026-10-15')
+
+    expect(done).toEqual({
+      confirm: false,
+      gesture: { kind: 'given', due: due14, givenOn: '2026-10-15' },
+    })
+    expect(done.confirm === false && schedule.doseFor(done.gesture).shift).toBeNull()
+  })
+
+  it('un report seul bloque le décalage : un tap, la prise seule, le toast le dit (Q2 a)', () => {
+    const held = treatment(
+      [VENDREDI],
+      [dose('2026-10-09', '2026-10-16'), postponed('2026-10-23', '2026-10-29')],
+    )
+    const schedule = treatmentScheduleOf(held, '2026-10-21')
+    const done = doneGesture(schedule, DUE_16, '2026-10-21')
+
+    expect(done).toEqual({
+      confirm: false,
+      gesture: { kind: 'given', due: DUE_16, givenOn: '2026-10-21' },
+    })
+    expect(done.confirm === false && schedule.doseFor(done.gesture)).toMatchObject({
+      shift: null,
+      heldBy: '2026-10-29',
+    })
   })
 })

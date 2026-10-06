@@ -968,6 +968,108 @@ describe('TreatmentDetailView — « Décaler aussi les doses suivantes » (V29,
   })
 })
 
+describe('TreatmentDetailView — « C’est fait » ne décale rien sans l’aval (2026-10-06)', () => {
+  // Vermifuge tous les vendredis ; aujourd'hui lundi 28 sept., la dose du 25 est en retard.
+  const VENDREDI = period({
+    frequency: { value: 1, unit: 'week' },
+    startsOn: '2026-09-18',
+    firstDueOn: '2026-09-18',
+  })
+  const EN_RETARD = treatment([VENDREDI], [dose('2026-09-18', '2026-09-25')])
+  const DUE_25 = { periodId: 'p-1', dueOn: '2026-09-25', dueTime: null }
+
+  async function cestFait(book: TreatmentWithHistory) {
+    const view = await monter(book)
+    await view.get('.treatment-dose-card__done').trigger('click')
+    await flushPromises()
+    return view
+  }
+
+  function aide(): string | undefined {
+    return dansLaFeuille('.treatment-shift__help')[0]?.textContent?.replace(NBSP, ' ')
+  }
+
+  it('sur une dose en retard, demande l’aval, case cochée, dates montrées', async () => {
+    await cestFait(EN_RETARD)
+
+    expect(service.apply).not.toHaveBeenCalled()
+    expect(dansLaFeuille('.treatment-done-confirm__recap')[0]!.textContent).toBe(
+      'Dose du vendredi 25 sept., donnée le lundi 28 sept.',
+    )
+    expect(
+      (dansLaFeuille('.treatment-shift__input')[0] as unknown as HTMLInputElement).checked,
+    ).toBe(true)
+    expect(aide()).toBe('Les doses suivantes passeront au lundi : 5, 12 oct.')
+
+    dansLaFeuille('.treatment-done-confirm__save')[0]!.click()
+    await flushPromises()
+
+    expect(service.apply).toHaveBeenCalledWith(METACAM.id, {
+      kind: 'note',
+      gesture: { kind: 'given', due: DUE_25, givenOn: '2026-09-28', shiftsFollowing: true },
+    })
+    expect(message()).toBe('Prise de Métacam notée pour Luna')
+    runToastAction()
+    await flushPromises()
+    expect(service.undoBatch).toHaveBeenCalledWith(METACAM.id, APPLIED.undo)
+  })
+
+  it('décochée, la prise seule', async () => {
+    await cestFait(EN_RETARD)
+
+    ;(dansLaFeuille('.treatment-shift__input')[0] as unknown as HTMLInputElement).click()
+    await flushPromises()
+    expect(aide()).toBe('Seule cette dose change. Les suivantes restent le vendredi : 2, 9 oct.')
+    dansLaFeuille('.treatment-done-confirm__save')[0]!.click()
+    await flushPromises()
+
+    expect(service.apply).toHaveBeenCalledWith(METACAM.id, {
+      kind: 'note',
+      gesture: { kind: 'given', due: DUE_25, givenOn: '2026-09-28', shiftsFollowing: false },
+    })
+  })
+
+  it('« Annuler » sur la confirmation n’écrit rien', async () => {
+    await cestFait(EN_RETARD)
+
+    dansLaFeuille('.treatment-done-confirm__cancel')[0]!.click()
+    await flushPromises()
+
+    expect(service.apply).not.toHaveBeenCalled()
+    expect(message()).toBeUndefined()
+  })
+
+  it('avec une date de fin, avertit de la dose perdue (V28 bis)', async () => {
+    await cestFait(treatment([{ ...VENDREDI, endsOn: '2026-10-09' }], EN_RETARD.doses))
+
+    expect(aide()).toBe('Avec le décalage, la dose du 9 oct. ne sera plus prévue (date de fin).')
+  })
+
+  it('sur une dose donnée en avance aussi', async () => {
+    await cestFait(treatment([VENDREDI], [...EN_RETARD.doses, dose('2026-09-25', '2026-10-02')]))
+
+    expect(service.apply).not.toHaveBeenCalled()
+    expect(dansLaFeuille('.treatment-done-confirm__recap')[0]!.textContent).toBe(
+      'Dose du vendredi 2 oct., donnée le lundi 28 sept.',
+    )
+  })
+
+  it('un report seul bloque le décalage : un tap, la prise seule, le toast le dit (Q2 a)', async () => {
+    service.apply.mockResolvedValue({ ...APPLIED, heldBy: '2026-10-08' } as typeof APPLIED)
+    await cestFait(
+      treatment([VENDREDI], [...EN_RETARD.doses, postponed('2026-10-02', '2026-10-08')]),
+    )
+
+    expect(service.apply).toHaveBeenCalledWith(METACAM.id, {
+      kind: 'note',
+      gesture: { kind: 'given', due: DUE_25, givenOn: '2026-09-28' },
+    })
+    expect(message()).toBe(
+      'Prise de Métacam notée pour Luna. La suite ne bouge pas : un report est prévu le 8 oct.',
+    )
+  })
+})
+
 describe('TreatmentDetailView — barre du haut et fin du traitement', () => {
   it('le crayon ouvre le formulaire, qui reviendra sur la fiche', async () => {
     const view = await monter()
