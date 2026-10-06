@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
+  backfillCareSignal,
+  isCareBackfillDone,
   clearAccountUsageSignals,
   clearUsageSignals,
   NO_USAGE_SIGNALS,
@@ -124,6 +126,47 @@ describe('signaux d’usage', () => {
 
     expect(() => recordUsageSignal('export')).not.toThrow()
     expect(readUsageSignals()).toEqual(NO_USAGE_SIGNALS)
+  })
+})
+
+describe('rattrapage des soins enregistrés avant le signal', () => {
+  it('reste à faire sur un appareil qui ne l’a jamais fait', () => {
+    expect(isCareBackfillDone()).toBe(false)
+  })
+
+  it('date le premier et le dernier soin du plus ancien soin du carnet, une fois', () => {
+    backfillCareSignal('2026-03-12T08:00:00.000Z')
+
+    expect(readUsageSignals().care).toEqual({
+      count: 1,
+      firstAt: '2026-03-12T08:00:00.000Z',
+      lastAt: '2026-03-12T08:00:00.000Z',
+    })
+    expect(isCareBackfillDone()).toBe(true)
+  })
+
+  it('ne touche pas un signal déjà compté', () => {
+    recordUsageSignal('care')
+
+    backfillCareSignal('2026-03-12T08:00:00.000Z')
+
+    expect(readUsageSignals().care.firstAt).toBe(NOW.toISOString())
+    expect(isCareBackfillDone()).toBe(true)
+  })
+
+  it('se retient même sur un carnet vide : un import ultérieur ne compte pas', () => {
+    backfillCareSignal(null)
+
+    expect(readUsageSignals().care.count).toBe(0)
+    expect(isCareBackfillDone()).toBe(true)
+  })
+
+  it('survit à l’effacement des signaux', () => {
+    backfillCareSignal(null)
+
+    clearUsageSignals()
+
+    expect(isCareBackfillDone()).toBe(true)
   })
 })
 

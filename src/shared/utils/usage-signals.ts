@@ -90,3 +90,29 @@ export function recordUsageSignal(signal: UsageSignal): void {
     },
   })
 }
+
+const CARE_BACKFILL_KEY = 'memopatte.usage.careBackfilled'
+
+export function isCareBackfillDone(): boolean {
+  try {
+    return localStorage.getItem(CARE_BACKFILL_KEY) === 'true'
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Une fois par appareil, pour un carnet rempli avant le signal `care` : il prend la date du plus
+ * ancien soin. Fait aussi sur un carnet vide, pour qu'un import ultérieur ne compte pas.
+ */
+export function backfillCareSignal(oldestCareAt: string | null): void {
+  const signals = readUsageSignals()
+  if (oldestCareAt !== null && signals.care.count === 0) {
+    write({ ...signals, care: { count: 1, firstAt: oldestCareAt, lastAt: oldestCareAt } })
+  }
+  try {
+    localStorage.setItem(CARE_BACKFILL_KEY, 'true')
+  } catch (cause) {
+    console.warn('Rattrapage des soins non retenu :', cause)
+  }
+}

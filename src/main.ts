@@ -4,6 +4,7 @@ import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
 import { installConsentGate } from '@/app/analytics-consent'
+import { backfillCareSignalOnLaunch } from '@/app/care-signal-backfill'
 import { installCarnetSettingsReminders } from '@/app/carnet-settings-reminders'
 import { installPageviewTracking } from '@/app/analytics-pageview'
 import { installReminderActions, reminderActions } from '@/app/reminder-actions'
@@ -63,6 +64,7 @@ if (import.meta.env.DEV) {
   await applyDevFixtures()
 }
 void registerCurrentDevice()
+void backfillCareSignalOnLaunch()
 
 app.mount('#app')
 installReminderActions(router, reminderActions(router))
