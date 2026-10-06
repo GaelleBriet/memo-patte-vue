@@ -168,7 +168,10 @@ export function replaceDueReminders(
       if (noted.length > 0) await port.removeDelivered(noted).catch(warn)
 
       const [firstLeftOut] = (care?.reminders ?? []).filter(({ key }) => !wantedKeys.has(key))
-      if (firstLeftOut && pushesOutFartherPending(firstLeftOut, others)) void fullSync?.()
+      const starved = wanted.length === 0
+      if (firstLeftOut && (starved || pushesOutFartherPending(firstLeftOut, others))) {
+        void fullSync?.()
+      }
     } catch (cause) {
       warn(cause)
     }

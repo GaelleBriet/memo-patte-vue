@@ -254,6 +254,23 @@ describe('replaceDueReminders', () => {
   it('ne demande pas de synchro complète quand le rappel écarté est plus lointain que les programmés', async () => {
     const fullSync = vi.fn<() => Promise<void>>().mockResolvedValue()
     provideFullReminderSync(fullSync)
+    seedMany(MAX_SCHEDULED_REMINDERS - 1, new Date(2099, 0, 1, 9))
+    const farther = reminder(`treatment:${ID}:2100-01-01:due`, new Date(2100, 0, 1, 9))
+    const overdue = reminder(`treatment:${ID}:2100-01-01:overdue`, new Date(2100, 0, 4, 9))
+
+    await replaceDueReminders(notifications, { kind: 'treatment', id: ID }, () =>
+      planned([farther, overdue]),
+    )
+
+    expect(notifications.scheduleReminders.mock.calls[0]![0].map(({ key }) => key)).toEqual([
+      farther.key,
+    ])
+    expect(fullSync).not.toHaveBeenCalled()
+  })
+
+  it('RA-11 : un soin qui n’a plus aucune place, même lointain, demande une synchro complète', async () => {
+    const fullSync = vi.fn<() => Promise<void>>().mockResolvedValue()
+    provideFullReminderSync(fullSync)
     seedMany(MAX_SCHEDULED_REMINDERS, new Date(2099, 0, 1, 9))
     const farther = reminder(`treatment:${ID}:2100-01-01:due`, new Date(2100, 0, 1, 9))
 
@@ -261,7 +278,8 @@ describe('replaceDueReminders', () => {
       planned([farther]),
     )
 
-    expect(fullSync).not.toHaveBeenCalled()
+    expect(notifications.scheduleReminders).not.toHaveBeenCalled()
+    expect(fullSync).toHaveBeenCalledOnce()
   })
 
   it('retire du volet les notifications déjà affichées d’une échéance notée, et d’elle seule', async () => {

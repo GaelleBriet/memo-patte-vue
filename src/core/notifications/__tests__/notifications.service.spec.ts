@@ -11,6 +11,7 @@ import {
   requestPermission,
   rescheduleAll,
   SCHEDULE_BATCH_SIZE,
+  SCHEDULE_FIRST_LIMIT,
   scheduleReminders,
 } from '../notifications.service'
 import { reminderNotificationId, type Reminder } from '../reminder'
@@ -467,7 +468,7 @@ describe('listScheduled', () => {
 })
 
 describe('rescheduleAll', () => {
-  it('annule ce que la liste ne reprend pas avant de la programmer', async () => {
+  it('sous le seuil, programme la liste avant d’annuler ce qu’elle ne reprend pas', async () => {
     getPending.mockResolvedValue({
       notifications: [
         { id: 1, title: 'Ancien', body: 'Ancien' },
@@ -500,9 +501,47 @@ describe('rescheduleAll', () => {
         },
       ],
     })
+    expect(schedule.mock.invocationCallOrder[0] ?? 0).toBeLessThan(
+      cancel.mock.invocationCallOrder[0] ?? 0,
+    )
+  })
+
+  it('au-delà du seuil, annule d’abord : l’appareil reste sous le plafond d’Android', async () => {
+    getPending.mockResolvedValue({
+      notifications: Array.from({ length: SCHEDULE_FIRST_LIMIT }, (_, index) => ({
+        id: index + 1,
+        title: 'Ancien',
+        body: 'Ancien',
+      })),
+    })
+
+    await rescheduleAll([rabies])
+
     expect(cancel.mock.invocationCallOrder[0] ?? 0).toBeLessThan(
       schedule.mock.invocationCallOrder[0] ?? 0,
     )
+  })
+
+  it('n’annule jamais une nouvelle notification qui reprend l’identifiant d’une obsolète', async () => {
+    getPending.mockResolvedValue({
+      notifications: [
+        {
+          id: reminderNotificationId(rabies.key),
+          title: 'Ancien',
+          body: 'Ancien',
+          extra: { key: 'vaccination:ancienne' },
+        },
+        { id: 7, title: 'Ancien', body: 'Ancien', extra: { key: 'vaccination:autre' } },
+      ],
+    })
+
+    await rescheduleAll([rabies, dewormer])
+
+    const scheduled = schedule.mock.calls.flatMap(([{ notifications }]) =>
+      notifications.map(({ id }) => id),
+    )
+    expect(scheduled).toContain(reminderNotificationId(rabies.key))
+    expect(cancel).toHaveBeenCalledExactlyOnceWith({ notifications: [{ id: 7 }] })
   })
 
   it('n’appelle ni cancel ni schedule quand il n’y a rien à faire', async () => {
@@ -540,7 +579,7 @@ describe('rescheduleAll', () => {
     ).toEqual(reminders.map(({ key }) => reminderNotificationId(key)))
   })
 
-  it('n’annule que l’obsolète et se signale quand la programmation échoue', async () => {
+  it('sous le seuil, laisse tout en place et se signale quand la programmation échoue', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     getPending.mockResolvedValue({
       notifications: [
@@ -552,7 +591,7 @@ describe('rescheduleAll', () => {
 
     await expect(rescheduleAll([rabies])).rejects.toThrow('quota d’alarmes')
 
-    expect(cancel).toHaveBeenCalledExactlyOnceWith({ notifications: [{ id: 1 }] })
+    expect(cancel).not.toHaveBeenCalled()
     expect(warn).toHaveBeenCalled()
   })
 
