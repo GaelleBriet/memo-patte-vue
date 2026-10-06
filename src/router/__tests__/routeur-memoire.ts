@@ -6,7 +6,7 @@ import { routes } from '@/router'
 // les vues réelles ni SQLite.
 const Vide = { render: () => null }
 
-function sansEcran(route: RouteRecordRaw): RouteRecordRaw {
+export function sansEcran(route: RouteRecordRaw): RouteRecordRaw {
   if (!('component' in route)) return route
 
   return {
