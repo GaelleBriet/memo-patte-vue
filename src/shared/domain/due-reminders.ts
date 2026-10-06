@@ -1,5 +1,3 @@
-import { format, parseISO, subDays } from 'date-fns'
-
 import { isClockTime } from './clock-time'
 import type { ReminderKind } from './reminders'
 
@@ -64,10 +62,4 @@ export function parseReminderKey(key: string): ParsedReminderKey | null {
 /** Clé de l'ancienne forme, sans heure : sa notification garde le geste d'avant (Q32). */
 export function isLegacyReminderKey(key: string): boolean {
   return parseReminderKey(key) !== null && key.split(':').length === 4
-}
-
-/** Une prise ou une injection faite moins de trois jours avant l'échéance, ou après, vaut pour elle. */
-export function isDoneForDue(dueDate: string, lastDoneOn: string | null): boolean {
-  const earliest = format(subDays(parseISO(dueDate), DAYS_BEFORE_DUE), 'yyyy-MM-dd')
-  return lastDoneOn !== null && lastDoneOn > earliest
 }
