@@ -37,6 +37,7 @@ function animal(id: string, name: string): Animal {
     species: 'dog',
     breed: null,
     birthDate: null,
+    birthDateApproximate: false,
     photoPath: null,
     createdAt: STAMP,
     updatedAt: STAMP,

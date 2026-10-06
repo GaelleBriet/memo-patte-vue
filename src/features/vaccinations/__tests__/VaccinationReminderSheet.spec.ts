@@ -2,6 +2,7 @@ import { App, type BackButtonListenerEvent } from '@capacitor/app'
 import { Capacitor, type PluginListenerHandle } from '@capacitor/core'
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
+import type { Router } from 'vue-router'
 import {
   afterEach,
   beforeEach,
@@ -22,7 +23,7 @@ import { shouldShowPriming } from '@/core/notifications/permission'
 import vuetify from '@/core/theme/vuetify'
 import type { Animal } from '@/features/animals/schema/animal.schema'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
-import router from '@/router'
+import { routeurMemoire } from '@/router/__tests__/routeur-memoire'
 import { dismissToast, runToastAction, toastAction, toastMessage } from '@/shared/utils/toast'
 
 type BackListener = (event: BackButtonListenerEvent) => void
@@ -49,6 +50,7 @@ const BOREE: Animal = {
   species: 'dog',
   breed: null,
   birthDate: '2026-04-10',
+  birthDateApproximate: false,
   photoPath: null,
   createdAt: '2026-09-01T09:00:00.000Z',
   updatedAt: '2026-09-01T09:00:00.000Z',
@@ -71,6 +73,7 @@ let recordInjection: MockInstance
 let undoInjection: MockInstance
 let push: MockInstance
 let replace: MockInstance
+let router: Router
 
 beforeEach(async () => {
   vi.useFakeTimers({ now: TODAY, toFake: ['Date'] })
@@ -91,6 +94,7 @@ beforeEach(async () => {
     .spyOn(vaccinations, 'recordInjection')
     .mockResolvedValue({ animalId: BOREE.id, injectionId: 'i1' })
   undoInjection = vi.spyOn(vaccinations, 'undoInjection').mockResolvedValue()
+  router = routeurMemoire()
   await router.push({ name: 'home' })
   push = vi.spyOn(router, 'push').mockResolvedValue()
   replace = vi.spyOn(router, 'replace').mockResolvedValue()
