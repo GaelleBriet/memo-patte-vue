@@ -1,5 +1,6 @@
+import { format } from 'date-fns'
 import { strToU8, unzipSync } from 'fflate'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 
 import {
   buildExportFile,
@@ -20,6 +21,14 @@ const BOM = '\uFEFF'
 function lines(csv: string): string[] {
   return csv.slice(BOM.length).split('\r\n')
 }
+
+function localTime(instant: string): string {
+  return format(new Date(instant), 'yyyy-MM-dd HH:mm:ss')
+}
+
+const LUNA_CREATED = localTime('2026-01-10T08:00:00.000Z')
+const LUNA_UPDATED = localTime('2026-02-01T08:00:00.000Z')
+const MILO_STAMP = localTime('2026-01-12T08:00:00.000Z')
 
 describe('exportFileName', () => {
   it('date le fichier à la minute, heure locale sur 24 h, en .json ou en .zip', () => {
@@ -334,8 +343,8 @@ describe('toCsvTables', () => {
   it('sépare par « ; », entoure de guillemets un champ qui contient « ; » ou « " »', () => {
     expect(lines(tables['animaux.csv'])).toEqual([
       'Identifiant;Nom;Espèce;Race;Date de naissance;Date de naissance approximative;Plus suivi depuis le;Motif du départ;Date du départ;Date de création;Dernière modification',
-      `${LUNA_ID};Luna;Chat;"Européen ; tigrée ""Mimi""";2019-03-02;true;;;;2026-01-10T08:00:00.000Z;2026-02-01T08:00:00.000Z`,
-      `${MILO_ID};Milo;Chien;;;false;2026-09-14;Chez quelqu’un d’autre;2026-09-12;2026-01-12T08:00:00.000Z;2026-01-12T08:00:00.000Z`,
+      `${LUNA_ID};Luna;Chat;"Européen ; tigrée ""Mimi""";2019-03-02;Oui;;;;${LUNA_CREATED};${LUNA_UPDATED}`,
+      `${MILO_ID};Milo;Chien;;;Non;2026-09-14;Chez quelqu’un d’autre;2026-09-12;${MILO_STAMP};${MILO_STAMP}`,
       '',
     ])
   })
@@ -512,8 +521,8 @@ describe('toCsvTables, en anglais', () => {
   it('sépare par « , » avec un point décimal, titres et valeurs en anglais', () => {
     expect(lines(tables['animaux.csv'])).toEqual([
       'ID,Name,Species,Breed,Date of birth,Approximate date of birth,Stopped following on,Departure reason,Departure date,Created,Last modified',
-      `${LUNA_ID},Luna,Cat,"Européen ; tigrée ""Mimi""",2019-03-02,true,,,,2026-01-10T08:00:00.000Z,2026-02-01T08:00:00.000Z`,
-      `${MILO_ID},Milo,Dog,,,false,2026-09-14,With someone else,2026-09-12,2026-01-12T08:00:00.000Z,2026-01-12T08:00:00.000Z`,
+      `${LUNA_ID},Luna,Cat,"Européen ; tigrée ""Mimi""",2019-03-02,Yes,,,,${LUNA_CREATED},${LUNA_UPDATED}`,
+      `${MILO_ID},Milo,Dog,,,No,2026-09-14,With someone else,2026-09-12,${MILO_STAMP},${MILO_STAMP}`,
       '',
     ])
     expect(lines(tables['poids.csv'])).toEqual([
@@ -556,6 +565,23 @@ describe('toCsvTables, en anglais', () => {
       'Type,Vaccine or treatment ID,Pet ID,Pet,Name,Due date',
       `Vaccine,v-chppil,${MILO_ID},Milo,CHPPiL,2026-09-01`,
     ])
+  })
+})
+
+describe('toCsvTables, horodatages', () => {
+  const timeZone = process.env.TZ
+
+  afterEach(() => {
+    if (timeZone === undefined) delete process.env.TZ
+    else process.env.TZ = timeZone
+  })
+
+  it('écrit un instant à l’heure locale du téléphone, sans T ni Z, lisible par un tableur', () => {
+    process.env.TZ = 'Europe/Paris'
+
+    const row = lines(toCsvTables(EXPORT_FIXTURE, 'kg', TODAY, 'fr')['animaux.csv'])[1]!
+
+    expect(row.endsWith(';2026-01-10 09:00:00;2026-02-01 09:00:00')).toBe(true)
   })
 })
 

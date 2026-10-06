@@ -1,4 +1,4 @@
-import { format } from 'date-fns'
+import { format, parseISO } from 'date-fns'
 import { strToU8, zipSync, type Zippable } from 'fflate'
 
 import { outlookDueDate, treatmentOutlooks } from './treatment-outlook'
@@ -98,7 +98,7 @@ export function toJsonExport(data: ExportData, meta: ExportMeta): string {
   return JSON.stringify(document, null, 2)
 }
 
-type CsvValue = string | number | boolean | null
+type CsvValue = string | number | null
 
 type CsvDialect = { separator: string; decimal: string; needsQuotes: RegExp }
 
@@ -115,7 +115,6 @@ const CSV_FORMULA_START = /^[=+\-@\t\r]/
 function csvCell(value: CsvValue, dialect: CsvDialect): string {
   if (value === null) return ''
   if (typeof value === 'number') return String(value).replace('.', dialect.decimal)
-  if (typeof value === 'boolean') return String(value)
   const text = CSV_FORMULA_START.test(value) ? `'${value}` : value
   return dialect.needsQuotes.test(text) ? `"${text.replaceAll('"', '""')}"` : text
 }
@@ -147,6 +146,11 @@ export type CsvTables = {
   'rappels.csv': string
 }
 
+/** Un instant à l'heure locale, sans `T` ni `Z`, pour qu'un tableur le lise comme une date. */
+function csvLocalTime(instant: string): string {
+  return format(parseISO(instant), 'yyyy-MM-dd HH:mm:ss')
+}
+
 function namesById(rows: { id: string; name: string }[]): (id: string) => string | null {
   const names = new Map(rows.map(({ id, name }) => [id, name]))
   return (id) => names.get(id) ?? null
@@ -161,10 +165,13 @@ export function toCsvTables(
 ): CsvTables {
   const dialect = CSV_DIALECTS[locale]
   const { column, value, doseUnit } = csvLabels(locale)
-  const csv = (columns: string[], rows: CsvValue[][]): string => {
+  const csv = (columns: string[], rows: (CsvValue | boolean)[][]): string => {
     const header = columns.map((key) => column(key, { unit: weightUnit }))
     const lines = [header, ...rows].map((row) =>
-      row.map((cell) => csvCell(cell, dialect)).join(dialect.separator),
+      row
+        .map((cell) => (typeof cell === 'boolean' ? value(`boolean.${cell}`) : cell))
+        .map((cell) => csvCell(cell, dialect))
+        .join(dialect.separator),
     )
     return `${UTF8_BOM}${lines.join('\r\n')}\r\n`
   }
@@ -200,8 +207,8 @@ export function toCsvTables(
         animal.unfollowedOn,
         animal.departureReason && value(`departureReason.${animal.departureReason}`),
         animal.departureDate,
-        animal.createdAt,
-        animal.updatedAt,
+        csvLocalTime(animal.createdAt),
+        csvLocalTime(animal.updatedAt),
       ]),
     ),
     'vaccins.csv': csv(

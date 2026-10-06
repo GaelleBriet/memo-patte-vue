@@ -444,7 +444,9 @@ se réimporte.
   qui commence par `=`, `+`, `-`, `@`, une tabulation ou un retour chariot est préfixée par `'`
   (ex. `'=HYPERLINK(…)`), pour qu'un tableur l'affiche au lieu de l'exécuter. Les nombres et les
   dates ne sont jamais préfixés, et le JSON garde la valeur d'origine.
-- Valeur absente : cellule vide. Dates civiles `AAAA-MM-JJ`, instants ISO 8601 UTC.
+- Valeur absente : cellule vide. Dates civiles `AAAA-MM-JJ` (reconnues par Excel et LibreOffice
+  quelle que soit leur langue) ; instants (`createdAt`, `updatedAt`) en `AAAA-MM-JJ HH:mm:ss`, à
+  l'heure locale du téléphone au moment de l'export (le JSON garde l'ISO 8601 UTC).
 - Titres lisibles (clés `settings.csv.columns.*`) ; le nom de l'animal est ajouté à côté de son
   identifiant pour la lecture, comme le nom du vaccin ou du traitement à côté du parent d'une ligne.
   La fréquence d'une période s'écrit en deux colonnes, le nombre et son unité ; ses heures dans une
@@ -453,7 +455,7 @@ se réimporte.
   vaccin ou traitement (décision du 2026-09-24 ; périodes : #454). `vaccins.csv` et
   `traitements.csv` gardent, pour la lecture, la date de la dernière injection ou prise donnée et la
   prochaine échéance (celle de `reminders[]` ; vide pour un traitement arrêté, terminé ou illisible).
-- Booléen : `true` ou `false`.
+- Booléen : « Oui » ou « Non » (« Yes » ou « No » en anglais) ; le JSON garde `true` ou `false`.
 - **Poids dans l'unité choisie dans Paramètres** (#352), au centième, l'unité dans le titre de
   colonne : « Poids (kg) », « Weight (lb) ». Le JSON reste toujours en kilogrammes, valeur
   enregistrée sans arrondi.

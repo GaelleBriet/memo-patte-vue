@@ -1279,6 +1279,10 @@
         "reminderKind": {
           "vaccination": "Vaccin",
           "treatment": "Traitement"
+        },
+        "boolean": {
+          "true": "Oui",
+          "false": "Non"
         }
       }
     },

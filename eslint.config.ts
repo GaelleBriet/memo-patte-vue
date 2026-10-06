@@ -69,6 +69,7 @@ const DYNAMIC_I18N_KEYS = [
   '/^settings\\.csv\\.values\\.frequencyUnit\\.(day|week|month)$/',
   '/^settings\\.csv\\.values\\.doseStatus\\.(given|missed|postponed|extra|shift)$/',
   '/^settings\\.csv\\.values\\.reminderKind\\.(vaccination|treatment)$/',
+  '/^settings\\.csv\\.values\\.boolean\\.(true|false)$/',
   '/^treatments\\.type\\.(deworming|antiparasitic|medication)$/',
   '/^dosage\\.unit\\.(tablet|capsule|pipette|collar|ml|drop|g|sachet|spray|application|dose)$/',
   '/^treatments\\.(frequency|sheet\\.frequency|form\\.frequency\\.every|form\\.frequency\\.unit)\\.(day|week|month)$/',
