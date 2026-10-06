@@ -103,24 +103,31 @@ function batches(reminders: IdentifiedReminder[]): IdentifiedReminder[][] {
   return chunks
 }
 
+/** Sous le plafond d'Android (~500), l'ancien et le nouveau tiennent ensemble. */
+export const SCHEDULE_FIRST_LIMIT = 480
+
+async function cancelIds(ids: number[]): Promise<void> {
+  if (ids.length > 0) await LocalNotifications.cancel({ notifications: ids.map((id) => ({ id })) })
+}
+
 /**
- * Annule ce que la liste ne reprend pas, y compris d'une session précédente, puis la programme par
- * lots. Dans cet ordre, l'appareil ne porte jamais l'ancien et le nouveau à la fois, et un échec
- * laisse en place les rappels toujours voulus sans se dire à jour. Sur une liste vide ou sans
- * permission accordée, annule tout sans rien reprogrammer.
+ * Remplace tout ce qui est en attente, y compris d'une session précédente, par la liste programmée
+ * par lots. Quand l'appareil peut porter l'ancien et le nouveau ensemble, la liste est programmée
+ * avant l'annulation de l'obsolète : un échec laisse l'ancien en place ; sinon, l'obsolète est
+ * annulé d'abord. Sur une liste vide ou sans permission accordée, annule tout sans rien programmer.
  */
 export async function rescheduleAll(reminders: Reminder[]): Promise<void> {
   const { notifications: pending } = await LocalNotifications.getPending()
   const granted = reminders.length > 0 && (await checkPermission())
   const wantedKeys = new Set(granted ? reminders.map(({ key }) => key) : [])
   const kept = new Map([...scheduledIdsByKey(pending)].filter(([key]) => wantedKeys.has(key)))
+  const added = granted ? reminders.filter(({ key }) => !kept.has(key)).length : 0
+  const scheduleFirst = granted && pending.length + added <= SCHEDULE_FIRST_LIMIT
   const identified = granted ? assignReminderIds(reminders, kept) : []
   const wanted = new Set(identified.map(({ id }) => id))
-  const obsolete = pending.filter(({ id }) => !wanted.has(id))
+  const obsolete = pending.filter(({ id }) => !wanted.has(id)).map(({ id }) => id)
 
-  if (obsolete.length > 0) {
-    await LocalNotifications.cancel({ notifications: obsolete.map(({ id }) => ({ id })) })
-  }
+  if (!scheduleFirst) await cancelIds(obsolete)
   if (!granted) return
 
   let scheduled = 0
@@ -138,6 +145,7 @@ export async function rescheduleAll(reminders: Reminder[]): Promise<void> {
     console.warn(`Rappels : ${scheduled} programmés sur ${reminders.length}`, cause)
     throw cause
   }
+  if (scheduleFirst) await cancelIds(obsolete)
 }
 
 /** Ne déclenche jamais de demande de permission. */

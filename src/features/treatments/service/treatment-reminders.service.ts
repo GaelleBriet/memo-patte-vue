@@ -3,13 +3,14 @@ import {
   getAnimalsRepository,
   type AnimalsRepository,
 } from '@/features/animals/repository/animals.repository'
-import type { Translate } from '@/shared/domain/due-reminders'
 import {
+  carnetReminderSettings,
   reminderNotifications,
   replaceDueReminders,
   type ReminderNotifications,
 } from '@/shared/domain/due-reminders-schedule'
-import { isDoseNoted, treatmentReminders } from '../logic/treatment-reminders'
+import type { CarnetReminderSettings, ReminderTranslate } from '@/shared/domain/reminder-plan'
+import { treatmentReminders } from '../logic/treatment-reminders'
 import {
   getTreatmentsRepository,
   type TreatmentsRepository,
@@ -18,10 +19,11 @@ import {
 type Provider<T> = () => T | Promise<T>
 
 export type TreatmentRemindersDependencies = {
-  treatments: Provider<Pick<TreatmentsRepository, 'getById'>>
+  treatments: Provider<Pick<TreatmentsRepository, 'getWithHistory'>>
   animals: Provider<Pick<AnimalsRepository, 'getById'>>
+  settings?: Provider<CarnetReminderSettings>
   notifications: ReminderNotifications
-  t: Translate
+  t: ReminderTranslate
   now: () => Date
 }
 
@@ -29,21 +31,19 @@ export type TreatmentRemindersDependencies = {
 export function createTreatmentRemindersService({
   treatments,
   animals,
+  settings = carnetReminderSettings,
   notifications,
   t,
   now,
 }: TreatmentRemindersDependencies) {
   return {
-    /** Relit le traitement dans la file des rappels : supprimé ou arrêté, il n'a plus de rappel. */
+    /** Relit le traitement et son historique dans la file des rappels : supprimé, il n'a plus de rappel. */
     async reschedule(id: string): Promise<void> {
       await replaceDueReminders(notifications, { kind: 'treatment', id }, async () => {
-        const treatment = await (await treatments()).getById(id)
-        if (treatment === null) return { reminders: [], isNoted: () => false }
+        const treatment = await (await treatments()).getWithHistory(id)
+        if (treatment === null) return { care: null, isNoted: () => false }
         const animal = await (await animals()).getById(treatment.animalId)
-        return {
-          reminders: treatmentReminders(t, treatment, animal, now()),
-          isNoted: (dueDate: string) => isDoseNoted(treatment, dueDate),
-        }
+        return treatmentReminders(t, treatment, animal, await settings(), now())
       })
     },
   }

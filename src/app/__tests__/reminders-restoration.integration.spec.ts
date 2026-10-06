@@ -26,6 +26,7 @@ import {
   enqueueReminderTask,
   MAX_SCHEDULED_REMINDERS,
 } from '@/shared/domain/due-reminders-schedule'
+import { MAX_REMINDERS_PER_CARE } from '@/shared/domain/reminder-plan'
 import { createRemindersSync, installRemindersSync } from '../reminders-sync'
 import { seededTreatments } from '@/features/treatments/__tests__/seed-treatment'
 
@@ -51,6 +52,7 @@ function restoredDevice() {
     animals: () => repositories.animals,
     vaccinations: () => repositories.vaccinations,
     treatments: () => repositories.treatments,
+    carnetSettings: () => createCarnetSettingsRepository(db),
     notifications,
     t: i18n.global.t,
     now: () => NOW,
@@ -112,12 +114,14 @@ describe('appareil restauré, aucune notification programmée', () => {
 
     await restoredDevice()()
 
-    expect(scheduledKeys()).toEqual([
-      `treatment:${milbemax.id}:2026-09-17:due`,
-      `treatment:${milbemax.id}:2026-09-17:overdue`,
-      `vaccination:${chppi.id}:2026-10-15:before`,
-      `vaccination:${chppi.id}:2026-10-15:due`,
-      `vaccination:${chppi.id}:2026-10-15:overdue`,
+    expect(scheduledKeys()).toHaveLength(3 + MAX_REMINDERS_PER_CARE)
+    expect(scheduledKeys().slice(0, 6)).toEqual([
+      `treatment:${milbemax.id}:2026-09-17::due`,
+      `treatment:${milbemax.id}:2026-09-17::overdue`,
+      `vaccination:${chppi.id}:2026-10-15::before`,
+      `vaccination:${chppi.id}:2026-10-15::due`,
+      `vaccination:${chppi.id}:2026-10-15::overdue`,
+      `treatment:${milbemax.id}:2026-12-17::before`,
     ])
     expect(notifications.rescheduleAll).toHaveBeenCalledOnce()
     expect(notifications.scheduleReminders).not.toHaveBeenCalled()
@@ -146,9 +150,9 @@ describe('appareil restauré, aucune notification programmée', () => {
     await settled()
 
     expect(scheduledKeys()).toEqual([
-      `vaccination:${chppi.id}:2026-10-15:before`,
-      `vaccination:${chppi.id}:2026-10-15:due`,
-      `vaccination:${chppi.id}:2026-10-15:overdue`,
+      `vaccination:${chppi.id}:2026-10-15::before`,
+      `vaccination:${chppi.id}:2026-10-15::due`,
+      `vaccination:${chppi.id}:2026-10-15::overdue`,
     ])
   })
 
@@ -261,11 +265,11 @@ describe('appareil restauré, aucune notification programmée', () => {
 
     await restoredDevice()()
 
-    expect(scheduledKeys()).toEqual([`vaccination:${chppi.id}:2026-09-14:overdue`])
+    expect(scheduledKeys()).toEqual([`vaccination:${chppi.id}:2026-09-14::overdue`])
     expect([...notifications.pending.values()].every(({ at }) => at > NOW)).toBe(true)
   })
 
-  it('reprend les cycles à venir d’un traitement récurrent dont l’échéance notée est périmée', async () => {
+  it('reprend les échéances à venir d’un traitement dont la dernière prise est ancienne, sans rappeler les doses non renseignées', async () => {
     const luna = await seedAnimal('Luna', 'cat')
     const milbemax = await repositories.seed.create({
       animalId: luna.id,
@@ -278,13 +282,13 @@ describe('appareil restauré, aucune notification programmée', () => {
 
     await restoredDevice()()
 
-    expect(scheduledKeys()).toEqual([
-      `treatment:${milbemax.id}:2026-10-10:before`,
-      `treatment:${milbemax.id}:2026-10-10:due`,
-      `treatment:${milbemax.id}:2026-10-10:overdue`,
-      `treatment:${milbemax.id}:2026-11-10:before`,
-      `treatment:${milbemax.id}:2026-11-10:due`,
-      `treatment:${milbemax.id}:2026-11-10:overdue`,
+    expect(scheduledKeys().slice(0, 6)).toEqual([
+      `treatment:${milbemax.id}:2026-10-10::before`,
+      `treatment:${milbemax.id}:2026-10-10::due`,
+      `treatment:${milbemax.id}:2026-10-10::overdue`,
+      `treatment:${milbemax.id}:2026-11-10::before`,
+      `treatment:${milbemax.id}:2026-11-10::due`,
+      `treatment:${milbemax.id}:2026-11-10::overdue`,
     ])
   })
 

@@ -3,7 +3,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMemoryHistory, createRouter, type Router } from 'vue-router'
 
 import type { Animal } from '@/features/animals/schema/animal.schema'
-import type { Treatment } from '@/features/treatments/schema/treatment.schema'
+import {
+  dose,
+  period,
+  treatment as withHistory,
+} from '@/features/treatments/__tests__/treatment-fixtures'
+import type { TreatmentWithHistory } from '@/features/treatments/repository/treatments.repository'
+import type { TreatmentPeriodRecord } from '@/features/treatments/schema/treatment-period.schema'
 import type { Vaccination } from '@/features/vaccinations/schema/vaccination.schema'
 import {
   createRemindersPriming,
@@ -44,21 +50,18 @@ function vaccination(dueDate: string | null, animalId = MILO.id): Vaccination {
   }
 }
 
-function treatment(nextDueDate: string, animalId = MILO.id): Treatment {
-  return {
-    id: '44444444-4444-4444-8444-444444444444',
-    animalId,
-    name: 'Milbemax',
-    type: 'deworming',
-    periodId: '44444444-4444-4444-8444-444444444444',
-    frequency: { value: 3, unit: 'month' },
-    lastDoseDate: '2026-03-01',
-    nextDueDate,
-    stoppedOn: null,
-    createdAt: STAMP,
-    updatedAt: STAMP,
-    deletedAt: null,
-  }
+/** Tous les 3 mois, sans heure, sauf mention. */
+function treatment(
+  overrides: Partial<TreatmentPeriodRecord>,
+  animalId = MILO.id,
+  doses: Parameters<typeof withHistory>[1] = [],
+): TreatmentWithHistory {
+  const periods = [period({ frequency: { value: 3, unit: 'month' }, ...overrides })]
+  return { ...withHistory(periods, doses), animalId }
+}
+
+function withTreatment(entry: TreatmentWithHistory, animals = [MILO]): boolean {
+  return hasUpcomingDueDates({ animals, vaccinations: [], treatments: [entry] }, TODAY)
 }
 
 describe('hasUpcomingDueDates', () => {
@@ -100,25 +103,39 @@ describe('hasUpcomingDueDates', () => {
   })
 
   it('est faux pour un traitement arrêté : il n’a plus de rappel', () => {
-    expect(
-      hasUpcomingDueDates(
-        {
-          animals: [MILO],
-          vaccinations: [],
-          treatments: [{ ...treatment('2026-10-01'), stoppedOn: '2026-09-10' }],
-        },
-        TODAY,
-      ),
-    ).toBe(false)
+    expect(withTreatment(treatment({ firstDueOn: '2026-10-01', stoppedOn: '2026-09-10' }))).toBe(
+      false,
+    )
   })
 
-  it('est vrai pour un traitement, même en retard : ses cycles suivants restent à venir', () => {
-    expect(
-      hasUpcomingDueDates(
-        { animals: [MILO], vaccinations: [], treatments: [treatment('2026-06-01')] },
-        TODAY,
-      ),
-    ).toBe(true)
+  it('est vrai pour un traitement en retard : la dose reste à donner, et la suite à venir', () => {
+    expect(withTreatment(treatment({ startsOn: '2026-06-01', firstDueOn: '2026-06-01' }))).toBe(
+      true,
+    )
+  })
+
+  it('RA-21 : est faux pour un traitement fini par sa date de fin', () => {
+    const ended = treatment(
+      { startsOn: '2026-06-01', firstDueOn: '2026-06-01', endsOn: '2026-09-01' },
+      MILO.id,
+      [dose('2026-06-01', '2026-09-01'), dose('2026-09-01', '2026-12-01')],
+    )
+
+    expect(withTreatment(ended)).toBe(false)
+  })
+
+  it('RA-21 : est faux pour un traitement fini qui n’a plus que des doses à renseigner', () => {
+    const unlogged = treatment({
+      startsOn: '2026-06-01',
+      firstDueOn: '2026-06-01',
+      endsOn: '2026-09-01',
+    })
+
+    expect(withTreatment(unlogged)).toBe(false)
+  })
+
+  it('Q40 : est faux pour un traitement illisible, sans lever', () => {
+    expect(withTreatment(treatment({ firstDueOn: '2026-02-30' }))).toBe(false)
   })
 
   it('ignore les échéances d’un animal absent ou supprimé', () => {
@@ -129,7 +146,7 @@ describe('hasUpcomingDueDates', () => {
         {
           animals: [deleted],
           vaccinations: [vaccination('2027-01-01', GONE), vaccination('2027-01-01', MILO.id)],
-          treatments: [treatment('2027-01-01', GONE)],
+          treatments: [treatment({ firstDueOn: '2027-01-01' }, GONE)],
         },
         TODAY,
       ),
@@ -155,7 +172,7 @@ describe('promptNotificationsIfReminders', () => {
   let router: Router
   let shouldShowPriming: ReturnType<typeof vi.fn<() => Promise<boolean>>>
   let vaccinations: Vaccination[]
-  let treatments: Treatment[]
+  let treatments: TreatmentWithHistory[]
   let listAll: ReturnType<typeof vi.fn<() => Promise<Vaccination[]>>>
   let isNativePlatform: boolean
 
@@ -165,7 +182,7 @@ describe('promptNotificationsIfReminders', () => {
       shouldShowPriming,
       animals: () => ({ list: async () => [MILO] }),
       vaccinations: () => ({ listAll }),
-      treatments: () => ({ listAll: async () => treatments }),
+      treatments: () => ({ listAllWithHistory: async () => treatments }),
       today: () => TODAY,
     })(router, from)
   }
