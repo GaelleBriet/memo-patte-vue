@@ -5,6 +5,30 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.60](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.59...memo-patte-v0.1.60) (2026-10-06)
+
+
+### ✨ Fonctionnalités
+
+* **notifications:** « Rappels précis » — manifeste, autorisation et revérification ([c2e7307](https://github.com/GaelleBriet/memo-patte-vue/commit/c2e7307ebc4d26510df9c74c8e3062ae534924d7))
+* **notifications:** rappels précis — manifeste, accès lu et revérifié, écran d'explication ([d358138](https://github.com/GaelleBriet/memo-patte-vue/commit/d3581380584635d14e92ba8a706c3a71d85d17ca))
+* **reminders:** plan des rappels v2 en module pur ([24be498](https://github.com/GaelleBriet/memo-patte-vue/commit/24be498b37bec0ed2706a68abb18e3a9036db4cb))
+* **reminders:** plan des rappels v2 en module pur ([99b1ec3](https://github.com/GaelleBriet/memo-patte-vue/commit/99b1ec3aeb8d898ec0896a4d2db897ca8ebb4307))
+* **treatments:** « C'est fait » demande l'aval avant de décaler la suite ([9c6c477](https://github.com/GaelleBriet/memo-patte-vue/commit/9c6c4779d17fd1880f841dc9cc60b916086b6a70))
+* **treatments:** « C'est fait » demande l'aval avant de décaler la suite ([e01b865](https://github.com/GaelleBriet/memo-patte-vue/commit/e01b865dd03e9f9b1908427e85ccd8dc78499e76))
+* **treatments:** annoncer les doses passées qu'une correction de date fait apparaître ([dc686cd](https://github.com/GaelleBriet/memo-patte-vue/commit/dc686cd5b9adbd70d46ac77455511a274b65286c))
+* **treatments:** annoncer les doses passées qu'une correction de date fait apparaître ([5245a99](https://github.com/GaelleBriet/memo-patte-vue/commit/5245a994b28257620365cc3282747ee48c374508))
+
+
+### 🐛 Corrections
+
+* **notifications:** texte secondaire du jeton commun, retrait de l'accès écrit dans RA-23 ([06a35fe](https://github.com/GaelleBriet/memo-patte-vue/commit/06a35fe5b658b8755887e1fc109d40903abcd4b2))
+* **reminders:** dernière dose d'une période lue dans le moteur (lastDueDay) ([59cd950](https://github.com/GaelleBriet/memo-patte-vue/commit/59cd950ea84d0afb1f6fd6ca10ed45ada05932a8))
+* **reminders:** relance de la dernière dose envoyée après la date de fin ([e3d69dc](https://github.com/GaelleBriet/memo-patte-vue/commit/e3d69dc2e9d14eb60968f553f99dbf8e5522ba87))
+* **treatments:** finitions de l'annonce des doses passées ([d7e5dec](https://github.com/GaelleBriet/memo-patte-vue/commit/d7e5dec2daccb07dc50a39cc9e78e44746cfaac4))
+* **treatments:** l'aide sous la case ne cite que des dates à venir ([daf4bc7](https://github.com/GaelleBriet/memo-patte-vue/commit/daf4bc710f665790d442b3cdac81387865566caa))
+* **treatments:** la case d'une prise apparaît aussi quand la date de fin ferait perdre une dose ([761404d](https://github.com/GaelleBriet/memo-patte-vue/commit/761404d4c2352d1a1d3a1919972ed60141bb547e))
+
 ## [0.1.59](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.58...memo-patte-v0.1.59) (2026-10-05)
 
 
