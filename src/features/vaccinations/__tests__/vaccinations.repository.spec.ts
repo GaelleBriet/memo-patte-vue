@@ -886,8 +886,27 @@ describe('vaccinationsRepository — injections', () => {
     })
     await repository.remove(carre.id)
 
-    await repository.restore(carre.id, '2026-09-24T09:00:00.000Z')
+    await expect(repository.restore(carre.id, '2026-09-24T09:00:00.000Z')).rejects.toThrow(
+      'Vaccin non rétabli',
+    )
 
+    await expect(repository.getById(carre.id)).resolves.toBeNull()
+  })
+
+  it('dit l’échec d’un « Annuler » quand la suppression portait sur un vaccin déjà supprimé', async () => {
+    vi.useFakeTimers({ now: new Date('2026-09-24T10:00:00.000Z') })
+    const carre = await repository.create({
+      animalId: MIETTE,
+      name: 'Carré',
+      lastInjectionDate: '2025-09-25',
+    })
+    await repository.remove(carre.id)
+    vi.advanceTimersByTime(60_000)
+    const secondDeletedAt = await repository.remove(carre.id)
+
+    await expect(repository.restore(carre.id, secondDeletedAt)).rejects.toThrow(
+      'Vaccin non rétabli',
+    )
     await expect(repository.getById(carre.id)).resolves.toBeNull()
   })
 

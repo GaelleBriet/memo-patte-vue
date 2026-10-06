@@ -289,8 +289,13 @@ export function createVaccinationsRepository(
       return deletedAt
     },
 
-    /** Rétablit le vaccin et les injections supprimés à cet instant, et eux seuls. */
+    /** Rétablit le vaccin et les injections supprimés à cet instant, et eux seuls ; lève sinon. */
     async restore(id: string, deletedAt: string): Promise<void> {
+      const deleted = await db.query<Pick<VaccinationRow, 'id'>>(
+        'SELECT id FROM vaccination WHERE id = ? AND deleted_at = ?',
+        [id, deletedAt],
+      )
+      if (deleted.length === 0) throw new Error(`Vaccin non rétabli : ${id}`)
       const at = new Date().toISOString()
       await db.runMany([
         {
