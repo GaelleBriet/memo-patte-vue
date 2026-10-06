@@ -178,12 +178,12 @@ describe('TreatmentsSection — lignes (B · V15)', () => {
     )
   })
 
-  it('donne la période d’un traitement qui a une date de fin : « du 1 au 15 sept. »', async () => {
+  it('donne la période d’un traitement qui a une date de fin : « du 1er au 15 sept. »', async () => {
     treatments = [treatment({ period: { ...QUOTIDIEN, endsOn: '2026-09-15' }, doses: DEUX_PRISES })]
     const wrapper = await monter()
 
     expect(texte(ligne(wrapper).get('.treatment-row__detail'))).toBe(
-      'Tous les jours · du 1 au 15 sept.',
+      'Tous les jours · du 1er au 15 sept.',
     )
   })
 

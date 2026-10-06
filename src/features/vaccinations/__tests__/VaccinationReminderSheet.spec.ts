@@ -388,7 +388,7 @@ describe('VaccinationReminderSheet — F5, vaccin fait', () => {
   it('pour une injection redatée, ne demande que le rappel et le rend sans rien écrire', async () => {
     const sheet = await monter({ startAt: 'done', initialInjectedOn: '2026-09-01', redate: true })
 
-    expect(texte('.vaccination-reminder-sheet__injection-date')).toBe('Injection le 1 sept. 2026')
+    expect(texte('.vaccination-reminder-sheet__injection-date')).toBe('Injection le 1er sept. 2026')
     expect(document.body.querySelector('.vaccination-reminder-sheet__injection button')).toBeNull()
     expect(choix().every((element) => element.getAttribute('aria-checked') === 'false')).toBe(true)
     expect(bouton('.vaccination-reminder-sheet__submit').disabled).toBe(true)

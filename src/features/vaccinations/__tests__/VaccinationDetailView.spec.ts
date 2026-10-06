@@ -327,7 +327,7 @@ describe('VaccinationDetailView — injection supprimée ou redatée', () => {
 
     expect(service.changeDateAndReminder).toHaveBeenCalledExactlyOnceWith(CARRE.id, 'i2', dates)
     expect(service.changeDate).not.toHaveBeenCalled()
-    expect(toastMessage.value).toBe('Injection déplacée au 1 sept.')
+    expect(toastMessage.value).toBe('Injection déplacée au 1er sept.')
     runToastAction()
     await flushPromises()
     expect(service.undoChangeDate).toHaveBeenCalledWith(CARRE.id, 'i2', {
