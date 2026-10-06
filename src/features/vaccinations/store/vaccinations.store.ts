@@ -167,6 +167,7 @@ export const useVaccinationsStore = defineStore('vaccinations', () => {
         (vaccination) => vaccination.animalId,
       )
       recordUsageSignal('entry')
+      recordUsageSignal('care')
       const species = useAnimalsStore().byId(created.animalId)?.species
       if (species) track('vaccination_created', { species })
       return created
