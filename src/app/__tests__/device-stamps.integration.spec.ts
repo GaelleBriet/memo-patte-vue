@@ -92,7 +92,7 @@ describe('appareil posé à chaque écriture', () => {
       device = TABLETTE
       await animals.update(milo.id, { name: 'Milo II', species: 'dog' })
       await weight.remove(pesee.id)
-      await vaccinations.update(rage.id, { name: 'Rage', lastInjectionDate: '2026-02-01' })
+      await vaccinations.update(rage.id, { name: 'Rage', dueDate: '2027-02-01' })
 
       const expected = { created_by_device: PIXEL, updated_by_device: TABLETTE }
       await expect(stamps('animal', milo.id)).resolves.toEqual(expected)

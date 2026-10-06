@@ -190,12 +190,13 @@ describe('VaccinationReminderSheet — feuille d’un vaccin', () => {
 })
 
 describe('VaccinationReminderSheet — F5, vaccin fait', () => {
-  it('propose l’injection du jour et les quatre rappels, rien de présélectionné', async () => {
+  it('propose l’injection du jour et les cinq rappels, rien de présélectionné', async () => {
     await ouvrirF5()
 
     expect(texte('.vaccination-reminder-sheet__injection-date')).toBe('Injection le 23 sept. 2026')
     expect(texte('.vaccination-reminder-sheet__heading')).toBe('Prochain rappel')
     expect(choix().map((element) => element.textContent?.trim())).toEqual([
+      'Dans 1 mois',
       'Dans 1 an',
       'Dans 3 ans',
       'Autre date',
@@ -214,13 +215,13 @@ describe('VaccinationReminderSheet — F5, vaccin fait', () => {
   it('compte « Dans 1 an » et « Dans 3 ans » depuis l’injection, puis enregistre', async () => {
     const sheet = await ouvrirF5()
 
-    choix()[1]!.click()
+    choix()[2]!.click()
     await flushPromises()
     expect(texte('.vaccination-reminder-sheet__summary')).toBe('Prochain rappel le 23 sept. 2029')
 
-    choix()[0]!.click()
+    choix()[1]!.click()
     await flushPromises()
-    expect(choix()[0]!.getAttribute('aria-checked')).toBe('true')
+    expect(choix()[1]!.getAttribute('aria-checked')).toBe('true')
     expect(texte('.vaccination-reminder-sheet__summary')).toBe('Prochain rappel le 23 sept. 2027')
 
     bouton('.vaccination-reminder-sheet__submit').click()
@@ -245,7 +246,7 @@ describe('VaccinationReminderSheet — F5, vaccin fait', () => {
   it('n’enregistre aucun rappel pour « Pas de rappel »', async () => {
     await ouvrirF5()
 
-    choix()[3]!.click()
+    choix()[4]!.click()
     await flushPromises()
     expect(texte('.vaccination-reminder-sheet__summary')).toBe('Aucun rappel ne sera programmé.')
 
@@ -261,7 +262,7 @@ describe('VaccinationReminderSheet — F5, vaccin fait', () => {
   it('choisit une autre date, future seulement, puis revient à la feuille', async () => {
     await ouvrirF5()
 
-    choix()[2]!.click()
+    choix()[3]!.click()
     await flushPromises()
 
     expect(texte('.bottom-sheet__title')).toBe('Prochain rappel')
@@ -271,7 +272,7 @@ describe('VaccinationReminderSheet — F5, vaccin fait', () => {
     await flushPromises()
 
     expect(texte('.bottom-sheet__title')).toBe('Carré')
-    expect(choix()[2]!.getAttribute('aria-checked')).toBe('true')
+    expect(choix()[3]!.getAttribute('aria-checked')).toBe('true')
     expect(texte('.vaccination-reminder-sheet__summary-text')).toBe(
       'Prochain rappel le 30 sept. 2026',
     )
@@ -287,7 +288,7 @@ describe('VaccinationReminderSheet — F5, vaccin fait', () => {
 
     jour('2026-09-20').click()
     await flushPromises()
-    choix()[0]!.click()
+    choix()[1]!.click()
     await flushPromises()
 
     expect(texte('.vaccination-reminder-sheet__injection-date')).toBe('Injection le 20 sept. 2026')
@@ -308,7 +309,7 @@ describe('VaccinationReminderSheet — F5, vaccin fait', () => {
     const desinstaller = installBackButton()
     const retour = (vi.mocked(App.addListener) as Mock).mock.calls.at(-1)![1] as BackListener
     const sheet = await ouvrirF5()
-    choix()[2]!.click()
+    choix()[3]!.click()
     await flushPromises()
 
     retour({ canGoBack: true })
@@ -330,7 +331,7 @@ describe('VaccinationReminderSheet — F5, vaccin fait', () => {
     vi.mocked(shouldShowPriming).mockResolvedValue(true)
     await ouvrirF5()
 
-    choix()[0]!.click()
+    choix()[1]!.click()
     await flushPromises()
     bouton('.vaccination-reminder-sheet__submit').click()
     await flushPromises()
@@ -345,7 +346,7 @@ describe('VaccinationReminderSheet — F5, vaccin fait', () => {
     vi.mocked(shouldShowPriming).mockResolvedValue(true)
     await ouvrirF5()
 
-    choix()[3]!.click()
+    choix()[4]!.click()
     await flushPromises()
     bouton('.vaccination-reminder-sheet__submit').click()
     await flushPromises()
@@ -356,7 +357,7 @@ describe('VaccinationReminderSheet — F5, vaccin fait', () => {
   it('revient à l’écran demandé une fois l’injection notée', async () => {
     await monter({ startAt: 'done', returnTo: 'animals' })
 
-    choix()[0]!.click()
+    choix()[1]!.click()
     await flushPromises()
     bouton('.vaccination-reminder-sheet__submit').click()
     await flushPromises()
@@ -368,7 +369,7 @@ describe('VaccinationReminderSheet — F5, vaccin fait', () => {
     vi.mocked(shouldShowPriming).mockResolvedValue(true)
     await monter({ startAt: 'done', returnTo: 'home' })
 
-    choix()[0]!.click()
+    choix()[1]!.click()
     await flushPromises()
     bouton('.vaccination-reminder-sheet__submit').click()
     await flushPromises()
@@ -393,7 +394,7 @@ describe('VaccinationReminderSheet — F5, vaccin fait', () => {
     expect(choix().every((element) => element.getAttribute('aria-checked') === 'false')).toBe(true)
     expect(bouton('.vaccination-reminder-sheet__submit').disabled).toBe(true)
 
-    choix()[0]!.click()
+    choix()[1]!.click()
     await flushPromises()
     bouton('.vaccination-reminder-sheet__submit').click()
     await flushPromises()
@@ -423,7 +424,7 @@ describe('VaccinationReminderSheet — F5, vaccin fait', () => {
     expect(rienDeChoisi()).toBe(true)
     expect(bouton('.vaccination-reminder-sheet__submit').disabled).toBe(true)
 
-    choix()[0]!.click()
+    choix()[1]!.click()
     await flushPromises()
     expect(rienDeChoisi()).toBe(false)
     await sheet.setProps({ modelValue: false })

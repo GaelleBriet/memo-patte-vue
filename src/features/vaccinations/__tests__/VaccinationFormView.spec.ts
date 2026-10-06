@@ -6,6 +6,7 @@ import { createMemoryHistory, createRouter, type Router } from 'vue-router'
 import VaccinationFormView from '../views/VaccinationFormView.vue'
 import VaccinationReminderSheet from '../views/VaccinationReminderSheet.vue'
 import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
+import DatePickerSheet from '@/shared/components/DatePickerSheet.vue'
 import type {
   Vaccination,
   VaccinationInput,
@@ -145,6 +146,16 @@ async function remplirMinimum(wrapper: VueWrapper) {
   await champ(wrapper, 'vaccination-last-injection-date').setValue('2026-03-12')
 }
 
+function choix(wrapper: VueWrapper) {
+  return wrapper.findAll('.next-reminder-choices__choice')
+}
+
+async function choisir(wrapper: VueWrapper, libelle: string) {
+  const bouton = choix(wrapper).find((noeud) => noeud.text() === libelle)
+  if (!bouton) throw new Error(`Raccourci introuvable : ${libelle}`)
+  await bouton.trigger('click')
+}
+
 async function soumettre(wrapper: VueWrapper) {
   await wrapper.get('.form-screen__submit').trigger('click')
   await flushPromises()
@@ -165,42 +176,127 @@ describe('VaccinationFormView — structure', () => {
     expect(loadAnimals).toHaveBeenCalledOnce()
   })
 
-  it('rend les trois champs du schéma, et rien d’autre', async () => {
+  it('V10 bis : nom, date de l’injection facultative, prochain rappel en date obligatoire', async () => {
     const wrapper = await monterCreation()
 
-    expect(wrapper.findAll('.form-field')).toHaveLength(3)
-    expect(wrapper.findAll('select')).toHaveLength(0)
-  })
-
-  it('n’offre aucun sélecteur d’animal : l’animal est un fait, pas un choix', async () => {
-    const wrapper = await monterCreation()
-
-    expect(wrapper.find('.animal-chip-selector').exists()).toBe(false)
-    expect(wrapper.find('[role="radiogroup"]').exists()).toBe(false)
+    expect(wrapper.findAll('.form-field__label').map((label) => label.text())).toEqual([
+      'Nom du vaccin*',
+      'Date de l’injectionOptionnel',
+      'Prochain rappel*',
+    ])
     expect(wrapper.findAll('input').map((input) => input.attributes('id'))).toEqual([
       'vaccination-name',
       'vaccination-last-injection-date',
-      'vaccination-due-date',
+      'vaccination-planned-date',
     ])
+    expect(wrapper.find('.animal-chip-selector').exists()).toBe(false)
+    expect(wrapper.find('[role="radiogroup"]').exists()).toBe(false)
+    expect(wrapper.get('.form-screen__submit').text()).toBe('Créer')
   })
 
-  it('marque le nom et la date d’injection obligatoires, l’échéance optionnelle', async () => {
+  it('aide sous la date de l’injection tant qu’elle est vide', async () => {
     const wrapper = await monterCreation()
 
-    expect(wrapper.findAll('.form-field__required')).toHaveLength(2)
-    expect(wrapper.findAll('.form-field__optional')).toHaveLength(1)
+    expect(
+      wrapper.get('.vaccination-form__field--last-injection-date .form-field__help').text(),
+    ).toBe('Laisse vide si l’injection n’a pas encore eu lieu.')
+
+    await champ(wrapper, 'vaccination-last-injection-date').setValue('2026-03-12')
+
+    expect(
+      wrapper.find('.vaccination-form__field--last-injection-date .form-field__help').exists(),
+    ).toBe(false)
   })
 
-  it('borne la date d’injection à aujourd’hui, jamais l’échéance', async () => {
+  it('annonce « Prévu le … » sous le rendez-vous saisi', async () => {
+    const wrapper = await monterCreation()
+
+    await champ(wrapper, 'vaccination-planned-date').setValue('2099-10-05')
+
+    expect(
+      wrapper
+        .get('.vaccination-form__field--next-reminder .form-field__help')
+        .text()
+        .replace(/\s/gu, ' '),
+    ).toBe('Rendez-vous prévu : le vaccin sera « Prévu le 5 oct. 2099 ».')
+  })
+
+  it('borne la date d’injection à aujourd’hui, le rendez-vous à partir d’aujourd’hui', async () => {
     const wrapper = await monterCreation()
     const injection = champ(wrapper, 'vaccination-last-injection-date')
-    const echeance = champ(wrapper, 'vaccination-due-date')
+    const rendezVous = champ(wrapper, 'vaccination-planned-date')
 
     expect(injection.attributes('type')).toBe('date')
     expect(injection.attributes('max')).toBe(todayIsoDate())
-    expect(echeance.attributes('type')).toBe('date')
-    expect(echeance.attributes('max')).toBeUndefined()
-    expect(echeance.attributes('min')).toBeUndefined()
+    expect(rendezVous.attributes('type')).toBe('date')
+    expect(rendezVous.attributes('min')).toBe(todayIsoDate())
+    expect(rendezVous.attributes('max')).toBeUndefined()
+  })
+
+  it('V10 ter : une date d’injection fait passer le prochain rappel aux raccourcis, facultatifs', async () => {
+    const wrapper = await monterCreation()
+
+    await champ(wrapper, 'vaccination-last-injection-date').setValue('2026-03-12')
+
+    expect(wrapper.find('#vaccination-planned-date').exists()).toBe(false)
+    expect(choix(wrapper).map((noeud) => noeud.text())).toEqual([
+      'Dans 1 mois',
+      'Dans 1 an',
+      'Dans 3 ans',
+      'Autre date',
+      'Pas de rappel',
+    ])
+    expect(choix(wrapper).map((noeud) => noeud.attributes('aria-checked'))).toEqual([
+      'false',
+      'false',
+      'false',
+      'false',
+      'false',
+    ])
+    expect(wrapper.get('.vaccination-form__field--next-reminder .form-field__label').text()).toBe(
+      'Prochain rappelOptionnel',
+    )
+  })
+
+  it('compte le raccourci depuis l’injection et l’annonce', async () => {
+    const wrapper = await monterCreation()
+    await champ(wrapper, 'vaccination-last-injection-date').setValue('2026-03-12')
+
+    await choisir(wrapper, 'Dans 1 mois')
+
+    expect(choix(wrapper)[0]!.attributes('aria-checked')).toBe('true')
+    expect(wrapper.get('.vaccination-form__summary').text().replace(/\s/gu, ' ')).toBe(
+      'Prochain rappel le 12 avr. 2026',
+    )
+  })
+
+  it('« Autre date » ouvre le calendrier et retient le jour touché', async () => {
+    vi.stubGlobal('visualViewport', { addEventListener() {}, removeEventListener() {} })
+    const wrapper = await monterCreation()
+    await remplirMinimum(wrapper)
+
+    await choisir(wrapper, 'Autre date')
+    const calendrier = wrapper.getComponent(DatePickerSheet)
+    expect(calendrier.props('modelValue')).toBe(true)
+    calendrier.vm.$emit('pick', '2099-06-01')
+    await flushPromises()
+    await soumettre(wrapper)
+
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({ dueDate: '2099-06-01' }))
+    wrapper.unmount()
+    vi.unstubAllGlobals()
+    document.body.innerHTML = ''
+  })
+
+  it('vide le prochain rappel quand la date d’injection est effacée', async () => {
+    const wrapper = await monterCreation()
+    await remplirMinimum(wrapper)
+    await choisir(wrapper, 'Dans 1 an')
+
+    await champ(wrapper, 'vaccination-last-injection-date').setValue('')
+    await champ(wrapper, 'vaccination-last-injection-date').setValue('2026-03-12')
+
+    expect(choix(wrapper).some((noeud) => noeud.attributes('aria-checked') === 'true')).toBe(false)
   })
 })
 
@@ -212,7 +308,7 @@ describe('VaccinationFormView — validation', () => {
 
     expect(messages(wrapper)).toEqual([
       'Le nom du vaccin est obligatoire.',
-      'La date d’injection est obligatoire.',
+      'Choisis la date du rendez-vous prévu.',
     ])
     expect(create).not.toHaveBeenCalled()
   })
@@ -224,7 +320,18 @@ describe('VaccinationFormView — validation', () => {
 
     await soumettre(wrapper)
 
-    expect(messages(wrapper)).toEqual(['La date d’injection ne peut pas être dans le futur.'])
+    expect(messages(wrapper)).toEqual(['La date de l’injection ne peut pas être dans le futur.'])
+    expect(create).not.toHaveBeenCalled()
+  })
+
+  it('refuse un rendez-vous passé', async () => {
+    const wrapper = await monterCreation()
+    await champ(wrapper, 'vaccination-name').setValue('Typhus')
+    await champ(wrapper, 'vaccination-planned-date').setValue('2020-01-01')
+
+    await soumettre(wrapper)
+
+    expect(messages(wrapper)).toEqual(['Le rendez-vous ne peut pas être dans le passé.'])
     expect(create).not.toHaveBeenCalled()
   })
 
@@ -297,7 +404,7 @@ describe('VaccinationFormView — revalidation après envoi', () => {
 
     await champ(wrapper, 'vaccination-name').setValue('Rage')
 
-    expect(messages(wrapper)).toEqual(['La date d’injection est obligatoire.'])
+    expect(messages(wrapper)).toEqual(['Choisis la date du rendez-vous prévu.'])
     expect(champ(wrapper, 'vaccination-name').attributes('aria-invalid')).toBe('false')
     expect(champ(wrapper, 'vaccination-name').attributes('aria-describedby')).toBeUndefined()
   })
@@ -318,8 +425,8 @@ describe('VaccinationFormView — revalidation après envoi', () => {
 
     await champ(wrapper, 'vaccination-last-injection-date').setValue('2999-01-01')
 
-    expect(messages(wrapper)).toContain('La date d’injection ne peut pas être dans le futur.')
-    expect(messages(wrapper)).not.toContain('La date d’injection est obligatoire.')
+    expect(messages(wrapper)).toContain('La date de l’injection ne peut pas être dans le futur.')
+    expect(messages(wrapper)).not.toContain('Choisis la date du rendez-vous prévu.')
   })
 })
 
@@ -339,14 +446,29 @@ describe('VaccinationFormView — création', () => {
     expect(update).not.toHaveBeenCalled()
   })
 
-  it('envoie l’échéance renseignée', async () => {
+  it('envoie le rappel du raccourci choisi', async () => {
     const wrapper = await monterCreation()
     await remplirMinimum(wrapper)
-    await champ(wrapper, 'vaccination-due-date').setValue('2027-03-12')
+    await choisir(wrapper, 'Dans 1 an')
 
     await soumettre(wrapper)
 
     expect(create).toHaveBeenCalledWith(expect.objectContaining({ dueDate: '2027-03-12' }))
+  })
+
+  it('VA-3 : crée un vaccin prévu, sans injection, avec son rendez-vous', async () => {
+    const wrapper = await monterCreation()
+    await champ(wrapper, 'vaccination-name').setValue('Typhus, coryza')
+    await champ(wrapper, 'vaccination-planned-date').setValue('2099-10-05')
+
+    await soumettre(wrapper)
+
+    expect(create).toHaveBeenCalledExactlyOnceWith({
+      animalId: MILO.id,
+      name: 'Typhus, coryza',
+      lastInjectionDate: null,
+      dueDate: '2099-10-05',
+    })
   })
 
   it('revient au Carnet une fois le vaccin créé', async () => {
@@ -374,7 +496,7 @@ describe('VaccinationFormView — écran d’explication des notifications', () 
     vi.mocked(shouldShowPriming).mockResolvedValueOnce(true)
     const wrapper = await monterCreation()
     await remplirMinimum(wrapper)
-    await champ(wrapper, 'vaccination-due-date').setValue('2027-03-12')
+    await choisir(wrapper, 'Dans 1 an')
 
     await soumettre(wrapper)
 
@@ -400,7 +522,7 @@ describe('VaccinationFormView — écran d’explication des notifications', () 
     vi.mocked(shouldShowPriming).mockResolvedValueOnce(true)
     const wrapper = await monterCreation('99999999-9999-4999-8999-999999999999')
     await remplirMinimum(wrapper)
-    await champ(wrapper, 'vaccination-due-date').setValue('2027-03-12')
+    await choisir(wrapper, 'Dans 1 an')
 
     await soumettre(wrapper)
 
@@ -426,7 +548,7 @@ describe('VaccinationFormView — écran d’explication des notifications', () 
     create.mockRejectedValueOnce(new Error('disque plein'))
     const wrapper = await monterCreation()
     await remplirMinimum(wrapper)
-    await champ(wrapper, 'vaccination-due-date').setValue('2027-03-12')
+    await choisir(wrapper, 'Dans 1 an')
 
     await soumettre(wrapper)
 
@@ -475,7 +597,7 @@ describe('VaccinationFormView — retour sur l’animal du formulaire', () => {
     const selection = selectionAuPush()
     const wrapper = await monterCreation()
     await remplirMinimum(wrapper)
-    await champ(wrapper, 'vaccination-due-date').setValue('2027-03-12')
+    await choisir(wrapper, 'Dans 1 an')
 
     await soumettre(wrapper)
 
@@ -522,7 +644,7 @@ describe('VaccinationFormView — pile de navigation', () => {
     const wrapper = await monterCreation()
     await remplirMinimum(wrapper)
     await soumettre(wrapper)
-    expect(routeur.currentRoute.value.name).toBe('animals')
+    await vi.waitFor(() => expect(routeur.currentRoute.value.name).toBe('animals'))
 
     await retourAndroid()
 
@@ -533,9 +655,9 @@ describe('VaccinationFormView — pile de navigation', () => {
     vi.mocked(shouldShowPriming).mockResolvedValueOnce(true)
     const wrapper = await monterCreation()
     await remplirMinimum(wrapper)
-    await champ(wrapper, 'vaccination-due-date').setValue('2027-03-12')
+    await choisir(wrapper, 'Dans 1 an')
     await soumettre(wrapper)
-    expect(routeur.currentRoute.value.name).toBe('notifications-priming')
+    await vi.waitFor(() => expect(routeur.currentRoute.value.name).toBe('notifications-priming'))
     await routeur.replace({ name: 'animals' })
 
     await retourAndroid()
@@ -555,20 +677,64 @@ describe('VaccinationFormView — pile de navigation', () => {
 })
 
 describe('VaccinationFormView — édition', () => {
-  it('titre « Modifier Rage », animal en sous-titre, champs pré-remplis', async () => {
+  it('titre « Modifier Rage », nom et prochain rappel, « Autre date » cochée', async () => {
     const wrapper = await monterEdition()
 
     expect(getById).toHaveBeenCalledWith(RAGE.id)
     expect(wrapper.get('.pushed-screen__title').text()).toBe('Modifier Rage')
     expect(wrapper.get('.pushed-screen__subtitle').text()).toBe('Pour Milo')
     expect((champ(wrapper, 'vaccination-name').element as HTMLInputElement).value).toBe('Rage')
-    expect(
-      (champ(wrapper, 'vaccination-last-injection-date').element as HTMLInputElement).value,
-    ).toBe('2026-03-12')
-    expect((champ(wrapper, 'vaccination-due-date').element as HTMLInputElement).value).toBe(
-      '2027-03-12',
+    expect(wrapper.find('#vaccination-last-injection-date').exists()).toBe(false)
+    expect(choix(wrapper)[3]!.attributes('aria-checked')).toBe('true')
+    expect(wrapper.get('.vaccination-form__summary').text().replace(/\s/gu, ' ')).toBe(
+      'Prochain rappel le 12 mars 2027',
     )
     expect(wrapper.get('.form-screen__submit').text()).toBe('Enregistrer')
+  })
+
+  it('coche « Pas de rappel » pour un vaccin injecté sans rappel', async () => {
+    getById.mockResolvedValueOnce({ ...RAGE, dueDate: null })
+    const wrapper = await monterEdition()
+
+    expect(choix(wrapper)[4]!.attributes('aria-checked')).toBe('true')
+  })
+
+  it('compte les raccourcis depuis la dernière injection', async () => {
+    const wrapper = await monterEdition()
+
+    await choisir(wrapper, 'Dans 3 ans')
+    await soumettre(wrapper)
+
+    expect(update).toHaveBeenCalledExactlyOnceWith(RAGE.id, { name: 'Rage', dueDate: '2029-03-12' })
+  })
+
+  it('vaccin prévu : change le rendez-vous, sans « Pas de rappel » ni injection', async () => {
+    getById.mockResolvedValueOnce({ ...RAGE, lastInjectionDate: null, dueDate: '2099-10-05' })
+    const wrapper = await monterEdition()
+
+    expect(wrapper.find('#vaccination-last-injection-date').exists()).toBe(false)
+    expect(choix(wrapper)).toHaveLength(0)
+    expect((champ(wrapper, 'vaccination-planned-date').element as HTMLInputElement).value).toBe(
+      '2099-10-05',
+    )
+    await champ(wrapper, 'vaccination-planned-date').setValue('2099-10-12')
+    await soumettre(wrapper)
+
+    expect(update).toHaveBeenCalledExactlyOnceWith(RAGE.id, { name: 'Rage', dueDate: '2099-10-12' })
+  })
+
+  it('vaccin prévu en retard : le renommer garde son rendez-vous passé', async () => {
+    getById.mockResolvedValueOnce({ ...RAGE, lastInjectionDate: null, dueDate: '2020-10-05' })
+    const wrapper = await monterEdition()
+
+    await champ(wrapper, 'vaccination-name').setValue('Typhus')
+    await soumettre(wrapper)
+
+    expect(messages(wrapper)).toEqual([])
+    expect(update).toHaveBeenCalledExactlyOnceWith(RAGE.id, {
+      name: 'Typhus',
+      dueDate: '2020-10-05',
+    })
   })
 
   it('garde le titre d’origine pendant qu’on retape le nom', async () => {
@@ -581,15 +747,11 @@ describe('VaccinationFormView — édition', () => {
 
   it('met à jour par le store avec l’identifiant de la route, sans animal', async () => {
     const wrapper = await monterEdition()
-    await champ(wrapper, 'vaccination-due-date').setValue('')
+    await choisir(wrapper, 'Pas de rappel')
 
     await soumettre(wrapper)
 
-    expect(update).toHaveBeenCalledExactlyOnceWith(RAGE.id, {
-      name: 'Rage',
-      lastInjectionDate: '2026-03-12',
-      dueDate: null,
-    })
+    expect(update).toHaveBeenCalledExactlyOnceWith(RAGE.id, { name: 'Rage', dueDate: null })
     expect(create).not.toHaveBeenCalled()
     expect(replace).toHaveBeenCalledWith({ name: 'animals' })
   })
@@ -689,6 +851,8 @@ describe('VaccinationFormView — vaccin déjà suivi', () => {
   it('part d’aujourd’hui quand aucune date n’est saisie', async () => {
     const wrapper = await monterCreation()
     await saisirCarre(wrapper, '')
+
+    expect(document.body.querySelector('.confirm-dialog__title')).not.toBeNull()
 
     document.body.querySelector<HTMLButtonElement>('.confirm-dialog__confirm')!.click()
     await flushPromises()
@@ -893,12 +1057,8 @@ describe('VaccinationFormView — accessibilité des erreurs', () => {
     await soumettre(wrapper)
 
     expectLie(wrapper, '#vaccination-name', '.vaccination-form__field--name')
-    expectLie(
-      wrapper,
-      '#vaccination-last-injection-date',
-      '.vaccination-form__field--last-injection-date',
-    )
-    expect(wrapper.get('#vaccination-due-date').attributes('aria-invalid')).toBe('false')
+    expectLie(wrapper, '#vaccination-planned-date', '.vaccination-form__field--next-reminder')
+    expect(wrapper.get('#vaccination-last-injection-date').attributes('aria-invalid')).toBe('false')
   })
 })
 

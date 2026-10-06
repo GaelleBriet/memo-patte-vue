@@ -520,7 +520,7 @@ describe('HomeView — A2 animal sélectionné, avec rappels', () => {
     sources = [ANTIPARASITAIRE_MILO_3J, VERMIFUGE_LUNA_AUJOURDHUI, CHPPIL_MILO_RETARD]
   })
 
-  it('filtre les rappels au tap sur une chip et masque le nom de l’animal', async () => {
+  it('filtre les rappels au tap sur une chip, nom de l’animal gardé (AC-8)', async () => {
     const wrapper = await monter()
 
     await wrapper.findAll('.animal-chip')[0]!.trigger('click')
@@ -531,13 +531,13 @@ describe('HomeView — A2 animal sélectionné, avec rappels', () => {
     expect(rows(wrapper)).toEqual([
       {
         title: 'CHPPiL',
-        subtitle: 'Vaccin',
+        subtitle: 'Vaccin · Milo',
         badge: 'En retard · 2 j',
         status: 'reminder-row--overdue',
       },
       {
         title: 'Bravecto',
-        subtitle: 'Antiparasitaire',
+        subtitle: 'Antiparasitaire · Milo',
         badge: 'Dans 3 jours',
         status: 'reminder-row--later',
       },
@@ -989,7 +989,10 @@ describe('HomeView — un seul animal', () => {
 
     expect(chipsPressees(wrapper)).toEqual(['true'])
     expect(wrapper.get('.home-todo .section-card__counter').text()).toBe('Milo · 2 soins')
-    expect(rows(wrapper).map((row) => row.subtitle)).toEqual(['Vaccin', 'Antiparasitaire'])
+    expect(rows(wrapper).map((row) => row.subtitle)).toEqual([
+      'Vaccin · Milo',
+      'Antiparasitaire · Milo',
+    ])
   })
 
   it('écrit « Tout est à jour » à son nom', async () => {
