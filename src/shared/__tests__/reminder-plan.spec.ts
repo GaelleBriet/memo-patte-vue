@@ -151,21 +151,25 @@ describe('treatmentReminderPlan, rappel du jour', () => {
   })
 
   it.each([
-    [0, new Date(2026, 9, 6, 20)],
-    [15, new Date(2026, 9, 6, 19, 45)],
-    [30, new Date(2026, 9, 6, 19, 30)],
-    [60, new Date(2026, 9, 6, 19)],
-  ])('RA-7 : %i min avant, le rappel sonne à l’heure moins le décalage', (offset, at) => {
-    const { reminders } = plan({
-      input: { firstDueOn: '2026-10-06', times: ['20:00'], endsOn: '2026-10-06' },
-      reminders: { reminderOffsetMinutes: offset as 0 | 15 | 30 | 60 },
-      today: '2026-10-06',
-      now: new Date(2026, 9, 6, 12),
-    })
+    [0, 20, 0],
+    [15, 19, 45],
+    [30, 19, 30],
+    [60, 19, 0],
+  ])(
+    'RA-7 : %i min avant, le rappel sonne à l’heure moins le décalage',
+    (offset, hours, minutes) => {
+      const at = new Date(2026, 9, 6, hours, minutes)
+      const { reminders } = plan({
+        input: { firstDueOn: '2026-10-06', times: ['20:00'], endsOn: '2026-10-06' },
+        reminders: { reminderOffsetMinutes: offset as 0 | 15 | 30 | 60 },
+        today: '2026-10-06',
+        now: new Date(2026, 9, 6, 12),
+      })
 
-    expect(reminders.map((reminder) => reminder.at)).toEqual([at])
-    expect(reminders[0]?.title).toBe(`Panacur de Pixel à 20${NBSP}h`)
-  })
+      expect(reminders.map((reminder) => reminder.at)).toEqual([at])
+      expect(reminders[0]?.title).toBe(`Panacur de Pixel à 20${NBSP}h`)
+    },
+  )
 
   it('RA-7 : un rappel avant minuit passe la veille', () => {
     const { reminders } = plan({
