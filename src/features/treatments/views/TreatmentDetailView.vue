@@ -5,6 +5,7 @@ import { useRoute, useRouter } from 'vue-router'
 
 import TreatmentChangeDateSheet from './TreatmentChangeDateSheet.vue'
 import TreatmentChooseDays from './TreatmentChooseDays.vue'
+import TreatmentDoneConfirm from './TreatmentDoneConfirm.vue'
 import TreatmentDoseCard from './TreatmentDoseCard.vue'
 import TreatmentHistory from './TreatmentHistory.vue'
 import TreatmentOtherDateSheet from './TreatmentOtherDateSheet.vue'
@@ -12,7 +13,7 @@ import TreatmentStopDialog from './TreatmentStopDialog.vue'
 import TreatmentUnloggedPrompt from './TreatmentUnloggedPrompt.vue'
 import { useTreatmentDetail } from '../composables/use-treatment-detail'
 import { useTreatmentGestures } from '../composables/use-treatment-gestures'
-import { detailActions, doseCard } from '../logic/treatment-card'
+import { detailActions, doseCard, lessPreciseReminder } from '../logic/treatment-card'
 import { choiceGestures, chooseDaysSubtitle, type DayChoice } from '../logic/treatment-choose-days'
 import type { DoseAction } from '../logic/treatment-dose-writes'
 import {
@@ -29,11 +30,18 @@ import {
   type DoseRow,
 } from '../logic/treatment-history'
 import { treatmentStopTexts } from '../logic/treatment-sheet'
-import { dateChangeBox, restoredSuiteFor, type DateChangeBox } from '../logic/treatment-shift-box'
+import {
+  dateChangeBox,
+  doneGesture,
+  restoredSuiteFor,
+  type DateChangeBox,
+} from '../logic/treatment-shift-box'
 import { stopPrompt } from '../logic/treatment-stop'
 import { promptChoice, unloggedBanner, type PromptActionId } from '../logic/treatment-unlogged'
+import { useExactReminders } from '@/core/notifications/use-exact-reminders'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
+import ExactRemindersExplainer from '@/shared/components/ExactRemindersExplainer.vue'
 import OverflowMenu, { type OverflowMenuItem } from '@/shared/components/OverflowMenu.vue'
 import PushedScreen from '@/shared/components/PushedScreen.vue'
 import { originQuery } from '@/shared/domain/reminder-route'
@@ -79,6 +87,13 @@ const card = computed(() =>
       })
     : null,
 )
+const exactReminders = useExactReminders()
+const isExplainerOpen = ref(false)
+const lessPrecise = computed(() =>
+  treatment.value && schedule.value
+    ? lessPreciseReminder(t, treatment.value, schedule.value, exactReminders.status.value)
+    : null,
+)
 const unlogged = computed(() =>
   treatment.value && schedule.value
     ? unloggedBanner(t, treatment.value, schedule.value, today.value)
@@ -115,6 +130,8 @@ const menuItems = computed<OverflowMenuItem[]>(() => [
 ])
 
 const isOtherDateOpen = ref(false)
+const isDoneConfirmOpen = ref(false)
+const confirming = ref<Due | null>(null)
 const isChooseDaysOpen = ref(false)
 const isDatePickerOpen = ref(false)
 const isStopDialogOpen = ref(false)
@@ -152,19 +169,26 @@ function apply(action: DoseAction, line: Due | null, periodId: string): Promise<
   return gestures.applyDose(treatment.value, action, texts)
 }
 
-function note(due: Due, givenOn: string): Promise<boolean> {
-  return apply({ kind: 'note', gesture: { kind: 'given', due, givenOn } }, null, due.periodId)
+function note(gesture: DoseGesture): Promise<boolean> {
+  return apply({ kind: 'note', gesture }, null, gesture.due.periodId)
 }
 
 function done(due: Due): void {
   refreshToday()
-  void note(due, today.value)
+  if (!schedule.value) return
+  const tapped = doneGesture(schedule.value, due, today.value)
+  if (tapped.confirm) {
+    confirming.value = due
+    isDoneConfirmOpen.value = true
+  } else void note(tapped.gesture)
+}
+
+async function noteConfirmed(gesture: DoseGesture): Promise<void> {
+  if (await note(gesture)) isDoneConfirmOpen.value = false
 }
 
 async function noteOtherDate(gesture: DoseGesture): Promise<void> {
-  if (await apply({ kind: 'note', gesture }, null, gesture.due.periodId)) {
-    isOtherDateOpen.value = false
-  }
+  if (await note(gesture)) isOtherDateOpen.value = false
 }
 
 function log(choice: DayChoice): Promise<'done' | 'stale' | 'failed'> {
@@ -292,9 +316,11 @@ async function remove(): Promise<void> {
         <TreatmentDoseCard
           ref="doseCard"
           :card="card"
+          :less-precise="lessPrecise"
           :busy="gestures.isBusy.value"
           @done="done"
           @other-date="isOtherDateOpen = true"
+          @reactivate="isExplainerOpen = true"
         />
 
         <TreatmentUnloggedPrompt
@@ -347,6 +373,20 @@ async function remove(): Promise<void> {
       @note="noteOtherDate"
     />
 
+    <TreatmentDoneConfirm
+      v-if="treatment && schedule"
+      v-model="isDoneConfirmOpen"
+      :name="named.name"
+      :animal="named.animal"
+      :icon="reminderIcon('treatment', treatment.type)"
+      :history="treatment"
+      :schedule="schedule"
+      :today="today"
+      :due="confirming"
+      :busy="gestures.isBusy.value"
+      @note="noteConfirmed"
+    />
+
     <TreatmentChooseDays
       v-model="isChooseDaysOpen"
       :subtitle="chooseDaysSubtitleText"
@@ -384,6 +424,12 @@ async function remove(): Promise<void> {
       :cancel-label="deleteTexts.cancel"
       :confirm-label="deleteTexts.confirm"
       @confirm="remove"
+    />
+
+    <ExactRemindersExplainer
+      v-if="lessPrecise"
+      v-model="isExplainerOpen"
+      :back-label="t('treatments.detail.reminder.explainerBack', { name: named.name })"
     />
 
     <template v-if="treatment && actions?.canResume" #actions>

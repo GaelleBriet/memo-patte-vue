@@ -1,5 +1,6 @@
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
+import { createRouter, createWebHistory, type Router } from 'vue-router'
 import {
   afterEach,
   beforeEach,
@@ -31,10 +32,15 @@ import TreatmentDoseCard from '../views/TreatmentDoseCard.vue'
 import TreatmentStopDialog from '../views/TreatmentStopDialog.vue'
 import TreatmentUnloggedPrompt from '../views/TreatmentUnloggedPrompt.vue'
 import i18n from '@/core/i18n'
+import {
+  getExactRemindersStatus,
+  type ExactRemindersStatus,
+} from '@/core/notifications/exact-reminders'
 import vuetify from '@/core/theme/vuetify'
 import type { Animal } from '@/features/animals/schema/animal.schema'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
-import router from '@/router'
+import { routes } from '@/router'
+import { sansEcran } from '@/router/__tests__/routeur-memoire'
 import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
 import DateCalendar from '@/shared/components/DateCalendar.vue'
 import HistoryRow from '@/shared/components/HistoryRow.vue'
@@ -47,6 +53,11 @@ import {
   toastMessage,
   toastTone,
 } from '@/shared/utils/toast'
+
+vi.mock('@/core/notifications/exact-reminders', () => ({
+  getExactRemindersStatus: vi.fn<() => Promise<ExactRemindersStatus>>(),
+  openExactRemindersSettings: vi.fn<() => Promise<ExactRemindersStatus>>(),
+}))
 
 const TODAY = new Date('2026-09-28T21:00:00')
 const NBSP = / /g
@@ -108,9 +119,11 @@ let service: {
 }
 let stop: { [K in 'stop' | 'undo']: Mock<TreatmentStopService[K]> }
 let wrapper: VueWrapper | null = null
+let router: Router
 
 beforeEach(async () => {
   vi.useFakeTimers({ now: TODAY, toFake: ['Date'] })
+  vi.mocked(getExactRemindersStatus).mockResolvedValue('precise')
   vi.stubGlobal('visualViewport', {
     addEventListener() {},
     removeEventListener() {},
@@ -152,6 +165,7 @@ beforeEach(async () => {
     undo: vi.fn<TreatmentStopService['undo']>(async () => {}),
   }
   provideTreatmentStopService(() => stop)
+  router = createRouter({ history: createWebHistory(), routes: routes.map(sansEcran) })
   await router.push({ name: 'animals' })
   await router.push({ name: 'treatment-detail', params: { id: METACAM.id } })
   push = vi.spyOn(router, 'push').mockResolvedValue()
@@ -166,6 +180,7 @@ afterEach(() => {
   provideTreatmentRemindersService(null)
   provideTreatmentDosesService(null)
   provideTreatmentStopService(null)
+  router.options.history.destroy()
   vi.restoreAllMocks()
   vi.unstubAllGlobals()
   vi.useRealTimers()
@@ -224,6 +239,33 @@ function dialogue(view: VueWrapper, title: string) {
 function message(): string | undefined {
   return toastMessage.value?.replace(NBSP, ' ')
 }
+
+describe('TreatmentDetailView — rappels précis retirés (TR-34, planche A · V2 quater)', () => {
+  it('dit sous les heures « Rappel 30 min avant · peut arriver en retard », et « Réactiver » ouvre l’écran d’explication', async () => {
+    vi.mocked(getExactRemindersStatus).mockResolvedValue('removed')
+    const view = await monter(treatment([{ ...MATIN_ET_SOIR, reminderOffsetMinutes: 30 }], HIER))
+    const ligne = view.get('.treatment-dose-card__less-precise')
+
+    expect(texte(ligne.get('span'))).toBe('Rappel 30 min avant · peut arriver en retard')
+    expect(ligne.get('button').text()).toBe('Réactiver')
+    expect(ligne.get('button').attributes('aria-label')).toBe('Réactiver les rappels précis')
+
+    await ligne.get('button').trigger('click')
+    await flushPromises()
+
+    expect(document.body.textContent).toContain('Recevoir les rappels à l’heure pile')
+  })
+
+  it('ne dit rien quand les rappels précis sont actifs, ni pour un traitement sans heure', async () => {
+    const actifs = await monter()
+    expect(actifs.find('.treatment-dose-card__less-precise').exists()).toBe(false)
+    actifs.unmount()
+
+    vi.mocked(getExactRemindersStatus).mockResolvedValue('removed')
+    const sansHeure = await monter(MILBEMAX)
+    expect(sansHeure.find('.treatment-dose-card__less-precise').exists()).toBe(false)
+  })
+})
 
 describe('TreatmentDetailView — carte de la dose du moment', () => {
   it('présente le traitement, son rythme et sa posologie (planche A · V3 ter)', async () => {
@@ -968,6 +1010,108 @@ describe('TreatmentDetailView — « Décaler aussi les doses suivantes » (V29,
   })
 })
 
+describe('TreatmentDetailView — « C’est fait » ne décale rien sans l’aval (2026-10-06)', () => {
+  // Vermifuge tous les vendredis ; aujourd'hui lundi 28 sept., la dose du 25 est en retard.
+  const VENDREDI = period({
+    frequency: { value: 1, unit: 'week' },
+    startsOn: '2026-09-18',
+    firstDueOn: '2026-09-18',
+  })
+  const EN_RETARD = treatment([VENDREDI], [dose('2026-09-18', '2026-09-25')])
+  const DUE_25 = { periodId: 'p-1', dueOn: '2026-09-25', dueTime: null }
+
+  async function cestFait(book: TreatmentWithHistory) {
+    const view = await monter(book)
+    await view.get('.treatment-dose-card__done').trigger('click')
+    await flushPromises()
+    return view
+  }
+
+  function aide(): string | undefined {
+    return dansLaFeuille('.treatment-shift__help')[0]?.textContent?.replace(NBSP, ' ')
+  }
+
+  it('sur une dose en retard, demande l’aval, case cochée, dates montrées', async () => {
+    await cestFait(EN_RETARD)
+
+    expect(service.apply).not.toHaveBeenCalled()
+    expect(dansLaFeuille('.treatment-done-confirm__recap')[0]!.textContent).toBe(
+      'Dose du vendredi 25 sept., donnée le lundi 28 sept.',
+    )
+    expect(
+      (dansLaFeuille('.treatment-shift__input')[0] as unknown as HTMLInputElement).checked,
+    ).toBe(true)
+    expect(aide()).toBe('Les doses suivantes passeront au lundi : 5, 12 oct.')
+
+    dansLaFeuille('.treatment-done-confirm__save')[0]!.click()
+    await flushPromises()
+
+    expect(service.apply).toHaveBeenCalledWith(METACAM.id, {
+      kind: 'note',
+      gesture: { kind: 'given', due: DUE_25, givenOn: '2026-09-28', shiftsFollowing: true },
+    })
+    expect(message()).toBe('Prise de Métacam notée pour Luna')
+    runToastAction()
+    await flushPromises()
+    expect(service.undoBatch).toHaveBeenCalledWith(METACAM.id, APPLIED.undo)
+  })
+
+  it('décochée, la prise seule', async () => {
+    await cestFait(EN_RETARD)
+
+    ;(dansLaFeuille('.treatment-shift__input')[0] as unknown as HTMLInputElement).click()
+    await flushPromises()
+    expect(aide()).toBe('Seule cette dose change. Les suivantes restent le vendredi : 2, 9 oct.')
+    dansLaFeuille('.treatment-done-confirm__save')[0]!.click()
+    await flushPromises()
+
+    expect(service.apply).toHaveBeenCalledWith(METACAM.id, {
+      kind: 'note',
+      gesture: { kind: 'given', due: DUE_25, givenOn: '2026-09-28', shiftsFollowing: false },
+    })
+  })
+
+  it('« Annuler » sur la confirmation n’écrit rien', async () => {
+    await cestFait(EN_RETARD)
+
+    dansLaFeuille('.treatment-done-confirm__cancel')[0]!.click()
+    await flushPromises()
+
+    expect(service.apply).not.toHaveBeenCalled()
+    expect(message()).toBeUndefined()
+  })
+
+  it('avec une date de fin, avertit de la dose perdue (V28 bis)', async () => {
+    await cestFait(treatment([{ ...VENDREDI, endsOn: '2026-10-09' }], EN_RETARD.doses))
+
+    expect(aide()).toBe('Avec le décalage, la dose du 9 oct. ne sera plus prévue (date de fin).')
+  })
+
+  it('sur une dose donnée en avance aussi', async () => {
+    await cestFait(treatment([VENDREDI], [...EN_RETARD.doses, dose('2026-09-25', '2026-10-02')]))
+
+    expect(service.apply).not.toHaveBeenCalled()
+    expect(dansLaFeuille('.treatment-done-confirm__recap')[0]!.textContent).toBe(
+      'Dose du vendredi 2 oct., donnée le lundi 28 sept.',
+    )
+  })
+
+  it('un report seul bloque le décalage : un tap, la prise seule, le toast le dit (Q2 a)', async () => {
+    service.apply.mockResolvedValue({ ...APPLIED, heldBy: '2026-10-08' } as typeof APPLIED)
+    await cestFait(
+      treatment([VENDREDI], [...EN_RETARD.doses, postponed('2026-10-02', '2026-10-08')]),
+    )
+
+    expect(service.apply).toHaveBeenCalledWith(METACAM.id, {
+      kind: 'note',
+      gesture: { kind: 'given', due: DUE_25, givenOn: '2026-09-28' },
+    })
+    expect(message()).toBe(
+      'Prise de Métacam notée pour Luna. La suite ne bouge pas : un report est prévu le 8 oct.',
+    )
+  })
+})
+
 describe('TreatmentDetailView — barre du haut et fin du traitement', () => {
   it('le crayon ouvre le formulaire, qui reviendra sur la fiche', async () => {
     const view = await monter()
@@ -1446,6 +1590,10 @@ describe('TreatmentDetailView — arrêter avec des doses à renseigner (TR-30, 
     return [...(stop.stop.mock.calls.at(-1)?.[1] ?? [])]
   }
 
+  function focusSur(className: string): void {
+    expect(document.activeElement?.classList).toContain(className)
+  }
+
   function boutons(): string[] {
     return dansLaFeuille('.confirm-dialog__actions .v-btn').map((button) =>
       (button.textContent ?? '').trim(),
@@ -1504,11 +1652,14 @@ describe('TreatmentDetailView — arrêter avec des doses à renseigner (TR-30, 
       return { animalId: LUNA.id, stopped: true, finished: false, undo: [] }
     })
 
-    ;(await ouvrir(view)).vm.$emit('stop')
+    const arret = await ouvrir(view)
+    await vi.waitFor(() => focusSur('confirm-dialog__cancel'), { interval: 5 })
+
+    arret.vm.$emit('stop')
     await flushPromises()
 
     expect(view.find('.treatment-detail__stop').exists()).toBe(false)
-    expect(document.activeElement?.classList).toContain('treatment-dose-card__dose')
+    focusSur('treatment-dose-card__dose')
   })
 
   it('le calendrier ouvert depuis l’arrêt dit qu’il arrête aussi', async () => {

@@ -11,6 +11,7 @@ import {
   requestPermission,
   rescheduleAll,
   SCHEDULE_BATCH_SIZE,
+  SCHEDULE_FIRST_LIMIT,
   scheduleReminders,
 } from '../notifications.service'
 import { reminderNotificationId, type Reminder } from '../reminder'
@@ -29,6 +30,8 @@ vi.mock('@capacitor/local-notifications', () => ({
     registerActionTypes: vi.fn<LocalNotificationsPlugin['registerActionTypes']>(),
     removeDeliveredNotificationsById:
       vi.fn<LocalNotificationsPlugin['removeDeliveredNotificationsById']>(),
+    checkExactNotificationSetting:
+      vi.fn<LocalNotificationsPlugin['checkExactNotificationSetting']>(),
   },
 }))
 
@@ -41,6 +44,7 @@ const createChannel = vi.mocked(LocalNotifications.createChannel)
 const listChannels = vi.mocked(LocalNotifications.listChannels)
 const registerActionTypes = vi.mocked(LocalNotifications.registerActionTypes)
 const removeDeliveredById = vi.mocked(LocalNotifications.removeDeliveredNotificationsById)
+const checkExact = vi.mocked(LocalNotifications.checkExactNotificationSetting)
 
 const rabies: Reminder = {
   key: 'vaccination:11111111-1111-4111-8111-111111111111',
@@ -69,6 +73,7 @@ beforeEach(() => {
   listChannels.mockResolvedValue({ channels: [] })
   registerActionTypes.mockResolvedValue()
   removeDeliveredById.mockResolvedValue()
+  checkExact.mockResolvedValue({ exact_alarm: 'denied' })
 })
 
 function remindersChannelImportance(importance: Channel['importance']): void {
@@ -123,7 +128,7 @@ describe('scheduleReminders, un rappel', () => {
           schedule: { at: rabies.at, allowWhileIdle: true },
           isExactNotification: false,
           channelId: REMINDERS_CHANNEL_ID,
-          extra: { key: rabies.key },
+          extra: { key: rabies.key, exact: false },
         },
       ],
     })
@@ -148,12 +153,45 @@ describe('scheduleReminders, un rappel', () => {
     expect(schedule).toHaveBeenCalledOnce()
   })
 
-  it('ne programme jamais d’alarme exacte', async () => {
+  it('programme en inexact sans l’accès aux alarmes exactes, sans rien demander', async () => {
     await scheduleReminders([rabies])
 
     const notification = schedule.mock.calls[0]?.[0].notifications[0]
     expect(notification?.isExactNotification).toBe(false)
     expect(notification?.isExactMandatory).toBeUndefined()
+  })
+
+  it('programme en inexact là où le plugin n’a pas l’API des alarmes exactes', async () => {
+    checkExact.mockRejectedValue(new Error('Not implemented on web.'))
+
+    await scheduleReminders([rabies])
+
+    expect(schedule.mock.calls[0]?.[0].notifications[0]?.isExactNotification).toBe(false)
+  })
+})
+
+describe('rappels précis', () => {
+  beforeEach(() => {
+    checkExact.mockResolvedValue({ exact_alarm: 'granted' })
+  })
+
+  it.each([
+    ['scheduleReminders', () => scheduleReminders([rabies])],
+    ['rescheduleAll', () => rescheduleAll([rabies])],
+  ])('programme en exact quand l’accès est accordé, et le retient (%s)', async (_name, run) => {
+    await run()
+
+    const notification = schedule.mock.calls[0]?.[0].notifications[0]
+    expect(notification?.isExactNotification).toBe(true)
+    expect(notification?.isExactMandatory).toBeUndefined()
+    expect(notification?.schedule).toEqual({ at: rabies.at, allowWhileIdle: true })
+    expect(notification?.extra).toEqual({ key: rabies.key, exact: true })
+  })
+
+  it('lit l’accès une seule fois pour toute la liste', async () => {
+    await rescheduleAll([rabies, dewormer])
+
+    expect(checkExact).toHaveBeenCalledOnce()
   })
 })
 
@@ -266,7 +304,7 @@ describe('scheduleReminders', () => {
           schedule: { at: rabies.at, allowWhileIdle: true },
           isExactNotification: false,
           channelId: REMINDERS_CHANNEL_ID,
-          extra: { key: rabies.key },
+          extra: { key: rabies.key, exact: false },
         },
         {
           id: reminderNotificationId(dewormer.key),
@@ -275,7 +313,7 @@ describe('scheduleReminders', () => {
           schedule: { at: dewormer.at, allowWhileIdle: true },
           isExactNotification: false,
           channelId: REMINDERS_CHANNEL_ID,
-          extra: { key: dewormer.key },
+          extra: { key: dewormer.key, exact: false },
         },
       ],
     })
@@ -405,8 +443,17 @@ describe('listScheduled', () => {
         title: rabies.title,
         body: rabies.body,
         at: rabies.at,
+        exact: false,
       },
     ])
+  })
+
+  it('relit une notification programmée en exact', async () => {
+    getPending.mockResolvedValue({
+      notifications: [{ id: 7, title: 'Titre', body: 'Corps', extra: { key: 'k', exact: true } }],
+    })
+
+    await expect(listScheduled()).resolves.toEqual([expect.objectContaining({ exact: true })])
   })
 
   it('tolère une notification programmée sans clé métier', async () => {
@@ -415,13 +462,13 @@ describe('listScheduled', () => {
     })
 
     await expect(listScheduled()).resolves.toEqual([
-      { id: 42, key: undefined, title: 'Titre', body: 'Corps', at: undefined },
+      { id: 42, key: undefined, title: 'Titre', body: 'Corps', at: undefined, exact: false },
     ])
   })
 })
 
 describe('rescheduleAll', () => {
-  it('annule ce que la liste ne reprend pas avant de la programmer', async () => {
+  it('sous le seuil, programme la liste avant d’annuler ce qu’elle ne reprend pas', async () => {
     getPending.mockResolvedValue({
       notifications: [
         { id: 1, title: 'Ancien', body: 'Ancien' },
@@ -441,7 +488,7 @@ describe('rescheduleAll', () => {
           schedule: { at: rabies.at, allowWhileIdle: true },
           isExactNotification: false,
           channelId: REMINDERS_CHANNEL_ID,
-          extra: { key: rabies.key },
+          extra: { key: rabies.key, exact: false },
         },
         {
           id: reminderNotificationId(dewormer.key),
@@ -450,13 +497,51 @@ describe('rescheduleAll', () => {
           schedule: { at: dewormer.at, allowWhileIdle: true },
           isExactNotification: false,
           channelId: REMINDERS_CHANNEL_ID,
-          extra: { key: dewormer.key },
+          extra: { key: dewormer.key, exact: false },
         },
       ],
     })
+    expect(schedule.mock.invocationCallOrder[0] ?? 0).toBeLessThan(
+      cancel.mock.invocationCallOrder[0] ?? 0,
+    )
+  })
+
+  it('au-delà du seuil, annule d’abord : l’appareil reste sous le plafond d’Android', async () => {
+    getPending.mockResolvedValue({
+      notifications: Array.from({ length: SCHEDULE_FIRST_LIMIT }, (_, index) => ({
+        id: index + 1,
+        title: 'Ancien',
+        body: 'Ancien',
+      })),
+    })
+
+    await rescheduleAll([rabies])
+
     expect(cancel.mock.invocationCallOrder[0] ?? 0).toBeLessThan(
       schedule.mock.invocationCallOrder[0] ?? 0,
     )
+  })
+
+  it('n’annule jamais une nouvelle notification qui reprend l’identifiant d’une obsolète', async () => {
+    getPending.mockResolvedValue({
+      notifications: [
+        {
+          id: reminderNotificationId(rabies.key),
+          title: 'Ancien',
+          body: 'Ancien',
+          extra: { key: 'vaccination:ancienne' },
+        },
+        { id: 7, title: 'Ancien', body: 'Ancien', extra: { key: 'vaccination:autre' } },
+      ],
+    })
+
+    await rescheduleAll([rabies, dewormer])
+
+    const scheduled = schedule.mock.calls.flatMap(([{ notifications }]) =>
+      notifications.map(({ id }) => id),
+    )
+    expect(scheduled).toContain(reminderNotificationId(rabies.key))
+    expect(cancel).toHaveBeenCalledExactlyOnceWith({ notifications: [{ id: 7 }] })
   })
 
   it('n’appelle ni cancel ni schedule quand il n’y a rien à faire', async () => {
@@ -494,7 +579,7 @@ describe('rescheduleAll', () => {
     ).toEqual(reminders.map(({ key }) => reminderNotificationId(key)))
   })
 
-  it('n’annule que l’obsolète et se signale quand la programmation échoue', async () => {
+  it('sous le seuil, laisse tout en place et se signale quand la programmation échoue', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     getPending.mockResolvedValue({
       notifications: [
@@ -506,7 +591,7 @@ describe('rescheduleAll', () => {
 
     await expect(rescheduleAll([rabies])).rejects.toThrow('quota d’alarmes')
 
-    expect(cancel).toHaveBeenCalledExactlyOnceWith({ notifications: [{ id: 1 }] })
+    expect(cancel).not.toHaveBeenCalled()
     expect(warn).toHaveBeenCalled()
   })
 

@@ -546,6 +546,93 @@ describe('plan que le moteur ne saurait pas relire', () => {
   })
 })
 
+describe('moment du rappel (RA-7, RA-8)', () => {
+  it('écrit à la création le rappel choisi', () => {
+    const plan = creationPlan(
+      {
+        animalId: MILO,
+        name: 'Advocate',
+        type: 'antiparasitic',
+        firstDoseOn: '2026-10-05',
+        frequency: { value: 1, unit: 'month' },
+        times: ['21:00'],
+        doseQuantity: null,
+        doseUnit: null,
+        endsOn: null,
+        reminderOffsetMinutes: 60,
+        reminderTime: null,
+      },
+      TREATMENT,
+      '2026-09-28',
+    )
+
+    expect(plan.settings).toMatchObject({ reminderOffsetMinutes: 60, reminderTime: null })
+  })
+
+  it('corrige la période en cours quand seul le rappel change, même avec des prises (B3)', () => {
+    const history = treatment([period({ times: ['21:00'], reminderOffsetMinutes: 0 })], [dose()])
+    const input = saisie(history, { reminderOffsetMinutes: 30, reminderTime: null })
+
+    expect(editionDraft(history, input, '2026-09-28').change).toBe('correct')
+    expect(editionPlan(history, input, '2026-09-28', IDS)).toEqual({
+      treatment: { name: 'Milbemax', type: 'deworming' },
+      period: {
+        action: 'correct',
+        referenceOn: '2026-07-10',
+        settings: {
+          startsOn: '2026-07-10',
+          firstDueOn: '2026-07-10',
+          endsOn: null,
+          frequency: { value: 3, unit: 'month' },
+          times: ['21:00'],
+          doseQuantity: 1,
+          doseUnit: 'tablet',
+          reminderOffsetMinutes: 30,
+          reminderTime: null,
+        },
+      },
+      doses: [],
+    })
+  })
+
+  it('corrige de même l’heure du rappel d’un traitement sans heure', () => {
+    const history = treatment([period()], [dose()])
+
+    const plan = editionPlan(history, saisie(history, { reminderTime: '07:30' }), '2026-09-28', IDS)
+
+    expect(plan.period).toMatchObject({ action: 'correct', settings: { reminderTime: '07:30' } })
+    expect(plan.doses).toEqual([])
+  })
+
+  it('ouvre la nouvelle période avec le rappel saisi quand un autre réglage change aussi', () => {
+    const history = treatment([period({ times: ['21:00'] })], [dose()])
+
+    const plan = editionPlan(
+      history,
+      saisie(history, { doseQuantity: 0.5, reminderOffsetMinutes: 60 }),
+      '2026-09-28',
+      IDS,
+    )
+
+    expect(plan.period).toMatchObject({
+      action: 'open',
+      settings: { doseQuantity: 0.5, reminderOffsetMinutes: 60 },
+    })
+  })
+
+  it('garde le rappel de la période quand la saisie n’en dit rien', () => {
+    const history = treatment(
+      [period({ times: ['21:00'], reminderOffsetMinutes: 15, reminderTime: '08:00' })],
+      [dose()],
+    )
+
+    expect(editionPlan(history, saisie(history), '2026-09-28', IDS).period).toBeNull()
+    expect(
+      editionPlan(history, saisie(history, { doseQuantity: 2 }), '2026-09-28', IDS).period,
+    ).toMatchObject({ settings: { reminderOffsetMinutes: 15, reminderTime: '08:00' } })
+  })
+})
+
 describe('editionPlan — nom et type (TR-27)', () => {
   it('corrige le nom et le type sans toucher à la période ni aux prises', () => {
     const history = treatment([period()], [dose()])
@@ -2088,6 +2175,14 @@ describe('resumptionPlan (TR-32)', () => {
       },
       doses: [],
     })
+  })
+
+  it('écrit le rappel changé dans le formulaire de reprise', () => {
+    const history = treatment([ARRETEE], [PRISE])
+
+    expect(
+      resumptionPlan(history, { ...REPRISE, reminderOffsetMinutes: 60 }, '2026-11-02', IDS).period,
+    ).toMatchObject({ settings: { reminderOffsetMinutes: 60, reminderTime: null } })
   })
 
   it('reprend aussi un traitement arrivé à sa date de fin', () => {

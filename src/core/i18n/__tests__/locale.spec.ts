@@ -64,20 +64,20 @@ describe('rappels de vaccin', () => {
   afterEach(() => applyLocale('fr'))
 
   it('titrent la notification sans redoubler le type non plus', () => {
-    const named = { name: 'Vaccin antirabique', animal: 'Milo', days: 3 }
+    const named = { name: 'Vaccin antirabique', animal: 'Milo', weeks: 2 }
 
-    expect(i18n.global.t('reminders.vaccination.beforeTitle', named)).toBe(
-      'Vaccin antirabique de Milo dans 3 jours',
+    expect(i18n.global.t('reminders.plan.vaccination.beforeTitle', named)).toBe(
+      'Vaccin antirabique de Milo dans 2 semaines',
     )
-    expect(i18n.global.t('reminders.vaccination.dueTitle', named)).toBe(
+    expect(i18n.global.t('reminders.plan.vaccination.dueTitle', named)).toBe(
       'Vaccin antirabique de Milo aujourd’hui',
     )
 
     applyLocale('en')
 
     expect(
-      i18n.global.t('reminders.vaccination.beforeTitle', { ...named, name: 'Rabies vaccine' }),
-    ).toBe('Rabies vaccine for Milo in 3 days')
+      i18n.global.t('reminders.plan.vaccination.beforeTitle', { ...named, name: 'rabies vaccine' }),
+    ).toBe('Milo’s rabies vaccine in 2 weeks')
   })
 })
 

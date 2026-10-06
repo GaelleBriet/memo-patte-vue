@@ -38,6 +38,8 @@ const iconesDesMaquettes = [
   'info_fill',
   'error_fill',
   'more_vert',
+  'alarm',
+  'alarm_off',
   'delete',
   'repeat',
   'restart_alt',
@@ -46,6 +48,10 @@ const iconesDesMaquettes = [
   'event_repeat',
   'event_upcoming',
   'event_busy',
+  'notifications',
+  'tune',
+  'alarm_off',
+  'help',
 ] as const
 
 describe('registre d’icônes Material Symbols', () => {

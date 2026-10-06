@@ -7,11 +7,21 @@ export {
   rescheduleAll,
   scheduleReminders,
 } from './notifications.service'
+export type { ExactRemindersStatus } from './exact-reminders'
+export {
+  canScheduleExact,
+  getExactRemindersStatus,
+  markExactRemindersSuggested,
+  openExactRemindersSettings,
+  wasExactRemindersSuggested,
+} from './exact-reminders'
+export { useExactReminders } from './use-exact-reminders'
 export type { ReminderAction } from './reminder-actions'
 export { onReminderAction, REMINDER_DONE_ACTION_TYPE } from './reminder-actions'
 export type { NotificationPermissionStatus } from './permission'
 export {
   getNotificationPermissionStatus,
+  hasAndroidAskedNotifications,
   onNotificationPermissionGranted,
   openNotificationSettings,
   postponePriming,

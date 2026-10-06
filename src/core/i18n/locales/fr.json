@@ -294,6 +294,23 @@
         "change": "Heure {time}, modifier",
         "remove": "Retirer {time}"
       },
+      "reminder": {
+        "label": "Rappel",
+        "offset": {
+          "0": "À l’heure",
+          "15": "15 min avant",
+          "30": "30 min avant",
+          "60": "1 h avant"
+        },
+        "eachTime": "Pour chaque heure : {times}.",
+        "at": "À {time}",
+        "atLabel": "Heure du rappel, {time}. Modifier.",
+        "noTimeHelp": "Sans heure de traitement, choisis l’heure du rappel.",
+        "lessPrecise": "Peut arriver en retard : les rappels précis sont désactivés",
+        "reactivate": "Réactiver les rappels précis",
+        "suggest": "Pour un rappel à l’heure pile, active les rappels précis",
+        "explainerBack": "Retour au formulaire"
+      },
       "dosage": {
         "label": "Posologie",
         "quantity": "Quantité",
@@ -447,6 +464,17 @@
           "given": "Dose de {time} · déjà notée",
           "missed": "Dose de {time} · notée oubliée"
         }
+      },
+      "reminder": {
+        "lessPrecise": {
+          "0": "Rappel à l’heure · peut arriver en retard",
+          "15": "Rappel 15 min avant · peut arriver en retard",
+          "30": "Rappel 30 min avant · peut arriver en retard",
+          "60": "Rappel 1 h avant · peut arriver en retard"
+        },
+        "reactivate": "Réactiver",
+        "reactivateLabel": "Réactiver les rappels précis",
+        "explainerBack": "Retour à {name}"
       },
       "resumeHint": "Tu choisiras la date de la prochaine dose.",
       "resume": "Reprendre ce traitement",
@@ -635,27 +663,66 @@
       "reportFollows": "La dose que tu avais reportée au {date} reste prévue ce jour-là.",
       "movedAfterReport": "Dose reportée le {report}, puis le {date} et {every}.",
       "keptAfterReport": "Seule cette dose change. Dose reportée le {report}, puis le {date} et {every}.",
-      "movedBeforeReport": "Les doses suivantes passeront au {date}, puis dose reportée le {report}",
-      "keptBeforeReport": "Seule cette dose change. Les suivantes restent prévues le {date}, puis dose reportée le {report}",
-      "passesMoveCheck": "Avec ce jour, la dose que tu avais reportée au {date} tomberait après la suivante. Coche « Décaler aussi les doses suivantes », ou change d’abord la date de ce report."
+      "movedBeforeReport": "Les doses suivantes passeront au {date}, puis dose reportée le {report}.",
+      "keptBeforeReport": "Seule cette dose change. Les suivantes restent prévues le {date}, puis dose reportée le {report}.",
+      "passesMoveCheck": "Avec ce jour, la dose que tu avais reportée au {date} tomberait après la suivante. Coche « Décaler aussi les doses suivantes », ou change d’abord la date de ce report.",
+      "revealed": {
+        "help": {
+          "unlogged": "La dose du {dates} sera à renseigner. | Les doses du {dates} seront à renseigner.",
+          "overdue": "La dose du {dates} sera en retard. | Les doses du {dates} seront en retard.",
+          "unloggedThen": "La dose du {dates} sera à renseigner ; | Les doses du {dates} seront à renseigner ;",
+          "thenOverdue": "celle du {dates}, en retard. | celles du {dates}, en retard."
+        },
+        "toast": {
+          "unlogged": "La dose du {dates} est à renseigner. | Les doses du {dates} sont à renseigner.",
+          "overdue": "La dose du {dates} est en retard. | Les doses du {dates} sont en retard.",
+          "unloggedThen": "La dose du {dates} est à renseigner ; | Les doses du {dates} sont à renseigner ;",
+          "thenOverdue": "celle du {dates}, en retard. | celles du {dates}, en retard."
+        },
+        "after": "{done}. {revealed}"
+      }
+    },
+    "givenWhen": {
+      "title": "Donnée quand ?",
+      "due": "Prévue {date}",
+      "dueAt": "Prévue {date} à {time}",
+      "dosageDue": "{dosage} · prévue {date}",
+      "dosageDueAt": "{dosage} · prévue {date} à {time}",
+      "scheduled": "Le jour prévu",
+      "scheduledAt": "Le jour prévu, à {time}",
+      "scheduledLabel": "Donnée le jour prévu, {date}",
+      "scheduledLabelAt": "Donnée le jour prévu, {date} à {time}",
+      "today": "Aujourd’hui",
+      "todayLabel": "Donnée aujourd’hui, {date}",
+      "other": "Une autre date",
+      "otherLabel": "Donnée à une autre date : choisir le jour",
+      "everyDay": "Donnée le {date}",
+      "everyDayAt": "Donnée le {date} à {time}",
+      "everyDayLabel": "Donnée le {date}",
+      "everyDayLabelAt": "Donnée le {date} à {time}",
+      "back": "Retour à « Donnée quand ? »"
     }
   },
   "reminders": {
-    "vaccination": {
-      "beforeTitle": "{name} de {animal} dans {days} jours",
-      "beforeBody": "Pense à prendre rendez-vous chez le vétérinaire.",
-      "dueTitle": "{name} de {animal} aujourd’hui",
-      "dueBody": "Note le vaccin dans MémoPatte une fois fait.",
-      "overdueTitle": "{name} de {animal} en retard de {days} jours",
-      "overdueBody": "Prends rendez-vous chez le vétérinaire, puis note le vaccin dans MémoPatte."
-    },
-    "treatment": {
-      "beforeTitle": "{type} {name} de {animal} dans {days} jours",
-      "beforeBody": "Vérifie qu’il te reste une dose.",
-      "dueTitle": "{type} {name} de {animal} aujourd’hui",
-      "dueBody": "Note la prise dans MémoPatte pour programmer la suivante.",
-      "overdueTitle": "{type} {name} de {animal} en retard de {days} jours",
-      "overdueBody": "Pense à donner la dose, puis note la prise dans MémoPatte."
+    "plan": {
+      "treatment": {
+        "dueAt": "{name} de {animal} à {time}",
+        "dueToday": "{name} de {animal} aujourd’hui",
+        "beforeAt": "{name} de {animal} dans {days} jours, à {times}",
+        "before": "{name} de {animal} dans {days} jours",
+        "beforeBody": "Vérifie qu’il te reste une dose.",
+        "overdueTitle": "{name} de {animal} en retard de {days} jours",
+        "overdueBody": "Pense à donner la dose, puis note la prise dans MémoPatte."
+      },
+      "vaccination": {
+        "beforeTitle": "{name} de {animal} dans {weeks} semaines",
+        "beforeBody": "Le {date}. Pense à prendre rendez-vous chez le vétérinaire.",
+        "dueTitle": "{name} de {animal} aujourd’hui",
+        "dueBody": "Note le vaccin dans MémoPatte une fois fait.",
+        "overdueTitle": "{name} de {animal} en retard de {days} jours",
+        "overdueBody": "Prends rendez-vous chez le vétérinaire, puis note le vaccin dans MémoPatte."
+      },
+      "relay": "Pour continuer à recevoir les rappels de {animal}, ouvre MémoPatte."
     }
   },
   "reminderSheet": {
@@ -871,7 +938,7 @@
   "notifications": {
     "priming": {
       "title": "Ne rate plus aucun rappel",
-      "subtitle": "Active les notifications pour être prévenu à temps des vaccins et traitements de tes animaux.",
+      "subtitle": "Active les notifications pour recevoir à temps les rappels des vaccins et traitements de tes animaux.",
       "benefits": {
         "vaccination": "On te prévient avant le rappel de vaccin de {name}",
         "treatment": "On te prévient avant le rappel de traitement de {name}",
@@ -890,6 +957,21 @@
       "title": "Les rappels sont désactivés",
       "openSettings": "Activer dans les réglages"
     },
+    "exact": {
+      "title": "Rappels précis",
+      "subtitle": "Réglage Android",
+      "heroTitle": "Recevoir les rappels à l’heure pile",
+      "heroText": "Sans cette autorisation, Android peut retarder un rappel : jamais avant l’heure, souvent de quelques minutes, parfois d’une heure ou plus quand le téléphone économise sa batterie.",
+      "steps": {
+        "open": "Touche « {action} ».",
+        "allow": "Dans « Alarmes et rappels », active l’autorisation pour MémoPatte.",
+        "back": "Reviens dans MémoPatte : ton choix est pris en compte."
+      },
+      "skip": "Tu peux t’en passer : tes rappels arriveront quand même, parfois en retard.",
+      "open": "Ouvrir les réglages",
+      "openLabel": "Ouvrir le réglage Android Alarmes et rappels",
+      "later": "Plus tard"
+    },
     "action": {
       "done": "C’est fait",
       "alreadyDose": "Prise de {name} du {date} déjà notée pour {animal}",
@@ -901,6 +983,63 @@
   "settings": {
     "open": "Paramètres",
     "title": "Paramètres",
+    "reminders": {
+      "title": "Rappels",
+      "summary": {
+        "allowedExact": "Autorisés · rappels précis",
+        "allowed": "Autorisés",
+        "notYet": "Pas encore activés",
+        "off": "Désactivés"
+      },
+      "granted": {
+        "title": "Notifications autorisées",
+        "hint": "Tes rappels arrivent normalement."
+      },
+      "notificationSettings": {
+        "label": "Réglages des notifications",
+        "hint": "Ouvre les réglages d’Android"
+      },
+      "unasked": {
+        "title": "Rappels pas encore activés",
+        "hint": "MémoPatte n’a pas encore demandé l’autorisation d’envoyer des notifications.",
+        "action": "Activer les rappels"
+      },
+      "disabled": {
+        "title": "Notifications désactivées",
+        "hint": "Tu ne reçois aucun rappel pour l’instant.",
+        "action": "Activer dans les réglages"
+      },
+      "exact": {
+        "label": "Rappels précis",
+        "hint": {
+          "allowed": "Autorisés dans Android",
+          "pitch": "Pour recevoir chaque rappel à l’heure pile",
+          "off": "Désactivés dans Android",
+          "notYetOn": "Sans effet tant que les notifications ne sont pas activées",
+          "notificationsOff": "Sans effet tant que les notifications sont coupées",
+          "allowedNotYetOn": "Autorisés dans Android · sans effet tant que les notifications ne sont pas activées",
+          "allowedNotificationsOff": "Autorisés dans Android · sans effet tant que les notifications sont coupées",
+          "offNotYetOn": "Désactivés dans Android · sans effet tant que les notifications ne sont pas activées",
+          "offNotificationsOff": "Désactivés dans Android · sans effet tant que les notifications sont coupées"
+        },
+        "precise": "Autorisation Android accordée : tes rappels arrivent à l’heure pile.",
+        "lessPrecise": "Désactivés · tes rappels peuvent arriver en retard",
+        "reactivate": "Réactiver"
+      },
+      "remindBeforeDue": {
+        "label": "Me prévenir avant l’échéance",
+        "hint": "Vaccins : 2 semaines avant. Traitements : 3 jours avant."
+      },
+      "vaccineTime": {
+        "label": "Heure des rappels de vaccins",
+        "change": "Heure des rappels de vaccins, {time}. Touche pour la changer."
+      },
+      "help": {
+        "label": "Je ne reçois pas mes rappels",
+        "hint": "Page d’aide du site"
+      },
+      "saveError": "Le réglage n’a pas pu être enregistré. Réessaie."
+    },
     "account": {
       "title": "Compte",
       "signOut": {

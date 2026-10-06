@@ -47,14 +47,11 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <!--
-        Alarmes inexactes uniquement (cf. docs/technical/conformite-play-store-rgpd.md §1.5).
-        @capacitor/local-notifications déclare SCHEDULE_EXACT_ALARM dans son propre manifest :
-        on le retire du manifest fusionné. USE_EXACT_ALARM est retiré par précaution, au cas où
-        une version future du plugin viendrait à la déclarer.
+        Option « Rappels précis », accordée par l'utilisateur dans « Alarmes et rappels », jamais
+        demandée au lancement. USE_EXACT_ALARM, réservée aux réveils et agendas par la politique
+        Play, reste retirée si un plugin venait à la déclarer (conformite-play-store-rgpd.md §1.5).
     -->
-    <uses-permission
-        android:name="android.permission.SCHEDULE_EXACT_ALARM"
-        tools:node="remove" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission
         android:name="android.permission.USE_EXACT_ALARM"
         tools:node="remove" />

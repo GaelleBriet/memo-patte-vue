@@ -2088,3 +2088,31 @@ seulement pour un traitement à heures ; le menu d'une prise en plus n'a que « 
 « Supprimer cette prise ». — Raison : une prise en plus n'était pas prévue, elle ne peut pas être
 oubliée ; si elle n'a pas eu lieu, on la supprime. — Alternative écartée : garder « Marquer comme
 oubliée », qui laisserait une ligne sans objet.
+
+2026-10-06 — **On ne décale jamais rien de nous-mêmes sans l'aval de la personne** (principe posé par
+Gaelle, tickets des lots 4 et 7, #534 à #549). Il revient sur l'exception du 2026-10-03 et sur G20 de
+la spec Traitements : « C'est fait » en un tap ne décale plus la suite d'office, et la règle de la
+demi-fréquence face à la date de fin disparaît des gestes de l'app. Sur la fiche (#536), « C'est fait »
+ouvre une confirmation dès que la prise décalerait la suite, dose en retard comme dose donnée en
+avance : récapitulatif, case « Décaler aussi les doses suivantes » cochée par défaut, aide qui montre
+les dates, ou la dose perdue à cause de la date de fin (V28 bis). Restent un tap : la dose du jour, une
+prise sans case (tous les jours, heure qui ne complète pas la journée, dose déplacée seule) et une prise
+dont le décalage ferait passer un report seul (le toast le dit). La notification (#539) et la feuille
+« À faire » (#543) reprennent la même confirmation. Réponses du même jour, toutes selon la
+recommandation : B1 à B5 et Q6 validés en bloc (ordre du groupe « À renseigner », ligne « Donnée
+illisible », moment du rappel changé = correction de la période, anciennes clés de notification,
+plafond par soin à la mesure ; badge « À renseigner » au contour turquoise) ; Q1, prévenance et relance
+d'un traitement à heure sonnent au même moment que le rappel du jour ; Q2, le principe ci-dessus :
+« Donnée quand ? » → « Aujourd'hui » affiche la case cochée avec les dates, « Une autre date » ouvre
+le calendrier de « Fait à une autre date » avec la case (V29), la fiche et la feuille « À faire »
+demandent l'aval ; Q3, pour un traitement de tous les jours, « Donnée quand ? » ne propose que
+« Donnée le {jour prévu} » et « Annuler » ; Q4, la section « Rappels » de la page Aide s'écrit au
+lot 4 (#537) ; Q5, une ligne par heure dans « À faire », retard compris ; Q7, seul un export JSON
+partagé fait disparaître la carte trimestrielle ; Q8, première carte 3 mois après le premier soin
+enregistré, puis 3 mois après le dernier export JSON partagé ou la dernière croix ; Q9, un « soin
+enregistré » est un vaccin ou un traitement créé, « Reprendre » compris ; Q10, Paramètres › Sauvegarde
+se fait juste avant les messages de l'accueil (#544), « Retrouver mon carnet » reste masqué jusqu'au
+lot 9. — Raison : la personne voit les dates avant qu'elles changent ; une prise en avance change le
+rythme autant qu'une prise en retard. — Alternatives écartées : garder le décalage d'office en retard
+(G20 du 2026-10-05) ; pour une prise en avance, la noter sans décaler et sans demander, ce qui ne
+laisserait jamais le choix.

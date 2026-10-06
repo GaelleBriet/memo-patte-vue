@@ -58,7 +58,7 @@ describe('NotificationPrimingView — contenu', () => {
 
     expect(wrapper.get('h1').text()).toBe('Ne rate plus aucun rappel')
     expect(wrapper.text()).toContain(
-      'Active les notifications pour être prévenu à temps des vaccins et traitements de tes animaux.',
+      'Active les notifications pour recevoir à temps les rappels des vaccins et traitements de tes animaux.',
     )
     expect(wrapper.findAll('li').map((item) => item.text())).toEqual([
       'On te prévient avant le rappel de vaccin de Milo',
