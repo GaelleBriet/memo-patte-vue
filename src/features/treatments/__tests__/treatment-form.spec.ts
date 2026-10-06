@@ -28,6 +28,7 @@ import type { TreatmentWithHistory } from '../repository/treatments.repository'
 import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 import i18n from '@/core/i18n'
+import type { NotificationPermissionStatus } from '@/core/notifications'
 import { MAX_TIMES_PER_DAY } from '@/shared/domain/clock-time'
 
 const AT = '2026-07-01T08:00:00.000Z'
@@ -250,9 +251,9 @@ describe('suggestExactReminders (RA-23)', () => {
   function dependances(overrides: Partial<Parameters<typeof suggestExactReminders>[2]> = {}) {
     return {
       exact: 'never-enabled' as const,
-      alreadySuggested: vi.fn(() => false),
-      notifications: vi.fn(async () => 'granted' as const),
-      markSuggested: vi.fn(),
+      alreadySuggested: vi.fn<() => boolean>(() => false),
+      notifications: vi.fn<() => Promise<NotificationPermissionStatus>>(async () => 'granted'),
+      markSuggested: vi.fn<() => void>(),
       ...overrides,
     }
   }
@@ -274,7 +275,9 @@ describe('suggestExactReminders (RA-23)', () => {
   })
 
   it('ne note rien quand les notifications ne sont pas autorisées', async () => {
-    const deps = dependances({ notifications: vi.fn(async () => 'unasked' as const) })
+    const deps = dependances({
+      notifications: vi.fn<() => Promise<NotificationPermissionStatus>>(async () => 'unasked'),
+    })
 
     expect(await suggestExactReminders([], ['21:00'], deps)).toBe(false)
     expect(deps.markSuggested).not.toHaveBeenCalled()
