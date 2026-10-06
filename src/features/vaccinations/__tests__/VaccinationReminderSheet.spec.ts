@@ -304,6 +304,27 @@ describe('VaccinationReminderSheet — F5, vaccin fait', () => {
     expect(texte('.bottom-sheet__title')).toBe('Date d’injection')
   })
 
+  it('s’ouvre sur le calendrier de l’injection depuis le lien de la fiche, puis revient à F5', async () => {
+    await monter({ startAt: 'other-date' })
+
+    expect(texte('.bottom-sheet__title')).toBe('Date d’injection')
+
+    jour('2026-09-20').click()
+    await flushPromises()
+
+    expect(texte('.vaccination-reminder-sheet__injection-date')).toBe('Injection le 20 sept. 2026')
+    expect(choix().every((element) => element.getAttribute('aria-checked') === 'false')).toBe(true)
+    expect(bouton('.vaccination-reminder-sheet__submit').disabled).toBe(true)
+  })
+
+  it('garde l’aide sous « Prochain rappel » (VA-6)', async () => {
+    await ouvrirF5()
+
+    expect(texte('.vaccination-reminder-sheet__hint')).toBe(
+      'Reporte la date indiquée par ton vétérinaire.',
+    )
+  })
+
   it('revient à l’étape précédente au retour Android, puis ferme la feuille', async () => {
     vi.spyOn(Capacitor, 'isNativePlatform').mockReturnValue(true)
     const desinstaller = installBackButton()
