@@ -64,6 +64,7 @@ const menuItems = computed<OverflowMenuItem[]>(() => [
 ])
 
 const isDoneSheetOpen = ref(false)
+const doneStartAt = ref<'done' | 'other-date'>('done')
 const moving = ref<VaccinationInjection | null>(null)
 const isDatePickerOpen = ref(false)
 const movingTexts = computed(() =>
@@ -86,6 +87,11 @@ const deleteTexts = computed(() =>
 onMounted(() => {
   if (!animals.hasLoaded) void animals.load()
 })
+
+function openDoneSheet(startAt: 'done' | 'other-date'): void {
+  doneStartAt.value = startAt
+  isDoneSheetOpen.value = true
+}
 
 function askDelete(onlyInjection: boolean): void {
   deleteFromOnlyInjection.value = onlyInjection
@@ -151,6 +157,14 @@ async function remove(): Promise<void> {
     @back="backToCarnet"
   >
     <template v-if="vaccination" #end>
+      <v-btn
+        class="vaccination-detail__edit"
+        icon="ms:edit"
+        variant="text"
+        color="primary"
+        :aria-label="texts?.editLabel"
+        @click="edit"
+      />
       <OverflowMenu
         :label="t('history.moreOptions')"
         :items="menuItems"
@@ -162,15 +176,24 @@ async function remove(): Promise<void> {
       <template v-if="vaccination && texts">
         <NextDueCard
           :label="t('vaccinations.detail.nextReminder')"
-          :date="texts.due?.date"
-          :delay="texts.due?.delay.text"
-          :overdue="texts.due?.delay.overdue"
+          :value="texts.due?.value"
+          :delay="texts.due?.delay"
+          :tone="texts.due?.tone"
+          :note="texts.note"
           :empty-text="t('vaccinations.detail.noReminder')"
           :done-aria-label="texts.doneLabel"
+          :other-date-aria-label="texts.otherDateLabel"
           :busy="gestures.isBusy.value"
-          @done="isDoneSheetOpen = true"
-          @edit="edit"
-        />
+          @done="openDoneSheet('done')"
+          @other-date="openDoneSheet('other-date')"
+        >
+          <template v-if="texts.top" #top>
+            <p class="vaccination-detail__first">
+              <v-icon icon="ms:vaccines" size="18" />
+              <span>{{ texts.top }}</span>
+            </p>
+          </template>
+        </NextDueCard>
 
         <SectionCard :title="t('vaccinations.detail.injections')" :counter="texts.counter">
           <HistoryRow
@@ -205,7 +228,7 @@ async function remove(): Promise<void> {
     <VaccinationReminderSheet
       v-model="isDoneSheetOpen"
       :vaccination-id="id"
-      start-at="done"
+      :start-at="doneStartAt"
       @changed="reload"
     />
 
@@ -250,6 +273,26 @@ async function remove(): Promise<void> {
   flex-direction: column;
   gap: 26px;
   padding: 12px 0 32px;
+}
+
+.vaccination-detail__edit {
+  width: tokens.$size-tap-target;
+  height: tokens.$size-tap-target;
+}
+
+.vaccination-detail__first {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: tokens.$color-text-secondary;
+  font-size: 14px;
+  font-weight: 600;
+
+  .v-icon {
+    flex: 0 0 auto;
+    color: rgb(var(--v-theme-primary));
+  }
 }
 
 .vaccination-detail__message {

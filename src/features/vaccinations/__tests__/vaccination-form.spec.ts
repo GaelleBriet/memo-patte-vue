@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
   emptyVaccinationFormValues,
@@ -19,6 +19,14 @@ import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
 
 const TODAY = '2026-10-06'
 const t = i18n.global.t
+
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['Date'], now: new Date(2026, 9, 6, 12) })
+})
+
+afterEach(() => {
+  vi.useRealTimers()
+})
 
 function valeurs(surcharges: Partial<VaccinationFormValues> = {}): VaccinationFormValues {
   return {
