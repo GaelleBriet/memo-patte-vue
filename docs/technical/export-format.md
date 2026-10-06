@@ -289,9 +289,9 @@ ni publicitaire. Nom lisible : le fabricant suivi du modèle, et la date d'insta
 
 Une ligne par prochaine échéance, triées par date : chaque vaccin dont la dernière injection a un
 rappel, ou dont le rappel est prévu tant qu'il n'a aucune injection ; chaque traitement en cours, avec
-la prochaine dose que fixe la dernière ligne de sa période en cours, ou la première échéance de cette
-période tant qu'elle n'a aucune ligne. Un traitement arrêté, ou dont la date de fin est passée, n'y
-figure pas. C'est un résumé pour qui lit le fichier ; les instants de notification ne sont pas
+la dose du moment que donne le moteur d'échéances au jour de l'export (la dose en retard, celle du
+jour ou la prochaine ; heures, date de fin, reports et décalages compris). Un traitement arrêté ou
+terminé n'y figure pas, ni un traitement que le moteur ne sait pas relire (donnée illisible). C'est un résumé pour qui lit le fichier ; les instants de notification ne sont pas
 exportés, car ils dépendent du jour de l'import. Un import **ne lit pas** ce tableau : il reconstruit
 les rappels depuis le carnet écrit.
 
@@ -445,7 +445,7 @@ se réimporte.
 - **Une ligne par injection, par période et par prise**, dans trois fichiers séparés reliés à leur
   vaccin ou traitement (décision du 2026-09-24 ; périodes : #454). `vaccins.csv` et
   `traitements.csv` gardent, pour la lecture, la date de la dernière injection ou prise donnée et la
-  prochaine échéance (celle de `reminders[]` ; vide pour un traitement arrêté ou terminé).
+  prochaine échéance (celle de `reminders[]` ; vide pour un traitement arrêté, terminé ou illisible).
 - Booléen : `true` ou `false`.
 - **Poids dans l'unité choisie dans Paramètres** (#352), au centième, nommée par le titre de
   colonne : `weightKg` en kilogrammes, `weightLb` en livres. Seule exception aux en-têtes identiques

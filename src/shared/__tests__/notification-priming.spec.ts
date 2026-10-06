@@ -139,6 +139,7 @@ describe('primingReturnRoute', () => {
   it('revient à l’écran d’origine quand il est nommé', () => {
     expect(primingReturnRoute('home')).toEqual({ name: 'home' })
     expect(primingReturnRoute('settings')).toEqual({ name: 'settings' })
+    expect(primingReturnRoute('settings-reminders')).toEqual({ name: 'settings-reminders' })
     expect(primingReturnRoute('animals')).toEqual({ name: 'animals' })
   })
 

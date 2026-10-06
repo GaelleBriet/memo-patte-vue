@@ -5,6 +5,7 @@ import add from '@material-symbols/svg-400/outlined/add.svg?raw'
 import alarm from '@material-symbols/svg-400/outlined/alarm.svg?raw'
 import alarmOff from '@material-symbols/svg-400/outlined/alarm_off.svg?raw'
 import arrowBack from '@material-symbols/svg-400/outlined/arrow_back.svg?raw'
+import backup from '@material-symbols/svg-400/outlined/backup.svg?raw'
 import calendarMonth from '@material-symbols/svg-400/outlined/calendar_month.svg?raw'
 import check from '@material-symbols/svg-400/outlined/check.svg?raw'
 import checkCircleFill from '@material-symbols/svg-400/outlined/check_circle-fill.svg?raw'
@@ -29,6 +30,7 @@ import eventBusy from '@material-symbols/svg-400/outlined/event_busy.svg?raw'
 import eventRepeat from '@material-symbols/svg-400/outlined/event_repeat.svg?raw'
 import eventUpcoming from '@material-symbols/svg-400/outlined/event_upcoming.svg?raw'
 import folderOff from '@material-symbols/svg-400/outlined/folder_off.svg?raw'
+import help from '@material-symbols/svg-400/outlined/help.svg?raw'
 import history from '@material-symbols/svg-400/outlined/history.svg?raw'
 import home from '@material-symbols/svg-400/outlined/home.svg?raw'
 import iosShare from '@material-symbols/svg-400/outlined/ios_share.svg?raw'
@@ -36,8 +38,10 @@ import logout from '@material-symbols/svg-400/outlined/logout.svg?raw'
 import markEmailUnread from '@material-symbols/svg-400/outlined/mark_email_unread.svg?raw'
 import merge from '@material-symbols/svg-400/outlined/merge.svg?raw'
 import medication from '@material-symbols/svg-400/outlined/medication.svg?raw'
+import mobile from '@material-symbols/svg-400/outlined/mobile.svg?raw'
 import monitorWeight from '@material-symbols/svg-400/outlined/monitor_weight.svg?raw'
 import moreVert from '@material-symbols/svg-400/outlined/more_vert.svg?raw'
+import notifications from '@material-symbols/svg-400/outlined/notifications.svg?raw'
 import notificationsActive from '@material-symbols/svg-400/outlined/notifications_active.svg?raw'
 import notificationsOff from '@material-symbols/svg-400/outlined/notifications_off.svg?raw'
 import openInNew from '@material-symbols/svg-400/outlined/open_in_new.svg?raw'
@@ -60,6 +64,7 @@ import showChart from '@material-symbols/svg-400/outlined/show_chart.svg?raw'
 import starShine from '@material-symbols/svg-400/outlined/star_shine.svg?raw'
 import storefront from '@material-symbols/svg-400/outlined/storefront.svg?raw'
 import tableView from '@material-symbols/svg-400/outlined/table_view.svg?raw'
+import tune from '@material-symbols/svg-400/outlined/tune.svg?raw'
 import today from '@material-symbols/svg-400/outlined/today.svg?raw'
 import vaccines from '@material-symbols/svg-400/outlined/vaccines.svg?raw'
 import workspacePremium from '@material-symbols/svg-400/outlined/workspace_premium.svg?raw'
@@ -139,6 +144,7 @@ export const msIcons = {
   arrow_upward: arrowUpward,
   attach_file: attachFile,
   backspace,
+  backup,
   cached,
   calendar_month: calendarMonth,
   calendar_today: calendarToday,
@@ -177,6 +183,7 @@ export const msIcons = {
   folder_off: folderOff,
   fullscreen,
   fullscreen_exit: fullscreenExit,
+  help,
   history,
   home,
   indeterminate_check_box: indeterminateCheckBox,
@@ -195,8 +202,10 @@ export const msIcons = {
   medication,
   merge,
   menu,
+  mobile,
   monitor_weight: monitorWeight,
   more_vert: moreVert,
+  notifications,
   notifications_active: notificationsActive,
   notifications_off: notificationsOff,
   open_in_new: openInNew,
@@ -232,6 +241,7 @@ export const msIcons = {
   storefront,
   table_view: tableView,
   today,
+  tune,
   unfold_more: unfoldMore,
   upload,
   vaccines,

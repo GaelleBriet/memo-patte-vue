@@ -134,13 +134,16 @@ par jour gérées au-delà d'une notification par heure (#365, plus tard) ; alar
   traitement reçoit une heure alors que les notifications sont autorisées (relecture du lot A, QA-4 ;
   tournure neutre, spec Traitements Q12) ; jamais au démarrage. L'app revérifie l'autorisation à chaque
   retour au premier plan ; retirée, les rappels passent en alarmes inexactes **sans changer les choix de
-  Sophie** (« 15 min avant » reste « 15 min avant ») ; Paramètres › Rappels et le choix du rappel dans
-  le formulaire affichent « Moins précis : les rappels précis sont désactivés », avec le lien pour les
-  réactiver ; la fiche d'un traitement à heure(s) ajoute alors, sous les heures, une ligne discrète
-  « Rappel 30 min avant · moins précis » avec « Réactiver » (spec Q6) ; réactivés, tout redevient
+  Sophie** (« 15 min avant » reste « 15 min avant ») ; le choix du rappel dans le formulaire affiche
+  « Peut arriver en retard : les rappels précis sont désactivés », avec le lien pour les réactiver ;
+  Paramètres › Rappels affiche « Désactivés · tes rappels peuvent arriver en retard » avec « Réactiver » ; la fiche d'un traitement à heure(s) ajoute alors, sous les heures, une ligne discrète
+  « Rappel 30 min avant · peut arriver en retard » avec « Réactiver » (spec Q6) ; réactivés, tout redevient
   précis sans rien ressaisir. Retirer l'accès dans les réglages d'Android arrête l'app et annule toutes
   ses alarmes exactes : les rappels ne reviennent, en inexact, qu'à la prochaine ouverture de l'app
-  (#535). (P3 Q3 ; recherche ; spec Q3, 2026-09-29)
+  (#535). L'explication ne sert qu'à les activer (jamais activés, ou retirés avec « Réactiver ») :
+  déjà accordés, toucher leur interrupteur dans Paramètres › Rappels ouvre directement l'écran
+  d'Android « Alarmes et rappels » (décision de Gaelle du 2026-10-06, #540). (P3 Q3 ; recherche ; spec
+  Q3, 2026-09-29)
 - **RA-24** Lien « Je ne reçois pas mes rappels » vers la page Aide du site, depuis Paramètres › Rappels
   et le bandeau. (Décision du 2026-09-29)
 
@@ -149,8 +152,8 @@ par jour gérées au-delà d'une notification par heure (#365, plus tard) ; alar
 - État des notifications : autorisées ; désactivées, avec le lien vers les réglages d'Android ; jamais
   demandées par Android (« Pas encore activés »), avec « Activer les rappels », qui ouvre l'écran
   d'explication puis la demande d'Android (RA-21 ; relecture du lot C, QC-5).
-- « Rappels précis » (activé / désactivé, avec l'état réel de l'autorisation ; « Moins précis » et
-  « Réactiver » quand il a été retiré, RA-23).
+- « Rappels précis » (activé / désactivé, avec l'état réel de l'autorisation ; « Désactivés · tes rappels
+  peuvent arriver en retard » et « Réactiver » quand il a été retiré, RA-23).
 - « Me prévenir avant l'échéance » (oui / non).
 - « Heure des rappels de vaccins » (9 h par défaut).
 - « Je ne reçois pas mes rappels » (page Aide).
@@ -187,7 +190,7 @@ par jour gérées au-delà d'une notification par heure (#365, plus tard) ; alar
    réglages.
 9. **Étant donné** les rappels précis retirés dans les réglages d'Android et un rappel « 15 min avant »,
    **quand** Sophie revient dans l'app, **alors** le choix reste « 15 min avant », les rappels passent
-   en inexact, et Paramètres comme la fiche affichent « Moins précis ».
+   en inexact, et Paramètres comme la fiche disent que les rappels peuvent arriver en retard.
 10. **Étant donné** un voyage à une heure de décalage, **quand** Sophie ouvre l'app sur place,
     **alors** les rappels sonnent à l'heure locale.
 
@@ -228,6 +231,14 @@ par jour gérées au-delà d'une notification par heure (#365, plus tard) ; alar
   sur la fiche seulement pour un traitement à heure(s) quand l'accès est retiré. Raison : Sophie ouvre
   la fiche bien plus souvent que « Modifier » ; elle doit savoir sans chercher (principe 3). Écartée :
   le formulaire seul (maquette). (Relecture du lot A, QA-3.)
+
+- 2026-10-06 — **« Moins précis » devient « peut arriver en retard »** (RA-23, #540) : Paramètres ›
+  Rappels « Désactivés · tes rappels peuvent arriver en retard » avec « Réactiver » ; formulaire
+  « Peut arriver en retard : les rappels précis sont désactivés » ; fiche « Rappel … · peut arriver en
+  retard ». Le sous-titre de l'entrée « Rappels » de Paramètres reste « Autorisés ». Raison : « Moins
+  précis » est peu clair, la conséquence parle mieux (décision de Gaelle). Écartée : « Moins précis »
+  (Q3, Q6 du 2026-09-29, qui gardent leur sens). Aussi : rappels précis déjà accordés, l'interrupteur
+  ouvre directement « Alarmes et rappels » d'Android.
 
 - 2026-09-30 — **Lots B et C révisés, points qui touchent les rappels** : écran « Ne rate plus aucun
   rappel » au sous-titre sans accord, premier avantage nommant le prochain soin à venir (RA-21) ;
