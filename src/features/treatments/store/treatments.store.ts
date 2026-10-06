@@ -186,6 +186,7 @@ export const useTreatmentsStore = defineStore('treatments', () => {
         (treatment) => treatment.animalId,
       )
       recordUsageSignal('entry')
+      recordUsageSignal('care')
       const species = useAnimalsStore().byId(created.animalId)?.species
       if (species) track('treatment_created', { species })
       return created
@@ -204,14 +205,16 @@ export const useTreatmentsStore = defineStore('treatments', () => {
 
     /** Le traitement fini ou arrêté repart dans une nouvelle période, à la première prise choisie. */
     async resume(id: string, input: TreatmentResumptionInput): Promise<Treatment> {
-      return write(
+      const resumed = await write(
         async () => {
-          const resumed = await planProvider().resume(id, input)
+          const treatment = await planProvider().resume(id, input)
           await remindersProvider().reschedule(id)
-          return resumed
+          return treatment
         },
-        (resumed) => resumed.animalId,
+        (treatment) => treatment.animalId,
       )
+      recordUsageSignal('care')
+      return resumed
     },
 
     /** Rend l'instant de la suppression, à passer à `undoRemove`. */

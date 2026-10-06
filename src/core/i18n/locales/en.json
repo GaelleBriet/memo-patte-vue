@@ -939,8 +939,27 @@
     "welcome": {
       "title": "Welcome to MémoPatte",
       "text": "Your pets’ health record, always up to date.",
+      "local": "Your health record stays on your phone. Free, no account.",
       "create": "Add my first pet",
       "import": "Import a MémoPatte export"
+    },
+    "messages": {
+      "close": "Close this message",
+      "protect": {
+        "title": "Your health record is on this phone. Here’s how to protect it",
+        "seeHow": "See how",
+        "seeHowLabel": "See how to protect your health record"
+      },
+      "quarterly": {
+        "title": "Your health record only exists on this phone.",
+        "body": "Keep a copy somewhere safe.",
+        "exportLabel": "Export a copy of your health record",
+        "plus": "Explore Plus",
+        "plusLabel": "Explore MémoPatte Plus",
+        "stop": "Don’t suggest this again",
+        "stopLabel": "Don’t suggest this message again",
+        "close": "Hide until next quarter"
+      }
     }
   },
   "form": {
@@ -969,7 +988,10 @@
     },
     "disabled": {
       "title": "Reminders are off",
-      "openSettings": "Turn on in settings"
+      "openSettings": "Turn on in settings",
+      "enable": "Turn on reminders",
+      "help": "I’m not getting my reminders",
+      "helpLabel": "I’m not getting my reminders: see help"
     },
     "exact": {
       "title": "Exact reminders",

@@ -5,8 +5,6 @@ import { useRoute, useRouter } from 'vue-router'
 
 import { promptNotificationsIfReminders } from '@/app/reminders-priming'
 import { useForegroundRefresh } from '@/core/app-lifecycle/use-foreground-refresh'
-import { openNotificationSettings } from '@/core/notifications/permission'
-import { useNotificationPermission } from '@/core/notifications/use-notification-permission'
 import { usePhotoUrls } from '@/core/photos/use-photo-urls'
 import illustration from '@/assets/brand-illustration.png'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
@@ -27,6 +25,7 @@ import {
   type TodoRequest,
 } from '@/shared/domain/reminder-route'
 import AnimalPickerSheet from './AnimalPickerSheet.vue'
+import HomeMessages from './HomeMessages.vue'
 import HomeTodoCard from './HomeTodoCard.vue'
 import { useHomeStore } from '../store/home.store'
 import {
@@ -49,8 +48,6 @@ const animals = useAnimalsStore()
 const home = useHomeStore()
 
 const { today } = useForegroundRefresh(load)
-const { status: notificationPermission } = useNotificationPermission()
-const areRemindersOff = computed(() => notificationPermission.value === 'disabled')
 
 const hasError = computed(() => animals.error !== null || home.error !== null)
 const isReady = computed(() => animals.hasLoaded && home.hasLoaded && !hasError.value)
@@ -231,9 +228,17 @@ function openCarnet(): void {
 <template>
   <div class="home">
     <div v-if="isWelcome" class="home-welcome">
+      <v-btn
+        class="home-welcome__settings"
+        icon="ms:settings"
+        variant="text"
+        :aria-label="t('settings.open')"
+        @click="openSettings"
+      />
       <img class="home-welcome__illustration" :src="illustration" alt="" />
       <h1 class="home-welcome__title">{{ t('home.welcome.title') }}</h1>
       <p class="home-welcome__text">{{ t('home.welcome.text') }}</p>
+      <p class="home-welcome__local">{{ t('home.welcome.local') }}</p>
       <v-btn
         class="home-welcome__create"
         variant="flat"
@@ -278,16 +283,7 @@ function openCarnet(): void {
         @add="createAnimal"
       />
 
-      <div v-if="areRemindersOff" class="home-reminders-off">
-        <v-icon class="home-reminders-off__icon" icon="ms:notifications_off" size="19" />
-        <div class="home-reminders-off__text">
-          <p class="home-reminders-off__title">{{ t('notifications.disabled.title') }}</p>
-          <button type="button" class="home-reminders-off__link" @click="openNotificationSettings">
-            <span>{{ t('notifications.disabled.openSettings') }}</span>
-            <v-icon icon="ms:chevron_right" size="16" />
-          </button>
-        </div>
-      </div>
+      <HomeMessages place="aboveTodo" />
 
       <HomeTodoCard
         :rows="rows"
@@ -298,6 +294,8 @@ function openCarnet(): void {
         @open="openRow"
         @add="openCarnet"
       />
+
+      <HomeMessages place="belowTodo" />
 
       <section class="home-quick-actions">
         <h2 class="home-quick-actions__title">{{ t('home.quickActions.title') }}</h2>
@@ -420,58 +418,6 @@ function openCarnet(): void {
   margin-top: 26px;
 }
 
-.home-reminders-off {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin: 18px 20px 0;
-  padding: 9px 16px;
-  border: 1px solid tokens.$color-reminders-off-border;
-  border-radius: 14px;
-  background: tokens.$color-reminders-off-surface;
-}
-
-.home-reminders-off__icon {
-  flex: 0 0 auto;
-  color: tokens.$color-text-secondary;
-}
-
-.home-reminders-off__title {
-  margin: 0;
-  color: tokens.$color-reminders-off-text;
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.home-reminders-off__link {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  margin-top: 3px;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: rgb(var(--v-theme-primary));
-  font-family: inherit;
-  font-size: 12.5px;
-  font-weight: 700;
-  cursor: pointer;
-
-  // Toute la surface du bandeau répond au tap, pas seulement la ligne de lien.
-  &::after {
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    content: '';
-  }
-
-  &:focus-visible {
-    outline: none;
-    color: rgb(var(--v-theme-primary-darken-1));
-  }
-}
-
 .home-reminders-off + .home-todo {
   margin-top: 22px;
 }
@@ -568,6 +514,7 @@ function openCarnet(): void {
 }
 
 .home-welcome {
+  position: relative;
   display: flex;
   flex: 1 0 auto;
   flex-direction: column;
@@ -598,6 +545,24 @@ function openCarnet(): void {
   color: tokens.$color-text-secondary;
   font-size: 15.5px;
   line-height: 1.45;
+}
+
+.home-welcome__local {
+  max-width: 300px;
+  margin: -8px 0 0;
+  color: tokens.$color-text-secondary;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.home-welcome__settings {
+  position: absolute;
+  inset-block-start: 8px;
+  inset-inline-end: 8px;
+  width: 48px;
+  height: 48px;
+  color: rgb(var(--v-theme-primary));
 }
 
 .home-welcome__create {
