@@ -73,7 +73,7 @@ describe('pastDuesTexts', () => {
     expect(
       lisible(pastDuesTexts(t, dues(['2026-09-29', '2026-10-01']), TOUS_LES_2_JOURS, PROCHAINES))
         .text,
-    ).toBe('Les 29 sept. et 1 oct., au rythme « tous les 2 jours ».')
+    ).toBe('Les 29 sept. et 1er oct., au rythme « tous les 2 jours ».')
   })
 
   it('compte chaque heure, ne cite chaque jour qu’une fois, et dit les heures de l’ancien rythme', () => {
