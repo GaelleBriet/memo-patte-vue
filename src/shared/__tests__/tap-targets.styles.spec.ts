@@ -30,7 +30,7 @@ describe('zones de tap de 48 px, sans changement de rendu', () => {
     ['src/shared/components/ConfirmDialog.vue', '.confirm-dialog__actions .v-btn::before'],
     ['src/shared/form/FormScreen.vue', '.form-screen__cancel::before'],
     ['src/shared/components/NotificationPrimingView.vue', '.notification-priming__later::before'],
-    ['src/features/home/views/HomeView.vue', '.home-up-to-date__add::before'],
+    ['src/features/home/views/HomeTodoCard.vue', '.home-up-to-date__add::before'],
     ['src/features/settings/views/ImportSheet.vue', '.import-confirm__actions .v-btn::before'],
     ['src/features/weight/views/WeightHistoryView.vue', '.weight-history__retry::before'],
   ])('%s — %s', (fichier, selecteur) => {

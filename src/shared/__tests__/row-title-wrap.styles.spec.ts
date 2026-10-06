@@ -32,7 +32,7 @@ function declaration(feuille: string, selecteur: string, propriete: string): str
  */
 const LISTES = [
   {
-    fichier: 'src/features/home/views/HomeView.vue',
+    fichier: 'src/features/home/views/HomeTodoCard.vue',
     ligne: '.reminder-row',
     titre: '.reminder-row__title',
     badge: '.reminder-row__badge',
