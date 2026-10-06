@@ -637,7 +637,22 @@
       "keptAfterReport": "Only this dose changes. Postponed dose on {report}, then {date} and {every}.",
       "movedBeforeReport": "The following doses will move to {date}, then postponed dose on {report}.",
       "keptBeforeReport": "Only this dose changes. The following ones stay on {date}, then postponed dose on {report}.",
-      "passesMoveCheck": "With this day, the dose you had postponed to {date} would fall after the next one. Tick “Also move the following doses”, or change the date of this postponement first."
+      "passesMoveCheck": "With this day, the dose you had postponed to {date} would fall after the next one. Tick “Also move the following doses”, or change the date of this postponement first.",
+      "revealed": {
+        "help": {
+          "unlogged": "The {dates} dose will need to be logged. | The {dates} doses will need to be logged.",
+          "overdue": "The {dates} dose will be overdue. | The {dates} doses will be overdue.",
+          "unloggedThen": "The {dates} dose will need to be logged; | The {dates} doses will need to be logged;",
+          "thenOverdue": "the {dates} one will be overdue. | the {dates} ones will be overdue."
+        },
+        "toast": {
+          "unlogged": "The {dates} dose needs to be logged. | The {dates} doses need to be logged.",
+          "overdue": "The {dates} dose is overdue. | The {dates} doses are overdue.",
+          "unloggedThen": "The {dates} dose needs to be logged; | The {dates} doses need to be logged;",
+          "thenOverdue": "the {dates} one is overdue. | the {dates} ones are overdue."
+        },
+        "after": "{done}. {revealed}"
+      }
     }
   },
   "reminders": {
@@ -656,6 +671,26 @@
       "dueBody": "Log the dose in MémoPatte to schedule the next one.",
       "overdueTitle": "{name} ({type}) for {animal} is {days} days overdue",
       "overdueBody": "Remember to give the dose, then log it in MémoPatte."
+    },
+    "plan": {
+      "treatment": {
+        "dueAt": "{animal}’s {name} at {time}",
+        "dueToday": "{animal}’s {name} today",
+        "beforeAt": "{animal}’s {name} in {days} days, at {times}",
+        "before": "{animal}’s {name} in {days} days",
+        "beforeBody": "Check you still have a dose.",
+        "overdueTitle": "{animal}’s {name} is {days} days overdue",
+        "overdueBody": "Remember to give the dose, then log it in MémoPatte."
+      },
+      "vaccination": {
+        "beforeTitle": "{animal}’s {name} in {weeks} weeks",
+        "beforeBody": "On {date}. Remember to book a vet appointment.",
+        "dueTitle": "{animal}’s {name} today",
+        "dueBody": "Log the vaccine in MémoPatte once it’s done.",
+        "overdueTitle": "{animal}’s {name} is {days} days overdue",
+        "overdueBody": "Book a vet appointment, then log the vaccine in MémoPatte."
+      },
+      "relay": "To keep getting {animal}’s reminders, open MémoPatte."
     }
   },
   "reminderSheet": {

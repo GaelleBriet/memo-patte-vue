@@ -6,6 +6,7 @@ import { dateChangeOf } from '../logic/treatment-gestures'
 import { treatmentScheduleOf } from '../logic/treatment-schedule'
 import {
   dateChangeBox,
+  doneGesture,
   dosesAfter,
   otherDateBox,
   otherDateNote,
@@ -128,6 +129,18 @@ describe('otherDateBox — « Fait à une autre date » (V29)', () => {
     expect(help(otherDateBox(t, DUE_16, '2026-10-19', carnet(PIXEL, today), false))).toEqual({
       text: 'Seule cette dose change. Les suivantes restent le vendredi : 23, 30 oct.',
       warning: false,
+    })
+  })
+
+  it('avec une date de fin, la case avertit de la dose perdue, même loin de la suivante (V28 bis)', () => {
+    const ended = treatment(
+      [{ ...VENDREDI, endsOn: '2026-10-30' }],
+      [dose('2026-10-09', '2026-10-16')],
+    )
+
+    expect(help(otherDateBox(t, DUE_16, '2026-10-19', carnet(ended, '2026-10-19'), true))).toEqual({
+      text: 'Avec le décalage, la dose du 30 oct. ne sera plus prévue (date de fin).',
+      warning: true,
     })
   })
 
@@ -337,9 +350,8 @@ describe('I2 : la correction fait suivre le report seul, et l’aide dit le cale
 
       expect(text).toContain(plain(formatDayMonth(first!)).split(' ')[0]!)
       expect(text).toContain(String(Number(second!.slice(8))))
-      expect(
-        text.includes('La dose que tu avais reportée au 30 oct. reste prévue ce jour-là.'),
-      ).toBe(follows(date, true))
+      expect(text.includes('30 oct.')).toBe(follows(date, true))
+      expect(text.match(/30 oct\./g)?.length ?? 0).toBeLessThanOrEqual(1)
     },
   )
 
@@ -350,15 +362,16 @@ describe('I2 : la correction fait suivre le report seul, et l’aide dit le cale
 
       expect(after.doses.some(({ status }) => status === 'postponed')).toBe(false)
       expect(after.upcoming(2).map(({ dueOn }) => dueOn)).toEqual(['2026-10-30', '2026-11-06'])
+      expect(after.currentDoses.map(({ dueOn }) => dueOn)).toEqual(['2026-10-23'])
       expect(plain(box.view('2026-10-16', shifts).help!.text)).toBe(
-        'La dose que tu avais reportée au 30 oct. reste prévue ce jour-là.',
+        'La dose du 23 oct. sera en retard. La dose que tu avais reportée au 30 oct. reste prévue ce jour-là.',
       )
     },
   )
 
   it('au 17, case cochée : le report garde le 30 et vise le samedi 31 ; l’aide suit le calendrier', () => {
     expect(plain(box.view('2026-10-17', true).help!.text)).toBe(
-      'Les doses suivantes passeront au 24 oct., puis dose reportée le 30 oct. La dose que tu avais reportée au 30 oct. reste prévue ce jour-là.',
+      'Dose reportée le 30 oct., puis le 7 nov. et toutes les semaines. La dose du 24 oct. sera en retard.',
     )
     const after = saved('2026-10-17', true)
     expect(after.currentDoses.map(({ dueOn }) => dueOn)).toEqual(['2026-10-24'])
@@ -424,5 +437,65 @@ describe('restoredSuiteFor — le toast de « Supprimer ce décalage » (V31 qua
     expect(restoredSuiteFor(history, { kind: 'remove', doseId: '2026-10-09' }, '2026-10-15')).toBe(
       null,
     )
+  })
+})
+
+describe('doneGesture — « C’est fait » de la fiche : rien ne se décale sans l’aval (2026-10-06)', () => {
+  it('une dose du jour se note d’un tap', () => {
+    expect(doneGesture(treatmentScheduleOf(PIXEL, '2026-10-16'), DUE_16, '2026-10-16')).toEqual({
+      confirm: false,
+      gesture: { kind: 'given', due: DUE_16, givenOn: '2026-10-16' },
+    })
+  })
+
+  it('une dose en retard demande la confirmation', () => {
+    expect(doneGesture(treatmentScheduleOf(PIXEL, '2026-10-19'), DUE_16, '2026-10-19')).toEqual({
+      confirm: true,
+    })
+  })
+
+  it('une dose donnée en avance aussi', () => {
+    expect(doneGesture(treatmentScheduleOf(PIXEL, '2026-10-14'), DUE_16, '2026-10-14')).toEqual({
+      confirm: true,
+    })
+  })
+
+  it('avec une date de fin, même loin de la dose suivante (V28 bis)', () => {
+    const ended = treatment([{ ...VENDREDI, endsOn: '2026-10-30' }], PIXEL.doses)
+
+    expect(doneGesture(treatmentScheduleOf(ended, '2026-10-19'), DUE_16, '2026-10-19')).toEqual({
+      confirm: true,
+    })
+  })
+
+  it('tous les jours, pas de case : un tap qui ne décale rien (N3)', () => {
+    const daily = treatment([period({ startsOn: '2026-10-14', firstDueOn: '2026-10-14' })])
+    const due14 = { periodId: 'p-1', dueOn: '2026-10-14', dueTime: null }
+    const schedule = treatmentScheduleOf(daily, '2026-10-15')
+    const done = doneGesture(schedule, due14, '2026-10-15')
+
+    expect(done).toEqual({
+      confirm: false,
+      gesture: { kind: 'given', due: due14, givenOn: '2026-10-15' },
+    })
+    expect(done.confirm === false && schedule.doseFor(done.gesture).shift).toBeNull()
+  })
+
+  it('un report seul bloque le décalage : un tap, la prise seule, le toast le dit (Q2 a)', () => {
+    const held = treatment(
+      [VENDREDI],
+      [dose('2026-10-09', '2026-10-16'), postponed('2026-10-23', '2026-10-29')],
+    )
+    const schedule = treatmentScheduleOf(held, '2026-10-21')
+    const done = doneGesture(schedule, DUE_16, '2026-10-21')
+
+    expect(done).toEqual({
+      confirm: false,
+      gesture: { kind: 'given', due: DUE_16, givenOn: '2026-10-21' },
+    })
+    expect(done.confirm === false && schedule.doseFor(done.gesture)).toMatchObject({
+      shift: null,
+      heldBy: '2026-10-29',
+    })
   })
 })
