@@ -12,6 +12,7 @@ import {
 } from '../logic/vaccination-history'
 import type { VaccinationInjection } from '../schema/vaccination-injection.schema'
 import i18n, { applyLocale } from '@/core/i18n'
+import { plain } from '@/shared/__tests__/plain'
 
 const t = i18n.global.t
 const TODAY = '2026-09-23'
@@ -114,29 +115,29 @@ describe('injectionRows', () => {
       injection('e', '2023-06-28', '2026-06-28'),
     ])
 
-    expect(rows).toEqual([
+    expect(plain(rows)).toEqual([
       {
         id: 'a',
         date: '26 août 2026',
-        chosen: 'Rappel choisi : dans 1 an',
+        chosen: 'Rappel choisi : dans 1 an',
         optionsLabel: 'Options pour l’injection du 26 août 2026',
       },
       {
         id: 'b',
         date: '27 juil. 2026',
-        chosen: 'Rappel choisi : autre date, 26 août 2026',
+        chosen: 'Rappel choisi : autre date, 26 août 2026',
         optionsLabel: 'Options pour l’injection du 27 juillet 2026',
       },
-      expect.objectContaining({ chosen: 'Rappel choisi : autre date, 27 juil. 2026' }),
-      expect.objectContaining({ chosen: 'Rappel choisi : pas de rappel' }),
-      expect.objectContaining({ chosen: 'Rappel choisi : dans 3 ans' }),
+      expect.objectContaining({ chosen: 'Rappel choisi : autre date, 27 juil. 2026' }),
+      expect.objectContaining({ chosen: 'Rappel choisi : pas de rappel' }),
+      expect.objectContaining({ chosen: 'Rappel choisi : dans 3 ans' }),
     ])
   })
 
   it('suit la langue courante', () => {
     applyLocale('en')
 
-    expect(injectionRows(t, [injection('a', '2026-08-26', '2027-08-26')])).toEqual([
+    expect(plain(injectionRows(t, [injection('a', '2026-08-26', '2027-08-26')]))).toEqual([
       {
         id: 'a',
         date: 'Aug 26, 2026',
@@ -154,10 +155,12 @@ describe('vaccinationDetailTexts', () => {
     lastInjectionDate: '2026-08-26',
   }
   const textes = (vaccination: Partial<typeof carre> = {}, today = TODAY) =>
-    vaccinationDetailTexts(
-      t,
-      { ...carre, ...vaccination },
-      { animal: 'Boree', today, injections: 3 },
+    plain(
+      vaccinationDetailTexts(
+        t,
+        { ...carre, ...vaccination },
+        { animal: 'Boree', today, injections: 3 },
+      ),
     )
 
   it('annonce le prochain rappel, son délai et le nombre d’injections (F7)', () => {
@@ -167,8 +170,8 @@ describe('vaccinationDetailTexts', () => {
       due: { value: '26 août 2027', delay: 'dans 11 mois', tone: null },
       note: null,
       editLabel: 'Modifier le vaccin Carré',
-      otherDateLabel: 'Fait à une autre date\u00a0: choisir la date de l’injection',
-      doneLabel: 'C’est fait : noter l’injection de Carré pour Boree et choisir le prochain rappel',
+      otherDateLabel: 'Fait à une autre date : choisir la date de l’injection',
+      doneLabel: 'C’est fait : noter l’injection de Carré pour Boree et choisir le prochain rappel',
       counter: '3',
     })
   })
@@ -235,15 +238,15 @@ describe('injectionGestureTexts', () => {
   it('annonce la suppression et le déplacement d’une injection (F7)', () => {
     const texts = injectionGestureTexts(t, '2026-07-27', TODAY)
 
-    expect(texts.changeDateSubtitle).toBe('Injection du 27 juil. 2026')
-    expect(texts.removed).toBe('Injection du 27 juil. supprimée')
-    expect(texts.undoRemove).toBe('Annuler la suppression de l’injection du 27 juillet 2026')
-    expect(texts.moved('2026-07-25')).toBe('Injection déplacée au 25 juil.')
+    expect(plain(texts.changeDateSubtitle)).toBe('Injection du 27 juil. 2026')
+    expect(plain(texts.removed)).toBe('Injection du 27 juil. supprimée')
+    expect(plain(texts.undoRemove)).toBe('Annuler la suppression de l’injection du 27 juillet 2026')
+    expect(plain(texts.moved('2026-07-25'))).toBe('Injection déplacée au 25 juil.')
     expect(texts.undoMove).toBe('Annuler le changement de date de l’injection')
   })
 
   it('écrit l’année d’une injection d’une autre année', () => {
-    expect(injectionGestureTexts(t, '2025-07-27', TODAY).removed).toBe(
+    expect(plain(injectionGestureTexts(t, '2025-07-27', TODAY).removed)).toBe(
       'Injection du 27 juil. 2025 supprimée',
     )
   })
