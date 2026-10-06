@@ -24,7 +24,7 @@ et une relecture s'y réfère plutôt que de rouvrir le débat.
 | Rappel                   | reminder                         | alert, notification                       | « notification » ne désigne que l'objet Android                          |
 | Soin (accueil)           | reminder                         | care                                     | ce qui est à faire sur l'accueil : « 1 soin en retard » = 1 overdue reminder ; le FR dit « soin », l'EN garde « reminder » |
 | Rappels précis           | exact reminders                  | precise reminders                        | seul nom de l'option ; le réglage Android s'appelle « Alarms & reminders » |
-| Moins précis             | less precise                     | —                                        | « Moins précis : les rappels précis sont désactivés » = Less precise: exact reminders are off |
+| Peut arriver en retard   | may arrive late                  | less precise                             | remplace « Moins précis » (2026-10-06) ; « Peut arriver en retard : les rappels précis sont désactivés » ; Paramètres « Désactivés · tes rappels peuvent arriver en retard » = Off · your reminders may arrive late |
 | Échéance                 | due date                         | deadline, expiry                          | « En retard » = overdue, « Échéance passée » = due date has passed       |
 | Vaccin                   | vaccine                          | vaccination, shot, jab                    | `vaccination` reste le nom du dossier de code, pas du texte              |
 | Date d'injection         | injection date                   | vaccination date                          |                                                                         |

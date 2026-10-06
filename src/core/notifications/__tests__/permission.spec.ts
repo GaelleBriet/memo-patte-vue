@@ -117,6 +117,29 @@ describe('getNotificationPermissionStatus', () => {
   })
 })
 
+describe('hasAndroidAskedNotifications', () => {
+  it('répond non tant qu’Android n’a jamais montré sa demande, même après « Plus tard »', async () => {
+    permission.postponePriming()
+
+    expect(await permission.hasAndroidAskedNotifications()).toBe(false)
+  })
+
+  it.each<PermissionStatus['display']>(['granted', 'denied', 'prompt-with-rationale'])(
+    'répond oui quand Android a déjà répondu (« %s »)',
+    async (display) => {
+      osPermission(display)
+
+      expect(await permission.hasAndroidAskedNotifications()).toBe(true)
+    },
+  )
+
+  it('répond oui sans plugin de notifications', async () => {
+    checkPermissions.mockRejectedValue(new Error('unavailable'))
+
+    expect(await permission.hasAndroidAskedNotifications()).toBe(true)
+  })
+})
+
 describe('shouldShowPriming', () => {
   it('ne propose l’écran que si rien n’a encore été demandé', async () => {
     expect(await permission.shouldShowPriming()).toBe(true)
