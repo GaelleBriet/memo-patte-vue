@@ -19,14 +19,22 @@ export type TreatmentDoseVersion = Pick<
 
 type DoseOwner = Pick<NewTreatmentDose, 'id' | 'treatmentId' | 'animalId'>
 
+/** `expectedUpdatedAt` : la ligne doit être restée telle qu'un geste l'a écrite (lot inverse). */
+type Unchanged = { expectedUpdatedAt?: string }
+
 /** Une écriture du moteur d'échéances ; `restore` ne sert qu'à défaire un `delete`. */
 export type DoseWrite =
   | ({ action: 'create'; dose: DoseFields } & DoseOwner)
-  | { action: 'rewrite'; id: string; dose: DoseFields }
-  | { action: 'delete'; id: string }
-  | { action: 'restore'; id: string }
+  | ({ action: 'rewrite'; id: string; dose: DoseFields } & Unchanged)
+  | ({ action: 'delete'; id: string } & Unchanged)
+  | ({ action: 'restore'; id: string } & Unchanged)
 
-type Step = { guard?: SqlStatement; statement: SqlStatement; inverse: DoseWrite }
+type Step = {
+  guard?: SqlStatement
+  statement: SqlStatement
+  after?: SqlStatement
+  inverse: DoseWrite
+}
 
 interface DoseRow {
   id: string
@@ -245,6 +253,40 @@ export function createTreatmentDosesRepository(
     }
   }
 
+  // Réinsère la ligne qui a changé depuis sa lecture : la clé primaire fait échouer le lot.
+  function unchangedGuardStatement(row: DoseRow): SqlStatement {
+    return {
+      sql: `INSERT INTO treatment_dose (${COLUMNS})
+            SELECT ${COLUMNS} FROM treatment_dose
+            WHERE id = ? AND (deleted_at IS NOT ? OR updated_at IS NOT ?)`,
+      params: [row.id, row.deleted_at, row.updated_at],
+    }
+  }
+
+  // Réinsère la prise écrite sous un traitement ou une période supprimés : la clé primaire fait échouer le lot.
+  function liveParentGuardStatement(id: string): SqlStatement {
+    return {
+      sql: `INSERT INTO treatment_dose (${COLUMNS})
+            SELECT ${COLUMNS} FROM treatment_dose dose
+            WHERE dose.id = ? AND NOT EXISTS (
+              SELECT 1 FROM treatment_period period
+              JOIN treatment ON treatment.id = period.treatment_id
+              WHERE period.id = dose.period_id AND period.deleted_at IS NULL
+                AND treatment.deleted_at IS NULL)`,
+      params: [id],
+    }
+  }
+
+  function assertNoDuplicateInBatch(writes: readonly DoseWrite[]): void {
+    const dues = new Set<string>()
+    for (const write of writes) {
+      if (write.action !== 'create') continue
+      const due = JSON.stringify(duplicateWhere(write.dose).params)
+      if (dues.has(due)) throw new DuplicateDueError(`Échéance en double dans le lot : ${write.id}`)
+      dues.add(due)
+    }
+  }
+
   async function hasDuplicate(dose: DoseFields): Promise<boolean> {
     const where = duplicateWhere(dose)
     const rows = await db.query<{ id: string }>(
@@ -344,55 +386,75 @@ export function createTreatmentDosesRepository(
     /**
      * Tout ou rien, `also` compris : les instructions d'une autre table à jouer dans la même
      * transaction. Rend le lot inverse, à appliquer pour « Annuler » ; lève, sans rien écrire, pour
-     * une ligne à réécrire ou à supprimer qui n'est pas visible, ou à rétablir qui l'est, et une
-     * `DuplicateDueError` pour une création en double.
+     * une ligne à réécrire ou à supprimer qui n'est pas visible, à rétablir qui l'est, modifiée depuis
+     * `expectedUpdatedAt` ou entre sa lecture et l'écriture, pour une prise créée ou rétablie sous un
+     * traitement ou une période supprimés, et une `DuplicateDueError` pour une création en double.
      */
     async applyBatch(
       writes: readonly DoseWrite[],
       at: string,
       also: readonly SqlStatement[] = [],
     ): Promise<DoseWrite[]> {
+      assertNoDuplicateInBatch(writes)
       const existing = await rowsById(
         writes.flatMap((write) => (write.action === 'create' ? [] : [write.id])),
       )
-      const visible = (id: string): DoseRow => {
-        const row = existing.get(id)
-        if (!row || row.deleted_at !== null) throw new Error(`Prise introuvable : ${id}`)
+      const read = (write: Exclude<DoseWrite, { action: 'create' }>): DoseRow => {
+        const row = existing.get(write.id)
+        const deleted = (row?.deleted_at ?? null) !== null
+        if (write.action === 'restore' && !deleted) {
+          throw new Error(`Prise non supprimée : ${write.id}`)
+        }
+        if (!row || (write.action !== 'restore' && deleted)) {
+          throw new Error(`Prise introuvable : ${write.id}`)
+        }
+        if (write.expectedUpdatedAt !== undefined && row.updated_at !== write.expectedUpdatedAt) {
+          throw new Error(`Prise modifiée depuis : ${write.id}`)
+        }
         return row
       }
+      const unchanged = { expectedUpdatedAt: at }
       const steps = writes.map((write): Step => {
         switch (write.action) {
           case 'create':
             return {
               guard: duplicateGuardStatement(write.dose),
               statement: createStatement({ ...write, at }),
-              inverse: { action: 'delete', id: write.id },
+              after: liveParentGuardStatement(write.id),
+              inverse: { action: 'delete', id: write.id, ...unchanged },
             }
           case 'rewrite':
             return {
               statement: rewriteStatement(write.id, write.dose, at),
-              inverse: { action: 'rewrite', id: write.id, dose: fieldsOf(visible(write.id)) },
+              inverse: {
+                action: 'rewrite',
+                id: write.id,
+                dose: fieldsOf(read(write)),
+                ...unchanged,
+              },
             }
           case 'delete':
-            visible(write.id)
+            read(write)
             return {
               statement: markDeletedStatement([write.id], at),
-              inverse: { action: 'restore', id: write.id },
+              inverse: { action: 'restore', id: write.id, ...unchanged },
             }
           case 'restore':
-            if ((existing.get(write.id)?.deleted_at ?? null) === null) {
-              throw new Error(`Prise non supprimée : ${write.id}`)
-            }
+            read(write)
             return {
               statement: reviveStatement(write.id, at),
-              inverse: { action: 'delete', id: write.id },
+              after: liveParentGuardStatement(write.id),
+              inverse: { action: 'delete', id: write.id, ...unchanged },
             }
         }
       })
       if (steps.length + also.length === 0) return []
       try {
         await db.runMany([
-          ...steps.flatMap(({ guard, statement }) => (guard ? [guard, statement] : [statement])),
+          ...[...existing.values()].map(unchangedGuardStatement),
+          ...steps.flatMap(({ guard, statement, after }) =>
+            [guard, statement, after].filter((step) => step !== undefined),
+          ),
           ...also,
         ])
       } catch (cause) {
