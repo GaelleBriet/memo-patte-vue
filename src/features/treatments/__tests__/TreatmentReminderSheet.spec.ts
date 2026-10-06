@@ -260,7 +260,7 @@ describe('TreatmentReminderSheet — F2, la feuille de l’échéance touchée',
 
     expect(texte('.bottom-sheet__title')).toBe('Milbemax')
     expect(texte('.bottom-sheet__subtitle')).toBe('Vermifuge · Boree · toutes les semaines')
-    expect(texte('.reminder-actions__due')).toBe('Prochaine dose le 16 oct.')
+    expect(texte('.reminder-actions__due')).toBe('En retard depuis le 16 oct.')
   })
 
   it('dit l’heure de la ligne d’un traitement à heures', async () => {

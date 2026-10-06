@@ -3,17 +3,26 @@ import { z } from 'zod'
 
 import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
 
-export const vaccinationInputSchema = z.object({
+export const injectionDateSchema = z.iso.date().refine((value) => !isFuture(parseISO(value)))
+export const dueDateSchema = z.iso.date().nullable().default(null)
+
+const vaccinationFields = z.object({
   animalId: z.uuid(),
   name: z.string().trim().min(1).max(MAX_NAME_LENGTH),
-  lastInjectionDate: z.iso.date().refine((value) => !isFuture(parseISO(value))),
-  dueDate: z.iso.date().nullable().default(null),
+  lastInjectionDate: injectionDateSchema.nullable().default(null),
+  dueDate: dueDateSchema,
 })
 
-/** Le rattachement à l'animal est figé à la création. */
-export const vaccinationUpdateSchema = vaccinationInputSchema.omit({ animalId: true })
+/** Un vaccin a toujours une injection ou un prochain rappel. */
+export const vaccinationInputSchema = vaccinationFields.refine(
+  ({ lastInjectionDate, dueDate }) => lastInjectionDate !== null || dueDate !== null,
+  { path: ['dueDate'] },
+)
 
-export const vaccinationSchema = vaccinationInputSchema.extend({
+/** Le rattachement à l'animal est figé ; les dates d'injection se changent dans l'historique. */
+export const vaccinationUpdateSchema = vaccinationFields.pick({ name: true, dueDate: true })
+
+export const vaccinationSchema = vaccinationFields.extend({
   /** `null` pour un vaccin encore sans injection : `dueDate` est alors son rappel prévu. */
   lastInjectionDate: z.iso.date().nullable(),
   id: z.uuid(),
