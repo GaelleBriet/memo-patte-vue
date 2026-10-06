@@ -3,7 +3,7 @@ import { computed, onMounted, ref, useId, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
-import { exactRemindersRow } from '../logic/reminders-settings'
+import { enableRemindersRoute, exactRemindersRow } from '../logic/reminders-settings'
 import type { CarnetSettings } from '../schema/carnet-settings.schema'
 import { useCarnetSettingsStore } from '../store/carnet-settings.store'
 import { currentLocale } from '@/core/i18n'
@@ -69,13 +69,10 @@ function openExplainer(event: Event): void {
   isExplainerOpen.value = true
 }
 
-/** Jamais demandées : l'écran d'explication d'abord ; refusées : seuls les réglages d'Android peuvent les rendre. */
 function enableReminders(): void {
-  if (notifications.value === 'unasked') {
-    void router.push(primingRouteFrom('settings-reminders'))
-  } else {
-    void openNotificationSettings()
-  }
+  const route = enableRemindersRoute(notifications.value)
+  if (route === 'priming') void router.push(primingRouteFrom('settings-reminders'))
+  else if (route === 'androidSettings') void openNotificationSettings()
 }
 
 function goBack(): void {

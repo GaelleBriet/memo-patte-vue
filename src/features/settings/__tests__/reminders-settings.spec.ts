@@ -1,6 +1,24 @@
 import { describe, expect, it } from 'vitest'
 
-import { exactRemindersRow, remindersSummary } from '../logic/reminders-settings'
+import {
+  enableRemindersRoute,
+  exactRemindersRow,
+  remindersSummary,
+} from '../logic/reminders-settings'
+
+describe('enableRemindersRoute — bouton sous l’état des notifications', () => {
+  it('jamais demandées : l’écran d’explication d’abord (RA-21)', () => {
+    expect(enableRemindersRoute('unasked')).toBe('priming')
+  })
+
+  it('refusées : seuls les réglages d’Android peuvent les rendre (RA-22)', () => {
+    expect(enableRemindersRoute('disabled')).toBe('androidSettings')
+  })
+
+  it.each(['granted', 'unavailable', null] as const)('%s : aucun bouton', (status) => {
+    expect(enableRemindersRoute(status)).toBeNull()
+  })
+})
 
 describe('remindersSummary — sous-titre de l’entrée « Rappels » (V19)', () => {
   it.each([

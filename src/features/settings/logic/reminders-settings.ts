@@ -20,6 +20,15 @@ export type ExactRemindersRow = {
   notice: 'precise' | 'lessPrecise' | null
 }
 
+/** Jamais demandées : l'écran d'explication d'abord ; refusées : seuls les réglages d'Android peuvent les rendre. */
+export function enableRemindersRoute(
+  notifications: NotificationPermissionStatus | null,
+): 'priming' | 'androidSettings' | null {
+  if (notifications === 'unasked') return 'priming'
+  if (notifications === 'disabled') return 'androidSettings'
+  return null
+}
+
 export function remindersSummary(
   notifications: NotificationPermissionStatus | null,
   exact: ExactRemindersStatus | null,
