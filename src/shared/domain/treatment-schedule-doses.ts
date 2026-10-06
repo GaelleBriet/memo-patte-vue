@@ -460,16 +460,19 @@ function followingReport(
   }
 }
 
-/** La case de « Fait à une autre date » : la prise, cochée, écrirait un décalage. */
+/** Cochée, la case écrirait un décalage, ou serait refusée (Q2 a) ; date de fin comprise (Q4). */
 export function offersShift(
   state: State,
   known: () => Set<string>,
   due: Due,
   givenOn: string,
 ): boolean {
+  checkKnown(known, due)
+  checkPastDay(givenOn, state.input.today, 'date réelle')
+  const others = stateWithoutNote(state, due)
   return (
-    doseFor(state, known, { kind: 'given', due, givenOn }).shift !== null ||
-    noteRefusal(state, known, due, givenOn) !== null
+    !isExtra(others, due, givenOn) &&
+    restartsFrom(others, due, givenOn, nextInSequence(others, due))
   )
 }
 

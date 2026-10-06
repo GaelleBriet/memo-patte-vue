@@ -131,6 +131,18 @@ describe('otherDateBox — « Fait à une autre date » (V29)', () => {
     })
   })
 
+  it('avec une date de fin, la case avertit de la dose perdue, même loin de la suivante (V28 bis)', () => {
+    const ended = treatment(
+      [{ ...VENDREDI, endsOn: '2026-10-30' }],
+      [dose('2026-10-09', '2026-10-16')],
+    )
+
+    expect(help(otherDateBox(t, DUE_16, '2026-10-19', carnet(ended, '2026-10-19'), true))).toEqual({
+      text: 'Avec le décalage, la dose du 30 oct. ne sera plus prévue (date de fin).',
+      warning: true,
+    })
+  })
+
   it('pas de case pour une prise à son jour, ni pour une dose non renseignée (N1)', () => {
     expect(otherDateBox(t, DUE_16, '2026-10-16', carnet(PIXEL, '2026-10-19'), true).shown).toBe(
       false,
