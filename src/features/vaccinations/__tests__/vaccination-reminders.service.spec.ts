@@ -8,6 +8,8 @@ import {
   createFakeNotifications,
   type FakeNotifications,
 } from '@/shared/__tests__/fake-notifications'
+import { createInMemoryDb } from '@/core/db/__tests__/in-memory-db'
+import { createVaccinationsRepository } from '../repository/vaccinations.repository'
 import type { Vaccination } from '../schema/vaccination.schema'
 import {
   createVaccinationRemindersService,
@@ -188,5 +190,40 @@ describe('vaccinationRemindersService', () => {
 
     expect(notifications.cancelReminders.mock.calls.at(-1)?.[0]).toHaveLength(3)
     expect(notifications.pending.size).toBe(0)
+  })
+
+  it('VA-3 : un vaccin créé sans injection est rappelé avant son rendez-vous, à l’heure du carnet', async () => {
+    const db = await createInMemoryDb()
+    try {
+      await db.run(
+        `INSERT INTO animal (id, name, species, created_at, updated_at, created_by_device, updated_by_device)
+         VALUES (?, 'Milo', 'dog', ?, ?, 'appareil-test', 'appareil-test')`,
+        [MILO.id, MILO.createdAt, MILO.updatedAt],
+      )
+      const repository = createVaccinationsRepository(db)
+      const prevu = await repository.create({
+        animalId: MILO.id,
+        name: 'Typhus, coryza',
+        dueDate: '2026-10-05',
+      })
+      service = createVaccinationRemindersService({
+        vaccinations: () => repository,
+        animals: () => ({ getById }),
+        settings: async () => ({ vaccineReminderTime: '18:30', remindBeforeDue: true }),
+        notifications,
+        t: i18n.global.t,
+        now: () => new Date(2026, 8, 15, 12),
+      })
+
+      await service.reschedule(prevu.id)
+
+      expect([...notifications.pending.values()].map(({ key, at }) => ({ key, at }))).toEqual([
+        { key: `vaccination:${prevu.id}:2026-10-05::before`, at: new Date(2026, 8, 21, 18, 30) },
+        { key: `vaccination:${prevu.id}:2026-10-05::due`, at: new Date(2026, 9, 5, 18, 30) },
+        { key: `vaccination:${prevu.id}:2026-10-05::overdue`, at: new Date(2026, 9, 8, 18, 30) },
+      ])
+    } finally {
+      db.close()
+    }
   })
 })

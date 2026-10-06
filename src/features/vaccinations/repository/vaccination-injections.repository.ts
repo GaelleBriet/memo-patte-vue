@@ -194,19 +194,15 @@ export function createVaccinationInjectionsRepository(
 
     insertStatement,
 
-    updateHeadStatement(
+    updateHeadDueStatement(
       vaccinationId: string,
-      {
-        injectedOn,
-        nextDueDate,
-        updatedAt,
-      }: Pick<VaccinationInjection, 'injectedOn' | 'nextDueDate' | 'updatedAt'>,
+      { nextDueDate, updatedAt }: Pick<VaccinationInjection, 'nextDueDate' | 'updatedAt'>,
     ): SqlStatement {
       return {
         sql: `UPDATE vaccination_injection
-              SET injected_on = ?, next_due_date = ?, updated_at = ?, updated_by_device = ?
+              SET next_due_date = ?, updated_at = ?, updated_by_device = ?
               WHERE id = ${headInjectionIdSql('?')}`,
-        params: [injectedOn, nextDueDate, updatedAt, deviceId(), vaccinationId],
+        params: [nextDueDate, updatedAt, deviceId(), vaccinationId],
       }
     },
 
