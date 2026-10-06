@@ -70,7 +70,7 @@ export function doseCard(
   }
 }
 
-/** « Rappel 30 min avant · moins précis » sous les heures, rappels précis retirés (TR-34). */
+/** « Rappel 30 min avant · peut arriver en retard » sous les heures, rappels précis retirés (TR-34). */
 export function lessPreciseReminder(
   t: Translate,
   treatment: Pick<TreatmentWithHistory, 'periods'>,

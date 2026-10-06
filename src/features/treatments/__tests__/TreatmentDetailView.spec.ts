@@ -236,12 +236,12 @@ function message(): string | undefined {
 }
 
 describe('TreatmentDetailView — rappels précis retirés (TR-34, planche A · V2 quater)', () => {
-  it('dit sous les heures « Rappel 30 min avant · moins précis », et « Réactiver » ouvre l’écran d’explication', async () => {
+  it('dit sous les heures « Rappel 30 min avant · peut arriver en retard », et « Réactiver » ouvre l’écran d’explication', async () => {
     vi.mocked(getExactRemindersStatus).mockResolvedValue('removed')
     const view = await monter(treatment([{ ...MATIN_ET_SOIR, reminderOffsetMinutes: 30 }], HIER))
     const ligne = view.get('.treatment-dose-card__less-precise')
 
-    expect(texte(ligne.get('span'))).toBe('Rappel 30 min avant · moins précis')
+    expect(texte(ligne.get('span'))).toBe('Rappel 30 min avant · peut arriver en retard')
     expect(ligne.get('button').text()).toBe('Réactiver')
     expect(ligne.get('button').attributes('aria-label')).toBe('Réactiver les rappels précis')
 

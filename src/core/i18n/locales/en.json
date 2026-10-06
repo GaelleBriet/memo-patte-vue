@@ -306,7 +306,7 @@
         "at": "At {time}",
         "atLabel": "Reminder time, {time}. Change.",
         "noTimeHelp": "With no treatment time, choose the reminder time.",
-        "lessPrecise": "Less precise: exact reminders are off",
+        "lessPrecise": "May arrive late: exact reminders are off",
         "reactivate": "Turn exact reminders back on",
         "suggest": "For a reminder right on time, turn on exact reminders",
         "explainerBack": "Back to the form"
@@ -467,10 +467,10 @@
       },
       "reminder": {
         "lessPrecise": {
-          "0": "Reminder at the time · less precise",
-          "15": "Reminder 15 min before · less precise",
-          "30": "Reminder 30 min before · less precise",
-          "60": "Reminder 1 hour before · less precise"
+          "0": "Reminder at the time · may arrive late",
+          "15": "Reminder 15 min before · may arrive late",
+          "30": "Reminder 30 min before · may arrive late",
+          "60": "Reminder 1 hour before · may arrive late"
         },
         "reactivate": "Turn back on",
         "reactivateLabel": "Turn exact reminders back on",

@@ -250,17 +250,17 @@ describe('lessPreciseReminder (TR-34, Rappels Q6)', () => {
     return lessPreciseReminder(t, history, treatmentScheduleOf(history, '2026-09-28'), exact)
   }
 
-  it('dit le rappel choisi, moins précis, quand les rappels précis ont été retirés', () => {
-    expect(ligne(EN_COURS, 'removed')).toBe('Rappel 30\u00a0min avant · moins précis')
+  it('dit le rappel choisi, peut arriver en retard, quand les rappels précis ont été retirés', () => {
+    expect(ligne(EN_COURS, 'removed')).toBe('Rappel 30\u00a0min avant · peut arriver en retard')
   })
 
   it('dit « à l’heure » pour un rappel jamais choisi, et chaque moment en anglais', () => {
     const aLHeure = treatment([MATIN_ET_SOIR])
-    expect(ligne(aLHeure, 'removed')).toBe('Rappel à l’heure · moins précis')
+    expect(ligne(aLHeure, 'removed')).toBe('Rappel à l’heure · peut arriver en retard')
 
     applyLocale('en')
-    expect(ligne(EN_COURS, 'removed')).toBe('Reminder 30 min before · less precise')
-    expect(ligne(aLHeure, 'removed')).toBe('Reminder at the time · less precise')
+    expect(ligne(EN_COURS, 'removed')).toBe('Reminder 30 min before · may arrive late')
+    expect(ligne(aLHeure, 'removed')).toBe('Reminder at the time · may arrive late')
   })
 
   it.each(['precise', 'never-enabled', 'unavailable', null] as const)(

@@ -306,7 +306,7 @@
         "at": "À {time}",
         "atLabel": "Heure du rappel, {time}. Modifier.",
         "noTimeHelp": "Sans heure de traitement, choisis l’heure du rappel.",
-        "lessPrecise": "Moins précis : les rappels précis sont désactivés",
+        "lessPrecise": "Peut arriver en retard : les rappels précis sont désactivés",
         "reactivate": "Réactiver les rappels précis",
         "suggest": "Pour un rappel à l’heure pile, active les rappels précis",
         "explainerBack": "Retour au formulaire"
@@ -467,10 +467,10 @@
       },
       "reminder": {
         "lessPrecise": {
-          "0": "Rappel à l’heure · moins précis",
-          "15": "Rappel 15 min avant · moins précis",
-          "30": "Rappel 30 min avant · moins précis",
-          "60": "Rappel 1 h avant · moins précis"
+          "0": "Rappel à l’heure · peut arriver en retard",
+          "15": "Rappel 15 min avant · peut arriver en retard",
+          "30": "Rappel 30 min avant · peut arriver en retard",
+          "60": "Rappel 1 h avant · peut arriver en retard"
         },
         "reactivate": "Réactiver",
         "reactivateLabel": "Réactiver les rappels précis",

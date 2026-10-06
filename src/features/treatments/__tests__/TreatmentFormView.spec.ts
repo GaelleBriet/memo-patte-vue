@@ -623,13 +623,13 @@ describe('TreatmentFormView — champ « Rappel » (RA-7, RA-8, RA-23, planches 
       )
     })
 
-    it('garde le choix fait, dit « Moins précis » et ouvre l’écran d’explication par son lien', async () => {
+    it('garde le choix fait, dit « Peut arriver en retard » et ouvre l’écran d’explication par son lien', async () => {
       const wrapper = await monterEdition()
 
       expect(moments(wrapper)).toEqual(['À l’heure', '30 min avant', '1 h avant'])
       expect(momentCoche(wrapper)).toBe('30 min avant')
       const encart = wrapper.get('.treatment-reminder__less-precise')
-      expect(encart.text()).toContain('Moins précis : les rappels précis sont désactivés')
+      expect(encart.text()).toContain('Peut arriver en retard : les rappels précis sont désactivés')
       expect(encart.get('button').text()).toBe('Réactiver les rappels précis')
 
       await encart.get('button').trigger('click')
