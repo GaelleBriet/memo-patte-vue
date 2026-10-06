@@ -210,6 +210,13 @@
       "back": "Back to health record",
       "nextReminder": "Next reminder",
       "noReminder": "No reminder set",
+      "today": "Today",
+      "overdueSince": "Overdue since {date}",
+      "firstVaccine": "First vaccine · no injection logged",
+      "firstVaccineShort": "First vaccine",
+      "noInjection": "No injection logged",
+      "editLabel": "Edit the {name} vaccine",
+      "otherDateLabel": "Done on another day: choose the injection date",
       "doneLabel": "Done: log the {name} injection for {animal} and choose the next reminder",
       "injections": "Injections",
       "chosen": {

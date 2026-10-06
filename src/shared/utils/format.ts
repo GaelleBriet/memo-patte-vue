@@ -18,29 +18,39 @@ function roundToDecimal(value: number): number {
   return Math.round(value * 10) / 10
 }
 
+const NUMBER_STYLES = {
+  weight: { minimumFractionDigits: 1, maximumFractionDigits: 1, useGrouping: false },
+  axis: { maximumFractionDigits: 1, useGrouping: false },
+  quantity: { maximumFractionDigits: 20, useGrouping: false },
+} satisfies Record<string, Intl.NumberFormatOptions>
+
+const numberFormats = new Map<string, Intl.NumberFormat>()
+
+// Construire un `Intl.NumberFormat` coûte bien plus que formater : un seul par langue et par style.
+function numberFormat(style: keyof typeof NUMBER_STYLES): Intl.NumberFormat {
+  const locale = currentLocale()
+  const key = `${locale} ${style}`
+  let formatter = numberFormats.get(key)
+  if (formatter === undefined) {
+    formatter = new Intl.NumberFormat(locale, NUMBER_STYLES[style])
+    numberFormats.set(key, formatter)
+  }
+  return formatter
+}
+
 /** Un poids déjà dans son unité, à une décimale au séparateur de la langue : `24,5`, `24.5`. */
 export function formatWeight(value: number): string {
-  return new Intl.NumberFormat(currentLocale(), {
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1,
-    useGrouping: false,
-  }).format(roundToDecimal(value))
+  return numberFormat('weight').format(roundToDecimal(value))
 }
 
 /** Graduation d'un axe : `24`, `24,5` en français, `24.5` en anglais. */
 export function formatWeightAxis(value: number): string {
-  return new Intl.NumberFormat(currentLocale(), {
-    maximumFractionDigits: 1,
-    useGrouping: false,
-  }).format(roundToDecimal(value))
+  return numberFormat('axis').format(roundToDecimal(value))
 }
 
 /** Un nombre tel que saisi, au séparateur de la langue : `0,3`, `0.3`. */
 export function formatQuantity(value: number): string {
-  return new Intl.NumberFormat(currentLocale(), {
-    maximumFractionDigits: 20,
-    useGrouping: false,
-  }).format(value)
+  return numberFormat('quantity').format(value)
 }
 
 /** Poids à corriger dans un champ : `24,55` tel que proposé, sans l'arrondi de l'affichage. */

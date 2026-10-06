@@ -2,6 +2,7 @@ import { App, type BackButtonListenerEvent } from '@capacitor/app'
 import { Capacitor, type PluginListenerHandle } from '@capacitor/core'
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
+import type { Router } from 'vue-router'
 import {
   afterEach,
   beforeEach,
@@ -22,7 +23,7 @@ import { shouldShowPriming } from '@/core/notifications/permission'
 import vuetify from '@/core/theme/vuetify'
 import type { Animal } from '@/features/animals/schema/animal.schema'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
-import router from '@/router'
+import { routeurMemoire } from '@/router/__tests__/routeur-memoire'
 import { dismissToast, runToastAction, toastAction, toastMessage } from '@/shared/utils/toast'
 
 type BackListener = (event: BackButtonListenerEvent) => void
@@ -72,6 +73,7 @@ let recordInjection: MockInstance
 let undoInjection: MockInstance
 let push: MockInstance
 let replace: MockInstance
+let router: Router
 
 beforeEach(async () => {
   vi.useFakeTimers({ now: TODAY, toFake: ['Date'] })
@@ -92,6 +94,7 @@ beforeEach(async () => {
     .spyOn(vaccinations, 'recordInjection')
     .mockResolvedValue({ animalId: BOREE.id, injectionId: 'i1' })
   undoInjection = vi.spyOn(vaccinations, 'undoInjection').mockResolvedValue()
+  router = routeurMemoire()
   await router.push({ name: 'home' })
   push = vi.spyOn(router, 'push').mockResolvedValue()
   replace = vi.spyOn(router, 'replace').mockResolvedValue()
@@ -299,6 +302,27 @@ describe('VaccinationReminderSheet — F5, vaccin fait', () => {
     await flushPromises()
 
     expect(texte('.bottom-sheet__title')).toBe('Date d’injection')
+  })
+
+  it('s’ouvre sur le calendrier de l’injection depuis le lien de la fiche, puis revient à F5', async () => {
+    await monter({ startAt: 'other-date' })
+
+    expect(texte('.bottom-sheet__title')).toBe('Date d’injection')
+
+    jour('2026-09-20').click()
+    await flushPromises()
+
+    expect(texte('.vaccination-reminder-sheet__injection-date')).toBe('Injection le 20 sept. 2026')
+    expect(choix().every((element) => element.getAttribute('aria-checked') === 'false')).toBe(true)
+    expect(bouton('.vaccination-reminder-sheet__submit').disabled).toBe(true)
+  })
+
+  it('garde l’aide sous « Prochain rappel » (VA-6)', async () => {
+    await ouvrirF5()
+
+    expect(texte('.vaccination-reminder-sheet__hint')).toBe(
+      'Reporte la date indiquée par ton vétérinaire.',
+    )
   })
 
   it('revient à l’étape précédente au retour Android, puis ferme la feuille', async () => {

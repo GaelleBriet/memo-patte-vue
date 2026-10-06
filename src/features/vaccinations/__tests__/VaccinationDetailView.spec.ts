@@ -197,10 +197,11 @@ describe('VaccinationDetailView — F7', () => {
     expect(view.get('.pushed-screen__subtitle').text()).toBe('Vaccin · Boree')
     expect(plain(view.getComponent(NextDueCard).props())).toMatchObject({
       label: 'Prochain rappel',
-      date: '26 août 2027',
+      value: '26 août 2027',
       delay: 'dans 11 mois',
-      overdue: false,
+      tone: null,
     })
+    expect(view.find('.next-due-card__top').exists()).toBe(false)
     expect(view.get('.section-card__title').text()).toBe('Injections')
     expect(view.get('.section-card__counter').text()).toBe('3')
     expect(lignes(view).map((row) => plain([row.props('date'), row.props('detail')]))).toEqual([
@@ -231,10 +232,29 @@ describe('VaccinationDetailView — F7', () => {
     })
   })
 
-  it('« Modifier » ouvre le formulaire, qui reviendra sur le détail', async () => {
+  it('« Fait à une autre date » ouvre la feuille « Fait » sur le calendrier de l’injection (VA-5)', async () => {
     const view = await monter()
 
-    view.getComponent(NextDueCard).vm.$emit('edit')
+    view.getComponent(NextDueCard).vm.$emit('otherDate')
+    await flushPromises()
+
+    expect(view.getComponent(VaccinationReminderSheet).props()).toMatchObject({
+      modelValue: true,
+      vaccinationId: CARRE.id,
+      startAt: 'other-date',
+    })
+    expect(view.getComponent(NextDueCard).props('otherDateAriaLabel')).toBe(
+      'Fait à une autre date\u00a0: choisir la date de l’injection',
+    )
+  })
+
+  it('le crayon de la barre ouvre le formulaire, qui reviendra sur le détail (V11 quinquies)', async () => {
+    const view = await monter()
+
+    expect(view.get('.vaccination-detail__edit').attributes('aria-label')).toBe(
+      'Modifier le vaccin Carré',
+    )
+    await view.get('.vaccination-detail__edit').trigger('click')
 
     expect(push).toHaveBeenCalledWith({
       name: 'vaccination-edit',
@@ -247,10 +267,52 @@ describe('VaccinationDetailView — F7', () => {
     getById.mockResolvedValue({ ...CARRE, dueDate: null })
     const view = await monter()
 
-    expect(plain(view.getComponent(NextDueCard).props())).toMatchObject({
-      date: null,
+    expect(view.getComponent(NextDueCard).props()).toMatchObject({
+      value: null,
       emptyText: 'Pas de rappel programmé',
     })
+  })
+
+  it('dit « Aujourd’hui » le jour du rappel, puis depuis quand il est en retard (VA-17)', async () => {
+    getById.mockResolvedValue({ ...CARRE, dueDate: '2026-09-23' })
+    const jour = await monter()
+    expect(jour.getComponent(NextDueCard).props()).toMatchObject({
+      label: 'Prochain rappel',
+      value: 'Aujourd’hui',
+      tone: 'today',
+    })
+    jour.unmount()
+
+    getById.mockResolvedValue({ ...CARRE, dueDate: '2026-09-05' })
+    const retard = await monter()
+    expect(plain(retard.getComponent(NextDueCard).props())).toMatchObject({
+      label: 'Prochain rappel',
+      value: 'En retard depuis le 5 sept.',
+      tone: 'overdue',
+    })
+    expect(retard.text()).not.toContain('en retard de')
+  })
+
+  it('présente un vaccin prévu sous « Prochain rappel », avec « Premier vaccin » (V11 quinquies)', async () => {
+    getById.mockResolvedValue({ ...CARRE, lastInjectionDate: null, dueDate: '2026-09-22' })
+    injections = []
+    const view = await monter()
+
+    expect(view.get('.next-due-card__label').text()).toBe('Prochain rappel')
+    expect(view.get('.next-due-card__top').text()).toBe('Premier vaccin · aucune injection notée')
+    expect(plain(view.get('.next-due-card__value').text())).toBe('En retard depuis le 22 sept.')
+    expect(view.find('.vaccination-detail__edit').exists()).toBe(true)
+    expect(view.findComponent(OverflowMenu).exists()).toBe(true)
+  })
+
+  it('le jour du rendez-vous, « Premier vaccin » en haut et « Aucune injection notée » sous la valeur (V11 ter)', async () => {
+    getById.mockResolvedValue({ ...CARRE, lastInjectionDate: null, dueDate: '2026-09-23' })
+    injections = []
+    const view = await monter()
+
+    expect(view.get('.next-due-card__top').text()).toBe('Premier vaccin')
+    expect(view.get('.next-due-card__value').text()).toBe('Aujourd’hui')
+    expect(view.get('.next-due-card__note').text()).toBe('Aucune injection notée')
   })
 
   it('dit quand le vaccin est introuvable', async () => {
