@@ -97,6 +97,26 @@ describe('renderCarnetPdf', () => {
   })
 })
 
+describe('renderCarnetPdf — traitement sans date de fin ni d’arrêt', () => {
+  it.each([
+    { kind: 'stopped', on: null },
+    { kind: 'ended', on: null },
+  ] as const)(
+    'écrit « — » dans la colonne de l’échéance, « Pas de rappel » une seule fois ($kind)',
+    (due) => {
+      const content: CarnetPdfContent = {
+        ...FULL_CONTENT,
+        vaccinations: [],
+        treatments: [{ ...FULL_CONTENT.treatments[0]!, due, state: 'none' }],
+      }
+      const texts = readPdf(renderCarnetPdf(content, '0.1.24', null)).texts.map(({ text }) => text)
+
+      expect(texts).toContain('—')
+      expect(texts.filter((text) => text === 'Pas de rappel')).toHaveLength(1)
+    },
+  )
+})
+
 describe('renderCarnetPdf — historique', () => {
   const texts = () => readPdf(renderCarnetPdf(FULL_CONTENT, '0.1.24', null)).texts
   const find = (text: string) => texts().find((item) => item.text === text)

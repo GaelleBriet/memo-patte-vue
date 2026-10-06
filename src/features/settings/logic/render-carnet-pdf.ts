@@ -184,11 +184,11 @@ function treatmentDueLabel({ due }: PdfTreatmentRow, t: Translate): string {
           })
     case 'stopped':
       return due.on === null
-        ? t('settings.pdf.status.none')
+        ? t('settings.pdf.treatments.noDate')
         : t('settings.pdf.treatments.stopped', { date: formatNumericDate(due.on) })
     case 'ended':
       return due.on === null
-        ? t('settings.pdf.status.none')
+        ? t('settings.pdf.treatments.noDate')
         : t('settings.pdf.treatments.ended', { date: formatNumericDate(due.on) })
     case 'unreadable':
       return t('settings.pdf.treatments.unreadable')

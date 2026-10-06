@@ -94,6 +94,19 @@ describe('exportReminders', () => {
     ).toBe('2026-09-10')
   })
 
+  it('donne la dose du jour d’une période commencée, sans ligne, dont la première échéance est passée', () => {
+    const data = {
+      ...EXPORT_FIXTURE,
+      treatmentDoses: EXPORT_FIXTURE.treatmentDoses.filter(
+        ({ treatmentId }) => treatmentId !== 't-panacur',
+      ),
+    }
+
+    expect(
+      exportReminders(data, '2026-09-11').find(({ sourceId }) => sourceId === 't-panacur')?.dueDate,
+    ).toBe('2026-09-11')
+  })
+
   it('lit la période en cours : la reprise d’un traitement arrêté, pas la période d’avant', () => {
     const reprise = periodOf({
       id: 'p-milbemax-reprise',

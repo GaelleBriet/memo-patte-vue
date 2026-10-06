@@ -1101,7 +1101,8 @@
         "stopped": "Stopped on {date}",
         "ended": "Ended on {date}",
         "dueAt": "{date} at {time}",
-        "unreadable": "Unreadable data"
+        "unreadable": "Unreadable data",
+        "noDate": "—"
       },
       "weight": {
         "title": "Weight",

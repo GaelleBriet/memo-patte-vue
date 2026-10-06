@@ -1,5 +1,6 @@
 import type { TreatmentWithHistory } from '../repository/treatments.repository'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
+import { readableTreatmentSchedule } from '@/shared/domain/readable-treatment-schedule'
 import { treatmentSchedule, type TreatmentSchedule } from '@/shared/domain/treatment-schedule'
 
 export { endedOnOf } from '@/shared/domain/treatment-end'
@@ -17,12 +18,7 @@ export function readableScheduleOf(
   today: string,
 ): TreatmentSchedule | null {
   if (treatment === null) return null
-  try {
-    return treatmentScheduleOf(treatment, today)
-  } catch (cause) {
-    if (cause instanceof RangeError) return null
-    throw cause
-  }
+  return readableTreatmentSchedule({ periods: treatment.periods, doses: treatment.doses, today })
 }
 
 export function currentPeriodOf(

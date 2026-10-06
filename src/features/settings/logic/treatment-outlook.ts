@@ -4,7 +4,7 @@ import type {
   ExportTreatmentPeriod,
 } from '@/shared/domain/carnet-data'
 import { endedOnOf } from '@/shared/domain/treatment-end'
-import { treatmentSchedule, type TreatmentSchedule } from '@/shared/domain/treatment-schedule'
+import { readableTreatmentSchedule } from '@/shared/domain/readable-treatment-schedule'
 
 /** `dueTime` : seulement quand la période a plusieurs heures. */
 export type TreatmentOutlook =
@@ -15,17 +15,8 @@ export type TreatmentOutlook =
 
 type History = { periods: ExportTreatmentPeriod[]; doses: ExportTreatmentDose[] }
 
-function readableSchedule(history: History, today: string): TreatmentSchedule | null {
-  try {
-    return treatmentSchedule({ ...history, today })
-  } catch (cause) {
-    if (cause instanceof RangeError) return null
-    throw cause
-  }
-}
-
 function outlookOf(history: History, today: string): TreatmentOutlook {
-  const schedule = readableSchedule(history, today)
+  const schedule = readableTreatmentSchedule({ ...history, today })
   if (schedule === null) return { kind: 'unreadable' }
   const current = history.periods.find(({ id }) => id === schedule.currentPeriodId)
   if (schedule.phase === 'stopped') return { kind: 'stopped', on: current?.stoppedOn ?? null }
