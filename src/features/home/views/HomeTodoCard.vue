@@ -217,7 +217,10 @@ const toLogRows = computed(() => props.rows.filter((row) => row.group === 'to-lo
 }
 
 .reminder-row__unlogged {
+  // Sans largeur propre, la ligne ne pousse pas le badge sous le titre : elle se replie dans la colonne.
   display: flex;
+  width: 0;
+  min-width: 100%;
   align-items: center;
   gap: 4px;
   margin-top: 3px;
