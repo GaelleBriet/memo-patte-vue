@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { dose, extra, missed, period, plain, postponed, treatment } from './treatment-fixtures'
 import {
   earliestGivenOn,
+  givenWhenMin,
   givenWhenTexts,
   isEveryDay,
   notificationTarget,
@@ -174,6 +175,41 @@ describe('notificationTarget — ce que fait « C’est fait » d’une notifica
       givenOn: '2026-10-05',
     })
   })
+
+  it('Q41 : relance d’un jour avec une heure donnée et une oubliée, la feuille montre la journée', () => {
+    const book = treatment(
+      [TOUS_LES_3_JOURS],
+      [
+        dose('2026-10-04', '2026-10-04', { dueTime: '08:00', givenOn: '2026-10-05' }),
+        missed('2026-10-04', '2026-10-07', { dueTime: '20:00' }),
+      ],
+    )
+
+    expect(target(book, '2026-10-07', '2026-10-04', null)).toEqual({ kind: 'sheet' })
+  })
+})
+
+describe('givenWhenMin — borne du calendrier de « Une autre date »', () => {
+  const DOSE_9 = { periodId: 'p-1', dueOn: '2026-10-09', dueTime: null }
+  const schedule = () =>
+    treatmentScheduleOf(treatment([VENDREDIS], [dose('2026-10-02', '2026-10-09')]), '2026-10-12')
+
+  it.each([
+    [null, '2026-10-03'],
+    ['2026-01-10', '2026-10-03'],
+    ['2026-10-05', '2026-10-05'],
+  ])('naissance %s : %s', (birthDate, expected) => {
+    expect(givenWhenMin(schedule(), VENDREDIS, DOSE_9, birthDate)).toBe(expected)
+  })
+
+  it('sans borne du moteur, la naissance seule', () => {
+    const book = treatment([TOUS_LES_3_JOURS])
+    const due = { periodId: 'p-1', dueOn: '2026-10-04', dueTime: '20:00' }
+    const plan = treatmentScheduleOf(book, '2026-10-07')
+
+    expect(givenWhenMin(plan, TOUS_LES_3_JOURS, due, null)).toBeNull()
+    expect(givenWhenMin(plan, TOUS_LES_3_JOURS, due, '2026-05-01')).toBe('2026-05-01')
+  })
 })
 
 describe('notifiedPlan — l’échéance de la notification, ou ses heures', () => {
@@ -249,12 +285,12 @@ describe('isEveryDay — Q3', () => {
 
 describe('givenWhenTexts — « Donnée quand ? » (planche A · V5)', () => {
   const due = { periodId: 'p-1', dueOn: '2026-10-06', dueTime: '20:00' }
+  const PANACUR = { name: 'Panacur', animal: 'Pixel', today: '2026-10-07', dosage: null }
 
   it('dit le jour prévu, avec son heure, et aujourd’hui', () => {
-    expect(
-      plain(givenWhenTexts(t, { name: 'Panacur', animal: 'Pixel', today: '2026-10-07' }, due)),
-    ).toEqual({
-      subtitle: 'Panacur · Pixel · prévue mardi 6 oct. à 20 h',
+    expect(plain(givenWhenTexts(t, { ...PANACUR, dosage: '½ comprimé' }, due))).toEqual({
+      subtitle: 'Panacur · Pixel',
+      due: '½ comprimé · prévue mardi 6 oct. à 20 h',
       scheduled: {
         label: 'Mardi 6 oct.',
         detail: 'Le jour prévu, à 20 h',
@@ -274,12 +310,13 @@ describe('givenWhenTexts — « Donnée quand ? » (planche A · V5)', () => {
     const texts = plain(
       givenWhenTexts(
         t,
-        { name: 'Milbemax', animal: 'Milo', today: '2026-10-12' },
+        { name: 'Milbemax', animal: 'Milo', today: '2026-10-12', dosage: null },
         { dueOn: '2026-10-09', dueTime: null },
       ),
     )
 
-    expect(texts.subtitle).toBe('Milbemax · Milo · prévue vendredi 9 oct.')
+    expect(texts.subtitle).toBe('Milbemax · Milo')
+    expect(texts.due).toBe('Prévue vendredi 9 oct.')
     expect(texts.scheduled).toEqual({
       label: 'Vendredi 9 oct.',
       detail: 'Le jour prévu',
@@ -291,11 +328,11 @@ describe('givenWhenTexts — « Donnée quand ? » (planche A · V5)', () => {
   it('en anglais', () => {
     applyLocale('en')
 
-    const texts = plain(
-      givenWhenTexts(t, { name: 'Panacur', animal: 'Pixel', today: '2026-10-07' }, due),
-    )
+    const texts = plain(givenWhenTexts(t, { ...PANACUR, dosage: '½ tablet' }, due))
 
-    expect(texts.subtitle).toBe('Panacur · Pixel · due Tuesday, Oct 6 at 8 pm')
+    expect(texts.subtitle).toBe('Panacur · Pixel')
+    expect(texts.due).toBe('½ tablet · due Tuesday, Oct 6 at 8 pm')
+    expect(plain(givenWhenTexts(t, PANACUR, due)).due).toBe('Due Tuesday, Oct 6 at 8 pm')
     expect(texts.scheduled).toEqual({
       label: 'Tuesday, Oct 6',
       detail: 'The scheduled day, at 8 pm',

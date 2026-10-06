@@ -8,7 +8,7 @@ import TreatmentOtherDateSheet from './TreatmentOtherDateSheet.vue'
 import { useTreatmentGestures } from '../composables/use-treatment-gestures'
 import { alreadyNotedText, doseActionTexts, hasSeveralTimes } from '../logic/treatment-gestures'
 import {
-  earliestGivenOn,
+  givenWhenMin,
   givenWhenTexts,
   isEveryDay,
   notificationTarget,
@@ -22,6 +22,7 @@ import { useTreatmentsStore } from '../store/treatments.store'
 import { useToday } from '@/core/app-lifecycle/use-today'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import BottomSheet from '@/shared/components/BottomSheet.vue'
+import { dosageText } from '@/shared/domain/dosage'
 import type { NotifiedDue } from '@/shared/domain/reminder-route'
 import { reminderIcon } from '@/shared/domain/reminders'
 import type { Due, DoseGesture } from '@/shared/domain/treatment-schedule'
@@ -81,7 +82,11 @@ const icon = computed(() => (history.value ? reminderIcon('treatment', history.v
 const texts = computed(() =>
   givenWhenTexts(
     t,
-    { ...named.value, today: today.value },
+    {
+      ...named.value,
+      today: today.value,
+      dosage: period.value ? dosageText(t, period.value) : null,
+    },
     plan.value?.due ?? { dueOn: props.due?.dueOn ?? today.value, dueTime: null },
   ),
 )
@@ -90,11 +95,9 @@ const hourTexts = computed(() =>
   otherDateTexts(t, { ...named.value, today: today.value }, givenOn.value ?? today.value, true),
 )
 const otherDateMin = computed(() => {
-  if (!schedule.value || !period.value || !firstDue.value) return null
-  const earliest = earliestGivenOn(schedule.value, period.value, firstDue.value)
-  const birth = history.value ? (animals.byId(history.value.animalId)?.birthDate ?? null) : null
-  if (earliest === null || birth === null) return earliest ?? birth
-  return earliest > birth ? earliest : birth
+  if (!schedule.value || !period.value || !firstDue.value || !history.value) return null
+  const birth = animals.byId(history.value.animalId)?.birthDate ?? null
+  return givenWhenMin(schedule.value, period.value, firstDue.value, birth)
 })
 
 watch(
@@ -197,6 +200,10 @@ async function note(gesture: DoseGesture): Promise<void> {
     @back="step = 'when'"
   >
     <template v-if="step === 'when' && props.due">
+      <p class="treatment-given-when__due">
+        <v-icon icon="ms:event" size="22" />
+        <span>{{ texts.due }}</span>
+      </p>
       <div class="treatment-given-when__choices">
         <button
           v-if="everyDay"
@@ -303,6 +310,19 @@ async function note(gesture: DoseGesture): Promise<void> {
 @use '@/styles/tap-target' as tap;
 
 // Non scopé : la feuille est téléportée hors du composant.
+.treatment-given-when__due {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 0 0;
+  font-size: 15.5px;
+  font-weight: 600;
+
+  .v-icon {
+    color: rgb(var(--v-theme-primary));
+  }
+}
+
 .treatment-given-when__choices {
   margin-top: 18px;
   overflow: hidden;

@@ -656,8 +656,10 @@
     },
     "givenWhen": {
       "title": "Given when?",
-      "subtitle": "{name} · {animal} · due {date}",
-      "subtitleAt": "{name} · {animal} · due {date} at {time}",
+      "due": "Due {date}",
+      "dueAt": "Due {date} at {time}",
+      "dosageDue": "{dosage} · due {date}",
+      "dosageDueAt": "{dosage} · due {date} at {time}",
       "scheduled": "The scheduled day",
       "scheduledAt": "The scheduled day, at {time}",
       "scheduledLabel": "Given on the scheduled day, {date}",

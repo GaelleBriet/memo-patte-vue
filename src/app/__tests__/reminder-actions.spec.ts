@@ -369,6 +369,19 @@ describe('notification à l’ancienne clé, sans heure (Q32)', () => {
     expect(toastMessage.value).toBe('Prise de Métacam notée pour Luna')
   })
 
+  it('jour passé : « Donnée quand ? » sur la journée, sans rien noter ni décaler', async () => {
+    today = '2026-10-12'
+    book = treatment([VENDREDIS], [dose('2026-10-02', '2026-10-09')])
+
+    await handler()(done(`treatment:${METACAM}:2026-10-09:overdue`))
+
+    expect(applyBatch).not.toHaveBeenCalled()
+    expect(currentPlace()).toEqual({
+      name: 'home',
+      query: { reminder: `treatment:${METACAM}`, step: 'given-when', due: '2026-10-09' },
+    })
+  })
+
   it('ouvre la feuille quand une prise de la journée est déjà notée', async () => {
     book = treatment([MATIN_ET_SOIR], [dose(TODAY, TODAY, { dueTime: '08:00' })])
 

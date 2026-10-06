@@ -9,6 +9,7 @@ import { useTreatmentsStore } from '../store/treatments.store'
 import TreatmentGivenWhenSheet from '../views/TreatmentGivenWhenSheet.vue'
 import i18n from '@/core/i18n'
 import vuetify from '@/core/theme/vuetify'
+import DateCalendar from '@/shared/components/DateCalendar.vue'
 import type { Animal } from '@/features/animals/schema/animal.schema'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import type { NotifiedDue } from '@/shared/domain/reminder-route'
@@ -128,7 +129,8 @@ describe('TreatmentGivenWhenSheet — « Donnée quand ? » (V5)', () => {
     await ouvrir(HEBDO(), '2026-10-19', { dueOn: '2026-10-16', dueTime: null })
 
     expect(texte('.bottom-sheet__title')).toBe('Donnée quand ?')
-    expect(texte('.bottom-sheet__subtitle')).toBe('Métacam · Luna · prévue vendredi 16 oct.')
+    expect(texte('.bottom-sheet__subtitle')).toBe('Métacam · Luna')
+    expect(texte('.treatment-given-when__due')).toBe('Prévue vendredi 16 oct.')
     expect(choix()).toEqual([
       'Vendredi 16 oct. · Le jour prévu',
       'Aujourd’hui · Lundi 19 oct.',
@@ -177,11 +179,25 @@ describe('TreatmentGivenWhenSheet — « Donnée quand ? » (V5)', () => {
     })
   })
 
+  it('V5 : la posologie suit le nom, avant l’échéance', async () => {
+    const book = treatment(
+      [{ ...VENDREDIS, doseQuantity: 0.5, doseUnit: 'tablet' }],
+      [dose('2026-10-09', '2026-10-16')],
+    )
+    await ouvrir(book, '2026-10-19', { dueOn: '2026-10-16', dueTime: null })
+
+    expect(texte('.treatment-given-when__due')).toBe('½ comprimé · prévue vendredi 16 oct.')
+  })
+
   it('« Une autre date » ouvre le calendrier de « Fait à une autre date », avec la case', async () => {
-    await ouvrir(HEBDO(), '2026-10-19', { dueOn: '2026-10-16', dueTime: null })
+    const sheet = await ouvrir(HEBDO(), '2026-10-19', { dueOn: '2026-10-16', dueTime: null })
 
     toucher('.treatment-given-when__choice', 2)
     await flushPromises()
+
+    const calendrier = sheet.findComponent(DateCalendar)
+    expect(calendrier.props('excluded')).toEqual(['2026-10-09'])
+    expect(calendrier.props('min')).toBe('2026-10-10')
 
     expect(document.body.querySelector('.treatment-other-date__calendar')).not.toBeNull()
     expect(texte('.treatment-other-date__recap')).toBe(

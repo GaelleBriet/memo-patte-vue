@@ -656,8 +656,10 @@
     },
     "givenWhen": {
       "title": "Donnée quand ?",
-      "subtitle": "{name} · {animal} · prévue {date}",
-      "subtitleAt": "{name} · {animal} · prévue {date} à {time}",
+      "due": "Prévue {date}",
+      "dueAt": "Prévue {date} à {time}",
+      "dosageDue": "{dosage} · prévue {date}",
+      "dosageDueAt": "{dosage} · prévue {date} à {time}",
       "scheduled": "Le jour prévu",
       "scheduledAt": "Le jour prévu, à {time}",
       "scheduledLabel": "Donnée le jour prévu, {date}",

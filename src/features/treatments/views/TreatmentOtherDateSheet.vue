@@ -73,7 +73,7 @@ const texts = computed(() =>
     severalTimes.value,
   ),
 )
-const excluded = computed(() => (props.notified === null ? givenDays(props.schedule) : []))
+const excluded = computed(() => givenDays(props.schedule))
 const due = computed(() => {
   if (step.value === 'day') return severalTimes.value ? null : (plan.value?.due ?? null)
   return plan.value?.hours.find(({ time }) => time === hour.value)?.due ?? null

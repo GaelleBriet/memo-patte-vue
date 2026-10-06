@@ -157,11 +157,7 @@ function openReminder(row: Pick<ReminderRow, 'kind' | 'id'>, step: ReminderStep 
   else isVaccinationSheetOpen.value = true
 }
 
-/**
- * Retour de « Modifier » ou notification : « Donnée quand ? » s'ouvre toujours, la feuille du soin
- * si le rappel est dans « À faire » ;
- * sinon une notification ouvre la fiche du soin, pour ne jamais rester sans réponse.
- */
+/** Hors de « À faire », une notification ouvre la fiche du soin : jamais sans réponse. */
 function reopenReminder(
   request: ReminderRequest,
   { fromNotification }: { fromNotification: boolean },

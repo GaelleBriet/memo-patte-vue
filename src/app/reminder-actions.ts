@@ -11,7 +11,6 @@ import { useHomeStore } from '@/features/home/store/home.store'
 import { doseActionTexts, hasSeveralTimes } from '@/features/treatments/logic/treatment-gestures'
 import { notificationTarget } from '@/features/treatments/logic/treatment-notification'
 import { readableScheduleOf } from '@/features/treatments/logic/treatment-schedule'
-import { doneGesture } from '@/features/treatments/logic/treatment-shift-box'
 import {
   getTreatmentsRepository,
   type TreatmentsRepository,
@@ -158,7 +157,7 @@ export function createReminderActions({
     return confirmNoted(treatment, due, givenOn, noted)
   }
 
-  /** Clé sans heure, d'avant les rappels par heure : le geste d'avant (Q32). */
+  /** Notification du jour à la clé sans heure, d'avant les rappels par heure : le geste d'avant (Q32). */
   async function legacyDone(treatment: TreatmentWithHistory, dueDate: string): Promise<void> {
     const { id } = treatment
     const sheet: ReminderRequest = { kind: 'treatment', id, step: 'actions' }
@@ -188,7 +187,7 @@ export function createReminderActions({
     const day = today()
     const schedule = readableScheduleOf(treatment, day)
     if (schedule === null) return openHome({ kind: 'treatment', id, step: 'actions' })
-    if (legacy) return legacyDone(treatment, notified.dueOn)
+    if (legacy && notified.dueOn === day) return legacyDone(treatment, notified.dueOn)
 
     const target = notificationTarget(schedule, notified, day)
     switch (target.kind) {
@@ -201,9 +200,6 @@ export function createReminderActions({
       case 'given-when':
         return openHome({ kind: 'treatment', id, step: 'given-when', due: notified })
       case 'note':
-        if (doneGesture(schedule, target.due, day).confirm) {
-          return openHome({ kind: 'treatment', id, step: 'given-when', due: notified })
-        }
         return noteToday(treatment, target.due)
     }
   }

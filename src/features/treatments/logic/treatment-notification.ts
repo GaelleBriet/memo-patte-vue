@@ -36,7 +36,8 @@ export function notificationTarget(
   const pending = dues.filter(({ status }) => status === 'pending')
   if (pending.length === 0) {
     const given = dues.find(({ status }) => status === 'given')
-    return given === undefined
+    const hasMissed = dues.some(({ status }) => status === 'missed')
+    return given === undefined || hasMissed
       ? { kind: 'sheet' }
       : { kind: 'already', givenOn: given.givenOn ?? notified.dueOn }
   }
@@ -88,12 +89,26 @@ export function earliestGivenOn(
   return high
 }
 
+/** Premier jour du calendrier de « Une autre date » : ni prise en plus, ni avant la naissance. */
+export function givenWhenMin(
+  schedule: Pick<TreatmentSchedule, 'doseFor'>,
+  period: Pick<TreatmentPeriodRecord, 'frequency'>,
+  due: Due,
+  birthDate: string | null,
+): string | null {
+  const earliest = earliestGivenOn(schedule, period, due)
+  if (earliest === null || birthDate === null) return earliest ?? birthDate
+  return earliest > birthDate ? earliest : birthDate
+}
+
 function capitalized(text: string): string {
   return text.charAt(0).toUpperCase() + text.slice(1)
 }
 
 export type GivenWhenTexts = {
   subtitle: string
+  /** « ½ comprimé · prévue mardi 6 oct. à 20 h » (V5). */
+  due: string
   scheduled: { label: string; detail: string; aria: string }
   today: { label: string; detail: string; aria: string }
   other: { label: string; aria: string }
@@ -103,18 +118,28 @@ export type GivenWhenTexts = {
 /** Textes de « Donnée quand ? » (V5) ; `dueTime` `null` : sans heure, ou toute la journée. */
 export function givenWhenTexts(
   t: Translate,
-  { name, animal, today }: { name: string; animal: string; today: string },
+  {
+    name,
+    animal,
+    today,
+    dosage,
+  }: { name: string; animal: string; today: string; dosage: string | null },
   { dueOn, dueTime }: Pick<Due, 'dueOn' | 'dueTime'>,
 ): GivenWhenTexts {
   const date = formatWeekdayDayMonth(dueOn)
   const full = formatFullDate(dueOn)
   const time = dueTime === null ? null : formatClockTime(dueTime)
-  const named = { name, animal, date }
+  const due =
+    dosage === null
+      ? time === null
+        ? t('treatments.givenWhen.due', { date })
+        : t('treatments.givenWhen.dueAt', { date, time })
+      : time === null
+        ? t('treatments.givenWhen.dosageDue', { dosage, date })
+        : t('treatments.givenWhen.dosageDueAt', { dosage, date, time })
   return {
-    subtitle:
-      time === null
-        ? t('treatments.givenWhen.subtitle', named)
-        : t('treatments.givenWhen.subtitleAt', { ...named, time }),
+    subtitle: t('treatments.sheet.otherDay.subtitle', { name, animal }),
+    due,
     scheduled: {
       label: capitalized(date),
       detail:
