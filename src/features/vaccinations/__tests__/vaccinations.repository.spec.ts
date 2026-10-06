@@ -164,10 +164,7 @@ describe('vaccinationsRepository', () => {
 
   it('échoue à mettre à jour un vaccin inexistant', async () => {
     await expect(
-      repository.update('inconnu', {
-        name: 'CHPPi',
-        lastInjectionDate: '2025-06-12',
-      }),
+      repository.update('inconnu', { name: 'CHPPi', dueDate: '2026-06-12' }),
     ).rejects.toThrow('Vaccin introuvable : inconnu')
   })
 

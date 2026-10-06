@@ -109,10 +109,14 @@
         "placeholder": "e.g. Rabies"
       },
       "lastInjectionDate": {
-        "label": "Injection date"
+        "label": "Injection date",
+        "help": "Leave empty if the injection hasn’t happened yet."
       },
-      "dueDate": {
-        "label": "Next due date"
+      "nextReminder": {
+        "label": "Next reminder"
+      },
+      "plannedDate": {
+        "help": "Appointment planned: the vaccine will show “{status}”."
       },
       "submit": "Create",
       "submitting": "Creating…",
@@ -127,9 +131,10 @@
       "errors": {
         "name": "Vaccine name is required.",
         "nameMax": "Vaccine name can’t be longer than {max} characters.",
-        "lastInjectionDate": "Injection date is required.",
+        "lastInjectionDate": "Injection date isn’t valid.",
         "lastInjectionDateFuture": "Injection date can’t be in the future.",
-        "dueDate": "Due date isn’t valid.",
+        "plannedDate": "Choose the planned appointment date.",
+        "plannedDatePast": "The appointment can’t be in the past.",
         "notFound": "We can’t find this vaccine.",
         "load": "Couldn’t load this vaccine. Try again.",
         "save": "Couldn’t save this vaccine. Try again."
