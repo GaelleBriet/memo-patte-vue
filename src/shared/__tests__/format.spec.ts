@@ -6,6 +6,7 @@ import {
   formatWeightInput,
   formatClockTime,
   formatClockTimes,
+  formatList,
   formatQuantity,
   formatFullDate,
   formatFullMonthYear,
@@ -233,6 +234,20 @@ describe('formatClockTimes', () => {
     expect(formatClockTimes(['08:00', '14:00', '20:00'])).toBe(
       '8\u00a0am, 2\u00a0pm, and 8\u00a0pm',
     )
+  })
+})
+
+describe('formatList', () => {
+  afterEach(() => applyLocale('fr'))
+
+  it('énumère des noms dans la langue courante, dans l’ordre donné', () => {
+    expect(formatList(['Milo'])).toBe('Milo')
+    expect(formatList(['Milo', 'Luna'])).toBe('Milo et Luna')
+    expect(formatList(['Milo', 'Luna', 'Rex'])).toBe('Milo, Luna et Rex')
+
+    applyLocale('en')
+
+    expect(formatList(['Milo', 'Luna', 'Rex'])).toBe('Milo, Luna, and Rex')
   })
 })
 

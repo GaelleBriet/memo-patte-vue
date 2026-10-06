@@ -1,4 +1,4 @@
-function comparable(name: string): string {
+export function comparableVaccineName(name: string): string {
   return name
     .trim()
     .normalize('NFD')
@@ -8,5 +8,5 @@ function comparable(name: string): string {
 
 /** Même vaccin : espaces en bord, casse et accents ne comptent pas. */
 export function isSameVaccineName(a: string, b: string): boolean {
-  return comparable(a) === comparable(b)
+  return comparableVaccineName(a) === comparableVaccineName(b)
 }

@@ -113,7 +113,16 @@
       "forAnimal": "For {name}",
       "name": {
         "label": "Vaccine name",
-        "placeholder": "e.g. Rabies"
+        "placeholder": "e.g. Rabies",
+        "usedFor": "Already used for {names}",
+        "suggestions": {
+          "carnet": "In your health record",
+          "combinations": {
+            "dog": "Common combinations · dog",
+            "cat": "Common combinations · cat"
+          },
+          "useTyped": "Use “{name}”"
+        }
       },
       "lastInjectionDate": {
         "label": "Injection date",
@@ -242,6 +251,20 @@
         "change": "Couldn’t save the change. Try again.",
         "delete": "Couldn’t delete {name}. Try again."
       }
+    },
+    "diseases": {
+      "distemper": "distemper",
+      "hepatitis": "hepatitis",
+      "parvovirus": "parvovirus",
+      "parainfluenza": "parainfluenza",
+      "leptospirosis": "leptospirosis",
+      "rabies": "rabies",
+      "kennelCough": "kennel cough",
+      "leishmaniosis": "leishmaniosis",
+      "panleukopenia": "panleukopenia",
+      "catFlu": "cat flu (herpesvirus, calicivirus)",
+      "chlamydiosis": "chlamydia",
+      "felineLeukaemia": "feline leukaemia"
     }
   },
   "treatments": {

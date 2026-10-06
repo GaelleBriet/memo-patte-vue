@@ -160,6 +160,11 @@ export function formatClockTime(time: string): string {
   return `${minutes === '00' ? clock : `${clock}:${minutes}`}${NBSP}${period}`
 }
 
+/** `Milo, Luna et Rex` / `Milo, Luna, and Rex`. */
+export function formatList(items: readonly string[]): string {
+  return new Intl.ListFormat(currentLocale(), { style: 'long', type: 'conjunction' }).format(items)
+}
+
 /** `8 h et 20 h` / `8 am and 8 pm`, dans l'ordre de la journée. */
 export function formatClockTimes(times: readonly string[]): string {
   return new Intl.ListFormat(currentLocale(), { style: 'long', type: 'conjunction' }).format(
