@@ -48,3 +48,112 @@ export function homeMessage(facts: HomeMessagesFacts): HomeMessage | null {
   if (!facts.memory.protectClosed) return { kind: 'protect' }
   return isQuarterlyDue(facts) ? { kind: 'quarterly' } : null
 }
+
+export type HomeMessagePlace = 'aboveTodo' | 'belowTodo'
+
+export function homeMessagePlace(message: HomeMessage): HomeMessagePlace {
+  return message.kind === 'remindersOff' ? 'aboveTodo' : 'belowTodo'
+}
+
+type Translate = (key: string) => string
+
+export type HomeMessageAction =
+  | 'androidSettings'
+  | 'priming'
+  | 'closeRemindersOff'
+  | 'seeHow'
+  | 'closeProtect'
+  | 'exportCopy'
+  | 'discoverPlus'
+  | 'stopQuarterly'
+  | 'closeQuarterly'
+
+type Labelled = { action: HomeMessageAction; label: string }
+
+export type HomeMessageButton = Labelled & {
+  ariaLabel: string
+  variant: 'flat' | 'outlined' | 'text'
+}
+
+export type HomeMessageView =
+  | {
+      kind: 'remindersOff'
+      title: string
+      enable: { action: 'androidSettings' | 'priming'; label: string }
+      help: { label: string; ariaLabel: string }
+      close: Labelled
+    }
+  | {
+      kind: 'protect' | 'quarterly'
+      icon: string
+      title: string
+      body: string | null
+      close: Labelled
+      buttons: HomeMessageButton[]
+    }
+
+export function homeMessageView(t: Translate, message: HomeMessage): HomeMessageView {
+  switch (message.kind) {
+    case 'remindersOff':
+      return {
+        kind: 'remindersOff',
+        title: t('notifications.disabled.title'),
+        enable: {
+          action: message.enable,
+          label:
+            message.enable === 'priming'
+              ? t('notifications.disabled.enable')
+              : t('notifications.disabled.openSettings'),
+        },
+        help: {
+          label: t('notifications.disabled.help'),
+          ariaLabel: t('notifications.disabled.helpLabel'),
+        },
+        close: { action: 'closeRemindersOff', label: t('home.messages.close') },
+      }
+    case 'protect':
+      return {
+        kind: 'protect',
+        icon: 'ms:mobile',
+        title: t('home.messages.protect.title'),
+        body: null,
+        close: { action: 'closeProtect', label: t('home.messages.close') },
+        buttons: [
+          {
+            action: 'seeHow',
+            label: t('home.messages.protect.seeHow'),
+            ariaLabel: t('home.messages.protect.seeHowLabel'),
+            variant: 'outlined',
+          },
+        ],
+      }
+    case 'quarterly':
+      return {
+        kind: 'quarterly',
+        icon: 'ms:shield',
+        title: t('home.messages.quarterly.title'),
+        body: t('home.messages.quarterly.body'),
+        close: { action: 'closeQuarterly', label: t('home.messages.quarterly.close') },
+        buttons: [
+          {
+            action: 'exportCopy',
+            label: t('settings.backup.copy.export'),
+            ariaLabel: t('home.messages.quarterly.exportLabel'),
+            variant: 'flat',
+          },
+          {
+            action: 'discoverPlus',
+            label: t('home.messages.quarterly.plus'),
+            ariaLabel: t('home.messages.quarterly.plusLabel'),
+            variant: 'outlined',
+          },
+          {
+            action: 'stopQuarterly',
+            label: t('home.messages.quarterly.stop'),
+            ariaLabel: t('home.messages.quarterly.stopLabel'),
+            variant: 'text',
+          },
+        ],
+      }
+  }
+}

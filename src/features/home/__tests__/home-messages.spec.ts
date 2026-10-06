@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
-import { homeMessage, type HomeMessagesFacts } from '../logic/home-messages'
+import {
+  homeMessage,
+  homeMessagePlace,
+  homeMessageView,
+  type HomeMessagesFacts,
+} from '../logic/home-messages'
 import { FRESH_HOME_MESSAGES } from '../logic/home-messages-memory'
 
 const NOW = new Date('2026-10-06T10:00:00.000Z')
@@ -158,5 +163,86 @@ describe('homeMessage — carte trimestrielle', () => {
 
   it('ne s’affiche jamais pour un abonné Plus', () => {
     expect(homeMessage(facts({ memory: protectClosed, isPlus: true, ...withCare() }))).toBeNull()
+  })
+})
+
+describe('homeMessagePlace', () => {
+  it('met le bandeau au-dessus d’« À faire » et les cartes en dessous', () => {
+    expect(homeMessagePlace({ kind: 'remindersOff', enable: 'priming' })).toBe('aboveTodo')
+    expect(homeMessagePlace({ kind: 'protect' })).toBe('belowTodo')
+    expect(homeMessagePlace({ kind: 'quarterly' })).toBe('belowTodo')
+  })
+})
+
+describe('homeMessageView', () => {
+  const t = (key: string) => key
+
+  it('bandeau après un refus : réglages d’Android, aide, croix', () => {
+    expect(homeMessageView(t, { kind: 'remindersOff', enable: 'androidSettings' })).toEqual({
+      kind: 'remindersOff',
+      title: 'notifications.disabled.title',
+      enable: { action: 'androidSettings', label: 'notifications.disabled.openSettings' },
+      help: { label: 'notifications.disabled.help', ariaLabel: 'notifications.disabled.helpLabel' },
+      close: { action: 'closeRemindersOff', label: 'home.messages.close' },
+    })
+  })
+
+  it('bandeau après « Plus tard » : l’écran d’explication', () => {
+    const view = homeMessageView(t, { kind: 'remindersOff', enable: 'priming' })
+
+    expect(view.kind === 'remindersOff' && view.enable).toEqual({
+      action: 'priming',
+      label: 'notifications.disabled.enable',
+    })
+  })
+
+  it('carte « protéger » : un seul bouton, la croix la ferme pour toujours', () => {
+    expect(homeMessageView(t, { kind: 'protect' })).toEqual({
+      kind: 'protect',
+      icon: 'ms:mobile',
+      title: 'home.messages.protect.title',
+      body: null,
+      close: { action: 'closeProtect', label: 'home.messages.close' },
+      buttons: [
+        {
+          action: 'seeHow',
+          label: 'home.messages.protect.seeHow',
+          ariaLabel: 'home.messages.protect.seeHowLabel',
+          variant: 'outlined',
+        },
+      ],
+    })
+  })
+
+  it('carte trimestrielle : exporter, Plus, ne plus proposer ; la croix la cache un trimestre', () => {
+    const view = homeMessageView(t, { kind: 'quarterly' })
+
+    expect(view).toMatchObject({
+      kind: 'quarterly',
+      icon: 'ms:shield',
+      title: 'home.messages.quarterly.title',
+      body: 'home.messages.quarterly.body',
+      close: { action: 'closeQuarterly', label: 'home.messages.quarterly.close' },
+    })
+    expect(view.kind !== 'remindersOff' && view.buttons).toEqual([
+      {
+        action: 'exportCopy',
+        label: 'settings.backup.copy.export',
+        ariaLabel: 'home.messages.quarterly.exportLabel',
+        variant: 'flat',
+      },
+      {
+        action: 'discoverPlus',
+        label: 'home.messages.quarterly.plus',
+        ariaLabel: 'home.messages.quarterly.plusLabel',
+        variant: 'outlined',
+      },
+      {
+        action: 'stopQuarterly',
+        label: 'home.messages.quarterly.stop',
+        ariaLabel: 'home.messages.quarterly.stopLabel',
+        variant: 'text',
+      },
+    ])
   })
 })

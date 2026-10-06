@@ -9,41 +9,29 @@ import { openNotificationSettings } from '@/core/notifications/permission'
 import { remindersHelpUrl } from '@/shared/domain/help-page'
 import { primingRouteFrom } from '@/shared/domain/notification-priming'
 import { showToast } from '@/shared/utils/toast'
-import type { HomeMessageKind } from '../logic/home-messages'
+import {
+  homeMessagePlace,
+  homeMessageView,
+  type HomeMessageAction,
+  type HomeMessagePlace,
+} from '../logic/home-messages'
 import { useHomeMessagesStore } from '../store/home-messages.store'
 
-const props = defineProps<{ place: 'aboveTodo' | 'belowTodo' }>()
-
-const PLACES: Record<HomeMessageKind, 'aboveTodo' | 'belowTodo'> = {
-  remindersOff: 'aboveTodo',
-  protect: 'belowTodo',
-  quarterly: 'belowTodo',
-}
+const props = defineProps<{ place: HomeMessagePlace }>()
 
 const { t } = useI18n()
 const router = useRouter()
 const store = useHomeMessagesStore()
 const titleId = useId()
 
-const message = computed(() => {
-  const current = store.message
-  return current && PLACES[current.kind] === props.place ? current : null
+const view = computed(() => {
+  const message = store.message
+  return message && homeMessagePlace(message) === props.place ? homeMessageView(t, message) : null
 })
 const helpUrl = computed(() => remindersHelpUrl(currentLocale()))
 
 onMounted(() => void store.refresh())
 useAppResume(() => void store.refresh())
-
-function enableReminders(): void {
-  if (message.value?.kind !== 'remindersOff') return
-  if (message.value.enable === 'priming') void router.push(primingRouteFrom('home'))
-  else void openNotificationSettings()
-}
-
-function seeHowToProtect(): void {
-  store.closeProtect()
-  void router.push({ name: 'settings-backup' })
-}
 
 async function exportCopy(): Promise<void> {
   if (store.isSharing) return
@@ -52,25 +40,34 @@ async function exportCopy(): Promise<void> {
   else if (outcome === 'failed') showToast(t('settings.export.error'), { tone: 'error' })
 }
 
-function discoverPlus(): void {
-  void router.push({ name: 'plus' })
+const ACTIONS: Record<HomeMessageAction, () => void> = {
+  androidSettings: () => void openNotificationSettings(),
+  priming: () => void router.push(primingRouteFrom('home')),
+  closeRemindersOff: () => store.closeRemindersOff(),
+  seeHow: () => {
+    store.closeProtect()
+    void router.push({ name: 'settings-backup' })
+  },
+  closeProtect: () => store.closeProtect(),
+  exportCopy: () => void exportCopy(),
+  discoverPlus: () => void router.push({ name: 'plus' }),
+  stopQuarterly: () => store.stopQuarterly(),
+  closeQuarterly: () => store.closeQuarterly(),
 }
 </script>
 
 <template>
-  <aside v-if="message?.kind === 'remindersOff'" class="home-reminders-off">
+  <aside v-if="view?.kind === 'remindersOff'" class="home-reminders-off">
     <v-icon class="home-reminders-off__icon" icon="ms:notifications_off" size="19" />
     <div class="home-reminders-off__text">
-      <button type="button" class="home-reminders-off__enable" @click="enableReminders">
-        <span class="home-reminders-off__title">{{ t('notifications.disabled.title') }}</span>
+      <button
+        type="button"
+        class="home-reminders-off__enable"
+        @click="ACTIONS[view.enable.action]()"
+      >
+        <span class="home-reminders-off__title">{{ view.title }}</span>
         <span class="home-reminders-off__link">
-          <span>
-            {{
-              message.enable === 'priming'
-                ? t('notifications.disabled.enable')
-                : t('notifications.disabled.openSettings')
-            }}
-          </span>
+          <span>{{ view.enable.label }}</span>
           <v-icon icon="ms:chevron_right" size="16" />
         </span>
       </button>
@@ -79,52 +76,40 @@ function discoverPlus(): void {
         :href="helpUrl"
         target="_blank"
         rel="noopener"
-        :aria-label="t('notifications.disabled.helpLabel')"
+        :aria-label="view.help.ariaLabel"
       >
-        {{ t('notifications.disabled.help') }}
+        {{ view.help.label }}
       </a>
     </div>
     <button
       type="button"
       class="home-reminders-off__close"
-      :aria-label="t('home.messages.close')"
-      @click="store.closeRemindersOff()"
+      :aria-label="view.close.label"
+      @click="ACTIONS[view.close.action]()"
     >
       <v-icon icon="ms:close" size="19" />
     </button>
   </aside>
 
   <section
-    v-else-if="message"
+    v-else-if="view"
     class="home-message"
-    :class="`home-message--${message.kind}`"
+    :class="`home-message--${view.kind}`"
     :aria-labelledby="titleId"
   >
     <div class="home-message__head">
       <span class="home-message__icon">
-        <v-icon :icon="message.kind === 'protect' ? 'ms:mobile' : 'ms:shield'" size="21" />
+        <v-icon :icon="view.icon" size="21" />
       </span>
       <div class="home-message__text">
-        <p :id="titleId" class="home-message__title">
-          {{
-            message.kind === 'quarterly'
-              ? t('home.messages.quarterly.title')
-              : t('home.messages.protect.title')
-          }}
-        </p>
-        <p v-if="message.kind === 'quarterly'" class="home-message__body">
-          {{ t('home.messages.quarterly.body') }}
-        </p>
+        <p :id="titleId" class="home-message__title">{{ view.title }}</p>
+        <p v-if="view.body" class="home-message__body">{{ view.body }}</p>
       </div>
       <button
         type="button"
         class="home-message__close"
-        :aria-label="
-          message.kind === 'quarterly'
-            ? t('home.messages.quarterly.close')
-            : t('home.messages.close')
-        "
-        @click="message.kind === 'quarterly' ? store.closeQuarterly() : store.closeProtect()"
+        :aria-label="view.close.label"
+        @click="ACTIONS[view.close.action]()"
       >
         <v-icon icon="ms:close" size="19" />
       </button>
@@ -132,42 +117,17 @@ function discoverPlus(): void {
 
     <div class="home-message__actions">
       <v-btn
-        v-if="message.kind === 'protect'"
-        class="home-message__see-how"
-        variant="outlined"
-        :aria-label="t('home.messages.protect.seeHowLabel')"
-        @click="seeHowToProtect"
+        v-for="button in view.buttons"
+        :key="button.action"
+        :class="`home-message__action home-message__action--${button.action}`"
+        :variant="button.variant"
+        :color="button.variant === 'flat' ? 'primary' : undefined"
+        :loading="button.action === 'exportCopy' && store.isSharing"
+        :aria-label="button.ariaLabel"
+        @click="ACTIONS[button.action]()"
       >
-        {{ t('home.messages.protect.seeHow') }}
+        {{ button.label }}
       </v-btn>
-      <template v-else>
-        <v-btn
-          class="home-message__export"
-          variant="flat"
-          color="primary"
-          :loading="store.isSharing"
-          :aria-label="t('home.messages.quarterly.exportLabel')"
-          @click="exportCopy"
-        >
-          {{ t('settings.backup.copy.export') }}
-        </v-btn>
-        <v-btn
-          class="home-message__plus"
-          variant="outlined"
-          :aria-label="t('home.messages.quarterly.plusLabel')"
-          @click="discoverPlus"
-        >
-          {{ t('home.messages.quarterly.plus') }}
-        </v-btn>
-        <v-btn
-          class="home-message__stop"
-          variant="text"
-          :aria-label="t('home.messages.quarterly.stopLabel')"
-          @click="store.stopQuarterly()"
-        >
-          {{ t('home.messages.quarterly.stop') }}
-        </v-btn>
-      </template>
     </div>
   </section>
 </template>
@@ -340,7 +300,7 @@ function discoverPlus(): void {
   }
 }
 
-.home-message__stop.v-btn {
+.home-message__action--stopQuarterly.v-btn {
   color: tokens.$color-text-secondary;
 }
 </style>

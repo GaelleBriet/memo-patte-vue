@@ -178,7 +178,7 @@ describe('HomeMessages — carte « protéger »', () => {
   it('« Voir comment » ouvre Sauvegarde et ferme la carte pour toujours', async () => {
     const wrapper = await monter('belowTodo')
 
-    await wrapper.get('.home-message__see-how').trigger('click')
+    await wrapper.get('.home-message__action--seeHow').trigger('click')
 
     expect(push).toHaveBeenCalledWith({ name: 'settings-backup' })
     expect(readHomeMessagesMemory().protectClosed).toBe(true)
@@ -235,7 +235,7 @@ describe('HomeMessages — carte trimestrielle', () => {
     })
     const wrapper = await monter('belowTodo')
 
-    await wrapper.get('.home-message__export').trigger('click')
+    await wrapper.get('.home-message__action--exportCopy').trigger('click')
     await flushPromises()
 
     expect(share).toHaveBeenCalledOnce()
@@ -247,7 +247,7 @@ describe('HomeMessages — carte trimestrielle', () => {
     share.mockResolvedValue('cancelled')
     const wrapper = await monter('belowTodo')
 
-    await wrapper.get('.home-message__export').trigger('click')
+    await wrapper.get('.home-message__action--exportCopy').trigger('click')
     await flushPromises()
 
     expect(wrapper.find('.home-message--quarterly').exists()).toBe(true)
@@ -257,7 +257,7 @@ describe('HomeMessages — carte trimestrielle', () => {
     share.mockResolvedValue('failed')
     const wrapper = await monter('belowTodo')
 
-    await wrapper.get('.home-message__export').trigger('click')
+    await wrapper.get('.home-message__action--exportCopy').trigger('click')
     await flushPromises()
 
     expect(toastMessage.value).toBe('L’export n’a pas pu être préparé. Réessaie.')
@@ -278,7 +278,7 @@ describe('HomeMessages — carte trimestrielle', () => {
   it('« Découvrir Plus » ouvre l’écran Plus sans fermer la carte', async () => {
     const wrapper = await monter('belowTodo')
 
-    await wrapper.get('.home-message__plus').trigger('click')
+    await wrapper.get('.home-message__action--discoverPlus').trigger('click')
 
     expect(push).toHaveBeenCalledWith({ name: 'plus' })
     expect(wrapper.find('.home-message--quarterly').exists()).toBe(true)
@@ -296,7 +296,7 @@ describe('HomeMessages — carte trimestrielle', () => {
   it('« Ne plus me le proposer » la retire pour toujours', async () => {
     const wrapper = await monter('belowTodo')
 
-    await wrapper.get('.home-message__stop').trigger('click')
+    await wrapper.get('.home-message__action--stopQuarterly').trigger('click')
 
     expect(readHomeMessagesMemory().quarterlyStopped).toBe(true)
     expect(wrapper.find('.home-message').exists()).toBe(false)
