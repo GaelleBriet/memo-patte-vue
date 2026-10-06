@@ -991,7 +991,7 @@
           "offNotificationsOff": "Off in Android · no effect while notifications are off"
         },
         "precise": "Android permission granted: your reminders arrive right on time.",
-        "lessPrecise": "Less precise: exact reminders are off",
+        "lessPrecise": "Off · your reminders may arrive late",
         "reactivate": "Turn back on"
       },
       "remindBeforeDue": {

@@ -991,7 +991,7 @@
           "offNotificationsOff": "Désactivés dans Android · sans effet tant que les notifications sont coupées"
         },
         "precise": "Autorisation Android accordée : tes rappels arrivent à l’heure pile.",
-        "lessPrecise": "Moins précis : les rappels précis sont désactivés",
+        "lessPrecise": "Désactivés · tes rappels peuvent arriver en retard",
         "reactivate": "Réactiver"
       },
       "remindBeforeDue": {

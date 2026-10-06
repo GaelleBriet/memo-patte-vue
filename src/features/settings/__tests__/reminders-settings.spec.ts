@@ -74,7 +74,7 @@ describe('exactRemindersRow — ligne « Rappels précis » (V20 à V20 sexies)'
     })
   })
 
-  it('V20 quater : retirés dans Android, « Moins précis » avec « Réactiver »', () => {
+  it('V20 quater : retirés dans Android, « peuvent arriver en retard » avec « Réactiver »', () => {
     expect(exactRemindersRow('granted', 'removed')).toEqual({
       isOn: false,
       hint: 'off',

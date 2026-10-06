@@ -185,13 +185,13 @@ describe('RemindersSettingsView — rappels précis (RA-23)', () => {
     expect(vue.get<HTMLInputElement>('.reminders-settings__exact input').element.checked).toBe(true)
   })
 
-  it('V20 quater : retirés, « Moins précis » et « Réactiver » ouvre l’explication', async () => {
+  it('V20 quater : retirés, « peuvent arriver en retard » et « Réactiver » ouvre l’explication', async () => {
     exact.mockResolvedValue('removed')
     const vue = await monter()
 
     expect(texte(vue.get('.reminders-settings__exact'))).toContain('Désactivés dans Android')
     const notice = vue.get('.reminders-settings__less-precise')
-    expect(texte(notice)).toContain('Moins précis : les rappels précis sont désactivés')
+    expect(texte(notice)).toContain('Désactivés · tes rappels peuvent arriver en retard')
 
     await notice.get('button').trigger('click')
     await flushPromises()
