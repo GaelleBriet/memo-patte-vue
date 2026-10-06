@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 
+import VaccinationPastInjectionSheet from './VaccinationPastInjectionSheet.vue'
 import VaccinationReminderSheet from './VaccinationReminderSheet.vue'
 import { useInjectionGestures } from '../composables/use-injection-gestures'
 import { useVaccinationDetail } from '../composables/use-vaccination-detail'
@@ -98,16 +99,23 @@ function askDelete(onlyInjection: boolean): void {
   isDeleteDialogOpen.value = true
 }
 
-function onInjectionAction(injectionId: string, action: string): void {
+async function onInjectionAction(injectionId: string, action: string): Promise<void> {
   const injection = injections.value.find((candidate) => candidate.id === injectionId)
   if (!injection) return
   if (action === 'changeDate') {
     moving.value = injection
     isDatePickerOpen.value = true
-  } else if (injections.value.length === 1) {
+  } else if ((await gestures.removeInjection(injection)) === 'without-reminder') {
     askDelete(true)
-  } else {
-    void gestures.removeInjection(injection)
+  }
+}
+
+const isPastSheetOpen = ref(false)
+const takenDates = computed(() => injections.value.map(({ injectedOn }) => injectedOn))
+
+async function addPast(injectedOn: string): Promise<void> {
+  if (vaccination.value && (await gestures.addPastInjection(vaccination.value, injectedOn))) {
+    isPastSheetOpen.value = false
   }
 }
 
@@ -195,17 +203,33 @@ async function remove(): Promise<void> {
           </template>
         </NextDueCard>
 
-        <SectionCard :title="t('vaccinations.detail.injections')" :counter="texts.counter">
+        <SectionCard
+          v-if="rows.length > 0"
+          :title="t('vaccinations.detail.injections')"
+          :counter="texts.counter"
+        >
           <HistoryRow
             v-for="row in rows"
             :key="row.id"
             :date="row.date"
-            :detail="row.chosen"
+            :badge="row.badge"
+            :regular="row.regular"
+            :detail="row.detail"
             :options-label="row.optionsLabel"
             :items="rowItems"
             @select="onInjectionAction(row.id, $event)"
           />
         </SectionCard>
+
+        <button
+          type="button"
+          class="vaccination-detail__add-past"
+          :disabled="gestures.isBusy.value"
+          @click="isPastSheetOpen = true"
+        >
+          <v-icon icon="ms:add" size="20" />
+          <span>{{ t('vaccinations.detail.past.open') }}</span>
+        </button>
       </template>
 
       <p
@@ -239,6 +263,17 @@ async function remove(): Promise<void> {
       :initial-injected-on="redating?.injectedOn ?? null"
       redate
       @reminder-chosen="redate"
+    />
+
+    <VaccinationPastInjectionSheet
+      v-if="vaccination"
+      v-model="isPastSheetOpen"
+      :name="vaccination.name"
+      :animal="animal?.name ?? ''"
+      :today="today"
+      :taken="takenDates"
+      :busy="gestures.isBusy.value"
+      @add="addPast"
     />
 
     <DatePickerSheet
@@ -292,6 +327,28 @@ async function remove(): Promise<void> {
   .v-icon {
     flex: 0 0 auto;
     color: rgb(var(--v-theme-primary));
+  }
+}
+
+.vaccination-detail__add-past {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: tokens.$size-tap-target;
+  margin: -14px tokens.$padding-section-inline 0;
+  padding: 0 4px;
+  border: 0;
+  background: transparent;
+  color: rgb(var(--v-theme-primary));
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  text-align: start;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: none;
+    color: rgb(var(--v-theme-primary-darken-1));
   }
 }
 

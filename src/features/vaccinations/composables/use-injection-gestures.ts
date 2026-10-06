@@ -3,7 +3,12 @@ import { useI18n } from 'vue-i18n'
 
 import { todayIsoDate } from '@/core/app-lifecycle/today-iso-date'
 import { showToast, showUndoableToast } from '@/shared/utils/toast'
-import { injectionGestureTexts, vaccinationDeleteTexts } from '../logic/vaccination-history'
+import {
+  injectionGestureTexts,
+  pastInjectionToast,
+  vaccinationDeleteTexts,
+  VaccinationWithoutReminderError,
+} from '../logic/vaccination-history'
 import type { InjectionDates } from '../repository/vaccination-injections.repository'
 import type { VaccinationInjection } from '../schema/vaccination-injection.schema'
 import type { Vaccination } from '../schema/vaccination.schema'
@@ -42,14 +47,38 @@ export function useInjectionGestures(onChanged: () => void) {
     })
   }
 
-  function removeInjection(injection: VaccinationInjection): Promise<boolean> {
+  /** `without-reminder` : seule injection d'un vaccin sans rappel, c'est le vaccin à supprimer. */
+  async function removeInjection(
+    injection: VaccinationInjection,
+  ): Promise<'done' | 'failed' | 'without-reminder'> {
     const { vaccinationId, id } = injection
     const texts = injectionGestureTexts(t, injection.injectedOn, todayIsoDate())
-    return guarded(async () => {
-      await store.removeInjection(vaccinationId, id)
-      onChanged()
-      undoable(texts.removed, texts.undoRemove, () => store.undoRemoveInjection(vaccinationId, id))
+    let outcome: 'done' | 'without-reminder' = 'done'
+    const ok = await guarded(async () => {
+      try {
+        const removed = await store.removeInjection(vaccinationId, id)
+        onChanged()
+        undoable(texts.removed, texts.undoRemove, () =>
+          store.undoRemoveInjection(vaccinationId, id, removed),
+        )
+      } catch (cause) {
+        if (!(cause instanceof VaccinationWithoutReminderError)) throw cause
+        outcome = 'without-reminder'
+      }
     }, t('vaccinations.detail.errors.change'))
+    return ok ? outcome : 'failed'
+  }
+
+  function addPastInjection(
+    vaccination: Pick<Vaccination, 'id' | 'name'>,
+    injectedOn: string,
+  ): Promise<boolean> {
+    const toast = pastInjectionToast(t, injectedOn, todayIsoDate())
+    return guarded(async () => {
+      const { injectionId } = await store.addPastInjection(vaccination.id, injectedOn)
+      onChanged()
+      undoable(toast.added, toast.undoAdd, () => store.undoInjection(vaccination.id, injectionId))
+    }, t('vaccinations.detail.past.failed'))
   }
 
   function moved(
@@ -87,18 +116,19 @@ export function useInjectionGestures(onChanged: () => void) {
     )
   }
 
-  /** Suppression définitive, confirmée par un dialogue avant d'arriver ici. */
+  /** Confirmée par un dialogue avant d'arriver ici ; « Annuler » rétablit ce que ce geste a supprimé. */
   function removeVaccination(vaccination: Vaccination): Promise<boolean> {
     const texts = vaccinationDeleteTexts(t, vaccination.name, { onlyInjection: false })
     return guarded(async () => {
-      await store.remove(vaccination.id)
-      showToast(texts.deleted)
+      const deletedAt = await store.remove(vaccination.id)
+      undoable(texts.deleted, texts.undo, () => store.undoRemove(vaccination.id, deletedAt))
     }, texts.failed)
   }
 
   return {
     isBusy,
     removeInjection,
+    addPastInjection,
     changeInjectionDate,
     changeInjectionDateAndReminder,
     removeVaccination,

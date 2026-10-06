@@ -13,7 +13,9 @@ import {
 
 import { fakeVaccinationsRepository } from './fake-vaccinations-repository'
 import VaccinationDetailView from '../views/VaccinationDetailView.vue'
+import VaccinationPastInjectionSheet from '../views/VaccinationPastInjectionSheet.vue'
 import VaccinationReminderSheet from '../views/VaccinationReminderSheet.vue'
+import { VaccinationWithoutReminderError } from '../logic/vaccination-history'
 import type { VaccinationInjection } from '../schema/vaccination-injection.schema'
 import type { Vaccination } from '../schema/vaccination.schema'
 import type { VaccinationInjectionsService } from '../service/vaccination-injections.service'
@@ -84,10 +86,12 @@ const INJECTIONS = [
 let injections: VaccinationInjection[]
 let getById: MockInstance
 let remove: MockInstance
+let restore: MockInstance
 let service: {
   [
     K in
       | 'record'
+      | 'addPast'
       | 'undo'
       | 'remove'
       | 'undoRemove'
@@ -116,18 +120,24 @@ beforeEach(async () => {
   const repository = fakeVaccinationsRepository({
     getById: async (id) => (id === CARRE.id ? CARRE : null),
     listInjections: async () => injections,
-    remove: async () => {},
+    remove: async () => '2026-09-23T08:00:00.000Z',
+    restore: async () => {},
   })
   getById = repository.getById
   remove = repository.remove
+  restore = repository.restore
   provideVaccinationsRepository(() => repository)
   provideVaccinationRemindersService(() => ({
     reschedule: vi.fn<(id: string) => Promise<void>>(async () => {}),
   }))
   service = {
     record: vi.fn<VaccinationInjectionsService['record']>(),
-    undo: vi.fn<VaccinationInjectionsService['undo']>(),
-    remove: vi.fn<VaccinationInjectionsService['remove']>(async () => {}),
+    addPast: vi.fn<VaccinationInjectionsService['addPast']>(async () => ({
+      animalId: BOREE.id,
+      injectionId: 'i0',
+    })),
+    undo: vi.fn<VaccinationInjectionsService['undo']>(async () => {}),
+    remove: vi.fn<VaccinationInjectionsService['remove']>(async () => ({ plannedSet: false })),
     undoRemove: vi.fn<VaccinationInjectionsService['undoRemove']>(async () => {}),
     changeDate: vi.fn<VaccinationInjectionsService['changeDate']>(async () => ({
       injectedOn: '2026-07-27',
@@ -189,7 +199,7 @@ function dialogue(view: VueWrapper) {
 }
 
 describe('VaccinationDetailView — F7', () => {
-  it('présente le vaccin, son prochain rappel et ses injections', async () => {
+  it('présente le vaccin, sa dernière injection, son prochain rappel « À jour » et ses injections (V12)', async () => {
     const view = await monter()
 
     expect(view.get('.pushed-screen__title').text()).toBe('Carré')
@@ -197,16 +207,18 @@ describe('VaccinationDetailView — F7', () => {
     expect(view.getComponent(NextDueCard).props()).toMatchObject({
       label: 'Prochain rappel',
       value: '26 août 2027',
-      delay: 'dans 11 mois',
+      delay: 'À jour',
       tone: null,
     })
-    expect(view.find('.next-due-card__top').exists()).toBe(false)
+    expect(view.get('.next-due-card__top').text()).toBe('Dernière injection · 26 août 2026')
     expect(view.get('.section-card__title').text()).toBe('Injections')
     expect(view.get('.section-card__counter').text()).toBe('3')
-    expect(lignes(view).map((row) => [row.props('date'), row.props('detail')])).toEqual([
-      ['26 août 2026', 'Rappel choisi : dans 1 an'],
-      ['27 juil. 2026', 'Rappel choisi : autre date, 26 août 2026'],
-      ['28 juin 2026', 'Rappel choisi : autre date, 27 juil. 2026'],
+    expect(
+      lignes(view).map((row) => [row.props('date'), row.props('badge'), row.props('detail')]),
+    ).toEqual([
+      ['26 août 2026', 'Dernière injection', 'Rappel prévu le 26 août 2027'],
+      ['27 juil. 2026', null, 'Rappel prévu le 26 août 2026'],
+      ['28 juin 2026', null, 'Rappel prévu le 27 juil. 2026'],
     ])
     expect(lignes(view)[1]!.props('optionsLabel')).toBe(
       'Options pour l’injection du 27 juillet 2026',
@@ -302,6 +314,8 @@ describe('VaccinationDetailView — F7', () => {
     expect(view.get('.next-due-card__value').text()).toBe('En retard depuis le 22 sept.')
     expect(view.find('.vaccination-detail__edit').exists()).toBe(true)
     expect(view.findComponent(OverflowMenu).exists()).toBe(true)
+    expect(view.find('.section-card').exists()).toBe(false)
+    expect(view.get('.vaccination-detail__add-past').text()).toBe('Ajouter une injection passée')
   })
 
   it('le jour du rendez-vous, « Premier vaccin » en haut et « Aucune injection notée » sous la valeur (V11 ter)', async () => {
@@ -336,7 +350,7 @@ describe('VaccinationDetailView — injection supprimée ou redatée', () => {
 
     runToastAction()
     await flushPromises()
-    expect(service.undoRemove).toHaveBeenCalledWith(CARRE.id, 'i2')
+    expect(service.undoRemove).toHaveBeenCalledWith(CARRE.id, 'i2', { plannedSet: false })
   })
 
   it('change la date d’une injection par le calendrier, dans ses bornes, et l’annule', async () => {
@@ -423,17 +437,33 @@ describe('VaccinationDetailView — injection supprimée ou redatée', () => {
 })
 
 describe('VaccinationDetailView — suppression du vaccin', () => {
-  it('propose de supprimer le vaccin quand on supprime sa seule injection', async () => {
+  it('supprime la seule injection qui laisse un rappel : le vaccin reste, toast « Annuler » (VA-14)', async () => {
     injections = [injection('i3', '2026-08-26', '2027-08-26')]
+    service.remove.mockResolvedValue({ plannedSet: true })
     const view = await monter()
 
     await choisir(view, 0, 'remove')
 
-    expect(service.remove).not.toHaveBeenCalled()
+    expect(service.remove).toHaveBeenCalledWith(CARRE.id, 'i3')
+    expect(dialogue(view).props('modelValue')).toBe(false)
+    expect(toastMessage.value).toBe('Injection du 26 août supprimée')
+    runToastAction()
+    await flushPromises()
+    expect(service.undoRemove).toHaveBeenCalledWith(CARRE.id, 'i3', { plannedSet: true })
+  })
+
+  it('propose de supprimer le vaccin quand sa seule injection ne laisse aucun rappel (VA-14)', async () => {
+    injections = [injection('i3', '2026-08-26', null)]
+    service.remove.mockRejectedValue(new VaccinationWithoutReminderError(CARRE.id))
+    const view = await monter()
+
+    await choisir(view, 0, 'remove')
+
+    expect(toastMessage.value).toBeNull()
     expect(dialogue(view).props()).toMatchObject({
       modelValue: true,
-      title: 'Supprimer Carré ?',
-      text: 'C’est sa seule injection : le vaccin Carré sera supprimé, avec ses rappels. Cette action est définitive.',
+      title: 'Supprimer Carré\u00a0?',
+      text: 'C’est sa seule injection, sans rappel prévu\u00a0: le vaccin Carré sera supprimé du carnet.',
       cancelLabel: 'Annuler',
       confirmLabel: 'Supprimer',
       tone: 'danger',
@@ -449,7 +479,7 @@ describe('VaccinationDetailView — suppression du vaccin', () => {
     expect(dialogue(view).props()).toMatchObject({
       modelValue: true,
       title: 'Supprimer Carré ?',
-      text: 'Ses injections et ses rappels seront supprimés du carnet. Cette action est définitive.',
+      text: 'Ses injections et ses rappels seront supprimés du carnet.',
     })
     expect(
       view
@@ -463,7 +493,12 @@ describe('VaccinationDetailView — suppression du vaccin', () => {
 
     expect(remove).toHaveBeenCalledWith(CARRE.id)
     expect(toastMessage.value).toBe('Vaccin Carré supprimé')
+    expect(toastAction.value?.ariaLabel).toBe('Annuler la suppression du vaccin Carré')
     expect(back).toHaveBeenCalled()
+
+    runToastAction()
+    await flushPromises()
+    expect(restore).toHaveBeenCalledWith(CARRE.id, '2026-09-23T08:00:00.000Z')
   })
 
   it('ne supprime rien quand on annule le dialogue', async () => {
@@ -474,6 +509,57 @@ describe('VaccinationDetailView — suppression du vaccin', () => {
     dialogue(view).vm.$emit('cancel')
 
     expect(remove).not.toHaveBeenCalled()
+  })
+})
+
+describe('VaccinationDetailView — injection passée (V12 bis)', () => {
+  function feuille(view: VueWrapper) {
+    return view.getComponent(VaccinationPastInjectionSheet)
+  }
+
+  it('« Ajouter une injection passée » ouvre la feuille, bornée à aujourd’hui, jours pris exclus', async () => {
+    const view = await monter()
+
+    const lien = view.get('.vaccination-detail__add-past')
+    expect(lien.text()).toBe('Ajouter une injection passée')
+    await lien.trigger('click')
+
+    expect(feuille(view).props()).toMatchObject({
+      modelValue: true,
+      name: 'Carré',
+      animal: 'Boree',
+      today: '2026-09-23',
+      taken: ['2026-08-26', '2026-07-27', '2026-06-28'],
+    })
+  })
+
+  it('ajoute l’injection, ferme la feuille et propose « Annuler » (VA-10)', async () => {
+    const view = await monter()
+    await view.get('.vaccination-detail__add-past').trigger('click')
+
+    feuille(view).vm.$emit('add', '2022-06-20')
+    await flushPromises()
+
+    expect(service.addPast).toHaveBeenCalledWith(CARRE.id, '2022-06-20')
+    expect(feuille(view).props('modelValue')).toBe(false)
+    expect(toastMessage.value).toBe('Injection du 20 juin 2022 ajoutée')
+    expect(toastAction.value?.ariaLabel).toBe('Annuler l’ajout de l’injection du 20 juin 2022')
+
+    runToastAction()
+    await flushPromises()
+    expect(service.undo).toHaveBeenCalledWith(CARRE.id, 'i0')
+  })
+
+  it('garde la feuille ouverte et dit l’échec', async () => {
+    service.addPast.mockRejectedValue(new Error('base verrouillée'))
+    const view = await monter()
+    await view.get('.vaccination-detail__add-past').trigger('click')
+
+    feuille(view).vm.$emit('add', '2022-06-20')
+    await flushPromises()
+
+    expect(feuille(view).props('modelValue')).toBe(true)
+    expect(toastMessage.value).toBe('L’injection n’a pas pu être ajoutée. Réessaie.')
   })
 })
 

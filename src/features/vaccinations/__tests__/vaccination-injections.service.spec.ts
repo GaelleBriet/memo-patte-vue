@@ -22,6 +22,7 @@ import {
   type VaccinationInjectionsService,
 } from '../service/vaccination-injections.service'
 import { createVaccinationRemindersService } from '../service/vaccination-reminders.service'
+import { VaccinationWithoutReminderError } from '../logic/vaccination-history'
 
 const BOREE = '11111111-1111-4111-8111-111111111111'
 const NOW = new Date('2026-09-23T08:00:00.000Z')
@@ -137,18 +138,84 @@ describe('vaccinationInjectionsService', () => {
       expect(dueDates()).toEqual(['2026-09-26'])
     })
 
-    it('refuse de supprimer la seule injection d’un vaccin', async () => {
-      await expect(service.remove(carre, carre)).rejects.toThrow('Injection non supprimée')
+    it('VA-14 : supprimer la seule injection garde le vaccin, « Prévu » au rappel de l’injection supprimée', async () => {
+      const removed = await service.remove(carre, carre)
 
-      await expect(vaccinations.getById(carre)).resolves.not.toBeNull()
+      expect(removed).toEqual({ plannedSet: true })
+      await expect(vaccinations.getById(carre)).resolves.toMatchObject({
+        lastInjectionDate: null,
+        dueDate: '2026-09-26',
+      })
       expect(dueDates()).toEqual(['2026-09-26'])
+    })
+
+    it('VA-14 : « Annuler » remet la seule injection et l’état d’avant, sans rendez-vous prévu', async () => {
+      const removed = await service.remove(carre, carre)
+
+      await service.undoRemove(carre, carre, removed)
+
+      await expect(vaccinations.getById(carre)).resolves.toMatchObject({
+        lastInjectionDate: '2025-09-26',
+        dueDate: '2026-09-26',
+      })
+      await expect(vaccinations.getPlannedDueDate(carre)).resolves.toBeNull()
+      expect(dueDates()).toEqual(['2026-09-26'])
+    })
+
+    it('VA-14 : un vaccin prévu qui perd sa seule injection retrouve son rendez-vous prévu', async () => {
+      const typhus = (
+        await vaccinations.create({ animalId: BOREE, name: 'Typhus', dueDate: '2026-09-23' })
+      ).id
+      const { injectionId } = await service.record(typhus, {
+        injectedOn: '2026-09-23',
+        nextDueDate: '2027-09-23',
+      })
+
+      const removed = await service.remove(typhus, injectionId)
+
+      expect(removed).toEqual({ plannedSet: false })
+      await expect(vaccinations.getById(typhus)).resolves.toMatchObject({
+        lastInjectionDate: null,
+        dueDate: '2026-09-23',
+      })
+      await service.undoRemove(typhus, injectionId, removed)
+      await expect(vaccinations.getById(typhus)).resolves.toMatchObject({
+        lastInjectionDate: '2026-09-23',
+        dueDate: '2027-09-23',
+      })
+      await expect(vaccinations.getPlannedDueDate(typhus)).resolves.toBe('2026-09-23')
+    })
+
+    it('VA-14 : sans rendez-vous prévu ni rappel, refuse et laisse proposer de supprimer le vaccin', async () => {
+      const rage = (
+        await vaccinations.create({
+          animalId: BOREE,
+          name: 'Rage',
+          lastInjectionDate: '2025-03-14',
+        })
+      ).id
+
+      await expect(service.remove(rage, rage)).rejects.toBeInstanceOf(
+        VaccinationWithoutReminderError,
+      )
+
+      await expect(vaccinations.getById(rage)).resolves.toMatchObject({
+        lastInjectionDate: '2025-03-14',
+      })
+    })
+
+    it('supprimer une injection quand d’autres restent ne touche pas au rendez-vous prévu', async () => {
+      const derniere = await noter('2026-09-23', '2027-09-23')
+
+      await expect(service.remove(carre, derniere)).resolves.toEqual({ plannedSet: false })
+      await expect(vaccinations.getPlannedDueDate(carre)).resolves.toBeNull()
     })
 
     it('rétablit une injection supprimée et son rappel (Annuler)', async () => {
       const derniere = await noter('2026-09-23', '2027-09-23')
-      await service.remove(carre, derniere)
+      const removed = await service.remove(carre, derniere)
 
-      await service.undoRemove(carre, derniere)
+      await service.undoRemove(carre, derniere, removed)
 
       await expect(vaccinations.getById(carre)).resolves.toMatchObject({ dueDate: '2027-09-23' })
       expect(dueDates()).toEqual(['2027-09-23'])
@@ -165,6 +232,18 @@ describe('vaccinationInjectionsService', () => {
         dueDate: '2027-09-20',
       })
       expect(dueDates()).toEqual(['2027-09-20'])
+    })
+
+    it('VA-13 : change la date de la dernière injection, un rappel à un mois la suit', async () => {
+      const derniere = await noter('2026-09-01', '2026-10-01')
+
+      await service.changeDate(carre, derniere, '2026-08-25')
+
+      await expect(vaccinations.getById(carre)).resolves.toMatchObject({
+        lastInjectionDate: '2026-08-25',
+        dueDate: '2026-09-25',
+      })
+      expect(dueDates()).toEqual(['2026-09-25'])
     })
 
     it('une injection ancienne déplacée après la dernière devient la tête', async () => {
@@ -278,6 +357,84 @@ describe('vaccinationInjectionsService', () => {
       await expect(vaccinations.getById(carre)).resolves.toMatchObject({
         lastInjectionDate: '2025-09-26',
       })
+    })
+  })
+
+  describe('ajouter une injection passée (VA-10, VA-11)', () => {
+    it('range une injection plus ancienne sans toucher au prochain rappel ni aux rappels', async () => {
+      const { injectionId } = await service.addPast(carre, '2024-06-20')
+
+      await expect(vaccinations.getById(carre)).resolves.toMatchObject({
+        lastInjectionDate: '2025-09-26',
+        dueDate: '2026-09-26',
+      })
+      await expect(injectionsRepository.getById(injectionId)).resolves.toMatchObject({
+        injectedOn: '2024-06-20',
+        nextDueDate: null,
+      })
+      expect(dueDates()).toEqual(['2026-09-26'])
+    })
+
+    it('accepte une date d’avant la naissance, et une très ancienne', async () => {
+      await service.addPast(carre, '2001-01-01')
+
+      expect(
+        (await injectionsRepository.listByVaccination(carre)).map((i) => i.injectedOn),
+      ).toEqual(['2025-09-26', '2001-01-01'])
+    })
+
+    it('une injection plus récente que la dernière devient la tête et recopie le rappel en cours', async () => {
+      const { injectionId } = await service.addPast(carre, '2026-01-10')
+
+      await expect(vaccinations.getById(carre)).resolves.toMatchObject({
+        lastInjectionDate: '2026-01-10',
+        dueDate: '2026-09-26',
+      })
+      await expect(injectionsRepository.getById(injectionId)).resolves.toMatchObject({
+        nextDueDate: '2026-09-26',
+      })
+      expect(dueDates()).toEqual(['2026-09-26'])
+    })
+
+    it('la première injection d’un vaccin prévu recopie son rendez-vous, qui reste gardé', async () => {
+      const typhus = (
+        await vaccinations.create({ animalId: BOREE, name: 'Typhus', dueDate: '2026-10-05' })
+      ).id
+      await reminders.reschedule(typhus)
+
+      await service.addPast(typhus, '2026-09-01')
+
+      await expect(vaccinations.getById(typhus)).resolves.toMatchObject({
+        lastInjectionDate: '2026-09-01',
+        dueDate: '2026-10-05',
+      })
+      await expect(vaccinations.getPlannedDueDate(typhus)).resolves.toBe('2026-10-05')
+      expect(
+        [...notifications.pending.keys()].filter((key) => key.includes(`${typhus}:2026-10-05`)),
+      ).not.toEqual([])
+    })
+
+    it('« Annuler » retire l’injection ajoutée, même la seule d’un vaccin prévu', async () => {
+      const typhus = (
+        await vaccinations.create({ animalId: BOREE, name: 'Typhus', dueDate: '2026-10-05' })
+      ).id
+      const { injectionId } = await service.addPast(typhus, '2026-09-01')
+
+      await service.undo(typhus, injectionId)
+
+      await expect(vaccinations.getById(typhus)).resolves.toMatchObject({
+        lastInjectionDate: null,
+        dueDate: '2026-10-05',
+      })
+    })
+
+    it('refuse une date future, ou un jour qui a déjà son injection, sans rien écrire', async () => {
+      await expect(service.addPast(carre, '2026-09-24')).rejects.toThrow(ZodError)
+      await expect(service.addPast(carre, '2025-09-26')).rejects.toThrow(
+        'Injection déjà notée ce jour',
+      )
+
+      await expect(injectionsRepository.listByVaccination(carre)).resolves.toHaveLength(1)
     })
   })
 

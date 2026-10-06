@@ -272,8 +272,11 @@ export function createVaccinationsRepository(
       return injections.listByVaccination(vaccinationId)
     },
 
-    /** Sans effet sur un vaccin inconnu ou déjà supprimé : la date initiale est gardée. */
-    async remove(id: string): Promise<void> {
+    /**
+     * Sans effet sur un vaccin inconnu ou déjà supprimé : la date initiale est gardée. Rend l'instant
+     * de la suppression, à passer à `restore`.
+     */
+    async remove(id: string): Promise<string> {
       const deletedAt = new Date().toISOString()
       await db.runMany([
         {
@@ -283,6 +286,41 @@ export function createVaccinationsRepository(
         },
         injections.markDeletedByVaccinationStatement(id, deletedAt),
       ])
+      return deletedAt
+    },
+
+    /** Rétablit le vaccin et les injections supprimés à cet instant, et eux seuls. */
+    async restore(id: string, deletedAt: string): Promise<void> {
+      const at = new Date().toISOString()
+      await db.runMany([
+        {
+          sql: `UPDATE vaccination SET deleted_at = NULL, updated_at = ?, updated_by_device = ?
+                WHERE id = ? AND deleted_at = ?`,
+          params: [at, deviceId(), id, deletedAt],
+        },
+        injections.reviveByVaccinationStatement(id, deletedAt, at),
+      ])
+    },
+
+    /** Rendez-vous prévu, gardé même quand une injection existe ; `null` pour un vaccin inconnu. */
+    async getPlannedDueDate(id: string): Promise<string | null> {
+      const rows = await db.query<Pick<VaccinationRow, 'planned_due_date'>>(
+        `SELECT planned_due_date FROM vaccination WHERE id = ? AND ${NOT_DELETED}`,
+        [id],
+      )
+      return rows[0]?.planned_due_date ?? null
+    },
+
+    plannedDueDateStatement(
+      id: string,
+      plannedDueDate: string | null,
+      updatedAt: string,
+    ): SqlStatement {
+      return {
+        sql: `UPDATE vaccination SET planned_due_date = ?, updated_at = ?, updated_by_device = ?
+              WHERE id = ? AND ${NOT_DELETED}`,
+        params: [plannedDueDate, updatedAt, deviceId(), id],
+      }
     },
 
     /** Instruction fournie sans être exécutée : la suppression d'un animal la joue dans sa transaction. */

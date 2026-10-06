@@ -221,7 +221,7 @@ describe('vaccinationsRepository', () => {
       lastInjectionDate: '2024-03-01',
     })
 
-    await expect(repository.remove('inconnu')).resolves.toBeUndefined()
+    await repository.remove('inconnu')
 
     expect((await repository.listByAnimal(MIETTE)).map((v) => v.id)).toEqual([rage.id])
   })
@@ -843,6 +843,73 @@ describe('vaccinationsRepository — injections', () => {
     await repository.remove(carre.id)
 
     await expect(injectionsOf(carre.id)).resolves.toEqual(avant)
+  })
+
+  it('rend l’instant de la suppression, puis rétablit le vaccin et les injections supprimées avec lui, elles seules (VA-15)', async () => {
+    vi.useFakeTimers({ now: new Date('2026-09-24T10:00:00.000Z') })
+    const carre = await repository.create({
+      animalId: MIETTE,
+      name: 'Carré',
+      lastInjectionDate: '2025-09-25',
+      dueDate: '2026-09-25',
+    })
+    const ancienne = await addInjection(carre.id, '2024-09-20', '2025-09-20')
+    const effacee = await addInjection(carre.id, '2023-09-20', null)
+    await injections.remove(effacee, '2026-09-24T10:00:30.000Z')
+    vi.advanceTimersByTime(60_000)
+
+    const deletedAt = await repository.remove(carre.id)
+    expect(deletedAt).toBe('2026-09-24T10:01:00.000Z')
+    await expect(repository.getById(carre.id)).resolves.toBeNull()
+
+    vi.advanceTimersByTime(60_000)
+    await repository.restore(carre.id, deletedAt)
+
+    await expect(repository.getById(carre.id)).resolves.toMatchObject({
+      lastInjectionDate: '2025-09-25',
+      dueDate: '2026-09-25',
+      updatedAt: '2026-09-24T10:02:00.000Z',
+      deletedAt: null,
+    })
+    expect((await repository.listInjections(carre.id)).map(({ id }) => id)).toEqual([
+      carre.id,
+      ancienne,
+    ])
+  })
+
+  it('ne rétablit pas un vaccin supprimé à un autre instant', async () => {
+    vi.useFakeTimers({ now: new Date('2026-09-24T10:00:00.000Z') })
+    const carre = await repository.create({
+      animalId: MIETTE,
+      name: 'Carré',
+      lastInjectionDate: '2025-09-25',
+    })
+    await repository.remove(carre.id)
+
+    await repository.restore(carre.id, '2026-09-24T09:00:00.000Z')
+
+    await expect(repository.getById(carre.id)).resolves.toBeNull()
+  })
+
+  it('lit et écrit le rappel prévu, gardé même quand une injection existe (VA-10, VA-14)', async () => {
+    const typhus = await repository.create({
+      animalId: MIETTE,
+      name: 'Typhus',
+      dueDate: '2026-10-05',
+    })
+    await addInjection(typhus.id, '2026-09-01', '2026-10-05')
+
+    await expect(repository.getPlannedDueDate(typhus.id)).resolves.toBe('2026-10-05')
+
+    await db.runMany([
+      repository.plannedDueDateStatement(typhus.id, null, '2026-09-24T10:00:00.000Z'),
+    ])
+    await expect(repository.getPlannedDueDate(typhus.id)).resolves.toBeNull()
+    await expect(repository.getById(typhus.id)).resolves.toMatchObject({
+      dueDate: '2026-10-05',
+      updatedAt: '2026-09-24T10:00:00.000Z',
+    })
+    await expect(repository.getPlannedDueDate('inconnu')).resolves.toBeNull()
   })
 
   it('liste les injections visibles d’un vaccin, la plus récente d’abord', async () => {

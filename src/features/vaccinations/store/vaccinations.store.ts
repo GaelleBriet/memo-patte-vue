@@ -6,6 +6,7 @@ import {
   vaccinationInjectionsService,
   type InjectionInput,
   type RecordedInjection,
+  type RemovedInjection,
   type VaccinationInjectionsService,
 } from '../service/vaccination-injections.service'
 import {
@@ -27,7 +28,7 @@ import { recordUsageSignal } from '@/shared/utils/usage-signals'
 // Le store ne dépend que de ce qu'il appelle : la cascade de suppression (#102) n'est pas son affaire.
 type VaccinationsRepository = Pick<
   FullVaccinationsRepository,
-  'getById' | 'listByAnimal' | 'create' | 'update' | 'remove' | 'listInjections'
+  'getById' | 'listByAnimal' | 'create' | 'update' | 'remove' | 'restore' | 'listInjections'
 >
 
 export type VaccinationsRepositoryProvider = () =>
@@ -53,6 +54,7 @@ export function provideVaccinationRemindersService(
 type VaccinationInjections = Pick<
   VaccinationInjectionsService,
   | 'record'
+  | 'addPast'
   | 'undo'
   | 'remove'
   | 'undoRemove'
@@ -184,10 +186,22 @@ export const useVaccinationsStore = defineStore('vaccinations', () => {
       )
     },
 
-    async remove(id: string): Promise<void> {
+    /** Rend l'instant de la suppression, à passer à `undoRemove`. */
+    async remove(id: string): Promise<string> {
+      return write(
+        async (repository) => {
+          const deletedAt = await repository.remove(id)
+          await remindersProvider().reschedule(id)
+          return deletedAt
+        },
+        () => animalId.value,
+      )
+    },
+
+    async undoRemove(id: string, deletedAt: string): Promise<void> {
       await write(
         async (repository) => {
-          await repository.remove(id)
+          await repository.restore(id, deletedAt)
           await remindersProvider().reschedule(id)
         },
         () => animalId.value,
@@ -204,6 +218,13 @@ export const useVaccinationsStore = defineStore('vaccinations', () => {
       )
     },
 
+    async addPastInjection(vaccinationId: string, injectedOn: string): Promise<RecordedInjection> {
+      return write(
+        () => injectionsProvider().addPast(vaccinationId, injectedOn),
+        (recorded) => recorded.animalId,
+      )
+    },
+
     async undoInjection(vaccinationId: string, injectionId: string): Promise<void> {
       await write(
         () => injectionsProvider().undo(vaccinationId, injectionId),
@@ -211,16 +232,21 @@ export const useVaccinationsStore = defineStore('vaccinations', () => {
       )
     },
 
-    async removeInjection(vaccinationId: string, injectionId: string): Promise<void> {
-      await write(
+    /** Rend de quoi annuler la suppression, à passer à `undoRemoveInjection`. */
+    async removeInjection(vaccinationId: string, injectionId: string): Promise<RemovedInjection> {
+      return write(
         () => injectionsProvider().remove(vaccinationId, injectionId),
         () => animalId.value,
       )
     },
 
-    async undoRemoveInjection(vaccinationId: string, injectionId: string): Promise<void> {
+    async undoRemoveInjection(
+      vaccinationId: string,
+      injectionId: string,
+      removed: RemovedInjection,
+    ): Promise<void> {
       await write(
-        () => injectionsProvider().undoRemove(vaccinationId, injectionId),
+        () => injectionsProvider().undoRemove(vaccinationId, injectionId, removed),
         () => animalId.value,
       )
     },
