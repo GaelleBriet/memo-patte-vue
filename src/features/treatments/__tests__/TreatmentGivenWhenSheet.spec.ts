@@ -23,6 +23,7 @@ const LUNA: Animal = {
   species: 'cat',
   breed: null,
   birthDate: null,
+  birthDateApproximate: false,
   photoPath: null,
   createdAt: AT,
   updatedAt: AT,

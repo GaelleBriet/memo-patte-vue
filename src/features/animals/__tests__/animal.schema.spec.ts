@@ -11,6 +11,7 @@ describe('animalInputSchema', () => {
       species: 'cat',
       breed: null,
       birthDate: null,
+      birthDateApproximate: false,
       photoPath: null,
     })
   })
