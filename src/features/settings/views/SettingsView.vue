@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { computed, defineAsyncComponent, onMounted, ref, useId, useTemplateRef } from 'vue'
+import { computed, defineAsyncComponent, ref, useId, useTemplateRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
 import ExportSheet from './ExportSheet.vue'
 import ImportSheet from './ImportSheet.vue'
+import { useExportAvailability } from '../composables/use-export-availability'
 import { remindersSummary } from '../logic/reminders-settings'
 import type { PdfExportAnimal } from './PdfExportSheet.vue'
 
@@ -50,22 +51,20 @@ const weightUnitOptions = computed(() =>
   })),
 )
 
-const hasLoadFailed = computed(() => animals.error !== null)
-const hasNothingToExport = computed(() => animals.hasLoaded && animals.animals.length === 0)
-const canExport = computed(() => animals.hasLoaded && animals.animals.length > 0)
+const { hasLoadFailed, hasNothingToExport, canExport, retryLoad } = useExportAvailability()
 const isFreePlan = computed(() => purchase.status.plan === 'none')
 const pdfExportAnimals = computed<PdfExportAnimal[]>(() =>
   animals.animals.map((animal) => ({ id: animal.id, name: animal.name, species: animal.species })),
 )
 
 function onExportRow(): void {
-  if (hasLoadFailed.value) void animals.load()
+  if (hasLoadFailed.value) retryLoad()
   else isExportSheetOpen.value = true
 }
 
 function onExportPdfRow(): void {
   if (hasLoadFailed.value) {
-    void animals.load()
+    retryLoad()
   } else if (isFreePlan.value) {
     void router.push({ name: 'plus', query: { from: 'pdf' } })
   } else {
@@ -73,10 +72,6 @@ function onExportPdfRow(): void {
     isPdfExportSheetOpen.value = true
   }
 }
-
-onMounted(() => {
-  if (!animals.hasLoaded) void animals.load()
-})
 
 function onImported(): void {
   void animals.load()
@@ -94,6 +89,10 @@ function onShareAnalyticsChange(enabled: boolean | null): void {
 
 function openReminders(): void {
   void router.push({ name: 'settings-reminders' })
+}
+
+function openBackup(): void {
+  void router.push({ name: 'settings-backup' })
 }
 
 function goHome(): void {
@@ -117,6 +116,14 @@ function goHome(): void {
             <span v-if="remindersHint" class="settings-row__hint">
               {{ t(`settings.reminders.summary.${remindersHint}`) }}
             </span>
+          </span>
+          <v-icon class="settings-row__chevron" icon="ms:chevron_right" size="20" />
+        </button>
+        <button type="button" class="settings-row settings-row--backup" @click="openBackup">
+          <v-icon class="settings-row__icon" icon="ms:backup" size="22" />
+          <span class="settings-row__text">
+            <span class="settings-row__label">{{ t('settings.backup.title') }}</span>
+            <span class="settings-row__hint">{{ t('settings.backup.summary') }}</span>
           </span>
           <v-icon class="settings-row__chevron" icon="ms:chevron_right" size="20" />
         </button>

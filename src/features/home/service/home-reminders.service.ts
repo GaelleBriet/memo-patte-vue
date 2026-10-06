@@ -8,16 +8,31 @@ import {
   type VaccinationsRepository,
 } from '@/features/vaccinations/repository/vaccinations.repository'
 import type { ReminderSource } from '@/shared/domain/reminders'
+import type { TreatmentDoseInput, TreatmentPeriodInput } from '@/shared/domain/treatment-schedule'
 
 type Provider<T> = () => T | Promise<T>
 
-export type HomeReminderSource = ReminderSource & {
-  treatmentType: TreatmentType | null
+export type HomeVaccinationSource = ReminderSource & {
+  kind: 'vaccination'
+  treatmentType: null
 }
+
+/** Ce que lit le moteur d'échéances : toutes les périodes et les prises visibles. */
+export type HomeTreatmentSource = {
+  kind: 'treatment'
+  id: string
+  animalId: string
+  label: string
+  treatmentType: TreatmentType
+  periods: readonly TreatmentPeriodInput[]
+  doses: readonly TreatmentDoseInput[]
+}
+
+export type HomeReminderSource = HomeVaccinationSource | HomeTreatmentSource
 
 export function createHomeRemindersService(
   vaccinations: Provider<Pick<VaccinationsRepository, 'listAll'>>,
-  treatments: Provider<Pick<TreatmentsRepository, 'listAll'>>,
+  treatments: Provider<Pick<TreatmentsRepository, 'listAllWithHistory'>>,
 ) {
   return {
     async listSources(): Promise<HomeReminderSource[]> {
@@ -27,11 +42,11 @@ export function createHomeRemindersService(
       ])
       const [vaccinationRows, treatmentRows] = await Promise.all([
         vaccinationsRepository.listAll(),
-        treatmentsRepository.listAll(),
+        treatmentsRepository.listAllWithHistory(),
       ])
 
       return [
-        ...vaccinationRows.map((vaccination): HomeReminderSource => ({
+        ...vaccinationRows.map((vaccination): HomeVaccinationSource => ({
           kind: 'vaccination',
           id: vaccination.id,
           animalId: vaccination.animalId,
@@ -39,16 +54,15 @@ export function createHomeRemindersService(
           dueDate: vaccination.dueDate,
           treatmentType: null,
         })),
-        ...treatmentRows
-          .filter((treatment) => treatment.stoppedOn === null)
-          .map((treatment): HomeReminderSource => ({
-            kind: 'treatment',
-            id: treatment.id,
-            animalId: treatment.animalId,
-            label: treatment.name,
-            dueDate: treatment.nextDueDate,
-            treatmentType: treatment.type,
-          })),
+        ...treatmentRows.map((treatment): HomeTreatmentSource => ({
+          kind: 'treatment',
+          id: treatment.id,
+          animalId: treatment.animalId,
+          label: treatment.name,
+          treatmentType: treatment.type,
+          periods: treatment.periods,
+          doses: treatment.doses,
+        })),
       ]
     },
   }

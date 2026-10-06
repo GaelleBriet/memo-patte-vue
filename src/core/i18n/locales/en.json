@@ -876,7 +876,8 @@
       "title": "To do",
       "count": "{n} reminder | {n} reminders",
       "scoped": "{name} · {count}",
-      "overdueBanner": "{n} overdue reminder | {n} overdue reminders"
+      "overdueBanner": "{n} overdue reminder | {n} overdue reminders",
+      "toLog": "To log"
     },
     "reminder": {
       "vaccination": "Vaccine",
@@ -886,8 +887,11 @@
     },
     "row": {
       "subtitle": "{type} · {animal}",
+      "unlogged": "{n} dose not logged | {n} doses not logged",
       "label": "{title}, {type}, {animal}, {due}. Opens actions.",
       "labelSingle": "{title}, {type}, {due}. Opens actions.",
+      "labelUnreadable": "{title}, {type}, {animal}, {due}. Opens the treatment.",
+      "labelUnreadableSingle": "{title}, {type}, {due}. Opens the treatment.",
       "spokenType": {
         "vaccination": "vaccine",
         "deworming": "dewormer",
@@ -896,16 +900,23 @@
       },
       "due": {
         "overdue": "{n} day overdue | {n} days overdue",
+        "overdueAt": "{n} day overdue, {time} dose | {n} days overdue, {time} dose",
         "today": "today",
+        "todayAt": "today at {time}",
         "tomorrow": "tomorrow",
-        "later": "in {n} day, on {date} | in {n} days, on {date}"
+        "later": "in {n} day, on {date} | in {n} days, on {date}",
+        "toLog": "to log, {unlogged}",
+        "unreadable": "unreadable data"
       }
     },
     "due": {
       "overdue": "Overdue · {n}d",
       "today": "Today",
+      "todayAt": "Today · {time}",
       "tomorrow": "Tomorrow",
-      "later": "In {n} day | In {n} days"
+      "later": "In {n} day | In {n} days",
+      "toLog": "To log",
+      "unreadable": "Unreadable data"
     },
     "upToDate": {
       "title": "All up to date",
@@ -1057,6 +1068,26 @@
         }
       }
     },
+    "backup": {
+      "title": "Backup",
+      "summary": "On this phone",
+      "local": {
+        "title": "Your health record is on this phone",
+        "hint": "It only leaves this phone if you export it, or through Android backup."
+      },
+      "risk": "If this phone is lost, your health record may be too. A copy or Plus prevents that.",
+      "android": {
+        "title": "Android backup",
+        "body": "If your phone’s backup is on, Android may keep a copy of your health record. Without photos or your settings, and with no guarantee: don’t count on it to recover everything."
+      },
+      "copy": {
+        "title": "Copy of your health record",
+        "export": "Export a copy",
+        "exportHint": "To Google Drive, an email or a computer"
+      },
+      "plus": "MémoPatte Plus adds a guaranteed cloud backup, photos included, and restores it on a new phone.",
+      "discoverPlus": "Explore MémoPatte Plus"
+    },
     "data": {
       "title": "My data",
       "weightUnit": {
@@ -1180,7 +1211,11 @@
       "treatments": {
         "title": "Treatments",
         "empty": "No treatment recorded.",
-        "stopped": "Stopped on {date}"
+        "stopped": "Stopped on {date}",
+        "ended": "Ended on {date}",
+        "dueAt": "{date} at {time}",
+        "unreadable": "Unreadable data",
+        "noDate": "—"
       },
       "weight": {
         "title": "Weight",
