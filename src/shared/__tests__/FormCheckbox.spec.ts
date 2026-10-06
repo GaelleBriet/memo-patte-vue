@@ -35,6 +35,13 @@ describe('FormCheckbox', () => {
     expect(wrapper.get('input').attributes('aria-describedby')).toBe(aide.attributes('id'))
   })
 
+  it('place l’aide au-dessus de la case, comme la planche V13', () => {
+    const wrapper = monter({ help: 'Disponible une fois la date saisie.' })
+
+    const enfants = [...wrapper.element.children].map((noeud) => noeud.className)
+    expect(enfants).toEqual(['form-checkbox__help', 'form-checkbox__box'])
+  })
+
   it('n’a ni aide ni description sans texte d’aide', () => {
     const wrapper = monter()
 

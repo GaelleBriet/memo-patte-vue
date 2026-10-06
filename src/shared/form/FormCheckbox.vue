@@ -14,6 +14,7 @@ const helpId = useId()
 
 <template>
   <div class="form-checkbox" :class="{ 'form-checkbox--disabled': disabled }">
+    <p v-if="help" :id="helpId" class="form-checkbox__help" aria-live="polite">{{ help }}</p>
     <label class="form-checkbox__box">
       <input
         v-model="checked"
@@ -27,7 +28,6 @@ const helpId = useId()
       </span>
       <span class="form-checkbox__label">{{ label }}</span>
     </label>
-    <p v-if="help" :id="helpId" class="form-checkbox__help" aria-live="polite">{{ help }}</p>
   </div>
 </template>
 
@@ -88,8 +88,9 @@ const helpId = useId()
   }
 }
 
+// Sous le champ précédent, comme l'aide d'un `FormField` : l'écart de 18 px du formulaire ramené à 6 px.
 .form-checkbox__help {
-  margin: 2px 0 0 38px;
+  margin: -12px 0 6px;
   color: tokens.$color-text-secondary;
   font-size: 12.5px;
   line-height: 1.4;
