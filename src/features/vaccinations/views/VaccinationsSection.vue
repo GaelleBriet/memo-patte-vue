@@ -9,11 +9,14 @@ import { computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
-import { byDueDate, vaccinationStatus, type VaccinationStatus } from '../logic/vaccination-status'
+import {
+  carnetVaccinationRow,
+  type CarnetVaccinationBadgeStatus,
+} from '../logic/vaccination-carnet'
+import { byDueDate } from '../logic/vaccination-status'
 import { useVaccinationsStore } from '../store/vaccinations.store'
 import DueStatusChip from '@/shared/components/DueStatusChip.vue'
 import SectionCard from '@/shared/components/SectionCard.vue'
-import { formatMonthYear } from '@/shared/utils/format'
 import { useAnimalScopedLoad } from '@/shared/composables/use-animal-scoped-load'
 import { buildReminders } from '@/shared/domain/reminders'
 
@@ -31,16 +34,9 @@ const { t } = useI18n()
 const router = useRouter()
 const store = useVaccinationsStore()
 
-const BADGE_ICONS: Record<VaccinationStatus, string | null> = {
+const BADGE_ICONS: Partial<Record<CarnetVaccinationBadgeStatus, string>> = {
   overdue: 'ms:error',
   'up-to-date': 'ms:check',
-  none: null,
-}
-
-const BADGE_LABELS: Record<VaccinationStatus, string> = {
-  overdue: 'vaccinations.section.status.overdue',
-  'up-to-date': 'vaccinations.section.status.upToDate',
-  none: 'vaccinations.section.status.none',
 }
 
 // Au changement d'animal, ou après un échec, le store porte déjà le nouvel animal mais encore l'ancienne liste.
@@ -61,17 +57,11 @@ const hasError = computed(
 )
 
 const rows = computed(() =>
-  [...vaccinations.value].sort(byDueDate).map((vaccination) => {
-    const status = vaccinationStatus(vaccination.dueDate, props.today)
-    return {
-      id: vaccination.id,
-      name: vaccination.name,
-      status,
-      icon: BADGE_ICONS[status],
-      badge: t(BADGE_LABELS[status]),
-      detail: detailOf(status, vaccination.dueDate),
-    }
-  }),
+  [...vaccinations.value].sort(byDueDate).map((vaccination) => ({
+    id: vaccination.id,
+    name: vaccination.name,
+    ...carnetVaccinationRow(t, vaccination, props.today),
+  })),
 )
 
 const summary = computed<VaccinationsSummary>(() => {
@@ -87,12 +77,6 @@ const summary = computed<VaccinationsSummary>(() => {
   )
   return { total, overdue }
 })
-
-function detailOf(status: VaccinationStatus, dueDate: string | null): string {
-  if (status === 'overdue') return t('vaccinations.section.detail.overdue')
-  if (status === 'none' || dueDate === null) return t('vaccinations.section.detail.none')
-  return t('vaccinations.section.detail.validUntil', { month: formatMonthYear(dueDate) })
-}
 
 function openDetail(id: string): void {
   void router.push({ name: 'vaccination-detail', params: { id } })
@@ -112,10 +96,6 @@ watch(summary, (value) => emit('summary', value), { immediate: true })
       :key="row.id"
       type="button"
       class="section-card__row vaccination-row"
-      :class="{
-        'section-card__row--overdue': row.status === 'overdue',
-        'vaccination-row--overdue': row.status === 'overdue',
-      }"
       @click="openDetail(row.id)"
     >
       <span class="vaccination-row__text">
@@ -125,9 +105,9 @@ watch(summary, (value) => emit('summary', value), { immediate: true })
       <span class="vaccination-row__end">
         <DueStatusChip
           class="vaccination-row__badge"
-          :status="row.status"
-          :label="row.badge"
-          :icon="row.icon"
+          :status="row.badge.status"
+          :label="row.badge.label"
+          :icon="BADGE_ICONS[row.badge.status]"
         />
         <v-icon class="vaccination-row__chevron" icon="ms:chevron_right" size="22" />
       </span>

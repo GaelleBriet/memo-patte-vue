@@ -68,6 +68,10 @@ async function monter(animalId = MILO) {
   return wrapper
 }
 
+function texte(element: { text(): string }): string {
+  return element.text().replaceAll(' ', ' ')
+}
+
 function ligne(wrapper: ReturnType<typeof mount>, index: number) {
   const row = wrapper.findAll('.vaccination-row')[index]
   if (!row) throw new Error(`Pas de ligne vaccin à l'index ${index}`)
@@ -145,44 +149,58 @@ describe('VaccinationsSection — ordre des lignes', () => {
 })
 
 describe('VaccinationsSection — lignes et badges', () => {
-  it('marque un vaccin en retard : barre corail, « Échéance passée », badge error', async () => {
+  it('marque un vaccin en retard : « Échéance passée », badge error', async () => {
     vaccinations = [vaccination({ name: 'CHPPi', dueDate: '2026-09-08' })]
     const wrapper = await monter()
     const row = ligne(wrapper, 0)
 
-    expect(row.classes()).toContain('vaccination-row--overdue')
     expect(row.get('.vaccination-row__name').text()).toBe('CHPPi')
     expect(row.get('.vaccination-row__detail').text()).toBe('Échéance passée')
     const badge = row.get('.vaccination-row__badge')
     expect(badge.classes()).toContain('due-status-chip--overdue')
-    expect(badge.text()).toBe('En retard')
+    expect(badge.text()).toBe('En retard · 1 j')
     expect(badge.find('svg').exists()).toBe(true)
   })
 
-  it('dit « À jour » et la validité en mois/année pour une échéance à venir', async () => {
+  it('dit « À jour » et la date du prochain rappel pour une échéance à venir', async () => {
     vaccinations = [vaccination({ name: 'Rage', dueDate: '2026-12-12' })]
     const wrapper = await monter()
     const row = ligne(wrapper, 0)
 
-    expect(row.classes()).not.toContain('vaccination-row--overdue')
-    expect(row.get('.vaccination-row__detail').text()).toBe('Valide jusqu’à déc. 2026')
+    expect(texte(row.get('.vaccination-row__detail'))).toBe('Prochain rappel le 12 déc.')
     const badge = row.get('.vaccination-row__badge')
     expect(badge.classes()).toContain('due-status-chip--up-to-date')
     expect(badge.text()).toBe('À jour')
     expect(badge.find('svg').exists()).toBe(true)
   })
 
-  it('dit le mois de validité dans la langue affichée', async () => {
+  it('dit la date du prochain rappel dans la langue affichée', async () => {
     vaccinations = [vaccination({ dueDate: '2026-12-12' })]
     applyLocale('en')
 
     try {
       const wrapper = await monter()
 
-      expect(ligne(wrapper, 0).get('.vaccination-row__detail').text()).toBe('Valid until Dec 2026')
+      expect(texte(ligne(wrapper, 0).get('.vaccination-row__detail'))).toBe(
+        'Next reminder on Dec 12',
+      )
     } finally {
       applyLocale('fr')
     }
+  })
+
+  it('annonce un vaccin jamais fait « Prévu le … », badge turquoise sans icône', async () => {
+    vaccinations = [vaccination({ name: 'Typhus', lastInjectionDate: null, dueDate: '2026-10-05' })]
+    const wrapper = await monter()
+    const row = ligne(wrapper, 0)
+
+    expect(texte(row.get('.vaccination-row__detail'))).toBe(
+      'Premier vaccin · aucune injection notée',
+    )
+    const badge = row.get('.vaccination-row__badge')
+    expect(texte(badge)).toBe('Prévu le 5 oct.')
+    expect(badge.classes()).toContain('due-status-chip--planned')
+    expect(badge.find('svg').exists()).toBe(false)
   })
 
   it('reste « À jour » le jour même de l’échéance', async () => {
@@ -197,7 +215,6 @@ describe('VaccinationsSection — lignes et badges', () => {
     const wrapper = await monter()
     const row = ligne(wrapper, 0)
 
-    expect(row.classes()).not.toContain('vaccination-row--overdue')
     expect(row.get('.vaccination-row__detail').text()).toBe('Pas de rappel programmé')
     const badge = row.get('.vaccination-row__badge')
     expect(badge.classes()).toContain('due-status-chip--none')

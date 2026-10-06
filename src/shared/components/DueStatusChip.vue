@@ -5,7 +5,7 @@ import type { ReminderStatus } from '@/shared/domain/reminders'
  * `none` est le style neutre : « Pas de rappel », et badge de fréquence des traitements ;
  * `to-log` : « À renseigner », jamais un retard.
  */
-export type DueStatus = ReminderStatus | 'up-to-date' | 'none' | 'to-log'
+export type DueStatus = ReminderStatus | 'up-to-date' | 'none' | 'to-log' | 'planned'
 </script>
 
 <script setup lang="ts">
@@ -66,7 +66,8 @@ defineProps<{
   font-weight: 600;
 }
 
-.due-status-chip--to-log {
+.due-status-chip--to-log,
+.due-status-chip--planned {
   background: transparent;
   box-shadow: inset 0 0 0 1.5px tokens.$color-unlogged-border;
   color: rgb(var(--v-theme-primary));

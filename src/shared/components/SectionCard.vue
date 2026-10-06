@@ -93,19 +93,6 @@ button.section-card__row {
   }
 }
 
-.section-card__row::before {
-  position: absolute;
-  inset-block: 0;
-  inset-inline-start: 0;
-  width: tokens.$width-urgency-bar;
-  background: transparent;
-  content: '';
-}
-
-.section-card__row--overdue::before {
-  background: rgb(var(--v-theme-overdue));
-}
-
 .section-card__empty {
   // Les sections rendent l'état vide dans un `<p>`, dont les marges par défaut
   // gonflaient la carte d'une trentaine de pixels.
