@@ -366,13 +366,16 @@ function createAnimal(): void {
 }
 
 .carnet-header__subtitle {
+  display: -webkit-box;
   overflow: hidden;
   margin: 2px 0 0;
   color: tokens.$color-on-primary-subtitle;
   font-size: 13.5px;
   font-weight: 500;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  line-height: 1.3;
+  white-space: normal;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .carnet-stats {

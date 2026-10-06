@@ -52,6 +52,11 @@ describe('CarnetView — contrat de style', () => {
     expect(declaration('.carnet-header__avatar', 'border')).toContain('2px solid')
   })
 
+  it('passe le sous-titre sur deux lignes au plus, comme la maquette V13 bis', () => {
+    expect(declaration('.carnet-header__subtitle', 'white-space')).toBe('normal')
+    expect(declaration('.carnet-header__subtitle', '-webkit-line-clamp')).toBe('2')
+  })
+
   it('écrit le sous-titre dans la teinte claire sur pétrole, en 500 comme sur l’accueil', () => {
     expect(declaration('.carnet-header__subtitle', 'color')).toBe('#b9d0d1')
     expect(declaration('.carnet-header__subtitle', 'font-weight')).toBe('500')
