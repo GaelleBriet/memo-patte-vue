@@ -938,7 +938,7 @@
   "notifications": {
     "priming": {
       "title": "Ne rate plus aucun rappel",
-      "subtitle": "Active les notifications pour être prévenu à temps des vaccins et traitements de tes animaux.",
+      "subtitle": "Active les notifications pour recevoir à temps les rappels des vaccins et traitements de tes animaux.",
       "benefits": {
         "vaccination": "On te prévient avant le rappel de vaccin de {name}",
         "treatment": "On te prévient avant le rappel de traitement de {name}",
@@ -983,6 +983,63 @@
   "settings": {
     "open": "Paramètres",
     "title": "Paramètres",
+    "reminders": {
+      "title": "Rappels",
+      "summary": {
+        "allowedExact": "Autorisés · rappels précis",
+        "allowed": "Autorisés",
+        "notYet": "Pas encore activés",
+        "off": "Désactivés"
+      },
+      "granted": {
+        "title": "Notifications autorisées",
+        "hint": "Tes rappels arrivent normalement."
+      },
+      "notificationSettings": {
+        "label": "Réglages des notifications",
+        "hint": "Ouvre les réglages d’Android"
+      },
+      "unasked": {
+        "title": "Rappels pas encore activés",
+        "hint": "MémoPatte n’a pas encore demandé l’autorisation d’envoyer des notifications.",
+        "action": "Activer les rappels"
+      },
+      "disabled": {
+        "title": "Notifications désactivées",
+        "hint": "Tu ne reçois aucun rappel pour l’instant.",
+        "action": "Activer dans les réglages"
+      },
+      "exact": {
+        "label": "Rappels précis",
+        "hint": {
+          "allowed": "Autorisés dans Android",
+          "pitch": "Pour recevoir chaque rappel à l’heure pile",
+          "off": "Désactivés dans Android",
+          "notYetOn": "Sans effet tant que les notifications ne sont pas activées",
+          "notificationsOff": "Sans effet tant que les notifications sont coupées",
+          "allowedNotYetOn": "Autorisés dans Android · sans effet tant que les notifications ne sont pas activées",
+          "allowedNotificationsOff": "Autorisés dans Android · sans effet tant que les notifications sont coupées",
+          "offNotYetOn": "Désactivés dans Android · sans effet tant que les notifications ne sont pas activées",
+          "offNotificationsOff": "Désactivés dans Android · sans effet tant que les notifications sont coupées"
+        },
+        "precise": "Autorisation Android accordée : tes rappels arrivent à l’heure pile.",
+        "lessPrecise": "Désactivés · tes rappels peuvent arriver en retard",
+        "reactivate": "Réactiver"
+      },
+      "remindBeforeDue": {
+        "label": "Me prévenir avant l’échéance",
+        "hint": "Vaccins : 2 semaines avant. Traitements : 3 jours avant."
+      },
+      "vaccineTime": {
+        "label": "Heure des rappels de vaccins",
+        "change": "Heure des rappels de vaccins, {time}. Touche pour la changer."
+      },
+      "help": {
+        "label": "Je ne reçois pas mes rappels",
+        "hint": "Page d’aide du site"
+      },
+      "saveError": "Le réglage n’a pas pu être enregistré. Réessaie."
+    },
     "account": {
       "title": "Compte",
       "signOut": {

@@ -8,13 +8,13 @@ export type ReminderKind = 'vaccination' | 'treatment'
 
 const PRIMING_ROUTE = 'notifications-priming'
 const DEFAULT_RETURN_ROUTE = 'animals'
-const RETURN_ROUTES: readonly string[] = ['home', 'settings', 'animals']
+const RETURN_ROUTES: readonly string[] = ['home', 'settings', 'settings-reminders', 'animals']
 
 export type SavedReminder = {
   hasDueDate: boolean
   animalName: string | null
   kind: ReminderKind
-  /** Écran où revenir : `home`, `settings`, `animals` ou un détail du Carnet, le Carnet sinon. */
+  /** Écran où revenir : `home`, `settings`, `settings-reminders`, `animals` ou un détail du Carnet, le Carnet sinon. */
   from?: string
   /** Rappel dont la feuille se rouvre au retour (`reminder-route.ts`). */
   reminder?: string
@@ -44,7 +44,7 @@ export async function routeAfterReminderSaved(saved: SavedReminder): Promise<Rou
   return (await primingAfterReminderSaved(saved)) ?? primingReturnRoute(saved.from, saved.reminder)
 }
 
-/** `from` : `home`, `settings` ou `animals`, où l'écran d'explication ramènera. */
+/** `from` : `home`, `settings`, `settings-reminders` ou `animals`, où l'écran d'explication ramènera. */
 export function primingRouteFrom(from: string): RouteLocationRaw {
   return { name: PRIMING_ROUTE, query: { from } }
 }

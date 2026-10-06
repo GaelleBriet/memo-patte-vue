@@ -363,7 +363,7 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
 
 - **TR-34** Fiche : carte de la dose du moment (« Dose du jour », « Prochaine dose », « en retard
   depuis », ou fin du traitement), fréquence (« Tous les jours · jusqu'au 5 oct. »), heure(s),
-  posologie ; sous les heures, « Rappel 30 min avant · moins précis » avec « Réactiver » quand les
+  posologie ; sous les heures, « Rappel 30 min avant · peut arriver en retard » avec « Réactiver » quand les
   rappels précis ont été retirés (spec Rappels, RA-23) ; bandeau des doses non renseignées ; historique.
   (Planches Q2, Q5, Q8 ; spec Rappels Q6)
 - **TR-35** Historique : une seule liste chronologique par période ; oubliées en gris, regroupées quand
