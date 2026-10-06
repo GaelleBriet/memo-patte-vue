@@ -16,13 +16,18 @@ import {
   type PastDuesChoice,
   type TreatmentRhythm,
 } from '../schema/treatment-form.schema'
-import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
+import {
+  REMINDER_OFFSETS_MINUTES,
+  type ReminderOffsetMinutes,
+  type TreatmentPeriodRecord,
+} from '../schema/treatment-period.schema'
 import type { FrequencyUnit, TreatmentType } from '../schema/treatment.schema'
+import type { ExactRemindersStatus, NotificationPermissionStatus } from '@/core/notifications'
 import { isCalendarDay } from '@/shared/domain/calendar-day'
 import { isClockTime, MAX_TIMES_PER_DAY } from '@/shared/domain/clock-time'
 import { formatDoseQuantity, TABLET_SHORTCUTS, type DoseUnit } from '@/shared/domain/dosage'
 import type { Due, MoveRefusal } from '@/shared/domain/treatment-schedule'
-import { formatDayMonthOrYear, withoutFinalDot } from '@/shared/utils/format'
+import { formatClockTimes, formatDayMonthOrYear, withoutFinalDot } from '@/shared/utils/format'
 
 type Translate = (key: string, named?: Record<string, unknown>, plural?: number) => string
 
@@ -41,6 +46,10 @@ export interface TreatmentFormValues {
   doseQuantity: string
   doseUnit: DoseUnit | null
   endsOn: string
+  /** `null` : « À l'heure », jamais choisi. */
+  reminderOffset: ReminderOffsetMinutes | null
+  /** Sans heure de traitement ; `null` : 9 h, jamais choisie. */
+  reminderTime: string | null
 }
 
 const ERROR_KEYS = {
@@ -165,6 +174,8 @@ export function emptyTreatmentFormValues(): TreatmentFormValues {
     doseQuantity: '',
     doseUnit: null,
     endsOn: '',
+    reminderOffset: null,
+    reminderTime: null,
   }
 }
 
@@ -188,7 +199,68 @@ export function treatmentFormValuesFrom(
         : formatDoseQuantity(period.doseQuantity, period.doseUnit),
     doseUnit: period.doseUnit,
     endsOn: period.endsOn ?? '',
+    reminderOffset: period.reminderOffsetMinutes,
+    reminderTime: period.reminderTime,
   }
+}
+
+const OFFSETS_WITHOUT_EXACT: readonly ReminderOffsetMinutes[] = [0, 60]
+
+/** Les moments du rappel proposés ; `kept`, déjà choisi, le reste sans les rappels précis (RA-23). */
+export function reminderOffsetChoices(
+  exact: ExactRemindersStatus | null,
+  kept: ReminderOffsetMinutes | null,
+): ReminderOffsetMinutes[] {
+  if (exact === 'precise') return [...REMINDER_OFFSETS_MINUTES]
+  return REMINDER_OFFSETS_MINUTES.filter(
+    (offset) => OFFSETS_WITHOUT_EXACT.includes(offset) || offset === kept,
+  )
+}
+
+/** La suggestion des rappels précis, au plus une fois : quand le traitement reçoit sa première heure. */
+export function suggestsExactReminders(
+  before: readonly string[],
+  after: readonly string[],
+  context: {
+    exact: ExactRemindersStatus | null
+    notifications: NotificationPermissionStatus | null
+    alreadySuggested: boolean
+  },
+): boolean {
+  return (
+    before.length === 0 &&
+    after.length > 0 &&
+    context.exact === 'never-enabled' &&
+    context.notifications === 'granted' &&
+    !context.alreadySuggested
+  )
+}
+
+/** Relit les notifications et note la suggestion faite, seulement quand tout le reste la permet. */
+export async function suggestExactReminders(
+  before: readonly string[],
+  after: readonly string[],
+  deps: {
+    exact: ExactRemindersStatus | null
+    alreadySuggested: () => boolean
+    notifications: () => Promise<NotificationPermissionStatus>
+    markSuggested: () => void
+  },
+): Promise<boolean> {
+  const context = { exact: deps.exact, alreadySuggested: deps.alreadySuggested() }
+  if (!suggestsExactReminders(before, after, { ...context, notifications: 'granted' })) return false
+  const notifications = await deps.notifications()
+  if (!suggestsExactReminders(before, after, { ...context, notifications })) return false
+  deps.markSuggested()
+  return true
+}
+
+/** L'aide du champ « Rappel » : l'heure à choisir sans heure de traitement, chaque heure à plusieurs. */
+export function reminderHelpText(t: Translate, times: readonly string[]): string | null {
+  if (times.length === 0) return t('treatments.form.reminder.noTimeHelp')
+  return times.length > 1
+    ? t('treatments.form.reminder.eachTime', { times: formatClockTimes(times) })
+    : null
 }
 
 const FRACTION_VALUES: Record<string, number> = { '¼': 0.25, '½': 0.5, '¾': 0.75 }
@@ -254,6 +326,8 @@ function rhythmInput(values: TreatmentFormValues) {
     doseQuantity: parseDoseQuantity(values.doseQuantity),
     doseUnit: values.doseUnit,
     endsOn: values.endsOn.trim() === '' ? null : values.endsOn.trim(),
+    ...(values.reminderOffset === null ? {} : { reminderOffsetMinutes: values.reminderOffset }),
+    ...(values.reminderTime === null ? {} : { reminderTime: values.reminderTime }),
   }
 }
 

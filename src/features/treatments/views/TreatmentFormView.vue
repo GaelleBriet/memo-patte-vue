@@ -6,6 +6,7 @@ import { useRoute, useRouter } from 'vue-router'
 import TreatmentChooseDays from './TreatmentChooseDays.vue'
 import TreatmentDosageField from './TreatmentDosageField.vue'
 import TreatmentPastDuesSheet from './TreatmentPastDuesSheet.vue'
+import TreatmentReminderField from './TreatmentReminderField.vue'
 import TreatmentShiftCheckbox from './TreatmentShiftCheckbox.vue'
 import TreatmentTimesField from './TreatmentTimesField.vue'
 import TreatmentUnloggedPrompt from './TreatmentUnloggedPrompt.vue'
@@ -17,6 +18,9 @@ import {
   nextDoseRefusalKey,
   nextDoseShiftHelp,
   pastDosesBasis,
+  reminderHelpText,
+  reminderOffsetChoices,
+  suggestExactReminders,
   DUPLICATE_TIME_ERROR_KEY,
   treatmentFormValuesFrom,
   validateTreatmentCreation,
@@ -34,10 +38,18 @@ import {
 } from '../logic/treatment-unlogged'
 import type { TreatmentWithHistory } from '../repository/treatments.repository'
 import type { PastDuesChoice } from '../schema/treatment-form.schema'
+import type { ReminderOffsetMinutes } from '../schema/treatment-period.schema'
 import { FREQUENCY_UNITS, TREATMENT_TYPES, type FrequencyUnit } from '../schema/treatment.schema'
 import { useTreatmentsStore } from '../store/treatments.store'
 import { useToday } from '@/core/app-lifecycle/use-today'
+import {
+  markExactRemindersSuggested,
+  wasExactRemindersSuggested,
+} from '@/core/notifications/exact-reminders'
+import { getNotificationPermissionStatus } from '@/core/notifications/permission'
+import { useExactReminders } from '@/core/notifications/use-exact-reminders'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
+import ExactRemindersExplainer from '@/shared/components/ExactRemindersExplainer.vue'
 import { MAX_FREQUENCY_VALUE } from '@/shared/domain/treatment-frequency'
 import { formatDayMonthOrYear, formatFullDayMonth, withoutFinalDot } from '@/shared/utils/format'
 import FormField from '@/shared/form/FormField.vue'
@@ -86,6 +98,19 @@ const isChooseDaysOpen = ref(false)
 const duplicateTimeError = computed(() =>
   hasDuplicateTime.value ? DUPLICATE_TIME_ERROR_KEY : undefined,
 )
+const exactReminders = useExactReminders()
+const isSuggestingExact = ref(false)
+const isExplainerOpen = ref(false)
+/** Le moment choisi avant d'ouvrir le formulaire reste proposé sans les rappels précis (RA-23). */
+const keptOffset = ref<ReminderOffsetMinutes | null>(null)
+const reminderChoices = computed(() =>
+  reminderOffsetChoices(exactReminders.status.value, keptOffset.value),
+)
+const isLessPrecise = computed(() => exactReminders.status.value === 'removed')
+const suggestsExact = computed(
+  () => isSuggestingExact.value && exactReminders.status.value === 'never-enabled',
+)
+const reminderHelp = computed(() => reminderHelpText(t, values.value.times))
 
 function requireAnimalId(): string {
   if (props.animalId === undefined) throw new Error('Formulaire traitement ouvert sans animal.')
@@ -320,7 +345,20 @@ function open(loaded: TreatmentWithHistory): void {
       shiftsFollowing: first.nextDose?.shiftInitial ?? true,
     }
   }
+  keptOffset.value = values.value.reminderOffset
   history.value = loaded
+}
+
+async function setTimes(times: string[]): Promise<void> {
+  const before = values.value.times
+  values.value.times = times
+  const suggests = await suggestExactReminders(before, times, {
+    exact: exactReminders.status.value,
+    alreadySuggested: wasExactRemindersSuggested,
+    notifications: getNotificationPermissionStatus,
+    markSuggested: markExactRemindersSuggested,
+  })
+  if (suggests) isSuggestingExact.value = true
 }
 
 onMounted(async () => {
@@ -612,11 +650,34 @@ async function submit(): Promise<void> {
       >
         <template #default="{ describedby, invalid }">
           <TreatmentTimesField
-            v-model="values.times"
+            :model-value="values.times"
             label-id="treatment-times-label"
             :describedby="describedby"
             :invalid="invalid"
+            @update:model-value="setTimes"
             @duplicate="hasDuplicateTime = $event"
+          />
+        </template>
+      </FormField>
+
+      <FormField
+        class="treatment-form__field--reminder"
+        :label="t('treatments.form.reminder.label')"
+        label-id="treatment-reminder-label"
+        has-default
+        :help="reminderHelp"
+      >
+        <template #default="{ describedby }">
+          <TreatmentReminderField
+            v-model:offset="values.reminderOffset"
+            v-model:time="values.reminderTime"
+            :has-times="values.times.length > 0"
+            :choices="reminderChoices"
+            :less-precise="isLessPrecise"
+            :suggests-exact="suggestsExact"
+            label-id="treatment-reminder-label"
+            :describedby="describedby"
+            @explain="isExplainerOpen = true"
           />
         </template>
       </FormField>
@@ -701,6 +762,11 @@ async function submit(): Promise<void> {
       v-model="isPastDuesOpen"
       :texts="pastDues"
       @choose="answerPastDues"
+    />
+
+    <ExactRemindersExplainer
+      v-model="isExplainerOpen"
+      :back-label="t('treatments.form.reminder.explainerBack')"
     />
   </FormScreen>
 </template>

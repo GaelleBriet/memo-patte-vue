@@ -9,6 +9,8 @@ const props = defineProps<{
   /** Identifiant porté par le label quand le contrôle est un groupe (`aria-labelledby`). */
   labelId?: string
   required?: boolean
+  /** Ni obligatoire ni facultatif : le champ a toujours une valeur. */
+  hasDefault?: boolean
   error?: string | null
   help?: string | null
 }>()
@@ -37,7 +39,7 @@ const describedby = computed(
       <span v-if="required" class="form-field__required" aria-hidden="true">
         {{ t('form.required') }}
       </span>
-      <span v-else class="form-field__optional">{{ t('form.optional') }}</span>
+      <span v-else-if="!hasDefault" class="form-field__optional">{{ t('form.optional') }}</span>
     </component>
     <slot :describedby="describedby" :invalid="Boolean(error)" />
     <p v-if="help" :id="helpId" class="form-field__help">{{ help }}</p>

@@ -118,24 +118,22 @@ function sortedTimes(times: readonly string[]): string[] {
   return [...times].sort()
 }
 
-function rhythmOf(period: TreatmentPeriodRecord): TreatmentRhythm {
+function rhythmOf(
+  period: TreatmentPeriodRecord,
+): Omit<TreatmentPeriodSettings, 'startsOn' | 'firstDueOn'> {
   return {
     frequency: period.frequency,
     times: period.times,
     doseQuantity: period.doseQuantity,
     doseUnit: period.doseUnit,
     endsOn: period.endsOn,
+    reminderOffsetMinutes: period.reminderOffsetMinutes,
+    reminderTime: period.reminderTime,
   }
 }
 
 function settingsOf(period: TreatmentPeriodRecord): TreatmentPeriodSettings {
-  return {
-    startsOn: period.startsOn,
-    firstDueOn: period.firstDueOn,
-    reminderOffsetMinutes: period.reminderOffsetMinutes,
-    reminderTime: period.reminderTime,
-    ...rhythmOf(period),
-  }
+  return { startsOn: period.startsOn, firstDueOn: period.firstDueOn, ...rhythmOf(period) }
 }
 
 function withRhythm(
@@ -149,6 +147,11 @@ function withRhythm(
     doseQuantity: rhythm.doseQuantity,
     doseUnit: rhythm.doseUnit,
     endsOn: rhythm.endsOn,
+    reminderOffsetMinutes:
+      rhythm.reminderOffsetMinutes === undefined
+        ? settings.reminderOffsetMinutes
+        : rhythm.reminderOffsetMinutes,
+    reminderTime: rhythm.reminderTime === undefined ? settings.reminderTime : rhythm.reminderTime,
   }
 }
 
@@ -159,9 +162,15 @@ function sameSettings(a: TreatmentPeriodSettings, b: TreatmentPeriodSettings): b
   )
 }
 
+// B3 : la date de fin et le moment du rappel se corrigent, même après des prises.
 function changesRhythm(period: TreatmentPeriodRecord, rhythm: TreatmentRhythm): boolean {
   const before = settingsOf(period)
-  return !sameSettings(before, { ...withRhythm(before, rhythm), endsOn: period.endsOn })
+  return !sameSettings(before, {
+    ...withRhythm(before, rhythm),
+    endsOn: period.endsOn,
+    reminderOffsetMinutes: period.reminderOffsetMinutes,
+    reminderTime: period.reminderTime,
+  })
 }
 
 function latestOf(days: (string | null | undefined)[]): string | null {

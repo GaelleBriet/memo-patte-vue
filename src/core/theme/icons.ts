@@ -3,6 +3,7 @@ import type { IconAliases } from 'vuetify'
 // Icônes des écrans (maquettes v2)
 import add from '@material-symbols/svg-400/outlined/add.svg?raw'
 import alarm from '@material-symbols/svg-400/outlined/alarm.svg?raw'
+import alarmOff from '@material-symbols/svg-400/outlined/alarm_off.svg?raw'
 import arrowBack from '@material-symbols/svg-400/outlined/arrow_back.svg?raw'
 import calendarMonth from '@material-symbols/svg-400/outlined/calendar_month.svg?raw'
 import check from '@material-symbols/svg-400/outlined/check.svg?raw'
@@ -129,6 +130,7 @@ import warning from '@material-symbols/svg-400/outlined/warning.svg?raw'
 export const msIcons = {
   add,
   alarm,
+  alarm_off: alarmOff,
   arrow_back: arrowBack,
   arrow_downward: arrowDownward,
   arrow_drop_down: arrowDropDown,
