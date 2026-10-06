@@ -288,10 +288,14 @@ describe('synchro de l’historique entre deux appareils', () => {
     })
 
     it('une coupure à la deuxième page d’une table garde le signal de la première', async () => {
-      for (let index = 0; index < 501; index += 1) {
-        await phone.animals.create({ name: `Animal ${index}`, species: 'cat' })
-      }
+      await phone.animals.create({ name: 'Animal 0', species: 'cat' })
       await phone.sync()
+      const [pushed] = server.rows('animal')
+      for (let index = 1; index < 501; index += 1) {
+        await server.client
+          .from('animal')
+          .upsert({ ...pushed, id: crypto.randomUUID(), name: `Animal ${index}` })
+      }
       server.cutPull('animal', 1)
 
       await expect(tablet.sync()).rejects.toMatchObject({ message: 'réseau coupé' })
