@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import {
   canAddTime,
@@ -9,8 +9,10 @@ import {
   isTimeTaken,
   parseDoseQuantity,
   pastDosesBasis,
+  reminderHelpText,
   reminderOffsetChoices,
   rhythmOfValues,
+  suggestExactReminders,
   suggestsExactReminders,
   tabletShortcuts,
   treatmentFormValuesFrom,
@@ -25,6 +27,7 @@ import {
 import type { TreatmentWithHistory } from '../repository/treatments.repository'
 import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
+import i18n from '@/core/i18n'
 import { MAX_TIMES_PER_DAY } from '@/shared/domain/clock-time'
 
 const AT = '2026-07-01T08:00:00.000Z'
@@ -239,6 +242,59 @@ describe('champ « Rappel » (RA-7, RA-8, RA-23)', () => {
           false,
         )
       },
+    )
+  })
+})
+
+describe('suggestExactReminders (RA-23)', () => {
+  function dependances(overrides: Partial<Parameters<typeof suggestExactReminders>[2]> = {}) {
+    return {
+      exact: 'never-enabled' as const,
+      alreadySuggested: vi.fn(() => false),
+      notifications: vi.fn(async () => 'granted' as const),
+      markSuggested: vi.fn(),
+      ...overrides,
+    }
+  }
+
+  it('propose la suggestion et la note comme faite, une fois les notifications relues', async () => {
+    const deps = dependances()
+
+    expect(await suggestExactReminders([], ['21:00'], deps)).toBe(true)
+    expect(deps.notifications).toHaveBeenCalledOnce()
+    expect(deps.markSuggested).toHaveBeenCalledOnce()
+  })
+
+  it('ne relit pas les notifications quand rien d’autre ne permet la suggestion', async () => {
+    const deps = dependances({ exact: 'precise' })
+
+    expect(await suggestExactReminders([], ['21:00'], deps)).toBe(false)
+    expect(deps.notifications).not.toHaveBeenCalled()
+    expect(deps.markSuggested).not.toHaveBeenCalled()
+  })
+
+  it('ne note rien quand les notifications ne sont pas autorisées', async () => {
+    const deps = dependances({ notifications: vi.fn(async () => 'unasked' as const) })
+
+    expect(await suggestExactReminders([], ['21:00'], deps)).toBe(false)
+    expect(deps.markSuggested).not.toHaveBeenCalled()
+  })
+})
+
+describe('reminderHelpText (RA-8, V1 bis)', () => {
+  const t = i18n.global.t
+
+  it('demande l’heure du rappel sans heure de traitement', () => {
+    expect(reminderHelpText(t, [])).toBe('Sans heure de traitement, choisis l’heure du rappel.')
+  })
+
+  it('ne dit rien pour une seule heure', () => {
+    expect(reminderHelpText(t, ['21:00'])).toBeNull()
+  })
+
+  it('dit que le rappel vaut pour chaque heure', () => {
+    expect(reminderHelpText(t, ['08:00', '20:00'])).toBe(
+      'Pour chaque heure\u00a0: 8\u00a0h et 20\u00a0h.',
     )
   })
 })

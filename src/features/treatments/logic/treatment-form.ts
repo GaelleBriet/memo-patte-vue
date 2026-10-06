@@ -27,7 +27,7 @@ import { isCalendarDay } from '@/shared/domain/calendar-day'
 import { isClockTime, MAX_TIMES_PER_DAY } from '@/shared/domain/clock-time'
 import { formatDoseQuantity, TABLET_SHORTCUTS, type DoseUnit } from '@/shared/domain/dosage'
 import type { Due, MoveRefusal } from '@/shared/domain/treatment-schedule'
-import { formatDayMonthOrYear, withoutFinalDot } from '@/shared/utils/format'
+import { formatClockTimes, formatDayMonthOrYear, withoutFinalDot } from '@/shared/utils/format'
 
 type Translate = (key: string, named?: Record<string, unknown>, plural?: number) => string
 
@@ -234,6 +234,33 @@ export function suggestsExactReminders(
     context.notifications === 'granted' &&
     !context.alreadySuggested
   )
+}
+
+/** Relit les notifications et note la suggestion faite, seulement quand tout le reste la permet. */
+export async function suggestExactReminders(
+  before: readonly string[],
+  after: readonly string[],
+  deps: {
+    exact: ExactRemindersStatus | null
+    alreadySuggested: () => boolean
+    notifications: () => Promise<NotificationPermissionStatus>
+    markSuggested: () => void
+  },
+): Promise<boolean> {
+  const context = { exact: deps.exact, alreadySuggested: deps.alreadySuggested() }
+  if (!suggestsExactReminders(before, after, { ...context, notifications: 'granted' })) return false
+  const notifications = await deps.notifications()
+  if (!suggestsExactReminders(before, after, { ...context, notifications })) return false
+  deps.markSuggested()
+  return true
+}
+
+/** L'aide du champ « Rappel » : l'heure à choisir sans heure de traitement, chaque heure à plusieurs. */
+export function reminderHelpText(t: Translate, times: readonly string[]): string | null {
+  if (times.length === 0) return t('treatments.form.reminder.noTimeHelp')
+  return times.length > 1
+    ? t('treatments.form.reminder.eachTime', { times: formatClockTimes(times) })
+    : null
 }
 
 const FRACTION_VALUES: Record<string, number> = { '¼': 0.25, '½': 0.5, '¾': 0.75 }

@@ -18,8 +18,9 @@ import {
   nextDoseRefusalKey,
   nextDoseShiftHelp,
   pastDosesBasis,
+  reminderHelpText,
   reminderOffsetChoices,
-  suggestsExactReminders,
+  suggestExactReminders,
   DUPLICATE_TIME_ERROR_KEY,
   treatmentFormValuesFrom,
   validateTreatmentCreation,
@@ -50,12 +51,7 @@ import { useExactReminders } from '@/core/notifications/use-exact-reminders'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import ExactRemindersExplainer from '@/shared/components/ExactRemindersExplainer.vue'
 import { MAX_FREQUENCY_VALUE } from '@/shared/domain/treatment-frequency'
-import {
-  formatClockTimes,
-  formatDayMonthOrYear,
-  formatFullDayMonth,
-  withoutFinalDot,
-} from '@/shared/utils/format'
+import { formatDayMonthOrYear, formatFullDayMonth, withoutFinalDot } from '@/shared/utils/format'
 import FormField from '@/shared/form/FormField.vue'
 import FormScreen from '@/shared/form/FormScreen.vue'
 import FormSegmented from '@/shared/form/FormSegmented.vue'
@@ -114,13 +110,7 @@ const isLessPrecise = computed(() => exactReminders.status.value === 'removed')
 const suggestsExact = computed(
   () => isSuggestingExact.value && exactReminders.status.value === 'never-enabled',
 )
-const reminderHelp = computed(() => {
-  const { times } = values.value
-  if (times.length === 0) return t('treatments.form.reminder.noTimeHelp')
-  return times.length > 1
-    ? t('treatments.form.reminder.eachTime', { times: formatClockTimes(times) })
-    : null
-})
+const reminderHelp = computed(() => reminderHelpText(t, values.value.times))
 
 function requireAnimalId(): string {
   if (props.animalId === undefined) throw new Error('Formulaire traitement ouvert sans animal.')
@@ -362,15 +352,13 @@ function open(loaded: TreatmentWithHistory): void {
 async function setTimes(times: string[]): Promise<void> {
   const before = values.value.times
   values.value.times = times
-  const context = {
+  const suggests = await suggestExactReminders(before, times, {
     exact: exactReminders.status.value,
-    alreadySuggested: wasExactRemindersSuggested(),
-  }
-  if (!suggestsExactReminders(before, times, { ...context, notifications: 'granted' })) return
-  const notifications = await getNotificationPermissionStatus()
-  if (!suggestsExactReminders(before, times, { ...context, notifications })) return
-  isSuggestingExact.value = true
-  markExactRemindersSuggested()
+    alreadySuggested: wasExactRemindersSuggested,
+    notifications: getNotificationPermissionStatus,
+    markSuggested: markExactRemindersSuggested,
+  })
+  if (suggests) isSuggestingExact.value = true
 }
 
 onMounted(async () => {
