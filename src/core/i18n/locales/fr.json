@@ -406,6 +406,7 @@
         "month": "tous les mois | tous les {n} mois"
       },
       "nextDose": "Prochaine dose le {date}",
+      "overdueSince": "En retard depuis le {date}",
       "doneTodayLabel": "Fait aujourd’hui : noter la prise de {name} pour {animal}",
       "editHint": "Date ou fréquence",
       "stop": "Arrêter ce traitement",

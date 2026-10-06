@@ -101,10 +101,12 @@ function dueText(t: Translate, { dueOn, dueTime }: NotifiedDue, today: string): 
   const day = formatDayMonthOrYear(dueOn, today)
   const date =
     dueTime === null ? day : t('currentDose.at', { date: day, time: formatClockTime(dueTime) })
-  return t('treatments.sheet.nextDose', { date })
+  return dueOn < today
+    ? t('treatments.sheet.overdueSince', { date })
+    : t('treatments.sheet.nextDose', { date })
 }
 
-/** `due` : « Prochaine dose le … » de la ligne touchée ; `null` pour les doses non renseignées. */
+/** `due` : l'échéance de la ligne touchée, à venir ou en retard ; `null` pour les doses non renseignées. */
 export function treatmentSheetTexts(
   t: Translate,
   treatment: Pick<Treatment, 'name' | 'type'>,
