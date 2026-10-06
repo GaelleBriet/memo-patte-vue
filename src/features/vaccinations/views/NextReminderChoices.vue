@@ -60,7 +60,7 @@ function choose(kind: NextReminderKind): void {
   gap: 6px;
   min-height: tokens.$size-tap-target;
   padding: 0 14px;
-  border: 1px solid tokens.$color-field-border;
+  border: 1px solid tokens.$color-choice-border;
   border-radius: tokens.$radius-pill;
   background: rgb(var(--v-theme-surface));
   color: rgb(var(--v-theme-on-surface));
