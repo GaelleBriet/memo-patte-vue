@@ -80,3 +80,9 @@ export function originQuery(route: Pick<RouteLocationNormalizedLoaded, 'name' | 
     ? { from, reminder: reminderQueryValue({ kind, id }) }
     : { from }
 }
+
+/** L'échéance que vise une ligne de « À faire » : une dose (jour, heure), ou les doses non renseignées. */
+export type TodoDue = { dueOn: string; dueTime: string | null } | 'unlogged'
+
+/** Ce que la feuille d'un soin reçoit d'une ligne de « À faire » ; `due` à `null` pour un vaccin. */
+export type TodoRequest = ReminderRef & { due: TodoDue | null }
