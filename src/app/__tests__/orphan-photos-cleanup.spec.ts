@@ -1,9 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { createOrphanPhotosCleanup } from '../orphan-photos-cleanup'
+import type { StoredPhoto } from '@/core/photos/photo-storage'
 import type { AnimalVersion } from '@/features/animals/repository/animals.repository'
 
-const listPhotos = vi.fn<() => Promise<string[]>>()
+const NOW = new Date('2026-10-07T08:00:00.000Z').getTime()
+const AN_HOUR_AGO = NOW - 3_600_000
+
+const listPhotos = vi.fn<() => Promise<StoredPhoto[]>>()
 const deletePhoto = vi.fn<(name: string) => Promise<void>>()
 const listVersions = vi.fn<() => Promise<AnimalVersion[]>>()
 
@@ -13,11 +17,20 @@ const cleanup = createOrphanPhotosCleanup({
   animals: () => ({ listVersions }),
 })
 
+function photo(name: string, modifiedAt = AN_HOUR_AGO): StoredPhoto {
+  return { name, modifiedAt }
+}
+
 function animal(id: string, photoPath: string | null, deletedAt: string | null = null) {
   return { id, photoPath, deletedAt, updatedAt: '2026-10-01T08:00:00.000Z' }
 }
 
+function deleted(): string[] {
+  return deletePhoto.mock.calls.map(([name]) => name).sort()
+}
+
 beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['Date'], now: NOW })
   listPhotos.mockReset().mockResolvedValue([])
   deletePhoto.mockReset().mockResolvedValue()
   listVersions.mockReset().mockResolvedValue([])
@@ -25,12 +38,18 @@ beforeEach(() => {
 })
 
 afterEach(() => {
+  vi.useRealTimers()
   vi.restoreAllMocks()
 })
 
 describe('photos orphelines au démarrage', () => {
   it('efface les photos sans animal et celles des animaux supprimés, garde celles des vivants', async () => {
-    listPhotos.mockResolvedValue(['milo.jpg', 'orpheline.jpg', 'rex-supprime.jpg', 'luna.jpg'])
+    listPhotos.mockResolvedValue([
+      photo('milo.jpg'),
+      photo('orpheline.jpg'),
+      photo('rex-supprime.jpg'),
+      photo('luna.jpg'),
+    ])
     listVersions.mockResolvedValue([
       animal('milo', 'milo.jpg'),
       animal('rex', 'rex-supprime.jpg', '2026-09-30T08:00:00.000Z'),
@@ -40,14 +59,24 @@ describe('photos orphelines au démarrage', () => {
 
     await cleanup()
 
-    expect(deletePhoto.mock.calls.map(([name]) => name).sort()).toEqual([
-      'orpheline.jpg',
-      'rex-supprime.jpg',
+    expect(deleted()).toEqual(['orpheline.jpg', 'rex-supprime.jpg'])
+  })
+
+  it('épargne une photo modifiée depuis moins d’une minute, dont la ligne peut encore arriver', async () => {
+    listPhotos.mockResolvedValue([
+      photo('ancienne.jpg', NOW - 60_001),
+      photo('limite.jpg', NOW - 60_000),
+      photo('recente.jpg', NOW - 5_000),
+      photo('future.jpg', NOW + 5_000),
     ])
+
+    await cleanup()
+
+    expect(deleted()).toEqual(['ancienne.jpg'])
   })
 
   it('garde une photo qu’un animal supprimé partage avec un animal vivant', async () => {
-    listPhotos.mockResolvedValue(['partagee.jpg'])
+    listPhotos.mockResolvedValue([photo('partagee.jpg')])
     listVersions.mockResolvedValue([
       animal('ancien', 'partagee.jpg', '2026-09-30T08:00:00.000Z'),
       animal('vivant', 'partagee.jpg'),
@@ -58,24 +87,8 @@ describe('photos orphelines au démarrage', () => {
     expect(deletePhoto).not.toHaveBeenCalled()
   })
 
-  it('lit les photos avant les animaux : une photo écrite entre-temps n’est pas dans la liste', async () => {
-    const order: string[] = []
-    listPhotos.mockImplementation(() => {
-      order.push('photos')
-      return Promise.resolve(['milo.jpg'])
-    })
-    listVersions.mockImplementation(() => {
-      order.push('animaux')
-      return Promise.resolve([animal('milo', 'milo.jpg')])
-    })
-
-    await cleanup()
-
-    expect(order).toEqual(['photos', 'animaux'])
-  })
-
   it('n’efface rien quand les animaux ne se lisent pas', async () => {
-    listPhotos.mockResolvedValue(['milo.jpg'])
+    listPhotos.mockResolvedValue([photo('milo.jpg')])
     listVersions.mockRejectedValue(new Error('base fermée'))
 
     await expect(cleanup()).resolves.toBeUndefined()
@@ -83,7 +96,7 @@ describe('photos orphelines au démarrage', () => {
   })
 
   it('poursuit après un effacement raté, sans lever', async () => {
-    listPhotos.mockResolvedValue(['a.jpg', 'b.jpg'])
+    listPhotos.mockResolvedValue([photo('a.jpg'), photo('b.jpg')])
     deletePhoto.mockRejectedValueOnce(new Error('occupé'))
 
     await expect(cleanup()).resolves.toBeUndefined()

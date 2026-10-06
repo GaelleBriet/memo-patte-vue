@@ -147,7 +147,7 @@ describe('photoExists', () => {
 
 describe('listPhotos', () => {
   function entry(name: string, type: 'file' | 'directory' = 'file') {
-    return { name, type, size: 1, ctime: 0, mtime: 0, uri: `file:///data/${name}` }
+    return { name, type, size: 1, ctime: 0, mtime: 1_700_000_000_000, uri: `file:///data/${name}` }
   }
 
   it('rend les seules photos de l’app rangées sous photos/', async () => {
@@ -163,7 +163,7 @@ describe('listPhotos', () => {
         ],
       })
 
-    expect(await listPhotos()).toEqual(['3f2b-a1.jpg'])
+    expect(await listPhotos()).toEqual([{ name: '3f2b-a1.jpg', modifiedAt: 1_700_000_000_000 }])
     expect(readdir).toHaveBeenLastCalledWith({ path: 'photos', directory: Directory.Data })
   })
 
