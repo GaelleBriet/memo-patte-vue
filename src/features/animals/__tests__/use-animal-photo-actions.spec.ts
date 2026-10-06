@@ -9,7 +9,13 @@ import { useAnimalsStore } from '../store/animals.store'
 import { useAnimalPhotoActions } from '../composables/use-animal-photo-actions'
 import i18n from '@/core/i18n'
 import { pickPhoto, type PickedPhoto } from '@/core/photos/photo-picker'
-import { dismissToast, runToastAction, toastAction, toastMessage } from '@/shared/utils/toast'
+import {
+  dismissToast,
+  runToastAction,
+  showToast,
+  toastAction,
+  toastMessage,
+} from '@/shared/utils/toast'
 
 vi.mock('@/core/photos/photo-picker', () => ({
   pickPhoto: vi.fn<() => Promise<PickedPhoto | null>>(),
@@ -133,6 +139,31 @@ describe('useAnimalPhotoActions', () => {
     dismissToast()
 
     expect(forgetRemovedPhoto).toHaveBeenCalledExactlyOnceWith(RETRAIT)
+  })
+
+  it('une photo choisie pendant le toast le ferme et rend le retrait définitif', async () => {
+    choisirPhoto.mockResolvedValue(PHOTO)
+    const { removePhoto: retirer, changePhoto } = actions()
+    await retirer()
+
+    expect(await changePhoto()).toBe(true)
+
+    expect(toastMessage.value).toBeNull()
+    expect(forgetRemovedPhoto).toHaveBeenCalledExactlyOnceWith(RETRAIT)
+    expect(undoRemovePhoto).not.toHaveBeenCalled()
+  })
+
+  it('une photo choisie après le toast ne ferme pas un autre toast', async () => {
+    choisirPhoto.mockResolvedValue(PHOTO)
+    const { removePhoto: retirer, changePhoto } = actions()
+    await retirer()
+    dismissToast()
+    showToast('Pesée enregistrée')
+
+    await changePhoto()
+
+    expect(toastMessage.value).toBe('Pesée enregistrée')
+    expect(forgetRemovedPhoto).toHaveBeenCalledOnce()
   })
 
   it('n’affiche rien quand il n’y avait pas de photo à retirer', async () => {

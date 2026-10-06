@@ -5,7 +5,7 @@ import type { PhotoChange, PhotoRemoval } from '../service/animal-photo.service'
 import type { Animal, AnimalInput } from '../schema/animal.schema'
 import { useAnimalsStore } from '../store/animals.store'
 import { pickPhoto } from '@/core/photos/photo-picker'
-import { showUndoableToast } from '@/shared/utils/toast'
+import { dismissToast, showUndoableToast } from '@/shared/utils/toast'
 
 export type AnimalPhotoError = 'animals.form.errors.photo' | 'animals.form.errors.save'
 
@@ -27,6 +27,7 @@ export function useAnimalPhotoActions(animal: Readonly<Ref<Animal | null>>) {
   const animals = useAnimalsStore()
   const isBusy = ref(false)
   const error = ref<AnimalPhotoError | null>(null)
+  let isRemovalPending = false
 
   async function guarded(action: (target: Animal) => Promise<boolean>): Promise<boolean> {
     const target = animal.value
@@ -62,17 +63,26 @@ export function useAnimalPhotoActions(animal: Readonly<Ref<Animal | null>>) {
         return false
       }
       if (!photo) return false
-      return save(() => animals.update(target.id, inputFrom(target), photo))
+      const saved = await save(() => animals.update(target.id, inputFrom(target), photo))
+      if (saved && isRemovalPending) dismissToast()
+      return saved
     })
   }
 
   function confirmRemoval(target: Animal, removal: PhotoRemoval): void {
+    isRemovalPending = true
     showUndoableToast(t('animals.carnet.photo.removed'), {
       label: t('reminderSheet.undo'),
       ariaLabel: t('animals.carnet.photo.undoRemove', { name: target.name }),
-      undo: () => animals.undoRemovePhoto(inputFrom(animals.byId(target.id) ?? target), removal),
+      undo: () => {
+        isRemovalPending = false
+        return animals.undoRemovePhoto(inputFrom(animals.byId(target.id) ?? target), removal)
+      },
       onUndone: () => {},
-      onExpired: () => void animals.forgetRemovedPhoto(removal),
+      onExpired: () => {
+        isRemovalPending = false
+        void animals.forgetRemovedPhoto(removal)
+      },
       failedMessage: t('reminderSheet.undoFailed'),
     })
   }
