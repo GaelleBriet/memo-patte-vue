@@ -1,7 +1,6 @@
-import { differenceInCalendarDays, parseISO } from 'date-fns'
-
 import { vaccinationStatus } from './vaccination-status'
 import type { Vaccination } from '../schema/vaccination.schema'
+import { overdueDays } from '@/shared/domain/due-delay'
 import { formatDayMonthOrYear } from '@/shared/utils/format'
 
 type Translate = (key: string, named?: Record<string, unknown>, plural?: number) => string
@@ -27,7 +26,7 @@ export function carnetVaccinationRow(
     }
   }
   if (status === 'overdue') {
-    const days = differenceInCalendarDays(parseISO(today), parseISO(dueDate))
+    const days = overdueDays(dueDate, today)
     return {
       badge: {
         status: 'overdue',

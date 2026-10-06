@@ -66,12 +66,7 @@ defineProps<{
   font-weight: 600;
 }
 
-.due-status-chip--to-log {
-  background: transparent;
-  box-shadow: inset 0 0 0 1.5px tokens.$color-unlogged-border;
-  color: rgb(var(--v-theme-primary));
-}
-
+.due-status-chip--to-log,
 .due-status-chip--planned {
   background: transparent;
   box-shadow: inset 0 0 0 1.5px tokens.$color-unlogged-border;

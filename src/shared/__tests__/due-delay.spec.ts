@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
 import i18n, { applyLocale } from '@/core/i18n'
-import { dueDelayText } from '../domain/due-delay'
+import { dueDelayText, overdueDays } from '../domain/due-delay'
 
 const t = i18n.global.t
 const TODAY = '2026-09-23'
@@ -31,5 +31,16 @@ describe('dueDelayText', () => {
 
     expect(dueDelayText(t, '2027-08-26', TODAY).text).toBe('in 11 months')
     expect(dueDelayText(t, '2026-09-20', TODAY).text).toBe('3 days overdue')
+  })
+})
+
+describe('overdueDays', () => {
+  it.each([
+    ['2026-09-20', 3],
+    ['2026-09-22', 1],
+    ['2026-09-23', 0],
+    ['2026-09-24', 0],
+  ])('échéance du %s : %i jour(s) de retard', (dueDate, days) => {
+    expect(overdueDays(dueDate, TODAY)).toBe(days)
   })
 })

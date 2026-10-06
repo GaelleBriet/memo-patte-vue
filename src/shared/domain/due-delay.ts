@@ -4,12 +4,18 @@ export type Translate = (key: string, named: Record<string, unknown>, plural: nu
 
 export type DueDelayText = { text: string; overdue: boolean }
 
+/** Jours civils écoulés depuis une échéance passée ; `0` le jour même et avant. */
+export function overdueDays(dueDate: string, today: string): number {
+  return Math.max(0, differenceInCalendarDays(parseISO(today), parseISO(dueDate)))
+}
+
 /** Délai jusqu'à une échéance : en jours sous un mois, puis en mois, puis en années. */
 export function dueDelayText(t: Translate, dueDate: string, today: string): DueDelayText {
+  const late = overdueDays(dueDate, today)
+  if (late > 0) return { text: t('history.delay.overdue', { n: late }, late), overdue: true }
   const due = parseISO(dueDate)
   const from = parseISO(today)
   const days = differenceInCalendarDays(due, from)
-  if (days < 0) return { text: t('history.delay.overdue', { n: -days }, -days), overdue: true }
   if (days === 0) return { text: t('history.delay.today', {}, 1), overdue: false }
   if (days === 1) return { text: t('history.delay.tomorrow', {}, 1), overdue: false }
 

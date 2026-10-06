@@ -1,8 +1,7 @@
-import { differenceInCalendarDays, parseISO } from 'date-fns'
-
 import { currentPeriodOf, endedOnOf, readableScheduleOf } from './treatment-schedule'
 import type { TreatmentWithHistory } from '../repository/treatments.repository'
 import { currentDoseText } from '@/shared/domain/current-dose'
+import { overdueDays } from '@/shared/domain/due-delay'
 import type { ReminderCounts } from '@/shared/domain/reminders'
 import type { TreatmentSchedule } from '@/shared/domain/treatment-schedule'
 import { formatClockTimes } from '@/shared/utils/format'
@@ -70,7 +69,7 @@ function overdueBadge(
 ): CarnetTreatmentRow['badge'] {
   const [due] = schedule.currentDoses
   if (schedule.phase !== 'overdue' || due === undefined) return null
-  const days = differenceInCalendarDays(parseISO(today), parseISO(due.dueOn))
+  const days = overdueDays(due.dueOn, today)
   return { status: 'overdue', label: t('treatments.section.overdue', { n: days }, days) }
 }
 
