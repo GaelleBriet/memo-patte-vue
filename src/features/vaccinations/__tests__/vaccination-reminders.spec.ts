@@ -10,7 +10,7 @@ const t = i18n.global.t
 const ID = '22222222-2222-4222-8222-222222222222'
 type Reminded = Parameters<typeof vaccinationReminders>
 
-const MILO: NonNullable<Reminded[2]> = { name: 'Milo', deletedAt: null }
+const MILO: NonNullable<Reminded[2]> = { name: 'Milo', deletedAt: null, unfollowedOn: null }
 const CHPPI: Reminded[1] = {
   id: ID,
   name: 'CHPPi',
@@ -96,6 +96,10 @@ describe('vaccinationReminders', () => {
 
     expect(remindersOf(CHPPI, { animal: deleted })).toEqual([])
     expect(remindersOf(CHPPI, { animal: null })).toEqual([])
+  })
+
+  it('AN-9 : ne produit rien pour un animal qu’on ne suit plus', () => {
+    expect(remindersOf(CHPPI, { animal: { ...MILO, unfollowedOn: '2026-09-15' } })).toEqual([])
   })
 
   it('tient pour notée l’échéance que l’injection de tête a notée, quelle que soit l’heure', () => {

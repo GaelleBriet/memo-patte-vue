@@ -22,7 +22,7 @@ function notedBy(schedule: TreatmentSchedule): EntryReminders['isNoted'] {
 export function treatmentReminders(
   t: ReminderTranslate,
   treatment: TreatmentWithHistory,
-  animal: Pick<Animal, 'name' | 'deletedAt'> | null,
+  animal: Pick<Animal, 'name' | 'deletedAt' | 'unfollowedOn'> | null,
   settings: CarnetReminderSettings,
   now: Date,
 ): EntryReminders {
@@ -31,7 +31,12 @@ export function treatmentReminders(
 
   const isNoted = notedBy(schedule)
   const period = currentPeriodOf(treatment, schedule)
-  if (period === null || animal === null || animal.deletedAt !== null) {
+  if (
+    period === null ||
+    animal === null ||
+    animal.deletedAt !== null ||
+    animal.unfollowedOn !== null
+  ) {
     return { care: null, isNoted }
   }
 

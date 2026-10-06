@@ -28,6 +28,7 @@ const LUNA: Animal = {
   createdAt: AT,
   updatedAt: AT,
   deletedAt: null,
+  unfollowedOn: null,
 }
 
 const VENDREDIS = period({

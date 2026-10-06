@@ -317,6 +317,60 @@ describe('treatmentPeriodsRepository', () => {
     await expect(row(BRAVECTO)).resolves.toMatchObject({ deleted_at: null })
   })
 
+  it('rend les périodes d’un animal supprimées à cet instant, et elles seules', async () => {
+    await db.runMany([
+      periods.insertStatement(period({ id: REPRISE, deletedAt: EARLIER, updatedAt: EARLIER })),
+      periods.markDeletedByAnimalStatement(MIETTE, NOW),
+      periods.markDeletedByAnimalStatement(VASCO, NOW),
+    ])
+
+    await db.runMany([periods.reviveByAnimalStatement(MIETTE, NOW, '2026-03-02T08:00:00.000Z')])
+
+    await expect(row(MILBEMAX)).resolves.toMatchObject({
+      deleted_at: null,
+      updated_at: '2026-03-02T08:00:00.000Z',
+    })
+    await expect(row(REPRISE)).resolves.toMatchObject({ deleted_at: EARLIER })
+    await expect(row(BRAVECTO)).resolves.toMatchObject({ deleted_at: NOW })
+  })
+
+  describe('arrêt d’une période désignée', () => {
+    it('arrête la période, et seulement si elle ne l’est pas déjà', async () => {
+      await db.runMany([
+        periods.stopPeriodStatement(MILBEMAX, '2026-03-01', NOW),
+        periods.stopPeriodStatement(BRAVECTO, '2026-03-01', NOW),
+      ])
+      await db.runMany([periods.stopPeriodStatement(MILBEMAX, '2026-03-05', EARLIER)])
+
+      await expect(row(MILBEMAX)).resolves.toMatchObject({
+        stopped_on: '2026-03-01',
+        updated_at: NOW,
+      })
+      await expect(row(BRAVECTO)).resolves.toMatchObject({ stopped_on: '2026-03-01' })
+    })
+
+    it('rétablit la période arrêtée ce jour-là, pas une période arrêtée un autre jour', async () => {
+      await db.runMany([
+        periods.stopPeriodStatement(MILBEMAX, '2026-03-01', NOW),
+        periods.stopPeriodStatement(BRAVECTO, '2026-02-20', EARLIER),
+      ])
+
+      await db.runMany([
+        periods.undoStopPeriodStatement(MILBEMAX, '2026-03-01', '2026-03-02T08:00:00.000Z'),
+        periods.undoStopPeriodStatement(BRAVECTO, '2026-03-01', '2026-03-02T08:00:00.000Z'),
+      ])
+
+      await expect(row(MILBEMAX)).resolves.toMatchObject({
+        stopped_on: null,
+        updated_at: '2026-03-02T08:00:00.000Z',
+      })
+      await expect(row(BRAVECTO)).resolves.toMatchObject({
+        stopped_on: '2026-02-20',
+        updated_at: EARLIER,
+      })
+    })
+  })
+
   it('marque toutes les périodes encore visibles', async () => {
     await db.run('UPDATE treatment_period SET deleted_at = ? WHERE id = ?', [EARLIER, BRAVECTO])
 

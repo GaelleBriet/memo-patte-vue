@@ -40,6 +40,7 @@ function animal(id: string, name: string): Animal {
     createdAt: STAMP,
     updatedAt: STAMP,
     deletedAt: null,
+    unfollowedOn: null,
   }
 }
 

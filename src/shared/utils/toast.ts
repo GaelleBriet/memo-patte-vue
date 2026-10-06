@@ -17,6 +17,8 @@ export type ToastOptions = {
   action?: ToastAction
   /** Texte lu par le lecteur d'écran quand le message affiché seul ne dit pas de quoi il parle. */
   announcement?: string
+  /** Appelé une fois quand le toast disparaît sans que son action ait été touchée. */
+  onExpired?: () => void
 }
 
 const DEFAULT_DURATION_MS = 3000
@@ -27,6 +29,7 @@ const current = ref<string | null>(null)
 const currentTone = ref<ToastTone>('success')
 const currentAction = shallowRef<ToastAction | null>(null)
 const announcement = ref('')
+let expired: (() => void) | null = null
 let durationMs = DEFAULT_DURATION_MS
 let dismissTimer: ReturnType<typeof setTimeout> | undefined
 let announceTimer: ReturnType<typeof setTimeout> | undefined
@@ -45,6 +48,8 @@ export const toastAnnouncement = readonly(announcement)
  * pour sa durée complète et remplace le toast précédent, action comprise.
  */
 export function showToast(message: string, options: ToastOptions = {}): void {
+  expire()
+  expired = options.onExpired ?? null
   clearTimeout(dismissTimer)
   clearTimeout(announceTimer)
   current.value = message
@@ -58,7 +63,14 @@ export function showToast(message: string, options: ToastOptions = {}): void {
   dismissTimer = setTimeout(dismissToast, durationMs)
 }
 
+function expire(): void {
+  const callback = expired
+  expired = null
+  callback?.()
+}
+
 export function dismissToast(): void {
+  expire()
   clearTimeout(dismissTimer)
   clearTimeout(announceTimer)
   current.value = null
@@ -85,12 +97,15 @@ export type UndoOptions = {
   /** Affiché en toast d'échec si l'annulation lève. */
   failedMessage: string
   announcement?: string
+  /** Appelé une fois quand le toast disparaît sans « Annuler ». */
+  onExpired?: () => void
 }
 
 /** Confirme un geste réversible ; « Annuler » le défait. */
 export function showUndoableToast(message: string, options: UndoOptions): void {
   showToast(message, {
     announcement: options.announcement,
+    onExpired: options.onExpired,
     action: {
       label: options.label,
       ariaLabel: options.ariaLabel,
@@ -106,6 +121,7 @@ export function showUndoableToast(message: string, options: UndoOptions): void {
 export function runToastAction(): void {
   const action = currentAction.value
   if (action === null) return
+  expired = null
   dismissToast()
   action.run()
 }
