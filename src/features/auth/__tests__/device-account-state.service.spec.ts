@@ -9,7 +9,11 @@ import {
   PLUS_NUDGE_STORAGE_KEY,
 } from '@/features/purchase/logic/plus-nudge'
 import { PLUS_STATUS_STORAGE_KEY } from '@/features/purchase/logic/plus-status-storage'
-import { readUsageSignals, USAGE_SIGNALS_STORAGE_KEY } from '@/shared/utils/usage-signals'
+import {
+  readUsageSignals,
+  recordUsageSignal,
+  USAGE_SIGNALS_STORAGE_KEY,
+} from '@/shared/utils/usage-signals'
 
 import {
   clearDeviceAccountState,
@@ -48,6 +52,21 @@ describe('clearSignedOutAccountState', () => {
     expect(storage.keys().sort()).toEqual(
       [PLUS_STATUS_STORAGE_KEY, PLUS_NUDGE_STORAGE_KEY, ...UNRELATED_KEYS].sort(),
     )
+  })
+})
+
+describe('clearSignedOutAccountState, ce que le carnet a vécu', () => {
+  it('garde les soins enregistrés et le dernier export JSON partagé', () => {
+    recordUsageSignal('photo')
+    recordUsageSignal('care')
+    recordUsageSignal('jsonShare')
+
+    clearSignedOutAccountState()
+
+    const signals = readUsageSignals()
+    expect(signals.photo.count).toBe(0)
+    expect(signals.care.count).toBe(1)
+    expect(signals.jsonShare.count).toBe(1)
   })
 })
 

@@ -27,9 +27,14 @@ import {
 import { track } from '@/core/analytics'
 import type { Animal } from '@/features/animals/schema/animal.schema'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
+import { recordUsageSignal, type UsageSignal } from '@/shared/utils/usage-signals'
 
 vi.mock('@/core/analytics', () => ({
   track: vi.fn<(event: string, properties?: Record<string, unknown>) => void>(),
+}))
+
+vi.mock('@/shared/utils/usage-signals', () => ({
+  recordUsageSignal: vi.fn<(signal: UsageSignal) => void>(),
 }))
 
 const MILO = '11111111-1111-4111-8111-111111111111'
@@ -54,6 +59,7 @@ let reminders: {
 
 beforeEach(() => {
   vi.mocked(track).mockClear()
+  vi.mocked(recordUsageSignal).mockClear()
   setActivePinia(createPinia())
   repository = createFakeRepository()
   provideTreatmentsRepository(() => repository)
@@ -290,6 +296,14 @@ describe('useTreatmentsStore', () => {
     expect(track).not.toHaveBeenCalled()
   })
 
+  it('compte la création comme une saisie et comme un soin enregistré', async () => {
+    const store = useTreatmentsStore()
+
+    await store.create(creation(MILO))
+
+    expect(vi.mocked(recordUsageSignal).mock.calls).toEqual([['entry'], ['care']])
+  })
+
   it('crée un traitement pour un animal jamais chargé sans relire une liste', async () => {
     const store = useTreatmentsStore()
 
@@ -471,6 +485,25 @@ describe('useTreatmentsStore', () => {
     expect(repris).toMatchObject({ id: seme.id, stoppedOn: null, nextDueDate: '2026-10-01' })
     expect(reminders.reschedule).toHaveBeenCalledWith(seme.id)
     expect(repository.listWithHistoryByAnimal).toHaveBeenCalledWith(MILO)
+  })
+
+  it('compte une reprise comme un soin enregistré, pas comme une saisie', async () => {
+    const seme = repository.seed(vermifuge())
+    const store = useTreatmentsStore()
+
+    await store.resume(seme.id, reprise())
+
+    expect(vi.mocked(recordUsageSignal).mock.calls).toEqual([['care']])
+  })
+
+  it('ne compte rien quand la reprise échoue', async () => {
+    const seme = repository.seed(vermifuge())
+    repository.resume.mockRejectedValueOnce(new Error('base indisponible'))
+    const store = useTreatmentsStore()
+
+    await expect(store.resume(seme.id, reprise())).rejects.toThrow()
+
+    expect(recordUsageSignal).not.toHaveBeenCalled()
   })
 
   it('nomme le câblage manquant quand aucun repository n’est injecté', async () => {

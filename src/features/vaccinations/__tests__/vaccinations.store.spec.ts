@@ -15,9 +15,14 @@ import {
 import { track } from '@/core/analytics'
 import type { Animal } from '@/features/animals/schema/animal.schema'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
+import { recordUsageSignal, type UsageSignal } from '@/shared/utils/usage-signals'
 
 vi.mock('@/core/analytics', () => ({
   track: vi.fn<(event: string, properties?: Record<string, unknown>) => void>(),
+}))
+
+vi.mock('@/shared/utils/usage-signals', () => ({
+  recordUsageSignal: vi.fn<(signal: UsageSignal) => void>(),
 }))
 
 const MILO = '11111111-1111-4111-8111-111111111111'
@@ -42,6 +47,7 @@ let reminders: {
 
 beforeEach(() => {
   vi.mocked(track).mockClear()
+  vi.mocked(recordUsageSignal).mockClear()
   setActivePinia(createPinia())
   repository = createFakeRepository()
   provideVaccinationsRepository(() => repository)
@@ -221,6 +227,14 @@ describe('useVaccinationsStore', () => {
     await store.create(rage(MILO))
 
     expect(track).not.toHaveBeenCalled()
+  })
+
+  it('compte la création comme une saisie et comme un soin enregistré', async () => {
+    const store = useVaccinationsStore()
+
+    await store.create(rage(MILO))
+
+    expect(vi.mocked(recordUsageSignal).mock.calls).toEqual([['entry'], ['care']])
   })
 
   it('crée un vaccin pour un animal jamais chargé sans relire une liste', async () => {

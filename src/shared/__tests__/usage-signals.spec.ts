@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
+  clearAccountUsageSignals,
+  clearUsageSignals,
   NO_USAGE_SIGNALS,
   USAGE_SIGNAL_CAP,
   USAGE_SIGNALS_STORAGE_KEY,
@@ -10,11 +12,12 @@ import {
 
 const NOW = new Date('2026-09-16T10:00:00Z')
 
-function memoryStorage(): Pick<Storage, 'getItem' | 'setItem'> {
+function memoryStorage(): Pick<Storage, 'getItem' | 'setItem' | 'removeItem'> {
   const items = new Map<string, string>()
   return {
     getItem: (key) => items.get(key) ?? null,
     setItem: (key, value) => void items.set(key, value),
+    removeItem: (key) => void items.delete(key),
   }
 }
 
@@ -39,17 +42,34 @@ describe('signaux d’usage', () => {
     recordUsageSignal('photo')
 
     expect(readUsageSignals()).toEqual({
-      photo: { count: 1, lastAt: NOW.toISOString() },
-      entry: { count: 2, lastAt: NOW.toISOString() },
-      export: { count: 0, lastAt: null },
-      jsonShare: { count: 0, lastAt: null },
+      photo: { count: 1, firstAt: NOW.toISOString(), lastAt: NOW.toISOString() },
+      entry: { count: 2, firstAt: NOW.toISOString(), lastAt: NOW.toISOString() },
+      export: { count: 0, firstAt: null, lastAt: null },
+      jsonShare: { count: 0, firstAt: null, lastAt: null },
+      care: { count: 0, firstAt: null, lastAt: null },
     })
   })
 
   it('retient à part le dernier export JSON partagé', () => {
     recordUsageSignal('jsonShare')
 
-    expect(readUsageSignals().jsonShare).toEqual({ count: 1, lastAt: NOW.toISOString() })
+    expect(readUsageSignals().jsonShare).toEqual({
+      count: 1,
+      firstAt: NOW.toISOString(),
+      lastAt: NOW.toISOString(),
+    })
+  })
+
+  it('garde la date du premier soin enregistré quand d’autres suivent', () => {
+    recordUsageSignal('care')
+    vi.setSystemTime(new Date('2026-10-01T10:00:00Z'))
+    recordUsageSignal('care')
+
+    expect(readUsageSignals().care).toEqual({
+      count: 2,
+      firstAt: NOW.toISOString(),
+      lastAt: '2026-10-01T10:00:00.000Z',
+    })
   })
 
   it('relit un enregistrement antérieur au partage JSON sans le perdre', () => {
@@ -58,7 +78,7 @@ describe('signaux d’usage', () => {
       JSON.stringify({ export: { count: 2, lastAt: '2026-09-01T08:00:00Z' } }),
     )
 
-    expect(readUsageSignals().jsonShare).toEqual({ count: 0, lastAt: null })
+    expect(readUsageSignals().jsonShare).toEqual({ count: 0, firstAt: null, lastAt: null })
   })
 
   it('plafonne le compteur', () => {
@@ -78,7 +98,11 @@ describe('signaux d’usage', () => {
       JSON.stringify({ export: { count: 3, lastAt: '2026-09-01T08:00:00Z' } }),
     )
 
-    expect(readUsageSignals().export).toEqual({ count: 3, lastAt: '2026-09-01T08:00:00Z' })
+    expect(readUsageSignals().export).toEqual({
+      count: 3,
+      firstAt: null,
+      lastAt: '2026-09-01T08:00:00Z',
+    })
   })
 
   it('repart de zéro devant un contenu illisible', () => {
@@ -100,5 +124,31 @@ describe('signaux d’usage', () => {
 
     expect(() => recordUsageSignal('export')).not.toThrow()
     expect(readUsageSignals()).toEqual(NO_USAGE_SIGNALS)
+  })
+})
+
+describe('effacement des signaux d’usage', () => {
+  beforeEach(() => {
+    recordUsageSignal('entry')
+    recordUsageSignal('care')
+    recordUsageSignal('jsonShare')
+  })
+
+  it('efface tout au changement de compte', () => {
+    clearUsageSignals()
+
+    expect(readUsageSignals()).toEqual(NO_USAGE_SIGNALS)
+  })
+
+  it('garde à la déconnexion les soins enregistrés et le dernier export JSON partagé', () => {
+    const before = readUsageSignals()
+
+    clearAccountUsageSignals()
+
+    expect(readUsageSignals()).toEqual({
+      ...NO_USAGE_SIGNALS,
+      care: before.care,
+      jsonShare: before.jsonShare,
+    })
   })
 })
