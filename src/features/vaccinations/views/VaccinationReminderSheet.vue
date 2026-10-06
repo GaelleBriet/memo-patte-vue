@@ -39,8 +39,8 @@ type Step = 'actions' | 'done' | 'injection-date' | 'due-date'
 const props = withDefaults(
   defineProps<{
     vaccinationId: string | null
-    /** `done` ouvre directement la feuille « Fait » (F5). */
-    startAt?: 'actions' | 'done'
+    /** `done` ouvre directement la feuille « Fait » (F5) ; `other-date`, son calendrier d'injection. */
+    startAt?: 'actions' | 'done' | 'other-date'
     /** Date d'injection proposée à l'ouverture ; aujourd'hui sinon. */
     initialInjectedOn?: string | null
     /** Écran où revenir une fois l'injection notée ; absent, la feuille reste sur l'écran qui l'a ouverte. */
@@ -116,7 +116,7 @@ watch(
   async (isOpen) => {
     if (!isOpen) return
     refreshToday()
-    steps.value = [props.startAt]
+    steps.value = props.startAt === 'other-date' ? ['done', 'injection-date'] : [props.startAt]
     injectedOn.value = props.initialInjectedOn ?? today.value
     choice.value = null
     saveFailed.value = false
