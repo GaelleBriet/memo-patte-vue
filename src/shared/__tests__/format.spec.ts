@@ -27,7 +27,7 @@ import {
   formatPeriodRange,
 } from '../utils/format'
 import { plain } from './plain'
-import { applyLocale } from '@/core/i18n'
+import i18n, { applyLocale } from '@/core/i18n'
 
 describe('formatWeight', () => {
   it('garde une décimale avec la virgule française', () => {
@@ -183,7 +183,20 @@ describe('dates d’un seul tenant', () => {
     expect(formatDayList(['2026-10-03', '2026-10-05', '2026-10-07'])).toBe('3, 5 et 7\u00a0oct.')
   })
 
-  it('donne les deux bouts d\u2019une plage chacun d\u2019un seul tenant', () => {
+  it('tient une date et son heure d’un seul tenant, « à » compris', () => {
+    const params = { date: formatDayMonth('2026-10-01'), time: formatClockTime('20:00') }
+
+    expect(i18n.global.t('currentDose.at', params)).toBe('1er\u00a0oct.\u00a0à\u00a020\u00a0h')
+    applyLocale('en')
+    expect(
+      i18n.global.t('currentDose.at', {
+        date: formatDayMonth('2026-10-01'),
+        time: formatClockTime('20:00'),
+      }),
+    ).toBe('Oct\u00a01\u00a0at\u00a08\u00a0pm')
+  })
+
+  it('donne les deux bouts d’une plage chacun d’un seul tenant', () => {
     expect(formatPeriodRange('2026-08-06', '2027-02-06')).toEqual({
       start: '6\u00a0ao\u00fbt',
       end: '6\u00a0f\u00e9vr.\u00a02027',
