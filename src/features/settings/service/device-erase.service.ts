@@ -22,6 +22,7 @@ import { getTreatmentsRepository } from '@/features/treatments/repository/treatm
 import { getVaccinationInjectionsRepository } from '@/features/vaccinations/repository/vaccination-injections.repository'
 import { getVaccinationsRepository } from '@/features/vaccinations/repository/vaccinations.repository'
 import { getWeightRepository } from '@/features/weight/repository/weight.repository'
+import { cancelAllDueReminders } from '@/shared/domain/due-reminders-schedule'
 import { clearAppStorage } from '@/shared/utils/app-storage'
 import { errorSummary } from '@/shared/utils/error-summary'
 import { getCarnetSettingsRepository } from '../repository/carnet-settings.repository'
@@ -90,8 +91,8 @@ export function createDeviceEraseService({
     },
 
     /**
-     * Lève, sans rien avoir effacé, tant que la base est intacte. Une fois la base effacée, va
-     * jusqu'au redémarrage de l'app quoi qu'il arrive.
+     * Lève si l'annulation des notifications ou l'effacement de la base échoue : la déconnexion a
+     * déjà eu lieu, le carnet reste intact. Une fois la base effacée, va jusqu'au redémarrage.
      */
     async erase(): Promise<void> {
       if (account.isSignedIn()) await account.signOut()
@@ -126,7 +127,10 @@ export const deviceEraseService = createDeviceEraseService({
   ],
   syncOutbox: getSyncOutboxRepository,
   account: { isSignedIn: isSignedInOnDevice, signOut: signOutDevice },
-  notifications: { cancelAll: cancelAllNotifications, rebuild: syncAllReminders },
+  notifications: {
+    cancelAll: () => cancelAllDueReminders({ cancelAllNotifications }),
+    rebuild: syncAllReminders,
+  },
   photos: { deleteAll: deleteAllPhotos },
   analytics: { optOut },
   preferences: { clearAll: clearAppStorage },
