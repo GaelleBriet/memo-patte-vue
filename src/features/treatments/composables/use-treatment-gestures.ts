@@ -1,15 +1,10 @@
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 
-import { todayIsoDate } from '@/core/app-lifecycle/today-iso-date'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import { showToast, showUndoableToast } from '@/shared/utils/toast'
 import { DoseAlreadyLoggedError, type DoseAction } from '../logic/treatment-dose-writes'
-import {
-  alreadyNotedText,
-  doseActionTexts,
-  type DoseActionTexts,
-} from '../logic/treatment-gestures'
+import type { DoseActionTexts } from '../logic/treatment-gestures'
 import { treatmentDeleteTexts } from '../logic/treatment-history'
 import { stoppedText } from '../logic/treatment-stop'
 import type { Treatment } from '../schema/treatment.schema'
@@ -61,36 +56,6 @@ export function useTreatmentGestures(onChanged: () => void) {
       failedMessage: t('reminderSheet.undoFailed'),
       announcement,
     })
-  }
-
-  /** Prise notée sans échéance choisie : le service vise la dose du moment. */
-  function recordDose(treatment: Named, givenOn: string, failed?: string): Promise<boolean> {
-    return guarded(async () => {
-      const noted = await treatments.noteMomentDose(treatment.id, givenOn)
-      onChanged()
-      const context = { ...named(treatment), today: todayIsoDate() }
-      if (noted.outcome === 'none') {
-        showToast(t('treatments.sheet.errors.noDoseLeft'), { tone: 'info' })
-        return
-      }
-      if (noted.outcome === 'day-noted') {
-        showToast(t('treatments.sheet.toast.dayNoted'), { tone: 'info' })
-        return
-      }
-      if (noted.due === null) {
-        showToast(alreadyNotedText(t, context, noted.alreadyGivenOn ?? givenOn), { tone: 'info' })
-        return
-      }
-      const texts = doseActionTexts(
-        t,
-        { ...context, severalTimes: noted.severalTimes },
-        { kind: 'note', gesture: { kind: 'given', due: noted.due, givenOn } },
-        null,
-      )
-      undoable(texts.done(noted), texts.undo, () =>
-        treatments.undoDoseAction(treatment.id, noted.undo),
-      )
-    }, failed)
   }
 
   async function stopped(treatment: Named, doses: readonly DoseGesture[]): Promise<void> {
@@ -188,5 +153,5 @@ export function useTreatmentGestures(onChanged: () => void) {
     }, texts.failed)
   }
 
-  return { isBusy, recordDose, stop, stopLogging, applyDose, logDoses, removeTreatment }
+  return { isBusy, stop, stopLogging, applyDose, logDoses, removeTreatment }
 }

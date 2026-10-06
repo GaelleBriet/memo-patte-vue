@@ -22,12 +22,30 @@ export function reminderQueryValue({ kind, id }: ReminderRef): string {
   return `${kind}:${id}`
 }
 
-export function parseReminderQuery(value: unknown): ReminderRef | null {
+const TODO_REMINDER =
+  /^(vaccination|treatment):([^:]+)(?::(unlogged|\d{4}-\d{2}-\d{2})(?:T(.+))?)?$/
+
+function parseTodoReminder(value: unknown): TodoRequest | null {
   if (typeof value !== 'string') return null
-  const [kind, id, ...rest] = value.split(':')
-  if (rest.length > 0 || !id) return null
-  if (kind !== 'vaccination' && kind !== 'treatment') return null
-  return { kind, id }
+  const [, kind, id, day, time] = TODO_REMINDER.exec(value) ?? []
+  if ((kind !== 'vaccination' && kind !== 'treatment') || id === undefined) return null
+  if (day === undefined) return { kind, id, due: null }
+  if (day === 'unlogged') return time === undefined ? { kind, id, due: 'unlogged' } : null
+  if (time !== undefined && !isClockTime(time)) return null
+  return { kind, id, due: { dueOn: day, dueTime: time ?? null } }
+}
+
+export function parseReminderQuery(value: unknown): ReminderRef | null {
+  const request = parseTodoReminder(value)
+  return request === null ? null : { kind: request.kind, id: request.id }
+}
+
+/** Le rappel et l'échéance de sa ligne : la feuille se rouvre sur elle au retour de « Modifier ». */
+export function todoReminderValue({ due, ...ref }: TodoRequest): string {
+  if (due === null) return reminderQueryValue(ref)
+  if (due === 'unlogged') return `${reminderQueryValue(ref)}:unlogged`
+  const time = due.dueTime === null ? '' : `T${due.dueTime}`
+  return `${reminderQueryValue(ref)}:${due.dueOn}${time}`
 }
 
 /** Étape à laquelle la feuille s'ouvre : ses actions, ou « Fait » (F5) pour un vaccin. */
@@ -42,9 +60,12 @@ export type ReminderStep = 'actions' | 'done'
 /** L'échéance d'une notification ; `dueTime` à `null` : sans heure, ou toute la journée (relance). */
 export type NotifiedDue = { dueOn: string; dueTime: string | null }
 
-/** `given-when` : « Donnée quand ? » d'une notification d'un jour passé (V5). */
+/**
+ * `given-when` : « Donnée quand ? » d'une notification d'un jour passé (V5) ; sinon `due`, l'échéance
+ * de la ligne de « À faire » dont la feuille se rouvre.
+ */
 export type ReminderRequest = ReminderRef &
-  ({ step: ReminderStep } | { step: 'given-when'; due: NotifiedDue })
+  ({ step: ReminderStep; due?: TodoDue } | { step: 'given-when'; due: NotifiedDue })
 
 export function reminderSheetQuery(request: ReminderRequest): LocationQueryRaw {
   const query: LocationQueryRaw = {
@@ -71,12 +92,14 @@ function notifiedDueOf(query: LocationQuery | LocationQueryRaw): NotifiedDue | n
 export function parseReminderRequest(
   query: LocationQuery | LocationQueryRaw,
 ): ReminderRequest | null {
-  const ref = parseReminderQuery(query[REMINDER_QUERY_PARAM])
-  if (ref === null) return null
+  const todo = parseTodoReminder(query[REMINDER_QUERY_PARAM])
+  if (todo === null) return null
+  const { due: rowDue, ...ref } = todo
   const step = query[REMINDER_STEP_QUERY_PARAM]
   const due = step === 'given-when' ? notifiedDueOf(query) : null
   if (due !== null) return { ...ref, step: 'given-when', due }
-  return { ...ref, step: step === 'done' ? 'done' : 'actions' }
+  const request = { ...ref, step: step === 'done' ? ('done' as const) : ('actions' as const) }
+  return rowDue === null ? request : { ...request, due: rowDue }
 }
 
 export function withoutReminderRequest(query: LocationQuery): LocationQuery {

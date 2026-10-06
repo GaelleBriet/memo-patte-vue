@@ -33,6 +33,7 @@ import {
   nextReminderText,
   overdueBanner,
   reminderRows,
+  rowToReopen,
   scopeCounter,
   upToDateText,
   type ReminderRow,
@@ -171,10 +172,7 @@ function reopenReminder(
     return
   }
   const reminder = { kind, id }
-  const row = rows.value.find(
-    (candidate) =>
-      candidate.opens === 'sheet' && candidate.request.kind === kind && candidate.request.id === id,
-  )
+  const row = rowToReopen(rows.value, request)
   if (row) {
     openReminder(row.request, request.step)
   } else if (fromNotification) {
@@ -324,6 +322,7 @@ function openCarnet(): void {
       <TreatmentReminderSheet
         v-model="isTreatmentSheetOpen"
         :treatment-id="openedReminder?.kind === 'treatment' ? openedReminder.id : null"
+        :due="openedReminder?.kind === 'treatment' ? openedReminder.due : null"
         @changed="load"
       />
       <TreatmentGivenWhenSheet

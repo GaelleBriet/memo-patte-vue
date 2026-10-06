@@ -1,14 +1,14 @@
-import { momentDue } from './treatment-other-date'
+import { givenWhenMin } from './treatment-notification'
+import { notifiedDues } from './treatment-other-date'
+import { doneGesture } from './treatment-shift-box'
+import type { TreatmentWithHistory } from '../repository/treatments.repository'
 import type { Treatment } from '../schema/treatment.schema'
-import type { TreatmentSchedule } from '@/shared/domain/treatment-schedule'
-import { formatDayMonthOrYear, formatLongDate, formatWeekdayDate } from '@/shared/utils/format'
+import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
+import type { NotifiedDue, TodoDue } from '@/shared/domain/reminder-route'
+import type { DoseGesture, Due, TreatmentSchedule } from '@/shared/domain/treatment-schedule'
+import { formatClockTime, formatDayMonthOrYear } from '@/shared/utils/format'
 
 export type Translate = (key: string, named?: Record<string, unknown>, plural?: number) => string
-
-export type SheetTreatment = Pick<
-  Treatment,
-  'name' | 'type' | 'frequency' | 'lastDoseDate' | 'nextDueDate'
->
 
 /** Textes de « Arrêter ce traitement » et de son dialogue. */
 export function treatmentStopTexts(t: Translate, named: { name: string; animal: string }) {
@@ -23,55 +23,113 @@ export function treatmentStopTexts(t: Translate, named: { name: string; animal: 
   }
 }
 
+type SheetSchedule = Pick<
+  TreatmentSchedule,
+  'doses' | 'unloggedDoses' | 'currentDoses' | 'offersShift' | 'noteRefusal'
+>
+
+/** La période de l'échéance de la ligne, sinon la dernière. */
+export function sheetPeriod(
+  history: Pick<TreatmentWithHistory, 'periods'>,
+  schedule: Pick<TreatmentSchedule, 'doses' | 'unloggedDoses' | 'currentDoses'> | null,
+  due: TodoDue | null,
+): TreatmentPeriodRecord | undefined {
+  const target =
+    schedule === null || due === null
+      ? undefined
+      : due === 'unlogged'
+        ? schedule.unloggedDoses[0]
+        : notifiedDues(schedule, due)[0]?.due
+  return (
+    history.periods.find(({ id }) => id === target?.periodId) ?? history.periods.at(-1) ?? undefined
+  )
+}
+
+export type SheetDoneTarget =
+  | { kind: 'note'; gesture: DoseGesture }
+  | { kind: 'confirm'; due: Due }
+  | { kind: 'already'; givenOn: string }
+  | { kind: 'missed' }
+  | { kind: 'none' }
+
+function givenOnDay(schedule: Pick<TreatmentSchedule, 'doses'>, day: string): boolean {
+  return schedule.doses.some(
+    ({ status, givenOn }) => (status === 'given' || status === 'extra') && givenOn === day,
+  )
+}
+
+/**
+ * « Fait aujourd'hui » de la feuille, sur l'échéance de sa ligne (TR-13) : `confirm` quand la prise
+ * décalerait la suite (G20). Une dose à venir après une prise du jour, ou déjà donnée, est « déjà
+ * notée » (Q33) ; une échéance notée oubliée n'a rien à noter (Q41).
+ */
+export function sheetDoneTarget(
+  schedule: SheetSchedule,
+  due: NotifiedDue,
+  today: string,
+): SheetDoneTarget {
+  const dues = notifiedDues(schedule, due)
+  const pending = dues.find(({ status }) => status === 'pending')
+  if (pending === undefined) {
+    const given = dues.find(({ status }) => status === 'given')
+    if (given !== undefined) return { kind: 'already', givenOn: given.givenOn ?? due.dueOn }
+    return dues.some(({ status }) => status === 'missed') ? { kind: 'missed' } : { kind: 'none' }
+  }
+  if (pending.due.dueOn > today && givenOnDay(schedule, today)) {
+    return { kind: 'already', givenOn: today }
+  }
+  const tapped = doneGesture(schedule, pending.due, today)
+  return tapped.confirm
+    ? { kind: 'confirm', due: pending.due }
+    : { kind: 'note', gesture: tapped.gesture }
+}
+
+/** Premier jour proposé par « Fait à une autre date » pour l'échéance de la ligne. */
+export function sheetOtherDateMin(
+  history: Pick<TreatmentWithHistory, 'periods'>,
+  schedule: Pick<TreatmentSchedule, 'doses' | 'unloggedDoses' | 'currentDoses' | 'doseFor'>,
+  due: NotifiedDue,
+  birthDate: string | null,
+): string | null {
+  const target = notifiedDues(schedule, due).find(({ status }) => status === 'pending')?.due
+  const period = history.periods.find(({ id }) => id === target?.periodId)
+  if (target === undefined || period === undefined) return birthDate
+  return givenWhenMin(schedule, period, target, birthDate)
+}
+
+function dueText(t: Translate, { dueOn, dueTime }: NotifiedDue, today: string): string {
+  const day = formatDayMonthOrYear(dueOn, today)
+  const date =
+    dueTime === null ? day : t('currentDose.at', { date: day, time: formatClockTime(dueTime) })
+  return t('treatments.sheet.nextDose', { date })
+}
+
+/** `due` : « Prochaine dose le … » de la ligne touchée ; `null` pour les doses non renseignées. */
 export function treatmentSheetTexts(
   t: Translate,
-  treatment: SheetTreatment,
+  treatment: Pick<Treatment, 'name' | 'type'>,
+  period: Pick<TreatmentPeriodRecord, 'frequency'> | undefined,
+  due: TodoDue | null,
   { animal, today }: { animal: string; today: string },
 ) {
   const named = { name: treatment.name, animal }
-  const { value, unit } = treatment.frequency
-
+  const type = t(`treatments.type.${treatment.type}`)
+  const subtitle =
+    period === undefined
+      ? t('treatments.detail.subtitle', { type, animal })
+      : t('treatments.sheet.subtitle', {
+          type,
+          animal,
+          frequency: t(
+            `treatments.sheet.frequency.${period.frequency.unit}`,
+            { n: period.frequency.value },
+            period.frequency.value,
+          ),
+        })
   return {
-    subtitle: t('treatments.sheet.subtitle', {
-      type: t(`treatments.type.${treatment.type}`),
-      animal,
-      frequency: t(`treatments.sheet.frequency.${unit}`, { n: value }, value),
-    }),
-    due: t('treatments.sheet.nextDose', {
-      date: formatDayMonthOrYear(treatment.nextDueDate, today),
-    }),
+    subtitle,
+    due: due === null || due === 'unlogged' ? null : dueText(t, due, today),
     doneTodayLabel: t('treatments.sheet.doneTodayLabel', named),
-    otherDaySubtitle: t('treatments.sheet.otherDay.subtitle', named),
     ...treatmentStopTexts(t, named),
-  }
-}
-
-type SummarySchedule = Pick<
-  TreatmentSchedule,
-  'doses' | 'unloggedDoses' | 'currentDoses' | 'dueForDate' | 'doseFor'
->
-
-/** Récapitulatif de F3 : la prise choisie et la prochaine dose qu'elle fixera ; `nextDose` : `null` sans dose à noter ce jour-là. */
-export function otherDaySummary(
-  t: Translate,
-  schedule: SummarySchedule | null,
-  givenOn: string,
-  today: string,
-) {
-  const target = schedule === null ? null : momentDue(schedule, givenOn, today)
-  const next =
-    schedule !== null && target !== null && 'due' in target
-      ? schedule.doseFor({ kind: 'given', due: target.due, givenOn }).dose.nextDueDate
-      : null
-  return {
-    doseOn: t('treatments.sheet.otherDay.doseOn', { date: formatWeekdayDate(givenOn) }),
-    nextDose:
-      next === null
-        ? null
-        : t('treatments.sheet.otherDay.nextDose', { date: formatLongDate(next) }),
-    submit:
-      givenOn === today
-        ? t('treatments.sheet.otherDay.submitToday')
-        : t('treatments.sheet.otherDay.submit', { date: formatDayMonthOrYear(givenOn, today) }),
   }
 }

@@ -4,7 +4,6 @@ import { ref } from 'vue'
 import {
   treatmentDosesService,
   type AppliedDoseChange,
-  type NotedMoment,
   type TreatmentDosesService,
 } from '../service/treatment-doses.service'
 import { treatmentPlanService, type TreatmentPlanService } from '../service/treatment-plan.service'
@@ -59,7 +58,7 @@ export function provideTreatmentRemindersService(next: (() => TreatmentReminders
   remindersProvider = next ?? (() => treatmentRemindersService)
 }
 
-type TreatmentDoses = Pick<TreatmentDosesService, 'apply' | 'noteMoment' | 'undoBatch'>
+type TreatmentDoses = Pick<TreatmentDosesService, 'apply' | 'undoBatch'>
 
 let dosesProvider: () => TreatmentDoses = () => treatmentDosesService
 
@@ -261,14 +260,6 @@ export const useTreatmentsStore = defineStore('treatments', () => {
       return write(
         () => dosesProvider().apply(treatmentId, action),
         (applied) => applied.animalId,
-      )
-    },
-
-    /** Prise notée sans échéance choisie, depuis la feuille « À faire ». */
-    async noteMomentDose(treatmentId: string, givenOn: string): Promise<NotedMoment> {
-      return write(
-        () => dosesProvider().noteMoment(treatmentId, givenOn),
-        (noted) => noted.animalId,
       )
     },
 
