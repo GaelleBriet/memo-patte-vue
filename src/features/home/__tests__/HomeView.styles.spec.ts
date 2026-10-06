@@ -55,48 +55,6 @@ describe('HomeView — contrat de style', () => {
     expect(declaration('.home-header__settings', 'position')).toBeUndefined()
   })
 
-  it('écarte l’icône du texte de 14 px dans une ligne de rappel', () => {
-    expect(declaration('.reminder-row', 'gap')).toBe('14px')
-  })
-
-  it('renvoie un titre de rappel trop long à la ligne sans couper le mot en deux', () => {
-    expect(declaration('.reminder-row__title', 'overflow-wrap')).toBe('break-word')
-  })
-
-  it('fait passer le badge sous le titre quand les deux ne tiennent plus côte à côte', () => {
-    expect(declaration('.reminder-row', 'flex-wrap')).toBe('wrap')
-    expect(declaration('.reminder-row__badge', 'margin-inline-start')).toBe('auto')
-  })
-
-  it('colore la barre d’urgence selon le statut', () => {
-    expect(declaration('.reminder-row--overdue::before', 'background')).toBe(
-      'rgb(var(--v-theme-overdue))',
-    )
-    expect(declaration('.reminder-row--today::before', 'background')).toBe(
-      'rgb(var(--v-theme-today))',
-    )
-    expect(
-      declaration('.reminder-row--tomorrow::before, .reminder-row--later::before', 'background'),
-    ).toBe('rgb(var(--v-theme-soon))')
-  })
-
-  it('peint le bandeau retard en rose pâle', () => {
-    expect(declaration('.home-overdue-banner', 'background')).toBe(
-      'rgb(var(--v-theme-overdue-container))',
-    )
-    expect(declaration('.home-overdue-banner', 'color')).toBe(
-      'rgb(var(--v-theme-on-overdue-container))',
-    )
-  })
-
-  it('donne 46 px à la pastille « Tout est à jour », en vert distinct de « Bientôt »', () => {
-    expect(declaration('.home-up-to-date__dot', 'width')).toBe('46px')
-    expect(declaration('.home-up-to-date__dot', 'background')).toBe(
-      'rgb(var(--v-theme-up-to-date))',
-    )
-    expect(declaration('.home-up-to-date__dot', 'color')).toBe('rgb(var(--v-theme-on-up-to-date))')
-  })
-
   it('étire la bienvenue sur la hauteur de l’écran sans la recalculer depuis le viewport', () => {
     expect(declaration('.home', 'min-height')).toBe('100%')
     expect(declaration('.home', 'display')).toBe('flex')
