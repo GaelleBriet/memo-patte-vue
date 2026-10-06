@@ -11,8 +11,8 @@ type Named = Pick<Animal, 'id' | 'name'>
 
 /**
  * « Ne plus suivre », « Suivre de nouveau » et « Supprimer » depuis le Carnet, chacun confirmé par un
- * toast « Annuler ». L'animal qui quitte le Carnet laisse la place au premier animal suivi, ou à
- * l'accueil. Chaque geste rend faux s'il a échoué, échec dit en toast.
+ * toast « Annuler ». Après « Ne plus suivre », retour à l'accueil (V15 bis) ; après « Supprimer », le
+ * Carnet passe au premier animal suivi, ou à l'accueil. Chaque geste rend faux s'il a échoué.
  */
 export function useAnimalFollowGestures() {
   const { t } = useI18n()
@@ -34,10 +34,10 @@ export function useAnimalFollowGestures() {
     }
   }
 
-  function leave(animalId: string): void {
+  function leave(animalId: string, { toHome = false } = {}): void {
     const next = nextFollowedAnimalId(animals.followedAnimals, animalId)
     animals.select(next)
-    if (next === null) void router.push({ name: 'home' })
+    if (toHome || next === null) void router.push({ name: 'home' })
   }
 
   function undoable(
@@ -59,7 +59,7 @@ export function useAnimalFollowGestures() {
   function unfollow({ id, name }: Named): Promise<boolean> {
     return guarded(async () => {
       const undo = await animals.unfollow(id)
-      leave(id)
+      leave(id, { toHome: true })
       if (undo === null) return
       undoable(
         t('animals.carnet.toast.unfollowed', { name }),

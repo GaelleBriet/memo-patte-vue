@@ -900,7 +900,7 @@ describe('CarnetView — options de l’animal', () => {
     expect(actions().map(texte)).toEqual(['Suivre Luna de nouveau', 'Supprimer Luna'])
   })
 
-  it('AN-9 : « Ne plus suivre » sans question, passe à l’animal suivant et propose « Annuler »', async () => {
+  it('AN-9, V15 bis : « Ne plus suivre » sans question, revient à l’accueil et propose « Annuler »', async () => {
     const undo = { animalId: MILO.id, unfollowedOn: '2026-09-09', stoppedPeriodIds: [] }
     const unfollow = vi.spyOn(store, 'unfollow').mockImplementation(async () => {
       quitter(MILO.id, { unfollowedOn: '2026-09-09' })
@@ -916,8 +916,8 @@ describe('CarnetView — options de l’animal', () => {
 
     expect(unfollow).toHaveBeenCalledExactlyOnceWith(MILO.id)
     expect(document.body.querySelector('.confirm-dialog__panel')).toBeNull()
+    expect(push).toHaveBeenCalledExactlyOnceWith({ name: 'home' })
     expect(wrapper.findAll('.animal-chip').map((chip) => chip.text())).toEqual(['Luna'])
-    expect(wrapper.get('.carnet-header__name').text()).toBe('Luna')
     expect(toastMessage.value).toBe('Tu ne suis plus Milo')
     expect(toastAction.value?.ariaLabel).toBe('Annuler et suivre de nouveau Milo')
 
@@ -926,20 +926,6 @@ describe('CarnetView — options de l’animal', () => {
 
     expect(undoUnfollow).toHaveBeenCalledExactlyOnceWith(undo)
     expect(wrapper.get('.carnet-header__name').text()).toBe('Milo')
-  })
-
-  it('revient à l’accueil quand plus aucun animal n’est suivi', async () => {
-    animals = [MILO]
-    vi.spyOn(store, 'unfollow').mockImplementation(async () => {
-      quitter(MILO.id, { unfollowedOn: '2026-09-09' })
-      return { animalId: MILO.id, unfollowedOn: '2026-09-09', stoppedPeriodIds: [] }
-    })
-    const wrapper = await monterAttache()
-    await ouvrirOptions(wrapper)
-
-    await toucher(actions()[0])
-
-    expect(push).toHaveBeenCalledWith({ name: 'home' })
   })
 
   it('AN-11 : « Suivre de nouveau » garde l’animal affiché, avec le toast qui parle de « Reprendre »', async () => {
