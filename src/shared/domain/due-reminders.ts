@@ -61,6 +61,11 @@ export function parseReminderKey(key: string): ParsedReminderKey | null {
   return { entry: `${kind}:${id}`, dueDate, dueTime, moment: moment as DueReminderMoment }
 }
 
+/** Clé de l'ancienne forme, sans heure : sa notification garde le geste d'avant (Q32). */
+export function isLegacyReminderKey(key: string): boolean {
+  return parseReminderKey(key) !== null && key.split(':').length === 4
+}
+
 /** Une prise ou une injection faite moins de trois jours avant l'échéance, ou après, vaut pour elle. */
 export function isDoneForDue(dueDate: string, lastDoneOn: string | null): boolean {
   const earliest = format(subDays(parseISO(dueDate), DAYS_BEFORE_DUE), 'yyyy-MM-dd')

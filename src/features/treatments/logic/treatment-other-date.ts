@@ -1,3 +1,4 @@
+import type { NotifiedDue } from '@/shared/domain/reminder-route'
 import type { Due, TreatmentDoseInput, TreatmentSchedule } from '@/shared/domain/treatment-schedule'
 import { formatClockTime, formatDayMonthOrYear } from '@/shared/utils/format'
 
@@ -21,7 +22,7 @@ export type OtherDatePlan = {
 type DaySchedule = Pick<TreatmentSchedule, 'doses' | 'unloggedDoses' | 'currentDoses'>
 type OtherDateSchedule = DaySchedule & Pick<TreatmentSchedule, 'dueForDate'>
 
-type DayDue = { due: Due; status: 'pending' | 'given' | 'missed'; givenOn: string | null }
+export type DayDue = { due: Due; status: 'pending' | 'given' | 'missed'; givenOn: string | null }
 
 function dueOf({ periodId, dueOn, dueTime }: Due): Due {
   return { periodId, dueOn, dueTime }
@@ -75,6 +76,29 @@ export function otherDatePlan(
   const [only] = dues
   if (only === undefined) return { hours: [], due: schedule.dueForDate(givenOn) }
   return { hours: [], due: only.status === 'given' ? null : only.due }
+}
+
+/** Les échéances d'une notification : son heure, ou toute la journée sans heure (relance). */
+export function notifiedDues(schedule: DaySchedule, { dueOn, dueTime }: NotifiedDue): DayDue[] {
+  return dayDues(schedule, dueOn).filter(({ due }) => dueTime === null || due.dueTime === dueTime)
+}
+
+/** Ce que « Donnée quand ? » note : l'échéance de la notification, ou l'une de ses heures ; jamais un oubli (Q41). */
+export function notifiedPlan(
+  t: Translate,
+  schedule: DaySchedule,
+  notified: NotifiedDue,
+): OtherDatePlan {
+  const dues = notifiedDues(schedule, notified)
+  const open = (entry: DayDue): Due | null => (entry.status === 'pending' ? entry.due : null)
+  if (dues.length > 1) {
+    return {
+      hours: dues.map((entry) => ({ ...hourChoice(t, entry), due: open(entry) })),
+      due: null,
+    }
+  }
+  const [only] = dues
+  return { hours: [], due: only === undefined ? null : open(only) }
 }
 
 function isGiven({ status }: Pick<TreatmentDoseInput, 'status'>): boolean {
