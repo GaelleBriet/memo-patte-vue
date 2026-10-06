@@ -264,6 +264,10 @@ function stop(): void {
 }
 
 function backToCarnet(): void {
+  if (route.query.from === 'home') {
+    returnTo(router, { name: 'home' })
+    return
+  }
   if (treatment.value) animals.select(treatment.value.animalId)
   returnTo(router, { name: 'animals' })
 }

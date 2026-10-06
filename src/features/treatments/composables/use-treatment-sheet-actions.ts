@@ -5,6 +5,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { alreadyNotedText } from '../logic/treatment-gestures'
 import { sheetDoneTarget } from '../logic/treatment-sheet'
 import {
+  originQuery,
   REMINDER_QUERY_PARAM,
   todoReminderValue,
   type NotifiedDue,
@@ -47,7 +48,11 @@ export function useTreatmentSheetActions(
     if (treatmentId.value === null) return
     const date = withoutFinalDot(formatDayMonthOrYear(dueOn, today.value))
     info(t('treatments.sheet.toast.extraOnDetail', { animal: named.value.animal, date }))
-    void router.push({ name: 'treatment-detail', params: { id: treatmentId.value } })
+    void router.push({
+      name: 'treatment-detail',
+      params: { id: treatmentId.value },
+      query: originQuery(route),
+    })
   }
 
   function doneToday(): void {

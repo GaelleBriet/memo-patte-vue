@@ -1,4 +1,4 @@
-import { givenWhenMin } from './treatment-notification'
+import { givenWhenMin, isExtraOn } from './treatment-notification'
 import { notifiedDues } from './treatment-other-date'
 import { doneGesture } from './treatment-shift-box'
 import type { TreatmentWithHistory } from '../repository/treatments.repository'
@@ -80,9 +80,9 @@ export function sheetDoneTarget(
   if (pending.due.dueOn > today && givenOnDay(schedule, today)) {
     return { kind: 'already', givenOn: today }
   }
-  const given = { kind: 'given', due: pending.due, givenOn: today } as const
-  if (schedule.doseFor(given).dose.status === 'extra')
+  if (isExtraOn(schedule, pending.due, today)) {
     return { kind: 'detail', dueOn: pending.due.dueOn }
+  }
   const tapped = doneGesture(schedule, pending.due, today)
   return tapped.confirm
     ? { kind: 'confirm', due: pending.due }
