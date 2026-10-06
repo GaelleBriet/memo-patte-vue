@@ -4,7 +4,7 @@ import { dose, period, plain, shifted, treatment, written } from './treatment-fi
 import type { DoseAction } from '../logic/treatment-dose-writes'
 import { revealedDues, revealedDuesText } from '../logic/treatment-revealed-dues'
 import { treatmentScheduleOf } from '../logic/treatment-schedule'
-import { dateChangeBox, otherDateBox } from '../logic/treatment-shift-box'
+import { dateChangeBox, otherDateBox, shiftHelpText } from '../logic/treatment-shift-box'
 import { dateChangeOf, doseActionTexts } from '../logic/treatment-gestures'
 import type { DoseWrite } from '../repository/treatment-doses.repository'
 import type { TreatmentWithHistory } from '../repository/treatments.repository'
@@ -360,5 +360,52 @@ describe('l’aide sous la case ne cite que des dates à venir', () => {
     expect(plain(help)).toBe(
       'Les doses suivantes passeront au 2 nov., puis toutes les semaines. La dose du 26 oct. sera en retard.',
     )
+  })
+})
+
+describe('finitions de la revue', () => {
+  it('le jour même de l’échéance, sans case, l’aide annonce aussi les doses passées', () => {
+    const carnet = {
+      history: HEBDO,
+      schedule: treatmentScheduleOf(HEBDO, HEBDO_TODAY),
+      today: HEBDO_TODAY,
+    }
+    const change = dateChangeOf(t, PRISE_16, null, { today: HEBDO_TODAY, earliest: null })!
+    const view = dateChangeBox(t, PRISE_16, carnet, change.action)!.view('2026-10-16', true)
+
+    expect(view.shown).toBe(false)
+    expect(plain(view.help)).toEqual({ text: 'La dose du 23 oct. sera en retard.', warning: false })
+  })
+
+  it.each([
+    ['2026-06', 'juin'],
+    ['2026-10', 'oct.'],
+  ])('un report nommé après la date finit la phrase par un seul point (%s)', (month, name) => {
+    const weekly = { frequency: { value: 1, unit: 'week' as const } }
+    const options = {
+      following: [`${month}-26`, `${month}-30`],
+      lost: [],
+      arrivals: [`${month}-30`],
+    }
+    const end = name.replace(/\.$/, '')
+
+    expect(plain(shiftHelpText(t, weekly, { ...options, shifts: true }, `${month}-20`)!.text)).toBe(
+      `Les doses suivantes passeront au 26 ${name}, puis dose reportée le 30 ${end}.`,
+    )
+    expect(
+      plain(shiftHelpText(t, weekly, { ...options, shifts: false }, `${month}-20`)!.text),
+    ).toBe(
+      `Seule cette dose change. Les suivantes restent prévues le 26 ${name}, puis dose reportée le 30 ${end}.`,
+    )
+  })
+
+  it('une dose en retard avant le geste, à renseigner après, n’est pas annoncée', () => {
+    expect(
+      revealedDues(
+        { unloggedDoses: [], currentDoses: [due('2026-10-23')] },
+        { unloggedDoses: [due('2026-10-23')], currentDoses: [due('2026-10-26')] },
+        '2026-10-27',
+      ),
+    ).toEqual({ unlogged: [], overdue: [due('2026-10-26')] })
   })
 })

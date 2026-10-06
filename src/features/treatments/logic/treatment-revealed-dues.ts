@@ -21,15 +21,16 @@ function added(before: readonly Due[], after: readonly Due[]): Due[] {
   return after.filter((due) => !known.has(keyOf(due)))
 }
 
-/** Ce qui devient à renseigner ou en retard, et ne l'était pas avant le geste. */
+/** Ce qui devient à renseigner ou en retard, et n'était ni l'un ni l'autre avant le geste. */
 export function revealedDues(
   before: PastSchedule,
   after: PastSchedule,
   today: string,
 ): RevealedDues {
+  const past = [...before.unloggedDoses, ...overdueOf(before, today)]
   return {
-    unlogged: added(before.unloggedDoses, after.unloggedDoses),
-    overdue: added(overdueOf(before, today), overdueOf(after, today)),
+    unlogged: added(past, after.unloggedDoses),
+    overdue: added(past, overdueOf(after, today)),
   }
 }
 

@@ -635,8 +635,8 @@
       "reportFollows": "La dose que tu avais reportée au {date} reste prévue ce jour-là.",
       "movedAfterReport": "Dose reportée le {report}, puis le {date} et {every}.",
       "keptAfterReport": "Seule cette dose change. Dose reportée le {report}, puis le {date} et {every}.",
-      "movedBeforeReport": "Les doses suivantes passeront au {date}, puis dose reportée le {report}",
-      "keptBeforeReport": "Seule cette dose change. Les suivantes restent prévues le {date}, puis dose reportée le {report}",
+      "movedBeforeReport": "Les doses suivantes passeront au {date}, puis dose reportée le {report}.",
+      "keptBeforeReport": "Seule cette dose change. Les suivantes restent prévues le {date}, puis dose reportée le {report}.",
       "passesMoveCheck": "Avec ce jour, la dose que tu avais reportée au {date} tomberait après la suivante. Coche « Décaler aussi les doses suivantes », ou change d’abord la date de ce report.",
       "revealed": {
         "help": {
