@@ -1339,6 +1339,7 @@ class Simulation {
       ...this.book,
       doses: this.book.doses.filter(({ status }) => status !== 'extra'),
     }
+    if (ghost.doses.length === this.book.doses.length) return
     const [real, without] = [this.schedule(), this.schedule(ghost)]
     const gestures = (schedule: TreatmentSchedule) => {
       const [current] = schedule.currentDoses

@@ -353,3 +353,45 @@ describe('premier jour du mois', () => {
     })
   })
 })
+
+describe('formateurs de nombres, d’une langue à l’autre', () => {
+  afterEach(() => applyLocale('fr'))
+
+  const VALEURS = [0, 0.04, 0.05, 0.3, 1, 4.25, 24.55, 54, 99.95, 1234.5, 12345.678]
+
+  function attendu(langue: 'fr' | 'en', options: Intl.NumberFormatOptions, value: number) {
+    return new Intl.NumberFormat(langue, { useGrouping: false, ...options }).format(value)
+  }
+
+  it.each(['fr', 'en', 'fr'] as const)(
+    'écrit les mêmes textes qu’un formateur neuf (%s)',
+    (langue) => {
+      applyLocale(langue)
+
+      for (const value of VALEURS) {
+        const arrondi = Math.round(value * 10) / 10
+        expect(formatWeight(value)).toBe(
+          attendu(langue, { minimumFractionDigits: 1, maximumFractionDigits: 1 }, arrondi),
+        )
+        expect(formatWeightAxis(value)).toBe(attendu(langue, { maximumFractionDigits: 1 }, arrondi))
+        expect(formatQuantity(value)).toBe(attendu(langue, { maximumFractionDigits: 20 }, value))
+      }
+    },
+  )
+
+  it('suit la langue choisie entre deux appels', () => {
+    expect([formatWeight(1234.5), formatWeightAxis(24.5), formatQuantity(0.3)]).toEqual([
+      '1234,5',
+      '24,5',
+      '0,3',
+    ])
+    applyLocale('en')
+    expect([formatWeight(1234.5), formatWeightAxis(24.5), formatQuantity(0.3)]).toEqual([
+      '1234.5',
+      '24.5',
+      '0.3',
+    ])
+    applyLocale('fr')
+    expect(formatWeightDelta(-0.3)).toBe('−0,3')
+  })
+})
