@@ -19,6 +19,7 @@ export const animalInputSchema = z.object({
     .refine((value) => !isFuture(parseISO(value)))
     .nullable()
     .default(null),
+  birthDateApproximate: z.boolean().default(false),
   /** Nom de fichier sous `files/photos/`, jamais un chemin ni une URL. */
   photoPath: z.string().trim().min(1).nullable().default(null),
 })
@@ -48,7 +49,6 @@ export type Animal = z.output<typeof animalSchema>
 /** L'animal avec toutes ses colonnes : ce que l'export emporte et que l'import écrit. */
 export type AnimalRecord = Animal &
   DeviceStamps & {
-    birthDateApproximate: boolean
     /** `null` tant que l'animal est suivi. */
     unfollowedOn: string | null
     departureReason: DepartureReason | null

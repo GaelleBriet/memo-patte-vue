@@ -53,6 +53,17 @@ describe('carnetVaccinationRow — ligne d’un vaccin (VA-16, B · V11 et V15)'
     })
   })
 
+  it('rendez-vous du 5 oct. : « Prévu » le jour même, en retard le lendemain sans injection', () => {
+    expect(row(null, '2026-10-05', '2026-10-05')).toEqual({
+      badge: { status: 'planned', label: 'Prévu le 5 oct.' },
+      detail: 'Premier vaccin · aucune injection notée',
+    })
+    expect(row(null, '2026-10-05', '2026-10-06')).toEqual({
+      badge: { status: 'overdue', label: 'En retard · 1 j' },
+      detail: 'Échéance passée',
+    })
+  })
+
   it('sans rappel : « Pas de rappel », neutre', () => {
     expect(row('2026-01-12', null)).toEqual({
       badge: { status: 'none', label: 'Pas de rappel' },

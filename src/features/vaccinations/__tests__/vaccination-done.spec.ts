@@ -1,8 +1,19 @@
 import { describe, expect, it } from 'vitest'
 
-import { injectionOn, nextReminderDate } from '../logic/vaccination-done'
+import { injectionOn, NEXT_REMINDER_KINDS, nextReminderDate } from '../logic/vaccination-done'
+
+describe('NEXT_REMINDER_KINDS', () => {
+  it('propose « Dans 1 mois », « Dans 1 an », « Dans 3 ans », « Autre date », « Pas de rappel »', () => {
+    expect(NEXT_REMINDER_KINDS).toEqual(['oneMonth', 'oneYear', 'threeYears', 'otherDate', 'none'])
+  })
+})
 
 describe('nextReminderDate', () => {
+  it('compte « Dans 1 mois » depuis la date d’injection, calé sur la fin d’un mois court', () => {
+    expect(nextReminderDate('2026-09-23', { kind: 'oneMonth' })).toBe('2026-10-23')
+    expect(nextReminderDate('2026-01-31', { kind: 'oneMonth' })).toBe('2026-02-28')
+  })
+
   it('compte « Dans 1 an » et « Dans 3 ans » depuis la date d’injection', () => {
     expect(nextReminderDate('2026-09-23', { kind: 'oneYear' })).toBe('2027-09-23')
     expect(nextReminderDate('2026-09-23', { kind: 'threeYears' })).toBe('2029-09-23')

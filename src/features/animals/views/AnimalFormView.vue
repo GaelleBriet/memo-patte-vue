@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
 import {
   animalFormValuesFrom,
+  birthDateApproximateHelp,
+  canMarkBirthDateApproximate,
   emptyAnimalFormValues,
   validateAnimalForm,
 } from '../logic/animal-form'
@@ -17,10 +19,12 @@ import { pickPhoto } from '@/core/photos/photo-picker'
 import { usePhotoUrls } from '@/core/photos/use-photo-urls'
 import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
 import { weightLimitParams, weightUnitText } from '@/shared/domain/weight-display'
+import FormCheckbox from '@/shared/form/FormCheckbox.vue'
 import FormField from '@/shared/form/FormField.vue'
 import FormScreen from '@/shared/form/FormScreen.vue'
 import FormSegmented from '@/shared/form/FormSegmented.vue'
 import { useFormValidation } from '@/shared/form/use-form-validation'
+import { formatLongDate } from '@/shared/utils/format'
 
 const props = defineProps<{
   id?: string
@@ -36,7 +40,7 @@ const { errors, validate } = useFormValidation(values, validateAnimalForm)
 const notFound = ref(false)
 const saveFailed = ref(false)
 const isSubmitting = ref(false)
-const { today: maxBirthDate } = useToday()
+const { today } = useToday()
 const photo = ref<PhotoChange>({ kind: 'keep' })
 const pickedPreview = ref<string | null>(null)
 const photoFailed = ref(false)
@@ -47,6 +51,13 @@ const shownPhotoUrl = computed(() => {
   if (photo.value.kind === 'replace') return pickedPreview.value
   if (photo.value.kind === 'remove') return null
   return photoUrl(existing.value?.photoPath ?? null)
+})
+
+const canMarkApproximate = computed(() => canMarkBirthDateApproximate(values.value))
+const approximateHelp = computed(() => birthDateApproximateHelp(t, values.value, today.value))
+
+watch(canMarkApproximate, (allowed) => {
+  if (!allowed) values.value.birthDateApproximate = false
 })
 
 const isEdit = computed(() => props.id !== undefined)
@@ -232,7 +243,7 @@ async function submit(): Promise<void> {
           :aria-invalid="invalid"
           class="form-field__input form-field__input--date"
           type="date"
-          :max="maxBirthDate"
+          :max="today"
           variant="outlined"
           hide-details
           append-inner-icon="ms:calendar_month"
@@ -241,10 +252,19 @@ async function submit(): Promise<void> {
       </template>
     </FormField>
 
+    <FormCheckbox
+      v-model="values.birthDateApproximate"
+      class="animal-form__approximate"
+      :label="t('animals.form.birthDate.approximate.label')"
+      :help="approximateHelp"
+      :disabled="!canMarkApproximate"
+    />
+
     <FormField
       v-if="!isEdit"
       class="animal-form__field--weight"
-      :label="t('animals.form.initialWeightKg.label')"
+      :label="t('animals.form.weight.label')"
+      :help="t('animals.form.weight.help', { date: formatLongDate(today) })"
       control-id="animal-weight"
       :error="errors.weightKg ? t(errors.weightKg, weightLimitParams(t)) : null"
     >
@@ -261,7 +281,7 @@ async function submit(): Promise<void> {
           variant="outlined"
           hide-details
           :error="invalid"
-          :placeholder="t('animals.form.initialWeightKg.placeholder')"
+          :placeholder="t('animals.form.weight.placeholder')"
           :suffix="weightUnitText(t)"
         />
       </template>

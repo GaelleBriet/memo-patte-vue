@@ -88,6 +88,7 @@ const MILO: Animal = {
   species: 'dog',
   breed: null,
   birthDate: null,
+  birthDateApproximate: false,
   photoPath: null,
   createdAt: AT,
   updatedAt: AT,
