@@ -5,11 +5,17 @@ import { useI18n } from 'vue-i18n'
 import TreatmentHourChoices from './TreatmentHourChoices.vue'
 import TreatmentShiftCheckbox from './TreatmentShiftCheckbox.vue'
 import { hasSeveralTimes } from '../logic/treatment-gestures'
-import { givenDays, otherDatePlan, otherDateTexts } from '../logic/treatment-other-date'
+import {
+  givenDays,
+  notifiedPlan,
+  otherDatePlan,
+  otherDateTexts,
+} from '../logic/treatment-other-date'
 import { otherDateBox, otherDateNote, otherDateRecap } from '../logic/treatment-shift-box'
 import type { TreatmentWithHistory } from '../repository/treatments.repository'
 import BottomSheet from '@/shared/components/BottomSheet.vue'
 import DateCalendar from '@/shared/components/DateCalendar.vue'
+import type { NotifiedDue } from '@/shared/domain/reminder-route'
 import type { DoseGesture, TreatmentSchedule } from '@/shared/domain/treatment-schedule'
 
 const props = withDefaults(
@@ -22,8 +28,10 @@ const props = withDefaults(
     today: string
     min?: string | null
     busy?: boolean
+    /** « Donnée quand ? » : l'échéance de la notification, que le jour choisi ne change pas. */
+    notified?: NotifiedDue | null
   }>(),
-  { min: null, busy: false },
+  { min: null, busy: false, notified: null },
 )
 
 const emit = defineEmits<{
@@ -50,9 +58,12 @@ watch([givenOn, step], () => {
   shifts.value = true
 })
 
-const plan = computed(() =>
-  givenOn.value === null ? null : otherDatePlan(t, props.schedule, givenOn.value),
-)
+const plan = computed(() => {
+  if (givenOn.value === null) return null
+  return props.notified === null
+    ? otherDatePlan(t, props.schedule, givenOn.value)
+    : notifiedPlan(t, props.schedule, props.notified)
+})
 const severalTimes = computed(() => (plan.value?.hours.length ?? 0) > 0)
 const texts = computed(() =>
   otherDateTexts(
@@ -62,7 +73,7 @@ const texts = computed(() =>
     severalTimes.value,
   ),
 )
-const excluded = computed(() => givenDays(props.schedule))
+const excluded = computed(() => (props.notified === null ? givenDays(props.schedule) : []))
 const due = computed(() => {
   if (step.value === 'day') return severalTimes.value ? null : (plan.value?.due ?? null)
   return plan.value?.hours.find(({ time }) => time === hour.value)?.due ?? null

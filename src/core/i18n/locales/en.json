@@ -653,6 +653,24 @@
         },
         "after": "{done}. {revealed}"
       }
+    },
+    "givenWhen": {
+      "title": "Given when?",
+      "subtitle": "{name} · {animal} · due {date}",
+      "subtitleAt": "{name} · {animal} · due {date} at {time}",
+      "scheduled": "The scheduled day",
+      "scheduledAt": "The scheduled day, at {time}",
+      "scheduledLabel": "Given on the scheduled day, {date}",
+      "scheduledLabelAt": "Given on the scheduled day, {date} at {time}",
+      "today": "Today",
+      "todayLabel": "Given today, {date}",
+      "other": "Another day",
+      "otherLabel": "Given on another day: choose the day",
+      "everyDay": "Given on {date}",
+      "everyDayAt": "Given on {date} at {time}",
+      "everyDayLabel": "Given on {date}",
+      "everyDayLabelAt": "Given on {date} at {time}",
+      "back": "Back to “Given when?”"
     }
   },
   "reminders": {

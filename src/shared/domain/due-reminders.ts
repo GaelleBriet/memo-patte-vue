@@ -81,6 +81,11 @@ export function parseReminderKey(key: string): ParsedReminderKey | null {
   return { entry: `${kind}:${id}`, dueDate, dueTime, moment: moment as DueReminderMoment }
 }
 
+/** Clé de l'ancienne forme, sans heure : sa notification garde le geste d'avant (Q32). */
+export function isLegacyReminderKey(key: string): boolean {
+  return parseReminderKey(key) !== null && key.split(':').length === 4
+}
+
 function at(dueDate: string, offsetDays: number): Date {
   return set(addDays(parseISO(dueDate), offsetDays), { hours: REMINDER_HOUR })
 }

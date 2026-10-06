@@ -4,11 +4,17 @@ import { createMemoryHistory, createRouter, type Router } from 'vue-router'
 import i18n from '@/core/i18n'
 import type { ReminderAction } from '@/core/notifications'
 import type { Animal } from '@/features/animals/schema/animal.schema'
-import type {
-  NotedMoment,
-  TreatmentDosesService,
-} from '@/features/treatments/service/treatment-doses.service'
-import type { Treatment } from '@/features/treatments/schema/treatment.schema'
+import {
+  dose,
+  extra,
+  missed,
+  period,
+  treatment,
+  written,
+} from '@/features/treatments/__tests__/treatment-fixtures'
+import type { DoseWrite } from '@/features/treatments/repository/treatment-doses.repository'
+import type { TreatmentWithHistory } from '@/features/treatments/repository/treatments.repository'
+import { createTreatmentDosesService } from '@/features/treatments/service/treatment-doses.service'
 import type { Vaccination } from '@/features/vaccinations/schema/vaccination.schema'
 import {
   dismissToast,
@@ -19,60 +25,57 @@ import {
 } from '@/shared/utils/toast'
 import { createReminderActions, installReminderActions } from '../reminder-actions'
 
-const TODAY = '2026-09-25'
+const TODAY = '2026-10-07'
 const STAMP = '2026-08-01T09:00:00.000Z'
 
-const BOREE: Animal = {
-  id: '11111111-1111-4111-8111-111111111111',
-  name: 'Boree',
-  species: 'dog',
-  breed: null,
-  birthDate: null,
-  photoPath: null,
-  createdAt: STAMP,
-  updatedAt: STAMP,
-  deletedAt: null,
+function animal(id: string, name: string): Animal {
+  return {
+    id,
+    name,
+    species: 'dog',
+    breed: null,
+    birthDate: null,
+    photoPath: null,
+    createdAt: STAMP,
+    updatedAt: STAMP,
+    deletedAt: null,
+  }
 }
 
-const BRAVECTO: Treatment = {
-  id: '22222222-2222-4222-8222-222222222222',
-  animalId: BOREE.id,
-  name: 'Bravecto',
-  type: 'deworming',
-  periodId: '22222222-2222-4222-8222-222222222222',
-  frequency: { value: 1, unit: 'month' },
-  lastDoseDate: '2026-08-25',
-  nextDueDate: TODAY,
-  stoppedOn: null,
-  createdAt: STAMP,
-  updatedAt: STAMP,
-  deletedAt: null,
-}
+const LUNA = animal('luna', 'Luna')
+const BOREE = animal('11111111-1111-4111-8111-111111111111', 'Boree')
 
 const CARRE: Vaccination = {
   id: '33333333-3333-4333-8333-333333333333',
   animalId: BOREE.id,
   name: 'Carré',
-  lastInjectionDate: '2025-09-25',
+  lastInjectionDate: '2025-10-07',
   dueDate: TODAY,
   createdAt: STAMP,
   updatedAt: STAMP,
   deletedAt: null,
 }
 
-const DOSE_ID = '44444444-4444-4444-8444-444444444444'
-const NOTED: NotedMoment = {
-  animalId: BOREE.id,
-  undo: [{ action: 'delete', id: DOSE_ID }],
-  alreadyGivenOn: null,
-  postponement: null,
-  finishes: false,
-  moved: null,
-  shiftKept: false,
-  outcome: 'noted',
-  due: { periodId: BRAVECTO.id, dueOn: TODAY, dueTime: null },
-  severalTimes: false,
-}
+const QUOTIDIEN_20H = period({ startsOn: '2026-10-01', firstDueOn: '2026-10-01', times: ['20:00'] })
+const MATIN_ET_SOIR = period({
+  startsOn: '2026-10-01',
+  firstDueOn: '2026-10-01',
+  times: ['08:00', '20:00'],
+})
+const VENDREDIS = period({
+  startsOn: '2026-10-02',
+  firstDueOn: '2026-10-02',
+  frequency: { value: 1, unit: 'week' },
+})
+const TOUS_LES_3_JOURS = period({
+  startsOn: '2026-10-01',
+  firstDueOn: '2026-10-01',
+  frequency: { value: 3, unit: 'day' },
+  times: ['08:00', '20:00'],
+})
+
+const SOIR = { dueTime: '20:00' }
+const METACAM = 'metacam'
 
 function done(key: string): ReminderAction {
   return { key, action: 'done' }
@@ -81,22 +84,37 @@ function done(key: string): ReminderAction {
 const Vide = { render: () => null }
 
 let router: Router
-let treatment: Treatment | null
+let today: string
+let book: TreatmentWithHistory | null
 let vaccination: Vaccination | null
-let record: Mock<TreatmentDosesService['noteMoment']>
-let undo: Mock<TreatmentDosesService['undoBatch']>
+let applyBatch: Mock<(writes: readonly DoseWrite[], at: string) => Promise<DoseWrite[]>>
 let refreshHome: ReturnType<typeof vi.fn<() => Promise<boolean>>>
 
+function inverseOf(writes: readonly DoseWrite[]): DoseWrite[] {
+  return writes.flatMap((write): DoseWrite[] =>
+    write.action === 'create' ? [{ action: 'delete', id: write.id }] : [],
+  )
+}
+
 function handler() {
+  const doses = createTreatmentDosesService({
+    treatments: () => ({ getWithHistory: async (id) => (book?.id === id ? book : null) }),
+    doses: () => ({ applyBatch }),
+    reminders: { reschedule: async () => {} },
+    now: () => new Date(`${today}T10:00:00.000Z`),
+    today: () => today,
+  })
   return createReminderActions({
     router,
-    animals: () => ({ getById: async (id) => (id === BOREE.id ? BOREE : null) }),
-    treatments: () => ({ getById: async (id) => (treatment?.id === id ? treatment : null) }),
+    animals: () => ({
+      getById: async (id) => [LUNA, BOREE].find((candidate) => candidate.id === id) ?? null,
+    }),
+    treatments: () => ({ getWithHistory: async (id) => (book?.id === id ? book : null) }),
     vaccinations: () => ({ getById: async (id) => (vaccination?.id === id ? vaccination : null) }),
-    doses: { noteMoment: record, undoBatch: undo },
+    doses,
     refreshHome,
     t: i18n.global.t,
-    today: () => TODAY,
+    today: () => today,
   })
 }
 
@@ -109,18 +127,21 @@ beforeEach(async () => {
     ],
   })
   await router.push({ name: 'animals' })
-  treatment = BRAVECTO
+  today = TODAY
+  book = null
   vaccination = CARRE
-  record = vi.fn<TreatmentDosesService['noteMoment']>(async (_id, givenOn) => {
-    treatment = { ...BRAVECTO, lastDoseDate: givenOn, nextDueDate: '2026-10-25' }
-    return NOTED
-  })
-  undo = vi.fn<TreatmentDosesService['undoBatch']>(async () => {})
+  applyBatch = vi.fn<(writes: readonly DoseWrite[], at: string) => Promise<DoseWrite[]>>(
+    async (writes) => {
+      book = written(book!, writes)
+      return inverseOf(writes)
+    },
+  )
   refreshHome = vi.fn<() => Promise<boolean>>(async () => true)
 })
 
 afterEach(() => {
   dismissToast()
+  i18n.global.locale.value = 'fr'
 })
 
 function currentPlace() {
@@ -128,202 +149,242 @@ function currentPlace() {
   return { name, query }
 }
 
-describe('« C’est fait » d’un vermifuge ou d’un antiparasitaire', () => {
-  it('ouvre l’accueil, note la prise du jour et relit « À faire »', async () => {
-    await handler()(done(`treatment:${BRAVECTO.id}:${TODAY}:due`))
+function givenLines() {
+  return (book?.doses ?? [])
+    .filter(({ status }) => status === 'given')
+    .map(({ dueOn, dueTime, givenOn }) => ({ dueOn, dueTime, givenOn }))
+}
 
-    expect(record).toHaveBeenCalledExactlyOnceWith(BRAVECTO.id, TODAY, { notifiedDueOn: TODAY })
+function sheetOf(id: string) {
+  return { name: 'home', query: { reminder: `treatment:${id}`, step: 'actions' } }
+}
+
+describe('« C’est fait » d’une notification du jour (RA-18, TR-20, T5)', () => {
+  beforeEach(() => {
+    book = treatment([QUOTIDIEN_20H], [dose('2026-10-06', '2026-10-07', SOIR)])
+  })
+
+  it('note son échéance, jour et heure, datée d’aujourd’hui, puis relit « À faire »', async () => {
+    await handler()(done(`treatment:${METACAM}:${TODAY}:2000:due`))
+
+    expect(givenLines()).toContainEqual({ dueOn: TODAY, dueTime: '20:00', givenOn: TODAY })
     expect(currentPlace()).toEqual({ name: 'home', query: {} })
     expect(refreshHome).toHaveBeenCalledOnce()
     expect(refreshHome.mock.invocationCallOrder[0]).toBeGreaterThan(
-      record.mock.invocationCallOrder[0]!,
+      applyBatch.mock.invocationCallOrder[0]!,
     )
   })
 
-  it('confirme la prise par le toast de F4, avec « Annuler »', async () => {
-    await handler()(done(`treatment:${BRAVECTO.id}:${TODAY}:due`))
+  it('confirme la prise par un toast avec « Annuler »', async () => {
+    await handler()(done(`treatment:${METACAM}:${TODAY}:2000:due`))
 
-    expect(toastMessage.value).toBe('Prise de Bravecto notée pour Boree')
+    expect(toastMessage.value).toBe('Prise de Métacam notée pour Luna')
     expect(toastAction.value).toMatchObject({
       label: 'Annuler',
-      ariaLabel: 'Annuler la prise de Bravecto',
+      ariaLabel: 'Annuler la prise de Métacam',
     })
   })
 
   it('« Annuler » retire la prise et relit « À faire »', async () => {
-    await handler()(done(`treatment:${BRAVECTO.id}:${TODAY}:due`))
+    await handler()(done(`treatment:${METACAM}:${TODAY}:2000:due`))
     refreshHome.mockClear()
 
     runToastAction()
 
     await vi.waitFor(() => expect(refreshHome).toHaveBeenCalledOnce())
-    expect(undo).toHaveBeenCalledExactlyOnceWith(BRAVECTO.id, NOTED.undo)
+    expect(givenLines()).not.toContainEqual(expect.objectContaining({ dueOn: TODAY }))
   })
 
-  it('note la prise depuis la relance à J+3', async () => {
-    treatment = { ...BRAVECTO, lastDoseDate: '2026-08-22', nextDueDate: '2026-09-22' }
+  it('TR-21, Q33 : la même notification traitée deux fois ne note qu’une prise', async () => {
+    const act = handler()
 
-    await handler()(done(`treatment:${BRAVECTO.id}:2026-09-22:overdue`))
+    await act(done(`treatment:${METACAM}:${TODAY}:2000:due`))
+    await act(done(`treatment:${METACAM}:${TODAY}:2000:due`))
 
-    expect(record).toHaveBeenCalledExactlyOnceWith(BRAVECTO.id, TODAY, {
-      notifiedDueOn: '2026-09-22',
-    })
-  })
-
-  it('note la prise depuis un cycle manqué, qui porte échéance + k × fréquence', async () => {
-    treatment = { ...BRAVECTO, lastDoseDate: '2026-07-25', nextDueDate: '2026-08-25' }
-
-    await handler()(done(`treatment:${BRAVECTO.id}:${TODAY}:due`))
-
-    expect(record).toHaveBeenCalledExactlyOnceWith(BRAVECTO.id, TODAY, { notifiedDueOn: TODAY })
-  })
-
-  it('note la première prise d’un traitement sans prise, sans le dire « déjà noté »', async () => {
-    treatment = { ...BRAVECTO, lastDoseDate: null }
-
-    await handler()(done(`treatment:${BRAVECTO.id}:${TODAY}:overdue`))
-
-    expect(record).toHaveBeenCalledExactlyOnceWith(BRAVECTO.id, TODAY, { notifiedDueOn: TODAY })
-    expect(toastMessage.value).toBe('Prise de Bravecto notée pour Boree')
-  })
-
-  it('dit l’heure notée quand le traitement en a plusieurs par jour', async () => {
-    record.mockResolvedValue({
-      ...NOTED,
-      due: { periodId: BRAVECTO.id, dueOn: TODAY, dueTime: '08:00' },
-      severalTimes: true,
-    })
-
-    await handler()(done(`treatment:${BRAVECTO.id}:${TODAY}:due`))
-
-    expect(toastMessage.value?.replaceAll('\u00a0', ' ')).toBe(
-      'Prise de 8 h de Bravecto notée pour Boree',
-    )
-  })
-
-  it('dit que les doses du jour sont déjà notées quand aucune n’a été donnée aujourd’hui', async () => {
-    record.mockResolvedValue({ ...NOTED, outcome: 'day-noted', undo: [], due: null })
-    await handler()(done(`treatment:${BRAVECTO.id}:${TODAY}:due`))
-
-    expect(toastMessage.value).toBe('Les doses d’aujourd’hui sont déjà notées.')
-    expect(toastAction.value).toBeNull()
-  })
-
-  it('dit « déjà notée », sans « Annuler », quand le service n’a rien eu à écrire', async () => {
-    record.mockResolvedValue({
-      ...NOTED,
-      outcome: 'already',
-      undo: [],
-      alreadyGivenOn: TODAY,
-      due: null,
-    })
-
-    await handler()(done(`treatment:${BRAVECTO.id}:${TODAY}:due`))
-
-    expect(toastMessage.value).toBe('Prise de Bravecto déjà notée aujourd’hui pour Boree')
+    expect(applyBatch).toHaveBeenCalledOnce()
+    expect(toastMessage.value).toBe('Prise de Métacam déjà notée aujourd’hui pour Luna')
     expect(toastTone.value).toBe('info')
     expect(toastAction.value).toBeNull()
   })
 
-  it('ouvre la feuille du soin, sans rien noter ni dire, quand une prise de la journée est déjà notée', async () => {
-    record.mockResolvedValue({ ...NOTED, outcome: 'ask', undo: [], due: null })
+  it('Q32 levée : la notification de 20 h note 20 h même quand 8 h est notée', async () => {
+    book = treatment([MATIN_ET_SOIR], [dose(TODAY, TODAY, { dueTime: '08:00' })])
 
-    await handler()(done(`treatment:${BRAVECTO.id}:${TODAY}:due`))
+    await handler()(done(`treatment:${METACAM}:${TODAY}:2000:due`))
 
-    expect(toastMessage.value).toBeNull()
-    expect(refreshHome).not.toHaveBeenCalled()
-    expect(currentPlace()).toEqual({
-      name: 'home',
-      query: { reminder: `treatment:${BRAVECTO.id}`, step: 'actions' },
+    expect(givenLines()).toContainEqual({ dueOn: TODAY, dueTime: '20:00', givenOn: TODAY })
+    expect(toastMessage.value?.replaceAll(' ', ' ')).toBe(
+      'Prise de 20 h de Métacam notée pour Luna',
+    )
+  })
+
+  it('Q33 : une dose donnée en avance couvre son échéance, « déjà notée »', async () => {
+    today = '2026-10-09'
+    book = treatment(
+      [VENDREDIS],
+      [dose('2026-10-02', '2026-10-09'), dose('2026-10-09', '2026-10-16', { givenOn: TODAY })],
+    )
+
+    await handler()(done(`treatment:${METACAM}:2026-10-09::due`))
+
+    expect(applyBatch).not.toHaveBeenCalled()
+    expect(toastMessage.value).toBe('Prise de Métacam du 7 oct. déjà notée pour Luna')
+    expect(currentPlace()).toEqual({ name: 'home', query: {} })
+  })
+
+  it('G11 : une prise en plus ne couvre pas l’échéance, qui se note', async () => {
+    today = '2026-10-16'
+    book = treatment(
+      [VENDREDIS],
+      [
+        dose('2026-10-02', '2026-10-09'),
+        dose('2026-10-09', '2026-10-16'),
+        extra('2026-10-14', '2026-10-16'),
+      ],
+    )
+
+    await handler()(done(`treatment:${METACAM}:2026-10-16::due`))
+
+    expect(givenLines()).toContainEqual({
+      dueOn: '2026-10-16',
+      dueTime: null,
+      givenOn: '2026-10-16',
     })
   })
 
+  it('Q41 : un oubli ne redevient pas donné, la feuille s’ouvre', async () => {
+    book = treatment([QUOTIDIEN_20H], [missed(TODAY, '2026-10-08', SOIR)])
+
+    await handler()(done(`treatment:${METACAM}:${TODAY}:2000:due`))
+
+    expect(applyBatch).not.toHaveBeenCalled()
+    expect(toastMessage.value).toBeNull()
+    expect(currentPlace()).toEqual(sheetOf(METACAM))
+  })
+
+  it('ouvre la feuille et dit l’échec quand la prise n’a pas pu être notée', async () => {
+    applyBatch.mockRejectedValue(new Error('base verrouillée'))
+
+    await handler()(done(`treatment:${METACAM}:${TODAY}:2000:due`))
+
+    expect(toastMessage.value).toBe('La prise n’a pas pu être notée. Réessaie.')
+    expect(toastTone.value).toBe('error')
+    expect(currentPlace()).toEqual(sheetOf(METACAM))
+  })
+
   it('dit qu’un traitement arrêté n’a plus de dose à noter, sans rien écrire', async () => {
-    treatment = { ...BRAVECTO, stoppedOn: '2026-09-20' }
+    const stopped = { startsOn: '2026-10-06', firstDueOn: '2026-10-06', stoppedOn: '2026-10-06' }
+    book = treatment([{ ...QUOTIDIEN_20H, ...stopped }], book!.doses)
 
-    await handler()(done(`treatment:${BRAVECTO.id}:${TODAY}:due`))
+    await handler()(done(`treatment:${METACAM}:${TODAY}:2000:due`))
 
-    expect(record).not.toHaveBeenCalled()
+    expect(applyBatch).not.toHaveBeenCalled()
     expect(toastMessage.value).toBe('Ce traitement n’a plus de dose à noter.')
     expect(toastTone.value).toBe('info')
     expect(currentPlace()).toEqual({ name: 'home', query: {} })
   })
 
   it('reste muet pour un traitement supprimé', async () => {
-    treatment = null
+    book = null
 
-    await handler()(done(`treatment:${BRAVECTO.id}:${TODAY}:due`))
+    await handler()(done(`treatment:${METACAM}:${TODAY}:2000:due`))
 
     expect(toastMessage.value).toBeNull()
     expect(currentPlace()).toEqual({ name: 'home', query: {} })
   })
+})
 
-  it('dit qu’il n’y a plus de dose à noter, sans parler d’échec', async () => {
-    record.mockResolvedValue({ ...NOTED, outcome: 'none', undo: [], due: null })
+describe('« C’est fait » d’une notification d’un jour passé : « Donnée quand ? » (V5)', () => {
+  it('critère 6 des Rappels, 11 des Traitements : la veille, demande la date sans rien noter', async () => {
+    book = treatment([QUOTIDIEN_20H], [dose('2026-10-05', '2026-10-06', SOIR)])
 
-    await handler()(done(`treatment:${BRAVECTO.id}:${TODAY}:due`))
+    await handler()(done(`treatment:${METACAM}:2026-10-06:2000:due`))
 
-    expect(toastMessage.value).toBe('Ce traitement n’a plus de dose à noter.')
-    expect(toastTone.value).toBe('info')
-    expect(toastAction.value).toBeNull()
-  })
-
-  it('ne note qu’une prise quand la même notification est traitée deux fois', async () => {
-    const act = handler()
-
-    await act(done(`treatment:${BRAVECTO.id}:${TODAY}:due`))
-    await act(done(`treatment:${BRAVECTO.id}:${TODAY}:due`))
-
-    expect(record).toHaveBeenCalledOnce()
-    expect(toastMessage.value).toBe('Prise de Bravecto déjà notée aujourd’hui pour Boree')
-    expect(toastTone.value).toBe('info')
-    expect(toastAction.value).toBeNull()
-  })
-
-  it('dit « déjà noté » pour une notification restée dans le volet après « Fait » dans l’app', async () => {
-    treatment = { ...BRAVECTO, lastDoseDate: '2026-09-23', nextDueDate: '2026-10-23' }
-
-    await handler()(done(`treatment:${BRAVECTO.id}:2026-09-22:overdue`))
-
-    expect(record).not.toHaveBeenCalled()
-    expect(toastMessage.value).toBe('Prise de Bravecto du 23 sept. déjà notée pour Boree')
-    expect(currentPlace()).toEqual({ name: 'home', query: {} })
-  })
-
-  it('ouvre la feuille au lieu d’écrire quand l’échéance a été reportée sans prise', async () => {
-    treatment = { ...BRAVECTO, nextDueDate: '2026-10-05' }
-
-    await handler()(done(`treatment:${BRAVECTO.id}:${TODAY}:due`))
-
-    expect(record).not.toHaveBeenCalled()
+    expect(applyBatch).not.toHaveBeenCalled()
+    expect(toastMessage.value).toBeNull()
     expect(currentPlace()).toEqual({
       name: 'home',
-      query: { reminder: `treatment:${BRAVECTO.id}`, step: 'actions' },
+      query: {
+        reminder: `treatment:${METACAM}`,
+        step: 'given-when',
+        due: '2026-10-06',
+        time: '20:00',
+      },
     })
   })
 
-  it('ouvre la feuille et dit l’échec quand la prise n’a pas pu être notée', async () => {
-    record.mockRejectedValue(new Error('base verrouillée'))
+  it('relance d’un hebdomadaire sans heure', async () => {
+    today = '2026-10-12'
+    book = treatment([VENDREDIS], [dose('2026-10-02', '2026-10-09')])
 
-    await handler()(done(`treatment:${BRAVECTO.id}:${TODAY}:due`))
+    await handler()(done(`treatment:${METACAM}:2026-10-09::overdue`))
 
-    expect(toastMessage.value).toBe('La prise n’a pas pu être notée. Réessaie.')
-    expect(toastTone.value).toBe('error')
     expect(currentPlace()).toEqual({
       name: 'home',
-      query: { reminder: `treatment:${BRAVECTO.id}`, step: 'actions' },
+      query: { reminder: `treatment:${METACAM}`, step: 'given-when', due: '2026-10-09' },
     })
   })
 
-  it('n’écrit rien pour un traitement arrêté ou supprimé', async () => {
-    treatment = { ...BRAVECTO, stoppedOn: '2026-09-20' }
-    await handler()(done(`treatment:${BRAVECTO.id}:${TODAY}:due`))
+  it('TR-23 bis : la relance d’un jour à plusieurs heures vise toute la journée', async () => {
+    book = treatment(
+      [TOUS_LES_3_JOURS],
+      [
+        dose('2026-10-01', '2026-10-01', { dueTime: '08:00' }),
+        dose('2026-10-01', '2026-10-04', { dueTime: '20:00' }),
+      ],
+    )
 
-    treatment = null
-    await handler()(done(`treatment:${BRAVECTO.id}:${TODAY}:due`))
+    await handler()(done(`treatment:${METACAM}:2026-10-04:0800:overdue`))
 
-    expect(record).not.toHaveBeenCalled()
-    expect(currentPlace()).toEqual({ name: 'home', query: {} })
+    expect(currentPlace()).toEqual({
+      name: 'home',
+      query: { reminder: `treatment:${METACAM}`, step: 'given-when', due: '2026-10-04' },
+    })
+  })
+
+  it('dit « déjà notée » quand l’échéance a été notée depuis dans l’app', async () => {
+    book = treatment(
+      [QUOTIDIEN_20H],
+      [dose('2026-10-06', '2026-10-07', { dueTime: '20:00', givenOn: '2026-10-06' })],
+    )
+
+    await handler()(done(`treatment:${METACAM}:2026-10-06:2000:due`))
+
+    expect(toastMessage.value).toBe('Prise de Métacam du 6 oct. déjà notée pour Luna')
+  })
+})
+
+describe('notification à l’ancienne clé, sans heure (Q32)', () => {
+  it('note la dose du moment d’une notification du jour', async () => {
+    book = treatment([VENDREDIS], [dose('2026-10-02', '2026-10-09')])
+    today = '2026-10-09'
+
+    await handler()(done(`treatment:${METACAM}:2026-10-09:due`))
+
+    expect(givenLines()).toContainEqual({
+      dueOn: '2026-10-09',
+      dueTime: null,
+      givenOn: '2026-10-09',
+    })
+    expect(toastMessage.value).toBe('Prise de Métacam notée pour Luna')
+  })
+
+  it('ouvre la feuille quand une prise de la journée est déjà notée', async () => {
+    book = treatment([MATIN_ET_SOIR], [dose(TODAY, TODAY, { dueTime: '08:00' })])
+
+    await handler()(done(`treatment:${METACAM}:${TODAY}:due`))
+
+    expect(applyBatch).not.toHaveBeenCalled()
+    expect(currentPlace()).toEqual(sheetOf(METACAM))
+  })
+
+  it('dit « déjà notée » quand toute la journée est notée', async () => {
+    book = treatment([QUOTIDIEN_20H], [dose(TODAY, '2026-10-08', SOIR)])
+
+    await handler()(done(`treatment:${METACAM}:${TODAY}:due`))
+
+    expect(applyBatch).not.toHaveBeenCalled()
+    expect(toastMessage.value).toBe('Prise de Métacam déjà notée aujourd’hui pour Luna')
   })
 })
 
@@ -335,20 +396,19 @@ describe('« C’est fait » d’un vaccin', () => {
       name: 'home',
       query: { reminder: `vaccination:${CARRE.id}`, step: 'done' },
     })
-    expect(record).not.toHaveBeenCalled()
   })
 
   it('dit « déjà noté » quand l’injection de cette échéance est déjà notée', async () => {
-    vaccination = { ...CARRE, lastInjectionDate: '2026-09-24', dueDate: '2027-09-24' }
+    vaccination = { ...CARRE, lastInjectionDate: '2026-10-06', dueDate: '2027-10-06' }
 
-    await handler()(done(`vaccination:${CARRE.id}:2026-09-22:overdue`))
+    await handler()(done(`vaccination:${CARRE.id}:2026-10-04:overdue`))
 
-    expect(toastMessage.value).toBe('Injection de Carré du 24 sept. déjà notée pour Boree')
+    expect(toastMessage.value).toBe('Injection de Carré du 6 oct. déjà notée pour Boree')
     expect(currentPlace()).toEqual({ name: 'home', query: {} })
   })
 
   it('ouvre F5 quand l’échéance de la notification est toujours celle du vaccin, malgré une injection récente', async () => {
-    vaccination = { ...CARRE, lastInjectionDate: '2026-09-24', dueDate: TODAY }
+    vaccination = { ...CARRE, lastInjectionDate: '2026-10-06', dueDate: TODAY }
 
     await handler()(done(`vaccination:${CARRE.id}:${TODAY}:due`))
 
@@ -358,64 +418,48 @@ describe('« C’est fait » d’un vaccin', () => {
       query: { reminder: `vaccination:${CARRE.id}`, step: 'done' },
     })
   })
-})
-
-describe('texte « déjà noté »', () => {
-  afterEach(() => {
-    i18n.global.locale.value = 'fr'
-  })
-
-  const noted = {
-    dose: {
-      today: { ...BRAVECTO, lastDoseDate: TODAY, nextDueDate: '2026-10-25' },
-      earlier: { ...BRAVECTO, lastDoseDate: '2026-09-23', nextDueDate: '2026-10-23' },
-    },
-    injection: {
-      today: { ...CARRE, lastInjectionDate: TODAY, dueDate: '2027-09-25' },
-      earlier: { ...CARRE, lastInjectionDate: '2026-09-23', dueDate: '2027-09-23' },
-    },
-  }
-
-  async function alreadyNotedToast(
-    kind: 'dose' | 'injection',
-    day: 'today' | 'earlier',
-  ): Promise<string | null> {
-    if (kind === 'dose') treatment = noted.dose[day]
-    else vaccination = noted.injection[day]
-    const entry = kind === 'dose' ? `treatment:${BRAVECTO.id}` : `vaccination:${CARRE.id}`
-    await handler()(done(`${entry}:2026-09-22:overdue`))
-    return toastMessage.value
-  }
 
   it.each([
-    ['fr', 'dose', 'today', 'Prise de Bravecto déjà notée aujourd’hui pour Boree'],
-    ['fr', 'dose', 'earlier', 'Prise de Bravecto du 23 sept. déjà notée pour Boree'],
-    ['fr', 'injection', 'today', 'Injection de Carré déjà notée aujourd’hui pour Boree'],
-    ['fr', 'injection', 'earlier', 'Injection de Carré du 23 sept. déjà notée pour Boree'],
-    ['en', 'dose', 'today', 'Bravecto dose already logged today for Boree'],
-    ['en', 'dose', 'earlier', 'Bravecto dose on Sep 23 already logged for Boree'],
-    ['en', 'injection', 'today', 'Carré injection already logged today for Boree'],
-    ['en', 'injection', 'earlier', 'Carré injection on Sep 23 already logged for Boree'],
-  ] as const)('%s, %s notée %s', async (locale, kind, day, expected) => {
+    ['fr', 'today', 'Injection de Carré déjà notée aujourd’hui pour Boree'],
+    ['fr', 'earlier', 'Injection de Carré du 5 oct. déjà notée pour Boree'],
+    ['en', 'today', 'Carré injection already logged today for Boree'],
+    ['en', 'earlier', 'Carré injection on Oct 5 already logged for Boree'],
+  ] as const)('%s, injection notée %s', async (locale, day, expected) => {
     i18n.global.locale.value = locale
+    const lastInjectionDate = day === 'today' ? TODAY : '2026-10-05'
+    vaccination = { ...CARRE, lastInjectionDate, dueDate: '2027-10-05' }
 
-    await expect(alreadyNotedToast(kind, day)).resolves.toBe(expected)
+    await handler()(done(`vaccination:${CARRE.id}:2026-10-04:overdue`))
+
+    expect(toastMessage.value).toBe(expected)
   })
 })
 
-describe('notification touchée hors du bouton', () => {
+describe('texte « déjà notée » d’une prise', () => {
   it.each([
-    [
-      'du traitement (F2)',
-      `treatment:${BRAVECTO.id}:2026-09-28:before`,
-      `treatment:${BRAVECTO.id}`,
-    ],
+    ['fr', TODAY, 'Prise de Métacam déjà notée aujourd’hui pour Luna'],
+    ['fr', '2026-10-06', 'Prise de Métacam du 6 oct. déjà notée pour Luna'],
+    ['en', TODAY, 'Métacam dose already logged today for Luna'],
+    ['en', '2026-10-06', 'Métacam dose on Oct 6 already logged for Luna'],
+  ] as const)('%s, prise notée le %s', async (locale, givenOn, expected) => {
+    i18n.global.locale.value = locale
+    book = treatment([QUOTIDIEN_20H], [dose('2026-10-06', '2026-10-07', { ...SOIR, givenOn })])
+
+    await handler()(done(`treatment:${METACAM}:2026-10-06:2000:due`))
+
+    expect(toastMessage.value).toBe(expected)
+  })
+})
+
+describe('notification touchée hors du bouton (RA-17)', () => {
+  it.each([
+    ['du traitement', `treatment:${METACAM}:2026-10-09::before`, `treatment:${METACAM}`],
     ['du vaccin', `vaccination:${CARRE.id}:${TODAY}:due`, `vaccination:${CARRE.id}`],
   ])('ouvre la feuille %s sur l’accueil', async (_label, key, reminder) => {
     await handler()({ key, action: 'open' })
 
     expect(currentPlace()).toEqual({ name: 'home', query: { reminder, step: 'actions' } })
-    expect(record).not.toHaveBeenCalled()
+    expect(applyBatch).not.toHaveBeenCalled()
   })
 
   it('remplace l’accueil déjà affiché au lieu de l’empiler', async () => {
@@ -453,7 +497,7 @@ describe('installReminderActions', () => {
     let ready: () => void = () => {}
     const isReady = () => new Promise<void>((resolve) => (ready = resolve))
     const handle = vi.fn<(action: ReminderAction) => Promise<void>>().mockResolvedValue()
-    const action = done(`treatment:${BRAVECTO.id}:${TODAY}:due`)
+    const action = done(`treatment:${METACAM}:${TODAY}:2000:due`)
     const { listen } = listenerOf(action)
 
     installReminderActions({ isReady }, handle, listen)
@@ -487,8 +531,8 @@ describe('installReminderActions', () => {
     const { listen, deliver } = listenerOf()
     installReminderActions({ isReady: async () => {} }, handle, listen)
 
-    deliver(done(`treatment:${BRAVECTO.id}:${TODAY}:due`))
-    deliver(done(`treatment:${BRAVECTO.id}:${TODAY}:due`))
+    deliver(done(`treatment:${METACAM}:${TODAY}:2000:due`))
+    deliver(done(`treatment:${METACAM}:${TODAY}:2000:due`))
     await vi.waitFor(() => expect(handle).toHaveBeenCalledOnce())
     await new Promise((resolve) => setTimeout(resolve, 0))
     expect(handle).toHaveBeenCalledOnce()

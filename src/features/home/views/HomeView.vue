@@ -11,6 +11,7 @@ import { usePhotoUrls } from '@/core/photos/use-photo-urls'
 import illustration from '@/assets/brand-illustration.png'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import ImportSheet from '@/features/settings/views/ImportSheet.vue'
+import TreatmentGivenWhenSheet from '@/features/treatments/views/TreatmentGivenWhenSheet.vue'
 import TreatmentReminderSheet from '@/features/treatments/views/TreatmentReminderSheet.vue'
 import VaccinationReminderSheet from '@/features/vaccinations/views/VaccinationReminderSheet.vue'
 import WeightSheet from '@/features/weight/views/WeightSheet.vue'
@@ -22,6 +23,7 @@ import {
   parseReminderRequest,
   REMINDER_STEP_QUERY_PARAM,
   withoutReminderRequest,
+  type NotifiedDue,
   type ReminderRequest,
   type ReminderStep,
 } from '@/shared/domain/reminder-route'
@@ -131,6 +133,7 @@ watch(
     animals.select(null)
     isTreatmentSheetOpen.value = false
     isVaccinationSheetOpen.value = false
+    isGivenWhenOpen.value = false
     void load().then(() => reopenReminder(request, { fromNotification: true }))
   },
 )
@@ -144,6 +147,8 @@ const openedReminder = ref<Pick<ReminderRow, 'kind' | 'id'> | null>(null)
 const openedStep = ref<ReminderStep>('actions')
 const isTreatmentSheetOpen = ref(false)
 const isVaccinationSheetOpen = ref(false)
+const givenWhen = ref<{ id: string; due: NotifiedDue } | null>(null)
+const isGivenWhenOpen = ref(false)
 
 function openReminder(row: Pick<ReminderRow, 'kind' | 'id'>, step: ReminderStep = 'actions'): void {
   openedReminder.value = { kind: row.kind, id: row.id }
@@ -153,18 +158,34 @@ function openReminder(row: Pick<ReminderRow, 'kind' | 'id'>, step: ReminderStep 
 }
 
 /**
- * Retour de « Modifier » ou notification : la feuille s'ouvre si le rappel est dans « À faire » ;
+ * Retour de « Modifier » ou notification : « Donnée quand ? » s'ouvre toujours, la feuille du soin
+ * si le rappel est dans « À faire » ;
  * sinon une notification ouvre la fiche du soin, pour ne jamais rester sans réponse.
  */
 function reopenReminder(
-  { step, ...reminder }: ReminderRequest,
+  request: ReminderRequest,
   { fromNotification }: { fromNotification: boolean },
 ): void {
-  if (rows.value.some((row) => row.kind === reminder.kind && row.id === reminder.id)) {
-    openReminder(reminder, step)
+  const { kind, id } = request
+  if (request.step === 'given-when') {
+    givenWhen.value = { id, due: request.due }
+    isGivenWhenOpen.value = true
+    return
+  }
+  const reminder = { kind, id }
+  if (rows.value.some((row) => row.kind === kind && row.id === id)) {
+    openReminder(reminder, request.step)
   } else if (fromNotification) {
     void router.push(detailRoute(reminder))
   }
+}
+
+function onGivenWhenUnavailable(): void {
+  if (givenWhen.value === null) return
+  reopenReminder(
+    { kind: 'treatment', id: givenWhen.value.id, step: 'actions' },
+    { fromNotification: true },
+  )
 }
 
 function openForm(name: FormRoute): void {
@@ -345,6 +366,13 @@ function openCarnet(): void {
         v-model="isTreatmentSheetOpen"
         :treatment-id="openedReminder?.kind === 'treatment' ? openedReminder.id : null"
         @changed="load"
+      />
+      <TreatmentGivenWhenSheet
+        v-model="isGivenWhenOpen"
+        :treatment-id="givenWhen?.id ?? null"
+        :due="givenWhen?.due ?? null"
+        @changed="load"
+        @unavailable="onGivenWhenUnavailable"
       />
       <VaccinationReminderSheet
         v-model="isVaccinationSheetOpen"

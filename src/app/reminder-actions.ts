@@ -8,15 +8,18 @@ import {
   type AnimalsRepository,
 } from '@/features/animals/repository/animals.repository'
 import { useHomeStore } from '@/features/home/store/home.store'
-import { isDoseNoted, isTreatmentDueDate } from '@/features/treatments/logic/treatment-reminders'
-import { doseActionTexts } from '@/features/treatments/logic/treatment-gestures'
-import { isOngoing } from '@/features/treatments/logic/treatment-status'
+import { doseActionTexts, hasSeveralTimes } from '@/features/treatments/logic/treatment-gestures'
+import { notificationTarget } from '@/features/treatments/logic/treatment-notification'
+import { readableScheduleOf } from '@/features/treatments/logic/treatment-schedule'
+import { doneGesture } from '@/features/treatments/logic/treatment-shift-box'
 import {
   getTreatmentsRepository,
   type TreatmentsRepository,
+  type TreatmentWithHistory,
 } from '@/features/treatments/repository/treatments.repository'
 import {
   treatmentDosesService,
+  type AppliedDoseChange,
   type TreatmentDosesService,
 } from '@/features/treatments/service/treatment-doses.service'
 import { isInjectionNoted } from '@/features/vaccinations/logic/vaccination-reminders'
@@ -24,12 +27,14 @@ import {
   getVaccinationsRepository,
   type VaccinationsRepository,
 } from '@/features/vaccinations/repository/vaccinations.repository'
-import { parseReminderKey } from '@/shared/domain/due-reminders'
+import { isLegacyReminderKey, parseReminderKey } from '@/shared/domain/due-reminders'
 import {
   parseReminderQuery,
   reminderSheetQuery,
+  type NotifiedDue,
   type ReminderRequest,
 } from '@/shared/domain/reminder-route'
+import type { Due } from '@/shared/domain/treatment-schedule'
 import { formatDayMonthOrYear } from '@/shared/utils/format'
 import { showToast, showUndoableToast } from '@/shared/utils/toast'
 
@@ -40,9 +45,9 @@ type Translate = (key: string, named?: Record<string, unknown>) => string
 export type ReminderActionsDependencies = {
   router: Pick<Router, 'currentRoute' | 'push' | 'replace'>
   animals: Provider<Pick<AnimalsRepository, 'getById'>>
-  treatments: Provider<Pick<TreatmentsRepository, 'getById'>>
+  treatments: Provider<Pick<TreatmentsRepository, 'getWithHistory'>>
   vaccinations: Provider<Pick<VaccinationsRepository, 'getById'>>
-  doses: Pick<TreatmentDosesService, 'noteMoment' | 'undoBatch'>
+  doses: Pick<TreatmentDosesService, 'apply' | 'noteMoment' | 'undoBatch'>
   refreshHome: () => unknown
   t: Translate
   today: () => string
@@ -58,10 +63,10 @@ type AlreadyNotedTexts = {
 }
 
 /**
- * Traite une action de notification : l'app s'ouvre toujours sur l'accueil. « C'est fait » note la
- * prise du jour d'un traitement dont l'échéance tient encore, ouvre la feuille « Fait » d'un vaccin,
- * dit « déjà noté » pour une échéance notée entre-temps, et ouvre la feuille dans le doute ; toucher
- * la notification ouvre la feuille du rappel.
+ * Traite une action de notification : l'app s'ouvre toujours sur l'accueil. « C'est fait » note
+ * l'échéance du jour d'un traitement, demande « Donnée quand ? » pour un jour passé, ouvre la feuille
+ * « Fait » d'un vaccin, dit « déjà noté » pour une échéance notée entre-temps, et ouvre la feuille
+ * dans le doute ; toucher la notification ouvre la feuille du rappel.
  */
 export function createReminderActions({
   router,
@@ -102,25 +107,61 @@ export function createReminderActions({
     on: (named) => t('notifications.action.alreadyDose', named),
   }
 
-  async function treatmentDone(id: string, dueDate: string): Promise<void> {
-    const treatment = await (await treatments()).getById(id)
-    if (treatment === null) return openHome()
-    if (!isOngoing(treatment)) {
-      await openHome()
-      showToast(t('treatments.sheet.errors.noDoseLeft'), { tone: 'info' })
-      return
-    }
-    const sheet: ReminderRequest = { kind: 'treatment', id, step: 'actions' }
-    const { lastDoseDate } = treatment
-    if (lastDoseDate !== null && isDoseNoted(treatment, dueDate)) {
-      return alreadyNoted(ALREADY_DOSE, {
-        animalId: treatment.animalId,
-        name: treatment.name,
-        doneOn: lastDoseDate,
-      })
-    }
-    if (!isTreatmentDueDate(treatment, dueDate)) return openHome(sheet)
+  function doseAlreadyNoted(treatment: TreatmentWithHistory, doneOn: string): Promise<void> {
+    return alreadyNoted(ALREADY_DOSE, {
+      animalId: treatment.animalId,
+      name: treatment.name,
+      doneOn,
+    })
+  }
 
+  async function noDoseLeft(): Promise<void> {
+    await openHome()
+    showToast(t('treatments.sheet.errors.noDoseLeft'), { tone: 'info' })
+  }
+
+  async function confirmNoted(
+    treatment: TreatmentWithHistory,
+    due: Due,
+    givenOn: string,
+    noted: AppliedDoseChange,
+  ): Promise<void> {
+    void refreshHome()
+    const named = { name: treatment.name, animal: await animalName(treatment.animalId) }
+    const texts = doseActionTexts(
+      t,
+      { ...named, today: today(), severalTimes: hasSeveralTimes(treatment, due.periodId) },
+      { kind: 'note', gesture: { kind: 'given', due, givenOn } },
+      null,
+    )
+    showUndoableToast(texts.done(noted), {
+      label: t('reminderSheet.undo'),
+      ariaLabel: texts.undo,
+      undo: () => doses.undoBatch(treatment.id, noted.undo),
+      onUndone: () => void refreshHome(),
+      failedMessage: t('reminderSheet.undoFailed'),
+    })
+  }
+
+  async function noteToday(treatment: TreatmentWithHistory, due: Due): Promise<void> {
+    const { id } = treatment
+    await openHome()
+    const givenOn = today()
+    const noted = await doses
+      .apply(id, { kind: 'note', gesture: { kind: 'given', due, givenOn } })
+      .catch(() => null)
+    if (noted === null) {
+      showToast(t('treatments.sheet.errors.dose'), { tone: 'error' })
+      return openHome({ kind: 'treatment', id, step: 'actions' })
+    }
+    if (noted.alreadyGivenOn !== null) return doseAlreadyNoted(treatment, noted.alreadyGivenOn)
+    return confirmNoted(treatment, due, givenOn, noted)
+  }
+
+  /** Clé sans heure, d'avant les rappels par heure : le geste d'avant (Q32). */
+  async function legacyDone(treatment: TreatmentWithHistory, dueDate: string): Promise<void> {
+    const { id } = treatment
+    const sheet: ReminderRequest = { kind: 'treatment', id, step: 'actions' }
     await openHome()
     const givenOn = today()
     const noted = await doses.noteMoment(id, givenOn, { notifiedDueOn: dueDate }).catch(() => null)
@@ -137,29 +178,34 @@ export function createReminderActions({
       showToast(t('treatments.sheet.toast.dayNoted'), { tone: 'info' })
       return
     }
-    void refreshHome()
-    const { due } = noted
-    if (due === null) {
-      return alreadyNoted(ALREADY_DOSE, {
-        animalId: treatment.animalId,
-        name: treatment.name,
-        doneOn: noted.alreadyGivenOn ?? givenOn,
-      })
+    if (noted.due === null) return doseAlreadyNoted(treatment, noted.alreadyGivenOn ?? givenOn)
+    return confirmNoted(treatment, noted.due, givenOn, noted)
+  }
+
+  async function treatmentDone(id: string, notified: NotifiedDue, legacy: boolean): Promise<void> {
+    const treatment = await (await treatments()).getWithHistory(id)
+    if (treatment === null) return openHome()
+    const day = today()
+    const schedule = readableScheduleOf(treatment, day)
+    if (schedule === null) return openHome({ kind: 'treatment', id, step: 'actions' })
+    if (legacy) return legacyDone(treatment, notified.dueOn)
+
+    const target = notificationTarget(schedule, notified, day)
+    switch (target.kind) {
+      case 'none':
+        return noDoseLeft()
+      case 'already':
+        return doseAlreadyNoted(treatment, target.givenOn)
+      case 'sheet':
+        return openHome({ kind: 'treatment', id, step: 'actions' })
+      case 'given-when':
+        return openHome({ kind: 'treatment', id, step: 'given-when', due: notified })
+      case 'note':
+        if (doneGesture(schedule, target.due, day).confirm) {
+          return openHome({ kind: 'treatment', id, step: 'given-when', due: notified })
+        }
+        return noteToday(treatment, target.due)
     }
-    const named = { name: treatment.name, animal: await animalName(treatment.animalId) }
-    const texts = doseActionTexts(
-      t,
-      { ...named, today: givenOn, severalTimes: noted.severalTimes },
-      { kind: 'note', gesture: { kind: 'given', due, givenOn } },
-      null,
-    )
-    showUndoableToast(texts.done(noted), {
-      label: t('reminderSheet.undo'),
-      ariaLabel: texts.undo,
-      undo: () => doses.undoBatch(id, noted.undo),
-      onUndone: () => void refreshHome(),
-      failedMessage: t('reminderSheet.undoFailed'),
-    })
   }
 
   async function vaccinationDone(id: string, dueDate: string): Promise<void> {
@@ -186,7 +232,9 @@ export function createReminderActions({
     if (parsed === null || reminder === null) return openHome()
     if (action === 'open') return openHome({ ...reminder, step: 'actions' })
     if (reminder.kind === 'vaccination') return vaccinationDone(reminder.id, parsed.dueDate)
-    return treatmentDone(reminder.id, parsed.dueDate)
+    // La relance d'un jour à plusieurs heures vise toute la journée (RA-5).
+    const dueTime = parsed.moment === 'overdue' ? null : parsed.dueTime
+    return treatmentDone(reminder.id, { dueOn: parsed.dueDate, dueTime }, isLegacyReminderKey(key))
   }
 }
 

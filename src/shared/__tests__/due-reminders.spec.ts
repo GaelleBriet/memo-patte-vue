@@ -6,6 +6,7 @@ import {
   dueReminderPrefix,
   dueReminders,
   isDoneForDue,
+  isLegacyReminderKey,
   parseReminderKey,
   type DueReminderTexts,
 } from '../domain/due-reminders'
@@ -211,6 +212,17 @@ describe('parseReminderKey', () => {
     ['une clé à rallonge', `vaccination:${ID}:2026-10-15:due:2`],
   ])('ne lit pas %s', (_, key) => {
     expect(parseReminderKey(key)).toBeNull()
+  })
+})
+
+describe('isLegacyReminderKey', () => {
+  it.each([
+    [`treatment:${ID}:2026-10-15:due`, true],
+    [`treatment:${ID}:2026-10-15:2000:due`, false],
+    [`treatment:${ID}:2026-10-15::overdue`, false],
+    [`treatment:${ID}:2026-10-15:soon`, false],
+  ])('%s : %s', (key, expected) => {
+    expect(isLegacyReminderKey(key)).toBe(expected)
   })
 })
 
