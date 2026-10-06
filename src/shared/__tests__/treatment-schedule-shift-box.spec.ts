@@ -72,6 +72,18 @@ describe('« Fait à une autre date » : la case (Q3, N1, N3, G10)', () => {
     ).toBe(true)
   })
 
+  it('avec une date de fin, même loin de la dose suivante : la personne choisit (Q4, V28 bis)', () => {
+    const ended = carnet(weekly({ firstDueOn: '2026-10-16', endsOn: '2026-10-30' }))
+
+    expect(scheduleOf(ended, '2026-10-19').offersShift(due('2026-10-16'), '2026-10-19')).toBe(true)
+  })
+
+  it('pour la prochaine dose donnée en avance, moins d’un intervalle avant', () => {
+    const schedule = scheduleOf(pixel, '2026-10-14')
+
+    expect(schedule.offersShift(due('2026-10-16'), '2026-10-14')).toBe(true)
+  })
+
   it('décochée, la prise est écrite seule : les suivantes gardent leur jour', () => {
     const noted = scheduleOf(pixel, '2026-10-19').doseFor({
       kind: 'given',

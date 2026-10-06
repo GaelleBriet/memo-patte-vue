@@ -5,6 +5,7 @@ import { useRoute, useRouter } from 'vue-router'
 
 import TreatmentChangeDateSheet from './TreatmentChangeDateSheet.vue'
 import TreatmentChooseDays from './TreatmentChooseDays.vue'
+import TreatmentDoneConfirm from './TreatmentDoneConfirm.vue'
 import TreatmentDoseCard from './TreatmentDoseCard.vue'
 import TreatmentHistory from './TreatmentHistory.vue'
 import TreatmentOtherDateSheet from './TreatmentOtherDateSheet.vue'
@@ -29,7 +30,12 @@ import {
   type DoseRow,
 } from '../logic/treatment-history'
 import { treatmentStopTexts } from '../logic/treatment-sheet'
-import { dateChangeBox, restoredSuiteFor, type DateChangeBox } from '../logic/treatment-shift-box'
+import {
+  dateChangeBox,
+  doneGesture,
+  restoredSuiteFor,
+  type DateChangeBox,
+} from '../logic/treatment-shift-box'
 import { stopPrompt } from '../logic/treatment-stop'
 import { promptChoice, unloggedBanner, type PromptActionId } from '../logic/treatment-unlogged'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
@@ -115,6 +121,8 @@ const menuItems = computed<OverflowMenuItem[]>(() => [
 ])
 
 const isOtherDateOpen = ref(false)
+const isDoneConfirmOpen = ref(false)
+const confirming = ref<Due | null>(null)
 const isChooseDaysOpen = ref(false)
 const isDatePickerOpen = ref(false)
 const isStopDialogOpen = ref(false)
@@ -152,19 +160,26 @@ function apply(action: DoseAction, line: Due | null, periodId: string): Promise<
   return gestures.applyDose(treatment.value, action, texts)
 }
 
-function note(due: Due, givenOn: string): Promise<boolean> {
-  return apply({ kind: 'note', gesture: { kind: 'given', due, givenOn } }, null, due.periodId)
+function note(gesture: DoseGesture): Promise<boolean> {
+  return apply({ kind: 'note', gesture }, null, gesture.due.periodId)
 }
 
 function done(due: Due): void {
   refreshToday()
-  void note(due, today.value)
+  if (!schedule.value) return
+  const tapped = doneGesture(schedule.value, due, today.value)
+  if (tapped.confirm) {
+    confirming.value = due
+    isDoneConfirmOpen.value = true
+  } else void note(tapped.gesture)
+}
+
+async function noteConfirmed(gesture: DoseGesture): Promise<void> {
+  if (await note(gesture)) isDoneConfirmOpen.value = false
 }
 
 async function noteOtherDate(gesture: DoseGesture): Promise<void> {
-  if (await apply({ kind: 'note', gesture }, null, gesture.due.periodId)) {
-    isOtherDateOpen.value = false
-  }
+  if (await note(gesture)) isOtherDateOpen.value = false
 }
 
 function log(choice: DayChoice): Promise<'done' | 'stale' | 'failed'> {
@@ -345,6 +360,20 @@ async function remove(): Promise<void> {
       :min="animal?.birthDate ?? null"
       :busy="gestures.isBusy.value"
       @note="noteOtherDate"
+    />
+
+    <TreatmentDoneConfirm
+      v-if="treatment && schedule"
+      v-model="isDoneConfirmOpen"
+      :name="named.name"
+      :animal="named.animal"
+      :icon="reminderIcon('treatment', treatment.type)"
+      :history="treatment"
+      :schedule="schedule"
+      :today="today"
+      :due="confirming"
+      :busy="gestures.isBusy.value"
+      @note="noteConfirmed"
     />
 
     <TreatmentChooseDays
