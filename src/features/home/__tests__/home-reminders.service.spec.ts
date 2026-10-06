@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import { createHomeRemindersService } from '../service/home-reminders.service'
-import type { Treatment } from '@/features/treatments/schema/treatment.schema'
+import { period, treatment, dose } from '@/features/treatments/__tests__/treatment-fixtures'
+import type { TreatmentWithHistory } from '@/features/treatments/repository/treatments.repository'
 import type { Vaccination } from '@/features/vaccinations/schema/vaccination.schema'
 
 const STAMPS = {
@@ -21,29 +22,23 @@ const RAGE: Vaccination = {
 
 const SANS_RAPPEL: Vaccination = { ...RAGE, id: 'v2', dueDate: null }
 
-const BRAVECTO: Treatment = {
-  id: 't1',
-  animalId: 'luna',
-  name: 'Bravecto',
-  type: 'antiparasitic',
-  periodId: 't1',
-  frequency: { value: 3, unit: 'month' },
-  lastDoseDate: '2026-06-24',
-  nextDueDate: '2026-09-24',
-  stoppedOn: null,
-  ...STAMPS,
-}
+const METACAM = treatment(
+  [period({ times: ['08:00', '20:00'] })],
+  [dose('2026-09-01', '2026-09-02')],
+)
 
-function service(vaccinations: Vaccination[], treatments: Treatment[]) {
+function service(vaccinations: Vaccination[], treatments: TreatmentWithHistory[]) {
   return createHomeRemindersService(
     () => ({ listAll: vi.fn<() => Promise<Vaccination[]>>(async () => vaccinations) }),
-    async () => ({ listAll: vi.fn<() => Promise<Treatment[]>>(async () => treatments) }),
+    async () => ({
+      listAllWithHistory: vi.fn<() => Promise<TreatmentWithHistory[]>>(async () => treatments),
+    }),
   )
 }
 
 describe('homeRemindersService', () => {
-  it('fusionne vaccins et traitements en sources de rappel', async () => {
-    const sources = await service([RAGE], [BRAVECTO]).listSources()
+  it('fusionne les vaccins et les traitements avec leur historique, que lit le moteur', async () => {
+    const sources = await service([RAGE], [METACAM]).listSources()
 
     expect(sources).toEqual([
       {
@@ -56,33 +51,28 @@ describe('homeRemindersService', () => {
       },
       {
         kind: 'treatment',
-        id: 't1',
+        id: 'metacam',
         animalId: 'luna',
-        label: 'Bravecto',
-        dueDate: '2026-09-24',
-        treatmentType: 'antiparasitic',
+        label: 'Métacam',
+        treatmentType: 'medication',
+        periods: METACAM.periods,
+        doses: METACAM.doses,
       },
     ])
   })
 
-  it('garde un vaccin sans échéance : buildReminders décidera de ne pas le lister', async () => {
+  it('garde un vaccin sans échéance : le calcul de « À faire » décidera de ne pas le lister', async () => {
     const sources = await service([SANS_RAPPEL], []).listSources()
 
     expect(sources).toEqual([expect.objectContaining({ id: 'v2', dueDate: null })])
   })
 
-  it('annonce un traitement sans prise à sa première échéance', async () => {
-    const sansPrise = { ...BRAVECTO, lastDoseDate: null, nextDueDate: '2026-10-05' }
+  it('garde un traitement arrêté : ses doses non renseignées restent à faire', async () => {
+    const arrete = treatment([period({ stoppedOn: '2026-09-05' })])
 
-    const sources = await service([], [sansPrise]).listSources()
+    const sources = await service([], [arrete]).listSources()
 
-    expect(sources).toEqual([expect.objectContaining({ id: 't1', dueDate: '2026-10-05' })])
-  })
-
-  it('écarte un traitement arrêté : ni dans « À faire » ni en prochain rappel', async () => {
-    const sources = await service([], [{ ...BRAVECTO, stoppedOn: '2026-09-20' }]).listSources()
-
-    expect(sources).toEqual([])
+    expect(sources).toEqual([expect.objectContaining({ id: 'metacam', kind: 'treatment' })])
   })
 
   it('renvoie une liste vide sans aucune donnée', async () => {
@@ -96,7 +86,9 @@ describe('homeRemindersService', () => {
           Promise.reject(new Error('base indisponible')),
         ),
       }),
-      () => ({ listAll: vi.fn<() => Promise<Treatment[]>>(async () => []) }),
+      () => ({
+        listAllWithHistory: vi.fn<() => Promise<TreatmentWithHistory[]>>(async () => []),
+      }),
     )
 
     await expect(failing.listSources()).rejects.toThrow('base indisponible')
