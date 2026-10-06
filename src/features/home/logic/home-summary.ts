@@ -115,7 +115,7 @@ export type ReminderRow = {
   tone: ReminderStatus | 'to-log' | 'unreadable'
   icon: string
   title: string
-  /** « Vermifuge · Boree », sans l'animal quand un seul est affiché. */
+  /** « Vermifuge · Boree », même quand un seul animal est affiché (AC-8). */
   subtitle: string
   /** « 3 doses non renseignées », sous une ligne « À renseigner ». */
   unlogged: string | null
@@ -164,11 +164,11 @@ function ariaLabelOf(
 export function reminderRows(
   t: Translate,
   items: TodoItem[],
-  { animalNames, showAnimal }: ReminderRowsOptions,
+  { animalNames }: Pick<ReminderRowsOptions, 'animalNames'>,
 ): ReminderRow[] {
   return items.map((item) => {
     const type = reminderType(t, item)
-    const animal = showAnimal ? animalNames.get(item.animalId) : undefined
+    const animal = animalNames.get(item.animalId)
     const unlogged = unloggedText(t, item)
     return {
       key: item.key,
