@@ -443,6 +443,7 @@
     },
     "detail": {
       "back": "Retour au carnet",
+      "backHome": "Retour à l’accueil",
       "subtitle": "{type} · {animal}",
       "doneLabel": "C’est fait : noter la prise de {name} pour {animal}",
       "doneLabelAt": "C’est fait : noter la dose de {time} du {date} de {name} pour {animal}",

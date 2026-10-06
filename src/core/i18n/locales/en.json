@@ -443,6 +443,7 @@
     },
     "detail": {
       "back": "Back to health record",
+      "backHome": "Back to home",
       "subtitle": "{type} · {animal}",
       "doneLabel": "Done: log the {name} dose for {animal}",
       "doneLabelAt": "Done: log the {time} dose of {name} for {animal}, {date}",

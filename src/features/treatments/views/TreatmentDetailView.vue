@@ -263,8 +263,10 @@ function stop(): void {
   if (treatment.value) void gestures.stop(treatment.value, t('treatments.sheet.errors.stop'))
 }
 
+const isFromHome = computed(() => route.query.from === 'home')
+
 function backToCarnet(): void {
-  if (route.query.from === 'home') {
+  if (isFromHome.value) {
     returnTo(router, { name: 'home' })
     return
   }
@@ -295,7 +297,7 @@ async function remove(): Promise<void> {
     :title="treatment?.name ?? ''"
     :subtitle="subtitle"
     subtitle-tone="secondary"
-    :back-label="t('treatments.detail.back')"
+    :back-label="isFromHome ? t('treatments.detail.backHome') : t('treatments.detail.back')"
     @back="backToCarnet"
   >
     <template v-if="treatment" #end>
