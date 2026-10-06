@@ -148,7 +148,7 @@ async function openSettings(): Promise<void> {
 
 .exact-reminders__text {
   margin: 0;
-  color: tokens.$color-exact-reminders-text;
+  color: tokens.$color-text-secondary;
   font-size: 15px;
   line-height: 1.5;
   text-wrap: pretty;
@@ -197,7 +197,7 @@ async function openSettings(): Promise<void> {
 
 .exact-reminders__skip {
   margin: 4px 0 0;
-  color: tokens.$color-exact-reminders-text;
+  color: tokens.$color-text-secondary;
   font-size: 13.5px;
   line-height: 1.5;
   text-wrap: pretty;
