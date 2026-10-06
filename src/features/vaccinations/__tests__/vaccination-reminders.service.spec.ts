@@ -43,14 +43,16 @@ const CHPPI: Vaccination = {
 let notifications: FakeNotifications
 let getById: ReturnType<typeof vi.fn<(id: string) => Promise<Animal | null>>>
 let getVaccination: ReturnType<typeof vi.fn<(id: string) => Promise<Vaccination | null>>>
+let listReplacedDues: ReturnType<typeof vi.fn<(id: string) => Promise<string[]>>>
 let service: VaccinationRemindersService
 
 beforeEach(() => {
   notifications = createFakeNotifications()
   getById = vi.fn<(id: string) => Promise<Animal | null>>().mockResolvedValue(MILO)
   getVaccination = vi.fn<(id: string) => Promise<Vaccination | null>>().mockResolvedValue(CHPPI)
+  listReplacedDues = vi.fn<(id: string) => Promise<string[]>>().mockResolvedValue([])
   service = createVaccinationRemindersService({
-    vaccinations: () => ({ getById: getVaccination }),
+    vaccinations: () => ({ getById: getVaccination, listReplacedDues }),
     animals: () => ({ getById }),
     settings: async () => ({ vaccineReminderTime: '09:00', remindBeforeDue: true }),
     notifications,
@@ -86,7 +88,7 @@ describe('vaccinationRemindersService', () => {
 
   it('RA-9 : programme à l’heure des rappels de vaccins du carnet', async () => {
     service = createVaccinationRemindersService({
-      vaccinations: () => ({ getById: getVaccination }),
+      vaccinations: () => ({ getById: getVaccination, listReplacedDues }),
       animals: () => ({ getById }),
       settings: async () => ({ vaccineReminderTime: '18:30', remindBeforeDue: true }),
       notifications,
@@ -121,6 +123,7 @@ describe('vaccinationRemindersService', () => {
       lastInjectionDate: '2026-09-14',
       dueDate: '2027-09-14',
     })
+    listReplacedDues.mockResolvedValue(['2026-09-14'])
     const shown = `vaccination:${CHPPI.id}:2026-09-14:due`
     notifications.pending.set(shown, {
       key: shown,

@@ -17,6 +17,7 @@ const CHPPI: Reminded[1] = {
   lastInjectionDate: '2025-10-15',
   dueDate: '2026-10-15',
   deletedAt: null,
+  replacedDues: [],
 }
 const SETTINGS: CarnetReminderSettings = { vaccineReminderTime: '09:00', remindBeforeDue: true }
 const NOW = new Date(2026, 8, 15, 12)
@@ -98,37 +99,41 @@ describe('vaccinationReminders', () => {
     expect(remindersOf(CHPPI, { animal: null })).toEqual([])
   })
 
-  it('tient pour notée l’échéance que l’injection de tête a notée, quelle que soit l’heure', () => {
+  it('tient pour notée une échéance qu’une injection plus récente a remplacée, quelle que soit l’heure', () => {
     const { isNoted } = vaccinationReminders(
       t,
-      { ...CHPPI, lastInjectionDate: '2026-10-14', dueDate: '2027-10-14' },
+      {
+        ...CHPPI,
+        lastInjectionDate: '2026-10-01',
+        dueDate: '2027-10-01',
+        replacedDues: ['2026-10-15'],
+      },
       MILO,
       SETTINGS,
       NOW,
     )
 
     expect(isNoted('2026-10-15', null)).toBe(true)
-    expect(isNoted('2027-10-14', null)).toBe(false)
+    expect(isNoted('2027-10-01', null)).toBe(false)
   })
 })
 
 describe('isInjectionNoted', () => {
-  const carre = { lastInjectionDate: '2025-10-15', dueDate: '2026-10-15' }
+  const carre = { dueDate: '2027-03-01', replacedDues: ['2027-03-15'] }
 
-  it('reconnaît l’échéance que l’injection de tête a notée, rappel suivant choisi ou non', () => {
-    expect(
-      isInjectionNoted({ lastInjectionDate: '2026-10-13', dueDate: '2027-10-13' }, '2026-10-15'),
-    ).toBe(true)
-    expect(isInjectionNoted({ lastInjectionDate: '2026-10-16', dueDate: null }, '2026-10-15')).toBe(
+  it('VA-8 : l’échéance du 15 mars est notée par l’injection du 1er mars, sans fenêtre de 3 jours', () => {
+    expect(isInjectionNoted(carre, '2027-03-15')).toBe(true)
+    expect(isInjectionNoted({ dueDate: null, replacedDues: ['2027-03-15'] }, '2027-03-15')).toBe(
       true,
     )
   })
 
   it('ne tient pas pour notée l’échéance encore attendue', () => {
-    expect(isInjectionNoted(carre, '2026-10-15')).toBe(false)
+    expect(isInjectionNoted({ ...carre, replacedDues: [] }, '2027-03-01')).toBe(false)
+    expect(isInjectionNoted({ ...carre, replacedDues: ['2027-03-01'] }, '2027-03-01')).toBe(false)
   })
 
   it('ne tient pas pour notée une échéance déplacée sans injection', () => {
-    expect(isInjectionNoted({ ...carre, dueDate: '2026-11-02' }, '2026-10-15')).toBe(false)
+    expect(isInjectionNoted({ dueDate: '2027-04-15', replacedDues: [] }, '2027-03-15')).toBe(false)
   })
 })

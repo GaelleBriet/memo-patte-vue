@@ -24,6 +24,7 @@ import type {
   PdfWeightRow,
 } from '../logic/pdf-content'
 import i18n from '@/core/i18n'
+import { currentWeightUnit } from '@/shared/domain/weight-unit-preference'
 
 // A4 : les marges latérales du carnet, et 10 mm en haut et en bas, loin de la marge non imprimable.
 const ZONE: PdfBounds = { left: 18, right: 192, top: 10, bottom: 287 }
@@ -128,8 +129,16 @@ const MOT_SANS_ESPACE = avec({
   treatments: [{ ...TRAITEMENT_LONG, name: MOT_80 }],
 })
 
+// Les mêmes carnets servent à plusieurs tests : chacun n'est rendu et relu qu'une fois par réglage.
+const rendus = new WeakMap<CarnetPdfContent, Map<string, PdfPage[]>>()
+
 function pages(content: CarnetPdfContent): PdfPage[] {
-  return readPdfPages(renderCarnetPdf(content, '0.1.24', null))
+  const reglage = `${i18n.global.locale.value} ${currentWeightUnit()} ${new Date().toDateString()}`
+  const parReglage = rendus.get(content) ?? new Map<string, PdfPage[]>()
+  rendus.set(content, parReglage)
+  const doc = parReglage.get(reglage) ?? readPdfPages(renderCarnetPdf(content, '0.1.24', null))
+  parReglage.set(reglage, doc)
+  return doc
 }
 
 function dansLePied(text: PdfText): boolean {
@@ -248,40 +257,47 @@ describe('renderCarnetPdf — pages', () => {
     expect(lignes.map(style)).toEqual(lignes.map(() => reference))
   })
 
-  it('n’écrit ni ne dessine rien hors de la zone imprimable, ni contre l’en-tête ou le pied', () => {
-    const defauts: string[] = []
-    for (const content of [COURT, LONG, ...DEBORDEMENTS, ...NOMS_LONGS, MOT_SANS_ESPACE]) {
-      pages(content).forEach((page, index) => {
-        const lieu = `${content.vaccinations.length} vaccins, page ${index + 1}`
-        const pied = hautDuPied(page)
-        const enTete = index > 0 ? enTeteDeSuite(page) : []
-        if (index > 0 && enTete.length === 0) defauts.push(`pas d’en-tête, ${lieu}`)
-        const basDeLEnTete = Math.max(-Infinity, ...enTete.map((text) => textBounds(text).bottom))
-        const elements = [
-          ...page.texts.map((text) => ({
-            nom: text.text,
-            box: textBounds(text),
-            cadre: dansLePied(text) || enTete.includes(text),
-          })),
-          ...page.paths.map((path) => ({
-            nom: `tracé ${path.paint}`,
-            box: pathBounds(path),
-            cadre: false,
-          })),
-        ]
-        for (const { nom, box, cadre } of elements) {
-          if (hors(box, ZONE)) defauts.push(`${nom} hors de la zone, ${lieu}`)
-          if (cadre) continue
-          if (box.top - basDeLEnTete < ECART_SOUS_EN_TETE) {
-            defauts.push(`${nom} contre l’en-tête, ${lieu}`)
+  it.each([
+    { carnets: 'court, long, mot sans espace', contents: [COURT, LONG, MOT_SANS_ESPACE] },
+    { carnets: 'débordements', contents: DEBORDEMENTS },
+    { carnets: 'noms longs', contents: NOMS_LONGS },
+  ])(
+    'n’écrit ni ne dessine rien hors de la zone imprimable, ni contre l’en-tête ou le pied ($carnets)',
+    ({ contents }) => {
+      const defauts: string[] = []
+      for (const content of contents) {
+        pages(content).forEach((page, index) => {
+          const lieu = `${content.vaccinations.length} vaccins, page ${index + 1}`
+          const pied = hautDuPied(page)
+          const enTete = index > 0 ? enTeteDeSuite(page) : []
+          if (index > 0 && enTete.length === 0) defauts.push(`pas d’en-tête, ${lieu}`)
+          const basDeLEnTete = Math.max(-Infinity, ...enTete.map((text) => textBounds(text).bottom))
+          const elements = [
+            ...page.texts.map((text) => ({
+              nom: text.text,
+              box: textBounds(text),
+              cadre: dansLePied(text) || enTete.includes(text),
+            })),
+            ...page.paths.map((path) => ({
+              nom: `tracé ${path.paint}`,
+              box: pathBounds(path),
+              cadre: false,
+            })),
+          ]
+          for (const { nom, box, cadre } of elements) {
+            if (hors(box, ZONE)) defauts.push(`${nom} hors de la zone, ${lieu}`)
+            if (cadre) continue
+            if (box.top - basDeLEnTete < ECART_SOUS_EN_TETE) {
+              defauts.push(`${nom} contre l’en-tête, ${lieu}`)
+            }
+            if (pied - box.bottom < ECART_SUR_PIED) defauts.push(`${nom} contre le pied, ${lieu}`)
           }
-          if (pied - box.bottom < ECART_SUR_PIED) defauts.push(`${nom} contre le pied, ${lieu}`)
-        }
-      })
-    }
+        })
+      }
 
-    expect(defauts).toEqual([])
-  })
+      expect(defauts).toEqual([])
+    },
+  )
 
   it('ne coupe jamais la courbe : elle passe entière à la page suivante, avec son titre', () => {
     let reportees = 0
