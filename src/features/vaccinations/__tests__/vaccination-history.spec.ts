@@ -165,6 +165,9 @@ describe('vaccinationDetailTexts', () => {
       subtitle: 'Vaccin · Boree',
       top: null,
       due: { value: '26 août 2027', delay: 'dans 11 mois', tone: null },
+      note: null,
+      editLabel: 'Modifier le vaccin Carré',
+      otherDateLabel: 'Fait à une autre date\u00a0: choisir la date de l’injection',
       doneLabel: 'C’est fait : noter l’injection de Carré pour Boree et choisir le prochain rappel',
       counter: '3',
     })
@@ -195,6 +198,15 @@ describe('vaccinationDetailTexts', () => {
     const prevu = textes({ lastInjectionDate: null, dueDate: '2026-09-22' })
     expect(prevu.top).toBe('Premier vaccin · aucune injection notée')
     expect(prevu.due?.value).toBe('En retard depuis le 22 sept.')
+    expect(prevu.note).toBeNull()
+  })
+
+  it('le jour du rendez-vous d’un vaccin prévu, dit « Aucune injection notée » sous la valeur (V11 ter)', () => {
+    const jour = textes({ lastInjectionDate: null, dueDate: TODAY })
+    expect(jour.top).toBe('Premier vaccin')
+    expect(jour.due?.value).toBe('Aujourd’hui')
+    expect(jour.note).toBe('Aucune injection notée')
+    expect(textes({ dueDate: TODAY }).note).toBeNull()
   })
 
   it('parle anglais', () => {
@@ -202,6 +214,12 @@ describe('vaccinationDetailTexts', () => {
     expect(textes({ dueDate: TODAY }).due?.value).toBe('Today')
     expect(textes({ dueDate: '2026-09-05' }).due?.value).toBe('Overdue since Sep 5')
     expect(textes({ lastInjectionDate: null }).top).toBe('First vaccine · no injection logged')
+    expect(textes({ lastInjectionDate: null, dueDate: TODAY })).toMatchObject({
+      top: 'First vaccine',
+      note: 'No injection logged',
+      editLabel: 'Edit the Carré vaccine',
+      otherDateLabel: 'Done on another day: choose the injection date',
+    })
   })
 })
 

@@ -10,11 +10,22 @@ withDefaults(
     /** « dans 11 mois ». */
     delay?: string | null
     tone?: 'today' | 'overdue' | null
+    /** Ligne sous la valeur : « Aucune injection notée ». */
+    note?: string | null
     emptyText?: string | null
     doneAriaLabel: string
+    otherDateAriaLabel?: string | null
     busy?: boolean
   }>(),
-  { value: null, delay: null, tone: null, emptyText: null, busy: false },
+  {
+    value: null,
+    delay: null,
+    tone: null,
+    note: null,
+    emptyText: null,
+    otherDateAriaLabel: null,
+    busy: false,
+  },
 )
 
 const emit = defineEmits<{
@@ -43,6 +54,7 @@ const { t } = useI18n()
       <span v-if="delay" class="next-due-card__delay">{{ delay }}</span>
     </p>
     <p v-else class="next-due-card__empty">{{ emptyText }}</p>
+    <p v-if="value && note" class="next-due-card__note">{{ note }}</p>
     <div class="next-due-card__actions">
       <v-btn
         class="next-due-card__done"
@@ -58,6 +70,7 @@ const { t } = useI18n()
       <button
         type="button"
         class="next-due-card__other-date"
+        :aria-label="otherDateAriaLabel ?? undefined"
         :disabled="busy"
         @click="emit('otherDate')"
       >
@@ -119,6 +132,13 @@ const { t } = useI18n()
 }
 
 .next-due-card__delay {
+  color: tokens.$color-text-secondary;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.next-due-card__note {
+  margin: 2px 0 0;
   color: tokens.$color-text-secondary;
   font-size: 14px;
   font-weight: 500;

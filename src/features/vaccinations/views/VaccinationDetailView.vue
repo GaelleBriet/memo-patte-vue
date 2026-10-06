@@ -162,7 +162,7 @@ async function remove(): Promise<void> {
         icon="ms:edit"
         variant="text"
         color="primary"
-        :aria-label="t('reminderSheet.edit')"
+        :aria-label="texts?.editLabel"
         @click="edit"
       />
       <OverflowMenu
@@ -179,8 +179,10 @@ async function remove(): Promise<void> {
           :value="texts.due?.value"
           :delay="texts.due?.delay"
           :tone="texts.due?.tone"
+          :note="texts.note"
           :empty-text="t('vaccinations.detail.noReminder')"
           :done-aria-label="texts.doneLabel"
+          :other-date-aria-label="texts.otherDateLabel"
           :busy="gestures.isBusy.value"
           @done="openDoneSheet('done')"
           @other-date="openDoneSheet('other-date')"

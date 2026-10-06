@@ -236,16 +236,22 @@ describe('VaccinationDetailView — F7', () => {
     view.getComponent(NextDueCard).vm.$emit('otherDate')
     await flushPromises()
 
-    const feuille = view
-      .findAllComponents(VaccinationReminderSheet)
-      .find((sheet) => sheet.props('startAt') === 'other-date')
-    expect(feuille?.props()).toMatchObject({ modelValue: true, vaccinationId: CARRE.id })
+    expect(view.getComponent(VaccinationReminderSheet).props()).toMatchObject({
+      modelValue: true,
+      vaccinationId: CARRE.id,
+      startAt: 'other-date',
+    })
+    expect(view.getComponent(NextDueCard).props('otherDateAriaLabel')).toBe(
+      'Fait à une autre date\u00a0: choisir la date de l’injection',
+    )
   })
 
   it('le crayon de la barre ouvre le formulaire, qui reviendra sur le détail (V11 quinquies)', async () => {
     const view = await monter()
 
-    expect(view.get('.vaccination-detail__edit').attributes('aria-label')).toBe('Modifier')
+    expect(view.get('.vaccination-detail__edit').attributes('aria-label')).toBe(
+      'Modifier le vaccin Carré',
+    )
     await view.get('.vaccination-detail__edit').trigger('click')
 
     expect(push).toHaveBeenCalledWith({
@@ -295,6 +301,16 @@ describe('VaccinationDetailView — F7', () => {
     expect(view.get('.next-due-card__value').text()).toBe('En retard depuis le 22 sept.')
     expect(view.find('.vaccination-detail__edit').exists()).toBe(true)
     expect(view.findComponent(OverflowMenu).exists()).toBe(true)
+  })
+
+  it('le jour du rendez-vous, « Premier vaccin » en haut et « Aucune injection notée » sous la valeur (V11 ter)', async () => {
+    getById.mockResolvedValue({ ...CARRE, lastInjectionDate: null, dueDate: '2026-09-23' })
+    injections = []
+    const view = await monter()
+
+    expect(view.get('.next-due-card__top').text()).toBe('Premier vaccin')
+    expect(view.get('.next-due-card__value').text()).toBe('Aujourd’hui')
+    expect(view.get('.next-due-card__note').text()).toBe('Aucune injection notée')
   })
 
   it('dit quand le vaccin est introuvable', async () => {

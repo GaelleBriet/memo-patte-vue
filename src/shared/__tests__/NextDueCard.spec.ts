@@ -43,6 +43,18 @@ describe('NextDueCard', () => {
     expect(retard.get('.next-due-card__value').classes()).toContain('next-due-card__value--overdue')
   })
 
+  it('pose une note sous la valeur et le nom accessible du lien quand ils sont fournis', () => {
+    const wrapper = monter({
+      note: 'Aucune injection notée',
+      otherDateAriaLabel: 'Fait à une autre date : choisir la date de l’injection',
+    })
+    expect(wrapper.get('.next-due-card__note').text()).toBe('Aucune injection notée')
+    expect(wrapper.get('.next-due-card__other-date').attributes('aria-label')).toBe(
+      'Fait à une autre date : choisir la date de l’injection',
+    )
+    expect(monter().find('.next-due-card__note').exists()).toBe(false)
+  })
+
   it('remplace l’échéance absente par son texte', () => {
     const sans = monter({ value: null, emptyText: 'Pas de rappel programmé' })
     expect(sans.find('.next-due-card__value').exists()).toBe(false)

@@ -76,7 +76,11 @@ export type VaccinationDetailTexts = {
   /** Ligne du haut de la carte, pour un vaccin encore sans injection. */
   top: string | null
   due: { value: string; delay: string | null; tone: NextReminderTone } | null
+  /** Sous la valeur : « Aucune injection notée », le jour du rendez-vous d'un vaccin prévu. */
+  note: string | null
   doneLabel: string
+  editLabel: string
+  otherDateLabel: string
   counter: string
 }
 
@@ -105,11 +109,18 @@ export function vaccinationDetailTexts(
   { animal, today, injections }: { animal: string; today: string; injections: number },
 ): VaccinationDetailTexts {
   const { name, dueDate, lastInjectionDate } = vaccination
+  const isPlanned = lastInjectionDate === null
+  const isAppointmentDay = isPlanned && dueDate === today
   return {
     subtitle: t('vaccinations.sheet.subtitle', { animal }),
-    top: lastInjectionDate === null ? t('vaccinations.detail.firstVaccine') : null,
+    top: isPlanned
+      ? t(`vaccinations.detail.${isAppointmentDay ? 'firstVaccineShort' : 'firstVaccine'}`)
+      : null,
     due: dueDate === null ? null : nextReminderDue(t, dueDate, today),
+    note: isAppointmentDay ? t('vaccinations.detail.noInjection') : null,
     doneLabel: t('vaccinations.detail.doneLabel', { name, animal }),
+    editLabel: t('vaccinations.detail.editLabel', { name }),
+    otherDateLabel: t('vaccinations.detail.otherDateLabel'),
     counter: String(injections),
   }
 }
