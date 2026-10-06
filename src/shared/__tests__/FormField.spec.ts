@@ -50,6 +50,13 @@ describe('FormField — label', () => {
     expect(wrapper.get('.form-field__optional').text()).toBe('Optionnel')
     expect(wrapper.find('.form-field__required').exists()).toBe(false)
   })
+
+  it('ne marque rien pour un champ qui a toujours une valeur', () => {
+    const wrapper = monter({ labelId: 'reminder-label', hasDefault: true })
+
+    expect(wrapper.find('.form-field__optional').exists()).toBe(false)
+    expect(wrapper.find('.form-field__required').exists()).toBe(false)
+  })
 })
 
 describe('FormField — erreur', () => {

@@ -119,3 +119,23 @@ describe('openExactRemindersSettings', () => {
     expect(await exact.openExactRemindersSettings()).toBe('unavailable')
   })
 })
+
+describe('suggestion des rappels précis (RA-23)', () => {
+  it('n’a jamais été faite sur un téléphone neuf, l’est pour toujours une fois notée', () => {
+    expect(exact.wasExactRemindersSuggested()).toBe(false)
+
+    exact.markExactRemindersSuggested()
+
+    expect(exact.wasExactRemindersSuggested()).toBe(true)
+  })
+
+  it('sans stockage, se lit comme déjà faite : elle ne revient pas à chaque heure ajoutée', () => {
+    const blocked = () => {
+      throw new Error('stockage bloqué')
+    }
+    vi.stubGlobal('localStorage', { getItem: blocked, setItem: blocked })
+
+    expect(() => exact.markExactRemindersSuggested()).not.toThrow()
+    expect(exact.wasExactRemindersSuggested()).toBe(true)
+  })
+})
