@@ -47,10 +47,12 @@ vi.mock('@/app/reminders-priming', () => ({ promptNotificationsIfReminders }))
 const notifications = vi.hoisted(() => ({
   status: 'granted' as string,
   exact: 'precise' as string,
+  androidAsked: true,
 }))
 
 vi.mock('@/core/notifications/permission', () => ({
   getNotificationPermissionStatus: async () => notifications.status,
+  hasAndroidAskedNotifications: async () => notifications.androidAsked,
 }))
 
 vi.mock('@/core/notifications/exact-reminders', () => ({
@@ -99,6 +101,7 @@ beforeEach(async () => {
   consent.granted = false
   notifications.status = 'granted'
   notifications.exact = 'precise'
+  notifications.androidAsked = true
   optIn.mockReset().mockImplementation(async () => void (consent.granted = true))
   optOut.mockReset().mockImplementation(async () => void (consent.granted = false))
   setActivePinia(createPinia())
@@ -203,6 +206,16 @@ describe('SettingsView', () => {
       const wrapper = await monter()
 
       expect(wrapper.get('.settings-row--reminders .settings-row__hint').text()).toBe(resume)
+    })
+
+    it('après « Plus tard », Android n’ayant jamais demandé : « Pas encore activés » (RA-21)', async () => {
+      notifications.status = 'disabled'
+      notifications.androidAsked = false
+      const wrapper = await monter()
+
+      expect(wrapper.get('.settings-row--reminders .settings-row__hint').text()).toBe(
+        'Pas encore activés',
+      )
     })
 
     it('ne résume rien tant qu’Android n’a pas répondu', async () => {

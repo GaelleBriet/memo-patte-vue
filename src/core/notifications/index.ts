@@ -21,6 +21,7 @@ export { onReminderAction, REMINDER_DONE_ACTION_TYPE } from './reminder-actions'
 export type { NotificationPermissionStatus } from './permission'
 export {
   getNotificationPermissionStatus,
+  hasAndroidAskedNotifications,
   onNotificationPermissionGranted,
   openNotificationSettings,
   postponePriming,

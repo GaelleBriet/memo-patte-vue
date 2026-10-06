@@ -12,7 +12,7 @@ const PdfExportSheet = defineAsyncComponent(() => import('./PdfExportSheet.vue')
 import { promptNotificationsIfReminders } from '@/app/reminders-priming'
 import { hasConsent, optIn, optOut } from '@/core/analytics'
 import { useExactReminders } from '@/core/notifications/use-exact-reminders'
-import { useNotificationPermission } from '@/core/notifications/use-notification-permission'
+import { useRemindersPermission } from '../composables/use-reminders-permission'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import AccountSection from '@/features/auth/views/AccountSection.vue'
 import PlusSection from '@/features/purchase/views/PlusSection.vue'
@@ -28,7 +28,7 @@ const { t } = useI18n()
 const router = useRouter()
 const animals = useAnimalsStore()
 const purchase = usePurchaseStore()
-const { status: notifications } = useNotificationPermission()
+const notifications = useRemindersPermission()
 const { status: exactReminders } = useExactReminders()
 const remindersHint = computed(() => remindersSummary(notifications.value, exactReminders.value))
 
