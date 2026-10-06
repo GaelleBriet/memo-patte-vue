@@ -890,6 +890,21 @@
       "title": "Les rappels sont désactivés",
       "openSettings": "Activer dans les réglages"
     },
+    "exact": {
+      "title": "Rappels précis",
+      "subtitle": "Réglage Android",
+      "heroTitle": "Recevoir les rappels à l’heure pile",
+      "heroText": "Sans cette autorisation, Android peut retarder un rappel : jamais avant l’heure, souvent de quelques minutes, parfois d’une heure ou plus quand le téléphone économise sa batterie.",
+      "steps": {
+        "open": "Touche « {action} ».",
+        "allow": "Dans « Alarmes et rappels », active l’autorisation pour MémoPatte.",
+        "back": "Reviens dans MémoPatte : ton choix est pris en compte."
+      },
+      "skip": "Tu peux t’en passer : tes rappels arriveront quand même, parfois en retard.",
+      "open": "Ouvrir les réglages",
+      "openLabel": "Ouvrir le réglage Android Alarmes et rappels",
+      "later": "Plus tard"
+    },
     "action": {
       "done": "C’est fait",
       "alreadyDose": "Prise de {name} du {date} déjà notée pour {animal}",

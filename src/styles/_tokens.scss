@@ -159,3 +159,7 @@ $color-unlogged-surface: $color-notice-surface; // Fond du bandeau et de l'encar
 $color-unlogged-border: $color-priming-icon-surface; // Leur bordure
 $radius-unlogged: 20px; // Leurs coins
 $color-day-missed-border: $color-chart-arrow-disabled; // Contour d'un jour décoché
+
+// Rappels précis (écran d’explication, V2 bis)
+$color-exact-reminders-text: #4a443e; // Texte courant de l’écran
+$color-exact-reminders-hero-surface: $color-notice-surface; // Pastille de l’icône

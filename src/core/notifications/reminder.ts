@@ -4,7 +4,7 @@ export interface Reminder {
   key: string
   title: string
   body: string
-  /** Déclenchement souhaité : l'alarme est inexacte, l'heure n'est pas garantie. */
+  /** Déclenchement souhaité, garanti seulement avec les rappels précis. */
   at: Date
   /** Boutons de la notification, inscrits par `registerReminderActions`. */
   actionTypeId?: string
@@ -18,6 +18,8 @@ export interface ScheduledReminder {
   body: string
   at?: Date
   actionTypeId?: string
+  /** Programmée en alarme exacte : faux pour une notification posée avant les rappels précis. */
+  exact: boolean
 }
 
 const FNV_OFFSET_BASIS = 0x811c9dc5

@@ -10,6 +10,7 @@ import {
   type Reminder,
   type ScheduledReminder,
 } from './reminder'
+import { canScheduleExact } from './exact-reminders'
 import { registerReminderActions } from './reminder-actions'
 import { ensureRemindersChannel, remindersGranted, REMINDERS_CHANNEL_ID } from './reminders-channel'
 
@@ -37,7 +38,10 @@ function scheduledIdsByKey(pending: PendingLocalNotificationSchema[]): Map<strin
   return ids
 }
 
-function toPluginNotification({ reminder, id }: IdentifiedReminder): LocalNotificationSchema {
+function toPluginNotification(
+  { reminder, id }: IdentifiedReminder,
+  exact: boolean,
+): LocalNotificationSchema {
   const { actionTypeId } = reminder
   // `getPending` ne rend pas `actionTypeId` : `extra` le garde pour l'empreinte des rappels programmés.
   const action = actionTypeId === undefined ? {} : { actionTypeId }
@@ -46,14 +50,13 @@ function toPluginNotification({ reminder, id }: IdentifiedReminder): LocalNotifi
     id,
     title: reminder.title,
     body: reminder.body,
-    // `setAndAllowWhileIdle` traverse le mode Doze sans exiger d'alarme exacte.
+    // `allowWhileIdle` traverse le mode Doze, en alarme exacte comme inexacte.
     schedule: { at: reminder.at, allowWhileIdle: true },
-    // Le plugin programme des alarmes exactes par défaut : sans ce `false`, il
-    // ouvrirait l'écran système « Alarmes et rappels ».
-    isExactNotification: false,
+    // Sans l'accès, `true` ferait ouvrir au plugin l'écran système « Alarmes et rappels ».
+    isExactNotification: exact,
     channelId: REMINDERS_CHANNEL_ID,
     ...action,
-    extra: { key: reminder.key, ...action },
+    extra: { key: reminder.key, exact, ...action },
   }
 }
 
@@ -65,6 +68,7 @@ function toScheduledReminder(notification: PendingLocalNotificationSchema): Sche
     body: notification.body,
     at: notification.schedule?.at,
     actionTypeId: extraText(notification, 'actionTypeId'),
+    exact: notification.extra?.exact === true,
   }
 }
 
@@ -123,8 +127,11 @@ export async function rescheduleAll(reminders: Reminder[]): Promise<void> {
   try {
     await ensureRemindersChannel()
     await registerReminderActions()
+    const exact = await canScheduleExact()
     for (const batch of batches(identified)) {
-      await LocalNotifications.schedule({ notifications: batch.map(toPluginNotification) })
+      await LocalNotifications.schedule({
+        notifications: batch.map((each) => toPluginNotification(each, exact)),
+      })
       scheduled += batch.length
     }
   } catch (cause) {
@@ -153,7 +160,10 @@ export async function scheduleReminders(reminders: Reminder[]): Promise<void> {
   const identified = assignReminderIds(reminders, scheduledIdsByKey(pending))
   await ensureRemindersChannel()
   await registerReminderActions()
-  await LocalNotifications.schedule({ notifications: identified.map(toPluginNotification) })
+  const exact = await canScheduleExact()
+  await LocalNotifications.schedule({
+    notifications: identified.map((each) => toPluginNotification(each, exact)),
+  })
 }
 
 /** Retire du volet des notifications déjà affichées ; `cancel` ne touche qu'aux rappels à venir. */
