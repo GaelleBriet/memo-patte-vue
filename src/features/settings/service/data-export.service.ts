@@ -1,5 +1,5 @@
 import { getDeviceRepository, type DeviceRepository } from '@/core/device/device.repository'
-import i18n from '@/core/i18n'
+import i18n, { currentLocale, type AppLocale } from '@/core/i18n'
 import {
   getAnimalsRepository,
   type AnimalsRepository,
@@ -58,6 +58,7 @@ export type DataExportDependencies = {
   now: () => Date
   appVersion: string
   weightUnit: () => WeightUnit
+  locale: () => AppLocale
 }
 
 // Une ligne exportée sans son parent ferait refuser le fichier à l'import.
@@ -85,6 +86,7 @@ export function createDataExportService({
   now,
   appVersion,
   weightUnit,
+  locale,
 }: DataExportDependencies) {
   async function collect(): Promise<ExportData> {
     const [
@@ -258,7 +260,7 @@ export function createDataExportService({
     async exportData(format: ExportFormat, mode: DeliveryMode): Promise<DeliveryOutcome> {
       const data = await collect()
       const meta = { exportedAt: now(), appVersion }
-      return deliver(buildExportFile(format, data, meta, weightUnit()), mode)
+      return deliver(buildExportFile(format, data, meta, weightUnit(), locale()), mode)
     },
   }
 }
@@ -280,4 +282,5 @@ export const dataExportService = createDataExportService({
   now: () => new Date(),
   appVersion: import.meta.env.VITE_APP_VERSION,
   weightUnit: currentWeightUnit,
+  locale: currentLocale,
 })

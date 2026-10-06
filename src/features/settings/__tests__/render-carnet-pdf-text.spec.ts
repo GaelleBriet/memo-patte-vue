@@ -153,6 +153,8 @@ describe('emoji retirés du PDF seulement', () => {
     const json = JSON.parse(toJsonExport(data, { exportedAt: new Date(), appVersion: '0.1.24' }))
 
     expect(json.animals[0].name).toBe('Luna 🐱')
-    expect(toCsvTables(data, 'kg', '2026-09-15')['animaux.csv']).toContain(`${LUNA_ID};Luna 🐱;cat`)
+    expect(toCsvTables(data, 'kg', '2026-09-15', 'fr')['animaux.csv']).toContain(
+      `${LUNA_ID};Luna 🐱;Chat`,
+    )
   })
 })

@@ -57,6 +57,7 @@ function setup(overrides: Partial<DataExportDependencies> = {}) {
     now: () => NOW,
     appVersion: '0.1.24',
     weightUnit: () => 'kg',
+    locale: () => 'fr',
     ...overrides,
   })
   return { service, deliver }
@@ -171,7 +172,16 @@ describe('data-export.service', () => {
     await service.exportData('csv', 'share')
 
     const poids = strFromU8(unzipSync(delivered(deliver).content as Uint8Array)['poids.csv']!)
-    expect(poids).toContain('measuredOn;weightLb\r\n')
+    expect(poids).toContain('Date de la pesée;Poids (lb)\r\n')
+  })
+
+  it('CSV : écrit dans la langue de l’app au moment de l’export', async () => {
+    const { service, deliver } = setup({ locale: () => 'en' })
+
+    await service.exportData('csv', 'share')
+
+    const poids = strFromU8(unzipSync(delivered(deliver).content as Uint8Array)['poids.csv']!)
+    expect(poids).toContain('Weigh-in date,Weight (kg)\r\n')
   })
 
   it('JSON : garde les kilos quelle que soit l’unité choisie', async () => {

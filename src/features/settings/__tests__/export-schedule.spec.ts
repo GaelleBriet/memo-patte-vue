@@ -101,7 +101,7 @@ function treatmentRow(data: ExportData, today: string) {
 }
 
 function csvNextDueDate(data: ExportData, today: string): string {
-  const csv = toCsvTables(data, 'kg', today)['traitements.csv']
+  const csv = toCsvTables(data, 'kg', today, 'fr')['traitements.csv']
   return csv.split('\r\n')[1]!.split(';').at(-1)!
 }
 

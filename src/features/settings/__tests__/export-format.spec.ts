@@ -157,10 +157,10 @@ describe('exportReminders, traitement arrêté', () => {
       'v-chppil',
       'v-leucose',
     ])
-    expect(lines(toCsvTables(ARRETE, 'kg', TODAY)['rappels.csv'])).toEqual([
-      'kind;sourceId;animalId;animalName;name;dueDate',
-      `vaccination;v-chppil;${MILO_ID};Milo;CHPPiL;2026-09-01`,
-      `vaccination;v-leucose;${LUNA_ID};Luna;Leucose;2026-11-02`,
+    expect(lines(toCsvTables(ARRETE, 'kg', TODAY, 'fr')['rappels.csv'])).toEqual([
+      'Type;Identifiant du vaccin ou du traitement;Identifiant de l’animal;Animal;Nom;Échéance',
+      `Vaccin;v-chppil;${MILO_ID};Milo;CHPPiL;2026-09-01`,
+      `Vaccin;v-leucose;${LUNA_ID};Luna;Leucose;2026-11-02`,
       '',
     ])
   })
@@ -309,7 +309,7 @@ describe('toJsonExport', () => {
 })
 
 describe('toCsvTables', () => {
-  const tables = toCsvTables(EXPORT_FIXTURE, 'kg', TODAY)
+  const tables = toCsvTables(EXPORT_FIXTURE, 'kg', TODAY, 'fr')
 
   it('produit un fichier par table', () => {
     expect(Object.keys(tables)).toEqual([
@@ -333,9 +333,9 @@ describe('toCsvTables', () => {
 
   it('sépare par « ; », entoure de guillemets un champ qui contient « ; » ou « " »', () => {
     expect(lines(tables['animaux.csv'])).toEqual([
-      'id;name;species;breed;birthDate;birthDateApproximate;unfollowedOn;departureReason;departureDate;createdAt;updatedAt',
-      `${LUNA_ID};Luna;cat;"Européen ; tigrée ""Mimi""";2019-03-02;true;;;;2026-01-10T08:00:00.000Z;2026-02-01T08:00:00.000Z`,
-      `${MILO_ID};Milo;dog;;;false;2026-09-14;rehomed;2026-09-12;2026-01-12T08:00:00.000Z;2026-01-12T08:00:00.000Z`,
+      'Identifiant;Nom;Espèce;Race;Date de naissance;Date de naissance approximative;Plus suivi depuis le;Motif du départ;Date du départ;Date de création;Dernière modification',
+      `${LUNA_ID};Luna;Chat;"Européen ; tigrée ""Mimi""";2019-03-02;true;;;;2026-01-10T08:00:00.000Z;2026-02-01T08:00:00.000Z`,
+      `${MILO_ID};Milo;Chien;;;false;2026-09-14;Chez quelqu’un d’autre;2026-09-12;2026-01-12T08:00:00.000Z;2026-01-12T08:00:00.000Z`,
       '',
     ])
   })
@@ -346,16 +346,16 @@ describe('toCsvTables', () => {
 
   it('garde les dates ISO et nomme l’animal à côté de son identifiant', () => {
     expect(lines(tables['vaccins.csv'])).toEqual([
-      'id;animalId;animalName;name;plannedDueDate;lastInjectionDate;dueDate',
+      'Identifiant;Identifiant de l’animal;Animal;Vaccin;Rappel prévu;Dernière injection;Prochain rappel',
       `v-chppil;${MILO_ID};Milo;CHPPiL;;2025-09-01;2026-09-01`,
       `v-typhus;${LUNA_ID};Luna;"Typhus; coryza";;2024-05-20;`,
       `v-leucose;${LUNA_ID};Luna;Leucose;2026-11-02;;2026-11-02`,
       '',
     ])
     expect(lines(tables['traitements.csv'])).toEqual([
-      'id;animalId;animalName;name;type;lastDoseDate;nextDueDate',
-      `t-milbemax;${LUNA_ID};Luna;Milbémax;deworming;2026-06-15;2026-09-15`,
-      `t-panacur;${MILO_ID};Milo;Panacur;deworming;2026-09-10;2026-09-11`,
+      'Identifiant;Identifiant de l’animal;Animal;Traitement;Type;Dernière prise;Prochaine dose',
+      `t-milbemax;${LUNA_ID};Luna;Milbémax;Vermifuge;2026-06-15;2026-09-15`,
+      `t-panacur;${MILO_ID};Milo;Panacur;Vermifuge;2026-09-10;2026-09-11`,
       '',
     ])
   })
@@ -392,8 +392,8 @@ describe('toCsvTables', () => {
       ],
     }
 
-    expect(lines(toCsvTables(data, 'kg', TODAY)['traitements.csv'])).toContain(
-      `t-metacam;${LUNA_ID};Luna;Métacam;medication;;2026-10-05`,
+    expect(lines(toCsvTables(data, 'kg', TODAY, 'fr')['traitements.csv'])).toContain(
+      `t-metacam;${LUNA_ID};Luna;Métacam;Médicament;;2026-10-05`,
     )
     expect(exportReminders(data, TODAY)).toContainEqual({
       kind: 'treatment',
@@ -407,34 +407,34 @@ describe('toCsvTables', () => {
 
   it('écrit une ligne par période, avec ses réglages : fin, heures, posologie, moment du rappel', () => {
     expect(lines(tables['periodes.csv'])).toEqual([
-      'id;treatmentId;treatmentName;animalId;animalName;startsOn;firstDueOn;endsOn;stoppedOn;frequencyValue;frequencyUnit;times;doseQuantity;doseUnit;reminderOffsetMinutes;reminderTime',
-      `p-milbemax;t-milbemax;Milbémax;${LUNA_ID};Luna;2026-03-15;2026-03-15;;;3;month;;;;;`,
-      `p-panacur;t-panacur;Panacur;${MILO_ID};Milo;2026-09-10;2026-09-10;2026-09-20;;1;day;08:00, 20:00;0,5;tablet;30;`,
+      'Identifiant;Identifiant du traitement;Traitement;Identifiant de l’animal;Animal;Début de la période;Première prise le;Date de fin;Arrêté le;Fréquence;Unité de fréquence;Heures du traitement;Posologie (quantité);Posologie (unité);Rappel avant la dose (min);Heure du rappel',
+      `p-milbemax;t-milbemax;Milbémax;${LUNA_ID};Luna;2026-03-15;2026-03-15;;;3;mois;;;;;`,
+      `p-panacur;t-panacur;Panacur;${MILO_ID};Milo;2026-09-10;2026-09-10;2026-09-20;;1;jour;08:00, 20:00;0,5;comprimé;30;`,
       '',
     ])
   })
 
   it('écrit une ligne par injection et par prise, reliée à son vaccin ou traitement', () => {
     expect(lines(tables['injections.csv'])).toEqual([
-      'id;vaccinationId;vaccinationName;animalId;animalName;injectedOn;nextDueDate',
+      'Identifiant;Identifiant du vaccin;Vaccin;Identifiant de l’animal;Animal;Date d’injection;Prochain rappel',
       `i-chppil-2025;v-chppil;CHPPiL;${MILO_ID};Milo;2025-09-01;2026-09-01`,
       `i-chppil-2024;v-chppil;CHPPiL;${MILO_ID};Milo;2024-09-01;2025-09-01`,
       `i-typhus;v-typhus;"Typhus; coryza";${LUNA_ID};Luna;2024-05-20;`,
       '',
     ])
     expect(lines(tables['prises.csv'])).toEqual([
-      'id;periodId;treatmentId;treatmentName;animalId;animalName;dueOn;dueTime;givenOn;status;nextDueDate',
-      `d-milbemax-06;p-milbemax;t-milbemax;Milbémax;${LUNA_ID};Luna;2026-06-15;;2026-06-15;given;2026-09-15`,
-      `d-milbemax-03;p-milbemax;t-milbemax;Milbémax;${LUNA_ID};Luna;2026-03-15;;2026-03-15;given;2026-06-15`,
-      `d-panacur-soir;p-panacur;t-panacur;Panacur;${MILO_ID};Milo;2026-09-10;20:00;;missed;2026-09-11`,
-      `d-panacur-matin;p-panacur;t-panacur;Panacur;${MILO_ID};Milo;2026-09-10;08:00;2026-09-10;given;2026-09-10`,
+      'Identifiant;Identifiant de la période;Identifiant du traitement;Traitement;Identifiant de l’animal;Animal;Prévue le;Heure prévue;Donnée le;État;Échéance suivante',
+      `d-milbemax-06;p-milbemax;t-milbemax;Milbémax;${LUNA_ID};Luna;2026-06-15;;2026-06-15;Donnée;2026-09-15`,
+      `d-milbemax-03;p-milbemax;t-milbemax;Milbémax;${LUNA_ID};Luna;2026-03-15;;2026-03-15;Donnée;2026-06-15`,
+      `d-panacur-soir;p-panacur;t-panacur;Panacur;${MILO_ID};Milo;2026-09-10;20:00;;Oubliée;2026-09-11`,
+      `d-panacur-matin;p-panacur;t-panacur;Panacur;${MILO_ID};Milo;2026-09-10;08:00;2026-09-10;Donnée;2026-09-10`,
       '',
     ])
   })
 
   it('écrit les poids avec une virgule décimale, lisible par un tableur français', () => {
     expect(lines(tables['poids.csv'])).toEqual([
-      'id;animalId;animalName;measuredOn;weightKg',
+      'Identifiant;Identifiant de l’animal;Animal;Date de la pesée;Poids (kg)',
       `w-luna-1;${LUNA_ID};Luna;2025-12-24;4,25`,
       `w-milo-1;${MILO_ID};Milo;2026-08-30;12`,
       '',
@@ -446,17 +446,17 @@ describe('toCsvTables', () => {
       ...EXPORT_FIXTURE,
       weightEntries: [{ ...EXPORT_FIXTURE.weightEntries[0]!, weightKg: 54.1 * 0.45359237 }],
     }
-    const tables = toCsvTables(data, 'kg', TODAY)
+    const tables = toCsvTables(data, 'kg', TODAY, 'fr')
 
     expect(lines(tables['poids.csv'])[1]).toMatch(/;24,54$/)
     expect(JSON.parse(toJsonExport(data, META)).weightEntries[0].weightKg).toBe(54.1 * 0.45359237)
   })
 
   it('écrit les poids en livres quand c’est l’unité choisie, l’unité dans le titre de colonne', () => {
-    const enLivres = toCsvTables(EXPORT_FIXTURE, 'lb', TODAY)
+    const enLivres = toCsvTables(EXPORT_FIXTURE, 'lb', TODAY, 'fr')
 
     expect(lines(enLivres['poids.csv'])).toEqual([
-      'id;animalId;animalName;measuredOn;weightLb',
+      'Identifiant;Identifiant de l’animal;Animal;Date de la pesée;Poids (lb)',
       `w-luna-1;${LUNA_ID};Luna;2025-12-24;9,37`,
       `w-milo-1;${MILO_ID};Milo;2026-08-30;26,46`,
       '',
@@ -465,11 +465,11 @@ describe('toCsvTables', () => {
 
   it('liste les échéances dans rappels.csv', () => {
     expect(lines(tables['rappels.csv'])).toEqual([
-      'kind;sourceId;animalId;animalName;name;dueDate',
-      `vaccination;v-chppil;${MILO_ID};Milo;CHPPiL;2026-09-01`,
-      `treatment;t-panacur;${MILO_ID};Milo;Panacur;2026-09-11`,
-      `treatment;t-milbemax;${LUNA_ID};Luna;Milbémax;2026-09-15`,
-      `vaccination;v-leucose;${LUNA_ID};Luna;Leucose;2026-11-02`,
+      'Type;Identifiant du vaccin ou du traitement;Identifiant de l’animal;Animal;Nom;Échéance',
+      `Vaccin;v-chppil;${MILO_ID};Milo;CHPPiL;2026-09-01`,
+      `Traitement;t-panacur;${MILO_ID};Milo;Panacur;2026-09-11`,
+      `Traitement;t-milbemax;${LUNA_ID};Luna;Milbémax;2026-09-15`,
+      `Vaccin;v-leucose;${LUNA_ID};Luna;Leucose;2026-11-02`,
       '',
     ])
   })
@@ -487,10 +487,10 @@ describe('toCsvTables', () => {
         { ...EXPORT_FIXTURE.vaccinations[1]!, name: '\rToux' },
       ],
     }
-    const tables = toCsvTables(data, 'kg', TODAY)
+    const tables = toCsvTables(data, 'kg', TODAY, 'fr')
 
-    expect(lines(tables['animaux.csv'])[1]).toContain(`;"'=HYPERLINK(""x"")";dog;'+33 croisé;`)
-    expect(lines(tables['animaux.csv'])[2]).toContain(";'-Luna;cat;'@home;2019-03-02;")
+    expect(lines(tables['animaux.csv'])[1]).toContain(`;"'=HYPERLINK(""x"")";Chien;'+33 croisé;`)
+    expect(lines(tables['animaux.csv'])[2]).toContain(";'-Luna;Chat;'@home;2019-03-02;")
     expect(lines(tables['poids.csv'])[1]).toMatch(/;2025-12-24;-1$/)
     expect(tables['vaccins.csv']).toContain(";'\tRage;")
     expect(tables['vaccins.csv']).toContain(`;"'\rToux";`)
@@ -502,13 +502,139 @@ describe('toCsvTables', () => {
       ...EXPORT_FIXTURE,
       vaccinations: [{ ...EXPORT_FIXTURE.vaccinations[0]!, name: 'Rage\nrappel' }],
     }
-    expect(toCsvTables(data, 'kg', TODAY)['vaccins.csv']).toContain(';"Rage\nrappel";')
+    expect(toCsvTables(data, 'kg', TODAY, 'fr')['vaccins.csv']).toContain(';"Rage\nrappel";')
+  })
+})
+
+describe('toCsvTables, en anglais', () => {
+  const tables = toCsvTables(EXPORT_FIXTURE, 'lb', TODAY, 'en')
+
+  it('sépare par « , » avec un point décimal, titres et valeurs en anglais', () => {
+    expect(lines(tables['animaux.csv'])).toEqual([
+      'ID,Name,Species,Breed,Date of birth,Approximate date of birth,Stopped following on,Departure reason,Departure date,Created,Last modified',
+      `${LUNA_ID},Luna,Cat,"Européen ; tigrée ""Mimi""",2019-03-02,true,,,,2026-01-10T08:00:00.000Z,2026-02-01T08:00:00.000Z`,
+      `${MILO_ID},Milo,Dog,,,false,2026-09-14,With someone else,2026-09-12,2026-01-12T08:00:00.000Z,2026-01-12T08:00:00.000Z`,
+      '',
+    ])
+    expect(lines(tables['poids.csv'])).toEqual([
+      'ID,Pet ID,Pet,Weigh-in date,Weight (lb)',
+      `w-luna-1,${LUNA_ID},Luna,2025-12-24,9.37`,
+      `w-milo-1,${MILO_ID},Milo,2026-08-30,26.46`,
+      '',
+    ])
+  })
+
+  it('entoure de guillemets un champ qui contient « , », pas un champ qui contient « ; »', () => {
+    expect(lines(tables['vaccins.csv'])).toEqual([
+      'ID,Pet ID,Pet,Vaccine,Planned reminder,Last injection,Next reminder',
+      `v-chppil,${MILO_ID},Milo,CHPPiL,,2025-09-01,2026-09-01`,
+      `v-typhus,${LUNA_ID},Luna,Typhus; coryza,,2024-05-20,`,
+      `v-leucose,${LUNA_ID},Luna,Leucose,2026-11-02,,2026-11-02`,
+      '',
+    ])
+    expect(lines(tables['periodes.csv'])).toEqual([
+      'ID,Treatment ID,Treatment,Pet ID,Pet,Period start,First dose on,End date,Stopped on,Frequency,Frequency unit,Treatment times,Dosage (quantity),Dosage (unit),Reminder before the dose (min),Reminder time',
+      `p-milbemax,t-milbemax,Milbémax,${LUNA_ID},Luna,2026-03-15,2026-03-15,,,3,months,,,,,`,
+      `p-panacur,t-panacur,Panacur,${MILO_ID},Milo,2026-09-10,2026-09-10,2026-09-20,,1,day,"08:00, 20:00",0.5,tablet,30,`,
+      '',
+    ])
+  })
+
+  it('traduit les types, les états et les échéances', () => {
+    expect(lines(tables['traitements.csv'])[0]).toBe(
+      'ID,Pet ID,Pet,Treatment,Type,Last dose,Next dose',
+    )
+    expect(lines(tables['traitements.csv'])[1]).toContain(',Milbémax,Dewormer,')
+    expect(lines(tables['injections.csv'])[0]).toBe(
+      'ID,Vaccine ID,Vaccine,Pet ID,Pet,Injection date,Next reminder',
+    )
+    expect(lines(tables['prises.csv'])[0]).toBe(
+      'ID,Period ID,Treatment ID,Treatment,Pet ID,Pet,Due on,Due time,Given on,Status,Next due date',
+    )
+    expect(lines(tables['prises.csv'])[3]).toContain(',20:00,,Missed,')
+    expect(lines(tables['rappels.csv']).slice(0, 2)).toEqual([
+      'Type,Vaccine or treatment ID,Pet ID,Pet,Name,Due date',
+      `Vaccine,v-chppil,${MILO_ID},Milo,CHPPiL,2026-09-01`,
+    ])
+  })
+})
+
+describe('toCsvTables, valeurs codées', () => {
+  const data = {
+    ...EXPORT_FIXTURE,
+    animals: [
+      { ...EXPORT_FIXTURE.animals[0]!, breed: null, departureReason: 'death' as const },
+      { ...EXPORT_FIXTURE.animals[1]!, departureReason: 'other' as const },
+    ],
+    treatments: EXPORT_FIXTURE.treatments.map((treatment) => ({
+      ...treatment,
+      type: 'antiparasitic' as const,
+    })),
+    treatmentPeriods: EXPORT_FIXTURE.treatmentPeriods.map((period) => ({
+      ...period,
+      frequency: { value: 2, unit: 'week' as const },
+      times: [],
+      doseQuantity: 2,
+      doseUnit: 'pipette' as const,
+    })),
+    treatmentDoses: EXPORT_FIXTURE.treatmentDoses.map((dose, index) => ({
+      ...dose,
+      status: (['postponed', 'extra', 'shift', 'given'] as const)[index]!,
+    })),
+  }
+
+  function column(csv: string, header: string, separator: string): string[] {
+    const [head, ...rows] = lines(csv).filter((line) => line !== '')
+    const index = head!.split(separator).indexOf(header)
+    return rows.map((row) => row.split(separator)[index]!)
+  }
+
+  it('traduit chaque code en français', () => {
+    const tables = toCsvTables(data, 'kg', TODAY, 'fr')
+
+    expect(column(tables['animaux.csv'], 'Motif du départ', ';')).toEqual(['Décès', 'Autre'])
+    expect(column(tables['traitements.csv'], 'Type', ';')).toEqual([
+      'Antiparasitaire',
+      'Antiparasitaire',
+    ])
+    expect(column(tables['periodes.csv'], 'Unité de fréquence', ';')).toEqual([
+      'semaines',
+      'semaines',
+    ])
+    expect(column(tables['periodes.csv'], 'Posologie (unité)', ';')).toEqual([
+      'pipettes',
+      'pipettes',
+    ])
+    expect(column(tables['prises.csv'], 'État', ';')).toEqual([
+      'Reportée',
+      'Prise en plus',
+      'Doses suivantes décalées',
+      'Donnée',
+    ])
+  })
+
+  it('traduit chaque code en anglais', () => {
+    const tables = toCsvTables(data, 'kg', TODAY, 'en')
+
+    expect(column(tables['animaux.csv'], 'Departure reason', ',')).toEqual(['Passed away', 'Other'])
+    expect(column(tables['traitements.csv'], 'Type', ',')).toEqual([
+      'Parasite control',
+      'Parasite control',
+    ])
+    expect(column(tables['periodes.csv'], 'Frequency unit', ',')).toEqual(['weeks', 'weeks'])
+    expect(column(tables['periodes.csv'], 'Dosage (unit)', ',')).toEqual(['pipettes', 'pipettes'])
+    expect(column(tables['prises.csv'], 'Status', ',')).toEqual([
+      'Postponed',
+      'Extra dose',
+      'Following doses moved',
+      'Given',
+    ])
   })
 })
 
 describe('buildExportFile', () => {
   it('JSON : un seul fichier texte, toujours en kg', () => {
-    const file = buildExportFile('json', EXPORT_FIXTURE, META, 'lb')
+    const file = buildExportFile('json', EXPORT_FIXTURE, META, 'lb', 'fr')
 
     expect(file.name).toBe('memopatte-export-20260915-1030.json')
     expect(file.content).toBe(toJsonExport(EXPORT_FIXTURE, META))
@@ -516,13 +642,13 @@ describe('buildExportFile', () => {
   })
 
   it('CSV : une archive zip qui contient les huit tables telles quelles', () => {
-    const file = buildExportFile('csv', EXPORT_FIXTURE, META, 'lb')
+    const file = buildExportFile('csv', EXPORT_FIXTURE, META, 'lb', 'en')
 
     expect(file.name).toBe('memopatte-export-20260915-1030.zip')
     expect(file.content).toBeInstanceOf(Uint8Array)
 
     const entries = unzipSync(file.content as Uint8Array)
-    const tables = toCsvTables(EXPORT_FIXTURE, 'lb', EXPORT_DAY)
+    const tables = toCsvTables(EXPORT_FIXTURE, 'lb', EXPORT_DAY, 'en')
     expect(Object.keys(entries)).toEqual(Object.keys(tables))
     for (const [name, csv] of Object.entries(tables)) {
       expect(Array.from(entries[name]!)).toEqual(Array.from(strToU8(csv)))

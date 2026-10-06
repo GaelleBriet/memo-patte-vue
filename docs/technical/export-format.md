@@ -428,43 +428,64 @@ d'écriture ne journalise que le type de l'erreur).
 Archive zip d'un fichier par table, pour un tableur. **Pas prévu pour l'import** : seul le JSON
 se réimporte.
 
-- Encodage UTF-8 **avec BOM**, fins de ligne CRLF, séparateur `;` (ouverture directe dans Excel ou
-  LibreOffice en français).
-- Un champ qui contient `;`, `"` ou un retour à la ligne est entouré de `"`, les `"` intérieurs
-  doublés (RFC 4180).
+- **Dans la langue de l'app au moment de l'export** (#416) : titres de colonnes, valeurs codées,
+  séparateur et virgule décimale. Le JSON, lui, ne change pas d'une langue à l'autre.
+- Encodage UTF-8 **avec BOM** (Excel lit les accents), fins de ligne CRLF.
+- Séparateur et nombres décimaux selon la langue, pour un tableur réglé dans cette langue :
+
+  | Langue   | Séparateur | Décimale     |
+  | -------- | ---------- | ------------ |
+  | Français | `;`        | `4,25`       |
+  | Anglais  | `,`        | `4.25`       |
+
+- Un champ qui contient le séparateur, `"` ou un retour à la ligne est entouré de `"`, les `"`
+  intérieurs doublés (RFC 4180).
 - **Injection de formule neutralisée** (recommandation OWASP « CSV Injection ») : une cellule texte
   qui commence par `=`, `+`, `-`, `@`, une tabulation ou un retour chariot est préfixée par `'`
   (ex. `'=HYPERLINK(…)`), pour qu'un tableur l'affiche au lieu de l'exécuter. Les nombres et les
   dates ne sont jamais préfixés, et le JSON garde la valeur d'origine.
 - Valeur absente : cellule vide. Dates civiles `AAAA-MM-JJ`, instants ISO 8601 UTC.
-- Nombres décimaux avec une **virgule** (`4,25`), lisibles comme nombres par un tableur français.
-- En-têtes identiques aux noms de champs du JSON, pour qu'une colonne se retrouve d'un format à
-  l'autre ; `animalName` est ajouté à côté de `animalId` pour la lecture, comme `vaccinationName` et
-  `treatmentName` à côté du parent d'une ligne. La fréquence d'une période s'écrit en deux colonnes,
-  `frequencyValue` et `frequencyUnit` ; ses heures dans une seule cellule (`08:00, 20:00`).
+- Titres lisibles (clés `settings.csv.columns.*`) ; le nom de l'animal est ajouté à côté de son
+  identifiant pour la lecture, comme le nom du vaccin ou du traitement à côté du parent d'une ligne.
+  La fréquence d'une période s'écrit en deux colonnes, le nombre et son unité ; ses heures dans une
+  seule cellule (`08:00, 20:00`).
 - **Une ligne par injection, par période et par prise**, dans trois fichiers séparés reliés à leur
   vaccin ou traitement (décision du 2026-09-24 ; périodes : #454). `vaccins.csv` et
   `traitements.csv` gardent, pour la lecture, la date de la dernière injection ou prise donnée et la
   prochaine échéance (celle de `reminders[]` ; vide pour un traitement arrêté, terminé ou illisible).
 - Booléen : `true` ou `false`.
-- **Poids dans l'unité choisie dans Paramètres** (#352), au centième, nommée par le titre de
-  colonne : `weightKg` en kilogrammes, `weightLb` en livres. Seule exception aux en-têtes identiques
-  au JSON, qui reste toujours en kilogrammes, valeur enregistrée sans arrondi.
+- **Poids dans l'unité choisie dans Paramètres** (#352), au centième, l'unité dans le titre de
+  colonne : « Poids (kg) », « Weight (lb) ». Le JSON reste toujours en kilogrammes, valeur
+  enregistrée sans arrondi.
 - Les réglages du carnet ne sont pas dans le CSV : ils voyagent dans le JSON.
+- Les noms des fichiers de l'archive restent en français dans les deux langues.
+
+Colonnes, dans l'ordre, avec le champ du JSON qu'elles reprennent (titres français ; les titres
+anglais sont dans `en.json`, même clé) :
 
 | Fichier           | Colonnes                                                                                            |
 | ----------------- | --------------------------------------------------------------------------------------------------- |
-| `animaux.csv`     | `id;name;species;breed;birthDate;birthDateApproximate;unfollowedOn;departureReason;departureDate;createdAt;updatedAt` (sans photo) |
-| `vaccins.csv`     | `id;animalId;animalName;name;plannedDueDate;lastInjectionDate;dueDate`                              |
-| `injections.csv`  | `id;vaccinationId;vaccinationName;animalId;animalName;injectedOn;nextDueDate`                       |
-| `traitements.csv` | `id;animalId;animalName;name;type;lastDoseDate;nextDueDate`                                         |
-| `periodes.csv`    | `id;treatmentId;treatmentName;animalId;animalName;startsOn;firstDueOn;endsOn;stoppedOn;frequencyValue;frequencyUnit;times;doseQuantity;doseUnit;reminderOffsetMinutes;reminderTime` |
-| `prises.csv`      | `id;periodId;treatmentId;treatmentName;animalId;animalName;dueOn;dueTime;givenOn;status;nextDueDate` |
-| `poids.csv`       | `id;animalId;animalName;measuredOn;weightKg` (`weightLb` en lb)                                     |
-| `rappels.csv`     | `kind;sourceId;animalId;animalName;name;dueDate`                                                    |
+| `animaux.csv`     | Identifiant (`id`) ; Nom ; Espèce ; Race ; Date de naissance ; Date de naissance approximative (`birthDateApproximate`) ; Plus suivi depuis le (`unfollowedOn`) ; Motif du départ ; Date du départ ; Date de création (`createdAt`) ; Dernière modification (`updatedAt`). Sans photo |
+| `vaccins.csv`     | Identifiant ; Identifiant de l'animal ; Animal ; Vaccin ; Rappel prévu (`plannedDueDate`) ; Dernière injection ; Prochain rappel (`dueDate`) |
+| `injections.csv`  | Identifiant ; Identifiant du vaccin ; Vaccin ; Identifiant de l'animal ; Animal ; Date d'injection ; Prochain rappel (`nextDueDate`) |
+| `traitements.csv` | Identifiant ; Identifiant de l'animal ; Animal ; Traitement ; Type ; Dernière prise ; Prochaine dose (`nextDueDate`) |
+| `periodes.csv`    | Identifiant ; Identifiant du traitement ; Traitement ; Identifiant de l'animal ; Animal ; Début de la période (`startsOn`) ; Première prise le ; Date de fin ; Arrêté le ; Fréquence (`frequency.value`) ; Unité de fréquence (`frequency.unit`) ; Heures du traitement ; Posologie (quantité) ; Posologie (unité) ; Rappel avant la dose (min) ; Heure du rappel |
+| `prises.csv`      | Identifiant ; Identifiant de la période ; Identifiant du traitement ; Traitement ; Identifiant de l'animal ; Animal ; Prévue le (`dueOn`) ; Heure prévue ; Donnée le ; État (`status`) ; Échéance suivante (`nextDueDate`) |
+| `poids.csv`       | Identifiant ; Identifiant de l'animal ; Animal ; Date de la pesée ; Poids (kg) ou Poids (lb)        |
+| `rappels.csv`     | Type (`kind`) ; Identifiant du vaccin ou du traitement (`sourceId`) ; Identifiant de l'animal ; Animal ; Nom ; Échéance |
 
-Les valeurs d'énumération (`dog`, `deworming`, `month`, `missed`, `tablet`…) restent les codes du
-JSON, non traduits (traduction du CSV : #416).
+Valeurs codées traduites (clés `settings.csv.values.*`, unités de posologie : `dosage.unit.*`,
+comme dans l'app) :
+
+| Champ JSON          | Codes → français / anglais                                                                       |
+| ------------------- | ------------------------------------------------------------------------------------------------ |
+| `species`           | `dog` Chien / Dog, `cat` Chat / Cat                                                              |
+| `departureReason`   | `death` Décès / Passed away, `rehomed` Chez quelqu'un d'autre / With someone else, `other` Autre / Other |
+| `type` (traitement) | `deworming` Vermifuge / Dewormer, `antiparasitic` Antiparasitaire / Parasite control, `medication` Médicament / Medication |
+| `frequency.unit`    | `day` jour(s) / day(s), `week` semaine(s) / week(s), `month` mois / month(s), accordé au nombre  |
+| `doseUnit`          | `tablet` comprimé(s) / tablet(s)… au pluriel à partir de 2, comme dans l'app                    |
+| `status` (prise)    | `given` Donnée / Given, `missed` Oubliée / Missed, `postponed` Reportée / Postponed, `extra` Prise en plus / Extra dose, `shift` Doses suivantes décalées / Following doses moved |
+| `kind` (rappel)     | `vaccination` Vaccin / Vaccine, `treatment` Traitement / Treatment                               |
 
 ## PDF — historique du carnet (#382)
 

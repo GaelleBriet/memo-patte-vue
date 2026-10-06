@@ -2,8 +2,10 @@ import { format } from 'date-fns'
 import { strToU8, zipSync, type Zippable } from 'fflate'
 
 import { outlookDueDate, treatmentOutlooks } from './treatment-outlook'
-import type { ExportData } from '@/shared/domain/carnet-data'
+import i18n, { type AppLocale } from '@/core/i18n'
+import type { ExportData, ExportDoseUnit } from '@/shared/domain/carnet-data'
 import { givenDoseHistories, vaccinationHeads } from '@/shared/domain/carnet-heads'
+import { doseUnitText } from '@/shared/domain/dosage'
 import { recordedWeightIn, type WeightUnit } from '@/shared/domain/weight-unit'
 
 /** Contrat documenté dans `docs/technical/export-format.md` : toute rupture incrémente la version. */
@@ -98,23 +100,40 @@ export function toJsonExport(data: ExportData, meta: ExportMeta): string {
 
 type CsvValue = string | number | boolean | null
 
+type CsvDialect = { separator: string; decimal: string; needsQuotes: RegExp }
+
+/** Le séparateur de liste et la virgule décimale qu'attend un tableur réglé dans cette langue. */
+const CSV_DIALECTS: Record<AppLocale, CsvDialect> = {
+  fr: { separator: ';', decimal: ',', needsQuotes: /[;"\r\n]/ },
+  en: { separator: ',', decimal: '.', needsQuotes: /[,"\r\n]/ },
+}
+
 const UTF8_BOM = '\uFEFF'
-const CSV_SEPARATOR = ';'
-const CSV_NEEDS_QUOTES = /[;"\r\n]/
 /** Un tableur exécuterait ces cellules comme des formules (injection CSV, OWASP). */
 const CSV_FORMULA_START = /^[=+\-@\t\r]/
 
-function csvCell(value: CsvValue): string {
+function csvCell(value: CsvValue, dialect: CsvDialect): string {
   if (value === null) return ''
-  if (typeof value === 'number') return String(value).replace('.', ',')
+  if (typeof value === 'number') return String(value).replace('.', dialect.decimal)
   if (typeof value === 'boolean') return String(value)
   const text = CSV_FORMULA_START.test(value) ? `'${value}` : value
-  return CSV_NEEDS_QUOTES.test(text) ? `"${text.replaceAll('"', '""')}"` : text
+  return dialect.needsQuotes.test(text) ? `"${text.replaceAll('"', '""')}"` : text
 }
 
-function csv(header: string[], rows: CsvValue[][]): string {
-  const lines = [header, ...rows].map((row) => row.map(csvCell).join(CSV_SEPARATOR))
-  return `${UTF8_BOM}${lines.join('\r\n')}\r\n`
+type CsvLabels = {
+  column: (key: string, named?: Record<string, unknown>) => string
+  value: (key: string, count?: number) => string
+  doseUnit: (unit: ExportDoseUnit, quantity: number) => string
+}
+
+function csvLabels(locale: AppLocale): CsvLabels {
+  const t = (key: string, named: Record<string, unknown>, plural: number): string =>
+    i18n.global.t(key, named, { locale, plural })
+  return {
+    column: (key, named = {}) => t(`settings.csv.columns.${key}`, named, 1),
+    value: (key, count = 1) => t(`settings.csv.values.${key}`, {}, count),
+    doseUnit: (unit, quantity) => doseUnitText(t, unit, quantity),
+  }
 }
 
 export type CsvTables = {
@@ -133,11 +152,22 @@ function namesById(rows: { id: string; name: string }[]): (id: string) => string
   return (id) => names.get(id) ?? null
 }
 
-const WEIGHT_COLUMNS: Record<WeightUnit, string> = { kg: 'weightKg', lb: 'weightLb' }
-
-/** Poids dans l'unité choisie, nommée par le titre de colonne ; le JSON reste en kg. */
-export function toCsvTables(data: ExportData, weightUnit: WeightUnit, today: string): CsvTables {
-  const weightColumn = WEIGHT_COLUMNS[weightUnit]
+/** Titres, valeurs codées et nombres dans la langue de l'app ; poids dans l'unité choisie. */
+export function toCsvTables(
+  data: ExportData,
+  weightUnit: WeightUnit,
+  today: string,
+  locale: AppLocale,
+): CsvTables {
+  const dialect = CSV_DIALECTS[locale]
+  const { column, value, doseUnit } = csvLabels(locale)
+  const csv = (columns: string[], rows: CsvValue[][]): string => {
+    const header = columns.map((key) => column(key, { unit: weightUnit }))
+    const lines = [header, ...rows].map((row) =>
+      row.map((cell) => csvCell(cell, dialect)).join(dialect.separator),
+    )
+    return `${UTF8_BOM}${lines.join('\r\n')}\r\n`
+  }
   const animalName = namesById(data.animals)
   const vaccinationName = namesById(data.vaccinations)
   const treatmentName = namesById(data.treatments)
@@ -163,19 +193,27 @@ export function toCsvTables(data: ExportData, weightUnit: WeightUnit, today: str
       data.animals.map((animal) => [
         animal.id,
         animal.name,
-        animal.species,
+        value(`species.${animal.species}`),
         animal.breed,
         animal.birthDate,
         animal.birthDateApproximate,
         animal.unfollowedOn,
-        animal.departureReason,
+        animal.departureReason && value(`departureReason.${animal.departureReason}`),
         animal.departureDate,
         animal.createdAt,
         animal.updatedAt,
       ]),
     ),
     'vaccins.csv': csv(
-      ['id', 'animalId', 'animalName', 'name', 'plannedDueDate', 'lastInjectionDate', 'dueDate'],
+      [
+        'id',
+        'animalId',
+        'animalName',
+        'vaccinationName',
+        'plannedDueDate',
+        'lastInjectionDate',
+        'nextReminder',
+      ],
       data.vaccinations.map((vaccination) => {
         const head = injections.get(vaccination.id)
         return [
@@ -197,7 +235,7 @@ export function toCsvTables(data: ExportData, weightUnit: WeightUnit, today: str
         'animalId',
         'animalName',
         'injectedOn',
-        'nextDueDate',
+        'nextReminder',
       ],
       data.vaccinationInjections.map((injection) => [
         injection.id,
@@ -210,13 +248,13 @@ export function toCsvTables(data: ExportData, weightUnit: WeightUnit, today: str
       ]),
     ),
     'traitements.csv': csv(
-      ['id', 'animalId', 'animalName', 'name', 'type', 'lastDoseDate', 'nextDueDate'],
+      ['id', 'animalId', 'animalName', 'treatmentName', 'type', 'lastDoseDate', 'nextDose'],
       data.treatments.map((treatment) => [
         treatment.id,
         treatment.animalId,
         animalName(treatment.animalId),
         treatment.name,
-        treatment.type,
+        value(`treatmentType.${treatment.type}`),
         givenDoses.get(treatment.id)?.[0]?.givenOn ?? null,
         outlookDueDate(outlook(treatment.id)),
       ]),
@@ -251,10 +289,10 @@ export function toCsvTables(data: ExportData, weightUnit: WeightUnit, today: str
         period.endsOn,
         period.stoppedOn,
         period.frequency.value,
-        period.frequency.unit,
+        value(`frequencyUnit.${period.frequency.unit}`, period.frequency.value),
         period.times.length > 0 ? period.times.join(', ') : null,
         period.doseQuantity,
-        period.doseUnit,
+        period.doseUnit && doseUnit(period.doseUnit, period.doseQuantity ?? 1),
         period.reminderOffsetMinutes,
         period.reminderTime,
       ]),
@@ -283,12 +321,12 @@ export function toCsvTables(data: ExportData, weightUnit: WeightUnit, today: str
         dose.dueOn,
         dose.dueTime,
         dose.givenOn,
-        dose.status,
+        value(`doseStatus.${dose.status}`),
         dose.nextDueDate,
       ]),
     ),
     'poids.csv': csv(
-      ['id', 'animalId', 'animalName', 'measuredOn', weightColumn],
+      ['id', 'animalId', 'animalName', 'measuredOn', 'weight'],
       data.weightEntries.map((entry) => [
         entry.id,
         entry.animalId,
@@ -300,7 +338,7 @@ export function toCsvTables(data: ExportData, weightUnit: WeightUnit, today: str
     'rappels.csv': csv(
       ['kind', 'sourceId', 'animalId', 'animalName', 'name', 'dueDate'],
       exportReminders(data, today).map((reminder) => [
-        reminder.kind,
+        value(`reminderKind.${reminder.kind}`),
         reminder.sourceId,
         reminder.animalId,
         animalName(reminder.animalId),
@@ -316,6 +354,7 @@ export function buildExportFile(
   data: ExportData,
   meta: ExportMeta,
   weightUnit: WeightUnit,
+  locale: AppLocale,
 ): ExportFile {
   const name = exportFileName(exportFormat, meta.exportedAt)
 
@@ -325,7 +364,7 @@ export function buildExportFile(
 
   const entries: Zippable = {}
   const today = format(meta.exportedAt, 'yyyy-MM-dd')
-  for (const [fileName, content] of Object.entries(toCsvTables(data, weightUnit, today))) {
+  for (const [fileName, content] of Object.entries(toCsvTables(data, weightUnit, today, locale))) {
     entries[fileName] = [strToU8(content), { mtime: meta.exportedAt }]
   }
   return { name, content: zipSync(entries) }

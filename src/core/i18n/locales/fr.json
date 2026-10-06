@@ -1200,6 +1200,88 @@
         "submit": "Remplacer"
       }
     },
+    "csv": {
+      "columns": {
+        "id": "Identifiant",
+        "animalId": "Identifiant de l’animal",
+        "animalName": "Animal",
+        "vaccinationId": "Identifiant du vaccin",
+        "vaccinationName": "Vaccin",
+        "treatmentId": "Identifiant du traitement",
+        "treatmentName": "Traitement",
+        "periodId": "Identifiant de la période",
+        "sourceId": "Identifiant du vaccin ou du traitement",
+        "name": "Nom",
+        "species": "Espèce",
+        "breed": "Race",
+        "birthDate": "Date de naissance",
+        "birthDateApproximate": "Date de naissance approximative",
+        "unfollowedOn": "Plus suivi depuis le",
+        "departureReason": "Motif du départ",
+        "departureDate": "Date du départ",
+        "createdAt": "Date de création",
+        "updatedAt": "Dernière modification",
+        "plannedDueDate": "Rappel prévu",
+        "lastInjectionDate": "Dernière injection",
+        "nextReminder": "Prochain rappel",
+        "injectedOn": "Date d’injection",
+        "type": "Type",
+        "lastDoseDate": "Dernière prise",
+        "nextDose": "Prochaine dose",
+        "startsOn": "Début de la période",
+        "firstDueOn": "Première prise le",
+        "endsOn": "Date de fin",
+        "stoppedOn": "Arrêté le",
+        "frequencyValue": "Fréquence",
+        "frequencyUnit": "Unité de fréquence",
+        "times": "Heures du traitement",
+        "doseQuantity": "Posologie (quantité)",
+        "doseUnit": "Posologie (unité)",
+        "reminderOffsetMinutes": "Rappel avant la dose (min)",
+        "reminderTime": "Heure du rappel",
+        "dueOn": "Prévue le",
+        "dueTime": "Heure prévue",
+        "givenOn": "Donnée le",
+        "status": "État",
+        "nextDueDate": "Échéance suivante",
+        "measuredOn": "Date de la pesée",
+        "weight": "Poids ({unit})",
+        "kind": "Type",
+        "dueDate": "Échéance"
+      },
+      "values": {
+        "species": {
+          "dog": "Chien",
+          "cat": "Chat"
+        },
+        "departureReason": {
+          "death": "Décès",
+          "rehomed": "Chez quelqu’un d’autre",
+          "other": "Autre"
+        },
+        "treatmentType": {
+          "deworming": "Vermifuge",
+          "antiparasitic": "Antiparasitaire",
+          "medication": "Médicament"
+        },
+        "frequencyUnit": {
+          "day": "jour | jours",
+          "week": "semaine | semaines",
+          "month": "mois"
+        },
+        "doseStatus": {
+          "given": "Donnée",
+          "missed": "Oubliée",
+          "postponed": "Reportée",
+          "extra": "Prise en plus",
+          "shift": "Doses suivantes décalées"
+        },
+        "reminderKind": {
+          "vaccination": "Vaccin",
+          "treatment": "Traitement"
+        }
+      }
+    },
     "pdf": {
       "sheet": {
         "title": "Exporter en PDF",

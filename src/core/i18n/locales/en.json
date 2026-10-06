@@ -1200,6 +1200,88 @@
         "submit": "Replace"
       }
     },
+    "csv": {
+      "columns": {
+        "id": "ID",
+        "animalId": "Pet ID",
+        "animalName": "Pet",
+        "vaccinationId": "Vaccine ID",
+        "vaccinationName": "Vaccine",
+        "treatmentId": "Treatment ID",
+        "treatmentName": "Treatment",
+        "periodId": "Period ID",
+        "sourceId": "Vaccine or treatment ID",
+        "name": "Name",
+        "species": "Species",
+        "breed": "Breed",
+        "birthDate": "Date of birth",
+        "birthDateApproximate": "Approximate date of birth",
+        "unfollowedOn": "Stopped following on",
+        "departureReason": "Departure reason",
+        "departureDate": "Departure date",
+        "createdAt": "Created",
+        "updatedAt": "Last modified",
+        "plannedDueDate": "Planned reminder",
+        "lastInjectionDate": "Last injection",
+        "nextReminder": "Next reminder",
+        "injectedOn": "Injection date",
+        "type": "Type",
+        "lastDoseDate": "Last dose",
+        "nextDose": "Next dose",
+        "startsOn": "Period start",
+        "firstDueOn": "First dose on",
+        "endsOn": "End date",
+        "stoppedOn": "Stopped on",
+        "frequencyValue": "Frequency",
+        "frequencyUnit": "Frequency unit",
+        "times": "Treatment times",
+        "doseQuantity": "Dosage (quantity)",
+        "doseUnit": "Dosage (unit)",
+        "reminderOffsetMinutes": "Reminder before the dose (min)",
+        "reminderTime": "Reminder time",
+        "dueOn": "Due on",
+        "dueTime": "Due time",
+        "givenOn": "Given on",
+        "status": "Status",
+        "nextDueDate": "Next due date",
+        "measuredOn": "Weigh-in date",
+        "weight": "Weight ({unit})",
+        "kind": "Type",
+        "dueDate": "Due date"
+      },
+      "values": {
+        "species": {
+          "dog": "Dog",
+          "cat": "Cat"
+        },
+        "departureReason": {
+          "death": "Passed away",
+          "rehomed": "With someone else",
+          "other": "Other"
+        },
+        "treatmentType": {
+          "deworming": "Dewormer",
+          "antiparasitic": "Parasite control",
+          "medication": "Medication"
+        },
+        "frequencyUnit": {
+          "day": "day | days",
+          "week": "week | weeks",
+          "month": "month | months"
+        },
+        "doseStatus": {
+          "given": "Given",
+          "missed": "Missed",
+          "postponed": "Postponed",
+          "extra": "Extra dose",
+          "shift": "Following doses moved"
+        },
+        "reminderKind": {
+          "vaccination": "Vaccine",
+          "treatment": "Treatment"
+        }
+      }
+    },
     "pdf": {
       "sheet": {
         "title": "Export to PDF",

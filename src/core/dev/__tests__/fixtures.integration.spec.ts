@@ -49,6 +49,7 @@ describe('carnet de démo dans une vraie base', () => {
       now: () => TODAY,
       appVersion: 'test',
       weightUnit: () => 'kg',
+      locale: () => 'fr',
     }).collect()
   }
 
