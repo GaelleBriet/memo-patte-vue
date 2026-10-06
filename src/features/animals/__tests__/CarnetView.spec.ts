@@ -52,7 +52,13 @@ import PdfExportSheet from '@/features/settings/views/PdfExportSheet.vue'
 import PlusBadge from '@/shared/components/PlusBadge.vue'
 import { toKg } from '@/shared/domain/weight-unit'
 import { applyWeightUnit } from '@/shared/domain/weight-unit-preference'
-import { dismissToast, runToastAction, toastAction, toastMessage } from '@/shared/utils/toast'
+import {
+  dismissToast,
+  runToastAction,
+  toastAction,
+  toastAnnouncement,
+  toastMessage,
+} from '@/shared/utils/toast'
 
 vi.mock('@/core/photos/photo-picker', () => ({
   pickPhoto: vi.fn<() => Promise<PickedPhoto | null>>(),
@@ -866,6 +872,18 @@ describe('CarnetView — options de l’animal', () => {
     expect(store.selectedAnimalId).toBe(LUNA.id)
   })
 
+  it('TR-37 : dit à la section des traitements si l’animal est suivi', async () => {
+    animals = [MILO, { ...LUNA, unfollowedOn: '2026-09-01' }]
+    store.select(LUNA.id)
+
+    const wrapper = await monterAttache()
+
+    expect(wrapper.getComponent(TreatmentsSection).props('followed')).toBe(false)
+    store.select(MILO.id)
+    await flushPromises()
+    expect(wrapper.getComponent(TreatmentsSection).props('followed')).toBe(true)
+  })
+
   it('souhaite la bienvenue quand plus aucun animal n’est suivi', async () => {
     animals = [{ ...MILO, unfollowedOn: '2026-09-01' }]
 
@@ -919,7 +937,12 @@ describe('CarnetView — options de l’animal', () => {
     expect(push).toHaveBeenCalledExactlyOnceWith({ name: 'home' })
     expect(wrapper.findAll('.animal-chip').map((chip) => chip.text())).toEqual(['Luna'])
     expect(toastMessage.value).toBe('Tu ne suis plus Milo')
-    expect(toastAction.value?.ariaLabel).toBe('Annuler et suivre de nouveau Milo')
+    expect(toastAction.value?.ariaLabel?.replace(/\s/gu, ' ')).toBe(
+      'Annuler : suivre Milo de nouveau',
+    )
+    await vi.waitFor(() =>
+      expect(toastAnnouncement.value).toBe('Tu ne suis plus Milo. Ses rappels sont coupés.'),
+    )
 
     runToastAction()
     await flushPromises()
@@ -952,6 +975,7 @@ describe('CarnetView — options de l’animal', () => {
       'Tu suis de nouveau Luna. Ses traitements arrêtés ne reprennent pas seuls : relance chacun avec « Reprendre ».',
     )
 
+    expect(toastAction.value?.ariaLabel?.replace(/\s/gu, ' ')).toBe('Annuler : ne plus suivre Luna')
     runToastAction()
     await flushPromises()
 
@@ -1011,7 +1035,9 @@ describe('CarnetView — options de l’animal', () => {
       expect(remove).toHaveBeenCalledExactlyOnceWith(MILO.id)
       expect(wrapper.get('.carnet-header__name').text()).toBe('Luna')
       expect(toastMessage.value).toBe('Carnet de Milo supprimé')
-      expect(toastAction.value?.ariaLabel).toBe('Annuler la suppression de Milo')
+      expect(toastAction.value?.ariaLabel?.replace(/\s/gu, ' ')).toBe(
+        'Annuler : garder le carnet de Milo',
+      )
 
       runToastAction()
       await flushPromises()

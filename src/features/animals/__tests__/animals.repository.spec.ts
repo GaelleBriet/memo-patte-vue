@@ -424,13 +424,35 @@ describe('animalsRepository', () => {
       ).resolves.toEqual([{ deleted_at: null }])
     })
 
-    it('ne rend pas un animal supprimé à un autre instant', async () => {
+    it('lève sans rien rendre quand l’animal n’a pas été supprimé à cet instant', async () => {
       const luna = await repository.create({ name: 'Luna', species: 'cat' })
       await repository.remove(luna.id, [], '2026-03-01T10:00:00.000Z')
+      await db.run(
+        `INSERT INTO vaccination (id, animal_id, name, created_at, updated_at, deleted_at, created_by_device, updated_by_device)
+         VALUES ('v1', ?, 'Rage', '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z', '2026-03-02T10:00:00.000Z', 'appareil-test', 'appareil-test')`,
+        [luna.id],
+      )
 
-      await repository.restore(luna.id, '2026-03-02T10:00:00.000Z')
+      await expect(
+        repository.restore(luna.id, '2026-03-02T10:00:00.000Z', [
+          { sql: "UPDATE vaccination SET deleted_at = NULL WHERE id = 'v1'" },
+        ]),
+      ).rejects.toThrow(/introuvable/)
 
       await expect(repository.getById(luna.id)).resolves.toBeNull()
+      await expect(
+        db.query('SELECT deleted_at FROM vaccination WHERE id = ?', ['v1']),
+      ).resolves.toEqual([{ deleted_at: '2026-03-02T10:00:00.000Z' }])
+    })
+
+    it('lève pour un animal déjà rendu', async () => {
+      const luna = await repository.create({ name: 'Luna', species: 'cat' })
+      await repository.remove(luna.id, [], '2026-03-01T10:00:00.000Z')
+      await repository.restore(luna.id, '2026-03-01T10:00:00.000Z')
+
+      await expect(repository.restore(luna.id, '2026-03-01T10:00:00.000Z')).rejects.toThrow(
+        /introuvable/,
+      )
     })
 
     it('date le retour pour la synchronisation', async () => {

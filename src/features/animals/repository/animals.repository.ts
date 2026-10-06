@@ -203,8 +203,16 @@ export function createAnimalsRepository(
       ])
     },
 
-    /** Rend l'animal supprimé à cet instant, et lui seul, avec les écritures de `revive`. */
+    /**
+     * Rend l'animal supprimé à cet instant, et lui seul, avec les écritures de `revive`. Lève sans
+     * rien écrire quand il n'a pas été supprimé à cet instant ou qu'il a déjà été rendu.
+     */
     async restore(id: string, deletedAt: string, revive: SqlStatement[] = []): Promise<void> {
+      const deleted = await db.query<{ id: string }>(
+        'SELECT id FROM animal WHERE id = ? AND deleted_at = ?',
+        [id, deletedAt],
+      )
+      if (deleted.length === 0) throw new Error(`Animal introuvable à rendre : ${id}`)
       const at = new Date().toISOString()
       await db.runMany([
         {

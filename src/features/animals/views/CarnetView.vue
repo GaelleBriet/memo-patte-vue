@@ -295,6 +295,7 @@ function createAnimal(): void {
         <TreatmentsSection
           :animal-id="animal.id"
           :today="today"
+          :followed="isFollowed"
           @summary="treatmentsSummary = $event"
         />
         <WeightSection :animal-id="animal.id" :today="today" @summary="weightSummary = $event" />

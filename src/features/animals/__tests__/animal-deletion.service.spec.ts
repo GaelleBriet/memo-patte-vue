@@ -37,6 +37,7 @@ vi.mock('@/core/db/sqlite', () => ({ getDb: vi.fn<() => Promise<DbClient>>() }))
 vi.mock('@/core/notifications', () => ({
   cancelReminders: vi.fn<(keys: string[]) => Promise<void>>().mockResolvedValue(),
   listScheduled: vi.fn<() => Promise<ScheduledReminder[]>>().mockResolvedValue([]),
+  removeDelivered: vi.fn<(ids: number[]) => Promise<void>>().mockResolvedValue(),
 }))
 vi.mock('@/core/photos/photo-storage', () => ({
   deletePhoto: vi.fn<PhotoStorage['deletePhoto']>().mockResolvedValue(),
@@ -347,9 +348,12 @@ describe('animalDeletionService', () => {
       notifications.pending.set(key, { key, title: '', body: '', at: new Date() })
     }
 
+    const shown = notifications.idOf(`vaccination:${rage.id}:2027-03-01:before`)
+
     await service.remove(miette.id)
 
     expect([...notifications.pending.keys()]).toEqual([kept])
+    expect(notifications.removeDelivered).toHaveBeenCalledWith(expect.arrayContaining([shown]))
   })
 
   it('garde les rappels quand la suppression échoue', async () => {
@@ -590,6 +594,19 @@ describe('animalDeletionService', () => {
       await expect(vaccinationTombstones(miette.id)).resolves.toEqual([
         { deleted_at: '2026-03-01T10:00:00.000Z', updated_at: '2026-03-01T10:00:00.000Z' },
       ])
+    })
+
+    it('ne rend pas le carnet quand l’animal n’est pas rendu', async () => {
+      const miette = await animals.create({ name: 'Miette', species: 'cat' })
+      await seedCarnet(miette.id)
+      const removal = (await service.remove(miette.id))!
+      await service.restore(removal)
+      await service.remove(miette.id)
+
+      await expect(service.restore(removal)).rejects.toThrow(/introuvable/)
+
+      await expect(animals.getById(miette.id)).resolves.toBeNull()
+      expect(rescheduled).toHaveLength(2)
     })
 
     it('ne touche pas aux autres animaux supprimés', async () => {

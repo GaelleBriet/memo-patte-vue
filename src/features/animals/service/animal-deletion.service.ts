@@ -29,7 +29,7 @@ export type AnimalRemoval = {
 export function createAnimalDeletionService(
   animals: Provider<Pick<AnimalsRepository, 'getById' | 'remove' | 'restore'>>,
   records: Provider<AnimalRecordRepository>[],
-  reminders: Pick<AnimalRemindersService, 'entriesOf' | 'cancel' | 'reschedule'>,
+  reminders: Pick<AnimalRemindersService, 'entriesOf' | 'withdrawEntries' | 'reschedule'>,
   photos: Pick<PhotoStorage, 'deletePhoto'>,
 ) {
   async function repositories() {
@@ -38,8 +38,8 @@ export function createAnimalDeletionService(
 
   return {
     /**
-     * Marque l'animal et tout son carnet en une transaction, avec une seule date, puis annule ses
-     * rappels ; la photo reste jusqu'à `forgetPhoto`. `null` pour un animal inconnu ou déjà supprimé.
+     * Marque l'animal et tout son carnet en une transaction, avec une seule date, puis retire ses
+     * rappels, volet compris ; la photo reste jusqu'à `forgetPhoto`. `null` pour un animal inconnu ou déjà supprimé.
      */
     async remove(animalId: string): Promise<AnimalRemoval | null> {
       const deletedAt = new Date().toISOString()
@@ -54,11 +54,14 @@ export function createAnimalDeletionService(
         repository.markDeletedByAnimalStatement(animalId, deletedAt),
       )
       await animalsRepository.remove(animalId, cascade, deletedAt)
-      await reminders.cancel(reminded)
+      await reminders.withdrawEntries(reminded)
       return { animalId, deletedAt, photoPath: animal.photoPath }
     },
 
-    /** Rend l'animal et les lignes de son carnet supprimées avec lui, puis reprogramme ses rappels. */
+    /**
+     * Rend l'animal et les lignes de son carnet supprimées avec lui, puis reprogramme ses rappels.
+     * Lève sans rien rendre si l'animal n'est plus supprimé à cet instant.
+     */
     async restore({ animalId, deletedAt }: AnimalRemoval): Promise<void> {
       const at = new Date().toISOString()
       const [animalsRepository, recordRepositories] = await repositories()

@@ -64,10 +64,10 @@ describe('animalRemindersService', () => {
     expect(notifications.removeDelivered).toHaveBeenCalledWith(expect.arrayContaining([shown]))
   })
 
-  it('annule les rappels d’une liste de soins lue plus tôt', async () => {
+  it('retire les rappels d’une liste de soins lue plus tôt', async () => {
     seed(`vaccination:${RAGE}:2026-10-15:before`, `treatment:${OTHER}:2026-09-20:due`)
 
-    await service.cancel([{ kind: 'vaccination', id: RAGE }])
+    await service.withdrawEntries([{ kind: 'vaccination', id: RAGE }])
 
     expect([...notifications.pending.keys()]).toEqual([`treatment:${OTHER}:2026-09-20:due`])
   })

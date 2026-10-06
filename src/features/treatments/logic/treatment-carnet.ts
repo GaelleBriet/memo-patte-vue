@@ -175,20 +175,22 @@ export function carnetScheduleCache(): ScheduleCache {
 
 /**
  * Les traitements d'un animal tels que le Carnet les montre, lus par le moteur d'échéances, une
- * fois chacun : en cours (à renseigner compris, TR-31) et terminés.
+ * fois chacun : en cours (à renseigner compris, TR-31) et terminés. Pour un animal qu'on ne suit
+ * plus, un traitement arrêté ou fini est terminé, doses non renseignées comprises (TR-37).
  */
 export function carnetTreatments(
   t: Translate,
   treatments: readonly TreatmentWithHistory[],
   today: string,
   schedules: ScheduleCache = carnetScheduleCache(),
+  { followed = true }: { followed?: boolean } = {},
 ): CarnetTreatments {
   const reads = treatments.map((treatment): Read => ({
     treatment,
     schedule: schedules.read(treatment, today),
   }))
   const isFinished = (read: Read): read is Read & { schedule: TreatmentSchedule } =>
-    read.schedule !== null && read.schedule.finished
+    read.schedule !== null && (read.schedule.finished || (!followed && !isOpen(read.schedule)))
   const ongoing = reads
     .filter((read) => !isFinished(read))
     .sort((a, b) => compare(urgency(a), urgency(b)))

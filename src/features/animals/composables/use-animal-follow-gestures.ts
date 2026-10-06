@@ -44,7 +44,7 @@ export function useAnimalFollowGestures() {
     message: string,
     ariaLabel: string,
     undo: () => Promise<unknown>,
-    options: { onUndone?: () => void; onExpired?: () => void } = {},
+    options: { onUndone?: () => void; onExpired?: () => void; announcement?: string } = {},
   ): void {
     showUndoableToast(message, {
       label: t('reminderSheet.undo'),
@@ -52,6 +52,7 @@ export function useAnimalFollowGestures() {
       undo,
       onUndone: options.onUndone ?? (() => {}),
       onExpired: options.onExpired,
+      announcement: options.announcement,
       failedMessage: t('reminderSheet.undoFailed'),
     })
   }
@@ -65,7 +66,10 @@ export function useAnimalFollowGestures() {
         t('animals.carnet.toast.unfollowed', { name }),
         t('animals.carnet.toast.undoUnfollow', { name }),
         () => animals.undoUnfollow(undo),
-        { onUndone: () => animals.select(id) },
+        {
+          onUndone: () => animals.select(id),
+          announcement: t('animals.carnet.toast.unfollowedAnnouncement', { name }),
+        },
       )
     }, t('animals.carnet.toast.failed'))
   }

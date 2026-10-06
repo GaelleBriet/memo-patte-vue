@@ -87,9 +87,9 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-async function monter(animalId = MILO) {
+async function monter(animalId = MILO, followed = true) {
   const wrapper = mount(TreatmentsSection, {
-    props: { animalId, today: TODAY },
+    props: { animalId, today: TODAY, followed },
     global: { plugins: [vuetify, i18n, router] },
   })
   await flushPromises()
@@ -244,6 +244,21 @@ describe('TreatmentsSection — lignes (B · V15)', () => {
     expect(texte(row.get('.treatment-row__unlogged'))).toBe('3 doses non renseignées')
     expect(wrapper.find('.finished-treatments').exists()).toBe(false)
     expect(resume(wrapper)).toEqual([{ total: 0, overdue: 0, ongoing: 1 }])
+  })
+
+  it('TR-37 : range dans « Traitements terminés » l’arrêté d’un animal qu’on ne suit plus, sans « À renseigner »', async () => {
+    treatments = [
+      treatment({
+        name: 'Panacur',
+        period: { ...QUOTIDIEN, stoppedOn: '2026-09-06' },
+        doses: DEUX_PRISES,
+      }),
+    ]
+    const wrapper = await monter(MILO, false)
+
+    expect(wrapper.find('.treatment-row__badge').exists()).toBe(false)
+    expect(wrapper.find('.finished-treatments').exists()).toBe(true)
+    expect(resume(wrapper)).toEqual([{ total: 0, overdue: 0, ongoing: 0 }])
   })
 
   it('garde une ligne sobre, qui mène à la fiche, pour un traitement illisible', async () => {

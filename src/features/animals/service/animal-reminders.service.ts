@@ -10,7 +10,6 @@ import {
 } from '@/features/vaccinations/service/vaccination-reminders.service'
 import type { DueReminderEntry } from '@/shared/domain/due-reminders'
 import {
-  cancelDueReminders,
   reminderNotifications,
   withdrawDueReminders,
   type ReminderNotifications,
@@ -54,11 +53,12 @@ export function createAnimalRemindersService({
     /** Soins visibles de l'animal : à lire avant de le supprimer. */
     entriesOf,
 
-    cancel(entries: DueReminderEntry[]): Promise<void> {
-      return cancelDueReminders(notifications, entries)
+    /** Rappels en attente annulés et notifications affichées retirées du volet, pour ces soins. */
+    withdrawEntries(entries: DueReminderEntry[]): Promise<void> {
+      return withdrawDueReminders(notifications, entries)
     },
 
-    /** Rappels en attente annulés et notifications affichées retirées du volet. */
+    /** Comme `withdrawEntries`, pour tous les soins visibles de l'animal. */
     async withdraw(animalId: string): Promise<void> {
       await withdrawDueReminders(notifications, await entriesOf(animalId))
     },
