@@ -102,8 +102,6 @@ describe('treatmentPlanService', () => {
     expect(created).toMatchObject({
       name: 'Milbemax',
       periodId: created.id,
-      lastDoseDate: null,
-      nextDueDate: '2026-09-03',
     })
     await expect(historyOf(created.id)).resolves.toMatchObject({
       periods: [
@@ -375,7 +373,7 @@ describe('treatmentPlanService', () => {
 
     const updated = await service.update(id, saisie({ nextDoseOn: '2026-10-06' }))
 
-    expect(updated).toMatchObject({ lastDoseDate: '2026-09-26', nextDueDate: '2026-10-06' })
+    expect(updated.periodId).toBe(id)
     const { periods, doses } = await historyOf(id)
     expect(periods).toHaveLength(1)
     expect(doses.filter(({ status }) => status !== 'shift')).toMatchObject([
@@ -461,8 +459,6 @@ describe('treatmentPlanService', () => {
 
     expect(resumed).toMatchObject({
       stoppedOn: null,
-      lastDoseDate: null,
-      nextDueDate: '2026-11-03',
     })
     const { periods } = await historyOf(id)
     expect(periods[0]).toEqual(before)

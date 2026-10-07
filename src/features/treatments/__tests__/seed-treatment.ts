@@ -1,13 +1,12 @@
 import { addFrequency } from '../logic/treatment-frequency'
-import {
-  createTreatmentDosesRepository,
-  headDoseIdSql,
-} from '../repository/treatment-doses.repository'
+import { createTreatmentDosesRepository } from '../repository/treatment-doses.repository'
 import { currentPeriodIdSql } from '../repository/treatment-periods.repository'
 import { createTreatmentsRepository } from '../repository/treatments.repository'
 import type { Treatment, TreatmentFrequency, TreatmentInput } from '../schema/treatment.schema'
 
 type DbClient = Parameters<typeof createTreatmentsRepository>[0]
+
+export type SeedTreatment = TreatmentInput & { lastDoseDate: string }
 
 type HeadEdit = Pick<Treatment, 'name' | 'type'> & {
   frequency: TreatmentFrequency
@@ -17,7 +16,7 @@ type HeadEdit = Pick<Treatment, 'name' | 'type'> & {
 /** Traitement avec sa première prise, donnée le jour de `lastDoseDate`, de même identifiant que lui. */
 export async function seedTreatmentWithDose(
   db: DbClient,
-  input: TreatmentInput,
+  input: SeedTreatment,
 ): Promise<Treatment> {
   const treatments = createTreatmentsRepository(db)
   const id = crypto.randomUUID()
@@ -59,6 +58,15 @@ export async function seedTreatmentWithDose(
   return seeded
 }
 
+function headDoseIdSql(periodId: string): string {
+  return `(SELECT candidate.id FROM treatment_dose candidate
+           WHERE candidate.period_id = ${periodId} AND candidate.deleted_at IS NULL
+             AND candidate.status NOT IN ('shift', 'extra')
+           ORDER BY candidate.due_on DESC, candidate.due_time DESC, candidate.created_at DESC,
+             candidate.id DESC
+           LIMIT 1)`
+}
+
 /** Nom, type et fréquence corrigés sur place, et la prochaine dose posée sur la dernière ligne de la période en cours. */
 export async function seedHeadEdit(db: DbClient, id: string, edit: HeadEdit): Promise<void> {
   const at = new Date().toISOString()
@@ -85,7 +93,7 @@ export async function seedHeadEdit(db: DbClient, id: string, edit: HeadEdit): Pr
 /** Les deux écritures d'un carnet de test, pour une base donnée. */
 export function seededTreatments(db: DbClient) {
   return {
-    create: (input: TreatmentInput) => seedTreatmentWithDose(db, input),
+    create: (input: SeedTreatment) => seedTreatmentWithDose(db, input),
     update: (id: string, edit: HeadEdit) => seedHeadEdit(db, id, edit),
   }
 }

@@ -161,8 +161,6 @@ const ECRIT: Treatment = {
   type: 'deworming',
   periodId: ID,
   frequency: { value: 3, unit: 'month' },
-  lastDoseDate: '2026-07-10',
-  nextDueDate: '2026-10-10',
   stoppedOn: null,
   createdAt: AT,
   updatedAt: AT,

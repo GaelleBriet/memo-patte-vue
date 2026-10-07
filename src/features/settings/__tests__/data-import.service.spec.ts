@@ -162,6 +162,13 @@ async function carnet(client: InMemoryDb = db): Promise<ExportData> {
 }
 
 /** Export JSON de l'appareil tel que l'import le relit. */
+async function headDose(client: InMemoryDb, treatmentId: string) {
+  const [head] = (await createRepositories(client).treatments.listDoses(treatmentId)).filter(
+    ({ status }) => status !== 'shift' && status !== 'extra',
+  )
+  return head ? { givenOn: head.givenOn, nextDueDate: head.nextDueDate } : null
+}
+
 async function exported(client: InMemoryDb): Promise<ImportFile> {
   const text = toJsonExport(await carnet(client), { exportedAt: NOW, appVersion: 'test' })
   const parsed = parseExportFile(text)
@@ -211,7 +218,7 @@ describe('data-import.service', () => {
     await expect(service.hasLocalData()).resolves.toBe(true)
   })
 
-  it('importe un médicament sans prise : visible, prochaine dose à sa première échéance', async () => {
+  it('importe un médicament sans prise : visible, à sa première échéance', async () => {
     const { service } = setup()
     const [milbemax] = IMPORT_FIXTURE.treatments
     const data: ExportData = {
@@ -231,8 +238,10 @@ describe('data-import.service', () => {
 
     await expect(repositories.treatments.getById(milbemax!.id)).resolves.toMatchObject({
       type: 'medication',
-      lastDoseDate: null,
-      nextDueDate: '2026-10-05',
+    })
+    await expect(repositories.treatments.getWithHistory(milbemax!.id)).resolves.toMatchObject({
+      periods: [{ firstDueOn: '2026-10-05' }],
+      doses: [],
     })
     await expect(carnet()).resolves.toEqual(withoutPhotos(data))
   })
@@ -302,7 +311,6 @@ describe('data-import.service', () => {
     await expect(repositories.treatments.getById(PANACUR_ID)).resolves.toMatchObject({
       periodId: PANACUR_PERIOD_ID,
       frequency: { value: 1, unit: 'day' },
-      nextDueDate: '2026-09-03',
       stoppedOn: null,
     })
   })
@@ -500,9 +508,8 @@ describe('data-import.service', () => {
 
       await service.importData(importFile(echeanceArbitraire), 'replace')
 
-      await expect(repositories.treatments.getById(MILBEMAX_ID)).resolves.toMatchObject({
-        lastDoseDate: '2026-06-15',
-        frequency: { value: 3, unit: 'month' },
+      await expect(headDose(db, MILBEMAX_ID)).resolves.toEqual({
+        givenOn: '2026-06-15',
         nextDueDate: '2027-01-31',
       })
     })
@@ -857,8 +864,8 @@ describe('data-import.service', () => {
 
       await expect(repositories.treatments.getById(PANACUR_ID)).resolves.toMatchObject({
         periodId: PANACUR_PERIOD_ID,
-        nextDueDate: '2026-09-02',
       })
+      await expect(headDose(db, PANACUR_ID)).resolves.toMatchObject({ nextDueDate: '2026-09-02' })
       await expect(
         db.query(
           `SELECT id, deleted_at FROM treatment_dose WHERE treatment_id = ?
@@ -1311,8 +1318,8 @@ describe('data-import.service', () => {
 
       await importerOn(phoneA).importData(await exported(phoneB), 'merge')
 
-      await expect(a.treatments.getById(milbemax.id)).resolves.toMatchObject({
-        lastDoseDate: '2026-09-10',
+      await expect(headDose(phoneA, milbemax.id)).resolves.toEqual({
+        givenOn: '2026-09-10',
         nextDueDate: '2026-09-17',
       })
       phoneB.close()
@@ -1448,9 +1455,9 @@ describe('data-import.service', () => {
       for (const phone of [phoneA, phoneB]) {
         await expect(
           createRepositories(phone).treatments.getById(milbemax.id),
-        ).resolves.toMatchObject({
-          name: 'Milbémax chat',
-          lastDoseDate: '2026-06-20',
+        ).resolves.toMatchObject({ name: 'Milbémax chat' })
+        await expect(headDose(phone, milbemax.id)).resolves.toEqual({
+          givenOn: '2026-06-20',
           nextDueDate: '2026-09-20',
         })
       }
@@ -1503,9 +1510,9 @@ describe('data-import.service', () => {
       for (const phone of [phoneA, phoneB]) {
         await expect(
           createRepositories(phone).treatments.getById(milbemax.id),
-        ).resolves.toMatchObject({
-          frequency: { value: 1, unit: 'month' },
-          lastDoseDate: '2026-09-12',
+        ).resolves.toMatchObject({ frequency: { value: 1, unit: 'month' } })
+        await expect(headDose(phone, milbemax.id)).resolves.toEqual({
+          givenOn: '2026-09-12',
           nextDueDate: '2026-12-12',
         })
       }

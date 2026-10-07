@@ -95,6 +95,13 @@ async function historyOf(device: Device, vaccinationId: string) {
   return (await device.vaccinations.listInjections(vaccinationId)).map(({ id }) => id)
 }
 
+async function headDose(device: Device, treatmentId: string) {
+  const [head] = (await device.treatments.listDoses(treatmentId)).filter(
+    ({ status }) => status !== 'shift' && status !== 'extra',
+  )
+  return head ? { givenOn: head.givenOn, nextDueDate: head.nextDueDate } : null
+}
+
 describe('synchro de l’historique entre deux appareils', () => {
   let server: FakeSyncServer
   let phone: Device
@@ -124,8 +131,8 @@ describe('synchro de l’historique entre deux appareils', () => {
       lastInjectionDate: '2025-09-20',
       dueDate: '2026-09-20',
     })
-    await expect(tablet.treatments.getById(bravecto.id)).resolves.toMatchObject({
-      lastDoseDate: '2026-08-20',
+    await expect(headDose(tablet, bravecto.id)).resolves.toEqual({
+      givenOn: '2026-08-20',
       nextDueDate: '2026-09-20',
     })
     expect(tablet.onRemindersOutdated).toHaveBeenCalledOnce()
@@ -215,7 +222,9 @@ describe('synchro de l’historique entre deux appareils', () => {
       })
       await expect(device.treatments.getById(bravecto.id)).resolves.toMatchObject({
         name: 'Bravecto Plus',
-        lastDoseDate: '2026-09-25',
+      })
+      await expect(headDose(device, bravecto.id)).resolves.toEqual({
+        givenOn: '2026-09-25',
         nextDueDate: '2026-10-25',
       })
     }
@@ -263,9 +272,7 @@ describe('synchro de l’historique entre deux appareils', () => {
       await expect(tablet.sync()).rejects.toMatchObject({ message: 'réseau coupé' })
 
       expect(tablet.onRemindersOutdated).toHaveBeenCalledOnce()
-      await expect(tablet.treatments.getById(bravecto.id)).resolves.toMatchObject({
-        lastDoseDate: '2026-09-25',
-      })
+      await expect(headDose(tablet, bravecto.id)).resolves.toMatchObject({ givenOn: '2026-09-25' })
     })
 
     it('un animal renommé avant la coupure reprogramme les rappels', async () => {

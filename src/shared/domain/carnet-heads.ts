@@ -65,8 +65,8 @@ export function vaccinationHeads(
 }
 
 /**
- * Dernière ligne de chaque période, hors lignes de décalage et prises en plus, dans l'ordre de
- * `headDoseIdSql`.
+ * Dernière ligne de chaque période, hors lignes de décalage et prises en plus : l'échéance la plus
+ * tardive, jour puis heure, puis par saisie, puis par identifiant.
  */
 export function periodHeads(
   doses: readonly ExportTreatmentDose[],

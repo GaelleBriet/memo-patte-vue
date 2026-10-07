@@ -92,10 +92,10 @@ describe('treatmentStopService', () => {
       undo: [],
     })
 
-    await expect(treatments.getById(bravecto)).resolves.toMatchObject({
-      stoppedOn: '2026-09-23',
-      lastDoseDate: '2026-08-28',
-    })
+    await expect(treatments.getById(bravecto)).resolves.toMatchObject({ stoppedOn: '2026-09-23' })
+    await expect(
+      db.query('SELECT given_on FROM treatment_dose WHERE treatment_id = ?', [bravecto]),
+    ).resolves.toEqual([{ given_on: '2026-08-28' }])
     await expect(
       db.query('SELECT stopped_on FROM treatment_period WHERE treatment_id = ?', [bravecto]),
     ).resolves.toEqual([{ stopped_on: '2026-09-23' }])
