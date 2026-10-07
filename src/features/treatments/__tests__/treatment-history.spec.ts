@@ -355,6 +355,15 @@ describe('treatmentHistory — plusieurs périodes (planche A · V3)', () => {
       ])
     })
 
+    it('se juge sur la première échéance de la période, pas sur son début', () => {
+      const later = { startsOn: '2026-10-01', firstDueOn: '2026-10-10' }
+      const empty = (stoppedOn: string) =>
+        history(treatment([period({ ...later, stoppedOn })]), '2026-10-12').periods[0]?.emptyText
+
+      expect(empty('2026-10-05')).toBe('Arrêté avant la première prise')
+      expect(empty('2026-10-10')).toBe('Aucune prise dans cette période pour l’instant')
+    })
+
     it('s’écrit en anglais', () => {
       applyLocale('en')
 

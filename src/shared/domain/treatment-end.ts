@@ -1,4 +1,9 @@
-import { isNoteLine, type TreatmentPeriodInput, type TreatmentSchedule } from './treatment-schedule'
+import {
+  isNoteLine,
+  type TreatmentDoseInput,
+  type TreatmentPeriodInput,
+  type TreatmentSchedule,
+} from './treatment-schedule'
 
 /** Fin d'un traitement fini : sa date de fin une fois atteinte, sinon sa dernière échéance notée. */
 export function endedOnOf(
@@ -16,10 +21,11 @@ export function endedOnOf(
   return noted.at(-1) ?? period.endsOn
 }
 
-/** Arrêté avant son début : aucune dose n'a jamais été due (#594). */
-export function isStoppedBeforeStart({
-  startsOn,
-  stoppedOn,
-}: Pick<TreatmentPeriodInput, 'startsOn' | 'stoppedOn'>): boolean {
-  return stoppedOn !== null && stoppedOn < startsOn
+/** Arrêté avant sa première échéance, sans aucune prise notée sur tout le traitement. */
+export function isStoppedBeforeFirstDose(
+  { firstDueOn, stoppedOn }: Pick<TreatmentPeriodInput, 'firstDueOn' | 'stoppedOn'>,
+  doses: readonly Pick<TreatmentDoseInput, 'status'>[],
+): boolean {
+  const noted = doses.some((dose) => isNoteLine(dose) || dose.status === 'extra')
+  return stoppedOn !== null && stoppedOn < firstDueOn && !noted
 }

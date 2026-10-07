@@ -3,13 +3,13 @@ import type {
   ExportTreatmentDose,
   ExportTreatmentPeriod,
 } from '@/shared/domain/carnet-data'
-import { endedOnOf } from '@/shared/domain/treatment-end'
+import { endedOnOf, isStoppedBeforeFirstDose } from '@/shared/domain/treatment-end'
 import { readableTreatmentSchedule } from '@/shared/domain/readable-treatment-schedule'
 
 /** `dueTime` : seulement quand la période a plusieurs heures. */
 export type TreatmentOutlook =
   | { kind: 'due'; dueOn: string; dueTime: string | null; overdue: boolean }
-  | { kind: 'stopped'; on: string | null }
+  | { kind: 'stopped'; on: string | null; beforeFirstDose: boolean }
   | { kind: 'ended'; on: string | null }
   | { kind: 'unreadable' }
 
@@ -19,7 +19,13 @@ function outlookOf(history: History, today: string): TreatmentOutlook {
   const schedule = readableTreatmentSchedule({ ...history, today })
   if (schedule === null) return { kind: 'unreadable' }
   const current = history.periods.find(({ id }) => id === schedule.currentPeriodId)
-  if (schedule.phase === 'stopped') return { kind: 'stopped', on: current?.stoppedOn ?? null }
+  if (schedule.phase === 'stopped') {
+    return {
+      kind: 'stopped',
+      on: current?.stoppedOn ?? null,
+      beforeFirstDose: current !== undefined && isStoppedBeforeFirstDose(current, history.doses),
+    }
+  }
   const due = schedule.phase === 'ended' ? null : (schedule.currentDoses[0] ?? schedule.nextDue)
   if (due === null) return { kind: 'ended', on: endedOnOf(history, schedule, today) }
   const period = history.periods.find(({ id }) => id === due.periodId)

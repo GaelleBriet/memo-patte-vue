@@ -333,7 +333,7 @@ describe('carnetTreatments — traitements terminés (TR-31)', () => {
     }
   })
 
-  it('arrêté avant le début de sa reprise, garde le compte des prises d’avant (#594)', () => {
+  it('arrêté avant le début de sa reprise, garde « Arrêté le … » et ses prises (#594)', () => {
     const repris = named(
       'Bravecto',
       [
@@ -349,9 +349,7 @@ describe('carnetTreatments — traitements terminés (TR-31)', () => {
       [dose('2026-09-01', '2026-09-02')],
     )
 
-    expect(carnet([repris], '2026-10-06').finished[0]?.detail).toBe(
-      'Arrêté avant la première prise · 1 prise',
-    )
+    expect(carnet([repris], '2026-10-06').finished[0]?.detail).toBe('Arrêté le 6 oct. · 1 prise')
   })
 
   it('TR-37 : animal qu’on ne suit plus, arrêté avec des doses oubliées, sans « À renseigner »', () => {

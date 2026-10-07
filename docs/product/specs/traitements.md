@@ -341,6 +341,9 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
   d'aujourd'hui n'est pas notée : si tu l'as donnée, touche « C'est fait » avant d'arrêter. » (Spec Q9)
   Sans dose à renseigner, une confirmation simple : « Plus aucun rappel pour Milbemax. Ses prises
   restent dans le carnet. » (relecture du lot A, correction 6). (P9 Q3, doute de Gaelle à observer)
+  Arrêté avant sa première échéance, sans aucune prise sur tout le traitement : la date d'arrêt reste
+  le jour du geste, et la fiche, « Traitements terminés » et le PDF disent « Arrêté avant la première
+  prise » au lieu de « Arrêté le … » ; aucune dose à renseigner. (#594, Q5 du 2026-10-07)
 - **TR-31** Un traitement avec date de fin est « terminé » dès que sa dernière échéance a un état et
   qu'il ne reste rien à renseigner ; toast « Dernière dose de Panacur notée, à retrouver dans
   Traitements terminés. » avec « Annuler ». Même règle pour un arrêt : un traitement arrêté qui a encore
@@ -372,7 +375,8 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
   « Dernière prise » = dernière donnée ; « N prises » ne compte que les données ; une prise notée un
   autre jour que son échéance : l'échéance en titre (« 6 oct. 2026 », avec l'heure seulement si la
   période a plusieurs heures), « Donnée le 7 oct. 2026 » dessous ; aucune ligne « A fixé la dose
-  du … » (spec Q13) ; période sans prise : « Aucune prise dans cette période pour l'instant » ;
+  du … » (spec Q13) ; période sans prise : « Aucune prise dans cette période pour l'instant », ou
+  « Arrêté avant la première prise » si elle a été arrêtée avant sa première échéance (TR-30) ;
   l'écart d'une dose non renseignée n'apparaît pas comme une ligne (il est dans le bandeau), sauf quand
   il n'y a plus de bandeau (animal qu'on ne suit plus) : ligne « Non renseigné du … au … », comme dans le
   PDF. (Spec ; planches Q4, Q5 ; P10)

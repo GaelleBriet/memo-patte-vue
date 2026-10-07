@@ -2140,3 +2140,12 @@ Pro est payé à partir de 20 à 35 abonnés et reste fixe jusqu'à des dizaines
 donnée payante sur un plan qui se met en pause après une semaine d'inactivité. — Alternatives
 écartées : Firebase (modèle NoSQL, synchro à refaire), auto-hébergement (serveur à maintenir,
 sauvegarder et sécuriser seule). Analyse détaillée dans le coffre de notes de Gaelle.
+
+2026-10-07 — Q5 (#594) précisée : une période arrêtée avant sa première échéance garde `stopped_on` = le
+jour du geste ; l'app (fiche, « Traitements terminés », historique) et le PDF disent « Arrêté avant la
+première prise » quand aucune dose n'a jamais été due ni donnée (arrêt avant la première échéance de
+la période, aucune prise sur tout le traitement), sinon « Arrêté le … » ; l'import accepte une date
+d'arrêt antérieure au début de la période. — Raison : un seul sens de l'arrêt, rien ne repart seul
+après « Suivre de nouveau » (AN-11), et un export doit toujours se réimporter. — Alternatives
+écartées : ne pas arrêter la période (elle repartirait seule) ; la supprimer (perte de données) ;
+`stopped_on` = date de début (date future qui ment sur le jour du geste).

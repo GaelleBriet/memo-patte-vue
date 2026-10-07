@@ -172,6 +172,32 @@ describe('doseCard', () => {
     })
   })
 
+  it('garde « Arrêté le … » dès qu’une échéance est passée ou qu’une prise est notée (#594)', () => {
+    const beforeFirstDue = treatment([
+      period({ startsOn: '2026-10-01', firstDueOn: '2026-10-10', stoppedOn: '2026-10-05' }),
+    ])
+    const onFirstDue = treatment([
+      period({ startsOn: '2026-10-07', firstDueOn: '2026-10-07', stoppedOn: '2026-10-07' }),
+    ])
+    const resumed = treatment(
+      [
+        period({ stoppedOn: '2026-09-02' }),
+        period({
+          id: 'p-2',
+          startsOn: '2026-10-07',
+          firstDueOn: '2026-10-07',
+          stoppedOn: '2026-10-06',
+          createdAt: '2026-10-05T08:00:00.000Z',
+        }),
+      ],
+      [dose('2026-09-01', '2026-09-02')],
+    )
+
+    expect(card(beforeFirstDue, '2026-10-05').end?.value).toBe('Arrêté avant la première prise')
+    expect(card(onFirstDue, '2026-10-07').end?.value).toBe('Arrêté le 7 oct.')
+    expect(card(resumed, '2026-10-06').end?.value).toBe('Arrêté le 6 oct.')
+  })
+
   it('s’écrit en anglais', () => {
     applyLocale('en')
     const history = treatment(
