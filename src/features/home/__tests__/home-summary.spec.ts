@@ -13,6 +13,7 @@ import {
   upToDateText,
 } from '../logic/home-summary'
 import i18n, { applyLocale } from '@/core/i18n'
+import { plain } from '@/shared/__tests__/plain'
 
 const t = i18n.global.t
 
@@ -393,7 +394,7 @@ describe('reminderRows', () => {
       daysUntil: 5,
     })
 
-    expect(reminderRows(t, [bravecto], { animalNames: names })[0]?.ariaLabel).toBe(
+    expect(plain(reminderRows(t, [bravecto], { animalNames: names })[0]?.ariaLabel)).toBe(
       'Bravecto, vermifuge, Milo, dans 5 jours, le 28 septembre. Ouvre les actions.',
     )
   })
