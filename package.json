@@ -28,7 +28,8 @@
     "test:device:dev": "pnpm cap:sync && ORG_GRADLE_PROJECT_devApp=true cap run android --no-sync",
     "cap:sync": "vite build && cap sync",
     "cap:open:android": "cap open android",
-    "assets:android": "pnpm --allow-build=sharp dlx @capacitor/assets@3.0.5 generate --android"
+    "assets:android": "pnpm --allow-build=sharp dlx @capacitor/assets@3.0.5 generate --android",
+    "vaccines:generate": "node scripts/generate-vaccine-list.mjs"
   },
   "lint-staged": {
     "*.{ts,vue}": [
@@ -88,6 +89,7 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-oxlint": "~1.83.0",
     "eslint-plugin-vue": "~10.10.0",
+    "fast-xml-parser": "^5.11.2",
     "globals": "^17.12.0",
     "husky": "^9.1.7",
     "jiti": "^2.7.0",
