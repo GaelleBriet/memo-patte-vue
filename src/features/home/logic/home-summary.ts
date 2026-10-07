@@ -211,7 +211,7 @@ export function nextReminderText(
   if (item === null) return null
   const params = {
     reminder: item.label,
-    date: formatLongDate(item.dueOn).replaceAll(' ', ' '),
+    date: formatLongDate(item.dueOn),
   }
   const name = showAnimal ? animalNames.get(item.animalId) : undefined
   if (name === undefined) return t('home.upToDate.nextForAnimal', params)
