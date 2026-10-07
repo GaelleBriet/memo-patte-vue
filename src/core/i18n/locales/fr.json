@@ -1245,7 +1245,7 @@
         "export": "Exporter une copie",
         "exportHint": "Vers Google Drive, un e-mail ou un ordinateur"
       },
-      "plus": "MémoPatte Plus ajoute une sauvegarde cloud garantie, photos comprises, et la restaure sur un nouveau téléphone.",
+      "plus": "MémoPatte Plus ajoutera une sauvegarde cloud garantie, photos comprises, et la restaurera sur un nouveau téléphone.",
       "discoverPlus": "Découvrir MémoPatte Plus"
     },
     "erase": {
@@ -1292,6 +1292,8 @@
       "exportEmpty": "Rien à exporter pour l’instant",
       "exportPdf": "Exporter en PDF",
       "exportPdfHint": "Tous les animaux ou un seul",
+      "exportPdfHintOne": "PDF du carnet de {name}",
+      "exportPdfHintOneOfSeveral": "Un animal à la fois",
       "importSection": "Importer",
       "import": "Importer un export MémoPatte",
       "loadError": "La base locale n’a pas répondu. Touche pour réessayer."
@@ -1333,7 +1335,8 @@
       "version": "Version",
       "website": "Site de MémoPatte",
       "websiteHint": "memopatte.gaelle-briet.fr",
-      "legalNotice": "Mentions légales"
+      "legalNotice": "Mentions légales",
+      "vaccineSource": "Source : ANMV, base publique des médicaments vétérinaires (CC BY)"
     },
     "export": {
       "title": "Exporter tes données",
@@ -1524,16 +1527,12 @@
   },
   "plus": {
     "title": "MémoPatte Plus",
-    "headline": {
-      "pdf": "L’export PDF fait partie de MémoPatte Plus",
-      "general": "Garde tes carnets en sécurité, partout"
-    },
-    "subtitle": "Animaux, rappels, poids et export JSON/CSV restent gratuits, sans compte ni abonnement.",
+    "headline": "Garde tes carnets en sécurité, partout",
+    "subtitle": "Animaux, rappels, poids, exports et PDF restent gratuits, sans compte ni abonnement.",
     "benefits": {
       "backup": "Sauvegarde garantie dans le cloud",
       "devices": "Le même carnet sur tous tes appareils",
-      "photos": "Tes photos sauvegardées aussi",
-      "pdf": "Export PDF complet"
+      "photos": "Tes photos sauvegardées aussi"
     },
     "android": "Android sauvegarde déjà ton carnet, mais sans les photos ni garantie de restauration. Plus le garantit.",
     "offers": {
@@ -1603,7 +1602,7 @@
     "later": "Plus tard",
     "settings": {
       "discover": "Découvrir MémoPatte Plus",
-      "summary": "Ton carnet ne disparaît jamais",
+      "summary": "Sauvegarde cloud, plusieurs appareils",
       "discoverHint": "Sauvegarde cloud, plusieurs appareils",
       "alreadySubscribed": "J’ai déjà MémoPatte Plus",
       "alreadySubscribedHint": "Retrouve ton carnet sauvegardé sur un autre appareil",

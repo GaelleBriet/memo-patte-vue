@@ -12,6 +12,9 @@ const PRIVACY_POLICY_URLS: Record<AppLocale, string> = {
 
 const LEGAL_NOTICE_URL = 'https://gaelle-briet.fr/mentions-legales/'
 
+const VACCINE_SOURCE_URL =
+  'https://www.data.gouv.fr/datasets/base-de-donnees-publique-des-medicaments-veterinaires-autorises-en-france-1'
+
 export function siteUrl(locale: AppLocale): string {
   return SITE_URLS[locale]
 }
@@ -22,4 +25,8 @@ export function privacyPolicyUrl(locale: AppLocale): string {
 
 export function legalNoticeUrl(): string {
   return LEGAL_NOTICE_URL
+}
+
+export function vaccineSourceUrl(): string {
+  return VACCINE_SOURCE_URL
 }

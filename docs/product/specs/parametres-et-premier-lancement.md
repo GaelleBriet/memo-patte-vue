@@ -69,7 +69,9 @@ personnalisation de l'accueil.
     objet « MémoPatte : question ») et « Il me manque quelque chose » (objet « MémoPatte :
     suggestion »), qui ouvrent l'app de messagerie, message prérempli avec la version de l'app et
     d'Android, jamais le contenu du carnet. (Décision du 2026-09-29 ; parades P2 ; spec Q2)
-  - **À propos** : version, mentions légales (lien), site. (Existant ; site)
+  - **À propos** : version, mentions légales (lien), site, source de la liste des vaccins (« Source :
+    ANMV, base publique des médicaments vétérinaires (CC BY) », lien vers data.gouv.fr). (Existant ;
+    site ; #283, #598)
 - **PA-2 bis** Paramètres est une liste de rubriques ; chacune affiche son état (« Autorisés · rappels
   précis », « Plus · il y a 5 min ») et ouvre sa propre page ; un lien peut ouvrir directement une
   rubrique (« Voir comment » → Sauvegarde). Rubrique Rappels, autorisation jamais demandée : « Activer

@@ -161,7 +161,7 @@ describe('SettingsView', () => {
 
       expect(sousTitre(wrapper, 'backup')).toBe('Sur ce téléphone')
       expect(sousTitre(wrapper, 'data')).toBe('Unité, export, PDF, import')
-      expect(sousTitre(wrapper, 'plus')).toBe('Ton carnet ne disparaît jamais')
+      expect(sousTitre(wrapper, 'plus')).toBe('Sauvegarde cloud, plusieurs appareils')
       expect(sousTitre(wrapper, 'about')).toBe(`MémoPatte ${import.meta.env.VITE_APP_VERSION}`)
     })
 
@@ -199,6 +199,6 @@ describe('SettingsView', () => {
     expect(sousTitre(wrapper, 'reminders')).toBe('Allowed · exact reminders')
     expect(sousTitre(wrapper, 'backup')).toBe('On this phone')
     expect(sousTitre(wrapper, 'data')).toBe('Unit, export, PDF, import')
-    expect(sousTitre(wrapper, 'plus')).toBe('Your health record never disappears')
+    expect(sousTitre(wrapper, 'plus')).toBe('Cloud backup, multiple devices')
   })
 })

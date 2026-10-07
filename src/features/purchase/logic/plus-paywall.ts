@@ -1,33 +1,17 @@
 import type { PaidPlan, PlusOffer } from '../service/billing.service'
 
-export type PlusOrigin = 'pdf' | 'general'
-
-export type PlusBenefit = 'backup' | 'devices' | 'photos' | 'pdf'
-
-export type PitchBenefit = { benefit: PlusBenefit; highlighted: boolean }
+export type PlusBenefit = 'backup' | 'devices' | 'photos'
 
 export type CheckoutBar =
   | { kind: 'offer'; offer: PlusOffer }
   | { kind: 'connecting' }
   | { kind: 'unavailable'; retrying: boolean }
 
-const GENERAL_BENEFITS: readonly PlusBenefit[] = ['backup', 'devices', 'photos', 'pdf']
+export const PLUS_BENEFITS: readonly PlusBenefit[] = ['backup', 'devices', 'photos']
 
 const OFFER_ORDER: readonly PaidPlan[] = ['annual', 'monthly', 'lifetime']
 
 export const PRESELECTED_PLAN: PaidPlan = 'annual'
-
-export function plusOriginOf(from: unknown): PlusOrigin {
-  return from === 'pdf' ? 'pdf' : 'general'
-}
-
-export function pitchBenefits(origin: PlusOrigin): PitchBenefit[] {
-  const fromPdf = origin === 'pdf'
-  const order: readonly PlusBenefit[] = fromPdf
-    ? ['pdf', ...GENERAL_BENEFITS.filter((benefit) => benefit !== 'pdf')]
-    : GENERAL_BENEFITS
-  return order.map((benefit) => ({ benefit, highlighted: fromPdf && benefit === 'pdf' }))
-}
 
 export function orderedOffers(offers: readonly PlusOffer[]): PlusOffer[] {
   return OFFER_ORDER.flatMap((plan) => offers.filter((offer) => offer.plan === plan))
