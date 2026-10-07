@@ -65,6 +65,10 @@ describe('AboutSettingsView', () => {
         '_blank',
         '_blank',
       ])
+      expect([lienSite, lienMentions].map((lien) => lien.attributes('rel'))).toEqual([
+        'noopener',
+        'noopener',
+      ])
     },
   )
 
@@ -77,9 +81,11 @@ describe('AboutSettingsView', () => {
     const lien = wrapper.get('.settings-row--vaccine-source')
 
     expect(plain(lien.text())).toBe(source)
+    expect(lien.text()).toContain('(CC BY)')
     expect(lien.attributes('href')).toBe(
       'https://www.data.gouv.fr/datasets/base-de-donnees-publique-des-medicaments-veterinaires-autorises-en-france-1',
     )
     expect(lien.attributes('target')).toBe('_blank')
+    expect(lien.attributes('rel')).toBe('noopener')
   })
 })
