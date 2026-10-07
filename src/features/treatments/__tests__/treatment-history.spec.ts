@@ -355,6 +355,26 @@ describe('treatmentHistory — plusieurs périodes (planche A · V3)', () => {
       ])
     })
 
+    it('reprise arrêtée avant sa première échéance, après une prise : pas « Arrêté avant la première prise »', () => {
+      const book = treatment(
+        [
+          period({ stoppedOn: '2026-09-02' }),
+          period({
+            id: 'p-2',
+            startsOn: '2026-10-08',
+            firstDueOn: '2026-10-08',
+            stoppedOn: '2026-10-07',
+            createdAt: '2026-10-07T08:00:00.000Z',
+          }),
+        ],
+        [dose('2026-09-01', '2026-09-02')],
+      )
+
+      expect(history(book, '2026-10-07').periods[0]?.emptyText).toBe(
+        'Aucune prise dans cette période pour l’instant',
+      )
+    })
+
     it('se juge sur la première échéance de la période, pas sur son début', () => {
       const later = { startsOn: '2026-10-01', firstDueOn: '2026-10-10' }
       const empty = (stoppedOn: string) =>

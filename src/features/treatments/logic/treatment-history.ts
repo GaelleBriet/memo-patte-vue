@@ -408,7 +408,7 @@ export function treatmentHistory(
               settings: periodSettingsText(t, period),
             },
         lines,
-        emptyText: lines.length === 0 ? emptyText(t, period, doses) : null,
+        emptyText: lines.length === 0 ? emptyText(t, period, schedule.doses) : null,
         visibleLines: hidden === 0 ? lines.length : LINES_BEFORE_TOGGLE,
         toggle:
           hidden === 0
