@@ -902,6 +902,7 @@
     },
     "reminder": {
       "vaccination": "Vaccine",
+      "firstVaccine": "First vaccine",
       "deworming": "Dewormer",
       "antiparasitic": "Parasite control",
       "medication": "Medication"
@@ -915,6 +916,7 @@
       "labelUnreadableSingle": "{title}, {type}, {due}. Opens the treatment.",
       "spokenType": {
         "vaccination": "vaccine",
+        "firstVaccine": "first vaccine",
         "deworming": "dewormer",
         "antiparasitic": "parasite control",
         "medication": "medication"
@@ -926,6 +928,7 @@
         "todayAt": "today at {time}",
         "tomorrow": "tomorrow",
         "later": "in {n} day, on {date} | in {n} days, on {date}",
+        "planned": "planned for {date}",
         "toLog": "to log, {unlogged}",
         "unreadable": "unreadable data"
       }
@@ -936,6 +939,7 @@
       "todayAt": "Today · {time}",
       "tomorrow": "Tomorrow",
       "later": "In {n} day | In {n} days",
+      "planned": "Planned {date}",
       "toLog": "To log",
       "unreadable": "Unreadable data"
     },

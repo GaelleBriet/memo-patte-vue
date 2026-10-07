@@ -47,6 +47,7 @@ describe('homeRemindersService', () => {
         animalId: 'milo',
         label: 'Rage',
         dueDate: '2026-09-01',
+        lastInjectionDate: '2025-09-01',
         treatmentType: null,
       },
       {
@@ -59,6 +60,14 @@ describe('homeRemindersService', () => {
         doses: METACAM.doses,
       },
     ])
+  })
+
+  it('garde un vaccin jamais fait, sans date d’injection', async () => {
+    const prevu: Vaccination = { ...RAGE, id: 'v3', lastInjectionDate: null }
+
+    const sources = await service([prevu], []).listSources()
+
+    expect(sources).toEqual([expect.objectContaining({ id: 'v3', lastInjectionDate: null })])
   })
 
   it('garde un vaccin sans échéance : le calcul de « À faire » décidera de ne pas le lister', async () => {
