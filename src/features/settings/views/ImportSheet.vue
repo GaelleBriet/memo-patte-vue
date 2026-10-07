@@ -3,7 +3,7 @@ import { computed, ref, useId, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import ChoiceCards from './ChoiceCards.vue'
-import type { ImportMode } from '../service/data-import.service'
+import type { ImportLosses, ImportMode } from '../service/data-import.service'
 import { useDataImport } from '../composables/use-data-import'
 import BottomSheet from '@/shared/components/BottomSheet.vue'
 import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
@@ -19,11 +19,23 @@ const busy = defineModel<boolean>('busy', { default: false })
 const { t } = useI18n()
 const fileInput = useTemplateRef<HTMLInputElement>('fileInput')
 
+const LOSSES_TOAST_MS = 6000
+
+function announceImport(lost: ImportLosses | null): void {
+  const sentences = Object.entries(lost ?? {})
+    .filter(([, count]) => count > 0)
+    .map(([kind, count]) => t(`settings.import.lost.${kind}`, { n: count }, count))
+  if (sentences.length === 0) showToast(t('settings.import.success'))
+  else
+    showToast(t('settings.import.successWithLosses', { lost: sentences.join(' ') }), {
+      tone: 'info',
+      durationMs: LOSSES_TOAST_MS,
+    })
+  emit('imported')
+}
+
 const { step, error, isImporting, selectFile, choose, confirmReplace, cancelReplace, close } =
-  useDataImport(undefined, () => {
-    showToast(t('settings.import.success'))
-    emit('imported')
-  })
+  useDataImport(undefined, announceImport)
 
 watch(isImporting, (value) => (busy.value = value))
 
@@ -50,8 +62,6 @@ const errorMessage = computed(() => {
       return t('settings.import.errors.invalid')
     case 'newer':
       return t('settings.import.errors.newer')
-    case 'older':
-      return t('settings.import.errors.older')
     case 'outOfRange':
       return t('settings.import.errors.outOfRange')
     case 'nameTooLong':

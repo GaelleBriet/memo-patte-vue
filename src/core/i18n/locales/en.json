@@ -1237,11 +1237,16 @@
       "submit": "Continue",
       "importing": "Importing…",
       "success": "Data imported",
+      "successWithLosses": "Data imported. {lost}",
+      "lost": {
+        "injections": "{n} injection couldn’t be imported. | {n} injections couldn’t be imported.",
+        "doses": "{n} dose couldn’t be imported. | {n} doses couldn’t be imported.",
+        "weightEntries": "{n} weigh-in couldn’t be imported. | {n} weigh-ins couldn’t be imported."
+      },
       "pickAnother": "Choose another file",
       "errors": {
         "invalid": "This file isn’t a MémoPatte export.",
         "newer": "This export comes from a newer version of the app.",
-        "older": "This export comes from an older version of MémoPatte. It can no longer be imported.",
         "outOfRange": "This file has a value beyond the limits: at most 200 kg for a weight, 365 for a frequency.",
         "nameTooLong": "A name in this file is longer than {max} characters.",
         "reattached": "This file moves an entry in your records to another animal.",

@@ -29,6 +29,9 @@ import {
   PANACUR_SOIR_ID,
 } from './import-fixture'
 import { FIXTURE_DEVICE } from './export-fixture'
+import exportV1 from './fixtures/export-v1-0.1.37.json?raw'
+import exportV2 from './fixtures/export-v2-0.1.45.json?raw'
+import exportV3 from './fixtures/export-v3-0.1.52.json?raw'
 import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory-db'
 import { createDeviceRepository } from '@/core/device/device.repository'
 import { createAnimalsRepository } from '@/features/animals/repository/animals.repository'
@@ -1250,6 +1253,110 @@ describe('data-import.service', () => {
       await importerOn(db, () => NOW).importData(file, 'merge')
 
       await expect(rowCounts()).resolves.toEqual(once)
+    })
+  })
+
+  describe('anciens exports', () => {
+    const MILO = 'f53143ec-dca0-430d-a77d-755f592ae425'
+    const STRONGHOLD = '626a7787-96ce-479e-8b2e-09edb1319378'
+    const MILBEMAX = 'e4d428da-419e-4c67-a6f3-fcad10a2c6ff'
+    const RAGE = 'c926e5b4-b1c3-4773-bb3f-34e0acdb67da'
+
+    function converted(text: string): ImportFile {
+      const parsed = parseExportFile(text, () => IMPORTEUR)
+      if (!parsed.ok) throw new Error(`export refusé : ${parsed.reason}`)
+      return parsed.file
+    }
+
+    it.each([
+      [
+        'v1',
+        exportV1,
+        {
+          animal: 2,
+          vaccination: 3,
+          vaccination_injection: 3,
+          treatment: 3,
+          treatment_period: 3,
+          treatment_dose: 3,
+          weight_entry: 4,
+        },
+      ],
+      [
+        'v2',
+        exportV2,
+        {
+          animal: 2,
+          vaccination: 2,
+          vaccination_injection: 3,
+          treatment: 2,
+          treatment_period: 2,
+          treatment_dose: 4,
+          weight_entry: 3,
+        },
+      ],
+      [
+        'v3',
+        exportV3,
+        {
+          animal: 2,
+          vaccination: 2,
+          vaccination_injection: 1,
+          treatment: 1,
+          treatment_period: 1,
+          treatment_dose: 3,
+          weight_entry: 1,
+        },
+      ],
+    ])(
+      'importe un export %s dans une base vide, puis le réimporte sans rien dupliquer',
+      async (_, text, counts) => {
+        const { service } = setup()
+
+        await service.importData(converted(text), 'replace')
+        const once = await rowCounts()
+        await service.importData(converted(text), 'merge')
+
+        expect(once).toMatchObject(counts)
+        await expect(rowCounts()).resolves.toEqual(once)
+      },
+    )
+
+    it('lit dans l’app la prochaine dose d’un export v1 et son poids à l’arrivée', async () => {
+      const { service } = setup()
+
+      await service.importData(converted(exportV1), 'replace')
+
+      await expect(repositories.treatments.getById(MILBEMAX)).resolves.toMatchObject({
+        frequency: { value: 3, unit: 'month' },
+        lastDoseDate: '2026-09-15',
+        nextDueDate: '2026-12-15',
+        stoppedOn: null,
+      })
+      await expect(repositories.vaccinations.getById(RAGE)).resolves.toMatchObject({
+        lastInjectionDate: '2026-09-21',
+        dueDate: '2029-09-21',
+      })
+      await expect(repositories.weight.listByAnimal(MILO)).resolves.toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ weightKg: 18.4, measuredOn: '2026-09-20' }),
+        ]),
+      )
+    })
+
+    it('garde dans l’app un traitement v2 arrêté, et la dernière prise d’un traitement en cours', async () => {
+      const { service } = setup()
+
+      await service.importData(converted(exportV2), 'replace')
+
+      await expect(repositories.treatments.getById(MILBEMAX)).resolves.toMatchObject({
+        stoppedOn: '2026-09-25',
+      })
+      await expect(repositories.treatments.getById(STRONGHOLD)).resolves.toMatchObject({
+        lastDoseDate: '2026-09-03',
+        nextDueDate: '2026-10-01',
+        stoppedOn: null,
+      })
     })
   })
 

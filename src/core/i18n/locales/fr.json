@@ -1237,11 +1237,16 @@
       "submit": "Continuer",
       "importing": "Import…",
       "success": "Données importées",
+      "successWithLosses": "Données importées. {lost}",
+      "lost": {
+        "injections": "{n} injection n’a pas pu être reprise. | {n} injections n’ont pas pu être reprises.",
+        "doses": "{n} prise n’a pas pu être reprise. | {n} prises n’ont pas pu être reprises.",
+        "weightEntries": "{n} pesée n’a pas pu être reprise. | {n} pesées n’ont pas pu être reprises."
+      },
       "pickAnother": "Choisir un autre fichier",
       "errors": {
         "invalid": "Ce fichier n’est pas un export MémoPatte.",
         "newer": "Cet export vient d’une version plus récente de l’app.",
-        "older": "Cet export vient d’une version plus ancienne de MémoPatte. Il ne peut plus être importé.",
         "outOfRange": "Ce fichier contient une valeur hors limites : 200 kg maximum pour un poids, 365 pour une fréquence.",
         "nameTooLong": "Un nom de ce fichier dépasse {max} caractères.",
         "reattached": "Ce fichier rattache une entrée de ton carnet à un autre animal.",

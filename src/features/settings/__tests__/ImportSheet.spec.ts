@@ -4,10 +4,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type * as DataImport from '../service/data-import.service'
 import { ImportRefusedError, type DataImportService } from '../service/data-import.service'
 import ImportSheet from '../views/ImportSheet.vue'
+import exportV2 from './fixtures/export-v2-0.1.45.json?raw'
 import { IMPORT_FILE, importFixtureJson } from './import-fixture'
 import i18n from '@/core/i18n'
 import vuetify from '@/core/theme/vuetify'
-import { dismissToast, toastMessage } from '@/shared/utils/toast'
+import { dismissToast, toastMessage, toastTone } from '@/shared/utils/toast'
 
 const hasLocalData = vi.hoisted(() => vi.fn<() => Promise<boolean>>())
 const importData = vi.hoisted(() => vi.fn<DataImportService['importData']>())
@@ -24,6 +25,25 @@ let wrapper: VueWrapper<InstanceType<typeof ImportSheet>> | null = null
 function exportAvecNomTropLong(): string {
   const document = JSON.parse(importFixtureJson()) as Record<string, unknown>
   ;(document.animals as Record<string, unknown>[])[0]!.name = 'a'.repeat(81)
+  return JSON.stringify(document)
+}
+
+const ORPHELIN = '99999999-9999-4999-8999-999999999999'
+
+/** Export v2 dont une injection et deux prises ont perdu leur vaccin ou leur traitement. */
+function exportV2AvecPertes(): string {
+  const document = JSON.parse(exportV2) as Record<string, Record<string, unknown>[]>
+  const [dose] = document.treatmentDoses!
+  const [injection] = document.vaccinationInjections!
+  document.treatmentDoses!.push(
+    { ...dose, id: '11111111-0000-4000-8000-000000000001', treatmentId: ORPHELIN },
+    { ...dose, id: '11111111-0000-4000-8000-000000000002', treatmentId: ORPHELIN },
+  )
+  document.vaccinationInjections!.push({
+    ...injection,
+    id: '11111111-0000-4000-8000-000000000003',
+    vaccinationId: ORPHELIN,
+  })
   return JSON.stringify(document)
 }
 
@@ -137,6 +157,51 @@ describe('ImportSheet', () => {
     expect(wrapper!.emitted('update:busy')).toEqual([[true], [false]])
   })
 
+  it('importe un ancien export sans perte comme un récent', async () => {
+    hasLocalData.mockResolvedValue(false)
+    await monter()
+
+    await choisirFichier(exportV2)
+    await flushPromises()
+
+    expect(importData).toHaveBeenCalledWith(
+      expect.objectContaining({ schemaVersion: 4 }),
+      'replace',
+    )
+    expect(toastMessage.value).toBe('Données importées')
+  })
+
+  it('dit après l’import d’un ancien export ce qui n’a pas pu être repris', async () => {
+    hasLocalData.mockResolvedValue(false)
+    await monter()
+
+    await choisirFichier(exportV2AvecPertes())
+    await flushPromises()
+
+    expect(toastMessage.value).toBe(
+      'Données importées. 1 injection n’a pas pu être reprise. 2 prises n’ont pas pu être reprises.',
+    )
+    expect(toastTone.value).toBe('info')
+    expect(wrapper!.emitted('imported')).toHaveLength(1)
+  })
+
+  it('le dit en anglais', async () => {
+    i18n.global.locale.value = 'en'
+    try {
+      hasLocalData.mockResolvedValue(false)
+      await monter()
+
+      await choisirFichier(exportV2AvecPertes())
+      await flushPromises()
+
+      expect(toastMessage.value).toBe(
+        'Data imported. 1 injection couldn’t be imported. 2 doses couldn’t be imported.',
+      )
+    } finally {
+      i18n.global.locale.value = 'fr'
+    }
+  })
+
   it('propose fusionner ou remplacer, Continuer grisé tant que rien n’est choisi', async () => {
     await monter()
 
@@ -201,10 +266,7 @@ describe('ImportSheet', () => {
   it.each([
     ['pas du JSON', 'Ce fichier n’est pas un export MémoPatte.'],
     [JSON.stringify({ schemaVersion: 5 }), 'Cet export vient d’une version plus récente de l’app.'],
-    [
-      JSON.stringify({ schemaVersion: 2 }),
-      'Cet export vient d’une version plus ancienne de MémoPatte. Il ne peut plus être importé.',
-    ],
+    [JSON.stringify({ schemaVersion: 2 }), 'Ce fichier n’est pas un export MémoPatte.'],
     [
       exportAvecPoidsHorsBornes(),
       'Ce fichier contient une valeur hors limites : 200 kg maximum pour un poids, 365 pour une fréquence.',

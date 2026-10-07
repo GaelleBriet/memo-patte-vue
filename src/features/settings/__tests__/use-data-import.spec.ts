@@ -3,14 +3,16 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   ImportRefusedError,
   type DataImportService,
+  type ImportLosses,
   type ImportMode,
 } from '../service/data-import.service'
 import { useDataImport } from '../composables/use-data-import'
+import exportV2 from './fixtures/export-v2-0.1.45.json?raw'
 import { IMPORT_FILE, importFixtureJson } from './import-fixture'
 
 const hasLocalData = vi.fn<() => Promise<boolean>>()
 const importData = vi.fn<DataImportService['importData']>()
-const onImported = vi.fn<() => void>()
+const onImported = vi.fn<(lost: ImportLosses | null) => void>()
 
 function fichier(content: string): File {
   return new File([content], 'memopatte-export-2026-09-15.json', { type: 'application/json' })
@@ -37,6 +39,30 @@ describe('useDataImport', () => {
     expect(importData).toHaveBeenCalledWith(IMPORT_FILE, 'replace')
     expect(onImported).toHaveBeenCalledOnce()
     expect(flow.step.value).toBe('idle')
+  })
+
+  it('ne signale aucune perte pour un export au format courant', async () => {
+    hasLocalData.mockResolvedValue(false)
+
+    await setup().selectFile(fichier(importFixtureJson()))
+
+    expect(onImported).toHaveBeenCalledWith(null)
+  })
+
+  it('importe un ancien export et dit ce que la conversion n’a pas pu reprendre', async () => {
+    const document = JSON.parse(exportV2) as Record<string, Record<string, unknown>[]>
+    document.treatmentDoses!.push({
+      ...document.treatmentDoses![0],
+      id: '11111111-0000-4000-8000-000000000001',
+      treatmentId: '99999999-9999-4999-8999-999999999999',
+    })
+    const flow = setup()
+    await flow.selectFile(fichier(JSON.stringify(document)))
+
+    await flow.choose('merge')
+
+    expect(importData).toHaveBeenCalledWith(expect.objectContaining({ schemaVersion: 4 }), 'merge')
+    expect(onImported).toHaveBeenCalledWith({ injections: 0, doses: 1, weightEntries: 0 })
   })
 
   it('demande de fusionner ou remplacer quand des données existent', async () => {
@@ -79,8 +105,7 @@ describe('useDataImport', () => {
   it.each([
     ['invalid', 'pas du JSON'],
     ['newer', JSON.stringify({ schemaVersion: 99 })],
-    ['older', JSON.stringify({ schemaVersion: 2, animals: [] })],
-    ['older', JSON.stringify({ schemaVersion: 1, animals: [] })],
+    ['invalid', JSON.stringify({ schemaVersion: 2, animals: [] })],
   ] as const)('signale un fichier refusé (%s) sans rien écrire', async (error, content) => {
     const flow = setup()
 

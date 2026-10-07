@@ -2,11 +2,16 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { parseExportFile } from '../service/data-import.service'
 import { IMPORT_FILE, IMPORT_FIXTURE, importFixtureJson, LUNA_ID, MILO_ID } from './import-fixture'
+import exportV1 from './fixtures/export-v1-0.1.37.json?raw'
+import exportV2 from './fixtures/export-v2-0.1.45.json?raw'
+import exportV3 from './fixtures/export-v3-0.1.52.json?raw'
 import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
 
 const LIMITE = 'a'.repeat(MAX_NAME_LENGTH)
 const TROP_LONG = `${LIMITE}a`
 const INVALID = { ok: false, reason: 'invalid' }
+const IMPORTEUR = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc'
+const device = () => IMPORTEUR
 
 type Document = Record<string, unknown>
 type Row = Record<string, unknown>
@@ -145,15 +150,11 @@ describe('parseExportFile', () => {
 
   describe('version', () => {
     it.each([1, 2, 3])(
-      'signale un export d’une version plus ancienne (v%i), quel que soit son contenu',
+      'refuse un export v%i illisible comme un fichier qui n’est pas un export',
       (schemaVersion) => {
-        expect(parseExportFile(JSON.stringify({ schemaVersion, animals: [] }))).toEqual({
-          ok: false,
-          reason: 'older',
-        })
-        expect(
-          parseExportFile(withDocument((document) => (document.schemaVersion = schemaVersion))),
-        ).toEqual({ ok: false, reason: 'older' })
+        expect(parseExportFile(JSON.stringify({ schemaVersion, animals: [] }), device)).toEqual(
+          INVALID,
+        )
       },
     )
 
@@ -622,6 +623,85 @@ describe('parseExportFile', () => {
       const result = parseExportFile(text)
 
       expect(result.ok && result.file.data.animals.map(({ id }) => id)).toEqual([LUNA_ID, MILO_ID])
+    })
+  })
+
+  describe('anciens formats', () => {
+    it.each([
+      ['v1', exportV1, { injections: 0, doses: 0, weightEntries: 0 }],
+      ['v2', exportV2, { injections: 0, doses: 0, weightEntries: 0 }],
+      ['v3', exportV3, { injections: 0, doses: 0, weightEntries: 0 }],
+    ])('relit un export %s au format courant, par la même validation', (_, text, lost) => {
+      const result = parseExportFile(text, device)
+
+      expect(result).toMatchObject({ ok: true, file: { schemaVersion: 4 }, lost })
+    })
+
+    it('ne compte aucune perte pour un export au format courant', () => {
+      const result = parseExportFile(importFixtureJson(), device)
+
+      expect(result.ok && result.lost).toBeUndefined()
+    })
+
+    it('n’a besoin de l’appareil que pour convertir', () => {
+      const deviceId = vi.fn<() => string>(device)
+
+      parseExportFile(importFixtureJson(), deviceId)
+
+      expect(deviceId).not.toHaveBeenCalled()
+    })
+
+    it('donne les lignes converties à l’appareil qui importe', () => {
+      const result = parseExportFile(exportV2, device)
+
+      expect(result.ok && result.file.data.treatmentDoses).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ createdByDevice: IMPORTEUR, updatedByDevice: IMPORTEUR }),
+        ]),
+      )
+    })
+
+    it('dit combien de prises n’ont pas pu être reprises', () => {
+      const document = JSON.parse(exportV2) as Document
+      const [dose] = rows(document, 'treatmentDoses')
+      rows(document, 'treatmentDoses').push({
+        ...dose,
+        id: '11111111-0000-4000-8000-000000000001',
+        treatmentId: '99999999-9999-4999-8999-999999999999',
+      })
+
+      const result = parseExportFile(JSON.stringify(document), device)
+
+      expect(result).toMatchObject({
+        ok: true,
+        lost: { injections: 0, doses: 1, weightEntries: 0 },
+      })
+    })
+
+    it.each([
+      ['un poids au-delà de 200 kg', 'weightEntries', 'weightKg', 250, 'outOfRange'],
+      [
+        'une fréquence au-delà de 365',
+        'treatments',
+        'frequency',
+        { value: 400, unit: 'day' },
+        'outOfRange',
+      ],
+      ['un nom trop long', 'animals', 'name', TROP_LONG, 'nameTooLong'],
+      ['une date de prise dans le futur', 'treatments', 'lastDoseDate', '2199-01-01', 'invalid'],
+      ['un identifiant qui n’est pas un UUID', 'animals', 'id', 'milo', 'invalid'],
+    ])('refuse en entier un export v1 avec %s', (_, table, field, value, reason) => {
+      const document = JSON.parse(exportV1) as Document
+      rows(document, table)[0]![field] = value
+
+      expect(parseExportFile(JSON.stringify(document), device)).toEqual({ ok: false, reason })
+    })
+
+    it('refuse en entier un export v3 dont une prise vise un animal absent du fichier', () => {
+      const document = JSON.parse(exportV3) as Document
+      premier(document, 'treatmentDoses').animalId = '99999999-9999-4999-8999-999999999999'
+
+      expect(parseExportFile(JSON.stringify(document), device)).toEqual(INVALID)
     })
   })
 

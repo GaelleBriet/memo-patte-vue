@@ -58,6 +58,7 @@ import {
   type WeightRepository,
 } from '@/features/weight/repository/weight.repository'
 import { EXPORT_SCHEMA_VERSION } from '../logic/export-format'
+import { upgradeExport, type ImportLosses } from '../logic/export-upgrade'
 import {
   getCarnetSettingsRepository,
   type CarnetSettingsRepository,
@@ -75,9 +76,9 @@ import {
   type PlannedWrite,
 } from '@/shared/domain/import-plan'
 
-export type { ImportFile, ImportMode }
+export type { ImportFile, ImportLosses, ImportMode }
 
-export type ImportFileError = 'invalid' | 'newer' | 'older' | 'outOfRange' | 'nameTooLong'
+export type ImportFileError = 'invalid' | 'newer' | 'outOfRange' | 'nameTooLong'
 
 /** Incohérence que seule la base locale révèle : réessayer le même fichier n'y changerait rien. */
 export type ImportRefusal = ImportRefusalReason
@@ -89,8 +90,9 @@ export class ImportRefusedError extends Error {
   }
 }
 
+/** `lost` : seulement pour un ancien export, ce que la conversion n'a pas pu reprendre. */
 export type ParsedExportFile =
-  { ok: true; file: ImportFile } | { ok: false; reason: ImportFileError }
+  { ok: true; file: ImportFile; lost?: ImportLosses } | { ok: false; reason: ImportFileError }
 
 export const MAX_IMPORT_FILE_BYTES = 10 * 1024 * 1024
 const MAX_TEXT_LENGTH = 200
@@ -288,14 +290,24 @@ function refusalReason(error: z.ZodError): ImportFileError {
   return onlyTooBig(error, BOUNDED_FIELDS) ? 'outOfRange' : 'invalid'
 }
 
-/** La version tranche avant toute validation : seul le format courant se relit. */
-export function parseExportFile(text: string): ParsedExportFile {
-  const document = parseJson(text)
+/** La version tranche avant toute validation : un ancien export est converti, puis validé comme un récent. */
+export function parseExportFile(
+  text: string,
+  deviceId: () => string = currentDeviceId,
+): ParsedExportFile {
+  let document = parseJson(text)
 
   const version = versionSchema.safeParse(document)
   if (!version.success) return { ok: false, reason: 'invalid' }
   if (version.data.schemaVersion > EXPORT_SCHEMA_VERSION) return { ok: false, reason: 'newer' }
-  if (version.data.schemaVersion < EXPORT_SCHEMA_VERSION) return { ok: false, reason: 'older' }
+
+  let lost: ImportLosses | undefined
+  if (version.data.schemaVersion < EXPORT_SCHEMA_VERSION) {
+    const upgraded = upgradeExport(document, deviceId())
+    if (upgraded === null) return { ok: false, reason: 'invalid' }
+    document = upgraded.document
+    lost = upgraded.lost
+  }
 
   const file = exportFileSchema.safeParse(document)
   if (!file.success) return { ok: false, reason: refusalReason(file.error) }
@@ -327,6 +339,7 @@ export function parseExportFile(text: string): ParsedExportFile {
         devices,
       },
     },
+    ...(lost && { lost }),
   }
 }
 

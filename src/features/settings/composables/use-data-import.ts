@@ -8,6 +8,7 @@ import {
   type DataImportService,
   type ImportFile,
   type ImportFileError,
+  type ImportLosses,
   type ImportMode,
   type ImportRefusal,
 } from '../service/data-import.service'
@@ -17,12 +18,13 @@ export type ImportError = ImportFileError | ImportRefusal | 'failed'
 
 export function useDataImport(
   service: Pick<DataImportService, 'hasLocalData' | 'importData'> = dataImportService,
-  onImported: () => void = () => undefined,
+  onImported: (lost: ImportLosses | null) => void = () => undefined,
 ) {
   const step = ref<ImportStep>('idle')
   const error = ref<ImportError | null>(null)
   const isImporting = ref(false)
   let pending: ImportFile | null = null
+  let lost: ImportLosses | null = null
 
   function fail(reason: ImportError): void {
     pending = null
@@ -35,7 +37,7 @@ export function useDataImport(
       await service.importData(file, mode)
       pending = null
       step.value = 'idle'
-      onImported()
+      onImported(lost)
     } catch (cause) {
       if (cause instanceof ImportRefusedError) return fail(cause.reason)
       // Le message d'une erreur d'écriture peut citer le fichier : seul son type est journalisé.
@@ -66,6 +68,7 @@ export function useDataImport(
 
     const parsed = parseExportFile(text)
     if (!parsed.ok) return fail(parsed.reason)
+    lost = parsed.lost ?? null
 
     let hasData: boolean
     try {
