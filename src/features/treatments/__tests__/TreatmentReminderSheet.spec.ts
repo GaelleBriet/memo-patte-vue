@@ -677,6 +677,18 @@ describe('TreatmentReminderSheet — doses non renseignées (AC-9, TR-15)', () =
     expect(document.body.querySelector('.treatment-unlogged')).toBeNull()
   })
 
+  it('TR-37 : rien à renseigner tant que les animaux ne sont pas chargés', async () => {
+    const animals = useAnimalsStore()
+    animals.animals = []
+    animals.hasLoaded = false
+    vi.spyOn(animals, 'load').mockReturnValue(new Promise(() => {}))
+    vi.spyOn(useTreatmentsStore(), 'getWithHistory').mockResolvedValue(QUOTIDIEN)
+
+    await monter('unlogged')
+
+    expect(document.body.querySelector('.treatment-unlogged')).toBeNull()
+  })
+
   it('la ligne « À renseigner » propose directement « Toutes données » et « Choisir les jours »', async () => {
     vi.spyOn(useTreatmentsStore(), 'getWithHistory').mockResolvedValue(QUOTIDIEN)
     const sheet = await monter('unlogged')

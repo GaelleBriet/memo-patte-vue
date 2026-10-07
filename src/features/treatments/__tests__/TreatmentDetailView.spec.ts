@@ -1357,6 +1357,17 @@ describe('TreatmentDetailView — doses non renseignées (TR-14 à TR-17)', () =
     expect(view.findComponent(TreatmentUnloggedPrompt).exists()).toBe(false)
   })
 
+  it('TR-37 : rien à renseigner tant que les animaux ne sont pas chargés', async () => {
+    const animals = useAnimalsStore()
+    animals.animals = []
+    animals.hasLoaded = false
+    vi.spyOn(animals, 'load').mockReturnValue(new Promise(() => {}))
+
+    const view = await monter(PANACUR)
+
+    expect(view.findComponent(TreatmentUnloggedPrompt).exists()).toBe(false)
+  })
+
   it('propose « Toutes données » et « Choisir les jours » à égalité', async () => {
     const [all, choose] = boutons(await monter(PANACUR))
 
