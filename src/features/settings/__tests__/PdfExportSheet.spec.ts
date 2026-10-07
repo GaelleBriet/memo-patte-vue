@@ -114,6 +114,18 @@ function partager(): HTMLButtonElement {
 }
 
 describe('PdfExportSheet', () => {
+  it('sans animal, ne présente ni fichier ni nom vide', async () => {
+    await monter([])
+
+    expect(feuille().querySelector('.bottom-sheet__subtitle')?.textContent).toBe(
+      'Un carnet de santé imprimable, à garder ou à donner au vétérinaire.',
+    )
+    expect(carteFichier()).toBeNull()
+    expect(feuille().textContent).not.toContain('carnet-memopatte')
+    expect(feuille().querySelector('.pdf-export-sheet__choices')).toBeNull()
+    expect(feuille().querySelector('.export-actions__save')).toBeNull()
+  })
+
   it("présente le fichier de l'unique animal, sans sélecteur", async () => {
     await monter([MILO])
 

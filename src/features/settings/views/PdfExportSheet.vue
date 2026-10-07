@@ -84,12 +84,15 @@ const choices = computed<PdfExportChoice[]>(() => {
   ]
 })
 
-const exported = computed(() => (needsChoice.value ? chosen.value : everyAnimal.value))
+const exported = computed(() => {
+  if (needsChoice.value) return chosen.value
+  return everyAnimal.value.length === 0 ? null : everyAnimal.value
+})
 
 const subtitle = computed(() =>
-  needsChoice.value
-    ? t('settings.pdf.sheet.subtitle')
-    : t('settings.pdf.sheet.subtitleOne', { name: everyAnimal.value[0]?.name ?? '' }),
+  everyAnimal.value.length === 1
+    ? t('settings.pdf.sheet.subtitleOne', { name: everyAnimal.value[0]!.name })
+    : t('settings.pdf.sheet.subtitle'),
 )
 
 const fileName = computed(() =>
@@ -152,7 +155,7 @@ async function deliver(mode: DeliveryMode): Promise<void> {
     :persistent="isPreparing"
     :focus-fallback="focusFallback"
   >
-    <div v-if="fileName === null" class="settings-card pdf-export-sheet__choices">
+    <div v-if="needsChoice && fileName === null" class="settings-card pdf-export-sheet__choices">
       <template v-for="choice in choices" :key="choice.key">
         <h3 v-if="choice.heading" class="pdf-export-sheet__group">{{ choice.heading }}</h3>
         <button
@@ -171,7 +174,7 @@ async function deliver(mode: DeliveryMode): Promise<void> {
       </template>
     </div>
 
-    <template v-else>
+    <template v-else-if="fileName !== null">
       <div ref="fileCard" class="pdf-export-sheet__file" tabindex="-1">
         <span class="pdf-export-sheet__file-icon" aria-hidden="true">
           <v-icon icon="ms:picture_as_pdf" size="22" />
@@ -191,7 +194,6 @@ async function deliver(mode: DeliveryMode): Promise<void> {
       <ExportActions
         :access="saveAccess"
         :pending-mode="pendingMode"
-        :disabled="everyAnimal.length === 0"
         @save="deliver('save')"
         @share="deliver('share')"
         @open-settings="openAppSettings"
@@ -211,7 +213,7 @@ async function deliver(mode: DeliveryMode): Promise<void> {
   margin: 0;
   padding: 12px 20px 6px;
   border-top: 1px solid tokens.$color-divider;
-  background: tokens.$color-badge-frequency-bg;
+  background: tokens.$color-pdf-group-surface;
   color: tokens.$color-text-secondary;
   font-size: 11.5px;
   font-weight: 700;
