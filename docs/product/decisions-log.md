@@ -2148,4 +2148,6 @@ la période, aucune prise sur tout le traitement), sinon « Arrêté le … » ;
 d'arrêt antérieure au début de la période. — Raison : un seul sens de l'arrêt, rien ne repart seul
 après « Suivre de nouveau » (AN-11), et un export doit toujours se réimporter. — Alternatives
 écartées : ne pas arrêter la période (elle repartirait seule) ; la supprimer (perte de données) ;
-`stopped_on` = date de début (date future qui ment sur le jour du geste).
+`stopped_on` = date de début (date future qui ment sur le jour du geste). Dans le PDF, le texte
+n'apparaît qu'une fois : la colonne d'échéance dit « Arrêté avant la première prise », la ligne de
+détail « Aucune prise », comme un traitement terminé sans prise.

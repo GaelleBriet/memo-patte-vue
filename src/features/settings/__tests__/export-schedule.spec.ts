@@ -274,9 +274,9 @@ describe('PDF : traitement sans prise donnée', () => {
       due: { kind: 'stopped', on: '2026-10-06', beforeFirstDose: true },
     })
     expect(text).toContain('Métacam')
-    expect(text).toContain('Arrêté avant la première prise')
+    expect(text.split('Arrêté avant la première prise')).toHaveLength(2)
     expect(text).not.toContain('Arrêté le')
-    expect(text).not.toContain('Aucune prise')
+    expect(text).toContain('Aucune prise')
   })
 
   it('garde « Arrêté le … » et « Aucune prise » pour un arrêté sans prise après sa première échéance (#594)', () => {
