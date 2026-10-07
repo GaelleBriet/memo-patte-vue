@@ -91,7 +91,7 @@ function isAlreadyScheduled(
 
 export type RemindersSyncDependencies = {
   animals: Provider<Pick<AnimalsRepository, 'list'>>
-  vaccinations: Provider<Pick<VaccinationsRepository, 'listAll'>>
+  vaccinations: Provider<Pick<VaccinationsRepository, 'listAll' | 'listAllReplacedDues'>>
   treatments: Provider<Pick<TreatmentsRepository, 'listAllWithHistory'>>
   carnetSettings: Provider<Pick<CarnetSettingsRepository, 'get'>>
   notifications: Pick<
@@ -122,19 +122,27 @@ export function createRemindersSync({
 
       const [animalsRepository, vaccinationsRepository, treatmentsRepository, settingsRepository] =
         await Promise.all([animals(), vaccinations(), treatments(), carnetSettings()])
-      const [animalRows, vaccinationRows, treatmentRows, settings] = await Promise.all([
-        animalsRepository.list(),
-        vaccinationsRepository.listAll(),
-        treatmentsRepository.listAllWithHistory(),
-        settingsRepository.get(),
-      ])
+      const [animalRows, vaccinationRows, replacedDues, treatmentRows, settings] =
+        await Promise.all([
+          animalsRepository.list(),
+          vaccinationsRepository.listAll(),
+          vaccinationsRepository.listAllReplacedDues(),
+          treatmentsRepository.listAllWithHistory(),
+          settingsRepository.get(),
+        ])
       const animalsById = new Map(animalRows.map((animal) => [animal.id, animal]))
       const animalOf = (id: string) => animalsById.get(id) ?? null
       const at = now()
 
       const entries = new Map([
         ...remindersOf('vaccination', 'vaccin', vaccinationRows, (vaccination) =>
-          vaccinationReminders(t, vaccination, animalOf(vaccination.animalId), settings, at),
+          vaccinationReminders(
+            t,
+            { ...vaccination, replacedDues: replacedDues.get(vaccination.id) ?? [] },
+            animalOf(vaccination.animalId),
+            settings,
+            at,
+          ),
         ),
         ...remindersOf('treatment', 'traitement', treatmentRows, (treatment) =>
           treatmentReminders(t, treatment, animalOf(treatment.animalId), settings, at),

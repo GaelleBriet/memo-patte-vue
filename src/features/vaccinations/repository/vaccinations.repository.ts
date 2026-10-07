@@ -66,6 +66,25 @@ const VISIBLE_WITH_HEAD = `
   LEFT JOIN vaccination_injection head ON head.id = ${headInjectionIdSql('vaccination.id')}
   WHERE vaccination.deleted_at IS NULL`
 
+/** Rappels qu'une injection plus récente a remplacés : ceux d'avant la tête, et le rendez-vous prévu. */
+const REPLACED_DUES = `
+  SELECT vaccination.id AS vaccination_id, injection.next_due_date AS due_date
+  FROM vaccination
+  JOIN vaccination_injection injection ON injection.vaccination_id = vaccination.id
+  WHERE vaccination.deleted_at IS NULL AND injection.deleted_at IS NULL
+    AND injection.next_due_date IS NOT NULL
+    AND injection.id <> ${headInjectionIdSql('vaccination.id')}
+  UNION
+  SELECT vaccination.id, vaccination.planned_due_date
+  FROM vaccination
+  WHERE vaccination.deleted_at IS NULL AND vaccination.planned_due_date IS NOT NULL
+    AND ${headInjectionIdSql('vaccination.id')} IS NOT NULL`
+
+interface ReplacedDueRow {
+  vaccination_id: string
+  due_date: string
+}
+
 function toVaccination(row: VaccinationWithHeadRow): Vaccination {
   return {
     id: row.id,
@@ -230,6 +249,23 @@ export function createVaccinationsRepository(
       )
 
       return requireVisible(id)
+    },
+
+    async listReplacedDues(vaccinationId: string): Promise<string[]> {
+      const rows = await db.query<ReplacedDueRow>(
+        `SELECT due_date FROM (${REPLACED_DUES}) WHERE vaccination_id = ? ORDER BY due_date`,
+        [vaccinationId],
+      )
+      return rows.map(({ due_date }) => due_date)
+    },
+
+    async listAllReplacedDues(): Promise<Map<string, string[]>> {
+      const rows = await db.query<ReplacedDueRow>(`${REPLACED_DUES} ORDER BY 1, 2`)
+      const dues = new Map<string, string[]>()
+      for (const { vaccination_id, due_date } of rows) {
+        dues.set(vaccination_id, [...(dues.get(vaccination_id) ?? []), due_date])
+      }
+      return dues
     },
 
     listInjections(vaccinationId: string): Promise<VaccinationInjection[]> {

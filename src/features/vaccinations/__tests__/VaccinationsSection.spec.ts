@@ -203,11 +203,13 @@ describe('VaccinationsSection — lignes et badges', () => {
     expect(badge.find('svg').exists()).toBe(false)
   })
 
-  it('reste « À jour » le jour même de l’échéance', async () => {
+  it('affiche « Aujourd’hui », ambre, le jour même de l’échéance', async () => {
     vaccinations = [vaccination({ dueDate: TODAY })]
     const wrapper = await monter()
+    const badge = ligne(wrapper, 0).get('.vaccination-row__badge')
 
-    expect(ligne(wrapper, 0).get('.vaccination-row__badge').text()).toBe('À jour')
+    expect(badge.text()).toBe('Aujourd’hui')
+    expect(badge.classes()).toContain('due-status-chip--today')
   })
 
   it('affiche « Pas de rappel », neutre et sans icône, quand l’échéance est nulle', async () => {

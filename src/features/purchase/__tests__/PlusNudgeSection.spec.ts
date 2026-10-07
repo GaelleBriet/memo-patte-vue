@@ -1,6 +1,7 @@
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { Router } from 'vue-router'
 
 import { memoryStorage } from './billing-fixture'
 import { billingService, type BillingService } from '../service/billing.service'
@@ -9,7 +10,7 @@ import PlusNudgeSection from '../views/PlusNudgeSection.vue'
 import { writeStoredPlusStatus } from '../logic/plus-status-storage'
 import i18n from '@/core/i18n'
 import vuetify from '@/core/theme/vuetify'
-import router from '@/router'
+import { routeurMemoire } from '@/router/__tests__/routeur-memoire'
 import { recordUsageSignal } from '@/shared/utils/usage-signals'
 
 vi.mock('../service/billing.service', async (importOriginal) => ({
@@ -27,6 +28,7 @@ vi.mock('../service/billing.service', async (importOriginal) => ({
 const service = vi.mocked(billingService)
 
 let wrapper: VueWrapper | null = null
+let router: Router
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -35,6 +37,7 @@ beforeEach(() => {
   vi.stubGlobal('localStorage', memoryStorage())
   forgetPlusNudgeSession()
   setActivePinia(createPinia())
+  router = routeurMemoire()
 })
 
 afterEach(() => {

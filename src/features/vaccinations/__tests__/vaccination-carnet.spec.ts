@@ -2,13 +2,14 @@ import { afterEach, describe, expect, it } from 'vitest'
 
 import { carnetVaccinationRow } from '../logic/vaccination-carnet'
 import i18n, { applyLocale } from '@/core/i18n'
+import { plain } from '@/shared/__tests__/plain'
 
 const t = i18n.global.t
 const TODAY = '2026-10-06'
 
 function row(lastInjectionDate: string | null, dueDate: string | null, today = TODAY) {
   const { badge, detail } = carnetVaccinationRow(t, { lastInjectionDate, dueDate }, today)
-  return { badge, detail: detail.replaceAll(' ', ' ') }
+  return plain({ badge, detail })
 }
 
 afterEach(() => {
@@ -24,8 +25,19 @@ describe('carnetVaccinationRow — ligne d’un vaccin (VA-16, B · V11 et V15)'
     expect(row('2026-01-12', '2026-12-20').detail).toBe('Prochain rappel le 20 déc.')
   })
 
-  it('reste « À jour » le jour même du rappel', () => {
-    expect(row('2025-10-06', TODAY).badge).toEqual({ status: 'up-to-date', label: 'À jour' })
+  it('jour du rappel : « Aujourd’hui » le jour J, « À jour » la veille, en retard le lendemain', () => {
+    expect(row('2025-10-07', '2026-10-07', '2026-10-07')).toEqual({
+      badge: { status: 'today', label: 'Aujourd’hui' },
+      detail: 'Prochain rappel le 7 oct.',
+    })
+    expect(row('2025-10-07', '2026-10-07', '2026-10-06').badge).toEqual({
+      status: 'up-to-date',
+      label: 'À jour',
+    })
+    expect(row('2025-10-07', '2026-10-07', '2026-10-08')).toEqual({
+      badge: { status: 'overdue', label: 'En retard · 1 j' },
+      detail: 'Échéance passée',
+    })
   })
 
   it('en retard : « En retard · N j » et « Échéance passée »', () => {
@@ -85,6 +97,7 @@ describe('carnetVaccinationRow — ligne d’un vaccin (VA-16, B · V11 et V15)'
       status: 'overdue',
       label: 'Overdue · 6d',
     })
+    expect(row('2025-10-06', TODAY).badge).toEqual({ status: 'today', label: 'Today' })
   })
 })
 

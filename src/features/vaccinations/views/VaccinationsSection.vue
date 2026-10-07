@@ -41,6 +41,7 @@ const store = useVaccinationsStore()
 
 const BADGE_ICONS: Partial<Record<CarnetVaccinationBadgeStatus, string>> = {
   overdue: 'ms:error',
+  today: 'ms:today',
   'up-to-date': 'ms:check',
 }
 

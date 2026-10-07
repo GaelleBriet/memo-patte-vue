@@ -5,7 +5,7 @@ import { formatDayMonthOrYear, formatLongDate } from '@/shared/utils/format'
 
 type Translate = (key: string, named?: Record<string, unknown>, plural?: number) => string
 
-export type CarnetVaccinationBadgeStatus = 'overdue' | 'up-to-date' | 'none' | 'planned'
+export type CarnetVaccinationBadgeStatus = 'overdue' | 'today' | 'up-to-date' | 'none' | 'planned'
 
 export type CarnetVaccinationRow = {
   /** `null` pour un animal qu'on ne suit plus : plus aucun rappel. */
@@ -53,6 +53,12 @@ export function carnetVaccinationRow(
     return {
       badge: { status: 'planned', label: t('vaccinations.section.status.planned', { date }) },
       detail: t('vaccinations.section.detail.firstVaccine'),
+    }
+  }
+  if (dueDate === today) {
+    return {
+      badge: { status: 'today', label: t('vaccinations.section.status.today') },
+      detail: t('vaccinations.section.detail.nextOn', { date }),
     }
   }
   return {
