@@ -42,6 +42,8 @@ function animal(id: string, name: string): Animal {
     updatedAt: STAMP,
     deletedAt: null,
     unfollowedOn: null,
+    departureReason: null,
+    departureDate: null,
   }
 }
 

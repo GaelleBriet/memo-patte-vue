@@ -175,6 +175,7 @@ const pastDoses = computed(() =>
         creationPastDuesOf(values.value, today.value),
         today.value,
         values.value.times.length > 1,
+        { followed: (targetAnimal.value?.unfollowedOn ?? null) === null },
       )
     : null,
 )
@@ -183,9 +184,10 @@ const pastDosesAnswered = computed(() =>
 )
 
 const targetAnimalId = computed(() => history.value?.animalId ?? props.animalId ?? null)
-const animalName = computed(
-  () => animals.animals.find((animal) => animal.id === targetAnimalId.value)?.name ?? null,
+const targetAnimal = computed(
+  () => animals.animals.find((animal) => animal.id === targetAnimalId.value) ?? null,
 )
+const animalName = computed(() => targetAnimal.value?.name ?? null)
 const isReady = computed(
   () => mode === 'create' || (history.value !== null && !notFound.value && !loadFailed.value),
 )

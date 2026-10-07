@@ -6,6 +6,9 @@ import { useRouter } from 'vue-router'
 import AnimalOptionsSheet from './AnimalOptionsSheet.vue'
 import AnimalPhotoSheet from './AnimalPhotoSheet.vue'
 import AnimalPhotoViewer from './AnimalPhotoViewer.vue'
+import UnfollowedAnimalsLink from './UnfollowedAnimalsLink.vue'
+import { hasDepartureDetails } from '../logic/animal-departure'
+import { carnetSubtitle, unfollowedEntry } from '../logic/carnet-animal'
 import { useAnimalsStore } from '../store/animals.store'
 import { useAnimalFollowGestures } from '../composables/use-animal-follow-gestures'
 import { useAnimalPhotoActions } from '../composables/use-animal-photo-actions'
@@ -26,7 +29,6 @@ import VaccinationsSection, {
 import WeightSection, { type WeightSectionSummary } from '@/features/weight/views/WeightSection.vue'
 import AnimalChipSelector, { type AnimalChipItem } from '@/shared/components/AnimalChipSelector.vue'
 import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
-import { animalAgeText } from '@/shared/domain/animal-age'
 import { animalAvatarGradientCss } from '@/shared/domain/animal-avatar-gradient'
 import { weightDeltaText } from '@/shared/domain/weight-delta'
 import { weightText } from '@/shared/domain/weight-display'
@@ -115,14 +117,31 @@ async function applyPhoto(action: () => Promise<boolean>): Promise<void> {
   if (await action()) isPhotoSheetOpen.value = false
 }
 
-const subtitle = computed(() => {
-  if (!animal.value) return null
-  const { breed, birthDate, birthDateApproximate } = animal.value
-  const age = animalAgeText(t, { birthDate, approximate: birthDateApproximate }, today.value)
-  const parts = [breed, age]
-  const text = parts.filter(Boolean).join(t('animals.carnet.subtitleSeparator'))
-  return text || null
-})
+const subtitle = computed(() =>
+  animal.value ? carnetSubtitle(t, animal.value, today.value) : null,
+)
+
+const unfollowed = computed(() => unfollowedEntry(animals.unfollowedAnimals))
+
+function openUnfollowed(): void {
+  const target = unfollowed.value?.target
+  if (target?.kind === 'list') {
+    void router.push({ name: 'unfollowed-animals' })
+  } else if (target) {
+    animals.select(target.animalId)
+    document.scrollingElement?.scrollTo?.({ top: 0 })
+  }
+}
+
+const departureLabel = computed(() =>
+  animal.value && hasDepartureDetails(animal.value)
+    ? t('animals.carnet.unfollowed.editDate')
+    : t('animals.carnet.unfollowed.addDate'),
+)
+
+function openDeparture(): void {
+  if (animal.value) void router.push({ name: 'animal-departure', params: { id: animal.value.id } })
+}
 
 const weightStat = computed(() => {
   const summary = weightSummary.value
@@ -299,10 +318,37 @@ function createAnimal(): void {
       </dl>
 
       <div class="carnet__sections">
+        <section v-if="!isFollowed" class="carnet-unfollowed">
+          <p class="carnet-unfollowed__banner">
+            <v-icon icon="ms:info" size="19" />
+            <span>{{ t('animals.carnet.unfollowed.banner', { name: animal.name }) }}</span>
+          </p>
+          <v-btn
+            class="carnet-unfollowed__action"
+            variant="outlined"
+            color="primary"
+            prepend-icon="ms:edit_calendar"
+            @click="openDeparture"
+          >
+            {{ departureLabel }}
+          </v-btn>
+          <v-btn
+            class="carnet-unfollowed__action"
+            variant="outlined"
+            color="primary"
+            prepend-icon="ms:notifications_active"
+            :aria-label="t('animals.carnet.unfollowed.followLabel', { name: animal.name })"
+            :disabled="gestures.isBusy.value"
+            @click="applyOption(gestures.follow)"
+          >
+            {{ t('animals.carnet.unfollowed.follow') }}
+          </v-btn>
+        </section>
         <PlusNudgeSection :animal-count="animals.animals.length" />
         <VaccinationsSection
           :animal-id="animal.id"
           :today="today"
+          :followed="isFollowed"
           @summary="vaccinationsSummary = $event"
         />
         <TreatmentsSection
@@ -312,6 +358,12 @@ function createAnimal(): void {
           @summary="treatmentsSummary = $event"
         />
         <WeightSection :animal-id="animal.id" :today="today" @summary="weightSummary = $event" />
+        <UnfollowedAnimalsLink
+          v-if="unfollowed"
+          class="carnet__unfollowed-link"
+          :count="unfollowed.count"
+          @open="openUnfollowed"
+        />
       </div>
     </template>
 
@@ -337,6 +389,16 @@ function createAnimal(): void {
       <v-btn class="carnet-welcome__create" variant="flat" color="primary" @click="createAnimal">
         {{ t('animals.carnet.welcome.create') }}
       </v-btn>
+      <template v-if="unfollowed">
+        <p class="carnet-welcome__unfollowed">
+          {{ t('animals.carnet.welcome.unfollowed', unfollowed.count) }}
+        </p>
+        <UnfollowedAnimalsLink
+          class="carnet-welcome__unfollowed-link"
+          :count="unfollowed.count"
+          @open="openUnfollowed"
+        />
+      </template>
     </div>
   </div>
 </template>
@@ -514,6 +576,56 @@ function createAnimal(): void {
   flex-direction: column;
   gap: 26px;
   margin-top: 26px;
+}
+
+.carnet-unfollowed {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-inline: tokens.$padding-section-inline;
+}
+
+.carnet-unfollowed__banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0 0 4px;
+  padding: 12px 14px;
+  border: 1px solid tokens.$color-card-border;
+  border-radius: tokens.$radius-field;
+  background: tokens.$color-field-surface;
+  color: rgb(var(--v-theme-on-surface));
+  font-size: 13.5px;
+  line-height: 1.45;
+
+  .v-icon {
+    flex: 0 0 auto;
+    color: rgb(var(--v-theme-primary));
+  }
+}
+
+.carnet-unfollowed__action {
+  height: tokens.$size-tap-target;
+  border-radius: tokens.$radius-pill;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.carnet__unfollowed-link {
+  margin-inline: tokens.$padding-section-inline;
+}
+
+.carnet-welcome__unfollowed {
+  margin: 0;
+  color: tokens.$color-text-secondary;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.carnet-welcome__unfollowed-link {
+  align-self: stretch;
 }
 
 .carnet-loading {

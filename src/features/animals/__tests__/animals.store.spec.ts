@@ -322,6 +322,24 @@ describe('useAnimalsStore', () => {
       expect(store.unfollowedAnimals.map((animal) => animal.name)).toEqual(['Luna'])
     })
 
+    it('AN-10 : enregistre le motif et la date du départ, la liste relue', async () => {
+      const luna = repository.seed({ name: 'Luna', species: 'cat' })
+      repository.setUnfollowedOn(luna.id, '2026-09-28')
+      const store = useAnimalsStore()
+      await store.load()
+
+      await store.saveDeparture(luna.id, { departureReason: 'death', departureDate: '2026-09-27' })
+
+      expect(repository.setDepartureDetails).toHaveBeenCalledWith(luna.id, {
+        departureReason: 'death',
+        departureDate: '2026-09-27',
+      })
+      expect(store.byId(luna.id)).toMatchObject({
+        departureReason: 'death',
+        departureDate: '2026-09-27',
+      })
+    })
+
     it('propage l’échec du geste', async () => {
       const luna = repository.seed({ name: 'Luna', species: 'cat' })
       const store = useAnimalsStore()
@@ -482,6 +500,7 @@ interface FakeAnimalsRepository {
   restore: Mock<AnimalsRepository['restore']>
   getDeparture: Mock<AnimalsRepository['getDeparture']>
   setDeparture: Mock<AnimalsRepository['setDeparture']>
+  setDepartureDetails: Mock<AnimalsRepository['setDepartureDetails']>
 }
 
 // Même contrat que `animals.repository.ts`, sans SQLite.
@@ -507,6 +526,8 @@ function createFakeRepository(): FakeAnimalsRepository {
       updatedAt: now,
       deletedAt: null,
       unfollowedOn: null,
+      departureReason: null,
+      departureDate: null,
     }
   }
 
@@ -552,6 +573,10 @@ function createFakeRepository(): FakeAnimalsRepository {
     restore: vi.fn<AnimalsRepository['restore']>(),
     getDeparture: vi.fn<AnimalsRepository['getDeparture']>(),
     setDeparture: vi.fn<AnimalsRepository['setDeparture']>(),
+    setDepartureDetails: vi.fn<AnimalsRepository['setDepartureDetails']>(async (id, details) => {
+      const animal = animals.find((candidate) => candidate.id === id)
+      if (animal) Object.assign(animal, details)
+    }),
     listRecords: vi.fn<AnimalsRepository['listRecords']>(),
     listVersions: vi.fn<AnimalsRepository['listVersions']>(),
     markAllDeletedStatement: vi.fn<AnimalsRepository['markAllDeletedStatement']>(),

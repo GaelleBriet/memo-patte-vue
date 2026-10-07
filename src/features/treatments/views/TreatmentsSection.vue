@@ -266,6 +266,7 @@ watch(
 .finished-treatment-row__name {
   display: block;
   overflow-wrap: break-word;
+  color: tokens.$color-text-secondary;
   font-size: 15.5px;
   font-weight: 700;
 }

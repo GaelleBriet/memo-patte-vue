@@ -29,6 +29,8 @@ const LUNA: Animal = {
   updatedAt: AT,
   deletedAt: null,
   unfollowedOn: null,
+  departureReason: null,
+  departureDate: null,
 }
 
 const VENDREDIS = period({

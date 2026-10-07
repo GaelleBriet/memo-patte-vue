@@ -34,6 +34,17 @@ export const routes: RouteRecordRaw[] = [
     props: true,
   },
   {
+    path: '/animals/unfollowed',
+    name: 'unfollowed-animals',
+    component: () => import('@/features/animals/views/UnfollowedAnimalsView.vue'),
+  },
+  {
+    path: '/animals/:id/departure',
+    name: 'animal-departure',
+    component: () => import('@/features/animals/views/AnimalDepartureView.vue'),
+    props: true,
+  },
+  {
     path: '/animals/:animalId/vaccinations/new',
     name: 'vaccination-new',
     component: () => import('@/features/vaccinations/views/VaccinationFormView.vue'),
