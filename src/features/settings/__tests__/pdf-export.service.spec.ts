@@ -1,11 +1,21 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { createPdfExportService, type PdfExportDependencies } from '../service/pdf-export.service'
+import {
+  createPdfExportService,
+  type PdfExportDependencies,
+  type PdfExportRequest,
+} from '../service/pdf-export.service'
 import type { DeliveryOutcome } from '../logic/export-delivery'
-import type { CarnetPdfContent } from '../logic/pdf-content'
 import { EXPORT_FIXTURE, LUNA_ID, MILO_ID } from './export-fixture'
 
-const NOW = new Date('2026-09-15T10:30:00')
+const EXPORTED_AT = new Date('2026-09-15T10:30:00')
+
+function request(
+  animalIds: string[],
+  fileName = 'carnet-milo-20260915-1030.pdf',
+): PdfExportRequest {
+  return { animalIds, fileName, exportedAt: EXPORTED_AT }
+}
 
 function setup(overrides: Partial<PdfExportDependencies> = {}) {
   const deliver = vi.fn<PdfExportDependencies['deliver']>(async () => 'shared')
@@ -16,8 +26,6 @@ function setup(overrides: Partial<PdfExportDependencies> = {}) {
     render,
     loadPhoto,
     deliver,
-    fileNamePrefix: () => 'carnet',
-    now: () => NOW,
     appVersion: '0.1.24',
     ...overrides,
   })
@@ -25,28 +33,27 @@ function setup(overrides: Partial<PdfExportDependencies> = {}) {
 }
 
 describe('pdf-export.service', () => {
-  it('renvoie « not-found » sans rien remettre pour un animal inconnu', async () => {
+  it('renvoie « not-found » sans rien remettre quand aucun animal demandé n’existe', async () => {
     const { service, deliver, render } = setup()
 
-    await expect(service.exportAnimalCarnetPdf('introuvable', 'save')).resolves.toBe('not-found')
+    await expect(service.exportCarnetPdf(request(['introuvable']), 'save')).resolves.toBe(
+      'not-found',
+    )
+    await expect(service.exportCarnetPdf(request([]), 'save')).resolves.toBe('not-found')
     expect(render).not.toHaveBeenCalled()
     expect(deliver).not.toHaveBeenCalled()
   })
 
-  it("construit le contenu de l'animal demandé et le remet en PDF nommé", async () => {
+  it("construit le contenu de l'animal demandé, daté du jour de l'export, et le remet sous le nom donné", async () => {
     const { service, deliver, render, loadPhoto } = setup()
 
-    await expect(service.exportAnimalCarnetPdf(MILO_ID, 'share')).resolves.toBe('shared')
+    await expect(service.exportCarnetPdf(request([MILO_ID]), 'share')).resolves.toBe('shared')
 
-    const [content, appVersion, photoDataUrl] = render.mock.calls[0]! as [
-      CarnetPdfContent,
-      string,
-      string | null,
-    ]
-    expect(content.animal.name).toBe('Milo')
-    expect(content.generatedOn).toBe('2026-09-15')
+    const [[part], appVersion] = render.mock.calls[0]!
+    expect(part!.content.animal.name).toBe('Milo')
+    expect(part!.content.generatedOn).toBe('2026-09-15')
+    expect(part!.photoDataUrl).toBeNull()
     expect(appVersion).toBe('0.1.24')
-    expect(photoDataUrl).toBeNull()
     expect(loadPhoto).not.toHaveBeenCalled()
 
     const [file, mode] = deliver.mock.calls[0]!
@@ -55,67 +62,61 @@ describe('pdf-export.service', () => {
     expect(mode).toBe('share')
   })
 
-  it("charge la photo de l'animal quand il en a une et la transmet au rendu", async () => {
+  it('met tous les animaux demandés dans un seul PDF, une partie par animal, dans l’ordre donné', async () => {
     const loadPhoto = vi.fn<PdfExportDependencies['loadPhoto']>(
       async () => 'data:image/jpeg;base64,abc',
     )
-    const { service, render } = setup({ loadPhoto })
+    const { service, render, deliver } = setup({ loadPhoto })
 
-    await service.exportAnimalCarnetPdf(LUNA_ID, 'share')
+    await service.exportCarnetPdf(
+      request([MILO_ID, LUNA_ID], 'carnet-memopatte-20260915-1030.pdf'),
+      'save',
+    )
 
-    expect(loadPhoto).toHaveBeenCalledWith('0f6c1c9e-5d6b-4b43-9a57-2f1d8b0c7a11.jpg')
-    const [, , photoDataUrl] = render.mock.calls[0]! as [CarnetPdfContent, string, string | null]
-    expect(photoDataUrl).toBe('data:image/jpeg;base64,abc')
-  })
-
-  it('continue sans photo si elle est illisible', async () => {
-    const loadPhoto = vi.fn<PdfExportDependencies['loadPhoto']>(async () => null)
-    const { service, render } = setup({ loadPhoto })
-
-    await expect(service.exportAnimalCarnetPdf(LUNA_ID, 'share')).resolves.toBe('shared')
-
-    const [, , photoDataUrl] = render.mock.calls[0]! as [CarnetPdfContent, string, string | null]
-    expect(photoDataUrl).toBeNull()
-  })
-
-  it('transmet l’issue du partage', async () => {
-    const { service } = setup({ deliver: async () => 'cancelled' as DeliveryOutcome })
-
-    await expect(service.exportAnimalCarnetPdf(MILO_ID, 'share')).resolves.toBe('cancelled')
-  })
-
-  it('remet le PDF pour l’enregistrer sur le téléphone', async () => {
-    const saved = {
-      status: 'saved',
-      file: { uri: 'file:///carnet-milo-20260915-1030.pdf', mimeType: 'application/pdf' },
-    } as const
-    const deliver = vi.fn<PdfExportDependencies['deliver']>(async () => saved)
-    const { service } = setup({ deliver })
-
-    await expect(service.exportAnimalCarnetPdf(MILO_ID, 'save')).resolves.toBe(saved)
-
+    expect(render).toHaveBeenCalledOnce()
+    const [parts] = render.mock.calls[0]!
+    expect(parts.map(({ content }) => content.animal.name)).toEqual(['Milo', 'Luna'])
+    expect(parts.map(({ photoDataUrl }) => photoDataUrl)).toEqual([
+      null,
+      'data:image/jpeg;base64,abc',
+    ])
+    expect(loadPhoto).toHaveBeenCalledExactlyOnceWith('0f6c1c9e-5d6b-4b43-9a57-2f1d8b0c7a11.jpg')
     expect(deliver).toHaveBeenCalledExactlyOnceWith(
-      expect.objectContaining({ name: 'carnet-milo-20260915-1030.pdf' }),
+      expect.objectContaining({ name: 'carnet-memopatte-20260915-1030.pdf' }),
       'save',
     )
   })
 
-  it('nomme le PDF avec le mot de la langue de l’app', async () => {
-    const { service, deliver } = setup({ fileNamePrefix: () => 'health-record' })
+  it('laisse de côté un animal disparu depuis l’ouverture de la feuille', async () => {
+    const { service, render } = setup()
 
-    await service.exportAnimalCarnetPdf(MILO_ID, 'save')
+    await service.exportCarnetPdf(request(['introuvable', LUNA_ID]), 'save')
 
-    expect(deliver.mock.calls[0]![0].name).toBe('health-record-milo-20260915-1030.pdf')
+    expect(render.mock.calls[0]![0].map(({ content }) => content.animal.name)).toEqual(['Luna'])
   })
 
-  it('nomme et date le PDF de l’instant que la feuille affiche', async () => {
-    const { service, deliver, render } = setup()
+  it('continue sans photo si elle est illisible', async () => {
+    const { service, render } = setup({ loadPhoto: async () => null })
 
-    await service.exportAnimalCarnetPdf(MILO_ID, 'save', new Date('2026-09-23T14:32:00'))
+    await expect(service.exportCarnetPdf(request([LUNA_ID]), 'share')).resolves.toBe('shared')
 
-    expect(deliver.mock.calls[0]![0].name).toBe('carnet-milo-20260923-1432.pdf')
-    const [content] = render.mock.calls[0]! as [CarnetPdfContent, string, string | null]
-    expect(content.generatedOn).toBe('2026-09-23')
+    expect(render.mock.calls[0]![0][0]!.photoDataUrl).toBeNull()
+  })
+
+  it('transmet l’issue de la remise', async () => {
+    const saved = {
+      status: 'saved',
+      file: { uri: 'file:///carnet-milo-20260915-1030.pdf', mimeType: 'application/pdf' },
+    } as const
+    await expect(
+      setup({ deliver: async () => 'cancelled' as DeliveryOutcome }).service.exportCarnetPdf(
+        request([MILO_ID]),
+        'share',
+      ),
+    ).resolves.toBe('cancelled')
+    await expect(
+      setup({ deliver: async () => saved }).service.exportCarnetPdf(request([MILO_ID]), 'save'),
+    ).resolves.toBe(saved)
   })
 
   it('lève si la base ne répond pas, sans rien remettre', async () => {
@@ -125,7 +126,7 @@ describe('pdf-export.service', () => {
       },
     })
 
-    await expect(service.exportAnimalCarnetPdf(MILO_ID, 'save')).rejects.toThrow('base fermée')
+    await expect(service.exportCarnetPdf(request([MILO_ID]), 'save')).rejects.toThrow('base fermée')
     expect(deliver).not.toHaveBeenCalled()
   })
 })

@@ -6,7 +6,7 @@ import { useRouter } from 'vue-router'
 import ExportSheet from './ExportSheet.vue'
 import ImportSheet from './ImportSheet.vue'
 import { useExportAvailability } from '../composables/use-export-availability'
-import type { PdfExportAnimal } from './PdfExportSheet.vue'
+import { toPdfExportAnimals } from '../logic/pdf-export-animals'
 
 const PdfExportSheet = defineAsyncComponent(() => import('./PdfExportSheet.vue'))
 import { promptNotificationsIfReminders } from '@/app/reminders-priming'
@@ -38,9 +38,8 @@ const weightUnitOptions = computed(() =>
 )
 
 const { hasLoadFailed, hasNothingToExport, canExport, retryLoad } = useExportAvailability()
-const pdfExportAnimals = computed<PdfExportAnimal[]>(() =>
-  animals.animals.map((animal) => ({ id: animal.id, name: animal.name, species: animal.species })),
-)
+const followedPdfAnimals = computed(() => toPdfExportAnimals(animals.followedAnimals))
+const unfollowedPdfAnimals = computed(() => toPdfExportAnimals(animals.unfollowedAnimals))
 
 function onExportRow(): void {
   if (hasLoadFailed.value) retryLoad()
@@ -185,7 +184,8 @@ function goBack(): void {
     <PdfExportSheet
       v-if="hasOpenedPdfExportSheet"
       v-model="isPdfExportSheetOpen"
-      :animals="pdfExportAnimals"
+      :animals="followedPdfAnimals"
+      :unfollowed-animals="unfollowedPdfAnimals"
     />
     <ImportSheet ref="importSheet" v-model:busy="isImporting" @imported="onImported" />
   </PushedScreen>

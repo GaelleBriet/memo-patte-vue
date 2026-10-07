@@ -74,25 +74,31 @@ function jours(from: string, to: string): number {
 
 describe('renderCarnetPdf', () => {
   it('rend un document non vide, sans rappel ni pesée', () => {
-    const bytes = renderCarnetPdf(EMPTY_CONTENT, '0.1.24', null)
+    const bytes = renderCarnetPdf([{ content: EMPTY_CONTENT, photoDataUrl: null }], '0.1.24')
     expect(bytes).toBeInstanceOf(Uint8Array)
     expect(bytes.length).toBeGreaterThan(0)
   })
 
   it('rend un document avec rappels, traitement, tableau et courbe de poids ensemble', () => {
-    const bytes = renderCarnetPdf(FULL_CONTENT, '0.1.24', null)
+    const bytes = renderCarnetPdf([{ content: FULL_CONTENT, photoDataUrl: null }], '0.1.24')
     expect(bytes.length).toBeGreaterThan(0)
   })
 
   it('dessine la photo quand elle est fournie', () => {
-    const withoutPhoto = renderCarnetPdf(FULL_CONTENT, '0.1.24', null)
-    const withPhoto = renderCarnetPdf(FULL_CONTENT, '0.1.24', PHOTO_JPEG)
+    const withoutPhoto = renderCarnetPdf([{ content: FULL_CONTENT, photoDataUrl: null }], '0.1.24')
+    const withPhoto = renderCarnetPdf(
+      [{ content: FULL_CONTENT, photoDataUrl: PHOTO_JPEG }],
+      '0.1.24',
+    )
     expect(withPhoto.length).toBeGreaterThan(withoutPhoto.length)
   })
 
   it("n'échoue pas si la photo est illisible", () => {
     expect(() =>
-      renderCarnetPdf(FULL_CONTENT, '0.1.24', 'data:image/jpeg;base64,invalide'),
+      renderCarnetPdf(
+        [{ content: FULL_CONTENT, photoDataUrl: 'data:image/jpeg;base64,invalide' }],
+        '0.1.24',
+      ),
     ).not.toThrow()
   })
 })
@@ -109,7 +115,9 @@ describe('renderCarnetPdf — traitement sans date de fin ni d’arrêt', () => 
         vaccinations: [],
         treatments: [{ ...FULL_CONTENT.treatments[0]!, due, state: 'none' }],
       }
-      const texts = readPdf(renderCarnetPdf(content, '0.1.24', null)).texts.map(({ text }) => text)
+      const texts = readPdf(renderCarnetPdf([{ content, photoDataUrl: null }], '0.1.24')).texts.map(
+        ({ text }) => text,
+      )
 
       expect(texts).toContain('—')
       expect(texts.filter((text) => text === 'Pas de rappel')).toHaveLength(1)
@@ -118,7 +126,8 @@ describe('renderCarnetPdf — traitement sans date de fin ni d’arrêt', () => 
 })
 
 describe('renderCarnetPdf — historique', () => {
-  const texts = () => readPdf(renderCarnetPdf(FULL_CONTENT, '0.1.24', null)).texts
+  const texts = () =>
+    readPdf(renderCarnetPdf([{ content: FULL_CONTENT, photoDataUrl: null }], '0.1.24')).texts
   const find = (text: string) => texts().find((item) => item.text === text)
 
   it('liste sous un vaccin toutes ses injections, la plus récente d’abord', () => {
@@ -139,7 +148,9 @@ describe('renderCarnetPdf — historique', () => {
       ...FULL_CONTENT,
       treatments: [{ ...FULL_CONTENT.treatments[0]!, lastDoseDate: null, previousDoses: [] }],
     }
-    const written = readPdf(renderCarnetPdf(content, '0.1.24', null)).texts.map(({ text }) => text)
+    const written = readPdf(renderCarnetPdf([{ content, photoDataUrl: null }], '0.1.24')).texts.map(
+      ({ text }) => text,
+    )
 
     expect(written).toContain('Aucune prise · prochaine dose le 01/09/2026')
     expect(written.some((text) => text.startsWith('Dernière prise'))).toBe(false)
@@ -164,7 +175,7 @@ describe('renderCarnetPdf — historique', () => {
       ...FULL_CONTENT,
       vaccinations: [{ ...FULL_CONTENT.vaccinations[0]!, injectionDates: years }],
     }
-    const all = readPdf(renderCarnetPdf(content, '0.1.24', null)).texts
+    const all = readPdf(renderCarnetPdf([{ content, photoDataUrl: null }], '0.1.24')).texts
     const [vaccin, titre] = ['Rage', 'Traitements'].map((name) =>
       all.find((text) => text.text === name),
     )
@@ -184,7 +195,7 @@ describe('renderCarnetPdf — courbe de poids', () => {
 
   it('le PDF d’un animal à plusieurs pesées contient la courbe sur l’axe du temps', () => {
     const content = { ...FULL_CONTENT, weightEntries: PESEES_IRREGULIERES }
-    const { texts, paths } = readPdf(renderCarnetPdf(content, '0.1.24', null))
+    const { texts, paths } = readPdf(renderCarnetPdf([{ content, photoDataUrl: null }], '0.1.24'))
     const courbe = paths.find(
       (path) => path.paint === 'S' && path.points.length === PESEES_IRREGULIERES.length,
     )!
@@ -208,7 +219,9 @@ describe('renderCarnetPdf — courbe de poids', () => {
     applyWeightUnit('lb')
     const content = { ...FULL_CONTENT, weightEntries: PESEES_IRREGULIERES }
 
-    const ecrits = readPdf(renderCarnetPdf(content, '0.1.24', null)).texts.map((text) => text.text)
+    const ecrits = readPdf(renderCarnetPdf([{ content, photoDataUrl: null }], '0.1.24')).texts.map(
+      (text) => text.text,
+    )
 
     expect(ecrits).toEqual(
       expect.arrayContaining(['max 10,1', 'min 9,0', '9,5\u00a0lb', '20/09/2025', '9,3\u00a0lb']),
@@ -221,7 +234,7 @@ describe('renderCarnetPdf — courbe de poids', () => {
       ...FULL_CONTENT,
       weightEntries: [{ measuredOn: '2026-06-01', weightKg: 4.3 }],
     }
-    const { texts, paths } = readPdf(renderCarnetPdf(content, '0.1.24', null))
+    const { texts, paths } = readPdf(renderCarnetPdf([{ content, photoDataUrl: null }], '0.1.24'))
     const tracesDeLaCourbe = paths.filter((path) =>
       [path.stroke, path.fill].some((color) => sameColor(color, PRIMARY)),
     )
@@ -234,7 +247,7 @@ describe('renderCarnetPdf — courbe de poids', () => {
 
   it('commence la courbe sous le titre « Poids » comme la première ligne d’une section', () => {
     const content = { ...FULL_CONTENT, weightEntries: PESEES_IRREGULIERES }
-    const { texts, paths } = readPdf(renderCarnetPdf(content, '0.1.24', null))
+    const { texts, paths } = readPdf(renderCarnetPdf([{ content, photoDataUrl: null }], '0.1.24'))
     const seule = new jsPDF({ unit: 'mm', format: 'a4' })
     drawWeightChart(seule, PESEES_IRREGULIERES, { x: 18, y: 0, width: 174 })
     const ligneDeBase = (traces: PdfPath[]) =>
@@ -251,7 +264,7 @@ describe('renderCarnetPdf — courbe de poids', () => {
 
   it('écrit les pesées sous la courbe, du même style que les autres lignes du carnet', () => {
     const content = { ...FULL_CONTENT, weightEntries: PESEES_IRREGULIERES }
-    const { texts, paths } = readPdf(renderCarnetPdf(content, '0.1.24', null))
+    const { texts, paths } = readPdf(renderCarnetPdf([{ content, photoDataUrl: null }], '0.1.24'))
     const style = ({ bold, sizePt, color }: PdfText) => ({ bold, sizePt, color })
     const vaccin = texts.find((text) => text.text === 'Rage')!
     const titre = texts.findIndex((text) => text.text === 'Poids')
@@ -271,7 +284,7 @@ describe('renderCarnetPdf — courbe de poids', () => {
 
   it('n’écrit aucun texte sous 9 pt, tableau des pesées compris', () => {
     const content = { ...FULL_CONTENT, weightEntries: PESEES_IRREGULIERES }
-    const { texts } = readPdf(renderCarnetPdf(content, '0.1.24', null))
+    const { texts } = readPdf(renderCarnetPdf([{ content, photoDataUrl: null }], '0.1.24'))
 
     for (const text of texts) expect(text.sizePt).toBeGreaterThanOrEqual(9)
   })

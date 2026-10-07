@@ -108,7 +108,7 @@ function csvNextDueDate(data: ExportData, today: string): string {
 /** Textes du PDF mis bout à bout : une cellule étroite passe à la ligne. */
 function pdfText(data: ExportData, today: string): string {
   const content = buildCarnetPdfContent(data, MILO, today)!
-  return readPdfPages(renderCarnetPdf(content, '0.1.24', null))
+  return readPdfPages(renderCarnetPdf([{ content, photoDataUrl: null }], '0.1.24'))
     .flatMap((page) => page.texts.map(({ text }) => text))
     .join(' ')
 }
