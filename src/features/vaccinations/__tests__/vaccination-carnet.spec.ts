@@ -17,6 +17,18 @@ afterEach(() => {
 })
 
 describe('carnetVaccinationRow — ligne d’un vaccin (VA-16, B · V11 et V15)', () => {
+  it('porte l’icône du vaccin, quel que soit son état', () => {
+    for (const [last, due] of [
+      ['2026-01-12', '2027-01-12'],
+      [null, '2026-10-09'],
+      ['2026-01-12', null],
+    ] as const) {
+      expect(carnetVaccinationRow(t, { lastInjectionDate: last, dueDate: due }, TODAY).icon).toBe(
+        'ms:vaccines',
+      )
+    }
+  })
+
   it('à jour : « À jour » et la date du prochain rappel', () => {
     expect(row('2026-01-12', '2027-01-12')).toEqual({
       badge: { status: 'up-to-date', label: 'À jour' },
