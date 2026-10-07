@@ -263,8 +263,21 @@ describe('PDF : traitement sans prise donnée', () => {
     expect(pdfText(data, '2026-09-05')).toContain('Aucune prise · en retard depuis le 01/09/2026')
   })
 
+  it('garde un traitement arrêté sans prise, avec « Arrêté avant la première prise »', () => {
+    const data = carnet(
+      [period({ startsOn: '2026-09-01', frequency: DAILY, stoppedOn: '2026-09-05' })],
+      [],
+    )
+    const text = pdfText(data, '2026-09-10')
+
+    expect(text).toContain('Métacam')
+    expect(text).toContain('Arrêté le 05/09/2026')
+    expect(text).toContain('Arrêté avant la première prise')
+    expect(text).not.toContain('Aucune prise')
+    expect(text).not.toContain('Dernière prise')
+  })
+
   it.each([
-    ['arrêté', { stoppedOn: '2026-09-05' }, 'Arrêté le 05/09/2026'],
     ['terminé', { endsOn: '2026-09-03' }, 'Terminé le 03/09/2026'],
     ['illisible', { times: ['25:00'] }, 'Donnée illisible'],
   ])('garde un traitement %s sans prise, avec « Aucune prise » seul', (_, fields, label) => {

@@ -216,6 +216,7 @@ function doseSeriesLabel(series: PdfDoseSeries, t: Translate): string {
 }
 
 function noDoseLabel(due: PdfTreatmentRow['due'], t: Translate): string {
+  if (due.kind === 'stopped') return t('settings.pdf.history.stoppedBeforeFirstDose')
   if (due.kind !== 'due') return t('settings.pdf.history.noDose')
   const date = formatNumericDate(due.dueOn)
   return due.overdue
