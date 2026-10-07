@@ -346,6 +346,20 @@ describe('VaccinationDetailView — F7', () => {
   })
 })
 
+describe('VaccinationDetailView — animal qu’on ne suit plus (Q6 de #579)', () => {
+  it('ne montre aucun statut, seulement la dernière injection et l’historique', async () => {
+    useAnimalsStore().animals = [{ ...BOREE, unfollowedOn: '2026-09-20' }]
+
+    const view = await monter()
+
+    expect(plain(view.get('.next-due-card__top').text())).toBe('Dernière injection · 26 août 2026')
+    expect(view.find('.next-due-card__label').exists()).toBe(false)
+    expect(view.find('.next-due-card__value').exists()).toBe(false)
+    expect(view.find('.next-due-card__empty').exists()).toBe(false)
+    expect(lignes(view)).toHaveLength(3)
+  })
+})
+
 describe('VaccinationDetailView — injection supprimée ou redatée', () => {
   it('supprime une injection sans dialogue, toast avec « Annuler » qui la rétablit', async () => {
     const view = await monter()
