@@ -1,13 +1,13 @@
 <script setup lang="ts">
 defineProps<{
-  title: string
+  title?: string
   counter?: string | null
 }>()
 </script>
 
 <template>
   <section class="section-card">
-    <div class="section-card__heading">
+    <div v-if="title" class="section-card__heading">
       <h2 class="section-card__title">{{ title }}</h2>
       <span v-if="counter" class="section-card__counter">{{ counter }}</span>
     </div>

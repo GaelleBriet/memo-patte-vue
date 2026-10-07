@@ -14,6 +14,7 @@ import {
   replaceDueReminders,
   isRebuildRequested,
   markRebuilt,
+  withdrawDueReminders,
   type EntryReminders,
 } from '../domain/due-reminders-schedule'
 import {
@@ -420,6 +421,41 @@ describe('cancelDueReminders', () => {
 
     await expect(
       cancelDueReminders(notifications, [{ kind: 'treatment', id: ID }]),
+    ).resolves.toBeUndefined()
+  })
+})
+
+describe('withdrawDueReminders', () => {
+  it('annule les rappels des entrées et retire leurs notifications du volet', async () => {
+    notifications.checkPermission.mockResolvedValue(false)
+    seed(
+      `vaccination:${ID}:2026-09-20:before`,
+      `vaccination:${ID}:2026-10-15:before`,
+      `treatment:${OTHER}:2026-09-20:due`,
+    )
+    const shown = notifications.idOf(`vaccination:${ID}:2026-09-20:before`)
+    const coming = notifications.idOf(`vaccination:${ID}:2026-10-15:before`)
+
+    await withdrawDueReminders(notifications, [{ kind: 'vaccination', id: ID }])
+
+    expect([...notifications.pending.keys()]).toEqual([`treatment:${OTHER}:2026-09-20:due`])
+    expect(notifications.removeDelivered).toHaveBeenCalledWith([shown, coming])
+  })
+
+  it('ne touche pas au plugin quand les entrées n’ont aucun rappel', async () => {
+    seed(`treatment:${OTHER}:2026-09-20:due`)
+
+    await withdrawDueReminders(notifications, [{ kind: 'vaccination', id: ID }])
+
+    expect(notifications.cancelReminders).not.toHaveBeenCalled()
+    expect(notifications.removeDelivered).not.toHaveBeenCalled()
+  })
+
+  it('ne lève pas quand le plugin échoue', async () => {
+    notifications.listScheduled.mockRejectedValue(new Error('plugin'))
+
+    await expect(
+      withdrawDueReminders(notifications, [{ kind: 'treatment', id: ID }]),
     ).resolves.toBeUndefined()
   })
 })

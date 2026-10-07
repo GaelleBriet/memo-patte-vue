@@ -508,6 +508,15 @@ export function createTreatmentDosesRepository(
       }
     },
 
+    /** Les lignes supprimées à cet instant, avec leur animal. */
+    reviveByAnimalStatement(animalId: string, deletedAt: string, updatedAt: string): SqlStatement {
+      return {
+        sql: `UPDATE treatment_dose SET deleted_at = NULL, updated_at = ?, updated_by_device = ?
+              WHERE animal_id = ? AND deleted_at = ?`,
+        params: [updatedAt, deviceId(), animalId, deletedAt],
+      }
+    },
+
     eraseAllStatement(): SqlStatement {
       return { sql: 'DELETE FROM treatment_dose' }
     },

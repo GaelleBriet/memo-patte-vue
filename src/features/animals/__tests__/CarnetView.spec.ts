@@ -45,13 +45,16 @@ import WeightSection from '@/features/weight/views/WeightSection.vue'
 import { pickPhoto, type PickedPhoto } from '@/core/photos/photo-picker'
 import { forgetPhotoUrls } from '@/core/photos/use-photo-urls'
 import { memoryStorage } from '@/features/purchase/__tests__/billing-fixture'
-import { writeStoredPlusStatus } from '@/features/purchase/logic/plus-status-storage'
-import { billingService } from '@/features/purchase/service/billing.service'
-import { usePurchaseStore } from '@/features/purchase/store/purchase.store'
 import PdfExportSheet from '@/features/settings/views/PdfExportSheet.vue'
-import PlusBadge from '@/shared/components/PlusBadge.vue'
 import { toKg } from '@/shared/domain/weight-unit'
 import { applyWeightUnit } from '@/shared/domain/weight-unit-preference'
+import {
+  dismissToast,
+  runToastAction,
+  toastAction,
+  toastAnnouncement,
+  toastMessage,
+} from '@/shared/utils/toast'
 
 vi.mock('@/core/photos/photo-picker', () => ({
   pickPhoto: vi.fn<() => Promise<PickedPhoto | null>>(),
@@ -79,6 +82,7 @@ function animal(id: string, name: string, overrides: Partial<Animal> = {}): Anim
     createdAt: '2026-09-09T09:00:00.000Z',
     updatedAt: '2026-09-09T09:00:00.000Z',
     deletedAt: null,
+    unfollowedOn: null,
     ...overrides,
   }
 }
@@ -351,9 +355,8 @@ describe('CarnetView — header', () => {
     expect(push).toHaveBeenCalledWith({ name: 'animal-edit', params: { id: MILO.id } })
   })
 
-  describe('export PDF depuis l’icône du Carnet', () => {
-    it('ouvre la feuille pour le seul animal consulté, pour un compte Plus', async () => {
-      writeStoredPlusStatus({ plan: 'lifetime', expiresAt: null })
+  describe('export PDF depuis l’icône du Carnet (DO-4, gratuit)', () => {
+    it('ouvre la feuille pour le seul animal consulté, sans compte', async () => {
       const wrapper = await monter()
 
       expect(wrapper.findComponent(PdfExportSheet).exists()).toBe(false)
@@ -361,47 +364,18 @@ describe('CarnetView — header', () => {
       await wrapper.get('.carnet-header__export-pdf').trigger('click')
       await flushPromises()
 
+      expect(push).not.toHaveBeenCalledWith(expect.objectContaining({ name: 'plus' }))
       expect(wrapper.getComponent(PdfExportSheet).props('modelValue')).toBe(true)
       expect(wrapper.getComponent(PdfExportSheet).props('animals')).toEqual([
         { id: MILO.id, name: 'Milo', species: 'dog' },
       ])
     })
 
-    it('renvoie vers MémoPatte Plus sans compte, en disant qu’on vient du PDF', async () => {
-      const wrapper = await monter()
-
-      await wrapper.get('.carnet-header__export-pdf').trigger('click')
-
-      expect(push).toHaveBeenCalledWith({ name: 'plus', query: { from: 'pdf' } })
-      expect(wrapper.findComponent(PdfExportSheet).exists()).toBe(false)
-    })
-
-    it('porte la pastille Plus sans compte, et le dit au lecteur d’écran', async () => {
+    it('n’annonce aucune pastille Plus, ni à l’œil ni au lecteur d’écran', async () => {
       const wrapper = await monter()
       const icone = wrapper.get('.carnet-header__export-pdf')
 
-      expect(icone.findComponent(PlusBadge).props('on')).toBe('primary')
-      expect(icone.attributes('aria-label')).toBe('Exporter en PDF, fonction MémoPatte Plus')
-    })
-
-    it('retire la pastille dès que Plus devient actif, Carnet affiché', async () => {
-      const wrapper = await monter()
-      vi.spyOn(billingService, 'restore').mockResolvedValue({ plan: 'lifetime', expiresAt: null })
-
-      await usePurchaseStore().restore()
-      await flushPromises()
-
-      const icone = wrapper.get('.carnet-header__export-pdf')
-      expect(icone.findComponent(PlusBadge).exists()).toBe(false)
-      expect(icone.attributes('aria-label')).toBe('Exporter en PDF')
-    })
-
-    it('n’a plus de pastille pour un compte Plus', async () => {
-      writeStoredPlusStatus({ plan: 'annual', expiresAt: '2027-09-01T10:00:00Z' })
-      const wrapper = await monter()
-      const icone = wrapper.get('.carnet-header__export-pdf')
-
-      expect(icone.findComponent(PlusBadge).exists()).toBe(false)
+      expect(icone.find('.plus-badge').exists()).toBe(false)
       expect(icone.attributes('aria-label')).toBe('Exporter en PDF')
     })
   })
@@ -601,6 +575,9 @@ describe('CarnetView — chargement et erreur', () => {
       create: vi.fn<AnimalsRepository['create']>(),
       update: vi.fn<AnimalsRepository['update']>(),
       remove: vi.fn<AnimalsRepository['remove']>(),
+      restore: vi.fn<AnimalsRepository['restore']>(),
+      getDeparture: vi.fn<AnimalsRepository['getDeparture']>(),
+      setDeparture: vi.fn<AnimalsRepository['setDeparture']>(),
       listRecords: vi.fn<AnimalsRepository['listRecords']>(),
       listVersions: vi.fn<AnimalsRepository['listVersions']>(),
       markAllDeletedStatement: vi.fn<AnimalsRepository['markAllDeletedStatement']>(),
@@ -827,5 +804,272 @@ describe('CarnetView — photo depuis l’avatar du header', () => {
     expect(feuille()!.querySelector('.animal-photo-sheet__action')!.hasAttribute('disabled')).toBe(
       true,
     )
+  })
+})
+
+describe('CarnetView — options de l’animal', () => {
+  const REMOVAL = { animalId: MILO.id, deletedAt: '2026-09-09T12:00:00.000Z', photoPath: null }
+
+  afterEach(() => {
+    dismissToast()
+    mounted.splice(0).forEach((wrapper) => wrapper.unmount())
+    document.body.innerHTML = ''
+  })
+
+  async function monterAttache() {
+    const wrapper = mount(CarnetView, {
+      global: { plugins: [vuetify, i18n, router] },
+      attachTo: document.body,
+    })
+    mounted.push(wrapper)
+    await flushPromises()
+    return wrapper
+  }
+
+  function feuille(): HTMLElement | null {
+    return document.body.querySelector<HTMLElement>('.animal-options-sheet .bottom-sheet__panel')
+  }
+
+  function actions(): HTMLElement[] {
+    return [...(feuille()?.querySelectorAll<HTMLElement>('.animal-options-sheet__action') ?? [])]
+  }
+
+  function texte(element: Element | null | undefined): string {
+    return (element?.textContent ?? '').replace(/\s+/g, ' ').trim()
+  }
+
+  async function ouvrirOptions(wrapper: ReturnType<typeof mount>) {
+    await wrapper.get('.carnet-header__options').trigger('click')
+    await flushPromises()
+  }
+
+  async function toucher(element: HTMLElement | undefined) {
+    element!.click()
+    await flushPromises()
+  }
+
+  function quitter(id: string, changes: Partial<Animal>) {
+    store.animals = store.animals.map((item) => (item.id === id ? { ...item, ...changes } : item))
+  }
+
+  it('AN-6 : n’affiche dans les chips que les animaux suivis, et ouvre sur le premier d’entre eux', async () => {
+    animals = [{ ...MILO, unfollowedOn: '2026-09-01' }, LUNA]
+
+    const wrapper = await monterAttache()
+
+    expect(wrapper.findAll('.animal-chip').map((chip) => chip.text())).toEqual(['Luna'])
+    expect(store.selectedAnimalId).toBe(LUNA.id)
+  })
+
+  it('TR-37 : dit à la section des traitements si l’animal est suivi', async () => {
+    animals = [MILO, { ...LUNA, unfollowedOn: '2026-09-01' }]
+    store.select(LUNA.id)
+
+    const wrapper = await monterAttache()
+
+    expect(wrapper.getComponent(TreatmentsSection).props('followed')).toBe(false)
+    store.select(MILO.id)
+    await flushPromises()
+    expect(wrapper.getComponent(TreatmentsSection).props('followed')).toBe(true)
+  })
+
+  it('souhaite la bienvenue quand plus aucun animal n’est suivi', async () => {
+    animals = [{ ...MILO, unfollowedOn: '2026-09-01' }]
+
+    const wrapper = await monterAttache()
+
+    expect(wrapper.find('.carnet-welcome').exists()).toBe(true)
+  })
+
+  it('AN-12 : le menu ⋮ ouvre « Options » avec « Ne plus suivre » et « Supprimer »', async () => {
+    const wrapper = await monterAttache()
+
+    expect(wrapper.get('.carnet-header__options').attributes('aria-label')).toBe('Options de Milo')
+    await ouvrirOptions(wrapper)
+
+    expect(texte(feuille()?.querySelector('.bottom-sheet__title'))).toBe('Milo')
+    expect(texte(feuille()?.querySelector('.animal-options-sheet__heading'))).toBe('Options')
+    expect(
+      actions().map((action) => texte(action.querySelector('.animal-options-sheet__label'))),
+    ).toEqual(['Ne plus suivre Milo', 'Supprimer Milo'])
+    expect(texte(actions()[0]?.querySelector('.animal-options-sheet__hint'))).toBe(
+      'Ses rappels et ses traitements en cours s’arrêtent. Son carnet reste intact.',
+    )
+  })
+
+  it('AN-12 : propose « Suivre Luna de nouveau » pour un animal qu’on ne suit plus', async () => {
+    animals = [MILO, { ...LUNA, unfollowedOn: '2026-09-01' }]
+    store.select(LUNA.id)
+    const wrapper = await monterAttache()
+
+    await ouvrirOptions(wrapper)
+
+    expect(actions().map(texte)).toEqual(['Suivre Luna de nouveau', 'Supprimer Luna'])
+  })
+
+  it('AN-9, V15 bis : « Ne plus suivre » sans question, revient à l’accueil et propose « Annuler »', async () => {
+    const undo = { animalId: MILO.id, unfollowedOn: '2026-09-09', stoppedPeriodIds: [] }
+    const unfollow = vi.spyOn(store, 'unfollow').mockImplementation(async () => {
+      quitter(MILO.id, { unfollowedOn: '2026-09-09' })
+      return undo
+    })
+    const undoUnfollow = vi.spyOn(store, 'undoUnfollow').mockImplementation(async () => {
+      quitter(MILO.id, { unfollowedOn: null })
+    })
+    const wrapper = await monterAttache()
+    await ouvrirOptions(wrapper)
+
+    await toucher(actions()[0])
+
+    expect(unfollow).toHaveBeenCalledExactlyOnceWith(MILO.id)
+    expect(document.body.querySelector('.confirm-dialog__panel')).toBeNull()
+    expect(push).toHaveBeenCalledExactlyOnceWith({ name: 'home' })
+    expect(wrapper.findAll('.animal-chip').map((chip) => chip.text())).toEqual(['Luna'])
+    expect(toastMessage.value).toBe('Tu ne suis plus Milo')
+    expect(toastAction.value?.ariaLabel?.replace(/\s/gu, ' ')).toBe(
+      'Annuler : suivre Milo de nouveau',
+    )
+    await vi.waitFor(() =>
+      expect(toastAnnouncement.value).toBe('Tu ne suis plus Milo. Ses rappels sont coupés.'),
+    )
+
+    runToastAction()
+    await flushPromises()
+
+    expect(undoUnfollow).toHaveBeenCalledExactlyOnceWith(undo)
+    expect(wrapper.get('.carnet-header__name').text()).toBe('Milo')
+  })
+
+  it('AN-11 : « Suivre de nouveau » garde l’animal affiché, avec le toast qui parle de « Reprendre »', async () => {
+    animals = [MILO, { ...LUNA, unfollowedOn: '2026-09-01' }]
+    store.select(LUNA.id)
+    const undo = {
+      animalId: LUNA.id,
+      departure: { unfollowedOn: '2026-09-01', departureReason: null, departureDate: null },
+    }
+    const follow = vi.spyOn(store, 'follow').mockImplementation(async () => {
+      quitter(LUNA.id, { unfollowedOn: null })
+      return undo
+    })
+    const undoFollow = vi.spyOn(store, 'undoFollow').mockResolvedValue()
+    const wrapper = await monterAttache()
+    await ouvrirOptions(wrapper)
+
+    await toucher(actions()[0])
+
+    expect(follow).toHaveBeenCalledExactlyOnceWith(LUNA.id)
+    expect(wrapper.get('.carnet-header__name').text()).toBe('Luna')
+    expect(wrapper.findAll('.animal-chip').map((chip) => chip.text())).toEqual(['Milo', 'Luna'])
+    expect(toastMessage.value?.replace(/\s/gu, ' ')).toBe(
+      'Tu suis de nouveau Luna. Ses traitements arrêtés ne reprennent pas seuls : relance chacun avec « Reprendre ».',
+    )
+
+    expect(toastAction.value?.ariaLabel?.replace(/\s/gu, ' ')).toBe('Annuler : ne plus suivre Luna')
+    runToastAction()
+    await flushPromises()
+
+    expect(undoFollow).toHaveBeenCalledExactlyOnceWith(undo)
+  })
+
+  it('dit l’échec du geste en toast', async () => {
+    vi.spyOn(store, 'unfollow').mockRejectedValue(new Error('base verrouillée'))
+    const wrapper = await monterAttache()
+    await ouvrirOptions(wrapper)
+
+    await toucher(actions()[0])
+
+    expect(toastMessage.value).toBe('Le changement n’a pas pu être enregistré. Réessaie.')
+    expect(wrapper.get('.carnet-header__name').text()).toBe('Milo')
+  })
+
+  describe('« Supprimer »', () => {
+    async function demanderSuppression(wrapper: ReturnType<typeof mount>) {
+      await ouvrirOptions(wrapper)
+      await toucher(actions()[1])
+    }
+
+    function dialogue(): HTMLElement | null {
+      return document.body.querySelector<HTMLElement>('.confirm-dialog__panel')
+    }
+
+    it('AN-12 : demande confirmation, « Annuler » ne supprime rien', async () => {
+      const remove = vi.spyOn(store, 'remove')
+      const wrapper = await monterAttache()
+
+      await demanderSuppression(wrapper)
+
+      expect(texte(dialogue()?.querySelector('.confirm-dialog__title'))).toBe('Supprimer Milo ?')
+      expect(texte(dialogue()?.querySelector('.confirm-dialog__text'))).toBe(
+        'Tout son carnet sera supprimé : vaccins, traitements, pesées, photo.',
+      )
+      await toucher(dialogue()?.querySelector<HTMLElement>('.confirm-dialog__cancel') ?? undefined)
+
+      expect(remove).not.toHaveBeenCalled()
+    })
+
+    it('AN-12 : supprime, affiche l’animal suivant, et « Annuler » rend l’animal', async () => {
+      const remove = vi.spyOn(store, 'remove').mockImplementation(async () => {
+        store.animals = store.animals.filter((item) => item.id !== MILO.id)
+        return REMOVAL
+      })
+      const undoRemove = vi.spyOn(store, 'undoRemove').mockImplementation(async () => {
+        store.animals = [MILO, ...store.animals]
+      })
+      const forgetPhoto = vi.spyOn(store, 'forgetPhoto').mockResolvedValue()
+      const wrapper = await monterAttache()
+      await demanderSuppression(wrapper)
+
+      await toucher(dialogue()?.querySelector<HTMLElement>('.confirm-dialog__confirm') ?? undefined)
+
+      expect(remove).toHaveBeenCalledExactlyOnceWith(MILO.id)
+      expect(wrapper.get('.carnet-header__name').text()).toBe('Luna')
+      expect(toastMessage.value).toBe('Carnet de Milo supprimé')
+      expect(toastAction.value?.ariaLabel?.replace(/\s/gu, ' ')).toBe(
+        'Annuler : garder le carnet de Milo',
+      )
+
+      runToastAction()
+      await flushPromises()
+
+      expect(undoRemove).toHaveBeenCalledExactlyOnceWith(REMOVAL)
+      expect(wrapper.get('.carnet-header__name').text()).toBe('Milo')
+      expect(forgetPhoto).not.toHaveBeenCalled()
+    })
+
+    it('AN-12 : n’efface la photo qu’une fois le toast fermé sans « Annuler »', async () => {
+      vi.spyOn(store, 'remove').mockImplementation(async () => {
+        store.animals = store.animals.filter((item) => item.id !== MILO.id)
+        return REMOVAL
+      })
+      const forgetPhoto = vi.spyOn(store, 'forgetPhoto').mockResolvedValue()
+      const wrapper = await monterAttache()
+      await demanderSuppression(wrapper)
+      await toucher(dialogue()?.querySelector<HTMLElement>('.confirm-dialog__confirm') ?? undefined)
+      expect(forgetPhoto).not.toHaveBeenCalled()
+
+      dismissToast()
+
+      expect(forgetPhoto).toHaveBeenCalledExactlyOnceWith(REMOVAL)
+    })
+
+    it('revient à l’accueil quand il ne reste aucun animal suivi', async () => {
+      animals = [MILO]
+      vi.spyOn(store, 'remove').mockImplementation(async () => {
+        store.animals = []
+        return REMOVAL
+      })
+      const wrapper = await monterAttache()
+      await demanderSuppression(wrapper)
+
+      await toucher(dialogue()?.querySelector<HTMLElement>('.confirm-dialog__confirm') ?? undefined)
+
+      expect(push).toHaveBeenCalledWith({ name: 'home' })
+    })
+
+    it('jamais de lien rouge en bas du Carnet', async () => {
+      const wrapper = await monterAttache()
+
+      expect(wrapper.text()).not.toContain('Supprimer Milo')
+    })
   })
 })

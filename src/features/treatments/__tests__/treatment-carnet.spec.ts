@@ -313,6 +313,37 @@ describe('carnetTreatments — traitements terminés (TR-31)', () => {
     expect(summary).toEqual({ total: 1, overdue: 0, ongoing: 1 })
   })
 
+  it('TR-37 : animal qu’on ne suit plus, arrêté avec des doses oubliées, sans « À renseigner »', () => {
+    const arrete = named('Panacur', [period({ stoppedOn: '2026-09-06' })], PANACUR.doses)
+
+    const { ongoing, finished, summary } = plain(
+      carnetTreatments(t, [arrete], TODAY, carnetScheduleCache(), { followed: false }),
+    )
+
+    expect(ongoing).toEqual([])
+    expect(finished).toEqual([
+      {
+        id: 'panacur',
+        name: 'Panacur',
+        icon: 'ms:medication',
+        detail: 'Arrêté le 6 sept. · 2 prises',
+      },
+    ])
+    expect(summary).toEqual({ total: 0, overdue: 0, ongoing: 0 })
+  })
+
+  it('TR-37 : suivi de nouveau, ses doses non renseignées reviennent à renseigner', () => {
+    const arrete = named('Panacur', [period({ stoppedOn: '2026-09-06' })], PANACUR.doses)
+
+    const { ongoing } = plain(
+      carnetTreatments(t, [arrete], TODAY, carnetScheduleCache(), { followed: true }),
+    )
+
+    expect(ongoing).toEqual([
+      expect.objectContaining({ badge: { status: 'to-log', label: 'À renseigner' } }),
+    ])
+  })
+
   it('date un traitement fini avant sa date de fin de sa dernière échéance', () => {
     const avant = named(
       'Drontal',
