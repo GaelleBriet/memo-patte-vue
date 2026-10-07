@@ -646,6 +646,7 @@
         "single": "Le {date}"
       },
       "empty": "Aucune prise dans cette période pour l’instant",
+      "stoppedBeforeFirstDose": "Arrêté avant la première prise",
       "dueAt": "{date} · {time}",
       "givenOn": "Donnée le {date}",
       "extra": "{date} · Prise en plus",
@@ -886,6 +887,7 @@
     "tomorrow": "demain, {date}",
     "overdueSince": "en retard depuis le {date}",
     "stoppedOn": "Arrêté le {date}",
+    "stoppedBeforeFirstDose": "Arrêté avant la première prise",
     "endedOn": "Terminé le {date}",
     "today": "Aujourd’hui",
     "todayAt": "Aujourd’hui · {time}"

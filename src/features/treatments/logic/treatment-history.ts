@@ -12,6 +12,7 @@ import {
   type TreatmentDoseInput,
   type TreatmentSchedule,
 } from '@/shared/domain/treatment-schedule'
+import { isStoppedBeforeStart } from '@/shared/domain/treatment-end'
 import {
   formatClockTime,
   formatClockTimes,
@@ -343,6 +344,12 @@ function linesOf(
   return lines
 }
 
+function emptyText(t: Translate, period: Period): string {
+  return isStoppedBeforeStart(period)
+    ? t('treatments.history.stoppedBeforeFirstDose')
+    : t('treatments.history.empty')
+}
+
 function notesIn(lines: HistoryLine[]): number {
   return lines.reduce(
     (count, line) =>
@@ -401,7 +408,7 @@ export function treatmentHistory(
               settings: periodSettingsText(t, period),
             },
         lines,
-        emptyText: lines.length === 0 ? t('treatments.history.empty') : null,
+        emptyText: lines.length === 0 ? emptyText(t, period) : null,
         visibleLines: hidden === 0 ? lines.length : LINES_BEFORE_TOGGLE,
         toggle:
           hidden === 0

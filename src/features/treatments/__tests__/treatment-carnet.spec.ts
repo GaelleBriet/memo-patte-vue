@@ -313,6 +313,47 @@ describe('carnetTreatments — traitements terminés (TR-31)', () => {
     expect(summary).toEqual({ total: 1, overdue: 0, ongoing: 1 })
   })
 
+  it('arrêté avant son début : terminé, « Arrêté avant la première prise », rien à renseigner (#594)', () => {
+    const avant = named('Bravecto', [
+      period({ startsOn: '2026-10-07', firstDueOn: '2026-10-07', stoppedOn: '2026-10-06' }),
+    ])
+
+    for (const today of ['2026-10-06', '2026-10-20']) {
+      const { ongoing, finished } = carnet([avant], today)
+
+      expect(ongoing).toEqual([])
+      expect(finished).toEqual([
+        {
+          id: 'bravecto',
+          name: 'Bravecto',
+          icon: 'ms:medication',
+          detail: 'Arrêté avant la première prise',
+        },
+      ])
+    }
+  })
+
+  it('arrêté avant le début de sa reprise, garde le compte des prises d’avant (#594)', () => {
+    const repris = named(
+      'Bravecto',
+      [
+        period({ stoppedOn: '2026-09-02' }),
+        period({
+          id: 'p-2',
+          startsOn: '2026-10-07',
+          firstDueOn: '2026-10-07',
+          stoppedOn: '2026-10-06',
+          createdAt: '2026-10-05T08:00:00.000Z',
+        }),
+      ],
+      [dose('2026-09-01', '2026-09-02')],
+    )
+
+    expect(carnet([repris], '2026-10-06').finished[0]?.detail).toBe(
+      'Arrêté avant la première prise · 1 prise',
+    )
+  })
+
   it('TR-37 : animal qu’on ne suit plus, arrêté avec des doses oubliées, sans « À renseigner »', () => {
     const arrete = named('Panacur', [period({ stoppedOn: '2026-09-06' })], PANACUR.doses)
 

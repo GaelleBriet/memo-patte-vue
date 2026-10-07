@@ -65,6 +65,7 @@ export function doseCard(
             due: null,
             today,
             stoppedOn: period?.stoppedOn ?? null,
+            startsOn: period?.startsOn ?? null,
             endsOn: endedOnOf(treatment, schedule, today),
           }),
   }

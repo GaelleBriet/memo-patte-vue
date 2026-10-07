@@ -161,6 +161,17 @@ describe('doseCard', () => {
     })
   })
 
+  it('arrêté avant son début, dit « Arrêté avant la première prise » (#594)', () => {
+    const history = treatment([
+      period({ startsOn: '2026-10-07', firstDueOn: '2026-10-07', stoppedOn: '2026-10-06' }),
+    ])
+
+    expect(card(history, '2026-10-06')).toMatchObject({
+      entries: [],
+      end: { label: 'Fin du traitement', value: 'Arrêté avant la première prise' },
+    })
+  })
+
   it('s’écrit en anglais', () => {
     applyLocale('en')
     const history = treatment(

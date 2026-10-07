@@ -3,6 +3,7 @@ import type { TreatmentWithHistory } from '../repository/treatments.repository'
 import { currentDoseText } from '@/shared/domain/current-dose'
 import { overdueDays } from '@/shared/domain/due-delay'
 import { reminderIcon, type ReminderCounts } from '@/shared/domain/reminders'
+import { isStoppedBeforeStart } from '@/shared/domain/treatment-end'
 import type { TreatmentSchedule } from '@/shared/domain/treatment-schedule'
 import { formatClockTimes, formatDayMonthOrYear, formatPeriodRange } from '@/shared/utils/format'
 
@@ -49,6 +50,7 @@ function endText(
     due: null,
     today,
     stoppedOn: period?.stoppedOn ?? null,
+    startsOn: period?.startsOn ?? null,
     endsOn: endedOnOf(treatment, schedule, today),
   }).value
 }
@@ -123,6 +125,8 @@ function finishedRow(
     ({ status }) => status === 'given' || status === 'extra',
   ).length
   const end = endText(t, read, today)
+  const period = currentPeriodOf(read.treatment, read.schedule)
+  const neverDue = given === 0 && period !== null && isStoppedBeforeStart(period)
   return {
     id: read.treatment.id,
     name: read.treatment.name,
@@ -130,7 +134,9 @@ function finishedRow(
     detail:
       end === null
         ? t('treatments.finished.doses', { n: given }, given)
-        : t('treatments.finished.row', { end, n: given }, given),
+        : neverDue
+          ? end
+          : t('treatments.finished.row', { end, n: given }, given),
   }
 }
 

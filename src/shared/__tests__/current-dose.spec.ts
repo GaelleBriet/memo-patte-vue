@@ -60,6 +60,16 @@ describe('currentDoseText', () => {
     ).toEqual({ label: 'Fin du traitement', value: 'Arrêté le 28 sept.' })
   })
 
+  it('dit « Arrêté avant la première prise » pour un arrêt avant le début de la période (#594)', () => {
+    const stopped = { phase: 'stopped', due: null, today: TODAY, stoppedOn: '2026-09-28' } as const
+
+    expect(currentDose({ ...stopped, startsOn: '2026-09-29' })).toEqual({
+      label: 'Fin du traitement',
+      value: 'Arrêté avant la première prise',
+    })
+    expect(currentDose({ ...stopped, startsOn: '2026-09-28' }).value).toBe('Arrêté le 28 sept.')
+  })
+
   it('dit la fin d’un traitement arrivé à sa date de fin', () => {
     expect(currentDose({ phase: 'ended', due: null, today: TODAY })).toEqual({
       label: 'Fin du traitement',
@@ -84,6 +94,15 @@ describe('currentDoseText', () => {
     expect(
       currentDose({ phase: 'stopped', due: null, today: TODAY, stoppedOn: '2026-09-28' }),
     ).toEqual({ label: 'Treatment end', value: 'Stopped on Sep 28' })
+    expect(
+      currentDose({
+        phase: 'stopped',
+        due: null,
+        today: TODAY,
+        stoppedOn: '2026-09-28',
+        startsOn: '2026-09-29',
+      }).value,
+    ).toBe('Stopped before the first dose')
   })
 })
 

@@ -646,6 +646,7 @@
         "single": "{date}"
       },
       "empty": "No doses in this period yet",
+      "stoppedBeforeFirstDose": "Stopped before the first dose",
       "dueAt": "{date} · {time}",
       "givenOn": "Given on {date}",
       "extra": "{date} · Extra dose",
@@ -886,6 +887,7 @@
     "tomorrow": "tomorrow, {date}",
     "overdueSince": "overdue since {date}",
     "stoppedOn": "Stopped on {date}",
+    "stoppedBeforeFirstDose": "Stopped before the first dose",
     "endedOn": "Ended on {date}",
     "today": "Today",
     "todayAt": "Today · {time}"

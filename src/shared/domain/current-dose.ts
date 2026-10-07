@@ -1,5 +1,6 @@
 import { addDays, format, parseISO } from 'date-fns'
 
+import { isStoppedBeforeStart } from './treatment-end'
 import type { Due, TreatmentPhase } from './treatment-schedule'
 import { formatClockTime, formatDayMonthOrYear } from '@/shared/utils/format'
 
@@ -14,6 +15,8 @@ export type CurrentDose = {
   due: Due | null
   today: string
   stoppedOn?: string | null
+  /** Début de la période en cours ; un arrêt d'avant ce jour n'a pas de date à dire. */
+  startsOn?: string | null
   /** Date de fin de la période en cours ; dite une fois atteinte. */
   endsOn?: string | null
 }
@@ -30,13 +33,15 @@ function isTomorrow(day: string, today: string): boolean {
 /** Libellé et valeur de la carte de la dose du moment : « Dose du jour » · « 28 sept. à 20 h ». */
 export function currentDoseText(
   t: Translate,
-  { phase, due, today, stoppedOn = null, endsOn = null }: CurrentDose,
+  { phase, due, today, stoppedOn = null, startsOn = null, endsOn = null }: CurrentDose,
 ): CurrentDoseText {
   if (phase === 'stopped' || phase === 'ended' || due === null) {
     const day = (date: string) => formatDayMonthOrYear(date, today)
     const value =
       phase === 'stopped' && stoppedOn !== null
-        ? t('currentDose.stoppedOn', { date: day(stoppedOn) })
+        ? startsOn !== null && isStoppedBeforeStart({ startsOn, stoppedOn })
+          ? t('currentDose.stoppedBeforeFirstDose', {})
+          : t('currentDose.stoppedOn', { date: day(stoppedOn) })
         : phase === 'ended' && endsOn !== null && endsOn <= today
           ? t('currentDose.endedOn', { date: day(endsOn) })
           : null

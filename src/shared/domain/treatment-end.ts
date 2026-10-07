@@ -15,3 +15,11 @@ export function endedOnOf(
     .sort()
   return noted.at(-1) ?? period.endsOn
 }
+
+/** Arrêté avant son début : aucune dose n'a jamais été due (#594). */
+export function isStoppedBeforeStart({
+  startsOn,
+  stoppedOn,
+}: Pick<TreatmentPeriodInput, 'startsOn' | 'stoppedOn'>): boolean {
+  return stoppedOn !== null && stoppedOn < startsOn
+}
