@@ -27,12 +27,13 @@ export function isInjectionNoted(
 export function vaccinationReminders(
   t: ReminderTranslate,
   vaccination: RemindedVaccination,
-  animal: Pick<Animal, 'name' | 'deletedAt'> | null,
+  animal: Pick<Animal, 'name' | 'deletedAt' | 'unfollowedOn'> | null,
   settings: CarnetReminderSettings,
   now: Date,
 ): EntryReminders {
   const isNoted = (dueDate: string) => isInjectionNoted(vaccination, dueDate)
-  if (vaccination.deletedAt !== null || animal === null || animal.deletedAt !== null) {
+  const remindable = animal !== null && animal.deletedAt === null && animal.unfollowedOn === null
+  if (vaccination.deletedAt !== null || !remindable) {
     return { care: null, isNoted }
   }
 

@@ -1,6 +1,7 @@
 import type { IconAliases } from 'vuetify'
 
 // Icônes des écrans (maquettes v2)
+import accountCircle from '@material-symbols/svg-400/outlined/account_circle.svg?raw'
 import add from '@material-symbols/svg-400/outlined/add.svg?raw'
 import addAPhoto from '@material-symbols/svg-400/outlined/add_a_photo.svg?raw'
 import alarm from '@material-symbols/svg-400/outlined/alarm.svg?raw'
@@ -31,12 +32,15 @@ import eventBusy from '@material-symbols/svg-400/outlined/event_busy.svg?raw'
 import eventRepeat from '@material-symbols/svg-400/outlined/event_repeat.svg?raw'
 import eventUpcoming from '@material-symbols/svg-400/outlined/event_upcoming.svg?raw'
 import folderOff from '@material-symbols/svg-400/outlined/folder_off.svg?raw'
+import gavel from '@material-symbols/svg-400/outlined/gavel.svg?raw'
 import help from '@material-symbols/svg-400/outlined/help.svg?raw'
 import hideImage from '@material-symbols/svg-400/outlined/hide_image.svg?raw'
 import history from '@material-symbols/svg-400/outlined/history.svg?raw'
 import home from '@material-symbols/svg-400/outlined/home.svg?raw'
 import image from '@material-symbols/svg-400/outlined/image.svg?raw'
 import iosShare from '@material-symbols/svg-400/outlined/ios_share.svg?raw'
+import language from '@material-symbols/svg-400/outlined/language.svg?raw'
+import lock from '@material-symbols/svg-400/outlined/lock.svg?raw'
 import logout from '@material-symbols/svg-400/outlined/logout.svg?raw'
 import markEmailUnread from '@material-symbols/svg-400/outlined/mark_email_unread.svg?raw'
 import merge from '@material-symbols/svg-400/outlined/merge.svg?raw'
@@ -70,7 +74,9 @@ import storefront from '@material-symbols/svg-400/outlined/storefront.svg?raw'
 import tableView from '@material-symbols/svg-400/outlined/table_view.svg?raw'
 import tune from '@material-symbols/svg-400/outlined/tune.svg?raw'
 import today from '@material-symbols/svg-400/outlined/today.svg?raw'
+import uploadFile from '@material-symbols/svg-400/outlined/upload_file.svg?raw'
 import vaccines from '@material-symbols/svg-400/outlined/vaccines.svg?raw'
+import visibilityOff from '@material-symbols/svg-400/outlined/visibility_off.svg?raw'
 import workspacePremium from '@material-symbols/svg-400/outlined/workspace_premium.svg?raw'
 import workspacePremiumFill from '@material-symbols/svg-400/outlined/workspace_premium-fill.svg?raw'
 
@@ -137,6 +143,7 @@ import warning from '@material-symbols/svg-400/outlined/warning.svg?raw'
  * entrent dans le bundle.
  */
 export const msIcons = {
+  account_circle: accountCircle,
   add,
   add_a_photo: addAPhoto,
   alarm,
@@ -186,6 +193,7 @@ export const msIcons = {
   event_upcoming: eventUpcoming,
   first_page: firstPage,
   folder_off: folderOff,
+  gavel,
   fullscreen,
   fullscreen_exit: fullscreenExit,
   help,
@@ -203,7 +211,9 @@ export const msIcons = {
   keyboard_control_key: keyboardControlKey,
   keyboard_option_key: keyboardOptionKey,
   keyboard_return: keyboardReturn,
+  language,
   last_page: lastPage,
+  lock,
   logout,
   mark_email_unread: markEmailUnread,
   medication,
@@ -252,7 +262,9 @@ export const msIcons = {
   tune,
   unfold_more: unfoldMore,
   upload,
+  upload_file: uploadFile,
   vaccines,
+  visibility_off: visibilityOff,
   volume_down: volumeDown,
   volume_mute: volumeMute,
   volume_off: volumeOff,

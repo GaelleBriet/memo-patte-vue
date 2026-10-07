@@ -20,6 +20,7 @@ describe('signInRoute', () => {
 describe('signInReturnRoute', () => {
   it('ramène au parcours d’origine', () => {
     expect(signInReturnRoute('settings')).toEqual({ name: 'settings' })
+    expect(signInReturnRoute('settings-plus')).toEqual({ name: 'settings-plus' })
   })
 
   it('se replie sur l’écran Plus quand l’origine est absente ou inconnue', () => {

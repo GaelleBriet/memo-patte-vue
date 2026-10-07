@@ -72,9 +72,10 @@ describe('PlusSection — utilisateur gratuit', () => {
     const wrapper = await monter()
 
     const ligne = wrapper.get('.settings-row--plus-discover')
-    expect(wrapper.get('.section-card__title').text()).toBe('MémoPatte Plus')
+    expect(wrapper.find('.section-card__title').exists()).toBe(false)
     expect(ligne.text()).toContain('Découvrir MémoPatte Plus')
-    expect(ligne.text()).toContain('Sauvegarde cloud, export PDF, plusieurs appareils')
+    expect(ligne.text()).toContain('Sauvegarde cloud, plusieurs appareils')
+    expect(ligne.text()).not.toContain('PDF')
 
     await ligne.trigger('click')
 
@@ -174,11 +175,11 @@ describe('PlusSection — sauvegarde en pause', () => {
     await vi.waitFor(() => expect(router.currentRoute.value.path).toBe('/plus'))
   })
 
-  it('se pose au-dessus du titre de la section', async () => {
+  it('se pose au-dessus de la carte', async () => {
     writeStoredPlusStatus(EXPIRED)
     const wrapper = await monter()
     const bandeau = wrapper.get('.plus-paused').element
-    const titre = wrapper.get('.section-card__title').element
+    const titre = wrapper.get('.section-card').element
 
     expect(bandeau.compareDocumentPosition(titre) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })

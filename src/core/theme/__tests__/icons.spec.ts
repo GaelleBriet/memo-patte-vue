@@ -59,6 +59,13 @@ const iconesDesMaquettes = [
   'mobile',
   'star',
   'shield',
+  'lock',
+  'account_circle',
+  'gavel',
+  'language',
+  'upload_file',
+  'visibility_off',
+  'notifications_active',
 ] as const
 
 describe('registre d’icônes Material Symbols', () => {
