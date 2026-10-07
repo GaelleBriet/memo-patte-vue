@@ -2116,3 +2116,19 @@ lot 9. — Raison : la personne voit les dates avant qu'elles changent ; une pri
 rythme autant qu'une prise en retard. — Alternatives écartées : garder le décalage d'office en retard
 (G20 du 2026-10-05) ; pour une prise en avance, la noter sans décaler et sans demander, ce qui ne
 laisserait jamais le choix.
+
+2026-10-07 — Réponses de Gaelle aux questions de la nuit du 6 au 7 octobre, toutes selon la
+recommandation sauf Q2 et Q10. Q1 et Q3 (#483) : un traitement terminé ou arrêté sans aucune prise, ou
+à données illisibles sans prise, figure dans le PDF. Q2 (#483) : sans prise et en retard, il affiche
+« Aucune prise · en retard depuis le … ». Q4 (#575) : une injection passée ajoutée après le rappel en
+cours demande le rappel suivant, comme « C'est fait ». Q5 (#594) : une période arrêtée avant sa
+première prise s'affiche « Arrêté avant la première prise ». Q6 (#579) : la fiche d'un vaccin d'un
+animal qu'on ne suit plus n'a pas de statut, comme sa ligne du Carnet. Q7 (#600) : toucher une
+notification la retire du volet même sans rien noter, la relance suit. Q8 (#482) : le report d'une dose
+d'avant la fermeture vers une date d'après garde sa ligne « Reportée au … ». Q9 (#283, #598) : la base
+ANMV est citée aussi dans À propos. Q10 (#469) : ce qu'un ancien export n'a pas pu reprendre s'affiche
+sur un écran de résultat de l'import, à maquetter. Q11 : un service de cas d'usage peut importer le
+service d'une autre feature, sans boucle (CLAUDE.md aligné sur la règle ESLint). — Raison : Q2, un
+traitement en retard sans prise doit le dire ; Q10, un toast de 6 s ne laisse pas le temps de lire ce
+qui manque ; Q11, réutiliser un cas d'usage plutôt que le recopier. — Alternatives écartées : Q2,
+« Aucune prise » seul ; Q10, le toast de fin d'import ; Q11, resserrer la règle ESLint.
