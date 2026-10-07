@@ -85,10 +85,10 @@ describe('AccountSection — avec un compte Plus', () => {
     writePlusAccount({ userId: USER_ID })
   })
 
-  it('affiche la section Compte avec la déconnexion', async () => {
+  it('affiche la déconnexion, sans redire le titre de la page', async () => {
     const wrapper = await monter()
 
-    expect(wrapper.get('.section-card__title').text()).toBe('Compte')
+    expect(wrapper.find('.section-card__title').exists()).toBe(false)
     expect(wrapper.get('.settings-row--sign-out').text()).toBe('Se déconnecter')
   })
 
@@ -122,6 +122,20 @@ describe('AccountSection — avec un compte Plus', () => {
     )
 
     expect(wrapper.find('.section-card').exists()).toBe(false)
+  })
+
+  it('remplace la page Compte par la connexion : le retour ramène à la liste, pas à une page vide', async () => {
+    await router.push({ name: 'settings-account' })
+    const wrapper = await monter()
+
+    await wrapper.get('.settings-row--sign-out').trigger('click')
+    await cliquer(boutonDuDialogue('.sign-out-confirm__submit'))
+    await vi.waitFor(() =>
+      expect(router.currentRoute.value.fullPath).toBe('/sign-in?from=settings'),
+    )
+    router.back()
+
+    await vi.waitFor(() => expect(router.currentRoute.value.name).toBe('settings'))
   })
 
   it('ignore un double-clic rapide sur la confirmation', async () => {

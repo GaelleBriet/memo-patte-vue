@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { Reminder } from '@/core/notifications'
 import {
+  cancelAllDueReminders,
   cancelDueReminders,
   enqueueReminderTask,
   MAX_SCHEDULED_REMINDERS,
@@ -13,6 +14,7 @@ import {
   replaceDueReminders,
   isRebuildRequested,
   markRebuilt,
+  withdrawDueReminders,
   type EntryReminders,
 } from '../domain/due-reminders-schedule'
 import {
@@ -420,6 +422,82 @@ describe('cancelDueReminders', () => {
     await expect(
       cancelDueReminders(notifications, [{ kind: 'treatment', id: ID }]),
     ).resolves.toBeUndefined()
+  })
+})
+
+describe('withdrawDueReminders', () => {
+  it('annule les rappels des entrées et retire leurs notifications du volet', async () => {
+    notifications.checkPermission.mockResolvedValue(false)
+    seed(
+      `vaccination:${ID}:2026-09-20:before`,
+      `vaccination:${ID}:2026-10-15:before`,
+      `treatment:${OTHER}:2026-09-20:due`,
+    )
+    const shown = notifications.idOf(`vaccination:${ID}:2026-09-20:before`)
+    const coming = notifications.idOf(`vaccination:${ID}:2026-10-15:before`)
+
+    await withdrawDueReminders(notifications, [{ kind: 'vaccination', id: ID }])
+
+    expect([...notifications.pending.keys()]).toEqual([`treatment:${OTHER}:2026-09-20:due`])
+    expect(notifications.removeDelivered).toHaveBeenCalledWith([shown, coming])
+  })
+
+  it('ne touche pas au plugin quand les entrées n’ont aucun rappel', async () => {
+    seed(`treatment:${OTHER}:2026-09-20:due`)
+
+    await withdrawDueReminders(notifications, [{ kind: 'vaccination', id: ID }])
+
+    expect(notifications.cancelReminders).not.toHaveBeenCalled()
+    expect(notifications.removeDelivered).not.toHaveBeenCalled()
+  })
+
+  it('ne lève pas quand le plugin échoue', async () => {
+    notifications.listScheduled.mockRejectedValue(new Error('plugin'))
+
+    await expect(
+      withdrawDueReminders(notifications, [{ kind: 'treatment', id: ID }]),
+    ).resolves.toBeUndefined()
+  })
+})
+
+describe('cancelAllDueReminders', () => {
+  it('annule tout après les reprogrammations déjà en file, jamais avant', async () => {
+    let release: () => void = () => {}
+    const blocked = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    const replacing = replaceDueReminders(
+      notifications,
+      { kind: 'treatment', id: ID },
+      async () => {
+        await blocked
+        return planned([DUE])
+      },
+    )
+    const cancelAllNotifications = vi.fn<() => Promise<void>>().mockResolvedValue()
+    const cancelling = cancelAllDueReminders({ cancelAllNotifications })
+
+    await vi.waitFor(() => expect(notifications.checkPermission).toHaveBeenCalled())
+    expect(cancelAllNotifications).not.toHaveBeenCalled()
+
+    release()
+    await Promise.all([replacing, cancelling])
+
+    expect(notifications.scheduleReminders.mock.invocationCallOrder[0]).toBeLessThan(
+      cancelAllNotifications.mock.invocationCallOrder[0]!,
+    )
+  })
+
+  it('propage un échec du plugin, sans bloquer la file', async () => {
+    const cancelAllNotifications = vi
+      .fn<() => Promise<void>>()
+      .mockRejectedValue(new Error('plugin'))
+    const next = vi.fn<() => Promise<void>>().mockResolvedValue()
+
+    await expect(cancelAllDueReminders({ cancelAllNotifications })).rejects.toThrow('plugin')
+    await enqueueReminderTask(next)
+
+    expect(next).toHaveBeenCalledOnce()
   })
 })
 

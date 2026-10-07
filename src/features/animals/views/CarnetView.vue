@@ -3,13 +3,15 @@ import { computed, defineAsyncComponent, onMounted, ref, watchEffect } from 'vue
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
+import AnimalOptionsSheet from './AnimalOptionsSheet.vue'
 import AnimalPhotoSheet from './AnimalPhotoSheet.vue'
+import AnimalPhotoViewer from './AnimalPhotoViewer.vue'
 import { useAnimalsStore } from '../store/animals.store'
+import { useAnimalFollowGestures } from '../composables/use-animal-follow-gestures'
 import { useAnimalPhotoActions } from '../composables/use-animal-photo-actions'
 import { useForegroundRefresh } from '@/core/app-lifecycle/use-foreground-refresh'
 import { usePhotoUrls } from '@/core/photos/use-photo-urls'
 import PlusNudgeSection from '@/features/purchase/views/PlusNudgeSection.vue'
-import { usePurchaseStore } from '@/features/purchase/store/purchase.store'
 import type { PdfExportAnimal } from '@/features/settings/views/PdfExportSheet.vue'
 
 const PdfExportSheet = defineAsyncComponent(
@@ -23,7 +25,7 @@ import VaccinationsSection, {
 } from '@/features/vaccinations/views/VaccinationsSection.vue'
 import WeightSection, { type WeightSectionSummary } from '@/features/weight/views/WeightSection.vue'
 import AnimalChipSelector, { type AnimalChipItem } from '@/shared/components/AnimalChipSelector.vue'
-import PlusBadge from '@/shared/components/PlusBadge.vue'
+import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
 import { animalAgeText } from '@/shared/domain/animal-age'
 import { animalAvatarGradientCss } from '@/shared/domain/animal-avatar-gradient'
 import { weightDeltaText } from '@/shared/domain/weight-delta'
@@ -32,7 +34,6 @@ import { weightText } from '@/shared/domain/weight-display'
 const { t } = useI18n()
 const router = useRouter()
 const animals = useAnimalsStore()
-const purchase = usePurchaseStore()
 
 const { today } = useForegroundRefresh(() => void animals.load())
 
@@ -44,22 +45,46 @@ const animal = computed(() => animals.selectedAnimal)
 const isLoading = computed(() => !animals.hasLoaded && animals.error === null)
 const hasError = computed(() => animals.error !== null)
 const isEmpty = computed(
-  () => animals.hasLoaded && animals.animals.length === 0 && animals.error === null,
+  () => animals.hasLoaded && animals.followedAnimals.length === 0 && animals.error === null,
 )
 
 const photoUrl = usePhotoUrls(() => animals.animals.map((item) => item.photoPath))
 
 const chips = computed<AnimalChipItem[]>(() =>
-  animals.animals.map((item) => ({
+  animals.followedAnimals.map((item) => ({
     id: item.id,
     name: item.name,
     photoUrl: photoUrl(item.photoPath),
   })),
 )
 const headerPhotoUrl = computed(() => photoUrl(animal.value?.photoPath ?? null))
+const photoLabel = computed(() => {
+  const name = animal.value?.name ?? ''
+  return headerPhotoUrl.value
+    ? t('animals.carnet.photo.avatarLabel', { name })
+    : t('animals.carnet.photo.addLabel', { name })
+})
 
 const isPhotoSheetOpen = ref(false)
+const isPhotoViewerOpen = ref(false)
 const photoActions = useAnimalPhotoActions(animal)
+
+const isOptionsSheetOpen = ref(false)
+const isDeleteDialogOpen = ref(false)
+const gestures = useAnimalFollowGestures()
+const isFollowed = computed(() => animal.value?.unfollowedOn === null)
+
+async function applyOption(gesture: (target: { id: string; name: string }) => Promise<boolean>) {
+  const target = animal.value
+  if (!target) return
+  isOptionsSheetOpen.value = false
+  await gesture(target)
+}
+
+function askDelete(): void {
+  isOptionsSheetOpen.value = false
+  isDeleteDialogOpen.value = true
+}
 
 const isPdfExportSheetOpen = ref(false)
 const hasOpenedPdfExportSheet = ref(false)
@@ -69,15 +94,9 @@ const pdfExportAnimals = computed<PdfExportAnimal[]>(() =>
     : [],
 )
 
-const isFreePlan = computed(() => purchase.status.plan === 'none')
-
 function onExportPdf(): void {
-  if (isFreePlan.value) {
-    void router.push({ name: 'plus', query: { from: 'pdf' } })
-  } else {
-    hasOpenedPdfExportSheet.value = true
-    isPdfExportSheetOpen.value = true
-  }
+  hasOpenedPdfExportSheet.value = true
+  isPdfExportSheetOpen.value = true
 }
 
 function openPhotoSheet(event: Event): void {
@@ -85,6 +104,11 @@ function openPhotoSheet(event: Event): void {
   avatar.focus({ preventScroll: true })
   photoActions.error.value = null
   isPhotoSheetOpen.value = true
+}
+
+function viewPhoto(): void {
+  isPhotoSheetOpen.value = false
+  isPhotoViewerOpen.value = true
 }
 
 async function applyPhoto(action: () => Promise<boolean>): Promise<void> {
@@ -127,9 +151,9 @@ onMounted(() => {
   void animals.load()
 })
 
-// Il y a toujours un animal actif sur le Carnet : le premier de la liste, faute de choix.
+// Il y a toujours un animal actif sur le Carnet : le premier animal suivi, faute de choix.
 watchEffect(() => {
-  const first = animals.animals[0]
+  const first = animals.followedAnimals[0]
   if (animals.selectedAnimal === null && first) animals.select(first.id)
 })
 
@@ -158,35 +182,34 @@ function createAnimal(): void {
           @click="goHome"
         />
         <div class="carnet-header__identity">
-          <span
-            class="carnet-header__avatar"
-            role="button"
-            tabindex="0"
+          <button
+            type="button"
+            class="carnet-header__photo"
             aria-haspopup="dialog"
-            :aria-label="t('animals.carnet.photo.avatarLabel', { name: animal.name })"
-            :style="{ backgroundImage: animalAvatarGradientCss(animal.id) }"
-            @contextmenu.prevent="openPhotoSheet"
-            @keydown.enter.prevent="openPhotoSheet"
-            @keydown.space.prevent="openPhotoSheet"
+            :aria-label="photoLabel"
+            @click="openPhotoSheet"
           >
-            <img v-if="headerPhotoUrl" :src="headerPhotoUrl" alt="" />
-          </span>
+            <span
+              class="carnet-header__avatar"
+              :style="{ backgroundImage: animalAvatarGradientCss(animal.id) }"
+            >
+              <img v-if="headerPhotoUrl" :src="headerPhotoUrl" alt="" />
+            </span>
+            <span class="carnet-header__photo-badge" aria-hidden="true">
+              <v-icon icon="ms:photo_camera" />
+            </span>
+          </button>
           <div class="carnet-header__text">
             <h1 class="carnet-header__name">{{ animal.name }}</h1>
             <p v-if="subtitle" class="carnet-header__subtitle">{{ subtitle }}</p>
           </div>
           <v-btn
             class="carnet-header__export-pdf"
-            icon
+            icon="ms:picture_as_pdf"
             variant="text"
-            :aria-label="
-              isFreePlan ? t('animals.carnet.exportPdfPlus') : t('animals.carnet.exportPdf')
-            "
+            :aria-label="t('animals.carnet.exportPdf')"
             @click="onExportPdf"
-          >
-            <v-icon icon="ms:picture_as_pdf" />
-            <PlusBadge v-if="isFreePlan" class="carnet-header__plus-badge" on="primary" />
-          </v-btn>
+          />
           <v-btn
             class="carnet-header__edit"
             icon="ms:edit"
@@ -194,8 +217,36 @@ function createAnimal(): void {
             :aria-label="t('animals.carnet.edit')"
             @click="editAnimal"
           />
+          <v-btn
+            class="carnet-header__options"
+            icon="ms:more_vert"
+            variant="text"
+            aria-haspopup="dialog"
+            :aria-label="t('animals.carnet.options.open', { name: animal.name })"
+            @click="isOptionsSheetOpen = true"
+          />
         </div>
       </header>
+
+      <AnimalOptionsSheet
+        v-model="isOptionsSheetOpen"
+        :name="animal.name"
+        :subtitle="subtitle"
+        :followed="isFollowed"
+        :busy="gestures.isBusy.value"
+        @unfollow="applyOption(gestures.unfollow)"
+        @follow="applyOption(gestures.follow)"
+        @delete="askDelete"
+      />
+
+      <ConfirmDialog
+        v-model="isDeleteDialogOpen"
+        :title="t('animals.carnet.deleteDialog.title', { name: animal.name })"
+        :text="t('animals.carnet.deleteDialog.text', { name: animal.name })"
+        :cancel-label="t('animals.carnet.deleteDialog.cancel')"
+        :confirm-label="t('animals.carnet.deleteDialog.confirm')"
+        @confirm="applyOption(gestures.remove)"
+      />
 
       <PdfExportSheet
         v-if="hasOpenedPdfExportSheet"
@@ -206,11 +257,20 @@ function createAnimal(): void {
       <AnimalPhotoSheet
         v-model="isPhotoSheetOpen"
         :name="animal.name"
+        :breed="animal.breed"
         :has-photo="headerPhotoUrl !== null"
         :busy="photoActions.isBusy.value"
         :error="photoActions.error.value ? t(photoActions.error.value) : null"
+        @view="viewPhoto"
         @change="applyPhoto(photoActions.changePhoto)"
         @remove="applyPhoto(photoActions.removePhoto)"
+      />
+
+      <AnimalPhotoViewer
+        v-if="headerPhotoUrl"
+        v-model="isPhotoViewerOpen"
+        :src="headerPhotoUrl"
+        :name="animal.name"
       />
 
       <AnimalChipSelector
@@ -248,6 +308,7 @@ function createAnimal(): void {
         <TreatmentsSection
           :animal-id="animal.id"
           :today="today"
+          :followed="isFollowed"
           @summary="treatmentsSummary = $event"
         />
         <WeightSection :animal-id="animal.id" :today="today" @summary="weightSummary = $event" />
@@ -300,19 +361,17 @@ function createAnimal(): void {
 
 .carnet-header__back,
 .carnet-header__export-pdf,
-.carnet-header__edit {
+.carnet-header__edit,
+.carnet-header__options {
   width: 48px;
   height: 48px;
   color: rgb(var(--v-theme-background));
 }
 
-.carnet-header__export-pdf {
-  overflow: visible;
-}
-
-.carnet-header__plus-badge {
-  top: 1px;
-  right: -3px;
+// Les trois icônes se touchent par leur zone de 48 px, pas par l'écart du nom.
+.carnet-header__edit,
+.carnet-header__options {
+  margin-inline-start: -14px;
 }
 
 .carnet-header__identity {
@@ -322,21 +381,27 @@ function createAnimal(): void {
   padding-inline: 8px;
 }
 
+.carnet-header__photo {
+  position: relative;
+  flex: 0 0 auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: none;
+  }
+}
+
 .carnet-header__avatar {
   display: block;
   overflow: hidden;
-  flex: 0 0 auto;
   width: tokens.$size-header-avatar;
   height: tokens.$size-header-avatar;
   border: 2px solid tokens.$color-header-avatar-border;
   border-radius: 50%;
   background-size: cover;
-  -webkit-touch-callout: none;
-  user-select: none;
-
-  &:focus-visible {
-    outline: none;
-  }
 
   img {
     pointer-events: none;
@@ -344,6 +409,25 @@ function createAnimal(): void {
     width: 100%;
     height: 100%;
     object-fit: cover;
+  }
+}
+
+.carnet-header__photo-badge {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: tokens.$size-header-avatar-badge;
+  height: tokens.$size-header-avatar-badge;
+  border: 2px solid rgb(var(--v-theme-primary));
+  border-radius: 50%;
+  background: rgb(var(--v-theme-surface));
+  color: rgb(var(--v-theme-primary));
+
+  .v-icon {
+    font-size: tokens.$size-header-avatar-badge-icon;
   }
 }
 

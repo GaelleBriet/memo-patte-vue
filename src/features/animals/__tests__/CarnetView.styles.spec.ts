@@ -36,10 +36,6 @@ function declaration(selecteur: string, propriete: string): string | undefined {
 }
 
 describe('CarnetView — contrat de style', () => {
-  it('laisse déborder la pastille Plus du bouton PDF, que Vuetify rogne par défaut', () => {
-    expect(declaration('.carnet-header__export-pdf', 'overflow')).toBe('visible')
-  })
-
   it('peint le header en pétrole plein, à la hauteur de la maquette', () => {
     expect(declaration('.carnet-header', 'background')).toBe('rgb(var(--v-theme-primary))')
     expect(declaration('.carnet-header', 'height')).toBe('158px')
@@ -50,6 +46,17 @@ describe('CarnetView — contrat de style', () => {
     expect(declaration('.carnet-header__avatar', 'height')).toBe('56px')
     expect(declaration('.carnet-header__avatar', 'border-radius')).toBe('50%')
     expect(declaration('.carnet-header__avatar', 'border')).toContain('2px solid')
+  })
+
+  it('pose le badge « appareil photo » de 26 px sur le bord de l’avatar, cerclé de pétrole', () => {
+    expect(declaration('.carnet-header__photo', 'position')).toBe('relative')
+    expect(declaration('.carnet-header__photo-badge', 'position')).toBe('absolute')
+    expect(declaration('.carnet-header__photo-badge', 'right')).toBe('-2px')
+    expect(declaration('.carnet-header__photo-badge', 'bottom')).toBe('-2px')
+    expect(declaration('.carnet-header__photo-badge', 'width')).toBe('26px')
+    expect(declaration('.carnet-header__photo-badge', 'border')).toBe(
+      '2px solid rgb(var(--v-theme-primary))',
+    )
   })
 
   it('passe le sous-titre sur deux lignes au plus, comme la maquette V13 bis', () => {

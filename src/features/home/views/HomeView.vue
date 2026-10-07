@@ -54,9 +54,9 @@ const isReady = computed(() => animals.hasLoaded && home.hasLoaded && !hasError.
 const isLoading = computed(() => !isReady.value && !hasError.value)
 const isWelcome = computed(() => isReady.value && animals.animals.length === 0)
 
-const photoUrl = usePhotoUrls(() => animals.animals.map((item) => item.photoPath))
+const photoUrl = usePhotoUrls(() => animals.followedAnimals.map((item) => item.photoPath))
 const chips = computed<AnimalChipItem[]>(() =>
-  animals.animals.map((item) => ({
+  animals.followedAnimals.map((item) => ({
     id: item.id,
     name: item.name,
     photoUrl: photoUrl(item.photoPath),
@@ -67,20 +67,21 @@ const currentId = computed<string | null>({
   get: () =>
     currentAnimalId({
       selectedId: animals.selectedAnimalId,
-      animalIds: animals.animals.map((animal) => animal.id),
+      animalIds: animals.followedAnimals.map((animal) => animal.id),
     }),
   set: (id) => animals.select(id),
 })
 
 const currentName = computed(
-  () => animals.animals.find((animal) => animal.id === currentId.value)?.name ?? null,
+  () => animals.followedAnimals.find((animal) => animal.id === currentId.value)?.name ?? null,
 )
 
-const items = computed(() => todoItems(home.sources, today.value))
+const followedIds = computed(() => new Set(animals.followedAnimals.map(({ id }) => id)))
+const items = computed(() => todoItems(home.sources, today.value, followedIds.value))
 const summary = computed(() => buildTodo(items.value, { animalId: currentId.value ?? undefined }))
 
 const rowOptions = computed(() => ({
-  animalNames: new Map(animals.animals.map((animal) => [animal.id, animal.name])),
+  animalNames: new Map(animals.followedAnimals.map((animal) => [animal.id, animal.name])),
   showAnimal: currentName.value === null,
 }))
 
@@ -93,7 +94,7 @@ const banner = computed(() => overdueBanner(t, summary.value.overdue))
 const upToDate = computed(() =>
   upToDateText(t, {
     animalName: currentName.value,
-    allNames: animals.animals.map((animal) => animal.name),
+    allNames: animals.followedAnimals.map((animal) => animal.name),
   }),
 )
 const nextReminder = computed(() => nextReminderText(t, summary.value.next, rowOptions.value))
@@ -218,7 +219,7 @@ function openSettings(): void {
 }
 
 function openCarnet(): void {
-  const animalId = currentId.value ?? animals.animals[0]?.id
+  const animalId = currentId.value ?? animals.followedAnimals[0]?.id
   if (!animalId) return
   animals.select(animalId)
   void router.push({ name: 'animals' })

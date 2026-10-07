@@ -8,13 +8,19 @@ export type ReminderKind = 'vaccination' | 'treatment'
 
 const PRIMING_ROUTE = 'notifications-priming'
 const DEFAULT_RETURN_ROUTE = 'animals'
-const RETURN_ROUTES: readonly string[] = ['home', 'settings', 'settings-reminders', 'animals']
+const RETURN_ROUTES: readonly string[] = [
+  'home',
+  'settings',
+  'settings-reminders',
+  'settings-data',
+  'animals',
+]
 
 export type SavedReminder = {
   hasDueDate: boolean
   animalName: string | null
   kind: ReminderKind
-  /** Écran où revenir : `home`, `settings`, `settings-reminders`, `animals` ou un détail du Carnet, le Carnet sinon. */
+  /** Écran où revenir : `home`, `settings`, `settings-reminders`, `settings-data`, `animals` ou un détail du Carnet, le Carnet sinon. */
   from?: string
   /** Rappel dont la feuille se rouvre au retour (`reminder-route.ts`). */
   reminder?: string

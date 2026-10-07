@@ -4,9 +4,9 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
 import ManageSubscriptionSection from './ManageSubscriptionSection.vue'
+import { usePlusStatusText } from '../composables/use-plus-status-text'
 import { usePurchaseStore } from '../store/purchase.store'
 import { authAvailable } from '@/shared/utils/auth-available'
-import { formatNumericDate } from '@/shared/utils/format'
 import SectionCard from '@/shared/components/SectionCard.vue'
 import { signInRoute } from '@/shared/utils/sign-in-route'
 import { showToast } from '@/shared/utils/toast'
@@ -17,23 +17,7 @@ const purchase = usePurchaseStore()
 
 const isRestoring = ref(false)
 
-const statusHint = computed<string | null>(() => {
-  const expired = purchase.expiredPlan
-  if (expired !== null) {
-    return expired === 'monthly'
-      ? t('plus.settings.status.expiredMonthly')
-      : t('plus.settings.status.expiredAnnual')
-  }
-  const { plan, expiresAt } = purchase.status
-  if (plan === 'none') return null
-  if (plan === 'lifetime') return t('plus.settings.status.lifetime')
-  if (expiresAt === null)
-    return plan === 'monthly' ? t('plus.member.monthly') : t('plus.member.annual')
-  const date = formatNumericDate(expiresAt)
-  return plan === 'monthly'
-    ? t('plus.settings.status.monthly', { date })
-    : t('plus.settings.status.annual', { date })
-})
+const statusHint = usePlusStatusText()
 
 const isPaused = computed(() => purchase.expiredPlan !== null)
 const canDiscover = computed(() => statusHint.value === null)
@@ -47,7 +31,7 @@ function openPlus(): void {
 }
 
 function openSignIn(): void {
-  void router.push(signInRoute('settings'))
+  void router.push(signInRoute('settings-plus'))
 }
 
 async function restore(): Promise<void> {
@@ -76,7 +60,7 @@ async function restore(): Promise<void> {
       </v-btn>
     </div>
 
-    <SectionCard :title="t('plus.title')">
+    <SectionCard>
       <button
         v-if="canDiscover"
         type="button"

@@ -76,10 +76,15 @@
       "back": "Retour",
       "edit": "Modifier la fiche",
       "exportPdf": "Exporter en PDF",
-      "exportPdfPlus": "Exporter en PDF, fonction MémoPatte Plus",
       "photo": {
-        "avatarLabel": "Gérer la photo de {name}",
+        "avatarLabel": "Photo de {name} : voir, changer ou retirer",
+        "addLabel": "Ajouter une photo de {name}",
         "sheetTitle": "Photo de {name}",
+        "heading": "Photo",
+        "view": "Voir la photo",
+        "choose": "Choisir une photo",
+        "removed": "Photo retirée",
+        "undoRemove": "Annuler le retrait de la photo de {name}",
         "close": "Fermer"
       },
       "subtitleSeparator": " · ",
@@ -103,6 +108,32 @@
       "welcome": {
         "title": "Bienvenue sur MémoPatte",
         "create": "Créer mon premier animal"
+      },
+      "options": {
+        "open": "Options de {name}",
+        "title": "Options",
+        "close": "Fermer",
+        "unfollow": "Ne plus suivre {name}",
+        "unfollowHint": "Ses rappels et ses traitements en cours s’arrêtent. Son carnet reste intact.",
+        "follow": "Suivre {name} de nouveau",
+        "delete": "Supprimer {name}"
+      },
+      "deleteDialog": {
+        "title": "Supprimer {name} ?",
+        "text": "Tout son carnet sera supprimé : vaccins, traitements, pesées, photo.",
+        "cancel": "Annuler",
+        "confirm": "Supprimer"
+      },
+      "toast": {
+        "unfollowed": "Tu ne suis plus {name}",
+        "unfollowedAnnouncement": "Tu ne suis plus {name}. Ses rappels sont coupés.",
+        "followed": "Tu suis de nouveau {name}. Ses traitements arrêtés ne reprennent pas seuls : relance chacun avec « Reprendre ».",
+        "deleted": "Carnet de {name} supprimé",
+        "undoUnfollow": "Annuler : suivre {name} de nouveau",
+        "undoFollow": "Annuler : ne plus suivre {name}",
+        "undoDelete": "Annuler : garder le carnet de {name}",
+        "failed": "Le changement n’a pas pu être enregistré. Réessaie.",
+        "deleteFailed": "Le carnet de {name} n’a pas pu être supprimé. Réessaie."
       }
     }
   },
@@ -232,29 +263,38 @@
       "otherDateLabel": "Fait à une autre date : choisir la date de l’injection",
       "doneLabel": "C’est fait : noter l’injection de {name} pour {animal} et choisir le prochain rappel",
       "injections": "Injections",
-      "chosen": {
-        "oneYear": "Rappel choisi : dans 1 an",
-        "threeYears": "Rappel choisi : dans 3 ans",
-        "date": "Rappel choisi : autre date, {date}",
-        "none": "Rappel choisi : pas de rappel"
-      },
+      "lastInjection": "Dernière injection",
+      "lastInjectionOn": "Dernière injection · {date}",
+      "plannedReminder": "Rappel prévu le {date}",
+      "noPlannedReminder": "Sans rappel prévu",
       "options": "Options pour l’injection du {date}",
       "remove": "Supprimer cette injection",
       "changeDateSubtitle": "Injection du {date}",
+      "past": {
+        "open": "Ajouter une injection passée",
+        "eyebrow": "Injection passée",
+        "title": "Ajouter une injection passée",
+        "submit": "Ajouter",
+        "taken": "Une injection est déjà notée ce jour-là.",
+        "failed": "L’injection n’a pas pu être ajoutée. Réessaie."
+      },
       "toast": {
         "removed": "Injection du {date} supprimée",
         "undoRemove": "Annuler la suppression de l’injection du {date}",
         "moved": "Injection déplacée au {date}",
         "undoMove": "Annuler le changement de date de l’injection",
-        "deleted": "Vaccin {name} supprimé"
+        "deleted": "Vaccin {name} supprimé",
+        "added": "Injection du {date} ajoutée",
+        "undoAdd": "Annuler l’ajout de l’injection du {date}",
+        "undoDelete": "Annuler la suppression du vaccin {name}"
       },
       "menu": {
         "remove": "Supprimer ce vaccin"
       },
       "deleteDialog": {
         "title": "Supprimer {name} ?",
-        "text": "Ses injections et ses rappels seront supprimés du carnet. Cette action est définitive.",
-        "onlyInjection": "C’est sa seule injection : le vaccin {name} sera supprimé, avec ses rappels. Cette action est définitive.",
+        "text": "Ses injections et ses rappels seront supprimés du carnet.",
+        "onlyInjection": "C’est sa seule injection, sans rappel prévu : le vaccin {name} sera supprimé du carnet.",
         "cancel": "Annuler",
         "confirm": "Supprimer"
       },
@@ -1162,8 +1202,36 @@
       "plus": "MémoPatte Plus ajoute une sauvegarde cloud garantie, photos comprises, et la restaure sur un nouveau téléphone.",
       "discoverPlus": "Découvrir MémoPatte Plus"
     },
+    "erase": {
+      "screenTitle": "Effacer les données",
+      "screenSubtitle": "de ce téléphone",
+      "title": "Effacer les données de ce téléphone",
+      "removed": "Tout le carnet est retiré de ce téléphone : animaux, traitements, vaccins, poids et photos.",
+      "removedSignedIn": "Le carnet est retiré de ce téléphone.",
+      "unsynced": "Tes derniers changements ne sont pas encore dans ta sauvegarde cloud. Connecte-toi à Internet et attends la sauvegarde, ou exporte une copie.",
+      "cloudKept": "Ta sauvegarde cloud n’est pas touchée : tu pourras la restaurer sur ce téléphone ou un autre.",
+      "signOut": "Cet appareil sera déconnecté de ton compte.",
+      "copy": "Avant d’effacer, exporte une copie de ton carnet.",
+      "reminders": "Plus aucun rappel ne sonnera sur ce téléphone.",
+      "exports": "Les exports enregistrés dans Documents › MémoPatte restent sur le téléphone.",
+      "restart": "Après l’effacement, MémoPatte redémarre comme au premier lancement.",
+      "continue": "Continuer",
+      "cancel": "Annuler",
+      "confirm": {
+        "title": "Effacer les données de ce téléphone ?",
+        "text": "Sans copie, ton carnet ne pourra pas être retrouvé.",
+        "erase": "Effacer"
+      },
+      "final": {
+        "title": "Effacer définitivement ?",
+        "text": "Toutes les données de MémoPatte seront effacées de ce téléphone.",
+        "erase": "Effacer définitivement"
+      },
+      "error": "Les données n’ont pas pu être effacées. Réessaie."
+    },
     "data": {
       "title": "Mes données",
+      "summary": "Unité, export, PDF, import",
       "weightUnit": {
         "label": "Unité de poids",
         "hint": "Pour afficher et saisir les pesées",
@@ -1172,20 +1240,29 @@
           "lb": "Livres, lb"
         }
       },
+      "exportSection": "Exporter",
       "export": "Exporter mes données",
+      "exportHint": "JSON ou CSV",
       "exportEmpty": "Rien à exporter pour l’instant",
       "exportPdf": "Exporter en PDF",
-      "exportPdfPlus": "Fonction MémoPatte Plus",
+      "exportPdfHint": "Tous les animaux ou un seul",
+      "importSection": "Importer",
       "import": "Importer un export MémoPatte",
       "loadError": "La base locale n’a pas répondu. Touche pour réessayer."
     },
     "privacy": {
       "title": "Confidentialité",
-      "analytics": "Statistiques d’usage"
+      "analytics": "Statistiques d’usage",
+      "policy": "Politique de confidentialité",
+      "policyHint": "Sur le site"
     },
     "about": {
       "title": "À propos",
-      "version": "Version"
+      "summary": "MémoPatte {version}",
+      "version": "Version",
+      "website": "Site de MémoPatte",
+      "websiteHint": "memopatte.gaelle-briet.fr",
+      "legalNotice": "Mentions légales"
     },
     "export": {
       "title": "Exporter tes données",
@@ -1445,8 +1522,9 @@
     "later": "Plus tard",
     "settings": {
       "discover": "Découvrir MémoPatte Plus",
-      "discoverHint": "Sauvegarde cloud, export PDF, plusieurs appareils",
-      "alreadySubscribed": "Je suis déjà abonné",
+      "summary": "Ton carnet ne disparaît jamais",
+      "discoverHint": "Sauvegarde cloud, plusieurs appareils",
+      "alreadySubscribed": "J’ai déjà MémoPatte Plus",
       "alreadySubscribedHint": "Retrouve ton carnet sauvegardé sur un autre appareil",
       "status": {
         "monthly": "Plus mensuel jusqu’au {date}",

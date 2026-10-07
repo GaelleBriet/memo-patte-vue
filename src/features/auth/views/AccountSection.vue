@@ -20,7 +20,7 @@ async function signOut(): Promise<void> {
   isConfirmOpen.value = false
   try {
     await auth.signOut()
-    await router.push(signInRoute('settings'))
+    await router.replace(signInRoute('settings'))
   } finally {
     isProcessing.value = false
   }
@@ -28,7 +28,7 @@ async function signOut(): Promise<void> {
 </script>
 
 <template>
-  <SectionCard v-if="auth.hasPlusAccount" :title="t('settings.account.title')">
+  <SectionCard v-if="auth.hasPlusAccount">
     <button type="button" class="settings-row settings-row--sign-out" @click="isConfirmOpen = true">
       <v-icon class="settings-row__icon" icon="ms:logout" size="22" />
       <span class="settings-row__text">

@@ -4,10 +4,12 @@ import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vite
 import type { Animal, AnimalInput } from '../schema/animal.schema'
 import type { AnimalCreationService } from '../service/animal-creation.service'
 import type { AnimalDeletionService } from '../service/animal-deletion.service'
+import type { AnimalFollowService } from '../service/animal-follow.service'
 import type { AnimalsRepository } from '../repository/animals.repository'
 import {
   provideAnimalCreationService,
   provideAnimalDeletionService,
+  provideAnimalFollowService,
   provideAnimalsRepository,
   useAnimalsStore,
 } from '../store/animals.store'
@@ -24,7 +26,18 @@ vi.mock('@/core/photos/photo-storage', () => ({
 }))
 
 let repository: FakeAnimalsRepository
-let deletion: { remove: Mock<AnimalDeletionService['remove']> }
+let deletion: {
+  remove: Mock<AnimalDeletionService['remove']>
+  restore: Mock<AnimalDeletionService['restore']>
+  forgetPhoto: Mock<AnimalDeletionService['forgetPhoto']>
+}
+let follow: {
+  unfollow: Mock<AnimalFollowService['unfollow']>
+  undoUnfollow: Mock<AnimalFollowService['undoUnfollow']>
+  follow: Mock<AnimalFollowService['follow']>
+  undoFollow: Mock<AnimalFollowService['undoFollow']>
+}
+const DELETED_AT = '2026-09-28T08:00:00.000Z'
 let creation: { create: Mock<AnimalCreationService['create']> }
 
 beforeEach(() => {
@@ -32,7 +45,33 @@ beforeEach(() => {
   setActivePinia(createPinia())
   repository = createFakeRepository()
   deletion = {
-    remove: vi.fn<AnimalDeletionService['remove']>(async (id) => repository.markDeleted(id)),
+    remove: vi.fn<AnimalDeletionService['remove']>(async (id) => {
+      repository.markDeleted(id)
+      return { animalId: id, deletedAt: DELETED_AT, photoPath: null }
+    }),
+    restore: vi.fn<AnimalDeletionService['restore']>(async ({ animalId }) =>
+      repository.markRestored(animalId),
+    ),
+    forgetPhoto: vi.fn<AnimalDeletionService['forgetPhoto']>().mockResolvedValue(),
+  }
+  follow = {
+    unfollow: vi.fn<AnimalFollowService['unfollow']>(async (id) => {
+      repository.setUnfollowedOn(id, '2026-09-28')
+      return { animalId: id, unfollowedOn: '2026-09-28', stoppedPeriodIds: [] }
+    }),
+    undoUnfollow: vi.fn<AnimalFollowService['undoUnfollow']>(async ({ animalId }) =>
+      repository.setUnfollowedOn(animalId, null),
+    ),
+    follow: vi.fn<AnimalFollowService['follow']>(async (id) => {
+      repository.setUnfollowedOn(id, null)
+      return {
+        animalId: id,
+        departure: { unfollowedOn: '2026-09-28', departureReason: null, departureDate: null },
+      }
+    }),
+    undoFollow: vi.fn<AnimalFollowService['undoFollow']>(async ({ animalId }) =>
+      repository.setUnfollowedOn(animalId, '2026-09-28'),
+    ),
   }
   creation = {
     create: vi.fn<AnimalCreationService['create']>(async ({ weightKg: _weightKg, ...input }) =>
@@ -42,12 +81,14 @@ beforeEach(() => {
   provideAnimalsRepository(() => repository)
   provideAnimalDeletionService(() => deletion)
   provideAnimalCreationService(() => creation)
+  provideAnimalFollowService(() => follow)
 })
 
 afterEach(() => {
   provideAnimalsRepository(null)
   provideAnimalDeletionService(null)
   provideAnimalCreationService(null)
+  provideAnimalFollowService(null)
 })
 
 describe('useAnimalsStore', () => {
@@ -180,6 +221,23 @@ describe('useAnimalsStore', () => {
     expect(deletePhoto).not.toHaveBeenCalled()
   })
 
+  it('retire la photo, la rend sur « Annuler » et n’efface son fichier qu’au retrait définitif', async () => {
+    const milo = repository.seed({ name: 'Milo', species: 'dog', photoPath: 'milo.jpg' })
+    const store = useAnimalsStore()
+    const input = { name: 'Milo', species: 'dog' } as const
+
+    const removal = await store.removePhoto(milo.id, input)
+    expect(store.byId(milo.id)?.photoPath).toBeNull()
+    expect(deletePhoto).not.toHaveBeenCalled()
+
+    await store.undoRemovePhoto(input, removal!)
+    expect(store.byId(milo.id)?.photoPath).toBe('milo.jpg')
+
+    await store.removePhoto(milo.id, input)
+    await store.forgetRemovedPhoto(removal!)
+    expect(deletePhoto).toHaveBeenCalledExactlyOnceWith('milo.jpg')
+  })
+
   it('laisse le fichier de la photo en place quand l’animal est supprimé', async () => {
     const milo = repository.seed({ name: 'Milo', species: 'dog', photoPath: 'milo.jpg' })
     const store = useAnimalsStore()
@@ -200,6 +258,78 @@ describe('useAnimalsStore', () => {
     expect(deletion.remove).toHaveBeenCalledWith(miette.id)
     expect(repository.remove).not.toHaveBeenCalled()
     expect(store.animals.map((animal) => animal.name)).toEqual(['Vasco'])
+  })
+
+  it('rend la suppression, puis la défait par « Annuler » et rafraîchit la liste', async () => {
+    const miette = repository.seed({ name: 'Miette', species: 'cat' })
+    const store = useAnimalsStore()
+    await store.load()
+
+    const removal = await store.remove(miette.id)
+    await store.undoRemove(removal!)
+
+    expect(deletion.restore).toHaveBeenCalledWith(removal)
+    expect(store.animals.map((animal) => animal.name)).toEqual(['Miette'])
+  })
+
+  it('confie au service l’effacement de la photo après la suppression', async () => {
+    const store = useAnimalsStore()
+    const removal = { animalId: 'milo', deletedAt: DELETED_AT, photoPath: 'milo.jpg' }
+
+    await store.forgetPhoto(removal)
+
+    expect(deletion.forgetPhoto).toHaveBeenCalledWith(removal)
+  })
+
+  describe('suivi', () => {
+    it('AN-6 : sépare les animaux suivis de ceux qu’on ne suit plus, dans l’ordre de la liste', async () => {
+      repository.seed({ name: 'Luna', species: 'cat' })
+      repository.seed({ name: 'Milo', species: 'dog' })
+      const pixel = repository.seed({ name: 'Pixel', species: 'cat' })
+      repository.setUnfollowedOn(pixel.id, '2026-09-20')
+      const store = useAnimalsStore()
+      await store.load()
+
+      expect(store.followedAnimals.map((animal) => animal.name)).toEqual(['Luna', 'Milo'])
+      expect(store.unfollowedAnimals.map((animal) => animal.name)).toEqual(['Pixel'])
+      expect(store.animals).toHaveLength(3)
+    })
+
+    it('AN-9 : ne plus suivre puis « Annuler », la liste relue à chaque fois', async () => {
+      const luna = repository.seed({ name: 'Luna', species: 'cat' })
+      const store = useAnimalsStore()
+      await store.load()
+
+      const undo = await store.unfollow(luna.id)
+      expect(store.unfollowedAnimals.map((animal) => animal.name)).toEqual(['Luna'])
+
+      await store.undoUnfollow(undo!)
+      expect(follow.undoUnfollow).toHaveBeenCalledWith(undo)
+      expect(store.followedAnimals.map((animal) => animal.name)).toEqual(['Luna'])
+    })
+
+    it('AN-11 : suivre de nouveau puis « Annuler », la liste relue à chaque fois', async () => {
+      const luna = repository.seed({ name: 'Luna', species: 'cat' })
+      repository.setUnfollowedOn(luna.id, '2026-09-28')
+      const store = useAnimalsStore()
+      await store.load()
+
+      const undo = await store.follow(luna.id)
+      expect(store.followedAnimals.map((animal) => animal.name)).toEqual(['Luna'])
+
+      await store.undoFollow(undo!)
+      expect(follow.undoFollow).toHaveBeenCalledWith(undo)
+      expect(store.unfollowedAnimals.map((animal) => animal.name)).toEqual(['Luna'])
+    })
+
+    it('propage l’échec du geste', async () => {
+      const luna = repository.seed({ name: 'Luna', species: 'cat' })
+      const store = useAnimalsStore()
+      follow.unfollow.mockRejectedValueOnce(new Error('base verrouillée'))
+
+      await expect(store.unfollow(luna.id)).rejects.toThrow('base verrouillée')
+      expect(store.isLoading).toBe(false)
+    })
   })
 
   it('sélectionne un animal puis revient à « tous les animaux »', async () => {
@@ -328,6 +458,8 @@ describe('useAnimalsStore', () => {
 })
 
 interface FakeAnimalsRepository {
+  markRestored: (id: string) => void
+  setUnfollowedOn: (id: string, unfollowedOn: string | null) => void
   seed(input: AnimalInput): Animal
   markDeleted(id: string): void
   getById: Mock<AnimalsRepository['getById']>
@@ -338,6 +470,8 @@ interface FakeAnimalsRepository {
   listRecords: Mock<AnimalsRepository['listRecords']>
   listVersions: Mock<AnimalsRepository['listVersions']>
   markAllDeletedStatement: Mock<AnimalsRepository['markAllDeletedStatement']>
+  eraseAllStatement: Mock<AnimalsRepository['eraseAllStatement']>
+  eraseAll: Mock<AnimalsRepository['eraseAll']>
   restoreStatement: Mock<AnimalsRepository['restoreStatement']>
   runImport: Mock<AnimalsRepository['runImport']>
   entity: AnimalsRepository['entity']
@@ -345,6 +479,9 @@ interface FakeAnimalsRepository {
   pushRow: Mock<AnimalsRepository['pushRow']>
   pullPage: Mock<AnimalsRepository['pullPage']>
   applyRemoteRowStatement: Mock<AnimalsRepository['applyRemoteRowStatement']>
+  restore: Mock<AnimalsRepository['restore']>
+  getDeparture: Mock<AnimalsRepository['getDeparture']>
+  setDeparture: Mock<AnimalsRepository['setDeparture']>
 }
 
 // Même contrat que `animals.repository.ts`, sans SQLite.
@@ -369,6 +506,7 @@ function createFakeRepository(): FakeAnimalsRepository {
       createdAt: now,
       updatedAt: now,
       deletedAt: null,
+      unfollowedOn: null,
     }
   }
 
@@ -383,9 +521,21 @@ function createFakeRepository(): FakeAnimalsRepository {
     if (animal) animal.deletedAt = new Date().toISOString()
   }
 
+  function markRestored(id: string): void {
+    const animal = animals.find((candidate) => candidate.id === id)
+    if (animal) animal.deletedAt = null
+  }
+
+  function setUnfollowedOn(id: string, unfollowedOn: string | null): void {
+    const animal = animals.find((candidate) => candidate.id === id)
+    if (animal) animal.unfollowedOn = unfollowedOn
+  }
+
   return {
     seed,
     markDeleted,
+    markRestored,
+    setUnfollowedOn,
     getById: vi.fn<AnimalsRepository['getById']>(
       async (id) => living().find((animal) => animal.id === id) ?? null,
     ),
@@ -399,9 +549,14 @@ function createFakeRepository(): FakeAnimalsRepository {
       return updated
     }),
     remove: vi.fn<AnimalsRepository['remove']>(async (id) => markDeleted(id)),
+    restore: vi.fn<AnimalsRepository['restore']>(),
+    getDeparture: vi.fn<AnimalsRepository['getDeparture']>(),
+    setDeparture: vi.fn<AnimalsRepository['setDeparture']>(),
     listRecords: vi.fn<AnimalsRepository['listRecords']>(),
     listVersions: vi.fn<AnimalsRepository['listVersions']>(),
     markAllDeletedStatement: vi.fn<AnimalsRepository['markAllDeletedStatement']>(),
+    eraseAllStatement: vi.fn<AnimalsRepository['eraseAllStatement']>(),
+    eraseAll: vi.fn<AnimalsRepository['eraseAll']>(),
     restoreStatement: vi.fn<AnimalsRepository['restoreStatement']>(),
     runImport: vi.fn<AnimalsRepository['runImport']>(),
     entity: 'animal',

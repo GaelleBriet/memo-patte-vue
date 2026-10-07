@@ -301,6 +301,24 @@ export function createTreatmentPeriodsRepository(
 
     undoStopStatement,
 
+    /** Sans effet sur une période déjà arrêtée : sa date d'arrêt est gardée. */
+    stopPeriodStatement(periodId: string, stoppedOn: string, updatedAt: string): SqlStatement {
+      return {
+        sql: `UPDATE treatment_period SET stopped_on = ?, updated_at = ?, updated_by_device = ?
+              WHERE id = ? AND stopped_on IS NULL`,
+        params: [stoppedOn, updatedAt, deviceId(), periodId],
+      }
+    },
+
+    /** Défait l'arrêt de `stopPeriodStatement`, seulement si la période est arrêtée ce jour-là. */
+    undoStopPeriodStatement(periodId: string, stoppedOn: string, updatedAt: string): SqlStatement {
+      return {
+        sql: `UPDATE treatment_period SET stopped_on = NULL, updated_at = ?, updated_by_device = ?
+              WHERE id = ? AND stopped_on = ?`,
+        params: [updatedAt, deviceId(), periodId, stoppedOn],
+      }
+    },
+
     markDeletedByTreatmentStatement(treatmentId: string, deletedAt: string): SqlStatement {
       return {
         sql: `UPDATE treatment_period SET deleted_at = ?, updated_at = ?, updated_by_device = ?
@@ -328,6 +346,19 @@ export function createTreatmentPeriodsRepository(
               WHERE animal_id = ? AND ${NOT_DELETED}`,
         params: [deletedAt, deletedAt, deviceId(), animalId],
       }
+    },
+
+    /** Les lignes supprimées à cet instant, avec leur animal. */
+    reviveByAnimalStatement(animalId: string, deletedAt: string, updatedAt: string): SqlStatement {
+      return {
+        sql: `UPDATE treatment_period SET deleted_at = NULL, updated_at = ?, updated_by_device = ?
+              WHERE animal_id = ? AND deleted_at = ?`,
+        params: [updatedAt, deviceId(), animalId, deletedAt],
+      }
+    },
+
+    eraseAllStatement(): SqlStatement {
+      return { sql: 'DELETE FROM treatment_period' }
     },
 
     markAllDeletedStatement(deletedAt: string): SqlStatement {

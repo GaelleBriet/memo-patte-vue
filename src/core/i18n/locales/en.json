@@ -76,10 +76,15 @@
       "back": "Back",
       "edit": "Edit profile",
       "exportPdf": "Export to PDF",
-      "exportPdfPlus": "Export to PDF, a MémoPatte Plus feature",
       "photo": {
-        "avatarLabel": "Manage {name}’s photo",
+        "avatarLabel": "{name}’s photo: view, change or remove",
+        "addLabel": "Add a photo of {name}",
         "sheetTitle": "{name}’s photo",
+        "heading": "Photo",
+        "view": "View photo",
+        "choose": "Choose a photo",
+        "removed": "Photo removed",
+        "undoRemove": "Undo removing {name}’s photo",
         "close": "Close"
       },
       "subtitleSeparator": " · ",
@@ -103,6 +108,32 @@
       "welcome": {
         "title": "Welcome to MémoPatte",
         "create": "Add my first pet"
+      },
+      "options": {
+        "open": "{name}’s options",
+        "title": "Options",
+        "close": "Close",
+        "unfollow": "Stop following {name}",
+        "unfollowHint": "{name}’s reminders and ongoing treatments stop. {name}’s health record stays intact.",
+        "follow": "Follow {name} again",
+        "delete": "Delete {name}"
+      },
+      "deleteDialog": {
+        "title": "Delete {name}?",
+        "text": "{name}’s entire health record will be deleted: vaccines, treatments, weigh-ins, photo.",
+        "cancel": "Cancel",
+        "confirm": "Delete"
+      },
+      "toast": {
+        "unfollowed": "You’re no longer following {name}",
+        "unfollowedAnnouncement": "You’re no longer following {name}. {name}’s reminders are off.",
+        "followed": "You’re following {name} again. Stopped treatments don’t restart on their own: restart each one with “Resume”.",
+        "deleted": "{name}’s record deleted",
+        "undoUnfollow": "Undo: follow {name} again",
+        "undoFollow": "Undo: stop following {name}",
+        "undoDelete": "Undo: keep {name}’s record",
+        "failed": "Couldn’t save the change. Try again.",
+        "deleteFailed": "Couldn’t delete {name}’s record. Try again."
       }
     }
   },
@@ -232,29 +263,38 @@
       "otherDateLabel": "Done on another day: choose the injection date",
       "doneLabel": "Done: log the {name} injection for {animal} and choose the next reminder",
       "injections": "Injections",
-      "chosen": {
-        "oneYear": "Reminder set: in 1 year",
-        "threeYears": "Reminder set: in 3 years",
-        "date": "Reminder set: other date, {date}",
-        "none": "Reminder set: none"
-      },
+      "lastInjection": "Last injection",
+      "lastInjectionOn": "Last injection · {date}",
+      "plannedReminder": "Reminder planned for {date}",
+      "noPlannedReminder": "No reminder planned",
       "options": "Options for the injection on {date}",
       "remove": "Delete this injection",
       "changeDateSubtitle": "Injection on {date}",
+      "past": {
+        "open": "Add a past injection",
+        "eyebrow": "Past injection",
+        "title": "Add a past injection",
+        "submit": "Add",
+        "taken": "An injection is already logged on that day.",
+        "failed": "Couldn’t add the injection. Try again."
+      },
       "toast": {
         "removed": "Injection on {date} deleted",
         "undoRemove": "Undo deleting the injection on {date}",
         "moved": "Injection moved to {date}",
         "undoMove": "Undo the injection date change",
-        "deleted": "{name} vaccine deleted"
+        "deleted": "{name} vaccine deleted",
+        "added": "Injection of {date} added",
+        "undoAdd": "Undo adding the injection of {date}",
+        "undoDelete": "Undo deleting the {name} vaccine"
       },
       "menu": {
         "remove": "Delete this vaccine"
       },
       "deleteDialog": {
         "title": "Delete {name}?",
-        "text": "Its injections and reminders will be deleted from the health record. This can’t be undone.",
-        "onlyInjection": "This is its only injection: the {name} vaccine will be deleted, along with its reminders. This can’t be undone.",
+        "text": "Its injections and reminders will be deleted from the health record.",
+        "onlyInjection": "This is its only injection, with no reminder planned: the {name} vaccine will be deleted from the health record.",
         "cancel": "Cancel",
         "confirm": "Delete"
       },
@@ -1162,8 +1202,36 @@
       "plus": "MémoPatte Plus adds a guaranteed cloud backup, photos included, and restores it on a new phone.",
       "discoverPlus": "Explore MémoPatte Plus"
     },
+    "erase": {
+      "screenTitle": "Erase data",
+      "screenSubtitle": "on this phone",
+      "title": "Erase this phone’s data",
+      "removed": "The whole health record is removed from this phone: pets, treatments, vaccines, weights and photos.",
+      "removedSignedIn": "The health record is removed from this phone.",
+      "unsynced": "Your latest changes aren’t in your cloud backup yet. Go online and wait for the backup, or export a copy.",
+      "cloudKept": "Your cloud backup is not affected: you can restore it on this phone or another.",
+      "signOut": "This device will be signed out of your account.",
+      "copy": "Before erasing, export a copy of your health record.",
+      "reminders": "No more reminders will ring on this phone.",
+      "exports": "Exports saved in Documents › MémoPatte stay on the phone.",
+      "restart": "After erasing, MémoPatte restarts as on first launch.",
+      "continue": "Continue",
+      "cancel": "Cancel",
+      "confirm": {
+        "title": "Erase this phone’s data?",
+        "text": "Without a copy, your health record can’t be recovered.",
+        "erase": "Erase"
+      },
+      "final": {
+        "title": "Erase permanently?",
+        "text": "All MémoPatte data will be erased from this phone.",
+        "erase": "Erase permanently"
+      },
+      "error": "Couldn’t erase the data. Try again."
+    },
     "data": {
       "title": "My data",
+      "summary": "Unit, export, PDF, import",
       "weightUnit": {
         "label": "Weight unit",
         "hint": "For showing and entering weigh-ins",
@@ -1172,20 +1240,29 @@
           "lb": "Pounds, lb"
         }
       },
+      "exportSection": "Export",
       "export": "Export my data",
+      "exportHint": "JSON or CSV",
       "exportEmpty": "Nothing to export yet",
       "exportPdf": "Export to PDF",
-      "exportPdfPlus": "MémoPatte Plus feature",
+      "exportPdfHint": "All pets or just one",
+      "importSection": "Import",
       "import": "Import a MémoPatte export",
       "loadError": "The local database didn’t respond. Tap to try again."
     },
     "privacy": {
       "title": "Privacy",
-      "analytics": "Usage statistics"
+      "analytics": "Usage statistics",
+      "policy": "Privacy policy",
+      "policyHint": "On the website"
     },
     "about": {
       "title": "About",
-      "version": "Version"
+      "summary": "MémoPatte {version}",
+      "version": "Version",
+      "website": "MémoPatte website",
+      "websiteHint": "memopatte.gaelle-briet.fr",
+      "legalNotice": "Legal notice"
     },
     "export": {
       "title": "Export your data",
@@ -1445,8 +1522,9 @@
     "later": "Not now",
     "settings": {
       "discover": "Explore MémoPatte Plus",
-      "discoverHint": "Cloud backup, PDF export, multiple devices",
-      "alreadySubscribed": "I’m already subscribed",
+      "summary": "Your health record never disappears",
+      "discoverHint": "Cloud backup, multiple devices",
+      "alreadySubscribed": "I already have MémoPatte Plus",
       "alreadySubscribedHint": "Restore the health record you backed up on another device",
       "status": {
         "monthly": "Monthly Plus until {date}",

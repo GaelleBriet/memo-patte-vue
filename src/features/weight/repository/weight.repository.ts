@@ -195,6 +195,15 @@ export function createWeightRepository(
       }
     },
 
+    /** Les lignes supprimées à cet instant, avec leur animal. */
+    reviveByAnimalStatement(animalId: string, deletedAt: string, updatedAt: string): SqlStatement {
+      return {
+        sql: `UPDATE weight_entry SET deleted_at = NULL, updated_at = ?, updated_by_device = ?
+              WHERE animal_id = ? AND deleted_at = ?`,
+        params: [updatedAt, deviceId(), animalId, deletedAt],
+      }
+    },
+
     /** Lignes supprimées comprises : l'import compare les versions avant d'écrire. */
     async listVersions(): Promise<WeightEntryVersion[]> {
       const rows = await db.query<WeightEntryRow>(`SELECT ${COLUMNS} FROM weight_entry`)
@@ -204,6 +213,10 @@ export function createWeightRepository(
         updatedAt: updated_at,
         deletedAt: deleted_at,
       }))
+    },
+
+    eraseAllStatement(): SqlStatement {
+      return { sql: 'DELETE FROM weight_entry' }
     },
 
     markAllDeletedStatement(deletedAt: string): SqlStatement {

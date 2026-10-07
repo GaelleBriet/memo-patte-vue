@@ -84,6 +84,8 @@ $radius-segment-compact: 11px; // Option d'un segmented control compact
 $size-tap-target: 48px; // Zone de tap minimale d'un contrôle (Material)
 $size-chip-avatar: 32px; // Avatar rond dans une chip
 $size-header-avatar: 56px; // Avatar rond du header Carnet
+$size-header-avatar-badge: 26px; // Pastille « appareil photo » sur l'avatar du header Carnet
+$size-header-avatar-badge-icon: 15px; // Icône de cette pastille
 $size-status-dot: 46px; // Pastille « Tout est à jour » (couleurs : `up-to-date` / `on-up-to-date`)
 
 $offset-chips: -21px; // Débord des chips sur le header
@@ -167,7 +169,6 @@ $color-day-missed-border: $color-chart-arrow-disabled; // Contour d'un jour déc
 $color-exact-reminders-hero-surface: $color-notice-surface; // Pastille de l’icône
 
 // Paramètres › Rappels (V20 à V20 sexies)
-$radius-reminders-settings-card: 18px; // Coins d'une carte de réglage
 $color-reminders-settings-neutral-surface: $color-reminders-off-surface; // Fond de l'état « pas encore activés » ou « désactivées », et de « peuvent arriver en retard »
 $color-reminders-settings-neutral-text: $color-reminders-off-text; // Leur première ligne
 $color-exact-reminders-suggest-surface: $color-notice-surface; // Suggestion du formulaire (V2)
