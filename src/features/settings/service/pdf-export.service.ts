@@ -11,13 +11,13 @@ import {
 import { buildCarnetPdfContent, pdfExportFileName } from '../logic/pdf-content'
 import { renderCarnetPdf } from '../logic/render-carnet-pdf'
 import type { ExportData } from '@/shared/domain/carnet-data'
-import type { CarnetPdfContent } from '../logic/pdf-content'
+import type { CarnetPdfPart } from '../logic/render-carnet-pdf'
 
 export type PdfExportOutcome = DeliveryOutcome | 'not-found'
 
 export type PdfExportDependencies = {
   collect: () => Promise<ExportData>
-  render: (content: CarnetPdfContent, appVersion: string, photoDataUrl: string | null) => Uint8Array
+  render: (parts: CarnetPdfPart[], appVersion: string) => Uint8Array
   loadPhoto: (fileName: string) => Promise<string | null>
   deliver: (
     file: { name: string; content: Uint8Array },
@@ -38,23 +38,29 @@ export function createPdfExportService({
   appVersion,
 }: PdfExportDependencies) {
   return {
-    async exportAnimalCarnetPdf(
-      animalId: string,
+    async exportCarnetPdf(
+      animalIds: readonly string[],
       mode: DeliveryMode,
       exportedAt: Date = now(),
     ): Promise<PdfExportOutcome> {
       const data = await collect()
-      const content = buildCarnetPdfContent(data, animalId, format(exportedAt, 'yyyy-MM-dd'))
-      if (!content) return 'not-found'
+      const today = format(exportedAt, 'yyyy-MM-dd')
+      const contents = animalIds.flatMap((id) => buildCarnetPdfContent(data, id, today) ?? [])
+      if (contents.length === 0) return 'not-found'
 
-      const photoDataUrl = content.animal.photoFileName
-        ? await loadPhoto(content.animal.photoFileName)
-        : null
-      const bytes = render(content, appVersion, photoDataUrl)
+      const parts = await Promise.all(
+        contents.map(async (content) => ({
+          content,
+          photoDataUrl: content.animal.photoFileName
+            ? await loadPhoto(content.animal.photoFileName)
+            : null,
+        })),
+      )
+      const names = contents.map(({ animal }) => animal.name)
       return deliver(
         {
-          name: pdfExportFileName(fileNamePrefix(), content.animal.name, exportedAt),
-          content: bytes,
+          name: pdfExportFileName(fileNamePrefix(), names, exportedAt),
+          content: render(parts, appVersion),
         },
         mode,
       )

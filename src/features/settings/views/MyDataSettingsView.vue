@@ -39,7 +39,7 @@ const weightUnitOptions = computed(() =>
 
 const { hasLoadFailed, hasNothingToExport, canExport, retryLoad } = useExportAvailability()
 const pdfExportAnimals = computed<PdfExportAnimal[]>(() =>
-  animals.animals.map((animal) => ({ id: animal.id, name: animal.name, species: animal.species })),
+  animals.animals.map((animal) => ({ id: animal.id, name: animal.name })),
 )
 
 function onExportRow(): void {

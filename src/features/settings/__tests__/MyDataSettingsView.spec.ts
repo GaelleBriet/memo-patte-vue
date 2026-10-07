@@ -273,7 +273,7 @@ describe('MyDataSettingsView', () => {
       const ligne = lignePdf(wrapper)
 
       expect(ligne.get('.settings-row__label').text()).toBe('Exporter en PDF')
-      expect(ligne.get('.settings-row__hint').text()).toBe('Tous les animaux ou un seul')
+      expect(ligne.get('.settings-row__hint').text()).toBe('Tous tes animaux, en un seul fichier')
       expect(ligne.find('.plus-badge').exists()).toBe(false)
       expect(ligne.find('.d-sr-only').exists()).toBe(false)
       expect(ligne.attributes('disabled')).toBeUndefined()
@@ -285,7 +285,21 @@ describe('MyDataSettingsView', () => {
       expect(push).not.toHaveBeenCalled()
       expect(wrapper.getComponent(PdfExportSheet).props('modelValue')).toBe(true)
       expect(wrapper.getComponent(PdfExportSheet).props('animals')).toEqual([
-        { id: MILO.id, name: 'Milo', species: 'dog' },
+        { id: MILO.id, name: 'Milo' },
+      ])
+    })
+
+    it('donne à la feuille tous les animaux, dans l’ordre des chips', async () => {
+      const luna: Animal = { ...MILO, id: '33333333-3333-4333-8333-333333333333', name: 'Luna' }
+      animals = [luna, MILO]
+      const wrapper = await monter()
+
+      await lignePdf(wrapper).trigger('click')
+      await flushPromises()
+
+      expect(wrapper.getComponent(PdfExportSheet).props('animals')).toEqual([
+        { id: luna.id, name: 'Luna' },
+        { id: MILO.id, name: 'Milo' },
       ])
     })
 

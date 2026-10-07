@@ -82,13 +82,30 @@ function createPageCursor(doc: jsPDF, y: number, continuePage: () => number): Pa
   return cursor
 }
 
-export function renderCarnetPdf(
-  content: CarnetPdfContent,
-  appVersion: string,
-  photoDataUrl: string | null,
-): Uint8Array {
+export type CarnetPdfPart = { content: CarnetPdfContent; photoDataUrl: string | null }
+
+export function renderCarnetPdf(parts: readonly CarnetPdfPart[], appVersion: string): Uint8Array {
   const t = i18n.global.t
   const doc = new jsPDF({ unit: 'mm', format: 'a4' })
+
+  parts.forEach((part, index) => {
+    if (index > 0) doc.addPage()
+    renderAnimal(doc, part, t)
+  })
+
+  const generatedOn = parts[0]?.content.generatedOn
+  writeFooters(
+    doc,
+    generatedOn
+      ? t('settings.pdf.footer', { date: formatLongDate(generatedOn), version: appVersion })
+      : '',
+    t,
+  )
+
+  return new Uint8Array(doc.output('arraybuffer'))
+}
+
+function renderAnimal(doc: jsPDF, { content, photoDataUrl }: CarnetPdfPart, t: Translate): void {
   let y = MARGIN_MM
 
   if (photoDataUrl) {
@@ -163,14 +180,6 @@ export function renderCarnetPdf(
   )
 
   renderWeightSection(doc, cursor, content, t)
-
-  writeFooters(
-    doc,
-    t('settings.pdf.footer', { date: formatLongDate(content.generatedOn), version: appVersion }),
-    t,
-  )
-
-  return new Uint8Array(doc.output('arraybuffer'))
 }
 
 function treatmentDueLabel({ due }: PdfTreatmentRow, t: Translate): string {

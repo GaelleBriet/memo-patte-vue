@@ -10,8 +10,14 @@ import i18n, { applyLocale } from '@/core/i18n'
 import vuetify from '@/core/theme/vuetify'
 import { dismissToast, runToastAction, toastAction, toastMessage } from '@/shared/utils/toast'
 
-const exportAnimalCarnetPdf = vi.hoisted(() =>
-  vi.fn<(animalId: string, mode: DeliveryMode, exportedAt?: Date) => Promise<PdfExportOutcome>>(),
+const exportCarnetPdf = vi.hoisted(() =>
+  vi.fn<
+    (
+      animalIds: readonly string[],
+      mode: DeliveryMode,
+      exportedAt?: Date,
+    ) => Promise<PdfExportOutcome>
+  >(),
 )
 const storage = vi.hoisted(() => ({
   checkSaveAccess: vi.fn<() => Promise<SaveAccess>>(),
@@ -20,7 +26,7 @@ const storage = vi.hoisted(() => ({
 }))
 
 vi.mock('../service/pdf-export.service', () => ({
-  pdfExportService: { exportAnimalCarnetPdf },
+  pdfExportService: { exportCarnetPdf },
 }))
 vi.mock('../logic/export-storage-access', () => storage)
 vi.mock('@/core/app-lifecycle/app-resume', () => ({ useAppResume: () => {} }))
@@ -33,16 +39,16 @@ const SAVED_PDF = {
   mimeType: 'application/pdf',
 }
 
-const MILO: PdfExportAnimal = { id: 'milo-id', name: 'Milo', species: 'dog' }
-const LUNA: PdfExportAnimal = { id: 'luna-id', name: 'Luna', species: 'cat' }
+const MILO: PdfExportAnimal = { id: 'milo-id', name: 'Milo' }
+const LUNA: PdfExportAnimal = { id: 'luna-id', name: 'Luna' }
 const OPENED_AT = new Date('2026-09-23T10:30:00')
 
 let wrapper: VueWrapper | null = null
 
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'], now: OPENED_AT })
-  exportAnimalCarnetPdf.mockReset()
-  exportAnimalCarnetPdf.mockImplementation(async (_, mode) =>
+  exportCarnetPdf.mockReset()
+  exportCarnetPdf.mockImplementation(async (_, mode) =>
     mode === 'save' ? { status: 'saved', file: SAVED_PDF } : 'shared',
   )
   vi.mocked(FileOpener.openFile).mockReset().mockResolvedValue()
@@ -142,7 +148,7 @@ describe('PdfExportSheet', () => {
     await flushPromises()
 
     expect(storage.requestSaveAccess).toHaveBeenCalledOnce()
-    expect(exportAnimalCarnetPdf).toHaveBeenCalledExactlyOnceWith('milo-id', 'save', OPENED_AT)
+    expect(exportCarnetPdf).toHaveBeenCalledExactlyOnceWith(['milo-id'], 'save', OPENED_AT)
     expect(wrapper!.emitted('update:modelValue')).toEqual([[false]])
     expect(toastMessage.value).toBe('PDF enregistré dans Documents › MémoPatte')
     expect(toastAction.value).toMatchObject({ label: 'Ouvrir', ariaLabel: 'Ouvrir le PDF' })
@@ -167,7 +173,7 @@ describe('PdfExportSheet', () => {
   })
 
   it('ne propose pas « Ouvrir » dans le navigateur, où le PDF est un téléchargement', async () => {
-    exportAnimalCarnetPdf.mockResolvedValue({ status: 'saved', file: null })
+    exportCarnetPdf.mockResolvedValue({ status: 'saved', file: null })
     await monter([MILO])
 
     enregistrer().click()
@@ -184,34 +190,47 @@ describe('PdfExportSheet', () => {
     await flushPromises()
 
     expect(storage.requestSaveAccess).not.toHaveBeenCalled()
-    expect(exportAnimalCarnetPdf).toHaveBeenCalledExactlyOnceWith('milo-id', 'share', OPENED_AT)
+    expect(exportCarnetPdf).toHaveBeenCalledExactlyOnceWith(['milo-id'], 'share', OPENED_AT)
     expect(wrapper!.emitted('update:modelValue')).toEqual([[false]])
     expect(toastMessage.value).toBe('PDF exporté')
     expect(toastAction.value).toBeNull()
   })
 
-  it('propose un choix quand plusieurs animaux existent, le premier coché', async () => {
+  it('présente un seul fichier pour tous les animaux, sans choix, et les exporte dans l’ordre', async () => {
     await monter([MILO, LUNA])
 
     expect(feuille().querySelector('.bottom-sheet__subtitle')?.textContent).toBe(
-      'Choisis l’animal à exporter.',
+      'Le carnet complet de chaque animal, prêt à imprimer ou à envoyer.',
     )
-    expect(
-      choix().map((option) => option.querySelector('.choice-cards__label')?.textContent?.trim()),
-    ).toEqual(['Milo', 'Luna'])
-    expect(choix().map((option) => option.getAttribute('aria-checked'))).toEqual(['true', 'false'])
-    expect(carteFichier()).toBeNull()
+    expect(choix()).toHaveLength(0)
+    expect(carteFichier()?.querySelector('.pdf-export-sheet__file-name')?.textContent?.trim()).toBe(
+      'carnet-memopatte-20260923-1030.pdf',
+    )
 
-    choix()[1]!.click()
-    await flushPromises()
     enregistrer().click()
     await flushPromises()
 
-    expect(exportAnimalCarnetPdf).toHaveBeenCalledWith('luna-id', 'save', OPENED_AT)
+    expect(exportCarnetPdf).toHaveBeenCalledExactlyOnceWith(
+      ['milo-id', 'luna-id'],
+      'save',
+      OPENED_AT,
+    )
+  })
+
+  it('présente tous les animaux en anglais', async () => {
+    applyLocale('en')
+    await monter([MILO, LUNA])
+
+    expect(feuille().querySelector('.bottom-sheet__subtitle')?.textContent).toBe(
+      'Each pet’s complete health record, ready to print or send.',
+    )
+    expect(carteFichier()?.querySelector('.pdf-export-sheet__file-name')?.textContent?.trim()).toBe(
+      'health-record-memopatte-20260923-1030.pdf',
+    )
   })
 
   it('reste ouverte, sans message, quand la feuille de partage est fermée', async () => {
-    exportAnimalCarnetPdf.mockResolvedValue('cancelled')
+    exportCarnetPdf.mockResolvedValue('cancelled')
     await monter([MILO])
 
     partager().click()
@@ -228,7 +247,7 @@ describe('PdfExportSheet', () => {
     enregistrer().click()
     await flushPromises()
 
-    expect(exportAnimalCarnetPdf).not.toHaveBeenCalled()
+    expect(exportCarnetPdf).not.toHaveBeenCalled()
     expect(feuille().querySelector('.export-actions__notice p')?.textContent?.trim()).toBe(
       'L’accès au stockage est bloqué. Autorise-le dans les réglages de l’app, ou partage le fichier.',
     )
@@ -249,11 +268,10 @@ describe('PdfExportSheet', () => {
   })
 
   it('signale un échec, et repart propre à la réouverture', async () => {
-    exportAnimalCarnetPdf.mockRejectedValue(new Error('disque plein'))
+    exportCarnetPdf.mockRejectedValue(new Error('disque plein'))
     vi.spyOn(console, 'warn').mockImplementation(() => {})
     const wrapper = await monter([MILO, LUNA])
 
-    choix()[1]!.click()
     enregistrer().click()
     await flushPromises()
 
@@ -266,6 +284,5 @@ describe('PdfExportSheet', () => {
     await flushPromises()
 
     expect(feuille().querySelector('[role="alert"]')).toBeNull()
-    expect(choix()[0]!.getAttribute('aria-checked')).toBe('true')
   })
 })

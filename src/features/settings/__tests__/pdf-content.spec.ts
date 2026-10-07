@@ -449,24 +449,30 @@ describe('pdfExportFileName', () => {
   const AT = new Date('2026-09-23T14:32:00')
 
   it("compose le nom à partir du mot « carnet », du nom de l'animal et de la minute locale", () => {
-    expect(pdfExportFileName('carnet', 'Milo', AT)).toBe('carnet-milo-20260923-1432.pdf')
-    expect(pdfExportFileName('carnet', 'Milo', new Date('2026-09-23T09:05:00'))).toBe(
+    expect(pdfExportFileName('carnet', ['Milo'], AT)).toBe('carnet-milo-20260923-1432.pdf')
+    expect(pdfExportFileName('carnet', ['Milo'], new Date('2026-09-23T09:05:00'))).toBe(
       'carnet-milo-20260923-0905.pdf',
     )
   })
 
   it('retire les accents, remplace tout autre caractère par un tiret, sans tiret doublé ni en bord', () => {
-    expect(pdfExportFileName('carnet', "  Néo l'énergique !! ", AT)).toBe(
+    expect(pdfExportFileName('carnet', ["  Néo l'énergique !! "], AT)).toBe(
       'carnet-neo-l-energique-20260923-1432.pdf',
     )
   })
 
   it('se passe du nom quand il ne donne aucun caractère', () => {
-    expect(pdfExportFileName('carnet', '🐶', AT)).toBe('carnet-20260923-1432.pdf')
+    expect(pdfExportFileName('carnet', ['🐶'], AT)).toBe('carnet-20260923-1432.pdf')
+  })
+
+  it('nomme « memopatte » le PDF de plusieurs animaux, sans leurs noms', () => {
+    expect(pdfExportFileName('carnet', ['Milo', 'Luna'], AT)).toBe(
+      'carnet-memopatte-20260923-1432.pdf',
+    )
   })
 
   it('simplifie aussi le mot traduit', () => {
-    expect(pdfExportFileName('Health record', 'Milo', AT)).toBe(
+    expect(pdfExportFileName('Health record', ['Milo'], AT)).toBe(
       'health-record-milo-20260923-1432.pdf',
     )
   })

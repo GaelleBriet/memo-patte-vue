@@ -137,7 +137,9 @@ function pages(content: CarnetPdfContent): PdfPage[] {
   const reglage = `${i18n.global.locale.value} ${currentWeightUnit()} ${new Date().toDateString()}`
   const parReglage = rendus.get(content) ?? new Map<string, PdfPage[]>()
   rendus.set(content, parReglage)
-  const doc = parReglage.get(reglage) ?? readPdfPages(renderCarnetPdf(content, '0.1.24', null))
+  const doc =
+    parReglage.get(reglage) ??
+    readPdfPages(renderCarnetPdf([{ content, photoDataUrl: null }], '0.1.24'))
   parReglage.set(reglage, doc)
   return doc
 }
@@ -426,7 +428,7 @@ describe('renderCarnetPdf — noms longs', () => {
 
   it('coupe à la ligne un nom d’animal de 200 caractères, à côté de la photo', () => {
     const content = { ...COURT, animal: { ...COURT.animal, name: NOM_ANIMAL_200 } }
-    const [page] = readPdfPages(renderCarnetPdf(content, '0.1.24', PHOTO_JPEG))
+    const [page] = readPdfPages(renderCarnetPdf([{ content, photoDataUrl: PHOTO_JPEG }], '0.1.24'))
     const [photo] = page!.images
     const lignes = page!.texts.filter((text) => text.bold && text.sizePt === 15)
     const identite = page!.texts.find((text) => text.text.startsWith('Chat · '))!
@@ -447,7 +449,7 @@ describe('renderCarnetPdf — noms longs', () => {
   ])('coupe à la ligne une identité à race de 120 caractères, $cas', ({ photo }) => {
     const identiteCourte = pages(COURT)[0]!.texts.find((text) => text.text.startsWith('Chat · '))!
     const content = { ...COURT, animal: { ...COURT.animal, breed: RACE_120 } }
-    const [page] = readPdfPages(renderCarnetPdf(content, '0.1.24', photo))
+    const [page] = readPdfPages(renderCarnetPdf([{ content, photoDataUrl: photo }], '0.1.24'))
     const lignes = page!.texts.filter((text) => text.sizePt === 11 && !text.bold)
     const titre = page!.texts.find((text) => text.text === 'Vaccins')!
     const limite = page!.images[0]?.left ?? ZONE.right
@@ -521,4 +523,48 @@ describe('renderCarnetPdf — noms longs', () => {
       expect(texts.filter((text) => text.text === etat)).toHaveLength(1)
     },
   )
+})
+
+describe('renderCarnetPdf — plusieurs animaux', () => {
+  const MILO: CarnetPdfContent = {
+    ...COURT,
+    animal: { ...COURT.animal, name: 'Milo', species: 'dog', breed: null },
+  }
+  const doc = () =>
+    readPdfPages(
+      renderCarnetPdf(
+        [
+          { content: LONG, photoDataUrl: null },
+          { content: MILO, photoDataUrl: PHOTO_JPEG },
+        ],
+        '0.1.24',
+      ),
+    )
+  const enTete = (page: PdfPage) =>
+    page.texts.reduce((haut, text) => (text.baseline < haut.baseline ? text : haut))
+
+  it('commence chaque animal sur une nouvelle page, dans l’ordre donné, avec son carnet complet', () => {
+    const pagesDuPdf = doc()
+    const premiereDeMilo = pagesDuPdf[4]!
+    const textes = premiereDeMilo.texts.map((text) => text.text)
+
+    expect(pagesDuPdf).toHaveLength(5)
+    expect(enTete(pagesDuPdf[0]!).text).toBe('MémoPatte')
+    expect(pagesDuPdf[0]!.texts.map((text) => text.text)).toContain('Luna')
+    expect(enTete(premiereDeMilo).text).toBe('MémoPatte')
+    expect(textes).toEqual(
+      expect.arrayContaining(['Milo', ...SECTION_TITLES, 'Vaccin 1', 'Vaccin 2', 'Traitement 1']),
+    )
+    expect(textes).not.toContain('Luna')
+    expect(premiereDeMilo.images).toHaveLength(1)
+    expect(pagesDuPdf.slice(0, 4).every((page) => page.images.length === 0)).toBe(true)
+  })
+
+  it('numérote les pages sur tout le document', () => {
+    doc().forEach((page, index) => {
+      expect(page.texts.map((text) => text.text)).toEqual(
+        expect.arrayContaining([`${index + 1} / 5`, FOOTER]),
+      )
+    })
+  })
 })

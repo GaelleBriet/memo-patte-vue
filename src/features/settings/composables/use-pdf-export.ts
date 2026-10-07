@@ -9,17 +9,17 @@ import { useExportRun, type ExportRunInterruption, type SaveAccessPort } from '.
 export type PdfExportRunOutcome = PdfExportOutcome | ExportRunInterruption
 
 export function usePdfExport(
-  service: Pick<PdfExportService, 'exportAnimalCarnetPdf'> = pdfExportService,
+  service: Pick<PdfExportService, 'exportCarnetPdf'> = pdfExportService,
   access?: SaveAccessPort,
 ) {
   const exportRun = useExportRun(access)
 
   function run(
-    animalId: string,
+    animalIds: readonly string[],
     mode: DeliveryMode,
     exportedAt?: Date,
   ): Promise<PdfExportRunOutcome> {
-    return exportRun.run(mode, () => service.exportAnimalCarnetPdf(animalId, mode, exportedAt))
+    return exportRun.run(mode, () => service.exportCarnetPdf(animalIds, mode, exportedAt))
   }
 
   return { ...exportRun, run }

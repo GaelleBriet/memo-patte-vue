@@ -61,9 +61,7 @@ const photoActions = useAnimalPhotoActions(animal)
 const isPdfExportSheetOpen = ref(false)
 const hasOpenedPdfExportSheet = ref(false)
 const pdfExportAnimals = computed<PdfExportAnimal[]>(() =>
-  animal.value
-    ? [{ id: animal.value.id, name: animal.value.name, species: animal.value.species }]
-    : [],
+  animal.value ? [{ id: animal.value.id, name: animal.value.name }] : [],
 )
 
 function onExportPdf(): void {

@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { computed, ref, useId, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
-import ChoiceCards, { type ChoiceCard } from './ChoiceCards.vue'
 import ExportActions from './ExportActions.vue'
 import { isSaved, type DeliveryMode } from '../logic/export-delivery'
 import { openAppSettings } from '../logic/export-storage-access'
@@ -15,7 +14,6 @@ import { showToast } from '@/shared/utils/toast'
 export type PdfExportAnimal = {
   id: string
   name: string
-  species: 'dog' | 'cat'
 }
 
 const props = defineProps<{
@@ -28,40 +26,28 @@ const open = defineModel<boolean>({ default: false })
 const { t } = useI18n()
 const { pendingMode, isPreparing, hasFailed, saveAccess, run, reset } = usePdfExport()
 
-const needsPicker = computed(() => props.animals.length > 1)
-const selected = ref<string | null>(props.animals[0]?.id ?? null)
 const openedAt = ref(new Date())
-const groupLabelId = useId()
 
-const choices = computed<ChoiceCard<string>[]>(() =>
-  props.animals.map((animal) => ({
-    value: animal.id,
-    icon: 'ms:pets',
-    label: animal.name,
-    description: t(`animals.form.species.${animal.species}`),
-  })),
+const onlyAnimal = computed(() => (props.animals.length === 1 ? props.animals[0]! : null))
+
+const subtitle = computed(() =>
+  onlyAnimal.value
+    ? t('settings.pdf.sheet.subtitleOne', { name: onlyAnimal.value.name })
+    : t('settings.pdf.sheet.subtitleAll'),
 )
 
-const onlyAnimal = computed(() => (needsPicker.value ? null : (props.animals[0] ?? null)))
-
-const subtitle = computed(() => {
-  if (needsPicker.value) return t('settings.pdf.sheet.subtitlePick')
-  return onlyAnimal.value
-    ? t('settings.pdf.sheet.subtitleOne', { name: onlyAnimal.value.name })
-    : ''
-})
-
 const fileName = computed(() =>
-  onlyAnimal.value
-    ? pdfExportFileName(t('settings.pdf.fileNamePrefix'), onlyAnimal.value.name, openedAt.value)
-    : null,
+  pdfExportFileName(
+    t('settings.pdf.fileNamePrefix'),
+    props.animals.map(({ name }) => name),
+    openedAt.value,
+  ),
 )
 
 watch(
   open,
   (isOpen) => {
     if (!isOpen) return
-    selected.value = props.animals[0]?.id ?? null
     openedAt.value = new Date()
     reset()
   },
@@ -69,8 +55,11 @@ watch(
 )
 
 async function deliver(mode: DeliveryMode): Promise<void> {
-  if (selected.value === null) return
-  const outcome = await run(selected.value, mode, openedAt.value)
+  const outcome = await run(
+    props.animals.map(({ id }) => id),
+    mode,
+    openedAt.value,
+  )
   if (isSaved(outcome)) {
     open.value = false
     showSavedExportToast(outcome.file, {
@@ -94,19 +83,7 @@ async function deliver(mode: DeliveryMode): Promise<void> {
     :persistent="isPreparing"
     :focus-fallback="focusFallback"
   >
-    <template v-if="needsPicker">
-      <p :id="groupLabelId" class="pdf-export-sheet__group-label" aria-hidden="true">
-        {{ t('settings.pdf.sheet.pickAnimalLabel') }}
-      </p>
-      <ChoiceCards
-        v-model="selected"
-        :choices="choices"
-        :labelledby="groupLabelId"
-        :disabled="isPreparing"
-      />
-    </template>
-
-    <div v-else-if="fileName" class="pdf-export-sheet__file">
+    <div class="pdf-export-sheet__file">
       <span class="pdf-export-sheet__file-icon" aria-hidden="true">
         <v-icon icon="ms:picture_as_pdf" size="22" />
       </span>
@@ -125,7 +102,7 @@ async function deliver(mode: DeliveryMode): Promise<void> {
     <ExportActions
       :access="saveAccess"
       :pending-mode="pendingMode"
-      :disabled="selected === null"
+      :disabled="animals.length === 0"
       @save="deliver('save')"
       @share="deliver('share')"
       @open-settings="openAppSettings"
@@ -135,15 +112,6 @@ async function deliver(mode: DeliveryMode): Promise<void> {
 
 <style lang="scss">
 @use '@/styles/tokens' as tokens;
-
-.pdf-export-sheet__group-label {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-}
 
 .pdf-export-sheet__file {
   display: flex;
