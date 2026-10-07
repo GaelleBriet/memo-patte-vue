@@ -11,6 +11,7 @@ import {
   type Animal,
   type AnimalInput,
   type AnimalRecord,
+  type Departure,
 } from '../schema/animal.schema'
 
 interface AnimalRow {
@@ -40,12 +41,14 @@ const COLUMNS =
   'updated_by_device'
 
 const INSERT = `INSERT INTO animal
-  (id, name, species, breed, birth_date, photo_path, created_at, updated_at, created_by_device,
-   updated_by_device)
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  (id, name, species, breed, birth_date, birth_date_approximate, photo_path, created_at, updated_at,
+   created_by_device, updated_by_device)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
 /** Les animaux supprimés restent en base pour la synchronisation, jamais pour l'UI. */
 const NOT_DELETED = 'deleted_at IS NULL'
+
+const ERASE_ALL = 'DELETE FROM animal'
 
 function toAnimal(row: AnimalRow): Animal {
   return {
@@ -54,20 +57,20 @@ function toAnimal(row: AnimalRow): Animal {
     species: row.species as Animal['species'],
     breed: row.breed,
     birthDate: row.birth_date,
+    birthDateApproximate: row.birth_date_approximate === 1,
     photoPath: row.photo_path,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     deletedAt: row.deleted_at,
+    unfollowedOn: row.unfollowed_on,
+    departureReason: row.departure_reason as Animal['departureReason'],
+    departureDate: row.departure_date,
   }
 }
 
 function toAnimalRecord(row: AnimalRow): AnimalRecord {
   return {
     ...toAnimal(row),
-    birthDateApproximate: row.birth_date_approximate === 1,
-    unfollowedOn: row.unfollowed_on,
-    departureReason: row.departure_reason as AnimalRecord['departureReason'],
-    departureDate: row.departure_date,
     createdByDevice: row.created_by_device,
     updatedByDevice: row.updated_by_device,
   }
@@ -129,6 +132,9 @@ export function createAnimalsRepository(
         createdAt: now,
         updatedAt: now,
         deletedAt: null,
+        unfollowedOn: null,
+        departureReason: null,
+        departureDate: null,
       }
 
       await db.runMany([
@@ -140,6 +146,7 @@ export function createAnimalsRepository(
             animal.species,
             animal.breed,
             animal.birthDate,
+            animal.birthDateApproximate ? 1 : 0,
             animal.photoPath,
             animal.createdAt,
             animal.updatedAt,
@@ -159,14 +166,15 @@ export function createAnimalsRepository(
 
       const changes = await db.run(
         `UPDATE animal
-         SET name = ?, species = ?, breed = ?, birth_date = ?, photo_path = ?, updated_at = ?,
-             updated_by_device = ?
+         SET name = ?, species = ?, breed = ?, birth_date = ?, birth_date_approximate = ?,
+             photo_path = ?, updated_at = ?, updated_by_device = ?
          WHERE id = ? AND ${NOT_DELETED}`,
         [
           data.name,
           data.species,
           data.breed,
           data.birthDate,
+          data.birthDateApproximate ? 1 : 0,
           data.photoPath,
           updatedAt,
           deviceId(),
@@ -201,6 +209,79 @@ export function createAnimalsRepository(
       ])
     },
 
+    /**
+     * Rend l'animal supprimé à cet instant, et lui seul, avec les écritures de `revive`. Lève sans
+     * rien écrire quand il n'a pas été supprimé à cet instant ou qu'il a déjà été rendu.
+     */
+    async restore(id: string, deletedAt: string, revive: SqlStatement[] = []): Promise<void> {
+      const deleted = await db.query<{ id: string }>(
+        'SELECT id FROM animal WHERE id = ? AND deleted_at = ?',
+        [id, deletedAt],
+      )
+      if (deleted.length === 0) throw new Error(`Animal introuvable à rendre : ${id}`)
+      const at = new Date().toISOString()
+      await db.runMany([
+        {
+          sql: `UPDATE animal SET deleted_at = NULL, updated_at = ?, updated_by_device = ?
+                WHERE id = ? AND deleted_at = ?`,
+          params: [at, deviceId(), id, deletedAt],
+        },
+        ...revive,
+      ])
+    },
+
+    /** `null` pour un animal inconnu ou supprimé. */
+    async getDeparture(id: string): Promise<Departure | null> {
+      const rows = await db.query<AnimalRow>(
+        `SELECT ${COLUMNS} FROM animal WHERE id = ? AND ${NOT_DELETED}`,
+        [id],
+      )
+      const row = rows[0]
+      if (!row) return null
+      const { unfollowedOn, departureReason, departureDate } = toAnimalRecord(row)
+      return { unfollowedOn, departureReason, departureDate }
+    },
+
+    /** `related` : écritures d'autres tables jouées dans la même transaction. */
+    async setDeparture(
+      id: string,
+      departure: Departure,
+      related: SqlStatement[] = [],
+    ): Promise<void> {
+      const at = new Date().toISOString()
+      await db.runMany([
+        {
+          sql: `UPDATE animal
+                SET unfollowed_on = ?, departure_reason = ?, departure_date = ?, updated_at = ?,
+                    updated_by_device = ?
+                WHERE id = ? AND ${NOT_DELETED}`,
+          params: [
+            departure.unfollowedOn,
+            departure.departureReason,
+            departure.departureDate,
+            at,
+            deviceId(),
+            id,
+          ],
+        },
+        ...related,
+      ])
+    },
+
+    /** Lève pour un animal suivi ou supprimé : rien n'est écrit. */
+    async setDepartureDetails(
+      id: string,
+      { departureReason, departureDate }: Omit<Departure, 'unfollowedOn'>,
+    ): Promise<void> {
+      const changed = await db.run(
+        `UPDATE animal
+         SET departure_reason = ?, departure_date = ?, updated_at = ?, updated_by_device = ?
+         WHERE id = ? AND unfollowed_on IS NOT NULL AND ${NOT_DELETED}`,
+        [departureReason, departureDate, new Date().toISOString(), deviceId(), id],
+      )
+      if (changed === 0) throw new Error(`Animal suivi ou introuvable : ${id}`)
+    },
+
     /** Lignes supprimées comprises : l'import compare les versions avant d'écrire. */
     async listVersions(): Promise<AnimalVersion[]> {
       const rows = await db.query<AnimalRow>(`SELECT ${COLUMNS} FROM animal`)
@@ -218,6 +299,16 @@ export function createAnimalsRepository(
               WHERE ${NOT_DELETED}`,
         params: [deletedAt, deletedAt, deviceId()],
       }
+    },
+
+    /** Effacement physique, sans trace pour la synchro : rien ne part vers la sauvegarde cloud. */
+    eraseAllStatement(): SqlStatement {
+      return { sql: ERASE_ALL }
+    },
+
+    /** Efface les animaux après `cascade`, en une transaction. */
+    async eraseAll(cascade: SqlStatement[]): Promise<void> {
+      await db.runMany([...cascade, { sql: ERASE_ALL }])
     },
 
     /** Reprend l'identifiant et les dates du fichier importé, et rend la ligne visible. */

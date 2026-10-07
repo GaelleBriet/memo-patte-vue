@@ -3,6 +3,7 @@ import type { IconAliases } from 'vuetify'
 // Icônes des écrans (maquettes v2)
 import accountCircle from '@material-symbols/svg-400/outlined/account_circle.svg?raw'
 import add from '@material-symbols/svg-400/outlined/add.svg?raw'
+import addAPhoto from '@material-symbols/svg-400/outlined/add_a_photo.svg?raw'
 import alarm from '@material-symbols/svg-400/outlined/alarm.svg?raw'
 import alarmOff from '@material-symbols/svg-400/outlined/alarm_off.svg?raw'
 import arrowBack from '@material-symbols/svg-400/outlined/arrow_back.svg?raw'
@@ -12,11 +13,13 @@ import check from '@material-symbols/svg-400/outlined/check.svg?raw'
 import checkCircleFill from '@material-symbols/svg-400/outlined/check_circle-fill.svg?raw'
 import cloudDone from '@material-symbols/svg-400/outlined/cloud_done.svg?raw'
 import cloudOff from '@material-symbols/svg-400/outlined/cloud_off.svg?raw'
+import cloudUpload from '@material-symbols/svg-400/outlined/cloud_upload.svg?raw'
 import contentCopy from '@material-symbols/svg-400/outlined/content_copy.svg?raw'
 import creditCard from '@material-symbols/svg-400/outlined/credit_card.svg?raw'
 import dataObject from '@material-symbols/svg-400/outlined/data_object.svg?raw'
 import dateRange from '@material-symbols/svg-400/outlined/date_range.svg?raw'
 import deleteIcon from '@material-symbols/svg-400/outlined/delete.svg?raw'
+import deleteForever from '@material-symbols/svg-400/outlined/delete_forever.svg?raw'
 import deleteSweep from '@material-symbols/svg-400/outlined/delete_sweep.svg?raw'
 import devices from '@material-symbols/svg-400/outlined/devices.svg?raw'
 import doNotDisturbOn from '@material-symbols/svg-400/outlined/do_not_disturb_on.svg?raw'
@@ -31,11 +34,14 @@ import eventAvailable from '@material-symbols/svg-400/outlined/event_available.s
 import eventBusy from '@material-symbols/svg-400/outlined/event_busy.svg?raw'
 import eventRepeat from '@material-symbols/svg-400/outlined/event_repeat.svg?raw'
 import eventUpcoming from '@material-symbols/svg-400/outlined/event_upcoming.svg?raw'
+import folder from '@material-symbols/svg-400/outlined/folder.svg?raw'
 import folderOff from '@material-symbols/svg-400/outlined/folder_off.svg?raw'
 import gavel from '@material-symbols/svg-400/outlined/gavel.svg?raw'
 import help from '@material-symbols/svg-400/outlined/help.svg?raw'
+import hideImage from '@material-symbols/svg-400/outlined/hide_image.svg?raw'
 import history from '@material-symbols/svg-400/outlined/history.svg?raw'
 import home from '@material-symbols/svg-400/outlined/home.svg?raw'
+import image from '@material-symbols/svg-400/outlined/image.svg?raw'
 import iosShare from '@material-symbols/svg-400/outlined/ios_share.svg?raw'
 import language from '@material-symbols/svg-400/outlined/language.svg?raw'
 import lock from '@material-symbols/svg-400/outlined/lock.svg?raw'
@@ -77,6 +83,7 @@ import tune from '@material-symbols/svg-400/outlined/tune.svg?raw'
 import today from '@material-symbols/svg-400/outlined/today.svg?raw'
 import uploadFile from '@material-symbols/svg-400/outlined/upload_file.svg?raw'
 import vaccines from '@material-symbols/svg-400/outlined/vaccines.svg?raw'
+import visibilityOff from '@material-symbols/svg-400/outlined/visibility_off.svg?raw'
 import workspacePremium from '@material-symbols/svg-400/outlined/workspace_premium.svg?raw'
 import workspacePremiumFill from '@material-symbols/svg-400/outlined/workspace_premium-fill.svg?raw'
 
@@ -145,6 +152,7 @@ import warning from '@material-symbols/svg-400/outlined/warning.svg?raw'
 export const msIcons = {
   account_circle: accountCircle,
   add,
+  add_a_photo: addAPhoto,
   alarm,
   alarm_off: alarmOff,
   arrow_back: arrowBack,
@@ -171,12 +179,14 @@ export const msIcons = {
   close,
   cloud_done: cloudDone,
   cloud_off: cloudOff,
+  cloud_upload: cloudUpload,
   colorize,
   content_copy: contentCopy,
   credit_card: creditCard,
   data_object: dataObject,
   date_range: dateRange,
   delete: deleteIcon,
+  delete_forever: deleteForever,
   delete_sweep: deleteSweep,
   devices,
   do_not_disturb_on: doNotDisturbOn,
@@ -192,13 +202,16 @@ export const msIcons = {
   event_repeat: eventRepeat,
   event_upcoming: eventUpcoming,
   first_page: firstPage,
+  folder,
   folder_off: folderOff,
   gavel,
   fullscreen,
   fullscreen_exit: fullscreenExit,
   help,
+  hide_image: hideImage,
   history,
   home,
+  image,
   indeterminate_check_box: indeterminateCheckBox,
   info,
   info_fill: infoFill,
@@ -265,6 +278,7 @@ export const msIcons = {
   upload,
   upload_file: uploadFile,
   vaccines,
+  visibility_off: visibilityOff,
   volume_down: volumeDown,
   volume_mute: volumeMute,
   volume_off: volumeOff,

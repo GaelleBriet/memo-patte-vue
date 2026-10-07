@@ -105,6 +105,10 @@ export function createCarnetSettingsRepository(
       return found ? { updatedAt: found.updated_at, deletedAt: found.deleted_at } : null
     },
 
+    eraseAllStatement(): SqlStatement {
+      return { sql: 'DELETE FROM carnet_settings' }
+    },
+
     markDeletedStatement(deletedAt: string): SqlStatement {
       return {
         sql: `UPDATE carnet_settings SET deleted_at = ?, updated_at = ?, updated_by_device = ?

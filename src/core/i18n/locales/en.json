@@ -37,11 +37,17 @@
         "placeholder": "e.g. Labrador"
       },
       "birthDate": {
-        "label": "Date of birth"
+        "label": "Date of birth",
+        "approximate": {
+          "label": "Approximate date",
+          "unavailable": "Available once a date is entered.",
+          "willShow": "Age will show as “{age}”."
+        }
       },
-      "initialWeightKg": {
-        "label": "Starting weight",
-        "placeholder": "0.0"
+      "weight": {
+        "label": "Weight",
+        "placeholder": "0.0",
+        "help": "It becomes the first weigh-in, dated {date}."
       },
       "submit": "Create",
       "submitting": "Creating…",
@@ -63,18 +69,26 @@
     "age": {
       "year": "{n} year | {n} years",
       "month": "{n} month | {n} months",
-      "week": "less than a week | {n} week | {n} weeks"
+      "week": "less than a week | {n} week | {n} weeks",
+      "approximate": "about {age}"
     },
     "carnet": {
       "back": "Back",
       "edit": "Edit profile",
       "exportPdf": "Export to PDF",
       "photo": {
-        "avatarLabel": "Manage {name}’s photo",
+        "avatarLabel": "{name}’s photo: view, change or remove",
+        "addLabel": "Add a photo of {name}",
         "sheetTitle": "{name}’s photo",
+        "heading": "Photo",
+        "view": "View photo",
+        "choose": "Choose a photo",
+        "removed": "Photo removed",
+        "undoRemove": "Undo removing {name}’s photo",
         "close": "Close"
       },
       "subtitleSeparator": " · ",
+      "until": "until {date}",
       "stats": {
         "weight": "Weight",
         "reminders": "Reminders",
@@ -94,8 +108,69 @@
       },
       "welcome": {
         "title": "Welcome to MémoPatte",
-        "create": "Add my first pet"
+        "create": "Add my first pet",
+        "unfollowed": "You’re not following any pets. The health record is still available. | You’re not following any pets. Their health records are still available."
+      },
+      "options": {
+        "open": "{name}’s options",
+        "title": "Options",
+        "close": "Close",
+        "unfollow": "Stop following {name}",
+        "unfollowHint": "{name}’s reminders and ongoing treatments stop. {name}’s health record stays intact.",
+        "follow": "Follow {name} again",
+        "delete": "Delete {name}"
+      },
+      "deleteDialog": {
+        "title": "Delete {name}?",
+        "text": "{name}’s entire health record will be deleted: vaccines, treatments, weigh-ins, photo.",
+        "cancel": "Cancel",
+        "confirm": "Delete"
+      },
+      "unfollowed": {
+        "link": "Pets you no longer follow ({n})",
+        "banner": "You’re no longer following {name}: no reminders are sent. {name}’s health record stays as it is.",
+        "addDate": "Add a date",
+        "editDate": "Edit the date",
+        "follow": "Follow again",
+        "followLabel": "Follow {name} again: {name}’s reminders resume"
+      },
+      "toast": {
+        "unfollowed": "You’re no longer following {name}",
+        "unfollowedAnnouncement": "You’re no longer following {name}. {name}’s reminders are off.",
+        "followed": "You’re following {name} again. Stopped treatments don’t restart on their own: restart each one with “Resume”.",
+        "deleted": "{name}’s record deleted",
+        "undoUnfollow": "Undo: follow {name} again",
+        "undoFollow": "Undo: stop following {name}",
+        "undoDelete": "Undo: keep {name}’s record",
+        "failed": "Couldn’t save the change. Try again.",
+        "deleteFailed": "Couldn’t delete {name}’s record. Try again."
       }
+    },
+    "departure": {
+      "lead": "Everything is optional and stays in {name}’s health record.",
+      "reason": "Reason",
+      "reasons": {
+        "death": "Passed away",
+        "rehomed": "With someone else",
+        "other": "Other"
+      },
+      "date": {
+        "label": "Departure date",
+        "help": "Today at the latest.",
+        "clear": "Clear the date"
+      },
+      "save": "Save",
+      "errors": {
+        "future": "The departure date can’t be in the future.",
+        "invalid": "The departure date is invalid.",
+        "save": "Couldn’t save the date. Try again.",
+        "notFound": "This pet’s health record was deleted."
+      }
+    },
+    "unfollowedList": {
+      "title": "Pets you no longer follow",
+      "back": "Back",
+      "open": "Open {name}’s health record"
     }
   },
   "vaccinations": {
@@ -105,13 +180,28 @@
       "forAnimal": "For {name}",
       "name": {
         "label": "Vaccine name",
-        "placeholder": "e.g. Rabies"
+        "placeholder": "e.g. Rabies",
+        "usedFor": "Already used for {names}",
+        "suggestions": {
+          "carnet": "In your health record",
+          "combinations": {
+            "dog": "Common combinations · dog",
+            "cat": "Common combinations · cat"
+          },
+          "useTyped": "Use “{name}”",
+          "spoken": "{label}. Abbreviations {aliases}.",
+          "count": "{n} suggestion | {n} suggestions"
+        }
       },
       "lastInjectionDate": {
-        "label": "Injection date"
+        "label": "Injection date",
+        "help": "Leave empty if the injection hasn’t happened yet."
       },
-      "dueDate": {
-        "label": "Next due date"
+      "nextReminder": {
+        "label": "Next reminder"
+      },
+      "plannedDate": {
+        "help": "Appointment planned: the vaccine will show “{status}”."
       },
       "submit": "Create",
       "submitting": "Creating…",
@@ -126,9 +216,10 @@
       "errors": {
         "name": "Vaccine name is required.",
         "nameMax": "Vaccine name can’t be longer than {max} characters.",
-        "lastInjectionDate": "Injection date is required.",
+        "lastInjectionDate": "Injection date isn’t valid.",
         "lastInjectionDateFuture": "Injection date can’t be in the future.",
-        "dueDate": "Due date isn’t valid.",
+        "plannedDate": "Choose the planned appointment date.",
+        "plannedDatePast": "The appointment can’t be in the past.",
         "notFound": "We can’t find this vaccine.",
         "load": "Couldn’t load this vaccine. Try again.",
         "save": "Couldn’t save this vaccine. Try again."
@@ -141,12 +232,14 @@
       "status": {
         "overdue": "Overdue · {n}d",
         "upToDate": "Up to date",
+        "today": "Today",
         "planned": "Planned {date}",
         "none": "No reminder"
       },
       "detail": {
         "overdue": "Due date has passed",
         "nextOn": "Next reminder on {date}",
+        "lastInjection": "Last injection on {date}",
         "firstVaccine": "First vaccine · no injection logged",
         "none": "No reminder set"
       },
@@ -154,6 +247,7 @@
     },
     "sheet": {
       "subtitle": "Vaccine · {animal}",
+      "subtitleFirstVaccine": "First vaccine · {animal}",
       "nextReminder": "Next reminder on {date}",
       "doneTodayLabel": "Done today: log the {name} injection for {animal} and choose the next reminder",
       "editHint": "Name or date",
@@ -165,6 +259,7 @@
         "nextReminder": "Next reminder",
         "hint": "Use the date your vet gave you.",
         "choices": {
+          "oneMonth": "In 1 month",
           "oneYear": "In 1 year",
           "threeYears": "In 3 years",
           "otherDate": "Other date",
@@ -196,31 +291,47 @@
       "back": "Back to health record",
       "nextReminder": "Next reminder",
       "noReminder": "No reminder set",
+      "today": "Today",
+      "overdueSince": "Overdue since {date}",
+      "firstVaccine": "First vaccine · no injection logged",
+      "firstVaccineShort": "First vaccine",
+      "noInjection": "No injection logged",
+      "editLabel": "Edit the {name} vaccine",
+      "otherDateLabel": "Done on another day: choose the injection date",
       "doneLabel": "Done: log the {name} injection for {animal} and choose the next reminder",
       "injections": "Injections",
-      "chosen": {
-        "oneYear": "Reminder set: in 1 year",
-        "threeYears": "Reminder set: in 3 years",
-        "date": "Reminder set: other date, {date}",
-        "none": "Reminder set: none"
-      },
+      "lastInjection": "Last injection",
+      "lastInjectionOn": "Last injection · {date}",
+      "plannedReminder": "Reminder planned for {date}",
+      "noPlannedReminder": "No reminder planned",
       "options": "Options for the injection on {date}",
       "remove": "Delete this injection",
       "changeDateSubtitle": "Injection on {date}",
+      "past": {
+        "open": "Add a past injection",
+        "eyebrow": "Past injection",
+        "title": "Add a past injection",
+        "submit": "Add",
+        "taken": "An injection is already logged on that day.",
+        "failed": "Couldn’t add the injection. Try again."
+      },
       "toast": {
         "removed": "Injection on {date} deleted",
         "undoRemove": "Undo deleting the injection on {date}",
         "moved": "Injection moved to {date}",
         "undoMove": "Undo the injection date change",
-        "deleted": "{name} vaccine deleted"
+        "deleted": "{name} vaccine deleted",
+        "added": "Injection of {date} added",
+        "undoAdd": "Undo adding the injection of {date}",
+        "undoDelete": "Undo deleting the {name} vaccine"
       },
       "menu": {
         "remove": "Delete this vaccine"
       },
       "deleteDialog": {
         "title": "Delete {name}?",
-        "text": "Its injections and reminders will be deleted from the health record. This can’t be undone.",
-        "onlyInjection": "This is its only injection: the {name} vaccine will be deleted, along with its reminders. This can’t be undone.",
+        "text": "Its injections and reminders will be deleted from the health record.",
+        "onlyInjection": "This is its only injection, with no reminder planned: the {name} vaccine will be deleted from the health record.",
         "cancel": "Cancel",
         "confirm": "Delete"
       },
@@ -228,6 +339,20 @@
         "change": "Couldn’t save the change. Try again.",
         "delete": "Couldn’t delete {name}. Try again."
       }
+    },
+    "diseases": {
+      "distemper": "distemper",
+      "hepatitis": "hepatitis",
+      "parvovirus": "parvovirus",
+      "parainfluenza": "parainfluenza",
+      "leptospirosis": "leptospirosis",
+      "rabies": "rabies",
+      "kennelCough": "kennel cough",
+      "leishmaniosis": "leishmaniosis",
+      "panleukopenia": "panleucopenia",
+      "catFlu": "cat flu (herpesvirus, calicivirus)",
+      "chlamydiosis": "chlamydia",
+      "felineLeukaemia": "feline leukaemia"
     }
   },
   "treatments": {
@@ -455,7 +580,7 @@
       "showOthers": "Show the other dose from this period | Show the {n} other doses from this period",
       "hideOthers": "Hide the other doses from this period",
       "options": "Options for the dose on {date}",
-      "optionsAt": "Options for the dose on {date} at {time}",
+      "optionsAt": "Options for the dose on {date} at {time}",
       "remove": "Delete this dose",
       "changeDateSubtitle": "Dose on {date}",
       "changeDateSubtitleExtra": "Extra dose on {date}",
@@ -619,7 +744,7 @@
         "monthDaysAt": "{days} · {time}",
         "dayGiven": "{date}, given",
         "dayMissed": "{date}, missed",
-        "dayAt": "{date} at {time}",
+        "dayAt": "{date} at {time}",
         "givenCount": "{n} given | {n} given | {n} given",
         "missedCount": "{n} missed | {n} missed | {n} missed",
         "counts": "{given}, {missed}",
@@ -690,21 +815,21 @@
     "givenWhen": {
       "title": "Given when?",
       "due": "Due {date}",
-      "dueAt": "Due {date} at {time}",
+      "dueAt": "Due {date} at {time}",
       "dosageDue": "{dosage} · due {date}",
-      "dosageDueAt": "{dosage} · due {date} at {time}",
+      "dosageDueAt": "{dosage} · due {date} at {time}",
       "scheduled": "The scheduled day",
       "scheduledAt": "The scheduled day, at {time}",
       "scheduledLabel": "Given on the scheduled day, {date}",
-      "scheduledLabelAt": "Given on the scheduled day, {date} at {time}",
+      "scheduledLabelAt": "Given on the scheduled day, {date} at {time}",
       "today": "Today",
       "todayLabel": "Given today, {date}",
       "other": "Another day",
       "otherLabel": "Given on another day: choose the day",
       "everyDay": "Given on {date}",
-      "everyDayAt": "Given on {date} at {time}",
+      "everyDayAt": "Given on {date} at {time}",
       "everyDayLabel": "Given on {date}",
-      "everyDayLabelAt": "Given on {date} at {time}",
+      "everyDayLabelAt": "Given on {date} at {time}",
       "back": "Back to “Given when?”"
     }
   },
@@ -757,7 +882,7 @@
       "upcoming": "Next dose",
       "end": "Treatment end"
     },
-    "at": "{date} at {time}",
+    "at": "{date} at {time}",
     "tomorrow": "tomorrow, {date}",
     "overdueSince": "overdue since {date}",
     "stoppedOn": "Stopped on {date}",
@@ -881,6 +1006,7 @@
     },
     "reminder": {
       "vaccination": "Vaccine",
+      "firstVaccine": "First vaccine",
       "deworming": "Dewormer",
       "antiparasitic": "Parasite control",
       "medication": "Medication"
@@ -894,6 +1020,7 @@
       "labelUnreadableSingle": "{title}, {type}, {due}. Opens the treatment.",
       "spokenType": {
         "vaccination": "vaccine",
+        "firstVaccine": "first vaccine",
         "deworming": "dewormer",
         "antiparasitic": "parasite control",
         "medication": "medication"
@@ -905,6 +1032,7 @@
         "todayAt": "today at {time}",
         "tomorrow": "tomorrow",
         "later": "in {n} day, on {date} | in {n} days, on {date}",
+        "planned": "planned for {date}",
         "toLog": "to log, {unlogged}",
         "unreadable": "unreadable data"
       }
@@ -915,6 +1043,7 @@
       "todayAt": "Today · {time}",
       "tomorrow": "Tomorrow",
       "later": "In {n} day | In {n} days",
+      "planned": "Planned {date}",
       "toLog": "To log",
       "unreadable": "Unreadable data"
     },
@@ -1110,6 +1239,33 @@
       "plus": "MémoPatte Plus adds a guaranteed cloud backup, photos included, and restores it on a new phone.",
       "discoverPlus": "Explore MémoPatte Plus"
     },
+    "erase": {
+      "screenTitle": "Erase data",
+      "screenSubtitle": "on this phone",
+      "title": "Erase this phone’s data",
+      "removed": "The whole health record is removed from this phone: pets, treatments, vaccines, weights and photos.",
+      "removedSignedIn": "The health record is removed from this phone.",
+      "unsynced": "Your latest changes aren’t in your cloud backup yet. Go online and wait for the backup, or export a copy.",
+      "cloudKept": "Your cloud backup is not affected: you can restore it on this phone or another.",
+      "signOut": "This device will be signed out of your account.",
+      "copy": "Before erasing, export a copy of your health record.",
+      "reminders": "No more reminders will ring on this phone.",
+      "exports": "Exports saved in Documents › MémoPatte stay on the phone.",
+      "restart": "After erasing, MémoPatte restarts as on first launch.",
+      "continue": "Continue",
+      "cancel": "Cancel",
+      "confirm": {
+        "title": "Erase this phone’s data?",
+        "text": "Without a copy, your health record can’t be recovered.",
+        "erase": "Erase"
+      },
+      "final": {
+        "title": "Erase permanently?",
+        "text": "All MémoPatte data will be erased from this phone.",
+        "erase": "Erase permanently"
+      },
+      "error": "Couldn’t erase the data. Try again."
+    },
     "data": {
       "title": "My data",
       "summary": "Unit, export, PDF, import",
@@ -1270,7 +1426,7 @@
         "empty": "No treatment recorded.",
         "stopped": "Stopped on {date}",
         "ended": "Ended on {date}",
-        "dueAt": "{date} at {time}",
+        "dueAt": "{date} at {time}",
         "unreadable": "Unreadable data",
         "noDate": "—"
       },
@@ -1280,6 +1436,10 @@
       },
       "history": {
         "injections": "Injections: {dates}",
+        "noDose": "No doses",
+        "noDoseUpcoming": "No doses · next dose on {date}",
+        "noDoseOverdue": "No doses · overdue since {date}",
+        "stoppedBeforeFirstDose": "Stopped before the first dose",
         "lastDose": "Last dose: {date}",
         "extraDose": "{date} (extra dose)",
         "previousDoses": "Previous doses: {series}",

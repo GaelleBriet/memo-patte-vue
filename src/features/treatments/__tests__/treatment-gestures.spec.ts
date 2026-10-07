@@ -276,12 +276,12 @@ describe('doseActionTexts — supprimer une prise en plus', () => {
 
     const fr = doseActionTexts(t, UNE_HEURE, action, enPlus)
     expect(plain(fr.done(RIEN))).toBe('Prise en plus du 5 oct. supprimée')
-    expect(fr.undo).toBe('Annuler la suppression de la prise en plus du 5 octobre 2026')
+    expect(plain(fr.undo)).toBe('Annuler la suppression de la prise en plus du 5 octobre 2026')
 
     applyLocale('en')
     const en = doseActionTexts(t, UNE_HEURE, action, enPlus)
     expect(plain(en.done(RIEN))).toBe('Extra dose of Oct 5 deleted')
-    expect(en.undo).toBe('Undo deleting the extra dose of October 5, 2026')
+    expect(plain(en.undo)).toBe('Undo deleting the extra dose of October 5, 2026')
   })
 })
 
@@ -411,7 +411,7 @@ describe('dateChangeOf — « Changer la date »', () => {
 
     const change = dateChangeOf(t, prise, null, { today: TODAY, earliest: '2022-04-10' })
 
-    expect(change).toMatchObject({
+    expect(plain(change)).toMatchObject({
       subtitle: 'Prise du 7 sept. 2026',
       date: '2026-09-07',
       min: '2022-04-10',
@@ -428,7 +428,9 @@ describe('dateChangeOf — « Changer la date »', () => {
     const prise = dose('2026-09-09', '2026-09-16', { status: 'extra' })
     const limits = { lastExtraDay: null, takenDays: ['2026-09-08'] }
 
-    expect(dateChangeOf(t, prise, null, { today: TODAY, earliest: null, limits })).toMatchObject({
+    expect(
+      plain(dateChangeOf(t, prise, null, { today: TODAY, earliest: null, limits })),
+    ).toMatchObject({
       subtitle: 'Prise en plus du 9 sept. 2026',
       date: '2026-09-09',
       max: TODAY,
@@ -451,7 +453,7 @@ describe('dateChangeOf — « Changer la date »', () => {
 
     const change = dateChangeOf(t, report, bounds, { today: TODAY, earliest: null })
 
-    expect(change).toMatchObject({
+    expect(plain(change)).toMatchObject({
       subtitle: 'Reportée au 14 oct. 2026 (prévue le 10 oct.)',
       date: '2026-10-14',
       min: '2026-09-28',

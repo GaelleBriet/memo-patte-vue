@@ -1,8 +1,9 @@
-import { flushPromises, mount } from '@vue/test-utils'
+import { flushPromises, mount, type DOMWrapper } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 
 import TreatmentsSection from '../views/TreatmentsSection.vue'
+import ListRowIcon from '@/shared/components/ListRowIcon.vue'
 import type {
   TreatmentsRepository,
   TreatmentWithHistory,
@@ -87,9 +88,9 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-async function monter(animalId = MILO) {
+async function monter(animalId = MILO, followed = true) {
   const wrapper = mount(TreatmentsSection, {
-    props: { animalId, today: TODAY },
+    props: { animalId, today: TODAY, followed },
     global: { plugins: [vuetify, i18n, router] },
   })
   await flushPromises()
@@ -244,6 +245,21 @@ describe('TreatmentsSection — lignes (B · V15)', () => {
     expect(texte(row.get('.treatment-row__unlogged'))).toBe('3 doses non renseignées')
     expect(wrapper.find('.finished-treatments').exists()).toBe(false)
     expect(resume(wrapper)).toEqual([{ total: 0, overdue: 0, ongoing: 1 }])
+  })
+
+  it('TR-37 : range dans « Traitements terminés » l’arrêté d’un animal qu’on ne suit plus, sans « À renseigner »', async () => {
+    treatments = [
+      treatment({
+        name: 'Panacur',
+        period: { ...QUOTIDIEN, stoppedOn: '2026-09-06' },
+        doses: DEUX_PRISES,
+      }),
+    ]
+    const wrapper = await monter(MILO, false)
+
+    expect(wrapper.find('.treatment-row__badge').exists()).toBe(false)
+    expect(wrapper.find('.finished-treatments').exists()).toBe(true)
+    expect(resume(wrapper)).toEqual([{ total: 0, overdue: 0, ongoing: 0 }])
   })
 
   it('garde une ligne sobre, qui mène à la fiche, pour un traitement illisible', async () => {
@@ -426,5 +442,50 @@ describe('TreatmentsSection — ajout', () => {
     await wrapper.get('.section-card__add').trigger('click')
 
     expect(push).toHaveBeenCalledWith({ name: 'treatment-new', params: { animalId: MILO } })
+  })
+})
+
+describe('TreatmentsSection — pastille d’icône (B · V15)', () => {
+  function pastille(row: DOMWrapper<Element>) {
+    const pastilles = row.findAllComponents(ListRowIcon)
+    expect(pastilles).toHaveLength(1)
+    expect(pastilles[0]!.attributes('aria-hidden')).toBe('true')
+    expect(row.element.firstElementChild).toBe(pastilles[0]!.element)
+    return pastilles[0]!.props()
+  }
+
+  it('ouvre chaque ligne en cours par l’icône de son type', async () => {
+    treatments = [
+      treatment({ name: 'Bravecto', type: 'antiparasitic', ...firstDue('2026-09-20') }),
+      treatment({ name: 'Milbemax', type: 'deworming', ...firstDue('2026-09-21') }),
+      treatment({ name: 'Métacam', type: 'medication', ...firstDue('2026-09-22') }),
+    ]
+    const wrapper = await monter()
+
+    expect([0, 1, 2].map((index) => pastille(ligne(wrapper, index)))).toEqual([
+      { icon: 'ms:pest_control', muted: false },
+      { icon: 'ms:medication', muted: false },
+      { icon: 'ms:medication', muted: false },
+    ])
+    expect(texte(ligne(wrapper, 0))).toMatch(/^Bravecto/)
+  })
+
+  it('ouvre une ligne terminée par une pastille grise', async () => {
+    treatments = [
+      treatment({
+        name: 'Advocate',
+        period: { startsOn: '2025-12-01', firstDueOn: '2025-12-01', stoppedOn: '2026-05-26' },
+        doses: [dose('2025-12-01', '2026-03-01'), dose('2026-03-01', '2026-06-01')],
+      }),
+    ]
+    const wrapper = await monter()
+    await wrapper.get('.finished-treatments__toggle').trigger('click')
+
+    const [row] = wrapper.findAll('.finished-treatment-row')
+    expect(pastille(row!)).toEqual({
+      icon: 'ms:pest_control',
+      muted: true,
+    })
+    expect(texte(row!)).toBe('AdvocateArrêté le 26 mai · 2 prises')
   })
 })

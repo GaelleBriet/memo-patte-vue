@@ -1,5 +1,4 @@
 import type { TodoDueItem, TodoItem } from './todo-items'
-import type { HomeReminderSource } from '../service/home-reminders.service'
 import type { DueStatus } from '@/shared/components/DueStatusChip.vue'
 import {
   todoReminderValue,
@@ -8,7 +7,12 @@ import {
   type TodoRequest,
 } from '@/shared/domain/reminder-route'
 import { reminderIcon as sharedReminderIcon, type ReminderStatus } from '@/shared/domain/reminders'
-import { formatClockTime, formatFullDayMonth, formatLongDate } from '@/shared/utils/format'
+import {
+  formatClockTime,
+  formatDayMonth,
+  formatFullDayMonth,
+  formatLongDate,
+} from '@/shared/utils/format'
 
 export type Translate = (key: string, named?: Record<string, unknown>, plural?: number) => string
 
@@ -49,11 +53,22 @@ const DUE_ICONS: Record<ReminderStatus, string | null> = {
   later: 'ms:schedule',
 }
 
+function isPlanned(item: TodoDueItem): boolean {
+  return item.firstVaccine && item.daysUntil > 0
+}
+
 /** « Aujourd’hui · 20 h » : une dose du jour garde son heure, même passée (TR-11). */
 export function dueBadge(t: Translate, item: TodoItem): DueBadge {
   if (item.group === 'to-log') return { text: t('home.due.toLog'), icon: null, status: 'to-log' }
   if (item.group === 'unreadable') {
     return { text: t('home.due.unreadable'), icon: null, status: 'none' }
+  }
+  if (isPlanned(item)) {
+    return {
+      text: t('home.due.planned', { date: formatDayMonth(item.dueOn) }),
+      icon: null,
+      status: 'planned',
+    }
   }
   const days = Math.abs(item.daysUntil)
   const text =
@@ -63,11 +78,12 @@ export function dueBadge(t: Translate, item: TodoItem): DueBadge {
   return { text, icon: DUE_ICONS[item.status], status: item.status }
 }
 
-type Typed = Pick<HomeReminderSource, 'kind' | 'treatmentType'>
+type Typed = Pick<TodoItem, 'kind' | 'treatmentType' | 'firstVaccine'>
 
-type TypeKey = 'vaccination' | 'deworming' | 'antiparasitic' | 'medication'
+type TypeKey = 'firstVaccine' | 'vaccination' | 'deworming' | 'antiparasitic' | 'medication'
 
 function typeKey(source: Typed): TypeKey {
+  if (source.firstVaccine) return 'firstVaccine'
   return source.kind === 'vaccination' ? 'vaccination' : (source.treatmentType ?? 'deworming')
 }
 
@@ -82,6 +98,9 @@ export function reminderIcon(source: Typed): string {
 
 function spokenDue(t: Translate, item: TodoDueItem): string {
   const days = Math.abs(item.daysUntil)
+  if (isPlanned(item)) {
+    return t('home.row.due.planned', { date: formatFullDayMonth(item.dueOn) })
+  }
   if (item.status === 'today' && item.dueTime !== null) {
     return t('home.row.due.todayAt', { time: formatClockTime(item.dueTime) })
   }
@@ -112,7 +131,7 @@ export type ReminderRow = {
   request: TodoRequest
   /** Une ligne illisible ouvre la fiche du traitement, pas sa feuille. */
   opens: 'sheet' | 'detail'
-  tone: ReminderStatus | 'to-log' | 'unreadable'
+  tone: ReminderStatus | 'planned' | 'to-log' | 'unreadable'
   icon: string
   title: string
   /** « Vermifuge · Boree », même quand un seul animal est affiché (AC-8). */
@@ -134,6 +153,11 @@ function requestOf(item: TodoItem): TodoRequest {
   if (item.group === 'to-log') return { ...ref, due: 'unlogged' }
   if (item.group === 'unreadable' || item.kind === 'vaccination') return { ...ref, due: null }
   return { ...ref, due: { dueOn: item.dueOn, dueTime: item.dueTime } }
+}
+
+function toneOf(item: TodoItem): ReminderRow['tone'] {
+  if (item.group !== 'due') return item.group
+  return isPlanned(item) ? 'planned' : item.status
 }
 
 function unloggedText(t: Translate, item: TodoItem): string | null {
@@ -175,7 +199,7 @@ export function reminderRows(
       group: item.group === 'to-log' ? 'to-log' : 'due',
       request: requestOf(item),
       opens: item.group === 'unreadable' ? 'detail' : 'sheet',
-      tone: item.group === 'due' ? item.status : item.group,
+      tone: toneOf(item),
       icon: reminderIcon(item),
       title: item.label,
       subtitle: animal === undefined ? type : t('home.row.subtitle', { type, animal }),
@@ -211,7 +235,7 @@ export function nextReminderText(
   if (item === null) return null
   const params = {
     reminder: item.label,
-    date: formatLongDate(item.dueOn).replaceAll(' ', ' '),
+    date: formatLongDate(item.dueOn),
   }
   const name = showAnimal ? animalNames.get(item.animalId) : undefined
   if (name === undefined) return t('home.upToDate.nextForAnimal', params)

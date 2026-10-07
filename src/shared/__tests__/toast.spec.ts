@@ -154,6 +154,72 @@ describe('action du toast', () => {
     expect(toastTone.value).toBe('error')
   })
 
+  describe('fermeture sans « Annuler »', () => {
+    function undoable(onExpired: () => void) {
+      showUndoableToast('Carnet de Luna supprimé', {
+        label: 'Annuler',
+        ariaLabel: 'Annuler la suppression de Luna',
+        undo: vi.fn<() => Promise<void>>().mockResolvedValue(),
+        onUndone: vi.fn<() => void>(),
+        failedMessage: 'L’annulation n’a pas abouti.',
+        onExpired,
+      })
+    }
+
+    it('prévient une seule fois quand le toast se ferme seul', () => {
+      const onExpired = vi.fn<() => void>()
+      undoable(onExpired)
+
+      vi.advanceTimersByTime(3999)
+      expect(onExpired).not.toHaveBeenCalled()
+      vi.advanceTimersByTime(1)
+      dismissToast()
+
+      expect(onExpired).toHaveBeenCalledOnce()
+    })
+
+    it('prévient quand un autre toast le remplace ou qu’il est fermé', () => {
+      const replaced = vi.fn<() => void>()
+      const dismissed = vi.fn<() => void>()
+      undoable(replaced)
+      showToast('Photo retirée')
+      undoable(dismissed)
+      dismissToast()
+
+      expect(replaced).toHaveBeenCalledOnce()
+      expect(dismissed).toHaveBeenCalledOnce()
+    })
+
+    it('ne prévient pas quand « Annuler » est touché', async () => {
+      const onExpired = vi.fn<() => void>()
+      undoable(onExpired)
+
+      runToastAction()
+      await vi.runAllTimersAsync()
+
+      expect(onExpired).not.toHaveBeenCalled()
+    })
+  })
+
+  it('prévient l’écran quand l’annulation échoue', async () => {
+    const onFailed = vi.fn<() => void>()
+    showUndoableToast('Prise de Bravecto notée pour Boree', {
+      label: 'Annuler',
+      ariaLabel: 'Annuler la prise de Bravecto',
+      undo: () => Promise.reject(new Error('prise modifiée depuis')),
+      onUndone: vi.fn<() => void>(),
+      onFailed,
+      failedMessage: 'L’annulation n’a pas abouti.',
+    })
+
+    runToastAction()
+    await Promise.resolve()
+    await Promise.resolve()
+
+    expect(onFailed).toHaveBeenCalledOnce()
+    expect(toastMessage.value).toBe('L’annulation n’a pas abouti.')
+  })
+
   it('ne rouvre rien quand le focus quitte un toast déjà fermé', () => {
     showToast('Prise de Bravecto notée pour Boree', {
       action: { label: 'Annuler', run: vi.fn<() => void>() },

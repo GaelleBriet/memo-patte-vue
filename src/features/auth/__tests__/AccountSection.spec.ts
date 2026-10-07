@@ -124,6 +124,20 @@ describe('AccountSection — avec un compte Plus', () => {
     expect(wrapper.find('.section-card').exists()).toBe(false)
   })
 
+  it('remplace la page Compte par la connexion : le retour ramène à la liste, pas à une page vide', async () => {
+    await router.push({ name: 'settings-account' })
+    const wrapper = await monter()
+
+    await wrapper.get('.settings-row--sign-out').trigger('click')
+    await cliquer(boutonDuDialogue('.sign-out-confirm__submit'))
+    await vi.waitFor(() =>
+      expect(router.currentRoute.value.fullPath).toBe('/sign-in?from=settings'),
+    )
+    router.back()
+
+    await vi.waitFor(() => expect(router.currentRoute.value.name).toBe('settings'))
+  })
+
   it('ignore un double-clic rapide sur la confirmation', async () => {
     await monter()
 

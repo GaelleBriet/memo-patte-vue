@@ -1,17 +1,24 @@
 <script setup lang="ts">
+import { onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
 import AccountSection from './AccountSection.vue'
+import { useAuthStore } from '../store/auth.store'
 import PushedScreen from '@/shared/components/PushedScreen.vue'
 import { returnTo } from '@/shared/utils/return-to'
 
 const { t } = useI18n()
 const router = useRouter()
+const auth = useAuthStore()
 
 function goBack(): void {
   returnTo(router, { name: 'settings' })
 }
+
+onMounted(() => {
+  if (!auth.hasPlusAccount) void router.replace({ name: 'settings' })
+})
 </script>
 
 <template>

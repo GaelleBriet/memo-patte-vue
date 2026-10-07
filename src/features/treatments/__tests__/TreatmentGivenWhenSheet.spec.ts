@@ -23,10 +23,14 @@ const LUNA: Animal = {
   species: 'cat',
   breed: null,
   birthDate: null,
+  birthDateApproximate: false,
   photoPath: null,
   createdAt: AT,
   updatedAt: AT,
   deletedAt: null,
+  unfollowedOn: null,
+  departureReason: null,
+  departureDate: null,
 }
 
 const VENDREDIS = period({
@@ -151,7 +155,7 @@ describe('TreatmentGivenWhenSheet — « Donnée quand ? » (V5)', () => {
     })
     expect(sheet.emitted('update:modelValue')).toEqual([[false]])
     expect(sheet.emitted('changed')).toHaveLength(1)
-    expect(toastMessage.value).toBe('Prise de Métacam du 16 oct. notée pour Luna')
+    expect(plain(toastMessage.value)).toBe('Prise de Métacam du 16 oct. notée pour Luna')
   })
 
   it('« Aujourd’hui » montre la case cochée et les dates, puis enregistre le décalage', async () => {
@@ -266,7 +270,7 @@ describe('TreatmentGivenWhenSheet — « Donnée quand ? » (V5)', () => {
     const sheet = await ouvrir(book, '2026-10-19', { dueOn: '2026-10-16', dueTime: null })
 
     expect(sheet.emitted('update:modelValue')).toEqual([[false]])
-    expect(toastMessage.value).toBe('Prise de Métacam du 17 oct. déjà notée pour Luna')
+    expect(plain(toastMessage.value)).toBe('Prise de Métacam du 17 oct. déjà notée pour Luna')
   })
 
   it('Q41 : un oubli noté entre-temps laisse l’accueil ouvrir la feuille du soin', async () => {

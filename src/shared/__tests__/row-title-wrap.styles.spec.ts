@@ -61,7 +61,8 @@ describe('un titre de ligne passe à la ligne sans couper les mots', () => {
 /**
  * Une colonne `flex: 1 1 auto` réclame la largeur de toute sa phrase : un détail long
  * envoyait badge et chevron sous le texte (#585). Base nulle, et largeur minimale
- * automatique (le plus long mot) bornée à la ligne par `max-width`.
+ * automatique (le plus long mot) bornée par `max-width` à la place laissée par la
+ * pastille : bornée à toute la ligne, un mot long passait sous la pastille.
  */
 const LIGNES_DU_CARNET = [
   {
@@ -76,7 +77,7 @@ describe('Carnet : un détail long passe à la ligne sans pousser le chevron des
     const feuille = css(fichier)
 
     expect(declaration(feuille, texte, 'flex')).toBe('1 1 0')
-    expect(declaration(feuille, texte, 'max-width')).toBe('100%')
+    expect(declaration(feuille, texte, 'max-width')).toBe('calc(100% - 36px - 12px)')
     expect(declaration(feuille, texte, 'min-width')).toBeUndefined()
   })
 })

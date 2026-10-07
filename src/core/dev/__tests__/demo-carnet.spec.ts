@@ -258,8 +258,9 @@ describe('buildDemoCarnet', () => {
   it('ne date aucune prise ni injection dans le futur, ni avant le début de sa période', () => {
     for (const { vaccinations, treatments } of buildDemoCarnet(TODAY)) {
       for (const vaccination of vaccinations) {
+        const head = vaccination.lastInjectionDate
         for (const { injectedOn } of vaccination.history ?? []) {
-          expect(injectedOn < vaccination.lastInjectionDate).toBe(true)
+          expect(head !== null && head !== undefined && injectedOn < head).toBe(true)
         }
       }
       for (const { periods } of treatments) {

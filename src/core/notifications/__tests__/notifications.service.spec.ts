@@ -4,6 +4,7 @@ import { LocalNotifications } from '@capacitor/local-notifications'
 import type { Channel, LocalNotificationsPlugin } from '@capacitor/local-notifications'
 
 import {
+  cancelAllNotifications,
   cancelReminders,
   checkPermission,
   listScheduled,
@@ -30,6 +31,8 @@ vi.mock('@capacitor/local-notifications', () => ({
     registerActionTypes: vi.fn<LocalNotificationsPlugin['registerActionTypes']>(),
     removeDeliveredNotificationsById:
       vi.fn<LocalNotificationsPlugin['removeDeliveredNotificationsById']>(),
+    removeAllDeliveredNotifications:
+      vi.fn<LocalNotificationsPlugin['removeAllDeliveredNotifications']>(),
     checkExactNotificationSetting:
       vi.fn<LocalNotificationsPlugin['checkExactNotificationSetting']>(),
   },
@@ -45,6 +48,7 @@ const listChannels = vi.mocked(LocalNotifications.listChannels)
 const registerActionTypes = vi.mocked(LocalNotifications.registerActionTypes)
 const removeDeliveredById = vi.mocked(LocalNotifications.removeDeliveredNotificationsById)
 const checkExact = vi.mocked(LocalNotifications.checkExactNotificationSetting)
+const removeAllDelivered = vi.mocked(LocalNotifications.removeAllDeliveredNotifications)
 
 const rabies: Reminder = {
   key: 'vaccination:11111111-1111-4111-8111-111111111111',
@@ -73,6 +77,7 @@ beforeEach(() => {
   listChannels.mockResolvedValue({ channels: [] })
   registerActionTypes.mockResolvedValue()
   removeDeliveredById.mockResolvedValue()
+  removeAllDelivered.mockResolvedValue()
   checkExact.mockResolvedValue({ exact_alarm: 'denied' })
 })
 
@@ -254,6 +259,29 @@ describe('removeDelivered', () => {
     await removeDelivered([])
 
     expect(removeDeliveredById).not.toHaveBeenCalled()
+  })
+})
+
+describe('cancelAllNotifications', () => {
+  it('annule tout ce qui est programmé, rappel ou non, et vide le volet', async () => {
+    getPending.mockResolvedValue({
+      notifications: [
+        { id: 7, title: 'Rappel', body: 'Rage', extra: { key: rabies.key } },
+        { id: 9, title: 'Ancien', body: 'Sans clé' },
+      ],
+    })
+
+    await cancelAllNotifications()
+
+    expect(cancel).toHaveBeenCalledExactlyOnceWith({ notifications: [{ id: 7 }, { id: 9 }] })
+    expect(removeAllDelivered).toHaveBeenCalledOnce()
+  })
+
+  it('vide le volet même sans rien de programmé', async () => {
+    await cancelAllNotifications()
+
+    expect(cancel).not.toHaveBeenCalled()
+    expect(removeAllDelivered).toHaveBeenCalledOnce()
   })
 })
 

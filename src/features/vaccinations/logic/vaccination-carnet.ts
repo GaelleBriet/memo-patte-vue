@@ -1,23 +1,47 @@
 import { vaccinationStatus } from './vaccination-status'
 import type { Vaccination } from '../schema/vaccination.schema'
 import { overdueDays } from '@/shared/domain/due-delay'
-import { formatDayMonthOrYear } from '@/shared/utils/format'
+import { reminderIcon } from '@/shared/domain/reminders'
+import { formatDayMonthOrYear, formatLongDate } from '@/shared/utils/format'
 
 type Translate = (key: string, named?: Record<string, unknown>, plural?: number) => string
 
-export type CarnetVaccinationBadgeStatus = 'overdue' | 'up-to-date' | 'none' | 'planned'
+export type CarnetVaccinationBadgeStatus = 'overdue' | 'today' | 'up-to-date' | 'none' | 'planned'
 
 export type CarnetVaccinationRow = {
-  badge: { status: CarnetVaccinationBadgeStatus; label: string }
+  icon: string
+  /** `null` pour un animal qu'on ne suit plus : plus aucun rappel. */
+  badge: { status: CarnetVaccinationBadgeStatus; label: string } | null
   detail: string
 }
 
-/** La ligne d'un vaccin dans le Carnet : badge d'état et sous-titre. */
+/** La ligne d'un vaccin dans le Carnet : icône, badge d'état et sous-titre. */
 export function carnetVaccinationRow(
+  t: Translate,
+  vaccination: Pick<Vaccination, 'lastInjectionDate' | 'dueDate'>,
+  today: string,
+  options: { followed?: boolean } = {},
+): CarnetVaccinationRow {
+  return { icon: reminderIcon('vaccination', null), ...statusOf(t, vaccination, today, options) }
+}
+
+function statusOf(
   t: Translate,
   { lastInjectionDate, dueDate }: Pick<Vaccination, 'lastInjectionDate' | 'dueDate'>,
   today: string,
-): CarnetVaccinationRow {
+  { followed = true }: { followed?: boolean },
+): Omit<CarnetVaccinationRow, 'icon'> {
+  if (!followed) {
+    return {
+      badge: null,
+      detail:
+        lastInjectionDate === null
+          ? t('vaccinations.section.detail.firstVaccine')
+          : t('vaccinations.section.detail.lastInjection', {
+              date: formatLongDate(lastInjectionDate),
+            }),
+    }
+  }
   const status = vaccinationStatus(dueDate, today)
   if (dueDate === null || status === 'none') {
     return {
@@ -40,6 +64,12 @@ export function carnetVaccinationRow(
     return {
       badge: { status: 'planned', label: t('vaccinations.section.status.planned', { date }) },
       detail: t('vaccinations.section.detail.firstVaccine'),
+    }
+  }
+  if (dueDate === today) {
+    return {
+      badge: { status: 'today', label: t('vaccinations.section.status.today') },
+      detail: t('vaccinations.section.detail.nextOn', { date }),
     }
   }
   return {

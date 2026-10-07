@@ -17,6 +17,7 @@ import { forgetPhotoUrls } from '@/core/photos/use-photo-urls'
 import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
 import { KG_PER_LB } from '@/shared/domain/weight-unit'
 import { applyWeightUnit } from '@/shared/domain/weight-unit-preference'
+import { plain } from '@/shared/__tests__/plain'
 
 vi.mock('@/core/photos/photo-picker', () => ({
   pickPhoto: vi.fn<() => Promise<PickedPhoto | null>>(),
@@ -71,10 +72,14 @@ const MILO: Animal = {
   species: 'dog',
   breed: null,
   birthDate: null,
+  birthDateApproximate: false,
   photoPath: null,
   createdAt: '2026-09-09T09:00:00.000Z',
   updatedAt: '2026-09-09T09:00:00.000Z',
   deletedAt: null,
+  unfollowedOn: null,
+  departureReason: null,
+  departureDate: null,
 }
 
 const MILO_COMPLET: Animal = {
@@ -219,6 +224,135 @@ describe('AnimalFormView — champs date et poids', () => {
 
     expect(champ(wrapper, 'animal-weight').attributes('inputmode')).toBe('decimal')
     expect(wrapper.get('.animal-form__field--weight').text()).toContain('kg')
+  })
+})
+
+describe('AnimalFormView — date approximative', () => {
+  function caseApproximative(wrapper: VueWrapper) {
+    return wrapper.get<HTMLInputElement>('.animal-form__approximate input[type="checkbox"]')
+  }
+
+  function aide(wrapper: VueWrapper): string {
+    return wrapper.get('.animal-form__approximate .form-checkbox__help').text()
+  }
+
+  beforeEach(() => {
+    vi.useFakeTimers({ now: new Date('2026-09-28T10:00:00'), toFake: ['Date'] })
+  })
+
+  it('place la case sous la date de naissance, désactivée tant qu’aucune date n’est saisie', () => {
+    const wrapper = monter()
+    const caseCochable = caseApproximative(wrapper)
+
+    expect(wrapper.get('.animal-form__approximate').text()).toContain('Date approximative')
+    expect(caseCochable.element.disabled).toBe(true)
+    expect(aide(wrapper)).toBe('Disponible une fois la date saisie.')
+    const aideId = wrapper.get('.animal-form__approximate .form-checkbox__help').attributes('id')
+    expect(caseCochable.attributes('aria-describedby')).toBe(aideId)
+  })
+
+  it('s’active sans aide une fois la date saisie', async () => {
+    const wrapper = monter()
+
+    await champ(wrapper, 'animal-birth-date').setValue('2026-07-20')
+
+    expect(caseApproximative(wrapper).element.disabled).toBe(false)
+    expect(wrapper.find('.animal-form__approximate .form-checkbox__help').exists()).toBe(false)
+  })
+
+  it('annonce l’âge affiché une fois cochée, et l’enregistre à la création', async () => {
+    const wrapper = monter()
+    await remplirMinimum(wrapper)
+    await champ(wrapper, 'animal-birth-date').setValue('2026-07-20')
+
+    await caseApproximative(wrapper).setValue(true)
+
+    expect(aide(wrapper)).toBe('L’âge s’affichera «\u00a0environ 10 semaines\u00a0».')
+    await soumettre(wrapper)
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({ birthDate: '2026-07-20', birthDateApproximate: true }),
+      { kind: 'keep' },
+    )
+  })
+
+  it('se décoche et se désactive quand la date est effacée', async () => {
+    const wrapper = monter()
+    await champ(wrapper, 'animal-birth-date').setValue('2026-07-20')
+    await caseApproximative(wrapper).setValue(true)
+
+    await champ(wrapper, 'animal-birth-date').setValue('')
+
+    expect(caseApproximative(wrapper).element.checked).toBe(false)
+    expect(caseApproximative(wrapper).element.disabled).toBe(true)
+    expect(aide(wrapper)).toBe('Disponible une fois la date saisie.')
+  })
+
+  it('en édition, reprend la case de l’animal et enregistre son changement', async () => {
+    load.mockImplementation(async () => {
+      const animals = useAnimalsStore()
+      animals.animals = [{ ...MILO, birthDate: '2026-07-20', birthDateApproximate: true }]
+      animals.hasLoaded = true
+      return true
+    })
+    const wrapper = await monterEdition()
+    expect(caseApproximative(wrapper).element.checked).toBe(true)
+
+    await caseApproximative(wrapper).setValue(false)
+    await soumettre(wrapper)
+    await flushPromises()
+
+    expect(update).toHaveBeenCalledWith(
+      MILO.id,
+      expect.objectContaining({ birthDate: '2026-07-20', birthDateApproximate: false }),
+      { kind: 'keep' },
+    )
+  })
+
+  it('parle anglais', async () => {
+    i18n.global.locale.value = 'en'
+    try {
+      const wrapper = monter()
+      expect(aide(wrapper)).toBe('Available once a date is entered.')
+
+      await champ(wrapper, 'animal-birth-date').setValue('2026-07-20')
+      await caseApproximative(wrapper).setValue(true)
+
+      expect(wrapper.get('.animal-form__approximate').text()).toContain('Approximate date')
+      expect(aide(wrapper)).toBe('Age will show as “about 10 weeks”.')
+    } finally {
+      i18n.global.locale.value = 'fr'
+    }
+  })
+})
+
+describe('AnimalFormView — poids, première pesée', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ now: new Date('2026-09-28T10:00:00'), toFake: ['Date'] })
+  })
+
+  it('s’appelle « Poids » et dit qu’il devient la première pesée, datée du jour', () => {
+    const wrapper = monter()
+    const poids = wrapper.get('.animal-form__field--weight')
+
+    expect(poids.get('.form-field__label').text()).toContain('Poids')
+    expect(poids.text()).not.toContain('Poids initial')
+    expect(plain(poids.get('.form-field__help').text())).toBe(
+      'Il devient la première pesée, datée du 28 sept. 2026.',
+    )
+  })
+
+  it('le dit aussi en anglais', () => {
+    i18n.global.locale.value = 'en'
+    try {
+      const poids = monter().get('.animal-form__field--weight')
+
+      expect(poids.get('.form-field__label').text()).toContain('Weight')
+      expect(plain(poids.get('.form-field__help').text())).toBe(
+        'It becomes the first weigh-in, dated Sep 28, 2026.',
+      )
+    } finally {
+      i18n.global.locale.value = 'fr'
+    }
   })
 })
 
@@ -571,6 +705,7 @@ describe('AnimalFormView — édition (état F2)', () => {
         species: 'dog',
         breed: 'Labrador',
         birthDate: '2023-03-12',
+        birthDateApproximate: false,
         photoPath: null,
       },
       { kind: 'keep' },
@@ -598,6 +733,7 @@ describe('AnimalFormView — édition (état F2)', () => {
         species: 'dog',
         breed: null,
         birthDate: null,
+        birthDateApproximate: false,
         photoPath: null,
       },
       { kind: 'keep' },
@@ -745,7 +881,9 @@ describe('AnimalFormView — accessibilité des erreurs', () => {
     expectLie(wrapper, '#animal-name', '.animal-form__field--name')
     expectLie(wrapper, '.form-segmented', '.animal-form__field--species')
     expect(wrapper.get('#animal-weight').attributes('aria-invalid')).toBe('false')
-    expect(wrapper.get('#animal-weight').attributes('aria-describedby')).toBeUndefined()
+    expect(wrapper.get('#animal-weight').attributes('aria-describedby')).toBe(
+      wrapper.get('.animal-form__field--weight .form-field__help').attributes('id'),
+    )
   })
 })
 

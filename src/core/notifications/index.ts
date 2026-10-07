@@ -1,5 +1,6 @@
 export type { Reminder, ScheduledReminder } from './reminder'
 export {
+  cancelAllNotifications,
   cancelReminders,
   checkPermission,
   listScheduled,

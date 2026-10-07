@@ -22,10 +22,14 @@ const MILO_ANIMAL: Animal = {
   species: 'dog',
   breed: null,
   birthDate: null,
+  birthDateApproximate: false,
   photoPath: null,
   createdAt: '2026-09-09T09:00:00.000Z',
   updatedAt: '2026-09-09T09:00:00.000Z',
   deletedAt: null,
+  unfollowedOn: null,
+  departureReason: null,
+  departureDate: null,
 }
 
 let repository: FakeWeightRepository

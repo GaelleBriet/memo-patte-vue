@@ -64,10 +64,14 @@ describe('formulaire et fiche d’un traitement, sur la même base', () => {
         species: 'dog',
         breed: null,
         birthDate: null,
+        birthDateApproximate: false,
         photoPath: null,
         createdAt: AT,
         updatedAt: AT,
         deletedAt: null,
+        unfollowedOn: null,
+        departureReason: null,
+        departureDate: null,
       },
     ]
     animals.hasLoaded = true

@@ -37,11 +37,17 @@
         "placeholder": "Ex. Labrador"
       },
       "birthDate": {
-        "label": "Date de naissance"
+        "label": "Date de naissance",
+        "approximate": {
+          "label": "Date approximative",
+          "unavailable": "Disponible une fois la date saisie.",
+          "willShow": "L’âge s’affichera « {age} »."
+        }
       },
-      "initialWeightKg": {
-        "label": "Poids initial",
-        "placeholder": "0,0"
+      "weight": {
+        "label": "Poids",
+        "placeholder": "0,0",
+        "help": "Il devient la première pesée, datée du {date}."
       },
       "submit": "Créer",
       "submitting": "Création…",
@@ -63,18 +69,26 @@
     "age": {
       "year": "{n} an | {n} ans",
       "month": "{n} mois",
-      "week": "moins d’une semaine | {n} semaine | {n} semaines"
+      "week": "moins d’une semaine | {n} semaine | {n} semaines",
+      "approximate": "environ {age}"
     },
     "carnet": {
       "back": "Retour",
       "edit": "Modifier la fiche",
       "exportPdf": "Exporter en PDF",
       "photo": {
-        "avatarLabel": "Gérer la photo de {name}",
+        "avatarLabel": "Photo de {name} : voir, changer ou retirer",
+        "addLabel": "Ajouter une photo de {name}",
         "sheetTitle": "Photo de {name}",
+        "heading": "Photo",
+        "view": "Voir la photo",
+        "choose": "Choisir une photo",
+        "removed": "Photo retirée",
+        "undoRemove": "Annuler le retrait de la photo de {name}",
         "close": "Fermer"
       },
       "subtitleSeparator": " · ",
+      "until": "jusqu’au {date}",
       "stats": {
         "weight": "Poids",
         "reminders": "Rappels",
@@ -94,8 +108,69 @@
       },
       "welcome": {
         "title": "Bienvenue sur MémoPatte",
-        "create": "Créer mon premier animal"
+        "create": "Créer mon premier animal",
+        "unfollowed": "Tu ne suis plus aucun animal. Son carnet reste consultable. | Tu ne suis plus aucun animal. Leurs carnets restent consultables."
+      },
+      "options": {
+        "open": "Options de {name}",
+        "title": "Options",
+        "close": "Fermer",
+        "unfollow": "Ne plus suivre {name}",
+        "unfollowHint": "Ses rappels et ses traitements en cours s’arrêtent. Son carnet reste intact.",
+        "follow": "Suivre {name} de nouveau",
+        "delete": "Supprimer {name}"
+      },
+      "deleteDialog": {
+        "title": "Supprimer {name} ?",
+        "text": "Tout son carnet sera supprimé : vaccins, traitements, pesées, photo.",
+        "cancel": "Annuler",
+        "confirm": "Supprimer"
+      },
+      "unfollowed": {
+        "link": "Animaux que tu ne suis plus ({n})",
+        "banner": "Tu ne suis plus {name} : aucun rappel n’est envoyé. Son carnet reste tel quel.",
+        "addDate": "Ajouter une date",
+        "editDate": "Modifier la date",
+        "follow": "Suivre de nouveau",
+        "followLabel": "Suivre {name} de nouveau : ses rappels reprennent"
+      },
+      "toast": {
+        "unfollowed": "Tu ne suis plus {name}",
+        "unfollowedAnnouncement": "Tu ne suis plus {name}. Ses rappels sont coupés.",
+        "followed": "Tu suis de nouveau {name}. Ses traitements arrêtés ne reprennent pas seuls : relance chacun avec « Reprendre ».",
+        "deleted": "Carnet de {name} supprimé",
+        "undoUnfollow": "Annuler : suivre {name} de nouveau",
+        "undoFollow": "Annuler : ne plus suivre {name}",
+        "undoDelete": "Annuler : garder le carnet de {name}",
+        "failed": "Le changement n’a pas pu être enregistré. Réessaie.",
+        "deleteFailed": "Le carnet de {name} n’a pas pu être supprimé. Réessaie."
       }
+    },
+    "departure": {
+      "lead": "Tout est facultatif et reste dans le carnet de {name}.",
+      "reason": "Motif",
+      "reasons": {
+        "death": "Décès",
+        "rehomed": "Chez quelqu’un d’autre",
+        "other": "Autre"
+      },
+      "date": {
+        "label": "Date du départ",
+        "help": "Au plus tard aujourd’hui.",
+        "clear": "Effacer la date"
+      },
+      "save": "Enregistrer",
+      "errors": {
+        "future": "La date du départ ne peut pas être dans le futur.",
+        "invalid": "La date du départ est invalide.",
+        "save": "La date n’a pas pu être enregistrée. Réessaie.",
+        "notFound": "Le carnet de cet animal a été supprimé."
+      }
+    },
+    "unfollowedList": {
+      "title": "Animaux que tu ne suis plus",
+      "back": "Retour",
+      "open": "Ouvrir le carnet de {name}"
     }
   },
   "vaccinations": {
@@ -105,13 +180,28 @@
       "forAnimal": "Pour {name}",
       "name": {
         "label": "Nom du vaccin",
-        "placeholder": "Ex. Rage"
+        "placeholder": "Ex. Rage",
+        "usedFor": "Déjà utilisé pour {names}",
+        "suggestions": {
+          "carnet": "Dans ton carnet",
+          "combinations": {
+            "dog": "Combinaisons courantes · chien",
+            "cat": "Combinaisons courantes · chat"
+          },
+          "useTyped": "Utiliser « {name} »",
+          "spoken": "{label}. Sigles {aliases}.",
+          "count": "{n} proposition | {n} propositions"
+        }
       },
       "lastInjectionDate": {
-        "label": "Date d’injection"
+        "label": "Date de l’injection",
+        "help": "Laisse vide si l’injection n’a pas encore eu lieu."
       },
-      "dueDate": {
-        "label": "Prochaine échéance"
+      "nextReminder": {
+        "label": "Prochain rappel"
+      },
+      "plannedDate": {
+        "help": "Rendez-vous prévu : le vaccin sera « {status} »."
       },
       "submit": "Créer",
       "submitting": "Création…",
@@ -126,9 +216,10 @@
       "errors": {
         "name": "Le nom du vaccin est obligatoire.",
         "nameMax": "Le nom du vaccin ne peut pas dépasser {max} caractères.",
-        "lastInjectionDate": "La date d’injection est obligatoire.",
-        "lastInjectionDateFuture": "La date d’injection ne peut pas être dans le futur.",
-        "dueDate": "La date d’échéance est invalide.",
+        "lastInjectionDate": "La date de l’injection est invalide.",
+        "lastInjectionDateFuture": "La date de l’injection ne peut pas être dans le futur.",
+        "plannedDate": "Choisis la date du rendez-vous prévu.",
+        "plannedDatePast": "Le rendez-vous ne peut pas être dans le passé.",
         "notFound": "Ce vaccin est introuvable.",
         "load": "Ce vaccin n’a pas pu être chargé. Réessaie.",
         "save": "Le vaccin n’a pas pu être enregistré. Réessaie."
@@ -141,12 +232,14 @@
       "status": {
         "overdue": "En retard · {n} j",
         "upToDate": "À jour",
+        "today": "Aujourd’hui",
         "planned": "Prévu le {date}",
         "none": "Pas de rappel"
       },
       "detail": {
         "overdue": "Échéance passée",
         "nextOn": "Prochain rappel le {date}",
+        "lastInjection": "Dernière injection le {date}",
         "firstVaccine": "Premier vaccin · aucune injection notée",
         "none": "Pas de rappel programmé"
       },
@@ -154,6 +247,7 @@
     },
     "sheet": {
       "subtitle": "Vaccin · {animal}",
+      "subtitleFirstVaccine": "Premier vaccin · {animal}",
       "nextReminder": "Prochain rappel le {date}",
       "doneTodayLabel": "Fait aujourd’hui : noter l’injection de {name} pour {animal} et choisir le prochain rappel",
       "editHint": "Nom ou date",
@@ -165,6 +259,7 @@
         "nextReminder": "Prochain rappel",
         "hint": "Reporte la date indiquée par ton vétérinaire.",
         "choices": {
+          "oneMonth": "Dans 1 mois",
           "oneYear": "Dans 1 an",
           "threeYears": "Dans 3 ans",
           "otherDate": "Autre date",
@@ -196,31 +291,47 @@
       "back": "Retour au carnet",
       "nextReminder": "Prochain rappel",
       "noReminder": "Pas de rappel programmé",
+      "today": "Aujourd’hui",
+      "overdueSince": "En retard depuis le {date}",
+      "firstVaccine": "Premier vaccin · aucune injection notée",
+      "firstVaccineShort": "Premier vaccin",
+      "noInjection": "Aucune injection notée",
+      "editLabel": "Modifier le vaccin {name}",
+      "otherDateLabel": "Fait à une autre date : choisir la date de l’injection",
       "doneLabel": "C’est fait : noter l’injection de {name} pour {animal} et choisir le prochain rappel",
       "injections": "Injections",
-      "chosen": {
-        "oneYear": "Rappel choisi : dans 1 an",
-        "threeYears": "Rappel choisi : dans 3 ans",
-        "date": "Rappel choisi : autre date, {date}",
-        "none": "Rappel choisi : pas de rappel"
-      },
+      "lastInjection": "Dernière injection",
+      "lastInjectionOn": "Dernière injection · {date}",
+      "plannedReminder": "Rappel prévu le {date}",
+      "noPlannedReminder": "Sans rappel prévu",
       "options": "Options pour l’injection du {date}",
       "remove": "Supprimer cette injection",
       "changeDateSubtitle": "Injection du {date}",
+      "past": {
+        "open": "Ajouter une injection passée",
+        "eyebrow": "Injection passée",
+        "title": "Ajouter une injection passée",
+        "submit": "Ajouter",
+        "taken": "Une injection est déjà notée ce jour-là.",
+        "failed": "L’injection n’a pas pu être ajoutée. Réessaie."
+      },
       "toast": {
         "removed": "Injection du {date} supprimée",
         "undoRemove": "Annuler la suppression de l’injection du {date}",
         "moved": "Injection déplacée au {date}",
         "undoMove": "Annuler le changement de date de l’injection",
-        "deleted": "Vaccin {name} supprimé"
+        "deleted": "Vaccin {name} supprimé",
+        "added": "Injection du {date} ajoutée",
+        "undoAdd": "Annuler l’ajout de l’injection du {date}",
+        "undoDelete": "Annuler la suppression du vaccin {name}"
       },
       "menu": {
         "remove": "Supprimer ce vaccin"
       },
       "deleteDialog": {
         "title": "Supprimer {name} ?",
-        "text": "Ses injections et ses rappels seront supprimés du carnet. Cette action est définitive.",
-        "onlyInjection": "C’est sa seule injection : le vaccin {name} sera supprimé, avec ses rappels. Cette action est définitive.",
+        "text": "Ses injections et ses rappels seront supprimés du carnet.",
+        "onlyInjection": "C’est sa seule injection, sans rappel prévu : le vaccin {name} sera supprimé du carnet.",
         "cancel": "Annuler",
         "confirm": "Supprimer"
       },
@@ -228,6 +339,20 @@
         "change": "La modification n’a pas abouti. Réessaie.",
         "delete": "{name} n’a pas pu être supprimé. Réessaie."
       }
+    },
+    "diseases": {
+      "distemper": "carré",
+      "hepatitis": "hépatite",
+      "parvovirus": "parvovirose",
+      "parainfluenza": "parainfluenza",
+      "leptospirosis": "leptospirose",
+      "rabies": "rage",
+      "kennelCough": "toux du chenil",
+      "leishmaniosis": "leishmaniose",
+      "panleukopenia": "typhus",
+      "catFlu": "coryza (herpèsvirus, calicivirus)",
+      "chlamydiosis": "chlamydiose",
+      "felineLeukaemia": "leucose"
     }
   },
   "treatments": {
@@ -455,7 +580,7 @@
       "showOthers": "Voir l’autre prise de cette période | Voir les {n} autres prises de cette période",
       "hideOthers": "Masquer les autres prises de cette période",
       "options": "Options pour la prise du {date}",
-      "optionsAt": "Options pour la prise du {date} à {time}",
+      "optionsAt": "Options pour la prise du {date} à {time}",
       "remove": "Supprimer cette prise",
       "changeDateSubtitle": "Prise du {date}",
       "changeDateSubtitleExtra": "Prise en plus du {date}",
@@ -619,7 +744,7 @@
         "monthDaysAt": "{days} · {time}",
         "dayGiven": "{date}, donnée",
         "dayMissed": "{date}, oubliée",
-        "dayAt": "{date} à {time}",
+        "dayAt": "{date} à {time}",
         "givenCount": "{n} donnée | {n} donnée | {n} données",
         "missedCount": "{n} oubliée | {n} oubliée | {n} oubliées",
         "counts": "{given}, {missed}",
@@ -690,21 +815,21 @@
     "givenWhen": {
       "title": "Donnée quand ?",
       "due": "Prévue {date}",
-      "dueAt": "Prévue {date} à {time}",
+      "dueAt": "Prévue {date} à {time}",
       "dosageDue": "{dosage} · prévue {date}",
-      "dosageDueAt": "{dosage} · prévue {date} à {time}",
+      "dosageDueAt": "{dosage} · prévue {date} à {time}",
       "scheduled": "Le jour prévu",
       "scheduledAt": "Le jour prévu, à {time}",
       "scheduledLabel": "Donnée le jour prévu, {date}",
-      "scheduledLabelAt": "Donnée le jour prévu, {date} à {time}",
+      "scheduledLabelAt": "Donnée le jour prévu, {date} à {time}",
       "today": "Aujourd’hui",
       "todayLabel": "Donnée aujourd’hui, {date}",
       "other": "Une autre date",
       "otherLabel": "Donnée à une autre date : choisir le jour",
       "everyDay": "Donnée le {date}",
-      "everyDayAt": "Donnée le {date} à {time}",
+      "everyDayAt": "Donnée le {date} à {time}",
       "everyDayLabel": "Donnée le {date}",
-      "everyDayLabelAt": "Donnée le {date} à {time}",
+      "everyDayLabelAt": "Donnée le {date} à {time}",
       "back": "Retour à « Donnée quand ? »"
     }
   },
@@ -757,7 +882,7 @@
       "upcoming": "Prochaine dose",
       "end": "Fin du traitement"
     },
-    "at": "{date} à {time}",
+    "at": "{date} à {time}",
     "tomorrow": "demain, {date}",
     "overdueSince": "en retard depuis le {date}",
     "stoppedOn": "Arrêté le {date}",
@@ -881,6 +1006,7 @@
     },
     "reminder": {
       "vaccination": "Vaccin",
+      "firstVaccine": "Premier vaccin",
       "deworming": "Vermifuge",
       "antiparasitic": "Antiparasitaire",
       "medication": "Médicament"
@@ -894,6 +1020,7 @@
       "labelUnreadableSingle": "{title}, {type}, {due}. Ouvre le traitement.",
       "spokenType": {
         "vaccination": "vaccin",
+        "firstVaccine": "premier vaccin",
         "deworming": "vermifuge",
         "antiparasitic": "antiparasitaire",
         "medication": "médicament"
@@ -905,6 +1032,7 @@
         "todayAt": "aujourd’hui à {time}",
         "tomorrow": "demain",
         "later": "dans {n} jour, le {date} | dans {n} jours, le {date}",
+        "planned": "prévu le {date}",
         "toLog": "à renseigner, {unlogged}",
         "unreadable": "donnée illisible"
       }
@@ -915,6 +1043,7 @@
       "todayAt": "Aujourd’hui · {time}",
       "tomorrow": "Demain",
       "later": "Dans {n} jour | Dans {n} jours",
+      "planned": "Prévu le {date}",
       "toLog": "À renseigner",
       "unreadable": "Donnée illisible"
     },
@@ -1110,6 +1239,33 @@
       "plus": "MémoPatte Plus ajoute une sauvegarde cloud garantie, photos comprises, et la restaure sur un nouveau téléphone.",
       "discoverPlus": "Découvrir MémoPatte Plus"
     },
+    "erase": {
+      "screenTitle": "Effacer les données",
+      "screenSubtitle": "de ce téléphone",
+      "title": "Effacer les données de ce téléphone",
+      "removed": "Tout le carnet est retiré de ce téléphone : animaux, traitements, vaccins, poids et photos.",
+      "removedSignedIn": "Le carnet est retiré de ce téléphone.",
+      "unsynced": "Tes derniers changements ne sont pas encore dans ta sauvegarde cloud. Connecte-toi à Internet et attends la sauvegarde, ou exporte une copie.",
+      "cloudKept": "Ta sauvegarde cloud n’est pas touchée : tu pourras la restaurer sur ce téléphone ou un autre.",
+      "signOut": "Cet appareil sera déconnecté de ton compte.",
+      "copy": "Avant d’effacer, exporte une copie de ton carnet.",
+      "reminders": "Plus aucun rappel ne sonnera sur ce téléphone.",
+      "exports": "Les exports enregistrés dans Documents › MémoPatte restent sur le téléphone.",
+      "restart": "Après l’effacement, MémoPatte redémarre comme au premier lancement.",
+      "continue": "Continuer",
+      "cancel": "Annuler",
+      "confirm": {
+        "title": "Effacer les données de ce téléphone ?",
+        "text": "Sans copie, ton carnet ne pourra pas être retrouvé.",
+        "erase": "Effacer"
+      },
+      "final": {
+        "title": "Effacer définitivement ?",
+        "text": "Toutes les données de MémoPatte seront effacées de ce téléphone.",
+        "erase": "Effacer définitivement"
+      },
+      "error": "Les données n’ont pas pu être effacées. Réessaie."
+    },
     "data": {
       "title": "Mes données",
       "summary": "Unité, export, PDF, import",
@@ -1270,7 +1426,7 @@
         "empty": "Aucun traitement enregistré.",
         "stopped": "Arrêté le {date}",
         "ended": "Terminé le {date}",
-        "dueAt": "{date} à {time}",
+        "dueAt": "{date} à {time}",
         "unreadable": "Donnée illisible",
         "noDate": "—"
       },
@@ -1280,6 +1436,10 @@
       },
       "history": {
         "injections": "Injections : {dates}",
+        "noDose": "Aucune prise",
+        "noDoseUpcoming": "Aucune prise · prochaine dose le {date}",
+        "noDoseOverdue": "Aucune prise · en retard depuis le {date}",
+        "stoppedBeforeFirstDose": "Arrêté avant la première prise",
         "lastDose": "Dernière prise : {date}",
         "extraDose": "{date} (prise en plus)",
         "previousDoses": "Prises précédentes : {series}",

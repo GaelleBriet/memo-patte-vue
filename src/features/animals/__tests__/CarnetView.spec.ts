@@ -12,6 +12,7 @@ import {
 } from 'vitest'
 
 import AnimalPhotoSheet from '../views/AnimalPhotoSheet.vue'
+import AnimalPhotoViewer from '../views/AnimalPhotoViewer.vue'
 import CarnetView from '../views/CarnetView.vue'
 import type { Animal } from '../schema/animal.schema'
 import { provideAnimalsRepository, useAnimalsStore } from '../store/animals.store'
@@ -48,6 +49,13 @@ import { memoryStorage } from '@/features/purchase/__tests__/billing-fixture'
 import PdfExportSheet from '@/features/settings/views/PdfExportSheet.vue'
 import { toKg } from '@/shared/domain/weight-unit'
 import { applyWeightUnit } from '@/shared/domain/weight-unit-preference'
+import {
+  dismissToast,
+  runToastAction,
+  toastAction,
+  toastAnnouncement,
+  toastMessage,
+} from '@/shared/utils/toast'
 
 vi.mock('@/core/photos/photo-picker', () => ({
   pickPhoto: vi.fn<() => Promise<PickedPhoto | null>>(),
@@ -70,10 +78,14 @@ function animal(id: string, name: string, overrides: Partial<Animal> = {}): Anim
     species: 'dog',
     breed: null,
     birthDate: null,
+    birthDateApproximate: false,
     photoPath: null,
     createdAt: '2026-09-09T09:00:00.000Z',
     updatedAt: '2026-09-09T09:00:00.000Z',
     deletedAt: null,
+    unfollowedOn: null,
+    departureReason: null,
+    departureDate: null,
     ...overrides,
   }
 }
@@ -311,6 +323,26 @@ describe('CarnetView — header', () => {
     expect(wrapper.get('.carnet-header__subtitle').text()).toBe('6 mois')
   })
 
+  it('compte en semaines jusqu’à 16 semaines', async () => {
+    animals = [animal('a', 'Pixel', { breed: 'Européen', birthDate: '2026-07-01' })]
+    const wrapper = await monter()
+
+    expect(wrapper.get('.carnet-header__subtitle').text()).toBe('Européen · 10 semaines')
+  })
+
+  it('précède l’âge d’« environ » quand la date de naissance est approximative', async () => {
+    animals = [
+      animal('a', 'Pixel', {
+        breed: 'Européen',
+        birthDate: '2026-07-01',
+        birthDateApproximate: true,
+      }),
+    ]
+    const wrapper = await monter()
+
+    expect(wrapper.get('.carnet-header__subtitle').text()).toBe('Européen · environ 10 semaines')
+  })
+
   it('n’affiche pas de sous-titre sans race ni date de naissance', async () => {
     animals = [animal('a', 'Nino')]
     const wrapper = await monter()
@@ -546,9 +578,15 @@ describe('CarnetView — chargement et erreur', () => {
       create: vi.fn<AnimalsRepository['create']>(),
       update: vi.fn<AnimalsRepository['update']>(),
       remove: vi.fn<AnimalsRepository['remove']>(),
+      restore: vi.fn<AnimalsRepository['restore']>(),
+      getDeparture: vi.fn<AnimalsRepository['getDeparture']>(),
+      setDeparture: vi.fn<AnimalsRepository['setDeparture']>(),
+      setDepartureDetails: vi.fn<AnimalsRepository['setDepartureDetails']>(),
       listRecords: vi.fn<AnimalsRepository['listRecords']>(),
       listVersions: vi.fn<AnimalsRepository['listVersions']>(),
       markAllDeletedStatement: vi.fn<AnimalsRepository['markAllDeletedStatement']>(),
+      eraseAllStatement: vi.fn<AnimalsRepository['eraseAllStatement']>(),
+      eraseAll: vi.fn<AnimalsRepository['eraseAll']>(),
       restoreStatement: vi.fn<AnimalsRepository['restoreStatement']>(),
       runImport: vi.fn<AnimalsRepository['runImport']>(),
       entity: 'animal',
@@ -631,6 +669,7 @@ describe('CarnetView — photo depuis l’avatar du header', () => {
 
   afterEach(() => {
     mounted.splice(0).forEach((wrapper) => wrapper.unmount())
+    dismissToast()
     document.body.innerHTML = ''
     vi.unstubAllGlobals()
   })
@@ -651,93 +690,162 @@ describe('CarnetView — photo depuis l’avatar du header', () => {
 
   function actionsDeLaFeuille(): string[] {
     return [...(feuille()?.querySelectorAll('.animal-photo-sheet__action') ?? [])].map((action) =>
-      action.textContent!.trim(),
+      [...action.querySelectorAll('.animal-photo-sheet__label, .animal-photo-sheet__hint')]
+        .map((text) => text.textContent!.trim())
+        .join(' · '),
     )
   }
 
-  async function appuiLong(wrapper: ReturnType<typeof mount>) {
-    await wrapper.get('.carnet-header__avatar').trigger('contextmenu')
+  function action(libelle: string): HTMLElement {
+    const found = [
+      ...(feuille()?.querySelectorAll<HTMLElement>('.animal-photo-sheet__action') ?? []),
+    ].find((element) => element.textContent!.includes(libelle))
+    if (!found) throw new Error(`Pas d’action « ${libelle} » dans la feuille`)
+    return found
+  }
+
+  async function toucherAvatar(wrapper: ReturnType<typeof mount>) {
+    await wrapper.get('.carnet-header__photo').trigger('click')
     await flushPromises()
   }
 
-  it('annonce l’action aux lecteurs d’écran sur l’avatar', async () => {
+  it('avec une photo, l’avatar se lit « voir, changer ou retirer »', async () => {
+    animals = [{ ...MILO, photoPath: 'milo.jpg' }, LUNA]
     const wrapper = await monterAttache()
 
-    const avatar = wrapper.get('.carnet-header__avatar')
-    expect(avatar.attributes('aria-label')).toBe('Gérer la photo de Milo')
+    const avatar = wrapper.get('.carnet-header__photo')
+    expect(avatar.element.tagName).toBe('BUTTON')
+    expect(avatar.attributes('aria-label')).toBe('Photo de Milo\u00a0: voir, changer ou retirer')
     expect(avatar.attributes('aria-haspopup')).toBe('dialog')
-    expect(avatar.attributes('tabindex')).toBe('0')
   })
 
-  it('un toucher simple sur l’avatar n’ouvre rien', async () => {
+  it('sans photo, l’avatar se lit « Ajouter une photo de Milo » et garde le dégradé, sans patte', async () => {
     const wrapper = await monterAttache()
 
-    await wrapper.get('.carnet-header__avatar').trigger('click')
+    expect(wrapper.get('.carnet-header__photo').attributes('aria-label')).toBe(
+      'Ajouter une photo de Milo',
+    )
+    expect(wrapper.get('.carnet-header__avatar').attributes('style')).toContain('linear-gradient')
+    expect(wrapper.find('.carnet-header__avatar .v-icon').exists()).toBe(false)
+  })
+
+  it('porte un badge « appareil photo », muet pour les lecteurs d’écran', async () => {
+    const wrapper = await monterAttache()
+
+    const badge = wrapper.get('.carnet-header__photo .carnet-header__photo-badge')
+    expect(badge.attributes('aria-hidden')).toBe('true')
+    expect(badge.find('.v-icon').exists()).toBe(true)
+  })
+
+  it('ouvre la feuille d’un toucher sur l’avatar', async () => {
+    const wrapper = await monterAttache()
+
+    await toucherAvatar(wrapper)
+
+    expect(feuille()).not.toBeNull()
+  })
+
+  it('ouvre la feuille d’un toucher sur le badge', async () => {
+    const wrapper = await monterAttache()
+
+    await wrapper.get('.carnet-header__photo-badge').trigger('click')
+    await flushPromises()
+
+    expect(feuille()).not.toBeNull()
+  })
+
+  it('l’appui long n’ouvre plus rien', async () => {
+    const wrapper = await monterAttache()
+
+    await wrapper.get('.carnet-header__photo').trigger('contextmenu')
     await flushPromises()
 
     expect(feuille()).toBeNull()
   })
 
-  it.each(['enter', 'space'])('ouvre la feuille à la touche %s sur l’avatar', async (touche) => {
+  it('rend le focus à l’avatar à la fermeture de la feuille', async () => {
     const wrapper = await monterAttache()
 
-    await wrapper.get('.carnet-header__avatar').trigger(`keydown.${touche}`)
-    await flushPromises()
-
-    expect(feuille()).not.toBeNull()
-  })
-
-  it('rend le focus à l’avatar à la fermeture, même si l’appui long ne l’avait pas déplacé', async () => {
-    const wrapper = await monterAttache()
-    const chip = wrapper.findAll<HTMLElement>('.animal-chip')[1]!.element
-    chip.focus()
-    expect(document.activeElement).toBe(chip)
-
-    await appuiLong(wrapper)
+    await toucherAvatar(wrapper)
     document.body.querySelector<HTMLElement>('.animal-photo-sheet .bottom-sheet__handle')!.click()
     await flushPromises()
 
-    expect(document.activeElement).toBe(wrapper.get('.carnet-header__avatar').element)
+    expect(document.activeElement).toBe(wrapper.get('.carnet-header__photo').element)
   })
 
-  it('sans photo, l’appui long propose seulement « Ajouter une photo »', async () => {
+  it('titre la feuille du nom et de la race de l’animal, puis « Photo »', async () => {
     const wrapper = await monterAttache()
 
-    await appuiLong(wrapper)
+    await toucherAvatar(wrapper)
 
-    expect(feuille()).not.toBeNull()
-    expect(actionsDeLaFeuille()).toEqual(['Ajouter une photo'])
+    expect(feuille()!.querySelector('.bottom-sheet__title')?.textContent).toBe('Milo')
+    expect(feuille()!.querySelector('.bottom-sheet__subtitle')?.textContent).toBe(
+      'Golden retriever',
+    )
+    expect(feuille()!.querySelector('.animal-photo-sheet__heading')?.textContent).toBe('Photo')
   })
 
-  it('avec une photo, l’appui long propose de la changer ou de la retirer', async () => {
+  it('sans photo, propose seulement « Ajouter une photo · Choisir une photo »', async () => {
+    const wrapper = await monterAttache()
+
+    await toucherAvatar(wrapper)
+
+    expect(actionsDeLaFeuille()).toEqual(['Ajouter une photo · Choisir une photo'])
+  })
+
+  it('avec une photo, propose de la voir, de la changer ou de la retirer', async () => {
     animals = [{ ...MILO, photoPath: 'milo.jpg' }, LUNA]
     const wrapper = await monterAttache()
 
-    await appuiLong(wrapper)
+    await toucherAvatar(wrapper)
 
-    expect(actionsDeLaFeuille()).toEqual(['Changer la photo', 'Retirer la photo'])
+    expect(actionsDeLaFeuille()).toEqual([
+      'Voir la photo',
+      'Changer la photo · Choisir une photo',
+      'Retirer la photo',
+    ])
   })
 
-  it('« Retirer la photo » enregistre aussitôt puis referme la feuille', async () => {
+  it('« Voir la photo » referme la feuille et montre la photo en plein écran', async () => {
     animals = [{ ...MILO, photoPath: 'milo.jpg' }, LUNA]
-    const update = vi.spyOn(store, 'update').mockResolvedValue(MILO)
     const wrapper = await monterAttache()
-    await appuiLong(wrapper)
+    await toucherAvatar(wrapper)
 
-    feuille()!.querySelectorAll<HTMLElement>('.animal-photo-sheet__action')[1]!.click()
+    action('Voir la photo').click()
     await flushPromises()
 
-    expect(update).toHaveBeenCalledWith(MILO.id, expect.anything(), { kind: 'remove' })
     expect(wrapper.getComponent(AnimalPhotoSheet).props('modelValue')).toBe(false)
+    expect(wrapper.getComponent(AnimalPhotoViewer).props('modelValue')).toBe(true)
+    expect(document.body.querySelector('.animal-photo-viewer__image')?.getAttribute('src')).toBe(
+      'url:milo.jpg',
+    )
+  })
+
+  it('« Retirer la photo », sans confirmation : referme la feuille, toast « Photo retirée » · « Annuler »', async () => {
+    animals = [{ ...MILO, photoPath: 'milo.jpg' }, LUNA]
+    const removePhoto = vi
+      .spyOn(store, 'removePhoto')
+      .mockResolvedValue({ animalId: MILO.id, photoPath: 'milo.jpg' })
+    vi.spyOn(store, 'forgetRemovedPhoto').mockResolvedValue()
+    const wrapper = await monterAttache()
+    await toucherAvatar(wrapper)
+
+    action('Retirer la photo').click()
+    await flushPromises()
+
+    expect(removePhoto).toHaveBeenCalledWith(MILO.id, expect.anything())
+    expect(wrapper.getComponent(AnimalPhotoSheet).props('modelValue')).toBe(false)
+    expect(toastMessage.value).toBe('Photo retirée')
+    expect(toastAction.value?.label).toBe('Annuler')
   })
 
   it('« Ajouter une photo » enregistre la photo choisie', async () => {
     choisirPhoto.mockResolvedValue({ base64: 'TUlMTw==', previewUrl: 'data:,' })
     const update = vi.spyOn(store, 'update').mockResolvedValue(MILO)
     const wrapper = await monterAttache()
-    await appuiLong(wrapper)
+    await toucherAvatar(wrapper)
 
-    feuille()!.querySelector<HTMLElement>('.animal-photo-sheet__action')!.click()
+    action('Ajouter une photo').click()
     await flushPromises()
 
     expect(update).toHaveBeenCalledWith(MILO.id, expect.anything(), {
@@ -749,9 +857,9 @@ describe('CarnetView — photo depuis l’avatar du header', () => {
   it('garde la feuille ouverte avec le message du formulaire si la photo est illisible', async () => {
     choisirPhoto.mockRejectedValue(new Error('Not implemented'))
     const wrapper = await monterAttache()
-    await appuiLong(wrapper)
+    await toucherAvatar(wrapper)
 
-    feuille()!.querySelector<HTMLElement>('.animal-photo-sheet__action')!.click()
+    action('Ajouter une photo').click()
     await flushPromises()
 
     expect(feuille()!.querySelector('[role="alert"]')?.textContent?.trim()).toBe(
@@ -762,13 +870,436 @@ describe('CarnetView — photo depuis l’avatar du header', () => {
   it('désactive les actions pendant le choix', async () => {
     choisirPhoto.mockReturnValue(new Promise(() => {}))
     const wrapper = await monterAttache()
-    await appuiLong(wrapper)
+    await toucherAvatar(wrapper)
 
-    feuille()!.querySelector<HTMLElement>('.animal-photo-sheet__action')!.click()
+    action('Ajouter une photo').click()
     await flushPromises()
 
-    expect(feuille()!.querySelector('.animal-photo-sheet__action')!.hasAttribute('disabled')).toBe(
-      true,
+    expect(action('Ajouter une photo').hasAttribute('disabled')).toBe(true)
+  })
+})
+
+describe('CarnetView — options de l’animal', () => {
+  const REMOVAL = { animalId: MILO.id, deletedAt: '2026-09-09T12:00:00.000Z', photoPath: null }
+
+  afterEach(() => {
+    dismissToast()
+    mounted.splice(0).forEach((wrapper) => wrapper.unmount())
+    document.body.innerHTML = ''
+  })
+
+  async function monterAttache() {
+    const wrapper = mount(CarnetView, {
+      global: { plugins: [vuetify, i18n, router] },
+      attachTo: document.body,
+    })
+    mounted.push(wrapper)
+    await flushPromises()
+    return wrapper
+  }
+
+  function feuille(): HTMLElement | null {
+    return document.body.querySelector<HTMLElement>('.animal-options-sheet .bottom-sheet__panel')
+  }
+
+  function actions(): HTMLElement[] {
+    return [...(feuille()?.querySelectorAll<HTMLElement>('.animal-options-sheet__action') ?? [])]
+  }
+
+  function texte(element: Element | null | undefined): string {
+    return (element?.textContent ?? '').replace(/\s+/g, ' ').trim()
+  }
+
+  async function ouvrirOptions(wrapper: ReturnType<typeof mount>) {
+    await wrapper.get('.carnet-header__options').trigger('click')
+    await flushPromises()
+  }
+
+  async function toucher(element: HTMLElement | undefined) {
+    element!.click()
+    await flushPromises()
+  }
+
+  function quitter(id: string, changes: Partial<Animal>) {
+    store.animals = store.animals.map((item) => (item.id === id ? { ...item, ...changes } : item))
+  }
+
+  it('AN-6 : n’affiche dans les chips que les animaux suivis, et ouvre sur le premier d’entre eux', async () => {
+    animals = [{ ...MILO, unfollowedOn: '2026-09-01' }, LUNA]
+
+    const wrapper = await monterAttache()
+
+    expect(wrapper.findAll('.animal-chip').map((chip) => chip.text())).toEqual(['Luna'])
+    expect(store.selectedAnimalId).toBe(LUNA.id)
+  })
+
+  it('TR-37 : dit à la section des traitements si l’animal est suivi', async () => {
+    animals = [MILO, { ...LUNA, unfollowedOn: '2026-09-01' }]
+    store.select(LUNA.id)
+
+    const wrapper = await monterAttache()
+
+    expect(wrapper.getComponent(TreatmentsSection).props('followed')).toBe(false)
+    store.select(MILO.id)
+    await flushPromises()
+    expect(wrapper.getComponent(TreatmentsSection).props('followed')).toBe(true)
+  })
+
+  it('souhaite la bienvenue quand plus aucun animal n’est suivi', async () => {
+    animals = [{ ...MILO, unfollowedOn: '2026-09-01' }]
+
+    const wrapper = await monterAttache()
+
+    expect(wrapper.find('.carnet-welcome').exists()).toBe(true)
+  })
+
+  it('AN-12 : le menu ⋮ ouvre « Options » avec « Ne plus suivre » et « Supprimer »', async () => {
+    const wrapper = await monterAttache()
+
+    expect(wrapper.get('.carnet-header__options').attributes('aria-label')).toBe('Options de Milo')
+    await ouvrirOptions(wrapper)
+
+    expect(texte(feuille()?.querySelector('.bottom-sheet__title'))).toBe('Milo')
+    expect(texte(feuille()?.querySelector('.animal-options-sheet__heading'))).toBe('Options')
+    expect(
+      actions().map((action) => texte(action.querySelector('.animal-options-sheet__label'))),
+    ).toEqual(['Ne plus suivre Milo', 'Supprimer Milo'])
+    expect(texte(actions()[0]?.querySelector('.animal-options-sheet__hint'))).toBe(
+      'Ses rappels et ses traitements en cours s’arrêtent. Son carnet reste intact.',
     )
+  })
+
+  it('AN-12 : propose « Suivre Luna de nouveau » pour un animal qu’on ne suit plus', async () => {
+    animals = [MILO, { ...LUNA, unfollowedOn: '2026-09-01' }]
+    store.select(LUNA.id)
+    const wrapper = await monterAttache()
+
+    await ouvrirOptions(wrapper)
+
+    expect(actions().map(texte)).toEqual(['Suivre Luna de nouveau', 'Supprimer Luna'])
+  })
+
+  it('AN-9, V15 bis : « Ne plus suivre » sans question, revient à l’accueil et propose « Annuler »', async () => {
+    const undo = { animalId: MILO.id, unfollowedOn: '2026-09-09', stoppedPeriodIds: [] }
+    const unfollow = vi.spyOn(store, 'unfollow').mockImplementation(async () => {
+      quitter(MILO.id, { unfollowedOn: '2026-09-09' })
+      return undo
+    })
+    const undoUnfollow = vi.spyOn(store, 'undoUnfollow').mockImplementation(async () => {
+      quitter(MILO.id, { unfollowedOn: null })
+    })
+    const wrapper = await monterAttache()
+    await ouvrirOptions(wrapper)
+
+    await toucher(actions()[0])
+
+    expect(unfollow).toHaveBeenCalledExactlyOnceWith(MILO.id)
+    expect(document.body.querySelector('.confirm-dialog__panel')).toBeNull()
+    expect(push).toHaveBeenCalledExactlyOnceWith({ name: 'home' })
+    expect(wrapper.findAll('.animal-chip').map((chip) => chip.text())).toEqual(['Luna'])
+    expect(toastMessage.value).toBe('Tu ne suis plus Milo')
+    expect(toastAction.value?.ariaLabel?.replace(/\s/gu, ' ')).toBe(
+      'Annuler : suivre Milo de nouveau',
+    )
+    await vi.waitFor(() =>
+      expect(toastAnnouncement.value).toBe('Tu ne suis plus Milo. Ses rappels sont coupés.'),
+    )
+
+    runToastAction()
+    await flushPromises()
+
+    expect(undoUnfollow).toHaveBeenCalledExactlyOnceWith(undo)
+    expect(wrapper.get('.carnet-header__name').text()).toBe('Milo')
+  })
+
+  it('AN-11 : « Suivre de nouveau » garde l’animal affiché, avec le toast qui parle de « Reprendre »', async () => {
+    animals = [MILO, { ...LUNA, unfollowedOn: '2026-09-01' }]
+    store.select(LUNA.id)
+    const undo = {
+      animalId: LUNA.id,
+      departure: { unfollowedOn: '2026-09-01', departureReason: null, departureDate: null },
+    }
+    const follow = vi.spyOn(store, 'follow').mockImplementation(async () => {
+      quitter(LUNA.id, { unfollowedOn: null })
+      return undo
+    })
+    const undoFollow = vi.spyOn(store, 'undoFollow').mockResolvedValue()
+    const wrapper = await monterAttache()
+    await ouvrirOptions(wrapper)
+
+    await toucher(actions()[0])
+
+    expect(follow).toHaveBeenCalledExactlyOnceWith(LUNA.id)
+    expect(wrapper.get('.carnet-header__name').text()).toBe('Luna')
+    expect(wrapper.findAll('.animal-chip').map((chip) => chip.text())).toEqual(['Milo', 'Luna'])
+    expect(toastMessage.value?.replace(/\s/gu, ' ')).toBe(
+      'Tu suis de nouveau Luna. Ses traitements arrêtés ne reprennent pas seuls : relance chacun avec « Reprendre ».',
+    )
+
+    expect(toastAction.value?.ariaLabel?.replace(/\s/gu, ' ')).toBe('Annuler : ne plus suivre Luna')
+    runToastAction()
+    await flushPromises()
+
+    expect(undoFollow).toHaveBeenCalledExactlyOnceWith(undo)
+  })
+
+  it('dit l’échec du geste en toast', async () => {
+    vi.spyOn(store, 'unfollow').mockRejectedValue(new Error('base verrouillée'))
+    const wrapper = await monterAttache()
+    await ouvrirOptions(wrapper)
+
+    await toucher(actions()[0])
+
+    expect(toastMessage.value).toBe('Le changement n’a pas pu être enregistré. Réessaie.')
+    expect(wrapper.get('.carnet-header__name').text()).toBe('Milo')
+  })
+
+  describe('« Supprimer »', () => {
+    async function demanderSuppression(wrapper: ReturnType<typeof mount>) {
+      await ouvrirOptions(wrapper)
+      await toucher(actions()[1])
+    }
+
+    function dialogue(): HTMLElement | null {
+      return document.body.querySelector<HTMLElement>('.confirm-dialog__panel')
+    }
+
+    it('AN-12 : demande confirmation, « Annuler » ne supprime rien', async () => {
+      const remove = vi.spyOn(store, 'remove')
+      const wrapper = await monterAttache()
+
+      await demanderSuppression(wrapper)
+
+      expect(texte(dialogue()?.querySelector('.confirm-dialog__title'))).toBe('Supprimer Milo ?')
+      expect(texte(dialogue()?.querySelector('.confirm-dialog__text'))).toBe(
+        'Tout son carnet sera supprimé : vaccins, traitements, pesées, photo.',
+      )
+      await toucher(dialogue()?.querySelector<HTMLElement>('.confirm-dialog__cancel') ?? undefined)
+
+      expect(remove).not.toHaveBeenCalled()
+    })
+
+    it('AN-12 : supprime, affiche l’animal suivant, et « Annuler » rend l’animal', async () => {
+      const remove = vi.spyOn(store, 'remove').mockImplementation(async () => {
+        store.animals = store.animals.filter((item) => item.id !== MILO.id)
+        return REMOVAL
+      })
+      const undoRemove = vi.spyOn(store, 'undoRemove').mockImplementation(async () => {
+        store.animals = [MILO, ...store.animals]
+      })
+      const forgetPhoto = vi.spyOn(store, 'forgetPhoto').mockResolvedValue()
+      const wrapper = await monterAttache()
+      await demanderSuppression(wrapper)
+
+      await toucher(dialogue()?.querySelector<HTMLElement>('.confirm-dialog__confirm') ?? undefined)
+
+      expect(remove).toHaveBeenCalledExactlyOnceWith(MILO.id)
+      expect(wrapper.get('.carnet-header__name').text()).toBe('Luna')
+      expect(toastMessage.value).toBe('Carnet de Milo supprimé')
+      expect(toastAction.value?.ariaLabel?.replace(/\s/gu, ' ')).toBe(
+        'Annuler : garder le carnet de Milo',
+      )
+
+      runToastAction()
+      await flushPromises()
+
+      expect(undoRemove).toHaveBeenCalledExactlyOnceWith(REMOVAL)
+      expect(wrapper.get('.carnet-header__name').text()).toBe('Milo')
+      expect(forgetPhoto).not.toHaveBeenCalled()
+    })
+
+    it('AN-12 : n’efface la photo qu’une fois le toast fermé sans « Annuler »', async () => {
+      vi.spyOn(store, 'remove').mockImplementation(async () => {
+        store.animals = store.animals.filter((item) => item.id !== MILO.id)
+        return REMOVAL
+      })
+      const forgetPhoto = vi.spyOn(store, 'forgetPhoto').mockResolvedValue()
+      const wrapper = await monterAttache()
+      await demanderSuppression(wrapper)
+      await toucher(dialogue()?.querySelector<HTMLElement>('.confirm-dialog__confirm') ?? undefined)
+      expect(forgetPhoto).not.toHaveBeenCalled()
+
+      dismissToast()
+
+      expect(forgetPhoto).toHaveBeenCalledExactlyOnceWith(REMOVAL)
+    })
+
+    it('revient à l’accueil quand il ne reste aucun animal suivi', async () => {
+      animals = [MILO]
+      vi.spyOn(store, 'remove').mockImplementation(async () => {
+        store.animals = []
+        return REMOVAL
+      })
+      const wrapper = await monterAttache()
+      await demanderSuppression(wrapper)
+
+      await toucher(dialogue()?.querySelector<HTMLElement>('.confirm-dialog__confirm') ?? undefined)
+
+      expect(push).toHaveBeenCalledWith({ name: 'home' })
+    })
+
+    it('jamais de lien rouge en bas du Carnet', async () => {
+      const wrapper = await monterAttache()
+
+      expect(wrapper.text()).not.toContain('Supprimer Milo')
+    })
+  })
+})
+
+describe('CarnetView — animaux qu’on ne suit plus (AN-10)', () => {
+  const LUNA_GONE = { ...LUNA, breed: 'Européenne', unfollowedOn: '2026-09-01' }
+  const PIXEL_GONE = animal('55555555-5555-4555-8555-555555555555', 'Pixel', {
+    unfollowedOn: '2026-08-01',
+  })
+
+  function ligneNonSuivis(wrapper: ReturnType<typeof mount>) {
+    return wrapper.find('.carnet-unfollowed-link')
+  }
+
+  function texte(element: { text(): string }): string {
+    return element.text().replace(/\s+/g, ' ').trim()
+  }
+
+  it('n’affiche pas la ligne quand tous les animaux sont suivis', async () => {
+    const wrapper = await monter()
+
+    expect(ligneNonSuivis(wrapper).exists()).toBe(false)
+  })
+
+  it('affiche « Animaux que tu ne suis plus (N) » sous la dernière section, sur un animal suivi', async () => {
+    animals = [MILO, LUNA_GONE, PIXEL_GONE]
+
+    const wrapper = await monter()
+
+    expect(texte(ligneNonSuivis(wrapper))).toBe('Animaux que tu ne suis plus (2)')
+    const sections = wrapper.get('.carnet__sections').element
+    expect(sections.lastElementChild).toBe(ligneNonSuivis(wrapper).element)
+  })
+
+  it('ouvre le carnet du seul animal qu’on ne suit plus', async () => {
+    animals = [MILO, LUNA_GONE]
+    const wrapper = await monter()
+
+    await ligneNonSuivis(wrapper).trigger('click')
+
+    expect(store.selectedAnimalId).toBe(LUNA.id)
+    expect(wrapper.get('.carnet-header__name').text()).toBe('Luna')
+    expect(push).not.toHaveBeenCalled()
+  })
+
+  it('ouvre la liste dès deux animaux qu’on ne suit plus', async () => {
+    animals = [MILO, LUNA_GONE, PIXEL_GONE]
+    const wrapper = await monter()
+
+    await ligneNonSuivis(wrapper).trigger('click')
+
+    expect(push).toHaveBeenCalledExactlyOnceWith({ name: 'unfollowed-animals' })
+  })
+
+  describe('plus aucun animal suivi (V15 nonies)', () => {
+    it('garde la bienvenue, avec la phrase au singulier et la ligne qui ouvre le carnet', async () => {
+      animals = [LUNA_GONE]
+      const wrapper = await monter()
+
+      expect(wrapper.find('.carnet-welcome').exists()).toBe(true)
+      expect(texte(wrapper.get('.carnet-welcome__unfollowed'))).toBe(
+        'Tu ne suis plus aucun animal. Son carnet reste consultable.',
+      )
+      expect(texte(ligneNonSuivis(wrapper))).toBe('Animaux que tu ne suis plus (1)')
+
+      await ligneNonSuivis(wrapper).trigger('click')
+
+      expect(store.selectedAnimalId).toBe(LUNA.id)
+      expect(wrapper.get('.carnet-header__name').text()).toBe('Luna')
+    })
+
+    it('met la phrase au pluriel et ouvre la liste dès deux animaux', async () => {
+      animals = [LUNA_GONE, PIXEL_GONE]
+      const wrapper = await monter()
+
+      expect(texte(wrapper.get('.carnet-welcome__unfollowed'))).toBe(
+        'Tu ne suis plus aucun animal. Leurs carnets restent consultables.',
+      )
+      await ligneNonSuivis(wrapper).trigger('click')
+
+      expect(push).toHaveBeenCalledExactlyOnceWith({ name: 'unfollowed-animals' })
+    })
+
+    it('n’ajoute rien à la bienvenue d’un carnet vide', async () => {
+      animals = []
+      const wrapper = await monter()
+
+      expect(wrapper.find('.carnet-welcome__unfollowed').exists()).toBe(false)
+      expect(ligneNonSuivis(wrapper).exists()).toBe(false)
+    })
+  })
+
+  describe('carnet d’un animal qu’on ne suit plus (V15 ter)', () => {
+    beforeEach(() => {
+      animals = [MILO, LUNA_GONE]
+      store.select(LUNA.id)
+    })
+
+    it('annonce qu’aucun rappel n’est envoyé, et propose « Ajouter une date » et « Suivre de nouveau »', async () => {
+      const wrapper = await monter()
+
+      expect(texte(wrapper.get('.carnet-unfollowed__banner'))).toBe(
+        'Tu ne suis plus Luna : aucun rappel n’est envoyé. Son carnet reste tel quel.',
+      )
+      expect(wrapper.findAll('.carnet-unfollowed__action').map(texte)).toEqual([
+        'Ajouter une date',
+        'Suivre de nouveau',
+      ])
+      expect(wrapper.get('.carnet-header__subtitle').text()).toBe('Européenne')
+    })
+
+    it('n’a ni bandeau ni boutons pour un animal suivi', async () => {
+      store.select(MILO.id)
+      const wrapper = await monter()
+
+      expect(wrapper.find('.carnet-unfollowed').exists()).toBe(false)
+    })
+
+    it('ouvre « Ajouter une date »', async () => {
+      const wrapper = await monter()
+
+      await wrapper.findAll('.carnet-unfollowed__action')[0]!.trigger('click')
+
+      expect(push).toHaveBeenCalledExactlyOnceWith({
+        name: 'animal-departure',
+        params: { id: LUNA.id },
+      })
+    })
+
+    it('Q5 : « Modifier la date » et « jusqu’au … » une fois la date saisie, sans le motif', async () => {
+      animals = [MILO, { ...LUNA_GONE, departureReason: 'death', departureDate: '2026-08-28' }]
+      const wrapper = await monter()
+
+      expect(texte(wrapper.findAll('.carnet-unfollowed__action')[0]!)).toBe('Modifier la date')
+      expect(texte(wrapper.get('.carnet-header__subtitle'))).toBe('jusqu’au 28 août 2026')
+      expect(wrapper.text()).not.toContain('Décès')
+    })
+
+    it('« Suivre de nouveau » suit l’animal, comme depuis « Options »', async () => {
+      const follow = vi.spyOn(store, 'follow').mockResolvedValue(null)
+      const wrapper = await monter()
+
+      await wrapper.findAll('.carnet-unfollowed__action')[1]!.trigger('click')
+      await flushPromises()
+
+      expect(follow).toHaveBeenCalledExactlyOnceWith(LUNA.id)
+    })
+
+    it('VA-16 : la section des vaccins sait que l’animal n’est plus suivi', async () => {
+      const wrapper = await monter()
+
+      expect(wrapper.getComponent(VaccinationsSection).props('followed')).toBe(false)
+    })
+
+    it('critère 4 : reste exportable en PDF', async () => {
+      const wrapper = await monter()
+
+      expect(wrapper.find('.carnet-header__export-pdf').exists()).toBe(true)
+    })
   })
 })

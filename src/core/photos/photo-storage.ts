@@ -32,6 +32,34 @@ export async function deletePhoto(name: string): Promise<void> {
   await Filesystem.deleteFile({ path: photoPath(name), directory: Directory.Data })
 }
 
+/** Sans effet quand le dossier n'existe pas : aucune photo n'a encore été enregistrée. */
+export async function deleteAllPhotos(): Promise<void> {
+  if (!(await photosDirExists())) return
+  await Filesystem.rmdir({ path: PHOTOS_DIR, directory: Directory.Data, recursive: true })
+}
+
+// Le pont Capacitor journalise tout rejet natif, même rattrapé : ne pas toucher un dossier absent.
+async function photosDirExists(): Promise<boolean> {
+  const root = await Filesystem.readdir({ path: '', directory: Directory.Data })
+  return root.files.some(({ name, type }) => name === PHOTOS_DIR && type === 'directory')
+}
+
+/** `modifiedAt` en millisecondes depuis l'époque Unix. */
+export interface StoredPhoto {
+  name: string
+  modifiedAt: number
+}
+
+/** Les seules photos de l'app : tout autre fichier du dossier est ignoré. */
+export async function listPhotos(): Promise<StoredPhoto[]> {
+  if (!(await photosDirExists())) return []
+
+  const { files } = await Filesystem.readdir({ path: PHOTOS_DIR, directory: Directory.Data })
+  return files
+    .filter(({ name, type }) => type === 'file' && isPhotoFileName(name))
+    .map(({ name, mtime }) => ({ name, modifiedAt: mtime }))
+}
+
 /** Sonde par `stat` seul : l'import vérifie tout un carnet sans lire une seule image. */
 export async function photoExists(name: string): Promise<boolean> {
   try {

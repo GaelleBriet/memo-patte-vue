@@ -20,7 +20,7 @@ async function signOut(): Promise<void> {
   isConfirmOpen.value = false
   try {
     await auth.signOut()
-    await router.push(signInRoute('settings'))
+    await router.replace(signInRoute('settings'))
   } finally {
     isProcessing.value = false
   }

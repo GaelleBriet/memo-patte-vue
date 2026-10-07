@@ -27,6 +27,7 @@ import i18n, { applyLocale } from '@/core/i18n'
 import router from '@/router'
 import vuetify from '@/core/theme/vuetify'
 import { dismissToast, runToastAction, toastMessage } from '@/shared/utils/toast'
+import { plain } from '@/shared/__tests__/plain'
 
 const Vide = { render: () => null }
 
@@ -36,10 +37,14 @@ const MILO: Animal = {
   species: 'dog',
   breed: null,
   birthDate: null,
+  birthDateApproximate: false,
   photoPath: null,
   createdAt: '2026-09-09T09:00:00.000Z',
   updatedAt: '2026-09-09T09:00:00.000Z',
   deletedAt: null,
+  unfollowedOn: null,
+  departureReason: null,
+  departureDate: null,
 }
 
 function entry(weightKg: number, measuredOn: string, animalId = MILO.id): WeightEntry {
@@ -244,7 +249,7 @@ describe('WeightHistoryView — H1 historique complet', () => {
   it('met en avant le poids actuel et son évolution depuis la pesée précédente', async () => {
     const wrapper = await monter()
 
-    expect(wrapper.get('.weight-history__current-label').text()).toBe('Poids actuel')
+    expect(plain(wrapper.get('.weight-history__current-label').text())).toBe('Poids actuel')
     expect(wrapper.get('.weight-history__current').text()).toBe('24,5')
     expect(wrapper.get('.weight-history__unit').text()).toBe('kg')
     const delta = wrapper.get('.weight-history__delta')
@@ -281,7 +286,7 @@ describe('WeightHistoryView — H1 historique complet', () => {
     expect(wrapper.get('.section-card__title').text()).toBe('Toutes les pesées')
     expect(wrapper.get('.section-card__counter').text()).toBe('6')
     expect(lignes).toHaveLength(6)
-    expect(lignes.map((l) => l.get('.weight-history__row-date').text())).toEqual([
+    expect(lignes.map((l) => plain(l.get('.weight-history__row-date').text()))).toEqual([
       '8 nov. 2026',
       '11 oct. 2026',
       '13 sept. 2026',
@@ -337,7 +342,7 @@ describe('WeightHistoryView — lire une pesée sur la courbe', () => {
 
   function resume() {
     return {
-      label: wrapper!.get('.weight-history__current-label').text(),
+      label: plain(wrapper!.get('.weight-history__current-label').text()),
       poids: wrapper!.get('.weight-history__current').text(),
       unite: wrapper!.get('.weight-history__unit').text(),
       variation: wrapper!.get('.weight-history__delta').text(),
@@ -549,7 +554,7 @@ describe('WeightHistoryView — historique par pages', () => {
     const wrapper = await monter()
 
     expect(wrapper.findAll('.weight-chart-trace__point')).toHaveLength(12)
-    expect(wrapper.get('.weight-history-chart__range').text()).toBe('avr. 2026\u00a0– sept. 2026')
+    expect(plain(wrapper.get('.weight-history-chart__range').text())).toBe('avr. 2026 – sept. 2026')
     expect(wrapper.findAll('.weight-history__row')).toHaveLength(30)
     expect(wrapper.get('.section-card__counter').text()).toBe('30')
   })
@@ -557,11 +562,13 @@ describe('WeightHistoryView — historique par pages', () => {
   it('remet le résumé à la pesée la plus récente en changeant de page', async () => {
     const wrapper = await monter()
     await wrapper.get('.weight-history-chart__svg').trigger('keydown', { key: 'Home' })
-    expect(wrapper.get('.weight-history__current-label').text()).toBe('Pesée du 12 avr. 2026')
+    expect(plain(wrapper.get('.weight-history__current-label').text())).toBe(
+      'Pesée du 12 avr. 2026',
+    )
 
     await wrapper.get('.weight-history-chart__turn--previous').trigger('click')
 
-    expect(wrapper.get('.weight-history__current-label').text()).toBe('Poids actuel')
+    expect(plain(wrapper.get('.weight-history__current-label').text())).toBe('Poids actuel')
     expect(wrapper.get('.weight-history__current').text()).toBe('24,5')
     expect(wrapper.find('.weight-history__reset').exists()).toBe(false)
   })
@@ -571,7 +578,9 @@ describe('WeightHistoryView — historique par pages', () => {
 
     await wrapper.get('.weight-history-chart__svg').trigger('keydown', { key: 'Home' })
 
-    expect(wrapper.get('.weight-history__current-label').text()).toBe('Pesée du 12 avr. 2026')
+    expect(plain(wrapper.get('.weight-history__current-label').text())).toBe(
+      'Pesée du 12 avr. 2026',
+    )
     expect(wrapper.get('.weight-history__delta').text()).toBe(
       '+0,7\u00a0kg depuis le\u00a029\u00a0mars',
     )
@@ -583,7 +592,9 @@ describe('WeightHistoryView — historique par pages', () => {
 
     await wrapper.get('.weight-history-chart__svg').trigger('keydown', { key: 'ArrowLeft' })
 
-    expect(wrapper.get('.weight-history__current-label').text()).toBe('Pesée du 15 mars 2026')
+    expect(plain(wrapper.get('.weight-history__current-label').text())).toBe(
+      'Pesée du 15 mars 2026',
+    )
     expect(wrapper.get('.weight-history__current').text()).toBe('15,4')
     expect(wrapper.get('.weight-history__delta').text()).toBe(
       '+0,7\u00a0kg depuis le\u00a01er\u00a0mars',
@@ -685,7 +696,7 @@ describe('WeightHistoryView — H2 une seule pesée', () => {
     const wrapper = await monter()
 
     const delta = wrapper.get('.weight-history__delta')
-    expect(delta.text()).toBe('Première pesée · 8 nov. 2026')
+    expect(plain(delta.text())).toBe('Première pesée · 8 nov. 2026')
     expect(delta.classes()).toContain('weight-history__delta--flat')
     const single = wrapper.get('.weight-history__single')
     expect(single.text()).toBe('Ajoute une nouvelle pesée pour voir l’évolution.')
@@ -835,7 +846,7 @@ describe('WeightHistoryView — corriger ou supprimer une pesée', () => {
 
   function lignes() {
     return wrapper!.findAll('.weight-history__row').map((ligne) => ({
-      date: ligne.get('.weight-history__row-date').text(),
+      date: plain(ligne.get('.weight-history__row-date').text()),
       poids: ligne.get('.weight-history__row-value').text(),
     }))
   }
@@ -847,10 +858,10 @@ describe('WeightHistoryView — corriger ou supprimer une pesée', () => {
     expect(boutons).toHaveLength(6)
     expect(boutons[0]!.element.tagName).toBe('BUTTON')
     expect(boutons[0]!.attributes('aria-label')).toBeUndefined()
-    expect(boutons[0]!.findAll('span').map((partie) => partie.text())).toEqual([
+    expect(boutons[0]!.findAll('span').map((partie) => plain(partie.text()))).toEqual([
       '8 nov. 2026',
-      '+0,2\u00a0kg',
-      '24,5\u00a0kg',
+      '+0,2 kg',
+      '24,5 kg',
     ])
   })
 
@@ -914,7 +925,7 @@ describe('WeightHistoryView — corriger ou supprimer une pesée', () => {
     expect(wrapper.get('.section-card__counter').text()).toBe('5')
     expect(wrapper.get('.weight-history__current').text()).toBe('24,3')
     expect(wrapper.findAll('.weight-chart-trace__point')).toHaveLength(5)
-    expect(toastMessage.value).toBe('Pesée du 8 nov. supprimée')
+    expect(plain(toastMessage.value)).toBe('Pesée du 8 nov. supprimée')
   })
 
   it('remet la pesée supprimée par « Annuler »', async () => {
@@ -977,21 +988,21 @@ describe('WeightHistoryView — page de la courbe après une écriture', () => {
   })
 
   function periode() {
-    return wrapper!.get('.weight-history-chart__range').text()
+    return plain(wrapper!.get('.weight-history-chart__range').text())
   }
 
   it('garde la page de la courbe quand une pesée est supprimée puis remise', async () => {
     const wrapper = await monter()
     await wrapper.get('.weight-history-chart__turn--previous').trigger('click')
-    expect(periode()).toBe('oct. 2025\u00a0– mars 2026')
+    expect(periode()).toBe('oct. 2025 – mars 2026')
 
     await toucherLigne(0)
     await cliquerDansLaFeuille('.weight-sheet__delete')
-    expect(periode()).toBe('oct. 2025\u00a0– mars 2026')
+    expect(periode()).toBe('oct. 2025 – mars 2026')
 
     runToastAction()
     await flushPromises()
-    expect(periode()).toBe('oct. 2025\u00a0– mars 2026')
+    expect(periode()).toBe('oct. 2025 – mars 2026')
   })
 
   it('garde la page de la courbe quand une pesée est corrigée', async () => {
@@ -1002,7 +1013,7 @@ describe('WeightHistoryView — page de la courbe après une écriture', () => {
     await saisirPoids('24,6')
     await cliquerDansLaFeuille('.weight-sheet__submit')
 
-    expect(periode()).toBe('oct. 2025\u00a0– mars 2026')
+    expect(periode()).toBe('oct. 2025 – mars 2026')
   })
 
   it('montre la page la plus récente après un ajout', async () => {
@@ -1019,7 +1030,7 @@ describe('WeightHistoryView — page de la courbe après une écriture', () => {
     await saisirPoids('24,6')
     await cliquerDansLaFeuille('.weight-sheet__submit')
 
-    expect(periode()).toBe('avr. 2026\u00a0– sept. 2026')
+    expect(periode()).toBe('avr. 2026 – sept. 2026')
     expect(wrapper.get('.weight-history-chart__turn--next').attributes('aria-disabled')).toBe(
       'true',
     )
@@ -1073,8 +1084,8 @@ describe('WeightHistoryView — en livres', () => {
     applyWeightUnit('lb')
     const wrapper = await monter()
 
-    expect(wrapper.get('.weight-history-chart__svg').attributes('aria-valuetext')).toBe(
-      'Pesée du 8 novembre 2026, 54,0\u00a0lb',
+    expect(plain(wrapper.get('.weight-history-chart__svg').attributes('aria-valuetext'))).toBe(
+      'Pesée du 8 novembre 2026, 54,0 lb',
     )
   })
 

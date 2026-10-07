@@ -145,15 +145,15 @@ describe('chooseDaysLayout — un calendrier par mois (TR-16)', () => {
     const [august, september] = tabMonths(t, tab(all))
     const unchecked = keys(all, '2026-08-21')
 
-    expect(august).toMatchObject({ title: 'août 2026', count: '12 jours', blanks: 5 })
+    expect(plain(august)).toMatchObject({ title: 'août 2026', count: '12 jours', blanks: 5 })
     expect(august?.dues).toHaveLength(12)
-    expect(september).toMatchObject({ title: 'septembre 2026', count: '27 jours' })
-    expect(monthToggle(t, august!, missedAmong(august!.dues, unchecked))).toEqual({
+    expect(plain(september)).toMatchObject({ title: 'septembre 2026', count: '27 jours' })
+    expect(plain(monthToggle(t, august!, missedAmong(august!.dues, unchecked)))).toEqual({
       checks: true,
       text: 'Cocher le mois',
       label: 'Cocher août 2026',
     })
-    expect(monthToggle(t, september!, missedAmong(september!.dues, unchecked))).toEqual({
+    expect(plain(monthToggle(t, september!, missedAmong(september!.dues, unchecked)))).toEqual({
       checks: false,
       text: 'Décocher le mois',
       label: 'Décocher septembre 2026',

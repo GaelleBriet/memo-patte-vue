@@ -19,10 +19,14 @@ const LUNA: Animal = {
   species: 'cat',
   breed: null,
   birthDate: null,
+  birthDateApproximate: false,
   photoPath: null,
   createdAt: STAMP,
   updatedAt: STAMP,
   deletedAt: null,
+  unfollowedOn: null,
+  departureReason: null,
+  departureDate: null,
 }
 const SETTINGS = { vaccineReminderTime: '09:00', remindBeforeDue: true }
 
@@ -59,7 +63,7 @@ describe('performance des rappels', () => {
     const notifications = createFakeNotifications()
     const sync = createRemindersSync({
       animals: () => ({ list: async () => [LUNA] }),
-      vaccinations: () => ({ listAll: async () => [] }),
+      vaccinations: () => ({ listAll: async () => [], listAllReplacedDues: async () => new Map() }),
       treatments: () => ({ listAllWithHistory: async () => CARNET }),
       carnetSettings: () => ({ get: async () => SETTINGS }),
       notifications,

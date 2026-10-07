@@ -278,7 +278,6 @@ describe('appareil restauré, aucune notification programmée', () => {
       frequency: { value: 1, unit: 'month' },
       lastDoseDate: '2026-01-10',
     })
-    expect(milbemax.nextDueDate).toBe('2026-02-10')
 
     await restoredDevice()()
 

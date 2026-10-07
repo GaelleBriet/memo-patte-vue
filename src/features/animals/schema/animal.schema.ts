@@ -19,6 +19,7 @@ export const animalInputSchema = z.object({
     .refine((value) => !isFuture(parseISO(value)))
     .nullable()
     .default(null),
+  birthDateApproximate: z.boolean().default(false),
   /** Nom de fichier sous `files/photos/`, jamais un chemin ni une URL. */
   photoPath: z.string().trim().min(1).nullable().default(null),
 })
@@ -28,29 +29,29 @@ export const animalCreationInputSchema = animalInputSchema.extend({
   weightKg: z.number().positive().max(MAX_WEIGHT_KG).nullable().default(null),
 })
 
+export const DEPARTURE_REASONS = ['death', 'rehomed', 'other'] as const
+
+export const departureReasonSchema = z.enum(DEPARTURE_REASONS)
+export type DepartureReason = z.output<typeof departureReasonSchema>
+
 export const animalSchema = animalInputSchema.extend({
   id: z.uuid(),
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
   /** Suppression logique : `null` tant que l'animal existe. */
   deletedAt: z.iso.datetime().nullable(),
+  /** `null` tant que l'animal est suivi. */
+  unfollowedOn: z.iso.date().nullable(),
+  departureReason: departureReasonSchema.nullable(),
+  departureDate: z.iso.date().nullable(),
 })
-
-export const DEPARTURE_REASONS = ['death', 'rehomed', 'other'] as const
-
-export const departureReasonSchema = z.enum(DEPARTURE_REASONS)
-export type DepartureReason = z.output<typeof departureReasonSchema>
 
 export type AnimalInput = z.input<typeof animalInputSchema>
 export type AnimalCreationInput = z.input<typeof animalCreationInputSchema>
 export type Animal = z.output<typeof animalSchema>
 
+/** Suivi de l'animal : tout à `null` tant qu'il est suivi. */
+export type Departure = Pick<Animal, 'unfollowedOn' | 'departureReason' | 'departureDate'>
+
 /** L'animal avec toutes ses colonnes : ce que l'export emporte et que l'import écrit. */
-export type AnimalRecord = Animal &
-  DeviceStamps & {
-    birthDateApproximate: boolean
-    /** `null` tant que l'animal est suivi. */
-    unfollowedOn: string | null
-    departureReason: DepartureReason | null
-    departureDate: string | null
-  }
+export type AnimalRecord = Animal & DeviceStamps

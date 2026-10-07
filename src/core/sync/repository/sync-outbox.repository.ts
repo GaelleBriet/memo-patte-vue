@@ -1,4 +1,5 @@
-import type { DbClient } from '@/core/db/db-client'
+import type { DbClient, SqlStatement } from '@/core/db/db-client'
+import { getDb } from '@/core/db/sqlite'
 
 export interface SyncOutboxEntry {
   entity: string
@@ -124,7 +125,32 @@ export function createSyncOutboxRepository(db: DbClient) {
     async clear(): Promise<void> {
       await db.run('DELETE FROM sync_outbox')
     },
+
+    /** `sync_state` garde sa ligne unique, remise à son état de premier lancement. */
+    eraseAllStatements(): SqlStatement[] {
+      return [
+        { sql: 'DELETE FROM sync_outbox' },
+        { sql: 'DELETE FROM sync_pull_cursor' },
+        {
+          sql: `UPDATE sync_state SET enabled = 0, restoring = 0, last_synced_at = NULL
+                WHERE id = 1`,
+        },
+      ]
+    },
   }
 }
 
 export type SyncOutboxRepository = ReturnType<typeof createSyncOutboxRepository>
+
+let repository: Promise<SyncOutboxRepository> | null = null
+
+/** Ouverture ratée non mise en cache : `getDb()` doit pouvoir réessayer. */
+export function getSyncOutboxRepository(): Promise<SyncOutboxRepository> {
+  repository ??= getDb()
+    .then(createSyncOutboxRepository)
+    .catch((cause: unknown) => {
+      repository = null
+      throw cause
+    })
+  return repository
+}

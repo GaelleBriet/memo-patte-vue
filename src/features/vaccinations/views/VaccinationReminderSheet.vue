@@ -39,13 +39,13 @@ type Step = 'actions' | 'done' | 'injection-date' | 'due-date'
 const props = withDefaults(
   defineProps<{
     vaccinationId: string | null
-    /** `done` ouvre directement la feuille « Fait » (F5). */
-    startAt?: 'actions' | 'done'
+    /** `done` ouvre directement la feuille « Fait » (F5) ; `other-date`, son calendrier d'injection. */
+    startAt?: 'actions' | 'done' | 'other-date'
     /** Date d'injection proposée à l'ouverture ; aujourd'hui sinon. */
     initialInjectedOn?: string | null
     /** Écran où revenir une fois l'injection notée ; absent, la feuille reste sur l'écran qui l'a ouverte. */
     returnTo?: string | null
-    /** Injection existante déplacée à `initialInjectedOn` : seul le rappel se choisit, rien n'est écrit. */
+    /** Injection déjà datée à `initialInjectedOn` (déplacée ou ajoutée) : seul le rappel se choisit, rien n'est écrit. */
     redate?: boolean
   }>(),
   { startAt: 'actions', initialInjectedOn: null, returnTo: null, redate: false },
@@ -54,7 +54,7 @@ const props = withDefaults(
 const emit = defineEmits<{
   /** Une injection ou son annulation a changé le vaccin. */
   changed: []
-  /** Le rappel choisi pour l'injection déplacée, avec sa nouvelle date. */
+  /** Le rappel choisi pour l'injection datée, avec sa date. */
   reminderChosen: [dates: InjectionDates]
 }>()
 
@@ -116,7 +116,7 @@ watch(
   async (isOpen) => {
     if (!isOpen) return
     refreshToday()
-    steps.value = [props.startAt]
+    steps.value = props.startAt === 'other-date' ? ['done', 'injection-date'] : [props.startAt]
     injectedOn.value = props.initialInjectedOn ?? today.value
     choice.value = null
     saveFailed.value = false

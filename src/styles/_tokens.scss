@@ -55,6 +55,8 @@ $color-actions-border: #ece9e5; // Bordure barre d'actions / top bar scrollée
 $color-field-suffix: #413933; // Suffixe d'unité (« kg »)
 $color-disabled-surface: #e1ddd8; // Bouton désactivé, fond
 $color-disabled-text: #6e6862; // Bouton désactivé, texte
+$color-checkbox-disabled-surface: #f0ece6; // Case à cocher désactivée, fond
+$color-checkbox-disabled-border: #cfcac3; // Case à cocher désactivée, bord
 
 // Rayons
 
@@ -82,6 +84,8 @@ $radius-segment-compact: 11px; // Option d'un segmented control compact
 $size-tap-target: 48px; // Zone de tap minimale d'un contrôle (Material)
 $size-chip-avatar: 32px; // Avatar rond dans une chip
 $size-header-avatar: 56px; // Avatar rond du header Carnet
+$size-header-avatar-badge: 26px; // Pastille « appareil photo » sur l'avatar du header Carnet
+$size-header-avatar-badge-icon: 15px; // Icône de cette pastille
 $size-status-dot: 46px; // Pastille « Tout est à jour » (couleurs : `up-to-date` / `on-up-to-date`)
 
 $offset-chips: -21px; // Débord des chips sur le header
@@ -138,6 +142,7 @@ $color-switch-thumb: #ffffff; // Pastille d'un interrupteur
 $shadow-switch-thumb: 0 1px 3px rgb(30 25 20 / 25%); // Relief de la pastille blanche d'un interrupteur
 $height-export-choice: 64px; // Carte de choix de format
 $color-choice-selected-surface: #dcf0f1; // Fond d'une carte de choix cochée
+$color-choice-border: #dbd7d1; // Bordure d'un choix non coché (raccourcis du prochain rappel)
 $color-radio-border: #b9b4ae; // Pastille radio non cochée
 $size-import-error-badge: 56px; // Pastille d'icône d'une erreur d'import
 
@@ -164,7 +169,6 @@ $color-day-missed-border: $color-chart-arrow-disabled; // Contour d'un jour déc
 $color-exact-reminders-hero-surface: $color-notice-surface; // Pastille de l’icône
 
 // Paramètres › Rappels (V20 à V20 sexies)
-$radius-reminders-settings-card: 18px; // Coins d'une carte de réglage
 $color-reminders-settings-neutral-surface: $color-reminders-off-surface; // Fond de l'état « pas encore activés » ou « désactivées », et de « peuvent arriver en retard »
 $color-reminders-settings-neutral-text: $color-reminders-off-text; // Leur première ligne
 $color-exact-reminders-suggest-surface: $color-notice-surface; // Suggestion du formulaire (V2)
@@ -175,3 +179,9 @@ $color-less-precise-text: $color-reminders-off-text; // Son texte
 
 // Messages de l’accueil (V17 bis, V17 ter)
 $color-home-message-icon-surface: $color-notice-surface; // Pastille de l’icône des cartes « protéger » et trimestrielle
+
+// Pastille d’icône en tête d’une ligne du Carnet (B · V11, V15)
+$size-row-icon: 36px;
+$gap-list-row: 12px; // Écart entre la pastille, le texte et la fin d’une ligne de carte
+$color-row-icon-surface: $color-notice-surface;
+$color-row-icon-muted-surface: $color-checkbox-disabled-surface; // Ligne d’un traitement terminé

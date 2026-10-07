@@ -62,6 +62,7 @@ describe('carnetTreatments — une ligne par traitement en cours (TR-36, B · V1
     expect(row(MILBEMAX)).toEqual({
       id: 'milbemax',
       name: 'Milbemax',
+      icon: 'ms:medication',
       detail: 'Tous les 3 mois · prochaine dose le 10 oct.',
       badge: null,
       unlogged: null,
@@ -128,11 +129,12 @@ describe('carnetTreatments — une ligne par traitement en cours (TR-36, B · V1
   })
 
   it('en retard : badge « En retard · N j », compté depuis le jour de la dose, sans complément', () => {
-    const advocate = named('Advocate', [HEBDO], [dose('2026-09-07', '2026-09-14')])
+    const advocate = named('Advocate', [HEBDO], [dose('2026-09-07', '2026-09-14')], 'antiparasitic')
 
     expect(row(advocate, '2026-09-20')).toEqual({
       id: 'advocate',
       name: 'Advocate',
+      icon: 'ms:pest_control',
       detail: 'Toutes les semaines',
       badge: { status: 'overdue', label: 'En retard · 6 j' },
       unlogged: null,
@@ -158,6 +160,7 @@ describe('carnetTreatments — une ligne par traitement en cours (TR-36, B · V1
       {
         id: 'panacur',
         name: 'Panacur',
+        icon: 'ms:medication',
         detail: 'Arrêté le 6 sept.',
         badge: toLog,
         unlogged: '3 doses non renseignées',
@@ -165,6 +168,7 @@ describe('carnetTreatments — une ligne par traitement en cours (TR-36, B · V1
       {
         id: 'drontal',
         name: 'Drontal',
+        icon: 'ms:medication',
         detail: 'Terminé le 4 sept.',
         badge: toLog,
         unlogged: '2 doses non renseignées',
@@ -293,10 +297,51 @@ describe('carnetTreatments — traitements terminés (TR-31)', () => {
 
     expect(ongoing.map(({ name }) => name)).toEqual(['Milbemax'])
     expect(finished).toEqual([
-      { id: 'métacam', name: 'Métacam', detail: 'Terminé le 21 sept. · 2 prises' },
-      { id: 'advocate', name: 'Advocate', detail: 'Arrêté le 4 sept. · 2 prises' },
+      {
+        id: 'métacam',
+        name: 'Métacam',
+        icon: 'ms:medication',
+        detail: 'Terminé le 21 sept. · 2 prises',
+      },
+      {
+        id: 'advocate',
+        name: 'Advocate',
+        icon: 'ms:medication',
+        detail: 'Arrêté le 4 sept. · 2 prises',
+      },
     ])
     expect(summary).toEqual({ total: 1, overdue: 0, ongoing: 1 })
+  })
+
+  it('TR-37 : animal qu’on ne suit plus, arrêté avec des doses oubliées, sans « À renseigner »', () => {
+    const arrete = named('Panacur', [period({ stoppedOn: '2026-09-06' })], PANACUR.doses)
+
+    const { ongoing, finished, summary } = plain(
+      carnetTreatments(t, [arrete], TODAY, carnetScheduleCache(), { followed: false }),
+    )
+
+    expect(ongoing).toEqual([])
+    expect(finished).toEqual([
+      {
+        id: 'panacur',
+        name: 'Panacur',
+        icon: 'ms:medication',
+        detail: 'Arrêté le 6 sept. · 2 prises',
+      },
+    ])
+    expect(summary).toEqual({ total: 0, overdue: 0, ongoing: 0 })
+  })
+
+  it('TR-37 : suivi de nouveau, ses doses non renseignées reviennent à renseigner', () => {
+    const arrete = named('Panacur', [period({ stoppedOn: '2026-09-06' })], PANACUR.doses)
+
+    const { ongoing } = plain(
+      carnetTreatments(t, [arrete], TODAY, carnetScheduleCache(), { followed: true }),
+    )
+
+    expect(ongoing).toEqual([
+      expect.objectContaining({ badge: { status: 'to-log', label: 'À renseigner' } }),
+    ])
   })
 
   it('date un traitement fini avant sa date de fin de sa dernière échéance', () => {

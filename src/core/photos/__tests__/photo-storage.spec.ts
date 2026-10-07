@@ -4,26 +4,42 @@ import { Capacitor } from '@capacitor/core'
 import { Directory, Filesystem, type FilesystemPlugin } from '@capacitor/filesystem'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { deletePhoto, photoDisplayUrl, photoExists, savePhoto } from '../photo-storage'
+import {
+  deleteAllPhotos,
+  deletePhoto,
+  listPhotos,
+  photoDisplayUrl,
+  photoExists,
+  savePhoto,
+} from '../photo-storage'
 
 vi.mock('@capacitor/filesystem', async (importOriginal) => ({
   ...(await importOriginal<typeof FilesystemModule>()),
   Filesystem: {
     writeFile: vi.fn<FilesystemPlugin['writeFile']>(),
     deleteFile: vi.fn<FilesystemPlugin['deleteFile']>(),
+    rmdir: vi.fn<FilesystemPlugin['rmdir']>(),
     stat: vi.fn<FilesystemPlugin['stat']>(),
     readFile: vi.fn<FilesystemPlugin['readFile']>(),
+    readdir: vi.fn<FilesystemPlugin['readdir']>(),
   },
 }))
 
 const writeFile = vi.mocked(Filesystem.writeFile)
 const deleteFile = vi.mocked(Filesystem.deleteFile)
+const rmdir = vi.mocked(Filesystem.rmdir)
 const stat = vi.mocked(Filesystem.stat)
 const readFile = vi.mocked(Filesystem.readFile)
+const readdir = vi.mocked(Filesystem.readdir)
+
+function entry(name: string, type: 'file' | 'directory' = 'file') {
+  return { name, type, size: 1, ctime: 0, mtime: 1_700_000_000_000, uri: `file:///data/${name}` }
+}
 
 beforeEach(() => {
   vi.restoreAllMocks()
   vi.clearAllMocks()
+  readdir.mockReset()
   writeFile.mockResolvedValue({ uri: 'file:///data/photos/x.jpg' })
   deleteFile.mockResolvedValue()
 })
@@ -70,6 +86,37 @@ describe('deletePhoto', () => {
   it('refuse un nom qui sortirait de photos/', async () => {
     await expect(deletePhoto('../base.db')).rejects.toThrow('Nom de photo invalide')
     expect(deleteFile).not.toHaveBeenCalled()
+  })
+})
+
+describe('deleteAllPhotos', () => {
+  it('supprime le dossier photos/ de Directory.Data et tout son contenu', async () => {
+    readdir.mockResolvedValueOnce({ files: [entry('photos', 'directory')] })
+    rmdir.mockResolvedValue()
+
+    await deleteAllPhotos()
+
+    expect(rmdir).toHaveBeenCalledExactlyOnceWith({
+      path: 'photos',
+      directory: Directory.Data,
+      recursive: true,
+    })
+  })
+
+  it('ne tente aucune suppression quand le dossier n’a jamais été créé', async () => {
+    readdir.mockResolvedValueOnce({ files: [entry('autre.db'), entry('photos')] })
+
+    await deleteAllPhotos()
+
+    expect(readdir).toHaveBeenCalledExactlyOnceWith({ path: '', directory: Directory.Data })
+    expect(rmdir).not.toHaveBeenCalled()
+  })
+
+  it('propage un échec de la suppression', async () => {
+    readdir.mockResolvedValueOnce({ files: [entry('photos', 'directory')] })
+    rmdir.mockRejectedValue(new Error('accès refusé'))
+
+    await expect(deleteAllPhotos()).rejects.toThrow('accès refusé')
   })
 })
 
@@ -140,5 +187,31 @@ describe('photoExists', () => {
 
     await expect(photoExists('absente.jpg')).resolves.toBe(false)
     await expect(photoExists('../secrets.txt')).resolves.toBe(false)
+  })
+})
+
+describe('listPhotos', () => {
+  it('rend les seules photos de l’app rangées sous photos/', async () => {
+    readdir
+      .mockResolvedValueOnce({ files: [entry('photos', 'directory'), entry('autre.db')] })
+      .mockResolvedValueOnce({
+        files: [
+          entry('3f2b-a1.jpg'),
+          entry('notes.txt'),
+          entry('sous-dossier.jpg', 'directory'),
+          entry('.cache.jpg'),
+          entry('photo.png'),
+        ],
+      })
+
+    expect(await listPhotos()).toEqual([{ name: '3f2b-a1.jpg', modifiedAt: 1_700_000_000_000 }])
+    expect(readdir).toHaveBeenLastCalledWith({ path: 'photos', directory: Directory.Data })
+  })
+
+  it('ne lit pas photos/ tant qu’aucune photo n’a été enregistrée', async () => {
+    readdir.mockResolvedValueOnce({ files: [entry('autre.db')] })
+
+    expect(await listPhotos()).toEqual([])
+    expect(readdir).toHaveBeenCalledExactlyOnceWith({ path: '', directory: Directory.Data })
   })
 })

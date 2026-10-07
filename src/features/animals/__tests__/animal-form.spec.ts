@@ -4,12 +4,15 @@ import { afterEach, describe, expect, it } from 'vitest'
 
 import {
   animalFormValuesFrom,
+  birthDateApproximateHelp,
+  canMarkBirthDateApproximate,
   emptyAnimalFormValues,
   validateAnimalForm,
   type AnimalFormValues,
 } from '../logic/animal-form'
 import type { Animal } from '../schema/animal.schema'
 import { todayIsoDate } from '@/core/app-lifecycle/today-iso-date'
+import i18n from '@/core/i18n'
 import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
 import { KG_PER_LB } from '@/shared/domain/weight-unit'
 import { applyWeightUnit } from '@/shared/domain/weight-unit-preference'
@@ -20,10 +23,14 @@ const MILO: Animal = {
   species: 'dog',
   breed: null,
   birthDate: null,
+  birthDateApproximate: false,
   photoPath: null,
   createdAt: '2026-09-09T09:00:00.000Z',
   updatedAt: '2026-09-09T09:00:00.000Z',
   deletedAt: null,
+  unfollowedOn: null,
+  departureReason: null,
+  departureDate: null,
 }
 
 function valeurs(surcharges: Partial<AnimalFormValues> = {}): AnimalFormValues {
@@ -53,6 +60,7 @@ describe('emptyAnimalFormValues', () => {
       species: null,
       breed: '',
       birthDate: '',
+      birthDateApproximate: false,
       weightKg: '',
     })
   })
@@ -65,6 +73,7 @@ describe('animalFormValuesFrom', () => {
       species: 'dog',
       breed: 'Labrador',
       birthDate: '2023-03-12',
+      birthDateApproximate: false,
       weightKg: '',
     })
   })
@@ -75,6 +84,7 @@ describe('animalFormValuesFrom', () => {
       species: 'dog',
       breed: '',
       birthDate: '',
+      birthDateApproximate: false,
       weightKg: '',
     })
   })
@@ -101,9 +111,76 @@ describe('animalFormValuesFrom', () => {
       species: 'dog',
       breed: 'Labrador',
       birthDate: '2023-03-12',
+      birthDateApproximate: false,
       weightKg: null,
       photoPath: null,
     })
+  })
+
+  it('garde la date approximative de l’animal', () => {
+    expect(
+      animalFormValuesFrom({ ...MILO, birthDate: '2026-07-20', birthDateApproximate: true })
+        .birthDateApproximate,
+    ).toBe(true)
+  })
+})
+
+describe('date de naissance approximative', () => {
+  const t = i18n.global.t
+  const TODAY = '2026-09-28'
+
+  afterEach(() => {
+    i18n.global.locale.value = 'fr'
+  })
+
+  it('enregistre la case cochée avec sa date', () => {
+    expect(
+      donnees({ birthDate: '2026-07-20', birthDateApproximate: true }).birthDateApproximate,
+    ).toBe(true)
+  })
+
+  it('ne garde jamais la case cochée sans date', () => {
+    expect(donnees({ birthDate: '', birthDateApproximate: true }).birthDateApproximate).toBe(false)
+  })
+
+  it('n’autorise la case qu’une fois la date saisie', () => {
+    expect(canMarkBirthDateApproximate(valeurs({ birthDate: '' }))).toBe(false)
+    expect(canMarkBirthDateApproximate(valeurs({ birthDate: '2026-07-20' }))).toBe(true)
+  })
+
+  it('explique la case désactivée tant qu’aucune date n’est saisie', () => {
+    expect(birthDateApproximateHelp(t, valeurs({ birthDate: '' }), TODAY)).toBe(
+      'Disponible une fois la date saisie.',
+    )
+  })
+
+  it('annonce l’âge affiché une fois la case cochée', () => {
+    expect(
+      birthDateApproximateHelp(
+        t,
+        valeurs({ birthDate: '2026-07-20', birthDateApproximate: true }),
+        TODAY,
+      ),
+    ).toBe('L’âge s’affichera «\u00a0environ 10 semaines\u00a0».')
+  })
+
+  it('ne dit rien quand la date est exacte', () => {
+    expect(birthDateApproximateHelp(t, valeurs({ birthDate: '2026-07-20' }), TODAY)).toBeNull()
+  })
+
+  it('parle anglais', () => {
+    i18n.global.locale.value = 'en'
+
+    expect(birthDateApproximateHelp(t, valeurs({ birthDate: '' }), TODAY)).toBe(
+      'Available once a date is entered.',
+    )
+    expect(
+      birthDateApproximateHelp(
+        t,
+        valeurs({ birthDate: '2026-07-20', birthDateApproximate: true }),
+        TODAY,
+      ),
+    ).toBe('Age will show as “about 10 weeks”.')
   })
 })
 

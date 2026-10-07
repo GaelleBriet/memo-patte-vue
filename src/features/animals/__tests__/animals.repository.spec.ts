@@ -46,6 +46,7 @@ describe('animalsRepository', () => {
     expect(created).toMatchObject({
       breed: null,
       birthDate: null,
+      birthDateApproximate: false,
       photoPath: null,
     })
     await expect(repository.getById(created.id)).resolves.toEqual(created)
@@ -159,8 +160,7 @@ describe('animalsRepository', () => {
     })
     await db.run(
       `UPDATE animal
-       SET birth_date_approximate = 1, unfollowed_on = '2026-09-30', departure_reason = 'rehomed',
-           departure_date = '2026-09-28'
+       SET unfollowed_on = '2026-09-30', departure_reason = 'rehomed', departure_date = '2026-09-28'
        WHERE id = ?`,
       [created.id],
     )
@@ -168,19 +168,53 @@ describe('animalsRepository', () => {
     await repository.update(created.id, { name: 'Luna', species: 'cat', breed: 'Européen' })
 
     await expect(
-      db.query(
-        `SELECT birth_date_approximate, unfollowed_on, departure_reason, departure_date
-         FROM animal WHERE id = ?`,
-        [created.id],
-      ),
+      db.query(`SELECT unfollowed_on, departure_reason, departure_date FROM animal WHERE id = ?`, [
+        created.id,
+      ]),
     ).resolves.toEqual([
       {
-        birth_date_approximate: 1,
         unfollowed_on: '2026-09-30',
         departure_reason: 'rehomed',
         departure_date: '2026-09-28',
       },
     ])
+  })
+
+  it('enregistre une date de naissance approximative et la relit', async () => {
+    const created = await repository.create({
+      name: 'Pixel',
+      species: 'cat',
+      birthDate: '2026-07-20',
+      birthDateApproximate: true,
+    })
+
+    expect(created.birthDateApproximate).toBe(true)
+    await expect(repository.getById(created.id)).resolves.toEqual(created)
+    await expect(repository.list()).resolves.toEqual([created])
+  })
+
+  it('coche et décoche la date approximative à la mise à jour', async () => {
+    const created = await repository.create({
+      name: 'Pixel',
+      species: 'cat',
+      birthDate: '2026-07-20',
+    })
+
+    const approximate = await repository.update(created.id, {
+      name: 'Pixel',
+      species: 'cat',
+      birthDate: '2026-07-20',
+      birthDateApproximate: true,
+    })
+    expect(approximate.birthDateApproximate).toBe(true)
+
+    const exact = await repository.update(created.id, {
+      name: 'Pixel',
+      species: 'cat',
+      birthDate: '2026-07-20',
+      birthDateApproximate: false,
+    })
+    expect(exact.birthDateApproximate).toBe(false)
   })
 
   it('échoue à mettre à jour un animal inexistant', async () => {
@@ -323,6 +357,196 @@ describe('animalsRepository', () => {
         [miette.id],
       )
       expect(rows).toEqual([{ deleted_at: null }])
+    })
+  })
+
+  describe('suivi', () => {
+    const DEPARTED = {
+      unfollowedOn: '2026-09-28',
+      departureReason: 'death',
+      departureDate: '2026-09-27',
+    } as const
+    const FOLLOWED = { unfollowedOn: null, departureReason: null, departureDate: null }
+
+    it('lit un animal suivi avec unfollowedOn à null', async () => {
+      const luna = await repository.create({ name: 'Luna', species: 'cat' })
+
+      expect(luna.unfollowedOn).toBeNull()
+      await expect(repository.getDeparture(luna.id)).resolves.toEqual(FOLLOWED)
+    })
+
+    it('écrit le départ et le relit, sur l’animal comme dans la liste', async () => {
+      const luna = await repository.create({ name: 'Luna', species: 'cat' })
+
+      await repository.setDeparture(luna.id, DEPARTED)
+
+      await expect(repository.getDeparture(luna.id)).resolves.toEqual(DEPARTED)
+      await expect(repository.getById(luna.id)).resolves.toMatchObject(DEPARTED)
+      await expect(repository.list()).resolves.toEqual([
+        expect.objectContaining({ id: luna.id, ...DEPARTED }),
+      ])
+    })
+
+    it('change le motif et la date du départ sans toucher au jour où le suivi a cessé', async () => {
+      const luna = await repository.create({ name: 'Luna', species: 'cat' })
+      await repository.setDeparture(luna.id, DEPARTED)
+
+      await repository.setDepartureDetails(luna.id, {
+        departureReason: 'rehomed',
+        departureDate: null,
+      })
+
+      await expect(repository.getDeparture(luna.id)).resolves.toEqual({
+        unfollowedOn: '2026-09-28',
+        departureReason: 'rehomed',
+        departureDate: null,
+      })
+    })
+
+    it('lève sans rien écrire pour un animal suivi de nouveau entre-temps', async () => {
+      const luna = await repository.create({ name: 'Luna', species: 'cat' })
+
+      await expect(
+        repository.setDepartureDetails(luna.id, {
+          departureReason: 'death',
+          departureDate: '2026-09-27',
+        }),
+      ).rejects.toThrow(/Luna|suivi|introuvable/)
+
+      await expect(repository.getDeparture(luna.id)).resolves.toEqual(FOLLOWED)
+    })
+
+    it('date le changement du départ pour la synchronisation', async () => {
+      vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-09-28T08:00:00.000Z') })
+      try {
+        const luna = await repository.create({ name: 'Luna', species: 'cat' })
+        await repository.setDeparture(luna.id, DEPARTED)
+        vi.setSystemTime(new Date('2026-10-02T08:00:00.000Z'))
+
+        await repository.setDepartureDetails(luna.id, {
+          departureReason: null,
+          departureDate: '2026-09-20',
+        })
+
+        await expect(
+          db.query('SELECT updated_at FROM animal WHERE id = ?', [luna.id]),
+        ).resolves.toEqual([{ updated_at: '2026-10-02T08:00:00.000Z' }])
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+
+    it('date la modification pour la synchronisation', async () => {
+      vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-09-01T08:00:00.000Z') })
+      try {
+        const luna = await repository.create({ name: 'Luna', species: 'cat' })
+        vi.setSystemTime(new Date('2026-09-28T08:00:00.000Z'))
+
+        await repository.setDeparture(luna.id, DEPARTED)
+
+        await expect(
+          db.query('SELECT updated_at FROM animal WHERE id = ?', [luna.id]),
+        ).resolves.toEqual([{ updated_at: '2026-09-28T08:00:00.000Z' }])
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+
+    it('efface le départ pour suivre de nouveau', async () => {
+      const luna = await repository.create({ name: 'Luna', species: 'cat' })
+      await repository.setDeparture(luna.id, DEPARTED)
+
+      await repository.setDeparture(luna.id, FOLLOWED)
+
+      await expect(repository.getDeparture(luna.id)).resolves.toEqual(FOLLOWED)
+    })
+
+    it('joue les écritures liées dans la même transaction', async () => {
+      const luna = await repository.create({ name: 'Luna', species: 'cat' })
+
+      await expect(
+        repository.setDeparture(luna.id, DEPARTED, [
+          { sql: 'UPDATE table_inexistante SET deleted_at = 1' },
+        ]),
+      ).rejects.toThrow(/no such table/)
+
+      await expect(repository.getDeparture(luna.id)).resolves.toEqual(FOLLOWED)
+    })
+
+    it('renvoie null pour un animal inconnu ou supprimé', async () => {
+      const luna = await repository.create({ name: 'Luna', species: 'cat' })
+      await repository.remove(luna.id)
+
+      await expect(repository.getDeparture(luna.id)).resolves.toBeNull()
+      await expect(repository.getDeparture('inconnu')).resolves.toBeNull()
+    })
+  })
+
+  describe('restore', () => {
+    it('rend l’animal supprimé à cet instant, avec les écritures liées', async () => {
+      const luna = await repository.create({ name: 'Luna', species: 'cat' })
+      await repository.remove(luna.id, [], '2026-03-01T10:00:00.000Z')
+      await db.run(
+        `INSERT INTO vaccination (id, animal_id, name, created_at, updated_at, deleted_at, created_by_device, updated_by_device)
+         VALUES ('v1', ?, 'Rage', '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z', '2026-03-01T10:00:00.000Z', 'appareil-test', 'appareil-test')`,
+        [luna.id],
+      )
+
+      await repository.restore(luna.id, '2026-03-01T10:00:00.000Z', [
+        { sql: "UPDATE vaccination SET deleted_at = NULL WHERE id = 'v1'" },
+      ])
+
+      await expect(repository.getById(luna.id)).resolves.toMatchObject({
+        id: luna.id,
+        deletedAt: null,
+      })
+      await expect(
+        db.query('SELECT deleted_at FROM vaccination WHERE id = ?', ['v1']),
+      ).resolves.toEqual([{ deleted_at: null }])
+    })
+
+    it('lève sans rien rendre quand l’animal n’a pas été supprimé à cet instant', async () => {
+      const luna = await repository.create({ name: 'Luna', species: 'cat' })
+      await repository.remove(luna.id, [], '2026-03-01T10:00:00.000Z')
+      await db.run(
+        `INSERT INTO vaccination (id, animal_id, name, created_at, updated_at, deleted_at, created_by_device, updated_by_device)
+         VALUES ('v1', ?, 'Rage', '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z', '2026-03-02T10:00:00.000Z', 'appareil-test', 'appareil-test')`,
+        [luna.id],
+      )
+
+      await expect(
+        repository.restore(luna.id, '2026-03-02T10:00:00.000Z', [
+          { sql: "UPDATE vaccination SET deleted_at = NULL WHERE id = 'v1'" },
+        ]),
+      ).rejects.toThrow(/introuvable/)
+
+      await expect(repository.getById(luna.id)).resolves.toBeNull()
+      await expect(
+        db.query('SELECT deleted_at FROM vaccination WHERE id = ?', ['v1']),
+      ).resolves.toEqual([{ deleted_at: '2026-03-02T10:00:00.000Z' }])
+    })
+
+    it('lève pour un animal déjà rendu', async () => {
+      const luna = await repository.create({ name: 'Luna', species: 'cat' })
+      await repository.remove(luna.id, [], '2026-03-01T10:00:00.000Z')
+      await repository.restore(luna.id, '2026-03-01T10:00:00.000Z')
+
+      await expect(repository.restore(luna.id, '2026-03-01T10:00:00.000Z')).rejects.toThrow(
+        /introuvable/,
+      )
+    })
+
+    it('date le retour pour la synchronisation', async () => {
+      const luna = await repository.create({ name: 'Luna', species: 'cat' })
+      await repository.remove(luna.id, [], '2026-03-01T10:00:00.000Z')
+
+      await repository.restore(luna.id, '2026-03-01T10:00:00.000Z')
+
+      const [row] = await db.query<{ updated_at: string }>(
+        'SELECT updated_at FROM animal WHERE id = ?',
+        [luna.id],
+      )
+      expect(row && row.updated_at > '2026-03-01T10:00:00.000Z').toBe(true)
     })
   })
 

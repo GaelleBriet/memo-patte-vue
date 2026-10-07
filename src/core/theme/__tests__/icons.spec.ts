@@ -21,6 +21,9 @@ const iconesDesMaquettes = [
   'add',
   'monitor_weight',
   'photo_camera',
+  'add_a_photo',
+  'image',
+  'hide_image',
   'ios_share',
   'star_shine',
   'data_object',
@@ -65,6 +68,13 @@ const iconesDesMaquettes = [
   'mail',
   'lightbulb',
   'content_copy',
+  'visibility_off',
+  'notifications_active',
+  'delete_forever',
+  'folder',
+  'cloud_upload',
+  'cloud_done',
+  'notifications_off',
 ] as const
 
 describe('registre d’icônes Material Symbols', () => {

@@ -16,6 +16,11 @@ import {
 } from '../logic/treatment-schedule'
 import { dosesAfter } from '../logic/treatment-shift-box'
 import {
+  createWriteQueue,
+  treatmentWriteQueue,
+  type WriteQueue,
+} from '../logic/treatment-write-queue'
+import {
   DuplicateDueError,
   getTreatmentDosesRepository,
   type DoseWrite,
@@ -39,6 +44,7 @@ export type TreatmentDosesDependencies = {
   reminders: Pick<TreatmentRemindersService, 'reschedule'>
   now: () => Date
   today?: () => string
+  queue?: WriteQueue
 }
 
 export type AppliedDoseChange = Omit<DoseChange, 'writes'> & {
@@ -70,6 +76,7 @@ export function createTreatmentDosesService({
   reminders,
   now,
   today = todayIsoDate,
+  queue = createWriteQueue(),
 }: TreatmentDosesDependencies) {
   async function write(treatmentId: string, writes: readonly DoseWrite[]): Promise<DoseWrite[]> {
     if (writes.length === 0) return []
@@ -152,65 +159,75 @@ export function createTreatmentDosesService({
     }
   }
 
+  async function noted(
+    treatmentId: string,
+    givenOn: string,
+    notifiedDueOn: string | null,
+  ): Promise<NotedMoment> {
+    const day = today()
+    const history = await historyOf(treatmentId)
+    const schedule = treatmentScheduleOf(history, day)
+    const nothing = {
+      animalId: history.animalId,
+      finishes: false,
+      undo: [],
+      alreadyGivenOn: null,
+      postponement: null,
+      moved: null,
+      shiftKept: false,
+      due: null,
+      severalTimes: false,
+    }
+    const target =
+      notifiedDueOn === null
+        ? momentDue(schedule, givenOn, day)
+        : notifiedDue(schedule, notifiedDueOn, day)
+    if (target === 'ask') return { ...nothing, outcome: 'ask' }
+    if (target === null) return { ...nothing, outcome: 'none' }
+    if ('dayNoted' in target) return { ...nothing, outcome: 'day-noted' }
+    if ('alreadyGivenOn' in target) {
+      return { ...nothing, outcome: 'already', alreadyGivenOn: target.alreadyGivenOn }
+    }
+    const { due } = target
+    const applied = await run(history, schedule, {
+      kind: 'note',
+      gesture: { kind: 'given', due, givenOn },
+    })
+    if (applied.alreadyGivenOn !== null) return { ...nothing, ...applied, outcome: 'already' }
+    return {
+      ...applied,
+      outcome: 'noted',
+      due,
+      severalTimes: hasSeveralTimes(history, due.periodId),
+    }
+  }
+
   return {
     /**
      * Geste de la fiche, en une écriture ; lève quand le moteur d'échéances le refuse, et une
      * `DoseAlreadyLoggedError` quand une dose d'un lot `log` est déjà notée.
      */
-    async apply(treatmentId: string, action: DoseAction): Promise<AppliedDoseChange> {
-      const history = await historyOf(treatmentId)
-      return run(history, treatmentScheduleOf(history, today()), action)
+    apply(treatmentId: string, action: DoseAction): Promise<AppliedDoseChange> {
+      return queue(async () => {
+        const history = await historyOf(treatmentId)
+        return run(history, treatmentScheduleOf(history, today()), action)
+      })
     },
 
     /**
      * Prise notée sans échéance choisie (feuille « À faire », notification) ; `notifiedDueOn` : le
      * jour d'échéance de la notification touchée.
      */
-    async noteMoment(
+    noteMoment(
       treatmentId: string,
       givenOn: string,
       { notifiedDueOn = null }: { notifiedDueOn?: string | null } = {},
     ): Promise<NotedMoment> {
-      const day = today()
-      const history = await historyOf(treatmentId)
-      const schedule = treatmentScheduleOf(history, day)
-      const nothing = {
-        animalId: history.animalId,
-        finishes: false,
-        undo: [],
-        alreadyGivenOn: null,
-        postponement: null,
-        moved: null,
-        shiftKept: false,
-        due: null,
-        severalTimes: false,
-      }
-      const target =
-        notifiedDueOn === null
-          ? momentDue(schedule, givenOn, day)
-          : notifiedDue(schedule, notifiedDueOn, day)
-      if (target === 'ask') return { ...nothing, outcome: 'ask' }
-      if (target === null) return { ...nothing, outcome: 'none' }
-      if ('dayNoted' in target) return { ...nothing, outcome: 'day-noted' }
-      if ('alreadyGivenOn' in target) {
-        return { ...nothing, outcome: 'already', alreadyGivenOn: target.alreadyGivenOn }
-      }
-      const { due } = target
-      const applied = await run(history, schedule, {
-        kind: 'note',
-        gesture: { kind: 'given', due, givenOn },
-      })
-      if (applied.alreadyGivenOn !== null) return { ...nothing, ...applied, outcome: 'already' }
-      return {
-        ...applied,
-        outcome: 'noted',
-        due,
-        severalTimes: hasSeveralTimes(history, due.periodId),
-      }
+      return queue(() => noted(treatmentId, givenOn, notifiedDueOn))
     },
 
     async undoBatch(treatmentId: string, writes: readonly DoseWrite[]): Promise<void> {
-      await write(treatmentId, writes)
+      await queue(() => write(treatmentId, writes))
     },
   }
 }
@@ -222,4 +239,5 @@ export const treatmentDosesService = createTreatmentDosesService({
   doses: getTreatmentDosesRepository,
   reminders: treatmentRemindersService,
   now: () => new Date(),
+  queue: treatmentWriteQueue,
 })

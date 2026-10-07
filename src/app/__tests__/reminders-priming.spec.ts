@@ -20,17 +20,25 @@ import {
 const STAMP = '2026-09-01T09:00:00.000Z'
 const TODAY = '2026-09-15'
 
-function animal(id: string, deletedAt: string | null = null): Animal {
+function animal(
+  id: string,
+  deletedAt: string | null = null,
+  unfollowedOn: string | null = null,
+): Animal {
   return {
     id,
     name: 'Milo',
     species: 'dog',
     breed: null,
     birthDate: null,
+    birthDateApproximate: false,
     photoPath: null,
     createdAt: STAMP,
     updatedAt: STAMP,
     deletedAt,
+    unfollowedOn,
+    departureReason: null,
+    departureDate: null,
   }
 }
 
@@ -147,6 +155,21 @@ describe('hasUpcomingDueDates', () => {
           animals: [deleted],
           vaccinations: [vaccination('2027-01-01', GONE), vaccination('2027-01-01', MILO.id)],
           treatments: [treatment({ firstDueOn: '2027-01-01' }, GONE)],
+        },
+        TODAY,
+      ),
+    ).toBe(false)
+  })
+
+  it('AN-9 : ignore les échéances d’un animal qu’on ne suit plus', () => {
+    const unfollowed = animal(MILO.id, null, '2026-09-14')
+
+    expect(
+      hasUpcomingDueDates(
+        {
+          animals: [unfollowed],
+          vaccinations: [vaccination('2027-01-01')],
+          treatments: [treatment({ firstDueOn: '2027-01-01' })],
         },
         TODAY,
       ),

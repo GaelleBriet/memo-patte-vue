@@ -134,7 +134,7 @@ describe('PDF et CSV : prochaine échéance lue par le moteur', () => {
       due: { kind: 'due', dueOn: '2026-09-12', dueTime: '20:00', overdue: false },
       state: 'upToDate',
     })
-    expect(pdfText(data, '2026-09-12')).toContain('12/09/2026 à 20\u00a0h')
+    expect(pdfText(data, '2026-09-12')).toContain('12/09/2026\u00a0à\u00a020\u00a0h')
     expect(csvNextDueDate(data, '2026-09-12')).toBe('2026-09-12')
   })
 
@@ -248,5 +248,50 @@ describe('PDF et CSV : prochaine échéance lue par le moteur', () => {
     expect(parsed.treatmentPeriods).toEqual(data.treatmentPeriods)
     expect(parsed.treatmentDoses).toEqual(data.treatmentDoses)
     expect(parsed.reminders).toEqual([])
+  })
+})
+
+describe('PDF : traitement sans prise donnée', () => {
+  it('écrit « Aucune prise · en retard depuis le » avec la date de la dose du moment', () => {
+    const data = carnet([period({ startsOn: '2026-09-01', frequency: WEEKLY })], [])
+
+    expect(treatmentRow(data, '2026-09-05')).toMatchObject({
+      lastDoseDate: null,
+      due: { kind: 'due', dueOn: '2026-09-01', overdue: true },
+      state: 'overdue',
+    })
+    expect(pdfText(data, '2026-09-05')).toContain('Aucune prise · en retard depuis le 01/09/2026')
+  })
+
+  it('garde un traitement arrêté sans prise, avec « Arrêté avant la première prise »', () => {
+    const data = carnet(
+      [period({ startsOn: '2026-09-01', frequency: DAILY, stoppedOn: '2026-09-05' })],
+      [],
+    )
+    const text = pdfText(data, '2026-09-10')
+
+    expect(text).toContain('Métacam')
+    expect(text).toContain('Arrêté le 05/09/2026')
+    expect(text).toContain('Arrêté avant la première prise')
+    expect(text).not.toContain('Aucune prise')
+    expect(text).not.toContain('Dernière prise')
+  })
+
+  it('laisse hors du PDF un traitement sans période', () => {
+    expect(buildCarnetPdfContent(carnet([], []), MILO, '2026-09-10')!.treatments).toEqual([])
+  })
+
+  it.each([
+    ['terminé', { endsOn: '2026-09-03' }, 'Terminé le 03/09/2026'],
+    ['illisible', { times: ['25:00'] }, 'Donnée illisible'],
+  ])('garde un traitement %s sans prise, avec « Aucune prise » seul', (_, fields, label) => {
+    const data = carnet([period({ startsOn: '2026-09-01', frequency: DAILY, ...fields })], [])
+    const text = pdfText(data, '2026-09-10')
+
+    expect(text).toContain('Métacam')
+    expect(text).toContain(label)
+    expect(text).toContain('Aucune prise')
+    expect(text).not.toContain('Aucune prise ·')
+    expect(text).not.toContain('Dernière prise')
   })
 })

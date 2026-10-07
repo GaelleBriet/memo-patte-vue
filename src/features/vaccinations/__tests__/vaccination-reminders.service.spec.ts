@@ -8,6 +8,8 @@ import {
   createFakeNotifications,
   type FakeNotifications,
 } from '@/shared/__tests__/fake-notifications'
+import { createInMemoryDb } from '@/core/db/__tests__/in-memory-db'
+import { createVaccinationsRepository } from '../repository/vaccinations.repository'
 import type { Vaccination } from '../schema/vaccination.schema'
 import {
   createVaccinationRemindersService,
@@ -20,10 +22,14 @@ const MILO: Animal = {
   species: 'dog',
   breed: null,
   birthDate: null,
+  birthDateApproximate: false,
   photoPath: null,
   createdAt: '2026-09-01T09:00:00.000Z',
   updatedAt: '2026-09-01T09:00:00.000Z',
   deletedAt: null,
+  unfollowedOn: null,
+  departureReason: null,
+  departureDate: null,
 }
 
 const CHPPI: Vaccination = {
@@ -40,14 +46,16 @@ const CHPPI: Vaccination = {
 let notifications: FakeNotifications
 let getById: ReturnType<typeof vi.fn<(id: string) => Promise<Animal | null>>>
 let getVaccination: ReturnType<typeof vi.fn<(id: string) => Promise<Vaccination | null>>>
+let listReplacedDues: ReturnType<typeof vi.fn<(id: string) => Promise<string[]>>>
 let service: VaccinationRemindersService
 
 beforeEach(() => {
   notifications = createFakeNotifications()
   getById = vi.fn<(id: string) => Promise<Animal | null>>().mockResolvedValue(MILO)
   getVaccination = vi.fn<(id: string) => Promise<Vaccination | null>>().mockResolvedValue(CHPPI)
+  listReplacedDues = vi.fn<(id: string) => Promise<string[]>>().mockResolvedValue([])
   service = createVaccinationRemindersService({
-    vaccinations: () => ({ getById: getVaccination }),
+    vaccinations: () => ({ getById: getVaccination, listReplacedDues }),
     animals: () => ({ getById }),
     settings: async () => ({ vaccineReminderTime: '09:00', remindBeforeDue: true }),
     notifications,
@@ -83,7 +91,7 @@ describe('vaccinationRemindersService', () => {
 
   it('RA-9 : programme à l’heure des rappels de vaccins du carnet', async () => {
     service = createVaccinationRemindersService({
-      vaccinations: () => ({ getById: getVaccination }),
+      vaccinations: () => ({ getById: getVaccination, listReplacedDues }),
       animals: () => ({ getById }),
       settings: async () => ({ vaccineReminderTime: '18:30', remindBeforeDue: true }),
       notifications,
@@ -118,6 +126,7 @@ describe('vaccinationRemindersService', () => {
       lastInjectionDate: '2026-09-14',
       dueDate: '2027-09-14',
     })
+    listReplacedDues.mockResolvedValue(['2026-09-14'])
     const shown = `vaccination:${CHPPI.id}:2026-09-14:due`
     notifications.pending.set(shown, {
       key: shown,
@@ -188,5 +197,40 @@ describe('vaccinationRemindersService', () => {
 
     expect(notifications.cancelReminders.mock.calls.at(-1)?.[0]).toHaveLength(3)
     expect(notifications.pending.size).toBe(0)
+  })
+
+  it('VA-3 : un vaccin créé sans injection est rappelé avant son rendez-vous, à l’heure du carnet', async () => {
+    const db = await createInMemoryDb()
+    try {
+      await db.run(
+        `INSERT INTO animal (id, name, species, created_at, updated_at, created_by_device, updated_by_device)
+         VALUES (?, 'Milo', 'dog', ?, ?, 'appareil-test', 'appareil-test')`,
+        [MILO.id, MILO.createdAt, MILO.updatedAt],
+      )
+      const repository = createVaccinationsRepository(db)
+      const prevu = await repository.create({
+        animalId: MILO.id,
+        name: 'Typhus, coryza',
+        dueDate: '2026-10-05',
+      })
+      service = createVaccinationRemindersService({
+        vaccinations: () => repository,
+        animals: () => ({ getById }),
+        settings: async () => ({ vaccineReminderTime: '18:30', remindBeforeDue: true }),
+        notifications,
+        t: i18n.global.t,
+        now: () => new Date(2026, 8, 15, 12),
+      })
+
+      await service.reschedule(prevu.id)
+
+      expect([...notifications.pending.values()].map(({ key, at }) => ({ key, at }))).toEqual([
+        { key: `vaccination:${prevu.id}:2026-10-05::before`, at: new Date(2026, 8, 21, 18, 30) },
+        { key: `vaccination:${prevu.id}:2026-10-05::due`, at: new Date(2026, 9, 5, 18, 30) },
+        { key: `vaccination:${prevu.id}:2026-10-05::overdue`, at: new Date(2026, 9, 8, 18, 30) },
+      ])
+    } finally {
+      db.close()
+    }
   })
 })

@@ -77,12 +77,13 @@ vaccins ne propose aucune durée) ; calendrier vaccinal imposé ; certificat off
 - **VA-9** Historique complet, sans limite de durée ; chaque injection avec le rappel choisi ce jour-là
   (« Rappel prévu le 2 juin 2027 », « Sans rappel prévu »). (2026-09-23, point 1 ; relecture du lot B ;
   textes revus le 2026-09-30, sans le verbe « fixer », spec Traitements Q13)
-- **VA-10** « Ajouter une injection passée » : ne demande que la date (jamais future ; toute date
-  passée acceptée, même avant la naissance, qui peut être approximative), jamais de prochain rappel ;
-  l'injection se range à sa place sans toucher au prochain rappel. Si elle devient la dernière (vaccin
-  « Prévu » sans injection, ou injection plus récente que les autres), elle recopie le prochain rappel en
-  cours ; le rappel prévu du vaccin n'est jamais effacé, pour que VA-14 le retrouve. (P2 Q2 ; revue du
-  modèle, 2026-09-29)
+- **VA-10** « Ajouter une injection passée » : demande la date (jamais future ; toute date passée
+  acceptée, même avant la naissance, qui peut être approximative) ; l'injection se range à sa place sans
+  toucher au prochain rappel. Si elle devient la dernière (vaccin « Prévu » sans injection, ou injection
+  plus récente que les autres), elle recopie le prochain rappel en cours ; si ce rappel tombe le jour de
+  l'injection ou avant, l'injection l'a fait : l'app demande le rappel suivant, comme « C'est fait »
+  (VA-6). Le rappel prévu du vaccin n'est jamais effacé, pour que VA-14 le retrouve. (P2 Q2 ; revue du
+  modèle, 2026-09-29 ; 2026-10-07)
 - **VA-11** Une injection antérieure à la dernière ne devient jamais la tête. (2026-09-24, §10.3)
 
 ### 4.4 Modifier, corriger, supprimer
@@ -108,7 +109,8 @@ vaccins ne propose aucune durée) ; calendrier vaccinal imposé ; certificat off
   « Pas de rappel », « Prévu le 5 oct. » pour un vaccin jamais fait) et sous-titre (« Prochain rappel le
   14 mars 2027 », « Premier vaccin · aucune injection notée », « Échéance passée »), les retards en
   tête. Le jour du rendez-vous, le Carnet garde « Prévu le 5 oct. » (« Aujourd'hui » seulement dans
-  « À faire » et sur la fiche). Animal qu'on ne suit plus : sous-titre « Dernière injection le 12 janv.
+  « À faire » et sur la fiche). Le jour du rappel d'un vaccin déjà injecté, le badge dit
+  « Aujourd'hui » en ambre, comme la fiche (#600). Animal qu'on ne suit plus : sous-titre « Dernière injection le 12 janv.
   2026 », ou « Premier vaccin · aucune injection notée » pour un vaccin jamais fait, sans badge (plus
   aucun rappel, AN-9 ; relecture de cohérence du 2026-09-30, validé en bloc). (Existant, décisions du 2026-09-09 et 2026-09-16 ; sous-titres : spec Q3 ;
   lot B révisé)
@@ -197,6 +199,11 @@ vaccins ne propose aucune durée) ; calendrier vaccinal imposé ; certificat off
   créé avec son injection) n'a pas de rendez-vous prévu. Écartée : le rendez-vous prévu seul (le rappel
   disparaît, l'app propose de supprimer le vaccin). (Relecture de cohérence du 2026-09-30 ; plan, R9 ;
   planches B · V12, V11.)
+
+- 2026-10-07 — **Injection passée qui dépasse le rappel en cours** (VA-10) : devenue la dernière le
+  jour du rappel en cours ou après, elle demande le rappel suivant, avec les raccourcis de « C'est fait ».
+  Raison : recopier un rappel antérieur laissait le vaccin « En retard » sur un rappel déjà fait.
+  Écartée : recopier le rappel en cours dans tous les cas (règle d'avant). (Bilan de #575, question 4.)
 
 ## 8. Questions ouvertes
 

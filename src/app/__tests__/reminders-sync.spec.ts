@@ -37,10 +37,14 @@ function animal(id: string, name: string): Animal {
     species: 'dog',
     breed: null,
     birthDate: null,
+    birthDateApproximate: false,
     photoPath: null,
     createdAt: STAMP,
     updatedAt: STAMP,
     deletedAt: null,
+    unfollowedOn: null,
+    departureReason: null,
+    departureDate: null,
   }
 }
 
@@ -80,13 +84,14 @@ const SETTINGS: CarnetReminderSettings = { vaccineReminderTime: '09:00', remindB
 let notifications: FakeNotifications
 let list: ReturnType<typeof vi.fn<() => Promise<Animal[]>>>
 let listVaccinations: ReturnType<typeof vi.fn<() => Promise<Vaccination[]>>>
+let listAllReplacedDues: ReturnType<typeof vi.fn<() => Promise<Map<string, string[]>>>>
 let listTreatments: ReturnType<typeof vi.fn<() => Promise<TreatmentWithHistory[]>>>
 let getSettings: ReturnType<typeof vi.fn<() => Promise<CarnetReminderSettings>>>
 
 function sync() {
   return createRemindersSync({
     animals: () => ({ list }),
-    vaccinations: () => ({ listAll: listVaccinations }),
+    vaccinations: () => ({ listAll: listVaccinations, listAllReplacedDues }),
     treatments: () => ({ listAllWithHistory: listTreatments }),
     carnetSettings: () => ({ get: getSettings }),
     notifications,
@@ -109,6 +114,7 @@ beforeEach(() => {
   notifications = createFakeNotifications()
   list = vi.fn<() => Promise<Animal[]>>().mockResolvedValue([MILO, LUNA])
   listVaccinations = vi.fn<() => Promise<Vaccination[]>>().mockResolvedValue([])
+  listAllReplacedDues = vi.fn<() => Promise<Map<string, string[]>>>().mockResolvedValue(new Map())
   listTreatments = vi.fn<() => Promise<TreatmentWithHistory[]>>().mockResolvedValue([])
   getSettings = vi.fn<() => Promise<CarnetReminderSettings>>().mockResolvedValue(SETTINGS)
 })
@@ -282,6 +288,7 @@ describe('syncAllReminders', () => {
       lastInjectionDate: '2026-09-14',
     }
     listVaccinations.mockResolvedValue([carre])
+    listAllReplacedDues.mockResolvedValue(new Map([[carre.id, ['2026-09-14']]]))
     listTreatments.mockResolvedValue([
       milbemax(
         {
@@ -346,6 +353,22 @@ describe('syncAllReminders', () => {
 
     expect(notifications.rescheduleAll).toHaveBeenCalledWith([])
     expect(notifications.pending.size).toBe(0)
+  })
+
+  it('AN-9 : ne programme rien pour un animal qu’on ne suit plus', async () => {
+    list.mockResolvedValue([MILO, { ...LUNA, unfollowedOn: '2026-09-14' }])
+    listVaccinations.mockResolvedValue([
+      vaccination('22222222-2222-4222-8222-222222222222', LUNA.id, '2026-10-15'),
+      vaccination('55555555-5555-4555-8555-555555555555', MILO.id, '2026-10-15'),
+    ])
+    listTreatments.mockResolvedValue([MILBEMAX])
+
+    await sync()()
+
+    expect(scheduledNow().map(({ key }) => key.split(':')[1])).toEqual(
+      expect.arrayContaining(['55555555-5555-4555-8555-555555555555']),
+    )
+    expect(scheduledNow().every(({ key }) => key.includes('55555555-5555-4555-8555'))).toBe(true)
   })
 
   it.each([

@@ -61,7 +61,7 @@ defineProps<{
 .section-card__add {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: tokens.$gap-list-row;
   padding-inline: 20px;
 }
 

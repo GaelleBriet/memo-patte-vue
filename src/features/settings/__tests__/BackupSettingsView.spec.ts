@@ -25,10 +25,14 @@ const MILO: Animal = {
   species: 'dog',
   breed: null,
   birthDate: null,
+  birthDateApproximate: false,
   photoPath: null,
   createdAt: '2026-09-09T09:00:00.000Z',
   updatedAt: '2026-09-09T09:00:00.000Z',
   deletedAt: null,
+  unfollowedOn: null,
+  departureReason: null,
+  departureDate: null,
 }
 
 let animalsStore: ReturnType<typeof useAnimalsStore>
@@ -124,6 +128,17 @@ describe('BackupSettingsView', () => {
     await lien.trigger('click')
 
     expect(push).toHaveBeenCalledWith({ name: 'plus' })
+  })
+
+  it('finit par « Effacer les données de ce téléphone », qui ouvre l’écran d’avant l’effacement', async () => {
+    const wrapper = await monter()
+    const ligne = wrapper.get('.backup-settings__content > :last-child')
+
+    expect(ligne.classes()).toContain('backup-settings__erase')
+    expect(ligne.text()).toBe('Effacer les données de ce téléphone')
+    await ligne.trigger('click')
+
+    expect(push).toHaveBeenCalledWith({ name: 'settings-erase' })
   })
 
   describe('« Exporter une copie »', () => {

@@ -50,10 +50,14 @@ const BOREE: Animal = {
   species: 'dog',
   breed: null,
   birthDate: '2026-04-10',
+  birthDateApproximate: false,
   photoPath: null,
   createdAt: '2026-09-01T09:00:00.000Z',
   updatedAt: '2026-09-01T09:00:00.000Z',
   deletedAt: null,
+  unfollowedOn: null,
+  departureReason: null,
+  departureDate: null,
 }
 
 const BRAVECTO: Treatment = {
@@ -63,8 +67,6 @@ const BRAVECTO: Treatment = {
   type: 'deworming',
   periodId: '44444444-4444-4444-8444-444444444444',
   frequency: { value: 1, unit: 'month' },
-  lastDoseDate: '2026-08-28',
-  nextDueDate: '2026-09-28',
   stoppedOn: null,
   createdAt: '2026-09-01T09:00:00.000Z',
   updatedAt: '2026-09-01T09:00:00.000Z',
@@ -474,7 +476,7 @@ describe('TreatmentReminderSheet — F2, la feuille de l’échéance touchée',
       params: { id: 'metacam' },
       query: { from: 'home' },
     })
-    expect(toastMessage.value).toBe(
+    expect(plain(toastMessage.value)).toBe(
       'La dose de Boree est prévue le 16 nov. Une prise en plus se note depuis la fiche.',
     )
     expect(sheet.emitted('update:modelValue')).toEqual([[false]])
@@ -665,6 +667,27 @@ describe('TreatmentReminderSheet — doses non renseignées (AC-9, TR-15)', () =
     ],
     doses: [],
   }
+
+  it('TR-37 : rien à renseigner pour un animal qu’on ne suit plus', async () => {
+    useAnimalsStore().animals = [{ ...BOREE, unfollowedOn: '2026-09-21' }]
+    vi.spyOn(useTreatmentsStore(), 'getWithHistory').mockResolvedValue(QUOTIDIEN)
+
+    await monter('unlogged')
+
+    expect(document.body.querySelector('.treatment-unlogged')).toBeNull()
+  })
+
+  it('TR-37 : rien à renseigner tant que les animaux ne sont pas chargés', async () => {
+    const animals = useAnimalsStore()
+    animals.animals = []
+    animals.hasLoaded = false
+    vi.spyOn(animals, 'load').mockReturnValue(new Promise(() => {}))
+    vi.spyOn(useTreatmentsStore(), 'getWithHistory').mockResolvedValue(QUOTIDIEN)
+
+    await monter('unlogged')
+
+    expect(document.body.querySelector('.treatment-unlogged')).toBeNull()
+  })
 
   it('la ligne « À renseigner » propose directement « Toutes données » et « Choisir les jours »', async () => {
     vi.spyOn(useTreatmentsStore(), 'getWithHistory').mockResolvedValue(QUOTIDIEN)

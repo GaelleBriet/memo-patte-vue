@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 
+import VaccinationPastInjectionSheet from './VaccinationPastInjectionSheet.vue'
 import VaccinationReminderSheet from './VaccinationReminderSheet.vue'
 import { useInjectionGestures } from '../composables/use-injection-gestures'
 import { useVaccinationDetail } from '../composables/use-vaccination-detail'
@@ -11,6 +12,7 @@ import {
   injectionGestureTexts,
   injectionRows,
   needsNewReminder,
+  pastInjectionNeedsReminder,
   vaccinationDeleteTexts,
   vaccinationDetailTexts,
 } from '../logic/vaccination-history'
@@ -64,6 +66,7 @@ const menuItems = computed<OverflowMenuItem[]>(() => [
 ])
 
 const isDoneSheetOpen = ref(false)
+const doneStartAt = ref<'done' | 'other-date'>('done')
 const moving = ref<VaccinationInjection | null>(null)
 const isDatePickerOpen = ref(false)
 const movingTexts = computed(() =>
@@ -87,40 +90,70 @@ onMounted(() => {
   if (!animals.hasLoaded) void animals.load()
 })
 
+function openDoneSheet(startAt: 'done' | 'other-date'): void {
+  doneStartAt.value = startAt
+  isDoneSheetOpen.value = true
+}
+
 function askDelete(onlyInjection: boolean): void {
   deleteFromOnlyInjection.value = onlyInjection
   isDeleteDialogOpen.value = true
 }
 
-function onInjectionAction(injectionId: string, action: string): void {
+async function onInjectionAction(injectionId: string, action: string): Promise<void> {
   const injection = injections.value.find((candidate) => candidate.id === injectionId)
   if (!injection) return
   if (action === 'changeDate') {
     moving.value = injection
     isDatePickerOpen.value = true
-  } else if (injections.value.length === 1) {
+  } else if ((await gestures.removeInjection(injection)) === 'without-reminder') {
     askDelete(true)
-  } else {
-    void gestures.removeInjection(injection)
   }
 }
 
-const redating = ref<{ injection: VaccinationInjection; injectedOn: string } | null>(null)
-const isRedateSheetOpen = ref(false)
+const isPastSheetOpen = ref(false)
+const takenDates = computed(() => injections.value.map(({ injectedOn }) => injectedOn))
+
+async function addPast(injectedOn: string): Promise<void> {
+  const current = vaccination.value
+  if (!current) return
+  if (pastInjectionNeedsReminder(current, injectedOn)) {
+    isPastSheetOpen.value = false
+    askReminder({ for: 'past', injectedOn })
+  } else if (await gestures.addPastInjection(current, injectedOn)) {
+    isPastSheetOpen.value = false
+  }
+}
+
+type ReminderQuestion =
+  | { for: 'move'; injection: VaccinationInjection; injectedOn: string }
+  | { for: 'past'; injectedOn: string }
+
+const reminderQuestion = ref<ReminderQuestion | null>(null)
+const isReminderSheetOpen = ref(false)
+
+function askReminder(question: ReminderQuestion): void {
+  reminderQuestion.value = question
+  isReminderSheetOpen.value = true
+}
 
 function move(injectedOn: string): void {
   const injection = moving.value
   if (!injection) return
   if (needsNewReminder(injection, injectedOn)) {
-    redating.value = { injection, injectedOn }
-    isRedateSheetOpen.value = true
+    askReminder({ for: 'move', injection, injectedOn })
   } else {
     void gestures.changeInjectionDate(injection, injectedOn)
   }
 }
 
-function redate(dates: InjectionDates): void {
-  if (redating.value) void gestures.changeInjectionDateAndReminder(redating.value.injection, dates)
+function onReminderChosen(dates: InjectionDates): void {
+  const question = reminderQuestion.value
+  if (question?.for === 'move') {
+    void gestures.changeInjectionDateAndReminder(question.injection, dates)
+  } else if (question?.for === 'past' && vaccination.value) {
+    void gestures.addPastInjectionWithReminder(vaccination.value, dates)
+  }
 }
 
 function backToCarnet(): void {
@@ -151,6 +184,14 @@ async function remove(): Promise<void> {
     @back="backToCarnet"
   >
     <template v-if="vaccination" #end>
+      <v-btn
+        class="vaccination-detail__edit"
+        icon="ms:edit"
+        variant="text"
+        color="primary"
+        :aria-label="texts?.editLabel"
+        @click="edit"
+      />
       <OverflowMenu
         :label="t('history.moreOptions')"
         :items="menuItems"
@@ -162,27 +203,52 @@ async function remove(): Promise<void> {
       <template v-if="vaccination && texts">
         <NextDueCard
           :label="t('vaccinations.detail.nextReminder')"
-          :date="texts.due?.date"
-          :delay="texts.due?.delay.text"
-          :overdue="texts.due?.delay.overdue"
+          :value="texts.due?.value"
+          :delay="texts.due?.delay"
+          :tone="texts.due?.tone"
+          :note="texts.note"
           :empty-text="t('vaccinations.detail.noReminder')"
           :done-aria-label="texts.doneLabel"
+          :other-date-aria-label="texts.otherDateLabel"
           :busy="gestures.isBusy.value"
-          @done="isDoneSheetOpen = true"
-          @edit="edit"
-        />
+          @done="openDoneSheet('done')"
+          @other-date="openDoneSheet('other-date')"
+        >
+          <template v-if="texts.top" #top>
+            <p class="vaccination-detail__first">
+              <v-icon icon="ms:vaccines" size="18" />
+              <span>{{ texts.top }}</span>
+            </p>
+          </template>
+        </NextDueCard>
 
-        <SectionCard :title="t('vaccinations.detail.injections')" :counter="texts.counter">
+        <SectionCard
+          v-if="rows.length > 0"
+          :title="t('vaccinations.detail.injections')"
+          :counter="texts.counter"
+        >
           <HistoryRow
             v-for="row in rows"
             :key="row.id"
             :date="row.date"
-            :detail="row.chosen"
+            :badge="row.badge"
+            :regular="row.regular"
+            :detail="row.detail"
             :options-label="row.optionsLabel"
             :items="rowItems"
             @select="onInjectionAction(row.id, $event)"
           />
         </SectionCard>
+
+        <button
+          type="button"
+          class="vaccination-detail__add-past"
+          :disabled="gestures.isBusy.value"
+          @click="isPastSheetOpen = true"
+        >
+          <v-icon icon="ms:add" size="20" />
+          <span>{{ t('vaccinations.detail.past.open') }}</span>
+        </button>
       </template>
 
       <p
@@ -205,17 +271,28 @@ async function remove(): Promise<void> {
     <VaccinationReminderSheet
       v-model="isDoneSheetOpen"
       :vaccination-id="id"
-      start-at="done"
+      :start-at="doneStartAt"
       @changed="reload"
     />
 
     <VaccinationReminderSheet
-      v-model="isRedateSheetOpen"
+      v-model="isReminderSheetOpen"
       :vaccination-id="id"
       start-at="done"
-      :initial-injected-on="redating?.injectedOn ?? null"
+      :initial-injected-on="reminderQuestion?.injectedOn ?? null"
       redate
-      @reminder-chosen="redate"
+      @reminder-chosen="onReminderChosen"
+    />
+
+    <VaccinationPastInjectionSheet
+      v-if="vaccination"
+      v-model="isPastSheetOpen"
+      :name="vaccination.name"
+      :animal="animal?.name ?? ''"
+      :today="today"
+      :taken="takenDates"
+      :busy="gestures.isBusy.value"
+      @add="addPast"
     />
 
     <DatePickerSheet
@@ -250,6 +327,48 @@ async function remove(): Promise<void> {
   flex-direction: column;
   gap: 26px;
   padding: 12px 0 32px;
+}
+
+.vaccination-detail__edit {
+  width: tokens.$size-tap-target;
+  height: tokens.$size-tap-target;
+}
+
+.vaccination-detail__first {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: tokens.$color-text-secondary;
+  font-size: 14px;
+  font-weight: 600;
+
+  .v-icon {
+    flex: 0 0 auto;
+    color: rgb(var(--v-theme-primary));
+  }
+}
+
+.vaccination-detail__add-past {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: tokens.$size-tap-target;
+  margin: -14px tokens.$padding-section-inline 0;
+  padding: 0 4px;
+  border: 0;
+  background: transparent;
+  color: rgb(var(--v-theme-primary));
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  text-align: start;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: none;
+    color: rgb(var(--v-theme-primary-darken-1));
+  }
 }
 
 .vaccination-detail__message {

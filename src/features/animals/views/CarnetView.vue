@@ -3,8 +3,14 @@ import { computed, defineAsyncComponent, onMounted, ref, watchEffect } from 'vue
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
+import AnimalOptionsSheet from './AnimalOptionsSheet.vue'
 import AnimalPhotoSheet from './AnimalPhotoSheet.vue'
+import AnimalPhotoViewer from './AnimalPhotoViewer.vue'
+import UnfollowedAnimalsLink from './UnfollowedAnimalsLink.vue'
+import { hasDepartureDetails } from '../logic/animal-departure'
+import { carnetSubtitle, unfollowedEntry } from '../logic/carnet-animal'
 import { useAnimalsStore } from '../store/animals.store'
+import { useAnimalFollowGestures } from '../composables/use-animal-follow-gestures'
 import { useAnimalPhotoActions } from '../composables/use-animal-photo-actions'
 import { useForegroundRefresh } from '@/core/app-lifecycle/use-foreground-refresh'
 import { usePhotoUrls } from '@/core/photos/use-photo-urls'
@@ -22,7 +28,7 @@ import VaccinationsSection, {
 } from '@/features/vaccinations/views/VaccinationsSection.vue'
 import WeightSection, { type WeightSectionSummary } from '@/features/weight/views/WeightSection.vue'
 import AnimalChipSelector, { type AnimalChipItem } from '@/shared/components/AnimalChipSelector.vue'
-import { animalAge } from '@/shared/domain/animal-age'
+import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
 import { animalAvatarGradientCss } from '@/shared/domain/animal-avatar-gradient'
 import { weightDeltaText } from '@/shared/domain/weight-delta'
 import { weightText } from '@/shared/domain/weight-display'
@@ -41,22 +47,46 @@ const animal = computed(() => animals.selectedAnimal)
 const isLoading = computed(() => !animals.hasLoaded && animals.error === null)
 const hasError = computed(() => animals.error !== null)
 const isEmpty = computed(
-  () => animals.hasLoaded && animals.animals.length === 0 && animals.error === null,
+  () => animals.hasLoaded && animals.followedAnimals.length === 0 && animals.error === null,
 )
 
 const photoUrl = usePhotoUrls(() => animals.animals.map((item) => item.photoPath))
 
 const chips = computed<AnimalChipItem[]>(() =>
-  animals.animals.map((item) => ({
+  animals.followedAnimals.map((item) => ({
     id: item.id,
     name: item.name,
     photoUrl: photoUrl(item.photoPath),
   })),
 )
 const headerPhotoUrl = computed(() => photoUrl(animal.value?.photoPath ?? null))
+const photoLabel = computed(() => {
+  const name = animal.value?.name ?? ''
+  return headerPhotoUrl.value
+    ? t('animals.carnet.photo.avatarLabel', { name })
+    : t('animals.carnet.photo.addLabel', { name })
+})
 
 const isPhotoSheetOpen = ref(false)
+const isPhotoViewerOpen = ref(false)
 const photoActions = useAnimalPhotoActions(animal)
+
+const isOptionsSheetOpen = ref(false)
+const isDeleteDialogOpen = ref(false)
+const gestures = useAnimalFollowGestures()
+const isFollowed = computed(() => animal.value?.unfollowedOn === null)
+
+async function applyOption(gesture: (target: { id: string; name: string }) => Promise<boolean>) {
+  const target = animal.value
+  if (!target) return
+  isOptionsSheetOpen.value = false
+  await gesture(target)
+}
+
+function askDelete(): void {
+  isOptionsSheetOpen.value = false
+  isDeleteDialogOpen.value = true
+}
 
 const isPdfExportSheetOpen = ref(false)
 const hasOpenedPdfExportSheet = ref(false)
@@ -78,17 +108,40 @@ function openPhotoSheet(event: Event): void {
   isPhotoSheetOpen.value = true
 }
 
+function viewPhoto(): void {
+  isPhotoSheetOpen.value = false
+  isPhotoViewerOpen.value = true
+}
+
 async function applyPhoto(action: () => Promise<boolean>): Promise<void> {
   if (await action()) isPhotoSheetOpen.value = false
 }
 
-const subtitle = computed(() => {
-  if (!animal.value) return null
-  const age = animalAge(animal.value.birthDate, today.value)
-  const parts = [animal.value.breed, age && t(`animals.age.${age.unit}`, age.value)]
-  const text = parts.filter(Boolean).join(t('animals.carnet.subtitleSeparator'))
-  return text || null
-})
+const subtitle = computed(() =>
+  animal.value ? carnetSubtitle(t, animal.value, today.value) : null,
+)
+
+const unfollowed = computed(() => unfollowedEntry(animals.unfollowedAnimals))
+
+function openUnfollowed(): void {
+  const target = unfollowed.value?.target
+  if (target?.kind === 'list') {
+    void router.push({ name: 'unfollowed-animals' })
+  } else if (target) {
+    animals.select(target.animalId)
+    document.scrollingElement?.scrollTo?.({ top: 0 })
+  }
+}
+
+const departureLabel = computed(() =>
+  animal.value && hasDepartureDetails(animal.value)
+    ? t('animals.carnet.unfollowed.editDate')
+    : t('animals.carnet.unfollowed.addDate'),
+)
+
+function openDeparture(): void {
+  if (animal.value) void router.push({ name: 'animal-departure', params: { id: animal.value.id } })
+}
 
 const weightStat = computed(() => {
   const summary = weightSummary.value
@@ -117,9 +170,9 @@ onMounted(() => {
   void animals.load()
 })
 
-// Il y a toujours un animal actif sur le Carnet : le premier de la liste, faute de choix.
+// Il y a toujours un animal actif sur le Carnet : le premier animal suivi, faute de choix.
 watchEffect(() => {
-  const first = animals.animals[0]
+  const first = animals.followedAnimals[0]
   if (animals.selectedAnimal === null && first) animals.select(first.id)
 })
 
@@ -148,19 +201,23 @@ function createAnimal(): void {
           @click="goHome"
         />
         <div class="carnet-header__identity">
-          <span
-            class="carnet-header__avatar"
-            role="button"
-            tabindex="0"
+          <button
+            type="button"
+            class="carnet-header__photo"
             aria-haspopup="dialog"
-            :aria-label="t('animals.carnet.photo.avatarLabel', { name: animal.name })"
-            :style="{ backgroundImage: animalAvatarGradientCss(animal.id) }"
-            @contextmenu.prevent="openPhotoSheet"
-            @keydown.enter.prevent="openPhotoSheet"
-            @keydown.space.prevent="openPhotoSheet"
+            :aria-label="photoLabel"
+            @click="openPhotoSheet"
           >
-            <img v-if="headerPhotoUrl" :src="headerPhotoUrl" alt="" />
-          </span>
+            <span
+              class="carnet-header__avatar"
+              :style="{ backgroundImage: animalAvatarGradientCss(animal.id) }"
+            >
+              <img v-if="headerPhotoUrl" :src="headerPhotoUrl" alt="" />
+            </span>
+            <span class="carnet-header__photo-badge" aria-hidden="true">
+              <v-icon icon="ms:photo_camera" />
+            </span>
+          </button>
           <div class="carnet-header__text">
             <h1 class="carnet-header__name">{{ animal.name }}</h1>
             <p v-if="subtitle" class="carnet-header__subtitle">{{ subtitle }}</p>
@@ -179,8 +236,36 @@ function createAnimal(): void {
             :aria-label="t('animals.carnet.edit')"
             @click="editAnimal"
           />
+          <v-btn
+            class="carnet-header__options"
+            icon="ms:more_vert"
+            variant="text"
+            aria-haspopup="dialog"
+            :aria-label="t('animals.carnet.options.open', { name: animal.name })"
+            @click="isOptionsSheetOpen = true"
+          />
         </div>
       </header>
+
+      <AnimalOptionsSheet
+        v-model="isOptionsSheetOpen"
+        :name="animal.name"
+        :subtitle="subtitle"
+        :followed="isFollowed"
+        :busy="gestures.isBusy.value"
+        @unfollow="applyOption(gestures.unfollow)"
+        @follow="applyOption(gestures.follow)"
+        @delete="askDelete"
+      />
+
+      <ConfirmDialog
+        v-model="isDeleteDialogOpen"
+        :title="t('animals.carnet.deleteDialog.title', { name: animal.name })"
+        :text="t('animals.carnet.deleteDialog.text', { name: animal.name })"
+        :cancel-label="t('animals.carnet.deleteDialog.cancel')"
+        :confirm-label="t('animals.carnet.deleteDialog.confirm')"
+        @confirm="applyOption(gestures.remove)"
+      />
 
       <PdfExportSheet
         v-if="hasOpenedPdfExportSheet"
@@ -191,11 +276,20 @@ function createAnimal(): void {
       <AnimalPhotoSheet
         v-model="isPhotoSheetOpen"
         :name="animal.name"
+        :breed="animal.breed"
         :has-photo="headerPhotoUrl !== null"
         :busy="photoActions.isBusy.value"
         :error="photoActions.error.value ? t(photoActions.error.value) : null"
+        @view="viewPhoto"
         @change="applyPhoto(photoActions.changePhoto)"
         @remove="applyPhoto(photoActions.removePhoto)"
+      />
+
+      <AnimalPhotoViewer
+        v-if="headerPhotoUrl"
+        v-model="isPhotoViewerOpen"
+        :src="headerPhotoUrl"
+        :name="animal.name"
       />
 
       <AnimalChipSelector
@@ -224,18 +318,52 @@ function createAnimal(): void {
       </dl>
 
       <div class="carnet__sections">
+        <section v-if="!isFollowed" class="carnet-unfollowed">
+          <p class="carnet-unfollowed__banner">
+            <v-icon icon="ms:info" size="19" />
+            <span>{{ t('animals.carnet.unfollowed.banner', { name: animal.name }) }}</span>
+          </p>
+          <v-btn
+            class="carnet-unfollowed__action"
+            variant="outlined"
+            color="primary"
+            prepend-icon="ms:edit_calendar"
+            @click="openDeparture"
+          >
+            {{ departureLabel }}
+          </v-btn>
+          <v-btn
+            class="carnet-unfollowed__action"
+            variant="outlined"
+            color="primary"
+            prepend-icon="ms:notifications_active"
+            :aria-label="t('animals.carnet.unfollowed.followLabel', { name: animal.name })"
+            :disabled="gestures.isBusy.value"
+            @click="applyOption(gestures.follow)"
+          >
+            {{ t('animals.carnet.unfollowed.follow') }}
+          </v-btn>
+        </section>
         <PlusNudgeSection :animal-count="animals.animals.length" />
         <VaccinationsSection
           :animal-id="animal.id"
           :today="today"
+          :followed="isFollowed"
           @summary="vaccinationsSummary = $event"
         />
         <TreatmentsSection
           :animal-id="animal.id"
           :today="today"
+          :followed="isFollowed"
           @summary="treatmentsSummary = $event"
         />
         <WeightSection :animal-id="animal.id" :today="today" @summary="weightSummary = $event" />
+        <UnfollowedAnimalsLink
+          v-if="unfollowed"
+          class="carnet__unfollowed-link"
+          :count="unfollowed.count"
+          @open="openUnfollowed"
+        />
       </div>
     </template>
 
@@ -261,6 +389,16 @@ function createAnimal(): void {
       <v-btn class="carnet-welcome__create" variant="flat" color="primary" @click="createAnimal">
         {{ t('animals.carnet.welcome.create') }}
       </v-btn>
+      <template v-if="unfollowed">
+        <p class="carnet-welcome__unfollowed">
+          {{ t('animals.carnet.welcome.unfollowed', unfollowed.count) }}
+        </p>
+        <UnfollowedAnimalsLink
+          class="carnet-welcome__unfollowed-link"
+          :count="unfollowed.count"
+          @open="openUnfollowed"
+        />
+      </template>
     </div>
   </div>
 </template>
@@ -285,10 +423,17 @@ function createAnimal(): void {
 
 .carnet-header__back,
 .carnet-header__export-pdf,
-.carnet-header__edit {
+.carnet-header__edit,
+.carnet-header__options {
   width: 48px;
   height: 48px;
   color: rgb(var(--v-theme-background));
+}
+
+// Les trois icônes se touchent par leur zone de 48 px, pas par l'écart du nom.
+.carnet-header__edit,
+.carnet-header__options {
+  margin-inline-start: -14px;
 }
 
 .carnet-header__identity {
@@ -298,21 +443,27 @@ function createAnimal(): void {
   padding-inline: 8px;
 }
 
+.carnet-header__photo {
+  position: relative;
+  flex: 0 0 auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: none;
+  }
+}
+
 .carnet-header__avatar {
   display: block;
   overflow: hidden;
-  flex: 0 0 auto;
   width: tokens.$size-header-avatar;
   height: tokens.$size-header-avatar;
   border: 2px solid tokens.$color-header-avatar-border;
   border-radius: 50%;
   background-size: cover;
-  -webkit-touch-callout: none;
-  user-select: none;
-
-  &:focus-visible {
-    outline: none;
-  }
 
   img {
     pointer-events: none;
@@ -320,6 +471,25 @@ function createAnimal(): void {
     width: 100%;
     height: 100%;
     object-fit: cover;
+  }
+}
+
+.carnet-header__photo-badge {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: tokens.$size-header-avatar-badge;
+  height: tokens.$size-header-avatar-badge;
+  border: 2px solid rgb(var(--v-theme-primary));
+  border-radius: 50%;
+  background: rgb(var(--v-theme-surface));
+  color: rgb(var(--v-theme-primary));
+
+  .v-icon {
+    font-size: tokens.$size-header-avatar-badge-icon;
   }
 }
 
@@ -342,13 +512,16 @@ function createAnimal(): void {
 }
 
 .carnet-header__subtitle {
+  display: -webkit-box;
   overflow: hidden;
   margin: 2px 0 0;
   color: tokens.$color-on-primary-subtitle;
   font-size: 13.5px;
   font-weight: 500;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  line-height: 1.3;
+  white-space: normal;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .carnet-stats {
@@ -403,6 +576,56 @@ function createAnimal(): void {
   flex-direction: column;
   gap: 26px;
   margin-top: 26px;
+}
+
+.carnet-unfollowed {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-inline: tokens.$padding-section-inline;
+}
+
+.carnet-unfollowed__banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0 0 4px;
+  padding: 12px 14px;
+  border: 1px solid tokens.$color-card-border;
+  border-radius: tokens.$radius-field;
+  background: tokens.$color-field-surface;
+  color: rgb(var(--v-theme-on-surface));
+  font-size: 13.5px;
+  line-height: 1.45;
+
+  .v-icon {
+    flex: 0 0 auto;
+    color: rgb(var(--v-theme-primary));
+  }
+}
+
+.carnet-unfollowed__action {
+  height: tokens.$size-tap-target;
+  border-radius: tokens.$radius-pill;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.carnet__unfollowed-link {
+  margin-inline: tokens.$padding-section-inline;
+}
+
+.carnet-welcome__unfollowed {
+  margin: 0;
+  color: tokens.$color-text-secondary;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.carnet-welcome__unfollowed-link {
+  align-self: stretch;
 }
 
 .carnet-loading {
