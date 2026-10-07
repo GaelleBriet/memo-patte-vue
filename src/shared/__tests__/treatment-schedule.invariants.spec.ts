@@ -1357,11 +1357,16 @@ class Simulation {
     }
   }
 
-  // Comme le repository : les déplacements sans effet partent avec l'écriture.
+  // Comme le repository : les déplacements sans effet partent avec l'écriture, sans toucher au calendrier.
   private purgeStale(): void {
-    const stale = this.schedule().staleDoseIds
+    const before = this.schedule()
+    const stale = before.staleDoseIds
     if (stale.length === 0) return
     this.book = { ...this.book, doses: this.book.doses.filter(({ id }) => !stale.includes(id)) }
+    const after = this.schedule()
+    if (calendarOf(after) !== calendarOf(before)) {
+      this.fail(`purge de ${stale.join(', ')} : ${calendarOf(before)} → ${calendarOf(after)}`)
+    }
   }
 }
 
