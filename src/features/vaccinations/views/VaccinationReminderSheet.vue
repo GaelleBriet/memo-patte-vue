@@ -45,7 +45,7 @@ const props = withDefaults(
     initialInjectedOn?: string | null
     /** Écran où revenir une fois l'injection notée ; absent, la feuille reste sur l'écran qui l'a ouverte. */
     returnTo?: string | null
-    /** Injection existante déplacée à `initialInjectedOn` : seul le rappel se choisit, rien n'est écrit. */
+    /** Injection déjà datée à `initialInjectedOn` (déplacée ou ajoutée) : seul le rappel se choisit, rien n'est écrit. */
     redate?: boolean
   }>(),
   { startAt: 'actions', initialInjectedOn: null, returnTo: null, redate: false },
@@ -54,7 +54,7 @@ const props = withDefaults(
 const emit = defineEmits<{
   /** Une injection ou son annulation a changé le vaccin. */
   changed: []
-  /** Le rappel choisi pour l'injection déplacée, avec sa nouvelle date. */
+  /** Le rappel choisi pour l'injection datée, avec sa date. */
   reminderChosen: [dates: InjectionDates]
 }>()
 
