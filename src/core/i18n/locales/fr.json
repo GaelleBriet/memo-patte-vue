@@ -231,29 +231,38 @@
       "otherDateLabel": "Fait à une autre date : choisir la date de l’injection",
       "doneLabel": "C’est fait : noter l’injection de {name} pour {animal} et choisir le prochain rappel",
       "injections": "Injections",
-      "chosen": {
-        "oneYear": "Rappel choisi : dans 1 an",
-        "threeYears": "Rappel choisi : dans 3 ans",
-        "date": "Rappel choisi : autre date, {date}",
-        "none": "Rappel choisi : pas de rappel"
-      },
+      "lastInjection": "Dernière injection",
+      "lastInjectionOn": "Dernière injection · {date}",
+      "plannedReminder": "Rappel prévu le {date}",
+      "noPlannedReminder": "Sans rappel prévu",
       "options": "Options pour l’injection du {date}",
       "remove": "Supprimer cette injection",
       "changeDateSubtitle": "Injection du {date}",
+      "past": {
+        "open": "Ajouter une injection passée",
+        "eyebrow": "Injection passée",
+        "title": "Ajouter une injection passée",
+        "submit": "Ajouter",
+        "taken": "Une injection est déjà notée ce jour-là.",
+        "failed": "L’injection n’a pas pu être ajoutée. Réessaie."
+      },
       "toast": {
         "removed": "Injection du {date} supprimée",
         "undoRemove": "Annuler la suppression de l’injection du {date}",
         "moved": "Injection déplacée au {date}",
         "undoMove": "Annuler le changement de date de l’injection",
-        "deleted": "Vaccin {name} supprimé"
+        "deleted": "Vaccin {name} supprimé",
+        "added": "Injection du {date} ajoutée",
+        "undoAdd": "Annuler l’ajout de l’injection du {date}",
+        "undoDelete": "Annuler la suppression du vaccin {name}"
       },
       "menu": {
         "remove": "Supprimer ce vaccin"
       },
       "deleteDialog": {
         "title": "Supprimer {name} ?",
-        "text": "Ses injections et ses rappels seront supprimés du carnet. Cette action est définitive.",
-        "onlyInjection": "C’est sa seule injection : le vaccin {name} sera supprimé, avec ses rappels. Cette action est définitive.",
+        "text": "Ses injections et ses rappels seront supprimés du carnet.",
+        "onlyInjection": "C’est sa seule injection, sans rappel prévu : le vaccin {name} sera supprimé du carnet.",
         "cancel": "Annuler",
         "confirm": "Supprimer"
       },

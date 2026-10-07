@@ -311,21 +311,46 @@ describe('vaccinationInjectionsRepository — noter et annuler une injection', (
       await expect(injections.getById('i1')).resolves.toBeNull()
     })
 
-    it('ne supprime jamais la seule injection visible d’un vaccin', async () => {
-      await expect(injections.remove(rage, NOW)).resolves.toBe(false)
+    it('supprime aussi la seule injection visible d’un vaccin (VA-14)', async () => {
+      await expect(injections.remove(rage, NOW)).resolves.toBe(true)
 
-      await expect(lignes()).resolves.toHaveLength(1)
+      await expect(lignes()).resolves.toEqual([])
     })
 
-    it('ne compte pas une injection supprimée : la restante, seule visible, est gardée', async () => {
+    it('ne supprime pas une injection déjà supprimée, et le dit', async () => {
       await injections.record(injection('i1', '2026-02-20'))
       await injections.remove('i1', EARLIER)
 
-      await expect(injections.remove(rage, NOW)).resolves.toBe(false)
+      await expect(injections.remove('i1', NOW)).resolves.toBe(false)
+    })
 
-      await expect(lignes()).resolves.toEqual([
-        { id: rage, injected_on: '2025-01-01', next_due_date: null },
+    it('joue les instructions jointes dans la même transaction que la suppression et le rétablissement', async () => {
+      const vaccinations = createVaccinationsRepository(db)
+
+      await injections.remove(rage, NOW, [
+        vaccinations.plannedDueDateStatement(rage, '2026-03-14', NOW),
       ])
+      await expect(vaccinations.getById(rage)).resolves.toMatchObject({
+        lastInjectionDate: null,
+        dueDate: '2026-03-14',
+      })
+
+      await injections.revive(rage, LATER, [
+        vaccinations.plannedDueDateStatement(rage, null, LATER),
+      ])
+      await expect(vaccinations.getById(rage)).resolves.toMatchObject({
+        lastInjectionDate: '2025-01-01',
+        dueDate: null,
+      })
+      await expect(vaccinations.getPlannedDueDate(rage)).resolves.toBeNull()
+    })
+
+    it('n’écrit rien si une instruction jointe échoue', async () => {
+      await expect(
+        injections.remove(rage, NOW, [{ sql: 'UPDATE table_absente SET x = 1' }]),
+      ).rejects.toThrow('table_absente')
+
+      await expect(lignes()).resolves.toHaveLength(1)
     })
 
     it('supprime une injection quand une autre reste visible, et le dit', async () => {
