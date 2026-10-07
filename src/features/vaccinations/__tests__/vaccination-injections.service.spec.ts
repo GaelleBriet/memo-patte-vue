@@ -428,6 +428,95 @@ describe('vaccinationInjectionsService', () => {
       })
     })
 
+    describe('qui dépasse le rappel en cours', () => {
+      let rage: string
+
+      beforeEach(async () => {
+        rage = (
+          await vaccinations.create({
+            animalId: BOREE,
+            name: 'Rage',
+            lastInjectionDate: '2025-03-10',
+            dueDate: '2026-03-10',
+          })
+        ).id
+        await reminders.reschedule(rage)
+      })
+
+      it('refuse de l’ajouter sans le rappel suivant, sans rien écrire', async () => {
+        await expect(service.addPast(rage, '2026-05-20')).rejects.toThrow(
+          'Prochain rappel à choisir',
+        )
+        await expect(service.addPast(rage, '2026-03-10')).rejects.toThrow(
+          'Prochain rappel à choisir',
+        )
+
+        await expect(injectionsRepository.listByVaccination(rage)).resolves.toHaveLength(1)
+      })
+
+      it('l’ajoute avec le rappel choisi, qui devient le prochain rappel', async () => {
+        const { injectionId } = await service.addPastWithReminder(rage, {
+          injectedOn: '2026-05-20',
+          nextDueDate: '2027-05-20',
+        })
+
+        await expect(vaccinations.getById(rage)).resolves.toMatchObject({
+          lastInjectionDate: '2026-05-20',
+          dueDate: '2027-05-20',
+        })
+        await expect(injectionsRepository.getById(injectionId)).resolves.toMatchObject({
+          injectedOn: '2026-05-20',
+          nextDueDate: '2027-05-20',
+        })
+        expect(
+          [...notifications.pending.keys()].filter((key) => key.includes(`${rage}:2027-05-20`)),
+        ).not.toEqual([])
+      })
+
+      it('accepte « Pas de rappel », et « Annuler » rend le rappel d’avant', async () => {
+        const { injectionId } = await service.addPastWithReminder(rage, {
+          injectedOn: '2026-03-10',
+          nextDueDate: null,
+        })
+        await expect(vaccinations.getById(rage)).resolves.toMatchObject({ dueDate: null })
+
+        await service.undo(rage, injectionId)
+
+        await expect(vaccinations.getById(rage)).resolves.toMatchObject({
+          lastInjectionDate: '2025-03-10',
+          dueDate: '2026-03-10',
+        })
+      })
+
+      it.each([
+        ['un rappel le jour de l’injection', '2026-05-20', '2026-05-20'],
+        ['une injection future', '2026-09-24', '2027-09-24'],
+      ])('refuse %s, sans rien écrire', async (_, injectedOn, nextDueDate) => {
+        await expect(
+          service.addPastWithReminder(rage, { injectedOn, nextDueDate }),
+        ).rejects.toThrow(ZodError)
+
+        await expect(injectionsRepository.listByVaccination(rage)).resolves.toHaveLength(1)
+      })
+
+      it('refuse un rappel pour une injection qui ne dépasse pas le rappel en cours', async () => {
+        await expect(
+          service.addPastWithReminder(rage, {
+            injectedOn: '2026-01-10',
+            nextDueDate: '2027-01-10',
+          }),
+        ).rejects.toThrow('Pas de rappel à choisir')
+        await expect(
+          service.addPastWithReminder(rage, {
+            injectedOn: '2025-03-10',
+            nextDueDate: '2027-01-10',
+          }),
+        ).rejects.toThrow('Pas de rappel à choisir')
+
+        await expect(injectionsRepository.listByVaccination(rage)).resolves.toHaveLength(1)
+      })
+    })
+
     it('refuse une date future, ou un jour qui a déjà son injection, sans rien écrire', async () => {
       await expect(service.addPast(carre, '2026-09-24')).rejects.toThrow(ZodError)
       await expect(service.addPast(carre, '2025-09-26')).rejects.toThrow(

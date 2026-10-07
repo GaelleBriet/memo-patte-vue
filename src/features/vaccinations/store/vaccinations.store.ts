@@ -62,6 +62,7 @@ type VaccinationInjections = Pick<
   VaccinationInjectionsService,
   | 'record'
   | 'addPast'
+  | 'addPastWithReminder'
   | 'undo'
   | 'remove'
   | 'undoRemove'
@@ -233,6 +234,16 @@ export const useVaccinationsStore = defineStore('vaccinations', () => {
     async addPastInjection(vaccinationId: string, injectedOn: string): Promise<RecordedInjection> {
       return write(
         () => injectionsProvider().addPast(vaccinationId, injectedOn),
+        (recorded) => recorded.animalId,
+      )
+    },
+
+    async addPastInjectionWithReminder(
+      vaccinationId: string,
+      dates: InjectionDates,
+    ): Promise<RecordedInjection> {
+      return write(
+        () => injectionsProvider().addPastWithReminder(vaccinationId, dates),
         (recorded) => recorded.animalId,
       )
     },

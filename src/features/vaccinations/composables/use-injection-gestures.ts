@@ -10,6 +10,7 @@ import {
   VaccinationWithoutReminderError,
 } from '../logic/vaccination-history'
 import type { InjectionDates } from '../repository/vaccination-injections.repository'
+import type { RecordedInjection } from '../service/vaccination-injections.service'
 import type { VaccinationInjection } from '../schema/vaccination-injection.schema'
 import type { Vaccination } from '../schema/vaccination.schema'
 import { useVaccinationsStore } from '../store/vaccinations.store'
@@ -69,16 +70,36 @@ export function useInjectionGestures(onChanged: () => void) {
     return ok ? outcome : 'failed'
   }
 
-  function addPastInjection(
-    vaccination: Pick<Vaccination, 'id' | 'name'>,
+  function added(
+    vaccinationId: string,
     injectedOn: string,
+    write: () => Promise<RecordedInjection>,
   ): Promise<boolean> {
     const toast = pastInjectionToast(t, injectedOn, todayIsoDate())
     return guarded(async () => {
-      const { injectionId } = await store.addPastInjection(vaccination.id, injectedOn)
+      const { injectionId } = await write()
       onChanged()
-      undoable(toast.added, toast.undoAdd, () => store.undoInjection(vaccination.id, injectionId))
+      undoable(toast.added, toast.undoAdd, () => store.undoInjection(vaccinationId, injectionId))
     }, t('vaccinations.detail.past.failed'))
+  }
+
+  function addPastInjection(
+    vaccination: Pick<Vaccination, 'id'>,
+    injectedOn: string,
+  ): Promise<boolean> {
+    return added(vaccination.id, injectedOn, () =>
+      store.addPastInjection(vaccination.id, injectedOn),
+    )
+  }
+
+  /** Injection passée qui a demandé le rappel suivant : les deux s'écrivent ensemble. */
+  function addPastInjectionWithReminder(
+    vaccination: Pick<Vaccination, 'id'>,
+    dates: InjectionDates,
+  ): Promise<boolean> {
+    return added(vaccination.id, dates.injectedOn, () =>
+      store.addPastInjectionWithReminder(vaccination.id, dates),
+    )
   }
 
   function moved(
@@ -129,6 +150,7 @@ export function useInjectionGestures(onChanged: () => void) {
     isBusy,
     removeInjection,
     addPastInjection,
+    addPastInjectionWithReminder,
     changeInjectionDate,
     changeInjectionDateAndReminder,
     removeVaccination,

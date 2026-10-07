@@ -93,6 +93,7 @@ let service: {
     K in
       | 'record'
       | 'addPast'
+      | 'addPastWithReminder'
       | 'undo'
       | 'remove'
       | 'undoRemove'
@@ -136,6 +137,10 @@ beforeEach(async () => {
     addPast: vi.fn<VaccinationInjectionsService['addPast']>(async () => ({
       animalId: BOREE.id,
       injectionId: 'i0',
+    })),
+    addPastWithReminder: vi.fn<VaccinationInjectionsService['addPastWithReminder']>(async () => ({
+      animalId: BOREE.id,
+      injectionId: 'i4',
     })),
     undo: vi.fn<VaccinationInjectionsService['undo']>(async () => {}),
     remove: vi.fn<VaccinationInjectionsService['remove']>(async () => ({ plannedSet: false })),
@@ -553,6 +558,62 @@ describe('VaccinationDetailView — injection passée (V12 bis)', () => {
     runToastAction()
     await flushPromises()
     expect(service.undo).toHaveBeenCalledWith(CARRE.id, 'i0')
+  })
+
+  it('demande le rappel suivant quand l’injection ajoutée dépasse le rappel en cours, puis écrit tout d’un coup', async () => {
+    getById.mockResolvedValue({ ...CARRE, dueDate: '2026-09-05' })
+    const view = await monter()
+    await view.get('.vaccination-detail__add-past').trigger('click')
+
+    feuille(view).vm.$emit('add', '2026-09-10')
+    await flushPromises()
+
+    expect(service.addPast).not.toHaveBeenCalled()
+    expect(feuille(view).props('modelValue')).toBe(false)
+    expect(feuilleDuRappel(view).props()).toMatchObject({
+      modelValue: true,
+      vaccinationId: CARRE.id,
+      startAt: 'done',
+      initialInjectedOn: '2026-09-10',
+    })
+
+    const dates = { injectedOn: '2026-09-10', nextDueDate: '2027-09-10' }
+    feuilleDuRappel(view).vm.$emit('reminderChosen', dates)
+    await flushPromises()
+
+    expect(service.addPastWithReminder).toHaveBeenCalledExactlyOnceWith(CARRE.id, dates)
+    expect(service.changeDateAndReminder).not.toHaveBeenCalled()
+    expect(plain(toastMessage.value)).toBe('Injection du 10 sept. ajoutée')
+    runToastAction()
+    await flushPromises()
+    expect(service.undo).toHaveBeenCalledWith(CARRE.id, 'i4')
+  })
+
+  it('demande aussi le rappel pour une injection ajoutée le jour du rappel en cours', async () => {
+    getById.mockResolvedValue({ ...CARRE, dueDate: '2026-09-05' })
+    const view = await monter()
+    await view.get('.vaccination-detail__add-past').trigger('click')
+
+    feuille(view).vm.$emit('add', '2026-09-05')
+    await flushPromises()
+
+    expect(service.addPast).not.toHaveBeenCalled()
+    expect(feuilleDuRappel(view).props('initialInjectedOn')).toBe('2026-09-05')
+  })
+
+  it('n’ajoute rien quand on ferme la question du rappel sans choisir', async () => {
+    getById.mockResolvedValue({ ...CARRE, dueDate: '2026-09-05' })
+    const view = await monter()
+    await view.get('.vaccination-detail__add-past').trigger('click')
+    feuille(view).vm.$emit('add', '2026-09-10')
+    await flushPromises()
+
+    feuilleDuRappel(view).vm.$emit('update:modelValue', false)
+    await flushPromises()
+
+    expect(service.addPast).not.toHaveBeenCalled()
+    expect(service.addPastWithReminder).not.toHaveBeenCalled()
+    expect(toastMessage.value).toBeNull()
   })
 
   it('garde la feuille ouverte et dit l’échec', async () => {

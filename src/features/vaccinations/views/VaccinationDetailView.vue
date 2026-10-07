@@ -12,6 +12,7 @@ import {
   injectionGestureTexts,
   injectionRows,
   needsNewReminder,
+  pastInjectionNeedsReminder,
   vaccinationDeleteTexts,
   vaccinationDetailTexts,
 } from '../logic/vaccination-history'
@@ -114,27 +115,45 @@ const isPastSheetOpen = ref(false)
 const takenDates = computed(() => injections.value.map(({ injectedOn }) => injectedOn))
 
 async function addPast(injectedOn: string): Promise<void> {
-  if (vaccination.value && (await gestures.addPastInjection(vaccination.value, injectedOn))) {
+  const current = vaccination.value
+  if (!current) return
+  if (pastInjectionNeedsReminder(current, injectedOn)) {
+    isPastSheetOpen.value = false
+    askReminder({ for: 'past', injectedOn })
+  } else if (await gestures.addPastInjection(current, injectedOn)) {
     isPastSheetOpen.value = false
   }
 }
 
-const redating = ref<{ injection: VaccinationInjection; injectedOn: string } | null>(null)
-const isRedateSheetOpen = ref(false)
+type ReminderQuestion =
+  | { for: 'move'; injection: VaccinationInjection; injectedOn: string }
+  | { for: 'past'; injectedOn: string }
+
+const reminderQuestion = ref<ReminderQuestion | null>(null)
+const isReminderSheetOpen = ref(false)
+
+function askReminder(question: ReminderQuestion): void {
+  reminderQuestion.value = question
+  isReminderSheetOpen.value = true
+}
 
 function move(injectedOn: string): void {
   const injection = moving.value
   if (!injection) return
   if (needsNewReminder(injection, injectedOn)) {
-    redating.value = { injection, injectedOn }
-    isRedateSheetOpen.value = true
+    askReminder({ for: 'move', injection, injectedOn })
   } else {
     void gestures.changeInjectionDate(injection, injectedOn)
   }
 }
 
-function redate(dates: InjectionDates): void {
-  if (redating.value) void gestures.changeInjectionDateAndReminder(redating.value.injection, dates)
+function onReminderChosen(dates: InjectionDates): void {
+  const question = reminderQuestion.value
+  if (question?.for === 'move') {
+    void gestures.changeInjectionDateAndReminder(question.injection, dates)
+  } else if (question?.for === 'past' && vaccination.value) {
+    void gestures.addPastInjectionWithReminder(vaccination.value, dates)
+  }
 }
 
 function backToCarnet(): void {
@@ -257,12 +276,12 @@ async function remove(): Promise<void> {
     />
 
     <VaccinationReminderSheet
-      v-model="isRedateSheetOpen"
+      v-model="isReminderSheetOpen"
       :vaccination-id="id"
       start-at="done"
-      :initial-injected-on="redating?.injectedOn ?? null"
+      :initial-injected-on="reminderQuestion?.injectedOn ?? null"
       redate
-      @reminder-chosen="redate"
+      @reminder-chosen="onReminderChosen"
     />
 
     <VaccinationPastInjectionSheet

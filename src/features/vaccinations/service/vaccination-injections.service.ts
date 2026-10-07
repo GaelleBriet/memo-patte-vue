@@ -6,6 +6,7 @@ import {
   keptPlannedDueDate,
   needsNewReminder,
   pastInjectionDue,
+  pastInjectionNeedsReminder,
   VaccinationWithoutReminderError,
 } from '../logic/vaccination-history'
 import {
@@ -17,7 +18,7 @@ import {
   getVaccinationsRepository,
   type VaccinationsRepository,
 } from '../repository/vaccinations.repository'
-import { dueDateSchema, injectionDateSchema } from '../schema/vaccination.schema'
+import { dueDateSchema, injectionDateSchema, type Vaccination } from '../schema/vaccination.schema'
 import {
   vaccinationRemindersService,
   type VaccinationRemindersService,
@@ -58,8 +59,8 @@ const injectionInputSchema = z.object({
   nextDueDate: dueDateSchema,
 })
 
-/** Rappel choisi avec le déplacement : une date valide, strictement après l'injection, ou aucune. */
-const redatedInjectionSchema = injectionInputSchema.refine(
+/** Rappel choisi avec la date de l'injection : une date valide, strictement après elle, ou aucune. */
+const injectionWithReminderSchema = injectionInputSchema.refine(
   ({ injectedOn, nextDueDate }) => nextDueDate === null || nextDueDate > injectedOn,
   { path: ['nextDueDate'] },
 )
@@ -85,25 +86,33 @@ export function createVaccinationInjectionsService({
       return { animalId: vaccination.animalId, injectionId: injection.id }
     },
 
-    /** Lève pour une date future ou déjà prise par une injection du vaccin. */
+    /**
+     * Lève pour une date future ou déjà prise par une injection du vaccin, ou qui dépasse le rappel
+     * en cours : c'est `addPastWithReminder` qui l'ajoute alors.
+     */
     async addPast(vaccinationId: string, injectedOn: string): Promise<RecordedInjection> {
       const date = injectionDateSchema.parse(injectedOn)
       const vaccination = await requireVaccination(vaccinationId)
-      const taken = (await (await injections()).listByVaccination(vaccinationId)).map(
-        (injection) => injection.injectedOn,
-      )
-      if (taken.includes(date)) {
-        throw new Error(`Injection déjà notée ce jour : ${date}`)
+      if (pastInjectionNeedsReminder(vaccination, date)) {
+        throw new Error(`Prochain rappel à choisir : ${vaccinationId}`)
       }
+      return recordPast(vaccination, {
+        injectedOn: date,
+        nextDueDate: pastInjectionDue(vaccination, date),
+      })
+    },
 
-      const injection = injectionOn(
-        vaccination,
-        { injectedOn: date, nextDueDate: pastInjectionDue(vaccination, date) },
-        { id: crypto.randomUUID(), at: now().toISOString() },
-      )
-      await (await injections()).record(injection)
-      await reminders.reschedule(vaccinationId)
-      return { animalId: vaccination.animalId, injectionId: injection.id }
+    /** Injection qui dépasse le rappel en cours, avec le rappel suivant choisi. */
+    async addPastWithReminder(
+      vaccinationId: string,
+      dates: InjectionDates,
+    ): Promise<RecordedInjection> {
+      const data = injectionWithReminderSchema.parse(dates)
+      const vaccination = await requireVaccination(vaccinationId)
+      if (!pastInjectionNeedsReminder(vaccination, data.injectedOn)) {
+        throw new Error(`Pas de rappel à choisir : ${vaccinationId}`)
+      }
+      return recordPast(vaccination, data)
     },
 
     /** Lève si le vaccin resterait sans injection ni rendez-vous prévu. */
@@ -174,7 +183,7 @@ export function createVaccinationInjectionsService({
       injectionId: string,
       dates: InjectionDates,
     ): Promise<InjectionDates> {
-      const data = redatedInjectionSchema.parse(dates)
+      const data = injectionWithReminderSchema.parse(dates)
       const injection = await requireInjection(injectionId)
 
       await writeDates(vaccinationId, injectionId, data)
@@ -197,6 +206,27 @@ export function createVaccinationInjectionsService({
     const kept = keptPlannedDueDate(planned, injection)
     if (kept === null) throw new VaccinationWithoutReminderError(vaccinationId)
     return planned === null ? [repository.plannedDueDateStatement(vaccinationId, kept, at)] : []
+  }
+
+  async function recordPast(
+    vaccination: Vaccination,
+    dates: InjectionDates,
+  ): Promise<RecordedInjection> {
+    const repository = await injections()
+    const taken = (await repository.listByVaccination(vaccination.id)).map(
+      (injection) => injection.injectedOn,
+    )
+    if (taken.includes(dates.injectedOn)) {
+      throw new Error(`Injection déjà notée ce jour : ${dates.injectedOn}`)
+    }
+
+    const injection = injectionOn(vaccination, dates, {
+      id: crypto.randomUUID(),
+      at: now().toISOString(),
+    })
+    await repository.record(injection)
+    await reminders.reschedule(vaccination.id)
+    return { animalId: vaccination.animalId, injectionId: injection.id }
   }
 
   async function requireVaccination(vaccinationId: string) {

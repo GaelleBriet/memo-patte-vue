@@ -9,6 +9,7 @@ import {
   keptPlannedDueDate,
   needsNewReminder,
   pastInjectionDue,
+  pastInjectionNeedsReminder,
   pastInjectionError,
   pastInjectionTexts,
   pastInjectionToast,
@@ -362,6 +363,38 @@ describe('pastInjectionDue', () => {
     expect(pastInjectionDue({ lastInjectionDate: null, dueDate: '2026-10-05' }, '2026-09-01')).toBe(
       '2026-10-05',
     )
+  })
+})
+
+describe('pastInjectionNeedsReminder', () => {
+  const carre = { lastInjectionDate: '2025-03-10', dueDate: '2026-03-10' }
+
+  it('demande le rappel suivant quand la nouvelle dernière injection dépasse le rappel en cours', () => {
+    expect(pastInjectionNeedsReminder(carre, '2026-05-20')).toBe(true)
+  })
+
+  it('le demande aussi pour une injection le jour même du rappel en cours : elle fait ce rappel', () => {
+    expect(pastInjectionNeedsReminder(carre, '2026-03-10')).toBe(true)
+  })
+
+  it('le demande pour la première injection d’un vaccin prévu avant elle', () => {
+    expect(
+      pastInjectionNeedsReminder({ lastInjectionDate: null, dueDate: '2026-08-01' }, '2026-09-01'),
+    ).toBe(true)
+  })
+
+  it('ne le demande pas quand le rappel en cours vient après la nouvelle injection', () => {
+    expect(pastInjectionNeedsReminder(carre, '2026-01-10')).toBe(false)
+  })
+
+  it('ne le demande pas pour une injection plus ancienne que la dernière (VA-11)', () => {
+    expect(pastInjectionNeedsReminder(carre, '2024-06-20')).toBe(false)
+  })
+
+  it('ne le demande pas pour un vaccin sans rappel', () => {
+    expect(
+      pastInjectionNeedsReminder({ lastInjectionDate: '2025-03-10', dueDate: null }, '2026-05-20'),
+    ).toBe(false)
   })
 })
 

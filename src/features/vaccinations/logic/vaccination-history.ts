@@ -177,8 +177,23 @@ export function pastInjectionDue(
   vaccination: Pick<Vaccination, 'lastInjectionDate' | 'dueDate'>,
   injectedOn: string,
 ): string | null {
-  const { lastInjectionDate, dueDate } = vaccination
-  return lastInjectionDate === null || injectedOn > lastInjectionDate ? dueDate : null
+  return becomesLast(vaccination, injectedOn) ? vaccination.dueDate : null
+}
+
+/** Devenue la dernière le jour du rappel en cours ou après, l'injection fait ce rappel : on demande le suivant. */
+export function pastInjectionNeedsReminder(
+  vaccination: Pick<Vaccination, 'lastInjectionDate' | 'dueDate'>,
+  injectedOn: string,
+): boolean {
+  const { dueDate } = vaccination
+  return becomesLast(vaccination, injectedOn) && dueDate !== null && dueDate <= injectedOn
+}
+
+function becomesLast(
+  { lastInjectionDate }: Pick<Vaccination, 'lastInjectionDate'>,
+  injectedOn: string,
+): boolean {
+  return lastInjectionDate === null || injectedOn > lastInjectionDate
 }
 
 /** Seule injection d'un vaccin sans rappel à garder : c'est le vaccin qu'on supprime (VA-14). */
