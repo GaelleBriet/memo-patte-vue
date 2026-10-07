@@ -85,6 +85,8 @@ export type VaccinationDetailTexts = {
   editLabel: string
   otherDateLabel: string
   counter: string
+  /** Faux pour un animal qu'on ne suit plus : ni statut ni rappel, comme sa ligne du Carnet (VA-16). */
+  followed: boolean
 }
 
 function nextReminderDue(t: Translate, dueDate: string, today: string, isPlanned: boolean) {
@@ -111,11 +113,16 @@ function nextReminderDue(t: Translate, dueDate: string, today: string, isPlanned
 export function vaccinationDetailTexts(
   t: Translate,
   vaccination: Pick<Vaccination, 'name' | 'dueDate' | 'lastInjectionDate'>,
-  { animal, today, injections }: { animal: string; today: string; injections: number },
+  {
+    animal,
+    today,
+    injections,
+    followed = true,
+  }: { animal: string; today: string; injections: number; followed?: boolean },
 ): VaccinationDetailTexts {
   const { name, dueDate, lastInjectionDate } = vaccination
   const isPlanned = lastInjectionDate === null
-  const isAppointmentDay = isPlanned && dueDate === today
+  const isAppointmentDay = followed && isPlanned && dueDate === today
   return {
     subtitle: t('vaccinations.sheet.subtitle', { animal }),
     top: isPlanned
@@ -123,12 +130,13 @@ export function vaccinationDetailTexts(
         ? t('vaccinations.detail.firstVaccineShort')
         : t('vaccinations.detail.firstVaccine')
       : t('vaccinations.detail.lastInjectionOn', { date: formatLongDate(lastInjectionDate) }),
-    due: dueDate === null ? null : nextReminderDue(t, dueDate, today, isPlanned),
+    due: !followed || dueDate === null ? null : nextReminderDue(t, dueDate, today, isPlanned),
     note: isAppointmentDay ? t('vaccinations.detail.noInjection') : null,
     doneLabel: t('vaccinations.detail.doneLabel', { name, animal }),
     editLabel: t('vaccinations.detail.editLabel', { name }),
     otherDateLabel: t('vaccinations.detail.otherDateLabel'),
     counter: String(injections),
+    followed,
   }
 }
 

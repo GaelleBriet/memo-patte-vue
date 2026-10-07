@@ -2140,3 +2140,25 @@ Pro est payé à partir de 20 à 35 abonnés et reste fixe jusqu'à des dizaines
 donnée payante sur un plan qui se met en pause après une semaine d'inactivité. — Alternatives
 écartées : Firebase (modèle NoSQL, synchro à refaire), auto-hébergement (serveur à maintenir,
 sauvegarder et sécuriser seule). Analyse détaillée dans le coffre de notes de Gaelle.
+
+2026-10-07 — Q5 (#594) précisée : une période arrêtée avant sa première échéance garde `stopped_on` = le
+jour du geste ; l'app (fiche, « Traitements terminés », historique) et le PDF disent « Arrêté avant la
+première prise » quand aucune dose n'a jamais été due ni donnée (arrêt avant la première échéance de
+la période, aucune prise sur tout le traitement), sinon « Arrêté le … » ; l'import accepte une date
+d'arrêt antérieure au début de la période. — Raison : un seul sens de l'arrêt, rien ne repart seul
+après « Suivre de nouveau » (AN-11), et un export doit toujours se réimporter. — Alternatives
+écartées : ne pas arrêter la période (elle repartirait seule) ; la supprimer (perte de données) ;
+`stopped_on` = date de début (date future qui ment sur le jour du geste). Dans le PDF, le texte
+n'apparaît qu'une fois : la colonne d'échéance dit « Arrêté avant la première prise », la ligne de
+détail « Aucune prise », comme un traitement terminé sans prise.
+
+2026-10-07 — Sur un animal qu'on ne suit plus, plus aucun soin ne s'ajoute ni ne reprend : le Carnet
+n'affiche plus « Ajouter un vaccin » ni « Ajouter un traitement », la fiche d'un traitement terminé
+n'affiche plus « Reprendre », et un formulaire de création ou de reprise ouvert pour lui revient à
+l'écran d'origine sans rien écrire. La pesée reste possible, le carnet reste consultable
+à l'identique ; « Suivre de nouveau » est le seul chemin pour lui ajouter un soin (AN-9,
+#629). — Raison : aucun rappel ne sonne pour cet animal, un soin ajouté serait un soin oublié. —
+Alternative écartée : garder les ajouts, avec des soins enregistrés sans aucun rappel.
+La fiche d'un vaccin de cet animal n'affiche plus « C'est fait » ni « Fait à une autre date », et
+garde « Ajouter une injection passée ».
+« Modifier » reste disponible sur un traitement terminé de cet animal.

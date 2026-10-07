@@ -307,7 +307,7 @@ describe('renderCarnetPdf — animal qu’on ne suit plus', () => {
           traitement({ state: null }),
           traitement({
             name: 'Drontal',
-            due: { kind: 'stopped', on: '2026-09-12' },
+            due: { kind: 'stopped', on: '2026-09-12', beforeFirstDose: false },
             state: null,
           }),
         ],

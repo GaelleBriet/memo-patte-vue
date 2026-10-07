@@ -3,8 +3,8 @@ import { useI18n } from 'vue-i18n'
 
 withDefaults(
   defineProps<{
-    /** « Prochain rappel ». */
-    label: string
+    /** « Prochain rappel » ; `null` retire le libellé et l'échéance. */
+    label: string | null
     /** « 26 août 2027 », « Aujourd’hui », « En retard depuis le 5 oct. » ; absente, `emptyText`. */
     value?: string | null
     /** « dans 11 mois ». */
@@ -16,6 +16,7 @@ withDefaults(
     doneAriaLabel: string
     otherDateAriaLabel?: string | null
     busy?: boolean
+    actions?: boolean
   }>(),
   {
     value: null,
@@ -25,6 +26,7 @@ withDefaults(
     emptyText: null,
     otherDateAriaLabel: null,
     busy: false,
+    actions: true,
   },
 )
 
@@ -46,16 +48,18 @@ const { t } = useI18n()
     <div v-if="$slots.top" class="next-due-card__top">
       <slot name="top" />
     </div>
-    <p class="next-due-card__label">{{ label }}</p>
-    <p v-if="value" class="next-due-card__due">
-      <span class="next-due-card__value" :class="tone ? `next-due-card__value--${tone}` : null">{{
-        value
-      }}</span>
-      <span v-if="delay" class="next-due-card__delay">{{ delay }}</span>
-    </p>
-    <p v-else class="next-due-card__empty">{{ emptyText }}</p>
-    <p v-if="value && note" class="next-due-card__note">{{ note }}</p>
-    <div class="next-due-card__actions">
+    <template v-if="label !== null">
+      <p class="next-due-card__label">{{ label }}</p>
+      <p v-if="value" class="next-due-card__due">
+        <span class="next-due-card__value" :class="tone ? `next-due-card__value--${tone}` : null">{{
+          value
+        }}</span>
+        <span v-if="delay" class="next-due-card__delay">{{ delay }}</span>
+      </p>
+      <p v-else class="next-due-card__empty">{{ emptyText }}</p>
+      <p v-if="value && note" class="next-due-card__note">{{ note }}</p>
+    </template>
+    <div v-if="actions" class="next-due-card__actions">
       <v-btn
         class="next-due-card__done"
         variant="flat"
@@ -95,6 +99,12 @@ const { t } = useI18n()
   margin-bottom: 14px;
   padding-bottom: 14px;
   border-bottom: 1px solid tokens.$color-divider;
+}
+
+.next-due-card__top:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: 0;
 }
 
 .next-due-card__label {

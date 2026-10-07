@@ -46,6 +46,7 @@ import OverflowMenu, { type OverflowMenuItem } from '@/shared/components/Overflo
 import PushedScreen from '@/shared/components/PushedScreen.vue'
 import { originQuery } from '@/shared/domain/reminder-route'
 import { reminderIcon } from '@/shared/domain/reminders'
+import { takesNewCare } from '@/shared/domain/unfollowed-animals'
 import type { DoseGesture, Due, MoveBounds } from '@/shared/domain/treatment-schedule'
 import { returnTo } from '@/shared/utils/return-to'
 
@@ -117,6 +118,7 @@ const history = computed(() =>
     : null,
 )
 const actions = computed(() => (schedule.value ? detailActions(schedule.value) : null))
+const canResume = computed(() => actions.value?.canResume === true && takesNewCare(animal.value))
 const stopTexts = computed(() => treatmentStopTexts(t, named.value))
 const deleteTexts = computed(() => treatmentDeleteTexts(t, named.value.name))
 
@@ -440,7 +442,7 @@ async function remove(): Promise<void> {
       :back-label="t('treatments.detail.reminder.explainerBack', { name: named.name })"
     />
 
-    <template v-if="treatment && actions?.canResume" #actions>
+    <template v-if="treatment && canResume" #actions>
       <div class="treatment-detail__resume">
         <p class="treatment-detail__resume-hint">{{ t('treatments.detail.resumeHint') }}</p>
         <v-btn

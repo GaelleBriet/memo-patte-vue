@@ -443,6 +443,13 @@ describe('TreatmentsSection — ajout', () => {
 
     expect(push).toHaveBeenCalledWith({ name: 'treatment-new', params: { animalId: MILO } })
   })
+
+  it('AN-9 : ne propose plus « Ajouter un traitement » pour un animal qu’on ne suit plus', async () => {
+    const wrapper = await monter(MILO, false)
+
+    expect(wrapper.get('.treatments-section__empty').text()).toBe('Aucun traitement en cours')
+    expect(wrapper.find('.section-card__add').exists()).toBe(false)
+  })
 })
 
 describe('TreatmentsSection — pastille d’icône (B · V15)', () => {

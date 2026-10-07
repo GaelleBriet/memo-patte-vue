@@ -59,6 +59,7 @@ import { useFormValidation } from '@/shared/form/use-form-validation'
 import { primingReturnRoute, routeAfterReminderSaved } from '@/shared/domain/notification-priming'
 import { returnTo, returnToOr } from '@/shared/utils/return-to'
 import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
+import { takesNewCare } from '@/shared/domain/unfollowed-animals'
 
 const props = defineProps<{
   animalId?: string
@@ -222,6 +223,7 @@ const canSave = computed(
     !isLoading.value &&
     !notFound.value &&
     !loadFailed.value &&
+    (mode === 'edit' || takesNewCare(targetAnimal.value)) &&
     (mode !== 'resume' || values.value.firstDoseOn !== ''),
 )
 const typeOptions = computed(() =>
@@ -386,6 +388,14 @@ function backToOrigin(): void {
   selectTargetAnimal()
   returnTo(router, primingReturnRoute(from, reminder))
 }
+
+watch(
+  targetAnimal,
+  (animal) => {
+    if (mode !== 'edit' && animal !== null && !takesNewCare(animal)) backToOrigin()
+  },
+  { immediate: true },
+)
 
 function selectUnit(unit: FrequencyUnit | null): void {
   if (unit) values.value.frequencyUnit = unit

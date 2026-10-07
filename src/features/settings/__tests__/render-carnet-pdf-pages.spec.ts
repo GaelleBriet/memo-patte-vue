@@ -132,7 +132,7 @@ const ARRETE: PdfTreatmentRow = {
       ],
     },
   ],
-  due: { kind: 'stopped', on: '2026-06-20' },
+  due: { kind: 'stopped', on: '2026-06-20', beforeFirstDose: false },
   state: 'none',
 }
 

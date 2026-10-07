@@ -142,7 +142,7 @@ describe('renderCarnetPdf', () => {
 
 describe('renderCarnetPdf — traitement sans date de fin ni d’arrêt', () => {
   it.each([
-    { kind: 'stopped', on: null },
+    { kind: 'stopped', on: null, beforeFirstDose: false },
     { kind: 'ended', on: null },
   ] as const)(
     'écrit « — » dans la colonne de l’échéance, « Pas de rappel » une seule fois ($kind)',

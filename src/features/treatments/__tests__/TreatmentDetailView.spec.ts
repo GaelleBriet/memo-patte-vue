@@ -1284,6 +1284,30 @@ describe('TreatmentDetailView — barre du haut et fin du traitement', () => {
     })
   })
 
+  it('AN-9 : ne propose plus de reprendre pour un animal qu’on ne suit plus, la fiche reste lisible', async () => {
+    useAnimalsStore().animals = [{ ...LUNA, unfollowedOn: '2026-09-26' }]
+
+    const view = await monter(
+      treatment([period({ stoppedOn: '2026-09-26' })], [dose('2026-09-01', '2026-09-02')]),
+    )
+
+    expect(textes(view, '.treatment-dose-card__value')).toEqual(['Arrêté le 26 sept.'])
+    expect(view.find('.treatment-detail__resume-button').exists()).toBe(false)
+  })
+
+  it('AN-9 : ne propose pas de reprendre tant que les animaux ne sont pas chargés', async () => {
+    const animals = useAnimalsStore()
+    animals.animals = []
+    animals.hasLoaded = false
+    vi.spyOn(animals, 'load').mockReturnValue(new Promise(() => {}))
+
+    const view = await monter(
+      treatment([period({ stoppedOn: '2026-09-26' })], [dose('2026-09-01', '2026-09-02')]),
+    )
+
+    expect(view.find('.treatment-detail__resume-button').exists()).toBe(false)
+  })
+
   it('dit qu’un traitement est introuvable, ou n’a pas pu être lu', async () => {
     expect((await monter(null)).get('[role="alert"]').text()).toBe('Ce traitement est introuvable.')
     wrapper?.unmount()
