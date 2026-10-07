@@ -280,8 +280,8 @@ describe('doseActionTexts — supprimer une prise en plus', () => {
 
     applyLocale('en')
     const en = doseActionTexts(t, UNE_HEURE, action, enPlus)
-    expect(plain(en.done(RIEN))).toBe('Extra dose of Oct 5 deleted')
-    expect(plain(en.undo)).toBe('Undo deleting the extra dose of October 5, 2026')
+    expect(plain(en.done(RIEN))).toBe('Extra dose on Oct 5 deleted')
+    expect(plain(en.undo)).toBe('Undo deleting the extra dose on October 5, 2026')
   })
 })
 
