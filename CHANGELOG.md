@@ -5,6 +5,13 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.62](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.61...memo-patte-v0.1.62) (2026-10-07)
+
+
+### ✨ Fonctionnalités
+
+* **settings:** rubrique Aide et contact, FAQ du site avec captures ([0d6a92e](https://github.com/GaelleBriet/memo-patte-vue/commit/0d6a92efec2a4907e542cc85d5e324ffca7b3f8b))
+
 ## [0.1.61](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.60...memo-patte-v0.1.61) (2026-10-07)
 
 
