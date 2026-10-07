@@ -215,12 +215,16 @@ function doseSeriesLabel(series: PdfDoseSeries, t: Translate): string {
   })
 }
 
+function noDoseLabel(due: PdfTreatmentRow['due'], t: Translate): string {
+  if (due.kind !== 'due') return t('settings.pdf.history.noDose')
+  const date = formatNumericDate(due.dueOn)
+  return due.overdue
+    ? t('settings.pdf.history.noDoseOverdue', { date })
+    : t('settings.pdf.history.noDoseUpcoming', { date })
+}
+
 function doseHistory(row: PdfTreatmentRow, t: Translate): string[] {
-  if (row.lastDoseDate === null) {
-    return row.due.kind === 'due'
-      ? [t('settings.pdf.history.noDose', { date: formatNumericDate(row.due.dueOn) })]
-      : []
-  }
+  if (row.lastDoseDate === null) return [noDoseLabel(row.due, t)]
   const last = t('settings.pdf.history.lastDose', {
     date: doseDate(row.lastDoseDate, row.lastDoseExtra, t),
   })
