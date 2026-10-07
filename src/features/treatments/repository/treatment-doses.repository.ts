@@ -107,31 +107,6 @@ function toRecord(row: DoseWithFrequencyRow): Stamped<TreatmentDose> {
   }
 }
 
-function lastOfPeriodSql(column: string, periodId: string, filter: string): string {
-  return `(SELECT candidate.${column} FROM treatment_dose candidate
-           WHERE candidate.period_id = ${periodId} AND candidate.deleted_at IS NULL ${filter}
-           ORDER BY candidate.due_on DESC, candidate.due_time DESC, candidate.created_at DESC,
-             candidate.id DESC
-           LIMIT 1)`
-}
-
-/**
- * Sous-requête de la dernière ligne d'une période (`periodId` est une expression SQL) : la prise
- * ou le report non supprimé à l'échéance la plus tardive, jour puis heure, puis par saisie, puis
- * par identifiant ; une ligne de décalage ou une prise en plus n'en est jamais une.
- */
-export function headDoseIdSql(periodId: string): string {
-  return lastOfPeriodSql('id', periodId, "AND candidate.status NOT IN ('shift', 'extra')")
-}
-
-/**
- * Sous-requête de la date de la dernière prise donnée d'une période, prise en plus comprise, dans
- * l'ordre de `headDoseIdSql`.
- */
-export function lastGivenOnSql(periodId: string): string {
-  return lastOfPeriodSql('given_on', periodId, "AND candidate.status IN ('given', 'extra')")
-}
-
 function valuesOf(dose: Stamped<NewTreatmentDose>): SqlParam[] {
   return [
     dose.id,

@@ -64,8 +64,6 @@ const BRAVECTO: Treatment = {
   type: 'deworming',
   periodId: '44444444-4444-4444-8444-444444444444',
   frequency: { value: 1, unit: 'month' },
-  lastDoseDate: '2026-08-28',
-  nextDueDate: '2026-09-28',
   stoppedOn: null,
   createdAt: '2026-09-01T09:00:00.000Z',
   updatedAt: '2026-09-01T09:00:00.000Z',
