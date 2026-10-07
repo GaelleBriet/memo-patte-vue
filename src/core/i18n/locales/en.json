@@ -158,7 +158,7 @@
         "future": "The departure date can’t be in the future.",
         "invalid": "The departure date is invalid.",
         "save": "Couldn’t save the date. Try again.",
-        "notFound": "This pet no longer exists."
+        "notFound": "This pet’s health record was deleted."
       }
     },
     "unfollowedList": {

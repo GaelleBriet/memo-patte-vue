@@ -158,7 +158,7 @@
         "future": "La date du départ ne peut pas être dans le futur.",
         "invalid": "La date du départ est invalide.",
         "save": "La date n’a pas pu être enregistrée. Réessaie.",
-        "notFound": "Cet animal n’existe plus."
+        "notFound": "Le carnet de cet animal a été supprimé."
       }
     },
     "unfollowedList": {

@@ -175,6 +175,29 @@ describe('AnimalDepartureView — « Ajouter une date » (V15 quater)', () => {
   })
 })
 
+describe('AnimalDepartureView — carnet supprimé', () => {
+  it('dit que le carnet de l’animal a été supprimé', async () => {
+    animals = []
+
+    const wrapper = await monter()
+
+    expect(texte(wrapper.get('.form-screen__save-error'))).toBe(
+      'Le carnet de cet animal a été supprimé.',
+    )
+  })
+
+  it('le dit en anglais', async () => {
+    applyLocale('en')
+    animals = []
+
+    const wrapper = await monter()
+
+    expect(texte(wrapper.get('.form-screen__save-error'))).toBe(
+      'This pet’s health record was deleted.',
+    )
+  })
+})
+
 describe('AnimalDepartureView — « Modifier la date » (V15 quinquies)', () => {
   it('reprend le motif et la date déjà notés', async () => {
     animals = [{ ...LUNA, departureReason: 'death', departureDate: '2026-09-28' }]
