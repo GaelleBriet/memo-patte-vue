@@ -169,6 +169,12 @@ function placeholders(values: readonly unknown[]): string {
 /** Un `create` vise une échéance qui a déjà une ligne visible de même nature : rien n'a été écrit. */
 export class DuplicateDueError extends Error {}
 
+/**
+ * Une autre écriture est passée depuis la lecture : ligne modifiée, supprimée ou rétablie, ou
+ * traitement et période supprimés. Rien n'a été écrit.
+ */
+export class ConcurrentWriteError extends Error {}
+
 export interface TreatmentDosesRepositoryDependencies {
   loadSupabaseClient?: () => Promise<SupabaseClient>
   deviceId?: () => string
@@ -296,6 +302,32 @@ export function createTreatmentDosesRepository(
     return rows.length > 0
   }
 
+  async function changedSinceRead(
+    writes: readonly DoseWrite[],
+    existing: ReadonlyMap<string, DoseRow>,
+  ): Promise<boolean> {
+    const current = await rowsById([...existing.keys()])
+    for (const [id, row] of existing) {
+      const now = current.get(id)
+      if (now?.deleted_at !== row.deleted_at || now.updated_at !== row.updated_at) return true
+    }
+    const periodIds = writes.flatMap((write) => {
+      if (write.action === 'create') return [write.dose.periodId]
+      if (write.action === 'restore') return [existing.get(write.id)?.period_id ?? '']
+      return []
+    })
+    if (periodIds.length === 0) return false
+    const deleted = await db.query<{ id: string }>(
+      `SELECT period.id FROM treatment_period period
+       JOIN treatment ON treatment.id = period.treatment_id
+       WHERE period.id IN (${placeholders(periodIds)})
+         AND (period.deleted_at IS NOT NULL OR treatment.deleted_at IS NOT NULL)
+       LIMIT 1`,
+      periodIds,
+    )
+    return deleted.length > 0
+  }
+
   async function rowsById(ids: readonly string[]): Promise<Map<string, DoseRow>> {
     if (ids.length === 0) return new Map()
     const rows = await db.query<DoseRow>(
@@ -388,7 +420,8 @@ export function createTreatmentDosesRepository(
      * transaction. Rend le lot inverse, à appliquer pour « Annuler » ; lève, sans rien écrire, pour
      * une ligne à réécrire ou à supprimer qui n'est pas visible, à rétablir qui l'est, modifiée depuis
      * `expectedUpdatedAt` ou entre sa lecture et l'écriture, pour une prise créée ou rétablie sous un
-     * traitement ou une période supprimés, et une `DuplicateDueError` pour une création en double.
+     * traitement ou une période supprimés (`ConcurrentWriteError` pour ces deux cas), et une
+     * `DuplicateDueError` pour une création en double.
      */
     async applyBatch(
       writes: readonly DoseWrite[],
@@ -409,7 +442,7 @@ export function createTreatmentDosesRepository(
           throw new Error(`Prise introuvable : ${write.id}`)
         }
         if (write.expectedUpdatedAt !== undefined && row.updated_at !== write.expectedUpdatedAt) {
-          throw new Error(`Prise modifiée depuis : ${write.id}`)
+          throw new ConcurrentWriteError(`Prise modifiée depuis : ${write.id}`)
         }
         return row
       }
@@ -462,6 +495,9 @@ export function createTreatmentDosesRepository(
           if (write.action === 'create' && (await hasDuplicate(write.dose))) {
             throw new DuplicateDueError(`Échéance déjà notée : ${write.id}`, { cause })
           }
+        }
+        if (await changedSinceRead(writes, existing)) {
+          throw new ConcurrentWriteError('Prise modifiée pendant l’écriture', { cause })
         }
         throw cause
       }

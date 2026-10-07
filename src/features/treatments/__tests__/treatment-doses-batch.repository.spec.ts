@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory-db'
 import type { DbClient, SqlStatement } from '@/core/db/db-client'
 import {
+  ConcurrentWriteError,
   DuplicateDueError,
   createTreatmentDosesRepository,
   type DoseWrite,
@@ -35,7 +36,6 @@ function fields(overrides: Partial<DoseFields> = {}): DoseFields {
 const MATIN = fields()
 const SOIR = fields({ dueTime: '20:00', nextDueDate: '2026-09-28' })
 const OWNER = { treatmentId: METACAM, animalId: LUNA }
-const GUARD_REFUSED = /UNIQUE constraint failed: treatment_dose\.id/
 
 /** Une autre écriture passe entre la lecture du lot et sa transaction. */
 function slippedIn(db: DbClient, other: () => SqlStatement[]): DbClient {
@@ -376,7 +376,7 @@ describe('treatmentDosesRepository — écrire ce que rend le moteur', () => {
             ],
             T3,
           ),
-        ).rejects.toThrow(GUARD_REFUSED)
+        ).rejects.toBeInstanceOf(ConcurrentWriteError)
 
         await expect(visible()).resolves.toEqual(before.filter(({ id }) => id !== 'soir'))
       })
@@ -394,7 +394,7 @@ describe('treatmentDosesRepository — écrire ce que rend le moteur', () => {
             ],
             T3,
           ),
-        ).rejects.toThrow(GUARD_REFUSED)
+        ).rejects.toBeInstanceOf(ConcurrentWriteError)
 
         await expect(row('matin')).resolves.toMatchObject({ deleted_at: null })
         await expect(row('soir')).resolves.toMatchObject({ deleted_at: T2 })
@@ -405,7 +405,7 @@ describe('treatmentDosesRepository — écrire ce que rend le moteur', () => {
         const encore = fields({ givenOn: '2026-09-29', nextDueDate: '2026-09-29' })
         await doses.applyBatch([{ action: 'rewrite', id: 'matin', dose: encore }], T3)
 
-        await expect(doses.applyBatch(undo, T4)).rejects.toThrow('Prise')
+        await expect(doses.applyBatch(undo, T4)).rejects.toBeInstanceOf(ConcurrentWriteError)
 
         await expect(visible()).resolves.toContainEqual({ id: 'matin', ...encore })
         await expect(row('matin')).resolves.toMatchObject({ updated_at: T3 })
@@ -418,7 +418,7 @@ describe('treatmentDosesRepository — écrire ce que rend le moteur', () => {
           T3,
         )
 
-        await expect(doses.applyBatch(undo, T4)).rejects.toThrow('Prise')
+        await expect(doses.applyBatch(undo, T4)).rejects.toBeInstanceOf(ConcurrentWriteError)
 
         await expect(row('nouvelle')).resolves.toMatchObject({ deleted_at: null, updated_at: T3 })
         await expect(row('report')).resolves.toMatchObject({ deleted_at: T2 })
@@ -429,7 +429,7 @@ describe('treatmentDosesRepository — écrire ce que rend le moteur', () => {
         await doses.applyBatch([{ action: 'restore', id: 'soir' }], T3)
         await doses.applyBatch([{ action: 'delete', id: 'soir' }], T3)
 
-        await expect(doses.applyBatch(undo, T4)).rejects.toThrow('Prise')
+        await expect(doses.applyBatch(undo, T4)).rejects.toBeInstanceOf(ConcurrentWriteError)
 
         await expect(row('soir')).resolves.toMatchObject({ deleted_at: T3 })
       })
@@ -440,7 +440,7 @@ describe('treatmentDosesRepository — écrire ce que rend le moteur', () => {
           slippedIn(db, () => [doses.rewriteStatement('matin', MATIN, T3)]),
         )
 
-        await expect(concurrent.applyBatch(undo, T4)).rejects.toThrow(GUARD_REFUSED)
+        await expect(concurrent.applyBatch(undo, T4)).rejects.toBeInstanceOf(ConcurrentWriteError)
 
         await expect(row('nouvelle')).resolves.toMatchObject({ deleted_at: null })
         await expect(row('report')).resolves.toMatchObject({ deleted_at: T2 })
@@ -459,7 +459,7 @@ describe('treatmentDosesRepository — écrire ce que rend le moteur', () => {
         const before = await visible()
         const concurrent = createTreatmentDosesRepository(slippedIn(db, () => [{ sql }]))
 
-        await expect(concurrent.applyBatch(LOT, T3)).rejects.toThrow(GUARD_REFUSED)
+        await expect(concurrent.applyBatch(LOT, T3)).rejects.toBeInstanceOf(ConcurrentWriteError)
 
         const [{ live }] = (await db.query<{ live: number }>(
           'SELECT COUNT(*) AS live FROM treatment_dose WHERE deleted_at IS NULL',
@@ -472,7 +472,7 @@ describe('treatmentDosesRepository — écrire ce que rend le moteur', () => {
         const undo = await doses.applyBatch([{ action: 'delete', id: 'soir' }], T2)
         await db.run(`UPDATE treatment SET deleted_at = ? WHERE id = ?`, [T3, METACAM])
 
-        await expect(doses.applyBatch(undo, T4)).rejects.toThrow(GUARD_REFUSED)
+        await expect(doses.applyBatch(undo, T4)).rejects.toBeInstanceOf(ConcurrentWriteError)
 
         await expect(row('soir')).resolves.toMatchObject({ deleted_at: T2 })
       })
