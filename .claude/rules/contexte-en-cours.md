@@ -1,5 +1,34 @@
 # Contexte en cours (à mettre à jour à chaque lot)
 
+- 2026-10-07 (soir) : **reprendre ici.** Mergés dans la journée, après les réponses de Gaelle au bilan
+  de la nuit : #575 (#611, injection passée qui redemande le rappel), #580 (#614, Paramètres en
+  rubriques, PDF gratuit), #578 (#618, ne plus suivre, supprimer), #577 (#615, photo de l'animal),
+  #583 (#617, effacer les données), #483 (#613, « Aucune prise · en retard depuis le … », « Arrêté
+  avant la première prise »), #579 (#619, animaux qu'on ne suit plus, date de départ jamais future),
+  #356 (#620, PDF de tous les animaux ; « Tous les animaux » seulement à partir de deux animaux
+  suivis), #581 (#621, Aide et contact, FAQ du site avec captures annotées FR et EN), plus #610
+  (CLAUDE.md : un service peut importer le service d'une autre feature, sans boucle) et #616 (Supabase
+  gardé, Pro au lancement de Plus ; analyse des coûts dans le coffre). #579 et #356 testés ensemble
+  sur l'émulateur.
+  - **Suite décidée par Gaelle** : rien de nouveau avant le **site dédié** (étude dans le coffre,
+    `domaine-site/etude-domaine-page-vitrine.md`). memopatte.com est pris (boutique Shopify fermée,
+    enregistré jusqu'au 2027-07-24), memopatte.app libre ; aucune marque MémoPatte à l'INPI. À
+    trancher par Gaelle : .app seul ou .app + .fr, dépôt de marque, puis les autres questions de
+    l'étude. Au changement de domaine : `src/shared/domain/help-page.ts`, adresse de contact,
+    `websiteHint`, canonical et hreflang de `site/`.
+  - **En attente** : #469 (anciens exports, après les lots 5 et 6 ; écran de résultat à maquetter,
+    prompt Claude Design à préparer) ; #612 (programmer un départ) ; #547 (dont l'ajout d'un vaccin
+    ou d'un traitement, et « Reprendre », encore proposés sur un animal qu'on ne suit plus) ; #594,
+    #598, #582, #487, #488 ; `currentPeriods` devenu code mort en production (#483). Texte de
+    « Fusionner » : la FAQ dit « ajoute ce qui est absent de tes données actuelles », l'app « Ajoute
+    ce qui manque, garde tes données actuelles. » — à aligner si Gaelle le veut.
+  - **Pièges du jour** : (1) une boucle d'attente `while pgrep -f motif` se trouve elle-même (le motif
+    est dans sa propre ligne de commande) et ne s'arrête jamais : attendre un fichier de sortie ou un
+    PID ; (2) Vitest 5 laisse un dossier de cache d'environ 12 Mo par lancement dans `/tmp` (noms de
+    21 caractères avec `client/` et `ssr/`) : `/tmp` (16 Go) s'est rempli, à vider de temps en temps ;
+    (3) un merge de `main` peut casser un test qui compile seul (signature de `renderCarnetPdf`,
+    champs de départ de l'animal) : toujours relancer les quatre commandes après.
+
 - 2026-10-07 (matin) : **reprendre ici.** Journée du 6 puis nuit en autonomie (Gaelle absente).
   **Lots 4 et 7 mergés** : rappels lus par le moteur (#550, #553 à #559, #556), « À faire », PDF et CSV
   lus par le moteur (#566, #568, #572), ligne du Carnet V15 (#570), messages de l'accueil (#571),
