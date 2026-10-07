@@ -148,7 +148,9 @@ describe('renderCarnetPdf — historique', () => {
       ...FULL_CONTENT,
       treatments: [{ ...FULL_CONTENT.treatments[0]!, lastDoseDate: null, previousDoses: [] }],
     }
-    const written = readPdf(renderCarnetPdf(content, '0.1.24', null)).texts.map(({ text }) => text)
+    const written = readPdf(renderCarnetPdf([{ content, photoDataUrl: null }], '0.1.24')).texts.map(
+      ({ text }) => text,
+    )
 
     expect(written).toContain('Aucune prise · prochaine dose le 01/09/2026')
     expect(written.some((text) => text.startsWith('Dernière prise'))).toBe(false)
