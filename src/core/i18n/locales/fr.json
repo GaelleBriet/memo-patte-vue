@@ -113,7 +113,18 @@
       "forAnimal": "Pour {name}",
       "name": {
         "label": "Nom du vaccin",
-        "placeholder": "Ex. Rage"
+        "placeholder": "Ex. Rage",
+        "usedFor": "Déjà utilisé pour {names}",
+        "suggestions": {
+          "carnet": "Dans ton carnet",
+          "combinations": {
+            "dog": "Combinaisons courantes · chien",
+            "cat": "Combinaisons courantes · chat"
+          },
+          "useTyped": "Utiliser « {name} »",
+          "spoken": "{label}. Sigles {aliases}.",
+          "count": "{n} proposition | {n} propositions"
+        }
       },
       "lastInjectionDate": {
         "label": "Date de l’injection",
@@ -250,6 +261,20 @@
         "change": "La modification n’a pas abouti. Réessaie.",
         "delete": "{name} n’a pas pu être supprimé. Réessaie."
       }
+    },
+    "diseases": {
+      "distemper": "carré",
+      "hepatitis": "hépatite",
+      "parvovirus": "parvovirose",
+      "parainfluenza": "parainfluenza",
+      "leptospirosis": "leptospirose",
+      "rabies": "rage",
+      "kennelCough": "toux du chenil",
+      "leishmaniosis": "leishmaniose",
+      "panleukopenia": "typhus",
+      "catFlu": "coryza (herpèsvirus, calicivirus)",
+      "chlamydiosis": "chlamydiose",
+      "felineLeukaemia": "leucose"
     }
   },
   "treatments": {
