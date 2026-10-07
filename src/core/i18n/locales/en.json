@@ -127,7 +127,6 @@
         "confirm": "Delete"
       },
       "unfollowed": {
-        "link": "Pets you no longer follow ({n})",
         "banner": "You’re no longer following {name}: no reminders are sent. {name}’s health record stays as it is.",
         "addDate": "Add a date",
         "editDate": "Edit the date",
@@ -863,6 +862,9 @@
     "undo": "Undo",
     "undoFailed": "Couldn’t undo."
   },
+  "unfollowedAnimalsLink": {
+    "label": "Pets you no longer follow ({n})"
+  },
   "history": {
     "done": "Done",
     "moreOptions": "More options",
@@ -1073,6 +1075,11 @@
       "local": "Your health record stays on your phone. Free, no account.",
       "create": "Add my first pet",
       "import": "Import a MémoPatte export"
+    },
+    "unfollowed": {
+      "title": "No upcoming reminders",
+      "text": "You’re not following any pets. The health record is still available. | You’re not following any pets. Their health records are still available.",
+      "create": "Add a pet"
     },
     "messages": {
       "close": "Close this message",
