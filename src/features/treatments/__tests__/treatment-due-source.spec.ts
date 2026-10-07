@@ -6,19 +6,17 @@ import { describe, expect, it } from 'vitest'
 
 import { treatmentSchema, type Treatment } from '../schema/treatment.schema'
 
-const ENGINE = /^src\/shared\/domain\/treatment-schedule[\w-]*\.ts$/
-
-function productionSources(dir = 'src'): { path: string; source: string }[] {
+function productionSources(dir: string): { path: string; source: string }[] {
   return readdirSync(dir).flatMap((entry) => {
     const path = join(dir, entry)
     if (statSync(path).isDirectory()) return entry === '__tests__' ? [] : productionSources(path)
-    if (!/\.(ts|vue)$/.test(entry) || entry.endsWith('.spec.ts') || ENGINE.test(path)) return []
+    if (!/\.(ts|vue)$/.test(entry) || entry.endsWith('.spec.ts')) return []
     return [{ path, source: readFileSync(path, 'utf8') }]
   })
 }
 
-function offenders(pattern: RegExp): string[] {
-  return productionSources().flatMap(({ path, source }) =>
+function offenders(dir: string, pattern: RegExp): string[] {
+  return productionSources(dir).flatMap(({ path, source }) =>
     [...source.matchAll(pattern)].map(([match]) => `${path} : ${match}`),
   )
 }
@@ -33,12 +31,13 @@ describe('échéances de traitement lues par le moteur seul', () => {
     expect(Object.keys(treatmentSchema.shape)).not.toContain('lastDoseDate')
   })
 
-  it('aucun écran ni service ne lit une échéance sur un traitement', () => {
-    expect(offenders(/\b\w*treatments?\w*\??\.(?:nextDueDate|lastDoseDate)\b/gi)).toEqual([])
+  it('aucun module de l’app ne garde un calcul d’échéance hors du moteur', () => {
+    expect(offenders('src', /\b(?:addFrequency|periodHeads|headDoseIdSql)\b/g)).toEqual([])
   })
 
-  it('aucune requête ne projette une échéance de traitement depuis ses prises', () => {
-    expect(offenders(/\bAS\s+(?:next_due_date|last_dose_date)\b/gi)).toEqual([])
-    expect(offenders(/COALESCE\([^)]*next_due_date/gi)).toEqual([])
+  it('aucune requête des traitements ne projette une échéance depuis ses prises', () => {
+    const treatments = 'src/features/treatments'
+    expect(offenders(treatments, /\bAS\s+(?:next_due_date|last_dose_date)\b/gi)).toEqual([])
+    expect(offenders(treatments, /COALESCE\([^)]*next_due_date/gi)).toEqual([])
   })
 })

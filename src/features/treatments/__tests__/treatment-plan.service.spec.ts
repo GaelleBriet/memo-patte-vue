@@ -461,6 +461,7 @@ describe('treatmentPlanService', () => {
       stoppedOn: null,
     })
     const { periods } = await historyOf(id)
+    expect(resumed.periodId).toBe(periods[1]?.id)
     expect(periods[0]).toEqual(before)
     expect(periods[1]).toMatchObject({
       startsOn: '2026-11-03',

@@ -384,10 +384,12 @@ describe('treatmentsRepository — périodes et prises', () => {
 
     it('lit la période en cours, jamais une période supprimée', async () => {
       const id = await reprise()
-      await db.run('UPDATE treatment_period SET deleted_at = updated_at WHERE id = ?', [id])
-
       await expect(repository.getById(id)).resolves.toMatchObject({ periodId: SECONDE })
-      await expect(repository.listByAnimal(MIETTE)).resolves.toMatchObject([{ periodId: SECONDE }])
+
+      await db.run('UPDATE treatment_period SET deleted_at = updated_at WHERE id = ?', [SECONDE])
+
+      await expect(repository.getById(id)).resolves.toMatchObject({ periodId: id })
+      await expect(repository.listByAnimal(MIETTE)).resolves.toMatchObject([{ periodId: id }])
     })
   })
 
@@ -708,6 +710,9 @@ describe('treatmentsRepository — import', () => {
       stoppedOn: null,
       deletedAt: null,
     })
+    await expect(
+      db.query('SELECT next_due_date FROM treatment_dose WHERE id = ?', [IMPORTE.id]),
+    ).resolves.toEqual([{ next_due_date: '2026-09-15' }])
   })
 
   it('écrase un traitement existant, même supprimé, et le rend visible', async () => {

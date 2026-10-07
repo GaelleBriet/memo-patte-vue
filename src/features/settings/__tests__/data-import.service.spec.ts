@@ -39,7 +39,8 @@ import { createTreatmentsRepository } from '@/features/treatments/repository/tre
 import { createVaccinationInjectionsRepository } from '@/features/vaccinations/repository/vaccination-injections.repository'
 import { createVaccinationsRepository } from '@/features/vaccinations/repository/vaccinations.repository'
 import { createWeightRepository } from '@/features/weight/repository/weight.repository'
-import { seededTreatments } from '@/features/treatments/__tests__/seed-treatment'
+import { headDose, seededTreatments } from '@/features/treatments/__tests__/seed-treatment'
+import { treatmentScheduleOf } from '@/features/treatments/logic/treatment-schedule'
 import { createTreatmentPlanService } from '@/features/treatments/service/treatment-plan.service'
 
 const NOW = new Date('2026-09-15T10:00:00.000Z')
@@ -162,13 +163,6 @@ async function carnet(client: InMemoryDb = db): Promise<ExportData> {
 }
 
 /** Export JSON de l'appareil tel que l'import le relit. */
-async function headDose(client: InMemoryDb, treatmentId: string) {
-  const [head] = (await createRepositories(client).treatments.listDoses(treatmentId)).filter(
-    ({ status }) => status !== 'shift' && status !== 'extra',
-  )
-  return head ? { givenOn: head.givenOn, nextDueDate: head.nextDueDate } : null
-}
-
 async function exported(client: InMemoryDb): Promise<ImportFile> {
   const text = toJsonExport(await carnet(client), { exportedAt: NOW, appVersion: 'test' })
   const parsed = parseExportFile(text)
@@ -312,6 +306,10 @@ describe('data-import.service', () => {
       periodId: PANACUR_PERIOD_ID,
       frequency: { value: 1, unit: 'day' },
       stoppedOn: null,
+    })
+    const panacur = await repositories.treatments.getWithHistory(PANACUR_ID)
+    expect(treatmentScheduleOf(panacur!, '2026-09-02').nextDue).toMatchObject({
+      dueOn: '2026-09-03',
     })
   })
 
@@ -508,7 +506,7 @@ describe('data-import.service', () => {
 
       await service.importData(importFile(echeanceArbitraire), 'replace')
 
-      await expect(headDose(db, MILBEMAX_ID)).resolves.toEqual({
+      await expect(headDose(repositories.treatments, MILBEMAX_ID)).resolves.toEqual({
         givenOn: '2026-06-15',
         nextDueDate: '2027-01-31',
       })
@@ -865,7 +863,9 @@ describe('data-import.service', () => {
       await expect(repositories.treatments.getById(PANACUR_ID)).resolves.toMatchObject({
         periodId: PANACUR_PERIOD_ID,
       })
-      await expect(headDose(db, PANACUR_ID)).resolves.toMatchObject({ nextDueDate: '2026-09-02' })
+      await expect(headDose(repositories.treatments, PANACUR_ID)).resolves.toMatchObject({
+        nextDueDate: '2026-09-02',
+      })
       await expect(
         db.query(
           `SELECT id, deleted_at FROM treatment_dose WHERE treatment_id = ?
@@ -1318,7 +1318,7 @@ describe('data-import.service', () => {
 
       await importerOn(phoneA).importData(await exported(phoneB), 'merge')
 
-      await expect(headDose(phoneA, milbemax.id)).resolves.toEqual({
+      await expect(headDose(createRepositories(phoneA).treatments, milbemax.id)).resolves.toEqual({
         givenOn: '2026-09-10',
         nextDueDate: '2026-09-17',
       })
@@ -1456,7 +1456,7 @@ describe('data-import.service', () => {
         await expect(
           createRepositories(phone).treatments.getById(milbemax.id),
         ).resolves.toMatchObject({ name: 'Milbémax chat' })
-        await expect(headDose(phone, milbemax.id)).resolves.toEqual({
+        await expect(headDose(createRepositories(phone).treatments, milbemax.id)).resolves.toEqual({
           givenOn: '2026-06-20',
           nextDueDate: '2026-09-20',
         })
@@ -1511,7 +1511,7 @@ describe('data-import.service', () => {
         await expect(
           createRepositories(phone).treatments.getById(milbemax.id),
         ).resolves.toMatchObject({ frequency: { value: 1, unit: 'month' } })
-        await expect(headDose(phone, milbemax.id)).resolves.toEqual({
+        await expect(headDose(createRepositories(phone).treatments, milbemax.id)).resolves.toEqual({
           givenOn: '2026-09-12',
           nextDueDate: '2026-12-12',
         })
