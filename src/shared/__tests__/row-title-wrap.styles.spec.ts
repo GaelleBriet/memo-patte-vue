@@ -22,13 +22,10 @@ function declaration(feuille: string, selecteur: string, propriete: string): str
 }
 
 /**
- * Trois listes posent un titre et un badge sur la même ligne, et toutes trois
- * mettent `min-width: 0` sur la colonne de titre pour que l'ellipse fonctionne.
- * C'est ce `min-width` qui autorise le flex à comprimer le titre sous la largeur
- * de son plus long mot, coupé alors en deux quelle que soit la valeur
- * d'`overflow-wrap`. Le titre ne reste entier que si les trois déclarations sont
- * là ensemble : seul `flex-wrap` fait descendre le badge quand la ligne est trop
- * étroite, et `break-word` évite de couper un mot qui tient sur la sienne.
+ * Trois listes posent un titre et un badge sur la même ligne. Le titre ne reste
+ * entier que si les trois déclarations sont là ensemble : seul `flex-wrap` fait
+ * descendre le badge quand la ligne est trop étroite, et `break-word` évite de
+ * couper un mot qui tient sur la sienne.
  */
 const LISTES = [
   {
@@ -58,5 +55,29 @@ describe('un titre de ligne passe à la ligne sans couper les mots', () => {
     expect(declaration(feuille, titre, 'overflow-wrap')).toBe('break-word')
     expect(declaration(feuille, ligne, 'flex-wrap')).toBe('wrap')
     expect(declaration(feuille, badge, 'margin-inline-start')).toBe('auto')
+  })
+})
+
+/**
+ * Une colonne `flex: 1 1 auto` réclame la largeur de toute sa phrase : un détail long
+ * envoyait badge et chevron sous le texte (#585). Base nulle, et largeur minimale
+ * automatique (le plus long mot) bornée par `max-width` à la place laissée par la
+ * pastille : bornée à toute la ligne, un mot long passait sous la pastille.
+ */
+const LIGNES_DU_CARNET = [
+  {
+    fichier: 'src/features/vaccinations/views/VaccinationsSection.vue',
+    texte: '.vaccination-row__text',
+  },
+  { fichier: 'src/features/treatments/views/TreatmentsSection.vue', texte: '.treatment-row__text' },
+] as const
+
+describe('Carnet : un détail long passe à la ligne sans pousser le chevron dessous', () => {
+  it.each(LIGNES_DU_CARNET)('$fichier', ({ fichier, texte }) => {
+    const feuille = css(fichier)
+
+    expect(declaration(feuille, texte, 'flex')).toBe('1 1 0')
+    expect(declaration(feuille, texte, 'max-width')).toBe('calc(100% - 36px - 12px)')
+    expect(declaration(feuille, texte, 'min-width')).toBeUndefined()
   })
 })

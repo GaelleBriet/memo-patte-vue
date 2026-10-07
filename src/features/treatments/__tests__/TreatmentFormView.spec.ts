@@ -32,6 +32,7 @@ import {
   type NotificationPermissionStatus,
 } from '@/core/notifications/permission'
 import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
+import { plain } from '@/shared/__tests__/plain'
 
 vi.mock('@/core/notifications/permission', () => ({
   shouldShowPriming: vi.fn<() => Promise<boolean>>(async () => false),
@@ -87,6 +88,7 @@ const MILO: Animal = {
   species: 'dog',
   breed: null,
   birthDate: null,
+  birthDateApproximate: false,
   photoPath: null,
   createdAt: AT,
   updatedAt: AT,
@@ -159,8 +161,6 @@ const ECRIT: Treatment = {
   type: 'deworming',
   periodId: ID,
   frequency: { value: 3, unit: 'month' },
-  lastDoseDate: '2026-07-10',
-  nextDueDate: '2026-10-10',
   stoppedOn: null,
   createdAt: AT,
   updatedAt: AT,
@@ -249,7 +249,7 @@ async function choisirUnite(wrapper: VueWrapper, unit: (typeof UNITES)[number]) 
 }
 
 function messages(wrapper: VueWrapper): string[] {
-  return wrapper.findAll('.form-field__error').map((noeud) => noeud.text())
+  return wrapper.findAll('.form-field__error').map((noeud) => plain(noeud.text()))
 }
 
 function libelles(wrapper: VueWrapper): string[] {
@@ -258,7 +258,7 @@ function libelles(wrapper: VueWrapper): string[] {
 
 function aide(wrapper: VueWrapper, field: string): string | undefined {
   const noeud = wrapper.find(`.treatment-form__field--${field} .form-field__help`)
-  return noeud.exists() ? noeud.text() : undefined
+  return noeud.exists() ? plain(noeud.text()) : undefined
 }
 
 function heures(wrapper: VueWrapper): string[] {
@@ -393,7 +393,7 @@ describe('TreatmentFormView — structure (TR-1, planche V1)', () => {
     expect(date.attributes('min')).toBeUndefined()
     expect(date.attributes('max')).toBeUndefined()
     expect(aide(wrapper, 'first-dose-on')).toBe(
-      'Déjà en cours\u00a0? Indique la dernière prise certaine\u00a0: l’historique commencera là.',
+      'Déjà en cours ? Indique la dernière prise certaine : l’historique commencera là.',
     )
     expect(date.attributes('aria-describedby')).toBe(
       wrapper.get('.treatment-form__field--first-dose-on .form-field__help').attributes('id'),
@@ -595,7 +595,7 @@ describe('TreatmentFormView — champ « Rappel » (RA-7, RA-8, RA-23, planches 
       '30 min before',
       '1 hour before',
     ])
-    expect(aide(wrapper, 'reminder')).toBe('For each time: 8 am and 8 pm.')
+    expect(aide(wrapper, 'reminder')).toBe('For each time: 8 am and 8 pm.')
     expect(wrapper.find('.treatment-reminder__suggest').exists()).toBe(false)
   })
 
@@ -604,7 +604,7 @@ describe('TreatmentFormView — champ « Rappel » (RA-7, RA-8, RA-23, planches 
     await ajouterHeure(wrapper, '08:00')
     await ajouterHeure(wrapper, '20:00')
 
-    expect(aide(wrapper, 'reminder')).toBe('Pour chaque heure : 8 h et 20 h.')
+    expect(aide(wrapper, 'reminder')).toBe('Pour chaque heure : 8 h et 20 h.')
   })
 
   it('corrige seulement le rappel d’un traitement qui a des prises (B3)', async () => {
@@ -1547,7 +1547,7 @@ describe('TreatmentFormView — modification (TR-27, TR-28, planches V1 quater e
     expect(date.attributes('min')).toBe('2026-09-28')
     expect(date.attributes('max')).toBeUndefined()
     expect(aide(wrapper, 'next-dose-on')).toBe(
-      'Calculée d’après la dernière prise\u00a0: 10 oct. Modifiable.',
+      'Calculée d’après la dernière prise : 10 oct. Modifiable.',
     )
   })
 
@@ -1577,7 +1577,7 @@ describe('TreatmentFormView — modification (TR-27, TR-28, planches V1 quater e
     await champ(wrapper, 'treatment-next-dose-on').setValue('2026-10-14')
 
     expect(aide(wrapper, 'next-dose-on')).toBe(
-      'Calculée d’après la dernière prise\u00a0: 10 oct. Modifiable.',
+      'Calculée d’après la dernière prise : 10 oct. Modifiable.',
     )
 
     await soumettre(wrapper)
@@ -1626,7 +1626,7 @@ describe('TreatmentFormView — modification (TR-27, TR-28, planches V1 quater e
     expect(valeur(wrapper, 'treatment-next-dose-on')).toBe('2026-09-28')
     expect(champ(wrapper, 'treatment-next-dose-on').attributes('min')).toBe('2026-09-28')
     expect(aide(wrapper, 'next-dose-on')).toBe(
-      'Calculée d’après la dernière prise\u00a0: le 23 sept., déjà passé\u00a0; aujourd’hui est proposé. Modifiable.',
+      'Calculée d’après la dernière prise : le 23 sept., déjà passé ; aujourd’hui est proposé. Modifiable.',
     )
 
     await soumettre(wrapper)
@@ -2062,9 +2062,9 @@ describe('TreatmentFormView — échéances tombées d’une période sans prise
 
     expect(update).not.toHaveBeenCalled()
     expect(feuille().props('modelValue')).toBe(true)
-    expect(feuille().props('texts')).toMatchObject({
+    expect(plain(feuille().props('texts'))).toMatchObject({
       title: '3 doses étaient prévues avant aujourd’hui',
-      text: 'Les 23, 25 et 27 sept., au rythme «\u00a0tous les 2 jours\u00a0».',
+      text: 'Les 23, 25 et 27 sept., au rythme « tous les 2 jours ».',
       keep: 'Elles restent à renseigner',
       drop: 'Elles n’étaient pas à donner',
     })
@@ -2078,7 +2078,7 @@ describe('TreatmentFormView — échéances tombées d’une période sans prise
 
   it('« Elles restent à renseigner » enregistre avec ce choix et la prochaine dose que la feuille annonçait', async () => {
     await corrigerLaFrequence()
-    expect(feuille().props('texts')).toMatchObject({
+    expect(plain(feuille().props('texts'))).toMatchObject({
       keepHint: 'Le nouveau rythme commence aujourd’hui. Prochaine dose le 28 sept.',
       dropHint: 'L’ancien réglage était une erreur. Prochaine dose le 28 sept.',
     })
@@ -2127,7 +2127,7 @@ describe('TreatmentFormView — échéances tombées d’une période sans prise
     await champ(wrapper, 'treatment-next-dose-on').setValue('2026-10-05')
     await soumettre(wrapper)
 
-    expect(feuille().props('texts')).toMatchObject({
+    expect(plain(feuille().props('texts'))).toMatchObject({
       keepHint: 'Le nouveau rythme commence aujourd’hui. Prochaine dose le 5 oct.',
       dropHint: 'L’ancien réglage était une erreur. Prochaine dose le 5 oct.',
     })
@@ -2149,7 +2149,7 @@ describe('TreatmentFormView — échéances tombées d’une période sans prise
     await champ(wrapper, 'treatment-ends-on').setValue('2026-10-01')
     await soumettre(wrapper)
 
-    expect(feuille().props('texts')).toMatchObject({
+    expect(plain(feuille().props('texts'))).toMatchObject({
       dropHint: 'L’ancien réglage était une erreur. Prochaine dose le 28 sept.',
     })
 
@@ -2189,7 +2189,7 @@ describe('TreatmentFormView — échéances tombées d’une période sans prise
     await champ(wrapper, 'treatment-frequency-value').setValue('20')
     await soumettre(wrapper)
 
-    expect(feuille().props('texts')).toMatchObject({
+    expect(plain(feuille().props('texts'))).toMatchObject({
       title: '1 dose était prévue avant aujourd’hui',
       keepHint: 'Le nouveau rythme commence aujourd’hui. Prochaine dose le 8 oct.',
       dropHint: 'L’ancien réglage était une erreur. Prochaine dose le 28 sept.',
@@ -2232,7 +2232,7 @@ describe('TreatmentFormView — échéances tombées d’une période sans prise
 
     expect(update).not.toHaveBeenCalled()
     expect(feuille().props('modelValue')).toBe(true)
-    expect(feuille().props('texts')).toMatchObject({
+    expect(plain(feuille().props('texts'))).toMatchObject({
       title: '4 doses étaient prévues avant aujourd’hui',
     })
   })
@@ -2431,7 +2431,7 @@ describe('TreatmentFormView — reprise (TR-32, planche V7)', () => {
   it('reprend les réglages de la dernière période, tous modifiables, et le dit', async () => {
     const wrapper = await monterReprise()
 
-    expect(wrapper.get('.treatment-form__info').text()).toBe(
+    expect(plain(wrapper.get('.treatment-form__info').text())).toBe(
       'Réglages de la dernière période, du 6 oct. au 10 oct. Tout reste modifiable.',
     )
     expect(valeur(wrapper, 'treatment-frequency-value')).toBe('1')
@@ -2447,7 +2447,7 @@ describe('TreatmentFormView — reprise (TR-32, planche V7)', () => {
     expect(valeur(wrapper, 'treatment-first-dose-on')).toBe('')
     expect(valeur(wrapper, 'treatment-ends-on')).toBe('')
     expect(wrapper.get('.form-screen__submit').attributes('disabled')).toBeDefined()
-    expect(aide(wrapper, 'ends-on')).toBe('Même durée que la dernière fois\u00a0: 5 jours.')
+    expect(aide(wrapper, 'ends-on')).toBe('Même durée que la dernière fois : 5 jours.')
 
     await soumettre(wrapper)
 
@@ -2537,7 +2537,7 @@ describe('TreatmentFormView — reprise (TR-32, planche V7)', () => {
     )
     const wrapper = await monterReprise()
 
-    expect(wrapper.get('.treatment-form__info').text()).toBe(
+    expect(plain(wrapper.get('.treatment-form__info').text())).toBe(
       'Réglages de la dernière période, du 6 oct. au 12 oct. Tout reste modifiable.',
     )
     expect(aide(wrapper, 'ends-on')).toBe('Aucune dose ne sera prévue après cette date.')
@@ -2557,7 +2557,7 @@ describe('TreatmentFormView — reprise (TR-32, planche V7)', () => {
 
     expect(wrapper.get('.pushed-screen__title').text()).toBe('Resume Panacur')
     expect(wrapper.get('.form-screen__submit').text()).toBe('Resume')
-    expect(wrapper.get('.treatment-form__info').text()).toBe(
+    expect(plain(wrapper.get('.treatment-form__info').text())).toBe(
       'Settings from the last period, Oct 6 – Oct 10. Everything can be changed.',
     )
     expect(aide(wrapper, 'ends-on')).toBe('Same length as last time: 5 days.')

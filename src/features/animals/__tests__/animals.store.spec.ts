@@ -365,6 +365,7 @@ function createFakeRepository(): FakeAnimalsRepository {
       species: input.species,
       breed: input.breed ?? null,
       birthDate: input.birthDate ?? null,
+      birthDateApproximate: input.birthDateApproximate ?? false,
       photoPath: input.photoPath ?? null,
       id: crypto.randomUUID(),
       createdAt: now,

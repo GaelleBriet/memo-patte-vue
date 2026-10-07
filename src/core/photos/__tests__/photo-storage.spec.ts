@@ -7,6 +7,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   deleteAllPhotos,
   deletePhoto,
+  listPhotos,
   photoDisplayUrl,
   photoExists,
   savePhoto,
@@ -20,6 +21,7 @@ vi.mock('@capacitor/filesystem', async (importOriginal) => ({
     rmdir: vi.fn<FilesystemPlugin['rmdir']>(),
     stat: vi.fn<FilesystemPlugin['stat']>(),
     readFile: vi.fn<FilesystemPlugin['readFile']>(),
+    readdir: vi.fn<FilesystemPlugin['readdir']>(),
   },
 }))
 
@@ -28,6 +30,7 @@ const deleteFile = vi.mocked(Filesystem.deleteFile)
 const rmdir = vi.mocked(Filesystem.rmdir)
 const stat = vi.mocked(Filesystem.stat)
 const readFile = vi.mocked(Filesystem.readFile)
+const readdir = vi.mocked(Filesystem.readdir)
 
 beforeEach(() => {
   vi.restoreAllMocks()
@@ -183,5 +186,35 @@ describe('photoExists', () => {
 
     await expect(photoExists('absente.jpg')).resolves.toBe(false)
     await expect(photoExists('../secrets.txt')).resolves.toBe(false)
+  })
+})
+
+describe('listPhotos', () => {
+  function entry(name: string, type: 'file' | 'directory' = 'file') {
+    return { name, type, size: 1, ctime: 0, mtime: 1_700_000_000_000, uri: `file:///data/${name}` }
+  }
+
+  it('rend les seules photos de l’app rangées sous photos/', async () => {
+    readdir
+      .mockResolvedValueOnce({ files: [entry('photos', 'directory'), entry('autre.db')] })
+      .mockResolvedValueOnce({
+        files: [
+          entry('3f2b-a1.jpg'),
+          entry('notes.txt'),
+          entry('sous-dossier.jpg', 'directory'),
+          entry('.cache.jpg'),
+          entry('photo.png'),
+        ],
+      })
+
+    expect(await listPhotos()).toEqual([{ name: '3f2b-a1.jpg', modifiedAt: 1_700_000_000_000 }])
+    expect(readdir).toHaveBeenLastCalledWith({ path: 'photos', directory: Directory.Data })
+  })
+
+  it('ne lit pas photos/ tant qu’aucune photo n’a été enregistrée', async () => {
+    readdir.mockResolvedValueOnce({ files: [entry('autre.db')] })
+
+    expect(await listPhotos()).toEqual([])
+    expect(readdir).toHaveBeenCalledExactlyOnceWith({ path: '', directory: Directory.Data })
   })
 })

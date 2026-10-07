@@ -127,16 +127,13 @@ describe('vaccinationsRepository', () => {
       })
       vi.advanceTimersByTime(60_000)
 
-      const updated = await repository.update(created.id, {
-        name: 'CHPPiL',
-        lastInjectionDate: '2026-02-10',
-      })
+      const updated = await repository.update(created.id, { name: 'CHPPiL', dueDate: null })
 
       expect(updated).toMatchObject({
         id: created.id,
         animalId: MIETTE,
         name: 'CHPPiL',
-        lastInjectionDate: '2026-02-10',
+        lastInjectionDate: '2025-06-12',
         dueDate: null,
         createdAt: '2026-03-01T10:00:00.000Z',
         updatedAt: '2026-03-01T10:01:00.000Z',
@@ -156,7 +153,6 @@ describe('vaccinationsRepository', () => {
 
     const updated = await repository.update(rage.id, {
       name: 'Rage renouvelée',
-      lastInjectionDate: '2026-03-01',
       // @ts-expect-error le rattachement est figé : `animalId` n'est pas modifiable
       animalId: VASCO,
     })
@@ -168,10 +164,7 @@ describe('vaccinationsRepository', () => {
 
   it('échoue à mettre à jour un vaccin inexistant', async () => {
     await expect(
-      repository.update('inconnu', {
-        name: 'CHPPi',
-        lastInjectionDate: '2025-06-12',
-      }),
+      repository.update('inconnu', { name: 'CHPPi', dueDate: '2026-06-12' }),
     ).rejects.toThrow('Vaccin introuvable : inconnu')
   })
 
@@ -241,12 +234,9 @@ describe('vaccinationsRepository', () => {
     })
     await repository.remove(rage.id)
 
-    await expect(
-      repository.update(rage.id, {
-        name: 'Rage renouvelée',
-        lastInjectionDate: '2026-03-01',
-      }),
-    ).rejects.toThrow(`Vaccin introuvable : ${rage.id}`)
+    await expect(repository.update(rage.id, { name: 'Rage renouvelée' })).rejects.toThrow(
+      `Vaccin introuvable : ${rage.id}`,
+    )
 
     const rows = await db.query<{ name: string; deleted_at: string | null }>(
       'SELECT name, deleted_at FROM vaccination WHERE id = ?',
@@ -465,6 +455,78 @@ describe('vaccinationsRepository — injections', () => {
     await expect(db.query('SELECT id FROM vaccination')).resolves.toEqual([])
   })
 
+  it('crée un vaccin prévu : son rendez-vous dans le vaccin, aucune injection', async () => {
+    const typhus = await repository.create({
+      animalId: MIETTE,
+      name: 'Typhus, coryza',
+      dueDate: '2026-10-05',
+    })
+
+    expect(typhus).toMatchObject({ lastInjectionDate: null, dueDate: '2026-10-05' })
+    await expect(injectionsOf(typhus.id)).resolves.toEqual([])
+    await expect(
+      db.query('SELECT planned_due_date FROM vaccination WHERE id = ?', [typhus.id]),
+    ).resolves.toEqual([{ planned_due_date: '2026-10-05' }])
+    await expect(repository.getById(typhus.id)).resolves.toEqual(typhus)
+  })
+
+  it('refuse un vaccin sans injection ni rappel avant d’atteindre la base', async () => {
+    await expect(repository.create({ animalId: MIETTE, name: 'Typhus' })).rejects.toBeInstanceOf(
+      ZodError,
+    )
+    await expect(db.query('SELECT id FROM vaccination')).resolves.toEqual([])
+  })
+
+  it('la modification d’un vaccin prévu change son rendez-vous, sans créer d’injection', async () => {
+    const typhus = await repository.create({
+      animalId: MIETTE,
+      name: 'Typhus',
+      dueDate: '2026-10-05',
+    })
+
+    const updated = await repository.update(typhus.id, {
+      name: 'Typhus, coryza',
+      dueDate: '2026-10-12',
+    })
+
+    expect(updated).toMatchObject({
+      name: 'Typhus, coryza',
+      lastInjectionDate: null,
+      dueDate: '2026-10-12',
+    })
+    await expect(injectionsOf(typhus.id)).resolves.toEqual([])
+  })
+
+  it('refuse « Pas de rappel » pour un vaccin prévu, sans rien écrire', async () => {
+    const typhus = await repository.create({
+      animalId: MIETTE,
+      name: 'Typhus',
+      dueDate: '2026-10-05',
+    })
+
+    await expect(repository.update(typhus.id, { name: 'Typhus', dueDate: null })).rejects.toThrow(
+      `Prochain rappel obligatoire sans injection : ${typhus.id}`,
+    )
+    await expect(repository.getById(typhus.id)).resolves.toEqual(typhus)
+  })
+
+  it('la modification d’un vaccin avec injection garde son rendez-vous prévu', async () => {
+    const carre = await repository.create({
+      animalId: MIETTE,
+      name: 'Carré',
+      lastInjectionDate: '2025-09-25',
+      dueDate: '2026-09-25',
+    })
+    await db.run(`UPDATE vaccination SET planned_due_date = '2026-10-05' WHERE id = ?`, [carre.id])
+
+    await repository.update(carre.id, { name: 'Carré', dueDate: null })
+
+    await expect(
+      db.query('SELECT planned_due_date FROM vaccination WHERE id = ?', [carre.id]),
+    ).resolves.toEqual([{ planned_due_date: '2026-10-05' }])
+    await expect(repository.getById(carre.id)).resolves.toMatchObject({ dueDate: null })
+  })
+
   it('prend ses dates dans l’injection la plus récente', async () => {
     const carre = await repository.create({
       animalId: MIETTE,
@@ -610,6 +672,96 @@ describe('vaccinationsRepository — injections', () => {
     })
   })
 
+  describe('listReplacedDues', () => {
+    async function noter(vaccinationId: string, injectedOn: string, nextDueDate: string | null) {
+      await createVaccinationInjectionsRepository(db).record({
+        id: crypto.randomUUID(),
+        vaccinationId,
+        animalId: MIETTE,
+        injectedOn,
+        nextDueDate,
+        createdAt: `${injectedOn}T10:00:00.000Z`,
+        updatedAt: `${injectedOn}T10:00:00.000Z`,
+        deletedAt: null,
+      })
+    }
+
+    it('rend les rappels des injections d’avant la tête, pas celui de la tête', async () => {
+      const carre = await repository.create({
+        animalId: MIETTE,
+        name: 'Carré',
+        lastInjectionDate: '2026-03-15',
+        dueDate: '2027-03-15',
+      })
+      await noter(carre.id, '2027-03-01', '2028-03-01')
+
+      await expect(repository.listReplacedDues(carre.id)).resolves.toEqual(['2027-03-15'])
+    })
+
+    it('rend le rendez-vous d’un vaccin prévu une fois sa première injection notée', async () => {
+      const typhus = await repository.create({
+        animalId: MIETTE,
+        name: 'Typhus',
+        dueDate: '2026-10-05',
+      })
+      await expect(repository.listReplacedDues(typhus.id)).resolves.toEqual([])
+
+      await noter(typhus.id, '2026-10-05', '2026-11-05')
+
+      await expect(repository.listReplacedDues(typhus.id)).resolves.toEqual(['2026-10-05'])
+    })
+
+    it('ignore les injections supprimées et ne rend rien pour un report sans injection', async () => {
+      const carre = await repository.create({
+        animalId: MIETTE,
+        name: 'Carré',
+        lastInjectionDate: '2026-03-15',
+        dueDate: '2027-03-15',
+      })
+      await repository.update(carre.id, { name: 'Carré', dueDate: '2027-04-15' })
+      await expect(repository.listReplacedDues(carre.id)).resolves.toEqual([])
+
+      await noter(carre.id, '2027-03-01', '2028-03-01')
+      await db.run(
+        `UPDATE vaccination_injection SET deleted_at = updated_at WHERE injected_on = '2027-03-01'`,
+      )
+
+      await expect(repository.listReplacedDues(carre.id)).resolves.toEqual([])
+    })
+
+    it('ne rend rien pour un vaccin supprimé, rendez-vous prévu compris', async () => {
+      const carre = await repository.create({
+        animalId: MIETTE,
+        name: 'Carré',
+        lastInjectionDate: '2026-03-15',
+        dueDate: '2027-03-15',
+      })
+      await noter(carre.id, '2027-03-01', '2028-03-01')
+      await db.run(`UPDATE vaccination SET planned_due_date = '2026-03-01' WHERE id = ?`, [
+        carre.id,
+      ])
+      await db.run(`UPDATE vaccination SET deleted_at = updated_at WHERE id = ?`, [carre.id])
+
+      await expect(repository.listReplacedDues(carre.id)).resolves.toEqual([])
+      await expect(repository.listAllReplacedDues()).resolves.toEqual(new Map())
+    })
+
+    it('rend ceux de tous les vaccins, par vaccin, sans filtre', async () => {
+      const carre = await repository.create({
+        animalId: MIETTE,
+        name: 'Carré',
+        lastInjectionDate: '2026-03-15',
+        dueDate: '2027-03-15',
+      })
+      await noter(carre.id, '2027-03-01', '2028-03-01')
+      await repository.create({ animalId: VASCO, name: 'Rage', lastInjectionDate: '2026-01-01' })
+
+      await expect(repository.listAllReplacedDues()).resolves.toEqual(
+        new Map([[carre.id, ['2027-03-15']]]),
+      )
+    })
+  })
+
   it('trie les vaccins d’un animal par la date de leur tête', async () => {
     const rage = await repository.create({
       animalId: MIETTE,
@@ -624,7 +776,7 @@ describe('vaccinationsRepository — injections', () => {
     expect(names).toEqual(['Rage', 'Typhus'])
   })
 
-  it('la modification change le vaccin et son injection de tête, pas les précédentes', async () => {
+  it('la modification change le nom et le rappel de la tête, jamais une date d’injection', async () => {
     vi.useFakeTimers({ now: new Date('2026-09-24T10:00:00.000Z') })
     const carre = await repository.create({
       animalId: MIETTE,
@@ -635,17 +787,13 @@ describe('vaccinationsRepository — injections', () => {
     const ancienne = await addInjection(carre.id, '2024-09-20', '2025-09-20')
     vi.advanceTimersByTime(60_000)
 
-    await repository.update(carre.id, {
-      name: 'Carré (Eurican)',
-      lastInjectionDate: '2025-09-26',
-      dueDate: '2026-09-26',
-    })
+    await repository.update(carre.id, { name: 'Carré (Eurican)', dueDate: '2026-09-26' })
 
     await expect(injectionsOf(carre.id)).resolves.toMatchObject([
       { id: ancienne, injected_on: '2024-09-20', next_due_date: '2025-09-20' },
       {
         id: carre.id,
-        injected_on: '2025-09-26',
+        injected_on: '2025-09-25',
         next_due_date: '2026-09-26',
         updated_at: '2026-09-24T10:01:00.000Z',
       },
