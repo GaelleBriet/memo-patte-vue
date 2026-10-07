@@ -198,6 +198,29 @@ describe('AnimalDepartureView — carnet supprimé', () => {
   })
 })
 
+describe('AnimalDepartureView — animal suivi', () => {
+  it('renvoie à son carnet quand l’animal est suivi', async () => {
+    animals = [{ ...LUNA, unfollowedOn: null }]
+
+    await monter()
+
+    expect(useAnimalsStore().selectedAnimalId).toBe(LUNA.id)
+    expect(replace).toHaveBeenCalledWith({ name: 'animals' })
+    expect(save).not.toHaveBeenCalled()
+  })
+
+  it('renvoie à son carnet quand l’animal est suivi de nouveau ailleurs', async () => {
+    await monter()
+    expect(replace).not.toHaveBeenCalled()
+
+    const store = useAnimalsStore()
+    store.animals = [{ ...LUNA, unfollowedOn: null }]
+    await flushPromises()
+
+    expect(replace).toHaveBeenCalledWith({ name: 'animals' })
+  })
+})
+
 describe('AnimalDepartureView — « Modifier la date » (V15 quinquies)', () => {
   it('reprend le motif et la date déjà notés', async () => {
     animals = [{ ...LUNA, departureReason: 'death', departureDate: '2026-09-28' }]

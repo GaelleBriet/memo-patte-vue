@@ -64,6 +64,14 @@ function backToCarnet(): void {
   returnTo(router, { name: 'animals' })
 }
 
+watch(
+  () => animal.value?.unfollowedOn,
+  (unfollowedOn) => {
+    if (unfollowedOn === null) backToCarnet()
+  },
+  { immediate: true },
+)
+
 async function submit(): Promise<void> {
   if (isSubmitting.value || !animal.value) return
   const result = validate()
