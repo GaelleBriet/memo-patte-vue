@@ -1159,6 +1159,44 @@ describe('CarnetView — animaux qu’on ne suit plus (AN-10)', () => {
     expect(push).toHaveBeenCalledExactlyOnceWith({ name: 'unfollowed-animals' })
   })
 
+  describe('plus aucun animal suivi (V15 nonies)', () => {
+    it('garde la bienvenue, avec la phrase au singulier et la ligne qui ouvre le carnet', async () => {
+      animals = [LUNA_GONE]
+      const wrapper = await monter()
+
+      expect(wrapper.find('.carnet-welcome').exists()).toBe(true)
+      expect(texte(wrapper.get('.carnet-welcome__unfollowed'))).toBe(
+        'Tu ne suis plus aucun animal. Son carnet reste consultable.',
+      )
+      expect(texte(ligneNonSuivis(wrapper))).toBe('Animaux que tu ne suis plus (1)')
+
+      await ligneNonSuivis(wrapper).trigger('click')
+
+      expect(store.selectedAnimalId).toBe(LUNA.id)
+      expect(wrapper.get('.carnet-header__name').text()).toBe('Luna')
+    })
+
+    it('met la phrase au pluriel et ouvre la liste dès deux animaux', async () => {
+      animals = [LUNA_GONE, PIXEL_GONE]
+      const wrapper = await monter()
+
+      expect(texte(wrapper.get('.carnet-welcome__unfollowed'))).toBe(
+        'Tu ne suis plus aucun animal. Leurs carnets restent consultables.',
+      )
+      await ligneNonSuivis(wrapper).trigger('click')
+
+      expect(push).toHaveBeenCalledExactlyOnceWith({ name: 'unfollowed-animals' })
+    })
+
+    it('n’ajoute rien à la bienvenue d’un carnet vide', async () => {
+      animals = []
+      const wrapper = await monter()
+
+      expect(wrapper.find('.carnet-welcome__unfollowed').exists()).toBe(false)
+      expect(ligneNonSuivis(wrapper).exists()).toBe(false)
+    })
+  })
+
   describe('carnet d’un animal qu’on ne suit plus (V15 ter)', () => {
     beforeEach(() => {
       animals = [MILO, LUNA_GONE]

@@ -103,7 +103,8 @@
       },
       "welcome": {
         "title": "Welcome to MémoPatte",
-        "create": "Add my first pet"
+        "create": "Add my first pet",
+        "unfollowed": "You’re not following any pets. The health record is still available. | You’re not following any pets. Their health records are still available."
       },
       "options": {
         "open": "{name}’s options",

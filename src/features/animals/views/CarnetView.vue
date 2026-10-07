@@ -5,6 +5,7 @@ import { useRouter } from 'vue-router'
 
 import AnimalOptionsSheet from './AnimalOptionsSheet.vue'
 import AnimalPhotoSheet from './AnimalPhotoSheet.vue'
+import UnfollowedAnimalsLink from './UnfollowedAnimalsLink.vue'
 import { hasDepartureDetails } from '../logic/animal-departure'
 import { carnetSubtitle, unfollowedEntry } from '../logic/carnet-animal'
 import { useAnimalsStore } from '../store/animals.store'
@@ -345,18 +346,12 @@ function createAnimal(): void {
           @summary="treatmentsSummary = $event"
         />
         <WeightSection :animal-id="animal.id" :today="today" @summary="weightSummary = $event" />
-        <button
+        <UnfollowedAnimalsLink
           v-if="unfollowed"
-          type="button"
-          class="carnet-unfollowed-link"
-          @click="openUnfollowed"
-        >
-          <v-icon icon="ms:pets" size="20" />
-          <span class="carnet-unfollowed-link__label">
-            {{ t('animals.carnet.unfollowed.link', { n: unfollowed.count }) }}
-          </span>
-          <v-icon icon="ms:chevron_right" size="22" />
-        </button>
+          class="carnet__unfollowed-link"
+          :count="unfollowed.count"
+          @open="openUnfollowed"
+        />
       </div>
     </template>
 
@@ -382,6 +377,16 @@ function createAnimal(): void {
       <v-btn class="carnet-welcome__create" variant="flat" color="primary" @click="createAnimal">
         {{ t('animals.carnet.welcome.create') }}
       </v-btn>
+      <template v-if="unfollowed">
+        <p class="carnet-welcome__unfollowed">
+          {{ t('animals.carnet.welcome.unfollowed', unfollowed.count) }}
+        </p>
+        <UnfollowedAnimalsLink
+          class="carnet-welcome__unfollowed-link"
+          :count="unfollowed.count"
+          @open="openUnfollowed"
+        />
+      </template>
     </div>
   </div>
 </template>
@@ -580,30 +585,19 @@ function createAnimal(): void {
   text-transform: none;
 }
 
-.carnet-unfollowed-link {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-height: tokens.$size-tap-target;
+.carnet__unfollowed-link {
   margin-inline: tokens.$padding-section-inline;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: tokens.$color-text-secondary;
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: 600;
-  text-align: start;
-  cursor: pointer;
-
-  &:focus-visible {
-    outline: none;
-    color: rgb(var(--v-theme-on-surface));
-  }
 }
 
-.carnet-unfollowed-link__label {
-  flex: 1 1 auto;
+.carnet-welcome__unfollowed {
+  margin: 0;
+  color: tokens.$color-text-secondary;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.carnet-welcome__unfollowed-link {
+  align-self: stretch;
 }
 
 .carnet-loading {

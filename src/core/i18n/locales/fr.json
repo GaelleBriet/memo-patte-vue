@@ -103,7 +103,8 @@
       },
       "welcome": {
         "title": "Bienvenue sur MémoPatte",
-        "create": "Créer mon premier animal"
+        "create": "Créer mon premier animal",
+        "unfollowed": "Tu ne suis plus aucun animal. Son carnet reste consultable. | Tu ne suis plus aucun animal. Leurs carnets restent consultables."
       },
       "options": {
         "open": "Options de {name}",
