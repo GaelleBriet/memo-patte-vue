@@ -76,7 +76,6 @@
       "back": "Back",
       "edit": "Edit profile",
       "exportPdf": "Export to PDF",
-      "exportPdfPlus": "Export to PDF, a MémoPatte Plus feature",
       "photo": {
         "avatarLabel": "Manage {name}’s photo",
         "sheetTitle": "{name}’s photo",
@@ -1173,6 +1172,7 @@
     },
     "data": {
       "title": "My data",
+      "summary": "Unit, export, PDF, import",
       "weightUnit": {
         "label": "Weight unit",
         "hint": "For showing and entering weigh-ins",
@@ -1181,20 +1181,29 @@
           "lb": "Pounds, lb"
         }
       },
+      "exportSection": "Export",
       "export": "Export my data",
+      "exportHint": "JSON or CSV",
       "exportEmpty": "Nothing to export yet",
       "exportPdf": "Export to PDF",
-      "exportPdfPlus": "MémoPatte Plus feature",
+      "exportPdfHint": "All pets or just one",
+      "importSection": "Import",
       "import": "Import a MémoPatte export",
       "loadError": "The local database didn’t respond. Tap to try again."
     },
     "privacy": {
       "title": "Privacy",
-      "analytics": "Usage statistics"
+      "analytics": "Usage statistics",
+      "policy": "Privacy policy",
+      "policyHint": "On the website"
     },
     "about": {
       "title": "About",
-      "version": "Version"
+      "summary": "MémoPatte {version}",
+      "version": "Version",
+      "website": "MémoPatte website",
+      "websiteHint": "memopatte.gaelle-briet.fr",
+      "legalNotice": "Legal notice"
     },
     "export": {
       "title": "Export your data",
@@ -1450,8 +1459,9 @@
     "later": "Not now",
     "settings": {
       "discover": "Explore MémoPatte Plus",
-      "discoverHint": "Cloud backup, PDF export, multiple devices",
-      "alreadySubscribed": "I’m already subscribed",
+      "summary": "Your health record never disappears",
+      "discoverHint": "Cloud backup, multiple devices",
+      "alreadySubscribed": "I already have MémoPatte Plus",
       "alreadySubscribedHint": "Restore the health record you backed up on another device",
       "status": {
         "monthly": "Monthly Plus until {date}",
