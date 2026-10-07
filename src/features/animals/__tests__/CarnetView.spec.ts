@@ -12,6 +12,7 @@ import {
 } from 'vitest'
 
 import AnimalPhotoSheet from '../views/AnimalPhotoSheet.vue'
+import AnimalPhotoViewer from '../views/AnimalPhotoViewer.vue'
 import CarnetView from '../views/CarnetView.vue'
 import type { Animal } from '../schema/animal.schema'
 import { provideAnimalsRepository, useAnimalsStore } from '../store/animals.store'
@@ -665,6 +666,7 @@ describe('CarnetView — photo depuis l’avatar du header', () => {
 
   afterEach(() => {
     mounted.splice(0).forEach((wrapper) => wrapper.unmount())
+    dismissToast()
     document.body.innerHTML = ''
     vi.unstubAllGlobals()
   })
@@ -685,93 +687,162 @@ describe('CarnetView — photo depuis l’avatar du header', () => {
 
   function actionsDeLaFeuille(): string[] {
     return [...(feuille()?.querySelectorAll('.animal-photo-sheet__action') ?? [])].map((action) =>
-      action.textContent!.trim(),
+      [...action.querySelectorAll('.animal-photo-sheet__label, .animal-photo-sheet__hint')]
+        .map((text) => text.textContent!.trim())
+        .join(' · '),
     )
   }
 
-  async function appuiLong(wrapper: ReturnType<typeof mount>) {
-    await wrapper.get('.carnet-header__avatar').trigger('contextmenu')
+  function action(libelle: string): HTMLElement {
+    const found = [
+      ...(feuille()?.querySelectorAll<HTMLElement>('.animal-photo-sheet__action') ?? []),
+    ].find((element) => element.textContent!.includes(libelle))
+    if (!found) throw new Error(`Pas d’action « ${libelle} » dans la feuille`)
+    return found
+  }
+
+  async function toucherAvatar(wrapper: ReturnType<typeof mount>) {
+    await wrapper.get('.carnet-header__photo').trigger('click')
     await flushPromises()
   }
 
-  it('annonce l’action aux lecteurs d’écran sur l’avatar', async () => {
+  it('avec une photo, l’avatar se lit « voir, changer ou retirer »', async () => {
+    animals = [{ ...MILO, photoPath: 'milo.jpg' }, LUNA]
     const wrapper = await monterAttache()
 
-    const avatar = wrapper.get('.carnet-header__avatar')
-    expect(avatar.attributes('aria-label')).toBe('Gérer la photo de Milo')
+    const avatar = wrapper.get('.carnet-header__photo')
+    expect(avatar.element.tagName).toBe('BUTTON')
+    expect(avatar.attributes('aria-label')).toBe('Photo de Milo\u00a0: voir, changer ou retirer')
     expect(avatar.attributes('aria-haspopup')).toBe('dialog')
-    expect(avatar.attributes('tabindex')).toBe('0')
   })
 
-  it('un toucher simple sur l’avatar n’ouvre rien', async () => {
+  it('sans photo, l’avatar se lit « Ajouter une photo de Milo » et garde le dégradé, sans patte', async () => {
     const wrapper = await monterAttache()
 
-    await wrapper.get('.carnet-header__avatar').trigger('click')
+    expect(wrapper.get('.carnet-header__photo').attributes('aria-label')).toBe(
+      'Ajouter une photo de Milo',
+    )
+    expect(wrapper.get('.carnet-header__avatar').attributes('style')).toContain('linear-gradient')
+    expect(wrapper.find('.carnet-header__avatar .v-icon').exists()).toBe(false)
+  })
+
+  it('porte un badge « appareil photo », muet pour les lecteurs d’écran', async () => {
+    const wrapper = await monterAttache()
+
+    const badge = wrapper.get('.carnet-header__photo .carnet-header__photo-badge')
+    expect(badge.attributes('aria-hidden')).toBe('true')
+    expect(badge.find('.v-icon').exists()).toBe(true)
+  })
+
+  it('ouvre la feuille d’un toucher sur l’avatar', async () => {
+    const wrapper = await monterAttache()
+
+    await toucherAvatar(wrapper)
+
+    expect(feuille()).not.toBeNull()
+  })
+
+  it('ouvre la feuille d’un toucher sur le badge', async () => {
+    const wrapper = await monterAttache()
+
+    await wrapper.get('.carnet-header__photo-badge').trigger('click')
+    await flushPromises()
+
+    expect(feuille()).not.toBeNull()
+  })
+
+  it('l’appui long n’ouvre plus rien', async () => {
+    const wrapper = await monterAttache()
+
+    await wrapper.get('.carnet-header__photo').trigger('contextmenu')
     await flushPromises()
 
     expect(feuille()).toBeNull()
   })
 
-  it.each(['enter', 'space'])('ouvre la feuille à la touche %s sur l’avatar', async (touche) => {
+  it('rend le focus à l’avatar à la fermeture de la feuille', async () => {
     const wrapper = await monterAttache()
 
-    await wrapper.get('.carnet-header__avatar').trigger(`keydown.${touche}`)
-    await flushPromises()
-
-    expect(feuille()).not.toBeNull()
-  })
-
-  it('rend le focus à l’avatar à la fermeture, même si l’appui long ne l’avait pas déplacé', async () => {
-    const wrapper = await monterAttache()
-    const chip = wrapper.findAll<HTMLElement>('.animal-chip')[1]!.element
-    chip.focus()
-    expect(document.activeElement).toBe(chip)
-
-    await appuiLong(wrapper)
+    await toucherAvatar(wrapper)
     document.body.querySelector<HTMLElement>('.animal-photo-sheet .bottom-sheet__handle')!.click()
     await flushPromises()
 
-    expect(document.activeElement).toBe(wrapper.get('.carnet-header__avatar').element)
+    expect(document.activeElement).toBe(wrapper.get('.carnet-header__photo').element)
   })
 
-  it('sans photo, l’appui long propose seulement « Ajouter une photo »', async () => {
+  it('titre la feuille du nom et de la race de l’animal, puis « Photo »', async () => {
     const wrapper = await monterAttache()
 
-    await appuiLong(wrapper)
+    await toucherAvatar(wrapper)
 
-    expect(feuille()).not.toBeNull()
-    expect(actionsDeLaFeuille()).toEqual(['Ajouter une photo'])
+    expect(feuille()!.querySelector('.bottom-sheet__title')?.textContent).toBe('Milo')
+    expect(feuille()!.querySelector('.bottom-sheet__subtitle')?.textContent).toBe(
+      'Golden retriever',
+    )
+    expect(feuille()!.querySelector('.animal-photo-sheet__heading')?.textContent).toBe('Photo')
   })
 
-  it('avec une photo, l’appui long propose de la changer ou de la retirer', async () => {
+  it('sans photo, propose seulement « Ajouter une photo · Choisir une photo »', async () => {
+    const wrapper = await monterAttache()
+
+    await toucherAvatar(wrapper)
+
+    expect(actionsDeLaFeuille()).toEqual(['Ajouter une photo · Choisir une photo'])
+  })
+
+  it('avec une photo, propose de la voir, de la changer ou de la retirer', async () => {
     animals = [{ ...MILO, photoPath: 'milo.jpg' }, LUNA]
     const wrapper = await monterAttache()
 
-    await appuiLong(wrapper)
+    await toucherAvatar(wrapper)
 
-    expect(actionsDeLaFeuille()).toEqual(['Changer la photo', 'Retirer la photo'])
+    expect(actionsDeLaFeuille()).toEqual([
+      'Voir la photo',
+      'Changer la photo · Choisir une photo',
+      'Retirer la photo',
+    ])
   })
 
-  it('« Retirer la photo » enregistre aussitôt puis referme la feuille', async () => {
+  it('« Voir la photo » referme la feuille et montre la photo en plein écran', async () => {
     animals = [{ ...MILO, photoPath: 'milo.jpg' }, LUNA]
-    const update = vi.spyOn(store, 'update').mockResolvedValue(MILO)
     const wrapper = await monterAttache()
-    await appuiLong(wrapper)
+    await toucherAvatar(wrapper)
 
-    feuille()!.querySelectorAll<HTMLElement>('.animal-photo-sheet__action')[1]!.click()
+    action('Voir la photo').click()
     await flushPromises()
 
-    expect(update).toHaveBeenCalledWith(MILO.id, expect.anything(), { kind: 'remove' })
     expect(wrapper.getComponent(AnimalPhotoSheet).props('modelValue')).toBe(false)
+    expect(wrapper.getComponent(AnimalPhotoViewer).props('modelValue')).toBe(true)
+    expect(document.body.querySelector('.animal-photo-viewer__image')?.getAttribute('src')).toBe(
+      'url:milo.jpg',
+    )
+  })
+
+  it('« Retirer la photo », sans confirmation : referme la feuille, toast « Photo retirée » · « Annuler »', async () => {
+    animals = [{ ...MILO, photoPath: 'milo.jpg' }, LUNA]
+    const removePhoto = vi
+      .spyOn(store, 'removePhoto')
+      .mockResolvedValue({ animalId: MILO.id, photoPath: 'milo.jpg' })
+    vi.spyOn(store, 'forgetRemovedPhoto').mockResolvedValue()
+    const wrapper = await monterAttache()
+    await toucherAvatar(wrapper)
+
+    action('Retirer la photo').click()
+    await flushPromises()
+
+    expect(removePhoto).toHaveBeenCalledWith(MILO.id, expect.anything())
+    expect(wrapper.getComponent(AnimalPhotoSheet).props('modelValue')).toBe(false)
+    expect(toastMessage.value).toBe('Photo retirée')
+    expect(toastAction.value?.label).toBe('Annuler')
   })
 
   it('« Ajouter une photo » enregistre la photo choisie', async () => {
     choisirPhoto.mockResolvedValue({ base64: 'TUlMTw==', previewUrl: 'data:,' })
     const update = vi.spyOn(store, 'update').mockResolvedValue(MILO)
     const wrapper = await monterAttache()
-    await appuiLong(wrapper)
+    await toucherAvatar(wrapper)
 
-    feuille()!.querySelector<HTMLElement>('.animal-photo-sheet__action')!.click()
+    action('Ajouter une photo').click()
     await flushPromises()
 
     expect(update).toHaveBeenCalledWith(MILO.id, expect.anything(), {
@@ -783,9 +854,9 @@ describe('CarnetView — photo depuis l’avatar du header', () => {
   it('garde la feuille ouverte avec le message du formulaire si la photo est illisible', async () => {
     choisirPhoto.mockRejectedValue(new Error('Not implemented'))
     const wrapper = await monterAttache()
-    await appuiLong(wrapper)
+    await toucherAvatar(wrapper)
 
-    feuille()!.querySelector<HTMLElement>('.animal-photo-sheet__action')!.click()
+    action('Ajouter une photo').click()
     await flushPromises()
 
     expect(feuille()!.querySelector('[role="alert"]')?.textContent?.trim()).toBe(
@@ -796,14 +867,12 @@ describe('CarnetView — photo depuis l’avatar du header', () => {
   it('désactive les actions pendant le choix', async () => {
     choisirPhoto.mockReturnValue(new Promise(() => {}))
     const wrapper = await monterAttache()
-    await appuiLong(wrapper)
+    await toucherAvatar(wrapper)
 
-    feuille()!.querySelector<HTMLElement>('.animal-photo-sheet__action')!.click()
+    action('Ajouter une photo').click()
     await flushPromises()
 
-    expect(feuille()!.querySelector('.animal-photo-sheet__action')!.hasAttribute('disabled')).toBe(
-      true,
-    )
+    expect(action('Ajouter une photo').hasAttribute('disabled')).toBe(true)
   })
 })
 

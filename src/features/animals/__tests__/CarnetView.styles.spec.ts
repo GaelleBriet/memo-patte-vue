@@ -48,6 +48,17 @@ describe('CarnetView — contrat de style', () => {
     expect(declaration('.carnet-header__avatar', 'border')).toContain('2px solid')
   })
 
+  it('pose le badge « appareil photo » de 26 px sur le bord de l’avatar, cerclé de pétrole', () => {
+    expect(declaration('.carnet-header__photo', 'position')).toBe('relative')
+    expect(declaration('.carnet-header__photo-badge', 'position')).toBe('absolute')
+    expect(declaration('.carnet-header__photo-badge', 'right')).toBe('-2px')
+    expect(declaration('.carnet-header__photo-badge', 'bottom')).toBe('-2px')
+    expect(declaration('.carnet-header__photo-badge', 'width')).toBe('26px')
+    expect(declaration('.carnet-header__photo-badge', 'border')).toBe(
+      '2px solid rgb(var(--v-theme-primary))',
+    )
+  })
+
   it('passe le sous-titre sur deux lignes au plus, comme la maquette V13 bis', () => {
     expect(declaration('.carnet-header__subtitle', 'white-space')).toBe('normal')
     expect(declaration('.carnet-header__subtitle', '-webkit-line-clamp')).toBe('2')

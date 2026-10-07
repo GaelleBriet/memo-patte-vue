@@ -221,6 +221,23 @@ describe('useAnimalsStore', () => {
     expect(deletePhoto).not.toHaveBeenCalled()
   })
 
+  it('retire la photo, la rend sur « Annuler » et n’efface son fichier qu’au retrait définitif', async () => {
+    const milo = repository.seed({ name: 'Milo', species: 'dog', photoPath: 'milo.jpg' })
+    const store = useAnimalsStore()
+    const input = { name: 'Milo', species: 'dog' } as const
+
+    const removal = await store.removePhoto(milo.id, input)
+    expect(store.byId(milo.id)?.photoPath).toBeNull()
+    expect(deletePhoto).not.toHaveBeenCalled()
+
+    await store.undoRemovePhoto(input, removal!)
+    expect(store.byId(milo.id)?.photoPath).toBe('milo.jpg')
+
+    await store.removePhoto(milo.id, input)
+    await store.forgetRemovedPhoto(removal!)
+    expect(deletePhoto).toHaveBeenCalledExactlyOnceWith('milo.jpg')
+  })
+
   it('laisse le fichier de la photo en place quand l’animal est supprimé', async () => {
     const milo = repository.seed({ name: 'Milo', species: 'dog', photoPath: 'milo.jpg' })
     const store = useAnimalsStore()

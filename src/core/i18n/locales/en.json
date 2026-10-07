@@ -77,8 +77,14 @@
       "edit": "Edit profile",
       "exportPdf": "Export to PDF",
       "photo": {
-        "avatarLabel": "Manage {name}’s photo",
+        "avatarLabel": "{name}’s photo: view, change or remove",
+        "addLabel": "Add a photo of {name}",
         "sheetTitle": "{name}’s photo",
+        "heading": "Photo",
+        "view": "View photo",
+        "choose": "Choose a photo",
+        "removed": "Photo removed",
+        "undoRemove": "Undo removing {name}’s photo",
         "close": "Close"
       },
       "subtitleSeparator": " · ",

@@ -5,12 +5,14 @@ import BottomSheet from '@/shared/components/BottomSheet.vue'
 
 defineProps<{
   name: string
+  breed: string | null
   hasPhoto: boolean
   busy?: boolean
   error?: string | null
 }>()
 
 const emit = defineEmits<{
+  view: []
   change: []
   remove: []
 }>()
@@ -24,11 +26,25 @@ const { t } = useI18n()
   <BottomSheet
     v-model="open"
     class="animal-photo-sheet"
-    :title="t('animals.carnet.photo.sheetTitle', { name })"
+    icon="ms:photo_camera"
+    :title="name"
+    :subtitle="breed"
     :close-label="t('animals.carnet.photo.close')"
     :persistent="busy"
   >
+    <h3 class="animal-photo-sheet__heading">{{ t('animals.carnet.photo.heading') }}</h3>
     <ul class="animal-photo-sheet__list">
+      <li v-if="hasPhoto">
+        <button
+          type="button"
+          class="animal-photo-sheet__action"
+          :disabled="busy"
+          @click="emit('view')"
+        >
+          <v-icon icon="ms:image" :size="22" />
+          <span class="animal-photo-sheet__label">{{ t('animals.carnet.photo.view') }}</span>
+        </button>
+      </li>
       <li>
         <button
           type="button"
@@ -36,8 +52,14 @@ const { t } = useI18n()
           :disabled="busy"
           @click="emit('change')"
         >
-          <v-icon icon="ms:photo_camera" :size="22" />
-          {{ hasPhoto ? t('animals.form.photo.change') : t('animals.form.photo.add') }}
+          <v-icon icon="ms:add_a_photo" :size="22" />
+          <span class="animal-photo-sheet__text">
+            <span class="animal-photo-sheet__label">
+              {{ hasPhoto ? t('animals.form.photo.change') : t('animals.form.photo.add') }}
+            </span>
+            <span class="animal-photo-sheet__hint">{{ t('animals.carnet.photo.choose') }}</span>
+          </span>
+          <v-icon class="animal-photo-sheet__chevron" icon="ms:chevron_right" :size="22" />
         </button>
       </li>
       <li v-if="hasPhoto">
@@ -47,8 +69,8 @@ const { t } = useI18n()
           :disabled="busy"
           @click="emit('remove')"
         >
-          <v-icon icon="ms:close" :size="22" />
-          {{ t('animals.form.photo.remove') }}
+          <v-icon icon="ms:hide_image" :size="22" />
+          <span class="animal-photo-sheet__label">{{ t('animals.form.photo.remove') }}</span>
         </button>
       </li>
     </ul>
@@ -60,8 +82,15 @@ const { t } = useI18n()
 <style lang="scss">
 @use '@/styles/tokens' as tokens;
 
+.animal-photo-sheet__heading {
+  margin: 22px 0 0;
+  font-family: tokens.$font-family-heading;
+  font-size: 20px;
+  font-weight: 700;
+}
+
 .animal-photo-sheet__list {
-  margin: 14px 0 0;
+  margin: 12px 0 0;
   padding: 0;
   overflow: hidden;
   border: 1px solid tokens.$color-card-border;
@@ -77,16 +106,14 @@ const { t } = useI18n()
 .animal-photo-sheet__action {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 16px;
   width: 100%;
   min-height: tokens.$height-picker-row;
-  padding: 10px 20px;
+  padding: 14px 20px;
   border: 0;
   background: transparent;
   color: inherit;
   font-family: inherit;
-  font-size: 16px;
-  font-weight: 600;
   text-align: start;
   cursor: pointer;
 
@@ -100,8 +127,32 @@ const { t } = useI18n()
   }
 
   .v-icon {
+    flex: 0 0 auto;
     color: rgb(var(--v-theme-primary));
   }
+}
+
+.animal-photo-sheet__text {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.animal-photo-sheet__label {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.animal-photo-sheet__hint {
+  color: tokens.$color-text-secondary;
+  font-size: 13.5px;
+  line-height: 1.4;
+}
+
+.animal-photo-sheet__action .animal-photo-sheet__chevron {
+  color: tokens.$color-text-secondary;
 }
 
 .animal-photo-sheet__error {
