@@ -2,7 +2,7 @@ import { computed } from 'vue'
 
 import { useToday } from '@/core/app-lifecycle/use-today'
 import { useDetailLoad } from '@/shared/composables/use-detail-load'
-import { readableScheduleOf } from '../logic/treatment-schedule'
+import { readableScheduleOf } from '../logic/treatment-schedule-adapter'
 import { useTreatmentsStore } from '../store/treatments.store'
 
 /** Un traitement, ses périodes et ses prises, avec son calendrier du jour ; `unreadable` : le moteur le refuse. */

@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 
 import { dose, period, treatment } from './treatment-fixtures'
 import { doseChange } from '../logic/treatment-dose-writes'
-import { treatmentScheduleOf } from '../logic/treatment-schedule'
+import { treatmentScheduleOf } from '../logic/treatment-schedule-adapter'
 import { choiceGestures } from '../logic/treatment-choose-days'
 
 const TODAY = '2026-09-28'

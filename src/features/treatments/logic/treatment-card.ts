@@ -1,4 +1,4 @@
-import { currentPeriodOf, endedOnOf } from './treatment-schedule'
+import { currentPeriodOf, endedOnOf } from './treatment-schedule-adapter'
 import { periodRhythmText } from './treatment-rhythm'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import type { ExactRemindersStatus } from '@/core/notifications'

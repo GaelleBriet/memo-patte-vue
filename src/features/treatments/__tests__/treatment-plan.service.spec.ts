@@ -4,7 +4,7 @@ import { ZodError } from 'zod'
 
 import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory-db'
 import { editionDraft } from '../logic/treatment-plan'
-import { treatmentScheduleOf } from '../logic/treatment-schedule'
+import { treatmentScheduleOf } from '../logic/treatment-schedule-adapter'
 import { createTreatmentDosesRepository } from '../repository/treatment-doses.repository'
 import { createTreatmentPeriodsRepository } from '../repository/treatment-periods.repository'
 import {

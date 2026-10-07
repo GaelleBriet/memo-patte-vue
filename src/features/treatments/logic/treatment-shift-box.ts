@@ -2,7 +2,7 @@ import { format, parseISO, subDays } from 'date-fns'
 
 import { doseChange, type DoseAction } from './treatment-dose-writes'
 import { revealedDues, revealedDuesText } from './treatment-revealed-dues'
-import { treatmentScheduleOf } from './treatment-schedule'
+import { treatmentScheduleOf } from './treatment-schedule-adapter'
 import type { DoseWrite } from '../repository/treatment-doses.repository'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import type { NewTreatmentDose } from '../schema/treatment-dose.schema'

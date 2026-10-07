@@ -9,7 +9,7 @@ import {
   createFakeNotifications,
   type FakeNotifications,
 } from '@/shared/__tests__/fake-notifications'
-import { treatmentScheduleOf } from '../logic/treatment-schedule'
+import { treatmentScheduleOf } from '../logic/treatment-schedule-adapter'
 import type { DoseAction } from '../logic/treatment-dose-writes'
 import { createTreatmentDosesRepository } from '../repository/treatment-doses.repository'
 import { createTreatmentPeriodsRepository } from '../repository/treatment-periods.repository'

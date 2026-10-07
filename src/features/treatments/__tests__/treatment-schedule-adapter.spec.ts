@@ -4,7 +4,7 @@ import {
   currentPeriodOf,
   readableScheduleOf,
   treatmentScheduleOf,
-} from '../logic/treatment-schedule'
+} from '../logic/treatment-schedule-adapter'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 

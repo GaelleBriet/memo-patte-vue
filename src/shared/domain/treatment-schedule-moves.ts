@@ -20,7 +20,7 @@ import {
   positionOf,
   sequenceAt,
   shiftOn,
-} from './treatment-schedule-plan'
+} from './treatment-schedule-timeline'
 import { sequenceDues } from './treatment-schedule-sequence'
 import { build, planOf, stateWithoutDues, visiblePending } from './treatment-schedule-state'
 import type {
@@ -31,14 +31,14 @@ import type {
   MoveRefusal,
   MoveRemovalRefusal,
   MovedDose,
-  PeriodPlan,
+  PeriodTimeline,
   ShiftRemovalRefusal,
   State,
   TreatmentDoseInput,
 } from './treatment-schedule-types'
 
 // La dose déplacée : l'arrivée d'un déplacement tant qu'aucune prise n'y est notée, ou son échéance d'origine.
-function movingStep(plan: PeriodPlan, due: Due): TreatmentDoseInput | undefined {
+function movingStep(plan: PeriodTimeline, due: Due): TreatmentDoseInput | undefined {
   return plan.steps
     .filter(isMove)
     .map(({ dose }) => dose)
@@ -103,7 +103,7 @@ function firstPendingOfDay(state: State, due: Due): Due {
 }
 
 // Q25 : sa dose d'arrivée notée, un déplacement fait partie de l'historique.
-export function isLocked(plan: PeriodPlan, move: TreatmentDoseInput): boolean {
+export function isLocked(plan: PeriodTimeline, move: TreatmentDoseInput): boolean {
   return plan.noteDays.has(move.nextDueDate)
 }
 
@@ -121,7 +121,7 @@ function withoutLine(state: State, doseId: string): State {
 }
 
 // La première journée d'échéance sans prise après ce jour.
-function nextPendingDay(plan: PeriodPlan, day: string): string | null {
+function nextPendingDay(plan: PeriodTimeline, day: string): string | null {
   return pendingDues(plan, { from: nextDay(day), limit: 1 })[0]?.dueOn ?? null
 }
 
@@ -159,7 +159,7 @@ export function removeMove(state: State, doseId: string): MovedDose {
 }
 
 // Le décalage en vigueur d'une journée : il agit après elle entière, quelle que soit l'heure qui le porte.
-function dayShiftOf(plan: PeriodPlan, day: string): TreatmentDoseInput | undefined {
+function dayShiftOf(plan: PeriodTimeline, day: string): TreatmentDoseInput | undefined {
   return plan.steps.find((step) => isShift(step) && step.dose.dueOn === day)?.dose
 }
 
@@ -309,7 +309,7 @@ function originOf(state: State, existing: TreatmentDoseInput, due: Due): Due {
     : replacedDue(state, existing)
 }
 
-export function checkMovable(state: State, plan: PeriodPlan, due: Due): void {
+export function checkMovable(state: State, plan: PeriodTimeline, due: Due): void {
   if (plan.noteKeys.has(keyOf(due))) {
     throw new RangeError(`Échéance déjà notée : ${JSON.stringify(due)}`)
   }

@@ -13,7 +13,7 @@ import {
   currentPeriodOf,
   readableScheduleOf,
   treatmentScheduleOf,
-} from '../logic/treatment-schedule'
+} from '../logic/treatment-schedule-adapter'
 import { dosesAfter } from '../logic/treatment-shift-box'
 import {
   createWriteQueue,

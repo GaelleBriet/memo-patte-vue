@@ -1,4 +1,4 @@
-import { currentPeriodOf, endedOnOf, readableScheduleOf } from './treatment-schedule'
+import { currentPeriodOf, endedOnOf, readableScheduleOf } from './treatment-schedule-adapter'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import { currentDoseText } from '@/shared/domain/current-dose'
 import { overdueDays } from '@/shared/domain/due-delay'

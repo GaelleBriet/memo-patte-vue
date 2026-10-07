@@ -31,7 +31,7 @@ import {
   mergeDoses,
   pendingDues,
   shiftDueOf,
-} from './treatment-schedule-plan'
+} from './treatment-schedule-timeline'
 import { firstDueOf, shiftedSequence } from './treatment-schedule-sequence'
 import { build, knownDues, planOf } from './treatment-schedule-state'
 import type {
@@ -43,7 +43,7 @@ import type {
 
 export { ScheduleTooLongError } from './treatment-schedule-checks'
 export { DAYS_PER_STEP, dueOf, sameDue, toDate, uniqueSorted } from './treatment-schedule-dues'
-export { familyOf, isNoteLine, orderPeriods, type Family } from './treatment-schedule-plan'
+export { familyOf, isNoteLine, orderPeriods, type Family } from './treatment-schedule-timeline'
 
 export type {
   Frequency,

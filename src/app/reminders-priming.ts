@@ -9,7 +9,7 @@ import {
   getAnimalsRepository,
   type AnimalsRepository,
 } from '@/features/animals/repository/animals.repository'
-import { readableScheduleOf } from '@/features/treatments/logic/treatment-schedule'
+import { readableScheduleOf } from '@/features/treatments/logic/treatment-schedule-adapter'
 import {
   getTreatmentsRepository,
   type TreatmentsRepository,

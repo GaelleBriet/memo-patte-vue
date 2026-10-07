@@ -311,23 +311,28 @@ describe("façade du moteur d'échéances", { timeout: 30_000 }, () => {
 
   it('interdit les fichiers internes du moteur hors du moteur', async () => {
     const feature = await engineImports('src/features/treatments/logic/treatment-plan.ts', [
-      "import { orderPeriods } from '@/shared/domain/treatment-schedule-plan'",
+      "import { orderPeriods } from '@/shared/domain/treatment-schedule-timeline'",
       "const m = () => import('@/shared/domain/treatment-schedule-dues')",
     ])
     const shared = await engineImports('src/shared/domain/reminder-plan.ts', [
       "import { toDate } from './treatment-schedule-dues'",
     ])
+    const component = await engineImports('src/shared/utils/format.ts', [
+      "import { toDate } from '../domain/treatment-schedule-dues'",
+    ])
 
     expect(feature).toBe(2)
     expect(shared).toBe(1)
+    expect(component).toBe(1)
   })
 
   it('autorise la façade, et les fichiers internes entre eux', async () => {
     const feature = await engineImports('src/features/treatments/logic/treatment-plan.ts', [
       "import { orderPeriods } from '@/shared/domain/treatment-schedule'",
+      "import { treatmentScheduleOf } from './treatment-schedule-adapter'",
     ])
     const engine = await engineImports('src/shared/domain/treatment-schedule-state.ts', [
-      "import { planPeriod } from './treatment-schedule-plan'",
+      "import { planPeriod } from './treatment-schedule-timeline'",
     ])
     const spec = await engineImports('src/shared/__tests__/treatment-schedule.spec.ts', [
       "import { period } from './treatment-schedule-fixtures'",

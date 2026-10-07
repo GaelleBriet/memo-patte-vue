@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { dose, missed, period, postponed, treatment, written } from './treatment-fixtures'
 import { DoseAlreadyLoggedError, doseChange } from '../logic/treatment-dose-writes'
-import { treatmentScheduleOf } from '../logic/treatment-schedule'
+import { treatmentScheduleOf } from '../logic/treatment-schedule-adapter'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import type { DoseGesture, Due } from '@/shared/domain/treatment-schedule'
 

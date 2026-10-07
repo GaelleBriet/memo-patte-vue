@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { dose, period, plain, postponed, shifted, treatment } from './treatment-fixtures'
 import { doseChange } from '../logic/treatment-dose-writes'
 import { dateChangeOf } from '../logic/treatment-gestures'
-import { treatmentScheduleOf } from '../logic/treatment-schedule'
+import { treatmentScheduleOf } from '../logic/treatment-schedule-adapter'
 import {
   dateChangeBox,
   doneGesture,

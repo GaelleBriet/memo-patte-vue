@@ -1,7 +1,7 @@
 import { addDays, differenceInCalendarDays, formatISO, parseISO } from 'date-fns'
 import type { z } from 'zod'
 
-import { currentPeriodOf, treatmentScheduleOf } from './treatment-schedule'
+import { currentPeriodOf, treatmentScheduleOf } from './treatment-schedule-adapter'
 import { lostDays, pendingDaysAfter } from './treatment-shift-box'
 import type {
   NewTreatmentPlan,

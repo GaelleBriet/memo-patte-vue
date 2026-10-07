@@ -10,7 +10,7 @@ import {
 import { useHomeStore } from '@/features/home/store/home.store'
 import { doseActionTexts, hasSeveralTimes } from '@/features/treatments/logic/treatment-gestures'
 import { notificationTarget } from '@/features/treatments/logic/treatment-notification'
-import { readableScheduleOf } from '@/features/treatments/logic/treatment-schedule'
+import { readableScheduleOf } from '@/features/treatments/logic/treatment-schedule-adapter'
 import {
   getTreatmentsRepository,
   type TreatmentsRepository,

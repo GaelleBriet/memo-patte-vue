@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { dose, extra, missed, period, plain, postponed, treatment } from './treatment-fixtures'
-import { treatmentScheduleOf } from '../logic/treatment-schedule'
+import { treatmentScheduleOf } from '../logic/treatment-schedule-adapter'
 import {
   sheetDoneTarget,
   sheetOtherDateMin,

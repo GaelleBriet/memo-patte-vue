@@ -4,7 +4,7 @@ import { isCalendarDay } from './calendar-day'
 import { isClockTime } from './clock-time'
 import { MAX_FREQUENCY_VALUE } from './treatment-frequency'
 import { DAYS_PER_STEP, compareText, previousDay, toDate } from './treatment-schedule-dues'
-import { closingDay, orderPeriods } from './treatment-schedule-plan'
+import { closingDay, orderPeriods } from './treatment-schedule-timeline'
 import type {
   Frequency,
   TreatmentDoseInput,

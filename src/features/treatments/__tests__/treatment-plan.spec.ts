@@ -14,7 +14,7 @@ import {
   treatmentEditionSchemaFor,
   treatmentResumptionSchemaFor,
 } from '../logic/treatment-plan'
-import { treatmentScheduleOf } from '../logic/treatment-schedule'
+import { treatmentScheduleOf } from '../logic/treatment-schedule-adapter'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
 import type {

@@ -40,7 +40,7 @@ import { createVaccinationInjectionsRepository } from '@/features/vaccinations/r
 import { createVaccinationsRepository } from '@/features/vaccinations/repository/vaccinations.repository'
 import { createWeightRepository } from '@/features/weight/repository/weight.repository'
 import { headDose, seededTreatments } from '@/features/treatments/__tests__/seed-treatment'
-import { treatmentScheduleOf } from '@/features/treatments/logic/treatment-schedule'
+import { treatmentScheduleOf } from '@/features/treatments/logic/treatment-schedule-adapter'
 import { createTreatmentPlanService } from '@/features/treatments/service/treatment-plan.service'
 
 const NOW = new Date('2026-09-15T10:00:00.000Z')

@@ -14,7 +14,7 @@ import {
   notificationTarget,
 } from '../logic/treatment-notification'
 import { notifiedPlan, otherDateTexts } from '../logic/treatment-other-date'
-import { readableScheduleOf } from '../logic/treatment-schedule'
+import { readableScheduleOf } from '../logic/treatment-schedule-adapter'
 import { doneGesture } from '../logic/treatment-shift-box'
 import type { DoseAction } from '../logic/treatment-dose-writes'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'

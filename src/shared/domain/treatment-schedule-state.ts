@@ -11,10 +11,10 @@ import {
   orderPeriods,
   pendingDues,
   planPeriod,
-} from './treatment-schedule-plan'
+} from './treatment-schedule-timeline'
 import type {
   Due,
-  PeriodPlan,
+  PeriodTimeline,
   State,
   TreatmentDoseInput,
   TreatmentPeriodInput,
@@ -22,12 +22,12 @@ import type {
   TreatmentScheduleInput,
 } from './treatment-schedule-types'
 
-function latestFallenKey(plan: PeriodPlan, today: string): string {
+function latestFallenKey(plan: PeriodTimeline, today: string): string {
   return plan.fallenKeys.filter((key) => key.slice(0, 10) <= today).at(-1) ?? ''
 }
 
 // Q23 : la dernière journée d'échéance arrivée reste entière la dose du moment.
-function dosesOfTheMoment(plan: PeriodPlan, fallen: Due[], today: string): Due[] {
+function dosesOfTheMoment(plan: PeriodTimeline, fallen: Due[], today: string): Due[] {
   const lastDay = fallen.at(-1)?.dueOn
   if (lastDay !== undefined && lastDay >= latestFallenKey(plan, today).slice(0, 10)) {
     return fallen.filter((due) => due.dueOn === lastDay)
@@ -101,7 +101,7 @@ export function build(input: TreatmentScheduleInput): State {
   }
 }
 
-export function planOf(state: State, periodId: string): PeriodPlan {
+export function planOf(state: State, periodId: string): PeriodTimeline {
   const plan = state.plans.find(({ period }) => period.id === periodId)
   if (plan === undefined) throw invalid(`période inconnue ${periodId}`)
   return plan

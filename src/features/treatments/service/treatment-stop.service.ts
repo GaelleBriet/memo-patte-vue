@@ -1,7 +1,7 @@
 import { todayIsoDate } from '@/core/app-lifecycle/today-iso-date'
 import type { DoseGesture } from '@/shared/domain/treatment-schedule'
 import { DoseAlreadyLoggedError, doseChange } from '../logic/treatment-dose-writes'
-import { readableScheduleOf, treatmentScheduleOf } from '../logic/treatment-schedule'
+import { readableScheduleOf, treatmentScheduleOf } from '../logic/treatment-schedule-adapter'
 import {
   createWriteQueue,
   treatmentWriteQueue,
