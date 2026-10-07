@@ -1376,10 +1376,13 @@ describe('TreatmentFormView — écran d’explication des notifications', () =>
     })
   })
 
-  it('n’envoie pas de prénom quand l’animal de la route est introuvable', async () => {
+  it('n’envoie pas de prénom quand l’animal du traitement est introuvable', async () => {
     vi.mocked(shouldShowPriming).mockResolvedValueOnce(true)
-    const wrapper = await monterCreation('99999999-9999-4999-8999-999999999999')
-    await remplirMinimum(wrapper)
+    getWithHistory.mockResolvedValue({
+      ...milbemax(),
+      animalId: '99999999-9999-4999-8999-999999999999',
+    })
+    const wrapper = await monterEdition()
 
     await soumettre(wrapper)
 
@@ -2586,6 +2589,64 @@ describe('TreatmentFormView — reprise (TR-32, planche V7)', () => {
 
     expect(route.name).toBe('treatment-resume')
     expect(props(route)).toEqual({ id: ID, resume: true })
+  })
+})
+
+describe('TreatmentFormView — animal qu’on ne suit plus (AN-9)', () => {
+  beforeEach(() => {
+    loadAnimals.mockImplementation(async () => {
+      const animals = useAnimalsStore()
+      animals.animals = [{ ...MILO, unfollowedOn: '2026-09-01' }]
+      animals.hasLoaded = true
+      return true
+    })
+  })
+
+  it('n’ouvre pas la création : retour sur son carnet, sans rien écrire', async () => {
+    await monterCreation()
+
+    expect(replace).toHaveBeenCalledWith({ name: 'animals' })
+    expect(useAnimalsStore().selectedAnimalId).toBe(MILO.id)
+    expect(create).not.toHaveBeenCalled()
+  })
+
+  it('n’ouvre pas la reprise d’un de ses traitements', async () => {
+    await monterReprise()
+
+    expect(replace).toHaveBeenCalledWith({ name: 'animals' })
+    expect(resume).not.toHaveBeenCalled()
+  })
+
+  it('n’ouvre pas la création quand les animaux sont déjà chargés', async () => {
+    const animals = useAnimalsStore()
+    animals.animals = [{ ...MILO, unfollowedOn: '2026-09-01' }]
+    animals.hasLoaded = true
+
+    await monterCreation()
+
+    expect(loadAnimals).not.toHaveBeenCalled()
+    expect(replace).toHaveBeenCalledWith({ name: 'animals' })
+    expect(create).not.toHaveBeenCalled()
+  })
+
+  it('garde « Créer » inactif pour un animal introuvable', async () => {
+    const wrapper = await monterCreation('99999999-9999-4999-8999-999999999999')
+
+    expect(wrapper.get('.form-screen__submit').attributes('disabled')).toBeDefined()
+  })
+
+  it('garde « Créer » inactif tant que les animaux ne sont pas chargés', async () => {
+    loadAnimals.mockReturnValue(new Promise(() => {}))
+
+    const wrapper = await monterCreation()
+
+    expect(wrapper.get('.form-screen__submit').attributes('disabled')).toBeDefined()
+  })
+
+  it('laisse ouvrir la modification d’un de ses traitements', async () => {
+    await monterEdition()
+
+    expect(replace).not.toHaveBeenCalled()
   })
 })
 

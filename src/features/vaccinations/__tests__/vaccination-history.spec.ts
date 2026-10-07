@@ -214,6 +214,35 @@ describe('vaccinationDetailTexts', () => {
       otherDateLabel: 'Fait à une autre date : choisir la date de l’injection',
       doneLabel: 'C’est fait : noter l’injection de Carré pour Boree et choisir le prochain rappel',
       counter: '3',
+      followed: true,
+    })
+  })
+
+  describe('animal qu’on ne suit plus (Q6 de #579, VA-16)', () => {
+    const nonSuivi = (vaccination: Partial<typeof carre> = {}) =>
+      plain(
+        vaccinationDetailTexts(
+          t,
+          { ...carre, ...vaccination },
+          { animal: 'Boree', today: TODAY, injections: 3, followed: false },
+        ),
+      )
+
+    it('ne dit plus rien du prochain rappel, ni retard ni teinte', () => {
+      expect(nonSuivi({ dueDate: '2026-09-05' })).toMatchObject({
+        top: 'Dernière injection · 26 août 2026',
+        due: null,
+        note: null,
+        followed: false,
+      })
+    })
+
+    it('garde « Premier vaccin · aucune injection notée » le jour du rendez-vous, sans note', () => {
+      expect(nonSuivi({ dueDate: TODAY, lastInjectionDate: null })).toMatchObject({
+        top: 'Premier vaccin · aucune injection notée',
+        due: null,
+        note: null,
+      })
     })
   })
 

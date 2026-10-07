@@ -494,6 +494,61 @@ describe('VaccinationFormView — création', () => {
   })
 })
 
+describe('VaccinationFormView — animal qu’on ne suit plus (AN-9)', () => {
+  function neSuitPlusMilo(): void {
+    const animals = useAnimalsStore()
+    loadAnimals.mockImplementation(async () => {
+      animals.animals = [{ ...MILO, unfollowedOn: '2026-10-01' }]
+      animals.hasLoaded = true
+      return true
+    })
+  }
+
+  it('n’ouvre pas la création : retour sur son carnet, sans rien écrire', async () => {
+    neSuitPlusMilo()
+
+    await monterCreation()
+
+    expect(replace).toHaveBeenCalledWith({ name: 'animals' })
+    expect(useAnimalsStore().selectedAnimalId).toBe(MILO.id)
+    expect(create).not.toHaveBeenCalled()
+  })
+
+  it('n’ouvre pas la création quand les animaux sont déjà chargés', async () => {
+    const animals = useAnimalsStore()
+    animals.animals = [{ ...MILO, unfollowedOn: '2026-10-01' }]
+    animals.hasLoaded = true
+
+    await monterCreation()
+
+    expect(loadAnimals).not.toHaveBeenCalled()
+    expect(replace).toHaveBeenCalledWith({ name: 'animals' })
+    expect(create).not.toHaveBeenCalled()
+  })
+
+  it('garde « Créer » inactif pour un animal introuvable', async () => {
+    const wrapper = await monterCreation('99999999-9999-4999-8999-999999999999')
+
+    expect(wrapper.get('.form-screen__submit').attributes('disabled')).toBeDefined()
+  })
+
+  it('garde « Créer » inactif tant que les animaux ne sont pas chargés', async () => {
+    loadAnimals.mockReturnValue(new Promise(() => {}))
+
+    const wrapper = await monterCreation()
+
+    expect(wrapper.get('.form-screen__submit').attributes('disabled')).toBeDefined()
+  })
+
+  it('laisse modifier un vaccin de son carnet', async () => {
+    neSuitPlusMilo()
+
+    await monterEdition()
+
+    expect(replace).not.toHaveBeenCalled()
+  })
+})
+
 describe('VaccinationFormView — écran d’explication des notifications', () => {
   it('y passe après un vaccin avec échéance quand la permission n’a jamais été demandée', async () => {
     vi.mocked(shouldShowPriming).mockResolvedValueOnce(true)
@@ -521,11 +576,10 @@ describe('VaccinationFormView — écran d’explication des notifications', () 
     })
   })
 
-  it('n’envoie pas de prénom quand l’animal de la route est introuvable', async () => {
+  it('n’envoie pas de prénom quand l’animal du vaccin est introuvable', async () => {
     vi.mocked(shouldShowPriming).mockResolvedValueOnce(true)
-    const wrapper = await monterCreation('99999999-9999-4999-8999-999999999999')
-    await remplirMinimum(wrapper)
-    await choisir(wrapper, 'Dans 1 an')
+    getById.mockResolvedValueOnce({ ...RAGE, animalId: '99999999-9999-4999-8999-999999999999' })
+    const wrapper = await monterEdition()
 
     await soumettre(wrapper)
 
