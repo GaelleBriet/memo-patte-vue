@@ -370,7 +370,7 @@ describe('CarnetView — header', () => {
       expect(push).not.toHaveBeenCalledWith(expect.objectContaining({ name: 'plus' }))
       expect(wrapper.getComponent(PdfExportSheet).props('modelValue')).toBe(true)
       expect(wrapper.getComponent(PdfExportSheet).props('animals')).toEqual([
-        { id: MILO.id, name: 'Milo', species: 'dog' },
+        { id: MILO.id, name: 'Milo' },
       ])
     })
 

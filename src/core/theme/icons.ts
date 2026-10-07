@@ -36,6 +36,7 @@ import eventUpcoming from '@material-symbols/svg-400/outlined/event_upcoming.svg
 import folder from '@material-symbols/svg-400/outlined/folder.svg?raw'
 import folderOff from '@material-symbols/svg-400/outlined/folder_off.svg?raw'
 import gavel from '@material-symbols/svg-400/outlined/gavel.svg?raw'
+import groups from '@material-symbols/svg-400/outlined/groups.svg?raw'
 import help from '@material-symbols/svg-400/outlined/help.svg?raw'
 import hideImage from '@material-symbols/svg-400/outlined/hide_image.svg?raw'
 import history from '@material-symbols/svg-400/outlined/history.svg?raw'
@@ -202,6 +203,7 @@ export const msIcons = {
   gavel,
   fullscreen,
   fullscreen_exit: fullscreenExit,
+  groups,
   help,
   hide_image: hideImage,
   history,

@@ -1372,9 +1372,11 @@
       "sheet": {
         "title": "Exporter en PDF",
         "subtitleOne": "Le carnet complet de {name}, prêt à imprimer ou à envoyer.",
-        "subtitlePick": "Choisis l’animal à exporter.",
+        "subtitle": "Un carnet de santé imprimable, à garder ou à donner au vétérinaire.",
+        "allAnimals": "Tous les animaux",
+        "unfollowedAnimals": "Animaux que tu ne suis plus",
+        "allAnimalsLabel": "PDF de tous les animaux suivis : {names}",
         "close": "Fermer",
-        "pickAnimalLabel": "Animal",
         "fileContent": "Vaccins, traitements, poids et photos",
         "error": "Le PDF n’a pas pu être préparé. Réessaie."
       },

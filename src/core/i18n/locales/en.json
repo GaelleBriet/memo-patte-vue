@@ -1372,9 +1372,11 @@
       "sheet": {
         "title": "Export to PDF",
         "subtitleOne": "{name}’s complete health record, ready to print or send.",
-        "subtitlePick": "Choose the pet to export.",
+        "subtitle": "A printable health record, to keep or give to the vet.",
+        "allAnimals": "All pets",
+        "unfollowedAnimals": "Pets you no longer follow",
+        "allAnimalsLabel": "PDF of all the pets you follow: {names}",
         "close": "Close",
-        "pickAnimalLabel": "Pet",
         "fileContent": "Vaccines, treatments, weight and photos",
         "error": "The PDF couldn’t be prepared. Try again."
       },

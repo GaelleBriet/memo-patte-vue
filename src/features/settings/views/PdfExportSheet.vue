@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { computed, ref, useId, watch } from 'vue'
+import { computed, nextTick, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
-import ChoiceCards, { type ChoiceCard } from './ChoiceCards.vue'
 import ExportActions from './ExportActions.vue'
 import { isSaved, type DeliveryMode } from '../logic/export-delivery'
 import { openAppSettings } from '../logic/export-storage-access'
@@ -15,45 +14,94 @@ import { showToast } from '@/shared/utils/toast'
 export type PdfExportAnimal = {
   id: string
   name: string
-  species: 'dog' | 'cat'
 }
 
-const props = defineProps<{
+type PdfExportChoice = {
+  key: string
+  heading: string | null
+  icon: string
+  label: string
+  hint: string | null
+  ariaLabel: string
   animals: PdfExportAnimal[]
-  focusFallback?: HTMLElement | null
-}>()
+}
+
+const props = withDefaults(
+  defineProps<{
+    animals: PdfExportAnimal[]
+    unfollowedAnimals?: PdfExportAnimal[]
+    focusFallback?: HTMLElement | null
+  }>(),
+  { unfollowedAnimals: () => [], focusFallback: null },
+)
 
 const open = defineModel<boolean>({ default: false })
 
 const { t } = useI18n()
 const { pendingMode, isPreparing, hasFailed, saveAccess, run, reset } = usePdfExport()
 
-const needsPicker = computed(() => props.animals.length > 1)
-const selected = ref<string | null>(props.animals[0]?.id ?? null)
 const openedAt = ref(new Date())
-const groupLabelId = useId()
+const chosen = ref<PdfExportAnimal[] | null>(null)
+const fileCard = useTemplateRef('fileCard')
 
-const choices = computed<ChoiceCard<string>[]>(() =>
-  props.animals.map((animal) => ({
-    value: animal.id,
+const everyAnimal = computed(() => [...props.animals, ...props.unfollowedAnimals])
+const needsChoice = computed(() => everyAnimal.value.length > 1)
+
+function animalChoice(animal: PdfExportAnimal, heading: string | null = null): PdfExportChoice {
+  return {
+    key: animal.id,
+    heading,
     icon: 'ms:pets',
     label: animal.name,
-    description: t(`animals.form.species.${animal.species}`),
-  })),
-)
+    hint: null,
+    ariaLabel: animal.name,
+    animals: [animal],
+  }
+}
 
-const onlyAnimal = computed(() => (needsPicker.value ? null : (props.animals[0] ?? null)))
-
-const subtitle = computed(() => {
-  if (needsPicker.value) return t('settings.pdf.sheet.subtitlePick')
-  return onlyAnimal.value
-    ? t('settings.pdf.sheet.subtitleOne', { name: onlyAnimal.value.name })
-    : ''
+const choices = computed<PdfExportChoice[]>(() => {
+  const names = props.animals.map(({ name }) => name).join(', ')
+  const all: PdfExportChoice[] =
+    props.animals.length < 2
+      ? []
+      : [
+          {
+            key: 'all',
+            heading: null,
+            icon: 'ms:groups',
+            label: t('settings.pdf.sheet.allAnimals'),
+            hint: names,
+            ariaLabel: t('settings.pdf.sheet.allAnimalsLabel', { names }),
+            animals: props.animals,
+          },
+        ]
+  return [
+    ...all,
+    ...props.animals.map((animal) => animalChoice(animal)),
+    ...props.unfollowedAnimals.map((animal, index) =>
+      animalChoice(animal, index === 0 ? t('settings.pdf.sheet.unfollowedAnimals') : null),
+    ),
+  ]
 })
 
+const exported = computed(() => {
+  if (needsChoice.value) return chosen.value
+  return everyAnimal.value.length === 0 ? null : everyAnimal.value
+})
+
+const subtitle = computed(() =>
+  everyAnimal.value.length === 1
+    ? t('settings.pdf.sheet.subtitleOne', { name: everyAnimal.value[0]!.name })
+    : t('settings.pdf.sheet.subtitle'),
+)
+
 const fileName = computed(() =>
-  onlyAnimal.value
-    ? pdfExportFileName(t('settings.pdf.fileNamePrefix'), onlyAnimal.value.name, openedAt.value)
+  exported.value
+    ? pdfExportFileName(
+        t('settings.pdf.fileNamePrefix'),
+        exported.value.map(({ name }) => name),
+        openedAt.value,
+      )
     : null,
 )
 
@@ -61,16 +109,29 @@ watch(
   open,
   (isOpen) => {
     if (!isOpen) return
-    selected.value = props.animals[0]?.id ?? null
+    chosen.value = null
     openedAt.value = new Date()
     reset()
   },
   { immediate: true },
 )
 
+async function choose(choice: PdfExportChoice): Promise<void> {
+  chosen.value = choice.animals
+  await nextTick()
+  fileCard.value?.focus()
+}
+
 async function deliver(mode: DeliveryMode): Promise<void> {
-  if (selected.value === null) return
-  const outcome = await run(selected.value, mode, openedAt.value)
+  if (!exported.value || !fileName.value) return
+  const outcome = await run(
+    {
+      animalIds: exported.value.map(({ id }) => id),
+      fileName: fileName.value,
+      exportedAt: openedAt.value,
+    },
+    mode,
+  )
   if (isSaved(outcome)) {
     open.value = false
     showSavedExportToast(outcome.file, {
@@ -94,55 +155,74 @@ async function deliver(mode: DeliveryMode): Promise<void> {
     :persistent="isPreparing"
     :focus-fallback="focusFallback"
   >
-    <template v-if="needsPicker">
-      <p :id="groupLabelId" class="pdf-export-sheet__group-label" aria-hidden="true">
-        {{ t('settings.pdf.sheet.pickAnimalLabel') }}
-      </p>
-      <ChoiceCards
-        v-model="selected"
-        :choices="choices"
-        :labelledby="groupLabelId"
-        :disabled="isPreparing"
-      />
-    </template>
-
-    <div v-else-if="fileName" class="pdf-export-sheet__file">
-      <span class="pdf-export-sheet__file-icon" aria-hidden="true">
-        <v-icon icon="ms:picture_as_pdf" size="22" />
-      </span>
-      <span class="pdf-export-sheet__file-text">
-        <span class="pdf-export-sheet__file-name">{{ fileName }}</span>
-        <span class="pdf-export-sheet__file-content">
-          {{ t('settings.pdf.sheet.fileContent') }}
-        </span>
-      </span>
+    <div v-if="needsChoice && fileName === null" class="settings-card pdf-export-sheet__choices">
+      <template v-for="choice in choices" :key="choice.key">
+        <h3 v-if="choice.heading" class="pdf-export-sheet__group">{{ choice.heading }}</h3>
+        <button
+          type="button"
+          class="settings-row"
+          :aria-label="choice.ariaLabel"
+          @click="choose(choice)"
+        >
+          <v-icon class="settings-row__icon" :icon="choice.icon" size="22" />
+          <span class="settings-row__text">
+            <span class="settings-row__label">{{ choice.label }}</span>
+            <span v-if="choice.hint" class="settings-row__hint">{{ choice.hint }}</span>
+          </span>
+          <v-icon class="settings-row__chevron" icon="ms:chevron_right" size="20" />
+        </button>
+      </template>
     </div>
 
-    <p v-if="hasFailed" class="pdf-export-sheet__error" role="alert">
-      {{ t('settings.pdf.sheet.error') }}
-    </p>
+    <template v-else-if="fileName !== null">
+      <div ref="fileCard" class="pdf-export-sheet__file" tabindex="-1">
+        <span class="pdf-export-sheet__file-icon" aria-hidden="true">
+          <v-icon icon="ms:picture_as_pdf" size="22" />
+        </span>
+        <span class="pdf-export-sheet__file-text">
+          <span class="pdf-export-sheet__file-name">{{ fileName }}</span>
+          <span class="pdf-export-sheet__file-content">
+            {{ t('settings.pdf.sheet.fileContent') }}
+          </span>
+        </span>
+      </div>
 
-    <ExportActions
-      :access="saveAccess"
-      :pending-mode="pendingMode"
-      :disabled="selected === null"
-      @save="deliver('save')"
-      @share="deliver('share')"
-      @open-settings="openAppSettings"
-    />
+      <p v-if="hasFailed" class="pdf-export-sheet__error" role="alert">
+        {{ t('settings.pdf.sheet.error') }}
+      </p>
+
+      <ExportActions
+        :access="saveAccess"
+        :pending-mode="pendingMode"
+        @save="deliver('save')"
+        @share="deliver('share')"
+        @open-settings="openAppSettings"
+      />
+    </template>
   </BottomSheet>
 </template>
 
 <style lang="scss">
 @use '@/styles/tokens' as tokens;
 
-.pdf-export-sheet__group-label {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
+.pdf-export-sheet__choices {
+  margin-top: 18px;
+}
+
+.pdf-export-sheet__group {
+  margin: 0;
+  padding: 12px 20px 6px;
+  border-top: 1px solid tokens.$color-divider;
+  background: tokens.$color-pdf-group-surface;
+  color: tokens.$color-text-secondary;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.pdf-export-sheet__group + .settings-row {
+  border-top: 1px solid tokens.$color-card-border;
 }
 
 .pdf-export-sheet__file {
@@ -154,6 +234,10 @@ async function deliver(mode: DeliveryMode): Promise<void> {
   border: 1px solid tokens.$color-card-border;
   border-radius: tokens.$radius-field;
   background: rgb(var(--v-theme-surface));
+
+  &:focus {
+    outline: none;
+  }
 }
 
 .pdf-export-sheet__file-icon {

@@ -55,7 +55,7 @@ function carnet(animal: Partial<CarnetPdfContent['animal']>, rows: string[]): Ca
 }
 
 function pages(content: CarnetPdfContent, photo: string | null = null): PdfPage[] {
-  return readPdfPages(renderCarnetPdf(content, '0.1.24', photo))
+  return readPdfPages(renderCarnetPdf([{ content, photoDataUrl: photo }], '0.1.24'))
 }
 
 function textes(content: CarnetPdfContent): string[] {

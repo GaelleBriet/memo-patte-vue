@@ -1,6 +1,7 @@
 import {
   pdfExportService,
   type PdfExportOutcome,
+  type PdfExportRequest,
   type PdfExportService,
 } from '../service/pdf-export.service'
 import type { DeliveryMode } from '../logic/export-delivery'
@@ -9,17 +10,13 @@ import { useExportRun, type ExportRunInterruption, type SaveAccessPort } from '.
 export type PdfExportRunOutcome = PdfExportOutcome | ExportRunInterruption
 
 export function usePdfExport(
-  service: Pick<PdfExportService, 'exportAnimalCarnetPdf'> = pdfExportService,
+  service: Pick<PdfExportService, 'exportCarnetPdf'> = pdfExportService,
   access?: SaveAccessPort,
 ) {
   const exportRun = useExportRun(access)
 
-  function run(
-    animalId: string,
-    mode: DeliveryMode,
-    exportedAt?: Date,
-  ): Promise<PdfExportRunOutcome> {
-    return exportRun.run(mode, () => service.exportAnimalCarnetPdf(animalId, mode, exportedAt))
+  function run(request: PdfExportRequest, mode: DeliveryMode): Promise<PdfExportRunOutcome> {
+    return exportRun.run(mode, () => service.exportCarnetPdf(request, mode))
   }
 
   return { ...exportRun, run }

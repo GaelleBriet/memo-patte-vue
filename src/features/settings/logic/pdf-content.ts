@@ -195,7 +195,12 @@ function slug(value: string): string {
     .replace(/(^-+|-+$)/g, '')
 }
 
-export function pdfExportFileName(label: string, animalName: string, exportedAt: Date): string {
-  const parts = [slug(label), slug(animalName), format(exportedAt, EXPORT_FILE_TIME)]
+export function pdfExportFileName(
+  label: string,
+  animalNames: readonly string[],
+  exportedAt: Date,
+): string {
+  const subject = animalNames.length === 1 ? slug(animalNames[0]!) : 'memopatte'
+  const parts = [slug(label), subject, format(exportedAt, EXPORT_FILE_TIME)]
   return `${parts.filter(Boolean).join('-')}.pdf`
 }
