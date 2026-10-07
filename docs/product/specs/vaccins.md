@@ -108,7 +108,8 @@ vaccins ne propose aucune durée) ; calendrier vaccinal imposé ; certificat off
   « Pas de rappel », « Prévu le 5 oct. » pour un vaccin jamais fait) et sous-titre (« Prochain rappel le
   14 mars 2027 », « Premier vaccin · aucune injection notée », « Échéance passée »), les retards en
   tête. Le jour du rendez-vous, le Carnet garde « Prévu le 5 oct. » (« Aujourd'hui » seulement dans
-  « À faire » et sur la fiche). Animal qu'on ne suit plus : sous-titre « Dernière injection le 12 janv.
+  « À faire » et sur la fiche). Le jour du rappel d'un vaccin déjà injecté, le badge dit
+  « Aujourd'hui » en ambre, comme la fiche (#600). Animal qu'on ne suit plus : sous-titre « Dernière injection le 12 janv.
   2026 », ou « Premier vaccin · aucune injection notée » pour un vaccin jamais fait, sans badge (plus
   aucun rappel, AN-9 ; relecture de cohérence du 2026-09-30, validé en bloc). (Existant, décisions du 2026-09-09 et 2026-09-16 ; sous-titres : spec Q3 ;
   lot B révisé)

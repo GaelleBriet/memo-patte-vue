@@ -154,6 +154,7 @@
       "status": {
         "overdue": "En retard · {n} j",
         "upToDate": "À jour",
+        "today": "Aujourd’hui",
         "planned": "Prévu le {date}",
         "none": "Pas de rappel"
       },

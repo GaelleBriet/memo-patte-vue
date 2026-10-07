@@ -154,6 +154,7 @@
       "status": {
         "overdue": "Overdue · {n}d",
         "upToDate": "Up to date",
+        "today": "Today",
         "planned": "Planned {date}",
         "none": "No reminder"
       },
