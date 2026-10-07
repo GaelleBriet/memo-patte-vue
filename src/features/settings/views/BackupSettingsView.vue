@@ -2,29 +2,20 @@
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
-import { useDataExport } from '../composables/use-data-export'
-import { useExportAvailability } from '../composables/use-export-availability'
+import { useExportCopy } from '../composables/use-export-copy'
 import PushedScreen from '@/shared/components/PushedScreen.vue'
 import { returnTo } from '@/shared/utils/return-to'
-import { showToast } from '@/shared/utils/toast'
 
 const { t } = useI18n()
 const router = useRouter()
-const { hasLoadFailed, hasNothingToExport, canExport, retryLoad } = useExportAvailability()
-const { isPreparing, run } = useDataExport()
-
-async function exportCopy(): Promise<void> {
-  if (hasLoadFailed.value) {
-    retryLoad()
-    return
-  }
-  const outcome = await run('json', 'share')
-  if (outcome === 'shared') showToast(t('settings.export.success'))
-  else if (outcome === 'failed') showToast(t('settings.export.error'), { tone: 'error' })
-}
+const { hasLoadFailed, hasNothingToExport, canExport, isPreparing, exportCopy } = useExportCopy()
 
 function discoverPlus(): void {
   void router.push({ name: 'plus' })
+}
+
+function openErase(): void {
+  void router.push({ name: 'settings-erase' })
 }
 
 function goBack(): void {
@@ -101,6 +92,18 @@ function goBack(): void {
         <v-icon icon="ms:arrow_forward" size="18" />
         {{ t('settings.backup.discoverPlus') }}
       </button>
+
+      <button
+        type="button"
+        class="settings-row settings-row--multiline backup-settings__card backup-settings__erase"
+        @click="openErase"
+      >
+        <v-icon class="settings-row__icon" icon="ms:delete_forever" size="22" />
+        <span class="settings-row__text">
+          <span class="settings-row__label">{{ t('settings.erase.title') }}</span>
+        </span>
+        <v-icon class="settings-row__chevron" icon="ms:chevron_right" size="20" />
+      </button>
     </div>
   </PushedScreen>
 </template>
@@ -158,6 +161,15 @@ function goBack(): void {
   > .v-icon {
     flex: 0 0 auto;
     color: rgb(var(--v-theme-primary));
+  }
+}
+
+.backup-settings__erase {
+  margin-top: 8px;
+
+  .settings-row__icon,
+  .settings-row__label {
+    color: rgb(var(--v-theme-error));
   }
 }
 

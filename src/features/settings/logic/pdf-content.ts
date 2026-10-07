@@ -5,7 +5,6 @@ import { treatmentOutlooks, type TreatmentOutlook } from './treatment-outlook'
 import { buildReminders, type ReminderKind } from '@/shared/domain/reminders'
 import type { ExportData, ExportFrequency } from '@/shared/domain/carnet-data'
 import {
-  currentPeriods,
   givenDoseHistories,
   vaccinationHistories,
   type GivenDose,
@@ -30,7 +29,8 @@ export type PdfDoseSeries =
 
 export type PdfTreatmentRow = {
   name: string
-  lastDoseDate: string
+  /** `null` : aucune prise donnée. */
+  lastDoseDate: string | null
   /** Les prises avant la dernière, par séries, la plus récente d'abord. */
   previousDoses: PdfDoseSeries[]
   /** La dernière prise est une prise en plus. */
@@ -122,7 +122,7 @@ export function buildCarnetPdfContent(
   const injections = vaccinationHistories(data.vaccinationInjections)
   const doses = givenDoseHistories(data.treatmentDoses)
   const outlook = treatmentOutlooks(data, today)
-  const periods = currentPeriods(data.treatmentPeriods)
+  const treatedIds = new Set(data.treatmentPeriods.map(({ treatmentId }) => treatmentId))
   const frequencies = new Map(data.treatmentPeriods.map(({ id, frequency }) => [id, frequency]))
   const dated = ({ givenOn, periodId, status }: GivenDose): DatedDose[] => {
     const frequency = frequencies.get(periodId)
@@ -150,16 +150,15 @@ export function buildCarnetPdfContent(
   const treatments: PdfTreatmentRow[] = data.treatments
     .filter((item) => item.animalId === animalId)
     .flatMap((item) => {
+      if (!treatedIds.has(item.id)) return []
       const [head, ...previous] = doses.get(item.id) ?? []
-      const period = periods.get(item.id)
-      if (!head || !period) return []
       const due = outlook(item.id)
       return [
         {
           name: item.name,
-          lastDoseDate: head.givenOn,
+          lastDoseDate: head?.givenOn ?? null,
           previousDoses: doseSeries(previous.flatMap(dated)),
-          lastDoseExtra: head.status === 'extra',
+          lastDoseExtra: head?.status === 'extra',
           due,
           state: treatmentState(due),
         },

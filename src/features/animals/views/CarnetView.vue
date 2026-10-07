@@ -5,6 +5,7 @@ import { useRouter } from 'vue-router'
 
 import AnimalOptionsSheet from './AnimalOptionsSheet.vue'
 import AnimalPhotoSheet from './AnimalPhotoSheet.vue'
+import AnimalPhotoViewer from './AnimalPhotoViewer.vue'
 import { useAnimalsStore } from '../store/animals.store'
 import { useAnimalFollowGestures } from '../composables/use-animal-follow-gestures'
 import { useAnimalPhotoActions } from '../composables/use-animal-photo-actions'
@@ -57,8 +58,15 @@ const chips = computed<AnimalChipItem[]>(() =>
   })),
 )
 const headerPhotoUrl = computed(() => photoUrl(animal.value?.photoPath ?? null))
+const photoLabel = computed(() => {
+  const name = animal.value?.name ?? ''
+  return headerPhotoUrl.value
+    ? t('animals.carnet.photo.avatarLabel', { name })
+    : t('animals.carnet.photo.addLabel', { name })
+})
 
 const isPhotoSheetOpen = ref(false)
+const isPhotoViewerOpen = ref(false)
 const photoActions = useAnimalPhotoActions(animal)
 
 const isOptionsSheetOpen = ref(false)
@@ -94,6 +102,11 @@ function openPhotoSheet(event: Event): void {
   avatar.focus({ preventScroll: true })
   photoActions.error.value = null
   isPhotoSheetOpen.value = true
+}
+
+function viewPhoto(): void {
+  isPhotoSheetOpen.value = false
+  isPhotoViewerOpen.value = true
 }
 
 async function applyPhoto(action: () => Promise<boolean>): Promise<void> {
@@ -167,19 +180,23 @@ function createAnimal(): void {
           @click="goHome"
         />
         <div class="carnet-header__identity">
-          <span
-            class="carnet-header__avatar"
-            role="button"
-            tabindex="0"
+          <button
+            type="button"
+            class="carnet-header__photo"
             aria-haspopup="dialog"
-            :aria-label="t('animals.carnet.photo.avatarLabel', { name: animal.name })"
-            :style="{ backgroundImage: animalAvatarGradientCss(animal.id) }"
-            @contextmenu.prevent="openPhotoSheet"
-            @keydown.enter.prevent="openPhotoSheet"
-            @keydown.space.prevent="openPhotoSheet"
+            :aria-label="photoLabel"
+            @click="openPhotoSheet"
           >
-            <img v-if="headerPhotoUrl" :src="headerPhotoUrl" alt="" />
-          </span>
+            <span
+              class="carnet-header__avatar"
+              :style="{ backgroundImage: animalAvatarGradientCss(animal.id) }"
+            >
+              <img v-if="headerPhotoUrl" :src="headerPhotoUrl" alt="" />
+            </span>
+            <span class="carnet-header__photo-badge" aria-hidden="true">
+              <v-icon icon="ms:photo_camera" />
+            </span>
+          </button>
           <div class="carnet-header__text">
             <h1 class="carnet-header__name">{{ animal.name }}</h1>
             <p v-if="subtitle" class="carnet-header__subtitle">{{ subtitle }}</p>
@@ -238,11 +255,20 @@ function createAnimal(): void {
       <AnimalPhotoSheet
         v-model="isPhotoSheetOpen"
         :name="animal.name"
+        :breed="animal.breed"
         :has-photo="headerPhotoUrl !== null"
         :busy="photoActions.isBusy.value"
         :error="photoActions.error.value ? t(photoActions.error.value) : null"
+        @view="viewPhoto"
         @change="applyPhoto(photoActions.changePhoto)"
         @remove="applyPhoto(photoActions.removePhoto)"
+      />
+
+      <AnimalPhotoViewer
+        v-if="headerPhotoUrl"
+        v-model="isPhotoViewerOpen"
+        :src="headerPhotoUrl"
+        :name="animal.name"
       />
 
       <AnimalChipSelector
@@ -353,21 +379,27 @@ function createAnimal(): void {
   padding-inline: 8px;
 }
 
+.carnet-header__photo {
+  position: relative;
+  flex: 0 0 auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: none;
+  }
+}
+
 .carnet-header__avatar {
   display: block;
   overflow: hidden;
-  flex: 0 0 auto;
   width: tokens.$size-header-avatar;
   height: tokens.$size-header-avatar;
   border: 2px solid tokens.$color-header-avatar-border;
   border-radius: 50%;
   background-size: cover;
-  -webkit-touch-callout: none;
-  user-select: none;
-
-  &:focus-visible {
-    outline: none;
-  }
 
   img {
     pointer-events: none;
@@ -375,6 +407,25 @@ function createAnimal(): void {
     width: 100%;
     height: 100%;
     object-fit: cover;
+  }
+}
+
+.carnet-header__photo-badge {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: tokens.$size-header-avatar-badge;
+  height: tokens.$size-header-avatar-badge;
+  border: 2px solid rgb(var(--v-theme-primary));
+  border-radius: 50%;
+  background: rgb(var(--v-theme-surface));
+  color: rgb(var(--v-theme-primary));
+
+  .v-icon {
+    font-size: tokens.$size-header-avatar-badge-icon;
   }
 }
 

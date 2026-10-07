@@ -15,8 +15,16 @@ const props = withDefaults(
     confirmAriaLabel?: string
     /** `danger` : action destructive, en couleur système d'erreur ; `primary` : action principale. */
     tone?: 'danger' | 'primary'
+    /** La confirmation au-dessus de « Annuler » : un double toucher ne confirme pas un second dialogue. */
+    stacked?: boolean
   }>(),
-  { note: null, cancelAriaLabel: undefined, confirmAriaLabel: undefined, tone: 'danger' },
+  {
+    note: null,
+    cancelAriaLabel: undefined,
+    confirmAriaLabel: undefined,
+    tone: 'danger',
+    stacked: false,
+  },
 )
 
 const emit = defineEmits<{
@@ -25,7 +33,10 @@ const emit = defineEmits<{
 }>()
 /** Le slot `choices` ajoute des gestes : les actions s'empilent, la confirmation en texte, « Annuler » en dernier. */
 const slots = defineSlots<{ choices?: () => unknown }>()
-const isStacked = computed(() => slots.choices !== undefined)
+const isStacked = computed(() => props.stacked || slots.choices !== undefined)
+const stackedConfirmColor = computed(() =>
+  props.tone === 'danger' && slots.choices === undefined ? 'error' : 'primary',
+)
 
 const open = defineModel<boolean>({ default: false })
 
@@ -103,7 +114,7 @@ function confirm(): void {
           v-if="isStacked"
           class="confirm-dialog__confirm"
           variant="text"
-          color="primary"
+          :color="stackedConfirmColor"
           :aria-label="props.confirmAriaLabel"
           @click="confirm"
         >
