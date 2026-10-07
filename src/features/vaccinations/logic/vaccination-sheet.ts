@@ -6,7 +6,7 @@ import { formatDayMonthOrYear, formatLongDate } from '@/shared/utils/format'
 
 export type Translate = (key: string, named?: Record<string, unknown>, plural?: number) => string
 
-export type SheetVaccination = Pick<Vaccination, 'name' | 'dueDate'>
+export type SheetVaccination = Pick<Vaccination, 'name' | 'dueDate' | 'lastInjectionDate'>
 
 export function vaccinationSheetTexts(
   t: Translate,
@@ -15,7 +15,10 @@ export function vaccinationSheetTexts(
 ) {
   const named = { name: vaccination.name, animal }
   return {
-    subtitle: t('vaccinations.sheet.subtitle', { animal }),
+    subtitle:
+      vaccination.lastInjectionDate === null
+        ? t('vaccinations.sheet.subtitleFirstVaccine', { animal })
+        : t('vaccinations.sheet.subtitle', { animal }),
     due:
       vaccination.dueDate === null
         ? null

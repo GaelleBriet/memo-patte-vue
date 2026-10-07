@@ -113,7 +113,18 @@
       "forAnimal": "For {name}",
       "name": {
         "label": "Vaccine name",
-        "placeholder": "e.g. Rabies"
+        "placeholder": "e.g. Rabies",
+        "usedFor": "Already used for {names}",
+        "suggestions": {
+          "carnet": "In your health record",
+          "combinations": {
+            "dog": "Common combinations · dog",
+            "cat": "Common combinations · cat"
+          },
+          "useTyped": "Use “{name}”",
+          "spoken": "{label}. Abbreviations {aliases}.",
+          "count": "{n} suggestion | {n} suggestions"
+        }
       },
       "lastInjectionDate": {
         "label": "Injection date",
@@ -168,6 +179,7 @@
     },
     "sheet": {
       "subtitle": "Vaccine · {animal}",
+      "subtitleFirstVaccine": "First vaccine · {animal}",
       "nextReminder": "Next reminder on {date}",
       "doneTodayLabel": "Done today: log the {name} injection for {animal} and choose the next reminder",
       "editHint": "Name or date",
@@ -250,6 +262,20 @@
         "change": "Couldn’t save the change. Try again.",
         "delete": "Couldn’t delete {name}. Try again."
       }
+    },
+    "diseases": {
+      "distemper": "distemper",
+      "hepatitis": "hepatitis",
+      "parvovirus": "parvovirus",
+      "parainfluenza": "parainfluenza",
+      "leptospirosis": "leptospirosis",
+      "rabies": "rabies",
+      "kennelCough": "kennel cough",
+      "leishmaniosis": "leishmaniosis",
+      "panleukopenia": "panleucopenia",
+      "catFlu": "cat flu (herpesvirus, calicivirus)",
+      "chlamydiosis": "chlamydia",
+      "felineLeukaemia": "feline leukaemia"
     }
   },
   "treatments": {
@@ -903,6 +929,7 @@
     },
     "reminder": {
       "vaccination": "Vaccine",
+      "firstVaccine": "First vaccine",
       "deworming": "Dewormer",
       "antiparasitic": "Parasite control",
       "medication": "Medication"
@@ -916,6 +943,7 @@
       "labelUnreadableSingle": "{title}, {type}, {due}. Opens the treatment.",
       "spokenType": {
         "vaccination": "vaccine",
+        "firstVaccine": "first vaccine",
         "deworming": "dewormer",
         "antiparasitic": "parasite control",
         "medication": "medication"
@@ -927,6 +955,7 @@
         "todayAt": "today at {time}",
         "tomorrow": "tomorrow",
         "later": "in {n} day, on {date} | in {n} days, on {date}",
+        "planned": "planned for {date}",
         "toLog": "to log, {unlogged}",
         "unreadable": "unreadable data"
       }
@@ -937,6 +966,7 @@
       "todayAt": "Today · {time}",
       "tomorrow": "Tomorrow",
       "later": "In {n} day | In {n} days",
+      "planned": "Planned {date}",
       "toLog": "To log",
       "unreadable": "Unreadable data"
     },

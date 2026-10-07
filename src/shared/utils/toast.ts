@@ -82,6 +82,8 @@ export type UndoOptions = {
   ariaLabel: string
   undo: () => Promise<unknown>
   onUndone: () => void
+  /** Après le toast d'échec : l'écran relit ce que l'annulation n'a pas défait. */
+  onFailed?: () => void
   /** Affiché en toast d'échec si l'annulation lève. */
   failedMessage: string
   announcement?: string
@@ -95,9 +97,10 @@ export function showUndoableToast(message: string, options: UndoOptions): void {
       label: options.label,
       ariaLabel: options.ariaLabel,
       run: () =>
-        void options
-          .undo()
-          .then(options.onUndone, () => showToast(options.failedMessage, { tone: 'error' })),
+        void options.undo().then(options.onUndone, () => {
+          showToast(options.failedMessage, { tone: 'error' })
+          options.onFailed?.()
+        }),
     },
   })
 }

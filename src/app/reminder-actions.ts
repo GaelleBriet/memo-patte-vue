@@ -138,6 +138,7 @@ export function createReminderActions({
       ariaLabel: texts.undo,
       undo: () => doses.undoBatch(treatment.id, noted.undo),
       onUndone: () => void refreshHome(),
+      onFailed: () => void refreshHome(),
       failedMessage: t('reminderSheet.undoFailed'),
     })
   }

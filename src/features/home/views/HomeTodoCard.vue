@@ -181,6 +181,7 @@ const toLogRows = computed(() => props.rows.filter((row) => row.group === 'to-lo
   background: rgb(var(--v-theme-soon));
 }
 
+.reminder-row--planned::before,
 .reminder-row--to-log::before {
   background: tokens.$color-unlogged-border;
 }

@@ -12,6 +12,7 @@ const RAGE: HomeReminderSource = {
   animalId: 'milo',
   label: 'Rage',
   dueDate: '2026-09-01',
+  lastInjectionDate: '2025-09-01',
   treatmentType: null,
 }
 

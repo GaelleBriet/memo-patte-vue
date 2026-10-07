@@ -113,7 +113,18 @@
       "forAnimal": "Pour {name}",
       "name": {
         "label": "Nom du vaccin",
-        "placeholder": "Ex. Rage"
+        "placeholder": "Ex. Rage",
+        "usedFor": "Déjà utilisé pour {names}",
+        "suggestions": {
+          "carnet": "Dans ton carnet",
+          "combinations": {
+            "dog": "Combinaisons courantes · chien",
+            "cat": "Combinaisons courantes · chat"
+          },
+          "useTyped": "Utiliser « {name} »",
+          "spoken": "{label}. Sigles {aliases}.",
+          "count": "{n} proposition | {n} propositions"
+        }
       },
       "lastInjectionDate": {
         "label": "Date de l’injection",
@@ -168,6 +179,7 @@
     },
     "sheet": {
       "subtitle": "Vaccin · {animal}",
+      "subtitleFirstVaccine": "Premier vaccin · {animal}",
       "nextReminder": "Prochain rappel le {date}",
       "doneTodayLabel": "Fait aujourd’hui : noter l’injection de {name} pour {animal} et choisir le prochain rappel",
       "editHint": "Nom ou date",
@@ -250,6 +262,20 @@
         "change": "La modification n’a pas abouti. Réessaie.",
         "delete": "{name} n’a pas pu être supprimé. Réessaie."
       }
+    },
+    "diseases": {
+      "distemper": "carré",
+      "hepatitis": "hépatite",
+      "parvovirus": "parvovirose",
+      "parainfluenza": "parainfluenza",
+      "leptospirosis": "leptospirose",
+      "rabies": "rage",
+      "kennelCough": "toux du chenil",
+      "leishmaniosis": "leishmaniose",
+      "panleukopenia": "typhus",
+      "catFlu": "coryza (herpèsvirus, calicivirus)",
+      "chlamydiosis": "chlamydiose",
+      "felineLeukaemia": "leucose"
     }
   },
   "treatments": {
@@ -903,6 +929,7 @@
     },
     "reminder": {
       "vaccination": "Vaccin",
+      "firstVaccine": "Premier vaccin",
       "deworming": "Vermifuge",
       "antiparasitic": "Antiparasitaire",
       "medication": "Médicament"
@@ -916,6 +943,7 @@
       "labelUnreadableSingle": "{title}, {type}, {due}. Ouvre le traitement.",
       "spokenType": {
         "vaccination": "vaccin",
+        "firstVaccine": "premier vaccin",
         "deworming": "vermifuge",
         "antiparasitic": "antiparasitaire",
         "medication": "médicament"
@@ -927,6 +955,7 @@
         "todayAt": "aujourd’hui à {time}",
         "tomorrow": "demain",
         "later": "dans {n} jour, le {date} | dans {n} jours, le {date}",
+        "planned": "prévu le {date}",
         "toLog": "à renseigner, {unlogged}",
         "unreadable": "donnée illisible"
       }
@@ -937,6 +966,7 @@
       "todayAt": "Aujourd’hui · {time}",
       "tomorrow": "Demain",
       "later": "Dans {n} jour | Dans {n} jours",
+      "planned": "Prévu le {date}",
       "toLog": "À renseigner",
       "unreadable": "Donnée illisible"
     },

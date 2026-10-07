@@ -221,6 +221,29 @@ describe('treatmentDosesService', () => {
       await expect(lignes(metacam)).resolves.toHaveLength(1)
     })
 
+    it('D8 : « Annuler » puis aussitôt « C’est fait » : la prise est notée de nouveau, jamais « déjà notée »', async () => {
+      const metacam = await creer('metacam', DEUX_HEURES)
+      const matin: DoseAction = {
+        kind: 'note',
+        gesture: {
+          kind: 'given',
+          due: { periodId: metacam, dueOn: '2026-09-23', dueTime: '08:00' },
+          givenOn: '2026-09-23',
+        },
+      }
+      const { undo } = await service.apply(metacam, matin)
+
+      const [, again] = await Promise.all([
+        service.undoBatch(metacam, undo),
+        service.apply(metacam, matin),
+      ])
+
+      expect(again).toMatchObject({ alreadyGivenOn: null })
+      await expect(lignes(metacam)).resolves.toEqual([
+        { due_on: '2026-09-23', due_time: '08:00', given_on: '2026-09-23' },
+      ])
+    })
+
     it('(c) dose en retard notée aujourd’hui : elle vise son échéance, aucune dose non renseignée', async () => {
       const hebdo = await creer('hebdo', HEBDO)
 
@@ -659,8 +682,8 @@ describe('treatmentDosesService', () => {
 
       expect(applied).toMatchObject({ animalId: BOREE, alreadyGivenOn: null, postponement: null })
       expect(applied.undo).toEqual([
-        { action: 'delete', id: expect.any(String) },
-        { action: 'delete', id: expect.any(String) },
+        { action: 'delete', id: expect.any(String), expectedUpdatedAt: NOW.toISOString() },
+        { action: 'delete', id: expect.any(String), expectedUpdatedAt: NOW.toISOString() },
       ])
       await expect(
         db.query(`SELECT due_on, next_due_date FROM treatment_dose WHERE status = 'shift'`),
