@@ -1076,6 +1076,38 @@ describe('changement de rythme et arrêt (TR-28, TR-30, Q9)', () => {
     expect(schedule.unloggedDoses).toEqual([due('2026-09-22')])
     expect(schedule.finished).toBe(false)
   })
+
+  describe('arrêté avant sa date de début (#594)', () => {
+    const future = carnet(period({ firstDueOn: '2026-10-07', stoppedOn: '2026-10-06' }))
+
+    it.each(['2026-10-06', '2026-10-07', '2026-11-30'])(
+      'aucune dose à renseigner ni à venir, le %s',
+      (today) => {
+        const schedule = scheduleOf(future, today)
+
+        expect(schedule.phase).toBe('stopped')
+        expect(schedule.currentDoses).toEqual([])
+        expect(schedule.unloggedDoses).toEqual([])
+        expect(schedule.upcoming(5)).toEqual([])
+        expect(schedule.finished).toBe(true)
+      },
+    )
+
+    it('repris ensuite, la période arrêtée avant son début ne laisse rien à renseigner', () => {
+      const resumed: Carnet = {
+        ...future,
+        periods: [
+          ...future.periods,
+          period({ id: 'p2', firstDueOn: '2026-10-10', createdAt: '2026-10-08T08:00:00.000Z' }),
+        ],
+      }
+
+      const schedule = scheduleOf(resumed, '2026-10-12')
+
+      expect(dueDays(schedule.unloggedDoses)).toEqual(['2026-10-10', '2026-10-11'])
+      expect(schedule.unloggedDoses.every(({ periodId }) => periodId === 'p2')).toBe(true)
+    })
+  })
 })
 
 describe('terminé (TR-31)', () => {

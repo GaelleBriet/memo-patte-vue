@@ -102,7 +102,7 @@ const ARRETE: PdfTreatmentRow = {
   lastDoseDate: '2026-06-01',
   previousDoses: [{ kind: 'dates', dates: ['2026-05-18'], extras: [false] }],
   lastDoseExtra: false,
-  due: { kind: 'stopped', on: '2026-06-20' },
+  due: { kind: 'stopped', on: '2026-06-20', beforeFirstDose: false },
   state: 'none',
 }
 

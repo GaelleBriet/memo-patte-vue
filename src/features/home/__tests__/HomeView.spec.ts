@@ -1197,6 +1197,153 @@ describe('HomeView — animal qu’on ne suit plus (AN-9)', () => {
     expect(rows(wrapper).map((row) => row.title)).toEqual(['CHPPiL'])
     expect(wrapper.get('.home-todo .section-card__counter').text()).toBe('Milo · 1 soin')
   })
+
+  it('ne propose que les animaux suivis à la feuille de choix des actions rapides', async () => {
+    const pixel = animal('44444444-4444-4444-8444-444444444444', 'Pixel')
+    animals = [MILO, { ...LUNA, unfollowedOn: '2026-09-08' }, pixel]
+    vi.stubGlobal('visualViewport', {
+      addEventListener() {},
+      removeEventListener() {},
+      width: 412,
+      height: 915,
+      offsetTop: 0,
+    })
+    const wrapper = await monter()
+
+    await wrapper.findAll('.home-quick-tile')[1]!.trigger('click')
+    await flushPromises()
+
+    expect(
+      wrapper
+        .getComponent(AnimalPickerSheet)
+        .props('animals')
+        .map(({ name }) => name),
+    ).toEqual(['Milo', 'Pixel'])
+  })
+
+  it('ouvre le formulaire du seul animal suivi sans demander lequel', async () => {
+    const wrapper = await monter()
+
+    await wrapper.findAll('.home-quick-tile')[0]!.trigger('click')
+    await flushPromises()
+
+    expect(push).toHaveBeenCalledWith({ name: 'treatment-new', params: { animalId: MILO.id } })
+  })
+
+  it('ouvre la feuille pesée sur le seul animal suivi', async () => {
+    const wrapper = await monter()
+
+    expect(wrapper.getComponent(WeightSheet).props('animalId')).toBe(MILO.id)
+  })
+})
+
+describe('HomeView — plus aucun animal suivi (AC-3)', () => {
+  afterEach(() => applyLocale('fr'))
+
+  function heroLines(wrapper: ReturnType<typeof mount>) {
+    return [
+      wrapper.get('.home-unfollowed__title').text(),
+      wrapper.get('.home-unfollowed__text').text(),
+    ]
+  }
+
+  describe('plusieurs animaux', () => {
+    beforeEach(() => {
+      animals = [
+        { ...MILO, unfollowedOn: '2026-09-01' },
+        { ...LUNA, unfollowedOn: '2026-09-08' },
+      ]
+      sources = [CHPPIL_MILO_RETARD, VERMIFUGE_LUNA_AUJOURDHUI]
+    })
+
+    it('garde le header, sans chips, « À faire » ni actions rapides', async () => {
+      const wrapper = await monter()
+
+      expect(wrapper.find('.home-header').exists()).toBe(true)
+      expect(wrapper.find('.home-welcome').exists()).toBe(false)
+      expect(wrapper.findComponent(AnimalChipSelector).exists()).toBe(false)
+      expect(wrapper.find('.home-todo').exists()).toBe(false)
+      expect(wrapper.find('.home-quick-actions').exists()).toBe(false)
+      expect(wrapper.find('.reminder-row').exists()).toBe(false)
+    })
+
+    it('dit « Aucun soin à venir » et que leurs carnets restent consultables', async () => {
+      const wrapper = await monter()
+
+      expect(heroLines(wrapper)).toEqual([
+        'Aucun soin à venir',
+        'Tu ne suis plus aucun animal. Leurs carnets restent consultables.',
+      ])
+    })
+
+    it('mène au formulaire de création par « Ajouter un animal »', async () => {
+      const wrapper = await monter()
+
+      const create = wrapper.get('.home-unfollowed__create')
+      expect(create.text()).toBe('Ajouter un animal')
+      await create.trigger('click')
+
+      expect(push).toHaveBeenCalledWith({ name: 'animal-new' })
+    })
+
+    it('ouvre la liste des animaux qu’on ne suit plus', async () => {
+      const wrapper = await monter()
+
+      const link = wrapper.get('.unfollowed-animals-link')
+      expect(link.text()).toBe('Animaux que tu ne suis plus (2)')
+      await link.trigger('click')
+
+      expect(push).toHaveBeenCalledWith({ name: 'unfollowed-animals' })
+    })
+
+    it('le dit en anglais', async () => {
+      applyLocale('en')
+      const wrapper = await monter()
+
+      expect(heroLines(wrapper)).toEqual([
+        'No upcoming reminders',
+        'You’re not following any pets. Their health records are still available.',
+      ])
+      expect(wrapper.get('.home-unfollowed__create').text()).toBe('Add a pet')
+      expect(wrapper.get('.unfollowed-animals-link').text()).toBe('Pets you no longer follow (2)')
+    })
+  })
+
+  describe('un seul animal', () => {
+    beforeEach(() => {
+      animals = [{ ...LUNA, unfollowedOn: '2026-09-08' }]
+    })
+
+    it('dit que son carnet reste consultable', async () => {
+      const wrapper = await monter()
+
+      expect(heroLines(wrapper)).toEqual([
+        'Aucun soin à venir',
+        'Tu ne suis plus aucun animal. Son carnet reste consultable.',
+      ])
+    })
+
+    it('ouvre directement son carnet', async () => {
+      const wrapper = await monter()
+
+      const link = wrapper.get('.unfollowed-animals-link')
+      expect(link.text()).toBe('Animaux que tu ne suis plus (1)')
+      await link.trigger('click')
+
+      expect(animalsStore.selectedAnimalId).toBe(LUNA.id)
+      expect(push).toHaveBeenCalledWith({ name: 'animals' })
+    })
+
+    it('le dit en anglais', async () => {
+      applyLocale('en')
+      const wrapper = await monter()
+
+      expect(heroLines(wrapper)).toEqual([
+        'No upcoming reminders',
+        'You’re not following any pets. The health record is still available.',
+      ])
+    })
+  })
 })
 
 describe('HomeView — A5 premier lancement, aucun animal', () => {

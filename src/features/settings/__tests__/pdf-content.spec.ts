@@ -200,7 +200,7 @@ describe('buildCarnetPdfContent', () => {
 
     expect(content.treatments.map((row) => [row.name, row.due, row.state])).toEqual([
       ['Milbémax', { kind: 'due', dueOn: '2026-09-01', dueTime: null, overdue: false }, 'upToDate'],
-      ['Drontal', { kind: 'stopped', on: '2026-06-20' }, 'none'],
+      ['Drontal', { kind: 'stopped', on: '2026-06-20', beforeFirstDose: false }, 'none'],
     ])
   })
 

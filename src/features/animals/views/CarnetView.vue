@@ -6,9 +6,10 @@ import { useRouter } from 'vue-router'
 import AnimalOptionsSheet from './AnimalOptionsSheet.vue'
 import AnimalPhotoSheet from './AnimalPhotoSheet.vue'
 import AnimalPhotoViewer from './AnimalPhotoViewer.vue'
-import UnfollowedAnimalsLink from './UnfollowedAnimalsLink.vue'
+import UnfollowedAnimalsLink from '@/shared/components/UnfollowedAnimalsLink.vue'
 import { hasDepartureDetails } from '../logic/animal-departure'
-import { carnetSubtitle, unfollowedEntry } from '../logic/carnet-animal'
+import { carnetSubtitle } from '../logic/carnet-animal'
+import { useOpenUnfollowed } from '@/shared/composables/use-open-unfollowed'
 import { useAnimalsStore } from '../store/animals.store'
 import { useAnimalFollowGestures } from '../composables/use-animal-follow-gestures'
 import { useAnimalPhotoActions } from '../composables/use-animal-photo-actions'
@@ -119,17 +120,13 @@ const subtitle = computed(() =>
   animal.value ? carnetSubtitle(t, animal.value, today.value) : null,
 )
 
-const unfollowed = computed(() => unfollowedEntry(animals.unfollowedAnimals))
-
-function openUnfollowed(): void {
-  const target = unfollowed.value?.target
-  if (target?.kind === 'list') {
-    void router.push({ name: 'unfollowed-animals' })
-  } else if (target) {
-    animals.select(target.animalId)
+const { entry: unfollowed, open: openUnfollowed } = useOpenUnfollowed(
+  () => animals.unfollowedAnimals,
+  (animalId) => {
+    animals.select(animalId)
     document.scrollingElement?.scrollTo?.({ top: 0 })
-  }
-}
+  },
+)
 
 const departureLabel = computed(() =>
   animal.value && hasDepartureDetails(animal.value)

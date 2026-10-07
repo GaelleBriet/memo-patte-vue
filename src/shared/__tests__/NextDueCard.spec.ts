@@ -20,6 +20,24 @@ function monter(props: Record<string, unknown> = {}, slots: Record<string, strin
 }
 
 describe('NextDueCard', () => {
+  it('sans libellé, ne montre ni libellé ni échéance, seulement la ligne du haut', () => {
+    const wrapper = monter(
+      { label: null, value: null, emptyText: 'Pas de rappel programmé' },
+      { top: '<p class="haut">Dernière injection · 26 août 2026</p>' },
+    )
+
+    expect(wrapper.get('.haut').text()).toBe('Dernière injection · 26 août 2026')
+    expect(wrapper.find('.next-due-card__label').exists()).toBe(false)
+    expect(wrapper.find('.next-due-card__due').exists()).toBe(false)
+    expect(wrapper.find('.next-due-card__empty').exists()).toBe(false)
+  })
+
+  it('masque « C’est fait » et « Fait à une autre date » sur demande', () => {
+    const wrapper = monter({ actions: false })
+
+    expect(wrapper.find('.next-due-card__actions').exists()).toBe(false)
+  })
+
   it('annonce l’échéance et son délai, puis « C’est fait » et « Fait à une autre date » (VA-17)', () => {
     const wrapper = monter()
 

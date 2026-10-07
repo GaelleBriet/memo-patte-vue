@@ -52,6 +52,7 @@ const texts = computed(() =>
         animal: animal.value?.name ?? '',
         today: today.value,
         injections: injections.value.length,
+        followed: (animal.value?.unfollowedOn ?? null) === null,
       })
     : null,
 )
@@ -202,7 +203,7 @@ async function remove(): Promise<void> {
     <div class="vaccination-detail__content">
       <template v-if="vaccination && texts">
         <NextDueCard
-          :label="t('vaccinations.detail.nextReminder')"
+          :label="texts.followed ? t('vaccinations.detail.nextReminder') : null"
           :value="texts.due?.value"
           :delay="texts.due?.delay"
           :tone="texts.due?.tone"
@@ -211,6 +212,7 @@ async function remove(): Promise<void> {
           :done-aria-label="texts.doneLabel"
           :other-date-aria-label="texts.otherDateLabel"
           :busy="gestures.isBusy.value"
+          :actions="texts.followed"
           @done="openDoneSheet('done')"
           @other-date="openDoneSheet('other-date')"
         >
