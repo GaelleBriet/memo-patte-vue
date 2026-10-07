@@ -1,5 +1,10 @@
 import type { NotifiedDue } from '@/shared/domain/reminder-route'
-import type { Due, TreatmentDoseInput, TreatmentSchedule } from '@/shared/domain/treatment-schedule'
+import {
+  dueOf,
+  type Due,
+  type TreatmentDoseInput,
+  type TreatmentSchedule,
+} from '@/shared/domain/treatment-schedule'
 import { formatClockTime, formatDayMonthOrYear } from '@/shared/utils/format'
 
 export type Translate = (key: string, named?: Record<string, unknown>, plural?: number) => string
@@ -23,10 +28,6 @@ type DaySchedule = Pick<TreatmentSchedule, 'doses' | 'unloggedDoses' | 'currentD
 type OtherDateSchedule = DaySchedule & Pick<TreatmentSchedule, 'dueForDate'>
 
 export type DayDue = { due: Due; status: 'pending' | 'given' | 'missed'; givenOn: string | null }
-
-function dueOf({ periodId, dueOn, dueTime }: Due): Due {
-  return { periodId, dueOn, dueTime }
-}
 
 function dayDues(schedule: DaySchedule, day: string): DayDue[] {
   const notes = schedule.doses.flatMap((dose): DayDue[] =>

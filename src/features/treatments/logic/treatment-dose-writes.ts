@@ -3,6 +3,7 @@ import type { TreatmentWithHistory } from '../repository/treatments.repository'
 import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
 import {
   familyOf,
+  sameDue,
   type DoseFields,
   type DoseGesture,
   type Due,
@@ -46,13 +47,9 @@ export class DoseAlreadyLoggedError extends Error {}
 
 type History = Pick<TreatmentWithHistory, 'id' | 'animalId' | 'doses'>
 
-function isSameDue(a: Due, b: Due): boolean {
-  return a.periodId === b.periodId && a.dueOn === b.dueOn && a.dueTime === b.dueTime
-}
-
 // TR-25 : les lignes d'une même échéance et d'une même famille (deux appareils) se corrigent ensemble.
 function linesOf({ doses }: History, due: Due, family: Family): NewTreatmentDose[] {
-  return doses.filter((dose) => isSameDue(dose, due) && familyOf(dose) === family)
+  return doses.filter((dose) => sameDue(dose, due) && familyOf(dose) === family)
 }
 
 function lineById({ doses }: History, id: string): NewTreatmentDose {
@@ -75,7 +72,7 @@ export function movedDueOf(
 
 function hasFields(line: NewTreatmentDose, dose: DoseFields): boolean {
   return (
-    isSameDue(line, dose) &&
+    sameDue(line, dose) &&
     line.givenOn === dose.givenOn &&
     line.status === dose.status &&
     line.nextDueDate === dose.nextDueDate
@@ -235,7 +232,7 @@ function changeOf(
     case 'note': {
       const { gesture } = action
       const noted = schedule.doses.find(
-        (dose) => isSameDue(dose, gesture.due) && familyOf(dose) === 'note',
+        (dose) => sameDue(dose, gesture.due) && familyOf(dose) === 'note',
       )
       if (gesture.kind === 'given' && noted?.status === 'given') {
         return { ...unchanged, writes: [], alreadyGivenOn: noted.givenOn }
@@ -243,7 +240,7 @@ function changeOf(
       const written = schedule.doseFor(gesture)
       const isRepeated =
         familyOf(written.dose) === 'extra' &&
-        schedule.doses.some((dose) => familyOf(dose) === 'extra' && isSameDue(dose, written.dose))
+        schedule.doses.some((dose) => familyOf(dose) === 'extra' && sameDue(dose, written.dose))
       if (isRepeated) return { ...unchanged, writes: [], alreadyGivenOn: written.dose.givenOn }
       const notes = linesOf(history, gesture.due, 'note')
       return {

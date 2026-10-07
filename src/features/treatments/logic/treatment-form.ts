@@ -24,7 +24,7 @@ import {
 import type { FrequencyUnit, TreatmentType } from '../schema/treatment.schema'
 import type { ExactRemindersStatus, NotificationPermissionStatus } from '@/core/notifications'
 import { isCalendarDay } from '@/shared/domain/calendar-day'
-import { isClockTime, MAX_TIMES_PER_DAY } from '@/shared/domain/clock-time'
+import { isClockTime, MAX_TIMES_PER_DAY, sortedTimes } from '@/shared/domain/clock-time'
 import { formatDoseQuantity, TABLET_SHORTCUTS, type DoseUnit } from '@/shared/domain/dosage'
 import type { Due, MoveRefusal } from '@/shared/domain/treatment-schedule'
 import { formatClockTimes, formatDayMonthOrYear, withoutFinalDot } from '@/shared/utils/format'
@@ -192,7 +192,7 @@ export function treatmentFormValuesFrom(
     firstDoseOn: '',
     nextDoseOn: '',
     shiftsFollowing: true,
-    times: [...period.times].sort(),
+    times: sortedTimes(period.times),
     doseQuantity:
       period.doseQuantity === null || period.doseUnit === null
         ? ''
@@ -295,7 +295,7 @@ export function canAddTime(times: readonly string[]): boolean {
 /** Heures dans l'ordre de la journée ; une heure illisible, déjà présente ou de trop ne change rien. */
 export function withTime(times: readonly string[], time: string): string[] {
   if (!isClockTime(time) || times.includes(time) || !canAddTime(times)) return [...times]
-  return [...times, time].sort()
+  return sortedTimes([...times, time])
 }
 
 export function withoutTime(times: readonly string[], time: string): string[] {

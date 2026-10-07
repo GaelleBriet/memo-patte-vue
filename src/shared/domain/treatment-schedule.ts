@@ -42,7 +42,7 @@ import type {
 } from './treatment-schedule-types'
 
 export { ScheduleTooLongError } from './treatment-schedule-checks'
-export { DAYS_PER_STEP, toDate, uniqueSorted } from './treatment-schedule-dues'
+export { DAYS_PER_STEP, dueOf, sameDue, toDate, uniqueSorted } from './treatment-schedule-dues'
 export { familyOf, isNoteLine, orderPeriods, type Family } from './treatment-schedule-plan'
 
 export type {

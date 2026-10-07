@@ -28,6 +28,7 @@ import {
   type TreatmentPeriodSettings,
 } from '../schema/treatment-period.schema'
 import { isCalendarDay } from '@/shared/domain/calendar-day'
+import { sortedTimes } from '@/shared/domain/clock-time'
 import {
   isAdvanced,
   isNoteLine,
@@ -112,10 +113,6 @@ type Resolved = Omit<EditionDraft, 'farthestMove' | 'pastDues' | 'pastDuesNextDo
   movedLineId: string | null
   /** La première échéance vient de `newPeriod` : la date de fin doit la suivre. */
   proposesFirstDue: boolean
-}
-
-function sortedTimes(times: readonly string[]): string[] {
-  return [...times].sort()
 }
 
 function rhythmOf(
