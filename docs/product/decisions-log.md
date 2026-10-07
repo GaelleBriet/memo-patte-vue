@@ -2132,3 +2132,11 @@ service d'une autre feature, sans boucle (CLAUDE.md aligné sur la règle ESLint
 traitement en retard sans prise doit le dire ; Q10, un toast de 6 s ne laisse pas le temps de lire ce
 qui manque ; Q11, réutiliser un cas d'usage plutôt que le recopier. — Alternatives écartées : Q2,
 « Aucune prise » seul ; Q10, le toast de fin d'import ; Q11, resserrer la règle ESLint.
+
+2026-10-07 — Supabase est gardé : plan gratuit tant que MémoPatte Plus n'est pas en vente, passage
+au plan Pro (25 $ par mois, plafond de dépenses activé) au lancement de Plus. — Raison : l'app est
+locale d'abord, seuls les abonnés Plus parlent à Supabase, pour un volume d'environ 1 Mo par abonné ;
+Pro est payé à partir de 20 à 35 abonnés et reste fixe jusqu'à des dizaines de milliers ; aucune
+donnée payante sur un plan qui se met en pause après une semaine d'inactivité. — Alternatives
+écartées : Firebase (modèle NoSQL, synchro à refaire), auto-hébergement (serveur à maintenir,
+sauvegarder et sécuriser seule). Analyse détaillée dans le coffre de notes de Gaelle.
