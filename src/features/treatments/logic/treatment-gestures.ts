@@ -18,7 +18,6 @@ import {
   formatFullDate,
   formatLongDate,
   formatWeekday,
-  nonBreaking,
   withoutFinalDot,
 } from '@/shared/utils/format'
 
@@ -194,20 +193,19 @@ export function doseActionTexts(
     }
     case 'redate': {
       const date = day(action.givenOn)
-      // Le point d'abréviation (« juil. ») sert aussi de point final à la phrase.
-      const sentenceDate = nonBreaking(date.replace(/\.$/, ''))
+      const sentenceDate = withoutFinalDot(date)
       const moved: DoseActionTexts['done'] = ({ postponement }) =>
         postponement === null
           ? t('treatments.detail.toast.moved', { date })
           : postponement.kept && postponement.followed === true
             ? t('treatments.detail.toast.movedFollowed', {
                 date: sentenceDate,
-                nextDue: nonBreaking(withoutFinalDot(day(postponement.nextDueDate))),
+                nextDue: withoutFinalDot(day(postponement.nextDueDate)),
               })
             : postponement.kept
               ? t('treatments.detail.toast.movedKept', {
                   date: sentenceDate,
-                  nextDue: nonBreaking(day(postponement.nextDueDate)),
+                  nextDue: day(postponement.nextDueDate),
                 })
               : t('treatments.detail.toast.movedLost', { date: sentenceDate })
       return {

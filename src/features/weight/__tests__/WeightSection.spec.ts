@@ -13,6 +13,7 @@ import i18n, { applyLocale } from '@/core/i18n'
 import vuetify from '@/core/theme/vuetify'
 import { toKg } from '@/shared/domain/weight-unit'
 import { applyWeightUnit } from '@/shared/domain/weight-unit-preference'
+import { plain } from '@/shared/__tests__/plain'
 
 const MILO = '11111111-1111-4111-8111-111111111111'
 const LUNA = '33333333-3333-4333-8333-333333333333'
@@ -201,7 +202,7 @@ describe('WeightSection — poids actuel et delta', () => {
     const wrapper = await monter()
     const delta = wrapper.get('.weight-section__delta')
 
-    expect(delta.text()).toBe('Première pesée · 8 nov. 2026')
+    expect(plain(delta.text())).toBe('Première pesée · 8 nov. 2026')
     expect(delta.classes()).toContain('weight-section__delta--flat')
   })
 })

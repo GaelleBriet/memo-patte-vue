@@ -33,6 +33,7 @@ import HistoryRow from '@/shared/components/HistoryRow.vue'
 import NextDueCard from '@/shared/components/NextDueCard.vue'
 import OverflowMenu from '@/shared/components/OverflowMenu.vue'
 import { dismissToast, runToastAction, toastAction, toastMessage } from '@/shared/utils/toast'
+import { plain } from '@/shared/__tests__/plain'
 
 const TODAY = new Date('2026-09-23T10:00:00')
 
@@ -194,7 +195,7 @@ describe('VaccinationDetailView — F7', () => {
 
     expect(view.get('.pushed-screen__title').text()).toBe('Carré')
     expect(view.get('.pushed-screen__subtitle').text()).toBe('Vaccin · Boree')
-    expect(view.getComponent(NextDueCard).props()).toMatchObject({
+    expect(plain(view.getComponent(NextDueCard).props())).toMatchObject({
       label: 'Prochain rappel',
       value: '26 août 2027',
       delay: 'dans 11 mois',
@@ -203,12 +204,12 @@ describe('VaccinationDetailView — F7', () => {
     expect(view.find('.next-due-card__top').exists()).toBe(false)
     expect(view.get('.section-card__title').text()).toBe('Injections')
     expect(view.get('.section-card__counter').text()).toBe('3')
-    expect(lignes(view).map((row) => [row.props('date'), row.props('detail')])).toEqual([
-      ['26 août 2026', 'Rappel choisi : dans 1 an'],
-      ['27 juil. 2026', 'Rappel choisi : autre date, 26 août 2026'],
-      ['28 juin 2026', 'Rappel choisi : autre date, 27 juil. 2026'],
+    expect(lignes(view).map((row) => plain([row.props('date'), row.props('detail')]))).toEqual([
+      ['26 août 2026', 'Rappel choisi : dans 1 an'],
+      ['27 juil. 2026', 'Rappel choisi : autre date, 26 août 2026'],
+      ['28 juin 2026', 'Rappel choisi : autre date, 27 juil. 2026'],
     ])
-    expect(lignes(view)[1]!.props('optionsLabel')).toBe(
+    expect(plain(lignes(view)[1]!.props('optionsLabel'))).toBe(
       'Options pour l’injection du 27 juillet 2026',
     )
     expect(
@@ -284,7 +285,7 @@ describe('VaccinationDetailView — F7', () => {
 
     getById.mockResolvedValue({ ...CARRE, dueDate: '2026-09-05' })
     const retard = await monter()
-    expect(retard.getComponent(NextDueCard).props()).toMatchObject({
+    expect(plain(retard.getComponent(NextDueCard).props())).toMatchObject({
       label: 'Prochain rappel',
       value: 'En retard depuis le 5 sept.',
       tone: 'overdue',
@@ -299,7 +300,7 @@ describe('VaccinationDetailView — F7', () => {
 
     expect(view.get('.next-due-card__label').text()).toBe('Prochain rappel')
     expect(view.get('.next-due-card__top').text()).toBe('Premier vaccin · aucune injection notée')
-    expect(view.get('.next-due-card__value').text()).toBe('En retard depuis le 22 sept.')
+    expect(plain(view.get('.next-due-card__value').text())).toBe('En retard depuis le 22 sept.')
     expect(view.find('.vaccination-detail__edit').exists()).toBe(true)
     expect(view.findComponent(OverflowMenu).exists()).toBe(true)
   })
@@ -329,8 +330,8 @@ describe('VaccinationDetailView — injection supprimée ou redatée', () => {
 
     expect(service.remove).toHaveBeenCalledWith(CARRE.id, 'i2')
     expect(view.findComponent(ConfirmDialog).props('modelValue')).toBe(false)
-    expect(toastMessage.value).toBe('Injection du 27 juil. supprimée')
-    expect(toastAction.value?.ariaLabel).toBe(
+    expect(plain(toastMessage.value)).toBe('Injection du 27 juil. supprimée')
+    expect(plain(toastAction.value?.ariaLabel)).toBe(
       'Annuler la suppression de l’injection du 27 juillet 2026',
     )
 
@@ -344,7 +345,7 @@ describe('VaccinationDetailView — injection supprimée ou redatée', () => {
 
     await choisir(view, 1, 'changeDate')
     const calendrier = view.getComponent(DatePickerSheet)
-    expect(calendrier.props()).toMatchObject({
+    expect(plain(calendrier.props())).toMatchObject({
       modelValue: true,
       title: 'Changer la date',
       subtitle: 'Injection du 27 juil. 2026',
@@ -359,7 +360,7 @@ describe('VaccinationDetailView — injection supprimée ou redatée', () => {
 
     expect(service.changeDate).toHaveBeenCalledWith(CARRE.id, 'i2', '2026-07-25')
     expect(feuilleDuRappel(view).props('modelValue')).toBe(false)
-    expect(toastMessage.value).toBe('Injection déplacée au 25 juil.')
+    expect(plain(toastMessage.value)).toBe('Injection déplacée au 25 juil.')
     runToastAction()
     await flushPromises()
     expect(service.undoChangeDate).toHaveBeenCalledWith(CARRE.id, 'i2', {
@@ -389,7 +390,7 @@ describe('VaccinationDetailView — injection supprimée ou redatée', () => {
 
     expect(service.changeDateAndReminder).toHaveBeenCalledExactlyOnceWith(CARRE.id, 'i2', dates)
     expect(service.changeDate).not.toHaveBeenCalled()
-    expect(toastMessage.value).toBe('Injection déplacée au 1er sept.')
+    expect(plain(toastMessage.value)).toBe('Injection déplacée au 1er sept.')
     runToastAction()
     await flushPromises()
     expect(service.undoChangeDate).toHaveBeenCalledWith(CARRE.id, 'i2', {
@@ -409,7 +410,7 @@ describe('VaccinationDetailView — injection supprimée ou redatée', () => {
 
     expect(service.changeDate).not.toHaveBeenCalled()
     expect(service.changeDateAndReminder).not.toHaveBeenCalled()
-    expect(toastMessage.value).toBeNull()
+    expect(plain(toastMessage.value)).toBeNull()
   })
 
   it('dit l’échec d’une suppression', async () => {
@@ -418,7 +419,7 @@ describe('VaccinationDetailView — injection supprimée ou redatée', () => {
 
     await choisir(view, 1, 'remove')
 
-    expect(toastMessage.value).toBe('La modification n’a pas abouti. Réessaie.')
+    expect(plain(toastMessage.value)).toBe('La modification n’a pas abouti. Réessaie.')
   })
 })
 
@@ -462,7 +463,7 @@ describe('VaccinationDetailView — suppression du vaccin', () => {
     await flushPromises()
 
     expect(remove).toHaveBeenCalledWith(CARRE.id)
-    expect(toastMessage.value).toBe('Vaccin Carré supprimé')
+    expect(plain(toastMessage.value)).toBe('Vaccin Carré supprimé')
     expect(back).toHaveBeenCalled()
   })
 

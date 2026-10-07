@@ -475,7 +475,7 @@ describe('TreatmentReminderSheet — F2, la feuille de l’échéance touchée',
       params: { id: 'metacam' },
       query: { from: 'home' },
     })
-    expect(toastMessage.value).toBe(
+    expect(plain(toastMessage.value)).toBe(
       'La dose de Boree est prévue le 16 nov. Une prise en plus se note depuis la fiche.',
     )
     expect(sheet.emitted('update:modelValue')).toEqual([[false]])

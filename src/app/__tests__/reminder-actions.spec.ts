@@ -24,6 +24,7 @@ import {
   toastTone,
 } from '@/shared/utils/toast'
 import { createReminderActions, installReminderActions } from '../reminder-actions'
+import { plain } from '@/shared/__tests__/plain'
 
 const TODAY = '2026-10-07'
 const STAMP = '2026-08-01T09:00:00.000Z'
@@ -245,7 +246,7 @@ describe('« C’est fait » d’une notification du jour (RA-18, TR-20, T5)', (
     await handler()(done(`treatment:${METACAM}:2026-10-09::due`))
 
     expect(applyBatch).not.toHaveBeenCalled()
-    expect(toastMessage.value).toBe('Prise de Métacam du 7 oct. déjà notée pour Luna')
+    expect(plain(toastMessage.value)).toBe('Prise de Métacam du 7 oct. déjà notée pour Luna')
     expect(currentPlace()).toEqual({ name: 'home', query: {} })
   })
 
@@ -367,7 +368,7 @@ describe('« C’est fait » d’une notification d’un jour passé : « Donné
 
     await handler()(done(`treatment:${METACAM}:2026-10-06:2000:due`))
 
-    expect(toastMessage.value).toBe('Prise de Métacam du 6 oct. déjà notée pour Luna')
+    expect(plain(toastMessage.value)).toBe('Prise de Métacam du 6 oct. déjà notée pour Luna')
   })
 })
 
@@ -434,7 +435,7 @@ describe('« C’est fait » d’un vaccin', () => {
 
     await handler()(done(`vaccination:${CARRE.id}:2026-10-04:overdue`))
 
-    expect(toastMessage.value).toBe('Injection de Carré du 6 oct. déjà notée pour Boree')
+    expect(plain(toastMessage.value)).toBe('Injection de Carré du 6 oct. déjà notée pour Boree')
     expect(currentPlace()).toEqual({ name: 'home', query: {} })
   })
 
@@ -444,7 +445,7 @@ describe('« C’est fait » d’un vaccin', () => {
 
     await handler()(done(`vaccination:${CARRE.id}:2026-10-04:overdue`))
 
-    expect(toastMessage.value).toBe('Injection de Carré du 20 sept. déjà notée pour Boree')
+    expect(plain(toastMessage.value)).toBe('Injection de Carré du 20 sept. déjà notée pour Boree')
   })
 
   it('ouvre F5 pour une échéance déplacée sans injection', async () => {
@@ -484,7 +485,7 @@ describe('« C’est fait » d’un vaccin', () => {
 
     await handler()(done(`vaccination:${CARRE.id}:2026-10-04:overdue`))
 
-    expect(toastMessage.value).toBe(expected)
+    expect(plain(toastMessage.value)).toBe(expected)
   })
 })
 
@@ -500,7 +501,7 @@ describe('texte « déjà notée » d’une prise', () => {
 
     await handler()(done(`treatment:${METACAM}:2026-10-06:2000:due`))
 
-    expect(toastMessage.value).toBe(expected)
+    expect(plain(toastMessage.value)).toBe(expected)
   })
 })
 
