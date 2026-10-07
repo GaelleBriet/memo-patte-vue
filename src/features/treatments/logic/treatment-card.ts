@@ -4,6 +4,7 @@ import type { TreatmentWithHistory } from '../repository/treatments.repository'
 import type { ExactRemindersStatus } from '@/core/notifications'
 import { currentDoseText } from '@/shared/domain/current-dose'
 import { dosageText } from '@/shared/domain/dosage'
+import { isStoppedBeforeFirstDose } from '@/shared/domain/treatment-end'
 import type { Due, TreatmentSchedule } from '@/shared/domain/treatment-schedule'
 import { formatClockTime, formatDayMonthOrYear } from '@/shared/utils/format'
 
@@ -65,6 +66,8 @@ export function doseCard(
             due: null,
             today,
             stoppedOn: period?.stoppedOn ?? null,
+            stoppedBeforeFirstDose:
+              period !== null && isStoppedBeforeFirstDose(period, schedule.doses),
             endsOn: endedOnOf(treatment, schedule, today),
           }),
   }

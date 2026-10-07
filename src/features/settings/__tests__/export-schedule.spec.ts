@@ -263,17 +263,35 @@ describe('PDF : traitement sans prise donnée', () => {
     expect(pdfText(data, '2026-09-05')).toContain('Aucune prise · en retard depuis le 01/09/2026')
   })
 
-  it('garde un traitement arrêté sans prise, avec « Arrêté avant la première prise »', () => {
+  it('dit « Arrêté avant la première prise » quand aucune dose n’a jamais été due ni donnée (#594)', () => {
+    const data = carnet(
+      [period({ startsOn: '2026-10-07', frequency: DAILY, stoppedOn: '2026-10-06' })],
+      [],
+    )
+    const text = pdfText(data, '2026-10-10')
+
+    expect(treatmentRow(data, '2026-10-10')).toMatchObject({
+      due: { kind: 'stopped', on: '2026-10-06', beforeFirstDose: true },
+    })
+    expect(text).toContain('Métacam')
+    expect(text.split('Arrêté avant la première prise')).toHaveLength(2)
+    expect(text).not.toContain('Arrêté le')
+    expect(text).toContain('Aucune prise')
+  })
+
+  it('garde « Arrêté le … » et « Aucune prise » pour un arrêté sans prise après sa première échéance (#594)', () => {
     const data = carnet(
       [period({ startsOn: '2026-09-01', frequency: DAILY, stoppedOn: '2026-09-05' })],
       [],
     )
     const text = pdfText(data, '2026-09-10')
 
-    expect(text).toContain('Métacam')
+    expect(treatmentRow(data, '2026-09-10')).toMatchObject({
+      due: { kind: 'stopped', on: '2026-09-05', beforeFirstDose: false },
+    })
     expect(text).toContain('Arrêté le 05/09/2026')
-    expect(text).toContain('Arrêté avant la première prise')
-    expect(text).not.toContain('Aucune prise')
+    expect(text).toContain('Aucune prise')
+    expect(text).not.toContain('Arrêté avant la première prise')
     expect(text).not.toContain('Dernière prise')
   })
 
