@@ -298,8 +298,8 @@ describe('MyDataSettingsView', () => {
       ['en', [], 'PDF of Milo’s health record'],
       ['fr', ['Luna'], 'Tous les animaux ou un seul'],
       ['en', ['Luna'], 'All pets or just one'],
-      ['fr', ['Luna:unfollowed'], 'Un animal au choix'],
-      ['en', ['Luna:unfollowed'], 'One pet of your choice'],
+      ['fr', ['Luna:unfollowed'], 'Un animal à la fois'],
+      ['en', ['Luna:unfollowed'], 'One pet at a time'],
     ])(
       'annonce le contenu de la feuille PDF en %s, avec %j en plus de Milo',
       async (locale, others, hint) => {

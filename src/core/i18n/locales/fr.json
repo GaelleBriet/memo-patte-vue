@@ -1284,7 +1284,7 @@
       "exportPdf": "Exporter en PDF",
       "exportPdfHint": "Tous les animaux ou un seul",
       "exportPdfHintOne": "PDF du carnet de {name}",
-      "exportPdfHintOneOfSeveral": "Un animal au choix",
+      "exportPdfHintOneOfSeveral": "Un animal à la fois",
       "importSection": "Importer",
       "import": "Importer un export MémoPatte",
       "loadError": "La base locale n’a pas répondu. Touche pour réessayer."
