@@ -1,6 +1,7 @@
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { createMemoryHistory, createRouter, type Router } from 'vue-router'
 
 import { BillingError, billingService, type BillingService } from '../service/billing.service'
 import PlusSection from '../views/PlusSection.vue'
@@ -10,7 +11,7 @@ import { usePurchaseStore } from '../store/purchase.store'
 import { memoryStorage } from './billing-fixture'
 import i18n from '@/core/i18n'
 import vuetify from '@/core/theme/vuetify'
-import router from '@/router'
+import appRouter from '@/router'
 import { dismissToast, toastMessage, toastTone } from '@/shared/utils/toast'
 
 vi.mock('../service/billing.service', async (importOriginal) => ({
@@ -38,9 +39,20 @@ const CONFIRMED_EXPIRED = {
   subscriptionEndedAt: '2026-09-11T10:00:00Z',
 } as const
 
+const Vide = { render: () => null }
+
+let router: Router
 let wrapper: VueWrapper | null = null
 
 beforeEach(() => {
+  router = createRouter({
+    history: createMemoryHistory(),
+    routes: [
+      { path: '/', name: 'home', component: Vide },
+      { path: '/plus', name: 'plus', component: Vide },
+      { path: '/sign-in', name: 'sign-in', component: Vide },
+    ],
+  })
   vi.clearAllMocks()
   service.isAvailable.mockReturnValue(true)
   vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-09-16T10:00:00Z') })
@@ -66,6 +78,12 @@ async function monter() {
 function statut(wrapper: VueWrapper) {
   return wrapper.get('.settings-row--plus-status').text()
 }
+
+describe('PlusSection — routeur de l’app', () => {
+  it('connaît l’écran Plus à l’adresse attendue par les tests', () => {
+    expect(appRouter.resolve({ name: 'plus' }).path).toBe('/plus')
+  })
+})
 
 describe('PlusSection — utilisateur gratuit', () => {
   it('mène à l’écran Plus livré par le routeur, avec ce qu’il apporte', async () => {

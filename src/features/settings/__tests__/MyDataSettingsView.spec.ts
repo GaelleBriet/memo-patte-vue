@@ -91,6 +91,7 @@ afterEach(() => {
   wrapper = null
   document.body.innerHTML = ''
   applyWeightUnit('kg')
+  i18n.global.locale.value = 'fr'
   vi.restoreAllMocks()
   vi.unstubAllGlobals()
 })
@@ -276,7 +277,7 @@ describe('MyDataSettingsView', () => {
       const ligne = lignePdf(wrapper)
 
       expect(ligne.get('.settings-row__label').text()).toBe('Exporter en PDF')
-      expect(ligne.get('.settings-row__hint').text()).toBe('Tous les animaux ou un seul')
+      expect(ligne.get('.settings-row__hint').text()).toBe('PDF du carnet de Milo')
       expect(ligne.find('.plus-badge').exists()).toBe(false)
       expect(ligne.find('.d-sr-only').exists()).toBe(false)
       expect(ligne.attributes('disabled')).toBeUndefined()
@@ -291,6 +292,32 @@ describe('MyDataSettingsView', () => {
         { id: MILO.id, name: 'Milo' },
       ])
     })
+
+    it.each([
+      ['fr', [], 'PDF du carnet de Milo'],
+      ['en', [], 'PDF of Milo’s health record'],
+      ['fr', ['Luna'], 'Tous les animaux ou un seul'],
+      ['en', ['Luna'], 'All pets or just one'],
+      ['fr', ['Luna:unfollowed'], 'Un animal à la fois'],
+      ['en', ['Luna:unfollowed'], 'One pet at a time'],
+    ])(
+      'annonce le contenu de la feuille PDF en %s, avec %j en plus de Milo',
+      async (locale, others, hint) => {
+        i18n.global.locale.value = locale as 'fr' | 'en'
+        animals = [
+          MILO,
+          ...others.map((entry, index) => ({
+            ...MILO,
+            id: `3333333${index}-3333-4333-8333-333333333333`,
+            name: entry.split(':')[0]!,
+            unfollowedOn: entry.endsWith(':unfollowed') ? '2026-09-10' : null,
+          })),
+        ]
+        const wrapper = await monter()
+
+        expect(lignePdf(wrapper).get('.settings-row__hint').text()).toBe(hint)
+      },
+    )
 
     it('donne à la feuille tous les animaux, dans l’ordre des chips', async () => {
       const luna: Animal = { ...MILO, id: '33333333-3333-4333-8333-333333333333', name: 'Luna' }

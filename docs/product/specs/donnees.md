@@ -39,7 +39,7 @@ par le partage d'Android ; export d'un seul animal en JSON (piste « à prévoir
 - **DO-2** JSON : tout le carnet, historique compris (injections, prises données, oubliées et
   reportées, périodes, posologie, heures, dates de fin, date approximative, animaux qu'on ne suit plus,
   motif et date du départ), et les réglages du carnet (heure des rappels de vaccins, « Me prévenir avant
-  l'échéance ») ; format versionné (v3 à venir), toujours en kilos. (#382, #413 ; spec Traitements,
+  l'échéance ») ; format versionné (v4 depuis #501), toujours en kilos. (#382, #413 ; spec Traitements,
   données ; spec Animaux ; modèle de données, M4 et M8)
 - **DO-3** CSV : dans l'unité de poids choisie ; titres, valeurs et séparateur dans la langue de l'app,
   lisible directement dans un tableur ; dans la v1. (#416 ; spec Q1, 2026-09-29)
@@ -65,9 +65,9 @@ par le partage d'Android ; export d'un seul animal en JSON (piste « à prévoir
 - **DO-7** JSON seulement, depuis Paramètres ou l'accueil de bienvenue ; si des données existent :
   « Fusionner » (ajoute ce qui manque, la modification la plus récente gagne) ou « Remplacer »
   (confirmé, irréversible). (Existant, #413)
-- **DO-8** N'accepte que le format v3 ; un fichier plus ancien est refusé avec un message clair. Pas de
-  conversion des anciens formats : l'app n'est pas publiée et toutes les données actuelles sont des
-  données de test. (Revue du modèle, 2026-09-29)
+- **DO-8** N'accepte que le format courant, v4 ; un fichier plus ancien (v1 à v3) est refusé avec un
+  message clair. Pas de conversion des anciens formats : l'app n'est pas publiée et toutes les données
+  actuelles sont des données de test. (Revue du modèle, 2026-09-29 ; v4 depuis #501)
 - **DO-9** Refus du fichier entier, avec un message clair : version plus ancienne ou plus récente, valeur hors limites,
   nom trop long, entrée rattachée à un autre animal. (Existant)
 - **DO-10** Après un import, les rappels sont reconstruits, puis l'écran « Ne rate plus aucun rappel »

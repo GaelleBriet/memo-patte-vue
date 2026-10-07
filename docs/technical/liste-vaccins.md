@@ -16,6 +16,8 @@ même espèce, puis les **combinaisons courantes pour l'espèce**, nommées par 
 
 - La licence est celle indiquée par les métadonnées de data.gouv.fr (`cc-by`, sans numéro de
   version) ; le fichier lui-même n'en mentionne aucune.
+- Dans l'app, l'attribution figure dans Paramètres › À propos (`settings.about.vaccineSource`), avec
+  un lien vers le jeu de données (#598).
 - L'app n'embarque ni nom commercial, ni texte de RCP : seulement des combinaisons de maladies, leur
   nombre de produits et la date de l'export
   (`src/features/vaccinations/logic/vaccine-combinations.json`).
