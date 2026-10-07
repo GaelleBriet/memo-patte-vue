@@ -450,13 +450,16 @@ fichier en entier au moindre défaut, avec les mêmes messages.
   précédente (la première échéance pour la première), garde sa date réelle et sa prochaine échéance.
   Quand la grille en cours ne donne pas la prochaine échéance annoncée, une **ligne de décalage**
   (`shift`, sur la même échéance) ancre la suite : à la date réelle quand l'échéance annoncée en part,
-  sinon un pas avant l'échéance annoncée. Une seconde prise du même jour viserait la même échéance :
-  elle n'est pas reprise (comptée).
+  sinon au jour qui y mène (un ou plusieurs pas avant, pour les mois courts). Une prise donnée en
+  avance dont l'échéance annoncée précède celle attendue vise sa propre date. Une seconde prise du
+  même jour viserait la même échéance : elle n'est pas reprise (comptée).
 - **v3** : chaque ligne telle quelle ; l'origine de la grille d'une période est sa première échéance.
-  Un report v3 refaisait partir la suite de sa nouvelle date, et une prise notée un autre jour, de sa
-  date réelle quand sa prochaine échéance en partait (`fixesSuiteFromItsDate`) ; en v4 seul un
-  décalage le fait : une ligne `shift` est ajoutée sur l'échéance du report (le plus récent de la
-  journée, ancré à son arrivée) ou de la prise (ancrée à sa date réelle).
+  En v3, chaque ligne pouvait refaire partir la suite (`sequenceAfter` : report, prise ou oubli dont la
+  prochaine échéance part de sa date, échéance fixée à la main) ; en v4 seule une ligne de décalage le
+  fait. La conversion **rejoue le moteur de la 0.1.56** sur les lignes de chaque période (une ligne
+  par échéance, la plus récente ; reports sans effet ou dépassés écartés comme alors) et pose une
+  ligne `shift` partout où la suite qu'il en tire diffère, au-delà de la journée de la ligne, de celle
+  que le moteur v4 lit dans les lignes déjà converties.
 - **Identifiants** : une ligne de décalage ajoutée prend un UUID tiré de l'identifiant de sa ligne
   d'origine (`derivedId`), toujours le même : un second import ne la duplique pas.
 - **v1 et v2, poids à l'arrivée** (`initialWeightKg`, absent des exports de la 0.1.48) : une pesée
@@ -465,8 +468,13 @@ fichier en entier au moindre défaut, avec les mêmes messages.
   (« Données importées. 2 prises n'ont pas pu être reprises. ») : une injection ou une prise v2 dont
   le vaccin ou le traitement n'est pas dans le fichier ; une seconde prise v1 ou v2 du même jour ; un
   poids à l'arrivée qui n'est pas un poids valable (au-delà de 200 kg, nul, en texte).
-- **Limite connue** : un v3 dont une prise donnée à l'heure, sur un mensuel du 29 au 31, portait une
-  prochaine échéance repartie de sa date (le 28 après un 31) suit en v4 la grille du 31.
+- **Limites connues**, vérifiées par tirages contre les moteurs des deux époques :
+  - à plusieurs heures par jour, un décalage v4 agit après toute la journée : une suite v3 qui
+    repartait d'une heure du matin garde, à l'époque, la dose du soir du même jour ; la conversion
+    ne l'a pas (une dose « à renseigner » de moins) ;
+  - v1 et v2 : deux prises plus rapprochées que la fréquence dont les prochaines échéances annoncées
+    tombent sur le même jour ne peuvent pas viser deux échéances distinctes ; la suite part alors un
+    pas plus tard.
 - Réimporter le même ancien fichier ne duplique rien : les identifiants créés par la conversion sont
   ceux des lignes d'origine, ou en sont tirés.
 
