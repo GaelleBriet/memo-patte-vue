@@ -1,4 +1,4 @@
-import { createI18n } from 'vue-i18n'
+import { createI18n, type PluralizationRule } from 'vue-i18n'
 import en from './locales/en.json'
 import fr from './locales/fr.json'
 
@@ -25,11 +25,15 @@ export function detectLocale(languages: readonly string[]): AppLocale {
   return codes.find(isAppLocale) ?? DEVICE_FALLBACK_LOCALE
 }
 
+const frenchPlural: PluralizationRule = (choice, choicesLength, orgRule) =>
+  choicesLength === 2 && choice === 0 ? 0 : orgRule!(choice, choicesLength)
+
 const i18n = createI18n({
   legacy: false,
   locale: SOURCE_LOCALE,
   fallbackLocale: SOURCE_LOCALE,
   messages: { fr, en },
+  pluralRules: { fr: frenchPlural },
 })
 
 export function applyLocale(locale: AppLocale): void {
