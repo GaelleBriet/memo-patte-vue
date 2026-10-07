@@ -32,6 +32,7 @@ import eventRepeat from '@material-symbols/svg-400/outlined/event_repeat.svg?raw
 import eventUpcoming from '@material-symbols/svg-400/outlined/event_upcoming.svg?raw'
 import folderOff from '@material-symbols/svg-400/outlined/folder_off.svg?raw'
 import gavel from '@material-symbols/svg-400/outlined/gavel.svg?raw'
+import groups from '@material-symbols/svg-400/outlined/groups.svg?raw'
 import help from '@material-symbols/svg-400/outlined/help.svg?raw'
 import history from '@material-symbols/svg-400/outlined/history.svg?raw'
 import home from '@material-symbols/svg-400/outlined/home.svg?raw'
@@ -189,6 +190,7 @@ export const msIcons = {
   first_page: firstPage,
   folder_off: folderOff,
   gavel,
+  groups,
   fullscreen,
   fullscreen_exit: fullscreenExit,
   help,

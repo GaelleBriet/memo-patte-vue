@@ -1177,7 +1177,7 @@
       "exportHint": "JSON ou CSV",
       "exportEmpty": "Rien à exporter pour l’instant",
       "exportPdf": "Exporter en PDF",
-      "exportPdfHint": "Tous tes animaux, en un seul fichier",
+      "exportPdfHint": "Tous les animaux ou un seul",
       "importSection": "Importer",
       "import": "Importer un export MémoPatte",
       "loadError": "La base locale n’a pas répondu. Touche pour réessayer."
@@ -1267,7 +1267,9 @@
       "sheet": {
         "title": "Exporter en PDF",
         "subtitleOne": "Le carnet complet de {name}, prêt à imprimer ou à envoyer.",
-        "subtitleAll": "Le carnet complet de chaque animal, prêt à imprimer ou à envoyer.",
+        "subtitle": "Un carnet de santé imprimable, à garder ou à donner au vétérinaire.",
+        "allAnimals": "Tous les animaux",
+        "allAnimalsLabel": "PDF de tous les animaux suivis : {names}",
         "close": "Fermer",
         "fileContent": "Vaccins, traitements, poids et photos",
         "error": "Le PDF n’a pas pu être préparé. Réessaie."

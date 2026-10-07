@@ -560,6 +560,22 @@ describe('renderCarnetPdf — plusieurs animaux', () => {
     expect(pagesDuPdf.slice(0, 4).every((page) => page.images.length === 0)).toBe(true)
   })
 
+  it('reprend le nom du premier animal en tête de ses pages de suite', () => {
+    for (const page of doc().slice(1, 4)) {
+      expect(enTete(page)).toMatchObject({ text: 'Luna', bold: true })
+    }
+  })
+
+  it('écrit le nom du second animal du même style que celui du premier', () => {
+    const pagesDuPdf = doc()
+    const nom = (page: PdfPage, name: string) => {
+      const { color, bold, sizePt } = page.texts.find((text) => text.text === name)!
+      return { color, bold, sizePt }
+    }
+
+    expect(nom(pagesDuPdf[4]!, 'Milo')).toEqual(nom(pagesDuPdf[0]!, 'Luna'))
+  })
+
   it('numérote les pages sur tout le document', () => {
     doc().forEach((page, index) => {
       expect(page.texts.map((text) => text.text)).toEqual(

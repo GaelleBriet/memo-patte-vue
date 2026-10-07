@@ -1177,7 +1177,7 @@
       "exportHint": "JSON or CSV",
       "exportEmpty": "Nothing to export yet",
       "exportPdf": "Export to PDF",
-      "exportPdfHint": "All your pets, in one file",
+      "exportPdfHint": "All pets or just one",
       "importSection": "Import",
       "import": "Import a MémoPatte export",
       "loadError": "The local database didn’t respond. Tap to try again."
@@ -1267,7 +1267,9 @@
       "sheet": {
         "title": "Export to PDF",
         "subtitleOne": "{name}’s complete health record, ready to print or send.",
-        "subtitleAll": "Each pet’s complete health record, ready to print or send.",
+        "subtitle": "A printable health record, to keep or give to the vet.",
+        "allAnimals": "All pets",
+        "allAnimalsLabel": "PDF of all the pets you follow: {names}",
         "close": "Close",
         "fileContent": "Vaccines, treatments, weight and photos",
         "error": "The PDF couldn’t be prepared. Try again."

@@ -8,7 +8,7 @@ import {
   type DeliveryMode,
   type DeliveryOutcome,
 } from '../logic/export-delivery'
-import { buildCarnetPdfContent, pdfExportFileName } from '../logic/pdf-content'
+import { buildCarnetPdfContent } from '../logic/pdf-content'
 import { renderCarnetPdf } from '../logic/render-carnet-pdf'
 import type { ExportData } from '@/shared/domain/carnet-data'
 import type { CarnetPdfPart } from '../logic/render-carnet-pdf'
@@ -23,9 +23,13 @@ export type PdfExportDependencies = {
     file: { name: string; content: Uint8Array },
     mode: DeliveryMode,
   ) => Promise<DeliveryOutcome>
-  fileNamePrefix: () => string
-  now: () => Date
   appVersion: string
+}
+
+export type PdfExportRequest = {
+  animalIds: readonly string[]
+  fileName: string
+  exportedAt: Date
 }
 
 export function createPdfExportService({
@@ -33,15 +37,12 @@ export function createPdfExportService({
   render,
   loadPhoto,
   deliver,
-  fileNamePrefix,
-  now,
   appVersion,
 }: PdfExportDependencies) {
   return {
     async exportCarnetPdf(
-      animalIds: readonly string[],
+      { animalIds, fileName, exportedAt }: PdfExportRequest,
       mode: DeliveryMode,
-      exportedAt: Date = now(),
     ): Promise<PdfExportOutcome> {
       const data = await collect()
       const today = format(exportedAt, 'yyyy-MM-dd')
@@ -56,14 +57,7 @@ export function createPdfExportService({
             : null,
         })),
       )
-      const names = contents.map(({ animal }) => animal.name)
-      return deliver(
-        {
-          name: pdfExportFileName(fileNamePrefix(), names, exportedAt),
-          content: render(parts, appVersion),
-        },
-        mode,
-      )
+      return deliver({ name: fileName, content: render(parts, appVersion) }, mode)
     },
   }
 }
@@ -75,7 +69,5 @@ export const pdfExportService = createPdfExportService({
   render: renderCarnetPdf,
   loadPhoto: (fileName) => photoBase64DataUrl(fileName).catch(() => null),
   deliver: (file, mode) => deliverExportFile(file, mode, i18n.global.t('settings.pdf.shareTitle')),
-  fileNamePrefix: () => i18n.global.t('settings.pdf.fileNamePrefix'),
-  now: () => new Date(),
   appVersion: import.meta.env.VITE_APP_VERSION,
 })

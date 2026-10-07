@@ -93,12 +93,13 @@ export function renderCarnetPdf(parts: readonly CarnetPdfPart[], appVersion: str
     renderAnimal(doc, part, t)
   })
 
-  const generatedOn = parts[0]?.content.generatedOn
+  const [first] = parts
   writeFooters(
     doc,
-    generatedOn
-      ? t('settings.pdf.footer', { date: formatLongDate(generatedOn), version: appVersion })
-      : '',
+    t('settings.pdf.footer', {
+      date: formatLongDate(first!.content.generatedOn),
+      version: appVersion,
+    }),
     t,
   )
 

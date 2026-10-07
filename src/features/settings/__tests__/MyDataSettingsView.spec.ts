@@ -273,7 +273,7 @@ describe('MyDataSettingsView', () => {
       const ligne = lignePdf(wrapper)
 
       expect(ligne.get('.settings-row__label').text()).toBe('Exporter en PDF')
-      expect(ligne.get('.settings-row__hint').text()).toBe('Tous tes animaux, en un seul fichier')
+      expect(ligne.get('.settings-row__hint').text()).toBe('Tous les animaux ou un seul')
       expect(ligne.find('.plus-badge').exists()).toBe(false)
       expect(ligne.find('.d-sr-only').exists()).toBe(false)
       expect(ligne.attributes('disabled')).toBeUndefined()

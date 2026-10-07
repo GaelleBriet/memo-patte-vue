@@ -5,19 +5,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import PdfExportSheet, { type PdfExportAnimal } from '../views/PdfExportSheet.vue'
 import type { DeliveryMode } from '../logic/export-delivery'
 import type { SaveAccess } from '../logic/export-storage-access'
-import type { PdfExportOutcome } from '../service/pdf-export.service'
+import type { PdfExportOutcome, PdfExportRequest } from '../service/pdf-export.service'
 import i18n, { applyLocale } from '@/core/i18n'
 import vuetify from '@/core/theme/vuetify'
 import { dismissToast, runToastAction, toastAction, toastMessage } from '@/shared/utils/toast'
 
 const exportCarnetPdf = vi.hoisted(() =>
-  vi.fn<
-    (
-      animalIds: readonly string[],
-      mode: DeliveryMode,
-      exportedAt?: Date,
-    ) => Promise<PdfExportOutcome>
-  >(),
+  vi.fn<(request: PdfExportRequest, mode: DeliveryMode) => Promise<PdfExportOutcome>>(),
 )
 const storage = vi.hoisted(() => ({
   checkSaveAccess: vi.fn<() => Promise<SaveAccess>>(),
@@ -41,6 +35,7 @@ const SAVED_PDF = {
 
 const MILO: PdfExportAnimal = { id: 'milo-id', name: 'Milo' }
 const LUNA: PdfExportAnimal = { id: 'luna-id', name: 'Luna' }
+const PIXEL: PdfExportAnimal = { id: 'pixel-id', name: 'Pixel' }
 const OPENED_AT = new Date('2026-09-23T10:30:00')
 
 let wrapper: VueWrapper | null = null
@@ -94,8 +89,15 @@ function feuille(): HTMLElement {
   return element
 }
 
-function choix(): HTMLElement[] {
-  return [...feuille().querySelectorAll<HTMLElement>('[role="radio"]')]
+function choix(): HTMLButtonElement[] {
+  return [...feuille().querySelectorAll<HTMLButtonElement>('.pdf-export-sheet__choices button')]
+}
+
+async function choisir(label: string): Promise<void> {
+  choix()
+    .find((bouton) => bouton.querySelector('.settings-row__label')?.textContent?.trim() === label)!
+    .click()
+  await flushPromises()
 }
 
 function carteFichier(): HTMLElement | null {
@@ -148,7 +150,10 @@ describe('PdfExportSheet', () => {
     await flushPromises()
 
     expect(storage.requestSaveAccess).toHaveBeenCalledOnce()
-    expect(exportCarnetPdf).toHaveBeenCalledExactlyOnceWith(['milo-id'], 'save', OPENED_AT)
+    expect(exportCarnetPdf).toHaveBeenCalledExactlyOnceWith(
+      { animalIds: ['milo-id'], fileName: 'carnet-milo-20260923-1030.pdf', exportedAt: OPENED_AT },
+      'save',
+    )
     expect(wrapper!.emitted('update:modelValue')).toEqual([[false]])
     expect(toastMessage.value).toBe('PDF enregistré dans Documents › MémoPatte')
     expect(toastAction.value).toMatchObject({ label: 'Ouvrir', ariaLabel: 'Ouvrir le PDF' })
@@ -190,19 +195,42 @@ describe('PdfExportSheet', () => {
     await flushPromises()
 
     expect(storage.requestSaveAccess).not.toHaveBeenCalled()
-    expect(exportCarnetPdf).toHaveBeenCalledExactlyOnceWith(['milo-id'], 'share', OPENED_AT)
+    expect(exportCarnetPdf).toHaveBeenCalledExactlyOnceWith(
+      { animalIds: ['milo-id'], fileName: 'carnet-milo-20260923-1030.pdf', exportedAt: OPENED_AT },
+      'share',
+    )
     expect(wrapper!.emitted('update:modelValue')).toEqual([[false]])
     expect(toastMessage.value).toBe('PDF exporté')
     expect(toastAction.value).toBeNull()
   })
 
-  it('présente un seul fichier pour tous les animaux, sans choix, et les exporte dans l’ordre', async () => {
-    await monter([MILO, LUNA])
+  it('propose « Tous les animaux » puis chaque animal, dans l’ordre des chips, sans actions', async () => {
+    await monter([PIXEL, MILO, LUNA])
 
     expect(feuille().querySelector('.bottom-sheet__subtitle')?.textContent).toBe(
-      'Le carnet complet de chaque animal, prêt à imprimer ou à envoyer.',
+      'Un carnet de santé imprimable, à garder ou à donner au vétérinaire.',
     )
+    expect(
+      choix().map((bouton) => bouton.querySelector('.settings-row__label')?.textContent?.trim()),
+    ).toEqual(['Tous les animaux', 'Pixel', 'Milo', 'Luna'])
+    expect(choix()[0]!.querySelector('.settings-row__hint')?.textContent?.trim()).toBe(
+      'Pixel, Milo, Luna',
+    )
+    expect(choix()[0]!.getAttribute('aria-label')).toBe(
+      'PDF de tous les animaux suivis\u00a0: Pixel, Milo, Luna',
+    )
+    expect(choix().every((bouton) => bouton.querySelector('.settings-row__chevron'))).toBe(true)
+    expect(carteFichier()).toBeNull()
+    expect(feuille().querySelector('.export-actions__save')).toBeNull()
+  })
+
+  it('« Tous les animaux » exporte les animaux transmis, dans l’ordre des chips, sous le nom affiché', async () => {
+    await monter([PIXEL, MILO, LUNA])
+
+    await choisir('Tous les animaux')
+
     expect(choix()).toHaveLength(0)
+    expect(document.activeElement).toBe(carteFichier())
     expect(carteFichier()?.querySelector('.pdf-export-sheet__file-name')?.textContent?.trim()).toBe(
       'carnet-memopatte-20260923-1030.pdf',
     )
@@ -211,19 +239,41 @@ describe('PdfExportSheet', () => {
     await flushPromises()
 
     expect(exportCarnetPdf).toHaveBeenCalledExactlyOnceWith(
-      ['milo-id', 'luna-id'],
+      {
+        animalIds: ['pixel-id', 'milo-id', 'luna-id'],
+        fileName: 'carnet-memopatte-20260923-1030.pdf',
+        exportedAt: OPENED_AT,
+      },
       'save',
-      OPENED_AT,
     )
   })
 
-  it('présente tous les animaux en anglais', async () => {
+  it('un animal choisi exporte son seul carnet, nommé d’après lui', async () => {
+    await monter([MILO, LUNA])
+
+    await choisir('Luna')
+    partager().click()
+    await flushPromises()
+
+    expect(exportCarnetPdf).toHaveBeenCalledExactlyOnceWith(
+      { animalIds: ['luna-id'], fileName: 'carnet-luna-20260923-1030.pdf', exportedAt: OPENED_AT },
+      'share',
+    )
+  })
+
+  it('présente le choix en anglais', async () => {
     applyLocale('en')
     await monter([MILO, LUNA])
 
     expect(feuille().querySelector('.bottom-sheet__subtitle')?.textContent).toBe(
-      'Each pet’s complete health record, ready to print or send.',
+      'A printable health record, to keep or give to the vet.',
     )
+    expect(choix()[0]!.getAttribute('aria-label')).toBe(
+      'PDF of all the pets you follow: Milo, Luna',
+    )
+
+    await choisir('All pets')
+
     expect(carteFichier()?.querySelector('.pdf-export-sheet__file-name')?.textContent?.trim()).toBe(
       'health-record-memopatte-20260923-1030.pdf',
     )
@@ -272,6 +322,7 @@ describe('PdfExportSheet', () => {
     vi.spyOn(console, 'warn').mockImplementation(() => {})
     const wrapper = await monter([MILO, LUNA])
 
+    await choisir('Milo')
     enregistrer().click()
     await flushPromises()
 
@@ -284,5 +335,6 @@ describe('PdfExportSheet', () => {
     await flushPromises()
 
     expect(feuille().querySelector('[role="alert"]')).toBeNull()
+    expect(choix()).toHaveLength(3)
   })
 })
