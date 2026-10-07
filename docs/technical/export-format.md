@@ -126,11 +126,13 @@ la liste des appareils (`devices[]`). Le CSV ne reprend ni les appareils ni leur
 | `exportedAt`    | ISO 8601 UTC           | Instant de l'export                                                  |
 | `appVersion`    | texte                  | Version de l'app (`package.json`) qui a produit le fichier           |
 
-L'import n'accepte **que la version 4** (spec Données DO-8) : un `schemaVersion` supérieur est refusé
-(« Cet export vient d'une version plus récente de l'app. »), un `schemaVersion` inférieur aussi
-(« Cet export vient d'une version plus ancienne de MémoPatte. Il ne peut plus être importé. »). Les formats v1 (jusqu'à la 0.1.40), v2
-(jusqu'à la 0.1.48) et v3 (jusqu'à la 0.1.56) ne se relisent plus, sans conversion : l'app n'est pas publiée, les fichiers
-existants ne portent que des données de test (décision du 2026-09-29).
+L'import lit la **version 4** et **convertit** les formats plus anciens (spec Données DO-8, #469) ;
+un `schemaVersion` supérieur est refusé (« Cet export vient d'une version plus récente de l'app. »).
+Les formats v1 (jusqu'à la 0.1.40), v2 (jusqu'à la 0.1.48) et v3 (jusqu'à la 0.1.56) passent par
+`src/features/settings/logic/export-upgrade.ts`, module pur, puis par la même validation et le même
+tout ou rien qu'un fichier v4 (voir [Anciens formats](#anciens-formats--conversion-469)). Un vrai
+fichier de chaque format publié vit dans `src/features/settings/__tests__/fixtures/` :
+`known-export-formats.spec.ts` échoue si un format n'y a plus de fichier ou ne se relit plus.
 
 Dates : une date civile s'écrit `AAAA-MM-JJ`, existe au calendrier et tombe entre 1900 et 2199 ; un
 instant s'écrit en ISO 8601 UTC (`Z`), entre les mêmes années ; une heure s'écrit `HH:mm` sur 24 h.
@@ -323,8 +325,9 @@ d'écriture ne journalise que le type de l'erreur).
     JSON, pas d'entier `schemaVersion` strictement positif, champ obligatoire absent ou mal formé →
     « Ce fichier n'est pas un export MémoPatte. » ;
   - **la version tranche avant toute validation** : `schemaVersion` supérieur à 4 → « Cet export
-    vient d'une version plus récente de l'app. » ; inférieur à 4 → « Cet export vient d'une version
-    plus ancienne de MémoPatte. Il ne peut plus être importé. » ; dans les deux cas, quel que soit le reste du contenu ;
+    vient d'une version plus récente de l'app. », quel que soit le reste du contenu ; inférieur à 4 →
+    le fichier est converti, puis validé comme un fichier v4 ; un ancien fichier illisible → « Ce
+    fichier n'est pas un export MémoPatte. » ;
   - chaque champ a son type exact (un booléen n'est pas `1`, un nombre n'est pas du texte), ses
     valeurs fermées (espèce, type, unité de fréquence, état d'une prise, motif du départ, unité de
     posologie, moment du rappel) et ses bornes : dates civiles réelles entre 1900 et 2199, instants
@@ -422,6 +425,34 @@ d'écriture ne journalise que le type de l'erreur).
   carnet a des échéances et que la permission n'a jamais été demandée
   (`promptNotificationsIfReminders(router, 'settings')`) ; les autres écrans relisent la base à leur
   ouverture.
+
+### Anciens formats : conversion (#469)
+
+La conversion réécrit le fichier au format v4, sans rien vérifier d'autre que sa forme : les valeurs
+(dates, identifiants, bornes, noms) sont jugées ensuite par la validation de la v4, qui refuse le
+fichier en entier au moindre défaut, avec les mêmes messages.
+
+- **Champs ajoutés depuis** : valeurs par défaut — animal suivi, sans date approximative ni départ ;
+  vaccin sans rappel prévu ; période sans heure, sans posologie, rappel à l'heure du carnet, sans date
+  de fin ; réglages du carnet absents (`null`) avant la v3 ; `devices` vide.
+- **Appareil** : `createdByDevice` et `updatedByDevice` prennent l'appareil qui importe.
+- **v1** : la ligne d'un vaccin donne aussi son injection (date et rappel de la dernière injection),
+  la ligne d'un traitement donne sa prise donnée (date de la dernière prise, prochaine échéance),
+  chacune à l'identifiant de son parent.
+- **v1 et v2, traitements** : une seule période, à l'identifiant du traitement, avec sa fréquence et
+  sa date d'arrêt ; elle commence à la première prise connue (ou à l'arrêt s'il est plus tôt, ou au
+  jour de création d'un traitement sans prise), et c'est aussi sa première échéance et l'origine de
+  sa grille. Chaque prise est « donnée », à son jour réel, sans heure, avec sa prochaine échéance
+  telle quelle.
+- **v1 et v2, poids à l'arrivée** (`initialWeightKg`) : une pesée datée du jour de création de
+  l'animal, à l'identifiant de l'animal (modèle v2, M7).
+- **v3** : chaque ligne telle quelle ; l'origine de la grille d'une période est sa première échéance.
+- **Ce qui ne se reprend pas**, compté et dit dans le toast de fin d'import, sans bloquer le reste
+  (« Données importées. 2 prises n'ont pas pu être reprises. ») : une injection ou une prise v2 dont
+  le vaccin ou le traitement n'est pas dans le fichier ; un poids à l'arrivée qui n'est pas un poids
+  valable (au-delà de 200 kg, nul, en texte).
+- Réimporter le même ancien fichier ne duplique rien : les identifiants créés par la conversion sont
+  ceux des lignes d'origine.
 
 ## CSV — `memopatte-export-AAAAMMJJ-HHmm.zip`
 

@@ -65,10 +65,10 @@ par le partage d'Android ; export d'un seul animal en JSON (piste « à prévoir
 - **DO-7** JSON seulement, depuis Paramètres ou l'accueil de bienvenue ; si des données existent :
   « Fusionner » (ajoute ce qui manque, la modification la plus récente gagne) ou « Remplacer »
   (confirmé, irréversible). (Existant, #413)
-- **DO-8** N'accepte que le format v3 ; un fichier plus ancien est refusé avec un message clair. Pas de
-  conversion des anciens formats : l'app n'est pas publiée et toutes les données actuelles sont des
-  données de test. (Revue du modèle, 2026-09-29)
-- **DO-9** Refus du fichier entier, avec un message clair : version plus ancienne ou plus récente, valeur hors limites,
+- **DO-8** Relit le format courant et convertit un export plus ancien (v1, v2, v3) avant de le valider
+  comme un récent ; ce que la conversion ne peut pas reprendre est compté et dit après l'import
+  (« 2 prises n'ont pas pu être reprises. »). Tout format publié reste lisible. (#469)
+- **DO-9** Refus du fichier entier, avec un message clair : version plus récente, valeur hors limites,
   nom trop long, entrée rattachée à un autre animal. (Existant)
 - **DO-10** Après un import, les rappels sont reconstruits, puis l'écran « Ne rate plus aucun rappel »
   vient si l'autorisation n'a jamais été demandée sur ce téléphone (spec Rappels, RA-21). (Existant ;
