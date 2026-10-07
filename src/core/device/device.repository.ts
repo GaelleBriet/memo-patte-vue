@@ -93,6 +93,10 @@ export function createDeviceRepository(
           }
     },
 
+    eraseAllStatement(): SqlStatement {
+      return { sql: 'DELETE FROM device' }
+    },
+
     async getRowForPush(id: string): Promise<SyncRow | null> {
       const rows = await db.query<SyncRow>(`SELECT ${COLUMNS} FROM device WHERE id = ?`, [id])
       return rows[0] ?? null

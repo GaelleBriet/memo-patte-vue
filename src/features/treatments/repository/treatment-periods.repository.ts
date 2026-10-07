@@ -357,6 +357,10 @@ export function createTreatmentPeriodsRepository(
       }
     },
 
+    eraseAllStatement(): SqlStatement {
+      return { sql: 'DELETE FROM treatment_period' }
+    },
+
     markAllDeletedStatement(deletedAt: string): SqlStatement {
       return {
         sql: `UPDATE treatment_period SET deleted_at = ?, updated_at = ?, updated_by_device = ?

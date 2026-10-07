@@ -470,6 +470,8 @@ interface FakeAnimalsRepository {
   listRecords: Mock<AnimalsRepository['listRecords']>
   listVersions: Mock<AnimalsRepository['listVersions']>
   markAllDeletedStatement: Mock<AnimalsRepository['markAllDeletedStatement']>
+  eraseAllStatement: Mock<AnimalsRepository['eraseAllStatement']>
+  eraseAll: Mock<AnimalsRepository['eraseAll']>
   restoreStatement: Mock<AnimalsRepository['restoreStatement']>
   runImport: Mock<AnimalsRepository['runImport']>
   entity: AnimalsRepository['entity']
@@ -553,6 +555,8 @@ function createFakeRepository(): FakeAnimalsRepository {
     listRecords: vi.fn<AnimalsRepository['listRecords']>(),
     listVersions: vi.fn<AnimalsRepository['listVersions']>(),
     markAllDeletedStatement: vi.fn<AnimalsRepository['markAllDeletedStatement']>(),
+    eraseAllStatement: vi.fn<AnimalsRepository['eraseAllStatement']>(),
+    eraseAll: vi.fn<AnimalsRepository['eraseAll']>(),
     restoreStatement: vi.fn<AnimalsRepository['restoreStatement']>(),
     runImport: vi.fn<AnimalsRepository['runImport']>(),
     entity: 'animal',

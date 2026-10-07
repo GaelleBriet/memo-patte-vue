@@ -132,6 +132,18 @@ describe('ConfirmDialog', () => {
     expect(wrapper.emitted('confirm')).toHaveLength(1)
   })
 
+  it('sur demande, place la confirmation destructive au-dessus de « Annuler »', async () => {
+    await monter({ stacked: true })
+
+    const actions = document.body.querySelector('.confirm-dialog__actions')!
+    expect(actions.classList).toContain('confirm-dialog__actions--stacked')
+    expect([...actions.querySelectorAll('.v-btn')].map((a) => a.textContent?.trim())).toEqual([
+      'Arrêter',
+      'Annuler',
+    ])
+    expect(bouton('confirm').classList).toContain('text-error')
+  })
+
   it('donne le focus initial à « Annuler »', async () => {
     await monter({ modelValue: false })
 

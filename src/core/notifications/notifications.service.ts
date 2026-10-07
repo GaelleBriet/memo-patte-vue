@@ -174,6 +174,13 @@ export async function scheduleReminders(reminders: Reminder[]): Promise<void> {
   })
 }
 
+/** Tout ce que l'app a programmé ou affiché, y compris d'une session précédente. */
+export async function cancelAllNotifications(): Promise<void> {
+  const { notifications: pending } = await LocalNotifications.getPending()
+  await cancelIds(pending.map(({ id }) => id))
+  await LocalNotifications.removeAllDeliveredNotifications()
+}
+
 /** Retire du volet des notifications déjà affichées ; `cancel` ne touche qu'aux rappels à venir. */
 export async function removeDelivered(ids: number[]): Promise<void> {
   if (ids.length === 0) return

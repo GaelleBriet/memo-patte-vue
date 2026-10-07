@@ -15,11 +15,19 @@ import {
   USAGE_SIGNALS_STORAGE_KEY,
 } from '@/shared/utils/usage-signals'
 
+import { PLUS_ACCOUNT_STORAGE_KEY } from '../logic/plus-account-storage'
+import { authRepository, type AuthRepository } from '../repository/auth.repository'
 import {
   clearDeviceAccountState,
   clearSignedOutAccountState,
+  isSignedInOnDevice,
+  signOutDevice,
 } from '../service/device-account-state.service'
 import { memoryStorage, type MemoryStorage } from './auth-fixture'
+
+vi.mock('../repository/auth.repository', () => ({
+  authRepository: { signOut: vi.fn<AuthRepository['signOut']>(async () => {}) },
+}))
 
 const UNRELATED_KEYS = [ANALYTICS_CONSENT_KEY, 'memopatte.notifications.primingAnswered']
 
@@ -99,5 +107,26 @@ describe('clearDeviceAccountState', () => {
 
     expect(() => clearDeviceAccountState()).not.toThrow()
     expect(readUsageSignals().photo.count).toBe(0)
+  })
+})
+
+describe('compte sur l’appareil', () => {
+  const ACCOUNT = '{"userId":"5b0f3f0e-8a4c-4d1a-9c39-3f4f3b2f6a11"}'
+
+  it('se sait connecté tant que le compte Plus est retenu sur l’appareil', () => {
+    expect(isSignedInOnDevice()).toBe(false)
+
+    storage.setItem(PLUS_ACCOUNT_STORAGE_KEY, ACCOUNT)
+
+    expect(isSignedInOnDevice()).toBe(true)
+  })
+
+  it('se déconnecte de Supabase puis oublie le compte', async () => {
+    storage.setItem(PLUS_ACCOUNT_STORAGE_KEY, ACCOUNT)
+
+    await signOutDevice()
+
+    expect(vi.mocked(authRepository).signOut).toHaveBeenCalledOnce()
+    expect(isSignedInOnDevice()).toBe(false)
   })
 })

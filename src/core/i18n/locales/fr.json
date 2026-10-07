@@ -1202,6 +1202,33 @@
       "plus": "MémoPatte Plus ajoute une sauvegarde cloud garantie, photos comprises, et la restaure sur un nouveau téléphone.",
       "discoverPlus": "Découvrir MémoPatte Plus"
     },
+    "erase": {
+      "screenTitle": "Effacer les données",
+      "screenSubtitle": "de ce téléphone",
+      "title": "Effacer les données de ce téléphone",
+      "removed": "Tout le carnet est retiré de ce téléphone : animaux, traitements, vaccins, poids et photos.",
+      "removedSignedIn": "Le carnet est retiré de ce téléphone.",
+      "unsynced": "Tes derniers changements ne sont pas encore dans ta sauvegarde cloud. Connecte-toi à Internet et attends la sauvegarde, ou exporte une copie.",
+      "cloudKept": "Ta sauvegarde cloud n’est pas touchée : tu pourras la restaurer sur ce téléphone ou un autre.",
+      "signOut": "Cet appareil sera déconnecté de ton compte.",
+      "copy": "Avant d’effacer, exporte une copie de ton carnet.",
+      "reminders": "Plus aucun rappel ne sonnera sur ce téléphone.",
+      "exports": "Les exports enregistrés dans Documents › MémoPatte restent sur le téléphone.",
+      "restart": "Après l’effacement, MémoPatte redémarre comme au premier lancement.",
+      "continue": "Continuer",
+      "cancel": "Annuler",
+      "confirm": {
+        "title": "Effacer les données de ce téléphone ?",
+        "text": "Sans copie, ton carnet ne pourra pas être retrouvé.",
+        "erase": "Effacer"
+      },
+      "final": {
+        "title": "Effacer définitivement ?",
+        "text": "Toutes les données de MémoPatte seront effacées de ce téléphone.",
+        "erase": "Effacer définitivement"
+      },
+      "error": "Les données n’ont pas pu être effacées. Réessaie."
+    },
     "data": {
       "title": "Mes données",
       "summary": "Unité, export, PDF, import",

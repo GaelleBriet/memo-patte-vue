@@ -195,6 +195,13 @@ export function withdrawDueReminders(
   })
 }
 
+/** Après les tâches déjà en file : aucune reprogrammation en attente ne repasse derrière. Lève. */
+export function cancelAllDueReminders(
+  port: Pick<typeof notifications, 'cancelAllNotifications'>,
+): Promise<void> {
+  return enqueueReminderTask(() => port.cancelAllNotifications())
+}
+
 /** Ne lève jamais. Annuler ne demande pas la permission. */
 export function cancelDueReminders(port: CancelPort, entries: DueReminderEntry[]): Promise<void> {
   return enqueueReminderTask(async () => {

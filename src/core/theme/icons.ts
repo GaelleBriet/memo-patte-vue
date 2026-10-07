@@ -13,10 +13,12 @@ import check from '@material-symbols/svg-400/outlined/check.svg?raw'
 import checkCircleFill from '@material-symbols/svg-400/outlined/check_circle-fill.svg?raw'
 import cloudDone from '@material-symbols/svg-400/outlined/cloud_done.svg?raw'
 import cloudOff from '@material-symbols/svg-400/outlined/cloud_off.svg?raw'
+import cloudUpload from '@material-symbols/svg-400/outlined/cloud_upload.svg?raw'
 import creditCard from '@material-symbols/svg-400/outlined/credit_card.svg?raw'
 import dataObject from '@material-symbols/svg-400/outlined/data_object.svg?raw'
 import dateRange from '@material-symbols/svg-400/outlined/date_range.svg?raw'
 import deleteIcon from '@material-symbols/svg-400/outlined/delete.svg?raw'
+import deleteForever from '@material-symbols/svg-400/outlined/delete_forever.svg?raw'
 import deleteSweep from '@material-symbols/svg-400/outlined/delete_sweep.svg?raw'
 import devices from '@material-symbols/svg-400/outlined/devices.svg?raw'
 import doNotDisturbOn from '@material-symbols/svg-400/outlined/do_not_disturb_on.svg?raw'
@@ -31,6 +33,7 @@ import eventAvailable from '@material-symbols/svg-400/outlined/event_available.s
 import eventBusy from '@material-symbols/svg-400/outlined/event_busy.svg?raw'
 import eventRepeat from '@material-symbols/svg-400/outlined/event_repeat.svg?raw'
 import eventUpcoming from '@material-symbols/svg-400/outlined/event_upcoming.svg?raw'
+import folder from '@material-symbols/svg-400/outlined/folder.svg?raw'
 import folderOff from '@material-symbols/svg-400/outlined/folder_off.svg?raw'
 import gavel from '@material-symbols/svg-400/outlined/gavel.svg?raw'
 import help from '@material-symbols/svg-400/outlined/help.svg?raw'
@@ -172,11 +175,13 @@ export const msIcons = {
   close,
   cloud_done: cloudDone,
   cloud_off: cloudOff,
+  cloud_upload: cloudUpload,
   colorize,
   credit_card: creditCard,
   data_object: dataObject,
   date_range: dateRange,
   delete: deleteIcon,
+  delete_forever: deleteForever,
   delete_sweep: deleteSweep,
   devices,
   do_not_disturb_on: doNotDisturbOn,
@@ -192,6 +197,7 @@ export const msIcons = {
   event_repeat: eventRepeat,
   event_upcoming: eventUpcoming,
   first_page: firstPage,
+  folder,
   folder_off: folderOff,
   gavel,
   fullscreen,
