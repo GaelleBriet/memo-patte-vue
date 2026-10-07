@@ -2,6 +2,20 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { clearAppStorage } from '../utils/app-storage'
 
+const sources = import.meta.glob<string>(['/src/**/*.ts', '!**/__tests__/**'], {
+  query: '?raw',
+  import: 'default',
+  eager: true,
+})
+
+function storageKeysInSources(): string[] {
+  return Object.values(sources)
+    .filter((source) => /localStorage|storage\.(get|set)Item|STORAGE_KEY/.test(source))
+    .flatMap((source) =>
+      Array.from(source.matchAll(/const [A-Z_]*KEY = ['`]([^'`]+)['`]/g), ([, key]) => key!),
+    )
+}
+
 afterEach(() => {
   localStorage.clear()
   vi.restoreAllMocks()
@@ -18,6 +32,17 @@ describe('clearAppStorage', () => {
     clearAppStorage()
 
     expect(Object.keys(localStorage).sort()).toEqual(['autre-app', 'memo-patte:fixtures-token'])
+  })
+
+  it('couvre chaque clé que l’app range dans le stockage, hors fixtures de développement', () => {
+    const keys = storageKeysInSources()
+
+    expect(keys).toEqual(
+      expect.arrayContaining(['memopatte.home.messages', 'memopatte.notifications.exactSuggested']),
+    )
+    expect(keys.filter((key) => !key.startsWith('memopatte.'))).toEqual([
+      'memo-patte:fixtures-token',
+    ])
   })
 
   it('ne lève pas quand le stockage est inaccessible', () => {
