@@ -1283,6 +1283,8 @@
       "exportEmpty": "Rien à exporter pour l’instant",
       "exportPdf": "Exporter en PDF",
       "exportPdfHint": "Tous les animaux ou un seul",
+      "exportPdfHintOne": "PDF du carnet de {name}",
+      "exportPdfHintOneOfSeveral": "Un animal au choix",
       "importSection": "Importer",
       "import": "Importer un export MémoPatte",
       "loadError": "La base locale n’a pas répondu. Touche pour réessayer."

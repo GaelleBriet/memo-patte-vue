@@ -1283,6 +1283,8 @@
       "exportEmpty": "Nothing to export yet",
       "exportPdf": "Export to PDF",
       "exportPdfHint": "All pets or just one",
+      "exportPdfHintOne": "PDF of {name}’s health record",
+      "exportPdfHintOneOfSeveral": "One pet of your choice",
       "importSection": "Import",
       "import": "Import a MémoPatte export",
       "loadError": "The local database didn’t respond. Tap to try again."

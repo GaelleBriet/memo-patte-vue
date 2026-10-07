@@ -6,7 +6,7 @@ import { useRouter } from 'vue-router'
 import ExportSheet from './ExportSheet.vue'
 import ImportSheet from './ImportSheet.vue'
 import { useExportAvailability } from '../composables/use-export-availability'
-import { toPdfExportAnimals } from '../logic/pdf-export-animals'
+import { pdfExportChoice, toPdfExportAnimals } from '../logic/pdf-export-animals'
 
 const PdfExportSheet = defineAsyncComponent(() => import('./PdfExportSheet.vue'))
 import { promptNotificationsIfReminders } from '@/app/reminders-priming'
@@ -40,6 +40,12 @@ const weightUnitOptions = computed(() =>
 const { hasLoadFailed, hasNothingToExport, canExport, retryLoad } = useExportAvailability()
 const followedPdfAnimals = computed(() => toPdfExportAnimals(animals.followedAnimals))
 const unfollowedPdfAnimals = computed(() => toPdfExportAnimals(animals.unfollowedAnimals))
+const exportPdfHint = computed(() => {
+  const choice = pdfExportChoice(followedPdfAnimals.value, unfollowedPdfAnimals.value)
+  if (choice?.kind === 'one') return t('settings.data.exportPdfHintOne', { name: choice.name })
+  if (choice?.kind === 'oneOfSeveral') return t('settings.data.exportPdfHintOneOfSeveral')
+  return t('settings.data.exportPdfHint')
+})
 
 function onExportRow(): void {
   if (hasLoadFailed.value) retryLoad()
@@ -140,7 +146,7 @@ function goBack(): void {
             <span v-else-if="hasNothingToExport" class="settings-row__hint">
               {{ t('settings.data.exportEmpty') }}
             </span>
-            <span v-else class="settings-row__hint">{{ t('settings.data.exportPdfHint') }}</span>
+            <span v-else class="settings-row__hint">{{ exportPdfHint }}</span>
           </span>
           <v-icon
             v-if="canExport"
