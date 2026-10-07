@@ -87,6 +87,7 @@ describe('SettingsView', () => {
       'Mes données',
       'MémoPatte Plus',
       'Confidentialité',
+      'Aide et contact',
       'À propos',
     ])
     expect(wrapper.find('.section-card').exists()).toBe(false)
@@ -103,6 +104,7 @@ describe('SettingsView', () => {
       'MémoPatte Plus',
       'Compte',
       'Confidentialité',
+      'Aide et contact',
       'À propos',
     ])
   })
@@ -114,6 +116,7 @@ describe('SettingsView', () => {
     ['plus', 'settings-plus'],
     ['account', 'settings-account'],
     ['privacy', 'settings-privacy'],
+    ['help', 'settings-help'],
     ['about', 'settings-about'],
   ])('ouvre la page de la rubrique %s', async (rubrique, route) => {
     writePlusAccount({ userId: USER_ID })
@@ -169,11 +172,12 @@ describe('SettingsView', () => {
       expect(sousTitre(wrapper, 'plus')).toBe('Plus annuel jusqu’au 14/09/2027')
     })
 
-    it('Confidentialité et Compte n’ont pas de sous-titre', async () => {
+    it('Confidentialité, Compte et Aide et contact n’ont pas de sous-titre', async () => {
       writePlusAccount({ userId: USER_ID })
       const wrapper = await monter()
 
       expect(wrapper.find('.settings-row--privacy .settings-row__hint').exists()).toBe(false)
+      expect(wrapper.find('.settings-row--help .settings-row__hint').exists()).toBe(false)
       expect(wrapper.find('.settings-row--account .settings-row__hint').exists()).toBe(false)
     })
   })
@@ -189,6 +193,7 @@ describe('SettingsView', () => {
       'My data',
       'MémoPatte Plus',
       'Privacy',
+      'Help & contact',
       'About',
     ])
     expect(sousTitre(wrapper, 'reminders')).toBe('Allowed · exact reminders')

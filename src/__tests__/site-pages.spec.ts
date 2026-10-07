@@ -4,6 +4,8 @@ import { join } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
+import { helpPageUrl, remindersHelpUrl } from '@/shared/domain/help-page'
+
 const SITE = 'site'
 const SITE_URL = 'https://memopatte.gaelle-briet.fr'
 const CONTACT_EMAIL = 'memopatte@gaelle-briet.fr'
@@ -54,7 +56,15 @@ const translations = [
   { name: 'accueil', fr: '/', en: '/en/' },
   { name: 'politique de confidentialité', fr: '/confidentialite/', en: '/en/privacy/' },
   { name: 'suppression de compte', fr: '/suppression-compte/', en: '/en/delete-account/' },
+  { name: 'aide', fr: '/aide/', en: '/en/help/' },
 ]
+
+const helpPages = {
+  fr: { url: helpPageUrl('fr'), faq: 'questions' },
+  en: { url: helpPageUrl('en'), faq: 'faq' },
+}
+
+const idsOf = (html: string) => new Set([...html.matchAll(/\bid="([^"]+)"/g)].map((m) => m[1]))
 
 const policies = { fr: '/confidentialite/', en: '/en/privacy/' }
 const deletions = { fr: '/suppression-compte/', en: '/en/delete-account/' }
@@ -169,6 +179,32 @@ describe('site public memopatte.gaelle-briet.fr', () => {
 
     it('la politique renvoie aux mentions légales', () => {
       expect(read(fileOf(policies[lang]))).toContain(`href="${LEGAL_NOTICE}"`)
+    })
+  })
+
+  describe.each(languages)('page d’aide en %s', (lang) => {
+    const { url, faq } = helpPages[lang]
+    const html = read(fileOf(url.replace(SITE_URL, '')))
+
+    it('commence par les questions fréquentes, avant les rappels', () => {
+      const ids = [...idsOf(html)]
+      const reminders = new URL(remindersHelpUrl(lang)).hash.slice(1)
+      expect(ids.indexOf(faq)).toBeGreaterThanOrEqual(0)
+      expect(ids.indexOf(faq)).toBeLessThan(ids.indexOf(reminders))
+    })
+
+    it('a la section que l’app ouvre pour les rappels', () => {
+      expect(idsOf(html)).toContain(new URL(remindersHelpUrl(lang)).hash.slice(1))
+    })
+
+    it('ne renvoie qu’à des sections qui existent', () => {
+      const anchors = [...html.matchAll(/href="#([^"]+)"/g)].map((m) => m[1])
+      expect(anchors.length).toBeGreaterThan(0)
+      for (const anchor of anchors) expect(idsOf(html), `#${anchor}`).toContain(anchor)
+    })
+
+    it('donne l’e-mail de contact', () => {
+      expect(html).toContain(`href="${CONTACT}"`)
     })
   })
 

@@ -14,6 +14,7 @@ import checkCircleFill from '@material-symbols/svg-400/outlined/check_circle-fil
 import cloudDone from '@material-symbols/svg-400/outlined/cloud_done.svg?raw'
 import cloudOff from '@material-symbols/svg-400/outlined/cloud_off.svg?raw'
 import cloudUpload from '@material-symbols/svg-400/outlined/cloud_upload.svg?raw'
+import contentCopy from '@material-symbols/svg-400/outlined/content_copy.svg?raw'
 import creditCard from '@material-symbols/svg-400/outlined/credit_card.svg?raw'
 import dataObject from '@material-symbols/svg-400/outlined/data_object.svg?raw'
 import dateRange from '@material-symbols/svg-400/outlined/date_range.svg?raw'
@@ -45,10 +46,13 @@ import image from '@material-symbols/svg-400/outlined/image.svg?raw'
 import iosShare from '@material-symbols/svg-400/outlined/ios_share.svg?raw'
 import language from '@material-symbols/svg-400/outlined/language.svg?raw'
 import lock from '@material-symbols/svg-400/outlined/lock.svg?raw'
+import lightbulb from '@material-symbols/svg-400/outlined/lightbulb.svg?raw'
 import logout from '@material-symbols/svg-400/outlined/logout.svg?raw'
+import mail from '@material-symbols/svg-400/outlined/mail.svg?raw'
 import markEmailUnread from '@material-symbols/svg-400/outlined/mark_email_unread.svg?raw'
 import merge from '@material-symbols/svg-400/outlined/merge.svg?raw'
 import medication from '@material-symbols/svg-400/outlined/medication.svg?raw'
+import menuBook from '@material-symbols/svg-400/outlined/menu_book.svg?raw'
 import mobile from '@material-symbols/svg-400/outlined/mobile.svg?raw'
 import monitorWeight from '@material-symbols/svg-400/outlined/monitor_weight.svg?raw'
 import moreVert from '@material-symbols/svg-400/outlined/more_vert.svg?raw'
@@ -178,6 +182,7 @@ export const msIcons = {
   cloud_off: cloudOff,
   cloud_upload: cloudUpload,
   colorize,
+  content_copy: contentCopy,
   credit_card: creditCard,
   data_object: dataObject,
   date_range: dateRange,
@@ -221,10 +226,13 @@ export const msIcons = {
   keyboard_return: keyboardReturn,
   language,
   last_page: lastPage,
+  lightbulb,
   lock,
   logout,
+  mail,
   mark_email_unread: markEmailUnread,
   medication,
+  menu_book: menuBook,
   merge,
   menu,
   mobile,

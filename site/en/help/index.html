@@ -6,7 +6,7 @@
     <title>Help · MémoPatte</title>
     <meta
       name="description"
-      content="MémoPatte help: what to do when reminders don’t arrive, or arrive late."
+      content="MémoPatte help: frequently asked questions (export, backup, new phone) and reminders that don’t arrive, or arrive late."
     />
     <link rel="icon" href="/icon.png" />
     <link rel="stylesheet" href="/style.css" />
@@ -20,7 +20,157 @@
     </header>
     <main class="document">
       <h1>MémoPatte help</h1>
-      <p class="updated">Last updated: <time datetime="2026-10-06">October 6, 2026</time></p>
+      <p class="updated">Last updated: <time datetime="2026-10-07">October 7, 2026</time></p>
+
+      <section id="faq">
+        <h2>Frequently asked questions</h2>
+
+        <h3 id="export">How do I export my health record, and import it again?</h3>
+        <p>In MémoPatte, open Settings › My data › “Export my data”, then choose a format:</p>
+        <ul>
+          <li>
+            <strong>JSON</strong>: your whole health record, to import it into MémoPatte again.
+          </li>
+          <li><strong>CSV</strong>: to open it in a spreadsheet.</li>
+        </ul>
+        <p>
+          You can save the file to your phone, in Documents › MémoPatte, or share it (Google Drive,
+          email…).
+        </p>
+        <p>
+          Just below, Settings › My data › “Export to PDF” creates the health record of all your
+          pets or just one, to print or show. Exports are free and don’t need an account. Photos
+          aren’t exported.
+        </p>
+        <p>
+          To import a JSON export again: Settings › My data › “Import a MémoPatte export”. If data
+          already exists on the phone, choose “Merge” (adds what isn’t in your current data yet) or
+          “Replace” (replaces all your current data, after you confirm). MémoPatte then schedules
+          your reminders again.
+        </p>
+
+        <figure class="screenshot">
+          <img
+            src="/en/help/img/exporter.webp"
+            width="540"
+            height="720"
+            loading="lazy"
+            alt="MémoPatte’s My data screen"
+          />
+          <figcaption>
+            Settings › My data: 1. “Export my data”, 2. “Export to PDF”, 3. “Import a MémoPatte
+            export”.
+          </figcaption>
+        </figure>
+
+        <h3 id="android-backup">What does Android’s backup keep?</h3>
+        <p>
+          If your phone’s backup is on, Android may keep a copy of your health record, usually once
+          a day, while the phone is charging and on Wi‑Fi. MémoPatte can’t tell whether it’s on.
+          This copy doesn’t include photos, or settings that belong to the phone, like the weight
+          unit. Android only puts it back when MémoPatte is installed, on a new phone for example,
+          and with no guarantee.
+        </p>
+        <p>
+          So you don’t depend on it, export a copy now and then: Settings › Backup › “Export a
+          copy”, then keep the file somewhere other than your phone (Google Drive, email, a
+          computer).
+        </p>
+
+        <h3 id="plus">What does MémoPatte Plus add?</h3>
+        <p>
+          Everything you do on your phone is free, with no account: your pets, their vaccines,
+          treatments and weigh-ins, reminders, and JSON, CSV and PDF exports. MémoPatte Plus is the
+          subscription that will add a cloud backup of your health record, photos included. It’s
+          coming soon.
+        </p>
+
+        <h3 id="new-phone">How do I get my health record onto a new phone?</h3>
+        <ol>
+          <li>
+            On the old phone, open Settings › Backup › “Export a copy”, and send the file somewhere
+            the new phone can reach it (Google Drive, email…).
+          </li>
+          <li>
+            On the new phone, install MémoPatte, then tap “Import a MémoPatte export” on the welcome
+            screen and choose that file.
+          </li>
+        </ol>
+        <p>
+          If Android’s backup was on, or if you transfer your apps from one phone to the other,
+          Android may also put your health record back when it installs MémoPatte (see the previous
+          question). Either way, photos don’t come along; allow MémoPatte’s notifications again, and
+          its <a href="#reminders-exact">exact reminders</a> if you used them.
+        </p>
+
+        <figure class="screenshot">
+          <img
+            src="/en/help/img/nouveau-telephone.webp"
+            width="540"
+            height="1105"
+            loading="lazy"
+            alt="MémoPatte’s welcome screen"
+          />
+          <figcaption>
+            On the new phone, the welcome screen offers “Import a MémoPatte export”.
+          </figcaption>
+        </figure>
+
+        <h3 id="erase">How do I erase all of MémoPatte’s data?</h3>
+        <p>
+          Open Settings › Backup › “Erase this phone’s data”. MémoPatte first offers to export a
+          copy, then asks you to confirm twice. The whole health record is then removed from the
+          phone (pets, treatments, vaccines, weights and photos), no more reminders go off, and
+          MémoPatte restarts as on its first launch. Exports saved in Documents › MémoPatte stay on
+          the phone. Without a copy, your health record can’t be recovered.
+        </p>
+
+        <figure class="screenshot">
+          <img
+            src="/en/help/img/effacer.webp"
+            width="540"
+            height="1105"
+            loading="lazy"
+            alt="MémoPatte’s Backup screen"
+          />
+          <figcaption>
+            Settings › Backup: 1. “Export a copy”, 2. “Erase this phone’s data”.
+          </figcaption>
+        </figure>
+
+        <h3 id="stop-following">What about the health record of a pet I no longer follow?</h3>
+        <p>
+          In the pet’s health record, tap ⋮ then “Stop following”: the pet’s reminders and ongoing
+          treatments stop, and the health record stays intact. In the same place, “Delete” erases
+          the whole health record: vaccines, treatments, weigh-ins, photo. Either way, “Undo”, in
+          the message that appears next, takes you back.
+        </p>
+
+        <figure class="screenshot">
+          <img
+            src="/en/help/img/ne-plus-suivre.webp"
+            width="540"
+            height="1105"
+            loading="lazy"
+            alt="A pet’s options in its health record"
+          />
+          <figcaption>
+            In the pet’s health record: 1. the ⋮ button, 2. “Stop following”, 3. “Delete”.
+          </figcaption>
+        </figure>
+
+        <h3 id="late-reminders">My reminders arrive late, or not at all</h3>
+        <p>
+          Several Android settings can block or delay them. Check them in order with the
+          <a href="#reminders">Reminders</a> part, just below.
+        </p>
+
+        <h3 id="email-us">Your question isn’t here?</h3>
+        <p>
+          Email us from the app, in Settings › Help &amp; contact › “Email us”, or at
+          <a href="mailto:memopatte@gaelle-briet.fr">memopatte@gaelle-briet.fr</a>.
+        </p>
+      </section>
 
       <section id="reminders">
         <h2>Reminders</h2>

@@ -66,6 +66,12 @@ function goHome(): void {
           :to="{ name: 'settings-privacy' }"
         />
         <SettingsRubricRow
+          class="settings-row--help"
+          icon="ms:help"
+          :label="t('settings.help.title')"
+          :to="{ name: 'settings-help' }"
+        />
+        <SettingsRubricRow
           class="settings-row--about"
           icon="ms:info"
           :label="t('settings.about.title')"
