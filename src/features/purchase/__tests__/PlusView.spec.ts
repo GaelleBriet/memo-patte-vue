@@ -136,8 +136,21 @@ describe('PlusView — contenu', () => {
     const wrapper = await monter()
 
     expect(wrapper.get('.plus__subtitle').text()).toBe(
-      'Animaux, rappels, poids et export JSON/CSV restent gratuits, sans compte ni abonnement.',
+      'Animaux, rappels, poids, exports et PDF restent gratuits, sans compte ni abonnement.',
     )
+  })
+
+  it('le rappelle en anglais aussi', async () => {
+    i18n.global.locale.value = 'en'
+    try {
+      const wrapper = await monter()
+
+      expect(wrapper.get('.plus__subtitle').text()).toBe(
+        'Pets, reminders, weight, exports and PDF stay free, without an account or subscription.',
+      )
+    } finally {
+      i18n.global.locale.value = 'fr'
+    }
   })
 
   it('dit en une ligne ce qu’Android sauvegarde déjà et ce que Plus garantit', async () => {
