@@ -1,6 +1,6 @@
 import type { Animal } from '@/features/animals/schema/animal.schema'
 
-type PdfExportAnimal = { id: string; name: string }
+export type PdfExportAnimal = { id: string; name: string }
 
 export type PdfExportChoice = { kind: 'one'; name: string } | { kind: 'allOrOne' | 'oneOfSeveral' }
 
@@ -14,6 +14,6 @@ export function pdfExportChoice(
   return { kind: followed.length >= 2 ? 'allOrOne' : 'oneOfSeveral' }
 }
 
-export function toPdfExportAnimals(animals: readonly Animal[]): { id: string; name: string }[] {
+export function toPdfExportAnimals(animals: readonly Animal[]): PdfExportAnimal[] {
   return animals.map(({ id, name }) => ({ id, name }))
 }

@@ -6,17 +6,15 @@ import ExportActions from './ExportActions.vue'
 import { isSaved, type DeliveryMode } from '../logic/export-delivery'
 import { openAppSettings } from '../logic/export-storage-access'
 import { pdfExportFileName } from '../logic/pdf-content'
+import { pdfExportChoice, type PdfExportAnimal } from '../logic/pdf-export-animals'
 import { showSavedExportToast } from '../logic/saved-export-toast'
 import { usePdfExport } from '../composables/use-pdf-export'
 import BottomSheet from '@/shared/components/BottomSheet.vue'
 import { showToast } from '@/shared/utils/toast'
 
-export type PdfExportAnimal = {
-  id: string
-  name: string
-}
+export type { PdfExportAnimal }
 
-type PdfExportChoice = {
+type PdfExportChoiceRow = {
   key: string
   heading: string | null
   icon: string
@@ -45,9 +43,10 @@ const chosen = ref<PdfExportAnimal[] | null>(null)
 const fileCard = useTemplateRef('fileCard')
 
 const everyAnimal = computed(() => [...props.animals, ...props.unfollowedAnimals])
-const needsChoice = computed(() => everyAnimal.value.length > 1)
+const choice = computed(() => pdfExportChoice(props.animals, props.unfollowedAnimals))
+const needsChoice = computed(() => choice.value !== null && choice.value.kind !== 'one')
 
-function animalChoice(animal: PdfExportAnimal, heading: string | null = null): PdfExportChoice {
+function animalChoice(animal: PdfExportAnimal, heading: string | null = null): PdfExportChoiceRow {
   return {
     key: animal.id,
     heading,
@@ -59,10 +58,10 @@ function animalChoice(animal: PdfExportAnimal, heading: string | null = null): P
   }
 }
 
-const choices = computed<PdfExportChoice[]>(() => {
+const choices = computed<PdfExportChoiceRow[]>(() => {
   const names = props.animals.map(({ name }) => name).join(', ')
-  const all: PdfExportChoice[] =
-    props.animals.length < 2
+  const all: PdfExportChoiceRow[] =
+    choice.value?.kind !== 'allOrOne'
       ? []
       : [
           {
@@ -116,7 +115,7 @@ watch(
   { immediate: true },
 )
 
-async function choose(choice: PdfExportChoice): Promise<void> {
+async function choose(choice: PdfExportChoiceRow): Promise<void> {
   chosen.value = choice.animals
   await nextTick()
   fileCard.value?.focus()
