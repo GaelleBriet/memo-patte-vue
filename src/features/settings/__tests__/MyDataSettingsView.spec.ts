@@ -304,6 +304,24 @@ describe('MyDataSettingsView', () => {
       ])
     })
 
+    it('donne à part les animaux qu’on ne suit plus, exportables seuls', async () => {
+      const luna: Animal = {
+        ...MILO,
+        id: '33333333-3333-4333-8333-333333333333',
+        name: 'Luna',
+        unfollowedOn: '2026-09-10',
+      }
+      animals = [luna, MILO]
+      const wrapper = await monter()
+
+      await lignePdf(wrapper).trigger('click')
+      await flushPromises()
+
+      const sheet = wrapper.getComponent(PdfExportSheet)
+      expect(sheet.props('animals')).toEqual([{ id: MILO.id, name: 'Milo' }])
+      expect(sheet.props('unfollowedAnimals')).toEqual([{ id: luna.id, name: 'Luna' }])
+    })
+
     it('désactive la ligne sans animal, avec « Rien à exporter pour l’instant »', async () => {
       animals = []
       const wrapper = await monter()

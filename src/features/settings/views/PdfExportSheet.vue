@@ -18,6 +18,7 @@ export type PdfExportAnimal = {
 
 type PdfExportChoice = {
   key: string
+  heading: string | null
   icon: string
   label: string
   hint: string | null
@@ -25,10 +26,14 @@ type PdfExportChoice = {
   animals: PdfExportAnimal[]
 }
 
-const props = defineProps<{
-  animals: PdfExportAnimal[]
-  focusFallback?: HTMLElement | null
-}>()
+const props = withDefaults(
+  defineProps<{
+    animals: PdfExportAnimal[]
+    unfollowedAnimals?: PdfExportAnimal[]
+    focusFallback?: HTMLElement | null
+  }>(),
+  { unfollowedAnimals: () => [], focusFallback: null },
+)
 
 const open = defineModel<boolean>({ default: false })
 
@@ -39,36 +44,52 @@ const openedAt = ref(new Date())
 const chosen = ref<PdfExportAnimal[] | null>(null)
 const fileCard = useTemplateRef('fileCard')
 
-const needsChoice = computed(() => props.animals.length > 1)
+const everyAnimal = computed(() => [...props.animals, ...props.unfollowedAnimals])
+const needsChoice = computed(() => everyAnimal.value.length > 1)
+
+function animalChoice(animal: PdfExportAnimal, heading: string | null = null): PdfExportChoice {
+  return {
+    key: animal.id,
+    heading,
+    icon: 'ms:pets',
+    label: animal.name,
+    hint: null,
+    ariaLabel: animal.name,
+    animals: [animal],
+  }
+}
 
 const choices = computed<PdfExportChoice[]>(() => {
   const names = props.animals.map(({ name }) => name).join(', ')
+  const all: PdfExportChoice[] =
+    props.animals.length === 0
+      ? []
+      : [
+          {
+            key: 'all',
+            heading: null,
+            icon: 'ms:groups',
+            label: t('settings.pdf.sheet.allAnimals'),
+            hint: names,
+            ariaLabel: t('settings.pdf.sheet.allAnimalsLabel', { names }),
+            animals: props.animals,
+          },
+        ]
   return [
-    {
-      key: 'all',
-      icon: 'ms:groups',
-      label: t('settings.pdf.sheet.allAnimals'),
-      hint: names,
-      ariaLabel: t('settings.pdf.sheet.allAnimalsLabel', { names }),
-      animals: props.animals,
-    },
-    ...props.animals.map((animal) => ({
-      key: animal.id,
-      icon: 'ms:pets',
-      label: animal.name,
-      hint: null,
-      ariaLabel: animal.name,
-      animals: [animal],
-    })),
+    ...all,
+    ...props.animals.map((animal) => animalChoice(animal)),
+    ...props.unfollowedAnimals.map((animal, index) =>
+      animalChoice(animal, index === 0 ? t('settings.pdf.sheet.unfollowedAnimals') : null),
+    ),
   ]
 })
 
-const exported = computed(() => (needsChoice.value ? chosen.value : props.animals))
+const exported = computed(() => (needsChoice.value ? chosen.value : everyAnimal.value))
 
 const subtitle = computed(() =>
   needsChoice.value
     ? t('settings.pdf.sheet.subtitle')
-    : t('settings.pdf.sheet.subtitleOne', { name: props.animals[0]?.name ?? '' }),
+    : t('settings.pdf.sheet.subtitleOne', { name: everyAnimal.value[0]?.name ?? '' }),
 )
 
 const fileName = computed(() =>
@@ -132,21 +153,22 @@ async function deliver(mode: DeliveryMode): Promise<void> {
     :focus-fallback="focusFallback"
   >
     <div v-if="fileName === null" class="settings-card pdf-export-sheet__choices">
-      <button
-        v-for="choice in choices"
-        :key="choice.key"
-        type="button"
-        class="settings-row"
-        :aria-label="choice.ariaLabel"
-        @click="choose(choice)"
-      >
-        <v-icon class="settings-row__icon" :icon="choice.icon" size="22" />
-        <span class="settings-row__text">
-          <span class="settings-row__label">{{ choice.label }}</span>
-          <span v-if="choice.hint" class="settings-row__hint">{{ choice.hint }}</span>
-        </span>
-        <v-icon class="settings-row__chevron" icon="ms:chevron_right" size="20" />
-      </button>
+      <template v-for="choice in choices" :key="choice.key">
+        <h3 v-if="choice.heading" class="pdf-export-sheet__group">{{ choice.heading }}</h3>
+        <button
+          type="button"
+          class="settings-row"
+          :aria-label="choice.ariaLabel"
+          @click="choose(choice)"
+        >
+          <v-icon class="settings-row__icon" :icon="choice.icon" size="22" />
+          <span class="settings-row__text">
+            <span class="settings-row__label">{{ choice.label }}</span>
+            <span v-if="choice.hint" class="settings-row__hint">{{ choice.hint }}</span>
+          </span>
+          <v-icon class="settings-row__chevron" icon="ms:chevron_right" size="20" />
+        </button>
+      </template>
     </div>
 
     <template v-else>
@@ -169,7 +191,7 @@ async function deliver(mode: DeliveryMode): Promise<void> {
       <ExportActions
         :access="saveAccess"
         :pending-mode="pendingMode"
-        :disabled="animals.length === 0"
+        :disabled="everyAnimal.length === 0"
         @save="deliver('save')"
         @share="deliver('share')"
         @open-settings="openAppSettings"
@@ -183,6 +205,22 @@ async function deliver(mode: DeliveryMode): Promise<void> {
 
 .pdf-export-sheet__choices {
   margin-top: 18px;
+}
+
+.pdf-export-sheet__group {
+  margin: 0;
+  padding: 12px 20px 6px;
+  border-top: 1px solid tokens.$color-divider;
+  background: tokens.$color-badge-frequency-bg;
+  color: tokens.$color-text-secondary;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.pdf-export-sheet__group + .settings-row {
+  border-top: 1px solid tokens.$color-card-border;
 }
 
 .pdf-export-sheet__file {

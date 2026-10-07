@@ -1304,6 +1304,7 @@
         "subtitleOne": "Le carnet complet de {name}, prêt à imprimer ou à envoyer.",
         "subtitle": "Un carnet de santé imprimable, à garder ou à donner au vétérinaire.",
         "allAnimals": "Tous les animaux",
+        "unfollowedAnimals": "Animaux que tu ne suis plus",
         "allAnimalsLabel": "PDF de tous les animaux suivis : {names}",
         "close": "Fermer",
         "fileContent": "Vaccins, traitements, poids et photos",

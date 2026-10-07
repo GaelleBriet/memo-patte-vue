@@ -69,10 +69,11 @@ afterEach(() => {
   applyLocale('fr')
 })
 
-async function monter(animals: PdfExportAnimal[]) {
+async function monter(animals: PdfExportAnimal[], unfollowedAnimals: PdfExportAnimal[] = []) {
   wrapper = mount(PdfExportSheet, {
     props: {
       animals,
+      unfollowedAnimals,
       modelValue: true,
       'onUpdate:modelValue': (value: boolean) => wrapper?.setProps({ modelValue: value }),
     },
@@ -259,6 +260,100 @@ describe('PdfExportSheet', () => {
       { animalIds: ['luna-id'], fileName: 'carnet-luna-20260923-1030.pdf', exportedAt: OPENED_AT },
       'share',
     )
+  })
+
+  describe('animaux qu’on ne suit plus (DO-4, V23 bis)', () => {
+    function lignes(): string[] {
+      return [
+        ...feuille().querySelectorAll<HTMLElement>(
+          '.pdf-export-sheet__choices .settings-row__label, .pdf-export-sheet__group',
+        ),
+      ].map((element) => element.textContent!.trim())
+    }
+
+    it('les propose après les suivis, sous « Animaux que tu ne suis plus », hors de « Tous les animaux »', async () => {
+      await monter([MILO, PIXEL], [LUNA])
+
+      expect(lignes()).toEqual([
+        'Tous les animaux',
+        'Milo',
+        'Pixel',
+        'Animaux que tu ne suis plus',
+        'Luna',
+      ])
+      expect(choix()[0]!.querySelector('.settings-row__hint')?.textContent?.trim()).toBe(
+        'Milo, Pixel',
+      )
+    })
+
+    it('« Tous les animaux » n’exporte que les animaux suivis', async () => {
+      await monter([MILO, PIXEL], [LUNA])
+
+      await choisir('Tous les animaux')
+      partager().click()
+      await flushPromises()
+
+      expect(exportCarnetPdf).toHaveBeenCalledExactlyOnceWith(
+        {
+          animalIds: ['milo-id', 'pixel-id'],
+          fileName: 'carnet-memopatte-20260923-1030.pdf',
+          exportedAt: OPENED_AT,
+        },
+        'share',
+      )
+    })
+
+    it('un animal qu’on ne suit plus s’exporte seul, nommé d’après lui', async () => {
+      await monter([MILO], [LUNA])
+
+      await choisir('Luna')
+      partager().click()
+      await flushPromises()
+
+      expect(exportCarnetPdf).toHaveBeenCalledExactlyOnceWith(
+        {
+          animalIds: ['luna-id'],
+          fileName: 'carnet-luna-20260923-1030.pdf',
+          exportedAt: OPENED_AT,
+        },
+        'share',
+      )
+    })
+
+    it('sans animal suivi, ne propose pas « Tous les animaux »', async () => {
+      await monter([], [LUNA, PIXEL])
+
+      expect(lignes()).toEqual(['Animaux que tu ne suis plus', 'Luna', 'Pixel'])
+    })
+
+    it('présente directement le fichier quand le seul animal n’est plus suivi', async () => {
+      await monter([], [LUNA])
+
+      expect(choix()).toHaveLength(0)
+      expect(feuille().querySelector('.bottom-sheet__subtitle')?.textContent).toBe(
+        'Le carnet complet de Luna, prêt à imprimer ou à envoyer.',
+      )
+      expect(enregistrer().disabled).toBe(false)
+
+      partager().click()
+      await flushPromises()
+
+      expect(exportCarnetPdf).toHaveBeenCalledExactlyOnceWith(
+        {
+          animalIds: ['luna-id'],
+          fileName: 'carnet-luna-20260923-1030.pdf',
+          exportedAt: OPENED_AT,
+        },
+        'share',
+      )
+    })
+
+    it('titre le groupe en anglais', async () => {
+      applyLocale('en')
+      await monter([MILO], [LUNA])
+
+      expect(lignes()).toContain('Pets you no longer follow')
+    })
   })
 
   it('présente le choix en anglais', async () => {
