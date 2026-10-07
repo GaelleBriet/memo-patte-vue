@@ -130,6 +130,17 @@ describe('BackupSettingsView', () => {
     expect(push).toHaveBeenCalledWith({ name: 'plus' })
   })
 
+  it('finit par « Effacer les données de ce téléphone », qui ouvre l’écran d’avant l’effacement', async () => {
+    const wrapper = await monter()
+    const ligne = wrapper.get('.backup-settings__content > :last-child')
+
+    expect(ligne.classes()).toContain('backup-settings__erase')
+    expect(ligne.text()).toBe('Effacer les données de ce téléphone')
+    await ligne.trigger('click')
+
+    expect(push).toHaveBeenCalledWith({ name: 'settings-erase' })
+  })
+
   describe('« Exporter une copie »', () => {
     it('vise Google Drive, un e-mail ou un ordinateur', async () => {
       const wrapper = await monter()

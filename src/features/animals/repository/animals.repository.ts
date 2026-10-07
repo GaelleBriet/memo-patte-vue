@@ -48,6 +48,8 @@ const INSERT = `INSERT INTO animal
 /** Les animaux supprimés restent en base pour la synchronisation, jamais pour l'UI. */
 const NOT_DELETED = 'deleted_at IS NULL'
 
+const ERASE_ALL = 'DELETE FROM animal'
+
 function toAnimal(row: AnimalRow): Animal {
   return {
     id: row.id,
@@ -297,6 +299,16 @@ export function createAnimalsRepository(
               WHERE ${NOT_DELETED}`,
         params: [deletedAt, deletedAt, deviceId()],
       }
+    },
+
+    /** Effacement physique, sans trace pour la synchro : rien ne part vers la sauvegarde cloud. */
+    eraseAllStatement(): SqlStatement {
+      return { sql: ERASE_ALL }
+    },
+
+    /** Efface les animaux après `cascade`, en une transaction. */
+    async eraseAll(cascade: SqlStatement[]): Promise<void> {
+      await db.runMany([...cascade, { sql: ERASE_ALL }])
     },
 
     /** Reprend l'identifiant et les dates du fichier importé, et rend la ligne visible. */

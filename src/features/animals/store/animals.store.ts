@@ -16,7 +16,11 @@ import {
   type FollowUndo,
   type UnfollowUndo,
 } from '../service/animal-follow.service'
-import { animalPhotoService, type PhotoChange } from '../service/animal-photo.service'
+import {
+  animalPhotoService,
+  type PhotoChange,
+  type PhotoRemoval,
+} from '../service/animal-photo.service'
 import type { AnimalsRepository } from '../repository/animals.repository'
 import { track } from '@/core/analytics'
 import { recordUsageSignal } from '@/shared/utils/usage-signals'
@@ -146,6 +150,19 @@ export const useAnimalsStore = defineStore('animals', () => {
       )
       if (photo.kind === 'replace') recordUsageSignal('photo')
       return animal
+    },
+
+    /** Rend ce qu'il faut passer à `undoRemovePhoto` ou `forgetRemovedPhoto` ; `null` sans photo. */
+    removePhoto(id: string, input: AnimalInput): Promise<PhotoRemoval | null> {
+      return write((repository) => animalPhotoService.detach(repository, id, input))
+    },
+
+    async undoRemovePhoto(input: AnimalInput, removal: PhotoRemoval): Promise<void> {
+      await write((repository) => animalPhotoService.reattach(repository, input, removal))
+    },
+
+    async forgetRemovedPhoto(removal: PhotoRemoval): Promise<void> {
+      await animalPhotoService.forgetRemoved(await requireRepository(), removal)
     },
 
     /** Rend ce qu'il faut passer à `undoRemove` ou `forgetPhoto` ; `null` si rien n'a été supprimé. */
