@@ -1,6 +1,7 @@
 import type { z } from 'zod'
 
 import { animalCreationInputSchema, type Animal, type AnimalSpecies } from '../schema/animal.schema'
+import { animalAgeText } from '@/shared/domain/animal-age'
 import { exceedsMaxWeight, weightKgFromInput } from '@/shared/domain/weight-unit'
 import { currentWeightUnit } from '@/shared/domain/weight-unit-preference'
 
@@ -9,6 +10,7 @@ export interface AnimalFormValues {
   species: AnimalSpecies | null
   breed: string
   birthDate: string
+  birthDateApproximate: boolean
   /** À la création seulement, dans l'unité choisie : il devient la première pesée, en kg. */
   weightKg: string
 }
@@ -32,7 +34,14 @@ export type AnimalFormResult =
   | { success: false; errors: AnimalFormErrors }
 
 export function emptyAnimalFormValues(): AnimalFormValues {
-  return { name: '', species: null, breed: '', birthDate: '', weightKg: '' }
+  return {
+    name: '',
+    species: null,
+    breed: '',
+    birthDate: '',
+    birthDateApproximate: false,
+    weightKg: '',
+  }
 }
 
 export function animalFormValuesFrom(animal: Animal): AnimalFormValues {
@@ -41,8 +50,29 @@ export function animalFormValuesFrom(animal: Animal): AnimalFormValues {
     species: animal.species,
     breed: animal.breed ?? '',
     birthDate: animal.birthDate ?? '',
+    birthDateApproximate: animal.birthDateApproximate,
     weightKg: '',
   }
+}
+
+export function canMarkBirthDateApproximate(values: AnimalFormValues): boolean {
+  return values.birthDate.trim() !== ''
+}
+
+type Translate = (key: string, named: Record<string, unknown>, plural: number) => string
+
+export function birthDateApproximateHelp(
+  t: Translate,
+  values: AnimalFormValues,
+  today: string,
+): string | null {
+  if (!canMarkBirthDateApproximate(values)) {
+    return t('animals.form.birthDate.approximate.unavailable', {}, 1)
+  }
+  if (!values.birthDateApproximate) return null
+
+  const age = animalAgeText(t, { birthDate: values.birthDate, approximate: true }, today)
+  return t('animals.form.birthDate.approximate.willShow', { age }, 1)
 }
 
 function textOrNull(value: string): string | null {
@@ -76,6 +106,7 @@ export function validateAnimalForm(values: AnimalFormValues): AnimalFormResult {
     species: values.species,
     breed: textOrNull(values.breed),
     birthDate: textOrNull(values.birthDate),
+    birthDateApproximate: canMarkBirthDateApproximate(values) && values.birthDateApproximate,
     weightKg: weightKgFromInput(typed, unit, null),
   })
   const tooHeavy = exceedsMaxWeight(typed, unit, null)

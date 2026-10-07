@@ -640,7 +640,7 @@ describe('vaccinationReminderPlan', () => {
       {
         key: `vaccination:${ID}:2026-10-05::before`,
         title: 'Typhus, coryza de Pixel dans 2 semaines',
-        body: 'Le 5 oct. Pense à prendre rendez-vous chez le vétérinaire.',
+        body: `Le 5${NBSP}oct. Pense à prendre rendez-vous chez le vétérinaire.`,
         at: new Date(2026, 8, 21, 18, 30),
       },
       {
@@ -738,7 +738,7 @@ describe('textes anglais', () => {
     expect(care.relay).toBe('To keep getting Pixel’s reminders, open MémoPatte.')
     expect(vaccine.reminders[0]).toMatchObject({
       title: 'Pixel’s Typhus, coryza in 2 weeks',
-      body: 'On Oct 5. Remember to book a vet appointment.',
+      body: `On Oct${NBSP}5. Remember to book a vet appointment.`,
     })
   })
 })

@@ -46,6 +46,7 @@ describe('animalsRepository', () => {
     expect(created).toMatchObject({
       breed: null,
       birthDate: null,
+      birthDateApproximate: false,
       photoPath: null,
     })
     await expect(repository.getById(created.id)).resolves.toEqual(created)
@@ -159,8 +160,7 @@ describe('animalsRepository', () => {
     })
     await db.run(
       `UPDATE animal
-       SET birth_date_approximate = 1, unfollowed_on = '2026-09-30', departure_reason = 'rehomed',
-           departure_date = '2026-09-28'
+       SET unfollowed_on = '2026-09-30', departure_reason = 'rehomed', departure_date = '2026-09-28'
        WHERE id = ?`,
       [created.id],
     )
@@ -168,19 +168,53 @@ describe('animalsRepository', () => {
     await repository.update(created.id, { name: 'Luna', species: 'cat', breed: 'Européen' })
 
     await expect(
-      db.query(
-        `SELECT birth_date_approximate, unfollowed_on, departure_reason, departure_date
-         FROM animal WHERE id = ?`,
-        [created.id],
-      ),
+      db.query(`SELECT unfollowed_on, departure_reason, departure_date FROM animal WHERE id = ?`, [
+        created.id,
+      ]),
     ).resolves.toEqual([
       {
-        birth_date_approximate: 1,
         unfollowed_on: '2026-09-30',
         departure_reason: 'rehomed',
         departure_date: '2026-09-28',
       },
     ])
+  })
+
+  it('enregistre une date de naissance approximative et la relit', async () => {
+    const created = await repository.create({
+      name: 'Pixel',
+      species: 'cat',
+      birthDate: '2026-07-20',
+      birthDateApproximate: true,
+    })
+
+    expect(created.birthDateApproximate).toBe(true)
+    await expect(repository.getById(created.id)).resolves.toEqual(created)
+    await expect(repository.list()).resolves.toEqual([created])
+  })
+
+  it('coche et décoche la date approximative à la mise à jour', async () => {
+    const created = await repository.create({
+      name: 'Pixel',
+      species: 'cat',
+      birthDate: '2026-07-20',
+    })
+
+    const approximate = await repository.update(created.id, {
+      name: 'Pixel',
+      species: 'cat',
+      birthDate: '2026-07-20',
+      birthDateApproximate: true,
+    })
+    expect(approximate.birthDateApproximate).toBe(true)
+
+    const exact = await repository.update(created.id, {
+      name: 'Pixel',
+      species: 'cat',
+      birthDate: '2026-07-20',
+      birthDateApproximate: false,
+    })
+    expect(exact.birthDateApproximate).toBe(false)
   })
 
   it('échoue à mettre à jour un animal inexistant', async () => {

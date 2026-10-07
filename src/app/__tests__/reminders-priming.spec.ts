@@ -31,6 +31,7 @@ function animal(
     species: 'dog',
     breed: null,
     birthDate: null,
+    birthDateApproximate: false,
     photoPath: null,
     createdAt: STAMP,
     updatedAt: STAMP,

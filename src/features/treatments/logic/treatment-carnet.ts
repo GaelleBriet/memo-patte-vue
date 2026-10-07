@@ -2,7 +2,7 @@ import { currentPeriodOf, endedOnOf, readableScheduleOf } from './treatment-sche
 import type { TreatmentWithHistory } from '../repository/treatments.repository'
 import { currentDoseText } from '@/shared/domain/current-dose'
 import { overdueDays } from '@/shared/domain/due-delay'
-import type { ReminderCounts } from '@/shared/domain/reminders'
+import { reminderIcon, type ReminderCounts } from '@/shared/domain/reminders'
 import type { TreatmentSchedule } from '@/shared/domain/treatment-schedule'
 import { formatClockTimes, formatDayMonthOrYear, formatPeriodRange } from '@/shared/utils/format'
 
@@ -11,6 +11,7 @@ export type Translate = (key: string, named?: Record<string, unknown>, plural?: 
 export type CarnetTreatmentRow = {
   id: string
   name: string
+  icon: string
   /** Rythme et heures, fin du traitement, ou « Donnée illisible ». */
   detail: string | null
   badge: { status: 'overdue' | 'to-log'; label: string } | null
@@ -18,7 +19,7 @@ export type CarnetTreatmentRow = {
   unlogged: string | null
 }
 
-export type FinishedTreatmentRow = { id: string; name: string; detail: string }
+export type FinishedTreatmentRow = { id: string; name: string; icon: string; detail: string }
 
 export type TreatmentsSummary = ReminderCounts & {
   /** Lignes de « Traitements en cours », traitements à renseigner et illisibles compris. */
@@ -87,7 +88,11 @@ function overdueBadge(
 
 function ongoingRow(t: Translate, read: Read, today: string): CarnetTreatmentRow {
   const { treatment, schedule } = read
-  const base = { id: treatment.id, name: treatment.name }
+  const base = {
+    id: treatment.id,
+    name: treatment.name,
+    icon: reminderIcon('treatment', treatment.type),
+  }
   if (schedule === null) {
     return { ...base, detail: t('treatments.section.unreadable'), badge: null, unlogged: null }
   }
@@ -121,6 +126,7 @@ function finishedRow(
   return {
     id: read.treatment.id,
     name: read.treatment.name,
+    icon: reminderIcon('treatment', read.treatment.type),
     detail:
       end === null
         ? t('treatments.finished.doses', { n: given }, given)

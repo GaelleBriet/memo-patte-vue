@@ -10,7 +10,10 @@ import { treatmentSchedule, type Due } from '@/shared/domain/treatment-schedule'
 
 type TodoDay = Pick<Due, 'dueOn' | 'dueTime'>
 
-type Identity = Pick<HomeReminderSource, 'kind' | 'id' | 'animalId' | 'label' | 'treatmentType'>
+type Identity = Pick<HomeReminderSource, 'kind' | 'id' | 'animalId' | 'label' | 'treatmentType'> & {
+  /** Vaccin jamais fait : « Premier vaccin », « Prévu le … » (Vaccins Q1 bis). */
+  firstVaccine: boolean
+}
 
 /** Une ligne de soin : une dose (traitement, jour, heure) ou un vaccin. */
 export type TodoDueItem = Identity &
@@ -43,8 +46,10 @@ function statusOf(daysUntil: number): ReminderStatus {
   return 'later'
 }
 
-function identityOf({ kind, id, animalId, label, treatmentType }: HomeReminderSource): Identity {
-  return { kind, id, animalId, label, treatmentType }
+function identityOf(source: HomeReminderSource): Identity {
+  const { kind, id, animalId, label, treatmentType } = source
+  const firstVaccine = source.kind === 'vaccination' && source.lastInjectionDate === null
+  return { kind, id, animalId, label, treatmentType, firstVaccine }
 }
 
 function dueItem(

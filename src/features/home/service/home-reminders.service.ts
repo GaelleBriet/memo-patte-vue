@@ -14,6 +14,8 @@ type Provider<T> = () => T | Promise<T>
 
 export type HomeVaccinationSource = ReminderSource & {
   kind: 'vaccination'
+  /** `null` pour un vaccin jamais fait. */
+  lastInjectionDate: string | null
   treatmentType: null
 }
 
@@ -52,6 +54,7 @@ export function createHomeRemindersService(
           animalId: vaccination.animalId,
           label: vaccination.name,
           dueDate: vaccination.dueDate,
+          lastInjectionDate: vaccination.lastInjectionDate,
           treatmentType: null,
         })),
         ...treatmentRows.map((treatment): HomeTreatmentSource => ({

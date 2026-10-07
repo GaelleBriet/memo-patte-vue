@@ -8,6 +8,7 @@ import { backfillCareSignalOnLaunch } from '@/app/care-signal-backfill'
 import { installCarnetSettingsReminders } from '@/app/carnet-settings-reminders'
 import { installPageviewTracking } from '@/app/analytics-pageview'
 import { installReminderActions, reminderActions } from '@/app/reminder-actions'
+import { cleanOrphanPhotosOnLaunch } from '@/app/orphan-photos-cleanup'
 import { installLaunchPriming } from '@/app/reminders-priming'
 import { installRemindersSync } from '@/app/reminders-sync'
 import { createDefaultSyncDependencies, installSync } from '@/app/sync'
@@ -67,6 +68,7 @@ void registerCurrentDevice()
 void backfillCareSignalOnLaunch()
 
 app.mount('#app')
+void cleanOrphanPhotosOnLaunch()
 installReminderActions(router, reminderActions(router))
 installRemindersSync()
 installCarnetSettingsReminders()

@@ -10,6 +10,7 @@ export function vaccination(overrides: Partial<HomeVaccinationSource> = {}): Hom
     animalId: 'milo',
     label: 'CHPPiL',
     dueDate: '2026-09-07',
+    lastInjectionDate: '2025-09-07',
     treatmentType: null,
     ...overrides,
   }

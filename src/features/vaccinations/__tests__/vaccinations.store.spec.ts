@@ -34,6 +34,7 @@ const MILO_ANIMAL: Animal = {
   species: 'dog',
   breed: null,
   birthDate: null,
+  birthDateApproximate: false,
   photoPath: null,
   createdAt: '2026-09-09T09:00:00.000Z',
   updatedAt: '2026-09-09T09:00:00.000Z',
@@ -266,13 +267,11 @@ describe('useVaccinationsStore', () => {
 
     const updated = await store.update(seme.id, {
       name: 'Rage (rappel)',
-      lastInjectionDate: '2026-04-01',
       dueDate: '2027-04-01',
     })
 
     expect(repository.update).toHaveBeenCalledWith(seme.id, {
       name: 'Rage (rappel)',
-      lastInjectionDate: '2026-04-01',
       dueDate: '2027-04-01',
     })
     expect(updated.name).toBe('Rage (rappel)')
@@ -305,7 +304,6 @@ describe('useVaccinationsStore', () => {
 
     const updated = await store.update(seme.id, {
       name: 'Rage',
-      lastInjectionDate: '2026-03-12',
       dueDate: '2027-03-12',
     })
 
@@ -354,9 +352,9 @@ describe('useVaccinationsStore', () => {
     await store.loadForAnimal(MILO)
 
     repository.update.mockRejectedValueOnce(new Error('vaccin introuvable'))
-    await expect(
-      store.update(seme.id, { name: 'Rage', lastInjectionDate: '2026-03-12', dueDate: null }),
-    ).rejects.toThrow('vaccin introuvable')
+    await expect(store.update(seme.id, { name: 'Rage', dueDate: null })).rejects.toThrow(
+      'vaccin introuvable',
+    )
 
     repository.remove.mockRejectedValueOnce(new Error('base verrouillée'))
     await expect(store.remove(seme.id)).rejects.toThrow('base verrouillée')
@@ -407,6 +405,15 @@ describe('useVaccinationsStore — vaccin déjà suivi', () => {
     await expect(store.findSameName(MILO, ' carre ')).resolves.toEqual(carre)
     await expect(store.findSameName(LUNA, 'Carré')).resolves.toBeNull()
     await expect(store.findSameName(MILO, 'Rage')).resolves.toBeNull()
+    expect(store.vaccinations).toEqual([])
+  })
+
+  it('lit les vaccins de tous les animaux sans toucher la liste affichée', async () => {
+    const carre = repository.seed(rage(MILO, { name: 'Carré' }))
+    const lepto = repository.seed(rage(LUNA, { name: 'Leptospirose' }))
+    const store = useVaccinationsStore()
+
+    await expect(store.listAll()).resolves.toEqual([carre, lepto])
     expect(store.vaccinations).toEqual([])
   })
 })
@@ -505,6 +512,7 @@ interface FakeVaccinationsRepository {
   seed(input: VaccinationInput): Vaccination
   getById: Mock<VaccinationsRepository['getById']>
   listByAnimal: Mock<VaccinationsRepository['listByAnimal']>
+  listAll: Mock<VaccinationsRepository['listAll']>
   create: Mock<VaccinationsRepository['create']>
   update: Mock<VaccinationsRepository['update']>
   remove: Mock<VaccinationsRepository['remove']>
@@ -523,7 +531,7 @@ function createFakeRepository(): FakeVaccinationsRepository {
       id: crypto.randomUUID(),
       animalId: input.animalId,
       name: input.name,
-      lastInjectionDate: input.lastInjectionDate,
+      lastInjectionDate: input.lastInjectionDate ?? null,
       dueDate: input.dueDate ?? null,
       createdAt: now,
       updatedAt: now,
@@ -541,6 +549,7 @@ function createFakeRepository(): FakeVaccinationsRepository {
     listByAnimal: vi.fn<VaccinationsRepository['listByAnimal']>(async (animalId) =>
       living().filter((vaccination) => vaccination.animalId === animalId),
     ),
+    listAll: vi.fn<VaccinationsRepository['listAll']>(async () => living()),
     create: vi.fn<VaccinationsRepository['create']>(async (input) => seed(input)),
     update: vi.fn<VaccinationsRepository['update']>(async (id, input) => {
       const current = living().find((vaccination) => vaccination.id === id)
@@ -549,7 +558,6 @@ function createFakeRepository(): FakeVaccinationsRepository {
       const next = {
         ...current,
         name: input.name,
-        lastInjectionDate: input.lastInjectionDate,
         dueDate: input.dueDate ?? null,
         updatedAt: new Date().toISOString(),
       }

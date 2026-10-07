@@ -178,7 +178,7 @@ describe('todoItems — traitements lus par le moteur d’échéances', () => {
   })
 })
 
-describe('todoItems — vaccins lus comme avant', () => {
+describe('todoItems — vaccins', () => {
   it('une ligne à leur échéance, sans heure', () => {
     expect(todoItems([vaccination({ dueDate: '2026-10-04' })], TODAY)).toEqual([
       {
@@ -189,11 +189,29 @@ describe('todoItems — vaccins lus comme avant', () => {
         animalId: 'milo',
         label: 'CHPPiL',
         treatmentType: null,
+        firstVaccine: false,
         status: 'overdue',
         daysUntil: -2,
         dueOn: '2026-10-04',
         dueTime: null,
       },
+    ])
+  })
+
+  it('marque un vaccin jamais fait, et lui seul (Vaccins Q1 bis)', () => {
+    const items = todoItems(
+      [
+        vaccination({ id: 'prevu', lastInjectionDate: null, dueDate: '2026-10-11' }),
+        vaccination({ id: 'rappel', dueDate: '2026-10-11' }),
+        monthlyFrom(TODAY, { id: 'traitement' }),
+      ],
+      TODAY,
+    )
+
+    expect(items.map((item) => [item.id, item.firstVaccine])).toEqual([
+      ['prevu', true],
+      ['rappel', false],
+      ['traitement', false],
     ])
   })
 

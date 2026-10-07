@@ -66,6 +66,25 @@ const VISIBLE_WITH_HEAD = `
   LEFT JOIN vaccination_injection head ON head.id = ${headInjectionIdSql('vaccination.id')}
   WHERE vaccination.deleted_at IS NULL`
 
+/** Rappels qu'une injection plus récente a remplacés : ceux d'avant la tête, et le rendez-vous prévu. */
+const REPLACED_DUES = `
+  SELECT vaccination.id AS vaccination_id, injection.next_due_date AS due_date
+  FROM vaccination
+  JOIN vaccination_injection injection ON injection.vaccination_id = vaccination.id
+  WHERE vaccination.deleted_at IS NULL AND injection.deleted_at IS NULL
+    AND injection.next_due_date IS NOT NULL
+    AND injection.id <> ${headInjectionIdSql('vaccination.id')}
+  UNION
+  SELECT vaccination.id, vaccination.planned_due_date
+  FROM vaccination
+  WHERE vaccination.deleted_at IS NULL AND vaccination.planned_due_date IS NOT NULL
+    AND ${headInjectionIdSql('vaccination.id')} IS NOT NULL`
+
+interface ReplacedDueRow {
+  vaccination_id: string
+  due_date: string
+}
+
 function toVaccination(row: VaccinationWithHeadRow): Vaccination {
   return {
     id: row.id,
@@ -161,54 +180,92 @@ export function createVaccinationsRepository(
         deletedAt: null,
       }
 
-      await db.runMany([
-        {
-          sql: `INSERT INTO vaccination (${COLUMNS}) VALUES (?, ?, ?, NULL, ?, ?, NULL, ?, ?)`,
-          params: [
-            vaccination.id,
-            vaccination.animalId,
-            vaccination.name,
-            now,
-            now,
-            deviceId(),
-            deviceId(),
-          ],
-        },
-        injections.insertStatement({
-          id: vaccination.id,
-          vaccinationId: vaccination.id,
-          animalId: vaccination.animalId,
-          injectedOn: data.lastInjectionDate,
-          nextDueDate: vaccination.dueDate,
-          createdAt: now,
-          updatedAt: now,
-          deletedAt: null,
-        }),
-      ])
+      const insertVaccination: SqlStatement = {
+        sql: `INSERT INTO vaccination (${COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, NULL, ?, ?)`,
+        params: [
+          vaccination.id,
+          vaccination.animalId,
+          vaccination.name,
+          data.lastInjectionDate === null ? data.dueDate : null,
+          now,
+          now,
+          deviceId(),
+          deviceId(),
+        ],
+      }
+
+      await db.runMany(
+        data.lastInjectionDate === null
+          ? [insertVaccination]
+          : [
+              insertVaccination,
+              injections.insertStatement({
+                id: vaccination.id,
+                vaccinationId: vaccination.id,
+                animalId: vaccination.animalId,
+                injectedOn: data.lastInjectionDate,
+                nextDueDate: data.dueDate,
+                createdAt: now,
+                updatedAt: now,
+                deletedAt: null,
+              }),
+            ],
+      )
 
       return vaccination
     },
 
-    /** Change le vaccin et son injection de tête ; `animal_id` reste figé depuis la création. */
+    /**
+     * Change le nom et le prochain rappel : celui de la dernière injection, ou le rendez-vous prévu
+     * d'un vaccin sans injection, qui ne peut pas rester sans rappel.
+     */
     async update(id: string, input: VaccinationUpdateInput): Promise<Vaccination> {
       const data = vaccinationUpdateSchema.parse(input)
-      await requireVisible(id)
+      const current = await requireVisible(id)
+      const isPlanned = current.lastInjectionDate === null
+      if (isPlanned && data.dueDate === null) {
+        throw new Error(`Prochain rappel obligatoire sans injection : ${id}`)
+      }
       const updatedAt = new Date().toISOString()
 
-      await db.runMany([
-        {
-          sql: `UPDATE vaccination SET name = ?, updated_at = ?, updated_by_device = ?
-                WHERE id = ? AND ${NOT_DELETED}`,
-          params: [data.name, updatedAt, deviceId(), id],
-        },
-        injections.updateHeadStatement(id, {
-          injectedOn: data.lastInjectionDate,
-          nextDueDate: data.dueDate,
-          updatedAt,
-        }),
-      ])
+      await db.runMany(
+        isPlanned
+          ? [
+              {
+                sql: `UPDATE vaccination
+                      SET name = ?, planned_due_date = ?, updated_at = ?, updated_by_device = ?
+                      WHERE id = ? AND ${NOT_DELETED}`,
+                params: [data.name, data.dueDate, updatedAt, deviceId(), id],
+              },
+            ]
+          : [
+              {
+                sql: `UPDATE vaccination SET name = ?, updated_at = ?, updated_by_device = ?
+                      WHERE id = ? AND ${NOT_DELETED}`,
+                params: [data.name, updatedAt, deviceId(), id],
+              },
+              injections.updateHeadDueStatement(id, { nextDueDate: data.dueDate, updatedAt }),
+            ],
+      )
 
       return requireVisible(id)
+    },
+
+    async listReplacedDues(vaccinationId: string): Promise<string[]> {
+      const rows = await db.query<ReplacedDueRow>(
+        `SELECT due_date FROM (${REPLACED_DUES}) WHERE vaccination_id = ? ORDER BY due_date`,
+        [vaccinationId],
+      )
+      return rows.map(({ due_date }) => due_date)
+    },
+
+    async listAllReplacedDues(): Promise<Map<string, string[]>> {
+      const rows = await db.query<ReplacedDueRow>(`${REPLACED_DUES} ORDER BY 1, 2`)
+      const dues = new Map<string, string[]>()
+      for (const { vaccination_id, due_date } of rows) {
+        dues.set(vaccination_id, [...(dues.get(vaccination_id) ?? []), due_date])
+      }
+      return dues
     },
 
     listInjections(vaccinationId: string): Promise<VaccinationInjection[]> {

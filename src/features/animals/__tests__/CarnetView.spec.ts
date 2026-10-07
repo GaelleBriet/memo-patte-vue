@@ -81,6 +81,7 @@ function animal(id: string, name: string, overrides: Partial<Animal> = {}): Anim
     species: 'dog',
     breed: null,
     birthDate: null,
+    birthDateApproximate: false,
     photoPath: null,
     createdAt: '2026-09-09T09:00:00.000Z',
     updatedAt: '2026-09-09T09:00:00.000Z',
@@ -321,6 +322,26 @@ describe('CarnetView — header', () => {
     const wrapper = await monter()
 
     expect(wrapper.get('.carnet-header__subtitle').text()).toBe('6 mois')
+  })
+
+  it('compte en semaines jusqu’à 16 semaines', async () => {
+    animals = [animal('a', 'Pixel', { breed: 'Européen', birthDate: '2026-07-01' })]
+    const wrapper = await monter()
+
+    expect(wrapper.get('.carnet-header__subtitle').text()).toBe('Européen · 10 semaines')
+  })
+
+  it('précède l’âge d’« environ » quand la date de naissance est approximative', async () => {
+    animals = [
+      animal('a', 'Pixel', {
+        breed: 'Européen',
+        birthDate: '2026-07-01',
+        birthDateApproximate: true,
+      }),
+    ]
+    const wrapper = await monter()
+
+    expect(wrapper.get('.carnet-header__subtitle').text()).toBe('Européen · environ 10 semaines')
   })
 
   it('n’affiche pas de sous-titre sans race ni date de naissance', async () => {

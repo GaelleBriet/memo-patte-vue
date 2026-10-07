@@ -3,6 +3,11 @@ import type { DoseGesture } from '@/shared/domain/treatment-schedule'
 import { DoseAlreadyLoggedError, doseChange } from '../logic/treatment-dose-writes'
 import { readableScheduleOf, treatmentScheduleOf } from '../logic/treatment-schedule'
 import {
+  createWriteQueue,
+  treatmentWriteQueue,
+  type WriteQueue,
+} from '../logic/treatment-write-queue'
+import {
   DuplicateDueError,
   getTreatmentDosesRepository,
   type DoseWrite,
@@ -37,6 +42,7 @@ export type TreatmentStopDependencies = {
   today: () => string
   now: () => Date
   newId: () => string
+  queue?: WriteQueue
 }
 
 export type StoppedTreatment = {
@@ -57,6 +63,7 @@ export function createTreatmentStopService({
   today,
   now,
   newId,
+  queue = createWriteQueue(),
 }: TreatmentStopDependencies) {
   async function historyOf(treatmentId: string): Promise<TreatmentWithHistory> {
     const history = await (await treatments()).getWithHistory(treatmentId)
@@ -99,6 +106,41 @@ export function createTreatmentStopService({
     }
   }
 
+  async function stopped(
+    treatmentId: string,
+    gestures: readonly DoseGesture[],
+  ): Promise<StoppedTreatment> {
+    const history = await historyOf(treatmentId)
+    const notStopped = unchanged(history)
+    if (notStopped !== null) return notStopped
+
+    let undo: DoseWrite[] = []
+    if (gestures.length > 0) {
+      try {
+        undo = await logAndStop(history, gestures)
+      } catch (cause) {
+        if (cause instanceof DoseAlreadyLoggedError) throw cause
+        const stoppedElsewhere = unchanged(await historyOf(treatmentId))
+        if (stoppedElsewhere === null) throw cause
+        return stoppedElsewhere
+      }
+    }
+    const stopped = gestures.length > 0 || (await (await periods()).stop(treatmentId, today()))
+    await reminders.reschedule(treatmentId)
+    const finished = readableScheduleOf(await historyOf(treatmentId), today())?.finished ?? false
+    return { animalId: history.animalId, stopped, finished, undo }
+  }
+
+  async function undone(treatmentId: string, writes: readonly DoseWrite[]): Promise<void> {
+    if (writes.length === 0) await (await periods()).undoStop(treatmentId)
+    else {
+      const at = now().toISOString()
+      const undoStop = (await periods()).undoStopStatement(treatmentId, at)
+      await (await doses()).applyBatch(writes, at, [undoStop])
+    }
+    await reminders.reschedule(treatmentId)
+  }
+
   return {
     /**
      * Période en cours arrêtée aujourd'hui, et les doses de `gestures` renseignées dans la même
@@ -107,40 +149,13 @@ export function createTreatmentStopService({
      * Lève pour un traitement introuvable, et une `DoseAlreadyLoggedError` quand une dose du lot est
      * déjà notée.
      */
-    async stop(
-      treatmentId: string,
-      gestures: readonly DoseGesture[] = [],
-    ): Promise<StoppedTreatment> {
-      const history = await historyOf(treatmentId)
-      const notStopped = unchanged(history)
-      if (notStopped !== null) return notStopped
-
-      let undo: DoseWrite[] = []
-      if (gestures.length > 0) {
-        try {
-          undo = await logAndStop(history, gestures)
-        } catch (cause) {
-          if (cause instanceof DoseAlreadyLoggedError) throw cause
-          const stoppedElsewhere = unchanged(await historyOf(treatmentId))
-          if (stoppedElsewhere === null) throw cause
-          return stoppedElsewhere
-        }
-      }
-      const stopped = gestures.length > 0 || (await (await periods()).stop(treatmentId, today()))
-      await reminders.reschedule(treatmentId)
-      const finished = readableScheduleOf(await historyOf(treatmentId), today())?.finished ?? false
-      return { animalId: history.animalId, stopped, finished, undo }
+    stop(treatmentId: string, gestures: readonly DoseGesture[] = []): Promise<StoppedTreatment> {
+      return queue(() => stopped(treatmentId, gestures))
     },
 
     /** Défait l'arrêt et, avec lui, les prises de `writes`, en une transaction. */
-    async undo(treatmentId: string, writes: readonly DoseWrite[] = []): Promise<void> {
-      if (writes.length === 0) await (await periods()).undoStop(treatmentId)
-      else {
-        const at = now().toISOString()
-        const undoStop = (await periods()).undoStopStatement(treatmentId, at)
-        await (await doses()).applyBatch(writes, at, [undoStop])
-      }
-      await reminders.reschedule(treatmentId)
+    undo(treatmentId: string, writes: readonly DoseWrite[] = []): Promise<void> {
+      return queue(() => undone(treatmentId, writes))
     },
   }
 }
@@ -155,4 +170,5 @@ export const treatmentStopService = createTreatmentStopService({
   today: todayIsoDate,
   now: () => new Date(),
   newId: () => crypto.randomUUID(),
+  queue: treatmentWriteQueue,
 })

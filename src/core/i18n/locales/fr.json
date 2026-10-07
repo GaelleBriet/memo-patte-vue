@@ -37,11 +37,17 @@
         "placeholder": "Ex. Labrador"
       },
       "birthDate": {
-        "label": "Date de naissance"
+        "label": "Date de naissance",
+        "approximate": {
+          "label": "Date approximative",
+          "unavailable": "Disponible une fois la date saisie.",
+          "willShow": "L’âge s’affichera « {age} »."
+        }
       },
-      "initialWeightKg": {
-        "label": "Poids initial",
-        "placeholder": "0,0"
+      "weight": {
+        "label": "Poids",
+        "placeholder": "0,0",
+        "help": "Il devient la première pesée, datée du {date}."
       },
       "submit": "Créer",
       "submitting": "Création…",
@@ -63,7 +69,8 @@
     "age": {
       "year": "{n} an | {n} ans",
       "month": "{n} mois",
-      "week": "moins d’une semaine | {n} semaine | {n} semaines"
+      "week": "moins d’une semaine | {n} semaine | {n} semaines",
+      "approximate": "environ {age}"
     },
     "carnet": {
       "back": "Retour",
@@ -132,13 +139,28 @@
       "forAnimal": "Pour {name}",
       "name": {
         "label": "Nom du vaccin",
-        "placeholder": "Ex. Rage"
+        "placeholder": "Ex. Rage",
+        "usedFor": "Déjà utilisé pour {names}",
+        "suggestions": {
+          "carnet": "Dans ton carnet",
+          "combinations": {
+            "dog": "Combinaisons courantes · chien",
+            "cat": "Combinaisons courantes · chat"
+          },
+          "useTyped": "Utiliser « {name} »",
+          "spoken": "{label}. Sigles {aliases}.",
+          "count": "{n} proposition | {n} propositions"
+        }
       },
       "lastInjectionDate": {
-        "label": "Date d’injection"
+        "label": "Date de l’injection",
+        "help": "Laisse vide si l’injection n’a pas encore eu lieu."
       },
-      "dueDate": {
-        "label": "Prochaine échéance"
+      "nextReminder": {
+        "label": "Prochain rappel"
+      },
+      "plannedDate": {
+        "help": "Rendez-vous prévu : le vaccin sera « {status} »."
       },
       "submit": "Créer",
       "submitting": "Création…",
@@ -153,9 +175,10 @@
       "errors": {
         "name": "Le nom du vaccin est obligatoire.",
         "nameMax": "Le nom du vaccin ne peut pas dépasser {max} caractères.",
-        "lastInjectionDate": "La date d’injection est obligatoire.",
-        "lastInjectionDateFuture": "La date d’injection ne peut pas être dans le futur.",
-        "dueDate": "La date d’échéance est invalide.",
+        "lastInjectionDate": "La date de l’injection est invalide.",
+        "lastInjectionDateFuture": "La date de l’injection ne peut pas être dans le futur.",
+        "plannedDate": "Choisis la date du rendez-vous prévu.",
+        "plannedDatePast": "Le rendez-vous ne peut pas être dans le passé.",
         "notFound": "Ce vaccin est introuvable.",
         "load": "Ce vaccin n’a pas pu être chargé. Réessaie.",
         "save": "Le vaccin n’a pas pu être enregistré. Réessaie."
@@ -168,6 +191,7 @@
       "status": {
         "overdue": "En retard · {n} j",
         "upToDate": "À jour",
+        "today": "Aujourd’hui",
         "planned": "Prévu le {date}",
         "none": "Pas de rappel"
       },
@@ -181,6 +205,7 @@
     },
     "sheet": {
       "subtitle": "Vaccin · {animal}",
+      "subtitleFirstVaccine": "Premier vaccin · {animal}",
       "nextReminder": "Prochain rappel le {date}",
       "doneTodayLabel": "Fait aujourd’hui : noter l’injection de {name} pour {animal} et choisir le prochain rappel",
       "editHint": "Nom ou date",
@@ -192,6 +217,7 @@
         "nextReminder": "Prochain rappel",
         "hint": "Reporte la date indiquée par ton vétérinaire.",
         "choices": {
+          "oneMonth": "Dans 1 mois",
           "oneYear": "Dans 1 an",
           "threeYears": "Dans 3 ans",
           "otherDate": "Autre date",
@@ -223,6 +249,13 @@
       "back": "Retour au carnet",
       "nextReminder": "Prochain rappel",
       "noReminder": "Pas de rappel programmé",
+      "today": "Aujourd’hui",
+      "overdueSince": "En retard depuis le {date}",
+      "firstVaccine": "Premier vaccin · aucune injection notée",
+      "firstVaccineShort": "Premier vaccin",
+      "noInjection": "Aucune injection notée",
+      "editLabel": "Modifier le vaccin {name}",
+      "otherDateLabel": "Fait à une autre date : choisir la date de l’injection",
       "doneLabel": "C’est fait : noter l’injection de {name} pour {animal} et choisir le prochain rappel",
       "injections": "Injections",
       "chosen": {
@@ -255,6 +288,20 @@
         "change": "La modification n’a pas abouti. Réessaie.",
         "delete": "{name} n’a pas pu être supprimé. Réessaie."
       }
+    },
+    "diseases": {
+      "distemper": "carré",
+      "hepatitis": "hépatite",
+      "parvovirus": "parvovirose",
+      "parainfluenza": "parainfluenza",
+      "leptospirosis": "leptospirose",
+      "rabies": "rage",
+      "kennelCough": "toux du chenil",
+      "leishmaniosis": "leishmaniose",
+      "panleukopenia": "typhus",
+      "catFlu": "coryza (herpèsvirus, calicivirus)",
+      "chlamydiosis": "chlamydiose",
+      "felineLeukaemia": "leucose"
     }
   },
   "treatments": {
@@ -432,6 +479,7 @@
         "month": "tous les mois | tous les {n} mois"
       },
       "nextDose": "Prochaine dose le {date}",
+      "overdueSince": "En retard depuis le {date}",
       "doneTodayLabel": "Fait aujourd’hui : noter la prise de {name} pour {animal}",
       "editHint": "Date ou fréquence",
       "stop": "Arrêter ce traitement",
@@ -481,7 +529,7 @@
       "showOthers": "Voir l’autre prise de cette période | Voir les {n} autres prises de cette période",
       "hideOthers": "Masquer les autres prises de cette période",
       "options": "Options pour la prise du {date}",
-      "optionsAt": "Options pour la prise du {date} à {time}",
+      "optionsAt": "Options pour la prise du {date} à {time}",
       "remove": "Supprimer cette prise",
       "changeDateSubtitle": "Prise du {date}",
       "changeDateSubtitleExtra": "Prise en plus du {date}",
@@ -645,7 +693,7 @@
         "monthDaysAt": "{days} · {time}",
         "dayGiven": "{date}, donnée",
         "dayMissed": "{date}, oubliée",
-        "dayAt": "{date} à {time}",
+        "dayAt": "{date} à {time}",
         "givenCount": "{n} donnée | {n} donnée | {n} données",
         "missedCount": "{n} oubliée | {n} oubliée | {n} oubliées",
         "counts": "{given}, {missed}",
@@ -716,21 +764,21 @@
     "givenWhen": {
       "title": "Donnée quand ?",
       "due": "Prévue {date}",
-      "dueAt": "Prévue {date} à {time}",
+      "dueAt": "Prévue {date} à {time}",
       "dosageDue": "{dosage} · prévue {date}",
-      "dosageDueAt": "{dosage} · prévue {date} à {time}",
+      "dosageDueAt": "{dosage} · prévue {date} à {time}",
       "scheduled": "Le jour prévu",
       "scheduledAt": "Le jour prévu, à {time}",
       "scheduledLabel": "Donnée le jour prévu, {date}",
-      "scheduledLabelAt": "Donnée le jour prévu, {date} à {time}",
+      "scheduledLabelAt": "Donnée le jour prévu, {date} à {time}",
       "today": "Aujourd’hui",
       "todayLabel": "Donnée aujourd’hui, {date}",
       "other": "Une autre date",
       "otherLabel": "Donnée à une autre date : choisir le jour",
       "everyDay": "Donnée le {date}",
-      "everyDayAt": "Donnée le {date} à {time}",
+      "everyDayAt": "Donnée le {date} à {time}",
       "everyDayLabel": "Donnée le {date}",
-      "everyDayLabelAt": "Donnée le {date} à {time}",
+      "everyDayLabelAt": "Donnée le {date} à {time}",
       "back": "Retour à « Donnée quand ? »"
     }
   },
@@ -783,7 +831,7 @@
       "upcoming": "Prochaine dose",
       "end": "Fin du traitement"
     },
-    "at": "{date} à {time}",
+    "at": "{date} à {time}",
     "tomorrow": "demain, {date}",
     "overdueSince": "en retard depuis le {date}",
     "stoppedOn": "Arrêté le {date}",
@@ -907,6 +955,7 @@
     },
     "reminder": {
       "vaccination": "Vaccin",
+      "firstVaccine": "Premier vaccin",
       "deworming": "Vermifuge",
       "antiparasitic": "Antiparasitaire",
       "medication": "Médicament"
@@ -920,6 +969,7 @@
       "labelUnreadableSingle": "{title}, {type}, {due}. Ouvre le traitement.",
       "spokenType": {
         "vaccination": "vaccin",
+        "firstVaccine": "premier vaccin",
         "deworming": "vermifuge",
         "antiparasitic": "antiparasitaire",
         "medication": "médicament"
@@ -931,6 +981,7 @@
         "todayAt": "aujourd’hui à {time}",
         "tomorrow": "demain",
         "later": "dans {n} jour, le {date} | dans {n} jours, le {date}",
+        "planned": "prévu le {date}",
         "toLog": "à renseigner, {unlogged}",
         "unreadable": "donnée illisible"
       }
@@ -941,6 +992,7 @@
       "todayAt": "Aujourd’hui · {time}",
       "tomorrow": "Demain",
       "later": "Dans {n} jour | Dans {n} jours",
+      "planned": "Prévu le {date}",
       "toLog": "À renseigner",
       "unreadable": "Donnée illisible"
     },
@@ -1261,7 +1313,7 @@
         "empty": "Aucun traitement enregistré.",
         "stopped": "Arrêté le {date}",
         "ended": "Terminé le {date}",
-        "dueAt": "{date} à {time}",
+        "dueAt": "{date} à {time}",
         "unreadable": "Donnée illisible",
         "noDate": "—"
       },

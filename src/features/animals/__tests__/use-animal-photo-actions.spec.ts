@@ -21,6 +21,7 @@ const MILO: Animal = {
   species: 'dog',
   breed: 'Labrador',
   birthDate: '2023-03-12',
+  birthDateApproximate: false,
   photoPath: 'milo.jpg',
   createdAt: '2026-09-09T09:00:00.000Z',
   updatedAt: '2026-09-09T09:00:00.000Z',
@@ -56,9 +57,23 @@ describe('useAnimalPhotoActions', () => {
         species: 'dog',
         breed: 'Labrador',
         birthDate: '2023-03-12',
+        birthDateApproximate: false,
       },
       { kind: 'replace', base64: 'TUlMTw==' },
     )
+  })
+
+  it('garde la date approximative en changeant ou en retirant la photo', async () => {
+    choisirPhoto.mockResolvedValue(PHOTO)
+    const { changePhoto, removePhoto } = actions({ ...MILO, birthDateApproximate: true })
+
+    await changePhoto()
+    await removePhoto()
+
+    expect(update).toHaveBeenCalledTimes(2)
+    for (const [, input] of update.mock.calls) {
+      expect(input).toMatchObject({ birthDate: '2023-03-12', birthDateApproximate: true })
+    }
   })
 
   it('n’enregistre rien quand le sélecteur est fermé sans choix', async () => {

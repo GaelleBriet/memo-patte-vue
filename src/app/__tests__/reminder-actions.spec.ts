@@ -24,6 +24,7 @@ import {
   toastTone,
 } from '@/shared/utils/toast'
 import { createReminderActions, installReminderActions } from '../reminder-actions'
+import { plain } from '@/shared/__tests__/plain'
 
 const TODAY = '2026-10-07'
 const STAMP = '2026-08-01T09:00:00.000Z'
@@ -35,6 +36,7 @@ function animal(id: string, name: string): Animal {
     species: 'dog',
     breed: null,
     birthDate: null,
+    birthDateApproximate: false,
     photoPath: null,
     createdAt: STAMP,
     updatedAt: STAMP,
@@ -88,6 +90,7 @@ let router: Router
 let today: string
 let book: TreatmentWithHistory | null
 let vaccination: Vaccination | null
+let replacedDues: string[]
 let applyBatch: Mock<(writes: readonly DoseWrite[], at: string) => Promise<DoseWrite[]>>
 let refreshHome: ReturnType<typeof vi.fn<() => Promise<boolean>>>
 
@@ -111,7 +114,10 @@ function handler() {
       getById: async (id) => [LUNA, BOREE].find((candidate) => candidate.id === id) ?? null,
     }),
     treatments: () => ({ getWithHistory: async (id) => (book?.id === id ? book : null) }),
-    vaccinations: () => ({ getById: async (id) => (vaccination?.id === id ? vaccination : null) }),
+    vaccinations: () => ({
+      getById: async (id) => (vaccination?.id === id ? vaccination : null),
+      listReplacedDues: async () => replacedDues,
+    }),
     doses,
     refreshHome,
     t: i18n.global.t,
@@ -131,6 +137,7 @@ beforeEach(async () => {
   today = TODAY
   book = null
   vaccination = CARRE
+  replacedDues = []
   applyBatch = vi.fn<(writes: readonly DoseWrite[], at: string) => Promise<DoseWrite[]>>(
     async (writes) => {
       book = written(book!, writes)
@@ -196,6 +203,17 @@ describe('« C’est fait » d’une notification du jour (RA-18, TR-20, T5)', (
     expect(givenLines()).not.toContainEqual(expect.objectContaining({ dueOn: TODAY }))
   })
 
+  it('« Annuler » qui échoue relit « À faire », avec le toast d’échec', async () => {
+    await handler()(done(`treatment:${METACAM}:${TODAY}:2000:due`))
+    refreshHome.mockClear()
+    applyBatch.mockRejectedValue(new Error('prise modifiée depuis'))
+
+    runToastAction()
+
+    await vi.waitFor(() => expect(refreshHome).toHaveBeenCalledOnce())
+    expect(toastMessage.value).toBe('L’annulation n’a pas abouti.')
+  })
+
   it('TR-21, Q33 : la même notification traitée deux fois ne note qu’une prise', async () => {
     const act = handler()
 
@@ -229,7 +247,7 @@ describe('« C’est fait » d’une notification du jour (RA-18, TR-20, T5)', (
     await handler()(done(`treatment:${METACAM}:2026-10-09::due`))
 
     expect(applyBatch).not.toHaveBeenCalled()
-    expect(toastMessage.value).toBe('Prise de Métacam du 7 oct. déjà notée pour Luna')
+    expect(plain(toastMessage.value)).toBe('Prise de Métacam du 7 oct. déjà notée pour Luna')
     expect(currentPlace()).toEqual({ name: 'home', query: {} })
   })
 
@@ -351,7 +369,7 @@ describe('« C’est fait » d’une notification d’un jour passé : « Donné
 
     await handler()(done(`treatment:${METACAM}:2026-10-06:2000:due`))
 
-    expect(toastMessage.value).toBe('Prise de Métacam du 6 oct. déjà notée pour Luna')
+    expect(plain(toastMessage.value)).toBe('Prise de Métacam du 6 oct. déjà notée pour Luna')
   })
 })
 
@@ -414,11 +432,33 @@ describe('« C’est fait » d’un vaccin', () => {
 
   it('dit « déjà noté » quand l’injection de cette échéance est déjà notée', async () => {
     vaccination = { ...CARRE, lastInjectionDate: '2026-10-06', dueDate: '2027-10-06' }
+    replacedDues = ['2026-10-04']
 
     await handler()(done(`vaccination:${CARRE.id}:2026-10-04:overdue`))
 
-    expect(toastMessage.value).toBe('Injection de Carré du 6 oct. déjà notée pour Boree')
+    expect(plain(toastMessage.value)).toBe('Injection de Carré du 6 oct. déjà notée pour Boree')
     expect(currentPlace()).toEqual({ name: 'home', query: {} })
+  })
+
+  it('VA-8 : tient pour notée une échéance remplacée plus de 3 jours avant, sans écrire', async () => {
+    vaccination = { ...CARRE, lastInjectionDate: '2026-09-20', dueDate: '2027-09-20' }
+    replacedDues = ['2026-10-04']
+
+    await handler()(done(`vaccination:${CARRE.id}:2026-10-04:overdue`))
+
+    expect(plain(toastMessage.value)).toBe('Injection de Carré du 20 sept. déjà notée pour Boree')
+  })
+
+  it('ouvre F5 pour une échéance déplacée sans injection', async () => {
+    vaccination = { ...CARRE, lastInjectionDate: '2025-10-04', dueDate: '2026-11-04' }
+
+    await handler()(done(`vaccination:${CARRE.id}:2026-10-04:overdue`))
+
+    expect(toastMessage.value).toBeNull()
+    expect(currentPlace()).toEqual({
+      name: 'home',
+      query: { reminder: `vaccination:${CARRE.id}`, step: 'done' },
+    })
   })
 
   it('ouvre F5 quand l’échéance de la notification est toujours celle du vaccin, malgré une injection récente', async () => {
@@ -442,10 +482,11 @@ describe('« C’est fait » d’un vaccin', () => {
     i18n.global.locale.value = locale
     const lastInjectionDate = day === 'today' ? TODAY : '2026-10-05'
     vaccination = { ...CARRE, lastInjectionDate, dueDate: '2027-10-05' }
+    replacedDues = ['2026-10-04']
 
     await handler()(done(`vaccination:${CARRE.id}:2026-10-04:overdue`))
 
-    expect(toastMessage.value).toBe(expected)
+    expect(plain(toastMessage.value)).toBe(expected)
   })
 })
 
@@ -461,7 +502,7 @@ describe('texte « déjà notée » d’une prise', () => {
 
     await handler()(done(`treatment:${METACAM}:2026-10-06:2000:due`))
 
-    expect(toastMessage.value).toBe(expected)
+    expect(plain(toastMessage.value)).toBe(expected)
   })
 })
 

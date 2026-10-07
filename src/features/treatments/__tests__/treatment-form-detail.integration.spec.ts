@@ -64,6 +64,7 @@ describe('formulaire et fiche d’un traitement, sur la même base', () => {
         species: 'dog',
         breed: null,
         birthDate: null,
+        birthDateApproximate: false,
         photoPath: null,
         createdAt: AT,
         updatedAt: AT,
