@@ -1177,6 +1177,26 @@ describe('HomeView — un seul animal', () => {
   })
 })
 
+describe('HomeView — animal qu’on ne suit plus (AN-9)', () => {
+  beforeEach(() => {
+    animals = [MILO, { ...LUNA, unfollowedOn: '2026-09-08' }]
+  })
+
+  it('quitte les chips, « À faire » et le compteur, vaccins compris', async () => {
+    sources = [
+      CHPPIL_MILO_RETARD,
+      VERMIFUGE_LUNA_AUJOURDHUI,
+      source({ id: 'v-rage', animalId: LUNA.id, label: 'Rage', dueDate: '2026-09-07' }),
+    ]
+    const wrapper = await monter()
+
+    const chips = wrapper.getComponent(AnimalChipSelector).props('animals')
+    expect(chips.map(({ name }) => name)).toEqual(['Milo'])
+    expect(rows(wrapper).map((row) => row.title)).toEqual(['CHPPiL'])
+    expect(wrapper.get('.home-todo .section-card__counter').text()).toBe('Milo · 1 soin')
+  })
+})
+
 describe('HomeView — A5 premier lancement, aucun animal', () => {
   beforeEach(() => {
     animals = []
