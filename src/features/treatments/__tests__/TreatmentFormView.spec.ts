@@ -1116,6 +1116,20 @@ describe('TreatmentFormView — encart des doses passées (TR-3, planches A · V
     expect(encart(wrapper).exists()).toBe(false)
   })
 
+  it('TR-37 : n’apparaît pas pour un animal qu’on ne suit plus', async () => {
+    loadAnimals.mockImplementation(async () => {
+      const animals = useAnimalsStore()
+      animals.animals = [{ ...MILO, unfollowedOn: '2026-09-01' }]
+      animals.hasLoaded = true
+      return true
+    })
+    const wrapper = await monterCreation()
+
+    await saisirPanacur(wrapper)
+
+    expect(encart(wrapper).exists()).toBe(false)
+  })
+
   it('annonce les échéances passées, juste avant « Créer », sans rien présélectionner', async () => {
     const wrapper = await monterCreation()
     await saisirPanacur(wrapper)

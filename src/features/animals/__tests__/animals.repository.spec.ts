@@ -403,13 +403,15 @@ describe('animalsRepository', () => {
       })
     })
 
-    it('n’écrit aucun départ sur un animal suivi', async () => {
+    it('lève sans rien écrire pour un animal suivi de nouveau entre-temps', async () => {
       const luna = await repository.create({ name: 'Luna', species: 'cat' })
 
-      await repository.setDepartureDetails(luna.id, {
-        departureReason: 'death',
-        departureDate: '2026-09-27',
-      })
+      await expect(
+        repository.setDepartureDetails(luna.id, {
+          departureReason: 'death',
+          departureDate: '2026-09-27',
+        }),
+      ).rejects.toThrow(/Luna|suivi|introuvable/)
 
       await expect(repository.getDeparture(luna.id)).resolves.toEqual(FOLLOWED)
     })

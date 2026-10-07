@@ -149,7 +149,9 @@ export function pastDosesPrompt(
   dues: readonly Due[],
   today: string,
   severalTimes: boolean,
+  { followed = true }: { followed?: boolean } = {},
 ): UnloggedPrompt | null {
+  if (!followed) return null
   const [first] = dues
   if (first === undefined) return null
   const count = dues.length

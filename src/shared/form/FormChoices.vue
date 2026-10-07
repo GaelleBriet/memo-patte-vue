@@ -43,8 +43,9 @@ const emit = defineEmits<{
   flex-shrink: 0;
   align-items: center;
   gap: 6px;
+  max-width: 100%;
   min-height: tokens.$size-tap-target;
-  padding: 0 14px;
+  padding: 6px 14px;
   border: 1px solid tokens.$color-choice-border;
   border-radius: tokens.$radius-pill;
   background: rgb(var(--v-theme-surface));
@@ -52,7 +53,7 @@ const emit = defineEmits<{
   font-family: inherit;
   font-size: 14px;
   font-weight: 600;
-  white-space: nowrap;
+  text-align: start;
   cursor: pointer;
 
   &:focus-visible {

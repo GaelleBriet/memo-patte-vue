@@ -138,7 +138,13 @@ describe('AnimalDepartureView — « Ajouter une date » (V15 quater)', () => {
     const wrapper = await monter()
 
     await choix(wrapper)[0]!.trigger('click')
+    expect(choix(wrapper)[0]!.attributes('aria-checked')).toBe('true')
     await choix(wrapper)[0]!.trigger('click')
+    expect(choix(wrapper).map((choice) => choice.attributes('aria-checked'))).toEqual([
+      'false',
+      'false',
+      'false',
+    ])
     await enregistrer(wrapper)
 
     expect(save).toHaveBeenCalledExactlyOnceWith(LUNA.id, {

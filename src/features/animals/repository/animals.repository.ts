@@ -266,17 +266,18 @@ export function createAnimalsRepository(
       ])
     },
 
-    /** Sans effet sur un animal suivi. */
+    /** Lève pour un animal suivi ou supprimé : rien n'est écrit. */
     async setDepartureDetails(
       id: string,
       { departureReason, departureDate }: Omit<Departure, 'unfollowedOn'>,
     ): Promise<void> {
-      await db.run(
+      const changed = await db.run(
         `UPDATE animal
          SET departure_reason = ?, departure_date = ?, updated_at = ?, updated_by_device = ?
          WHERE id = ? AND unfollowed_on IS NOT NULL AND ${NOT_DELETED}`,
         [departureReason, departureDate, new Date().toISOString(), deviceId(), id],
       )
+      if (changed === 0) throw new Error(`Animal suivi ou introuvable : ${id}`)
     },
 
     /** Lignes supprimées comprises : l'import compare les versions avant d'écrire. */

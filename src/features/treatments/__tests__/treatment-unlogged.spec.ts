@@ -205,6 +205,10 @@ describe('pastDosesPrompt — l’encart du formulaire de création (TR-3)', () 
   const prompt = (dues: ReturnType<typeof draft>[], severalTimes = false) =>
     plain(pastDosesPrompt(t, dues, TODAY, severalTimes))
 
+  it('TR-37 : aucun encart pour un animal qu’on ne suit plus', () => {
+    expect(pastDosesPrompt(t, SEPTEMBRE, TODAY, false, { followed: false })).toBeNull()
+  })
+
   it('annonce les échéances passées et pose la question', () => {
     expect(prompt(SEPTEMBRE)).toMatchObject({
       title: '25 doses prévues depuis le 3 sept.',
