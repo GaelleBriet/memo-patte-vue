@@ -264,7 +264,7 @@ describe('revealedDuesText', () => {
   it('en anglais', () => {
     applyLocale('en')
     const text = (unlogged: Due[], overdue: Due[], tense: 'help' | 'toast') =>
-      revealedDuesText(t, { unlogged, overdue }, tense)
+      plain(revealedDuesText(t, { unlogged, overdue }, tense))
 
     expect(text(one, [], 'help')).toBe('The Oct 19 dose will need to be logged.')
     expect(text(two, [], 'help')).toBe('The Oct 12, 19 doses will need to be logged.')

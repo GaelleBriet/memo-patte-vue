@@ -2,13 +2,14 @@ import { afterEach, describe, expect, it } from 'vitest'
 
 import { carnetVaccinationRow } from '../logic/vaccination-carnet'
 import i18n, { applyLocale } from '@/core/i18n'
+import { plain } from '@/shared/__tests__/plain'
 
 const t = i18n.global.t
 const TODAY = '2026-10-06'
 
 function row(lastInjectionDate: string | null, dueDate: string | null, today = TODAY) {
   const { badge, detail } = carnetVaccinationRow(t, { lastInjectionDate, dueDate }, today)
-  return { badge, detail: detail.replaceAll(' ', ' ') }
+  return plain({ badge, detail })
 }
 
 afterEach(() => {

@@ -11,6 +11,7 @@ import { renderCarnetPdf } from '../logic/render-carnet-pdf'
 import { EXPORT_FIXTURE, LUNA_ID } from './export-fixture'
 import { PHOTO_JPEG } from './pdf-fixture'
 import { readPdfPages, textBounds, type PdfPage } from './pdf-reader'
+import { plain } from '@/shared/__tests__/plain'
 
 const ZONE = { left: 18, right: 192, top: 10, bottom: 287 }
 const SOIXANTE_EMOJI = '🐶'.repeat(60)
@@ -58,7 +59,7 @@ function pages(content: CarnetPdfContent, photo: string | null = null): PdfPage[
 }
 
 function textes(content: CarnetPdfContent): string[] {
-  return pages(content).flatMap((page) => page.texts.map((text) => text.text))
+  return pages(content).flatMap((page) => page.texts.map((text) => plain(text.text)))
 }
 
 describe('renderCarnetPdf — caractères hors de la police', () => {
@@ -93,7 +94,13 @@ describe('renderCarnetPdf — caractères hors de la police', () => {
   it('omet de l’identité une race réduite à rien', () => {
     const ecrits = textes(carnet({ breed: '🐕', birthDate: '2019-03-02' }, []))
 
-    expect(ecrits).toContain('Chien · Date de naissance : 2 mars 2019')
+    expect(ecrits).toContain('Chien · Date de naissance : 2 mars 2019')
+  })
+
+  it('garde la date de naissance d’un seul tenant', () => {
+    const [premiere] = pages(carnet({ birthDate: '2019-03-02' }, []))
+
+    expect(premiere!.texts.some((text) => text.text.endsWith(': 2\u00a0mars\u00a02019'))).toBe(true)
   })
 
   it('n’écrit rien hors de la zone imprimable, même avec soixante emoji dans un nom', () => {
