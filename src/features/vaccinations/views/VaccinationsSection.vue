@@ -19,7 +19,7 @@ import DueStatusChip from '@/shared/components/DueStatusChip.vue'
 import ListRowIcon from '@/shared/components/ListRowIcon.vue'
 import SectionCard from '@/shared/components/SectionCard.vue'
 import { useAnimalScopedLoad } from '@/shared/composables/use-animal-scoped-load'
-import { buildReminders, reminderIcon } from '@/shared/domain/reminders'
+import { buildReminders } from '@/shared/domain/reminders'
 
 const props = defineProps<{
   animalId: string
@@ -34,8 +34,6 @@ const emit = defineEmits<{
 const { t } = useI18n()
 const router = useRouter()
 const store = useVaccinationsStore()
-
-const ROW_ICON = reminderIcon('vaccination', null)
 
 const BADGE_ICONS: Partial<Record<CarnetVaccinationBadgeStatus, string>> = {
   overdue: 'ms:error',
@@ -102,7 +100,7 @@ watch(summary, (value) => emit('summary', value), { immediate: true })
       class="section-card__row vaccination-row"
       @click="openDetail(row.id)"
     >
-      <ListRowIcon :icon="ROW_ICON" />
+      <ListRowIcon :icon="row.icon" />
       <span class="vaccination-row__text">
         <span class="vaccination-row__name">{{ row.name }}</span>
         <span class="vaccination-row__detail">{{ row.detail }}</span>
@@ -164,7 +162,7 @@ watch(summary, (value) => emit('summary', value), { immediate: true })
 
 .vaccination-row__text {
   flex: 1 1 0;
-  max-width: 100%;
+  max-width: calc(100% - #{tokens.$size-row-icon} - #{tokens.$gap-list-row});
 }
 
 .vaccination-row__name {

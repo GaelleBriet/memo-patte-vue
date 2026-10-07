@@ -187,7 +187,7 @@ watch(
 
 .treatment-row__text {
   flex: 1 1 0;
-  max-width: 100%;
+  max-width: calc(100% - #{tokens.$size-row-icon} - #{tokens.$gap-list-row});
 }
 
 .treatment-row__name {

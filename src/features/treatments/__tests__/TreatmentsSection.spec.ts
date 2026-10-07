@@ -1,4 +1,4 @@
-import { flushPromises, mount } from '@vue/test-utils'
+import { flushPromises, mount, type DOMWrapper } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 
@@ -431,7 +431,7 @@ describe('TreatmentsSection — ajout', () => {
 })
 
 describe('TreatmentsSection — pastille d’icône (B · V15)', () => {
-  function pastille(row: ReturnType<typeof ligne>) {
+  function pastille(row: DOMWrapper<Element>) {
     const pastilles = row.findAllComponents(ListRowIcon)
     expect(pastilles).toHaveLength(1)
     expect(pastilles[0]!.attributes('aria-hidden')).toBe('true')
@@ -466,11 +466,11 @@ describe('TreatmentsSection — pastille d’icône (B · V15)', () => {
     const wrapper = await monter()
     await wrapper.get('.finished-treatments__toggle').trigger('click')
 
-    const row = wrapper.get('.finished-treatment-row')
-    expect(pastille(row as unknown as ReturnType<typeof ligne>)).toEqual({
+    const [row] = wrapper.findAll('.finished-treatment-row')
+    expect(pastille(row!)).toEqual({
       icon: 'ms:pest_control',
       muted: true,
     })
-    expect(texte(row)).toBe('AdvocateArrêté le 26 mai · 2 prises')
+    expect(texte(row!)).toBe('AdvocateArrêté le 26 mai · 2 prises')
   })
 })
