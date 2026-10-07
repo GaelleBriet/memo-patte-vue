@@ -362,7 +362,9 @@ describe('otherDateTexts', () => {
   const NAMED = { name: 'Métacam', animal: 'Luna', today: '2026-09-28' }
 
   it('annonce le jour choisi sur le bouton, ou « Suivant » à plusieurs heures', () => {
-    expect(otherDateTexts(t, NAMED, '2026-09-26', false).submit).toBe('Noter la prise du 26 sept.')
+    expect(plain(otherDateTexts(t, NAMED, '2026-09-26', false)).submit).toBe(
+      'Noter la prise du 26 sept.',
+    )
     expect(otherDateTexts(t, NAMED, '2026-09-28', false).submit).toBe(
       'Noter la prise d’aujourd’hui',
     )

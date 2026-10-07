@@ -1,4 +1,3 @@
-import { isFuture, parseISO } from 'date-fns'
 import { z } from 'zod'
 
 import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
@@ -25,18 +24,12 @@ export const treatmentInputSchema = z.object({
   name: z.string().trim().min(1).max(MAX_NAME_LENGTH),
   type: treatmentTypeSchema,
   frequency: treatmentFrequencySchema,
-  lastDoseDate: z.iso.date().refine((value) => !isFuture(parseISO(value))),
 })
 
-/**
- * Le traitement et sa période en cours, avec la dernière prise et la prochaine dose qu'elle fixe ;
- * sans prise, la prochaine dose est la première échéance de la période.
- */
+/** Le traitement et sa période en cours ; ses échéances se lisent par le moteur, jamais ici. */
 export const treatmentSchema = treatmentInputSchema.extend({
   id: z.uuid(),
   periodId: z.uuid(),
-  lastDoseDate: z.iso.date().nullable(),
-  nextDueDate: z.iso.date(),
   /** `null` tant que la période en cours n'est pas arrêtée. */
   stoppedOn: z.iso.date().nullable(),
   createdAt: z.iso.datetime(),

@@ -83,7 +83,6 @@ function vermifuge(animalId = MILO, surcharges: Partial<TreatmentInput> = {}): T
     name: 'Milbemax',
     type: 'deworming',
     frequency: { value: 3, unit: 'month' },
-    lastDoseDate: '2026-03-12',
     ...surcharges,
   }
 }
@@ -196,7 +195,7 @@ describe('useTreatmentsStore', () => {
   })
 
   it('charge les traitements d’un animal, et de lui seul, avec leurs périodes et leurs prises', async () => {
-    repository.seed(vermifuge(MILO, { name: 'Bravecto', lastDoseDate: '2026-01-05' }))
+    repository.seed(vermifuge(MILO, { name: 'Bravecto' }))
     repository.seed(vermifuge(MILO))
     repository.seed(vermifuge(LUNA, { name: 'Frontline' }))
     const store = useTreatmentsStore()
@@ -483,7 +482,7 @@ describe('useTreatmentsStore', () => {
     const repris = await store.resume(seme.id, reprise())
 
     expect(repository.resume).toHaveBeenCalledWith(seme.id, reprise())
-    expect(repris).toMatchObject({ id: seme.id, stoppedOn: null, nextDueDate: '2026-10-01' })
+    expect(repris).toMatchObject({ id: seme.id, stoppedOn: null })
     expect(reminders.reschedule).toHaveBeenCalledWith(seme.id)
     expect(repository.listWithHistoryByAnimal).toHaveBeenCalledWith(MILO)
   })
@@ -651,9 +650,6 @@ function createFakeRepository(): FakeTreatmentsRepository {
 
   const living = () => treatments.filter((treatment) => treatment.deletedAt === null)
 
-  // Échéance figée, pas calculée : le store doit la reprendre telle quelle.
-  const nextDueDate = (lastDoseDate: string) => `${lastDoseDate}#next`
-
   function seed(input: TreatmentInput): Treatment {
     const now = new Date().toISOString()
     const treatment: Treatment = {
@@ -663,8 +659,6 @@ function createFakeRepository(): FakeTreatmentsRepository {
       type: input.type,
       periodId: crypto.randomUUID(),
       frequency: input.frequency,
-      lastDoseDate: input.lastDoseDate,
-      nextDueDate: nextDueDate(input.lastDoseDate),
       stoppedOn: null,
       createdAt: now,
       updatedAt: now,
@@ -679,8 +673,8 @@ function createFakeRepository(): FakeTreatmentsRepository {
     getById: vi.fn<TreatmentsRepository['getById']>(
       async (id) => living().find((treatment) => treatment.id === id) ?? null,
     ),
-    create: vi.fn<TreatmentPlanService['create']>(async ({ firstDoseOn, ...input }) =>
-      seed({ ...input, lastDoseDate: firstDoseOn }),
+    create: vi.fn<TreatmentPlanService['create']>(async ({ animalId, name, type, frequency }) =>
+      seed({ animalId, name, type, frequency }),
     ),
     update: vi.fn<TreatmentPlanService['update']>(async (id, input) => {
       const index = treatments.findIndex(
@@ -692,7 +686,6 @@ function createFakeRepository(): FakeTreatmentsRepository {
         name: input.name,
         type: input.type,
         frequency: input.frequency,
-        nextDueDate: input.nextDoseOn ?? treatments[index]!.nextDueDate,
         updatedAt: new Date().toISOString(),
       }
       treatments[index] = updated
@@ -713,7 +706,6 @@ function createFakeRepository(): FakeTreatmentsRepository {
       if (!treatment) throw new Error(`Traitement introuvable : ${id}`)
       Object.assign(treatment, {
         frequency: input.frequency,
-        nextDueDate: input.firstDoseOn,
         stoppedOn: null,
       })
       return { ...treatment }

@@ -138,15 +138,24 @@ function olderOfSameDay(lines: TreatmentDoseInput[]): TreatmentDoseInput[] {
 
 // Les lignes que le moteur ne lit pas, à supprimer avec la prochaine écriture : un report revenu à sa
 // date, un report battu par une prise de la même échéance (Q5), une ligne plus ancienne de la même
-// journée (G17). Q25 : sa dose d'arrivée notée, un report reste dans l'historique.
-function staleLines(doses: TreatmentDoseInput[], noteKeys: Set<string>, noteDays: Set<string>) {
+// journée (G17), un report qui part et arrive après la fermeture de la période (G5). Q25 : sa dose
+// d'arrivée notée, un report reste dans l'historique.
+function staleLines(
+  doses: TreatmentDoseInput[],
+  noteKeys: Set<string>,
+  noteDays: Set<string>,
+  closesOn: string | null,
+) {
   const moves = doses.filter((dose) => familyOf(dose) === 'move')
   const isLogged = (move: TreatmentDoseInput) => noteDays.has(move.nextDueDate)
+  const isClosedOut = (move: TreatmentDoseInput) =>
+    closesOn !== null && move.dueOn >= closesOn && move.nextDueDate >= closesOn
   const older = olderOfSameDay(moves)
   const staleMoves = moves.filter(
     (move) =>
       noteKeys.has(keyOf(move)) ||
-      (!isLogged(move) && (move.nextDueDate === move.dueOn || older.includes(move))),
+      (!isLogged(move) &&
+        (move.nextDueDate === move.dueOn || older.includes(move) || isClosedOut(move))),
   )
   return [...staleMoves, ...olderOfSameDay(doses.filter(isShiftLine))]
 }
@@ -176,7 +185,7 @@ export function planPeriod(
   const notes = doses.filter(isNoteLine)
   const noteKeys = new Set(notes.map(keyOf))
   const noteDays = new Set(notes.map((dose) => dose.dueOn))
-  const stale = staleLines(doses, noteKeys, noteDays)
+  const stale = staleLines(doses, noteKeys, noteDays, closesOn)
   const unread = new Set(stale)
   const steps = stepsOf(doses.filter((dose) => !unread.has(dose)))
   const anchors = [

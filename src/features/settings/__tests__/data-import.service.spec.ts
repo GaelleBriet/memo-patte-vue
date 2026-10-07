@@ -39,7 +39,8 @@ import { createTreatmentsRepository } from '@/features/treatments/repository/tre
 import { createVaccinationInjectionsRepository } from '@/features/vaccinations/repository/vaccination-injections.repository'
 import { createVaccinationsRepository } from '@/features/vaccinations/repository/vaccinations.repository'
 import { createWeightRepository } from '@/features/weight/repository/weight.repository'
-import { seededTreatments } from '@/features/treatments/__tests__/seed-treatment'
+import { headDose, seededTreatments } from '@/features/treatments/__tests__/seed-treatment'
+import { treatmentScheduleOf } from '@/features/treatments/logic/treatment-schedule'
 import { createTreatmentPlanService } from '@/features/treatments/service/treatment-plan.service'
 
 const NOW = new Date('2026-09-15T10:00:00.000Z')
@@ -211,7 +212,7 @@ describe('data-import.service', () => {
     await expect(service.hasLocalData()).resolves.toBe(true)
   })
 
-  it('importe un médicament sans prise : visible, prochaine dose à sa première échéance', async () => {
+  it('importe un médicament sans prise : visible, à sa première échéance', async () => {
     const { service } = setup()
     const [milbemax] = IMPORT_FIXTURE.treatments
     const data: ExportData = {
@@ -231,8 +232,10 @@ describe('data-import.service', () => {
 
     await expect(repositories.treatments.getById(milbemax!.id)).resolves.toMatchObject({
       type: 'medication',
-      lastDoseDate: null,
-      nextDueDate: '2026-10-05',
+    })
+    await expect(repositories.treatments.getWithHistory(milbemax!.id)).resolves.toMatchObject({
+      periods: [{ firstDueOn: '2026-10-05' }],
+      doses: [],
     })
     await expect(carnet()).resolves.toEqual(withoutPhotos(data))
   })
@@ -302,8 +305,11 @@ describe('data-import.service', () => {
     await expect(repositories.treatments.getById(PANACUR_ID)).resolves.toMatchObject({
       periodId: PANACUR_PERIOD_ID,
       frequency: { value: 1, unit: 'day' },
-      nextDueDate: '2026-09-03',
       stoppedOn: null,
+    })
+    const panacur = await repositories.treatments.getWithHistory(PANACUR_ID)
+    expect(treatmentScheduleOf(panacur!, '2026-09-02').nextDue).toMatchObject({
+      dueOn: '2026-09-03',
     })
   })
 
@@ -500,9 +506,8 @@ describe('data-import.service', () => {
 
       await service.importData(importFile(echeanceArbitraire), 'replace')
 
-      await expect(repositories.treatments.getById(MILBEMAX_ID)).resolves.toMatchObject({
-        lastDoseDate: '2026-06-15',
-        frequency: { value: 3, unit: 'month' },
+      await expect(headDose(repositories.treatments, MILBEMAX_ID)).resolves.toEqual({
+        givenOn: '2026-06-15',
         nextDueDate: '2027-01-31',
       })
     })
@@ -857,6 +862,8 @@ describe('data-import.service', () => {
 
       await expect(repositories.treatments.getById(PANACUR_ID)).resolves.toMatchObject({
         periodId: PANACUR_PERIOD_ID,
+      })
+      await expect(headDose(repositories.treatments, PANACUR_ID)).resolves.toMatchObject({
         nextDueDate: '2026-09-02',
       })
       await expect(
@@ -1311,8 +1318,8 @@ describe('data-import.service', () => {
 
       await importerOn(phoneA).importData(await exported(phoneB), 'merge')
 
-      await expect(a.treatments.getById(milbemax.id)).resolves.toMatchObject({
-        lastDoseDate: '2026-09-10',
+      await expect(headDose(createRepositories(phoneA).treatments, milbemax.id)).resolves.toEqual({
+        givenOn: '2026-09-10',
         nextDueDate: '2026-09-17',
       })
       phoneB.close()
@@ -1448,9 +1455,9 @@ describe('data-import.service', () => {
       for (const phone of [phoneA, phoneB]) {
         await expect(
           createRepositories(phone).treatments.getById(milbemax.id),
-        ).resolves.toMatchObject({
-          name: 'Milbémax chat',
-          lastDoseDate: '2026-06-20',
+        ).resolves.toMatchObject({ name: 'Milbémax chat' })
+        await expect(headDose(createRepositories(phone).treatments, milbemax.id)).resolves.toEqual({
+          givenOn: '2026-06-20',
           nextDueDate: '2026-09-20',
         })
       }
@@ -1503,9 +1510,9 @@ describe('data-import.service', () => {
       for (const phone of [phoneA, phoneB]) {
         await expect(
           createRepositories(phone).treatments.getById(milbemax.id),
-        ).resolves.toMatchObject({
-          frequency: { value: 1, unit: 'month' },
-          lastDoseDate: '2026-09-12',
+        ).resolves.toMatchObject({ frequency: { value: 1, unit: 'month' } })
+        await expect(headDose(createRepositories(phone).treatments, milbemax.id)).resolves.toEqual({
+          givenOn: '2026-09-12',
           nextDueDate: '2026-12-12',
         })
       }

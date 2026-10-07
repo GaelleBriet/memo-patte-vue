@@ -28,7 +28,14 @@ import { recordUsageSignal } from '@/shared/utils/usage-signals'
 // Le store ne dépend que de ce qu'il appelle : la cascade de suppression (#102) n'est pas son affaire.
 type VaccinationsRepository = Pick<
   FullVaccinationsRepository,
-  'getById' | 'listByAnimal' | 'create' | 'update' | 'remove' | 'restore' | 'listInjections'
+  | 'getById'
+  | 'listByAnimal'
+  | 'listAll'
+  | 'create'
+  | 'update'
+  | 'remove'
+  | 'restore'
+  | 'listInjections'
 >
 
 export type VaccinationsRepositoryProvider = () =>
@@ -157,6 +164,11 @@ export const useVaccinationsStore = defineStore('vaccinations', () => {
     async findSameName(animalId: string, name: string): Promise<Vaccination | null> {
       const list = await (await requireRepository()).listByAnimal(animalId)
       return list.find((vaccination) => isSameVaccineName(vaccination.name, name)) ?? null
+    },
+
+    /** Vaccins de tous les animaux, sans changer la liste affichée. */
+    async listAll(): Promise<Vaccination[]> {
+      return (await requireRepository()).listAll()
     },
 
     async create(input: VaccinationInput): Promise<Vaccination> {

@@ -17,6 +17,7 @@ import {
 } from '../logic/vaccination-history'
 import type { VaccinationInjection } from '../schema/vaccination-injection.schema'
 import i18n, { applyLocale } from '@/core/i18n'
+import { plain } from '@/shared/__tests__/plain'
 
 const t = i18n.global.t
 const TODAY = '2026-09-23'
@@ -133,7 +134,7 @@ describe('injectionRows', () => {
       injection('c', '2022-07-05', null),
     ])
 
-    expect(rows).toEqual([
+    expect(plain(rows)).toEqual([
       {
         id: 'a',
         date: '2 juin 2024',
@@ -167,10 +168,12 @@ describe('injectionRows', () => {
     applyLocale('en')
 
     expect(
-      injectionRows(t, [
-        injection('a', '2024-06-02', '2027-06-02'),
-        injection('b', '2022-07-05', null),
-      ]),
+      plain(
+        injectionRows(t, [
+          injection('a', '2024-06-02', '2027-06-02'),
+          injection('b', '2022-07-05', null),
+        ]),
+      ),
     ).toEqual([
       {
         id: 'a',
@@ -192,10 +195,12 @@ describe('vaccinationDetailTexts', () => {
     lastInjectionDate: '2026-08-26',
   }
   const textes = (vaccination: Partial<typeof carre> = {}, today = TODAY) =>
-    vaccinationDetailTexts(
-      t,
-      { ...carre, ...vaccination },
-      { animal: 'Boree', today, injections: 3 },
+    plain(
+      vaccinationDetailTexts(
+        t,
+        { ...carre, ...vaccination },
+        { animal: 'Boree', today, injections: 3 },
+      ),
     )
 
   it('annonce la dernière injection, le prochain rappel « À jour » et le nombre d’injections (V12)', () => {
@@ -205,8 +210,8 @@ describe('vaccinationDetailTexts', () => {
       due: { value: '26 août 2027', delay: 'À jour', tone: null },
       note: null,
       editLabel: 'Modifier le vaccin Carré',
-      otherDateLabel: 'Fait à une autre date\u00a0: choisir la date de l’injection',
-      doneLabel: 'C’est fait : noter l’injection de Carré pour Boree et choisir le prochain rappel',
+      otherDateLabel: 'Fait à une autre date : choisir la date de l’injection',
+      doneLabel: 'C’est fait : noter l’injection de Carré pour Boree et choisir le prochain rappel',
       counter: '3',
     })
   })
@@ -285,15 +290,15 @@ describe('injectionGestureTexts', () => {
   it('annonce la suppression et le déplacement d’une injection (F7)', () => {
     const texts = injectionGestureTexts(t, '2026-07-27', TODAY)
 
-    expect(texts.changeDateSubtitle).toBe('Injection du 27 juil. 2026')
-    expect(texts.removed).toBe('Injection du 27 juil. supprimée')
-    expect(texts.undoRemove).toBe('Annuler la suppression de l’injection du 27 juillet 2026')
-    expect(texts.moved('2026-07-25')).toBe('Injection déplacée au 25 juil.')
+    expect(plain(texts.changeDateSubtitle)).toBe('Injection du 27 juil. 2026')
+    expect(plain(texts.removed)).toBe('Injection du 27 juil. supprimée')
+    expect(plain(texts.undoRemove)).toBe('Annuler la suppression de l’injection du 27 juillet 2026')
+    expect(plain(texts.moved('2026-07-25'))).toBe('Injection déplacée au 25 juil.')
     expect(texts.undoMove).toBe('Annuler le changement de date de l’injection')
   })
 
   it('écrit l’année d’une injection d’une autre année', () => {
-    expect(injectionGestureTexts(t, '2025-07-27', TODAY).removed).toBe(
+    expect(plain(injectionGestureTexts(t, '2025-07-27', TODAY).removed)).toBe(
       'Injection du 27 juil. 2025 supprimée',
     )
   })
@@ -387,11 +392,13 @@ describe('pastInjectionTexts', () => {
       future: 'La date de l’injection ne peut pas être dans le futur.',
       taken: 'Une injection est déjà notée ce jour-là.',
     })
-    expect(pastInjectionToast(t, '2022-06-20', TODAY)).toEqual({
+    expect(plain(pastInjectionToast(t, '2022-06-20', TODAY))).toEqual({
       added: 'Injection du 20 juin 2022 ajoutée',
       undoAdd: 'Annuler l’ajout de l’injection du 20 juin 2022',
     })
-    expect(pastInjectionToast(t, '2026-06-20', TODAY).added).toBe('Injection du 20 juin ajoutée')
+    expect(plain(pastInjectionToast(t, '2026-06-20', TODAY).added)).toBe(
+      'Injection du 20 juin ajoutée',
+    )
   })
 
   it('parle anglais', () => {
@@ -404,7 +411,7 @@ describe('pastInjectionTexts', () => {
       submit: 'Add',
       taken: 'An injection is already logged on that day.',
     })
-    expect(pastInjectionToast(t, '2022-06-20', TODAY)).toEqual({
+    expect(plain(pastInjectionToast(t, '2022-06-20', TODAY))).toEqual({
       added: 'Injection of Jun 20, 2022 added',
       undoAdd: 'Undo adding the injection of June 20, 2022',
     })

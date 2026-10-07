@@ -420,6 +420,15 @@ describe('useVaccinationsStore — vaccin déjà suivi', () => {
     await expect(store.findSameName(MILO, 'Rage')).resolves.toBeNull()
     expect(store.vaccinations).toEqual([])
   })
+
+  it('lit les vaccins de tous les animaux sans toucher la liste affichée', async () => {
+    const carre = repository.seed(rage(MILO, { name: 'Carré' }))
+    const lepto = repository.seed(rage(LUNA, { name: 'Leptospirose' }))
+    const store = useVaccinationsStore()
+
+    await expect(store.listAll()).resolves.toEqual([carre, lepto])
+    expect(store.vaccinations).toEqual([])
+  })
 })
 
 describe('useVaccinationsStore — injection notée', () => {
@@ -533,6 +542,7 @@ interface FakeVaccinationsRepository {
   seed(input: VaccinationInput): Vaccination
   getById: Mock<VaccinationsRepository['getById']>
   listByAnimal: Mock<VaccinationsRepository['listByAnimal']>
+  listAll: Mock<VaccinationsRepository['listAll']>
   create: Mock<VaccinationsRepository['create']>
   update: Mock<VaccinationsRepository['update']>
   remove: Mock<VaccinationsRepository['remove']>
@@ -570,6 +580,7 @@ function createFakeRepository(): FakeVaccinationsRepository {
     listByAnimal: vi.fn<VaccinationsRepository['listByAnimal']>(async (animalId) =>
       living().filter((vaccination) => vaccination.animalId === animalId),
     ),
+    listAll: vi.fn<VaccinationsRepository['listAll']>(async () => living()),
     create: vi.fn<VaccinationsRepository['create']>(async (input) => seed(input)),
     update: vi.fn<VaccinationsRepository['update']>(async (id, input) => {
       const current = living().find((vaccination) => vaccination.id === id)

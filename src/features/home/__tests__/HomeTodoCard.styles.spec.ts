@@ -85,8 +85,10 @@ describe('HomeTodoCard — contrat de style', () => {
     expect(declaration('.home-todo__group', 'text-transform')).toBe('uppercase')
   })
 
-  it('borde une ligne « À renseigner » de turquoise, jamais de la teinte d’un retard (TR-14)', () => {
-    expect(declaration('.reminder-row--to-log::before', 'background')).toBe('#b9e4e7')
+  it('borde de turquoise une ligne « À renseigner » (TR-14) et un vaccin prévu (V16)', () => {
+    expect(
+      declaration('.reminder-row--planned::before, .reminder-row--to-log::before', 'background'),
+    ).toBe('#b9e4e7')
   })
 
   it('écrit le nombre de doses non renseignées en pétrole sous le type', () => {
