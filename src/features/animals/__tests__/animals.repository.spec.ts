@@ -360,6 +360,149 @@ describe('animalsRepository', () => {
     })
   })
 
+  describe('suivi', () => {
+    const DEPARTED = {
+      unfollowedOn: '2026-09-28',
+      departureReason: 'death',
+      departureDate: '2026-09-27',
+    } as const
+    const FOLLOWED = { unfollowedOn: null, departureReason: null, departureDate: null }
+
+    it('lit un animal suivi avec unfollowedOn à null', async () => {
+      const luna = await repository.create({ name: 'Luna', species: 'cat' })
+
+      expect(luna.unfollowedOn).toBeNull()
+      await expect(repository.getDeparture(luna.id)).resolves.toEqual(FOLLOWED)
+    })
+
+    it('écrit le départ et le relit, sur l’animal comme dans la liste', async () => {
+      const luna = await repository.create({ name: 'Luna', species: 'cat' })
+
+      await repository.setDeparture(luna.id, DEPARTED)
+
+      await expect(repository.getDeparture(luna.id)).resolves.toEqual(DEPARTED)
+      await expect(repository.getById(luna.id)).resolves.toMatchObject({
+        unfollowedOn: '2026-09-28',
+      })
+      await expect(repository.list()).resolves.toEqual([
+        expect.objectContaining({ id: luna.id, unfollowedOn: '2026-09-28' }),
+      ])
+    })
+
+    it('date la modification pour la synchronisation', async () => {
+      vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-09-01T08:00:00.000Z') })
+      try {
+        const luna = await repository.create({ name: 'Luna', species: 'cat' })
+        vi.setSystemTime(new Date('2026-09-28T08:00:00.000Z'))
+
+        await repository.setDeparture(luna.id, DEPARTED)
+
+        await expect(
+          db.query('SELECT updated_at FROM animal WHERE id = ?', [luna.id]),
+        ).resolves.toEqual([{ updated_at: '2026-09-28T08:00:00.000Z' }])
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+
+    it('efface le départ pour suivre de nouveau', async () => {
+      const luna = await repository.create({ name: 'Luna', species: 'cat' })
+      await repository.setDeparture(luna.id, DEPARTED)
+
+      await repository.setDeparture(luna.id, FOLLOWED)
+
+      await expect(repository.getDeparture(luna.id)).resolves.toEqual(FOLLOWED)
+    })
+
+    it('joue les écritures liées dans la même transaction', async () => {
+      const luna = await repository.create({ name: 'Luna', species: 'cat' })
+
+      await expect(
+        repository.setDeparture(luna.id, DEPARTED, [
+          { sql: 'UPDATE table_inexistante SET deleted_at = 1' },
+        ]),
+      ).rejects.toThrow(/no such table/)
+
+      await expect(repository.getDeparture(luna.id)).resolves.toEqual(FOLLOWED)
+    })
+
+    it('renvoie null pour un animal inconnu ou supprimé', async () => {
+      const luna = await repository.create({ name: 'Luna', species: 'cat' })
+      await repository.remove(luna.id)
+
+      await expect(repository.getDeparture(luna.id)).resolves.toBeNull()
+      await expect(repository.getDeparture('inconnu')).resolves.toBeNull()
+    })
+  })
+
+  describe('restore', () => {
+    it('rend l’animal supprimé à cet instant, avec les écritures liées', async () => {
+      const luna = await repository.create({ name: 'Luna', species: 'cat' })
+      await repository.remove(luna.id, [], '2026-03-01T10:00:00.000Z')
+      await db.run(
+        `INSERT INTO vaccination (id, animal_id, name, created_at, updated_at, deleted_at, created_by_device, updated_by_device)
+         VALUES ('v1', ?, 'Rage', '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z', '2026-03-01T10:00:00.000Z', 'appareil-test', 'appareil-test')`,
+        [luna.id],
+      )
+
+      await repository.restore(luna.id, '2026-03-01T10:00:00.000Z', [
+        { sql: "UPDATE vaccination SET deleted_at = NULL WHERE id = 'v1'" },
+      ])
+
+      await expect(repository.getById(luna.id)).resolves.toMatchObject({
+        id: luna.id,
+        deletedAt: null,
+      })
+      await expect(
+        db.query('SELECT deleted_at FROM vaccination WHERE id = ?', ['v1']),
+      ).resolves.toEqual([{ deleted_at: null }])
+    })
+
+    it('lève sans rien rendre quand l’animal n’a pas été supprimé à cet instant', async () => {
+      const luna = await repository.create({ name: 'Luna', species: 'cat' })
+      await repository.remove(luna.id, [], '2026-03-01T10:00:00.000Z')
+      await db.run(
+        `INSERT INTO vaccination (id, animal_id, name, created_at, updated_at, deleted_at, created_by_device, updated_by_device)
+         VALUES ('v1', ?, 'Rage', '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z', '2026-03-02T10:00:00.000Z', 'appareil-test', 'appareil-test')`,
+        [luna.id],
+      )
+
+      await expect(
+        repository.restore(luna.id, '2026-03-02T10:00:00.000Z', [
+          { sql: "UPDATE vaccination SET deleted_at = NULL WHERE id = 'v1'" },
+        ]),
+      ).rejects.toThrow(/introuvable/)
+
+      await expect(repository.getById(luna.id)).resolves.toBeNull()
+      await expect(
+        db.query('SELECT deleted_at FROM vaccination WHERE id = ?', ['v1']),
+      ).resolves.toEqual([{ deleted_at: '2026-03-02T10:00:00.000Z' }])
+    })
+
+    it('lève pour un animal déjà rendu', async () => {
+      const luna = await repository.create({ name: 'Luna', species: 'cat' })
+      await repository.remove(luna.id, [], '2026-03-01T10:00:00.000Z')
+      await repository.restore(luna.id, '2026-03-01T10:00:00.000Z')
+
+      await expect(repository.restore(luna.id, '2026-03-01T10:00:00.000Z')).rejects.toThrow(
+        /introuvable/,
+      )
+    })
+
+    it('date le retour pour la synchronisation', async () => {
+      const luna = await repository.create({ name: 'Luna', species: 'cat' })
+      await repository.remove(luna.id, [], '2026-03-01T10:00:00.000Z')
+
+      await repository.restore(luna.id, '2026-03-01T10:00:00.000Z')
+
+      const [row] = await db.query<{ updated_at: string }>(
+        'SELECT updated_at FROM animal WHERE id = ?',
+        [luna.id],
+      )
+      expect(row && row.updated_at > '2026-03-01T10:00:00.000Z').toBe(true)
+    })
+  })
+
   it('rejette une espèce interdite avant d’atteindre la base', async () => {
     await expect(
       repository.create({

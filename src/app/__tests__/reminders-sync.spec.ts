@@ -42,6 +42,7 @@ function animal(id: string, name: string): Animal {
     createdAt: STAMP,
     updatedAt: STAMP,
     deletedAt: null,
+    unfollowedOn: null,
   }
 }
 
@@ -350,6 +351,22 @@ describe('syncAllReminders', () => {
 
     expect(notifications.rescheduleAll).toHaveBeenCalledWith([])
     expect(notifications.pending.size).toBe(0)
+  })
+
+  it('AN-9 : ne programme rien pour un animal qu’on ne suit plus', async () => {
+    list.mockResolvedValue([MILO, { ...LUNA, unfollowedOn: '2026-09-14' }])
+    listVaccinations.mockResolvedValue([
+      vaccination('22222222-2222-4222-8222-222222222222', LUNA.id, '2026-10-15'),
+      vaccination('55555555-5555-4555-8555-555555555555', MILO.id, '2026-10-15'),
+    ])
+    listTreatments.mockResolvedValue([MILBEMAX])
+
+    await sync()()
+
+    expect(scheduledNow().map(({ key }) => key.split(':')[1])).toEqual(
+      expect.arrayContaining(['55555555-5555-4555-8555-555555555555']),
+    )
+    expect(scheduledNow().every(({ key }) => key.includes('55555555-5555-4555-8555'))).toBe(true)
   })
 
   it.each([

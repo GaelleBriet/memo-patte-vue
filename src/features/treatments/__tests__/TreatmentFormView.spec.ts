@@ -93,6 +93,7 @@ const MILO: Animal = {
   createdAt: AT,
   updatedAt: AT,
   deletedAt: null,
+  unfollowedOn: null,
 }
 
 const ID = '22222222-2222-4222-8222-222222222222'
@@ -161,8 +162,6 @@ const ECRIT: Treatment = {
   type: 'deworming',
   periodId: ID,
   frequency: { value: 3, unit: 'month' },
-  lastDoseDate: '2026-07-10',
-  nextDueDate: '2026-10-10',
   stoppedOn: null,
   createdAt: AT,
   updatedAt: AT,

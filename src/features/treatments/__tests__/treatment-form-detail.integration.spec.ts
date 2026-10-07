@@ -69,6 +69,7 @@ describe('formulaire et fiche d’un traitement, sur la même base', () => {
         createdAt: AT,
         updatedAt: AT,
         deletedAt: null,
+        unfollowedOn: null,
       },
     ]
     animals.hasLoaded = true

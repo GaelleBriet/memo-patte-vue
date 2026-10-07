@@ -96,8 +96,6 @@ describe('treatmentsRepository — créer et écrire un plan', () => {
         type: 'deworming',
         periodId: PANACUR,
         frequency: { value: 1, unit: 'day' },
-        lastDoseDate: null,
-        nextDueDate: '2026-09-29',
         stoppedOn: null,
         createdAt: T0,
         updatedAt: T0,
@@ -270,7 +268,6 @@ describe('treatmentsRepository — créer et écrire un plan', () => {
       expect(updated).toMatchObject({
         periodId: SECONDE,
         frequency: { value: 2, unit: 'day' },
-        nextDueDate: '2026-10-03',
       })
       await expect(repository.getWithHistory(PANACUR)).resolves.toMatchObject({
         periods: [

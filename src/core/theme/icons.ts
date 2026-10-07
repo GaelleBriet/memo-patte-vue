@@ -74,6 +74,7 @@ import tune from '@material-symbols/svg-400/outlined/tune.svg?raw'
 import today from '@material-symbols/svg-400/outlined/today.svg?raw'
 import uploadFile from '@material-symbols/svg-400/outlined/upload_file.svg?raw'
 import vaccines from '@material-symbols/svg-400/outlined/vaccines.svg?raw'
+import visibilityOff from '@material-symbols/svg-400/outlined/visibility_off.svg?raw'
 import workspacePremium from '@material-symbols/svg-400/outlined/workspace_premium.svg?raw'
 import workspacePremiumFill from '@material-symbols/svg-400/outlined/workspace_premium-fill.svg?raw'
 
@@ -259,6 +260,7 @@ export const msIcons = {
   upload,
   upload_file: uploadFile,
   vaccines,
+  visibility_off: visibilityOff,
   volume_down: volumeDown,
   volume_mute: volumeMute,
   volume_off: volumeOff,

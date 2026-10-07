@@ -5,6 +5,7 @@ import { todoItems } from '../logic/todo-items'
 
 const TODAY = '2026-10-06'
 const BOTH = ['08:00', '20:00']
+const FOLLOWED = new Set(['milo', 'luna'])
 
 /** Quotidien à 8 h et 20 h depuis le 1er oct., tout noté jusqu'au 4 et le 5 à 8 h. */
 const METACAM = treatment({
@@ -14,7 +15,7 @@ const METACAM = treatment({
 
 describe('todoItems — traitements lus par le moteur d’échéances', () => {
   it('quotidien à deux heures, 20 h d’hier non notée : les deux prises du jour, et une dose à renseigner, sans retard', () => {
-    expect(todoItems([METACAM], TODAY)).toEqual([
+    expect(todoItems([METACAM], TODAY, FOLLOWED)).toEqual([
       expect.objectContaining({
         group: 'due',
         key: 'treatment:t1:2026-10-06T08:00',
@@ -41,14 +42,14 @@ describe('todoItems — traitements lus par le moteur d’échéances', () => {
   it('la prise de 8 h notée, la ligne de 8 h disparaît et celle de 20 h reste (Accueil §4, critère 3)', () => {
     const noted = { ...METACAM, doses: [...METACAM.doses, given(TODAY, '08:00')] }
 
-    expect(todoItems([noted], TODAY).map(({ key }) => key)).toEqual([
+    expect(todoItems([noted], TODAY, FOLLOWED).map(({ key }) => key)).toEqual([
       'treatment:t1:2026-10-06T20:00',
       'treatment:t1:unlogged',
     ])
   })
 
   it('garde l’heure d’une prise du jour passée : jamais en retard le jour même (TR-11)', () => {
-    const items = todoItems([METACAM], TODAY)
+    const items = todoItems([METACAM], TODAY, FOLLOWED)
 
     expect(items.filter((item) => item.group === 'due' && item.status === 'overdue')).toEqual([])
   })
@@ -60,7 +61,7 @@ describe('todoItems — traitements lus par le moteur d’échéances', () => {
       ],
     })
 
-    expect(todoItems([hebdo], TODAY)).toEqual([
+    expect(todoItems([hebdo], TODAY, FOLLOWED)).toEqual([
       expect.objectContaining({ status: 'overdue', daysUntil: -1, dueTime: '08:00' }),
       expect.objectContaining({ status: 'overdue', daysUntil: -1, dueTime: '20:00' }),
     ])
@@ -73,7 +74,7 @@ describe('todoItems — traitements lus par le moteur d’échéances', () => {
       periods: [period({ firstDueOn: '2026-09-30', frequency: { value: 1, unit: 'month' } })],
     })
 
-    expect(todoItems([advocate], TODAY)).toEqual([
+    expect(todoItems([advocate], TODAY, FOLLOWED)).toEqual([
       expect.objectContaining({
         group: 'due',
         key: 'treatment:t1:2026-09-30',
@@ -90,7 +91,7 @@ describe('todoItems — traitements lus par le moteur d’échéances', () => {
   it('une seule ligne au-delà d’aujourd’hui, même à plusieurs heures', () => {
     const demain = treatment({ periods: [period({ firstDueOn: '2026-10-07', times: BOTH })] })
 
-    expect(todoItems([demain], TODAY)).toEqual([
+    expect(todoItems([demain], TODAY, FOLLOWED)).toEqual([
       expect.objectContaining({ status: 'tomorrow', daysUntil: 1, dueOn: '2026-10-07' }),
     ])
   })
@@ -101,7 +102,7 @@ describe('todoItems — traitements lus par le moteur d’échéances', () => {
       doses: givenDays('2026-09-28', '2026-10-01'),
     })
 
-    expect(todoItems([fini], TODAY)).toEqual([
+    expect(todoItems([fini], TODAY, FOLLOWED)).toEqual([
       expect.objectContaining({
         group: 'to-log',
         unlogged: 2,
@@ -116,7 +117,7 @@ describe('todoItems — traitements lus par le moteur d’échéances', () => {
       doses: givenDays('2026-09-28', '2026-10-03'),
     })
 
-    expect(todoItems([fini], TODAY)).toEqual([])
+    expect(todoItems([fini], TODAY, FOLLOWED)).toEqual([])
   })
 
   it('n’affiche pas de dose au-delà de la date de fin', () => {
@@ -125,7 +126,7 @@ describe('todoItems — traitements lus par le moteur d’échéances', () => {
       doses: givenDays('2026-09-28', TODAY),
     })
 
-    expect(todoItems([finitDemain], TODAY)).toEqual([])
+    expect(todoItems([finitDemain], TODAY, FOLLOWED)).toEqual([])
   })
 
   it('arrêté avec des doses non renseignées : il reste, en « À renseigner » seulement', () => {
@@ -134,7 +135,7 @@ describe('todoItems — traitements lus par le moteur d’échéances', () => {
       doses: givenDays('2026-10-01', '2026-10-03'),
     })
 
-    expect(todoItems([arrete], TODAY)).toEqual([
+    expect(todoItems([arrete], TODAY, FOLLOWED)).toEqual([
       expect.objectContaining({ group: 'to-log', oldest: { dueOn: '2026-10-04', dueTime: null } }),
     ])
   })
@@ -145,7 +146,7 @@ describe('todoItems — traitements lus par le moteur d’échéances', () => {
       doses: givenDays('2026-10-01', '2026-10-03'),
     })
 
-    expect(todoItems([arrete], TODAY)).toEqual([])
+    expect(todoItems([arrete], TODAY, FOLLOWED)).toEqual([])
   })
 
   it('en cours, prochaine dose hors de la fenêtre et des doses à renseigner : la ligne de dose et « À renseigner »', () => {
@@ -158,10 +159,10 @@ describe('todoItems — traitements lus par le moteur d’échéances', () => {
       doses: [given('2026-09-10')],
     })
 
-    expect(todoItems([trimestriel], TODAY)).toEqual([
+    expect(todoItems([trimestriel], TODAY, FOLLOWED)).toEqual([
       expect.objectContaining({ group: 'due', dueOn: '2026-10-10', daysUntil: 4 }),
     ])
-    expect(todoItems([loin], TODAY)).toEqual([
+    expect(todoItems([loin], TODAY, FOLLOWED)).toEqual([
       expect.objectContaining({ group: 'due', dueOn: '2026-11-10', daysUntil: 35 }),
       expect.objectContaining({ group: 'to-log', unlogged: 1 }),
     ])
@@ -172,7 +173,7 @@ describe('todoItems — traitements lus par le moteur d’échéances', () => {
       periods: [period({ frequency: { value: 0, unit: 'day' } })],
     })
 
-    expect(todoItems([illisible], TODAY)).toEqual([
+    expect(todoItems([illisible], TODAY, FOLLOWED)).toEqual([
       expect.objectContaining({ group: 'unreadable', key: 'treatment:t1', label: 'Métacam' }),
     ])
   })
@@ -180,7 +181,7 @@ describe('todoItems — traitements lus par le moteur d’échéances', () => {
 
 describe('todoItems — vaccins', () => {
   it('une ligne à leur échéance, sans heure', () => {
-    expect(todoItems([vaccination({ dueDate: '2026-10-04' })], TODAY)).toEqual([
+    expect(todoItems([vaccination({ dueDate: '2026-10-04' })], TODAY, FOLLOWED)).toEqual([
       {
         group: 'due',
         key: 'vaccination:v1',
@@ -206,6 +207,7 @@ describe('todoItems — vaccins', () => {
         monthlyFrom(TODAY, { id: 'traitement' }),
       ],
       TODAY,
+      FOLLOWED,
     )
 
     expect(items.map((item) => [item.id, item.firstVaccine])).toEqual([
@@ -216,7 +218,7 @@ describe('todoItems — vaccins', () => {
   })
 
   it('ignore un vaccin sans échéance', () => {
-    expect(todoItems([vaccination({ dueDate: null })], TODAY)).toEqual([])
+    expect(todoItems([vaccination({ dueDate: null })], TODAY, FOLLOWED)).toEqual([])
   })
 
   it('distingue demain et plus tard', () => {
@@ -227,6 +229,7 @@ describe('todoItems — vaccins', () => {
         monthlyFrom(TODAY, { id: 'c' }),
       ],
       TODAY,
+      FOLLOWED,
     )
 
     expect(items.map((item) => item.group === 'due' && item.status)).toEqual([
@@ -234,5 +237,21 @@ describe('todoItems — vaccins', () => {
       'later',
       'today',
     ])
+  })
+})
+
+describe('todoItems — animaux suivis (AN-9)', () => {
+  it('ne garde que les soins des animaux suivis, vaccins compris', () => {
+    const items = todoItems(
+      [
+        vaccination({ id: 'milo-vaccin', dueDate: '2026-10-04' }),
+        vaccination({ id: 'luna-vaccin', animalId: 'luna', dueDate: '2026-10-04' }),
+        monthlyFrom(TODAY, { id: 'luna-traitement', animalId: 'luna' }),
+      ],
+      TODAY,
+      new Set(['milo']),
+    )
+
+    expect(items.map(({ id }) => id)).toEqual(['milo-vaccin'])
   })
 })

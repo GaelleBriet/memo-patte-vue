@@ -11,7 +11,7 @@ import { treatmentReminders } from '../logic/treatment-reminders'
 import { dose, missed, period, postponed, shifted, treatment } from './treatment-fixtures'
 
 const t = i18n.global.t
-const LUNA = { name: 'Luna', deletedAt: null }
+const LUNA = { name: 'Luna', deletedAt: null, unfollowedOn: null }
 const SETTINGS: CarnetReminderSettings = { vaccineReminderTime: '09:00', remindBeforeDue: true }
 const MONTHLY: TreatmentFrequency = { value: 1, unit: 'month' }
 const WEEKLY: TreatmentFrequency = { value: 1, unit: 'week' }
@@ -150,10 +150,17 @@ describe('treatmentReminders', () => {
 
   it('aucun rappel quand l’animal est supprimé ou introuvable', () => {
     const history = treatment([period({ firstDueOn: '2026-09-16' })])
-    const deleted = { name: 'Luna', deletedAt: '2026-09-15T08:00:00.000Z' }
+    const deleted = { ...LUNA, deletedAt: '2026-09-15T08:00:00.000Z' }
 
     expect(treatmentReminders(t, history, deleted, SETTINGS, NOW).care).toBeNull()
     expect(treatmentReminders(t, history, null, SETTINGS, NOW).care).toBeNull()
+  })
+
+  it('AN-9 : aucun rappel pour un animal qu’on ne suit plus', () => {
+    const history = treatment([period({ firstDueOn: '2026-09-16' })])
+    const unfollowed = { ...LUNA, unfollowedOn: '2026-09-15' }
+
+    expect(treatmentReminders(t, history, unfollowed, SETTINGS, NOW).care).toBeNull()
   })
 
   it('traduit les rappels en anglais', () => {

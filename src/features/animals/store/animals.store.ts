@@ -8,7 +8,14 @@ import {
 import {
   animalDeletionService,
   type AnimalDeletionService,
+  type AnimalRemoval,
 } from '../service/animal-deletion.service'
+import {
+  animalFollowService,
+  type AnimalFollowService,
+  type FollowUndo,
+  type UnfollowUndo,
+} from '../service/animal-follow.service'
 import { animalPhotoService, type PhotoChange } from '../service/animal-photo.service'
 import type { AnimalsRepository } from '../repository/animals.repository'
 import { track } from '@/core/analytics'
@@ -17,12 +24,14 @@ import { recordUsageSignal } from '@/shared/utils/usage-signals'
 export type AnimalsRepositoryProvider = () => AnimalsRepository | Promise<AnimalsRepository>
 export type AnimalDeletionServiceProvider = () => AnimalDeletionService
 export type AnimalCreationServiceProvider = () => Pick<AnimalCreationService, 'create'>
+export type AnimalFollowServiceProvider = () => AnimalFollowService
 
 const KEEP_PHOTO: PhotoChange = { kind: 'keep' }
 
 let provider: AnimalsRepositoryProvider | null = null
 let deletionProvider: AnimalDeletionServiceProvider = () => animalDeletionService
 let creationProvider: AnimalCreationServiceProvider = () => animalCreationService
+let followProvider: AnimalFollowServiceProvider = () => animalFollowService
 
 export function provideAnimalsRepository(next: AnimalsRepositoryProvider | null): void {
   provider = next
@@ -38,6 +47,11 @@ export function provideAnimalCreationService(next: AnimalCreationServiceProvider
   creationProvider = next ?? (() => animalCreationService)
 }
 
+/** `null` rétablit le service réel, branché sur la base locale. */
+export function provideAnimalFollowService(next: AnimalFollowServiceProvider | null): void {
+  followProvider = next ?? (() => animalFollowService)
+}
+
 export const useAnimalsStore = defineStore('animals', () => {
   const animals = ref<Animal[]>([])
   /** `null` signifie « tous les animaux ». */
@@ -48,6 +62,13 @@ export const useAnimalsStore = defineStore('animals', () => {
   const hasLoaded = ref(false)
   /** Échec du dernier chargement : les écritures lèvent, elles ne passent pas par ici. */
   const error = ref<Error | null>(null)
+
+  const followedAnimals = computed(() =>
+    animals.value.filter((animal) => animal.unfollowedOn === null),
+  )
+  const unfollowedAnimals = computed(() =>
+    animals.value.filter((animal) => animal.unfollowedOn !== null),
+  )
 
   const selectedAnimal = computed(
     () => animals.value.find((animal) => animal.id === selectedAnimalId.value) ?? null,
@@ -87,7 +108,10 @@ export const useAnimalsStore = defineStore('animals', () => {
   }
 
   return {
+    /** Suivis ou non, dans l'ordre de création. */
     animals,
+    followedAnimals,
+    unfollowedAnimals,
     selectedAnimalId,
     selectedAnimal,
     isLoading,
@@ -124,8 +148,35 @@ export const useAnimalsStore = defineStore('animals', () => {
       return animal
     },
 
-    async remove(id: string): Promise<void> {
-      await write(() => deletionProvider().remove(id))
+    /** Rend ce qu'il faut passer à `undoRemove` ou `forgetPhoto` ; `null` si rien n'a été supprimé. */
+    remove(id: string): Promise<AnimalRemoval | null> {
+      return write(() => deletionProvider().remove(id))
+    },
+
+    async undoRemove(removal: AnimalRemoval): Promise<void> {
+      await write(() => deletionProvider().restore(removal))
+    },
+
+    forgetPhoto(removal: AnimalRemoval): Promise<void> {
+      return deletionProvider().forgetPhoto(removal)
+    },
+
+    /** Rend ce qu'il faut passer à `undoUnfollow` ; `null` s'il n'était déjà plus suivi. */
+    unfollow(id: string): Promise<UnfollowUndo | null> {
+      return write(() => followProvider().unfollow(id))
+    },
+
+    async undoUnfollow(undo: UnfollowUndo): Promise<void> {
+      await write(() => followProvider().undoUnfollow(undo))
+    },
+
+    /** Rend ce qu'il faut passer à `undoFollow` ; `null` s'il était déjà suivi. */
+    follow(id: string): Promise<FollowUndo | null> {
+      return write(() => followProvider().follow(id))
+    },
+
+    async undoFollow(undo: FollowUndo): Promise<void> {
+      await write(() => followProvider().undoFollow(undo))
     },
 
     select(id: string | null): void {
