@@ -845,6 +845,7 @@ describe('CarnetView — photo depuis l’avatar du header', () => {
     const removePhoto = vi
       .spyOn(store, 'removePhoto')
       .mockResolvedValue({ animalId: MILO.id, photoPath: 'milo.jpg' })
+    vi.spyOn(store, 'forgetRemovedPhoto').mockResolvedValue()
     const wrapper = await monterAttache()
     await toucherAvatar(wrapper)
 
