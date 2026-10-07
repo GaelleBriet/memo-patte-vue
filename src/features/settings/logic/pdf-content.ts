@@ -5,7 +5,6 @@ import { treatmentOutlooks, type TreatmentOutlook } from './treatment-outlook'
 import { buildReminders, type ReminderKind } from '@/shared/domain/reminders'
 import type { ExportData, ExportFrequency } from '@/shared/domain/carnet-data'
 import {
-  currentPeriods,
   givenDoseHistories,
   vaccinationHistories,
   type GivenDose,
@@ -123,7 +122,7 @@ export function buildCarnetPdfContent(
   const injections = vaccinationHistories(data.vaccinationInjections)
   const doses = givenDoseHistories(data.treatmentDoses)
   const outlook = treatmentOutlooks(data, today)
-  const periods = currentPeriods(data.treatmentPeriods)
+  const treatedIds = new Set(data.treatmentPeriods.map(({ treatmentId }) => treatmentId))
   const frequencies = new Map(data.treatmentPeriods.map(({ id, frequency }) => [id, frequency]))
   const dated = ({ givenOn, periodId, status }: GivenDose): DatedDose[] => {
     const frequency = frequencies.get(periodId)
@@ -151,9 +150,9 @@ export function buildCarnetPdfContent(
   const treatments: PdfTreatmentRow[] = data.treatments
     .filter((item) => item.animalId === animalId)
     .flatMap((item) => {
+      if (!treatedIds.has(item.id)) return []
       const [head, ...previous] = doses.get(item.id) ?? []
       const due = outlook(item.id)
-      if (!periods.has(item.id)) return []
       return [
         {
           name: item.name,

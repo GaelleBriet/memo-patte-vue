@@ -277,6 +277,10 @@ describe('PDF : traitement sans prise donnée', () => {
     expect(text).not.toContain('Dernière prise')
   })
 
+  it('laisse hors du PDF un traitement sans période', () => {
+    expect(buildCarnetPdfContent(carnet([], []), MILO, '2026-09-10')!.treatments).toEqual([])
+  })
+
   it.each([
     ['terminé', { endsOn: '2026-09-03' }, 'Terminé le 03/09/2026'],
     ['illisible', { times: ['25:00'] }, 'Donnée illisible'],
