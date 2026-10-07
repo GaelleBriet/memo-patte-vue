@@ -147,7 +147,8 @@ développement peuvent être effacées. Rien de l'existant n'est à récupérer.
   (`animal-deletion.service.ts`).
 - **Export JSON v3 ; l'import n'accepte que le v3** : un fichier plus ancien est refusé avec un message
   clair (le numéro reste 3). Toutes les données actuelles, installations de Gaelle comprises, sont des
-  données de test : aucune conversion (Gaelle, 2026-09-29).
+  données de test : aucune conversion (Gaelle, 2026-09-29). Même règle au format v4 (#501), le format
+  courant.
 - **Écarts relevés au passage** : [`export-format.md`](export-format.md) parlait de 200 caractères (80
   depuis v8, corrigé le 2026-09-30) ; [`proposition-sync.md`](proposition-sync.md) annonce un bucket en JPEG seul (JPEG et WebP) et un compteur `attempts` jamais
   incrémenté ; Zod compte les emoji autrement que SQLite et Postgres (plus strict, sans risque d'erreur).

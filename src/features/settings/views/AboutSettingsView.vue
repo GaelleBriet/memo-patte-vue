@@ -5,7 +5,7 @@ import { useRouter } from 'vue-router'
 
 import { currentLocale } from '@/core/i18n'
 import PushedScreen from '@/shared/components/PushedScreen.vue'
-import { legalNoticeUrl, siteUrl } from '@/shared/domain/site-links'
+import { legalNoticeUrl, siteUrl, vaccineSourceUrl } from '@/shared/domain/site-links'
 import { returnTo } from '@/shared/utils/return-to'
 
 const { t } = useI18n()
@@ -60,6 +60,18 @@ function goBack(): void {
           <v-icon class="settings-row__icon" icon="ms:gavel" size="22" />
           <span class="settings-row__text">
             <span class="settings-row__label">{{ t('settings.about.legalNotice') }}</span>
+          </span>
+          <v-icon class="settings-row__chevron" icon="ms:open_in_new" size="20" />
+        </a>
+        <a
+          class="settings-row settings-row--vaccine-source"
+          :href="vaccineSourceUrl()"
+          target="_blank"
+          rel="noopener"
+        >
+          <v-icon class="settings-row__icon" icon="ms:vaccines" size="22" />
+          <span class="settings-row__text">
+            <span class="settings-row__label">{{ t('settings.about.vaccineSource') }}</span>
           </span>
           <v-icon class="settings-row__chevron" icon="ms:open_in_new" size="20" />
         </a>

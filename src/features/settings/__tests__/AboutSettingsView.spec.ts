@@ -5,6 +5,7 @@ import AboutSettingsView from '../views/AboutSettingsView.vue'
 import i18n from '@/core/i18n'
 import vuetify from '@/core/theme/vuetify'
 import router from '@/router'
+import { plain } from '@/shared/__tests__/plain'
 
 let replace: MockInstance
 let wrapper: VueWrapper | null = null
@@ -66,4 +67,19 @@ describe('AboutSettingsView', () => {
       ])
     },
   )
+
+  it.each([
+    ['fr', 'Source : ANMV, base publique des médicaments vétérinaires (CC BY)'],
+    ['en', 'Source: ANMV, French public database of veterinary medicines (CC BY)'],
+  ] as const)('cite la source de la liste des vaccins en %s', async (locale, source) => {
+    i18n.global.locale.value = locale
+    const wrapper = await monter()
+    const lien = wrapper.get('.settings-row--vaccine-source')
+
+    expect(plain(lien.text())).toBe(source)
+    expect(lien.attributes('href')).toBe(
+      'https://www.data.gouv.fr/datasets/base-de-donnees-publique-des-medicaments-veterinaires-autorises-en-france-1',
+    )
+    expect(lien.attributes('target')).toBe('_blank')
+  })
 })
