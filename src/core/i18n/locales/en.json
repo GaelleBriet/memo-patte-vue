@@ -1236,7 +1236,7 @@
         "export": "Export a copy",
         "exportHint": "To Google Drive, an email or a computer"
       },
-      "plus": "MémoPatte Plus adds a guaranteed cloud backup, photos included, and restores it on a new phone.",
+      "plus": "MémoPatte Plus will add a guaranteed cloud backup, photos included, and restore it on a new phone.",
       "discoverPlus": "Explore MémoPatte Plus"
     },
     "erase": {
@@ -1510,16 +1510,12 @@
   },
   "plus": {
     "title": "MémoPatte Plus",
-    "headline": {
-      "pdf": "PDF export is part of MémoPatte Plus",
-      "general": "Keep your health records safe, everywhere"
-    },
+    "headline": "Keep your health records safe, everywhere",
     "subtitle": "Pets, reminders, weight and JSON/CSV export stay free, without an account or subscription.",
     "benefits": {
       "backup": "Guaranteed cloud backup",
       "devices": "The same health record on all your devices",
-      "photos": "Your photos backed up too",
-      "pdf": "Full PDF export"
+      "photos": "Your photos backed up too"
     },
     "android": "Android already backs up your health record, but without photos or a guaranteed restore. Plus guarantees it.",
     "offers": {
@@ -1589,7 +1585,7 @@
     "later": "Not now",
     "settings": {
       "discover": "Explore MémoPatte Plus",
-      "summary": "Your health record never disappears",
+      "summary": "Cloud backup, multiple devices",
       "discoverHint": "Cloud backup, multiple devices",
       "alreadySubscribed": "I already have MémoPatte Plus",
       "alreadySubscribedHint": "Restore the health record you backed up on another device",

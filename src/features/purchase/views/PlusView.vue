@@ -1,15 +1,14 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRoute, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
 
 import type { PaidPlan, PlusOffer } from '../service/billing.service'
 import { MANAGE_SUBSCRIPTIONS_URL } from '../logic/google-play'
 import {
   checkoutBar,
   orderedOffers,
-  pitchBenefits,
-  plusOriginOf,
+  PLUS_BENEFITS,
   PRESELECTED_PLAN,
   selectablePlan,
   type PlusBenefit,
@@ -24,11 +23,9 @@ const BENEFIT_ICONS: Record<PlusBenefit, string> = {
   backup: 'ms:cloud_done',
   devices: 'ms:devices',
   photos: 'ms:photo_camera',
-  pdf: 'ms:picture_as_pdf',
 }
 
 const { t } = useI18n()
-const route = useRoute()
 const router = useRouter()
 const purchase = usePurchaseStore()
 
@@ -37,11 +34,6 @@ const selected = ref<PaidPlan>(PRESELECTED_PLAN)
 const isLoadingOffers = ref(false)
 const hasAnswered = ref(false)
 
-const origin = computed(() => plusOriginOf(route.query.from))
-const heroIcon = computed(() =>
-  origin.value === 'pdf' ? 'ms:picture_as_pdf' : 'ms:workspace_premium',
-)
-const benefits = computed(() => pitchBenefits(origin.value))
 const offers = computed(() => orderedOffers(purchase.offers))
 const bar = computed(() =>
   checkoutBar({
@@ -180,23 +172,18 @@ async function restore(): Promise<void> {
     <div v-else class="plus__content">
       <div class="plus__hero">
         <span class="plus__hero-icon">
-          <v-icon :icon="heroIcon" size="23" />
+          <v-icon icon="ms:workspace_premium" size="23" />
         </span>
-        <h2 class="plus__headline">{{ t(`plus.headline.${origin}`) }}</h2>
+        <h2 class="plus__headline">{{ t('plus.headline') }}</h2>
         <p class="plus__subtitle">{{ t('plus.subtitle') }}</p>
       </div>
 
       <ul class="plus__benefits">
-        <li
-          v-for="item in benefits"
-          :key="item.benefit"
-          class="plus__benefit"
-          :class="{ 'plus__benefit--highlighted': item.highlighted }"
-        >
+        <li v-for="benefit in PLUS_BENEFITS" :key="benefit" class="plus__benefit">
           <span class="plus__benefit-icon">
-            <v-icon :icon="BENEFIT_ICONS[item.benefit]" size="16" />
+            <v-icon :icon="BENEFIT_ICONS[benefit]" size="16" />
           </span>
-          <span>{{ t(`plus.benefits.${item.benefit}`) }}</span>
+          <span>{{ t(`plus.benefits.${benefit}`) }}</span>
         </li>
       </ul>
 
@@ -387,20 +374,6 @@ async function restore(): Promise<void> {
   border-radius: 50%;
   background: tokens.$color-priming-icon-surface;
   color: rgb(var(--v-theme-primary));
-}
-
-.plus__benefit--highlighted {
-  margin-inline: -10px;
-  padding: 6px 10px;
-  border-radius: tokens.$radius-field;
-  background: tokens.$color-plus-highlight-surface;
-  color: rgb(var(--v-theme-primary));
-  font-weight: 700;
-
-  .plus__benefit-icon {
-    background: rgb(var(--v-theme-primary));
-    color: tokens.$color-on-primary;
-  }
 }
 
 .plus__offers {

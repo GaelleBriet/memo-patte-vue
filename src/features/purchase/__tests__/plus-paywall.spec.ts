@@ -4,8 +4,7 @@ import { describe, expect, it } from 'vitest'
 import {
   checkoutBar,
   orderedOffers,
-  pitchBenefits,
-  plusOriginOf,
+  PLUS_BENEFITS,
   PRESELECTED_PLAN,
   selectablePlan,
 } from '../logic/plus-paywall'
@@ -15,36 +14,9 @@ const MENSUEL: PlusOffer = { plan: 'monthly', priceString: '1,49 €' }
 const ANNUEL: PlusOffer = { plan: 'annual', priceString: '9,99 €' }
 const A_VIE: PlusOffer = { plan: 'lifetime', priceString: '29,99 €' }
 
-describe('plusOriginOf', () => {
-  it('reconnaît une ouverture depuis l’export PDF', () => {
-    expect(plusOriginOf('pdf')).toBe('pdf')
-  })
-
-  it.each([undefined, null, '', 'settings', 'PDF', ['pdf'], 42])(
-    'retombe sur la version générale pour %j',
-    (valeur) => {
-      expect(plusOriginOf(valeur)).toBe('general')
-    },
-  )
-})
-
-describe('pitchBenefits', () => {
-  it('met l’export PDF en tête et en avant quand on vient du PDF', () => {
-    expect(pitchBenefits('pdf')).toEqual([
-      { benefit: 'pdf', highlighted: true },
-      { benefit: 'backup', highlighted: false },
-      { benefit: 'devices', highlighted: false },
-      { benefit: 'photos', highlighted: false },
-    ])
-  })
-
-  it('garde l’ordre général, PDF en dernier et sans mise en avant, sinon', () => {
-    expect(pitchBenefits('general')).toEqual([
-      { benefit: 'backup', highlighted: false },
-      { benefit: 'devices', highlighted: false },
-      { benefit: 'photos', highlighted: false },
-      { benefit: 'pdf', highlighted: false },
-    ])
+describe('PLUS_BENEFITS', () => {
+  it('ne promet que le cloud : sauvegarde, plusieurs appareils, photos', () => {
+    expect(PLUS_BENEFITS).toEqual(['backup', 'devices', 'photos'])
   })
 })
 

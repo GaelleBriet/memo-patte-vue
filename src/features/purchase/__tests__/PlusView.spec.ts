@@ -75,8 +75,8 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-async function monter(from?: string) {
-  await routeur.push({ name: 'plus', query: from === undefined ? {} : { from } })
+async function monter() {
+  await routeur.push({ name: 'plus' })
   wrapper = mount(PlusView, {
     global: { plugins: [vuetify, i18n, routeur] },
     attachTo: document.body,
@@ -115,33 +115,8 @@ describe('PlusView — ouverture', () => {
   })
 })
 
-describe('PlusView — provenance', () => {
-  it('nomme l’export PDF quand on vient d’une fonction PDF', async () => {
-    const wrapper = await monter('pdf')
-
-    expect(wrapper.get('.plus__headline').text()).toBe('L’export PDF fait partie de MémoPatte Plus')
-    expect(traceIcone(wrapper.get('.plus__hero-icon'))).toBe(getMsIconPath('picture_as_pdf')!.path)
-  })
-
-  it('met l’export PDF en tête des bénéfices, et lui seul en avant', async () => {
-    const wrapper = await monter('pdf')
-    const benefices = wrapper.findAll('.plus__benefit')
-
-    expect(benefices.map((item) => item.text())).toEqual([
-      'Export PDF complet',
-      'Sauvegarde garantie dans le cloud',
-      'Le même carnet sur tous tes appareils',
-      'Tes photos sauvegardées aussi',
-    ])
-    expect(benefices.map((item) => item.classes().includes('plus__benefit--highlighted'))).toEqual([
-      true,
-      false,
-      false,
-      false,
-    ])
-  })
-
-  it('garde le titre général quand on vient des Paramètres', async () => {
+describe('PlusView — argumentaire', () => {
+  it('ne promet que le cloud, le PDF restant gratuit', async () => {
     const wrapper = await monter()
 
     expect(wrapper.get('.plus__headline').text()).toBe('Garde tes carnets en sécurité, partout')
@@ -152,15 +127,7 @@ describe('PlusView — provenance', () => {
       'Sauvegarde garantie dans le cloud',
       'Le même carnet sur tous tes appareils',
       'Tes photos sauvegardées aussi',
-      'Export PDF complet',
     ])
-    expect(wrapper.find('.plus__benefit--highlighted').exists()).toBe(false)
-  })
-
-  it('retombe sur la version générale pour une provenance inconnue', async () => {
-    const wrapper = await monter('inconnue')
-
-    expect(wrapper.get('.plus__headline').text()).toBe('Garde tes carnets en sécurité, partout')
   })
 })
 
@@ -321,7 +288,7 @@ describe('PlusView — barre d’achat', () => {
 describe('PlusView — offres indisponibles', () => {
   it('remplace le bouton d’achat par l’état prévu quand Google Play ne rend rien', async () => {
     service.listOffers.mockResolvedValue([])
-    const wrapper = await monter('pdf')
+    const wrapper = await monter()
 
     expect(offres(wrapper)).toHaveLength(0)
     expect(wrapper.find('.plus__submit').exists()).toBe(false)
@@ -332,8 +299,8 @@ describe('PlusView — offres indisponibles', () => {
     expect(barre.get('.plus__unavailable-title').text()).toBe('Offres indisponibles pour l’instant')
     expect(barre.get('.plus__unavailable-hint').text()).toBe('Vérifie ta connexion, puis réessaie.')
     expect(barre.get('.plus__retry-offers').text()).toBe('Réessayer')
-    expect(wrapper.get('.plus__headline').text()).toBe('L’export PDF fait partie de MémoPatte Plus')
-    expect(wrapper.findAll('.plus__benefit')).toHaveLength(4)
+    expect(wrapper.get('.plus__headline').text()).toBe('Garde tes carnets en sécurité, partout')
+    expect(wrapper.findAll('.plus__benefit')).toHaveLength(3)
     expect(wrapper.get('.plus__android').isVisible()).toBe(true)
   })
 
@@ -421,7 +388,7 @@ describe('PlusView — offres indisponibles', () => {
 describe('PlusView — déjà abonné', () => {
   it('montre son statut au lieu de l’argumentaire, sans rien redemander', async () => {
     writeStoredPlusStatus(ANNUEL)
-    const wrapper = await monter('pdf')
+    const wrapper = await monter()
 
     expect(wrapper.get('.plus-member__status').text()).toBe('Abonnement annuel actif.')
     expect(offres(wrapper)).toHaveLength(0)

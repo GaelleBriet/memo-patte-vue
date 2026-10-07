@@ -1236,7 +1236,7 @@
         "export": "Exporter une copie",
         "exportHint": "Vers Google Drive, un e-mail ou un ordinateur"
       },
-      "plus": "MémoPatte Plus ajoute une sauvegarde cloud garantie, photos comprises, et la restaure sur un nouveau téléphone.",
+      "plus": "MémoPatte Plus ajoutera une sauvegarde cloud garantie, photos comprises, et la restaurera sur un nouveau téléphone.",
       "discoverPlus": "Découvrir MémoPatte Plus"
     },
     "erase": {
@@ -1510,16 +1510,12 @@
   },
   "plus": {
     "title": "MémoPatte Plus",
-    "headline": {
-      "pdf": "L’export PDF fait partie de MémoPatte Plus",
-      "general": "Garde tes carnets en sécurité, partout"
-    },
+    "headline": "Garde tes carnets en sécurité, partout",
     "subtitle": "Animaux, rappels, poids et export JSON/CSV restent gratuits, sans compte ni abonnement.",
     "benefits": {
       "backup": "Sauvegarde garantie dans le cloud",
       "devices": "Le même carnet sur tous tes appareils",
-      "photos": "Tes photos sauvegardées aussi",
-      "pdf": "Export PDF complet"
+      "photos": "Tes photos sauvegardées aussi"
     },
     "android": "Android sauvegarde déjà ton carnet, mais sans les photos ni garantie de restauration. Plus le garantit.",
     "offers": {
@@ -1589,7 +1585,7 @@
     "later": "Plus tard",
     "settings": {
       "discover": "Découvrir MémoPatte Plus",
-      "summary": "Ton carnet ne disparaît jamais",
+      "summary": "Sauvegarde cloud, plusieurs appareils",
       "discoverHint": "Sauvegarde cloud, plusieurs appareils",
       "alreadySubscribed": "J’ai déjà MémoPatte Plus",
       "alreadySubscribedHint": "Retrouve ton carnet sauvegardé sur un autre appareil",

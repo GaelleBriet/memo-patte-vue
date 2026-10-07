@@ -110,7 +110,16 @@ describe('BackupSettingsView', () => {
       'Si la sauvegarde de ton téléphone est active, Android peut garder une copie de ton carnet. Sans les photos ni tes réglages, et sans garantie : ne compte pas dessus pour tout retrouver.',
     )
     expect(texte).toContain(
-      'MémoPatte Plus ajoute une sauvegarde cloud garantie, photos comprises, et la restaure sur un nouveau téléphone.',
+      'MémoPatte Plus ajoutera une sauvegarde cloud garantie, photos comprises, et la restaurera sur un nouveau téléphone.',
+    )
+  })
+
+  it('annonce Plus au futur, en anglais aussi', async () => {
+    i18n.global.locale.value = 'en'
+    const wrapper = await monter()
+
+    expect(wrapper.text()).toContain(
+      'MémoPatte Plus will add a guaranteed cloud backup, photos included, and restore it on a new phone.',
     )
   })
 
