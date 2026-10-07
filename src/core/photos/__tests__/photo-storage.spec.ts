@@ -32,9 +32,14 @@ const stat = vi.mocked(Filesystem.stat)
 const readFile = vi.mocked(Filesystem.readFile)
 const readdir = vi.mocked(Filesystem.readdir)
 
+function entry(name: string, type: 'file' | 'directory' = 'file') {
+  return { name, type, size: 1, ctime: 0, mtime: 1_700_000_000_000, uri: `file:///data/${name}` }
+}
+
 beforeEach(() => {
   vi.restoreAllMocks()
   vi.clearAllMocks()
+  readdir.mockReset()
   writeFile.mockResolvedValue({ uri: 'file:///data/photos/x.jpg' })
   deleteFile.mockResolvedValue()
 })
@@ -86,6 +91,7 @@ describe('deletePhoto', () => {
 
 describe('deleteAllPhotos', () => {
   it('supprime le dossier photos/ de Directory.Data et tout son contenu', async () => {
+    readdir.mockResolvedValueOnce({ files: [entry('photos', 'directory')] })
     rmdir.mockResolvedValue()
 
     await deleteAllPhotos()
@@ -97,23 +103,18 @@ describe('deleteAllPhotos', () => {
     })
   })
 
-  it('ne lève pas quand le dossier n’a jamais été créé', async () => {
-    rmdir.mockRejectedValue(new Error('Folder does not exist.'))
-    stat.mockRejectedValue(new Error('Entry does not exist.'))
+  it('ne tente aucune suppression quand le dossier n’a jamais été créé', async () => {
+    readdir.mockResolvedValueOnce({ files: [entry('autre.db'), entry('photos')] })
 
-    await expect(deleteAllPhotos()).resolves.toBeUndefined()
+    await deleteAllPhotos()
+
+    expect(readdir).toHaveBeenCalledExactlyOnceWith({ path: '', directory: Directory.Data })
+    expect(rmdir).not.toHaveBeenCalled()
   })
 
-  it('propage un échec quand le dossier est toujours là', async () => {
+  it('propage un échec de la suppression', async () => {
+    readdir.mockResolvedValueOnce({ files: [entry('photos', 'directory')] })
     rmdir.mockRejectedValue(new Error('accès refusé'))
-    stat.mockResolvedValue({
-      uri: '',
-      type: 'directory',
-      size: 0,
-      ctime: 0,
-      mtime: 0,
-      name: 'photos',
-    })
 
     await expect(deleteAllPhotos()).rejects.toThrow('accès refusé')
   })
@@ -190,10 +191,6 @@ describe('photoExists', () => {
 })
 
 describe('listPhotos', () => {
-  function entry(name: string, type: 'file' | 'directory' = 'file') {
-    return { name, type, size: 1, ctime: 0, mtime: 1_700_000_000_000, uri: `file:///data/${name}` }
-  }
-
   it('rend les seules photos de l’app rangées sous photos/', async () => {
     readdir
       .mockResolvedValueOnce({ files: [entry('photos', 'directory'), entry('autre.db')] })

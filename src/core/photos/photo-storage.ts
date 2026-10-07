@@ -34,16 +34,14 @@ export async function deletePhoto(name: string): Promise<void> {
 
 /** Sans effet quand le dossier n'existe pas : aucune photo n'a encore été enregistrée. */
 export async function deleteAllPhotos(): Promise<void> {
-  const options = { path: PHOTOS_DIR, directory: Directory.Data }
-  try {
-    await Filesystem.rmdir({ ...options, recursive: true })
-  } catch (cause) {
-    const stillThere = await Filesystem.stat(options).then(
-      () => true,
-      () => false,
-    )
-    if (stillThere) throw cause
-  }
+  if (!(await photosDirExists())) return
+  await Filesystem.rmdir({ path: PHOTOS_DIR, directory: Directory.Data, recursive: true })
+}
+
+// Le pont Capacitor journalise tout rejet natif, même rattrapé : ne pas toucher un dossier absent.
+async function photosDirExists(): Promise<boolean> {
+  const root = await Filesystem.readdir({ path: '', directory: Directory.Data })
+  return root.files.some(({ name, type }) => name === PHOTOS_DIR && type === 'directory')
 }
 
 /** `modifiedAt` en millisecondes depuis l'époque Unix. */
@@ -54,9 +52,7 @@ export interface StoredPhoto {
 
 /** Les seules photos de l'app : tout autre fichier du dossier est ignoré. */
 export async function listPhotos(): Promise<StoredPhoto[]> {
-  // Le pont Capacitor journalise tout rejet natif, même rattrapé : ne pas lire un dossier absent.
-  const root = await Filesystem.readdir({ path: '', directory: Directory.Data })
-  if (!root.files.some(({ name, type }) => name === PHOTOS_DIR && type === 'directory')) return []
+  if (!(await photosDirExists())) return []
 
   const { files } = await Filesystem.readdir({ path: PHOTOS_DIR, directory: Directory.Data })
   return files
