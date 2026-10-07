@@ -1,11 +1,27 @@
 import { jsPDF } from 'jspdf'
 
+import { animalAgeText } from '@/shared/domain/animal-age'
+import { dosageText } from '@/shared/domain/dosage'
 import { weightText } from '@/shared/domain/weight-display'
-import { formatClockTime, formatLongDate, formatNumericDate } from '@/shared/utils/format'
+import {
+  formatClockTime,
+  formatClockTimes,
+  formatDayMonthOrYear,
+  formatLongDate,
+  formatNumericDate,
+} from '@/shared/utils/format'
 import i18n from '@/core/i18n'
 import { drawWeightChart, weightChartHeight } from './pdf-weight-chart'
 import { pdfText } from './pdf-text'
-import type { CarnetPdfContent, PdfDoseSeries, PdfDueState, PdfTreatmentRow } from './pdf-content'
+import type {
+  CarnetPdfContent,
+  PdfDose,
+  PdfDoseSeries,
+  PdfHistoryLine,
+  PdfTreatmentPeriod,
+  PdfTreatmentRow,
+  PdfVaccinationRow,
+} from './pdf-content'
 
 const PAGE_WIDTH_MM = 210
 const PAGE_HEIGHT_MM = 297
@@ -35,14 +51,10 @@ const DETAIL_PT = 9
 const DETAIL_ADVANCE_MM = 4.6
 const DETAIL_INDENT_MM = 4
 const DETAIL_GRAY = 90
+// Plus haut, l'historique d'une ligne ne tiendrait pas sur une page : il continue sur la suivante.
+const MAX_UNSPLIT_BLOCK_MM = 200
 
-const STATE_LABEL_KEYS: Record<PdfDueState, string> = {
-  overdue: 'settings.pdf.status.overdue',
-  upToDate: 'settings.pdf.status.upToDate',
-  none: 'settings.pdf.status.none',
-}
-
-type Translate = (key: string, params?: Record<string, unknown>) => string
+type Translate = (key: string, params?: Record<string, unknown>, plural?: number) => string
 
 type PageCursor = { y: number; makeRoom: (height: number) => void }
 
@@ -141,13 +153,7 @@ function renderAnimal(doc: jsPDF, { content, photoDataUrl }: CarnetPdfPart, t: T
 
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(11)
-  const identityParts = [
-    t(speciesLabelKey(content.animal.species)),
-    content.animal.breed && pdfText(content.animal.breed),
-    content.animal.birthDate &&
-      t('settings.pdf.identity.birthDate', { date: formatLongDate(content.animal.birthDate) }),
-  ].filter((part): part is string => Boolean(part))
-  const identityLines = wrap(doc, identityParts.join(' · '), headerWidth)
+  const identityLines = wrap(doc, identityText(content, t), headerWidth)
   writeLines(doc, identityLines, MARGIN_MM, y)
   y += extraLinesHeight(doc, identityLines.length) + 10
 
@@ -160,12 +166,18 @@ function renderAnimal(doc: jsPDF, { content, photoDataUrl }: CarnetPdfPart, t: T
     content.vaccinations.map((row) => [
       pdfName(row.name, t),
       row.dueDate ? formatNumericDate(row.dueDate) : t('settings.pdf.status.none'),
-      t(STATE_LABEL_KEYS[row.state]),
+      vaccinationStateLabel(row, content.generatedOn, t),
     ]),
     t('settings.pdf.vaccinations.empty'),
-    content.vaccinations.map((row) => [
-      t('settings.pdf.history.injections', { dates: numericDates(row.injectionDates) }),
-    ]),
+    content.vaccinations.map((row) =>
+      row.injectionDates.length === 0
+        ? []
+        : [
+            detail(
+              t('settings.pdf.history.injections', { dates: numericDates(row.injectionDates) }),
+            ),
+          ],
+    ),
   )
 
   renderSection(
@@ -175,13 +187,47 @@ function renderAnimal(doc: jsPDF, { content, photoDataUrl }: CarnetPdfPart, t: T
     content.treatments.map((row) => [
       pdfName(row.name, t),
       treatmentDueLabel(row, t),
-      t(STATE_LABEL_KEYS[row.state]),
+      t(`settings.pdf.status.${row.state}`),
     ]),
     t('settings.pdf.treatments.empty'),
-    content.treatments.map((row) => doseHistory(row, t)),
+    content.treatments.map((row) => treatmentHistory(row, t)),
   )
 
   renderWeightSection(doc, cursor, content, t)
+}
+
+function identityText({ animal, generatedOn }: CarnetPdfContent, t: Translate): string {
+  const date = animal.birthDate && formatLongDate(animal.birthDate)
+  const birthDate =
+    date &&
+    (animal.birthDateApproximate
+      ? t('settings.pdf.identity.birthDateApproximate', { date })
+      : t('settings.pdf.identity.birthDate', { date }))
+  const age =
+    animal.departureDate === null
+      ? animalAgeText(
+          (key, named, plural) => t(key, named, plural),
+          { birthDate: animal.birthDate, approximate: animal.birthDateApproximate },
+          generatedOn,
+        )
+      : null
+  const until =
+    animal.departureDate &&
+    t('settings.pdf.identity.until', { date: formatLongDate(animal.departureDate) })
+  return [
+    t(speciesLabelKey(animal.species)),
+    animal.breed && pdfText(animal.breed),
+    birthDate,
+    age,
+    until,
+  ]
+    .filter((part): part is string => Boolean(part))
+    .join(' · ')
+}
+
+function vaccinationStateLabel(row: PdfVaccinationRow, today: string, t: Translate): string {
+  if (row.state !== 'planned' || row.dueDate === null) return t(`settings.pdf.status.${row.state}`)
+  return t('settings.pdf.status.planned', { date: formatDayMonthOrYear(row.dueDate, today) })
 }
 
 function treatmentDueLabel({ due }: PdfTreatmentRow, t: Translate): string {
@@ -210,20 +256,80 @@ function numericDates(dates: string[]): string {
   return dates.map(formatNumericDate).join(' · ')
 }
 
-function doseDate(date: string, extra: boolean, t: Translate): string {
-  const day = formatNumericDate(date)
-  return extra ? t('settings.pdf.history.extraDose', { date: day }) : day
+function doseText({ on, time, extra }: PdfDose, t: Translate): string {
+  const day = formatNumericDate(on)
+  const date =
+    time === null
+      ? day
+      : t('settings.pdf.treatments.dueAt', { date: day, time: formatClockTime(time) })
+  return extra ? t('settings.pdf.history.extraDose', { date }) : date
 }
 
-function doseSeriesLabel(series: PdfDoseSeries, t: Translate): string {
-  if (series.kind === 'dates') {
-    return series.dates.map((date, index) => doseDate(date, series.extras[index]!, t)).join(' · ')
-  }
-  return t('settings.pdf.history.doseRange', {
+function doseList(doses: PdfDose[], t: Translate): string {
+  return doses.map((dose) => doseText(dose, t)).join(' · ')
+}
+
+function rangeDates(series: Extract<PdfDoseSeries, { kind: 'range' }>) {
+  return {
     count: series.count,
     from: formatNumericDate(series.from),
     to: formatNumericDate(series.to),
+  }
+}
+
+function givenText(series: PdfDoseSeries, t: Translate): string {
+  return series.kind === 'dates'
+    ? t('settings.pdf.history.doses', { dates: doseList(series.doses, t) }, series.doses.length)
+    : t('settings.pdf.history.doseRange', rangeDates(series))
+}
+
+function missedText(series: PdfDoseSeries, t: Translate): string {
+  return series.kind === 'dates'
+    ? t('settings.pdf.history.missed', { dates: doseList(series.doses, t) }, series.doses.length)
+    : t('settings.pdf.history.missedRange', rangeDates(series))
+}
+
+function historyLineText(line: PdfHistoryLine, t: Translate): string {
+  switch (line.kind) {
+    case 'given':
+      return givenText(line.series, t)
+    case 'missed':
+      return missedText(line.series, t)
+    case 'unlogged':
+      return line.from === line.to
+        ? t('settings.pdf.history.unloggedDay', { date: formatNumericDate(line.from) })
+        : t('settings.pdf.history.unlogged', {
+            from: formatNumericDate(line.from),
+            to: formatNumericDate(line.to),
+          })
+    case 'moved': {
+      const dates = { date: formatNumericDate(line.to), due: formatNumericDate(line.dueOn) }
+      return line.advanced
+        ? t('settings.pdf.history.advanced', dates)
+        : t('settings.pdf.history.postponed', dates)
+    }
+  }
+}
+
+function periodRangeText({ from, to }: PdfTreatmentPeriod, t: Translate): string {
+  if (to === null) return t('settings.pdf.period.since', { date: formatNumericDate(from) })
+  if (to <= from) return t('settings.pdf.period.single', { date: formatNumericDate(from) })
+  return t('settings.pdf.period.range', {
+    from: formatNumericDate(from),
+    to: formatNumericDate(to),
   })
+}
+
+function periodHeadText(period: PdfTreatmentPeriod, t: Translate): string {
+  const { value, unit } = period.frequency
+  return [
+    periodRangeText(period, t),
+    t(`settings.pdf.frequency.${unit}`, { n: value }, value),
+    period.times.length > 0 && formatClockTimes(period.times),
+    dosageText((key, named, plural) => t(key, named, plural), period.dosage),
+  ]
+    .filter((part): part is string => Boolean(part))
+    .join(' · ')
 }
 
 function noDoseLabel(due: PdfTreatmentRow['due'], t: Translate): string {
@@ -235,32 +341,70 @@ function noDoseLabel(due: PdfTreatmentRow['due'], t: Translate): string {
     : t('settings.pdf.history.noDoseUpcoming', { date })
 }
 
-function doseHistory(row: PdfTreatmentRow, t: Translate): string[] {
-  if (row.lastDoseDate === null) return [noDoseLabel(row.due, t)]
-  const last = t('settings.pdf.history.lastDose', {
-    date: doseDate(row.lastDoseDate, row.lastDoseExtra, t),
-  })
-  if (row.previousDoses.length === 0) return [last]
-  const series = row.previousDoses.map((item) => doseSeriesLabel(item, t)).join(' · ')
-  return [last, t('settings.pdf.history.previousDoses', { series })]
+function treatmentHistory(row: PdfTreatmentRow, t: Translate): Detail[] {
+  const summary =
+    row.lastDoseDate === null
+      ? noDoseLabel(row.due, t)
+      : t('settings.pdf.history.lastDose', {
+          date: doseText({ on: row.lastDoseDate, time: null, extra: row.lastDoseExtra }, t),
+        })
+  return [
+    detail(summary),
+    ...row.periods.flatMap((period) => [
+      detail(periodHeadText(period, t)),
+      ...period.lines.map((line) => detail(historyLineText(line, t), 1)),
+    ]),
+  ]
 }
 
-type DetailBlock = { lines: string[]; height: number }
+type Detail = { text: string; level: 0 | 1 }
 
-function detailBlock(doc: jsPDF, details: string[]): DetailBlock {
+function detail(text: string, level: 0 | 1 = 0): Detail {
+  return { text, level }
+}
+
+type DetailBlock = { lines: { text: string; x: number }[]; height: number }
+
+function detailBlock(doc: jsPDF, details: Detail[]): DetailBlock {
   doc.setFontSize(DETAIL_PT)
-  const lines = details.flatMap((detail) => wrap(doc, detail, CONTENT_WIDTH_MM - DETAIL_INDENT_MM))
+  const lines = details.flatMap(({ text, level }) => {
+    const indent = DETAIL_INDENT_MM * (level + 1)
+    return wrap(doc, text, CONTENT_WIDTH_MM - indent).map((line) => ({
+      text: line,
+      x: MARGIN_MM + indent,
+    }))
+  })
   const height = lines.length === 0 ? 0 : DETAIL_ADVANCE_MM + extraLinesHeight(doc, lines.length)
   doc.setFontSize(ROW_PT)
   return { lines, height }
 }
 
-function writeDetails(doc: jsPDF, { lines }: DetailBlock, lastRowLine: number): void {
+function withDetailStyle(doc: jsPDF, write: () => void): void {
+  doc.setFont('helvetica', 'normal')
   doc.setFontSize(DETAIL_PT)
   doc.setTextColor(DETAIL_GRAY)
-  writeLines(doc, lines, MARGIN_MM + DETAIL_INDENT_MM, lastRowLine + DETAIL_ADVANCE_MM)
+  write()
   doc.setTextColor(0)
   doc.setFontSize(ROW_PT)
+}
+
+function writeDetails(doc: jsPDF, { lines }: DetailBlock, lastRowLine: number): void {
+  withDetailStyle(doc, () => {
+    lines.forEach(({ text, x }, index) =>
+      doc.text(text, x, lastRowLine + DETAIL_ADVANCE_MM + index * lineHeight(doc)),
+    )
+  })
+}
+
+function writeSplitDetails(doc: jsPDF, cursor: PageCursor, { lines }: DetailBlock): void {
+  lines.forEach(({ text, x }, index) => {
+    doc.setFontSize(DETAIL_PT)
+    const step = index === 0 ? DETAIL_ADVANCE_MM : lineHeight(doc)
+    const page = doc.getNumberOfPages()
+    cursor.makeRoom(step + ROW_DESCENT_MM)
+    if (doc.getNumberOfPages() === page) cursor.y += step
+    withDetailStyle(doc, () => doc.text(text, x, cursor.y))
+  })
 }
 
 function writeContinuationHeader(doc: jsPDF, animalName: string): number {
@@ -315,7 +459,7 @@ function renderSection(
   title: string,
   rows: string[][],
   emptyLabel: string,
-  details: string[][],
+  details: Detail[][],
 ): void {
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(ROW_PT)
@@ -326,8 +470,11 @@ function renderSection(
     extraLinesHeight(doc, Math.max(...cells.map((lines) => lines.length)))
   const blocks = rows.map((_, index) => detailBlock(doc, details[index] ?? []))
   const rowHeight = (index: number) => extraHeight(wrapped[index]!) + blocks[index]!.height
+  const isSplit = (index: number) => rowHeight(index) > MAX_UNSPLIT_BLOCK_MM
+  const keptHeight = (index: number) =>
+    isSplit(index) ? extraHeight(wrapped[index]!) + DETAIL_ADVANCE_MM : rowHeight(index)
 
-  writeSectionTitle(doc, cursor, title, (wrapped[0] ? rowHeight(0) : 0) + ROW_DESCENT_MM)
+  writeSectionTitle(doc, cursor, title, (wrapped[0] ? keptHeight(0) : 0) + ROW_DESCENT_MM)
   if (wrapped.length === 0) {
     writeEmptyLine(doc, cursor, emptyLabel)
     return
@@ -335,13 +482,18 @@ function renderSection(
 
   wrapped.forEach((cells, index) => {
     const extra = extraHeight(cells)
-    const height = rowHeight(index)
-    cursor.makeRoom(height + ROW_DESCENT_MM)
+    cursor.makeRoom(keptHeight(index) + ROW_DESCENT_MM)
     cells.forEach((lines, column) => {
       writeLines(doc, lines, MARGIN_MM + COLUMNS_MM[column]!.x, cursor.y)
     })
+    if (isSplit(index)) {
+      cursor.y += extra
+      writeSplitDetails(doc, cursor, blocks[index]!)
+      cursor.y += ROW_ADVANCE_MM
+      return
+    }
     writeDetails(doc, blocks[index]!, cursor.y + extra)
-    cursor.y += height + ROW_ADVANCE_MM
+    cursor.y += rowHeight(index) + ROW_ADVANCE_MM
   })
   cursor.y += SECTION_GAP_MM
 }

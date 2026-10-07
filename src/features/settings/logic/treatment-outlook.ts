@@ -5,6 +5,7 @@ import type {
 } from '@/shared/domain/carnet-data'
 import { endedOnOf } from '@/shared/domain/treatment-end'
 import { readableTreatmentSchedule } from '@/shared/domain/readable-treatment-schedule'
+import type { TreatmentSchedule } from '@/shared/domain/treatment-schedule'
 
 /** `dueTime` : seulement quand la période a plusieurs heures. */
 export type TreatmentOutlook =
@@ -13,10 +14,21 @@ export type TreatmentOutlook =
   | { kind: 'ended'; on: string | null }
   | { kind: 'unreadable' }
 
-type History = { periods: ExportTreatmentPeriod[]; doses: ExportTreatmentDose[] }
+/** `schedule` : `null` quand le moteur juge le traitement illisible. */
+export type TreatmentState = {
+  periods: ExportTreatmentPeriod[]
+  doses: ExportTreatmentDose[]
+  schedule: TreatmentSchedule | null
+  outlook: TreatmentOutlook
+}
 
-function outlookOf(history: History, today: string): TreatmentOutlook {
-  const schedule = readableTreatmentSchedule({ ...history, today })
+type History = Pick<TreatmentState, 'periods' | 'doses'>
+
+function outlookOf(
+  history: History,
+  schedule: TreatmentSchedule | null,
+  today: string,
+): TreatmentOutlook {
   if (schedule === null) return { kind: 'unreadable' }
   const current = history.periods.find(({ id }) => id === schedule.currentPeriodId)
   if (schedule.phase === 'stopped') return { kind: 'stopped', on: current?.stoppedOn ?? null }
@@ -31,24 +43,31 @@ function outlookOf(history: History, today: string): TreatmentOutlook {
   }
 }
 
+export function treatmentStates(
+  data: Pick<ExportData, 'treatmentPeriods' | 'treatmentDoses'>,
+  today: string,
+): (treatmentId: string) => TreatmentState {
+  const states = new Map<string, TreatmentState>()
+  return (treatmentId) => {
+    const known = states.get(treatmentId)
+    if (known) return known
+    const history = {
+      periods: data.treatmentPeriods.filter((period) => period.treatmentId === treatmentId),
+      doses: data.treatmentDoses.filter((dose) => dose.treatmentId === treatmentId),
+    }
+    const schedule = readableTreatmentSchedule({ ...history, today })
+    const state = { ...history, schedule, outlook: outlookOf(history, schedule, today) }
+    states.set(treatmentId, state)
+    return state
+  }
+}
+
 export function treatmentOutlooks(
   data: Pick<ExportData, 'treatmentPeriods' | 'treatmentDoses'>,
   today: string,
 ): (treatmentId: string) => TreatmentOutlook {
-  const outlooks = new Map<string, TreatmentOutlook>()
-  return (treatmentId) => {
-    const known = outlooks.get(treatmentId)
-    if (known) return known
-    const outlook = outlookOf(
-      {
-        periods: data.treatmentPeriods.filter((period) => period.treatmentId === treatmentId),
-        doses: data.treatmentDoses.filter((dose) => dose.treatmentId === treatmentId),
-      },
-      today,
-    )
-    outlooks.set(treatmentId, outlook)
-    return outlook
-  }
+  const states = treatmentStates(data, today)
+  return (treatmentId) => states(treatmentId).outlook
 }
 
 export function outlookDueDate(outlook: TreatmentOutlook): string | null {

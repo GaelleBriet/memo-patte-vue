@@ -1413,11 +1413,14 @@
       "status": {
         "overdue": "Overdue",
         "upToDate": "Up to date",
-        "none": "No reminder"
+        "none": "No reminder",
+        "planned": "Planned {date}"
       },
       "noName": "—",
       "identity": {
-        "birthDate": "Date of birth: {date}"
+        "birthDate": "Date of birth: {date}",
+        "birthDateApproximate": "Date of birth: about {date}",
+        "until": "until {date}"
       },
       "vaccinations": {
         "title": "Vaccines",
@@ -1436,6 +1439,16 @@
         "title": "Weight",
         "empty": "No weigh-in recorded."
       },
+      "period": {
+        "since": "Since {date}",
+        "range": "{from} – {to}",
+        "single": "{date}"
+      },
+      "frequency": {
+        "day": "Every day | Every {n} days",
+        "week": "Every week | Every {n} weeks",
+        "month": "Every month | Every {n} months"
+      },
       "history": {
         "injections": "Injections: {dates}",
         "noDose": "No doses",
@@ -1444,8 +1457,14 @@
         "stoppedBeforeFirstDose": "Stopped before the first dose",
         "lastDose": "Last dose: {date}",
         "extraDose": "{date} (extra dose)",
-        "previousDoses": "Previous doses: {series}",
-        "doseRange": "{count} doses from {from} to {to}"
+        "doseRange": "{count} doses from {from} to {to}",
+        "doses": "Dose: {dates} | Doses: {dates}",
+        "missed": "Missed: {dates}",
+        "missedRange": "{count} missed from {from} to {to}",
+        "unlogged": "Not logged from {from} to {to}",
+        "unloggedDay": "Not logged on {date}",
+        "postponed": "Postponed to {date} (was due {due})",
+        "advanced": "Moved up to {date} (was due {due})"
       },
       "pageNumber": "{page} / {total}",
       "footer": "Generated on {date} — MémoPatte {version}"

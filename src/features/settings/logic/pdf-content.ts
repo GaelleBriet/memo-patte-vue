@@ -1,40 +1,62 @@
-import { differenceInCalendarDays, format, parseISO } from 'date-fns'
+import { differenceInCalendarDays, format, parseISO, subDays } from 'date-fns'
 
 import { EXPORT_FILE_TIME } from './export-format'
-import { treatmentOutlooks, type TreatmentOutlook } from './treatment-outlook'
+import { treatmentStates, type TreatmentOutlook, type TreatmentState } from './treatment-outlook'
 import { buildReminders, type ReminderKind } from '@/shared/domain/reminders'
-import type { ExportData, ExportFrequency } from '@/shared/domain/carnet-data'
-import {
-  givenDoseHistories,
-  vaccinationHistories,
-  type GivenDose,
-} from '@/shared/domain/carnet-heads'
+import type {
+  ExportData,
+  ExportFrequency,
+  ExportTreatmentPeriod,
+} from '@/shared/domain/carnet-data'
+import { vaccinationHistories } from '@/shared/domain/carnet-heads'
+import type { Dosage } from '@/shared/domain/dosage'
+import { isAdvanced, type TreatmentDoseInput } from '@/shared/domain/treatment-schedule'
 
-export type PdfDueState = 'overdue' | 'upToDate' | 'none'
+export type PdfDueState = 'overdue' | 'upToDate' | 'planned' | 'none'
 
 export type PdfVaccinationRow = {
   name: string
-  lastInjectionDate: string
+  /** `null` : vaccin prévu, jamais fait. */
+  lastInjectionDate: string | null
   /** Toutes les injections, la plus récente d'abord : un vaccin n'est jamais regroupé. */
   injectionDates: string[]
   dueDate: string | null
   state: PdfDueState
 }
 
-/** Prises régulières d'un traitement : listées jusqu'à trois, résumées au-delà. */
+/** `time` : seulement quand la période a plusieurs heures. */
+export type PdfDose = { on: string; time: string | null; extra: boolean }
+
+/** Listées jusqu'à trois, résumées au-delà ; la plus récente d'abord. */
 export type PdfDoseSeries =
-  /** `extras[i]` : la prise de `dates[i]` est une prise en plus. */
-  | { kind: 'dates'; dates: string[]; extras: boolean[] }
-  | { kind: 'range'; count: number; from: string; to: string }
+  { kind: 'dates'; doses: PdfDose[] } | { kind: 'range'; count: number; from: string; to: string }
+
+export type PdfHistoryLine =
+  | { kind: 'given'; series: PdfDoseSeries }
+  | { kind: 'missed'; series: PdfDoseSeries }
+  | { kind: 'unlogged'; from: string; to: string }
+  | { kind: 'moved'; dueOn: string; to: string; advanced: boolean }
+
+export type PdfTreatmentPeriod = {
+  from: string
+  /** `null` : période ouverte, sans date de fin. */
+  to: string | null
+  frequency: ExportFrequency
+  /** Vide sauf quand la période a plusieurs heures. */
+  times: string[]
+  dosage: Dosage
+  /** La plus récente d'abord. */
+  lines: PdfHistoryLine[]
+}
 
 export type PdfTreatmentRow = {
   name: string
   /** `null` : aucune prise donnée. */
   lastDoseDate: string | null
-  /** Les prises avant la dernière, par séries, la plus récente d'abord. */
-  previousDoses: PdfDoseSeries[]
   /** La dernière prise est une prise en plus. */
   lastDoseExtra: boolean
+  /** La plus récente d'abord. */
+  periods: PdfTreatmentPeriod[]
   due: TreatmentOutlook
   state: PdfDueState
 }
@@ -50,6 +72,9 @@ export type CarnetPdfContent = {
     species: 'dog' | 'cat'
     breed: string | null
     birthDate: string | null
+    birthDateApproximate: boolean
+    /** Date du départ d'un animal qu'on ne suit plus, quand elle a été renseignée. */
+    departureDate: string | null
     photoFileName: string | null
   }
   generatedOn: string
@@ -70,29 +95,147 @@ const MAX_LISTED_DOSES = 3
 const SERIES_GAP_FACTOR = 1.5
 const DAYS_PER_UNIT = { day: 1, week: 7, month: 365.25 / 12 }
 
-type DatedDose = { givenOn: string; frequency: ExportFrequency; extra: boolean }
-
-// Fréquence de la période de la prise précédente : le rythme auquel la suivante est attendue.
-function isSameSeries(previous: DatedDose, next: DatedDose): boolean {
-  const gap = differenceInCalendarDays(parseISO(next.givenOn), parseISO(previous.givenOn))
-  const period = previous.frequency.value * DAYS_PER_UNIT[previous.frequency.unit]
-  return gap <= SERIES_GAP_FACTOR * period
+function isSameSeries(previous: PdfDose, next: PdfDose, frequency: ExportFrequency): boolean {
+  const gap = differenceInCalendarDays(parseISO(next.on), parseISO(previous.on))
+  return gap <= SERIES_GAP_FACTOR * frequency.value * DAYS_PER_UNIT[frequency.unit]
 }
 
-function doseSeries(doses: readonly DatedDose[]): PdfDoseSeries[] {
-  const series: DatedDose[][] = []
-  for (const dose of [...doses].reverse()) {
-    const current = series.at(-1)
-    const previous = current?.at(-1)
-    if (current && previous && isSameSeries(previous, dose)) current.push(dose)
-    else series.push([dose])
+function seriesOf(doses: PdfDose[]): PdfDoseSeries {
+  return doses.length <= MAX_LISTED_DOSES
+    ? { kind: 'dates', doses: [...doses].reverse() }
+    : { kind: 'range', count: doses.length, from: doses[0]!.on, to: doses.at(-1)!.on }
+}
+
+type Event =
+  | { kind: 'given' | 'missed'; slot: string; dose: PdfDose }
+  | { kind: 'unlogged'; slot: string; on: string }
+  | { kind: 'moved'; slot: string; dueOn: string; to: string; advanced: boolean }
+
+// Sur une même échéance, la prise puis le report : lue de la plus récente, la ligne du report d'abord.
+const EVENT_RANK: Record<Event['kind'], number> = { given: 0, missed: 0, unlogged: 0, moved: 1 }
+
+function slotOf({ dueOn, dueTime }: { dueOn: string; dueTime: string | null }): string {
+  return `${dueOn} ${dueTime ?? ''}`
+}
+
+function eventOf(
+  dose: Pick<TreatmentDoseInput, 'dueOn' | 'dueTime' | 'givenOn' | 'status' | 'nextDueDate'>,
+  severalTimes: boolean,
+): Event[] {
+  const slot = slotOf(dose)
+  const time = severalTimes ? dose.dueTime : null
+  switch (dose.status) {
+    case 'given':
+    case 'extra':
+      if (dose.givenOn === null) return []
+      return [
+        { kind: 'given', slot, dose: { on: dose.givenOn, time, extra: dose.status === 'extra' } },
+      ]
+    case 'missed':
+      return [{ kind: 'missed', slot, dose: { on: dose.dueOn, time, extra: false } }]
+    case 'postponed':
+      return [
+        {
+          kind: 'moved',
+          slot,
+          dueOn: dose.dueOn,
+          to: dose.nextDueDate,
+          advanced: isAdvanced(dose),
+        },
+      ]
+    case 'shift':
+      return []
   }
-  return series.reverse().map((group): PdfDoseSeries => {
-    const dates = group.map(({ givenOn }) => givenOn)
-    return dates.length <= MAX_LISTED_DOSES
-      ? { kind: 'dates', dates: dates.reverse(), extras: group.map(({ extra }) => extra).reverse() }
-      : { kind: 'range', count: dates.length, from: dates[0]!, to: dates.at(-1)! }
+}
+
+type Group =
+  | { kind: 'given' | 'missed'; doses: PdfDose[] }
+  | Extract<PdfHistoryLine, { kind: 'unlogged' | 'moved' }>
+
+function linesOf(events: Event[], frequency: ExportFrequency): PdfHistoryLine[] {
+  const sorted = [...events].sort(
+    (a, b) =>
+      (a.slot < b.slot ? -1 : a.slot > b.slot ? 1 : 0) || EVENT_RANK[a.kind] - EVENT_RANK[b.kind],
+  )
+  const groups: Group[] = []
+  for (const event of sorted) {
+    const last = groups.at(-1)
+    if (event.kind === 'unlogged') {
+      if (last?.kind === 'unlogged') last.to = event.on
+      else groups.push({ kind: 'unlogged', from: event.on, to: event.on })
+    } else if (event.kind === 'moved') {
+      groups.push({ kind: 'moved', dueOn: event.dueOn, to: event.to, advanced: event.advanced })
+    } else if (
+      last?.kind === event.kind &&
+      isSameSeries(last.doses.at(-1)!, event.dose, frequency)
+    ) {
+      last.doses.push(event.dose)
+    } else {
+      groups.push({ kind: event.kind, doses: [event.dose] })
+    }
+  }
+  return groups
+    .map((group): PdfHistoryLine =>
+      'doses' in group ? { kind: group.kind, series: seriesOf(group.doses) } : group,
+    )
+    .reverse()
+}
+
+function byStartDescending(a: ExportTreatmentPeriod, b: ExportTreatmentPeriod): number {
+  const [left, right] = [a, b].map(
+    ({ startsOn, createdAt, id }) => `${startsOn} ${createdAt} ${id}`,
+  )
+  return left! < right! ? 1 : left! > right! ? -1 : 0
+}
+
+function lastDayOf(
+  period: ExportTreatmentPeriod,
+  next: ExportTreatmentPeriod | undefined,
+): string | null {
+  const beforeNext =
+    next === undefined ? null : format(subDays(parseISO(next.startsOn), 1), 'yyyy-MM-dd')
+  return (
+    [period.endsOn, period.stoppedOn, beforeNext].filter((day) => day !== null).sort()[0] ?? null
+  )
+}
+
+function treatmentPeriods({ periods, doses, schedule }: TreatmentState): PdfTreatmentPeriod[] {
+  const lines = schedule?.doses ?? doses
+  const unlogged = schedule?.unloggedDoses ?? []
+  return [...periods].sort(byStartDescending).map((period, index, sorted) => {
+    const severalTimes = period.times.length > 1
+    const events: Event[] = [
+      ...lines
+        .filter((dose) => dose.periodId === period.id)
+        .flatMap((dose) => eventOf(dose, severalTimes)),
+      ...unlogged
+        .filter((due) => due.periodId === period.id)
+        .map((due): Event => ({ kind: 'unlogged', slot: slotOf(due), on: due.dueOn })),
+    ]
+    return {
+      from: period.startsOn,
+      to: lastDayOf(period, sorted[index - 1]),
+      frequency: period.frequency,
+      times: severalTimes ? period.times : [],
+      dosage: { doseQuantity: period.doseQuantity, doseUnit: period.doseUnit },
+      lines: linesOf(events, period.frequency),
+    }
   })
+}
+
+function lastGiven(periods: PdfTreatmentPeriod[]): PdfDose | null {
+  const given = periods.flatMap(({ lines }) =>
+    lines.flatMap((line): PdfDose[] => {
+      if (line.kind !== 'given') return []
+      return line.series.kind === 'dates'
+        ? line.series.doses
+        : [{ on: line.series.to, time: null, extra: false }]
+    }),
+  )
+  return given.reduce<PdfDose | null>(
+    (last, dose) => (last === null || dose.on > last.on ? dose : last),
+    null,
+  )
 }
 
 function byDueDateAscending(a: { dueDate: string | null }, b: { dueDate: string | null }): number {
@@ -120,49 +263,40 @@ export function buildCarnetPdfContent(
   if (!animal) return null
 
   const injections = vaccinationHistories(data.vaccinationInjections)
-  const doses = givenDoseHistories(data.treatmentDoses)
-  const outlook = treatmentOutlooks(data, today)
+  const states = treatmentStates(data, today)
   const treatedIds = new Set(data.treatmentPeriods.map(({ treatmentId }) => treatmentId))
-  const frequencies = new Map(data.treatmentPeriods.map(({ id, frequency }) => [id, frequency]))
-  const dated = ({ givenOn, periodId, status }: GivenDose): DatedDose[] => {
-    const frequency = frequencies.get(periodId)
-    return frequency ? [{ givenOn, frequency, extra: status === 'extra' }] : []
-  }
 
   const vaccinations: PdfVaccinationRow[] = data.vaccinations
     .filter((item) => item.animalId === animalId)
-    .flatMap((item) => {
+    .map((item) => {
       const history = injections.get(item.id) ?? []
       const head = history[0]
-      if (!head) return []
-      return [
-        {
-          name: item.name,
-          lastInjectionDate: head.injectedOn,
-          injectionDates: history.map(({ injectedOn }) => injectedOn),
-          dueDate: head.nextDueDate,
-          state: dueState(head.nextDueDate, today, 'vaccination'),
-        },
-      ]
+      const dueDate = head ? head.nextDueDate : item.plannedDueDate
+      const state = dueState(dueDate, today, 'vaccination')
+      return {
+        name: item.name,
+        lastInjectionDate: head?.injectedOn ?? null,
+        injectionDates: history.map(({ injectedOn }) => injectedOn),
+        dueDate,
+        state: !head && state === 'upToDate' ? 'planned' : state,
+      }
     })
     .sort(byDueDateAscending)
 
   const treatments: PdfTreatmentRow[] = data.treatments
-    .filter((item) => item.animalId === animalId)
-    .flatMap((item) => {
-      if (!treatedIds.has(item.id)) return []
-      const [head, ...previous] = doses.get(item.id) ?? []
-      const due = outlook(item.id)
-      return [
-        {
-          name: item.name,
-          lastDoseDate: head?.givenOn ?? null,
-          previousDoses: doseSeries(previous.flatMap(dated)),
-          lastDoseExtra: head?.status === 'extra',
-          due,
-          state: treatmentState(due),
-        },
-      ]
+    .filter((item) => item.animalId === animalId && treatedIds.has(item.id))
+    .map((item) => {
+      const state = states(item.id)
+      const periods = treatmentPeriods(state)
+      const last = lastGiven(periods)
+      return {
+        name: item.name,
+        lastDoseDate: last?.on ?? null,
+        lastDoseExtra: last?.extra ?? false,
+        periods,
+        due: state.outlook,
+        state: treatmentState(state.outlook),
+      }
     })
     .sort((a, b) => byDueDateAscending(dueKey(a.due), dueKey(b.due)))
 
@@ -177,6 +311,8 @@ export function buildCarnetPdfContent(
       species: animal.species,
       breed: animal.breed,
       birthDate: animal.birthDate,
+      birthDateApproximate: animal.birthDateApproximate,
+      departureDate: animal.unfollowedOn === null ? null : animal.departureDate,
       photoFileName: animal.photoFileName,
     },
     generatedOn: today,

@@ -15,7 +15,15 @@ const DESCENT_EM = 0.22
 const PRIMARY = String(vuetify.theme.themes.value.light!.colors.primary).toUpperCase()
 
 const EMPTY_CONTENT: CarnetPdfContent = {
-  animal: { name: 'Milo', species: 'dog', breed: null, birthDate: null, photoFileName: null },
+  animal: {
+    name: 'Milo',
+    species: 'dog',
+    breed: null,
+    birthDate: null,
+    birthDateApproximate: false,
+    departureDate: null,
+    photoFileName: null,
+  },
   generatedOn: '2026-09-15',
   vaccinations: [],
   treatments: [],
@@ -28,6 +36,8 @@ const FULL_CONTENT: CarnetPdfContent = {
     species: 'cat',
     breed: 'Européen',
     birthDate: '2019-03-02',
+    birthDateApproximate: false,
+    departureDate: null,
     photoFileName: 'luna.jpg',
   },
   generatedOn: '2026-09-15',
@@ -44,11 +54,32 @@ const FULL_CONTENT: CarnetPdfContent = {
     {
       name: 'Milbémax',
       lastDoseDate: '2026-06-01',
-      previousDoses: [
-        { kind: 'range', count: 12, from: '2025-06-01', to: '2026-05-01' },
-        { kind: 'dates', dates: ['2024-12-01', '2024-11-01'], extras: [false, false] },
-      ],
       lastDoseExtra: false,
+      periods: [
+        {
+          from: '2024-11-01',
+          to: null,
+          frequency: { value: 1, unit: 'month' },
+          times: [],
+          dosage: { doseQuantity: null, doseUnit: null },
+          lines: [
+            {
+              kind: 'given',
+              series: { kind: 'range', count: 13, from: '2025-06-01', to: '2026-06-01' },
+            },
+            {
+              kind: 'given',
+              series: {
+                kind: 'dates',
+                doses: [
+                  { on: '2024-12-01', time: null, extra: false },
+                  { on: '2024-11-01', time: null, extra: false },
+                ],
+              },
+            },
+          ],
+        },
+      ],
       due: { kind: 'due', dueOn: '2026-09-01', dueTime: null, overdue: false },
       state: 'upToDate',
     },
@@ -134,19 +165,17 @@ describe('renderCarnetPdf — historique', () => {
     expect(find('Injections\u00a0: 01/01/2025 · 01/01/2022')).toBeDefined()
   })
 
-  it('met la dernière prise d’un traitement à part, puis ses prises précédentes regroupées', () => {
+  it('met la dernière prise d’un traitement à part, puis chaque période et ses prises regroupées', () => {
     expect(find('Dernière prise\u00a0: 01/06/2026')).toBeDefined()
-    expect(
-      find(
-        'Prises précédentes\u00a0: 12 prises du 01/06/2025 au 01/05/2026 · 01/12/2024 · 01/11/2024',
-      ),
-    ).toBeDefined()
+    expect(find('Depuis le 01/11/2024 · Tous les mois')).toBeDefined()
+    expect(find('13 prises du 01/06/2025 au 01/06/2026')).toBeDefined()
+    expect(find('Prises\u00a0: 01/12/2024 · 01/11/2024')).toBeDefined()
   })
 
   it('écrit « Aucune prise » et la prochaine dose sous un traitement sans prise donnée', () => {
     const content: CarnetPdfContent = {
       ...FULL_CONTENT,
-      treatments: [{ ...FULL_CONTENT.treatments[0]!, lastDoseDate: null, previousDoses: [] }],
+      treatments: [{ ...FULL_CONTENT.treatments[0]!, lastDoseDate: null, periods: [] }],
     }
     const written = readPdf(renderCarnetPdf([{ content, photoDataUrl: null }], '0.1.24')).texts.map(
       ({ text }) => text,
@@ -159,11 +188,15 @@ describe('renderCarnetPdf — historique', () => {
   it('écrit l’historique sous sa ligne, en retrait, sans descendre sous 9 pt', () => {
     const traitement = find('Milbémax')!
     const derniere = find('Dernière prise\u00a0: 01/06/2026')!
-    const precedentes = texts().find((item) => item.text.startsWith('Prises précédentes'))!
+    const periode = find('Depuis le 01/11/2024 · Tous les mois')!
+    const precedentes = texts().find((item) => item.text.startsWith('Prises'))!
 
     expect(derniere.baseline).toBeGreaterThan(traitement.baseline)
-    expect(precedentes.baseline).toBeGreaterThan(derniere.baseline)
+    expect(periode.baseline).toBeGreaterThan(derniere.baseline)
+    expect(precedentes.baseline).toBeGreaterThan(periode.baseline)
     expect(derniere.left).toBeGreaterThan(traitement.left)
+    expect(periode.left).toBe(derniere.left)
+    expect(precedentes.left).toBeGreaterThan(periode.left)
     expect(derniere.sizePt).toBeGreaterThanOrEqual(9)
     expect(find('Traitements')!.baseline).toBeLessThan(traitement.baseline)
     expect(find('Poids')!.baseline).toBeGreaterThan(precedentes.baseline)

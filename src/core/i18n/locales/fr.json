@@ -1413,11 +1413,14 @@
       "status": {
         "overdue": "En retard",
         "upToDate": "À jour",
-        "none": "Pas de rappel"
+        "none": "Pas de rappel",
+        "planned": "Prévu le {date}"
       },
       "noName": "—",
       "identity": {
-        "birthDate": "Date de naissance : {date}"
+        "birthDate": "Date de naissance : {date}",
+        "birthDateApproximate": "Date de naissance : environ {date}",
+        "until": "jusqu’au {date}"
       },
       "vaccinations": {
         "title": "Vaccins",
@@ -1436,6 +1439,16 @@
         "title": "Poids",
         "empty": "Aucune pesée enregistrée."
       },
+      "period": {
+        "since": "Depuis le {date}",
+        "range": "Du {from} au {to}",
+        "single": "Le {date}"
+      },
+      "frequency": {
+        "day": "Tous les jours | Tous les {n} jours",
+        "week": "Toutes les semaines | Toutes les {n} semaines",
+        "month": "Tous les mois | Tous les {n} mois"
+      },
       "history": {
         "injections": "Injections : {dates}",
         "noDose": "Aucune prise",
@@ -1444,8 +1457,14 @@
         "stoppedBeforeFirstDose": "Arrêté avant la première prise",
         "lastDose": "Dernière prise : {date}",
         "extraDose": "{date} (prise en plus)",
-        "previousDoses": "Prises précédentes : {series}",
-        "doseRange": "{count} prises du {from} au {to}"
+        "doseRange": "{count} prises du {from} au {to}",
+        "doses": "Prise : {dates} | Prises : {dates}",
+        "missed": "Oubliée : {dates} | Oubliées : {dates}",
+        "missedRange": "{count} oubliées du {from} au {to}",
+        "unlogged": "Non renseigné du {from} au {to}",
+        "unloggedDay": "Non renseigné le {date}",
+        "postponed": "Reportée au {date} (prévue le {due})",
+        "advanced": "Avancée au {date} (prévue le {due})"
       },
       "pageNumber": "{page} / {total}",
       "footer": "Généré le {date} — MémoPatte {version}"

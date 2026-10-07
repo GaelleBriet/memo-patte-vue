@@ -1,11 +1,11 @@
-import { addDays, addMonths, format, parseISO } from 'date-fns'
 import { describe, expect, it } from 'vitest'
 
 import { buildCarnetPdfContent, pdfExportFileName } from '../logic/pdf-content'
-import { carnetOf, periodOf, type CarnetSummary } from './export-fixture'
+import { BY_FIXTURE_DEVICE, carnetOf, periodOf, type CarnetSummary } from './export-fixture'
 import type {
-  ExportFrequency,
+  ExportAnimal,
   ExportTreatmentDose,
+  ExportTreatmentPeriod,
   ExportVaccinationInjection,
 } from '@/shared/domain/carnet-data'
 
@@ -129,6 +129,8 @@ describe('buildCarnetPdfContent', () => {
       species: 'dog',
       breed: 'Labrador',
       birthDate: '2020-05-01',
+      birthDateApproximate: false,
+      departureDate: null,
       photoFileName: null,
     })
     expect(content.vaccinations.map((row) => row.name)).toEqual(['Rage', 'Toux de chenil'])
@@ -152,8 +154,17 @@ describe('buildCarnetPdfContent', () => {
       {
         name: 'Milbémax',
         lastDoseDate: null,
-        previousDoses: [],
         lastDoseExtra: false,
+        periods: [
+          {
+            from: '2026-07-10',
+            to: null,
+            frequency: { value: 3, unit: 'month' },
+            times: [],
+            dosage: { doseQuantity: null, doseUnit: null },
+            lines: [],
+          },
+        ],
         due: { kind: 'due', dueOn: '2026-07-10', dueTime: null, overdue: false },
         state: 'upToDate',
       },
@@ -172,7 +183,6 @@ describe('buildCarnetPdfContent', () => {
     expect(row).toMatchObject({
       name: 'Milbémax',
       lastDoseDate: null,
-      previousDoses: [],
       due: { kind: 'due', dueOn: '2026-09-01', overdue: false },
     })
   })
@@ -224,9 +234,84 @@ describe('buildCarnetPdfContent', () => {
   })
 })
 
+describe('buildCarnetPdfContent — identité', () => {
+  function animalWith(fields: Partial<ExportAnimal>) {
+    const data = {
+      ...DATA,
+      animals: DATA.animals.map((item) => (item.id === ANIMAL_ID ? { ...item, ...fields } : item)),
+    }
+    return buildCarnetPdfContent(data, ANIMAL_ID, TODAY)!.animal
+  }
+
+  it('dit si la date de naissance est approximative', () => {
+    expect(animalWith({ birthDateApproximate: true })).toMatchObject({
+      birthDate: '2020-05-01',
+      birthDateApproximate: true,
+    })
+  })
+
+  it('donne la date du départ d’un animal qu’on ne suit plus, jamais le motif', () => {
+    const animal = animalWith({
+      unfollowedOn: '2026-06-30',
+      departureReason: 'death',
+      departureDate: '2026-06-28',
+    })
+
+    expect(animal.departureDate).toBe('2026-06-28')
+    expect(JSON.stringify(animal)).not.toContain('death')
+  })
+
+  it('ne donne aucune date de départ sans date renseignée, ni pour un animal suivi', () => {
+    expect(animalWith({ unfollowedOn: '2026-06-30', departureReason: 'other' }).departureDate).toBe(
+      null,
+    )
+    expect(animalWith({ unfollowedOn: null, departureDate: '2026-06-28' }).departureDate).toBe(null)
+  })
+})
+
+describe('buildCarnetPdfContent — vaccin prévu', () => {
+  function plannedRow(plannedDueDate: string | null) {
+    const data = {
+      ...DATA,
+      vaccinations: [
+        ...DATA.vaccinations,
+        { ...DATA.vaccinations[0]!, id: 'v-prevu', name: 'CHPPiL', plannedDueDate },
+      ],
+    }
+    return buildCarnetPdfContent(data, ANIMAL_ID, TODAY)!.vaccinations.find(
+      (row) => row.name === 'CHPPiL',
+    )
+  }
+
+  it('garde un vaccin jamais fait, « Prévu » jusqu’au jour du rendez-vous compris', () => {
+    expect(plannedRow('2026-07-15')).toEqual({
+      name: 'CHPPiL',
+      lastInjectionDate: null,
+      injectionDates: [],
+      dueDate: '2026-07-15',
+      state: 'planned',
+    })
+    expect(plannedRow(TODAY)?.state).toBe('planned')
+  })
+
+  it('le passe en retard le lendemain du rendez-vous, sans rappel sans date', () => {
+    expect(plannedRow('2026-06-30')?.state).toBe('overdue')
+    expect(plannedRow(null)?.state).toBe('none')
+  })
+
+  it('ne marque jamais « Prévu » un vaccin déjà injecté', () => {
+    const states = buildCarnetPdfContent(DATA, ANIMAL_ID, TODAY)!.vaccinations.map(
+      ({ state }) => state,
+    )
+
+    expect(states).not.toContain('planned')
+  })
+})
+
 describe('buildCarnetPdfContent — historique', () => {
-  const MONTHLY = { value: 1, unit: 'month' } as const
   const AT = '2026-01-01T00:00:00.000Z'
+  const STAMPS = { createdAt: AT, updatedAt: AT, ...BY_FIXTURE_DEVICE }
+  const MONTHLY = { value: 1, unit: 'month' } as const
 
   function injection(injectedOn: string): ExportVaccinationInjection {
     return {
@@ -235,136 +320,46 @@ describe('buildCarnetPdfContent — historique', () => {
       animalId: ANIMAL_ID,
       injectedOn,
       nextDueDate: null,
-      createdAt: AT,
-      updatedAt: AT,
-      createdByDevice: 'appareil-test',
-      updatedByDevice: 'appareil-test',
+      ...STAMPS,
     }
   }
 
-  type DatedDose = { givenOn: string; frequency: ExportFrequency }
+  type PeriodSpec = Pick<ExportTreatmentPeriod, 'id' | 'startsOn'> & Partial<ExportTreatmentPeriod>
 
-  function dose(givenOn: string, frequency: ExportFrequency = MONTHLY): DatedDose {
-    return { givenOn, frequency }
-  }
+  type DoseSpec = Pick<ExportTreatmentDose, 'periodId' | 'dueOn' | 'status'> &
+    Partial<ExportTreatmentDose>
 
-  /** Une période par fréquence, plus ancienne que la période en cours du résumé. */
-  function historyOf(doses: DatedDose[]) {
-    const periodId = ({ value, unit }: ExportFrequency) => `p-${value}-${unit}`
-    const frequencies = new Map(doses.map(({ frequency }) => [periodId(frequency), frequency]))
+  function doseOf(spec: DoseSpec, index: number): ExportTreatmentDose {
     return {
-      treatmentPeriods: [
-        ...DATA.treatmentPeriods,
-        ...[...frequencies].map(([id, frequency]) =>
-          periodOf({
-            id,
-            treatmentId: 't-upcoming',
-            animalId: ANIMAL_ID,
-            startsOn: '2000-01-01',
-            frequency,
-            createdAt: AT,
-            updatedAt: AT,
-            createdByDevice: 'appareil-test',
-            updatedByDevice: 'appareil-test',
-          }),
-        ),
-      ],
-      treatmentDoses: doses.map(({ givenOn, frequency }): ExportTreatmentDose => ({
-        id: `d-${givenOn}`,
-        periodId: periodId(frequency),
-        treatmentId: 't-upcoming',
-        animalId: ANIMAL_ID,
-        dueOn: givenOn,
-        dueTime: null,
-        givenOn,
-        status: 'given',
-        nextDueDate: '2027-01-01',
-        createdAt: AT,
-        updatedAt: AT,
-        createdByDevice: 'appareil-test',
-        updatedByDevice: 'appareil-test',
-      })),
+      id: `d-${index}`,
+      treatmentId: 't-upcoming',
+      animalId: ANIMAL_ID,
+      dueTime: null,
+      givenOn: spec.status === 'given' || spec.status === 'extra' ? spec.dueOn : null,
+      nextDueDate: '2099-01-01',
+      ...STAMPS,
+      ...spec,
     }
   }
 
-  function monthlyFrom(first: string, count: number): DatedDose[] {
-    return Array.from({ length: count }, (_, index) =>
-      dose(format(addMonths(parseISO(first), index), 'yyyy-MM-dd')),
-    )
+  function treatmentRow(periods: PeriodSpec[], doses: DoseSpec[], today = TODAY) {
+    const data = {
+      ...DATA,
+      treatmentPeriods: periods.map((period) =>
+        periodOf({ treatmentId: 't-upcoming', animalId: ANIMAL_ID, ...STAMPS, ...period }),
+      ),
+      treatmentDoses: doses.map(doseOf),
+    }
+    return buildCarnetPdfContent(data, ANIMAL_ID, today)!.treatments[0]!
   }
 
-  function treatmentRow(doses: DatedDose[]) {
-    return buildCarnetPdfContent({ ...DATA, ...historyOf(doses) }, ANIMAL_ID, TODAY)!.treatments[0]!
+  function given(periodId: string, ...days: string[]): DoseSpec[] {
+    return days.map((dueOn) => ({ periodId, dueOn, status: 'given' }))
   }
 
-  it('date la dernière prise de sa date réelle, sans les lignes oubliées ni reportées', () => {
-    const { treatmentPeriods, treatmentDoses } = historyOf([dose('2026-04-01'), dose('2026-05-01')])
-    const [avril, mai] = treatmentDoses
-    const data = {
-      ...DATA,
-      treatmentPeriods,
-      treatmentDoses: [
-        { ...avril!, givenOn: '2026-05-20' },
-        mai!,
-        { ...mai!, id: 'd-oubliee', dueOn: '2026-06-01', givenOn: null, status: 'missed' as const },
-      ],
-    }
-
-    const row = buildCarnetPdfContent(data, ANIMAL_ID, TODAY)!.treatments[0]!
-
-    expect(row.lastDoseDate).toBe('2026-05-20')
-    expect(row.previousDoses).toEqual([{ kind: 'dates', dates: ['2026-05-01'], extras: [false] }])
-  })
-
-  it('compte une prise en plus comme une dose donnée, à sa date réelle', () => {
-    const { treatmentPeriods, treatmentDoses } = historyOf([dose('2026-04-01'), dose('2026-05-01')])
-    const [, mai] = treatmentDoses
-    const data = {
-      ...DATA,
-      treatmentPeriods,
-      treatmentDoses: [
-        ...treatmentDoses,
-        {
-          ...mai!,
-          id: 'd-en-plus',
-          dueOn: '2026-05-08',
-          givenOn: '2026-05-08',
-          status: 'extra' as const,
-          nextDueDate: '2099-01-01',
-        },
-      ],
-    }
-
-    const row = buildCarnetPdfContent(data, ANIMAL_ID, TODAY)!.treatments[0]!
-
-    expect(row.lastDoseDate).toBe('2026-05-08')
-    expect(row.lastDoseExtra).toBe(true)
-    expect(row.due).not.toMatchObject({ dueOn: '2099-01-01' })
-    expect(row.previousDoses).toEqual([
-      { kind: 'dates', dates: ['2026-05-01', '2026-04-01'], extras: [false, false] },
-    ])
-  })
-
-  it('ne marque que la prise en plus, pas la prise donnée le même jour', () => {
-    const { treatmentPeriods, treatmentDoses } = historyOf([dose('2026-04-01'), dose('2026-05-01')])
-    const [, mai] = treatmentDoses
-    const data = {
-      ...DATA,
-      treatmentPeriods,
-      treatmentDoses: [...treatmentDoses, { ...mai!, id: 'd-en-plus', status: 'extra' as const }],
-    }
-
-    const row = buildCarnetPdfContent(data, ANIMAL_ID, TODAY)!.treatments[0]!
-    const marks = [
-      row.lastDoseExtra,
-      ...row.previousDoses.flatMap((series) => (series.kind === 'dates' ? series.extras : [])),
-    ]
-
-    expect(marks.filter(Boolean)).toHaveLength(1)
-    expect(row.previousDoses).toEqual([
-      expect.objectContaining({ dates: ['2026-05-01', '2026-04-01'] }),
-    ])
-  })
+  function at(on: string, time: string | null = null, extra = false) {
+    return { on, time, extra }
+  }
 
   it('liste toutes les injections d’un vaccin, la plus récente d’abord, jamais regroupées', () => {
     const years = ['2021-01-01', '2025-01-01', '2022-01-01', '2024-01-01', '2023-01-01']
@@ -383,101 +378,251 @@ describe('buildCarnetPdfContent — historique', () => {
     expect(rage.injectionDates).toEqual([...years].sort().reverse())
   })
 
-  it('met la dernière prise à part et liste jusqu’à trois prises précédentes', () => {
-    const row = treatmentRow(monthlyFrom('2026-03-01', 4))
-
-    expect(row.lastDoseDate).toBe('2026-06-01')
-    expect(row.previousDoses).toEqual([
-      {
-        kind: 'dates',
-        dates: ['2026-05-01', '2026-04-01', '2026-03-01'],
-        extras: [false, false, false],
-      },
-    ])
-    expect(treatmentRow([dose('2026-06-01')]).previousDoses).toEqual([])
-  })
-
-  it('regroupe au-delà de trois prises : « N prises du A au B »', () => {
-    const row = treatmentRow(monthlyFrom('2025-06-01', 13))
-
-    expect(row.lastDoseDate).toBe('2026-06-01')
-    expect(row.previousDoses).toEqual([
-      { kind: 'range', count: 12, from: '2025-06-01', to: '2026-05-01' },
-    ])
-  })
-
-  it('commence une nouvelle série quand l’écart dépasse 1,5 fois la fréquence, la plus récente d’abord', () => {
-    const row = treatmentRow([
-      ...monthlyFrom('2025-01-01', 4),
-      ...monthlyFrom('2025-09-01', 4),
-      dose('2026-01-01'),
-    ])
-
-    expect(row.previousDoses).toEqual([
-      { kind: 'range', count: 4, from: '2025-09-01', to: '2025-12-01' },
-      { kind: 'range', count: 4, from: '2025-01-01', to: '2025-04-01' },
-    ])
-  })
-
-  it('ne coupe pas à exactement 1,5 fois la fréquence, coupe au-delà', () => {
-    const fortnightly = { value: 2, unit: 'week' } as const
+  it('date la dernière prise de sa date réelle', () => {
     const row = treatmentRow(
-      ['2026-01-01', '2026-01-22', '2026-02-13', '2026-02-27'].map((day) => dose(day, fortnightly)),
+      [{ id: 'p', startsOn: '2026-04-01' }],
+      [
+        { periodId: 'p', dueOn: '2026-04-01', status: 'given' },
+        { periodId: 'p', dueOn: '2026-05-01', status: 'given', givenOn: '2026-05-20' },
+        { periodId: 'p', dueOn: '2026-06-01', status: 'missed' },
+      ],
     )
 
-    expect(row.previousDoses).toEqual([
-      { kind: 'dates', dates: ['2026-02-13'], extras: [false] },
-      { kind: 'dates', dates: ['2026-01-22', '2026-01-01'], extras: [false, false] },
-    ])
+    expect(row.lastDoseDate).toBe('2026-05-20')
+    expect(row.lastDoseExtra).toBe(false)
   })
 
-  it('mesure l’écart avec la fréquence de la prise précédente, pas celle de la suivante', () => {
-    const quarterly = { value: 3, unit: 'month' } as const
-    const quarterlyThenMonthly = treatmentRow([
-      dose('2026-01-01', quarterly),
-      dose('2026-03-02'),
-      dose('2026-04-02'),
-      dose('2026-05-02'),
-    ])
-    const monthlyThenQuarterly = treatmentRow([
-      dose('2026-01-01'),
-      dose('2026-03-02', quarterly),
-      dose('2026-06-02', quarterly),
-      dose('2026-09-02', quarterly),
-    ])
+  it('compte une prise en plus comme une dose donnée, marquée, à sa date réelle', () => {
+    const row = treatmentRow(
+      [{ id: 'p', startsOn: '2026-04-01' }],
+      [
+        ...given('p', '2026-04-01', '2026-05-01'),
+        { periodId: 'p', dueOn: '2026-05-08', status: 'extra' },
+      ],
+    )
 
-    expect(quarterlyThenMonthly.previousDoses).toEqual([
-      {
+    expect(row.lastDoseDate).toBe('2026-05-08')
+    expect(row.lastDoseExtra).toBe(true)
+    expect(row.periods[0]!.lines[1]).toEqual({
+      kind: 'given',
+      series: {
         kind: 'dates',
-        dates: ['2026-04-02', '2026-03-02', '2026-01-01'],
-        extras: [false, false, false],
+        doses: [at('2026-05-08', null, true), at('2026-05-01'), at('2026-04-01')],
+      },
+    })
+  })
+
+  it('traitement à deux heures : prises et oublis à leur heure, doses non renseignées à leur place', () => {
+    const times = ['08:00', '20:00']
+    const twice = (dueOn: string, status: 'given' | 'missed' = 'given'): DoseSpec[] =>
+      times.map((dueTime) => ({ periodId: 'p', dueOn, dueTime, status }))
+    const row = treatmentRow(
+      [
+        {
+          id: 'p',
+          startsOn: '2026-06-01',
+          endsOn: '2026-06-10',
+          frequency: { value: 1, unit: 'day' },
+          times,
+          doseQuantity: 0.5,
+          doseUnit: 'tablet',
+        },
+      ],
+      [
+        ...twice('2026-06-01'),
+        { periodId: 'p', dueOn: '2026-06-02', dueTime: '08:00', status: 'given' },
+        { periodId: 'p', dueOn: '2026-06-02', dueTime: '20:00', status: 'missed' },
+        ...['2026-06-06', '2026-06-07', '2026-06-08', '2026-06-09', '2026-06-10'].flatMap((day) =>
+          twice(day),
+        ),
+      ],
+    )
+
+    expect(row.periods).toEqual([
+      {
+        from: '2026-06-01',
+        to: '2026-06-10',
+        frequency: { value: 1, unit: 'day' },
+        times,
+        dosage: { doseQuantity: 0.5, doseUnit: 'tablet' },
+        lines: [
+          {
+            kind: 'given',
+            series: { kind: 'range', count: 10, from: '2026-06-06', to: '2026-06-10' },
+          },
+          { kind: 'unlogged', from: '2026-06-03', to: '2026-06-05' },
+          { kind: 'missed', series: { kind: 'dates', doses: [at('2026-06-02', '20:00')] } },
+          {
+            kind: 'given',
+            series: {
+              kind: 'dates',
+              doses: [
+                at('2026-06-02', '08:00'),
+                at('2026-06-01', '20:00'),
+                at('2026-06-01', '08:00'),
+              ],
+            },
+          },
+        ],
       },
     ])
-    expect(monthlyThenQuarterly.previousDoses).toEqual([
-      { kind: 'dates', dates: ['2026-06-02', '2026-03-02'], extras: [false, false] },
-      { kind: 'dates', dates: ['2026-01-01'], extras: [false] },
+  })
+
+  it('range chaque période, la plus récente d’abord, avec ses réglages, ses oublis regroupés et ses reports', () => {
+    const row = treatmentRow(
+      [
+        {
+          id: 'p0',
+          startsOn: '2025-11-01',
+          frequency: { value: 2, unit: 'week' },
+          doseQuantity: 2,
+          doseUnit: 'tablet',
+        },
+        {
+          id: 'p1',
+          startsOn: '2026-01-01',
+          frequency: MONTHLY,
+          doseQuantity: 1,
+          doseUnit: 'tablet',
+        },
+      ],
+      [
+        ...given('p0', '2025-11-01', '2025-11-15'),
+        ...given('p1', '2026-01-01'),
+        ...['2026-02-01', '2026-03-01', '2026-04-01', '2026-05-01'].map((dueOn): DoseSpec => ({
+          periodId: 'p1',
+          dueOn,
+          status: 'missed',
+        })),
+        { periodId: 'p1', dueOn: '2026-06-01', status: 'postponed', nextDueDate: '2026-06-04' },
+        ...given('p1', '2026-06-04'),
+      ],
+      '2026-06-20',
+    )
+
+    expect(row.periods).toEqual([
+      {
+        from: '2026-01-01',
+        to: null,
+        frequency: MONTHLY,
+        times: [],
+        dosage: { doseQuantity: 1, doseUnit: 'tablet' },
+        lines: [
+          { kind: 'given', series: { kind: 'dates', doses: [at('2026-06-04')] } },
+          { kind: 'moved', dueOn: '2026-06-01', to: '2026-06-04', advanced: false },
+          {
+            kind: 'missed',
+            series: { kind: 'range', count: 4, from: '2026-02-01', to: '2026-05-01' },
+          },
+          { kind: 'given', series: { kind: 'dates', doses: [at('2026-01-01')] } },
+        ],
+      },
+      {
+        from: '2025-11-01',
+        to: '2025-12-31',
+        frequency: { value: 2, unit: 'week' },
+        times: [],
+        dosage: { doseQuantity: 2, doseUnit: 'tablet' },
+        lines: [
+          { kind: 'unlogged', from: '2025-11-29', to: '2025-12-27' },
+          { kind: 'given', series: { kind: 'dates', doses: [at('2025-11-15'), at('2025-11-01')] } },
+        ],
+      },
     ])
   })
 
-  it.each([
-    ['tous les jours', 1, { value: 1, unit: 'day' }],
-    ['toutes les semaines', 10, { value: 1, unit: 'week' }],
-    ['tous les 12 mois, à 30,44 jours le mois', 547, { value: 12, unit: 'month' }],
-  ] as const)(
-    '%s, garde dans la série un écart de %i jours, pas un jour de plus',
-    (_, days, frequency) => {
-      const seriesCount = (gap: number) => {
-        const first = '2024-01-01'
-        const second = format(addDays(parseISO(first), gap), 'yyyy-MM-dd')
-        const head = format(addDays(parseISO(second), 1), 'yyyy-MM-dd')
-        return treatmentRow([first, second, head].map((day) => dose(day, frequency))).previousDoses
-          .length
-      }
+  it('distingue une dose avancée d’une dose reportée', () => {
+    const row = treatmentRow(
+      [{ id: 'p', startsOn: '2026-04-01' }],
+      [
+        ...given('p', '2026-04-01', '2026-05-01'),
+        { periodId: 'p', dueOn: '2026-06-01', status: 'postponed', nextDueDate: '2026-05-28' },
+        ...given('p', '2026-05-28'),
+      ],
+    )
 
-      expect(seriesCount(days)).toBe(1)
-      expect(seriesCount(days + 1)).toBe(2)
-    },
-  )
+    expect(row.periods[0]!.lines).toContainEqual({
+      kind: 'moved',
+      dueOn: '2026-06-01',
+      to: '2026-05-28',
+      advanced: true,
+    })
+  })
+
+  it('n’écrit pas les heures d’une période qui n’en a qu’une', () => {
+    const row = treatmentRow(
+      [{ id: 'p', startsOn: '2026-06-01', times: ['20:00'] }],
+      [{ periodId: 'p', dueOn: '2026-06-01', dueTime: '20:00', status: 'given' }],
+    )
+
+    expect(row.periods[0]).toMatchObject({
+      times: [],
+      lines: [{ kind: 'given', series: { kind: 'dates', doses: [at('2026-06-01')] } }],
+    })
+  })
+
+  it('liste jusqu’à trois prises qui se suivent, les résume au-delà', () => {
+    const days = ['2026-02-01', '2026-03-01', '2026-04-01', '2026-05-01', '2026-06-01']
+
+    expect(
+      treatmentRow([{ id: 'p', startsOn: '2026-04-01' }], given('p', ...days.slice(2))).periods[0]!
+        .lines,
+    ).toEqual([
+      {
+        kind: 'given',
+        series: { kind: 'dates', doses: [at('2026-06-01'), at('2026-05-01'), at('2026-04-01')] },
+      },
+    ])
+    expect(
+      treatmentRow([{ id: 'p', startsOn: '2026-02-01' }], given('p', ...days)).periods[0]!.lines,
+    ).toEqual([
+      { kind: 'given', series: { kind: 'range', count: 5, from: '2026-02-01', to: '2026-06-01' } },
+    ])
+  })
+
+  it('ignore les lignes de décalage des doses suivantes', () => {
+    const row = treatmentRow(
+      [{ id: 'p', startsOn: '2026-05-01' }],
+      [
+        ...given('p', '2026-05-01'),
+        { periodId: 'p', dueOn: '2026-06-01', status: 'given', givenOn: '2026-06-05' },
+        { periodId: 'p', dueOn: '2026-06-01', status: 'shift', nextDueDate: '2026-06-05' },
+      ],
+    )
+
+    expect(row.periods[0]!.lines.map(({ kind }) => kind)).toEqual(['given'])
+  })
+
+  describe('traitement illisible', () => {
+    const UNREADABLE = { id: 'p', startsOn: '2026-01-01', times: ['25:00'] }
+
+    it('garde « Donnée illisible » et son historique tel qu’enregistré, sans doses non renseignées', () => {
+      const row = treatmentRow(
+        [UNREADABLE],
+        [
+          ...given('p', '2026-01-01', '2026-02-01'),
+          { periodId: 'p', dueOn: '2026-03-01', status: 'missed' },
+          ...given('p', '2026-06-01'),
+        ],
+      )
+
+      expect(row.due).toEqual({ kind: 'unreadable' })
+      expect(row.periods[0]!.lines).toEqual([
+        { kind: 'given', series: { kind: 'dates', doses: [at('2026-06-01')] } },
+        { kind: 'missed', series: { kind: 'dates', doses: [at('2026-03-01')] } },
+        { kind: 'given', series: { kind: 'dates', doses: [at('2026-02-01'), at('2026-01-01')] } },
+      ])
+    })
+
+    it('commence une nouvelle série quand l’écart dépasse 1,5 fois la fréquence', () => {
+      const row = treatmentRow([UNREADABLE], given('p', '2026-01-01', '2026-02-01', '2026-06-01'))
+
+      expect(row.periods[0]!.lines).toEqual([
+        { kind: 'given', series: { kind: 'dates', doses: [at('2026-06-01')] } },
+        { kind: 'given', series: { kind: 'dates', doses: [at('2026-02-01'), at('2026-01-01')] } },
+      ])
+    })
+  })
 })
 
 describe('pdfExportFileName', () => {
