@@ -22,6 +22,7 @@ import {
   toastMessage,
   toastTone,
 } from '@/shared/utils/toast'
+import { plain } from '@/shared/__tests__/plain'
 
 vi.mock('@/core/photos/photo-storage', async (importOriginal) => ({
   ...(await importOriginal<object>()),
@@ -34,6 +35,7 @@ const MILO: Animal = {
   species: 'dog',
   breed: null,
   birthDate: null,
+  birthDateApproximate: false,
   photoPath: null,
   createdAt: '2026-09-09T09:00:00.000Z',
   updatedAt: '2026-09-09T09:00:00.000Z',
@@ -743,9 +745,11 @@ describe('WeightSheet — supprimer une pesée', () => {
     expect(remove).toHaveBeenCalledExactlyOnceWith(A_CORRIGER.id)
     expect(document.body.querySelector('.confirm-dialog')).toBeNull()
     expect(wrapper.emitted('update:modelValue')).toEqual([[false]])
-    expect(toastMessage.value).toBe('Pesée du 25 août supprimée')
+    expect(plain(toastMessage.value)).toBe('Pesée du 25 août supprimée')
     expect(toastAction.value?.label).toBe('Annuler')
-    expect(toastAction.value?.ariaLabel).toBe('Annuler la suppression de la pesée du 25 août')
+    expect(plain(toastAction.value?.ariaLabel)).toBe(
+      'Annuler la suppression de la pesée du 25 août',
+    )
   })
 
   it('date la pesée d’une autre année avec son année', async () => {
@@ -753,7 +757,7 @@ describe('WeightSheet — supprimer une pesée', () => {
 
     await supprimer()
 
-    expect(toastMessage.value).toBe('Pesée du 20 déc. 2025 supprimée')
+    expect(plain(toastMessage.value)).toBe('Pesée du 20 déc. 2025 supprimée')
   })
 
   it('remet la pesée par « Annuler », puis l’annonce à l’écran', async () => {

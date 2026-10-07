@@ -70,22 +70,26 @@ describe('shiftHelpText — l’aide sous la case (V28)', () => {
     const every3Days = { frequency: { value: 3, unit: 'day' as const } }
 
     expect(
-      shiftHelpText(
-        t,
-        every3Days,
-        { shifts: true, following: ['2026-10-22'], lost: [] },
-        '2026-10-19',
-      )!.text,
+      plain(
+        shiftHelpText(
+          t,
+          every3Days,
+          { shifts: true, following: ['2026-10-22'], lost: [] },
+          '2026-10-19',
+        )!.text,
+      ),
     ).toBe('Les doses suivantes passeront au 22 oct., puis tous les 3 jours.')
   })
 
   it('devient un avertissement discret quand la date de fin ferait perdre une dose (V28 bis)', () => {
     expect(
-      shiftHelpText(
-        t,
-        weekly,
-        { shifts: true, following: ['2026-10-26'], lost: ['2026-11-02'] },
-        '2026-10-19',
+      plain(
+        shiftHelpText(
+          t,
+          weekly,
+          { shifts: true, following: ['2026-10-26'], lost: ['2026-11-02'] },
+          '2026-10-19',
+        ),
       ),
     ).toEqual({
       text: 'Avec le décalage, la dose du 2 nov. ne sera plus prévue (date de fin).',
@@ -97,20 +101,24 @@ describe('shiftHelpText — l’aide sous la case (V28)', () => {
     applyLocale('en')
 
     expect(
-      shiftHelpText(
-        t,
-        weekly,
-        { shifts: true, following: ['2026-10-26', '2026-11-02'], lost: [] },
-        '2026-10-19',
-      )!.text,
+      plain(
+        shiftHelpText(
+          t,
+          weekly,
+          { shifts: true, following: ['2026-10-26', '2026-11-02'], lost: [] },
+          '2026-10-19',
+        )!.text,
+      ),
     ).toBe('The following doses will move to Monday: Oct 26, Nov 2.')
     expect(
-      shiftHelpText(
-        t,
-        weekly,
-        { shifts: false, following: ['2026-10-23', '2026-10-30'], lost: [] },
-        '2026-10-19',
-      )!.text,
+      plain(
+        shiftHelpText(
+          t,
+          weekly,
+          { shifts: false, following: ['2026-10-23', '2026-10-30'], lost: [] },
+          '2026-10-19',
+        )!.text,
+      ),
     ).toBe('Only this dose changes. The following ones stay on Friday: Oct 23, 30.')
   })
 })

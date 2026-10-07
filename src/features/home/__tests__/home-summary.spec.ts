@@ -13,6 +13,7 @@ import {
   upToDateText,
 } from '../logic/home-summary'
 import i18n, { applyLocale } from '@/core/i18n'
+import { plain } from '@/shared/__tests__/plain'
 
 const t = i18n.global.t
 
@@ -25,6 +26,7 @@ function reminder(overrides: Partial<TodoDueItem> = {}): TodoDueItem {
     animalId: 'milo',
     label: 'CHPPiL',
     treatmentType: null,
+    firstVaccine: false,
     dueOn: '2026-09-07',
     dueTime: null,
     status: 'overdue',
@@ -41,6 +43,7 @@ const TO_LOG: TodoItem = {
   animalId: 'luna',
   label: 'Métacam',
   treatmentType: 'medication',
+  firstVaccine: false,
   unlogged: 3,
   oldest: { dueOn: '2026-09-02', dueTime: '20:00' },
 }
@@ -53,6 +56,7 @@ const UNREADABLE: TodoItem = {
   animalId: 'milo',
   label: 'Panacur',
   treatmentType: 'deworming',
+  firstVaccine: false,
 }
 
 describe('scopeCounter', () => {
@@ -145,7 +149,50 @@ describe('dueBadge', () => {
   })
 })
 
+describe('dueBadge — vaccin jamais fait (Vaccins Q1 bis, VA-18)', () => {
+  const premier = (overrides: Partial<TodoDueItem>) =>
+    reminder({ firstVaccine: true, dueOn: '2026-10-05', ...overrides })
+
+  afterEach(() => applyLocale('fr'))
+
+  it('écrit « Prévu le 5 oct. » au contour neutre, sans icône, demain comme plus tard', () => {
+    expect(plain(dueBadge(t, premier({ status: 'later', daysUntil: 12 })))).toEqual({
+      text: 'Prévu le 5 oct.',
+      icon: null,
+      status: 'planned',
+    })
+    expect(dueBadge(t, premier({ status: 'tomorrow', daysUntil: 1 })).status).toBe('planned')
+  })
+
+  it('écrit « Aujourd’hui » le jour du rendez-vous, puis le retard', () => {
+    expect(dueBadge(t, premier({ status: 'today', daysUntil: 0 }))).toEqual({
+      text: 'Aujourd’hui',
+      icon: 'ms:today',
+      status: 'today',
+    })
+    expect(dueBadge(t, premier({ status: 'overdue', daysUntil: -1 })).text).toBe('En retard · 1 j')
+  })
+
+  it('suit la langue courante', () => {
+    applyLocale('en')
+
+    expect(plain(dueBadge(t, premier({ status: 'later', daysUntil: 12 })).text)).toBe(
+      'Planned Oct 5',
+    )
+  })
+})
+
 describe('reminderType et reminderIcon', () => {
+  afterEach(() => applyLocale('fr'))
+
+  it('donne le type d’un vaccin jamais fait', () => {
+    const source = reminder({ firstVaccine: true })
+    expect(reminderType(t, source)).toBe('Premier vaccin')
+    expect(reminderIcon(source)).toBe('ms:vaccines')
+    applyLocale('en')
+    expect(reminderType(t, source)).toBe('First vaccine')
+  })
+
   it('donne le type d’un vaccin', () => {
     const source = reminder()
     expect(reminderType(t, { ...source, treatmentType: null })).toBe('Vaccin')
@@ -215,9 +262,7 @@ describe('reminderRows', () => {
   })
 
   it('titre chaque ligne du nom du produit, type et animal dessous', () => {
-    expect(
-      reminderRows(t, [reminder(), milbemax], { animalNames: names, showAnimal: true }),
-    ).toEqual([
+    expect(reminderRows(t, [reminder(), milbemax], { animalNames: names })).toEqual([
       {
         key: 'vaccination:v1',
         group: 'due',
@@ -250,7 +295,7 @@ describe('reminderRows', () => {
   it('porte l’échéance de la ligne dans la requête de la feuille, heure comprise', () => {
     const soir = { ...milbemax, key: 'treatment:t1:2026-09-09T20:00', dueTime: '20:00' }
 
-    const [row] = reminderRows(t, [soir], { animalNames: names, showAnimal: true })
+    const [row] = reminderRows(t, [soir], { animalNames: names })
 
     expect(row?.request).toEqual({
       kind: 'treatment',
@@ -262,17 +307,82 @@ describe('reminderRows', () => {
 
   it('nomme l’heure d’une dose en retard pour TalkBack, sans la mettre dans le badge (Q5)', () => {
     const matin = reminder({ kind: 'treatment', label: 'Métacam', daysUntil: -1, dueTime: '08:00' })
-    const options = { animalNames: names, showAnimal: false }
+    const options = { animalNames: names }
 
     expect(reminderRows(t, [matin], options)[0]).toMatchObject({
       badge: { text: 'En retard · 1 j' },
-      ariaLabel: 'Métacam, vermifuge, en retard de 1 jour, prise de 8 h. Ouvre les actions.',
+      ariaLabel: 'Métacam, vermifuge, Milo, en retard de 1 jour, prise de 8 h. Ouvre les actions.',
     })
     applyLocale('en')
     expect(reminderRows(t, [matin], options)[0]?.ariaLabel).toBe(
-      'Métacam, dewormer, 1 day overdue, 8 am dose. Opens actions.',
+      'Métacam, dewormer, Milo, 1 day overdue, 8 am dose. Opens actions.',
     )
     applyLocale('fr')
+  })
+
+  describe('vaccin jamais fait', () => {
+    const typhus = reminder({
+      key: 'vaccination:v9',
+      id: 'v9',
+      animalId: 'luna',
+      label: 'Typhus, coryza',
+      firstVaccine: true,
+      dueOn: '2026-10-05',
+      status: 'later',
+      daysUntil: 12,
+    })
+
+    afterEach(() => applyLocale('fr'))
+
+    it('« Premier vaccin · Luna », « Prévu le 5 oct. », et la feuille du vaccin (AC-8)', () => {
+      const [row] = plain(reminderRows(t, [typhus], { animalNames: names }))
+
+      expect(row).toMatchObject({
+        group: 'due',
+        request: { kind: 'vaccination', id: 'v9', due: null },
+        opens: 'sheet',
+        tone: 'planned',
+        icon: 'ms:vaccines',
+        title: 'Typhus, coryza',
+        subtitle: 'Premier vaccin · Luna',
+        badge: { text: 'Prévu le 5 oct.', status: 'planned' },
+        ariaLabel: 'Typhus, coryza, premier vaccin, Luna, prévu le 5 octobre. Ouvre les actions.',
+      })
+    })
+
+    it('garde « Premier vaccin » le jour même et en retard', () => {
+      const rows = reminderRows(
+        t,
+        [
+          { ...typhus, status: 'today', daysUntil: 0 },
+          { ...typhus, status: 'overdue', daysUntil: -2 },
+        ],
+        { animalNames: names },
+      )
+
+      expect(rows.map(({ subtitle, tone, ariaLabel }) => [subtitle, tone, ariaLabel])).toEqual([
+        [
+          'Premier vaccin · Luna',
+          'today',
+          'Typhus, coryza, premier vaccin, Luna, aujourd’hui. Ouvre les actions.',
+        ],
+        [
+          'Premier vaccin · Luna',
+          'overdue',
+          'Typhus, coryza, premier vaccin, Luna, en retard de 2 jours. Ouvre les actions.',
+        ],
+      ])
+    })
+
+    it('en anglais', () => {
+      applyLocale('en')
+
+      expect(plain(reminderRows(t, [typhus], { animalNames: names })[0])).toMatchObject({
+        subtitle: 'First vaccine · Luna',
+        badge: { text: 'Planned Oct 5' },
+        ariaLabel: 'Typhus, coryza, first vaccine, Luna, planned for October 5. Opens actions.',
+      })
+    })
   })
 
   it('annonce une échéance à venir avec son délai et sa date', () => {
@@ -286,13 +396,13 @@ describe('reminderRows', () => {
       daysUntil: 5,
     })
 
-    expect(
-      reminderRows(t, [bravecto], { animalNames: names, showAnimal: true })[0]?.ariaLabel,
-    ).toBe('Bravecto, vermifuge, Milo, dans 5 jours, le 28 septembre. Ouvre les actions.')
+    expect(plain(reminderRows(t, [bravecto], { animalNames: names })[0]?.ariaLabel)).toBe(
+      'Bravecto, vermifuge, Milo, dans 5 jours, le 28 septembre. Ouvre les actions.',
+    )
   })
 
   it('« À renseigner » : badge, nombre de doses sous le type, groupe à part (AC-8)', () => {
-    expect(reminderRows(t, [TO_LOG], { animalNames: names, showAnimal: true })).toEqual([
+    expect(reminderRows(t, [TO_LOG], { animalNames: names })).toEqual([
       {
         key: 'treatment:t3:unlogged',
         group: 'to-log',
@@ -313,12 +423,13 @@ describe('reminderRows', () => {
   it('accorde « À renseigner » au singulier, et le dit en anglais', () => {
     const one = { ...TO_LOG, unlogged: 1 }
 
-    expect(reminderRows(t, [one], { animalNames: names, showAnimal: false })[0]).toMatchObject({
+    expect(reminderRows(t, [one], { animalNames: names })[0]).toMatchObject({
       unlogged: '1 dose non renseignée',
-      ariaLabel: 'Métacam, médicament, à renseigner, 1 dose non renseignée. Ouvre les actions.',
+      ariaLabel:
+        'Métacam, médicament, Luna, à renseigner, 1 dose non renseignée. Ouvre les actions.',
     })
     applyLocale('en')
-    expect(reminderRows(t, [TO_LOG], { animalNames: names, showAnimal: true })[0]).toMatchObject({
+    expect(reminderRows(t, [TO_LOG], { animalNames: names })[0]).toMatchObject({
       unlogged: '3 doses not logged',
       badge: { text: 'To log' },
       ariaLabel: 'Métacam, medication, Luna, to log, 3 doses not logged. Opens actions.',
@@ -327,7 +438,7 @@ describe('reminderRows', () => {
   })
 
   it('traitement illisible : ligne neutre « Donnée illisible » qui ouvre la fiche (B2)', () => {
-    expect(reminderRows(t, [UNREADABLE], { animalNames: names, showAnimal: true })).toEqual([
+    expect(reminderRows(t, [UNREADABLE], { animalNames: names })).toEqual([
       expect.objectContaining({
         group: 'due',
         request: { kind: 'treatment', id: 't4', due: null },
@@ -344,28 +455,34 @@ describe('reminderRows', () => {
   it('titre un vaccin du nom saisi seul, sans « vaccin » redoublé, dans les deux langues', () => {
     const antirabique = reminder({ label: 'Vaccin antirabique' })
 
-    expect(
-      reminderRows(t, [antirabique], { animalNames: names, showAnimal: false })[0],
-    ).toMatchObject({ title: 'Vaccin antirabique', subtitle: 'Vaccin' })
+    expect(reminderRows(t, [antirabique], { animalNames: names })[0]).toMatchObject({
+      title: 'Vaccin antirabique',
+      subtitle: 'Vaccin · Milo',
+    })
 
     applyLocale('en')
     expect(
-      reminderRows(t, [{ ...antirabique, label: 'Rabies vaccine' }], {
-        animalNames: names,
-        showAnimal: false,
-      })[0],
-    ).toMatchObject({ title: 'Rabies vaccine', subtitle: 'Vaccine' })
+      reminderRows(t, [{ ...antirabique, label: 'Rabies vaccine' }], { animalNames: names })[0],
+    ).toMatchObject({ title: 'Rabies vaccine', subtitle: 'Vaccine · Milo' })
     applyLocale('fr')
   })
 
-  it('masque le nom de l’animal quand un animal est sélectionné', () => {
-    const rows = reminderRows(t, [reminder(), milbemax, UNREADABLE], {
-      animalNames: names,
-      showAnimal: false,
-    })
-    expect(rows.map((row) => row.subtitle)).toEqual(['Vaccin', 'Vermifuge', 'Vermifuge'])
-    expect(rows[1]?.ariaLabel).toBe('Milbemax, vermifuge, aujourd’hui. Ouvre les actions.')
-    expect(rows[2]?.ariaLabel).toBe('Panacur, vermifuge, donnée illisible. Ouvre le traitement.')
+  it('garde « type · animal » même quand un seul animal est affiché (AC-8)', () => {
+    const pixel = new Map([['milo', 'Pixel']])
+    const rows = reminderRows(t, [reminder(), UNREADABLE], { animalNames: pixel })
+
+    expect(rows.map((row) => row.subtitle)).toEqual(['Vaccin · Pixel', 'Vermifuge · Pixel'])
+    expect(rows[1]?.ariaLabel).toBe(
+      'Panacur, vermifuge, Pixel, donnée illisible. Ouvre le traitement.',
+    )
+  })
+
+  it('se contente du type quand le nom de l’animal manque', () => {
+    const rows = reminderRows(t, [reminder(), UNREADABLE], { animalNames: new Map() })
+
+    expect(rows.map((row) => row.subtitle)).toEqual(['Vaccin', 'Vermifuge'])
+    expect(rows[0]?.ariaLabel).toBe('CHPPiL, vaccin, en retard de 2 jours. Ouvre les actions.')
+    expect(rows[1]?.ariaLabel).toBe('Panacur, vermifuge, donnée illisible. Ouvre le traitement.')
   })
 })
 

@@ -13,7 +13,7 @@ import {
   type MockInstance,
 } from 'vitest'
 
-import { dose, period, plain, treatment } from './treatment-fixtures'
+import { dose, period, plain, postponed, treatment } from './treatment-fixtures'
 import TreatmentChooseDays from '../views/TreatmentChooseDays.vue'
 import TreatmentReminderSheet from '../views/TreatmentReminderSheet.vue'
 import type { TreatmentWithHistory } from '../repository/treatments.repository'
@@ -50,6 +50,7 @@ const BOREE: Animal = {
   species: 'dog',
   breed: null,
   birthDate: '2026-04-10',
+  birthDateApproximate: false,
   photoPath: null,
   createdAt: '2026-09-01T09:00:00.000Z',
   updatedAt: '2026-09-01T09:00:00.000Z',
@@ -63,8 +64,6 @@ const BRAVECTO: Treatment = {
   type: 'deworming',
   periodId: '44444444-4444-4444-8444-444444444444',
   frequency: { value: 1, unit: 'month' },
-  lastDoseDate: '2026-08-28',
-  nextDueDate: '2026-09-28',
   stoppedOn: null,
   createdAt: '2026-09-01T09:00:00.000Z',
   updatedAt: '2026-09-01T09:00:00.000Z',
@@ -260,7 +259,7 @@ describe('TreatmentReminderSheet — F2, la feuille de l’échéance touchée',
 
     expect(texte('.bottom-sheet__title')).toBe('Milbemax')
     expect(texte('.bottom-sheet__subtitle')).toBe('Vermifuge · Boree · toutes les semaines')
-    expect(texte('.reminder-actions__due')).toBe('Prochaine dose le 16 oct.')
+    expect(texte('.reminder-actions__due')).toBe('En retard depuis le 16 oct.')
   })
 
   it('dit l’heure de la ligne d’un traitement à heures', async () => {
@@ -437,6 +436,46 @@ describe('TreatmentReminderSheet — F2, la feuille de l’échéance touchée',
     expect(apply).not.toHaveBeenCalled()
     expect(toastMessage.value).toBe('Cette dose est notée oubliée.')
     expect(toastAction.value).toBeNull()
+    expect(sheet.emitted('update:modelValue')).toEqual([[false]])
+  })
+
+  it('dose un mois ou plus après aujourd’hui : rien n’est noté, la fiche s’ouvre (G11, #569)', async () => {
+    const mensuel = {
+      ...period({
+        startsOn: '2026-09-16',
+        firstDueOn: '2026-09-16',
+        frequency: { value: 1, unit: 'month' },
+      }),
+      animalId: BOREE.id,
+    }
+    lePlus(
+      {
+        ...treatment(
+          [mensuel],
+          [
+            dose('2026-09-16', '2026-10-16', { animalId: BOREE.id }),
+            postponed('2026-10-16', '2026-11-25', { animalId: BOREE.id }),
+          ],
+        ),
+        animalId: BOREE.id,
+        name: 'Milbemax',
+      },
+      '2026-10-16',
+    )
+    const sheet = await monter({ dueOn: '2026-11-16', dueTime: null })
+
+    bouton('.reminder-actions__done-today').click()
+    await flushPromises()
+
+    expect(apply).not.toHaveBeenCalled()
+    expect(push).toHaveBeenCalledWith({
+      name: 'treatment-detail',
+      params: { id: 'metacam' },
+      query: { from: 'home' },
+    })
+    expect(plain(toastMessage.value)).toBe(
+      'La dose de Boree est prévue le 16 nov. Une prise en plus se note depuis la fiche.',
+    )
     expect(sheet.emitted('update:modelValue')).toEqual([[false]])
   })
 

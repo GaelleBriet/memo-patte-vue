@@ -1,6 +1,9 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
+import { formatLongDate } from '@/shared/utils/format'
+
 import i18n, { applyLocale, detectLocale } from '..'
+import { plain } from '@/shared/__tests__/plain'
 
 describe('detectLocale', () => {
   it('suit la langue du système quand elle est livrée', () => {
@@ -18,9 +21,16 @@ describe('detectLocale', () => {
     expect(detectLocale(['EN'])).toBe('en')
   })
 
-  it('se replie sur le français', () => {
-    expect(detectLocale(['de-DE', 'es'])).toBe('fr')
-    expect(detectLocale([])).toBe('fr')
+  it('garde le français quelle que soit la région', () => {
+    expect(detectLocale(['fr-BE'])).toBe('fr')
+    expect(detectLocale(['de-DE', 'fr-FR'])).toBe('fr')
+  })
+
+  it('se replie sur l’anglais quand aucune langue du téléphone n’est livrée', () => {
+    expect(detectLocale(['de-DE'])).toBe('en')
+    expect(detectLocale(['es-ES'])).toBe('en')
+    expect(detectLocale(['de-DE', 'es'])).toBe('en')
+    expect(detectLocale([])).toBe('en')
   })
 })
 
@@ -38,6 +48,22 @@ describe('applyLocale', () => {
   it('reste en français par défaut', () => {
     expect(i18n.global.locale.value).toBe('fr')
     expect(i18n.global.t('nav.home')).toBe('Accueil')
+  })
+})
+
+describe('téléphone dans une autre langue', () => {
+  afterEach(() => applyLocale('fr'))
+
+  it('affiche dates et notifications en anglais', () => {
+    applyLocale(detectLocale(['de-DE']))
+
+    expect(plain(formatLongDate('2026-11-08'))).toBe('Nov 8, 2026')
+    expect(
+      i18n.global.t('reminders.plan.vaccination.dueTitle', {
+        name: 'rabies vaccine',
+        animal: 'Milo',
+      }),
+    ).toBe('Milo’s rabies vaccine today')
   })
 })
 

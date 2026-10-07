@@ -7,33 +7,50 @@ const DATE_LOCALES = { fr, en: enUS }
 
 const MINUS = '−'
 
+const NBSP = '\u00a0'
+
+function formatDate(isoDate: string, pattern: string): string {
+  const locale = DATE_LOCALES[currentLocale()]
+  return format(parseISO(isoDate), pattern, { locale }).replaceAll(' ', NBSP)
+}
+
 function roundToDecimal(value: number): number {
   return Math.round(value * 10) / 10
 }
 
+const NUMBER_STYLES = {
+  weight: { minimumFractionDigits: 1, maximumFractionDigits: 1, useGrouping: false },
+  axis: { maximumFractionDigits: 1, useGrouping: false },
+  quantity: { maximumFractionDigits: 20, useGrouping: false },
+} satisfies Record<string, Intl.NumberFormatOptions>
+
+const numberFormats = new Map<string, Intl.NumberFormat>()
+
+// Construire un `Intl.NumberFormat` coûte bien plus que formater : un seul par langue et par style.
+function numberFormat(style: keyof typeof NUMBER_STYLES): Intl.NumberFormat {
+  const locale = currentLocale()
+  const key = `${locale} ${style}`
+  let formatter = numberFormats.get(key)
+  if (formatter === undefined) {
+    formatter = new Intl.NumberFormat(locale, NUMBER_STYLES[style])
+    numberFormats.set(key, formatter)
+  }
+  return formatter
+}
+
 /** Un poids déjà dans son unité, à une décimale au séparateur de la langue : `24,5`, `24.5`. */
 export function formatWeight(value: number): string {
-  return new Intl.NumberFormat(currentLocale(), {
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1,
-    useGrouping: false,
-  }).format(roundToDecimal(value))
+  return numberFormat('weight').format(roundToDecimal(value))
 }
 
 /** Graduation d'un axe : `24`, `24,5` en français, `24.5` en anglais. */
 export function formatWeightAxis(value: number): string {
-  return new Intl.NumberFormat(currentLocale(), {
-    maximumFractionDigits: 1,
-    useGrouping: false,
-  }).format(roundToDecimal(value))
+  return numberFormat('axis').format(roundToDecimal(value))
 }
 
 /** Un nombre tel que saisi, au séparateur de la langue : `0,3`, `0.3`. */
 export function formatQuantity(value: number): string {
-  return new Intl.NumberFormat(currentLocale(), {
-    maximumFractionDigits: 20,
-    useGrouping: false,
-  }).format(value)
+  return numberFormat('quantity').format(value)
 }
 
 /** Poids à corriger dans un champ : `24,55` tel que proposé, sans l'arrondi de l'affichage. */
@@ -57,12 +74,12 @@ export function formatMonthShort(isoDate: string): string {
 
 /** `déc. 2026` / `Dec 2026` — mois et année d'une validité. */
 export function formatMonthYear(isoDate: string): string {
-  return format(parseISO(isoDate), 'MMM yyyy', { locale: DATE_LOCALES[currentLocale()] })
+  return formatDate(isoDate, 'MMM yyyy')
 }
 
 /** `septembre 2026` / `September 2026` — titre d'un mois de calendrier. */
 export function formatFullMonthYear(isoDate: string): string {
-  return format(parseISO(isoDate), 'LLLL yyyy', { locale: DATE_LOCALES[currentLocale()] })
+  return formatDate(isoDate, 'LLLL yyyy')
 }
 
 /** Premier jour de la semaine dans la langue courante : 1 (lundi) en français, 0 (dimanche) en anglais. */
@@ -79,18 +96,27 @@ export function weekdayInitials(): string[] {
   )
 }
 
-/** `8 nov. 2026` / `Nov 8, 2026`. */
-export function formatLongDate(isoDate: string): string {
-  return format(parseISO(isoDate), 'PP', { locale: DATE_LOCALES[currentLocale()] })
-}
-
+const LONG_DATE_PATTERNS = { fr: 'd MMM yyyy', en: 'PP' }
 const DAY_MONTH_PATTERNS = { fr: 'd MMM', en: 'MMM d' }
 const FULL_DAY_MONTH_PATTERNS = { fr: 'd MMMM', en: 'MMMM d' }
 const WEEKDAY_DATE_PATTERNS = { fr: 'EEE d MMM yyyy', en: 'EEE, MMM d, yyyy' }
 
+function isFirstOfMonth(isoDate: string): boolean {
+  return isoDate.slice(8, 10) === '01'
+}
+
 function formatIn(isoDate: string, patterns: Record<'fr' | 'en', string>): string {
   const locale = currentLocale()
-  return format(parseISO(isoDate), patterns[locale], { locale: DATE_LOCALES[locale] })
+  const pattern =
+    locale === 'fr' && isFirstOfMonth(isoDate)
+      ? patterns.fr.replace(/\bd\b/, "d'er'")
+      : patterns[locale]
+  return formatDate(isoDate, pattern)
+}
+
+/** `8 nov. 2026`, `1er oct. 2026` / `Nov 8, 2026`. */
+export function formatLongDate(isoDate: string): string {
+  return formatIn(isoDate, LONG_DATE_PATTERNS)
 }
 
 /** `28 sept.` / `Sep 28`. */
@@ -110,11 +136,6 @@ export function withoutFinalDot(text: string): string {
   return text.endsWith('.') ? text.slice(0, -1) : text
 }
 
-/** `25 août`, `Dec 20, 2025` d'un seul tenant : aucun retour à la ligne à l'intérieur. */
-export function nonBreaking(text: string): string {
-  return text.replaceAll(' ', '\u00a0')
-}
-
 /** `28 septembre` / `September 28` — lu par le lecteur d'écran. */
 export function formatFullDayMonth(isoDate: string): string {
   return formatIn(isoDate, FULL_DAY_MONTH_PATTERNS)
@@ -129,16 +150,13 @@ const FULL_DATE_PATTERNS = { fr: 'd MMMM yyyy', en: 'MMMM d, yyyy' }
 
 /** `3 février 2026` / `February 3, 2026` — une date lue par le lecteur d'écran. */
 export function formatFullDate(isoDate: string): string {
-  const locale = currentLocale()
-  return format(parseISO(isoDate), FULL_DATE_PATTERNS[locale], { locale: DATE_LOCALES[locale] })
+  return formatIn(isoDate, FULL_DATE_PATTERNS)
 }
 
 /** `08/11/2026` / `11/08/2026`. */
 export function formatNumericDate(isoDate: string): string {
   return format(parseISO(isoDate), 'P', { locale: DATE_LOCALES[currentLocale()] })
 }
-
-const NBSP = '\u00a0'
 
 /** Heure `HH:mm` : `8 h`, `8 h 30` / `8 am`, `8:30 pm`, espaces insécables. */
 export function formatClockTime(time: string): string {
@@ -152,6 +170,11 @@ export function formatClockTime(time: string): string {
   return `${minutes === '00' ? clock : `${clock}:${minutes}`}${NBSP}${period}`
 }
 
+/** `Milo, Luna et Rex` / `Milo, Luna, and Rex`. */
+export function formatList(items: readonly string[]): string {
+  return new Intl.ListFormat(currentLocale(), { style: 'long', type: 'conjunction' }).format(items)
+}
+
 /** `8 h et 20 h` / `8 am and 8 pm`, dans l'ordre de la journée. */
 export function formatClockTimes(times: readonly string[]): string {
   return new Intl.ListFormat(currentLocale(), { style: 'long', type: 'conjunction' }).format(
@@ -160,6 +183,7 @@ export function formatClockTimes(times: readonly string[]): string {
 }
 
 function dayNumber(isoDate: string): string {
+  if (currentLocale() === 'fr' && isFirstOfMonth(isoDate)) return '1er'
   return String(Number(isoDate.slice(8, 10)))
 }
 

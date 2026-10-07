@@ -33,6 +33,7 @@ describe('vaccinationInjectionsService', () => {
   let service: VaccinationInjectionsService
   let injectionsRepository: VaccinationInjectionsRepository
   let carre: string
+  let reminders: ReturnType<typeof createVaccinationRemindersService>
 
   function dueDates(): string[] {
     return [...notifications.pending.keys()]
@@ -51,7 +52,7 @@ describe('vaccinationInjectionsService', () => {
     )
     vaccinations = createVaccinationsRepository(db)
     notifications = createFakeNotifications()
-    const reminders = createVaccinationRemindersService({
+    reminders = createVaccinationRemindersService({
       vaccinations: () => vaccinations,
       animals: () => createAnimalsRepository(db),
       notifications,
@@ -300,5 +301,53 @@ describe('vaccinationInjectionsService', () => {
     await expect(vaccinations.getById(carre)).resolves.toMatchObject({
       lastInjectionDate: '2025-09-26',
     })
+  })
+
+  it('VA-3 : note la première injection d’un vaccin prévu, qui quitte l’état « Prévu »', async () => {
+    const typhus = (
+      await vaccinations.create({ animalId: BOREE, name: 'Typhus', dueDate: '2026-09-23' })
+    ).id
+    await reminders.reschedule(typhus)
+
+    await service.record(typhus, { injectedOn: '2026-09-23', nextDueDate: '2026-10-23' })
+
+    await expect(vaccinations.getById(typhus)).resolves.toMatchObject({
+      lastInjectionDate: '2026-09-23',
+      dueDate: '2026-10-23',
+    })
+    expect([...notifications.pending.keys()].filter((key) => key.includes(typhus))).toEqual([
+      `vaccination:${typhus}:2026-10-23::before`,
+      `vaccination:${typhus}:2026-10-23::due`,
+      `vaccination:${typhus}:2026-10-23::overdue`,
+    ])
+  })
+
+  it('VA-8 : rappel le 15 mars, injection notée le 1er mars, la notification du 15 ne sonne pas et celle du volet en sort', async () => {
+    const rage = (
+      await vaccinations.create({
+        animalId: BOREE,
+        name: 'Rage',
+        lastInjectionDate: '2026-03-15',
+        dueDate: '2027-03-15',
+      })
+    ).id
+    await reminders.reschedule(rage)
+    const ofMarch15 = () =>
+      [...notifications.pending.keys()].filter((key) =>
+        key.startsWith(`vaccination:${rage}:2027-03-15:`),
+      )
+    const [prevenance] = ofMarch15()
+    expect(prevenance).toBe(`vaccination:${rage}:2027-03-15::before`)
+
+    vi.setSystemTime(new Date(2027, 2, 1, 12))
+    await service.record(rage, { injectedOn: '2027-03-01', nextDueDate: '2028-03-01' })
+
+    expect(ofMarch15()).toEqual([])
+    expect(notifications.removeDelivered).toHaveBeenCalledWith([notifications.idOf(prevenance!)])
+    expect([...notifications.pending.keys()].filter((key) => key.includes(rage))).toEqual([
+      `vaccination:${rage}:2028-03-01::before`,
+      `vaccination:${rage}:2028-03-01::due`,
+      `vaccination:${rage}:2028-03-01::overdue`,
+    ])
   })
 })

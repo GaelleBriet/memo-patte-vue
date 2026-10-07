@@ -15,7 +15,12 @@ import {
   createTreatmentsRepository,
   type TreatmentsRepository,
 } from '../repository/treatments.repository'
-import { createTreatmentRemindersService } from '../service/treatment-reminders.service'
+import { createWriteQueue } from '../logic/treatment-write-queue'
+import { createTreatmentDosesService } from '../service/treatment-doses.service'
+import {
+  createTreatmentRemindersService,
+  type TreatmentRemindersService,
+} from '../service/treatment-reminders.service'
 import {
   createTreatmentStopService,
   type TreatmentStopService,
@@ -30,6 +35,7 @@ describe('treatmentStopService', () => {
   let treatments: TreatmentsRepository
   let notifications: FakeNotifications
   let service: TreatmentStopService
+  let reminders: TreatmentRemindersService
   let bravecto: string
 
   beforeEach(async () => {
@@ -43,7 +49,7 @@ describe('treatmentStopService', () => {
     )
     treatments = createTreatmentsRepository(db)
     notifications = createFakeNotifications()
-    const reminders = createTreatmentRemindersService({
+    reminders = createTreatmentRemindersService({
       treatments: () => treatments,
       animals: () => createAnimalsRepository(db),
       notifications,
@@ -86,10 +92,10 @@ describe('treatmentStopService', () => {
       undo: [],
     })
 
-    await expect(treatments.getById(bravecto)).resolves.toMatchObject({
-      stoppedOn: '2026-09-23',
-      lastDoseDate: '2026-08-28',
-    })
+    await expect(treatments.getById(bravecto)).resolves.toMatchObject({ stoppedOn: '2026-09-23' })
+    await expect(
+      db.query('SELECT given_on FROM treatment_dose WHERE treatment_id = ?', [bravecto]),
+    ).resolves.toEqual([{ given_on: '2026-08-28' }])
     await expect(
       db.query('SELECT stopped_on FROM treatment_period WHERE treatment_id = ?', [bravecto]),
     ).resolves.toEqual([{ stopped_on: '2026-09-23' }])
@@ -206,6 +212,36 @@ describe('treatmentStopService', () => {
         [UNDONE_AT, UNDONE_AT],
       ])
       expect(reminded()).toBe(true)
+    })
+
+    it('D8 : « Annuler » puis aussitôt « C’est fait » sur une dose renseignée : elle est notée de nouveau', async () => {
+      const queue = createWriteQueue()
+      const shared = { treatments: () => treatments, reminders, now: () => new Date() }
+      const stopping = createTreatmentStopService({
+        ...shared,
+        periods: () => createTreatmentPeriodsRepository(db),
+        doses: () => createTreatmentDosesRepository(db),
+        today: () => '2026-09-23',
+        newId: () => crypto.randomUUID(),
+        queue,
+      })
+      const doses = createTreatmentDosesService({
+        ...shared,
+        doses: () => createTreatmentDosesRepository(db),
+        today: () => '2026-09-23',
+        queue,
+      })
+      const stopped = await stopping.stop(panacur, [given('2026-09-20')])
+      vi.setSystemTime(new Date(UNDONE_AT))
+
+      const [, again] = await Promise.all([
+        stopping.undo(panacur, stopped.undo),
+        doses.apply(panacur, { kind: 'note', gesture: given('2026-09-20') }),
+      ])
+
+      expect(again).toMatchObject({ alreadyGivenOn: null })
+      const [, lines] = await rows()
+      expect(lines.filter(({ deleted_at }) => deleted_at === null)).toHaveLength(1)
     })
 
     it('n’écrit rien pour un traitement déjà arrêté, même avec des doses', async () => {
