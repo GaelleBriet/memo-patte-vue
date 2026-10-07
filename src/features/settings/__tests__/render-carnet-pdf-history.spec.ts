@@ -99,11 +99,28 @@ describe('renderCarnetPdf — identité', () => {
     )
   })
 
-  it('écrit « environ » devant une date approximative et son âge', () => {
+  it('écrit « environ » devant une date approximative, « estimé » devant son âge', () => {
     const animal = { ...ANIMAL, birthDate: '2026-07-07', birthDateApproximate: true }
 
     expect(textes(carnet({ animal }))).toContain(
-      'Chien · Labrador · Date de naissance : environ 7 juil. 2026 · environ 10 semaines',
+      'Chien · Labrador · Date de naissance : environ 7 juil. 2026 · estimé 10 semaines',
+    )
+  })
+
+  it('écrit l’âge estimé en anglais', () => {
+    i18n.global.locale.value = 'en'
+    const animal = { ...ANIMAL, birthDate: '2026-07-07', birthDateApproximate: true }
+    const ecrits = textes(carnet({ animal }))
+    i18n.global.locale.value = 'fr'
+
+    expect(ecrits).toContain('Dog · Labrador · Date of birth: about Jul 7, 2026 · est. 10 weeks')
+  })
+
+  it('n’estime pas un âge de moins d’une semaine', () => {
+    const animal = { ...ANIMAL, birthDate: '2026-09-12', birthDateApproximate: true }
+
+    expect(textes(carnet({ animal }))).toContain(
+      'Chien · Labrador · Date de naissance : environ 12 sept. 2026 · moins d’une semaine',
     )
   })
 

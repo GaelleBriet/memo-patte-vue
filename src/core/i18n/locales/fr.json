@@ -1420,6 +1420,7 @@
       "identity": {
         "birthDate": "Date de naissance : {date}",
         "birthDateApproximate": "Date de naissance : environ {date}",
+        "estimatedAge": "estimé {age}",
         "until": "jusqu’au {date}"
       },
       "vaccinations": {

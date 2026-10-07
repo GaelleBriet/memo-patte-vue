@@ -1,6 +1,6 @@
 import { jsPDF } from 'jspdf'
 
-import { animalAgeText } from '@/shared/domain/animal-age'
+import { animalAge, animalAgeText } from '@/shared/domain/animal-age'
 import { dosageText } from '@/shared/domain/dosage'
 import { weightText } from '@/shared/domain/weight-display'
 import {
@@ -196,6 +196,21 @@ function renderAnimal(doc: jsPDF, { content, photoDataUrl }: CarnetPdfPart, t: T
   renderWeightSection(doc, cursor, content, t)
 }
 
+function ageText(
+  { birthDate, birthDateApproximate }: CarnetPdfContent['animal'],
+  today: string,
+  t: Translate,
+): string | null {
+  const text = animalAgeText(
+    (key, named, plural) => t(key, named, plural),
+    { birthDate, approximate: false },
+    today,
+  )
+  if (text === null || !birthDateApproximate || animalAge(birthDate, today)?.value === 0)
+    return text
+  return t('settings.pdf.identity.estimatedAge', { age: text })
+}
+
 function identityText({ animal, generatedOn }: CarnetPdfContent, t: Translate): string {
   const date = animal.birthDate && formatLongDate(animal.birthDate)
   const birthDate =
@@ -203,14 +218,7 @@ function identityText({ animal, generatedOn }: CarnetPdfContent, t: Translate): 
     (animal.birthDateApproximate
       ? t('settings.pdf.identity.birthDateApproximate', { date })
       : t('settings.pdf.identity.birthDate', { date }))
-  const age =
-    animal.departureDate === null
-      ? animalAgeText(
-          (key, named, plural) => t(key, named, plural),
-          { birthDate: animal.birthDate, approximate: animal.birthDateApproximate },
-          generatedOn,
-        )
-      : null
+  const age = animal.departureDate === null ? ageText(animal, generatedOn, t) : null
   const until =
     animal.departureDate &&
     t('settings.pdf.identity.until', { date: formatLongDate(animal.departureDate) })
