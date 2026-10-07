@@ -223,6 +223,7 @@ const canSave = computed(
     !isLoading.value &&
     !notFound.value &&
     !loadFailed.value &&
+    (mode === 'edit' || takesNewCare(targetAnimal.value)) &&
     (mode !== 'resume' || values.value.firstDoseOn !== ''),
 )
 const typeOptions = computed(() =>

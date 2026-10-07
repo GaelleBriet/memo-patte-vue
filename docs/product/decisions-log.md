@@ -2144,7 +2144,7 @@ sauvegarder et sécuriser seule). Analyse détaillée dans le coffre de notes de
 2026-10-07 — Sur un animal qu'on ne suit plus, plus aucun soin ne s'ajoute ni ne reprend : le Carnet
 n'affiche plus « Ajouter un vaccin » ni « Ajouter un traitement », la fiche d'un traitement terminé
 n'affiche plus « Reprendre », et un formulaire de création ou de reprise ouvert pour lui revient à
-l'écran d'origine sans rien écrire. La pesée reste possible, le carnet reste consultable et
-modifiable à l'identique ; « Suivre de nouveau » est le seul chemin pour lui ajouter un soin (AN-9,
+l'écran d'origine sans rien écrire. La pesée reste possible, le carnet reste consultable
+à l'identique ; « Suivre de nouveau » est le seul chemin pour lui ajouter un soin (AN-9,
 #629). — Raison : aucun rappel ne sonne pour cet animal, un soin ajouté serait un soin oublié. —
 Alternative écartée : garder les ajouts, avec des soins enregistrés sans aucun rappel.

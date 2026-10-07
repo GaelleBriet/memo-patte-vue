@@ -92,7 +92,13 @@ const errorMessage = computed(() => {
   if (saveFailed.value) return t('vaccinations.form.errors.save')
   return null
 })
-const canSave = computed(() => !isLoading.value && !notFound.value && !loadFailed.value)
+const canSave = computed(
+  () =>
+    !isLoading.value &&
+    !notFound.value &&
+    !loadFailed.value &&
+    (isEdit.value || takesNewCare(targetAnimal.value)),
+)
 const isInjected = computed(() => hasInjection(values.value))
 const injectionHelp = computed(() =>
   isInjected.value ? null : t('vaccinations.form.lastInjectionDate.help'),
