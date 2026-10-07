@@ -18,7 +18,7 @@ import VaccinationReminderSheet from '../views/VaccinationReminderSheet.vue'
 import type { Vaccination } from '../schema/vaccination.schema'
 import { useVaccinationsStore } from '../store/vaccinations.store'
 import { installBackButton } from '@/core/app-lifecycle/back-button'
-import i18n from '@/core/i18n'
+import i18n, { applyLocale } from '@/core/i18n'
 import { shouldShowPriming } from '@/core/notifications/permission'
 import vuetify from '@/core/theme/vuetify'
 import type { Animal } from '@/features/animals/schema/animal.schema'
@@ -165,6 +165,21 @@ describe('VaccinationReminderSheet — feuille d’un vaccin', () => {
       'Fait aujourd’hui : noter l’injection de Carré pour Boree et choisir le prochain rappel',
     )
     expect(document.body.querySelector('.reminder-actions__footer')).toBeNull()
+  })
+
+  it('dit « Premier vaccin » pour un vaccin jamais fait, comme sa ligne de « À faire »', async () => {
+    vi.spyOn(useVaccinationsStore(), 'getById').mockResolvedValue({
+      ...CARRE,
+      lastInjectionDate: null,
+    })
+    await monter()
+
+    expect(texte('.bottom-sheet__subtitle')).toBe('Premier vaccin · Boree')
+
+    applyLocale('en')
+    await flushPromises()
+    expect(texte('.bottom-sheet__subtitle')).toBe('First vaccine · Boree')
+    applyLocale('fr')
   })
 
   it('donne l’année d’un rappel en retard d’une autre année', async () => {
