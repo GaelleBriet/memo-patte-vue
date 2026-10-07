@@ -474,8 +474,8 @@ describe('pastInjectionTexts', () => {
       taken: 'An injection is already logged on that day.',
     })
     expect(plain(pastInjectionToast(t, '2022-06-20', TODAY))).toEqual({
-      added: 'Injection of Jun 20, 2022 added',
-      undoAdd: 'Undo adding the injection of June 20, 2022',
+      added: 'Injection on Jun 20, 2022 added',
+      undoAdd: 'Undo adding the injection on June 20, 2022',
     })
   })
 })

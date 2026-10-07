@@ -108,7 +108,7 @@ describe('pastDuesTexts', () => {
     ).toEqual({
       title: '3 doses were scheduled before today',
       text: 'On Oct 3, 5, and 7, on the “every 2 days” schedule.',
-      keep: 'Keep them to log',
+      keep: 'They still need to be logged',
       keepHint: 'The new schedule starts today. Next dose on Oct 15.',
       drop: 'They weren’t meant to be given',
       dropHint: 'The previous setting was a mistake. Next dose on Oct 4.',
@@ -119,7 +119,7 @@ describe('pastDuesTexts', () => {
     ).toMatchObject({
       title: '1 dose was scheduled before today',
       text: 'On Oct 3, on the “every 2 days” schedule.',
-      keep: 'Keep it to log',
+      keep: 'It still needs to be logged',
       drop: 'It wasn’t meant to be given',
     })
   })
