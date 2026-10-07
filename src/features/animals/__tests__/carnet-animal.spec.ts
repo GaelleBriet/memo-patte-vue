@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
 
-import { carnetSubtitle, nextFollowedAnimalId, unfollowedEntry } from '../logic/carnet-animal'
+import { carnetSubtitle, nextFollowedAnimalId } from '../logic/carnet-animal'
 
 describe('nextFollowedAnimalId', () => {
   it('donne le premier animal suivi autre que celui qui part', () => {
@@ -49,25 +49,5 @@ describe('carnetSubtitle', () => {
 
   it('rend null sans race, âge ni date', () => {
     expect(carnetSubtitle(t, { ...LUNA, breed: null, birthDate: null }, '2026-09-30')).toBeNull()
-  })
-})
-
-describe('unfollowedEntry', () => {
-  it('AN-10 : aucune ligne sans animal qu’on ne suit plus', () => {
-    expect(unfollowedEntry([])).toBeNull()
-  })
-
-  it('AN-10 : ouvre le carnet du seul animal qu’on ne suit plus', () => {
-    expect(unfollowedEntry([{ id: 'luna' }])).toEqual({
-      count: 1,
-      target: { kind: 'carnet', animalId: 'luna' },
-    })
-  })
-
-  it('AN-10 : ouvre la liste dès deux animaux', () => {
-    expect(unfollowedEntry([{ id: 'luna' }, { id: 'pixel' }])).toEqual({
-      count: 2,
-      target: { kind: 'list' },
-    })
   })
 })

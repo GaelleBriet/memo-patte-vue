@@ -1153,7 +1153,7 @@ describe('CarnetView — animaux qu’on ne suit plus (AN-10)', () => {
   })
 
   function ligneNonSuivis(wrapper: ReturnType<typeof mount>) {
-    return wrapper.find('.carnet-unfollowed-link')
+    return wrapper.find('.unfollowed-animals-link')
   }
 
   function texte(element: { text(): string }): string {

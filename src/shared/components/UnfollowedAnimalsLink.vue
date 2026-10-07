@@ -9,10 +9,10 @@ const { t } = useI18n()
 </script>
 
 <template>
-  <button type="button" class="carnet-unfollowed-link" @click="emit('open')">
+  <button type="button" class="unfollowed-animals-link" @click="emit('open')">
     <v-icon icon="ms:pets" size="20" />
-    <span class="carnet-unfollowed-link__label">
-      {{ t('animals.carnet.unfollowed.link', { n: count }) }}
+    <span class="unfollowed-animals-link__label">
+      {{ t('unfollowedAnimalsLink.label', { n: count }) }}
     </span>
     <v-icon icon="ms:chevron_right" size="22" />
   </button>
@@ -21,7 +21,7 @@ const { t } = useI18n()
 <style scoped lang="scss">
 @use '@/styles/tokens' as tokens;
 
-.carnet-unfollowed-link {
+.unfollowed-animals-link {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -42,7 +42,7 @@ const { t } = useI18n()
   }
 }
 
-.carnet-unfollowed-link__label {
+.unfollowed-animals-link__label {
   flex: 1 1 auto;
 }
 </style>

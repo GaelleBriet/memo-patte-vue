@@ -69,9 +69,9 @@ const subtitle = computed(() => {
   const name = knownAnimalId.value ? animals.byId(knownAnimalId.value)?.name : null
   return name ? t('weight.form.forAnimal', { name }) : null
 })
-const photoUrl = usePhotoUrls(() => animals.animals.map((animal) => animal.photoPath))
+const photoUrl = usePhotoUrls(() => animals.followedAnimals.map((animal) => animal.photoPath))
 const chips = computed<AnimalChipItem[]>(() =>
-  animals.animals.map((animal) => ({
+  animals.followedAnimals.map((animal) => ({
     id: animal.id,
     name: animal.name,
     photoUrl: photoUrl(animal.photoPath),
