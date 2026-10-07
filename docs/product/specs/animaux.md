@@ -61,7 +61,9 @@ chien et chat ; partage d'un animal entre personnes (v2, Plus).
   comprises), l'animal quitte l'accueil, « À faire » et le sélecteur ; son carnet est gardé, consultable,
   exportable en PDF ; toast « Tu ne suis plus Luna » · « Annuler ». Plus aucun soin ne s'ajoute pour
   lui : ni « Ajouter un vaccin », ni « Ajouter un traitement », ni « Reprendre » ; la pesée reste
-  possible, « Suivre de nouveau » rouvre le reste. (P10 Q1 ; relecture du lot B ; #629)
+  possible, « Suivre de nouveau » rouvre le reste. La fiche d'un vaccin n'a plus « C'est fait » ni
+  « Fait à une autre date » (« Ajouter une injection passée » reste) ; « Modifier » reste sur un
+  traitement terminé. (P10 Q1 ; relecture du lot B ; #629)
 - **AN-10** « Animaux que tu ne suis plus (N) », ligne discrète en bas du Carnet (sous la dernière section,
   quel que soit l'animal affiché), et sur l'accueil seulement quand plus aucun animal n'est suivi ; elle
   ouvre le carnet s'il n'y en a qu'un, une liste sinon (spec Q4) : revoir

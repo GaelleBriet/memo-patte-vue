@@ -358,6 +358,16 @@ describe('VaccinationDetailView — animal qu’on ne suit plus (Q6 de #579)', (
     expect(view.find('.next-due-card__empty').exists()).toBe(false)
     expect(lignes(view)).toHaveLength(3)
   })
+
+  it('ne propose plus « C’est fait » ni « Fait à une autre date », garde « Ajouter une injection passée »', async () => {
+    useAnimalsStore().animals = [{ ...BOREE, unfollowedOn: '2026-09-20' }]
+
+    const view = await monter()
+
+    expect(view.find('.next-due-card__done').exists()).toBe(false)
+    expect(view.find('.next-due-card__other-date').exists()).toBe(false)
+    expect(view.get('.vaccination-detail__add-past').text()).toBe('Ajouter une injection passée')
+  })
 })
 
 describe('VaccinationDetailView — injection supprimée ou redatée', () => {

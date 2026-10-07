@@ -2148,3 +2148,6 @@ l'écran d'origine sans rien écrire. La pesée reste possible, le carnet reste 
 à l'identique ; « Suivre de nouveau » est le seul chemin pour lui ajouter un soin (AN-9,
 #629). — Raison : aucun rappel ne sonne pour cet animal, un soin ajouté serait un soin oublié. —
 Alternative écartée : garder les ajouts, avec des soins enregistrés sans aucun rappel.
+La fiche d'un vaccin de cet animal n'affiche plus « C'est fait » ni « Fait à une autre date », et
+garde « Ajouter une injection passée ».
+« Modifier » reste disponible sur un traitement terminé de cet animal.

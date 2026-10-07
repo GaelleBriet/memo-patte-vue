@@ -212,6 +212,7 @@ async function remove(): Promise<void> {
           :done-aria-label="texts.doneLabel"
           :other-date-aria-label="texts.otherDateLabel"
           :busy="gestures.isBusy.value"
+          :actions="texts.followed"
           @done="openDoneSheet('done')"
           @other-date="openDoneSheet('other-date')"
         >
