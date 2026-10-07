@@ -165,7 +165,7 @@ function renderAnimal(doc: jsPDF, { content, photoDataUrl }: CarnetPdfPart, t: T
     t('settings.pdf.vaccinations.title'),
     content.vaccinations.map((row) => [
       pdfName(row.name, t),
-      row.dueDate ? formatNumericDate(row.dueDate) : t('settings.pdf.status.none'),
+      vaccinationDueLabel(row, t),
       vaccinationStateLabel(row, content.generatedOn, t),
     ]),
     t('settings.pdf.vaccinations.empty'),
@@ -186,7 +186,7 @@ function renderAnimal(doc: jsPDF, { content, photoDataUrl }: CarnetPdfPart, t: T
     t('settings.pdf.treatments.title'),
     content.treatments.map((row) => [
       pdfName(row.name, t),
-      treatmentDueLabel(row, t),
+      row.state === null && row.due.kind === 'due' ? '' : treatmentDueLabel(row, t),
       row.state === null ? '' : t(`settings.pdf.status.${row.state}`),
     ]),
     t('settings.pdf.treatments.empty'),
@@ -231,6 +231,11 @@ function identityText({ animal, generatedOn }: CarnetPdfContent, t: Translate): 
   ]
     .filter((part): part is string => Boolean(part))
     .join(' · ')
+}
+
+function vaccinationDueLabel(row: PdfVaccinationRow, t: Translate): string {
+  if (row.state === null) return ''
+  return row.dueDate ? formatNumericDate(row.dueDate) : t('settings.pdf.status.none')
 }
 
 function vaccinationStateLabel(row: PdfVaccinationRow, today: string, t: Translate): string {

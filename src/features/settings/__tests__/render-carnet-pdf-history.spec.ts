@@ -303,14 +303,27 @@ describe('renderCarnetPdf — animal qu’on ne suit plus', () => {
             state: null,
           },
         ],
-        treatments: [traitement({ state: null })],
+        treatments: [
+          traitement({ state: null }),
+          traitement({
+            name: 'Drontal',
+            due: { kind: 'stopped', on: '2026-09-12' },
+            state: null,
+          }),
+        ],
       }),
     )
 
-    expect(ecrits).toEqual(expect.arrayContaining(['CHPPiL', 'Rage', 'Amoxicilline']))
+    expect(ecrits).toEqual(expect.arrayContaining(['CHPPiL', 'Rage', 'Amoxicilline', 'Drontal']))
     for (const statut of ['Prévu le 5 oct.', 'En retard', 'À jour', 'Pas de rappel']) {
       expect(ecrits).not.toContain(statut)
     }
+    for (const echeance of ['05/10/2026', '01/01/2026', '15/09/2026 à 8 h']) {
+      expect(ecrits).not.toContain(echeance)
+    }
+    expect(ecrits).toEqual(
+      expect.arrayContaining(['Arrêté le 12/09/2026', 'Injections : 01/01/2025']),
+    )
     expect(ecrits.filter((texte) => texte.includes('settings.'))).toEqual([])
   })
 })
