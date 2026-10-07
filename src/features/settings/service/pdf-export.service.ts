@@ -8,16 +8,16 @@ import {
   type DeliveryMode,
   type DeliveryOutcome,
 } from '../logic/export-delivery'
-import { buildCarnetPdfContent } from '../logic/pdf-content'
+import { buildCarnetPdfContent, type CarnetPdfContent } from '../logic/pdf-content'
 import { renderCarnetPdf } from '../logic/render-carnet-pdf'
 import type { ExportData } from '@/shared/domain/carnet-data'
-import type { CarnetPdfPart } from '../logic/render-carnet-pdf'
+import type { CarnetPdfPart, CarnetPdfParts } from '../logic/render-carnet-pdf'
 
 export type PdfExportOutcome = DeliveryOutcome | 'not-found'
 
 export type PdfExportDependencies = {
   collect: () => Promise<ExportData>
-  render: (parts: CarnetPdfPart[], appVersion: string) => Uint8Array
+  render: (parts: CarnetPdfParts, appVersion: string) => Uint8Array
   loadPhoto: (fileName: string) => Promise<string | null>
   deliver: (
     file: { name: string; content: Uint8Array },
@@ -46,17 +46,18 @@ export function createPdfExportService({
     ): Promise<PdfExportOutcome> {
       const data = await collect()
       const today = format(exportedAt, 'yyyy-MM-dd')
-      const contents = animalIds.flatMap((id) => buildCarnetPdfContent(data, id, today) ?? [])
-      if (contents.length === 0) return 'not-found'
-
-      const parts = await Promise.all(
-        contents.map(async (content) => ({
-          content,
-          photoDataUrl: content.animal.photoFileName
-            ? await loadPhoto(content.animal.photoFileName)
-            : null,
-        })),
+      const [first, ...others] = animalIds.flatMap(
+        (id) => buildCarnetPdfContent(data, id, today) ?? [],
       )
+      if (!first) return 'not-found'
+
+      const withPhoto = async (content: CarnetPdfContent): Promise<CarnetPdfPart> => ({
+        content,
+        photoDataUrl: content.animal.photoFileName
+          ? await loadPhoto(content.animal.photoFileName)
+          : null,
+      })
+      const parts = await Promise.all([withPhoto(first), ...others.map(withPhoto)] as const)
       return deliver({ name: fileName, content: render(parts, appVersion) }, mode)
     },
   }

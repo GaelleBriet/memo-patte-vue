@@ -566,6 +566,24 @@ describe('renderCarnetPdf — plusieurs animaux', () => {
     }
   })
 
+  it('reprend le nom du second animal, et non celui du premier, en tête de ses pages de suite', () => {
+    const pagesDuPdf = readPdfPages(
+      renderCarnetPdf(
+        [
+          { content: MILO, photoDataUrl: null },
+          { content: LONG, photoDataUrl: null },
+        ],
+        '0.1.24',
+      ),
+    )
+
+    expect(pagesDuPdf).toHaveLength(5)
+    expect(enTete(pagesDuPdf[1]!).text).toBe('MémoPatte')
+    for (const page of pagesDuPdf.slice(2)) {
+      expect(enTete(page)).toMatchObject({ text: 'Luna', bold: true })
+    }
+  })
+
   it('écrit le nom du second animal du même style que celui du premier', () => {
     const pagesDuPdf = doc()
     const nom = (page: PdfPage, name: string) => {

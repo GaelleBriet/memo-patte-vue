@@ -84,7 +84,9 @@ function createPageCursor(doc: jsPDF, y: number, continuePage: () => number): Pa
 
 export type CarnetPdfPart = { content: CarnetPdfContent; photoDataUrl: string | null }
 
-export function renderCarnetPdf(parts: readonly CarnetPdfPart[], appVersion: string): Uint8Array {
+export type CarnetPdfParts = readonly [CarnetPdfPart, ...CarnetPdfPart[]]
+
+export function renderCarnetPdf(parts: CarnetPdfParts, appVersion: string): Uint8Array {
   const t = i18n.global.t
   const doc = new jsPDF({ unit: 'mm', format: 'a4' })
 
@@ -93,11 +95,10 @@ export function renderCarnetPdf(parts: readonly CarnetPdfPart[], appVersion: str
     renderAnimal(doc, part, t)
   })
 
-  const [first] = parts
   writeFooters(
     doc,
     t('settings.pdf.footer', {
-      date: formatLongDate(first!.content.generatedOn),
+      date: formatLongDate(parts[0].content.generatedOn),
       version: appVersion,
     }),
     t,
