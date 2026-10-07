@@ -293,7 +293,7 @@ function goBack(): void {
 
 .reminders-settings__card {
   border: 1px solid tokens.$color-card-border;
-  border-radius: tokens.$radius-reminders-settings-card;
+  border-radius: tokens.$radius-card;
   background: rgb(var(--v-theme-surface));
 }
 

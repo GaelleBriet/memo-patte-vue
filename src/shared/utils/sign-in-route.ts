@@ -2,7 +2,7 @@ import type { RouteLocationRaw } from 'vue-router'
 
 const SIGN_IN_ROUTE = 'sign-in'
 const DEFAULT_RETURN_ROUTE = 'plus'
-const RETURN_ROUTES: readonly string[] = ['plus', 'settings']
+const RETURN_ROUTES: readonly string[] = ['plus', 'settings', 'settings-plus']
 
 /** `from` : le parcours qui ouvre l'écran, où la connexion réussie ramènera. */
 export function signInRoute(from: string): RouteLocationRaw {

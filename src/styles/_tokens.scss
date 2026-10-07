@@ -167,7 +167,6 @@ $color-day-missed-border: $color-chart-arrow-disabled; // Contour d'un jour déc
 $color-exact-reminders-hero-surface: $color-notice-surface; // Pastille de l’icône
 
 // Paramètres › Rappels (V20 à V20 sexies)
-$radius-reminders-settings-card: 18px; // Coins d'une carte de réglage
 $color-reminders-settings-neutral-surface: $color-reminders-off-surface; // Fond de l'état « pas encore activés » ou « désactivées », et de « peuvent arriver en retard »
 $color-reminders-settings-neutral-text: $color-reminders-off-text; // Leur première ligne
 $color-exact-reminders-suggest-surface: $color-notice-surface; // Suggestion du formulaire (V2)
@@ -178,3 +177,9 @@ $color-less-precise-text: $color-reminders-off-text; // Son texte
 
 // Messages de l’accueil (V17 bis, V17 ter)
 $color-home-message-icon-surface: $color-notice-surface; // Pastille de l’icône des cartes « protéger » et trimestrielle
+
+// Pastille d’icône en tête d’une ligne du Carnet (B · V11, V15)
+$size-row-icon: 36px;
+$gap-list-row: 12px; // Écart entre la pastille, le texte et la fin d’une ligne de carte
+$color-row-icon-surface: $color-notice-surface;
+$color-row-icon-muted-surface: $color-checkbox-disabled-surface; // Ligne d’un traitement terminé

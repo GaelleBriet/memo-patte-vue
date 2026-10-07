@@ -12,6 +12,7 @@ import {
 } from 'vitest'
 
 import VaccinationsSection from '../views/VaccinationsSection.vue'
+import ListRowIcon from '@/shared/components/ListRowIcon.vue'
 import type { Vaccination } from '../schema/vaccination.schema'
 import type { VaccinationsRepository } from '../repository/vaccinations.repository'
 import { provideVaccinationsRepository } from '../store/vaccinations.store'
@@ -343,5 +344,21 @@ describe('VaccinationsSection — animal qu’on ne suit plus (VA-16)', () => {
     expect(texte(ligne(wrapper, 1))).toContain('Premier vaccin · aucune injection notée')
     const summaries = wrapper.emitted('summary') ?? []
     expect(summaries[summaries.length - 1]).toEqual([{ total: 0, overdue: 0 }])
+  })
+})
+
+describe('VaccinationsSection — pastille d’icône (B · V11)', () => {
+  it('ouvre chaque ligne par la pastille du vaccin, sans changer son nom accessible', async () => {
+    vaccinations = [vaccination({ name: 'Rage' }), vaccination({ name: 'CHPPi' })]
+    const wrapper = await monter()
+
+    for (const index of [0, 1]) {
+      const pastilles = ligne(wrapper, index).findAllComponents(ListRowIcon)
+      expect(pastilles).toHaveLength(1)
+      expect(pastilles[0]!.props()).toEqual({ icon: 'ms:vaccines', muted: false })
+      expect(pastilles[0]!.attributes('aria-hidden')).toBe('true')
+      expect(ligne(wrapper, index).element.firstElementChild).toBe(pastilles[0]!.element)
+    }
+    expect(texte(ligne(wrapper, 0))).toMatch(/^CHPPi/)
   })
 })

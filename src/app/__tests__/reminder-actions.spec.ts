@@ -205,6 +205,17 @@ describe('« C’est fait » d’une notification du jour (RA-18, TR-20, T5)', (
     expect(givenLines()).not.toContainEqual(expect.objectContaining({ dueOn: TODAY }))
   })
 
+  it('« Annuler » qui échoue relit « À faire », avec le toast d’échec', async () => {
+    await handler()(done(`treatment:${METACAM}:${TODAY}:2000:due`))
+    refreshHome.mockClear()
+    applyBatch.mockRejectedValue(new Error('prise modifiée depuis'))
+
+    runToastAction()
+
+    await vi.waitFor(() => expect(refreshHome).toHaveBeenCalledOnce())
+    expect(toastMessage.value).toBe('L’annulation n’a pas abouti.')
+  })
+
   it('TR-21, Q33 : la même notification traitée deux fois ne note qu’une prise', async () => {
     const act = handler()
 

@@ -14,6 +14,7 @@ import {
 } from '../logic/treatment-carnet'
 import { useTreatmentsStore } from '../store/treatments.store'
 import DueStatusChip from '@/shared/components/DueStatusChip.vue'
+import ListRowIcon from '@/shared/components/ListRowIcon.vue'
 import SectionCard from '@/shared/components/SectionCard.vue'
 import { useAnimalScopedLoad } from '@/shared/composables/use-animal-scoped-load'
 
@@ -92,6 +93,7 @@ watch(
       class="section-card__row treatment-row"
       @click="openDetail(row.id)"
     >
+      <ListRowIcon :icon="row.icon" />
       <span class="treatment-row__text">
         <span class="treatment-row__name">{{ row.name }}</span>
         <span v-if="row.detail" class="treatment-row__detail">{{ row.detail }}</span>
@@ -147,6 +149,7 @@ watch(
         class="section-card__row finished-treatment-row"
         @click="openDetail(row.id)"
       >
+        <ListRowIcon :icon="row.icon" muted />
         <span class="finished-treatment-row__text">
           <span class="finished-treatment-row__name">{{ row.name }}</span>
           <span class="finished-treatment-row__detail">{{ row.detail }}</span>
@@ -191,7 +194,7 @@ watch(
 
 .treatment-row__text {
   flex: 1 1 0;
-  max-width: 100%;
+  max-width: calc(100% - #{tokens.$size-row-icon} - #{tokens.$gap-list-row});
 }
 
 .treatment-row__name {

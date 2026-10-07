@@ -18,12 +18,14 @@ import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 import type { Treatment } from '../schema/treatment.schema'
 import { seedTreatmentWithDose } from './seed-treatment'
 
-type ImportedTreatment = Omit<
-  Treatment,
-  'periodId' | 'lastDoseDate' | 'stoppedOn' | 'deletedAt'
-> & {
+type ImportedTreatment = Omit<Treatment, 'periodId' | 'stoppedOn' | 'deletedAt'> & {
   lastDoseDate: string
+  nextDueDate: string
   stoppedOn?: string | null
+}
+
+function projected({ lastDoseDate: _l, nextDueDate: _n, ...treatment }: ImportedTreatment) {
+  return treatment
 }
 
 const MIETTE = '11111111-1111-4111-8111-111111111111'
@@ -88,38 +90,16 @@ describe('treatmentsRepository', () => {
     db.close()
   })
 
-  it('persiste l’échéance en base sans la recalculer à la lecture', async () => {
-    const created = await seedTreatmentWithDose(db, bravecto)
-    await db.run('UPDATE treatment_dose SET next_due_date = ? WHERE treatment_id = ?', [
-      '2030-01-01',
-      created.id,
-    ])
-
-    await expect(repository.getById(created.id)).resolves.toMatchObject({
-      nextDueDate: '2030-01-01',
-    })
-  })
-
   it('renvoie null pour un identifiant inconnu', async () => {
     await expect(repository.getById('inconnu')).resolves.toBeNull()
   })
 
-  it('liste les traitements d’un animal par échéance croissante', async () => {
+  it('liste les traitements d’un animal, et de lui seul', async () => {
     await seedTreatmentWithDose(db, { ...bravecto, name: 'Trimestriel' })
-    await seedTreatmentWithDose(db, {
-      ...bravecto,
-      name: 'Bimensuel',
-      frequency: { value: 15, unit: 'day' },
-    })
     await seedTreatmentWithDose(db, { ...bravecto, animalId: VASCO, name: 'Vasco' })
-    await seedTreatmentWithDose(db, {
-      ...bravecto,
-      name: 'Mensuel',
-      frequency: { value: 1, unit: 'month' },
-    })
 
     const names = (await repository.listByAnimal(MIETTE)).map((treatment) => treatment.name)
-    expect(names).toEqual(['Bimensuel', 'Mensuel', 'Trimestriel'])
+    expect(names).toEqual(['Trimestriel'])
   })
 
   it('liste les traitements de tous les animaux, sans les supprimés', async () => {
@@ -135,7 +115,7 @@ describe('treatmentsRepository', () => {
     ])
   })
 
-  it('départage deux échéances identiques par date de saisie, pas par ordre d’insertion', async () => {
+  it('liste dans l’ordre de saisie, pas dans l’ordre d’insertion', async () => {
     vi.useFakeTimers({ now: new Date('2026-03-01T10:01:00.000Z') })
     await seedTreatmentWithDose(db, { ...bravecto, name: 'Second' })
     vi.setSystemTime(new Date('2026-03-01T10:00:00.000Z'))
@@ -377,140 +357,6 @@ describe('treatmentsRepository — périodes et prises', () => {
     vi.useRealTimers()
   })
 
-  it('prend sa dernière prise et son échéance dans la prise la plus récente', async () => {
-    const created = await seedTreatmentWithDose(db, bravecto)
-
-    await addDose(created.id, '2026-06-03', '2026-09-03')
-
-    const attendu = { lastDoseDate: '2026-06-03', nextDueDate: '2026-09-03' }
-    await expect(repository.getById(created.id)).resolves.toMatchObject(attendu)
-    await expect(repository.listByAnimal(MIETTE)).resolves.toMatchObject([attendu])
-    await expect(repository.listAll()).resolves.toMatchObject([attendu])
-  })
-
-  it('une prise plus ancienne ajoutée ensuite ne devient pas la tête', async () => {
-    const created = await seedTreatmentWithDose(db, bravecto)
-
-    await addDose(created.id, '2025-12-01', '2026-03-01', {
-      createdAt: '2099-01-01T00:00:00.000Z',
-    })
-
-    await expect(repository.getById(created.id)).resolves.toMatchObject({
-      lastDoseDate: '2026-03-01',
-      nextDueDate: '2026-06-01',
-    })
-  })
-
-  it('à date égale, la dernière saisie fait foi, puis le plus grand identifiant', async () => {
-    const created = await seedTreatmentWithDose(db, { ...bravecto, lastDoseDate: '2020-01-01' })
-    await addDose(created.id, '2026-01-10', '2026-04-10', {
-      createdAt: '2026-01-10T11:00:00.000Z',
-      id: '00000000-0000-4000-8000-000000000000',
-    })
-    await addDose(created.id, '2026-01-10', '2026-05-10', {
-      createdAt: '2026-01-10T10:00:00.000Z',
-      id: 'ffffffff-ffff-4fff-8fff-ffffffffffff',
-    })
-
-    await expect(repository.getById(created.id)).resolves.toMatchObject({
-      nextDueDate: '2026-04-10',
-    })
-
-    await addDose(created.id, '2026-01-10', '2026-06-10', {
-      createdAt: '2026-01-10T11:00:00.000Z',
-      id: '11111111-0000-4000-8000-000000000000',
-    })
-
-    await expect(repository.getById(created.id)).resolves.toMatchObject({
-      nextDueDate: '2026-06-10',
-    })
-  })
-
-  it('la dernière ligne est celle de la dernière échéance, pas de la date réelle la plus tardive', async () => {
-    const created = await seedTreatmentWithDose(db, bravecto)
-    await addDose(created.id, '2026-06-10', '2026-09-10', { dueOn: '2026-06-01' })
-
-    await addDose(created.id, '2026-06-05', '2026-09-05', { dueOn: '2026-06-08' })
-
-    await expect(repository.getById(created.id)).resolves.toMatchObject({
-      lastDoseDate: '2026-06-05',
-      nextDueDate: '2026-09-05',
-    })
-  })
-
-  it('à échéance égale, une heure passe après une prise sans heure', async () => {
-    const created = await seedTreatmentWithDose(db, bravecto)
-    await addDose(created.id, '2026-06-01', '2026-06-01', {
-      dueTime: '20:00',
-      createdAt: '2026-06-01T08:00:00.000Z',
-    })
-    await addDose(created.id, '2026-06-01', '2026-09-01', {
-      createdAt: '2026-06-01T09:00:00.000Z',
-    })
-
-    await expect(repository.getById(created.id)).resolves.toMatchObject({
-      nextDueDate: '2026-06-01',
-    })
-  })
-
-  it('une dernière ligne oubliée ou reportée fixe la prochaine dose, pas la dernière prise', async () => {
-    const created = await seedTreatmentWithDose(db, bravecto)
-
-    await addDose(created.id, '2026-06-01', '2026-09-01', { givenOn: null, status: 'missed' })
-
-    await expect(repository.getById(created.id)).resolves.toMatchObject({
-      lastDoseDate: '2026-03-01',
-      nextDueDate: '2026-09-01',
-    })
-  })
-
-  it('une ligne de décalage n’est jamais la tête : la prise de la même échéance la reste', async () => {
-    const created = await seedTreatmentWithDose(db, bravecto)
-
-    await addDose(created.id, '2026-06-01', '2026-09-03', { givenOn: '2026-06-03' })
-    await addDose(created.id, '2026-06-01', '2026-06-03', { givenOn: null, status: 'shift' })
-
-    await expect(repository.getById(created.id)).resolves.toMatchObject({
-      lastDoseDate: '2026-06-03',
-      nextDueDate: '2026-09-03',
-    })
-  })
-
-  it('une prise en plus n’est jamais la tête : la prochaine dose reste celle de la dernière prise prévue', async () => {
-    const created = await seedTreatmentWithDose(db, bravecto)
-
-    await addDose(created.id, '2026-04-01', '2099-01-01', {
-      givenOn: '2026-04-01',
-      status: 'extra',
-    })
-
-    await expect(repository.getById(created.id)).resolves.toMatchObject({
-      lastDoseDate: '2026-04-01',
-      nextDueDate: '2026-06-01',
-    })
-  })
-
-  it('une période qui n’a que des prises en plus garde sa première échéance', async () => {
-    await addWithoutDose('en-plus', '2026-03-05')
-
-    await addDose('en-plus', '2026-03-02', '2099-01-01', { givenOn: '2026-03-02', status: 'extra' })
-
-    await expect(repository.getById('en-plus')).resolves.toMatchObject({
-      nextDueDate: '2026-03-05',
-    })
-  })
-
-  it('sans prise donnée, une ligne reportée ne donne aucune dernière prise', async () => {
-    await addWithoutDose('reporte', '2026-03-05')
-
-    await addDose('reporte', '2026-03-05', '2026-03-12', { givenOn: null, status: 'postponed' })
-
-    await expect(repository.getById('reporte')).resolves.toMatchObject({
-      lastDoseDate: null,
-      nextDueDate: '2026-03-12',
-    })
-  })
-
   describe('traitement repris dans une nouvelle période', () => {
     const SECONDE = 'seconde-periode'
 
@@ -536,51 +382,14 @@ describe('treatmentsRepository — périodes et prises', () => {
       return created.id
     }
 
-    it('lit la tête dans la période en cours : sans prise, sa première échéance', async () => {
+    it('lit la période en cours, jamais une période supprimée', async () => {
       const id = await reprise()
+      await expect(repository.getById(id)).resolves.toMatchObject({ periodId: SECONDE })
 
-      await expect(repository.getById(id)).resolves.toMatchObject({
-        periodId: SECONDE,
-        lastDoseDate: null,
-        nextDueDate: '2026-10-05',
-      })
-      await expect(repository.listByAnimal(MIETTE)).resolves.toMatchObject([
-        { lastDoseDate: null, nextDueDate: '2026-10-05' },
-      ])
-    })
+      await db.run('UPDATE treatment_period SET deleted_at = updated_at WHERE id = ?', [SECONDE])
 
-    it('lit la dernière prise de la période en cours, pas une échéance plus tardive d’avant', async () => {
-      const id = await reprise()
-      await addDose(id, '2026-10-05', '2026-10-12', { periodId: SECONDE })
-      await addDose(id, '2026-11-01', '2026-12-01')
-
-      await expect(repository.getById(id)).resolves.toMatchObject({
-        lastDoseDate: '2026-10-05',
-        nextDueDate: '2026-10-12',
-      })
-    })
-
-    it('ne prend jamais pour tête une prise d’une période supprimée', async () => {
-      const id = await reprise()
-      await db.run('UPDATE treatment_period SET deleted_at = updated_at WHERE id = ?', [id])
-
-      await expect(repository.getById(id)).resolves.toMatchObject({
-        periodId: SECONDE,
-        lastDoseDate: null,
-        nextDueDate: '2026-10-05',
-      })
-    })
-  })
-
-  it('ignore une prise supprimée : la précédente redevient la tête', async () => {
-    const created = await seedTreatmentWithDose(db, bravecto)
-    const recente = await addDose(created.id, '2026-06-03', '2026-09-03')
-
-    await db.run('UPDATE treatment_dose SET deleted_at = updated_at WHERE id = ?', [recente])
-
-    await expect(repository.getById(created.id)).resolves.toMatchObject({
-      lastDoseDate: '2026-03-01',
-      nextDueDate: '2026-06-01',
+      await expect(repository.getById(id)).resolves.toMatchObject({ periodId: id })
+      await expect(repository.listByAnimal(MIETTE)).resolves.toMatchObject([{ periodId: id }])
     })
   })
 
@@ -667,42 +476,18 @@ describe('treatmentsRepository — périodes et prises', () => {
     ])
   }
 
-  it('montre un traitement sans prise : aucune dernière prise, prochaine dose à sa première échéance', async () => {
+  it('montre un traitement sans prise', async () => {
     await addWithoutDose('sans-prise', '2026-03-05')
 
     const expected = {
       id: 'sans-prise',
       periodId: 'sans-prise',
       frequency: { value: 1, unit: 'month' },
-      lastDoseDate: null,
-      nextDueDate: '2026-03-05',
       stoppedOn: null,
     }
     await expect(repository.getById('sans-prise')).resolves.toMatchObject(expected)
     await expect(repository.listByAnimal(MIETTE)).resolves.toMatchObject([expected])
     await expect(repository.listAll()).resolves.toMatchObject([expected])
-  })
-
-  it('range un traitement sans prise à sa première échéance, parmi les autres', async () => {
-    await seedTreatmentWithDose(db, { ...bravecto, name: 'Juin' })
-    await addWithoutDose('Avril', '2026-04-10')
-    await addWithoutDose('Juillet', '2026-07-10')
-
-    const names = (await repository.listByAnimal(MIETTE)).map(({ name }) => name)
-    expect(names).toEqual(['Avril', 'Juin', 'Juillet'])
-    expect((await repository.listAll()).map(({ name }) => name)).toEqual(names)
-  })
-
-  it('un traitement dont la seule prise est supprimée retombe sur sa première échéance', async () => {
-    const created = await seedTreatmentWithDose(db, bravecto)
-    await db.run('UPDATE treatment_dose SET deleted_at = updated_at WHERE treatment_id = ?', [
-      created.id,
-    ])
-
-    await expect(repository.getById(created.id)).resolves.toMatchObject({
-      lastDoseDate: null,
-      nextDueDate: bravecto.lastDoseDate,
-    })
   })
 
   it('ne montre pas un traitement sans période', async () => {
@@ -714,20 +499,6 @@ describe('treatmentsRepository — périodes et prises', () => {
     await expect(repository.getById(sansPeriode.id)).resolves.toBeNull()
     await expect(repository.listByAnimal(MIETTE)).resolves.toEqual([])
     await expect(repository.listAll()).resolves.toEqual([])
-  })
-
-  it('trie les traitements d’un animal par l’échéance de leur tête', async () => {
-    const trimestriel = await seedTreatmentWithDose(db, { ...bravecto, name: 'Trimestriel' })
-    await seedTreatmentWithDose(db, {
-      ...bravecto,
-      name: 'Mensuel',
-      frequency: { value: 1, unit: 'month' },
-    })
-
-    await addDose(trimestriel.id, '2026-03-02', '2026-03-20')
-
-    const names = (await repository.listByAnimal(MIETTE)).map(({ name }) => name)
-    expect(names).toEqual(['Trimestriel', 'Mensuel'])
   })
 
   it('supprimer un traitement pose sa date de suppression sur ses périodes et ses prises', async () => {
@@ -930,15 +701,18 @@ describe('treatmentsRepository — import', () => {
     db.close()
   })
 
-  it('insère un traitement importé avec son échéance et ses dates d’origine', async () => {
+  it('insère un traitement importé avec ses dates d’origine', async () => {
     await restore(IMPORTE, false)
 
     await expect(repository.getById(IMPORTE.id)).resolves.toEqual({
-      ...IMPORTE,
+      ...projected(IMPORTE),
       periodId: IMPORTE.id,
       stoppedOn: null,
       deletedAt: null,
     })
+    await expect(
+      db.query('SELECT next_due_date FROM treatment_dose WHERE id = ?', [IMPORTE.id]),
+    ).resolves.toEqual([{ next_due_date: '2026-09-15' }])
   })
 
   it('écrase un traitement existant, même supprimé, et le rend visible', async () => {
@@ -955,11 +729,14 @@ describe('treatmentsRepository — import', () => {
     await restore(importe, true)
 
     await expect(repository.getById(IMPORTE.id)).resolves.toEqual({
-      ...importe,
+      ...projected(importe),
       periodId: IMPORTE.id,
       stoppedOn: null,
       deletedAt: null,
     })
+    await expect(
+      db.query('SELECT next_due_date FROM treatment_dose WHERE id = ?', [IMPORTE.id]),
+    ).resolves.toEqual([{ next_due_date: '2026-07-15' }])
   })
 
   it('garde l’arrêt du fichier, à l’insertion comme à l’écrasement', async () => {

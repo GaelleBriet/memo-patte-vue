@@ -53,6 +53,7 @@ export function useTreatmentGestures(onChanged: () => void) {
       ariaLabel,
       undo,
       onUndone: onChanged,
+      onFailed: onChanged,
       failedMessage: t('reminderSheet.undoFailed'),
       announcement,
     })

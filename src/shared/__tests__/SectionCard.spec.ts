@@ -18,6 +18,13 @@ describe('SectionCard', () => {
     expect(wrapper.find('.section-card__counter').exists()).toBe(false)
   })
 
+  it('se passe d’en-tête sans titre, quand la page le porte déjà', () => {
+    const wrapper = mount(SectionCard, { slots: { default: '<p class="ligne">Ligne</p>' } })
+
+    expect(wrapper.find('.section-card__heading').exists()).toBe(false)
+    expect(wrapper.get('.section-card__card .ligne').text()).toBe('Ligne')
+  })
+
   it('affiche le compteur à droite du titre, dans le même en-tête', () => {
     const wrapper = monter({ counter: '3 rappels' }, { default: '<p>Ligne</p>' })
 

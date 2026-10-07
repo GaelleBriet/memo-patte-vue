@@ -1,0 +1,56 @@
+{
+  "source": {
+    "title": "Base de données publique des médicaments vétérinaires autorisés en France",
+    "publisher": "Anses – Agence nationale du médicament vétérinaire",
+    "url": "https://www.data.gouv.fr/datasets/base-de-donnees-publique-des-medicaments-veterinaires-autorises-en-france-1",
+    "licence": "CC BY",
+    "exportedOn": "2026-10-01"
+  },
+  "combinations": [
+    { "species": "dog", "diseases": ["parvovirus"], "products": 4 },
+    { "species": "dog", "diseases": ["leptospirosis"], "products": 8 },
+    { "species": "dog", "diseases": ["rabies"], "products": 6 },
+    { "species": "dog", "diseases": ["kennelCough"], "products": 6 },
+    { "species": "dog", "diseases": ["leishmaniosis"], "products": 2 },
+    { "species": "dog", "diseases": ["parainfluenza", "leptospirosis"], "products": 2 },
+    { "species": "dog", "diseases": ["distemper", "hepatitis", "parvovirus"], "products": 4 },
+    {
+      "species": "dog",
+      "diseases": ["distemper", "hepatitis", "parvovirus", "parainfluenza"],
+      "products": 5
+    },
+    {
+      "species": "dog",
+      "diseases": ["distemper", "hepatitis", "parvovirus", "leptospirosis"],
+      "products": 2
+    },
+    {
+      "species": "dog",
+      "diseases": ["distemper", "hepatitis", "parvovirus", "parainfluenza", "leptospirosis"],
+      "products": 5
+    },
+    {
+      "species": "dog",
+      "diseases": [
+        "distemper",
+        "hepatitis",
+        "parvovirus",
+        "parainfluenza",
+        "leptospirosis",
+        "rabies"
+      ],
+      "products": 2
+    },
+    { "species": "cat", "diseases": ["catFlu"], "products": 4 },
+    { "species": "cat", "diseases": ["felineLeukaemia"], "products": 5 },
+    { "species": "cat", "diseases": ["rabies"], "products": 7 },
+    { "species": "cat", "diseases": ["panleukopenia", "catFlu"], "products": 5 },
+    { "species": "cat", "diseases": ["panleukopenia", "catFlu", "chlamydiosis"], "products": 2 },
+    { "species": "cat", "diseases": ["panleukopenia", "catFlu", "felineLeukaemia"], "products": 3 },
+    {
+      "species": "cat",
+      "diseases": ["panleukopenia", "catFlu", "chlamydiosis", "felineLeukaemia"],
+      "products": 2
+    }
+  ]
+}

@@ -1,5 +1,34 @@
 # Contexte en cours (à mettre à jour à chaque lot)
 
+- 2026-10-07 (matin) : **reprendre ici.** Journée du 6 puis nuit en autonomie (Gaelle absente).
+  **Lots 4 et 7 mergés** : rappels lus par le moteur (#550, #553 à #559, #556), « À faire », PDF et CSV
+  lus par le moteur (#566, #568, #572), ligne du Carnet V15 (#570), messages de l'accueil (#571),
+  finitions testées sur l'émulateur (#590), puis #548 (#607, plus aucun ancien calcul d'échéance dans
+  la projection `Treatment`, garde `treatment-due-source.spec.ts`). Aussi : Paramètres › Rappels et
+  Sauvegarde (#560, #567), page d'aide des rappels (#561), « 1er » (#586), anglais par défaut (#587),
+  vaccin « Prévu » (#591), date de naissance approximative (#592), fiche et feuille « Fait » d'un vaccin
+  (#597), dates insécables (#596, aide de test `plain()`), noms de vaccins de la base ANMV (#603,
+  `pnpm vaccines:generate`), photos orphelines (#602), écritures concurrentes (#604, file d'écriture
+  unique), vaccins dans « À faire » (#605), report sans effet (#606), pastilles du Carnet (#608).
+  `main` à **5 757 tests**.
+  - **Branches prêtes, sans PR, qui attendent Gaelle** (textes sans maquette ou questions, détail dans
+    son coffre, `product/bilan-2026-10-07-nuit.md`) : #578 `feat/ne-plus-suivre`, #579
+    `feat/animaux-non-suivis` (après #578), #577 `feat/photo-animal`, #583 `feat/effacer-donnees`, #580
+    `feat/parametres-rubriques`, #581 `feat/aide-contact` (FAQ à relire, après #580), #575
+    `feat/historique-vaccin`, #416 `feat/csv-traduit` (CSV à ouvrir dans un tableur), #483
+    `feat/pdf-traitement-sans-prise`, **#356** `feat/pdf-tous-les-animaux` (V23 bis, construit sur
+    #580 : PR après son merge) et **#469** `feat/anciens-exports` (anciens exports v1 à v3 relus par
+    rejeu de l'ancien moteur ; **rien avant les lots 5 et 6**, comme le demande le commentaire du ticket).
+  - **Ensuite** : #547 (après #578 et #579), #582 (après #483), #594 et #598 (questions), #487
+    (refactor, après les branches ouvertes), #488.
+  - **Pièges** : (1) un brief fait lire `gh issue view N --comments` : deux tickets de la nuit
+    portaient un commentaire de Gaelle qui changeait la cible (#356 renvoyait à DO-4 et V23 bis, #469
+    demandait d'attendre les lots 5 et 6) ; (2) attendre un processus avec `pgrep -f` sur sa propre
+    ligne de commande ne finit jamais : attendre sur le contenu d'un fichier de sortie ; (3) juste
+    après `gh pr update-branch`, GitHub dit encore « en retard » : attendre et réessayer ; (4) un test
+    qui juge une date par l'horloge réelle casse après minuit (#595) ; (5) deux agents qui écrivent un
+    log au même nom dans le dossier temporaire mélangent leurs sorties : un nom de log unique par agent.
+
 - 2026-10-05 : **reprendre ici.** Mergés : #522 (maquettes « Décaler les doses suivantes », planches
   **V28 à V32**, nommées V9 à V13 dans le fichier : voir `docs/design/v1-specs/README.md`), #524 (#503,
   **prise en plus** : ne change jamais le calendrier), #526 (#523, décalage d'une dose avancée écrit sous

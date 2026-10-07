@@ -292,6 +292,20 @@ describe('useVaccinationsStore', () => {
     expect(store.vaccinations.map((vaccination) => vaccination.name)).toEqual(['Leptospirose'])
   })
 
+  it('rétablit un vaccin supprimé, reprogramme ses rappels et rafraîchit la liste (VA-15)', async () => {
+    const seme = repository.seed(rage())
+    const store = useVaccinationsStore()
+    await store.loadForAnimal(MILO)
+    const deletedAt = await store.remove(seme.id)
+    reminders.reschedule.mockClear()
+
+    await store.undoRemove(seme.id, deletedAt)
+
+    expect(repository.restore).toHaveBeenCalledWith(seme.id, deletedAt)
+    expect(reminders.reschedule).toHaveBeenCalledWith(seme.id)
+    expect(store.vaccinations.map((vaccination) => vaccination.id)).toEqual([seme.id])
+  })
+
   it('programme les rappels du vaccin créé', async () => {
     const store = useVaccinationsStore()
 
@@ -409,13 +423,24 @@ describe('useVaccinationsStore — vaccin déjà suivi', () => {
     await expect(store.findSameName(MILO, 'Rage')).resolves.toBeNull()
     expect(store.vaccinations).toEqual([])
   })
+
+  it('lit les vaccins de tous les animaux sans toucher la liste affichée', async () => {
+    const carre = repository.seed(rage(MILO, { name: 'Carré' }))
+    const lepto = repository.seed(rage(LUNA, { name: 'Leptospirose' }))
+    const store = useVaccinationsStore()
+
+    await expect(store.listAll()).resolves.toEqual([carre, lepto])
+    expect(store.vaccinations).toEqual([])
+  })
 })
 
 describe('useVaccinationsStore — injection notée', () => {
   const injections = {
     record: vi.fn<VaccinationInjectionsService['record']>(),
     undo: vi.fn<VaccinationInjectionsService['undo']>().mockResolvedValue(),
-    remove: vi.fn<VaccinationInjectionsService['remove']>().mockResolvedValue(),
+    remove: vi.fn<VaccinationInjectionsService['remove']>().mockResolvedValue({ plannedSet: true }),
+    addPast: vi.fn<VaccinationInjectionsService['addPast']>(),
+    addPastWithReminder: vi.fn<VaccinationInjectionsService['addPastWithReminder']>(),
     undoRemove: vi.fn<VaccinationInjectionsService['undoRemove']>().mockResolvedValue(),
     changeDate: vi.fn<VaccinationInjectionsService['changeDate']>(),
     changeDateAndReminder: vi.fn<VaccinationInjectionsService['changeDateAndReminder']>(),
@@ -448,6 +473,39 @@ describe('useVaccinationsStore — injection notée', () => {
     expect(repository.listByAnimal).toHaveBeenCalledWith(MILO)
   })
 
+  it('ajoute une injection passée par son service puis relit la liste de l’animal (VA-10)', async () => {
+    const seme = repository.seed(rage())
+    const store = useVaccinationsStore()
+    await store.loadForAnimal(MILO)
+    injections.addPast.mockResolvedValue({ animalId: MILO, injectionId: 'i2' })
+    repository.listByAnimal.mockClear()
+
+    await expect(store.addPastInjection(seme.id, '2022-06-20')).resolves.toEqual({
+      animalId: MILO,
+      injectionId: 'i2',
+    })
+
+    expect(injections.addPast).toHaveBeenCalledWith(seme.id, '2022-06-20')
+    expect(repository.listByAnimal).toHaveBeenCalledWith(MILO)
+  })
+
+  it('ajoute une injection passée avec le rappel choisi puis relit la liste de l’animal', async () => {
+    const seme = repository.seed(rage())
+    const store = useVaccinationsStore()
+    await store.loadForAnimal(MILO)
+    injections.addPastWithReminder.mockResolvedValue({ animalId: MILO, injectionId: 'i3' })
+    repository.listByAnimal.mockClear()
+
+    const dates = { injectedOn: '2026-05-20', nextDueDate: '2027-05-20' }
+    await expect(store.addPastInjectionWithReminder(seme.id, dates)).resolves.toEqual({
+      animalId: MILO,
+      injectionId: 'i3',
+    })
+
+    expect(injections.addPastWithReminder).toHaveBeenCalledWith(seme.id, dates)
+    expect(repository.listByAnimal).toHaveBeenCalledWith(MILO)
+  })
+
   it('annule une injection par son service', async () => {
     const store = useVaccinationsStore()
 
@@ -464,13 +522,13 @@ describe('useVaccinationsStore — injection notée', () => {
     injections.changeDate.mockResolvedValue(avant)
     repository.listByAnimal.mockClear()
 
-    await store.removeInjection(seme.id, 'i1')
-    await store.undoRemoveInjection(seme.id, 'i1')
+    const removed = await store.removeInjection(seme.id, 'i1')
+    await store.undoRemoveInjection(seme.id, 'i1', removed)
     await expect(store.changeInjectionDate(seme.id, 'i1', '2026-09-18')).resolves.toEqual(avant)
     await store.undoChangeInjectionDate(seme.id, 'i1', avant)
 
     expect(injections.remove).toHaveBeenCalledWith(seme.id, 'i1')
-    expect(injections.undoRemove).toHaveBeenCalledWith(seme.id, 'i1')
+    expect(injections.undoRemove).toHaveBeenCalledWith(seme.id, 'i1', { plannedSet: true })
     expect(injections.changeDate).toHaveBeenCalledWith(seme.id, 'i1', '2026-09-18')
     expect(injections.undoChangeDate).toHaveBeenCalledWith(seme.id, 'i1', avant)
     expect(repository.listByAnimal).toHaveBeenCalledTimes(4)
@@ -505,9 +563,11 @@ interface FakeVaccinationsRepository {
   seed(input: VaccinationInput): Vaccination
   getById: Mock<VaccinationsRepository['getById']>
   listByAnimal: Mock<VaccinationsRepository['listByAnimal']>
+  listAll: Mock<VaccinationsRepository['listAll']>
   create: Mock<VaccinationsRepository['create']>
   update: Mock<VaccinationsRepository['update']>
   remove: Mock<VaccinationsRepository['remove']>
+  restore: Mock<VaccinationsRepository['restore']>
   listInjections: Mock<VaccinationsRepository['listInjections']>
 }
 
@@ -541,6 +601,7 @@ function createFakeRepository(): FakeVaccinationsRepository {
     listByAnimal: vi.fn<VaccinationsRepository['listByAnimal']>(async (animalId) =>
       living().filter((vaccination) => vaccination.animalId === animalId),
     ),
+    listAll: vi.fn<VaccinationsRepository['listAll']>(async () => living()),
     create: vi.fn<VaccinationsRepository['create']>(async (input) => seed(input)),
     update: vi.fn<VaccinationsRepository['update']>(async (id, input) => {
       const current = living().find((vaccination) => vaccination.id === id)
@@ -556,8 +617,16 @@ function createFakeRepository(): FakeVaccinationsRepository {
       return next
     }),
     remove: vi.fn<VaccinationsRepository['remove']>(async (id) => {
+      const deletedAt = new Date().toISOString()
       const vaccination = living().find((candidate) => candidate.id === id)
-      if (vaccination) vaccination.deletedAt = new Date().toISOString()
+      if (vaccination) vaccination.deletedAt = deletedAt
+      return deletedAt
+    }),
+    restore: vi.fn<VaccinationsRepository['restore']>(async (id, deletedAt) => {
+      const vaccination = vaccinations.find(
+        (candidate) => candidate.id === id && candidate.deletedAt === deletedAt,
+      )
+      if (vaccination) vaccination.deletedAt = null
     }),
     listInjections: vi.fn<VaccinationsRepository['listInjections']>(async () => []),
   }

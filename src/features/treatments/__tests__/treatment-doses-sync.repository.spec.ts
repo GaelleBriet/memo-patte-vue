@@ -108,13 +108,13 @@ describe('treatmentDosesRepository — port de synchronisation', () => {
     await expect(repository.getRowForPush('inconnu')).resolves.toBeNull()
   })
 
-  it('crée localement une prise distante inconnue, qui devient la tête de son traitement', async () => {
+  it('crée localement une prise distante inconnue, lue dans l’historique de son traitement', async () => {
     await db.runMany([repository.applyRemoteRowStatement(remoteDose())])
 
-    await expect(createTreatmentsRepository(db).getById(TREATMENT_ID)).resolves.toMatchObject({
-      lastDoseDate: '2026-02-01',
-      nextDueDate: '2026-03-01',
-    })
+    const history = await createTreatmentsRepository(db).getWithHistory(TREATMENT_ID)
+    expect(history?.doses).toContainEqual(
+      expect.objectContaining({ id: LATER_ID, givenOn: '2026-02-01', nextDueDate: '2026-03-01' }),
+    )
   })
 
   it("n'écrase pas une prise locale plus récente, ni à égalité d'horodatage", async () => {
