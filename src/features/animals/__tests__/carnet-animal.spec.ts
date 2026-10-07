@@ -42,7 +42,7 @@ describe('carnetSubtitle', () => {
   it('AN-10 : « jusqu’au » la date du départ, jamais le motif', () => {
     const luna = { ...LUNA, unfollowedOn: '2026-09-28', departureDate: '2026-09-28' }
 
-    expect(carnetSubtitle(t, luna, '2026-09-30')).toBe(
+    expect(carnetSubtitle(t, luna, '2026-09-30')?.replaceAll('\u00a0', ' ')).toBe(
       'animals.carnet.until{"date":"28 sept. 2026"}',
     )
   })

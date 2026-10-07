@@ -106,7 +106,7 @@ describe('carnetVaccinationRow — animal qu’on ne suit plus (VA-16, B · V15 
     const { badge, detail } = carnetVaccinationRow(t, { lastInjectionDate, dueDate }, TODAY, {
       followed: false,
     })
-    return { badge, detail: detail.replaceAll(' ', ' ') }
+    return { badge, detail: detail.replaceAll('\u00a0', ' ') }
   }
 
   it('sans badge, « Dernière injection le … » avec l’année, même en retard', () => {
