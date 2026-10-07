@@ -25,7 +25,7 @@ import {
   type ReminderStep,
   type TodoRequest,
 } from '@/shared/domain/reminder-route'
-import { unfollowedEntry } from '@/shared/domain/unfollowed-animals'
+import { useOpenUnfollowed } from '@/shared/composables/use-open-unfollowed'
 import AnimalPickerSheet from './AnimalPickerSheet.vue'
 import HomeMessages from './HomeMessages.vue'
 import HomeTodoCard from './HomeTodoCard.vue'
@@ -55,8 +55,12 @@ const hasError = computed(() => animals.error !== null || home.error !== null)
 const isReady = computed(() => animals.hasLoaded && home.hasLoaded && !hasError.value)
 const isLoading = computed(() => !isReady.value && !hasError.value)
 const isWelcome = computed(() => isReady.value && animals.animals.length === 0)
-const unfollowed = computed(() =>
-  animals.followedAnimals.length === 0 ? unfollowedEntry(animals.unfollowedAnimals) : null,
+const { entry: unfollowed, open: openUnfollowed } = useOpenUnfollowed(
+  () => (animals.followedAnimals.length === 0 ? animals.unfollowedAnimals : []),
+  (animalId) => {
+    animals.select(animalId)
+    void router.push({ name: 'animals' })
+  },
 )
 
 const photoUrl = usePhotoUrls(() => animals.followedAnimals.map((item) => item.photoPath))
@@ -221,16 +225,6 @@ function createAnimal(): void {
 
 function openSettings(): void {
   void router.push({ name: 'settings' })
-}
-
-function openUnfollowed(): void {
-  const target = unfollowed.value?.target
-  if (target?.kind === 'list') {
-    void router.push({ name: 'unfollowed-animals' })
-  } else if (target) {
-    animals.select(target.animalId)
-    void router.push({ name: 'animals' })
-  }
 }
 
 function openCarnet(): void {

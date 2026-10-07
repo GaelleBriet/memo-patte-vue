@@ -127,7 +127,6 @@
         "confirm": "Delete"
       },
       "unfollowed": {
-        "link": "Pets you no longer follow ({n})",
         "banner": "You’re no longer following {name}: no reminders are sent. {name}’s health record stays as it is.",
         "addDate": "Add a date",
         "editDate": "Edit the date",
@@ -862,6 +861,9 @@
     "edit": "Edit",
     "undo": "Undo",
     "undoFailed": "Couldn’t undo."
+  },
+  "unfollowedAnimalsLink": {
+    "label": "Pets you no longer follow ({n})"
   },
   "history": {
     "done": "Done",

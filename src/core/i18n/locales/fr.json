@@ -127,7 +127,6 @@
         "confirm": "Supprimer"
       },
       "unfollowed": {
-        "link": "Animaux que tu ne suis plus ({n})",
         "banner": "Tu ne suis plus {name} : aucun rappel n’est envoyé. Son carnet reste tel quel.",
         "addDate": "Ajouter une date",
         "editDate": "Modifier la date",
@@ -862,6 +861,9 @@
     "edit": "Modifier",
     "undo": "Annuler",
     "undoFailed": "L’annulation n’a pas abouti."
+  },
+  "unfollowedAnimalsLink": {
+    "label": "Animaux que tu ne suis plus ({n})"
   },
   "history": {
     "done": "C’est fait",

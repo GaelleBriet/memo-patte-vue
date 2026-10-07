@@ -12,7 +12,7 @@ const { t } = useI18n()
   <button type="button" class="unfollowed-animals-link" @click="emit('open')">
     <v-icon icon="ms:pets" size="20" />
     <span class="unfollowed-animals-link__label">
-      {{ t('animals.carnet.unfollowed.link', { n: count }) }}
+      {{ t('unfollowedAnimalsLink.label', { n: count }) }}
     </span>
     <v-icon icon="ms:chevron_right" size="22" />
   </button>
