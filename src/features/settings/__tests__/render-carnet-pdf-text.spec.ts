@@ -30,8 +30,8 @@ function traitement(name: string): PdfTreatmentRow {
   return {
     name,
     lastDoseDate: '2026-08-01',
-    previousDoses: [],
     lastDoseExtra: false,
+    periods: [],
     due: { kind: 'due', dueOn: '2026-11-01', dueTime: null, overdue: false },
     state: 'upToDate',
   }
@@ -44,6 +44,8 @@ function carnet(animal: Partial<CarnetPdfContent['animal']>, rows: string[]): Ca
       species: 'dog',
       breed: null,
       birthDate: null,
+      birthDateApproximate: false,
+      departureDate: null,
       photoFileName: null,
       ...animal,
     },
@@ -94,13 +96,15 @@ describe('renderCarnetPdf — caractères hors de la police', () => {
   it('omet de l’identité une race réduite à rien', () => {
     const ecrits = textes(carnet({ breed: '🐕', birthDate: '2019-03-02' }, []))
 
-    expect(ecrits).toContain('Chien · Date de naissance : 2 mars 2019')
+    expect(ecrits).toContain('Chien · Date de naissance : 2 mars 2019 · 7 ans')
   })
 
   it('garde la date de naissance d’un seul tenant', () => {
     const [premiere] = pages(carnet({ birthDate: '2019-03-02' }, []))
 
-    expect(premiere!.texts.some((text) => text.text.endsWith(': 2\u00a0mars\u00a02019'))).toBe(true)
+    expect(premiere!.texts.some((text) => text.text.includes(': 2\u00a0mars\u00a02019 '))).toBe(
+      true,
+    )
   })
 
   it('n’écrit rien hors de la zone imprimable, même avec soixante emoji dans un nom', () => {
@@ -130,8 +134,26 @@ describe('renderCarnetPdf — prise en plus', () => {
           ...traitement('Milbemax'),
           lastDoseDate: '2026-10-09',
           lastDoseExtra: true,
-          previousDoses: [
-            { kind: 'dates', dates: ['2026-10-09', '2026-10-02'], extras: [false, true] },
+          periods: [
+            {
+              from: '2026-10-02',
+              to: null,
+              frequency: { value: 1, unit: 'month' },
+              times: [],
+              dosage: { doseQuantity: null, doseUnit: null },
+              lines: [
+                {
+                  kind: 'given',
+                  series: {
+                    kind: 'dates',
+                    doses: [
+                      { on: '2026-10-09', time: null, extra: false },
+                      { on: '2026-10-02', time: null, extra: true },
+                    ],
+                  },
+                },
+              ],
+            },
           ],
         },
       ],
@@ -142,7 +164,7 @@ describe('renderCarnetPdf — prise en plus', () => {
     expect(lisibles).toEqual(
       expect.arrayContaining([
         'Dernière prise : 09/10/2026 (prise en plus)',
-        'Prises précédentes : 09/10/2026 · 02/10/2026 (prise en plus)',
+        'Prises : 09/10/2026 · 02/10/2026 (prise en plus)',
       ]),
     )
   })

@@ -50,8 +50,22 @@ function traitements(count: number): PdfTreatmentRow[] {
   return Array.from({ length: count }, (_, index) => ({
     name: `Traitement ${index + 1}`,
     lastDoseDate: '2026-08-01',
-    previousDoses: [{ kind: 'range', count: 6, from: '2025-08-01', to: '2026-05-01' }],
     lastDoseExtra: false,
+    periods: [
+      {
+        from: '2025-08-01',
+        to: null,
+        frequency: { value: 1, unit: 'month' },
+        times: [],
+        dosage: { doseQuantity: null, doseUnit: null },
+        lines: [
+          {
+            kind: 'given',
+            series: { kind: 'range', count: 6, from: '2025-08-01', to: '2026-05-01', time: null },
+          },
+        ],
+      },
+    ],
     due: { kind: 'due', dueOn: '2026-11-01', dueTime: null, overdue: false },
     state: 'upToDate',
   }))
@@ -71,6 +85,8 @@ function carnet(vaccinCount: number, treatmentCount: number, weighInCount: numbe
       species: 'cat',
       breed: 'Européen',
       birthDate: '2019-03-02',
+      birthDateApproximate: false,
+      departureDate: null,
       photoFileName: null,
     },
     generatedOn: '2026-09-15',
@@ -91,8 +107,8 @@ const VACCIN_LONG: PdfVaccinationRow = {
 const TRAITEMENT_LONG: PdfTreatmentRow = {
   name: NOM_TRAITEMENT_200,
   lastDoseDate: '2026-08-01',
-  previousDoses: [],
   lastDoseExtra: false,
+  periods: [],
   due: { kind: 'due', dueOn: '2026-11-01', dueTime: null, overdue: false },
   state: 'upToDate',
 }
@@ -100,8 +116,22 @@ const TRAITEMENT_LONG: PdfTreatmentRow = {
 const ARRETE: PdfTreatmentRow = {
   name: 'Drontal',
   lastDoseDate: '2026-06-01',
-  previousDoses: [{ kind: 'dates', dates: ['2026-05-18'], extras: [false] }],
   lastDoseExtra: false,
+  periods: [
+    {
+      from: '2026-05-18',
+      to: null,
+      frequency: { value: 1, unit: 'month' },
+      times: [],
+      dosage: { doseQuantity: null, doseUnit: null },
+      lines: [
+        {
+          kind: 'given',
+          series: { kind: 'dates', doses: [{ on: '2026-05-18', time: null, extra: false }] },
+        },
+      ],
+    },
+  ],
   due: { kind: 'stopped', on: '2026-06-20', beforeFirstDose: false },
   state: 'none',
 }
@@ -350,7 +380,7 @@ describe('renderCarnetPdf — pages', () => {
         const lignes = page.texts.filter((text) => ETATS.includes(text.text)).length
 
         expect(nombre(/^Injections/) + nombre(/^Dernière prise/)).toBe(lignes)
-        expect(nombre(/^Prises précédentes/)).toBeLessThanOrEqual(nombre(/^Dernière prise/))
+        expect(nombre(/^Depuis le/)).toBeLessThanOrEqual(nombre(/^Dernière prise/))
       }
     }
   })

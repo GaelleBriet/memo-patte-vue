@@ -466,21 +466,37 @@ se réimporte.
 Les valeurs d'énumération (`dog`, `deworming`, `month`, `missed`, `tablet`…) restent les codes du
 JSON, non traduits (traduction du CSV : #416).
 
-## PDF — historique du carnet (#382)
+## PDF — carnet de santé (#382, #356, #582)
 
-Le PDF (MémoPatte Plus) lit les mêmes lignes que l'export (`collect`), un animal à la fois
-(`src/features/settings/logic/pdf-content.ts`, rendu par `render-carnet-pdf.ts`). Son contenu n'a pas
-changé avec le format v3 : il montre les prises **données**, par leur date réelle, et la date d'arrêt
-de la période en cours ; les prises oubliées, les reports et les doses non renseignées y entreront
-avec le lot 8. Sous la ligne de
-chaque vaccin ou traitement (nom, échéance, état), en retrait, en 9 pt gris, sur la même page que
-sa ligne :
+Le PDF est gratuit. Il lit les mêmes lignes que l'export (`collect`) et contient soit tous les
+animaux suivis, chacun à partir d'une nouvelle page, soit un seul animal (#356)
+(`src/features/settings/logic/pdf-content.ts`, rendu par `render-carnet-pdf.ts`). Les échéances et
+l'historique des traitements viennent du moteur d'échéances.
 
-- **Vaccin** : `Injections : 27/05/2025 · 30/05/2022 · 02/06/2021`, toutes les injections, la plus
-  récente d'abord, **jamais regroupées** ; une longue liste passe à la ligne.
-- **Traitement** : `Dernière prise : 15/08/2026` toujours à part, puis `Prises précédentes : …`, par
-  séries, la plus récente d'abord (décision du 2026-09-24) :
-  - une série s'arrête quand l'écart entre deux prises dépasse 1,5 fois la fréquence de la première
-    des deux (celle avec laquelle la suivante était attendue) ;
-  - jusqu'à trois prises, leurs dates sont listées (`07/05/2026`) ; au-delà, la série se résume en
-    `11 prises du 15/09/2025 au 15/07/2026`.
+- **Identité** : espèce, race, date de naissance et âge (règle AN-8). Si la date est approximative :
+  `Date de naissance : environ 20 juin 2026 · estimé 15 semaines`. Pour un animal qu'on ne suit plus,
+  `jusqu'au 28 sept. 2026` si la date du départ est renseignée, et alors sans âge. Le motif du départ
+  n'est jamais écrit.
+- **Statut** (`En retard`, `À jour`, `Pas de rappel`, `Prévu le 5 oct.` pour un vaccin jamais fait) :
+  aucun pour un animal qu'on ne suit plus.
+
+Sous la ligne de chaque vaccin ou traitement (nom, échéance, statut), l'historique est écrit en
+retrait, en 9 pt gris. Il reste sur la même page que sa ligne, sauf s'il dépasse 200 mm : il
+continue alors sur la page suivante.
+
+- **Vaccin** : `Injections : 27/05/2025 · 30/05/2022 · 02/06/2021`. Toutes les injections y sont, la
+  plus récente d'abord, **jamais regroupées**. Un vaccin prévu n'a pas cette ligne.
+- **Traitement** :
+  - d'abord `Dernière prise : 15/08/2026`, avec `(prise en plus)` si c'est le cas ;
+  - sans aucune prise, la ligne donne l'état à la place : `Aucune prise · …`, `Arrêté avant la
+    première prise` ;
+  - puis chaque période, la plus récente d'abord, avec sa fréquence, ses heures quand il y en a
+    plusieurs, et sa posologie : `Du 01/09/2026 au 20/10/2026 · Tous les jours · 8 h et 20 h · ½ comprimé` ;
+  - sous chaque période, du plus récent au plus ancien : prises (`Prises : …`), oublis
+    (`Oubliée : …`), reports (`Reportée au … (prévue le …)`, `Avancée au …`) et doses non renseignées
+    (`Non renseigné du 11/09/2026 au 27/09/2026`) ;
+  - chaque type se regroupe sur des jours qui se suivent, même quand une autre heure s'intercale. Une
+    série s'arrête quand l'écart dépasse 1,5 fois la fréquence. Jusqu'à trois prises ou oublis, les
+    dates sont listées, avec leur heure si la période en a plusieurs. Au-delà, la série se résume :
+    `19 prises du 01/09/2026 au 10/09/2026`, `3 prises oubliées du … au …`. Si toute la série tombe
+    à la même heure, cette heure est ajoutée : `· 20 h`.

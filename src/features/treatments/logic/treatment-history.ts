@@ -1,9 +1,10 @@
-import { differenceInCalendarDays, format, parseISO, subDays } from 'date-fns'
+import { differenceInCalendarDays, parseISO } from 'date-fns'
 
 import { movedDueOf } from './treatment-dose-writes'
 import { periodSettingsText } from './treatment-rhythm'
 import type { TreatmentWithHistory } from '../repository/treatments.repository'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
+import { byStartDescending, periodLastDay } from '@/shared/domain/treatment-periods'
 import {
   isAdvanced,
   shiftedNextOn,
@@ -75,29 +76,12 @@ type HistorySchedule = Pick<
 >
 type Period = TreatmentPeriodRecord
 
-function byStartDescending(a: Period, b: Period): number {
-  const [left, right] = [a, b].map(
-    ({ startsOn, createdAt, id }) => `${startsOn} ${createdAt} ${id}`,
-  )
-  return left! < right! ? 1 : left! > right! ? -1 : 0
-}
-
-function earliest(days: (string | null)[]): string | null {
-  return days.filter((day) => day !== null).sort()[0] ?? null
-}
-
-function lastDayOf(period: Period, next: Period | undefined): string | null {
-  const beforeNext =
-    next === undefined ? null : format(subDays(parseISO(next.startsOn), 1), 'yyyy-MM-dd')
-  return earliest([period.endsOn, period.stoppedOn, beforeNext])
-}
-
 function rangeDates(from: string, to: string): { from: string; to: string } {
   return { from: formatDayMonthOrYear(from, to), to: formatLongDate(to) }
 }
 
 function headTitle(t: Translate, period: Period, next: Period | undefined): string {
-  const end = lastDayOf(period, next)
+  const end = periodLastDay(period, next)
   if (end === null) {
     return t('treatments.history.period.since', { date: formatLongDate(period.startsOn) })
   }

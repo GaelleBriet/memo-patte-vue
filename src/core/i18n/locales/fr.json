@@ -1425,11 +1425,15 @@
       "status": {
         "overdue": "En retard",
         "upToDate": "À jour",
-        "none": "Pas de rappel"
+        "none": "Pas de rappel",
+        "planned": "Prévu le {date}"
       },
       "noName": "—",
       "identity": {
-        "birthDate": "Date de naissance : {date}"
+        "birthDate": "Date de naissance : {date}",
+        "birthDateApproximate": "Date de naissance : environ {date}",
+        "estimatedAge": "estimé {age}",
+        "until": "jusqu’au {date}"
       },
       "vaccinations": {
         "title": "Vaccins",
@@ -1456,8 +1460,12 @@
         "stoppedBeforeFirstDose": "Arrêté avant la première prise",
         "lastDose": "Dernière prise : {date}",
         "extraDose": "{date} (prise en plus)",
-        "previousDoses": "Prises précédentes : {series}",
-        "doseRange": "{count} prises du {from} au {to}"
+        "doseRange": "{count} prises du {from} au {to}",
+        "doses": "Prise : {dates} | Prises : {dates}",
+        "missed": "Oubliée : {dates} | Oubliées : {dates}",
+        "missedRange": "{count} prises oubliées du {from} au {to}",
+        "unlogged": "Non renseigné du {from} au {to}",
+        "unloggedDay": "Non renseigné le {date}"
       },
       "pageNumber": "{page} / {total}",
       "footer": "Généré le {date} — MémoPatte {version}"
