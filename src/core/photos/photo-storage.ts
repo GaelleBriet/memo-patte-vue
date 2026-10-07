@@ -32,6 +32,24 @@ export async function deletePhoto(name: string): Promise<void> {
   await Filesystem.deleteFile({ path: photoPath(name), directory: Directory.Data })
 }
 
+/** `modifiedAt` en millisecondes depuis l'époque Unix. */
+export interface StoredPhoto {
+  name: string
+  modifiedAt: number
+}
+
+/** Les seules photos de l'app : tout autre fichier du dossier est ignoré. */
+export async function listPhotos(): Promise<StoredPhoto[]> {
+  // Le pont Capacitor journalise tout rejet natif, même rattrapé : ne pas lire un dossier absent.
+  const root = await Filesystem.readdir({ path: '', directory: Directory.Data })
+  if (!root.files.some(({ name, type }) => name === PHOTOS_DIR && type === 'directory')) return []
+
+  const { files } = await Filesystem.readdir({ path: PHOTOS_DIR, directory: Directory.Data })
+  return files
+    .filter(({ name, type }) => type === 'file' && isPhotoFileName(name))
+    .map(({ name, mtime }) => ({ name, modifiedAt: mtime }))
+}
+
 /** Sonde par `stat` seul : l'import vérifie tout un carnet sans lire une seule image. */
 export async function photoExists(name: string): Promise<boolean> {
   try {
