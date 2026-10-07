@@ -26,7 +26,7 @@ import { primingRouteFrom } from '@/shared/domain/notification-priming'
 type Provider<T> = () => T | Promise<T>
 
 export type CarnetDueDates = {
-  animals: Pick<Animal, 'id' | 'deletedAt'>[]
+  animals: Pick<Animal, 'id' | 'deletedAt' | 'unfollowedOn'>[]
   vaccinations: Pick<Vaccination, 'animalId' | 'dueDate' | 'deletedAt'>[]
   treatments: Pick<TreatmentWithHistory, 'animalId' | 'periods' | 'doses'>[]
 }
@@ -38,13 +38,18 @@ function hasUpcomingDose(treatment: CarnetDueDates['treatments'][number], today:
   return schedule.currentDoses.length > 0 || schedule.upcoming(1).length > 0
 }
 
-/** Un vaccin compte tant que sa relance est programmée ; un traitement tant qu'il a une dose à venir. */
+/**
+ * Un vaccin compte tant que sa relance est programmée ; un traitement tant qu'il a une dose à venir ;
+ * les deux pour un animal suivi seulement.
+ */
 export function hasUpcomingDueDates(
   { animals, vaccinations, treatments }: CarnetDueDates,
   today: string,
 ): boolean {
   const activeAnimals = new Set(
-    animals.filter((animal) => animal.deletedAt === null).map((animal) => animal.id),
+    animals
+      .filter((animal) => animal.deletedAt === null && animal.unfollowedOn === null)
+      .map((animal) => animal.id),
   )
   const lastRemindedDueDate = format(subDays(parseISO(today), DAYS_OVERDUE), 'yyyy-MM-dd')
   return (

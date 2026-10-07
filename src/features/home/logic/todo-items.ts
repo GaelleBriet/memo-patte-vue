@@ -105,9 +105,17 @@ function treatmentItems(source: HomeTreatmentSource, today: string): TodoItem[] 
   return items
 }
 
-/** Tout ce que « À faire » peut montrer, tous animaux confondus, avant la fenêtre de 30 jours. */
-export function todoItems(sources: readonly HomeReminderSource[], today: string): TodoItem[] {
-  return sources.flatMap((source) =>
-    source.kind === 'vaccination' ? vaccinationItems(source, today) : treatmentItems(source, today),
-  )
+/** Tout ce que « À faire » peut montrer, tous animaux suivis confondus, avant la fenêtre de 30 jours. */
+export function todoItems(
+  sources: readonly HomeReminderSource[],
+  today: string,
+  followedAnimalIds: ReadonlySet<string>,
+): TodoItem[] {
+  return sources
+    .filter(({ animalId }) => followedAnimalIds.has(animalId))
+    .flatMap((source) =>
+      source.kind === 'vaccination'
+        ? vaccinationItems(source, today)
+        : treatmentItems(source, today),
+    )
 }

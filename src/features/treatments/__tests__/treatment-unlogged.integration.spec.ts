@@ -68,6 +68,7 @@ describe('doses non renseignées, du formulaire à la fiche, sur la même base',
         createdAt: AT,
         updatedAt: AT,
         deletedAt: null,
+        unfollowedOn: null,
       },
     ]
     animals.hasLoaded = true

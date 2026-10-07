@@ -102,6 +102,32 @@
       "welcome": {
         "title": "Bienvenue sur MémoPatte",
         "create": "Créer mon premier animal"
+      },
+      "options": {
+        "open": "Options de {name}",
+        "title": "Options",
+        "close": "Fermer",
+        "unfollow": "Ne plus suivre {name}",
+        "unfollowHint": "Ses rappels et ses traitements en cours s’arrêtent. Son carnet reste intact.",
+        "follow": "Suivre {name} de nouveau",
+        "delete": "Supprimer {name}"
+      },
+      "deleteDialog": {
+        "title": "Supprimer {name} ?",
+        "text": "Tout son carnet sera supprimé : vaccins, traitements, pesées, photo.",
+        "cancel": "Annuler",
+        "confirm": "Supprimer"
+      },
+      "toast": {
+        "unfollowed": "Tu ne suis plus {name}",
+        "unfollowedAnnouncement": "Tu ne suis plus {name}. Ses rappels sont coupés.",
+        "followed": "Tu suis de nouveau {name}. Ses traitements arrêtés ne reprennent pas seuls : relance chacun avec « Reprendre ».",
+        "deleted": "Carnet de {name} supprimé",
+        "undoUnfollow": "Annuler : suivre {name} de nouveau",
+        "undoFollow": "Annuler : ne plus suivre {name}",
+        "undoDelete": "Annuler : garder le carnet de {name}",
+        "failed": "Le changement n’a pas pu être enregistré. Réessaie.",
+        "deleteFailed": "Le carnet de {name} n’a pas pu être supprimé. Réessaie."
       }
     }
   },

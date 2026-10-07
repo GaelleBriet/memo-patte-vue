@@ -178,6 +178,23 @@ export function replaceDueReminders(
   })
 }
 
+/** Comme `cancelDueReminders`, et retire aussi du volet les notifications déjà affichées. */
+export function withdrawDueReminders(
+  port: CancelPort & Pick<ReminderNotifications, 'removeDelivered'>,
+  entries: DueReminderEntry[],
+): Promise<void> {
+  return enqueueReminderTask(async () => {
+    try {
+      const own = (await port.listScheduled()).filter(keyMatcher(entries))
+      if (own.length === 0) return
+      await port.cancelReminders(own.map(({ key }) => key))
+      await port.removeDelivered(own.map(({ id }) => id))
+    } catch (cause) {
+      warn(cause)
+    }
+  })
+}
+
 /** Ne lève jamais. Annuler ne demande pas la permission. */
 export function cancelDueReminders(port: CancelPort, entries: DueReminderEntry[]): Promise<void> {
   return enqueueReminderTask(async () => {
