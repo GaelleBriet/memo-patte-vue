@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { formatLongDate } from '@/shared/utils/format'
 
 import i18n, { applyLocale, detectLocale } from '..'
+import { plain } from '@/shared/__tests__/plain'
 
 describe('detectLocale', () => {
   it('suit la langue du système quand elle est livrée', () => {
@@ -56,7 +57,7 @@ describe('téléphone dans une autre langue', () => {
   it('affiche dates et notifications en anglais', () => {
     applyLocale(detectLocale(['de-DE']))
 
-    expect(formatLongDate('2026-11-08')).toBe('Nov 8, 2026')
+    expect(plain(formatLongDate('2026-11-08'))).toBe('Nov 8, 2026')
     expect(
       i18n.global.t('reminders.plan.vaccination.dueTitle', {
         name: 'rabies vaccine',

@@ -7,6 +7,7 @@ import WeightHistoryChart from '../components/WeightHistoryChart.vue'
 import { buildHistoryWeightChart, type WeightChartEntry } from '../domain/weight-chart'
 import i18n, { applyLocale } from '@/core/i18n'
 import vuetify from '@/core/theme/vuetify'
+import { plain } from '@/shared/__tests__/plain'
 
 function pesees(...items: [string, number][]): WeightChartEntry[] {
   return items.map(([measuredOn, weightKg]) => ({ measuredOn, weightKg }))
@@ -54,7 +55,7 @@ function selections(monte: VueWrapper) {
 
 function periode(monte: VueWrapper) {
   return {
-    dates: monte.get('.weight-history-chart__range').text(),
+    dates: plain(monte.get('.weight-history-chart__range').text()),
     pesees: monte.get('.weight-history-chart__count').text(),
   }
 }
@@ -174,7 +175,13 @@ describe('WeightHistoryChart — pages', () => {
     const monte = monter()
 
     expect(points(monte)).toHaveLength(12)
-    expect(periode(monte)).toEqual({ dates: 'avr. 2026\u00a0– sept. 2026', pesees: '12 pesées' })
+    expect(periode(monte)).toEqual({ dates: 'avr. 2026 – sept. 2026', pesees: '12 pesées' })
+  })
+
+  it('ne coupe la période qu’après le tiret', () => {
+    expect(monter().get('.weight-history-chart__range').text()).toBe(
+      'avr.\u00a02026\u00a0– sept.\u00a02026',
+    )
   })
 
   it('grise la flèche des pesées suivantes sur la page la plus récente, et le dit', () => {
@@ -194,12 +201,12 @@ describe('WeightHistoryChart — pages', () => {
     const monte = monter()
 
     await fleche(monte, 'previous').bouton.trigger('click')
-    expect(periode(monte)).toEqual({ dates: 'oct. 2025\u00a0– mars 2026', pesees: '12 pesées' })
+    expect(periode(monte)).toEqual({ dates: 'oct. 2025 – mars 2026', pesees: '12 pesées' })
     expect(fleche(monte, 'next')).toMatchObject({ libelle: 'Pesées suivantes', grisee: false })
 
     await fleche(monte, 'previous').bouton.trigger('click')
     expect(periode(monte)).toEqual({
-      dates: 'août 2025\u00a0– oct. 2025',
+      dates: 'août 2025 – oct. 2025',
       pesees: '6 pesées · début du suivi',
     })
     expect(points(monte)).toHaveLength(6)
@@ -213,12 +220,12 @@ describe('WeightHistoryChart — pages', () => {
     const monte = monter()
 
     await fleche(monte, 'next').bouton.trigger('click')
-    expect(periode(monte).dates).toBe('avr. 2026\u00a0– sept. 2026')
+    expect(periode(monte).dates).toBe('avr. 2026 – sept. 2026')
 
     await fleche(monte, 'previous').bouton.trigger('click')
     await fleche(monte, 'previous').bouton.trigger('click')
     await fleche(monte, 'previous').bouton.trigger('click')
-    expect(periode(monte).dates).toBe('août 2025\u00a0– oct. 2025')
+    expect(periode(monte).dates).toBe('août 2025 – oct. 2025')
   })
 
   it('revient d’une page par la flèche ›', async () => {
@@ -227,7 +234,7 @@ describe('WeightHistoryChart — pages', () => {
     await fleche(monte, 'previous').bouton.trigger('click')
     await fleche(monte, 'next').bouton.trigger('click')
 
-    expect(periode(monte).dates).toBe('avr. 2026\u00a0– sept. 2026')
+    expect(periode(monte).dates).toBe('avr. 2026 – sept. 2026')
   })
 
   it('recalcule l’échelle en kg pour chaque page', async () => {
@@ -245,7 +252,7 @@ describe('WeightHistoryChart — pages', () => {
     const monte = monter(MILO)
 
     expect(periode(monte)).toEqual({
-      dates: 'mars 2026\u00a0– sept. 2026',
+      dates: 'mars 2026 – sept. 2026',
       pesees: '6 pesées · début du suivi',
     })
     expect(fleche(monte, 'previous').grisee).toBe(true)
@@ -274,7 +281,7 @@ describe('WeightHistoryChart — pages', () => {
     applyLocale('en')
     try {
       const monte = monter()
-      expect(periode(monte)).toEqual({ dates: 'Apr 2026\u00a0– Sep 2026', pesees: '12 weigh-ins' })
+      expect(periode(monte)).toEqual({ dates: 'Apr 2026 – Sep 2026', pesees: '12 weigh-ins' })
 
       await monte.setProps({ entries: TRENTE.slice(15, 18) })
       expect(periode(monte)).toEqual({
@@ -305,10 +312,10 @@ describe('WeightHistoryChart — pages', () => {
     await fleche(monte, 'previous').bouton.trigger('click')
 
     await monte.setProps({ entries: TRENTE.map((e, i) => (i === 10 ? { ...e, weightKg: 20 } : e)) })
-    expect(periode(monte)).toEqual({ dates: 'oct. 2025\u00a0– mars 2026', pesees: '12 pesées' })
+    expect(periode(monte)).toEqual({ dates: 'oct. 2025 – mars 2026', pesees: '12 pesées' })
 
     await monte.setProps({ entries: TRENTE.filter((_, index) => index !== 25) })
-    expect(periode(monte)).toEqual({ dates: 'oct. 2025\u00a0– mars 2026', pesees: '12 pesées' })
+    expect(periode(monte)).toEqual({ dates: 'oct. 2025 – mars 2026', pesees: '12 pesées' })
     expect(fleche(monte, 'next').grisee).toBe(false)
   })
 
@@ -323,7 +330,7 @@ describe('WeightHistoryChart — pages', () => {
     expect(fleche(monte, 'previous').grisee).toBe(true)
 
     await fleche(monte, 'next').bouton.trigger('click')
-    expect(periode(monte).dates).toBe('févr. 2026\u00a0– juil. 2026')
+    expect(periode(monte).dates).toBe('févr. 2026 – juil. 2026')
     expect(fleche(monte, 'next').grisee).toBe(true)
   })
 
@@ -335,7 +342,7 @@ describe('WeightHistoryChart — pages', () => {
     ;(monte.vm as unknown as { showLatestPage: () => void }).showLatestPage()
     await nextTick()
 
-    expect(periode(monte).dates).toBe('avr. 2026\u00a0– sept. 2026')
+    expect(periode(monte).dates).toBe('avr. 2026 – sept. 2026')
     expect(points(monte)).toHaveLength(12)
   })
 })
@@ -346,7 +353,7 @@ describe('WeightHistoryChart — glisser', () => {
 
     await glisser(monte, 100, 200)
 
-    expect(periode(monte).dates).toBe('oct. 2025\u00a0– mars 2026')
+    expect(periode(monte).dates).toBe('oct. 2025 – mars 2026')
   })
 
   it('montre la page suivante quand le doigt glisse vers la gauche', async () => {
@@ -355,7 +362,7 @@ describe('WeightHistoryChart — glisser', () => {
 
     await glisser(monte, 200, 100)
 
-    expect(periode(monte).dates).toBe('avr. 2026\u00a0– sept. 2026')
+    expect(periode(monte).dates).toBe('avr. 2026 – sept. 2026')
   })
 
   it('fait suivre la courbe au doigt pendant le geste, puis la repose', async () => {
@@ -385,7 +392,7 @@ describe('WeightHistoryChart — glisser', () => {
     )
 
     await doigt(monte, 'pointerup', 100, 100, 0)
-    expect(periode(monte).dates).toBe('avr. 2026\u00a0– sept. 2026')
+    expect(periode(monte).dates).toBe('avr. 2026 – sept. 2026')
     expect(monte.get('.weight-history-chart__svg').attributes('style') ?? '').not.toContain(
       'translateX',
     )
@@ -396,7 +403,7 @@ describe('WeightHistoryChart — glisser', () => {
 
     await glisser(monte, 100, 140)
 
-    expect(periode(monte).dates).toBe('avr. 2026\u00a0– sept. 2026')
+    expect(periode(monte).dates).toBe('avr. 2026 – sept. 2026')
   })
 
   it('ne sélectionne aucune pesée en glissant', async () => {
@@ -419,7 +426,7 @@ describe('WeightHistoryChart — glisser', () => {
     )
     await doigt(monte, 'pointercancel', 104, 160, 0)
 
-    expect(periode(monte).dates).toBe('avr. 2026\u00a0– sept. 2026')
+    expect(periode(monte).dates).toBe('avr. 2026 – sept. 2026')
     expect(selections(monte)).toEqual([])
   })
 
@@ -433,7 +440,7 @@ describe('WeightHistoryChart — glisser', () => {
     expect(monte.get('.weight-history-chart__svg').attributes('style') ?? '').not.toContain(
       'translateX',
     )
-    expect(periode(monte).dates).toBe('avr. 2026\u00a0– sept. 2026')
+    expect(periode(monte).dates).toBe('avr. 2026 – sept. 2026')
   })
 })
 
@@ -483,7 +490,7 @@ describe('WeightHistoryChart — animation', () => {
     await glisser(monte, 100, 60)
 
     expect(animate).not.toHaveBeenCalled()
-    expect(periode(monte).dates).toBe('oct. 2025\u00a0– mars 2026')
+    expect(periode(monte).dates).toBe('oct. 2025 – mars 2026')
   })
 })
 
@@ -558,7 +565,7 @@ describe('WeightHistoryChart — appui long', () => {
     await doigt(monte, 'pointermove', PAGE_RECENTE.points[4]!.x + 120)
     await doigt(monte, 'pointerup', PAGE_RECENTE.points[4]!.x + 120, 100, 0)
 
-    expect(periode(monte).dates).toBe('avr. 2026\u00a0– sept. 2026')
+    expect(periode(monte).dates).toBe('avr. 2026 – sept. 2026')
     expect(selections(monte).at(-1)).toBe(18 + 4 + 5)
     expect(monte.get('.weight-history-chart__svg').attributes('style') ?? '').not.toContain(
       'translateX',
@@ -622,7 +629,7 @@ describe('WeightHistoryChart — clavier et lecteur d’écran', () => {
     const svg = monter().get('.weight-history-chart__svg')
 
     expect(svg.attributes('aria-valuenow')).toBe('12')
-    expect(svg.attributes('aria-valuetext')).toBe('Pesée du 13 septembre 2026, 24,5\u00a0kg')
+    expect(plain(svg.attributes('aria-valuetext'))).toBe('Pesée du 13 septembre 2026, 24,5 kg')
   })
 
   it('parcourt les pesées aux flèches gauche et droite, et annonce la pesée sélectionnée', async () => {
@@ -635,7 +642,7 @@ describe('WeightHistoryChart — clavier et lecteur d’écran', () => {
 
     expect(selections(monte)).toEqual([28, 27, 28])
     expect(svg.attributes('aria-valuenow')).toBe('11')
-    expect(svg.attributes('aria-valuetext')).toBe('Pesée du 30 août 2026, 23,8\u00a0kg')
+    expect(plain(svg.attributes('aria-valuetext'))).toBe('Pesée du 30 août 2026, 23,8 kg')
   })
 
   it('saute à la première pesée de la page par Début, à la dernière par Fin', async () => {
@@ -643,7 +650,7 @@ describe('WeightHistoryChart — clavier et lecteur d’écran', () => {
     const svg = monte.get('.weight-history-chart__svg')
 
     await svg.trigger('keydown', { key: 'Home' })
-    expect(svg.attributes('aria-valuetext')).toBe('Pesée du 12 avril 2026, 16,8\u00a0kg')
+    expect(plain(svg.attributes('aria-valuetext'))).toBe('Pesée du 12 avril 2026, 16,8 kg')
 
     await svg.trigger('keydown', { key: 'End' })
     expect(selections(monte)).toEqual([18, 29])
@@ -680,11 +687,11 @@ describe('WeightHistoryChart — clavier et lecteur d’écran', () => {
     const svg = monte.get('.weight-history-chart__svg')
 
     await svg.trigger('keydown', { key: 'PageDown' })
-    expect(periode(monte).dates).toBe('oct. 2025\u00a0– mars 2026')
-    expect(svg.attributes('aria-valuetext')).toBe('Pesée du 29 mars 2026, 16,1\u00a0kg')
+    expect(periode(monte).dates).toBe('oct. 2025 – mars 2026')
+    expect(plain(svg.attributes('aria-valuetext'))).toBe('Pesée du 29 mars 2026, 16,1 kg')
 
     await svg.trigger('keydown', { key: 'PageUp' })
-    expect(periode(monte).dates).toBe('avr. 2026\u00a0– sept. 2026')
+    expect(periode(monte).dates).toBe('avr. 2026 – sept. 2026')
   })
 
   it('ne change rien par PageUp ni PageDown au bout du suivi', async () => {
@@ -692,12 +699,12 @@ describe('WeightHistoryChart — clavier et lecteur d’écran', () => {
     const svg = monte.get('.weight-history-chart__svg')
 
     await svg.trigger('keydown', { key: 'PageUp' })
-    expect(periode(monte).dates).toBe('avr. 2026\u00a0– sept. 2026')
+    expect(periode(monte).dates).toBe('avr. 2026 – sept. 2026')
 
     await svg.trigger('keydown', { key: 'PageDown' })
     await svg.trigger('keydown', { key: 'PageDown' })
     await svg.trigger('keydown', { key: 'PageDown' })
-    expect(periode(monte).dates).toBe('août 2025\u00a0– oct. 2025')
+    expect(periode(monte).dates).toBe('août 2025 – oct. 2025')
   })
 
   it('laisse passer les autres touches', async () => {
