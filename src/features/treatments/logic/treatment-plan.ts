@@ -31,6 +31,7 @@ import { isCalendarDay } from '@/shared/domain/calendar-day'
 import {
   isAdvanced,
   isNoteLine,
+  orderPeriods,
   ScheduleTooLongError,
   type Due,
   type LineChange,
@@ -38,7 +39,6 @@ import {
   type MovedDose,
   type TreatmentSchedule,
 } from '@/shared/domain/treatment-schedule'
-import { orderPeriods } from '@/shared/domain/treatment-schedule-plan'
 
 type Edition = z.output<typeof treatmentEditionSchema>
 

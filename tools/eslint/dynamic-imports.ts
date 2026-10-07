@@ -27,11 +27,19 @@ const rule: Rule.RuleModule = {
   },
 }
 
-// Deux noms pour la même règle : en flat config, deux blocs qui déclarent la
+const staticAndDynamicRule: Rule.RuleModule = {
+  meta: noRestrictedImports.meta,
+  create(context) {
+    return { ...noRestrictedImports.create(context), ...rule.create(context) }
+  },
+}
+
+// Plusieurs noms pour la même règle : en flat config, deux blocs qui déclarent la
 // même règle sur un même fichier s'écrasent au lieu de se cumuler.
 export default {
   rules: {
     'no-restricted-dynamic-imports': rule,
     'no-restricted-dynamic-feature-imports': rule,
+    'no-restricted-engine-imports': staticAndDynamicRule,
   },
 } satisfies ESLint.Plugin

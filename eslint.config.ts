@@ -269,6 +269,26 @@ export default defineConfigWithVueTs(
     rules: restrictImports({ paths: [NOTIFICATIONS_PLUGIN_RESTRICTION] }),
   },
 
+  {
+    name: 'app/treatment-engine-facade',
+    files: ['src/**/*.{ts,vue}'],
+    ignores: ['src/shared/domain/treatment-schedule*.ts', '**/__tests__/**'],
+    rules: {
+      'app/no-restricted-engine-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['**/treatment-schedule-*'],
+              message:
+                "Le moteur d'échéances s'importe par sa façade, `@/shared/domain/treatment-schedule`.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+
   // Règle distincte de no-restricted-imports pour se cumuler avec les interdits ci-dessus.
   ...FEATURES.map((feature) => ({
     name: `app/feature-imports/${feature}`,
