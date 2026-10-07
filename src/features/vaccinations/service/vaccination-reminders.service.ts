@@ -19,7 +19,7 @@ import {
 type Provider<T> = () => T | Promise<T>
 
 export type VaccinationRemindersDependencies = {
-  vaccinations: Provider<Pick<VaccinationsRepository, 'getById'>>
+  vaccinations: Provider<Pick<VaccinationsRepository, 'getById' | 'listReplacedDues'>>
   animals: Provider<Pick<AnimalsRepository, 'getById'>>
   settings?: Provider<CarnetReminderSettings>
   notifications: ReminderNotifications
@@ -40,10 +40,18 @@ export function createVaccinationRemindersService({
     /** Relit le vaccin dans la file des rappels : supprimé, il n'a plus de rappel. */
     async reschedule(id: string): Promise<void> {
       await replaceDueReminders(notifications, { kind: 'vaccination', id }, async () => {
-        const vaccination = await (await vaccinations()).getById(id)
+        const repository = await vaccinations()
+        const vaccination = await repository.getById(id)
         if (vaccination === null) return { care: null, isNoted: () => false }
+        const replacedDues = await repository.listReplacedDues(id)
         const animal = await (await animals()).getById(vaccination.animalId)
-        return vaccinationReminders(t, vaccination, animal, await settings(), now())
+        return vaccinationReminders(
+          t,
+          { ...vaccination, replacedDues },
+          animal,
+          await settings(),
+          now(),
+        )
       })
     },
   }

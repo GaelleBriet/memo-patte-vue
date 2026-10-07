@@ -6,11 +6,7 @@ import { currentDeviceId } from '@/core/device/device-identity'
 import { guardedUpsert, type SyncRow } from '@/core/supabase/guarded-upsert'
 import { loadSupabaseClient } from '@/core/supabase/load-client'
 import { syncField, type SyncPullPage } from '@/core/sync/service/syncable-table'
-import {
-  createTreatmentDosesRepository,
-  headDoseIdSql,
-  lastGivenOnSql,
-} from './treatment-doses.repository'
+import { createTreatmentDosesRepository } from './treatment-doses.repository'
 import {
   createTreatmentPeriodsRepository,
   currentPeriodIdSql,
@@ -42,7 +38,7 @@ interface TreatmentRow {
   updated_by_device: string
 }
 
-interface TreatmentWithHeadRow extends Omit<
+interface TreatmentWithPeriodRow extends Omit<
   TreatmentRow,
   'created_by_device' | 'updated_by_device'
 > {
@@ -50,8 +46,6 @@ interface TreatmentWithHeadRow extends Omit<
   frequency_value: number
   frequency_unit: FrequencyUnit
   stopped_on: string | null
-  last_dose_date: string | null
-  next_due_date: string
 }
 
 export type TreatmentVersion = Pick<Treatment, 'id' | 'animalId' | 'updatedAt' | 'deletedAt'>
@@ -98,22 +92,14 @@ const COLUMNS =
 /** Les traitements supprimés restent en base pour la synchronisation, jamais pour l'UI. */
 const NOT_DELETED = 'deleted_at IS NULL'
 
-const NEXT_DUE_DATE = 'COALESCE(head.next_due_date, period.first_due_on)'
-
-/**
- * La tête est la dernière ligne de la période en cours ; le traitement est daté de la modification
- * la plus récente entre lui et cette période.
- */
-const VISIBLE_WITH_HEAD = `
+/** Le traitement est daté de la modification la plus récente entre lui et sa période en cours. */
+const VISIBLE_WITH_PERIOD = `
   SELECT treatment.id, treatment.animal_id, treatment.name, treatment.type,
          period.id AS period_id, period.frequency_value, period.frequency_unit, period.stopped_on,
-         ${lastGivenOnSql('period.id')} AS last_dose_date,
-         ${NEXT_DUE_DATE} AS next_due_date,
          treatment.created_at, MAX(treatment.updated_at, period.updated_at) AS updated_at,
          treatment.deleted_at
   FROM treatment
   JOIN treatment_period period ON period.id = ${currentPeriodIdSql('treatment.id')}
-  LEFT JOIN treatment_dose head ON head.id = ${headDoseIdSql('period.id')}
   WHERE treatment.deleted_at IS NULL`
 
 function toRecord(row: TreatmentRow): TreatmentRecord {
@@ -168,7 +154,7 @@ function withHistory(
   })
 }
 
-function toTreatment(row: TreatmentWithHeadRow): Treatment {
+function toTreatment(row: TreatmentWithPeriodRow): Treatment {
   return {
     id: row.id,
     animalId: row.animal_id,
@@ -176,8 +162,6 @@ function toTreatment(row: TreatmentWithHeadRow): Treatment {
     type: row.type,
     periodId: row.period_id,
     frequency: { value: row.frequency_value, unit: row.frequency_unit },
-    lastDoseDate: row.last_dose_date,
-    nextDueDate: row.next_due_date,
     stoppedOn: row.stopped_on,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -201,9 +185,10 @@ export function createTreatmentsRepository(
   const doses = createTreatmentDosesRepository(db, { deviceId })
 
   async function getById(id: string): Promise<Treatment | null> {
-    const rows = await db.query<TreatmentWithHeadRow>(`${VISIBLE_WITH_HEAD} AND treatment.id = ?`, [
-      id,
-    ])
+    const rows = await db.query<TreatmentWithPeriodRow>(
+      `${VISIBLE_WITH_PERIOD} AND treatment.id = ?`,
+      [id],
+    )
     const row = rows[0]
     return row ? toTreatment(row) : null
   }
@@ -243,20 +228,20 @@ export function createTreatmentsRepository(
 
     getById,
 
-    /** Le plus urgent d'abord : l'ordre de la section « Traitements en cours » et de l'accueil. */
+    /** Dans l'ordre de saisie des traitements. */
     async listByAnimal(animalId: string): Promise<Treatment[]> {
-      const rows = await db.query<TreatmentWithHeadRow>(
-        `${VISIBLE_WITH_HEAD} AND treatment.animal_id = ?
-         ORDER BY ${NEXT_DUE_DATE}, treatment.created_at`,
+      const rows = await db.query<TreatmentWithPeriodRow>(
+        `${VISIBLE_WITH_PERIOD} AND treatment.animal_id = ?
+         ORDER BY treatment.created_at, treatment.id`,
         [animalId],
       )
       return rows.map(toTreatment)
     },
 
     async listAll(): Promise<Treatment[]> {
-      const rows = await db.query<TreatmentWithHeadRow>(
-        `${VISIBLE_WITH_HEAD}
-         ORDER BY treatment.animal_id, ${NEXT_DUE_DATE}, treatment.created_at`,
+      const rows = await db.query<TreatmentWithPeriodRow>(
+        `${VISIBLE_WITH_PERIOD}
+         ORDER BY treatment.animal_id, treatment.created_at, treatment.id`,
       )
       return rows.map(toTreatment)
     },

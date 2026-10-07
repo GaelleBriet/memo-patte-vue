@@ -107,9 +107,12 @@ describe('treatmentsRepository — port de synchronisation', () => {
       type: 'deworming',
       frequency: { value: 1, unit: 'month' },
       stoppedOn: null,
-      lastDoseDate: '2026-01-01',
-      nextDueDate: '2026-02-01',
     })
+    await expect(
+      db.query('SELECT given_on, next_due_date FROM treatment_dose WHERE treatment_id = ?', [
+        TREATMENT_ID,
+      ]),
+    ).resolves.toEqual([{ given_on: '2026-01-01', next_due_date: '2026-02-01' }])
   })
 
   it('une suppression distante plus récente se propage comme une modification normale', async () => {

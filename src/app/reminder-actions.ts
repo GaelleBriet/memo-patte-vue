@@ -45,7 +45,7 @@ export type ReminderActionsDependencies = {
   router: Pick<Router, 'currentRoute' | 'push' | 'replace'>
   animals: Provider<Pick<AnimalsRepository, 'getById'>>
   treatments: Provider<Pick<TreatmentsRepository, 'getWithHistory'>>
-  vaccinations: Provider<Pick<VaccinationsRepository, 'getById'>>
+  vaccinations: Provider<Pick<VaccinationsRepository, 'getById' | 'listReplacedDues'>>
   doses: Pick<TreatmentDosesService, 'apply' | 'noteMoment' | 'undoBatch'>
   refreshHome: () => unknown
   t: Translate
@@ -138,6 +138,7 @@ export function createReminderActions({
       ariaLabel: texts.undo,
       undo: () => doses.undoBatch(treatment.id, noted.undo),
       onUndone: () => void refreshHome(),
+      onFailed: () => void refreshHome(),
       failedMessage: t('reminderSheet.undoFailed'),
     })
   }
@@ -205,10 +206,12 @@ export function createReminderActions({
   }
 
   async function vaccinationDone(id: string, dueDate: string): Promise<void> {
-    const vaccination = await (await vaccinations()).getById(id)
+    const repository = await vaccinations()
+    const vaccination = await repository.getById(id)
     if (vaccination === null) return openHome()
     const { lastInjectionDate } = vaccination
-    if (lastInjectionDate !== null && isInjectionNoted(vaccination, dueDate)) {
+    const replacedDues = await repository.listReplacedDues(id)
+    if (lastInjectionDate !== null && isInjectionNoted({ ...vaccination, replacedDues }, dueDate)) {
       const texts: AlreadyNotedTexts = {
         today: (named) => t('notifications.action.alreadyInjectionToday', named),
         on: (named) => t('notifications.action.alreadyInjection', named),

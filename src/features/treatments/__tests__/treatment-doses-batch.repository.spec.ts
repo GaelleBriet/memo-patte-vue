@@ -2,7 +2,9 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory-db'
+import type { DbClient, SqlStatement } from '@/core/db/db-client'
 import {
+  ConcurrentWriteError,
   DuplicateDueError,
   createTreatmentDosesRepository,
   type DoseWrite,
@@ -34,6 +36,21 @@ function fields(overrides: Partial<DoseFields> = {}): DoseFields {
 const MATIN = fields()
 const SOIR = fields({ dueTime: '20:00', nextDueDate: '2026-09-28' })
 const OWNER = { treatmentId: METACAM, animalId: LUNA }
+
+/** Une autre écriture passe entre la lecture du lot et sa transaction. */
+function slippedIn(db: DbClient, other: () => SqlStatement[]): DbClient {
+  let slipped = false
+  return {
+    ...db,
+    async runMany(statements) {
+      if (!slipped) {
+        slipped = true
+        await db.runMany(other())
+      }
+      await db.runMany(statements)
+    },
+  }
+}
 
 describe('treatmentDosesRepository — écrire ce que rend le moteur', () => {
   let db: InMemoryDb
@@ -226,9 +243,9 @@ describe('treatmentDosesRepository — écrire ce que rend le moteur', () => {
 
       await expect(visible()).resolves.toEqual(before)
       expect(inverse).toEqual([
-        { action: 'restore', id: 'report' },
-        { action: 'rewrite', id: 'matin', dose: MATIN },
-        { action: 'delete', id: 'nouvelle' },
+        { action: 'restore', id: 'report', expectedUpdatedAt: T2 },
+        { action: 'rewrite', id: 'matin', dose: MATIN, expectedUpdatedAt: T2 },
+        { action: 'delete', id: 'nouvelle', expectedUpdatedAt: T2 },
       ])
       await expect(row('report')).resolves.toMatchObject({ updated_at: T3, deleted_at: null })
       await expect(row('matin')).resolves.toMatchObject({ updated_at: T3 })
@@ -340,6 +357,142 @@ describe('treatmentDosesRepository — écrire ce que rend le moteur', () => {
 
     it('n’écrit rien pour un lot vide', async () => {
       await expect(doses.applyBatch([], T2)).resolves.toEqual([])
+    })
+
+    describe('écritures concurrentes', () => {
+      const T4 = '2026-09-28T09:06:00.000Z'
+
+      it('D1 : échoue en entier quand une ligne à réécrire est supprimée après la lecture', async () => {
+        const before = await visible()
+        const concurrent = createTreatmentDosesRepository(
+          slippedIn(db, () => [doses.markDeletedStatement(['soir'], T2)]),
+        )
+
+        await expect(
+          concurrent.applyBatch(
+            [
+              { action: 'rewrite', id: 'matin', dose: REDATEE },
+              { action: 'rewrite', id: 'soir', dose: { ...SOIR, givenOn: '2026-09-28' } },
+            ],
+            T3,
+          ),
+        ).rejects.toBeInstanceOf(ConcurrentWriteError)
+
+        await expect(visible()).resolves.toEqual(before.filter(({ id }) => id !== 'soir'))
+      })
+
+      it('D1 : échoue en entier quand une ligne à supprimer est supprimée après la lecture', async () => {
+        const concurrent = createTreatmentDosesRepository(
+          slippedIn(db, () => [doses.markDeletedStatement(['soir'], T2)]),
+        )
+
+        await expect(
+          concurrent.applyBatch(
+            [
+              { action: 'delete', id: 'matin' },
+              { action: 'delete', id: 'soir' },
+            ],
+            T3,
+          ),
+        ).rejects.toBeInstanceOf(ConcurrentWriteError)
+
+        await expect(row('matin')).resolves.toMatchObject({ deleted_at: null })
+        await expect(row('soir')).resolves.toMatchObject({ deleted_at: T2 })
+      })
+
+      it('D9 : un « Annuler » ancien ne réécrit pas une ligne modifiée depuis', async () => {
+        const undo = await doses.applyBatch([{ action: 'rewrite', id: 'matin', dose: REDATEE }], T2)
+        const encore = fields({ givenOn: '2026-09-29', nextDueDate: '2026-09-29' })
+        await doses.applyBatch([{ action: 'rewrite', id: 'matin', dose: encore }], T3)
+
+        await expect(doses.applyBatch(undo, T4)).rejects.toBeInstanceOf(ConcurrentWriteError)
+
+        await expect(visible()).resolves.toContainEqual({ id: 'matin', ...encore })
+        await expect(row('matin')).resolves.toMatchObject({ updated_at: T3 })
+      })
+
+      it('D9 : un « Annuler » ne supprime pas une prise créée puis modifiée depuis', async () => {
+        const undo = await doses.applyBatch(LOT, T2)
+        await doses.applyBatch(
+          [{ action: 'rewrite', id: 'nouvelle', dose: { ...NOUVELLE, givenOn: '2026-09-27' } }],
+          T3,
+        )
+
+        await expect(doses.applyBatch(undo, T4)).rejects.toBeInstanceOf(ConcurrentWriteError)
+
+        await expect(row('nouvelle')).resolves.toMatchObject({ deleted_at: null, updated_at: T3 })
+        await expect(row('report')).resolves.toMatchObject({ deleted_at: T2 })
+      })
+
+      it('D9 : un « Annuler » ne rétablit pas une ligne rétablie puis supprimée de nouveau', async () => {
+        const undo = await doses.applyBatch([{ action: 'delete', id: 'soir' }], T2)
+        await doses.applyBatch([{ action: 'restore', id: 'soir' }], T3)
+        await doses.applyBatch([{ action: 'delete', id: 'soir' }], T3)
+
+        await expect(doses.applyBatch(undo, T4)).rejects.toBeInstanceOf(ConcurrentWriteError)
+
+        await expect(row('soir')).resolves.toMatchObject({ deleted_at: T3 })
+      })
+
+      it('D9 : un « Annuler » échoue en entier quand la ligne est modifiée après la lecture', async () => {
+        const undo = await doses.applyBatch(LOT, T2)
+        const concurrent = createTreatmentDosesRepository(
+          slippedIn(db, () => [doses.rewriteStatement('matin', MATIN, T3)]),
+        )
+
+        await expect(concurrent.applyBatch(undo, T4)).rejects.toBeInstanceOf(ConcurrentWriteError)
+
+        await expect(row('nouvelle')).resolves.toMatchObject({ deleted_at: null })
+        await expect(row('report')).resolves.toMatchObject({ deleted_at: T2 })
+      })
+
+      it.each([
+        [
+          'le traitement est supprimé',
+          `UPDATE treatment SET deleted_at = '${T2}' WHERE id = '${METACAM}'`,
+        ],
+        [
+          'la période est supprimée',
+          `UPDATE treatment_period SET deleted_at = '${T2}' WHERE id = '${PERIODE}'`,
+        ],
+      ])('D11 : ne crée aucune prise quand %s après la lecture', async (_, sql) => {
+        const before = await visible()
+        const concurrent = createTreatmentDosesRepository(slippedIn(db, () => [{ sql }]))
+
+        await expect(concurrent.applyBatch(LOT, T3)).rejects.toBeInstanceOf(ConcurrentWriteError)
+
+        const [{ live }] = (await db.query<{ live: number }>(
+          'SELECT COUNT(*) AS live FROM treatment_dose WHERE deleted_at IS NULL',
+        )) as [{ live: number }]
+        expect(live).toBe(before.length)
+        await expect(row('nouvelle')).resolves.toBeUndefined()
+      })
+
+      it('D11 : un « Annuler » ne rétablit pas une prise sous un traitement supprimé depuis', async () => {
+        const undo = await doses.applyBatch([{ action: 'delete', id: 'soir' }], T2)
+        await db.run(`UPDATE treatment SET deleted_at = ? WHERE id = ?`, [T3, METACAM])
+
+        await expect(doses.applyBatch(undo, T4)).rejects.toBeInstanceOf(ConcurrentWriteError)
+
+        await expect(row('soir')).resolves.toMatchObject({ deleted_at: T2 })
+      })
+
+      it('D12 : deux créations de la même échéance dans un lot lèvent DuplicateDueError', async () => {
+        const before = await visible()
+        const echeance = fields({ dueOn: '2026-09-30', nextDueDate: '2026-09-30' })
+
+        await expect(
+          doses.applyBatch(
+            [
+              { action: 'create', id: 'une', ...OWNER, dose: echeance },
+              { action: 'create', id: 'deux', ...OWNER, dose: { ...echeance, status: 'missed' } },
+            ],
+            T2,
+          ),
+        ).rejects.toBeInstanceOf(DuplicateDueError)
+
+        await expect(visible()).resolves.toEqual(before)
+      })
     })
   })
 })

@@ -201,6 +201,25 @@ describe('action du toast', () => {
     })
   })
 
+  it('prévient l’écran quand l’annulation échoue', async () => {
+    const onFailed = vi.fn<() => void>()
+    showUndoableToast('Prise de Bravecto notée pour Boree', {
+      label: 'Annuler',
+      ariaLabel: 'Annuler la prise de Bravecto',
+      undo: () => Promise.reject(new Error('prise modifiée depuis')),
+      onUndone: vi.fn<() => void>(),
+      onFailed,
+      failedMessage: 'L’annulation n’a pas abouti.',
+    })
+
+    runToastAction()
+    await Promise.resolve()
+    await Promise.resolve()
+
+    expect(onFailed).toHaveBeenCalledOnce()
+    expect(toastMessage.value).toBe('L’annulation n’a pas abouti.')
+  })
+
   it('ne rouvre rien quand le focus quitte un toast déjà fermé', () => {
     showToast('Prise de Bravecto notée pour Boree', {
       action: { label: 'Annuler', run: vi.fn<() => void>() },

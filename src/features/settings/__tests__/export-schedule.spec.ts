@@ -134,7 +134,7 @@ describe('PDF et CSV : prochaine échéance lue par le moteur', () => {
       due: { kind: 'due', dueOn: '2026-09-12', dueTime: '20:00', overdue: false },
       state: 'upToDate',
     })
-    expect(pdfText(data, '2026-09-12')).toContain('12/09/2026 à 20\u00a0h')
+    expect(pdfText(data, '2026-09-12')).toContain('12/09/2026\u00a0à\u00a020\u00a0h')
     expect(csvNextDueDate(data, '2026-09-12')).toBe('2026-09-12')
   })
 

@@ -180,3 +180,9 @@ $color-less-precise-text: $color-reminders-off-text; // Son texte
 
 // Messages de l’accueil (V17 bis, V17 ter)
 $color-home-message-icon-surface: $color-notice-surface; // Pastille de l’icône des cartes « protéger » et trimestrielle
+
+// Pastille d’icône en tête d’une ligne du Carnet (B · V11, V15)
+$size-row-icon: 36px;
+$gap-list-row: 12px; // Écart entre la pastille, le texte et la fin d’une ligne de carte
+$color-row-icon-surface: $color-notice-surface;
+$color-row-icon-muted-surface: $color-checkbox-disabled-surface; // Ligne d’un traitement terminé

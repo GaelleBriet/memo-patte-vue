@@ -14,7 +14,6 @@ const validInput = {
   name: 'Bravecto',
   type: 'antiparasitic',
   frequency: { value: 3, unit: 'month' },
-  lastDoseDate: '2026-03-01',
 } as const
 
 describe('listes fermées', () => {
@@ -87,70 +86,41 @@ describe('treatmentInputSchema', () => {
     }
   })
 
-  it('rejette une date de dernière prise future, absente ou mal formée', () => {
-    expect(
-      treatmentInputSchema.safeParse({ ...validInput, lastDoseDate: '2099-01-01' }).success,
-    ).toBe(false)
-    expect(
-      treatmentInputSchema.safeParse({ ...validInput, lastDoseDate: '01/03/2026' }).success,
-    ).toBe(false)
-    expect(treatmentInputSchema.safeParse({ ...validInput, lastDoseDate: null }).success).toBe(
-      false,
-    )
-  })
-
-  it('accepte une date de dernière prise passée ou aujourd’hui', () => {
-    const today = new Date().toISOString().slice(0, 10)
-    expect(
-      treatmentInputSchema.safeParse({ ...validInput, lastDoseDate: '2020-01-15' }).success,
-    ).toBe(true)
-    expect(treatmentInputSchema.safeParse({ ...validInput, lastDoseDate: today }).success).toBe(
-      true,
-    )
-  })
-
   it('rejette un identifiant d’animal qui n’est pas un UUID', () => {
     expect(treatmentInputSchema.safeParse({ ...validInput, animalId: 'a1' }).success).toBe(false)
   })
 
-  it('ignore une échéance fournie : elle est calculée, jamais saisie', () => {
-    expect(treatmentInputSchema.parse({ ...validInput, nextDueDate: '2030-01-01' })).toEqual(
-      validInput,
-    )
+  it('ignore une échéance ou une dernière prise fournie : elles se lisent par le moteur', () => {
+    expect(
+      treatmentInputSchema.parse({
+        ...validInput,
+        lastDoseDate: '2026-03-01',
+        nextDueDate: '2030-01-01',
+      }),
+    ).toEqual(validInput)
   })
 })
 
 describe('treatmentSchema', () => {
-  it('exige sa période en cours, l’échéance calculée et les métadonnées', () => {
+  it('exige sa période en cours et les métadonnées, sans échéance', () => {
     const treatment = {
       ...validInput,
       id: '22222222-2222-4222-8222-222222222222',
       periodId: '22222222-2222-4222-8222-222222222222',
-      nextDueDate: '2026-06-01',
       stoppedOn: null,
       createdAt: '2026-03-01T10:00:00.000Z',
       updatedAt: '2026-03-01T10:00:00.000Z',
       deletedAt: null,
     }
     expect(treatmentSchema.parse(treatment)).toEqual(treatment)
-    expect(treatmentSchema.safeParse({ ...treatment, nextDueDate: undefined }).success).toBe(false)
+    expect(
+      treatmentSchema.parse({
+        ...treatment,
+        lastDoseDate: '2026-03-01',
+        nextDueDate: '2026-06-01',
+      }),
+    ).toEqual(treatment)
     expect(treatmentSchema.safeParse({ ...treatment, periodId: undefined }).success).toBe(false)
-  })
-
-  it('accepte un traitement sans prise : aucune dernière prise', () => {
-    const treatment = {
-      ...validInput,
-      id: '22222222-2222-4222-8222-222222222222',
-      periodId: '22222222-2222-4222-8222-222222222222',
-      lastDoseDate: null,
-      nextDueDate: '2026-06-01',
-      stoppedOn: null,
-      createdAt: '2026-03-01T10:00:00.000Z',
-      updatedAt: '2026-03-01T10:00:00.000Z',
-      deletedAt: null,
-    }
-
-    expect(treatmentSchema.parse(treatment)).toEqual(treatment)
   })
 })
 

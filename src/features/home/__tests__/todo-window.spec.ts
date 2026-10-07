@@ -9,6 +9,7 @@ const IDENTITY = {
   animalId: 'milo',
   label: 'Milbemax',
   treatmentType: 'deworming',
+  firstVaccine: false,
 } as const
 
 function due(daysUntil: number, overrides: Partial<TodoDueItem> = {}): TodoDueItem {

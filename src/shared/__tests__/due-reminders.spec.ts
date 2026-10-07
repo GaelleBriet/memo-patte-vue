@@ -1,12 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
 
-import {
-  dueReminderPrefix,
-  isDoneForDue,
-  isLegacyReminderKey,
-  parseReminderKey,
-} from '../domain/due-reminders'
+import { dueReminderPrefix, isLegacyReminderKey, parseReminderKey } from '../domain/due-reminders'
 
 const ID = '22222222-2222-4222-8222-222222222222'
 const ENTRY = { kind: 'vaccination', id: ID } as const
@@ -46,22 +41,5 @@ describe('isLegacyReminderKey', () => {
     [`treatment:${ID}:2026-10-15:soon`, false],
   ])('%s : %s', (key, expected) => {
     expect(isLegacyReminderKey(key)).toBe(expected)
-  })
-})
-
-describe('isDoneForDue', () => {
-  it('compte une prise faite le jour de l’échéance, après, ou moins de trois jours avant', () => {
-    expect(isDoneForDue('2026-10-15', '2026-10-15')).toBe(true)
-    expect(isDoneForDue('2026-10-15', '2026-10-18')).toBe(true)
-    expect(isDoneForDue('2026-10-15', '2026-10-13')).toBe(true)
-  })
-
-  it('laisse au cycle précédent une prise faite trois jours avant ou plus tôt', () => {
-    expect(isDoneForDue('2026-10-15', '2026-10-12')).toBe(false)
-    expect(isDoneForDue('2026-10-15', '2026-09-15')).toBe(false)
-  })
-
-  it('ne compte rien sans prise', () => {
-    expect(isDoneForDue('2026-10-15', null)).toBe(false)
   })
 })

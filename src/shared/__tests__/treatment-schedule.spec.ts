@@ -3450,3 +3450,115 @@ describe('sans changer la fréquence ni les heures, la prochaine dose reste cell
     })
   })
 })
+
+describe('un déplacement qui arrive après la fermeture de sa période est sans effet (G5, Q25, #482)', () => {
+  const noted = done(carnet(weekly({ firstDueOn: '2026-09-18' })), '2026-09-25')
+  const next = period({
+    id: 'p2',
+    startsOn: '2026-09-28',
+    firstDueOn: '2026-10-10',
+    referenceOn: '2026-10-10',
+    frequency: { value: 10, unit: 'day' },
+    createdAt: '2026-09-28T08:00:00.000Z',
+  })
+  const changed = (book: Carnet): Carnet => ({ ...book, periods: [...book.periods, next] })
+  const calendar = (book: Carnet, today: string) => {
+    const schedule = scheduleOf(book, today)
+    return {
+      phase: schedule.phase,
+      current: schedule.currentDoses,
+      unlogged: schedule.unloggedDoses,
+      upcoming: schedule.upcoming(5),
+    }
+  }
+
+  it('reportée au 15 déc. puis fréquence changée le 28 sept. : la ligne quitte l’historique', () => {
+    const book = changed(storedMove(noted, '2026-10-02', '2026-12-15'))
+    const line = lastDose(book)
+    const schedule = scheduleOf(book, '2026-09-28')
+
+    expect(schedule.staleDoseIds).toEqual([line.id])
+    expect(schedule.doses.map(({ id }) => id)).not.toContain(line.id)
+    expect(calendar(book, '2026-09-28')).toEqual(calendar(withoutDose(book, line.id), '2026-09-28'))
+  })
+
+  it('une arrivée le jour même du début de la période suivante est sans effet', () => {
+    const book = changed(storedMove(noted, '2026-10-02', '2026-09-28'))
+
+    expect(scheduleOf(book, '2026-09-28').staleDoseIds).toEqual([lastDose(book).id])
+  })
+
+  it('arrêté le 28 sept. : un report au 15 oct. de la dose du 2 oct. est sans effet', () => {
+    const stopped = {
+      ...noted,
+      periods: noted.periods.map((stoppedPeriod) => ({
+        ...stoppedPeriod,
+        stoppedOn: '2026-09-28',
+      })),
+    }
+    const book = storedMove(stopped, '2026-10-02', '2026-10-15')
+    const line = lastDose(book)
+
+    expect(scheduleOf(book, '2026-10-20').staleDoseIds).toEqual([line.id])
+    expect(calendar(book, '2026-10-20')).toEqual(calendar(withoutDose(book, line.id), '2026-10-20'))
+  })
+
+  it('la dose d’arrivée notée, la ligne reste dans l’historique', () => {
+    const moved = changed(storedMove(noted, '2026-10-02', '2026-12-15'))
+    const line = lastDose(moved)
+    const arrival = stored({
+      periodId: 'p1',
+      dueOn: '2026-12-15',
+      dueTime: null,
+      givenOn: '2026-12-15',
+      status: 'given',
+      nextDueDate: '2026-12-22',
+    })
+    const schedule = scheduleOf({ ...moved, doses: [...moved.doses, arrival] }, '2026-12-16')
+
+    expect(schedule.staleDoseIds).toEqual([])
+    expect(schedule.lockedMoveIds).toEqual([line.id])
+    expect(schedule.doses.map(({ id }) => id)).toContain(line.id)
+  })
+
+  it('une dose d’avant la fermeture reportée après elle garde sa ligne : son échéance reste retirée', () => {
+    const book = changed(storedMove(noted, '2026-09-18', '2026-10-01'))
+    const schedule = scheduleOf(book, '2026-09-28')
+
+    expect(schedule.staleDoseIds).toEqual([])
+    expect(schedule.unloggedDoses).toEqual([])
+  })
+
+  it('un nouveau réglage le 30 sept. repart de la prise du 25, pas du report sans effet', () => {
+    const book = changed(storedMove(noted, '2026-10-02', '2026-12-15'))
+
+    expect(scheduleOf(book, '2026-09-30').newPeriod({ value: 1, unit: 'week' }, [])).toEqual({
+      startsOn: '2026-09-30',
+      firstDueOn: '2026-10-02',
+      referenceOn: '2026-10-02',
+    })
+  })
+
+  it('reprise le 30 sept. après l’arrêt du 28 : la suite repart de la prise du 25', () => {
+    const moved = storedMove(noted, '2026-10-02', '2026-10-15')
+    const book = {
+      ...moved,
+      periods: moved.periods.map((stoppedPeriod) => ({
+        ...stoppedPeriod,
+        stoppedOn: '2026-09-28',
+      })),
+    }
+
+    expect(scheduleOf(book, '2026-09-30').newPeriod({ value: 1, unit: 'week' }, [])).toEqual({
+      startsOn: '2026-09-30',
+      firstDueOn: '2026-10-02',
+      referenceOn: '2026-10-02',
+    })
+  })
+
+  it('une arrivée avant la fermeture garde sa ligne', () => {
+    const book = changed(storedMove(noted, '2026-10-02', '2026-09-27'))
+
+    expect(scheduleOf(book, '2026-09-28').staleDoseIds).toEqual([])
+  })
+})
