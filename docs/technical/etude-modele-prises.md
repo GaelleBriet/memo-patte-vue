@@ -296,9 +296,9 @@ curseur au pull, `proposition-sync.md` §1). Risques, lus dans le code :
 
 **Export.** Format **v4** : `fixesSuite` sur chaque prise, `extra` dans `status`, `referenceOn` sur
 chaque période ; `prises.csv` gagne une colonne `fixesSuite`. Un champ obligatoire de plus et un état
-de plus sont une rupture (`export-format.md` : « toute rupture l'incrémente »). Un v3 est refusé avec le
-message existant ; sa relecture « au mieux » rejoint #469, seul endroit où la devinette survivrait
-(calculer `fixesSuite` d'une ligne v3 avec l'ancienne règle).
+de plus sont une rupture (`export-format.md` : « toute rupture l'incrémente »). Un v3 était d'abord
+refusé ; depuis #469 il est converti, et la devinette ne survit que là : l'ancienne règle
+(`fixesSuiteFromItsDate`) devient une ligne de décalage (`export-format.md`, « Anciens formats »).
 
 ### 2.6 Le modèle retenu : prise, report et ligne de décalage (décisions du 2026-10-03)
 

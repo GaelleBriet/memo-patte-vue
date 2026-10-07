@@ -130,9 +130,12 @@ L'import lit la **version 4** et **convertit** les formats plus anciens (spec Do
 un `schemaVersion` supérieur est refusé (« Cet export vient d'une version plus récente de l'app. »).
 Les formats v1 (jusqu'à la 0.1.40), v2 (jusqu'à la 0.1.48) et v3 (jusqu'à la 0.1.56) passent par
 `src/features/settings/logic/export-upgrade.ts`, module pur, puis par la même validation et le même
-tout ou rien qu'un fichier v4 (voir [Anciens formats](#anciens-formats--conversion-469)). Un vrai
-fichier de chaque format publié vit dans `src/features/settings/__tests__/fixtures/` :
-`known-export-formats.spec.ts` échoue si un format n'y a plus de fichier ou ne se relit plus.
+tout ou rien qu'un fichier v4 (voir [Anciens formats](#anciens-formats--conversion-469)). Un
+fichier de chaque format publié, écrit par l'exporteur de sa version (0.1.37, 0.1.48, 0.1.56, 0.1.60),
+vit dans `src/features/settings/__tests__/fixtures/` : `known-export-formats.spec.ts` échoue si un
+format n'y a plus de fichier ou ne se relit plus. À côté, `announced-v2-*.json` et `announced-v3-*.json`
+gardent ce que l'app de l'époque annonçait pour ces carnets (prochaine dose, doses à renseigner), que
+le moteur d'échéances doit redire sur le fichier converti (`export-upgrade-schedule.spec.ts`).
 
 Dates : une date civile s'écrit `AAAA-MM-JJ`, existe au calendrier et tombe entre 1900 et 2199 ; un
 instant s'écrit en ISO 8601 UTC (`Z`), entre les mêmes années ; une heure s'écrit `HH:mm` sur 24 h.
@@ -440,19 +443,32 @@ fichier en entier au moindre défaut, avec les mêmes messages.
   la ligne d'un traitement donne sa prise donnée (date de la dernière prise, prochaine échéance),
   chacune à l'identifiant de son parent.
 - **v1 et v2, traitements** : une seule période, à l'identifiant du traitement, avec sa fréquence et
-  sa date d'arrêt ; elle commence à la première prise connue (ou à l'arrêt s'il est plus tôt, ou au
-  jour de création d'un traitement sans prise), et c'est aussi sa première échéance et l'origine de
-  sa grille. Chaque prise est « donnée », à son jour réel, sans heure, avec sa prochaine échéance
-  telle quelle.
-- **v1 et v2, poids à l'arrivée** (`initialWeightKg`) : une pesée datée du jour de création de
-  l'animal, à l'identifiant de l'animal (modèle v2, M7).
+  sa date d'arrêt. Sa première échéance (et l'origine de sa grille) est la première prise, ou le jour
+  de création (UTC) d'un traitement sans prise ; elle commence à l'arrêt s'il est plus tôt.
+- **v1 et v2, prises** : chaque prise refixait la suite (prochaine échéance = date réelle + fréquence).
+  Triées par date réelle, chacune devient une prise « donnée » qui vise l'échéance laissée par la
+  précédente (la première échéance pour la première), garde sa date réelle et sa prochaine échéance.
+  Quand la grille en cours ne donne pas la prochaine échéance annoncée, une **ligne de décalage**
+  (`shift`, sur la même échéance) ancre la suite : à la date réelle quand l'échéance annoncée en part,
+  sinon un pas avant l'échéance annoncée. Une seconde prise du même jour viserait la même échéance :
+  elle n'est pas reprise (comptée).
 - **v3** : chaque ligne telle quelle ; l'origine de la grille d'une période est sa première échéance.
+  Un report v3 refaisait partir la suite de sa nouvelle date, et une prise notée un autre jour, de sa
+  date réelle quand sa prochaine échéance en partait (`fixesSuiteFromItsDate`) ; en v4 seul un
+  décalage le fait : une ligne `shift` est ajoutée sur l'échéance du report (le plus récent de la
+  journée, ancré à son arrivée) ou de la prise (ancrée à sa date réelle).
+- **Identifiants** : une ligne de décalage ajoutée prend un UUID tiré de l'identifiant de sa ligne
+  d'origine (`derivedId`), toujours le même : un second import ne la duplique pas.
+- **v1 et v2, poids à l'arrivée** (`initialWeightKg`, absent des exports de la 0.1.48) : une pesée
+  datée du jour de création de l'animal en UTC, à l'identifiant de l'animal (modèle v2, M7).
 - **Ce qui ne se reprend pas**, compté et dit dans le toast de fin d'import, sans bloquer le reste
   (« Données importées. 2 prises n'ont pas pu être reprises. ») : une injection ou une prise v2 dont
-  le vaccin ou le traitement n'est pas dans le fichier ; un poids à l'arrivée qui n'est pas un poids
-  valable (au-delà de 200 kg, nul, en texte).
+  le vaccin ou le traitement n'est pas dans le fichier ; une seconde prise v1 ou v2 du même jour ; un
+  poids à l'arrivée qui n'est pas un poids valable (au-delà de 200 kg, nul, en texte).
+- **Limite connue** : un v3 dont une prise donnée à l'heure, sur un mensuel du 29 au 31, portait une
+  prochaine échéance repartie de sa date (le 28 après un 31) suit en v4 la grille du 31.
 - Réimporter le même ancien fichier ne duplique rien : les identifiants créés par la conversion sont
-  ceux des lignes d'origine.
+  ceux des lignes d'origine, ou en sont tirés.
 
 ## CSV — `memopatte-export-AAAAMMJJ-HHmm.zip`
 
