@@ -156,7 +156,7 @@ describe('dueBadge — vaccin jamais fait (Vaccins Q1 bis, VA-18)', () => {
   afterEach(() => applyLocale('fr'))
 
   it('écrit « Prévu le 5 oct. » au contour neutre, sans icône, demain comme plus tard', () => {
-    expect(dueBadge(t, premier({ status: 'later', daysUntil: 12 }))).toEqual({
+    expect(plain(dueBadge(t, premier({ status: 'later', daysUntil: 12 })))).toEqual({
       text: 'Prévu le 5 oct.',
       icon: null,
       status: 'planned',
@@ -176,7 +176,9 @@ describe('dueBadge — vaccin jamais fait (Vaccins Q1 bis, VA-18)', () => {
   it('suit la langue courante', () => {
     applyLocale('en')
 
-    expect(dueBadge(t, premier({ status: 'later', daysUntil: 12 })).text).toBe('Planned Oct 5')
+    expect(plain(dueBadge(t, premier({ status: 'later', daysUntil: 12 })).text)).toBe(
+      'Planned Oct 5',
+    )
   })
 })
 
@@ -333,7 +335,7 @@ describe('reminderRows', () => {
     afterEach(() => applyLocale('fr'))
 
     it('« Premier vaccin · Luna », « Prévu le 5 oct. », et la feuille du vaccin (AC-8)', () => {
-      const [row] = reminderRows(t, [typhus], { animalNames: names })
+      const [row] = plain(reminderRows(t, [typhus], { animalNames: names }))
 
       expect(row).toMatchObject({
         group: 'due',
@@ -375,7 +377,7 @@ describe('reminderRows', () => {
     it('en anglais', () => {
       applyLocale('en')
 
-      expect(reminderRows(t, [typhus], { animalNames: names })[0]).toMatchObject({
+      expect(plain(reminderRows(t, [typhus], { animalNames: names })[0])).toMatchObject({
         subtitle: 'First vaccine · Luna',
         badge: { text: 'Planned Oct 5' },
         ariaLabel: 'Typhus, coryza, first vaccine, Luna, planned for October 5. Opens actions.',

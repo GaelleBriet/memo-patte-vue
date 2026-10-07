@@ -36,6 +36,7 @@ import { useVaccinationsStore } from '@/features/vaccinations/store/vaccinations
 import VaccinationReminderSheet from '@/features/vaccinations/views/VaccinationReminderSheet.vue'
 import WeightSheet from '@/features/weight/views/WeightSheet.vue'
 import AnimalChipSelector from '@/shared/components/AnimalChipSelector.vue'
+import { plain } from '@/shared/__tests__/plain'
 import { forgetPhotoUrls } from '@/core/photos/use-photo-urls'
 import { recordUsageSignal } from '@/shared/utils/usage-signals'
 import {
@@ -1008,7 +1009,7 @@ describe('HomeView — vaccins dans « À faire »', () => {
     ]
     const wrapper = await monter()
 
-    expect(rows(wrapper)).toEqual([
+    expect(plain(rows(wrapper))).toEqual([
       {
         title: 'Rage',
         subtitle: 'Vaccin · Luna',
@@ -1024,7 +1025,7 @@ describe('HomeView — vaccins dans « À faire »', () => {
       {
         title: 'Métacam',
         subtitle: 'Médicament · Luna',
-        badge: 'Aujourd’hui · 8\u00a0h',
+        badge: 'Aujourd’hui · 8 h',
         status: 'reminder-row--today',
       },
       {
@@ -1045,7 +1046,7 @@ describe('HomeView — vaccins dans « À faire »', () => {
     ]
     const wrapper = await monter()
 
-    expect(rows(wrapper).map(({ subtitle, badge }) => [subtitle, badge])).toEqual([
+    expect(plain(rows(wrapper)).map(({ subtitle, badge }) => [subtitle, badge])).toEqual([
       ['Premier vaccin · Pixel', 'En retard · 1 j'],
       ['Premier vaccin · Pixel', 'Prévu le 10 sept.'],
     ])
@@ -1064,9 +1065,9 @@ describe('HomeView — vaccins dans « À faire »', () => {
     ]
     const wrapper = await monter()
 
-    expect(rows(wrapper).map(({ title, badge }) => [title, badge])).toEqual([
+    expect(plain(rows(wrapper)).map(({ title, badge }) => [title, badge])).toEqual([
       ['CHPPiL', 'En retard · 2 j'],
-      ['Métacam', 'Aujourd’hui · 21\u00a0h'],
+      ['Métacam', 'Aujourd’hui · 21 h'],
       ['Typhus, coryza', 'Prévu le 12 sept.'],
     ])
     expect(wrapper.get('.home-overdue-banner').text()).toBe('1 soin en retard')
@@ -1074,9 +1075,9 @@ describe('HomeView — vaccins dans « À faire »', () => {
     applyLocale('en')
     await flushPromises()
 
-    expect(rows(wrapper).map(({ subtitle, badge }) => [subtitle, badge])).toEqual([
+    expect(plain(rows(wrapper)).map(({ subtitle, badge }) => [subtitle, badge])).toEqual([
       ['Vaccine · Milo', 'Overdue · 2d'],
-      ['Medication · Luna', 'Today · 9\u00a0pm'],
+      ['Medication · Luna', 'Today · 9 pm'],
       ['First vaccine · Pixel', 'Planned Sep 12'],
     ])
     expect(wrapper.get('.home-overdue-banner').text()).toBe('1 overdue reminder')
