@@ -1,0 +1,140 @@
+{
+  "today": "2026-10-04",
+  "treatments": [
+    {
+      "id": "187fdf33-fce6-4c41-a4f0-725e668540b1",
+      "name": "Drontal",
+      "phase": "upcoming",
+      "currentDoses": [
+        {
+          "periodId": "c002d7cd-7dab-4a9e-b42a-8a8efb05c583",
+          "dueOn": "2026-10-14",
+          "dueTime": null
+        }
+      ],
+      "unloggedDoses": [],
+      "upcoming": ["2026-10-14", "2026-11-14", "2026-12-14"]
+    },
+    {
+      "id": "1de53078-df94-41a0-a107-bbdbdabae2bc",
+      "name": "Panacur",
+      "phase": "today",
+      "currentDoses": [
+        {
+          "periodId": "3717e35e-bc52-4968-a36d-1b4cac02d758",
+          "dueOn": "2026-10-04",
+          "dueTime": "08:00"
+        },
+        {
+          "periodId": "3717e35e-bc52-4968-a36d-1b4cac02d758",
+          "dueOn": "2026-10-04",
+          "dueTime": "20:00"
+        }
+      ],
+      "unloggedDoses": [
+        {
+          "periodId": "3717e35e-bc52-4968-a36d-1b4cac02d758",
+          "dueOn": "2026-10-01",
+          "dueTime": "08:00"
+        },
+        {
+          "periodId": "3717e35e-bc52-4968-a36d-1b4cac02d758",
+          "dueOn": "2026-10-01",
+          "dueTime": "20:00"
+        },
+        {
+          "periodId": "3717e35e-bc52-4968-a36d-1b4cac02d758",
+          "dueOn": "2026-10-02",
+          "dueTime": "20:00"
+        },
+        {
+          "periodId": "3717e35e-bc52-4968-a36d-1b4cac02d758",
+          "dueOn": "2026-10-03",
+          "dueTime": "08:00"
+        },
+        {
+          "periodId": "3717e35e-bc52-4968-a36d-1b4cac02d758",
+          "dueOn": "2026-10-03",
+          "dueTime": "20:00"
+        }
+      ],
+      "upcoming": ["2026-10-04", "2026-10-04", "2026-10-05"]
+    },
+    {
+      "id": "905bcb79-4485-452f-9d0c-f8383e17c27f",
+      "name": "Advocate",
+      "phase": "stopped",
+      "currentDoses": [],
+      "unloggedDoses": [],
+      "upcoming": []
+    },
+    {
+      "id": "a768ab23-22f5-4d1f-9613-c7abeac1ffc5",
+      "name": "Bravecto",
+      "phase": "upcoming",
+      "currentDoses": [
+        {
+          "periodId": "4d434b8c-d833-433e-ab38-2f373e83b114",
+          "dueOn": "2026-10-20",
+          "dueTime": null
+        }
+      ],
+      "unloggedDoses": [],
+      "upcoming": ["2026-10-20", "2027-01-20", "2027-04-20"]
+    },
+    {
+      "id": "98204aa7-e57b-4960-8c86-c78861b688b9",
+      "name": "Milbemax",
+      "phase": "upcoming",
+      "currentDoses": [
+        {
+          "periodId": "cb81e9e1-e35e-40c4-8bfd-692c035d291d",
+          "dueOn": "2026-12-04",
+          "dueTime": null
+        }
+      ],
+      "unloggedDoses": [],
+      "upcoming": ["2026-12-04", "2027-03-04", "2027-06-04"]
+    },
+    {
+      "id": "b66be81a-7262-425a-8dbb-aaa5121186db",
+      "name": "Frontline",
+      "phase": "upcoming",
+      "currentDoses": [
+        {
+          "periodId": "b642790f-0f58-48ad-b26b-79ca65af34d2",
+          "dueOn": "2026-10-07",
+          "dueTime": null
+        }
+      ],
+      "unloggedDoses": [],
+      "upcoming": ["2026-10-07", "2026-11-07", "2026-12-07"]
+    }
+  ],
+  "scenarios": {
+    "postponedWithSuite": {
+      "today": "2026-10-15",
+      "phase": "upcoming",
+      "currentDoses": [
+        {
+          "periodId": "aaaaaaaa-0000-4000-8000-000000000001",
+          "dueOn": "2026-10-19",
+          "dueTime": null
+        }
+      ],
+      "upcoming": ["2026-10-19", "2026-10-26", "2026-11-02", "2026-11-09"]
+    },
+    "givenLate": {
+      "today": "2026-10-12",
+      "phase": "upcoming",
+      "currentDoses": [
+        {
+          "periodId": "aaaaaaaa-0000-4000-8000-000000000001",
+          "dueOn": "2026-10-18",
+          "dueTime": null
+        }
+      ],
+      "upcoming": ["2026-10-18", "2026-10-25", "2026-11-01"]
+    }
+  }
+}

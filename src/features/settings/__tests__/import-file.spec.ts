@@ -3,8 +3,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { parseExportFile } from '../service/data-import.service'
 import { IMPORT_FILE, IMPORT_FIXTURE, importFixtureJson, LUNA_ID, MILO_ID } from './import-fixture'
 import exportV1 from './fixtures/export-v1-0.1.37.json?raw'
-import exportV2 from './fixtures/export-v2-0.1.45.json?raw'
-import exportV3 from './fixtures/export-v3-0.1.52.json?raw'
+import exportV2 from './fixtures/export-v2-0.1.48.json?raw'
+import exportV3 from './fixtures/export-v3-0.1.56.json?raw'
 import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
 
 const LIMITE = 'a'.repeat(MAX_NAME_LENGTH)

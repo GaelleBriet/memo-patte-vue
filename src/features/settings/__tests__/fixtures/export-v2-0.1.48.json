@@ -1,0 +1,526 @@
+{
+  "schemaVersion": 2,
+  "exportedAt": "2026-09-30T17:42:08.511Z",
+  "appVersion": "0.1.48",
+  "animals": [
+    {
+      "id": "4d9d6901-b6a4-431c-b1f6-220d41055c7d",
+      "name": "Luna",
+      "species": "cat",
+      "breed": "Européen",
+      "birthDate": "2023-09-30",
+      "photoFileName": null,
+      "createdAt": "2026-09-30T17:42:08.511Z",
+      "updatedAt": "2026-09-30T17:42:08.511Z"
+    },
+    {
+      "id": "28910fcd-d43c-47ba-aef4-b1d0cd458c0d",
+      "name": "Milo",
+      "species": "dog",
+      "breed": "Golden retriever",
+      "birthDate": "2022-09-30",
+      "photoFileName": null,
+      "createdAt": "2026-09-30T17:42:08.511Z",
+      "updatedAt": "2026-09-30T17:42:08.511Z"
+    }
+  ],
+  "vaccinations": [
+    {
+      "id": "6acfd674-aa2c-4ffa-856e-473d44e2e20e",
+      "animalId": "28910fcd-d43c-47ba-aef4-b1d0cd458c0d",
+      "name": "Rage",
+      "createdAt": "2026-09-30T17:42:08.511Z",
+      "updatedAt": "2026-09-30T17:42:08.511Z"
+    },
+    {
+      "id": "bd760902-c5e9-43c4-97cd-2fd6b69de3f7",
+      "animalId": "28910fcd-d43c-47ba-aef4-b1d0cd458c0d",
+      "name": "CHPPi",
+      "createdAt": "2026-09-30T17:42:08.511Z",
+      "updatedAt": "2026-09-30T17:42:08.511Z"
+    },
+    {
+      "id": "3ebcd94c-99e2-4089-94b8-d7999c87866d",
+      "animalId": "4d9d6901-b6a4-431c-b1f6-220d41055c7d",
+      "name": "Typhus",
+      "createdAt": "2026-09-30T17:42:08.511Z",
+      "updatedAt": "2026-09-30T17:42:08.511Z"
+    }
+  ],
+  "vaccinationInjections": [
+    {
+      "id": "6acfd674-aa2c-4ffa-856e-473d44e2e20e",
+      "vaccinationId": "6acfd674-aa2c-4ffa-856e-473d44e2e20e",
+      "animalId": "28910fcd-d43c-47ba-aef4-b1d0cd458c0d",
+      "injectedOn": "2026-07-30",
+      "nextDueDate": "2027-07-30",
+      "createdAt": "2026-09-30T17:42:08.511Z",
+      "updatedAt": "2026-09-30T17:42:08.511Z"
+    },
+    {
+      "id": "bd760902-c5e9-43c4-97cd-2fd6b69de3f7",
+      "vaccinationId": "bd760902-c5e9-43c4-97cd-2fd6b69de3f7",
+      "animalId": "28910fcd-d43c-47ba-aef4-b1d0cd458c0d",
+      "injectedOn": "2025-08-16",
+      "nextDueDate": "2026-08-16",
+      "createdAt": "2026-09-30T17:42:08.511Z",
+      "updatedAt": "2026-09-30T17:42:08.511Z"
+    },
+    {
+      "id": "5441ea12-309c-4d64-9701-f3944233fadb",
+      "vaccinationId": "bd760902-c5e9-43c4-97cd-2fd6b69de3f7",
+      "animalId": "28910fcd-d43c-47ba-aef4-b1d0cd458c0d",
+      "injectedOn": "2024-08-16",
+      "nextDueDate": "2025-08-16",
+      "createdAt": "2026-09-30T17:42:08.511Z",
+      "updatedAt": "2026-09-30T17:42:08.511Z"
+    },
+    {
+      "id": "8d2de26c-4cda-4291-bf7b-24be65bb0002",
+      "vaccinationId": "bd760902-c5e9-43c4-97cd-2fd6b69de3f7",
+      "animalId": "28910fcd-d43c-47ba-aef4-b1d0cd458c0d",
+      "injectedOn": "2024-07-16",
+      "nextDueDate": "2024-08-16",
+      "createdAt": "2026-09-30T17:42:08.511Z",
+      "updatedAt": "2026-09-30T17:42:08.511Z"
+    },
+    {
+      "id": "3ebcd94c-99e2-4089-94b8-d7999c87866d",
+      "vaccinationId": "3ebcd94c-99e2-4089-94b8-d7999c87866d",
+      "animalId": "4d9d6901-b6a4-431c-b1f6-220d41055c7d",
+      "injectedOn": "2026-06-30",
+      "nextDueDate": "2027-06-30",
+      "createdAt": "2026-09-30T17:42:08.511Z",
+      "updatedAt": "2026-09-30T17:42:08.511Z"
+    }
+  ],
+  "treatments": [
+    {
+      "id": "8fb41a2e-91e9-4844-8d11-a3dd2ed657b2",
+      "animalId": "28910fcd-d43c-47ba-aef4-b1d0cd458c0d",
+      "name": "Advocate",
+      "type": "antiparasitic",
+      "frequency": {
+        "value": 15,
+        "unit": "day"
+      },
+      "stoppedOn": "2026-05-30",
+      "createdAt": "2026-09-30T17:42:08.511Z",
+      "updatedAt": "2026-09-30T17:42:08.511Z"
+    },
+    {
+      "id": "4fc4fafa-6af6-45af-9e48-7530b15f64c8",
+      "animalId": "28910fcd-d43c-47ba-aef4-b1d0cd458c0d",
+      "name": "Drontal",
+      "type": "deworming",
+      "frequency": {
+        "value": 1,
+        "unit": "month"
+      },
+      "stoppedOn": null,
+      "createdAt": "2026-09-30T17:42:08.511Z",
+      "updatedAt": "2026-09-30T17:42:08.511Z"
+    },
+    {
+      "id": "2943ed96-abf2-4708-85a7-2a582c6a8e71",
+      "animalId": "28910fcd-d43c-47ba-aef4-b1d0cd458c0d",
+      "name": "Bravecto",
+      "type": "antiparasitic",
+      "frequency": {
+        "value": 3,
+        "unit": "month"
+      },
+      "stoppedOn": null,
+      "createdAt": "2026-09-30T17:42:08.511Z",
+      "updatedAt": "2026-09-30T17:42:08.511Z"
+    },
+    {
+      "id": "835da0b3-250e-4d50-92c2-71c83bf49561",
+      "animalId": "4d9d6901-b6a4-431c-b1f6-220d41055c7d",
+      "name": "Milbemax",
+      "type": "deworming",
+      "frequency": {
+        "value": 3,
+        "unit": "month"
+      },
+      "stoppedOn": null,
+      "createdAt": "2026-09-30T17:42:08.511Z",
+      "updatedAt": "2026-09-30T17:42:08.511Z"
+    }
+  ],
+  "treatmentDoses": [
+    {
+      "id": "8fb41a2e-91e9-4844-8d11-a3dd2ed657b2",
+      "treatmentId": "8fb41a2e-91e9-4844-8d11-a3dd2ed657b2",
+      "animalId": "28910fcd-d43c-47ba-aef4-b1d0cd458c0d",
+      "givenOn": "2026-05-25",
+      "nextDueDate": "2026-06-09",
+      "frequency": {
+        "value": 15,
+        "unit": "day"
+      },
+      "createdAt": "2026-09-30T17:42:08.511Z",
+      "updatedAt": "2026-09-30T17:42:08.511Z"
+    },
+    {
+      "id": "84fdfdbc-88d3-472b-91d0-ac12f9b2c1ff",
+      "treatmentId": "8fb41a2e-91e9-4844-8d11-a3dd2ed657b2",
+      "animalId": "28910fcd-d43c-47ba-aef4-b1d0cd458c0d",
+      "givenOn": "2026-05-10",
+      "nextDueDate": "2026-05-25",
+      "frequency": {
+        "value": 15,
+        "unit": "day"
+      },
+      "createdAt": "2026-09-30T17:42:08.511Z",
+      "updatedAt": "2026-09-30T17:42:08.511Z"
+    },
+    {
+      "id": "4fc4fafa-6af6-45af-9e48-7530b15f64c8",
+      "treatmentId": "4fc4fafa-6af6-45af-9e48-7530b15f64c8",
+      "animalId": "28910fcd-d43c-47ba-aef4-b1d0cd458c0d",
+      "givenOn": "2026-09-10",
+      "nextDueDate": "2026-10-10",
+      "frequency": {
+        "value": 1,
+        "unit": "month"
+      },
+      "createdAt": "2026-09-30T17:42:08.511Z",
+      "updatedAt": "2026-09-30T17:42:08.511Z"
+    },
+    {
+      "id": "00df8239-9fd3-454c-b129-550a82edf84c",
+      "treatmentId": "4fc4fafa-6af6-45af-9e48-7530b15f64c8",
+      "animalId": "28910fcd-d43c-47ba-aef4-b1d0cd458c0d",
+      "givenOn": "2026-08-10",
+      "nextDueDate": "2026-09-10",
+      "frequency": {
+        "value": 1,
+        "unit": "month"
+      },
+      "createdAt": "2026-09-30T17:42:08.511Z",
+      "updatedAt": "2026-09-30T17:42:08.511Z"
+    },
+    {
+      "id": "55431cbd-1da8-4c41-b1ad-f3f11b45bb7c",
+      "treatmentId": "4fc4fafa-6af6-45af-9e48-7530b15f64c8",
+      "animalId": "28910fcd-d43c-47ba-aef4-b1d0cd458c0d",
+      "givenOn": "2026-07-10",
+      "nextDueDate": "2026-08-10",
+      "frequency": {
+        "value": 1,
+        "unit": "month"
+      },
+      "createdAt": "2026-09-30T17:42:08.511Z",
+      "updatedAt": "2026-09-30T17:42:08.511Z"
+    },
+    {
+      "id": "e23360cd-b6ea-4e9d-9f89-f5f701ce9b5f",
+      "treatmentId": "4fc4fafa-6af6-45af-9e48-7530b15f64c8",
+      "animalId": "28910fcd-d43c-47ba-aef4-b1d0cd458c0d",
+      "givenOn": "2026-06-10",
+      "nextDueDate": "2026-07-10",
+      "frequency": {
+        "value": 1,
+        "unit": "month"
+      },
+      "createdAt": "2026-09-30T17:42:08.511Z",
+      "updatedAt": "2026-09-30T17:42:08.511Z"
+    },
+    {
+      "id": "fb4e33b3-633c-4f02-8501-abda23ac18fc",
+      "treatmentId": "4fc4fafa-6af6-45af-9e48-7530b15f64c8",
+      "animalId": "28910fcd-d43c-47ba-aef4-b1d0cd458c0d",
+      "givenOn": "2026-05-10",
+      "nextDueDate": "2026-06-10",
+      "frequency": {
+        "value": 1,
+        "unit": "month"
+      },
+      "createdAt": "2026-09-30T17:42:08.511Z",
+      "updatedAt": "2026-09-30T17:42:08.511Z"
+    },
+    {
+      "id": "ba0770c0-22a6-43be-8dda-dd04bb70cb23",
+      "treatmentId": "4fc4fafa-6af6-45af-9e48-7530b15f64c8",
+      "animalId": "28910fcd-d43c-47ba-aef4-b1d0cd458c0d",
+      "givenOn": "2026-04-10",
+      "nextDueDate": "2026-05-10",
+      "frequency": {
+        "value": 1,
+        "unit": "month"
+      },
+      "createdAt": "2026-09-30T17:42:08.511Z",
+      "updatedAt": "2026-09-30T17:42:08.511Z"
+    },
+    {
+      "id": "d0165efa-dcf2-4235-a593-e580d3dff276",
+      "treatmentId": "4fc4fafa-6af6-45af-9e48-7530b15f64c8",
+      "animalId": "28910fcd-d43c-47ba-aef4-b1d0cd458c0d",
+      "givenOn": "2026-03-10",
+      "nextDueDate": "2026-04-10",
+      "frequency": {
+        "value": 1,
+        "unit": "month"
+      },
+      "createdAt": "2026-09-30T17:42:08.511Z",
+      "updatedAt": "2026-09-30T17:42:08.511Z"
+    },
+    {
+      "id": "14566810-7d46-46c4-b71f-4bb63eca33f0",
+      "treatmentId": "4fc4fafa-6af6-45af-9e48-7530b15f64c8",
+      "animalId": "28910fcd-d43c-47ba-aef4-b1d0cd458c0d",
+      "givenOn": "2026-02-10",
+      "nextDueDate": "2026-03-10",
+      "frequency": {
+        "value": 1,
+        "unit": "month"
+      },
+      "createdAt": "2026-09-30T17:42:08.511Z",
+      "updatedAt": "2026-09-30T17:42:08.511Z"
+    },
+    {
+      "id": "5abcf796-76ee-4ffd-ac65-4287d94648f8",
+      "treatmentId": "4fc4fafa-6af6-45af-9e48-7530b15f64c8",
+      "animalId": "28910fcd-d43c-47ba-aef4-b1d0cd458c0d",
+      "givenOn": "2026-01-10",
+      "nextDueDate": "2026-02-10",
+      "frequency": {
+        "value": 1,
+        "unit": "month"
+      },
+      "createdAt": "2026-09-30T17:42:08.511Z",
+      "updatedAt": "2026-09-30T17:42:08.511Z"
+    },
+    {
+      "id": "d5158091-d9e1-4452-9d47-6e079189592b",
+      "treatmentId": "4fc4fafa-6af6-45af-9e48-7530b15f64c8",
+      "animalId": "28910fcd-d43c-47ba-aef4-b1d0cd458c0d",
+      "givenOn": "2025-12-10",
+      "nextDueDate": "2026-01-10",
+      "frequency": {
+        "value": 1,
+        "unit": "month"
+      },
+      "createdAt": "2026-09-30T17:42:08.511Z",
+      "updatedAt": "2026-09-30T17:42:08.511Z"
+    },
+    {
+      "id": "cf7d55e7-9885-4708-bcc1-a6d6b3ff1bc6",
+      "treatmentId": "4fc4fafa-6af6-45af-9e48-7530b15f64c8",
+      "animalId": "28910fcd-d43c-47ba-aef4-b1d0cd458c0d",
+      "givenOn": "2025-11-10",
+      "nextDueDate": "2025-12-10",
+      "frequency": {
+        "value": 1,
+        "unit": "month"
+      },
+      "createdAt": "2026-09-30T17:42:08.511Z",
+      "updatedAt": "2026-09-30T17:42:08.511Z"
+    },
+    {
+      "id": "bcc3488b-1da8-4c19-a5ed-bd9115e2180a",
+      "treatmentId": "4fc4fafa-6af6-45af-9e48-7530b15f64c8",
+      "animalId": "28910fcd-d43c-47ba-aef4-b1d0cd458c0d",
+      "givenOn": "2025-10-10",
+      "nextDueDate": "2025-11-10",
+      "frequency": {
+        "value": 1,
+        "unit": "month"
+      },
+      "createdAt": "2026-09-30T17:42:08.511Z",
+      "updatedAt": "2026-09-30T17:42:08.511Z"
+    },
+    {
+      "id": "5a1f3588-7272-4da7-8005-3b6b05b44a63",
+      "treatmentId": "4fc4fafa-6af6-45af-9e48-7530b15f64c8",
+      "animalId": "28910fcd-d43c-47ba-aef4-b1d0cd458c0d",
+      "givenOn": "2025-09-10",
+      "nextDueDate": "2025-10-10",
+      "frequency": {
+        "value": 1,
+        "unit": "month"
+      },
+      "createdAt": "2026-09-30T17:42:08.511Z",
+      "updatedAt": "2026-09-30T17:42:08.511Z"
+    },
+    {
+      "id": "e58ec275-270c-44db-bf20-df13e64966dc",
+      "treatmentId": "4fc4fafa-6af6-45af-9e48-7530b15f64c8",
+      "animalId": "28910fcd-d43c-47ba-aef4-b1d0cd458c0d",
+      "givenOn": "2025-08-10",
+      "nextDueDate": "2025-09-10",
+      "frequency": {
+        "value": 1,
+        "unit": "month"
+      },
+      "createdAt": "2026-09-30T17:42:08.511Z",
+      "updatedAt": "2026-09-30T17:42:08.511Z"
+    },
+    {
+      "id": "75ac1b27-dff1-4b31-af4d-6fcf5eb3393a",
+      "treatmentId": "4fc4fafa-6af6-45af-9e48-7530b15f64c8",
+      "animalId": "28910fcd-d43c-47ba-aef4-b1d0cd458c0d",
+      "givenOn": "2025-07-10",
+      "nextDueDate": "2025-08-10",
+      "frequency": {
+        "value": 1,
+        "unit": "month"
+      },
+      "createdAt": "2026-09-30T17:42:08.511Z",
+      "updatedAt": "2026-09-30T17:42:08.511Z"
+    },
+    {
+      "id": "2943ed96-abf2-4708-85a7-2a582c6a8e71",
+      "treatmentId": "2943ed96-abf2-4708-85a7-2a582c6a8e71",
+      "animalId": "28910fcd-d43c-47ba-aef4-b1d0cd458c0d",
+      "givenOn": "2026-07-15",
+      "nextDueDate": "2026-10-15",
+      "frequency": {
+        "value": 3,
+        "unit": "month"
+      },
+      "createdAt": "2026-09-30T17:42:08.511Z",
+      "updatedAt": "2026-09-30T17:42:08.511Z"
+    },
+    {
+      "id": "835da0b3-250e-4d50-92c2-71c83bf49561",
+      "treatmentId": "835da0b3-250e-4d50-92c2-71c83bf49561",
+      "animalId": "4d9d6901-b6a4-431c-b1f6-220d41055c7d",
+      "givenOn": "2026-08-30",
+      "nextDueDate": "2026-11-30",
+      "frequency": {
+        "value": 3,
+        "unit": "month"
+      },
+      "createdAt": "2026-09-30T17:42:08.511Z",
+      "updatedAt": "2026-09-30T17:42:08.511Z"
+    }
+  ],
+  "weightEntries": [
+    {
+      "id": "b404813b-7170-4ba0-ae51-f4119938c567",
+      "animalId": "4d9d6901-b6a4-431c-b1f6-220d41055c7d",
+      "weightKg": 3.8,
+      "measuredOn": "2026-06-30",
+      "createdAt": "2026-09-30T17:42:08.511Z",
+      "updatedAt": "2026-09-30T17:42:08.511Z"
+    },
+    {
+      "id": "1fa7f8ce-3443-411e-b06f-ee67506719e6",
+      "animalId": "4d9d6901-b6a4-431c-b1f6-220d41055c7d",
+      "weightKg": 3.9,
+      "measuredOn": "2026-07-30",
+      "createdAt": "2026-09-30T17:42:08.511Z",
+      "updatedAt": "2026-09-30T17:42:08.511Z"
+    },
+    {
+      "id": "a2dbebe4-07da-4ea1-8481-911a0b954dac",
+      "animalId": "4d9d6901-b6a4-431c-b1f6-220d41055c7d",
+      "weightKg": 4.1,
+      "measuredOn": "2026-08-30",
+      "createdAt": "2026-09-30T17:42:08.511Z",
+      "updatedAt": "2026-09-30T17:42:08.511Z"
+    },
+    {
+      "id": "2f40617c-70f9-4094-b9eb-631e3dbffca5",
+      "animalId": "4d9d6901-b6a4-431c-b1f6-220d41055c7d",
+      "weightKg": 4.2,
+      "measuredOn": "2026-09-30",
+      "createdAt": "2026-09-30T17:42:08.511Z",
+      "updatedAt": "2026-09-30T17:42:08.511Z"
+    },
+    {
+      "id": "4d7cfd95-722f-4ddc-b238-4b09e32b0952",
+      "animalId": "28910fcd-d43c-47ba-aef4-b1d0cd458c0d",
+      "weightKg": 23.6,
+      "measuredOn": "2026-04-30",
+      "createdAt": "2026-09-30T17:42:08.511Z",
+      "updatedAt": "2026-09-30T17:42:08.511Z"
+    },
+    {
+      "id": "448707e0-235d-420f-89fe-93d958e5e873",
+      "animalId": "28910fcd-d43c-47ba-aef4-b1d0cd458c0d",
+      "weightKg": 23.8,
+      "measuredOn": "2026-05-30",
+      "createdAt": "2026-09-30T17:42:08.511Z",
+      "updatedAt": "2026-09-30T17:42:08.511Z"
+    },
+    {
+      "id": "4e2a44b7-1306-4ccc-bcff-c169fb6f1d88",
+      "animalId": "28910fcd-d43c-47ba-aef4-b1d0cd458c0d",
+      "weightKg": 24,
+      "measuredOn": "2026-06-30",
+      "createdAt": "2026-09-30T17:42:08.511Z",
+      "updatedAt": "2026-09-30T17:42:08.511Z"
+    },
+    {
+      "id": "c4729269-38c4-49e4-b26a-8409f2659449",
+      "animalId": "28910fcd-d43c-47ba-aef4-b1d0cd458c0d",
+      "weightKg": 24.1,
+      "measuredOn": "2026-07-30",
+      "createdAt": "2026-09-30T17:42:08.511Z",
+      "updatedAt": "2026-09-30T17:42:08.511Z"
+    },
+    {
+      "id": "e9653398-232f-4b2e-9711-aef96685e52e",
+      "animalId": "28910fcd-d43c-47ba-aef4-b1d0cd458c0d",
+      "weightKg": 24.3,
+      "measuredOn": "2026-08-30",
+      "createdAt": "2026-09-30T17:42:08.511Z",
+      "updatedAt": "2026-09-30T17:42:08.511Z"
+    },
+    {
+      "id": "08b4a060-647a-43a3-bcaa-36d9e4ebf312",
+      "animalId": "28910fcd-d43c-47ba-aef4-b1d0cd458c0d",
+      "weightKg": 24.5,
+      "measuredOn": "2026-09-30",
+      "createdAt": "2026-09-30T17:42:08.511Z",
+      "updatedAt": "2026-09-30T17:42:08.511Z"
+    }
+  ],
+  "reminders": [
+    {
+      "kind": "vaccination",
+      "sourceId": "bd760902-c5e9-43c4-97cd-2fd6b69de3f7",
+      "animalId": "28910fcd-d43c-47ba-aef4-b1d0cd458c0d",
+      "name": "CHPPi",
+      "dueDate": "2026-08-16"
+    },
+    {
+      "kind": "treatment",
+      "sourceId": "4fc4fafa-6af6-45af-9e48-7530b15f64c8",
+      "animalId": "28910fcd-d43c-47ba-aef4-b1d0cd458c0d",
+      "name": "Drontal",
+      "dueDate": "2026-10-10"
+    },
+    {
+      "kind": "treatment",
+      "sourceId": "2943ed96-abf2-4708-85a7-2a582c6a8e71",
+      "animalId": "28910fcd-d43c-47ba-aef4-b1d0cd458c0d",
+      "name": "Bravecto",
+      "dueDate": "2026-10-15"
+    },
+    {
+      "kind": "treatment",
+      "sourceId": "835da0b3-250e-4d50-92c2-71c83bf49561",
+      "animalId": "4d9d6901-b6a4-431c-b1f6-220d41055c7d",
+      "name": "Milbemax",
+      "dueDate": "2026-11-30"
+    },
+    {
+      "kind": "vaccination",
+      "sourceId": "3ebcd94c-99e2-4089-94b8-d7999c87866d",
+      "animalId": "4d9d6901-b6a4-431c-b1f6-220d41055c7d",
+      "name": "Typhus",
+      "dueDate": "2027-06-30"
+    },
+    {
+      "kind": "vaccination",
+      "sourceId": "6acfd674-aa2c-4ffa-856e-473d44e2e20e",
+      "animalId": "28910fcd-d43c-47ba-aef4-b1d0cd458c0d",
+      "name": "Rage",
+      "dueDate": "2027-07-30"
+    }
+  ]
+}

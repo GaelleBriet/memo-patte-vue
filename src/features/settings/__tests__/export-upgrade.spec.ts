@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
 import { upgradeExport } from '../logic/export-upgrade'
+import { derivedId } from '@/shared/utils/derived-id'
 import exportV1 from './fixtures/export-v1-0.1.37.json?raw'
-import exportV2 from './fixtures/export-v2-0.1.45.json?raw'
-import exportV3 from './fixtures/export-v3-0.1.52.json?raw'
+import exportV2 from './fixtures/export-v2-0.1.48.json?raw'
+import exportV3 from './fixtures/export-v3-0.1.56.json?raw'
 
 const DEVICE = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc'
 const STAMPS = { createdByDevice: DEVICE, updatedByDevice: DEVICE }
@@ -11,10 +12,15 @@ const NO_LOSS = { injections: 0, doses: 0, weightEntries: 0 }
 
 const MILO = 'f53143ec-dca0-430d-a77d-755f592ae425'
 const LUNA = 'd50968dd-31a7-4782-b365-9c5285fe6c43'
-const STRONGHOLD = '626a7787-96ce-479e-8b2e-09edb1319378'
 const MILBEMAX = 'e4d428da-419e-4c67-a6f3-fcad10a2c6ff'
 const RAGE = 'c926e5b4-b1c3-4773-bb3f-34e0acdb67da'
 const ORPHAN = '99999999-9999-4999-8999-999999999999'
+const ADVOCATE = '8fb41a2e-91e9-4844-8d11-a3dd2ed657b2'
+const DRONTAL = '4fc4fafa-6af6-45af-9e48-7530b15f64c8'
+const LUNA_V2 = '4d9d6901-b6a4-431c-b1f6-220d41055c7d'
+const MILO_V2 = '28910fcd-d43c-47ba-aef4-b1d0cd458c0d'
+const TREATMENT = '0b6f7f2e-3a8d-4f0e-9a1c-5d2b7e8f9a01'
+const PERIOD = '7c1e9a3b-2d4f-4b6a-8e0c-1f3a5b7d9e2c'
 
 type Row = Record<string, unknown>
 type Document = Record<string, unknown>
@@ -35,6 +41,96 @@ function rowsOf(document: Document, table: string): Row[] {
 
 function byId(rows: Row[], id: unknown): Row | undefined {
   return rows.find((row) => row.id === id)
+}
+
+function doseId(index: number): string {
+  return `11111111-0000-4000-8000-${String(index).padStart(12, '0')}`
+}
+
+/** Export v2 réel, réduit à un traitement de Luna et à ses prises (date réelle, prochaine échéance annoncée). */
+function v2With(
+  frequency: { value: number; unit: string },
+  doses: [string, string][],
+  treatment: Row = {},
+): Document {
+  const document = read(exportV2)
+  const at = '2026-09-20T08:00:00.000Z'
+  document.treatments = [
+    {
+      id: TREATMENT,
+      animalId: LUNA_V2,
+      name: 'Stronghold',
+      type: 'antiparasitic',
+      frequency,
+      stoppedOn: null,
+      createdAt: at,
+      updatedAt: at,
+      ...treatment,
+    },
+  ]
+  document.treatmentDoses = doses.map(([givenOn, nextDueDate], index) => ({
+    id: doseId(index),
+    treatmentId: TREATMENT,
+    animalId: LUNA_V2,
+    givenOn,
+    nextDueDate,
+    frequency,
+    createdAt: `${givenOn}T08:00:00.000Z`,
+    updatedAt: `${givenOn}T08:00:00.000Z`,
+  }))
+  return document
+}
+
+function treatmentLines(document: Record<string, Row[]>): Row[] {
+  return document.treatmentDoses!.filter((dose) => dose.treatmentId === TREATMENT)
+}
+
+/** Export v3 réel, réduit à un hebdomadaire de Milo et à ses lignes. */
+function v3With(doses: Row[]): Document {
+  const document = read(exportV3)
+  const at = '2026-10-01T08:00:00.000Z'
+  const milo = rowsOf(document, 'animals').find((animal) => animal.name === 'Milo')!.id
+  document.treatments = [
+    {
+      id: TREATMENT,
+      animalId: milo,
+      name: 'Stronghold',
+      type: 'antiparasitic',
+      createdAt: at,
+      updatedAt: at,
+    },
+  ]
+  document.treatmentPeriods = [
+    {
+      id: PERIOD,
+      treatmentId: TREATMENT,
+      animalId: milo,
+      startsOn: '2026-10-02',
+      firstDueOn: '2026-10-02',
+      endsOn: null,
+      stoppedOn: null,
+      frequency: { value: 1, unit: 'week' },
+      times: [],
+      doseQuantity: null,
+      doseUnit: null,
+      reminderOffsetMinutes: null,
+      reminderTime: null,
+      createdAt: at,
+      updatedAt: at,
+    },
+  ]
+  document.treatmentDoses = doses.map((dose, index) => ({
+    id: doseId(index),
+    periodId: PERIOD,
+    treatmentId: TREATMENT,
+    animalId: milo,
+    dueTime: null,
+    givenOn: null,
+    createdAt: at,
+    updatedAt: at,
+    ...dose,
+  }))
+  return document
 }
 
 describe('upgradeExport', () => {
@@ -180,87 +276,161 @@ describe('upgradeExport', () => {
       expect(document.carnetSettings).toBeNull()
       expect(document.devices).toEqual([])
       expect(lost).toEqual(NO_LOSS)
-      expect(document.vaccinationInjections).toHaveLength(3)
-      expect(document.treatmentDoses).toHaveLength(4)
-      expect(document.weightEntries).toHaveLength(3)
+      expect(document.vaccinationInjections).toHaveLength(5)
+      expect(document.treatmentDoses).toHaveLength(19)
+      expect(document.weightEntries).toHaveLength(10)
+    })
+
+    it('lit un export sans poids à l’arrivée, comme ceux de la 0.1.48', () => {
+      const { document } = upgraded(read(exportV2))
+
+      expect(byId(document.animals!, LUNA_V2)).toMatchObject({
+        birthDateApproximate: false,
+        ...STAMPS,
+      })
+      expect(byId(document.weightEntries!, LUNA_V2)).toBeUndefined()
     })
 
     it('garde chaque injection, sans le rappel prévu qu’il ne connaissait pas', () => {
-      const { document } = upgraded(read(exportV2))
+      const v2 = read(exportV2)
+      const { document } = upgraded(v2)
 
-      expect(byId(document.vaccinations!, RAGE)).toMatchObject({ plannedDueDate: null, ...STAMPS })
       expect(
-        document.vaccinationInjections!.filter((injection) => injection.vaccinationId === RAGE),
-      ).toEqual([
-        expect.objectContaining({ injectedOn: '2026-09-21', nextDueDate: '2029-09-21', ...STAMPS }),
-        expect.objectContaining({ injectedOn: '2023-09-18', nextDueDate: '2026-09-18', ...STAMPS }),
-      ])
+        document.vaccinations!.every((vaccination) => vaccination.plannedDueDate === null),
+      ).toBe(true)
+      expect(document.vaccinationInjections).toEqual(
+        rowsOf(v2, 'vaccinationInjections').map((injection) => ({ ...injection, ...STAMPS })),
+      )
     })
 
-    it('ouvre la période d’un traitement à sa première prise, et rattache toutes ses prises', () => {
+    it('ouvre la période à la première prise, et chaque prise vise l’échéance que la précédente laissait', () => {
       const { document } = upgraded(read(exportV2))
+      const drontal = document.treatmentDoses!.filter((dose) => dose.treatmentId === DRONTAL)
 
-      expect(byId(document.treatmentPeriods!, STRONGHOLD)).toMatchObject({
-        treatmentId: STRONGHOLD,
-        animalId: LUNA,
-        startsOn: '2026-08-04',
-        firstDueOn: '2026-08-04',
-        referenceOn: '2026-08-04',
-        stoppedOn: null,
-        frequency: { value: 4, unit: 'week' },
+      expect(byId(document.treatmentPeriods!, DRONTAL)).toMatchObject({
+        startsOn: '2025-07-10',
+        firstDueOn: '2025-07-10',
+        referenceOn: '2025-07-10',
+        frequency: { value: 1, unit: 'month' },
         times: [],
       })
-      expect(document.treatmentDoses!.filter((dose) => dose.treatmentId === STRONGHOLD)).toEqual([
-        {
-          id: STRONGHOLD,
-          periodId: STRONGHOLD,
-          treatmentId: STRONGHOLD,
-          animalId: LUNA,
-          dueOn: '2026-08-04',
-          dueTime: null,
-          givenOn: '2026-08-04',
-          status: 'given',
-          nextDueDate: '2026-09-01',
-          createdAt: '2026-09-20T07:31:48.015Z',
-          updatedAt: '2026-09-20T07:31:48.015Z',
-          ...STAMPS,
-        },
-        expect.objectContaining({ dueOn: '2026-09-03', givenOn: '2026-09-03', status: 'given' }),
-      ])
+      expect(drontal).toHaveLength(15)
+      expect(drontal.every((dose) => dose.status === 'given' && dose.dueOn === dose.givenOn)).toBe(
+        true,
+      )
+      expect(byId(drontal, DRONTAL)).toEqual({
+        id: DRONTAL,
+        periodId: DRONTAL,
+        treatmentId: DRONTAL,
+        animalId: MILO_V2,
+        dueOn: '2026-09-10',
+        dueTime: null,
+        givenOn: '2026-09-10',
+        status: 'given',
+        nextDueDate: '2026-10-10',
+        createdAt: expect.any(String),
+        updatedAt: expect.any(String),
+        ...STAMPS,
+      })
     })
 
     it('garde l’arrêt d’un traitement arrêté', () => {
       const { document } = upgraded(read(exportV2))
 
-      expect(byId(document.treatmentPeriods!, MILBEMAX)).toMatchObject({
-        startsOn: '2026-06-15',
-        stoppedOn: '2026-09-25',
-        frequency: { value: 3, unit: 'month' },
+      expect(byId(document.treatmentPeriods!, ADVOCATE)).toMatchObject({
+        startsOn: '2026-05-10',
+        stoppedOn: '2026-05-30',
+        frequency: { value: 15, unit: 'day' },
+      })
+    })
+
+    it('note une prise donnée en retard à son échéance, et ancre la suite à sa date réelle', () => {
+      const { document } = upgraded(
+        v2With({ value: 4, unit: 'week' }, [
+          ['2026-08-04', '2026-09-01'],
+          ['2026-09-03', '2026-10-01'],
+        ]),
+      )
+
+      expect(treatmentLines(document)).toEqual([
+        expect.objectContaining({
+          id: doseId(0),
+          dueOn: '2026-08-04',
+          givenOn: '2026-08-04',
+          status: 'given',
+        }),
+        expect.objectContaining({
+          id: doseId(1),
+          dueOn: '2026-09-01',
+          givenOn: '2026-09-03',
+          status: 'given',
+          nextDueDate: '2026-10-01',
+        }),
+        {
+          id: derivedId(doseId(1), 'shift'),
+          periodId: TREATMENT,
+          treatmentId: TREATMENT,
+          animalId: LUNA_V2,
+          dueOn: '2026-09-01',
+          dueTime: null,
+          givenOn: null,
+          status: 'shift',
+          nextDueDate: '2026-09-03',
+          createdAt: '2026-09-03T08:00:00.000Z',
+          updatedAt: '2026-09-03T08:00:00.000Z',
+          ...STAMPS,
+        },
+      ])
+    })
+
+    it('ancre la suite sur la prochaine échéance annoncée quand elle ne part pas de la prise', () => {
+      const { document } = upgraded(
+        v2With({ value: 1, unit: 'week' }, [['2026-09-04', '2026-09-14']]),
+      )
+
+      expect(treatmentLines(document)).toEqual([
+        expect.objectContaining({ dueOn: '2026-09-04', status: 'given' }),
+        expect.objectContaining({
+          dueOn: '2026-09-04',
+          status: 'shift',
+          nextDueDate: '2026-09-07',
+        }),
+      ])
+    })
+
+    it('ne compte pas la même échéance deux fois pour deux prises du même jour', () => {
+      const { document, lost } = upgraded(
+        v2With({ value: 1, unit: 'week' }, [
+          ['2026-09-04', '2026-09-11'],
+          ['2026-09-04', '2026-09-11'],
+        ]),
+      )
+
+      expect(treatmentLines(document)).toHaveLength(1)
+      expect(lost).toEqual({ ...NO_LOSS, doses: 1 })
+    })
+
+    it('ouvre la période d’un traitement sans prise au jour de sa création', () => {
+      const { document } = upgraded(v2With({ value: 1, unit: 'week' }, []))
+
+      expect(byId(document.treatmentPeriods!, TREATMENT)).toMatchObject({
+        startsOn: '2026-09-20',
+        firstDueOn: '2026-09-20',
       })
     })
 
     it('ouvre la période au jour de l’arrêt quand l’arrêt précède la première prise', () => {
-      const document = read(exportV2)
-      byId(rowsOf(document, 'treatments'), MILBEMAX)!.stoppedOn = '2026-06-01'
-
-      const period = byId(upgraded(document).document.treatmentPeriods!, MILBEMAX)
-
-      expect(period).toMatchObject({
-        startsOn: '2026-06-01',
-        firstDueOn: '2026-06-01',
-        stoppedOn: '2026-06-01',
-      })
-    })
-
-    it('ouvre la période d’un traitement sans prise au jour de sa création', () => {
-      const document = read(exportV2)
-      document.treatmentDoses = rowsOf(document, 'treatmentDoses').filter(
-        (dose) => dose.treatmentId !== STRONGHOLD,
+      const { document } = upgraded(
+        v2With({ value: 1, unit: 'week' }, [['2026-09-04', '2026-09-11']], {
+          stoppedOn: '2026-09-01',
+        }),
       )
 
-      const period = byId(upgraded(document).document.treatmentPeriods!, STRONGHOLD)
-
-      expect(period).toMatchObject({ startsOn: '2026-09-20', firstDueOn: '2026-09-20' })
+      expect(byId(document.treatmentPeriods!, TREATMENT)).toMatchObject({
+        startsOn: '2026-09-01',
+        firstDueOn: '2026-09-04',
+        stoppedOn: '2026-09-01',
+      })
     })
 
     it('compte les prises et les injections dont le traitement ou le vaccin manque', () => {
@@ -268,20 +438,31 @@ describe('upgradeExport', () => {
       const [dose] = rowsOf(document, 'treatmentDoses')
       const [injection] = rowsOf(document, 'vaccinationInjections')
       rowsOf(document, 'treatmentDoses').push(
-        { ...dose, id: '11111111-0000-4000-8000-000000000001', treatmentId: ORPHAN },
-        { ...dose, id: '11111111-0000-4000-8000-000000000002', treatmentId: ORPHAN },
+        { ...dose, id: doseId(1), treatmentId: ORPHAN },
+        { ...dose, id: doseId(2), treatmentId: ORPHAN },
       )
       rowsOf(document, 'vaccinationInjections').push({
         ...injection,
-        id: '11111111-0000-4000-8000-000000000003',
+        id: doseId(3),
         vaccinationId: ORPHAN,
       })
 
       const { document: converted, lost } = upgraded(document)
 
       expect(lost).toEqual({ injections: 1, doses: 2, weightEntries: 0 })
-      expect(converted.treatmentDoses).toHaveLength(4)
-      expect(converted.vaccinationInjections).toHaveLength(3)
+      expect(converted.treatmentDoses).toHaveLength(19)
+      expect(converted.vaccinationInjections).toHaveLength(5)
+    })
+
+    it('fait du poids à l’arrivée une pesée du jour de création, quel que soit le fuseau', () => {
+      const document = read(exportV2)
+      const luna = byId(rowsOf(document, 'animals'), LUNA_V2)!
+      Object.assign(luna, { initialWeightKg: 4.2, createdAt: '2026-09-20T23:30:00.000Z' })
+
+      expect(byId(upgraded(document).document.weightEntries!, LUNA_V2)).toMatchObject({
+        weightKg: 4.2,
+        measuredOn: '2026-09-20',
+      })
     })
 
     it.each([
@@ -290,12 +471,12 @@ describe('upgradeExport', () => {
       ['écrit en texte', '18,4'],
     ])('compte un poids à l’arrivée %s comme une pesée perdue', (_, weight) => {
       const document = read(exportV2)
-      byId(rowsOf(document, 'animals'), MILO)!.initialWeightKg = weight
+      byId(rowsOf(document, 'animals'), LUNA_V2)!.initialWeightKg = weight
 
       const { document: converted, lost } = upgraded(document)
 
       expect(lost).toEqual({ ...NO_LOSS, weightEntries: 1 })
-      expect(byId(converted.weightEntries!, MILO)).toBeUndefined()
+      expect(byId(converted.weightEntries!, LUNA_V2)).toBeUndefined()
     })
   })
 
@@ -317,20 +498,105 @@ describe('upgradeExport', () => {
         'vaccinations',
         'vaccinationInjections',
         'treatments',
-        'treatmentDoses',
         'weightEntries',
       ]) {
         expect(document[table]).toEqual(rowsOf(v3, table).map((row) => ({ ...row, ...STAMPS })))
       }
-      expect(document.carnetSettings).toEqual({ ...(v3.carnetSettings as Row), ...STAMPS })
+      expect(document.treatmentDoses).toEqual(
+        expect.arrayContaining(rowsOf(v3, 'treatmentDoses').map((row) => ({ ...row, ...STAMPS }))),
+      )
+      expect(document.carnetSettings).toEqual(
+        v3.carnetSettings === null ? null : { ...(v3.carnetSettings as Row), ...STAMPS },
+      )
     })
 
     it('fixe l’origine de la grille d’une période à sa première échéance', () => {
       const v3 = read(exportV3)
-      const [period] = rowsOf(v3, 'treatmentPeriods')
 
-      expect(upgraded(v3).document.treatmentPeriods).toEqual([
-        { ...period, referenceOn: '2026-09-28', ...STAMPS },
+      expect(upgraded(v3).document.treatmentPeriods).toEqual(
+        rowsOf(v3, 'treatmentPeriods').map((period) => ({
+          ...period,
+          referenceOn: period.firstDueOn,
+          ...STAMPS,
+        })),
+      )
+    })
+
+    it('ajoute un décalage à un report, qui refaisait partir la suite de sa nouvelle date', () => {
+      const { document } = upgraded(
+        v3With([
+          {
+            dueOn: '2026-10-09',
+            givenOn: '2026-10-09',
+            status: 'given',
+            nextDueDate: '2026-10-16',
+          },
+          { dueOn: '2026-10-16', status: 'postponed', nextDueDate: '2026-10-19' },
+        ]),
+      )
+
+      expect(treatmentLines(document)).toEqual([
+        expect.objectContaining({ id: doseId(0), status: 'given' }),
+        expect.objectContaining({ id: doseId(1), status: 'postponed' }),
+        expect.objectContaining({
+          id: derivedId(doseId(1), 'shift'),
+          periodId: PERIOD,
+          dueOn: '2026-10-16',
+          dueTime: null,
+          givenOn: null,
+          status: 'shift',
+          nextDueDate: '2026-10-19',
+        }),
+      ])
+    })
+
+    it('ne garde que le report le plus récent d’une journée', () => {
+      const { document } = upgraded(
+        v3With([
+          {
+            dueOn: '2026-10-16',
+            status: 'postponed',
+            nextDueDate: '2026-10-18',
+            updatedAt: '2026-10-15T08:00:00.000Z',
+          },
+          {
+            dueOn: '2026-10-16',
+            status: 'postponed',
+            nextDueDate: '2026-10-19',
+            updatedAt: '2026-10-15T09:00:00.000Z',
+          },
+        ]),
+      )
+
+      expect(treatmentLines(document).filter((dose) => dose.status === 'shift')).toEqual([
+        expect.objectContaining({ id: derivedId(doseId(1), 'shift'), nextDueDate: '2026-10-19' }),
+      ])
+    })
+
+    it('ajoute un décalage à une prise notée un autre jour quand la suite partait de sa date réelle', () => {
+      const { document } = upgraded(
+        v3With([
+          {
+            dueOn: '2026-10-09',
+            givenOn: '2026-10-11',
+            status: 'given',
+            nextDueDate: '2026-10-18',
+          },
+          {
+            dueOn: '2026-10-02',
+            givenOn: '2026-10-03',
+            status: 'given',
+            nextDueDate: '2026-10-09',
+          },
+        ]),
+      )
+
+      expect(treatmentLines(document).filter((dose) => dose.status === 'shift')).toEqual([
+        expect.objectContaining({
+          id: derivedId(doseId(0), 'shift'),
+          dueOn: '2026-10-09',
+          nextDueDate: '2026-10-11',
+        }),
       ])
     })
 
@@ -346,6 +612,11 @@ describe('upgradeExport', () => {
     it.each([
       ['v1 sans animaux', 1, (document: Document) => delete document.animals],
       [
+        'v1 à la date de prise impossible',
+        1,
+        (document: Document) => (rowsOf(document, 'treatments')[0]!.lastDoseDate = '2026-02-30'),
+      ],
+      [
         'v2 aux prises qui ne sont pas une liste',
         2,
         (document: Document) => (document.treatmentDoses = {}),
@@ -357,8 +628,7 @@ describe('upgradeExport', () => {
       ],
       ['v3 sans périodes', 3, (document: Document) => delete document.treatmentPeriods],
     ])('refuse un %s', (_, version, change) => {
-      const text = [exportV1, exportV2, exportV3][version - 1]!
-      const document = read(text)
+      const document = read([exportV1, exportV2, exportV3][version - 1]!)
       change(document)
 
       expect(upgradeExport(document, DEVICE)).toBeNull()

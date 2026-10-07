@@ -1,0 +1,33 @@
+{
+  "today": "2026-09-30",
+  "treatments": [
+    {
+      "id": "8fb41a2e-91e9-4844-8d11-a3dd2ed657b2",
+      "name": "Advocate",
+      "lastDoseDate": "2026-05-25",
+      "nextDueDate": "2026-06-09",
+      "stoppedOn": "2026-05-30"
+    },
+    {
+      "id": "4fc4fafa-6af6-45af-9e48-7530b15f64c8",
+      "name": "Drontal",
+      "lastDoseDate": "2026-09-10",
+      "nextDueDate": "2026-10-10",
+      "stoppedOn": null
+    },
+    {
+      "id": "2943ed96-abf2-4708-85a7-2a582c6a8e71",
+      "name": "Bravecto",
+      "lastDoseDate": "2026-07-15",
+      "nextDueDate": "2026-10-15",
+      "stoppedOn": null
+    },
+    {
+      "id": "835da0b3-250e-4d50-92c2-71c83bf49561",
+      "name": "Milbemax",
+      "lastDoseDate": "2026-08-30",
+      "nextDueDate": "2026-11-30",
+      "stoppedOn": null
+    }
+  ]
+}

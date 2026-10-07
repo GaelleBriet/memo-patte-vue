@@ -30,8 +30,8 @@ import {
 } from './import-fixture'
 import { FIXTURE_DEVICE } from './export-fixture'
 import exportV1 from './fixtures/export-v1-0.1.37.json?raw'
-import exportV2 from './fixtures/export-v2-0.1.45.json?raw'
-import exportV3 from './fixtures/export-v3-0.1.52.json?raw'
+import exportV2 from './fixtures/export-v2-0.1.48.json?raw'
+import exportV3 from './fixtures/export-v3-0.1.56.json?raw'
 import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory-db'
 import { createDeviceRepository } from '@/core/device/device.repository'
 import { createAnimalsRepository } from '@/features/animals/repository/animals.repository'
@@ -1258,8 +1258,9 @@ describe('data-import.service', () => {
 
   describe('anciens exports', () => {
     const MILO = 'f53143ec-dca0-430d-a77d-755f592ae425'
-    const STRONGHOLD = '626a7787-96ce-479e-8b2e-09edb1319378'
     const MILBEMAX = 'e4d428da-419e-4c67-a6f3-fcad10a2c6ff'
+    const ADVOCATE = '8fb41a2e-91e9-4844-8d11-a3dd2ed657b2'
+    const DRONTAL = '4fc4fafa-6af6-45af-9e48-7530b15f64c8'
     const RAGE = 'c926e5b4-b1c3-4773-bb3f-34e0acdb67da'
 
     function converted(text: string): ImportFile {
@@ -1287,12 +1288,12 @@ describe('data-import.service', () => {
         exportV2,
         {
           animal: 2,
-          vaccination: 2,
-          vaccination_injection: 3,
-          treatment: 2,
-          treatment_period: 2,
-          treatment_dose: 4,
-          weight_entry: 3,
+          vaccination: 3,
+          vaccination_injection: 5,
+          treatment: 4,
+          treatment_period: 4,
+          treatment_dose: 19,
+          weight_entry: 10,
         },
       ],
       [
@@ -1300,12 +1301,12 @@ describe('data-import.service', () => {
         exportV3,
         {
           animal: 2,
-          vaccination: 2,
-          vaccination_injection: 1,
-          treatment: 1,
-          treatment_period: 1,
-          treatment_dose: 3,
-          weight_entry: 1,
+          vaccination: 3,
+          vaccination_injection: 5,
+          treatment: 6,
+          treatment_period: 7,
+          treatment_dose: 30,
+          weight_entry: 10,
         },
       ],
     ])(
@@ -1349,14 +1350,28 @@ describe('data-import.service', () => {
 
       await service.importData(converted(exportV2), 'replace')
 
-      await expect(repositories.treatments.getById(MILBEMAX)).resolves.toMatchObject({
-        stoppedOn: '2026-09-25',
+      await expect(repositories.treatments.getById(ADVOCATE)).resolves.toMatchObject({
+        stoppedOn: '2026-05-30',
       })
-      await expect(repositories.treatments.getById(STRONGHOLD)).resolves.toMatchObject({
-        lastDoseDate: '2026-09-03',
-        nextDueDate: '2026-10-01',
+      await expect(repositories.treatments.getById(DRONTAL)).resolves.toMatchObject({
+        lastDoseDate: '2026-09-10',
         stoppedOn: null,
       })
+    })
+
+    it('réimporte une prise v2 donnée en retard et son décalage sans les dupliquer', async () => {
+      const { service } = setup()
+      const document = JSON.parse(exportV2) as Record<string, Record<string, unknown>[]>
+      const drontal = document.treatmentDoses!.find(({ id }) => id === DRONTAL)!
+      Object.assign(drontal, { givenOn: '2026-09-12', nextDueDate: '2026-10-12' })
+      const text = JSON.stringify(document)
+
+      await service.importData(converted(text), 'replace')
+      await service.importData(converted(text), 'merge')
+
+      await expect(
+        db.query(`SELECT status, due_on, next_due_date FROM treatment_dose WHERE status = 'shift'`),
+      ).resolves.toEqual([{ status: 'shift', due_on: '2026-09-10', next_due_date: '2026-09-12' }])
     })
   })
 

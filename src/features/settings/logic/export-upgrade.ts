@@ -1,7 +1,14 @@
-import { format, isValid, parseISO } from 'date-fns'
 import { z } from 'zod'
 
+import {
+  chainedDoses,
+  frequencyOf,
+  shiftsOfV3,
+  type DoseLine,
+  type PastDose,
+} from './export-upgrade-doses'
 import { EXPORT_SCHEMA_VERSION } from './export-format'
+import { isCalendarDay } from '@/shared/domain/calendar-day'
 import { MAX_WEIGHT_KG } from '@/shared/domain/weight-bounds'
 
 /** Lignes d'un ancien export qui n'ont pas de place dans le format courant. */
@@ -12,19 +19,24 @@ export type UpgradedExport = { document: Record<string, unknown>; lost: ImportLo
 type Row = Record<string, unknown>
 type Stamps = { createdByDevice: string; updatedByDevice: string }
 
+const day = z.string().refine(isCalendarDay)
 const row = z.looseObject({ id: z.string(), createdAt: z.string(), updatedAt: z.string() })
 const rows = z.array(row)
 
 const animalsV1 = z.array(
-  row.extend({ birthDate: z.string().nullable().optional(), initialWeightKg: z.unknown() }),
+  row.extend({
+    birthDate: z.string().nullable().optional(),
+    initialWeightKg: z.unknown().optional(),
+  }),
 )
 const treatmentsV1 = z.array(
   row.extend({
     animalId: z.string(),
     frequency: z.unknown(),
-    stoppedOn: z.string().nullable().optional(),
+    stoppedOn: day.nullable().optional(),
   }),
 )
+const pastDose = row.extend({ givenOn: day, nextDueDate: day })
 
 const exportV1 = z.looseObject({
   schemaVersion: z.literal(1),
@@ -36,9 +48,7 @@ const exportV1 = z.looseObject({
       dueDate: z.unknown(),
     }),
   ),
-  treatments: z.array(
-    treatmentsV1.element.extend({ lastDoseDate: z.string(), nextDueDate: z.unknown() }),
-  ),
+  treatments: z.array(treatmentsV1.element.extend({ lastDoseDate: day, nextDueDate: day })),
   weightEntries: rows,
 })
 
@@ -48,7 +58,7 @@ const exportV2 = z.looseObject({
   vaccinations: rows,
   vaccinationInjections: z.array(row.extend({ vaccinationId: z.string() })),
   treatments: treatmentsV1,
-  treatmentDoses: z.array(row.extend({ treatmentId: z.string(), givenOn: z.string() })),
+  treatmentDoses: z.array(pastDose.extend({ treatmentId: z.string() })),
   weightEntries: rows,
 })
 
@@ -59,21 +69,27 @@ const exportV3 = z.looseObject({
   vaccinations: rows,
   vaccinationInjections: rows,
   treatments: rows,
-  treatmentPeriods: z.array(row.extend({ firstDueOn: z.unknown() })),
-  treatmentDoses: rows,
+  treatmentPeriods: z.array(row.extend({ firstDueOn: z.unknown(), frequency: z.unknown() })),
+  treatmentDoses: z.array(
+    row.extend({
+      periodId: z.string(),
+      dueOn: day,
+      dueTime: z.string().nullable(),
+      givenOn: day.nullable(),
+      status: z.string(),
+      nextDueDate: day,
+    }),
+  ),
   weightEntries: rows,
 })
 
 type AnimalV1 = z.output<typeof animalsV1>[number]
 type TreatmentV1 = z.output<typeof treatmentsV1>[number]
 
-function dayOf(instant: string): string {
-  const date = parseISO(instant)
-  return isValid(date) ? format(date, 'yyyy-MM-dd') : instant
-}
+const NO_LOSS: ImportLosses = { injections: 0, doses: 0, weightEntries: 0 }
 
-function earliest(days: string[]): string {
-  return days.reduce((first, day) => (day < first ? day : first))
+function without(line: Row, fields: string[]): Row {
+  return Object.fromEntries(Object.entries(line).filter(([field]) => !fields.includes(field)))
 }
 
 function isWeight(value: unknown): value is number {
@@ -91,7 +107,7 @@ function upgradeAnimal(animal: AnimalV1): Row {
   }
 }
 
-/** Le poids à l'arrivée devient une pesée du jour de création de l'animal (modèle v2, M7). */
+/** Le poids à l'arrivée devient une pesée du jour de création de l'animal (modèle v2, M7), en UTC. */
 function arrivalWeighIns(animals: AnimalV1[]): { weighIns: Row[]; lost: number } {
   const weighIns: Row[] = []
   let lost = 0
@@ -105,7 +121,7 @@ function arrivalWeighIns(animals: AnimalV1[]): { weighIns: Row[]; lost: number }
       id,
       animalId: id,
       weightKg: initialWeightKg,
-      measuredOn: dayOf(createdAt),
+      measuredOn: createdAt.slice(0, 10),
       createdAt,
       updatedAt: createdAt,
     })
@@ -113,23 +129,33 @@ function arrivalWeighIns(animals: AnimalV1[]): { weighIns: Row[]; lost: number }
   return { weighIns, lost }
 }
 
-/** Une seule période par traitement, à son identifiant, ouverte à la première prise connue. */
-function periodOf(
-  { id, animalId, frequency, stoppedOn, createdAt, updatedAt }: TreatmentV1,
-  doseDays: string[],
-): Row {
-  const known = [...doseDays, ...(stoppedOn ? [stoppedOn] : [])]
-  const startsOn = known.length > 0 ? earliest(known) : dayOf(createdAt)
-  return {
+function byGivenOn(a: PastDose, b: PastDose): number {
+  return (
+    a.givenOn.localeCompare(b.givenOn) ||
+    a.createdAt.localeCompare(b.createdAt) ||
+    a.id.localeCompare(b.id)
+  )
+}
+
+/** Une seule période par traitement, à son identifiant, dont la première échéance est la première prise. */
+function upgradeTreatment(
+  treatment: TreatmentV1,
+  pastDoses: PastDose[],
+): { period: Row; doses: DoseLine[]; lost: number } {
+  const { id, animalId, stoppedOn, createdAt, updatedAt } = treatment
+  const doses = [...pastDoses].sort(byGivenOn)
+  const firstDueOn = doses[0]?.givenOn ?? createdAt.slice(0, 10)
+  const startsOn = stoppedOn && stoppedOn < firstDueOn ? stoppedOn : firstDueOn
+  const period = {
     id,
     treatmentId: id,
     animalId,
     startsOn,
-    firstDueOn: startsOn,
-    referenceOn: startsOn,
+    firstDueOn,
+    referenceOn: firstDueOn,
     endsOn: null,
     stoppedOn: stoppedOn ?? null,
-    frequency,
+    frequency: treatment.frequency,
     times: [],
     doseQuantity: null,
     doseUnit: null,
@@ -138,28 +164,66 @@ function periodOf(
     createdAt,
     updatedAt,
   }
-}
-
-function without(line: Row, fields: string[]): Row {
-  return Object.fromEntries(Object.entries(line).filter(([field]) => !fields.includes(field)))
+  const frequency = frequencyOf(treatment.frequency)
+  const sources = doses.map((dose) => ({
+    ...(without(dose, ['frequency']) as PastDose),
+    treatmentId: id,
+    animalId,
+  }))
+  if (frequency === null) {
+    return {
+      period,
+      doses: sources.map((dose) => ({
+        ...dose,
+        periodId: id,
+        dueOn: dose.givenOn,
+        dueTime: null,
+        status: 'given',
+      })),
+      lost: 0,
+    }
+  }
+  const { lines, lost } = chainedDoses({ id, firstDueOn }, frequency, sources)
+  return { period, doses: lines, lost }
 }
 
 function treatmentOf(treatment: Row): Row {
   return without(treatment, ['frequency', 'stoppedOn', 'lastDoseDate', 'nextDueDate'])
 }
 
-function givenDose(dose: Row & { treatmentId: string; givenOn: string }): Row {
+function upgradeTreatments(
+  treatments: TreatmentV1[],
+  dosesOf: (treatmentId: string) => PastDose[],
+): { treatments: Row[]; treatmentPeriods: Row[]; treatmentDoses: Row[]; lost: number } {
+  const upgraded = treatments.map((treatment) => upgradeTreatment(treatment, dosesOf(treatment.id)))
   return {
-    ...dose,
-    periodId: dose.treatmentId,
-    dueOn: dose.givenOn,
-    dueTime: null,
-    status: 'given',
+    treatments: treatments.map(treatmentOf),
+    treatmentPeriods: upgraded.map(({ period }) => period),
+    treatmentDoses: upgraded.flatMap(({ doses }) => doses),
+    lost: upgraded.reduce((total, { lost }) => total + lost, 0),
   }
 }
 
 function fromV1(file: z.output<typeof exportV1>): UpgradedExport {
   const { weighIns, lost } = arrivalWeighIns(file.animals)
+  const lastDoses = new Map(
+    file.treatments.map((treatment) => [
+      treatment.id,
+      [
+        {
+          id: treatment.id,
+          givenOn: treatment.lastDoseDate,
+          nextDueDate: treatment.nextDueDate,
+          createdAt: treatment.createdAt,
+          updatedAt: treatment.updatedAt,
+        },
+      ],
+    ]),
+  )
+  const { lost: lostDoses, ...treatments } = upgradeTreatments(
+    file.treatments,
+    (treatmentId) => lastDoses.get(treatmentId) ?? [],
+  )
   return {
     document: {
       carnetSettings: null,
@@ -177,25 +241,17 @@ function fromV1(file: z.output<typeof exportV1>): UpgradedExport {
         createdAt: vaccination.createdAt,
         updatedAt: vaccination.updatedAt,
       })),
-      treatments: file.treatments.map(treatmentOf),
-      treatmentPeriods: file.treatments.map((treatment) =>
-        periodOf(treatment, [treatment.lastDoseDate]),
-      ),
-      treatmentDoses: file.treatments.map((treatment) =>
-        givenDose({
-          id: treatment.id,
-          treatmentId: treatment.id,
-          animalId: treatment.animalId,
-          givenOn: treatment.lastDoseDate,
-          nextDueDate: treatment.nextDueDate,
-          createdAt: treatment.createdAt,
-          updatedAt: treatment.updatedAt,
-        }),
-      ),
+      ...treatments,
       weightEntries: [...file.weightEntries, ...weighIns],
     },
-    lost: { injections: 0, doses: 0, weightEntries: lost },
+    lost: { ...NO_LOSS, doses: lostDoses, weightEntries: lost },
   }
+}
+
+function groupBy<T>(lines: T[], keyOf: (line: T) => string): Map<string, T[]> {
+  const groups = new Map<string, T[]>()
+  for (const line of lines) groups.set(keyOf(line), [...(groups.get(keyOf(line)) ?? []), line])
+  return groups
 }
 
 function fromV2(file: z.output<typeof exportV2>): UpgradedExport {
@@ -204,8 +260,15 @@ function fromV2(file: z.output<typeof exportV2>): UpgradedExport {
   const injections = file.vaccinationInjections.filter(({ vaccinationId }) =>
     vaccinationIds.has(vaccinationId),
   )
-  const treatmentIds = new Set(file.treatments.map(({ id }) => id))
-  const doses = file.treatmentDoses.filter(({ treatmentId }) => treatmentIds.has(treatmentId))
+  const dosesByTreatment = groupBy(file.treatmentDoses, ({ treatmentId }) => treatmentId)
+  const { lost: lostDoses, ...treatments } = upgradeTreatments(
+    file.treatments,
+    (treatmentId) => dosesByTreatment.get(treatmentId) ?? [],
+  )
+  const kept = file.treatments.reduce(
+    (total, { id }) => total + (dosesByTreatment.get(id)?.length ?? 0),
+    0,
+  )
   return {
     document: {
       carnetSettings: null,
@@ -215,27 +278,22 @@ function fromV2(file: z.output<typeof exportV2>): UpgradedExport {
         plannedDueDate: null,
       })),
       vaccinationInjections: injections,
-      treatments: file.treatments.map(treatmentOf),
-      treatmentPeriods: file.treatments.map((treatment) =>
-        periodOf(
-          treatment,
-          doses
-            .filter(({ treatmentId }) => treatmentId === treatment.id)
-            .map(({ givenOn }) => givenOn),
-        ),
-      ),
-      treatmentDoses: doses.map((dose) => without(givenDose(dose), ['frequency'])),
+      ...treatments,
       weightEntries: [...file.weightEntries, ...weighIns],
     },
     lost: {
       injections: file.vaccinationInjections.length - injections.length,
-      doses: file.treatmentDoses.length - doses.length,
+      doses: file.treatmentDoses.length - kept + lostDoses,
       weightEntries: lost,
     },
   }
 }
 
 function fromV3(file: z.output<typeof exportV3>): UpgradedExport {
+  const frequencies = new Map(
+    file.treatmentPeriods.map(({ id, frequency }) => [id, frequencyOf(frequency)]),
+  )
+  const doses = file.treatmentDoses as DoseLine[]
   return {
     document: {
       carnetSettings: file.carnetSettings,
@@ -247,10 +305,10 @@ function fromV3(file: z.output<typeof exportV3>): UpgradedExport {
         ...period,
         referenceOn: period.firstDueOn,
       })),
-      treatmentDoses: file.treatmentDoses,
+      treatmentDoses: [...doses, ...shiftsOfV3(doses, frequencies)],
       weightEntries: file.weightEntries,
     },
-    lost: { injections: 0, doses: 0, weightEntries: 0 },
+    lost: NO_LOSS,
   }
 }
 

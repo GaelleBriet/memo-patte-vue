@@ -1,0 +1,820 @@
+{
+  "schemaVersion": 3,
+  "exportedAt": "2026-10-04T19:20:33.902Z",
+  "appVersion": "0.1.56",
+  "carnetSettings": null,
+  "animals": [
+    {
+      "id": "798215ca-2037-436a-a39a-261a893365ec",
+      "name": "Luna",
+      "species": "cat",
+      "breed": "Européen",
+      "birthDate": "2023-10-04",
+      "birthDateApproximate": false,
+      "photoFileName": null,
+      "unfollowedOn": null,
+      "departureReason": null,
+      "departureDate": null,
+      "createdAt": "2026-10-04T19:20:33.902Z",
+      "updatedAt": "2026-10-04T19:20:33.902Z"
+    },
+    {
+      "id": "3010d1e4-dd7a-40de-9ef0-a54ea8ae88e7",
+      "name": "Milo",
+      "species": "dog",
+      "breed": "Golden retriever",
+      "birthDate": "2022-10-04",
+      "birthDateApproximate": false,
+      "photoFileName": null,
+      "unfollowedOn": null,
+      "departureReason": null,
+      "departureDate": null,
+      "createdAt": "2026-10-04T19:20:33.902Z",
+      "updatedAt": "2026-10-04T19:20:33.902Z"
+    }
+  ],
+  "vaccinations": [
+    {
+      "id": "4bb9f12e-c665-4495-85b5-e20e45902e71",
+      "animalId": "3010d1e4-dd7a-40de-9ef0-a54ea8ae88e7",
+      "name": "Rage",
+      "plannedDueDate": null,
+      "createdAt": "2026-10-04T19:20:33.902Z",
+      "updatedAt": "2026-10-04T19:20:33.902Z"
+    },
+    {
+      "id": "9765477a-8198-455f-8a7d-5612b541401d",
+      "animalId": "3010d1e4-dd7a-40de-9ef0-a54ea8ae88e7",
+      "name": "CHPPi",
+      "plannedDueDate": null,
+      "createdAt": "2026-10-04T19:20:33.902Z",
+      "updatedAt": "2026-10-04T19:20:33.902Z"
+    },
+    {
+      "id": "4064bc2b-11c7-427d-8b70-f8e9e8b27d0c",
+      "animalId": "798215ca-2037-436a-a39a-261a893365ec",
+      "name": "Typhus",
+      "plannedDueDate": null,
+      "createdAt": "2026-10-04T19:20:33.902Z",
+      "updatedAt": "2026-10-04T19:20:33.902Z"
+    }
+  ],
+  "vaccinationInjections": [
+    {
+      "id": "4bb9f12e-c665-4495-85b5-e20e45902e71",
+      "vaccinationId": "4bb9f12e-c665-4495-85b5-e20e45902e71",
+      "animalId": "3010d1e4-dd7a-40de-9ef0-a54ea8ae88e7",
+      "injectedOn": "2026-08-04",
+      "nextDueDate": "2027-08-04",
+      "createdAt": "2026-10-04T19:20:33.902Z",
+      "updatedAt": "2026-10-04T19:20:33.902Z"
+    },
+    {
+      "id": "9765477a-8198-455f-8a7d-5612b541401d",
+      "vaccinationId": "9765477a-8198-455f-8a7d-5612b541401d",
+      "animalId": "3010d1e4-dd7a-40de-9ef0-a54ea8ae88e7",
+      "injectedOn": "2025-08-20",
+      "nextDueDate": "2026-08-20",
+      "createdAt": "2026-10-04T19:20:33.902Z",
+      "updatedAt": "2026-10-04T19:20:33.902Z"
+    },
+    {
+      "id": "124144d5-bae5-49dd-9d60-195105a63281",
+      "vaccinationId": "9765477a-8198-455f-8a7d-5612b541401d",
+      "animalId": "3010d1e4-dd7a-40de-9ef0-a54ea8ae88e7",
+      "injectedOn": "2024-08-20",
+      "nextDueDate": "2025-08-20",
+      "createdAt": "2026-10-04T19:20:33.902Z",
+      "updatedAt": "2026-10-04T19:20:33.902Z"
+    },
+    {
+      "id": "efa44fc1-db71-4bcf-a767-003577f2045e",
+      "vaccinationId": "9765477a-8198-455f-8a7d-5612b541401d",
+      "animalId": "3010d1e4-dd7a-40de-9ef0-a54ea8ae88e7",
+      "injectedOn": "2024-07-20",
+      "nextDueDate": "2024-08-20",
+      "createdAt": "2026-10-04T19:20:33.902Z",
+      "updatedAt": "2026-10-04T19:20:33.902Z"
+    },
+    {
+      "id": "4064bc2b-11c7-427d-8b70-f8e9e8b27d0c",
+      "vaccinationId": "4064bc2b-11c7-427d-8b70-f8e9e8b27d0c",
+      "animalId": "798215ca-2037-436a-a39a-261a893365ec",
+      "injectedOn": "2026-07-04",
+      "nextDueDate": "2027-07-04",
+      "createdAt": "2026-10-04T19:20:33.902Z",
+      "updatedAt": "2026-10-04T19:20:33.902Z"
+    }
+  ],
+  "treatments": [
+    {
+      "id": "187fdf33-fce6-4c41-a4f0-725e668540b1",
+      "animalId": "3010d1e4-dd7a-40de-9ef0-a54ea8ae88e7",
+      "name": "Drontal",
+      "type": "deworming",
+      "createdAt": "2026-10-04T19:20:33.902Z",
+      "updatedAt": "2026-10-04T19:20:33.902Z"
+    },
+    {
+      "id": "1de53078-df94-41a0-a107-bbdbdabae2bc",
+      "animalId": "3010d1e4-dd7a-40de-9ef0-a54ea8ae88e7",
+      "name": "Panacur",
+      "type": "deworming",
+      "createdAt": "2026-10-04T19:20:33.902Z",
+      "updatedAt": "2026-10-04T19:20:33.902Z"
+    },
+    {
+      "id": "905bcb79-4485-452f-9d0c-f8383e17c27f",
+      "animalId": "3010d1e4-dd7a-40de-9ef0-a54ea8ae88e7",
+      "name": "Advocate",
+      "type": "antiparasitic",
+      "createdAt": "2026-10-04T19:20:33.902Z",
+      "updatedAt": "2026-10-04T19:20:33.902Z"
+    },
+    {
+      "id": "a768ab23-22f5-4d1f-9613-c7abeac1ffc5",
+      "animalId": "3010d1e4-dd7a-40de-9ef0-a54ea8ae88e7",
+      "name": "Bravecto",
+      "type": "antiparasitic",
+      "createdAt": "2026-10-04T19:20:33.902Z",
+      "updatedAt": "2026-10-04T19:20:33.902Z"
+    },
+    {
+      "id": "98204aa7-e57b-4960-8c86-c78861b688b9",
+      "animalId": "798215ca-2037-436a-a39a-261a893365ec",
+      "name": "Milbemax",
+      "type": "deworming",
+      "createdAt": "2026-10-04T19:20:33.902Z",
+      "updatedAt": "2026-10-04T19:20:33.902Z"
+    },
+    {
+      "id": "b66be81a-7262-425a-8dbb-aaa5121186db",
+      "animalId": "798215ca-2037-436a-a39a-261a893365ec",
+      "name": "Frontline",
+      "type": "antiparasitic",
+      "createdAt": "2026-10-04T19:20:33.902Z",
+      "updatedAt": "2026-10-04T19:20:33.902Z"
+    }
+  ],
+  "treatmentPeriods": [
+    {
+      "id": "c002d7cd-7dab-4a9e-b42a-8a8efb05c583",
+      "treatmentId": "187fdf33-fce6-4c41-a4f0-725e668540b1",
+      "animalId": "3010d1e4-dd7a-40de-9ef0-a54ea8ae88e7",
+      "startsOn": "2025-07-14",
+      "firstDueOn": "2025-07-14",
+      "endsOn": null,
+      "stoppedOn": null,
+      "frequency": {
+        "value": 1,
+        "unit": "month"
+      },
+      "times": [],
+      "doseQuantity": null,
+      "doseUnit": null,
+      "reminderOffsetMinutes": null,
+      "reminderTime": null,
+      "createdAt": "2026-10-04T19:20:33.902Z",
+      "updatedAt": "2026-10-04T19:20:33.902Z"
+    },
+    {
+      "id": "3717e35e-bc52-4968-a36d-1b4cac02d758",
+      "treatmentId": "1de53078-df94-41a0-a107-bbdbdabae2bc",
+      "animalId": "3010d1e4-dd7a-40de-9ef0-a54ea8ae88e7",
+      "startsOn": "2026-09-29",
+      "firstDueOn": "2026-09-29",
+      "endsOn": "2026-10-08",
+      "stoppedOn": null,
+      "frequency": {
+        "value": 1,
+        "unit": "day"
+      },
+      "times": ["08:00", "20:00"],
+      "doseQuantity": 1,
+      "doseUnit": "sachet",
+      "reminderOffsetMinutes": 15,
+      "reminderTime": null,
+      "createdAt": "2026-10-04T19:20:33.902Z",
+      "updatedAt": "2026-10-04T19:20:33.902Z"
+    },
+    {
+      "id": "0fa7eaa3-c4aa-4ad9-9088-d2cc0da9283f",
+      "treatmentId": "905bcb79-4485-452f-9d0c-f8383e17c27f",
+      "animalId": "3010d1e4-dd7a-40de-9ef0-a54ea8ae88e7",
+      "startsOn": "2026-05-15",
+      "firstDueOn": "2026-05-15",
+      "endsOn": null,
+      "stoppedOn": "2026-06-04",
+      "frequency": {
+        "value": 15,
+        "unit": "day"
+      },
+      "times": [],
+      "doseQuantity": null,
+      "doseUnit": null,
+      "reminderOffsetMinutes": null,
+      "reminderTime": null,
+      "createdAt": "2026-10-04T19:20:33.902Z",
+      "updatedAt": "2026-10-04T19:20:33.902Z"
+    },
+    {
+      "id": "4d434b8c-d833-433e-ab38-2f373e83b114",
+      "treatmentId": "a768ab23-22f5-4d1f-9613-c7abeac1ffc5",
+      "animalId": "3010d1e4-dd7a-40de-9ef0-a54ea8ae88e7",
+      "startsOn": "2026-07-20",
+      "firstDueOn": "2026-07-20",
+      "endsOn": null,
+      "stoppedOn": null,
+      "frequency": {
+        "value": 3,
+        "unit": "month"
+      },
+      "times": [],
+      "doseQuantity": null,
+      "doseUnit": null,
+      "reminderOffsetMinutes": null,
+      "reminderTime": null,
+      "createdAt": "2026-10-04T19:20:33.902Z",
+      "updatedAt": "2026-10-04T19:20:33.902Z"
+    },
+    {
+      "id": "dd34d88f-ac6b-4f56-ad48-a96028cf3914",
+      "treatmentId": "98204aa7-e57b-4960-8c86-c78861b688b9",
+      "animalId": "798215ca-2037-436a-a39a-261a893365ec",
+      "startsOn": "2025-09-04",
+      "firstDueOn": "2025-09-04",
+      "endsOn": null,
+      "stoppedOn": "2026-02-04",
+      "frequency": {
+        "value": 3,
+        "unit": "month"
+      },
+      "times": [],
+      "doseQuantity": null,
+      "doseUnit": null,
+      "reminderOffsetMinutes": null,
+      "reminderTime": null,
+      "createdAt": "2026-10-04T19:20:33.902Z",
+      "updatedAt": "2026-10-04T19:20:33.902Z"
+    },
+    {
+      "id": "cb81e9e1-e35e-40c4-8bfd-692c035d291d",
+      "treatmentId": "98204aa7-e57b-4960-8c86-c78861b688b9",
+      "animalId": "798215ca-2037-436a-a39a-261a893365ec",
+      "startsOn": "2026-09-04",
+      "firstDueOn": "2026-09-04",
+      "endsOn": null,
+      "stoppedOn": null,
+      "frequency": {
+        "value": 3,
+        "unit": "month"
+      },
+      "times": [],
+      "doseQuantity": null,
+      "doseUnit": null,
+      "reminderOffsetMinutes": null,
+      "reminderTime": null,
+      "createdAt": "2026-10-04T19:20:33.902Z",
+      "updatedAt": "2026-10-04T19:20:33.902Z"
+    },
+    {
+      "id": "b642790f-0f58-48ad-b26b-79ca65af34d2",
+      "treatmentId": "b66be81a-7262-425a-8dbb-aaa5121186db",
+      "animalId": "798215ca-2037-436a-a39a-261a893365ec",
+      "startsOn": "2026-08-04",
+      "firstDueOn": "2026-08-04",
+      "endsOn": "2027-02-04",
+      "stoppedOn": null,
+      "frequency": {
+        "value": 1,
+        "unit": "month"
+      },
+      "times": [],
+      "doseQuantity": 1,
+      "doseUnit": "pipette",
+      "reminderOffsetMinutes": null,
+      "reminderTime": "18:00",
+      "createdAt": "2026-10-04T19:20:33.902Z",
+      "updatedAt": "2026-10-04T19:20:33.902Z"
+    }
+  ],
+  "treatmentDoses": [
+    {
+      "id": "9c3292b5-4c3d-4d9d-bd98-f1aa4c81a871",
+      "periodId": "c002d7cd-7dab-4a9e-b42a-8a8efb05c583",
+      "treatmentId": "187fdf33-fce6-4c41-a4f0-725e668540b1",
+      "animalId": "3010d1e4-dd7a-40de-9ef0-a54ea8ae88e7",
+      "dueOn": "2026-09-14",
+      "dueTime": null,
+      "givenOn": "2026-09-14",
+      "status": "given",
+      "nextDueDate": "2026-10-14",
+      "createdAt": "2026-10-04T19:20:33.902Z",
+      "updatedAt": "2026-10-04T19:20:33.902Z"
+    },
+    {
+      "id": "edc62b26-2cbb-4287-af8f-9c0e1148c53c",
+      "periodId": "c002d7cd-7dab-4a9e-b42a-8a8efb05c583",
+      "treatmentId": "187fdf33-fce6-4c41-a4f0-725e668540b1",
+      "animalId": "3010d1e4-dd7a-40de-9ef0-a54ea8ae88e7",
+      "dueOn": "2026-08-14",
+      "dueTime": null,
+      "givenOn": "2026-08-14",
+      "status": "given",
+      "nextDueDate": "2026-09-14",
+      "createdAt": "2026-10-04T19:20:33.902Z",
+      "updatedAt": "2026-10-04T19:20:33.902Z"
+    },
+    {
+      "id": "d08c82b1-ffe1-4e8a-9cb4-cc9cf57907e4",
+      "periodId": "c002d7cd-7dab-4a9e-b42a-8a8efb05c583",
+      "treatmentId": "187fdf33-fce6-4c41-a4f0-725e668540b1",
+      "animalId": "3010d1e4-dd7a-40de-9ef0-a54ea8ae88e7",
+      "dueOn": "2026-07-14",
+      "dueTime": null,
+      "givenOn": "2026-07-14",
+      "status": "given",
+      "nextDueDate": "2026-08-14",
+      "createdAt": "2026-10-04T19:20:33.902Z",
+      "updatedAt": "2026-10-04T19:20:33.902Z"
+    },
+    {
+      "id": "bdb9711a-3e3b-410a-a071-74c57ef13bc6",
+      "periodId": "c002d7cd-7dab-4a9e-b42a-8a8efb05c583",
+      "treatmentId": "187fdf33-fce6-4c41-a4f0-725e668540b1",
+      "animalId": "3010d1e4-dd7a-40de-9ef0-a54ea8ae88e7",
+      "dueOn": "2026-06-14",
+      "dueTime": null,
+      "givenOn": "2026-06-14",
+      "status": "given",
+      "nextDueDate": "2026-07-14",
+      "createdAt": "2026-10-04T19:20:33.902Z",
+      "updatedAt": "2026-10-04T19:20:33.902Z"
+    },
+    {
+      "id": "17b58a99-36fe-431e-992a-8263bf11a193",
+      "periodId": "c002d7cd-7dab-4a9e-b42a-8a8efb05c583",
+      "treatmentId": "187fdf33-fce6-4c41-a4f0-725e668540b1",
+      "animalId": "3010d1e4-dd7a-40de-9ef0-a54ea8ae88e7",
+      "dueOn": "2026-05-14",
+      "dueTime": null,
+      "givenOn": "2026-05-14",
+      "status": "given",
+      "nextDueDate": "2026-06-14",
+      "createdAt": "2026-10-04T19:20:33.902Z",
+      "updatedAt": "2026-10-04T19:20:33.902Z"
+    },
+    {
+      "id": "b2e1c666-ec08-456c-bd30-d01fe395893c",
+      "periodId": "c002d7cd-7dab-4a9e-b42a-8a8efb05c583",
+      "treatmentId": "187fdf33-fce6-4c41-a4f0-725e668540b1",
+      "animalId": "3010d1e4-dd7a-40de-9ef0-a54ea8ae88e7",
+      "dueOn": "2026-04-14",
+      "dueTime": null,
+      "givenOn": "2026-04-14",
+      "status": "given",
+      "nextDueDate": "2026-05-14",
+      "createdAt": "2026-10-04T19:20:33.902Z",
+      "updatedAt": "2026-10-04T19:20:33.902Z"
+    },
+    {
+      "id": "38b344a1-e7aa-4f82-aa95-2867aeb84383",
+      "periodId": "c002d7cd-7dab-4a9e-b42a-8a8efb05c583",
+      "treatmentId": "187fdf33-fce6-4c41-a4f0-725e668540b1",
+      "animalId": "3010d1e4-dd7a-40de-9ef0-a54ea8ae88e7",
+      "dueOn": "2026-03-14",
+      "dueTime": null,
+      "givenOn": "2026-03-14",
+      "status": "given",
+      "nextDueDate": "2026-04-14",
+      "createdAt": "2026-10-04T19:20:33.902Z",
+      "updatedAt": "2026-10-04T19:20:33.902Z"
+    },
+    {
+      "id": "e7aaee1c-edbc-44f6-9d20-ecdf69cb395d",
+      "periodId": "c002d7cd-7dab-4a9e-b42a-8a8efb05c583",
+      "treatmentId": "187fdf33-fce6-4c41-a4f0-725e668540b1",
+      "animalId": "3010d1e4-dd7a-40de-9ef0-a54ea8ae88e7",
+      "dueOn": "2026-02-14",
+      "dueTime": null,
+      "givenOn": "2026-02-14",
+      "status": "given",
+      "nextDueDate": "2026-03-14",
+      "createdAt": "2026-10-04T19:20:33.902Z",
+      "updatedAt": "2026-10-04T19:20:33.902Z"
+    },
+    {
+      "id": "aba2231d-11f4-4fc8-99f4-173df2035ce1",
+      "periodId": "c002d7cd-7dab-4a9e-b42a-8a8efb05c583",
+      "treatmentId": "187fdf33-fce6-4c41-a4f0-725e668540b1",
+      "animalId": "3010d1e4-dd7a-40de-9ef0-a54ea8ae88e7",
+      "dueOn": "2026-01-14",
+      "dueTime": null,
+      "givenOn": "2026-01-14",
+      "status": "given",
+      "nextDueDate": "2026-02-14",
+      "createdAt": "2026-10-04T19:20:33.902Z",
+      "updatedAt": "2026-10-04T19:20:33.902Z"
+    },
+    {
+      "id": "46fa568c-1b28-44f7-88d8-d85faa162e4e",
+      "periodId": "c002d7cd-7dab-4a9e-b42a-8a8efb05c583",
+      "treatmentId": "187fdf33-fce6-4c41-a4f0-725e668540b1",
+      "animalId": "3010d1e4-dd7a-40de-9ef0-a54ea8ae88e7",
+      "dueOn": "2025-12-14",
+      "dueTime": null,
+      "givenOn": "2025-12-14",
+      "status": "given",
+      "nextDueDate": "2026-01-14",
+      "createdAt": "2026-10-04T19:20:33.902Z",
+      "updatedAt": "2026-10-04T19:20:33.902Z"
+    },
+    {
+      "id": "dbf77861-8045-4f18-826f-3cd3b4c1f400",
+      "periodId": "c002d7cd-7dab-4a9e-b42a-8a8efb05c583",
+      "treatmentId": "187fdf33-fce6-4c41-a4f0-725e668540b1",
+      "animalId": "3010d1e4-dd7a-40de-9ef0-a54ea8ae88e7",
+      "dueOn": "2025-11-14",
+      "dueTime": null,
+      "givenOn": "2025-11-14",
+      "status": "given",
+      "nextDueDate": "2025-12-14",
+      "createdAt": "2026-10-04T19:20:33.902Z",
+      "updatedAt": "2026-10-04T19:20:33.902Z"
+    },
+    {
+      "id": "4441f5f1-630f-4982-b0b7-12b56ec344d5",
+      "periodId": "c002d7cd-7dab-4a9e-b42a-8a8efb05c583",
+      "treatmentId": "187fdf33-fce6-4c41-a4f0-725e668540b1",
+      "animalId": "3010d1e4-dd7a-40de-9ef0-a54ea8ae88e7",
+      "dueOn": "2025-10-14",
+      "dueTime": null,
+      "givenOn": "2025-10-14",
+      "status": "given",
+      "nextDueDate": "2025-11-14",
+      "createdAt": "2026-10-04T19:20:33.902Z",
+      "updatedAt": "2026-10-04T19:20:33.902Z"
+    },
+    {
+      "id": "db0fa5a9-9763-41d0-825b-16dc1110eaad",
+      "periodId": "c002d7cd-7dab-4a9e-b42a-8a8efb05c583",
+      "treatmentId": "187fdf33-fce6-4c41-a4f0-725e668540b1",
+      "animalId": "3010d1e4-dd7a-40de-9ef0-a54ea8ae88e7",
+      "dueOn": "2025-09-14",
+      "dueTime": null,
+      "givenOn": "2025-09-14",
+      "status": "given",
+      "nextDueDate": "2025-10-14",
+      "createdAt": "2026-10-04T19:20:33.902Z",
+      "updatedAt": "2026-10-04T19:20:33.902Z"
+    },
+    {
+      "id": "91a073e4-8701-4bb7-b87f-5d5f7853acd4",
+      "periodId": "c002d7cd-7dab-4a9e-b42a-8a8efb05c583",
+      "treatmentId": "187fdf33-fce6-4c41-a4f0-725e668540b1",
+      "animalId": "3010d1e4-dd7a-40de-9ef0-a54ea8ae88e7",
+      "dueOn": "2025-08-14",
+      "dueTime": null,
+      "givenOn": "2025-08-14",
+      "status": "given",
+      "nextDueDate": "2025-09-14",
+      "createdAt": "2026-10-04T19:20:33.902Z",
+      "updatedAt": "2026-10-04T19:20:33.902Z"
+    },
+    {
+      "id": "b5079398-1bb6-4e8e-8a55-4a296229621b",
+      "periodId": "c002d7cd-7dab-4a9e-b42a-8a8efb05c583",
+      "treatmentId": "187fdf33-fce6-4c41-a4f0-725e668540b1",
+      "animalId": "3010d1e4-dd7a-40de-9ef0-a54ea8ae88e7",
+      "dueOn": "2025-07-14",
+      "dueTime": null,
+      "givenOn": "2025-07-14",
+      "status": "given",
+      "nextDueDate": "2025-08-14",
+      "createdAt": "2026-10-04T19:20:33.902Z",
+      "updatedAt": "2026-10-04T19:20:33.902Z"
+    },
+    {
+      "id": "5f32fd44-7bb1-4e49-837e-aa17f18048d0",
+      "periodId": "3717e35e-bc52-4968-a36d-1b4cac02d758",
+      "treatmentId": "1de53078-df94-41a0-a107-bbdbdabae2bc",
+      "animalId": "3010d1e4-dd7a-40de-9ef0-a54ea8ae88e7",
+      "dueOn": "2026-10-02",
+      "dueTime": "08:00",
+      "givenOn": "2026-10-02",
+      "status": "given",
+      "nextDueDate": "2026-10-02",
+      "createdAt": "2026-10-04T19:20:33.902Z",
+      "updatedAt": "2026-10-04T19:20:33.902Z"
+    },
+    {
+      "id": "f5811c95-52cd-4d45-99eb-f8c7a96ae2af",
+      "periodId": "3717e35e-bc52-4968-a36d-1b4cac02d758",
+      "treatmentId": "1de53078-df94-41a0-a107-bbdbdabae2bc",
+      "animalId": "3010d1e4-dd7a-40de-9ef0-a54ea8ae88e7",
+      "dueOn": "2026-09-30",
+      "dueTime": "20:00",
+      "givenOn": null,
+      "status": "missed",
+      "nextDueDate": "2026-10-01",
+      "createdAt": "2026-10-04T19:20:33.902Z",
+      "updatedAt": "2026-10-04T19:20:33.902Z"
+    },
+    {
+      "id": "bd32bc28-b5e9-4add-bb15-9d448418ed69",
+      "periodId": "3717e35e-bc52-4968-a36d-1b4cac02d758",
+      "treatmentId": "1de53078-df94-41a0-a107-bbdbdabae2bc",
+      "animalId": "3010d1e4-dd7a-40de-9ef0-a54ea8ae88e7",
+      "dueOn": "2026-09-30",
+      "dueTime": "08:00",
+      "givenOn": "2026-09-30",
+      "status": "given",
+      "nextDueDate": "2026-09-30",
+      "createdAt": "2026-10-04T19:20:33.902Z",
+      "updatedAt": "2026-10-04T19:20:33.902Z"
+    },
+    {
+      "id": "adc173b8-f0d3-4421-a055-c16abe120ab3",
+      "periodId": "3717e35e-bc52-4968-a36d-1b4cac02d758",
+      "treatmentId": "1de53078-df94-41a0-a107-bbdbdabae2bc",
+      "animalId": "3010d1e4-dd7a-40de-9ef0-a54ea8ae88e7",
+      "dueOn": "2026-09-29",
+      "dueTime": "20:00",
+      "givenOn": "2026-09-29",
+      "status": "given",
+      "nextDueDate": "2026-09-30",
+      "createdAt": "2026-10-04T19:20:33.902Z",
+      "updatedAt": "2026-10-04T19:20:33.902Z"
+    },
+    {
+      "id": "10135135-d415-4232-aa76-55d6761be091",
+      "periodId": "3717e35e-bc52-4968-a36d-1b4cac02d758",
+      "treatmentId": "1de53078-df94-41a0-a107-bbdbdabae2bc",
+      "animalId": "3010d1e4-dd7a-40de-9ef0-a54ea8ae88e7",
+      "dueOn": "2026-09-29",
+      "dueTime": "08:00",
+      "givenOn": "2026-09-29",
+      "status": "given",
+      "nextDueDate": "2026-09-29",
+      "createdAt": "2026-10-04T19:20:33.902Z",
+      "updatedAt": "2026-10-04T19:20:33.902Z"
+    },
+    {
+      "id": "e0e56ec8-44e1-48ce-8b79-af3734b437b8",
+      "periodId": "0fa7eaa3-c4aa-4ad9-9088-d2cc0da9283f",
+      "treatmentId": "905bcb79-4485-452f-9d0c-f8383e17c27f",
+      "animalId": "3010d1e4-dd7a-40de-9ef0-a54ea8ae88e7",
+      "dueOn": "2026-05-30",
+      "dueTime": null,
+      "givenOn": "2026-05-30",
+      "status": "given",
+      "nextDueDate": "2026-06-14",
+      "createdAt": "2026-10-04T19:20:33.902Z",
+      "updatedAt": "2026-10-04T19:20:33.902Z"
+    },
+    {
+      "id": "3c3bf2c0-2360-4e72-9393-10a6ea409b56",
+      "periodId": "0fa7eaa3-c4aa-4ad9-9088-d2cc0da9283f",
+      "treatmentId": "905bcb79-4485-452f-9d0c-f8383e17c27f",
+      "animalId": "3010d1e4-dd7a-40de-9ef0-a54ea8ae88e7",
+      "dueOn": "2026-05-15",
+      "dueTime": null,
+      "givenOn": "2026-05-15",
+      "status": "given",
+      "nextDueDate": "2026-05-30",
+      "createdAt": "2026-10-04T19:20:33.902Z",
+      "updatedAt": "2026-10-04T19:20:33.902Z"
+    },
+    {
+      "id": "e4a39c7d-62b1-4674-908c-3535af75bef8",
+      "periodId": "4d434b8c-d833-433e-ab38-2f373e83b114",
+      "treatmentId": "a768ab23-22f5-4d1f-9613-c7abeac1ffc5",
+      "animalId": "3010d1e4-dd7a-40de-9ef0-a54ea8ae88e7",
+      "dueOn": "2026-07-20",
+      "dueTime": null,
+      "givenOn": "2026-07-20",
+      "status": "given",
+      "nextDueDate": "2026-10-20",
+      "createdAt": "2026-10-04T19:20:33.902Z",
+      "updatedAt": "2026-10-04T19:20:33.902Z"
+    },
+    {
+      "id": "ecb08e1a-6e29-4b07-8e3f-0d531dc5bc56",
+      "periodId": "cb81e9e1-e35e-40c4-8bfd-692c035d291d",
+      "treatmentId": "98204aa7-e57b-4960-8c86-c78861b688b9",
+      "animalId": "798215ca-2037-436a-a39a-261a893365ec",
+      "dueOn": "2026-09-04",
+      "dueTime": null,
+      "givenOn": "2026-09-04",
+      "status": "given",
+      "nextDueDate": "2026-12-04",
+      "createdAt": "2026-10-04T19:20:33.902Z",
+      "updatedAt": "2026-10-04T19:20:33.902Z"
+    },
+    {
+      "id": "fde2819c-e003-48c9-8444-74b704931c2e",
+      "periodId": "dd34d88f-ac6b-4f56-ad48-a96028cf3914",
+      "treatmentId": "98204aa7-e57b-4960-8c86-c78861b688b9",
+      "animalId": "798215ca-2037-436a-a39a-261a893365ec",
+      "dueOn": "2025-12-04",
+      "dueTime": null,
+      "givenOn": "2025-12-04",
+      "status": "given",
+      "nextDueDate": "2026-03-04",
+      "createdAt": "2026-10-04T19:20:33.902Z",
+      "updatedAt": "2026-10-04T19:20:33.902Z"
+    },
+    {
+      "id": "51f228c1-8086-459d-a284-c12a35b261cf",
+      "periodId": "dd34d88f-ac6b-4f56-ad48-a96028cf3914",
+      "treatmentId": "98204aa7-e57b-4960-8c86-c78861b688b9",
+      "animalId": "798215ca-2037-436a-a39a-261a893365ec",
+      "dueOn": "2025-09-04",
+      "dueTime": null,
+      "givenOn": "2025-09-04",
+      "status": "given",
+      "nextDueDate": "2025-12-04",
+      "createdAt": "2026-10-04T19:20:33.902Z",
+      "updatedAt": "2026-10-04T19:20:33.902Z"
+    },
+    {
+      "id": "c02fff58-eb10-4239-9080-98ef84a6b52c",
+      "periodId": "b642790f-0f58-48ad-b26b-79ca65af34d2",
+      "treatmentId": "b66be81a-7262-425a-8dbb-aaa5121186db",
+      "animalId": "798215ca-2037-436a-a39a-261a893365ec",
+      "dueOn": "2026-09-07",
+      "dueTime": null,
+      "givenOn": "2026-09-07",
+      "status": "given",
+      "nextDueDate": "2026-10-07",
+      "createdAt": "2026-10-04T19:20:33.902Z",
+      "updatedAt": "2026-10-04T19:20:33.902Z"
+    },
+    {
+      "id": "1dbd7115-52e6-48fd-9c3f-12a507c408f6",
+      "periodId": "b642790f-0f58-48ad-b26b-79ca65af34d2",
+      "treatmentId": "b66be81a-7262-425a-8dbb-aaa5121186db",
+      "animalId": "798215ca-2037-436a-a39a-261a893365ec",
+      "dueOn": "2026-09-04",
+      "dueTime": null,
+      "givenOn": null,
+      "status": "postponed",
+      "nextDueDate": "2026-09-07",
+      "createdAt": "2026-10-04T19:20:33.902Z",
+      "updatedAt": "2026-10-04T19:20:33.902Z"
+    },
+    {
+      "id": "f4c1a8cf-9484-4dc7-8ba3-64ac65a8f584",
+      "periodId": "b642790f-0f58-48ad-b26b-79ca65af34d2",
+      "treatmentId": "b66be81a-7262-425a-8dbb-aaa5121186db",
+      "animalId": "798215ca-2037-436a-a39a-261a893365ec",
+      "dueOn": "2026-08-04",
+      "dueTime": null,
+      "givenOn": "2026-08-04",
+      "status": "given",
+      "nextDueDate": "2026-09-04",
+      "createdAt": "2026-10-04T19:20:33.902Z",
+      "updatedAt": "2026-10-04T19:20:33.902Z"
+    }
+  ],
+  "weightEntries": [
+    {
+      "id": "124db6a6-b7b5-4d32-9a2d-129430df498c",
+      "animalId": "798215ca-2037-436a-a39a-261a893365ec",
+      "weightKg": 3.8,
+      "measuredOn": "2026-07-04",
+      "createdAt": "2026-10-04T19:20:33.902Z",
+      "updatedAt": "2026-10-04T19:20:33.902Z"
+    },
+    {
+      "id": "b04295f5-1352-48c9-944b-5f3100105755",
+      "animalId": "798215ca-2037-436a-a39a-261a893365ec",
+      "weightKg": 3.9,
+      "measuredOn": "2026-08-04",
+      "createdAt": "2026-10-04T19:20:33.902Z",
+      "updatedAt": "2026-10-04T19:20:33.902Z"
+    },
+    {
+      "id": "720ddd74-3167-4c19-a555-5b18ac2d93a0",
+      "animalId": "798215ca-2037-436a-a39a-261a893365ec",
+      "weightKg": 4.1,
+      "measuredOn": "2026-09-04",
+      "createdAt": "2026-10-04T19:20:33.902Z",
+      "updatedAt": "2026-10-04T19:20:33.902Z"
+    },
+    {
+      "id": "8f61a118-4fd0-40ef-b2e9-10535501b05e",
+      "animalId": "798215ca-2037-436a-a39a-261a893365ec",
+      "weightKg": 4.2,
+      "measuredOn": "2026-10-04",
+      "createdAt": "2026-10-04T19:20:33.902Z",
+      "updatedAt": "2026-10-04T19:20:33.902Z"
+    },
+    {
+      "id": "e92b41f0-b3e7-46f4-be2a-b0a3e05eb9da",
+      "animalId": "3010d1e4-dd7a-40de-9ef0-a54ea8ae88e7",
+      "weightKg": 23.6,
+      "measuredOn": "2026-05-04",
+      "createdAt": "2026-10-04T19:20:33.902Z",
+      "updatedAt": "2026-10-04T19:20:33.902Z"
+    },
+    {
+      "id": "68fa6d0d-e673-4164-85d8-ab39dc56b146",
+      "animalId": "3010d1e4-dd7a-40de-9ef0-a54ea8ae88e7",
+      "weightKg": 23.8,
+      "measuredOn": "2026-06-04",
+      "createdAt": "2026-10-04T19:20:33.902Z",
+      "updatedAt": "2026-10-04T19:20:33.902Z"
+    },
+    {
+      "id": "88a38db7-cbde-47f7-8da7-520cac499ead",
+      "animalId": "3010d1e4-dd7a-40de-9ef0-a54ea8ae88e7",
+      "weightKg": 24,
+      "measuredOn": "2026-07-04",
+      "createdAt": "2026-10-04T19:20:33.902Z",
+      "updatedAt": "2026-10-04T19:20:33.902Z"
+    },
+    {
+      "id": "04d57f2f-326f-4b67-9ccb-03cf9afa91e8",
+      "animalId": "3010d1e4-dd7a-40de-9ef0-a54ea8ae88e7",
+      "weightKg": 24.1,
+      "measuredOn": "2026-08-04",
+      "createdAt": "2026-10-04T19:20:33.902Z",
+      "updatedAt": "2026-10-04T19:20:33.902Z"
+    },
+    {
+      "id": "fcf45060-b201-4c95-8e4b-940642b96331",
+      "animalId": "3010d1e4-dd7a-40de-9ef0-a54ea8ae88e7",
+      "weightKg": 24.3,
+      "measuredOn": "2026-09-04",
+      "createdAt": "2026-10-04T19:20:33.902Z",
+      "updatedAt": "2026-10-04T19:20:33.902Z"
+    },
+    {
+      "id": "d872e195-7a02-4e13-8d2b-65be6fd616b5",
+      "animalId": "3010d1e4-dd7a-40de-9ef0-a54ea8ae88e7",
+      "weightKg": 24.5,
+      "measuredOn": "2026-10-04",
+      "createdAt": "2026-10-04T19:20:33.902Z",
+      "updatedAt": "2026-10-04T19:20:33.902Z"
+    }
+  ],
+  "reminders": [
+    {
+      "kind": "vaccination",
+      "sourceId": "9765477a-8198-455f-8a7d-5612b541401d",
+      "animalId": "3010d1e4-dd7a-40de-9ef0-a54ea8ae88e7",
+      "name": "CHPPi",
+      "dueDate": "2026-08-20"
+    },
+    {
+      "kind": "treatment",
+      "sourceId": "1de53078-df94-41a0-a107-bbdbdabae2bc",
+      "animalId": "3010d1e4-dd7a-40de-9ef0-a54ea8ae88e7",
+      "name": "Panacur",
+      "dueDate": "2026-10-02"
+    },
+    {
+      "kind": "treatment",
+      "sourceId": "b66be81a-7262-425a-8dbb-aaa5121186db",
+      "animalId": "798215ca-2037-436a-a39a-261a893365ec",
+      "name": "Frontline",
+      "dueDate": "2026-10-07"
+    },
+    {
+      "kind": "treatment",
+      "sourceId": "187fdf33-fce6-4c41-a4f0-725e668540b1",
+      "animalId": "3010d1e4-dd7a-40de-9ef0-a54ea8ae88e7",
+      "name": "Drontal",
+      "dueDate": "2026-10-14"
+    },
+    {
+      "kind": "treatment",
+      "sourceId": "a768ab23-22f5-4d1f-9613-c7abeac1ffc5",
+      "animalId": "3010d1e4-dd7a-40de-9ef0-a54ea8ae88e7",
+      "name": "Bravecto",
+      "dueDate": "2026-10-20"
+    },
+    {
+      "kind": "treatment",
+      "sourceId": "98204aa7-e57b-4960-8c86-c78861b688b9",
+      "animalId": "798215ca-2037-436a-a39a-261a893365ec",
+      "name": "Milbemax",
+      "dueDate": "2026-12-04"
+    },
+    {
+      "kind": "vaccination",
+      "sourceId": "4064bc2b-11c7-427d-8b70-f8e9e8b27d0c",
+      "animalId": "798215ca-2037-436a-a39a-261a893365ec",
+      "name": "Typhus",
+      "dueDate": "2027-07-04"
+    },
+    {
+      "kind": "vaccination",
+      "sourceId": "4bb9f12e-c665-4495-85b5-e20e45902e71",
+      "animalId": "3010d1e4-dd7a-40de-9ef0-a54ea8ae88e7",
+      "name": "Rage",
+      "dueDate": "2027-08-04"
+    }
+  ]
+}

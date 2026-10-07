@@ -7,7 +7,7 @@ import {
   type ImportMode,
 } from '../service/data-import.service'
 import { useDataImport } from '../composables/use-data-import'
-import exportV2 from './fixtures/export-v2-0.1.45.json?raw'
+import exportV2 from './fixtures/export-v2-0.1.48.json?raw'
 import { IMPORT_FILE, importFixtureJson } from './import-fixture'
 
 const hasLocalData = vi.fn<() => Promise<boolean>>()
