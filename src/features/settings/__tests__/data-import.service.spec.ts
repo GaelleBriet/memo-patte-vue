@@ -1337,10 +1337,16 @@ describe('data-import.service', () => {
 
       await expect(repositories.treatments.getById(MILBEMAX)).resolves.toMatchObject({
         frequency: { value: 3, unit: 'month' },
-        lastDoseDate: '2026-09-15',
-        nextDueDate: '2026-12-15',
         stoppedOn: null,
       })
+      await expect(headDose(repositories.treatments, MILBEMAX)).resolves.toEqual({
+        givenOn: '2026-09-15',
+        nextDueDate: '2026-12-15',
+      })
+      const milbemax = await repositories.treatments.getWithHistory(MILBEMAX)
+      expect(treatmentScheduleOf(milbemax!, '2026-09-23').currentDoses).toMatchObject([
+        { dueOn: '2026-12-15' },
+      ])
       await expect(repositories.vaccinations.getById(RAGE)).resolves.toMatchObject({
         lastInjectionDate: '2026-09-21',
         dueDate: '2029-09-21',
@@ -1361,9 +1367,15 @@ describe('data-import.service', () => {
         stoppedOn: '2026-05-30',
       })
       await expect(repositories.treatments.getById(DRONTAL)).resolves.toMatchObject({
-        lastDoseDate: '2026-09-10',
         stoppedOn: null,
       })
+      await expect(headDose(repositories.treatments, DRONTAL)).resolves.toMatchObject({
+        givenOn: '2026-09-10',
+      })
+      const drontal = await repositories.treatments.getWithHistory(DRONTAL)
+      expect(treatmentScheduleOf(drontal!, '2026-09-30').currentDoses).toMatchObject([
+        { dueOn: '2026-10-10' },
+      ])
     })
 
     it('réimporte une prise v2 donnée en retard et son décalage sans les dupliquer', async () => {
