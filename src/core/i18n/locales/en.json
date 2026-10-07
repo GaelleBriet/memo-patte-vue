@@ -179,6 +179,7 @@
     },
     "sheet": {
       "subtitle": "Vaccine · {animal}",
+      "subtitleFirstVaccine": "First vaccine · {animal}",
       "nextReminder": "Next reminder on {date}",
       "doneTodayLabel": "Done today: log the {name} injection for {animal} and choose the next reminder",
       "editHint": "Name or date",
@@ -928,6 +929,7 @@
     },
     "reminder": {
       "vaccination": "Vaccine",
+      "firstVaccine": "First vaccine",
       "deworming": "Dewormer",
       "antiparasitic": "Parasite control",
       "medication": "Medication"
@@ -941,6 +943,7 @@
       "labelUnreadableSingle": "{title}, {type}, {due}. Opens the treatment.",
       "spokenType": {
         "vaccination": "vaccine",
+        "firstVaccine": "first vaccine",
         "deworming": "dewormer",
         "antiparasitic": "parasite control",
         "medication": "medication"
@@ -952,6 +955,7 @@
         "todayAt": "today at {time}",
         "tomorrow": "tomorrow",
         "later": "in {n} day, on {date} | in {n} days, on {date}",
+        "planned": "planned for {date}",
         "toLog": "to log, {unlogged}",
         "unreadable": "unreadable data"
       }
@@ -962,6 +966,7 @@
       "todayAt": "Today · {time}",
       "tomorrow": "Tomorrow",
       "later": "In {n} day | In {n} days",
+      "planned": "Planned {date}",
       "toLog": "To log",
       "unreadable": "Unreadable data"
     },
