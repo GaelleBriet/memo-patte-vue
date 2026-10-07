@@ -106,9 +106,11 @@ watch(summary, (value) => emit('summary', value), { immediate: true })
       class="section-card__row vaccination-row"
       @click="openDetail(row.id)"
     >
-      <ListRowIcon :icon="row.icon" />
+      <ListRowIcon :icon="row.icon" :muted="!followed" />
       <span class="vaccination-row__text">
-        <span class="vaccination-row__name">{{ row.name }}</span>
+        <span class="vaccination-row__name" :class="{ 'vaccination-row__name--muted': !followed }">
+          {{ row.name }}
+        </span>
         <span class="vaccination-row__detail">{{ row.detail }}</span>
       </span>
       <span class="vaccination-row__end">
@@ -178,6 +180,10 @@ watch(summary, (value) => emit('summary', value), { immediate: true })
   overflow-wrap: break-word;
   font-size: 15.5px;
   font-weight: 700;
+}
+
+.vaccination-row__name--muted {
+  color: tokens.$color-text-secondary;
 }
 
 .vaccination-row__detail {

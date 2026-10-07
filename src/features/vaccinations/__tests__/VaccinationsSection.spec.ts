@@ -345,6 +345,15 @@ describe('VaccinationsSection — animal qu’on ne suit plus (VA-16)', () => {
     const summaries = wrapper.emitted('summary') ?? []
     expect(summaries[summaries.length - 1]).toEqual([{ total: 0, overdue: 0 }])
   })
+  it('grise la pastille et le nom de chaque vaccin (V15 ter)', async () => {
+    vaccinations = [vaccination({ name: 'Rage' })]
+    const wrapper = await monter(MILO, { followed: false })
+
+    expect(ligne(wrapper, 0).getComponent(ListRowIcon).props('muted')).toBe(true)
+    expect(ligne(wrapper, 0).get('.vaccination-row__name').classes()).toContain(
+      'vaccination-row__name--muted',
+    )
+  })
 })
 
 describe('VaccinationsSection — pastille d’icône (B · V11)', () => {
@@ -358,6 +367,9 @@ describe('VaccinationsSection — pastille d’icône (B · V11)', () => {
       expect(pastilles[0]!.props()).toEqual({ icon: 'ms:vaccines', muted: false })
       expect(pastilles[0]!.attributes('aria-hidden')).toBe('true')
       expect(ligne(wrapper, index).element.firstElementChild).toBe(pastilles[0]!.element)
+      expect(ligne(wrapper, index).get('.vaccination-row__name').classes()).not.toContain(
+        'vaccination-row__name--muted',
+      )
     }
     expect(texte(ligne(wrapper, 0))).toMatch(/^CHPPi/)
   })
