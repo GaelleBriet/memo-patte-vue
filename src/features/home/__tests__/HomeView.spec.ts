@@ -36,6 +36,7 @@ import { useVaccinationsStore } from '@/features/vaccinations/store/vaccinations
 import VaccinationReminderSheet from '@/features/vaccinations/views/VaccinationReminderSheet.vue'
 import WeightSheet from '@/features/weight/views/WeightSheet.vue'
 import AnimalChipSelector from '@/shared/components/AnimalChipSelector.vue'
+import { plain } from '@/shared/__tests__/plain'
 import { forgetPhotoUrls } from '@/core/photos/use-photo-urls'
 import { recordUsageSignal } from '@/shared/utils/usage-signals'
 import {
@@ -82,6 +83,7 @@ function animal(id: string, name: string): Animal {
     species: 'dog',
     breed: null,
     birthDate: null,
+    birthDateApproximate: false,
     photoPath: null,
     createdAt: '2026-09-09T09:00:00.000Z',
     updatedAt: '2026-09-09T09:00:00.000Z',
@@ -970,6 +972,138 @@ describe('HomeView — traitements lus par le moteur d’échéances', () => {
     ])
     expect(wrapper.get('.home-todo__group').text()).toBe('To log')
     expect(wrapper.get('.home-todo .section-card__counter').text()).toBe('2 reminders')
+  })
+})
+
+describe('HomeView — vaccins dans « À faire »', () => {
+  const PIXEL = animal('55555555-5555-4555-8555-555555555555', 'Pixel')
+
+  beforeEach(() => {
+    animals = [MILO, LUNA, PIXEL]
+    vi.spyOn(useTreatmentsStore(), 'getWithHistory').mockReturnValue(new Promise(() => {}))
+  })
+
+  afterEach(() => applyLocale('fr'))
+
+  function premierVaccin(overrides: Partial<HomeVaccinationSource>): HomeReminderSource {
+    return source({
+      animalId: PIXEL.id,
+      label: 'Typhus, coryza',
+      lastInjectionDate: null,
+      ...overrides,
+    })
+  }
+
+  const METACAM_LUNA_8H = treatment({
+    id: 't-metacam',
+    animalId: LUNA.id,
+    periods: [period({ firstDueOn: '2026-09-09', times: ['08:00'] })],
+  })
+
+  it('vaccin prévu, du jour et en retard : badges, « Premier vaccin », le vaccin du jour avant 8 h (AC-6, AC-8, Q6)', async () => {
+    sources = [
+      premierVaccin({ id: 'v-prevu', dueDate: '2026-09-14' }),
+      METACAM_LUNA_8H,
+      premierVaccin({ id: 'v-jour', animalId: MILO.id, label: 'CHPPi', dueDate: '2026-09-09' }),
+      source({ id: 'v-rage', animalId: LUNA.id, label: 'Rage', dueDate: '2026-09-07' }),
+    ]
+    const wrapper = await monter()
+
+    expect(plain(rows(wrapper))).toEqual([
+      {
+        title: 'Rage',
+        subtitle: 'Vaccin · Luna',
+        badge: 'En retard · 2 j',
+        status: 'reminder-row--overdue',
+      },
+      {
+        title: 'CHPPi',
+        subtitle: 'Premier vaccin · Milo',
+        badge: 'Aujourd’hui',
+        status: 'reminder-row--today',
+      },
+      {
+        title: 'Métacam',
+        subtitle: 'Médicament · Luna',
+        badge: 'Aujourd’hui · 8 h',
+        status: 'reminder-row--today',
+      },
+      {
+        title: 'Typhus, coryza',
+        subtitle: 'Premier vaccin · Pixel',
+        badge: 'Prévu le 14 sept.',
+        status: 'reminder-row--planned',
+      },
+    ])
+    expect(wrapper.get('.home-todo .section-card__counter').text()).toBe('4 soins')
+    expect(wrapper.get('.home-overdue-banner').text()).toBe('1 soin en retard')
+  })
+
+  it('compte un premier vaccin passé dans les retards, jamais un vaccin prévu (AC-10)', async () => {
+    sources = [
+      premierVaccin({ id: 'v-passe', dueDate: '2026-09-08' }),
+      premierVaccin({ id: 'v-prevu', label: 'Rage', dueDate: '2026-09-10' }),
+    ]
+    const wrapper = await monter()
+
+    expect(plain(rows(wrapper)).map(({ subtitle, badge }) => [subtitle, badge])).toEqual([
+      ['Premier vaccin · Pixel', 'En retard · 1 j'],
+      ['Premier vaccin · Pixel', 'Prévu le 10 sept.'],
+    ])
+    expect(wrapper.get('.home-overdue-banner').text()).toBe('1 soin en retard')
+  })
+
+  it('Milo en retard, Luna aujourd’hui à 21 h, Pixel dans 3 jours, un vaccin : dans cet ordre, « 1 soin en retard » (Accueil §4, critère 1)', async () => {
+    sources = [
+      premierVaccin({ id: 'v-pixel', dueDate: '2026-09-12' }),
+      treatment({
+        id: 't-luna',
+        animalId: LUNA.id,
+        periods: [period({ firstDueOn: '2026-09-09', times: ['21:00'] })],
+      }),
+      source({ id: 'v-milo', label: 'CHPPiL', dueDate: '2026-09-07' }),
+    ]
+    const wrapper = await monter()
+
+    expect(plain(rows(wrapper)).map(({ title, badge }) => [title, badge])).toEqual([
+      ['CHPPiL', 'En retard · 2 j'],
+      ['Métacam', 'Aujourd’hui · 21 h'],
+      ['Typhus, coryza', 'Prévu le 12 sept.'],
+    ])
+    expect(wrapper.get('.home-overdue-banner').text()).toBe('1 soin en retard')
+
+    applyLocale('en')
+    await flushPromises()
+
+    expect(plain(rows(wrapper)).map(({ subtitle, badge }) => [subtitle, badge])).toEqual([
+      ['Vaccine · Milo', 'Overdue · 2d'],
+      ['Medication · Luna', 'Today · 9 pm'],
+      ['First vaccine · Pixel', 'Planned Sep 12'],
+    ])
+    expect(wrapper.get('.home-overdue-banner').text()).toBe('1 overdue reminder')
+  })
+
+  it('annonce un vaccin prévu au-delà de la fenêtre comme prochain soin (AC-11)', async () => {
+    sources = [premierVaccin({ id: 'v-loin', dueDate: '2026-10-19' })]
+    const wrapper = await monter()
+
+    expect(wrapper.get('.home-up-to-date__title').text()).toBe('Tout est à jour')
+    expect(upToDateLines(wrapper)).toEqual([
+      'Prochain soin\u00a0: Typhus, coryza pour Pixel le 19\u00a0oct.\u00a02026',
+    ])
+  })
+
+  it('ouvre la feuille du vaccin prévu touché, sur ses actions (lot 5)', async () => {
+    sources = [premierVaccin({ id: 'v-prevu', dueDate: '2026-09-14' })]
+    vi.spyOn(useVaccinationsStore(), 'getById').mockReturnValue(new Promise(() => {}))
+    const wrapper = await monter()
+
+    await wrapper.get('.reminder-row').trigger('click')
+
+    const feuille = wrapper.getComponent(VaccinationReminderSheet)
+    expect(feuille.props('modelValue')).toBe(true)
+    expect(feuille.props('vaccinationId')).toBe('v-prevu')
+    expect(feuille.props('startAt')).toBe('actions')
   })
 })
 

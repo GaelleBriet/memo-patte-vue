@@ -14,7 +14,7 @@ import { createVaccinationInjectionsRepository } from '@/features/vaccinations/r
 import { createVaccinationsRepository } from '@/features/vaccinations/repository/vaccinations.repository'
 import { createVaccinationInjectionsService } from '@/features/vaccinations/service/vaccination-injections.service'
 import { createWeightRepository } from '@/features/weight/repository/weight.repository'
-import { seededTreatments } from '@/features/treatments/__tests__/seed-treatment'
+import { headDose, seededTreatments } from '@/features/treatments/__tests__/seed-treatment'
 
 const USER_ID = '99999999-9999-4999-8999-999999999999'
 
@@ -124,8 +124,8 @@ describe('synchro de l’historique entre deux appareils', () => {
       lastInjectionDate: '2025-09-20',
       dueDate: '2026-09-20',
     })
-    await expect(tablet.treatments.getById(bravecto.id)).resolves.toMatchObject({
-      lastDoseDate: '2026-08-20',
+    await expect(headDose(tablet.treatments, bravecto.id)).resolves.toEqual({
+      givenOn: '2026-08-20',
       nextDueDate: '2026-09-20',
     })
     expect(tablet.onRemindersOutdated).toHaveBeenCalledOnce()
@@ -215,7 +215,9 @@ describe('synchro de l’historique entre deux appareils', () => {
       })
       await expect(device.treatments.getById(bravecto.id)).resolves.toMatchObject({
         name: 'Bravecto Plus',
-        lastDoseDate: '2026-09-25',
+      })
+      await expect(headDose(device.treatments, bravecto.id)).resolves.toEqual({
+        givenOn: '2026-09-25',
         nextDueDate: '2026-10-25',
       })
     }
@@ -263,8 +265,8 @@ describe('synchro de l’historique entre deux appareils', () => {
       await expect(tablet.sync()).rejects.toMatchObject({ message: 'réseau coupé' })
 
       expect(tablet.onRemindersOutdated).toHaveBeenCalledOnce()
-      await expect(tablet.treatments.getById(bravecto.id)).resolves.toMatchObject({
-        lastDoseDate: '2026-09-25',
+      await expect(headDose(tablet.treatments, bravecto.id)).resolves.toMatchObject({
+        givenOn: '2026-09-25',
       })
     })
 
@@ -287,10 +289,14 @@ describe('synchro de l’historique entre deux appareils', () => {
     })
 
     it('une coupure à la deuxième page d’une table garde le signal de la première', async () => {
-      for (let index = 0; index < 501; index += 1) {
-        await phone.animals.create({ name: `Animal ${index}`, species: 'cat' })
-      }
+      await phone.animals.create({ name: 'Animal 0', species: 'cat' })
       await phone.sync()
+      const [pushed] = server.rows('animal')
+      for (let index = 1; index < 501; index += 1) {
+        await server.client
+          .from('animal')
+          .upsert({ ...pushed, id: crypto.randomUUID(), name: `Animal ${index}` })
+      }
       server.cutPull('animal', 1)
 
       await expect(tablet.sync()).rejects.toMatchObject({ message: 'réseau coupé' })

@@ -22,7 +22,7 @@ import VaccinationsSection, {
 } from '@/features/vaccinations/views/VaccinationsSection.vue'
 import WeightSection, { type WeightSectionSummary } from '@/features/weight/views/WeightSection.vue'
 import AnimalChipSelector, { type AnimalChipItem } from '@/shared/components/AnimalChipSelector.vue'
-import { animalAge } from '@/shared/domain/animal-age'
+import { animalAgeText } from '@/shared/domain/animal-age'
 import { animalAvatarGradientCss } from '@/shared/domain/animal-avatar-gradient'
 import { weightDeltaText } from '@/shared/domain/weight-delta'
 import { weightText } from '@/shared/domain/weight-display'
@@ -84,8 +84,9 @@ async function applyPhoto(action: () => Promise<boolean>): Promise<void> {
 
 const subtitle = computed(() => {
   if (!animal.value) return null
-  const age = animalAge(animal.value.birthDate, today.value)
-  const parts = [animal.value.breed, age && t(`animals.age.${age.unit}`, age.value)]
+  const { breed, birthDate, birthDateApproximate } = animal.value
+  const age = animalAgeText(t, { birthDate, approximate: birthDateApproximate }, today.value)
+  const parts = [breed, age]
   const text = parts.filter(Boolean).join(t('animals.carnet.subtitleSeparator'))
   return text || null
 })
@@ -342,13 +343,16 @@ function createAnimal(): void {
 }
 
 .carnet-header__subtitle {
+  display: -webkit-box;
   overflow: hidden;
   margin: 2px 0 0;
   color: tokens.$color-on-primary-subtitle;
   font-size: 13.5px;
   font-weight: 500;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  line-height: 1.3;
+  white-space: normal;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .carnet-stats {

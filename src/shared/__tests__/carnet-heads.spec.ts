@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest'
 import {
   currentPeriods,
   givenDoseHistories,
-  periodHeads,
   vaccinationHeads,
   vaccinationHistories,
 } from '../domain/carnet-heads'
@@ -112,48 +111,6 @@ describe('têtes du carnet', () => {
       'rage-2022',
       'rage-2019',
     ])
-  })
-
-  it('à échéance égale, départage par la saisie puis par l’identifiant, comme la base', () => {
-    const later = '2026-09-02T00:00:00.000Z'
-    const earlier = '2026-09-01T00:00:00.000Z'
-
-    expect(
-      periodHeads([
-        dose('b', '2026-09-01', { createdAt: earlier }),
-        dose('a', '2026-09-01', { createdAt: later }),
-      ]).get('bravecto')?.id,
-    ).toBe('a')
-    expect(
-      periodHeads([
-        dose('a', '2026-09-01', { createdAt: later }),
-        dose('b', '2026-09-01', { createdAt: later }),
-      ]).get('bravecto')?.id,
-    ).toBe('b')
-  })
-
-  it('retient pour chaque période sa dernière ligne, par son échéance', () => {
-    const heads = periodHeads([
-      dose('matin', '2026-09-02', { dueTime: '08:00' }),
-      dose('soir', '2026-09-02', { dueTime: '20:00', givenOn: null, status: 'missed' }),
-      dose('reprise', '2026-01-05', { periodId: 'reprise' }),
-      dose('veille', '2026-09-01', { dueTime: '20:00', givenOn: '2026-09-05' }),
-    ])
-
-    expect([...heads].map(([period, head]) => [period, head.id])).toEqual([
-      ['bravecto', 'soir'],
-      ['reprise', 'reprise'],
-    ])
-  })
-
-  it('ne prend jamais une prise en plus ni une ligne de décalage pour la tête d’une période', () => {
-    const heads = periodHeads([
-      dose('prise', '2026-09-18'),
-      dose('en plus', '2026-09-18', { status: 'extra', createdAt: '2026-09-18T10:00:00.000Z' }),
-      dose('seule', '2026-09-20', { periodId: 'reprise', status: 'extra' }),
-    ])
-
-    expect([...heads].map(([period, head]) => [period, head.id])).toEqual([['bravecto', 'prise']])
   })
 
   it('range les prises données par leur date réelle, sans les oubliées ni les reportées', () => {

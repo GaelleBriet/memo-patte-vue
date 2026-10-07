@@ -66,6 +66,7 @@ const MILO: Animal = {
   species: 'dog',
   breed: null,
   birthDate: null,
+  birthDateApproximate: false,
   photoPath: null,
   createdAt: '2026-09-09T09:00:00.000Z',
   updatedAt: '2026-09-09T09:00:00.000Z',
@@ -1079,6 +1080,22 @@ describe('VaccinationFormView — changement de jour', () => {
     expect(messages(wrapper)).toEqual([])
     expect(create).toHaveBeenCalledWith(
       expect.objectContaining({ lastInjectionDate: '2026-09-10' }),
+    )
+  })
+})
+
+describe('VaccinationFormView — propositions de noms (VA-4)', () => {
+  it('enregistre la combinaison choisie dans les propositions de l’espèce', async () => {
+    vi.spyOn(useVaccinationsStore(), 'listAll').mockResolvedValue([])
+    const wrapper = await monterCreation()
+
+    await champ(wrapper, 'vaccination-name').setValue('chppi')
+    await wrapper.findAll('[role="option"]')[0]!.trigger('click')
+    await champ(wrapper, 'vaccination-last-injection-date').setValue('2026-03-12')
+    await soumettre(wrapper)
+
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'Carré, hépatite, parvovirose, parainfluenza' }),
     )
   })
 })

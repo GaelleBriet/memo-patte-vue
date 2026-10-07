@@ -12,6 +12,7 @@ import {
 } from 'vitest'
 
 import VaccinationsSection from '../views/VaccinationsSection.vue'
+import ListRowIcon from '@/shared/components/ListRowIcon.vue'
 import type { Vaccination } from '../schema/vaccination.schema'
 import type { VaccinationsRepository } from '../repository/vaccinations.repository'
 import { provideVaccinationsRepository } from '../store/vaccinations.store'
@@ -203,11 +204,13 @@ describe('VaccinationsSection — lignes et badges', () => {
     expect(badge.find('svg').exists()).toBe(false)
   })
 
-  it('reste « À jour » le jour même de l’échéance', async () => {
+  it('affiche « Aujourd’hui », ambre, le jour même de l’échéance', async () => {
     vaccinations = [vaccination({ dueDate: TODAY })]
     const wrapper = await monter()
+    const badge = ligne(wrapper, 0).get('.vaccination-row__badge')
 
-    expect(ligne(wrapper, 0).get('.vaccination-row__badge').text()).toBe('À jour')
+    expect(badge.text()).toBe('Aujourd’hui')
+    expect(badge.classes()).toContain('due-status-chip--today')
   })
 
   it('affiche « Pas de rappel », neutre et sans icône, quand l’échéance est nulle', async () => {
@@ -325,5 +328,21 @@ describe('VaccinationsSection — résumé pour le bandeau', () => {
 
     const summaries = wrapper.emitted('summary') ?? []
     expect(summaries[summaries.length - 1]).toEqual([{ total: 2, overdue: 1 }])
+  })
+})
+
+describe('VaccinationsSection — pastille d’icône (B · V11)', () => {
+  it('ouvre chaque ligne par la pastille du vaccin, sans changer son nom accessible', async () => {
+    vaccinations = [vaccination({ name: 'Rage' }), vaccination({ name: 'CHPPi' })]
+    const wrapper = await monter()
+
+    for (const index of [0, 1]) {
+      const pastilles = ligne(wrapper, index).findAllComponents(ListRowIcon)
+      expect(pastilles).toHaveLength(1)
+      expect(pastilles[0]!.props()).toEqual({ icon: 'ms:vaccines', muted: false })
+      expect(pastilles[0]!.attributes('aria-hidden')).toBe('true')
+      expect(ligne(wrapper, index).element.firstElementChild).toBe(pastilles[0]!.element)
+    }
+    expect(texte(ligne(wrapper, 0))).toMatch(/^CHPPi/)
   })
 })

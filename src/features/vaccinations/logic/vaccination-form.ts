@@ -113,7 +113,10 @@ export function reminderSummary(t: Translate, values: VaccinationFormValues): st
 function formSchema(context: VaccinationFormContext) {
   return z.object({
     name: vaccinationUpdateSchema.shape.name,
-    lastInjectionDate: injectionDateSchema.nullable(),
+    lastInjectionDate: z.iso
+      .date()
+      .refine((date) => date <= context.today)
+      .nullable(),
     plannedDate: z.iso
       .date()
       .refine((date) => isPlannedDateAllowed(date, context))
