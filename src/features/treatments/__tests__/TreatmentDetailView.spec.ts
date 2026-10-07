@@ -323,6 +323,20 @@ describe('TreatmentDetailView — carte de la dose du moment', () => {
     expect(service.undoBatch).toHaveBeenCalledWith(METACAM.id, APPLIED.undo)
   })
 
+  it('relit la fiche quand « Annuler » échoue, avec le toast d’échec', async () => {
+    const view = await monter()
+    service.undoBatch.mockRejectedValue(new Error('prise modifiée depuis'))
+    await view.findAll('.treatment-dose-card__done')[0]!.trigger('click')
+    await flushPromises()
+    read.mockClear()
+
+    runToastAction()
+    await flushPromises()
+
+    expect(message()).toBe('L’annulation n’a pas abouti.')
+    expect(read).toHaveBeenCalledWith(METACAM.id)
+  })
+
   it('dit où retrouver le traitement quand la prise notée le termine (TR-31)', async () => {
     const view = await monter()
     service.apply.mockResolvedValue({ ...APPLIED, finishes: true })
