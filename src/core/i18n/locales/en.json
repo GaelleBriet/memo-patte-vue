@@ -136,7 +136,7 @@
       "toast": {
         "unfollowed": "You’re no longer following {name}",
         "unfollowedAnnouncement": "You’re no longer following {name}. {name}’s reminders are off.",
-        "followed": "You’re following {name} again. Stopped treatments don’t restart on their own: restart each one with “Resume”.",
+        "followed": "You’re following {name} again. Stopped treatments don’t resume on their own: use “Resume” on each one.",
         "deleted": "{name}’s health record deleted",
         "undoUnfollow": "Undo: follow {name} again",
         "undoFollow": "Undo: stop following {name}",
@@ -780,7 +780,7 @@
         "every": "Only this dose changes. The following ones stay on {date}, then {every}."
       },
       "lost": "With the move, the {dates} dose will no longer be scheduled (end date). | With the move, the {dates} doses will no longer be scheduled (end date).",
-      "aloneLatest": "On its own, this dose can go up to {date}. Check “Also move the following doses” to go further.",
+      "aloneLatest": "On its own, this dose can go up to {date}. Check the “Also move the following doses” box to go further.",
       "recap": "{due} dose, given on {given}",
       "recapAt": "{due}, {time} dose, given on {given}",
       "save": "Save",
@@ -795,7 +795,7 @@
       "keptAfterReport": "Only this dose changes. Postponed dose on {report}, then {date} and {every}.",
       "movedBeforeReport": "The following doses will move to {date}, then postponed dose on {report}.",
       "keptBeforeReport": "Only this dose changes. The following ones stay on {date}, then postponed dose on {report}.",
-      "passesMoveCheck": "With this day, the dose you had postponed to {date} would fall after the next one. Check “Also move the following doses”, or change the date of this postponement first.",
+      "passesMoveCheck": "With this day, the dose you had postponed to {date} would fall after the next one. Check the “Also move the following doses” box, or change the date of this postponement first.",
       "revealed": {
         "help": {
           "unlogged": "The {dates} dose will need to be logged. | The {dates} doses will need to be logged.",
@@ -1482,7 +1482,7 @@
     }
   },
   "auth": {
-    "intro": "A MémoPatte account keeps your health records safe in the cloud and lets you find them on all your devices.",
+    "intro": "A MémoPatte account keeps your health records safe in the cloud and available on all your devices.",
     "signIn": {
       "title": "Sign in",
       "submit": "Sign in",
@@ -1592,11 +1592,11 @@
     },
     "cancelled": {
       "title": "Purchase not completed",
-      "body": "No payment was taken. Try again whenever you like: nothing has changed for you."
+      "body": "No payment was taken, and nothing has changed for you. Try again whenever you like."
     },
     "failed": {
       "title": "The purchase didn’t go through",
-      "body": "No payment was taken. Try again in a moment: nothing has changed for you."
+      "body": "No payment was taken, and nothing has changed for you. Try again in a moment."
     },
     "retry": "Try again",
     "later": "Not now",
