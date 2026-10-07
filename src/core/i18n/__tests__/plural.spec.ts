@@ -52,7 +52,7 @@ describe('pluriel', () => {
     },
   )
 
-  it('fr garde le pluriel au-delà de 1 pour une quantité non entière', () => {
+  it('fr laisse les non-entiers à la règle d’origine', () => {
     expect(i18n.global.t('dosage.unit.tablet', 1.5, { locale: 'fr' })).toBe('comprimés')
   })
 })
