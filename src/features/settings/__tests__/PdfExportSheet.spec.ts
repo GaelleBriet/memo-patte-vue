@@ -338,6 +338,12 @@ describe('PdfExportSheet', () => {
       expect(lignes()).toEqual(['Animaux que tu ne suis plus', 'Luna', 'Pixel'])
     })
 
+    it('avec un seul animal suivi, ne propose pas « Tous les animaux », qui doublerait sa ligne', async () => {
+      await monter([MILO], [LUNA])
+
+      expect(lignes()).toEqual(['Milo', 'Animaux que tu ne suis plus', 'Luna'])
+    })
+
     it('présente directement le fichier quand le seul animal n’est plus suivi', async () => {
       await monter([], [LUNA])
 

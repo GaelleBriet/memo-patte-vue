@@ -62,7 +62,7 @@ function animalChoice(animal: PdfExportAnimal, heading: string | null = null): P
 const choices = computed<PdfExportChoice[]>(() => {
   const names = props.animals.map(({ name }) => name).join(', ')
   const all: PdfExportChoice[] =
-    props.animals.length === 0
+    props.animals.length < 2
       ? []
       : [
           {
