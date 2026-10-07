@@ -26,7 +26,7 @@ const props = withDefaults(
     animalId: string
     /** Date civile `yyyy-MM-dd`, calculée par l'écran. */
     today: string
-    /** Faux pour un animal qu'on ne suit plus : ni badge ni rappel (VA-16). */
+    /** Faux pour un animal qu'on ne suit plus : ni badge, ni rappel, ni ajout (VA-16, AN-9). */
     followed?: boolean
   }>(),
   { followed: true },
@@ -133,6 +133,7 @@ watch(summary, (value) => emit('summary', value), { immediate: true })
     </p>
 
     <button
+      v-if="followed"
       type="button"
       class="section-card__add vaccinations-section__add"
       @click="addVaccination"

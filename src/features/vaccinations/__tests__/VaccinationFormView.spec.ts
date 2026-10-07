@@ -494,6 +494,35 @@ describe('VaccinationFormView — création', () => {
   })
 })
 
+describe('VaccinationFormView — animal qu’on ne suit plus (AN-9)', () => {
+  function neSuitPlusMilo(): void {
+    const animals = useAnimalsStore()
+    loadAnimals.mockImplementation(async () => {
+      animals.animals = [{ ...MILO, unfollowedOn: '2026-10-01' }]
+      animals.hasLoaded = true
+      return true
+    })
+  }
+
+  it('n’ouvre pas la création : retour sur son carnet, sans rien écrire', async () => {
+    neSuitPlusMilo()
+
+    await monterCreation()
+
+    expect(replace).toHaveBeenCalledWith({ name: 'animals' })
+    expect(useAnimalsStore().selectedAnimalId).toBe(MILO.id)
+    expect(create).not.toHaveBeenCalled()
+  })
+
+  it('laisse modifier un vaccin de son carnet', async () => {
+    neSuitPlusMilo()
+
+    await monterEdition()
+
+    expect(replace).not.toHaveBeenCalled()
+  })
+})
+
 describe('VaccinationFormView — écran d’explication des notifications', () => {
   it('y passe après un vaccin avec échéance quand la permission n’a jamais été demandée', async () => {
     vi.mocked(shouldShowPriming).mockResolvedValueOnce(true)

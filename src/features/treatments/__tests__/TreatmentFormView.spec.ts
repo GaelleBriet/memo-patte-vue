@@ -2589,6 +2589,38 @@ describe('TreatmentFormView — reprise (TR-32, planche V7)', () => {
   })
 })
 
+describe('TreatmentFormView — animal qu’on ne suit plus (AN-9)', () => {
+  beforeEach(() => {
+    loadAnimals.mockImplementation(async () => {
+      const animals = useAnimalsStore()
+      animals.animals = [{ ...MILO, unfollowedOn: '2026-09-01' }]
+      animals.hasLoaded = true
+      return true
+    })
+  })
+
+  it('n’ouvre pas la création : retour sur son carnet, sans rien écrire', async () => {
+    await monterCreation()
+
+    expect(replace).toHaveBeenCalledWith({ name: 'animals' })
+    expect(useAnimalsStore().selectedAnimalId).toBe(MILO.id)
+    expect(create).not.toHaveBeenCalled()
+  })
+
+  it('n’ouvre pas la reprise d’un de ses traitements', async () => {
+    await monterReprise()
+
+    expect(replace).toHaveBeenCalledWith({ name: 'animals' })
+    expect(resume).not.toHaveBeenCalled()
+  })
+
+  it('laisse ouvrir la modification d’un de ses traitements', async () => {
+    await monterEdition()
+
+    expect(replace).not.toHaveBeenCalled()
+  })
+})
+
 describe('TreatmentFormView — envoi en cours', () => {
   it('désactive les deux boutons et bascule sur « Création… » pendant l’écriture', async () => {
     let terminer: (treatment: Treatment) => void = () => {}

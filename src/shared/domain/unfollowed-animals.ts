@@ -12,3 +12,8 @@ export function unfollowedEntry(unfollowed: readonly { id: string }[]): Unfollow
     target: unfollowed.length === 1 ? { kind: 'carnet', animalId: only.id } : { kind: 'list' },
   }
 }
+
+/** AN-9 : aucun soin ne s'ajoute ni ne reprend pour un animal qu'on ne suit plus. */
+export function takesNewCare(animal: { unfollowedOn: string | null } | null): boolean {
+  return animal !== null && animal.unfollowedOn === null
+}
