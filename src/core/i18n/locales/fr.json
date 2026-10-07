@@ -1074,6 +1074,11 @@
       "create": "Créer mon premier animal",
       "import": "Importer un export MémoPatte"
     },
+    "unfollowed": {
+      "title": "Aucun soin à venir",
+      "text": "Tu ne suis plus aucun animal. Son carnet reste consultable. | Tu ne suis plus aucun animal. Leurs carnets restent consultables.",
+      "create": "Ajouter un animal"
+    },
     "messages": {
       "close": "Fermer ce message",
       "protect": {

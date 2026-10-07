@@ -259,6 +259,21 @@ describe('WeightSheet — sans animal (P2)', () => {
     ).toEqual(['Milo', 'Luna'])
   })
 
+  it('ne propose que les animaux suivis (AN-9)', async () => {
+    vi.spyOn(useAnimalsStore(), 'load').mockImplementation(async () => {
+      const animals = useAnimalsStore()
+      animals.animals = [MILO, { ...LUNA, unfollowedOn: '2026-09-08' }]
+      animals.hasLoaded = true
+      return true
+    })
+    await monter(null)
+    await flushPromises()
+
+    expect(
+      Array.from(feuille().querySelectorAll('.animal-chip__name')).map((n) => n.textContent),
+    ).toEqual(['Milo'])
+  })
+
   it('montre la photo de l’animal qui en a une, le dégradé pour l’autre', async () => {
     vi.spyOn(useAnimalsStore(), 'load').mockImplementation(async () => {
       const animals = useAnimalsStore()

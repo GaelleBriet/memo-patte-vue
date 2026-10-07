@@ -1074,6 +1074,11 @@
       "create": "Add my first pet",
       "import": "Import a MémoPatte export"
     },
+    "unfollowed": {
+      "title": "No upcoming reminders",
+      "text": "You’re not following any pets. The health record is still available. | You’re not following any pets. Their health records are still available.",
+      "create": "Add a pet"
+    },
     "messages": {
       "close": "Close this message",
       "protect": {

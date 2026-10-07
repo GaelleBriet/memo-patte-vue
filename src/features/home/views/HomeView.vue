@@ -14,6 +14,7 @@ import TreatmentReminderSheet from '@/features/treatments/views/TreatmentReminde
 import VaccinationReminderSheet from '@/features/vaccinations/views/VaccinationReminderSheet.vue'
 import WeightSheet from '@/features/weight/views/WeightSheet.vue'
 import AnimalChipSelector, { type AnimalChipItem } from '@/shared/components/AnimalChipSelector.vue'
+import UnfollowedAnimalsLink from '@/shared/components/UnfollowedAnimalsLink.vue'
 import {
   detailRoute,
   parseReminderRequest,
@@ -24,6 +25,7 @@ import {
   type ReminderStep,
   type TodoRequest,
 } from '@/shared/domain/reminder-route'
+import { unfollowedEntry } from '@/shared/domain/unfollowed-animals'
 import AnimalPickerSheet from './AnimalPickerSheet.vue'
 import HomeMessages from './HomeMessages.vue'
 import HomeTodoCard from './HomeTodoCard.vue'
@@ -53,6 +55,9 @@ const hasError = computed(() => animals.error !== null || home.error !== null)
 const isReady = computed(() => animals.hasLoaded && home.hasLoaded && !hasError.value)
 const isLoading = computed(() => !isReady.value && !hasError.value)
 const isWelcome = computed(() => isReady.value && animals.animals.length === 0)
+const unfollowed = computed(() =>
+  animals.followedAnimals.length === 0 ? unfollowedEntry(animals.unfollowedAnimals) : null,
+)
 
 const photoUrl = usePhotoUrls(() => animals.followedAnimals.map((item) => item.photoPath))
 const chips = computed<AnimalChipItem[]>(() =>
@@ -218,6 +223,16 @@ function openSettings(): void {
   void router.push({ name: 'settings' })
 }
 
+function openUnfollowed(): void {
+  const target = unfollowed.value?.target
+  if (target?.kind === 'list') {
+    void router.push({ name: 'unfollowed-animals' })
+  } else if (target) {
+    animals.select(target.animalId)
+    void router.push({ name: 'animals' })
+  }
+}
+
 function openCarnet(): void {
   const animalId = currentId.value ?? animals.followedAnimals[0]?.id
   if (!animalId) return
@@ -277,47 +292,67 @@ function openCarnet(): void {
         </div>
       </header>
 
-      <AnimalChipSelector
-        v-model:selected-id="currentId"
-        :animals="chips"
-        mode="filter"
-        @add="createAnimal"
-      />
-
-      <HomeMessages place="aboveTodo" />
-
-      <HomeTodoCard
-        :rows="rows"
-        :counter="counter"
-        :banner="banner"
-        :next-reminder="nextReminder"
-        :up-to-date="upToDate"
-        @open="openRow"
-        @add="openCarnet"
-      />
-
-      <HomeMessages place="belowTodo" />
-
-      <section class="home-quick-actions">
-        <h2 class="home-quick-actions__title">{{ t('home.quickActions.title') }}</h2>
-        <div class="home-quick-actions__grid">
-          <button type="button" class="home-quick-tile" @click="openForm('treatment-new')">
-            <v-icon class="home-quick-tile__icon" icon="ms:medication" size="22" />
-            <span class="home-quick-tile__label">{{ t('home.quickActions.treatment') }}</span>
-          </button>
-          <button type="button" class="home-quick-tile" @click="openForm('vaccination-new')">
-            <v-icon class="home-quick-tile__icon" icon="ms:vaccines" size="22" />
-            <span class="home-quick-tile__label">{{ t('home.quickActions.vaccination') }}</span>
-          </button>
-          <button type="button" class="home-quick-tile" @click="isWeightSheetOpen = true">
-            <v-icon class="home-quick-tile__icon" icon="ms:monitor_weight" size="22" />
-            <span class="home-quick-tile__label">{{ t('home.quickActions.weight') }}</span>
-          </button>
+      <section v-if="unfollowed" class="home-unfollowed">
+        <div class="home-unfollowed__icon">
+          <v-icon icon="ms:pets" size="32" />
         </div>
+        <h2 class="home-unfollowed__title">{{ t('home.unfollowed.title') }}</h2>
+        <p class="home-unfollowed__text">{{ t('home.unfollowed.text', unfollowed.count) }}</p>
+        <v-btn
+          class="home-unfollowed__create"
+          variant="flat"
+          color="primary"
+          prepend-icon="ms:add"
+          @click="createAnimal"
+        >
+          {{ t('home.unfollowed.create') }}
+        </v-btn>
+        <UnfollowedAnimalsLink :count="unfollowed.count" @open="openUnfollowed" />
       </section>
 
-      <AnimalPickerSheet v-model="isPickerOpen" :animals="chips" @pick="onAnimalPicked" />
-      <WeightSheet v-model="isWeightSheetOpen" :animal-id="currentId" />
+      <template v-else>
+        <AnimalChipSelector
+          v-model:selected-id="currentId"
+          :animals="chips"
+          mode="filter"
+          @add="createAnimal"
+        />
+
+        <HomeMessages place="aboveTodo" />
+
+        <HomeTodoCard
+          :rows="rows"
+          :counter="counter"
+          :banner="banner"
+          :next-reminder="nextReminder"
+          :up-to-date="upToDate"
+          @open="openRow"
+          @add="openCarnet"
+        />
+
+        <HomeMessages place="belowTodo" />
+
+        <section class="home-quick-actions">
+          <h2 class="home-quick-actions__title">{{ t('home.quickActions.title') }}</h2>
+          <div class="home-quick-actions__grid">
+            <button type="button" class="home-quick-tile" @click="openForm('treatment-new')">
+              <v-icon class="home-quick-tile__icon" icon="ms:medication" size="22" />
+              <span class="home-quick-tile__label">{{ t('home.quickActions.treatment') }}</span>
+            </button>
+            <button type="button" class="home-quick-tile" @click="openForm('vaccination-new')">
+              <v-icon class="home-quick-tile__icon" icon="ms:vaccines" size="22" />
+              <span class="home-quick-tile__label">{{ t('home.quickActions.vaccination') }}</span>
+            </button>
+            <button type="button" class="home-quick-tile" @click="isWeightSheetOpen = true">
+              <v-icon class="home-quick-tile__icon" icon="ms:monitor_weight" size="22" />
+              <span class="home-quick-tile__label">{{ t('home.quickActions.weight') }}</span>
+            </button>
+          </div>
+        </section>
+
+        <AnimalPickerSheet v-model="isPickerOpen" :animals="chips" @pick="onAnimalPicked" />
+        <WeightSheet v-model="isWeightSheetOpen" :animal-id="currentId" />
+      </template>
       <TreatmentReminderSheet
         v-model="isTreatmentSheetOpen"
         :treatment-id="openedReminder?.kind === 'treatment' ? openedReminder.id : null"
@@ -471,6 +506,49 @@ function openCarnet(): void {
   font-size: 13px;
   font-weight: 500;
   line-height: 1.2;
+}
+
+.home-unfollowed {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 24px 18px 0;
+}
+
+.home-unfollowed__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  margin-top: 12px;
+  border-radius: 50%;
+  background: tokens.$color-notice-surface;
+  color: rgb(var(--v-theme-primary));
+}
+
+.home-unfollowed__title {
+  margin: 0;
+  font-family: tokens.$font-family-heading;
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+.home-unfollowed__text {
+  margin: 0;
+  color: tokens.$color-text-secondary;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.home-unfollowed__create {
+  height: 52px;
+  border-radius: tokens.$radius-tile;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: normal;
 }
 
 .home-loading {
