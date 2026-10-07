@@ -354,6 +354,21 @@ describe('VaccinationsSection — animal qu’on ne suit plus (VA-16)', () => {
       'vaccination-row__name--muted',
     )
   })
+
+  it('AN-9 : ne propose plus « Ajouter un vaccin », la liste reste consultable', async () => {
+    vaccinations = [vaccination({ name: 'Rage' })]
+    const wrapper = await monter(MILO, { followed: false })
+
+    expect(wrapper.find('.vaccinations-section__add').exists()).toBe(false)
+    expect(wrapper.findAll('.vaccination-row')).toHaveLength(1)
+  })
+
+  it('AN-9 : sans vaccin, garde « Aucun vaccin enregistré » seul', async () => {
+    const wrapper = await monter(MILO, { followed: false })
+
+    expect(wrapper.get('.vaccinations-section__empty').text()).toBe('Aucun vaccin enregistré')
+    expect(wrapper.find('.section-card__add').exists()).toBe(false)
+  })
 })
 
 describe('VaccinationsSection — pastille d’icône (B · V11)', () => {

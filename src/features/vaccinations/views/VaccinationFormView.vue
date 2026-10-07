@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, useId } from 'vue'
+import { computed, onMounted, ref, useId, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 
@@ -31,6 +31,7 @@ import { useFormValidation } from '@/shared/form/use-form-validation'
 import { primingReturnRoute, routeAfterReminderSaved } from '@/shared/domain/notification-priming'
 import { returnTo } from '@/shared/utils/return-to'
 import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
+import { takesNewCare } from '@/shared/domain/unfollowed-animals'
 
 const props = defineProps<{
   animalId?: string
@@ -91,7 +92,13 @@ const errorMessage = computed(() => {
   if (saveFailed.value) return t('vaccinations.form.errors.save')
   return null
 })
-const canSave = computed(() => !isLoading.value && !notFound.value && !loadFailed.value)
+const canSave = computed(
+  () =>
+    !isLoading.value &&
+    !notFound.value &&
+    !loadFailed.value &&
+    (isEdit.value || takesNewCare(targetAnimal.value)),
+)
 const isInjected = computed(() => hasInjection(values.value))
 const injectionHelp = computed(() =>
   isInjected.value ? null : t('vaccinations.form.lastInjectionDate.help'),
@@ -130,6 +137,14 @@ function backToOrigin(): void {
   selectTargetAnimal()
   returnTo(router, primingReturnRoute(from, reminder))
 }
+
+watch(
+  targetAnimal,
+  (animal) => {
+    if (!isEdit.value && animal !== null && !takesNewCare(animal)) backToOrigin()
+  },
+  { immediate: true },
+)
 
 const sameName = ref<Vaccination | null>(null)
 const isSameNameDialogOpen = ref(false)

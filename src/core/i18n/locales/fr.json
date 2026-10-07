@@ -127,7 +127,6 @@
         "confirm": "Supprimer"
       },
       "unfollowed": {
-        "link": "Animaux que tu ne suis plus ({n})",
         "banner": "Tu ne suis plus {name} : aucun rappel n’est envoyé. Son carnet reste tel quel.",
         "addDate": "Ajouter une date",
         "editDate": "Modifier la date",
@@ -864,6 +863,9 @@
     "undo": "Annuler",
     "undoFailed": "L’annulation n’a pas abouti."
   },
+  "unfollowedAnimalsLink": {
+    "label": "Animaux que tu ne suis plus ({n})"
+  },
   "history": {
     "done": "C’est fait",
     "moreOptions": "Plus d’options",
@@ -1075,6 +1077,11 @@
       "local": "Ton carnet reste sur ton téléphone. Gratuit, sans compte.",
       "create": "Créer mon premier animal",
       "import": "Importer un export MémoPatte"
+    },
+    "unfollowed": {
+      "title": "Aucun soin à venir",
+      "text": "Tu ne suis plus aucun animal. Son carnet reste consultable. | Tu ne suis plus aucun animal. Leurs carnets restent consultables.",
+      "create": "Ajouter un animal"
     },
     "messages": {
       "close": "Fermer ce message",

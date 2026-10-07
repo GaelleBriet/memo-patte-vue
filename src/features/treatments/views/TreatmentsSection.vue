@@ -23,7 +23,7 @@ const props = withDefaults(
     animalId: string
     /** Date civile `yyyy-MM-dd`, calculée par l'écran. */
     today: string
-    /** Faux pour un animal qu'on ne suit plus : rien à renseigner (TR-37). */
+    /** Faux pour un animal qu'on ne suit plus : rien à renseigner (TR-37), rien à ajouter (AN-9). */
     followed?: boolean
   }>(),
   { followed: true },
@@ -118,7 +118,12 @@ watch(
       {{ t('treatments.section.empty') }}
     </p>
 
-    <button type="button" class="section-card__add treatments-section__add" @click="addTreatment">
+    <button
+      v-if="followed"
+      type="button"
+      class="section-card__add treatments-section__add"
+      @click="addTreatment"
+    >
       <v-icon icon="ms:add" size="20" />
       <span>{{ t('treatments.section.add') }}</span>
     </button>
