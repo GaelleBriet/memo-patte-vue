@@ -269,6 +269,25 @@ describe('buildCarnetPdfContent — identité', () => {
   })
 })
 
+describe('buildCarnetPdfContent — animal qu’on ne suit plus', () => {
+  it('ne donne aucun statut à ses vaccins ni à ses traitements', () => {
+    const data = {
+      ...DATA,
+      animals: DATA.animals.map((item) =>
+        item.id === ANIMAL_ID ? { ...item, unfollowedOn: '2026-06-30' } : item,
+      ),
+      vaccinations: [
+        ...DATA.vaccinations,
+        { ...DATA.vaccinations[0]!, id: 'v-prevu', name: 'CHPPiL', plannedDueDate: '2026-07-15' },
+      ],
+    }
+    const content = buildCarnetPdfContent(data, ANIMAL_ID, TODAY)!
+
+    expect(content.vaccinations.map(({ state }) => state)).toEqual([null, null, null])
+    expect(content.treatments.map(({ state }) => state)).toEqual([null])
+  })
+})
+
 describe('buildCarnetPdfContent — vaccin prévu', () => {
   function plannedRow(plannedDueDate: string | null) {
     const data = {
@@ -299,12 +318,21 @@ describe('buildCarnetPdfContent — vaccin prévu', () => {
     expect(plannedRow(null)?.state).toBe('none')
   })
 
-  it('ne marque jamais « Prévu » un vaccin déjà injecté', () => {
-    const states = buildCarnetPdfContent(DATA, ANIMAL_ID, TODAY)!.vaccinations.map(
-      ({ state }) => state,
+  it('ne marque jamais « Prévu » un vaccin déjà injecté, même au rappel à venir', () => {
+    const data = {
+      ...DATA,
+      vaccinationInjections: DATA.vaccinationInjections.map((item) =>
+        item.vaccinationId === 'v-none' ? { ...item, nextDueDate: '2027-01-01' } : item,
+      ),
+    }
+    const states = buildCarnetPdfContent(data, ANIMAL_ID, TODAY)!.vaccinations.map(
+      ({ name, state }) => [name, state],
     )
 
-    expect(states).not.toContain('planned')
+    expect(states).toEqual([
+      ['Rage', 'overdue'],
+      ['Toux de chenil', 'upToDate'],
+    ])
   })
 })
 
@@ -448,10 +476,9 @@ describe('buildCarnetPdfContent — historique', () => {
         lines: [
           {
             kind: 'given',
-            series: { kind: 'range', count: 10, from: '2026-06-06', to: '2026-06-10' },
+            series: { kind: 'range', count: 10, from: '2026-06-06', to: '2026-06-10', time: null },
           },
-          { kind: 'unlogged', from: '2026-06-03', to: '2026-06-05' },
-          { kind: 'missed', series: { kind: 'dates', doses: [at('2026-06-02', '20:00')] } },
+          { kind: 'unlogged', from: '2026-06-03', to: '2026-06-05', time: null },
           {
             kind: 'given',
             series: {
@@ -463,6 +490,7 @@ describe('buildCarnetPdfContent — historique', () => {
               ],
             },
           },
+          { kind: 'missed', series: { kind: 'dates', doses: [at('2026-06-02', '20:00')] } },
         ],
       },
     ])
@@ -512,7 +540,7 @@ describe('buildCarnetPdfContent — historique', () => {
           { kind: 'moved', dueOn: '2026-06-01', to: '2026-06-04', advanced: false },
           {
             kind: 'missed',
-            series: { kind: 'range', count: 4, from: '2026-02-01', to: '2026-05-01' },
+            series: { kind: 'range', count: 4, from: '2026-02-01', to: '2026-05-01', time: null },
           },
           { kind: 'given', series: { kind: 'dates', doses: [at('2026-01-01')] } },
         ],
@@ -524,7 +552,7 @@ describe('buildCarnetPdfContent — historique', () => {
         times: [],
         dosage: { doseQuantity: 2, doseUnit: 'tablet' },
         lines: [
-          { kind: 'unlogged', from: '2025-11-29', to: '2025-12-27' },
+          { kind: 'unlogged', from: '2025-11-29', to: '2025-12-27', time: null },
           { kind: 'given', series: { kind: 'dates', doses: [at('2025-11-15'), at('2025-11-01')] } },
         ],
       },
@@ -576,7 +604,10 @@ describe('buildCarnetPdfContent — historique', () => {
     expect(
       treatmentRow([{ id: 'p', startsOn: '2026-02-01' }], given('p', ...days)).periods[0]!.lines,
     ).toEqual([
-      { kind: 'given', series: { kind: 'range', count: 5, from: '2026-02-01', to: '2026-06-01' } },
+      {
+        kind: 'given',
+        series: { kind: 'range', count: 5, from: '2026-02-01', to: '2026-06-01', time: null },
+      },
     ])
   })
 
@@ -591,6 +622,107 @@ describe('buildCarnetPdfContent — historique', () => {
     )
 
     expect(row.periods[0]!.lines.map(({ kind }) => kind)).toEqual(['given'])
+  })
+
+  describe('période à plusieurs heures', () => {
+    const TIMES = ['08:00', '20:00']
+    const DAYS = Array.from(
+      { length: 10 },
+      (_, index) => `2026-06-${String(index + 1).padStart(2, '0')}`,
+    )
+    const PERIOD = {
+      id: 'p',
+      startsOn: '2026-06-01',
+      endsOn: '2026-06-10',
+      frequency: { value: 1, unit: 'day' as const },
+      times: TIMES,
+    }
+
+    it('regroupe les prises du matin et les soirs non renseignés, chacun sur ses jours', () => {
+      const row = treatmentRow(
+        [PERIOD],
+        DAYS.map((dueOn): DoseSpec => ({
+          periodId: 'p',
+          dueOn,
+          dueTime: '08:00',
+          status: 'given',
+        })),
+      )
+
+      expect(row.periods[0]!.lines).toEqual([
+        {
+          kind: 'given',
+          series: { kind: 'range', count: 10, from: '2026-06-01', to: '2026-06-10', time: '08:00' },
+        },
+        { kind: 'unlogged', from: '2026-06-01', to: '2026-06-10', time: '20:00' },
+      ])
+    })
+
+    it('regroupe les prises du matin et les oublis du soir, chacun sur ses jours', () => {
+      const row = treatmentRow(
+        [PERIOD],
+        DAYS.flatMap((dueOn): DoseSpec[] => [
+          { periodId: 'p', dueOn, dueTime: '08:00', status: 'given' },
+          { periodId: 'p', dueOn, dueTime: '20:00', status: 'missed' },
+        ]),
+      )
+
+      expect(row.periods[0]!.lines).toEqual([
+        {
+          kind: 'given',
+          series: { kind: 'range', count: 10, from: '2026-06-01', to: '2026-06-10', time: '08:00' },
+        },
+        {
+          kind: 'missed',
+          series: { kind: 'range', count: 10, from: '2026-06-01', to: '2026-06-10', time: '20:00' },
+        },
+      ])
+    })
+  })
+
+  it('tire la dernière prise, prise en plus comprise, d’une série résumée', () => {
+    const row = treatmentRow(
+      [{ id: 'p', startsOn: '2026-02-01' }],
+      [
+        ...given('p', '2026-02-01', '2026-03-01', '2026-04-01', '2026-05-01', '2026-06-01'),
+        { periodId: 'p', dueOn: '2026-06-08', status: 'extra' },
+      ],
+    )
+
+    expect(row.lastDoseDate).toBe('2026-06-08')
+    expect(row.lastDoseExtra).toBe(true)
+    expect(row.periods[0]!.lines).toEqual([
+      {
+        kind: 'given',
+        series: { kind: 'range', count: 6, from: '2026-02-01', to: '2026-06-08', time: null },
+      },
+    ])
+  })
+
+  it('lit les lignes retenues par le moteur : une par échéance, sans report sans effet', () => {
+    const row = treatmentRow(
+      [{ id: 'p', startsOn: '2026-04-01' }],
+      [
+        ...given('p', '2026-04-01'),
+        { periodId: 'p', dueOn: '2026-05-01', status: 'postponed', nextDueDate: '2026-05-01' },
+        ...given('p', '2026-05-01'),
+        { periodId: 'p', dueOn: '2026-06-01', status: 'given' },
+        {
+          periodId: 'p',
+          dueOn: '2026-06-01',
+          status: 'given',
+          givenOn: '2026-06-03',
+          updatedAt: '2026-06-03T00:00:00.000Z',
+        },
+      ],
+    )
+
+    expect(row.periods[0]!.lines).toEqual([
+      {
+        kind: 'given',
+        series: { kind: 'dates', doses: [at('2026-06-03'), at('2026-05-01'), at('2026-04-01')] },
+      },
+    ])
   })
 
   describe('traitement illisible', () => {
@@ -611,6 +743,21 @@ describe('buildCarnetPdfContent — historique', () => {
         { kind: 'given', series: { kind: 'dates', doses: [at('2026-06-01')] } },
         { kind: 'missed', series: { kind: 'dates', doses: [at('2026-03-01')] } },
         { kind: 'given', series: { kind: 'dates', doses: [at('2026-02-01'), at('2026-01-01')] } },
+      ])
+    })
+
+    it('écrit le report avant la prise de la même échéance', () => {
+      const row = treatmentRow(
+        [UNREADABLE],
+        [
+          ...given('p', '2026-05-01', '2026-06-01'),
+          { periodId: 'p', dueOn: '2026-06-01', status: 'postponed', nextDueDate: '2026-06-04' },
+        ],
+      )
+
+      expect(row.periods[0]!.lines).toEqual([
+        { kind: 'moved', dueOn: '2026-06-01', to: '2026-06-04', advanced: false },
+        { kind: 'given', series: { kind: 'dates', doses: [at('2026-06-01'), at('2026-05-01')] } },
       ])
     })
 

@@ -1439,16 +1439,6 @@
         "title": "Weight",
         "empty": "No weigh-in recorded."
       },
-      "period": {
-        "since": "Since {date}",
-        "range": "{from} – {to}",
-        "single": "{date}"
-      },
-      "frequency": {
-        "day": "Every day | Every {n} days",
-        "week": "Every week | Every {n} weeks",
-        "month": "Every month | Every {n} months"
-      },
       "history": {
         "injections": "Injections: {dates}",
         "noDose": "No doses",
@@ -1460,11 +1450,9 @@
         "doseRange": "{count} doses from {from} to {to}",
         "doses": "Dose: {dates} | Doses: {dates}",
         "missed": "Missed: {dates}",
-        "missedRange": "{count} missed from {from} to {to}",
+        "missedRange": "{count} doses missed from {from} to {to}",
         "unlogged": "Not logged from {from} to {to}",
-        "unloggedDay": "Not logged on {date}",
-        "postponed": "Postponed to {date} (was due {due})",
-        "advanced": "Moved up to {date} (was due {due})"
+        "unloggedDay": "Not logged on {date}"
       },
       "pageNumber": "{page} / {total}",
       "footer": "Generated on {date} — MémoPatte {version}"

@@ -61,7 +61,7 @@ function traitements(count: number): PdfTreatmentRow[] {
         lines: [
           {
             kind: 'given',
-            series: { kind: 'range', count: 6, from: '2025-08-01', to: '2026-05-01' },
+            series: { kind: 'range', count: 6, from: '2025-08-01', to: '2026-05-01', time: null },
           },
         ],
       },

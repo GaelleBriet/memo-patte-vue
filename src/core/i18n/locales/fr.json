@@ -1439,16 +1439,6 @@
         "title": "Poids",
         "empty": "Aucune pesée enregistrée."
       },
-      "period": {
-        "since": "Depuis le {date}",
-        "range": "Du {from} au {to}",
-        "single": "Le {date}"
-      },
-      "frequency": {
-        "day": "Tous les jours | Tous les {n} jours",
-        "week": "Toutes les semaines | Toutes les {n} semaines",
-        "month": "Tous les mois | Tous les {n} mois"
-      },
       "history": {
         "injections": "Injections : {dates}",
         "noDose": "Aucune prise",
@@ -1460,11 +1450,9 @@
         "doseRange": "{count} prises du {from} au {to}",
         "doses": "Prise : {dates} | Prises : {dates}",
         "missed": "Oubliée : {dates} | Oubliées : {dates}",
-        "missedRange": "{count} oubliées du {from} au {to}",
+        "missedRange": "{count} prises oubliées du {from} au {to}",
         "unlogged": "Non renseigné du {from} au {to}",
-        "unloggedDay": "Non renseigné le {date}",
-        "postponed": "Reportée au {date} (prévue le {due})",
-        "advanced": "Avancée au {date} (prévue le {due})"
+        "unloggedDay": "Non renseigné le {date}"
       },
       "pageNumber": "{page} / {total}",
       "footer": "Généré le {date} — MémoPatte {version}"

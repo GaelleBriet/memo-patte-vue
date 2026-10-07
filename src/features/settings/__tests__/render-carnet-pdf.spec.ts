@@ -65,7 +65,13 @@ const FULL_CONTENT: CarnetPdfContent = {
           lines: [
             {
               kind: 'given',
-              series: { kind: 'range', count: 13, from: '2025-06-01', to: '2026-06-01' },
+              series: {
+                kind: 'range',
+                count: 13,
+                from: '2025-06-01',
+                to: '2026-06-01',
+                time: null,
+              },
             },
             {
               kind: 'given',

@@ -187,7 +187,7 @@ function renderAnimal(doc: jsPDF, { content, photoDataUrl }: CarnetPdfPart, t: T
     content.treatments.map((row) => [
       pdfName(row.name, t),
       treatmentDueLabel(row, t),
-      t(`settings.pdf.status.${row.state}`),
+      row.state === null ? '' : t(`settings.pdf.status.${row.state}`),
     ]),
     t('settings.pdf.treatments.empty'),
     content.treatments.map((row) => treatmentHistory(row, t)),
@@ -226,6 +226,7 @@ function identityText({ animal, generatedOn }: CarnetPdfContent, t: Translate): 
 }
 
 function vaccinationStateLabel(row: PdfVaccinationRow, today: string, t: Translate): string {
+  if (row.state === null) return ''
   if (row.state !== 'planned' || row.dueDate === null) return t(`settings.pdf.status.${row.state}`)
   return t('settings.pdf.status.planned', { date: formatDayMonthOrYear(row.dueDate, today) })
 }
@@ -277,16 +278,20 @@ function rangeDates(series: Extract<PdfDoseSeries, { kind: 'range' }>) {
   }
 }
 
+function atTime(text: string, time: string | null): string {
+  return time === null ? text : `${text} · ${formatClockTime(time)}`
+}
+
 function givenText(series: PdfDoseSeries, t: Translate): string {
   return series.kind === 'dates'
     ? t('settings.pdf.history.doses', { dates: doseList(series.doses, t) }, series.doses.length)
-    : t('settings.pdf.history.doseRange', rangeDates(series))
+    : atTime(t('settings.pdf.history.doseRange', rangeDates(series)), series.time)
 }
 
 function missedText(series: PdfDoseSeries, t: Translate): string {
   return series.kind === 'dates'
     ? t('settings.pdf.history.missed', { dates: doseList(series.doses, t) }, series.doses.length)
-    : t('settings.pdf.history.missedRange', rangeDates(series))
+    : atTime(t('settings.pdf.history.missedRange', rangeDates(series)), series.time)
 }
 
 function historyLineText(line: PdfHistoryLine, t: Translate): string {
@@ -296,25 +301,28 @@ function historyLineText(line: PdfHistoryLine, t: Translate): string {
     case 'missed':
       return missedText(line.series, t)
     case 'unlogged':
-      return line.from === line.to
-        ? t('settings.pdf.history.unloggedDay', { date: formatNumericDate(line.from) })
-        : t('settings.pdf.history.unlogged', {
-            from: formatNumericDate(line.from),
-            to: formatNumericDate(line.to),
-          })
+      return atTime(
+        line.from === line.to
+          ? t('settings.pdf.history.unloggedDay', { date: formatNumericDate(line.from) })
+          : t('settings.pdf.history.unlogged', {
+              from: formatNumericDate(line.from),
+              to: formatNumericDate(line.to),
+            }),
+        line.time,
+      )
     case 'moved': {
       const dates = { date: formatNumericDate(line.to), due: formatNumericDate(line.dueOn) }
       return line.advanced
-        ? t('settings.pdf.history.advanced', dates)
-        : t('settings.pdf.history.postponed', dates)
+        ? t('treatments.history.advanced', dates)
+        : t('treatments.history.postponed', dates)
     }
   }
 }
 
 function periodRangeText({ from, to }: PdfTreatmentPeriod, t: Translate): string {
-  if (to === null) return t('settings.pdf.period.since', { date: formatNumericDate(from) })
-  if (to <= from) return t('settings.pdf.period.single', { date: formatNumericDate(from) })
-  return t('settings.pdf.period.range', {
+  if (to === null) return t('treatments.history.period.since', { date: formatNumericDate(from) })
+  if (to <= from) return t('treatments.history.period.single', { date: formatNumericDate(from) })
+  return t('treatments.history.period.range', {
     from: formatNumericDate(from),
     to: formatNumericDate(to),
   })
@@ -324,7 +332,7 @@ function periodHeadText(period: PdfTreatmentPeriod, t: Translate): string {
   const { value, unit } = period.frequency
   return [
     periodRangeText(period, t),
-    t(`settings.pdf.frequency.${unit}`, { n: value }, value),
+    t(`treatments.frequency.${unit}`, { n: value }, value),
     period.times.length > 0 && formatClockTimes(period.times),
     dosageText((key, named, plural) => t(key, named, plural), period.dosage),
   ]
