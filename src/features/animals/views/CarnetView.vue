@@ -9,7 +9,6 @@ import { useAnimalPhotoActions } from '../composables/use-animal-photo-actions'
 import { useForegroundRefresh } from '@/core/app-lifecycle/use-foreground-refresh'
 import { usePhotoUrls } from '@/core/photos/use-photo-urls'
 import PlusNudgeSection from '@/features/purchase/views/PlusNudgeSection.vue'
-import { usePurchaseStore } from '@/features/purchase/store/purchase.store'
 import type { PdfExportAnimal } from '@/features/settings/views/PdfExportSheet.vue'
 
 const PdfExportSheet = defineAsyncComponent(
@@ -23,7 +22,6 @@ import VaccinationsSection, {
 } from '@/features/vaccinations/views/VaccinationsSection.vue'
 import WeightSection, { type WeightSectionSummary } from '@/features/weight/views/WeightSection.vue'
 import AnimalChipSelector, { type AnimalChipItem } from '@/shared/components/AnimalChipSelector.vue'
-import PlusBadge from '@/shared/components/PlusBadge.vue'
 import { animalAgeText } from '@/shared/domain/animal-age'
 import { animalAvatarGradientCss } from '@/shared/domain/animal-avatar-gradient'
 import { weightDeltaText } from '@/shared/domain/weight-delta'
@@ -32,7 +30,6 @@ import { weightText } from '@/shared/domain/weight-display'
 const { t } = useI18n()
 const router = useRouter()
 const animals = useAnimalsStore()
-const purchase = usePurchaseStore()
 
 const { today } = useForegroundRefresh(() => void animals.load())
 
@@ -69,15 +66,9 @@ const pdfExportAnimals = computed<PdfExportAnimal[]>(() =>
     : [],
 )
 
-const isFreePlan = computed(() => purchase.status.plan === 'none')
-
 function onExportPdf(): void {
-  if (isFreePlan.value) {
-    void router.push({ name: 'plus', query: { from: 'pdf' } })
-  } else {
-    hasOpenedPdfExportSheet.value = true
-    isPdfExportSheetOpen.value = true
-  }
+  hasOpenedPdfExportSheet.value = true
+  isPdfExportSheetOpen.value = true
 }
 
 function openPhotoSheet(event: Event): void {
@@ -177,16 +168,11 @@ function createAnimal(): void {
           </div>
           <v-btn
             class="carnet-header__export-pdf"
-            icon
+            icon="ms:picture_as_pdf"
             variant="text"
-            :aria-label="
-              isFreePlan ? t('animals.carnet.exportPdfPlus') : t('animals.carnet.exportPdf')
-            "
+            :aria-label="t('animals.carnet.exportPdf')"
             @click="onExportPdf"
-          >
-            <v-icon icon="ms:picture_as_pdf" />
-            <PlusBadge v-if="isFreePlan" class="carnet-header__plus-badge" on="primary" />
-          </v-btn>
+          />
           <v-btn
             class="carnet-header__edit"
             icon="ms:edit"
@@ -304,15 +290,6 @@ function createAnimal(): void {
   width: 48px;
   height: 48px;
   color: rgb(var(--v-theme-background));
-}
-
-.carnet-header__export-pdf {
-  overflow: visible;
-}
-
-.carnet-header__plus-badge {
-  top: 1px;
-  right: -3px;
 }
 
 .carnet-header__identity {

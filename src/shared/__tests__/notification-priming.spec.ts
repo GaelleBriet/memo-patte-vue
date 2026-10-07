@@ -140,6 +140,7 @@ describe('primingReturnRoute', () => {
     expect(primingReturnRoute('home')).toEqual({ name: 'home' })
     expect(primingReturnRoute('settings')).toEqual({ name: 'settings' })
     expect(primingReturnRoute('settings-reminders')).toEqual({ name: 'settings-reminders' })
+    expect(primingReturnRoute('settings-data')).toEqual({ name: 'settings-data' })
     expect(primingReturnRoute('animals')).toEqual({ name: 'animals' })
   })
 
