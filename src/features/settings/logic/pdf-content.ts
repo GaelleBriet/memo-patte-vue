@@ -110,12 +110,11 @@ function commonTime(doses: PdfDose[]): string | null {
 
 function seriesOf(doses: PdfDose[]): PdfDoseSeries {
   if (doses.length <= MAX_LISTED_DOSES) return { kind: 'dates', doses: [...doses].reverse() }
-  const days = doses.map(({ on }) => on).sort()
   return {
     kind: 'range',
     count: doses.length,
-    from: days[0]!,
-    to: days.at(-1)!,
+    from: doses[0]!.on,
+    to: doses.at(-1)!.on,
     time: commonTime(doses),
   }
 }
@@ -123,8 +122,9 @@ function seriesOf(doses: PdfDose[]): PdfDoseSeries {
 type DoseKind = 'given' | 'missed' | 'unlogged'
 
 type Event =
-  | { kind: DoseKind; dose: PdfDose }
-  | { kind: 'moved'; dueOn: string; to: string; advanced: boolean }
+  { kind: DoseKind; dose: PdfDose } | { kind: 'moved'; time: string | null; line: MovedLine }
+
+type MovedLine = Extract<PdfHistoryLine, { kind: 'moved' }>
 
 function eventOf(
   dose: Pick<TreatmentDoseInput, 'dueOn' | 'dueTime' | 'givenOn' | 'status' | 'nextDueDate'>,
@@ -140,56 +140,58 @@ function eventOf(
       return [{ kind: 'missed', dose: { on: dose.dueOn, time, extra: false } }]
     case 'postponed':
       return [
-        { kind: 'moved', dueOn: dose.dueOn, to: dose.nextDueDate, advanced: isAdvanced(dose) },
+        {
+          kind: 'moved',
+          time,
+          line: {
+            kind: 'moved',
+            dueOn: dose.dueOn,
+            to: dose.nextDueDate,
+            advanced: isAdvanced(dose),
+          },
+        },
       ]
     case 'shift':
       return []
   }
 }
 
-function dayOf(event: Event): string {
-  return event.kind === 'moved' ? event.dueOn : event.dose.on
-}
-
-function timeOf(event: Event): string {
-  return event.kind === 'moved' ? '' : (event.dose.time ?? '')
+function keyOf(event: Event): string {
+  return event.kind === 'moved'
+    ? `${event.line.dueOn} ${event.time ?? ''}`
+    : `${event.dose.on} ${event.dose.time ?? ''}`
 }
 
 function compare(a: string, b: string): number {
   return a < b ? -1 : a > b ? 1 : 0
 }
 
-// Lue de la plus récente, sur un même jour : le report, puis la prise, l'oubli, le non renseigné.
+// Lue de la plus récente, sur une même échéance : le report, puis la prise, l'oubli, le non renseigné.
 const LINE_RANK: Record<Event['kind'], number> = { moved: 0, given: 1, missed: 2, unlogged: 3 }
 
-type Run = { kind: DoseKind; doses: PdfDose[] } | Extract<PdfHistoryLine, { kind: 'moved' }>
+type DoseRun = { kind: DoseKind; doses: PdfDose[] }
+
+type Run = DoseRun | Extract<Event, { kind: 'moved' }>
 
 function lineOf(run: Run): PdfHistoryLine {
-  if (run.kind === 'moved') return run
+  if (run.kind === 'moved') return run.line
   if (run.kind !== 'unlogged') return { kind: run.kind, series: seriesOf(run.doses) }
-  const days = run.doses.map(({ on }) => on).sort()
-  return { kind: 'unlogged', from: days[0]!, to: days.at(-1)!, time: commonTime(run.doses) }
+  const [first, last] = [run.doses[0]!, run.doses.at(-1)!]
+  return { kind: 'unlogged', from: first.on, to: last.on, time: commonTime(run.doses) }
 }
 
-function lastDayOfRun(run: Run): string {
-  return run.kind === 'moved'
-    ? run.dueOn
-    : run.doses
-        .map(({ on }) => on)
-        .sort()
-        .at(-1)!
+function lastKeyOf(run: Run): string {
+  return run.kind === 'moved' ? keyOf(run) : keyOf({ kind: run.kind, dose: run.doses.at(-1)! })
 }
 
 /** Chaque type se regroupe sur ses jours qui se suivent, même quand une autre heure s'intercale. */
 function linesOf(events: Event[], frequency: ExportFrequency): PdfHistoryLine[] {
-  const sorted = [...events].sort(
-    (a, b) => compare(dayOf(a), dayOf(b)) || compare(timeOf(a), timeOf(b)),
-  )
+  const sorted = [...events].sort((a, b) => compare(keyOf(a), keyOf(b)))
   const runs: Run[] = []
-  const open = new Map<DoseKind, { kind: DoseKind; doses: PdfDose[] }>()
+  const open = new Map<DoseKind, DoseRun>()
   for (const event of sorted) {
     if (event.kind === 'moved') {
-      runs.push({ ...event })
+      runs.push(event)
       continue
     }
     const run = open.get(event.kind)
@@ -202,9 +204,7 @@ function linesOf(events: Event[], frequency: ExportFrequency): PdfHistoryLine[] 
     runs.push(started)
   }
   return runs
-    .sort(
-      (a, b) => compare(lastDayOfRun(b), lastDayOfRun(a)) || LINE_RANK[a.kind] - LINE_RANK[b.kind],
-    )
+    .sort((a, b) => compare(lastKeyOf(b), lastKeyOf(a)) || LINE_RANK[a.kind] - LINE_RANK[b.kind])
     .map(lineOf)
 }
 

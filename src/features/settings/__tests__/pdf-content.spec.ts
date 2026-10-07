@@ -420,6 +420,23 @@ describe('buildCarnetPdfContent — historique', () => {
     expect(row.lastDoseExtra).toBe(false)
   })
 
+  it('ne prend pas pour dernière prise une échéance notée oubliée depuis', () => {
+    const row = treatmentRow(
+      [{ id: 'p', startsOn: '2026-05-01' }],
+      [
+        ...given('p', '2026-05-01', '2026-06-01'),
+        {
+          periodId: 'p',
+          dueOn: '2026-06-01',
+          status: 'missed',
+          updatedAt: '2026-06-02T00:00:00.000Z',
+        },
+      ],
+    )
+
+    expect(row.lastDoseDate).toBe('2026-05-01')
+  })
+
   it('compte une prise en plus comme une dose donnée, marquée, à sa date réelle', () => {
     const row = treatmentRow(
       [{ id: 'p', startsOn: '2026-04-01' }],
@@ -479,6 +496,7 @@ describe('buildCarnetPdfContent — historique', () => {
             series: { kind: 'range', count: 10, from: '2026-06-06', to: '2026-06-10', time: null },
           },
           { kind: 'unlogged', from: '2026-06-03', to: '2026-06-05', time: null },
+          { kind: 'missed', series: { kind: 'dates', doses: [at('2026-06-02', '20:00')] } },
           {
             kind: 'given',
             series: {
@@ -490,7 +508,6 @@ describe('buildCarnetPdfContent — historique', () => {
               ],
             },
           },
-          { kind: 'missed', series: { kind: 'dates', doses: [at('2026-06-02', '20:00')] } },
         ],
       },
     ])
@@ -650,11 +667,11 @@ describe('buildCarnetPdfContent — historique', () => {
       )
 
       expect(row.periods[0]!.lines).toEqual([
+        { kind: 'unlogged', from: '2026-06-01', to: '2026-06-10', time: '20:00' },
         {
           kind: 'given',
           series: { kind: 'range', count: 10, from: '2026-06-01', to: '2026-06-10', time: '08:00' },
         },
-        { kind: 'unlogged', from: '2026-06-01', to: '2026-06-10', time: '20:00' },
       ])
     })
 
@@ -669,12 +686,12 @@ describe('buildCarnetPdfContent — historique', () => {
 
       expect(row.periods[0]!.lines).toEqual([
         {
-          kind: 'given',
-          series: { kind: 'range', count: 10, from: '2026-06-01', to: '2026-06-10', time: '08:00' },
-        },
-        {
           kind: 'missed',
           series: { kind: 'range', count: 10, from: '2026-06-01', to: '2026-06-10', time: '20:00' },
+        },
+        {
+          kind: 'given',
+          series: { kind: 'range', count: 10, from: '2026-06-01', to: '2026-06-10', time: '08:00' },
         },
       ])
     })
