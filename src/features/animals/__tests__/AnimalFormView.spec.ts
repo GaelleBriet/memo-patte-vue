@@ -17,6 +17,7 @@ import { forgetPhotoUrls } from '@/core/photos/use-photo-urls'
 import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
 import { KG_PER_LB } from '@/shared/domain/weight-unit'
 import { applyWeightUnit } from '@/shared/domain/weight-unit-preference'
+import { plain } from '@/shared/__tests__/plain'
 
 vi.mock('@/core/photos/photo-picker', () => ({
   pickPhoto: vi.fn<() => Promise<PickedPhoto | null>>(),
@@ -332,7 +333,7 @@ describe('AnimalFormView — poids, première pesée', () => {
 
     expect(poids.get('.form-field__label').text()).toContain('Poids')
     expect(poids.text()).not.toContain('Poids initial')
-    expect(poids.get('.form-field__help').text()).toBe(
+    expect(plain(poids.get('.form-field__help').text())).toBe(
       'Il devient la première pesée, datée du 28 sept. 2026.',
     )
   })
@@ -343,7 +344,7 @@ describe('AnimalFormView — poids, première pesée', () => {
       const poids = monter().get('.animal-form__field--weight')
 
       expect(poids.get('.form-field__label').text()).toContain('Weight')
-      expect(poids.get('.form-field__help').text()).toBe(
+      expect(plain(poids.get('.form-field__help').text())).toBe(
         'It becomes the first weigh-in, dated Sep 28, 2026.',
       )
     } finally {

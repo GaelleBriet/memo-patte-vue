@@ -113,7 +113,18 @@
       "forAnimal": "For {name}",
       "name": {
         "label": "Vaccine name",
-        "placeholder": "e.g. Rabies"
+        "placeholder": "e.g. Rabies",
+        "usedFor": "Already used for {names}",
+        "suggestions": {
+          "carnet": "In your health record",
+          "combinations": {
+            "dog": "Common combinations · dog",
+            "cat": "Common combinations · cat"
+          },
+          "useTyped": "Use “{name}”",
+          "spoken": "{label}. Abbreviations {aliases}.",
+          "count": "{n} suggestion | {n} suggestions"
+        }
       },
       "lastInjectionDate": {
         "label": "Injection date",
@@ -154,6 +165,7 @@
       "status": {
         "overdue": "Overdue · {n}d",
         "upToDate": "Up to date",
+        "today": "Today",
         "planned": "Planned {date}",
         "none": "No reminder"
       },
@@ -249,6 +261,20 @@
         "change": "Couldn’t save the change. Try again.",
         "delete": "Couldn’t delete {name}. Try again."
       }
+    },
+    "diseases": {
+      "distemper": "distemper",
+      "hepatitis": "hepatitis",
+      "parvovirus": "parvovirus",
+      "parainfluenza": "parainfluenza",
+      "leptospirosis": "leptospirosis",
+      "rabies": "rabies",
+      "kennelCough": "kennel cough",
+      "leishmaniosis": "leishmaniosis",
+      "panleukopenia": "panleucopenia",
+      "catFlu": "cat flu (herpesvirus, calicivirus)",
+      "chlamydiosis": "chlamydia",
+      "felineLeukaemia": "feline leukaemia"
     }
   },
   "treatments": {
@@ -476,7 +502,7 @@
       "showOthers": "Show the other dose from this period | Show the {n} other doses from this period",
       "hideOthers": "Hide the other doses from this period",
       "options": "Options for the dose on {date}",
-      "optionsAt": "Options for the dose on {date} at {time}",
+      "optionsAt": "Options for the dose on {date} at {time}",
       "remove": "Delete this dose",
       "changeDateSubtitle": "Dose on {date}",
       "changeDateSubtitleExtra": "Extra dose on {date}",
@@ -640,7 +666,7 @@
         "monthDaysAt": "{days} · {time}",
         "dayGiven": "{date}, given",
         "dayMissed": "{date}, missed",
-        "dayAt": "{date} at {time}",
+        "dayAt": "{date} at {time}",
         "givenCount": "{n} given | {n} given | {n} given",
         "missedCount": "{n} missed | {n} missed | {n} missed",
         "counts": "{given}, {missed}",
@@ -711,21 +737,21 @@
     "givenWhen": {
       "title": "Given when?",
       "due": "Due {date}",
-      "dueAt": "Due {date} at {time}",
+      "dueAt": "Due {date} at {time}",
       "dosageDue": "{dosage} · due {date}",
-      "dosageDueAt": "{dosage} · due {date} at {time}",
+      "dosageDueAt": "{dosage} · due {date} at {time}",
       "scheduled": "The scheduled day",
       "scheduledAt": "The scheduled day, at {time}",
       "scheduledLabel": "Given on the scheduled day, {date}",
-      "scheduledLabelAt": "Given on the scheduled day, {date} at {time}",
+      "scheduledLabelAt": "Given on the scheduled day, {date} at {time}",
       "today": "Today",
       "todayLabel": "Given today, {date}",
       "other": "Another day",
       "otherLabel": "Given on another day: choose the day",
       "everyDay": "Given on {date}",
-      "everyDayAt": "Given on {date} at {time}",
+      "everyDayAt": "Given on {date} at {time}",
       "everyDayLabel": "Given on {date}",
-      "everyDayLabelAt": "Given on {date} at {time}",
+      "everyDayLabelAt": "Given on {date} at {time}",
       "back": "Back to “Given when?”"
     }
   },
@@ -778,7 +804,7 @@
       "upcoming": "Next dose",
       "end": "Treatment end"
     },
-    "at": "{date} at {time}",
+    "at": "{date} at {time}",
     "tomorrow": "tomorrow, {date}",
     "overdueSince": "overdue since {date}",
     "stoppedOn": "Stopped on {date}",
@@ -1256,7 +1282,7 @@
         "empty": "No treatment recorded.",
         "stopped": "Stopped on {date}",
         "ended": "Ended on {date}",
-        "dueAt": "{date} at {time}",
+        "dueAt": "{date} at {time}",
         "unreadable": "Unreadable data",
         "noDate": "—"
       },

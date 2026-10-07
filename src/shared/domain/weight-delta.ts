@@ -1,6 +1,6 @@
 import type { Translate } from './due-reminders'
 import { shownWeight, withWeightUnit } from './weight-display'
-import { formatDayMonthOrYear, formatWeightDelta, nonBreaking } from '@/shared/utils/format'
+import { formatDayMonthOrYear, formatWeightDelta } from '@/shared/utils/format'
 
 export type WeightTrend = 'up' | 'down' | 'flat'
 
@@ -29,6 +29,6 @@ export function weightDeltaText(t: Translate, pair: WeightPair): string {
 export function weightDeltaSinceText(t: Translate, change: WeightChange, today: string): string {
   return t('weight.delta.since', {
     delta: weightDeltaText(t, change),
-    date: nonBreaking(formatDayMonthOrYear(change.previousMeasuredOn, today)),
+    date: formatDayMonthOrYear(change.previousMeasuredOn, today),
   })
 }

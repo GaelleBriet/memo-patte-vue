@@ -20,6 +20,7 @@ import type { Vaccination } from '../schema/vaccination.schema'
 import { useVaccinationsStore } from '../store/vaccinations.store'
 import NextReminderChoices from './NextReminderChoices.vue'
 import VaccinationReminderSheet from './VaccinationReminderSheet.vue'
+import VaccineNameField from './VaccineNameField.vue'
 import { useToday } from '@/core/app-lifecycle/use-today'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
@@ -65,9 +66,11 @@ const isOtherDateOpen = ref(false)
 
 const isEdit = computed(() => props.id !== undefined)
 const targetAnimalId = computed(() => existing.value?.animalId ?? props.animalId ?? null)
-const animalName = computed(
-  () => animals.animals.find((animal) => animal.id === targetAnimalId.value)?.name ?? null,
+const targetAnimal = computed(
+  () => animals.animals.find((animal) => animal.id === targetAnimalId.value) ?? null,
 )
+const animalName = computed(() => targetAnimal.value?.name ?? null)
+const animalSpecies = computed(() => targetAnimal.value?.species ?? null)
 const title = computed(() =>
   existing.value
     ? t('vaccinations.form.editTitle', { name: existing.value.name })
@@ -217,29 +220,11 @@ async function save(): Promise<void> {
     @cancel="backToOrigin"
     @submit="submit"
   >
-    <FormField
-      class="vaccination-form__field--name"
-      :label="t('vaccinations.form.name.label')"
-      control-id="vaccination-name"
-      required
+    <VaccineNameField
+      v-model="values.name"
+      :species="animalSpecies"
       :error="errors.name ? t(errors.name, { max: MAX_NAME_LENGTH }) : null"
-    >
-      <template #default="{ describedby, invalid }">
-        <v-text-field
-          id="vaccination-name"
-          v-model="values.name"
-          :aria-describedby="describedby"
-          :aria-invalid="invalid"
-          class="form-field__input"
-          variant="outlined"
-          hide-details
-          aria-required="true"
-          :maxlength="MAX_NAME_LENGTH"
-          :error="invalid"
-          :placeholder="t('vaccinations.form.name.placeholder')"
-        />
-      </template>
-    </FormField>
+    />
 
     <FormField
       v-if="!isEdit"

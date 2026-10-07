@@ -113,7 +113,18 @@
       "forAnimal": "Pour {name}",
       "name": {
         "label": "Nom du vaccin",
-        "placeholder": "Ex. Rage"
+        "placeholder": "Ex. Rage",
+        "usedFor": "Déjà utilisé pour {names}",
+        "suggestions": {
+          "carnet": "Dans ton carnet",
+          "combinations": {
+            "dog": "Combinaisons courantes · chien",
+            "cat": "Combinaisons courantes · chat"
+          },
+          "useTyped": "Utiliser « {name} »",
+          "spoken": "{label}. Sigles {aliases}.",
+          "count": "{n} proposition | {n} propositions"
+        }
       },
       "lastInjectionDate": {
         "label": "Date de l’injection",
@@ -154,6 +165,7 @@
       "status": {
         "overdue": "En retard · {n} j",
         "upToDate": "À jour",
+        "today": "Aujourd’hui",
         "planned": "Prévu le {date}",
         "none": "Pas de rappel"
       },
@@ -249,6 +261,20 @@
         "change": "La modification n’a pas abouti. Réessaie.",
         "delete": "{name} n’a pas pu être supprimé. Réessaie."
       }
+    },
+    "diseases": {
+      "distemper": "carré",
+      "hepatitis": "hépatite",
+      "parvovirus": "parvovirose",
+      "parainfluenza": "parainfluenza",
+      "leptospirosis": "leptospirose",
+      "rabies": "rage",
+      "kennelCough": "toux du chenil",
+      "leishmaniosis": "leishmaniose",
+      "panleukopenia": "typhus",
+      "catFlu": "coryza (herpèsvirus, calicivirus)",
+      "chlamydiosis": "chlamydiose",
+      "felineLeukaemia": "leucose"
     }
   },
   "treatments": {
@@ -476,7 +502,7 @@
       "showOthers": "Voir l’autre prise de cette période | Voir les {n} autres prises de cette période",
       "hideOthers": "Masquer les autres prises de cette période",
       "options": "Options pour la prise du {date}",
-      "optionsAt": "Options pour la prise du {date} à {time}",
+      "optionsAt": "Options pour la prise du {date} à {time}",
       "remove": "Supprimer cette prise",
       "changeDateSubtitle": "Prise du {date}",
       "changeDateSubtitleExtra": "Prise en plus du {date}",
@@ -640,7 +666,7 @@
         "monthDaysAt": "{days} · {time}",
         "dayGiven": "{date}, donnée",
         "dayMissed": "{date}, oubliée",
-        "dayAt": "{date} à {time}",
+        "dayAt": "{date} à {time}",
         "givenCount": "{n} donnée | {n} donnée | {n} données",
         "missedCount": "{n} oubliée | {n} oubliée | {n} oubliées",
         "counts": "{given}, {missed}",
@@ -711,21 +737,21 @@
     "givenWhen": {
       "title": "Donnée quand ?",
       "due": "Prévue {date}",
-      "dueAt": "Prévue {date} à {time}",
+      "dueAt": "Prévue {date} à {time}",
       "dosageDue": "{dosage} · prévue {date}",
-      "dosageDueAt": "{dosage} · prévue {date} à {time}",
+      "dosageDueAt": "{dosage} · prévue {date} à {time}",
       "scheduled": "Le jour prévu",
       "scheduledAt": "Le jour prévu, à {time}",
       "scheduledLabel": "Donnée le jour prévu, {date}",
-      "scheduledLabelAt": "Donnée le jour prévu, {date} à {time}",
+      "scheduledLabelAt": "Donnée le jour prévu, {date} à {time}",
       "today": "Aujourd’hui",
       "todayLabel": "Donnée aujourd’hui, {date}",
       "other": "Une autre date",
       "otherLabel": "Donnée à une autre date : choisir le jour",
       "everyDay": "Donnée le {date}",
-      "everyDayAt": "Donnée le {date} à {time}",
+      "everyDayAt": "Donnée le {date} à {time}",
       "everyDayLabel": "Donnée le {date}",
-      "everyDayLabelAt": "Donnée le {date} à {time}",
+      "everyDayLabelAt": "Donnée le {date} à {time}",
       "back": "Retour à « Donnée quand ? »"
     }
   },
@@ -778,7 +804,7 @@
       "upcoming": "Prochaine dose",
       "end": "Fin du traitement"
     },
-    "at": "{date} à {time}",
+    "at": "{date} à {time}",
     "tomorrow": "demain, {date}",
     "overdueSince": "en retard depuis le {date}",
     "stoppedOn": "Arrêté le {date}",
@@ -1256,7 +1282,7 @@
         "empty": "Aucun traitement enregistré.",
         "stopped": "Arrêté le {date}",
         "ended": "Terminé le {date}",
-        "dueAt": "{date} à {time}",
+        "dueAt": "{date} à {time}",
         "unreadable": "Donnée illisible",
         "noDate": "—"
       },
