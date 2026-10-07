@@ -1374,6 +1374,10 @@
       },
       "history": {
         "injections": "Injections : {dates}",
+        "noDose": "Aucune prise",
+        "noDoseUpcoming": "Aucune prise · prochaine dose le {date}",
+        "noDoseOverdue": "Aucune prise · en retard depuis le {date}",
+        "stoppedBeforeFirstDose": "Arrêté avant la première prise",
         "lastDose": "Dernière prise : {date}",
         "extraDose": "{date} (prise en plus)",
         "previousDoses": "Prises précédentes : {series}",
