@@ -12,6 +12,8 @@ import {
   type TreatmentsRepository,
 } from '../repository/treatments.repository'
 import type { TreatmentCreationInput, TreatmentEditionInput } from '../schema/treatment-form.schema'
+import { createWriteQueue } from '../logic/treatment-write-queue'
+import { createTreatmentDosesService, type NotedMoment } from '../service/treatment-doses.service'
 import {
   createTreatmentPlanService,
   type TreatmentPlanService,
@@ -383,6 +385,46 @@ describe('treatmentPlanService', () => {
     expect(doses.filter(({ status }) => status === 'shift')).toMatchObject([
       { dueOn: '2026-10-03', nextDueDate: '2026-10-06' },
     ])
+  })
+
+  it('une notification « C’est fait » pendant un report attend sa fin : jamais une prise et un report sur la même échéance', async () => {
+    const { id } = await service.create(MILBEMAX)
+    await give(id, '2026-09-26', '2026-10-03')
+    const queue = createWriteQueue()
+    const doses = createTreatmentDosesService({
+      treatments: () => treatments,
+      doses: () => createTreatmentDosesRepository(db),
+      reminders: { reschedule: () => Promise.resolve() },
+      now: () => new Date(),
+      today: () => today,
+      queue,
+    })
+    let notification: Promise<NotedMoment> | null = null
+    const planning = createTreatmentPlanService({
+      treatments: () => ({
+        create: (plan) => treatments.create(plan),
+        async getWithHistory(treatmentId) {
+          const history = await treatments.getWithHistory(treatmentId)
+          notification ??= doses.noteMoment(treatmentId, today)
+          await new Promise((resolve) => setTimeout(resolve, 50))
+          return history
+        },
+        applyPlan: (treatmentId, plan) => treatments.applyPlan(treatmentId, plan),
+      }),
+      today: () => today,
+      newId: () => crypto.randomUUID(),
+      queue,
+    })
+
+    await planning.update(id, saisie({ nextDoseOn: '2026-10-06' }))
+    await notification
+
+    const { doses: lines } = await historyOf(id)
+    const report = lines.find(({ status }) => status === 'postponed')
+    expect(report).toMatchObject({ dueOn: '2026-10-03' })
+    expect(
+      lines.filter(({ status, dueOn }) => status === 'given' && dueOn === report?.dueOn),
+    ).toEqual([])
   })
 
   it('refuse une prochaine dose après la date de fin d’une période qui a déjà une prise, sans rien écrire (Q20)', async () => {
