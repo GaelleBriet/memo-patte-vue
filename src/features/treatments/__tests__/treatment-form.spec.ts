@@ -24,7 +24,7 @@ import {
   withoutTime,
   type TreatmentFormValues,
 } from '../logic/treatment-form'
-import type { TreatmentWithHistory } from '../repository/treatments.repository'
+import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 import i18n from '@/core/i18n'

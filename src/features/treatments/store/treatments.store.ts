@@ -25,10 +25,8 @@ import type { Treatment } from '../schema/treatment.schema'
 import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import type { DoseWrite } from '../repository/treatment-doses.repository'
 import type { DoseAction } from '../logic/treatment-dose-writes'
-import type {
-  TreatmentsRepository as FullTreatmentsRepository,
-  TreatmentWithHistory,
-} from '../repository/treatments.repository'
+import type { TreatmentsRepository as FullTreatmentsRepository } from '../repository/treatments.repository'
+import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import { track } from '@/core/analytics'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import type { DoseGesture } from '@/shared/domain/treatment-schedule'

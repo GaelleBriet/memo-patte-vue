@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { dose, extra, missed, period, postponed, shifted, treatment } from './treatment-fixtures'
 import { doseChange, movedDueOf, type DoseAction } from '../logic/treatment-dose-writes'
 import { treatmentScheduleOf } from '../logic/treatment-schedule'
-import type { TreatmentWithHistory } from '../repository/treatments.repository'
+import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 
 const OWNER = { treatmentId: 'metacam', animalId: 'luna' }
 const MATIN_ET_SOIR = period({ times: ['08:00', '20:00'] })

@@ -11,7 +11,7 @@ import {
   createTreatmentPeriodsRepository,
   currentPeriodIdSql,
 } from './treatment-periods.repository'
-import type { NewTreatmentDose, TreatmentDose } from '../schema/treatment-dose.schema'
+import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import type {
   TreatmentPeriodRecord,
   TreatmentPeriodSettings,
@@ -23,6 +23,7 @@ import {
   type Treatment,
   type TreatmentType,
 } from '../schema/treatment.schema'
+import type { TreatmentRecord, TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import type { Stamped } from '@/shared/domain/carnet-data'
 import type { DoseFields } from '@/shared/domain/treatment-schedule'
 
@@ -49,18 +50,8 @@ interface TreatmentWithPeriodRow extends Omit<
 }
 
 export type TreatmentVersion = Pick<Treatment, 'id' | 'animalId' | 'updatedAt' | 'deletedAt'>
-/** Le traitement tel que sa table l'enregistre, sans sa période ni la tête de son historique. */
-export type TreatmentRecord = Pick<
-  Treatment,
-  'id' | 'animalId' | 'name' | 'type' | 'createdAt' | 'updatedAt'
->
 export type StampedTreatmentRecord = Stamped<TreatmentRecord>
 export type RestoredTreatment = StampedTreatmentRecord
-/** Ce que le moteur d'échéances lit : toutes les périodes, de la première à la dernière, et les prises visibles. */
-export type TreatmentWithHistory = TreatmentRecord & {
-  periods: TreatmentPeriodRecord[]
-  doses: NewTreatmentDose[]
-}
 
 /** Un traitement à créer avec sa première période, et les prises renseignées à la création (TR-3). */
 export type NewTreatmentPlan = Pick<Treatment, 'id' | 'animalId' | 'name' | 'type'> & {

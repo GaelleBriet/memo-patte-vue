@@ -36,7 +36,7 @@ import {
   promptChoice,
   type PromptActionId,
 } from '../logic/treatment-unlogged'
-import type { TreatmentWithHistory } from '../repository/treatments.repository'
+import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import type { PastDuesChoice } from '../schema/treatment-form.schema'
 import type { ReminderOffsetMinutes } from '../schema/treatment-period.schema'
 import { FREQUENCY_UNITS, TREATMENT_TYPES, type FrequencyUnit } from '../schema/treatment.schema'

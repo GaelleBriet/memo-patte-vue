@@ -7,9 +7,9 @@ import {
 } from '../logic/treatment-write-queue'
 import {
   getTreatmentsRepository,
-  type TreatmentWithHistory,
   type TreatmentsRepository,
 } from '../repository/treatments.repository'
+import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import type {
   TreatmentCreationInput,
   TreatmentEditionInput,

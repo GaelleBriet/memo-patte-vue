@@ -7,8 +7,8 @@ import type {
   NewTreatmentPlan,
   PlannedDoseWrite,
   TreatmentPlanWrite,
-  TreatmentWithHistory,
 } from '../repository/treatments.repository'
+import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import {
   treatmentCalendarSchema,
   treatmentCreationSchema,

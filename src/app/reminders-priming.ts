@@ -12,9 +12,9 @@ import {
 import { readableScheduleOf } from '@/features/treatments/logic/treatment-schedule'
 import {
   getTreatmentsRepository,
-  type TreatmentWithHistory,
   type TreatmentsRepository,
 } from '@/features/treatments/repository/treatments.repository'
+import type { TreatmentWithHistory } from '@/features/treatments/schema/treatment-with-history.schema'
 import type { Vaccination } from '@/features/vaccinations/schema/vaccination.schema'
 import {
   getVaccinationsRepository,

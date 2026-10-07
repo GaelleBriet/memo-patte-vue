@@ -10,7 +10,7 @@ import {
 } from '../logic/treatment-notification'
 import { notifiedPlan } from '../logic/treatment-other-date'
 import { treatmentScheduleOf } from '../logic/treatment-schedule'
-import type { TreatmentWithHistory } from '../repository/treatments.repository'
+import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import i18n, { applyLocale } from '@/core/i18n'
 
 const t = i18n.global.t

@@ -29,8 +29,8 @@ import {
 import {
   getTreatmentsRepository,
   type TreatmentsRepository,
-  type TreatmentWithHistory,
 } from '../repository/treatments.repository'
+import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import {
   treatmentRemindersService,
   type TreatmentRemindersService,

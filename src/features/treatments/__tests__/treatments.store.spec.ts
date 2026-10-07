@@ -12,10 +12,8 @@ import type { TreatmentPlanService } from '../service/treatment-plan.service'
 import type { TreatmentDosesService } from '../service/treatment-doses.service'
 import type { TreatmentRemindersService } from '../service/treatment-reminders.service'
 import type { TreatmentStopService } from '../service/treatment-stop.service'
-import type {
-  TreatmentsRepository,
-  TreatmentWithHistory,
-} from '../repository/treatments.repository'
+import type { TreatmentsRepository } from '../repository/treatments.repository'
+import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import {
   provideTreatmentDosesService,
   provideTreatmentPlanService,

@@ -1,5 +1,5 @@
 import { currentPeriodOf, endedOnOf, readableScheduleOf } from './treatment-schedule'
-import type { TreatmentWithHistory } from '../repository/treatments.repository'
+import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import { currentDoseText } from '@/shared/domain/current-dose'
 import { overdueDays } from '@/shared/domain/due-delay'
 import { reminderIcon, type ReminderCounts } from '@/shared/domain/reminders'

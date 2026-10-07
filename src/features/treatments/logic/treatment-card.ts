@@ -1,6 +1,6 @@
 import { currentPeriodOf, endedOnOf } from './treatment-schedule'
 import { periodRhythmText } from './treatment-rhythm'
-import type { TreatmentWithHistory } from '../repository/treatments.repository'
+import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import type { ExactRemindersStatus } from '@/core/notifications'
 import { currentDoseText } from '@/shared/domain/current-dose'
 import { dosageText } from '@/shared/domain/dosage'

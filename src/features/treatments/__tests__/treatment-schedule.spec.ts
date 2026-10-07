@@ -5,7 +5,7 @@ import {
   readableScheduleOf,
   treatmentScheduleOf,
 } from '../logic/treatment-schedule'
-import type { TreatmentWithHistory } from '../repository/treatments.repository'
+import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 
 const AT = '2026-09-01T08:00:00.000Z'

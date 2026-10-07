@@ -14,7 +14,7 @@ import {
   restoredSuiteFor,
   shiftHelpText,
 } from '../logic/treatment-shift-box'
-import type { TreatmentWithHistory } from '../repository/treatments.repository'
+import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import i18n, { applyLocale } from '@/core/i18n'
 import { formatDayMonth } from '@/shared/utils/format'
 

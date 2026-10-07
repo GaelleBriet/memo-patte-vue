@@ -3,7 +3,7 @@ import { addDays, format, parseISO } from 'date-fns'
 import type { DoseAction, DoseChange } from './treatment-dose-writes'
 import { moveText, type DoseLineAction } from './treatment-history'
 import { revealedDuesText, type RevealedDues } from './treatment-revealed-dues'
-import type { TreatmentWithHistory } from '../repository/treatments.repository'
+import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import {
   isAdvanced,
   type Due,
