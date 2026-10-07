@@ -3529,6 +3529,33 @@ describe('un déplacement qui arrive après la fermeture de sa période est sans
     expect(schedule.unloggedDoses).toEqual([])
   })
 
+  it('un nouveau réglage le 30 sept. repart de la prise du 25, pas du report sans effet', () => {
+    const book = changed(storedMove(noted, '2026-10-02', '2026-12-15'))
+
+    expect(scheduleOf(book, '2026-09-30').newPeriod({ value: 1, unit: 'week' }, [])).toEqual({
+      startsOn: '2026-09-30',
+      firstDueOn: '2026-10-02',
+      referenceOn: '2026-10-02',
+    })
+  })
+
+  it('reprise le 30 sept. après l’arrêt du 28 : la suite repart de la prise du 25', () => {
+    const moved = storedMove(noted, '2026-10-02', '2026-10-15')
+    const book = {
+      ...moved,
+      periods: moved.periods.map((stoppedPeriod) => ({
+        ...stoppedPeriod,
+        stoppedOn: '2026-09-28',
+      })),
+    }
+
+    expect(scheduleOf(book, '2026-09-30').newPeriod({ value: 1, unit: 'week' }, [])).toEqual({
+      startsOn: '2026-09-30',
+      firstDueOn: '2026-10-02',
+      referenceOn: '2026-10-02',
+    })
+  })
+
   it('une arrivée avant la fermeture garde sa ligne', () => {
     const book = changed(storedMove(noted, '2026-10-02', '2026-09-27'))
 
