@@ -21,11 +21,16 @@ import SectionCard from '@/shared/components/SectionCard.vue'
 import { useAnimalScopedLoad } from '@/shared/composables/use-animal-scoped-load'
 import { buildReminders } from '@/shared/domain/reminders'
 
-const props = defineProps<{
-  animalId: string
-  /** Date civile `yyyy-MM-dd`, calculée par l'écran. */
-  today: string
-}>()
+const props = withDefaults(
+  defineProps<{
+    animalId: string
+    /** Date civile `yyyy-MM-dd`, calculée par l'écran. */
+    today: string
+    /** Faux pour un animal qu'on ne suit plus : ni badge ni rappel (VA-16). */
+    followed?: boolean
+  }>(),
+  { followed: true },
+)
 
 const emit = defineEmits<{
   summary: [summary: VaccinationsSummary]
@@ -62,11 +67,12 @@ const rows = computed(() =>
   [...vaccinations.value].sort(byDueDate).map((vaccination) => ({
     id: vaccination.id,
     name: vaccination.name,
-    ...carnetVaccinationRow(t, vaccination, props.today),
+    ...carnetVaccinationRow(t, vaccination, props.today, { followed: props.followed }),
   })),
 )
 
 const summary = computed<VaccinationsSummary>(() => {
+  if (!props.followed) return { total: 0, overdue: 0 }
   const { total, overdue } = buildReminders(
     vaccinations.value.map((vaccination) => ({
       kind: 'vaccination',
@@ -100,13 +106,16 @@ watch(summary, (value) => emit('summary', value), { immediate: true })
       class="section-card__row vaccination-row"
       @click="openDetail(row.id)"
     >
-      <ListRowIcon :icon="row.icon" />
+      <ListRowIcon :icon="row.icon" :muted="!followed" />
       <span class="vaccination-row__text">
-        <span class="vaccination-row__name">{{ row.name }}</span>
+        <span class="vaccination-row__name" :class="{ 'vaccination-row__name--muted': !followed }">
+          {{ row.name }}
+        </span>
         <span class="vaccination-row__detail">{{ row.detail }}</span>
       </span>
       <span class="vaccination-row__end">
         <DueStatusChip
+          v-if="row.badge"
           class="vaccination-row__badge"
           :status="row.badge.status"
           :label="row.badge.label"
@@ -171,6 +180,10 @@ watch(summary, (value) => emit('summary', value), { immediate: true })
   overflow-wrap: break-word;
   font-size: 15.5px;
   font-weight: 700;
+}
+
+.vaccination-row__name--muted {
+  color: tokens.$color-text-secondary;
 }
 
 .vaccination-row__detail {

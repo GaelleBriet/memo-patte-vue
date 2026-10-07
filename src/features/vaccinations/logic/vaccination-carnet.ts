@@ -2,7 +2,7 @@ import { vaccinationStatus } from './vaccination-status'
 import type { Vaccination } from '../schema/vaccination.schema'
 import { overdueDays } from '@/shared/domain/due-delay'
 import { reminderIcon } from '@/shared/domain/reminders'
-import { formatDayMonthOrYear } from '@/shared/utils/format'
+import { formatDayMonthOrYear, formatLongDate } from '@/shared/utils/format'
 
 type Translate = (key: string, named?: Record<string, unknown>, plural?: number) => string
 
@@ -10,7 +10,8 @@ export type CarnetVaccinationBadgeStatus = 'overdue' | 'today' | 'up-to-date' | 
 
 export type CarnetVaccinationRow = {
   icon: string
-  badge: { status: CarnetVaccinationBadgeStatus; label: string }
+  /** `null` pour un animal qu'on ne suit plus : plus aucun rappel. */
+  badge: { status: CarnetVaccinationBadgeStatus; label: string } | null
   detail: string
 }
 
@@ -19,15 +20,28 @@ export function carnetVaccinationRow(
   t: Translate,
   vaccination: Pick<Vaccination, 'lastInjectionDate' | 'dueDate'>,
   today: string,
+  options: { followed?: boolean } = {},
 ): CarnetVaccinationRow {
-  return { icon: reminderIcon('vaccination', null), ...statusOf(t, vaccination, today) }
+  return { icon: reminderIcon('vaccination', null), ...statusOf(t, vaccination, today, options) }
 }
 
 function statusOf(
   t: Translate,
   { lastInjectionDate, dueDate }: Pick<Vaccination, 'lastInjectionDate' | 'dueDate'>,
   today: string,
+  { followed = true }: { followed?: boolean },
 ): Omit<CarnetVaccinationRow, 'icon'> {
+  if (!followed) {
+    return {
+      badge: null,
+      detail:
+        lastInjectionDate === null
+          ? t('vaccinations.section.detail.firstVaccine')
+          : t('vaccinations.section.detail.lastInjection', {
+              date: formatLongDate(lastInjectionDate),
+            }),
+    }
+  }
   const status = vaccinationStatus(dueDate, today)
   if (dueDate === null || status === 'none') {
     return {

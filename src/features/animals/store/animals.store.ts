@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
-import type { Animal, AnimalCreationInput, AnimalInput } from '../schema/animal.schema'
+import type { Animal, AnimalCreationInput, AnimalInput, Departure } from '../schema/animal.schema'
 import {
   animalCreationService,
   type AnimalCreationService,
@@ -194,6 +194,11 @@ export const useAnimalsStore = defineStore('animals', () => {
 
     async undoFollow(undo: FollowUndo): Promise<void> {
       await write(() => followProvider().undoFollow(undo))
+    },
+
+    /** AN-10 : motif et date du départ d'un animal qu'on ne suit plus. */
+    async saveDeparture(id: string, details: Omit<Departure, 'unfollowedOn'>): Promise<void> {
+      await write((repository) => repository.setDepartureDetails(id, details))
     },
 
     select(id: string | null): void {

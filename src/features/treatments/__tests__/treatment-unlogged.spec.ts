@@ -53,6 +53,12 @@ describe('unloggedBanner (TR-15)', () => {
     expect(banner(PANACUR)?.dues).toHaveLength(25)
   })
 
+  it('TR-37 : aucun bandeau pour un animal qu’on ne suit plus', () => {
+    const schedule = treatmentScheduleOf(PANACUR, TODAY)
+
+    expect(unloggedBanner(t, PANACUR, schedule, TODAY, { followed: false })).toBeNull()
+  })
+
   it('cite les jours quand il y en a trois au plus', () => {
     const history = treatment([HEBDO], [dose('2026-09-01', '2026-09-08')])
 
@@ -198,6 +204,10 @@ describe('pastDosesPrompt — l’encart du formulaire de création (TR-3)', () 
   )
   const prompt = (dues: ReturnType<typeof draft>[], severalTimes = false) =>
     plain(pastDosesPrompt(t, dues, TODAY, severalTimes))
+
+  it('TR-37 : aucun encart pour un animal qu’on ne suit plus', () => {
+    expect(pastDosesPrompt(t, SEPTEMBRE, TODAY, false, { followed: false })).toBeNull()
+  })
 
   it('annonce les échéances passées et pose la question', () => {
     expect(prompt(SEPTEMBRE)).toMatchObject({

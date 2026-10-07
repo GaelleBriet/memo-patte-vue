@@ -63,14 +63,14 @@ function toAnimal(row: AnimalRow): Animal {
     updatedAt: row.updated_at,
     deletedAt: row.deleted_at,
     unfollowedOn: row.unfollowed_on,
+    departureReason: row.departure_reason as Animal['departureReason'],
+    departureDate: row.departure_date,
   }
 }
 
 function toAnimalRecord(row: AnimalRow): AnimalRecord {
   return {
     ...toAnimal(row),
-    departureReason: row.departure_reason as AnimalRecord['departureReason'],
-    departureDate: row.departure_date,
     createdByDevice: row.created_by_device,
     updatedByDevice: row.updated_by_device,
   }
@@ -133,6 +133,8 @@ export function createAnimalsRepository(
         updatedAt: now,
         deletedAt: null,
         unfollowedOn: null,
+        departureReason: null,
+        departureDate: null,
       }
 
       await db.runMany([
@@ -264,6 +266,20 @@ export function createAnimalsRepository(
         },
         ...related,
       ])
+    },
+
+    /** Lève pour un animal suivi ou supprimé : rien n'est écrit. */
+    async setDepartureDetails(
+      id: string,
+      { departureReason, departureDate }: Omit<Departure, 'unfollowedOn'>,
+    ): Promise<void> {
+      const changed = await db.run(
+        `UPDATE animal
+         SET departure_reason = ?, departure_date = ?, updated_at = ?, updated_by_device = ?
+         WHERE id = ? AND unfollowed_on IS NOT NULL AND ${NOT_DELETED}`,
+        [departureReason, departureDate, new Date().toISOString(), deviceId(), id],
+      )
+      if (changed === 0) throw new Error(`Animal suivi ou introuvable : ${id}`)
     },
 
     /** Lignes supprimées comprises : l'import compare les versions avant d'écrire. */

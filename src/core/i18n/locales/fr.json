@@ -88,6 +88,7 @@
         "close": "Fermer"
       },
       "subtitleSeparator": " · ",
+      "until": "jusqu’au {date}",
       "stats": {
         "weight": "Poids",
         "reminders": "Rappels",
@@ -107,7 +108,8 @@
       },
       "welcome": {
         "title": "Bienvenue sur MémoPatte",
-        "create": "Créer mon premier animal"
+        "create": "Créer mon premier animal",
+        "unfollowed": "Tu ne suis plus aucun animal. Son carnet reste consultable. | Tu ne suis plus aucun animal. Leurs carnets restent consultables."
       },
       "options": {
         "open": "Options de {name}",
@@ -124,6 +126,14 @@
         "cancel": "Annuler",
         "confirm": "Supprimer"
       },
+      "unfollowed": {
+        "link": "Animaux que tu ne suis plus ({n})",
+        "banner": "Tu ne suis plus {name} : aucun rappel n’est envoyé. Son carnet reste tel quel.",
+        "addDate": "Ajouter une date",
+        "editDate": "Modifier la date",
+        "follow": "Suivre de nouveau",
+        "followLabel": "Suivre {name} de nouveau : ses rappels reprennent"
+      },
       "toast": {
         "unfollowed": "Tu ne suis plus {name}",
         "unfollowedAnnouncement": "Tu ne suis plus {name}. Ses rappels sont coupés.",
@@ -135,6 +145,32 @@
         "failed": "Le changement n’a pas pu être enregistré. Réessaie.",
         "deleteFailed": "Le carnet de {name} n’a pas pu être supprimé. Réessaie."
       }
+    },
+    "departure": {
+      "lead": "Tout est facultatif et reste dans le carnet de {name}.",
+      "reason": "Motif",
+      "reasons": {
+        "death": "Décès",
+        "rehomed": "Chez quelqu’un d’autre",
+        "other": "Autre"
+      },
+      "date": {
+        "label": "Date du départ",
+        "help": "Au plus tard aujourd’hui.",
+        "clear": "Effacer la date"
+      },
+      "save": "Enregistrer",
+      "errors": {
+        "future": "La date du départ ne peut pas être dans le futur.",
+        "invalid": "La date du départ est invalide.",
+        "save": "La date n’a pas pu être enregistrée. Réessaie.",
+        "notFound": "Le carnet de cet animal a été supprimé."
+      }
+    },
+    "unfollowedList": {
+      "title": "Animaux que tu ne suis plus",
+      "back": "Retour",
+      "open": "Ouvrir le carnet de {name}"
     }
   },
   "vaccinations": {
@@ -203,6 +239,7 @@
       "detail": {
         "overdue": "Échéance passée",
         "nextOn": "Prochain rappel le {date}",
+        "lastInjection": "Dernière injection le {date}",
         "firstVaccine": "Premier vaccin · aucune injection notée",
         "none": "Pas de rappel programmé"
       },

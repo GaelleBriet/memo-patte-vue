@@ -94,6 +94,8 @@ const MILO: Animal = {
   updatedAt: AT,
   deletedAt: null,
   unfollowedOn: null,
+  departureReason: null,
+  departureDate: null,
 }
 
 const ID = '22222222-2222-4222-8222-222222222222'
@@ -1109,6 +1111,20 @@ describe('TreatmentFormView — encart des doses passées (TR-3, planches A · V
     expect(encart(wrapper).exists()).toBe(false)
 
     await remplirMinimum(wrapper)
+
+    expect(encart(wrapper).exists()).toBe(false)
+  })
+
+  it('TR-37 : n’apparaît pas pour un animal qu’on ne suit plus', async () => {
+    loadAnimals.mockImplementation(async () => {
+      const animals = useAnimalsStore()
+      animals.animals = [{ ...MILO, unfollowedOn: '2026-09-01' }]
+      animals.hasLoaded = true
+      return true
+    })
+    const wrapper = await monterCreation()
+
+    await saisirPanacur(wrapper)
 
     expect(encart(wrapper).exists()).toBe(false)
   })

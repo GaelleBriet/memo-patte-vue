@@ -75,8 +75,10 @@ const named = computed(() => ({
 }))
 const icon = computed(() => (history.value ? reminderIcon('treatment', history.value.type) : ''))
 const unlogged = computed(() =>
-  history.value && schedule.value
-    ? unloggedBanner(t, history.value, schedule.value, today.value)
+  animals.hasLoaded && history.value && schedule.value
+    ? unloggedBanner(t, history.value, schedule.value, today.value, {
+        followed: (animal.value?.unfollowedOn ?? null) === null,
+      })
     : null,
 )
 const isUnloggedSheet = computed(() => props.due === 'unlogged' && unlogged.value !== null)

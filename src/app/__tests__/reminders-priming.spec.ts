@@ -37,6 +37,8 @@ function animal(
     updatedAt: STAMP,
     deletedAt,
     unfollowedOn,
+    departureReason: null,
+    departureDate: null,
   }
 }
 

@@ -56,6 +56,8 @@ const BOREE: Animal = {
   updatedAt: '2026-09-01T09:00:00.000Z',
   deletedAt: null,
   unfollowedOn: null,
+  departureReason: null,
+  departureDate: null,
 }
 
 const BRAVECTO: Treatment = {
@@ -665,6 +667,27 @@ describe('TreatmentReminderSheet — doses non renseignées (AC-9, TR-15)', () =
     ],
     doses: [],
   }
+
+  it('TR-37 : rien à renseigner pour un animal qu’on ne suit plus', async () => {
+    useAnimalsStore().animals = [{ ...BOREE, unfollowedOn: '2026-09-21' }]
+    vi.spyOn(useTreatmentsStore(), 'getWithHistory').mockResolvedValue(QUOTIDIEN)
+
+    await monter('unlogged')
+
+    expect(document.body.querySelector('.treatment-unlogged')).toBeNull()
+  })
+
+  it('TR-37 : rien à renseigner tant que les animaux ne sont pas chargés', async () => {
+    const animals = useAnimalsStore()
+    animals.animals = []
+    animals.hasLoaded = false
+    vi.spyOn(animals, 'load').mockReturnValue(new Promise(() => {}))
+    vi.spyOn(useTreatmentsStore(), 'getWithHistory').mockResolvedValue(QUOTIDIEN)
+
+    await monter('unlogged')
+
+    expect(document.body.querySelector('.treatment-unlogged')).toBeNull()
+  })
 
   it('la ligne « À renseigner » propose directement « Toutes données » et « Choisir les jours »', async () => {
     vi.spyOn(useTreatmentsStore(), 'getWithHistory').mockResolvedValue(QUOTIDIEN)

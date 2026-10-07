@@ -45,6 +45,8 @@ const DYNAMIC_I18N_KEYS = [
   '/^nav\\.(home|animals)$/',
   '/^animals\\.form\\.species\\.(dog|cat)$/',
   '/^animals\\.age\\.(year|month|week)$/',
+  '/^animals\\.departure\\.reasons\\.(death|rehomed|other)$/',
+  '/^animals\\.departure\\.errors\\.(future|invalid)$/',
   '/^animals\\.form\\.errors\\.(name|nameMax|species|breedMax|birthDate|initialWeightKg|initialWeightKgMax)$/',
   '/^vaccinations\\.diseases\\.[a-zA-Z]+$/',
   '/^vaccinations\\.form\\.name\\.suggestions\\.combinations\\.(dog|cat)$/',
