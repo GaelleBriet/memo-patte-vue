@@ -608,6 +608,123 @@ describe('upgradeExport', () => {
     })
   })
 
+  describe('fichier hostile', () => {
+    function longV3(periods: { first: string; frequency: Row; doses: Row[] }[]): Document {
+      const document = v3With([])
+      const milo = rowsOf(document, 'treatments')[0]!.animalId
+      const [template] = rowsOf(document, 'treatmentPeriods')
+      const id = (prefix: string, index: number) =>
+        `${prefix}-0000-4000-8000-${String(index).padStart(12, '0')}`
+      document.treatments = periods.map((_, index) => ({
+        ...rowsOf(document, 'treatments')[0],
+        id: id('22222222', index),
+      }))
+      document.treatmentPeriods = periods.map(({ first, frequency }, index) => ({
+        ...template,
+        id: id('33333333', index),
+        treatmentId: id('22222222', index),
+        startsOn: first,
+        firstDueOn: first,
+        frequency,
+      }))
+      document.treatmentDoses = periods.flatMap(({ doses }, index) =>
+        doses.map((dose, line) => ({
+          id: `44444444-${String(index).padStart(4, '0')}-4000-8000-${String(line).padStart(12, '0')}`,
+          periodId: id('33333333', index),
+          treatmentId: id('22222222', index),
+          animalId: milo,
+          dueTime: null,
+          givenOn: null,
+          createdAt: '2026-01-01T00:00:00.000Z',
+          updatedAt: '2026-01-01T00:00:00.000Z',
+          ...dose,
+        })),
+      )
+      return document
+    }
+
+    function timed<T>(run: () => T): { result: T; seconds: number } {
+      const start = performance.now()
+      const result = run()
+      return { result, seconds: (performance.now() - start) / 1000 }
+    }
+
+    const DAILY = { value: 1, unit: 'day' }
+
+    it('refuse vite une période quotidienne de 1900 dont une ligne tombe en 2199', () => {
+      const document = longV3([
+        {
+          first: '1900-01-01',
+          frequency: DAILY,
+          doses: [{ dueOn: '2199-12-30', status: 'missed', nextDueDate: '2199-12-31' }],
+        },
+      ])
+
+      const { result, seconds } = timed(() => upgradeExport(document, DEVICE))
+
+      expect(result).toBeNull()
+      expect(seconds).toBeLessThan(1)
+    })
+
+    it('convertit vite deux cents périodes, et une période aux ancres extrêmes', () => {
+      const many = longV3(
+        Array.from({ length: 200 }, () => ({
+          first: '2100-01-01',
+          frequency: DAILY,
+          doses: [
+            {
+              dueOn: '2100-12-30',
+              givenOn: '2100-12-30',
+              status: 'given',
+              nextDueDate: '1900-01-01',
+            },
+          ],
+        })),
+      )
+      const extreme = longV3([
+        {
+          first: '1900-01-31',
+          frequency: { value: 365, unit: 'month' },
+          doses: [
+            {
+              dueOn: '2199-12-31',
+              givenOn: '1900-02-28',
+              status: 'given',
+              nextDueDate: '1900-01-01',
+            },
+            { dueOn: '1900-03-31', status: 'postponed', nextDueDate: '2199-12-29' },
+          ],
+        },
+      ])
+
+      const { result, seconds } = timed(() => [
+        upgradeExport(many, DEVICE),
+        upgradeExport(extreme, DEVICE),
+      ])
+
+      expect(result.every((converted) => converted !== null)).toBe(true)
+      expect(seconds).toBeLessThan(1)
+    })
+
+    it.each([
+      ['jusqu’à', '2162-11-21', false],
+      ['au-delà de', '2162-11-22', true],
+    ])(
+      '%s 50 000 échéances estimées par période (dernière ligne le %s), refusé : %s',
+      (_, dueOn, refused) => {
+        const document = longV3([
+          {
+            first: '2026-01-01',
+            frequency: DAILY,
+            doses: [{ dueOn, status: 'missed', nextDueDate: dueOn }],
+          },
+        ])
+
+        expect(upgradeExport(document, DEVICE) === null).toBe(refused)
+      },
+    )
+  })
+
   describe('fichier illisible', () => {
     it.each([
       ['v1 sans animaux', 1, (document: Document) => delete document.animals],

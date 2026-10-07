@@ -1,4 +1,13 @@
-import { compareText, keyOf, shiftDate } from '@/shared/domain/treatment-schedule-dues'
+import { differenceInCalendarDays } from 'date-fns'
+
+import { MAX_DUES } from '@/shared/domain/treatment-schedule-checks'
+import {
+  compareText,
+  DAYS_PER_STEP,
+  keyOf,
+  shiftDate,
+  toDate,
+} from '@/shared/domain/treatment-schedule-dues'
 import {
   firstDueOf,
   initialSequence,
@@ -19,7 +28,6 @@ import { anchorBefore, shiftLine, type DoseLine } from './export-upgrade-doses'
  * converties, une ligne de décalage ancre la suite v4 au même endroit.
  */
 type Step = { kind: 'note' | 'move'; dose: DoseLine; position: string }
-type Cursor = { dues: Generator<Due, never>; ahead: Due[] }
 
 const COMPARED_DUES = 4
 
@@ -73,20 +81,25 @@ function sequenceAfter(
   return restarts ? restarted : { origin: dose.nextDueDate, firstStep: 0, floor }
 }
 
-function duesLeftBefore({ dose }: Step, cursor: Cursor): Due[] {
+/** La dernière échéance de la suite avant la ligne, cherchée près d'elle : la suite peut partir de 1900. */
+function lastDueBefore(
+  { dose }: Step,
+  sequence: Sequence,
+  period: TreatmentPeriodInput,
+): Due | undefined {
   const key = keyOf(dose)
-  let after = cursor.ahead.at(-1)
-  while (after === undefined || keyOf(after) <= key) {
-    after = cursor.dues.next().value
-    cursor.ahead.push(after)
+  let last: Due | undefined
+  for (const due of sequenceDues(sequence, period, shiftDate(dose.dueOn, period.frequency, -2))) {
+    if (keyOf(due) >= key) return last
+    last = due
   }
-  return cursor.ahead.filter((due) => keyOf(due) < key)
+  return last
 }
 
-function hasNoEffect(step: Step, previous: Step | undefined, left: Due[]): boolean {
+function hasNoEffect(step: Step, previous: Step | undefined, left: Due | undefined): boolean {
   if (step.kind === 'note') return false
   const { dueOn, nextDueDate } = step.dose
-  const before = [left.at(-1)?.dueOn, previous?.dose.dueOn]
+  const before = [left?.dueOn, previous?.dose.dueOn]
     .filter((day) => day !== undefined)
     .sort(compareText)
     .at(-1)
@@ -157,6 +170,18 @@ function sameDues(a: string[], b: string[]): boolean {
   return a.length === b.length && a.every((key, index) => key === b[index])
 }
 
+/** Même borne que le moteur d'échéances : au-delà, la période ne se relirait pas. */
+export function isTooLongForV3(period: TreatmentPeriodInput, lines: DoseLine[]): boolean {
+  const arrivals = lines.filter(({ status }) => status === 'postponed').map((d) => d.nextDueDate)
+  const days = [period.firstDueOn, ...lines.map(({ dueOn }) => dueOn), ...arrivals].sort(
+    compareText,
+  )
+  const span = differenceInCalendarDays(toDate(days.at(-1)!), toDate(days[0]!))
+  const stepDays = DAYS_PER_STEP[period.frequency.unit] * period.frequency.value
+  const dues = (Math.floor(span / stepDays) + 2) * Math.max(1, period.times.length) + lines.length
+  return dues > MAX_DUES
+}
+
 export function shiftsOfV3Period(period: TreatmentPeriodInput, lines: DoseLine[]): DoseLine[] {
   const { frequency } = period
   const doses = readByV3(lines)
@@ -172,14 +197,12 @@ export function shiftsOfV3Period(period: TreatmentPeriodInput, lines: DoseLine[]
   const shifts = new Map<string, DoseLine>()
   let previous: Step | undefined
   let old = initialSequence(period)
-  let cursor: Cursor = { dues: sequenceDues(old, period), ahead: [] }
   let current = old
   for (const step of steps) {
-    const left = duesLeftBefore(step, cursor)
+    const left = step.kind === 'move' ? lastDueBefore(step, old, period) : undefined
     const isStale = hasNoEffect(step, previous, left) || isOvertaken(step, previous, frequency)
     if (isStale && !isLoggedMove(step.dose)) continue
     old = sequenceAfter(step, period, old)
-    cursor = { dues: sequenceDues(old, period), ahead: [] }
     previous = step
     const { dueOn } = step.dose
     const target =

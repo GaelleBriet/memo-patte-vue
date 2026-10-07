@@ -475,6 +475,12 @@ fichier en entier au moindre défaut, avec les mêmes messages.
   - v1 et v2 : deux prises plus rapprochées que la fréquence dont les prochaines échéances annoncées
     tombent sur le même jour ne peuvent pas viser deux échéances distinctes ; la suite part alors un
     pas plus tard.
+  - v3 : deux lignes de familles différentes sur la même échéance (une prise et un report, par
+    exemple) ; la 0.1.56 ne lisait que la plus récente, la v4 lit les deux. Les deux sont gardées
+    telles quelles ; l'app n'en écrivait pas.
+- **Borne** : une période v3 dont l'étendue dépasserait 50 000 échéances (`MAX_DUES` du moteur
+  d'échéances, même estimation) fait refuser le fichier comme illisible : le moteur ne la relirait
+  pas.
 - Réimporter le même ancien fichier ne duplique rien : les identifiants créés par la conversion sont
   ceux des lignes d'origine, ou en sont tirés.
 

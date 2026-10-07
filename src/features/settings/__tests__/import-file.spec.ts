@@ -637,6 +637,19 @@ describe('parseExportFile', () => {
       expect(result).toMatchObject({ ok: true, file: { schemaVersion: 4 }, lost })
     })
 
+    it('refuse comme illisible un export v3 dont une période dépasse 50 000 échéances', () => {
+      const document = JSON.parse(exportV3) as Document
+      const period = premier(document, 'treatmentPeriods')
+      Object.assign(period, {
+        startsOn: '1900-01-01',
+        firstDueOn: '1900-01-01',
+        frequency: { value: 1, unit: 'day' },
+        times: ['08:00', '20:00'],
+      })
+
+      expect(parseExportFile(JSON.stringify(document), device)).toEqual(INVALID)
+    })
+
     it('ne compte aucune perte pour un export au format courant', () => {
       const result = parseExportFile(importFixtureJson(), device)
 

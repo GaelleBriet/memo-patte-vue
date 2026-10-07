@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 import { chainedDoses, frequencyOf, type DoseLine, type PastDose } from './export-upgrade-doses'
-import { shiftsOfV3Period } from './export-upgrade-v3'
+import { isTooLongForV3, shiftsOfV3Period } from './export-upgrade-v3'
 import { EXPORT_SCHEMA_VERSION } from './export-format'
 import { isCalendarDay } from '@/shared/domain/calendar-day'
 import { CLOCK_TIME_PATTERN } from '@/shared/domain/clock-time'
@@ -307,13 +307,15 @@ function readablePeriod(period: Row): TreatmentPeriodInput | null {
   }
 }
 
-function fromV3(file: z.output<typeof exportV3>): UpgradedExport {
+function fromV3(file: z.output<typeof exportV3>): UpgradedExport | null {
   const doses = file.treatmentDoses as DoseLine[]
   const dosesByPeriod = groupBy(doses, ({ periodId }) => periodId)
-  const shifts = file.treatmentPeriods.flatMap((period) => {
-    const readable = readablePeriod(period)
-    return readable === null ? [] : shiftsOfV3Period(readable, dosesByPeriod.get(period.id) ?? [])
+  const readable = file.treatmentPeriods.flatMap((period) => {
+    const input = readablePeriod(period)
+    return input === null ? [] : [{ input, lines: dosesByPeriod.get(period.id) ?? [] }]
   })
+  if (readable.some(({ input, lines }) => isTooLongForV3(input, lines))) return null
+  const shifts = readable.flatMap(({ input, lines }) => shiftsOfV3Period(input, lines))
   return {
     document: {
       carnetSettings: file.carnetSettings,
