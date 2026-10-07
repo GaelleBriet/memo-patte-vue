@@ -3,6 +3,7 @@ import type { IconAliases } from 'vuetify'
 // Icônes des écrans (maquettes v2)
 import accountCircle from '@material-symbols/svg-400/outlined/account_circle.svg?raw'
 import add from '@material-symbols/svg-400/outlined/add.svg?raw'
+import addAPhoto from '@material-symbols/svg-400/outlined/add_a_photo.svg?raw'
 import alarm from '@material-symbols/svg-400/outlined/alarm.svg?raw'
 import alarmOff from '@material-symbols/svg-400/outlined/alarm_off.svg?raw'
 import arrowBack from '@material-symbols/svg-400/outlined/arrow_back.svg?raw'
@@ -33,8 +34,10 @@ import eventUpcoming from '@material-symbols/svg-400/outlined/event_upcoming.svg
 import folderOff from '@material-symbols/svg-400/outlined/folder_off.svg?raw'
 import gavel from '@material-symbols/svg-400/outlined/gavel.svg?raw'
 import help from '@material-symbols/svg-400/outlined/help.svg?raw'
+import hideImage from '@material-symbols/svg-400/outlined/hide_image.svg?raw'
 import history from '@material-symbols/svg-400/outlined/history.svg?raw'
 import home from '@material-symbols/svg-400/outlined/home.svg?raw'
+import image from '@material-symbols/svg-400/outlined/image.svg?raw'
 import iosShare from '@material-symbols/svg-400/outlined/ios_share.svg?raw'
 import language from '@material-symbols/svg-400/outlined/language.svg?raw'
 import lock from '@material-symbols/svg-400/outlined/lock.svg?raw'
@@ -142,6 +145,7 @@ import warning from '@material-symbols/svg-400/outlined/warning.svg?raw'
 export const msIcons = {
   account_circle: accountCircle,
   add,
+  add_a_photo: addAPhoto,
   alarm,
   alarm_off: alarmOff,
   arrow_back: arrowBack,
@@ -193,8 +197,10 @@ export const msIcons = {
   fullscreen,
   fullscreen_exit: fullscreenExit,
   help,
+  hide_image: hideImage,
   history,
   home,
+  image,
   indeterminate_check_box: indeterminateCheckBox,
   info,
   info_fill: infoFill,

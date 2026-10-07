@@ -138,3 +138,70 @@ describe('édition', () => {
     expect(storage.savePhoto).not.toHaveBeenCalled()
   })
 })
+
+describe('retrait réversible', () => {
+  it('retire la photo de l’animal sans effacer son fichier', async () => {
+    const milo = await miloAvecPhoto()
+
+    const removal = await service.detach(repository, milo.id, MILO)
+
+    expect(removal).toEqual({ animalId: milo.id, photoPath: 'photo-1.jpg' })
+    expect((await repository.getById(milo.id))?.photoPath).toBeNull()
+    expect(storage.deletePhoto).not.toHaveBeenCalled()
+  })
+
+  it('ne retire rien d’un animal sans photo', async () => {
+    const milo = await service.create(repository, MILO, { kind: 'keep' })
+
+    expect(await service.detach(repository, milo.id, MILO)).toBeNull()
+  })
+
+  it('« Annuler » rend la même photo et garde son fichier', async () => {
+    const milo = await miloAvecPhoto()
+    const removal = await service.detach(repository, milo.id, MILO)
+
+    const animal = await service.reattach(repository, { ...MILO, name: 'Milou' }, removal!)
+
+    expect(animal.photoPath).toBe('photo-1.jpg')
+    expect(animal.name).toBe('Milou')
+    expect(storage.deletePhoto).not.toHaveBeenCalled()
+  })
+
+  it('« Annuler » garde une photo choisie entre-temps et efface l’ancienne', async () => {
+    const milo = await miloAvecPhoto()
+    const removal = await service.detach(repository, milo.id, MILO)
+    await service.update(repository, milo.id, MILO, NOUVELLE)
+
+    const animal = await service.reattach(repository, MILO, removal!)
+
+    expect(animal.photoPath).toBe('photo-2.jpg')
+    expect(storage.deletePhoto).toHaveBeenCalledExactlyOnceWith('photo-1.jpg')
+  })
+
+  it('efface le fichier une fois le retrait définitif', async () => {
+    const milo = await miloAvecPhoto()
+    const removal = await service.detach(repository, milo.id, MILO)
+
+    await service.forgetRemoved(repository, removal!)
+
+    expect(storage.deletePhoto).toHaveBeenCalledExactlyOnceWith('photo-1.jpg')
+  })
+
+  it('n’efface pas un fichier que l’animal porte de nouveau', async () => {
+    const milo = await miloAvecPhoto()
+    const removal = await service.detach(repository, milo.id, MILO)
+    await service.reattach(repository, MILO, removal!)
+
+    await service.forgetRemoved(repository, removal!)
+
+    expect(storage.deletePhoto).not.toHaveBeenCalled()
+  })
+
+  it('un fichier impossible à effacer ne lève pas', async () => {
+    const milo = await miloAvecPhoto()
+    const removal = await service.detach(repository, milo.id, MILO)
+    storage.deletePhoto.mockRejectedValue(new Error('fichier absent'))
+
+    await expect(service.forgetRemoved(repository, removal!)).resolves.toBeUndefined()
+  })
+})

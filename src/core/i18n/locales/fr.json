@@ -77,8 +77,14 @@
       "edit": "Modifier la fiche",
       "exportPdf": "Exporter en PDF",
       "photo": {
-        "avatarLabel": "Gérer la photo de {name}",
+        "avatarLabel": "Photo de {name} : voir, changer ou retirer",
+        "addLabel": "Ajouter une photo de {name}",
         "sheetTitle": "Photo de {name}",
+        "heading": "Photo",
+        "view": "Voir la photo",
+        "choose": "Choisir une photo",
+        "removed": "Photo retirée",
+        "undoRemove": "Annuler le retrait de la photo de {name}",
         "close": "Fermer"
       },
       "subtitleSeparator": " · ",
