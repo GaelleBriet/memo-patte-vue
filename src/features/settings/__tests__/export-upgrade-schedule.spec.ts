@@ -67,7 +67,7 @@ function v2With(frequency: Row, doses: [string, string][]): string {
   return JSON.stringify(document)
 }
 
-function v3With(doses: Row[]): string {
+function v3With(doses: Row[], period: Row = {}): string {
   const document = JSON.parse(exportV3) as Document
   const milo = (document.animals as Row[]).find((animal) => animal.name === 'Milo')!.id
   const at = '2026-10-01T08:00:00.000Z'
@@ -98,6 +98,7 @@ function v3With(doses: Row[]): string {
       reminderTime: null,
       createdAt: at,
       updatedAt: at,
+      ...period,
     },
   ]
   document.treatmentDoses = doses.map((dose, index) => ({
@@ -201,6 +202,19 @@ describe('anciens exports relus par le moteur d’échéances', () => {
       expect(days(schedule.currentDoses)).toEqual([given.at(-1)![1]])
     })
 
+    it('une prise donnée en avance, dont la prochaine échéance précède celle attendue : la date de l’époque', () => {
+      const text = v2With({ value: 2, unit: 'day' }, [
+        ['2025-02-24', '2025-02-26'],
+        ['2025-02-26', '2025-03-02'],
+        ['2025-02-27', '2025-03-01'],
+      ])
+
+      const schedule = scheduleOf(converted(text), TREATMENT, '2025-02-27')
+
+      expect(schedule.unloggedDoses).toEqual([])
+      expect(days(schedule.currentDoses)).toEqual(['2025-03-01'])
+    })
+
     it('un mensuel du 31 donné le dernier jour des mois courts : la prochaine dose de l’époque', () => {
       const schedule = scheduleOf(
         converted(
@@ -261,6 +275,90 @@ describe('anciens exports relus par le moteur d’échéances', () => {
       expect(schedule.unloggedDoses).toEqual([])
       expect(days(schedule.upcoming(3))).toEqual(upcoming)
       expect(upcoming.slice(0, 2)).toEqual(['2026-10-18', '2026-10-25'])
+    })
+
+    function lines(
+      rows: [string, string | null, string | null, string, string, number, number][],
+    ): Row[] {
+      const at = (second: number) =>
+        `2026-03-01T00:${String(Math.floor(second / 60)).padStart(2, '0')}:${String(second % 60).padStart(2, '0')}.000Z`
+      return rows.map(([dueOn, dueTime, givenOn, status, nextDueDate, created, updated]) => ({
+        dueOn,
+        dueTime,
+        givenOn,
+        status,
+        nextDueDate,
+        createdAt: at(created),
+        updatedAt: at(updated),
+      }))
+    }
+
+    function keys(dues: { dueOn: string; dueTime: string | null }[]): string[] {
+      return dues.map(({ dueOn, dueTime }) => `${dueOn} ${dueTime ?? ''}`.trim())
+    }
+
+    it('une prise redatée du 9 au 10 mars alors que les 16, 23 et 30 étaient notés : rien à renseigner', () => {
+      const text = v3With(
+        lines([
+          ['2026-03-02', null, '2026-03-02', 'given', '2026-03-09', 0, 0],
+          ['2026-03-09', null, '2026-03-10', 'given', '2026-03-17', 1, 6],
+          ['2026-03-16', null, '2026-03-16', 'given', '2026-03-23', 2, 2],
+          ['2026-03-23', null, '2026-03-23', 'given', '2026-03-30', 3, 3],
+          ['2026-03-30', null, '2026-03-30', 'given', '2026-04-06', 4, 4],
+        ]),
+        { startsOn: '2026-03-02', firstDueOn: '2026-03-02' },
+      )
+
+      const schedule = scheduleOf(converted(text), TREATMENT, '2026-04-07')
+
+      expect(schedule.phase).toBe('overdue')
+      expect(keys(schedule.currentDoses)).toEqual(['2026-04-06'])
+      expect(schedule.unloggedDoses).toEqual([])
+      expect(keys(schedule.upcoming(4))).toEqual([
+        '2026-04-13',
+        '2026-04-20',
+        '2026-04-27',
+        '2026-05-04',
+      ])
+    })
+
+    it('un quotidien à 8 h et 20 h, des prises redatées à la veille et des reports : les doses à renseigner de l’époque', () => {
+      const text = v3With(
+        lines([
+          ['2026-03-02', '08:00', null, 'postponed', '2026-03-04', 0, 0],
+          ['2026-03-04', '08:00', null, 'missed', '2026-03-04', 1, 1],
+          ['2026-03-04', '20:00', '2026-03-05', 'given', '2026-03-05', 2, 126],
+          ['2026-03-05', '08:00', '2026-03-04', 'given', '2026-03-05', 3, 124],
+          ['2026-03-05', '20:00', null, 'postponed', '2026-03-16', 5, 5],
+          ['2026-03-16', '08:00', '2026-03-16', 'given', '2026-03-16', 7, 7],
+          ['2026-03-16', '20:00', '2026-03-16', 'given', '2026-03-17', 8, 8],
+          ['2026-03-17', '08:00', null, 'missed', '2026-03-17', 9, 9],
+          ['2026-03-17', '20:00', null, 'postponed', '2026-03-22', 10, 10],
+        ]),
+        {
+          startsOn: '2026-03-02',
+          firstDueOn: '2026-03-02',
+          frequency: { value: 1, unit: 'day' },
+          times: ['08:00', '20:00'],
+        },
+      )
+
+      const schedule = scheduleOf(converted(text), TREATMENT, '2026-03-24')
+
+      expect(schedule.phase).toBe('today')
+      expect(keys(schedule.currentDoses)).toEqual(['2026-03-24 08:00', '2026-03-24 20:00'])
+      expect(keys(schedule.unloggedDoses)).toEqual([
+        '2026-03-22 08:00',
+        '2026-03-22 20:00',
+        '2026-03-23 08:00',
+        '2026-03-23 20:00',
+      ])
+      expect(keys(schedule.upcoming(4))).toEqual([
+        '2026-03-24 08:00',
+        '2026-03-24 20:00',
+        '2026-03-25 08:00',
+        '2026-03-25 20:00',
+      ])
     })
   })
 })

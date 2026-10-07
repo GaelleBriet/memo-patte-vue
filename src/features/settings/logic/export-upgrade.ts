@@ -1,14 +1,11 @@
 import { z } from 'zod'
 
-import {
-  chainedDoses,
-  frequencyOf,
-  shiftsOfV3,
-  type DoseLine,
-  type PastDose,
-} from './export-upgrade-doses'
+import { chainedDoses, frequencyOf, type DoseLine, type PastDose } from './export-upgrade-doses'
+import { shiftsOfV3Period } from './export-upgrade-v3'
 import { EXPORT_SCHEMA_VERSION } from './export-format'
 import { isCalendarDay } from '@/shared/domain/calendar-day'
+import { CLOCK_TIME_PATTERN } from '@/shared/domain/clock-time'
+import type { TreatmentPeriodInput } from '@/shared/domain/treatment-schedule-types'
 import { MAX_WEIGHT_KG } from '@/shared/domain/weight-bounds'
 
 /** Lignes d'un ancien export qui n'ont pas de place dans le format courant. */
@@ -289,11 +286,34 @@ function fromV2(file: z.output<typeof exportV2>): UpgradedExport {
   }
 }
 
+function readablePeriod(period: Row): TreatmentPeriodInput | null {
+  const frequency = frequencyOf(period.frequency)
+  const { id, firstDueOn, times } = period
+  const isTimes =
+    Array.isArray(times) && times.every((time) => CLOCK_TIME_PATTERN.test(String(time)))
+  if (frequency === null || typeof id !== 'string' || !isCalendarDay(firstDueOn) || !isTimes) {
+    return null
+  }
+  return {
+    id,
+    startsOn: firstDueOn,
+    firstDueOn,
+    referenceOn: firstDueOn,
+    endsOn: null,
+    stoppedOn: null,
+    frequency,
+    times: times as string[],
+    createdAt: '',
+  }
+}
+
 function fromV3(file: z.output<typeof exportV3>): UpgradedExport {
-  const frequencies = new Map(
-    file.treatmentPeriods.map(({ id, frequency }) => [id, frequencyOf(frequency)]),
-  )
   const doses = file.treatmentDoses as DoseLine[]
+  const dosesByPeriod = groupBy(doses, ({ periodId }) => periodId)
+  const shifts = file.treatmentPeriods.flatMap((period) => {
+    const readable = readablePeriod(period)
+    return readable === null ? [] : shiftsOfV3Period(readable, dosesByPeriod.get(period.id) ?? [])
+  })
   return {
     document: {
       carnetSettings: file.carnetSettings,
@@ -305,7 +325,7 @@ function fromV3(file: z.output<typeof exportV3>): UpgradedExport {
         ...period,
         referenceOn: period.firstDueOn,
       })),
-      treatmentDoses: [...doses, ...shiftsOfV3(doses, frequencies)],
+      treatmentDoses: [...doses, ...shifts],
       weightEntries: file.weightEntries,
     },
     lost: NO_LOSS,
