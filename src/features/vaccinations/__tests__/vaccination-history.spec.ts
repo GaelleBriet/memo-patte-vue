@@ -6,7 +6,13 @@ import {
   injectionDatesOn,
   injectionGestureTexts,
   injectionRows,
+  keptPlannedDueDate,
   needsNewReminder,
+  pastInjectionDue,
+  pastInjectionNeedsReminder,
+  pastInjectionError,
+  pastInjectionTexts,
+  pastInjectionToast,
   vaccinationDeleteTexts,
   vaccinationDetailTexts,
 } from '../logic/vaccination-history'
@@ -39,6 +45,11 @@ afterEach(() => {
 })
 
 describe('chosenReminder', () => {
+  it('reconnaît un rappel à un mois pile (VA-13)', () => {
+    expect(chosenReminder(injection('i', '2026-08-26', '2026-09-26'))).toEqual({ kind: 'oneMonth' })
+    expect(chosenReminder(injection('i', '2026-01-31', '2026-02-28'))).toEqual({ kind: 'oneMonth' })
+  })
+
   it('reconnaît un rappel à un an ou à trois ans pile', () => {
     expect(chosenReminder(injection('i', '2026-08-26', '2027-08-26'))).toEqual({ kind: 'oneYear' })
     expect(chosenReminder(injection('i', '2026-08-26', '2029-08-26'))).toEqual({
@@ -77,6 +88,13 @@ describe('injectionDatesOn', () => {
     })
   })
 
+  it('déplace un rappel à un mois avec l’injection (VA-13)', () => {
+    expect(injectionDatesOn(injection('i', '2026-08-26', '2026-09-26'), '2026-08-20')).toEqual({
+      injectedOn: '2026-08-20',
+      nextDueDate: '2026-09-20',
+    })
+  })
+
   it('garde une autre date telle quelle, et l’absence de rappel', () => {
     expect(injectionDatesOn(injection('i', '2026-07-27', '2026-08-26'), '2026-07-25')).toEqual({
       injectedOn: '2026-07-25',
@@ -98,6 +116,10 @@ describe('needsNewReminder', () => {
     expect(needsNewReminder(autreDate, '2026-08-25')).toBe(false)
   })
 
+  it('ne redemande rien pour un rappel à un mois, même déplacé au-delà de son ancienne date', () => {
+    expect(needsNewReminder(injection('i', '2026-07-27', '2026-08-27'), '2026-09-01')).toBe(false)
+  })
+
   it('ne redemande rien pour un rappel à un ou trois ans, ni sans rappel', () => {
     expect(needsNewReminder(injection('i', '2026-07-27', '2027-07-27'), '2026-09-01')).toBe(false)
     expect(needsNewReminder(injection('i', '2026-07-27', '2029-07-27'), '2026-09-01')).toBe(false)
@@ -106,44 +128,63 @@ describe('needsNewReminder', () => {
 })
 
 describe('injectionRows', () => {
-  it('décrit chaque injection par sa date et le rappel choisi ce jour-là (F7)', () => {
+  it('décrit chaque injection par sa date et le rappel prévu ce jour-là, la dernière en tête (VA-9, V12)', () => {
     const rows = injectionRows(t, [
-      injection('a', '2026-08-26', '2027-08-26'),
-      injection('b', '2026-07-27', '2026-08-26'),
-      injection('c', '2026-06-28', '2026-07-27'),
-      injection('d', '2025-06-28', null),
-      injection('e', '2023-06-28', '2026-06-28'),
+      injection('a', '2024-06-02', '2027-06-02'),
+      injection('b', '2023-06-02', '2024-06-02'),
+      injection('c', '2022-07-05', null),
     ])
 
     expect(plain(rows)).toEqual([
       {
         id: 'a',
-        date: '26 août 2026',
-        chosen: 'Rappel choisi : dans 1 an',
-        optionsLabel: 'Options pour l’injection du 26 août 2026',
+        date: '2 juin 2024',
+        badge: 'Dernière injection',
+        regular: false,
+        detail: 'Rappel prévu le 2 juin 2027',
+        optionsLabel: 'Options pour l’injection du 2 juin 2024',
       },
       {
         id: 'b',
-        date: '27 juil. 2026',
-        chosen: 'Rappel choisi : autre date, 26 août 2026',
-        optionsLabel: 'Options pour l’injection du 27 juillet 2026',
+        date: '2 juin 2023',
+        badge: null,
+        regular: true,
+        detail: 'Rappel prévu le 2 juin 2024',
+        optionsLabel: 'Options pour l’injection du 2 juin 2023',
       },
-      expect.objectContaining({ chosen: 'Rappel choisi : autre date, 27 juil. 2026' }),
-      expect.objectContaining({ chosen: 'Rappel choisi : pas de rappel' }),
-      expect.objectContaining({ chosen: 'Rappel choisi : dans 3 ans' }),
+      expect.objectContaining({ date: '5 juil. 2022', detail: 'Sans rappel prévu' }),
     ])
+  })
+
+  it('n’emploie jamais le verbe « fixer » (VA-9)', () => {
+    const rows = injectionRows(t, [
+      injection('a', '2024-06-02', '2027-06-02'),
+      injection('b', '2023-06-02', null),
+    ])
+
+    expect(JSON.stringify(rows)).not.toMatch(/fix/i)
   })
 
   it('suit la langue courante', () => {
     applyLocale('en')
 
-    expect(plain(injectionRows(t, [injection('a', '2026-08-26', '2027-08-26')]))).toEqual([
+    expect(
+      plain(
+        injectionRows(t, [
+          injection('a', '2024-06-02', '2027-06-02'),
+          injection('b', '2022-07-05', null),
+        ]),
+      ),
+    ).toEqual([
       {
         id: 'a',
-        date: 'Aug 26, 2026',
-        chosen: 'Reminder set: in 1 year',
-        optionsLabel: 'Options for the injection on August 26, 2026',
+        date: 'Jun 2, 2024',
+        badge: 'Last injection',
+        regular: false,
+        detail: 'Reminder planned for Jun 2, 2027',
+        optionsLabel: 'Options for the injection on June 2, 2024',
       },
+      expect.objectContaining({ badge: null, detail: 'No reminder planned' }),
     ])
   })
 })
@@ -163,11 +204,11 @@ describe('vaccinationDetailTexts', () => {
       ),
     )
 
-  it('annonce le prochain rappel, son délai et le nombre d’injections (F7)', () => {
+  it('annonce la dernière injection, le prochain rappel « À jour » et le nombre d’injections (V12)', () => {
     expect(textes()).toEqual({
       subtitle: 'Vaccin · Boree',
-      top: null,
-      due: { value: '26 août 2027', delay: 'dans 11 mois', tone: null },
+      top: 'Dernière injection · 26 août 2026',
+      due: { value: '26 août 2027', delay: 'À jour', tone: null },
       note: null,
       editLabel: 'Modifier le vaccin Carré',
       otherDateLabel: 'Fait à une autre date : choisir la date de l’injection',
@@ -197,6 +238,14 @@ describe('vaccinationDetailTexts', () => {
     expect(textes({ dueDate: '2025-12-05' }).due?.value).toBe('En retard depuis le 5 déc. 2025')
   })
 
+  it('garde le délai d’un rendez-vous prévu à venir : « À jour » ne vaut qu’après une injection', () => {
+    expect(textes({ lastInjectionDate: null, dueDate: '2026-10-05' }).due).toEqual({
+      value: '5 oct. 2026',
+      delay: 'dans 12 jours',
+      tone: null,
+    })
+  })
+
   it('annonce un vaccin prévu sous le même libellé, avec « Premier vaccin » (V11 quinquies)', () => {
     const prevu = textes({ lastInjectionDate: null, dueDate: '2026-09-22' })
     expect(prevu.top).toBe('Premier vaccin · aucune injection notée')
@@ -217,6 +266,10 @@ describe('vaccinationDetailTexts', () => {
     expect(textes({ dueDate: TODAY }).due?.value).toBe('Today')
     expect(textes({ dueDate: '2026-09-05' }).due?.value).toBe('Overdue since Sep 5')
     expect(textes({ lastInjectionDate: null }).top).toBe('First vaccine · no injection logged')
+    expect(textes()).toMatchObject({
+      top: 'Last injection · Aug 26, 2026',
+      due: { value: 'Aug 26, 2027', delay: 'Up to date', tone: null },
+    })
     expect(textes({ lastInjectionDate: null, dueDate: TODAY })).toMatchObject({
       top: 'First vaccine',
       note: 'No injection logged',
@@ -253,24 +306,35 @@ describe('injectionGestureTexts', () => {
 })
 
 describe('vaccinationDeleteTexts', () => {
-  it('confirme la suppression du vaccin, avec ses injections et ses rappels', () => {
-    expect(vaccinationDeleteTexts(t, 'Carré', { onlyInjection: false })).toEqual({
-      title: 'Supprimer Carré\u00a0?',
-      text: 'Ses injections et ses rappels seront supprimés du carnet. Cette action est définitive.',
+  it('confirme la suppression du vaccin sans la dire définitive : « Annuler » la défait (VA-15)', () => {
+    expect(vaccinationDeleteTexts(t, 'Rage', { onlyInjection: false })).toEqual({
+      title: 'Supprimer Rage\u00a0?',
+      text: 'Ses injections et ses rappels seront supprimés du carnet.',
       cancel: 'Annuler',
       confirm: 'Supprimer',
-      deleted: 'Vaccin Carré supprimé',
-      failed: 'Carré n’a pas pu être supprimé. Réessaie.',
+      deleted: 'Vaccin Rage supprimé',
+      undo: 'Annuler la suppression du vaccin Rage',
+      failed: 'Rage n’a pas pu être supprimé. Réessaie.',
     })
   })
 
-  it('dit en anglais que c’est sa seule injection, et invite à choisir le rappel', () => {
+  it('explique que la seule injection, sans rappel prévu, emporte le vaccin (VA-14)', () => {
+    expect(vaccinationDeleteTexts(t, 'Carré', { onlyInjection: true }).text).toBe(
+      'C’est sa seule injection, sans rappel prévu\u00a0: le vaccin Carré sera supprimé du carnet.',
+    )
+  })
+
+  it('parle anglais', () => {
     applyLocale('en')
 
-    expect(vaccinationDeleteTexts(t, 'Carré', { onlyInjection: true })).toMatchObject({
-      text: 'This is its only injection: the Carré vaccine will be deleted, along with its reminders. This can’t be undone.',
-      deleted: 'Carré vaccine deleted',
+    expect(vaccinationDeleteTexts(t, 'Rabies', { onlyInjection: false })).toMatchObject({
+      text: 'Its injections and reminders will be deleted from the health record.',
+      deleted: 'Rabies vaccine deleted',
+      undo: 'Undo deleting the Rabies vaccine',
     })
+    expect(vaccinationDeleteTexts(t, 'Carré', { onlyInjection: true }).text).toBe(
+      'This is its only injection, with no reminder planned: the Carré vaccine will be deleted from the health record.',
+    )
     expect(
       vaccinationDetailTexts(
         t,
@@ -279,10 +343,125 @@ describe('vaccinationDeleteTexts', () => {
       ).doneLabel,
     ).toBe('Done: log the Carré injection for Boree and choose the next reminder')
   })
+})
 
-  it('explique que supprimer la seule injection supprime le vaccin', () => {
-    expect(vaccinationDeleteTexts(t, 'Carré', { onlyInjection: true }).text).toBe(
-      'C’est sa seule injection\u00a0: le vaccin Carré sera supprimé, avec ses rappels. Cette action est définitive.',
+describe('pastInjectionDue', () => {
+  const rage = { lastInjectionDate: '2024-06-02', dueDate: '2027-06-02' }
+
+  it('ne donne aucun rappel à une injection plus ancienne que la dernière (VA-10, VA-11)', () => {
+    expect(pastInjectionDue(rage, '2022-06-20')).toBeNull()
+  })
+
+  it('recopie le prochain rappel en cours sur une injection qui devient la dernière (VA-10)', () => {
+    expect(pastInjectionDue(rage, '2024-08-01')).toBe('2027-06-02')
+    expect(
+      pastInjectionDue({ lastInjectionDate: '2024-06-02', dueDate: null }, '2024-08-01'),
+    ).toBeNull()
+  })
+
+  it('recopie le rendez-vous d’un vaccin prévu sur sa première injection (VA-10)', () => {
+    expect(pastInjectionDue({ lastInjectionDate: null, dueDate: '2026-10-05' }, '2026-09-01')).toBe(
+      '2026-10-05',
     )
+  })
+})
+
+describe('pastInjectionNeedsReminder', () => {
+  const carre = { lastInjectionDate: '2025-03-10', dueDate: '2026-03-10' }
+
+  it('demande le rappel suivant quand la nouvelle dernière injection dépasse le rappel en cours', () => {
+    expect(pastInjectionNeedsReminder(carre, '2026-05-20')).toBe(true)
+  })
+
+  it('le demande aussi pour une injection le jour même du rappel en cours : elle fait ce rappel', () => {
+    expect(pastInjectionNeedsReminder(carre, '2026-03-10')).toBe(true)
+  })
+
+  it('le demande pour la première injection d’un vaccin prévu avant elle', () => {
+    expect(
+      pastInjectionNeedsReminder({ lastInjectionDate: null, dueDate: '2026-08-01' }, '2026-09-01'),
+    ).toBe(true)
+  })
+
+  it('ne le demande pas quand le rappel en cours vient après la nouvelle injection', () => {
+    expect(pastInjectionNeedsReminder(carre, '2026-01-10')).toBe(false)
+  })
+
+  it('ne le demande pas pour une injection plus ancienne que la dernière (VA-11)', () => {
+    expect(pastInjectionNeedsReminder(carre, '2024-06-20')).toBe(false)
+  })
+
+  it('ne le demande pas pour un vaccin sans rappel', () => {
+    expect(
+      pastInjectionNeedsReminder({ lastInjectionDate: '2025-03-10', dueDate: null }, '2026-05-20'),
+    ).toBe(false)
+  })
+})
+
+describe('keptPlannedDueDate', () => {
+  it('garde le rendez-vous prévu s’il y en avait un (VA-14)', () => {
+    expect(keptPlannedDueDate('2026-10-05', injection('i', '2026-09-01', '2027-03-14'))).toBe(
+      '2026-10-05',
+    )
+  })
+
+  it('reprend sinon le rappel de l’injection supprimée (VA-14, Q5)', () => {
+    expect(keptPlannedDueDate(null, injection('i', '2026-03-14', '2027-03-14'))).toBe('2027-03-14')
+  })
+
+  it('ne garde rien sans l’un ni l’autre : c’est le vaccin qu’on supprime', () => {
+    expect(keptPlannedDueDate(null, injection('i', '2026-03-14', null))).toBeNull()
+  })
+})
+
+describe('pastInjectionTexts', () => {
+  it('nomme la feuille, et annonce l’injection ajoutée et son annulation (V12 bis)', () => {
+    expect(pastInjectionTexts(t, { name: 'Rage', animal: 'Milo' })).toEqual({
+      header: 'Rage · Milo',
+      eyebrow: 'Injection passée',
+      title: 'Ajouter une injection passée',
+      dateLabel: 'Date de l’injection',
+      submit: 'Ajouter',
+      future: 'La date de l’injection ne peut pas être dans le futur.',
+      taken: 'Une injection est déjà notée ce jour-là.',
+    })
+    expect(plain(pastInjectionToast(t, '2022-06-20', TODAY))).toEqual({
+      added: 'Injection du 20 juin 2022 ajoutée',
+      undoAdd: 'Annuler l’ajout de l’injection du 20 juin 2022',
+    })
+    expect(plain(pastInjectionToast(t, '2026-06-20', TODAY).added)).toBe(
+      'Injection du 20 juin ajoutée',
+    )
+  })
+
+  it('parle anglais', () => {
+    applyLocale('en')
+
+    expect(pastInjectionTexts(t, { name: 'Rage', animal: 'Milo' })).toMatchObject({
+      eyebrow: 'Past injection',
+      title: 'Add a past injection',
+      dateLabel: 'Injection date',
+      submit: 'Add',
+      taken: 'An injection is already logged on that day.',
+    })
+    expect(plain(pastInjectionToast(t, '2022-06-20', TODAY))).toEqual({
+      added: 'Injection of Jun 20, 2022 added',
+      undoAdd: 'Undo adding the injection of June 20, 2022',
+    })
+  })
+})
+
+describe('pastInjectionError', () => {
+  const taken = ['2024-06-02', '2023-06-02']
+
+  it('accepte toute date passée libre, même très ancienne (VA-10)', () => {
+    expect(pastInjectionError('2022-06-20', { today: TODAY, taken })).toBeNull()
+    expect(pastInjectionError('2001-01-01', { today: TODAY, taken })).toBeNull()
+    expect(pastInjectionError(TODAY, { today: TODAY, taken })).toBeNull()
+  })
+
+  it('refuse une date future, ou un jour qui a déjà son injection', () => {
+    expect(pastInjectionError('2026-09-24', { today: TODAY, taken })).toBe('future')
+    expect(pastInjectionError('2024-06-02', { today: TODAY, taken })).toBe('taken')
   })
 })

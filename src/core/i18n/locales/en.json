@@ -76,7 +76,6 @@
       "back": "Back",
       "edit": "Edit profile",
       "exportPdf": "Export to PDF",
-      "exportPdfPlus": "Export to PDF, a MémoPatte Plus feature",
       "photo": {
         "avatarLabel": "Manage {name}’s photo",
         "sheetTitle": "{name}’s photo",
@@ -258,29 +257,38 @@
       "otherDateLabel": "Done on another day: choose the injection date",
       "doneLabel": "Done: log the {name} injection for {animal} and choose the next reminder",
       "injections": "Injections",
-      "chosen": {
-        "oneYear": "Reminder set: in 1 year",
-        "threeYears": "Reminder set: in 3 years",
-        "date": "Reminder set: other date, {date}",
-        "none": "Reminder set: none"
-      },
+      "lastInjection": "Last injection",
+      "lastInjectionOn": "Last injection · {date}",
+      "plannedReminder": "Reminder planned for {date}",
+      "noPlannedReminder": "No reminder planned",
       "options": "Options for the injection on {date}",
       "remove": "Delete this injection",
       "changeDateSubtitle": "Injection on {date}",
+      "past": {
+        "open": "Add a past injection",
+        "eyebrow": "Past injection",
+        "title": "Add a past injection",
+        "submit": "Add",
+        "taken": "An injection is already logged on that day.",
+        "failed": "Couldn’t add the injection. Try again."
+      },
       "toast": {
         "removed": "Injection on {date} deleted",
         "undoRemove": "Undo deleting the injection on {date}",
         "moved": "Injection moved to {date}",
         "undoMove": "Undo the injection date change",
-        "deleted": "{name} vaccine deleted"
+        "deleted": "{name} vaccine deleted",
+        "added": "Injection of {date} added",
+        "undoAdd": "Undo adding the injection of {date}",
+        "undoDelete": "Undo deleting the {name} vaccine"
       },
       "menu": {
         "remove": "Delete this vaccine"
       },
       "deleteDialog": {
         "title": "Delete {name}?",
-        "text": "Its injections and reminders will be deleted from the health record. This can’t be undone.",
-        "onlyInjection": "This is its only injection: the {name} vaccine will be deleted, along with its reminders. This can’t be undone.",
+        "text": "Its injections and reminders will be deleted from the health record.",
+        "onlyInjection": "This is its only injection, with no reminder planned: the {name} vaccine will be deleted from the health record.",
         "cancel": "Cancel",
         "confirm": "Delete"
       },
@@ -1190,6 +1198,7 @@
     },
     "data": {
       "title": "My data",
+      "summary": "Unit, export, PDF, import",
       "weightUnit": {
         "label": "Weight unit",
         "hint": "For showing and entering weigh-ins",
@@ -1198,20 +1207,29 @@
           "lb": "Pounds, lb"
         }
       },
+      "exportSection": "Export",
       "export": "Export my data",
+      "exportHint": "JSON or CSV",
       "exportEmpty": "Nothing to export yet",
       "exportPdf": "Export to PDF",
-      "exportPdfPlus": "MémoPatte Plus feature",
+      "exportPdfHint": "All pets or just one",
+      "importSection": "Import",
       "import": "Import a MémoPatte export",
       "loadError": "The local database didn’t respond. Tap to try again."
     },
     "privacy": {
       "title": "Privacy",
-      "analytics": "Usage statistics"
+      "analytics": "Usage statistics",
+      "policy": "Privacy policy",
+      "policyHint": "On the website"
     },
     "about": {
       "title": "About",
-      "version": "Version"
+      "summary": "MémoPatte {version}",
+      "version": "Version",
+      "website": "MémoPatte website",
+      "websiteHint": "memopatte.gaelle-briet.fr",
+      "legalNotice": "Legal notice"
     },
     "export": {
       "title": "Export your data",
@@ -1467,8 +1485,9 @@
     "later": "Not now",
     "settings": {
       "discover": "Explore MémoPatte Plus",
-      "discoverHint": "Cloud backup, PDF export, multiple devices",
-      "alreadySubscribed": "I’m already subscribed",
+      "summary": "Your health record never disappears",
+      "discoverHint": "Cloud backup, multiple devices",
+      "alreadySubscribed": "I already have MémoPatte Plus",
       "alreadySubscribedHint": "Restore the health record you backed up on another device",
       "status": {
         "monthly": "Monthly Plus until {date}",

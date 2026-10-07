@@ -45,11 +45,7 @@ import WeightSection from '@/features/weight/views/WeightSection.vue'
 import { pickPhoto, type PickedPhoto } from '@/core/photos/photo-picker'
 import { forgetPhotoUrls } from '@/core/photos/use-photo-urls'
 import { memoryStorage } from '@/features/purchase/__tests__/billing-fixture'
-import { writeStoredPlusStatus } from '@/features/purchase/logic/plus-status-storage'
-import { billingService } from '@/features/purchase/service/billing.service'
-import { usePurchaseStore } from '@/features/purchase/store/purchase.store'
 import PdfExportSheet from '@/features/settings/views/PdfExportSheet.vue'
-import PlusBadge from '@/shared/components/PlusBadge.vue'
 import { toKg } from '@/shared/domain/weight-unit'
 import { applyWeightUnit } from '@/shared/domain/weight-unit-preference'
 import {
@@ -359,9 +355,8 @@ describe('CarnetView — header', () => {
     expect(push).toHaveBeenCalledWith({ name: 'animal-edit', params: { id: MILO.id } })
   })
 
-  describe('export PDF depuis l’icône du Carnet', () => {
-    it('ouvre la feuille pour le seul animal consulté, pour un compte Plus', async () => {
-      writeStoredPlusStatus({ plan: 'lifetime', expiresAt: null })
+  describe('export PDF depuis l’icône du Carnet (DO-4, gratuit)', () => {
+    it('ouvre la feuille pour le seul animal consulté, sans compte', async () => {
       const wrapper = await monter()
 
       expect(wrapper.findComponent(PdfExportSheet).exists()).toBe(false)
@@ -369,47 +364,18 @@ describe('CarnetView — header', () => {
       await wrapper.get('.carnet-header__export-pdf').trigger('click')
       await flushPromises()
 
+      expect(push).not.toHaveBeenCalledWith(expect.objectContaining({ name: 'plus' }))
       expect(wrapper.getComponent(PdfExportSheet).props('modelValue')).toBe(true)
       expect(wrapper.getComponent(PdfExportSheet).props('animals')).toEqual([
         { id: MILO.id, name: 'Milo', species: 'dog' },
       ])
     })
 
-    it('renvoie vers MémoPatte Plus sans compte, en disant qu’on vient du PDF', async () => {
-      const wrapper = await monter()
-
-      await wrapper.get('.carnet-header__export-pdf').trigger('click')
-
-      expect(push).toHaveBeenCalledWith({ name: 'plus', query: { from: 'pdf' } })
-      expect(wrapper.findComponent(PdfExportSheet).exists()).toBe(false)
-    })
-
-    it('porte la pastille Plus sans compte, et le dit au lecteur d’écran', async () => {
+    it('n’annonce aucune pastille Plus, ni à l’œil ni au lecteur d’écran', async () => {
       const wrapper = await monter()
       const icone = wrapper.get('.carnet-header__export-pdf')
 
-      expect(icone.findComponent(PlusBadge).props('on')).toBe('primary')
-      expect(icone.attributes('aria-label')).toBe('Exporter en PDF, fonction MémoPatte Plus')
-    })
-
-    it('retire la pastille dès que Plus devient actif, Carnet affiché', async () => {
-      const wrapper = await monter()
-      vi.spyOn(billingService, 'restore').mockResolvedValue({ plan: 'lifetime', expiresAt: null })
-
-      await usePurchaseStore().restore()
-      await flushPromises()
-
-      const icone = wrapper.get('.carnet-header__export-pdf')
-      expect(icone.findComponent(PlusBadge).exists()).toBe(false)
-      expect(icone.attributes('aria-label')).toBe('Exporter en PDF')
-    })
-
-    it('n’a plus de pastille pour un compte Plus', async () => {
-      writeStoredPlusStatus({ plan: 'annual', expiresAt: '2027-09-01T10:00:00Z' })
-      const wrapper = await monter()
-      const icone = wrapper.get('.carnet-header__export-pdf')
-
-      expect(icone.findComponent(PlusBadge).exists()).toBe(false)
+      expect(icone.find('.plus-badge').exists()).toBe(false)
       expect(icone.attributes('aria-label')).toBe('Exporter en PDF')
     })
   })

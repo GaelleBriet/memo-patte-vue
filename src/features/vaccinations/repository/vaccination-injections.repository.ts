@@ -105,6 +105,23 @@ export function createVaccinationInjectionsRepository(
     }
   }
 
+  async function getById(id: string): Promise<VaccinationInjection | null> {
+    const rows = await db.query<InjectionRow>(
+      `SELECT ${COLUMNS} FROM vaccination_injection WHERE id = ? AND ${NOT_DELETED}`,
+      [id],
+    )
+    const row = rows[0]
+    return row ? toInjection(row) : null
+  }
+
+  function reviveStatement(id: string, updatedAt: string): SqlStatement {
+    return {
+      sql: `UPDATE vaccination_injection SET deleted_at = NULL, updated_at = ?, updated_by_device = ?
+            WHERE id = ?`,
+      params: [updatedAt, deviceId(), id],
+    }
+  }
+
   return {
     entity: 'vaccination_injection',
 
@@ -132,40 +149,39 @@ export function createVaccinationInjectionsRepository(
       return rows.map(toRecord)
     },
 
-    async getById(id: string): Promise<VaccinationInjection | null> {
-      const rows = await db.query<InjectionRow>(
-        `SELECT ${COLUMNS} FROM vaccination_injection WHERE id = ? AND ${NOT_DELETED}`,
+    getById,
+
+    /** Faux pour une injection déjà supprimée ; `also` s'écrit dans la même transaction. */
+    async remove(
+      id: string,
+      deletedAt: string,
+      also: readonly SqlStatement[] = [],
+    ): Promise<boolean> {
+      if ((await getById(id)) === null) return false
+      await db.runMany([
+        {
+          sql: `UPDATE vaccination_injection SET deleted_at = ?, updated_at = ?, updated_by_device = ?
+                WHERE id = ? AND ${NOT_DELETED}`,
+          params: [deletedAt, deletedAt, deviceId(), id],
+        },
+        ...also,
+      ])
+      return true
+    },
+
+    /** Faux pour une injection encore visible ; `also` s'écrit dans la même transaction. */
+    async revive(
+      id: string,
+      updatedAt: string,
+      also: readonly SqlStatement[] = [],
+    ): Promise<boolean> {
+      const deleted = await db.query<{ id: string }>(
+        'SELECT id FROM vaccination_injection WHERE id = ? AND deleted_at IS NOT NULL',
         [id],
       )
-      const row = rows[0]
-      return row ? toInjection(row) : null
-    },
-
-    /**
-     * Faux pour une injection déjà supprimée ou la seule visible de son vaccin : un vaccin garde
-     * toujours au moins une injection.
-     */
-    async remove(id: string, deletedAt: string): Promise<boolean> {
-      const changes = await db.run(
-        `UPDATE vaccination_injection SET deleted_at = ?, updated_at = ?, updated_by_device = ?
-         WHERE id = ? AND ${NOT_DELETED}
-           AND EXISTS (
-             SELECT 1 FROM vaccination_injection other
-             WHERE other.vaccination_id = vaccination_injection.vaccination_id
-               AND other.id <> vaccination_injection.id AND other.deleted_at IS NULL)`,
-        [deletedAt, deletedAt, deviceId(), id],
-      )
-      return changes > 0
-    },
-
-    /** Faux pour une injection encore visible. */
-    async revive(id: string, updatedAt: string): Promise<boolean> {
-      const changes = await db.run(
-        `UPDATE vaccination_injection SET deleted_at = NULL, updated_at = ?, updated_by_device = ?
-         WHERE id = ? AND deleted_at IS NOT NULL`,
-        [updatedAt, deviceId(), id],
-      )
-      return changes > 0
+      if (deleted.length === 0) return false
+      await db.runMany([reviveStatement(id, updatedAt), ...also])
+      return true
     },
 
     /** Faux pour une injection supprimée. */
@@ -239,11 +255,18 @@ export function createVaccinationInjectionsRepository(
       }
     },
 
-    reviveStatement(id: string, updatedAt: string): SqlStatement {
+    reviveStatement,
+
+    /** Rétablit les injections supprimées avec leur vaccin, à cet instant précis. */
+    reviveByVaccinationStatement(
+      vaccinationId: string,
+      deletedAt: string,
+      updatedAt: string,
+    ): SqlStatement {
       return {
         sql: `UPDATE vaccination_injection SET deleted_at = NULL, updated_at = ?, updated_by_device = ?
-              WHERE id = ?`,
-        params: [updatedAt, deviceId(), id],
+              WHERE vaccination_id = ? AND deleted_at = ?`,
+        params: [updatedAt, deviceId(), vaccinationId, deletedAt],
       }
     },
 
