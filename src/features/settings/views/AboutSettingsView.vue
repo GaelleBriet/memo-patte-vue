@@ -14,6 +14,7 @@ const { t } = useI18n()
 const router = useRouter()
 
 const websiteUrl = computed(() => siteUrl(currentLocale()))
+const legalNoticeLink = computed(() => legalNoticeUrl(currentLocale()))
 
 function goBack(): void {
   returnTo(router, { name: 'settings' })
@@ -54,7 +55,7 @@ function goBack(): void {
         </a>
         <a
           class="settings-row settings-row--legal-notice"
-          :href="legalNoticeUrl()"
+          :href="legalNoticeLink"
           target="_blank"
           rel="noopener"
         >
