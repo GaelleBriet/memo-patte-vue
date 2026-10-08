@@ -123,13 +123,15 @@ describe('vaccinationReminders', () => {
 })
 
 describe('isInjectionNoted', () => {
-  const carre = { dueDate: '2027-03-01', replacedDues: ['2027-03-15'] }
+  const carre = {
+    lastInjectionDate: '2027-03-01',
+    dueDate: '2027-03-01',
+    replacedDues: ['2027-03-15'],
+  }
 
   it('VA-8 : l’échéance du 15 mars est notée par l’injection du 1er mars, sans fenêtre de 3 jours', () => {
     expect(isInjectionNoted(carre, '2027-03-15')).toBe(true)
-    expect(isInjectionNoted({ dueDate: null, replacedDues: ['2027-03-15'] }, '2027-03-15')).toBe(
-      true,
-    )
+    expect(isInjectionNoted({ ...carre, dueDate: null }, '2027-03-15')).toBe(true)
   })
 
   it('ne tient pas pour notée l’échéance encore attendue', () => {
@@ -138,6 +140,26 @@ describe('isInjectionNoted', () => {
   })
 
   it('ne tient pas pour notée une échéance déplacée sans injection', () => {
-    expect(isInjectionNoted({ dueDate: '2027-04-15', replacedDues: [] }, '2027-03-15')).toBe(false)
+    const reporte = { lastInjectionDate: '2026-03-15', dueDate: '2027-04-15', replacedDues: [] }
+
+    expect(isInjectionNoted(reporte, '2027-03-15')).toBe(false)
+  })
+
+  it('#657 : le rappel du 15 mars reporté au 20 est noté par l’injection du 18', () => {
+    const reporte = { lastInjectionDate: '2027-03-18', dueDate: '2028-03-18' }
+
+    expect(isInjectionNoted({ ...reporte, replacedDues: ['2027-03-20'] }, '2027-03-15')).toBe(true)
+    expect(isInjectionNoted({ ...reporte, replacedDues: ['2027-03-20'] }, '2027-03-20')).toBe(true)
+  })
+
+  it('#657 : une injection faite dès la prévenance d’un rappel reporté le note, pas avant', () => {
+    const reporte = { dueDate: '2028-03-01', replacedDues: ['2027-03-20'] }
+
+    expect(isInjectionNoted({ ...reporte, lastInjectionDate: '2027-03-01' }, '2027-03-15')).toBe(
+      true,
+    )
+    expect(isInjectionNoted({ ...reporte, lastInjectionDate: '2027-02-28' }, '2027-03-15')).toBe(
+      false,
+    )
   })
 })

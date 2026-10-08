@@ -729,6 +729,20 @@ describe('vaccinationsRepository — injections', () => {
       await expect(repository.listReplacedDues(carre.id)).resolves.toEqual([])
     })
 
+    it('#657 : après un report puis une injection, rend la date reportée, plus celle d’origine', async () => {
+      const carre = await repository.create({
+        animalId: MIETTE,
+        name: 'Carré',
+        lastInjectionDate: '2026-03-15',
+        dueDate: '2027-03-15',
+      })
+      await repository.update(carre.id, { name: 'Carré', dueDate: '2027-03-20' })
+
+      await noter(carre.id, '2027-03-18', '2028-03-18')
+
+      await expect(repository.listReplacedDues(carre.id)).resolves.toEqual(['2027-03-20'])
+    })
+
     it('ne rend rien pour un vaccin supprimé, rendez-vous prévu compris', async () => {
       const carre = await repository.create({
         animalId: MIETTE,

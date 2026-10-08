@@ -463,6 +463,17 @@ describe('« C’est fait » d’un vaccin', () => {
     })
   })
 
+  it('#657 : dit « déjà notée » sur la notification d’un rappel reporté puis fait', async () => {
+    today = '2027-03-21'
+    vaccination = { ...CARRE, lastInjectionDate: '2027-03-18', dueDate: '2028-03-18' }
+    replacedDues = ['2027-03-20']
+
+    await handler()(done(`vaccination:${CARRE.id}:2027-03-15::due`))
+
+    expect(plain(toastMessage.value)).toBe('Injection de Carré du 18 mars déjà notée pour Boree')
+    expect(currentPlace()).toEqual({ name: 'home', query: {} })
+  })
+
   it('ouvre F5 quand l’échéance de la notification est toujours celle du vaccin, malgré une injection récente', async () => {
     vaccination = { ...CARRE, lastInjectionDate: '2026-10-06', dueDate: TODAY }
 
