@@ -1,0 +1,185 @@
+// @vitest-environment node
+import { RuleTester } from 'eslint'
+import tseslint from 'typescript-eslint'
+import vueParser from 'vue-eslint-parser'
+import { describe, it } from 'vitest'
+import rule from '../../tools/eslint/vue-script-order'
+
+RuleTester.describe = describe
+RuleTester.it = it
+RuleTester.itOnly = it.only
+
+const tester = new RuleTester({
+  languageOptions: {
+    parser: vueParser,
+    parserOptions: { parser: tseslint.parser, sourceType: 'module', ecmaVersion: 'latest' },
+  },
+})
+
+const vue = (...groups: string[]) =>
+  `<script setup lang="ts">\n${groups.join('\n\n')}\n</script>\n<template><div /></template>\n`
+
+const IMPORTS = "import { computed, onMounted, ref, watch } from 'vue'"
+const TYPES = 'type Mode = "a" | "b"'
+const CONSTANT = 'const MAX = 3'
+const PROPS = 'const props = defineProps<{ id: string }>()'
+const TOOLS = 'const { t } = useI18n()'
+const STATE = 'const count = ref(0)'
+const COMPUTED = 'const double = computed(() => count.value * 2)'
+const WATCH = 'watch(count, () => reset())'
+const FUNCTION = 'function reset() {\n  count.value = 0\n}'
+const ARROW = 'const save = async () => {\n  await reset()\n}'
+const LIFECYCLE = 'onMounted(reset)'
+const EXPOSE = 'defineExpose({ reset })'
+
+const order = (current: string, previous: string) => ({
+  messageId: 'order',
+  data: { current, previous },
+})
+
+describe('app/vue-script-order', () => {
+  tester.run('app/vue-script-order', rule, {
+    valid: [
+      {
+        name: 'les neuf groupes dans l’ordre',
+        filename: 'Ordre.vue',
+        code: vue(
+          IMPORTS,
+          `${TYPES}\n${CONSTANT}`,
+          PROPS,
+          `${TOOLS}\nconst store = useAnimalsStore()`,
+          `${STATE}\nconst figure = useTemplateRef('figure')\nlet opener: HTMLElement | null = null`,
+          COMPUTED,
+          `${WATCH}\nwatchEffect(() => count.value)`,
+          `${FUNCTION}\n${ARROW}`,
+          `${LIFECYCLE}\nonScopeDispose(reset)`,
+          EXPOSE,
+        ),
+      },
+      {
+        name: 'un composable qui reçoit un état reste après lui',
+        filename: 'Dependance.vue',
+        code: vue(IMPORTS, STATE, 'const { errors } = useFormValidation(count)', COMPUTED),
+      },
+      {
+        name: 'un objet dont les fonctions lisent un outil va avec l’état',
+        filename: 'Actions.vue',
+        code: vue(IMPORTS, TOOLS, STATE, "const ACTIONS = { home: () => t('home') }"),
+      },
+      {
+        name: 'un composable dont la fonction lit un état reste après lui',
+        filename: 'Getter.vue',
+        code: vue(IMPORTS, STATE, 'const photoUrl = usePhotoUrls(() => [count.value])'),
+      },
+      {
+        name: 'un ref initialisé depuis un computed reste après lui',
+        filename: 'Computed.vue',
+        code: vue(IMPORTS, STATE, COMPUTED, 'const copy = ref(double.value)'),
+      },
+      {
+        name: 'une valeur tirée des props va avec l’état',
+        filename: 'Derivee.vue',
+        code: vue(IMPORTS, PROPS, "const mode = props.id === '' ? 'create' : 'edit'", COMPUTED),
+      },
+      {
+        name: 'un watch immédiat qui appelle une fonction fléchée reste après elle',
+        filename: 'Immediat.vue',
+        code: vue(IMPORTS, STATE, ARROW, 'watch(count, save, { immediate: true })'),
+      },
+      {
+        name: 'un appel inconnu peut se placer n’importe où',
+        filename: 'Inconnu.vue',
+        code: vue(IMPORTS, 'const cache = buildCache()', PROPS, STATE),
+      },
+      {
+        name: 'le <script> à côté du <script setup> est ignoré',
+        filename: 'Deux.vue',
+        code: `<script lang="ts">\nexport const A = 1\n</script>\n${vue(IMPORTS, STATE)}`,
+      },
+    ],
+    invalid: [
+      {
+        name: 'defineEmits avant defineProps',
+        filename: 'Macros.vue',
+        code: vue(
+          IMPORTS,
+          'const emit = defineEmits<{ close: [] }>()\nconst model = defineModel()\n' + PROPS,
+        ),
+        errors: [order('defineProps', 'defineModel, defineSlots, defineOptions')],
+      },
+      {
+        name: 'un objet dont les fonctions lisent un outil, avant cet outil',
+        filename: 'Actions-tot.vue',
+        code: vue(IMPORTS, "const ACTIONS = { home: () => t('home') }", TOOLS),
+        errors: [order('outils (useI18n, stores, composables)', 'état (ref, reactive…)')],
+      },
+      {
+        name: 'les props après les outils',
+        filename: 'Props.vue',
+        code: vue(IMPORTS, TOOLS, PROPS),
+        errors: [
+          order('macros (defineProps, defineEmits…)', 'outils (useI18n, stores, composables)'),
+        ],
+      },
+      {
+        name: 'les outils après l’état',
+        filename: 'Outils.vue',
+        code: vue(IMPORTS, STATE, TOOLS),
+        errors: [order('outils (useI18n, stores, composables)', 'état (ref, reactive…)')],
+      },
+      {
+        name: 'l’état après un computed',
+        filename: 'Etat.vue',
+        code: vue(IMPORTS, 'const other = computed(() => 1)', STATE),
+        errors: [order('état (ref, reactive…)', 'computed')],
+      },
+      {
+        name: 'un computed après un watch',
+        filename: 'Computed.vue',
+        code: vue(IMPORTS, STATE, WATCH, COMPUTED, FUNCTION),
+        errors: [order('computed', 'watch')],
+      },
+      {
+        name: 'un watch après les fonctions',
+        filename: 'Watch.vue',
+        code: vue(IMPORTS, STATE, FUNCTION, WATCH),
+        errors: [order('watch', 'fonctions')],
+      },
+      {
+        name: 'le cycle de vie avant les fonctions',
+        filename: 'Cycle.vue',
+        code: vue(IMPORTS, STATE, LIFECYCLE, ARROW),
+        errors: [order('fonctions', 'cycle de vie (onMounted…)')],
+      },
+      {
+        name: 'defineExpose avant le cycle de vie',
+        filename: 'Expose.vue',
+        code: vue(IMPORTS, STATE, FUNCTION, EXPOSE, LIFECYCLE),
+        errors: [order('cycle de vie (onMounted…)', 'defineExpose')],
+      },
+      {
+        name: 'une constante de module après les props',
+        filename: 'Constante.vue',
+        code: vue(IMPORTS, PROPS, CONSTANT),
+        errors: [order('types et constantes', 'macros (defineProps, defineEmits…)')],
+      },
+      {
+        name: 'un composable qui reçoit un état, après un computed',
+        filename: 'Trop-bas.vue',
+        code: vue(IMPORTS, STATE, COMPUTED, 'const { errors } = useFormValidation(count)'),
+        errors: [order('outils (useI18n, stores, composables)', 'computed')],
+      },
+      {
+        name: 'deux groupes sans ligne vide',
+        filename: 'Vide.vue',
+        code: vue(IMPORTS, `${STATE}\n${COMPUTED}`),
+        errors: [
+          {
+            messageId: 'blankLine',
+            data: { previous: 'état (ref, reactive…)', current: 'computed' },
+          },
+        ],
+      },
+    ],
+  })
+})
