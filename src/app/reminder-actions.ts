@@ -36,10 +36,9 @@ import {
 import type { Due } from '@/shared/domain/treatment-schedule'
 import { formatDayMonthOrYear } from '@/shared/utils/format'
 import { showToast, showUndoableToast } from '@/shared/utils/toast'
+import type { Translate } from '@/core/i18n/translate'
 
 type Provider<T> = () => T | Promise<T>
-
-type Translate = (key: string, named?: Record<string, unknown>) => string
 
 export type ReminderActionsDependencies = {
   router: Pick<Router, 'currentRoute' | 'push' | 'replace'>
