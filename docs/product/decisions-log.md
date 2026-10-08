@@ -281,8 +281,8 @@ hors-ligne). Impact direct sur le ticket 1.3 (garde de navigation).
 2026-08-26 — Nouvelles maquettes **v2** pour l'Accueil et le Carnet : elles
 deviennent la référence unique d'implémentation, les maquettes v1 passent en
 archive (`docs/design/accueil-v1`, `docs/design/carnet-v1`). Spécifications
-réécrites d'après les planches livrées dans `docs/design/accueil-v2/accueil.md`
-et `docs/design/carnet-v2/carnet.md`, index dans `docs/design/README.md`. — Ce
+réécrites d'après les planches livrées dans `docs/design/archives/avant-v1/accueil-v2/accueil.md`
+et `docs/design/archives/avant-v1/carnet-v2/carnet.md`, index dans `docs/design/README.md`. — Ce
 qui change concrètement : header pétrole plein `#01383E` portant la marque
 (« MémoPatte » + « Foyer de … ») au lieu de la salutation et de la date ; une
 seule carte par section avec des lignes séparées par des filets, au lieu d'une
@@ -486,7 +486,7 @@ une palette dédiée, distincte des couleurs d'urgence métier `overdue`,
 retard, et les deux peuvent apparaître sur le même écran ; réutiliser la
 même teinte brouillerait la lecture de l'urgence, qui doit se faire en
 moins d'une seconde. Valeurs et contrastes (tous ≥ 4,5:1, WCAG AA) dans
-`docs/design/accueil-v2/accueil.md`, section « Rôles système (hors
+`docs/design/archives/avant-v1/accueil-v2/accueil.md`, section « Rôles système (hors
 maquette) ». — Alternative écartée : garder l'alias des couleurs
 d'urgence, retenu faute de mieux à l'implémentation de #70. `info` et
 `secondary` restent non définis, faute d'usage.
@@ -863,7 +863,7 @@ Complétée le 2026-09-15 : une relance à J+3 s'ajoute aux deux notifications (
 l'entrée « Relance à J+3 et traitements au rythme de leur fréquence »).
 
 2026-09-15 — **Maquettes notifications et Paramètres validées**
-(`docs/design/notifs-rappels-parametres/`) : écran d'explication plein écran avant
+(`docs/design/archives/avant-v1/notifs-rappels-parametres/`) : écran d'explication plein écran avant
 la popup système, bandeau neutre « Les rappels sont désactivés » au-dessus de
 « À faire » sur l'Accueil, Paramètres en écran poussé depuis l'icône du header. Les
 sections Paramètres sans destination existante (MémoPatte Plus, Compte, Export PDF,
@@ -1568,7 +1568,7 @@ sa taille et le PDF suit. — Choix de Claude, faute de précision dans le ticke
 lisibilité sans rien déplacer d'autre dans la carte ; alternative écartée : réduire la carte à 150 px.
 
 2026-09-24 — **Maquette « marquer un rappel comme fait » (F1 à F11) : écarts tranchés avec Gaelle**
-(#364, `docs/design/rappels/`).
+(#364, `docs/design/archives/avant-v1/rappels/`).
 
 1) **« C'est fait » dans une notification ouvre l'app**, qui note la prise et affiche le toast de
 confirmation (la planche F10 sera corrigée en conséquence). — Raison : sur Android, un bouton de
@@ -1613,7 +1613,7 @@ synchro (#83). **Accepté** :
 un report et un changement de fréquence concurrents sur deux appareils, la plus récente gagne. — Pour
 revenir dessus : rien n'est encore codé à cette date.
 
-2026-09-24 — **Unité de poids** (#352), maquette `docs/design/courbes-poids/` : kg et lb seulement ;
+2026-09-24 — **Unité de poids** (#352), maquette `docs/design/archives/avant-v1/courbes-poids/` : kg et lb seulement ;
 **unité par défaut lb si la région du téléphone est les États-Unis, kg ailleurs** (la maquette disait
 kg partout, la décision est gardée) ; les pesées restent stockées en kg ; **JSON toujours en kg**,
 **CSV dans l'unité choisie avec l'unité dans le titre de colonne** (« Poids (lb) »), PDF dans l'unité
@@ -1621,7 +1621,7 @@ choisie. — Raison : seul le JSON se réimporte, et un tableur lit l'unité dan
 Alternative écartée : CSV toujours en kg (décision du matin, corrigée à la lecture de la maquette).
 
 2026-09-24 — **Historique du poids par pages : 12 pesées par page** (#351), jugé sur la maquette
-`docs/design/courbes-poids/` (la dernière page, la plus ancienne, peut en avoir moins). **Unité par
+`docs/design/archives/avant-v1/courbes-poids/` (la dernière page, la plus ancienne, peut en avoir moins). **Unité par
 défaut au Royaume-Uni : kg**, comme partout sauf aux États-Unis (#352). — Raison : les vétérinaires
 britanniques pèsent et dosent en kg ; le carnet de santé est en kg. — Alternative écartée : lb par
 défaut au Royaume-Uni, par analogie avec l'usage courant pour le poids des personnes.

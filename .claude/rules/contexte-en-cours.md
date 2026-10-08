@@ -424,7 +424,7 @@
   app, garde « `test:device` depuis `main` seulement », phrase de `collaboration.md` sur la vraie app.
   Suite du lot historique : #380 (« Fait »), puis #381 à #384 ; #352, #385, #386 en attente.
 
-- 2026-09-24 : **reprendre ici.** Maquette « rappel fait » reçue (`docs/design/rappels/`, écarts
+- 2026-09-24 : **reprendre ici.** Maquette « rappel fait » reçue (`docs/design/archives/avant-v1/rappels/`, écarts
   tranchés au journal du jour, points 1 à 5 ; planche F10 à faire corriger par Gaelle : l'app
   s'ouvre). **Modèle de l'historique tranché** (journal du jour ; spec
   `docs/technical/proposition-historique-rappels.md` §10). Prochaine étape : relecture de la spec

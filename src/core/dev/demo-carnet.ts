@@ -7,7 +7,7 @@ import type { VaccinationInput } from '@/features/vaccinations/schema/vaccinatio
 import type { WeightEntryInput } from '@/features/weight/schema/weight.schema'
 
 /**
- * Jeu de démo des maquettes (`docs/design/carnet-v2/carnet.md`, « Contenu
+ * Jeu de démo des maquettes (`docs/design/archives/avant-v1/carnet-v2/carnet.md`, « Contenu
  * d'exemple des maquettes ») : Milo et Luna.
  *
  * Outil de développement, jamais livré (voir `fixtures.ts`) : les libellés
