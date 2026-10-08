@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { format, parseISO } from 'date-fns'
+import { endOfDay, format, parseISO } from 'date-fns'
 import { computed, onScopeDispose, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
@@ -23,6 +23,11 @@ const { t, locale } = useI18n()
 // Dates locales à minuit : une chaîne serait lue en UTC par l'adaptateur, un jour trop tôt à l'ouest.
 function toDate(value: string | null): Date | undefined {
   return value === null ? undefined : parseISO(value)
+}
+
+// Vuetify compare l'instant : un jour qui commence à 01:00 (heure d'été à minuit) dépasserait un maximum à minuit.
+function toMaxDate(value: string | null): Date | undefined {
+  return value === null ? undefined : endOfDay(parseISO(value))
 }
 
 type ViewMode = 'month' | 'months' | 'year'
@@ -80,7 +85,7 @@ const selected = computed({
       weeks-in-month="dynamic"
       hide-header
       :min="toDate(props.min)"
-      :max="toDate(props.max)"
+      :max="toMaxDate(props.max)"
       :allowed-dates="allowedDates"
       :show-adjacent-months="false"
       :view-mode="viewMode"
