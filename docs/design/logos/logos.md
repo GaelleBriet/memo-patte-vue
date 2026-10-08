@@ -10,7 +10,7 @@ tags:
 Art de marque : une patte crème sur fond pétrole, dont le coussinet central
 contient un golden retriever et un chat pétrole avec un cœur corail. Même
 illustration que celle utilisée sur l'écran de premier lancement (état A5 de
-`../accueil-v2/accueil.md`).
+`../archives/avant-v1/accueil-v2/accueil.md`).
 
 ## Fichiers fournis
 
