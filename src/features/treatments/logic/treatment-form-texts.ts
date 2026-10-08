@@ -1,10 +1,9 @@
 import type { EditionDraft, NextDoseHelp } from './treatment-edition'
 import { nextDoseRefusalKey } from './treatment-form'
+import type { Translate } from './treatment-gestures'
 import type { ResumptionDraft } from './treatment-resumption'
 import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
 import { formatDayMonthOrYear, formatFullDayMonth, withoutFinalDot } from '@/shared/utils/format'
-
-type Translate = (key: string, named?: Record<string, unknown>, plural?: number) => string
 
 type Previous = Pick<ResumptionDraft, 'startedOn' | 'endedOn' | 'durationDays' | 'earliestOn'>
 

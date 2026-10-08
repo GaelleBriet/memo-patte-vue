@@ -115,7 +115,8 @@ export function givenDays(schedule: DaySchedule): string[] {
 /**
  * La première échéance encore sans prise du jour de la prise ; sans échéance ce jour-là, la dose du
  * moment aujourd'hui, ou la règle sans heure (TR-13) un autre jour. Seul un autre jour corrige un
- * oubli (TR-22). `dayNoted` : toutes les doses du jour sont notées, aucune donnée ; `null` : rien.
+ * oubli (TR-22), et une dose à venir ne se note pas en avance quand une prise a déjà été donnée.
+ * `dayNoted` : toutes les doses du jour sont notées, aucune donnée ; `null` : rien à noter.
  */
 export function momentDue(
   schedule: OtherDateSchedule,
@@ -145,8 +146,8 @@ type MomentTarget = ReturnType<typeof momentDue>
 
 /**
  * Ce que note « C'est fait » d'une notification sans heure : jour entièrement noté, « déjà notée »
- * (ou `dayNoted`) ; journée entamée ou dose d'un autre jour, `ask`, rien n'est écrit ; sinon la dose
- * que vise `momentDue`.
+ * (ou `dayNoted`) ; journée entamée ou dose d'un autre jour que celui notifié, `ask`, rien n'est
+ * écrit ; sinon la dose que vise `momentDue`.
  */
 export function notifiedDue(
   schedule: OtherDateSchedule,

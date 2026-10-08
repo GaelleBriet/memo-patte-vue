@@ -81,7 +81,6 @@ const FIELD_OF_PATH: Record<string, TreatmentFormErrorField> = {
   endsOn: 'endsOn',
 }
 
-/** Motif d'un refus, porté par le message de l'erreur Zod. */
 const NEXT_DOSE_ON_REASON_KEYS: Record<NextDoseOnIssueReason, string> = {
   tooEarly: 'treatments.form.errors.nextDoseOnTooEarly',
   afterEnd: 'treatments.form.errors.nextDoseOnAfterEnd',
@@ -99,6 +98,7 @@ const ENDS_ON_REASON_KEYS: Record<EndsOnIssueReason, string> = {
   beforeFarAdvancedDose: 'treatments.form.errors.endsOnBeforeFarAdvancedDose',
 }
 
+/** Motif d'un refus, porté par le message de l'erreur Zod. */
 const REASON_KEYS: Partial<Record<TreatmentFormErrorField, Record<string, string>>> = {
   firstDoseOn: {
     tooEarly: 'treatments.form.errors.firstDoseOnTooEarly',
@@ -456,7 +456,6 @@ export function validateTreatmentResumption(
   )
 }
 
-/** Ce dont dépend une réponse de l'encart : changé, la réponse ne vaut plus (TR-3). */
 /** Les valeurs d'un traitement relu ; `found` faux : un traitement en cours n'a rien à reprendre. */
 export function loadedFormValues(
   mode: 'edit' | 'resume',
@@ -478,6 +477,7 @@ export function loadedFormValues(
   }
 }
 
+/** Ce dont dépend une réponse de l'encart : changé, la réponse ne vaut plus (TR-3). */
 export function pastDosesBasis(values: TreatmentFormValues, dues: readonly Due[]): string {
   const { firstDoseOn, frequencyValue, frequencyUnit, times, endsOn } = values
   return JSON.stringify([firstDoseOn, frequencyValue, frequencyUnit, times, endsOn, dues.length])
