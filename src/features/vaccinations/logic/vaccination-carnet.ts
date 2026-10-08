@@ -3,8 +3,7 @@ import type { Vaccination } from '../schema/vaccination.schema'
 import { overdueDays } from '@/shared/domain/due-delay'
 import { reminderIcon } from '@/shared/domain/reminders'
 import { formatDayMonthOrYear, formatLongDate } from '@/shared/utils/format'
-
-type Translate = (key: string, named?: Record<string, unknown>, plural?: number) => string
+import type { Translate } from '@/core/i18n/translate'
 
 export type CarnetVaccinationBadgeStatus = 'overdue' | 'today' | 'up-to-date' | 'none' | 'planned'
 

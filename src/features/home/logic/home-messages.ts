@@ -3,6 +3,7 @@ import { addMonths } from 'date-fns'
 import type { NotificationPermissionStatus } from '@/core/notifications'
 import type { UsageSignalTally } from '@/shared/utils/usage-signals'
 import type { HomeMessagesMemory } from './home-messages-memory'
+import type { Translate } from '@/core/i18n/translate'
 
 export const QUARTER_IN_MONTHS = 3
 
@@ -54,8 +55,6 @@ export type HomeMessagePlace = 'aboveTodo' | 'belowTodo'
 export function homeMessagePlace(message: HomeMessage): HomeMessagePlace {
   return message.kind === 'remindersOff' ? 'aboveTodo' : 'belowTodo'
 }
-
-type Translate = (key: string) => string
 
 export type HomeMessageAction =
   | 'androidSettings'

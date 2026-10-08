@@ -22,8 +22,7 @@ import {
   formatLongDate,
   withoutFinalDot,
 } from '@/shared/utils/format'
-
-export type Translate = (key: string, named?: Record<string, unknown>, plural?: number) => string
+import type { Translate } from '@/core/i18n/translate'
 
 /** Lignes d'une période montrées avant « Voir les prises précédentes ». */
 export const LINES_BEFORE_TOGGLE = 3

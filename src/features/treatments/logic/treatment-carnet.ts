@@ -6,8 +6,7 @@ import { reminderIcon, type ReminderCounts } from '@/shared/domain/reminders'
 import { isStoppedBeforeFirstDose } from '@/shared/domain/treatment-end'
 import type { TreatmentSchedule } from '@/shared/domain/treatment-schedule'
 import { formatClockTimes, formatDayMonthOrYear, formatPeriodRange } from '@/shared/utils/format'
-
-export type Translate = (key: string, named?: Record<string, unknown>, plural?: number) => string
+import type { Translate } from '@/core/i18n/translate'
 
 export type CarnetTreatmentRow = {
   id: string

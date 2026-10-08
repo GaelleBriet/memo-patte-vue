@@ -2,8 +2,7 @@ import combinationsFile from './vaccine-combinations.json'
 import { comparableVaccineName, isSameVaccineName } from './vaccination-name'
 import type { Animal, AnimalSpecies } from '@/features/animals/schema/animal.schema'
 import { formatList } from '@/shared/utils/format'
-
-type Translate = (key: string, named?: Record<string, unknown>) => string
+import type { Translate } from '@/core/i18n/translate'
 
 export interface VaccineCombination {
   diseases: readonly string[]

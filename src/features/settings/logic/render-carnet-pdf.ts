@@ -22,6 +22,7 @@ import type {
   PdfTreatmentRow,
   PdfVaccinationRow,
 } from './pdf-content'
+import type { Translate } from '@/core/i18n/translate'
 
 const PAGE_WIDTH_MM = 210
 const PAGE_HEIGHT_MM = 297
@@ -53,8 +54,6 @@ const DETAIL_INDENT_MM = 4
 const DETAIL_GRAY = 90
 // Plus haut, l'historique d'une ligne ne tiendrait pas sur une page : il continue sur la suivante.
 const MAX_UNSPLIT_BLOCK_MM = 200
-
-type Translate = (key: string, params?: Record<string, unknown>, plural?: number) => string
 
 type PageCursor = { y: number; makeRoom: (height: number) => void }
 

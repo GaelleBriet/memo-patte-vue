@@ -1,7 +1,6 @@
 import type { Due, TreatmentSchedule } from '@/shared/domain/treatment-schedule'
 import { formatDaySeries } from '@/shared/utils/format'
-
-type Translate = (key: string, named?: Record<string, unknown>, plural?: number) => string
+import type { Translate } from '@/core/i18n/translate'
 
 /** Doses passées sans prise qu'un geste fait apparaître : à renseigner, ou en retard. */
 export type RevealedDues = { unlogged: Due[]; overdue: Due[] }

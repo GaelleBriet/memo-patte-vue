@@ -8,8 +8,7 @@ import {
   weekdayInitials,
   weekStartsOn,
 } from '@/shared/utils/format'
-
-export type Translate = (key: string, named?: Record<string, unknown>, plural?: number) => string
+import type { Translate } from '@/core/i18n/translate'
 
 /** Les cases décochées, par `dayKey` : tout le reste est coché. */
 export type Unchecked = ReadonlySet<string>

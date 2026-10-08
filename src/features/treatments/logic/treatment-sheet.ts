@@ -7,8 +7,7 @@ import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 import type { NotifiedDue, TodoDue } from '@/shared/domain/reminder-route'
 import type { DoseGesture, Due, TreatmentSchedule } from '@/shared/domain/treatment-schedule'
 import { formatClockTime, formatDayMonthOrYear } from '@/shared/utils/format'
-
-export type Translate = (key: string, named?: Record<string, unknown>, plural?: number) => string
+import type { Translate } from '@/core/i18n/translate'
 
 /** Textes de « Arrêter ce traitement » et de son dialogue. */
 export function treatmentStopTexts(t: Translate, named: { name: string; animal: string }) {
