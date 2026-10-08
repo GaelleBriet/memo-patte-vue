@@ -2538,7 +2538,7 @@ describe('TreatmentFormView — reprise (TR-32, planche V7)', () => {
     await champ(wrapper, 'treatment-first-dose-on').setValue('2026-10-10')
     await soumettre(wrapper)
 
-    expect(messages(wrapper)).toEqual(['The first dose can be on Oct 11 at the earliest.'])
+    expect(messages(wrapper)).toEqual(['The first dose can’t be before Oct 11.'])
   })
 
   it('refuse une première prise avant la fin de la dernière période', async () => {

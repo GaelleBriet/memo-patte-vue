@@ -79,6 +79,13 @@ et une relecture s'y réfère plutôt que de rouvrir le débat.
 | Plus tard (bouton)       | Not now                          | Later                                     |                                                                         |
 | Réessayer                | Try again                        | Retry                                     |                                                                         |
 | Créer (bouton)           | Create                           | Add, Save                                 | les trois formulaires en création ; « Save » est réservé à l'édition     |
+| Supprimer                | delete                           | remove                                   | « Retirer » (une photo, une heure) = remove ; un objet du carnet se supprime : « … seront supprimés du carnet » = … will be deleted from the health record (relecture #353) |
+| Cocher / décocher        | check / uncheck                  | tick, untick                             | une seule paire pour toutes les cases de l'app (relecture #353)         |
+| Avancée au …             | moved up to …                    | advanced to, brought forward to          | « Avancée au 8 oct. (prévue le 10 oct.) » = Moved up to Oct 8 (was due Oct 10) |
+| Jusqu'au …               | until …                          | through …, till …                        | « through » est un américanisme ; « until » reste ambigu sur l'inclusion, ce qu'accepte l'app                             |
+| Terminé le / Arrêté le   | Ended on / Stopped on            | Finished on, Completed on                | date de fin atteinte / arrêt à la main                                  |
+| Reprendre (traitement)   | Resume                           | Restart                                  | « Reprendre ce traitement » = Resume this treatment                     |
+| Événement daté           | on {date}                        | of {date}                            | « Injection du 20 juin ajoutée » = Injection on Jun 20 added ; « Prise en plus du 5 oct. » = Extra dose on Oct 5 |
 
 ## Ton
 
@@ -100,7 +107,9 @@ l'animal : « Chez quelqu'un d'autre », et en anglais le nom (« Luna's »), ja
   l'intérieur des guillemets `«` `»`. Un test le vérifie
   (`src/core/i18n/__tests__/locales.spec.ts`).
 - **Anglais** : jamais d'espace avant une ponctuation, guillemets courbes `“ ”`,
-  apostrophe courbe `’`.
+  apostrophe courbe `’`. Une liste écrite à la main n'a pas de virgule
+  d'Oxford (« vaccines, treatments, weigh-ins and photos ») ; une liste
+  construite par le code suit `Intl.ListFormat`, qui la met pour `en` (« 8 am, 2 pm, and 8 pm »).
 - **Nombres, dates, poids** : jamais formatés à la main dans un composant, tout
   passe par `src/shared/format.ts`, qui suit la langue courante ; un poids passe
   par `src/shared/domain/weight-display.ts`, qui suit aussi l'unité choisie.

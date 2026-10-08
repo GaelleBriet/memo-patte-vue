@@ -136,13 +136,13 @@
       "toast": {
         "unfollowed": "You’re no longer following {name}",
         "unfollowedAnnouncement": "You’re no longer following {name}. {name}’s reminders are off.",
-        "followed": "You’re following {name} again. Stopped treatments don’t restart on their own: restart each one with “Resume”.",
-        "deleted": "{name}’s record deleted",
+        "followed": "You’re following {name} again. Stopped treatments don’t resume on their own: use “Resume” on each one.",
+        "deleted": "{name}’s health record deleted",
         "undoUnfollow": "Undo: follow {name} again",
         "undoFollow": "Undo: stop following {name}",
-        "undoDelete": "Undo: keep {name}’s record",
+        "undoDelete": "Undo: keep {name}’s health record",
         "failed": "Couldn’t save the change. Try again.",
-        "deleteFailed": "Couldn’t delete {name}’s record. Try again."
+        "deleteFailed": "Couldn’t delete {name}’s health record. Try again."
       }
     },
     "departure": {
@@ -320,8 +320,8 @@
         "moved": "Injection moved to {date}",
         "undoMove": "Undo the injection date change",
         "deleted": "{name} vaccine deleted",
-        "added": "Injection of {date} added",
-        "undoAdd": "Undo adding the injection of {date}",
+        "added": "Injection on {date} added",
+        "undoAdd": "Undo adding the injection on {date}",
         "undoDelete": "Undo deleting the {name} vaccine"
       },
       "menu": {
@@ -458,7 +458,7 @@
           "list": "On {dates}, on the “{rhythm}” schedule.",
           "range": "From {start} to {end}, on the “{rhythm}” schedule."
         },
-        "keep": "Keep it to log | Keep them to log",
+        "keep": "It still needs to be logged | They still need to be logged",
         "keepHint": "The new schedule starts today. Next dose on {date}.",
         "drop": "It wasn’t meant to be given | They weren’t meant to be given",
         "dropHint": "The previous setting was a mistake. Next dose on {date}.",
@@ -485,7 +485,7 @@
         "frequency": "Enter a frequency.",
         "frequencyMax": "Frequency must be at most 365.",
         "firstDoseOn": "Date is required.",
-        "firstDoseOnTooEarly": "The first dose can be on {from} at the earliest.",
+        "firstDoseOnTooEarly": "The first dose can’t be before {from}.",
         "firstDoseOnTooOld": "This date is too far back for this schedule.",
         "nextDoseOn": "Date is required.",
         "nextDoseOnTooEarly": "Choose a date from {date} onward.",
@@ -585,7 +585,7 @@
       "changeDateSubtitleExtra": "Extra dose on {date}",
       "otherDate": {
         "next": "Next",
-        "back": "Back to the day",
+        "back": "Back to choosing the day",
         "hourTitle": "At what time?",
         "hourSubtitle": "{name} · {animal} · {date}",
         "hour": {
@@ -611,8 +611,8 @@
         "removed": "Dose on {date} deleted",
         "removedShiftKept": "Dose on {date} deleted. The following doses stay moved.",
         "undoRemove": "Undo deleting the dose on {date}",
-        "removedExtra": "Extra dose of {date} deleted",
-        "undoRemoveExtra": "Undo deleting the extra dose of {date}",
+        "removedExtra": "Extra dose on {date} deleted",
+        "undoRemoveExtra": "Undo deleting the extra dose on {date}",
         "moved": "Dose moved to {date}",
         "movedKept": "Dose moved to {date}. Next dose kept on {nextDue}, as you had postponed it.",
         "movedFollowed": "Dose moved to {date}. The postponement follows: dose postponed to {nextDue}.",
@@ -628,7 +628,7 @@
       },
       "deleteDialog": {
         "title": "Delete {name}?",
-        "text": "Its doses and reminders will be removed from the health record.",
+        "text": "Its doses and reminders will be deleted from the health record.",
         "cancel": "Cancel",
         "confirm": "Delete"
       },
@@ -684,7 +684,7 @@
       "shiftOptions": "Options for the move of the doses after {date}",
       "refusal": {
         "shiftLaterDose": "A later dose is already logged.",
-        "shiftMoveOffRhythm": "Delete the postponement of {date} first.",
+        "shiftMoveOffRhythm": "Delete the postponement to {date} first.",
         "shiftMovePastNext": "Change the postponement date first.",
         "moveTooClose": "Delete the move of the following doses first: the {date} dose would fall the day before the next one. | Delete the move of the following doses first: the {date} dose would fall {n} days before the next one."
       }
@@ -717,8 +717,8 @@
       "days": {
         "title": "Choose days",
         "back": "Back without saving",
-        "help": "Check the doses given. Unchecked days will be marked missed.",
-        "helpByHour": "Check the doses given, hour by hour. Unchecked days will be marked missed.",
+        "help": "Check the doses that were given. Unchecked doses will be marked as missed.",
+        "helpByHour": "Check the doses that were given, hour by hour. Unchecked doses will be marked as missed.",
         "hours": "Dose times",
         "noTime": "No time",
         "tab": {
@@ -780,12 +780,12 @@
         "every": "Only this dose changes. The following ones stay on {date}, then {every}."
       },
       "lost": "With the move, the {dates} dose will no longer be scheduled (end date). | With the move, the {dates} doses will no longer be scheduled (end date).",
-      "aloneLatest": "On its own, this dose can go up to {date}. Tick “Also move the following doses” to go further.",
+      "aloneLatest": "On its own, this dose can go up to {date}. Check the “Also move the following doses” box to go further.",
       "recap": "{due} dose, given on {given}",
       "recapAt": "{due}, {time} dose, given on {given}",
       "save": "Save",
-      "passesMove": "This day would push the postponement of {date} past the next dose: change the postponement date first.",
-      "passesMoveUncheck": "This day would push the postponement of {date} past the next dose: untick the box, or change the postponement date first.",
+      "passesMove": "This day would push the dose postponed to {date} past the next one: change the postponement date first.",
+      "passesMoveUncheck": "This day would push the dose postponed to {date} past the next one: uncheck the box, or change the postponement date first.",
       "suiteKept": "{done}. The {dates} dose stays scheduled. | {done}. The {dates} doses stay scheduled.",
       "suiteCut": "{done}. The {dates} dose is no longer scheduled (end date). | {done}. The {dates} doses are no longer scheduled (end date).",
       "suiteHeld": "{done}. The schedule doesn’t move: a postponement is planned on {date}.",
@@ -795,7 +795,7 @@
       "keptAfterReport": "Only this dose changes. Postponed dose on {report}, then {date} and {every}.",
       "movedBeforeReport": "The following doses will move to {date}, then postponed dose on {report}.",
       "keptBeforeReport": "Only this dose changes. The following ones stay on {date}, then postponed dose on {report}.",
-      "passesMoveCheck": "With this day, the dose you had postponed to {date} would fall after the next one. Tick “Also move the following doses”, or change the date of this postponement first.",
+      "passesMoveCheck": "With this day, the dose you had postponed to {date} would fall after the next one. Check the “Also move the following doses” box, or change the date of this postponement first.",
       "revealed": {
         "help": {
           "unlogged": "The {dates} dose will need to be logged. | The {dates} doses will need to be logged.",
@@ -1222,7 +1222,7 @@
         "action": "Sign out",
         "confirm": {
           "title": "Sign out?",
-          "body": "Your health records stay on this device. Only sync stops.",
+          "body": "Your health record stays on this device. Only sync stops.",
           "cancel": "Cancel",
           "submit": "Sign out"
         }
@@ -1252,7 +1252,7 @@
       "screenTitle": "Erase data",
       "screenSubtitle": "on this phone",
       "title": "Erase this phone’s data",
-      "removed": "The whole health record is removed from this phone: pets, treatments, vaccines, weights and photos.",
+      "removed": "The whole health record is removed from this phone: pets, treatments, vaccines, weigh-ins and photos.",
       "removedSignedIn": "The health record is removed from this phone.",
       "unsynced": "Your latest changes aren’t in your cloud backup yet. Go online and wait for the backup, or export a copy.",
       "cloudKept": "Your cloud backup is not affected: you can restore it on this phone or another.",
@@ -1393,9 +1393,9 @@
         "invalid": "This file isn’t a MémoPatte export.",
         "newer": "This export comes from a newer version of the app.",
         "older": "This export comes from an older version of MémoPatte. It can no longer be imported.",
-        "outOfRange": "This file has a value beyond the limits: at most 200 kg for a weight, 365 for a frequency.",
+        "outOfRange": "This file has a value out of range: 200 kg at most for a weight, 365 for a frequency.",
         "nameTooLong": "A name in this file is longer than {max} characters.",
-        "reattached": "This file moves an entry in your records to another animal.",
+        "reattached": "This file moves an entry in your health record to another pet.",
         "failed": "The import didn’t go through. Your data hasn’t changed."
       },
       "confirm": {
@@ -1437,11 +1437,11 @@
       },
       "vaccinations": {
         "title": "Vaccines",
-        "empty": "No vaccine recorded."
+        "empty": "No vaccines recorded."
       },
       "treatments": {
         "title": "Treatments",
-        "empty": "No treatment recorded.",
+        "empty": "No treatments recorded.",
         "stopped": "Stopped on {date}",
         "ended": "Ended on {date}",
         "dueAt": "{date} at {time}",
@@ -1450,7 +1450,7 @@
       },
       "weight": {
         "title": "Weight",
-        "empty": "No weigh-in recorded."
+        "empty": "No weigh-ins recorded."
       },
       "history": {
         "injections": "Injections: {dates}",
@@ -1482,7 +1482,7 @@
     }
   },
   "auth": {
-    "intro": "A MémoPatte account keeps your health records safe in the cloud and on every device you use.",
+    "intro": "A MémoPatte account keeps your health records safe in the cloud and available on all your devices.",
     "signIn": {
       "title": "Sign in",
       "submit": "Sign in",
@@ -1536,7 +1536,7 @@
     },
     "android": "Android already backs up your health record, but without photos or a guaranteed restore. Plus guarantees it.",
     "offers": {
-      "title": "Three ways to pay, same content",
+      "title": "Three ways to pay, same features",
       "best": "Best value",
       "monthly": {
         "label": "Monthly",
@@ -1592,11 +1592,11 @@
     },
     "cancelled": {
       "title": "Purchase not completed",
-      "body": "No payment was taken. Try again whenever you like, nothing has changed for you."
+      "body": "No payment was taken, and nothing has changed for you. Try again whenever you like."
     },
     "failed": {
       "title": "The purchase didn’t go through",
-      "body": "No payment was taken. Try again in a moment, nothing has changed for you."
+      "body": "No payment was taken, and nothing has changed for you. Try again in a moment."
     },
     "retry": "Try again",
     "later": "Not now",
@@ -1619,7 +1619,7 @@
       }
     },
     "nudge": {
-      "discover": "Learn more",
+      "discover": "Explore",
       "stop": "Don’t suggest this again",
       "close": "Dismiss this reminder",
       "firstPhoto": {

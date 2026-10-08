@@ -666,7 +666,7 @@ describe('treatmentHistory — la ligne de décalage et ses refus (V31, V31 ter,
     })
     applyLocale('en')
     expect(line(book, '2026-10-15', 'shift').refused).toEqual({
-      'remove-shift': 'Delete the postponement of Oct 23 first.',
+      'remove-shift': 'Delete the postponement to Oct 23 first.',
     })
   })
 
