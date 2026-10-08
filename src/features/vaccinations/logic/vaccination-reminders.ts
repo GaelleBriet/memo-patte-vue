@@ -1,14 +1,11 @@
-import { subDays } from 'date-fns'
-
 import type { Animal } from '@/features/animals/schema/animal.schema'
-import { toDate, toDay } from '@/shared/domain/calendar-day'
 import type { EntryReminders } from '@/shared/domain/due-reminders-schedule'
 import {
-  DAYS_BEFORE_VACCINATION,
   vaccinationReminderPlan,
   type CarnetReminderSettings,
   type ReminderTranslate,
 } from '@/shared/domain/reminder-plan'
+import { injectionMadeDue } from './vaccination-history'
 import type { Vaccination } from '../schema/vaccination.schema'
 
 /** Rappels qu'une injection plus récente a remplacés, lus par `listReplacedDues`. */
@@ -20,10 +17,7 @@ type RemindedVaccination = Pick<
 > &
   ReplacedDues
 
-/**
- * Une échéance qui n'est plus celle du vaccin est notée si une injection l'a remplacée, ou si la
- * dernière injection date d'au plus tôt sa prévenance : un report ne garde pas la date d'origine.
- */
+/** Une échéance qui n'est plus celle du vaccin est notée si une injection l'a remplacée ou faite. */
 export function isInjectionNoted(
   vaccination: Pick<Vaccination, 'dueDate' | 'lastInjectionDate'> & ReplacedDues,
   dueDate: string,
@@ -31,10 +25,7 @@ export function isInjectionNoted(
   const { lastInjectionDate } = vaccination
   if (vaccination.dueDate === dueDate) return false
   if (vaccination.replacedDues.includes(dueDate)) return true
-  return (
-    lastInjectionDate !== null &&
-    lastInjectionDate >= toDay(subDays(toDate(dueDate), DAYS_BEFORE_VACCINATION))
-  )
+  return lastInjectionDate !== null && injectionMadeDue(dueDate, lastInjectionDate)
 }
 
 export function vaccinationReminders(

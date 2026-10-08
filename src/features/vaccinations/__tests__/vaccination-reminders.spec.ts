@@ -152,14 +152,25 @@ describe('isInjectionNoted', () => {
     expect(isInjectionNoted({ ...reporte, replacedDues: ['2027-03-20'] }, '2027-03-20')).toBe(true)
   })
 
-  it('#657 : une injection faite dès la prévenance d’un rappel reporté le note, pas avant', () => {
-    const reporte = { dueDate: '2028-03-01', replacedDues: ['2027-03-20'] }
+  it('#657 : une injection faite avant la date d’origine, après un report, ne la note pas', () => {
+    const reporte = { lastInjectionDate: '2027-03-10', dueDate: '2028-03-10' }
 
-    expect(isInjectionNoted({ ...reporte, lastInjectionDate: '2027-03-01' }, '2027-03-15')).toBe(
-      true,
-    )
-    expect(isInjectionNoted({ ...reporte, lastInjectionDate: '2027-02-28' }, '2027-03-15')).toBe(
-      false,
-    )
+    expect(isInjectionNoted({ ...reporte, replacedDues: ['2027-03-20'] }, '2027-03-15')).toBe(false)
+  })
+
+  it('#657 : un rappel court reporté sans injection reste non noté', () => {
+    const reporte = { lastInjectionDate: '2027-03-05', dueDate: '2027-03-20', replacedDues: [] }
+
+    expect(isInjectionNoted(reporte, '2027-03-15')).toBe(false)
+  })
+
+  it('note un rendez-vous remplacé par une injection faite plus de deux semaines avant', () => {
+    const remplace = {
+      lastInjectionDate: '2027-03-01',
+      dueDate: '2028-03-01',
+      replacedDues: ['2027-04-15'],
+    }
+
+    expect(isInjectionNoted(remplace, '2027-04-15')).toBe(true)
   })
 })
