@@ -1,12 +1,12 @@
 import type { z } from 'zod'
 
+import { plannedDoseWrites } from './treatment-dose-writes'
 import { treatmentScheduleOf } from './treatment-schedule-adapter'
 import {
   assertReadable,
   changesRhythm,
   changesSchedule,
   currentPeriod,
-  doseWrites,
   draftPeriod,
   lastNotedDueOn,
   rhythmOf,
@@ -119,7 +119,7 @@ function hasNote(schedule: TreatmentSchedule, periodId?: string): boolean {
   )
 }
 
-function withoutStale(
+function withoutStaleDoses(
   history: TreatmentWithHistory,
   schedule: TreatmentSchedule,
 ): TreatmentWithHistory {
@@ -470,7 +470,7 @@ function resolve(
       pastDues: [],
     }
   }
-  const live = withoutStale(history, base)
+  const live = withoutStaleDoses(history, base)
   const next = rhythm ?? rhythmOf(period)
   if (base.currentPeriodHasDose) {
     const resolved = changesRhythm(period, next)
@@ -667,7 +667,7 @@ export function editionPlan(
   const treatment = { name: data.name, type: data.type }
   if (change === 'locked') return { treatment, period: null, doses: [] }
 
-  const doses = doseWrites(treatmentScheduleOf(history, today), move, ids)
+  const doses = plannedDoseWrites(treatmentScheduleOf(history, today), move, ids)
   const corrects = change === 'correct' && !sameSettings(settings, settingsOf(period))
   const plan: TreatmentPlanWrite =
     change === 'open'

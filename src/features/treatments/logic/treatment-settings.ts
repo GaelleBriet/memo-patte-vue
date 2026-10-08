@@ -1,5 +1,4 @@
 import { currentPeriodOf, treatmentScheduleOf } from './treatment-schedule-adapter'
-import type { PlannedDoseWrite } from '../repository/treatments.repository'
 import type { TreatmentRhythm } from '../schema/treatment-form.schema'
 import {
   treatmentPeriodSettingsSchema,
@@ -12,8 +11,6 @@ import { sortedTimes } from '@/shared/domain/clock-time'
 import {
   isNoteLine,
   ScheduleTooLongError,
-  type LineChange,
-  type MovedDose,
   type TreatmentSchedule,
 } from '@/shared/domain/treatment-schedule'
 
@@ -113,25 +110,6 @@ export function changesSchedule(period: TreatmentPeriodRecord, rhythm: Treatment
     JSON.stringify([period.frequency, sortedTimes(period.times)]) !==
     JSON.stringify([rhythm.frequency, sortedTimes(rhythm.times)])
   )
-}
-
-function lineWrite(change: LineChange, newId: string): PlannedDoseWrite[] {
-  switch (change.action) {
-    case 'none':
-      return []
-    case 'delete':
-      return [{ action: 'delete', id: change.doseId }]
-    case 'create':
-      return [{ action: 'create', id: newId, dose: change.dose }]
-    case 'rewrite':
-      return [{ action: 'rewrite', id: change.doseId, dose: change.dose }]
-  }
-}
-
-export function doseWrites(schedule: TreatmentSchedule, move: MovedDose | null, ids: PlanIds) {
-  const stale: PlannedDoseWrite[] = schedule.staleDoseIds.map((id) => ({ action: 'delete', id }))
-  if (move === null) return stale
-  return [...stale, ...lineWrite(move.report, ids.doseId), ...lineWrite(move.shift, ids.shiftId)]
 }
 
 /** Lève la `RangeError` du moteur quand l'app ne saurait pas relire cet historique. */

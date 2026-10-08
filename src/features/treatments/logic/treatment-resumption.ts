@@ -1,9 +1,9 @@
 import { addDays, differenceInCalendarDays, formatISO, parseISO } from 'date-fns'
 
+import { plannedDoseWrites } from './treatment-dose-writes'
 import { treatmentScheduleOf } from './treatment-schedule-adapter'
 import {
   currentPeriod,
-  doseWrites,
   lastNotedDueOn,
   settingsOf,
   startsTooFarBack,
@@ -109,6 +109,6 @@ export function resumptionPlan(
       ),
       referenceOn: firstDoseOn,
     },
-    doses: doseWrites(treatmentScheduleOf(history, today), null, ids),
+    doses: plannedDoseWrites(treatmentScheduleOf(history, today), null, ids),
   }
 }

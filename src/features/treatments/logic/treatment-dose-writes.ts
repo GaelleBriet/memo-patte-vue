@@ -1,4 +1,6 @@
+import type { PlanIds } from './treatment-settings'
 import type { DoseWrite } from '../repository/treatment-doses.repository'
+import type { PlannedDoseWrite } from '../repository/treatments.repository'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
 import {
@@ -132,7 +134,7 @@ function movedChange(
   }
 }
 
-function withoutStale(writes: DoseWrite[], schedule: TreatmentSchedule): DoseWrite[] {
+function withStaleDeletes(writes: DoseWrite[], schedule: TreatmentSchedule): DoseWrite[] {
   if (writes.length === 0) return writes
   const unique = writes.filter(
     (write, index) =>
@@ -336,5 +338,33 @@ export function doseChange(
   newId: () => string,
 ): DoseChange {
   const change = changeOf(history, schedule, action, newId)
-  return { ...change, writes: withoutStale(change.writes, schedule) }
+  return { ...change, writes: withStaleDeletes(change.writes, schedule) }
+}
+
+function plannedLineWrites(change: LineChange, newId: string): PlannedDoseWrite[] {
+  switch (change.action) {
+    case 'none':
+      return []
+    case 'delete':
+      return [{ action: 'delete', id: change.doseId }]
+    case 'create':
+      return [{ action: 'create', id: newId, dose: change.dose }]
+    case 'rewrite':
+      return [{ action: 'rewrite', id: change.doseId, dose: change.dose }]
+  }
+}
+
+/** Écritures de « Modifier » et « Reprendre » : les prises périmées, puis le déplacement de la prochaine dose. */
+export function plannedDoseWrites(
+  schedule: TreatmentSchedule,
+  move: MovedDose | null,
+  ids: PlanIds,
+): PlannedDoseWrite[] {
+  const stale: PlannedDoseWrite[] = schedule.staleDoseIds.map((id) => ({ action: 'delete', id }))
+  if (move === null) return stale
+  return [
+    ...stale,
+    ...plannedLineWrites(move.report, ids.doseId),
+    ...plannedLineWrites(move.shift, ids.shiftId),
+  ]
 }
