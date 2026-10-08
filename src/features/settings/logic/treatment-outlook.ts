@@ -35,7 +35,8 @@ function outlookOf(
     return {
       kind: 'stopped',
       on: current?.stoppedOn ?? null,
-      beforeFirstDose: current !== undefined && isStoppedBeforeFirstDose(current, history.doses),
+      beforeFirstDose:
+        current !== undefined && isStoppedBeforeFirstDose(current, history.periods, schedule),
     }
   }
   const due = schedule.phase === 'ended' ? null : (schedule.currentDoses[0] ?? schedule.nextDue)

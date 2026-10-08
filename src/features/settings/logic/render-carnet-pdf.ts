@@ -362,6 +362,19 @@ function noDoseLabel(due: PdfTreatmentRow['due'], t: Translate): string {
     : t('settings.pdf.history.noDoseUpcoming', { date })
 }
 
+function repeatsLastDose(row: PdfTreatmentRow): boolean {
+  const lines = row.periods.flatMap((period) => period.lines)
+  const only = lines.length === 1 ? lines[0]! : null
+  if (only?.kind !== 'given' || only.series.kind !== 'dates') return false
+  const [dose, ...others] = only.series.doses
+  return (
+    others.length === 0 &&
+    dose!.on === row.lastDoseDate &&
+    dose!.time === null &&
+    dose!.extra === row.lastDoseExtra
+  )
+}
+
 function treatmentHistory(row: PdfTreatmentRow, t: Translate): Detail[] {
   const summary =
     row.lastDoseDate === null
@@ -369,11 +382,12 @@ function treatmentHistory(row: PdfTreatmentRow, t: Translate): Detail[] {
       : t('settings.pdf.history.lastDose', {
           date: doseText({ on: row.lastDoseDate, time: null, extra: row.lastDoseExtra }, t),
         })
+  const repeats = repeatsLastDose(row)
   return [
     detail(summary),
     ...row.periods.flatMap((period) => [
       detail(periodHeadText(period, t)),
-      ...period.lines.map((line) => detail(historyLineText(line, t), 1)),
+      ...(repeats ? [] : period.lines.map((line) => detail(historyLineText(line, t), 1))),
     ]),
   ]
 }
