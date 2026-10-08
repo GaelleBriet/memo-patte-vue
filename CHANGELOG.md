@@ -5,6 +5,16 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.65](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.64...memo-patte-v0.1.65) (2026-10-08)
+
+
+### 🐛 Corrections
+
+* **eslint:** clé immediate entre guillemets, computed lu sur place ([25cda6f](https://github.com/GaelleBriet/memo-patte-vue/commit/25cda6f55f17f3a026d9f0a7ab7612732796f6e6))
+* **eslint:** fonctions passées à un appel lues au setup, options de watch, API Vue ([1e93292](https://github.com/GaelleBriet/memo-patte-vue/commit/1e932921728dfa141cf9d743942f6b6016ef28e2))
+* **eslint:** source d'un watch lue au setup, appels inconnus classés ([cff0a6a](https://github.com/GaelleBriet/memo-patte-vue/commit/cff0a6a67844730f2f1612f9bd0113ae8c8e890b))
+* **eslint:** toute fonction lue au setup sauf aux places paresseuses connues ([196672b](https://github.com/GaelleBriet/memo-patte-vue/commit/196672b344444ce89815729822ddc71f9f5160fd))
+
 ## [0.1.64](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.63...memo-patte-v0.1.64) (2026-10-08)
 
 
