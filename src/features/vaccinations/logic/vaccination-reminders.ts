@@ -1,11 +1,8 @@
 import type { Animal } from '@/features/animals/schema/animal.schema'
 import type { EntryReminders } from '@/shared/domain/due-reminders-schedule'
-import {
-  vaccinationReminderPlan,
-  type CarnetReminderSettings,
-  type ReminderTranslate,
-} from '@/shared/domain/reminder-plan'
+import { vaccinationReminderPlan, type CarnetReminderSettings } from '@/shared/domain/reminder-plan'
 import type { Vaccination } from '../schema/vaccination.schema'
+import type { Translate } from '@/core/i18n/translate'
 
 /** Rappels qu'une injection plus récente a remplacés, lus par `listReplacedDues`. */
 export type ReplacedDues = { replacedDues: readonly string[] }
@@ -25,7 +22,7 @@ export function isInjectionNoted(
 }
 
 export function vaccinationReminders(
-  t: ReminderTranslate,
+  t: Translate,
   vaccination: RemindedVaccination,
   animal: Pick<Animal, 'name' | 'deletedAt' | 'unfollowedOn'> | null,
   settings: CarnetReminderSettings,

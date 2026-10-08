@@ -24,12 +24,7 @@ import {
   type TreatmentPeriodInput,
   type TreatmentSchedule,
 } from './treatment-schedule'
-
-export type ReminderTranslate = (
-  key: string,
-  named: Record<string, unknown>,
-  plural?: number,
-) => string
+import type { Translate } from '@/core/i18n/translate'
 
 export type CarnetReminderSettings = { vaccineReminderTime: string; remindBeforeDue: boolean }
 
@@ -121,7 +116,7 @@ function upcomingAndCurrent(source: TreatmentReminderSource): Due[] {
 }
 
 export function treatmentReminderPlan(
-  t: ReminderTranslate,
+  t: Translate,
   source: TreatmentReminderSource,
   settings: CarnetReminderSettings,
   now: Date,
@@ -196,7 +191,7 @@ export function treatmentReminderPlan(
 }
 
 export function vaccinationReminderPlan(
-  t: ReminderTranslate,
+  t: Translate,
   { id, name, animalName, dueDate }: VaccinationReminderSource,
   settings: CarnetReminderSettings,
   now: Date,

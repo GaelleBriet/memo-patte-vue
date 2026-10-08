@@ -2,14 +2,11 @@ import { format } from 'date-fns'
 
 import type { Animal } from '@/features/animals/schema/animal.schema'
 import type { EntryReminders } from '@/shared/domain/due-reminders-schedule'
-import {
-  treatmentReminderPlan,
-  type CarnetReminderSettings,
-  type ReminderTranslate,
-} from '@/shared/domain/reminder-plan'
+import { treatmentReminderPlan, type CarnetReminderSettings } from '@/shared/domain/reminder-plan'
 import { isNoteLine, type TreatmentSchedule } from '@/shared/domain/treatment-schedule'
 import { currentPeriodOf, readableScheduleOf } from './treatment-schedule-adapter'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { Translate } from '@/core/i18n/translate'
 
 /** Sans heure, la clé de l'ancienne forme vaut pour toute prise de son jour. */
 function notedBy(schedule: TreatmentSchedule): EntryReminders['isNoted'] {
@@ -20,7 +17,7 @@ function notedBy(schedule: TreatmentSchedule): EntryReminders['isNoted'] {
 
 /** Un traitement illisible n'a ni rappel ni échéance notée. */
 export function treatmentReminders(
-  t: ReminderTranslate,
+  t: Translate,
   treatment: TreatmentWithHistory,
   animal: Pick<Animal, 'name' | 'deletedAt' | 'unfollowedOn'> | null,
   settings: CarnetReminderSettings,

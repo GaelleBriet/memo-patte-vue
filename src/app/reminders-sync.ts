@@ -39,12 +39,9 @@ import {
   type EntryReminders,
   type ReminderNotifications,
 } from '@/shared/domain/due-reminders-schedule'
-import {
-  plannedReminders,
-  type CarnetReminderSettings,
-  type ReminderTranslate,
-} from '@/shared/domain/reminder-plan'
+import { plannedReminders, type CarnetReminderSettings } from '@/shared/domain/reminder-plan'
 import type { ReminderKind } from '@/shared/domain/reminders'
+import type { Translate } from '@/core/i18n/translate'
 
 type Provider<T> = () => T | Promise<T>
 
@@ -98,7 +95,7 @@ export type RemindersSyncDependencies = {
     ReminderNotifications,
     'checkPermission' | 'canScheduleExact' | 'rescheduleAll' | 'listScheduled' | 'removeDelivered'
   >
-  t: ReminderTranslate
+  t: Translate
   now: () => Date
 }
 
