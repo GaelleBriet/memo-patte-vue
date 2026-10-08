@@ -176,6 +176,46 @@ describe('« Prochaine dose », case décochée : un report seul (Q2)', () => {
     )
   })
 
+  describe('à plusieurs heures, la journée entière se déplace (Q21)', () => {
+    const every2 = carnet(
+      period({
+        firstDueOn: '2026-09-28',
+        frequency: { value: 2, unit: 'day' },
+        times: ['08:00', '20:00'],
+      }),
+    )
+
+    function movedDay(shiftsFollowing: boolean) {
+      const { report, shift } = scheduleOf(every2, '2026-09-28').move(
+        due('2026-09-28', '20:00'),
+        '2026-09-29',
+        shiftsFollowing,
+      )
+      return scheduleOf(applied(applied(every2, shift), report), '2026-09-28')
+    }
+
+    it('décochée : le 29 a ses deux heures, le 30 garde son jour', () => {
+      const schedule = movedDay(false)
+
+      expect(schedule.upcoming(4)).toEqual([
+        due('2026-09-29', '08:00'),
+        due('2026-09-29', '20:00'),
+        due('2026-09-30', '08:00'),
+        due('2026-09-30', '20:00'),
+      ])
+      expect(schedule.unloggedDoses).toEqual([])
+    })
+
+    it('cochée : la suite passe au 1er', () => {
+      expect(movedDay(true).upcoming(4)).toEqual([
+        due('2026-09-29', '08:00'),
+        due('2026-09-29', '20:00'),
+        due('2026-10-01', '08:00'),
+        due('2026-10-01', '20:00'),
+      ])
+    })
+  })
+
   it('une dose déplacée seule puis donnée un autre jour ne décale rien (Q2 c)', () => {
     const book = moved(pixel, '2026-10-15', '2026-10-16', '2026-10-19', false)
     const schedule = scheduleOf(book, '2026-10-20')

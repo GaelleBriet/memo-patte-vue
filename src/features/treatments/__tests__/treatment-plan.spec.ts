@@ -2368,6 +2368,24 @@ describe('« Prochaine dose » et la case « Décaler aussi les doses suivantes 
     expect(shift).toMatchObject({ lost: [], aloneLatest: '2026-10-22' })
   })
 
+  it.each(['2026-10-02', '2026-10-17'])(
+    'pas de case quand la première échéance d’une période sans prise passe du 10 au %s',
+    (nextDoseOn) => {
+      const sansPrise = treatment([
+        period({
+          startsOn: '2026-10-10',
+          firstDueOn: '2026-10-10',
+          frequency: { value: 1, unit: 'week' },
+        }),
+      ])
+
+      expect(editionDraft(sansPrise, null, '2026-09-28', nextDoseOn).nextDose).toMatchObject({
+        change: 'first-due',
+        shift: null,
+      })
+    },
+  )
+
   it('dit la dose que la date de fin ferait perdre (V28 bis)', () => {
     const fin = treatment(
       [{ ...VENDREDI, endsOn: '2026-10-30' }],

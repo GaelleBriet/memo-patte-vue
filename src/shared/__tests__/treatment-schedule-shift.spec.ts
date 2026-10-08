@@ -374,6 +374,22 @@ describe('les limites du §11 de la spec, fermées par la ligne de décalage', (
     ])
   })
 
+  it('3c’ case décochée : la dose du moment du 30 août donnée le 31 → 30 sept., 30 oct., 30 nov.', () => {
+    const luna = record(carnet(monthly({ firstDueOn: '2026-08-30' })), '2026-08-31', {
+      kind: 'given',
+      due: due('2026-08-30'),
+      givenOn: '2026-08-31',
+      shiftsFollowing: false,
+    })
+
+    expect(shiftsOf(luna)).toEqual([])
+    expect(dueDays(scheduleOf(luna, '2026-08-31').upcoming(3))).toEqual([
+      '2026-09-30',
+      '2026-10-30',
+      '2026-11-30',
+    ])
+  })
+
   it('3e : mensuel du 31 janv., posologie changée le 20 févr. → 28 févr., 31 mars, 30 avr.', () => {
     const book = done(carnet(monthly({ firstDueOn: '2027-01-31' })), '2027-01-31')
     const dates = scheduleOf(book, '2027-02-20').newPeriod({ value: 1, unit: 'month' }, [])
