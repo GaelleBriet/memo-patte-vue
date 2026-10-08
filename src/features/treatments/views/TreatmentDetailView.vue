@@ -80,7 +80,7 @@ const isStopDialogOpen = ref(false)
 const isDeleteDialogOpen = ref(false)
 const changing = ref<{ row: DoseRow; change: DateChange; box: DateChangeBox | null } | null>(null)
 
-const doseCardRef = useTemplateRef<InstanceType<typeof TreatmentDoseCard>>('doseCard')
+const doseCardRef = useTemplateRef<InstanceType<typeof TreatmentDoseCard>>('doseCardRef')
 
 const animal = computed(() => (treatment.value ? animals.byId(treatment.value.animalId) : null))
 const named = computed(() => ({
@@ -325,7 +325,7 @@ onMounted(() => {
     <div class="treatment-detail__content">
       <template v-if="treatment && card && history && actions">
         <TreatmentDoseCard
-          ref="doseCard"
+          ref="doseCardRef"
           :card="card"
           :less-precise="lessPrecise"
           :busy="gestures.isBusy.value"
