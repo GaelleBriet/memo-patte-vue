@@ -58,13 +58,16 @@ describe('animalInputSchema', () => {
     )
   })
 
-  it('accepte une date de naissance passée ou aujourd’hui', () => {
-    vi.useFakeTimers({ toFake: ['Date'], now: new Date(2026, 9, 8, 23, 30) })
-    const today = '2026-10-08'
-    expect(animalInputSchema.safeParse({ ...validInput, birthDate: '2020-02-29' }).success).toBe(
-      true,
-    )
-    expect(animalInputSchema.safeParse({ ...validInput, birthDate: today }).success).toBe(true)
+  it.each([
+    ['0 h 30', new Date(2026, 9, 8, 0, 30)],
+    ['23 h 30', new Date(2026, 9, 8, 23, 30)],
+  ])('accepte une date de naissance passée ou aujourd’hui, refuse demain (à %s)', (_heure, now) => {
+    vi.useFakeTimers({ toFake: ['Date'], now })
+    const valid = (birthDate: string) =>
+      animalInputSchema.safeParse({ ...validInput, birthDate }).success
+    expect(valid('2020-02-29')).toBe(true)
+    expect(valid('2026-10-08')).toBe(true)
+    expect(valid('2026-10-09')).toBe(false)
   })
 })
 

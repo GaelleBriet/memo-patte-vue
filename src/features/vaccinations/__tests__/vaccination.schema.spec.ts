@@ -72,13 +72,19 @@ describe('vaccinationInputSchema', () => {
     expect(result.error?.issues.map((issue) => issue.path)).toEqual([['dueDate']])
   })
 
-  it('accepte une date de dernière injection passée ou aujourd’hui', () => {
-    vi.useFakeTimers({ toFake: ['Date'], now: new Date(2026, 9, 8, 23, 30) })
-    const today = '2026-10-08'
-    expect(
-      vaccinationInputSchema.safeParse({ ...validInput, lastInjectionDate: today }).success,
-    ).toBe(true)
-  })
+  it.each([
+    ['0 h 30', new Date(2026, 9, 8, 0, 30)],
+    ['23 h 30', new Date(2026, 9, 8, 23, 30)],
+  ])(
+    'accepte une date de dernière injection passée ou aujourd’hui, refuse demain (à %s)',
+    (_heure, now) => {
+      vi.useFakeTimers({ toFake: ['Date'], now })
+      const valid = (lastInjectionDate: string) =>
+        vaccinationInputSchema.safeParse({ ...validInput, lastInjectionDate }).success
+      expect(valid('2026-10-08')).toBe(true)
+      expect(valid('2026-10-09')).toBe(false)
+    },
+  )
 
   it('accepte une échéance future ou absente, rejette une échéance mal formée', () => {
     expect(vaccinationInputSchema.safeParse({ ...validInput, dueDate: '2099-06-12' }).success).toBe(
@@ -93,7 +99,8 @@ describe('vaccinationInputSchema', () => {
   // Un vaccin en retard est le cas central du produit : contrairement à la date
   // d'injection, l'échéance ne doit jamais être contrainte au futur.
   it('accepte une échéance passée, y compris hier', () => {
-    const hier = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10)
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date(2026, 9, 8, 0, 30) })
+    const hier = '2026-10-07'
     expect(vaccinationInputSchema.safeParse({ ...validInput, dueDate: '2020-01-15' }).success).toBe(
       true,
     )

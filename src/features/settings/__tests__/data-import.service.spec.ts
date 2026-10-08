@@ -1261,7 +1261,7 @@ describe('data-import.service', () => {
   })
 
   describe('deux appareils', () => {
-    function enHeureLocale(dateTime: string): string {
+    function instantLocal(dateTime: string): string {
       return new Date(dateTime).toISOString()
     }
 
@@ -1302,7 +1302,7 @@ describe('data-import.service', () => {
             animalId: luna.id,
             givenOn: '2026-09-09',
             nextDueDate: '2026-09-16',
-            at: enHeureLocale('2026-09-09T08:00:00'),
+            at: instantLocal('2026-09-09T08:00:00'),
           }),
         ),
       ])
@@ -1315,7 +1315,7 @@ describe('data-import.service', () => {
             animalId: luna.id,
             givenOn: '2026-09-10',
             nextDueDate: '2026-09-17',
-            at: enHeureLocale('2026-09-10T08:00:00'),
+            at: instantLocal('2026-09-10T08:00:00'),
           }),
         ),
       ])
@@ -1501,7 +1501,7 @@ describe('data-import.service', () => {
             animalId: luna.id,
             givenOn: '2026-09-12',
             nextDueDate: '2026-12-12',
-            at: enHeureLocale('2026-09-12T08:00:00'),
+            at: instantLocal('2026-09-12T08:00:00'),
           }),
         ),
       ])
