@@ -33,13 +33,14 @@ dans son module, l'écran ne faisant qu'assembler : ticket #655.
 
 Un groupe séparé du suivant par une ligne vide, vérifié par la règle ESLint `app/vue-script-order` :
 
-1. imports, puis types locaux et constantes de module (`const MAX = 3`, un appel qui ne lit que des
-   imports ou des constantes de module)
+1. imports, puis types locaux et constantes de module (`const MAX = 3`, `defineAsyncComponent`, un
+   appel qui ne lit que des imports ou des constantes de module)
 2. `defineProps` (ou `withDefaults`), `defineEmits`, `defineModel`, `defineSlots`, `defineOptions`
 3. outils : `useI18n`, `useRouter`, `useRoute`, stores, composables `useXxx()`
 4. état : `ref`, `reactive`, `shallowRef`, `useTemplateRef`, `useId`, `toRef`, `toRefs`, `inject`,
-   `provide`, `new`, `let`, et toute valeur ou tout appel qui lit les props, les outils, l'état, un
-   `computed` ou une fonction locale
+   `provide`, `readonly`, `shallowReadonly`, `customRef`, `markRaw`, `effectScope`,
+   `getCurrentInstance`…, `new`, `let`, et toute valeur ou tout appel qui lit les props, les outils,
+   l'état, un `computed` ou une fonction locale
 5. `computed`
 6. `watch`, `watchEffect`
 7. fonctions
@@ -47,4 +48,4 @@ Un groupe séparé du suivant par une ligne vide, vérifié par la règle ESLint
 9. `defineExpose`
 
 Une instruction qui a besoin d'une valeur d'un groupe plus bas pour s'initialiser reste après elle :
-un composable qui reçoit un état local (`useFormValidation(values)`) vient juste après cet état.
+un composable qui reçoit un état local (`useFormValidation(values)`) vient après cet état.
