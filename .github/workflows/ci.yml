@@ -44,7 +44,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        tz: ['Pacific/Kiritimati', 'Pacific/Pago_Pago']
+        tz: ['Pacific/Kiritimati', 'Pacific/Pago_Pago', 'America/Santiago']
     steps:
       - uses: actions/checkout@v7
 
