@@ -1,7 +1,7 @@
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest'
-import { createMemoryHistory, createRouter, type Router } from 'vue-router'
+import { createMemoryHistory, createRouter, createWebHistory, type Router } from 'vue-router'
 
 import TreatmentFormView from '../views/TreatmentFormView.vue'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
@@ -2617,6 +2617,24 @@ describe('TreatmentFormView — reprise (TR-32, planche V7)', () => {
       expect(wrapper.get('.form-screen__submit').attributes('disabled')).toBeDefined()
       expect(useAnimalsStore().selectedAnimalId).toBe(MILO.id)
       expect(resume).not.toHaveBeenCalled()
+    })
+
+    it('ouvert depuis sa fiche, y revient par l’historique sans la doubler', async () => {
+      routeur = createRouter({ history: createWebHistory(), routes: routeur.options.routes })
+      await routeur.push({ name: 'treatment-detail', params: { id: ID } })
+      await routeur.push({
+        name: 'treatment-resume',
+        params: { id: ID },
+        query: { from: 'treatment-detail', reminder: `treatment:${ID}` },
+      })
+      replace = vi.spyOn(routeur, 'replace').mockResolvedValue()
+      const back = vi.spyOn(routeur, 'back').mockImplementation(() => undefined)
+
+      await monterReprise()
+
+      expect(back).toHaveBeenCalledOnce()
+      expect(replace).not.toHaveBeenCalled()
+      routeur.options.history.destroy()
     })
   })
 

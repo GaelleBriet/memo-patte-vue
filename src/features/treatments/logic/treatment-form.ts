@@ -1,4 +1,3 @@
-import type { RouteLocationRaw } from 'vue-router'
 import type { z } from 'zod'
 
 import { creationPastDues, treatmentCreationSchemaFor } from './treatment-creation'
@@ -28,7 +27,6 @@ import type { ExactRemindersStatus, NotificationPermissionStatus } from '@/core/
 import { isCalendarDay } from '@/shared/domain/calendar-day'
 import { isClockTime, MAX_TIMES_PER_DAY, sortedTimes } from '@/shared/domain/clock-time'
 import { formatDoseQuantity, TABLET_SHORTCUTS, type DoseUnit } from '@/shared/domain/dosage'
-import { detailRoute } from '@/shared/domain/reminder-route'
 import type { Due, MoveRefusal } from '@/shared/domain/treatment-schedule'
 import { formatClockTimes, formatDayMonthOrYear, withoutFinalDot } from '@/shared/utils/format'
 
@@ -459,10 +457,9 @@ export function validateTreatmentResumption(
 }
 
 type LoadedTreatmentForm =
-  | { status: 'ready'; values: TreatmentFormValues }
-  | { status: 'not-resumable'; redirect: RouteLocationRaw }
+  { status: 'ready'; values: TreatmentFormValues } | { status: 'not-resumable' }
 
-/** Les valeurs d'un traitement relu ; un traitement en cours n'a rien à reprendre : retour à sa fiche. */
+/** Les valeurs d'un traitement relu ; un traitement ni terminé ni arrêté n'a rien à reprendre : retour à sa fiche. */
 export function loadedFormValues(
   mode: 'edit' | 'resume',
   loaded: TreatmentWithHistory,
@@ -470,12 +467,7 @@ export function loadedFormValues(
 ): LoadedTreatmentForm {
   if (mode === 'resume') {
     const { period, canResume } = resumptionDraft(loaded, today)
-    if (!canResume) {
-      return {
-        status: 'not-resumable',
-        redirect: detailRoute({ kind: 'treatment', id: loaded.id }),
-      }
-    }
+    if (!canResume) return { status: 'not-resumable' }
     return { status: 'ready', values: { ...treatmentFormValuesFrom(loaded, period), endsOn: '' } }
   }
   const first = editionDraftOf(emptyTreatmentFormValues(), loaded, today)

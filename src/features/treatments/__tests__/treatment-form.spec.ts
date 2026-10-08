@@ -25,6 +25,7 @@ import {
   withoutTime,
   type TreatmentFormValues,
 } from '../logic/treatment-form'
+import { treatmentScheduleOf } from '../logic/treatment-schedule-adapter'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
@@ -731,10 +732,16 @@ describe('loadedFormValues', () => {
     expect(opened).toMatchObject({ values: { name: 'Milbemax', firstDoseOn: '', endsOn: '' } })
   })
 
-  it('un traitement en cours n’a rien à reprendre : retour à sa fiche, pas « introuvable »', () => {
-    expect(loadedFormValues('resume', milbemax(), TODAY)).toEqual({
-      status: 'not-resumable',
-      redirect: { name: 'treatment-detail', params: { id: milbemax().id } },
-    })
-  })
+  it.each([
+    ['upcoming', TODAY],
+    ['today', '2026-10-10'],
+    ['overdue', '2026-10-12'],
+  ] as const)(
+    'un traitement en cours (%s) n’a rien à reprendre, sans être introuvable',
+    (phase, on) => {
+      expect(treatmentScheduleOf(milbemax(), on).phase).toBe(phase)
+
+      expect(loadedFormValues('resume', milbemax(), on)).toEqual({ status: 'not-resumable' })
+    },
+  )
 })
