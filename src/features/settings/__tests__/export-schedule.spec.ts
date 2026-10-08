@@ -291,6 +291,30 @@ describe('PDF : traitement sans prise donnée', () => {
     expect(text).not.toContain('Tous les jours')
   })
 
+  it('n’écrit pas non plus une période remplacée avant sa première échéance', () => {
+    const data = carnet(
+      [
+        period({ startsOn: '2026-09-01', firstDueOn: '2026-09-10', frequency: DAILY }),
+        period({
+          id: 'p-2',
+          startsOn: '2026-09-05',
+          firstDueOn: '2026-09-20',
+          frequency: WEEKLY,
+          stoppedOn: '2026-09-12',
+          createdAt: '2026-09-05T08:00:00.000Z',
+        }),
+      ],
+      [],
+    )
+    const text = pdfText(data, '2026-09-15')
+
+    expect(treatmentRow(data, '2026-09-15')).toMatchObject({
+      due: { kind: 'stopped', beforeFirstDose: true },
+      periods: [],
+    })
+    expect(text).not.toContain('01/09/2026')
+  })
+
   describe('reprise arrêtée avant sa première échéance, après une période où des doses étaient dues', () => {
     const data = carnet(
       [

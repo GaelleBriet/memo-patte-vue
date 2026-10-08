@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import { isStoppedBeforeFirstDose, isStoppedBeforeItsFirstDue } from '../domain/treatment-end'
-import type { DoseStatus, TreatmentPeriodInput } from '../domain/treatment-schedule'
+import { isStoppedBeforeFirstDose, periodClosedBeforeFirstDue } from '../domain/treatment-end'
+import type { Due, DoseStatus, TreatmentPeriodInput } from '../domain/treatment-schedule'
 
 type Period = Pick<
   TreatmentPeriodInput,
@@ -21,15 +21,24 @@ function lines(...statuses: DoseStatus[]) {
   return statuses.map((status) => ({ status }))
 }
 
-function alone(current: Period, doses = lines()) {
-  return isStoppedBeforeFirstDose(current, { periods: [current], doses })
+function alone(current: Period, doses = lines(), unloggedDoses: Due[] = []) {
+  return isStoppedBeforeFirstDose(current, [current], { doses, unloggedDoses })
 }
 
-describe('isStoppedBeforeItsFirstDue', () => {
-  it('vrai seulement pour une période arrêtée avant sa première échéance', () => {
-    expect(isStoppedBeforeItsFirstDue(period)).toBe(true)
-    expect(isStoppedBeforeItsFirstDue({ ...period, stoppedOn: '2026-10-07' })).toBe(false)
-    expect(isStoppedBeforeItsFirstDue({ ...period, stoppedOn: null })).toBe(false)
+describe('periodClosedBeforeFirstDue', () => {
+  it('vrai pour une période arrêtée avant sa première échéance', () => {
+    expect(periodClosedBeforeFirstDue(period, undefined)).toBe(true)
+    expect(periodClosedBeforeFirstDue({ ...period, stoppedOn: '2026-10-07' }, undefined)).toBe(
+      false,
+    )
+    expect(periodClosedBeforeFirstDue({ ...period, stoppedOn: null }, undefined)).toBe(false)
+  })
+
+  it('vrai pour une période remplacée par la suivante avant sa première échéance', () => {
+    const open = { ...period, stoppedOn: null }
+
+    expect(periodClosedBeforeFirstDue(open, { startsOn: '2026-10-07' })).toBe(true)
+    expect(periodClosedBeforeFirstDue(open, { startsOn: '2026-10-08' })).toBe(false)
   })
 })
 
@@ -51,6 +60,12 @@ describe('isStoppedBeforeFirstDose', () => {
     }
   })
 
+  it('faux quand le moteur compte une dose due non renseignée, avancée avant l’arrêt', () => {
+    const advanced: Due = { periodId: 'p-1', dueOn: '2026-10-05', dueTime: null }
+
+    expect(alone(period, lines('postponed'), [advanced])).toBe(false)
+  })
+
   it('faux quand une période précédente a eu des doses dues, même jamais renseignées', () => {
     const first: Period = {
       ...period,
@@ -67,7 +82,9 @@ describe('isStoppedBeforeFirstDose', () => {
       stoppedOn: '2026-10-08',
     }
 
-    expect(isStoppedBeforeFirstDose(resumed, { periods: [first, resumed], doses: [] })).toBe(false)
+    expect(
+      isStoppedBeforeFirstDose(resumed, [first, resumed], { doses: [], unloggedDoses: [] }),
+    ).toBe(false)
   })
 
   it('vrai quand chaque période s’est close avant sa première échéance', () => {
@@ -86,6 +103,8 @@ describe('isStoppedBeforeFirstDose', () => {
       stoppedOn: '2026-09-12',
     }
 
-    expect(isStoppedBeforeFirstDose(next, { periods: [replaced, next], doses: [] })).toBe(true)
+    expect(isStoppedBeforeFirstDose(next, [replaced, next], { doses: [], unloggedDoses: [] })).toBe(
+      true,
+    )
   })
 })

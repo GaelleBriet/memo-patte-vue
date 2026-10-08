@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { dose, missed, period, plain, shifted, treatment } from './treatment-fixtures'
+import { dose, missed, period, plain, postponed, shifted, treatment } from './treatment-fixtures'
 import { detailActions, doseCard, lessPreciseReminder } from '../logic/treatment-card'
 import { treatmentScheduleOf } from '../logic/treatment-schedule-adapter'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
@@ -212,6 +212,18 @@ describe('doseCard', () => {
     expect(card(beforeFirstDue, '2026-10-05').end?.value).toBe('Arrêté avant la première prise')
     expect(card(onFirstDue, '2026-10-07').end?.value).toBe('Arrêté le 7 oct.')
     expect(card(resumed, '2026-10-06').end?.value).toBe('Arrêté le 6 oct.')
+  })
+
+  it('garde « Arrêté le … » quand la première dose, avancée avant l’arrêt, est due sans être renseignée', () => {
+    const advanced = treatment(
+      [period({ startsOn: '2026-10-07', firstDueOn: '2026-10-07', stoppedOn: '2026-10-06' })],
+      [postponed('2026-10-07', '2026-10-05')],
+    )
+
+    expect(treatmentScheduleOf(advanced, '2026-10-06').unloggedDoses).toEqual([
+      { periodId: 'p-1', dueOn: '2026-10-05', dueTime: null },
+    ])
+    expect(card(advanced, '2026-10-06').end?.value).toBe('Arrêté le 6 oct.')
   })
 
   it('garde « Arrêté le … » quand une période précédente a eu des doses dues, jamais renseignées', () => {

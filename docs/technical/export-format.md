@@ -491,7 +491,7 @@ continue alors sur la page suivante.
   - sans aucune prise, la ligne donne l'état à la place : `Aucune prise · …`, ou `Aucune prise` seul ;
   - puis chaque période, la plus récente d'abord, avec sa fréquence, ses heures quand il y en a
     plusieurs, et sa posologie : `Du 01/09/2026 au 20/10/2026 · Tous les jours · 8 h et 20 h · ½ comprimé`.
-    Une période arrêtée avant sa première échéance, sans aucune ligne, n'est pas écrite : elle se
+    Une période close (arrêtée ou remplacée) avant sa première échéance, sans aucune ligne, n'est pas écrite : elle se
     lirait comme une date prévue ; les autres périodes du traitement restent ;
   - une prise unique, seule ligne de l'historique, ne se répète pas sous sa période quand elle ne dit
     rien de plus que `Dernière prise` (même date, sans heure) ;

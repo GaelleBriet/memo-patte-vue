@@ -27,7 +27,10 @@ export type DoseCard = {
   end: { label: string | null; value: string | null } | null
 }
 
-type CardSchedule = Pick<TreatmentSchedule, 'phase' | 'currentDoses' | 'currentPeriodId' | 'doses'>
+type CardSchedule = Pick<
+  TreatmentSchedule,
+  'phase' | 'currentDoses' | 'currentPeriodId' | 'doses' | 'unloggedDoses'
+>
 
 export function doseCard(
   t: Translate,
@@ -67,11 +70,7 @@ export function doseCard(
             today,
             stoppedOn: period?.stoppedOn ?? null,
             stoppedBeforeFirstDose:
-              period !== null &&
-              isStoppedBeforeFirstDose(period, {
-                periods: treatment.periods,
-                doses: schedule.doses,
-              }),
+              period !== null && isStoppedBeforeFirstDose(period, treatment.periods, schedule),
             endsOn: endedOnOf(treatment, schedule, today),
           }),
   }

@@ -6,7 +6,7 @@ import { buildReminders, type ReminderKind } from '@/shared/domain/reminders'
 import type { ExportData, ExportFrequency } from '@/shared/domain/carnet-data'
 import { vaccinationHistories } from '@/shared/domain/carnet-heads'
 import type { Dosage } from '@/shared/domain/dosage'
-import { isStoppedBeforeItsFirstDue } from '@/shared/domain/treatment-end'
+import { periodClosedBeforeFirstDue } from '@/shared/domain/treatment-end'
 import { byStartDescending, periodLastDay } from '@/shared/domain/treatment-periods'
 import { isAdvanced, type TreatmentDoseInput } from '@/shared/domain/treatment-schedule'
 
@@ -226,7 +226,7 @@ function treatmentPeriods({ periods, doses, schedule }: TreatmentState): PdfTrea
           dose: { on: due.dueOn, time: severalTimes ? due.dueTime : null, extra: false },
         })),
     ]
-    if (events.length === 0 && isStoppedBeforeItsFirstDue(period)) return []
+    if (events.length === 0 && periodClosedBeforeFirstDue(period, sorted[index - 1])) return []
     return [
       {
         from: period.startsOn,

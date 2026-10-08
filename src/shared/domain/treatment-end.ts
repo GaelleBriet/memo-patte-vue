@@ -27,26 +27,27 @@ type PeriodDays = Pick<
   'id' | 'startsOn' | 'createdAt' | 'firstDueOn' | 'endsOn' | 'stoppedOn'
 >
 
-export function isStoppedBeforeItsFirstDue({
-  firstDueOn,
-  stoppedOn,
-}: Pick<TreatmentPeriodInput, 'firstDueOn' | 'stoppedOn'>): boolean {
-  return stoppedOn !== null && stoppedOn < firstDueOn
+/** Arrêtée, finie ou remplacée par `next` avant sa première échéance. */
+export function periodClosedBeforeFirstDue(
+  period: Pick<TreatmentPeriodInput, 'firstDueOn' | 'endsOn' | 'stoppedOn'>,
+  next: Pick<TreatmentPeriodInput, 'startsOn'> | undefined,
+): boolean {
+  const last = periodLastDay(period, next)
+  return last !== null && last < period.firstDueOn
 }
 
 /** `period` arrêtée avant sa première échéance, et aucune dose jamais due ni notée sur tout le traitement. */
 export function isStoppedBeforeFirstDose(
   period: Pick<TreatmentPeriodInput, 'firstDueOn' | 'stoppedOn'>,
-  treatment: {
-    periods: readonly PeriodDays[]
+  periods: readonly PeriodDays[],
+  schedule: Pick<TreatmentSchedule, 'unloggedDoses'> & {
     doses: readonly Pick<TreatmentDoseInput, 'status'>[]
   },
 ): boolean {
-  const noted = treatment.doses.some((dose) => isNoteLine(dose) || dose.status === 'extra')
-  const sorted = [...treatment.periods].sort(byStartDescending)
-  const neverDue = sorted.every((each, index) => {
-    const last = periodLastDay(each, sorted[index - 1])
-    return last !== null && last < each.firstDueOn
-  })
-  return isStoppedBeforeItsFirstDue(period) && !noted && neverDue
+  const noted = schedule.doses.some((dose) => isNoteLine(dose) || dose.status === 'extra')
+  const sorted = [...periods].sort(byStartDescending)
+  const neverDue =
+    schedule.unloggedDoses.length === 0 &&
+    sorted.every((each, index) => periodClosedBeforeFirstDue(each, sorted[index - 1]))
+  return period.stoppedOn !== null && period.stoppedOn < period.firstDueOn && !noted && neverDue
 }
