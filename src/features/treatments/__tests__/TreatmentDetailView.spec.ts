@@ -1284,6 +1284,17 @@ describe('TreatmentDetailView — barre du haut et fin du traitement', () => {
     })
   })
 
+  it('arrêté avant sa première prise : la carte le dit, l’historique dit seulement « Aucune prise »', async () => {
+    const view = await monter(
+      treatment([
+        period({ startsOn: '2026-09-29', firstDueOn: '2026-09-29', stoppedOn: '2026-09-28' }),
+      ]),
+    )
+
+    expect(textes(view, '.treatment-dose-card__value')).toEqual(['Arrêté avant la première prise'])
+    expect(view.get('.treatment-history__empty').text()).toBe('Aucune prise')
+  })
+
   it('AN-9 : ne propose plus de reprendre pour un animal qu’on ne suit plus, la fiche reste lisible', async () => {
     useAnimalsStore().animals = [{ ...LUNA, unfollowedOn: '2026-09-26' }]
 

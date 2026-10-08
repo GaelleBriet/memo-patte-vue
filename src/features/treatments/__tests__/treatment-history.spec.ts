@@ -323,13 +323,13 @@ describe('treatmentHistory — plusieurs périodes (planche A · V3)', () => {
       stoppedOn: '2026-10-06',
     })
 
-    it('dit « Arrêté avant la première prise » au lieu de « pour l’instant »', () => {
+    it('dit « Aucune prise », comme le PDF : la carte « Fin du traitement » dit déjà pourquoi', () => {
       expect(history(treatment([avant]), '2026-10-06').periods).toEqual([
         {
           id: 'p-1',
           head: null,
           lines: [],
-          emptyText: 'Arrêté avant la première prise',
+          emptyText: 'Aucune prise',
           visibleLines: 0,
           toggle: null,
         },
@@ -351,11 +351,11 @@ describe('treatmentHistory — plusieurs périodes (planche A · V3)', () => {
         history(book, '2026-10-10').periods.map(({ head, emptyText }) => [head?.title, emptyText]),
       ).toEqual([
         ['Depuis le 10 oct. 2026', 'Aucune prise dans cette période pour l’instant'],
-        ['Le 7 oct. 2026', 'Arrêté avant la première prise'],
+        ['Le 7 oct. 2026', 'Aucune prise'],
       ])
     })
 
-    it('reprise arrêtée avant sa première échéance, après une prise : pas « Arrêté avant la première prise »', () => {
+    it('reprise arrêtée avant sa première échéance, après une prise : « Aucune prise dans cette période », sans « pour l’instant »', () => {
       const book = treatment(
         [
           period({ stoppedOn: '2026-09-02' }),
@@ -371,7 +371,7 @@ describe('treatmentHistory — plusieurs périodes (planche A · V3)', () => {
       )
 
       expect(history(book, '2026-10-07').periods[0]?.emptyText).toBe(
-        'Aucune prise dans cette période pour l’instant',
+        'Aucune prise dans cette période',
       )
     })
 
@@ -380,15 +380,80 @@ describe('treatmentHistory — plusieurs périodes (planche A · V3)', () => {
       const empty = (stoppedOn: string) =>
         history(treatment([period({ ...later, stoppedOn })]), '2026-10-12').periods[0]?.emptyText
 
-      expect(empty('2026-10-05')).toBe('Arrêté avant la première prise')
-      expect(empty('2026-10-10')).toBe('Aucune prise dans cette période pour l’instant')
+      expect(empty('2026-10-05')).toBe('Aucune prise')
+      expect(empty('2026-10-10')).toBe('Aucune prise dans cette période')
     })
 
     it('s’écrit en anglais', () => {
       applyLocale('en')
 
-      expect(history(treatment([avant]), '2026-10-06').periods[0]?.emptyText).toBe(
-        'Stopped before the first dose',
+      expect(history(treatment([avant]), '2026-10-06').periods[0]?.emptyText).toBe('No doses')
+    })
+  })
+
+  describe('période close sans prise', () => {
+    const after = (overrides: Parameters<typeof period>[0]) =>
+      treatment(
+        [
+          period({ stoppedOn: '2026-09-02' }),
+          period({
+            id: 'p-2',
+            startsOn: '2026-10-08',
+            firstDueOn: '2026-10-08',
+            createdAt: '2026-10-07T08:00:00.000Z',
+            ...overrides,
+          }),
+        ],
+        [dose('2026-09-01', '2026-09-02')],
+      )
+
+    it('garde « pour l’instant » tant que sa date de fin n’est pas passée', () => {
+      expect(history(after({ endsOn: '2026-10-09' }), '2026-10-07').periods[0]?.emptyText).toBe(
+        'Aucune prise dans cette période pour l’instant',
+      )
+    })
+
+    it('retire « pour l’instant » une fois arrêtée ou sa date de fin passée', () => {
+      expect(history(after({ stoppedOn: '2026-10-07' }), '2026-10-07').periods[0]?.emptyText).toBe(
+        'Aucune prise dans cette période',
+      )
+      expect(history(after({ endsOn: '2026-10-09' }), '2026-10-10').periods[0]?.emptyText).toBe(
+        'Aucune prise dans cette période',
+      )
+    })
+
+    it('retire « pour l’instant » sous une période suivie d’une autre', () => {
+      const book = treatment(
+        [
+          period({ stoppedOn: '2026-09-02' }),
+          period({
+            id: 'p-2',
+            startsOn: '2026-10-08',
+            firstDueOn: '2026-10-20',
+            createdAt: '2026-10-07T08:00:00.000Z',
+          }),
+          period({
+            id: 'p-3',
+            startsOn: '2026-10-12',
+            firstDueOn: '2026-10-12',
+            createdAt: '2026-10-11T08:00:00.000Z',
+          }),
+        ],
+        [dose('2026-09-01', '2026-09-02')],
+      )
+
+      expect(history(book, '2026-10-12').periods.map(({ emptyText }) => emptyText)).toEqual([
+        'Aucune prise dans cette période pour l’instant',
+        'Aucune prise dans cette période',
+        null,
+      ])
+    })
+
+    it('s’écrit en anglais', () => {
+      applyLocale('en')
+
+      expect(history(after({ stoppedOn: '2026-10-07' }), '2026-10-07').periods[0]?.emptyText).toBe(
+        'No doses in this period',
       )
     })
   })

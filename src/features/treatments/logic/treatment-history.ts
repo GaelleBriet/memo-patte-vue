@@ -328,9 +328,23 @@ function linesOf(
   return lines
 }
 
-function emptyText(t: Translate, period: Period, doses: TreatmentDoseInput[]): string {
-  return isStoppedBeforeFirstDose(period, doses)
-    ? t('treatments.history.stoppedBeforeFirstDose')
+function isClosed(period: Period, next: Period | undefined, today: string): boolean {
+  return (
+    period.stoppedOn !== null ||
+    next !== undefined ||
+    (period.endsOn !== null && period.endsOn < today)
+  )
+}
+
+function emptyText(
+  t: Translate,
+  period: Period,
+  next: Period | undefined,
+  { doses, today }: { doses: TreatmentDoseInput[]; today: string },
+): string {
+  if (isStoppedBeforeFirstDose(period, doses)) return t('treatments.history.noDose')
+  return isClosed(period, next, today)
+    ? t('treatments.history.emptyClosed')
     : t('treatments.history.empty')
 }
 
@@ -392,7 +406,10 @@ export function treatmentHistory(
               settings: periodSettingsText(t, period),
             },
         lines,
-        emptyText: lines.length === 0 ? emptyText(t, period, schedule.doses) : null,
+        emptyText:
+          lines.length === 0
+            ? emptyText(t, period, periods[index - 1], { doses: schedule.doses, today })
+            : null,
         visibleLines: hidden === 0 ? lines.length : LINES_BEFORE_TOGGLE,
         toggle:
           hidden === 0
