@@ -19,6 +19,7 @@ import {
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import { isCalendarDay, latestOf, nextDay } from '@/shared/domain/calendar-day'
+import type { TreatmentPhase } from '@/shared/domain/treatment-schedule'
 
 export type ResumptionDraft = {
   period: TreatmentPeriodRecord
@@ -48,6 +49,10 @@ function resumptionEarliestOn(
   return latestOf([period.startsOn, after === null ? null : nextDay(after)]) ?? period.startsOn
 }
 
+export function isResumablePhase(phase: TreatmentPhase): boolean {
+  return phase === 'stopped' || phase === 'ended'
+}
+
 export function resumptionDraft(history: TreatmentWithHistory, today: string): ResumptionDraft {
   const schedule = treatmentScheduleOf(history, today)
   const period = currentPeriod(history, schedule)
@@ -57,7 +62,7 @@ export function resumptionDraft(history: TreatmentWithHistory, today: string): R
       : differenceInCalendarDays(parseISO(period.endsOn), parseISO(period.firstDueOn)) + 1
   return {
     period,
-    canResume: schedule.phase === 'stopped' || schedule.phase === 'ended',
+    canResume: isResumablePhase(schedule.phase),
     startedOn: period.firstDueOn,
     endedOn: period.stoppedOn ?? period.endsOn,
     earliestOn: resumptionEarliestOn(history, period),
