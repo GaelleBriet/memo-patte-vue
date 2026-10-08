@@ -2189,3 +2189,13 @@ la page du nouveau site. Remplace le sous-domaine `memopatte.gaelle-briet.fr` et
 `memopatte@gaelle-briet.fr` du 2026-09-26. — Raison : un nom à soi, court, qu'on retient, prêt pour la
 page vitrine ; `memopatte.com` est pris. — Alternative écartée : garder le sous-domaine du site
 de l'entreprise. Étude dans le coffre de notes de Gaelle.
+
+2026-10-08 — **Mesure d'audience du site : Cloudflare Web Analytics** (revient sur « pas de
+statistiques sur le site » de l'étude de la page vitrine). Activée dans le projet Pages, sans code :
+pas de cookie, pas d'identifiant, des chiffres globaux seulement (pages vues, provenance, pays, type
+d'appareil). Cloudflare héberge déjà le site : il est ajouté aux prestataires de la politique de
+confidentialité, avec une ligne dans « En bref ». L'app n'est pas concernée (PostHog, après
+consentement). — Raison : savoir si la page vitrine attire du monde, sans bandeau ni nouveau
+prestataire. — Alternatives écartées : Umami Cloud (nouveau prestataire, hébergement « États-Unis et
+UE » sans garantie claire) ; aucune mesure. Pour revenir dessus : désactiver Web Analytics dans le
+projet Pages et retirer les deux mentions.
