@@ -5,7 +5,7 @@ import { useI18n } from 'vue-i18n'
 import TreatmentShiftCheckbox from './TreatmentShiftCheckbox.vue'
 import { hasSeveralTimes } from '../logic/treatment-gestures'
 import { otherDateBox, otherDateNote, otherDateRecap } from '../logic/treatment-shift-box'
-import type { TreatmentWithHistory } from '../repository/treatments.repository'
+import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import BottomSheet from '@/shared/components/BottomSheet.vue'
 import type { Due, DoseGesture, TreatmentSchedule } from '@/shared/domain/treatment-schedule'
 

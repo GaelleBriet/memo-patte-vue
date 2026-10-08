@@ -13,22 +13,24 @@ import TreatmentUnloggedPrompt from './TreatmentUnloggedPrompt.vue'
 import { chooseDaysSubtitle, type DayChoice } from '../logic/treatment-choose-days'
 import {
   creationPastDuesOf,
-  editionDraftOf,
   emptyTreatmentFormValues,
-  nextDoseRefusalKey,
-  nextDoseShiftHelp,
+  loadedFormValues,
   pastDosesBasis,
   reminderHelpText,
   reminderOffsetChoices,
   suggestExactReminders,
   DUPLICATE_TIME_ERROR_KEY,
-  treatmentFormValuesFrom,
   validateTreatmentCreation,
   validateTreatmentEdition,
   validateTreatmentResumption,
 } from '../logic/treatment-form'
-import { pastDuesTexts } from '../logic/treatment-past-dues'
-import { resumptionDraft } from '../logic/treatment-plan'
+import {
+  endsOnHelpText,
+  formErrorParams,
+  frequencyUnitCount,
+  nextDoseHelpText,
+  resumeInfoText,
+} from '../logic/treatment-form-texts'
 import {
   pastDosesOf,
   pastDosesPrompt,
@@ -36,11 +38,12 @@ import {
   promptChoice,
   type PromptActionId,
 } from '../logic/treatment-unlogged'
-import type { TreatmentWithHistory } from '../repository/treatments.repository'
+import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import type { PastDuesChoice } from '../schema/treatment-form.schema'
 import type { ReminderOffsetMinutes } from '../schema/treatment-period.schema'
 import { FREQUENCY_UNITS, TREATMENT_TYPES, type FrequencyUnit } from '../schema/treatment.schema'
 import { useTreatmentsStore } from '../store/treatments.store'
+import { useTreatmentFormDrafts } from '../composables/use-treatment-form-drafts'
 import { useToday } from '@/core/app-lifecycle/use-today'
 import {
   markExactRemindersSuggested,
@@ -51,7 +54,6 @@ import { useExactReminders } from '@/core/notifications/use-exact-reminders'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import ExactRemindersExplainer from '@/shared/components/ExactRemindersExplainer.vue'
 import { MAX_FREQUENCY_VALUE } from '@/shared/domain/treatment-frequency'
-import { formatDayMonthOrYear, formatFullDayMonth, withoutFinalDot } from '@/shared/utils/format'
 import FormField from '@/shared/form/FormField.vue'
 import FormScreen from '@/shared/form/FormScreen.vue'
 import FormSegmented from '@/shared/form/FormSegmented.vue'
@@ -90,8 +92,6 @@ const endsOnTouched = ref(false)
 /** Une écriture a réussi : plus aucune autre ne part de cet écran. */
 const isSaved = ref(false)
 const hasDuplicateTime = ref(false)
-/** La réponse vaut pour les échéances annoncées au moment où elle a été donnée. */
-const pastDuesAnswer = ref<{ choice: PastDuesChoice; dues: string } | null>(null)
 const isPastDuesOpen = ref(false)
 /** Réponse de l'encart des doses passées : rien n'est écrit avant « Créer ». */
 const pastDosesAnswer = ref<DayChoice | null>(null)
@@ -123,6 +123,17 @@ function requireHistory(): TreatmentWithHistory {
   return history.value
 }
 
+const {
+  draft,
+  previous,
+  nextDose,
+  nextDoseShift,
+  pastDuesChoice,
+  pastDues,
+  hasSettings,
+  answerPastDues: recordPastDuesAnswer,
+} = useTreatmentFormDrafts(mode, { values, history, today, endsOnTouched })
+
 const creation = useFormValidation(values, (current) =>
   validateTreatmentCreation(
     current,
@@ -141,34 +152,6 @@ const errors = computed(
   () => ({ create: creation, edit: edition, resume: resumption })[mode].errors.value,
 )
 
-const draft = computed(() => {
-  if (mode !== 'edit' || history.value === null) return null
-  try {
-    return editionDraftOf(values.value, history.value, today.value)
-  } catch {
-    return null
-  }
-})
-const previous = computed(() =>
-  mode === 'resume' && history.value !== null ? resumptionDraft(history.value, today.value) : null,
-)
-const nextDose = computed(() => draft.value?.nextDose ?? null)
-const nextDoseShift = computed(() =>
-  draft.value === null ? null : nextDoseShiftHelp(t, draft.value, values.value, today.value),
-)
-const announcedDues = computed(() =>
-  JSON.stringify([draft.value?.pastDues ?? [], draft.value?.pastDuesNextDose ?? null]),
-)
-const pastDuesChoice = computed(() =>
-  pastDuesAnswer.value?.dues === announcedDues.value ? pastDuesAnswer.value.choice : null,
-)
-const pastDues = computed(() => {
-  const current = draft.value
-  return current === null || current.pastDuesNextDose === null
-    ? null
-    : pastDuesTexts(t, current.pastDues, current.period, current.pastDuesNextDose)
-})
-const hasSettings = computed(() => draft.value?.change !== 'locked')
 const pastDoses = computed(() =>
   mode === 'create'
     ? pastDosesPrompt(
@@ -229,74 +212,25 @@ const canSave = computed(
 const typeOptions = computed(() =>
   TREATMENT_TYPES.map((type) => ({ value: type, label: t(`treatments.type.${type}`) })),
 )
-const unitCount = computed(() => {
-  const count = Number(values.value.frequencyValue)
-  return Number.isInteger(count) && count > 0 ? count : 1
-})
+const unitCount = computed(() => frequencyUnitCount(values.value.frequencyValue))
 const unitOptions = computed(() =>
   FREQUENCY_UNITS.map((unit) => ({
     value: unit,
     label: t(`treatments.form.frequency.unit.${unit}`, unitCount.value),
   })),
 )
-const nextDoseHelp = computed(() => {
-  const help = nextDose.value?.help ?? null
-  if (help === null) return null
-  switch (help.kind) {
-    case 'refused':
-      return t(nextDoseRefusalKey(help.refusal))
-    case 'dropped':
-      return t('treatments.form.nextDoseOn.dropped', { n: help.count }, help.count)
-    case 'overdue':
-      return t('treatments.form.nextDoseOn.overdue', {
-        date: formatDayMonthOrYear(help.since, today.value),
-      })
-    case 'today':
-      return t('treatments.form.nextDoseOn.today')
-    case 'scheduled':
-      return t('treatments.form.nextDoseOn.scheduled', {
-        date: withoutFinalDot(formatDayMonthOrYear(help.on, today.value)),
-      })
-    case 'calculated-passed':
-      return t('treatments.form.nextDoseOn.calculatedPassed', {
-        date: formatDayMonthOrYear(help.on, today.value),
-      })
-    case 'calculated':
-      return t('treatments.form.nextDoseOn.calculated', {
-        date: withoutFinalDot(formatDayMonthOrYear(help.on, today.value)),
-      })
-  }
-  return null
-})
-const resumeInfo = computed(() => {
-  if (previous.value === null || previous.value.endedOn === null) return null
-  return t('treatments.form.resumeInfo', {
-    start: formatDayMonthOrYear(previous.value.startedOn, today.value),
-    end: withoutFinalDot(formatDayMonthOrYear(previous.value.endedOn, today.value)),
-  })
-})
-const endsOnHelp = computed(() => {
-  const days = previous.value?.durationDays ?? null
-  if (days === null || endsOnTouched.value) return t('treatments.form.endsOn.help')
-  const duration = t('treatments.form.endsOn.days', { n: days }, days)
-  return values.value.endsOn === ''
-    ? t('treatments.form.endsOn.sameDuration', { duration })
-    : t('treatments.form.endsOn.repeatedDuration', { duration })
-})
+const nextDoseHelp = computed(() => nextDoseHelpText(t, nextDose.value?.help ?? null, today.value))
+const resumeInfo = computed(() => resumeInfoText(t, previous.value, today.value))
+const endsOnHelp = computed(() =>
+  endsOnHelpText(t, previous.value, {
+    endsOn: values.value.endsOn,
+    touched: endsOnTouched.value,
+  }),
+)
 
 function errorText(key: string | undefined): string | null {
   if (key === undefined) return null
-  const next = nextDose.value
-  const farthest = draft.value?.farthestMove ?? null
-  return t(key, {
-    max: MAX_NAME_LENGTH,
-    date: next ? formatFullDayMonth(next.earliest) : '',
-    latest: next?.latest ? formatFullDayMonth(next.latest) : '',
-    from: previous.value
-      ? withoutFinalDot(formatDayMonthOrYear(previous.value.earliestOn, today.value))
-      : '',
-    arrival: farthest ? withoutFinalDot(formatDayMonthOrYear(farthest.arrivesOn, today.value)) : '',
-  })
+  return t(key, formErrorParams(draft.value, previous.value, today.value))
 }
 
 watch(
@@ -307,48 +241,16 @@ watch(
 )
 
 watch(
-  () => [values.value.frequencyValue, values.value.frequencyUnit, values.value.times],
-  () => {
-    pastDuesAnswer.value = null
-  },
-)
-
-watch(
   () => pastDosesBasis(values.value, pastDoses.value?.dues ?? []),
   () => {
     pastDosesAnswer.value = null
   },
 )
 
-watch(
-  () => nextDose.value?.proposedOn,
-  (proposedOn) => {
-    values.value.nextDoseOn = proposedOn ?? ''
-    values.value.shiftsFollowing = nextDose.value?.shiftInitial ?? true
-  },
-)
-
-watch(
-  () => values.value.firstDoseOn,
-  (firstDoseOn) => {
-    if (previous.value === null || endsOnTouched.value) return
-    values.value.endsOn = previous.value.endsOnFor(firstDoseOn) ?? ''
-  },
-)
-
 function open(loaded: TreatmentWithHistory): void {
-  if (mode === 'resume') {
-    const { period, canResume } = resumptionDraft(loaded, today.value)
-    notFound.value = !canResume
-    values.value = { ...treatmentFormValuesFrom(loaded, period), endsOn: '' }
-  } else {
-    const first = editionDraftOf(emptyTreatmentFormValues(), loaded, today.value)
-    values.value = {
-      ...treatmentFormValuesFrom(loaded, first.period),
-      nextDoseOn: first.nextDose?.proposedOn ?? '',
-      shiftsFollowing: first.nextDose?.shiftInitial ?? true,
-    }
-  }
+  const opened = loadedFormValues(mode === 'resume' ? 'resume' : 'edit', loaded, today.value)
+  notFound.value = !opened.found
+  values.value = opened.values
   keptOffset.value = values.value.reminderOffset
   history.value = loaded
 }
@@ -452,7 +354,7 @@ function answerPastDoses(choice: DayChoice): void {
 }
 
 function answerPastDues(choice: PastDuesChoice): Promise<void> {
-  pastDuesAnswer.value = { choice, dues: announcedDues.value }
+  recordPastDuesAnswer(choice)
   return submit()
 }
 

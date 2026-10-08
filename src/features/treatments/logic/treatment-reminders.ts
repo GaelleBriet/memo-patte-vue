@@ -8,8 +8,8 @@ import {
   type ReminderTranslate,
 } from '@/shared/domain/reminder-plan'
 import { isNoteLine, type TreatmentSchedule } from '@/shared/domain/treatment-schedule'
-import { currentPeriodOf, readableScheduleOf } from './treatment-schedule'
-import type { TreatmentWithHistory } from '../repository/treatments.repository'
+import { currentPeriodOf, readableScheduleOf } from './treatment-schedule-adapter'
+import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 
 /** Sans heure, la clé de l'ancienne forme vaut pour toute prise de son jour. */
 function notedBy(schedule: TreatmentSchedule): EntryReminders['isNoted'] {

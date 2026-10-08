@@ -12,10 +12,8 @@ import type { TreatmentPlanService } from '../service/treatment-plan.service'
 import type { TreatmentDosesService } from '../service/treatment-doses.service'
 import type { TreatmentRemindersService } from '../service/treatment-reminders.service'
 import type { TreatmentStopService } from '../service/treatment-stop.service'
-import type {
-  TreatmentsRepository,
-  TreatmentWithHistory,
-} from '../repository/treatments.repository'
+import type { TreatmentsRepository } from '../repository/treatments.repository'
+import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import {
   provideTreatmentDosesService,
   provideTreatmentPlanService,
@@ -375,24 +373,15 @@ describe('useTreatmentsStore', () => {
     )
   })
 
-  it('programme les rappels du traitement créé sur sa prochaine échéance', async () => {
-    const store = useTreatmentsStore()
-
-    const created = await store.create(creation())
-
-    expect(reminders.reschedule).toHaveBeenCalledWith(created.id)
-  })
-
-  it('reprogramme les rappels quand « Modifier » déplace l’échéance', async () => {
+  it('laisse au service les rappels d’une création, d’une modification et d’une reprise', async () => {
     const seme = repository.seed(vermifuge())
     const store = useTreatmentsStore()
 
-    const updated = await store.update(seme.id, edition({ nextDoseOn: '2026-07-12' }))
+    await store.create(creation())
+    await store.update(seme.id, edition({ nextDoseOn: '2026-07-12' }))
+    await store.resume(seme.id, reprise())
 
-    expect(reminders.reschedule).toHaveBeenCalledWith(updated.id)
-    expect(repository.update.mock.invocationCallOrder[0]).toBeLessThan(
-      reminders.reschedule.mock.invocationCallOrder[0]!,
-    )
+    expect(reminders.reschedule).not.toHaveBeenCalled()
   })
 
   it('reprogramme, donc retire, les rappels du traitement supprimé, après l’écriture en base', async () => {
@@ -476,7 +465,7 @@ describe('useTreatmentsStore', () => {
     expect(repository.listDoses).toHaveBeenCalledWith('t1')
   })
 
-  it('reprend un traitement arrêté, reprogramme ses rappels et relit la liste', async () => {
+  it('reprend un traitement arrêté et relit la liste', async () => {
     const seme = repository.seed(vermifuge())
     const store = useTreatmentsStore()
     await store.loadForAnimal(MILO)
@@ -486,7 +475,6 @@ describe('useTreatmentsStore', () => {
 
     expect(repository.resume).toHaveBeenCalledWith(seme.id, reprise())
     expect(repris).toMatchObject({ id: seme.id, stoppedOn: null })
-    expect(reminders.reschedule).toHaveBeenCalledWith(seme.id)
     expect(repository.listWithHistoryByAnimal).toHaveBeenCalledWith(MILO)
   })
 

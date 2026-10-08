@@ -1,10 +1,10 @@
 // @vitest-environment node
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 import { ZodError } from 'zod'
 
 import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory-db'
-import { editionDraft } from '../logic/treatment-plan'
-import { treatmentScheduleOf } from '../logic/treatment-schedule'
+import { editionDraft } from '../logic/treatment-edition'
+import { treatmentScheduleOf } from '../logic/treatment-schedule-adapter'
 import { createTreatmentDosesRepository } from '../repository/treatment-doses.repository'
 import { createTreatmentPeriodsRepository } from '../repository/treatment-periods.repository'
 import {
@@ -12,12 +12,14 @@ import {
   type TreatmentsRepository,
 } from '../repository/treatments.repository'
 import type { TreatmentCreationInput, TreatmentEditionInput } from '../schema/treatment-form.schema'
+import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import { createWriteQueue } from '../logic/treatment-write-queue'
 import { createTreatmentDosesService, type NotedMoment } from '../service/treatment-doses.service'
 import {
   createTreatmentPlanService,
   type TreatmentPlanService,
 } from '../service/treatment-plan.service'
+import type { TreatmentRemindersService } from '../service/treatment-reminders.service'
 
 const MILO = '11111111-1111-4111-8111-111111111111'
 const T0 = '2026-09-01T08:00:00.000Z'
@@ -43,6 +45,7 @@ describe('treatmentPlanService', () => {
   let db: InMemoryDb
   let treatments: TreatmentsRepository
   let service: TreatmentPlanService
+  let reminders: { reschedule: Mock<TreatmentRemindersService['reschedule']> }
   let today: string
 
   beforeEach(async () => {
@@ -56,8 +59,10 @@ describe('treatmentPlanService', () => {
       [MILO, T0, T0],
     )
     treatments = createTreatmentsRepository(db)
+    reminders = { reschedule: vi.fn<TreatmentRemindersService['reschedule']>().mockResolvedValue() }
     service = createTreatmentPlanService({
       treatments: () => treatments,
+      reminders,
       today: () => today,
       newId: () => crypto.randomUUID(),
     })
@@ -409,6 +414,7 @@ describe('treatmentPlanService', () => {
         },
         applyPlan: (treatmentId, plan) => treatments.applyPlan(treatmentId, plan),
       }),
+      reminders: { reschedule: () => Promise.resolve() },
       today: () => today,
       newId: () => crypto.randomUUID(),
       queue,
@@ -628,5 +634,61 @@ describe('treatmentPlanService', () => {
     await expect(service.update('inconnu', saisie())).rejects.toThrow(
       'Traitement introuvable : inconnu',
     )
+  })
+
+  describe('rappels', () => {
+    let seenAtReschedule: TreatmentWithHistory | null
+
+    beforeEach(() => {
+      seenAtReschedule = null
+      reminders.reschedule.mockImplementation(async (id) => {
+        seenAtReschedule = await treatments.getWithHistory(id)
+      })
+    })
+
+    it('programme les rappels du traitement créé, après son écriture', async () => {
+      const created = await service.create(MILBEMAX)
+
+      expect(reminders.reschedule).toHaveBeenCalledExactlyOnceWith(created.id)
+      expect(seenAtReschedule).toMatchObject({ id: created.id })
+    })
+
+    it('reprogramme les rappels quand « Modifier » déplace l’échéance', async () => {
+      const { id } = await service.create(MILBEMAX)
+      await give(id, '2026-09-26', '2026-10-03')
+      reminders.reschedule.mockClear()
+
+      await service.update(id, saisie({ nextDoseOn: '2026-10-06' }))
+
+      expect(reminders.reschedule).toHaveBeenCalledExactlyOnceWith(id)
+      expect(seenAtReschedule?.doses).toContainEqual(
+        expect.objectContaining({ status: 'postponed', nextDueDate: '2026-10-06' }),
+      )
+    })
+
+    it('reprogramme les rappels d’un traitement repris', async () => {
+      const { id } = await service.create(MILBEMAX)
+      await give(id, '2026-09-26', '2026-10-03')
+      await createTreatmentPeriodsRepository(db).stop(id, '2026-09-28')
+      today = '2026-11-02'
+      reminders.reschedule.mockClear()
+
+      await service.resume(id, { ...MILBEMAX, firstDoseOn: '2026-11-03', endsOn: null })
+
+      expect(reminders.reschedule).toHaveBeenCalledExactlyOnceWith(id)
+      expect(seenAtReschedule?.periods).toHaveLength(2)
+    })
+
+    it('ne touche pas aux rappels quand l’écriture est refusée', async () => {
+      const { id } = await service.create(MILBEMAX)
+      reminders.reschedule.mockClear()
+
+      await expect(service.update('inconnu', saisie())).rejects.toThrow('Traitement introuvable')
+      await expect(service.resume(id, { ...MILBEMAX, endsOn: null })).rejects.toThrow(
+        'Traitement en cours',
+      )
+
+      expect(reminders.reschedule).not.toHaveBeenCalled()
+    })
   })
 })

@@ -1,9 +1,8 @@
-import { addDays, format, parseISO } from 'date-fns'
-
 import type { DoseAction, DoseChange } from './treatment-dose-writes'
 import { moveText, type DoseLineAction } from './treatment-history'
 import { revealedDuesText, type RevealedDues } from './treatment-revealed-dues'
-import type { TreatmentWithHistory } from '../repository/treatments.repository'
+import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import { nextDay } from '@/shared/domain/calendar-day'
 import {
   isAdvanced,
   type Due,
@@ -323,9 +322,7 @@ export function dateChangeOf(
   const date = formatLongDate(line.givenOn)
   // M1 : une prise donnée ne descend pas au jour où elle deviendrait une prise en plus.
   const afterExtra =
-    limits === null || limits.lastExtraDay === null
-      ? null
-      : format(addDays(parseISO(limits.lastExtraDay), 1), 'yyyy-MM-dd')
+    limits === null || limits.lastExtraDay === null ? null : nextDay(limits.lastExtraDay)
   return {
     subtitle:
       line.status === 'extra'

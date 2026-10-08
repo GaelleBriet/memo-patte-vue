@@ -1,4 +1,6 @@
-export type Frequency = { value: number; unit: 'day' | 'week' | 'month' }
+import type { Frequency } from './treatment-frequency'
+
+export type { Frequency }
 
 export type TreatmentPeriodInput = {
   id: string
@@ -237,7 +239,7 @@ export type Sequence = { origin: string; firstStep: number; floor: string }
 
 export type Step = { kind: 'note' | 'move' | 'shift'; dose: TreatmentDoseInput; position: string }
 
-export type PeriodPlan = {
+export type PeriodTimeline = {
   period: TreatmentPeriodInput
   closesOn: string | null
   steps: Step[]
@@ -263,8 +265,8 @@ export type State = {
   noted: Set<string>
   /** Échéances qui ont une ligne lue par le moteur : prise, report ou décalage en vigueur. */
   lines: Set<string>
-  plans: PeriodPlan[]
-  open: PeriodPlan | null
+  plans: PeriodTimeline[]
+  open: PeriodTimeline | null
   phase: TreatmentPhase
   currentDoses: Due[]
   unloggedDoses: Due[]

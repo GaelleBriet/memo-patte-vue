@@ -13,7 +13,7 @@ import {
   currentPeriodOf,
   readableScheduleOf,
   treatmentScheduleOf,
-} from '../logic/treatment-schedule'
+} from '../logic/treatment-schedule-adapter'
 import { dosesAfter } from '../logic/treatment-shift-box'
 import {
   createWriteQueue,
@@ -29,8 +29,8 @@ import {
 import {
   getTreatmentsRepository,
   type TreatmentsRepository,
-  type TreatmentWithHistory,
 } from '../repository/treatments.repository'
+import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import {
   treatmentRemindersService,
   type TreatmentRemindersService,

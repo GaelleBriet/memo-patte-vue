@@ -1,5 +1,10 @@
 import type { NotifiedDue } from '@/shared/domain/reminder-route'
-import type { Due, TreatmentDoseInput, TreatmentSchedule } from '@/shared/domain/treatment-schedule'
+import {
+  dueOf,
+  type Due,
+  type TreatmentDoseInput,
+  type TreatmentSchedule,
+} from '@/shared/domain/treatment-schedule'
 import { formatClockTime, formatDayMonthOrYear } from '@/shared/utils/format'
 
 export type Translate = (key: string, named?: Record<string, unknown>, plural?: number) => string
@@ -23,10 +28,6 @@ type DaySchedule = Pick<TreatmentSchedule, 'doses' | 'unloggedDoses' | 'currentD
 type OtherDateSchedule = DaySchedule & Pick<TreatmentSchedule, 'dueForDate'>
 
 export type DayDue = { due: Due; status: 'pending' | 'given' | 'missed'; givenOn: string | null }
-
-function dueOf({ periodId, dueOn, dueTime }: Due): Due {
-  return { periodId, dueOn, dueTime }
-}
 
 function dayDues(schedule: DaySchedule, day: string): DayDue[] {
   const notes = schedule.doses.flatMap((dose): DayDue[] =>
@@ -112,12 +113,10 @@ export function givenDays(schedule: DaySchedule): string[] {
 }
 
 /**
- * Transition, tant que la feuille « À faire » et les notifications ne visent pas une heure
- * (lots 4 et 7) : la première échéance encore sans prise du jour de la prise ; sans échéance ce
- * jour-là, la dose du moment aujourd'hui, ou la règle sans heure (TR-13) un autre jour. Aujourd'hui,
- * une dose notée oubliée ne repasse jamais en donnée, et une dose à venir ne se note pas en avance
- * quand une prise a déjà été donnée ; un autre jour, choisi par la personne, un oubli se corrige
- * (TR-22). `dayNoted` : toutes les doses du jour sont notées, aucune donnée. `null` : rien à noter.
+ * La première échéance encore sans prise du jour de la prise ; sans échéance ce jour-là, la dose du
+ * moment aujourd'hui, ou la règle sans heure (TR-13) un autre jour. Seul un autre jour corrige un
+ * oubli (TR-22), et une dose à venir ne se note pas en avance quand une prise a déjà été donnée.
+ * `dayNoted` : toutes les doses du jour sont notées, aucune donnée ; `null` : rien à noter.
  */
 export function momentDue(
   schedule: OtherDateSchedule,
@@ -146,10 +145,9 @@ export function momentDue(
 type MomentTarget = ReturnType<typeof momentDue>
 
 /**
- * Transition (lot 4) : ce que note « C'est fait » d'une notification, qui porte un jour d'échéance
- * et pas d'heure. Dans l'ordre : jour entièrement noté, « déjà notée » (ou `dayNoted` sans prise
- * donnée) ; journée entamée, `ask` ; dose à noter d'un autre jour que celui notifié, `ask` ; sinon
- * la dose que vise `momentDue`. `ask` : à la personne de choisir, rien n'est écrit.
+ * Ce que note « C'est fait » d'une notification sans heure : jour entièrement noté, « déjà notée »
+ * (ou `dayNoted`) ; journée entamée ou dose d'un autre jour que celui notifié, `ask`, rien n'est
+ * écrit ; sinon la dose que vise `momentDue`.
  */
 export function notifiedDue(
   schedule: OtherDateSchedule,

@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { createHomeRemindersService } from '../service/home-reminders.service'
 import { period, treatment, dose } from '@/features/treatments/__tests__/treatment-fixtures'
-import type { TreatmentWithHistory } from '@/features/treatments/repository/treatments.repository'
+import type { TreatmentWithHistory } from '@/features/treatments/schema/treatment-with-history.schema'
 import type { Vaccination } from '@/features/vaccinations/schema/vaccination.schema'
 
 const STAMPS = {

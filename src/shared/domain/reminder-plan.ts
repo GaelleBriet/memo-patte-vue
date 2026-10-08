@@ -16,8 +16,14 @@ import {
   type DueReminderEntry,
   type DueReminderMoment,
 } from './due-reminders'
-import type { Due, TreatmentPeriodInput, TreatmentSchedule } from './treatment-schedule'
-import { DAYS_PER_STEP, toDate, uniqueSorted } from './treatment-schedule-dues'
+import { toDate } from './calendar-day'
+import { DAYS_PER_STEP } from './treatment-frequency'
+import {
+  uniqueSorted,
+  type Due,
+  type TreatmentPeriodInput,
+  type TreatmentSchedule,
+} from './treatment-schedule'
 
 export type ReminderTranslate = (
   key: string,

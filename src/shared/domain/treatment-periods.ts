@@ -1,5 +1,4 @@
-import { format, parseISO, subDays } from 'date-fns'
-
+import { previousDay } from './calendar-day'
 import type { TreatmentPeriodInput } from './treatment-schedule'
 
 type Ordered = Pick<TreatmentPeriodInput, 'id' | 'startsOn' | 'createdAt'>
@@ -17,8 +16,7 @@ export function periodLastDay(
   period: Pick<TreatmentPeriodInput, 'endsOn' | 'stoppedOn'>,
   next: Pick<TreatmentPeriodInput, 'startsOn'> | undefined,
 ): string | null {
-  const beforeNext =
-    next === undefined ? null : format(subDays(parseISO(next.startsOn), 1), 'yyyy-MM-dd')
+  const beforeNext = next === undefined ? null : previousDay(next.startsOn)
   return (
     [period.endsOn, period.stoppedOn, beforeNext].filter((day) => day !== null).sort()[0] ?? null
   )

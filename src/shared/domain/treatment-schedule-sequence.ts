@@ -1,6 +1,8 @@
 import { differenceInCalendarDays, differenceInCalendarMonths } from 'date-fns'
 
-import { keyOf, previousDay, shiftDate, toDate } from './treatment-schedule-dues'
+import { previousDay, toDate } from './calendar-day'
+import { shiftDate } from './treatment-frequency'
+import { keyOf } from './treatment-schedule-dues'
 import type {
   Due,
   Frequency,

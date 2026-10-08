@@ -1,4 +1,5 @@
-import { compareText, dueId, dueOf, keyOf, uniqueSorted } from './treatment-schedule-dues'
+import { compareText } from './calendar-day'
+import { dueId, dueOf, keyOf, uniqueSorted } from './treatment-schedule-dues'
 import {
   duesUntil,
   initialSequence,
@@ -8,7 +9,7 @@ import {
 import type {
   DoseStatus,
   Due,
-  PeriodPlan,
+  PeriodTimeline,
   Sequence,
   Step,
   TreatmentDoseInput,
@@ -181,7 +182,7 @@ export function planPeriod(
   closesOn: string | null,
   doses: TreatmentDoseInput[],
   notedOnStart: number,
-): PeriodPlan {
+): PeriodTimeline {
   const notes = doses.filter(isNoteLine)
   const noteKeys = new Set(notes.map(keyOf))
   const noteDays = new Set(notes.map((dose) => dose.dueOn))
@@ -230,17 +231,17 @@ export function closingDay(
   return bounds.sort(compareText)[0] ?? null
 }
 
-function isWithinPeriod(plan: PeriodPlan, dueOn: string): boolean {
+function isWithinPeriod(plan: PeriodTimeline, dueOn: string): boolean {
   const { endsOn } = plan.period
   return (endsOn === null || dueOn <= endsOn) && (plan.closesOn === null || dueOn < plan.closesOn)
 }
 
-function isRemoved(plan: PeriodPlan, due: Due): boolean {
+function isRemoved(plan: PeriodTimeline, due: Due): boolean {
   const first = plan.removals.get(due.dueOn)
   return first !== undefined && keyOf(due) >= first
 }
 
-export function sequenceAt(plan: PeriodPlan, position: string): Sequence {
+export function sequenceAt(plan: PeriodTimeline, position: string): Sequence {
   let low = 0
   let high = plan.anchors.length
   while (low < high) {
@@ -252,7 +253,10 @@ export function sequenceAt(plan: PeriodPlan, position: string): Sequence {
 }
 
 // Une période ouverte sans date de fin est infinie : `to` ou `limit` la bornent.
-export function pendingDues(plan: PeriodPlan, { from = '', to, limit = Infinity }: Window): Due[] {
+export function pendingDues(
+  plan: PeriodTimeline,
+  { from = '', to, limit = Infinity }: Window,
+): Due[] {
   const isPending = (due: Due) =>
     isWithinPeriod(plan, due.dueOn) &&
     !plan.noteKeys.has(keyOf(due)) &&
@@ -270,7 +274,7 @@ export function pendingDues(plan: PeriodPlan, { from = '', to, limit = Infinity 
 }
 
 /** Dernière journée d'échéance de la période, prises comprises ; `null` pour une période sans fin. */
-export function lastDueDay(plan: PeriodPlan): string | null {
+export function lastDueDay(plan: PeriodTimeline): string | null {
   if (plan.period.endsOn === null && plan.closesOn === null) return null
   const isKept = (due: Due) => isWithinPeriod(plan, due.dueOn) && !isRemoved(plan, due)
   let last = plan.between.filter(isKept).at(-1)?.dueOn ?? null
@@ -281,7 +285,7 @@ export function lastDueDay(plan: PeriodPlan): string | null {
   return last
 }
 
-export function nextDueAfter(plan: PeriodPlan, due: Due): Due {
+export function nextDueAfter(plan: PeriodTimeline, due: Due): Due {
   const key = keyOf(due)
   const isAfter = (other: Due) => keyOf(other) > key && !isRemoved(plan, other)
   const bounded = plan.between.find(isAfter)
@@ -293,12 +297,12 @@ export function nextDueAfter(plan: PeriodPlan, due: Due): Due {
   }
 }
 
-export function notesOf(plan: PeriodPlan): TreatmentDoseInput[] {
+export function notesOf(plan: PeriodTimeline): TreatmentDoseInput[] {
   return plan.steps.filter(isNote).map(({ dose }) => dose)
 }
 
 /** L'échéance qui porte le décalage d'une prise : pour une dose avancée, son échéance d'origine. */
-export function shiftDueOf(plan: PeriodPlan, due: Due): Due {
+export function shiftDueOf(plan: PeriodTimeline, due: Due): Due {
   const advanced = plan.steps.find(
     ({ kind, dose }) =>
       kind === 'move' && dose.nextDueDate === due.dueOn && dose.nextDueDate < dose.dueOn,
@@ -307,6 +311,6 @@ export function shiftDueOf(plan: PeriodPlan, due: Due): Due {
 }
 
 /** La ligne de décalage en vigueur sur cette échéance. */
-export function shiftOn(plan: PeriodPlan, due: Due): TreatmentDoseInput | undefined {
+export function shiftOn(plan: PeriodTimeline, due: Due): TreatmentDoseInput | undefined {
   return plan.steps.find((step) => isShift(step) && dueId(step.dose) === dueId(due))?.dose
 }

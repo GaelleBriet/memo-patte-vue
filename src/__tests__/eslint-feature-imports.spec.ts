@@ -298,3 +298,51 @@ describe('imports dynamiques', { timeout: 30_000 }, () => {
     expect(result).toEqual({ feature: 1, legacy: 1 })
   })
 })
+
+describe("façade du moteur d'échéances", { timeout: 30_000 }, () => {
+  async function engineImports(filePath: string, statements: string[]) {
+    const [result] = await eslint.lintText(`${statements.join('\n')}\n`, {
+      filePath: `${ROOT}/${filePath}`,
+    })
+    const messages = result?.messages ?? []
+    expect(messages.filter((m) => m.fatal)).toEqual([])
+    return messages.filter((m) => m.ruleId === 'app/no-restricted-engine-imports').length
+  }
+
+  it('interdit les fichiers internes du moteur hors du moteur', async () => {
+    const feature = await engineImports('src/features/treatments/logic/treatment-plan.ts', [
+      "import { orderPeriods } from '@/shared/domain/treatment-schedule-timeline'",
+      "const m = () => import('@/shared/domain/treatment-schedule-dues')",
+    ])
+    const shared = await engineImports('src/shared/domain/reminder-plan.ts', [
+      "import { toDate } from './treatment-schedule-dues'",
+    ])
+    const component = await engineImports('src/shared/utils/format.ts', [
+      "import { toDate } from '../domain/treatment-schedule-dues'",
+    ])
+    const nested = await engineImports('src/shared/domain/reminders/plan.ts', [
+      "import { toDate } from '../treatment-schedule-dues'",
+      "import { keyOf } from '@/shared/domain/treatment-schedule-dues'",
+    ])
+
+    expect(feature).toBe(2)
+    expect(shared).toBe(1)
+    expect(component).toBe(1)
+    expect(nested).toBe(2)
+  })
+
+  it('autorise la façade, et les fichiers internes entre eux', async () => {
+    const feature = await engineImports('src/features/treatments/logic/treatment-plan.ts', [
+      "import { orderPeriods } from '@/shared/domain/treatment-schedule'",
+      "import { treatmentScheduleOf } from './treatment-schedule-adapter'",
+    ])
+    const engine = await engineImports('src/shared/domain/treatment-schedule-state.ts', [
+      "import { planPeriod } from './treatment-schedule-timeline'",
+    ])
+    const spec = await engineImports('src/shared/__tests__/treatment-schedule.spec.ts', [
+      "import { period } from './treatment-schedule-fixtures'",
+    ])
+
+    expect([feature, engine, spec]).toEqual([0, 0, 0])
+  })
+})

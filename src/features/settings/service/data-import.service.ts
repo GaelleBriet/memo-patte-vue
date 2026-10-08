@@ -28,7 +28,7 @@ import {
 } from '@/features/treatments/schema/treatment-period.schema'
 import {
   treatmentFrequencySchema,
-  treatmentInputSchema,
+  treatmentNameSchema,
   treatmentTypeSchema,
 } from '@/features/treatments/schema/treatment.schema'
 import {
@@ -154,7 +154,7 @@ const injectionFileSchema = z.object({
 const treatmentFileSchema = z.object({
   id: z.uuid(),
   animalId: z.uuid(),
-  name: treatmentInputSchema.shape.name,
+  name: treatmentNameSchema,
   type: treatmentTypeSchema,
   ...stamps,
 })

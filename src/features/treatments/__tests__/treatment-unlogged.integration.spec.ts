@@ -82,6 +82,7 @@ describe('doses non renseignées, du formulaire à la fiche, sur la même base',
     provideTreatmentPlanService(() =>
       createTreatmentPlanService({
         treatments: () => treatments,
+        reminders,
         today: () => TODAY,
         newId: () => crypto.randomUUID(),
       }),

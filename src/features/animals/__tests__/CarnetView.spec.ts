@@ -22,10 +22,8 @@ import i18n from '@/core/i18n'
 import router from '@/router'
 import vuetify from '@/core/theme/vuetify'
 import AnimalChipSelector from '@/shared/components/AnimalChipSelector.vue'
-import type {
-  TreatmentsRepository,
-  TreatmentWithHistory,
-} from '@/features/treatments/repository/treatments.repository'
+import type { TreatmentsRepository } from '@/features/treatments/repository/treatments.repository'
+import type { TreatmentWithHistory } from '@/features/treatments/schema/treatment-with-history.schema'
 import { provideTreatmentsRepository } from '@/features/treatments/store/treatments.store'
 import { fakeTreatmentsRepository } from '@/features/treatments/__tests__/fake-treatments-repository'
 import {
